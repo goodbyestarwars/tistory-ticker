@@ -13,9 +13,10 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#sector-dashboard';
   var FETCH_TIMEOUT_MS = 8000;
-  // GAS CacheService 키가 250자 제한이라, 종목코드를 한 번에 다 보내면
-  // 서버쪽 캐시 키 생성에서 예외가 난다. 요청을 이 크기로 쪼개서 병렬 호출한다.
-  var BATCH_SIZE = 25;
+  // GAS쪽 cacheKeyFor가 200자 넘는 키를 MD5 해시하므로 키 길이 제약은 없어졌고,
+  // 남은 제약은 URL 길이와 브라우저 동시연결(도메인당 6개)뿐이다.
+  // 60개 × 4배치면 전 종목이 한 라운드에 병렬 조회된다 (25개 × 10배치 = 2라운드였음).
+  var BATCH_SIZE = 60;
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
@@ -199,12 +200,14 @@
     );
   }
 
-  function renderAll(container, sectorMap, krxMap, dataByCode, mode, aiAnalysis) {
+  // aiState는 { analysis: string|null } 공유 객체 — AI 시황분석이 시세보다 늦게 도착해도
+  // 토글 재렌더 시점의 최신 값을 읽을 수 있게 문자열 대신 객체로 넘긴다.
+  function renderAll(container, sectorMap, krxMap, dataByCode, mode, aiState) {
     var contentHtml = mode === 'heatmap'
       ? renderHeatmapHtml(sectorMap, krxMap, dataByCode)
       : renderCardsHtml(sectorMap, krxMap, dataByCode);
 
-    var aiHtml = renderAiAnalysis(aiAnalysis);
+    var aiHtml = renderAiAnalysis(aiState.analysis);
 
     if (!contentHtml) {
       container.innerHTML = aiHtml + renderToggle(mode) + '<div class="sector-error">표시할 시세가 없습니다</div>';
@@ -218,7 +221,7 @@
       buttons[i].addEventListener('click', function () {
         var newMode = this.getAttribute('data-mode');
         try { localStorage.setItem('sector-view-mode', newMode); } catch (err) { /* ignore */ }
-        renderAll(container, sectorMap, krxMap, dataByCode, newMode, aiAnalysis);
+        renderAll(container, sectorMap, krxMap, dataByCode, newMode, aiState);
       });
     }
   }
@@ -251,17 +254,26 @@
 
     container.innerHTML = '<div class="sector-loading">시세 불러오는 중...</div>';
 
-    Promise.all([SectorDashboard.fetchTickerData(codes), fetchMarketAnalysis()])
-      .then(function (results) {
-        var list = results[0];
-        var aiAnalysis = results[1];
+    // AI 시황분석(Groq 캐시 미스 시 수 초)이 시세 표시를 막지 않게 분리:
+    // 시세가 오면 즉시 그리고, AI는 도착하는 대로 맨 위에 끼워넣는다.
+    var aiState = { analysis: null };
+    var aiPromise = fetchMarketAnalysis();
+
+    SectorDashboard.fetchTickerData(codes)
+      .then(function (list) {
         var byCode = {};
         (list || []).forEach(function (item) {
           if (item && item.code) byCode[item.code] = item;
         });
         var savedMode = 'cards';
         try { savedMode = localStorage.getItem('sector-view-mode') || 'cards'; } catch (err) { /* ignore */ }
-        renderAll(container, sectorMap, krxMap, byCode, savedMode, aiAnalysis);
+        renderAll(container, sectorMap, krxMap, byCode, savedMode, aiState);
+
+        aiPromise.then(function (analysis) {
+          if (!analysis) return;
+          aiState.analysis = analysis;
+          container.insertAdjacentHTML('afterbegin', renderAiAnalysis(analysis));
+        });
       })
       .catch(function (err) {
         logError('[sector-dashboard] 시세 조회 실패', err);
