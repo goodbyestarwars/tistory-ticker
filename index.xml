@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<skin>
+  <information>
+    <name>9bolt — Starlight Wisdom Alcove</name>
+    <version>1.0</version>
+    <description>
+      <![CDATA[9bolt 블로그 전용 커스텀 스킨. 네이비 다크 상단바, 3단 레이아웃(좌 사이드바 / 피드 / 우 사이드바), Nanum Myeongjo 세리프 서체 적용.]]>
+    </description>
+    <license>
+      <![CDATA[개인 블로그 전용. 무단 재배포 금지.]]>
+    </license>
+  </information>
+  <author>
+    <name>gOOdbyestar</name>
+    <homepage>https://ghlee.tistory.com</homepage>
+    <email></email>
+  </author>
+  <default>
+    <recentEntries>5</recentEntries>
+    <recentComments>5</recentComments>
+    <recentTrackbacks>5</recentTrackbacks>
+    <itemsOnGuestbook>10</itemsOnGuestbook>
+    <tagsInCloud>30</tagsInCloud>
+    <sortInCloud>3</sortInCloud>
+    <expandComment>0</expandComment>
+    <expandTrackback>0</expandTrackback>
+    <lengthOfRecentNotice>25</lengthOfRecentNotice>
+    <lengthOfRecentEntry>27</lengthOfRecentEntry>
+    <lengthOfRecentComment>30</lengthOfRecentComment>
+    <lengthOfRecentTrackback>30</lengthOfRecentTrackback>
+    <lengthOfLink>30</lengthOfLink>
+    <showListOnCategory>1</showListOnCategory>
+    <showListOnArchive>1</showListOnArchive>
+    <contentWidth>720</contentWidth>
+  </default>
+</skin>

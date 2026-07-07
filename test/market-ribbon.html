@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>market-ribbon 로컬 테스트</title>
+<link rel="stylesheet" href="../css/market-ribbon.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; }
+  .page-body { max-width: 720px; margin: 40px auto; padding: 0 16px; }
+</style>
+</head>
+<body>
+
+<div id="market-ribbon" class="market-ribbon"></div>
+
+<div class="page-body">
+  <h1>market-ribbon 로컬 테스트</h1>
+  <p>GAS 배포 전이므로 <code>MarketRibbon.fetchRibbon</code>을 mock으로 교체해 렌더링만 검증합니다.</p>
+</div>
+
+<script>
+  // GAS 실제 호출 없이 로컬에서 렌더링만 검증하기 위한 mock.
+  // market-ribbon.js의 init()이 DOMContentLoaded에서 즉시 fetchRibbon을 호출하므로
+  // 그 전에 override되도록 스크립트 로드 순서를 바꾼다 (mock 먼저 정의 -> 이후 진짜 스크립트가 override 확인).
+  window.__MOCK_RIBBON__ = {
+    kospi: { name: '코스피', price: 2823.4, change: 12.5, changeRate: 0.44 },
+    kosdaq: { name: '코스닥', price: 812.1, change: -3.2, changeRate: -0.39 },
+    usdkrw: { name: '원/달러', price: 1372.5, change: -8.5, changeRate: -0.62 },
+    btc: { name: 'BTC', price: 143250000, change: 1200000, changeRate: 0.85 }
+  };
+</script>
+<script src="../js/market-ribbon.js"></script>
+<script>
+  MarketRibbon.fetchRibbon = function () {
+    console.log('[mock] fetchRibbon called');
+    return Promise.resolve(window.__MOCK_RIBBON__);
+  };
+  // init()이 이미 DOMContentLoaded에서 실행되며 override 전 원본 fetch가 실패했을 수 있으니 재실행
+  MarketRibbon.init();
+</script>
+
+</body>
+</html>

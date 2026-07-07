@@ -1,0 +1,174 @@
+/* ============ 글 내 티커 자동 툴팁 (1단계 MVP) ============ */
+
+.ticker-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.85em;
+  font-family: inherit;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.ticker-badge.ticker-up {
+  color: #d24f45;
+  background: rgba(210, 79, 69, 0.08);
+}
+.ticker-badge.ticker-down {
+  color: #1261c4;
+  background: rgba(18, 97, 196, 0.08);
+}
+.ticker-badge.ticker-flat {
+  color: #6b7280;
+  background: rgba(107, 114, 128, 0.08);
+}
+
+.ticker-badge:hover,
+.ticker-badge.ticker-badge-active {
+  border-color: currentColor;
+}
+
+.ticker-tooltip {
+  position: absolute;
+  z-index: 9999;
+  max-width: 300px; /* 차트가 들어가면서 260 -> 300 (가독성) */
+  min-width: 200px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--ticker-tt-bg, #ffffff);
+  color: var(--ticker-tt-text, #111827);
+  border: 1px solid var(--ticker-tt-border, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 10px 12px;
+}
+
+.ticker-tooltip-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 13.5px;
+}
+
+.ticker-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.ticker-tooltip-label {
+  color: var(--ticker-tt-label, #6b7280);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.ticker-tooltip-value {
+  font-weight: 600;
+  text-align: right;
+}
+
+.ticker-tooltip-value.ticker-up { color: #d24f45; }
+.ticker-tooltip-value.ticker-down { color: #1261c4; }
+.ticker-tooltip-value.ticker-flat { color: #6b7280; }
+
+.ticker-tooltip-link {
+  display: block;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ticker-tt-border, #e2e8f0);
+  font-size: 12px;
+  text-decoration: none;
+  color: #2563eb;
+}
+.ticker-tooltip-link:hover { text-decoration: underline; }
+
+/* ============ 툴팁 차트 (일/주/월 탭) ============ */
+
+.ticker-tooltip-chart {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ticker-tt-border, #e2e8f0);
+  min-width: 260px; /* 시세 텍스트만으로는 툴팁이 200px까지 좁아져 차트가 답답해 보임 -> 차트가 폭을 벌림 */
+}
+
+.ticker-chart-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.ticker-chart-tab {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--ticker-tt-border, #e2e8f0);
+  background: transparent;
+  color: var(--ticker-tt-label, #6b7280);
+  cursor: pointer;
+}
+
+.ticker-chart-tab.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+}
+
+/* 네이버 차트 PNG는 흰 배경이라 다크모드 툴팁 안에서도 흰 카드로 자연스럽게 보이게 유지 */
+.ticker-chart-img {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+/* ============ 언급 종목 요약 박스 (3단계) ============ */
+
+.ticker-mentioned-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.ticker-mentioned-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.ticker-mentioned-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ticker-tooltip {
+    --ticker-tt-bg: #1f2430;
+    --ticker-tt-text: #e5e7eb;
+    --ticker-tt-border: #383f4f;
+    --ticker-tt-label: #9aa4b2;
+  }
+  .ticker-mentioned-box {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: #383f4f;
+  }
+  .ticker-mentioned-title { color: #9aa4b2; }
+}

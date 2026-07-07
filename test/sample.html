@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>ticker-tooltip 로컬 테스트</title>
+<link rel="stylesheet" href="../css/ticker-tooltip-v3.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; max-width: 720px; margin: 40px auto; padding: 0 16px; line-height: 1.9; color:#1f2430; }
+  .post-single-body { border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; }
+  .checklist { margin-top: 32px; font-size: 14px; color: #444; background:#f8fafc; padding:16px; border-radius:8px; }
+  pre { background:#0f172a; color:#e2e8f0; padding:12px; border-radius:6px; overflow:auto; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>ticker-tooltip 로컬 테스트</h1>
+<p>krx_map.js는 실제 배포와 동일하게 &lt;script&gt;로 로드합니다 (JSON fetch 아님).
+GAS만 로컬에 없으므로 <code>TickerTooltip.fetchTickerData</code>를 mock으로 교체해 검증합니다.</p>
+
+<div class="post-single-body">
+  <p>오늘 장에서 $삼성전자 와 $005930 은 같은 종목을 가리켜야 합니다.</p>
+  <p>중소형주 중에서는 $비에이치아이 가 눈에 띄었고, $에코프로비엠 은 보합이었습니다.</p>
+  <p>$없는종목 은 매핑에 없으므로 원문 그대로 남아야 합니다.</p>
+  <p>링크 안의 텍스트는 무시되어야 합니다: <a href="#">$삼성전자 링크텍스트</a></p>
+  <p>코드블록 안의 변수도 무시되어야 합니다:</p>
+  <pre><code>const $삼성전자 = getPrice(); // 건드리면 안됨</code></pre>
+</div>
+
+<div class="checklist">
+  <strong>확인 체크리스트</strong>
+  <ul>
+    <li>$삼성전자, $005930 → 둘 다 "삼성전자 ▲/▼N%" 뱃지로 변환되는지</li>
+    <li>$비에이치아이 → 하락(파랑) 뱃지, $에코프로비엠 → 보합(회색) 뱃지로 변환되는지</li>
+    <li>$없는종목 → 뱃지 없이 원문 그대로 남아있는지</li>
+    <li>&lt;a&gt; 안의 $삼성전자 → 뱃지로 바뀌지 않고 원문 그대로인지 (링크 텍스트 유지)</li>
+    <li>&lt;pre&gt;/&lt;code&gt; 안의 $삼성전자 → 뱃지로 바뀌지 않고 원문 그대로인지</li>
+    <li>PC: 뱃지에 마우스를 올리고 약 200ms 후 툴팁이 뜨는지, 벗어나면 닫히는지</li>
+    <li>모바일 또는 개발자도구 기기 모드: 탭하면 툴팁이 뜨고, 다른 곳을 탭하면 닫히는지</li>
+    <li>뱃지를 화면 가장자리로 스크롤한 뒤 열어서, 툴팁이 화면 밖으로 잘리지 않고 위치가 보정되는지</li>
+    <li>한 번에 툴팁이 1개만 열리는지 (다른 뱃지를 열면 이전 툴팁이 닫히는지)</li>
+    <li>툴팁 안 "네이버 금융에서 보기" 링크가 올바른 종목코드로 연결되는지</li>
+  </ul>
+</div>
+
+<script src="../data/krx_map.js"></script>
+<script src="../js/ticker-tooltip-v5.js"></script>
+<script>
+  // GAS 실제 호출 없이 로컬에서 파싱·렌더링만 검증하기 위한 mock.
+  // DOMContentLoaded 전에 override되므로 init()에는 이 mock이 사용된다.
+  var MOCK_TICKER_DATA = {
+    '005930': { code: '005930', name: '삼성전자', price: 71000, change: 500, changeRate: 0.71, volume: 12345678, time: '2026-07-02 15:30:00' },
+    '083650': { code: '083650', name: '비에이치아이', price: 18500, change: -400, changeRate: -2.12, volume: 2345678, time: '2026-07-02 15:30:00' },
+    '247540': { code: '247540', name: '에코프로비엠', price: 152000, change: 0, changeRate: 0, volume: 987654, time: '2026-07-02 15:30:00' }
+  };
+
+  TickerTooltip.fetchTickerData = function (codes) {
+    console.log('[mock] fetchTickerData called with', codes);
+    return Promise.resolve(
+      codes.map(function (c) { return MOCK_TICKER_DATA[c]; }).filter(Boolean)
+    );
+  };
+</script>
+
+</body>
+</html>

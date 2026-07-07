@@ -1,0 +1,53 @@
+/* ============ 상단 지수/환율/코인 리본 ============ */
+
+/* navbar(z-index:300, top:0)보다 위에 고정해야 하는 세 번째 fixed 바.
+   navbar/disc-ticker/page-wrap/sidebar의 top 오프셋도 이 높이(32px)만큼 같이 밀려있다
+   (style.css .navbar/.disc-ticker/.page-wrap/.sidebar-left/.sidebar-right, skin.html 인라인 JS 참고). */
+.market-ribbon {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 301;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 20px;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-size: 12.5px;
+  font-family: inherit;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.ribbon-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ribbon-label {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.ribbon-price {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.ribbon-rate {
+  font-weight: 600;
+}
+.ribbon-rate.ribbon-up { color: #ff6b6b; }
+.ribbon-rate.ribbon-down { color: #4dabf7; }
+.ribbon-rate.ribbon-flat { color: #94a3b8; }
+
+@media (max-width: 640px) {
+  .market-ribbon {
+    gap: 14px;
+    padding: 6px 14px;
+    font-size: 11.5px;
+  }
+}

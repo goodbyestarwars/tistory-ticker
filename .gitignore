@@ -1,0 +1,8 @@
+# 스킨 원본은 공개 저장소에 올리지 않음 (9bolt 스킨 저작물)
+skin.html
+skin.html.bak
+style.css
+dist/
+
+# 로컬 설정
+.claude/

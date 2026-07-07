@@ -1,0 +1,626 @@
+/* ============ 종목 뉴스 검색 ============ */
+
+.stock-news-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.sn-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.sn-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  outline: none;
+}
+
+.sn-input:focus {
+  border-color: #2563eb;
+}
+
+.sn-input::placeholder {
+  font-weight: 700;
+}
+
+.sn-search-btn {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: #111827;
+  color: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sn-suggest {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.sn-suggest.active {
+  display: block;
+}
+
+.sn-suggest-item {
+  padding: 9px 14px;
+  font-size: 13.5px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.sn-suggest-item:hover {
+  background: #f1f5f9;
+}
+
+/* ============ 관심종목 + 뉴스 2단 레이아웃 ============ */
+
+.sn-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.sn-watchlist {
+  flex: 0 0 220px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.sn-wl-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+}
+
+.sn-wl-item:last-child {
+  border-bottom: none;
+}
+
+.sn-wl-item:hover {
+  background: #f8fafc;
+}
+
+.sn-wl-item.active {
+  background: #111827;
+}
+
+.sn-wl-item.active .sn-wl-name,
+.sn-wl-item.active .sn-wl-price {
+  color: #ffffff;
+}
+
+.sn-wl-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sn-wl-quote {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.sn-wl-price {
+  font-size: 12.5px;
+  color: #374151;
+}
+
+.sn-wl-rate {
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.sn-wl-rate.sn-up { color: #d24f45; }
+.sn-wl-rate.sn-down { color: #1261c4; }
+.sn-wl-rate.sn-flat { color: #9ca3af; }
+.sn-wl-item.active .sn-wl-rate.sn-up { color: #ff8a80; }
+.sn-wl-item.active .sn-wl-rate.sn-down { color: #82b1ff; }
+
+.sn-wl-loading {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.sn-wl-remove {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.sn-wl-remove:hover {
+  color: #ef4444;
+}
+
+.sn-wl-item.active .sn-wl-remove {
+  color: #4b5563;
+}
+
+.sn-wl-item.active .sn-wl-remove:hover {
+  color: #f87171;
+}
+
+.sn-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .sn-layout {
+    flex-direction: column;
+  }
+  .sn-watchlist {
+    flex: 1 1 auto;
+    width: 100%;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+}
+
+/* ============ 모바일 최적화 ============ */
+
+@media (max-width: 480px) {
+  .stock-news-search {
+    flex-direction: column;
+  }
+
+  .sn-search-btn {
+    width: 100%;
+  }
+
+  .sn-wl-item {
+    padding: 10px 12px;
+  }
+
+  .sn-wl-name {
+    font-size: 13px;
+  }
+
+  .sn-news-item {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .sn-news-thumb,
+  .sn-news-thumb-empty {
+    width: 56px;
+    height: 56px;
+  }
+
+  .sn-news-title {
+    font-size: 13.5px;
+  }
+
+  .sn-modal-card {
+    padding: 16px 16px 20px;
+  }
+
+  .sn-modal-title {
+    font-size: 15px;
+  }
+}
+
+.sn-hint,
+.sn-loading,
+.sn-error {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.sn-hint {
+  font-weight: 700;
+}
+
+.sn-result-header {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.sn-result-code {
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* ============ AI 요약 (Groq) ============ */
+/* 시황분석 박스(sector-dashboard-v3.css의 .market-ai-summary)와 동일 톤 */
+
+.sn-ai-summary {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-left: 4px solid #6366f1;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.15);
+}
+
+.sn-ai-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+  background: #6366f1;
+  padding: 3px 11px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+  letter-spacing: 0.2px;
+}
+
+.sn-ai-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.75;
+  color: #312e81;
+}
+
+.sn-news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sn-news-item {
+  display: flex;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+}
+
+.sn-news-item:hover {
+  border-color: #cbd5e1;
+}
+
+.sn-news-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f1f5f9;
+}
+
+.sn-news-thumb-empty {
+  background: #f1f5f9;
+}
+
+.sn-news-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.sn-news-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.sn-news-snippet {
+  font-size: 12.5px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.sn-news-meta {
+  font-size: 12px;
+  color: #9ca3af;
+  display: flex;
+  gap: 8px;
+}
+
+.sn-news-press {
+  font-weight: 600;
+}
+
+/* ============ 뉴스 상세 모달 ============ */
+
+#sn-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sn-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.sn-modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 92vw);
+  max-height: 82vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px 22px 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.sn-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.sn-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.sn-modal-close {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  color: #6b7280;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+
+.sn-modal-meta {
+  font-size: 12.5px;
+  color: #9ca3af;
+  margin-bottom: 14px;
+}
+
+.sn-modal-img {
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
+.sn-modal-body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #374151;
+  margin-bottom: 18px;
+}
+
+.sn-modal-link {
+  display: inline-block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #2563eb;
+  padding: 9px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+/* ============ 다크모드 ============ */
+/* 이 위젯은 티스토리 .post-single-body 안에 붙는데, 다크모드에서
+   `html.dark .post-single-body *`가 !important로 모든 글자색을 흰색 계열로 덮어써서
+   (style.css 참고) 카드 배경은 흰색 그대로 남고 글자만 하얗게 변해 안 보이는 문제가 있었다.
+   #stock-news를 붙여 specificity를 그 규칙보다 높여 이긴다. 색은 style.css의 다크모드
+   팔레트(카드 #171e2f, 본문 텍스트 #eaeef5, 보조텍스트 #b3bdcf, 상승/하락 #ff6b6b/#4dabf7)와 맞춤. */
+
+html.dark #stock-news .sn-input {
+  background: #0e1320;
+  border-color: #334155;
+  color: #eaeef5 !important;
+}
+
+html.dark #stock-news .sn-input::placeholder {
+  color: #6b7691 !important;
+}
+
+html.dark #stock-news .sn-search-btn {
+  background: #2a3f6e;
+  color: #ffffff !important;
+}
+
+html.dark #stock-news .sn-suggest {
+  background: #171e2f;
+  border-color: #334155;
+}
+
+html.dark #stock-news .sn-suggest-item {
+  color: #d3dbe8 !important;
+}
+
+html.dark #stock-news .sn-suggest-item:hover {
+  background: #1c2942;
+}
+
+html.dark #stock-news .sn-watchlist {
+  background: #171e2f;
+  border-color: #334155;
+}
+
+html.dark #stock-news .sn-wl-item {
+  border-bottom-color: #263248;
+}
+
+html.dark #stock-news .sn-wl-item:hover {
+  background: #1c2942;
+}
+
+html.dark #stock-news .sn-wl-item.active {
+  background: #2a3f6e;
+}
+
+html.dark #stock-news .sn-wl-name {
+  color: #eaeef5 !important;
+}
+
+html.dark #stock-news .sn-wl-price {
+  color: #b3bdcf !important;
+}
+
+html.dark #stock-news .sn-wl-rate.sn-up {
+  color: #ff6b6b !important;
+}
+
+html.dark #stock-news .sn-wl-rate.sn-down {
+  color: #4dabf7 !important;
+}
+
+html.dark #stock-news .sn-wl-rate.sn-flat {
+  color: #7c8aa5 !important;
+}
+
+html.dark #stock-news .sn-wl-item.active .sn-wl-name,
+html.dark #stock-news .sn-wl-item.active .sn-wl-price {
+  color: #ffffff !important;
+}
+
+html.dark #stock-news .sn-wl-remove {
+  color: #7c8aa5 !important;
+}
+
+html.dark #stock-news .sn-wl-remove:hover {
+  color: #ff6b6b !important;
+}
+
+html.dark #stock-news .sn-wl-item.active .sn-wl-remove {
+  color: #b3bdcf !important;
+}
+
+html.dark #stock-news .sn-hint,
+html.dark #stock-news .sn-loading,
+html.dark #stock-news .sn-error {
+  color: #b3bdcf !important;
+}
+
+html.dark #stock-news .sn-result-header {
+  color: #eaeef5 !important;
+}
+
+html.dark #stock-news .sn-result-code {
+  color: #8590a8 !important;
+}
+
+html.dark #stock-news .sn-news-item {
+  background: #171e2f;
+  border-color: #263248;
+  box-shadow: none;
+}
+
+html.dark #stock-news .sn-news-item:hover {
+  border-color: #3b4a68;
+}
+
+html.dark #stock-news .sn-news-thumb,
+html.dark #stock-news .sn-news-thumb-empty {
+  background: #0e1320;
+}
+
+html.dark #stock-news .sn-news-title {
+  color: #eaeef5 !important;
+}
+
+html.dark #stock-news .sn-news-snippet {
+  color: #b3bdcf !important;
+}
+
+html.dark #stock-news .sn-news-meta {
+  color: #7c8aa5 !important;
+}
+
+html.dark #stock-news .sn-ai-summary {
+  background: #1c2340;
+  border-color: #2e3a6b;
+  border-left-color: #818cf8;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+html.dark #stock-news .sn-ai-badge {
+  background: #818cf8;
+  color: #1c2340 !important;
+}
+
+html.dark #stock-news .sn-ai-text {
+  color: #d6dbf5 !important;
+}
+
+/* 모달은 document.body에 직접 붙어서 .post-single-body 바깥이라 위 !important 규칙과 충돌 없음 */
+html.dark .sn-modal-overlay {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+html.dark .sn-modal-card {
+  background: #171e2f;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+html.dark .sn-modal-title {
+  color: #eaeef5;
+}
+
+html.dark .sn-modal-meta {
+  color: #8590a8;
+}
+
+html.dark .sn-modal-body {
+  color: #d3dbe8;
+}
+
+html.dark .sn-modal-close {
+  color: #b3bdcf;
+}
