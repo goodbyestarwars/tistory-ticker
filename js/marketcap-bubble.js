@@ -1,8 +1,9 @@
 /**
  * 시가총액 버블차트 (코스피/코스닥/ETF/단일종목레버리지)
- * GAS 프록시(?bubble=1)를 45초 간격으로 폴링, 원(circle) 크기=시가총액 sqrt 스케일로
- * 4개 구역(코스피/코스닥/ETF/레버리지)에 나눠 표시한다. d3 등 외부 라이브러리 없이
- * 자체 원형 패킹 시뮬레이션(반발+중력 반복)만으로 배치한다.
+ * GAS 프록시(?bubble=1)를 45초 간격으로 폴링. 전체 종목을 하나의 유기적 버블맵으로
+ * 합쳐서 보여준다(카테고리별로 쪼개서 박스에 가두지 않음) - 카테고리는 채우기 색,
+ * 등락은 테두리 색으로 구분(애플 스타일: 채도 낮은 플랫 컬러 + 부드러운 그림자).
+ * d3 등 외부 라이브러리 없이 2단계 자체 원형 패킹(종목 -> 카테고리 클러스터 -> 전체)만으로 배치.
  * data/marketcap-codes.js가 이 스크립트보다 먼저 로드되어야 한다(로컬 프리뷰 fallback용).
  */
 (function (global) {
@@ -13,18 +14,15 @@
   var REFRESH_MS = 45 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
 
-  var CATEGORY_LABELS = { KOSPI: '코스피', KOSDAQ: '코스닥', ETF: 'ETF', LEV: '단일종목 레버리지' };
   var CATEGORY_ORDER = ['KOSPI', 'KOSDAQ', 'ETF', 'LEV'];
+  var CATEGORY_LABELS = { KOSPI: '코스피', KOSDAQ: '코스닥', ETF: 'ETF', LEV: '단일종목 레버리지' };
 
-  var VIEW_W = 760;
-  var VIEW_H = 520;
-  var PAD = 8;
-  var CELL_W = VIEW_W / 2;
-  var CELL_H = VIEW_H / 2;
-  var TITLE_H = 24;
+  var VIEW_W = 820;
+  var VIEW_H = 560;
+  var PAD = 10;
 
-  var MIN_R = 15;
-  var MAX_R = 78;
+  var MIN_R = 11;
+  var MAX_R = 150;
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
@@ -52,11 +50,12 @@
 
   // ---------- 원형 패킹(간이 시뮬레이션: 반발 + 중력) ----------
   // nodes: [{r, ...}] r만 있으면 되고 x/y는 이 함수가 채운다. 중심(0,0) 기준 로컬 좌표로 배치.
-  function packCircles(nodes, iterations) {
+  function packCircles(nodes, iterations, gravityX, gravityY) {
     if (!nodes.length) return;
-    iterations = iterations || 220;
+    iterations = iterations || 240;
+    gravityX = gravityX == null ? 0.03 : gravityX;
+    gravityY = gravityY == null ? gravityX : gravityY;
 
-    // 초기 배치: 반지름 큰 순으로 나선형 배치(겹침 줄이기 위한 시작점)
     var sorted = nodes.slice().sort(function (a, b) { return b.r - a.r; });
     sorted.forEach(function (n, i) {
       var angle = i * 2.399963; // 황금각
@@ -65,14 +64,7 @@
       n.y = radius * Math.sin(angle);
     });
 
-    for (var iter = 0; iter < iterations; iter++) {
-      // 중심 인력(뭉치게)
-      var gravity = 0.02;
-      for (var i = 0; i < nodes.length; i++) {
-        nodes[i].x -= nodes[i].x * gravity * 0.05;
-        nodes[i].y -= nodes[i].y * gravity * 0.05;
-      }
-      // 쌍별 반발(충돌 방지)
+    function repel() {
       for (var a = 0; a < nodes.length; a++) {
         for (var b = a + 1; b < nodes.length; b++) {
           var na = nodes[a], nb = nodes[b];
@@ -92,6 +84,16 @@
         }
       }
     }
+
+    for (var iter = 0; iter < iterations; iter++) {
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].x -= nodes[i].x * gravityX;
+        nodes[i].y -= nodes[i].y * gravityY;
+      }
+      repel();
+    }
+    // 중력 스텝 없이 반발만 추가로 돌려 잔여 겹침을 완전히 해소한다(겹침 0 보장).
+    for (var cleanup = 0; cleanup < 80; cleanup++) repel();
   }
 
   // 패킹 결과를 지정된 사각 영역(w x h) 안에 비율 유지한 채 맞춰 넣는다(중앙 정렬).
@@ -144,68 +146,123 @@
     return el;
   }
 
+  // 2단계 패킹: 1) 카테고리 안에서 종목끼리 패킹 -> 그 클러스터의 외접원 반지름 산출
+  // 2) 4개 클러스터(외접원 크기가 제각각)를 다시 패킹 -> 큰 카테고리(코스피)는 넓게,
+  //    작은 카테고리(레버리지)는 주변부에 자연스럽게 밀려나는 유기적 배치가 나온다.
   function buildLayout(data) {
     var maxCap = 0;
     CATEGORY_ORDER.forEach(function (cat) {
       (data[cat] || []).forEach(function (it) { maxCap = Math.max(maxCap, it.cap || 0); });
     });
 
-    var cellPositions = [
-      { x: 0, y: 0 }, { x: CELL_W, y: 0 },
-      { x: 0, y: CELL_H }, { x: CELL_W, y: CELL_H }
-    ];
-
-    var groups = [];
-    CATEGORY_ORDER.forEach(function (cat, idx) {
+    var clusters = CATEGORY_ORDER.map(function (cat) {
       var items = (data[cat] || []).map(function (it) {
         return {
           name: it.name,
           cap: it.cap,
           changeRate: it.changeRate,
           breakdown: it.breakdown,
+          category: cat,
           r: radiusScale(it.cap, maxCap)
         };
       });
       packCircles(items);
-      fitToBox(items, CELL_W, CELL_H - TITLE_H, PAD);
-      items.forEach(function (n) { n.y += TITLE_H; });
 
-      groups.push({
-        key: cat,
-        label: CATEGORY_LABELS[cat] || cat,
-        ox: cellPositions[idx].x,
-        oy: cellPositions[idx].y,
-        items: items
+      var enclosingR = 10;
+      items.forEach(function (n) {
+        enclosingR = Math.max(enclosingR, Math.sqrt(n.x * n.x + n.y * n.y) + n.r);
+      });
+
+      return { key: cat, items: items, r: enclosingR };
+    }).filter(function (cl) { return cl.items.length; });
+
+    // y축 중력을 x축보다 세게 걸어 클러스터가 세로로 쌓이기보다 가로로 넓게 퍼지도록 유도
+    // (블로그 임베드는 세로로 긴 것보다 가로로 넓은 게 한눈에 다 보임 - 사용자 요청).
+    packCircles(clusters, 320, 0.035, 0.11);
+
+    var allNodes = [];
+    clusters.forEach(function (cl) {
+      cl.items.forEach(function (n) {
+        allNodes.push({
+          name: n.name,
+          cap: n.cap,
+          changeRate: n.changeRate,
+          breakdown: n.breakdown,
+          category: n.category,
+          r: n.r,
+          x: cl.x + n.x,
+          y: cl.y + n.y
+        });
       });
     });
 
-    return groups;
+    // 실제로 뭉친 모양의 가로세로 비율에 맞춰 캔버스 높이를 정한다(고정 비율로 맞추면
+    // 데이터에 따라 위아래/양옆에 빈 공간이 크게 남을 수 있어서 - 매번 꽉 채우도록 계산).
+    var viewH = computeFitHeight(allNodes, VIEW_W);
+    fitToBox(allNodes, VIEW_W, viewH, PAD);
+    return { nodes: allNodes, viewH: viewH };
   }
 
-  function render(container, groups, updatedAt) {
+  function computeFitHeight(nodes, viewW) {
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    nodes.forEach(function (n) {
+      minX = Math.min(minX, n.x - n.r);
+      maxX = Math.max(maxX, n.x + n.r);
+      minY = Math.min(minY, n.y - n.r);
+      maxY = Math.max(maxY, n.y + n.r);
+    });
+    // viewBox 단위는 화면 픽셀이 아니라 비율 좌표계라서 절대 높이로 clamp하면 의미가 없다
+    // (실제 표시 높이는 컨테이너 실width / aspect로 정해짐) - 가로세로 비율만 landscape로 제한.
+    // clamp을 좁게 걸면 content 자연 비율과 어긋나 한쪽 축에 빈 공간이 남으므로,
+    // 극단적인 경우만 막는 넉넉한 범위로 둔다(대부분의 실제 데이터는 이 안에서 꽉 찬다).
+    var aspect = (maxX - minX) / Math.max(maxY - minY, 1);
+    aspect = Math.min(Math.max(aspect, 0.55), 2.6);
+    return Math.round(viewW / aspect);
+  }
+
+  function buildLegendHtml(data) {
+    var counts = {};
+    CATEGORY_ORDER.forEach(function (cat) { counts[cat] = (data[cat] || []).length; });
+
+    var catItems = [
+      ['KOSPI', '코스피 (' + counts.KOSPI + '종목)'],
+      ['KOSDAQ', '코스닥 (' + counts.KOSDAQ + '종목)'],
+      ['ETF', 'ETF (' + counts.ETF + '종목)'],
+      ['LEV', '단일종목 레버리지 (' + counts.LEV + '개, 각 7종 합산)']
+    ].map(function (pair) {
+      return '<span class="mcb-legend-item"><i class="mcb-dot mcb-cat-' + pair[0] + '"></i>' + pair[1] + '</span>';
+    }).join('');
+
+    var dirItems =
+      '<span class="mcb-legend-item"><i class="mcb-ring mcb-up"></i>테두리: 상승</span>' +
+      '<span class="mcb-legend-item"><i class="mcb-ring mcb-down"></i>테두리: 하락</span>';
+
+    return catItems + dirItems;
+  }
+
+  function render(container, nodes, viewH, updatedAt, legendHtml) {
     var svg = container.querySelector('svg.mcb-svg');
     var isFirstRender = !svg;
 
     if (isFirstRender) {
       container.innerHTML =
-        '<div class="mcb-head">' +
-          '<div class="mcb-legend">' +
-            '<span class="mcb-legend-item"><i class="mcb-dot mcb-up"></i>상승</span>' +
-            '<span class="mcb-legend-item"><i class="mcb-dot mcb-down"></i>하락</span>' +
-          '</div>' +
-          '<div class="mcb-updated"></div>' +
-        '</div>' +
         '<div class="mcb-canvas"></div>' +
-        '<div class="mcb-tooltip" hidden></div>';
-      svg = svgEl('svg', { class: 'mcb-svg', viewBox: '0 0 ' + VIEW_W + ' ' + VIEW_H });
+        '<div class="mcb-tooltip" hidden></div>' +
+        '<div class="mcb-legend"></div>' +
+        '<div class="mcb-updated"></div>';
+      svg = svgEl('svg', { class: 'mcb-svg', viewBox: '0 0 ' + VIEW_W + ' ' + viewH });
+      svg.appendChild(svgEl('g', { class: 'mcb-bubbles' }));
       container.querySelector('.mcb-canvas').appendChild(svg);
+    } else {
+      svg.setAttribute('viewBox', '0 0 ' + VIEW_W + ' ' + viewH);
     }
 
     container.querySelector('.mcb-updated').textContent = updatedAt ? updatedAt + ' 기준 (준실시간)' : '';
+    container.querySelector('.mcb-legend').innerHTML = legendHtml;
 
     var tooltip = container.querySelector('.mcb-tooltip');
     function hideTooltip() { tooltip.hidden = true; }
-    function showTooltip(evt, item) {
+    function showTooltip(item) {
       var rateTxt = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(2) + '%';
       tooltip.innerHTML =
         '<div class="mcb-tt-name">' + item.name + '</div>' +
@@ -216,77 +273,72 @@
 
       var canvasRect = container.querySelector('.mcb-canvas').getBoundingClientRect();
       var scale = canvasRect.width / VIEW_W;
-      var left = (item._gx) * scale;
-      var top = (item._gy) * scale;
+      var left = item.x * scale;
+      var top = item.y * scale;
       tooltip.style.left = Math.min(left, canvasRect.width - 160) + 'px';
       tooltip.style.top = Math.max(top - 70, 0) + 'px';
     }
 
-    // 그룹 <g> 재사용(없으면 생성) - 카테고리별로 고정된 순서라 매번 재생성하지 않아도 됨
-    groups.forEach(function (group) {
-      var g = svg.querySelector('g[data-cat="' + group.key + '"]');
-      if (!g) {
-        g = svgEl('g', { 'data-cat': group.key, transform: 'translate(' + group.ox + ',' + group.oy + ')' });
-        var title = svgEl('text', { class: 'mcb-cat-title', x: 4, y: 16 });
-        title.textContent = group.label;
-        g.appendChild(title);
-        g.appendChild(svgEl('g', { class: 'mcb-bubbles' }));
-        svg.appendChild(g);
+    var bubbleLayer = svg.querySelector('.mcb-bubbles');
+    var existing = {};
+    Array.prototype.forEach.call(bubbleLayer.querySelectorAll('.mcb-node'), function (node) {
+      existing[node.getAttribute('data-name')] = node;
+    });
+
+    var seen = {};
+    // 큰 원이 작은 원을 가리지 않도록 반지름 큰 순으로 먼저 그린다.
+    nodes.slice().sort(function (a, b) { return b.r - a.r; }).forEach(function (item) {
+      seen[item.name] = true;
+
+      var node = existing[item.name];
+      if (!node) {
+        node = svgEl('g', { class: 'mcb-node', 'data-name': item.name });
+        node.appendChild(svgEl('circle', { class: 'mcb-circle' }));
+        node.appendChild(svgEl('text', { class: 'mcb-label' }));
+        node.appendChild(svgEl('text', { class: 'mcb-cap-label' }));
+        node.appendChild(svgEl('text', { class: 'mcb-rate-label' }));
+        bubbleLayer.appendChild(node);
+
+        node.addEventListener('click', function (evt) {
+          evt.stopPropagation();
+          showTooltip(item);
+        });
       }
 
-      var bubbleLayer = g.querySelector('.mcb-bubbles');
-      var existing = {};
-      Array.prototype.forEach.call(bubbleLayer.querySelectorAll('.mcb-node'), function (node) {
-        existing[node.getAttribute('data-name')] = node;
-      });
+      var dirClass = directionClass(item.changeRate);
+      var big = item.r >= 60;
+      var mid = item.r >= 26;
+      var small = item.r >= 16;
 
-      var seen = {};
-      group.items.forEach(function (item) {
-        item._gx = group.ox + item.x;
-        item._gy = group.oy + item.y;
-        seen[item.name] = true;
+      var circleEl = node.querySelector('.mcb-circle');
+      circleEl.setAttribute('cx', item.x);
+      circleEl.setAttribute('cy', item.y);
+      circleEl.setAttribute('r', item.r);
+      circleEl.setAttribute('class', 'mcb-circle mcb-cat-' + item.category + ' ' + dirClass);
 
-        var node = existing[item.name];
-        if (!node) {
-          node = svgEl('g', { class: 'mcb-node', 'data-name': item.name });
-          var circle = svgEl('circle', { class: 'mcb-circle' });
-          var label = svgEl('text', { class: 'mcb-label' });
-          var rateLabel = svgEl('text', { class: 'mcb-rate-label' });
-          node.appendChild(circle);
-          node.appendChild(label);
-          node.appendChild(rateLabel);
-          bubbleLayer.appendChild(node);
+      var labelEl = node.querySelector('.mcb-label');
+      labelEl.setAttribute('x', item.x);
+      labelEl.setAttribute('y', item.y + (big ? -item.r * 0.28 : (mid ? -3 : 3)));
+      labelEl.style.display = small ? '' : 'none';
+      labelEl.style.fontSize = (big ? 15 : (mid ? 12 : 10)) + 'px';
+      labelEl.textContent = shortenName(item.name, item.r);
 
-          node.addEventListener('click', function (evt) {
-            evt.stopPropagation();
-            showTooltip(evt, item);
-          });
-        }
+      var capEl = node.querySelector('.mcb-cap-label');
+      capEl.setAttribute('x', item.x);
+      capEl.setAttribute('y', item.y + (big ? item.r * 0.02 : 999));
+      capEl.style.display = big ? '' : 'none';
+      capEl.textContent = formatCap(item.cap);
 
-        var circleEl = node.querySelector('.mcb-circle');
-        circleEl.setAttribute('cx', item.x);
-        circleEl.setAttribute('cy', item.y);
-        circleEl.setAttribute('r', item.r);
-        circleEl.setAttribute('class', 'mcb-circle ' + directionClass(item.changeRate));
+      var rateEl = node.querySelector('.mcb-rate-label');
+      rateEl.setAttribute('x', item.x);
+      rateEl.setAttribute('y', item.y + (big ? item.r * 0.32 : 14));
+      rateEl.setAttribute('class', 'mcb-rate-label ' + dirClass);
+      rateEl.style.display = mid ? '' : 'none';
+      rateEl.textContent = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(1) + '%';
+    });
 
-        var labelEl = node.querySelector('.mcb-label');
-        labelEl.setAttribute('x', item.x);
-        labelEl.setAttribute('y', item.y - (item.r > 26 ? 2 : -3));
-        labelEl.style.display = item.r >= 20 ? '' : 'none';
-        labelEl.textContent = shortenName(item.name, item.r);
-
-        var rateEl = node.querySelector('.mcb-rate-label');
-        rateEl.setAttribute('x', item.x);
-        rateEl.setAttribute('y', item.y + 14);
-        rateEl.setAttribute('class', 'mcb-rate-label ' + directionClass(item.changeRate));
-        rateEl.style.display = item.r >= 26 ? '' : 'none';
-        rateEl.textContent = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(1) + '%';
-      });
-
-      // 사라진 종목(리스트 변경 시) 제거
-      Object.keys(existing).forEach(function (name) {
-        if (!seen[name]) existing[name].remove();
-      });
+    Object.keys(existing).forEach(function (name) {
+      if (!seen[name]) existing[name].remove();
     });
 
     if (!container.__mcbClickBound) {
@@ -309,8 +361,9 @@
     MarketcapBubble.fetchBubbleData()
       .then(function (json) {
         if (!json || !json.data) throw new Error('empty bubble data');
-        var groups = buildLayout(json.data);
-        render(container, groups, json.updatedAt);
+        var layout = buildLayout(json.data);
+        var legendHtml = buildLegendHtml(json.data);
+        render(container, layout.nodes, layout.viewH, json.updatedAt, legendHtml);
       })
       .catch(function (err) {
         logError('[marketcap-bubble] 조회 실패', err);
