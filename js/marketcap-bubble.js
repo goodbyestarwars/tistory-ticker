@@ -146,6 +146,18 @@
     return el;
   }
 
+  // 유리(글라스모피즘) 효과용 - 좌상단에 밝은 하이라이트가 도는 방사형 그라디언트를
+  // 한 번만 정의해두고 모든 버블의 하이라이트 원(mcb-shine)이 재사용한다.
+  function buildGlassDefs() {
+    var defs = svgEl('defs');
+    var grad = svgEl('radialGradient', { id: 'mcb-shine-grad', cx: '35%', cy: '28%', r: '65%' });
+    grad.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#ffffff', 'stop-opacity': '0.85' }));
+    grad.appendChild(svgEl('stop', { offset: '55%', 'stop-color': '#ffffff', 'stop-opacity': '0.18' }));
+    grad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#ffffff', 'stop-opacity': '0' }));
+    defs.appendChild(grad);
+    return defs;
+  }
+
   // 2단계 패킹: 1) 카테고리 안에서 종목끼리 패킹 -> 그 클러스터의 외접원 반지름 산출
   // 2) 4개 클러스터(외접원 크기가 제각각)를 다시 패킹 -> 큰 카테고리(코스피)는 넓게,
   //    작은 카테고리(레버리지)는 주변부에 자연스럽게 밀려나는 유기적 배치가 나온다.
@@ -253,6 +265,7 @@
         '<div class="mcb-legend"></div>' +
         '<div class="mcb-updated"></div>';
       svg = svgEl('svg', { class: 'mcb-svg', viewBox: '0 0 ' + VIEW_W + ' ' + viewH });
+      svg.appendChild(buildGlassDefs());
       svg.appendChild(svgEl('g', { class: 'mcb-bubbles' }));
       container.querySelector('.mcb-canvas').insertBefore(svg, container.querySelector('.mcb-tooltip'));
     } else {
@@ -296,6 +309,7 @@
       if (!node) {
         node = svgEl('g', { class: 'mcb-node', 'data-name': item.name });
         node.appendChild(svgEl('circle', { class: 'mcb-circle' }));
+        node.appendChild(svgEl('circle', { class: 'mcb-shine', fill: 'url(#mcb-shine-grad)' }));
         node.appendChild(svgEl('text', { class: 'mcb-label' }));
         node.appendChild(svgEl('text', { class: 'mcb-cap-label' }));
         node.appendChild(svgEl('text', { class: 'mcb-rate-label' }));
@@ -323,6 +337,12 @@
       circleEl.setAttribute('cy', item.y);
       circleEl.setAttribute('r', item.r);
       circleEl.setAttribute('class', 'mcb-circle mcb-cat-' + item.category + ' ' + dirClass);
+
+      // 유리 효과: 원 자체 크기의 하이라이트를 좌상단으로 살짝 치우쳐 얹어 광택 표현
+      var shineEl = node.querySelector('.mcb-shine');
+      shineEl.setAttribute('cx', item.x);
+      shineEl.setAttribute('cy', item.y);
+      shineEl.setAttribute('r', item.r);
 
       var labelEl = node.querySelector('.mcb-label');
       labelEl.setAttribute('x', item.x);
