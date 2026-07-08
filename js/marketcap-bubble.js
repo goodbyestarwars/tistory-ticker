@@ -24,6 +24,7 @@
   var ZONE_GAP = 6;       // 구역(코스피/코스닥/ETF/레버리지) 사이 간격
   var ZONE_LABEL_H = 20;  // 구역 이름표가 차지하는 위쪽 띠 높이
   var CELL_GAP = 3;       // 구역 안 종목 셀 사이 간격
+  var MIN_ZONE_H = 56;    // 구역이 아무리 작아도 보장하는 최소 높이(이름표+종목 한 줄 볼 공간)
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
@@ -111,6 +112,41 @@
     }
   }
 
+  // 구역 높이를 시가총액 비율로 나누되, minH보다 작아지는 구역은 minH로 고정하고
+  // 남은 높이를 나머지 구역끼리 다시 비율대로 나눈다(반복 - 4개뿐이라 금방 수렴).
+  function sliceZoneHeights(zones, totalH, minH) {
+    var heights = {};
+    var pool = zones.slice();
+    var availH = totalH;
+
+    while (pool.length) {
+      var poolCap = pool.reduce(function (s, z) { return s + z.cap; }, 0);
+      var clamped = [];
+      var kept = [];
+      pool.forEach(function (z) {
+        var proposed = poolCap > 0 ? (z.cap / poolCap) * availH : availH / pool.length;
+        if (proposed < minH && pool.length > 1) {
+          clamped.push(z);
+        } else {
+          kept.push(z);
+        }
+      });
+      if (!clamped.length) {
+        pool.forEach(function (z) {
+          heights[z.key] = poolCap > 0 ? (z.cap / poolCap) * availH : availH / pool.length;
+        });
+        break;
+      }
+      clamped.forEach(function (z) {
+        heights[z.key] = minH;
+        availH -= minH;
+      });
+      pool = kept;
+    }
+
+    return heights;
+  }
+
   function directionClass(rate) {
     if (rate > 0) return 'mcb-up';
     if (rate < 0) return 'mcb-down';
@@ -167,11 +203,18 @@
 
     zones.sort(function (a, b) { return b.cap - a.cap; });
 
-    var totalCap = zones.reduce(function (s, z) { return s + z.cap; }, 0);
-    var zoneScale = (VIEW_W * VIEW_H) / (totalCap || 1);
-    zones.forEach(function (z) { z.value = z.cap * zoneScale; });
-
-    var zoneRects = squarify(zones, 0, 0, VIEW_W, VIEW_H);
+    // 구역(코스피/코스닥/ETF/레버리지)은 스퀘어파이드에 맡기면 코스피가 압도적으로 커서
+    // 나머지 구역이 오른쪽 끝에 얇은 세로줄로 몰려 잘 안 보이는 문제가 있었다 - 대신
+    // 위아래로 전체 폭을 쓰는 가로 띠로 쌓고(큰 구역이 위), 각 구역에 최소 높이를
+    // 보장해 작은 구역도 항상 눈에 띄게 한다.
+    var zoneHeights = sliceZoneHeights(zones, VIEW_H, MIN_ZONE_H);
+    var zy0 = 0;
+    var zoneRects = zones.map(function (z) {
+      var h = zoneHeights[z.key];
+      var rect = { item: z, x: 0, y: zy0, w: VIEW_W, h: h };
+      zy0 += h;
+      return rect;
+    });
 
     var nodes = [];
     var clusterLabels = [];
