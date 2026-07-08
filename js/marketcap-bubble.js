@@ -212,32 +212,35 @@
       });
     });
 
-    // 구역 이름표(코스피/코스닥/ETF/단일종목 레버리지) 위치는 클러스터 외접원 기준으로
-    // 잡는데, 이 좌표도 fitToBox의 스케일/이동을 그대로 적용받아야 버블 위치와 어긋나지
-    // 않는다 - 그래서 진짜 버블(allNodes)과 같은 배열에 섞어 넣고 한 번에 fitToBox를
-    // 돌린 다음 다시 분리한다(클러스터 마커는 이미 자기 종목들에 포함되는 반지름이라
-    // bbox 계산에 영향을 주지 않는다).
-    var clusterMarkers = clusters.map(function (cl) {
-      return { isClusterMarker: true, key: cl.key, x: cl.x, y: cl.y, r: cl.r };
-    });
-    var combined = allNodes.concat(clusterMarkers);
-
     // 실제로 뭉친 모양의 가로세로 비율에 맞춰 캔버스 높이를 정한다(고정 비율로 맞추면
     // 데이터에 따라 위아래/양옆에 빈 공간이 크게 남을 수 있어서 - 매번 꽉 채우도록 계산).
-    var viewH = computeFitHeight(combined, VIEW_W);
-    fitToBox(combined, VIEW_W, viewH, PAD + 16); // 이름표 들어갈 자리만큼 여유를 더 둠
+    var viewH = computeFitHeight(allNodes, VIEW_W);
+    fitToBox(allNodes, VIEW_W, viewH, PAD + 16); // 이름표 들어갈 자리만큼 여유를 더 둠
 
-    var nodes = combined.filter(function (n) { return !n.isClusterMarker; });
-    var clusterLabels = combined.filter(function (n) { return n.isClusterMarker; }).map(function (n) {
+    // 구역 이름표 위치는 클러스터의 "외접원" 기준이 아니라 실제 종목들이 fitToBox를
+    // 거친 뒤의 진짜 바운딩 박스(제일 위에 있는 버블의 꼭대기) 기준으로 잡는다.
+    // 패킹된 모양은 원이 아니라 울퉁불퉁한 덩어리라서 외접원 반지름을 쓰면 실제
+    // 버블 뭉치보다 훨씬 위로 이름표가 붕 뜨는 문제가 있었다.
+    var clusterLabels = CATEGORY_ORDER.map(function (cat) {
+      var items = allNodes.filter(function (n) { return n.category === cat; });
+      if (!items.length) return null;
+      var minY = Infinity, minX = Infinity, maxX = -Infinity, totalCap = 0;
+      items.forEach(function (n) {
+        minY = Math.min(minY, n.y - n.r);
+        minX = Math.min(minX, n.x - n.r);
+        maxX = Math.max(maxX, n.x + n.r);
+        totalCap += n.cap || 0;
+      });
       return {
-        key: n.key,
-        label: CATEGORY_LABELS[n.key] || n.key,
-        x: n.x,
-        y: Math.max(n.y - n.r - 8, 14)
+        key: cat,
+        label: CATEGORY_LABELS[cat] || cat,
+        x: (minX + maxX) / 2,
+        y: Math.max(minY - 8, 14),
+        totalCap: totalCap
       };
-    });
+    }).filter(Boolean);
 
-    return { nodes: nodes, viewH: viewH, clusterLabels: clusterLabels };
+    return { nodes: allNodes, viewH: viewH, clusterLabels: clusterLabels };
   }
 
   function computeFitHeight(nodes, viewW) {
@@ -284,15 +287,6 @@
       svg.setAttribute('viewBox', '0 0 ' + VIEW_W + ' ' + viewH);
     }
 
-    // 구역 이름표(코스피/코스닥/ETF/단일종목 레버리지) - 4개뿐이라 diff 없이 매번 새로 그림
-    var labelLayer = svg.querySelector('.mcb-cluster-labels');
-    labelLayer.innerHTML = '';
-    (clusterLabels || []).forEach(function (cl) {
-      var t = svgEl('text', { class: 'mcb-zone-label', x: cl.x, y: cl.y });
-      t.textContent = cl.label;
-      labelLayer.appendChild(t);
-    });
-
     container.querySelector('.mcb-updated').textContent = updatedAt ? updatedAt + ' 기준 (준실시간)' : '';
     container.querySelector('.mcb-legend').innerHTML = legendHtml;
 
@@ -314,6 +308,33 @@
       tooltip.style.left = Math.min(left, canvasRect.width - 160) + 'px';
       tooltip.style.top = Math.max(top - 70, 0) + 'px';
     }
+
+    function showZoneTooltip(cl) {
+      tooltip.innerHTML =
+        '<div class="mcb-tt-name">' + cl.label + '</div>' +
+        '<div class="mcb-tt-cap">전체 시가총액 ' + formatCap(cl.totalCap) + '</div>';
+      tooltip.hidden = false;
+
+      var canvasRect = container.querySelector('.mcb-canvas').getBoundingClientRect();
+      var scale = canvasRect.width / VIEW_W;
+      var left = cl.x * scale;
+      var top = cl.y * scale;
+      tooltip.style.left = Math.min(left, canvasRect.width - 160) + 'px';
+      tooltip.style.top = Math.max(top - 10, 0) + 'px';
+    }
+
+    // 구역 이름표(코스피/코스닥/ETF/단일종목 레버리지) - 4개뿐이라 diff 없이 매번 새로 그리고,
+    // 마우스를 올리면 그 구역 종목들의 시가총액 합계를 툴팁으로 보여준다.
+    var labelLayer = svg.querySelector('.mcb-cluster-labels');
+    labelLayer.innerHTML = '';
+    (clusterLabels || []).forEach(function (cl) {
+      var t = svgEl('text', { class: 'mcb-zone-label', x: cl.x, y: cl.y });
+      t.textContent = cl.label;
+      t.addEventListener('mouseenter', function (evt) { evt.stopPropagation(); showZoneTooltip(cl); });
+      t.addEventListener('mouseleave', hideTooltip);
+      t.addEventListener('click', function (evt) { evt.stopPropagation(); showZoneTooltip(cl); });
+      labelLayer.appendChild(t);
+    });
 
     var bubbleLayer = svg.querySelector('.mcb-bubbles');
     var existing = {};

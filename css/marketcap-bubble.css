@@ -59,7 +59,7 @@
   fill: #6b7280;
   text-anchor: middle;
   letter-spacing: 0.2px;
-  pointer-events: none;
+  cursor: pointer;
 }
 
 .mcb-label {
