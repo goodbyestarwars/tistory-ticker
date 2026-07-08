@@ -32,9 +32,9 @@
 .mcb-circle.mcb-cat-ETF { fill: #bf5af2; }
 .mcb-circle.mcb-cat-LEV { fill: #ff9f0a; }
 
-/* 테두리 = 등락 (파랑은 코스피 채우기색과 겹쳐 헷갈리므로 사용하지 않음 - 하락은 그레이) */
+/* 테두리 = 등락 (파랑은 코스피 채우기색과 겹쳐 헷갈리므로 사용하지 않음 - 하락은 민트/틸) */
 .mcb-circle.mcb-up { stroke: #ff453a; }
-.mcb-circle.mcb-down { stroke: #8e8e93; }
+.mcb-circle.mcb-down { stroke: #63e6e4; }
 .mcb-circle.mcb-flat { stroke: rgba(255, 255, 255, 0.7); }
 
 .mcb-label {
@@ -82,7 +82,7 @@
 .mcb-tt-cap { color: #d1d5db; }
 .mcb-tt-rate { font-weight: 700; }
 .mcb-tt-rate.mcb-up { color: #ff453a; }
-.mcb-tt-rate.mcb-down { color: #98989d; }
+.mcb-tt-rate.mcb-down { color: #63e6e4; }
 .mcb-tt-rate.mcb-flat { color: #9ca3af; }
 .mcb-tt-breakdown {
   margin-top: 5px;
@@ -126,7 +126,7 @@
   border-style: solid;
 }
 .mcb-ring.mcb-up { border-color: #ff453a; }
-.mcb-ring.mcb-down { border-color: #8e8e93; }
+.mcb-ring.mcb-down { border-color: #63e6e4; }
 
 .mcb-updated {
   margin-top: 6px;
