@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>marketcap-bubble 로컬 테스트</title>
+<link rel="stylesheet" href="../css/marketcap-bubble.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
+  .page-body { max-width: 780px; margin: 40px auto; padding: 0 16px; }
+  .toggle-dark { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="page-body">
+  <h1>marketcap-bubble 로컬 테스트</h1>
+  <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+  <div id="marketcap-bubble" class="marketcap-bubble"></div>
+</div>
+
+<script src="../data/marketcap-codes.js"></script>
+<script>
+  // GAS 실배포 전이므로 mock 데이터로 렌더링만 검증.
+  // data/marketcap-codes.js의 코드 목록을 그대로 써서 실제 개수(20/15/10/2)를 재현한다.
+  function mockQuote(code, name, baseCap) {
+    var cap = baseCap * (0.85 + Math.random() * 0.3);
+    var changeRate = (Math.random() - 0.45) * 12;
+    return { code: code, name: name, cap: cap, changeRate: changeRate };
+  }
+
+  function buildMock() {
+    var caps = { KOSPI: 300e12, KOSDAQ: 8e12, ETF: 60e12 };
+    var data = { KOSPI: [], KOSDAQ: [], ETF: [], LEV: [] };
+    ['KOSPI', 'KOSDAQ', 'ETF'].forEach(function (cat) {
+      window.MARKETCAP_CODES[cat].forEach(function (pair, i) {
+        var decay = Math.pow(0.85, i);
+        data[cat].push(mockQuote(pair[0], pair[1], caps[cat] * decay));
+      });
+    });
+    data.LEV = [
+      { name: '삼성전자 단일종목레버리지(7종 합산)', cap: 4.5e12, changeRate: -8.2, breakdown: 'KODEX 2.7조 · TIGER 1.5조 · ACE 758억' },
+      { name: 'SK하이닉스 단일종목레버리지(7종 합산)', cap: 7.0e12, changeRate: -7.9, breakdown: 'KODEX 4.3조 · TIGER 2.4조 · ACE 916억' }
+    ];
+    return { updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' '), data: data };
+  }
+
+  window.__MOCK_BUBBLE__ = buildMock();
+</script>
+<script src="../js/marketcap-bubble.js"></script>
+<script>
+  MarketcapBubble.fetchBubbleData = function () {
+    console.log('[mock] fetchBubbleData called');
+    return Promise.resolve(window.__MOCK_BUBBLE__);
+  };
+  MarketcapBubble.init();
+
+  // 갱신 시 부드러운 transition 확인용: 5초마다 mock 값 리셔플
+  setInterval(function () {
+    window.__MOCK_BUBBLE__ = buildMock();
+  }, 5000);
+</script>
+
+</body>
+</html>

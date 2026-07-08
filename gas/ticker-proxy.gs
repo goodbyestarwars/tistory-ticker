@@ -30,6 +30,10 @@ function doGet(e) {
     return jsonResponse(getMarketAnalysis());
   }
 
+  if (params.bubble === '1') {
+    return jsonResponse(getMarketcapBubble());
+  }
+
   var raw = (params.codes || '').trim();
 
   if (!raw) {
@@ -227,6 +231,119 @@ function fetchCryptoCoinGecko() {
     change: price - prevPrice,
     changeRate: changeRate
   };
+}
+
+// 시가총액 버블차트 (코스피20/코스닥15/ETF10 + 삼성전자·SK하이닉스 단일종목레버리지 합산).
+// data/marketcap-codes.js와 종목 구성이 동일해야 함 - 종목 교체 시 두 파일 다 수정.
+// SERVICE_ITEM 쿼리는 시가총액 필드가 없어 countOfListedStock(상장주식수) x nv(현재가)로 계산.
+// (KODEX 200으로 검증: /api/realtime/domestic/stock/ 의 marketValueFullRaw와 정확히 일치)
+var MARKETCAP_CODES = {
+  KOSPI: ['005930', '000660', '402340', '005935', '009150', '005380', '373220', '032830', '028260', '207940',
+          '000270', '105560', '329180', '012450', '055550', '034020', '012330', '034730', '068270', '086790'],
+  KOSDAQ: ['196170', '247540', '086520', '277810', '036930', '950160', '028300', '058470', '240810', '298380',
+           '141080', '000250', '319660', '039030', '222800'],
+  ETF: ['069500', '360750', '133690', '102110', '396500', '122630', '233740', '229200', '411060', '091160'],
+  LEV_SAMSUNG: ['0193W0', '0195R0', '0194M0', '0192M0', '0193K0', '0194N0', '0198B0'],
+  LEV_HYNIX: ['0193T0', '0195S0', '0194T0', '0192L0', '0197W0', '0194R0', '0198D0']
+};
+var MARKETCAP_BATCH_SIZE = 40; // Naver polling API 배치 크기 - 40개까지 안정적으로 검증됨
+
+function getMarketcapBubble() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'bubble_v1';
+  var cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  var allCodes = [].concat(
+    MARKETCAP_CODES.KOSPI, MARKETCAP_CODES.KOSDAQ, MARKETCAP_CODES.ETF,
+    MARKETCAP_CODES.LEV_SAMSUNG, MARKETCAP_CODES.LEV_HYNIX
+  );
+  var quoteByCode = fetchQuotesWithCap(allCodes);
+
+  var result = {
+    updatedAt: formatKstTime(Date.now()),
+    data: {
+      KOSPI: pickQuotes(MARKETCAP_CODES.KOSPI, quoteByCode),
+      KOSDAQ: pickQuotes(MARKETCAP_CODES.KOSDAQ, quoteByCode),
+      ETF: pickQuotes(MARKETCAP_CODES.ETF, quoteByCode),
+      LEV: [
+        aggregateLeverage('삼성전자 단일종목레버리지(7종 합산)', MARKETCAP_CODES.LEV_SAMSUNG, quoteByCode),
+        aggregateLeverage('SK하이닉스 단일종목레버리지(7종 합산)', MARKETCAP_CODES.LEV_HYNIX, quoteByCode)
+      ].filter(Boolean)
+    }
+  };
+
+  var ttl = isMarketOpenNow() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED;
+  cache.put(cacheKey, JSON.stringify(result), ttl);
+  return result;
+}
+
+// 코드 목록 순서대로 조회 결과를 뽑는다(실패한 종목은 건너뛰어 나머지는 살린다).
+function pickQuotes(codes, quoteByCode) {
+  var out = [];
+  codes.forEach(function (code) {
+    var q = quoteByCode[code];
+    if (q) out.push(q);
+  });
+  return out;
+}
+
+function aggregateLeverage(label, codes, quoteByCode) {
+  var quotes = codes.map(function (c) { return quoteByCode[c]; }).filter(Boolean);
+  if (!quotes.length) return null;
+
+  var totalCap = quotes.reduce(function (s, q) { return s + q.cap; }, 0);
+  var weightedChg = totalCap > 0
+    ? quotes.reduce(function (s, q) { return s + q.changeRate * q.cap; }, 0) / totalCap
+    : 0;
+
+  return {
+    name: label,
+    cap: totalCap,
+    changeRate: weightedChg,
+    breakdown: quotes.map(function (q) { return q.name + ' ' + Math.round(q.cap / 1e8) + '억'; }).join(' · ')
+  };
+}
+
+// 40개씩 배치로 나눠 SERVICE_ITEM 쿼리 호출, code -> {code,name,cap,changeRate} 맵으로 반환.
+// 한 배치가 실패해도 나머지 배치는 살리도록 개별 try/catch.
+function fetchQuotesWithCap(codes) {
+  var out = {};
+  for (var i = 0; i < codes.length; i += MARKETCAP_BATCH_SIZE) {
+    var batch = codes.slice(i, i + MARKETCAP_BATCH_SIZE);
+    try {
+      var url = 'https://polling.finance.naver.com/api/realtime?query=SERVICE_ITEM:' + batch.join(',');
+      var res = UrlFetchApp.fetch(url, {
+        muteHttpExceptions: true,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      if (res.getResponseCode() !== 200) continue;
+
+      var body = JSON.parse(res.getContentText('EUC-KR'));
+      var areas = (body && body.result && body.result.areas) || [];
+      var itemArea = null;
+      for (var a = 0; a < areas.length; a++) {
+        if (areas[a].name === 'SERVICE_ITEM') { itemArea = areas[a]; break; }
+      }
+      var datas = (itemArea && itemArea.datas) || [];
+
+      datas.forEach(function (d) {
+        var sign = (d.rf === '4' || d.rf === '5') ? -1 : 1;
+        var price = Number(d.nv) || 0;
+        var shares = Number(d.countOfListedStock) || 0;
+        out[d.cd] = {
+          code: d.cd,
+          name: d.nm,
+          cap: price * shares,
+          changeRate: Math.abs(Number(d.cr) || 0) * sign
+        };
+      });
+    } catch (err) {
+      // 이 배치만 스킵 - 나머지 배치 결과는 유지
+      continue;
+    }
+  }
+  return out;
 }
 
 // 종목 뉴스: 네이버 모바일 증권 뉴스 API를 중계. 30분 캐싱 - "그때그때" 요구사항과
