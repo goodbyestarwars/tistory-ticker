@@ -1,9 +1,10 @@
 /**
  * 시가총액 버블차트 (코스피/코스닥/ETF/단일종목레버리지)
- * GAS 프록시(?bubble=1)를 45초 간격으로 폴링. 전체 종목을 하나의 유기적 버블맵으로
- * 합쳐서 보여준다(카테고리별로 쪼개서 박스에 가두지 않음) - 카테고리는 채우기 색,
- * 등락은 테두리 색으로 구분(애플 스타일: 채도 낮은 플랫 컬러 + 부드러운 그림자).
- * d3 등 외부 라이브러리 없이 2단계 자체 원형 패킹(종목 -> 카테고리 클러스터 -> 전체)만으로 배치.
+ * GAS 프록시(?bubble=1)를 45초 간격으로 폴링. 2단계 원형 패킹(종목 -> 카테고리
+ * 클러스터 -> 전체)으로 카테고리별 구역이 자연스럽게 뭉치도록 배치하고, 각 구역
+ * 위에 이름표를 붙여 코스피/코스닥/ETF/단일종목 레버리지를 구분한다.
+ * 채우기 색은 카테고리가 아니라 등락(상승 빨강/하락 파랑 - 사이트 공통 컬러)의
+ * 유리(글라스모피즘) 효과로 표현한다. d3 등 외부 라이브러리 없이 vanilla JS로 구현.
  * data/marketcap-codes.js가 이 스크립트보다 먼저 로드되어야 한다(로컬 프리뷰 fallback용).
  */
 (function (global) {
@@ -208,11 +209,32 @@
       });
     });
 
+    // 구역 이름표(코스피/코스닥/ETF/단일종목 레버리지) 위치는 클러스터 외접원 기준으로
+    // 잡는데, 이 좌표도 fitToBox의 스케일/이동을 그대로 적용받아야 버블 위치와 어긋나지
+    // 않는다 - 그래서 진짜 버블(allNodes)과 같은 배열에 섞어 넣고 한 번에 fitToBox를
+    // 돌린 다음 다시 분리한다(클러스터 마커는 이미 자기 종목들에 포함되는 반지름이라
+    // bbox 계산에 영향을 주지 않는다).
+    var clusterMarkers = clusters.map(function (cl) {
+      return { isClusterMarker: true, key: cl.key, x: cl.x, y: cl.y, r: cl.r };
+    });
+    var combined = allNodes.concat(clusterMarkers);
+
     // 실제로 뭉친 모양의 가로세로 비율에 맞춰 캔버스 높이를 정한다(고정 비율로 맞추면
     // 데이터에 따라 위아래/양옆에 빈 공간이 크게 남을 수 있어서 - 매번 꽉 채우도록 계산).
-    var viewH = computeFitHeight(allNodes, VIEW_W);
-    fitToBox(allNodes, VIEW_W, viewH, PAD);
-    return { nodes: allNodes, viewH: viewH };
+    var viewH = computeFitHeight(combined, VIEW_W);
+    fitToBox(combined, VIEW_W, viewH, PAD + 16); // 이름표 들어갈 자리만큼 여유를 더 둠
+
+    var nodes = combined.filter(function (n) { return !n.isClusterMarker; });
+    var clusterLabels = combined.filter(function (n) { return n.isClusterMarker; }).map(function (n) {
+      return {
+        key: n.key,
+        label: CATEGORY_LABELS[n.key] || n.key,
+        x: n.x,
+        y: Math.max(n.y - n.r - 8, 14)
+      };
+    });
+
+    return { nodes: nodes, viewH: viewH, clusterLabels: clusterLabels };
   }
 
   function computeFitHeight(nodes, viewW) {
@@ -233,26 +255,12 @@
   }
 
   function buildLegendHtml(data) {
-    var counts = {};
-    CATEGORY_ORDER.forEach(function (cat) { counts[cat] = (data[cat] || []).length; });
-
-    var catItems = [
-      ['KOSPI', '코스피 (' + counts.KOSPI + '종목)'],
-      ['KOSDAQ', '코스닥 (' + counts.KOSDAQ + '종목)'],
-      ['ETF', 'ETF (' + counts.ETF + '종목)'],
-      ['LEV', '단일종목 레버리지 (' + counts.LEV + '개, 각 7종 합산)']
-    ].map(function (pair) {
-      return '<span class="mcb-legend-item"><i class="mcb-dot mcb-cat-' + pair[0] + '"></i>' + pair[1] + '</span>';
-    }).join('');
-
-    var dirItems =
-      '<span class="mcb-legend-item"><i class="mcb-ring mcb-up"></i>테두리: 상승</span>' +
-      '<span class="mcb-legend-item"><i class="mcb-ring mcb-down"></i>테두리: 하락</span>';
-
-    return catItems + dirItems;
+    // 카테고리 구분은 이제 캔버스 위 구역 이름표로 하므로, 범례는 등락 색상 의미만 안내.
+    return '<span class="mcb-legend-item"><i class="mcb-dot mcb-up"></i>상승</span>' +
+      '<span class="mcb-legend-item"><i class="mcb-dot mcb-down"></i>하락</span>';
   }
 
-  function render(container, nodes, viewH, updatedAt, legendHtml) {
+  function render(container, nodes, viewH, updatedAt, legendHtml, clusterLabels) {
     var svg = container.querySelector('svg.mcb-svg');
     var isFirstRender = !svg;
 
@@ -267,10 +275,20 @@
       svg = svgEl('svg', { class: 'mcb-svg', viewBox: '0 0 ' + VIEW_W + ' ' + viewH });
       svg.appendChild(buildGlassDefs());
       svg.appendChild(svgEl('g', { class: 'mcb-bubbles' }));
+      svg.appendChild(svgEl('g', { class: 'mcb-cluster-labels' }));
       container.querySelector('.mcb-canvas').insertBefore(svg, container.querySelector('.mcb-tooltip'));
     } else {
       svg.setAttribute('viewBox', '0 0 ' + VIEW_W + ' ' + viewH);
     }
+
+    // 구역 이름표(코스피/코스닥/ETF/단일종목 레버리지) - 4개뿐이라 diff 없이 매번 새로 그림
+    var labelLayer = svg.querySelector('.mcb-cluster-labels');
+    labelLayer.innerHTML = '';
+    (clusterLabels || []).forEach(function (cl) {
+      var t = svgEl('text', { class: 'mcb-zone-label', x: cl.x, y: cl.y });
+      t.textContent = cl.label;
+      labelLayer.appendChild(t);
+    });
 
     container.querySelector('.mcb-updated').textContent = updatedAt ? updatedAt + ' 기준 (준실시간)' : '';
     container.querySelector('.mcb-legend').innerHTML = legendHtml;
@@ -336,7 +354,7 @@
       circleEl.setAttribute('cx', item.x);
       circleEl.setAttribute('cy', item.y);
       circleEl.setAttribute('r', item.r);
-      circleEl.setAttribute('class', 'mcb-circle mcb-cat-' + item.category + ' ' + dirClass);
+      circleEl.setAttribute('class', 'mcb-circle ' + dirClass);
 
       // 유리 효과: 원 자체 크기의 하이라이트를 좌상단으로 살짝 치우쳐 얹어 광택 표현
       var shineEl = node.querySelector('.mcb-shine');
@@ -391,7 +409,7 @@
         if (!json || !json.data) throw new Error('empty bubble data');
         var layout = buildLayout(json.data);
         var legendHtml = buildLegendHtml(json.data);
-        render(container, layout.nodes, layout.viewH, json.updatedAt, legendHtml);
+        render(container, layout.nodes, layout.viewH, json.updatedAt, legendHtml, layout.clusterLabels);
       })
       .catch(function (err) {
         logError('[marketcap-bubble] 조회 실패', err);
