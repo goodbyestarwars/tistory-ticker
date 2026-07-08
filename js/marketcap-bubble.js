@@ -299,11 +299,17 @@
         node.appendChild(svgEl('text', { class: 'mcb-rate-label' }));
         bubbleLayer.appendChild(node);
 
+        // item은 45초마다 새 객체로 다시 만들어지므로 클로저로 캡처하면 데이터가 갱신된
+        // 뒤에도 최초 생성 시점 값을 계속 보여주게 된다 - node에 최신 item을 매번 붙여두고
+        // 리스너는 그때그때 node.__mcbItem을 읽도록 한다.
         node.addEventListener('click', function (evt) {
           evt.stopPropagation();
-          showTooltip(item);
+          showTooltip(node.__mcbItem);
         });
+        node.addEventListener('mouseenter', function () { showTooltip(node.__mcbItem); });
+        node.addEventListener('mouseleave', hideTooltip);
       }
+      node.__mcbItem = item;
 
       var dirClass = directionClass(item.changeRate);
       var big = item.r >= 60;
