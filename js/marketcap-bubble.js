@@ -51,11 +51,12 @@
 
   // ---------- 원형 패킹(간이 시뮬레이션: 반발 + 중력) ----------
   // nodes: [{r, ...}] r만 있으면 되고 x/y는 이 함수가 채운다. 중심(0,0) 기준 로컬 좌표로 배치.
-  function packCircles(nodes, iterations, gravityX, gravityY) {
+  function packCircles(nodes, iterations, gravityX, gravityY, gap) {
     if (!nodes.length) return;
     iterations = iterations || 240;
     gravityX = gravityX == null ? 0.03 : gravityX;
     gravityY = gravityY == null ? gravityX : gravityY;
+    gap = gap == null ? 2 : gap;
 
     var sorted = nodes.slice().sort(function (a, b) { return b.r - a.r; });
     sorted.forEach(function (n, i) {
@@ -72,7 +73,7 @@
           var dx = nb.x - na.x;
           var dy = nb.y - na.y;
           var dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
-          var minDist = na.r + nb.r + 2;
+          var minDist = na.r + nb.r + gap;
           if (dist < minDist) {
             var overlap = (minDist - dist) / 2;
             var ux = dx / dist;
@@ -191,7 +192,9 @@
 
     // y축 중력을 x축보다 세게 걸어 클러스터가 세로로 쌓이기보다 가로로 넓게 퍼지도록 유도
     // (블로그 임베드는 세로로 긴 것보다 가로로 넓은 게 한눈에 다 보임 - 사용자 요청).
-    packCircles(clusters, 320, 0.035, 0.11);
+    // 구역 사이 간격을 넉넉히 둬야(gap) 위에 붙는 이름표끼리 겹치지 않는다 -
+    // 종목끼리(gap 기본값 2)보다 훨씬 크게 잡는다.
+    packCircles(clusters, 320, 0.035, 0.11, 46);
 
     var allNodes = [];
     clusters.forEach(function (cl) {
