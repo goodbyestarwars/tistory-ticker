@@ -245,14 +245,16 @@
     var isFirstRender = !svg;
 
     if (isFirstRender) {
+      // 툴팁은 .mcb-canvas(position:relative) 기준으로 좌표를 계산하므로
+      // 반드시 그 안의 자식이어야 한다 - 형제로 두면 더 위쪽 조상 엘리먼트를
+      // 기준으로 absolute 배치가 틀어져 엉뚱한 위치(페이지 상단 등)에 뜬다.
       container.innerHTML =
-        '<div class="mcb-canvas"></div>' +
-        '<div class="mcb-tooltip" hidden></div>' +
+        '<div class="mcb-canvas"><div class="mcb-tooltip" hidden></div></div>' +
         '<div class="mcb-legend"></div>' +
         '<div class="mcb-updated"></div>';
       svg = svgEl('svg', { class: 'mcb-svg', viewBox: '0 0 ' + VIEW_W + ' ' + viewH });
       svg.appendChild(svgEl('g', { class: 'mcb-bubbles' }));
-      container.querySelector('.mcb-canvas').appendChild(svg);
+      container.querySelector('.mcb-canvas').insertBefore(svg, container.querySelector('.mcb-tooltip'));
     } else {
       svg.setAttribute('viewBox', '0 0 ' + VIEW_W + ' ' + viewH);
     }
