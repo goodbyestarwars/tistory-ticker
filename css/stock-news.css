@@ -270,7 +270,6 @@
 .sn-ai-summary {
   background: #eef2ff;
   border: 1px solid #c7d2fe;
-  border-left: 4px solid #6366f1;
   border-radius: 12px;
   padding: 16px 18px;
   margin-bottom: 14px;
@@ -586,7 +585,6 @@ html.dark #stock-news .sn-news-meta {
 html.dark #stock-news .sn-ai-summary {
   background: #1c2340;
   border-color: #2e3a6b;
-  border-left-color: #818cf8;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 

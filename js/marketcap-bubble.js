@@ -1,10 +1,10 @@
 /**
- * 시가총액 버블차트 (코스피/코스닥/ETF/단일종목레버리지)
- * GAS 프록시(?bubble=1)를 45초 간격으로 폴링. 2단계 원형 패킹(종목 -> 카테고리
- * 클러스터 -> 전체)으로 카테고리별 구역이 자연스럽게 뭉치도록 배치하고, 각 구역
- * 위에 이름표를 붙여 코스피/코스닥/ETF/단일종목 레버리지를 구분한다.
- * 채우기 색은 카테고리가 아니라 등락(상승 빨강/하락 파랑 - 사이트 공통 컬러)의
- * 유리(글라스모피즘) 효과로 표현한다. d3 등 외부 라이브러리 없이 vanilla JS로 구현.
+ * 시가총액 트리맵 (코스피/코스닥/ETF/단일종목레버리지)
+ * GAS 프록시(?bubble=1)를 45초 간격으로 폴링. 스퀘어파이드(squarified) 트리맵으로
+ * 큰 네모(전체) -> 중간 네모(코스피/코스닥/ETF/단일종목 레버리지, 시가총액 비율) ->
+ * 소네모(구역 안 개별 종목, 시가총액 비율) 3단 구조로 배치한다.
+ * 채우기 색은 등락(상승 빨강/하락 파랑 - 사이트 공통 컬러)의 유리(글라스모피즘)
+ * 효과로 표현한다. d3 등 외부 라이브러리 없이 vanilla JS로 구현.
  * data/marketcap-codes.js가 이 스크립트보다 먼저 로드되어야 한다(로컬 프리뷰 fallback용).
  */
 (function (global) {
@@ -20,10 +20,10 @@
 
   var VIEW_W = 820;
   var VIEW_H = 560;
-  var PAD = 10;
 
-  var MIN_R = 11;
-  var MAX_R = 150;
+  var ZONE_GAP = 6;       // 구역(코스피/코스닥/ETF/레버리지) 사이 간격
+  var ZONE_LABEL_H = 20;  // 구역 이름표가 차지하는 위쪽 띠 높이
+  var CELL_GAP = 3;       // 구역 안 종목 셀 사이 간격
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
@@ -49,78 +49,66 @@
       });
   }
 
-  // ---------- 원형 패킹(간이 시뮬레이션: 반발 + 중력) ----------
-  // nodes: [{r, ...}] r만 있으면 되고 x/y는 이 함수가 채운다. 중심(0,0) 기준 로컬 좌표로 배치.
-  function packCircles(nodes, iterations, gravityX, gravityY, gap) {
-    if (!nodes.length) return;
-    iterations = iterations || 240;
-    gravityX = gravityX == null ? 0.03 : gravityX;
-    gravityY = gravityY == null ? gravityX : gravityY;
-    gap = gap == null ? 2 : gap;
+  // ---------- 스퀘어파이드 트리맵 ----------
+  // items: [{value, ...}] value는 이미 목표 영역(면적) 단위로 정규화되어 있어야 한다
+  // (호출부에서 value = 실제값 / 합계 * 배치할 사각형 면적 로 스케일링).
+  function squarify(items, x, y, w, h) {
+    var rects = [];
+    layout(items.slice(), x, y, w, h);
+    return rects;
 
-    var sorted = nodes.slice().sort(function (a, b) { return b.r - a.r; });
-    sorted.forEach(function (n, i) {
-      var angle = i * 2.399963; // 황금각
-      var radius = 3 * Math.sqrt(i);
-      n.x = radius * Math.cos(angle);
-      n.y = radius * Math.sin(angle);
-    });
+    function layout(kids, x, y, w, h) {
+      if (!kids.length || w <= 0 || h <= 0) return;
+      if (kids.length === 1) {
+        rects.push({ item: kids[0], x: x, y: y, w: w, h: h });
+        return;
+      }
 
-    function repel() {
-      for (var a = 0; a < nodes.length; a++) {
-        for (var b = a + 1; b < nodes.length; b++) {
-          var na = nodes[a], nb = nodes[b];
-          var dx = nb.x - na.x;
-          var dy = nb.y - na.y;
-          var dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
-          var minDist = na.r + nb.r + gap;
-          if (dist < minDist) {
-            var overlap = (minDist - dist) / 2;
-            var ux = dx / dist;
-            var uy = dy / dist;
-            na.x -= ux * overlap;
-            na.y -= uy * overlap;
-            nb.x += ux * overlap;
-            nb.y += uy * overlap;
-          }
+      var side = Math.min(w, h);
+      var row = [kids[0]];
+      var i = 1;
+      while (i < kids.length) {
+        var next = row.concat([kids[i]]);
+        if (worstRatio(row, side) >= worstRatio(next, side)) {
+          row = next;
+          i++;
+        } else {
+          break;
         }
       }
-    }
 
-    for (var iter = 0; iter < iterations; iter++) {
-      for (var i = 0; i < nodes.length; i++) {
-        nodes[i].x -= nodes[i].x * gravityX;
-        nodes[i].y -= nodes[i].y * gravityY;
+      var rowSum = sum(row);
+      if (w >= h) {
+        var rowW = rowSum / h;
+        var yy = y;
+        row.forEach(function (k) {
+          var kh = k.value / rowW;
+          rects.push({ item: k, x: x, y: yy, w: rowW, h: kh });
+          yy += kh;
+        });
+        layout(kids.slice(row.length), x + rowW, y, w - rowW, h);
+      } else {
+        var rowH = rowSum / w;
+        var xx = x;
+        row.forEach(function (k) {
+          var kw = k.value / rowH;
+          rects.push({ item: k, x: xx, y: y, w: kw, h: rowH });
+          xx += kw;
+        });
+        layout(kids.slice(row.length), x, y + rowH, w, h - rowH);
       }
-      repel();
     }
-    // 중력 스텝 없이 반발만 추가로 돌려 잔여 겹침을 완전히 해소한다(겹침 0 보장).
-    for (var cleanup = 0; cleanup < 80; cleanup++) repel();
-  }
 
-  // 패킹 결과를 지정된 사각 영역(w x h) 안에 비율 유지한 채 맞춰 넣는다(중앙 정렬).
-  function fitToBox(nodes, w, h, pad) {
-    if (!nodes.length) return;
-    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    nodes.forEach(function (n) {
-      minX = Math.min(minX, n.x - n.r);
-      maxX = Math.max(maxX, n.x + n.r);
-      minY = Math.min(minY, n.y - n.r);
-      maxY = Math.max(maxY, n.y + n.r);
-    });
-    var spanX = Math.max(maxX - minX, 1);
-    var spanY = Math.max(maxY - minY, 1);
-    var availW = w - pad * 2;
-    var availH = h - pad * 2;
-    var scale = Math.min(availW / spanX, availH / spanY, 1);
-
-    var cx = (minX + maxX) / 2;
-    var cy = (minY + maxY) / 2;
-    nodes.forEach(function (n) {
-      n.x = (n.x - cx) * scale + w / 2;
-      n.y = (n.y - cy) * scale + h / 2;
-      n.r = n.r * scale;
-    });
+    function sum(arr) { return arr.reduce(function (s, k) { return s + k.value; }, 0); }
+    function worstRatio(row, side) {
+      var rowSum = sum(row);
+      if (rowSum <= 0) return Infinity;
+      var values = row.map(function (k) { return k.value; });
+      var maxV = Math.max.apply(null, values);
+      var minV = Math.min.apply(null, values);
+      if (minV <= 0) return Infinity;
+      return Math.max((side * side * maxV) / (rowSum * rowSum), (rowSum * rowSum) / (side * side * minV));
+    }
   }
 
   function directionClass(rate) {
@@ -135,11 +123,6 @@
     return (cap / 1e8).toFixed(0) + '억';
   }
 
-  function radiusScale(cap, maxCap) {
-    var t = Math.sqrt(Math.max(cap, 0)) / Math.sqrt(maxCap || 1);
-    return MIN_R + t * (MAX_R - MIN_R);
-  }
-
   function svgEl(tag, attrs) {
     var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
     if (attrs) {
@@ -149,121 +132,112 @@
   }
 
   // 유리(글라스모피즘) 효과용 - 좌상단에 밝은 하이라이트가 도는 방사형 그라디언트를
-  // 한 번만 정의해두고 모든 버블의 하이라이트 원(mcb-shine)이 재사용한다.
+  // 한 번만 정의해두고 모든 셀의 하이라이트(mcb-shine)가 재사용한다.
   function buildGlassDefs() {
     var defs = svgEl('defs');
-    var grad = svgEl('radialGradient', { id: 'mcb-shine-grad', cx: '35%', cy: '28%', r: '65%' });
-    grad.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#ffffff', 'stop-opacity': '0.85' }));
-    grad.appendChild(svgEl('stop', { offset: '55%', 'stop-color': '#ffffff', 'stop-opacity': '0.18' }));
+    var grad = svgEl('radialGradient', { id: 'mcb-shine-grad', cx: '30%', cy: '22%', r: '75%' });
+    grad.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#ffffff', 'stop-opacity': '0.75' }));
+    grad.appendChild(svgEl('stop', { offset: '55%', 'stop-color': '#ffffff', 'stop-opacity': '0.14' }));
     grad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#ffffff', 'stop-opacity': '0' }));
     defs.appendChild(grad);
     return defs;
   }
 
-  // 2단계 패킹: 1) 카테고리 안에서 종목끼리 패킹 -> 그 클러스터의 외접원 반지름 산출
-  // 2) 4개 클러스터(외접원 크기가 제각각)를 다시 패킹 -> 큰 카테고리(코스피)는 넓게,
-  //    작은 카테고리(레버리지)는 주변부에 자연스럽게 밀려나는 유기적 배치가 나온다.
+  // 2단계 스퀘어파이드 트리맵: 1) 4개 구역(코스피/코스닥/ETF/레버리지)을 총 시가총액
+  // 비율대로 큰 캔버스에 배치 2) 각 구역 안에서 종목들을 그 구역 시가총액 비율대로
+  // 다시 배치. 구역마다 위쪽에 이름표 띠를 확보해 구역 구분을 표시한다.
   function buildLayout(data) {
-    var maxCap = 0;
-    CATEGORY_ORDER.forEach(function (cat) {
-      (data[cat] || []).forEach(function (it) { maxCap = Math.max(maxCap, it.cap || 0); });
-    });
+    var zones = CATEGORY_ORDER.map(function (cat) {
+      var items = (data[cat] || [])
+        .map(function (it) {
+          return {
+            name: it.name,
+            cap: it.cap || 0,
+            changeRate: it.changeRate,
+            breakdown: it.breakdown,
+            category: cat
+          };
+        })
+        .filter(function (it) { return it.cap > 0; });
+      var totalCap = items.reduce(function (s, it) { return s + it.cap; }, 0);
+      return { key: cat, label: CATEGORY_LABELS[cat] || cat, items: items, cap: totalCap };
+    }).filter(function (z) { return z.items.length && z.cap > 0; });
 
-    var clusters = CATEGORY_ORDER.map(function (cat) {
-      var items = (data[cat] || []).map(function (it) {
-        return {
-          name: it.name,
-          cap: it.cap,
-          changeRate: it.changeRate,
-          breakdown: it.breakdown,
-          category: cat,
-          r: radiusScale(it.cap, maxCap)
-        };
+    if (!zones.length) return { nodes: [], viewH: VIEW_H, clusterLabels: [] };
+
+    zones.sort(function (a, b) { return b.cap - a.cap; });
+
+    var totalCap = zones.reduce(function (s, z) { return s + z.cap; }, 0);
+    var zoneScale = (VIEW_W * VIEW_H) / (totalCap || 1);
+    zones.forEach(function (z) { z.value = z.cap * zoneScale; });
+
+    var zoneRects = squarify(zones, 0, 0, VIEW_W, VIEW_H);
+
+    var nodes = [];
+    var clusterLabels = [];
+
+    zoneRects.forEach(function (zr) {
+      var zone = zr.item;
+      var zx = zr.x + ZONE_GAP / 2;
+      var zy = zr.y + ZONE_GAP / 2;
+      var zw = Math.max(zr.w - ZONE_GAP, 1);
+      var zh = Math.max(zr.h - ZONE_GAP, 1);
+
+      var showLabel = zw >= 42 && zh >= ZONE_LABEL_H + 24;
+      var labelH = showLabel ? ZONE_LABEL_H : Math.min(zh, ZONE_LABEL_H);
+
+      clusterLabels.push({
+        key: zone.key,
+        label: zone.label,
+        x: zx,
+        y: zy,
+        w: zw,
+        h: labelH,
+        totalCap: zone.cap,
+        showText: showLabel
       });
-      packCircles(items);
 
-      var enclosingR = 10;
-      items.forEach(function (n) {
-        enclosingR = Math.max(enclosingR, Math.sqrt(n.x * n.x + n.y * n.y) + n.r);
-      });
+      var innerX = zx + 1;
+      var innerY = zy + labelH + 1;
+      var innerW = Math.max(zw - 2, 1);
+      var innerH = Math.max(zh - labelH - 2, 1);
 
-      return { key: cat, items: items, r: enclosingR };
-    }).filter(function (cl) { return cl.items.length; });
+      var items = zone.items.slice().sort(function (a, b) { return b.cap - a.cap; });
+      var itemScale = (innerW * innerH) / (zone.cap || 1);
+      items.forEach(function (it) { it.value = it.cap * itemScale; });
 
-    // y축 중력을 x축보다 세게 걸어 클러스터가 세로로 쌓이기보다 가로로 넓게 퍼지도록 유도
-    // (블로그 임베드는 세로로 긴 것보다 가로로 넓은 게 한눈에 다 보임 - 사용자 요청).
-    // 구역 사이 간격을 넉넉히 둬야(gap) 위에 붙는 이름표끼리 겹치지 않는다 -
-    // 종목끼리(gap 기본값 2)보다 훨씬 크게 잡는다.
-    packCircles(clusters, 320, 0.035, 0.11, 46);
-
-    var allNodes = [];
-    clusters.forEach(function (cl) {
-      cl.items.forEach(function (n) {
-        allNodes.push({
-          name: n.name,
-          cap: n.cap,
-          changeRate: n.changeRate,
-          breakdown: n.breakdown,
-          category: n.category,
-          r: n.r,
-          x: cl.x + n.x,
-          y: cl.y + n.y
+      var itemRects = squarify(items, innerX, innerY, innerW, innerH);
+      itemRects.forEach(function (ir) {
+        var ix = ir.x + CELL_GAP / 2;
+        var iy = ir.y + CELL_GAP / 2;
+        var iw = Math.max(ir.w - CELL_GAP, 1);
+        var ih = Math.max(ir.h - CELL_GAP, 1);
+        nodes.push({
+          name: ir.item.name,
+          cap: ir.item.cap,
+          changeRate: ir.item.changeRate,
+          breakdown: ir.item.breakdown,
+          category: ir.item.category,
+          x: ix,
+          y: iy,
+          w: iw,
+          h: ih
         });
       });
     });
 
-    // 실제로 뭉친 모양의 가로세로 비율에 맞춰 캔버스 높이를 정한다(고정 비율로 맞추면
-    // 데이터에 따라 위아래/양옆에 빈 공간이 크게 남을 수 있어서 - 매번 꽉 채우도록 계산).
-    var viewH = computeFitHeight(allNodes, VIEW_W);
-    fitToBox(allNodes, VIEW_W, viewH, PAD + 16); // 이름표 들어갈 자리만큼 여유를 더 둠
-
-    // 구역 이름표 위치는 클러스터의 "외접원" 기준이 아니라 실제 종목들이 fitToBox를
-    // 거친 뒤의 진짜 바운딩 박스(제일 위에 있는 버블의 꼭대기) 기준으로 잡는다.
-    // 패킹된 모양은 원이 아니라 울퉁불퉁한 덩어리라서 외접원 반지름을 쓰면 실제
-    // 버블 뭉치보다 훨씬 위로 이름표가 붕 뜨는 문제가 있었다.
-    var clusterLabels = CATEGORY_ORDER.map(function (cat) {
-      var items = allNodes.filter(function (n) { return n.category === cat; });
-      if (!items.length) return null;
-      var minY = Infinity, minX = Infinity, maxX = -Infinity, totalCap = 0;
-      items.forEach(function (n) {
-        minY = Math.min(minY, n.y - n.r);
-        minX = Math.min(minX, n.x - n.r);
-        maxX = Math.max(maxX, n.x + n.r);
-        totalCap += n.cap || 0;
-      });
-      return {
-        key: cat,
-        label: CATEGORY_LABELS[cat] || cat,
-        x: (minX + maxX) / 2,
-        y: Math.max(minY - 8, 14),
-        totalCap: totalCap
-      };
-    }).filter(Boolean);
-
-    return { nodes: allNodes, viewH: viewH, clusterLabels: clusterLabels };
+    return { nodes: nodes, viewH: VIEW_H, clusterLabels: clusterLabels };
   }
 
-  function computeFitHeight(nodes, viewW) {
-    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    nodes.forEach(function (n) {
-      minX = Math.min(minX, n.x - n.r);
-      maxX = Math.max(maxX, n.x + n.r);
-      minY = Math.min(minY, n.y - n.r);
-      maxY = Math.max(maxY, n.y + n.r);
-    });
-    // viewBox 단위는 화면 픽셀이 아니라 비율 좌표계라서 절대 높이로 clamp하면 의미가 없다
-    // (실제 표시 높이는 컨테이너 실width / aspect로 정해짐) - 가로세로 비율만 landscape로 제한.
-    // clamp을 좁게 걸면 content 자연 비율과 어긋나 한쪽 축에 빈 공간이 남으므로,
-    // 극단적인 경우만 막는 넉넉한 범위로 둔다(대부분의 실제 데이터는 이 안에서 꽉 찬다).
-    var aspect = (maxX - minX) / Math.max(maxY - minY, 1);
-    aspect = Math.min(Math.max(aspect, 0.55), 2.6);
-    return Math.round(viewW / aspect);
-  }
-
-  function buildLegendHtml(data) {
-    // 카테고리 구분은 이제 캔버스 위 구역 이름표로 하므로, 범례는 등락 색상 의미만 안내.
+  function buildLegendHtml() {
+    // 카테고리 구분은 구역 이름표로 하므로, 범례는 등락 색상 의미만 안내.
     return '<span class="mcb-legend-item"><i class="mcb-dot mcb-up"></i>상승</span>' +
       '<span class="mcb-legend-item"><i class="mcb-dot mcb-down"></i>하락</span>';
+  }
+
+  function shortenName(name, w) {
+    var maxChars = Math.max(2, Math.floor(w / 7.5));
+    return name.length > maxChars ? name.slice(0, maxChars) + '…' : name;
   }
 
   function render(container, nodes, viewH, updatedAt, legendHtml, clusterLabels) {
@@ -280,7 +254,7 @@
         '<div class="mcb-updated"></div>';
       svg = svgEl('svg', { class: 'mcb-svg', viewBox: '0 0 ' + VIEW_W + ' ' + viewH });
       svg.appendChild(buildGlassDefs());
-      svg.appendChild(svgEl('g', { class: 'mcb-bubbles' }));
+      svg.appendChild(svgEl('g', { class: 'mcb-cells' }));
       svg.appendChild(svgEl('g', { class: 'mcb-cluster-labels' }));
       container.querySelector('.mcb-canvas').insertBefore(svg, container.querySelector('.mcb-tooltip'));
     } else {
@@ -292,6 +266,16 @@
 
     var tooltip = container.querySelector('.mcb-tooltip');
     function hideTooltip() { tooltip.hidden = true; }
+
+    function positionTooltip(vx, vy) {
+      var canvasRect = container.querySelector('.mcb-canvas').getBoundingClientRect();
+      var scale = canvasRect.width / VIEW_W;
+      var left = vx * scale;
+      var top = vy * scale;
+      tooltip.style.left = Math.min(Math.max(left, 0), canvasRect.width - 170) + 'px';
+      tooltip.style.top = Math.max(top - 64, 0) + 'px';
+    }
+
     function showTooltip(item) {
       var rateTxt = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(2) + '%';
       tooltip.innerHTML =
@@ -300,13 +284,7 @@
         '<div class="mcb-tt-rate ' + directionClass(item.changeRate) + '">' + rateTxt + '</div>' +
         (item.breakdown ? '<div class="mcb-tt-breakdown">' + item.breakdown + '</div>' : '');
       tooltip.hidden = false;
-
-      var canvasRect = container.querySelector('.mcb-canvas').getBoundingClientRect();
-      var scale = canvasRect.width / VIEW_W;
-      var left = item.x * scale;
-      var top = item.y * scale;
-      tooltip.style.left = Math.min(left, canvasRect.width - 160) + 'px';
-      tooltip.style.top = Math.max(top - 70, 0) + 'px';
+      positionTooltip(item.x + item.w / 2, item.y);
     }
 
     function showZoneTooltip(cl) {
@@ -314,13 +292,7 @@
         '<div class="mcb-tt-name">' + cl.label + '</div>' +
         '<div class="mcb-tt-cap">전체 시가총액 ' + formatCap(cl.totalCap) + '</div>';
       tooltip.hidden = false;
-
-      var canvasRect = container.querySelector('.mcb-canvas').getBoundingClientRect();
-      var scale = canvasRect.width / VIEW_W;
-      var left = cl.x * scale;
-      var top = cl.y * scale;
-      tooltip.style.left = Math.min(left, canvasRect.width - 160) + 'px';
-      tooltip.style.top = Math.max(top - 10, 0) + 'px';
+      positionTooltip(cl.x + cl.w / 2, cl.y);
     }
 
     // 구역 이름표(코스피/코스닥/ETF/단일종목 레버리지) - 4개뿐이라 diff 없이 매번 새로 그리고,
@@ -328,34 +300,41 @@
     var labelLayer = svg.querySelector('.mcb-cluster-labels');
     labelLayer.innerHTML = '';
     (clusterLabels || []).forEach(function (cl) {
-      var t = svgEl('text', { class: 'mcb-zone-label', x: cl.x, y: cl.y });
-      t.textContent = cl.label;
-      t.addEventListener('mouseenter', function (evt) { evt.stopPropagation(); showZoneTooltip(cl); });
-      t.addEventListener('mouseleave', hideTooltip);
-      t.addEventListener('click', function (evt) { evt.stopPropagation(); showZoneTooltip(cl); });
-      labelLayer.appendChild(t);
+      var hit = svgEl('rect', {
+        class: 'mcb-zone-hit', x: cl.x, y: cl.y, width: cl.w, height: cl.h
+      });
+      hit.addEventListener('mouseenter', function (evt) { evt.stopPropagation(); showZoneTooltip(cl); });
+      hit.addEventListener('mouseleave', hideTooltip);
+      hit.addEventListener('click', function (evt) { evt.stopPropagation(); showZoneTooltip(cl); });
+      labelLayer.appendChild(hit);
+
+      if (cl.showText) {
+        var t = svgEl('text', { class: 'mcb-zone-label', x: cl.x + 7, y: cl.y + cl.h - 6 });
+        t.textContent = cl.label;
+        t.style.pointerEvents = 'none';
+        labelLayer.appendChild(t);
+      }
     });
 
-    var bubbleLayer = svg.querySelector('.mcb-bubbles');
+    var cellLayer = svg.querySelector('.mcb-cells');
     var existing = {};
-    Array.prototype.forEach.call(bubbleLayer.querySelectorAll('.mcb-node'), function (node) {
+    Array.prototype.forEach.call(cellLayer.querySelectorAll('.mcb-node'), function (node) {
       existing[node.getAttribute('data-name')] = node;
     });
 
     var seen = {};
-    // 큰 원이 작은 원을 가리지 않도록 반지름 큰 순으로 먼저 그린다.
-    nodes.slice().sort(function (a, b) { return b.r - a.r; }).forEach(function (item) {
+    nodes.forEach(function (item) {
       seen[item.name] = true;
 
       var node = existing[item.name];
       if (!node) {
         node = svgEl('g', { class: 'mcb-node', 'data-name': item.name });
-        node.appendChild(svgEl('circle', { class: 'mcb-circle' }));
-        node.appendChild(svgEl('circle', { class: 'mcb-shine', fill: 'url(#mcb-shine-grad)' }));
+        node.appendChild(svgEl('rect', { class: 'mcb-cell' }));
+        node.appendChild(svgEl('rect', { class: 'mcb-shine', fill: 'url(#mcb-shine-grad)' }));
         node.appendChild(svgEl('text', { class: 'mcb-label' }));
         node.appendChild(svgEl('text', { class: 'mcb-cap-label' }));
         node.appendChild(svgEl('text', { class: 'mcb-rate-label' }));
-        bubbleLayer.appendChild(node);
+        cellLayer.appendChild(node);
 
         // item은 45초마다 새 객체로 다시 만들어지므로 클로저로 캡처하면 데이터가 갱신된
         // 뒤에도 최초 생성 시점 값을 계속 보여주게 된다 - node에 최신 item을 매번 붙여두고
@@ -370,40 +349,46 @@
       node.__mcbItem = item;
 
       var dirClass = directionClass(item.changeRate);
-      var big = item.r >= 60;
-      var mid = item.r >= 26;
-      var small = item.r >= 16;
+      var rx = Math.max(0, Math.min(6, item.w / 6, item.h / 6));
+      var big = item.w >= 90 && item.h >= 56;
+      var mid = item.w >= 56 && item.h >= 34;
+      var small = item.w >= 34 && item.h >= 20;
+      var cx = item.x + item.w / 2;
 
-      var circleEl = node.querySelector('.mcb-circle');
-      circleEl.setAttribute('cx', item.x);
-      circleEl.setAttribute('cy', item.y);
-      circleEl.setAttribute('r', item.r);
-      circleEl.setAttribute('class', 'mcb-circle ' + dirClass);
+      var cellEl = node.querySelector('.mcb-cell');
+      cellEl.setAttribute('x', item.x);
+      cellEl.setAttribute('y', item.y);
+      cellEl.setAttribute('width', item.w);
+      cellEl.setAttribute('height', item.h);
+      cellEl.setAttribute('rx', rx);
+      cellEl.setAttribute('class', 'mcb-cell ' + dirClass);
 
-      // 유리 효과: 원 자체 크기의 하이라이트를 좌상단으로 살짝 치우쳐 얹어 광택 표현
+      // 유리 효과: 셀 자체 크기의 하이라이트를 좌상단으로 살짝 치우쳐 얹어 광택 표현
       var shineEl = node.querySelector('.mcb-shine');
-      shineEl.setAttribute('cx', item.x);
-      shineEl.setAttribute('cy', item.y);
-      shineEl.setAttribute('r', item.r);
+      shineEl.setAttribute('x', item.x);
+      shineEl.setAttribute('y', item.y);
+      shineEl.setAttribute('width', item.w);
+      shineEl.setAttribute('height', item.h);
+      shineEl.setAttribute('rx', rx);
 
       var labelEl = node.querySelector('.mcb-label');
-      labelEl.setAttribute('x', item.x);
-      labelEl.setAttribute('y', item.y + (big ? -item.r * 0.28 : (mid ? -3 : 3)));
       labelEl.style.display = small ? '' : 'none';
+      labelEl.setAttribute('x', cx);
+      labelEl.setAttribute('y', item.y + (big ? item.h * 0.42 : item.h / 2 + 3));
       labelEl.style.fontSize = (big ? 15 : (mid ? 12 : 10)) + 'px';
-      labelEl.textContent = shortenName(item.name, item.r);
+      labelEl.textContent = shortenName(item.name, item.w);
 
       var capEl = node.querySelector('.mcb-cap-label');
-      capEl.setAttribute('x', item.x);
-      capEl.setAttribute('y', item.y + (big ? item.r * 0.02 : 999));
       capEl.style.display = big ? '' : 'none';
+      capEl.setAttribute('x', cx);
+      capEl.setAttribute('y', item.y + item.h * 0.42 + 17);
       capEl.textContent = formatCap(item.cap);
 
       var rateEl = node.querySelector('.mcb-rate-label');
-      rateEl.setAttribute('x', item.x);
-      rateEl.setAttribute('y', item.y + (big ? item.r * 0.32 : 14));
-      rateEl.setAttribute('class', 'mcb-rate-label ' + dirClass);
       rateEl.style.display = mid ? '' : 'none';
+      rateEl.setAttribute('x', cx);
+      rateEl.setAttribute('y', big ? item.y + item.h * 0.42 + 34 : item.y + item.h / 2 + 16);
+      rateEl.setAttribute('class', 'mcb-rate-label ' + dirClass);
       rateEl.textContent = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(1) + '%';
     });
 
@@ -417,11 +402,6 @@
     }
   }
 
-  function shortenName(name, r) {
-    var maxChars = Math.max(2, Math.floor(r / 7));
-    return name.length > maxChars ? name.slice(0, maxChars) + '…' : name;
-  }
-
   function renderError(container, message) {
     if (container.querySelector('svg.mcb-svg')) return; // 이미 렌더된 상태면 마지막 성공 화면 유지
     container.innerHTML = '<div class="mcb-error">' + message + '</div>';
@@ -432,7 +412,7 @@
       .then(function (json) {
         if (!json || !json.data) throw new Error('empty bubble data');
         var layout = buildLayout(json.data);
-        var legendHtml = buildLegendHtml(json.data);
+        var legendHtml = buildLegendHtml();
         render(container, layout.nodes, layout.viewH, json.updatedAt, legendHtml, layout.clusterLabels);
       })
       .catch(function (err) {

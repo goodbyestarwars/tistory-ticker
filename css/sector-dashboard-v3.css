@@ -8,7 +8,6 @@
 .market-ai-summary {
   background: #eef2ff;
   border: 1px solid #c7d2fe;
-  border-left: 4px solid #6366f1;
   border-radius: 12px;
   padding: 16px 18px;
   margin-bottom: 16px;
@@ -39,7 +38,6 @@
 html.dark #sector-dashboard .market-ai-summary {
   background: #1c2340;
   border-color: #2e3a6b;
-  border-left-color: #818cf8;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 html.dark #sector-dashboard .market-ai-summary .sn-ai-badge {
@@ -166,7 +164,12 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
 /* ============ 히트맵 뷰 ============ */
 
 .heatmap-grid {
+  /* 임베드 환경에 따라 조상 요소의 width가 불확정(auto)이면 auto-fill이
+     그리드 컨테이너 너비를 못 구해 1열로 뭉개지는 경우가 있어(실제 블로그에서 확인됨),
+     width를 명시해 항상 정상적인 다열 그리드가 되도록 고정한다. */
   display: grid;
+  width: 100%;
+  box-sizing: border-box;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 4px;
 }
@@ -180,6 +183,8 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
   padding: 10px 6px;
   border-radius: 6px;
   min-height: 56px;
+  min-width: 0;
+  box-sizing: border-box;
   text-align: center;
 }
 
@@ -191,6 +196,12 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+.heatmap-tile-price {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #4b5563;
 }
 
 .heatmap-tile-rate {

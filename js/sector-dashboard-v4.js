@@ -173,6 +173,7 @@
       return (
         '<div class="heatmap-tile" style="background:' + bg + '" title="' + escapeHTML(t.sector) + '">' +
           '<span class="heatmap-tile-name">' + escapeHTML(t.name) + '</span>' +
+          '<span class="heatmap-tile-price">' + formatNumber(t.data.price) + '</span>' +
           '<span class="heatmap-tile-rate">' + arrowSymbol(t.data.change) + Math.abs(rate).toFixed(2) + '%</span>' +
         '</div>'
       );
