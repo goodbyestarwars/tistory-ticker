@@ -19,12 +19,12 @@
   var CATEGORY_LABELS = { KOSPI: '코스피', KOSDAQ: '코스닥', ETF: 'ETF', LEV: '단일종목 레버리지' };
 
   var VIEW_W = 820;
-  var VIEW_H = 900;       // 세로로 넉넉하게 키워 각 셀이 커지고 종목명이 더 많이 보이게 함
+  var VIEW_H = 1150;      // 세로로 넉넉하게 키워 각 셀이 커지고 종목명이 더 많이 보이게 함
 
   var ZONE_GAP = 6;       // 구역(코스피/코스닥/ETF/레버리지) 사이 간격
   var ZONE_LABEL_H = 20;  // 구역 이름표가 차지하는 위쪽 띠 높이
   var CELL_GAP = 3;       // 구역 안 종목 셀 사이 간격
-  var MIN_ZONE_H = 90;    // 구역이 아무리 작아도 보장하는 최소 높이(이름표+종목 한 줄 볼 공간)
+  var MIN_ZONE_H = 140;   // 구역이 아무리 작아도 보장하는 최소 높이(이름표+종목 2줄 볼 공간)
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
