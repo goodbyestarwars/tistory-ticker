@@ -147,6 +147,10 @@
     return heights;
   }
 
+  function clamp(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
+
   function directionClass(rate) {
     if (rate > 0) return 'mcb-up';
     if (rate < 0) return 'mcb-down';
@@ -421,6 +425,7 @@
       var mid = item.w >= 56 && item.h >= 34;
       var small = item.w >= 34 && item.h >= 20;
       var cx = item.x + item.w / 2;
+      var cy = item.y + item.h / 2;
 
       // 각진 사각형: 모서리를 둥글리지 않는다(rx 미지정 = 기본값 0)
       var cellEl = node.querySelector('.mcb-cell');
@@ -430,23 +435,32 @@
       cellEl.setAttribute('height', item.h);
       cellEl.setAttribute('class', 'mcb-cell ' + dirClass);
 
+      // 글자 크기를 3단계 고정값 대신 셀 크기에 비례해 연속적으로 키운다
+      // (칸이 클수록 이름/시총/등락률 글자도 그만큼 커짐).
+      var nameFontSize = clamp(Math.min(item.w / 8, item.h / 5), 9, 34);
+      var capFontSize = clamp(nameFontSize * 0.78, 8, 24);
+      var rateFontSize = clamp(nameFontSize * 0.66, 8, 20);
+      var lineGap = nameFontSize * 1.15;
+
       var labelEl = node.querySelector('.mcb-label');
       labelEl.style.display = small ? '' : 'none';
       labelEl.setAttribute('x', cx);
-      labelEl.setAttribute('y', item.y + (big ? item.h * 0.42 : item.h / 2 + 3));
-      labelEl.style.fontSize = (big ? 15 : (mid ? 12 : 10)) + 'px';
+      labelEl.setAttribute('y', cy + (big ? -lineGap * 0.85 : (mid ? -lineGap * 0.35 : nameFontSize * 0.32)));
+      labelEl.style.fontSize = nameFontSize + 'px';
       labelEl.textContent = shortenName(item.name, item.w);
 
       var capEl = node.querySelector('.mcb-cap-label');
       capEl.style.display = big ? '' : 'none';
       capEl.setAttribute('x', cx);
-      capEl.setAttribute('y', item.y + item.h * 0.42 + 17);
+      capEl.setAttribute('y', cy + lineGap * 0.15);
+      capEl.style.fontSize = capFontSize + 'px';
       capEl.textContent = formatCap(item.cap);
 
       var rateEl = node.querySelector('.mcb-rate-label');
       rateEl.style.display = mid ? '' : 'none';
       rateEl.setAttribute('x', cx);
-      rateEl.setAttribute('y', big ? item.y + item.h * 0.42 + 34 : item.y + item.h / 2 + 16);
+      rateEl.setAttribute('y', cy + (big ? lineGap * 1.15 : lineGap * 0.65));
+      rateEl.style.fontSize = rateFontSize + 'px';
       rateEl.setAttribute('class', 'mcb-rate-label ' + dirClass);
       rateEl.textContent = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(1) + '%';
     });
