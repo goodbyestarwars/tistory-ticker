@@ -297,9 +297,26 @@
       '<span class="mcb-legend-item"><i class="mcb-dot mcb-down"></i>하락</span>';
   }
 
-  function shortenName(name, w) {
-    var maxChars = Math.max(2, Math.floor(w / 7.5));
-    return name.length > maxChars ? name.slice(0, maxChars) + '…' : name;
+  // 글자 크기가 셀마다 다르게 연속 조절되면서, 글자수 기반 어림값(폭/7.5)으로는
+  // 큰 폰트에서 실제 렌더 폭을 과소평가해 셀 밖으로 삐져나오는 문제가 있었다
+  // (한화에어로스페이스 등 긴 이름 + 큰 칸). SVG가 주는 실제 렌더 폭
+  // (getComputedTextLength)을 재서 정확히 맞을 때까지 줄인다.
+  function fitText(el, fullText, maxWidth) {
+    el.textContent = fullText;
+    if (maxWidth <= 0) { el.textContent = ''; return; }
+    if (el.getComputedTextLength() <= maxWidth) return;
+
+    var lo = 0, hi = fullText.length;
+    while (lo < hi) {
+      var mid = Math.ceil((lo + hi) / 2);
+      el.textContent = fullText.slice(0, mid) + '…';
+      if (el.getComputedTextLength() <= maxWidth) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    el.textContent = lo > 0 ? fullText.slice(0, lo) + '…' : '…';
   }
 
   function render(container, nodes, viewH, updatedAt, legendHtml, clusterLabels) {
@@ -447,7 +464,7 @@
       labelEl.setAttribute('x', cx);
       labelEl.setAttribute('y', cy + (big ? -lineGap * 0.85 : (mid ? -lineGap * 0.35 : nameFontSize * 0.32)));
       labelEl.style.fontSize = nameFontSize + 'px';
-      labelEl.textContent = shortenName(item.name, item.w);
+      fitText(labelEl, item.name, Math.max(item.w - 6, 0));
 
       var capEl = node.querySelector('.mcb-cap-label');
       capEl.style.display = big ? '' : 'none';
