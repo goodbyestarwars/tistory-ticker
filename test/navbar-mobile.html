@@ -8,11 +8,11 @@
 <style>
   .navbar { position: static; } /* fixed 대신 static으로 둬서 페이지 스크롤 없이 바로 보이게 */
   @keyframes bolt-strike {
-    0%, 46%, 100% { opacity: 0.75; filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
-    4%   { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,0.95)) drop-shadow(0 0 16px rgba(255,255,255,0.6)); }
-    8%   { opacity: 0.75; filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
-    11%  { opacity: 1; filter: drop-shadow(0 0 10px rgba(255,255,255,1)) drop-shadow(0 0 20px rgba(255,255,255,0.7)); }
-    15%  { opacity: 0.75; filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
+    0%, 46%, 100% { opacity: 0.75; filter: drop-shadow(0 0 3px rgba(255,180,90,0.55)); }
+    4%   { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,180,90,0.9)) drop-shadow(0 0 16px rgba(255,140,60,0.55)); }
+    8%   { opacity: 0.75; filter: drop-shadow(0 0 3px rgba(255,180,90,0.55)); }
+    11%  { opacity: 1; filter: drop-shadow(0 0 10px rgba(255,180,90,1)) drop-shadow(0 0 20px rgba(255,140,60,0.65)); }
+    15%  { opacity: 0.75; filter: drop-shadow(0 0 3px rgba(255,180,90,0.55)); }
   }
   .nav-logo-emblem {
     display: flex; align-items: center; justify-content: center;
@@ -37,20 +37,7 @@
   </button>
   <a href="#" class="nav-logo">
     <div class="nav-logo-icon nav-logo-emblem">
-      <svg width="24" height="37" viewBox="1 1 13 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <g class="nav-bolt" stroke="#ffffff" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="none">
-          <!-- 볼트 머리(육각) + 입체감용 옆면 -->
-          <path d="M4,7 L6,4.3 L10,4.3 L12,7 L10,9.7 L6,9.7 Z
-                    M4,7 L4,9.5 M12,7 L12,9.5
-                    M6,9.7 L6,12.2 M10,9.7 L10,12.2
-                    M4,9.5 L6,12.2 M12,9.5 L10,12.2"/>
-          <!-- 나사산 샤프트 -->
-          <path d="M6,12.2 L6,19 M10,12.2 L10,19
-                    M6,14 Q8,15 10,14
-                    M6,16 Q8,17 10,16
-                    M6,18 Q8,19 10,18"/>
-        </g>
-      </svg>
+      <img class="nav-bolt" src="../img/icon-9bolt-transparent.svg" width="28" height="28" alt="9bolt" />
     </div>
     <div class="nav-logo-text">
       <span class="nav-logo-name nav-logo-name-gradient">9bolt</span>
