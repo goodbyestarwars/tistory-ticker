@@ -3,8 +3,8 @@
  * GAS 프록시(?bubble=1)를 45초 간격으로 폴링. 스퀘어파이드(squarified) 트리맵으로
  * 큰 네모(전체) -> 중간 네모(코스피/코스닥/ETF/단일종목 레버리지, 시가총액 비율) ->
  * 소네모(구역 안 개별 종목, 시가총액 비율) 3단 구조로 배치한다.
- * 채우기 색은 등락(상승 빨강/하락 파랑 - 사이트 공통 컬러)의 유리(글라스모피즘)
- * 효과로 표현한다. d3 등 외부 라이브러리 없이 vanilla JS로 구현.
+ * 채우기 색은 등락(상승 빨강/하락 파랑 - 사이트 공통 컬러)의 각진 평면 색상으로
+ * 표현한다(글라스모피즘 없음). d3 등 외부 라이브러리 없이 vanilla JS로 구현.
  * data/marketcap-codes.js가 이 스크립트보다 먼저 로드되어야 한다(로컬 프리뷰 fallback용).
  */
 (function (global) {
@@ -167,16 +167,35 @@
     return el;
   }
 
-  // 유리(글라스모피즘) 효과용 - 좌상단에 밝은 하이라이트가 도는 방사형 그라디언트를
-  // 한 번만 정의해두고 모든 셀의 하이라이트(mcb-shine)가 재사용한다.
-  function buildGlassDefs() {
-    var defs = svgEl('defs');
-    var grad = svgEl('radialGradient', { id: 'mcb-shine-grad', cx: '30%', cy: '22%', r: '75%' });
-    grad.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#ffffff', 'stop-opacity': '0.75' }));
-    grad.appendChild(svgEl('stop', { offset: '55%', 'stop-color': '#ffffff', 'stop-opacity': '0.14' }));
-    grad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#ffffff', 'stop-opacity': '0' }));
-    defs.appendChild(grad);
-    return defs;
+  // 한 구역 안 종목 배치. 스퀘어파이드에만 맡기면 구역이 옆으로 넓고 낮을 때
+  // (예: 코스닥) 한 줄로 죽 늘어선 얇은 셀이 나오기 쉬워, 종목이 여러 개인데
+  // 폭/높이 비율이 아주 납작한 구역은 시가총액 합이 비슷하도록 2줄로 나눠 배치한다.
+  function layoutZoneItems(items, x, y, w, h) {
+    var sorted = items.slice().sort(function (a, b) { return b.cap - a.cap; });
+    var aspect = w / h;
+
+    if (sorted.length > 6 && aspect > 4) {
+      var rows = [[], []];
+      var rowSums = [0, 0];
+      sorted.forEach(function (it) {
+        var idx = rowSums[0] <= rowSums[1] ? 0 : 1;
+        rows[idx].push(it);
+        rowSums[idx] += it.cap;
+      });
+      var totalCap = rowSums[0] + rowSums[1];
+      var h0 = totalCap > 0 ? (rowSums[0] / totalCap) * h : h / 2;
+      var h1 = Math.max(h - h0, 1);
+      return squarifyScaled(rows[0], x, y, w, h0).concat(squarifyScaled(rows[1], x, y + h0, w, h1));
+    }
+    return squarifyScaled(sorted, x, y, w, h);
+
+    function squarifyScaled(subitems, sx, sy, sw, sh) {
+      if (!subitems.length) return [];
+      var subCap = subitems.reduce(function (s, it) { return s + it.cap; }, 0);
+      var scale = (sw * sh) / (subCap || 1);
+      subitems.forEach(function (it) { it.value = it.cap * scale; });
+      return squarify(subitems, sx, sy, sw, sh);
+    }
   }
 
   // 2단계 스퀘어파이드 트리맵: 1) 4개 구역(코스피/코스닥/ETF/레버리지)을 총 시가총액
@@ -245,11 +264,7 @@
       var innerW = Math.max(zw - 2, 1);
       var innerH = Math.max(zh - labelH - 2, 1);
 
-      var items = zone.items.slice().sort(function (a, b) { return b.cap - a.cap; });
-      var itemScale = (innerW * innerH) / (zone.cap || 1);
-      items.forEach(function (it) { it.value = it.cap * itemScale; });
-
-      var itemRects = squarify(items, innerX, innerY, innerW, innerH);
+      var itemRects = layoutZoneItems(zone.items, innerX, innerY, innerW, innerH);
       itemRects.forEach(function (ir) {
         var ix = ir.x + CELL_GAP / 2;
         var iy = ir.y + CELL_GAP / 2;
@@ -296,7 +311,6 @@
         '<div class="mcb-legend"></div>' +
         '<div class="mcb-updated"></div>';
       svg = svgEl('svg', { class: 'mcb-svg', viewBox: '0 0 ' + VIEW_W + ' ' + viewH });
-      svg.appendChild(buildGlassDefs());
       svg.appendChild(svgEl('g', { class: 'mcb-cells' }));
       svg.appendChild(svgEl('g', { class: 'mcb-cluster-labels' }));
       container.querySelector('.mcb-canvas').insertBefore(svg, container.querySelector('.mcb-tooltip'));
@@ -319,6 +333,17 @@
       tooltip.style.top = Math.max(top - 64, 0) + 'px';
     }
 
+    // 구역(코스피/코스닥/ETF/레버리지)은 이제 전체 폭을 쓰는 가로 띠라 구역 중심
+    // 좌표로 툴팁을 띄우면 항상 캔버스 한가운데에 뜬다 - 실제 마우스 커서 위치
+    // 기준으로 띄운다.
+    function positionTooltipAtEvent(evt) {
+      var canvasRect = container.querySelector('.mcb-canvas').getBoundingClientRect();
+      var left = evt.clientX - canvasRect.left;
+      var top = evt.clientY - canvasRect.top;
+      tooltip.style.left = Math.min(Math.max(left, 0), canvasRect.width - 170) + 'px';
+      tooltip.style.top = Math.max(top - 64, 0) + 'px';
+    }
+
     function showTooltip(item) {
       var rateTxt = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(2) + '%';
       tooltip.innerHTML =
@@ -330,12 +355,12 @@
       positionTooltip(item.x + item.w / 2, item.y);
     }
 
-    function showZoneTooltip(cl) {
+    function showZoneTooltip(cl, evt) {
       tooltip.innerHTML =
         '<div class="mcb-tt-name">' + cl.label + '</div>' +
         '<div class="mcb-tt-cap">전체 시가총액 ' + formatCap(cl.totalCap) + '</div>';
       tooltip.hidden = false;
-      positionTooltip(cl.x + cl.w / 2, cl.y);
+      positionTooltipAtEvent(evt);
     }
 
     // 구역 이름표(코스피/코스닥/ETF/단일종목 레버리지) - 4개뿐이라 diff 없이 매번 새로 그리고,
@@ -346,9 +371,10 @@
       var hit = svgEl('rect', {
         class: 'mcb-zone-hit', x: cl.x, y: cl.y, width: cl.w, height: cl.h
       });
-      hit.addEventListener('mouseenter', function (evt) { evt.stopPropagation(); showZoneTooltip(cl); });
+      hit.addEventListener('mouseenter', function (evt) { evt.stopPropagation(); showZoneTooltip(cl, evt); });
+      hit.addEventListener('mousemove', function (evt) { evt.stopPropagation(); positionTooltipAtEvent(evt); });
       hit.addEventListener('mouseleave', hideTooltip);
-      hit.addEventListener('click', function (evt) { evt.stopPropagation(); showZoneTooltip(cl); });
+      hit.addEventListener('click', function (evt) { evt.stopPropagation(); showZoneTooltip(cl, evt); });
       labelLayer.appendChild(hit);
 
       if (cl.showText) {
@@ -373,7 +399,6 @@
       if (!node) {
         node = svgEl('g', { class: 'mcb-node', 'data-name': item.name });
         node.appendChild(svgEl('rect', { class: 'mcb-cell' }));
-        node.appendChild(svgEl('rect', { class: 'mcb-shine', fill: 'url(#mcb-shine-grad)' }));
         node.appendChild(svgEl('text', { class: 'mcb-label' }));
         node.appendChild(svgEl('text', { class: 'mcb-cap-label' }));
         node.appendChild(svgEl('text', { class: 'mcb-rate-label' }));
@@ -404,13 +429,6 @@
       cellEl.setAttribute('width', item.w);
       cellEl.setAttribute('height', item.h);
       cellEl.setAttribute('class', 'mcb-cell ' + dirClass);
-
-      // 유리 효과: 셀 자체 크기의 하이라이트를 좌상단으로 살짝 치우쳐 얹어 광택 표현
-      var shineEl = node.querySelector('.mcb-shine');
-      shineEl.setAttribute('x', item.x);
-      shineEl.setAttribute('y', item.y);
-      shineEl.setAttribute('width', item.w);
-      shineEl.setAttribute('height', item.h);
 
       var labelEl = node.querySelector('.mcb-label');
       labelEl.style.display = small ? '' : 'none';
