@@ -392,18 +392,17 @@
       node.__mcbItem = item;
 
       var dirClass = directionClass(item.changeRate);
-      var rx = Math.max(0, Math.min(6, item.w / 6, item.h / 6));
       var big = item.w >= 90 && item.h >= 56;
       var mid = item.w >= 56 && item.h >= 34;
       var small = item.w >= 34 && item.h >= 20;
       var cx = item.x + item.w / 2;
 
+      // 각진 사각형: 모서리를 둥글리지 않는다(rx 미지정 = 기본값 0)
       var cellEl = node.querySelector('.mcb-cell');
       cellEl.setAttribute('x', item.x);
       cellEl.setAttribute('y', item.y);
       cellEl.setAttribute('width', item.w);
       cellEl.setAttribute('height', item.h);
-      cellEl.setAttribute('rx', rx);
       cellEl.setAttribute('class', 'mcb-cell ' + dirClass);
 
       // 유리 효과: 셀 자체 크기의 하이라이트를 좌상단으로 살짝 치우쳐 얹어 광택 표현
@@ -412,7 +411,6 @@
       shineEl.setAttribute('y', item.y);
       shineEl.setAttribute('width', item.w);
       shineEl.setAttribute('height', item.h);
-      shineEl.setAttribute('rx', rx);
 
       var labelEl = node.querySelector('.mcb-label');
       labelEl.style.display = small ? '' : 'none';

@@ -21,7 +21,7 @@
 .mcb-cell {
   stroke-width: 1.5;
   cursor: pointer;
-  fill-opacity: 0.82;
+  fill-opacity: 0.93;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18));
   transition: x 0.6s cubic-bezier(0.22, 1, 0.36, 1), y 0.6s cubic-bezier(0.22, 1, 0.36, 1),
               width 0.6s cubic-bezier(0.22, 1, 0.36, 1), height 0.6s cubic-bezier(0.22, 1, 0.36, 1),
@@ -46,11 +46,11 @@
               width 0.6s cubic-bezier(0.22, 1, 0.36, 1), height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 채우기 = 등락 (사이트 공통 컬러: 상승 빨강 #d24f45 / 하락 파랑 #1261c4).
-   카테고리는 색이 아니라 구역 이름표(.mcb-zone-label)로 구분한다. */
-.mcb-cell.mcb-up { fill: #d24f45; }
-.mcb-cell.mcb-down { fill: #1261c4; }
-.mcb-cell.mcb-flat { fill: #243b6b; }
+/* 채우기 = 등락(더 진하고 채도 높은 톤). 카테고리는 색이 아니라
+   구역 이름표(.mcb-zone-label)로 구분한다. */
+.mcb-cell.mcb-up { fill: #a8291f; }
+.mcb-cell.mcb-down { fill: #0d3f8f; }
+.mcb-cell.mcb-flat { fill: #1b2d54; }
 /* 테두리는 방향을 또 표현하지 않고, 유리 가장자리처럼 옅은 흰 테를 둘러 입체감만 준다 */
 .mcb-cell { stroke: rgba(255, 255, 255, 0.55); }
 
@@ -144,8 +144,8 @@
   border-radius: 50%;
   display: inline-block;
 }
-.mcb-dot.mcb-up { background: #d24f45; }
-.mcb-dot.mcb-down { background: #1261c4; }
+.mcb-dot.mcb-up { background: #a8291f; }
+.mcb-dot.mcb-down { background: #0d3f8f; }
 
 .mcb-updated {
   margin-top: 6px;
@@ -168,7 +168,7 @@ html.dark #marketcap-bubble .mcb-canvas {
 }
 html.dark #marketcap-bubble .mcb-cell.mcb-up { fill: #ff6b6b; }
 html.dark #marketcap-bubble .mcb-cell.mcb-down { fill: #4dabf7; }
-html.dark #marketcap-bubble .mcb-cell.mcb-flat { fill: #3a4f82; }
+html.dark #marketcap-bubble .mcb-cell.mcb-flat { fill: #2c3f70; }
 html.dark #marketcap-bubble .mcb-dot.mcb-up { background: #ff6b6b; }
 html.dark #marketcap-bubble .mcb-dot.mcb-down { background: #4dabf7; }
 html.dark #marketcap-bubble .mcb-zone-label {

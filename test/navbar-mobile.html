@@ -8,11 +8,11 @@
 <style>
   .navbar { position: static; } /* fixed 대신 static으로 둬서 페이지 스크롤 없이 바로 보이게 */
   @keyframes bolt-strike {
-    0%, 46%, 100% { opacity: 0.6; filter: drop-shadow(0 0 2px rgba(255,255,255,0.45)); }
-    4%   { opacity: 1; filter: drop-shadow(0 0 6px rgba(255,255,255,0.9)) drop-shadow(0 0 12px rgba(255,255,255,0.5)); }
-    8%   { opacity: 0.6; filter: drop-shadow(0 0 2px rgba(255,255,255,0.45)); }
-    11%  { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,1)) drop-shadow(0 0 16px rgba(255,255,255,0.6)); }
-    15%  { opacity: 0.6; filter: drop-shadow(0 0 2px rgba(255,255,255,0.45)); }
+    0%, 46%, 100% { opacity: 0.75; filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
+    4%   { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,0.95)) drop-shadow(0 0 16px rgba(255,255,255,0.6)); }
+    8%   { opacity: 0.75; filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
+    11%  { opacity: 1; filter: drop-shadow(0 0 10px rgba(255,255,255,1)) drop-shadow(0 0 20px rgba(255,255,255,0.7)); }
+    15%  { opacity: 0.75; filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
   }
   .nav-logo-emblem {
     display: flex; align-items: center; justify-content: center;
@@ -24,10 +24,7 @@
     font-family: 'Space Grotesk', 'Noto Sans KR', sans-serif;
     font-weight: 700;
     font-size: 18px;
-    background: linear-gradient(135deg, #a5b4fc, #818cf8, #e0e7ff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #ffffff;
     letter-spacing: -0.5px;
   }
 </style>
@@ -40,9 +37,8 @@
   </button>
   <a href="#" class="nav-logo">
     <div class="nav-logo-icon nav-logo-emblem">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path class="nav-bolt" d="M12 1 L9 8 L12 8 L7 15 L10 15 L6 23 M9 8 L3.5 11.5 M10 15 L16.5 13"
-          stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path class="nav-bolt" d="M13.5 1.5 4.2 13.7h5.6L8 22.5l11.8-13.1h-6.1z" fill="#ffffff"/>
       </svg>
     </div>
     <div class="nav-logo-text">
