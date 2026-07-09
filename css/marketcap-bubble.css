@@ -50,7 +50,7 @@
    카테고리는 색이 아니라 구역 이름표(.mcb-zone-label)로 구분한다. */
 .mcb-cell.mcb-up { fill: #d24f45; }
 .mcb-cell.mcb-down { fill: #1261c4; }
-.mcb-cell.mcb-flat { fill: #9ca3af; }
+.mcb-cell.mcb-flat { fill: #243b6b; }
 /* 테두리는 방향을 또 표현하지 않고, 유리 가장자리처럼 옅은 흰 테를 둘러 입체감만 준다 */
 .mcb-cell { stroke: rgba(255, 255, 255, 0.55); }
 
@@ -168,6 +168,7 @@ html.dark #marketcap-bubble .mcb-canvas {
 }
 html.dark #marketcap-bubble .mcb-cell.mcb-up { fill: #ff6b6b; }
 html.dark #marketcap-bubble .mcb-cell.mcb-down { fill: #4dabf7; }
+html.dark #marketcap-bubble .mcb-cell.mcb-flat { fill: #3a4f82; }
 html.dark #marketcap-bubble .mcb-dot.mcb-up { background: #ff6b6b; }
 html.dark #marketcap-bubble .mcb-dot.mcb-down { background: #4dabf7; }
 html.dark #marketcap-bubble .mcb-zone-label {
