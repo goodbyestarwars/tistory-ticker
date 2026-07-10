@@ -219,6 +219,9 @@
     html += '<div class="ff-footnote">※ 추정대금은 순매매량 × 당일 종가로 계산한 <b>추정치</b>이며 실제 거래대금과 다를 수 있습니다. 자료: 네이버 금융</div>';
 
     box.innerHTML = html;
+
+    wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
+    wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
   }
 
   function buildBadges(data) {
@@ -266,19 +269,33 @@
 
   // ---- 차트 (vanilla SVG - 버블차트와 스택 통일, 외부 라이브러리 없음) ----
 
+  // y축 범위 계산 - 차트 생성과 호버 좌표 역산이 같은 스케일을 써야 해서 분리
+  function netDomain(asc) {
+    var vals = [];
+    asc.forEach(function (d) { vals.push(d.foreign_net, d.inst_net); });
+    var max = Math.max.apply(null, vals.concat([0]));
+    var min = Math.min.apply(null, vals.concat([0]));
+    var span = (max - min) || 1;
+    return { min: min - span * 0.08, max: max + span * 0.08 };
+  }
+
+  function ratioDomain(asc) {
+    var vals = asc.map(function (d) { return d.foreign_ratio; });
+    var max = Math.max.apply(null, vals);
+    var min = Math.min.apply(null, vals);
+    var span = (max - min) || 0.5;
+    return { min: min - span * 0.15, max: max + span * 0.15 };
+  }
+
   // 순매매량 라인차트: 외국인/기관 2개 시리즈, 0선 기준
   function buildNetChart(daily) {
     var asc = daily.slice().reverse(); // 왼쪽=과거, 오른쪽=최신
     var n = asc.length;
     if (n < 2) return '';
 
-    var vals = [];
-    asc.forEach(function (d) { vals.push(d.foreign_net, d.inst_net); });
-    var max = Math.max.apply(null, vals.concat([0]));
-    var min = Math.min.apply(null, vals.concat([0]));
-    var span = (max - min) || 1;
-    max += span * 0.08;
-    min -= span * 0.08;
+    var dom = netDomain(asc);
+    var min = dom.min;
+    var max = dom.max;
 
     var iw = CHART_W - PAD.l - PAD.r;
     var ih = CHART_H - PAD.t - PAD.b;
@@ -301,9 +318,11 @@
     svg += xAxisLabels(asc, x, CHART_H - 8);
     svg += '<polyline class="ff-line-foreign" points="' + points('foreign_net') + '"/>';
     svg += '<polyline class="ff-line-inst" points="' + points('inst_net') + '"/>';
+    svg += hoverMarkup(CHART_H, ['foreign', 'inst']);
     svg += '</svg>';
 
-    return '<div class="ff-chart">' + svg
+    return '<div class="ff-chart ff-chart-net">' + svg
+      + '<div class="ff-tt" hidden></div>'
       + '<div class="ff-legend">'
       + '<span class="ff-legend-item"><i class="ff-dot ff-dot-foreign"></i>외국인</span>'
       + '<span class="ff-legend-item"><i class="ff-dot ff-dot-inst"></i>기관</span>'
@@ -316,12 +335,9 @@
     var n = asc.length;
     if (n < 2) return '';
 
-    var vals = asc.map(function (d) { return d.foreign_ratio; });
-    var max = Math.max.apply(null, vals);
-    var min = Math.min.apply(null, vals);
-    var span = (max - min) || 0.5;
-    max += span * 0.15;
-    min -= span * 0.15;
+    var dom = ratioDomain(asc);
+    var min = dom.min;
+    var max = dom.max;
 
     var iw = CHART_W - PAD.l - PAD.r;
     var ih = RATIO_H - PAD.t - PAD.b;
@@ -339,12 +355,111 @@
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + min.toFixed(1) + '%</text>';
     svg += xAxisLabels(asc, x, RATIO_H - 8);
     svg += '<polyline class="ff-line-ratio" points="' + pts + '"/>';
+    svg += hoverMarkup(RATIO_H, ['ratio']);
     svg += '</svg>';
 
     var last = asc[n - 1].foreign_ratio;
-    return '<div class="ff-chart">' + svg
+    return '<div class="ff-chart ff-chart-ratio">' + svg
+      + '<div class="ff-tt" hidden></div>'
       + '<div class="ff-legend"><span class="ff-legend-item"><i class="ff-dot ff-dot-ratio"></i>보유율 (현재 ' + last.toFixed(2) + '%)</span></div>'
       + '</div>';
+  }
+
+  // ---- 호버 툴팁 (세로 가이드선 + 시리즈별 점 + 날짜/수치) ----
+
+  function hoverMarkup(h, seriesKeys) {
+    var out = '<line class="ff-hover-line" x1="0" x2="0" y1="' + PAD.t + '" y2="' + (h - PAD.b) + '" visibility="hidden"/>';
+    seriesKeys.forEach(function (key) {
+      out += '<circle class="ff-hover-dot ff-hover-dot-' + key + '" r="4" visibility="hidden"/>';
+    });
+    return out;
+  }
+
+  function wireChartHover(chartEl, daily, type) {
+    if (!chartEl) return;
+    var svg = chartEl.querySelector('svg.ff-svg');
+    var tt = chartEl.querySelector('.ff-tt');
+    var line = chartEl.querySelector('.ff-hover-line');
+    if (!svg || !tt || !line) return;
+
+    var asc = daily.slice().reverse();
+    var n = asc.length;
+    if (n < 2) return;
+
+    var H = type === 'net' ? CHART_H : RATIO_H;
+    var iw = CHART_W - PAD.l - PAD.r;
+    var ih = H - PAD.t - PAD.b;
+    var dom = type === 'net' ? netDomain(asc) : ratioDomain(asc);
+
+    function xAt(i) { return PAD.l + (i / (n - 1)) * iw; }
+    function yAt(v) { return PAD.t + (1 - (v - dom.min) / (dom.max - dom.min)) * ih; }
+
+    var dots = {};
+    ['foreign', 'inst', 'ratio'].forEach(function (key) {
+      var el = chartEl.querySelector('.ff-hover-dot-' + key);
+      if (el) dots[key] = el;
+    });
+
+    function show(evt) {
+      var rect = svg.getBoundingClientRect();
+      if (!rect.width) return;
+      var vx = (evt.clientX - rect.left) / rect.width * CHART_W;
+      var i = Math.round((vx - PAD.l) / iw * (n - 1));
+      if (i < 0) i = 0;
+      if (i > n - 1) i = n - 1;
+      var d = asc[i];
+      var X = xAt(i);
+
+      line.setAttribute('x1', X);
+      line.setAttribute('x2', X);
+      line.setAttribute('visibility', 'visible');
+
+      if (type === 'net') {
+        if (dots.foreign) {
+          dots.foreign.setAttribute('cx', X);
+          dots.foreign.setAttribute('cy', yAt(d.foreign_net));
+          dots.foreign.setAttribute('visibility', 'visible');
+        }
+        if (dots.inst) {
+          dots.inst.setAttribute('cx', X);
+          dots.inst.setAttribute('cy', yAt(d.inst_net));
+          dots.inst.setAttribute('visibility', 'visible');
+        }
+        tt.innerHTML = '<div class="ff-tt-date">' + escapeHtml(d.date) + '</div>'
+          + '<div class="ff-tt-row"><i class="ff-dot ff-dot-foreign"></i>외국인 <b class="' + signClass(d.foreign_net) + '">' + fmtShares(d.foreign_net) + '</b></div>'
+          + '<div class="ff-tt-row"><i class="ff-dot ff-dot-inst"></i>기관 <b class="' + signClass(d.inst_net) + '">' + fmtShares(d.inst_net) + '</b></div>'
+          + '<div class="ff-tt-row ff-tt-sub">종가 ' + Number(d.close).toLocaleString() + ' (' + (d.change_pct >= 0 ? '+' : '') + d.change_pct.toFixed(2) + '%)</div>';
+      } else {
+        if (dots.ratio) {
+          dots.ratio.setAttribute('cx', X);
+          dots.ratio.setAttribute('cy', yAt(d.foreign_ratio));
+          dots.ratio.setAttribute('visibility', 'visible');
+        }
+        tt.innerHTML = '<div class="ff-tt-date">' + escapeHtml(d.date) + '</div>'
+          + '<div class="ff-tt-row"><i class="ff-dot ff-dot-ratio"></i>보유율 <b>' + d.foreign_ratio.toFixed(2) + '%</b></div>'
+          + '<div class="ff-tt-row ff-tt-sub">보유주수 ' + Number(d.foreign_shares).toLocaleString() + '주</div>';
+      }
+      tt.hidden = false;
+
+      // 툴팁 픽셀 위치: 가이드선 오른쪽에 붙이되, 오른쪽 끝에선 왼쪽으로 뒤집는다
+      var chartRect = chartEl.getBoundingClientRect();
+      var lineLeft = (rect.left - chartRect.left) + (X / CHART_W) * rect.width;
+      var ttW = tt.offsetWidth || 150;
+      var left = lineLeft + 10;
+      if (left + ttW > chartRect.width - 4) left = lineLeft - ttW - 10;
+      tt.style.left = Math.max(left, 4) + 'px';
+      tt.style.top = ((rect.top - chartRect.top) + 8) + 'px';
+    }
+
+    function hide() {
+      tt.hidden = true;
+      line.setAttribute('visibility', 'hidden');
+      Object.keys(dots).forEach(function (k) { dots[k].setAttribute('visibility', 'hidden'); });
+    }
+
+    svg.addEventListener('mousemove', show);
+    svg.addEventListener('mouseleave', hide);
+    svg.addEventListener('click', show); // 모바일 탭 대응
   }
 
   // x축 날짜 레이블: 처음/중간/끝 3개

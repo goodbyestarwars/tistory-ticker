@@ -154,6 +154,7 @@
   margin: 14px 0 6px;
 }
 #foreign-flow .ff-chart {
+  position: relative; /* 호버 툴팁(.ff-tt) absolute 기준 */
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   padding: 8px 8px 4px;
@@ -189,6 +190,31 @@
 #foreign-flow .ff-dot-foreign { background: #e8590c; }
 #foreign-flow .ff-dot-inst { background: #5f3dc4; }
 #foreign-flow .ff-dot-ratio { background: #0ca678; }
+
+/* 호버 가이드선/점/툴팁 */
+#foreign-flow .ff-hover-line { stroke: #999; stroke-width: 1; stroke-dasharray: 3 3; }
+#foreign-flow .ff-hover-dot { stroke: #fff; stroke-width: 1.5; }
+#foreign-flow .ff-hover-dot-foreign { fill: #e8590c; }
+#foreign-flow .ff-hover-dot-inst { fill: #5f3dc4; }
+#foreign-flow .ff-hover-dot-ratio { fill: #0ca678; }
+
+#foreign-flow .ff-tt {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14);
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+#foreign-flow .ff-tt-date { font-weight: 700; margin-bottom: 2px; }
+#foreign-flow .ff-tt-row { display: flex; align-items: center; gap: 5px; }
+#foreign-flow .ff-tt-row b { font-weight: 700; }
+#foreign-flow .ff-tt-sub { color: #888; font-size: 11px; }
 
 #foreign-flow .ff-footnote {
   font-size: 12px;
@@ -237,4 +263,12 @@ html.dark #foreign-flow .ff-grid { stroke: #3a3a3a; }
 html.dark #foreign-flow .ff-zero { stroke: #666; }
 html.dark #foreign-flow .ff-axis { fill: #888; }
 html.dark #foreign-flow .ff-legend { color: #aaa !important; }
+html.dark #foreign-flow .ff-hover-line { stroke: #777; }
+html.dark #foreign-flow .ff-hover-dot { stroke: #222; }
+html.dark #foreign-flow .ff-tt {
+  background: #2a2a2a !important;
+  border-color: #555 !important;
+  color: #ddd !important;
+}
+html.dark #foreign-flow .ff-tt-sub { color: #999 !important; }
 html.dark #foreign-flow .ff-footnote { color: #888 !important; }
