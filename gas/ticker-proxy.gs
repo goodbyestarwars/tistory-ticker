@@ -656,8 +656,8 @@ function getForeignFlow(code) {
       inst: frgnStreak(daily, 'inst_net')
     },
     signal: {
-      foreign: frgnSignal(rolling, 'foreign'),
-      inst: frgnSignal(rolling, 'inst')
+      foreign: frgnSignal(daily, rolling, 'foreign'),
+      inst: frgnSignal(daily, rolling, 'inst')
     }
   };
 }
@@ -742,16 +742,50 @@ function frgnStreak(daily, field) {
   };
 }
 
-// 추세 전환 신호: 20일 합산과 5일 합산의 부호가 다르면 true.
-// key: 'foreign' | 'inst' - rolling['5d']/['20d']의 필드명과 맞춰 외국인/기관 공용으로 씀.
-function frgnSignal(rolling, key) {
-  var v5 = rolling['5d'][key];
-  var v20 = rolling['20d'][key];
-  var shift = (v5 > 0 && v20 < 0) || (v5 < 0 && v20 > 0);
+// 추세 전환 신호. 단순히 "5일 합산 vs 20일 합산 부호가 다르면 true"는
+// (1) 크기 무시(노이즈에 취약) (2) v20이 v5를 포함하는 중첩 비교 (3) 하루 몰빵 매수도
+// "전환"으로 잡히는 문제가 있어 아래 3개 조건을 모두 만족해야 true로 판정한다.
+// kind: 'foreign' | 'inst' - rolling/daily의 필드명과 맞춰 외국인/기관 공용으로 씀.
+function frgnSignal(daily, rolling, kind) {
+  var field = kind + '_net';
+  var v5 = rolling['5d'][kind];
+  var v20 = rolling['20d'][kind];
+  var prior15 = v20 - v5; // v20에서 최근 5일을 뺀, 겹치지 않는 "이전 15일" - 순수 비교용
+
+  // (1) 크기 필터: 최근 20일 평균 하루 순매매 절대값의 2배(=평소 이틀치) 이상이어야 신호로 인정
+  var n = Math.min(20, daily.length);
+  var avgDaily = 0;
+  for (var i = 0; i < n; i++) avgDaily += Math.abs(daily[i][field]);
+  avgDaily = n ? avgDaily / n : 0;
+  var magnitudeOk = Math.abs(v5) >= avgDaily * 2;
+
+  // (2) 중첩 없는 방향 비교: 최근 5일 vs 그 이전 15일의 부호가 반대일 때만 전환 후보
+  var dir = (v5 > 0 && prior15 < 0) ? 'buy' : (v5 < 0 && prior15 > 0) ? 'sell' : null;
+
+  // (3) 연속성 필터: 최근 5일 중 3일 이상이 같은 방향이어야 함(하루 몰빵 매수 등 단발성 배제)
+  var m = Math.min(5, daily.length);
+  var sameDirDays = 0;
+  for (var d = 0; d < m; d++) {
+    var v = daily[d][field];
+    if ((dir === 'buy' && v > 0) || (dir === 'sell' && v < 0)) sameDirDays++;
+  }
+  var consistencyOk = sameDirDays >= 3;
+
+  var shift = !!dir && magnitudeOk && consistencyOk;
+
+  // 가격 동반 여부(참고용, 조건에는 안 씀): 같은 5일 평균 등락률 방향이 수급 방향과 일치하는지.
+  // 리밸런싱성 매수처럼 가격이 안 따라가는 정상 케이스도 있어 필터로 쓰지 않고 문구에만 참고 표시.
+  var avgChangePct = 0;
+  for (var c = 0; c < m; c++) avgChangePct += daily[c].change_pct;
+  avgChangePct = m ? avgChangePct / m : 0;
+  var priceConfirmed = dir === 'buy' ? avgChangePct > 0 : dir === 'sell' ? avgChangePct < 0 : false;
+
   return {
     trend_shift: shift,
+    price_confirmed: priceConfirmed,
     note: shift
-      ? '20일 합산 ' + (v20 > 0 ? '플러스' : '마이너스') + ', 5일 합산 ' + (v5 > 0 ? '플러스' : '마이너스') + ' 전환'
+      ? '최근 5일 ' + (v5 > 0 ? '플러스' : '마이너스') + ' vs 이전 15일 ' + (prior15 > 0 ? '플러스' : '마이너스')
+        + ' 전환' + (priceConfirmed ? ' · 주가 동반' : ' · 주가 미동반')
       : ''
   };
 }

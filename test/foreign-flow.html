@@ -85,12 +85,40 @@
         }
         return { days: days, direction: dir > 0 ? 'buy' : dir < 0 ? 'sell' : 'flat' };
       }
-      function signalOf(key) {
+      function signalOf(field, key) {
         var v5 = rolling['5d'][key], v20 = rolling['20d'][key];
-        var shift = (v5 > 0 && v20 < 0) || (v5 < 0 && v20 > 0);
+        var prior15 = v20 - v5;
+
+        var n = Math.min(20, daily.length);
+        var avgDaily = 0;
+        for (var i = 0; i < n; i++) avgDaily += Math.abs(daily[i][field]);
+        avgDaily = n ? avgDaily / n : 0;
+        var magnitudeOk = Math.abs(v5) >= avgDaily * 2;
+
+        var dir = (v5 > 0 && prior15 < 0) ? 'buy' : (v5 < 0 && prior15 > 0) ? 'sell' : null;
+
+        var m = Math.min(5, daily.length);
+        var sameDirDays = 0;
+        for (var d = 0; d < m; d++) {
+          var v = daily[d][field];
+          if ((dir === 'buy' && v > 0) || (dir === 'sell' && v < 0)) sameDirDays++;
+        }
+        var consistencyOk = sameDirDays >= 3;
+
+        var shift = !!dir && magnitudeOk && consistencyOk;
+
+        var avgChangePct = 0;
+        for (var c = 0; c < m; c++) avgChangePct += daily[c].change_pct;
+        avgChangePct = m ? avgChangePct / m : 0;
+        var priceConfirmed = dir === 'buy' ? avgChangePct > 0 : dir === 'sell' ? avgChangePct < 0 : false;
+
         return {
           trend_shift: shift,
-          note: shift ? ('20일 합산 ' + (v20 > 0 ? '플러스' : '마이너스') + ', 5일 합산 ' + (v5 > 0 ? '플러스' : '마이너스') + ' 전환') : ''
+          price_confirmed: priceConfirmed,
+          note: shift
+            ? ('최근 5일 ' + (v5 > 0 ? '플러스' : '마이너스') + ' vs 이전 15일 ' + (prior15 > 0 ? '플러스' : '마이너스')
+              + ' 전환' + (priceConfirmed ? ' · 주가 동반' : ' · 주가 미동반'))
+            : ''
         };
       }
 
@@ -112,7 +140,7 @@
           inst_10d_krw: asum('inst_net', 10), inst_20d_krw: asum('inst_net', 20)
         },
         streak: { foreign: streakOf('foreign_net'), inst: streakOf('inst_net') },
-        signal: { foreign: signalOf('foreign'), inst: signalOf('inst') }
+        signal: { foreign: signalOf('foreign_net', 'foreign'), inst: signalOf('inst_net', 'inst') }
       });
     };
   }
