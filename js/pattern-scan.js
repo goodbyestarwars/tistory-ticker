@@ -228,6 +228,12 @@
       if (i < 0) return '';
       return '<circle class="' + cls + '" cx="' + x(i).toFixed(1) + '" cy="' + y(p.price).toFixed(1) + '" r="4"/>';
     }
+    // 확인/매수 검토 지점을 O(원) 표시로 강조 (참고 이미지의 핑크색 원 컨벤션)
+    function signalRing(p) {
+      var i = idxByDate(p.date);
+      if (i < 0) return '';
+      return '<circle class="ps-dot-signal" cx="' + x(i).toFixed(1) + '" cy="' + y(p.price).toFixed(1) + '" r="9"/>';
+    }
     // fromDate를 주면 그 지점부터 오른쪽 끝까지만 수평선을 그림(패턴 구간만 강조, 전체 폭 X)
     function hline(price, cls, fromDate) {
       var xStart = PAD.l;
@@ -246,6 +252,7 @@
       svg += polyline(highs, 'ps-line-resist');
       lows.forEach(function (p) { svg += dot(p, 'ps-dot-support'); });
       highs.forEach(function (p) { svg += dot(p, 'ps-dot-resist'); });
+      if (detail.signal) svg += signalRing(detail.signal); // 최근 저점(마지막 상승 확인 지점)
     } else if (pattern === 'doubleBottom') {
       // 저점1 -> 넥라인(중간 반등 고점) -> 저점2 순서로 이어야 실제 W 모양이 나온다
       if (detail.low1 && detail.neckline && detail.low2) {
@@ -254,6 +261,7 @@
         svg += dot(detail.low1, 'ps-dot-support');
         svg += dot(detail.low2, 'ps-dot-support');
         svg += dot(detail.neckline, 'ps-dot-resist');
+        if (detail.signal) svg += signalRing(detail.signal); // 두번째 저점(쌍바닥 확인 지점)
       }
     } else if (pattern === 'invHeadShoulders') {
       // 좌어깨 -> 좌고점 -> 헤드 -> 우고점 -> 우어깨 5점을 순서대로 이어 봉우리 2개 모양을 표현
@@ -263,6 +271,7 @@
         svg += hline(detail.neckline.price, 'ps-line-resist', detail.left_shoulder.date);
         ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) { svg += dot(detail[k], 'ps-dot-support'); });
         svg += dot(detail.neckline, 'ps-dot-resist');
+        if (detail.signal) svg += signalRing(detail.signal); // 우어깨(패턴 완성 확인 지점)
       }
     } else if (pattern === 'boxRangeLow') {
       var boxLows = detail.low_swings || [];
@@ -271,13 +280,16 @@
       if (detail.resistance != null) svg += hline(detail.resistance, 'ps-line-resist', boxHighs[0] && boxHighs[0].date);
       boxLows.forEach(function (p) { svg += dot(p, 'ps-dot-support'); });
       boxHighs.forEach(function (p) { svg += dot(p, 'ps-dot-resist'); });
+      if (detail.signal) svg += signalRing(detail.signal); // 현재가(박스 하단 근접 지점)
     } else if (pattern === 'goldPitReversal') {
-      // 직전고점 -> 저점(골) -> 현재가 순서로 이어 급락 후 반등하는 V자 모양을 표현
-      if (detail.pre_high && detail.trough && detail.current) {
-        svg += polyline([detail.pre_high, detail.trough, detail.current], 'ps-line-support');
+      // 직전고점 -> 저점(골) -> 랠리고점(반등) -> 눌림목(현재가) 4점을 이어
+      // "급락 후 반등, 그리고 되돌림이 들어온" 자리까지 표현
+      if (detail.pre_high && detail.trough && detail.rally_peak && detail.pullback) {
+        svg += polyline([detail.pre_high, detail.trough, detail.rally_peak, detail.pullback], 'ps-line-support');
         svg += dot(detail.pre_high, 'ps-dot-resist');
         svg += dot(detail.trough, 'ps-dot-support');
-        svg += dot(detail.current, 'ps-dot-support');
+        svg += dot(detail.rally_peak, 'ps-dot-resist');
+        svg += signalRing(detail.pullback); // 눌림목(매수 검토 지점)
       }
     }
 

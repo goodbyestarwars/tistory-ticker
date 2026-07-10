@@ -189,6 +189,13 @@
   stroke-width: 1.5;
 }
 
+/* 확인/매수 검토 지점 강조 링 (참고 이미지의 핑크색 O 표시 컨벤션) */
+#pattern-scan .ps-dot-signal {
+  fill: none;
+  stroke: #ec4899;
+  stroke-width: 2.5;
+}
+
 #pattern-scan .ps-footnote {
   font-size: 11.5px;
   color: #999;

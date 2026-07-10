@@ -50,16 +50,16 @@
     return daily;
   }
 
-  // 저점상승형: 저가가 완만히 우상향
-  var risingLowsDaily = genDaily([0, 200, 100, 400, 350, 600, 500, 800, 700, 1000, 950, 1150, 1100, 1300, 1250, 1450, 1400, 1550, 1500, 1650]);
+  // 저점상승형: 계단식으로 저점이 뚜렷하게 우상향(각 저점이 스윙 판정 가능하도록 골 간격을 확보)
+  var risingLowsDaily = genDaily([1400, 1000, 700, 1000, 1400, 1800, 1500, 1200, 1500, 1900, 2300, 2000, 1700, 2000, 2300, 2700, 2400, 2200, 2400, 2600]);
   // 쌍바닥: 앞쪽 저점 - 반등 - 뒤쪽 비슷한 저점
   var doubleBottomDaily = genDaily([0, 300, 100, 50, 200, 800, 1500, 1800, 1400, 900, 400, 150, 80, 30, 250, 700, 1200, 1400, 1300, 1100]);
   // 역헤드앤숄더: 좌어깨 - 봉우리 - 헤드(가장 낮음) - 봉우리 - 우어깨 (간격을 넉넉히 둬서 봉우리 계산 여유 확보)
   var ihsDaily = genDaily([1800, 1400, 900, 400, 900, 1500, 2100, 1600, 1000, 400, 0, 400, 1000, 1600, 2100, 1500, 900, 400, 900, 1400]);
   // 박스권: 저점끼리·고점끼리 평평하게 오가며, 마지막이 저점 근처
   var boxDaily = genDaily([0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 30]);
-  // 골파기: 고점 -> 급락(골) -> 절반 이상 반등
-  var goldDaily = genDaily([6000, 6500, 7000, 7500, 8000, 6500, 4500, 2500, 1200, 400, 0, 200, 700, 1500, 2500, 3500, 4200, 4800, 5100, 5300]);
+  // 골파기: 고점 -> 급락(골) -> 랠리(반등고점) -> 눌림목(최근 며칠 되돌림)
+  var goldDaily = genDaily([6000, 6500, 7000, 7500, 8000, 6500, 4500, 2500, 1200, 400, 0, 800, 1800, 3000, 4200, 5200, 6000, 5400, 5000, 4700]);
 
   function detectMock(daily, pattern) {
     // 실제 GAS 로직을 그대로 흉내내진 않고, mock용으로 스윙 저점/고점만 대충 골라서 오버레이 좌표를 만든다.
@@ -84,10 +84,13 @@
 
     if (pattern === 'risingLows') {
       var lows = swingLows(daily), highs = swingHighs(daily);
+      if (!lows.length || !highs.length) return null;
+      var lastLow = lows[lows.length - 1];
       return {
         low_swings: lows.map(function (i) { return { date: daily[i].date, price: daily[i].low }; }),
         high_swings: highs.map(function (i) { return { date: daily[i].date, price: daily[i].high }; }),
         resistance: Math.max.apply(null, highs.map(function (i) { return daily[i].high; })),
+        signal: { date: daily[lastLow].date, price: daily[lastLow].low },
         breakout: false
       };
     }
@@ -100,6 +103,7 @@
         low1: { date: daily[i1].date, price: daily[i1].low },
         low2: { date: daily[i2].date, price: daily[i2].low },
         neckline: { date: daily[neckIdx].date, price: neckHigh },
+        signal: { date: daily[i2].date, price: daily[i2].low },
         breakout: false
       };
     }
@@ -121,6 +125,7 @@
         right_peak: { date: p2.date, price: p2.high },
         right_shoulder: { date: daily[iR].date, price: daily[iR].low },
         neckline: { date: necklinePoint.date, price: Math.min(p1.high, p2.high) },
+        signal: { date: daily[iR].date, price: daily[iR].low },
         breakout: false
       };
     }
@@ -128,11 +133,13 @@
       var bLows = swingLows(daily), bHighs = swingHighs(daily);
       var support = bLows.reduce(function (s, i) { return s + daily[i].low; }, 0) / bLows.length;
       var resistance = bHighs.reduce(function (s, i) { return s + daily[i].high; }, 0) / bHighs.length;
+      var lastRow = daily[daily.length - 1];
       return {
         support: support,
         resistance: resistance,
         low_swings: bLows.map(function (i) { return { date: daily[i].date, price: daily[i].low }; }),
         high_swings: bHighs.map(function (i) { return { date: daily[i].date, price: daily[i].high }; }),
+        signal: { date: lastRow.date, price: lastRow.close },
         breakout: false
       };
     }
@@ -141,10 +148,15 @@
       for (var ti = 1; ti < daily.length; ti++) if (daily[ti].low < daily[troughIdx].low) troughIdx = ti;
       var preHighIdx = 0;
       for (var pi = 0; pi <= troughIdx; pi++) if (daily[pi].high > daily[preHighIdx].high) preHighIdx = pi;
+      var rallyPeakIdx = troughIdx;
+      for (var ri = troughIdx + 1; ri < daily.length; ri++) if (daily[ri].high > daily[rallyPeakIdx].high) rallyPeakIdx = ri;
+      var lastRow2 = daily[daily.length - 1];
       return {
         pre_high: { date: daily[preHighIdx].date, price: daily[preHighIdx].high },
         trough: { date: daily[troughIdx].date, price: daily[troughIdx].low },
-        current: { date: daily[daily.length - 1].date, price: daily[daily.length - 1].close },
+        rally_peak: { date: daily[rallyPeakIdx].date, price: daily[rallyPeakIdx].high },
+        pullback: { date: lastRow2.date, price: lastRow2.close },
+        signal: { date: lastRow2.date, price: lastRow2.close },
         breakout: false
       };
     }
