@@ -152,7 +152,7 @@
 #pattern-scan .ps-svg {
   width: 100%;
   height: auto;
-  min-width: 480px;
+  min-width: 900px;
   display: block;
 }
 
@@ -162,15 +162,19 @@
 }
 
 #pattern-scan .ps-line-support {
+  fill: none;
   stroke: #d24f45;
   stroke-width: 2;
-  stroke-dasharray: 4 3;
+  stroke-linejoin: round;
+  stroke-dasharray: 5 4;
 }
 
 #pattern-scan .ps-line-resist {
+  fill: none;
   stroke: #1261c4;
   stroke-width: 2;
-  stroke-dasharray: 4 3;
+  stroke-linejoin: round;
+  stroke-dasharray: 5 4;
 }
 
 #pattern-scan .ps-dot-support {

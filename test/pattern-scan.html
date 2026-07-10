@@ -54,8 +54,12 @@
   var risingLowsDaily = genDaily([0, 200, 100, 400, 350, 600, 500, 800, 700, 1000, 950, 1150, 1100, 1300, 1250, 1450, 1400, 1550, 1500, 1650]);
   // 쌍바닥: 앞쪽 저점 - 반등 - 뒤쪽 비슷한 저점
   var doubleBottomDaily = genDaily([0, 300, 100, 50, 200, 800, 1500, 1800, 1400, 900, 400, 150, 80, 30, 250, 700, 1200, 1400, 1300, 1100]);
-  // 역헤드앤숄더: 좌어깨 - 헤드(더 낮음) - 우어깨
-  var ihsDaily = genDaily([1200, 900, 500, 200, 600, 1000, 1300, 700, 300, 0, 50, 400, 900, 1400, 1600, 1100, 700, 400, 200, 500]);
+  // 역헤드앤숄더: 좌어깨 - 봉우리 - 헤드(가장 낮음) - 봉우리 - 우어깨 (간격을 넉넉히 둬서 봉우리 계산 여유 확보)
+  var ihsDaily = genDaily([1800, 1400, 900, 400, 900, 1500, 2100, 1600, 1000, 400, 0, 400, 1000, 1600, 2100, 1500, 900, 400, 900, 1400]);
+  // 박스권: 저점끼리·고점끼리 평평하게 오가며, 마지막이 저점 근처
+  var boxDaily = genDaily([0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 30]);
+  // 골파기: 고점 -> 급락(골) -> 절반 이상 반등
+  var goldDaily = genDaily([6000, 6500, 7000, 7500, 8000, 6500, 4500, 2500, 1200, 400, 0, 200, 700, 1500, 2500, 3500, 4200, 4800, 5100, 5300]);
 
   function detectMock(daily, pattern) {
     // 실제 GAS 로직을 그대로 흉내내진 않고, mock용으로 스윙 저점/고점만 대충 골라서 오버레이 좌표를 만든다.
@@ -103,17 +107,44 @@
       var lows3 = swingLows(daily);
       var iL = lows3[0], iH = lows3[Math.floor(lows3.length / 2)], iR = lows3[lows3.length - 1];
       function maxHighBetween(a, b) {
-        var mh = -Infinity, mi = a + 1;
+        var mh = -Infinity, mi = -1;
         for (var k = a + 1; k < b; k++) { if (daily[k].high > mh) { mh = daily[k].high; mi = k; } }
-        return { date: daily[mi].date, high: mh };
+        return mi === -1 ? null : { date: daily[mi].date, high: mh };
       }
       var p1 = maxHighBetween(iL, iH), p2 = maxHighBetween(iH, iR);
+      if (!p1 || !p2) return null; // 봉우리 사이 간격이 없으면(스윙 저점이 너무 붙어있으면) 이 mock 데이터로는 판정 불가
       var necklinePoint = p1.high <= p2.high ? p1 : p2;
       return {
         left_shoulder: { date: daily[iL].date, price: daily[iL].low },
+        left_peak: { date: p1.date, price: p1.high },
         head: { date: daily[iH].date, price: daily[iH].low },
+        right_peak: { date: p2.date, price: p2.high },
         right_shoulder: { date: daily[iR].date, price: daily[iR].low },
         neckline: { date: necklinePoint.date, price: Math.min(p1.high, p2.high) },
+        breakout: false
+      };
+    }
+    if (pattern === 'boxRangeLow') {
+      var bLows = swingLows(daily), bHighs = swingHighs(daily);
+      var support = bLows.reduce(function (s, i) { return s + daily[i].low; }, 0) / bLows.length;
+      var resistance = bHighs.reduce(function (s, i) { return s + daily[i].high; }, 0) / bHighs.length;
+      return {
+        support: support,
+        resistance: resistance,
+        low_swings: bLows.map(function (i) { return { date: daily[i].date, price: daily[i].low }; }),
+        high_swings: bHighs.map(function (i) { return { date: daily[i].date, price: daily[i].high }; }),
+        breakout: false
+      };
+    }
+    if (pattern === 'goldPitReversal') {
+      var troughIdx = 0;
+      for (var ti = 1; ti < daily.length; ti++) if (daily[ti].low < daily[troughIdx].low) troughIdx = ti;
+      var preHighIdx = 0;
+      for (var pi = 0; pi <= troughIdx; pi++) if (daily[pi].high > daily[preHighIdx].high) preHighIdx = pi;
+      return {
+        pre_high: { date: daily[preHighIdx].date, price: daily[preHighIdx].high },
+        trough: { date: daily[troughIdx].date, price: daily[troughIdx].low },
+        current: { date: daily[daily.length - 1].date, price: daily[daily.length - 1].close },
         breakout: false
       };
     }
@@ -132,7 +163,9 @@
   var byPattern = {
     risingLows: { daily: risingLowsDaily, code: '005930', name: '삼성전자' },
     doubleBottom: { daily: doubleBottomDaily, code: '000660', name: 'SK하이닉스' },
-    invHeadShoulders: { daily: ihsDaily, code: '035420', name: 'NAVER' }
+    invHeadShoulders: { daily: ihsDaily, code: '035420', name: 'NAVER' },
+    boxRangeLow: { daily: boxDaily, code: '005380', name: '현대차' },
+    goldPitReversal: { daily: goldDaily, code: '000270', name: '기아' }
   };
 
   PatternScan.fetchJson = function (url) {
@@ -145,7 +178,9 @@
         patterns: {
           risingLows: [mockMatch(byPattern.risingLows.daily, '005930', '삼성전자'), mockMatch(byPattern.risingLows.daily, '005380', '현대차')],
           doubleBottom: [mockMatch(byPattern.doubleBottom.daily, '000660', 'SK하이닉스')],
-          invHeadShoulders: [mockMatch(byPattern.invHeadShoulders.daily, '035420', 'NAVER')]
+          invHeadShoulders: [mockMatch(byPattern.invHeadShoulders.daily, '035420', 'NAVER')],
+          boxRangeLow: [mockMatch(byPattern.boxRangeLow.daily, '005380', '현대차')],
+          goldPitReversal: [mockMatch(byPattern.goldPitReversal.daily, '000270', '기아')]
         }
       });
     }

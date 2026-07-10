@@ -1,6 +1,6 @@
 /**
  * 차트 패턴 스캔 위젯
- * 저점상승형 / 쌍바닥 / 역헤드앤숄더 3개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
+ * 저점상승형 / 쌍바닥 / 역헤드앤숄더 / 박스권하단 / 골파기반전 5개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
  *
  * 리스트는 GAS가 하루 1회 미리 스캔해둔 결과(?patternScan=1)를 그대로 보여준다(가벼움).
  * 클릭한 종목의 차트는 그 종목만 온디맨드로 다시 크롤링(?patternChart=1&code=&pattern=).
@@ -12,14 +12,16 @@
   var CONTAINER_SELECTOR = '#pattern-scan';
   var FETCH_TIMEOUT_MS = 15000;
 
-  var CHART_W = 820;
-  var CHART_H = 320;
-  var PAD = { l: 60, r: 16, t: 16, b: 28 };
+  var CHART_W = 1300;
+  var CHART_H = 440;
+  var PAD = { l: 64, r: 16, t: 16, b: 28 };
 
   var TABS = [
     { key: 'risingLows', label: '저점상승형' },
     { key: 'doubleBottom', label: '쌍바닥' },
-    { key: 'invHeadShoulders', label: '역헤드앤숄더' }
+    { key: 'invHeadShoulders', label: '역헤드앤숄더' },
+    { key: 'boxRangeLow', label: '박스권 하단' },
+    { key: 'goldPitReversal', label: '골파기 반전' }
   ];
 
   var scanData = null;
@@ -210,36 +212,73 @@
       return '<line class="' + cls + '" x1="' + x(i1).toFixed(1) + '" y1="' + y(p1.price).toFixed(1)
         + '" x2="' + x(i2).toFixed(1) + '" y2="' + y(p2.price).toFixed(1) + '"/>';
     }
+    // 여러 점을 순서대로 잇는 꺾은선 (쌍바닥/역헤드앤숄더의 실제 굴곡을 그대로 표현하기 위함)
+    function polyline(points, cls) {
+      var coords = [];
+      points.forEach(function (p) {
+        var i = idxByDate(p.date);
+        if (i < 0) return;
+        coords.push(x(i).toFixed(1) + ',' + y(p.price).toFixed(1));
+      });
+      if (coords.length < 2) return '';
+      return '<polyline class="' + cls + '" points="' + coords.join(' ') + '"/>';
+    }
     function dot(p, cls) {
       var i = idxByDate(p.date);
       if (i < 0) return '';
       return '<circle class="' + cls + '" cx="' + x(i).toFixed(1) + '" cy="' + y(p.price).toFixed(1) + '" r="4"/>';
     }
-    function hline(price, cls) {
-      return '<line class="' + cls + '" x1="' + (PAD.l) + '" y1="' + y(price).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(price).toFixed(1) + '"/>';
+    // fromDate를 주면 그 지점부터 오른쪽 끝까지만 수평선을 그림(패턴 구간만 강조, 전체 폭 X)
+    function hline(price, cls, fromDate) {
+      var xStart = PAD.l;
+      if (fromDate) {
+        var i = idxByDate(fromDate);
+        if (i >= 0) xStart = x(i);
+      }
+      return '<line class="' + cls + '" x1="' + xStart.toFixed(1) + '" y1="' + y(price).toFixed(1)
+        + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(price).toFixed(1) + '"/>';
     }
 
     if (pattern === 'risingLows') {
       var lows = detail.low_swings || [];
       var highs = detail.high_swings || [];
-      for (var i = 1; i < lows.length; i++) svg += line(lows[i - 1], lows[i], 'ps-line-support');
-      for (var j = 1; j < highs.length; j++) svg += line(highs[j - 1], highs[j], 'ps-line-resist');
+      svg += polyline(lows, 'ps-line-support');
+      svg += polyline(highs, 'ps-line-resist');
       lows.forEach(function (p) { svg += dot(p, 'ps-dot-support'); });
       highs.forEach(function (p) { svg += dot(p, 'ps-dot-resist'); });
     } else if (pattern === 'doubleBottom') {
-      if (detail.neckline) svg += hline(detail.neckline.price, 'ps-line-resist');
-      if (detail.low1 && detail.low2) svg += line(detail.low1, detail.low2, 'ps-line-support');
-      if (detail.low1) svg += dot(detail.low1, 'ps-dot-support');
-      if (detail.low2) svg += dot(detail.low2, 'ps-dot-support');
-      if (detail.neckline) svg += dot(detail.neckline, 'ps-dot-resist');
+      // 저점1 -> 넥라인(중간 반등 고점) -> 저점2 순서로 이어야 실제 W 모양이 나온다
+      if (detail.low1 && detail.neckline && detail.low2) {
+        svg += polyline([detail.low1, detail.neckline, detail.low2], 'ps-line-support');
+        svg += hline(detail.neckline.price, 'ps-line-resist', detail.low1.date);
+        svg += dot(detail.low1, 'ps-dot-support');
+        svg += dot(detail.low2, 'ps-dot-support');
+        svg += dot(detail.neckline, 'ps-dot-resist');
+      }
     } else if (pattern === 'invHeadShoulders') {
-      if (detail.neckline) svg += hline(detail.neckline.price, 'ps-line-resist');
-      if (detail.left_shoulder && detail.head) svg += line(detail.left_shoulder, detail.head, 'ps-line-support');
-      if (detail.head && detail.right_shoulder) svg += line(detail.head, detail.right_shoulder, 'ps-line-support');
-      ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) {
-        if (detail[k]) svg += dot(detail[k], 'ps-dot-support');
-      });
-      if (detail.neckline) svg += dot(detail.neckline, 'ps-dot-resist');
+      // 좌어깨 -> 좌고점 -> 헤드 -> 우고점 -> 우어깨 5점을 순서대로 이어 봉우리 2개 모양을 표현
+      var seq = [detail.left_shoulder, detail.left_peak, detail.head, detail.right_peak, detail.right_shoulder];
+      if (seq.every(function (p) { return !!p; })) {
+        svg += polyline(seq, 'ps-line-support');
+        svg += hline(detail.neckline.price, 'ps-line-resist', detail.left_shoulder.date);
+        ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) { svg += dot(detail[k], 'ps-dot-support'); });
+        svg += dot(detail.neckline, 'ps-dot-resist');
+      }
+    } else if (pattern === 'boxRangeLow') {
+      var boxLows = detail.low_swings || [];
+      var boxHighs = detail.high_swings || [];
+      if (detail.support != null) svg += hline(detail.support, 'ps-line-support', boxLows[0] && boxLows[0].date);
+      if (detail.resistance != null) svg += hline(detail.resistance, 'ps-line-resist', boxHighs[0] && boxHighs[0].date);
+      boxLows.forEach(function (p) { svg += dot(p, 'ps-dot-support'); });
+      boxHighs.forEach(function (p) { svg += dot(p, 'ps-dot-resist'); });
+    } else if (pattern === 'goldPitReversal') {
+      // 직전고점 -> 저점(골) -> 현재가 순서로 이어 급락 후 반등하는 V자 모양을 표현
+      if (detail.pre_high && detail.trough && detail.current) {
+        svg += polyline([detail.pre_high, detail.trough, detail.current], 'ps-line-support');
+        svg += dot(detail.pre_high, 'ps-dot-resist');
+        svg += dot(detail.trough, 'ps-dot-support');
+        svg += dot(detail.current, 'ps-dot-support');
+      }
     }
 
     return svg;

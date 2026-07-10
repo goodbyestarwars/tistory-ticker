@@ -807,7 +807,8 @@ function frgnSignal(daily, rolling, kind) {
 // 클릭 시 차트는 온디맨드로 그 종목만 다시 크롤링(foreignFlow와 동일 패턴).
 // ---------------------------------------------------------------------------
 
-var PATTERN_WINDOW = 20;         // 스캔에 쓰는 최근 거래일 수
+var PATTERN_WINDOW = 30;         // 스캔에 쓰는 최근 거래일 수 (골파기 패턴은 20일로는 부족해 30일로 확대)
+var PATTERN_PAGES = 3;           // fetchDailyOhlc_ 페이지 수 (10행/페이지 x 3 ≈ 30영업일)
 var PATTERN_SWING = 2;           // 스윙 판정 시 좌우로 비교할 봉 수
 var PATTERN_MAX_MATCHES = 30;    // 패턴별 저장 개수 상한 (PropertiesService 9KB/속성 제한 대비)
 var PATTERN_TIME_BUDGET_MS = 5 * 60 * 1000; // GAS 6분 실행 제한 대비 5분에서 안전 중단
@@ -821,15 +822,24 @@ var DB_LOW_TOL = 0.02;           // 쌍바닥 두 저점 가격差 2% 이내
 var DB_MIN_GAP_DAYS = 5;         // 두 저점 사이 최소 간격(거래일)
 var DB_PEAK_MIN_RISE = 0.03;     // 사이 고점이 첫 저점 대비 최소 3% 반등해야 유효
 
-var IHS_SHOULDER_TOL = 0.03;     // 역헤드앤숄더 양 어깨 가격差 3% 이내
-var IHS_HEAD_MIN_DROP = 0.02;    // 헤드가 양 어깨보다 각각 최소 2% 더 낮아야 함
+var IHS_SHOULDER_TOL = 0.05;     // 역헤드앤숄더 양 어깨 가격差 5% 이내 (기존 3%는 너무 빡빡해서 0건 -> 완화)
+var IHS_HEAD_MIN_DROP = 0.01;    // 헤드가 양 어깨보다 각각 최소 1% 더 낮아야 함 (기존 2%에서 완화)
+
+var BOX_TOL = 0.035;             // 박스권: 고점끼리/저점끼리 3.5% 이내로 평평해야 함
+var BOX_MIN_RANGE = 0.05;        // 박스 상단-하단 폭이 최소 5% 이상이어야 의미있는 박스(너무 좁으면 제외)
+var BOX_NEAR_LOW_TOL = 0.03;     // 현재가가 박스 하단에서 3% 이내여야 "저점 근처"로 인정
+
+var GOLD_DROP_MIN = 0.15;        // 골파기: 직전 고점 대비 저점까지 최소 15% 하락
+var GOLD_RECOVER_MIN = 0.05;     // 저점 대비 현재가 최소 5% 반등해야 "전환"으로 인정
+var GOLD_MIN_DAYS_SINCE_TROUGH = 3; // 저점 형성 후 최소 3거래일 지나야 반등 확인 가능
+var GOLD_REBREAK_TOL = 0.98;     // 저점 형성 후 이 비율 밑으로 다시 빠지면(저점 재이탈) 무효
 
 var BREAKOUT_TOL = 1.02;         // 저항선/넥라인을 2% 넘게 뚫었으면 "이미 지나간 패턴"으로 제외
 
 function scanChartPatterns() {
   var startedAt = Date.now();
   var universe = fetchSectorUniverse_();
-  var results = { risingLows: [], doubleBottom: [], invHeadShoulders: [] };
+  var results = { risingLows: [], doubleBottom: [], invHeadShoulders: [], boxRangeLow: [], goldPitReversal: [] };
   var scanned = 0;
 
   for (var i = 0; i < universe.length; i++) {
@@ -837,7 +847,7 @@ function scanChartPatterns() {
 
     var stock = universe[i];
     try {
-      var daily = fetchDailyOhlc_(stock.code, 2); // 2페이지 ≈ 20영업일
+      var daily = fetchDailyOhlc_(stock.code, PATTERN_PAGES);
       if (daily.length < 15) continue;
       scanned++;
 
@@ -855,6 +865,16 @@ function scanChartPatterns() {
       if (ihs && !ihs.breakout && results.invHeadShoulders.length < PATTERN_MAX_MATCHES) {
         results.invHeadShoulders.push(buildPatternMatch_(stock, daily));
       }
+
+      var box = detectBoxRangeLow_(daily);
+      if (box && results.boxRangeLow.length < PATTERN_MAX_MATCHES) {
+        results.boxRangeLow.push(buildPatternMatch_(stock, daily));
+      }
+
+      var gold = detectGoldPitReversal_(daily);
+      if (gold && results.goldPitReversal.length < PATTERN_MAX_MATCHES) {
+        results.goldPitReversal.push(buildPatternMatch_(stock, daily));
+      }
     } catch (err) {
       continue; // 이 종목만 스킵
     }
@@ -868,7 +888,9 @@ function scanChartPatterns() {
     }),
     PATTERN_SCAN_RISING: JSON.stringify(results.risingLows),
     PATTERN_SCAN_DB: JSON.stringify(results.doubleBottom),
-    PATTERN_SCAN_IHS: JSON.stringify(results.invHeadShoulders)
+    PATTERN_SCAN_IHS: JSON.stringify(results.invHeadShoulders),
+    PATTERN_SCAN_BOX: JSON.stringify(results.boxRangeLow),
+    PATTERN_SCAN_GOLD: JSON.stringify(results.goldPitReversal)
   });
 
   return results;
@@ -897,7 +919,9 @@ function getPatternScanResult() {
     patterns: {
       risingLows: JSON.parse(props.getProperty('PATTERN_SCAN_RISING') || '[]'),
       doubleBottom: JSON.parse(props.getProperty('PATTERN_SCAN_DB') || '[]'),
-      invHeadShoulders: JSON.parse(props.getProperty('PATTERN_SCAN_IHS') || '[]')
+      invHeadShoulders: JSON.parse(props.getProperty('PATTERN_SCAN_IHS') || '[]'),
+      boxRangeLow: JSON.parse(props.getProperty('PATTERN_SCAN_BOX') || '[]'),
+      goldPitReversal: JSON.parse(props.getProperty('PATTERN_SCAN_GOLD') || '[]')
     }
   };
 }
@@ -909,7 +933,7 @@ function getPatternChart(code, patternType) {
     return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
   }
 
-  var daily = fetchDailyOhlc_(code, 2);
+  var daily = fetchDailyOhlc_(code, PATTERN_PAGES);
   if (daily.length < 15) {
     return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
   }
@@ -918,6 +942,8 @@ function getPatternChart(code, patternType) {
   if (patternType === 'risingLows') detail = detectRisingLows_(daily);
   else if (patternType === 'doubleBottom') detail = detectDoubleBottom_(daily);
   else if (patternType === 'invHeadShoulders') detail = detectInvHeadShoulders_(daily);
+  else if (patternType === 'boxRangeLow') detail = detectBoxRangeLow_(daily);
+  else if (patternType === 'goldPitReversal') detail = detectGoldPitReversal_(daily);
 
   return { code: code.toUpperCase(), daily: daily, pattern: patternType, detail: detail };
 }
@@ -1130,7 +1156,9 @@ function detectInvHeadShoulders_(daily) {
         var lastClose = win[win.length - 1].close;
         return {
           left_shoulder: { date: win[iL].date, price: left },
+          left_peak: { date: peak1.date, price: peak1.high },
           head: { date: win[iH].date, price: head },
+          right_peak: { date: peak2.date, price: peak2.high },
           right_shoulder: { date: win[iR].date, price: right },
           neckline: { date: necklinePoint.date, price: necklinePrice },
           breakout: lastClose > necklinePrice * BREAKOUT_TOL
@@ -1139,6 +1167,79 @@ function detectInvHeadShoulders_(daily) {
     }
   }
   return null;
+}
+
+// 박스권 하단: 고점끼리·저점끼리 각각 평평(횡보 레인지)하고, 폭이 충분히 넓으며,
+// 현재가가 그 박스 하단(지지선) 근처에 있는 경우.
+function detectBoxRangeLow_(daily) {
+  var win = daily.slice(Math.max(0, daily.length - PATTERN_WINDOW));
+  var lowIdxs = findSwingIndices_(win, 'low', true);
+  var highIdxs = findSwingIndices_(win, 'high', false);
+  if (lowIdxs.length < 2 || highIdxs.length < 2) return null;
+
+  var lowPrices = lowIdxs.map(function (i) { return win[i].low; });
+  var highPrices = highIdxs.map(function (i) { return win[i].high; });
+
+  var lowMin = Math.min.apply(null, lowPrices), lowMax = Math.max.apply(null, lowPrices);
+  var highMin = Math.min.apply(null, highPrices), highMax = Math.max.apply(null, highPrices);
+
+  if ((lowMax - lowMin) / lowMin > BOX_TOL) return null;   // 저점끼리 평평하지 않음
+  if ((highMax - highMin) / highMin > BOX_TOL) return null; // 고점끼리 평평하지 않음
+
+  var support = lowPrices.reduce(function (s, v) { return s + v; }, 0) / lowPrices.length;
+  var resistance = highPrices.reduce(function (s, v) { return s + v; }, 0) / highPrices.length;
+  if (resistance <= support) return null;
+  if ((resistance - support) / support < BOX_MIN_RANGE) return null; // 박스 폭이 너무 좁음(노이즈)
+
+  var lastClose = win[win.length - 1].close;
+  if (lastClose < support * (1 - 0.01)) return null; // 이미 지지선 이탈(박스 붕괴)했으면 제외
+  if ((lastClose - support) / support > BOX_NEAR_LOW_TOL) return null; // 하단 근처가 아니면 제외
+
+  return {
+    support: support,
+    resistance: resistance,
+    low_swings: lowIdxs.map(function (i) { return { date: win[i].date, price: win[i].low }; }),
+    high_swings: highIdxs.map(function (i) { return { date: win[i].date, price: win[i].high }; }),
+    breakout: false
+  };
+}
+
+// 골파기 후 추세 전환: 직전 고점 대비 큰 폭 하락(골) 후, 저점을 재차 깨지 않고 충분히 반등.
+function detectGoldPitReversal_(daily) {
+  var win = daily.slice(Math.max(0, daily.length - PATTERN_WINDOW));
+  var n = win.length;
+  if (n < 10) return null;
+
+  var troughIdx = 0;
+  for (var i = 1; i < n; i++) if (win[i].low < win[troughIdx].low) troughIdx = i;
+  var troughLow = win[troughIdx].low;
+
+  var preHighIdx = 0;
+  for (var j = 0; j <= troughIdx; j++) if (win[j].high > win[preHighIdx].high) preHighIdx = j;
+  var preHigh = win[preHighIdx].high;
+
+  var dropPct = (preHigh - troughLow) / preHigh;
+  if (dropPct < GOLD_DROP_MIN) return null;
+
+  var daysSinceTrough = (n - 1) - troughIdx;
+  if (daysSinceTrough < GOLD_MIN_DAYS_SINCE_TROUGH) return null;
+
+  var lastClose = win[n - 1].close;
+  var recoverPct = (lastClose - troughLow) / troughLow;
+  if (recoverPct < GOLD_RECOVER_MIN) return null;
+
+  for (var k = troughIdx + 1; k < n; k++) {
+    if (win[k].low < troughLow * GOLD_REBREAK_TOL) return null; // 저점을 유의미하게 재이탈하면 무효
+  }
+
+  return {
+    pre_high: { date: win[preHighIdx].date, price: preHigh },
+    trough: { date: win[troughIdx].date, price: troughLow },
+    current: { date: win[n - 1].date, price: lastClose },
+    drop_pct: dropPct,
+    recover_pct: recoverPct,
+    breakout: false
+  };
 }
 
 function isMarketOpenNow() {
