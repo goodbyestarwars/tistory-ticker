@@ -38,6 +38,10 @@ function doGet(e) {
     return jsonResponse(getForeignFlow((params.code || '').trim()));
   }
 
+  if (params.rankNews === '1') {
+    return jsonResponse(getRankingNews());
+  }
+
   var raw = (params.codes || '').trim();
 
   if (!raw) {
@@ -492,6 +496,84 @@ function fetchStockNews(code) {
     });
   });
   return items;
+}
+
+// ---------------------------------------------------------------------------
+// 랭킹뉴스: "증시"+"코스피"+"코스닥" 3개 키워드로 네이버 뉴스 검색 오픈API를 조회해
+// 라운드로빈으로 섞고 URL 기준 중복 제거한 뒤 상위 10건만 응답 (?rankNews=1).
+// 종목뉴스(getStockNews)와 달리 특정 종목이 아닌 시황 헤드라인이라 별도 API를 씀.
+// 키는 PropertiesService에 저장(코드에 노출 안 함): Apps Script 편집기 > 프로젝트 설정 >
+// 스크립트 속성 > NAVER_CLIENT_ID / NAVER_CLIENT_SECRET
+// (developers.naver.com에서 애플리케이션 등록 후 "검색" API 사용 신청 - 무료, 일 25,000건).
+// ---------------------------------------------------------------------------
+
+var RANK_NEWS_QUERIES = ['증시', '코스피', '코스닥'];
+var RANK_NEWS_CACHE_TTL = 900; // 15분
+var RANK_NEWS_FAIL_TTL = 120;  // 2분 (키 미설정/API 오류 시 빠르게 재시도되도록)
+
+function getRankingNews() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'rank_news_v1';
+  var cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  var perQuery = RANK_NEWS_QUERIES.map(function (q) {
+    return safeCall(function () { return fetchNaverSearchNews(q); }) || [];
+  });
+
+  var seen = {};
+  var merged = [];
+  var maxLen = Math.max.apply(null, [0].concat(perQuery.map(function (l) { return l.length; })));
+  // 라운드로빈으로 섞어 한 키워드 뉴스가 몰리지 않도록 함
+  for (var i = 0; i < maxLen && merged.length < 10; i++) {
+    for (var q = 0; q < perQuery.length; q++) {
+      if (merged.length >= 10) break;
+      var it = perQuery[q][i];
+      if (!it || !it.link || seen[it.link]) continue;
+      seen[it.link] = true;
+      merged.push(it);
+    }
+  }
+
+  var result = { items: merged, updatedAt: formatKstTime(Date.now()) };
+  cache.put(cacheKey, JSON.stringify(result), merged.length ? RANK_NEWS_CACHE_TTL : RANK_NEWS_FAIL_TTL);
+  return result;
+}
+
+function fetchNaverSearchNews(query) {
+  var clientId = PropertiesService.getScriptProperties().getProperty('NAVER_CLIENT_ID');
+  var clientSecret = PropertiesService.getScriptProperties().getProperty('NAVER_CLIENT_SECRET');
+  if (!clientId || !clientSecret) return [];
+
+  var url = 'https://openapi.naver.com/v1/search/news.json?query=' + encodeURIComponent(query) + '&display=10&sort=date';
+  var res = UrlFetchApp.fetch(url, {
+    muteHttpExceptions: true,
+    headers: {
+      'X-Naver-Client-Id': clientId,
+      'X-Naver-Client-Secret': clientSecret
+    }
+  });
+  if (res.getResponseCode() !== 200) return [];
+
+  var body = JSON.parse(res.getContentText('UTF-8'));
+  return (body.items || []).map(function (it) {
+    return {
+      title: stripNaverHtml(it.title),
+      link: it.originallink || it.link,
+      pubDate: it.pubDate
+    };
+  });
+}
+
+// 검색 API는 title에 <b> 태그와 HTML 엔티티가 섞여 온다
+function stripNaverHtml(s) {
+  return String(s || '')
+    .replace(/<\/?b>/g, '')
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;/g, "'");
 }
 
 // ---------------------------------------------------------------------------

@@ -16,6 +16,8 @@
   var MAX_SUGGESTIONS = 8;
   var STORAGE_KEY = 'stock-news-extra-v1';
   var REMOVED_STORAGE_KEY = 'stock-news-removed-v1';
+  var RANK_OPEN_KEY = 'stock-news-rank-open-v1';
+  var RANK_REFRESH_MS = 30 * 60 * 1000; // 30분
 
   var WATCHLIST_NAMES = [
     '비에이치아이', '에코프로비엠', 'NAVER', '현대차', '한화오션',
@@ -25,22 +27,35 @@
   // 렌더링 중 현재 리스트/선택 상태 (재검색·재클릭 시 재사용)
   var stocksState = [];
   var selectedCode = null;
+  var rankLoaded = false;
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
     container.innerHTML = buildShell();
     wireEvents(container);
+    wireRankBox(container);
 
     stocksState = buildWatchlist();
     renderWatchlist(container);
     loadPrices(container);
 
     if (stocksState.length) selectStock(container, stocksState[0]);
+
+    setInterval(function () {
+      var box = container.querySelector('#snRank');
+      if (box && box.open) loadRankNews(container, true);
+    }, RANK_REFRESH_MS);
   }
 
   function buildShell() {
     return ''
+      + '<details class="sn-rank" id="snRank">'
+      + '<summary class="sn-rank-summary">랭킹뉴스 · 증시·코스피·코스닥 헤드라인 TOP 10'
+      + '<span class="sn-rank-hint"><span class="sn-rank-closed">펼치기 ▾</span><span class="sn-rank-open-t">접기 ▴</span></span>'
+      + '</summary>'
+      + '<div class="sn-rank-grid" id="snRankGrid"><div class="sn-hint">펼치면 불러와요.</div></div>'
+      + '</details>'
       + '<div class="stock-news-search">'
       + '<div class="sn-input-wrap">'
       + '<input type="text" id="snInput" class="sn-input" placeholder="종목명을 입력하세요 (예: 삼성전자)" autocomplete="off" />'
@@ -170,6 +185,65 @@
         renderWatchlist(container);
       })
       .catch(function () { /* 시세 실패해도 리스트/뉴스 기능은 그대로 동작 */ });
+  }
+
+  // ---- 랭킹뉴스 (접이식, 펼칠 때 로드 + 30분 자동 갱신) ----
+
+  function wireRankBox(container) {
+    var box = container.querySelector('#snRank');
+    if (!box) return;
+
+    try { if (global.localStorage.getItem(RANK_OPEN_KEY) === '1') box.open = true; } catch (e) { /* ignore */ }
+    if (box.open) loadRankNews(container, false);
+
+    box.addEventListener('toggle', function () {
+      if (box.open) loadRankNews(container, false);
+      try { global.localStorage.setItem(RANK_OPEN_KEY, box.open ? '1' : '0'); } catch (e) { /* ignore */ }
+    });
+  }
+
+  function loadRankNews(container, force) {
+    if (rankLoaded && !force) return;
+    var grid = container.querySelector('#snRankGrid');
+    if (!grid) return;
+    if (!force) grid.innerHTML = '<div class="sn-hint">헤드라인을 불러오는 중...</div>';
+
+    fetchJson(GAS_TICKER_URL + '?rankNews=1')
+      .then(function (data) {
+        renderRankNews(grid, data);
+        rankLoaded = true;
+      })
+      .catch(function () {
+        if (!rankLoaded) grid.innerHTML = '<div class="sn-error">헤드라인을 불러오지 못했어요.</div>';
+      });
+  }
+
+  function renderRankNews(grid, data) {
+    var items = (data && data.items) || [];
+    if (!items.length) {
+      grid.innerHTML = '<div class="sn-error">헤드라인이 없어요.</div>';
+      return;
+    }
+    grid.innerHTML = items.map(function (it, idx) {
+      return '<a class="sn-rank-item" href="' + escapeAttr(it.link) + '" target="_blank" rel="noopener">'
+        + '<span class="sn-rank-num">' + (idx + 1) + '</span>'
+        + '<span class="sn-rank-body">'
+        + '<span class="sn-rank-title">' + escapeHtml(it.title) + '</span>'
+        + '<span class="sn-rank-date">' + formatPubDate(it.pubDate) + '</span>'
+        + '</span>'
+        + '</a>';
+    }).join('');
+  }
+
+  function formatPubDate(raw) {
+    if (!raw) return '';
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) return '';
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    var hh = String(d.getHours()).padStart(2, '0');
+    var mi = String(d.getMinutes()).padStart(2, '0');
+    return mm + '.' + dd + ' ' + hh + ':' + mi;
   }
 
   // ---- 검색/자동완성 ----

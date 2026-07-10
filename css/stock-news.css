@@ -1,3 +1,115 @@
+/* ============ 랭킹뉴스 (접이식, 종목뉴스 검색창 위) ============ */
+
+.sn-rank {
+  margin-bottom: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.sn-rank-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  user-select: none;
+}
+
+.sn-rank-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sn-rank-hint {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.sn-rank[open] .sn-rank-hint .sn-rank-closed {
+  display: none;
+}
+
+.sn-rank:not([open]) .sn-rank-hint .sn-rank-open-t {
+  display: none;
+}
+
+.sn-rank[open] .sn-rank-summary {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sn-rank-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+  padding: 8px 18px 16px;
+}
+
+@media (max-width: 640px) {
+  .sn-rank-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sn-rank-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 2px;
+  border-bottom: 1px solid #f1f5f9;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sn-rank-item:last-child {
+  border-bottom: none;
+}
+
+.sn-rank-item:hover .sn-rank-title {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.sn-rank-num {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 20px;
+  color: #111827;
+  width: 24px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.sn-rank-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sn-rank-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.sn-rank-date {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
 /* ============ 종목 뉴스 검색 ============ */
 
 .stock-news-search {
@@ -458,6 +570,39 @@
    (style.css 참고) 카드 배경은 흰색 그대로 남고 글자만 하얗게 변해 안 보이는 문제가 있었다.
    #stock-news를 붙여 specificity를 그 규칙보다 높여 이긴다. 색은 style.css의 다크모드
    팔레트(카드 #171e2f, 본문 텍스트 #eaeef5, 보조텍스트 #b3bdcf, 상승/하락 #ff6b6b/#4dabf7)와 맞춤. */
+
+html.dark #stock-news .sn-rank {
+  background: #171e2f;
+  border-color: #334155;
+}
+
+html.dark #stock-news .sn-rank-summary {
+  color: #eaeef5 !important;
+}
+
+html.dark #stock-news .sn-rank[open] .sn-rank-summary {
+  border-bottom-color: #263248;
+}
+
+html.dark #stock-news .sn-rank-hint {
+  color: #8590a8 !important;
+}
+
+html.dark #stock-news .sn-rank-item {
+  border-bottom-color: #263248;
+}
+
+html.dark #stock-news .sn-rank-num {
+  color: #eaeef5 !important;
+}
+
+html.dark #stock-news .sn-rank-title {
+  color: #eaeef5 !important;
+}
+
+html.dark #stock-news .sn-rank-date {
+  color: #7c8aa5 !important;
+}
 
 html.dark #stock-news .sn-input {
   background: #0e1320;
