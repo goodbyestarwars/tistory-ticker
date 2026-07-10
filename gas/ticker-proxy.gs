@@ -42,6 +42,14 @@ function doGet(e) {
     return jsonResponse(getRankingNews());
   }
 
+  if (params.patternScan === '1') {
+    return jsonResponse(getPatternScanResult());
+  }
+
+  if (params.patternChart === '1') {
+    return jsonResponse(getPatternChart((params.code || '').trim(), (params.pattern || '').trim()));
+  }
+
   var raw = (params.codes || '').trim();
 
   if (!raw) {
@@ -788,6 +796,349 @@ function frgnSignal(daily, rolling, kind) {
         + ' 전환' + (priceConfirmed ? ' · 주가 동반' : ' · 주가 미동반')
       : ''
   };
+}
+
+// ---------------------------------------------------------------------------
+// 차트 패턴 스캔: 저점상승형(ascending) / 쌍바닥(double bottom) / 역헤드앤숄더.
+// 섹터 대시보드 종목 풀(GitHub Pages의 data/sectors-v3.js)을 그때그때 fetch해서
+// 스캔 대상으로 재사용 - 별도 종목 리스트를 GAS에 하드코딩하지 않는다.
+// 하루 1회 시간 트리거(scanChartPatterns)로 스캔해 PropertiesService에 저장하고,
+// 블로그는 캐싱된 결과만 읽는다(방문자가 몰려도 매번 재스캔하지 않음).
+// 클릭 시 차트는 온디맨드로 그 종목만 다시 크롤링(foreignFlow와 동일 패턴).
+// ---------------------------------------------------------------------------
+
+var PATTERN_WINDOW = 20;         // 스캔에 쓰는 최근 거래일 수
+var PATTERN_SWING = 2;           // 스윙 판정 시 좌우로 비교할 봉 수
+var PATTERN_MAX_MATCHES = 30;    // 패턴별 저장 개수 상한 (PropertiesService 9KB/속성 제한 대비)
+var PATTERN_TIME_BUDGET_MS = 5 * 60 * 1000; // GAS 6분 실행 제한 대비 5분에서 안전 중단
+
+var WEDGE_MIN_SWINGS = 2;
+var WEDGE_LOW_RISE_MIN = 0.005;  // 저점 간 최소 0.5% 상승해야 "높아짐"으로 인정
+var WEDGE_HIGH_CAP_MAX = 0.02;   // 고점 간 상승폭 2% 이내여야 "막혀있음"으로 인정
+var WEDGE_MIN_SPAN_DAYS = 3;
+
+var DB_LOW_TOL = 0.02;           // 쌍바닥 두 저점 가격差 2% 이내
+var DB_MIN_GAP_DAYS = 5;         // 두 저점 사이 최소 간격(거래일)
+var DB_PEAK_MIN_RISE = 0.03;     // 사이 고점이 첫 저점 대비 최소 3% 반등해야 유효
+
+var IHS_SHOULDER_TOL = 0.03;     // 역헤드앤숄더 양 어깨 가격差 3% 이내
+var IHS_HEAD_MIN_DROP = 0.02;    // 헤드가 양 어깨보다 각각 최소 2% 더 낮아야 함
+
+var BREAKOUT_TOL = 1.02;         // 저항선/넥라인을 2% 넘게 뚫었으면 "이미 지나간 패턴"으로 제외
+
+function scanChartPatterns() {
+  var startedAt = Date.now();
+  var universe = fetchSectorUniverse_();
+  var results = { risingLows: [], doubleBottom: [], invHeadShoulders: [] };
+  var scanned = 0;
+
+  for (var i = 0; i < universe.length; i++) {
+    if (Date.now() - startedAt > PATTERN_TIME_BUDGET_MS) break; // 시간 초과 시 지금까지 결과로 저장하고 중단
+
+    var stock = universe[i];
+    try {
+      var daily = fetchDailyOhlc_(stock.code, 2); // 2페이지 ≈ 20영업일
+      if (daily.length < 15) continue;
+      scanned++;
+
+      var rl = detectRisingLows_(daily);
+      if (rl && !rl.breakout && results.risingLows.length < PATTERN_MAX_MATCHES) {
+        results.risingLows.push(buildPatternMatch_(stock, daily));
+      }
+
+      var db = detectDoubleBottom_(daily);
+      if (db && !db.breakout && results.doubleBottom.length < PATTERN_MAX_MATCHES) {
+        results.doubleBottom.push(buildPatternMatch_(stock, daily));
+      }
+
+      var ihs = detectInvHeadShoulders_(daily);
+      if (ihs && !ihs.breakout && results.invHeadShoulders.length < PATTERN_MAX_MATCHES) {
+        results.invHeadShoulders.push(buildPatternMatch_(stock, daily));
+      }
+    } catch (err) {
+      continue; // 이 종목만 스킵
+    }
+  }
+
+  PropertiesService.getScriptProperties().setProperties({
+    PATTERN_SCAN_META: JSON.stringify({
+      scannedAt: formatKstTime(Date.now()),
+      universe: universe.length,
+      scanned: scanned
+    }),
+    PATTERN_SCAN_RISING: JSON.stringify(results.risingLows),
+    PATTERN_SCAN_DB: JSON.stringify(results.doubleBottom),
+    PATTERN_SCAN_IHS: JSON.stringify(results.invHeadShoulders)
+  });
+
+  return results;
+}
+
+// 이 함수를 스크립트 편집기에서 한 번 실행하면 매일 자동 스캔 트리거가 설치된다.
+// (배포와 별개 - 트리거는 코드 push/재배포로 자동 설치되지 않으므로 최초 1회 수동 실행 필요)
+function setupPatternScanTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'scanChartPatterns') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('scanChartPatterns')
+    .timeBased()
+    .atHour(16) // 장마감(15:30) 이후 여유 두고 16시(Asia/Seoul, 스크립트 기본 시간대 기준)
+    .everyDays(1)
+    .create();
+}
+
+function getPatternScanResult() {
+  var props = PropertiesService.getScriptProperties();
+  var meta = props.getProperty('PATTERN_SCAN_META');
+  return {
+    scannedAt: meta ? JSON.parse(meta).scannedAt : null,
+    universe: meta ? JSON.parse(meta).universe : 0,
+    scanned: meta ? JSON.parse(meta).scanned : 0,
+    patterns: {
+      risingLows: JSON.parse(props.getProperty('PATTERN_SCAN_RISING') || '[]'),
+      doubleBottom: JSON.parse(props.getProperty('PATTERN_SCAN_DB') || '[]'),
+      invHeadShoulders: JSON.parse(props.getProperty('PATTERN_SCAN_IHS') || '[]')
+    }
+  };
+}
+
+// 클릭 시 온디맨드 차트: 그 종목만 다시 크롤링해서 캔들 데이터 + 패턴 좌표를 반환.
+// (스캔 결과에는 캔들 전체를 저장하지 않음 - PropertiesService 9KB/속성 제한 때문)
+function getPatternChart(code, patternType) {
+  if (!/^[0-9A-Za-z]{6}$/i.test(code)) {
+    return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
+  }
+
+  var daily = fetchDailyOhlc_(code, 2);
+  if (daily.length < 15) {
+    return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
+  }
+
+  var detail = null;
+  if (patternType === 'risingLows') detail = detectRisingLows_(daily);
+  else if (patternType === 'doubleBottom') detail = detectDoubleBottom_(daily);
+  else if (patternType === 'invHeadShoulders') detail = detectInvHeadShoulders_(daily);
+
+  return { code: code.toUpperCase(), daily: daily, pattern: patternType, detail: detail };
+}
+
+function buildPatternMatch_(stock, daily) {
+  var last = daily[daily.length - 1];
+  var prev = daily.length > 1 ? daily[daily.length - 2] : null;
+  var changeRate = (prev && prev.close) ? ((last.close - prev.close) / prev.close * 100) : null;
+  return {
+    code: stock.code,
+    name: stock.name,
+    price: last.close,
+    changeRate: changeRate,
+    date: last.date
+  };
+}
+
+// data/sectors-v3.js(GitHub Pages)를 fetch해서 { name, code } 유니크 목록으로 파싱.
+// 섹터 데이터가 바뀌어도 GAS 쪽 코드를 따로 수정할 필요 없게 하기 위한 설계.
+function fetchSectorUniverse_() {
+  var url = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js';
+  var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return [];
+
+  var text = res.getContentText('UTF-8');
+  var out = [];
+  var seen = {};
+  var re = /name:\s*"([^"]+)",\s*code:\s*"([0-9A-Za-z]{6})"/g;
+  var m;
+  while ((m = re.exec(text)) !== null) {
+    if (seen[m[2]]) continue;
+    seen[m[2]] = true;
+    out.push({ name: m[1], code: m[2] });
+  }
+  return out;
+}
+
+// 네이버 일별시세 페이지 크롤링 (2페이지 ≈ 20영업일). 오름차순(과거->최신) 반환.
+function fetchDailyOhlc_(code, pages) {
+  var rows = [];
+  var seen = {};
+
+  for (var page = 1; page <= pages; page++) {
+    try {
+      var res = UrlFetchApp.fetch('https://finance.naver.com/item/sise_day.naver?code=' + code + '&page=' + page, {
+        muteHttpExceptions: true,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      if (res.getResponseCode() !== 200) continue;
+      var html = res.getContentText('EUC-KR');
+      parseSiseDayRows_(html).forEach(function (row) {
+        if (!seen[row.date]) { seen[row.date] = true; rows.push(row); }
+      });
+    } catch (err) {
+      continue; // 이 페이지만 스킵
+    }
+  }
+
+  rows.sort(function (a, b) { return a.date < b.date ? -1 : 1; }); // 오름차순(과거->최신)
+  return rows;
+}
+
+// 일자별 테이블 행 파싱. 각 행의 <span class="tah ...">가 순서대로
+// [날짜, 종가, 전일비, 시가, 고가, 저가, 거래량]을 담고 있다.
+function parseSiseDayRows_(html) {
+  var out = [];
+  var chunks = html.split(/<tr onMouseOver/i).slice(1);
+
+  chunks.forEach(function (chunk) {
+    chunk = chunk.split('</tr>')[0];
+
+    var vals = [];
+    var re = /<span class="tah[^"]*">\s*([^<]*?)\s*<\/span>/g;
+    var m;
+    while ((m = re.exec(chunk)) !== null) vals.push(m[1]);
+    if (vals.length < 7) return;
+
+    var dateM = vals[0].match(/^(\d{4})\.(\d{2})\.(\d{2})$/);
+    if (!dateM) return;
+
+    out.push({
+      date: dateM[1] + '-' + dateM[2] + '-' + dateM[3],
+      close: frgnNum(vals[1]),
+      open: frgnNum(vals[3]),
+      high: frgnNum(vals[4]),
+      low: frgnNum(vals[5]),
+      volume: frgnNum(vals[6])
+    });
+  });
+
+  return out;
+}
+
+// 스윙 저점/고점 인덱스: 좌우 PATTERN_SWING개씩 비교해 그 구간 내 극값인 지점만 채택.
+function findSwingIndices_(win, field, isLow) {
+  var idxs = [];
+  for (var i = PATTERN_SWING; i < win.length - PATTERN_SWING; i++) {
+    var v = win[i][field];
+    var ok = true;
+    for (var k = i - PATTERN_SWING; k <= i + PATTERN_SWING; k++) {
+      if (k === i) continue;
+      if (isLow ? win[k][field] < v : win[k][field] > v) { ok = false; break; }
+    }
+    if (ok) idxs.push(i);
+  }
+  return idxs;
+}
+
+function maxHighBetween_(win, i1, i2) {
+  var maxHigh = -Infinity, idx = -1;
+  for (var k = i1 + 1; k < i2; k++) {
+    if (win[k].high > maxHigh) { maxHigh = win[k].high; idx = k; }
+  }
+  return idx === -1 ? null : { date: win[idx].date, high: maxHigh };
+}
+
+// 저점상승형: 스윙 저점 2개 이상이 순서대로 상승 + 스윙 고점 2개 이상이 좁은 범위에 묶여있음(막힘).
+function detectRisingLows_(daily) {
+  var win = daily.slice(Math.max(0, daily.length - PATTERN_WINDOW));
+  if (win.length < PATTERN_WINDOW) return null;
+
+  var lowIdxs = findSwingIndices_(win, 'low', true);
+  var highIdxs = findSwingIndices_(win, 'high', false);
+  if (lowIdxs.length < WEDGE_MIN_SWINGS || highIdxs.length < WEDGE_MIN_SWINGS) return null;
+
+  for (var i = 1; i < lowIdxs.length; i++) {
+    var prevLow = win[lowIdxs[i - 1]].low;
+    var curLow = win[lowIdxs[i]].low;
+    if (curLow < prevLow * (1 + WEDGE_LOW_RISE_MIN)) return null;
+  }
+
+  for (var j = 1; j < highIdxs.length; j++) {
+    var prevHigh = win[highIdxs[j - 1]].high;
+    var curHigh = win[highIdxs[j]].high;
+    if (curHigh > prevHigh * (1 + WEDGE_HIGH_CAP_MAX)) return null;
+  }
+
+  var firstIdx = Math.min(lowIdxs[0], highIdxs[0]);
+  var lastIdx = Math.max(lowIdxs[lowIdxs.length - 1], highIdxs[highIdxs.length - 1]);
+  if (lastIdx - firstIdx < WEDGE_MIN_SPAN_DAYS) return null;
+
+  var resistance = Math.max.apply(null, highIdxs.map(function (idx) { return win[idx].high; }));
+  var lastClose = win[win.length - 1].close;
+
+  return {
+    low_swings: lowIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].low }; }),
+    high_swings: highIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].high }; }),
+    resistance: resistance,
+    breakout: lastClose > resistance * BREAKOUT_TOL
+  };
+}
+
+// 쌍바닥: 비슷한 높이의 저점 2개 + 그 사이에 충분히 반등한 고점(넥라인).
+function detectDoubleBottom_(daily) {
+  var win = daily.slice(Math.max(0, daily.length - PATTERN_WINDOW));
+  var lowIdxs = findSwingIndices_(win, 'low', true);
+  if (lowIdxs.length < 2) return null;
+
+  for (var a = 0; a < lowIdxs.length - 1; a++) {
+    for (var b = a + 1; b < lowIdxs.length; b++) {
+      var i1 = lowIdxs[a], i2 = lowIdxs[b];
+      if (i2 - i1 < DB_MIN_GAP_DAYS) continue;
+
+      var low1 = win[i1].low, low2 = win[i2].low;
+      var diff = Math.abs(low1 - low2) / Math.min(low1, low2);
+      if (diff > DB_LOW_TOL) continue;
+
+      var neck = maxHighBetween_(win, i1, i2);
+      if (!neck) continue;
+      var riseFromLow1 = (neck.high - low1) / low1;
+      if (riseFromLow1 < DB_PEAK_MIN_RISE) continue;
+
+      var lastClose = win[win.length - 1].close;
+      return {
+        low1: { date: win[i1].date, price: low1 },
+        low2: { date: win[i2].date, price: low2 },
+        neckline: { date: neck.date, price: neck.high },
+        breakout: lastClose > neck.high * BREAKOUT_TOL
+      };
+    }
+  }
+  return null;
+}
+
+// 역헤드앤숄더: 저점 3개(좌어깨-헤드-우어깨), 헤드가 가장 낮고 양 어깨는 비슷한 높이.
+function detectInvHeadShoulders_(daily) {
+  var win = daily.slice(Math.max(0, daily.length - PATTERN_WINDOW));
+  var lowIdxs = findSwingIndices_(win, 'low', true);
+  if (lowIdxs.length < 3) return null;
+
+  for (var a = 0; a < lowIdxs.length - 2; a++) {
+    for (var b = a + 1; b < lowIdxs.length - 1; b++) {
+      for (var c = b + 1; c < lowIdxs.length; c++) {
+        var iL = lowIdxs[a], iH = lowIdxs[b], iR = lowIdxs[c];
+        var left = win[iL].low, head = win[iH].low, right = win[iR].low;
+
+        if (!(head < left && head < right)) continue;
+        if ((left - head) / left < IHS_HEAD_MIN_DROP) continue;
+        if ((right - head) / right < IHS_HEAD_MIN_DROP) continue;
+
+        var shoulderDiff = Math.abs(left - right) / Math.min(left, right);
+        if (shoulderDiff > IHS_SHOULDER_TOL) continue;
+
+        var peak1 = maxHighBetween_(win, iL, iH);
+        var peak2 = maxHighBetween_(win, iH, iR);
+        if (!peak1 || !peak2) continue;
+        var necklinePrice = Math.min(peak1.high, peak2.high);
+        var necklinePoint = peak1.high <= peak2.high ? peak1 : peak2;
+
+        var lastClose = win[win.length - 1].close;
+        return {
+          left_shoulder: { date: win[iL].date, price: left },
+          head: { date: win[iH].date, price: head },
+          right_shoulder: { date: win[iR].date, price: right },
+          neckline: { date: necklinePoint.date, price: necklinePrice },
+          breakout: lastClose > necklinePrice * BREAKOUT_TOL
+        };
+      }
+    }
+  }
+  return null;
 }
 
 function isMarketOpenNow() {

@@ -1,0 +1,283 @@
+/* ============ 차트 패턴 스캔 ============ */
+
+#pattern-scan .ps-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+#pattern-scan .ps-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+#pattern-scan .ps-tab {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+}
+
+#pattern-scan .ps-tab.active {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+
+#pattern-scan .ps-meta {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+#pattern-scan .ps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+#pattern-scan .ps-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+#pattern-scan .ps-item:hover {
+  border-color: #cbd5e1;
+}
+
+#pattern-scan .ps-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+#pattern-scan .ps-code {
+  font-size: 12px;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 4px;
+}
+
+#pattern-scan .ps-quote {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+#pattern-scan .ps-price {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111827;
+}
+
+#pattern-scan .ps-rate {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+#pattern-scan .ps-up { color: #d24f45; }
+#pattern-scan .ps-down { color: #1261c4; }
+#pattern-scan .ps-flat { color: #9ca3af; }
+
+#pattern-scan .ps-hint,
+#pattern-scan .ps-loading,
+#pattern-scan .ps-error {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* ---- 상세(캔들차트) ---- */
+
+#pattern-scan .ps-detail {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 18px 18px;
+}
+
+#pattern-scan .ps-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+#pattern-scan .ps-detail-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+#pattern-scan .ps-close {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #6b7280;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+#pattern-scan .ps-chart {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#pattern-scan .ps-svg {
+  width: 100%;
+  height: auto;
+  min-width: 480px;
+  display: block;
+}
+
+#pattern-scan .ps-axis {
+  font-size: 10.5px;
+  fill: #9ca3af;
+}
+
+#pattern-scan .ps-line-support {
+  stroke: #d24f45;
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+#pattern-scan .ps-line-resist {
+  stroke: #1261c4;
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+#pattern-scan .ps-dot-support {
+  fill: #d24f45;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+}
+
+#pattern-scan .ps-dot-resist {
+  fill: #1261c4;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+}
+
+#pattern-scan .ps-footnote {
+  font-size: 11.5px;
+  color: #999;
+  line-height: 1.6;
+  margin-top: 10px;
+  text-align: right;
+}
+
+#pattern-scan .ps-footnote b {
+  color: #777;
+  font-weight: 700;
+}
+
+/* ============ 모바일 ============ */
+
+@media (max-width: 480px) {
+  #pattern-scan .ps-tab {
+    padding: 7px 11px;
+    font-size: 12px;
+  }
+  #pattern-scan .ps-item {
+    padding: 10px 12px;
+  }
+}
+
+/* ============ 다크모드 ============ */
+/* 스킨의 html.dark .post-single-body * !important 규칙을 #pattern-scan으로 specificity 확보해 오버라이드 */
+
+html.dark #pattern-scan .ps-tab {
+  background: #171e2f;
+  border-color: #334155;
+  color: #d3dbe8 !important;
+}
+
+html.dark #pattern-scan .ps-tab.active {
+  background: #2a3f6e;
+  border-color: #2a3f6e;
+  color: #ffffff !important;
+}
+
+html.dark #pattern-scan .ps-meta {
+  color: #7c8aa5 !important;
+}
+
+html.dark #pattern-scan .ps-item {
+  background: #171e2f;
+  border-color: #263248;
+}
+
+html.dark #pattern-scan .ps-item:hover {
+  border-color: #3b4a68;
+}
+
+html.dark #pattern-scan .ps-name {
+  color: #eaeef5 !important;
+}
+
+html.dark #pattern-scan .ps-code {
+  color: #7c8aa5 !important;
+}
+
+html.dark #pattern-scan .ps-price {
+  color: #eaeef5 !important;
+}
+
+html.dark #pattern-scan .ps-up { color: #ff6b6b !important; }
+html.dark #pattern-scan .ps-down { color: #4dabf7 !important; }
+html.dark #pattern-scan .ps-flat { color: #7c8aa5 !important; }
+
+html.dark #pattern-scan .ps-hint,
+html.dark #pattern-scan .ps-loading,
+html.dark #pattern-scan .ps-error {
+  color: #b3bdcf !important;
+}
+
+html.dark #pattern-scan .ps-detail {
+  background: #171e2f;
+  border-color: #263248;
+}
+
+html.dark #pattern-scan .ps-detail-name {
+  color: #eaeef5 !important;
+}
+
+html.dark #pattern-scan .ps-close {
+  background: #0e1320;
+  border-color: #334155;
+  color: #b3bdcf !important;
+}
+
+html.dark #pattern-scan .ps-axis {
+  fill: #7c8aa5;
+}
+
+html.dark #pattern-scan .ps-footnote {
+  color: #8590a8 !important;
+}
+
+html.dark #pattern-scan .ps-footnote b {
+  color: #aaaeb8 !important;
+}

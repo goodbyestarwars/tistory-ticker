@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>pattern-scan 로컬 테스트</title>
+<link rel="stylesheet" href="../css/pattern-scan.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 900px; margin: 40px auto; padding: 0 16px; }
+  .toggle-dark { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="page-body">
+  <h1>pattern-scan 로컬 테스트</h1>
+  <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+  <p style="font-size:13px;color:#888">mock 데이터로 3개 탭 + 캔들차트 오버레이를 확인. 실제 GAS 호출은 배포 후 별도 확인.</p>
+  <div id="pattern-scan"></div>
+</div>
+
+<script src="../js/pattern-scan.js"></script>
+<script>
+  // mock 일봉 생성: 저점상승형/쌍바닥/역헤드앤숄더 모양을 각각 흉내
+  function genDaily(lowPattern) {
+    var daily = [];
+    var base = new Date('2026-07-10');
+    var close = 50000;
+    // lowPattern: 20개 인덱스에 대응하는 저가 오프셋 배열 (모양 결정용)
+    for (var i = 19; i >= 0; i--) {
+      var d = new Date(base);
+      d.setDate(d.getDate() - i - Math.floor(i / 5) * 2);
+      var idx = 19 - i;
+      var offset = lowPattern[idx] || 0;
+      var low = 48000 + offset;
+      var high = low + 1200 + Math.random() * 800;
+      var open = low + Math.random() * (high - low) * 0.4;
+      var closeP = low + Math.random() * (high - low) * 0.6;
+      daily.push({
+        date: d.toISOString().slice(0, 10),
+        open: Math.round(open),
+        high: Math.round(high),
+        low: Math.round(low),
+        close: Math.round(closeP),
+        volume: Math.round(5000000 + Math.random() * 3000000)
+      });
+    }
+    return daily;
+  }
+
+  // 저점상승형: 저가가 완만히 우상향
+  var risingLowsDaily = genDaily([0, 200, 100, 400, 350, 600, 500, 800, 700, 1000, 950, 1150, 1100, 1300, 1250, 1450, 1400, 1550, 1500, 1650]);
+  // 쌍바닥: 앞쪽 저점 - 반등 - 뒤쪽 비슷한 저점
+  var doubleBottomDaily = genDaily([0, 300, 100, 50, 200, 800, 1500, 1800, 1400, 900, 400, 150, 80, 30, 250, 700, 1200, 1400, 1300, 1100]);
+  // 역헤드앤숄더: 좌어깨 - 헤드(더 낮음) - 우어깨
+  var ihsDaily = genDaily([1200, 900, 500, 200, 600, 1000, 1300, 700, 300, 0, 50, 400, 900, 1400, 1600, 1100, 700, 400, 200, 500]);
+
+  function detectMock(daily, pattern) {
+    // 실제 GAS 로직을 그대로 흉내내진 않고, mock용으로 스윙 저점/고점만 대충 골라서 오버레이 좌표를 만든다.
+    function swingLows(win) {
+      var idxs = [];
+      for (var i = 2; i < win.length - 2; i++) {
+        var v = win[i].low, ok = true;
+        for (var k = i - 2; k <= i + 2; k++) { if (k !== i && win[k].low < v) { ok = false; break; } }
+        if (ok) idxs.push(i);
+      }
+      return idxs;
+    }
+    function swingHighs(win) {
+      var idxs = [];
+      for (var i = 2; i < win.length - 2; i++) {
+        var v = win[i].high, ok = true;
+        for (var k = i - 2; k <= i + 2; k++) { if (k !== i && win[k].high > v) { ok = false; break; } }
+        if (ok) idxs.push(i);
+      }
+      return idxs;
+    }
+
+    if (pattern === 'risingLows') {
+      var lows = swingLows(daily), highs = swingHighs(daily);
+      return {
+        low_swings: lows.map(function (i) { return { date: daily[i].date, price: daily[i].low }; }),
+        high_swings: highs.map(function (i) { return { date: daily[i].date, price: daily[i].high }; }),
+        resistance: Math.max.apply(null, highs.map(function (i) { return daily[i].high; })),
+        breakout: false
+      };
+    }
+    if (pattern === 'doubleBottom') {
+      var lows2 = swingLows(daily);
+      var i1 = lows2[0], i2 = lows2[lows2.length - 1];
+      var neckIdx = 0, neckHigh = -Infinity;
+      for (var k = i1 + 1; k < i2; k++) { if (daily[k].high > neckHigh) { neckHigh = daily[k].high; neckIdx = k; } }
+      return {
+        low1: { date: daily[i1].date, price: daily[i1].low },
+        low2: { date: daily[i2].date, price: daily[i2].low },
+        neckline: { date: daily[neckIdx].date, price: neckHigh },
+        breakout: false
+      };
+    }
+    if (pattern === 'invHeadShoulders') {
+      var lows3 = swingLows(daily);
+      var iL = lows3[0], iH = lows3[Math.floor(lows3.length / 2)], iR = lows3[lows3.length - 1];
+      function maxHighBetween(a, b) {
+        var mh = -Infinity, mi = a + 1;
+        for (var k = a + 1; k < b; k++) { if (daily[k].high > mh) { mh = daily[k].high; mi = k; } }
+        return { date: daily[mi].date, high: mh };
+      }
+      var p1 = maxHighBetween(iL, iH), p2 = maxHighBetween(iH, iR);
+      var necklinePoint = p1.high <= p2.high ? p1 : p2;
+      return {
+        left_shoulder: { date: daily[iL].date, price: daily[iL].low },
+        head: { date: daily[iH].date, price: daily[iH].low },
+        right_shoulder: { date: daily[iR].date, price: daily[iR].low },
+        neckline: { date: necklinePoint.date, price: Math.min(p1.high, p2.high) },
+        breakout: false
+      };
+    }
+    return null;
+  }
+
+  function mockMatch(daily, code, name) {
+    var last = daily[daily.length - 1], prev = daily[daily.length - 2];
+    return {
+      code: code, name: name, price: last.close,
+      changeRate: ((last.close - prev.close) / prev.close * 100),
+      date: last.date
+    };
+  }
+
+  var byPattern = {
+    risingLows: { daily: risingLowsDaily, code: '005930', name: '삼성전자' },
+    doubleBottom: { daily: doubleBottomDaily, code: '000660', name: 'SK하이닉스' },
+    invHeadShoulders: { daily: ihsDaily, code: '035420', name: 'NAVER' }
+  };
+
+  PatternScan.fetchJson = function (url) {
+    console.log('[mock] fetch', url);
+    if (url.indexOf('patternScan=1') > -1) {
+      return Promise.resolve({
+        scannedAt: '2026-07-11 16:00:00',
+        universe: 238,
+        scanned: 236,
+        patterns: {
+          risingLows: [mockMatch(byPattern.risingLows.daily, '005930', '삼성전자'), mockMatch(byPattern.risingLows.daily, '005380', '현대차')],
+          doubleBottom: [mockMatch(byPattern.doubleBottom.daily, '000660', 'SK하이닉스')],
+          invHeadShoulders: [mockMatch(byPattern.invHeadShoulders.daily, '035420', 'NAVER')]
+        }
+      });
+    }
+    if (url.indexOf('patternChart=1') > -1) {
+      var m = url.match(/pattern=([^&]+)/);
+      var pattern = m ? decodeURIComponent(m[1]) : 'risingLows';
+      var d = byPattern[pattern] || byPattern.risingLows;
+      return Promise.resolve({
+        code: d.code, daily: d.daily, pattern: pattern, detail: detectMock(d.daily, pattern)
+      });
+    }
+    return Promise.resolve({});
+  };
+</script>
+
+</body>
+</html>

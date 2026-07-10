@@ -13,7 +13,9 @@
 | `data/krx_map.js` | 종목명→코드 전 종목 매핑(티커 툴팁·종목뉴스용) |
 | `js/ticker-tooltip-v5.js`, `js/stock-news.js`, `js/market-ribbon.js` | 본문 툴팁 / 종목뉴스 / 상단 리본 |
 | `data/marketcap-codes.js`, `js/marketcap-bubble.js`, `css/marketcap-bubble.css` | 시가총액 버블차트(코스피20/코스닥15/ETF10 + 삼성전자·SK하이닉스 단일종목레버리지 합산). GAS `?bubble=1` 액션을 45초 간격 폴링 |
-| `gas/ticker-proxy.gs` | GAS 프록시 소스(시세·뉴스·AI요약·버블차트). 수정 시 script.google.com에서 수동 재배포 필요 — push만으로는 반영 안 됨. 버블차트 종목 구성 변경 시 `data/marketcap-codes.js`와 이 파일의 `MARKETCAP_CODES` 둘 다 수정 |
+| `gas/ticker-proxy.gs` | GAS 프록시 소스(시세·뉴스·AI요약·버블차트·수급·랭킹뉴스·차트패턴스캔). 수정 시 script.google.com에서 수동 재배포 필요 — push만으로는 반영 안 됨. 버블차트 종목 구성 변경 시 `data/marketcap-codes.js`와 이 파일의 `MARKETCAP_CODES` 둘 다 수정 |
+| `js/foreign-flow.js`, `css/foreign-flow.css` | 종목별 외국인·기관 수급 위젯(연속매매·추세전환 뱃지 포함). GAS `?action=foreignFlow` 온디맨드 크롤링, 서버 캐시 없음 |
+| `js/pattern-scan.js`, `css/pattern-scan.css` | 차트 패턴 스캔 위젯(저점상승형/쌍바닥/역헤드앤숄더) - 캔들차트 + 패턴선 오버레이. 리스트는 GAS `?patternScan=1`(하루 1회 시간 트리거로 미리 스캔·캐싱), 클릭 시 차트는 `?patternChart=1&code=&pattern=`으로 온디맨드 재크롤링. 스캔 대상은 `data/sectors-v3.js`를 GAS가 fetch해서 재사용(별도 종목 리스트 하드코딩 없음) |
 | `test/*.html` | 로컬 프리뷰(python -m http.server로 열기) |
 | `data/sectors-v3-검수표.md` | 종목코드 매핑 검수표 — 섹터 데이터 수정 시 같이 갱신 |
 
