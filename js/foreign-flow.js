@@ -228,12 +228,23 @@
     var streak = data.streak || {};
     var signal = data.signal || {};
 
-    var out = '<div class="ff-badges">';
-    out += streakBadge('외국인', streak.foreign);
-    out += streakBadge('기관', streak.inst);
-    out += signalBadge('외국인', signal.foreign);
-    out += signalBadge('기관', signal.inst);
-    out += '</div>';
+    var parts = [
+      streakBadge('외국인', streak.foreign),
+      streakBadge('기관', streak.inst),
+      signalBadge('외국인', signal.foreign),
+      signalBadge('기관', signal.inst)
+    ];
+    var hasAny = parts.some(function (p) { return !!p; });
+
+    var out = '<div class="ff-badges">' + parts.join('') + '</div>';
+    if (hasAny) {
+      out += '<div class="ff-badge-legend">'
+        + '※ 연속매매: 최신 거래일부터 역순으로 순매매 부호가 이어지는 일수. '
+        + '추세전환: 최근 5일 합산이 이전 15일과 부호가 반대이고, 평소 하루 순매매의 2배 이상 크기이며, '
+        + '최근 5일 중 3일 이상 같은 방향일 때만 표시되는 참고 지표입니다. '
+        + '<b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b>'
+        + '</div>';
+    }
     return out;
   }
 

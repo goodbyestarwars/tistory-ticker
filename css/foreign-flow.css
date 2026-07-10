@@ -222,6 +222,18 @@
   margin-top: 10px;
 }
 
+#foreign-flow .ff-badge-legend {
+  font-size: 11.5px;
+  color: #999;
+  line-height: 1.6;
+  margin-top: 6px;
+}
+
+#foreign-flow .ff-badge-legend b {
+  color: #777;
+  font-weight: 700;
+}
+
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
 html.dark #foreign-flow { color: #ddd !important; }
 html.dark #foreign-flow .ff-input {
@@ -272,3 +284,5 @@ html.dark #foreign-flow .ff-tt {
 }
 html.dark #foreign-flow .ff-tt-sub { color: #999 !important; }
 html.dark #foreign-flow .ff-footnote { color: #888 !important; }
+html.dark #foreign-flow .ff-badge-legend { color: #888 !important; }
+html.dark #foreign-flow .ff-badge-legend b { color: #aaa !important; }
