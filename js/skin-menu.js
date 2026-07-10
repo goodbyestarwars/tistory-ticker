@@ -45,6 +45,12 @@
       icon: '<path d="M7 17V7"/><path d="M4 10l3-3 3 3"/><path d="M17 7v10"/><path d="M14 14l3 3 3-3"/>'
     },
     {
+      href: '/page/pattern-scan',
+      label: '차트 패턴 스캔',
+      bold: true,
+      icon: '<rect x="4" y="10" width="3" height="8"/><rect x="10.5" y="4" width="3" height="14"/><rect x="17" y="7" width="3" height="11"/>'
+    },
+    {
       href: '/notice',
       label: '공지사항',
       icon: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'
