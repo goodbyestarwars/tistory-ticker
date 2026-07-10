@@ -246,32 +246,38 @@
     }
 
     if (pattern === 'risingLows') {
-      var lows = detail.low_swings || [];
+      // low_swings_display는 마지막 스윙 저점 뒤에 "오늘"(현재가)까지 이어붙인 배열 -
+      // 패턴이 이미 끝난 게 아니라 지금도 진행 중임을 보여주기 위함
+      var lows = detail.low_swings_display || detail.low_swings || [];
       var highs = detail.high_swings || [];
       svg += polyline(lows, 'ps-line-support');
       svg += polyline(highs, 'ps-line-resist');
-      lows.forEach(function (p) { svg += dot(p, 'ps-dot-support'); });
+      (detail.low_swings || []).forEach(function (p) { svg += dot(p, 'ps-dot-support'); });
       highs.forEach(function (p) { svg += dot(p, 'ps-dot-resist'); });
-      if (detail.signal) svg += signalRing(detail.signal); // 최근 저점(마지막 상승 확인 지점)
+      if (detail.signal) svg += signalRing(detail.signal); // 오늘(현재가) - 항상 최근 봉 기준
     } else if (pattern === 'doubleBottom') {
-      // 저점1 -> 넥라인(중간 반등 고점) -> 저점2 순서로 이어야 실제 W 모양이 나온다
+      // 저점1 -> 넥라인(중간 반등 고점) -> 저점2 -> 현재가 순서로 이어야 실제 W 모양이 나온다
+      // (저점2에서 끊으면 "^" 하나만 보여서 W로 안 읽힘 - 현재가까지 이어 오른쪽 다리를 완성)
       if (detail.low1 && detail.neckline && detail.low2) {
-        svg += polyline([detail.low1, detail.neckline, detail.low2], 'ps-line-support');
+        var dbPoints = [detail.low1, detail.neckline, detail.low2];
+        if (detail.current) dbPoints.push(detail.current);
+        svg += polyline(dbPoints, 'ps-line-support');
         svg += hline(detail.neckline.price, 'ps-line-resist', detail.low1.date);
         svg += dot(detail.low1, 'ps-dot-support');
         svg += dot(detail.low2, 'ps-dot-support');
         svg += dot(detail.neckline, 'ps-dot-resist');
-        if (detail.signal) svg += signalRing(detail.signal); // 두번째 저점(쌍바닥 확인 지점)
+        if (detail.signal) svg += signalRing(detail.signal); // 오늘(현재가)
       }
     } else if (pattern === 'invHeadShoulders') {
-      // 좌어깨 -> 좌고점 -> 헤드 -> 우고점 -> 우어깨 5점을 순서대로 이어 봉우리 2개 모양을 표현
+      // 좌어깨 -> 좌고점 -> 헤드 -> 우고점 -> 우어깨 -> 현재가 순서로 이어 봉우리 2개 + 최근 흐름까지 표현
       var seq = [detail.left_shoulder, detail.left_peak, detail.head, detail.right_peak, detail.right_shoulder];
       if (seq.every(function (p) { return !!p; })) {
+        if (detail.current) seq.push(detail.current);
         svg += polyline(seq, 'ps-line-support');
         svg += hline(detail.neckline.price, 'ps-line-resist', detail.left_shoulder.date);
         ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) { svg += dot(detail[k], 'ps-dot-support'); });
         svg += dot(detail.neckline, 'ps-dot-resist');
-        if (detail.signal) svg += signalRing(detail.signal); // 우어깨(패턴 완성 확인 지점)
+        if (detail.signal) svg += signalRing(detail.signal); // 오늘(현재가)
       }
     } else if (pattern === 'boxRangeLow') {
       var boxLows = detail.low_swings || [];

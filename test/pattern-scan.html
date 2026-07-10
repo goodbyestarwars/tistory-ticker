@@ -85,12 +85,15 @@
     if (pattern === 'risingLows') {
       var lows = swingLows(daily), highs = swingHighs(daily);
       if (!lows.length || !highs.length) return null;
-      var lastLow = lows[lows.length - 1];
+      var lowPoints = lows.map(function (i) { return { date: daily[i].date, price: daily[i].low }; });
+      var curR = daily[daily.length - 1];
+      var currentR = { date: curR.date, price: curR.close };
       return {
-        low_swings: lows.map(function (i) { return { date: daily[i].date, price: daily[i].low }; }),
+        low_swings: lowPoints,
+        low_swings_display: lowPoints.concat([currentR]),
         high_swings: highs.map(function (i) { return { date: daily[i].date, price: daily[i].high }; }),
         resistance: Math.max.apply(null, highs.map(function (i) { return daily[i].high; })),
-        signal: { date: daily[lastLow].date, price: daily[lastLow].low },
+        signal: currentR,
         breakout: false
       };
     }
@@ -99,11 +102,14 @@
       var i1 = lows2[0], i2 = lows2[lows2.length - 1];
       var neckIdx = 0, neckHigh = -Infinity;
       for (var k = i1 + 1; k < i2; k++) { if (daily[k].high > neckHigh) { neckHigh = daily[k].high; neckIdx = k; } }
+      var curD = daily[daily.length - 1];
+      var currentD = { date: curD.date, price: curD.close };
       return {
         low1: { date: daily[i1].date, price: daily[i1].low },
         low2: { date: daily[i2].date, price: daily[i2].low },
         neckline: { date: daily[neckIdx].date, price: neckHigh },
-        signal: { date: daily[i2].date, price: daily[i2].low },
+        current: currentD,
+        signal: currentD,
         breakout: false
       };
     }
@@ -125,7 +131,8 @@
         right_peak: { date: p2.date, price: p2.high },
         right_shoulder: { date: daily[iR].date, price: daily[iR].low },
         neckline: { date: necklinePoint.date, price: Math.min(p1.high, p2.high) },
-        signal: { date: daily[iR].date, price: daily[iR].low },
+        current: (function () { var c = daily[daily.length - 1]; return { date: c.date, price: c.close }; })(),
+        signal: (function () { var c = daily[daily.length - 1]; return { date: c.date, price: c.close }; })(),
         breakout: false
       };
     }
