@@ -93,3 +93,11 @@ tistory-ticker 수정 내역
    - 반영 지연: push 후 GitHub Pages 캐시 최대 10분
 
 4. 로컬 프리뷰: test/skin-parts.html (메뉴 렌더링 + 전역 함수 노출 확인)
+
+[2026-07-10] 스킨 본체 style.css git 이전 — CSS도 push로 수정
+- .gitignore에서 style.css 해제, GitHub Pages로 서빙
+  (https://goodbyestarwars.github.io/tistory-ticker/style.css)
+- skin.html의 <link href="./style.css">를 GitHub Pages URL로 교체
+  (skin.html 1회 재배포 필요 — 이후 CSS 수정은 push만으로 반영)
+- 티스토리 스킨편집기 CSS 탭은 더 이상 참조되지 않음 (비워도 무방)
+- skin.html은 캘린더 ID 등 개인정보 포함이라 계속 git 제외

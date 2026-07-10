@@ -1,7 +1,7 @@
-# 스킨 원본은 공개 저장소에 올리지 않음 (9bolt 스킨 저작물)
+# skin.html은 공개 저장소에 올리지 않음 (캘린더 ID 등 개인정보 포함)
+# style.css는 2026-07-10부터 git으로 이전 - GitHub Pages로 서빙 (티스토리 CSS 탭 미사용)
 skin.html
 skin.html.bak
-style.css
 dist/
 
 # 로컬 설정
