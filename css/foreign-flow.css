@@ -227,6 +227,7 @@
   color: #999;
   line-height: 1.6;
   margin-top: 6px;
+  text-align: right;
 }
 
 #foreign-flow .ff-badge-legend b {
