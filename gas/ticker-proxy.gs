@@ -552,10 +552,14 @@ function getForeignFlow(code) {
 
   // 금액 환산: 순매매량(주) x 해당일 종가의 합산 근사치 - 정확한 대금 아님(화면에 "추정치" 명시)
   var amountEstimate = {
-    today_krw: frgnAmountSum(daily, 1),
-    '5d_krw': frgnAmountSum(daily, 5),
-    '10d_krw': frgnAmountSum(daily, 10),
-    '20d_krw': frgnAmountSum(daily, 20)
+    today_krw: frgnAmountSum(daily, 'foreign_net', 1),
+    '5d_krw': frgnAmountSum(daily, 'foreign_net', 5),
+    '10d_krw': frgnAmountSum(daily, 'foreign_net', 10),
+    '20d_krw': frgnAmountSum(daily, 'foreign_net', 20),
+    inst_today_krw: frgnAmountSum(daily, 'inst_net', 1),
+    inst_5d_krw: frgnAmountSum(daily, 'inst_net', 5),
+    inst_10d_krw: frgnAmountSum(daily, 'inst_net', 10),
+    inst_20d_krw: frgnAmountSum(daily, 'inst_net', 20)
   };
 
   return {
@@ -623,10 +627,10 @@ function frgnRollingSum(daily, field, n) {
   return s;
 }
 
-function frgnAmountSum(daily, n) {
+function frgnAmountSum(daily, field, n) {
   var s = 0;
   var len = Math.min(n, daily.length);
-  for (var i = 0; i < len; i++) s += daily[i].foreign_net * daily[i].close;
+  for (var i = 0; i < len; i++) s += daily[i][field] * daily[i].close;
   return s;
 }
 

@@ -245,22 +245,25 @@
   }
 
   function buildRollingTable(data) {
+    var amt = data.amount_estimate || {};
     var rows = [
-      ['당일', data.rolling.today, data.amount_estimate.today_krw],
-      ['5일 합산', data.rolling['5d'], data.amount_estimate['5d_krw']],
-      ['10일 합산', data.rolling['10d'], data.amount_estimate['10d_krw']],
-      ['20일 합산', data.rolling['20d'], data.amount_estimate['20d_krw']]
+      ['당일', data.rolling.today, amt.today_krw, amt.inst_today_krw],
+      ['5일 합산', data.rolling['5d'], amt['5d_krw'], amt.inst_5d_krw],
+      ['10일 합산', data.rolling['10d'], amt['10d_krw'], amt.inst_10d_krw],
+      ['20일 합산', data.rolling['20d'], amt['20d_krw'], amt.inst_20d_krw]
     ];
 
     var html = '<table class="ff-table"><thead><tr>'
-      + '<th>구분</th><th>외국인 순매매(주)</th><th>외국인 추정대금</th><th>기관 순매매(주)</th>'
+      + '<th>구분</th><th>외국인 순매매(주)</th><th>외국인 추정대금</th><th>기관 순매매(주)</th><th>기관 추정대금</th>'
       + '</tr></thead><tbody>';
 
     rows.forEach(function (r) {
       html += '<tr><td class="ff-td-label">' + r[0] + '</td>'
         + '<td class="' + signClass(r[1].foreign) + '">' + fmtShares(r[1].foreign) + '</td>'
         + '<td class="' + signClass(r[2]) + '">' + fmtKrw(r[2]) + '</td>'
-        + '<td class="' + signClass(r[1].inst) + '">' + fmtShares(r[1].inst) + '</td></tr>';
+        + '<td class="' + signClass(r[1].inst) + '">' + fmtShares(r[1].inst) + '</td>'
+        // 기관 추정대금은 GAS 재배포 후부터 내려옴 - 이전 응답(값 없음)은 '-'로 표시
+        + '<td class="' + (r[3] == null ? 'ff-flat' : signClass(r[3])) + '">' + (r[3] == null ? '-' : fmtKrw(r[3])) + '</td></tr>';
     });
 
     html += '</tbody></table>';

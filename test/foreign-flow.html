@@ -60,9 +60,9 @@
         for (var i = 0; i < n; i++) s += daily[i][field];
         return s;
       }
-      function asum(n) {
+      function asum(field, n) {
         var s = 0;
-        for (var i = 0; i < n; i++) s += daily[i].foreign_net * daily[i].close;
+        for (var i = 0; i < n; i++) s += daily[i][field] * daily[i].close;
         return s;
       }
       var rolling = {
@@ -86,7 +86,10 @@
         daily: daily,
         rolling: rolling,
         amount_estimate: {
-          today_krw: asum(1), '5d_krw': asum(5), '10d_krw': asum(10), '20d_krw': asum(20)
+          today_krw: asum('foreign_net', 1), '5d_krw': asum('foreign_net', 5),
+          '10d_krw': asum('foreign_net', 10), '20d_krw': asum('foreign_net', 20),
+          inst_today_krw: asum('inst_net', 1), inst_5d_krw: asum('inst_net', 5),
+          inst_10d_krw: asum('inst_net', 10), inst_20d_krw: asum('inst_net', 20)
         },
         streak: { foreign_days: 6, foreign_direction: 'buy' },
         signal: { trend_shift: shift, note: shift ? ('20일 합산 ' + (f20 > 0 ? '플러스' : '마이너스') + ', 5일 합산 ' + (f5 > 0 ? '플러스' : '마이너스') + ' 전환') : '' }
