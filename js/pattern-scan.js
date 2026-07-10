@@ -152,6 +152,9 @@
     var n = daily.length;
     if (n < 2) return '';
 
+    // 캔들 수가 많으면(골파기는 90일치) 차트 폭을 늘려서 촘촘해지지 않게 함
+    var chartW = Math.max(CHART_W, n * 24);
+
     var lows = daily.map(function (d) { return d.low; });
     var highs = daily.map(function (d) { return d.high; });
     var min = Math.min.apply(null, lows);
@@ -160,7 +163,7 @@
     min -= span * 0.06;
     max += span * 0.06;
 
-    var iw = CHART_W - PAD.l - PAD.r;
+    var iw = chartW - PAD.l - PAD.r;
     var ih = CHART_H - PAD.t - PAD.b;
     var slot = iw / n;
     function x(i) { return PAD.l + slot * (i + 0.5); }
@@ -170,7 +173,7 @@
       return -1;
     }
 
-    var svg = '<svg class="ps-svg" viewBox="0 0 ' + CHART_W + ' ' + CHART_H + '" role="img" aria-label="캔들차트">';
+    var svg = '<svg class="ps-svg" viewBox="0 0 ' + chartW + ' ' + CHART_H + '" role="img" aria-label="캔들차트" style="min-width:' + chartW + 'px">';
 
     // 캔들
     daily.forEach(function (d, i) {
@@ -185,6 +188,11 @@
       svg += '<rect x="' + (xC - bw / 2).toFixed(1) + '" y="' + bodyTop.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bodyH.toFixed(1) + '" fill="' + color + '"/>';
     });
 
+    // MA60(골파기 전용): 종가 60일 이동평균선을 배경에 그려서 추세전환을 눈으로 볼 수 있게 함
+    if (pattern === 'goldPitReversal' && detail && detail.ma_period) {
+      svg += buildMaLine(daily, detail.ma_period, x, y);
+    }
+
     // y축 레이블
     svg += '<text class="ps-axis" x="' + (PAD.l - 6) + '" y="' + (y(max) + 4).toFixed(1) + '" text-anchor="end">' + fmt(max) + '</text>';
     svg += '<text class="ps-axis" x="' + (PAD.l - 6) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + fmt(min) + '</text>';
@@ -196,13 +204,26 @@
     });
 
     // 패턴 오버레이
-    svg += buildPatternOverlay(pattern, detail, idxByDate, x, y);
+    svg += buildPatternOverlay(pattern, detail, idxByDate, x, y, chartW);
 
     svg += '</svg>';
     return '<div class="ps-chart">' + svg + '</div>';
   }
 
-  function buildPatternOverlay(pattern, detail, idxByDate, x, y) {
+  // 종가 N일 이동평균선을 폴리라인으로 그림 (골파기 반전 전용)
+  function buildMaLine(daily, period, x, y) {
+    var pts = [];
+    var sum = 0;
+    for (var i = 0; i < daily.length; i++) {
+      sum += daily[i].close;
+      if (i >= period) sum -= daily[i - period].close;
+      if (i >= period - 1) pts.push(x(i).toFixed(1) + ',' + y(sum / period).toFixed(1));
+    }
+    if (pts.length < 2) return '';
+    return '<polyline class="ps-line-ma" points="' + pts.join(' ') + '"/>';
+  }
+
+  function buildPatternOverlay(pattern, detail, idxByDate, x, y, chartW) {
     if (!detail) return '';
     var svg = '';
 
@@ -242,7 +263,7 @@
         if (i >= 0) xStart = x(i);
       }
       return '<line class="' + cls + '" x1="' + xStart.toFixed(1) + '" y1="' + y(price).toFixed(1)
-        + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(price).toFixed(1) + '"/>';
+        + '" x2="' + (chartW - PAD.r) + '" y2="' + y(price).toFixed(1) + '"/>';
     }
 
     if (pattern === 'risingLows') {
@@ -288,12 +309,12 @@
       boxHighs.forEach(function (p) { svg += dot(p, 'ps-dot-resist'); });
       if (detail.signal) svg += signalRing(detail.signal); // 현재가(박스 하단 근접 지점)
     } else if (pattern === 'goldPitReversal') {
-      // 직전고점 -> 저점(골) -> 랠리고점(반등) -> 눌림목(현재가) 4점을 이어
-      // "급락 후 반등, 그리고 되돌림이 들어온" 자리까지 표현
-      if (detail.pre_high && detail.trough && detail.rally_peak && detail.pullback) {
-        svg += polyline([detail.pre_high, detail.trough, detail.rally_peak, detail.pullback], 'ps-line-support');
-        svg += dot(detail.pre_high, 'ps-dot-resist');
-        svg += dot(detail.trough, 'ps-dot-support');
+      // MA60 전환 지점(cross) -> 랠리고점(반등) -> 눌림목(현재가) 3점을 이어
+      // "이평 돌파 후 반등, 그리고 되돌림이 들어온" 자리까지 표현. 배경의 MA60선은
+      // buildCandleChart에서 별도로 그림(이 함수는 오버레이 점/선만 담당).
+      if (detail.cross && detail.rally_peak && detail.pullback) {
+        svg += polyline([detail.cross, detail.rally_peak, detail.pullback], 'ps-line-support');
+        svg += dot(detail.cross, 'ps-dot-resist');
         svg += dot(detail.rally_peak, 'ps-dot-resist');
         svg += signalRing(detail.pullback); // 눌림목(매수 검토 지점)
       }

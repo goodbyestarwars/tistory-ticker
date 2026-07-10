@@ -58,8 +58,35 @@
   var ihsDaily = genDaily([1800, 1400, 900, 400, 900, 1500, 2100, 1600, 1000, 400, 0, 400, 1000, 1600, 2100, 1500, 900, 400, 900, 1400]);
   // 박스권: 저점끼리·고점끼리 평평하게 오가며, 마지막이 저점 근처
   var boxDaily = genDaily([0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 30]);
-  // 골파기: 고점 -> 급락(골) -> 랠리(반등고점) -> 눌림목(최근 며칠 되돌림)
-  var goldDaily = genDaily([6000, 6500, 7000, 7500, 8000, 6500, 4500, 2500, 1200, 400, 0, 800, 1800, 3000, 4200, 5200, 6000, 5400, 5000, 4700]);
+
+  // 골파기(MA60): 90일치 - 0~50일 완만한 하락(이평 아래) -> 50~70일 급반등(이평 돌파+랠리) -> 70~90일 눌림목
+  function genGoldDaily() {
+    var daily = [];
+    var base = new Date('2026-07-10');
+    var n = 90;
+    for (var idx = 0; idx < n; idx++) {
+      var i = n - 1 - idx;
+      var d = new Date(base);
+      d.setDate(d.getDate() - i - Math.floor(i / 5) * 2);
+      var level;
+      if (idx < 50) level = 60000 - idx * 400;
+      else if (idx < 70) level = 40000 + (idx - 50) * 900;
+      else level = 58000 - (idx - 70) * 250;
+      // 종가는 추세를 그대로 따라가게 결정론적으로 고정(랜덤이면 가끔 MA60 크로스가 안 잡힘) -
+      // 저가/고가/시가만 살짝 랜덤을 줘서 캔들 모양에 변화를 줌
+      var closeP = level;
+      var low = level - 300 - Math.random() * 400;
+      var high = level + 300 + Math.random() * 400;
+      var open = low + Math.random() * (high - low) * 0.5;
+      daily.push({
+        date: d.toISOString().slice(0, 10),
+        open: Math.round(open), high: Math.round(high), low: Math.round(low), close: Math.round(closeP),
+        volume: Math.round(5000000 + Math.random() * 3000000)
+      });
+    }
+    return daily;
+  }
+  var goldDaily = genGoldDaily();
 
   function detectMock(daily, pattern) {
     // 실제 GAS 로직을 그대로 흉내내진 않고, mock용으로 스윙 저점/고점만 대충 골라서 오버레이 좌표를 만든다.
@@ -151,16 +178,26 @@
       };
     }
     if (pattern === 'goldPitReversal') {
-      var troughIdx = 0;
-      for (var ti = 1; ti < daily.length; ti++) if (daily[ti].low < daily[troughIdx].low) troughIdx = ti;
-      var preHighIdx = 0;
-      for (var pi = 0; pi <= troughIdx; pi++) if (daily[pi].high > daily[preHighIdx].high) preHighIdx = pi;
-      var rallyPeakIdx = troughIdx;
-      for (var ri = troughIdx + 1; ri < daily.length; ri++) if (daily[ri].high > daily[rallyPeakIdx].high) rallyPeakIdx = ri;
+      var period = 60;
+      var ma = [];
+      var sum = 0;
+      for (var gi = 0; gi < daily.length; gi++) {
+        sum += daily[gi].close;
+        if (gi >= period) sum -= daily[gi - period].close;
+        ma[gi] = gi >= period - 1 ? sum / period : null;
+      }
+      var crossIdx = -1;
+      for (var gj = daily.length - 1; gj >= period; gj--) {
+        if (ma[gj] == null || ma[gj - 1] == null) continue;
+        if (daily[gj - 1].close < ma[gj - 1] && daily[gj].close >= ma[gj]) { crossIdx = gj; break; }
+      }
+      if (crossIdx === -1) return null;
+      var rallyPeakIdx = crossIdx;
+      for (var gk = crossIdx + 1; gk < daily.length; gk++) if (daily[gk].high > daily[rallyPeakIdx].high) rallyPeakIdx = gk;
       var lastRow2 = daily[daily.length - 1];
       return {
-        pre_high: { date: daily[preHighIdx].date, price: daily[preHighIdx].high },
-        trough: { date: daily[troughIdx].date, price: daily[troughIdx].low },
+        ma_period: period,
+        cross: { date: daily[crossIdx].date, price: daily[crossIdx].close },
         rally_peak: { date: daily[rallyPeakIdx].date, price: daily[rallyPeakIdx].high },
         pullback: { date: lastRow2.date, price: lastRow2.close },
         signal: { date: lastRow2.date, price: lastRow2.close },

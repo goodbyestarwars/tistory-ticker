@@ -177,6 +177,14 @@
   stroke-dasharray: 5 4;
 }
 
+/* 60일 이동평균선 (골파기 반전 전용, 배경에 실선으로) */
+#pattern-scan .ps-line-ma {
+  fill: none;
+  stroke: #f59e0b;
+  stroke-width: 1.5;
+  opacity: 0.85;
+}
+
 #pattern-scan .ps-dot-support {
   fill: #d24f45;
   stroke: #ffffff;
