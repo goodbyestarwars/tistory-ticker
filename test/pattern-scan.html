@@ -59,7 +59,7 @@
   // 박스권: 저점끼리·고점끼리 평평하게 오가며, 마지막이 저점 근처
   var boxDaily = genDaily([0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 30]);
 
-  // 골파기(MA60): 90일치 - 0~50일 완만한 하락(이평 아래) -> 50~70일 급반등(이평 돌파+랠리) -> 70~90일 눌림목
+  // 골파기(MA60): 90일치 - 0~84일 완만한 하락(이평 아래) -> 85~89일(최근 5일) 급반등해 이평을 막 돌파
   function genGoldDaily() {
     var daily = [];
     var base = new Date('2026-07-10');
@@ -69,9 +69,8 @@
       var d = new Date(base);
       d.setDate(d.getDate() - i - Math.floor(i / 5) * 2);
       var level;
-      if (idx < 50) level = 60000 - idx * 400;
-      else if (idx < 70) level = 40000 + (idx - 50) * 900;
-      else level = 58000 - (idx - 70) * 250;
+      if (idx < 85) level = 60000 - idx * 300;
+      else level = 34800 + (idx - 84) * 3500;
       // 종가는 추세를 그대로 따라가게 결정론적으로 고정(랜덤이면 가끔 MA60 크로스가 안 잡힘) -
       // 저가/고가/시가만 살짝 랜덤을 줘서 캔들 모양에 변화를 줌
       var closeP = level;
@@ -186,20 +185,19 @@
         if (gi >= period) sum -= daily[gi - period].close;
         ma[gi] = gi >= period - 1 ? sum / period : null;
       }
+      var RECENCY = 3;
       var crossIdx = -1;
       for (var gj = daily.length - 1; gj >= period; gj--) {
+        if ((daily.length - 1) - gj > RECENCY) break;
         if (ma[gj] == null || ma[gj - 1] == null) continue;
         if (daily[gj - 1].close < ma[gj - 1] && daily[gj].close >= ma[gj]) { crossIdx = gj; break; }
       }
       if (crossIdx === -1) return null;
-      var rallyPeakIdx = crossIdx;
-      for (var gk = crossIdx + 1; gk < daily.length; gk++) if (daily[gk].high > daily[rallyPeakIdx].high) rallyPeakIdx = gk;
       var lastRow2 = daily[daily.length - 1];
       return {
         ma_period: period,
         cross: { date: daily[crossIdx].date, price: daily[crossIdx].close },
-        rally_peak: { date: daily[rallyPeakIdx].date, price: daily[rallyPeakIdx].high },
-        pullback: { date: lastRow2.date, price: lastRow2.close },
+        current: { date: lastRow2.date, price: lastRow2.close },
         signal: { date: lastRow2.date, price: lastRow2.close },
         breakout: false
       };

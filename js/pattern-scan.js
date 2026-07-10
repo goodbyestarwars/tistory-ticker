@@ -309,14 +309,12 @@
       boxHighs.forEach(function (p) { svg += dot(p, 'ps-dot-resist'); });
       if (detail.signal) svg += signalRing(detail.signal); // 현재가(박스 하단 근접 지점)
     } else if (pattern === 'goldPitReversal') {
-      // MA60 전환 지점(cross) -> 랠리고점(반등) -> 눌림목(현재가) 3점을 이어
-      // "이평 돌파 후 반등, 그리고 되돌림이 들어온" 자리까지 표현. 배경의 MA60선은
-      // buildCandleChart에서 별도로 그림(이 함수는 오버레이 점/선만 담당).
-      if (detail.cross && detail.rally_peak && detail.pullback) {
-        svg += polyline([detail.cross, detail.rally_peak, detail.pullback], 'ps-line-support');
+      // MA60 전환 지점(cross) -> 현재가 2점만 표시. 랠리/눌림목까지 기다리지 않고
+      // "막 돌파한 초반"만 잡는 설계라 배경의 MA60선(buildCandleChart에서 그림)이 핵심 근거.
+      if (detail.cross && detail.current) {
+        svg += polyline([detail.cross, detail.current], 'ps-line-support');
         svg += dot(detail.cross, 'ps-dot-resist');
-        svg += dot(detail.rally_peak, 'ps-dot-resist');
-        svg += signalRing(detail.pullback); // 눌림목(매수 검토 지점)
+        svg += signalRing(detail.current); // 돌파 확인 지점(오늘)
       }
     }
 
