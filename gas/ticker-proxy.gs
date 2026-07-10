@@ -651,8 +651,14 @@ function getForeignFlow(code) {
     daily: daily,
     rolling: rolling,
     amount_estimate: amountEstimate,
-    streak: frgnStreak(daily),
-    signal: frgnSignal(rolling)
+    streak: {
+      foreign: frgnStreak(daily, 'foreign_net'),
+      inst: frgnStreak(daily, 'inst_net')
+    },
+    signal: {
+      foreign: frgnSignal(rolling, 'foreign'),
+      inst: frgnSignal(rolling, 'inst')
+    }
   };
 }
 
@@ -716,34 +722,36 @@ function frgnAmountSum(daily, field, n) {
   return s;
 }
 
-// 연속 순매수/순매도 일수: 최신일부터 역순으로 방향이 바뀌기 전까지 카운트
-function frgnStreak(daily) {
-  var first = daily[0].foreign_net;
+// 연속 순매수/순매도 일수: 최신일부터 역순으로 방향이 바뀌기 전까지 카운트.
+// field: 'foreign_net' | 'inst_net' - 외국인/기관 공용으로 쓰도록 일반화.
+function frgnStreak(daily, field) {
+  var first = daily[0][field];
   var dir = first > 0 ? 1 : first < 0 ? -1 : 0;
   var days = 0;
   if (dir !== 0) {
     for (var i = 0; i < daily.length; i++) {
-      var v = daily[i].foreign_net;
+      var v = daily[i][field];
       var d = v > 0 ? 1 : v < 0 ? -1 : 0;
       if (d !== dir) break;
       days++;
     }
   }
   return {
-    foreign_days: days,
-    foreign_direction: dir > 0 ? 'buy' : dir < 0 ? 'sell' : 'flat'
+    days: days,
+    direction: dir > 0 ? 'buy' : dir < 0 ? 'sell' : 'flat'
   };
 }
 
-// 추세 전환 신호: 20일 합산과 5일 합산의 부호가 다르면 true
-function frgnSignal(rolling) {
-  var f5 = rolling['5d'].foreign;
-  var f20 = rolling['20d'].foreign;
-  var shift = (f5 > 0 && f20 < 0) || (f5 < 0 && f20 > 0);
+// 추세 전환 신호: 20일 합산과 5일 합산의 부호가 다르면 true.
+// key: 'foreign' | 'inst' - rolling['5d']/['20d']의 필드명과 맞춰 외국인/기관 공용으로 씀.
+function frgnSignal(rolling, key) {
+  var v5 = rolling['5d'][key];
+  var v20 = rolling['20d'][key];
+  var shift = (v5 > 0 && v20 < 0) || (v5 < 0 && v20 > 0);
   return {
     trend_shift: shift,
     note: shift
-      ? '20일 합산 ' + (f20 > 0 ? '플러스' : '마이너스') + ', 5일 합산 ' + (f5 > 0 ? '플러스' : '마이너스') + ' 전환'
+      ? '20일 합산 ' + (v20 > 0 ? '플러스' : '마이너스') + ', 5일 합산 ' + (v5 > 0 ? '플러스' : '마이너스') + ' 전환'
       : ''
   };
 }

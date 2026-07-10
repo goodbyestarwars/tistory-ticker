@@ -71,8 +71,28 @@
         '10d': { foreign: rsum('foreign_net', 10), inst: rsum('inst_net', 10) },
         '20d': { foreign: rsum('foreign_net', 20), inst: rsum('inst_net', 20) }
       };
-      var f5 = rolling['5d'].foreign, f20 = rolling['20d'].foreign;
-      var shift = (f5 > 0 && f20 < 0) || (f5 < 0 && f20 > 0);
+      function streakOf(field) {
+        var first = daily[0][field];
+        var dir = first > 0 ? 1 : first < 0 ? -1 : 0;
+        var days = 0;
+        if (dir !== 0) {
+          for (var i = 0; i < daily.length; i++) {
+            var v = daily[i][field];
+            var d = v > 0 ? 1 : v < 0 ? -1 : 0;
+            if (d !== dir) break;
+            days++;
+          }
+        }
+        return { days: days, direction: dir > 0 ? 'buy' : dir < 0 ? 'sell' : 'flat' };
+      }
+      function signalOf(key) {
+        var v5 = rolling['5d'][key], v20 = rolling['20d'][key];
+        var shift = (v5 > 0 && v20 < 0) || (v5 < 0 && v20 > 0);
+        return {
+          trend_shift: shift,
+          note: shift ? ('20일 합산 ' + (v20 > 0 ? '플러스' : '마이너스') + ', 5일 합산 ' + (v5 > 0 ? '플러스' : '마이너스') + ' 전환') : ''
+        };
+      }
 
       var name = '(mock)';
       var map = window.KRX_MAP || {};
@@ -91,8 +111,8 @@
           inst_today_krw: asum('inst_net', 1), inst_5d_krw: asum('inst_net', 5),
           inst_10d_krw: asum('inst_net', 10), inst_20d_krw: asum('inst_net', 20)
         },
-        streak: { foreign_days: 6, foreign_direction: 'buy' },
-        signal: { trend_shift: shift, note: shift ? ('20일 합산 ' + (f20 > 0 ? '플러스' : '마이너스') + ', 5일 합산 ' + (f5 > 0 ? '플러스' : '마이너스') + ' 전환') : '' }
+        streak: { foreign: streakOf('foreign_net'), inst: streakOf('inst_net') },
+        signal: { foreign: signalOf('foreign'), inst: signalOf('inst') }
       });
     };
   }

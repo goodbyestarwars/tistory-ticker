@@ -225,23 +225,30 @@
   }
 
   function buildBadges(data) {
+    var streak = data.streak || {};
+    var signal = data.signal || {};
+
     var out = '<div class="ff-badges">';
-
-    var st = data.streak || {};
-    if (st.foreign_days > 0 && st.foreign_direction !== 'flat') {
-      var isBuy = st.foreign_direction === 'buy';
-      out += '<span class="ff-badge ' + (isBuy ? 'ff-badge-buy' : 'ff-badge-sell') + '">'
-        + '외국인 ' + st.foreign_days + '일 연속 ' + (isBuy ? '순매수' : '순매도') + '</span>';
-    }
-
-    var sig = data.signal || {};
-    if (sig.trend_shift) {
-      out += '<span class="ff-badge ff-badge-shift">추세 전환</span>';
-      if (sig.note) out += '<span class="ff-signal-note">' + escapeHtml(sig.note) + '</span>';
-    }
-
+    out += streakBadge('외국인', streak.foreign);
+    out += streakBadge('기관', streak.inst);
+    out += signalBadge('외국인', signal.foreign);
+    out += signalBadge('기관', signal.inst);
     out += '</div>';
     return out;
+  }
+
+  function streakBadge(label, st) {
+    if (!st || !(st.days > 0) || st.direction === 'flat') return '';
+    var isBuy = st.direction === 'buy';
+    return '<span class="ff-badge ' + (isBuy ? 'ff-badge-buy' : 'ff-badge-sell') + '">'
+      + label + ' ' + st.days + '일 연속 ' + (isBuy ? '순매수' : '순매도') + '</span>';
+  }
+
+  function signalBadge(label, sig) {
+    if (!sig || !sig.trend_shift) return '';
+    var html = '<span class="ff-badge ff-badge-shift">' + label + ' 추세 전환</span>';
+    if (sig.note) html += '<span class="ff-signal-note">' + escapeHtml(sig.note) + '</span>';
+    return html;
   }
 
   function buildRollingTable(data) {
