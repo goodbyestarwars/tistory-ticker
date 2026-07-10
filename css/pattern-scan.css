@@ -39,21 +39,22 @@
 }
 
 #pattern-scan .ps-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 8px;
   margin-bottom: 14px;
 }
 
 #pattern-scan .ps-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 14px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 11px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
 }
 
@@ -62,33 +63,37 @@
 }
 
 #pattern-scan .ps-name {
-  font-size: 14px;
+  max-width: 100%;
+  font-size: 13px;
   font-weight: 700;
   color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #pattern-scan .ps-code {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
   color: #9ca3af;
-  margin-left: 4px;
+  margin-left: 3px;
 }
 
 #pattern-scan .ps-quote {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 #pattern-scan .ps-price {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #111827;
 }
 
 #pattern-scan .ps-rate {
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 700;
 }
 
