@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>foreign-flow 로컬 테스트</title>
+<link rel="stylesheet" href="../css/foreign-flow.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 780px; margin: 40px auto; padding: 0 16px; }
+  .toggle-dark { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="page-body">
+  <h1>foreign-flow 로컬 테스트</h1>
+  <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+  <p style="font-size:13px;color:#888">기본은 mock 데이터. 실제 GAS 호출로 테스트하려면 <code>?real=1</code>을 붙이세요(GAS 재배포 후).</p>
+  <div id="foreign-flow"></div>
+</div>
+
+<script src="../data/krx_map.js"></script>
+<script src="../js/foreign-flow.js"></script>
+<script>
+  // GAS 재배포 전이므로 기본은 mock으로 렌더링 검증 (?real=1이면 실제 GAS 호출)
+  if (location.search.indexOf('real=1') === -1) {
+    ForeignFlow.fetchFlow = function (code) {
+      var daily = [];
+      var close = 280000;
+      var ratio = 46.5;
+      var shares = 2722000000;
+      var today = new Date('2026-07-10');
+      var trend = 1; // 최근 5일 순매수, 그 전엔 순매도가 많게 -> 추세전환 배지 확인용
+      for (var i = 0; i < 40; i++) {
+        var d = new Date(today);
+        d.setDate(d.getDate() - i - Math.floor(i / 5) * 2); // 주말 건너뛰는 흉내
+        var fn;
+        if (i < 6) fn = Math.round(500000 + Math.random() * 2500000);            // 6일 연속 순매수
+        else fn = Math.round((Math.random() - 0.62) * 6000000);                   // 과거엔 순매도 우위
+        var inet = Math.round((Math.random() - 0.5) * 3000000);
+        close = Math.max(200000, close + Math.round((Math.random() - 0.5) * 8000));
+        ratio = Math.max(40, Math.min(52, ratio + (fn > 0 ? 0.02 : -0.03)));
+        shares += fn;
+        daily.push({
+          date: d.toISOString().slice(0, 10),
+          close: close,
+          change_pct: +((Math.random() - 0.5) * 4).toFixed(2),
+          volume: Math.round(10000000 + Math.random() * 30000000),
+          inst_net: inet,
+          foreign_net: fn,
+          foreign_shares: shares,
+          foreign_ratio: +ratio.toFixed(2)
+        });
+      }
+
+      function rsum(field, n) {
+        var s = 0;
+        for (var i = 0; i < n; i++) s += daily[i][field];
+        return s;
+      }
+      function asum(n) {
+        var s = 0;
+        for (var i = 0; i < n; i++) s += daily[i].foreign_net * daily[i].close;
+        return s;
+      }
+      var rolling = {
+        today: { foreign: daily[0].foreign_net, inst: daily[0].inst_net },
+        '5d': { foreign: rsum('foreign_net', 5), inst: rsum('inst_net', 5) },
+        '10d': { foreign: rsum('foreign_net', 10), inst: rsum('inst_net', 10) },
+        '20d': { foreign: rsum('foreign_net', 20), inst: rsum('inst_net', 20) }
+      };
+      var f5 = rolling['5d'].foreign, f20 = rolling['20d'].foreign;
+      var shift = (f5 > 0 && f20 < 0) || (f5 < 0 && f20 > 0);
+
+      var name = '(mock)';
+      var map = window.KRX_MAP || {};
+      for (var nm in map) { if (map[nm] === code) { name = nm + ' (mock)'; break; } }
+
+      console.log('[mock] fetchFlow', code);
+      return Promise.resolve({
+        code: code,
+        name: name,
+        as_of: daily[0].date,
+        daily: daily,
+        rolling: rolling,
+        amount_estimate: {
+          today_krw: asum(1), '5d_krw': asum(5), '10d_krw': asum(10), '20d_krw': asum(20)
+        },
+        streak: { foreign_days: 6, foreign_direction: 'buy' },
+        signal: { trend_shift: shift, note: shift ? ('20일 합산 ' + (f20 > 0 ? '플러스' : '마이너스') + ', 5일 합산 ' + (f5 > 0 ? '플러스' : '마이너스') + ' 전환') : '' }
+      });
+    };
+  }
+</script>
+
+</body>
+</html>

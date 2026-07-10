@@ -1,0 +1,240 @@
+/* 종목별 외국인·기관 수급 조회 위젯 (js/foreign-flow.js)
+ * 상승/순매수=빨강 #d24f45, 하락/순매도=파랑 #1261c4 (사이트 공통 컬러)
+ * 다크모드: html.dark #foreign-flow ... !important (9bolt 스킨 블랑켓 규칙 대응) */
+
+#foreign-flow {
+  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+  color: #222;
+  line-height: 1.5;
+  margin: 16px 0;
+}
+
+/* ---- 검색 ---- */
+#foreign-flow .ff-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+#foreign-flow .ff-input-wrap {
+  position: relative;
+  flex: 1;
+}
+#foreign-flow .ff-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+}
+#foreign-flow .ff-input:focus { border-color: #888; }
+#foreign-flow .ff-search-btn {
+  padding: 9px 18px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#foreign-flow .ff-search-btn:hover { background: #555; }
+
+#foreign-flow .ff-suggest {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 30;
+  max-height: 260px;
+  overflow-y: auto;
+}
+#foreign-flow .ff-suggest.active { display: block; }
+#foreign-flow .ff-suggest-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+#foreign-flow .ff-suggest-item:hover { background: #f2f2f2; }
+
+/* ---- 상태 메시지 ---- */
+#foreign-flow .ff-hint,
+#foreign-flow .ff-loading {
+  padding: 24px 12px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+#foreign-flow .ff-error {
+  padding: 18px 12px;
+  text-align: center;
+  color: #c0392b;
+  font-size: 14px;
+  background: #fdf3f2;
+  border: 1px solid #f0d5d2;
+  border-radius: 6px;
+}
+
+/* ---- 결과 헤더/배지 ---- */
+#foreign-flow .ff-header {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 4px 0 8px;
+}
+#foreign-flow .ff-code {
+  font-weight: 400;
+  color: #888;
+  font-size: 14px;
+}
+#foreign-flow .ff-asof {
+  font-weight: 400;
+  color: #999;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+#foreign-flow .ff-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  min-height: 4px;
+}
+#foreign-flow .ff-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+#foreign-flow .ff-badge-buy { background: #fdeceb; color: #d24f45; border: 1px solid #f2c3bf; }
+#foreign-flow .ff-badge-sell { background: #e9f1fb; color: #1261c4; border: 1px solid #bdd6f2; }
+#foreign-flow .ff-badge-shift { background: #fff5e0; color: #b0761a; border: 1px solid #f0dcae; }
+#foreign-flow .ff-signal-note { font-size: 12px; color: #999; }
+
+/* ---- 롤링 합산 표 (첫째 열 bold, 박스 테두리 - 블로그 표 양식) ---- */
+#foreign-flow .ff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 18px;
+  border: 1px solid #ccc;
+}
+#foreign-flow .ff-table th,
+#foreign-flow .ff-table td {
+  border: 1px solid #ccc;
+  padding: 8px 10px;
+  text-align: right;
+}
+#foreign-flow .ff-table th {
+  background: #f5f5f5;
+  text-align: center;
+  font-weight: 700;
+}
+#foreign-flow .ff-table .ff-td-label {
+  font-weight: 700;
+  text-align: center;
+  background: #fafafa;
+}
+#foreign-flow .ff-buy { color: #d24f45; }
+#foreign-flow .ff-sell { color: #1261c4; }
+#foreign-flow .ff-flat { color: #666; }
+
+/* ---- 차트 ---- */
+#foreign-flow .ff-chart-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 14px 0 6px;
+}
+#foreign-flow .ff-chart {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 8px 8px 4px;
+  margin-bottom: 8px;
+  background: #fff;
+}
+#foreign-flow .ff-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+#foreign-flow .ff-grid { stroke: #eee; stroke-width: 1; }
+#foreign-flow .ff-zero { stroke: #bbb; stroke-width: 1; stroke-dasharray: 4 3; }
+#foreign-flow .ff-axis { fill: #999; font-size: 11px; }
+#foreign-flow .ff-line-foreign { fill: none; stroke: #e8590c; stroke-width: 2.4; stroke-linejoin: round; }
+#foreign-flow .ff-line-inst { fill: none; stroke: #5f3dc4; stroke-width: 2.4; stroke-linejoin: round; }
+#foreign-flow .ff-line-ratio { fill: none; stroke: #0ca678; stroke-width: 2.4; stroke-linejoin: round; }
+
+#foreign-flow .ff-legend {
+  display: flex;
+  gap: 14px;
+  padding: 4px 6px 6px;
+  font-size: 12px;
+  color: #666;
+}
+#foreign-flow .ff-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+#foreign-flow .ff-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+#foreign-flow .ff-dot-foreign { background: #e8590c; }
+#foreign-flow .ff-dot-inst { background: #5f3dc4; }
+#foreign-flow .ff-dot-ratio { background: #0ca678; }
+
+#foreign-flow .ff-footnote {
+  font-size: 12px;
+  color: #999;
+  margin-top: 10px;
+}
+
+/* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
+html.dark #foreign-flow { color: #ddd !important; }
+html.dark #foreign-flow .ff-input {
+  background: #2a2a2a !important;
+  border-color: #555 !important;
+  color: #eee !important;
+}
+html.dark #foreign-flow .ff-search-btn { background: #555 !important; color: #eee !important; }
+html.dark #foreign-flow .ff-suggest {
+  background: #2a2a2a !important;
+  border-color: #555 !important;
+}
+html.dark #foreign-flow .ff-suggest-item { color: #ddd !important; }
+html.dark #foreign-flow .ff-suggest-item:hover { background: #3a3a3a !important; }
+html.dark #foreign-flow .ff-hint,
+html.dark #foreign-flow .ff-loading { color: #999 !important; }
+html.dark #foreign-flow .ff-error {
+  background: #3a2523 !important;
+  border-color: #5c3835 !important;
+  color: #e8877e !important;
+}
+html.dark #foreign-flow .ff-header { color: #eee !important; }
+html.dark #foreign-flow .ff-table,
+html.dark #foreign-flow .ff-table th,
+html.dark #foreign-flow .ff-table td { border-color: #555 !important; }
+html.dark #foreign-flow .ff-table th { background: #333 !important; color: #ddd !important; }
+html.dark #foreign-flow .ff-table .ff-td-label { background: #2e2e2e !important; color: #ddd !important; }
+html.dark #foreign-flow .ff-buy { color: #e8776d !important; }
+html.dark #foreign-flow .ff-sell { color: #6ea8e8 !important; }
+html.dark #foreign-flow .ff-flat { color: #aaa !important; }
+html.dark #foreign-flow .ff-badge-buy { background: #3a2523 !important; border-color: #5c3835 !important; color: #e8776d !important; }
+html.dark #foreign-flow .ff-badge-sell { background: #20304a !important; border-color: #33507a !important; color: #6ea8e8 !important; }
+html.dark #foreign-flow .ff-badge-shift { background: #3a3220 !important; border-color: #5c5035 !important; color: #d9a94a !important; }
+html.dark #foreign-flow .ff-chart {
+  background: #222 !important;
+  border-color: #444 !important;
+}
+html.dark #foreign-flow .ff-grid { stroke: #3a3a3a; }
+html.dark #foreign-flow .ff-zero { stroke: #666; }
+html.dark #foreign-flow .ff-axis { fill: #888; }
+html.dark #foreign-flow .ff-legend { color: #aaa !important; }
+html.dark #foreign-flow .ff-footnote { color: #888 !important; }

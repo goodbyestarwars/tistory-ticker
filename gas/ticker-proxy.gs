@@ -34,6 +34,10 @@ function doGet(e) {
     return jsonResponse(getMarketcapBubble());
   }
 
+  if (params.action === 'foreignFlow') {
+    return jsonResponse(getForeignFlow((params.code || '').trim()));
+  }
+
   var raw = (params.codes || '').trim();
 
   if (!raw) {
@@ -488,6 +492,174 @@ function fetchStockNews(code) {
     });
   });
   return items;
+}
+
+// ---------------------------------------------------------------------------
+// 종목별 외국인·기관 수급 조회 (?action=foreignFlow&code=005930)
+// finance.naver.com/item/frgn.naver 일자별 테이블(EUC-KR)을 요청 시점에 크롤링.
+// 한 페이지 = 20영업일이라 2페이지(40영업일)를 취합해 20일 합산 + 차트용 여유를 확보.
+// 작업 지시서(2026-07-10) 스펙: 캐시 없음(온디맨드) - 클라이언트가 5분 메모리 캐시로 디바운스.
+// ---------------------------------------------------------------------------
+
+var FRGN_URL = 'https://finance.naver.com/item/frgn.naver';
+var FRGN_PAGES = 2; // 20행/페이지 x 2 = 40영업일
+
+function getForeignFlow(code) {
+  // 삼성에피스홀딩스(0126Z0) 같은 특수코드도 6자리 영숫자라 허용
+  if (!/^[0-9A-Z]{6}$/i.test(code)) {
+    return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
+  }
+
+  var name = '';
+  var daily = [];
+  var seen = {};
+
+  for (var page = 1; page <= FRGN_PAGES; page++) {
+    var html;
+    try {
+      var res = UrlFetchApp.fetch(FRGN_URL + '?code=' + code + '&page=' + page, {
+        muteHttpExceptions: true,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      if (res.getResponseCode() !== 200) continue;
+      // 페이지 인코딩이 EUC-KR이라 반드시 명시해야 한글이 안 깨진다
+      html = res.getContentText('EUC-KR');
+    } catch (err) {
+      continue; // 이 페이지만 스킵 - 1페이지라도 성공하면 결과를 낸다
+    }
+
+    if (!name) name = parseFrgnName(html);
+    parseFrgnRows(html).forEach(function (row) {
+      if (!seen[row.date]) { seen[row.date] = true; daily.push(row); }
+    });
+  }
+
+  if (!daily.length) {
+    return {
+      error: 'PARSE_FAILED',
+      message: '네이버 수급 데이터를 가져오지 못했습니다. (페이지 구조 변경 또는 일시 오류)'
+    };
+  }
+
+  daily.sort(function (a, b) { return a.date < b.date ? 1 : -1; }); // 최신일 우선
+
+  var rolling = {
+    today: { foreign: daily[0].foreign_net, inst: daily[0].inst_net },
+    '5d': { foreign: frgnRollingSum(daily, 'foreign_net', 5), inst: frgnRollingSum(daily, 'inst_net', 5) },
+    '10d': { foreign: frgnRollingSum(daily, 'foreign_net', 10), inst: frgnRollingSum(daily, 'inst_net', 10) },
+    '20d': { foreign: frgnRollingSum(daily, 'foreign_net', 20), inst: frgnRollingSum(daily, 'inst_net', 20) }
+  };
+
+  // 금액 환산: 순매매량(주) x 해당일 종가의 합산 근사치 - 정확한 대금 아님(화면에 "추정치" 명시)
+  var amountEstimate = {
+    today_krw: frgnAmountSum(daily, 1),
+    '5d_krw': frgnAmountSum(daily, 5),
+    '10d_krw': frgnAmountSum(daily, 10),
+    '20d_krw': frgnAmountSum(daily, 20)
+  };
+
+  return {
+    code: code.toUpperCase(),
+    name: name,
+    as_of: daily[0].date,
+    daily: daily,
+    rolling: rolling,
+    amount_estimate: amountEstimate,
+    streak: frgnStreak(daily),
+    signal: frgnSignal(rolling)
+  };
+}
+
+function parseFrgnName(html) {
+  // <div class="wrap_company"> <h2><a ...>삼성전자</a></h2>
+  var m = html.match(/wrap_company"[\s\S]{0,300}?<a[^>]*>\s*([^<]+?)\s*<\/a>/);
+  return m ? m[1] : '';
+}
+
+// 일자별 테이블 행 파싱. 각 데이터 행은 <tr onMouseOver="mouseOver(this)"...>로 시작하고,
+// 값들은 순서대로 <span class="tah ...">에 담겨 있다:
+// [0]날짜 [1]종가 [2]전일비 [3]등락률 [4]거래량 [5]기관순매매 [6]외국인순매매 [7]외국인보유주수 [8]보유율
+function parseFrgnRows(html) {
+  var out = [];
+  var chunks = html.split(/<tr onMouseOver/i).slice(1);
+
+  chunks.forEach(function (chunk) {
+    chunk = chunk.split('</tr>')[0];
+
+    var vals = [];
+    var re = /<span class="tah[^"]*">\s*([^<]*?)\s*<\/span>/g;
+    var m;
+    while ((m = re.exec(chunk)) !== null) vals.push(m[1]);
+    if (vals.length < 9) return;
+
+    var dateM = vals[0].match(/^(\d{4})\.(\d{2})\.(\d{2})$/);
+    if (!dateM) return;
+
+    out.push({
+      date: dateM[1] + '-' + dateM[2] + '-' + dateM[3],
+      close: frgnNum(vals[1]),
+      change_pct: frgnNum(vals[3]),
+      volume: frgnNum(vals[4]),
+      inst_net: frgnNum(vals[5]),
+      foreign_net: frgnNum(vals[6]),
+      foreign_shares: frgnNum(vals[7]),
+      foreign_ratio: frgnNum(vals[8])
+    });
+  });
+
+  return out;
+}
+
+// "+1,107,761" / "-6.25%" / "29,703,616" -> 숫자 (콤마/+/% 제거, 음수 부호 유지)
+function frgnNum(s) {
+  var n = parseFloat(String(s == null ? '' : s).replace(/[+,%\s]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function frgnRollingSum(daily, field, n) {
+  var s = 0;
+  var len = Math.min(n, daily.length);
+  for (var i = 0; i < len; i++) s += daily[i][field];
+  return s;
+}
+
+function frgnAmountSum(daily, n) {
+  var s = 0;
+  var len = Math.min(n, daily.length);
+  for (var i = 0; i < len; i++) s += daily[i].foreign_net * daily[i].close;
+  return s;
+}
+
+// 연속 순매수/순매도 일수: 최신일부터 역순으로 방향이 바뀌기 전까지 카운트
+function frgnStreak(daily) {
+  var first = daily[0].foreign_net;
+  var dir = first > 0 ? 1 : first < 0 ? -1 : 0;
+  var days = 0;
+  if (dir !== 0) {
+    for (var i = 0; i < daily.length; i++) {
+      var v = daily[i].foreign_net;
+      var d = v > 0 ? 1 : v < 0 ? -1 : 0;
+      if (d !== dir) break;
+      days++;
+    }
+  }
+  return {
+    foreign_days: days,
+    foreign_direction: dir > 0 ? 'buy' : dir < 0 ? 'sell' : 'flat'
+  };
+}
+
+// 추세 전환 신호: 20일 합산과 5일 합산의 부호가 다르면 true
+function frgnSignal(rolling) {
+  var f5 = rolling['5d'].foreign;
+  var f20 = rolling['20d'].foreign;
+  var shift = (f5 > 0 && f20 < 0) || (f5 < 0 && f20 > 0);
+  return {
+    trend_shift: shift,
+    note: shift
+      ? '20일 합산 ' + (f20 > 0 ? '플러스' : '마이너스') + ', 5일 합산 ' + (f5 > 0 ? '플러스' : '마이너스') + ' 전환'
+      : ''
+  };
 }
 
 function isMarketOpenNow() {

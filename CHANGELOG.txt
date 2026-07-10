@@ -1,0 +1,72 @@
+==========================================================
+tistory-ticker 수정 내역
+==========================================================
+
+[2026-07-07] 섹터 대시보드 개편 + GitHub Pages 배포 전환
+
+1. 섹터 데이터 전면 교체 (data/sectors-v3.js 신규)
+   - 섹터분류_취합본.xlsx "섹터분류_리스트" 시트 기준 36개 섹터로 재구성
+   - 종목 항목을 문자열에서 { name, code, market } 객체로 변경
+     (market: "KOSPI" | "KOSDAQ") — krx_map.js 없이 동작
+   - 종목코드는 KRX KIND 상장사 목록과 대조하여 246개 항목 전부 확정
+   - 한 종목의 여러 섹터 중복 포함은 의도된 동작 (중복 제거 금지)
+   - 사용자 요청 추가: 신재생/원자력에 두산에너빌리티(034020),
+     한전기술(052690), 우진(105840), 우리기술(032820)
+   - 주의: HD현대인프라코어(042670)는 합병 상장폐지로 시세 안 나옴
+   - 검수표: data/sectors-v3-검수표.md
+
+2. 대시보드 렌더러 v4 (js/sector-dashboard-v4.js 신규)
+   - 종목명 옆 시장 구분 뱃지 추가: KOSPI=파란 "P", KOSDAQ=주황 "Q"
+   - 뱃지 CSS는 JS가 <style> 주입 (css 파일 수정 불필요, 다크모드 포함)
+   - v2 형식(종목명 문자열 배열 + KRX_MAP) 하위 호환 유지
+
+3. 초기 로딩 속도 개선 (js/sector-dashboard-v4.js)
+   - 시세 배치 25 -> 60개: 요청 10회 -> 4회, 브라우저 동시연결
+     한도(6) 안에서 1라운드 완료 (~5초 -> ~2.5초)
+   - AI 시황분석을 초기 렌더에서 분리: 시세 도착 즉시 카드 표시,
+     AI 박스는 도착하는 대로 상단에 삽입
+
+4. 배포 체계 전환: 티스토리 파일업로드 -> GitHub Pages
+   - 저장소: https://github.com/goodbyestarwars/tistory-ticker
+   - 서빙 URL: https://goodbyestarwars.github.io/tistory-ticker/...
+   - master push 후 1~10분 내 블로그 자동 반영 (파일명 버저닝 불필요)
+   - skin.html의 참조 5개(ticker-tooltip css/js, market-ribbon css/js,
+     krx_map.js)를 GitHub URL로 교체
+   - 오늘의 증시 / 종목뉴스 페이지 본문 태그도 GitHub URL로 교체
+   - skin.html, style.css, dist/는 저장소 제외 (티스토리 편집기로 배포)
+   - CLAUDE.md 추가: 웹/모바일 Claude Code 세션용 작업 규칙
+
+트러블슈팅 기록:
+   - 오늘의 증시 페이지 스타일 깨짐: 본문 교체 시 CSS <link> 유실이
+     원인 — 페이지 블록은 link + div + script 전체를 함께 관리할 것
+   - 종목뉴스 안 나옴: 본문 교체 시 <div id="stock-news"> 컨테이너
+     유실이 원인 — 동일 주의
+==========================================================
+
+[2026-07-10] 종목별 외국인·기관 수급 조회 위젯 신규 (작업 지시서 기준)
+
+1. GAS 프록시 신규 엔드포인트 (gas/ticker-proxy.gs)
+   - GET ?action=foreignFlow&code=005930
+   - finance.naver.com/item/frgn.naver 일자별 테이블 크롤링 (EUC-KR 명시)
+   - 2페이지(40영업일) 취합 -> daily / rolling(당일·5·10·20일) /
+     amount_estimate(순매매량x당일종가 추정) / streak(연속일수) /
+     signal(20일-5일 부호 전환) JSON 응답
+   - 크롤링 실패 시 { error, message } 반환 (프론트가 메시지 표시)
+   - 서버 캐시 없음(온디맨드) — 반드시 script.google.com에서 수동 재배포 필요
+
+2. 프론트엔드 위젯 (js/foreign-flow.js, css/foreign-flow.css 신규)
+   - 컨테이너: <div id="foreign-flow"></div> (krx_map.js가 먼저 로드돼야 함)
+   - 종목 자동완성: 기존 KRX_MAP 재사용 (stock-news와 동일 패턴)
+   - 롤링 합산 표(첫째열 bold/박스 테두리) + 순매매량 라인차트(외국인/기관)
+     + 외국인 보유율 미니차트 + 연속 순매수/순매도·추세전환 배지
+   - 추정대금 옆 "추정치" 명시 문구 표시
+   - 클라이언트 5분 메모리 캐시 + 진행중 요청 재사용(연타 디바운스)
+   - 상승/순매수 빨강 #d24f45, 하락/순매도 파랑 #1261c4, 다크모드 오버라이드 포함
+   - 차트는 vanilla SVG (버블차트와 스택 통일, 외부 라이브러리 없음)
+
+3. 로컬 프리뷰: test/foreign-flow.html (기본 mock, ?real=1이면 실제 GAS 호출)
+
+검증 기록:
+   - 실제 삼성전자 frgn 페이지 2장으로 파서 검증: 종목명/부호/콤마/보유율
+     정상, 40영업일 취합·5/10/20일 합산 수동 계산과 일치 확인
+   - 잘못된 코드 입력 시 INVALID_CODE 에러 응답 확인
