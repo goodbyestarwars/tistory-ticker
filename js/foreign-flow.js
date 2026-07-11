@@ -29,9 +29,14 @@
   var PAD = { l: 68, r: 16, t: 16, b: 30 };
 
   var FCHART_H = 360;
-  // r을 넓게 잡아 지지/저항 가격표를 캔들과 겹치지 않는 전용 여백에 그린다
-  var FCHART_PAD = { l: 68, r: 54, t: 16, b: 30 };
   var MA_COLORS = { ma5: '#e8590c', ma20: '#0ca678', ma60: '#5f3dc4', ma224: '#868e96' };
+
+  // TradingView Lightweight Charts(오픈소스, CDN 지연 로드) - 가격 캔들차트 렌더링 엔진.
+  // 손으로 그리던 SVG 캔들차트를 대체 - 확대/축소·패닝·크로스헤어를 라이브러리가 제공.
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var lwcLoadPromise = null;
+  var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
+  var lwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
 
   var cacheByCode = {};   // code -> { t, data }
   var inflightByCode = {}; // code -> Promise
@@ -162,6 +167,7 @@
 
   function search(container, query) {
     var resultBox = container.querySelector('#ffResult');
+    destroyLwChart(); // 이전 검색의 차트 인스턴스/리스너 정리(리렌더 전에 먼저 끊는다)
     var resolved = resolveStock(query);
     if (!resolved) {
       resultBox.innerHTML = '<div class="ff-error">'
@@ -283,6 +289,9 @@
     html += '<div class="ff-footnote">※ 추정대금은 순매매량 × 당일 종가로 계산한 <b>추정치</b>이며 실제 거래대금과 다를 수 있습니다. 자료: 네이버 금융</div>';
 
     box.innerHTML = html;
+
+    var lwContainer = box.querySelector('#ffLwChart');
+    if (lwContainer) renderLwChart(lwContainer, chartData);
 
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
@@ -643,11 +652,23 @@
     if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 2) {
       body = '<div class="ff-error">' + escapeHtml((chartData && chartData.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
     } else {
-      body = buildCandleSvg(chartData) + buildTechBreakdown(techScore);
+      body = '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
+        + buildLwLegend() + buildTechBreakdown(techScore);
     }
     return '<div class="ff-extra-card ff-flow-chart-card">'
       + '<div class="ff-extra-card-title">📉 가격 차트 · 지지/저항 · 이동평균</div>'
       + body
+      + '</div>';
+  }
+
+  function buildLwLegend() {
+    return '<div class="ff-legend">'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma5 + '"></i>5일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma20 + '"></i>20일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma60 + '"></i>60일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma224 + '"></i>224일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
       + '</div>';
   }
 
@@ -666,103 +687,105 @@
       + '</div>';
   }
 
-  function buildCandleSvg(data) {
-    var daily = data.daily;
-    var n = daily.length;
-    if (n < 2) return '';
+  // CDN에서 라이브러리를 1회만 지연 로드(이미 로드돼 있으면 즉시 resolve)
+  function loadLightweightCharts() {
+    if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
+    if (lwcLoadPromise) return lwcLoadPromise;
+    lwcLoadPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = LWC_CDN;
+      s.onload = function () { resolve(global.LightweightCharts); };
+      s.onerror = function () { lwcLoadPromise = null; reject(new Error('차트 라이브러리 로드 실패')); };
+      document.head.appendChild(s);
+    });
+    return lwcLoadPromise;
+  }
 
-    // 캔들을 키우려고 슬롯 폭을 넉넉히 잡는다(10 -> 16) - 캔들 수가 많으면 차트가 넓어지는 대신
-    // .ff-chart-candle이 overflow-x:auto라 가로 스크롤로 본다
-    var chartW = Math.max(CHART_W, n * 16);
-
-    var levels = data.levels || {};
-    var levelVals = (levels.support || []).concat(levels.resistance || []);
-    var lows = daily.map(function (d) { return d.low; }).concat(levelVals);
-    var highs = daily.map(function (d) { return d.high; }).concat(levelVals);
-    var min = Math.min.apply(null, lows);
-    var max = Math.max.apply(null, highs);
-    var span = (max - min) || 1;
-    min -= span * 0.06;
-    max += span * 0.06;
-
-    var iw = chartW - FCHART_PAD.l - FCHART_PAD.r;
-    var ih = FCHART_H - FCHART_PAD.t - FCHART_PAD.b;
-    var slot = iw / n;
-    function x(i) { return FCHART_PAD.l + slot * (i + 0.5); }
-    function y(v) { return FCHART_PAD.t + (1 - (v - min) / (max - min)) * ih; }
-
-    var svg = '<svg class="ff-svg" viewBox="0 0 ' + chartW + ' ' + FCHART_H + '" role="img" aria-label="가격 캔들차트" style="min-width:' + chartW + 'px">';
-
-    // y축 가격 그리드 5단계 - 지지/저항 가격표(오른쪽 전용 여백)와 겹치지 않게 먼저 그린다
-    var Y_TICKS = 5;
-    for (var t = 0; t < Y_TICKS; t++) {
-      var gv = min + (max - min) * (t / (Y_TICKS - 1));
-      var gy = y(gv);
-      svg += '<line class="ff-grid" x1="' + FCHART_PAD.l + '" x2="' + (chartW - FCHART_PAD.r) + '" y1="' + gy.toFixed(1) + '" y2="' + gy.toFixed(1) + '"/>';
-      svg += '<text class="ff-axis" x="' + (FCHART_PAD.l - 6) + '" y="' + (gy + 4).toFixed(1) + '" text-anchor="end">' + Math.round(gv).toLocaleString() + '</text>';
+  // 재검색/언마운트 시 이전 차트 인스턴스와 다크모드 감시자를 정리(리스너 누수 방지)
+  function destroyLwChart() {
+    if (lwcThemeObserver) { lwcThemeObserver.disconnect(); lwcThemeObserver = null; }
+    if (lwcChart) {
+      try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
+      lwcChart = null;
     }
-
-    (levels.support || []).forEach(function (v) {
-      svg += levelLine(v, 'ff-level-support', x, y, chartW);
-    });
-    (levels.resistance || []).forEach(function (v) {
-      svg += levelLine(v, 'ff-level-resistance', x, y, chartW);
-    });
-
-    daily.forEach(function (d, i) {
-      var up = d.close >= d.open;
-      var color = up ? '#d24f45' : '#1261c4';
-      var xC = x(i);
-      var bodyTop = y(Math.max(d.open, d.close));
-      var bodyBot = y(Math.min(d.open, d.close));
-      var bodyH = Math.max(1, bodyBot - bodyTop);
-      var bw = Math.max(3, slot * 0.68);
-      svg += '<line x1="' + xC.toFixed(1) + '" x2="' + xC.toFixed(1) + '" y1="' + y(d.high).toFixed(1) + '" y2="' + y(d.low).toFixed(1) + '" stroke="' + color + '" stroke-width="1.2"/>';
-      svg += '<rect x="' + (xC - bw / 2).toFixed(1) + '" y="' + bodyTop.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bodyH.toFixed(1) + '" fill="' + color + '"/>';
-    });
-
-    ['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key) {
-      svg += maLine(data.ma && data.ma[key], x, y, key);
-    });
-
-    [0, Math.floor((n - 1) / 2), n - 1].forEach(function (i, k) {
-      var anchor = k === 0 ? 'start' : (k === 2 ? 'end' : 'middle');
-      svg += '<text class="ff-axis" x="' + x(i).toFixed(1) + '" y="' + (FCHART_H - 8) + '" text-anchor="' + anchor + '">' + shortDate(daily[i].date) + '</text>';
-    });
-
-    svg += '</svg>';
-
-    var legend = '<div class="ff-legend">'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma5 + '"></i>5일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma20 + '"></i>20일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma60 + '"></i>60일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma224 + '"></i>224일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
-      + '</div>';
-
-    return '<div class="ff-chart ff-chart-candle">' + svg + '</div>' + legend;
   }
 
-  // 지지/저항 가격표는 오른쪽 전용 여백(FCHART_PAD.r)에 박스로 그려서 캔들과 절대 안 겹치게 한다
-  function levelLine(v, cls, x, y, chartW) {
-    var yy = y(v);
-    var tagX = chartW - FCHART_PAD.r + 4;
-    var w = FCHART_PAD.r - 8;
-    return '<line class="' + cls + '" x1="' + FCHART_PAD.l + '" x2="' + (chartW - FCHART_PAD.r) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '"/>'
-      + '<rect class="' + cls + '-bg" x="' + tagX.toFixed(1) + '" y="' + (yy - 7).toFixed(1) + '" width="' + w.toFixed(1) + '" height="14" rx="3"/>'
-      + '<text class="' + cls + '-label" x="' + (tagX + w / 2).toFixed(1) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="middle">' + Math.round(v).toLocaleString() + '</text>';
+  // 9bolt 스킨의 html.dark 토글은 새로고침 없이 클래스만 바뀌므로, 캔버스 기반 차트도
+  // 같이 갱신되게 색상을 여기 한 곳에서 계산한다(MutationObserver로 재적용).
+  function lwcThemeOptions(LWC) {
+    var dark = document.documentElement.classList.contains('dark');
+    return {
+      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555' },
+      grid: {
+        vertLines: { color: dark ? '#3a3a3a' : '#eee' },
+        horzLines: { color: dark ? '#3a3a3a' : '#eee' }
+      },
+      rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
+      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' }
+    };
   }
 
-  function maLine(series, x, y, key) {
-    if (!series || !series.length) return '';
-    var pts = [];
-    series.forEach(function (v, i) {
-      if (v == null) return;
-      pts.push(x(i).toFixed(1) + ',' + y(v).toFixed(1));
+  // 실제 트레이딩뷰 엔진(TradingView Lightweight Charts)으로 캔들/이평선/지지저항을 렌더링.
+  // GAS ?action=flowChart 응답(daily 오름차순 + ma5/20/60/224 + levels)을 그대로 먹인다.
+  function renderLwChart(container, chartData) {
+    destroyLwChart();
+    loadLightweightCharts().then(function (LWC) {
+      if (!document.body.contains(container)) return; // 로딩 중 다른 종목 재검색되면 중단
+
+      var chart = LWC.createChart(container, mergeOptions({
+        autoSize: true,
+        height: FCHART_H,
+        crosshair: { mode: LWC.CrosshairMode.Normal },
+        timeScale: { timeVisible: false, secondsVisible: false }
+      }, lwcThemeOptions(LWC)));
+      lwcChart = chart;
+
+      var daily = chartData.daily;
+      var candleSeries = chart.addCandlestickSeries({
+        upColor: '#d24f45', downColor: '#1261c4',
+        borderUpColor: '#d24f45', borderDownColor: '#1261c4',
+        wickUpColor: '#d24f45', wickDownColor: '#1261c4'
+      });
+      candleSeries.setData(daily.map(function (d) {
+        return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
+      }));
+
+      var levels = chartData.levels || {};
+      (levels.support || []).forEach(function (v) {
+        candleSeries.createPriceLine({ price: v, color: '#1261c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '지지' });
+      });
+      (levels.resistance || []).forEach(function (v) {
+        candleSeries.createPriceLine({ price: v, color: '#d24f45', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '저항' });
+      });
+
+      ['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key) {
+        var series = (chartData.ma && chartData.ma[key]) || [];
+        if (!series.length) return;
+        var lineSeries = chart.addLineSeries({ color: MA_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        var pts = [];
+        daily.forEach(function (d, i) {
+          if (series[i] == null) return;
+          pts.push({ time: d.date, value: series[i] });
+        });
+        lineSeries.setData(pts);
+      });
+
+      chart.timeScale().fitContent();
+
+      lwcThemeObserver = new MutationObserver(function () {
+        chart.applyOptions(lwcThemeOptions(LWC));
+      });
+      lwcThemeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    }).catch(function () {
+      container.innerHTML = '<div class="ff-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });
-    if (pts.length < 2) return '';
-    return '<polyline class="ff-line-' + key + '" points="' + pts.join(' ') + '" fill="none" stroke="' + MA_COLORS[key] + '" stroke-width="1.6" stroke-linejoin="round"/>';
+  }
+
+  function mergeOptions(a, b) {
+    var out = {};
+    for (var k in a) out[k] = a[k];
+    for (var k2 in b) out[k2] = b[k2];
+    return out;
   }
 
   function fmtAbsShares(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '주'; }
