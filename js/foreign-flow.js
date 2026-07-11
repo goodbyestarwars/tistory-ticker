@@ -31,6 +31,31 @@
   var cacheByCode = {};   // code -> { t, data }
   var inflightByCode = {}; // code -> Promise
 
+  // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/차트패턴 + AI 한줄요약) ----
+  var PATTERN_CACHE_MS = 10 * 60 * 1000; // 서버가 하루 1회만 갱신하므로 넉넉하게
+  var patternScanCache = null;   // { t, data }
+  var patternScanInflight = null;
+
+  var PATTERN_LABELS = {
+    risingLows: '저점상승형',
+    doubleBottom: '쌍바닥',
+    invHeadShoulders: '역헤드앤숄더',
+    boxRangeLow: '박스권 하단',
+    goldPitReversal: '골파기 반전',
+    pullback: '눌림목'
+  };
+  var PATTERN_FOLLOWUP = {
+    risingLows: '5일선 돌파 여부가 중요합니다.',
+    doubleBottom: '넥라인 돌파 여부를 확인해야 합니다.',
+    invHeadShoulders: '넥라인 상향 돌파 시 신호가 강화됩니다.',
+    boxRangeLow: '박스 하단 지지 여부가 중요합니다.',
+    goldPitReversal: '거래량을 동반한 반등 여부를 확인해야 합니다.',
+    pullback: '5일선 재돌파 여부가 중요합니다.'
+  };
+  var PENSION_TONE_SCORE = {
+    very_positive: 90, positive: 75, neutral_positive: 60, neutral: 50, caution: 25
+  };
+
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
@@ -155,19 +180,42 @@
 
     resultBox.innerHTML = '<div class="ff-loading">' + escapeHtml(resolved.name) + ' 수급 데이터를 불러오는 중...</div>';
 
-    ForeignFlow.fetchFlow(resolved.code)
-      .then(function (data) {
+    Promise.all([ForeignFlow.fetchFlow(resolved.code), fetchPatternScan()])
+      .then(function (results) {
+        var data = results[0];
+        var patternData = results[1];
         if (!data || data.error || !data.daily || !data.daily.length) {
           resultBox.innerHTML = '<div class="ff-error">'
             + escapeHtml((data && data.message) || '수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
             + '</div>';
           return;
         }
-        renderResult(resultBox, data);
+        renderResult(resultBox, data, patternData);
       })
       .catch(function () {
         resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
+  }
+
+  // 차트패턴 스캔 결과(?patternScan=1) - 6개 패턴 전체가 한 응답에 들어있어 종목 단위가
+  // 아니라 위젯 세션 단위로 캐싱한다(서버가 하루 1회만 갱신하므로 부담 없음).
+  function fetchPatternScan() {
+    if (patternScanCache && Date.now() - patternScanCache.t < PATTERN_CACHE_MS) {
+      return Promise.resolve(patternScanCache.data);
+    }
+    if (patternScanInflight) return patternScanInflight;
+
+    patternScanInflight = fetchJson(GAS_TICKER_URL + '?patternScan=1')
+      .then(function (data) {
+        patternScanInflight = null;
+        patternScanCache = { t: Date.now(), data: data };
+        return data;
+      })
+      .catch(function () {
+        patternScanInflight = null;
+        return null; // 패턴 스캔 실패는 요약 박스에서 '데이터 없음'으로 처리 - 나머지 위젯은 살린다
+      });
+    return patternScanInflight;
   }
 
   // 같은 종목 5분 캐시 + 진행 중 요청 재사용(연타 디바운스)
@@ -212,8 +260,13 @@
 
   // ---- 렌더링 ----
 
-  function renderResult(box, data) {
-    var html = '<div class="ff-header">' + escapeHtml(data.name || data.code)
+  function renderResult(box, data, patternData) {
+    var entry = (global.INVESTOR_FLOW_CACHE || {})[data.code] || null;
+    var patternMatch = findPatternMatch(patternData, data.code);
+
+    var html = buildSummaryBox(data, entry, patternMatch);
+
+    html += '<div class="ff-header">' + escapeHtml(data.name || data.code)
       + ' <span class="ff-code">(' + escapeHtml(data.code) + ')</span>'
       + ' <span class="ff-asof">' + escapeHtml(data.as_of) + ' 기준</span></div>';
 
@@ -230,6 +283,147 @@
 
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
+    loadAiSummary(box, data, entry, patternMatch);
+  }
+
+  // ---- 종합 점수 요약 박스 (수급/공매도/연기금/차트패턴 + AI 한줄요약) ----
+
+  function findPatternMatch(patternData, code) {
+    if (!patternData || !patternData.patterns) return null;
+    var best = null;
+    Object.keys(PATTERN_LABELS).forEach(function (key) {
+      var items = patternData.patterns[key] || [];
+      items.forEach(function (it) {
+        if (it.code !== code) return;
+        if (!best || (it.score || 0) > best.score) {
+          best = { key: key, label: PATTERN_LABELS[key], score: it.score || 0 };
+        }
+      });
+    });
+    return best;
+  }
+
+  // 외국인/기관 5일·20일 순매매 방향(4개) 각 ±12.5점, 기준 50점 -> 0~100점.
+  function computeFlowScore(data) {
+    var r = data.rolling || {};
+    var f5 = r['5d'] ? r['5d'].foreign : 0;
+    var f20 = r['20d'] ? r['20d'].foreign : 0;
+    var i5 = r['5d'] ? r['5d'].inst : 0;
+    var i20 = r['20d'] ? r['20d'].inst : 0;
+    function sgn(v) { return v > 0 ? 1 : v < 0 ? -1 : 0; }
+    var score = 50 + 12.5 * (sgn(f5) + sgn(f20) + sgn(i5) + sgn(i20));
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  // 연기금 톤(very_positive~caution) 기준점수 + 연속매매일수 가중치 -> 0~100점.
+  function computePensionScore(p) {
+    if (!p || !p.interpretation) return null;
+    var base = PENSION_TONE_SCORE[p.interpretation.tone];
+    if (base == null) return null;
+    var streak = p.streak || { days: 0, direction: 'flat' };
+    var days = Math.min(streak.days || 0, 15);
+    var adj = streak.direction === 'buy' ? days * 0.7 : streak.direction === 'sell' ? -days * 0.7 : 0;
+    return Math.max(0, Math.min(100, Math.round(base + adj)));
+  }
+
+  function flowInterpText(data) {
+    var r = data.rolling || {};
+    var f5 = r['5d'] ? r['5d'].foreign : 0;
+    var i5 = r['5d'] ? r['5d'].inst : 0;
+    if (f5 > 0 && i5 > 0) return '외국인과 기관이 동반 순매수하며 수급이 양호합니다.';
+    if (f5 > 0 && i5 < 0) return '외국인 매수가 우세하지만 기관 매도세가 이어지고 있습니다.';
+    if (f5 < 0 && i5 > 0) return '기관 매수가 우세하지만 외국인 매도세가 이어지고 있습니다.';
+    if (f5 < 0 && i5 < 0) return '외국인과 기관이 동반 순매도하며 수급이 약화되고 있습니다.';
+    return '외국인·기관 수급 방향이 뚜렷하지 않습니다.';
+  }
+
+  function shortInterpText(s) {
+    if (!s || !s.pressure) return '공매도 데이터가 없는 종목입니다.';
+    var label = s.pressure.grade.label;
+    if (label === '매우 강함' || label === '강함') return '공매도 압박이 강한 구간으로 단기 변동성 확대에 유의해야 합니다.';
+    if (label === '보통') return '공매도 압박이 보통 수준으로 특별한 경계가 필요하지 않습니다.';
+    return '공매도 압박이 약한 구간으로 매도 물량 부담이 크지 않습니다.';
+  }
+
+  function patternInterpText(match) {
+    if (!match) return '현재 뚜렷하게 감지된 차트 패턴이 없습니다.';
+    return match.label + '이 진행 중이며 ' + (PATTERN_FOLLOWUP[match.key] || '');
+  }
+
+  function buildSummaryBox(data, entry, patternMatch) {
+    var flowScore = computeFlowScore(data);
+
+    var shortP = entry && entry.short && entry.short.pressure;
+    var shortScore = shortP ? shortP.score : null;
+    var shortEmoji = shortP ? shortP.grade.emoji : '⚪';
+
+    var pension = entry && entry.pension;
+    var pensionScore = pension ? computePensionScore(pension) : null;
+    var pStreak = pension && pension.streak;
+    var pensionEmoji = pStreak ? (pStreak.direction === 'buy' ? '🟢' : pStreak.direction === 'sell' ? '🔴' : '⚪') : '⚪';
+
+    var patternScore = patternMatch ? patternMatch.score : null;
+
+    var rows = [
+      { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: '외국인·기관 순매매 방향·강도 종합' },
+      { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: '거래비중·잔고증가·동반매도 종합' },
+      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: '연속매매일수·구간별 순매수 종합' },
+      { icon: '📈', label: '차트패턴', score: patternScore, desc: '6종 패턴 조건 충족도(70점 이상만 반영)' }
+    ];
+
+    var rowsHtml = rows.map(function (r, i) {
+      return '<div class="ff-summary-row' + (i === rows.length - 1 ? ' ff-summary-row-last' : '') + '">'
+        + '<span class="ff-summary-icon">' + r.icon + '</span>'
+        + '<span class="ff-summary-label">' + r.label + '</span>'
+        + '<span class="ff-summary-score">' + (r.score == null ? '-' : r.score + '점') + '</span>'
+        + '<span class="ff-summary-desc">' + r.desc + '</span>'
+        + '</div>';
+    }).join('');
+
+    var interpRows = [
+      ['🧭', '수급', flowInterpText(data)],
+      [shortEmoji, '공매도', shortInterpText(entry && entry.short)],
+      [pensionEmoji, '연기금', pension ? pension.interpretation.text : '연기금 데이터가 없는 종목입니다.'],
+      ['📈', '차트', patternInterpText(patternMatch)]
+    ].map(function (r) {
+      return '<div class="ff-summary-interp-row">' + r[0] + ' ' + r[1] + ': "' + escapeHtml(r[2]) + '"</div>';
+    }).join('');
+
+    return '<div class="ff-summary">'
+      + rowsHtml
+      + '<div class="ff-summary-ai" id="ffAiSummary"><b>AI(GROQ) 한 줄 요약</b> · <span class="ff-summary-ai-text">생성 중...</span></div>'
+      + '</div>'
+      + '<div class="ff-summary-interp">' + interpRows + '</div>';
+  }
+
+  // AI 한줄요약은 Groq 호출이라 느릴 수 있어 나머지 렌더링을 막지 않고 비동기로 채운다.
+  function loadAiSummary(box, data, entry, patternMatch) {
+    var el = box.querySelector('#ffAiSummary .ff-summary-ai-text');
+    if (!el) return;
+
+    var shortP = entry && entry.short && entry.short.pressure;
+    var pension = entry && entry.pension;
+    var pensionScore = pension ? computePensionScore(pension) : null;
+
+    var qs = '?action=flowAiSummary'
+      + '&code=' + encodeURIComponent(data.code)
+      + '&name=' + encodeURIComponent(data.name || data.code)
+      + '&flowScore=' + computeFlowScore(data)
+      + '&flowNote=' + encodeURIComponent(flowInterpText(data))
+      + '&shortScore=' + (shortP ? shortP.score : '')
+      + '&shortNote=' + encodeURIComponent(shortInterpText(entry && entry.short))
+      + '&pensionScore=' + (pensionScore == null ? '' : pensionScore)
+      + '&pensionNote=' + encodeURIComponent(pension ? pension.interpretation.text : '')
+      + '&patternScore=' + (patternMatch ? patternMatch.score : '')
+      + '&patternNote=' + encodeURIComponent(patternInterpText(patternMatch));
+
+    fetchJson(GAS_TICKER_URL + qs)
+      .then(function (res) {
+        el.textContent = (res && res.summary) || '요약을 생성하지 못했어요.';
+      })
+      .catch(function () {
+        el.textContent = '요약을 생성하지 못했어요.';
+      });
   }
 
   function buildBadges(data) {
@@ -307,8 +501,7 @@
     }
 
     var html = '<div class="ff-extra">';
-    html += buildShortCard(entry.short, entry.loan);
-    html += buildLoanCard(entry.loan);
+    html += buildShortLoanCard(entry.short, entry.loan);
     html += buildPensionCard(entry.pension, entry.name);
     html += '<div class="ff-extra-note">공매도 압박 점수는 항상 <b>가능성·추정치</b>이며, 공매도가 주가를 누른다고 단정하지 않습니다. '
       + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API · PC 로컬 수집(하루 1회 갱신)</div>';
@@ -321,40 +514,44 @@
       + '<div class="ff-extra-metric-value">' + valueHtml + '</div></div>';
   }
 
-  function buildShortCard(s, l) {
-    if (!s) return '';
-    var p = s.pressure || { score: 0, grade: { emoji: '', label: '-' }, breakdown: {} };
+  // 공매도 + 대차거래 병합 카드 (원래 두 카드였으나 서로 연관된 지표라 하나로 합침)
+  function buildShortLoanCard(s, l) {
+    if (!s && !l) return '';
+    var p = (s && s.pressure) || { score: 0, grade: { emoji: '', label: '-' }, breakdown: {} };
     var b = p.breakdown || {};
     var causes = [];
-    if (b.short_ratio > 0) causes.push('공매도 거래비중 ' + fmtPct(s.today_ratio_pct));
-    if (b.loan_increase > 0) causes.push('대차잔고 증가 ' + fmtSignedPct(l && l.balance_change_pct));
-    if (b.balance_increase > 0) causes.push('공매도 잔고 증가 ' + fmtSignedPct(s.balance_change_pct));
-    if (b.foreign_sell > 0) causes.push('외국인 순매도 동반');
-    if (b.inst_sell > 0) causes.push('기관 순매도 동반');
+    if (s) {
+      if (b.short_ratio > 0) causes.push('공매도 거래비중 ' + fmtPct(s.today_ratio_pct));
+      if (b.loan_increase > 0) causes.push('대차잔고 증가 ' + fmtSignedPct(l && l.balance_change_pct));
+      if (b.balance_increase > 0) causes.push('공매도 잔고 증가 ' + fmtSignedPct(s.balance_change_pct));
+      if (b.foreign_sell > 0) causes.push('외국인 순매도 동반');
+      if (b.inst_sell > 0) causes.push('기관 순매도 동반');
+    }
+
+    var grid = '';
+    if (s) {
+      grid += extraMetric('공매도 누적잔고', fmtAbsShares(s.balance_qty))
+        + extraMetric('공매도 평균가격(추정)', fmtWon(s.avg_price))
+        + extraMetric('당일 거래비중', fmtPct(s.today_ratio_pct))
+        + extraMetric('일평균 거래량(20일)', fmtAbsShares(s.avg_volume_20d))
+        + extraMetric('Days to Cover', s.days_to_cover == null ? '-' : s.days_to_cover.toFixed(2) + '일')
+        + extraMetric('숏 압박 지수', s.short_squeeze_index == null ? '-' : s.short_squeeze_index.toFixed(1));
+    }
+    if (l) {
+      grid += extraMetric('대차잔고', fmtAbsShares(l.balance_qty))
+        + extraMetric('대차잔고 증감률', '<span class="' + signClass(l.balance_change_pct) + '">' + fmtSignedPct(l.balance_change_pct) + '</span>');
+    }
 
     return '<div class="ff-extra-card">'
-      + '<div class="ff-extra-card-title">' + p.grade.emoji + ' 공매도 압박 <span class="ff-extra-score">' + p.score + '점</span>'
+      + '<div class="ff-extra-card-title">' + p.grade.emoji + ' 공매도·대차거래 <span class="ff-extra-score">' + p.score + '점</span>'
       + '<span class="ff-extra-grade">' + escapeHtml(p.grade.label) + '</span></div>'
-      + '<div class="ff-extra-grid">'
-      + extraMetric('공매도 누적잔고', fmtAbsShares(s.balance_qty))
-      + extraMetric('공매도 평균가격(추정)', fmtWon(s.avg_price))
-      + extraMetric('당일 거래비중', fmtPct(s.today_ratio_pct))
-      + extraMetric('일평균 거래량(20일)', fmtAbsShares(s.avg_volume_20d))
-      + extraMetric('Days to Cover', s.days_to_cover == null ? '-' : s.days_to_cover.toFixed(2) + '일')
-      + extraMetric('숏 압박 지수', s.short_squeeze_index == null ? '-' : s.short_squeeze_index.toFixed(1))
-      + '</div>'
+      + '<div class="ff-extra-grid">' + grid + '</div>'
       + (causes.length ? '<div class="ff-extra-causes">' + causes.map(function (c) { return '<span class="ff-extra-cause">✔ ' + escapeHtml(c) + '</span>'; }).join('') + '</div>' : '')
+      + '<div class="ff-extra-help">'
+      + '<b>Day to Cover</b>: 현재 공매도 잔고를 최근 20일 평균 거래량으로 전량 되갚는 데 걸리는 예상 거래일 수입니다. 값이 클수록 공매도 상환(숏커버링) 매수 물량이 시장에 소화되는 데 시간이 오래 걸립니다.<br>'
+      + '<b>숏 압박 지수</b>: (외국인+기관 당일 순매수) ÷ 당일 공매도 거래량 × 100. 값이 높을수록 공매도 물량 대비 외국인·기관의 순매수 유입이 강해 숏커버링이 겹칠 경우 단기 반등(숏스퀴즈) 압력이 커질 수 있습니다.'
+      + '</div>'
       + '</div>';
-  }
-
-  function buildLoanCard(l) {
-    if (!l) return '';
-    return '<div class="ff-extra-card">'
-      + '<div class="ff-extra-card-title">대차거래</div>'
-      + '<div class="ff-extra-grid">'
-      + extraMetric('대차잔고', fmtAbsShares(l.balance_qty))
-      + extraMetric('대차잔고 증감률', '<span class="' + signClass(l.balance_change_pct) + '">' + fmtSignedPct(l.balance_change_pct) + '</span>')
-      + '</div></div>';
   }
 
   function buildPensionCard(p, name) {

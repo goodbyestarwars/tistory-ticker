@@ -50,6 +50,10 @@ function doGet(e) {
     return jsonResponse(getPensionFund((params.code || '').trim()));
   }
 
+  if (params.action === 'flowAiSummary') {
+    return jsonResponse(getFlowAiSummary(params));
+  }
+
   if (params.debugShortNaver === '1') {
     return jsonResponse(debugShortTradeNaver((params.code || '').trim()));
   }
@@ -479,6 +483,41 @@ function callGroq(prompt) {
   }
 
   return null; // 재시도까지 다 429면 포기(짧은 캐시 TTL 덕에 곧 다시 시도됨)
+}
+
+// ---------------------------------------------------------------------------
+// 종목 수급 요약판 AI 한 줄평 (?action=flowAiSummary)
+// 수급/공매도/연기금/차트패턴 4개 점수는 이미 js/foreign-flow.js가 계산해서(각각
+// getForeignFlow 응답, data/investor-flow-cache.js, ?patternScan=1 결과를 재료로) 쿼리
+// 파라미터로 넘겨준다 - GAS가 점수 산출 로직을 중복 구현하지 않고 프롬프트 재료로만 쓴다.
+// 같은 종목 반복 조회 시 Groq 재호출을 막기 위해 코드+당일 날짜로 캐싱.
+// ---------------------------------------------------------------------------
+var FLOW_AI_CACHE_TTL = 3 * 3600; // 3시간
+var FLOW_AI_FAIL_TTL = 120;       // 2분
+
+function getFlowAiSummary(params) {
+  var code = (params.code || '').trim();
+  if (!/^[0-9A-Za-z]{6}$/.test(code)) return { summary: null };
+
+  var cache = CacheService.getScriptCache();
+  var todayKey = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
+  var cacheKey = CACHE_PREFIX + 'flow_ai_' + code + '_' + todayKey;
+  var cached = cache.get(cacheKey);
+  if (cached) return { summary: cached };
+
+  var name = (params.name || code).trim();
+  var lines = [
+    '수급(외국인·기관) 점수 ' + (params.flowScore || '-') + '점 - ' + (params.flowNote || '데이터 없음'),
+    '공매도 압박 점수 ' + (params.shortScore || '-') + '점 - ' + (params.shortNote || '데이터 없음'),
+    '연기금 점수 ' + (params.pensionScore || '-') + '점 - ' + (params.pensionNote || '데이터 없음'),
+    '차트 패턴 점수 ' + (params.patternScore || '-') + '점 - ' + (params.patternNote || '데이터 없음')
+  ];
+  var prompt = '"' + name + '" 종목의 오늘 4가지 수급/기술 지표야:\n' + lines.join('\n') +
+    '\n\n이 지표들을 종합해서 매수·매도 관점에서 투자자가 참고할 만한 의견을 한국어 한 문장으로 요약해줘. 문장 외 다른 말은 붙이지 마.';
+
+  var summary = safeCall(function () { return callGroq(prompt); });
+  cache.put(cacheKey, summary || '', summary ? FLOW_AI_CACHE_TTL : FLOW_AI_FAIL_TTL);
+  return { summary: summary };
 }
 
 // 오늘의 증시 온도 페이지용 코스피/코스닥 AI 시황 분석.

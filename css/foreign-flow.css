@@ -81,6 +81,45 @@
   border-radius: 6px;
 }
 
+/* ---- 종합 점수 요약 박스 (수급/공매도/연기금/차트패턴 + AI 한줄요약) ---- */
+#foreign-flow .ff-summary {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+#foreign-flow .ff-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+  font-size: 13.5px;
+}
+#foreign-flow .ff-summary-row-last { border-bottom: none; }
+#foreign-flow .ff-summary-icon { font-size: 15px; }
+#foreign-flow .ff-summary-label { font-weight: 700; min-width: 84px; }
+#foreign-flow .ff-summary-score { font-weight: 700; color: #333; min-width: 42px; }
+#foreign-flow .ff-summary-desc { color: #999; font-size: 11.5px; margin-left: auto; text-align: right; }
+#foreign-flow .ff-summary-ai {
+  padding: 10px 14px;
+  background: #f7f7f8;
+  font-size: 13px;
+  border-top: 1px solid #eee;
+}
+#foreign-flow .ff-summary-ai b { margin-right: 4px; }
+#foreign-flow .ff-summary-ai-text { color: #444; }
+#foreign-flow .ff-summary-interp {
+  margin: 8px 0 16px;
+  padding: 10px 14px;
+  background: #fafafa;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #555;
+  line-height: 1.9;
+}
+
 /* ---- 결과 헤더/배지 ---- */
 #foreign-flow .ff-header {
   font-size: 17px;
@@ -217,10 +256,21 @@
 #foreign-flow .ff-extra-tone-neutral_positive { border-left-color: #e0a300; background: #fdf8ec; }
 #foreign-flow .ff-extra-tone-caution { border-left-color: #1261c4; background: #eef4fc; }
 #foreign-flow .ff-extra-tone-neutral { border-left-color: #9aa0a6; background: #f5f5f6; }
+/* 중립~긍정 톤은 경계할 정도는 아니라 레이블을 덜 강조(bold 제거) */
+#foreign-flow .ff-extra-tone-neutral_positive .ff-extra-interp-label { font-weight: 400; }
 #foreign-flow .ff-extra-note {
   font-size: 11.5px;
   color: #999;
   margin-top: -4px;
+}
+#foreign-flow .ff-extra-help {
+  margin-top: 10px;
+  padding: 9px 11px;
+  background: #f7f7f8;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: #777;
+  line-height: 1.7;
 }
 
 /* ---- 차트 ---- */
@@ -332,6 +382,15 @@ html.dark #foreign-flow .ff-error {
   border-color: #5c3835 !important;
   color: #e8877e !important;
 }
+html.dark #foreign-flow .ff-summary { background: #262626 !important; border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-summary-row { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-summary-label { color: #eee !important; }
+html.dark #foreign-flow .ff-summary-score { color: #ddd !important; }
+html.dark #foreign-flow .ff-summary-desc { color: #999 !important; }
+html.dark #foreign-flow .ff-summary-ai { background: #1f1f1f !important; border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-summary-ai-text { color: #ccc !important; }
+html.dark #foreign-flow .ff-summary-interp { background: #1f1f1f !important; color: #bbb !important; }
+html.dark #foreign-flow .ff-extra-help { background: #1f1f1f !important; color: #999 !important; }
 html.dark #foreign-flow .ff-header { color: #eee !important; }
 html.dark #foreign-flow .ff-table,
 html.dark #foreign-flow .ff-table th,
