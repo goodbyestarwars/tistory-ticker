@@ -41,9 +41,9 @@
         streak: { days: 14, direction: 'buy' },
         net_5d: 42000000000,
         net_20d: 125400000000,
-        net_60d: 310000000000,
-        net_cumulative: 412000000000,
-        cumulative_window_days: 98,
+        net_60d: null,
+        net_cumulative: 165000000000,
+        cumulative_window_days: 38,
         avg_buy_price: 85400,
         current_price: 89100,
         return_pct: 4.33,
@@ -51,8 +51,10 @@
         interpretation: {
           tone: 'very_positive',
           label: '매우 긍정',
-          text: '연기금이 14일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다.'
-        }
+          text: '기관이 14일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다.'
+        },
+        is_institution_aggregate: true,
+        note: '연기금 단독 데이터는 무료로 구할 수 있는 곳이 없어(KRX 내부 API 차단, 정식 Open API에도 투자자별 매매동향 없음), 외국인을 제외한 "기관 합산" 순매매로 대체한 추정치입니다. 연기금만의 수치가 아닙니다.'
       });
     };
   }

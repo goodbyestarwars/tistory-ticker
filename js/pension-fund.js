@@ -193,7 +193,7 @@
     return ''
       + '<div class="pf-card">'
       + '<div class="pf-header">'
-      + '<div class="pf-title">' + escapeHtml(data.name || displayName) + ' 연기금 동향</div>'
+      + '<div class="pf-title">' + escapeHtml(data.name || displayName) + ' 기관 수급 동향<span class="pf-title-sub">(연기금 단독 아님, 기관 합산 추정치)</span></div>'
       + '<div class="pf-asof">' + escapeHtml(data.as_of || '') + ' 기준</div>'
       + '</div>'
       + '<div class="pf-streak-row">'
@@ -212,7 +212,7 @@
       + '<span class="pf-interp-label">' + escapeHtml((data.interpretation && data.interpretation.label) || '') + '</span>'
       + '<span class="pf-interp-text">' + escapeHtml((data.interpretation && data.interpretation.text) || '') + '</span>'
       + '</div>'
-      + '<div class="pf-note">평균 매수가는 순매수 거래대금 ÷ 순매수 거래량으로 추정한 값이라 실제 평단가와 다를 수 있습니다.</div>'
+      + '<div class="pf-note">' + escapeHtml(data.note || '') + '</div>'
       + '</div>';
   }
 

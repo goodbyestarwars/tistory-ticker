@@ -50,8 +50,8 @@ function doGet(e) {
     return jsonResponse(getPensionFund((params.code || '').trim()));
   }
 
-  if (params.debugKrx === '1') {
-    return jsonResponse(debugKrxFetch((params.code || '').trim()));
+  if (params.debugShortNaver === '1') {
+    return jsonResponse(debugShortTradeNaver((params.code || '').trim()));
   }
 
   if (params.rankNews === '1') {
@@ -970,158 +970,88 @@ function frgnSignal(daily, rolling, kind) {
 
 // ---------------------------------------------------------------------------
 // 공매도 압박 (?action=shortPressure&code=005930)
-// 네이버는 개별종목 대차잔고(증가율)를 제공하지 않아(SEIBro/KRX 전용 데이터), 이
-// 위젯만 KRX 정보데이터시스템(data.krx.co.kr)의 공개 통계 API를 직접 크롤링한다.
-// - bld/파라미터는 오픈소스 pykrx 라이브러리 소스(sharebook-kr/pykrx, 2026-07-11 확인)로
-//   검증: 로그인 없이 POST getJsonData.cmd로 열람 가능한 공개 엔드포인트.
-// - "개별종목 공매도 종합정보"(MDCSTAT30001) 한 번의 호출로 그날의 공매도거래량/거래대금/
-//   잔고수량/잔고금액을 전부 받는다(잔고 전용 리포트 MDCSTAT30502는 상장주식수/시총/잔고비율까지
-//   주지만 이 페이지엔 굳이 필요 없어 호출을 하나로 줄임).
-// - 총 거래량(공매도 거래비중 분모)은 기존 getForeignFlow(frgn.naver)의 daily.volume을 재사용 -
-//   외국인/기관 순매도(압박 점수)도 같은 호출로 같이 얻어 KRX 호출을 최소화한다.
-// - 대차잔고는 KRX 공개 API에도 없어(pykrx 소스에도 관련 기능 없음, 2026-07-11 확인)
-//   지시서의 압박 점수 100점 배분(거래비중30/대차잔고증가율30/잔고증가20/외국인10/기관10)에서
-//   대차잔고 항목을 제외하고 재분배: 거래비중40 / 잔고증가30 / 외국인순매도15 / 기관순매도15.
-// - "공매도가 주가를 누른다"고 단정하지 않고 항상 가능성/추정/압박도로 표현(지시서 원칙).
+// 2026-07-11: KRX 내부 크롤링 경로(data.krx.co.kr/comm/bldAttendant/getJsonData.cmd)를
+// 시도했으나 실배포에서 세션 워밍업 후에도 "LOGOUT"(400)으로 거부됨 - KRX가 그 사이
+// 로그인 기반 정식 Open API(openapi.krx.co.kr, 인증키 발급+서비스별 신청 필요) 체제로
+// 전환하면서 예전 크롤링 경로를 막은 것으로 보이고, 그 정식 API에는 공매도 데이터
+// 자체가 없다(카테고리: 지수/주식/증권상품/채권/파생상품/일반상품/ESG뿐). 그래서 네이버
+// 금융의 "공매도현황" 탭(finance.naver.com/item/short_trade.naver)으로 대체.
+// frgn.naver(외국인·기관 수급)와 같은 사이트·같은 시기 페이지라 테이블 템플릿
+// (<tr onMouseOver>/<span class="tah">)이 같을 가능성이 높아 그 파싱 패턴을 그대로
+// 재사용했지만, 이 개발 환경은 naver.com에 직접 접근이 안 돼(WebFetch 차단) 실제
+// 컬럼 순서를 눈으로 확인하지 못했다 - ?debugShortNaver=1&code=005930으로 원본 행
+// (raw 배열)을 먼저 확인하고 parseShortTradeRows_의 컬럼 인덱스를 맞출 것.
+// 대차잔고는 네이버도 개별종목 단위로 공개하지 않아 여전히 제외, 압박 점수는 거래비중40 /
+// 잔고증가30 / 외국인순매도15 / 기관순매도15로 재분배(computeShortPressureScore_).
+// "공매도가 주가를 누른다"고 단정하지 않고 항상 가능성/추정/압박도로 표현(지시서 원칙).
 // ---------------------------------------------------------------------------
 
-var KRX_JSON_URL = 'https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd';
-var KRX_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
-// 세션(JSESSIONID) 없이 getJsonData.cmd를 바로 POST하면 KRX가 "LOGOUT"(400)으로 거부한다
-// (2026-07-11 debugKrx로 실배포에서 직접 확인). 로그인은 필요 없고, 실제 로그인 없이
-// 페이지 2곳을 GET으로 미리 방문해 세션만 발급받으면 통과된다 - pykrx의
-// warmup_krx_session(로그인 X, 세션 워밍업만 O)과 동일한 절차.
-var KRX_LOGIN_PAGE = 'https://data.krx.co.kr/contents/MDC/COMS/client/MDCCOMS001.cmd';
-var KRX_LOGIN_JSP = 'https://data.krx.co.kr/contents/MDC/COMS/client/view/login.jsp?site=mdc';
-var KRX_SESSION_CACHE_TTL = 1500; // 25분 - JSESSIONID 만료(보통 60분) 전에 여유있게 갱신
-var KRX_ISIN_CACHE_TTL = 21600; // 6시간 - 상장종목 목록은 장중에도 거의 안 바뀜
+var SHORT_TRADE_URL = 'https://finance.naver.com/item/short_trade.naver';
+var SHORT_TRADE_PAGES = 2; // 20행/페이지 x 2 ≈ 40영업일(20일 평균거래량 계산 여유)
 
-var KRX_LAST_DEBUG = null; // 직전 fetchKrxJson_ 호출의 진단 정보(상태코드/본문 앞부분) - ?debugKrx=1 용
-
-// UrlFetchApp 응답의 Set-Cookie 헤더(문자열 1개 또는 배열)에서 "이름=값" 쌍만 뽑는다.
-function extractSetCookiePairs_(res) {
-  var headers = res.getAllHeaders();
-  var raw = headers['Set-Cookie'] || headers['set-cookie'];
-  if (!raw) return [];
-  var list = Array.isArray(raw) ? raw : [raw];
-  return list.map(function (c) { return c.split(';')[0]; }); // "JSESSIONID=xxx"
-}
-
-// 같은 이름의 쿠키가 여러 번 오면 나중 값(최신 Set-Cookie)이 이기도록 이름 기준으로 합친다.
-function mergeCookiePairs_(existingPairs, newPairs) {
-  var byName = {};
-  existingPairs.concat(newPairs).forEach(function (p) {
-    var name = p.split('=')[0];
-    byName[name] = p;
-  });
-  return Object.keys(byName).map(function (n) { return byName[n]; });
-}
-
-// 로그인 없이 세션 쿠키만 발급받는다(pykrx warmup_krx_session과 동일한 2단계 GET).
-// CacheService에 25분 캐싱 - 매 요청마다 워밍업하면 KRX 호출이 2배로 늘어남.
-function krxWarmupSession_() {
-  var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'krx_session_cookie';
-  var cached = cache.get(cacheKey);
-  if (cached) return cached;
-
-  var pairs = [];
-  var res1 = UrlFetchApp.fetch(KRX_LOGIN_PAGE, {
-    headers: { 'User-Agent': KRX_USER_AGENT },
-    muteHttpExceptions: true
-  });
-  pairs = mergeCookiePairs_(pairs, extractSetCookiePairs_(res1));
-
-  var res2 = UrlFetchApp.fetch(KRX_LOGIN_JSP, {
-    headers: {
-      'User-Agent': KRX_USER_AGENT,
-      'Referer': KRX_LOGIN_PAGE,
-      'Cookie': pairs.join('; ')
-    },
-    muteHttpExceptions: true
-  });
-  pairs = mergeCookiePairs_(pairs, extractSetCookiePairs_(res2));
-
-  var cookieHeader = pairs.join('; ');
-  cache.put(cacheKey, cookieHeader, KRX_SESSION_CACHE_TTL);
-  return cookieHeader;
-}
-
-function fetchKrxJson_(bld, params) {
-  var cookie = safeCall(krxWarmupSession_) || '';
-  var payload = { bld: bld };
-  for (var k in params) payload[k] = params[k];
-  var res = UrlFetchApp.fetch(KRX_JSON_URL, {
-    method: 'post',
-    payload: payload,
-    headers: {
-      'User-Agent': KRX_USER_AGENT,
-      'Referer': 'https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd',
-      'X-Requested-With': 'XMLHttpRequest',
-      'Cookie': cookie
-    },
-    muteHttpExceptions: true
-  });
-  var code = res.getResponseCode();
-  var text = res.getContentText('UTF-8');
-  KRX_LAST_DEBUG = { bld: bld, params: params, status: code, bodyHead: text.slice(0, 500), hadCookie: !!cookie };
-
-  if (code !== 200) return null;
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    return null;
+function fetchShortTradeRows_(code) {
+  var rows = [];
+  var seen = {};
+  for (var page = 1; page <= SHORT_TRADE_PAGES; page++) {
+    try {
+      var res = UrlFetchApp.fetch(SHORT_TRADE_URL + '?code=' + code + '&page=' + page, {
+        muteHttpExceptions: true,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      if (res.getResponseCode() !== 200) continue;
+      var html = res.getContentText('EUC-KR');
+      parseShortTradeRows_(html).forEach(function (row) {
+        if (!seen[row.date]) { seen[row.date] = true; rows.push(row); }
+      });
+    } catch (err) {
+      continue; // 이 페이지만 스킵
+    }
   }
+  rows.sort(function (a, b) { return a.date < b.date ? 1 : -1; }); // 최신일 우선
+  return rows;
 }
 
-// 임시 진단용(?debugKrx=1&code=005930): KRX 호출이 실제로 어떤 응답을 주는지 그대로 노출.
-// 원인 파악되면(예: 세션/쿠키 필요, bld 변경 등) 지우거나 관리자 전용으로 좁힐 것.
-function debugKrxFetch(code) {
-  var isin = krxIsinFor_(code || '005930');
-  var isinDebug = { resolvedIsin: isin };
+// 컬럼 순서는 frgn.naver와 같은 템플릿일 것으로 "추정"한 것 - 실제 미확인.
+// 추정 순서: [0]날짜 [1]종가 [2]전일비 [3]등락률 [4]거래량 [5]공매도량 [6]공매도대금
+// [7]공매도비중(%) [8]잔고수량 [9]잔고금액 [10]잔고비율(%) - raw에 전체를 같이 담아
+// ?debugShortNaver=1로 바로 검증/수정 가능하게 함.
+function parseShortTradeRows_(html) {
+  var out = [];
+  var chunks = html.split(/<tr onMouseOver/i).slice(1);
 
-  var end = new Date();
-  var start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
-  var strtDd = Utilities.formatDate(start, 'Asia/Seoul', 'yyyyMMdd');
-  var endDd = Utilities.formatDate(end, 'Asia/Seoul', 'yyyyMMdd');
+  chunks.forEach(function (chunk) {
+    chunk = chunk.split('</tr>')[0];
+    var vals = [];
+    var re = /<span class="tah[^"]*">\s*([^<]*?)\s*<\/span>/g;
+    var m;
+    while ((m = re.exec(chunk)) !== null) vals.push(m[1]);
+    if (vals.length < 6) return;
 
-  var out = { isin: isinDebug };
-  if (isin) {
-    fetchKrxJson_('dbms/MDC/STAT/srt/MDCSTAT30001', { isuCd: isin, strtDd: strtDd, endDd: endDd });
-    out.shortStatus = KRX_LAST_DEBUG;
-  }
+    var dateM = vals[0].match(/^(\d{4})\.(\d{2})\.(\d{2})$/);
+    if (!dateM) return;
+
+    out.push({
+      date: dateM[1] + '-' + dateM[2] + '-' + dateM[3],
+      close: frgnNum(vals[1]),
+      volume: frgnNum(vals[4]),
+      shortVolume: frgnNum(vals[5]),
+      shortValue: vals.length > 6 ? frgnNum(vals[6]) : 0,
+      shortRatioPct: vals.length > 7 ? frgnNum(vals[7]) : null,
+      balanceQty: vals.length > 8 ? frgnNum(vals[8]) : null,
+      balanceValue: vals.length > 9 ? frgnNum(vals[9]) : null,
+      balanceRatioPct: vals.length > 10 ? frgnNum(vals[10]) : null,
+      raw: vals
+    });
+  });
+
   return out;
 }
 
-// 6자리 종목코드 -> KRX ISIN(예: 005930 -> KR7005930003) 매핑을 KRX "종목 검색" API에서
-// 통째로 받아 캐싱. 종목코드로 직접 조회하는 공개 API가 없어(finder는 이름 검색용) 전체
-// 목록을 한 번에 받는 쪽이 안정적.
-function getKrxIsinMap_() {
-  var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'krx_isin_map';
-  var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
-
-  var body = fetchKrxJson_('dbms/comm/finder/finder_stkisu', { locale: 'ko_KR', mktsel: 'ALL', searchText: '', typeNo: 0 });
-  var rows = (body && body.block1) || [];
-  var map = {};
-  rows.forEach(function (r) {
-    if (r.short_code && r.full_code) map[r.short_code] = r.full_code;
-  });
-
-  cache.put(cacheKey, JSON.stringify(map), KRX_ISIN_CACHE_TTL);
-  return map;
-}
-
-function krxIsinFor_(code) {
-  var map = getKrxIsinMap_();
-  return map[code.toUpperCase()] || null;
-}
-
-// "5,489,240" -> 5489240 (콤마 제거, '-'(집계 전) 등 비숫자는 0 처리)
-function krxNum_(s) {
-  var n = parseFloat(String(s == null ? '' : s).replace(/,/g, ''));
-  return isNaN(n) ? 0 : n;
+// 임시 진단용(?debugShortNaver=1&code=005930): 파싱한 행 원본(raw 배열 포함)을 그대로 노출.
+// 실제 컬럼 순서 확인되면 parseShortTradeRows_의 인덱스 매핑을 맞추고 이 함수는 지울 것.
+function debugShortTradeNaver(code) {
+  var rows = fetchShortTradeRows_(code || '005930');
+  return { rowCount: rows.length, sample: rows.slice(0, 3) };
 }
 
 function getShortPressure(code) {
@@ -1129,59 +1059,31 @@ function getShortPressure(code) {
     return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
   }
 
-  var isin = krxIsinFor_(code);
-  if (!isin) {
-    return { error: 'ISIN_NOT_FOUND', message: 'KRX 상장 종목 목록에서 해당 종목을 찾지 못했습니다.' };
-  }
-
-  var end = new Date();
-  var start = new Date(end.getTime() - 60 * 24 * 60 * 60 * 1000); // 60일 전부터(영업일 20~30일 확보)
-  var strtDd = Utilities.formatDate(start, 'Asia/Seoul', 'yyyyMMdd');
-  var endDd = Utilities.formatDate(end, 'Asia/Seoul', 'yyyyMMdd');
-
-  var body = safeCall(function () {
-    return fetchKrxJson_('dbms/MDC/STAT/srt/MDCSTAT30001', { isuCd: isin, strtDd: strtDd, endDd: endDd });
-  });
-  var rows = (body && body.OutBlock_1) || [];
+  var rows = fetchShortTradeRows_(code);
   if (!rows.length) {
-    return { error: 'PARSE_FAILED', message: 'KRX 공매도 데이터를 가져오지 못했습니다.' };
+    return { error: 'PARSE_FAILED', message: '네이버 공매도 데이터를 가져오지 못했습니다.' };
   }
 
-  var daily = rows.map(function (r) {
-    return {
-      date: String(r.TRD_DD).replace(/\//g, '-'),
-      shortVolume: krxNum_(r.CVSRTSELL_TRDVOL),
-      balanceQty: krxNum_(r.STR_CONST_VAL1),
-      shortValue: krxNum_(r.CVSRTSELL_TRDVAL),
-      balanceValue: krxNum_(r.STR_CONST_VAL2)
-    };
-  }).sort(function (a, b) { return a.date < b.date ? 1 : -1; }); // 최신일 우선
+  var today = rows[0];
+  var prior = rows.length > 1 ? rows[1] : null;
+
+  var shortRatioPct = today.shortRatioPct != null
+    ? today.shortRatioPct
+    : (today.volume > 0 ? (today.shortVolume / today.volume) * 100 : 0);
+
+  var avgN = Math.min(20, rows.length);
+  var avgVolume = avgN ? rows.slice(0, avgN).reduce(function (s, r) { return s + r.volume; }, 0) / avgN : 0;
+
+  var balanceQty = today.balanceQty;
+  var daysToCover = (balanceQty != null && avgVolume > 0) ? balanceQty / avgVolume : null;
+  var avgShortPrice = (balanceQty && today.balanceValue) ? today.balanceValue / balanceQty : null;
+  var balanceChangePct = (prior && prior.balanceQty)
+    ? ((balanceQty - prior.balanceQty) / prior.balanceQty) * 100
+    : 0;
 
   var flow = safeCall(function () { return getForeignFlow(code); });
-  var flowDaily = (flow && !flow.error && flow.daily) ? flow.daily : [];
-  var flowByDate = {};
-  flowDaily.forEach(function (d) { flowByDate[d.date] = d; });
-
-  var today = daily[0];
-  var prior = daily.length > 1 ? daily[1] : null;
-  var todayFlow = flowByDate[today.date] || flowDaily[0] || null;
-
-  var totalVolumeToday = todayFlow ? todayFlow.volume : 0;
-  var shortRatioPct = totalVolumeToday > 0 ? (today.shortVolume / totalVolumeToday) * 100 : 0;
-
-  var avgN = Math.min(20, flowDaily.length);
-  var avgVolume = avgN
-    ? flowDaily.slice(0, avgN).reduce(function (s, d) { return s + d.volume; }, 0) / avgN
-    : 0;
-  var daysToCover = avgVolume > 0 ? today.balanceQty / avgVolume : null;
-
-  var avgShortPrice = today.balanceQty > 0 ? today.balanceValue / today.balanceQty : 0;
-  var balanceChangePct = prior && prior.balanceQty > 0
-    ? ((today.balanceQty - prior.balanceQty) / prior.balanceQty) * 100
-    : 0;
-
-  var foreignNetToday = todayFlow ? todayFlow.foreign_net : 0;
-  var instNetToday = todayFlow ? todayFlow.inst_net : 0;
+  var foreignNetToday = (flow && !flow.error && flow.daily && flow.daily[0]) ? flow.daily[0].foreign_net : 0;
+  var instNetToday = (flow && !flow.error && flow.daily && flow.daily[0]) ? flow.daily[0].inst_net : 0;
 
   var pressure = computeShortPressureScore_(shortRatioPct, balanceChangePct, foreignNetToday, instNetToday);
 
@@ -1194,13 +1096,13 @@ function getShortPressure(code) {
     name: (flow && flow.name) || '',
     as_of: today.date,
     balance: {
-      qty: today.balanceQty,
+      qty: balanceQty,
       avg_price: avgShortPrice,
       change_pct: balanceChangePct
     },
     today: {
       short_volume: today.shortVolume,
-      total_volume: totalVolumeToday,
+      total_volume: today.volume,
       short_ratio_pct: shortRatioPct
     },
     avg_volume_20d: avgVolume,
@@ -1209,7 +1111,7 @@ function getShortPressure(code) {
     inst_net_today: instNetToday,
     short_squeeze_index: shortSqueezeIndex,
     pressure: pressure,
-    note: '대차잔고는 KRX·네이버 모두 개별종목 단위로 공개하지 않아 이 지표에서는 제외했습니다. ' +
+    note: '대차잔고는 네이버·KRX 모두 개별종목 단위로 공개하지 않아 이 지표에서는 제외했습니다. ' +
       '공매도 압박은 항상 "가능성/추정"이며, 공매도가 주가를 누른다고 단정하지 않습니다.'
   };
 }
@@ -1244,15 +1146,16 @@ function shortPressureGrade_(score) {
 
 // ---------------------------------------------------------------------------
 // 연기금 분석 (?action=pensionFund&code=005930)
-// KRX "투자자별 거래실적(개별종목) 상세" API(MDCSTAT02303, inqTpCd=2&detailView=1)는 기관을
-// 금융투자/보험/투신/사모/은행/기타금융/연기금/기타법인/개인/외국인/기타외국인 11개로 쪼개서
-// 주는데, 그중 연기금(TRDVAL7)만 뽑아 쓴다 - "기관 합산"이 아니라 연기금 단독 수치.
-// (getShortPressure와 동일하게 pykrx 소스로 bld/파라미터 검증, 2026-07-11)
-// 거래량(trdVolVal=1)과 거래대금(trdVolVal=2) 두 번 호출해서
-// 평균매수가(추정) = 누적 순매수대금 ÷ 누적 순매수량으로 계산(가중평균 근사치).
-// 외국인 동반 여부·현재가는 기존 getForeignFlow/fetchFromNaver(네이버) 그대로 재사용.
-// 지시서의 해석 규칙(연속 순매수 일수 구간별 긍정/중립 판정)은 AI가 아니라 수치 조건으로
-// 그대로 코드화한다(6번 차트 패턴 스캔과 같은 원칙 - "AI는 임의로 판단하지 않는다").
+// 2026-07-11: 연기금 단독 매매 데이터를 주던 KRX 내부 API(MDCSTAT02303)가
+// 공매도와 같은 이유로 막혔고, KRX 정식 Open API에는 투자자별 매매동향 서비스 자체가
+// 없어(공매도와 동일 확인) 연기금만 따로 뽑을 수 있는 무료 소스가 없다. 네이버도
+// "외국인/기관" 2분류만 주고 기관을 연기금/금융투자/보험 등으로 더 쪼개주지 않는다.
+// 그래서 이 페이지는 기존 getForeignFlow(frgn.naver)의 기관(외국인 제외 전체) 순매매를
+// "연기금 단독"이 아니라 "기관 합산 추정치"로 명확히 라벨링해서 대체 표시한다
+// (연기금은 기관 안에 포함된 하위 항목이라 방향성 참고는 되지만 수치가 완전히 다름).
+// 평균매수가(추정) = Σ(기관 순매수 거래량 x 종가) ÷ Σ(기관 순매수 거래량) - frgn.naver가
+// 거래대금을 안 줘서 종가로 근사. 지시서의 해석 규칙(연속 순매수 구간별 긍정/중립 판정)은
+// AI가 아니라 수치 조건으로 그대로 코드화한다("AI는 임의로 판단하지 않는다" 원칙).
 // ---------------------------------------------------------------------------
 
 function getPensionFund(code) {
@@ -1260,120 +1163,74 @@ function getPensionFund(code) {
     return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
   }
 
-  var isin = krxIsinFor_(code);
-  if (!isin) {
-    return { error: 'ISIN_NOT_FOUND', message: 'KRX 상장 종목 목록에서 해당 종목을 찾지 못했습니다.' };
+  var flow = safeCall(function () { return getForeignFlow(code); });
+  if (!flow || flow.error) {
+    return { error: 'PARSE_FAILED', message: '네이버 수급 데이터를 가져오지 못했습니다.' };
   }
 
-  var end = new Date();
-  var start = new Date(end.getTime() - 150 * 24 * 60 * 60 * 1000); // 150일 전부터(영업일 90~100일 확보)
-  var strtDd = Utilities.formatDate(start, 'Asia/Seoul', 'yyyyMMdd');
-  var endDd = Utilities.formatDate(end, 'Asia/Seoul', 'yyyyMMdd');
+  var daily = flow.daily; // 최신일 우선, frgn.naver 2페이지 ≈ 40영업일
+  var streak = flow.streak.inst; // {days, direction} - frgnStreak가 이미 계산해둔 것 재사용
 
-  var volBody = safeCall(function () {
-    return fetchKrxJson_('dbms/MDC/STAT/standard/MDCSTAT02303', {
-      strtDd: strtDd, endDd: endDd, isuCd: isin, inqTpCd: 2, trdVolVal: 1, askBid: 3, detailView: 1
-    });
-  });
-  var valBody = safeCall(function () {
-    return fetchKrxJson_('dbms/MDC/STAT/standard/MDCSTAT02303', {
-      strtDd: strtDd, endDd: endDd, isuCd: isin, inqTpCd: 2, trdVolVal: 2, askBid: 3, detailView: 1
-    });
-  });
-
-  var volRows = (volBody && volBody.output) || [];
-  var valRows = (valBody && valBody.output) || [];
-  if (!volRows.length || !valRows.length) {
-    return { error: 'PARSE_FAILED', message: 'KRX 투자자별 거래실적을 가져오지 못했습니다.' };
-  }
-
-  var valByDate = {};
-  valRows.forEach(function (r) { valByDate[String(r.TRD_DD)] = krxNum_(r.TRDVAL7); });
-
-  var daily = volRows.map(function (r) {
-    var d = String(r.TRD_DD);
-    return {
-      date: d.replace(/\//g, '-'),
-      netVolume: krxNum_(r.TRDVAL7), // 연기금 순매수 거래량(주)
-      netValue: valByDate.hasOwnProperty(d) ? valByDate[d] : 0 // 연기금 순매수 거래대금(원)
-    };
-  }).sort(function (a, b) { return a.date < b.date ? 1 : -1; }); // 최신일 우선
-
-  function sumN(field, n) {
+  function sumInstValue(n) {
     var s = 0, len = Math.min(n, daily.length);
-    for (var i = 0; i < len; i++) s += daily[i][field];
+    for (var i = 0; i < len; i++) s += daily[i].inst_net * daily[i].close;
+    return s;
+  }
+  function sumInstVolume(n) {
+    var s = 0, len = Math.min(n, daily.length);
+    for (var i = 0; i < len; i++) s += daily[i].inst_net;
     return s;
   }
 
-  var streak = pensionStreak_(daily);
-  var cum5 = sumN('netValue', 5);
-  var cum20 = sumN('netValue', 20);
-  var cum60 = sumN('netValue', 60);
-  var cumAllValue = sumN('netValue', daily.length);
-  var cumAllVolume = sumN('netVolume', daily.length);
-  var avgBuyPrice = cumAllVolume > 0 ? cumAllValue / cumAllVolume : null;
+  var net5 = sumInstValue(5);
+  var net20 = sumInstValue(20);
+  var netAllValue = sumInstValue(daily.length);
+  var netAllVolume = sumInstVolume(daily.length);
+  var avgBuyPrice = netAllVolume > 0 ? netAllValue / netAllVolume : null;
 
-  var quote = safeCall(function () {
-    var list = fetchFromNaver([code]);
-    return list && list[0];
-  });
-  var currentPrice = quote ? quote.price : null;
+  var currentPrice = daily.length ? daily[0].close : null;
   var returnPct = (avgBuyPrice && currentPrice)
     ? ((currentPrice - avgBuyPrice) / avgBuyPrice) * 100
     : null;
 
-  var flow = safeCall(function () { return getForeignFlow(code); });
-  var foreignNet5d = (flow && !flow.error && flow.rolling) ? flow.rolling['5d'].foreign : 0;
+  var foreignNet5d = flow.rolling['5d'].foreign;
 
   return {
     code: code.toUpperCase(),
-    name: (quote && quote.name) || (flow && flow.name) || '',
-    as_of: daily[0].date,
+    name: flow.name || '',
+    as_of: daily.length ? daily[0].date : null,
     streak: streak,
-    net_5d: cum5,
-    net_20d: cum20,
-    net_60d: cum60,
-    net_cumulative: cumAllValue,
+    net_5d: net5,
+    net_20d: net20,
+    net_60d: null, // frgn.naver 조회 기간(~40영업일)이 60일보다 짧아 생략(프론트는 '-' 표시)
+    net_cumulative: netAllValue,
     cumulative_window_days: daily.length,
     avg_buy_price: avgBuyPrice,
     current_price: currentPrice,
     return_pct: returnPct,
     foreign_net_5d: foreignNet5d,
-    interpretation: pensionInterpretation_(streak, foreignNet5d)
+    interpretation: pensionInterpretation_(streak, foreignNet5d),
+    is_institution_aggregate: true,
+    note: '연기금 단독 데이터는 무료로 구할 수 있는 곳이 없어(KRX 내부 API 차단, 정식 Open API에도 ' +
+      '투자자별 매매동향 없음), 외국인을 제외한 "기관 합산" 순매매로 대체한 추정치입니다. 연기금만의 수치가 아닙니다.'
   };
 }
 
-// 연속 순매수/순매도 영업일수: 최신일부터 역순으로 방향이 바뀌기 전까지 카운트(frgnStreak와 동일 패턴).
-function pensionStreak_(daily) {
-  var first = daily[0].netValue;
-  var dir = first > 0 ? 1 : first < 0 ? -1 : 0;
-  var days = 0;
-  if (dir !== 0) {
-    for (var i = 0; i < daily.length; i++) {
-      var v = daily[i].netValue;
-      var d = v > 0 ? 1 : v < 0 ? -1 : 0;
-      if (d !== dir) break;
-      days++;
-    }
-  }
-  return { days: days, direction: dir > 0 ? 'buy' : dir < 0 ? 'sell' : 'flat' };
-}
-
-// 지시서 해석표를 그대로 수치 조건화: 연기금 5일+연속순매수=긍정(외국인 동반이면 매우긍정),
-// 연기금만 순매수(5일 미만)=중립~긍정, 연기금 5일+연속순매도=비중축소 가능성, 그 외=중립.
+// 지시서 해석표를 그대로 수치 조건화: (기관) 5일+연속순매수=긍정(외국인 동반이면 매우긍정),
+// 순매수 중이나 5일 미만=중립~긍정, 5일+연속순매도=비중축소 가능성, 그 외=중립.
 function pensionInterpretation_(streak, foreignNet5d) {
   if (streak.direction === 'buy' && streak.days >= 5) {
     return foreignNet5d > 0
-      ? { tone: 'very_positive', label: '매우 긍정', text: '연기금이 ' + streak.days + '일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다.' }
-      : { tone: 'positive', label: '긍정', text: '연기금이 ' + streak.days + '일 연속 순매수 중입니다.' };
+      ? { tone: 'very_positive', label: '매우 긍정', text: '기관이 ' + streak.days + '일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다.' }
+      : { tone: 'positive', label: '긍정', text: '기관이 ' + streak.days + '일 연속 순매수 중입니다.' };
   }
   if (streak.direction === 'buy') {
-    return { tone: 'neutral_positive', label: '중립~긍정', text: '연기금이 순매수 중이나 연속성은 아직 짧습니다(' + streak.days + '일).' };
+    return { tone: 'neutral_positive', label: '중립~긍정', text: '기관이 순매수 중이나 연속성은 아직 짧습니다(' + streak.days + '일).' };
   }
   if (streak.direction === 'sell' && streak.days >= 5) {
-    return { tone: 'caution', label: '비중 축소 가능성', text: '연기금이 ' + streak.days + '일 연속 순매도 중입니다.' };
+    return { tone: 'caution', label: '비중 축소 가능성', text: '기관이 ' + streak.days + '일 연속 순매도 중입니다.' };
   }
-  return { tone: 'neutral', label: '중립', text: '연기금 매매 방향성이 뚜렷하지 않습니다.' };
+  return { tone: 'neutral', label: '중립', text: '기관 매매 방향성이 뚜렷하지 않습니다.' };
 }
 
 // ---------------------------------------------------------------------------

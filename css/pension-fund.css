@@ -97,6 +97,7 @@
   margin-bottom: 10px;
 }
 #pension-fund .pf-title { font-size: 16px; font-weight: 700; }
+#pension-fund .pf-title-sub { font-size: 12px; font-weight: 500; color: #999; margin-left: 6px; }
 #pension-fund .pf-asof { font-size: 12px; color: #999; white-space: nowrap; }
 
 #pension-fund .pf-streak-row {
@@ -162,6 +163,7 @@ html.dark #pension-fund .pf-card {
   border-color: #3a3a3a !important;
 }
 html.dark #pension-fund .pf-asof { color: #888 !important; }
+html.dark #pension-fund .pf-title-sub { color: #888 !important; }
 html.dark #pension-fund .pf-metrics { background: #1f1f1f !important; }
 html.dark #pension-fund .pf-metric-label { color: #999 !important; }
 html.dark #pension-fund .pf-up { color: #ff6b5b !important; }

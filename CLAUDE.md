@@ -18,8 +18,8 @@
 | `js/pattern-scan.js`, `css/pattern-scan.css` | 차트 패턴 스캔 위젯(저점상승형/쌍바닥/역헤드앤숄더/박스권하단/골파기반전/눌림목 6종) - 캔들차트 + 패턴선 오버레이. 모든 패턴은 0~100점 채점(70점 이상만 노출, AI 임의판단 없이 수치조건), 점수+원인+한줄해석을 함께 표시. 리스트는 GAS `?patternScan=1`(하루 1회 시간 트리거로 미리 스캔·캐싱, 골파기/눌림목은 MA60 필요해 별도 트리거로 분리), 클릭 시 차트는 `?patternChart=1&code=&pattern=`으로 온디맨드 재크롤링. 스캔 대상은 `data/sectors-v3.js`를 GAS가 fetch해서 재사용(별도 종목 리스트 하드코딩 없음) |
 | `js/watchlist.js`, `css/watchlist.css` | 관심종목 카드 위젯. localStorage(최대 50개, 종목명 자동완성으로 추가) - 신규 GAS 엔드포인트 없이 기존 `?codes=` 시세 API 재사용 |
 | `js/market-temp.js`, `css/market-temp.css` | 오늘의 증시온도(VIX25+수급30+상승비율25+거래대금20=100점). VIX는 Yahoo Finance(`query1.finance.yahoo.com`, 네이버엔 없음), 수급은 KODEX200(069500) 대리지표, 상승비율/거래대금은 섹터 종목풀 재사용. GAS `?marketTemp=1` |
-| `js/short-pressure.js`, `css/short-pressure.css` | 공매도 압박 위젯(100점, 대차잔고는 네이버·KRX 모두 개별종목 단위 미제공이라 제외하고 재분배: 거래비중40/잔고증가30/외국인15/기관15). 데이터 소스는 KRX 정보데이터시스템(`data.krx.co.kr`, 공개 API — 종목코드→ISIN 매핑 캐싱 필요). GAS `?action=shortPressure&code=` 온디맨드 |
-| `js/pension-fund.js`, `css/pension-fund.css` | 연기금 분석 위젯. KRX "투자자별 거래실적 상세"(11개 투자자 구분 중 연기금만 추출 — 기관 합산 아님)로 연속순매수일수/구간별 순매수/평균매수가(추정)/수익률 표시. GAS `?action=pensionFund&code=` 온디맨드 |
+| `js/short-pressure.js`, `css/short-pressure.css` | 공매도 압박 위젯(100점, 대차잔고는 네이버·KRX 모두 개별종목 단위 미제공이라 제외하고 재분배: 거래비중40/잔고증가30/외국인15/기관15). 데이터 소스는 네이버 금융 `finance.naver.com/item/short_trade.naver`(2026-07-11: KRX가 크롤링 경로를 막고 정식 Open API로 전환했는데 그 API에는 공매도 서비스 자체가 없어 대체). 컬럼 순서는 frgn.naver와 같은 템플릿으로 추정만 한 상태 — `?debugShortNaver=1&code=`로 검증 필요. GAS `?action=shortPressure&code=` 온디맨드 |
+| `js/pension-fund.js`, `css/pension-fund.css` | "연기금 분석" 위젯이지만 실제로는 **기관 합산 추정치**(연기금 단독 아님, `is_institution_aggregate: true`) — KRX가 연기금 단독 데이터를 주던 내부 API를 막았고 정식 Open API에도 투자자별 매매동향 서비스가 없어 무료 소스가 없음(2026-07-11). 기존 `getForeignFlow`(네이버)의 기관 순매매를 재사용해 연속순매수일수/구간별 순매수/평균매수가(추정)/수익률 표시. GAS `?action=pensionFund&code=` 온디맨드 |
 | `test/*.html` | 로컬 프리뷰(python -m http.server로 열기). 위젯마다 기본은 mock 데이터, `?real=1`이면 실제 GAS 호출 |
 | `data/sectors-v3-검수표.md` | 종목코드 매핑 검수표 — 섹터 데이터 수정 시 같이 갱신 |
 
@@ -40,4 +40,4 @@
 - 상승=빨강(#d24f45), 하락=파랑(#1261c4). 스킨 다크모드는 `html.dark` 클래스 — 본문에 들어가는 새 UI는 `html.dark #컨테이너ID ... !important` 오버라이드 필수(스킨의 블랑켓 규칙이 글자색을 흰색으로 덮어씀).
 - 시세 조회 GAS URL: `https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec?codes=005930,000660` 형태.
 - `.json` 업로드 제약 때문에 데이터는 전부 `window.XXX = {...}` 형태의 `.js`로 만든다.
-- KRX 정보데이터시스템(`data.krx.co.kr/comm/bldAttendant/getJsonData.cmd`)은 로그인 없이 POST로 열람 가능한 공개 API(공매도압박·연기금 위젯이 사용). bld/파라미터는 오픈소스 pykrx 라이브러리 소스로 확인했지만, 이 환경은 해당 도메인에 직접 접근 못 해 실제 응답으로 검증한 적은 없다 — GAS 재배포 후 실데이터로 한 번 확인 필요.
+- **KRX 내부 크롤링 경로(`data.krx.co.kr/comm/bldAttendant/getJsonData.cmd`)는 2026-07-11부로 막힘.** 세션 쿠키를 붙여도 "LOGOUT"(400)으로 거부되고, KRX 정식 Open API(`openapi.krx.co.kr`, 로그인+인증키+서비스별 신청 필요)로 전환된 것으로 보인다. 그 정식 API에는 공매도·투자자별 매매동향 서비스 자체가 없어(지수/주식/증권상품/채권/파생상품/일반상품/ESG만 제공) 공매도압박·연기금 위젯 모두 KRX를 포기하고 네이버로 대체했다 — 새 KRX 크롤링 코드를 다시 추가하지 말 것.
