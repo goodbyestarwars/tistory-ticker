@@ -50,12 +50,10 @@
       bold: true,
       icon: '<rect x="4" y="10" width="3" height="8"/><rect x="10.5" y="4" width="3" height="14"/><rect x="17" y="7" width="3" height="11"/>'
     },
-    {
-      href: '/page/short-pressure',
-      label: '공매도 압박',
-      bold: true,
-      icon: '<path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'
-    },
+    // 공매도 압박(/page/short-pressure)은 2026-07-11 보류 - KRX 공매도 데이터를
+    // 무료로 가져올 방법이 없어(직접 크롤링 차단, 네이버도 KRX iframe 임베드뿐이라 우회 불가)
+    // 메뉴에서 내림. js/short-pressure.js, gas의 getShortPressure는 코드로는 남겨둠
+    // (나중에 데이터 소스가 생기면 재활용).
     {
       href: '/page/pension-fund',
       label: '연기금 분석',
