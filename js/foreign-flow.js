@@ -6,6 +6,13 @@
  * window.KRX_MAP(종목명->코드)이 이 스크립트보다 먼저 로드되어야 함.
  * 서버 캐시 없음(온디맨드 크롤링) - 대신 이 스크립트가 종목별 5분 메모리 캐시로
  * 같은 종목 반복 조회를 디바운스한다(네이버 부하/GAS 호출량 억제).
+ *
+ * 공매도/대차거래/연기금 섹션(ff-extra-*):
+ * window.INVESTOR_FLOW_CACHE(선택, data/investor-flow-cache.js)가 로드돼 있으면
+ * 외국인·기관 표 아래에 추가로 렌더링한다. 이 캐시는 GAS 온디맨드가 아니라
+ * scripts/fetch_investor_flow.py를 로컬 PC에서 키움증권 REST API로 하루 1회 돌려
+ * git push한 정적 스냅샷이라 data/sectors-v3.js 종목 풀만 커버한다 - 캐시에 없는
+ * 종목은 안내 문구만 표시(에러 아님, 조용히 생략하지 않고 이유를 보여준다).
  */
 (function (global) {
   'use strict';
@@ -212,6 +219,7 @@
 
     html += buildBadges(data);
     html += buildRollingTable(data);
+    html += buildExtraSections(data.code);
     html += '<div class="ff-chart-title">외국인·기관 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>';
     html += buildNetChart(data.daily);
     html += '<div class="ff-chart-title">외국인 보유율 추이</div>';
@@ -286,6 +294,102 @@
 
     html += '</tbody></table>';
     return html;
+  }
+
+  // ---- 공매도/대차거래/연기금 (window.INVESTOR_FLOW_CACHE, PC 로컬 스냅샷) ----
+
+  function buildExtraSections(code) {
+    var cache = global.INVESTOR_FLOW_CACHE;
+    var entry = cache && cache[code];
+    if (!entry) {
+      return '<div class="ff-extra-missing">공매도·대차거래·연기금 데이터는 주요 섹터 구성종목만 제공됩니다(하루 1회 갱신). '
+        + '이 종목은 아직 커버리지에 없어요.</div>';
+    }
+
+    var html = '<div class="ff-extra">';
+    html += buildShortCard(entry.short, entry.loan);
+    html += buildLoanCard(entry.loan);
+    html += buildPensionCard(entry.pension, entry.name);
+    html += '<div class="ff-extra-note">공매도 압박 점수는 항상 <b>가능성·추정치</b>이며, 공매도가 주가를 누른다고 단정하지 않습니다. '
+      + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API · PC 로컬 수집(하루 1회 갱신)</div>';
+    html += '</div>';
+    return html;
+  }
+
+  function extraMetric(label, valueHtml) {
+    return '<div class="ff-extra-metric"><div class="ff-extra-metric-label">' + escapeHtml(label) + '</div>'
+      + '<div class="ff-extra-metric-value">' + valueHtml + '</div></div>';
+  }
+
+  function buildShortCard(s, l) {
+    if (!s) return '';
+    var p = s.pressure || { score: 0, grade: { emoji: '', label: '-' }, breakdown: {} };
+    var b = p.breakdown || {};
+    var causes = [];
+    if (b.short_ratio > 0) causes.push('공매도 거래비중 ' + fmtPct(s.today_ratio_pct));
+    if (b.loan_increase > 0) causes.push('대차잔고 증가 ' + fmtSignedPct(l && l.balance_change_pct));
+    if (b.balance_increase > 0) causes.push('공매도 잔고 증가 ' + fmtSignedPct(s.balance_change_pct));
+    if (b.foreign_sell > 0) causes.push('외국인 순매도 동반');
+    if (b.inst_sell > 0) causes.push('기관 순매도 동반');
+
+    return '<div class="ff-extra-card">'
+      + '<div class="ff-extra-card-title">' + p.grade.emoji + ' 공매도 압박 <span class="ff-extra-score">' + p.score + '점</span>'
+      + '<span class="ff-extra-grade">' + escapeHtml(p.grade.label) + '</span></div>'
+      + '<div class="ff-extra-grid">'
+      + extraMetric('공매도 누적잔고', fmtAbsShares(s.balance_qty))
+      + extraMetric('공매도 평균가격(추정)', fmtWon(s.avg_price))
+      + extraMetric('당일 거래비중', fmtPct(s.today_ratio_pct))
+      + extraMetric('일평균 거래량(20일)', fmtAbsShares(s.avg_volume_20d))
+      + extraMetric('Days to Cover', s.days_to_cover == null ? '-' : s.days_to_cover.toFixed(2) + '일')
+      + extraMetric('숏 압박 지수', s.short_squeeze_index == null ? '-' : s.short_squeeze_index.toFixed(1))
+      + '</div>'
+      + (causes.length ? '<div class="ff-extra-causes">' + causes.map(function (c) { return '<span class="ff-extra-cause">✔ ' + escapeHtml(c) + '</span>'; }).join('') + '</div>' : '')
+      + '</div>';
+  }
+
+  function buildLoanCard(l) {
+    if (!l) return '';
+    return '<div class="ff-extra-card">'
+      + '<div class="ff-extra-card-title">대차거래</div>'
+      + '<div class="ff-extra-grid">'
+      + extraMetric('대차잔고', fmtAbsShares(l.balance_qty))
+      + extraMetric('대차잔고 증감률', '<span class="' + signClass(l.balance_change_pct) + '">' + fmtSignedPct(l.balance_change_pct) + '</span>')
+      + '</div></div>';
+  }
+
+  function buildPensionCard(p, name) {
+    if (!p) return '';
+    var streak = p.streak || { days: 0, direction: 'flat' };
+    var streakEmoji = streak.direction === 'buy' ? '🟢' : streak.direction === 'sell' ? '🔴' : '⚪';
+    var streakLabel = streak.direction === 'buy' ? '연속 순매수' : streak.direction === 'sell' ? '연속 순매도' : '뚜렷한 방향 없음';
+    var interp = p.interpretation || { tone: 'neutral', label: '', text: '' };
+
+    return '<div class="ff-extra-card">'
+      + '<div class="ff-extra-card-title">연기금 매매 동향</div>'
+      + '<div class="ff-extra-streak">' + streakEmoji + ' ' + streakLabel + ' ' + streak.days + '일</div>'
+      + '<div class="ff-extra-grid">'
+      + extraMetric('최근 5일 순매수', fmtSignedWon(p.net_5d))
+      + extraMetric('최근 20일 순매수', fmtSignedWon(p.net_20d))
+      + extraMetric('최근 60일 순매수', p.net_60d == null ? '-' : fmtSignedWon(p.net_60d))
+      + extraMetric('누적(' + (p.cumulative_window_days || 0) + '영업일)', fmtSignedWon(p.net_cumulative))
+      + '</div>'
+      + '<div class="ff-extra-interp ff-extra-tone-' + escapeAttr(interp.tone) + '">'
+      + '<span class="ff-extra-interp-label">' + escapeHtml(interp.label) + '</span>'
+      + '<span class="ff-extra-interp-text">' + escapeHtml(interp.text) + '</span>'
+      + '</div></div>';
+  }
+
+  function fmtAbsShares(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '주'; }
+  function fmtWon(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '원'; }
+  function fmtPct(v) { return v == null || isNaN(v) ? '-' : v.toFixed(2) + '%'; }
+  function fmtSignedPct(v) {
+    if (v == null || isNaN(v)) return '-';
+    return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  }
+  function fmtSignedWon(n) {
+    if (n == null || isNaN(n)) return '-';
+    var eok = n / 100; // penfnd_etc는 백만원 단위로 내려오므로 억원 = /100
+    return (eok >= 0 ? '+' : '') + eok.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '억';
   }
 
   // ---- 차트 (vanilla SVG - 버블차트와 스택 통일, 외부 라이브러리 없음) ----
