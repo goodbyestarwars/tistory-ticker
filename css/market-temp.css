@@ -74,6 +74,40 @@
 #market-temp .mt-bar-fill.mt-hot { background: #d24f45; }
 #market-temp .mt-bar-value { color: #999; text-align: right; }
 
+#market-temp .mt-legend {
+  margin-top: 12px;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+#market-temp .mt-legend summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+}
+#market-temp .mt-legend-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #999;
+  margin: 10px 0 4px;
+}
+#market-temp .mt-legend-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #666;
+  padding: 3px 0;
+}
+#market-temp .mt-legend-total {
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  text-align: right;
+  padding: 4px 0;
+  border-top: 1px dashed #eee;
+  margin-top: 2px;
+}
+
 #market-temp .mt-updated {
   margin-top: 12px;
   font-size: 11px;
@@ -98,4 +132,9 @@ html.dark #market-temp .mt-bar-fill.mt-cold { background: #4d9fff !important; }
 html.dark #market-temp .mt-bar-fill.mt-mid { background: #999 !important; }
 html.dark #market-temp .mt-bar-fill.mt-hot { background: #ff6b5b !important; }
 html.dark #market-temp .mt-bar-value { color: #888 !important; }
+html.dark #market-temp .mt-legend { border-top-color: #3a3a3a !important; }
+html.dark #market-temp .mt-legend summary { color: #999 !important; }
+html.dark #market-temp .mt-legend-title { color: #888 !important; }
+html.dark #market-temp .mt-legend-row { color: #bbb !important; }
+html.dark #market-temp .mt-legend-total { color: #bbb !important; border-top-color: #3a3a3a !important; }
 html.dark #market-temp .mt-updated { color: #777 !important; }

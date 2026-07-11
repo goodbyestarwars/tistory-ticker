@@ -18,6 +18,14 @@
     { key: 'tradingValue', label: '거래대금', max: 20 }
   ];
 
+  var GRADE_BANDS = [
+    { range: '0~20', emoji: '🧊', label: '매우 차가움' },
+    { range: '21~40', emoji: '🔵', label: '약세' },
+    { range: '41~60', emoji: '🟡', label: '중립' },
+    { range: '61~80', emoji: '🟠', label: '강세' },
+    { range: '81~100', emoji: '🔥', label: '매우 강세' }
+  ];
+
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
@@ -78,8 +86,28 @@
       + '<div class="mt-score">' + data.score + '<span class="mt-score-unit">점</span></div>'
       + '<div class="mt-grade">' + escapeHtml(grade.emoji) + ' ' + escapeHtml(grade.label) + '</div>'
       + '<div class="mt-bars">' + rows + '</div>'
+      + buildLegend()
       + (data.updatedAt ? '<div class="mt-updated">업데이트 ' + escapeHtml(data.updatedAt) + '</div>' : '')
       + '</div>';
+  }
+
+  function buildLegend() {
+    var compRows = COMPONENT_META.map(function (meta) {
+      return '<div class="mt-legend-row"><span>' + escapeHtml(meta.label) + '</span><span>' + meta.max + '점</span></div>';
+    }).join('');
+    var bandRows = GRADE_BANDS.map(function (b) {
+      return '<div class="mt-legend-row"><span>' + b.range + '</span><span>' + b.emoji + ' ' + escapeHtml(b.label) + '</span></div>';
+    }).join('');
+
+    return ''
+      + '<details class="mt-legend">'
+      + '<summary>점수 계산 방식</summary>'
+      + '<div class="mt-legend-title">점수 계산 (100점)</div>'
+      + compRows
+      + '<div class="mt-legend-total">총점 : 100점</div>'
+      + '<div class="mt-legend-title">점수 구간</div>'
+      + bandRows
+      + '</details>';
   }
 
   function escapeHtml(s) {
