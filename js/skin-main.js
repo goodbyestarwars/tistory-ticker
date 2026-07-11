@@ -94,27 +94,11 @@
       });
     }
 
-    /* ── 상단 필터 탭: depth-1 중 일기장/Insight Archive 제외하고 자동 생성 ── */
+    /* ── 상단 필터 탭: 2026-07-11 UI에서 제거(디자인상 불필요 판단) ──
+       skin.html의 #filterBar 자체는 스킨 편집 없이 유지하고, 여기서 DOM에서 떼어낸다. */
     var filterBar = document.getElementById('filterBar');
+    if (filterBar) { filterBar.remove(); filterBar = null; }
     var topBarExclude = ['일기장', 'Insight Archive'];
-    if (filterBar) {
-      depth1Links.forEach(function(a) {
-        var href = a.getAttribute('href');
-        var countEl = a.querySelector('span');
-        var name = countEl
-          ? (a.childNodes[0] ? a.childNodes[0].textContent.trim() : '')
-          : a.textContent.trim().replace(/\s*\(\d+\)\s*$/, '').trim();
-        if (!name) return;
-        var bareName = name.replace(/\s*\(비공개\)\s*$/, '').trim();
-        if (topBarExclude.indexOf(bareName) > -1) return;
-        var tab = document.createElement('a');
-        tab.className = 'filter-tab';
-        tab.href = href;
-        tab.dataset.cat = name;
-        tab.textContent = name;
-        filterBar.appendChild(tab);
-      });
-    }
 
     /* ── subCatMap: depth-2를 부모 기준으로 그루핑 ── */
     depth2Links.forEach(function(a) {

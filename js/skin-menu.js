@@ -56,11 +56,8 @@
     // (나중에 데이터 소스가 생기면 재활용).
     // 연기금 분석(/page/pension-fund)도 2026-07-11 메뉴에서 내림 - foreign-flow.js에
     // 병합됐으므로 별도 메뉴 불필요(js/pension-fund.js는 코드로는 남겨둠).
-    {
-      href: '/notice',
-      label: '공지사항',
-      icon: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'
-    },
+    // 공지사항(/notice)도 2026-07-11 커스텀 메뉴에서 내림 - 카테고리 섹션(catCustomList)에
+    // 티스토리 '공지사항' 카테고리가 있으면 거기서 자동 표시됨.
     {
       href: '/guestbook',
       label: '커뮤니티',
