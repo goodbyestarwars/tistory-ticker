@@ -61,7 +61,8 @@
   font-size: 13px;
   cursor: pointer;
 }
-#foreign-flow .ff-suggest-item:hover { background: #f2f2f2; }
+#foreign-flow .ff-suggest-item:hover,
+#foreign-flow .ff-suggest-item.active { background: #f2f2f2; }
 
 /* ---- 상태 메시지 ---- */
 #foreign-flow .ff-hint,
@@ -425,7 +426,8 @@ html.dark #foreign-flow .ff-suggest {
   border-color: #555 !important;
 }
 html.dark #foreign-flow .ff-suggest-item { color: #ddd !important; }
-html.dark #foreign-flow .ff-suggest-item:hover { background: #3a3a3a !important; }
+html.dark #foreign-flow .ff-suggest-item:hover,
+html.dark #foreign-flow .ff-suggest-item.active { background: #3a3a3a !important; }
 html.dark #foreign-flow .ff-hint,
 html.dark #foreign-flow .ff-loading { color: #999 !important; }
 html.dark #foreign-flow .ff-error {

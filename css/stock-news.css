@@ -182,7 +182,8 @@
   cursor: pointer;
 }
 
-.sn-suggest-item:hover {
+.sn-suggest-item:hover,
+.sn-suggest-item.active {
   background: #f1f5f9;
 }
 
@@ -628,7 +629,8 @@ html.dark #stock-news .sn-suggest-item {
   color: #d3dbe8 !important;
 }
 
-html.dark #stock-news .sn-suggest-item:hover {
+html.dark #stock-news .sn-suggest-item:hover,
+html.dark #stock-news .sn-suggest-item.active {
   background: #1c2942;
 }
 

@@ -85,10 +85,22 @@
       renderSuggestions(container, suggestBox, input.value.trim());
     });
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
+      var items = suggestBox.querySelectorAll('.ff-suggest-item');
+      if (e.key === 'ArrowDown') {
+        if (!items.length) return;
         e.preventDefault();
+        setActiveSuggestion(suggestBox, items, (getActiveSuggestion(suggestBox) + 1) % items.length);
+      } else if (e.key === 'ArrowUp') {
+        if (!items.length) return;
+        e.preventDefault();
+        setActiveSuggestion(suggestBox, items, (getActiveSuggestion(suggestBox) - 1 + items.length) % items.length);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        var idx = getActiveSuggestion(suggestBox);
+        var picked = idx > -1 && items[idx] ? items[idx].getAttribute('data-name') : input.value.trim();
+        if (idx > -1 && items[idx]) input.value = picked;
         hideSuggestions(suggestBox);
-        search(container, input.value.trim());
+        search(container, picked);
       } else if (e.key === 'Escape') {
         hideSuggestions(suggestBox);
       }
@@ -105,6 +117,21 @@
   function hideSuggestions(box) {
     box.innerHTML = '';
     box.classList.remove('active');
+    box.__activeIndex = -1;
+  }
+
+  // 키보드(위/아래 화살표)로 자동완성 항목 탐색 - box.__activeIndex에 현재 위치 저장
+  function getActiveSuggestion(box) {
+    return typeof box.__activeIndex === 'number' ? box.__activeIndex : -1;
+  }
+  function setActiveSuggestion(box, items, idx) {
+    items.forEach(function (el) { el.classList.remove('active'); });
+    box.__activeIndex = idx;
+    var el = items[idx];
+    if (el) {
+      el.classList.add('active');
+      el.scrollIntoView({ block: 'nearest' });
+    }
   }
 
   function renderSuggestions(container, box, query) {
@@ -130,8 +157,12 @@
       return '<div class="ff-suggest-item" data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
     }).join('');
     box.classList.add('active');
+    box.__activeIndex = -1;
 
-    box.querySelectorAll('.ff-suggest-item').forEach(function (el) {
+    box.querySelectorAll('.ff-suggest-item').forEach(function (el, i) {
+      el.addEventListener('mouseenter', function () {
+        setActiveSuggestion(box, box.querySelectorAll('.ff-suggest-item'), i);
+      });
       el.addEventListener('click', function () {
         var name = el.getAttribute('data-name');
         container.querySelector('#ffInput').value = name;
