@@ -62,6 +62,32 @@
   border-color: #cbd5e1;
 }
 
+#pattern-scan .ps-item-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 실제 캔들을 축소한 게 아니라 O(고점/저점)+선으로 패턴 구조만 단순화한 미니 아이콘 */
+#pattern-scan .ps-icon {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+#pattern-scan .ps-icon path,
+#pattern-scan .ps-icon rect {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#pattern-scan .ps-icon circle {
+  fill: currentColor;
+  stroke: none;
+}
+
 #pattern-scan .ps-name {
   max-width: 100%;
   font-size: 13px;
@@ -311,6 +337,10 @@ html.dark #pattern-scan .ps-meta {
 html.dark #pattern-scan .ps-item {
   background: #171e2f;
   border-color: #263248;
+}
+
+html.dark #pattern-scan .ps-icon {
+  color: #64748b;
 }
 
 html.dark #pattern-scan .ps-item:hover {

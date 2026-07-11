@@ -161,6 +161,7 @@
 #foreign-flow .ff-badge-buy { background: #fdeceb; color: #d24f45; border: 1px solid #f2c3bf; }
 #foreign-flow .ff-badge-sell { background: #e9f1fb; color: #1261c4; border: 1px solid #bdd6f2; }
 #foreign-flow .ff-badge-shift { background: #fff5e0; color: #b0761a; border: 1px solid #f0dcae; }
+#foreign-flow .ff-badge-neutral { background: #f1f1f1; color: #666; border: 1px solid #ddd; }
 #foreign-flow .ff-signal-note { font-size: 12px; color: #999; }
 
 /* ---- 롤링 합산 표 (첫째 열 bold, 박스 테두리 - 블로그 표 양식) ---- */
@@ -274,14 +275,12 @@
   font-size: 12.5px;
   background: #f5f5f6;
 }
-#foreign-flow .ff-extra-interp-label { font-weight: 700; margin-right: 6px; }
+#foreign-flow .ff-extra-interp .ff-badge { margin-right: 8px; vertical-align: middle; }
 #foreign-flow .ff-extra-tone-very_positive { background: #fdf1f0; }
 #foreign-flow .ff-extra-tone-positive { background: #fdf5ee; }
 #foreign-flow .ff-extra-tone-neutral_positive { background: #fdf8ec; }
 #foreign-flow .ff-extra-tone-caution { background: #eef4fc; }
 #foreign-flow .ff-extra-tone-neutral { background: #f5f5f6; }
-/* 중립~긍정 톤은 경계할 정도는 아니라 레이블을 덜 강조(bold 제거) */
-#foreign-flow .ff-extra-tone-neutral_positive .ff-extra-interp-label { font-weight: 400; }
 #foreign-flow .ff-extra-note {
   font-size: 11.5px;
   color: #999;
@@ -300,10 +299,40 @@
 /* ---- 가격 차트: 지지/저항 + 이동평균 (연기금 카드 바로 아래) ---- */
 #foreign-flow .ff-chart-flow-wrap { overflow-x: auto; }
 #foreign-flow .ff-chart-candle { overflow-x: auto; }
-#foreign-flow .ff-level-support { stroke: #1261c4; stroke-width: 1; stroke-dasharray: 5 3; opacity: 0.75; }
-#foreign-flow .ff-level-resistance { stroke: #d24f45; stroke-width: 1; stroke-dasharray: 5 3; opacity: 0.75; }
-#foreign-flow .ff-level-support-label { fill: #1261c4; font-size: 10.5px; }
-#foreign-flow .ff-level-resistance-label { fill: #d24f45; font-size: 10.5px; }
+#foreign-flow .ff-level-support { stroke: #1261c4; stroke-width: 1.4; stroke-dasharray: 6 3; opacity: 0.85; }
+#foreign-flow .ff-level-resistance { stroke: #d24f45; stroke-width: 1.4; stroke-dasharray: 6 3; opacity: 0.85; }
+/* 가격표는 오른쪽 전용 여백에 박스로 그려서 캔들/축 라벨과 안 겹치게 함 */
+#foreign-flow .ff-level-support-bg { fill: #eaf1fb; stroke: #1261c4; stroke-width: 0.5; }
+#foreign-flow .ff-level-resistance-bg { fill: #fdecea; stroke: #d24f45; stroke-width: 0.5; }
+#foreign-flow .ff-level-support-label { fill: #1261c4; font-size: 10.5px; font-weight: 700; }
+#foreign-flow .ff-level-resistance-label { fill: #d24f45; font-size: 10.5px; font-weight: 700; }
+
+#foreign-flow .ff-tech {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+#foreign-flow .ff-tech-desc {
+  font-size: 11.5px;
+  color: #888;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+#foreign-flow .ff-tech-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+#foreign-flow .ff-tech-table th,
+#foreign-flow .ff-tech-table td {
+  border: 1px solid #e5e5e5;
+  padding: 6px 8px;
+  text-align: center;
+}
+#foreign-flow .ff-tech-table th { background: #f5f5f5; font-weight: 700; }
+#foreign-flow .ff-tech-table td:first-child { text-align: left; font-weight: 700; }
+#foreign-flow .ff-tech-total-row { font-weight: 700; }
+#foreign-flow .ff-tech-total-row td { background: #f7f7f8; }
 
 /* ---- 차트 ---- */
 #foreign-flow .ff-chart-title {
@@ -435,6 +464,7 @@ html.dark #foreign-flow .ff-flat { color: #aaa !important; }
 html.dark #foreign-flow .ff-badge-buy { background: #3a2523 !important; border-color: #5c3835 !important; color: #e8776d !important; }
 html.dark #foreign-flow .ff-badge-sell { background: #20304a !important; border-color: #33507a !important; color: #6ea8e8 !important; }
 html.dark #foreign-flow .ff-badge-shift { background: #3a3220 !important; border-color: #5c5035 !important; color: #d9a94a !important; }
+html.dark #foreign-flow .ff-badge-neutral { background: #333 !important; border-color: #555 !important; color: #bbb !important; }
 html.dark #foreign-flow .ff-chart {
   background: #222 !important;
   border-color: #444 !important;
@@ -475,5 +505,13 @@ html.dark #foreign-flow .ff-extra-tone-neutral_positive { background: #34301f !i
 html.dark #foreign-flow .ff-extra-tone-caution { background: #202a38 !important; }
 html.dark #foreign-flow .ff-extra-tone-neutral { background: #2a2a2a !important; }
 html.dark #foreign-flow .ff-extra-note { color: #888 !important; }
+html.dark #foreign-flow .ff-level-support-bg { fill: #1b2c42 !important; stroke: #6ea8e8 !important; }
+html.dark #foreign-flow .ff-level-resistance-bg { fill: #3a2523 !important; stroke: #e8776d !important; }
 html.dark #foreign-flow .ff-level-support-label { fill: #6ea8e8 !important; }
 html.dark #foreign-flow .ff-level-resistance-label { fill: #e8776d !important; }
+html.dark #foreign-flow .ff-tech { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-tech-desc { color: #999 !important; }
+html.dark #foreign-flow .ff-tech-table th,
+html.dark #foreign-flow .ff-tech-table td { border-color: #444 !important; color: #ddd !important; }
+html.dark #foreign-flow .ff-tech-table th { background: #333 !important; }
+html.dark #foreign-flow .ff-tech-total-row td { background: #1f1f1f !important; }

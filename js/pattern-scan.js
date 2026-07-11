@@ -29,6 +29,22 @@
     { key: 'pullback', label: '눌림목' }
   ];
 
+  // 리스트 항목용 미니 패턴 아이콘 - 실제 캔들을 축소한 게 아니라 O(고점/저점)와 선으로
+  // 패턴의 핵심 구조만 단순화한 것. 골파기반전은 눌림목과 같은 "추세전환 후 눌림" 계열이라
+  // 눌림목 아이콘을 더 깊은 V자로 변형해 계열은 같되 더 급격한 하락임을 표현한다.
+  var PATTERN_ICONS = {
+    risingLows: '<path d="M2,15 L9,15 L20,6 L30,3"/><circle cx="9" cy="15" r="2"/><circle cx="20" cy="6" r="2"/>',
+    doubleBottom: '<path d="M2,4 L8,14 L16,7 L24,14 L30,4"/><circle cx="8" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
+    invHeadShoulders: '<path d="M2,6 L7,10 L12,6 L17,15 L22,6 L27,10 L32,3"/><circle cx="7" cy="10" r="2"/><circle cx="17" cy="15" r="2"/><circle cx="27" cy="10" r="2"/>',
+    boxRangeLow: '<rect x="3" y="2" width="24" height="12" rx="1"/><circle cx="6" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
+    goldPitReversal: '<path d="M2,6 L10,3 L18,16 L26,4"/><circle cx="18" cy="16" r="2"/>',
+    pullback: '<path d="M2,15 L10,4 L16,10 L24,2"/><circle cx="10" cy="4" r="2"/><circle cx="16" cy="10" r="2"/>'
+  };
+
+  function patternIcon(key) {
+    return '<svg class="ps-icon" viewBox="0 0 32 18" width="28" height="16" aria-hidden="true">' + (PATTERN_ICONS[key] || '') + '</svg>';
+  }
+
   var scanData = null;
   var activeTab = 'risingLows';
 
@@ -101,7 +117,9 @@
     list.innerHTML = sorted.map(function (it) {
       var cc = chgClass(it.changeRate);
       return '<div class="ps-item" data-code="' + it.code + '">'
+        + '<div class="ps-item-top">' + patternIcon(activeTab)
         + '<span class="ps-name">' + escapeHtml(it.name) + '<span class="ps-code">(' + escapeHtml(it.code) + ')</span></span>'
+        + '</div>'
         + '<span class="ps-score-badge">' + (it.score != null ? it.score + '점' : '-') + '</span>'
         + '<span class="ps-quote"><span class="ps-price">' + fmt(it.price) + '</span>'
         + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'

@@ -28,8 +28,9 @@
   var RATIO_H = 120;
   var PAD = { l: 68, r: 16, t: 16, b: 30 };
 
-  var FCHART_H = 320;
-  var FCHART_PAD = { l: 68, r: 16, t: 16, b: 30 };
+  var FCHART_H = 360;
+  // r을 넓게 잡아 지지/저항 가격표를 캔들과 겹치지 않는 전용 여백에 그린다
+  var FCHART_PAD = { l: 68, r: 54, t: 16, b: 30 };
   var MA_COLORS = { ma5: '#e8590c', ma20: '#0ca678', ma60: '#5f3dc4', ma224: '#868e96' };
 
   var cacheByCode = {};   // code -> { t, data }
@@ -37,29 +38,14 @@
   var flowChartCache = {};    // code -> { t, data }
   var flowChartInflight = {}; // code -> Promise
 
-  // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/차트패턴 + AI 한줄요약) ----
-  var PATTERN_CACHE_MS = 10 * 60 * 1000; // 서버가 하루 1회만 갱신하므로 넉넉하게
-  var patternScanCache = null;   // { t, data }
-  var patternScanInflight = null;
-
-  var PATTERN_LABELS = {
-    risingLows: '저점상승형',
-    doubleBottom: '쌍바닥',
-    invHeadShoulders: '역헤드앤숄더',
-    boxRangeLow: '박스권 하단',
-    goldPitReversal: '골파기 반전',
-    pullback: '눌림목'
-  };
-  var PATTERN_FOLLOWUP = {
-    risingLows: '5일선 돌파 여부가 중요합니다.',
-    doubleBottom: '넥라인 돌파 여부를 확인해야 합니다.',
-    invHeadShoulders: '넥라인 상향 돌파 시 신호가 강화됩니다.',
-    boxRangeLow: '박스 하단 지지 여부가 중요합니다.',
-    goldPitReversal: '거래량을 동반한 반등 여부를 확인해야 합니다.',
-    pullback: '5일선 재돌파 여부가 중요합니다.'
-  };
+  // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
   var PENSION_TONE_SCORE = {
     very_positive: 90, positive: 75, neutral_positive: 60, neutral: 50, caution: 25
+  };
+  // 연기금 해석 라벨 뱃지 색: 비중 확대 쪽(긍정)은 매수 색, 비중 축소 쪽(경계)은 매도 색
+  var TONE_BADGE_CLASS = {
+    very_positive: 'ff-badge-buy', positive: 'ff-badge-buy', neutral_positive: 'ff-badge-buy',
+    neutral: 'ff-badge-neutral', caution: 'ff-badge-sell'
   };
 
   function init() {
@@ -184,44 +170,28 @@
       return;
     }
 
-    resultBox.innerHTML = '<div class="ff-loading">' + escapeHtml(resolved.name) + ' 수급 데이터를 불러오는 중...</div>';
+    resultBox.innerHTML = '<div class="ff-loading">' + escapeHtml(resolved.name) + ' 수급 데이터를 불러오는 중... (가격 차트는 최초 조회 시 다소 걸릴 수 있어요)</div>';
 
-    Promise.all([ForeignFlow.fetchFlow(resolved.code), fetchPatternScan()])
+    // 차트 크롤링이 무거워 실패/타임아웃 가능성이 있는데, 그것 때문에 나머지 위젯까지
+    // 통째로 에러 처리되면 안 되므로 차트 fetch만 별도로 잡아 실패 시 에러 객체로 대체한다.
+    var chartPromise = fetchFlowChart(resolved.code)
+      .catch(function () { return { error: 'FETCH_FAILED', message: '차트 데이터를 불러오지 못했어요.' }; });
+
+    Promise.all([ForeignFlow.fetchFlow(resolved.code), chartPromise])
       .then(function (results) {
         var data = results[0];
-        var patternData = results[1];
+        var chartData = results[1];
         if (!data || data.error || !data.daily || !data.daily.length) {
           resultBox.innerHTML = '<div class="ff-error">'
             + escapeHtml((data && data.message) || '수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
             + '</div>';
           return;
         }
-        renderResult(resultBox, data, patternData);
+        renderResult(resultBox, data, chartData);
       })
       .catch(function () {
         resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
-  }
-
-  // 차트패턴 스캔 결과(?patternScan=1) - 6개 패턴 전체가 한 응답에 들어있어 종목 단위가
-  // 아니라 위젯 세션 단위로 캐싱한다(서버가 하루 1회만 갱신하므로 부담 없음).
-  function fetchPatternScan() {
-    if (patternScanCache && Date.now() - patternScanCache.t < PATTERN_CACHE_MS) {
-      return Promise.resolve(patternScanCache.data);
-    }
-    if (patternScanInflight) return patternScanInflight;
-
-    patternScanInflight = fetchJson(GAS_TICKER_URL + '?patternScan=1')
-      .then(function (data) {
-        patternScanInflight = null;
-        patternScanCache = { t: Date.now(), data: data };
-        return data;
-      })
-      .catch(function () {
-        patternScanInflight = null;
-        return null; // 패턴 스캔 실패는 요약 박스에서 '데이터 없음'으로 처리 - 나머지 위젯은 살린다
-      });
-    return patternScanInflight;
   }
 
   // 같은 종목 5분 캐시 + 진행 중 요청 재사용(연타 디바운스)
@@ -286,11 +256,11 @@
 
   // ---- 렌더링 ----
 
-  function renderResult(box, data, patternData) {
+  function renderResult(box, data, chartData) {
     var entry = (global.INVESTOR_FLOW_CACHE || {})[data.code] || null;
-    var patternMatch = findPatternMatch(patternData, data.code);
+    var techScore = computeTechnicalScore(chartData);
 
-    var html = buildSummaryBox(data, entry, patternMatch);
+    var html = buildSummaryBox(data, entry, techScore);
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
     var priceHtml = latest
@@ -305,7 +275,7 @@
 
     html += buildBadges(data);
     html += buildRollingTable(data);
-    html += buildExtraSections(data.code, latest && latest.close);
+    html += buildExtraSections(data.code, latest && latest.close, chartData, techScore);
     html += '<div class="ff-chart-title">외국인·기관 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>';
     html += buildNetChart(data.daily);
     html += '<div class="ff-chart-title">외국인 보유율 추이</div>';
@@ -316,25 +286,64 @@
 
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
-    loadAiSummary(box, data, entry, patternMatch);
-    loadFlowChart(box, data.code);
+    loadAiSummary(box, data, entry, techScore);
   }
 
-  // ---- 종합 점수 요약 박스 (수급/공매도/연기금/차트패턴 + AI 한줄요약) ----
+  // ---- 종합 점수 요약 박스 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
 
-  function findPatternMatch(patternData, code) {
-    if (!patternData || !patternData.patterns) return null;
-    var best = null;
-    Object.keys(PATTERN_LABELS).forEach(function (key) {
-      var items = patternData.patterns[key] || [];
-      items.forEach(function (it) {
-        if (it.code !== code) return;
-        if (!best || (it.score || 0) > best.score) {
-          best = { key: key, label: PATTERN_LABELS[key], score: it.score || 0 };
-        }
-      });
-    });
-    return best;
+  // 이동평균 배열(40) + 지지선 근접도(30) + 저항선 근접도(30) = 0~100점.
+  // 밴드 경계값은 지시서 표 그대로. 차트 데이터(?action=flowChart)가 없으면 null.
+  function computeTechnicalScore(chartData) {
+    if (!chartData || chartData.error || !chartData.daily || !chartData.daily.length) return null;
+    var daily = chartData.daily;
+    var close = daily[daily.length - 1].close;
+    var ma = chartData.ma || {};
+    function lastVal(arr) { return arr && arr.length ? arr[arr.length - 1] : null; }
+    var ma5 = lastVal(ma.ma5), ma20 = lastVal(ma.ma20), ma60 = lastVal(ma.ma60);
+
+    var maScore = 0, maLabel = '데이터 부족';
+    if (ma5 != null && ma20 != null && ma60 != null) {
+      if (ma5 > ma20 && ma20 > ma60) { maScore = 40; maLabel = '정배열'; }
+      else if (ma20 > ma60) { maScore = 30; maLabel = '20일선 > 60일선'; }
+      else if (ma5 > ma20) { maScore = 20; maLabel = '5일선만 상향'; }
+      else { maScore = 0; maLabel = '역배열'; }
+    }
+
+    var support = (chartData.levels && chartData.levels.support) || [];
+    var supScore = 0, supLabel = '지지선 없음';
+    if (support.length) {
+      var nearestSup = support.reduce(function (a, b) { return Math.abs(b - close) < Math.abs(a - close) ? b : a; });
+      var supGap = (close - nearestSup) / nearestSup * 100;
+      if (supGap < 0) { supScore = 0; supLabel = '지지선 이탈'; }
+      else if (supGap <= 2) { supScore = 30; supLabel = '지지선 ±2% 이내'; }
+      else if (supGap <= 5) { supScore = 20; supLabel = '지지선 ±5% 이내'; }
+      else if (supGap <= 8) { supScore = 10; supLabel = '지지선 ±8% 이내'; }
+      else { supScore = 0; supLabel = '지지선과 거리 있음'; }
+    }
+
+    var resistance = (chartData.levels && chartData.levels.resistance) || [];
+    var resScore = 0, resLabel = '저항선 없음';
+    if (resistance.length) {
+      var nearestRes = resistance.reduce(function (a, b) { return Math.abs(b - close) < Math.abs(a - close) ? b : a; });
+      var resGap = (nearestRes - close) / close * 100;
+      // "저항 접근 중" 상한(8%)은 지시서 표에 정확한 경계값이 없어 3%(20점) 다음 구간으로 잡은 값
+      if (resGap < 0) { resScore = 30; resLabel = '저항 돌파'; }
+      else if (resGap <= 3) { resScore = 20; resLabel = '저항 3% 이내'; }
+      else if (resGap <= 8) { resScore = 10; resLabel = '저항 접근 중'; }
+      else { resScore = 0; resLabel = '저항 아래 멀리'; }
+    }
+
+    return {
+      score: maScore + supScore + resScore,
+      ma: { score: maScore, label: maLabel },
+      support: { score: supScore, label: supLabel },
+      resistance: { score: resScore, label: resLabel }
+    };
+  }
+
+  function techInterpText(t) {
+    if (!t) return '차트 데이터가 부족해 기술적 점수를 계산하지 못했습니다.';
+    return t.ma.label + ' · ' + t.support.label + ' · ' + t.resistance.label;
   }
 
   // 외국인/기관 5일·20일 순매매 방향(4개) 각 ±12.5점, 기준 50점 -> 0~100점.
@@ -379,12 +388,7 @@
     return '공매도 압박이 약한 구간으로 매도 물량 부담이 크지 않습니다.';
   }
 
-  function patternInterpText(match) {
-    if (!match) return '현재 뚜렷하게 감지된 차트 패턴이 없습니다.';
-    return match.label + '이 진행 중이며 ' + (PATTERN_FOLLOWUP[match.key] || '');
-  }
-
-  function buildSummaryBox(data, entry, patternMatch) {
+  function buildSummaryBox(data, entry, techScore) {
     var flowScore = computeFlowScore(data);
 
     var shortP = entry && entry.short && entry.short.pressure;
@@ -396,13 +400,11 @@
     var pStreak = pension && pension.streak;
     var pensionEmoji = pStreak ? (pStreak.direction === 'buy' ? '🟢' : pStreak.direction === 'sell' ? '🔴' : '⚪') : '⚪';
 
-    var patternScore = patternMatch ? patternMatch.score : null;
-
     var rows = [
       { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: '외국인·기관 순매매 방향·강도 종합' },
       { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: '거래비중·잔고증가·동반매도 종합' },
       { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: '연속매매일수·구간별 순매수 종합' },
-      { icon: '📈', label: '차트패턴', score: patternScore, desc: '6종 패턴 조건 충족도(70점 이상만 반영)' }
+      { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: '이평선배열(40)·지지선(30)·저항선(30) 종합' }
     ];
 
     var rowsHtml = rows.map(function (r, i) {
@@ -418,7 +420,7 @@
       ['🧭', '수급', flowInterpText(data)],
       [shortEmoji, '공매도', shortInterpText(entry && entry.short)],
       [pensionEmoji, '연기금', pension ? pension.interpretation.text : '연기금 데이터가 없는 종목입니다.'],
-      ['📈', '차트', patternInterpText(patternMatch)]
+      ['📊', '기술', techInterpText(techScore)]
     ].map(function (r) {
       return '<div class="ff-summary-interp-row">' + r[0] + ' ' + r[1] + ': "' + escapeHtml(r[2]) + '"</div>';
     }).join('');
@@ -431,7 +433,7 @@
   }
 
   // AI 한줄요약은 Groq 호출이라 느릴 수 있어 나머지 렌더링을 막지 않고 비동기로 채운다.
-  function loadAiSummary(box, data, entry, patternMatch) {
+  function loadAiSummary(box, data, entry, techScore) {
     var el = box.querySelector('#ffAiSummary .ff-summary-ai-text');
     if (!el) return;
 
@@ -448,8 +450,8 @@
       + '&shortNote=' + encodeURIComponent(shortInterpText(entry && entry.short))
       + '&pensionScore=' + (pensionScore == null ? '' : pensionScore)
       + '&pensionNote=' + encodeURIComponent(pension ? pension.interpretation.text : '')
-      + '&patternScore=' + (patternMatch ? patternMatch.score : '')
-      + '&patternNote=' + encodeURIComponent(patternInterpText(patternMatch));
+      + '&techScore=' + (techScore ? techScore.score : '')
+      + '&techNote=' + encodeURIComponent(techInterpText(techScore));
 
     fetchJson(GAS_TICKER_URL + qs)
       .then(function (res) {
@@ -526,19 +528,19 @@
 
   // ---- 공매도/대차거래/연기금 (window.INVESTOR_FLOW_CACHE, PC 로컬 스냅샷) ----
 
-  function buildExtraSections(code, currentClose) {
+  function buildExtraSections(code, currentClose, chartData, techScore) {
     var cache = global.INVESTOR_FLOW_CACHE;
     var entry = cache && cache[code];
     if (!entry) {
       return '<div class="ff-extra-missing">공매도·대차거래·연기금 데이터는 주요 섹터 구성종목만 제공됩니다(하루 1회 갱신). '
         + '이 종목은 아직 커버리지에 없어요.</div>'
-        + buildFlowChartShell();
+        + buildFlowChartCard(chartData, techScore);
     }
 
     var html = '<div class="ff-extra">';
     html += buildShortLoanCard(entry.short, entry.loan, currentClose);
     html += buildPensionCard(entry.pension, entry.name);
-    html += buildFlowChartShell();
+    html += buildFlowChartCard(chartData, techScore);
     html += '<div class="ff-extra-note">공매도 압박 점수는 항상 <b>가능성·추정치</b>이며, 공매도가 주가를 누른다고 단정하지 않습니다. '
       + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API · PC 로컬 수집(하루 1회 갱신)</div>';
     html += '</div>';
@@ -617,6 +619,7 @@
     var streakEmoji = streak.direction === 'buy' ? '🟢' : streak.direction === 'sell' ? '🔴' : '⚪';
     var streakLabel = streak.direction === 'buy' ? '연속 순매수' : streak.direction === 'sell' ? '연속 순매도' : '뚜렷한 방향 없음';
     var interp = p.interpretation || { tone: 'neutral', label: '', text: '' };
+    var badgeCls = TONE_BADGE_CLASS[interp.tone] || 'ff-badge-neutral';
 
     return '<div class="ff-extra-card">'
       + '<div class="ff-extra-card-title">연기금 매매 동향</div>'
@@ -628,35 +631,39 @@
       + extraMetric('누적(' + (p.cumulative_window_days || 0) + '영업일)', fmtSignedWon(p.net_cumulative))
       + '</div>'
       + '<div class="ff-extra-interp ff-extra-tone-' + escapeAttr(interp.tone) + '">'
-      + '<span class="ff-extra-interp-label">' + escapeHtml(interp.label) + '</span>'
+      + '<span class="ff-badge ' + badgeCls + '">' + escapeHtml(interp.label) + '</span>'
       + '<span class="ff-extra-interp-text">' + escapeHtml(interp.text) + '</span>'
       + '</div></div>';
   }
 
   // ---- 가격 차트: 지지/저항 + 이동평균 5/20/60/224일선 (?action=flowChart) ----
 
-  function buildFlowChartShell() {
+  function buildFlowChartCard(chartData, techScore) {
+    var body;
+    if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 2) {
+      body = '<div class="ff-error">' + escapeHtml((chartData && chartData.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
+    } else {
+      body = buildCandleSvg(chartData) + buildTechBreakdown(techScore);
+    }
     return '<div class="ff-extra-card ff-flow-chart-card">'
       + '<div class="ff-extra-card-title">📉 가격 차트 · 지지/저항 · 이동평균</div>'
-      + '<div id="ffFlowChart" class="ff-chart-flow-wrap"><div class="ff-loading">차트를 불러오는 중...</div></div>'
+      + body
       + '</div>';
   }
 
-  function loadFlowChart(box, code) {
-    var wrap = box.querySelector('#ffFlowChart');
-    if (!wrap) return;
-
-    fetchFlowChart(code)
-      .then(function (data) {
-        if (!data || data.error || !data.daily || data.daily.length < 2) {
-          wrap.innerHTML = '<div class="ff-error">' + escapeHtml((data && data.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
-          return;
-        }
-        wrap.innerHTML = buildCandleSvg(data);
-      })
-      .catch(function () {
-        wrap.innerHTML = '<div class="ff-error">차트 데이터를 불러오지 못했어요.</div>';
-      });
+  // 차트 밑에 붙는 설명 + 기술적 점수 채점표(①이평선 40 ②지지선 30 ③저항선 30)
+  function buildTechBreakdown(t) {
+    if (!t) return '';
+    return '<div class="ff-tech">'
+      + '<div class="ff-tech-desc">파란 점선=지지선, 빨간 점선=저항선(최근 120영업일 스윙 고점·저점 기준). '
+      + '5·20·60·224일 이동평균선이 위에서부터 순서대로 놓이면(정배열) 상승 추세, 반대 순서(역배열)면 하락 추세로 봅니다.</div>'
+      + '<table class="ff-tech-table"><thead><tr><th>구분</th><th>상태</th><th>점수</th></tr></thead><tbody>'
+      + '<tr><td>① 이동평균 상태</td><td>' + escapeHtml(t.ma.label) + '</td><td>' + t.ma.score + '/40</td></tr>'
+      + '<tr><td>② 지지선</td><td>' + escapeHtml(t.support.label) + '</td><td>' + t.support.score + '/30</td></tr>'
+      + '<tr><td>③ 저항선</td><td>' + escapeHtml(t.resistance.label) + '</td><td>' + t.resistance.score + '/30</td></tr>'
+      + '<tr class="ff-tech-total-row"><td colspan="2">기술적 점수</td><td>' + t.score + '/100</td></tr>'
+      + '</tbody></table>'
+      + '</div>';
   }
 
   function buildCandleSvg(data) {
@@ -664,7 +671,9 @@
     var n = daily.length;
     if (n < 2) return '';
 
-    var chartW = Math.max(CHART_W, n * 10);
+    // 캔들을 키우려고 슬롯 폭을 넉넉히 잡는다(10 -> 16) - 캔들 수가 많으면 차트가 넓어지는 대신
+    // .ff-chart-candle이 overflow-x:auto라 가로 스크롤로 본다
+    var chartW = Math.max(CHART_W, n * 16);
 
     var levels = data.levels || {};
     var levelVals = (levels.support || []).concat(levels.resistance || []);
@@ -684,11 +693,20 @@
 
     var svg = '<svg class="ff-svg" viewBox="0 0 ' + chartW + ' ' + FCHART_H + '" role="img" aria-label="가격 캔들차트" style="min-width:' + chartW + 'px">';
 
+    // y축 가격 그리드 5단계 - 지지/저항 가격표(오른쪽 전용 여백)와 겹치지 않게 먼저 그린다
+    var Y_TICKS = 5;
+    for (var t = 0; t < Y_TICKS; t++) {
+      var gv = min + (max - min) * (t / (Y_TICKS - 1));
+      var gy = y(gv);
+      svg += '<line class="ff-grid" x1="' + FCHART_PAD.l + '" x2="' + (chartW - FCHART_PAD.r) + '" y1="' + gy.toFixed(1) + '" y2="' + gy.toFixed(1) + '"/>';
+      svg += '<text class="ff-axis" x="' + (FCHART_PAD.l - 6) + '" y="' + (gy + 4).toFixed(1) + '" text-anchor="end">' + Math.round(gv).toLocaleString() + '</text>';
+    }
+
     (levels.support || []).forEach(function (v) {
-      svg += levelLine(v, 'ff-level-support', '지지 ' + Math.round(v).toLocaleString(), x, y, chartW);
+      svg += levelLine(v, 'ff-level-support', x, y, chartW);
     });
     (levels.resistance || []).forEach(function (v) {
-      svg += levelLine(v, 'ff-level-resistance', '저항 ' + Math.round(v).toLocaleString(), x, y, chartW);
+      svg += levelLine(v, 'ff-level-resistance', x, y, chartW);
     });
 
     daily.forEach(function (d, i) {
@@ -698,17 +716,14 @@
       var bodyTop = y(Math.max(d.open, d.close));
       var bodyBot = y(Math.min(d.open, d.close));
       var bodyH = Math.max(1, bodyBot - bodyTop);
-      var bw = Math.max(2, slot * 0.6);
-      svg += '<line x1="' + xC.toFixed(1) + '" x2="' + xC.toFixed(1) + '" y1="' + y(d.high).toFixed(1) + '" y2="' + y(d.low).toFixed(1) + '" stroke="' + color + '" stroke-width="1"/>';
+      var bw = Math.max(3, slot * 0.68);
+      svg += '<line x1="' + xC.toFixed(1) + '" x2="' + xC.toFixed(1) + '" y1="' + y(d.high).toFixed(1) + '" y2="' + y(d.low).toFixed(1) + '" stroke="' + color + '" stroke-width="1.2"/>';
       svg += '<rect x="' + (xC - bw / 2).toFixed(1) + '" y="' + bodyTop.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bodyH.toFixed(1) + '" fill="' + color + '"/>';
     });
 
     ['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key) {
       svg += maLine(data.ma && data.ma[key], x, y, key);
     });
-
-    svg += '<text class="ff-axis" x="' + (FCHART_PAD.l - 6) + '" y="' + (y(max) + 4).toFixed(1) + '" text-anchor="end">' + Math.round(max).toLocaleString() + '</text>';
-    svg += '<text class="ff-axis" x="' + (FCHART_PAD.l - 6) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + Math.round(min).toLocaleString() + '</text>';
 
     [0, Math.floor((n - 1) / 2), n - 1].forEach(function (i, k) {
       var anchor = k === 0 ? 'start' : (k === 2 ? 'end' : 'middle');
@@ -722,15 +737,21 @@
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma20 + '"></i>20일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma60 + '"></i>60일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma224 + '"></i>224일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
       + '</div>';
 
     return '<div class="ff-chart ff-chart-candle">' + svg + '</div>' + legend;
   }
 
-  function levelLine(v, cls, label, x, y, chartW) {
+  // 지지/저항 가격표는 오른쪽 전용 여백(FCHART_PAD.r)에 박스로 그려서 캔들과 절대 안 겹치게 한다
+  function levelLine(v, cls, x, y, chartW) {
     var yy = y(v);
+    var tagX = chartW - FCHART_PAD.r + 4;
+    var w = FCHART_PAD.r - 8;
     return '<line class="' + cls + '" x1="' + FCHART_PAD.l + '" x2="' + (chartW - FCHART_PAD.r) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '"/>'
-      + '<text class="' + cls + '-label" x="' + (chartW - FCHART_PAD.r - 4) + '" y="' + (yy - 3).toFixed(1) + '" text-anchor="end">' + escapeHtml(label) + '</text>';
+      + '<rect class="' + cls + '-bg" x="' + tagX.toFixed(1) + '" y="' + (yy - 7).toFixed(1) + '" width="' + w.toFixed(1) + '" height="14" rx="3"/>'
+      + '<text class="' + cls + '-label" x="' + (tagX + w / 2).toFixed(1) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="middle">' + Math.round(v).toLocaleString() + '</text>';
   }
 
   function maLine(series, x, y, key) {

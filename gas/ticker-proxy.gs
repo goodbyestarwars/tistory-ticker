@@ -514,7 +514,7 @@ function getFlowAiSummary(params) {
     '수급(외국인·기관) 점수 ' + (params.flowScore || '-') + '점 - ' + (params.flowNote || '데이터 없음'),
     '공매도 압박 점수 ' + (params.shortScore || '-') + '점 - ' + (params.shortNote || '데이터 없음'),
     '연기금 점수 ' + (params.pensionScore || '-') + '점 - ' + (params.pensionNote || '데이터 없음'),
-    '차트 패턴 점수 ' + (params.patternScore || '-') + '점 - ' + (params.patternNote || '데이터 없음')
+    '기술적 점수(이평선·지지·저항) ' + (params.techScore || '-') + '점 - ' + (params.techNote || '데이터 없음')
   ];
   var prompt = '"' + name + '" 종목의 오늘 4가지 수급/기술 지표야:\n' + lines.join('\n') +
     '\n\n이 지표들을 종합해서 "매수", "매도", "보유(관망)" 중 하나의 관점을 문장 맨 앞에 분명히 명시하고, ' +
@@ -587,6 +587,17 @@ function computeSupportResistance_(daily) {
     .sort(function (a, b) { return b - a; }).slice(0, 2);
   var resistance = highLevels.filter(function (v) { return v > lastClose; })
     .sort(function (a, b) { return a - b; }).slice(0, 2);
+
+  // 스윙 조건을 만족하는 레벨이 하나도 없을 때(가격이 구간 최저/최고 부근일 때) 지지/저항선이
+  // 아예 안 보이는 문제가 있었음 - 구간 전체 최저/최고가로 대체해 항상 하나는 표시되게 한다.
+  if (!support.length) {
+    var minLow = Math.min.apply(null, win.map(function (w) { return w.low; }));
+    if (minLow < lastClose) support = [minLow];
+  }
+  if (!resistance.length) {
+    var maxHigh = Math.max.apply(null, win.map(function (w) { return w.high; }));
+    if (maxHigh > lastClose) resistance = [maxHigh];
+  }
 
   return { support: support, resistance: resistance };
 }
