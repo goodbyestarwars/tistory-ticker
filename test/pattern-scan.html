@@ -130,9 +130,12 @@
       var i1 = lows2[0], i2 = lows2[lows2.length - 1];
       var neckIdx = 0, neckHigh = -Infinity;
       for (var k = i1 + 1; k < i2; k++) { if (daily[k].high > neckHigh) { neckHigh = daily[k].high; neckIdx = k; } }
+      var leftStart = Math.max(0, i1 - 30), leftIdx = -1, leftHigh = -Infinity;
+      for (var k2 = leftStart; k2 < i1; k2++) { if (daily[k2].high > leftHigh) { leftHigh = daily[k2].high; leftIdx = k2; } }
       var curD = daily[daily.length - 1];
       var currentD = { date: curD.date, price: curD.close };
       return {
+        leftPeak: leftIdx === -1 ? null : { date: daily[leftIdx].date, price: leftHigh },
         low1: { date: daily[i1].date, price: daily[i1].low },
         low2: { date: daily[i2].date, price: daily[i2].low },
         neckline: { date: daily[neckIdx].date, price: neckHigh },

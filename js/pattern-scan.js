@@ -259,7 +259,8 @@
         autoSize: true,
         height: CHART_H,
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { timeVisible: false, secondsVisible: false }
+        timeScale: { timeVisible: false, secondsVisible: false },
+        localization: { priceFormatter: psChartPriceFormatter }
       }, psThemeOptions()));
       psLwcChart = chart;
 
@@ -314,13 +315,17 @@
       for (var i = 0; i < daily.length; i++) if (daily[i].date === date) return i;
       return -1;
     }
-    // 여러 점을 순서대로 잇는 선(쌍바닥/역헤드앤숄더의 실제 굴곡을 그대로 표현하기 위함)
-    function addLine(points, color) {
+    // 여러 점을 순서대로 잇는 선(쌍바닥/역헤드앤숄더의 실제 굴곡을 그대로 표현하기 위함).
+    // opts.bold를 주면 굵은 실선으로 그려서 패턴 모양(W자 등)이 한눈에 보이게 강조한다.
+    function addLine(points, color, opts) {
       var data = (points || []).filter(function (p) { return p && idxByDate(p.date) >= 0; })
         .map(function (p) { return { time: p.date, value: p.price }; });
       if (data.length < 2) return;
+      var o = opts || {};
       chart.addLineSeries({
-        color: color, lineWidth: 2, lineStyle: LWC.LineStyle.Dashed,
+        color: color,
+        lineWidth: o.bold ? 3 : 2,
+        lineStyle: o.bold ? LWC.LineStyle.Solid : LWC.LineStyle.Dashed,
         priceLineVisible: false, lastValueVisible: false
       }).setData(data);
     }
@@ -331,9 +336,9 @@
       var lastDate = daily[daily.length - 1].date;
       addLine([{ date: daily[fromIdx].date, price: price }, { date: lastDate, price: price }], color);
     }
-    function addDot(p, color, position) {
+    function addDot(p, color, position, size) {
       if (!p || idxByDate(p.date) < 0) return;
-      markers.push({ time: p.date, position: position, color: color, shape: 'circle' });
+      markers.push({ time: p.date, position: position, color: color, shape: 'circle', size: size || 1 });
     }
     // 확인/매수 검토 지점 강조 (참고 이미지의 핑크색 원 컨벤션)
     function addSignal(p) {
@@ -352,15 +357,19 @@
       highs.forEach(function (p) { addDot(p, RESIST_COLOR, 'aboveBar'); });
       if (detail.signal) addSignal(detail.signal); // 오늘(현재가) - 항상 최근 봉 기준
     } else if (pattern === 'doubleBottom') {
-      // 저점1 -> 넥라인(중간 반등 고점) -> 저점2 -> 현재가 순서로 이어야 실제 W 모양이 나온다
+      // 왼쪽 고점(leftPeak) -> 저점1 -> 넥라인(중간 반등 고점) -> 저점2 -> 현재가 순서로 이어야
+      // 위-아래-위-아래-위, 진짜 W자 모양이 나온다(leftPeak 없으면 저점1부터 시작 - 예전과 동일).
+      // 굵은 실선 + 큰 점으로 그려서 눈으로 W 모양이 바로 보이게 강조.
       if (detail.low1 && detail.neckline && detail.low2) {
-        var dbPoints = [detail.low1, detail.neckline, detail.low2];
+        var dbPoints = [];
+        if (detail.leftPeak) dbPoints.push(detail.leftPeak);
+        dbPoints.push(detail.low1, detail.neckline, detail.low2);
         if (detail.current) dbPoints.push(detail.current);
-        addLine(dbPoints, SUPPORT_COLOR);
+        addLine(dbPoints, SUPPORT_COLOR, { bold: true });
         addHLine(detail.neckline.price, detail.low1.date, RESIST_COLOR);
-        addDot(detail.low1, SUPPORT_COLOR, 'belowBar');
-        addDot(detail.low2, SUPPORT_COLOR, 'belowBar');
-        addDot(detail.neckline, RESIST_COLOR, 'aboveBar');
+        addDot(detail.low1, SUPPORT_COLOR, 'belowBar', 1.8);
+        addDot(detail.low2, SUPPORT_COLOR, 'belowBar', 1.8);
+        addDot(detail.neckline, RESIST_COLOR, 'aboveBar', 1.5);
         if (detail.signal) addSignal(detail.signal);
       }
     } else if (pattern === 'invHeadShoulders') {
@@ -428,6 +437,8 @@
     return (r > 0 ? '+' : '') + r.toFixed(2) + '%';
   }
   function fmt(n) { return Math.round(n).toLocaleString('ko-KR'); }
+  // 캔들차트 축·크로스헤어·패턴선에 표시되는 가격에 천단위 콤마(원화는 소수점 없음)
+  function psChartPriceFormatter(v) { return v == null || isNaN(v) ? '' : Math.round(v).toLocaleString(); }
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
