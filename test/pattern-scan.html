@@ -17,7 +17,7 @@
 <div class="page-body">
   <h1>pattern-scan 로컬 테스트</h1>
   <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-  <p style="font-size:13px;color:#888">mock 데이터로 3개 탭 + 캔들차트 오버레이를 확인. 실제 GAS 호출은 배포 후 별도 확인.</p>
+  <p style="font-size:13px;color:#888">mock 데이터로 6개 탭 + 점수/원인/해석 + 캔들차트 오버레이를 확인. 실제 GAS 호출은 배포 후 별도 확인.</p>
   <div id="pattern-scan"></div>
 </div>
 
@@ -58,6 +58,33 @@
   var ihsDaily = genDaily([1800, 1400, 900, 400, 900, 1500, 2100, 1600, 1000, 400, 0, 400, 1000, 1600, 2100, 1500, 900, 400, 900, 1400]);
   // 박스권: 저점끼리·고점끼리 평평하게 오가며, 마지막이 저점 근처
   var boxDaily = genDaily([0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 600, 0, 550, 50, 30]);
+
+  // 눌림목(20일선/60일선): 90일치 - 오래 횡보하다가 최근 20일 안에 15%+ 급등 후 고점 대비 8% 조정
+  function genPullbackDaily() {
+    var daily = [];
+    var base = new Date('2026-07-10');
+    var n = 90;
+    for (var idx = 0; idx < n; idx++) {
+      var i = n - 1 - idx;
+      var d = new Date(base);
+      d.setDate(d.getDate() - i - Math.floor(i / 5) * 2);
+      var level;
+      if (idx < 70) level = 40000 + Math.sin(idx / 6) * 500; // 오래 횡보(이평 안정)
+      else if (idx < 82) level = 40000 + (idx - 69) * 550;   // 12거래일 동안 +15%대 급등(고점 idx=81)
+      else level = 46600 - (idx - 81) * 300;                  // 이후 완만히 조정(고점 대비 -8%대)
+      var closeP = level;
+      var low = level - 250 - Math.random() * 300;
+      var high = level + 250 + Math.random() * 300;
+      var open = low + Math.random() * (high - low) * 0.5;
+      daily.push({
+        date: d.toISOString().slice(0, 10),
+        open: Math.round(open), high: Math.round(high), low: Math.round(low), close: Math.round(closeP),
+        volume: Math.round(idx > 81 ? 3000000 + Math.random() * 1000000 : 6000000 + Math.random() * 3000000)
+      });
+    }
+    return daily;
+  }
+  var pullbackDaily = genPullbackDaily();
 
   // 골파기(MA60): 90일치 - 0~84일 완만한 하락(이평 아래) -> 85~89일(최근 5일) 급반등해 이평을 막 돌파
   function genGoldDaily() {
@@ -120,7 +147,10 @@
         high_swings: highs.map(function (i) { return { date: daily[i].date, price: daily[i].high }; }),
         resistance: Math.max.apply(null, highs.map(function (i) { return daily[i].high; })),
         signal: currentR,
-        breakout: false
+        breakout: false,
+        score: 86,
+        reasons: ['저점 8.3% 상승(40/40점)', '저점 간격 12거래일(20/20점)', '5일선 저항 근접도(16/20점)', '거래량 감소(10/10점)', '최근 캔들 양봉(0/10점)'],
+        interpretation: '저점이 8.3% 높아지며 하락 압력이 약해지는 구간으로 추정됩니다(86점).'
       };
     }
     if (pattern === 'doubleBottom') {
@@ -136,7 +166,10 @@
         neckline: { date: daily[neckIdx].date, price: neckHigh },
         current: currentD,
         signal: currentD,
-        breakout: false
+        breakout: false,
+        score: 78,
+        reasons: ['저점 가격차 0.8%(40/40점)', '저점 간격 18거래일(20/20점)', '넥라인 반등폭 6.5%(20/20점)', '거래량 유지/증가(0/10점)', '현재가-넥라인 근접도(5/10점)'],
+        interpretation: '두 저점이 0.8% 차이로 비슷한 쌍바닥 구조로 추정됩니다(78점).'
       };
     }
     if (pattern === 'invHeadShoulders') {
@@ -159,7 +192,10 @@
         neckline: { date: necklinePoint.date, price: Math.min(p1.high, p2.high) },
         current: (function () { var c = daily[daily.length - 1]; return { date: c.date, price: c.close }; })(),
         signal: (function () { var c = daily[daily.length - 1]; return { date: c.date, price: c.close }; })(),
-        breakout: false
+        breakout: false,
+        score: 91,
+        reasons: ['헤드 하락폭 평균 6.2%(50/50점)', '현재가-넥라인 근접도(20/20점)', '양 어깨 가격차 1.5%(20/20점)', '거래량 감소(0/10점)'],
+        interpretation: '좌우 어깨가 비슷한 높이(차이 1.5%)의 역헤드앤숄더 구조로 추정됩니다(91점).'
       };
     }
     if (pattern === 'boxRangeLow') {
@@ -173,7 +209,10 @@
         low_swings: bLows.map(function (i) { return { date: daily[i].date, price: daily[i].low }; }),
         high_swings: bHighs.map(function (i) { return { date: daily[i].date, price: daily[i].high }; }),
         signal: { date: lastRow.date, price: lastRow.close },
-        breakout: false
+        breakout: false,
+        score: 73,
+        reasons: ['박스 상/하단 평평도(18/30점)', '지지선 근접도 0.5%(40/40점)', '거래량 감소(0/20점)', '최근 캔들 양봉(10/10점)'],
+        interpretation: '박스권 하단 지지선 부근(지지선 대비 +0.5%)에서 반등을 시도하는 구간으로 추정됩니다(73점).'
       };
     }
     if (pattern === 'goldPitReversal') {
@@ -199,18 +238,53 @@
         cross: { date: daily[crossIdx].date, price: daily[crossIdx].close },
         current: { date: lastRow2.date, price: lastRow2.close },
         signal: { date: lastRow2.date, price: lastRow2.close },
-        breakout: false
+        breakout: false,
+        score: 82,
+        reasons: ['전환 전 하락추세 비율 83%(40/40점)', 'MA60 돌파 후 1거래일 경과(30/30점)', 'MA60 이격도 1.8%(20/20점)', '돌파일 거래량 평이(0/10점)'],
+        interpretation: '장기 하락추세(전환 전 하락 비율 83%) 이후 60일선을 막 돌파한 초기 구간으로 추정됩니다(82점).'
+      };
+    }
+    if (pattern === 'pullback') {
+      var pma20 = [], pma60 = [], psum20 = 0, psum60 = 0;
+      for (var pi = 0; pi < daily.length; pi++) {
+        psum20 += daily[pi].close; if (pi >= 20) psum20 -= daily[pi - 20].close;
+        pma20[pi] = pi >= 19 ? psum20 / 20 : null;
+        psum60 += daily[pi].close; if (pi >= 60) psum60 -= daily[pi - 60].close;
+        pma60[pi] = pi >= 59 ? psum60 / 60 : null;
+      }
+      var recentStart = Math.max(0, daily.length - 25);
+      var peakIdx = recentStart;
+      for (var pj = recentStart; pj < daily.length; pj++) { if (daily[pj].close > daily[peakIdx].close) peakIdx = pj; }
+      var lowIdxP = recentStart;
+      for (var pk = recentStart; pk <= peakIdx; pk++) { if (daily[pk].close < daily[lowIdxP].close) lowIdxP = pk; }
+      if (lowIdxP >= peakIdx) return null;
+      var lastP = daily[daily.length - 1];
+      return {
+        rise_start: { date: daily[lowIdxP].date, price: daily[lowIdxP].close },
+        peak: { date: daily[peakIdx].date, price: daily[peakIdx].close },
+        current: { date: lastP.date, price: lastP.close },
+        signal: { date: lastP.date, price: lastP.close },
+        ma20: pma20[daily.length - 1],
+        ma60: pma60[daily.length - 1],
+        breakout: false,
+        score: 88,
+        reasons: ['상승폭 16.5%(22/30점)', '조정폭 8.2%(30/30점)', '20일선 근접도(20/20점)', '거래량 감소(10/10점)', '최근 캔들 음봉(0/10점)'],
+        interpretation: '16.5% 상승 후 8.2% 눌림목 조정을 받아 20일선 부근에서 지지를 시도하는 구간으로 추정됩니다(88점).'
       };
     }
     return null;
   }
 
-  function mockMatch(daily, code, name) {
+  function mockMatch(daily, code, name, pattern) {
     var last = daily[daily.length - 1], prev = daily[daily.length - 2];
+    var detail = detectMock(daily, pattern);
     return {
       code: code, name: name, price: last.close,
       changeRate: ((last.close - prev.close) / prev.close * 100),
-      date: last.date
+      date: last.date,
+      score: detail && detail.score,
+      reasons: detail && detail.reasons,
+      interpretation: detail && detail.interpretation
     };
   }
 
@@ -219,7 +293,8 @@
     doubleBottom: { daily: doubleBottomDaily, code: '000660', name: 'SK하이닉스' },
     invHeadShoulders: { daily: ihsDaily, code: '035420', name: 'NAVER' },
     boxRangeLow: { daily: boxDaily, code: '005380', name: '현대차' },
-    goldPitReversal: { daily: goldDaily, code: '000270', name: '기아' }
+    goldPitReversal: { daily: goldDaily, code: '000270', name: '기아' },
+    pullback: { daily: pullbackDaily, code: '012330', name: '현대모비스' }
   };
 
   PatternScan.fetchJson = function (url) {
@@ -230,11 +305,12 @@
         universe: 238,
         scanned: 236,
         patterns: {
-          risingLows: [mockMatch(byPattern.risingLows.daily, '005930', '삼성전자'), mockMatch(byPattern.risingLows.daily, '005380', '현대차')],
-          doubleBottom: [mockMatch(byPattern.doubleBottom.daily, '000660', 'SK하이닉스')],
-          invHeadShoulders: [mockMatch(byPattern.invHeadShoulders.daily, '035420', 'NAVER')],
-          boxRangeLow: [mockMatch(byPattern.boxRangeLow.daily, '005380', '현대차')],
-          goldPitReversal: [mockMatch(byPattern.goldPitReversal.daily, '000270', '기아')]
+          risingLows: [mockMatch(byPattern.risingLows.daily, '005930', '삼성전자', 'risingLows'), mockMatch(byPattern.risingLows.daily, '005380', '현대차', 'risingLows')],
+          doubleBottom: [mockMatch(byPattern.doubleBottom.daily, '000660', 'SK하이닉스', 'doubleBottom')],
+          invHeadShoulders: [mockMatch(byPattern.invHeadShoulders.daily, '035420', 'NAVER', 'invHeadShoulders')],
+          boxRangeLow: [mockMatch(byPattern.boxRangeLow.daily, '005380', '현대차', 'boxRangeLow')],
+          goldPitReversal: [mockMatch(byPattern.goldPitReversal.daily, '000270', '기아', 'goldPitReversal')],
+          pullback: [mockMatch(byPattern.pullback.daily, '012330', '현대모비스', 'pullback')]
         }
       });
     }

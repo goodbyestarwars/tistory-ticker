@@ -15,8 +15,20 @@
   var REFRESH_MS = 45 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
 
-  var CATEGORY_ORDER = ['KOSPI', 'KOSDAQ', 'ETF', 'LEV'];
-  var CATEGORY_LABELS = { KOSPI: '코스피', KOSDAQ: '코스닥', ETF: 'ETF', LEV: '단일종목 레버리지' };
+  var CATEGORY_ORDER = ['KOSPI', 'KOSDAQ', 'ETF', 'INVERSE', 'LEV'];
+  var CATEGORY_LABELS = { KOSPI: '코스피', KOSDAQ: '코스닥', ETF: 'ETF', INVERSE: '인버스 ETF', LEV: '단일종목 레버리지' };
+
+  // 등락률 -3%~+3% 7단계 색 구간(경계는 정수% 눈금을 가운데 두도록 ±0.5% 간격).
+  // 파랑(하락)-회색(보합)-빨강(상승) 대비, CSS(.mcb-cell.mcb-c-3 ~ .mcb-c3)에서 실제 색 정의.
+  var HEAT_BUCKETS = [
+    { max: -2.5, cls: 'mcb-c-3' },
+    { max: -1.5, cls: 'mcb-c-2' },
+    { max: -0.5, cls: 'mcb-c-1' },
+    { max: 0.5, cls: 'mcb-c0' },
+    { max: 1.5, cls: 'mcb-c1' },
+    { max: 2.5, cls: 'mcb-c2' },
+    { max: Infinity, cls: 'mcb-c3' }
+  ];
 
   var VIEW_W = 820;
   var VIEW_H = 1150;      // 세로로 넉넉하게 키워 각 셀이 커지고 종목명이 더 많이 보이게 함
@@ -151,10 +163,12 @@
     return Math.max(lo, Math.min(hi, v));
   }
 
-  function directionClass(rate) {
-    if (rate > 0) return 'mcb-up';
-    if (rate < 0) return 'mcb-down';
-    return 'mcb-flat';
+  function heatClass(rate) {
+    var r = typeof rate === 'number' ? rate : 0;
+    for (var i = 0; i < HEAT_BUCKETS.length; i++) {
+      if (r <= HEAT_BUCKETS[i].max) return HEAT_BUCKETS[i].cls;
+    }
+    return 'mcb-c0';
   }
 
   function formatCap(cap) {
@@ -205,22 +219,49 @@
   // 2단계 스퀘어파이드 트리맵: 1) 4개 구역(코스피/코스닥/ETF/레버리지)을 총 시가총액
   // 비율대로 큰 캔버스에 배치 2) 각 구역 안에서 종목들을 그 구역 시가총액 비율대로
   // 다시 배치. 구역마다 위쪽에 이름표 띠를 확보해 구역 구분을 표시한다.
-  function buildLayout(data) {
-    var zones = CATEGORY_ORDER.map(function (cat) {
-      var items = (data[cat] || [])
+  // 전체 KOSPI+KOSDAQ 종목 중 업종(섹터)명이 sectors 배열에 포함된 것만 모아 리스트로 반환.
+  // 한 종목이 여러 섹터에 속할 수 있어(sectors-v3.js 중복 포함 규칙) 단순 필터링이면 충분.
+  function uniqueSectors(data) {
+    var set = {};
+    ['KOSPI', 'KOSDAQ'].forEach(function (cat) {
+      (data[cat] || []).forEach(function (it) {
+        (it.sectors || []).forEach(function (s) { set[s] = true; });
+      });
+    });
+    return Object.keys(set).sort(function (a, b) { return a.localeCompare(b, 'ko'); });
+  }
+
+  // sectorFilter가 있으면 코스피+코스닥을 합쳐 그 업종에 속한 종목만 단일 구역으로,
+  // 없으면(전체) 기존처럼 카테고리별 구역으로 나눈다.
+  function buildLayout(data, sectorFilter) {
+    var zones;
+    if (sectorFilter) {
+      var items = []
+        .concat(data.KOSPI || [], data.KOSDAQ || [])
+        .filter(function (it) { return (it.sectors || []).indexOf(sectorFilter) > -1; })
         .map(function (it) {
-          return {
-            name: it.name,
-            cap: it.cap || 0,
-            changeRate: it.changeRate,
-            breakdown: it.breakdown,
-            category: cat
-          };
+          return { name: it.name, cap: it.cap || 0, changeRate: it.changeRate, category: 'SECTOR' };
         })
         .filter(function (it) { return it.cap > 0; });
       var totalCap = items.reduce(function (s, it) { return s + it.cap; }, 0);
-      return { key: cat, label: CATEGORY_LABELS[cat] || cat, items: items, cap: totalCap };
-    }).filter(function (z) { return z.items.length && z.cap > 0; });
+      zones = items.length ? [{ key: 'SECTOR', label: sectorFilter, items: items, cap: totalCap }] : [];
+    } else {
+      zones = CATEGORY_ORDER.map(function (cat) {
+        var catItems = (data[cat] || [])
+          .map(function (it) {
+            return {
+              name: it.name,
+              cap: it.cap || 0,
+              changeRate: it.changeRate,
+              breakdown: it.breakdown,
+              category: cat
+            };
+          })
+          .filter(function (it) { return it.cap > 0; });
+        var catTotalCap = catItems.reduce(function (s, it) { return s + it.cap; }, 0);
+        return { key: cat, label: CATEGORY_LABELS[cat] || cat, items: catItems, cap: catTotalCap };
+      }).filter(function (z) { return z.items.length && z.cap > 0; });
+    }
 
     if (!zones.length) return { nodes: [], viewH: VIEW_H, clusterLabels: [] };
 
@@ -291,10 +332,13 @@
     return { nodes: nodes, viewH: VIEW_H, clusterLabels: clusterLabels };
   }
 
+  // 카테고리 구분은 구역 이름표로 하므로, 범례는 등락률 색상 구간(-3%~+3%)만 안내.
   function buildLegendHtml() {
-    // 카테고리 구분은 구역 이름표로 하므로, 범례는 등락 색상 의미만 안내.
-    return '<span class="mcb-legend-item"><i class="mcb-dot mcb-up"></i>상승</span>' +
-      '<span class="mcb-legend-item"><i class="mcb-dot mcb-down"></i>하락</span>';
+    var ticks = ['-3%', '-2%', '-1%', '0%', '1%', '2%', '3%'];
+    var cells = HEAT_BUCKETS.map(function (b, i) {
+      return '<span class="mcb-legend-seg ' + b.cls + '">' + ticks[i] + '</span>';
+    }).join('');
+    return '<span class="mcb-legend-caption">변동률</span><span class="mcb-legend-scale">' + cells + '</span>';
   }
 
   // 글자 크기가 셀마다 다르게 연속 조절되면서, 글자수 기반 어림값(폭/7.5)으로는
@@ -328,6 +372,10 @@
       // 반드시 그 안의 자식이어야 한다 - 형제로 두면 더 위쪽 조상 엘리먼트를
       // 기준으로 absolute 배치가 틀어져 엉뚱한 위치(페이지 상단 등)에 뜬다.
       container.innerHTML =
+        '<div class="mcb-filter-bar">' +
+        '<label class="mcb-filter-label" for="mcbSectorFilter">업종</label>' +
+        '<select id="mcbSectorFilter" class="mcb-filter-select"><option value="">전체</option></select>' +
+        '</div>' +
         '<div class="mcb-canvas"><div class="mcb-tooltip" hidden></div></div>' +
         '<div class="mcb-legend"></div>' +
         '<div class="mcb-updated"></div>';
@@ -335,6 +383,12 @@
       svg.appendChild(svgEl('g', { class: 'mcb-cells' }));
       svg.appendChild(svgEl('g', { class: 'mcb-cluster-labels' }));
       container.querySelector('.mcb-canvas').insertBefore(svg, container.querySelector('.mcb-tooltip'));
+
+      container.querySelector('#mcbSectorFilter').addEventListener('change', function (e) {
+        container.__mcbSectorFilter = e.target.value;
+        var lastData = container.__mcbLastData;
+        if (lastData) renderFromData(container, lastData, container.__mcbLastUpdatedAt);
+      });
     } else {
       svg.setAttribute('viewBox', '0 0 ' + VIEW_W + ' ' + viewH);
     }
@@ -370,7 +424,7 @@
       tooltip.innerHTML =
         '<div class="mcb-tt-name">' + item.name + '</div>' +
         '<div class="mcb-tt-cap">시가총액 ' + formatCap(item.cap) + '</div>' +
-        '<div class="mcb-tt-rate ' + directionClass(item.changeRate) + '">' + rateTxt + '</div>' +
+        '<div class="mcb-tt-rate ' + heatClass(item.changeRate) + '">' + rateTxt + '</div>' +
         (item.breakdown ? '<div class="mcb-tt-breakdown">' + item.breakdown + '</div>' : '');
       tooltip.hidden = false;
       positionTooltip(item.x + item.w / 2, item.y);
@@ -437,7 +491,7 @@
       }
       node.__mcbItem = item;
 
-      var dirClass = directionClass(item.changeRate);
+      var dirClass = heatClass(item.changeRate);
       var big = item.w >= 90 && item.h >= 56;
       var mid = item.w >= 56 && item.h >= 34;
       var small = item.w >= 34 && item.h >= 20;
@@ -497,13 +551,45 @@
     container.innerHTML = '<div class="mcb-error">' + message + '</div>';
   }
 
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function escapeAttr(s) { return escapeHtml(s); }
+
+  // 업종 <select> 옵션을 데이터 기준으로 갱신. 매 tick(45초)마다 통째로 다시 그리면
+  // 사용자가 고른 값이 날아가므로, 옵션 목록이 실제로 바뀔 때만 innerHTML을 갱신하고
+  // 현재 선택값은 유지한다.
+  function updateSectorOptions(container, data) {
+    var select = container.querySelector('#mcbSectorFilter');
+    if (!select) return;
+    var sectors = uniqueSectors(data);
+    var optionsHtml = '<option value="">전체</option>' + sectors.map(function (s) {
+      return '<option value="' + escapeAttr(s) + '">' + escapeHtml(s) + '</option>';
+    }).join('');
+    if (select.__mcbOptionsSig === optionsHtml) return;
+    var current = select.value;
+    select.innerHTML = optionsHtml;
+    select.__mcbOptionsSig = optionsHtml;
+    if (current && sectors.indexOf(current) > -1) select.value = current;
+  }
+
+  function renderFromData(container, data, updatedAt) {
+    var sectorFilter = container.__mcbSectorFilter || '';
+    var layout = buildLayout(data, sectorFilter);
+    var legendHtml = buildLegendHtml();
+    render(container, layout.nodes, layout.viewH, updatedAt, legendHtml, layout.clusterLabels);
+    updateSectorOptions(container, data);
+  }
+
   function tick(container) {
     MarketcapBubble.fetchBubbleData()
       .then(function (json) {
         if (!json || !json.data) throw new Error('empty bubble data');
-        var layout = buildLayout(json.data);
-        var legendHtml = buildLegendHtml();
-        render(container, layout.nodes, layout.viewH, json.updatedAt, legendHtml, layout.clusterLabels);
+        container.__mcbLastData = json.data;
+        container.__mcbLastUpdatedAt = json.updatedAt;
+        renderFromData(container, json.data, json.updatedAt);
       })
       .catch(function (err) {
         logError('[marketcap-bubble] 조회 실패', err);

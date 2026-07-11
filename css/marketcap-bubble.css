@@ -4,6 +4,27 @@
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Pretendard, sans-serif;
 }
 
+.mcb-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.mcb-filter-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #6b7280;
+}
+.mcb-filter-select {
+  font-size: 12.5px;
+  padding: 5px 8px;
+  border: 1px solid #d5d8de;
+  border-radius: 6px;
+  background: #fff;
+  color: #222;
+  max-width: 220px;
+}
+
 .mcb-canvas {
   position: relative;
   width: 100%;
@@ -27,11 +48,16 @@
               fill 0.4s ease, stroke 0.4s ease;
 }
 
-/* 채우기 = 등락(더 진하고 채도 높은 톤, 글라스모피즘 없이 각진 평면 색). 카테고리는 색이 아니라
-   구역 이름표(.mcb-zone-label)로 구분한다. */
-.mcb-cell.mcb-up { fill: #a8291f; }
-.mcb-cell.mcb-down { fill: #0d3f8f; }
-.mcb-cell.mcb-flat { fill: #1b2d54; }
+/* 채우기 = 등락률 -3%~+3% 7단계 색(더 진하고 채도 높은 톤, 글라스모피즘 없이 각진 평면 색).
+   카테고리는 색이 아니라 구역 이름표(.mcb-zone-label)로 구분한다. 파랑(하락)-회색(보합)-빨강(상승),
+   흰 글자가 모든 구간에서 읽히도록 명도를 비슷하게 맞춰뒀다(옅은 파스텔 금지). */
+.mcb-cell.mcb-c-3 { fill: #0a3170; }
+.mcb-cell.mcb-c-2 { fill: #0d3f8f; }
+.mcb-cell.mcb-c-1 { fill: #2c5aa8; }
+.mcb-cell.mcb-c0 { fill: #55606e; }
+.mcb-cell.mcb-c1 { fill: #a8453b; }
+.mcb-cell.mcb-c2 { fill: #a8291f; }
+.mcb-cell.mcb-c3 { fill: #7a1912; }
 /* 테두리는 방향을 또 표현하지 않고, 유리 가장자리처럼 옅은 흰 테를 둘러 입체감만 준다 */
 .mcb-cell { stroke: rgba(255, 255, 255, 0.55); }
 
@@ -95,9 +121,11 @@
 .mcb-tt-name { font-weight: 700; margin-bottom: 3px; }
 .mcb-tt-cap { color: #d1d5db; }
 .mcb-tt-rate { font-weight: 700; }
-.mcb-tt-rate.mcb-up { color: #ff6b6b; }
-.mcb-tt-rate.mcb-down { color: #4dabf7; }
-.mcb-tt-rate.mcb-flat { color: #9ca3af; }
+.mcb-tt-rate.mcb-c-3, .mcb-tt-rate.mcb-c-2 { color: #4dabf7; }
+.mcb-tt-rate.mcb-c-1 { color: #8fc4ff; }
+.mcb-tt-rate.mcb-c0 { color: #9ca3af; }
+.mcb-tt-rate.mcb-c1 { color: #ff9d90; }
+.mcb-tt-rate.mcb-c2, .mcb-tt-rate.mcb-c3 { color: #ff6b6b; }
 .mcb-tt-breakdown {
   margin-top: 5px;
   font-size: 11px;
@@ -106,27 +134,37 @@
 
 .mcb-legend {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 6px 14px;
+  gap: 8px;
   margin-top: 12px;
-  font-size: 12px;
+  font-size: 11.5px;
   color: #6b7280;
 }
 
-.mcb-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.mcb-legend-caption {
+  font-weight: 700;
 }
 
-.mcb-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
+.mcb-legend-scale {
+  display: inline-flex;
+  border-radius: 5px;
+  overflow: hidden;
 }
-.mcb-dot.mcb-up { background: #a8291f; }
-.mcb-dot.mcb-down { background: #0d3f8f; }
+
+.mcb-legend-seg {
+  padding: 3px 8px;
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+.mcb-legend-seg.mcb-c-3 { background: #0a3170; }
+.mcb-legend-seg.mcb-c-2 { background: #0d3f8f; }
+.mcb-legend-seg.mcb-c-1 { background: #2c5aa8; }
+.mcb-legend-seg.mcb-c0 { background: #55606e; }
+.mcb-legend-seg.mcb-c1 { background: #a8453b; }
+.mcb-legend-seg.mcb-c2 { background: #a8291f; }
+.mcb-legend-seg.mcb-c3 { background: #7a1912; }
 
 .mcb-updated {
   margin-top: 6px;
@@ -147,11 +185,20 @@
 html.dark #marketcap-bubble .mcb-canvas {
   background: linear-gradient(180deg, #1c1c1e 0%, #131316 100%);
 }
-html.dark #marketcap-bubble .mcb-cell.mcb-up { fill: #ff6b6b; }
-html.dark #marketcap-bubble .mcb-cell.mcb-down { fill: #4dabf7; }
-html.dark #marketcap-bubble .mcb-cell.mcb-flat { fill: #2c3f70; }
-html.dark #marketcap-bubble .mcb-dot.mcb-up { background: #ff6b6b; }
-html.dark #marketcap-bubble .mcb-dot.mcb-down { background: #4dabf7; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c-3 { fill: #2f5fb0; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c-2 { fill: #4dabf7; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c-1 { fill: #7ec2fa; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c0 { fill: #7c8aa5; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c1 { fill: #ff9d90; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c2 { fill: #ff6b6b; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c3 { fill: #d94a3f; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-3 { background: #2f5fb0; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-2 { background: #4dabf7; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-1 { background: #7ec2fa; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c0 { background: #7c8aa5; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c1 { background: #ff9d90; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c2 { background: #ff6b6b; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c3 { background: #d94a3f; }
 html.dark #marketcap-bubble .mcb-zone-label {
   fill: #8b98b3;
 }
@@ -163,4 +210,12 @@ html.dark #marketcap-bubble .mcb-updated {
 }
 html.dark #marketcap-bubble .mcb-error {
   color: #b3bdcf !important;
+}
+html.dark #marketcap-bubble .mcb-filter-label {
+  color: #b3bdcf !important;
+}
+html.dark #marketcap-bubble .mcb-filter-select {
+  background: #262626 !important;
+  border-color: #444 !important;
+  color: #eee !important;
 }

@@ -1,0 +1,174 @@
+/* 연기금 분석 위젯 (js/pension-fund.js)
+ * 상승/순매수=빨강 #d24f45, 하락/순매도=파랑 #1261c4 (사이트 공통 컬러)
+ * 다크모드: html.dark #pension-fund ... !important (9bolt 스킨 블랑켓 규칙 대응) */
+
+#pension-fund {
+  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+  color: #222;
+  line-height: 1.5;
+  margin: 16px 0;
+}
+
+/* ---- 검색 (foreign-flow.css와 동일 패턴) ---- */
+#pension-fund .pf-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+#pension-fund .pf-input-wrap {
+  position: relative;
+  flex: 1;
+}
+#pension-fund .pf-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+}
+#pension-fund .pf-input:focus { border-color: #888; }
+#pension-fund .pf-search-btn {
+  padding: 9px 18px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#pension-fund .pf-search-btn:hover { background: #555; }
+
+#pension-fund .pf-suggest {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 30;
+  max-height: 260px;
+  overflow-y: auto;
+}
+#pension-fund .pf-suggest.active { display: block; }
+#pension-fund .pf-suggest-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+#pension-fund .pf-suggest-item:hover { background: #f2f2f2; }
+
+/* ---- 상태 메시지 ---- */
+#pension-fund .pf-hint,
+#pension-fund .pf-loading {
+  padding: 24px 12px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+#pension-fund .pf-error {
+  padding: 18px 12px;
+  text-align: center;
+  color: #c0392b;
+  font-size: 14px;
+  background: #fdf3f2;
+  border: 1px solid #f0d5d2;
+  border-radius: 6px;
+}
+
+/* ---- 결과 카드 ---- */
+#pension-fund .pf-card {
+  padding: 18px 20px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+#pension-fund .pf-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+#pension-fund .pf-title { font-size: 16px; font-weight: 700; }
+#pension-fund .pf-asof { font-size: 12px; color: #999; white-space: nowrap; }
+
+#pension-fund .pf-streak-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+#pension-fund .pf-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  background: #f7f7f8;
+  border-radius: 8px;
+}
+#pension-fund .pf-metric-label { font-size: 11.5px; color: #888; margin-bottom: 2px; }
+#pension-fund .pf-metric-value { font-size: 14px; font-weight: 700; }
+#pension-fund .pf-up { color: #d24f45; }
+#pension-fund .pf-down { color: #1261c4; }
+
+#pension-fund .pf-interp {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border-left: 4px solid #9aa0a6;
+  font-size: 13px;
+}
+#pension-fund .pf-interp-label { font-weight: 700; margin-right: 6px; }
+#pension-fund .pf-interp.pf-tone-very_positive { border-left-color: #d24f45; background: #fdf1f0; }
+#pension-fund .pf-interp.pf-tone-positive { border-left-color: #e8752c; background: #fdf5ee; }
+#pension-fund .pf-interp.pf-tone-neutral_positive { border-left-color: #e0a300; background: #fdf8ec; }
+#pension-fund .pf-interp.pf-tone-caution { border-left-color: #1261c4; background: #eef4fc; }
+#pension-fund .pf-interp.pf-tone-neutral { border-left-color: #9aa0a6; background: #f5f5f6; }
+
+#pension-fund .pf-note {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: #999;
+}
+
+/* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
+html.dark #pension-fund { color: #ddd !important; }
+html.dark #pension-fund .pf-input {
+  background: #2a2a2a !important;
+  border-color: #444 !important;
+  color: #eee !important;
+}
+html.dark #pension-fund .pf-search-btn { background: #555 !important; color: #eee !important; }
+html.dark #pension-fund .pf-suggest {
+  background: #2a2a2a !important;
+  border-color: #444 !important;
+}
+html.dark #pension-fund .pf-suggest-item { color: #ddd !important; }
+html.dark #pension-fund .pf-suggest-item:hover { background: #3a3a3a !important; }
+html.dark #pension-fund .pf-hint,
+html.dark #pension-fund .pf-loading { color: #999 !important; }
+html.dark #pension-fund .pf-card {
+  background: #262626 !important;
+  border-color: #3a3a3a !important;
+}
+html.dark #pension-fund .pf-asof { color: #888 !important; }
+html.dark #pension-fund .pf-metrics { background: #1f1f1f !important; }
+html.dark #pension-fund .pf-metric-label { color: #999 !important; }
+html.dark #pension-fund .pf-up { color: #ff6b5b !important; }
+html.dark #pension-fund .pf-down { color: #4d9fff !important; }
+html.dark #pension-fund .pf-interp.pf-tone-very_positive { background: #3a2323 !important; }
+html.dark #pension-fund .pf-interp.pf-tone-positive { background: #362a1f !important; }
+html.dark #pension-fund .pf-interp.pf-tone-neutral_positive { background: #34301f !important; }
+html.dark #pension-fund .pf-interp.pf-tone-caution { background: #202a38 !important; }
+html.dark #pension-fund .pf-interp.pf-tone-neutral { background: #2a2a2a !important; }
+html.dark #pension-fund .pf-note { color: #888 !important; }

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>pension-fund 로컬 테스트</title>
+<link rel="stylesheet" href="../css/pension-fund.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 780px; margin: 40px auto; padding: 0 16px; }
+  .toggle-dark { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="page-body">
+  <h1>pension-fund 로컬 테스트</h1>
+  <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+  <p style="font-size:13px;color:#888">
+    기본은 mock 데이터(연속 순매수 14일, "삼성전자" 검색 시). 실제 GAS 호출로 테스트하려면
+    <code>?real=1</code>을 붙이세요(GAS 재배포 후).
+  </p>
+  <div id="pension-fund"></div>
+</div>
+
+<script src="../data/krx_map.js"></script>
+<script src="../js/pension-fund.js"></script>
+<script>
+  if (location.search.indexOf('real=1') === -1) {
+    PensionFund.fetchPensionFund = function (code) {
+      console.log('[mock] fetchPensionFund', code);
+      var name = '(mock)';
+      var map = window.KRX_MAP || {};
+      for (var nm in map) { if (map[nm] === code) { name = nm; break; } }
+
+      return Promise.resolve({
+        code: code,
+        name: name,
+        as_of: '2026-07-10',
+        streak: { days: 14, direction: 'buy' },
+        net_5d: 42000000000,
+        net_20d: 125400000000,
+        net_60d: 310000000000,
+        net_cumulative: 412000000000,
+        cumulative_window_days: 98,
+        avg_buy_price: 85400,
+        current_price: 89100,
+        return_pct: 4.33,
+        foreign_net_5d: 30000000000,
+        interpretation: {
+          tone: 'very_positive',
+          label: '매우 긍정',
+          text: '연기금이 14일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다.'
+        }
+      });
+    };
+  }
+</script>
+
+</body>
+</html>

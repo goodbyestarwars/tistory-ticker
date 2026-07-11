@@ -1,0 +1,192 @@
+/* 관심종목 카드 위젯 (js/watchlist.js)
+ * 상승=빨강 #d24f45, 하락=파랑 #1261c4 (사이트 공통 컬러)
+ * 다크모드: html.dark #watchlist ... !important (9bolt 스킨 블랑켓 규칙 대응) */
+
+#watchlist {
+  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+  color: #222;
+  line-height: 1.5;
+  margin: 16px 0;
+}
+
+/* ---- 헤더/추가 ---- */
+#watchlist .wl-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+#watchlist .wl-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+#watchlist .wl-count {
+  font-size: 13px;
+  font-weight: 400;
+  color: #888;
+}
+#watchlist .wl-add {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
+}
+#watchlist .wl-input-wrap {
+  position: relative;
+  flex: 1;
+}
+#watchlist .wl-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+}
+#watchlist .wl-input:focus { border-color: #888; }
+#watchlist .wl-add-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  border: none;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#watchlist .wl-add-btn:hover { background: #555; }
+
+#watchlist .wl-suggest {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 30;
+  max-height: 260px;
+  overflow-y: auto;
+}
+#watchlist .wl-suggest.active { display: block; }
+#watchlist .wl-suggest-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+#watchlist .wl-suggest-item:hover { background: #f2f2f2; }
+
+/* ---- 상태 메시지 ---- */
+#watchlist .wl-msg {
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #c0392b;
+  background: #fdf3f2;
+  border: 1px solid #f0d5d2;
+  border-radius: 6px;
+}
+#watchlist .wl-empty {
+  padding: 32px 12px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+  border: 1px dashed #ddd;
+  border-radius: 10px;
+}
+
+/* ---- 카드 그리드 ---- */
+#watchlist .wl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+#watchlist .wl-card {
+  position: relative;
+  padding: 14px 12px 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+#watchlist .wl-card:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+#watchlist .wl-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #e0a300;
+  font-size: 16px;
+  line-height: 22px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+#watchlist .wl-remove:hover { background: rgba(0, 0, 0, 0.06); }
+#watchlist .wl-name {
+  font-size: 14px;
+  font-weight: 700;
+  padding-right: 22px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#watchlist .wl-price {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+#watchlist .wl-change {
+  font-size: 13px;
+  color: #888;
+}
+#watchlist .wl-change.wl-up { color: #d24f45; }
+#watchlist .wl-change.wl-down { color: #1261c4; }
+
+/* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
+html.dark #watchlist { color: #ddd !important; }
+html.dark #watchlist .wl-count { color: #999 !important; }
+html.dark #watchlist .wl-input {
+  background: #2a2a2a !important;
+  border-color: #444 !important;
+  color: #eee !important;
+}
+html.dark #watchlist .wl-add-btn { background: #555 !important; color: #eee !important; }
+html.dark #watchlist .wl-suggest {
+  background: #2a2a2a !important;
+  border-color: #444 !important;
+}
+html.dark #watchlist .wl-suggest-item { color: #ddd !important; }
+html.dark #watchlist .wl-suggest-item:hover { background: #3a3a3a !important; }
+html.dark #watchlist .wl-msg {
+  color: #ff8a80 !important;
+  background: #3a2323 !important;
+  border-color: #5a3333 !important;
+}
+html.dark #watchlist .wl-empty { color: #999 !important; border-color: #444 !important; }
+html.dark #watchlist .wl-card {
+  background: #262626 !important;
+  border-color: #3a3a3a !important;
+}
+html.dark #watchlist .wl-remove { color: #e0b040 !important; }
+html.dark #watchlist .wl-remove:hover { background: rgba(255, 255, 255, 0.08) !important; }
+html.dark #watchlist .wl-name { color: #eee !important; }
+html.dark #watchlist .wl-price { color: #eee !important; }
+html.dark #watchlist .wl-change { color: #999 !important; }
+html.dark #watchlist .wl-change.wl-up { color: #ff6b5b !important; }
+html.dark #watchlist .wl-change.wl-down { color: #4d9fff !important; }

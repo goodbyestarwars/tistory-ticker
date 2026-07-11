@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>short-pressure 로컬 테스트</title>
+<link rel="stylesheet" href="../css/short-pressure.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 780px; margin: 40px auto; padding: 0 16px; }
+  .toggle-dark { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="page-body">
+  <h1>short-pressure 로컬 테스트</h1>
+  <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+  <p style="font-size:13px;color:#888">
+    기본은 mock 데이터(압박 84점, "삼성전자" 검색 시). 실제 GAS 호출로 테스트하려면 <code>?real=1</code>을
+    붙이세요(GAS 재배포 후 - KRX ISIN 매핑까지 실제로 맞는지는 재배포 후에만 확인 가능).
+  </p>
+  <div id="short-pressure"></div>
+</div>
+
+<script src="../data/krx_map.js"></script>
+<script src="../js/short-pressure.js"></script>
+<script>
+  if (location.search.indexOf('real=1') === -1) {
+    ShortPressure.fetchPressure = function (code) {
+      console.log('[mock] fetchPressure', code);
+      var name = '(mock)';
+      var map = window.KRX_MAP || {};
+      for (var nm in map) { if (map[nm] === code) { name = nm; break; } }
+
+      return Promise.resolve({
+        code: code,
+        name: name,
+        as_of: '2026-07-10',
+        balance: { qty: 5489240, avg_price: 59500, change_pct: 2.8 },
+        today: { short_volume: 612000, total_volume: 3400000, short_ratio_pct: 18.0 },
+        avg_volume_20d: 3120000,
+        days_to_cover: 1.8,
+        foreign_net_today: -125000000000,
+        inst_net_today: -54000000000,
+        short_squeeze_index: -29.2,
+        pressure: {
+          score: 84,
+          grade: { emoji: '🔴', label: '매우 강함' },
+          breakdown: { short_ratio: 40, balance_increase: 22, foreign_sell: 15, inst_sell: 15 }
+        },
+        note: '대차잔고는 KRX·네이버 모두 개별종목 단위로 공개하지 않아 이 지표에서는 제외했습니다. 공매도 압박은 항상 "가능성/추정"이며, 공매도가 주가를 누른다고 단정하지 않습니다.'
+      });
+    };
+  }
+</script>
+
+</body>
+</html>

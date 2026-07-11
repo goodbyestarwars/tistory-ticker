@@ -30,12 +30,24 @@ function doGet(e) {
     return jsonResponse(getMarketAnalysis());
   }
 
+  if (params.marketTemp === '1') {
+    return jsonResponse(getMarketTemp());
+  }
+
   if (params.bubble === '1') {
     return jsonResponse(getMarketcapBubble());
   }
 
   if (params.action === 'foreignFlow') {
     return jsonResponse(getForeignFlow((params.code || '').trim()));
+  }
+
+  if (params.action === 'shortPressure') {
+    return jsonResponse(getShortPressure((params.code || '').trim()));
+  }
+
+  if (params.action === 'pensionFund') {
+    return jsonResponse(getPensionFund((params.code || '').trim()));
   }
 
   if (params.rankNews === '1') {
@@ -249,16 +261,16 @@ function fetchCryptoCoinGecko() {
   };
 }
 
-// 시가총액 버블차트 (코스피20/코스닥15/ETF10 + 삼성전자·SK하이닉스 단일종목레버리지 합산).
-// data/marketcap-codes.js와 종목 구성이 동일해야 함 - 종목 교체 시 두 파일 다 수정.
+// 시가총액 히트맵(트리맵) - ETF10/INVERSE4 + 삼성전자·SK하이닉스 단일종목레버리지 합산 +
+// 코스피/코스닥은 섹터 대시보드 종목 풀 전체(fetchSectorUniverseWithSectors_, ~238종목,
+// 업종 태그 포함)를 재사용 - "최대한 많은 종목" + 업종 필터 요구사항 때문에 2026-07-11
+// 히트맵 개편 때 하드코딩 20/15종목 목록에서 전환. ETF/LEV/INVERSE는 data/marketcap-codes.js와
+// 종목 구성이 동일해야 함 - 종목 교체 시 두 파일 다 수정.
 // SERVICE_ITEM 쿼리는 시가총액 필드가 없어 countOfListedStock(상장주식수) x nv(현재가)로 계산.
 // (KODEX 200으로 검증: /api/realtime/domestic/stock/ 의 marketValueFullRaw와 정확히 일치)
 var MARKETCAP_CODES = {
-  KOSPI: ['005930', '000660', '402340', '005935', '009150', '005380', '373220', '032830', '028260', '207940',
-          '000270', '105560', '329180', '012450', '055550', '034020', '012330', '034730', '068270', '086790'],
-  KOSDAQ: ['196170', '247540', '086520', '277810', '036930', '950160', '028300', '058470', '240810', '298380',
-           '141080', '000250', '319660', '039030', '222800'],
   ETF: ['069500', '360750', '133690', '102110', '396500', '122630', '233740', '229200', '411060', '091160'],
+  INVERSE: ['114800', '252670', '252710', '251340'],
   LEV_SAMSUNG: ['0193W0', '0195R0', '0194M0', '0192M0', '0193K0', '0194N0', '0198B0'],
   LEV_HYNIX: ['0193T0', '0195S0', '0194T0', '0192L0', '0197W0', '0194R0', '0198D0']
 };
@@ -266,12 +278,15 @@ var MARKETCAP_BATCH_SIZE = 40; // Naver polling API 배치 크기 - 40개까지 
 
 function getMarketcapBubble() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'bubble_v1';
+  var cacheKey = CACHE_PREFIX + 'bubble_v2'; // v1(코스피20/코스닥15 고정) -> v2(섹터 풀 전체+업종+인버스)로 캐시 키 분리
   var cached = cache.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
+  var universe = fetchSectorUniverseWithSectors_(); // [{code,name,market,sectors:[...]}, ...]
+  var universeCodes = universe.map(function (u) { return u.code; });
+
   var allCodes = [].concat(
-    MARKETCAP_CODES.KOSPI, MARKETCAP_CODES.KOSDAQ, MARKETCAP_CODES.ETF,
+    universeCodes, MARKETCAP_CODES.ETF, MARKETCAP_CODES.INVERSE,
     MARKETCAP_CODES.LEV_SAMSUNG, MARKETCAP_CODES.LEV_HYNIX
   );
   var quoteByCode = fetchQuotesWithCap(allCodes);
@@ -279,9 +294,10 @@ function getMarketcapBubble() {
   var result = {
     updatedAt: formatKstTime(Date.now()),
     data: {
-      KOSPI: pickQuotes(MARKETCAP_CODES.KOSPI, quoteByCode),
-      KOSDAQ: pickQuotes(MARKETCAP_CODES.KOSDAQ, quoteByCode),
+      KOSPI: pickUniverseQuotes(universe, 'KOSPI', quoteByCode),
+      KOSDAQ: pickUniverseQuotes(universe, 'KOSDAQ', quoteByCode),
       ETF: pickQuotes(MARKETCAP_CODES.ETF, quoteByCode),
+      INVERSE: pickQuotes(MARKETCAP_CODES.INVERSE, quoteByCode),
       LEV: [
         aggregateLeverage('삼성전자 단일종목레버리지(7종 합산)', MARKETCAP_CODES.LEV_SAMSUNG, quoteByCode),
         aggregateLeverage('SK하이닉스 단일종목레버리지(7종 합산)', MARKETCAP_CODES.LEV_HYNIX, quoteByCode)
@@ -300,6 +316,19 @@ function pickQuotes(codes, quoteByCode) {
   codes.forEach(function (code) {
     var q = quoteByCode[code];
     if (q) out.push(q);
+  });
+  return out;
+}
+
+// fetchSectorUniverseWithSectors_() 결과 중 해당 market(KOSPI/KOSDAQ)만 골라
+// 시세를 붙이고, 업종 필터용 sectors 배열을 그대로 실어 보낸다.
+function pickUniverseQuotes(universe, market, quoteByCode) {
+  var out = [];
+  universe.forEach(function (u) {
+    if (u.market !== market) return;
+    var q = quoteByCode[u.code];
+    if (!q) return;
+    out.push({ code: u.code, name: q.name || u.name, cap: q.cap, changeRate: q.changeRate, sectors: u.sectors });
   });
   return out;
 }
@@ -473,6 +502,143 @@ function getMarketAnalysis() {
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? MARKET_ANALYSIS_CACHE_TTL : MARKET_ANALYSIS_FAIL_TTL);
   return { analysis: analysis };
+}
+
+// ---------------------------------------------------------------------------
+// 오늘의 증시온도: VIX(25) + 수급(30) + 상승종목비율(25) + 거래대금(20) = 100점.
+// "시장 전체"를 직접 크롤링하는 대신(요청 수/신뢰도 문제) 이미 있는 섹터 대시보드
+// 종목 풀(fetchSectorUniverse_, data/sectors-v3.js)을 상승비율·거래대금 산정에 재사용.
+// 수급은 종목 하나하나를 다 돌 수 없어 KODEX 200(069500, 코스피200 추종 ETF)의
+// 외국인+기관 5일 합산 순매매를 시장 수급 대리지표로 쓴다(getForeignFlow 그대로 재사용).
+// 점수 구간(각 지표 밴드 경계값)은 지시서에 없어 이 구현에서 정한 값 - 실제 배포 후
+// 점수 분포를 보고 조정 가능하도록 각 스코어 함수에 상수로 분리해둠.
+// ---------------------------------------------------------------------------
+
+var MARKET_TEMP_CACHE_TTL = 1800;   // 30분
+var VIX_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX';
+var MT_FLOW_CODE = '069500'; // KODEX 200 - 코스피200 추종 ETF, 수급 대리지표
+var MT_VOL_HISTORY_KEY = 'mt_vol_hist_v1';
+var MT_VOL_HISTORY_MAX = 10;
+
+function getMarketTemp() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'market_temp_v1';
+  var cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  var universe = fetchSectorUniverse_();
+  var codes = universe.map(function (u) { return u.code; });
+  var quotes = codes.length ? (safeCall(function () { return fetchFromNaver(codes); }) || []) : [];
+
+  var vix = scoreVix_(safeCall(fetchVix_));
+  var flow = computeFlowScore_();
+  var rise = computeRiseRatioScore_(quotes);
+  var vol = computeVolumeScore_(quotes);
+
+  var total = Math.max(0, Math.min(100, vix.score + flow.score + rise.score + vol.score));
+
+  var result = {
+    score: total,
+    grade: gradeForScore_(total),
+    components: { vix: vix, flow: flow, riseRatio: rise, tradingValue: vol },
+    updatedAt: formatKstTime(Date.now())
+  };
+
+  cache.put(cacheKey, JSON.stringify(result), MARKET_TEMP_CACHE_TTL);
+  return result;
+}
+
+function fetchVix_() {
+  var res = UrlFetchApp.fetch(VIX_URL, {
+    muteHttpExceptions: true,
+    headers: { 'User-Agent': 'Mozilla/5.0' }
+  });
+  if (res.getResponseCode() !== 200) return null;
+  var body = JSON.parse(res.getContentText('UTF-8'));
+  var meta = body && body.chart && body.chart.result && body.chart.result[0] && body.chart.result[0].meta;
+  return (meta && typeof meta.regularMarketPrice === 'number') ? meta.regularMarketPrice : null;
+}
+
+// VIX는 낮을수록 안정(고득점) - 구간 경계는 일반적인 VIX 해석(15/20/25/30) 기준.
+function scoreVix_(vix) {
+  if (vix == null) return { score: 13, value: null, note: 'VIX 조회 실패 - 중립 처리' };
+  var score = vix < 15 ? 25 : vix < 20 ? 20 : vix < 25 ? 13 : vix < 30 ? 6 : 0;
+  return { score: score, value: vix };
+}
+
+// KODEX 200 외국인+기관 5일 합산 순매매를, 그 종목 자신의 최근 20일 평균 일별
+// 순매매 절대값 x5(=5일 기준선) 대비 비율로 환산해 -15~+15점으로 매핑(중립 15점).
+function computeFlowScore_() {
+  var flow = safeCall(function () { return getForeignFlow(MT_FLOW_CODE); });
+  if (!flow || flow.error) return { score: 15, note: 'ETF 수급 데이터 조회 실패 - 중립 처리' };
+
+  var daily = flow.daily;
+  var v5 = flow.rolling['5d'].foreign + flow.rolling['5d'].inst;
+
+  var n = Math.min(20, daily.length);
+  var avgDaily = 0;
+  for (var i = 0; i < n; i++) avgDaily += Math.abs(daily[i].foreign_net) + Math.abs(daily[i].inst_net);
+  avgDaily = n ? avgDaily / n : 0;
+
+  var baseline = avgDaily * 5;
+  var ratio = baseline > 0 ? Math.max(-1, Math.min(1, v5 / baseline)) : 0;
+  var score = Math.round(15 + ratio * 15);
+
+  return { score: score, ratio: ratio, v5: v5, note: 'KODEX 200(069500) 외국인+기관 5일 합산 수급 기준' };
+}
+
+// 섹터 풀 종목 중 상승/하락 종목 수 비율. 보합(변동 0)은 분모에서 제외.
+function computeRiseRatioScore_(quotes) {
+  var up = 0, down = 0;
+  quotes.forEach(function (q) {
+    if (q.change > 0) up++;
+    else if (q.change < 0) down++;
+  });
+  var total = up + down;
+  var ratio = total ? up / total : 0.5;
+  var score = ratio >= 0.7 ? 25 : ratio >= 0.55 ? 20 : ratio >= 0.45 ? 12 : ratio >= 0.3 ? 6 : 0;
+
+  return { score: score, ratio: ratio, up: up, down: down, total: total };
+}
+
+// 섹터 풀 종목의 가격x거래량 합산(대금 근사치)을 PropertiesService에 최근 10거래일
+// 롤링 저장해두고, 오늘 값을 그 이전 기록 평균과 비교해 상대적으로 점수화.
+// (시장 전체 거래대금의 절대 원화 기준값은 확보할 수 없어 자기 자신의 과거 대비 상대치로 대체)
+function computeVolumeScore_(quotes) {
+  var today = 0;
+  quotes.forEach(function (q) { today += (q.price || 0) * (q.volume || 0); });
+
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty(MT_VOL_HISTORY_KEY);
+  var hist = raw ? JSON.parse(raw) : [];
+  var todayDate = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
+
+  if (!hist.length || hist[hist.length - 1].date !== todayDate) {
+    hist.push({ date: todayDate, total: today });
+    if (hist.length > MT_VOL_HISTORY_MAX) hist.shift();
+  } else {
+    hist[hist.length - 1].total = today; // 같은 날 재조회 시 최신값으로 갱신
+  }
+  props.setProperty(MT_VOL_HISTORY_KEY, JSON.stringify(hist));
+
+  var priorEntries = hist.slice(0, -1); // 오늘 제외 이전 기록
+  if (priorEntries.length < 3) {
+    return { score: 10, today: today, note: '기준 데이터 누적 중(3영업일 미만) - 중립 처리' };
+  }
+
+  var avg = priorEntries.reduce(function (s, e) { return s + e.total; }, 0) / priorEntries.length;
+  var relative = avg > 0 ? today / avg : 1;
+  var score = relative >= 1.3 ? 20 : relative >= 1.1 ? 15 : relative >= 0.9 ? 10 : relative >= 0.7 ? 5 : 0;
+
+  return { score: score, today: today, avg: avg, relative: relative };
+}
+
+function gradeForScore_(score) {
+  if (score <= 20) return { emoji: '🧊', label: '매우 차가움' };
+  if (score <= 40) return { emoji: '🔵', label: '약세' };
+  if (score <= 60) return { emoji: '🟡', label: '중립' };
+  if (score <= 80) return { emoji: '🟠', label: '강세' };
+  return { emoji: '🔥', label: '매우 강세' };
 }
 
 // m.stock.naver.com 뉴스 API는 "유사 기사 묶음" 배열을 반환한다.
@@ -799,11 +965,340 @@ function frgnSignal(daily, rolling, kind) {
 }
 
 // ---------------------------------------------------------------------------
-// 차트 패턴 스캔: 저점상승형(ascending) / 쌍바닥(double bottom) / 역헤드앤숄더.
+// 공매도 압박 (?action=shortPressure&code=005930)
+// 네이버는 개별종목 대차잔고(증가율)를 제공하지 않아(SEIBro/KRX 전용 데이터), 이
+// 위젯만 KRX 정보데이터시스템(data.krx.co.kr)의 공개 통계 API를 직접 크롤링한다.
+// - bld/파라미터는 오픈소스 pykrx 라이브러리 소스(sharebook-kr/pykrx, 2026-07-11 확인)로
+//   검증: 로그인 없이 POST getJsonData.cmd로 열람 가능한 공개 엔드포인트.
+// - "개별종목 공매도 종합정보"(MDCSTAT30001) 한 번의 호출로 그날의 공매도거래량/거래대금/
+//   잔고수량/잔고금액을 전부 받는다(잔고 전용 리포트 MDCSTAT30502는 상장주식수/시총/잔고비율까지
+//   주지만 이 페이지엔 굳이 필요 없어 호출을 하나로 줄임).
+// - 총 거래량(공매도 거래비중 분모)은 기존 getForeignFlow(frgn.naver)의 daily.volume을 재사용 -
+//   외국인/기관 순매도(압박 점수)도 같은 호출로 같이 얻어 KRX 호출을 최소화한다.
+// - 대차잔고는 KRX 공개 API에도 없어(pykrx 소스에도 관련 기능 없음, 2026-07-11 확인)
+//   지시서의 압박 점수 100점 배분(거래비중30/대차잔고증가율30/잔고증가20/외국인10/기관10)에서
+//   대차잔고 항목을 제외하고 재분배: 거래비중40 / 잔고증가30 / 외국인순매도15 / 기관순매도15.
+// - "공매도가 주가를 누른다"고 단정하지 않고 항상 가능성/추정/압박도로 표현(지시서 원칙).
+// ---------------------------------------------------------------------------
+
+var KRX_JSON_URL = 'https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd';
+var KRX_HEADERS = {
+  'User-Agent': 'Mozilla/5.0',
+  'Referer': 'https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd',
+  'X-Requested-With': 'XMLHttpRequest'
+};
+var KRX_ISIN_CACHE_TTL = 21600; // 6시간 - 상장종목 목록은 장중에도 거의 안 바뀜
+
+function fetchKrxJson_(bld, params) {
+  var payload = { bld: bld };
+  for (var k in params) payload[k] = params[k];
+  var res = UrlFetchApp.fetch(KRX_JSON_URL, {
+    method: 'post',
+    payload: payload,
+    headers: KRX_HEADERS,
+    muteHttpExceptions: true
+  });
+  if (res.getResponseCode() !== 200) return null;
+  try {
+    return JSON.parse(res.getContentText('UTF-8'));
+  } catch (err) {
+    return null;
+  }
+}
+
+// 6자리 종목코드 -> KRX ISIN(예: 005930 -> KR7005930003) 매핑을 KRX "종목 검색" API에서
+// 통째로 받아 캐싱. 종목코드로 직접 조회하는 공개 API가 없어(finder는 이름 검색용) 전체
+// 목록을 한 번에 받는 쪽이 안정적.
+function getKrxIsinMap_() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'krx_isin_map';
+  var cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  var body = fetchKrxJson_('dbms/comm/finder/finder_stkisu', { locale: 'ko_KR', mktsel: 'ALL', searchText: '', typeNo: 0 });
+  var rows = (body && body.block1) || [];
+  var map = {};
+  rows.forEach(function (r) {
+    if (r.short_code && r.full_code) map[r.short_code] = r.full_code;
+  });
+
+  cache.put(cacheKey, JSON.stringify(map), KRX_ISIN_CACHE_TTL);
+  return map;
+}
+
+function krxIsinFor_(code) {
+  var map = getKrxIsinMap_();
+  return map[code.toUpperCase()] || null;
+}
+
+// "5,489,240" -> 5489240 (콤마 제거, '-'(집계 전) 등 비숫자는 0 처리)
+function krxNum_(s) {
+  var n = parseFloat(String(s == null ? '' : s).replace(/,/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function getShortPressure(code) {
+  if (!/^[0-9A-Z]{6}$/i.test(code)) {
+    return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
+  }
+
+  var isin = krxIsinFor_(code);
+  if (!isin) {
+    return { error: 'ISIN_NOT_FOUND', message: 'KRX 상장 종목 목록에서 해당 종목을 찾지 못했습니다.' };
+  }
+
+  var end = new Date();
+  var start = new Date(end.getTime() - 60 * 24 * 60 * 60 * 1000); // 60일 전부터(영업일 20~30일 확보)
+  var strtDd = Utilities.formatDate(start, 'Asia/Seoul', 'yyyyMMdd');
+  var endDd = Utilities.formatDate(end, 'Asia/Seoul', 'yyyyMMdd');
+
+  var body = safeCall(function () {
+    return fetchKrxJson_('dbms/MDC/STAT/srt/MDCSTAT30001', { isuCd: isin, strtDd: strtDd, endDd: endDd });
+  });
+  var rows = (body && body.OutBlock_1) || [];
+  if (!rows.length) {
+    return { error: 'PARSE_FAILED', message: 'KRX 공매도 데이터를 가져오지 못했습니다.' };
+  }
+
+  var daily = rows.map(function (r) {
+    return {
+      date: String(r.TRD_DD).replace(/\//g, '-'),
+      shortVolume: krxNum_(r.CVSRTSELL_TRDVOL),
+      balanceQty: krxNum_(r.STR_CONST_VAL1),
+      shortValue: krxNum_(r.CVSRTSELL_TRDVAL),
+      balanceValue: krxNum_(r.STR_CONST_VAL2)
+    };
+  }).sort(function (a, b) { return a.date < b.date ? 1 : -1; }); // 최신일 우선
+
+  var flow = safeCall(function () { return getForeignFlow(code); });
+  var flowDaily = (flow && !flow.error && flow.daily) ? flow.daily : [];
+  var flowByDate = {};
+  flowDaily.forEach(function (d) { flowByDate[d.date] = d; });
+
+  var today = daily[0];
+  var prior = daily.length > 1 ? daily[1] : null;
+  var todayFlow = flowByDate[today.date] || flowDaily[0] || null;
+
+  var totalVolumeToday = todayFlow ? todayFlow.volume : 0;
+  var shortRatioPct = totalVolumeToday > 0 ? (today.shortVolume / totalVolumeToday) * 100 : 0;
+
+  var avgN = Math.min(20, flowDaily.length);
+  var avgVolume = avgN
+    ? flowDaily.slice(0, avgN).reduce(function (s, d) { return s + d.volume; }, 0) / avgN
+    : 0;
+  var daysToCover = avgVolume > 0 ? today.balanceQty / avgVolume : null;
+
+  var avgShortPrice = today.balanceQty > 0 ? today.balanceValue / today.balanceQty : 0;
+  var balanceChangePct = prior && prior.balanceQty > 0
+    ? ((today.balanceQty - prior.balanceQty) / prior.balanceQty) * 100
+    : 0;
+
+  var foreignNetToday = todayFlow ? todayFlow.foreign_net : 0;
+  var instNetToday = todayFlow ? todayFlow.inst_net : 0;
+
+  var pressure = computeShortPressureScore_(shortRatioPct, balanceChangePct, foreignNetToday, instNetToday);
+
+  var shortSqueezeIndex = today.shortVolume > 0
+    ? ((instNetToday + foreignNetToday) / today.shortVolume) * 100
+    : null;
+
+  return {
+    code: code.toUpperCase(),
+    name: (flow && flow.name) || '',
+    as_of: today.date,
+    balance: {
+      qty: today.balanceQty,
+      avg_price: avgShortPrice,
+      change_pct: balanceChangePct
+    },
+    today: {
+      short_volume: today.shortVolume,
+      total_volume: totalVolumeToday,
+      short_ratio_pct: shortRatioPct
+    },
+    avg_volume_20d: avgVolume,
+    days_to_cover: daysToCover,
+    foreign_net_today: foreignNetToday,
+    inst_net_today: instNetToday,
+    short_squeeze_index: shortSqueezeIndex,
+    pressure: pressure,
+    note: '대차잔고는 KRX·네이버 모두 개별종목 단위로 공개하지 않아 이 지표에서는 제외했습니다. ' +
+      '공매도 압박은 항상 "가능성/추정"이며, 공매도가 주가를 누른다고 단정하지 않습니다.'
+  };
+}
+
+// 공매도 압박 점수(100점, 대차잔고 제외 재분배): 거래비중40 / 잔고증가30 / 외국인순매도15 / 기관순매도15.
+function computeShortPressureScore_(shortRatioPct, balanceChangePct, foreignNetToday, instNetToday) {
+  var ratioScore = shortRatioPct >= 15 ? 40 : shortRatioPct >= 10 ? 32 : shortRatioPct >= 5 ? 20 : shortRatioPct >= 2 ? 10 : 0;
+  var balScore = balanceChangePct >= 5 ? 30 : balanceChangePct >= 2 ? 22 : balanceChangePct >= 0 ? 12 : balanceChangePct >= -3 ? 5 : 0;
+  var foreignScore = foreignNetToday < 0 ? 15 : 0;
+  var instScore = instNetToday < 0 ? 15 : 0;
+
+  var total = ratioScore + balScore + foreignScore + instScore;
+  return {
+    score: total,
+    grade: shortPressureGrade_(total),
+    breakdown: {
+      short_ratio: ratioScore,
+      balance_increase: balScore,
+      foreign_sell: foreignScore,
+      inst_sell: instScore
+    }
+  };
+}
+
+function shortPressureGrade_(score) {
+  if (score <= 20) return { emoji: '🟢', label: '매우 약함' };
+  if (score <= 40) return { emoji: '🟢', label: '약함' };
+  if (score <= 60) return { emoji: '🟡', label: '보통' };
+  if (score <= 80) return { emoji: '🟠', label: '강함' };
+  return { emoji: '🔴', label: '매우 강함' };
+}
+
+// ---------------------------------------------------------------------------
+// 연기금 분석 (?action=pensionFund&code=005930)
+// KRX "투자자별 거래실적(개별종목) 상세" API(MDCSTAT02303, inqTpCd=2&detailView=1)는 기관을
+// 금융투자/보험/투신/사모/은행/기타금융/연기금/기타법인/개인/외국인/기타외국인 11개로 쪼개서
+// 주는데, 그중 연기금(TRDVAL7)만 뽑아 쓴다 - "기관 합산"이 아니라 연기금 단독 수치.
+// (getShortPressure와 동일하게 pykrx 소스로 bld/파라미터 검증, 2026-07-11)
+// 거래량(trdVolVal=1)과 거래대금(trdVolVal=2) 두 번 호출해서
+// 평균매수가(추정) = 누적 순매수대금 ÷ 누적 순매수량으로 계산(가중평균 근사치).
+// 외국인 동반 여부·현재가는 기존 getForeignFlow/fetchFromNaver(네이버) 그대로 재사용.
+// 지시서의 해석 규칙(연속 순매수 일수 구간별 긍정/중립 판정)은 AI가 아니라 수치 조건으로
+// 그대로 코드화한다(6번 차트 패턴 스캔과 같은 원칙 - "AI는 임의로 판단하지 않는다").
+// ---------------------------------------------------------------------------
+
+function getPensionFund(code) {
+  if (!/^[0-9A-Z]{6}$/i.test(code)) {
+    return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
+  }
+
+  var isin = krxIsinFor_(code);
+  if (!isin) {
+    return { error: 'ISIN_NOT_FOUND', message: 'KRX 상장 종목 목록에서 해당 종목을 찾지 못했습니다.' };
+  }
+
+  var end = new Date();
+  var start = new Date(end.getTime() - 150 * 24 * 60 * 60 * 1000); // 150일 전부터(영업일 90~100일 확보)
+  var strtDd = Utilities.formatDate(start, 'Asia/Seoul', 'yyyyMMdd');
+  var endDd = Utilities.formatDate(end, 'Asia/Seoul', 'yyyyMMdd');
+
+  var volBody = safeCall(function () {
+    return fetchKrxJson_('dbms/MDC/STAT/standard/MDCSTAT02303', {
+      strtDd: strtDd, endDd: endDd, isuCd: isin, inqTpCd: 2, trdVolVal: 1, askBid: 3, detailView: 1
+    });
+  });
+  var valBody = safeCall(function () {
+    return fetchKrxJson_('dbms/MDC/STAT/standard/MDCSTAT02303', {
+      strtDd: strtDd, endDd: endDd, isuCd: isin, inqTpCd: 2, trdVolVal: 2, askBid: 3, detailView: 1
+    });
+  });
+
+  var volRows = (volBody && volBody.output) || [];
+  var valRows = (valBody && valBody.output) || [];
+  if (!volRows.length || !valRows.length) {
+    return { error: 'PARSE_FAILED', message: 'KRX 투자자별 거래실적을 가져오지 못했습니다.' };
+  }
+
+  var valByDate = {};
+  valRows.forEach(function (r) { valByDate[String(r.TRD_DD)] = krxNum_(r.TRDVAL7); });
+
+  var daily = volRows.map(function (r) {
+    var d = String(r.TRD_DD);
+    return {
+      date: d.replace(/\//g, '-'),
+      netVolume: krxNum_(r.TRDVAL7), // 연기금 순매수 거래량(주)
+      netValue: valByDate.hasOwnProperty(d) ? valByDate[d] : 0 // 연기금 순매수 거래대금(원)
+    };
+  }).sort(function (a, b) { return a.date < b.date ? 1 : -1; }); // 최신일 우선
+
+  function sumN(field, n) {
+    var s = 0, len = Math.min(n, daily.length);
+    for (var i = 0; i < len; i++) s += daily[i][field];
+    return s;
+  }
+
+  var streak = pensionStreak_(daily);
+  var cum5 = sumN('netValue', 5);
+  var cum20 = sumN('netValue', 20);
+  var cum60 = sumN('netValue', 60);
+  var cumAllValue = sumN('netValue', daily.length);
+  var cumAllVolume = sumN('netVolume', daily.length);
+  var avgBuyPrice = cumAllVolume > 0 ? cumAllValue / cumAllVolume : null;
+
+  var quote = safeCall(function () {
+    var list = fetchFromNaver([code]);
+    return list && list[0];
+  });
+  var currentPrice = quote ? quote.price : null;
+  var returnPct = (avgBuyPrice && currentPrice)
+    ? ((currentPrice - avgBuyPrice) / avgBuyPrice) * 100
+    : null;
+
+  var flow = safeCall(function () { return getForeignFlow(code); });
+  var foreignNet5d = (flow && !flow.error && flow.rolling) ? flow.rolling['5d'].foreign : 0;
+
+  return {
+    code: code.toUpperCase(),
+    name: (quote && quote.name) || (flow && flow.name) || '',
+    as_of: daily[0].date,
+    streak: streak,
+    net_5d: cum5,
+    net_20d: cum20,
+    net_60d: cum60,
+    net_cumulative: cumAllValue,
+    cumulative_window_days: daily.length,
+    avg_buy_price: avgBuyPrice,
+    current_price: currentPrice,
+    return_pct: returnPct,
+    foreign_net_5d: foreignNet5d,
+    interpretation: pensionInterpretation_(streak, foreignNet5d)
+  };
+}
+
+// 연속 순매수/순매도 영업일수: 최신일부터 역순으로 방향이 바뀌기 전까지 카운트(frgnStreak와 동일 패턴).
+function pensionStreak_(daily) {
+  var first = daily[0].netValue;
+  var dir = first > 0 ? 1 : first < 0 ? -1 : 0;
+  var days = 0;
+  if (dir !== 0) {
+    for (var i = 0; i < daily.length; i++) {
+      var v = daily[i].netValue;
+      var d = v > 0 ? 1 : v < 0 ? -1 : 0;
+      if (d !== dir) break;
+      days++;
+    }
+  }
+  return { days: days, direction: dir > 0 ? 'buy' : dir < 0 ? 'sell' : 'flat' };
+}
+
+// 지시서 해석표를 그대로 수치 조건화: 연기금 5일+연속순매수=긍정(외국인 동반이면 매우긍정),
+// 연기금만 순매수(5일 미만)=중립~긍정, 연기금 5일+연속순매도=비중축소 가능성, 그 외=중립.
+function pensionInterpretation_(streak, foreignNet5d) {
+  if (streak.direction === 'buy' && streak.days >= 5) {
+    return foreignNet5d > 0
+      ? { tone: 'very_positive', label: '매우 긍정', text: '연기금이 ' + streak.days + '일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다.' }
+      : { tone: 'positive', label: '긍정', text: '연기금이 ' + streak.days + '일 연속 순매수 중입니다.' };
+  }
+  if (streak.direction === 'buy') {
+    return { tone: 'neutral_positive', label: '중립~긍정', text: '연기금이 순매수 중이나 연속성은 아직 짧습니다(' + streak.days + '일).' };
+  }
+  if (streak.direction === 'sell' && streak.days >= 5) {
+    return { tone: 'caution', label: '비중 축소 가능성', text: '연기금이 ' + streak.days + '일 연속 순매도 중입니다.' };
+  }
+  return { tone: 'neutral', label: '중립', text: '연기금 매매 방향성이 뚜렷하지 않습니다.' };
+}
+
+// ---------------------------------------------------------------------------
+// 차트 패턴 스캔: 저점상승형(ascending) / 쌍바닥(double bottom) / 역헤드앤숄더 / 박스권하단 /
+// 골파기반전(MA60 상향돌파, 지시서 5종 외 이 구현에서 추가) / 눌림목(pullback).
+// 지시서 원칙대로 AI가 패턴을 임의 판단하지 않고, 모든 패턴을 0~100점 수치 조건으로 채점해
+// 70점 이상만 노출한다(patternGrade_) - 결과에는 점수 + 원인(부분점수 breakdown) +
+// AI 한 줄 해석(규칙 기반 문자열, LLM 호출 아님)을 함께 실어보낸다(buildPatternMatch_).
 // 섹터 대시보드 종목 풀(GitHub Pages의 data/sectors-v3.js)을 그때그때 fetch해서
 // 스캔 대상으로 재사용 - 별도 종목 리스트를 GAS에 하드코딩하지 않는다.
-// 하루 1회 시간 트리거(scanChartPatterns)로 스캔해 PropertiesService에 저장하고,
-// 블로그는 캐싱된 결과만 읽는다(방문자가 몰려도 매번 재스캔하지 않음).
+// 하루 1회 시간 트리거(scanChartPatterns/scanGoldPitReversal/scanPullback)로 스캔해
+// PropertiesService에 저장하고, 블로그는 캐싱된 결과만 읽는다(방문자가 몰려도 매번 재스캔 안 함).
 // 클릭 시 차트는 온디맨드로 그 종목만 다시 크롤링(foreignFlow와 동일 패턴).
 // ---------------------------------------------------------------------------
 
@@ -865,23 +1360,23 @@ function scanChartPatterns() {
       scanned++;
 
       var rl = detectRisingLows_(daily);
-      if (rl && !rl.breakout && results.risingLows.length < PATTERN_MAX_MATCHES) {
-        results.risingLows.push(buildPatternMatch_(stock, daily));
+      if (rl && !rl.breakout && patternGrade_(rl.score) && results.risingLows.length < PATTERN_MAX_MATCHES) {
+        results.risingLows.push(buildPatternMatch_(stock, daily, rl));
       }
 
       var db = detectDoubleBottom_(daily);
-      if (db && !db.breakout && results.doubleBottom.length < PATTERN_MAX_MATCHES) {
-        results.doubleBottom.push(buildPatternMatch_(stock, daily));
+      if (db && !db.breakout && patternGrade_(db.score) && results.doubleBottom.length < PATTERN_MAX_MATCHES) {
+        results.doubleBottom.push(buildPatternMatch_(stock, daily, db));
       }
 
       var ihs = detectInvHeadShoulders_(daily);
-      if (ihs && !ihs.breakout && results.invHeadShoulders.length < PATTERN_MAX_MATCHES) {
-        results.invHeadShoulders.push(buildPatternMatch_(stock, daily));
+      if (ihs && !ihs.breakout && patternGrade_(ihs.score) && results.invHeadShoulders.length < PATTERN_MAX_MATCHES) {
+        results.invHeadShoulders.push(buildPatternMatch_(stock, daily, ihs));
       }
 
       var box = detectBoxRangeLow_(daily);
-      if (box && results.boxRangeLow.length < PATTERN_MAX_MATCHES) {
-        results.boxRangeLow.push(buildPatternMatch_(stock, daily));
+      if (box && patternGrade_(box.score) && results.boxRangeLow.length < PATTERN_MAX_MATCHES) {
+        results.boxRangeLow.push(buildPatternMatch_(stock, daily, box));
       }
     } catch (err) {
       continue; // 이 종목만 스킵
@@ -921,8 +1416,8 @@ function scanGoldPitReversal() {
       scanned++;
 
       var gold = detectGoldPitReversal_(daily);
-      if (gold && matches.length < PATTERN_MAX_MATCHES) {
-        matches.push(buildPatternMatch_(stock, daily));
+      if (gold && patternGrade_(gold.score) && matches.length < PATTERN_MAX_MATCHES) {
+        matches.push(buildPatternMatch_(stock, daily, gold));
       }
     } catch (err) {
       continue;
@@ -941,13 +1436,51 @@ function scanGoldPitReversal() {
   return matches;
 }
 
+// 눌림목 전용 스캔. 골파기와 마찬가지로 MA60이 필요해 긴 윈도(90영업일)를 크롤링하므로
+// 다른 4개 패턴과 분리하고, 골파기와도 시간대를 띄워 6분 실행 제한을 피한다.
+function scanPullback() {
+  var startedAt = Date.now();
+  var universe = fetchSectorUniverse_();
+  var matches = [];
+  var scanned = 0;
+
+  for (var i = 0; i < universe.length; i++) {
+    if (Date.now() - startedAt > PULLBACK_TIME_BUDGET_MS) break;
+
+    var stock = universe[i];
+    try {
+      var daily = fetchDailyOhlc_(stock.code, PULLBACK_PAGES);
+      if (daily.length < 65) continue;
+      scanned++;
+
+      var pullback = detectPullback_(daily);
+      if (pullback && patternGrade_(pullback.score) && matches.length < PATTERN_MAX_MATCHES) {
+        matches.push(buildPatternMatch_(stock, daily, pullback));
+      }
+    } catch (err) {
+      continue;
+    }
+  }
+
+  PropertiesService.getScriptProperties().setProperties({
+    PATTERN_SCAN_PULLBACK_META: JSON.stringify({
+      scannedAt: formatKstTime(Date.now()),
+      universe: universe.length,
+      scanned: scanned
+    }),
+    PATTERN_SCAN_PULLBACK: JSON.stringify(matches)
+  });
+
+  return matches;
+}
+
 // 이 함수를 스크립트 편집기에서 한 번 실행하면 매일 자동 스캔 트리거가 설치된다.
 // (배포와 별개 - 트리거는 코드 push/재배포로 자동 설치되지 않으므로 최초 1회 수동 실행 필요)
-// scanChartPatterns/scanGoldPitReversal 둘 다 설치하고, 서로 겹치지 않게 30분 띄운다.
+// scanChartPatterns/scanGoldPitReversal/scanPullback 셋 다 설치하고, 서로 겹치지 않게 시간을 띄운다.
 function setupPatternScanTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     var fn = t.getHandlerFunction();
-    if (fn === 'scanChartPatterns' || fn === 'scanGoldPitReversal') ScriptApp.deleteTrigger(t);
+    if (fn === 'scanChartPatterns' || fn === 'scanGoldPitReversal' || fn === 'scanPullback') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('scanChartPatterns')
     .timeBased()
@@ -959,25 +1492,34 @@ function setupPatternScanTrigger() {
     .atHour(17) // scanChartPatterns와 겹치지 않게 1시간 뒤
     .everyDays(1)
     .create();
+  ScriptApp.newTrigger('scanPullback')
+    .timeBased()
+    .atHour(18) // scanGoldPitReversal과도 겹치지 않게 1시간 더 뒤
+    .everyDays(1)
+    .create();
 }
 
 function getPatternScanResult() {
   var props = PropertiesService.getScriptProperties();
   var meta = props.getProperty('PATTERN_SCAN_META');
   var goldMeta = props.getProperty('PATTERN_SCAN_GOLD_META');
+  var pullbackMeta = props.getProperty('PATTERN_SCAN_PULLBACK_META');
   return {
     scannedAt: meta ? JSON.parse(meta).scannedAt : null,
     universe: meta ? JSON.parse(meta).universe : 0,
     scanned: meta ? JSON.parse(meta).scanned : 0,
-    // 골파기는 별도 스캔(90일치 크롤링이라 훨씬 느림)이라 스캔 시각/대상이 다를 수 있어 따로 표기
+    // 골파기/눌림목은 별도 스캔(90일치 크롤링이라 훨씬 느림)이라 스캔 시각/대상이 다를 수 있어 따로 표기
     goldScannedAt: goldMeta ? JSON.parse(goldMeta).scannedAt : null,
     goldScanned: goldMeta ? JSON.parse(goldMeta).scanned : 0,
+    pullbackScannedAt: pullbackMeta ? JSON.parse(pullbackMeta).scannedAt : null,
+    pullbackScanned: pullbackMeta ? JSON.parse(pullbackMeta).scanned : 0,
     patterns: {
       risingLows: JSON.parse(props.getProperty('PATTERN_SCAN_RISING') || '[]'),
       doubleBottom: JSON.parse(props.getProperty('PATTERN_SCAN_DB') || '[]'),
       invHeadShoulders: JSON.parse(props.getProperty('PATTERN_SCAN_IHS') || '[]'),
       boxRangeLow: JSON.parse(props.getProperty('PATTERN_SCAN_BOX') || '[]'),
-      goldPitReversal: JSON.parse(props.getProperty('PATTERN_SCAN_GOLD') || '[]')
+      goldPitReversal: JSON.parse(props.getProperty('PATTERN_SCAN_GOLD') || '[]'),
+      pullback: JSON.parse(props.getProperty('PATTERN_SCAN_PULLBACK') || '[]')
     }
   };
 }
@@ -990,7 +1532,7 @@ function getPatternChart(code, patternType) {
     return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
   }
 
-  var pages = patternType === 'goldPitReversal' ? GOLD_PAGES : PATTERN_PAGES;
+  var pages = (patternType === 'goldPitReversal' || patternType === 'pullback') ? GOLD_PAGES : PATTERN_PAGES;
   var daily = fetchDailyOhlc_(code, pages);
   if (daily.length < 15) {
     return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
@@ -1002,11 +1544,14 @@ function getPatternChart(code, patternType) {
   else if (patternType === 'invHeadShoulders') detail = detectInvHeadShoulders_(daily);
   else if (patternType === 'boxRangeLow') detail = detectBoxRangeLow_(daily);
   else if (patternType === 'goldPitReversal') detail = detectGoldPitReversal_(daily);
+  else if (patternType === 'pullback') detail = detectPullback_(daily);
 
   return { code: code.toUpperCase(), daily: daily, pattern: patternType, detail: detail };
 }
 
-function buildPatternMatch_(stock, daily) {
+// detail: 각 detect*_ 함수의 반환값(score/reasons/interpretation 포함) - 스캔 리스트에도
+// 점수+원인+AI 한 줄 해석을 같이 실어서, 프론트가 차트를 다시 열지 않고도 보여줄 수 있게 한다.
+function buildPatternMatch_(stock, daily, detail) {
   var last = daily[daily.length - 1];
   var prev = daily.length > 1 ? daily[daily.length - 2] : null;
   var changeRate = (prev && prev.close) ? ((last.close - prev.close) / prev.close * 100) : null;
@@ -1015,7 +1560,10 @@ function buildPatternMatch_(stock, daily) {
     name: stock.name,
     price: last.close,
     changeRate: changeRate,
-    date: last.date
+    date: last.date,
+    score: detail.score,
+    reasons: detail.reasons,
+    interpretation: detail.interpretation
   };
 }
 
@@ -1037,6 +1585,38 @@ function fetchSectorUniverse_() {
     out.push({ name: m[1], code: m[2] });
   }
   return out;
+}
+
+// fetchSectorUniverse_()와 같은 소스(data/sectors-v3.js)를 쓰되, 어느 섹터(업종)에
+// 속하는지도 같이 반환한다(히트맵 업종 필터용). 한 종목이 여러 섹터에 의도적으로 중복
+// 포함되는 경우(CLAUDE.md 규칙) 코드 기준으로 한 번만 담고 sectors 배열에 전부 모은다.
+// sectors-v3.js는 "섹터명": [ { name, code, market }, ... ] 구조라, 먼저 섹터 블록 단위로
+// 쪼갠 뒤(entries에 대괄호가 없어 non-greedy ]까지가 정확히 한 섹터 블록) 그 안에서
+// 종목 객체를 뽑는 2단 정규식 파싱을 쓴다.
+function fetchSectorUniverseWithSectors_() {
+  var url = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js';
+  var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return [];
+
+  var text = res.getContentText('UTF-8');
+  var byCode = {};
+  var sectorRe = /"([^"]+)":\s*\[([\s\S]*?)\]/g;
+  var itemRe = /name:\s*"([^"]+)",\s*code:\s*"([0-9A-Za-z]{6})",\s*market:\s*"([^"]+)"/g;
+
+  var sm;
+  while ((sm = sectorRe.exec(text)) !== null) {
+    var sectorName = sm[1];
+    var block = sm[2];
+    var im;
+    itemRe.lastIndex = 0;
+    while ((im = itemRe.exec(block)) !== null) {
+      var code = im[2];
+      if (!byCode[code]) byCode[code] = { code: code, name: im[1], market: im[3], sectors: [] };
+      if (byCode[code].sectors.indexOf(sectorName) === -1) byCode[code].sectors.push(sectorName);
+    }
+  }
+
+  return Object.keys(byCode).map(function (c) { return byCode[c]; });
 }
 
 // 네이버 일별시세 페이지 크롤링 (2페이지 ≈ 20영업일). 오름차순(과거->최신) 반환.
@@ -1118,6 +1698,57 @@ function maxHighBetween_(win, i1, i2) {
   return idx === -1 ? null : { date: win[idx].date, high: maxHigh };
 }
 
+// period 이동평균 시리즈(win과 같은 길이, 앞쪽 period-1개는 null). 저점상승형(5일선)·
+// 눌림목(20일선/60일선) 점수 계산에서 공용으로 쓴다.
+function movingAverage_(win, field, period) {
+  var n = win.length;
+  var ma = new Array(n).fill(null);
+  var sum = 0;
+  for (var i = 0; i < n; i++) {
+    sum += win[i][field];
+    if (i >= period) sum -= win[i - period][field];
+    if (i >= period - 1) ma[i] = sum / period;
+  }
+  return ma;
+}
+
+// 구간 뒤쪽 절반 평균 거래량이 앞쪽 절반보다 작으면 "거래량 감소"로 인정(여러 패턴 공용).
+function isVolumeDeclining_(win, fromIdx, toIdx) {
+  var mid = fromIdx + Math.floor((toIdx - fromIdx) / 2);
+  if (mid <= fromIdx || toIdx <= mid) return false;
+  var early = avgVolume_(win, fromIdx, mid);
+  var late = avgVolume_(win, mid, toIdx);
+  return early > 0 && late < early;
+}
+
+function avgVolume_(win, fromIdx, toIdx) {
+  var s = 0, n = 0;
+  for (var i = fromIdx; i < toIdx; i++) { s += win[i].volume; n++; }
+  return n ? s / n : 0;
+}
+
+function isLastCandleBullish_(win) {
+  var last = win[win.length - 1];
+  return last.close > last.open;
+}
+
+// 부분점수 배점표에서 값이 속하는 구간의 점수를 찾는다. tiers: [{min, score}, ...]는
+// min 내림차순으로 정렬돼 있어야 하고, 마지막 항목이 사실상 "그 외" 처리(min: -Infinity)를 맡는다.
+function scoreTier_(value, tiers) {
+  for (var i = 0; i < tiers.length; i++) {
+    if (value >= tiers[i].min) return tiers[i].score;
+  }
+  return 0;
+}
+
+function clampScore_(n) {
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function patternGrade_(score) {
+  return score >= 70;
+}
+
 // 저점상승형: 스윙 저점 3개 이상이 순서대로 상승(첫-끝 3%+ 차이, 쌍바닥과 구분) +
 // 스윙 고점 3개 이상이 좁은 범위에 묶여있음(막힘) + 마지막 저점이 최근이고 아직 안 깨졌음.
 function detectRisingLows_(daily) {
@@ -1163,6 +1794,33 @@ function detectRisingLows_(daily) {
   var lowSwingPoints = lowIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].low }; });
   var current = { date: win[win.length - 1].date, price: lastClose };
 
+  // ---- 점수(100점): 저점상승폭40 + 저점간격20 + 5일선저항20 + 거래량감소10 + 최근양봉10 ----
+  var riseRatio = (lastLow - firstLow) / firstLow;
+  var riseScore = scoreTier_(riseRatio, [
+    { min: 0.08, score: 40 }, { min: 0.05, score: 30 }, { min: WEDGE_MIN_TOTAL_RISE, score: 20 }
+  ]);
+
+  var lowSpan = lastLowIdx - lowIdxs[0];
+  var spanScore = (lowSpan >= 5 && lowSpan <= 20) ? 20 : 10;
+
+  var ma5 = movingAverage_(win, 'close', 5);
+  var resistanceIdx = highIdxs[highIdxs.length - 1];
+  var ma5AtResistance = ma5[resistanceIdx];
+  var ma5Diff = ma5AtResistance ? Math.abs(win[resistanceIdx].high - ma5AtResistance) / ma5AtResistance : 1;
+  var ma5Score = ma5Diff <= 0.02 ? 20 : ma5Diff <= 0.05 ? 10 : 0;
+
+  var volScore = isVolumeDeclining_(win, lowIdxs[0], win.length) ? 10 : 0;
+  var bullScore = isLastCandleBullish_(win) ? 10 : 0;
+
+  var score = clampScore_(riseScore + spanScore + ma5Score + volScore + bullScore);
+  var reasons = [
+    '저점 ' + (riseRatio * 100).toFixed(1) + '% 상승(' + riseScore + '/40점)',
+    '저점 간격 ' + lowSpan + '거래일(' + spanScore + '/20점)',
+    '5일선 저항 근접도(' + ma5Score + '/20점)',
+    '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/10점)',
+    '최근 캔들 ' + (bullScore ? '양봉' : '음봉') + '(' + bullScore + '/10점)'
+  ];
+
   return {
     low_swings: lowSwingPoints,
     // 라인은 마지막 스윙 저점에서 끊기지 않고 오늘(현재가)까지 이어서 그린다 -
@@ -1171,7 +1829,10 @@ function detectRisingLows_(daily) {
     high_swings: highIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].high }; }),
     resistance: resistance,
     signal: current, // 확인 지점은 항상 "오늘"
-    breakout: lastClose > resistance * BREAKOUT_TOL
+    breakout: lastClose > resistance * BREAKOUT_TOL,
+    score: score,
+    reasons: reasons,
+    interpretation: '저점이 ' + (riseRatio * 100).toFixed(1) + '% 높아지며 하락 압력이 약해지는 구간으로 추정됩니다(' + score + '점).'
   };
 }
 
@@ -1202,13 +1863,34 @@ function detectDoubleBottom_(daily) {
       if (proximity < DB_NECK_PROXIMITY_MIN) continue; // 넥라인에서 너무 멀면(반등이 약하면) 스킵
 
       var current = { date: win[win.length - 1].date, price: lastClose };
+
+      // ---- 점수(100점): 저점유사도40 + 간격20 + 반등강도20 + 거래량10 + 넥라인10 ----
+      var simScore = diff <= 0.01 ? 40 : diff <= DB_LOW_TOL ? 25 : 0;
+      var gapDays = i2 - i1;
+      var gapScore = (gapDays >= 10 && gapDays <= 40) ? 20 : 10;
+      var bounceScore = riseFromLow1 >= 0.08 ? 20 : riseFromLow1 >= DB_PEAK_MIN_RISE ? 12 : 0;
+      var volScore = isVolumeDeclining_(win, i1, i2) ? 10 : 0;
+      var neckScore = proximity >= -0.02 ? 10 : 5;
+
+      var score = clampScore_(simScore + gapScore + bounceScore + volScore + neckScore);
+      var reasons = [
+        '저점 가격차 ' + (diff * 100).toFixed(1) + '%(' + simScore + '/40점)',
+        '저점 간격 ' + gapDays + '거래일(' + gapScore + '/20점)',
+        '넥라인 반등폭 ' + (riseFromLow1 * 100).toFixed(1) + '%(' + bounceScore + '/20점)',
+        '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/10점)',
+        '현재가-넥라인 근접도(' + neckScore + '/10점)'
+      ];
+
       return {
         low1: { date: win[i1].date, price: low1 },
         low2: { date: win[i2].date, price: low2 },
         neckline: { date: neck.date, price: neck.high },
         current: current, // 저점2 이후 현재가까지 이어야 진짜 W(두번째 상승 다리)가 됨
         signal: current,  // 확인 지점은 항상 "오늘"
-        breakout: lastClose > neck.high * BREAKOUT_TOL
+        breakout: lastClose > neck.high * BREAKOUT_TOL,
+        score: score,
+        reasons: reasons,
+        interpretation: '두 저점이 ' + (diff * 100).toFixed(1) + '% 차이로 비슷한 쌍바닥 구조로 추정됩니다(' + score + '점).'
       };
     }
   }
@@ -1246,6 +1928,22 @@ function detectInvHeadShoulders_(daily) {
         if (proximity < DB_NECK_PROXIMITY_MIN) continue; // 넥라인에서 너무 멀면(우어깨 반등이 약하면) 스킵
 
         var current = { date: win[win.length - 1].date, price: lastClose };
+
+        // ---- 점수(100점): 형태유사도50 + 넥라인20 + 대칭성20 + 거래량10 ----
+        var headDropAvg = ((left - head) / left + (right - head) / right) / 2;
+        var shapeScore = headDropAvg >= 0.05 ? 50 : headDropAvg >= 0.03 ? 35 : 20;
+        var neckScoreIhs = proximity >= -0.02 ? 20 : 10;
+        var symScore = shoulderDiff <= 0.02 ? 20 : shoulderDiff <= IHS_SHOULDER_TOL ? 12 : 0;
+        var volScoreIhs = isVolumeDeclining_(win, iL, iR) ? 10 : 0;
+
+        var score = clampScore_(shapeScore + neckScoreIhs + symScore + volScoreIhs);
+        var reasons = [
+          '헤드 하락폭 평균 ' + (headDropAvg * 100).toFixed(1) + '%(' + shapeScore + '/50점)',
+          '현재가-넥라인 근접도(' + neckScoreIhs + '/20점)',
+          '양 어깨 가격차 ' + (shoulderDiff * 100).toFixed(1) + '%(' + symScore + '/20점)',
+          '거래량 ' + (volScoreIhs ? '감소' : '유지/증가') + '(' + volScoreIhs + '/10점)'
+        ];
+
         return {
           left_shoulder: { date: win[iL].date, price: left },
           left_peak: { date: peak1.date, price: peak1.high },
@@ -1255,7 +1953,10 @@ function detectInvHeadShoulders_(daily) {
           neckline: { date: necklinePoint.date, price: necklinePrice },
           current: current, // 우어깨 이후 현재가까지 이어서 패턴이 "지금도 진행 중"임을 보여줌
           signal: current,  // 확인 지점은 항상 "오늘"
-          breakout: lastClose > necklinePrice * BREAKOUT_TOL
+          breakout: lastClose > necklinePrice * BREAKOUT_TOL,
+          score: score,
+          reasons: reasons,
+          interpretation: '좌우 어깨가 비슷한 높이(차이 ' + (shoulderDiff * 100).toFixed(1) + '%)의 역헤드앤숄더 구조로 추정됩니다(' + score + '점).'
         };
       }
     }
@@ -1289,13 +1990,32 @@ function detectBoxRangeLow_(daily) {
   if (lastClose < support * (1 - 0.01)) return null; // 이미 지지선 이탈(박스 붕괴)했으면 제외
   if ((lastClose - support) / support > BOX_NEAR_LOW_TOL) return null; // 하단 근처가 아니면 제외
 
+  // ---- 점수(100점): 박스유지30 + 지지선근접40 + 거래량감소20 + 최근양봉10 ----
+  var flatness = Math.max((lowMax - lowMin) / lowMin, (highMax - highMin) / highMin);
+  var boxScore = flatness <= 0.015 ? 30 : flatness <= BOX_TOL ? 18 : 0;
+  var nearRatio = (lastClose - support) / support;
+  var supportScore = nearRatio <= 0.01 ? 40 : nearRatio <= BOX_NEAR_LOW_TOL ? 25 : 0;
+  var volScore = isVolumeDeclining_(win, lowIdxs[0], win.length) ? 20 : 0;
+  var bullScore = isLastCandleBullish_(win) ? 10 : 0;
+
+  var score = clampScore_(boxScore + supportScore + volScore + bullScore);
+  var reasons = [
+    '박스 상/하단 평평도(' + boxScore + '/30점)',
+    '지지선 근접도 ' + (nearRatio * 100).toFixed(1) + '%(' + supportScore + '/40점)',
+    '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/20점)',
+    '최근 캔들 ' + (bullScore ? '양봉' : '음봉') + '(' + bullScore + '/10점)'
+  ];
+
   return {
     support: support,
     resistance: resistance,
     low_swings: lowIdxs.map(function (i) { return { date: win[i].date, price: win[i].low }; }),
     high_swings: highIdxs.map(function (i) { return { date: win[i].date, price: win[i].high }; }),
     signal: { date: win[win.length - 1].date, price: lastClose },
-    breakout: false
+    breakout: false,
+    score: score,
+    reasons: reasons,
+    interpretation: '박스권 하단 지지선 부근(지지선 대비 +' + (nearRatio * 100).toFixed(1) + '%)에서 반등을 시도하는 구간으로 추정됩니다(' + score + '점).'
   };
 }
 
@@ -1344,12 +2064,114 @@ function detectGoldPitReversal_(daily) {
     if (ma[m] != null && win[m].close < ma[m] * 0.99) return null;
   }
 
+  // ---- 점수(100점, 지시서 5종 외 패턴이라 이 구현에서 자체 배점): 하락추세강도40 +
+  // 돌파초반도(최근일수록 고득점)30 + 상승모멘텀(과열아님)20 + 거래량10 ----
+  var belowRatio = belowCount / checked;
+  var trendScore = belowRatio >= 0.8 ? 40 : belowRatio >= GOLD_TREND_BELOW_RATIO ? 25 : 0;
+  var gapFromCross = (n - 1) - crossIdx;
+  var earlyScore = gapFromCross <= 1 ? 30 : gapFromCross <= RECENCY_MAX_GAP ? 18 : 0;
+  var momentum = ma[n - 1] ? (lastClose - ma[n - 1]) / ma[n - 1] : 0;
+  var momentumScore = (momentum >= 0 && momentum <= 0.03) ? 20 : (momentum > 0.03 && momentum <= 0.06) ? 10 : 0;
+  var volScore = win[crossIdx].volume > avgVolume_(win, Math.max(0, crossIdx - 20), crossIdx) ? 10 : 0;
+
+  var score = clampScore_(trendScore + earlyScore + momentumScore + volScore);
+  var reasons = [
+    '전환 전 하락추세 비율 ' + (belowRatio * 100).toFixed(0) + '%(' + trendScore + '/40점)',
+    'MA60 돌파 후 ' + gapFromCross + '거래일 경과(' + earlyScore + '/30점)',
+    'MA60 이격도 ' + (momentum * 100).toFixed(1) + '%(' + momentumScore + '/20점)',
+    '돌파일 거래량 ' + (volScore ? '증가' : '평이') + '(' + volScore + '/10점)'
+  ];
+
   return {
     ma_period: period,
     cross: { date: win[crossIdx].date, price: win[crossIdx].close },
     current: { date: win[n - 1].date, price: lastClose },
     signal: { date: win[n - 1].date, price: lastClose },
-    breakout: false
+    breakout: false,
+    score: score,
+    reasons: reasons,
+    interpretation: '장기 하락추세(전환 전 하락 비율 ' + (belowRatio * 100).toFixed(0) + '%) 이후 60일선을 막 돌파한 초기 구간으로 추정됩니다(' + score + '점).'
+  };
+}
+
+// 눌림목: 최근 20거래일 중 15% 이상 상승한 뒤, 고점 대비 5~15% 조정을 받고
+// 20일선 또는 60일선 ±3% 부근까지 내려온 구간. MA60이 필요해 골파기와 같은 긴
+// 윈도(PULLBACK_WINDOW≈90영업일, 9페이지 크롤링)를 쓴다.
+var PULLBACK_WINDOW = 90;
+var PULLBACK_PAGES = 9;
+var PULLBACK_LOOKBACK = 20;     // "최근 20거래일" 안에서 고점을 찾음
+var PULLBACK_MIN_RISE = 0.15;   // 저점->고점 15% 이상 상승
+var PULLBACK_MIN_DROP = 0.05;   // 고점 대비 조정폭 하한 5%
+var PULLBACK_MAX_DROP = 0.15;   // 조정폭 상한 15%
+var PULLBACK_MA_TOL = 0.03;     // 20일선/60일선 ±3%
+var PULLBACK_TIME_BUDGET_MS = 5 * 60 * 1000;
+
+function detectPullback_(daily) {
+  var win = daily.slice(Math.max(0, daily.length - PULLBACK_WINDOW));
+  var n = win.length;
+  if (n < 65) return null; // MA60 계산 + 상승 관찰 여유
+
+  var ma20 = movingAverage_(win, 'close', 20);
+  var ma60 = movingAverage_(win, 'close', 60);
+
+  var recentStart = Math.max(0, n - PULLBACK_LOOKBACK - 5); // 고점 탐색을 조금 넉넉하게
+  var peakIdx = recentStart;
+  for (var i = recentStart; i < n; i++) {
+    if (win[i].close > win[peakIdx].close) peakIdx = i;
+  }
+  if ((n - 1) - peakIdx > PULLBACK_LOOKBACK) return null; // 고점이 너무 오래 전이면 "최근 상승" 아님
+
+  var lowIdx = recentStart;
+  for (var j = recentStart; j <= peakIdx; j++) {
+    if (win[j].close < win[lowIdx].close) lowIdx = j;
+  }
+  if (lowIdx >= peakIdx) return null; // 상승 구간(저점->고점) 자체가 없음
+
+  var lowClose = win[lowIdx].close;
+  var peakClose = win[peakIdx].close;
+  var riseRatio = (peakClose - lowClose) / lowClose;
+  if (riseRatio < PULLBACK_MIN_RISE) return null;
+
+  var lastClose = win[n - 1].close;
+  var dropRatio = (peakClose - lastClose) / peakClose;
+  if (dropRatio < PULLBACK_MIN_DROP || dropRatio > PULLBACK_MAX_DROP) return null;
+
+  var ma20Now = ma20[n - 1];
+  var ma60Now = ma60[n - 1];
+  var diff20 = ma20Now ? Math.abs(lastClose - ma20Now) / ma20Now : Infinity;
+  var diff60 = ma60Now ? Math.abs(lastClose - ma60Now) / ma60Now : Infinity;
+  if (diff20 > PULLBACK_MA_TOL && diff60 > PULLBACK_MA_TOL) return null;
+
+  // ---- 점수(100점): 상승추세30 + 조정폭30 + 이평선위치20 + 거래량감소10 + 최근양봉10 ----
+  var riseScore = riseRatio >= 0.25 ? 30 : riseRatio >= 0.20 ? 22 : 15;
+  var dropScore = (dropRatio >= 0.07 && dropRatio <= 0.12) ? 30 : 18;
+  var maScore = (diff20 <= PULLBACK_MA_TOL && diff60 <= PULLBACK_MA_TOL) ? 20
+    : (Math.min(diff20, diff60) <= PULLBACK_MA_TOL) ? 12 : 0;
+  var volScore = isVolumeDeclining_(win, peakIdx, n) ? 10 : 0;
+  var bullScore = isLastCandleBullish_(win) ? 10 : 0;
+
+  var score = clampScore_(riseScore + dropScore + maScore + volScore + bullScore);
+  var maLabel = diff20 <= diff60 ? '20일선' : '60일선';
+  var reasons = [
+    '상승폭 ' + (riseRatio * 100).toFixed(1) + '%(' + riseScore + '/30점)',
+    '조정폭 ' + (dropRatio * 100).toFixed(1) + '%(' + dropScore + '/30점)',
+    maLabel + ' 근접도(' + maScore + '/20점)',
+    '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/10점)',
+    '최근 캔들 ' + (bullScore ? '양봉' : '음봉') + '(' + bullScore + '/10점)'
+  ];
+
+  return {
+    rise_start: { date: win[lowIdx].date, price: lowClose },
+    peak: { date: win[peakIdx].date, price: peakClose },
+    current: { date: win[n - 1].date, price: lastClose },
+    signal: { date: win[n - 1].date, price: lastClose },
+    ma20: ma20Now,
+    ma60: ma60Now,
+    breakout: false,
+    score: score,
+    reasons: reasons,
+    interpretation: (riseRatio * 100).toFixed(1) + '% 상승 후 ' + (dropRatio * 100).toFixed(1) + '% 눌림목 조정을 받아 '
+      + maLabel + ' 부근에서 지지를 시도하는 구간으로 추정됩니다(' + score + '점).'
   };
 }
 

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>watchlist 로컬 테스트</title>
+<link rel="stylesheet" href="../css/watchlist.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 780px; margin: 40px auto; padding: 0 16px; }
+  .toggle-dark { margin-bottom: 16px; }
+  .tools { margin-bottom: 16px; display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+
+<div class="page-body">
+  <h1>watchlist 로컬 테스트</h1>
+  <div class="tools">
+    <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+    <button onclick="localStorage.removeItem('wl_codes_v1'); location.reload();">저장 초기화</button>
+    <button onclick="fillSample()">샘플 30개 채우기(상한 테스트)</button>
+  </div>
+  <p style="font-size:13px;color:#888">
+    기본은 mock 시세로 렌더링 검증. 실제 GAS 호출로 테스트하려면 <code>?real=1</code>을 붙이세요.<br />
+    관심종목 목록 자체는 실제로 localStorage(<code>wl_codes_v1</code>)에 저장되어 새로고침해도 유지됩니다.
+  </p>
+  <div id="watchlist"></div>
+</div>
+
+<script src="../data/krx_map.js"></script>
+<script src="../js/watchlist.js"></script>
+<script>
+  // GAS 재배포와 무관한 기능(신규 엔드포인트 없음)이라 기본은 mock, ?real=1이면 실제 GAS 호출
+  if (location.search.indexOf('real=1') === -1) {
+    Watchlist.fetchQuotes = function (codes) {
+      console.log('[mock] fetchQuotes', codes);
+      var byCode = {};
+      codes.forEach(function (code, i) {
+        var price = 10000 + (code.charCodeAt(0) * 137 + i * 911) % 490000;
+        var changeRate = ((code.charCodeAt(1) || 65) % 13 - 6) + (Math.random() * 2 - 1);
+        byCode[code] = {
+          code: code,
+          price: price,
+          change: changeRate >= 0 ? 1 : -1,
+          changeRate: changeRate
+        };
+      });
+      return Promise.resolve(byCode);
+    };
+    // 첫 로드 시 목록이 비어있으면 데모용으로 몇 종목 미리 채워둠
+    if (!localStorage.getItem('wl_codes_v1')) {
+      localStorage.setItem('wl_codes_v1', JSON.stringify([
+        { code: '005930', name: '삼성전자' },
+        { code: '000660', name: 'SK하이닉스' },
+        { code: '035420', name: 'NAVER' }
+      ]));
+    }
+  }
+
+  function fillSample() {
+    var map = window.KRX_MAP || {};
+    var names = Object.keys(map).slice(0, 30);
+    var list = names.map(function (name) { return { code: map[name], name: name }; });
+    localStorage.setItem('wl_codes_v1', JSON.stringify(list));
+    location.reload();
+  }
+</script>
+
+</body>
+</html>

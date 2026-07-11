@@ -1,0 +1,101 @@
+/* 오늘의 증시온도 위젯 (js/market-temp.js)
+ * 온도 바 색: 차가움=파랑 #1261c4, 중립=회색 #888, 뜨거움=빨강 #d24f45 (사이트 공통 상승/하락 컬러 재사용)
+ * 다크모드: html.dark #market-temp ... !important (9bolt 스킨 블랑켓 규칙 대응) */
+
+#market-temp {
+  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+  color: #222;
+  line-height: 1.5;
+  margin: 16px 0;
+}
+
+#market-temp .mt-hint,
+#market-temp .mt-error {
+  padding: 20px 12px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+
+#market-temp .mt-card {
+  padding: 18px 20px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+#market-temp .mt-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 4px;
+}
+#market-temp .mt-score {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+#market-temp .mt-score-unit {
+  font-size: 18px;
+  font-weight: 600;
+  margin-left: 2px;
+}
+#market-temp .mt-grade {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 4px 0 14px;
+}
+
+#market-temp .mt-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#market-temp .mt-bar-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 46px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+#market-temp .mt-bar-label { color: #666; }
+#market-temp .mt-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #eee;
+  overflow: hidden;
+}
+#market-temp .mt-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+#market-temp .mt-bar-fill.mt-cold { background: #1261c4; }
+#market-temp .mt-bar-fill.mt-mid { background: #888; }
+#market-temp .mt-bar-fill.mt-hot { background: #d24f45; }
+#market-temp .mt-bar-value { color: #999; text-align: right; }
+
+#market-temp .mt-updated {
+  margin-top: 12px;
+  font-size: 11px;
+  color: #aaa;
+  text-align: right;
+}
+
+/* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
+html.dark #market-temp { color: #ddd !important; }
+html.dark #market-temp .mt-hint,
+html.dark #market-temp .mt-error { color: #999 !important; }
+html.dark #market-temp .mt-card {
+  background: #262626 !important;
+  border-color: #3a3a3a !important;
+}
+html.dark #market-temp .mt-label { color: #aaa !important; }
+html.dark #market-temp .mt-score { color: #eee !important; }
+html.dark #market-temp .mt-grade { color: #eee !important; }
+html.dark #market-temp .mt-bar-label { color: #999 !important; }
+html.dark #market-temp .mt-bar-track { background: #3a3a3a !important; }
+html.dark #market-temp .mt-bar-fill.mt-cold { background: #4d9fff !important; }
+html.dark #market-temp .mt-bar-fill.mt-mid { background: #999 !important; }
+html.dark #market-temp .mt-bar-fill.mt-hot { background: #ff6b5b !important; }
+html.dark #market-temp .mt-bar-value { color: #888 !important; }
+html.dark #market-temp .mt-updated { color: #777 !important; }

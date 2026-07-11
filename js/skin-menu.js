@@ -51,6 +51,18 @@
       icon: '<rect x="4" y="10" width="3" height="8"/><rect x="10.5" y="4" width="3" height="14"/><rect x="17" y="7" width="3" height="11"/>'
     },
     {
+      href: '/page/short-pressure',
+      label: '공매도 압박',
+      bold: true,
+      icon: '<path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'
+    },
+    {
+      href: '/page/pension-fund',
+      label: '연기금 분석',
+      bold: true,
+      icon: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>'
+    },
+    {
       href: '/notice',
       label: '공지사항',
       icon: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'

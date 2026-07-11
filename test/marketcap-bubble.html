@@ -14,30 +14,53 @@
 <body>
 
 <div class="page-body">
-  <h1>marketcap-bubble 로컬 테스트</h1>
+  <h1>marketcap-bubble(히트맵) 로컬 테스트</h1>
   <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
   <div id="marketcap-bubble" class="marketcap-bubble"></div>
 </div>
 
+<script src="../data/sectors-v3.js"></script>
 <script src="../data/marketcap-codes.js"></script>
 <script>
   // GAS 실배포 전이므로 mock 데이터로 렌더링만 검증.
-  // data/marketcap-codes.js의 코드 목록을 그대로 써서 실제 개수(20/15/10/2)를 재현한다.
-  function mockQuote(code, name, baseCap) {
+  // 코스피/코스닥은 실제 GAS와 동일하게 data/sectors-v3.js(SECTOR_MAP)를 소스로 써서
+  // 종목 수(238개)와 업종 태그(sectors)를 그대로 재현한다. ETF/INVERSE/LEV는
+  // data/marketcap-codes.js 그대로.
+  function mockQuote(code, name, baseCap, extra) {
     var cap = baseCap * (0.85 + Math.random() * 0.3);
-    var changeRate = (Math.random() - 0.45) * 12;
-    return { code: code, name: name, cap: cap, changeRate: changeRate };
+    var changeRate = (Math.random() - 0.45) * 8;
+    return Object.assign({ code: code, name: name, cap: cap, changeRate: changeRate }, extra || {});
   }
 
   function buildMock() {
-    var caps = { KOSPI: 300e12, KOSDAQ: 8e12, ETF: 60e12 };
-    var data = { KOSPI: [], KOSDAQ: [], ETF: [], LEV: [] };
-    ['KOSPI', 'KOSDAQ', 'ETF'].forEach(function (cat) {
-      window.MARKETCAP_CODES[cat].forEach(function (pair, i) {
-        var decay = Math.pow(0.85, i);
-        data[cat].push(mockQuote(pair[0], pair[1], caps[cat] * decay));
+    var data = { KOSPI: [], KOSDAQ: [], ETF: [], INVERSE: [], LEV: [] };
+
+    // sectors-v3.js에서 코드 기준 유니크 + 섹터 목록 취합(GAS의 fetchSectorUniverseWithSectors_와 동일 로직)
+    var byCode = {};
+    var sectorMap = window.SECTOR_MAP || {};
+    Object.keys(sectorMap).forEach(function (sector) {
+      sectorMap[sector].forEach(function (it) {
+        if (!byCode[it.code]) byCode[it.code] = { name: it.name, market: it.market, sectors: [] };
+        if (byCode[it.code].sectors.indexOf(sector) === -1) byCode[it.code].sectors.push(sector);
       });
     });
+
+    var i = 0;
+    Object.keys(byCode).forEach(function (code) {
+      var u = byCode[code];
+      var baseCap = (u.market === 'KOSPI' ? 20e12 : 2e12) * Math.pow(0.93, i % 40);
+      i++;
+      var q = mockQuote(code, u.name, baseCap, { sectors: u.sectors });
+      (data[u.market] || data.KOSPI).push(q);
+    });
+
+    ['ETF', 'INVERSE'].forEach(function (cat) {
+      (window.MARKETCAP_CODES[cat] || []).forEach(function (pair, idx) {
+        var baseCap = cat === 'ETF' ? 5e12 * Math.pow(0.85, idx) : 1e12 * Math.pow(0.85, idx);
+        data[cat].push(mockQuote(pair[0], pair[1], baseCap));
+      });
+    });
+
     data.LEV = [
       { name: '삼성전자 단일종목레버리지(7종 합산)', cap: 4.5e12, changeRate: -8.2, breakdown: 'KODEX 2.7조 · TIGER 1.5조 · ACE 758억' },
       { name: 'SK하이닉스 단일종목레버리지(7종 합산)', cap: 7.0e12, changeRate: -7.9, breakdown: 'KODEX 4.3조 · TIGER 2.4조 · ACE 916억' }

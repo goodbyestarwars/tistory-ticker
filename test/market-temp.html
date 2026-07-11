@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>market-temp 로컬 테스트</title>
+<link rel="stylesheet" href="../css/market-temp.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 480px; margin: 40px auto; padding: 0 16px; }
+  .tools { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="page-body">
+  <h1>market-temp 로컬 테스트</h1>
+  <div class="tools">
+    <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+    <button onclick="setMock(82)">매우 강세(82점)</button>
+    <button onclick="setMock(50)">중립(50점)</button>
+    <button onclick="setMock(15)">매우 차가움(15점)</button>
+  </div>
+  <p style="font-size:13px;color:#888">
+    기본은 mock 스코어로 렌더링 검증. 실제 GAS 호출로 테스트하려면 <code>?real=1</code>을 붙이세요(GAS 재배포 후).
+  </p>
+  <div id="market-temp"></div>
+</div>
+
+<script src="../js/market-temp.js"></script>
+<script>
+  var currentScore = 82;
+
+  function mockResponse(score) {
+    // 4개 지표 배분은 대략적인 예시일 뿐, 합이 score가 되도록만 맞춤
+    var vix = Math.round(Math.min(25, score * 0.25));
+    var flow = Math.round(Math.min(30, score * 0.30));
+    var rise = Math.round(Math.min(25, score * 0.25));
+    var vol = Math.max(0, score - vix - flow - rise);
+
+    var grade = score <= 20 ? { emoji: '🧊', label: '매우 차가움' }
+      : score <= 40 ? { emoji: '🔵', label: '약세' }
+      : score <= 60 ? { emoji: '🟡', label: '중립' }
+      : score <= 80 ? { emoji: '🟠', label: '강세' }
+      : { emoji: '🔥', label: '매우 강세' };
+
+    return {
+      score: score,
+      grade: grade,
+      components: {
+        vix: { score: vix, value: 16.4 },
+        flow: { score: flow, ratio: 0.4 },
+        riseRatio: { score: rise, ratio: 0.62, up: 148, down: 90, total: 238 },
+        tradingValue: { score: vol, relative: 1.12 }
+      },
+      updatedAt: '2026-07-11 10:30:00'
+    };
+  }
+
+  if (location.search.indexOf('real=1') === -1) {
+    // module의 자체 DOMContentLoaded 리스너가 이 override 적용 이후에 실행되므로
+    // 여기서 따로 init()을 호출하지 않아도 첫 렌더는 mock으로 자동 진행된다.
+    MarketTemp.fetchMarketTemp = function () {
+      console.log('[mock] fetchMarketTemp', currentScore);
+      return Promise.resolve(mockResponse(currentScore));
+    };
+  }
+
+  function setMock(score) {
+    currentScore = score;
+    if (location.search.indexOf('real=1') === -1) MarketTemp.init();
+  }
+</script>
+
+</body>
+</html>

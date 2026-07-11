@@ -1,9 +1,13 @@
 /**
  * 차트 패턴 스캔 위젯
- * 저점상승형 / 쌍바닥 / 역헤드앤숄더 / 박스권하단 / 골파기반전 5개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
+ * 저점상승형 / 쌍바닥 / 역헤드앤숄더 / 박스권하단 / 골파기반전 / 눌림목 6개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
  *
  * 리스트는 GAS가 하루 1회 미리 스캔해둔 결과(?patternScan=1)를 그대로 보여준다(가벼움).
  * 클릭한 종목의 차트는 그 종목만 온디맨드로 다시 크롤링(?patternChart=1&code=&pattern=).
+ *
+ * 모든 패턴은 0~100점 스코어링(GAS에서 계산, 70점 이상만 결과에 포함)이며,
+ * AI가 패턴을 임의로 판단하지 않고 수치 조건으로만 점수를 매긴다 - 리스트/상세 모두
+ * 점수 + 원인(부분점수 breakdown) + 한 줄 해석을 그대로 보여준다.
  */
 (function (global) {
   'use strict';
@@ -21,7 +25,8 @@
     { key: 'doubleBottom', label: '쌍바닥' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더' },
     { key: 'boxRangeLow', label: '박스권 하단' },
-    { key: 'goldPitReversal', label: '골파기 반전' }
+    { key: 'goldPitReversal', label: '골파기 반전' },
+    { key: 'pullback', label: '눌림목' }
   ];
 
   var scanData = null;
@@ -90,10 +95,14 @@
       return;
     }
 
-    list.innerHTML = items.map(function (it) {
+    // 점수 높은 순으로 정렬 - 지시서 "70점 이상만 노출" 중에서도 가장 근거가 탄탄한 종목이 위로
+    var sorted = items.slice().sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+
+    list.innerHTML = sorted.map(function (it) {
       var cc = chgClass(it.changeRate);
       return '<div class="ps-item" data-code="' + it.code + '">'
         + '<span class="ps-name">' + escapeHtml(it.name) + '<span class="ps-code">(' + escapeHtml(it.code) + ')</span></span>'
+        + '<span class="ps-score-badge">' + (it.score != null ? it.score + '점' : '-') + '</span>'
         + '<span class="ps-quote"><span class="ps-price">' + fmt(it.price) + '</span>'
         + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
         + '</div>';
@@ -140,12 +149,29 @@
       + '<span class="ps-detail-name">' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
+    html += buildScoreBox(data.detail);
     html += buildCandleChart(data.daily, data.pattern, data.detail);
     html += '<div class="ps-footnote">※ 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;
 
     var closeBtn = box.querySelector('#psClose');
     if (closeBtn) closeBtn.addEventListener('click', function () { box.hidden = true; box.innerHTML = ''; });
+  }
+
+  // 점수 + 원인(부분점수) + AI 한 줄 해석 - 지시서 원칙("결과에는 점수 + 원인 + AI 한 줄 해석을
+  // 함께 제공한다")을 그대로 반영. 점수는 GAS가 수치 조건으로만 계산(임의 판단 없음).
+  function buildScoreBox(detail) {
+    if (!detail || detail.score == null) return '';
+    var reasons = (detail.reasons || []).map(function (r) {
+      return '<li>' + escapeHtml(r) + '</li>';
+    }).join('');
+    return '<div class="ps-score-box">'
+      + '<div class="ps-score-big">' + detail.score + '<span class="ps-score-unit">점</span></div>'
+      + '<div class="ps-score-body">'
+      + (detail.interpretation ? '<div class="ps-interp">' + escapeHtml(detail.interpretation) + '</div>' : '')
+      + (reasons ? '<ul class="ps-reasons">' + reasons + '</ul>' : '')
+      + '</div>'
+      + '</div>';
   }
 
   function buildCandleChart(daily, pattern, detail) {
@@ -192,6 +218,11 @@
     if (pattern === 'goldPitReversal' && detail && detail.ma_period) {
       svg += buildMaLine(daily, detail.ma_period, x, y);
     }
+    // 눌림목: 20일선/60일선 중 어디 근처에서 지지받는지 눈으로 보여주기 위해 둘 다 그림(선 색 구분)
+    if (pattern === 'pullback') {
+      svg += buildMaLine(daily, 20, x, y, 'ps-line-ma20');
+      svg += buildMaLine(daily, 60, x, y, 'ps-line-ma60');
+    }
 
     // y축 레이블
     svg += '<text class="ps-axis" x="' + (PAD.l - 6) + '" y="' + (y(max) + 4).toFixed(1) + '" text-anchor="end">' + fmt(max) + '</text>';
@@ -211,7 +242,7 @@
   }
 
   // 종가 N일 이동평균선을 폴리라인으로 그림 (골파기 반전 전용)
-  function buildMaLine(daily, period, x, y) {
+  function buildMaLine(daily, period, x, y, cls) {
     var pts = [];
     var sum = 0;
     for (var i = 0; i < daily.length; i++) {
@@ -220,7 +251,7 @@
       if (i >= period - 1) pts.push(x(i).toFixed(1) + ',' + y(sum / period).toFixed(1));
     }
     if (pts.length < 2) return '';
-    return '<polyline class="ps-line-ma" points="' + pts.join(' ') + '"/>';
+    return '<polyline class="' + (cls || 'ps-line-ma') + '" points="' + pts.join(' ') + '"/>';
   }
 
   function buildPatternOverlay(pattern, detail, idxByDate, x, y, chartW) {
@@ -315,6 +346,15 @@
         svg += polyline([detail.cross, detail.current], 'ps-line-support');
         svg += dot(detail.cross, 'ps-dot-resist');
         svg += signalRing(detail.current); // 돌파 확인 지점(오늘)
+      }
+    } else if (pattern === 'pullback') {
+      // 상승 시작(저점) -> 고점 -> 현재가(조정 중) 순서로 이어 "얼마나 올랐다가 얼마나
+      // 눌렸는지"를 한눈에 보여준다. 이평선은 buildCandleChart에서 배경에 이미 그림.
+      if (detail.rise_start && detail.peak && detail.current) {
+        svg += polyline([detail.rise_start, detail.peak, detail.current], 'ps-line-support');
+        svg += dot(detail.rise_start, 'ps-dot-support');
+        svg += dot(detail.peak, 'ps-dot-resist');
+        svg += signalRing(detail.current); // 눌림목 확인 지점(오늘)
       }
     }
 
