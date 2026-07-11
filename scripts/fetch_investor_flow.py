@@ -182,7 +182,7 @@ def fetch_stock(token, code, name, strt_dt, end_dt):
     loan_res = call_tr(token, 'ka20068', '/api/dostk/slb', {'stk_cd': code})
     time.sleep(THROTTLE_SEC)
     invsr_res = call_tr(token, 'ka10059', '/api/dostk/stkinfo',
-                         {'stk_cd': code, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'})
+                         {'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'})
     time.sleep(THROTTLE_SEC)
 
     short_rows = short_res.get('shrts_trnsn') or []

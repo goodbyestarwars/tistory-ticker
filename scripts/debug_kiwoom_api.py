@@ -60,7 +60,7 @@ def main():
     tests = [
         ('ka10014', '/api/dostk/shsa', {'stk_cd': '005930', 'strt_dt': strt_dt, 'end_dt': end_dt}),
         ('ka20068', '/api/dostk/slb', {'stk_cd': '005930'}),
-        ('ka10059', '/api/dostk/stkinfo', {'stk_cd': '005930', 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'}),
+        ('ka10059', '/api/dostk/stkinfo', {'stk_cd': '005930', 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'}),
     ]
 
     for api_id, path, body in tests:
