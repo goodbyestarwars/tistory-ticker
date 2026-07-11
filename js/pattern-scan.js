@@ -172,7 +172,14 @@
       + '<span class="ps-detail-name">' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
-    html += buildScoreBox(data.detail);
+    if (data.detail) {
+      html += buildScoreBox(data.detail);
+    } else {
+      // 리스트는 하루 1회 스캔 캐시라서, 클릭 시 실시간 재검증에서 패턴이 더 이상
+      // 안 잡힐 수 있음(그 사이 가격이 움직여서) - 오버레이 선 없이 캔들만 나오면
+      // 기능이 고장난 것처럼 보이니 이유를 명시한다.
+      html += '<div class="ps-stale-notice">⚠️ 스캔 이후 가격이 움직여서 지금 다시 확인해보니 이 패턴 조건을 더 이상 만족하지 않아요. 그래서 패턴선 없이 캔들차트만 보여드려요.</div>';
+    }
     html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
     html += '<div class="ps-footnote">※ 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;
