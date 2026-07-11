@@ -989,24 +989,31 @@ function frgnSignal(daily, rolling, kind) {
 var SHORT_TRADE_URL = 'https://finance.naver.com/item/short_trade.naver';
 var SHORT_TRADE_PAGES = 2; // 20행/페이지 x 2 ≈ 40영업일(20일 평균거래량 계산 여유)
 
+var SHORT_TRADE_LAST_DEBUG = null; // 직전 fetchShortTradeRows_ 호출의 진단 정보(상태코드/HTML 앞부분) - ?debugShortNaver=1 용
+
 function fetchShortTradeRows_(code) {
   var rows = [];
   var seen = {};
+  var pageDebug = [];
   for (var page = 1; page <= SHORT_TRADE_PAGES; page++) {
     try {
       var res = UrlFetchApp.fetch(SHORT_TRADE_URL + '?code=' + code + '&page=' + page, {
         muteHttpExceptions: true,
         headers: { 'User-Agent': 'Mozilla/5.0' }
       });
-      if (res.getResponseCode() !== 200) continue;
+      var status = res.getResponseCode();
       var html = res.getContentText('EUC-KR');
+      pageDebug.push({ page: page, status: status, htmlLen: html.length, htmlHead: html.slice(0, 400) });
+      if (status !== 200) continue;
       parseShortTradeRows_(html).forEach(function (row) {
         if (!seen[row.date]) { seen[row.date] = true; rows.push(row); }
       });
     } catch (err) {
+      pageDebug.push({ page: page, error: String(err) });
       continue; // 이 페이지만 스킵
     }
   }
+  SHORT_TRADE_LAST_DEBUG = pageDebug;
   rows.sort(function (a, b) { return a.date < b.date ? 1 : -1; }); // 최신일 우선
   return rows;
 }
@@ -1051,7 +1058,7 @@ function parseShortTradeRows_(html) {
 // 실제 컬럼 순서 확인되면 parseShortTradeRows_의 인덱스 매핑을 맞추고 이 함수는 지울 것.
 function debugShortTradeNaver(code) {
   var rows = fetchShortTradeRows_(code || '005930');
-  return { rowCount: rows.length, sample: rows.slice(0, 3) };
+  return { rowCount: rows.length, sample: rows.slice(0, 3), pages: SHORT_TRADE_LAST_DEBUG };
 }
 
 function getShortPressure(code) {
