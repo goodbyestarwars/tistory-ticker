@@ -5,7 +5,7 @@
  * git push만으로 반영 가능 — skin.html 재배포(스킨 편집기 붙여넣기) 불필요.
  *
  * 반드시 skin-menu.js/skin-main.js보다 먼저 로드돼야 함 — 그 스크립트들이
- * mobileMenuBtn, scrollTopBtn, calGrid, discTrack 등을 getElementById로 찾기 때문.
+ * mobileMenuBtn, scrollTopBtn, discTrack 등을 getElementById로 찾기 때문.
  *
  * 태그가 하나라도 섞인 블록(네비바 로고/검색창, 카테고리 데이터, 글 목록,
  * 방문자 통계, 공지/방명록/페이지네이션 등)은 여기로 옮길 수 없음 — skin.html에
@@ -48,21 +48,6 @@
       '<div class="drawer-header" style="display:none;">' +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>' +
         '<span class="drawer-header-title">Navigation</span>' +
-      '</div>',
-
-    /* 구글 캘린더 위젯 껍데기 - 내용은 skin-main.js가 채움 */
-    calWidget:
-      '<div class="card cal-widget">' +
-        '<div class="cal-widget-header">' +
-          '<button class="cal-nav" id="calPrev">‹</button>' +
-          '<span class="cal-widget-title" id="calTitle">로딩 중...</span>' +
-          '<button class="cal-nav" id="calNext">›</button>' +
-        '</div>' +
-        '<div class="cal-dow">' +
-          '<span style="color:#e11d48;">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span style="color:#2563eb;">토</span>' +
-        '</div>' +
-        '<div class="cal-grid" id="calGrid"></div>' +
-        '<div class="cal-event-list" id="calEventList" style="display:none;"></div>' +
       '</div>',
 
     /* 세부 카테고리 서브 필터 바 - skin-main.js가 채움 */

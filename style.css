@@ -2323,6 +2323,26 @@ body.iframe-mode .notice-card { border-radius: 0; }
   .nm-card.nm-wide { width: 100%; height: 94vh; }
 }
 
+/* 증시캘린더 모달(openCalendarModal) — 다른 모달과 달리 높이는 내용에 맞춰 자동 */
+.nm-card.nm-calendar-card { width: min(560px, 92vw); height: auto; max-height: 85vh; }
+.cal-modal-body { padding: 20px 24px 24px; overflow-y: auto; }
+.cal-modal-body .cal-widget-header { margin-bottom: 16px; }
+.cal-modal-body .cal-widget-title { font-size: 18px; }
+.cal-modal-body .cal-nav { width: 32px; height: 32px; font-size: 18px; }
+.cal-modal-body .cal-dow span { font-size: 12px; padding: 6px 0; }
+.cal-modal-body .cal-grid { gap: 6px; }
+.cal-modal-body .cal-day { height: 54px; font-size: 15px; border-radius: 10px; }
+.cal-modal-body .cal-dot { width: 6px; height: 6px; bottom: 6px; }
+.cal-modal-body .cal-event-list { margin-top: 16px; padding-top: 16px; }
+.cal-modal-body .cal-ev-date { font-size: 13px; }
+.cal-modal-body .cal-ev-item { padding: 8px 10px; border-radius: 10px; }
+.cal-modal-body .cal-ev-time { font-size: 12px; min-width: 42px; }
+.cal-modal-body .cal-ev-title { font-size: 13px; }
+@media (max-width: 600px) {
+  .nm-card.nm-calendar-card { width: 100%; max-height: 90vh; }
+  .cal-modal-body .cal-day { height: 42px; }
+}
+
 .nm-scale-wrap { flex: 1; overflow-x: hidden; overflow-y: auto; position: relative; }
 .nm-scale-inner { position: relative; }
 .nm-iframe-fixed {

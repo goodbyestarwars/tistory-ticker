@@ -40,9 +40,11 @@
 
   /* ── 카테고리 동적 파싱 ([##_category_list_##] 기반) ── */
   var catColors = ['#2563eb','#16a34a','#d97706','#7c3aed','#e11d48','#0891b2','#b45309','#0f766e'];
+  /* 2026-07-12: 마켓 브리핑은 왼쪽 페이지 메뉴(skin-menu.js)로 승격돼서
+     사이드바 "카테고리" 목록에는 중복 노출 안 함 */
+  var sidebarCatExclude = ['마켓 브리핑'];
   /* 카테고리명 → 아이콘 수동 매핑. 카테고리 이름을 바꾸면 이 키도 같이 고쳐야 함(안 그러면 기본 아이콘으로 대체됨) */
   var catIconPaths = {
-    '마켓 브리핑': '<circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 16.25a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>',
     '종목 분석': '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
     '일상다반사': '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
     '일기장': '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
@@ -81,8 +83,9 @@
           count = m ? m[2] : '';
         }
         if (!name) return;
-        var color = catColors[idx % catColors.length];
         var bareName = name.replace(/\s*\(비공개\)\s*$/, '').trim();
+        if (sidebarCatExclude.indexOf(bareName) > -1) return;
+        var color = catColors[idx % catColors.length];
         var iconPath = catIconPaths[bareName] || catIconDefault;
         var li = document.createElement('li');
         li.innerHTML = '<a href="' + href + '" data-parent="' + name + '">'
@@ -278,6 +281,43 @@
     } else { window.open(url, '_blank'); }
   };
 
+  /* 증시캘린더 - 커스텀 메뉴에서 클릭하면 중앙 모달로 큰 달력을 띄움
+     (예전엔 왼쪽 사이드바에 상시 노출되는 미니 캘린더였음) */
+  window.openCalendarModal = function() {
+    var old = document.getElementById('bolt-modal');
+    if (old) old.remove();
+    var m = document.createElement('div');
+    m.id = 'bolt-modal';
+    m.innerHTML =
+      '<div class="nm-overlay"></div>' +
+      '<div class="nm-card nm-calendar-card">' +
+        '<div class="nm-header">' +
+          '<span class="nm-title">증시캘린더</span>' +
+          '<div class="nm-actions"><button class="nm-close" id="nmCalClose">✕</button></div>' +
+        '</div>' +
+        '<div class="cal-modal-body">' +
+          '<div class="cal-widget-header">' +
+            '<button class="cal-nav" id="calModalPrev">‹</button>' +
+            '<span class="cal-widget-title" id="calModalTitle">로딩 중...</span>' +
+            '<button class="cal-nav" id="calModalNext">›</button>' +
+          '</div>' +
+          '<div class="cal-dow">' +
+            '<span style="color:#e11d48;">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span style="color:#2563eb;">토</span>' +
+          '</div>' +
+          '<div class="cal-grid" id="calModalGrid"></div>' +
+          '<div class="cal-event-list" id="calModalEventList" style="display:none;"></div>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(m);
+    document.body.style.overflow = 'hidden';
+    document.getElementById('nmCalClose').onclick = closeArticleModal;
+    m.querySelector('.nm-overlay').onclick = closeArticleModal;
+    initCalendarWidget({
+      grid: 'calModalGrid', title: 'calModalTitle', eventList: 'calModalEventList',
+      prev: 'calModalPrev', next: 'calModalNext'
+    });
+  };
+
 
 
   /* ── 카테고리 없는 글/페이지(예: /page/market-temp 등 개별 Page)의
@@ -438,8 +478,10 @@
     });
   })();
 
-    /* ── Google Calendar Widget ── */
-  (function() {
+  /* ── 구글 캘린더 (증시캘린더 모달 안에서 초기화) ──
+     예전엔 사이드바에 상시 노출되는 IIFE였음. 이제 openCalendarModal()이 모달을 만들고
+     나서 그 안의 엘리먼트 id를 넘겨 호출하는 함수로 변경 - id는 ids.grid/title/eventList/prev/next. */
+  function initCalendarWidget(ids) {
     var API_KEY = 'AIzaSyB9zgyudgEblbLoP-fW231dwf6VjOFK00o';
     var CAL_ID  = encodeURIComponent('405dbd75cc8e798f6dfb0003494d0fa64eecbc00ae2edeb1cdbf6deee0b07f76@group.calendar.google.com');
     var today    = new Date();
@@ -473,9 +515,9 @@
     }
 
     function renderCal(year, month, evs) {
-      var grid    = document.getElementById('calGrid');
-      var titleEl = document.getElementById('calTitle');
-      var evList  = document.getElementById('calEventList');
+      var grid    = document.getElementById(ids.grid);
+      var titleEl = document.getElementById(ids.title);
+      var evList  = document.getElementById(ids.eventList);
       if (!grid) return;
       titleEl.textContent = year + '년 ' + (month + 1) + '월';
       grid.innerHTML = '';
@@ -514,7 +556,7 @@
     }
 
     function showEvents(day, evs) {
-      var list = document.getElementById('calEventList');
+      var list = document.getElementById(ids.eventList);
       if (!list) return;
       list.innerHTML = '<div class="cal-ev-date">' + (curMonth + 1) + '월 ' + day + '일</div>';
       evs.forEach(function(ev) {
@@ -534,15 +576,14 @@
     }
 
     function load() {
-      var grid = document.getElementById('calGrid');
+      var grid = document.getElementById(ids.grid);
       if (grid) grid.innerHTML = '<div class="cal-loading">로딩 중...</div>';
       fetchEvents(curYear, curMonth, function(evs) { renderCal(curYear, curMonth, evs); });
     }
 
-    /* 캘린더 요소가 없는 페이지에서도 뒤 스크립트(공시 티커)가 죽지 않도록 널가드 */
-    var calPrevBtn = document.getElementById('calPrev');
-    var calNextBtn = document.getElementById('calNext');
-    if (!calPrevBtn || !calNextBtn || !document.getElementById('calGrid')) return;
+    var calPrevBtn = document.getElementById(ids.prev);
+    var calNextBtn = document.getElementById(ids.next);
+    if (!calPrevBtn || !calNextBtn || !document.getElementById(ids.grid)) return;
 
     calPrevBtn.addEventListener('click', function() {
       curMonth--; if (curMonth < 0) { curMonth = 11; curYear--; } load();
@@ -552,7 +593,7 @@
     });
 
     load();
-  })();
+  }
 
   /* ── KRX 공시 티커 ── */
   (function() {

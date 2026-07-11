@@ -19,6 +19,12 @@
       icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'
     },
     {
+      href: '/category/마켓 브리핑',
+      label: '마켓 브리핑',
+      bold: true,
+      icon: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>'
+    },
+    {
       href: '/page/market-temp',
       label: '오늘의 증시 온도',
       bold: true,
@@ -59,6 +65,13 @@
     // 공지사항(/notice)도 2026-07-11 커스텀 메뉴에서 내림 - 카테고리 섹션(catCustomList)에
     // 티스토리 '공지사항' 카테고리가 있으면 거기서 자동 표시됨.
     {
+      href: 'javascript:void(0)',
+      label: '증시캘린더',
+      bold: true,
+      onclick: 'openCalendarModal()', // skin-main.js에 정의 - 중앙 모달로 큰 달력을 띄움
+      icon: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'
+    },
+    {
       href: '/guestbook',
       label: '커뮤니티',
       bold: true,
@@ -71,7 +84,8 @@
     if (!mount) return;
 
     mount.innerHTML = MENU_ITEMS.map(function (it) {
-      return '<a href="' + it.href + '" class="nav-item' + (it.home ? ' nav-item-home' : '') + '">'
+      return '<a href="' + it.href + '"' + (it.onclick ? ' onclick="' + it.onclick + '"' : '')
+        + ' class="nav-item' + (it.home ? ' nav-item-home' : '') + '">'
         + '<div class="nav-item-icon">'
         + '<svg' + (it.iconClass ? ' class="' + it.iconClass + '"' : '')
         + ' width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
