@@ -17,7 +17,7 @@
 <div class="page-body">
   <h1>pattern-scan 로컬 테스트</h1>
   <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-  <p style="font-size:13px;color:#888">mock 데이터로 6개 탭 + 점수/원인/해석 + 캔들차트 오버레이를 확인. 실제 GAS 호출은 배포 후 별도 확인.</p>
+  <p style="font-size:13px;color:#888">mock 데이터로 5개 탭 + 점수/원인/해석 + 캔들차트 오버레이를 확인. 실제 GAS 호출은 배포 후 별도 확인.</p>
   <div id="pattern-scan"></div>
 </div>
 
@@ -85,34 +85,6 @@
     return daily;
   }
   var pullbackDaily = genPullbackDaily();
-
-  // 골파기(MA60): 90일치 - 0~84일 완만한 하락(이평 아래) -> 85~89일(최근 5일) 급반등해 이평을 막 돌파
-  function genGoldDaily() {
-    var daily = [];
-    var base = new Date('2026-07-10');
-    var n = 90;
-    for (var idx = 0; idx < n; idx++) {
-      var i = n - 1 - idx;
-      var d = new Date(base);
-      d.setDate(d.getDate() - i - Math.floor(i / 5) * 2);
-      var level;
-      if (idx < 85) level = 60000 - idx * 300;
-      else level = 34800 + (idx - 84) * 3500;
-      // 종가는 추세를 그대로 따라가게 결정론적으로 고정(랜덤이면 가끔 MA60 크로스가 안 잡힘) -
-      // 저가/고가/시가만 살짝 랜덤을 줘서 캔들 모양에 변화를 줌
-      var closeP = level;
-      var low = level - 300 - Math.random() * 400;
-      var high = level + 300 + Math.random() * 400;
-      var open = low + Math.random() * (high - low) * 0.5;
-      daily.push({
-        date: d.toISOString().slice(0, 10),
-        open: Math.round(open), high: Math.round(high), low: Math.round(low), close: Math.round(closeP),
-        volume: Math.round(5000000 + Math.random() * 3000000)
-      });
-    }
-    return daily;
-  }
-  var goldDaily = genGoldDaily();
 
   function detectMock(daily, pattern) {
     // 실제 GAS 로직을 그대로 흉내내진 않고, mock용으로 스윙 저점/고점만 대충 골라서 오버레이 좌표를 만든다.
@@ -215,35 +187,6 @@
         interpretation: '박스권 하단 지지선 부근(지지선 대비 +0.5%)에서 반등을 시도하는 구간으로 추정됩니다(73점).'
       };
     }
-    if (pattern === 'goldPitReversal') {
-      var period = 60;
-      var ma = [];
-      var sum = 0;
-      for (var gi = 0; gi < daily.length; gi++) {
-        sum += daily[gi].close;
-        if (gi >= period) sum -= daily[gi - period].close;
-        ma[gi] = gi >= period - 1 ? sum / period : null;
-      }
-      var RECENCY = 3;
-      var crossIdx = -1;
-      for (var gj = daily.length - 1; gj >= period; gj--) {
-        if ((daily.length - 1) - gj > RECENCY) break;
-        if (ma[gj] == null || ma[gj - 1] == null) continue;
-        if (daily[gj - 1].close < ma[gj - 1] && daily[gj].close >= ma[gj]) { crossIdx = gj; break; }
-      }
-      if (crossIdx === -1) return null;
-      var lastRow2 = daily[daily.length - 1];
-      return {
-        ma_period: period,
-        cross: { date: daily[crossIdx].date, price: daily[crossIdx].close },
-        current: { date: lastRow2.date, price: lastRow2.close },
-        signal: { date: lastRow2.date, price: lastRow2.close },
-        breakout: false,
-        score: 82,
-        reasons: ['전환 전 하락추세 비율 83%(40/40점)', 'MA60 돌파 후 1거래일 경과(30/30점)', 'MA60 이격도 1.8%(20/20점)', '돌파일 거래량 평이(0/10점)'],
-        interpretation: '장기 하락추세(전환 전 하락 비율 83%) 이후 60일선을 막 돌파한 초기 구간으로 추정됩니다(82점).'
-      };
-    }
     if (pattern === 'pullback') {
       var pma20 = [], pma60 = [], psum20 = 0, psum60 = 0;
       for (var pi = 0; pi < daily.length; pi++) {
@@ -293,7 +236,6 @@
     doubleBottom: { daily: doubleBottomDaily, code: '000660', name: 'SK하이닉스' },
     invHeadShoulders: { daily: ihsDaily, code: '035420', name: 'NAVER' },
     boxRangeLow: { daily: boxDaily, code: '005380', name: '현대차' },
-    goldPitReversal: { daily: goldDaily, code: '000270', name: '기아' },
     pullback: { daily: pullbackDaily, code: '012330', name: '현대모비스' }
   };
 
@@ -309,7 +251,6 @@
           doubleBottom: [mockMatch(byPattern.doubleBottom.daily, '000660', 'SK하이닉스', 'doubleBottom')],
           invHeadShoulders: [mockMatch(byPattern.invHeadShoulders.daily, '035420', 'NAVER', 'invHeadShoulders')],
           boxRangeLow: [mockMatch(byPattern.boxRangeLow.daily, '005380', '현대차', 'boxRangeLow')],
-          goldPitReversal: [mockMatch(byPattern.goldPitReversal.daily, '000270', '기아', 'goldPitReversal')],
           pullback: [mockMatch(byPattern.pullback.daily, '012330', '현대모비스', 'pullback')]
         }
       });

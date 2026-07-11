@@ -1,6 +1,6 @@
 /**
  * 차트 패턴 스캔 위젯
- * 저점상승형 / 쌍바닥 / 역헤드앤숄더 / 박스권하단 / 골파기반전 / 눌림목 6개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
+ * 저점상승형 / 쌍바닥 / 역헤드앤숄더 / 박스권하단 / 눌림목 5개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
  *
  * 리스트는 GAS가 하루 1회 미리 스캔해둔 결과(?patternScan=1)를 그대로 보여준다(가벼움).
  * 클릭한 종목의 차트는 그 종목만 온디맨드로 다시 크롤링(?patternChart=1&code=&pattern=).
@@ -8,6 +8,10 @@
  * 모든 패턴은 0~100점 스코어링(GAS에서 계산, 70점 이상만 결과에 포함)이며,
  * AI가 패턴을 임의로 판단하지 않고 수치 조건으로만 점수를 매긴다 - 리스트/상세 모두
  * 점수 + 원인(부분점수 breakdown) + 한 줄 해석을 그대로 보여준다.
+ *
+ * 캔들차트는 TradingView Lightweight Charts(오픈소스, CDN 지연 로드)로 렌더링한다 -
+ * 가로 스크롤 없이 컨테이너에 자동으로 맞춰(autoSize) 한눈에 들어오게 하기 위함
+ * (js/foreign-flow.js와 동일한 라이브러리/패턴).
  */
 (function (global) {
   'use strict';
@@ -16,28 +20,29 @@
   var CONTAINER_SELECTOR = '#pattern-scan';
   var FETCH_TIMEOUT_MS = 15000;
 
-  var CHART_W = 1300;
-  var CHART_H = 440;
-  var PAD = { l: 64, r: 16, t: 16, b: 28 };
+  var CHART_H = 420;
+
+  var SUPPORT_COLOR = '#d24f45';
+  var RESIST_COLOR = '#1261c4';
+  var SIGNAL_COLOR = '#ec4899';
+  var MA20_COLOR = '#f59e0b';
+  var MA60_COLOR = '#8b5cf6';
 
   var TABS = [
     { key: 'risingLows', label: '저점상승형' },
     { key: 'doubleBottom', label: '쌍바닥' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더' },
     { key: 'boxRangeLow', label: '박스권 하단' },
-    { key: 'goldPitReversal', label: '골파기 반전' },
     { key: 'pullback', label: '눌림목' }
   ];
 
   // 리스트 항목용 미니 패턴 아이콘 - 실제 캔들을 축소한 게 아니라 O(고점/저점)와 선으로
-  // 패턴의 핵심 구조만 단순화한 것. 골파기반전은 눌림목과 같은 "추세전환 후 눌림" 계열이라
-  // 눌림목 아이콘을 더 깊은 V자로 변형해 계열은 같되 더 급격한 하락임을 표현한다.
+  // 패턴의 핵심 구조만 단순화한 것.
   var PATTERN_ICONS = {
     risingLows: '<path d="M2,15 L9,15 L20,6 L30,3"/><circle cx="9" cy="15" r="2"/><circle cx="20" cy="6" r="2"/>',
     doubleBottom: '<path d="M2,4 L8,14 L16,7 L24,14 L30,4"/><circle cx="8" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
     invHeadShoulders: '<path d="M2,6 L7,10 L12,6 L17,15 L22,6 L27,10 L32,3"/><circle cx="7" cy="10" r="2"/><circle cx="17" cy="15" r="2"/><circle cx="27" cy="10" r="2"/>',
     boxRangeLow: '<rect x="3" y="2" width="24" height="12" rx="1"/><circle cx="6" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
-    goldPitReversal: '<path d="M2,6 L10,3 L18,16 L26,4"/><circle cx="18" cy="16" r="2"/>',
     pullback: '<path d="M2,15 L10,4 L16,10 L24,2"/><circle cx="10" cy="4" r="2"/><circle cx="16" cy="10" r="2"/>'
   };
 
@@ -159,7 +164,7 @@
 
   function closeDetail(container) {
     var detail = container.querySelector('#psDetail');
-    if (detail) { detail.hidden = true; detail.innerHTML = ''; }
+    if (detail) { detail.hidden = true; detail.innerHTML = ''; destroyPsChart(); }
   }
 
   function renderDetail(box, item, data) {
@@ -168,12 +173,15 @@
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
     html += buildScoreBox(data.detail);
-    html += buildCandleChart(data.daily, data.pattern, data.detail);
+    html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
     html += '<div class="ps-footnote">※ 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;
 
     var closeBtn = box.querySelector('#psClose');
-    if (closeBtn) closeBtn.addEventListener('click', function () { box.hidden = true; box.innerHTML = ''; });
+    if (closeBtn) closeBtn.addEventListener('click', function () { destroyPsChart(); box.hidden = true; box.innerHTML = ''; });
+
+    var chartContainer = box.querySelector('#psChart');
+    if (chartContainer) renderPatternChart(chartContainer, data.daily, data.pattern, data.detail);
   }
 
   // 점수 + 원인(부분점수) + AI 한 줄 해석 - 지시서 원칙("결과에는 점수 + 원인 + AI 한 줄 해석을
@@ -192,127 +200,145 @@
       + '</div>';
   }
 
-  function buildCandleChart(daily, pattern, detail) {
-    var n = daily.length;
-    if (n < 2) return '';
+  // ---- 캔들차트 (TradingView Lightweight Charts, CDN 지연 로드) ----
 
-    // 캔들 수가 많으면(골파기는 90일치) 차트 폭을 늘려서 촘촘해지지 않게 함
-    var chartW = Math.max(CHART_W, n * 24);
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var lwcLoadPromise = null;
+  var psLwcChart = null;         // 현재 렌더된 차트 인스턴스(재조회/닫기 시 정리용)
+  var psLwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
 
-    var lows = daily.map(function (d) { return d.low; });
-    var highs = daily.map(function (d) { return d.high; });
-    var min = Math.min.apply(null, lows);
-    var max = Math.max.apply(null, highs);
-    var span = (max - min) || 1;
-    min -= span * 0.06;
-    max += span * 0.06;
-
-    var iw = chartW - PAD.l - PAD.r;
-    var ih = CHART_H - PAD.t - PAD.b;
-    var slot = iw / n;
-    function x(i) { return PAD.l + slot * (i + 0.5); }
-    function y(v) { return PAD.t + (1 - (v - min) / (max - min)) * ih; }
-    function idxByDate(date) {
-      for (var i = 0; i < daily.length; i++) if (daily[i].date === date) return i;
-      return -1;
-    }
-
-    var svg = '<svg class="ps-svg" viewBox="0 0 ' + chartW + ' ' + CHART_H + '" role="img" aria-label="캔들차트" style="min-width:' + chartW + 'px">';
-
-    // 캔들
-    daily.forEach(function (d, i) {
-      var up = d.close >= d.open;
-      var color = up ? '#d24f45' : '#1261c4';
-      var xC = x(i);
-      var bodyTop = y(Math.max(d.open, d.close));
-      var bodyBot = y(Math.min(d.open, d.close));
-      var bodyH = Math.max(1, bodyBot - bodyTop);
-      var bw = Math.max(2, slot * 0.6);
-      svg += '<line x1="' + xC.toFixed(1) + '" x2="' + xC.toFixed(1) + '" y1="' + y(d.high).toFixed(1) + '" y2="' + y(d.low).toFixed(1) + '" stroke="' + color + '" stroke-width="1"/>';
-      svg += '<rect x="' + (xC - bw / 2).toFixed(1) + '" y="' + bodyTop.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bodyH.toFixed(1) + '" fill="' + color + '"/>';
+  function loadLightweightCharts() {
+    if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
+    if (lwcLoadPromise) return lwcLoadPromise;
+    lwcLoadPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = LWC_CDN;
+      s.onload = function () { resolve(global.LightweightCharts); };
+      s.onerror = function () { lwcLoadPromise = null; reject(new Error('차트 라이브러리 로드 실패')); };
+      document.head.appendChild(s);
     });
-
-    // MA60(골파기 전용): 종가 60일 이동평균선을 배경에 그려서 추세전환을 눈으로 볼 수 있게 함
-    if (pattern === 'goldPitReversal' && detail && detail.ma_period) {
-      svg += buildMaLine(daily, detail.ma_period, x, y);
-    }
-    // 눌림목: 20일선/60일선 중 어디 근처에서 지지받는지 눈으로 보여주기 위해 둘 다 그림(선 색 구분)
-    if (pattern === 'pullback') {
-      svg += buildMaLine(daily, 20, x, y, 'ps-line-ma20');
-      svg += buildMaLine(daily, 60, x, y, 'ps-line-ma60');
-    }
-
-    // y축 레이블
-    svg += '<text class="ps-axis" x="' + (PAD.l - 6) + '" y="' + (y(max) + 4).toFixed(1) + '" text-anchor="end">' + fmt(max) + '</text>';
-    svg += '<text class="ps-axis" x="' + (PAD.l - 6) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + fmt(min) + '</text>';
-
-    // x축 레이블 (처음/중간/끝)
-    [0, Math.floor((n - 1) / 2), n - 1].forEach(function (i, k) {
-      var anchor = k === 0 ? 'start' : (k === 2 ? 'end' : 'middle');
-      svg += '<text class="ps-axis" x="' + x(i).toFixed(1) + '" y="' + (CHART_H - 8) + '" text-anchor="' + anchor + '">' + shortDate(daily[i].date) + '</text>';
-    });
-
-    // 패턴 오버레이
-    svg += buildPatternOverlay(pattern, detail, idxByDate, x, y, chartW);
-
-    svg += '</svg>';
-    return '<div class="ps-chart">' + svg + '</div>';
+    return lwcLoadPromise;
   }
 
-  // 종가 N일 이동평균선을 폴리라인으로 그림 (골파기 반전 전용)
-  function buildMaLine(daily, period, x, y, cls) {
+  function destroyPsChart() {
+    if (psLwcThemeObserver) { psLwcThemeObserver.disconnect(); psLwcThemeObserver = null; }
+    if (psLwcChart) {
+      try { psLwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
+      psLwcChart = null;
+    }
+  }
+
+  function psThemeOptions() {
+    var dark = document.documentElement.classList.contains('dark');
+    return {
+      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555' },
+      grid: {
+        vertLines: { color: dark ? '#3a3a3a' : '#eee' },
+        horzLines: { color: dark ? '#3a3a3a' : '#eee' }
+      },
+      rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
+      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' }
+    };
+  }
+
+  function mergeOptions(a, b) {
+    var out = {};
+    for (var k in a) out[k] = a[k];
+    for (var k2 in b) out[k2] = b[k2];
+    return out;
+  }
+
+  // 실제 트레이딩뷰 엔진으로 캔들 + MA(눌림목만) + 패턴 오버레이를 렌더링.
+  // 가로 스크롤 없이 컨테이너 폭에 autoSize로 맞춰 한눈에 들어오게 한다.
+  function renderPatternChart(container, daily, pattern, detail) {
+    destroyPsChart();
+    loadLightweightCharts().then(function (LWC) {
+      if (!document.body.contains(container)) return; // 로딩 중 다른 종목/탭으로 이동했으면 중단
+
+      var chart = LWC.createChart(container, mergeOptions({
+        autoSize: true,
+        height: CHART_H,
+        crosshair: { mode: LWC.CrosshairMode.Normal },
+        timeScale: { timeVisible: false, secondsVisible: false }
+      }, psThemeOptions()));
+      psLwcChart = chart;
+
+      var candleSeries = chart.addCandlestickSeries({
+        upColor: '#d24f45', downColor: '#1261c4',
+        borderUpColor: '#d24f45', borderDownColor: '#1261c4',
+        wickUpColor: '#d24f45', wickDownColor: '#1261c4'
+      });
+      candleSeries.setData(daily.map(function (d) {
+        return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
+      }));
+
+      // 눌림목: 20일선/60일선 중 어디 근처에서 지지받는지 눈으로 보여주기 위해 둘 다 그림(선 색 구분)
+      if (pattern === 'pullback') {
+        addMaLine(chart, daily, 20, MA20_COLOR);
+        addMaLine(chart, daily, 60, MA60_COLOR);
+      }
+
+      addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
+
+      chart.timeScale().fitContent();
+
+      psLwcThemeObserver = new MutationObserver(function () {
+        chart.applyOptions(psThemeOptions());
+      });
+      psLwcThemeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    }).catch(function () {
+      container.innerHTML = '<div class="ps-error">차트 라이브러리를 불러오지 못했어요.</div>';
+    });
+  }
+
+  // 종가 N일 이동평균선을 라인 시리즈로 그림(눌림목 전용)
+  function addMaLine(chart, daily, period, color) {
     var pts = [];
     var sum = 0;
     for (var i = 0; i < daily.length; i++) {
       sum += daily[i].close;
       if (i >= period) sum -= daily[i - period].close;
-      if (i >= period - 1) pts.push(x(i).toFixed(1) + ',' + y(sum / period).toFixed(1));
+      if (i >= period - 1) pts.push({ time: daily[i].date, value: sum / period });
     }
-    if (pts.length < 2) return '';
-    return '<polyline class="' + (cls || 'ps-line-ma') + '" points="' + pts.join(' ') + '"/>';
+    if (pts.length < 2) return;
+    chart.addLineSeries({ color: color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false }).setData(pts);
   }
 
-  function buildPatternOverlay(pattern, detail, idxByDate, x, y, chartW) {
-    if (!detail) return '';
-    var svg = '';
+  // 패턴별 지지/저항선 + 스윙 포인트 dot + 확인(signal) 지점을 라인 시리즈/마커로 오버레이.
+  // (예전 SVG 버전의 polyline/hline/dot/signalRing을 Lightweight Charts 프리미티브로 대체)
+  function addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail) {
+    if (!detail) return;
+    var markers = [];
 
-    function line(p1, p2, cls) {
-      var i1 = idxByDate(p1.date), i2 = idxByDate(p2.date);
-      if (i1 < 0 || i2 < 0) return '';
-      return '<line class="' + cls + '" x1="' + x(i1).toFixed(1) + '" y1="' + y(p1.price).toFixed(1)
-        + '" x2="' + x(i2).toFixed(1) + '" y2="' + y(p2.price).toFixed(1) + '"/>';
+    function idxByDate(date) {
+      for (var i = 0; i < daily.length; i++) if (daily[i].date === date) return i;
+      return -1;
     }
-    // 여러 점을 순서대로 잇는 꺾은선 (쌍바닥/역헤드앤숄더의 실제 굴곡을 그대로 표현하기 위함)
-    function polyline(points, cls) {
-      var coords = [];
-      points.forEach(function (p) {
-        var i = idxByDate(p.date);
-        if (i < 0) return;
-        coords.push(x(i).toFixed(1) + ',' + y(p.price).toFixed(1));
-      });
-      if (coords.length < 2) return '';
-      return '<polyline class="' + cls + '" points="' + coords.join(' ') + '"/>';
+    // 여러 점을 순서대로 잇는 선(쌍바닥/역헤드앤숄더의 실제 굴곡을 그대로 표현하기 위함)
+    function addLine(points, color) {
+      var data = (points || []).filter(function (p) { return p && idxByDate(p.date) >= 0; })
+        .map(function (p) { return { time: p.date, value: p.price }; });
+      if (data.length < 2) return;
+      chart.addLineSeries({
+        color: color, lineWidth: 2, lineStyle: LWC.LineStyle.Dashed,
+        priceLineVisible: false, lastValueVisible: false
+      }).setData(data);
     }
-    function dot(p, cls) {
-      var i = idxByDate(p.date);
-      if (i < 0) return '';
-      return '<circle class="' + cls + '" cx="' + x(i).toFixed(1) + '" cy="' + y(p.price).toFixed(1) + '" r="4"/>';
+    // fromDate를 주면 그 지점부터 마지막 캔들까지만 수평선을 그림(패턴 구간만 강조, 전체 폭 X)
+    function addHLine(price, fromDate, color) {
+      var fromIdx = fromDate ? idxByDate(fromDate) : -1;
+      if (fromIdx < 0) fromIdx = 0;
+      var lastDate = daily[daily.length - 1].date;
+      addLine([{ date: daily[fromIdx].date, price: price }, { date: lastDate, price: price }], color);
     }
-    // 확인/매수 검토 지점을 O(원) 표시로 강조 (참고 이미지의 핑크색 원 컨벤션)
-    function signalRing(p) {
-      var i = idxByDate(p.date);
-      if (i < 0) return '';
-      return '<circle class="ps-dot-signal" cx="' + x(i).toFixed(1) + '" cy="' + y(p.price).toFixed(1) + '" r="9"/>';
+    function addDot(p, color, position) {
+      if (!p || idxByDate(p.date) < 0) return;
+      markers.push({ time: p.date, position: position, color: color, shape: 'circle' });
     }
-    // fromDate를 주면 그 지점부터 오른쪽 끝까지만 수평선을 그림(패턴 구간만 강조, 전체 폭 X)
-    function hline(price, cls, fromDate) {
-      var xStart = PAD.l;
-      if (fromDate) {
-        var i = idxByDate(fromDate);
-        if (i >= 0) xStart = x(i);
-      }
-      return '<line class="' + cls + '" x1="' + xStart.toFixed(1) + '" y1="' + y(price).toFixed(1)
-        + '" x2="' + (chartW - PAD.r) + '" y2="' + y(price).toFixed(1) + '"/>';
+    // 확인/매수 검토 지점 강조 (참고 이미지의 핑크색 원 컨벤션)
+    function addSignal(p) {
+      if (!p || idxByDate(p.date) < 0) return;
+      markers.push({ time: p.date, position: 'inBar', color: SIGNAL_COLOR, shape: 'circle' });
     }
 
     if (pattern === 'risingLows') {
@@ -320,63 +346,54 @@
       // 패턴이 이미 끝난 게 아니라 지금도 진행 중임을 보여주기 위함
       var lows = detail.low_swings_display || detail.low_swings || [];
       var highs = detail.high_swings || [];
-      svg += polyline(lows, 'ps-line-support');
-      svg += polyline(highs, 'ps-line-resist');
-      (detail.low_swings || []).forEach(function (p) { svg += dot(p, 'ps-dot-support'); });
-      highs.forEach(function (p) { svg += dot(p, 'ps-dot-resist'); });
-      if (detail.signal) svg += signalRing(detail.signal); // 오늘(현재가) - 항상 최근 봉 기준
+      addLine(lows, SUPPORT_COLOR);
+      addLine(highs, RESIST_COLOR);
+      (detail.low_swings || []).forEach(function (p) { addDot(p, SUPPORT_COLOR, 'belowBar'); });
+      highs.forEach(function (p) { addDot(p, RESIST_COLOR, 'aboveBar'); });
+      if (detail.signal) addSignal(detail.signal); // 오늘(현재가) - 항상 최근 봉 기준
     } else if (pattern === 'doubleBottom') {
       // 저점1 -> 넥라인(중간 반등 고점) -> 저점2 -> 현재가 순서로 이어야 실제 W 모양이 나온다
-      // (저점2에서 끊으면 "^" 하나만 보여서 W로 안 읽힘 - 현재가까지 이어 오른쪽 다리를 완성)
       if (detail.low1 && detail.neckline && detail.low2) {
         var dbPoints = [detail.low1, detail.neckline, detail.low2];
         if (detail.current) dbPoints.push(detail.current);
-        svg += polyline(dbPoints, 'ps-line-support');
-        svg += hline(detail.neckline.price, 'ps-line-resist', detail.low1.date);
-        svg += dot(detail.low1, 'ps-dot-support');
-        svg += dot(detail.low2, 'ps-dot-support');
-        svg += dot(detail.neckline, 'ps-dot-resist');
-        if (detail.signal) svg += signalRing(detail.signal); // 오늘(현재가)
+        addLine(dbPoints, SUPPORT_COLOR);
+        addHLine(detail.neckline.price, detail.low1.date, RESIST_COLOR);
+        addDot(detail.low1, SUPPORT_COLOR, 'belowBar');
+        addDot(detail.low2, SUPPORT_COLOR, 'belowBar');
+        addDot(detail.neckline, RESIST_COLOR, 'aboveBar');
+        if (detail.signal) addSignal(detail.signal);
       }
     } else if (pattern === 'invHeadShoulders') {
       // 좌어깨 -> 좌고점 -> 헤드 -> 우고점 -> 우어깨 -> 현재가 순서로 이어 봉우리 2개 + 최근 흐름까지 표현
       var seq = [detail.left_shoulder, detail.left_peak, detail.head, detail.right_peak, detail.right_shoulder];
       if (seq.every(function (p) { return !!p; })) {
         if (detail.current) seq.push(detail.current);
-        svg += polyline(seq, 'ps-line-support');
-        svg += hline(detail.neckline.price, 'ps-line-resist', detail.left_shoulder.date);
-        ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) { svg += dot(detail[k], 'ps-dot-support'); });
-        svg += dot(detail.neckline, 'ps-dot-resist');
-        if (detail.signal) svg += signalRing(detail.signal); // 오늘(현재가)
+        addLine(seq, SUPPORT_COLOR);
+        addHLine(detail.neckline.price, detail.left_shoulder.date, RESIST_COLOR);
+        ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) { addDot(detail[k], SUPPORT_COLOR, 'belowBar'); });
+        addDot(detail.neckline, RESIST_COLOR, 'aboveBar');
+        if (detail.signal) addSignal(detail.signal);
       }
     } else if (pattern === 'boxRangeLow') {
       var boxLows = detail.low_swings || [];
       var boxHighs = detail.high_swings || [];
-      if (detail.support != null) svg += hline(detail.support, 'ps-line-support', boxLows[0] && boxLows[0].date);
-      if (detail.resistance != null) svg += hline(detail.resistance, 'ps-line-resist', boxHighs[0] && boxHighs[0].date);
-      boxLows.forEach(function (p) { svg += dot(p, 'ps-dot-support'); });
-      boxHighs.forEach(function (p) { svg += dot(p, 'ps-dot-resist'); });
-      if (detail.signal) svg += signalRing(detail.signal); // 현재가(박스 하단 근접 지점)
-    } else if (pattern === 'goldPitReversal') {
-      // MA60 전환 지점(cross) -> 현재가 2점만 표시. 랠리/눌림목까지 기다리지 않고
-      // "막 돌파한 초반"만 잡는 설계라 배경의 MA60선(buildCandleChart에서 그림)이 핵심 근거.
-      if (detail.cross && detail.current) {
-        svg += polyline([detail.cross, detail.current], 'ps-line-support');
-        svg += dot(detail.cross, 'ps-dot-resist');
-        svg += signalRing(detail.current); // 돌파 확인 지점(오늘)
-      }
+      if (detail.support != null) addHLine(detail.support, boxLows[0] && boxLows[0].date, SUPPORT_COLOR);
+      if (detail.resistance != null) addHLine(detail.resistance, boxHighs[0] && boxHighs[0].date, RESIST_COLOR);
+      boxLows.forEach(function (p) { addDot(p, SUPPORT_COLOR, 'belowBar'); });
+      boxHighs.forEach(function (p) { addDot(p, RESIST_COLOR, 'aboveBar'); });
+      if (detail.signal) addSignal(detail.signal); // 현재가(박스 하단 근접 지점)
     } else if (pattern === 'pullback') {
       // 상승 시작(저점) -> 고점 -> 현재가(조정 중) 순서로 이어 "얼마나 올랐다가 얼마나
-      // 눌렸는지"를 한눈에 보여준다. 이평선은 buildCandleChart에서 배경에 이미 그림.
+      // 눌렸는지"를 한눈에 보여준다. 이평선은 addMaLine으로 배경에 이미 그림.
       if (detail.rise_start && detail.peak && detail.current) {
-        svg += polyline([detail.rise_start, detail.peak, detail.current], 'ps-line-support');
-        svg += dot(detail.rise_start, 'ps-dot-support');
-        svg += dot(detail.peak, 'ps-dot-resist');
-        svg += signalRing(detail.current); // 눌림목 확인 지점(오늘)
+        addLine([detail.rise_start, detail.peak, detail.current], SUPPORT_COLOR);
+        addDot(detail.rise_start, SUPPORT_COLOR, 'belowBar');
+        addDot(detail.peak, RESIST_COLOR, 'aboveBar');
+        addSignal(detail.current);
       }
     }
 
-    return svg;
+    if (markers.length) candleSeries.setMarkers(markers);
   }
 
   // ---- 유틸 ----
@@ -411,7 +428,6 @@
     return (r > 0 ? '+' : '') + r.toFixed(2) + '%';
   }
   function fmt(n) { return Math.round(n).toLocaleString('ko-KR'); }
-  function shortDate(iso) { return iso.slice(5, 7) + '/' + iso.slice(8, 10); }
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {

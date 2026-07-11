@@ -528,13 +528,13 @@ function getFlowAiSummary(params) {
 // ---------------------------------------------------------------------------
 // 수급 위젯용 가격 차트 (?action=flowChart&code=005930)
 // 지지/저항(스윙 고점·저점) + 이동평균 5/20/60/224일선을 같이 계산해서 내려준다.
-// MA224까지 계산하려면 화면에 보여줄 구간(90영업일) 앞에 224일치 여유가 더 필요해서
-// fetchDailyOhlc_를 다른 곳(패턴스캔 90일)보다 훨씬 많은 페이지(33p ≈ 330영업일)로 호출한다.
-// 크롤링이 무거워서(패턴스캔 골파기 9p보다 3배 이상) 30분 캐싱을 건다.
+// 화면에는 최근 1년(약 250영업일)을 보여주고, MA224까지 그 구간 전체에서 계산되려면
+// 앞에 224일치 여유가 더 필요해서 fetchDailyOhlc_를 훨씬 많은 페이지(50p ≈ 500영업일)로 호출한다.
+// 크롤링이 무거워서 30분 캐싱을 건다.
 // findSwingIndices_/movingAverage_는 gas/ticker-proxy.gs 안의 패턴스캔 로직과 공용.
 // ---------------------------------------------------------------------------
-var FLOW_CHART_PAGES = 33;          // 10행 x 33 ≈ 330영업일 (MA224 계산 + 최근 90일 표시 여유)
-var FLOW_CHART_DISPLAY_DAYS = 90;   // 화면에 보여줄 최근 캔들 수
+var FLOW_CHART_PAGES = 50;          // 10행 x 50 ≈ 500영업일 (MA224 계산 + 최근 250일 표시 여유)
+var FLOW_CHART_DISPLAY_DAYS = 250;  // 화면에 보여줄 최근 캔들 수 (KRX 연간 거래일수 기준 약 1년)
 var FLOW_CHART_CACHE_TTL = 1800;    // 30분
 
 function getFlowChart(code) {
@@ -1385,57 +1385,58 @@ function pensionInterpretation_(streak, foreignNet5d) {
 }
 
 // ---------------------------------------------------------------------------
-// 차트 패턴 스캔: 저점상승형(ascending) / 쌍바닥(double bottom) / 역헤드앤숄더 / 박스권하단 /
-// 골파기반전(MA60 상향돌파, 지시서 5종 외 이 구현에서 추가) / 눌림목(pullback).
+// 차트 패턴 스캔(지시서 5종): 저점상승형(Higher Low) / 쌍바닥(double bottom) /
+// 역헤드앤숄더 / 박스권하단 / 눌림목(pullback).
 // 지시서 원칙대로 AI가 패턴을 임의 판단하지 않고, 모든 패턴을 0~100점 수치 조건으로 채점해
 // 70점 이상만 노출한다(patternGrade_) - 결과에는 점수 + 원인(부분점수 breakdown) +
 // AI 한 줄 해석(규칙 기반 문자열, LLM 호출 아님)을 함께 실어보낸다(buildPatternMatch_).
 // 섹터 대시보드 종목 풀(GitHub Pages의 data/sectors-v3.js)을 그때그때 fetch해서
 // 스캔 대상으로 재사용 - 별도 종목 리스트를 GAS에 하드코딩하지 않는다.
-// 하루 1회 시간 트리거(scanChartPatterns/scanGoldPitReversal/scanPullback)로 스캔해
-// PropertiesService에 저장하고, 블로그는 캐싱된 결과만 읽는다(방문자가 몰려도 매번 재스캔 안 함).
+// 하루 1회 시간 트리거(scanChartPatterns/scanPullback)로 스캔해 PropertiesService에
+// 저장하고, 블로그는 캐싱된 결과만 읽는다(방문자가 몰려도 매번 재스캔 안 함).
 // 클릭 시 차트는 온디맨드로 그 종목만 다시 크롤링(foreignFlow와 동일 패턴).
+//
+// Swing Low/High 정의(지시서): 최근 5개 캔들 중 좌우 각각 2개의 캔들보다 저가가
+// 낮은/고가가 높은 캔들 - findSwingIndices_(PATTERN_SWING=2)가 그대로 구현.
 // ---------------------------------------------------------------------------
 
-var PATTERN_WINDOW = 30;         // 스캔에 쓰는 최근 거래일 수 (골파기 패턴은 20일로는 부족해 30일로 확대)
-var PATTERN_PAGES = 3;           // fetchDailyOhlc_ 페이지 수 (10행/페이지 x 3 ≈ 30영업일)
-var PATTERN_SWING = 2;           // 스윙 판정 시 좌우로 비교할 봉 수
+var PATTERN_SWING = 2;           // 스윙 판정 시 좌우로 비교할 봉 수(지시서: 좌우 2개씩 = 5개 캔들 중 극값)
 var PATTERN_MAX_MATCHES = 30;    // 패턴별 저장 개수 상한 (PropertiesService 9KB/속성 제한 대비)
 var PATTERN_TIME_BUDGET_MS = 5 * 60 * 1000; // GAS 6분 실행 제한 대비 5분에서 안전 중단
 
-var WEDGE_MIN_SWINGS = 3;        // 저점 2개만 있으면 쌍바닥과 구분이 안 돼서 3개 이상으로 상향
-var WEDGE_LOW_RISE_MIN = 0.005;  // 저점 간 최소 0.5% 상승해야 "높아짐"으로 인정
-var WEDGE_HIGH_CAP_MAX = 0.02;   // 고점 간 상승폭 2% 이내여야 "막혀있음"으로 인정
-var WEDGE_MIN_SPAN_DAYS = 3;
-var WEDGE_MIN_TOTAL_RISE = 0.03; // 첫 저점 대비 마지막 저점이 최소 3% 이상 높아야 "상승형"(쌍바닥과 구분)
+// 4개 패턴(저점상승형/쌍바닥/역헤드앤숄더/박스권하단)이 종목당 필요한 표시 구간이 서로 달라서
+// (60/90/60/40일) 크롤링은 그중 가장 긴 쌍바닥 기준(90일 + 스윙 판정 여유)으로 한 번만 하고,
+// 각 detect*_ 함수가 daily.slice()로 자기 window만큼만 잘라 쓴다(종목당 크롤링 1회 유지).
+var PATTERN_PAGES = 10;          // fetchDailyOhlc_ 페이지 수 (10행 x 10 ≈ 100영업일, 90일 window + 여유)
+var RISING_LOWS_WINDOW = 60;     // ① 저점상승형: 지시서 "최근 60거래일"
+var DOUBLE_BOTTOM_WINDOW = 90;   // ② 쌍바닥: 지시서 "최근 90거래일"
+var IHS_WINDOW = 60;             // ③ 역헤드앤숄더: 지시서에 window 명시 없어 저점상승형과 동일하게 적용
+var BOX_WINDOW = 40;             // ④ 박스권하단: 지시서 "최근 40거래일"
+
+var WEDGE_MIN_SWINGS = 2;        // ① 지시서: Swing Low 2개 이상
+var WEDGE_MIN_LOW_RISE = 0.03;   // ① 지시서: 최근 저점이 이전 저점보다 최소 3% 이상 높음
+var WEDGE_MIN_GAP_DAYS = 5;      // ① 지시서: 두 저점 간격 5~20거래일
+var WEDGE_MAX_GAP_DAYS = 20;
+var WEDGE_MAX_EXTENSION = 0.10;  // ① 지시서: 현재가는 최근 저점 대비 10% 이상 상승하지 않을 것
 // 마지막 스윙이 최근 며칠 안에 있어야 "지금 진행 중"으로 인정. 스윙 판정 자체가
 // 좌우 PATTERN_SWING(2)봉을 확인해야 하는 구조라 이론상 가장 최근이어도 끝에서 2봉 전이
 // 최소값 - 그 최소값 바로 위(3)로 빡빡하게 잡아 "이미 지나간 패턴"을 걸러낸다.
 var RECENCY_MAX_GAP = 3;
 
-var DB_LOW_TOL = 0.02;           // 쌍바닥 두 저점 가격差 2% 이내
-var DB_MIN_GAP_DAYS = 5;         // 두 저점 사이 최소 간격(거래일)
-var DB_PEAK_MIN_RISE = 0.03;     // 사이 고점이 첫 저점 대비 최소 3% 반등해야 유효
-var DB_NECK_PROXIMITY_MIN = -0.05; // 현재가가 넥라인보다 5% 넘게 낮으면(아직 멀면) 제외
+var DB_LOW_TOL = 0.03;           // ② 지시서: 저점 가격 차이 ±3%
+var DB_MIN_GAP_DAYS = 10;        // ② 지시서: 간격 10~40거래일
+var DB_MAX_GAP_DAYS = 40;
+var DB_PEAK_MIN_RISE = 0.03;     // 사이 고점(넥라인)이 첫 저점 대비 최소 3% 반등해야 유효
+var DB_NECK_PROXIMITY_MIN = -0.05; // ② 지시서: 현재가 넥라인 아래 5%
 
-var IHS_SHOULDER_TOL = 0.05;     // 역헤드앤숄더 양 어깨 가격差 5% 이내 (기존 3%는 너무 빡빡해서 0건 -> 완화)
-var IHS_HEAD_MIN_DROP = 0.01;    // 헤드가 양 어깨보다 각각 최소 1% 더 낮아야 함 (기존 2%에서 완화)
+var IHS_SHOULDER_TOL = 0.05;     // ③ 지시서: 양쪽 저점 차이 ±5%
+var IHS_HEAD_MIN_DROP = 0.01;    // 헤드가 양 어깨보다 각각 최소 1% 더 낮아야 함(가운데가 최저라는 조건의 최소 여유)
+var IHS_NECK_PROXIMITY_MIN = -0.03; // ③ 지시서: 현재가 넥라인 아래 3%
 
 var BOX_TOL = 0.035;             // 박스권: 고점끼리/저점끼리 3.5% 이내로 평평해야 함
+var BOX_MAX_RANGE = 0.15;        // ④ 지시서: 고점-저점 차이 15% 이하
 var BOX_MIN_RANGE = 0.05;        // 박스 상단-하단 폭이 최소 5% 이상이어야 의미있는 박스(너무 좁으면 제외)
-var BOX_NEAR_LOW_TOL = 0.03;     // 현재가가 박스 하단에서 3% 이내여야 "저점 근처"로 인정
-
-// 골파기 반전: 60일 이동평균 기준 하락추세->상승추세 전환을 잡아야 해서 다른 패턴보다
-// 훨씬 긴 과거 데이터(90영업일)가 필요함. 4개 패턴과 같이 스캔하면 전체가 느려지므로
-// scanGoldPitReversal()로 완전히 분리된 함수/트리거/저장 공간을 쓴다.
-var GOLD_MA_PERIOD = 60;         // 이동평균 기간(거래일)
-var GOLD_WINDOW = 90;            // 스캔에 쓰는 최근 거래일 수(MA60 계산 + 추세전환 관찰 여유분)
-var GOLD_PAGES = 9;              // fetchDailyOhlc_ 페이지 수 (10행 x 9 ≈ 90영업일)
-var GOLD_TREND_LOOKBACK = 15;    // 전환 직전 이 기간 동안 MA 아래였는지로 "하락추세"였는지 판정
-var GOLD_TREND_BELOW_RATIO = 0.6; // 그 기간의 60% 이상 MA 아래였어야 하락추세로 인정
-// 랠리/눌림목까지 기다리면 이미 많이 오른 뒤라 늦은 신호가 됨 - "돌파 직후(V자 초반)"만
-// 잡도록 크로스 지점이 RECENCY_MAX_GAP(다른 패턴과 공용) 거래일 이내여야 인정.
-var GOLD_TIME_BUDGET_MS = 5 * 60 * 1000; // scanGoldPitReversal 전용 시간 예산(6분 실행 제한 대비)
+var BOX_NEAR_LOW_TOL = 0.03;     // ④ 지시서: 현재가 지지선 +3% 이내
 
 var BREAKOUT_TOL = 1.02;         // 저항선/넥라인을 2% 넘게 뚫었으면 "이미 지나간 패턴"으로 제외
 
@@ -1450,8 +1451,9 @@ function scanChartPatterns() {
 
     var stock = universe[i];
     try {
+      // 90일(쌍바닥 기준) 한 번만 크롤링해서 4개 패턴이 각자 필요한 window만큼만 잘라 쓴다
       var daily = fetchDailyOhlc_(stock.code, PATTERN_PAGES);
-      if (daily.length < 15) continue;
+      if (daily.length < BOX_WINDOW) continue;
       scanned++;
 
       var rl = detectRisingLows_(daily);
@@ -1493,46 +1495,8 @@ function scanChartPatterns() {
   return results;
 }
 
-// 골파기 반전 전용 스캔. MA60 계산 때문에 종목당 90영업일(9페이지)을 크롤링해야 해서
-// scanChartPatterns보다 훨씬 느림 - 같이 돌리면 나머지 4개 패턴 커버리지가 줄어들어 분리함.
-function scanGoldPitReversal() {
-  var startedAt = Date.now();
-  var universe = fetchSectorUniverse_();
-  var matches = [];
-  var scanned = 0;
-
-  for (var i = 0; i < universe.length; i++) {
-    if (Date.now() - startedAt > GOLD_TIME_BUDGET_MS) break;
-
-    var stock = universe[i];
-    try {
-      var daily = fetchDailyOhlc_(stock.code, GOLD_PAGES);
-      if (daily.length < GOLD_MA_PERIOD + 20) continue;
-      scanned++;
-
-      var gold = detectGoldPitReversal_(daily);
-      if (gold && patternGrade_(gold.score) && matches.length < PATTERN_MAX_MATCHES) {
-        matches.push(buildPatternMatch_(stock, daily, gold));
-      }
-    } catch (err) {
-      continue;
-    }
-  }
-
-  PropertiesService.getScriptProperties().setProperties({
-    PATTERN_SCAN_GOLD_META: JSON.stringify({
-      scannedAt: formatKstTime(Date.now()),
-      universe: universe.length,
-      scanned: scanned
-    }),
-    PATTERN_SCAN_GOLD: JSON.stringify(matches)
-  });
-
-  return matches;
-}
-
-// 눌림목 전용 스캔. 골파기와 마찬가지로 MA60이 필요해 긴 윈도(90영업일)를 크롤링하므로
-// 다른 4개 패턴과 분리하고, 골파기와도 시간대를 띄워 6분 실행 제한을 피한다.
+// 눌림목 전용 스캔. MA60이 필요해 긴 윈도(90영업일)를 크롤링하므로 다른 4개 패턴과 분리하고,
+// 시간대를 띄워 6분 실행 제한을 피한다.
 function scanPullback() {
   var startedAt = Date.now();
   var universe = fetchSectorUniverse_();
@@ -1571,7 +1535,7 @@ function scanPullback() {
 
 // 이 함수를 스크립트 편집기에서 한 번 실행하면 매일 자동 스캔 트리거가 설치된다.
 // (배포와 별개 - 트리거는 코드 push/재배포로 자동 설치되지 않으므로 최초 1회 수동 실행 필요)
-// scanChartPatterns/scanGoldPitReversal/scanPullback 셋 다 설치하고, 서로 겹치지 않게 시간을 띄운다.
+// scanChartPatterns/scanPullback 둘 다 설치하고, 서로 겹치지 않게 시간을 띄운다.
 function setupPatternScanTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     var fn = t.getHandlerFunction();
@@ -1582,14 +1546,9 @@ function setupPatternScanTrigger() {
     .atHour(16) // 장마감(15:30) 이후 여유 두고 16시(Asia/Seoul, 스크립트 기본 시간대 기준)
     .everyDays(1)
     .create();
-  ScriptApp.newTrigger('scanGoldPitReversal')
-    .timeBased()
-    .atHour(17) // scanChartPatterns와 겹치지 않게 1시간 뒤
-    .everyDays(1)
-    .create();
   ScriptApp.newTrigger('scanPullback')
     .timeBased()
-    .atHour(18) // scanGoldPitReversal과도 겹치지 않게 1시간 더 뒤
+    .atHour(17) // scanChartPatterns와 겹치지 않게 1시간 뒤
     .everyDays(1)
     .create();
 }
@@ -1597,15 +1556,12 @@ function setupPatternScanTrigger() {
 function getPatternScanResult() {
   var props = PropertiesService.getScriptProperties();
   var meta = props.getProperty('PATTERN_SCAN_META');
-  var goldMeta = props.getProperty('PATTERN_SCAN_GOLD_META');
   var pullbackMeta = props.getProperty('PATTERN_SCAN_PULLBACK_META');
   return {
     scannedAt: meta ? JSON.parse(meta).scannedAt : null,
     universe: meta ? JSON.parse(meta).universe : 0,
     scanned: meta ? JSON.parse(meta).scanned : 0,
-    // 골파기/눌림목은 별도 스캔(90일치 크롤링이라 훨씬 느림)이라 스캔 시각/대상이 다를 수 있어 따로 표기
-    goldScannedAt: goldMeta ? JSON.parse(goldMeta).scannedAt : null,
-    goldScanned: goldMeta ? JSON.parse(goldMeta).scanned : 0,
+    // 눌림목은 별도 스캔(90일치 크롤링이라 훨씬 느림)이라 스캔 시각/대상이 다를 수 있어 따로 표기
     pullbackScannedAt: pullbackMeta ? JSON.parse(pullbackMeta).scannedAt : null,
     pullbackScanned: pullbackMeta ? JSON.parse(pullbackMeta).scanned : 0,
     patterns: {
@@ -1613,7 +1569,6 @@ function getPatternScanResult() {
       doubleBottom: JSON.parse(props.getProperty('PATTERN_SCAN_DB') || '[]'),
       invHeadShoulders: JSON.parse(props.getProperty('PATTERN_SCAN_IHS') || '[]'),
       boxRangeLow: JSON.parse(props.getProperty('PATTERN_SCAN_BOX') || '[]'),
-      goldPitReversal: JSON.parse(props.getProperty('PATTERN_SCAN_GOLD') || '[]'),
       pullback: JSON.parse(props.getProperty('PATTERN_SCAN_PULLBACK') || '[]')
     }
   };
@@ -1621,15 +1576,15 @@ function getPatternScanResult() {
 
 // 클릭 시 온디맨드 차트: 그 종목만 다시 크롤링해서 캔들 데이터 + 패턴 좌표를 반환.
 // (스캔 결과에는 캔들 전체를 저장하지 않음 - PropertiesService 9KB/속성 제한 때문)
-// 골파기는 MA60 계산 때문에 다른 패턴보다 훨씬 긴 기간(90일)을 크롤링한다.
+// 눌림목은 MA60 계산 때문에 다른 패턴보다 훨씬 긴 기간(90일)을 크롤링한다.
 function getPatternChart(code, patternType) {
   if (!/^[0-9A-Za-z]{6}$/i.test(code)) {
     return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
   }
 
-  var pages = (patternType === 'goldPitReversal' || patternType === 'pullback') ? GOLD_PAGES : PATTERN_PAGES;
+  var pages = (patternType === 'pullback') ? PULLBACK_PAGES : PATTERN_PAGES;
   var daily = fetchDailyOhlc_(code, pages);
-  if (daily.length < 15) {
+  if (daily.length < BOX_WINDOW) {
     return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
   }
 
@@ -1638,7 +1593,6 @@ function getPatternChart(code, patternType) {
   else if (patternType === 'doubleBottom') detail = detectDoubleBottom_(daily);
   else if (patternType === 'invHeadShoulders') detail = detectInvHeadShoulders_(daily);
   else if (patternType === 'boxRangeLow') detail = detectBoxRangeLow_(daily);
-  else if (patternType === 'goldPitReversal') detail = detectGoldPitReversal_(daily);
   else if (patternType === 'pullback') detail = detectPullback_(daily);
 
   return { code: code.toUpperCase(), daily: daily, pattern: patternType, detail: detail };
@@ -1827,6 +1781,14 @@ function isLastCandleBullish_(win) {
   return last.close > last.open;
 }
 
+// fromIdx 다음 캔들부터 끝까지 중 양봉(close>open)이 하나라도 있으면 true (쌍바닥 저점2 이후 반등 확인용)
+function hasBullishAfter_(win, fromIdx) {
+  for (var i = fromIdx + 1; i < win.length; i++) {
+    if (win[i].close > win[i].open) return true;
+  }
+  return false;
+}
+
 // 부분점수 배점표에서 값이 속하는 구간의 점수를 찾는다. tiers: [{min, score}, ...]는
 // min 내림차순으로 정렬돼 있어야 하고, 마지막 항목이 사실상 "그 외" 처리(min: -Infinity)를 맡는다.
 function scoreTier_(value, tiers) {
@@ -1844,67 +1806,56 @@ function patternGrade_(score) {
   return score >= 70;
 }
 
-// 저점상승형: 스윙 저점 3개 이상이 순서대로 상승(첫-끝 3%+ 차이, 쌍바닥과 구분) +
-// 스윙 고점 3개 이상이 좁은 범위에 묶여있음(막힘) + 마지막 저점이 최근이고 아직 안 깨졌음.
+// 저점상승형(Higher Low, 지시서 ①): 최근 60거래일 중 스윙 저점 2개 이상 + 마지막 저점이
+// 그 전 저점보다 3%+ 높고(하락 압력 약화) + 두 저점 간격 5~20거래일 + 최근 고점이 5일선
+// 근처에서 저항받고 + 현재가가 마지막 저점 대비 10% 넘게 오르지 않은(아직 안 늦은) 구간.
 function detectRisingLows_(daily) {
-  var win = daily.slice(Math.max(0, daily.length - PATTERN_WINDOW));
-  if (win.length < PATTERN_WINDOW) return null;
+  var win = daily.slice(Math.max(0, daily.length - RISING_LOWS_WINDOW));
+  if (win.length < RISING_LOWS_WINDOW) return null;
 
   var lowIdxs = findSwingIndices_(win, 'low', true);
   var highIdxs = findSwingIndices_(win, 'high', false);
-  if (lowIdxs.length < WEDGE_MIN_SWINGS || highIdxs.length < WEDGE_MIN_SWINGS) return null;
+  if (lowIdxs.length < WEDGE_MIN_SWINGS) return null;
 
-  for (var i = 1; i < lowIdxs.length; i++) {
-    var prevLow = win[lowIdxs[i - 1]].low;
-    var curLow = win[lowIdxs[i]].low;
-    if (curLow < prevLow * (1 + WEDGE_LOW_RISE_MIN)) return null;
-  }
+  // ③ 최근 저점이 "이전 저점"보다 최소 3%+ 높음 - 스윙 저점이 여러 개여도 최근 두 개만 비교
+  var prevLowIdx = lowIdxs[lowIdxs.length - 2];
+  var lastLowIdx = lowIdxs[lowIdxs.length - 1];
+  var prevLow = win[prevLowIdx].low;
+  var lastLow = win[lastLowIdx].low;
+  var riseRatio = (lastLow - prevLow) / prevLow;
+  if (riseRatio < WEDGE_MIN_LOW_RISE) return null;
 
-  for (var j = 1; j < highIdxs.length; j++) {
-    var prevHigh = win[highIdxs[j - 1]].high;
-    var curHigh = win[highIdxs[j]].high;
-    if (curHigh > prevHigh * (1 + WEDGE_HIGH_CAP_MAX)) return null;
-  }
-
-  // 첫 저점 대비 마지막 저점이 충분히 높아야 "상승형" - 안 그러면 저점 2~3개가 거의 같은
-  // 높이인 쌍바닥류 구조도 여기 걸려버림
-  var firstLow = win[lowIdxs[0]].low;
-  var lastLow = win[lowIdxs[lowIdxs.length - 1]].low;
-  if ((lastLow - firstLow) / firstLow < WEDGE_MIN_TOTAL_RISE) return null;
-
-  var firstIdx = Math.min(lowIdxs[0], highIdxs[0]);
-  var lastIdx = Math.max(lowIdxs[lowIdxs.length - 1], highIdxs[highIdxs.length - 1]);
-  if (lastIdx - firstIdx < WEDGE_MIN_SPAN_DAYS) return null;
+  // ④ 두 저점 간격 5~20거래일
+  var lowSpan = lastLowIdx - prevLowIdx;
+  if (lowSpan < WEDGE_MIN_GAP_DAYS || lowSpan > WEDGE_MAX_GAP_DAYS) return null;
 
   // 최근성: 마지막 저점이 최근 RECENCY_MAX_GAP거래일 안이어야 "지금" 진행 중인 패턴
-  var lastLowIdx = lowIdxs[lowIdxs.length - 1];
   if ((win.length - 1) - lastLowIdx > RECENCY_MAX_GAP) return null;
 
-  var resistance = Math.max.apply(null, highIdxs.map(function (idx) { return win[idx].high; }));
   var lastClose = win[win.length - 1].close;
-
   // 마지막 저점 이후 그 저점을 다시 깨고 내려갔으면(스윙으로는 아직 안 잡혀도) 무효
   if (lastClose < lastLow * 0.98) return null;
+  // ⑥ 현재가는 최근 저점 대비 10% 이상 상승하지 않을 것(이미 많이 오른 뒤의 늦은 신호 배제)
+  if ((lastClose - lastLow) / lastLow > WEDGE_MAX_EXTENSION) return null;
 
   var lowSwingPoints = lowIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].low }; });
   var current = { date: win[win.length - 1].date, price: lastClose };
 
-  // ---- 점수(100점): 저점상승폭40 + 저점간격20 + 5일선저항20 + 거래량감소10 + 최근양봉10 ----
-  var riseRatio = (lastLow - firstLow) / firstLow;
+  // ---- 점수(100점): 저점상승폭40 + 저점간격20(④ 필터 통과 시 고정) + 5일선저항20 + 거래량감소10 + 최근양봉10 ----
   var riseScore = scoreTier_(riseRatio, [
-    { min: 0.08, score: 40 }, { min: 0.05, score: 30 }, { min: WEDGE_MIN_TOTAL_RISE, score: 20 }
+    { min: 0.08, score: 40 }, { min: 0.05, score: 30 }, { min: WEDGE_MIN_LOW_RISE, score: 20 }
   ]);
+  var spanScore = 20;
 
-  var lowSpan = lastLowIdx - lowIdxs[0];
-  var spanScore = (lowSpan >= 5 && lowSpan <= 20) ? 20 : 10;
-
+  // ⑤ 최근 고점(가장 최근 스윙 고점)이 5일선 ±2% 구간에서 저항받는지
   var ma5 = movingAverage_(win, 'close', 5);
-  var resistanceIdx = highIdxs[highIdxs.length - 1];
-  var ma5AtResistance = ma5[resistanceIdx];
+  var resistance = highIdxs.length ? Math.max.apply(null, highIdxs.map(function (idx) { return win[idx].high; })) : null;
+  var resistanceIdx = highIdxs.length ? highIdxs[highIdxs.length - 1] : null;
+  var ma5AtResistance = resistanceIdx != null ? ma5[resistanceIdx] : null;
   var ma5Diff = ma5AtResistance ? Math.abs(win[resistanceIdx].high - ma5AtResistance) / ma5AtResistance : 1;
   var ma5Score = ma5Diff <= 0.02 ? 20 : ma5Diff <= 0.05 ? 10 : 0;
 
-  var volScore = isVolumeDeclining_(win, lowIdxs[0], win.length) ? 10 : 0;
+  var volScore = isVolumeDeclining_(win, prevLowIdx, win.length) ? 10 : 0;
   var bullScore = isLastCandleBullish_(win) ? 10 : 0;
 
   var score = clampScore_(riseScore + spanScore + ma5Score + volScore + bullScore);
@@ -1924,45 +1875,48 @@ function detectRisingLows_(daily) {
     high_swings: highIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].high }; }),
     resistance: resistance,
     signal: current, // 확인 지점은 항상 "오늘"
-    breakout: lastClose > resistance * BREAKOUT_TOL,
+    breakout: resistance != null && lastClose > resistance * BREAKOUT_TOL,
     score: score,
     reasons: reasons,
     interpretation: '저점이 ' + (riseRatio * 100).toFixed(1) + '% 높아지며 하락 압력이 약해지는 구간으로 추정됩니다(' + score + '점).'
   };
 }
 
-// 쌍바닥: 비슷한 높이의 저점 2개 + 그 사이에 충분히 반등한 고점(넥라인) +
-// 두번째 저점이 최근이고, 현재가가 넥라인에 근접(너무 멀지 않음)해야 "확인" 단계로 인정.
+// 쌍바닥(지시서 ②): 최근 90거래일 중 비슷한 높이의 저점 2개(±3%) + 그 사이에 충분히
+// 반등한 고점(넥라인) + 간격 10~40거래일 + 두번째 저점 이후 양봉 확인 + 현재가가
+// 넥라인 아래 5% 이내(너무 멀지 않음)여야 "확인" 단계로 인정.
 function detectDoubleBottom_(daily) {
-  var win = daily.slice(Math.max(0, daily.length - PATTERN_WINDOW));
+  var win = daily.slice(Math.max(0, daily.length - DOUBLE_BOTTOM_WINDOW));
   var lowIdxs = findSwingIndices_(win, 'low', true);
   if (lowIdxs.length < 2) return null;
 
   for (var a = 0; a < lowIdxs.length - 1; a++) {
     for (var b = a + 1; b < lowIdxs.length; b++) {
       var i1 = lowIdxs[a], i2 = lowIdxs[b];
-      if (i2 - i1 < DB_MIN_GAP_DAYS) continue;
+      var gapDays = i2 - i1;
+      if (gapDays < DB_MIN_GAP_DAYS || gapDays > DB_MAX_GAP_DAYS) continue; // 간격 10~40거래일
       if ((win.length - 1) - i2 > RECENCY_MAX_GAP) continue; // 두번째 저점이 너무 오래 전이면 스킵
 
       var low1 = win[i1].low, low2 = win[i2].low;
       var diff = Math.abs(low1 - low2) / Math.min(low1, low2);
-      if (diff > DB_LOW_TOL) continue;
+      if (diff > DB_LOW_TOL) continue; // 가격 차이 ±3%
 
       var neck = maxHighBetween_(win, i1, i2);
       if (!neck) continue;
       var riseFromLow1 = (neck.high - low1) / low1;
       if (riseFromLow1 < DB_PEAK_MIN_RISE) continue;
 
+      if (!hasBullishAfter_(win, i2)) continue; // 두번째 저점 이후 양봉(반등 확인)
+
       var lastClose = win[win.length - 1].close;
       var proximity = (lastClose - neck.high) / neck.high;
-      if (proximity < DB_NECK_PROXIMITY_MIN) continue; // 넥라인에서 너무 멀면(반등이 약하면) 스킵
+      if (proximity < DB_NECK_PROXIMITY_MIN) continue; // 넥라인 아래 5% 이내(너무 멀면 스킵)
 
       var current = { date: win[win.length - 1].date, price: lastClose };
 
-      // ---- 점수(100점): 저점유사도40 + 간격20 + 반등강도20 + 거래량10 + 넥라인10 ----
+      // ---- 점수(100점): 저점유사도40 + 간격20(필터 통과 시 고정) + 반등강도20 + 거래량10 + 넥라인10 ----
       var simScore = diff <= 0.01 ? 40 : diff <= DB_LOW_TOL ? 25 : 0;
-      var gapDays = i2 - i1;
-      var gapScore = (gapDays >= 10 && gapDays <= 40) ? 20 : 10;
+      var gapScore = 20;
       var bounceScore = riseFromLow1 >= 0.08 ? 20 : riseFromLow1 >= DB_PEAK_MIN_RISE ? 12 : 0;
       var volScore = isVolumeDeclining_(win, i1, i2) ? 10 : 0;
       var neckScore = proximity >= -0.02 ? 10 : 5;
@@ -1992,9 +1946,10 @@ function detectDoubleBottom_(daily) {
   return null;
 }
 
-// 역헤드앤숄더: 저점 3개(좌어깨-헤드-우어깨), 헤드가 가장 낮고 양 어깨는 비슷한 높이.
+// 역헤드앤숄더(지시서 ③): 저점 3개(좌어깨-헤드-우어깨), 헤드가 가장 낮고 양 어깨는
+// 비슷한 높이(±5%), 넥라인 존재, 현재가 넥라인 아래 3% 이내.
 function detectInvHeadShoulders_(daily) {
-  var win = daily.slice(Math.max(0, daily.length - PATTERN_WINDOW));
+  var win = daily.slice(Math.max(0, daily.length - IHS_WINDOW));
   var lowIdxs = findSwingIndices_(win, 'low', true);
   if (lowIdxs.length < 3) return null;
 
@@ -2020,14 +1975,14 @@ function detectInvHeadShoulders_(daily) {
 
         var lastClose = win[win.length - 1].close;
         var proximity = (lastClose - necklinePrice) / necklinePrice;
-        if (proximity < DB_NECK_PROXIMITY_MIN) continue; // 넥라인에서 너무 멀면(우어깨 반등이 약하면) 스킵
+        if (proximity < IHS_NECK_PROXIMITY_MIN) continue; // ③ 넥라인 아래 3% 이내(너무 멀면 스킵)
 
         var current = { date: win[win.length - 1].date, price: lastClose };
 
         // ---- 점수(100점): 형태유사도50 + 넥라인20 + 대칭성20 + 거래량10 ----
         var headDropAvg = ((left - head) / left + (right - head) / right) / 2;
         var shapeScore = headDropAvg >= 0.05 ? 50 : headDropAvg >= 0.03 ? 35 : 20;
-        var neckScoreIhs = proximity >= -0.02 ? 20 : 10;
+        var neckScoreIhs = proximity >= -0.01 ? 20 : 10;
         var symScore = shoulderDiff <= 0.02 ? 20 : shoulderDiff <= IHS_SHOULDER_TOL ? 12 : 0;
         var volScoreIhs = isVolumeDeclining_(win, iL, iR) ? 10 : 0;
 
@@ -2059,10 +2014,10 @@ function detectInvHeadShoulders_(daily) {
   return null;
 }
 
-// 박스권 하단: 고점끼리·저점끼리 각각 평평(횡보 레인지)하고, 폭이 충분히 넓으며,
-// 현재가가 그 박스 하단(지지선) 근처에 있는 경우.
+// 박스권 하단(지시서 ④): 최근 40거래일 고점끼리·저점끼리 각각 평평(횡보 레인지)하고,
+// 고점-저점 차이가 15% 이하이며, 현재가가 그 박스 하단(지지선) +3% 이내에 있는 경우.
 function detectBoxRangeLow_(daily) {
-  var win = daily.slice(Math.max(0, daily.length - PATTERN_WINDOW));
+  var win = daily.slice(Math.max(0, daily.length - BOX_WINDOW));
   var lowIdxs = findSwingIndices_(win, 'low', true);
   var highIdxs = findSwingIndices_(win, 'high', false);
   if (lowIdxs.length < 2 || highIdxs.length < 2) return null;
@@ -2080,6 +2035,7 @@ function detectBoxRangeLow_(daily) {
   var resistance = highPrices.reduce(function (s, v) { return s + v; }, 0) / highPrices.length;
   if (resistance <= support) return null;
   if ((resistance - support) / support < BOX_MIN_RANGE) return null; // 박스 폭이 너무 좁음(노이즈)
+  if ((resistance - support) / support > BOX_MAX_RANGE) return null; // ④ 고점-저점 차이 15% 이하
 
   var lastClose = win[win.length - 1].close;
   if (lastClose < support * (1 - 0.01)) return null; // 이미 지지선 이탈(박스 붕괴)했으면 제외
@@ -2114,83 +2070,8 @@ function detectBoxRangeLow_(daily) {
   };
 }
 
-// 골파기 후 추세 전환(MA60 기준, 초반 포착): 종가가 한동안 60일 이평 아래(하락추세)에
-// 있다가 이평을 위로 막 돌파한 시점만 잡는다 - 랠리/눌림목까지 기다리면 이미 많이 오른
-// 뒤라 늦은 신호가 되므로, 돌파가 "최근 며칠 안"일 때만 인정(V자 바닥 초반 포착).
-// daily는 GOLD_PAGES(9페이지 ≈ 90영업일)로 크롤링한, MA60 계산 여유가 있는 긴 시리즈여야 한다.
-function detectGoldPitReversal_(daily) {
-  var period = GOLD_MA_PERIOD;
-  var win = daily.slice(Math.max(0, daily.length - GOLD_WINDOW));
-  var n = win.length;
-  if (n < period + 15) return null;
-
-  // 60일 이동평균 시리즈 계산 (인덱스 period-1부터 값이 생김)
-  var ma = new Array(n).fill(null);
-  var sum = 0;
-  for (var i = 0; i < n; i++) {
-    sum += win[i].close;
-    if (i >= period) sum -= win[i - period].close;
-    if (i >= period - 1) ma[i] = sum / period;
-  }
-
-  // 하락추세->상승추세 전환(종가가 MA60 아래에서 위로 올라선) 지점 탐색.
-  // 최근 RECENCY_MAX_GAP거래일 안에서만 찾는다 - 그보다 오래됐으면 "초반"이 아니므로 제외.
-  // ma[j-1]이 null이 아니려면 j-1 >= period-1 즉 j >= period부터 검사해야 함(>만 쓰면 j===period를 놓침).
-  var crossIdx = -1;
-  for (var j = n - 1; j >= period; j--) {
-    if ((n - 1) - j > RECENCY_MAX_GAP) break;
-    if (ma[j] == null || ma[j - 1] == null) continue;
-    if (win[j - 1].close < ma[j - 1] && win[j].close >= ma[j]) { crossIdx = j; break; }
-  }
-  if (crossIdx === -1) return null;
-
-  // 전환 직전 GOLD_TREND_LOOKBACK봉 중 다수가 MA60 아래였어야 "하락추세에서의 전환"으로 인정
-  var belowCount = 0, checked = 0;
-  for (var k = Math.max(period - 1, crossIdx - GOLD_TREND_LOOKBACK); k < crossIdx; k++) {
-    if (ma[k] == null) continue;
-    checked++;
-    if (win[k].close < ma[k]) belowCount++;
-  }
-  if (checked === 0 || belowCount / checked < GOLD_TREND_BELOW_RATIO) return null;
-
-  // 돌파 이후 지금까지 이평 아래로 다시 꺼지지 않았는지(전환이 바로 무효화된 건 아닌지)만 확인
-  var lastClose = win[n - 1].close;
-  for (var m = crossIdx; m < n; m++) {
-    if (ma[m] != null && win[m].close < ma[m] * 0.99) return null;
-  }
-
-  // ---- 점수(100점, 지시서 5종 외 패턴이라 이 구현에서 자체 배점): 하락추세강도40 +
-  // 돌파초반도(최근일수록 고득점)30 + 상승모멘텀(과열아님)20 + 거래량10 ----
-  var belowRatio = belowCount / checked;
-  var trendScore = belowRatio >= 0.8 ? 40 : belowRatio >= GOLD_TREND_BELOW_RATIO ? 25 : 0;
-  var gapFromCross = (n - 1) - crossIdx;
-  var earlyScore = gapFromCross <= 1 ? 30 : gapFromCross <= RECENCY_MAX_GAP ? 18 : 0;
-  var momentum = ma[n - 1] ? (lastClose - ma[n - 1]) / ma[n - 1] : 0;
-  var momentumScore = (momentum >= 0 && momentum <= 0.03) ? 20 : (momentum > 0.03 && momentum <= 0.06) ? 10 : 0;
-  var volScore = win[crossIdx].volume > avgVolume_(win, Math.max(0, crossIdx - 20), crossIdx) ? 10 : 0;
-
-  var score = clampScore_(trendScore + earlyScore + momentumScore + volScore);
-  var reasons = [
-    '전환 전 하락추세 비율 ' + (belowRatio * 100).toFixed(0) + '%(' + trendScore + '/40점)',
-    'MA60 돌파 후 ' + gapFromCross + '거래일 경과(' + earlyScore + '/30점)',
-    'MA60 이격도 ' + (momentum * 100).toFixed(1) + '%(' + momentumScore + '/20점)',
-    '돌파일 거래량 ' + (volScore ? '증가' : '평이') + '(' + volScore + '/10점)'
-  ];
-
-  return {
-    ma_period: period,
-    cross: { date: win[crossIdx].date, price: win[crossIdx].close },
-    current: { date: win[n - 1].date, price: lastClose },
-    signal: { date: win[n - 1].date, price: lastClose },
-    breakout: false,
-    score: score,
-    reasons: reasons,
-    interpretation: '장기 하락추세(전환 전 하락 비율 ' + (belowRatio * 100).toFixed(0) + '%) 이후 60일선을 막 돌파한 초기 구간으로 추정됩니다(' + score + '점).'
-  };
-}
-
-// 눌림목: 최근 20거래일 중 15% 이상 상승한 뒤, 고점 대비 5~15% 조정을 받고
-// 20일선 또는 60일선 ±3% 부근까지 내려온 구간. MA60이 필요해 골파기와 같은 긴
+// 눌림목(지시서 ⑤): 최근 20거래일 중 15% 이상 상승한 뒤, 고점 대비 5~15% 조정을 받고
+// 20일선 또는 60일선 ±3% 부근까지 내려온 구간. MA60이 필요해 다른 4개 패턴보다 긴
 // 윈도(PULLBACK_WINDOW≈90영업일, 9페이지 크롤링)를 쓴다.
 var PULLBACK_WINDOW = 90;
 var PULLBACK_PAGES = 9;
