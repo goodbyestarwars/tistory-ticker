@@ -40,7 +40,7 @@
     },
     {
       href: '/page/foreign-flow',
-      label: '종목 종합분석',
+      label: '종목분석',
       bold: true,
       icon: '<path d="M7 17V7"/><path d="M4 10l3-3 3 3"/><path d="M17 7v10"/><path d="M14 14l3 3 3-3"/>'
     },

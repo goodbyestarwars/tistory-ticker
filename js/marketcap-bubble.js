@@ -187,31 +187,51 @@
 
   // 한 구역 안 종목 배치. 스퀘어파이드에만 맡기면 구역이 옆으로 넓고 낮을 때
   // (예: 코스닥) 한 줄로 죽 늘어선 얇은 셀이 나오기 쉬워, 종목이 여러 개인데
-  // 폭/높이 비율이 아주 납작한 구역은 시가총액 합이 비슷하도록 2줄로 나눠 배치한다.
-  function layoutZoneItems(items, x, y, w, h) {
+  // 폭/높이 비율이 아주 납작한 구역은 시가총액 합이 비슷하도록 여러 줄로 나눠 배치한다.
+  // 코스닥은 종목 수가 많아 2줄로도 부족해 3줄로 나눔(그 외 구역은 기존대로 2줄).
+  function layoutZoneItems(items, x, y, w, h, zoneKey) {
     var sorted = items.slice().sort(function (a, b) { return b.cap - a.cap; });
     var aspect = w / h;
+    var rowCount = zoneKey === 'KOSDAQ' ? 3 : 2;
 
-    if (sorted.length > 6 && aspect > 4) {
-      var rows = [[], []];
-      var rowSums = [0, 0];
+    if (sorted.length > rowCount * 3 && aspect > 4) {
+      var rows = [];
+      var rowSums = [];
+      for (var i = 0; i < rowCount; i++) { rows.push([]); rowSums.push(0); }
       sorted.forEach(function (it) {
-        var idx = rowSums[0] <= rowSums[1] ? 0 : 1;
+        var idx = 0;
+        for (var j = 1; j < rowCount; j++) {
+          if (rowSums[j] < rowSums[idx]) idx = j;
+        }
         rows[idx].push(it);
         rowSums[idx] += it.cap;
       });
-      var totalCap = rowSums[0] + rowSums[1];
-      var h0 = totalCap > 0 ? (rowSums[0] / totalCap) * h : h / 2;
-      var h1 = Math.max(h - h0, 1);
-      return squarifyScaled(rows[0], x, y, w, h0).concat(squarifyScaled(rows[1], x, y + h0, w, h1));
+      var totalCap = rowSums.reduce(function (s, v) { return s + v; }, 0);
+      var rects = [];
+      var yy = y;
+      rows.forEach(function (row, idx2) {
+        var rh = idx2 === rows.length - 1
+          ? Math.max(y + h - yy, 1) // 마지막 줄은 남은 높이를 전부 사용(반올림 오차 방지)
+          : (totalCap > 0 ? (rowSums[idx2] / totalCap) * h : h / rowCount);
+        rects = rects.concat(squarifyScaled(row, x, yy, w, rh));
+        yy += rh;
+      });
+      return rects;
     }
     return squarifyScaled(sorted, x, y, w, h);
 
     function squarifyScaled(subitems, sx, sy, sw, sh) {
       if (!subitems.length) return [];
-      var subCap = subitems.reduce(function (s, it) { return s + it.cap; }, 0);
-      var scale = (sw * sh) / (subCap || 1);
-      subitems.forEach(function (it) { it.value = it.cap * scale; });
+      // 코스피는 삼성전자·SK하이닉스 두 종목이 시총을 압도해서 스퀘어파이드 면적을
+      // 시총 그대로 쓰면 이 둘이 화면 대부분을 차지하고 나머지 종목은 안 보일 만큼
+      // 작아짐. 실제 시총 숫자·정렬·색상은 그대로 두고 "면적 계산에만" 완만한 지수
+      // (0.75제곱)를 적용해 큰 값과 작은 값의 격차를 부드럽게 줄인다 — 작은 종목을
+      // 억지로 키우는 게 아니라 큰 종목이 차지하는 비중 자체를 낮추는 방식.
+      var areaPower = zoneKey === 'KOSPI' ? 0.75 : 1;
+      var weights = subitems.map(function (it) { return Math.pow(it.cap, areaPower); });
+      var totalWeight = weights.reduce(function (s, v) { return s + v; }, 0);
+      var scale = (sw * sh) / (totalWeight || 1);
+      subitems.forEach(function (it, i) { it.value = weights[i] * scale; });
       return squarify(subitems, sx, sy, sw, sh);
     }
   }
@@ -309,7 +329,7 @@
       var innerW = Math.max(zw - 2, 1);
       var innerH = Math.max(zh - labelH - 2, 1);
 
-      var itemRects = layoutZoneItems(zone.items, innerX, innerY, innerW, innerH);
+      var itemRects = layoutZoneItems(zone.items, innerX, innerY, innerW, innerH, zone.key);
       itemRects.forEach(function (ir) {
         var ix = ir.x + CELL_GAP / 2;
         var iy = ir.y + CELL_GAP / 2;
