@@ -91,8 +91,9 @@
 }
 #foreign-flow .ff-summary-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
   padding: 10px 14px;
   border-bottom: 1px solid #eee;
   font-size: 13.5px;
@@ -101,7 +102,13 @@
 #foreign-flow .ff-summary-icon { font-size: 15px; }
 #foreign-flow .ff-summary-label { font-weight: 700; min-width: 84px; }
 #foreign-flow .ff-summary-score { font-weight: 700; color: #333; min-width: 42px; }
-#foreign-flow .ff-summary-desc { color: #999; font-size: 11.5px; margin-left: auto; text-align: right; }
+/* desc가 짧은 라벨에서 실제 해석 문장으로 바뀌어 길어져서, 항상 다음 줄로 떨어뜨려 왼쪽 정렬로 표시 */
+#foreign-flow .ff-summary-desc {
+  color: #777;
+  font-size: 12px;
+  flex-basis: 100%;
+  text-align: left;
+}
 #foreign-flow .ff-summary-ai {
   padding: 10px 14px;
   background: #f7f7f8;
@@ -110,21 +117,17 @@
 }
 #foreign-flow .ff-summary-ai b { margin-right: 4px; }
 #foreign-flow .ff-summary-ai-text { color: #444; }
-#foreign-flow .ff-summary-interp {
-  margin: 8px 0 16px;
-  padding: 10px 14px;
-  background: #fafafa;
-  border-radius: 8px;
-  font-size: 12.5px;
-  color: #555;
-  line-height: 1.9;
-}
 
-/* ---- 결과 헤더/배지 ---- */
+/* ---- 결과 헤더/구분선/배지 ---- */
 #foreign-flow .ff-header {
   font-size: 17px;
   font-weight: 700;
   margin: 4px 0 8px;
+}
+#foreign-flow .ff-divider {
+  height: 1px;
+  background: #e5e5e5;
+  margin: 0 0 14px;
 }
 #foreign-flow .ff-code {
   font-weight: 400;
@@ -219,7 +222,6 @@
   font-weight: 700;
   margin-bottom: 10px;
 }
-#foreign-flow .ff-extra-score { margin-left: 6px; color: #333; }
 #foreign-flow .ff-extra-grade {
   margin-left: 6px;
   font-size: 12px;
@@ -248,7 +250,7 @@
   background: rgba(0, 0, 0, 0.05);
 }
 #foreign-flow .ff-extra-badges {
-  margin-top: 10px;
+  margin-bottom: 10px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -263,13 +265,9 @@
   color: #d24f45;
   border: 1px solid #f2c3bf;
 }
-#foreign-flow .ff-extra-streak {
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
+#foreign-flow .ff-extra-streak { margin-bottom: 8px; }
 #foreign-flow .ff-extra-interp {
-  margin-top: 10px;
+  margin-bottom: 10px;
   padding: 9px 11px;
   border-radius: 8px;
   font-size: 12.5px;
@@ -284,7 +282,6 @@
 #foreign-flow .ff-extra-note {
   font-size: 11.5px;
   color: #999;
-  margin-top: -4px;
 }
 #foreign-flow .ff-extra-help {
   margin-top: 10px;
@@ -442,9 +439,9 @@ html.dark #foreign-flow .ff-summary-score { color: #ddd !important; }
 html.dark #foreign-flow .ff-summary-desc { color: #999 !important; }
 html.dark #foreign-flow .ff-summary-ai { background: #1f1f1f !important; border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-summary-ai-text { color: #ccc !important; }
-html.dark #foreign-flow .ff-summary-interp { background: #1f1f1f !important; color: #bbb !important; }
 html.dark #foreign-flow .ff-extra-help { background: #1f1f1f !important; color: #999 !important; }
 html.dark #foreign-flow .ff-header { color: #eee !important; }
+html.dark #foreign-flow .ff-divider { background: #3a3a3a !important; }
 html.dark #foreign-flow .ff-table,
 html.dark #foreign-flow .ff-table th,
 html.dark #foreign-flow .ff-table td { border-color: #555 !important; }
@@ -480,7 +477,6 @@ html.dark #foreign-flow .ff-badge-legend b { color: #aaa !important; }
 html.dark #foreign-flow .ff-extra-missing { background: #262626 !important; color: #999 !important; }
 html.dark #foreign-flow .ff-extra-card { background: #262626 !important; border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-extra-card-title { color: #eee !important; }
-html.dark #foreign-flow .ff-extra-score { color: #ddd !important; }
 html.dark #foreign-flow .ff-extra-grade { color: #999 !important; }
 html.dark #foreign-flow .ff-extra-grid { background: #1f1f1f !important; }
 html.dark #foreign-flow .ff-extra-metric-label { color: #999 !important; }

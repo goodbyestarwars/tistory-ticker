@@ -266,27 +266,22 @@
     var entry = (global.INVESTOR_FLOW_CACHE || {})[data.code] || null;
     var techScore = computeTechnicalScore(chartData);
 
-    var html = buildSummaryBox(data, entry, techScore);
-
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
     var priceHtml = latest
       ? ' <span class="ff-price ' + signClass(latest.change_pct) + '">' + Number(latest.close).toLocaleString()
         + '원 (' + (latest.change_pct >= 0 ? '+' : '') + latest.change_pct.toFixed(2) + '%)</span>'
       : '';
 
-    html += '<div class="ff-header">' + escapeHtml(data.name || data.code)
+    // 헤더(종목명/가격)를 맨 위에 두고 구분선으로 아래 요약 박스와 분리
+    var html = '<div class="ff-header">' + escapeHtml(data.name || data.code)
       + ' <span class="ff-code">(' + escapeHtml(data.code) + ')</span>'
       + priceHtml
-      + ' <span class="ff-asof">' + escapeHtml(data.as_of) + ' 기준</span></div>';
+      + ' <span class="ff-asof">' + escapeHtml(data.as_of) + ' 기준</span></div>'
+      + '<div class="ff-divider"></div>';
 
-    html += buildBadges(data);
-    html += buildRollingTable(data);
+    html += buildSummaryBox(data, entry, techScore);
+    html += buildFlowCard(data);
     html += buildExtraSections(data.code, latest && latest.close, chartData, techScore);
-    html += '<div class="ff-chart-title">외국인·기관 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>';
-    html += buildNetChart(data.daily);
-    html += '<div class="ff-chart-title">외국인 보유율 추이</div>';
-    html += buildRatioChart(data.daily);
-    html += '<div class="ff-footnote">※ 추정대금은 순매매량 × 당일 종가로 계산한 <b>추정치</b>이며 실제 거래대금과 다를 수 있습니다. 자료: 네이버 금융</div>';
 
     box.innerHTML = html;
 
@@ -409,11 +404,13 @@
     var pStreak = pension && pension.streak;
     var pensionEmoji = pStreak ? (pStreak.direction === 'buy' ? '🟢' : pStreak.direction === 'sell' ? '🔴' : '⚪') : '⚪';
 
+    // 각 행의 desc를 일반 설명이 아니라 실제 해석 문장으로 채워서(구 ff-summary-interp 블록을
+    // 아래에 따로 두지 않고) 점수 옆 칸에서 바로 이유를 보여준다.
     var rows = [
-      { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: '외국인·기관 순매매 방향·강도 종합' },
-      { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: '거래비중·잔고증가·동반매도 종합' },
-      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: '연속매매일수·구간별 순매수 종합' },
-      { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: '이평선배열(40)·지지선(30)·저항선(30) 종합' }
+      { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: flowInterpText(data) },
+      { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: shortInterpText(entry && entry.short) },
+      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pension ? pension.interpretation.text : '연기금 데이터가 없는 종목입니다.' },
+      { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: techInterpText(techScore) }
     ];
 
     var rowsHtml = rows.map(function (r, i) {
@@ -421,24 +418,14 @@
         + '<span class="ff-summary-icon">' + r.icon + '</span>'
         + '<span class="ff-summary-label">' + r.label + '</span>'
         + '<span class="ff-summary-score">' + (r.score == null ? '-' : r.score + '점') + '</span>'
-        + '<span class="ff-summary-desc">' + r.desc + '</span>'
+        + '<span class="ff-summary-desc">' + escapeHtml(r.desc) + '</span>'
         + '</div>';
-    }).join('');
-
-    var interpRows = [
-      ['🧭', '수급', flowInterpText(data)],
-      [shortEmoji, '공매도', shortInterpText(entry && entry.short)],
-      [pensionEmoji, '연기금', pension ? pension.interpretation.text : '연기금 데이터가 없는 종목입니다.'],
-      ['📊', '기술', techInterpText(techScore)]
-    ].map(function (r) {
-      return '<div class="ff-summary-interp-row">' + r[0] + ' ' + r[1] + ': "' + escapeHtml(r[2]) + '"</div>';
     }).join('');
 
     return '<div class="ff-summary">'
       + rowsHtml
       + '<div class="ff-summary-ai" id="ffAiSummary"><b>AI(GROQ) 한 줄 요약</b> · <span class="ff-summary-ai-text">생성 중...</span></div>'
-      + '</div>'
-      + '<div class="ff-summary-interp">' + interpRows + '</div>';
+      + '</div>';
   }
 
   // AI 한줄요약은 Groq 호출이라 느릴 수 있어 나머지 렌더링을 막지 않고 비동기로 채운다.
@@ -535,6 +522,20 @@
     return html;
   }
 
+  // ---- 수급(연속매매 배지 + 롤링 표 + 순매매량/보유율 추이) - 하나의 구역 카드로 묶음 ----
+  function buildFlowCard(data) {
+    return '<div class="ff-extra-card">'
+      + '<div class="ff-extra-card-title">🧭 외국인·기관 수급</div>'
+      + buildBadges(data)
+      + buildRollingTable(data)
+      + '<div class="ff-chart-title">외국인·기관 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>'
+      + buildNetChart(data.daily)
+      + '<div class="ff-chart-title">외국인 보유율 추이</div>'
+      + buildRatioChart(data.daily)
+      + '<div class="ff-footnote">※ 추정대금은 순매매량 × 당일 종가로 계산한 <b>추정치</b>이며 실제 거래대금과 다를 수 있습니다. 자료: 네이버 금융</div>'
+      + '</div>';
+  }
+
   // ---- 공매도/대차거래/연기금 (window.INVESTOR_FLOW_CACHE, PC 로컬 스냅샷) ----
 
   function buildExtraSections(code, currentClose, chartData, techScore) {
@@ -549,9 +550,9 @@
     var html = '<div class="ff-extra">';
     html += buildShortLoanCard(entry.short, entry.loan, currentClose);
     html += buildPensionCard(entry.pension, entry.name);
-    html += buildFlowChartCard(chartData, techScore);
     html += '<div class="ff-extra-note">공매도 압박 점수는 항상 <b>가능성·추정치</b>이며, 공매도가 주가를 누른다고 단정하지 않습니다. '
       + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API · PC 로컬 수집(하루 1회 갱신)</div>';
+    html += buildFlowChartCard(chartData, techScore);
     html += '</div>';
     return html;
   }
@@ -611,13 +612,12 @@
     }
 
     return '<div class="ff-extra-card">'
-      + '<div class="ff-extra-card-title">' + p.grade.emoji + ' 공매도·대차거래 <span class="ff-extra-score">' + p.score + '점</span>'
-      + '<span class="ff-extra-grade">' + escapeHtml(p.grade.label) + '</span></div>'
-      + '<div class="ff-extra-grid">' + grid + '</div>'
+      + '<div class="ff-extra-card-title">공매도·대차거래 <span class="ff-extra-grade">' + escapeHtml(p.grade.label) + '</span></div>'
       + (causes.length ? '<div class="ff-extra-badges">' + causes.map(function (c) { return '<span class="ff-extra-badge">' + escapeHtml(c) + '</span>'; }).join('') + '</div>' : '')
+      + '<div class="ff-extra-grid">' + grid + '</div>'
       + '<div class="ff-extra-help">'
-      + '<b>Day to Cover</b>: 현재 공매도 잔고를 최근 20일 평균 거래량으로 전량 되갚는 데 걸리는 예상 거래일 수입니다. 값이 클수록 공매도 상환(숏커버링) 매수 물량이 시장에 소화되는 데 시간이 오래 걸립니다.<br>'
-      + '<b>숏 압박 지수</b>: (외국인+기관 당일 순매수) ÷ 당일 공매도 거래량 × 100. 0이 기준선으로, 위(+)는 외국인·기관 순매수가 공매도 거래량보다 강해 숏커버링이 겹칠 경우 단기 반등(숏스퀴즈) 압력이 커질 수 있는 구간, 아래(-)는 외국인·기관도 함께 매도 중임을 뜻합니다. (매우 높음 ≥200 · 높음 ≥50 · 보통 -50~50 · 낮음 ≤-50 · 매우 낮음 ≤-200)'
+      + '<b>Day to Cover</b>: 공매도 잔고를 20일 평균 거래량으로 다 갚는 데 걸리는 거래일 수(클수록 상환 물량 소화가 오래 걸림).<br>'
+      + '<b>숏 압박 지수</b>: (외국인+기관 순매수)÷공매도 거래량×100. 0 이상이면 숏스퀴즈 압력 구간, 미만이면 동반 매도 구간.'
       + '</div>'
       + '</div>';
   }
@@ -625,24 +625,25 @@
   function buildPensionCard(p, name) {
     if (!p) return '';
     var streak = p.streak || { days: 0, direction: 'flat' };
-    var streakEmoji = streak.direction === 'buy' ? '🟢' : streak.direction === 'sell' ? '🔴' : '⚪';
     var streakLabel = streak.direction === 'buy' ? '연속 순매수' : streak.direction === 'sell' ? '연속 순매도' : '뚜렷한 방향 없음';
+    var streakBadgeCls = streak.direction === 'buy' ? 'ff-badge-buy' : streak.direction === 'sell' ? 'ff-badge-sell' : 'ff-badge-neutral';
     var interp = p.interpretation || { tone: 'neutral', label: '', text: '' };
     var badgeCls = TONE_BADGE_CLASS[interp.tone] || 'ff-badge-neutral';
 
     return '<div class="ff-extra-card">'
       + '<div class="ff-extra-card-title">연기금 매매 동향</div>'
-      + '<div class="ff-extra-streak">' + streakEmoji + ' ' + streakLabel + ' ' + streak.days + '일</div>'
+      + '<div class="ff-extra-streak"><span class="ff-badge ' + streakBadgeCls + '">' + streakLabel + ' ' + streak.days + '일</span></div>'
+      + '<div class="ff-extra-interp ff-extra-tone-' + escapeAttr(interp.tone) + '">'
+      + '<span class="ff-badge ' + badgeCls + '">' + escapeHtml(interp.label) + '</span>'
+      + '<span class="ff-extra-interp-text">' + escapeHtml(interp.text) + '</span>'
+      + '</div>'
       + '<div class="ff-extra-grid">'
       + extraMetric('최근 5일 순매수', fmtSignedWon(p.net_5d))
       + extraMetric('최근 20일 순매수', fmtSignedWon(p.net_20d))
       + extraMetric('최근 60일 순매수', p.net_60d == null ? '-' : fmtSignedWon(p.net_60d))
       + extraMetric('누적(' + (p.cumulative_window_days || 0) + '영업일)', fmtSignedWon(p.net_cumulative))
       + '</div>'
-      + '<div class="ff-extra-interp ff-extra-tone-' + escapeAttr(interp.tone) + '">'
-      + '<span class="ff-badge ' + badgeCls + '">' + escapeHtml(interp.label) + '</span>'
-      + '<span class="ff-extra-interp-text">' + escapeHtml(interp.text) + '</span>'
-      + '</div></div>';
+      + '</div>';
   }
 
   // ---- 가격 차트: 지지/저항 + 이동평균 5/20/60/224일선 (?action=flowChart) ----
