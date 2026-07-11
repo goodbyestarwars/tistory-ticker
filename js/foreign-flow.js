@@ -768,7 +768,8 @@
         autoSize: true,
         height: FCHART_H,
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { timeVisible: false, secondsVisible: false }
+        timeScale: { timeVisible: false, secondsVisible: false },
+        localization: { priceFormatter: chartPriceFormatter }
       }, lwcThemeOptions(LWC)));
       lwcChart = chart;
 
@@ -822,6 +823,8 @@
 
   function fmtAbsShares(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '주'; }
   function fmtWon(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '원'; }
+  // 캔들차트 축·지지/저항선·크로스헤어에 표시되는 가격에 천단위 콤마(원화는 소수점 없음)
+  function chartPriceFormatter(v) { return v == null || isNaN(v) ? '' : Math.round(v).toLocaleString(); }
   function fmtPct(v) { return v == null || isNaN(v) ? '-' : v.toFixed(2) + '%'; }
   function fmtSignedPct(v) {
     if (v == null || isNaN(v)) return '-';
