@@ -54,12 +54,8 @@
     // 무료로 가져올 방법이 없어(직접 크롤링 차단, 네이버도 KRX iframe 임베드뿐이라 우회 불가)
     // 메뉴에서 내림. js/short-pressure.js, gas의 getShortPressure는 코드로는 남겨둠
     // (나중에 데이터 소스가 생기면 재활용).
-    {
-      href: '/page/pension-fund',
-      label: '연기금 분석',
-      bold: true,
-      icon: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>'
-    },
+    // 연기금 분석(/page/pension-fund)도 2026-07-11 메뉴에서 내림 - foreign-flow.js에
+    // 병합됐으므로 별도 메뉴 불필요(js/pension-fund.js는 코드로는 남겨둠).
     {
       href: '/notice',
       label: '공지사항',

@@ -28,7 +28,7 @@
 .mcb-canvas {
   position: relative;
   width: 100%;
-  border-radius: 20px;
+  border-radius: 0;
   background: linear-gradient(180deg, #f5f6f8 0%, #eceef2 100%);
   overflow: hidden;
 }
@@ -71,7 +71,7 @@
 .mcb-zone-label {
   font-size: 12.5px;
   font-weight: 800;
-  fill: #6b7280;
+  fill: #000;
   text-anchor: start;
   letter-spacing: 0.2px;
   cursor: pointer;
