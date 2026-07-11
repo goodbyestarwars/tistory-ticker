@@ -58,7 +58,11 @@ def load_stock_codes():
 
 
 def get_token(appkey, secretkey):
-    body = json.dumps({'appkey': appkey, 'secretkey': secretkey}).encode('utf-8')
+    body = json.dumps({
+        'grant_type': 'client_credentials',
+        'appkey': appkey,
+        'secretkey': secretkey,
+    }).encode('utf-8')
     req = urllib.request.Request(
         BASE_URL + '/oauth2/token',
         data=body,
