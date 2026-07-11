@@ -1003,7 +1003,19 @@ function fetchShortTradeRows_(code) {
       });
       var status = res.getResponseCode();
       var html = res.getContentText('EUC-KR');
-      pageDebug.push({ page: page, status: status, htmlLen: html.length, htmlHead: html.slice(0, 400) });
+      var shortIdx = html.indexOf('공매도');
+      var trIdx = html.search(/<tr onMouseOver/i);
+      var tahIdx = html.indexOf('class="tah');
+      pageDebug.push({
+        page: page,
+        status: status,
+        htmlLen: html.length,
+        hasShortWord: shortIdx > -1,
+        hasTrOnMouseOver: trIdx > -1,
+        hasTahClass: tahIdx > -1,
+        aroundShortWord: shortIdx > -1 ? html.slice(Math.max(0, shortIdx - 100), shortIdx + 500) : null,
+        aroundTah: tahIdx > -1 ? html.slice(Math.max(0, tahIdx - 200), tahIdx + 500) : null
+      });
       if (status !== 200) continue;
       parseShortTradeRows_(html).forEach(function (row) {
         if (!seen[row.date]) { seen[row.date] = true; rows.push(row); }
