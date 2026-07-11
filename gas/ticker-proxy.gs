@@ -54,6 +54,10 @@ function doGet(e) {
     return jsonResponse(getFlowAiSummary(params));
   }
 
+  if (params.action === 'flowChart') {
+    return jsonResponse(getFlowChart((params.code || '').trim()));
+  }
+
   if (params.debugShortNaver === '1') {
     return jsonResponse(debugShortTradeNaver((params.code || '').trim()));
   }
@@ -513,11 +517,89 @@ function getFlowAiSummary(params) {
     '차트 패턴 점수 ' + (params.patternScore || '-') + '점 - ' + (params.patternNote || '데이터 없음')
   ];
   var prompt = '"' + name + '" 종목의 오늘 4가지 수급/기술 지표야:\n' + lines.join('\n') +
-    '\n\n이 지표들을 종합해서 매수·매도 관점에서 투자자가 참고할 만한 의견을 한국어 한 문장으로 요약해줘. 문장 외 다른 말은 붙이지 마.';
+    '\n\n이 지표들을 종합해서 "매수", "매도", "보유(관망)" 중 하나의 관점을 문장 맨 앞에 분명히 명시하고, ' +
+    '그렇게 판단한 핵심 근거를 이어서 한국어 한 문장으로 요약해줘. (예: "매수 관점 - ~") 문장 외 다른 말은 붙이지 마.';
 
   var summary = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, summary || '', summary ? FLOW_AI_CACHE_TTL : FLOW_AI_FAIL_TTL);
   return { summary: summary };
+}
+
+// ---------------------------------------------------------------------------
+// 수급 위젯용 가격 차트 (?action=flowChart&code=005930)
+// 지지/저항(스윙 고점·저점) + 이동평균 5/20/60/224일선을 같이 계산해서 내려준다.
+// MA224까지 계산하려면 화면에 보여줄 구간(90영업일) 앞에 224일치 여유가 더 필요해서
+// fetchDailyOhlc_를 다른 곳(패턴스캔 90일)보다 훨씬 많은 페이지(33p ≈ 330영업일)로 호출한다.
+// 크롤링이 무거워서(패턴스캔 골파기 9p보다 3배 이상) 30분 캐싱을 건다.
+// findSwingIndices_/movingAverage_는 gas/ticker-proxy.gs 안의 패턴스캔 로직과 공용.
+// ---------------------------------------------------------------------------
+var FLOW_CHART_PAGES = 33;          // 10행 x 33 ≈ 330영업일 (MA224 계산 + 최근 90일 표시 여유)
+var FLOW_CHART_DISPLAY_DAYS = 90;   // 화면에 보여줄 최근 캔들 수
+var FLOW_CHART_CACHE_TTL = 1800;    // 30분
+
+function getFlowChart(code) {
+  if (!/^[0-9A-Za-z]{6}$/i.test(code)) {
+    return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
+  }
+
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'flow_chart_' + code;
+  var cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  var daily = fetchDailyOhlc_(code, FLOW_CHART_PAGES);
+  if (daily.length < 30) {
+    return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
+  }
+
+  var ma5 = movingAverage_(daily, 'close', 5);
+  var ma20 = movingAverage_(daily, 'close', 20);
+  var ma60 = movingAverage_(daily, 'close', 60);
+  var ma224 = movingAverage_(daily, 'close', 224);
+  var levels = computeSupportResistance_(daily);
+
+  var start = Math.max(0, daily.length - FLOW_CHART_DISPLAY_DAYS);
+  function tail(arr) { return arr.slice(start); }
+
+  var result = {
+    code: code.toUpperCase(),
+    daily: tail(daily),
+    ma: { ma5: tail(ma5), ma20: tail(ma20), ma60: tail(ma60), ma224: tail(ma224) },
+    levels: levels
+  };
+
+  cache.put(cacheKey, JSON.stringify(result), FLOW_CHART_CACHE_TTL);
+  return result;
+}
+
+// 최근 120영업일 스윙 고점/저점(findSwingIndices_ 재사용) 중 현재가 기준 위/아래로
+// 가장 가까운 2개씩을 저항/지지로 채택. 1% 이내로 겹치는 레벨은 dedupeLevels_로 하나로 합친다.
+function computeSupportResistance_(daily) {
+  var win = daily.slice(Math.max(0, daily.length - 120));
+  var lowIdx = findSwingIndices_(win, 'low', true);
+  var highIdx = findSwingIndices_(win, 'high', false);
+  var lastClose = daily[daily.length - 1].close;
+
+  var lowLevels = dedupeLevels_(lowIdx.map(function (i) { return win[i].low; }));
+  var highLevels = dedupeLevels_(highIdx.map(function (i) { return win[i].high; }));
+
+  var support = lowLevels.filter(function (v) { return v < lastClose; })
+    .sort(function (a, b) { return b - a; }).slice(0, 2);
+  var resistance = highLevels.filter(function (v) { return v > lastClose; })
+    .sort(function (a, b) { return a - b; }).slice(0, 2);
+
+  return { support: support, resistance: resistance };
+}
+
+function dedupeLevels_(levels) {
+  var sorted = levels.slice().sort(function (a, b) { return a - b; });
+  var out = [];
+  sorted.forEach(function (v) {
+    var last = out[out.length - 1];
+    if (last != null && Math.abs(v - last) / last < 0.01) return; // 1% 이내는 같은 레벨로 취급
+    out.push(v);
+  });
+  return out;
 }
 
 // 오늘의 증시 온도 페이지용 코스피/코스닥 AI 시황 분석.

@@ -28,8 +28,14 @@
   var RATIO_H = 120;
   var PAD = { l: 68, r: 16, t: 16, b: 30 };
 
+  var FCHART_H = 320;
+  var FCHART_PAD = { l: 68, r: 16, t: 16, b: 30 };
+  var MA_COLORS = { ma5: '#e8590c', ma20: '#0ca678', ma60: '#5f3dc4', ma224: '#868e96' };
+
   var cacheByCode = {};   // code -> { t, data }
   var inflightByCode = {}; // code -> Promise
+  var flowChartCache = {};    // code -> { t, data }
+  var flowChartInflight = {}; // code -> Promise
 
   // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/차트패턴 + AI 한줄요약) ----
   var PATTERN_CACHE_MS = 10 * 60 * 1000; // 서버가 하루 1회만 갱신하므로 넉넉하게
@@ -238,6 +244,26 @@
     return p;
   }
 
+  // 가격 차트(지지/저항 + MA5/20/60/224) - 5분 메모리 캐시 + 진행 중 요청 재사용
+  function fetchFlowChart(code) {
+    var hit = flowChartCache[code];
+    if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
+    if (flowChartInflight[code]) return flowChartInflight[code];
+
+    var p = fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code))
+      .then(function (data) {
+        delete flowChartInflight[code];
+        if (data && !data.error) flowChartCache[code] = { t: Date.now(), data: data };
+        return data;
+      })
+      .catch(function (err) {
+        delete flowChartInflight[code];
+        throw err;
+      });
+    flowChartInflight[code] = p;
+    return p;
+  }
+
   function fetchJson(url) {
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
@@ -266,13 +292,20 @@
 
     var html = buildSummaryBox(data, entry, patternMatch);
 
+    var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
+    var priceHtml = latest
+      ? ' <span class="ff-price ' + signClass(latest.change_pct) + '">' + Number(latest.close).toLocaleString()
+        + '원 (' + (latest.change_pct >= 0 ? '+' : '') + latest.change_pct.toFixed(2) + '%)</span>'
+      : '';
+
     html += '<div class="ff-header">' + escapeHtml(data.name || data.code)
       + ' <span class="ff-code">(' + escapeHtml(data.code) + ')</span>'
+      + priceHtml
       + ' <span class="ff-asof">' + escapeHtml(data.as_of) + ' 기준</span></div>';
 
     html += buildBadges(data);
     html += buildRollingTable(data);
-    html += buildExtraSections(data.code);
+    html += buildExtraSections(data.code, latest && latest.close);
     html += '<div class="ff-chart-title">외국인·기관 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>';
     html += buildNetChart(data.daily);
     html += '<div class="ff-chart-title">외국인 보유율 추이</div>';
@@ -284,6 +317,7 @@
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
     loadAiSummary(box, data, entry, patternMatch);
+    loadFlowChart(box, data.code);
   }
 
   // ---- 종합 점수 요약 박스 (수급/공매도/연기금/차트패턴 + AI 한줄요약) ----
@@ -492,17 +526,19 @@
 
   // ---- 공매도/대차거래/연기금 (window.INVESTOR_FLOW_CACHE, PC 로컬 스냅샷) ----
 
-  function buildExtraSections(code) {
+  function buildExtraSections(code, currentClose) {
     var cache = global.INVESTOR_FLOW_CACHE;
     var entry = cache && cache[code];
     if (!entry) {
       return '<div class="ff-extra-missing">공매도·대차거래·연기금 데이터는 주요 섹터 구성종목만 제공됩니다(하루 1회 갱신). '
-        + '이 종목은 아직 커버리지에 없어요.</div>';
+        + '이 종목은 아직 커버리지에 없어요.</div>'
+        + buildFlowChartShell();
     }
 
     var html = '<div class="ff-extra">';
-    html += buildShortLoanCard(entry.short, entry.loan);
+    html += buildShortLoanCard(entry.short, entry.loan, currentClose);
     html += buildPensionCard(entry.pension, entry.name);
+    html += buildFlowChartShell();
     html += '<div class="ff-extra-note">공매도 압박 점수는 항상 <b>가능성·추정치</b>이며, 공매도가 주가를 누른다고 단정하지 않습니다. '
       + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API · PC 로컬 수집(하루 1회 갱신)</div>';
     html += '</div>';
@@ -514,8 +550,20 @@
       + '<div class="ff-extra-metric-value">' + valueHtml + '</div></div>';
   }
 
+  // 숏 압박 지수는 0을 기준으로 위(+)는 외국인·기관 순매수가 공매도 거래량보다 강함(숏스퀴즈
+  // 가능권 - 매수 우호적), 아래(-)는 외국인·기관도 동반 매도 중임을 뜻한다. 임계값은 공식
+  // 스펙이 없어 이 구현에서 정한 값(추후 실제 분포 보고 조정 가능).
+  function squeezeGrade(v) {
+    if (v == null) return null;
+    if (v >= 200) return { label: '매우 높음', cls: 'ff-buy' };
+    if (v >= 50) return { label: '높음', cls: 'ff-buy' };
+    if (v > -50) return { label: '보통', cls: 'ff-flat' };
+    if (v > -200) return { label: '낮음', cls: 'ff-sell' };
+    return { label: '매우 낮음', cls: 'ff-sell' };
+  }
+
   // 공매도 + 대차거래 병합 카드 (원래 두 카드였으나 서로 연관된 지표라 하나로 합침)
-  function buildShortLoanCard(s, l) {
+  function buildShortLoanCard(s, l, currentClose) {
     if (!s && !l) return '';
     var p = (s && s.pressure) || { score: 0, grade: { emoji: '', label: '-' }, breakdown: {} };
     var b = p.breakdown || {};
@@ -530,12 +578,21 @@
 
     var grid = '';
     if (s) {
+      // "악성" 신호는 붉게 강조: 공매도 평균가격이 현재가와 20% 이상 괴리, 당일 거래비중 10%↑
+      // (거래비중 임계값은 scripts/fetch_investor_flow.py의 압박점수 밴드(>=10=강한 구간)와 통일)
+      var gapPct = (currentClose && s.avg_price) ? (s.avg_price - currentClose) / currentClose * 100 : null;
+      var gapWarn = gapPct != null && Math.abs(gapPct) >= 20;
+      var ratioWarn = s.today_ratio_pct != null && s.today_ratio_pct >= 10;
+      var sg = squeezeGrade(s.short_squeeze_index);
+
       grid += extraMetric('공매도 누적잔고', fmtAbsShares(s.balance_qty))
-        + extraMetric('공매도 평균가격(추정)', fmtWon(s.avg_price))
-        + extraMetric('당일 거래비중', fmtPct(s.today_ratio_pct))
+        + extraMetric('공매도 평균가격(추정)', '<span class="' + (gapWarn ? 'ff-warn' : '') + '">' + fmtWon(s.avg_price) + '</span>'
+          + (gapPct != null ? '<div class="ff-extra-metric-sub">현재가 대비 ' + fmtSignedPct(gapPct) + '</div>' : ''))
+        + extraMetric('당일 거래비중', '<span class="' + (ratioWarn ? 'ff-warn' : '') + '">' + fmtPct(s.today_ratio_pct) + '</span>')
         + extraMetric('일평균 거래량(20일)', fmtAbsShares(s.avg_volume_20d))
         + extraMetric('Days to Cover', s.days_to_cover == null ? '-' : s.days_to_cover.toFixed(2) + '일')
-        + extraMetric('숏 압박 지수', s.short_squeeze_index == null ? '-' : s.short_squeeze_index.toFixed(1));
+        + extraMetric('숏 압박 지수', (s.short_squeeze_index == null ? '-' : s.short_squeeze_index.toFixed(1))
+          + (sg ? ' <span class="ff-squeeze-grade ' + sg.cls + '">' + sg.label + '</span>' : ''));
     }
     if (l) {
       grid += extraMetric('대차잔고', fmtAbsShares(l.balance_qty))
@@ -546,10 +603,10 @@
       + '<div class="ff-extra-card-title">' + p.grade.emoji + ' 공매도·대차거래 <span class="ff-extra-score">' + p.score + '점</span>'
       + '<span class="ff-extra-grade">' + escapeHtml(p.grade.label) + '</span></div>'
       + '<div class="ff-extra-grid">' + grid + '</div>'
-      + (causes.length ? '<div class="ff-extra-causes">' + causes.map(function (c) { return '<span class="ff-extra-cause">✔ ' + escapeHtml(c) + '</span>'; }).join('') + '</div>' : '')
+      + (causes.length ? '<div class="ff-extra-badges">' + causes.map(function (c) { return '<span class="ff-extra-badge">' + escapeHtml(c) + '</span>'; }).join('') + '</div>' : '')
       + '<div class="ff-extra-help">'
       + '<b>Day to Cover</b>: 현재 공매도 잔고를 최근 20일 평균 거래량으로 전량 되갚는 데 걸리는 예상 거래일 수입니다. 값이 클수록 공매도 상환(숏커버링) 매수 물량이 시장에 소화되는 데 시간이 오래 걸립니다.<br>'
-      + '<b>숏 압박 지수</b>: (외국인+기관 당일 순매수) ÷ 당일 공매도 거래량 × 100. 값이 높을수록 공매도 물량 대비 외국인·기관의 순매수 유입이 강해 숏커버링이 겹칠 경우 단기 반등(숏스퀴즈) 압력이 커질 수 있습니다.'
+      + '<b>숏 압박 지수</b>: (외국인+기관 당일 순매수) ÷ 당일 공매도 거래량 × 100. 0이 기준선으로, 위(+)는 외국인·기관 순매수가 공매도 거래량보다 강해 숏커버링이 겹칠 경우 단기 반등(숏스퀴즈) 압력이 커질 수 있는 구간, 아래(-)는 외국인·기관도 함께 매도 중임을 뜻합니다. (매우 높음 ≥200 · 높음 ≥50 · 보통 -50~50 · 낮음 ≤-50 · 매우 낮음 ≤-200)'
       + '</div>'
       + '</div>';
   }
@@ -574,6 +631,117 @@
       + '<span class="ff-extra-interp-label">' + escapeHtml(interp.label) + '</span>'
       + '<span class="ff-extra-interp-text">' + escapeHtml(interp.text) + '</span>'
       + '</div></div>';
+  }
+
+  // ---- 가격 차트: 지지/저항 + 이동평균 5/20/60/224일선 (?action=flowChart) ----
+
+  function buildFlowChartShell() {
+    return '<div class="ff-extra-card ff-flow-chart-card">'
+      + '<div class="ff-extra-card-title">📉 가격 차트 · 지지/저항 · 이동평균</div>'
+      + '<div id="ffFlowChart" class="ff-chart-flow-wrap"><div class="ff-loading">차트를 불러오는 중...</div></div>'
+      + '</div>';
+  }
+
+  function loadFlowChart(box, code) {
+    var wrap = box.querySelector('#ffFlowChart');
+    if (!wrap) return;
+
+    fetchFlowChart(code)
+      .then(function (data) {
+        if (!data || data.error || !data.daily || data.daily.length < 2) {
+          wrap.innerHTML = '<div class="ff-error">' + escapeHtml((data && data.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
+          return;
+        }
+        wrap.innerHTML = buildCandleSvg(data);
+      })
+      .catch(function () {
+        wrap.innerHTML = '<div class="ff-error">차트 데이터를 불러오지 못했어요.</div>';
+      });
+  }
+
+  function buildCandleSvg(data) {
+    var daily = data.daily;
+    var n = daily.length;
+    if (n < 2) return '';
+
+    var chartW = Math.max(CHART_W, n * 10);
+
+    var levels = data.levels || {};
+    var levelVals = (levels.support || []).concat(levels.resistance || []);
+    var lows = daily.map(function (d) { return d.low; }).concat(levelVals);
+    var highs = daily.map(function (d) { return d.high; }).concat(levelVals);
+    var min = Math.min.apply(null, lows);
+    var max = Math.max.apply(null, highs);
+    var span = (max - min) || 1;
+    min -= span * 0.06;
+    max += span * 0.06;
+
+    var iw = chartW - FCHART_PAD.l - FCHART_PAD.r;
+    var ih = FCHART_H - FCHART_PAD.t - FCHART_PAD.b;
+    var slot = iw / n;
+    function x(i) { return FCHART_PAD.l + slot * (i + 0.5); }
+    function y(v) { return FCHART_PAD.t + (1 - (v - min) / (max - min)) * ih; }
+
+    var svg = '<svg class="ff-svg" viewBox="0 0 ' + chartW + ' ' + FCHART_H + '" role="img" aria-label="가격 캔들차트" style="min-width:' + chartW + 'px">';
+
+    (levels.support || []).forEach(function (v) {
+      svg += levelLine(v, 'ff-level-support', '지지 ' + Math.round(v).toLocaleString(), x, y, chartW);
+    });
+    (levels.resistance || []).forEach(function (v) {
+      svg += levelLine(v, 'ff-level-resistance', '저항 ' + Math.round(v).toLocaleString(), x, y, chartW);
+    });
+
+    daily.forEach(function (d, i) {
+      var up = d.close >= d.open;
+      var color = up ? '#d24f45' : '#1261c4';
+      var xC = x(i);
+      var bodyTop = y(Math.max(d.open, d.close));
+      var bodyBot = y(Math.min(d.open, d.close));
+      var bodyH = Math.max(1, bodyBot - bodyTop);
+      var bw = Math.max(2, slot * 0.6);
+      svg += '<line x1="' + xC.toFixed(1) + '" x2="' + xC.toFixed(1) + '" y1="' + y(d.high).toFixed(1) + '" y2="' + y(d.low).toFixed(1) + '" stroke="' + color + '" stroke-width="1"/>';
+      svg += '<rect x="' + (xC - bw / 2).toFixed(1) + '" y="' + bodyTop.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bodyH.toFixed(1) + '" fill="' + color + '"/>';
+    });
+
+    ['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key) {
+      svg += maLine(data.ma && data.ma[key], x, y, key);
+    });
+
+    svg += '<text class="ff-axis" x="' + (FCHART_PAD.l - 6) + '" y="' + (y(max) + 4).toFixed(1) + '" text-anchor="end">' + Math.round(max).toLocaleString() + '</text>';
+    svg += '<text class="ff-axis" x="' + (FCHART_PAD.l - 6) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + Math.round(min).toLocaleString() + '</text>';
+
+    [0, Math.floor((n - 1) / 2), n - 1].forEach(function (i, k) {
+      var anchor = k === 0 ? 'start' : (k === 2 ? 'end' : 'middle');
+      svg += '<text class="ff-axis" x="' + x(i).toFixed(1) + '" y="' + (FCHART_H - 8) + '" text-anchor="' + anchor + '">' + shortDate(daily[i].date) + '</text>';
+    });
+
+    svg += '</svg>';
+
+    var legend = '<div class="ff-legend">'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma5 + '"></i>5일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma20 + '"></i>20일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma60 + '"></i>60일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma224 + '"></i>224일선</span>'
+      + '</div>';
+
+    return '<div class="ff-chart ff-chart-candle">' + svg + '</div>' + legend;
+  }
+
+  function levelLine(v, cls, label, x, y, chartW) {
+    var yy = y(v);
+    return '<line class="' + cls + '" x1="' + FCHART_PAD.l + '" x2="' + (chartW - FCHART_PAD.r) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '"/>'
+      + '<text class="' + cls + '-label" x="' + (chartW - FCHART_PAD.r - 4) + '" y="' + (yy - 3).toFixed(1) + '" text-anchor="end">' + escapeHtml(label) + '</text>';
+  }
+
+  function maLine(series, x, y, key) {
+    if (!series || !series.length) return '';
+    var pts = [];
+    series.forEach(function (v, i) {
+      if (v == null) return;
+      pts.push(x(i).toFixed(1) + ',' + y(v).toFixed(1));
+    });
+    if (pts.length < 2) return '';
+    return '<polyline class="ff-line-' + key + '" points="' + pts.join(' ') + '" fill="none" stroke="' + MA_COLORS[key] + '" stroke-width="1.6" stroke-linejoin="round"/>';
   }
 
   function fmtAbsShares(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '주'; }

@@ -137,6 +137,11 @@
   font-size: 12px;
   margin-left: 6px;
 }
+#foreign-flow .ff-price {
+  font-weight: 700;
+  font-size: 15px;
+  margin-left: 4px;
+}
 
 #foreign-flow .ff-badges {
   display: flex;
@@ -230,13 +235,33 @@
 }
 #foreign-flow .ff-extra-metric-label { font-size: 11px; color: #888; margin-bottom: 2px; }
 #foreign-flow .ff-extra-metric-value { font-size: 13.5px; font-weight: 700; }
-#foreign-flow .ff-extra-causes {
-  margin-top: 8px;
+#foreign-flow .ff-extra-metric-sub { font-size: 10.5px; font-weight: 400; color: #999; margin-top: 1px; }
+#foreign-flow .ff-warn { color: #d24f45; }
+#foreign-flow .ff-squeeze-grade {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.05);
+}
+#foreign-flow .ff-extra-badges {
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
+  gap: 6px;
 }
-#foreign-flow .ff-extra-cause { font-size: 11.5px; color: #777; }
+#foreign-flow .ff-extra-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fdeceb;
+  color: #d24f45;
+  border: 1px solid #f2c3bf;
+}
 #foreign-flow .ff-extra-streak {
   font-size: 14px;
   font-weight: 700;
@@ -246,16 +271,15 @@
   margin-top: 10px;
   padding: 9px 11px;
   border-radius: 8px;
-  border-left: 4px solid #9aa0a6;
   font-size: 12.5px;
   background: #f5f5f6;
 }
 #foreign-flow .ff-extra-interp-label { font-weight: 700; margin-right: 6px; }
-#foreign-flow .ff-extra-tone-very_positive { border-left-color: #d24f45; background: #fdf1f0; }
-#foreign-flow .ff-extra-tone-positive { border-left-color: #e8752c; background: #fdf5ee; }
-#foreign-flow .ff-extra-tone-neutral_positive { border-left-color: #e0a300; background: #fdf8ec; }
-#foreign-flow .ff-extra-tone-caution { border-left-color: #1261c4; background: #eef4fc; }
-#foreign-flow .ff-extra-tone-neutral { border-left-color: #9aa0a6; background: #f5f5f6; }
+#foreign-flow .ff-extra-tone-very_positive { background: #fdf1f0; }
+#foreign-flow .ff-extra-tone-positive { background: #fdf5ee; }
+#foreign-flow .ff-extra-tone-neutral_positive { background: #fdf8ec; }
+#foreign-flow .ff-extra-tone-caution { background: #eef4fc; }
+#foreign-flow .ff-extra-tone-neutral { background: #f5f5f6; }
 /* 중립~긍정 톤은 경계할 정도는 아니라 레이블을 덜 강조(bold 제거) */
 #foreign-flow .ff-extra-tone-neutral_positive .ff-extra-interp-label { font-weight: 400; }
 #foreign-flow .ff-extra-note {
@@ -272,6 +296,14 @@
   color: #777;
   line-height: 1.7;
 }
+
+/* ---- 가격 차트: 지지/저항 + 이동평균 (연기금 카드 바로 아래) ---- */
+#foreign-flow .ff-chart-flow-wrap { overflow-x: auto; }
+#foreign-flow .ff-chart-candle { overflow-x: auto; }
+#foreign-flow .ff-level-support { stroke: #1261c4; stroke-width: 1; stroke-dasharray: 5 3; opacity: 0.75; }
+#foreign-flow .ff-level-resistance { stroke: #d24f45; stroke-width: 1; stroke-dasharray: 5 3; opacity: 0.75; }
+#foreign-flow .ff-level-support-label { fill: #1261c4; font-size: 10.5px; }
+#foreign-flow .ff-level-resistance-label { fill: #d24f45; font-size: 10.5px; }
 
 /* ---- 차트 ---- */
 #foreign-flow .ff-chart-title {
@@ -431,7 +463,10 @@ html.dark #foreign-flow .ff-extra-grade { color: #999 !important; }
 html.dark #foreign-flow .ff-extra-grid { background: #1f1f1f !important; }
 html.dark #foreign-flow .ff-extra-metric-label { color: #999 !important; }
 html.dark #foreign-flow .ff-extra-metric-value { color: #eee !important; }
-html.dark #foreign-flow .ff-extra-cause { color: #aaa !important; }
+html.dark #foreign-flow .ff-extra-metric-sub { color: #888 !important; }
+html.dark #foreign-flow .ff-warn { color: #e8776d !important; }
+html.dark #foreign-flow .ff-squeeze-grade { background: rgba(255, 255, 255, 0.08) !important; }
+html.dark #foreign-flow .ff-extra-badge { background: #3a2523 !important; border-color: #5c3835 !important; color: #e8776d !important; }
 html.dark #foreign-flow .ff-extra-streak { color: #eee !important; }
 html.dark #foreign-flow .ff-extra-interp { background: #2a2a2a !important; }
 html.dark #foreign-flow .ff-extra-tone-very_positive { background: #3a2323 !important; }
@@ -440,3 +475,5 @@ html.dark #foreign-flow .ff-extra-tone-neutral_positive { background: #34301f !i
 html.dark #foreign-flow .ff-extra-tone-caution { background: #202a38 !important; }
 html.dark #foreign-flow .ff-extra-tone-neutral { background: #2a2a2a !important; }
 html.dark #foreign-flow .ff-extra-note { color: #888 !important; }
+html.dark #foreign-flow .ff-level-support-label { fill: #6ea8e8 !important; }
+html.dark #foreign-flow .ff-level-resistance-label { fill: #e8776d !important; }
