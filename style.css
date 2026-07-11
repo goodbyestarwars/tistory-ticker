@@ -319,6 +319,10 @@ a { text-decoration: none; color: inherit; }
   flex-direction: column;
   gap: 14px;
 }
+/* 공지 없을 땐 #pinnedNotice가 빈 채로 남는데, display:block 상태면
+   flex gap을 하나 더 먹어서 좌측 사이드바보다 본문이 더 아래에서 시작하는
+   오정렬이 생김 — :empty일 때 완전히 flex 흐름에서 빼서 해결 */
+.feed #pinnedNotice:empty { display: none; }
 
 /* 카테고리 필터 바 */
 .filter-bar {
