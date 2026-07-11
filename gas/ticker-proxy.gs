@@ -50,6 +50,10 @@ function doGet(e) {
     return jsonResponse(getPensionFund((params.code || '').trim()));
   }
 
+  if (params.debugKrx === '1') {
+    return jsonResponse(debugKrxFetch((params.code || '').trim()));
+  }
+
   if (params.rankNews === '1') {
     return jsonResponse(getRankingNews());
   }
@@ -989,6 +993,8 @@ var KRX_HEADERS = {
 };
 var KRX_ISIN_CACHE_TTL = 21600; // 6시간 - 상장종목 목록은 장중에도 거의 안 바뀜
 
+var KRX_LAST_DEBUG = null; // 직전 fetchKrxJson_ 호출의 진단 정보(상태코드/본문 앞부분) - ?debugKrx=1 용
+
 function fetchKrxJson_(bld, params) {
   var payload = { bld: bld };
   for (var k in params) payload[k] = params[k];
@@ -998,12 +1004,35 @@ function fetchKrxJson_(bld, params) {
     headers: KRX_HEADERS,
     muteHttpExceptions: true
   });
-  if (res.getResponseCode() !== 200) return null;
+  var code = res.getResponseCode();
+  var text = res.getContentText('UTF-8');
+  KRX_LAST_DEBUG = { bld: bld, params: params, status: code, bodyHead: text.slice(0, 500) };
+
+  if (code !== 200) return null;
   try {
-    return JSON.parse(res.getContentText('UTF-8'));
+    return JSON.parse(text);
   } catch (err) {
     return null;
   }
+}
+
+// 임시 진단용(?debugKrx=1&code=005930): KRX 호출이 실제로 어떤 응답을 주는지 그대로 노출.
+// 원인 파악되면(예: 세션/쿠키 필요, bld 변경 등) 지우거나 관리자 전용으로 좁힐 것.
+function debugKrxFetch(code) {
+  var isin = krxIsinFor_(code || '005930');
+  var isinDebug = { resolvedIsin: isin };
+
+  var end = new Date();
+  var start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+  var strtDd = Utilities.formatDate(start, 'Asia/Seoul', 'yyyyMMdd');
+  var endDd = Utilities.formatDate(end, 'Asia/Seoul', 'yyyyMMdd');
+
+  var out = { isin: isinDebug };
+  if (isin) {
+    fetchKrxJson_('dbms/MDC/STAT/srt/MDCSTAT30001', { isuCd: isin, strtDd: strtDd, endDd: endDd });
+    out.shortStatus = KRX_LAST_DEBUG;
+  }
+  return out;
 }
 
 // 6자리 종목코드 -> KRX ISIN(예: 005930 -> KR7005930003) 매핑을 KRX "종목 검색" API에서
