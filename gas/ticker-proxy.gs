@@ -986,27 +986,85 @@ function frgnSignal(daily, rolling, kind) {
 // ---------------------------------------------------------------------------
 
 var KRX_JSON_URL = 'https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd';
-var KRX_HEADERS = {
-  'User-Agent': 'Mozilla/5.0',
-  'Referer': 'https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd',
-  'X-Requested-With': 'XMLHttpRequest'
-};
+var KRX_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+// 세션(JSESSIONID) 없이 getJsonData.cmd를 바로 POST하면 KRX가 "LOGOUT"(400)으로 거부한다
+// (2026-07-11 debugKrx로 실배포에서 직접 확인). 로그인은 필요 없고, 실제 로그인 없이
+// 페이지 2곳을 GET으로 미리 방문해 세션만 발급받으면 통과된다 - pykrx의
+// warmup_krx_session(로그인 X, 세션 워밍업만 O)과 동일한 절차.
+var KRX_LOGIN_PAGE = 'https://data.krx.co.kr/contents/MDC/COMS/client/MDCCOMS001.cmd';
+var KRX_LOGIN_JSP = 'https://data.krx.co.kr/contents/MDC/COMS/client/view/login.jsp?site=mdc';
+var KRX_SESSION_CACHE_TTL = 1500; // 25분 - JSESSIONID 만료(보통 60분) 전에 여유있게 갱신
 var KRX_ISIN_CACHE_TTL = 21600; // 6시간 - 상장종목 목록은 장중에도 거의 안 바뀜
 
 var KRX_LAST_DEBUG = null; // 직전 fetchKrxJson_ 호출의 진단 정보(상태코드/본문 앞부분) - ?debugKrx=1 용
 
+// UrlFetchApp 응답의 Set-Cookie 헤더(문자열 1개 또는 배열)에서 "이름=값" 쌍만 뽑는다.
+function extractSetCookiePairs_(res) {
+  var headers = res.getAllHeaders();
+  var raw = headers['Set-Cookie'] || headers['set-cookie'];
+  if (!raw) return [];
+  var list = Array.isArray(raw) ? raw : [raw];
+  return list.map(function (c) { return c.split(';')[0]; }); // "JSESSIONID=xxx"
+}
+
+// 같은 이름의 쿠키가 여러 번 오면 나중 값(최신 Set-Cookie)이 이기도록 이름 기준으로 합친다.
+function mergeCookiePairs_(existingPairs, newPairs) {
+  var byName = {};
+  existingPairs.concat(newPairs).forEach(function (p) {
+    var name = p.split('=')[0];
+    byName[name] = p;
+  });
+  return Object.keys(byName).map(function (n) { return byName[n]; });
+}
+
+// 로그인 없이 세션 쿠키만 발급받는다(pykrx warmup_krx_session과 동일한 2단계 GET).
+// CacheService에 25분 캐싱 - 매 요청마다 워밍업하면 KRX 호출이 2배로 늘어남.
+function krxWarmupSession_() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'krx_session_cookie';
+  var cached = cache.get(cacheKey);
+  if (cached) return cached;
+
+  var pairs = [];
+  var res1 = UrlFetchApp.fetch(KRX_LOGIN_PAGE, {
+    headers: { 'User-Agent': KRX_USER_AGENT },
+    muteHttpExceptions: true
+  });
+  pairs = mergeCookiePairs_(pairs, extractSetCookiePairs_(res1));
+
+  var res2 = UrlFetchApp.fetch(KRX_LOGIN_JSP, {
+    headers: {
+      'User-Agent': KRX_USER_AGENT,
+      'Referer': KRX_LOGIN_PAGE,
+      'Cookie': pairs.join('; ')
+    },
+    muteHttpExceptions: true
+  });
+  pairs = mergeCookiePairs_(pairs, extractSetCookiePairs_(res2));
+
+  var cookieHeader = pairs.join('; ');
+  cache.put(cacheKey, cookieHeader, KRX_SESSION_CACHE_TTL);
+  return cookieHeader;
+}
+
 function fetchKrxJson_(bld, params) {
+  var cookie = safeCall(krxWarmupSession_) || '';
   var payload = { bld: bld };
   for (var k in params) payload[k] = params[k];
   var res = UrlFetchApp.fetch(KRX_JSON_URL, {
     method: 'post',
     payload: payload,
-    headers: KRX_HEADERS,
+    headers: {
+      'User-Agent': KRX_USER_AGENT,
+      'Referer': 'https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd',
+      'X-Requested-With': 'XMLHttpRequest',
+      'Cookie': cookie
+    },
     muteHttpExceptions: true
   });
   var code = res.getResponseCode();
   var text = res.getContentText('UTF-8');
-  KRX_LAST_DEBUG = { bld: bld, params: params, status: code, bodyHead: text.slice(0, 500) };
+  KRX_LAST_DEBUG = { bld: bld, params: params, status: code, bodyHead: text.slice(0, 500), hadCookie: !!cookie };
 
   if (code !== 200) return null;
   try {
