@@ -292,7 +292,7 @@ a { text-decoration: none; color: inherit; }
 .cat-custom-list li > a.active { background: #eef2ff; color: #4338ca; font-weight: 700; }
 .cat-section .cat-custom-list li > a::before { display: none !important; } /* 이중 점 방지 */
 .cat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.cat-icon { flex-shrink: 0; }
+.cat-icon { flex-shrink: 0; stroke: #374151; } /* 왼쪽 페이지 메뉴 아이콘과 동일 색상(무지개 대신 단색) */
 .cat-cnt { margin-left: auto; font-size: 10.5px; background: #f1f5f9; color: #94a3b8; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
 
 /* 서브 카테고리 필터 바 */
@@ -2528,6 +2528,7 @@ html.dark .cat-custom-list li > a:hover { background: #1a2436; color: #a5b4fc; }
 html.dark .cat-custom-list li > a.active { background: #2e2a78; color: #a5b4fc; }
 html.dark .cat-cnt,
 html.dark .cat-section ul li > a span:not(.cat-dot) { background: #2b3852; color: #aeb9cc; }
+html.dark .cat-icon { stroke: #dbe4f2; } /* 왼쪽 페이지 메뉴 아이콘 다크모드 색과 동일 */
 
 /* 캘린더 위젯 */
 html.dark .cal-nav { background: #1c2739; border-color: #2e3b55; color: #9aa8c0; }

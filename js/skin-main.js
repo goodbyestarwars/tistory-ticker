@@ -280,6 +280,12 @@
 
 
 
+  /* ── 카테고리 없는 글/페이지(예: /page/market-temp 등 개별 Page)의
+     "카테고리 없음" 뱃지 숨김 ── */
+  document.querySelectorAll('.post-cat-badge').forEach(function(el) {
+    if (el.textContent.trim() === '카테고리 없음') el.style.display = 'none';
+  });
+
   /* ── 표 가로 스크롤 래핑: table에 overflow-x:auto만 주면 auto 테이블 레이아웃이
      칸 너비를 억지로 욱여넣어 찌그러지길래, div로 감싸서 그 div가 스크롤되게 함 ── */
   document.querySelectorAll('.post-single-body table, .post-expand-body table').forEach(function(table) {

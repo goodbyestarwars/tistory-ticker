@@ -28,7 +28,7 @@
     },
     {
       href: '/page/marketcap-bubble',
-      label: '시가총액 버블',
+      label: '실시간 시가총액 히트맵',
       bold: true,
       icon: '<circle cx="8" cy="15" r="6"/><circle cx="16" cy="9" r="4"/><circle cx="18" cy="18" r="2.5"/>'
     },
@@ -40,13 +40,13 @@
     },
     {
       href: '/page/foreign-flow',
-      label: '외국인·기관 수급',
+      label: '종목 종합분석',
       bold: true,
       icon: '<path d="M7 17V7"/><path d="M4 10l3-3 3 3"/><path d="M17 7v10"/><path d="M14 14l3 3 3-3"/>'
     },
     {
       href: '/page/pattern-scan',
-      label: '차트 패턴 스캔',
+      label: '차트패턴 검색',
       bold: true,
       icon: '<rect x="4" y="10" width="3" height="8"/><rect x="10.5" y="4" width="3" height="14"/><rect x="17" y="7" width="3" height="11"/>'
     },
@@ -61,6 +61,7 @@
     {
       href: '/guestbook',
       label: '커뮤니티',
+      bold: true,
       icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
     }
   ];
