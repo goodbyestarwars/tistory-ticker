@@ -2679,6 +2679,9 @@ html.font-gothic .nav-font-btn {
 /* ============ full-width 페이지(오늘의 온도 등) ============ */
 html.full-width-page .sidebar-right,
 body#tt-body-page .sidebar-right { display: none; }
+/* 단, 카테고리 글목록(마켓 브리핑 등)에선 우측 사이드바(인기글·해시태그) 유지.
+   공지 카드는 티스토리가 카테고리 화면에 안 내려주므로(빈 #pinnedNotice) 원래 없음 */
+html.full-width-page body#tt-body-category .sidebar-right { display: flex; }
 
 /* 번개 로고: 실제로 내리치듯 한 주기 안에서 두 번 번쩍하고 잠깐 쉬는 패턴을 반복
    (아이콘 자체가 주황/노랑 그라디언트라 글로우도 같은 톤으로 맞춤) */
