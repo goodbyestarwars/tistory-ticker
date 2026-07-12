@@ -140,6 +140,35 @@
   font-weight: 800;
   margin-right: 8px;
 }
+/* ★ 5개를 회색으로 깔고 ::before에 금색 사본을 겹쳐 --ff-star-pct 만큼만 보이게 잘라서
+   0.5단위 부분 채움을 흉내낸다(별도 half-star 아이콘 없이 순수 CSS로 처리). */
+#foreign-flow .ff-stars {
+  position: relative;
+  display: inline-block;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #ddd;
+  line-height: 1;
+}
+#foreign-flow .ff-stars::before {
+  content: '★★★★★';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--ff-star-pct, 0%);
+  overflow: hidden;
+  white-space: nowrap;
+  color: #f5a623;
+}
+#foreign-flow .ff-stars-lg { font-size: 20px; letter-spacing: 2px; }
+#foreign-flow .ff-verdict-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+#foreign-flow .ff-verdict-score { font-size: 12.5px; color: #666; }
 
 /* ---- 결과 헤더/구분선/배지 ---- */
 #foreign-flow .ff-header {
@@ -468,6 +497,9 @@ html.dark #foreign-flow .ff-summary-score { color: #ddd !important; }
 html.dark #foreign-flow .ff-summary-desc { color: #999 !important; }
 html.dark #foreign-flow .ff-summary-ai { background: #1f1f1f !important; border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-summary-ai-text { color: #ccc !important; }
+html.dark #foreign-flow .ff-stars { color: #444 !important; }
+html.dark #foreign-flow .ff-stars::before { color: #ffb84d !important; }
+html.dark #foreign-flow .ff-verdict-score { color: #aaa !important; }
 html.dark #foreign-flow .ff-extra-help { background: #1f1f1f !important; color: #999 !important; }
 html.dark #foreign-flow .ff-header { color: #eee !important; }
 html.dark #foreign-flow .ff-divider { background: #3a3a3a !important; }

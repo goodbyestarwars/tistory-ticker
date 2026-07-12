@@ -442,26 +442,84 @@
     return parts.join(' · ') + '로 압박 ' + label + ' 수준입니다.';
   }
 
-  // 4개 점수(수급/공매도압박/연기금/기술적)를 평균 내 매수·매도·보유 중 하나로 결정한다.
-  // AI 문장이 매번 "매수 관점" 같은 표현을 붙여준다는 보장이 없어(모델이 생략하거나
-  // 다른 표현을 쓸 수 있음), 배지는 이 점수 기반 계산값만 신뢰하고 AI 응답에서는
-  // 근거 문장만 뽑아 쓴다 - 배지·문구가 서로 다른 결론을 가리키는 걸 원천 차단.
-  // 공매도 압박 점수는 높을수록 악재(하락 압력)라 다른 세 점수와 반대 방향 - 100에서
-  // 뺀 값을 써서 "점수가 높을수록 긍정적"으로 방향을 맞춘다.
-  function verdictFromScores(flowScore, shortScore, pensionScore, techScoreObj) {
-    var values = [];
-    if (flowScore != null) values.push(flowScore);
-    if (shortScore != null) values.push(100 - shortScore);
-    if (pensionScore != null) values.push(pensionScore);
-    if (techScoreObj && techScoreObj.score != null) values.push(techScoreObj.score);
-    var avg = values.length ? values.reduce(function (a, b) { return a + b; }, 0) / values.length : 50;
-    if (avg >= 60) return { label: '매수', cls: 'ff-buy' };
-    if (avg <= 40) return { label: '매도', cls: 'ff-sell' };
-    return { label: '보유', cls: 'ff-flat' };
+  // 종합점수 = 수급x0.40 + 외국인/기관x0.25 + 기술적x0.20 + 공매도x0.10 + 연기금x0.05
+  // (사용자 확정 가중치). 공매도는 높을수록 악재라 100에서 뺀 값을 넣어 방향을 맞춘다.
+  // 데이터 없는 항목은 평균 대신 중립(50)으로 채워서 - 있는 항목만으로 재계산해
+  // 가중치 배분이 흔들리는 것보다 "이 종목은 정보가 부족해 중립"이 더 예측 가능하다.
+  var SCORE_WEIGHTS = { flow: 0.40, foreignInst: 0.25, tech: 0.20, short: 0.10, pension: 0.05 };
+
+  function scoreToStars(score) {
+    if (score == null) return null;
+    return Math.max(0, Math.min(5, Math.round(score / 20 * 2) / 2));
+  }
+
+  // 지시서 추천 기준표: 4.5~5.0 적극매수 / 3.8~4.4 매수우위 / 2.8~3.7 보유 / 1.8~2.7 비중축소 / 0~1.7 매도
+  function starRecommendation(stars) {
+    if (stars == null) return { label: '판단 보류', cls: 'ff-flat' };
+    if (stars >= 4.5) return { label: '적극 매수', cls: 'ff-buy' };
+    if (stars >= 3.8) return { label: '매수 우위', cls: 'ff-buy' };
+    if (stars >= 2.8) return { label: '보유', cls: 'ff-flat' };
+    if (stars >= 1.8) return { label: '비중축소', cls: 'ff-sell' };
+    return { label: '매도', cls: 'ff-sell' };
+  }
+
+  // ★ 5개를 겹쳐서 (점수/5*100)%만큼만 금색으로 잘라 보여주는 방식 - 0.5단위 부분 채움 표현.
+  function starsHtml(stars, extraCls) {
+    if (stars == null) return '<span class="ff-stars' + (extraCls ? ' ' + extraCls : '') + '">-</span>';
+    var pct = (stars / 5 * 100).toFixed(1);
+    return '<span class="ff-stars' + (extraCls ? ' ' + extraCls : '') + '" style="--ff-star-pct:' + pct + '%">★★★★★</span>';
+  }
+
+  // 외국인·기관 수급 카드의 연속매매(streak) 방향·일수를 0~100 점수로 환산한다.
+  // "오늘의 수급"(flowScore)은 5·20일 롤링 합산 부호 기반의 단기 신호이고, 이건
+  // "최근 며칠째 같은 방향이 이어지는가"라는 지속성 신호라 서로 다른 항목으로 취급한다.
+  function computeForeignInstScore(data) {
+    var streak = data.streak || {};
+    function dirScore(st) {
+      if (!st || st.direction === 'flat') return 0;
+      var days = Math.min(st.days || 0, 10);
+      return (st.direction === 'buy' ? 1 : -1) * (10 + days * 3);
+    }
+    var score = 50 + (dirScore(streak.foreign) + dirScore(streak.inst)) / 2;
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  function foreignInstDescText(data) {
+    var streak = data.streak || {};
+    function seg(label, st) {
+      st = st || { days: 0, direction: 'flat' };
+      if (st.direction === 'flat') return label + ' 방향 뚜렷하지 않음';
+      return label + ' ' + st.days + '일 연속 ' + (st.direction === 'buy' ? '순매수' : '순매도');
+    }
+    return seg('외국인', streak.foreign) + ' · ' + seg('기관', streak.inst);
+  }
+
+  // 가중치 기반 종합점수 -> 별점(0~5, 0.5단위) -> 추천 라벨. 100점 평균 대신 가중합을
+  // 쓰는 이유: 단순 평균은 항목 5개가 다 비슷한 무게로 섞여 변별력이 떨어진다(지시서 피드백).
+  // 지시서 예시(수급75·외국인기관85·기술적30·공매도49·연기금22 -> 63.25점) 그대로 검증됨:
+  // 화면에 표시되는 점수를 방향 보정 없이 그대로 가중합한다(공매도 점수도 raw 값을 그대로 사용).
+  function computeVerdict(flowScore, foreignInstScore, techScoreObj, shortScore, pensionScore) {
+    var techVal = techScoreObj && techScoreObj.score != null ? techScoreObj.score : null;
+    var vals = {
+      flow: flowScore != null ? flowScore : 50,
+      foreignInst: foreignInstScore != null ? foreignInstScore : 50,
+      tech: techVal != null ? techVal : 50,
+      short: shortScore != null ? shortScore : 50,
+      pension: pensionScore != null ? pensionScore : 50
+    };
+    var composite = vals.flow * SCORE_WEIGHTS.flow
+      + vals.foreignInst * SCORE_WEIGHTS.foreignInst
+      + vals.tech * SCORE_WEIGHTS.tech
+      + vals.short * SCORE_WEIGHTS.short
+      + vals.pension * SCORE_WEIGHTS.pension;
+    var stars = scoreToStars(composite);
+    var rec = starRecommendation(stars);
+    return { score: composite, stars: stars, label: rec.label, cls: rec.cls };
   }
 
   function buildSummaryBox(data, entry, techScore) {
     var flowScore = computeFlowScore(data);
+    var foreignInstScore = computeForeignInstScore(data);
 
     var shortP = entry && entry.short && entry.short.pressure;
     var shortScore = shortP ? shortP.score : null;
@@ -476,9 +534,10 @@
     // 아래에 따로 두지 않고) 점수 옆 칸에서 바로 이유를 보여준다.
     var rows = [
       { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: flowInterpText(data) },
+      { icon: '🌐', label: '외국인·기관', score: foreignInstScore, desc: foreignInstDescText(data) },
+      { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: techInterpText(techScore) },
       { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: shortInterpText(entry && entry.short, entry && entry.loan) },
-      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pension ? pension.interpretation.text : '연기금 데이터가 없는 종목입니다.' },
-      { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: techInterpText(techScore) }
+      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pension ? pension.interpretation.text : '연기금 데이터가 없는 종목입니다.' }
     ];
 
     var rowsHtml = rows.map(function (r, i) {
@@ -486,16 +545,21 @@
         + '<span class="ff-summary-icon">' + r.icon + '</span>'
         + '<span class="ff-summary-label">' + r.label + '</span>'
         + '<span class="ff-summary-score">' + (r.score == null ? '-' : r.score + '점') + '</span>'
+        + starsHtml(scoreToStars(r.score))
         + '<span class="ff-summary-desc">' + escapeHtml(r.desc) + '</span>'
         + '</div>';
     }).join('');
 
-    var verdict = verdictFromScores(flowScore, shortScore, pensionScore, techScore);
+    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore);
 
     return '<div class="ff-summary">'
       + rowsHtml
       + '<div class="ff-summary-ai" id="ffAiSummary">'
+      + '<div class="ff-verdict-line">'
+      + starsHtml(verdict.stars, 'ff-stars-lg')
+      + '<span class="ff-verdict-score">' + (verdict.score == null ? '-' : verdict.score.toFixed(1) + '점 · ' + verdict.stars.toFixed(1) + '/5') + '</span>'
       + '<span class="ff-verdict ' + verdict.cls + '">' + verdict.label + '</span>'
+      + '</div>'
       + '<b>AI(GROQ) 한 줄 요약</b> · <span class="ff-summary-ai-text">생성 중...</span>'
       + '</div>'
       + '</div>';
