@@ -1680,24 +1680,41 @@ function fetchSectorUniverseWithSectors_() {
 }
 
 // 네이버 일별시세 페이지 크롤링 (2페이지 ≈ 20영업일). 오름차순(과거->최신) 반환.
+// 페이지를 한 장씩 직렬로 받으면 flowChart(74페이지) 최초 조회가 수십 초 걸려서,
+// UrlFetchApp.fetchAll로 FETCH_ALL_CHUNK장씩 묶어 병렬 요청한다(요청 수 자체는 동일,
+// 왕복 대기만 겹치는 것이라 네이버 부하는 직렬과 같다).
+var FETCH_ALL_CHUNK = 15;
+
 function fetchDailyOhlc_(code, pages) {
   var rows = [];
   var seen = {};
 
-  for (var page = 1; page <= pages; page++) {
-    try {
-      var res = UrlFetchApp.fetch('https://finance.naver.com/item/sise_day.naver?code=' + code + '&page=' + page, {
+  for (var start = 1; start <= pages; start += FETCH_ALL_CHUNK) {
+    var reqs = [];
+    for (var page = start; page <= Math.min(start + FETCH_ALL_CHUNK - 1, pages); page++) {
+      reqs.push({
+        url: 'https://finance.naver.com/item/sise_day.naver?code=' + code + '&page=' + page,
         muteHttpExceptions: true,
         headers: { 'User-Agent': 'Mozilla/5.0' }
       });
-      if (res.getResponseCode() !== 200) continue;
-      var html = res.getContentText('EUC-KR');
-      parseSiseDayRows_(html).forEach(function (row) {
-        if (!seen[row.date]) { seen[row.date] = true; rows.push(row); }
-      });
-    } catch (err) {
-      continue; // 이 페이지만 스킵
     }
+
+    var responses;
+    try {
+      responses = UrlFetchApp.fetchAll(reqs);
+    } catch (err) {
+      continue; // 이 청크만 스킵(부분 실패 허용 - 기존 직렬 동작과 동일한 관용)
+    }
+
+    responses.forEach(function (res) {
+      try {
+        if (res.getResponseCode() !== 200) return;
+        var html = res.getContentText('EUC-KR');
+        parseSiseDayRows_(html).forEach(function (row) {
+          if (!seen[row.date]) { seen[row.date] = true; rows.push(row); }
+        });
+      } catch (err) { /* 이 페이지만 스킵 */ }
+    });
   }
 
   rows.sort(function (a, b) { return a.date < b.date ? -1 : 1; }); // 오름차순(과거->최신)

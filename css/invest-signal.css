@@ -40,6 +40,45 @@
   line-height: 1.6;
 }
 
+/* 가중치·별점 기준을 문장 대신 라벨+칩 두 줄로 구조화(줄글이 안 읽힌다는 피드백 반영) */
+#invest-signal .is-desc-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+#invest-signal .is-desc-label {
+  font-weight: 700;
+  color: #4b5563;
+  white-space: nowrap;
+  min-width: 58px;
+}
+#invest-signal .is-desc-chips {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+#invest-signal .is-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+#invest-signal .is-chip b { color: #111827; }
+#invest-signal .is-chip-buy { background: #fdeceb; border-color: #f2c3bf; color: #b0392f; }
+#invest-signal .is-chip-hold { background: #fdf6e3; border-color: #ecdcae; color: #8a6d1a; }
+#invest-signal .is-chip-reduce { background: #fdf0e3; border-color: #ecd0ae; color: #9c5f14; }
+#invest-signal .is-chip-sell { background: #e9f1fb; border-color: #bdd6f2; color: #1261c4; }
+#invest-signal .is-desc-note {
+  font-size: 11.5px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
 /* ---- ① 오늘의 투자시그널 버킷 ---- */
 
 #invest-signal .is-buckets {
@@ -188,6 +227,18 @@ html.dark #invest-signal .is-rank-desc {
   background: #171e2f !important;
   border-color: #263248 !important;
 }
+html.dark #invest-signal .is-desc-label { color: #ccd4e0 !important; }
+html.dark #invest-signal .is-chip {
+  background: #232c40 !important;
+  border-color: #33405c !important;
+  color: #ccd4e0 !important;
+}
+html.dark #invest-signal .is-chip b { color: #eee !important; }
+html.dark #invest-signal .is-chip-buy { background: #3a2523 !important; border-color: #5c3835 !important; color: #e8776d !important; }
+html.dark #invest-signal .is-chip-hold { background: #34301f !important; border-color: #5c5335 !important; color: #d9c04a !important; }
+html.dark #invest-signal .is-chip-reduce { background: #3a2f20 !important; border-color: #5c4a35 !important; color: #d9a94a !important; }
+html.dark #invest-signal .is-chip-sell { background: #20304a !important; border-color: #33507a !important; color: #6ea8e8 !important; }
+html.dark #invest-signal .is-desc-note { color: #7c8aa5 !important; }
 html.dark #invest-signal .is-error { color: #e8877e !important; }
 
 html.dark #invest-signal .is-bucket {

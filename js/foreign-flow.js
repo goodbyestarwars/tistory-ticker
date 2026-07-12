@@ -565,15 +565,20 @@
 
     var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore);
 
+    // 판정(별점+등급)과 AI 근거 문장이 한 줄에 뭉치면 안 읽혀서(사용자 피드백),
+    // 판정 박스는 등급 색으로 칠해 분리하고 AI 요약은 그 아래 별도 줄로 내린다.
+    var verdictTone = verdict.cls === 'ff-buy' ? 'buy' : verdict.cls === 'ff-sell' ? 'sell' : 'flat';
+
     return '<div class="ff-summary">'
       + rowsHtml
-      + '<div class="ff-summary-ai" id="ffAiSummary">'
-      + '<div class="ff-verdict-line">'
+      + '<div class="ff-verdict-box ff-verdict-box-' + verdictTone + '">'
+      + '<span class="ff-verdict ' + verdict.cls + '">' + verdict.label + '</span>'
       + starsHtml(verdict.stars, 'ff-stars-lg')
       + '<span class="ff-verdict-score">' + (verdict.score == null ? '-' : verdict.score.toFixed(1) + '점 · ' + verdict.stars.toFixed(1) + '/5') + '</span>'
-      + '<span class="ff-verdict ' + verdict.cls + '">' + verdict.label + '</span>'
       + '</div>'
-      + '<b>AI(GROQ) 한 줄 요약</b> · <span class="ff-summary-ai-text">생성 중...</span>'
+      + '<div class="ff-summary-ai" id="ffAiSummary">'
+      + '<b>AI(GROQ) 한 줄 요약</b>'
+      + '<span class="ff-summary-ai-text">생성 중...</span>'
       + '</div>'
       + '</div>';
   }
