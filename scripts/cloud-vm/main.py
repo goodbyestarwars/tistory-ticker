@@ -16,6 +16,7 @@ import kiwoom_client
 app = FastAPI(title="kiwoom-readonly-api")
 
 BATCH_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
+FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 
 
 def load_dotenv():
@@ -105,5 +106,17 @@ def investor_flow_batch(x_api_key: str = Header(default=None)):
     if not os.path.exists(BATCH_CACHE_FILE):
         raise HTTPException(status_code=503, detail='배치 캐시가 아직 생성되지 않았습니다(batch_scan.py 첫 실행 대기 중).')
     with open(BATCH_CACHE_FILE, 'r', encoding='utf-8') as f:
+        cached = json.load(f)
+    return envelope(cached)
+
+
+@app.get('/fundamentals-batch')
+def fundamentals_batch(x_api_key: str = Header(default=None)):
+    """batch_scan.py(scan_fundamentals)가 하루 1회 미리 계산해둔 DART 재무제표(5년 실적
+    추세 + 최근 분기 YoY) 캐시를 즉시 반환. /investor-flow-batch와 동일한 서빙 패턴."""
+    require_api_key(x_api_key)
+    if not os.path.exists(FUNDAMENTALS_CACHE_FILE):
+        raise HTTPException(status_code=503, detail='펀더멘탈 캐시가 아직 생성되지 않았습니다(batch_scan.py 첫 실행 대기 중).')
+    with open(FUNDAMENTALS_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return envelope(cached)

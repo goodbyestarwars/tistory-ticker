@@ -8,3 +8,7 @@ dist/
 .claude/
 __pycache__/
 .env
+
+# VM에서 배치가 생성하는 캐시(소스 아님, 매일 재생성됨)
+scripts/cloud-vm/*_cache.json
+scripts/cloud-vm/dart_corp_code_map.json

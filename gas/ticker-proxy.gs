@@ -519,14 +519,23 @@ function getFlowAiSummary(params) {
 
   var name = (params.name || code).trim();
   var lines = [
-    '수급(외국인·기관) 점수 ' + (params.flowScore || '-') + '점 - ' + (params.flowNote || '데이터 없음'),
+    '수급(외국인·기관 5일/20일 방향) 점수 ' + (params.flowScore || '-') + '점 - ' + (params.flowNote || '데이터 없음'),
+    '외국인·기관 연속매매 점수 ' + (params.foreignInstScore || '-') + '점 - ' + (params.foreignInstNote || '데이터 없음'),
     '공매도 압박 점수 ' + (params.shortScore || '-') + '점 - ' + (params.shortNote || '데이터 없음'),
     '연기금 점수 ' + (params.pensionScore || '-') + '점 - ' + (params.pensionNote || '데이터 없음'),
     '기술적 점수(이평선·지지·저항) ' + (params.techScore || '-') + '점 - ' + (params.techNote || '데이터 없음')
   ];
-  var prompt = '"' + name + '" 종목의 오늘 4가지 수급/기술 지표야:\n' + lines.join('\n') +
-    '\n\n이 지표들을 종합해서 "매수", "매도", "보유(관망)" 중 하나의 관점을 문장 맨 앞에 분명히 명시하고, ' +
-    '그렇게 판단한 핵심 근거를 이어서 한국어 한 문장으로 요약해줘. (예: "매수 관점 - ~") 문장 외 다른 말은 붙이지 마.';
+  var verdictLabel = (params.verdictLabel || '').trim();
+  var verdictScore = params.verdictScore || '';
+  // 별점 판정(가중합)이 이미 확정한 결론을 AI가 다시 판단하지 않도록, 결론을 프롬프트에
+  // 못박고 근거 문장만 요청한다 - 화면에서 별점 배지와 AI 한줄평이 서로 다른 의견을
+  // 가리키는 모순을 막기 위함(2026-07 사용자 피드백).
+  var prompt = verdictLabel
+    ? '"' + name + '" 종목은 아래 5가지 수급/기술 지표를 가중합해 이미 "' + verdictLabel + '"(' + verdictScore + '점/100) 의견으로 결론이 났어:\n' + lines.join('\n') +
+      '\n\n이 결론과 다른 의견을 새로 내지 말고, "' + verdictLabel + '" 같은 라벨 단어도 다시 쓰지 말고, ' +
+      '왜 이 결론인지 핵심 근거만 한국어 한 문장으로 요약해줘. 문장 외 다른 말은 붙이지 마.'
+    : '"' + name + '" 종목의 오늘 5가지 수급/기술 지표야:\n' + lines.join('\n') +
+      '\n\n이 지표들을 종합한 핵심 근거를 한국어 한 문장으로 요약해줘. 문장 외 다른 말은 붙이지 마.';
 
   var summary = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, summary || '', summary ? FLOW_AI_CACHE_TTL : FLOW_AI_FAIL_TTL);
@@ -2592,6 +2601,14 @@ function getInvestorFlowLive_(code, name) {
 // 이제 VM이 상시 갱신하므로 그쪽으로 대체.
 function fetchInvestorFlowCache_() {
   var batch = kiwoomVmFetch_('/investor-flow-batch');
+  return (batch && batch.data) || {};
+}
+
+// DART 재무제표(5년 실적 추세 + 최근 분기 YoY) - VM의 batch_scan.py(scan_fundamentals)가
+// 하루 1회 미리 계산해둔 캐시를 그대로 받아온다. fetchInvestorFlowCache_와 동일한 패턴.
+// 아직 어디서도 호출하지 않음 - 종목분석 펀더멘탈 탭에서 처음 소비할 예정.
+function fetchFundamentalsCache_() {
+  var batch = kiwoomVmFetch_('/fundamentals-batch');
   return (batch && batch.data) || {};
 }
 

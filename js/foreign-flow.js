@@ -610,6 +610,9 @@
   }
 
   // AI 한줄요약은 Groq 호출이라 느릴 수 있어 나머지 렌더링을 막지 않고 비동기로 채운다.
+  // 별점 판정(computeVerdict)과 다른 결론을 AI가 스스로 내리는 걸 막기 위해, 여기서도
+  // buildSummaryBox와 똑같이 5개 컴포넌트 점수 + verdict를 구해서 GAS에 "이미 이 결론이다"로
+  // 넘긴다 - LLM은 근거 문장만 쓰고 매수/매도/보유 자체는 다시 판단하지 않는다.
   function loadAiSummary(box, data, entry, techScore) {
     var el = box.querySelector('#ffAiSummary .ff-summary-ai-text');
     if (!el) return;
@@ -617,32 +620,34 @@
     var shortP = entry && entry.short && entry.short.pressure;
     var pension = entry && entry.pension;
     var pensionScore = pension ? computePensionScore(pension) : null;
+    var flowScore = computeFlowScore(data);
+    var foreignInstScore = computeForeignInstScore(data);
+    var shortScore = shortP ? shortP.score : null;
+    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore);
 
     var qs = '?action=flowAiSummary'
       + '&code=' + encodeURIComponent(data.code)
       + '&name=' + encodeURIComponent(data.name || data.code)
-      + '&flowScore=' + computeFlowScore(data)
+      + '&flowScore=' + flowScore
       + '&flowNote=' + encodeURIComponent(flowInterpText(data))
-      + '&shortScore=' + (shortP ? shortP.score : '')
+      + '&foreignInstScore=' + foreignInstScore
+      + '&foreignInstNote=' + encodeURIComponent(foreignInstDescText(data))
+      + '&shortScore=' + (shortScore == null ? '' : shortScore)
       + '&shortNote=' + encodeURIComponent(shortInterpText(entry && entry.short, entry && entry.loan))
       + '&pensionScore=' + (pensionScore == null ? '' : pensionScore)
       + '&pensionNote=' + encodeURIComponent(pension ? pension.interpretation.text : '')
       + '&techScore=' + (techScore ? techScore.score : '')
-      + '&techNote=' + encodeURIComponent(techInterpText(techScore));
+      + '&techNote=' + encodeURIComponent(techInterpText(techScore))
+      + '&verdictLabel=' + encodeURIComponent(verdict.label)
+      + '&verdictScore=' + (verdict.score == null ? '' : Math.round(verdict.score));
 
     fetchJson(GAS_TICKER_URL + qs)
       .then(function (res) {
-        el.textContent = stripVerdictPrefix((res && res.summary) || '') || '요약을 생성하지 못했어요.';
+        el.textContent = (res && res.summary) || '요약을 생성하지 못했어요.';
       })
       .catch(function () {
         el.textContent = '요약을 생성하지 못했어요.';
       });
-  }
-
-  // AI가 프롬프트대로 문장 맨 앞에 "매수/매도/보유 관점 -"를 붙여 보내는 경우, 배지와
-  // 중복 표시되지 않도록 그 앞부분만 잘라내고 근거 문장만 남긴다.
-  function stripVerdictPrefix(text) {
-    return (text || '').replace(/^(매수|매도|보유|관망)\s*(\(?관점\)?)?\s*[-–:·]\s*/, '');
   }
 
   function buildBadges(data) {
