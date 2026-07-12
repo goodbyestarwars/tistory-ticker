@@ -52,6 +52,11 @@
     very_positive: 'ff-badge-buy', positive: 'ff-badge-buy', neutral_positive: 'ff-badge-buy',
     neutral: 'ff-badge-neutral', caution: 'ff-badge-sell'
   };
+  // 공매도 압박 등급(약함=안전)을 위 톤 팔레트에 얹어서 색만 재사용
+  var SHORT_GRADE_TONE = {
+    '매우 약함': 'very_positive', '약함': 'positive', '보통': 'neutral',
+    '강함': 'caution', '매우 강함': 'caution'
+  };
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -418,6 +423,16 @@
     return '외국인·기관 수급 방향이 뚜렷하지 않습니다.';
   }
 
+  // flowInterpText와 같은 streak 기준으로 색·배지 톤을 정해서 문구와 절대 어긋나지 않게 한다.
+  function flowTone(data) {
+    var streak = data.streak || {};
+    var f = streak.foreign || { direction: 'flat' };
+    var i = streak.inst || { direction: 'flat' };
+    if (f.direction === 'buy' && i.direction === 'buy') return { tone: 'positive', label: '긍정' };
+    if (f.direction === 'sell' && i.direction === 'sell') return { tone: 'caution', label: '주의' };
+    return { tone: 'neutral', label: '중립' };
+  }
+
   function shortInterpText(s, l) {
     if (!s || !s.pressure) return '공매도 데이터가 없는 종목입니다.';
     var label = s.pressure.grade.label;
@@ -588,9 +603,15 @@
 
   // ---- 수급(연속매매 배지 + 롤링 표 + 순매매량/보유율 추이) - 하나의 구역 카드로 묶음 ----
   function buildFlowCard(data) {
+    var tone = flowTone(data);
+    var toneBadgeCls = TONE_BADGE_CLASS[tone.tone] || 'ff-badge-neutral';
     return '<div class="ff-extra-card">'
       + '<div class="ff-extra-card-title">🧭 외국인·기관 수급</div>'
       + buildBadges(data)
+      + '<div class="ff-extra-interp ff-extra-tone-' + tone.tone + '">'
+      + '<span class="ff-badge ' + toneBadgeCls + '">' + tone.label + '</span>'
+      + '<span class="ff-extra-interp-text">' + escapeHtml(flowInterpText(data)) + '</span>'
+      + '</div>'
       + buildRollingTable(data)
       + '<div class="ff-chart-title">외국인·기관 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>'
       + buildNetChart(data.daily)
@@ -675,9 +696,16 @@
         + extraMetric('대차잔고 증감률', '<span class="' + signClass(l.balance_change_pct) + '">' + fmtSignedPct(l.balance_change_pct) + '</span>');
     }
 
+    var tone = SHORT_GRADE_TONE[p.grade.label] || 'neutral';
+    var toneBadgeCls = TONE_BADGE_CLASS[tone] || 'ff-badge-neutral';
+
     return '<div class="ff-extra-card">'
       + '<div class="ff-extra-card-title">공매도·대차거래 <span class="ff-extra-grade">' + escapeHtml(p.grade.label) + '</span></div>'
       + (causes.length ? '<div class="ff-extra-badges">' + causes.map(function (c) { return '<span class="ff-extra-badge">' + escapeHtml(c) + '</span>'; }).join('') + '</div>' : '')
+      + (s ? '<div class="ff-extra-interp ff-extra-tone-' + tone + '">'
+          + '<span class="ff-badge ' + toneBadgeCls + '">' + escapeHtml(p.grade.label) + '</span>'
+          + '<span class="ff-extra-interp-text">' + escapeHtml(shortInterpText(s, l)) + '</span>'
+          + '</div>' : '')
       + '<div class="ff-extra-grid">' + grid + '</div>'
       + '<div class="ff-extra-help">'
       + '<b>Day to Cover</b>: 공매도 잔고를 20일 평균 거래량으로 다 갚는 데 걸리는 거래일 수(클수록 상환 물량 소화가 오래 걸림).<br>'
