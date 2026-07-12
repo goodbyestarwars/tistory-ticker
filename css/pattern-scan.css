@@ -145,6 +145,23 @@
   color: #6b7280;
   font-size: 13px;
 }
+#pattern-scan .ps-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+#pattern-scan .ps-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(0, 0, 0, 0.12);
+  border-top-color: #1261c4;
+  border-radius: 50%;
+  animation: ps-spin 0.8s linear infinite;
+}
+@keyframes ps-spin {
+  to { transform: rotate(360deg); }
+}
 
 /* ---- 상세(캔들차트) ---- */
 
@@ -314,6 +331,10 @@ html.dark #pattern-scan .ps-hint,
 html.dark #pattern-scan .ps-loading,
 html.dark #pattern-scan .ps-error {
   color: #b3bdcf !important;
+}
+html.dark #pattern-scan .ps-spinner {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  border-top-color: #4dabf7 !important;
 }
 
 html.dark #pattern-scan .ps-detail {

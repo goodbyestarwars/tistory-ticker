@@ -72,6 +72,23 @@
   color: #888;
   font-size: 14px;
 }
+#foreign-flow .ff-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+#foreign-flow .ff-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(0, 0, 0, 0.12);
+  border-top-color: #1261c4;
+  border-radius: 50%;
+  animation: ff-spin 0.8s linear infinite;
+}
+@keyframes ff-spin {
+  to { transform: rotate(360deg); }
+}
 #foreign-flow .ff-error {
   padding: 18px 12px;
   text-align: center;
@@ -430,6 +447,10 @@ html.dark #foreign-flow .ff-suggest-item:hover,
 html.dark #foreign-flow .ff-suggest-item.active { background: #3a3a3a !important; }
 html.dark #foreign-flow .ff-hint,
 html.dark #foreign-flow .ff-loading { color: #999 !important; }
+html.dark #foreign-flow .ff-spinner {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  border-top-color: #4dabf7 !important;
+}
 html.dark #foreign-flow .ff-error {
   background: #3a2523 !important;
   border-color: #5c3835 !important;

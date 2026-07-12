@@ -207,7 +207,7 @@
       return;
     }
 
-    resultBox.innerHTML = '<div class="ff-loading">' + escapeHtml(resolved.name) + ' 수급 데이터를 불러오는 중... (가격 차트는 최초 조회 시 다소 걸릴 수 있어요)</div>';
+    resultBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(resolved.name) + ' 수급 데이터를 불러오는 중... (가격 차트는 최초 조회 시 다소 걸릴 수 있어요)</div></div>';
 
     // 차트 크롤링이 무거워 실패/타임아웃 가능성이 있는데, 그것 때문에 나머지 위젯까지
     // 통째로 에러 처리되면 안 되므로 차트 fetch만 별도로 잡아 실패 시 에러 객체로 대체한다.
@@ -404,23 +404,27 @@
     return Math.max(0, Math.min(100, Math.round(base + adj)));
   }
 
+  // 5일 합산 부호만 보면 "오늘은 순매수 전환"인데도 "매도세가 이어진다"고 나오는 모순이
+  // 생길 수 있어(예: 5일 중 나흘은 매도, 오늘만 매수면 합산은 음수), 배지와 같은 기준인
+  // streak(최신일부터 역순 연속 방향)로 판단해 배지·문구가 항상 같은 결론을 가리키게 한다.
   function flowInterpText(data) {
-    var r = data.rolling || {};
-    var f5 = r['5d'] ? r['5d'].foreign : 0;
-    var i5 = r['5d'] ? r['5d'].inst : 0;
-    if (f5 > 0 && i5 > 0) return '외국인과 기관이 동반 순매수하며 수급이 양호합니다.';
-    if (f5 > 0 && i5 < 0) return '외국인 매수가 우세하지만 기관 매도세가 이어지고 있습니다.';
-    if (f5 < 0 && i5 > 0) return '기관 매수가 우세하지만 외국인 매도세가 이어지고 있습니다.';
-    if (f5 < 0 && i5 < 0) return '외국인과 기관이 동반 순매도하며 수급이 약화되고 있습니다.';
+    var streak = data.streak || {};
+    var f = streak.foreign || { direction: 'flat' };
+    var i = streak.inst || { direction: 'flat' };
+    if (f.direction === 'buy' && i.direction === 'buy') return '외국인과 기관이 동반 순매수하며 수급이 양호합니다.';
+    if (f.direction === 'buy' && i.direction === 'sell') return '외국인은 순매수, 기관은 순매도로 엇갈리고 있습니다.';
+    if (f.direction === 'sell' && i.direction === 'buy') return '기관은 순매수, 외국인은 순매도로 엇갈리고 있습니다.';
+    if (f.direction === 'sell' && i.direction === 'sell') return '외국인과 기관이 동반 순매도하며 수급이 약화되고 있습니다.';
     return '외국인·기관 수급 방향이 뚜렷하지 않습니다.';
   }
 
-  function shortInterpText(s) {
+  function shortInterpText(s, l) {
     if (!s || !s.pressure) return '공매도 데이터가 없는 종목입니다.';
     var label = s.pressure.grade.label;
-    if (label === '매우 강함' || label === '강함') return '공매도 압박이 강한 구간으로 단기 변동성 확대에 유의해야 합니다.';
-    if (label === '보통') return '공매도 압박이 보통 수준으로 특별한 경계가 필요하지 않습니다.';
-    return '공매도 압박이 약한 구간으로 매도 물량 부담이 크지 않습니다.';
+    var parts = ['거래비중 ' + fmtPct(s.today_ratio_pct)];
+    if (s.days_to_cover != null) parts.push('Days to Cover ' + s.days_to_cover.toFixed(1) + '일');
+    if (l && l.balance_change_pct != null) parts.push('대차잔고 ' + fmtSignedPct(l.balance_change_pct));
+    return parts.join(' · ') + '로 압박 ' + label + ' 수준입니다.';
   }
 
   function buildSummaryBox(data, entry, techScore) {
@@ -439,7 +443,7 @@
     // 아래에 따로 두지 않고) 점수 옆 칸에서 바로 이유를 보여준다.
     var rows = [
       { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: flowInterpText(data) },
-      { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: shortInterpText(entry && entry.short) },
+      { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: shortInterpText(entry && entry.short, entry && entry.loan) },
       { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pension ? pension.interpretation.text : '연기금 데이터가 없는 종목입니다.' },
       { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: techInterpText(techScore) }
     ];
@@ -474,7 +478,7 @@
       + '&flowScore=' + computeFlowScore(data)
       + '&flowNote=' + encodeURIComponent(flowInterpText(data))
       + '&shortScore=' + (shortP ? shortP.score : '')
-      + '&shortNote=' + encodeURIComponent(shortInterpText(entry && entry.short))
+      + '&shortNote=' + encodeURIComponent(shortInterpText(entry && entry.short, entry && entry.loan))
       + '&pensionScore=' + (pensionScore == null ? '' : pensionScore)
       + '&pensionNote=' + encodeURIComponent(pension ? pension.interpretation.text : '')
       + '&techScore=' + (techScore ? techScore.score : '')

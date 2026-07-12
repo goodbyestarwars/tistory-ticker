@@ -146,7 +146,7 @@
     var detail = container.querySelector('#psDetail');
     if (!detail || !item) return;
     detail.hidden = false;
-    detail.innerHTML = '<div class="ps-loading">' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div>';
+    detail.innerHTML = '<div class="ps-loading"><div class="ps-spinner"></div><div>' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div></div>';
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     PatternScan.fetchJson(GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code) + '&pattern=' + encodeURIComponent(activeTab))
