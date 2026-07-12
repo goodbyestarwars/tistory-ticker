@@ -32,11 +32,16 @@
   ];
 
   var RANK_TABS = [
-    { key: 'foreign', label: '🔥 외국인 순매수 TOP20', metricLabel: '외국인 5일 순매수', metricFmt: fmtShares },
-    { key: 'inst', label: '🏦 기관 순매수 TOP20', metricLabel: '기관 5일 순매수', metricFmt: fmtShares },
-    { key: 'pension', label: '💰 연기금 TOP20', metricLabel: '연기금 5일 순매수', metricFmt: fmtPensionWon },
-    { key: 'improved', label: '📈 최근 5일 수급 개선', metricLabel: '수급 개선폭(일평균)', metricFmt: fmtShiftShares },
-    { key: 'worsened', label: '📉 최근 5일 수급 악화', metricLabel: '수급 악화폭(일평균)', metricFmt: fmtShiftShares }
+    { key: 'foreign', label: '🔥 외국인 순매수 TOP20', metricLabel: '외국인 5일 순매수', metricFmt: fmtShares,
+      desc: '최근 5일간 외국인이 가장 많이 순매수(주식을 사들인)한 종목 순위입니다.' },
+    { key: 'inst', label: '🏦 기관 순매수 TOP20', metricLabel: '기관 5일 순매수', metricFmt: fmtShares,
+      desc: '최근 5일간 기관투자자가 가장 많이 순매수한 종목 순위입니다.' },
+    { key: 'pension', label: '💰 연기금 TOP20', metricLabel: '연기금 5일 순매수', metricFmt: fmtPensionWon,
+      desc: '최근 5일간 국민연금 등 연기금이 가장 많이 순매수한 종목 순위입니다(키움 API 기반, 하루 1회 갱신 - 사용자 PC를 켠 시점 기준으로 데이터가 새로워짐).' },
+    { key: 'improved', label: '📈 최근 5일 수급 개선', metricLabel: '수급 개선폭(일평균)', metricFmt: fmtShiftShares,
+      desc: '최근 5일 외국인+기관 합산 순매매(일평균)가 그 이전 15일 평균보다 좋아지고 있는 종목 순위입니다. 매수세가 강해지는 초입일 수 있습니다.' },
+    { key: 'worsened', label: '📉 최근 5일 수급 악화', metricLabel: '수급 악화폭(일평균)', metricFmt: fmtShiftShares,
+      desc: '최근 5일 외국인+기관 합산 순매매(일평균)가 그 이전 15일 평균보다 나빠지고 있는 종목 순위입니다. 매도세가 강해지는 초입일 수 있습니다.' }
   ];
 
   var signalData = null;
@@ -55,12 +60,17 @@
       + '<div class="is-meta" id="isMeta">불러오는 중...</div>'
       + '<div class="is-section">'
       + '<div class="is-section-title">① 오늘의 투자시그널</div>'
+      + '<div class="is-section-desc">수급(40%)·외국인·기관 연속매매(25%)·기술적 점수(20%)·공매도 압박(10%)·연기금(5%)을 '
+      + '가중합산한 종합점수를 별점(0~5)으로 환산해 5단계로 나눕니다. '
+      + '<b>4.5★ 이상 적극매수 · 3.8~4.4★ 매수 · 2.8~3.7★ 보유 · 1.8~2.7★ 비중축소 · 1.8★ 미만 매도.</b> '
+      + '종목분석 페이지의 별점과 완전히 같은 계산식입니다.</div>'
       + '<div class="is-buckets" id="isBuckets"><div class="is-hint">불러오는 중...</div></div>'
       + '<div class="is-bucket-list" id="isBucketList" hidden></div>'
       + '</div>'
       + '<div class="is-section">'
       + '<div class="is-section-title">② 수급 랭킹</div>'
       + '<div class="is-rank-tabs" id="isRankTabs"></div>'
+      + '<div class="is-rank-desc" id="isRankDesc"></div>'
       + '<div class="is-rank-list" id="isRankList"><div class="is-hint">불러오는 중...</div></div>'
       + '</div>'
       + '<div class="is-footnote">종목명을 클릭하면 종목분석 페이지로 이동해 자동으로 상세 수급을 조회합니다. '
@@ -161,9 +171,20 @@
         box.querySelectorAll('.is-rank-tab').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         activeRankTab = btn.getAttribute('data-tab');
+        renderRankDesc(container);
         renderRankList(container);
       });
     });
+
+    renderRankDesc(container);
+  }
+
+  // 목록이 비어 있어도 이 랭킹이 뭘 보여주는 건지는 항상 보이게 한다(ps-tab-desc와 동일한 취지).
+  function renderRankDesc(container) {
+    var box = container.querySelector('#isRankDesc');
+    if (!box) return;
+    var tab = RANK_TABS.filter(function (t) { return t.key === activeRankTab; })[0];
+    box.textContent = tab ? tab.desc : '';
   }
 
   function renderRankList(container) {

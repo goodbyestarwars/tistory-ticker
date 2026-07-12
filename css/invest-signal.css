@@ -27,6 +27,19 @@
 }
 #invest-signal .is-error { color: #c0392b; }
 
+/* 목록이 비어 있어도 이 등급/랭킹이 뭘 뜻하는지 항상 보이는 설명 박스 (pattern-scan의 ps-tab-desc와 동일 취지) */
+#invest-signal .is-section-desc,
+#invest-signal .is-rank-desc {
+  font-size: 12.5px;
+  color: #6b7280;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
 /* ---- ① 오늘의 투자시그널 버킷 ---- */
 
 #invest-signal .is-buckets {
@@ -169,6 +182,12 @@
 html.dark #invest-signal .is-meta { color: #999 !important; }
 html.dark #invest-signal .is-section-title { color: #eee !important; }
 html.dark #invest-signal .is-hint { color: #999 !important; }
+html.dark #invest-signal .is-section-desc,
+html.dark #invest-signal .is-rank-desc {
+  color: #b3bdcf !important;
+  background: #171e2f !important;
+  border-color: #263248 !important;
+}
 html.dark #invest-signal .is-error { color: #e8877e !important; }
 
 html.dark #invest-signal .is-bucket {
