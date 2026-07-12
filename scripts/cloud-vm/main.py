@@ -4,6 +4,7 @@
 필수 환경변수: KIWOOM_APPKEY, KIWOOM_SECRETKEY, API_TOKEN(이 서버 자체 인증용, 아무 문자열이나 직접 정해서 사용)
 """
 
+import json
 import os
 from datetime import datetime, timezone
 
@@ -13,6 +14,8 @@ import investor_flow
 import kiwoom_client
 
 app = FastAPI(title="kiwoom-readonly-api")
+
+BATCH_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
 
 
 def load_dotenv():
@@ -92,3 +95,15 @@ def investor_flow_endpoint(
     if result is None:
         raise HTTPException(status_code=404, detail='해당 종목의 공매도/대차/수급 데이터를 찾을 수 없습니다.')
     return envelope(result)
+
+
+@app.get('/investor-flow-batch')
+def investor_flow_batch(x_api_key: str = Header(default=None)):
+    """batch_scan.py(하루 1회 크론)가 미리 계산해둔 섹터 풀 전체 캐시를 즉시 반환.
+    실시간 키움 호출 없음 - GAS의 scanInvestSignal이 237종목을 한 번에 받아가는 용도."""
+    require_api_key(x_api_key)
+    if not os.path.exists(BATCH_CACHE_FILE):
+        raise HTTPException(status_code=503, detail='배치 캐시가 아직 생성되지 않았습니다(batch_scan.py 첫 실행 대기 중).')
+    with open(BATCH_CACHE_FILE, 'r', encoding='utf-8') as f:
+        cached = json.load(f)
+    return envelope(cached)
