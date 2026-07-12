@@ -61,6 +61,9 @@ def main():
     if not codes_map:
         log('섹터 풀을 못 불러왔습니다.')
         sys.exit(1)
+    if '--test' in sys.argv:
+        codes_map = dict(list(codes_map.items())[:3])
+        log('--test 모드: %d종목만 스모크 테스트' % len(codes_map))
     log('대상 종목 수: %d' % len(codes_map))
 
     token = kiwoom_client.get_token(appkey, secretkey)
