@@ -39,6 +39,12 @@
       icon: '<circle cx="8" cy="15" r="6"/><circle cx="16" cy="9" r="4"/><circle cx="18" cy="18" r="2.5"/>'
     },
     {
+      href: '/pages/invest-signal',
+      label: '오늘의 투자시그널',
+      bold: true,
+      icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>'
+    },
+    {
       href: '/page/stock-news',
       label: '종목 뉴스',
       bold: true,

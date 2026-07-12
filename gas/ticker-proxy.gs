@@ -74,6 +74,10 @@ function doGet(e) {
     return jsonResponse(getPatternChart((params.code || '').trim(), (params.pattern || '').trim()));
   }
 
+  if (params.investSignal === '1') {
+    return jsonResponse(getInvestSignalResult());
+  }
+
   var raw = (params.codes || '').trim();
 
   if (!raw) {
@@ -1537,11 +1541,11 @@ function scanPullback() {
 
 // 이 함수를 스크립트 편집기에서 한 번 실행하면 매일 자동 스캔 트리거가 설치된다.
 // (배포와 별개 - 트리거는 코드 push/재배포로 자동 설치되지 않으므로 최초 1회 수동 실행 필요)
-// scanChartPatterns/scanPullback 둘 다 설치하고, 서로 겹치지 않게 시간을 띄운다.
+// scanChartPatterns/scanPullback/scanInvestSignal 셋 다 설치하고, 서로 겹치지 않게 시간을 띄운다.
 function setupPatternScanTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     var fn = t.getHandlerFunction();
-    if (fn === 'scanChartPatterns' || fn === 'scanGoldPitReversal' || fn === 'scanPullback') ScriptApp.deleteTrigger(t);
+    if (fn === 'scanChartPatterns' || fn === 'scanGoldPitReversal' || fn === 'scanPullback' || fn === 'scanInvestSignal') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('scanChartPatterns')
     .timeBased()
@@ -1551,6 +1555,11 @@ function setupPatternScanTrigger() {
   ScriptApp.newTrigger('scanPullback')
     .timeBased()
     .atHour(17) // scanChartPatterns와 겹치지 않게 1시간 뒤
+    .everyDays(1)
+    .create();
+  ScriptApp.newTrigger('scanInvestSignal')
+    .timeBased()
+    .atHour(18) // scanPullback과 겹치지 않게 다시 1시간 뒤
     .everyDays(1)
     .create();
 }
@@ -2194,4 +2203,277 @@ function jsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------------------------------------------------------------------------
+// 오늘의 투자시그널 (?investSignal=1): 전체 종목(sectors-v3.js 풀) 매수~매도 등급 분포 +
+// 수급 랭킹(외국인/기관/연기금 TOP20, 수급개선/악화 TOP20).
+//
+// js/foreign-flow.js의 가중치 공식(수급40%+외국인기관25%+기술적20%+공매도10%+연기금5%,
+// 공매도는 방향보정 없이 raw 점수 그대로)을 서버에서 동일하게 재계산해 하루 1회 배치로
+// 캐싱한다. 핵심 설계 원칙은 "PC를 켜지 않아도(키움 의존 없이) 매일 자동 갱신":
+// - 수급/외국인·기관/기술적 점수는 네이버 크롤링(getForeignFlow/fetchDailyOhlc_ 재사용)만
+//   으로 계산 - 이 배치 트리거(scanInvestSignal)가 GAS에서 매일 혼자 돈다.
+// - 공매도/연기금만 data/investor-flow-cache.js(키움 API, PC 로컬 하루 1회 갱신)를 그대로
+//   HTTP로 읽어 붙인다 - 이 두 항목(가중치 15%)만 "PC를 마지막으로 켰을 때 스냅샷"으로
+//   남고, 나머지 85%는 매일 자동 갱신된다.
+// scanChartPatterns/scanPullback과 마찬가지로 6분 실행 제한 때문에 시간 초과 시 중단하고
+// 그때까지 결과로 저장한다(매일 237종목 전부 커버된다는 보장은 없음 - 기존 패턴과 동일).
+// ---------------------------------------------------------------------------
+var INVEST_SIGNAL_TIME_BUDGET_MS = 5 * 60 * 1000;
+var INVEST_SIGNAL_OHLC_PAGES = 10;   // fetchDailyOhlc_ 재사용(scanChartPatterns와 동일 - 100영업일)
+var INVEST_SIGNAL_BUCKET_CAP = 100;  // 버킷 하나가 너무 커서 PropertiesService 9KB/속성을 넘지 않게 상한
+var INVEST_SIGNAL_TOP_N = 20;
+
+var SCORE_WEIGHTS_ = { flow: 0.40, foreignInst: 0.25, tech: 0.20, short: 0.10, pension: 0.05 };
+var PENSION_TONE_SCORE_ = { very_positive: 90, positive: 75, neutral_positive: 60, neutral: 50, caution: 25 };
+
+function scanInvestSignal() {
+  var startedAt = Date.now();
+  var universe = fetchSectorUniverse_();
+  var flowCache = fetchInvestorFlowCache_();
+
+  var bucketKeys = ['적극 매수', '매수 우위', '보유', '비중축소', '매도'];
+  var buckets = {}, counts = {};
+  bucketKeys.forEach(function (k) { buckets[k] = []; counts[k] = 0; });
+
+  var scored = [];
+  var scanned = 0;
+
+  for (var i = 0; i < universe.length; i++) {
+    if (Date.now() - startedAt > INVEST_SIGNAL_TIME_BUDGET_MS) break; // 시간 초과 시 지금까지 결과로 저장하고 중단
+
+    var stock = universe[i];
+    try {
+      var flow = getForeignFlow(stock.code);
+      if (!flow || flow.error || !flow.daily || !flow.daily.length) continue;
+
+      var daily = fetchDailyOhlc_(stock.code, INVEST_SIGNAL_OHLC_PAGES);
+      var tech = computeTechScoreServer_(daily);
+
+      var entry = flowCache[stock.code];
+      var shortScore = (entry && entry.short && entry.short.pressure) ? entry.short.pressure.score : null;
+      var pensionScore = entry && entry.pension ? computePensionScoreServer_(entry.pension) : null;
+
+      var flowScore = computeFlowScoreServer_(flow);
+      var foreignInstScore = computeForeignInstScoreServer_(flow.streak);
+      var verdict = computeVerdictServer_(flowScore, foreignInstScore, tech, shortScore, pensionScore);
+
+      var last = flow.daily[0]; // getForeignFlow는 최신일 우선 정렬
+      var r5 = flow.rolling && flow.rolling['5d'];
+      var row = {
+        code: stock.code,
+        name: flow.name || stock.name,
+        price: last.close,
+        changeRate: last.change_pct,
+        stars: verdict.stars,
+        label: verdict.label,
+        foreign5d: r5 ? r5.foreign : 0,
+        inst5d: r5 ? r5.inst : 0,
+        pension5d: (entry && entry.pension && entry.pension.net_5d != null) ? entry.pension.net_5d : null,
+        shift: foreignInstShiftScore_(flow.rolling)
+      };
+      scored.push(row);
+      scanned++;
+
+      counts[verdict.label] = (counts[verdict.label] || 0) + 1;
+      var bucket = buckets[verdict.label];
+      if (bucket && bucket.length < INVEST_SIGNAL_BUCKET_CAP) {
+        bucket.push([row.code, row.name, row.price, row.changeRate, row.stars]);
+      }
+    } catch (err) {
+      continue; // 이 종목만 스킵
+    }
+  }
+
+  function topBy(field, filterNotNull) {
+    var list = filterNotNull ? scored.filter(function (r) { return r[field] != null; }) : scored.slice();
+    return list.sort(function (a, b) { return b[field] - a[field]; })
+      .slice(0, INVEST_SIGNAL_TOP_N)
+      .map(function (r) { return [r.code, r.name, r.price, r.changeRate, r[field]]; });
+  }
+  function bottomBy(field) {
+    return scored.slice().sort(function (a, b) { return a[field] - b[field]; })
+      .slice(0, INVEST_SIGNAL_TOP_N)
+      .map(function (r) { return [r.code, r.name, r.price, r.changeRate, r[field]]; });
+  }
+
+  PropertiesService.getScriptProperties().setProperties({
+    INVEST_SIGNAL_META: JSON.stringify({ scannedAt: formatKstTime(Date.now()), universe: universe.length, scanned: scanned }),
+    INVEST_SIGNAL_COUNTS: JSON.stringify(counts),
+    INVEST_SIGNAL_BUCKET_ACTIVE_BUY: JSON.stringify(buckets['적극 매수']),
+    INVEST_SIGNAL_BUCKET_BUY: JSON.stringify(buckets['매수 우위']),
+    INVEST_SIGNAL_BUCKET_HOLD: JSON.stringify(buckets['보유']),
+    INVEST_SIGNAL_BUCKET_REDUCE: JSON.stringify(buckets['비중축소']),
+    INVEST_SIGNAL_BUCKET_SELL: JSON.stringify(buckets['매도']),
+    INVEST_SIGNAL_TOP_FOREIGN: JSON.stringify(topBy('foreign5d', false)),
+    INVEST_SIGNAL_TOP_INST: JSON.stringify(topBy('inst5d', false)),
+    INVEST_SIGNAL_TOP_PENSION: JSON.stringify(topBy('pension5d', true)),
+    INVEST_SIGNAL_IMPROVED: JSON.stringify(topBy('shift', false)),
+    INVEST_SIGNAL_WORSENED: JSON.stringify(bottomBy('shift'))
+  });
+
+  return { scanned: scanned, universe: universe.length };
+}
+
+function getInvestSignalResult() {
+  var props = PropertiesService.getScriptProperties();
+  var meta = props.getProperty('INVEST_SIGNAL_META');
+  function arr(key) { return JSON.parse(props.getProperty(key) || '[]'); }
+  return {
+    scannedAt: meta ? JSON.parse(meta).scannedAt : null,
+    universe: meta ? JSON.parse(meta).universe : 0,
+    scanned: meta ? JSON.parse(meta).scanned : 0,
+    counts: JSON.parse(props.getProperty('INVEST_SIGNAL_COUNTS') || '{}'),
+    buckets: {
+      activeBuy: arr('INVEST_SIGNAL_BUCKET_ACTIVE_BUY'),
+      buy: arr('INVEST_SIGNAL_BUCKET_BUY'),
+      hold: arr('INVEST_SIGNAL_BUCKET_HOLD'),
+      reduce: arr('INVEST_SIGNAL_BUCKET_REDUCE'),
+      sell: arr('INVEST_SIGNAL_BUCKET_SELL')
+    },
+    rankings: {
+      foreign: arr('INVEST_SIGNAL_TOP_FOREIGN'),
+      inst: arr('INVEST_SIGNAL_TOP_INST'),
+      pension: arr('INVEST_SIGNAL_TOP_PENSION'),
+      improved: arr('INVEST_SIGNAL_IMPROVED'),
+      worsened: arr('INVEST_SIGNAL_WORSENED')
+    }
+  };
+}
+
+// data/investor-flow-cache.js(공매도/대차/연기금, 키움 API 기반 PC 로컬 스냅샷)를 GAS가
+// 그대로 HTTP로 읽어와 재사용한다. 파일 앞의 안내 주석과 "window.INVESTOR_FLOW_CACHE = "
+// 접두사를 걷어내야 해서, 첫 '{'부터 마지막 '}'까지만 잘라 JSON으로 파싱한다.
+function fetchInvestorFlowCache_() {
+  try {
+    var res = UrlFetchApp.fetch('https://goodbyestarwars.github.io/tistory-ticker/data/investor-flow-cache.js', { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return {};
+    var text = res.getContentText('UTF-8');
+    var start = text.indexOf('{');
+    var end = text.lastIndexOf('}');
+    if (start === -1 || end === -1) return {};
+    return JSON.parse(text.slice(start, end + 1));
+  } catch (err) {
+    return {};
+  }
+}
+
+// 외국인/기관 5일·20일 순매매 방향(4개) 각 ±12.5점, 기준 50점 -> 0~100점.
+// js/foreign-flow.js의 computeFlowScore와 동일한 공식(클라이언트/서버 결과 일치 보장).
+function computeFlowScoreServer_(flow) {
+  var r = flow.rolling || {};
+  var f5 = r['5d'] ? r['5d'].foreign : 0;
+  var f20 = r['20d'] ? r['20d'].foreign : 0;
+  var i5 = r['5d'] ? r['5d'].inst : 0;
+  var i20 = r['20d'] ? r['20d'].inst : 0;
+  function sgn(v) { return v > 0 ? 1 : v < 0 ? -1 : 0; }
+  var score = 50 + 12.5 * (sgn(f5) + sgn(f20) + sgn(i5) + sgn(i20));
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+// 연속매매(streak) 방향·일수를 0~100 점수로 환산. js/foreign-flow.js의
+// computeForeignInstScore와 동일한 공식.
+function computeForeignInstScoreServer_(streak) {
+  streak = streak || {};
+  function dirScore(st) {
+    if (!st || st.direction === 'flat') return 0;
+    var days = Math.min(st.days || 0, 10);
+    return (st.direction === 'buy' ? 1 : -1) * (10 + days * 3);
+  }
+  var score = 50 + (dirScore(streak.foreign) + dirScore(streak.inst)) / 2;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+// 이동평균 배열(40) + 지지선 근접도(30) + 저항선 근접도(30) = 0~100점.
+// js/foreign-flow.js의 computeTechnicalScore와 동일한 공식이되, chartData(?action=flowChart
+// 응답) 대신 fetchDailyOhlc_ 결과(daily)에서 movingAverage_/computeSupportResistance_를
+// 직접 호출해 계산한다(배치라 종목당 flowChart 캐시를 새로 만들 필요 없음).
+function computeTechScoreServer_(daily) {
+  if (!daily || daily.length < 60) return null;
+  var close = daily[daily.length - 1].close;
+
+  function lastVal(arr) { return arr && arr.length ? arr[arr.length - 1] : null; }
+  var ma5 = lastVal(movingAverage_(daily, 'close', 5));
+  var ma20 = lastVal(movingAverage_(daily, 'close', 20));
+  var ma60 = lastVal(movingAverage_(daily, 'close', 60));
+
+  var maScore = 0;
+  if (ma5 != null && ma20 != null && ma60 != null) {
+    if (ma5 > ma20 && ma20 > ma60) maScore = 40;
+    else if (ma20 > ma60) maScore = 30;
+    else if (ma5 > ma20) maScore = 20;
+    else maScore = 0;
+  }
+
+  var levels = computeSupportResistance_(daily);
+  var support = levels.support || [];
+  var supScore = 0;
+  if (support.length) {
+    var nearestSup = support.reduce(function (a, b) { return Math.abs(b - close) < Math.abs(a - close) ? b : a; });
+    var supGap = (close - nearestSup) / nearestSup * 100;
+    if (supGap < 0) supScore = 0;
+    else if (supGap <= 2) supScore = 30;
+    else if (supGap <= 5) supScore = 20;
+    else if (supGap <= 8) supScore = 10;
+    else supScore = 0;
+  }
+
+  var resistance = levels.resistance || [];
+  var resScore = 0;
+  if (resistance.length) {
+    var nearestRes = resistance.reduce(function (a, b) { return Math.abs(b - close) < Math.abs(a - close) ? b : a; });
+    var resGap = (nearestRes - close) / close * 100;
+    if (resGap < 0) resScore = 30;
+    else if (resGap <= 3) resScore = 20;
+    else if (resGap <= 8) resScore = 10;
+    else resScore = 0;
+  }
+
+  return { score: maScore + supScore + resScore };
+}
+
+// 연기금 톤(very_positive~caution) 기준점수 + 연속매매일수 가중치 -> 0~100점.
+// js/foreign-flow.js의 computePensionScore와 동일한 공식.
+function computePensionScoreServer_(p) {
+  if (!p || !p.interpretation) return null;
+  var base = PENSION_TONE_SCORE_[p.interpretation.tone];
+  if (base == null) return null;
+  var streak = p.streak || { days: 0, direction: 'flat' };
+  var days = Math.min(streak.days || 0, 15);
+  var adj = streak.direction === 'buy' ? days * 0.7 : streak.direction === 'sell' ? -days * 0.7 : 0;
+  return Math.max(0, Math.min(100, Math.round(base + adj)));
+}
+
+// 가중치 기반 종합점수 -> 별점(0~5, 0.5단위) -> 추천 라벨. js/foreign-flow.js의
+// computeVerdict와 동일한 공식(공매도 점수도 방향보정 없이 raw 값 그대로 사용).
+// 데이터 없는 항목은 중립(50점)으로 채운다.
+function computeVerdictServer_(flowScore, foreignInstScore, techScoreObj, shortScore, pensionScore) {
+  var techVal = techScoreObj && techScoreObj.score != null ? techScoreObj.score : null;
+  var vals = {
+    flow: flowScore != null ? flowScore : 50,
+    foreignInst: foreignInstScore != null ? foreignInstScore : 50,
+    tech: techVal != null ? techVal : 50,
+    short: shortScore != null ? shortScore : 50,
+    pension: pensionScore != null ? pensionScore : 50
+  };
+  var composite = vals.flow * SCORE_WEIGHTS_.flow
+    + vals.foreignInst * SCORE_WEIGHTS_.foreignInst
+    + vals.tech * SCORE_WEIGHTS_.tech
+    + vals.short * SCORE_WEIGHTS_.short
+    + vals.pension * SCORE_WEIGHTS_.pension;
+  var stars = Math.max(0, Math.min(5, Math.round(composite / 20 * 2) / 2));
+  var label = stars >= 4.5 ? '적극 매수' : stars >= 3.8 ? '매수 우위' : stars >= 2.8 ? '보유' : stars >= 1.8 ? '비중축소' : '매도';
+  return { score: composite, stars: stars, label: label };
+}
+
+// "최근 수급 개선/악화" 랭킹용 지표: 최근 5일 일평균 순매매(외국인+기관)에서 그 이전
+// 15일 일평균을 뺀 값. 기간이 다른 두 구간(5일 vs 15일)을 그대로 합산 비교하면 왜곡되므로
+// 일평균으로 정규화해서 뺀다 - 값이 클수록(+) 최근 수급이 좋아지는 중, 작을수록(-) 나빠지는 중.
+function foreignInstShiftScore_(rolling) {
+  if (!rolling || !rolling['5d'] || !rolling['20d']) return 0;
+  var v5 = rolling['5d'].foreign + rolling['5d'].inst;
+  var v20 = rolling['20d'].foreign + rolling['20d'].inst;
+  var prior15 = v20 - v5;
+  return (v5 / 5) - (prior15 / 15);
 }

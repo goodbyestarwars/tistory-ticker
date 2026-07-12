@@ -1,0 +1,210 @@
+/* ============ 오늘의 투자시그널 ============ */
+/* 상승/순매수=빨강 #d24f45, 하락/순매도=파랑 #1261c4 (사이트 공통 컬러) */
+
+#invest-signal {
+  font-family: inherit;
+}
+
+#invest-signal .is-meta {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+
+#invest-signal .is-section { margin-bottom: 28px; }
+#invest-signal .is-section-title {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+#invest-signal .is-hint,
+#invest-signal .is-error {
+  padding: 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+}
+#invest-signal .is-error { color: #c0392b; }
+
+/* ---- ① 오늘의 투자시그널 버킷 ---- */
+
+#invest-signal .is-buckets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+#invest-signal .is-bucket {
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+#invest-signal .is-bucket.active {
+  border-color: #111827;
+  box-shadow: 0 0 0 1px #111827 inset;
+}
+
+#invest-signal .is-bucket-emoji { font-size: 18px; }
+#invest-signal .is-bucket-label { font-weight: 700; font-size: 13.5px; flex: 1; }
+#invest-signal .is-bucket-count { font-weight: 700; font-size: 13px; color: #555; white-space: nowrap; }
+
+#invest-signal .is-bucket-list { margin-top: 12px; }
+#invest-signal .is-list-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+  margin-bottom: 8px;
+}
+#invest-signal .is-list-cap { font-weight: 400; color: #9ca3af; }
+
+/* ---- ② 수급 랭킹 탭 ---- */
+
+#invest-signal .is-rank-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+#invest-signal .is-rank-tab {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#invest-signal .is-rank-tab.active {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+
+/* ---- 공통 종목 행(등급 목록 + 랭킹 목록 둘 다 사용) ---- */
+
+#invest-signal .is-stock-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#invest-signal .is-stock-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+  text-decoration: none;
+  color: inherit;
+}
+#invest-signal .is-stock-row:last-child { border-bottom: none; }
+#invest-signal .is-stock-row:hover { background: #f7f7f8; }
+
+#invest-signal .is-rank-num {
+  font-weight: 800;
+  font-size: 12.5px;
+  color: #9ca3af;
+  min-width: 20px;
+}
+
+#invest-signal .is-metric {
+  display: flex;
+  flex-direction: column;
+  min-width: 110px;
+}
+#invest-signal .is-metric-label { font-size: 10.5px; color: #9ca3af; }
+#invest-signal .is-metric-val { font-size: 12.5px; font-weight: 700; }
+
+#invest-signal .is-stock-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#invest-signal .is-stock-code {
+  font-weight: 400;
+  color: #9ca3af;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+#invest-signal .is-stock-quote {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 90px;
+}
+#invest-signal .is-stock-price { font-weight: 700; font-size: 13px; }
+#invest-signal .is-stock-rate { font-size: 12px; font-weight: 700; }
+
+#invest-signal .is-up { color: #d24f45; }
+#invest-signal .is-down { color: #1261c4; }
+#invest-signal .is-flat { color: #666; }
+
+#invest-signal .is-footnote {
+  font-size: 11.5px;
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+/* ---- 다크모드 (스킨 블랑켓 규칙이 글자색을 덮어써서 !important 필요) ---- */
+
+html.dark #invest-signal .is-meta { color: #999 !important; }
+html.dark #invest-signal .is-section-title { color: #eee !important; }
+html.dark #invest-signal .is-hint { color: #999 !important; }
+html.dark #invest-signal .is-error { color: #e8877e !important; }
+
+html.dark #invest-signal .is-bucket {
+  background: #262626 !important;
+  border-color: #3a3a3a !important;
+}
+html.dark #invest-signal .is-bucket.active {
+  border-color: #eee !important;
+  box-shadow: 0 0 0 1px #eee inset !important;
+}
+html.dark #invest-signal .is-bucket-label { color: #eee !important; }
+html.dark #invest-signal .is-bucket-count { color: #ccc !important; }
+html.dark #invest-signal .is-list-head { color: #ccc !important; }
+html.dark #invest-signal .is-list-cap { color: #888 !important; }
+
+html.dark #invest-signal .is-rank-tab {
+  background: #262626 !important;
+  border-color: #3a3a3a !important;
+  color: #ccc !important;
+}
+html.dark #invest-signal .is-rank-tab.active {
+  background: #eee !important;
+  border-color: #eee !important;
+  color: #111 !important;
+}
+
+html.dark #invest-signal .is-stock-table { border-color: #3a3a3a !important; }
+html.dark #invest-signal .is-stock-row { border-color: #3a3a3a !important; }
+html.dark #invest-signal .is-stock-row:hover { background: #262626 !important; }
+html.dark #invest-signal .is-rank-num { color: #888 !important; }
+html.dark #invest-signal .is-metric-label { color: #888 !important; }
+html.dark #invest-signal .is-metric-val { color: #eee !important; }
+html.dark #invest-signal .is-stock-name { color: #eee !important; }
+html.dark #invest-signal .is-stock-code { color: #888 !important; }
+html.dark #invest-signal .is-stock-price { color: #eee !important; }
+html.dark #invest-signal .is-up { color: #e8776d !important; }
+html.dark #invest-signal .is-down { color: #6ea8e8 !important; }
+html.dark #invest-signal .is-flat { color: #aaa !important; }
+html.dark #invest-signal .is-footnote { color: #888 !important; }

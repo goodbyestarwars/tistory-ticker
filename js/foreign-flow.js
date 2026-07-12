@@ -63,6 +63,19 @@
     if (!container) return;
     container.innerHTML = buildShell();
     wireEvents(container);
+    autoSearchFromUrl(container);
+  }
+
+  // 다른 페이지(오늘의 투자시그널 등)에서 ?code=005930&name=삼성전자로 넘어오면
+  // 사용자가 직접 입력하지 않아도 바로 검색 결과를 보여준다(js/invest-signal.js 연동).
+  function autoSearchFromUrl(container) {
+    var params = new URLSearchParams(location.search);
+    var code = (params.get('code') || '').trim();
+    if (!code) return;
+    var name = (params.get('name') || '').trim();
+    var input = container.querySelector('#ffInput');
+    if (input) input.value = name || code;
+    search(container, code);
   }
 
   function buildShell() {
