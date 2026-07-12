@@ -2440,8 +2440,13 @@ html.font-gothic .nav-font-btn {
 html.full-width-page .sidebar-right,
 body#tt-body-page .sidebar-right { display: none; }
 /* 단, 카테고리 글목록(마켓 브리핑 등)에선 우측 사이드바(인기글·해시태그) 유지.
-   공지 카드는 티스토리가 카테고리 화면에 안 내려주므로(빈 #pinnedNotice) 원래 없음 */
-html.full-width-page body#tt-body-category .sidebar-right { display: flex; }
+   공지 카드는 티스토리가 카테고리 화면에 안 내려주므로(빈 #pinnedNotice) 원래 없음.
+   min-width로 감싸는 이유: body#tt-body-category의 ID 셀렉터가 특이도가 높아
+   감싸지 않으면 max-width:1100px/720px 모바일 규칙(.sidebar-right{display:none})을
+   그대로 이겨버려 좁은 화면에서도 사이드바가 강제로 나타나 레이아웃이 깨졌었음. */
+@media (min-width: 1101px) {
+  html.full-width-page body#tt-body-category .sidebar-right { display: flex; }
+}
 
 /* 번개 로고: 실제로 내리치듯 한 주기 안에서 두 번 번쩍하고 잠깐 쉬는 패턴을 반복
    (아이콘 자체가 주황/노랑 그라디언트라 글로우도 같은 톤으로 맞춤) */
