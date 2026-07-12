@@ -135,6 +135,11 @@
 }
 #foreign-flow .ff-summary-ai b { margin-right: 4px; }
 #foreign-flow .ff-summary-ai-text { color: #444; }
+#foreign-flow .ff-verdict {
+  font-size: 19px;
+  font-weight: 800;
+  margin-right: 8px;
+}
 
 /* ---- 결과 헤더/구분선/배지 ---- */
 #foreign-flow .ff-header {

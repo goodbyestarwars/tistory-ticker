@@ -427,6 +427,24 @@
     return parts.join(' · ') + '로 압박 ' + label + ' 수준입니다.';
   }
 
+  // 4개 점수(수급/공매도압박/연기금/기술적)를 평균 내 매수·매도·보유 중 하나로 결정한다.
+  // AI 문장이 매번 "매수 관점" 같은 표현을 붙여준다는 보장이 없어(모델이 생략하거나
+  // 다른 표현을 쓸 수 있음), 배지는 이 점수 기반 계산값만 신뢰하고 AI 응답에서는
+  // 근거 문장만 뽑아 쓴다 - 배지·문구가 서로 다른 결론을 가리키는 걸 원천 차단.
+  // 공매도 압박 점수는 높을수록 악재(하락 압력)라 다른 세 점수와 반대 방향 - 100에서
+  // 뺀 값을 써서 "점수가 높을수록 긍정적"으로 방향을 맞춘다.
+  function verdictFromScores(flowScore, shortScore, pensionScore, techScoreObj) {
+    var values = [];
+    if (flowScore != null) values.push(flowScore);
+    if (shortScore != null) values.push(100 - shortScore);
+    if (pensionScore != null) values.push(pensionScore);
+    if (techScoreObj && techScoreObj.score != null) values.push(techScoreObj.score);
+    var avg = values.length ? values.reduce(function (a, b) { return a + b; }, 0) / values.length : 50;
+    if (avg >= 60) return { label: '매수', cls: 'ff-buy' };
+    if (avg <= 40) return { label: '매도', cls: 'ff-sell' };
+    return { label: '보유', cls: 'ff-flat' };
+  }
+
   function buildSummaryBox(data, entry, techScore) {
     var flowScore = computeFlowScore(data);
 
@@ -457,9 +475,14 @@
         + '</div>';
     }).join('');
 
+    var verdict = verdictFromScores(flowScore, shortScore, pensionScore, techScore);
+
     return '<div class="ff-summary">'
       + rowsHtml
-      + '<div class="ff-summary-ai" id="ffAiSummary"><b>AI(GROQ) 한 줄 요약</b> · <span class="ff-summary-ai-text">생성 중...</span></div>'
+      + '<div class="ff-summary-ai" id="ffAiSummary">'
+      + '<span class="ff-verdict ' + verdict.cls + '">' + verdict.label + '</span>'
+      + '<b>AI(GROQ) 한 줄 요약</b> · <span class="ff-summary-ai-text">생성 중...</span>'
+      + '</div>'
       + '</div>';
   }
 
@@ -486,11 +509,17 @@
 
     fetchJson(GAS_TICKER_URL + qs)
       .then(function (res) {
-        el.textContent = (res && res.summary) || '요약을 생성하지 못했어요.';
+        el.textContent = stripVerdictPrefix((res && res.summary) || '') || '요약을 생성하지 못했어요.';
       })
       .catch(function () {
         el.textContent = '요약을 생성하지 못했어요.';
       });
+  }
+
+  // AI가 프롬프트대로 문장 맨 앞에 "매수/매도/보유 관점 -"를 붙여 보내는 경우, 배지와
+  // 중복 표시되지 않도록 그 앞부분만 잘라내고 근거 문장만 남긴다.
+  function stripVerdictPrefix(text) {
+    return (text || '').replace(/^(매수|매도|보유|관망)\s*(\(?관점\)?)?\s*[-–:·]\s*/, '');
   }
 
   function buildBadges(data) {
