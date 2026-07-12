@@ -1,6 +1,7 @@
 #!/bin/bash
-# kiwoom-batch.service/.timer를 등록해서 batch_scan.py가 하루 1회(18:00 KST=09:00 UTC)
-# 자동 실행되게 한다. VM에서 한 번만 실행하면 됨: bash scripts/cloud-vm/setup_batch_timer.sh
+# kiwoom-batch.service/.timer를 등록해서 batch_scan.py가 하루 1회(20:00 KST=11:00 UTC,
+# 장 마감 후 데이터 정산 시간 감안) 자동 실행되게 한다.
+# VM에서 한 번만 실행하면 됨: bash scripts/cloud-vm/setup_batch_timer.sh
 set -e
 HOME_DIR="$HOME/kiwoom-api"
 
@@ -17,10 +18,10 @@ SERVICEEOF
 
 sudo tee /etc/systemd/system/kiwoom-batch.timer > /dev/null << TIMEREOF
 [Unit]
-Description=Run kiwoom-batch daily at 18:00 KST (09:00 UTC)
+Description=Run kiwoom-batch daily at 20:00 KST (11:00 UTC)
 
 [Timer]
-OnCalendar=*-*-* 09:00:00
+OnCalendar=*-*-* 11:00:00
 Persistent=true
 
 [Install]
