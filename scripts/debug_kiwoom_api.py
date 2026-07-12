@@ -3,14 +3,30 @@
 """
 fetch_investor_flow.py가 모든 종목에서 "데이터 없음"으로 스킵되는 문제 진단용.
 공매도추이(ka10014) 응답 원문을 그대로 출력해서 실제 필드/래핑 구조를 확인한다.
-사용법: KIWOOM_APPKEY=xxx KIWOOM_SECRETKEY=yyy python scripts/debug_kiwoom_api.py
+사용법: 저장소 루트에 .env 파일(KIWOOM_APPKEY=xxx / KIWOOM_SECRETKEY=yyy)을 만들어두면 자동으로 읽음.
+       또는 KIWOOM_APPKEY=xxx KIWOOM_SECRETKEY=yyy python scripts/debug_kiwoom_api.py
 """
 import json
 import os
 import urllib.request
 from datetime import datetime, timedelta
 
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_URL = 'https://api.kiwoom.com'
+
+
+def load_dotenv():
+    """REPO_ROOT/.env(있으면)의 KEY=VALUE 줄을 os.environ에 채운다(fetch_investor_flow.py와 동일 로직)."""
+    env_path = os.path.join(REPO_ROOT, '.env')
+    if not os.path.exists(env_path):
+        return
+    with open(env_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
 def get_token(appkey, secretkey):
@@ -48,8 +64,12 @@ def call_tr(token, api_id, path, body):
 
 
 def main():
+    load_dotenv()
     appkey = os.environ.get('KIWOOM_APPKEY')
     secretkey = os.environ.get('KIWOOM_SECRETKEY')
+    if not appkey or not secretkey:
+        print('KIWOOM_APPKEY / KIWOOM_SECRETKEY가 필요합니다 (.env 파일 또는 환경변수로 설정).')
+        return
     token = get_token(appkey, secretkey)
     print('=== 토큰 발급 성공 ===')
 
