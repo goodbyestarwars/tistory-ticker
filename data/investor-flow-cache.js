@@ -3,7 +3,7 @@
  * scripts/fetch_investor_flow.py 실행 -> git push로 갱신 (서버 실시간 크롤링 아님)
  * 커버리지: data/sectors-v3.js 종목 풀만 포함(전체 종목 아님) - js/foreign-flow.js가
  * 이 캐시에 없는 종목은 공매도/대차/연기금 섹션을 생략하고 안내 문구만 표시한다.
- * 생성: 2026-07-11 17:06
+ * 생성: 2026-07-12 09:57
  */
 window.INVESTOR_FLOW_CACHE = {
   "000660": {
