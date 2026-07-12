@@ -38,6 +38,17 @@
   color: #9ca3af;
 }
 
+#pattern-scan .ps-tab-desc {
+  font-size: 12.5px;
+  color: #6b7280;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
 #pattern-scan .ps-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
@@ -296,6 +307,12 @@ html.dark #pattern-scan .ps-tab.active {
 
 html.dark #pattern-scan .ps-meta {
   color: #7c8aa5 !important;
+}
+
+html.dark #pattern-scan .ps-tab-desc {
+  color: #b3bdcf !important;
+  background: #171e2f !important;
+  border-color: #263248 !important;
 }
 
 html.dark #pattern-scan .ps-item {

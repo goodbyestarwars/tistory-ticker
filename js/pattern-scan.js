@@ -28,12 +28,15 @@
   var MA20_COLOR = '#f59e0b';
   var MA60_COLOR = '#8b5cf6';
 
+  // desc는 각 detect*_ 함수(gas/ticker-proxy.gs)의 판정 조건을 일반 투자자가 읽을 수 있는
+  // 말로 옮긴 것 - 목록이 비어 있을 때도(70점 미만이라 노출 종목이 없을 때) 이 패턴이
+  // 뭘 찾는 건지는 항상 보이게 하기 위함.
   var TABS = [
-    { key: 'risingLows', label: '저점상승형' },
-    { key: 'doubleBottom', label: '쌍바닥' },
-    { key: 'invHeadShoulders', label: '역헤드앤숄더' },
-    { key: 'boxRangeLow', label: '박스권 하단' },
-    { key: 'pullback', label: '눌림목' }
+    { key: 'risingLows', label: '저점상승형', desc: '저점이 이전 저점보다 3% 이상 높아지며 하락 압력이 약해지는 구간. 아직 크게 오르지 않아 조기 진입을 노리는 패턴입니다.' },
+    { key: 'doubleBottom', label: '쌍바닥', desc: '비슷한 높이의 저점을 두 번 찍고 그 사이 반등한 고점(넥라인)이 있는 W자 모양. 바닥을 두 번 확인했다는 신호입니다.' },
+    { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '저점 3개가 어깨-머리-어깨 모양(가운데가 가장 낮음)을 이루는 패턴. 하락 추세가 상승으로 반전될 때 자주 나타납니다.' },
+    { key: 'boxRangeLow', label: '박스권 하단', desc: '일정 가격대(박스권)에서 등락을 반복하다 그 박스 하단(지지선) 근처까지 내려온 구간. 지지가 버텨주는지 확인하는 자리입니다.' },
+    { key: 'pullback', label: '눌림목', desc: '단기간 15% 이상 오른 뒤 5~15% 정도 되돌림(조정)이 나와 20일선·60일선 부근까지 내려온 구간. 상승 추세 중 쉬어가는 자리입니다.' }
   ];
 
   // 리스트 항목용 미니 패턴 아이콘 - 실제 캔들을 축소한 게 아니라 O(고점/저점)와 선으로
@@ -58,6 +61,7 @@
     if (!container) return;
     container.innerHTML = buildShell();
     wireTabs(container);
+    renderTabDesc(container);
     loadScan(container);
   }
 
@@ -71,8 +75,17 @@
       + '<div class="ps-tabs">' + tabsHtml + '</div>'
       + '<div class="ps-meta" id="psMeta">불러오는 중...</div>'
       + '</div>'
+      + '<div class="ps-tab-desc" id="psTabDesc"></div>'
       + '<div class="ps-list" id="psList"><div class="ps-hint">불러오는 중...</div></div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
+  }
+
+  // 목록이 비어 있어도(70점 넘는 종목이 없어도) 이 패턴이 뭘 찾는 건지는 항상 보이게 한다.
+  function renderTabDesc(container) {
+    var box = container.querySelector('#psTabDesc');
+    if (!box) return;
+    var tab = TABS.filter(function (t) { return t.key === activeTab; })[0];
+    box.textContent = tab ? tab.desc : '';
   }
 
   function wireTabs(container) {
@@ -81,6 +94,7 @@
         container.querySelectorAll('.ps-tab').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         activeTab = btn.getAttribute('data-tab');
+        renderTabDesc(container);
         renderList(container);
         closeDetail(container);
       });
