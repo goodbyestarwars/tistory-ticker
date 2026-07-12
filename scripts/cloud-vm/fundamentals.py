@@ -17,6 +17,7 @@ OPERATING_INCOME_IDS = ('dart_OperatingIncomeLoss', 'ifrs-full_ProfitLossFromOpe
 NET_INCOME_IDS = ('ifrs-full_ProfitLoss',)
 EQUITY_IDS = ('ifrs-full_Equity',)
 LIABILITIES_IDS = ('ifrs-full_Liabilities',)
+ASSETS_IDS = ('ifrs-full_Assets',)
 
 QUARTER_LABEL = {'11013': '1분기', '11012': '반기', '11014': '3분기', '11011': '사업보고서(연간)'}
 
@@ -84,12 +85,14 @@ def fetch_annual_series(api_key, corp_code, current_year=None):
             net_income = extract_amount(rows, NET_INCOME_IDS, '당기순이익', ('IS', 'CIS'), amount_key)
             equity = extract_amount(rows, EQUITY_IDS, '자본총계', ('BS',), amount_key)
             liabilities = extract_amount(rows, LIABILITIES_IDS, '부채총계', ('BS',), amount_key)
+            assets = extract_amount(rows, ASSETS_IDS, '자산총계', ('BS',), amount_key)
             years[yr] = {
                 'year': yr,
                 'revenue': revenue,
                 'operating_income': operating_income,
                 'net_income': net_income,
                 'roe_pct': (net_income / equity * 100) if (net_income is not None and equity) else None,
+                'roa_pct': (net_income / assets * 100) if (net_income is not None and assets) else None,
                 'debt_ratio_pct': (liabilities / equity * 100) if (liabilities is not None and equity) else None,
             }
 
@@ -116,6 +119,7 @@ def fetch_annual_series(api_key, corp_code, current_year=None):
         'operating_income_cagr_pct': cagr(first['operating_income'], last['operating_income']),
         'net_income_cagr_pct': cagr(first['net_income'], last['net_income']),
         'latest_roe_pct': last['roe_pct'],
+        'latest_roa_pct': last['roa_pct'],
         'latest_debt_ratio_pct': last['debt_ratio_pct'],
     }
 

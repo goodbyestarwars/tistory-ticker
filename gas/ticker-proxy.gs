@@ -62,6 +62,10 @@ function doGet(e) {
     return jsonResponse(getInvestorFlowLive_((params.code || '').trim(), (params.name || '').trim()));
   }
 
+  if (params.action === 'fundamentals') {
+    return jsonResponse(getFundamentals_((params.code || '').trim()));
+  }
+
   if (params.debugShortNaver === '1') {
     return jsonResponse(debugShortTradeNaver((params.code || '').trim()));
   }
@@ -2594,6 +2598,36 @@ function getInvestorFlowLive_(code, name) {
   var data = kiwoomVmFetch_(path);
   if (!data) return { error: 'vm_unavailable' };
   return data;
+}
+
+// 종목분석 펀더멘탈 탭 (?action=fundamentals&code=). 밸류에이션 스냅샷(키움 ka10001, VM
+// /quote - 온디맨드 실시간)과 5년 실적 추세·최근분기(DART, VM이 하루 1회 미리 계산해둔
+// fundamentals_cache.json)를 합쳐서 반환. 캐시에 없는 종목(비상장·최근상장 등)은
+// fundamentals: null로 내려줘서 화면이 "데이터 없음" 안내를 띄우게 한다.
+function getFundamentals_(code) {
+  if (!code) return { error: 'code required' };
+  var quote = kiwoomVmFetch_('/quote?code=' + encodeURIComponent(code));
+  var valuation = quote ? {
+    market_cap_eok: toNum_(quote.mac),           // 시가총액(억원)
+    listed_shares_thousand: toNum_(quote.flo_stk), // 발행주식수(천주)
+    float_shares_thousand: toNum_(quote.dstr_stk),  // 유통주식수(천주)
+    float_ratio_pct: toNum_(quote.dstr_rt),
+    foreign_hold_ratio_pct: toNum_(quote.for_exh_rt),
+    per: toNum_(quote.per),
+    pbr: toNum_(quote.pbr),
+    eps: toNum_(quote.eps),
+    bps: toNum_(quote.bps),
+  } : null;
+
+  var fundamentals = fetchFundamentalsCache_()[code] || null;
+
+  return { code: code, valuation: valuation, fundamentals: fundamentals };
+}
+
+function toNum_(v) {
+  if (v === undefined || v === null || v === '') return null;
+  var n = parseFloat(String(v).replace(/,/g, ''));
+  return isNaN(n) ? null : n;
 }
 
 // 섹터풀 배치 캐시(scanInvestSignal용) - VM의 batch_scan.py가 하루 1회 미리 계산해둔 것을

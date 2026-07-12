@@ -43,6 +43,9 @@
   var flowChartInflight = {}; // code -> Promise
   var investorFlowCache = {};    // code -> { t, data }
   var investorFlowInflight = {}; // code -> Promise
+  var fundamentalsCache = {};    // code -> GAS ?action=fundamentals 응답(당일 내내 유효, 새로고침 시 초기화)
+  var fundamentalsInflight = {}; // code -> Promise
+  var activeView = 'flow';       // 'flow' | 'fundamentals' - 탭 상태(종목 재검색 시 flow로 리셋)
 
   // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
   var PENSION_TONE_SCORE = {
@@ -354,9 +357,15 @@
       + ' <span class="ff-asof">' + escapeHtml(data.as_of) + ' 기준</span></div>'
       + '<div class="ff-divider"></div>';
 
+    activeView = 'flow'; // 새 검색마다 수급 탭으로 리셋
+    html += buildViewTabs();
+
+    html += '<div class="ff-view" id="ffViewFlow">';
     html += buildSummaryBox(data, entry, techScore);
     html += buildFlowCard(data);
     html += buildExtraSections(entry, latest && latest.close, chartData, techScore);
+    html += '</div>';
+    html += '<div class="ff-view" id="ffViewFundamentals" hidden></div>';
 
     box.innerHTML = html;
 
@@ -366,6 +375,192 @@
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
     loadAiSummary(box, data, entry, techScore);
+    wireViewTabs(box, data.code, data.name);
+  }
+
+  // ---- 펀더멘탈 탭 (?action=fundamentals) ----
+
+  function buildViewTabs() {
+    return '<div class="ff-view-tabs">'
+      + '<button type="button" class="ff-view-tab active" data-view="flow">수급·기술적</button>'
+      + '<button type="button" class="ff-view-tab" data-view="fundamentals">펀더멘탈</button>'
+      + '</div>';
+  }
+
+  function wireViewTabs(box, code, name) {
+    var tabs = box.querySelectorAll('.ff-view-tab');
+    var flowBox = box.querySelector('#ffViewFlow');
+    var fundBox = box.querySelector('#ffViewFundamentals');
+    tabs.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var view = btn.getAttribute('data-view');
+        if (view === activeView) return;
+        activeView = view;
+        tabs.forEach(function (b) { b.classList.toggle('active', b === btn); });
+        if (flowBox) flowBox.hidden = view !== 'flow';
+        if (fundBox) fundBox.hidden = view !== 'fundamentals';
+        if (view === 'fundamentals' && fundBox) loadFundamentals(fundBox, code, name);
+      });
+    });
+  }
+
+  // investorFlowCache와 동일한 패턴: 종목코드별로 캐싱해 탭 재전환 시 재호출하지 않는다.
+  function loadFundamentals(box, code, name) {
+    if (fundamentalsCache[code]) {
+      box.innerHTML = buildFundamentalsPanel(fundamentalsCache[code], name);
+      return;
+    }
+    box.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>펀더멘탈 데이터를 불러오는 중...</div></div>';
+    var p = fundamentalsInflight[code] || fetchJson(GAS_TICKER_URL + '?action=fundamentals&code=' + encodeURIComponent(code));
+    fundamentalsInflight[code] = p;
+    p.then(function (res) {
+      delete fundamentalsInflight[code];
+      fundamentalsCache[code] = res;
+      box.innerHTML = buildFundamentalsPanel(res, name);
+    }).catch(function () {
+      delete fundamentalsInflight[code];
+      box.innerHTML = '<div class="ff-error">펀더멘탈 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+    });
+  }
+
+  function fmtEokWon(eok) {
+    if (eok == null || isNaN(eok)) return '-';
+    if (Math.abs(eok) >= 10000) return (eok / 10000).toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '조원';
+    return Math.round(eok).toLocaleString('ko-KR') + '억원';
+  }
+  function fmtThousandShares(v) {
+    if (v == null || isNaN(v)) return '-';
+    return Math.round(v * 1000).toLocaleString('ko-KR') + '주';
+  }
+  // fundamentals.py는 원 단위(정수)로 내려온다.
+  function fmtWonAmount(v) {
+    if (v == null || isNaN(v)) return '-';
+    return fmtEokWon(v / 1e8);
+  }
+
+  function buildFundamentalsPanel(res, name) {
+    var valuation = res && res.valuation;
+    var fundamentals = res && res.fundamentals;
+    var annual = fundamentals && fundamentals.annual;
+    var quarter = fundamentals && fundamentals.latest_quarter;
+
+    var html = '<div class="ff-fund-section">'
+      + '<div class="ff-fund-title">기업 개요</div>'
+      + (valuation ? buildOverviewGrid(valuation) : '<div class="ff-hint">밸류에이션 데이터를 불러오지 못했어요.</div>')
+      + '</div>';
+
+    html += '<div class="ff-fund-section">'
+      + '<div class="ff-fund-title">재무 (최근 5년)</div>'
+      + (annual ? buildAnnualTable(annual) + buildAnnualCharts(annual) : '<div class="ff-hint">' + escapeHtml(name || '') + '은(는) 재무 데이터가 없는 종목입니다(DART 미제출 또는 아직 배치 스캔 전).</div>')
+      + '</div>';
+
+    html += '<div class="ff-fund-section">'
+      + '<div class="ff-fund-title">최근 실적</div>'
+      + (quarter ? buildQuarterBlock(quarter) : '<div class="ff-hint">최근 분기 실적 데이터가 없습니다.</div>')
+      + '</div>';
+
+    html += '<div class="ff-fund-section">'
+      + '<div class="ff-fund-title">투자지표</div>'
+      + (valuation ? buildValuationGrid(valuation) : '<div class="ff-hint">밸류에이션 데이터를 불러오지 못했어요.</div>')
+      + '</div>';
+
+    html += '<div class="ff-footnote">재무 데이터는 DART(금융감독원 전자공시) 기준, 밸류에이션은 키움 API 실시간 기준입니다. 투자판단 및 그에 따른 책임은 본인에게 있습니다.</div>';
+
+    return html;
+  }
+
+  function buildOverviewGrid(v) {
+    var rows = [
+      ['시가총액', fmtEokWon(v.market_cap_eok)],
+      ['발행주식수', fmtThousandShares(v.listed_shares_thousand)],
+      ['유통주식수', fmtThousandShares(v.float_shares_thousand) + (v.float_ratio_pct != null ? ' (' + fmtPct(v.float_ratio_pct) + ')' : '')],
+      ['외국인 보유율', fmtPct(v.foreign_hold_ratio_pct)]
+    ];
+    return '<div class="ff-fund-grid">' + rows.map(function (r) {
+      return '<div class="ff-fund-cell"><span class="ff-fund-label">' + r[0] + '</span><span class="ff-fund-val">' + r[1] + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  function buildValuationGrid(v) {
+    var rows = [
+      ['PER', v.per == null ? '-' : v.per.toFixed(2) + '배'],
+      ['PBR', v.pbr == null ? '-' : v.pbr.toFixed(2) + '배'],
+      ['EPS', fmtWon(v.eps)],
+      ['BPS', fmtWon(v.bps)]
+    ];
+    return '<div class="ff-fund-grid">' + rows.map(function (r) {
+      return '<div class="ff-fund-cell"><span class="ff-fund-label">' + r[0] + '</span><span class="ff-fund-val">' + r[1] + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  function buildAnnualTable(annual) {
+    var rows = annual.years.map(function (y) {
+      return '<tr><td>' + y.year + '</td>'
+        + '<td>' + fmtWonAmount(y.revenue) + '</td>'
+        + '<td>' + fmtWonAmount(y.operating_income) + '</td>'
+        + '<td>' + fmtWonAmount(y.net_income) + '</td>'
+        + '<td>' + fmtPct(y.revenue != null && y.operating_income != null && y.revenue !== 0 ? y.operating_income / y.revenue * 100 : null) + '</td>'
+        + '<td>' + fmtPct(y.revenue != null && y.net_income != null && y.revenue !== 0 ? y.net_income / y.revenue * 100 : null) + '</td>'
+        + '<td>' + fmtPct(y.roe_pct) + '</td>'
+        + '<td>' + fmtPct(y.roa_pct) + '</td>'
+        + '<td>' + fmtPct(y.debt_ratio_pct) + '</td>'
+        + '</tr>';
+    }).join('');
+    return '<table class="ff-fund-table"><thead><tr>'
+      + '<th>연도</th><th>매출액</th><th>영업이익</th><th>순이익</th><th>영업이익률</th><th>순이익률</th><th>ROE</th><th>ROA</th><th>부채비율</th>'
+      + '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  // 외부 차트 라이브러리 없이 인라인 SVG 막대그래프(marketcap-bubble.js/섹터 히트맵과 동일한 방식).
+  function svgBarChart(items, colorPos, colorNeg) {
+    var w = 320, h = 90, barW = Math.min(48, (w - 20) / items.length - 10);
+    var vals = items.map(function (it) { return it.value == null ? 0 : it.value; });
+    var maxAbs = Math.max.apply(null, vals.map(Math.abs).concat([1]));
+    var zeroY = h - 22;
+    var scale = (zeroY - 10) / maxAbs;
+    var bars = items.map(function (it, i) {
+      var x = 10 + i * (w - 20) / items.length + ((w - 20) / items.length - barW) / 2;
+      var v = it.value == null ? 0 : it.value;
+      var barH = Math.abs(v) * scale;
+      var y = v >= 0 ? zeroY - barH : zeroY;
+      var color = v >= 0 ? colorPos : colorNeg;
+      var label = it.value == null ? '-' : (Math.abs(v) >= 1e12 ? (v / 1e12).toFixed(1) + '조' : (v / 1e8).toFixed(0) + '억');
+      return '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + Math.max(barH, 1) + '" fill="' + color + '" rx="2"></rect>'
+        + '<text x="' + (x + barW / 2) + '" y="' + (v >= 0 ? y - 4 : zeroY + barH + 12) + '" text-anchor="middle" class="ff-bar-val">' + label + '</text>'
+        + '<text x="' + (x + barW / 2) + '" y="' + (h - 6) + '" text-anchor="middle" class="ff-bar-label">' + escapeHtml(it.label) + '</text>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" class="ff-bar-chart"><line x1="0" y1="' + zeroY + '" x2="' + w + '" y2="' + zeroY + '" class="ff-bar-axis"></line>' + bars + '</svg>';
+  }
+
+  function buildAnnualCharts(annual) {
+    var years = annual.years;
+    function series(field) { return years.map(function (y) { return { label: String(y.year).slice(2) + "'", value: y[field] }; }); }
+    return '<div class="ff-fund-charts">'
+      + '<div class="ff-chart-block"><div class="ff-chart-title">매출액 추이</div>' + svgBarChart(series('revenue'), '#d24f45', '#1261c4') + '</div>'
+      + '<div class="ff-chart-block"><div class="ff-chart-title">영업이익 추이</div>' + svgBarChart(series('operating_income'), '#d24f45', '#1261c4') + '</div>'
+      + '<div class="ff-chart-block"><div class="ff-chart-title">순이익 추이</div>' + svgBarChart(series('net_income'), '#d24f45', '#1261c4') + '</div>'
+      + '</div>';
+  }
+
+  function buildQuarterBlock(q) {
+    var rows = [
+      ['매출액', fmtWonAmount(q.revenue), fmtSignedPct(q.revenue_yoy_pct)],
+      ['영업이익', fmtWonAmount(q.operating_income), fmtSignedPct(q.operating_income_yoy_pct)],
+      ['당기순이익', fmtWonAmount(q.net_income), fmtSignedPct(q.net_income_yoy_pct)]
+    ];
+    var tableHtml = '<div class="ff-quarter-label">' + escapeHtml(q.period_label || q.label || '') + ' (전년 동기 대비 YoY)</div>'
+      + '<table class="ff-fund-table"><thead><tr><th>구분</th><th>금액</th><th>YoY</th></tr></thead><tbody>'
+      + rows.map(function (r) {
+        var cls = r[2] === '-' ? 'ff-flat' : (r[2].indexOf('-') === 0 ? 'ff-sell' : 'ff-buy');
+        return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td class="' + cls + '">' + r[2] + '</td></tr>';
+      }).join('') + '</tbody></table>';
+
+    var chartItems = [
+      { label: '매출액', value: q.revenue },
+      { label: '영업이익', value: q.operating_income },
+      { label: '순이익', value: q.net_income }
+    ];
+    return tableHtml + '<div class="ff-fund-charts"><div class="ff-chart-block"><div class="ff-chart-title">' + escapeHtml(q.label || '') + ' 실적</div>' + svgBarChart(chartItems, '#d24f45', '#1261c4') + '</div></div>';
   }
 
   // ---- 종합 점수 요약 박스 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
