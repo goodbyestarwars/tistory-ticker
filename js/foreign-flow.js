@@ -8,11 +8,10 @@
  * 같은 종목 반복 조회를 디바운스한다(네이버 부하/GAS 호출량 억제).
  *
  * 공매도/대차거래/연기금 섹션(ff-extra-*):
- * window.INVESTOR_FLOW_CACHE(선택, data/investor-flow-cache.js)가 로드돼 있으면
- * 외국인·기관 표 아래에 추가로 렌더링한다. 이 캐시는 GAS 온디맨드가 아니라
- * scripts/fetch_investor_flow.py를 로컬 PC에서 키움증권 REST API로 하루 1회 돌려
- * git push한 정적 스냅샷이라 data/sectors-v3.js 종목 풀만 커버한다 - 캐시에 없는
- * 종목은 안내 문구만 표시(에러 아님, 조용히 생략하지 않고 이유를 보여준다).
+ * GAS ?action=investorFlow&code=&name= 온디맨드 호출 -> GAS가 GCP VM(키움 REST API
+ * 상시 서버, 고정IP)을 중계 호출해서 받아온다. VM은 종목코드 제한이 없어 전 종목
+ * 커버(예전 data/investor-flow-cache.js 정적 스냅샷은 섹터풀 238종목만 커버했음 - 폐기).
+ * 실패 시(네트워크 오류 등) 안내 문구만 표시(에러 아님, 조용히 생략하지 않고 이유를 보여준다).
  */
 (function (global) {
   'use strict';
@@ -42,6 +41,8 @@
   var inflightByCode = {}; // code -> Promise
   var flowChartCache = {};    // code -> { t, data }
   var flowChartInflight = {}; // code -> Promise
+  var investorFlowCache = {};    // code -> { t, data }
+  var investorFlowInflight = {}; // code -> Promise
 
   // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
   var PENSION_TONE_SCORE = {
@@ -227,22 +228,25 @@
 
     resultBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(resolved.name) + ' 수급 데이터를 불러오는 중... (가격 차트는 최초 조회 시 다소 걸릴 수 있어요)</div></div>';
 
-    // 차트 크롤링이 무거워 실패/타임아웃 가능성이 있는데, 그것 때문에 나머지 위젯까지
-    // 통째로 에러 처리되면 안 되므로 차트 fetch만 별도로 잡아 실패 시 에러 객체로 대체한다.
+    // 차트 크롤링/VM 온디맨드 호출 둘 다 실패 가능성이 있는데, 그것 때문에 나머지
+    // 위젯까지 통째로 에러 처리되면 안 되므로 각자 잡아 실패 시 null/에러 객체로 대체한다.
     var chartPromise = fetchFlowChart(resolved.code)
       .catch(function () { return { error: 'FETCH_FAILED', message: '차트 데이터를 불러오지 못했어요.' }; });
+    var investorFlowPromise = fetchInvestorFlowLive(resolved.code, resolved.name)
+      .catch(function () { return null; });
 
-    Promise.all([ForeignFlow.fetchFlow(resolved.code), chartPromise])
+    Promise.all([ForeignFlow.fetchFlow(resolved.code), chartPromise, investorFlowPromise])
       .then(function (results) {
         var data = results[0];
         var chartData = results[1];
+        var flowEntry = results[2];
         if (!data || data.error || !data.daily || !data.daily.length) {
           resultBox.innerHTML = '<div class="ff-error">'
             + escapeHtml((data && data.message) || '수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
             + '</div>';
           return;
         }
-        renderResult(resultBox, data, chartData);
+        renderResult(resultBox, data, chartData, flowEntry);
       })
       .catch(function () {
         resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
@@ -289,6 +293,29 @@
     return p;
   }
 
+  // 공매도/대차거래/연기금(GAS ?action=investorFlow 경유 VM 온디맨드) - 5분 메모리 캐시 +
+  // 진행 중 요청 재사용. 실패해도 나머지 위젯은 정상 표시돼야 하므로 호출부에서 catch로 null 처리.
+  function fetchInvestorFlowLive(code, name) {
+    var hit = investorFlowCache[code];
+    if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
+    if (investorFlowInflight[code]) return investorFlowInflight[code];
+
+    var url = GAS_TICKER_URL + '?action=investorFlow&code=' + encodeURIComponent(code)
+      + (name ? '&name=' + encodeURIComponent(name) : '');
+    var p = fetchJson(url)
+      .then(function (data) {
+        delete investorFlowInflight[code];
+        if (data && !data.error) investorFlowCache[code] = { t: Date.now(), data: data };
+        return data;
+      })
+      .catch(function (err) {
+        delete investorFlowInflight[code];
+        throw err;
+      });
+    investorFlowInflight[code] = p;
+    return p;
+  }
+
   function fetchJson(url) {
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
@@ -311,8 +338,7 @@
 
   // ---- 렌더링 ----
 
-  function renderResult(box, data, chartData) {
-    var entry = (global.INVESTOR_FLOW_CACHE || {})[data.code] || null;
+  function renderResult(box, data, chartData, entry) {
     var techScore = computeTechnicalScore(chartData);
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
@@ -330,7 +356,7 @@
 
     html += buildSummaryBox(data, entry, techScore);
     html += buildFlowCard(data);
-    html += buildExtraSections(data.code, latest && latest.close, chartData, techScore);
+    html += buildExtraSections(entry, latest && latest.close, chartData, techScore);
 
     box.innerHTML = html;
 
@@ -703,14 +729,11 @@
       + '</div>';
   }
 
-  // ---- 공매도/대차거래/연기금 (window.INVESTOR_FLOW_CACHE, PC 로컬 스냅샷) ----
+  // ---- 공매도/대차거래/연기금 (GAS ?action=investorFlow 경유 VM 온디맨드) ----
 
-  function buildExtraSections(code, currentClose, chartData, techScore) {
-    var cache = global.INVESTOR_FLOW_CACHE;
-    var entry = cache && cache[code];
+  function buildExtraSections(entry, currentClose, chartData, techScore) {
     if (!entry) {
-      return '<div class="ff-extra-missing">공매도·대차거래·연기금 데이터는 주요 섹터 구성종목만 제공됩니다(하루 1회 갱신). '
-        + '이 종목은 아직 커버리지에 없어요.</div>'
+      return '<div class="ff-extra-missing">공매도·대차거래·연기금 데이터를 일시적으로 가져오지 못했어요. 잠시 후 다시 시도해주세요.</div>'
         + buildFlowChartCard(chartData, techScore);
     }
 
@@ -718,7 +741,7 @@
     html += buildShortLoanCard(entry.short, entry.loan, currentClose);
     html += buildPensionCard(entry.pension, entry.name);
     html += '<div class="ff-extra-note">공매도 압박 점수는 항상 <b>가능성·추정치</b>이며, 공매도가 주가를 누른다고 단정하지 않습니다. '
-      + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API · PC 로컬 수집(하루 1회 갱신)</div>';
+      + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API</div>';
     html += buildFlowChartCard(chartData, techScore);
     html += '</div>';
     return html;

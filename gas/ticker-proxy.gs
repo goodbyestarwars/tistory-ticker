@@ -58,6 +58,10 @@ function doGet(e) {
     return jsonResponse(getFlowChart((params.code || '').trim()));
   }
 
+  if (params.action === 'investorFlow') {
+    return jsonResponse(getInvestorFlowLive_((params.code || '').trim(), (params.name || '').trim()));
+  }
+
   if (params.debugShortNaver === '1') {
     return jsonResponse(debugShortTradeNaver((params.code || '').trim()));
   }
@@ -2359,21 +2363,43 @@ function getInvestSignalResult() {
   };
 }
 
-// data/investor-flow-cache.js(공매도/대차/연기금, 키움 API 기반 PC 로컬 스냅샷)를 GAS가
-// 그대로 HTTP로 읽어와 재사용한다. 파일 앞의 안내 주석과 "window.INVESTOR_FLOW_CACHE = "
-// 접두사를 걷어내야 해서, 첫 '{'부터 마지막 '}'까지만 잘라 JSON으로 파싱한다.
-function fetchInvestorFlowCache_() {
+// 공매도/대차/연기금 - GCP VM(키움 REST API 상시 서버, 고정IP)을 호출.
+// VM 주소·인증 토큰은 스크립트 속성(Apps Script 편집기 > 프로젝트 설정 > 스크립트 속성)에
+// KIWOOM_VM_URL(예: http://34.28.220.13:8080), KIWOOM_VM_TOKEN으로 저장(코드에 노출 안 함).
+function kiwoomVmFetch_(path) {
   try {
-    var res = UrlFetchApp.fetch('https://goodbyestarwars.github.io/tistory-ticker/data/investor-flow-cache.js', { muteHttpExceptions: true });
-    if (res.getResponseCode() !== 200) return {};
-    var text = res.getContentText('UTF-8');
-    var start = text.indexOf('{');
-    var end = text.lastIndexOf('}');
-    if (start === -1 || end === -1) return {};
-    return JSON.parse(text.slice(start, end + 1));
+    var props = PropertiesService.getScriptProperties();
+    var base = props.getProperty('KIWOOM_VM_URL');
+    var token = props.getProperty('KIWOOM_VM_TOKEN');
+    if (!base || !token) return null;
+    var res = UrlFetchApp.fetch(base.replace(/\/$/, '') + path, {
+      headers: { 'X-API-Key': token },
+      muteHttpExceptions: true
+    });
+    if (res.getResponseCode() !== 200) return null;
+    var json = JSON.parse(res.getContentText('UTF-8'));
+    return json.data;
   } catch (err) {
-    return {};
+    return null;
   }
+}
+
+// 종목 하나 온디맨드 조회 (js/foreign-flow.js 위젯용, ?action=investorFlow&code=&name=).
+// VM의 /investor-flow는 종목코드 아무거나 다 되므로(섹터풀 제한 없음) 전 종목 커버.
+function getInvestorFlowLive_(code, name) {
+  if (!code) return { error: 'code required' };
+  var path = '/investor-flow?code=' + encodeURIComponent(code) + (name ? '&name=' + encodeURIComponent(name) : '');
+  var data = kiwoomVmFetch_(path);
+  if (!data) return { error: 'vm_unavailable' };
+  return data;
+}
+
+// 섹터풀 배치 캐시(scanInvestSignal용) - VM의 batch_scan.py가 하루 1회 미리 계산해둔 것을
+// 그대로 받아온다. 예전엔 data/investor-flow-cache.js(PC 로컬 스냅샷)를 읽었지만
+// 이제 VM이 상시 갱신하므로 그쪽으로 대체.
+function fetchInvestorFlowCache_() {
+  var batch = kiwoomVmFetch_('/investor-flow-batch');
+  return (batch && batch.data) || {};
 }
 
 // 외국인/기관 5일·20일 순매매 방향(4개) 각 ±12.5점, 기준 50점 -> 0~100점.
