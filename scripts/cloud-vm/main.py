@@ -1,0 +1,94 @@
+# -*- coding: utf-8 -*-
+"""키움 조회 전용 REST API 서버.
+실행: uvicorn main:app --host 0.0.0.0 --port 8080
+필수 환경변수: KIWOOM_APPKEY, KIWOOM_SECRETKEY, API_TOKEN(이 서버 자체 인증용, 아무 문자열이나 직접 정해서 사용)
+"""
+
+import os
+from datetime import datetime, timezone
+
+from fastapi import FastAPI, Header, HTTPException, Query
+
+import investor_flow
+import kiwoom_client
+
+app = FastAPI(title="kiwoom-readonly-api")
+
+
+def load_dotenv():
+    """스크립트 옆의 .env(있으면)를 os.environ에 채운다. 이미 설정된 실제 환경변수는 덮어쓰지 않음."""
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    if not os.path.exists(env_path):
+        return
+    with open(env_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+load_dotenv()
+
+
+def envelope(data):
+    return {
+        'success': True,
+        'updatedAt': datetime.now(timezone.utc).isoformat(),
+        'data': data,
+    }
+
+
+def require_api_key(x_api_key: str = Header(default=None)):
+    expected = os.environ.get('API_TOKEN')
+    if not expected:
+        raise HTTPException(status_code=500, detail='서버에 API_TOKEN이 설정되지 않았습니다.')
+    if x_api_key != expected:
+        raise HTTPException(status_code=401, detail='invalid or missing X-API-Key header')
+
+
+def get_kiwoom_token():
+    appkey = os.environ.get('KIWOOM_APPKEY')
+    secretkey = os.environ.get('KIWOOM_SECRETKEY')
+    if not appkey or not secretkey:
+        raise HTTPException(status_code=500, detail='서버에 KIWOOM_APPKEY/KIWOOM_SECRETKEY가 설정되지 않았습니다.')
+    return kiwoom_client.get_token(appkey, secretkey)
+
+
+@app.get('/health')
+def health():
+    return envelope({'status': 'ok'})
+
+
+@app.get('/quote')
+def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = Header(default=None)):
+    require_api_key(x_api_key)
+    try:
+        token = get_kiwoom_token()
+        res = kiwoom_client.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return envelope(res)
+
+
+@app.get('/investor-flow')
+def investor_flow_endpoint(
+    code: str = Query(..., min_length=6, max_length=6),
+    name: str = Query(default=None),
+    x_api_key: str = Header(default=None),
+):
+    """공매도/대차거래/연기금 수급 - scripts/fetch_investor_flow.py 로직 온디맨드 버전."""
+    require_api_key(x_api_key)
+    try:
+        token = get_kiwoom_token()
+        result = investor_flow.fetch_stock(token, code, name or code)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    if result is None:
+        raise HTTPException(status_code=404, detail='해당 종목의 공매도/대차/수급 데이터를 찾을 수 없습니다.')
+    return envelope(result)
