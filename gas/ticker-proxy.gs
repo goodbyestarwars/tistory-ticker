@@ -2227,42 +2227,63 @@ function jsonResponse(data) {
 }
 
 // ---------------------------------------------------------------------------
-// 오늘의 투자시그널 (?investSignal=1): 전체 종목(sectors-v3.js 풀) 매수~매도 등급 분포 +
-// 수급 랭킹(외국인/기관/연기금 TOP20, 수급개선/악화 TOP20).
+// 오늘의 투자시그널 (?investSignal=1): 전 종목(data/krx_map.js, 약 2,691개) 매수~매도
+// 등급 분포 + 수급 랭킹(외국인/기관/연기금 TOP20, 수급개선/악화 TOP20).
 //
 // js/foreign-flow.js의 가중치 공식(수급40%+외국인기관25%+기술적20%+공매도10%+연기금5%,
-// 공매도는 방향보정 없이 raw 점수 그대로)을 서버에서 동일하게 재계산해 하루 1회 배치로
-// 캐싱한다. 핵심 설계 원칙은 "PC를 켜지 않아도(키움 의존 없이) 매일 자동 갱신":
-// - 수급/외국인·기관/기술적 점수는 네이버 크롤링(getForeignFlow/fetchDailyOhlc_ 재사용)만
-//   으로 계산 - 이 배치 트리거(scanInvestSignal)가 GAS에서 매일 혼자 돈다.
-// - 공매도/연기금만 data/investor-flow-cache.js(키움 API, PC 로컬 하루 1회 갱신)를 그대로
-//   HTTP로 읽어 붙인다 - 이 두 항목(가중치 15%)만 "PC를 마지막으로 켰을 때 스냅샷"으로
-//   남고, 나머지 85%는 매일 자동 갱신된다.
-// scanChartPatterns/scanPullback과 마찬가지로 6분 실행 제한 때문에 시간 초과 시 중단하고
-// 그때까지 결과로 저장한다(매일 237종목 전부 커버된다는 보장은 없음 - 기존 패턴과 동일).
+// 공매도는 방향보정 없이 raw 점수 그대로)을 서버에서 동일하게 재계산한다.
+// - 수급/외국인·기관/기술적 점수는 네이버 크롤링(getForeignFlow/fetchDailyOhlc_ 재사용).
+// - 공매도/연기금은 GCP VM(/investor-flow-batch, 섹터풀 238종목만 커버)을 재사용 -
+//   커버 안 되는 종목은 이 두 항목(가중치 15%)만 중립(50점) 처리(computeVerdictServer_).
+//
+// 2,691종목은 GAS 6분 실행 제한 안에 한 번에 못 끝나서(238종목도 가끔 못 끝냄) "이어달리기"
+// 방식으로 돈다: scanInvestSignal(고정 일일 트리거, 18:00 KST)이 워커를 처음 깨우고,
+// 워커는 ~5분 일하다 남았으면 PropertiesService에 커서(cursor)+중간집계(WIP_*)를 저장하고
+// 1분 뒤 자기 자신(scanInvestSignalWorker_)을 한 번 더 예약한 뒤 종료 - 이 재예약 트리거는
+// 고정 일일 킥오프 트리거와 이름이 달라서(딴 함수) 서로 안 건드림. 전 종목을 다 돌면 그때
+// WIP_* 결과를 공식 결과(INVEST_SIGNAL_*)로 확정 발행하고 커서를 리셋, 재예약은 하지 않음
+// (다음 날 고정 트리거가 새 사이클을 다시 시작). 안전장치로 한 사이클이 3시간을 넘기면
+// 강제로 그때까지 결과를 발행하고 리셋한다(버그로 무한 이어달리기 되는 것 방지).
 // ---------------------------------------------------------------------------
-var INVEST_SIGNAL_TIME_BUDGET_MS = 5 * 60 * 1000;
+var INVEST_SIGNAL_WORKER_BUDGET_MS = 5 * 60 * 1000;
+var INVEST_SIGNAL_RELAY_DELAY_MS = 60 * 1000;
+var INVEST_SIGNAL_MAX_CYCLE_MS = 3 * 60 * 60 * 1000;
 var INVEST_SIGNAL_OHLC_PAGES = 10;   // fetchDailyOhlc_ 재사용(scanChartPatterns와 동일 - 100영업일)
 var INVEST_SIGNAL_BUCKET_CAP = 100;  // 버킷 하나가 너무 커서 PropertiesService 9KB/속성을 넘지 않게 상한
 var INVEST_SIGNAL_TOP_N = 20;
+var INVEST_SIGNAL_BUCKET_KEYS = ['적극 매수', '매수 우위', '보유', '비중축소', '매도'];
 
 var SCORE_WEIGHTS_ = { flow: 0.40, foreignInst: 0.25, tech: 0.20, short: 0.10, pension: 0.05 };
 var PENSION_TONE_SCORE_ = { very_positive: 90, positive: 75, neutral_positive: 60, neutral: 50, caution: 25 };
 
+// 고정 일일 트리거(setupPatternScanTrigger가 18:00 KST에 설치) 진입점 - 이어달리기 워커를 시작만 시킨다.
 function scanInvestSignal() {
-  var startedAt = Date.now();
-  var universe = fetchSectorUniverse_();
+  scanInvestSignalWorker_();
+}
+
+function scanInvestSignalWorker_() {
+  // 이 함수 이름으로 예약된 이전 이어달리기 트리거만 정리(고정 킥오프 트리거는 다른 이름이라 안전).
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'scanInvestSignalWorker_') ScriptApp.deleteTrigger(t);
+  });
+
+  var props = PropertiesService.getScriptProperties();
+  var universe = fetchFullUniverse_();
   var flowCache = fetchInvestorFlowCache_();
 
-  var bucketKeys = ['적극 매수', '매수 우위', '보유', '비중축소', '매도'];
-  var buckets = {}, counts = {};
-  bucketKeys.forEach(function (k) { buckets[k] = []; counts[k] = 0; });
+  var cursor = parseInt(props.getProperty('INVEST_SIGNAL_CURSOR') || '0', 10);
+  var cycleStartedAt = parseInt(props.getProperty('INVEST_SIGNAL_CYCLE_STARTED_AT') || '0', 10);
+  var isNewCycle = cursor === 0 || !cycleStartedAt;
+  if (isNewCycle) cycleStartedAt = Date.now();
 
-  var scored = [];
-  var scanned = 0;
+  var state = isNewCycle ? freshInvestSignalState_() : loadInvestSignalWip_(props);
 
-  for (var i = 0; i < universe.length; i++) {
-    if (Date.now() - startedAt > INVEST_SIGNAL_TIME_BUDGET_MS) break; // 시간 초과 시 지금까지 결과로 저장하고 중단
+  var startedAt = Date.now();
+  var i = cursor;
+  var forceFinish = (Date.now() - cycleStartedAt) > INVEST_SIGNAL_MAX_CYCLE_MS;
+
+  for (; i < universe.length; i++) {
+    if (Date.now() - startedAt > INVEST_SIGNAL_WORKER_BUDGET_MS) break; // forceFinish여도 이번 호출 시간예산은 항상 지킨다
 
     var stock = universe[i];
     try {
@@ -2294,47 +2315,140 @@ function scanInvestSignal() {
         pension5d: (entry && entry.pension && entry.pension.net_5d != null) ? entry.pension.net_5d : null,
         shift: foreignInstShiftScore_(flow.rolling)
       };
-      scored.push(row);
-      scanned++;
+      state.scanned++;
 
-      counts[verdict.label] = (counts[verdict.label] || 0) + 1;
-      var bucket = buckets[verdict.label];
+      state.counts[verdict.label] = (state.counts[verdict.label] || 0) + 1;
+      var bucket = state.buckets[verdict.label];
       if (bucket && bucket.length < INVEST_SIGNAL_BUCKET_CAP) {
         bucket.push([row.code, row.name, row.price, row.changeRate, row.stars]);
       }
+
+      upsertRanked_(state.topForeign, row, 'foreign5d', INVEST_SIGNAL_TOP_N, 'desc');
+      upsertRanked_(state.topInst, row, 'inst5d', INVEST_SIGNAL_TOP_N, 'desc');
+      upsertRanked_(state.topPension, row, 'pension5d', INVEST_SIGNAL_TOP_N, 'desc');
+      upsertRanked_(state.improved, row, 'shift', INVEST_SIGNAL_TOP_N, 'desc');
+      upsertRanked_(state.worsened, row, 'shift', INVEST_SIGNAL_TOP_N, 'asc');
     } catch (err) {
       continue; // 이 종목만 스킵
     }
   }
 
-  function topBy(field, filterNotNull) {
-    var list = filterNotNull ? scored.filter(function (r) { return r[field] != null; }) : scored.slice();
-    return list.sort(function (a, b) { return b[field] - a[field]; })
-      .slice(0, INVEST_SIGNAL_TOP_N)
-      .map(function (r) { return [r.code, r.name, r.price, r.changeRate, r[field]]; });
-  }
-  function bottomBy(field) {
-    return scored.slice().sort(function (a, b) { return a[field] - b[field]; })
-      .slice(0, INVEST_SIGNAL_TOP_N)
-      .map(function (r) { return [r.code, r.name, r.price, r.changeRate, r[field]]; });
+  if (i < universe.length && !forceFinish) {
+    // 아직 남음 - 중간 상태 저장하고 1분 뒤 이어서
+    saveInvestSignalWip_(props, i, cycleStartedAt, state);
+    ScriptApp.newTrigger('scanInvestSignalWorker_').timeBased().after(INVEST_SIGNAL_RELAY_DELAY_MS).create();
+    return;
   }
 
-  PropertiesService.getScriptProperties().setProperties({
-    INVEST_SIGNAL_META: JSON.stringify({ scannedAt: formatKstTime(Date.now()), universe: universe.length, scanned: scanned }),
-    INVEST_SIGNAL_COUNTS: JSON.stringify(counts),
-    INVEST_SIGNAL_BUCKET_ACTIVE_BUY: JSON.stringify(buckets['적극 매수']),
-    INVEST_SIGNAL_BUCKET_BUY: JSON.stringify(buckets['매수 우위']),
-    INVEST_SIGNAL_BUCKET_HOLD: JSON.stringify(buckets['보유']),
-    INVEST_SIGNAL_BUCKET_REDUCE: JSON.stringify(buckets['비중축소']),
-    INVEST_SIGNAL_BUCKET_SELL: JSON.stringify(buckets['매도']),
-    INVEST_SIGNAL_TOP_FOREIGN: JSON.stringify(topBy('foreign5d', false)),
-    INVEST_SIGNAL_TOP_INST: JSON.stringify(topBy('inst5d', false)),
-    INVEST_SIGNAL_TOP_PENSION: JSON.stringify(topBy('pension5d', true)),
-    INVEST_SIGNAL_IMPROVED: JSON.stringify(topBy('shift', false)),
-    INVEST_SIGNAL_WORSENED: JSON.stringify(bottomBy('shift'))
+  // 한 바퀴 완료(또는 안전장치로 강제 종료) - 공식 결과로 확정 발행하고 커서 리셋(재예약 없음)
+  props.setProperties({
+    INVEST_SIGNAL_META: JSON.stringify({ scannedAt: formatKstTime(Date.now()), universe: universe.length, scanned: state.scanned }),
+    INVEST_SIGNAL_COUNTS: JSON.stringify(state.counts),
+    INVEST_SIGNAL_BUCKET_ACTIVE_BUY: JSON.stringify(state.buckets['적극 매수']),
+    INVEST_SIGNAL_BUCKET_BUY: JSON.stringify(state.buckets['매수 우위']),
+    INVEST_SIGNAL_BUCKET_HOLD: JSON.stringify(state.buckets['보유']),
+    INVEST_SIGNAL_BUCKET_REDUCE: JSON.stringify(state.buckets['비중축소']),
+    INVEST_SIGNAL_BUCKET_SELL: JSON.stringify(state.buckets['매도']),
+    INVEST_SIGNAL_TOP_FOREIGN: JSON.stringify(state.topForeign),
+    INVEST_SIGNAL_TOP_INST: JSON.stringify(state.topInst),
+    INVEST_SIGNAL_TOP_PENSION: JSON.stringify(state.topPension),
+    INVEST_SIGNAL_IMPROVED: JSON.stringify(state.improved),
+    INVEST_SIGNAL_WORSENED: JSON.stringify(state.worsened),
+    INVEST_SIGNAL_CURSOR: '0'
   });
+  props.deleteProperty('INVEST_SIGNAL_CYCLE_STARTED_AT');
+  deleteInvestSignalWip_(props);
 
-  return { scanned: scanned, universe: universe.length };
+  return { scanned: state.scanned, universe: universe.length };
+}
+
+// ---- 이어달리기 상태 관리 (WIP_* 접두사, 완료 시 공식 결과로 옮겨지고 삭제됨) ----
+
+function freshInvestSignalState_() {
+  var buckets = {}, counts = {};
+  INVEST_SIGNAL_BUCKET_KEYS.forEach(function (k) { buckets[k] = []; counts[k] = 0; });
+  return {
+    scanned: 0,
+    counts: counts,
+    buckets: buckets,
+    topForeign: [], topInst: [], topPension: [], improved: [], worsened: []
+  };
+}
+
+function loadInvestSignalWip_(props) {
+  function arr(key) { return JSON.parse(props.getProperty(key) || '[]'); }
+  return {
+    scanned: parseInt(props.getProperty('INVEST_SIGNAL_WIP_SCANNED') || '0', 10),
+    counts: JSON.parse(props.getProperty('INVEST_SIGNAL_WIP_COUNTS') || '{}'),
+    buckets: {
+      '적극 매수': arr('INVEST_SIGNAL_WIP_BUCKET_ACTIVE_BUY'),
+      '매수 우위': arr('INVEST_SIGNAL_WIP_BUCKET_BUY'),
+      '보유': arr('INVEST_SIGNAL_WIP_BUCKET_HOLD'),
+      '비중축소': arr('INVEST_SIGNAL_WIP_BUCKET_REDUCE'),
+      '매도': arr('INVEST_SIGNAL_WIP_BUCKET_SELL')
+    },
+    topForeign: arr('INVEST_SIGNAL_WIP_TOP_FOREIGN'),
+    topInst: arr('INVEST_SIGNAL_WIP_TOP_INST'),
+    topPension: arr('INVEST_SIGNAL_WIP_TOP_PENSION'),
+    improved: arr('INVEST_SIGNAL_WIP_IMPROVED'),
+    worsened: arr('INVEST_SIGNAL_WIP_WORSENED')
+  };
+}
+
+function saveInvestSignalWip_(props, cursor, cycleStartedAt, state) {
+  props.setProperties({
+    INVEST_SIGNAL_CURSOR: String(cursor),
+    INVEST_SIGNAL_CYCLE_STARTED_AT: String(cycleStartedAt),
+    INVEST_SIGNAL_WIP_SCANNED: String(state.scanned),
+    INVEST_SIGNAL_WIP_COUNTS: JSON.stringify(state.counts),
+    INVEST_SIGNAL_WIP_BUCKET_ACTIVE_BUY: JSON.stringify(state.buckets['적극 매수']),
+    INVEST_SIGNAL_WIP_BUCKET_BUY: JSON.stringify(state.buckets['매수 우위']),
+    INVEST_SIGNAL_WIP_BUCKET_HOLD: JSON.stringify(state.buckets['보유']),
+    INVEST_SIGNAL_WIP_BUCKET_REDUCE: JSON.stringify(state.buckets['비중축소']),
+    INVEST_SIGNAL_WIP_BUCKET_SELL: JSON.stringify(state.buckets['매도']),
+    INVEST_SIGNAL_WIP_TOP_FOREIGN: JSON.stringify(state.topForeign),
+    INVEST_SIGNAL_WIP_TOP_INST: JSON.stringify(state.topInst),
+    INVEST_SIGNAL_WIP_TOP_PENSION: JSON.stringify(state.topPension),
+    INVEST_SIGNAL_WIP_IMPROVED: JSON.stringify(state.improved),
+    INVEST_SIGNAL_WIP_WORSENED: JSON.stringify(state.worsened)
+  });
+}
+
+function deleteInvestSignalWip_(props) {
+  ['INVEST_SIGNAL_WIP_SCANNED', 'INVEST_SIGNAL_WIP_COUNTS', 'INVEST_SIGNAL_WIP_BUCKET_ACTIVE_BUY',
+    'INVEST_SIGNAL_WIP_BUCKET_BUY', 'INVEST_SIGNAL_WIP_BUCKET_HOLD', 'INVEST_SIGNAL_WIP_BUCKET_REDUCE',
+    'INVEST_SIGNAL_WIP_BUCKET_SELL', 'INVEST_SIGNAL_WIP_TOP_FOREIGN', 'INVEST_SIGNAL_WIP_TOP_INST',
+    'INVEST_SIGNAL_WIP_TOP_PENSION', 'INVEST_SIGNAL_WIP_IMPROVED', 'INVEST_SIGNAL_WIP_WORSENED'
+  ].forEach(function (key) { props.deleteProperty(key); });
+}
+
+// 랭킹 후보 하나를 상위/하위 N개짜리 정렬 리스트에 삽입하고 N개 넘으면 자른다(전체 종목을
+// 다 들고 있다가 마지막에 한 번에 정렬하면 PropertiesService 용량을 넘기므로, 종목 하나
+// 처리할 때마다 이렇게 즉시 반영). field 값이 null이면 랭킹 후보에서 제외(연기금 데이터 없는
+// 종목 등). order: 'desc'(클수록 상위) | 'asc'(작을수록 상위).
+function upsertRanked_(list, row, field, n, order) {
+  if (row[field] == null) return;
+  list.push([row.code, row.name, row.price, row.changeRate, row[field]]);
+  list.sort(function (a, b) { return order === 'desc' ? b[4] - a[4] : a[4] - b[4]; });
+  if (list.length > n) list.length = n;
+}
+
+// data/krx_map.js(전 상장종목, window.KRX_MAP={"종목명":"코드",...})를 fetch해서
+// { name, code } 목록으로 파싱. fetchSectorUniverse_()(섹터풀 238종목)와 별개로
+// 투자시그널만 이 전 종목 유니버스를 쓴다.
+function fetchFullUniverse_() {
+  var url = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+  var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return [];
+
+  var text = res.getContentText('UTF-8');
+  var out = [];
+  var re = /"([^"]+)":"([0-9A-Za-z]{6})"/g;
+  var m;
+  while ((m = re.exec(text)) !== null) {
+    out.push({ name: m[1], code: m[2] });
+  }
+  return out;
 }
 
 function getInvestSignalResult() {
