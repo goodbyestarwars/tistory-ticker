@@ -373,12 +373,8 @@
     raw = raw.replace(/([^\d\n][.!?])\s+([가-힣A-Z])/g, '$1\n$2');
     /* ⑨ 연속 줄바꿈 정리 */
     raw = raw.replace(/\n{3,}/g, '\n\n');
-    /* ⑩ 최종 출력 */
+    /* ⑩ 최종 출력 (3줄 클램프는 style.css .post-excerpt 규칙이 담당) */
     el.innerHTML = raw.replace(/\n/g, '<br>');
-    el.style.display = '-webkit-box';
-    el.style.webkitLineClamp = '3';
-    el.style.webkitBoxOrient = 'vertical';
-    el.style.overflow = 'hidden';
   });
 
   /* 뉴스 티커 초기 패딩 보정 (RSS 로드 전부터 공간 확보) */
