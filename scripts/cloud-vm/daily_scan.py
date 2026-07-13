@@ -88,6 +88,20 @@ def save_ohlc_snapshot(conn, code, daily):
     )
 
 
+def save_investor_flow(conn, code, flow_rows):
+    """flow_rows(fetch_institution_trend 결과, 외국인/기관 일별 순매매)를 investor_flow_daily에
+    UPSERT. 지금까지는 투자시그널 계산에만 쓰고 버렸던 데이터 - OHLC와 동일한 이유로 저장."""
+    if not flow_rows:
+        return
+    conn.executemany(
+        'INSERT INTO investor_flow_daily (code, date, close, change_pct, foreign_net, inst_net) '
+        'VALUES (?, ?, ?, ?, ?, ?) '
+        'ON CONFLICT(code, date) DO UPDATE SET close=excluded.close, change_pct=excluded.change_pct, '
+        'foreign_net=excluded.foreign_net, inst_net=excluded.inst_net',
+        [(code, r['date'], r['close'], r['change_pct'], r['foreign_net'], r['inst_net']) for r in flow_rows],
+    )
+
+
 def main():
     load_dotenv()
     appkey = os.environ.get('KIWOOM_APPKEY')
@@ -149,6 +163,7 @@ def main():
                     pullback_matches.append(pd.build_pattern_match(stock, daily, pullback))
 
             flow_rows = kiwoom_market.fetch_institution_trend(token, code)
+            save_investor_flow(conn, code, flow_rows)
             time.sleep(THROTTLE_SEC)
             flow = invest_signal.build_flow(flow_rows)
             if flow:
