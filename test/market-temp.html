@@ -35,14 +35,17 @@
   var currentScore = 95;
 
   function mockResponse(score) {
-    // 7개 지표 배분은 대략적인 예시일 뿐, 합이 score가 되도록만 맞춤
+    // 8개 지표 배분은 대략적인 예시일 뿐, 합이 score가 되도록만 맞춤.
+    // score가 낮을수록 부호(수급/등락률)가 음수 쪽으로 기울게 해서 빨강/파랑/회색 컬러를 모두 확인.
+    var sign = score >= 50 ? 1 : -1;
     var vix = Math.round(Math.min(20, score * 0.20));
     var foreignFlow = Math.round(Math.min(15, score * 0.15));
     var instFlow = Math.round(Math.min(10, score * 0.10));
-    var rise = Math.round(Math.min(20, score * 0.20));
+    var riseK = Math.round(Math.min(10, score * 0.10));
+    var riseQ = score === 55 ? 5 : Math.round(Math.min(10, score * 0.10)); // 55점에서 코스피/코스닥 엇갈림(0=회색) 케이스도 확인
     var vol = Math.round(Math.min(15, score * 0.15));
     var exchange = Math.round(Math.min(10, score * 0.10));
-    var futures = Math.max(0, score - vix - foreignFlow - instFlow - rise - vol - exchange);
+    var futures = Math.max(0, score - vix - foreignFlow - instFlow - riseK - riseQ - vol - exchange);
 
     var temp = Math.round(score * 0.4 * 10) / 10;
     var grade = temp < 10 ? { emoji: '🧊', label: '극도의 공포', tone: 'extreme-fear' }
@@ -57,12 +60,15 @@
       grade: grade,
       components: {
         vix: { score: vix, value: 16.4 },
-        foreignFlow: { score: foreignFlow, ratio: 0.4 },
-        instFlow: { score: instFlow, ratio: 0.3 },
-        riseRatio: { score: rise, ratio: 0.62, up: 148, down: 90, total: 238 },
-        tradingValue: { score: vol, relative: 1.12 },
-        exchange: { score: exchange, changeRate: -0.2 },
-        usFutures: { score: futures, changePct: 0.5 }
+        foreignFlow: { score: foreignFlow, ratio: 0.4 * sign },
+        instFlow: { score: instFlow, ratio: 0.3 * sign },
+        riseRatioKospi: { score: riseK, ratio: 0.62, up: sign > 0 ? 130 : 40, down: sign > 0 ? 60 : 150, total: 190 },
+        riseRatioKosdaq: score === 55
+          ? { score: riseQ, ratio: 0.5, up: 100, down: 100, total: 200 } // up===down -> 회색(0) 케이스
+          : { score: riseQ, ratio: 0.5, up: sign > 0 ? 120 : 50, down: sign > 0 ? 60 : 140, total: 180 },
+        tradingValue: { score: vol, relative: 1 + 0.12 * sign },
+        exchange: { score: exchange, changeRate: -0.2 * sign },
+        usFutures: { score: futures, changePct: 0.5 * sign }
       },
       updatedAt: '2026-07-13 18:00:00'
     };

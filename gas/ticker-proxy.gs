@@ -707,9 +707,10 @@ function getMarketAnalysis() {
 // ---------------------------------------------------------------------------
 
 // 2026-07-13: 100점 스코어를 "증시온도(℃)"로 재해석 - temp = score * 0.4 (0~100점 -> 0~40℃).
-// 구성 요소를 7개(VIX20+외국인수급15+기관수급10+상승비율20+거래대금15+환율10+미국선물10=100)로
-// 재편하고, 외국인/기관 수급을 분리 + 환율/미국 선물지수를 신규 추가했다(사용자 요청 반영,
-// 가중치는 시장 영향력을 고려해 임의로 배분 - 공식 기준 없음, 배포 후 분포 보고 조정 가능).
+// 구성 요소를 8개(VIX20+외국인수급15+기관수급10+코스피상승비율10+코스닥상승비율10+거래대금15+
+// 환율10+미국선물10=100)로 재편하고, 외국인/기관 수급 분리·환율/미국 선물지수 신규 추가에 더해
+// 상승비율도 코스피/코스닥 시장별로 쪼갰다(사용자 요청 반영, 가중치는 시장 영향력을 고려해
+// 임의로 배분 - 공식 기준 없음, 배포 후 분포 보고 조정 가능).
 var MARKET_TEMP_CACHE_TTL = 1800;   // 30분
 var VIX_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX';
 var US_FUTURES_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/ES=F'; // S&P500 E-mini 선물
@@ -730,13 +731,14 @@ function getMarketTemp() {
   var vix = scoreVix_(safeCall(fetchVix_));
   var foreignFlow = computeForeignFlowScore_();
   var instFlow = computeInstFlowScore_();
-  var rise = computeRiseRatioScore_(quotes);
+  var rise = computeRiseRatioScore_(quotes, universe);
   var vol = computeVolumeScore_(quotes);
   var fx = computeExchangeScore_();
   var futures = computeUsFuturesScore_();
 
   var total = Math.max(0, Math.min(100,
-    vix.score + foreignFlow.score + instFlow.score + rise.score + vol.score + fx.score + futures.score));
+    vix.score + foreignFlow.score + instFlow.score + rise.kospi.score + rise.kosdaq.score
+    + vol.score + fx.score + futures.score));
   var temp = Math.round(total * 0.4 * 10) / 10; // 0~100점 -> 0~40℃, 소수 1자리
 
   var result = {
@@ -744,7 +746,8 @@ function getMarketTemp() {
     temp: temp,
     grade: gradeForTemp_(temp),
     components: {
-      vix: vix, foreignFlow: foreignFlow, instFlow: instFlow, riseRatio: rise,
+      vix: vix, foreignFlow: foreignFlow, instFlow: instFlow,
+      riseRatioKospi: rise.kospi, riseRatioKosdaq: rise.kosdaq,
       tradingValue: vol, exchange: fx, usFutures: futures
     },
     updatedAt: formatKstTime(Date.now())
@@ -804,18 +807,27 @@ function computeInstFlowScore_() {
   return { score: Math.round(5 + r.ratio * 5), ratio: r.ratio, v5: r.v5, note: 'KODEX 200(069500) 기관 5일 합산 수급 기준' };
 }
 
-// 섹터 풀 종목 중 상승/하락 종목 수 비율. 보합(변동 0)은 분모에서 제외. 최대 20점.
-function computeRiseRatioScore_(quotes) {
-  var up = 0, down = 0;
-  quotes.forEach(function (q) {
-    if (q.change > 0) up++;
-    else if (q.change < 0) down++;
-  });
-  var total = up + down;
-  var ratio = total ? up / total : 0.5;
-  var score = ratio >= 0.7 ? 20 : ratio >= 0.55 ? 16 : ratio >= 0.45 ? 10 : ratio >= 0.3 ? 5 : 0;
+// 섹터 풀 종목 중 상승/하락 종목 수 비율 - 코스피/코스닥 시장별로 따로 집계한다(두 시장이
+// 반대로 움직이는 날도 있어 합쳐버리면 그 괴리가 안 보임). 보합(변동 0)은 분모에서 제외.
+// 시장당 최대 10점(코스피10+코스닥10=20점, 기존 통합 20점 배점과 총점 동일하게 유지).
+function computeRiseRatioScore_(quotes, universe) {
+  var marketOf = {};
+  (universe || []).forEach(function (u) { marketOf[u.code] = u.market; });
 
-  return { score: score, ratio: ratio, up: up, down: down, total: total };
+  function tally(market) {
+    var up = 0, down = 0;
+    quotes.forEach(function (q) {
+      if (marketOf[q.code] !== market) return;
+      if (q.change > 0) up++;
+      else if (q.change < 0) down++;
+    });
+    var total = up + down;
+    var ratio = total ? up / total : 0.5;
+    var score = ratio >= 0.7 ? 10 : ratio >= 0.55 ? 8 : ratio >= 0.45 ? 5 : ratio >= 0.3 ? 3 : 0;
+    return { score: score, ratio: ratio, up: up, down: down, total: total };
+  }
+
+  return { kospi: tally('KOSPI'), kosdaq: tally('KOSDAQ') };
 }
 
 // 섹터 풀 종목의 가격x거래량 합산(대금 근사치)을 PropertiesService에 최근 5거래일(오늘 제외)
@@ -1647,12 +1659,12 @@ function fetchSectorUniverse_() {
   var text = res.getContentText('UTF-8');
   var out = [];
   var seen = {};
-  var re = /name:\s*"([^"]+)",\s*code:\s*"([0-9A-Za-z]{6})"/g;
+  var re = /name:\s*"([^"]+)",\s*code:\s*"([0-9A-Za-z]{6})",\s*market:\s*"(KOSPI|KOSDAQ)"/g;
   var m;
   while ((m = re.exec(text)) !== null) {
     if (seen[m[2]]) continue;
     seen[m[2]] = true;
-    out.push({ name: m[1], code: m[2] });
+    out.push({ name: m[1], code: m[2], market: m[3] });
   }
   return out;
 }

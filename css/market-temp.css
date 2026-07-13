@@ -43,7 +43,33 @@
 #market-temp .mt-grade {
   font-size: 16px;
   font-weight: 700;
-  margin: 4px 0 14px;
+  margin: 4px 0 10px;
+}
+
+/* ---- 온도 게이지 바 (0~40℃ 스케일 위 현재 위치 마커) ---- */
+#market-temp .mt-gauge { margin-bottom: 14px; }
+#market-temp .mt-gauge-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1261c4 0%, #7fb5e8 22%, #ddd 50%, #f0a868 78%, #d24f45 100%);
+}
+#market-temp .mt-gauge-marker {
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 18px;
+  background: #222;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+#market-temp .mt-gauge-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #aaa;
+  margin-top: 4px;
 }
 
 #market-temp .mt-bars {
@@ -53,7 +79,7 @@
 }
 #market-temp .mt-bar-row {
   display: grid;
-  grid-template-columns: 56px 1fr 46px;
+  grid-template-columns: 76px 1fr auto;
   align-items: center;
   gap: 8px;
   font-size: 12px;
@@ -72,7 +98,13 @@
 #market-temp .mt-bar-fill.mt-cold { background: #1261c4; }
 #market-temp .mt-bar-fill.mt-mid { background: #888; }
 #market-temp .mt-bar-fill.mt-hot { background: #d24f45; }
-#market-temp .mt-bar-value { color: #999; text-align: right; }
+#market-temp .mt-bar-value { color: #999; text-align: right; white-space: nowrap; }
+#market-temp .mt-bar-value small { color: #bbb; }
+
+/* 부호 색상 - 상승/개선=빨강, 하락/악화=파랑, 0=회색 (사이트 공통 컬러 컨벤션) */
+#market-temp .mt-val-pos { color: #d24f45; font-weight: 600; }
+#market-temp .mt-val-neg { color: #1261c4; font-weight: 600; }
+#market-temp .mt-val-zero { color: #888; }
 
 #market-temp .mt-legend {
   margin-top: 12px;
@@ -91,12 +123,22 @@
   color: #999;
   margin: 10px 0 4px;
 }
+#market-temp .mt-legend-item {
+  padding: 5px 0;
+  border-bottom: 1px dotted #f0f0f0;
+}
+#market-temp .mt-legend-item:last-of-type { border-bottom: none; }
 #market-temp .mt-legend-row {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
   color: #666;
-  padding: 3px 0;
+}
+#market-temp .mt-legend-desc {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+  line-height: 1.4;
 }
 #market-temp .mt-legend-total {
   font-size: 12px;
@@ -169,9 +211,17 @@ html.dark #market-temp .mt-bar-fill.mt-cold { background: #4d9fff !important; }
 html.dark #market-temp .mt-bar-fill.mt-mid { background: #999 !important; }
 html.dark #market-temp .mt-bar-fill.mt-hot { background: #ff6b5b !important; }
 html.dark #market-temp .mt-bar-value { color: #888 !important; }
+html.dark #market-temp .mt-bar-value small { color: #666 !important; }
+html.dark #market-temp .mt-val-pos { color: #ff6b5b !important; }
+html.dark #market-temp .mt-val-neg { color: #4d9fff !important; }
+html.dark #market-temp .mt-val-zero { color: #999 !important; }
+html.dark #market-temp .mt-gauge-marker { background: #eee !important; box-shadow: 0 0 0 2px #262626, 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
+html.dark #market-temp .mt-gauge-scale { color: #777 !important; }
 html.dark #market-temp .mt-legend { border-top-color: #3a3a3a !important; }
 html.dark #market-temp .mt-legend summary { color: #999 !important; }
 html.dark #market-temp .mt-legend-title { color: #888 !important; }
+html.dark #market-temp .mt-legend-item { border-bottom-color: #333 !important; }
 html.dark #market-temp .mt-legend-row { color: #bbb !important; }
+html.dark #market-temp .mt-legend-desc { color: #777 !important; }
 html.dark #market-temp .mt-legend-total { color: #bbb !important; border-top-color: #3a3a3a !important; }
 html.dark #market-temp .mt-updated { color: #777 !important; }
