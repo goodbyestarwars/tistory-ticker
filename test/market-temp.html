@@ -70,6 +70,15 @@
         exchange: { score: exchange, changeRate: -0.2 * sign },
         usFutures: { score: futures, changePct: 0.5 * sign }
       },
+      // score===10(극도의공포 버튼)일 때만 "수집 중"(history: null) 케이스로 확인
+      history: score === 10 ? null : {
+        dayChange: 2.1 * sign,
+        yesterday: Math.max(0, temp - 2.1 * sign),
+        weekAvg: Math.max(0, temp - 1.4),
+        weekDays: 7,
+        monthAvg: Math.max(0, temp - 3.2),
+        monthDays: score === 30 ? 12 : 30 // 30점 버튼에서는 "수집 중(30일 미만)" 일수 표기도 확인
+      },
       updatedAt: '2026-07-13 18:00:00'
     };
   }

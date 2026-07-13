@@ -717,6 +717,8 @@ var US_FUTURES_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/ES=F'; /
 var MT_FLOW_CODE = '069500'; // KODEX 200 - 코스피200 추종 ETF, 수급 대리지표
 var MT_VOL_HISTORY_KEY = 'mt_vol_hist_v2'; // v1(10일 기록)->v2(5일 평균 기준으로 명확화) 캐시 키 분리
 var MT_VOL_HISTORY_MAX = 6; // 오늘 포함 6개 = "오늘 제외 직전 5거래일 평균"의 기준
+var MT_DAILY_HISTORY_KEY = 'mt_daily_history_v1'; // 전일 대비/1주일·1개월 평균용 일별 온도 기록
+var MT_DAILY_HISTORY_MAX = 35; // 1개월(30일) 평균 계산 + 여유분
 
 function getMarketTemp() {
   var cache = CacheService.getScriptCache();
@@ -750,11 +752,70 @@ function getMarketTemp() {
       riseRatioKospi: rise.kospi, riseRatioKosdaq: rise.kosdaq,
       tradingValue: vol, exchange: fx, usFutures: futures
     },
+    history: computeMarketTempHistory_(temp),
     updatedAt: formatKstTime(Date.now())
   };
 
   cache.put(cacheKey, JSON.stringify(result), MARKET_TEMP_CACHE_TTL);
   return result;
+}
+
+// 장마감 후 하루 1회(setupMarketTempTrigger_로 등록한 트리거) 오늘의 온도를 PropertiesService에
+// 날짜별로 누적 - "전일 대비/1주일 평균/1개월 평균" 계산의 재료. 같은 날 재실행되면 최신값으로 덮어씀.
+function logDailyMarketTemp_() {
+  var data = getMarketTemp();
+  var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty(MT_DAILY_HISTORY_KEY);
+  var hist = raw ? JSON.parse(raw) : [];
+
+  if (hist.length && hist[hist.length - 1].date === today) {
+    hist[hist.length - 1].temp = data.temp;
+  } else {
+    hist.push({ date: today, temp: data.temp });
+  }
+  if (hist.length > MT_DAILY_HISTORY_MAX) hist = hist.slice(hist.length - MT_DAILY_HISTORY_MAX);
+  props.setProperty(MT_DAILY_HISTORY_KEY, JSON.stringify(hist));
+}
+
+// 스크립트 편집기에서 이 함수를 딱 한 번 수동 실행하면(또는 배포 후 1회) 매일 15:40 KST(장마감 직후)
+// logDailyMarketTemp_를 도는 트리거가 등록된다. 재실행해도 중복 트리거는 정리하고 하나만 유지.
+function setupMarketTempTrigger_() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'logDailyMarketTemp_') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('logDailyMarketTemp_')
+    .timeBased()
+    .atHour(15)
+    .nearMinute(40)
+    .everyDays(1)
+    .inTimezone('Asia/Seoul')
+    .create();
+}
+
+// 오늘 이전(오늘 값은 아직 형성 중이라 제외)의 일별 기록으로 전일 대비/1주일·1개월 평균을 계산.
+// 기록이 하나도 없으면(트리거 등록 직후 며칠) null을 반환 - 프론트에서 "데이터 수집 중" 처리.
+function computeMarketTempHistory_(currentTemp) {
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty(MT_DAILY_HISTORY_KEY);
+  var hist = raw ? JSON.parse(raw) : [];
+  var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
+  var priorDays = hist.filter(function (h) { return h.date !== today; });
+  if (!priorDays.length) return null;
+
+  var yesterday = priorDays[priorDays.length - 1];
+  var week = priorDays.slice(-7);
+  var month = priorDays.slice(-30);
+  function avg(arr) { return arr.reduce(function (s, e) { return s + e.temp; }, 0) / arr.length; }
+
+  return {
+    dayChange: Math.round((currentTemp - yesterday.temp) * 10) / 10,
+    yesterday: yesterday.temp,
+    weekAvg: Math.round(avg(week) * 10) / 10,
+    weekDays: week.length,
+    monthAvg: Math.round(avg(month) * 10) / 10,
+    monthDays: month.length
+  };
 }
 
 function fetchVix_() {

@@ -1,5 +1,6 @@
 /* 오늘의 증시온도 위젯 (js/market-temp.js)
- * 온도 바 색: 차가움=파랑 #1261c4, 중립=회색 #888, 뜨거움=빨강 #d24f45 (사이트 공통 상승/하락 컬러 재사용)
+ * 부호 색: 상승/개선=빨강 #d24f45, 하락/악화=파랑 #1261c4, 0/중립=회색 (사이트 공통 컬러 컨벤션)
+ * 지표 카테고리 바 색: VIX=빨강, 수급=파랑, 상승비율=초록, 거래대금=주황, 환율·선물=슬레이트
  * 다크모드: html.dark #market-temp ... !important (9bolt 스킨 블랑켓 규칙 대응) */
 
 #market-temp {
@@ -24,11 +25,51 @@
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
-#market-temp .mt-label {
+
+#market-temp .mt-info {
+  display: inline-block;
+  font-size: 11px;
+  color: #aaa;
+  cursor: help;
+  margin-left: 1px;
+}
+
+/* ---- 상단 헤더: 타이틀 + 전일 대비/1주일 평균/1개월 평균 통계 ---- */
+#market-temp .mt-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+#market-temp .mt-head-title {
   font-size: 14px;
   font-weight: 700;
   color: #666;
-  margin-bottom: 4px;
+  white-space: nowrap;
+}
+#market-temp .mt-stats {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+#market-temp .mt-stat { text-align: right; }
+#market-temp .mt-stat-label { font-size: 10px; color: #999; }
+#market-temp .mt-stat-value { font-size: 14px; font-weight: 700; color: #666; }
+#market-temp .mt-stat-sub { font-size: 10px; color: #bbb; }
+#market-temp .mt-stats-empty {
+  font-size: 11px;
+  color: #aaa;
+  text-align: right;
+}
+
+/* ---- 메인 온도 숫자 + 등급 배지 ---- */
+#market-temp .mt-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 #market-temp .mt-score {
   font-size: 40px;
@@ -40,14 +81,35 @@
   font-weight: 600;
   margin-left: 2px;
 }
-#market-temp .mt-grade {
-  font-size: 16px;
+#market-temp .mt-grade-pill {
+  font-size: 13px;
   font-weight: 700;
-  margin: 4px 0 10px;
+  color: #666;
+  background: #f2f2f2;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+#market-temp .mt-sub {
+  font-size: 12px;
+  color: #999;
+  margin: 4px 0 14px;
 }
 
-/* ---- 온도 게이지 바 (0~40℃ 스케일 위 현재 위치 마커) ---- */
-#market-temp .mt-gauge { margin-bottom: 14px; }
+/* ---- 온도 게이지 바 (0~40℃ 스케일 위 현재 위치 마커 + 말풍선 + 구간 라벨) ---- */
+#market-temp .mt-gauge { margin-bottom: 16px; }
+#market-temp .mt-gauge-bubble {
+  position: relative;
+  display: inline-block;
+  transform: translateX(-50%);
+  background: #222;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
 #market-temp .mt-gauge-track {
   position: relative;
   height: 10px;
@@ -71,19 +133,39 @@
   color: #aaa;
   margin-top: 4px;
 }
+#market-temp .mt-gauge-bands {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #bbb;
+  margin-top: 2px;
+}
+#market-temp .mt-gauge-bands span { flex: 1; text-align: center; }
+#market-temp .mt-gauge-bands span:first-child { text-align: left; }
+#market-temp .mt-gauge-bands span:last-child { text-align: right; }
 
+/* ---- 지표별 막대 ---- */
 #market-temp .mt-bars {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 #market-temp .mt-bar-row {
   display: grid;
-  grid-template-columns: 76px 1fr auto;
+  grid-template-columns: 96px 1fr auto;
   align-items: center;
   gap: 8px;
   font-size: 12px;
 }
+#market-temp .mt-bar-head {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  color: #666;
+  line-height: 1.2;
+}
+#market-temp .mt-bar-icon { font-size: 11px; }
 #market-temp .mt-bar-label { color: #666; }
 #market-temp .mt-bar-track {
   height: 8px;
@@ -95,9 +177,11 @@
   height: 100%;
   border-radius: 999px;
 }
-#market-temp .mt-bar-fill.mt-cold { background: #1261c4; }
-#market-temp .mt-bar-fill.mt-mid { background: #888; }
-#market-temp .mt-bar-fill.mt-hot { background: #d24f45; }
+#market-temp .mt-bar-fill.mt-bar-vix { background: #d24f45; }
+#market-temp .mt-bar-fill.mt-bar-flow { background: #1261c4; }
+#market-temp .mt-bar-fill.mt-bar-rise { background: #2f9e6b; }
+#market-temp .mt-bar-fill.mt-bar-vol { background: #e08a3c; }
+#market-temp .mt-bar-fill.mt-bar-fx { background: #8a93a6; }
 #market-temp .mt-bar-value { color: #999; text-align: right; white-space: nowrap; }
 #market-temp .mt-bar-value small { color: #bbb; }
 
@@ -106,48 +190,40 @@
 #market-temp .mt-val-neg { color: #1261c4; font-weight: 600; }
 #market-temp .mt-val-zero { color: #888; }
 
-#market-temp .mt-legend {
-  margin-top: 12px;
-  border-top: 1px solid #eee;
-  padding-top: 10px;
-}
-#market-temp .mt-legend summary {
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  color: #888;
-}
-#market-temp .mt-legend-title {
-  font-size: 11px;
+/* 지표별 짧은 배지(예: "매도", "활발") - 위 부호색을 배경톤으로 재사용 */
+#market-temp .mt-pill {
+  display: inline-block;
+  font-size: 10px;
   font-weight: 700;
-  color: #999;
-  margin: 10px 0 4px;
+  border-radius: 999px;
+  padding: 1px 7px;
 }
-#market-temp .mt-legend-item {
-  padding: 5px 0;
-  border-bottom: 1px dotted #f0f0f0;
-}
-#market-temp .mt-legend-item:last-of-type { border-bottom: none; }
-#market-temp .mt-legend-row {
+#market-temp .mt-pill.mt-val-pos { background: #fbe4e1; color: #b3392f; }
+#market-temp .mt-pill.mt-val-neg { background: #e1ecfa; color: #0e4c96; }
+#market-temp .mt-pill.mt-val-zero { background: #eee; color: #888; }
+
+/* ---- 하단 해석 가이드 박스 ---- */
+#market-temp .mt-guide {
   display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #666;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f7f7f7;
 }
-#market-temp .mt-legend-desc {
+#market-temp .mt-guide-icon { font-size: 14px; }
+#market-temp .mt-guide-title {
   font-size: 11px;
-  color: #999;
-  margin-top: 2px;
-  line-height: 1.4;
-}
-#market-temp .mt-legend-total {
-  font-size: 12px;
   font-weight: 700;
-  color: #666;
-  text-align: right;
-  padding: 4px 0;
-  border-top: 1px dashed #eee;
-  margin-top: 2px;
+  color: #888;
+  margin-bottom: 4px;
+}
+#market-temp .mt-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 3px 10px;
+  font-size: 11px;
+  color: #777;
 }
 
 #market-temp .mt-updated {
@@ -157,7 +233,7 @@
   text-align: right;
 }
 
-/* ---- 온도 구간별 카드 배경 (2026-07-13: 공포=한랭, 과열=온난 톤) ---- */
+/* ---- 온도 구간별 카드 배경 (공포=한랭, 과열=온난 톤) ---- */
 #market-temp .mt-card.mt-tone-extreme-fear {
   background: linear-gradient(160deg, #dceeff 0%, #ffffff 65%);
   border-color: #b8daf5;
@@ -202,26 +278,36 @@ html.dark #market-temp .mt-card.mt-tone-extreme-greed {
   background: linear-gradient(160deg, #4a2116 0%, #2e2624 65%) !important;
   border-color: #7a3a26 !important;
 }
-html.dark #market-temp .mt-label { color: #aaa !important; }
+html.dark #market-temp .mt-info { color: #777 !important; }
+html.dark #market-temp .mt-head-title { color: #aaa !important; }
+html.dark #market-temp .mt-stat-label { color: #777 !important; }
+html.dark #market-temp .mt-stat-value { color: #ccc !important; }
+html.dark #market-temp .mt-stat-sub { color: #666 !important; }
+html.dark #market-temp .mt-stats-empty { color: #777 !important; }
 html.dark #market-temp .mt-score { color: #eee !important; }
-html.dark #market-temp .mt-grade { color: #eee !important; }
+html.dark #market-temp .mt-grade-pill { background: #333 !important; color: #ccc !important; }
+html.dark #market-temp .mt-sub { color: #888 !important; }
+html.dark #market-temp .mt-bar-head { color: #999 !important; }
 html.dark #market-temp .mt-bar-label { color: #999 !important; }
 html.dark #market-temp .mt-bar-track { background: #3a3a3a !important; }
-html.dark #market-temp .mt-bar-fill.mt-cold { background: #4d9fff !important; }
-html.dark #market-temp .mt-bar-fill.mt-mid { background: #999 !important; }
-html.dark #market-temp .mt-bar-fill.mt-hot { background: #ff6b5b !important; }
+html.dark #market-temp .mt-bar-fill.mt-bar-vix { background: #ff6b5b !important; }
+html.dark #market-temp .mt-bar-fill.mt-bar-flow { background: #4d9fff !important; }
+html.dark #market-temp .mt-bar-fill.mt-bar-rise { background: #4cc990 !important; }
+html.dark #market-temp .mt-bar-fill.mt-bar-vol { background: #f0a868 !important; }
+html.dark #market-temp .mt-bar-fill.mt-bar-fx { background: #a8b0bd !important; }
 html.dark #market-temp .mt-bar-value { color: #888 !important; }
 html.dark #market-temp .mt-bar-value small { color: #666 !important; }
 html.dark #market-temp .mt-val-pos { color: #ff6b5b !important; }
 html.dark #market-temp .mt-val-neg { color: #4d9fff !important; }
 html.dark #market-temp .mt-val-zero { color: #999 !important; }
+html.dark #market-temp .mt-pill.mt-val-pos { background: #4a2620 !important; color: #ff8f80 !important; }
+html.dark #market-temp .mt-pill.mt-val-neg { background: #1c3050 !important; color: #7cb3ff !important; }
+html.dark #market-temp .mt-pill.mt-val-zero { background: #333 !important; color: #aaa !important; }
+html.dark #market-temp .mt-gauge-bubble { background: #eee !important; color: #222 !important; }
 html.dark #market-temp .mt-gauge-marker { background: #eee !important; box-shadow: 0 0 0 2px #262626, 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
 html.dark #market-temp .mt-gauge-scale { color: #777 !important; }
-html.dark #market-temp .mt-legend { border-top-color: #3a3a3a !important; }
-html.dark #market-temp .mt-legend summary { color: #999 !important; }
-html.dark #market-temp .mt-legend-title { color: #888 !important; }
-html.dark #market-temp .mt-legend-item { border-bottom-color: #333 !important; }
-html.dark #market-temp .mt-legend-row { color: #bbb !important; }
-html.dark #market-temp .mt-legend-desc { color: #777 !important; }
-html.dark #market-temp .mt-legend-total { color: #bbb !important; border-top-color: #3a3a3a !important; }
+html.dark #market-temp .mt-gauge-bands { color: #666 !important; }
+html.dark #market-temp .mt-guide { background: #202020 !important; }
+html.dark #market-temp .mt-guide-title { color: #888 !important; }
+html.dark #market-temp .mt-guide-grid { color: #999 !important; }
 html.dark #market-temp .mt-updated { color: #777 !important; }
