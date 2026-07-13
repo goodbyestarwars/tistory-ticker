@@ -2,11 +2,12 @@
 """공매도(ka10014)/대차거래(ka20068)/연기금(ka10059) 조회 + 지표 계산.
 scripts/fetch_investor_flow.py의 계산 로직을 그대로 포팅(수치 조건 동일, AI 임의판단 없음)."""
 
-from concurrent.futures import ThreadPoolExecutor
+import time
 from datetime import datetime, timedelta
 
 import kiwoom_client
 
+THROTTLE_SEC = 0.25
 LOOKBACK_DAYS = 100
 
 
@@ -84,20 +85,15 @@ def pension_interpretation(streak, foreign_net_5d):
 
 
 def fetch_stock(token, code, name):
-    """3개 TR(공매도/대차/연기금)은 서로 독립적이라 순차 호출(+ 사이 sleep) 대신 동시에 쏴서
-    응답 시간을 줄인다(2026-07-13: GAS가 이 엔드포인트만 유독 응답이 느려서 실패하는 현상이
-    있어, 순차 호출 시 걸리던 ~2.9초를 최대한 줄이기 위한 조치)."""
     strt_dt, end_dt = date_range()
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        short_future = executor.submit(kiwoom_client.call_tr, token, 'ka10014', '/api/dostk/shsa',
-                                        {'stk_cd': code, 'strt_dt': strt_dt, 'end_dt': end_dt})
-        loan_future = executor.submit(kiwoom_client.call_tr, token, 'ka20068', '/api/dostk/slb', {'stk_cd': code})
-        invsr_future = executor.submit(kiwoom_client.call_tr, token, 'ka10059', '/api/dostk/stkinfo',
-                                        {'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'})
-        short_res = short_future.result()
-        loan_res = loan_future.result()
-        invsr_res = invsr_future.result()
+    short_res = kiwoom_client.call_tr(token, 'ka10014', '/api/dostk/shsa',
+                                       {'stk_cd': code, 'strt_dt': strt_dt, 'end_dt': end_dt})
+    time.sleep(THROTTLE_SEC)
+    loan_res = kiwoom_client.call_tr(token, 'ka20068', '/api/dostk/slb', {'stk_cd': code})
+    time.sleep(THROTTLE_SEC)
+    invsr_res = kiwoom_client.call_tr(token, 'ka10059', '/api/dostk/stkinfo',
+                                       {'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'})
 
     short_rows = short_res.get('shrts_trnsn') or []
     loan_rows = loan_res.get('dbrt_trde_trnsn') or []
