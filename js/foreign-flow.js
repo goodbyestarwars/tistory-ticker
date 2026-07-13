@@ -49,7 +49,7 @@
   var investorFlowInflight = {}; // code -> Promise
   var fundamentalsCache = {};    // code -> GAS ?action=fundamentals 응답(당일 내내 유효, 새로고침 시 초기화)
   var fundamentalsInflight = {}; // code -> Promise
-  var activeView = 'flow';       // 'flow' | 'fundamentals' - 탭 상태(종목 재검색 시 flow로 리셋)
+  var activeView = 'flow';       // 'flow' | 'chart' | 'fundamentals' - 탭 상태(종목 재검색 시 flow로 리셋)
 
   // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
   var PENSION_TONE_SCORE = {
@@ -374,39 +374,47 @@
       + ' <span class="ff-asof">' + escapeHtml(data.as_of) + ' 기준</span></div>'
       + '<div class="ff-divider"></div>';
 
+    // 종합평가(점수·별점·AI 투자의견)는 탭 밖에 항상 노출 - 수급/차트/펀더멘탈 어느 탭을
+    // 보고 있어도 판정 결과가 계속 보여야 한다(2026-07-13 사용자 피드백: 탭으로 분리해달라).
+    html += buildSummaryBox(data, entry, techScore);
+
     activeView = 'flow'; // 새 검색마다 수급 탭으로 리셋
     html += buildViewTabs();
 
     html += '<div class="ff-view" id="ffViewFlow">';
-    html += buildSummaryBox(data, entry, techScore);
     html += buildFlowCard(data);
-    html += buildExtraSections(entry, latest && latest.close, chartData, techScore);
+    html += buildFlowExtraSections(entry, latest && latest.close);
+    html += '</div>';
+    html += '<div class="ff-view" id="ffViewChart" hidden>';
+    html += buildChartSection(chartData, techScore);
     html += '</div>';
     html += '<div class="ff-view" id="ffViewFundamentals" hidden></div>';
 
     box.innerHTML = html;
 
-    var lwContainer = box.querySelector('#ffLwChart');
-    if (lwContainer) renderLwChart(lwContainer, chartData);
+    // 캔들차트는 차트 탭이 처음 열릴 때 지연 렌더링한다(wireViewTabs) - hidden(display:none)
+    // 컨테이너에 바로 그리면 TradingView Lightweight Charts가 크기를 0으로 잡아 빈 화면이 됨.
 
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
     loadAiSummary(box, data, entry, techScore, chartData);
-    wireViewTabs(box, data.code, data.name);
+    wireViewTabs(box, data.code, data.name, chartData);
   }
 
-  // ---- 펀더멘탈 탭 (?action=fundamentals) ----
+  // ---- 탭(수급 / 차트 / 펀더멘탈) ----
 
   function buildViewTabs() {
     return '<div class="ff-view-tabs">'
-      + '<button type="button" class="ff-view-tab active" data-view="flow">수급·기술적</button>'
+      + '<button type="button" class="ff-view-tab active" data-view="flow">수급</button>'
+      + '<button type="button" class="ff-view-tab" data-view="chart">차트</button>'
       + '<button type="button" class="ff-view-tab" data-view="fundamentals">펀더멘탈</button>'
       + '</div>';
   }
 
-  function wireViewTabs(box, code, name) {
+  function wireViewTabs(box, code, name, chartData) {
     var tabs = box.querySelectorAll('.ff-view-tab');
     var flowBox = box.querySelector('#ffViewFlow');
+    var chartBox = box.querySelector('#ffViewChart');
     var fundBox = box.querySelector('#ffViewFundamentals');
     tabs.forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -415,8 +423,15 @@
         activeView = view;
         tabs.forEach(function (b) { b.classList.toggle('active', b === btn); });
         if (flowBox) flowBox.hidden = view !== 'flow';
+        if (chartBox) chartBox.hidden = view !== 'chart';
         if (fundBox) fundBox.hidden = view !== 'fundamentals';
         if (view === 'fundamentals' && fundBox) loadFundamentals(fundBox, code, name);
+        // 차트 탭은 처음 열릴 때만 렌더링(hidden 상태에서 그리면 크기 0으로 잡히는 문제 방지)
+        if (view === 'chart' && chartBox && !chartBox.dataset.rendered) {
+          chartBox.dataset.rendered = '1';
+          var lwContainer = chartBox.querySelector('#ffLwChart');
+          if (lwContainer) renderLwChart(lwContainer, chartData);
+        }
       });
     });
   }
@@ -1015,12 +1030,11 @@
       + '</div>';
   }
 
-  // ---- 공매도/대차거래/연기금 (GAS ?action=investorFlow 경유 VM 온디맨드) ----
+  // ---- 공매도/대차거래/연기금 (GAS ?action=investorFlow 경유 VM 온디맨드) - 수급 탭 ----
 
-  function buildExtraSections(entry, currentClose, chartData, techScore) {
+  function buildFlowExtraSections(entry, currentClose) {
     if (!entry) {
-      return '<div class="ff-extra-missing">공매도·대차거래·연기금 데이터를 일시적으로 가져오지 못했어요. 잠시 후 다시 시도해주세요.</div>'
-        + buildFlowChartCard(chartData, techScore);
+      return '<div class="ff-extra-missing">공매도·대차거래·연기금 데이터를 일시적으로 가져오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
     }
 
     var html = '<div class="ff-extra">';
@@ -1028,9 +1042,14 @@
     html += buildPensionCard(entry.pension, entry.name);
     html += '<div class="ff-extra-note">공매도 압박 점수는 항상 <b>가능성·추정치</b>이며, 공매도가 주가를 누른다고 단정하지 않습니다. '
       + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API</div>';
-    html += buildFlowChartCard(chartData, techScore);
     html += '</div>';
     return html;
+  }
+
+  // ---- 가격 차트(캔들+MA+지지저항+RSI+볼린저밴드) - 차트 탭 ----
+
+  function buildChartSection(chartData, techScore) {
+    return '<div class="ff-extra">' + buildFlowChartCard(chartData, techScore) + '</div>';
   }
 
   function extraMetric(label, valueHtml) {
