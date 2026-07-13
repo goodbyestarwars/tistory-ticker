@@ -86,3 +86,53 @@ def fetch_institution_trend(token, code):
 
     out.sort(key=lambda r: r['date'], reverse=True)  # 최신일 우선 - gas getForeignFlow와 동일
     return out
+
+
+def fetch_foreign_inst_daily(token, code):
+    """종목분석 메인 수급 표(외국인·기관 순매매 + 외국인 보유주수/비중)용 - ka10045(기관/
+    외국인 순매매)와 ka10008(외국인 보유주수/비중)을 날짜로 합쳐 gas의 parseFrgnRows()
+    (네이버 frgn.naver 파싱 결과)와 동일한 행 형식으로 반환한다: {date, close, change_pct,
+    volume, inst_net, foreign_net, foreign_shares, foreign_ratio} - 최신일 우선.
+    fetch_institution_trend()과 별도 함수로 둔 이유: daily_scan.py(전종목 배치)는
+    foreign_shares/foreign_ratio가 필요 없어서 ka10008 추가 호출을 안 하는 가벼운 버전을
+    그대로 쓰고, 이 함수는 종목분석 페이지 온디맨드 조회 전용으로만 쓴다."""
+    end = datetime.now()
+    start = end - timedelta(days=FLOW_LOOKBACK_DAYS)
+    strt_dt, end_dt = start.strftime('%Y%m%d'), end.strftime('%Y%m%d')
+
+    inst_res = kiwoom_client.call_tr(token, 'ka10045', '/api/dostk/mrkcond', {
+        'stk_cd': code,
+        'strt_dt': strt_dt,
+        'end_dt': end_dt,
+        'orgn_prsm_unp_tp': '1',
+        'for_prsm_unp_tp': '1',
+    })
+    frgn_res = kiwoom_client.call_tr(token, 'ka10008', '/api/dostk/frgnistt', {'stk_cd': code})
+
+    frgn_by_date = {}
+    for r in (frgn_res.get('stk_frgnr') or []):
+        dt = r.get('dt')
+        if dt:
+            frgn_by_date[dt] = r
+
+    out = []
+    seen = set()
+    for r in (inst_res.get('stk_orgn_trde_trnsn') or []):
+        dt = r.get('dt')
+        if not dt or dt in seen:
+            continue
+        seen.add(dt)
+        frgn_row = frgn_by_date.get(dt)
+        out.append({
+            'date': '%s-%s-%s' % (dt[0:4], dt[4:6], dt[6:8]),
+            'close': abs(to_num(r.get('close_pric'))),
+            'change_pct': to_num(r.get('flu_rt')),
+            'volume': abs(to_num(r.get('trde_qty'))),
+            'inst_net': to_num(r.get('orgn_daly_nettrde_qty')),
+            'foreign_net': to_num(r.get('for_daly_nettrde_qty')),
+            'foreign_shares': abs(to_num(frgn_row.get('poss_stkcnt'))) if frgn_row else None,
+            'foreign_ratio': to_num(frgn_row.get('wght')) if frgn_row else None,
+        })
+
+    out.sort(key=lambda r: r['date'], reverse=True)  # 최신일 우선 - gas getForeignFlow와 동일
+    return out

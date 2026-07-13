@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, Header, HTTPException, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+import foreign_flow_compute
 import investor_flow
 import kiwoom_client
 import kiwoom_market
@@ -41,6 +42,7 @@ _LIVE_CACHE_TTL = 300  # 5분
 _LIVE_CACHE_MAX_ENTRIES = 500
 _ohlc_cache = {}
 _investor_flow_cache_mem = {}
+_foreign_flow_cache_mem = {}
 
 
 def _live_cache_get(cache, code):
@@ -161,6 +163,30 @@ def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     if result is None:
         raise HTTPException(status_code=404, detail='해당 종목의 공매도/대차/수급 데이터를 찾을 수 없습니다.')
     _live_cache_put(_investor_flow_cache_mem, code, result)
+    return envelope(result)
+
+
+@app.get('/foreign-flow/{code}')
+def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
+    """종목분석 메인 수급 표(외국인·기관 순매매) - 2026-07-13: 네이버 frgn.naver 크롤링을
+    1차로 대체하는 키움 API 버전(ka10045+ka10008). 네이버 크롤링은 이제 백업 전용 -
+    프론트(js/foreign-flow.js)가 이 엔드포인트를 먼저 시도하고 실패할 때만 GAS의
+    ?action=foreignFlow(네이버 경로)로 폴백한다. /investor-flow와 동일하게 공개(인증 없음)
+    + CORS 제한 + 5분 메모리 캐시."""
+    cached = _live_cache_get(_foreign_flow_cache_mem, code)
+    if cached is not None:
+        return envelope(cached)
+    try:
+        token = get_kiwoom_token()
+        daily = kiwoom_market.fetch_foreign_inst_daily(token, code)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    result = foreign_flow_compute.build_result(code, daily)
+    if result is None:
+        raise HTTPException(status_code=404, detail='수급 데이터를 찾을 수 없습니다.')
+    _live_cache_put(_foreign_flow_cache_mem, code, result)
     return envelope(result)
 
 

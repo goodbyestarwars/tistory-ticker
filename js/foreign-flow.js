@@ -241,7 +241,7 @@
     var investorFlowPromise = fetchInvestorFlowLive(resolved.code, resolved.name)
       .catch(function () { return null; });
 
-    Promise.all([ForeignFlow.fetchFlow(resolved.code), chartPromise, investorFlowPromise])
+    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise])
       .then(function (results) {
         var data = results[0];
         var chartData = results[1];
@@ -259,13 +259,25 @@
       });
   }
 
-  // 같은 종목 5분 캐시 + 진행 중 요청 재사용(연타 디바운스)
-  function fetchFlow(code) {
+  // 종목분석 메인 수급 표 - 5분 메모리 캐시 + 진행 중 요청 재사용(연타 디바운스).
+  // 2026-07-13: 키움 API(VM 직접 호출)를 1차로 쓰고, 실패할 때만 네이버(GAS 경유) 폴백으로
+  // 넘어간다 - 네이버는 백업 전용, 평소엔 안 씀.
+  function fetchFlow(code, name) {
     var hit = cacheByCode[code];
     if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
     if (inflightByCode[code]) return inflightByCode[code];
 
-    var p = fetchJson(GAS_TICKER_URL + '?action=foreignFlow&code=' + encodeURIComponent(code))
+    var p = fetchJson(KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code))
+      .then(function (envelope) {
+        var data = envelope && envelope.data;
+        if (!data || data.error) throw new Error('VM 수급 데이터 없음');
+        if (name && !data.name) data.name = name;
+        return data;
+      })
+      .catch(function () {
+        // 키움(VM) 실패 시에만 네이버(GAS) 폴백 - 평소 경로 아님
+        return fetchJson(GAS_TICKER_URL + '?action=foreignFlow&code=' + encodeURIComponent(code));
+      })
       .then(function (data) {
         delete inflightByCode[code];
         if (data && !data.error) cacheByCode[code] = { t: Date.now(), data: data };
