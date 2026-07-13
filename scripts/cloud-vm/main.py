@@ -17,6 +17,7 @@ app = FastAPI(title="kiwoom-readonly-api")
 
 BATCH_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
 FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
+DAILY_SCAN_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
 
 
 def load_dotenv():
@@ -118,5 +119,18 @@ def fundamentals_batch(x_api_key: str = Header(default=None)):
     if not os.path.exists(FUNDAMENTALS_CACHE_FILE):
         raise HTTPException(status_code=503, detail='펀더멘탈 캐시가 아직 생성되지 않았습니다(batch_scan.py 첫 실행 대기 중).')
     with open(FUNDAMENTALS_CACHE_FILE, 'r', encoding='utf-8') as f:
+        cached = json.load(f)
+    return envelope(cached)
+
+
+@app.get('/daily-scan-batch')
+def daily_scan_batch(x_api_key: str = Header(default=None)):
+    """daily_scan.py(하루 1회 크론)가 미리 계산해둔 차트패턴(4종)+눌림목+투자시그널
+    전종목 스캔 결과를 즉시 반환. gas/ticker-proxy.gs의 getPatternScanResult()/
+    getInvestSignalResult()가 이 엔드포인트를 호출해 원래 형태로 재포장한다."""
+    require_api_key(x_api_key)
+    if not os.path.exists(DAILY_SCAN_CACHE_FILE):
+        raise HTTPException(status_code=503, detail='일일 스캔 캐시가 아직 생성되지 않았습니다(daily_scan.py 첫 실행 대기 중).')
+    with open(DAILY_SCAN_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return envelope(cached)
