@@ -18,11 +18,11 @@
   <h1>market-temp 로컬 테스트</h1>
   <div class="tools">
     <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-    <button onclick="setMock(95)">과열(95점=38.0℃)</button>
-    <button onclick="setMock(75)">낙관(75점=30.0℃)</button>
-    <button onclick="setMock(55)">중립(55점=22.0℃)</button>
-    <button onclick="setMock(30)">공포(30점=12.0℃)</button>
-    <button onclick="setMock(10)">극도의공포(10점=4.0℃)</button>
+    <button onclick="setMock(104)">과열(104/110=37.8℃)</button>
+    <button onclick="setMock(82)">탐욕(82/110=29.8℃)</button>
+    <button onclick="setMock(60)">중립(60/110=21.8℃)</button>
+    <button onclick="setMock(33)">공포(33/110=12.0℃)</button>
+    <button onclick="setMock(11)">극단적공포(11/110=4.0℃)</button>
   </div>
   <p style="font-size:13px;color:#888">
     기본은 mock 스코어로 렌더링 검증. 실제 GAS 호출로 테스트하려면 <code>?real=1</code>을 붙이세요(GAS 재배포 후).
@@ -32,52 +32,61 @@
 
 <script src="../js/market-temp.js"></script>
 <script>
-  var currentScore = 95;
+  var MAX_POSSIBLE = 110; // gas의 MT_COMPONENT_MAX 합계와 동일(VIX20+수급20+거래대금15+평균등락15+상승10+섹터10+52주10+환율5+선물5)
+  var currentScore = 104;
 
-  function mockResponse(score) {
-    // 8개 지표 배분은 대략적인 예시일 뿐, 합이 score가 되도록만 맞춤.
-    // score가 낮을수록 부호(수급/등락률)가 음수 쪽으로 기울게 해서 빨강/파랑/회색 컬러를 모두 확인.
-    var sign = score >= 50 ? 1 : -1;
-    var vix = Math.round(Math.min(20, score * 0.20));
-    var foreignFlow = Math.round(Math.min(15, score * 0.15));
-    var instFlow = Math.round(Math.min(10, score * 0.10));
-    var riseK = Math.round(Math.min(10, score * 0.10));
-    var riseQ = score === 55 ? 5 : Math.round(Math.min(10, score * 0.10)); // 55점에서 코스피/코스닥 엇갈림(0=회색) 케이스도 확인
-    var vol = Math.round(Math.min(15, score * 0.15));
-    var exchange = Math.round(Math.min(10, score * 0.10));
-    var futures = Math.max(0, score - vix - foreignFlow - instFlow - riseK - riseQ - vol - exchange);
+  function mockResponse(total) {
+    // 9개 지표 배분은 대략적인 예시일 뿐, 합이 total이 되도록만 맞춤.
+    // total이 낮을수록 부호(수급/등락률)가 음수 쪽으로 기울게 해서 빨강/파랑/회색 컬러를 모두 확인.
+    var sign = total >= MAX_POSSIBLE / 2 ? 1 : -1;
+    var frac = total / MAX_POSSIBLE;
+    var vix = Math.round(20 * frac);
+    var flowScore = Math.round(20 * frac);
+    var vol = Math.round(15 * frac);
+    var avgChange = Math.round(15 * frac);
+    var rise = Math.round(10 * frac);
+    var sectorStrength = Math.round(10 * frac);
+    var week52 = Math.round(10 * frac);
+    var exchange = Math.round(5 * frac * 10) / 10;
+    var futures = Math.max(0, Math.min(5, Math.round((total - vix - flowScore - vol - avgChange - rise - sectorStrength - week52 - exchange) * 10) / 10));
 
-    var temp = Math.round(score * 0.4 * 10) / 10;
-    var grade = temp < 10 ? { emoji: '🧊', label: '극도의 공포', tone: 'extreme-fear' }
+    var temp = Math.round(total * (40 / MAX_POSSIBLE) * 10) / 10;
+    var grade = temp < 10 ? { emoji: '🧊', label: '극단적 공포', tone: 'extreme-fear' }
       : temp < 20 ? { emoji: '🔵', label: '공포', tone: 'fear' }
       : temp < 28 ? { emoji: '🟡', label: '중립', tone: 'neutral' }
-      : temp < 35 ? { emoji: '🟠', label: '낙관', tone: 'greed' }
-      : { emoji: '🔥', label: '과열', tone: 'extreme-greed' };
+      : temp < 35 ? { emoji: '🟠', label: '탐욕', tone: 'greed' }
+      : { emoji: '🔥', label: '극단적 탐욕', tone: 'extreme-greed' };
 
     return {
-      score: score,
+      score: total,
+      maxScore: MAX_POSSIBLE,
       temp: temp,
       grade: grade,
       components: {
         vix: { score: vix, value: 16.4 },
-        foreignFlow: { score: foreignFlow, ratio: 0.4 * sign },
-        instFlow: { score: instFlow, ratio: 0.3 * sign },
-        riseRatioKospi: { score: riseK, ratio: 0.62, up: sign > 0 ? 130 : 40, down: sign > 0 ? 60 : 150, total: 190 },
-        riseRatioKosdaq: score === 55
-          ? { score: riseQ, ratio: 0.5, up: 100, down: 100, total: 200 } // up===down -> 회색(0) 케이스
-          : { score: riseQ, ratio: 0.5, up: sign > 0 ? 120 : 50, down: sign > 0 ? 60 : 140, total: 180 },
+        flow: {
+          score: flowScore,
+          foreign: { score100: 50 + 40 * sign, ratio: 0.4 * sign, v5: 12345 * sign },
+          inst: { score100: 50 + 30 * sign, ratio: 0.3 * sign, v5: 5432 * sign }
+        },
         tradingValue: { score: vol, relative: 1 + 0.12 * sign },
+        avgChange: { score: avgChange, avgChangeRate: 1.2 * sign },
+        riseRatio: total === 60
+          ? { score: rise, ratio: 0.5, up: 110, down: 110, total: 220 } // up===down -> 회색(0) 케이스
+          : { score: rise, ratio: 0.55 + 0.1 * sign, up: sign > 0 ? 150 : 60, down: sign > 0 ? 70 : 160, total: 220 },
+        sectorStrength: { score: sectorStrength, sectorCount: 10, strongCount: sign > 0 ? 14 : 4 },
+        week52: { score: week52, newHigh: sign > 0 ? 18 : 2, newLow: sign > 0 ? 2 : 25, scanned: 238 },
         exchange: { score: exchange, changeRate: -0.2 * sign },
-        usFutures: { score: futures, changePct: 0.5 * sign }
+        usFutures: { score: futures, changePct: 0.5 * sign, timeWeight: 1.0 }
       },
-      // score===10(극도의공포 버튼)일 때만 "수집 중"(history: null) 케이스로 확인
-      history: score === 10 ? null : {
+      // total===11(극단적공포 버튼)일 때만 "수집 중"(history: null) 케이스로 확인
+      history: total === 11 ? null : {
         dayChange: 2.1 * sign,
         yesterday: Math.max(0, temp - 2.1 * sign),
         weekAvg: Math.max(0, temp - 1.4),
         weekDays: 7,
         monthAvg: Math.max(0, temp - 3.2),
-        monthDays: score === 30 ? 12 : 30 // 30점 버튼에서는 "수집 중(30일 미만)" 일수 표기도 확인
+        monthDays: total === 33 ? 12 : 30 // 33점 버튼에서는 "수집 중(30일 미만)" 일수 표기도 확인
       },
       updatedAt: '2026-07-13 18:00:00'
     };

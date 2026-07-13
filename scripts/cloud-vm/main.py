@@ -33,6 +33,7 @@ app.add_middleware(
 BATCH_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
 FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 DAILY_SCAN_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
+WEEK52_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'week52_cache.json')
 
 # /ohlc, /investor-flow 온디맨드 조회용 메모리 캐시(종목코드 -> (기록시각, 결과)).
 # GAS가 이 두 엔드포인트를 호출할 때만 유독 응답이 느려서(타임아웃) 실패하는 현상이 있어
@@ -223,5 +224,18 @@ def daily_scan_batch(x_api_key: str = Header(default=None)):
     if not os.path.exists(DAILY_SCAN_CACHE_FILE):
         raise HTTPException(status_code=503, detail='일일 스캔 캐시가 아직 생성되지 않았습니다(daily_scan.py 첫 실행 대기 중).')
     with open(DAILY_SCAN_CACHE_FILE, 'r', encoding='utf-8') as f:
+        cached = json.load(f)
+    return envelope(cached)
+
+
+@app.get('/week52-batch')
+def week52_batch(x_api_key: str = Header(default=None)):
+    """week52_scan.py(하루 1회 크론)가 섹터 풀(238종목) 대상으로 미리 계산해둔 52주 신고가/
+    신저가 캐시를 즉시 반환. js/market-temp.js(오늘의 증시온도)가 이 집계(newHighCount/
+    newLowCount)를 사용한다."""
+    require_api_key(x_api_key)
+    if not os.path.exists(WEEK52_CACHE_FILE):
+        raise HTTPException(status_code=503, detail='52주 신고가/신저가 캐시가 아직 생성되지 않았습니다(week52_scan.py 첫 실행 대기 중).')
+    with open(WEEK52_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return envelope(cached)
