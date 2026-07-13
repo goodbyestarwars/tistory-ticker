@@ -174,7 +174,7 @@
 #market-temp .mt-bar-icon { font-size: 11px; }
 #market-temp .mt-bar-label { color: #666; }
 #market-temp .mt-bar-track {
-  height: 8px;
+  height: 14px;
   border-radius: 999px;
   background: #eee;
   overflow: hidden;
