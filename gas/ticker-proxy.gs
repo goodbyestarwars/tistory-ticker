@@ -58,14 +58,10 @@ function doGet(e) {
     return jsonResponse(getFlowChart((params.code || '').trim()));
   }
 
-  if (params.action === 'investorFlow') {
-    return jsonResponse(getInvestorFlowLive_((params.code || '').trim(), (params.name || '').trim()));
-  }
-
-  // 2026-07-13 임시 진단용 - '/investor-flow' 경로 문자열 자체가 문제인지 확인 후 삭제할 것
-  if (params.debugFlow2 === '1') {
-    return jsonResponse(kiwoomVmFetch_('/flow2/' + encodeURIComponent((params.code || '').trim())));
-  }
+  // 2026-07-13: ?action=investorFlow(GAS 경유)는 폐기됨 - GAS->VM 구간이 간헐적으로
+  // 통째로 막히는 원인 불명 현상 때문에, js/foreign-flow.js가 VM(https://ghlee.duckdns.org)을
+  // 직접 호출하도록 전환. getInvestorFlowLive_()/kiwoomVmFetch_('/investor-flow/...')는
+  // 더 이상 아무도 안 씀(kiwoomVmFetch_ 자체는 다른 VM 배치 엔드포인트에 계속 씀).
 
   if (params.action === 'fundamentals') {
     return jsonResponse(getFundamentals_((params.code || '').trim()));
@@ -2233,16 +2229,6 @@ function kiwoomVmFetch_(path) {
     }
   }
   return null;
-}
-
-// 종목 하나 온디맨드 조회 (js/foreign-flow.js 위젯용, ?action=investorFlow&code=&name=).
-// VM의 /investor-flow는 종목코드 아무거나 다 되므로(섹터풀 제한 없음) 전 종목 커버.
-function getInvestorFlowLive_(code, name) {
-  if (!code) return { error: 'code required' };
-  var data = kiwoomVmFetch_('/investor-flow/' + encodeURIComponent(code));
-  if (!data) return { error: 'vm_unavailable' };
-  if (name && !data.name) data.name = name; // VM은 더 이상 name을 안 돌려줌(경로 파라미터 전환) - GAS가 이미 아는 값으로 채움
-  return data;
 }
 
 // 종목분석 펀더멘탈 탭 (?action=fundamentals&code=). 밸류에이션 스냅샷(키움 ka10001, VM

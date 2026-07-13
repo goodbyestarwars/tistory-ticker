@@ -10,12 +10,24 @@ import time
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Header, HTTPException, Path, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 import investor_flow
 import kiwoom_client
 import kiwoom_market
 
 app = FastAPI(title="kiwoom-readonly-api")
+
+# 2026-07-13: GAS->VM 구간이 간헐적으로 통째로 막히는 원인 불명 현상 때문에, /investor-flow는
+# GAS를 거치지 않고 방문자 브라우저(js/foreign-flow.js)가 이 VM을 직접 호출하도록 우회.
+# 브라우저 직접 호출이라 X-API-Key를 넘길 수 없어 이 라우트만 인증 없이 열되(공개 시세
+# 데이터라 민감정보 아님), CORS로 블로그 도메인에서만 정상 호출되게 제한한다.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['https://ghlee.tistory.com'],
+    allow_methods=['GET'],
+    allow_headers=['*'],
+)
 
 BATCH_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
 FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
@@ -130,16 +142,12 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
 
 
 @app.get('/investor-flow/{code}')
-@app.get('/flow2/{code}')  # 2026-07-13 임시 진단용 별칭 - '/investor-flow' 문자열 자체가 문제인지 테스트, 확인되면 삭제
-def investor_flow_endpoint(
-    code: str = Path(..., min_length=6, max_length=6),
-    x_api_key: str = Header(default=None),
-):
+def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     """공매도/대차거래/연기금 수급 - scripts/fetch_investor_flow.py 로직 온디맨드 버전.
-    2026-07-13: /ohlc와 동일한 이유로 쿼리스트링(?code=&name=) 대신 경로 파라미터로 전환 -
-    name은 화면표시용 캐스메틱 필드라 없애고, 호출부(GAS)가 이미 갖고 있는 name을 응답에
-    덧씌우는 방식으로 대체(kiwoomVmFetch_ 호출부 참고). /ohlc와 동일한 5분 메모리 캐시 적용."""
-    require_api_key(x_api_key)
+    2026-07-13: GAS를 거치지 않고 브라우저(js/foreign-flow.js)가 직접 호출하도록 전환됨
+    (GAS->VM 구간 간헐적 장애 우회) - 그래서 X-API-Key 인증이 없다(CORS로만 제한, 위 주석
+    참고). name은 화면표시용 캐스메틱 필드라 없애고 프론트가 이미 아는 값을 붙여 쓴다.
+    5분 메모리 캐시 적용."""
     cached = _live_cache_get(_investor_flow_cache_mem, code)
     if cached is not None:
         return envelope(cached)

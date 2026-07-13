@@ -8,15 +8,18 @@
  * 같은 종목 반복 조회를 디바운스한다(네이버 부하/GAS 호출량 억제).
  *
  * 공매도/대차거래/연기금 섹션(ff-extra-*):
- * GAS ?action=investorFlow&code=&name= 온디맨드 호출 -> GAS가 GCP VM(키움 REST API
- * 상시 서버, 고정IP)을 중계 호출해서 받아온다. VM은 종목코드 제한이 없어 전 종목
- * 커버(예전 data/investor-flow-cache.js 정적 스냅샷은 섹터풀 238종목만 커버했음 - 폐기).
- * 실패 시(네트워크 오류 등) 안내 문구만 표시(에러 아님, 조용히 생략하지 않고 이유를 보여준다).
+ * 2026-07-13: GAS ?action=investorFlow 경유 방식은 폐기됨 - GAS->VM 구간이 간헐적으로
+ * 통째로 막히는 원인 불명 현상이 있어, 브라우저가 VM(키움 REST API 상시 서버, HTTPS
+ * 도메인)을 직접 호출하도록 바꿈(CORS로 이 블로그 도메인만 허용). VM은 종목코드 제한이
+ * 없어 전 종목 커버(예전 data/investor-flow-cache.js 정적 스냅샷은 섹터풀 238종목만
+ * 커버했음 - 폐기). 실패 시(네트워크 오류 등) 안내 문구만 표시(에러 아님, 조용히 생략하지
+ * 않고 이유를 보여준다).
  */
 (function (global) {
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var KIWOOM_VM_URL = 'https://ghlee.duckdns.org';
   var CONTAINER_SELECTOR = '#foreign-flow';
   var FETCH_TIMEOUT_MS = 20000; // 네이버 2페이지 크롤링 + 파싱이라 여유 있게
   var MAX_SUGGESTIONS = 8;
@@ -296,20 +299,21 @@
     return p;
   }
 
-  // 공매도/대차거래/연기금(GAS ?action=investorFlow 경유 VM 온디맨드) - 5분 메모리 캐시 +
+  // 공매도/대차거래/연기금(VM 직접 온디맨드 호출, GAS 미경유) - 5분 메모리 캐시 +
   // 진행 중 요청 재사용. 실패해도 나머지 위젯은 정상 표시돼야 하므로 호출부에서 catch로 null 처리.
   function fetchInvestorFlowLive(code, name) {
     var hit = investorFlowCache[code];
     if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
     if (investorFlowInflight[code]) return investorFlowInflight[code];
 
-    var url = GAS_TICKER_URL + '?action=investorFlow&code=' + encodeURIComponent(code)
-      + (name ? '&name=' + encodeURIComponent(name) : '');
+    var url = KIWOOM_VM_URL + '/investor-flow/' + encodeURIComponent(code);
     var p = fetchJson(url)
       .then(function (data) {
         delete investorFlowInflight[code];
-        if (data && !data.error) investorFlowCache[code] = { t: Date.now(), data: data };
-        return data;
+        if (data && data.data && !data.data.name) data.data.name = name; // VM은 name을 안 돌려줌 - 프론트가 이미 아는 값으로 채움
+        var result = data && data.data ? data.data : data;
+        if (result && !result.error) investorFlowCache[code] = { t: Date.now(), data: result };
+        return result;
       })
       .catch(function (err) {
         delete investorFlowInflight[code];
