@@ -17,6 +17,13 @@ CORP_CODE_MAP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'd
 CORP_CODE_MAP_TTL_SEC = 7 * 24 * 3600  # 7일 - corp_code는 거의 안 바뀌는 정적 데이터
 
 
+class DartRateLimitError(RuntimeError):
+    """DART 일일/트래픽 호출 한도 초과로 추정되는 에러. 정확한 status 코드가 공식 문서에
+    안 나와 있어(2026-07-13 기준 확인 안 됨), status != '000'/'013'인 에러 메시지에
+    "한도"/"제한" 키워드가 있으면 이걸로 분류한다 - 틀린 코드번호를 하드코딩하는 것보다 안전."""
+    pass
+
+
 def _fetch(url):
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     try:
@@ -72,5 +79,8 @@ def call_fnltt(api_key, corp_code, bsns_year, reprt_code, fs_div='CFS'):
     if status == '013':  # 조회된 데이터가 없습니다
         return []
     if status != '000':
-        raise RuntimeError('DART fnlttSinglAcntAll status %s: %s' % (status, data.get('message')))
+        message = data.get('message') or ''
+        if '한도' in message or '제한' in message:
+            raise DartRateLimitError('DART fnlttSinglAcntAll status %s: %s' % (status, message))
+        raise RuntimeError('DART fnlttSinglAcntAll status %s: %s' % (status, message))
     return data.get('list') or []
