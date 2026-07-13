@@ -2205,22 +2205,29 @@ function getInvestSignalResult() {
 // 공매도/대차/연기금 - GCP VM(키움 REST API 상시 서버, 고정IP)을 호출.
 // VM 주소·인증 토큰은 스크립트 속성(Apps Script 편집기 > 프로젝트 설정 > 스크립트 속성)에
 // KIWOOM_VM_URL(예: http://34.28.220.13:8080), KIWOOM_VM_TOKEN으로 저장(코드에 노출 안 함).
+// 2026-07-13: GAS->VM 구간이 간헐적으로 ~11초 타임아웃 나는 현상 확인됨(VM 자체는 로컬/외부
+// 어디서 찍어도 항상 즉시 응답 - VM 문제가 아니라 GAS 쪽 네트워크 경로 문제로 추정). 원인을
+// 못 잡아서 1회 재시도로 방어 - 재시도까지 실패하면 그때만 null(호출부는 기존처럼 폴백 처리).
 function kiwoomVmFetch_(path) {
-  try {
-    var props = PropertiesService.getScriptProperties();
-    var base = props.getProperty('KIWOOM_VM_URL');
-    var token = props.getProperty('KIWOOM_VM_TOKEN');
-    if (!base || !token) return null;
-    var res = UrlFetchApp.fetch(base.replace(/\/$/, '') + path, {
-      headers: { 'X-API-Key': token },
-      muteHttpExceptions: true
-    });
-    if (res.getResponseCode() !== 200) return null;
-    var json = JSON.parse(res.getContentText('UTF-8'));
-    return json.data;
-  } catch (err) {
-    return null;
+  var props = PropertiesService.getScriptProperties();
+  var base = props.getProperty('KIWOOM_VM_URL');
+  var token = props.getProperty('KIWOOM_VM_TOKEN');
+  if (!base || !token) return null;
+
+  for (var attempt = 0; attempt < 2; attempt++) {
+    try {
+      var res = UrlFetchApp.fetch(base.replace(/\/$/, '') + path, {
+        headers: { 'X-API-Key': token },
+        muteHttpExceptions: true
+      });
+      if (res.getResponseCode() !== 200) continue;
+      var json = JSON.parse(res.getContentText('UTF-8'));
+      return json.data;
+    } catch (err) {
+      continue; // 타임아웃 등 - 마지막 시도까지 실패하면 아래에서 null 반환
+    }
   }
+  return null;
 }
 
 // 종목 하나 온디맨드 조회 (js/foreign-flow.js 위젯용, ?action=investorFlow&code=&name=).
