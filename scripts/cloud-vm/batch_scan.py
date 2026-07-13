@@ -64,11 +64,6 @@ def load_full_universe():
 
 def main():
     load_dotenv()
-    appkey = os.environ.get('KIWOOM_APPKEY')
-    secretkey = os.environ.get('KIWOOM_SECRETKEY')
-    if not appkey or not secretkey:
-        log('KIWOOM_APPKEY / KIWOOM_SECRETKEY 환경변수가 필요합니다.')
-        sys.exit(1)
 
     codes_map = load_full_universe()
     if not codes_map:
@@ -78,6 +73,17 @@ def main():
         codes_map = dict(list(codes_map.items())[:3])
         log('--test 모드: %d종목만 스모크 테스트' % len(codes_map))
     log('대상 종목 수: %d' % len(codes_map))
+
+    if '--fundamentals-only' in sys.argv:
+        log('--fundamentals-only 모드: 수급 재수집 건너뛰고 펀더멘탈 이어달리기만 실행')
+        scan_fundamentals(codes_map)
+        return
+
+    appkey = os.environ.get('KIWOOM_APPKEY')
+    secretkey = os.environ.get('KIWOOM_SECRETKEY')
+    if not appkey or not secretkey:
+        log('KIWOOM_APPKEY / KIWOOM_SECRETKEY 환경변수가 필요합니다.')
+        sys.exit(1)
 
     token = kiwoom_client.get_token(appkey, secretkey)
 
