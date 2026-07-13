@@ -198,17 +198,19 @@
 
     return ''
       + '<div class="mt-bar-row">'
+      + '<div class="mt-bar-topline">'
       + '<span class="mt-bar-head">'
       + '<span class="mt-bar-icon">' + meta.icon + '</span>'
       + '<span class="mt-bar-label">' + escapeHtml(meta.label) + '</span>'
       + '<span class="mt-info" title="' + escapeHtml(meta.desc) + '">ⓘ</span>'
       + '</span>'
-      + '<div class="mt-bar-track"><div class="mt-bar-fill ' + meta.barClass + '" style="width:' + pct.toFixed(0) + '%"></div></div>'
       + '<span class="mt-bar-value">'
       + (raw ? '<span class="' + raw.tone + '">' + escapeHtml(raw.text) + '</span> ' : '')
       + (badge ? '<span class="mt-pill ' + badge.tone + '">' + escapeHtml(badge.word) + '</span> ' : '')
       + '<small>(' + score + '/' + meta.max + ')</small>'
       + '</span>'
+      + '</div>'
+      + '<div class="mt-bar-track"><div class="mt-bar-fill ' + meta.barClass + '" style="width:' + pct.toFixed(0) + '%"></div></div>'
       + '</div>';
   }
 
