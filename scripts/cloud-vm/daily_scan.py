@@ -164,6 +164,7 @@ def main():
 
             flow_rows = kiwoom_market.fetch_institution_trend(token, code)
             save_investor_flow(conn, code, flow_rows)
+            conn.commit()  # 종목마다 즉시 커밋 - 쓰기 트랜잭션을 오래 쥐고 있으면 다른 스크립트(migrate_*.py)가 락에 걸림
             time.sleep(THROTTLE_SEC)
             flow = invest_signal.build_flow(flow_rows)
             if flow:
@@ -209,7 +210,6 @@ def main():
                 invest_signal.upsert_ranked(signal_state['worsened'], row, 'shift', invest_signal.INVEST_SIGNAL_TOP_N, 'asc')
 
             if (i + 1) % 100 == 0 or (i + 1) == len(universe):
-                conn.commit()  # 중간에 죽어도 여기까지 처리한 종목의 OHLC는 남도록 주기적으로 커밋
                 log('[%d/%d] 진행 중 (패턴 %d / 눌림목 %d / 투자시그널 %d 스캔됨)'
                     % (i + 1, len(universe), pattern_scanned, pullback_scanned, signal_state['scanned']))
         except Exception as e:
