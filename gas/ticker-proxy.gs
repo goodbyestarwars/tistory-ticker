@@ -555,19 +555,24 @@ function getFlowAiSummary(params) {
     '외국인·기관 연속매매 점수 ' + (params.foreignInstScore || '-') + '점 - ' + (params.foreignInstNote || '데이터 없음'),
     '공매도 압박 점수 ' + (params.shortScore || '-') + '점 - ' + (params.shortNote || '데이터 없음'),
     '연기금 점수 ' + (params.pensionScore || '-') + '점 - ' + (params.pensionNote || '데이터 없음'),
-    '기술적 점수(이평선·지지·저항) ' + (params.techScore || '-') + '점 - ' + (params.techNote || '데이터 없음')
+    '기술적 점수(이평선·지지·저항) ' + (params.techScore || '-') + '점 - ' + (params.techNote || '데이터 없음'),
+    '거래대금(20일 평균 대비) - ' + (params.volNote || '데이터 없음'),
+    'RSI(14) - ' + (params.rsiNote || '데이터 없음')
   ];
   var verdictLabel = (params.verdictLabel || '').trim();
   var verdictScore = params.verdictScore || '';
   // 별점 판정(가중합)이 이미 확정한 결론을 AI가 다시 판단하지 않도록, 결론을 프롬프트에
   // 못박고 근거 문장만 요청한다 - 화면에서 별점 배지와 AI 한줄평이 서로 다른 의견을
-  // 가리키는 모순을 막기 위함(2026-07 사용자 피드백).
+  // 가리키는 모순을 막기 위함(2026-07 사용자 피드백). 거래대금/RSI는 verdict 점수 계산에는
+  // 안 쓰고(가중치 공식은 그대로 5개 유지) 프롬프트의 참고 근거로만 추가한 것 - 근거 문장이
+  // "외국인 5일 연속 순매수"처럼 구체적 수치를 인용하게 하려는 목적(2026-07-13 사용자 피드백).
   var prompt = verdictLabel
-    ? '"' + name + '" 종목은 아래 5가지 수급/기술 지표를 가중합해 이미 "' + verdictLabel + '"(' + verdictScore + '점/100) 의견으로 결론이 났어:\n' + lines.join('\n') +
+    ? '"' + name + '" 종목은 아래 7가지 수급/기술 지표를 가중합해 이미 "' + verdictLabel + '"(' + verdictScore + '점/100) 의견으로 결론이 났어:\n' + lines.join('\n') +
       '\n\n이 결론과 다른 의견을 새로 내지 말고, "' + verdictLabel + '" 같은 라벨 단어도 다시 쓰지 말고, ' +
+      '위 지표 중 근거가 되는 구체적인 수치(예: "외국인 5일 연속 순매수", "거래대금 20일 평균 대비 4.3배")를 1~2개 인용해서 ' +
       '왜 이 결론인지 핵심 근거만 한국어 한 문장으로 요약해줘. 문장 외 다른 말은 붙이지 마.'
-    : '"' + name + '" 종목의 오늘 5가지 수급/기술 지표야:\n' + lines.join('\n') +
-      '\n\n이 지표들을 종합한 핵심 근거를 한국어 한 문장으로 요약해줘. 문장 외 다른 말은 붙이지 마.';
+    : '"' + name + '" 종목의 오늘 7가지 수급/기술 지표야:\n' + lines.join('\n') +
+      '\n\n이 지표들을 종합한 핵심 근거를 구체적인 수치를 인용해서 한국어 한 문장으로 요약해줘. 문장 외 다른 말은 붙이지 마.';
 
   var summary = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, summary || '', summary ? FLOW_AI_CACHE_TTL : FLOW_AI_FAIL_TTL);

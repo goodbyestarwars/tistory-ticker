@@ -412,6 +412,19 @@
 #foreign-flow .ff-line-foreign { fill: none; stroke: #e8590c; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-inst { fill: none; stroke: #5f3dc4; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-ratio { fill: none; stroke: #0ca678; stroke-width: 2.4; stroke-linejoin: round; }
+#foreign-flow .ff-line-rsi { fill: none; stroke: #f08c00; stroke-width: 2.4; stroke-linejoin: round; }
+#foreign-flow .ff-rsi-band { stroke-dasharray: 3 3; }
+#foreign-flow .ff-vol-metric {
+  font-size: 12.5px;
+  color: #555;
+  margin: 4px 0 2px;
+}
+#foreign-flow .ff-sector-tags {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 
 #foreign-flow .ff-legend {
   display: flex;
@@ -678,3 +691,4 @@ html.dark #foreign-flow .ff-bar-axis { stroke: #444 !important; }
 html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }
 html.dark #foreign-flow .ff-bar-label { fill: #888 !important; }
 html.dark #foreign-flow .ff-tech-total-row td { background: #1f1f1f !important; }
+html.dark #foreign-flow .ff-vol-metric { color: #bbb !important; }

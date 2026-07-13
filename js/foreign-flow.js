@@ -32,6 +32,7 @@
 
   var FCHART_H = 360;
   var MA_COLORS = { ma5: '#e8590c', ma20: '#0ca678', ma60: '#5f3dc4', ma224: '#868e96' };
+  var BOLL_COLOR = '#adb5bd'; // 볼린저밴드 상/하단(중심선=20일선과 겹쳐 별도 표시 안 함)
 
   // TradingView Lightweight Charts(오픈소스, CDN 지연 로드) - 가격 캔들차트 렌더링 엔진.
   // 손으로 그리던 SVG 캔들차트를 대체 - 확대/축소·패닝·크로스헤어를 라이브러리가 제공.
@@ -390,7 +391,7 @@
 
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
-    loadAiSummary(box, data, entry, techScore);
+    loadAiSummary(box, data, entry, techScore, chartData);
     wireViewTabs(box, data.code, data.name);
   }
 
@@ -461,13 +462,19 @@
     var quarter = fundamentals && fundamentals.latest_quarter;
 
     var html = '<div class="ff-fund-section">'
-      + '<div class="ff-fund-title">기업 개요</div>'
+      + '<div class="ff-fund-title">기업 개요 · 업종</div>'
       + (valuation ? buildOverviewGrid(valuation) : '<div class="ff-hint">밸류에이션 데이터를 불러오지 못했어요.</div>')
+      + buildSectorTags(res && res.code)
       + '</div>';
 
     html += '<div class="ff-fund-section">'
       + '<div class="ff-fund-title">재무 (최근 5년)</div>'
       + (annual ? buildAnnualTable(annual) + buildAnnualCharts(annual) : '<div class="ff-hint">' + escapeHtml(name || '') + '은(는) 재무 데이터가 없는 종목입니다(DART 미제출 또는 아직 배치 스캔 전).</div>')
+      + '</div>';
+
+    html += '<div class="ff-fund-section">'
+      + '<div class="ff-fund-title">성장성 (5년 CAGR)</div>'
+      + (annual ? buildGrowthGrid(annual) : '<div class="ff-hint">재무 데이터가 없어 성장성을 계산할 수 없습니다.</div>')
       + '</div>';
 
     html += '<div class="ff-fund-section">'
@@ -503,6 +510,43 @@
       ['PBR', v.pbr == null ? '-' : v.pbr.toFixed(2) + '배'],
       ['EPS', fmtWon(v.eps)],
       ['BPS', fmtWon(v.bps)]
+    ];
+    return '<div class="ff-fund-grid">' + rows.map(function (r) {
+      return '<div class="ff-fund-cell"><span class="ff-fund-label">' + r[0] + '</span><span class="ff-fund-val">' + r[1] + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  // 사업구조를 설명하는 텍스트 데이터소스가 없어(DART 사업보고서 파싱은 별도 작업 필요),
+  // 이미 이 저장소에 있는 data/sectors-v3.js(SECTOR_MAP)의 업종 태그로 대신한다. 그 파일이
+  // 이 페이지에 <script>로 로드돼 있지 않으면 window.SECTOR_MAP이 없어 조용히 빈 문자열을
+  // 반환한다(기능 깨짐 없음) - 로드하려면 종목분석 포스트 HTML에 스크립트 태그 추가 필요.
+  function buildSectorTags(code) {
+    var map = global.SECTOR_MAP;
+    if (!map || !code) return '';
+    var sectors = [];
+    for (var name in map) {
+      if (!map.hasOwnProperty(name)) continue;
+      var list = map[name] || [];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].code === code) { sectors.push(name); break; }
+      }
+    }
+    if (!sectors.length) return '';
+    return '<div class="ff-sector-tags">' + sectors.map(function (s) {
+      return '<span class="ff-badge ff-badge-neutral">' + escapeHtml(s) + '</span>';
+    }).join('') + '</div>';
+  }
+
+  // fundamentals.py의 fetch_annual_series가 이미 계산해 캐시에 넣어둔 CAGR/최근 ROE·ROA·
+  // 부채비율을 화면에 노출만 한다(서버 변경 불필요, 기존에 계산만 되고 표시가 안 되고 있었음).
+  function buildGrowthGrid(annual) {
+    var rows = [
+      ['매출액 CAGR', fmtSignedPct(annual.revenue_cagr_pct)],
+      ['영업이익 CAGR', fmtSignedPct(annual.operating_income_cagr_pct)],
+      ['순이익 CAGR', fmtSignedPct(annual.net_income_cagr_pct)],
+      ['최근 ROE', fmtPct(annual.latest_roe_pct)],
+      ['최근 ROA', fmtPct(annual.latest_roa_pct)],
+      ['최근 부채비율', fmtPct(annual.latest_debt_ratio_pct)]
     ];
     return '<div class="ff-fund-grid">' + rows.map(function (r) {
       return '<div class="ff-fund-cell"><span class="ff-fund-label">' + r[0] + '</span><span class="ff-fund-val">' + r[1] + '</span></div>';
@@ -834,7 +878,7 @@
       + '<span class="ff-verdict-score">' + (verdict.score == null ? '-' : verdict.score.toFixed(1) + '점 · ' + verdict.stars.toFixed(1) + '/5') + '</span>'
       + '</div>'
       + '<div class="ff-summary-ai" id="ffAiSummary">'
-      + '<b>AI(GROQ) 한 줄 요약</b>'
+      + '<b>AI 투자의견</b>'
       + '<span class="ff-summary-ai-text">생성 중...</span>'
       + '</div>'
       + '</div>';
@@ -844,7 +888,7 @@
   // 별점 판정(computeVerdict)과 다른 결론을 AI가 스스로 내리는 걸 막기 위해, 여기서도
   // buildSummaryBox와 똑같이 5개 컴포넌트 점수 + verdict를 구해서 GAS에 "이미 이 결론이다"로
   // 넘긴다 - LLM은 근거 문장만 쓰고 매수/매도/보유 자체는 다시 판단하지 않는다.
-  function loadAiSummary(box, data, entry, techScore) {
+  function loadAiSummary(box, data, entry, techScore, chartData) {
     var el = box.querySelector('#ffAiSummary .ff-summary-ai-text');
     if (!el) return;
 
@@ -855,6 +899,10 @@
     var foreignInstScore = computeForeignInstScore(data);
     var shortScore = shortP ? shortP.score : null;
     var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore);
+
+    var daily = chartData && chartData.daily;
+    var volNote = volumeMultipleText(daily ? computeVolumeMultiple(daily) : null);
+    var rsiNote = daily ? rsiInterpText(daily) : 'RSI 데이터가 부족합니다.';
 
     var qs = '?action=flowAiSummary'
       + '&code=' + encodeURIComponent(data.code)
@@ -869,6 +917,8 @@
       + '&pensionNote=' + encodeURIComponent(pension ? pension.interpretation.text : '')
       + '&techScore=' + (techScore ? techScore.score : '')
       + '&techNote=' + encodeURIComponent(techInterpText(techScore))
+      + '&volNote=' + encodeURIComponent(volNote)
+      + '&rsiNote=' + encodeURIComponent(rsiNote)
       + '&verdictLabel=' + encodeURIComponent(verdict.label)
       + '&verdictScore=' + (verdict.score == null ? '' : Math.round(verdict.score));
 
@@ -1041,7 +1091,7 @@
     var toneBadgeCls = TONE_BADGE_CLASS[tone] || 'ff-badge-neutral';
 
     return '<div class="ff-extra-card">'
-      + '<div class="ff-extra-card-title">공매도·대차거래 <span class="ff-extra-grade">' + escapeHtml(p.grade.label) + '</span></div>'
+      + '<div class="ff-extra-card-title">🔻 공매도·대차거래 <span class="ff-extra-grade">' + escapeHtml(p.grade.label) + '</span></div>'
       + (causes.length ? '<div class="ff-extra-badges">' + causes.map(function (c) { return '<span class="ff-extra-badge">' + escapeHtml(c) + '</span>'; }).join('') + '</div>' : '')
       + (s ? '<div class="ff-extra-interp ff-extra-tone-' + tone + '">'
           + '<span class="ff-badge ' + toneBadgeCls + '">' + escapeHtml(p.grade.label) + '</span>'
@@ -1064,7 +1114,7 @@
     var badgeCls = TONE_BADGE_CLASS[interp.tone] || 'ff-badge-neutral';
 
     return '<div class="ff-extra-card">'
-      + '<div class="ff-extra-card-title">연기금 매매 동향</div>'
+      + '<div class="ff-extra-card-title">🏦 연기금 매매 동향</div>'
       + '<div class="ff-extra-streak"><span class="ff-badge ' + streakBadgeCls + '">' + streakLabel + ' ' + streak.days + '일</span></div>'
       + '<div class="ff-extra-interp ff-extra-tone-' + escapeAttr(interp.tone) + '">'
       + '<span class="ff-badge ' + badgeCls + '">' + escapeHtml(interp.label) + '</span>'
@@ -1087,10 +1137,13 @@
       body = '<div class="ff-error">' + escapeHtml((chartData && chartData.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
     } else {
       body = '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
-        + buildLwLegend() + buildTechBreakdown(techScore);
+        + buildLwLegend()
+        + buildVolumeMultipleMetric(chartData.daily)
+        + buildTechBreakdown(techScore)
+        + buildRsiSection(chartData.daily);
     }
     return '<div class="ff-extra-card ff-flow-chart-card">'
-      + '<div class="ff-extra-card-title">📉 가격 차트 · 지지/저항 · 이동평균</div>'
+      + '<div class="ff-extra-card-title">📉 가격 차트 · 지지/저항 · 이동평균 · RSI · 볼린저밴드</div>'
       + body
       + '</div>';
   }
@@ -1103,6 +1156,125 @@
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma224 + '"></i>224일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + BOLL_COLOR + '"></i>볼린저밴드(20,2)</span>'
+      + '</div>';
+  }
+
+  // ---- 보조지표: RSI(14) / 볼린저밴드(20,2) / 거래대금 배수 - 전부 이미 받아온 chartData.daily
+  // (종가·거래량)로 프론트에서 계산한다. 서버(GAS/VM) 변경이나 새 데이터소스가 필요 없다.
+
+  // Wilder's smoothing(표준 RSI 공식) - 최초 period개는 단순평균, 이후는 지수 가중 이동평균.
+  function computeRSI(daily, period) {
+    period = period || 14;
+    var closes = daily.map(function (d) { return d.close; });
+    var rsi = new Array(closes.length).fill(null);
+    if (closes.length <= period) return rsi;
+
+    var gains = 0, losses = 0;
+    for (var i = 1; i <= period; i++) {
+      var diff = closes[i] - closes[i - 1];
+      if (diff >= 0) gains += diff; else losses -= diff;
+    }
+    var avgGain = gains / period, avgLoss = losses / period;
+    rsi[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+
+    for (var j = period + 1; j < closes.length; j++) {
+      var d = closes[j] - closes[j - 1];
+      var gain = d > 0 ? d : 0, loss = d < 0 ? -d : 0;
+      avgGain = (avgGain * (period - 1) + gain) / period;
+      avgLoss = (avgLoss * (period - 1) + loss) / period;
+      rsi[j] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    }
+    return rsi;
+  }
+
+  // 중심선(SMA20)은 이미 화면의 20일 이동평균선과 같은 값이라 중복 표시하지 않고 상/하단
+  // 밴드만 계산한다(캔들차트에 선이 너무 많아지는 것도 방지).
+  function computeBollinger(daily, period, mult) {
+    period = period || 20; mult = mult || 2;
+    var closes = daily.map(function (d) { return d.close; });
+    var upper = new Array(closes.length).fill(null);
+    var lower = new Array(closes.length).fill(null);
+    for (var i = period - 1; i < closes.length; i++) {
+      var slice = closes.slice(i - period + 1, i + 1);
+      var mean = slice.reduce(function (a, b) { return a + b; }, 0) / period;
+      var variance = slice.reduce(function (a, b) { return a + (b - mean) * (b - mean); }, 0) / period;
+      var sd = Math.sqrt(variance);
+      upper[i] = mean + mult * sd;
+      lower[i] = mean - mult * sd;
+    }
+    return { upper: upper, lower: lower };
+  }
+
+  // 오늘 거래대금(종가×거래량 추정) ÷ 최근 20일(오늘 제외) 평균 거래대금
+  function computeVolumeMultiple(daily) {
+    if (!daily || daily.length < 21) return null;
+    var today = daily[daily.length - 1];
+    if (!today.volume) return null;
+    var todayAmt = today.close * today.volume;
+    var win = daily.slice(daily.length - 21, daily.length - 1);
+    var avgAmt = win.reduce(function (s, d) { return s + d.close * d.volume; }, 0) / win.length;
+    if (!avgAmt) return null;
+    return { today: todayAmt, avg20: avgAmt, multiple: todayAmt / avgAmt };
+  }
+
+  function volumeMultipleText(vm) {
+    if (!vm) return '거래대금 데이터가 부족합니다.';
+    return '오늘 거래대금이 20일 평균 대비 ' + vm.multiple.toFixed(1) + '배입니다.';
+  }
+
+  function rsiInterpText(daily) {
+    var rsi = computeRSI(daily, 14);
+    var last = null;
+    for (var i = rsi.length - 1; i >= 0; i--) { if (rsi[i] != null) { last = rsi[i]; break; } }
+    if (last == null) return 'RSI 데이터가 부족합니다.';
+    var label = last >= 70 ? '과매수' : last <= 30 ? '과매도' : '중립';
+    return 'RSI(14) ' + last.toFixed(1) + '로 ' + label + ' 구간입니다.';
+  }
+
+  function buildVolumeMultipleMetric(daily) {
+    var vm = computeVolumeMultiple(daily);
+    if (!vm) return '';
+    var surge = vm.multiple >= 2;
+    return '<div class="ff-vol-metric">오늘 거래대금 <b>' + vm.multiple.toFixed(1) + '배</b> (20일 평균 대비)'
+      + (surge ? ' <span class="ff-badge ff-badge-shift">거래 급증</span>' : '')
+      + '</div>';
+  }
+
+  // RSI(14) 미니차트 - buildRatioChart와 동일한 SVG 패턴(외부 라이브러리 없음), 0~100 고정 축 +
+  // 30/70 기준선.
+  function buildRsiSection(daily) {
+    var rsi = computeRSI(daily, 14);
+    var pts = [];
+    for (var i = 0; i < daily.length; i++) {
+      if (rsi[i] != null) pts.push({ date: daily[i].date, v: rsi[i] });
+    }
+    if (pts.length < 2) return '';
+
+    var n = pts.length;
+    var iw = CHART_W - PAD.l - PAD.r;
+    var ih = RATIO_H - PAD.t - PAD.b;
+    function x(i) { return PAD.l + (i / (n - 1)) * iw; }
+    function y(v) { return PAD.t + (1 - v / 100) * ih; }
+
+    var linePts = pts.map(function (p, i) { return x(i).toFixed(1) + ',' + y(p.v).toFixed(1); }).join(' ');
+
+    var svg = '<svg class="ff-svg" viewBox="0 0 ' + CHART_W + ' ' + RATIO_H + '" role="img" aria-label="RSI(14) 추이">';
+    svg += '<line class="ff-grid ff-rsi-band" x1="' + PAD.l + '" y1="' + y(70).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(70).toFixed(1) + '"/>';
+    svg += '<line class="ff-grid ff-rsi-band" x1="' + PAD.l + '" y1="' + y(30).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(30).toFixed(1) + '"/>';
+    svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(70) + 4).toFixed(1) + '" text-anchor="end">70</text>';
+    svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(30) + 4).toFixed(1) + '" text-anchor="end">30</text>';
+    svg += rsiAxisLabels(pts, x, RATIO_H - 8);
+    svg += '<polyline class="ff-line-rsi" points="' + linePts + '"/>';
+    svg += '</svg>';
+
+    var last = pts[n - 1].v;
+    var label = last >= 70 ? '과매수' : last <= 30 ? '과매도' : '중립';
+    var cls = last >= 70 ? 'ff-sell' : last <= 30 ? 'ff-buy' : 'ff-flat';
+
+    return '<div class="ff-chart-title">RSI(14)</div>'
+      + '<div class="ff-chart ff-chart-rsi">' + svg
+      + '<div class="ff-legend"><span class="ff-legend-item"><i class="ff-dot" style="background:#f08c00"></i>RSI(14) <span class="' + cls + '">' + last.toFixed(1) + ' · ' + label + '</span></span></div>'
       + '</div>';
   }
 
@@ -1197,6 +1369,18 @@
         var series = (chartData.ma && chartData.ma[key]) || [];
         if (!series.length) return;
         var lineSeries = chart.addLineSeries({ color: MA_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        var pts = [];
+        daily.forEach(function (d, i) {
+          if (series[i] == null) return;
+          pts.push({ time: d.date, value: series[i] });
+        });
+        lineSeries.setData(pts);
+      });
+
+      var boll = computeBollinger(daily, 20, 2);
+      ['upper', 'lower'].forEach(function (key) {
+        var series = boll[key];
+        var lineSeries = chart.addLineSeries({ color: BOLL_COLOR, lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, priceLineVisible: false, lastValueVisible: false });
         var pts = [];
         daily.forEach(function (d, i) {
           if (series[i] == null) return;
@@ -1448,6 +1632,25 @@
   function shortDate(iso) {
     // "2026-07-10" -> "07/10"
     return iso.slice(5, 7) + '/' + iso.slice(8, 10);
+  }
+
+  // RSI 차트는 chartData.daily(최대 500영업일, 약 2년치)를 그대로 쓰기 때문에 순매매/보유율
+  // 차트(40일 안팎)용 shortDate(MM/DD, 연도 생략)를 그대로 쓰면 다른 해의 같은 날짜가 뒤섞여
+  // 보인다 - 연도 2자리를 포함한 별도 포맷을 쓴다.
+  function shortDateWithYear(iso) {
+    // "2026-07-10" -> "26/07/10"
+    return iso.slice(2, 4) + '/' + iso.slice(5, 7) + '/' + iso.slice(8, 10);
+  }
+
+  function rsiAxisLabels(pts, x, textY) {
+    var idxs = [0, Math.floor((pts.length - 1) / 2), pts.length - 1];
+    var out = '';
+    idxs.forEach(function (i, k) {
+      var anchor = k === 0 ? 'start' : (k === 2 ? 'end' : 'middle');
+      out += '<text class="ff-axis" x="' + x(i).toFixed(1) + '" y="' + textY + '" text-anchor="' + anchor + '">'
+        + shortDateWithYear(pts[i].date) + '</text>';
+    });
+    return out;
   }
 
   // ---- 포맷터 ----
