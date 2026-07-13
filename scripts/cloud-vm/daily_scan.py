@@ -125,18 +125,27 @@ def main():
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
 
+    today_str = datetime.now().strftime('%Y-%m-%d')  # VM 서버 로컬 날짜 - kiwoom_market의 base_dt 계산과 동일 기준
+
     pattern_results = {'risingLows': [], 'doubleBottom': [], 'invHeadShoulders': [], 'boxRangeLow': []}
     pattern_scanned = 0
     pullback_matches = []
     pullback_scanned = 0
+    ohlc_skipped = 0
+    flow_skipped = 0
     signal_state = fresh_signal_state()
 
     for i, stock in enumerate(universe):
         code, name = stock['code'], stock['name']
         try:
-            daily = kiwoom_market.fetch_daily_ohlc(token, code, max_days=kiwoom_market.OHLC_SNAPSHOT_DAYS)
-            save_ohlc_snapshot(conn, code, daily)
-            time.sleep(THROTTLE_SEC)
+            if db_schema.latest_date(conn, 'daily_prices', code) == today_str:
+                daily = db_schema.load_daily_prices(conn, code)
+                ohlc_skipped += 1
+            else:
+                daily = kiwoom_market.fetch_daily_ohlc(token, code, max_days=kiwoom_market.OHLC_SNAPSHOT_DAYS)
+                save_ohlc_snapshot(conn, code, daily)
+                conn.commit()
+                time.sleep(THROTTLE_SEC)
 
             scanned_p, scanned_pb = pd.scan_stock(stock, daily, pattern_results, pullback_matches)
             if scanned_p:
@@ -144,10 +153,14 @@ def main():
             if scanned_pb:
                 pullback_scanned += 1
 
-            flow_rows = kiwoom_market.fetch_institution_trend(token, code)
-            save_investor_flow(conn, code, flow_rows)
-            conn.commit()  # 종목마다 즉시 커밋 - 쓰기 트랜잭션을 오래 쥐고 있으면 다른 스크립트(migrate_*.py)가 락에 걸림
-            time.sleep(THROTTLE_SEC)
+            if db_schema.latest_date(conn, 'investor_flow_daily', code) == today_str:
+                flow_rows = db_schema.load_investor_flow_daily(conn, code)
+                flow_skipped += 1
+            else:
+                flow_rows = kiwoom_market.fetch_institution_trend(token, code)
+                save_investor_flow(conn, code, flow_rows)
+                conn.commit()  # 종목마다 즉시 커밋 - 쓰기 트랜잭션을 오래 쥐고 있으면 다른 스크립트(migrate_*.py)가 락에 걸림
+                time.sleep(THROTTLE_SEC)
             flow = invest_signal.build_flow(flow_rows)
             if flow:
                 tech = pd.compute_tech_score(daily)
@@ -192,8 +205,9 @@ def main():
                 invest_signal.upsert_ranked(signal_state['worsened'], row, 'shift', invest_signal.INVEST_SIGNAL_TOP_N, 'asc')
 
             if (i + 1) % 100 == 0 or (i + 1) == len(universe):
-                log('[%d/%d] 진행 중 (패턴 %d / 눌림목 %d / 투자시그널 %d 스캔됨)'
-                    % (i + 1, len(universe), pattern_scanned, pullback_scanned, signal_state['scanned']))
+                log('[%d/%d] 진행 중 (패턴 %d / 눌림목 %d / 투자시그널 %d 스캔됨, OHLC스킵 %d / 수급스킵 %d)'
+                    % (i + 1, len(universe), pattern_scanned, pullback_scanned, signal_state['scanned'],
+                       ohlc_skipped, flow_skipped))
         except Exception as e:
             log('[%d/%d] %s(%s) 실패: %s' % (i + 1, len(universe), name, code, e))
             continue
@@ -222,8 +236,9 @@ def main():
     }
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(payload, f, ensure_ascii=False)
-    log('저장 완료: %s (패턴 %d / 눌림목 %d / 투자시그널 %d / 전체 %d)'
-        % (OUTPUT_FILE, pattern_scanned, pullback_scanned, signal_state['scanned'], len(universe)))
+    log('저장 완료: %s (패턴 %d / 눌림목 %d / 투자시그널 %d / 전체 %d, 오늘자 이미 있어 API 스킵: OHLC %d / 수급 %d)'
+        % (OUTPUT_FILE, pattern_scanned, pullback_scanned, signal_state['scanned'], len(universe),
+           ohlc_skipped, flow_skipped))
 
 
 if __name__ == '__main__':

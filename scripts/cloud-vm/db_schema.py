@@ -87,6 +87,30 @@ def load_daily_prices(conn, code):
     ]
 
 
+def latest_date(conn, table, code):
+    """table(daily_prices 또는 investor_flow_daily)에서 종목의 가장 최근 저장 날짜.
+    daily_scan.py가 '오늘자 데이터가 이미 있으면 API 재호출 스킵'을 판단하는 데 씀.
+    table은 호출부 코드에 박힌 리터럴만 받는다(사용자 입력 아님) - f-string 조립이라도 안전."""
+    assert table in ('daily_prices', 'investor_flow_daily')
+    row = conn.execute('SELECT MAX(date) FROM %s WHERE code=?' % table, (code,)).fetchone()
+    return row[0] if row else None
+
+
+def load_investor_flow_daily(conn, code):
+    """investor_flow_daily에서 종목의 내림차순(최신일 우선) 행을
+    kiwoom_market.fetch_institution_trend()와 동일한 형식({date, close, change_pct,
+    foreign_net, inst_net})으로 반환."""
+    rows = conn.execute(
+        'SELECT date, close, change_pct, foreign_net, inst_net FROM investor_flow_daily '
+        'WHERE code=? ORDER BY date DESC',
+        (code,),
+    ).fetchall()
+    return [
+        {'date': r[0], 'close': r[1], 'change_pct': r[2], 'foreign_net': r[3], 'inst_net': r[4]}
+        for r in rows
+    ]
+
+
 if __name__ == '__main__':
     conn = get_conn()
     create_schema(conn)
