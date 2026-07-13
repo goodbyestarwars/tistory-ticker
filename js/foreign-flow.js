@@ -659,9 +659,29 @@
     return Math.max(0, Math.min(100, Math.round(base + adj)));
   }
 
-  // 5일 합산 부호만 보면 "오늘은 순매수 전환"인데도 "매도세가 이어진다"고 나오는 모순이
-  // 생길 수 있어(예: 5일 중 나흘은 매도, 오늘만 매수면 합산은 음수), 배지와 같은 기준인
-  // streak(최신일부터 역순 연속 방향)로 판단해 배지·문구가 항상 같은 결론을 가리키게 한다.
+  // computeFlowScore와 완전히 같은 신호(5·20일 롤링 합산 부호 4개)로 설명 문구를 만들어서
+  // "오늘의 수급" 행의 점수와 설명이 절대 어긋나지 않게 한다(예: 100점인데 "방향이 뚜렷하지
+  // 않다"고 나오는 모순 방지) - flowInterpText(아래, streak 기준)는 상단 배지 전용이고
+  // 이 둘을 같은 자리에 섞어 쓰면 안 된다.
+  function flowScoreInterpText(data) {
+    var r = data.rolling || {};
+    var f5 = r['5d'] ? r['5d'].foreign : 0;
+    var f20 = r['20d'] ? r['20d'].foreign : 0;
+    var i5 = r['5d'] ? r['5d'].inst : 0;
+    var i20 = r['20d'] ? r['20d'].inst : 0;
+    function sgn(v) { return v > 0 ? 1 : v < 0 ? -1 : 0; }
+    var total = sgn(f5) + sgn(f20) + sgn(i5) + sgn(i20); // computeFlowScore의 score = 50 + 12.5*total과 동일 신호
+    if (total >= 3) return '최근 5·20일 외국인·기관 수급이 뚜렷한 순매수 우위입니다.';
+    if (total >= 1) return '최근 5·20일 외국인·기관 수급이 순매수 쪽으로 다소 기울어 있습니다.';
+    if (total <= -3) return '최근 5·20일 외국인·기관 수급이 뚜렷한 순매도 우위입니다.';
+    if (total <= -1) return '최근 5·20일 외국인·기관 수급이 순매도 쪽으로 다소 기울어 있습니다.';
+    return '최근 5·20일 외국인·기관 수급이 혼조세입니다.';
+  }
+
+  // 상단 배지(색·톤) 전용 - 5일 합산 부호만 보면 "오늘은 순매수 전환"인데도 "매도세가
+  // 이어진다"고 나오는 모순이 생길 수 있어(예: 5일 중 나흘은 매도, 오늘만 매수면 합산은
+  // 음수), 배지와 같은 기준인 streak(최신일부터 역순 연속 방향)로 판단해 배지·문구가
+  // 항상 같은 결론을 가리키게 한다. "오늘의 수급" 행에는 쓰지 말 것(flowScoreInterpText 사용).
   function flowInterpText(data) {
     var streak = data.streak || {};
     var f = streak.foreign || { direction: 'flat' };
@@ -783,7 +803,7 @@
     // 각 행의 desc를 일반 설명이 아니라 실제 해석 문장으로 채워서(구 ff-summary-interp 블록을
     // 아래에 따로 두지 않고) 점수 옆 칸에서 바로 이유를 보여준다.
     var rows = [
-      { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: flowInterpText(data) },
+      { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: flowScoreInterpText(data) },
       { icon: '🌐', label: '외국인·기관', score: foreignInstScore, desc: foreignInstDescText(data) },
       { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: techInterpText(techScore) },
       { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: shortInterpText(entry && entry.short, entry && entry.loan) },
@@ -840,7 +860,7 @@
       + '&code=' + encodeURIComponent(data.code)
       + '&name=' + encodeURIComponent(data.name || data.code)
       + '&flowScore=' + flowScore
-      + '&flowNote=' + encodeURIComponent(flowInterpText(data))
+      + '&flowNote=' + encodeURIComponent(flowScoreInterpText(data))
       + '&foreignInstScore=' + foreignInstScore
       + '&foreignInstNote=' + encodeURIComponent(foreignInstDescText(data))
       + '&shortScore=' + (shortScore == null ? '' : shortScore)
