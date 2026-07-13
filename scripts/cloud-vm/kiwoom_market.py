@@ -18,10 +18,12 @@ def to_num(v):
         return 0.0
 
 
-def fetch_daily_ohlc(token, code):
+def fetch_daily_ohlc(token, code, max_days=OHLC_MIN_DAYS):
     """일봉 OHLC를 오름차순(과거->최신)으로 반환. gas의 fetchDailyOhlc_()와 동일한 행 형식
-    ({date, open, high, low, close, volume})을 쓴다. 데이터가 OHLC_MIN_DAYS에 못 미치면
-    (신규상장 등) 있는 만큼만 반환 - 호출부가 길이 체크로 스킵 여부를 판단한다."""
+    ({date, open, high, low, close, volume})을 쓴다. 데이터가 max_days에 못 미치면
+    (신규상장 등) 있는 만큼만 반환 - 호출부가 길이 체크로 스킵 여부를 판단한다.
+    max_days=None이면 ka10081 한 번 호출로 나오는 만큼(종목마다 다르지만 보통 600영업일 안팎,
+    2년 반 정도) 전부 반환 - 종목분석 가격차트(getFlowChart)용."""
     res = kiwoom_client.call_tr(token, 'ka10081', '/api/dostk/chart', {
         'stk_cd': code,
         'base_dt': datetime.now().strftime('%Y%m%d'),
@@ -46,8 +48,8 @@ def fetch_daily_ohlc(token, code):
         })
 
     out.sort(key=lambda r: r['date'])  # 오름차순(과거->최신) - gas fetchDailyOhlc_와 동일
-    if len(out) > OHLC_MIN_DAYS:
-        out = out[-OHLC_MIN_DAYS:]
+    if max_days and len(out) > max_days:
+        out = out[-max_days:]
     return out
 
 

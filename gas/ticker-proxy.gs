@@ -576,12 +576,14 @@ function getFlowAiSummary(params) {
 // ---------------------------------------------------------------------------
 // 수급 위젯용 가격 차트 (?action=flowChart&code=005930)
 // 지지/저항(스윙 고점·저점) + 이동평균 5/20/60/224일선을 같이 계산해서 내려준다.
-// 화면에는 최근 2년(약 500영업일)을 보여주고, MA224까지 그 구간 전체에서 계산되려면
-// 앞에 224일치 여유가 더 필요해서 fetchDailyOhlc_를 훨씬 많은 페이지(74p ≈ 740영업일)로 호출한다.
-// 크롤링이 무거워서 30분 캐싱을 건다.
+// 2026-07-13: 네이버 sise_day.naver 74페이지 크롤링(FLOW_CHART_PAGES) 대신 VM의 /ohlc
+// (키움 ka10081)를 한 번만 호출하도록 교체 - 종목당 UrlFetchApp 74회 -> 1회로 감소.
+// ka10081 한 번 호출로는 보통 600영업일 안팎(약 2.4년)까지만 나와서, 예전(740영업일) 대비
+// 짧다 - 화면에는 여전히 최근 500일을 보여주지만, MA224(224일 이동평균)은 데이터가 있는
+// 구간(대략 최근 376일)에서만 그려지고 그 이전 구간은 비어 보일 수 있음(다른 이평선/지지·
+// 저항선/캔들은 영향 없음, 감수하기로 결정한 트레이드오프).
 // findSwingIndices_/movingAverage_는 gas/ticker-proxy.gs 안의 패턴스캔 로직과 공용.
 // ---------------------------------------------------------------------------
-var FLOW_CHART_PAGES = 74;          // 10행 x 74 ≈ 740영업일 (MA224 계산 여유 240일 + 최근 500일 표시)
 var FLOW_CHART_DISPLAY_DAYS = 500;  // 화면에 보여줄 최근 캔들 수 (KRX 연간 거래일수 기준 약 2년)
 var FLOW_CHART_CACHE_TTL = 1800;    // 30분
 
@@ -595,8 +597,8 @@ function getFlowChart(code) {
   var cached = cache.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
-  var daily = fetchDailyOhlc_(code, FLOW_CHART_PAGES);
-  if (daily.length < 30) {
+  var daily = kiwoomVmFetch_('/ohlc?code=' + encodeURIComponent(code));
+  if (!daily || daily.length < 30) {
     return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
   }
 

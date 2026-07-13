@@ -12,6 +12,7 @@ from fastapi import FastAPI, Header, HTTPException, Query
 
 import investor_flow
 import kiwoom_client
+import kiwoom_market
 
 app = FastAPI(title="kiwoom-readonly-api")
 
@@ -77,6 +78,24 @@ def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = H
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     return envelope(res)
+
+
+@app.get('/ohlc')
+def ohlc(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = Header(default=None)):
+    """일봉 OHLC(ka10081) 온디맨드 조회 - 종목분석 가격차트(gas의 getFlowChart)용.
+    네이버 sise_day.naver 크롤링(FLOW_CHART_PAGES=74) 대체. 서버 캐시 없음
+    (GAS 쪽에서 종목별 30분 캐싱하므로 여기서 또 캐싱할 필요 없음 - /investor-flow와 동일 패턴)."""
+    require_api_key(x_api_key)
+    try:
+        token = get_kiwoom_token()
+        daily = kiwoom_market.fetch_daily_ohlc(token, code, max_days=None)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    if not daily:
+        raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
+    return envelope(daily)
 
 
 @app.get('/investor-flow')
