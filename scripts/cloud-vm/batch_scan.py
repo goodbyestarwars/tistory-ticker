@@ -29,7 +29,7 @@ OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor
 FUNDAMENTALS_OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 FUNDAMENTALS_CURSOR_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cursor.json')
 THROTTLE_SEC = 0.25
-FUNDAMENTALS_STALE_DAYS = 30       # 재무제표는 거의 안 바뀌므로 이 기간 안이면 재조회 스킵
+FUNDAMENTALS_STALE_DAYS = 90       # 분기보고서 공시 주기(연 4회)에 맞춰 재조회 스킵 기간 설정
 FUNDAMENTALS_TIME_BUDGET_SEC = 20 * 60  # 이 실행에서 펀더멘탈 스캔에 쓸 시간 예산(넘으면 커서 저장하고 중단)
 
 
