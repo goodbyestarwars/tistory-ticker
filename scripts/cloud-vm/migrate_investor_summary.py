@@ -29,8 +29,10 @@ def main():
         log('data가 비어있습니다 - 이관할 게 없음.')
         return
 
+    log('DB 연결 시도 중(다른 스크립트가 쓰기 중이면 최대 10분 대기)...')
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
+    log('DB 연결 완료, 이관 시작.')
 
     for code, payload in data.items():
         conn.execute(

@@ -39,8 +39,10 @@ def main():
 
     corp_map = load_corp_code_map()
 
+    log('DB 연결 시도 중(다른 스크립트가 쓰기 중이면 최대 10분 대기)...')
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
+    log('DB 연결 완료, 이관 시작.')
 
     existing = dict(conn.execute('SELECT code, updated_at FROM fundamentals').fetchall())
 
