@@ -3,7 +3,7 @@
 # systemd timer(kiwoom-deploy.timer)로 5분마다 실행 - VM이 GitHub으로 나가는 방향으로만
 # 통신하므로 새 인바운드 포트나 SSH 키 관리가 필요 없다(GitHub Actions push-to-deploy 대안).
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."   # scripts/cloud-vm -> 저장소 루트(cp 대상 경로가 루트 기준 상대경로라 여기로 와야 함)
 
 git fetch origin master -q
 LOCAL=$(git rev-parse HEAD)

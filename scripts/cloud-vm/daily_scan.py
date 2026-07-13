@@ -14,6 +14,7 @@ import time
 import urllib.request
 from datetime import datetime, timezone
 
+import db_schema
 import invest_signal
 import kiwoom_client
 import kiwoom_market
@@ -73,6 +74,20 @@ def fresh_signal_state():
     }
 
 
+def save_ohlc_snapshot(conn, code, daily):
+    """daily(오름차순 OHLC)를 daily_prices에 UPSERT. rescan_patterns.py 등 후속 스캐너가
+    키움 API 재호출 없이 이 스냅샷만 커서 순회하도록 하기 위함 - 종목 하나 처리할 때마다
+    바로 써서, 하루 전체 스캔이 중간에 죽어도 그때까지 처리한 종목은 남는다."""
+    if not daily:
+        return
+    conn.executemany(
+        'INSERT INTO daily_prices (code, date, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?) '
+        'ON CONFLICT(code, date) DO UPDATE SET open=excluded.open, high=excluded.high, low=excluded.low, '
+        'close=excluded.close, volume=excluded.volume',
+        [(code, r['date'], r['open'], r['high'], r['low'], r['close'], r['volume']) for r in daily],
+    )
+
+
 def main():
     load_dotenv()
     appkey = os.environ.get('KIWOOM_APPKEY')
@@ -93,6 +108,9 @@ def main():
     flow_cache = load_flow_cache()
     token = kiwoom_client.get_token(appkey, secretkey)
 
+    conn = db_schema.get_conn()
+    db_schema.create_schema(conn)
+
     pattern_results = {'risingLows': [], 'doubleBottom': [], 'invHeadShoulders': [], 'boxRangeLow': []}
     pattern_scanned = 0
     pullback_matches = []
@@ -102,7 +120,8 @@ def main():
     for i, stock in enumerate(universe):
         code, name = stock['code'], stock['name']
         try:
-            daily = kiwoom_market.fetch_daily_ohlc(token, code)
+            daily = kiwoom_market.fetch_daily_ohlc(token, code, max_days=kiwoom_market.OHLC_SNAPSHOT_DAYS)
+            save_ohlc_snapshot(conn, code, daily)
             time.sleep(THROTTLE_SEC)
 
             if len(daily) >= pd.BOX_WINDOW:
@@ -175,11 +194,15 @@ def main():
                 invest_signal.upsert_ranked(signal_state['worsened'], row, 'shift', invest_signal.INVEST_SIGNAL_TOP_N, 'asc')
 
             if (i + 1) % 100 == 0 or (i + 1) == len(universe):
+                conn.commit()  # 중간에 죽어도 여기까지 처리한 종목의 OHLC는 남도록 주기적으로 커밋
                 log('[%d/%d] 진행 중 (패턴 %d / 눌림목 %d / 투자시그널 %d 스캔됨)'
                     % (i + 1, len(universe), pattern_scanned, pullback_scanned, signal_state['scanned']))
         except Exception as e:
             log('[%d/%d] %s(%s) 실패: %s' % (i + 1, len(universe), name, code, e))
             continue
+
+    conn.commit()
+    conn.close()
 
     now = datetime.now(timezone.utc).isoformat()
     payload = {

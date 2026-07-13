@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import kiwoom_client
 
 OHLC_MIN_DAYS = 100   # gas의 PATTERN_PAGES(10p*10행=100영업일)와 동일 기준
+OHLC_SNAPSHOT_DAYS = 260  # daily_scan.py가 SQLite(daily_prices)에 저장하는 일수 - 향후 일목균형표 구름대/224일선 스캐너에 필요한 최소치
 FLOW_LOOKBACK_DAYS = 60  # 달력일 기준 - 영업일로 환산하면 40영업일(gas FRGN_PAGES=2*20행)를 넉넉히 커버
 
 
