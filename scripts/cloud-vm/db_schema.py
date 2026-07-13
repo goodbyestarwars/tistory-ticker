@@ -58,12 +58,13 @@ CREATE TABLE IF NOT EXISTS investor_summary (
 
 
 def get_conn(db_file=None):
-    """timeout=120: daily_scan.py 같은 장시간 배치가 쓰기 트랜잭션을 오래 쥐고 있을 때
+    """timeout=600: daily_scan.py 같은 장시간 배치가 쓰기 트랜잭션을 오래 쥐고 있을 때
     다른 스크립트(migrate_*.py 등)가 즉시 'database is locked' 에러를 내는 대신
-    최대 2분까지 기다렸다가 재시도하도록 함(실제로 이 문제를 겪어서 추가)."""
-    conn = sqlite3.connect(db_file or DB_FILE, timeout=120)
+    기다렸다가 재시도하도록 함(실제로 겪은 문제 - 2분으로는 부족해서 10분으로 늘림,
+    구버전 daily_scan.py가 100종목마다만 커밋해서 API가 느릴 때 그 구간이 5분 넘게 걸림)."""
+    conn = sqlite3.connect(db_file or DB_FILE, timeout=600)
     conn.execute('PRAGMA journal_mode=WAL')
-    conn.execute('PRAGMA busy_timeout=120000')
+    conn.execute('PRAGMA busy_timeout=600000')
     return conn
 
 
