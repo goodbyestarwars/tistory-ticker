@@ -23,6 +23,8 @@ import dart_client
 import fundamentals
 import investor_flow
 import kiwoom_client
+import migrate_fundamentals
+import migrate_investor_summary
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
@@ -113,6 +115,11 @@ def main():
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(payload, f, ensure_ascii=False)
     log('저장 완료: %s (%d/%d종목)' % (OUTPUT_FILE, len(cache), len(codes_map)))
+
+    try:
+        migrate_investor_summary.main()
+    except Exception as e:
+        log('investor_summary SQLite 이관 실패(JSON 캐시는 정상 저장됨): %s' % e)
 
     scan_fundamentals(codes_map)
 
@@ -231,6 +238,11 @@ def scan_fundamentals(codes_map):
         json.dump(payload, f, ensure_ascii=False)
     log('펀더멘탈 저장 완료: %s (누적 %d/%d종목, 이번 실행 신규 %d / 스킵 %d, %s)'
         % (FUNDAMENTALS_OUTPUT_FILE, len(cache), len(items), new_count, skipped_count, stop_reason))
+
+    try:
+        migrate_fundamentals.main()
+    except Exception as e:
+        log('fundamentals SQLite 이관 실패(JSON 캐시는 정상 저장됨): %s' % e)
 
 
 if __name__ == '__main__':
