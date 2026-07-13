@@ -112,15 +112,15 @@
 }
 #market-temp .mt-gauge-track {
   position: relative;
-  height: 22px;
+  height: 30px;
   border-radius: 999px;
   background: linear-gradient(90deg, #1261c4 0%, #7fb5e8 22%, #ddd 50%, #f0a868 78%, #d24f45 100%);
 }
 #market-temp .mt-gauge-marker {
   position: absolute;
-  top: -6px;
+  top: -5px;
   width: 5px;
-  height: 34px;
+  height: 40px;
   background: #222;
   border-radius: 3px;
   transform: translateX(-50%);
