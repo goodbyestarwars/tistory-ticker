@@ -3,7 +3,7 @@
  * scripts/fetch_investor_flow.py 실행 -> git push로 갱신 (서버 실시간 크롤링 아님)
  * 커버리지: data/sectors-v3.js 종목 풀만 포함(전체 종목 아님) - js/foreign-flow.js가
  * 이 캐시에 없는 종목은 공매도/대차/연기금 섹션을 생략하고 안내 문구만 표시한다.
- * 생성: 2026-07-12 09:57
+ * 생성: 2026-07-13 09:09
  */
 window.INVESTOR_FLOW_CACHE = {
   "000660": {
@@ -16,18 +16,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 5934338.7,
       "days_to_cover": 0.7676021255746659,
       "balance_change_pct": 5.920877165609561,
-      "short_squeeze_index": -493.5369474378711,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 50,
+        "score": 40,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -38,19 +38,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 110902.0,
-      "net_20d": -59355.0,
-      "net_60d": -312021.0,
-      "net_cumulative": -907118.0,
+      "net_5d": 213729.0,
+      "net_20d": -5239.0,
+      "net_60d": -309171.0,
+      "net_cumulative": -885163.0,
       "cumulative_window_days": 100,
-      "current_price": 2180000.0,
+      "current_price": 2114000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -64,19 +64,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1112648.55,
       "days_to_cover": 3.4738085085357815,
       "balance_change_pct": 1.8651108131834655,
-      "short_squeeze_index": 70.75131766734022,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 47,
+        "score": 37,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 24,
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -86,15 +86,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -4180.0,
-      "net_20d": -132337.0,
-      "net_60d": -39063.0,
-      "net_cumulative": -314761.0,
+      "net_5d": -25550.0,
+      "net_20d": -116412.0,
+      "net_60d": -38491.0,
+      "net_cumulative": -327734.0,
       "cumulative_window_days": 100,
-      "current_price": 457500.0,
+      "current_price": 467500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -112,7 +112,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 31110606.35,
       "days_to_cover": 0.7451577362136498,
       "balance_change_pct": 0.9803439427781613,
-      "short_squeeze_index": 382.534435261708,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 8,
         "grade": {
@@ -134,15 +134,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 72046.0,
-      "net_20d": -277883.0,
-      "net_60d": 20502.0,
-      "net_cumulative": -320119.0,
+      "net_5d": 29341.0,
+      "net_20d": -275020.0,
+      "net_60d": 10217.0,
+      "net_cumulative": -268168.0,
       "cumulative_window_days": 100,
-      "current_price": 285000.0,
+      "current_price": 289000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -160,7 +160,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1278410.5,
       "days_to_cover": 1.3731645664675,
       "balance_change_pct": 2.582520391240678,
-      "short_squeeze_index": 91.27935918903019,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 41,
         "grade": {
@@ -182,15 +182,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -8256.0,
-      "net_20d": -32931.0,
-      "net_60d": 265329.0,
-      "net_cumulative": -25744.0,
+      "net_5d": -8319.0,
+      "net_20d": -28368.0,
+      "net_60d": 272447.0,
+      "net_cumulative": -28712.0,
       "cumulative_window_days": 100,
-      "current_price": 191300.0,
+      "current_price": 193200.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -208,7 +208,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1721017.5,
       "days_to_cover": 2.855740862600177,
       "balance_change_pct": 1.6184417504875421,
-      "short_squeeze_index": 38.37319229393428,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 21,
         "grade": {
@@ -230,19 +230,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 238.0,
-      "net_20d": -30941.0,
-      "net_60d": -146783.0,
-      "net_cumulative": -199674.0,
+      "net_5d": 1189.0,
+      "net_20d": -22123.0,
+      "net_60d": -147148.0,
+      "net_cumulative": -198051.0,
       "cumulative_window_days": 100,
-      "current_price": 35350.0,
+      "current_price": 35600.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -256,7 +256,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 232935.75,
       "days_to_cover": 2.7386435959272033,
       "balance_change_pct": 1.5118701137920554,
-      "short_squeeze_index": 30.44942637617093,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 28,
         "grade": {
@@ -278,19 +278,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 8,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3519.0,
-      "net_20d": -4033.0,
-      "net_60d": -5739.0,
-      "net_cumulative": 5514.0,
+      "net_5d": -2318.0,
+      "net_20d": -4270.0,
+      "net_60d": -6400.0,
+      "net_cumulative": 4088.0,
       "cumulative_window_days": 100,
-      "current_price": 38850.0,
+      "current_price": 39900.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 8일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -304,7 +304,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 233769.7,
       "days_to_cover": 0.8785826392385325,
       "balance_change_pct": 5.79218197083563,
-      "short_squeeze_index": 7.407736771898622,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 47,
         "grade": {
@@ -330,11 +330,11 @@ window.INVESTOR_FLOW_CACHE = {
         "direction": "flat"
       },
       "net_5d": 111.0,
-      "net_20d": -942.0,
-      "net_60d": 2578.0,
-      "net_cumulative": 8776.0,
+      "net_20d": -918.0,
+      "net_60d": 501.0,
+      "net_cumulative": 8732.0,
       "cumulative_window_days": 100,
-      "current_price": 12910.0,
+      "current_price": 13460.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -352,19 +352,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 625954.25,
       "days_to_cover": 1.0792545940857499,
       "balance_change_pct": 2.698331139197402,
-      "short_squeeze_index": 3.971830985915493,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -382,7 +382,7 @@ window.INVESTOR_FLOW_CACHE = {
       "net_60d": -136.0,
       "net_cumulative": -775.0,
       "cumulative_window_days": 100,
-      "current_price": 4370.0,
+      "current_price": 4445.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -400,7 +400,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 170724.7,
       "days_to_cover": 1.9648885017809372,
       "balance_change_pct": 5.338935415901248,
-      "short_squeeze_index": 28.114339489471828,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 72,
         "grade": {
@@ -422,15 +422,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 42173.0,
-      "net_20d": 95363.0,
-      "net_60d": 134120.0,
-      "net_cumulative": 96105.0,
+      "net_5d": 39223.0,
+      "net_20d": 95575.0,
+      "net_60d": 134155.0,
+      "net_cumulative": 95875.0,
       "cumulative_window_days": 100,
-      "current_price": 319500.0,
+      "current_price": 338500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -448,7 +448,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 620726.25,
       "days_to_cover": 3.1895541714241986,
       "balance_change_pct": 4.954296131803563,
-      "short_squeeze_index": 2.178542003274233,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 56,
         "grade": {
@@ -470,19 +470,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 14,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 2337.0,
-      "net_20d": 20943.0,
-      "net_60d": 26192.0,
-      "net_cumulative": 80901.0,
+      "net_5d": 2275.0,
+      "net_20d": 20805.0,
+      "net_60d": 26173.0,
+      "net_cumulative": 78566.0,
       "cumulative_window_days": 100,
-      "current_price": 57400.0,
+      "current_price": 58500.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 14일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -496,18 +496,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 492341.2,
       "days_to_cover": 1.9625657978653828,
       "balance_change_pct": 6.926853883719154,
-      "short_squeeze_index": -5.107436696221742,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 66,
+        "score": 56,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -518,15 +518,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -5776.0,
-      "net_20d": 7817.0,
-      "net_60d": 7730.0,
-      "net_cumulative": 32197.0,
+      "net_5d": -3623.0,
+      "net_20d": 10100.0,
+      "net_60d": 8197.0,
+      "net_cumulative": 30488.0,
       "cumulative_window_days": 100,
-      "current_price": 120300.0,
+      "current_price": 127200.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -544,7 +544,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 454109.95,
       "days_to_cover": 1.0040828217923874,
       "balance_change_pct": 3.052958938289909,
-      "short_squeeze_index": 49.518803671898134,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 27,
         "grade": {
@@ -566,19 +566,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 6,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -9427.0,
-      "net_20d": 17838.0,
-      "net_60d": -11400.0,
-      "net_cumulative": 10875.0,
+      "net_5d": -7874.0,
+      "net_20d": 20113.0,
+      "net_60d": -14437.0,
+      "net_cumulative": 5577.0,
       "cumulative_window_days": 100,
-      "current_price": 81800.0,
+      "current_price": 84400.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 6일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -592,9 +592,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 58034.65,
       "days_to_cover": 5.374134245661859,
       "balance_change_pct": 3.3405786536957764,
-      "short_squeeze_index": 22.25748859353303,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 59,
+        "score": 49,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -604,7 +604,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -614,15 +614,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -2809.0,
-      "net_20d": 1662.0,
-      "net_60d": -26432.0,
-      "net_cumulative": -42900.0,
+      "net_5d": -2844.0,
+      "net_20d": 828.0,
+      "net_60d": -26888.0,
+      "net_cumulative": -44088.0,
       "cumulative_window_days": 100,
-      "current_price": 384500.0,
+      "current_price": 399500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -640,7 +640,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 494950.05,
       "days_to_cover": 1.366750038716028,
       "balance_change_pct": 3.7680105658918652,
-      "short_squeeze_index": 183.18270639960917,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -662,19 +662,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 9101.0,
-      "net_20d": 56982.0,
-      "net_60d": 89000.0,
-      "net_cumulative": 127548.0,
+      "net_5d": 7693.0,
+      "net_20d": 62720.0,
+      "net_60d": 89669.0,
+      "net_cumulative": 124881.0,
       "cumulative_window_days": 100,
-      "current_price": 324000.0,
+      "current_price": 343500.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -688,9 +688,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 109457.9,
       "days_to_cover": 1.1166028217241515,
       "balance_change_pct": 4.625143385437176,
-      "short_squeeze_index": -231.29742735517306,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 37,
+        "score": 27,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -700,7 +700,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -710,15 +710,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 9165.0,
-      "net_20d": 38033.0,
-      "net_60d": 35632.0,
-      "net_cumulative": -9197.0,
+      "net_5d": 7860.0,
+      "net_20d": 40493.0,
+      "net_60d": 37845.0,
+      "net_cumulative": -7376.0,
       "cumulative_window_days": 100,
-      "current_price": 389000.0,
+      "current_price": 402000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -736,18 +736,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 59935.35,
       "days_to_cover": 1.634761455468267,
       "balance_change_pct": 3.2966801260898446,
-      "short_squeeze_index": -1.5669971218420211,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 69,
+        "score": 59,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 30,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -761,12 +761,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": 1867.0,
-      "net_20d": 4693.0,
-      "net_60d": 3682.0,
-      "net_cumulative": -5389.0,
+      "net_5d": 2150.0,
+      "net_20d": 6550.0,
+      "net_60d": 3589.0,
+      "net_cumulative": -4848.0,
       "cumulative_window_days": 100,
-      "current_price": 240500.0,
+      "current_price": 250500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -784,7 +784,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 621442.95,
       "days_to_cover": 1.70709797254921,
       "balance_change_pct": 3.4492711791023236,
-      "short_squeeze_index": 40.34547099400656,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -806,19 +806,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 18354.0,
-      "net_20d": 66420.0,
-      "net_60d": 7065.0,
-      "net_cumulative": -13761.0,
+      "net_5d": 22957.0,
+      "net_20d": 68498.0,
+      "net_60d": 19671.0,
+      "net_cumulative": -41541.0,
       "cumulative_window_days": 100,
-      "current_price": 175200.0,
+      "current_price": 179500.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -832,9 +832,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 307365.95,
       "days_to_cover": 6.017133648017941,
       "balance_change_pct": 4.400313856540466,
-      "short_squeeze_index": 3.6830357142857144,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 59,
+        "score": 49,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -844,7 +844,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -854,15 +854,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 347.0,
-      "net_20d": -1610.0,
-      "net_60d": -31726.0,
-      "net_cumulative": -79790.0,
+      "net_5d": 583.0,
+      "net_20d": -2438.0,
+      "net_60d": -31887.0,
+      "net_cumulative": -70378.0,
       "cumulative_window_days": 100,
-      "current_price": 68500.0,
+      "current_price": 69900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -880,7 +880,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 175394.5,
       "days_to_cover": 1.954342924093971,
       "balance_change_pct": 1.1830931036416716,
-      "short_squeeze_index": 66.79141716566866,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 21,
         "grade": {
@@ -902,15 +902,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1664.0,
-      "net_20d": 716.0,
+      "net_5d": -1562.0,
+      "net_20d": -389.0,
       "net_60d": -11137.0,
-      "net_cumulative": -68773.0,
+      "net_cumulative": -68453.0,
       "cumulative_window_days": 100,
-      "current_price": 82400.0,
+      "current_price": 83600.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -928,7 +928,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 62290.0,
       "days_to_cover": 2.4263445175790657,
       "balance_change_pct": 2.789112870317473,
-      "short_squeeze_index": 467.59326993416244,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -950,19 +950,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 13410.0,
-      "net_20d": -39767.0,
-      "net_60d": -367005.0,
-      "net_cumulative": -443619.0,
+      "net_5d": 12670.0,
+      "net_20d": -33119.0,
+      "net_60d": -354987.0,
+      "net_cumulative": -442812.0,
       "cumulative_window_days": 100,
-      "current_price": 1395000.0,
+      "current_price": 1438000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -976,19 +976,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 121600.35,
       "days_to_cover": 2.293315767594419,
       "balance_change_pct": 2.061595330027266,
-      "short_squeeze_index": 0.514823362329132,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1006,7 +1006,7 @@ window.INVESTOR_FLOW_CACHE = {
       "net_60d": -684.0,
       "net_cumulative": -27559.0,
       "cumulative_window_days": 100,
-      "current_price": 18500.0,
+      "current_price": 18900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -1024,7 +1024,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 159486.25,
       "days_to_cover": 2.636340123364867,
       "balance_change_pct": 2.070244603478244,
-      "short_squeeze_index": 14.892120075046906,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 59,
         "grade": {
@@ -1046,19 +1046,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -716.0,
-      "net_20d": 5978.0,
-      "net_60d": 10955.0,
+      "net_5d": -503.0,
+      "net_20d": 4654.0,
+      "net_60d": 10796.0,
       "net_cumulative": 6561.0,
       "cumulative_window_days": 100,
-      "current_price": 48700.0,
+      "current_price": 50100.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1072,9 +1072,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 140279.5,
       "days_to_cover": 2.12880000285145,
       "balance_change_pct": 11.679263417315825,
-      "short_squeeze_index": -0.8965738072366315,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 72,
+        "score": 62,
         "grade": {
           "emoji": "🟠",
           "label": "강함"
@@ -1083,7 +1083,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 30,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -1094,19 +1094,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 921.0,
-      "net_20d": 3355.0,
-      "net_60d": -28405.0,
-      "net_cumulative": -83971.0,
+      "net_5d": 266.0,
+      "net_20d": 3441.0,
+      "net_60d": -27543.0,
+      "net_cumulative": -83472.0,
       "cumulative_window_days": 100,
-      "current_price": 199600.0,
+      "current_price": 203000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1120,19 +1120,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 6858565.25,
       "days_to_cover": 0.025852054115837127,
       "balance_change_pct": 0.08354030255136599,
-      "short_squeeze_index": 165.54054054054055,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 30,
+        "score": 20,
         "grade": {
           "emoji": "🟢",
-          "label": "약함"
+          "label": "매우 약함"
         },
         "breakdown": {
           "short_ratio": 0,
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1147,10 +1147,10 @@ window.INVESTOR_FLOW_CACHE = {
       },
       "net_5d": -76.0,
       "net_20d": -77.0,
-      "net_60d": -14.0,
-      "net_cumulative": -77.0,
+      "net_60d": -15.0,
+      "net_cumulative": -35.0,
       "cumulative_window_days": 100,
-      "current_price": 4885.0,
+      "current_price": 5000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -1168,19 +1168,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 337387.85,
       "days_to_cover": 1.4961979217686707,
       "balance_change_pct": 3.7436572999878743,
-      "short_squeeze_index": 4.479578392621871,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 69,
+        "score": 59,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 30,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1190,15 +1190,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3634.0,
-      "net_20d": 1617.0,
-      "net_60d": -20975.0,
-      "net_cumulative": -13925.0,
+      "net_5d": -878.0,
+      "net_20d": 1841.0,
+      "net_60d": -21914.0,
+      "net_cumulative": -15524.0,
       "cumulative_window_days": 100,
-      "current_price": 33150.0,
+      "current_price": 33600.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -1216,9 +1216,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1118493.55,
       "days_to_cover": 4.674982703297663,
       "balance_change_pct": 2.1595004382223686,
-      "short_squeeze_index": -2.9276589584916586,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -1227,7 +1227,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -1238,19 +1238,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 3102.0,
-      "net_20d": -5485.0,
-      "net_60d": 10401.0,
-      "net_cumulative": 11106.0,
+      "net_5d": 5198.0,
+      "net_20d": -8642.0,
+      "net_60d": 9236.0,
+      "net_cumulative": 17001.0,
       "cumulative_window_days": 100,
-      "current_price": 222000.0,
+      "current_price": 226000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1264,9 +1264,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 7700364.8,
       "days_to_cover": 1.0850430099103876,
       "balance_change_pct": 4.220601389545317,
-      "short_squeeze_index": 4.008156992552311,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 51,
+        "score": 41,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -1276,7 +1276,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1286,19 +1286,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1837.0,
-      "net_20d": -14564.0,
-      "net_60d": -20328.0,
-      "net_cumulative": -28442.0,
+      "net_5d": 2379.0,
+      "net_20d": -8717.0,
+      "net_60d": -19788.0,
+      "net_cumulative": -28266.0,
       "cumulative_window_days": 100,
-      "current_price": 44400.0,
+      "current_price": 46000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1312,9 +1312,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1225872.65,
       "days_to_cover": 3.404004486110364,
       "balance_change_pct": 5.727520959273299,
-      "short_squeeze_index": 20.901992877839465,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 54,
+        "score": 44,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -1323,7 +1323,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 0,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -1334,19 +1334,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 85.0,
-      "net_20d": -37107.0,
-      "net_60d": -116827.0,
-      "net_cumulative": -83973.0,
+      "net_5d": 2389.0,
+      "net_20d": -31818.0,
+      "net_60d": -126845.0,
+      "net_cumulative": -73099.0,
       "cumulative_window_days": 100,
       "current_price": 103800.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1360,9 +1360,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1313462.55,
       "days_to_cover": 2.6193293444110757,
       "balance_change_pct": 1.5227568086289258,
-      "short_squeeze_index": 13.107765052419431,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 31,
+        "score": 21,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -1372,7 +1372,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1382,19 +1382,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1698.0,
-      "net_20d": 3235.0,
-      "net_60d": -36266.0,
-      "net_cumulative": -91295.0,
+      "net_5d": 278.0,
+      "net_20d": 1339.0,
+      "net_60d": -35660.0,
+      "net_cumulative": -88200.0,
       "cumulative_window_days": 100,
-      "current_price": 73800.0,
+      "current_price": 78200.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1408,9 +1408,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 106219.3,
       "days_to_cover": 2.6223388781511456,
       "balance_change_pct": 3.6562493022424993,
-      "short_squeeze_index": 3.521628498727735,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 76,
+        "score": 66,
         "grade": {
           "emoji": "🟠",
           "label": "강함"
@@ -1420,7 +1420,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 22,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1430,19 +1430,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -264.0,
-      "net_20d": -5608.0,
-      "net_60d": -32464.0,
-      "net_cumulative": -45870.0,
+      "net_5d": -87.0,
+      "net_20d": -4968.0,
+      "net_60d": -30531.0,
+      "net_cumulative": -42738.0,
       "cumulative_window_days": 100,
-      "current_price": 311500.0,
+      "current_price": 323500.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1456,18 +1456,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 773557.6,
       "days_to_cover": 0.8839858854725233,
       "balance_change_pct": 2.0022643502075654,
-      "short_squeeze_index": 11.294047530358341,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -1478,19 +1478,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 5,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 2870.0,
-      "net_20d": 10103.0,
-      "net_60d": -1826.0,
-      "net_cumulative": 4234.0,
+      "net_5d": 2865.0,
+      "net_20d": 8592.0,
+      "net_60d": -343.0,
+      "net_cumulative": 5483.0,
       "cumulative_window_days": 100,
-      "current_price": 47150.0,
+      "current_price": 48900.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 5일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1504,18 +1504,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2108186.55,
       "days_to_cover": 1.0607609653898988,
       "balance_change_pct": 7.219940010432968,
-      "short_squeeze_index": 18.63320627415563,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 50,
+        "score": 40,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -1526,19 +1526,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 3184.0,
-      "net_20d": 31037.0,
-      "net_60d": 31234.0,
-      "net_cumulative": -875.0,
+      "net_5d": 3419.0,
+      "net_20d": 38710.0,
+      "net_60d": 33097.0,
+      "net_cumulative": 2551.0,
       "cumulative_window_days": 100,
-      "current_price": 125000.0,
+      "current_price": 127300.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1552,19 +1552,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2137604.35,
       "days_to_cover": 0.9735959790688112,
       "balance_change_pct": 2.0249458663033733,
-      "short_squeeze_index": 11.218709146370989,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1577,12 +1577,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": -3849.0,
-      "net_20d": -14664.0,
+      "net_5d": -2952.0,
+      "net_20d": -14716.0,
       "net_60d": 3689.0,
-      "net_cumulative": 3977.0,
+      "net_cumulative": 4189.0,
       "cumulative_window_days": 100,
-      "current_price": 43900.0,
+      "current_price": 44250.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -1600,18 +1600,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1055804.25,
       "days_to_cover": 0.8209372144505006,
       "balance_change_pct": 10.053722277032234,
-      "short_squeeze_index": -38.04496084869917,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 50,
+        "score": 40,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -1622,19 +1622,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -20788.0,
-      "net_20d": -46301.0,
-      "net_60d": -93986.0,
-      "net_cumulative": -55343.0,
+      "net_5d": -15703.0,
+      "net_20d": -48386.0,
+      "net_60d": -96063.0,
+      "net_cumulative": -48658.0,
       "cumulative_window_days": 100,
-      "current_price": 120900.0,
+      "current_price": 120500.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1648,9 +1648,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1101644.55,
       "days_to_cover": 0.8673968386627066,
       "balance_change_pct": 5.768807176972588,
-      "short_squeeze_index": -42.3577266971104,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 57,
+        "score": 47,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -1660,7 +1660,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1670,19 +1670,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -169417.0,
-      "net_20d": -386084.0,
-      "net_60d": -1379459.0,
-      "net_cumulative": -1511991.0,
+      "net_5d": -111339.0,
+      "net_20d": -380925.0,
+      "net_60d": -1371681.0,
+      "net_cumulative": -1497940.0,
       "cumulative_window_days": 100,
-      "current_price": 1584000.0,
+      "current_price": 1511000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1696,19 +1696,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 364315.25,
       "days_to_cover": 2.927223057503083,
       "balance_change_pct": 3.8581401146846175,
-      "short_squeeze_index": -1.3327948303715669,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1718,19 +1718,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 8,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3426.0,
-      "net_20d": -26923.0,
-      "net_60d": -54272.0,
-      "net_cumulative": -148241.0,
+      "net_5d": -2718.0,
+      "net_20d": -27327.0,
+      "net_60d": -54762.0,
+      "net_cumulative": -140671.0,
       "cumulative_window_days": 100,
-      "current_price": 151200.0,
+      "current_price": 157000.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 8일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1744,7 +1744,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1465244.5,
       "days_to_cover": 1.0111636658591792,
       "balance_change_pct": 4.310401878936452,
-      "short_squeeze_index": 8.694302887756436,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -1766,15 +1766,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1725.0,
-      "net_20d": -10739.0,
-      "net_60d": -1186.0,
-      "net_cumulative": -30004.0,
+      "net_5d": -1321.0,
+      "net_20d": -11383.0,
+      "net_60d": 36.0,
+      "net_cumulative": -27428.0,
       "cumulative_window_days": 100,
-      "current_price": 28800.0,
+      "current_price": 29350.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -1792,9 +1792,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 197125.7,
       "days_to_cover": 1.9103140787832331,
       "balance_change_pct": 1.5369183977221252,
-      "short_squeeze_index": -22.228070175438596,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -1804,7 +1804,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -1814,19 +1814,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 9,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -12768.0,
-      "net_20d": -38909.0,
-      "net_60d": -58785.0,
-      "net_cumulative": 52328.0,
+      "net_5d": -10493.0,
+      "net_20d": -37159.0,
+      "net_60d": -48317.0,
+      "net_cumulative": 49687.0,
       "cumulative_window_days": 100,
-      "current_price": 81600.0,
+      "current_price": 86700.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 9일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1840,18 +1840,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 3832553.25,
       "days_to_cover": 0.49629890987163716,
       "balance_change_pct": 5.696146611579892,
-      "short_squeeze_index": 11.450925302662258,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 43,
+        "score": 33,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 5,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -1862,19 +1862,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1796.0,
-      "net_20d": 4655.0,
+      "net_5d": 1690.0,
+      "net_20d": 4706.0,
       "net_60d": 18136.0,
-      "net_cumulative": 19336.0,
+      "net_cumulative": 19345.0,
       "cumulative_window_days": 100,
       "current_price": 89100.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -1888,9 +1888,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 194861.8,
       "days_to_cover": 2.6727814276579607,
       "balance_change_pct": 4.901216341147538,
-      "short_squeeze_index": 13.31881318320046,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -1899,7 +1899,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -1910,15 +1910,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -4667.0,
-      "net_20d": -17818.0,
-      "net_60d": -15736.0,
-      "net_cumulative": -31632.0,
+      "net_5d": -1647.0,
+      "net_20d": -15803.0,
+      "net_60d": -17199.0,
+      "net_cumulative": -28792.0,
       "cumulative_window_days": 100,
-      "current_price": 378500.0,
+      "current_price": 387000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -1936,7 +1936,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2506725.9,
       "days_to_cover": 1.2418717180047487,
       "balance_change_pct": 1.1142592376654377,
-      "short_squeeze_index": 41.67614050429967,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 20,
         "grade": {
@@ -1958,15 +1958,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1148.0,
-      "net_20d": -24921.0,
-      "net_60d": -26693.0,
+      "net_5d": -1167.0,
+      "net_20d": -18875.0,
+      "net_60d": -26701.0,
       "net_cumulative": -26241.0,
       "cumulative_window_days": 100,
-      "current_price": 191900.0,
+      "current_price": 207500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -1984,7 +1984,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 444175.1,
       "days_to_cover": 4.4132235237860025,
       "balance_change_pct": 3.555691499505795,
-      "short_squeeze_index": 1.5570445867443208,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 56,
         "grade": {
@@ -2006,15 +2006,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -37345.0,
-      "net_20d": -100520.0,
-      "net_60d": 17525.0,
-      "net_cumulative": 81846.0,
+      "net_5d": -39120.0,
+      "net_20d": -99276.0,
+      "net_60d": 23916.0,
+      "net_cumulative": 83917.0,
       "cumulative_window_days": 100,
-      "current_price": 326000.0,
+      "current_price": 334500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -2032,7 +2032,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 522396.05,
       "days_to_cover": 0.9661309651939367,
       "balance_change_pct": 2.0065686423121623,
-      "short_squeeze_index": 439.9274778404513,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 27,
         "grade": {
@@ -2054,19 +2054,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -9896.0,
-      "net_20d": 2533.0,
-      "net_60d": -53095.0,
-      "net_cumulative": 280594.0,
+      "net_5d": 1922.0,
+      "net_20d": 8521.0,
+      "net_60d": -48426.0,
+      "net_cumulative": 279990.0,
       "cumulative_window_days": 100,
-      "current_price": 434000.0,
+      "current_price": 448000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2080,7 +2080,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 433102.95,
       "days_to_cover": 1.6087907043810252,
       "balance_change_pct": 4.027960877465127,
-      "short_squeeze_index": 40.38696764149894,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 29,
         "grade": {
@@ -2102,19 +2102,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 35042.0,
-      "net_20d": -21876.0,
-      "net_60d": -23648.0,
-      "net_cumulative": 150561.0,
+      "net_5d": 38029.0,
+      "net_20d": -16495.0,
+      "net_60d": -19533.0,
+      "net_cumulative": 147454.0,
       "cumulative_window_days": 100,
-      "current_price": 102900.0,
+      "current_price": 110400.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2128,9 +2128,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 259565.15,
       "days_to_cover": 1.4913250103105136,
       "balance_change_pct": 7.274571423820688,
-      "short_squeeze_index": 28.224761904761902,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 59,
+        "score": 49,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -2140,7 +2140,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -2150,19 +2150,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 9,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -22300.0,
-      "net_20d": -43558.0,
-      "net_60d": -65105.0,
-      "net_cumulative": -88302.0,
+      "net_5d": -18183.0,
+      "net_20d": -50896.0,
+      "net_60d": -61500.0,
+      "net_cumulative": -84227.0,
       "cumulative_window_days": 100,
-      "current_price": 264000.0,
+      "current_price": 271000.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 9일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2176,9 +2176,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 314536.15,
       "days_to_cover": 3.5556898626755618,
       "balance_change_pct": 8.77944304654377,
-      "short_squeeze_index": 0.5129398209696003,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 72,
+        "score": 62,
         "grade": {
           "emoji": "🟠",
           "label": "강함"
@@ -2187,7 +2187,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 30,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -2198,19 +2198,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -19078.0,
-      "net_20d": -46836.0,
-      "net_60d": 5685.0,
-      "net_cumulative": -83258.0,
+      "net_5d": -13334.0,
+      "net_20d": -46285.0,
+      "net_60d": 5863.0,
+      "net_cumulative": -83117.0,
       "cumulative_window_days": 100,
-      "current_price": 151800.0,
+      "current_price": 154400.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2224,9 +2224,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 660574.0,
       "days_to_cover": 3.8935138228268142,
       "balance_change_pct": 3.3557046979865772,
-      "short_squeeze_index": 17.17741452607628,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -2235,7 +2235,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 5,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -2246,19 +2246,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -2717.0,
-      "net_20d": -25916.0,
-      "net_60d": -50382.0,
-      "net_cumulative": -19537.0,
+      "net_5d": 2079.0,
+      "net_20d": -30927.0,
+      "net_60d": -43636.0,
+      "net_cumulative": -19953.0,
       "cumulative_window_days": 100,
-      "current_price": 121600.0,
+      "current_price": 122400.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2272,9 +2272,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1345397.35,
       "days_to_cover": 2.5803388121732214,
       "balance_change_pct": 4.795896528126393,
-      "short_squeeze_index": 9.078892707428528,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -2283,7 +2283,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -2294,19 +2294,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -92.0,
-      "net_20d": -31470.0,
-      "net_60d": -60662.0,
-      "net_cumulative": -36759.0,
+      "net_5d": 446.0,
+      "net_20d": -29943.0,
+      "net_60d": -60009.0,
+      "net_cumulative": -36493.0,
       "cumulative_window_days": 100,
-      "current_price": 85800.0,
+      "current_price": 86600.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2320,7 +2320,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 445137.3,
       "days_to_cover": 1.7015581484634068,
       "balance_change_pct": 3.289772440587315,
-      "short_squeeze_index": 7.196153208423148,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 41,
         "grade": {
@@ -2342,19 +2342,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -6102.0,
-      "net_20d": -22854.0,
-      "net_60d": 4766.0,
-      "net_cumulative": 30321.0,
+      "net_5d": -6136.0,
+      "net_20d": -23226.0,
+      "net_60d": 5308.0,
+      "net_cumulative": 31005.0,
       "cumulative_window_days": 100,
-      "current_price": 38100.0,
+      "current_price": 38900.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2368,9 +2368,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 384285.8,
       "days_to_cover": 2.9580015707059695,
       "balance_change_pct": 0.9202266074667533,
-      "short_squeeze_index": 22.38301977809937,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 56,
+        "score": 46,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -2380,7 +2380,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 30,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -2390,15 +2390,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -14763.0,
-      "net_20d": -52325.0,
-      "net_60d": -22257.0,
-      "net_cumulative": 36185.0,
+      "net_5d": -15089.0,
+      "net_20d": -51726.0,
+      "net_60d": -17055.0,
+      "net_cumulative": 35857.0,
       "cumulative_window_days": 100,
-      "current_price": 100500.0,
+      "current_price": 104100.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -2416,7 +2416,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2375220.05,
       "days_to_cover": 1.053704055756855,
       "balance_change_pct": 2.0361328682390507,
-      "short_squeeze_index": 18.418997657329356,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 27,
         "grade": {
@@ -2438,19 +2438,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 12191.0,
-      "net_20d": 79140.0,
-      "net_60d": -761.0,
-      "net_cumulative": -274207.0,
+      "net_5d": 7670.0,
+      "net_20d": 64716.0,
+      "net_60d": -3960.0,
+      "net_cumulative": -261709.0,
       "cumulative_window_days": 100,
-      "current_price": 36200.0,
+      "current_price": 36300.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2464,7 +2464,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 189378.8,
       "days_to_cover": 2.7161540784924187,
       "balance_change_pct": 2.0659959918249102,
-      "short_squeeze_index": 124.75028812908182,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 38,
         "grade": {
@@ -2486,19 +2486,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 513.0,
-      "net_20d": 63232.0,
-      "net_60d": 40957.0,
-      "net_cumulative": 20234.0,
+      "net_5d": -5733.0,
+      "net_20d": 55805.0,
+      "net_60d": 47014.0,
+      "net_cumulative": 19124.0,
       "cumulative_window_days": 100,
-      "current_price": 851000.0,
+      "current_price": 840000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2512,7 +2512,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1192322.8,
       "days_to_cover": 1.5776792995990683,
       "balance_change_pct": 3.6731690783182827,
-      "short_squeeze_index": 26.438902892809985,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 38,
         "grade": {
@@ -2534,19 +2534,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -24267.0,
-      "net_20d": 5975.0,
-      "net_60d": -247417.0,
-      "net_cumulative": -295947.0,
+      "net_5d": -10579.0,
+      "net_20d": 339.0,
+      "net_60d": -243267.0,
+      "net_cumulative": -300089.0,
       "cumulative_window_days": 100,
-      "current_price": 202500.0,
+      "current_price": 207000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2560,19 +2560,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 59894.15,
       "days_to_cover": 1.2301201369415877,
       "balance_change_pct": 4.144462506184183,
-      "short_squeeze_index": 326.19372442019096,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -2582,15 +2582,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -21828.0,
-      "net_20d": 16472.0,
-      "net_60d": -193772.0,
-      "net_cumulative": -262004.0,
+      "net_5d": -12404.0,
+      "net_20d": 6544.0,
+      "net_60d": -183161.0,
+      "net_cumulative": -255143.0,
       "cumulative_window_days": 100,
-      "current_price": 2924000.0,
+      "current_price": 2926000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -2608,7 +2608,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 3188974.0,
       "days_to_cover": 2.20991955406347,
       "balance_change_pct": 1.6903036751717184,
-      "short_squeeze_index": 32.04828328012157,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 38,
         "grade": {
@@ -2630,19 +2630,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -8207.0,
-      "net_20d": 2035.0,
-      "net_60d": -85566.0,
-      "net_cumulative": -76566.0,
+      "net_5d": -2503.0,
+      "net_20d": 4683.0,
+      "net_60d": -79679.0,
+      "net_cumulative": -73516.0,
       "cumulative_window_days": 100,
-      "current_price": 78100.0,
+      "current_price": 79100.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2656,9 +2656,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 203461.3,
       "days_to_cover": 3.765182862785208,
       "balance_change_pct": 2.2764472949915757,
-      "short_squeeze_index": 10.216409594745176,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -2667,7 +2667,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -2678,19 +2678,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 3616.0,
-      "net_20d": 12016.0,
-      "net_60d": -33300.0,
-      "net_cumulative": 10988.0,
+      "net_5d": 3356.0,
+      "net_20d": 12849.0,
+      "net_60d": -38248.0,
+      "net_cumulative": 10344.0,
       "cumulative_window_days": 100,
-      "current_price": 102200.0,
+      "current_price": 103300.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2704,18 +2704,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 201687.95,
       "days_to_cover": 0.9135151604248047,
       "balance_change_pct": 2.007540734917146,
-      "short_squeeze_index": -19.52564809707667,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -2726,15 +2726,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 17496.0,
-      "net_20d": 77712.0,
-      "net_60d": 47088.0,
-      "net_cumulative": -19709.0,
+      "net_5d": 10525.0,
+      "net_20d": 76930.0,
+      "net_60d": 47374.0,
+      "net_cumulative": -17059.0,
       "cumulative_window_days": 100,
-      "current_price": 329000.0,
+      "current_price": 334000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -2752,19 +2752,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 378892.2,
       "days_to_cover": 2.0441513443665507,
       "balance_change_pct": 1.894321114990646,
-      "short_squeeze_index": -5.722619626362942,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 58,
+        "score": 38,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 22,
           "balance_increase": 8,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -2774,15 +2774,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 2424.0,
-      "net_20d": 1648.0,
-      "net_60d": -49804.0,
-      "net_cumulative": -64334.0,
+      "net_5d": 2619.0,
+      "net_20d": 2038.0,
+      "net_60d": -51006.0,
+      "net_cumulative": -63965.0,
       "cumulative_window_days": 100,
-      "current_price": 66200.0,
+      "current_price": 67500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -2800,9 +2800,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 321438.85,
       "days_to_cover": 2.0942708076512844,
       "balance_change_pct": 2.3334296094735723,
-      "short_squeeze_index": 32.729641693811075,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 51,
+        "score": 41,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -2812,7 +2812,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -2822,15 +2822,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1799.0,
-      "net_20d": 5109.0,
-      "net_60d": -41563.0,
-      "net_cumulative": 10532.0,
+      "net_5d": -2018.0,
+      "net_20d": 2272.0,
+      "net_60d": -54458.0,
+      "net_cumulative": 14646.0,
       "cumulative_window_days": 100,
-      "current_price": 189100.0,
+      "current_price": 189600.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -2848,7 +2848,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 251827.5,
       "days_to_cover": 3.7517070216715807,
       "balance_change_pct": 2.409284639631632,
-      "short_squeeze_index": 4.215593647365816,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 50,
         "grade": {
@@ -2874,11 +2874,11 @@ window.INVESTOR_FLOW_CACHE = {
         "direction": "flat"
       },
       "net_5d": 0.0,
-      "net_20d": 510.0,
-      "net_60d": -661.0,
-      "net_cumulative": -2836.0,
+      "net_20d": 466.0,
+      "net_60d": 430.0,
+      "net_cumulative": -2742.0,
       "cumulative_window_days": 100,
-      "current_price": 45200.0,
+      "current_price": 46650.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -2896,9 +2896,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 3555990.1,
       "days_to_cover": 0.8430287812106113,
       "balance_change_pct": 2.752143267473474,
-      "short_squeeze_index": 3.2318728672129917,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 32,
+        "score": 22,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -2908,7 +2908,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 0,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -2918,19 +2918,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 7,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -5702.0,
-      "net_20d": -35829.0,
-      "net_60d": 18480.0,
-      "net_cumulative": -24155.0,
+      "net_5d": -4996.0,
+      "net_20d": -38171.0,
+      "net_60d": 17883.0,
+      "net_cumulative": -22823.0,
       "cumulative_window_days": 100,
-      "current_price": 30250.0,
+      "current_price": 30750.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 7일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -2944,19 +2944,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 243049.5,
       "days_to_cover": 1.1350979944414614,
       "balance_change_pct": 2.1508760497045274,
-      "short_squeeze_index": -78.05129970735067,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 42,
+        "score": 22,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 0,
           "balance_increase": 14,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -2966,15 +2966,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3926.0,
-      "net_20d": -3483.0,
-      "net_60d": -56742.0,
-      "net_cumulative": -60773.0,
+      "net_5d": -4773.0,
+      "net_20d": -6055.0,
+      "net_60d": -56653.0,
+      "net_cumulative": -60782.0,
       "cumulative_window_days": 100,
-      "current_price": 254500.0,
+      "current_price": 256000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -2992,9 +2992,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 163308.35,
       "days_to_cover": 2.5126578034742253,
       "balance_change_pct": 1.3603207264265829,
-      "short_squeeze_index": -7.6811331033230426,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 31,
+        "score": 21,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -3004,7 +3004,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -3014,19 +3014,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 17,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1657.0,
-      "net_20d": -12448.0,
-      "net_60d": -24257.0,
-      "net_cumulative": -27122.0,
+      "net_5d": -1387.0,
+      "net_20d": -11693.0,
+      "net_60d": -21999.0,
+      "net_cumulative": -26496.0,
       "cumulative_window_days": 100,
-      "current_price": 45850.0,
+      "current_price": 46400.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 17일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -3040,9 +3040,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 234223.0,
       "days_to_cover": 0.8446224324682033,
       "balance_change_pct": 1.1230211671854953,
-      "short_squeeze_index": -6.372325898953118,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 56,
+        "score": 46,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -3052,7 +3052,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 30,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -3062,15 +3062,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3661.0,
-      "net_20d": 12308.0,
-      "net_60d": 10785.0,
-      "net_cumulative": 23940.0,
+      "net_5d": -3066.0,
+      "net_20d": 12575.0,
+      "net_60d": 11491.0,
+      "net_cumulative": 23965.0,
       "cumulative_window_days": 100,
-      "current_price": 114000.0,
+      "current_price": 120200.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3088,7 +3088,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 156428.45,
       "days_to_cover": 5.836099507474503,
       "balance_change_pct": 1.6310041067327485,
-      "short_squeeze_index": 15.350488021295474,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 44,
         "grade": {
@@ -3110,19 +3110,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 303.0,
-      "net_20d": -6797.0,
-      "net_60d": -18968.0,
-      "net_cumulative": -3881.0,
+      "net_5d": 305.0,
+      "net_20d": -6015.0,
+      "net_60d": -18732.0,
+      "net_cumulative": -3570.0,
       "cumulative_window_days": 100,
-      "current_price": 45950.0,
+      "current_price": 46500.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -3136,9 +3136,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 12089.25,
       "days_to_cover": 1.9944165270798437,
       "balance_change_pct": 2.683020314296665,
-      "short_squeeze_index": 31.587301587301585,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 37,
+        "score": 27,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -3148,7 +3148,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -3158,19 +3158,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 393.0,
-      "net_20d": 1030.0,
-      "net_60d": 1301.0,
-      "net_cumulative": 2602.0,
+      "net_20d": 1061.0,
+      "net_60d": 1352.0,
+      "net_cumulative": 2025.0,
       "cumulative_window_days": 100,
-      "current_price": 113400.0,
+      "current_price": 114200.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -3184,9 +3184,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 12332.0,
       "days_to_cover": 1.5305708725267597,
       "balance_change_pct": 2.010484786250878,
-      "short_squeeze_index": 29.838709677419356,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 37,
+        "score": 27,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -3196,7 +3196,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -3206,15 +3206,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 16.0,
       "net_20d": 284.0,
       "net_60d": -479.0,
-      "net_cumulative": -3978.0,
+      "net_cumulative": -2791.0,
       "cumulative_window_days": 100,
-      "current_price": 67400.0,
+      "current_price": 68100.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3232,9 +3232,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 234596.55,
       "days_to_cover": 1.1887259211612446,
       "balance_change_pct": 0.6667292364560471,
-      "short_squeeze_index": 25.17596101786681,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 18,
+        "score": 8,
         "grade": {
           "emoji": "🟢",
           "label": "매우 약함"
@@ -3244,7 +3244,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 0,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -3254,15 +3254,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": -192.0,
-      "net_20d": 2318.0,
-      "net_60d": 1199.0,
-      "net_cumulative": -2300.0,
+      "net_20d": 2319.0,
+      "net_60d": 1197.0,
+      "net_cumulative": -2305.0,
       "cumulative_window_days": 100,
-      "current_price": 15410.0,
+      "current_price": 15660.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3280,7 +3280,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 4512141.6,
       "days_to_cover": 1.3027840261041455,
       "balance_change_pct": 4.291045371918158,
-      "short_squeeze_index": 2.1623722422518443,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 44,
         "grade": {
@@ -3306,11 +3306,11 @@ window.INVESTOR_FLOW_CACHE = {
         "direction": "flat"
       },
       "net_5d": -150.0,
-      "net_20d": 48.0,
-      "net_60d": 14.0,
+      "net_20d": 197.0,
+      "net_60d": -258.0,
       "net_cumulative": 9745.0,
       "cumulative_window_days": 100,
-      "current_price": 11210.0,
+      "current_price": 11960.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3328,9 +3328,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 741767.75,
       "days_to_cover": 1.850122224914739,
       "balance_change_pct": 4.332776582084571,
-      "short_squeeze_index": -1.2949185850645706,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -3339,7 +3339,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -3350,19 +3350,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -412.0,
-      "net_20d": 9873.0,
-      "net_60d": -24174.0,
-      "net_cumulative": 61451.0,
+      "net_5d": -443.0,
+      "net_20d": 9493.0,
+      "net_60d": -20577.0,
+      "net_cumulative": 61701.0,
       "cumulative_window_days": 100,
-      "current_price": 39850.0,
+      "current_price": 41850.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -3376,9 +3376,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 61437.1,
       "days_to_cover": 1.8499571106058066,
       "balance_change_pct": 1.8441190702342336,
-      "short_squeeze_index": 6.2682215743440235,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -3387,7 +3387,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 8,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -3398,19 +3398,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -373.0,
-      "net_20d": -12053.0,
-      "net_60d": 8926.0,
-      "net_cumulative": 23866.0,
+      "net_5d": -33.0,
+      "net_20d": -7129.0,
+      "net_60d": 9270.0,
+      "net_cumulative": 23767.0,
       "cumulative_window_days": 100,
-      "current_price": 89400.0,
+      "current_price": 96100.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -3424,19 +3424,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2055410.1,
       "days_to_cover": 3.2048173744013417,
       "balance_change_pct": 15.21933816887839,
-      "short_squeeze_index": -1.370177886372465,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 100,
+        "score": 80,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 30,
           "balance_increase": 20,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -3446,15 +3446,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 5830.0,
-      "net_20d": -3301.0,
-      "net_60d": 24105.0,
-      "net_cumulative": 47166.0,
+      "net_5d": 5764.0,
+      "net_20d": -7189.0,
+      "net_60d": 21806.0,
+      "net_cumulative": 40731.0,
       "cumulative_window_days": 100,
-      "current_price": 31900.0,
+      "current_price": 33600.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3472,9 +3472,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 568979.65,
       "days_to_cover": 1.3348790242322375,
       "balance_change_pct": 1.4957384883058988,
-      "short_squeeze_index": 11.194496560350219,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 31,
+        "score": 21,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -3483,7 +3483,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 8,
           "loan_increase": 5,
           "balance_increase": 8,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -3494,15 +3494,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -6347.0,
-      "net_20d": 2919.0,
-      "net_60d": 46256.0,
-      "net_cumulative": 78460.0,
+      "net_5d": -4957.0,
+      "net_20d": 124.0,
+      "net_60d": 42359.0,
+      "net_cumulative": 79219.0,
       "cumulative_window_days": 100,
-      "current_price": 47050.0,
+      "current_price": 47150.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3520,9 +3520,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 293926.2,
       "days_to_cover": 1.891165197250194,
       "balance_change_pct": 1.9638379402630801,
-      "short_squeeze_index": 8.35979824397534,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 55,
+        "score": 45,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -3531,7 +3531,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 15,
           "loan_increase": 22,
           "balance_increase": 8,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -3542,19 +3542,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 210.0,
-      "net_20d": -5580.0,
-      "net_60d": -21562.0,
-      "net_cumulative": -177.0,
+      "net_20d": -7032.0,
+      "net_60d": -21528.0,
+      "net_cumulative": -226.0,
       "cumulative_window_days": 100,
-      "current_price": 48350.0,
+      "current_price": 50200.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -3568,9 +3568,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 6014737.95,
       "days_to_cover": 0.18563269244340064,
       "balance_change_pct": 3.838520615517392,
-      "short_squeeze_index": -13.550903716625479,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 37,
+        "score": 27,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -3579,7 +3579,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 8,
           "loan_increase": 5,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -3590,19 +3590,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1765.0,
-      "net_20d": 39914.0,
-      "net_60d": 49358.0,
-      "net_cumulative": 36025.0,
+      "net_5d": 2194.0,
+      "net_20d": 31220.0,
+      "net_60d": 51728.0,
+      "net_cumulative": 35376.0,
       "cumulative_window_days": 100,
-      "current_price": 42850.0,
+      "current_price": 46650.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -3616,19 +3616,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 169423.45,
       "days_to_cover": 0.8922377628362543,
       "balance_change_pct": 2.164730371782135,
-      "short_squeeze_index": 13.050265376209802,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -3646,7 +3646,7 @@ window.INVESTOR_FLOW_CACHE = {
       "net_60d": 0.0,
       "net_cumulative": 0.0,
       "cumulative_window_days": 100,
-      "current_price": 11920.0,
+      "current_price": 12070.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3664,9 +3664,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 91343.2,
       "days_to_cover": 3.13087345308682,
       "balance_change_pct": 3.6718565913251524,
-      "short_squeeze_index": 68.44703327080659,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -3675,7 +3675,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 5,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -3686,15 +3686,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1540.0,
-      "net_20d": -11908.0,
-      "net_60d": -16147.0,
-      "net_cumulative": -68569.0,
+      "net_5d": -1532.0,
+      "net_20d": -11688.0,
+      "net_60d": -18389.0,
+      "net_cumulative": -67703.0,
       "cumulative_window_days": 100,
-      "current_price": 453500.0,
+      "current_price": 459500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3712,7 +3712,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 609830.35,
       "days_to_cover": 1.788989347611184,
       "balance_change_pct": 1.7934069133079358,
-      "short_squeeze_index": 17.53290671661204,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 53,
         "grade": {
@@ -3734,15 +3734,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -2402.0,
-      "net_20d": -12699.0,
-      "net_60d": 1500.0,
-      "net_cumulative": -8952.0,
+      "net_5d": -3832.0,
+      "net_20d": -10866.0,
+      "net_60d": 1360.0,
+      "net_cumulative": -9433.0,
       "cumulative_window_days": 100,
-      "current_price": 74500.0,
+      "current_price": 75300.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3760,18 +3760,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 174661.85,
       "days_to_cover": 1.8711126671336642,
       "balance_change_pct": 3.4696520216683076,
-      "short_squeeze_index": 40.78839310156036,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 69,
+        "score": 59,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 30,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -3782,19 +3782,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -954.0,
-      "net_20d": -3152.0,
-      "net_60d": 2133.0,
-      "net_cumulative": 12102.0,
+      "net_5d": -241.0,
+      "net_20d": -4120.0,
+      "net_60d": 1437.0,
+      "net_cumulative": 16179.0,
       "cumulative_window_days": 100,
-      "current_price": 218000.0,
+      "current_price": 229000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -3808,7 +3808,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 385697.15,
       "days_to_cover": 3.5485146830874945,
       "balance_change_pct": 5.659509226134874,
-      "short_squeeze_index": 1.792388487245942,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 80,
         "grade": {
@@ -3830,15 +3830,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1108.0,
-      "net_20d": -12212.0,
-      "net_60d": -9674.0,
-      "net_cumulative": -55277.0,
+      "net_5d": -1232.0,
+      "net_20d": -12309.0,
+      "net_60d": -9393.0,
+      "net_cumulative": -54415.0,
       "cumulative_window_days": 100,
-      "current_price": 20200.0,
+      "current_price": 20400.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3856,9 +3856,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 58593.9,
       "days_to_cover": 2.8574817515133826,
       "balance_change_pct": 1.4370618990785113,
-      "short_squeeze_index": 1.5598650927487352,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -3867,7 +3867,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 8,
           "loan_increase": 12,
           "balance_increase": 8,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -3878,19 +3878,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 18.0,
       "net_20d": 2.0,
       "net_60d": 318.0,
       "net_cumulative": 318.0,
       "cumulative_window_days": 100,
-      "current_price": 18240.0,
+      "current_price": 18460.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -3904,18 +3904,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 48666.95,
       "days_to_cover": 3.254405710651685,
       "balance_change_pct": 1.945815820132725,
-      "short_squeeze_index": 10.585511081706914,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 47,
+        "score": 37,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 24,
           "loan_increase": 5,
           "balance_increase": 8,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -3929,12 +3929,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": -15.0,
-      "net_20d": -304.0,
+      "net_5d": 0.0,
+      "net_20d": -263.0,
       "net_60d": -570.0,
       "net_cumulative": -1431.0,
       "cumulative_window_days": 100,
-      "current_price": 69000.0,
+      "current_price": 69900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -3952,7 +3952,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 178170.85,
       "days_to_cover": 2.3740190945937565,
       "balance_change_pct": 7.4584056317847285,
-      "short_squeeze_index": 3.9410041555964304,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 72,
         "grade": {
@@ -3974,15 +3974,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -367.0,
-      "net_20d": -897.0,
-      "net_60d": -13334.0,
-      "net_cumulative": -21447.0,
+      "net_5d": -93.0,
+      "net_20d": -826.0,
+      "net_60d": -14498.0,
+      "net_cumulative": -21692.0,
       "cumulative_window_days": 100,
-      "current_price": 74000.0,
+      "current_price": 75700.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4000,19 +4000,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 140964.55,
       "days_to_cover": 1.000109602024055,
       "balance_change_pct": 0.6439269549822242,
-      "short_squeeze_index": 3.436807095343681,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 30,
+        "score": 20,
         "grade": {
           "emoji": "🟢",
-          "label": "약함"
+          "label": "매우 약함"
         },
         "breakdown": {
           "short_ratio": 0,
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -4030,7 +4030,7 @@ window.INVESTOR_FLOW_CACHE = {
       "net_60d": 0.0,
       "net_cumulative": 0.0,
       "cumulative_window_days": 100,
-      "current_price": 32950.0,
+      "current_price": 33450.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4048,9 +4048,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1146573.15,
       "days_to_cover": 2.835878373743533,
       "balance_change_pct": 1.9840767008208804,
-      "short_squeeze_index": 16.769420468557335,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -4059,7 +4059,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 8,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -4070,19 +4070,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 7,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 51490.0,
-      "net_20d": 15837.0,
-      "net_60d": -52357.0,
-      "net_cumulative": 12646.0,
+      "net_5d": 32032.0,
+      "net_20d": 16349.0,
+      "net_60d": -46747.0,
+      "net_cumulative": 8402.0,
       "cumulative_window_days": 100,
-      "current_price": 147500.0,
+      "current_price": 150900.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 7일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -4096,7 +4096,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 457809.35,
       "days_to_cover": 2.512133052765305,
       "balance_change_pct": 1.6891634997798357,
-      "short_squeeze_index": 194.5822864321608,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 23,
         "grade": {
@@ -4118,15 +4118,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 27286.0,
-      "net_20d": 1514.0,
-      "net_60d": 223198.0,
-      "net_cumulative": 150443.0,
+      "net_5d": 6524.0,
+      "net_20d": -8316.0,
+      "net_60d": 228085.0,
+      "net_cumulative": 146829.0,
       "cumulative_window_days": 100,
-      "current_price": 488000.0,
+      "current_price": 509000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4144,7 +4144,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 144859.25,
       "days_to_cover": 2.674416718297244,
       "balance_change_pct": 1.3724294749181645,
-      "short_squeeze_index": 17.54051477597712,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 35,
         "grade": {
@@ -4166,19 +4166,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 8,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -4590.0,
-      "net_20d": -11447.0,
-      "net_60d": -43958.0,
-      "net_cumulative": -49762.0,
+      "net_5d": -3483.0,
+      "net_20d": -11343.0,
+      "net_60d": -43061.0,
+      "net_cumulative": -52370.0,
       "cumulative_window_days": 100,
-      "current_price": 61900.0,
+      "current_price": 63800.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 8일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -4192,7 +4192,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1565382.6,
       "days_to_cover": 1.3420776492596762,
       "balance_change_pct": 3.099818422731511,
-      "short_squeeze_index": 14.542863927808122,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 51,
         "grade": {
@@ -4214,19 +4214,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 2845.0,
-      "net_20d": 7237.0,
-      "net_60d": 25676.0,
-      "net_cumulative": -39984.0,
+      "net_5d": 1603.0,
+      "net_20d": 3866.0,
+      "net_60d": 25739.0,
+      "net_cumulative": -42496.0,
       "cumulative_window_days": 100,
-      "current_price": 49550.0,
+      "current_price": 50900.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -4240,19 +4240,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 12970121.4,
       "days_to_cover": 1.1631565761597267,
       "balance_change_pct": 2.5187501291144003,
-      "short_squeeze_index": -0.5126129772022123,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 49,
+        "score": 29,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 0,
           "balance_increase": 14,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -4262,19 +4262,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 831.0,
-      "net_20d": -2691.0,
-      "net_60d": 8419.0,
-      "net_cumulative": 19692.0,
+      "net_5d": 729.0,
+      "net_20d": -3367.0,
+      "net_60d": 8320.0,
+      "net_cumulative": 17074.0,
       "cumulative_window_days": 100,
-      "current_price": 3605.0,
+      "current_price": 3670.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -4288,9 +4288,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 251629.2,
       "days_to_cover": 2.467293144038927,
       "balance_change_pct": 4.118849606646508,
-      "short_squeeze_index": 22.93159609120521,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -4300,7 +4300,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -4310,15 +4310,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -396.0,
-      "net_20d": -12208.0,
-      "net_60d": 47862.0,
-      "net_cumulative": -32246.0,
+      "net_5d": -293.0,
+      "net_20d": -11581.0,
+      "net_60d": 50148.0,
+      "net_cumulative": -37437.0,
       "cumulative_window_days": 100,
-      "current_price": 191600.0,
+      "current_price": 193400.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4336,9 +4336,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 420629.9,
       "days_to_cover": 4.643238628542574,
       "balance_change_pct": 2.3406858571117914,
-      "short_squeeze_index": 2.191627490485785,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -4348,7 +4348,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -4358,19 +4358,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 698.0,
-      "net_20d": -6037.0,
-      "net_60d": -16812.0,
-      "net_cumulative": -18818.0,
+      "net_5d": -1102.0,
+      "net_20d": -6350.0,
+      "net_60d": -16386.0,
+      "net_cumulative": -23030.0,
       "cumulative_window_days": 100,
-      "current_price": 71500.0,
+      "current_price": 71400.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -4384,18 +4384,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 236393.5,
       "days_to_cover": 2.7789638886009977,
       "balance_change_pct": 2.367165416416045,
-      "short_squeeze_index": 3.745638865117504,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -4406,15 +4406,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -9394.0,
-      "net_20d": -38507.0,
-      "net_60d": 76384.0,
-      "net_cumulative": 65891.0,
+      "net_5d": -10233.0,
+      "net_20d": -39024.0,
+      "net_60d": 75149.0,
+      "net_cumulative": 61896.0,
       "cumulative_window_days": 100,
-      "current_price": 340500.0,
+      "current_price": 347500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4432,19 +4432,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 327007.65,
       "days_to_cover": 2.2509320500606025,
       "balance_change_pct": 1.4583206982296153,
-      "short_squeeze_index": -302.6181474480151,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 41,
+        "score": 21,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 5,
           "balance_increase": 8,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -4454,19 +4454,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 5,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -45405.0,
-      "net_20d": -16116.0,
-      "net_60d": 366570.0,
-      "net_cumulative": 325820.0,
+      "net_5d": -45043.0,
+      "net_20d": -23679.0,
+      "net_60d": 368805.0,
+      "net_cumulative": 331479.0,
       "cumulative_window_days": 100,
-      "current_price": 504000.0,
+      "current_price": 515000.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 5일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -4480,9 +4480,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 4627540.15,
       "days_to_cover": 2.4226166897763166,
       "balance_change_pct": 6.960502941883338,
-      "short_squeeze_index": 1.624711292655011,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 72,
+        "score": 62,
         "grade": {
           "emoji": "🟠",
           "label": "강함"
@@ -4491,7 +4491,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 30,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -4502,19 +4502,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 17,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -20309.0,
-      "net_20d": -46339.0,
-      "net_60d": -27883.0,
-      "net_cumulative": -40619.0,
+      "net_5d": -18451.0,
+      "net_20d": -45105.0,
+      "net_60d": -31056.0,
+      "net_cumulative": -36227.0,
       "cumulative_window_days": 100,
-      "current_price": 22350.0,
+      "current_price": 23450.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 17일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -4528,7 +4528,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2602694.65,
       "days_to_cover": 2.415768980045354,
       "balance_change_pct": 2.740852400619304,
-      "short_squeeze_index": 14.242192996053275,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -4550,15 +4550,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -51261.0,
-      "net_20d": -53944.0,
-      "net_60d": -23068.0,
-      "net_cumulative": 12274.0,
+      "net_5d": -53182.0,
+      "net_20d": -55761.0,
+      "net_60d": -24996.0,
+      "net_cumulative": 21696.0,
       "cumulative_window_days": 100,
-      "current_price": 81300.0,
+      "current_price": 84900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4576,18 +4576,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 181107.1,
       "days_to_cover": 1.7036825171404102,
       "balance_change_pct": 3.5378482312436663,
-      "short_squeeze_index": 1.6219292421511904,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 69,
+        "score": 59,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 30,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -4598,15 +4598,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3719.0,
-      "net_20d": 6461.0,
-      "net_60d": 82914.0,
-      "net_cumulative": 48236.0,
+      "net_5d": -2749.0,
+      "net_20d": 4191.0,
+      "net_60d": 84214.0,
+      "net_cumulative": 53261.0,
       "cumulative_window_days": 100,
-      "current_price": 197200.0,
+      "current_price": 197900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4624,9 +4624,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1621322.65,
       "days_to_cover": 1.1550310482617387,
       "balance_change_pct": 2.5916375356023513,
-      "short_squeeze_index": 0.5157799057221976,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -4636,7 +4636,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -4646,15 +4646,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -165.0,
-      "net_20d": 2680.0,
-      "net_60d": -26322.0,
-      "net_cumulative": -5658.0,
+      "net_5d": 128.0,
+      "net_20d": 2143.0,
+      "net_60d": -24006.0,
+      "net_cumulative": -5278.0,
       "cumulative_window_days": 100,
-      "current_price": 13850.0,
+      "current_price": 14430.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4672,9 +4672,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 146370.15,
       "days_to_cover": 1.0082315280813745,
       "balance_change_pct": 1.1598335652543477,
-      "short_squeeze_index": 34.63356973995272,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 31,
+        "score": 21,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -4684,7 +4684,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -4698,11 +4698,11 @@ window.INVESTOR_FLOW_CACHE = {
         "direction": "flat"
       },
       "net_5d": 0.0,
-      "net_20d": -118.0,
+      "net_20d": -44.0,
       "net_60d": -2295.0,
       "net_cumulative": -353.0,
       "cumulative_window_days": 100,
-      "current_price": 11640.0,
+      "current_price": 11860.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4720,7 +4720,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 751967.1,
       "days_to_cover": 1.3274038185979147,
       "balance_change_pct": 1.6718088395122592,
-      "short_squeeze_index": 13.489307256443064,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 46,
         "grade": {
@@ -4745,12 +4745,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": 889.0,
-      "net_20d": 42299.0,
-      "net_60d": 66134.0,
-      "net_cumulative": 72933.0,
+      "net_5d": 439.0,
+      "net_20d": 38395.0,
+      "net_60d": 66064.0,
+      "net_cumulative": 74022.0,
       "cumulative_window_days": 100,
-      "current_price": 17730.0,
+      "current_price": 18130.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4768,7 +4768,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 149556.75,
       "days_to_cover": 2.584664349820386,
       "balance_change_pct": 2.172143280047365,
-      "short_squeeze_index": 2.3241664638598203,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 41,
         "grade": {
@@ -4793,12 +4793,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": 416.0,
-      "net_20d": 7442.0,
-      "net_60d": 12061.0,
-      "net_cumulative": 10740.0,
+      "net_5d": 193.0,
+      "net_20d": 6727.0,
+      "net_60d": 12765.0,
+      "net_cumulative": 10744.0,
       "cumulative_window_days": 100,
-      "current_price": 12000.0,
+      "current_price": 12310.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4816,7 +4816,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 326935.05,
       "days_to_cover": 1.9675987631182401,
       "balance_change_pct": 4.898937601408922,
-      "short_squeeze_index": 0.6457625990280275,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 49,
         "grade": {
@@ -4838,15 +4838,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1050.0,
-      "net_20d": -1110.0,
-      "net_60d": -56714.0,
-      "net_cumulative": -5871.0,
+      "net_5d": -353.0,
+      "net_20d": -1272.0,
+      "net_60d": -57933.0,
+      "net_cumulative": -6481.0,
       "cumulative_window_days": 100,
-      "current_price": 24450.0,
+      "current_price": 25800.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4864,9 +4864,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 154799.75,
       "days_to_cover": 2.195326542840024,
       "balance_change_pct": 3.0255626697710514,
-      "short_squeeze_index": 6.012024048096192,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 51,
+        "score": 41,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -4875,7 +4875,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 15,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -4886,19 +4886,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 456.0,
-      "net_20d": 545.0,
+      "net_20d": 335.0,
       "net_60d": -4555.0,
-      "net_cumulative": -4104.0,
+      "net_cumulative": -4117.0,
       "cumulative_window_days": 100,
-      "current_price": 16670.0,
+      "current_price": 17410.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -4912,7 +4912,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 88115.9,
       "days_to_cover": 1.082835220431273,
       "balance_change_pct": 0.8988526410405542,
-      "short_squeeze_index": 38.82352941176471,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 13,
         "grade": {
@@ -4938,11 +4938,11 @@ window.INVESTOR_FLOW_CACHE = {
         "direction": "flat"
       },
       "net_5d": 0.0,
-      "net_20d": -3699.0,
+      "net_20d": -2989.0,
       "net_60d": -3971.0,
-      "net_cumulative": -5816.0,
+      "net_cumulative": -5750.0,
       "cumulative_window_days": 100,
-      "current_price": 17420.0,
+      "current_price": 17700.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -4960,19 +4960,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 476523.45,
       "days_to_cover": 5.977065766648,
       "balance_change_pct": 3.853941470554239,
-      "short_squeeze_index": -16.722645347462038,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 86,
+        "score": 66,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 22,
           "balance_increase": 14,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -4982,19 +4982,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 8,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -15344.0,
-      "net_20d": -6073.0,
-      "net_60d": -201793.0,
-      "net_cumulative": -203278.0,
+      "net_5d": -13559.0,
+      "net_20d": -6122.0,
+      "net_60d": -200945.0,
+      "net_cumulative": -199633.0,
       "cumulative_window_days": 100,
-      "current_price": 144300.0,
+      "current_price": 150200.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 8일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5008,9 +5008,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 246439.75,
       "days_to_cover": 2.3168502646184312,
       "balance_change_pct": 1.796981555933926,
-      "short_squeeze_index": 10.437543407084036,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 31,
+        "score": 21,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -5020,7 +5020,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -5030,15 +5030,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -31558.0,
-      "net_20d": 39377.0,
-      "net_60d": -49231.0,
-      "net_cumulative": -104621.0,
+      "net_5d": -47310.0,
+      "net_20d": 35342.0,
+      "net_60d": -62769.0,
+      "net_cumulative": -90666.0,
       "cumulative_window_days": 100,
-      "current_price": 967000.0,
+      "current_price": 999000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -5056,18 +5056,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 86378.65,
       "days_to_cover": 2.2293934901737873,
       "balance_change_pct": 3.3045082934575025,
-      "short_squeeze_index": 9.39935064935065,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -5078,19 +5078,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 168.0,
-      "net_20d": 1819.0,
-      "net_60d": -5610.0,
-      "net_cumulative": -22967.0,
+      "net_5d": 13.0,
+      "net_20d": 1661.0,
+      "net_60d": -6472.0,
+      "net_cumulative": -22253.0,
       "cumulative_window_days": 100,
-      "current_price": 88100.0,
+      "current_price": 88900.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5104,7 +5104,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 260139.75,
       "days_to_cover": 1.18817673961784,
       "balance_change_pct": 5.468392785242915,
-      "short_squeeze_index": 2.751778360164732,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 72,
         "grade": {
@@ -5129,12 +5129,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": -684.0,
-      "net_20d": -70.0,
-      "net_60d": 5516.0,
-      "net_cumulative": 14219.0,
+      "net_5d": -219.0,
+      "net_20d": -2651.0,
+      "net_60d": 5512.0,
+      "net_cumulative": 14625.0,
       "cumulative_window_days": 100,
-      "current_price": 47400.0,
+      "current_price": 47950.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -5152,19 +5152,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 143746.05,
       "days_to_cover": 0.40387892397738934,
       "balance_change_pct": 1.2486920125566796,
-      "short_squeeze_index": 33.659217877094974,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 23,
+        "score": 13,
         "grade": {
           "emoji": "🟢",
-          "label": "약함"
+          "label": "매우 약함"
         },
         "breakdown": {
           "short_ratio": 0,
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -5177,7 +5177,7 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": -470.0,
+      "net_5d": 0.0,
       "net_20d": -952.0,
       "net_60d": -952.0,
       "net_cumulative": -952.0,
@@ -5200,9 +5200,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 411457.7,
       "days_to_cover": 1.3381326926194357,
       "balance_change_pct": 0.7001282105213102,
-      "short_squeeze_index": -1.2539184952978055,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 18,
+        "score": 8,
         "grade": {
           "emoji": "🟢",
           "label": "매우 약함"
@@ -5212,7 +5212,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 0,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -5222,15 +5222,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -908.0,
+      "net_5d": -851.0,
       "net_20d": -1198.0,
       "net_60d": -1211.0,
       "net_cumulative": -1260.0,
       "cumulative_window_days": 100,
-      "current_price": 7020.0,
+      "current_price": 7180.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -5248,19 +5248,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 219192.9,
       "days_to_cover": 1.4938485690001821,
       "balance_change_pct": 2.974372843831274,
-      "short_squeeze_index": 192.74688094734614,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 69,
+        "score": 59,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 30,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -5270,15 +5270,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -8866.0,
-      "net_20d": 34630.0,
-      "net_60d": 124396.0,
-      "net_cumulative": 188657.0,
+      "net_5d": -11347.0,
+      "net_20d": 31274.0,
+      "net_60d": 125618.0,
+      "net_cumulative": 185745.0,
       "cumulative_window_days": 100,
-      "current_price": 749000.0,
+      "current_price": 775000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -5296,9 +5296,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 833614.15,
       "days_to_cover": 3.268343033764482,
       "balance_change_pct": 5.066694946300831,
-      "short_squeeze_index": 12.857436428261549,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 72,
+        "score": 62,
         "grade": {
           "emoji": "🟠",
           "label": "강함"
@@ -5307,7 +5307,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 30,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -5318,19 +5318,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -14425.0,
-      "net_20d": -25120.0,
-      "net_60d": -124476.0,
-      "net_cumulative": -155629.0,
+      "net_5d": -16117.0,
+      "net_20d": -28603.0,
+      "net_60d": -124642.0,
+      "net_cumulative": -152637.0,
       "cumulative_window_days": 100,
-      "current_price": 71700.0,
+      "current_price": 71300.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5344,9 +5344,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 577177.6,
       "days_to_cover": 3.635193049764925,
       "balance_change_pct": 2.5290791571723377,
-      "short_squeeze_index": 28.934402473190996,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 39,
+        "score": 29,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -5356,7 +5356,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 0,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -5366,15 +5366,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -47317.0,
-      "net_20d": -54859.0,
-      "net_60d": -70652.0,
-      "net_cumulative": -96812.0,
+      "net_5d": -52622.0,
+      "net_20d": -54999.0,
+      "net_60d": -68722.0,
+      "net_cumulative": -92323.0,
       "cumulative_window_days": 100,
-      "current_price": 178900.0,
+      "current_price": 180000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -5392,7 +5392,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 117083.05,
       "days_to_cover": 2.7802914256162614,
       "balance_change_pct": 4.828165857302951,
-      "short_squeeze_index": 20.16941239244981,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 50,
         "grade": {
@@ -5414,19 +5414,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1062.0,
-      "net_20d": 1258.0,
-      "net_60d": -27255.0,
-      "net_cumulative": -65159.0,
+      "net_5d": 72.0,
+      "net_20d": -525.0,
+      "net_60d": -25638.0,
+      "net_cumulative": -62051.0,
       "cumulative_window_days": 100,
-      "current_price": 65100.0,
+      "current_price": 66300.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5440,7 +5440,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 868106.8,
       "days_to_cover": 4.189423467250803,
       "balance_change_pct": 2.779267728164471,
-      "short_squeeze_index": 16.904774009863235,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 49,
         "grade": {
@@ -5462,19 +5462,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 5,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -27400.0,
-      "net_20d": -29511.0,
-      "net_60d": -135925.0,
-      "net_cumulative": -296985.0,
+      "net_5d": -21186.0,
+      "net_20d": -27474.0,
+      "net_60d": -139504.0,
+      "net_cumulative": -301084.0,
       "cumulative_window_days": 100,
-      "current_price": 107200.0,
+      "current_price": 106700.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 5일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5488,19 +5488,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 750943.5,
       "days_to_cover": 1.6736758491151464,
       "balance_change_pct": 2.7465605658419983,
-      "short_squeeze_index": 42.55439473762539,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 61,
+        "score": 51,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 22,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -5510,15 +5510,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 2980.0,
-      "net_20d": -36633.0,
-      "net_60d": -12717.0,
-      "net_cumulative": -135348.0,
+      "net_5d": -3023.0,
+      "net_20d": -38969.0,
+      "net_60d": -21259.0,
+      "net_cumulative": -134907.0,
       "cumulative_window_days": 100,
-      "current_price": 391500.0,
+      "current_price": 390000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -5536,7 +5536,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 9906608.95,
       "days_to_cover": 1.3678264750724818,
       "balance_change_pct": 3.7460688071016843,
-      "short_squeeze_index": 2.834964631920586,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 51,
         "grade": {
@@ -5558,19 +5558,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 11587.0,
-      "net_20d": 9509.0,
-      "net_60d": -109640.0,
-      "net_cumulative": -76478.0,
+      "net_5d": 11156.0,
+      "net_20d": 9328.0,
+      "net_60d": -111355.0,
+      "net_cumulative": -78500.0,
       "cumulative_window_days": 100,
-      "current_price": 17450.0,
+      "current_price": 17590.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5584,7 +5584,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2247671.3,
       "days_to_cover": 2.1670157019845386,
       "balance_change_pct": 8.857706123870214,
-      "short_squeeze_index": 8.248429339187041,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 40,
         "grade": {
@@ -5606,19 +5606,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 8,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 16613.0,
-      "net_20d": 26798.0,
-      "net_60d": -11776.0,
-      "net_cumulative": 43025.0,
+      "net_5d": 12604.0,
+      "net_20d": 25395.0,
+      "net_60d": -16828.0,
+      "net_cumulative": 35299.0,
       "cumulative_window_days": 100,
-      "current_price": 31850.0,
+      "current_price": 31450.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 8일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5632,19 +5632,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 681492.75,
       "days_to_cover": 2.2590335700563213,
       "balance_change_pct": 2.2128077143194798,
-      "short_squeeze_index": 5.439707161931051,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 61,
+        "score": 51,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 22,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -5654,15 +5654,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 2304.0,
-      "net_20d": 13523.0,
-      "net_60d": 53349.0,
-      "net_cumulative": 148664.0,
+      "net_5d": 2167.0,
+      "net_20d": 7475.0,
+      "net_60d": 43318.0,
+      "net_cumulative": 147142.0,
       "cumulative_window_days": 100,
-      "current_price": 63300.0,
+      "current_price": 63800.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -5680,9 +5680,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 181911.15,
       "days_to_cover": 3.568995083588884,
       "balance_change_pct": 9.945267835369984,
-      "short_squeeze_index": 0.4376106797439041,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 72,
+        "score": 62,
         "grade": {
           "emoji": "🟠",
           "label": "강함"
@@ -5692,7 +5692,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -5702,19 +5702,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1686.0,
-      "net_20d": -103.0,
-      "net_60d": 9596.0,
-      "net_cumulative": 9307.0,
+      "net_5d": 728.0,
+      "net_20d": 605.0,
+      "net_60d": 9696.0,
+      "net_cumulative": 9840.0,
       "cumulative_window_days": 100,
-      "current_price": 17800.0,
+      "current_price": 17950.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5728,9 +5728,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 344223.9,
       "days_to_cover": 0.8804327648370726,
       "balance_change_pct": 5.047417020214624,
-      "short_squeeze_index": 48.97678890262326,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 57,
+        "score": 47,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -5739,7 +5739,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 15,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -5750,19 +5750,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 24341.0,
-      "net_20d": 12065.0,
-      "net_60d": 10400.0,
-      "net_cumulative": 39804.0,
+      "net_5d": 25070.0,
+      "net_20d": 1193.0,
+      "net_60d": 9013.0,
+      "net_cumulative": 26976.0,
       "cumulative_window_days": 100,
-      "current_price": 130300.0,
+      "current_price": 133300.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5776,7 +5776,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 262998.85,
       "days_to_cover": 2.872807238510739,
       "balance_change_pct": 2.1887789743048733,
-      "short_squeeze_index": 13.643947352159675,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 50,
         "grade": {
@@ -5798,19 +5798,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1221.0,
-      "net_20d": -13365.0,
-      "net_60d": -41345.0,
-      "net_cumulative": -47746.0,
+      "net_5d": -1041.0,
+      "net_20d": -13447.0,
+      "net_60d": -41901.0,
+      "net_cumulative": -47568.0,
       "cumulative_window_days": 100,
-      "current_price": 62900.0,
+      "current_price": 63500.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5824,7 +5824,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1592782.65,
       "days_to_cover": 1.9272397272785462,
       "balance_change_pct": 6.103243543865216,
-      "short_squeeze_index": 36.145956629835815,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 35,
         "grade": {
@@ -5846,15 +5846,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -9818.0,
-      "net_20d": -51236.0,
-      "net_60d": -137673.0,
-      "net_cumulative": -183753.0,
+      "net_5d": -8947.0,
+      "net_20d": -48643.0,
+      "net_60d": -137252.0,
+      "net_cumulative": -182530.0,
       "cumulative_window_days": 100,
-      "current_price": 184400.0,
+      "current_price": 188400.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -5872,7 +5872,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1521839.35,
       "days_to_cover": 2.491575079853205,
       "balance_change_pct": 3.3101235162600404,
-      "short_squeeze_index": 47.01006658929468,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -5894,15 +5894,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 47381.0,
-      "net_20d": 157573.0,
-      "net_60d": 186578.0,
-      "net_cumulative": 93154.0,
+      "net_5d": 39976.0,
+      "net_20d": 152773.0,
+      "net_60d": 187570.0,
+      "net_cumulative": 93854.0,
       "cumulative_window_days": 100,
-      "current_price": 109200.0,
+      "current_price": 112700.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -5920,7 +5920,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 874389.3,
       "days_to_cover": 2.818977771114079,
       "balance_change_pct": 2.7559055118110236,
-      "short_squeeze_index": 19.056695104979728,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 41,
         "grade": {
@@ -5942,19 +5942,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 7,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 33734.0,
-      "net_20d": 49360.0,
-      "net_60d": 5019.0,
-      "net_cumulative": -10239.0,
+      "net_5d": 32661.0,
+      "net_20d": 51152.0,
+      "net_60d": 5296.0,
+      "net_cumulative": -9980.0,
       "cumulative_window_days": 100,
-      "current_price": 128500.0,
+      "current_price": 133300.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 7일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -5968,7 +5968,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2215104.2,
       "days_to_cover": 2.2666888537342844,
       "balance_change_pct": 5.030179992197445,
-      "short_squeeze_index": 9.259898447604037,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 56,
         "grade": {
@@ -5990,15 +5990,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 14143.0,
-      "net_20d": 15047.0,
-      "net_60d": -63926.0,
-      "net_cumulative": -132285.0,
+      "net_5d": 10319.0,
+      "net_20d": 13175.0,
+      "net_60d": -64164.0,
+      "net_cumulative": -133437.0,
       "cumulative_window_days": 100,
-      "current_price": 31450.0,
+      "current_price": 32100.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6016,7 +6016,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 307550.2,
       "days_to_cover": 3.0939729514076073,
       "balance_change_pct": 4.7644003267722,
-      "short_squeeze_index": 28.797892498960113,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 49,
         "grade": {
@@ -6038,19 +6038,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 5,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -7605.0,
-      "net_20d": -49146.0,
-      "net_60d": -92170.0,
-      "net_cumulative": -89573.0,
+      "net_5d": -5817.0,
+      "net_20d": -45372.0,
+      "net_60d": -92509.0,
+      "net_cumulative": -94163.0,
       "cumulative_window_days": 100,
-      "current_price": 115000.0,
+      "current_price": 116900.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 5일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6064,9 +6064,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 938108.4,
       "days_to_cover": 5.75478484149593,
       "balance_change_pct": 3.8175249423231916,
-      "short_squeeze_index": 5.50084376495479,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -6076,7 +6076,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6086,15 +6086,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -4744.0,
-      "net_20d": -8100.0,
-      "net_60d": 5282.0,
-      "net_cumulative": 26290.0,
+      "net_5d": -4175.0,
+      "net_20d": -6627.0,
+      "net_60d": 5317.0,
+      "net_cumulative": 16164.0,
       "cumulative_window_days": 100,
-      "current_price": 22900.0,
+      "current_price": 23000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6112,19 +6112,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 137126.9,
       "days_to_cover": 2.8436652473001285,
       "balance_change_pct": 0.7852056706426642,
-      "short_squeeze_index": 160.00658327847268,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 26,
+        "score": 16,
         "grade": {
           "emoji": "🟢",
-          "label": "약함"
+          "label": "매우 약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 0,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6134,19 +6134,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 7,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -12688.0,
-      "net_20d": -49917.0,
-      "net_60d": -67900.0,
-      "net_cumulative": -109325.0,
+      "net_5d": -11411.0,
+      "net_20d": -50414.0,
+      "net_60d": -70492.0,
+      "net_cumulative": -109593.0,
       "cumulative_window_days": 100,
-      "current_price": 336000.0,
+      "current_price": 341000.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 7일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6160,9 +6160,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 3052051.65,
       "days_to_cover": 2.611224813315332,
       "balance_change_pct": 2.7610877397569555,
-      "short_squeeze_index": 7.9879515259065546,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -6172,7 +6172,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6182,15 +6182,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -4516.0,
-      "net_20d": -175201.0,
-      "net_60d": -394548.0,
-      "net_cumulative": -503858.0,
+      "net_5d": -13560.0,
+      "net_20d": -136698.0,
+      "net_60d": -411311.0,
+      "net_cumulative": -489197.0,
       "cumulative_window_days": 100,
-      "current_price": 42200.0,
+      "current_price": 42800.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6208,7 +6208,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 793115.75,
       "days_to_cover": 3.463620537103191,
       "balance_change_pct": 4.124534679788056,
-      "short_squeeze_index": 9.78082065891651,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 43,
         "grade": {
@@ -6230,19 +6230,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 9010.0,
-      "net_20d": 3120.0,
-      "net_60d": -77721.0,
-      "net_cumulative": -66509.0,
+      "net_5d": 3465.0,
+      "net_20d": 198.0,
+      "net_60d": -79348.0,
+      "net_cumulative": -67824.0,
       "cumulative_window_days": 100,
-      "current_price": 31600.0,
+      "current_price": 32600.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6256,7 +6256,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 541322.75,
       "days_to_cover": 2.0129728521478176,
       "balance_change_pct": 2.1747345226095316,
-      "short_squeeze_index": 101.33229853835208,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 22,
         "grade": {
@@ -6278,19 +6278,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 3610.0,
-      "net_20d": 7922.0,
-      "net_60d": -14519.0,
-      "net_cumulative": 17368.0,
+      "net_5d": -864.0,
+      "net_20d": 3314.0,
+      "net_60d": -16568.0,
+      "net_cumulative": 13554.0,
       "cumulative_window_days": 100,
-      "current_price": 112000.0,
+      "current_price": 115400.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6304,9 +6304,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 268149.9,
       "days_to_cover": 2.9443755153367572,
       "balance_change_pct": 3.4510138942028,
-      "short_squeeze_index": 39.43731490621915,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -6316,7 +6316,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6326,15 +6326,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -2071.0,
-      "net_20d": -9395.0,
-      "net_60d": 12045.0,
-      "net_cumulative": -60030.0,
+      "net_5d": -872.0,
+      "net_20d": -9303.0,
+      "net_60d": 7536.0,
+      "net_cumulative": -68804.0,
       "cumulative_window_days": 100,
-      "current_price": 239000.0,
+      "current_price": 246500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6352,9 +6352,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 113802.7,
       "days_to_cover": 2.0884741750415414,
       "balance_change_pct": 4.701280164932467,
-      "short_squeeze_index": 9.145427286356822,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -6364,7 +6364,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6377,12 +6377,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": 86.0,
-      "net_20d": 1956.0,
-      "net_60d": -621.0,
-      "net_cumulative": -839.0,
+      "net_5d": 48.0,
+      "net_20d": 2006.0,
+      "net_60d": -746.0,
+      "net_cumulative": -830.0,
       "cumulative_window_days": 100,
-      "current_price": 27750.0,
+      "current_price": 28100.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6400,19 +6400,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 148564.55,
       "days_to_cover": 2.6960805925774354,
       "balance_change_pct": 7.74672893173797,
-      "short_squeeze_index": 16.730328495034378,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 90,
+        "score": 80,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 30,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6422,19 +6422,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 25057.0,
-      "net_20d": 5853.0,
-      "net_60d": -46638.0,
-      "net_cumulative": -55988.0,
+      "net_5d": 15343.0,
+      "net_20d": 5190.0,
+      "net_60d": -45478.0,
+      "net_cumulative": -58330.0,
       "cumulative_window_days": 100,
-      "current_price": 648000.0,
+      "current_price": 660000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(3일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6448,18 +6448,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 225854.6,
       "days_to_cover": 4.229978047823688,
       "balance_change_pct": 5.622295485049297,
-      "short_squeeze_index": 12.303850237936052,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 82,
+        "score": 72,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 22,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -6470,19 +6470,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 7,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 34013.0,
-      "net_20d": 28515.0,
-      "net_60d": -43102.0,
-      "net_cumulative": -508.0,
+      "net_5d": 31684.0,
+      "net_20d": 28111.0,
+      "net_60d": -37232.0,
+      "net_cumulative": -7998.0,
       "cumulative_window_days": 100,
-      "current_price": 155800.0,
+      "current_price": 159500.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 7일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6496,7 +6496,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 479954.5,
       "days_to_cover": 2.3758064566537036,
       "balance_change_pct": 3.783153562395275,
-      "short_squeeze_index": 10.527835249963912,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -6518,19 +6518,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 7,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 15246.0,
-      "net_20d": 23264.0,
-      "net_60d": 60422.0,
-      "net_cumulative": 18509.0,
+      "net_5d": 14713.0,
+      "net_20d": 20686.0,
+      "net_60d": 62763.0,
+      "net_cumulative": 18234.0,
       "cumulative_window_days": 100,
-      "current_price": 38150.0,
+      "current_price": 39350.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 7일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6544,7 +6544,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 513843.5,
       "days_to_cover": 1.65809044971864,
       "balance_change_pct": 2.368167787871761,
-      "short_squeeze_index": 12.054794520547945,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -6566,19 +6566,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1044.0,
-      "net_20d": 3298.0,
-      "net_60d": 8425.0,
-      "net_cumulative": 9323.0,
+      "net_5d": 917.0,
+      "net_20d": 3391.0,
+      "net_60d": 8624.0,
+      "net_cumulative": 8446.0,
       "cumulative_window_days": 100,
-      "current_price": 6150.0,
+      "current_price": 6230.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(3일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6592,9 +6592,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 522705.2,
       "days_to_cover": 1.5820619347196085,
       "balance_change_pct": 2.956145855120965,
-      "short_squeeze_index": 12.651617250673855,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 37,
+        "score": 27,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -6603,7 +6603,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 8,
           "loan_increase": 5,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -6614,15 +6614,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -15469.0,
-      "net_20d": 55899.0,
-      "net_60d": 225180.0,
-      "net_cumulative": 186191.0,
+      "net_5d": -16763.0,
+      "net_20d": 53462.0,
+      "net_60d": 221592.0,
+      "net_cumulative": 187029.0,
       "cumulative_window_days": 100,
-      "current_price": 340500.0,
+      "current_price": 336500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6640,7 +6640,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 5662910.4,
       "days_to_cover": 1.0374211465538992,
       "balance_change_pct": 2.0189950331315583,
-      "short_squeeze_index": 8.383434395561864,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 27,
         "grade": {
@@ -6662,19 +6662,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1022.0,
-      "net_20d": 4755.0,
-      "net_60d": 20331.0,
-      "net_cumulative": 13603.0,
+      "net_5d": 1089.0,
+      "net_20d": 3990.0,
+      "net_60d": 20651.0,
+      "net_cumulative": 11877.0,
       "cumulative_window_days": 100,
-      "current_price": 4650.0,
+      "current_price": 4705.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6688,7 +6688,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 127905.5,
       "days_to_cover": 0.8346630911102337,
       "balance_change_pct": 2.2850737259636116,
-      "short_squeeze_index": 28.259958071278824,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 26,
         "grade": {
@@ -6713,12 +6713,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": -257.0,
-      "net_20d": -132.0,
-      "net_60d": -12310.0,
-      "net_cumulative": -12726.0,
+      "net_5d": 0.0,
+      "net_20d": -214.0,
+      "net_60d": -12316.0,
+      "net_cumulative": -12694.0,
       "cumulative_window_days": 100,
-      "current_price": 7770.0,
+      "current_price": 7880.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6736,7 +6736,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1543645.15,
       "days_to_cover": 0.2686608382762062,
       "balance_change_pct": 2.444284154517294,
-      "short_squeeze_index": 11.01566447700859,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 27,
         "grade": {
@@ -6758,19 +6758,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 2397.0,
-      "net_20d": 25551.0,
-      "net_60d": 45384.0,
-      "net_cumulative": 34071.0,
+      "net_20d": 17247.0,
+      "net_60d": 45391.0,
+      "net_cumulative": 34090.0,
       "cumulative_window_days": 100,
-      "current_price": 18320.0,
+      "current_price": 18240.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -6784,9 +6784,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 293144.15,
       "days_to_cover": 3.329000425217423,
       "balance_change_pct": 0.5111678274285879,
-      "short_squeeze_index": 53.49586943381019,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -6796,7 +6796,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6806,15 +6806,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 2629.0,
-      "net_20d": 28289.0,
-      "net_60d": -5269.0,
-      "net_cumulative": 48406.0,
+      "net_5d": 4391.0,
+      "net_20d": 31073.0,
+      "net_60d": -538.0,
+      "net_cumulative": 42917.0,
       "cumulative_window_days": 100,
-      "current_price": 375000.0,
+      "current_price": 391500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6832,19 +6832,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 56146.0,
       "days_to_cover": 3.3309407615858655,
       "balance_change_pct": 4.408144124428466,
-      "short_squeeze_index": 0.8358662613981762,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 84,
+        "score": 74,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 30,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6854,15 +6854,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 9214.0,
-      "net_20d": 9874.0,
-      "net_60d": 20914.0,
-      "net_cumulative": 8932.0,
+      "net_5d": 8354.0,
+      "net_20d": 9864.0,
+      "net_60d": 23089.0,
+      "net_cumulative": 11111.0,
       "cumulative_window_days": 100,
-      "current_price": 245000.0,
+      "current_price": 247500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6880,19 +6880,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 362438.4,
       "days_to_cover": 5.144642510285886,
       "balance_change_pct": 6.7816595511956,
-      "short_squeeze_index": 11.134849393266396,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 82,
+        "score": 72,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 22,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6902,15 +6902,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 8360.0,
-      "net_20d": 52192.0,
-      "net_60d": 22528.0,
-      "net_cumulative": 30787.0,
+      "net_5d": 5244.0,
+      "net_20d": 53475.0,
+      "net_60d": 25793.0,
+      "net_cumulative": 30641.0,
       "cumulative_window_days": 100,
-      "current_price": 123100.0,
+      "current_price": 122800.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6928,9 +6928,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 173849.0,
       "days_to_cover": 0.8022536799176296,
       "balance_change_pct": 7.228471042292937,
-      "short_squeeze_index": -37.96000850882791,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 57,
+        "score": 47,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -6940,7 +6940,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -6950,15 +6950,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1221.0,
-      "net_20d": 10057.0,
-      "net_60d": 53143.0,
-      "net_cumulative": 65151.0,
+      "net_5d": 1023.0,
+      "net_20d": 10158.0,
+      "net_60d": 51387.0,
+      "net_cumulative": 66038.0,
       "cumulative_window_days": 100,
-      "current_price": 197900.0,
+      "current_price": 204000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -6976,9 +6976,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 582887.45,
       "days_to_cover": 1.5227982692027424,
       "balance_change_pct": 5.502504379990634,
-      "short_squeeze_index": 10.81781656370156,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 57,
+        "score": 47,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -6987,7 +6987,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 15,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -7001,12 +7001,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": 8988.0,
-      "net_20d": 5237.0,
-      "net_60d": -3852.0,
-      "net_cumulative": -12308.0,
+      "net_5d": 7854.0,
+      "net_20d": 4972.0,
+      "net_60d": -5100.0,
+      "net_cumulative": -11460.0,
       "cumulative_window_days": 100,
-      "current_price": 37600.0,
+      "current_price": 39900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7024,19 +7024,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 88344.25,
       "days_to_cover": 3.0351607490017742,
       "balance_change_pct": 3.2133522716337364,
-      "short_squeeze_index": 5.390512697652132,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -7046,19 +7046,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 8,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 12995.0,
-      "net_20d": 10328.0,
-      "net_60d": 33468.0,
-      "net_cumulative": 30270.0,
+      "net_5d": 9354.0,
+      "net_20d": 11844.0,
+      "net_60d": 31564.0,
+      "net_cumulative": 30209.0,
       "cumulative_window_days": 100,
-      "current_price": 172700.0,
+      "current_price": 178000.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 8일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -7072,7 +7072,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 415171.65,
       "days_to_cover": 1.6770461085192112,
       "balance_change_pct": 3.4912169614164634,
-      "short_squeeze_index": 20.92132152588556,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -7094,19 +7094,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -2679.0,
-      "net_20d": 5353.0,
-      "net_60d": 39101.0,
-      "net_cumulative": 91933.0,
+      "net_5d": -1379.0,
+      "net_20d": 6406.0,
+      "net_60d": 38293.0,
+      "net_cumulative": 91160.0,
       "cumulative_window_days": 100,
-      "current_price": 106500.0,
+      "current_price": 111500.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -7120,7 +7120,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 164397.95,
       "days_to_cover": 1.7563905146019156,
       "balance_change_pct": 5.570911484040804,
-      "short_squeeze_index": 4.981295530616263,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 47,
         "grade": {
@@ -7150,7 +7150,7 @@ window.INVESTOR_FLOW_CACHE = {
       "net_60d": -111.0,
       "net_cumulative": -699.0,
       "cumulative_window_days": 100,
-      "current_price": 12230.0,
+      "current_price": 12500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7168,19 +7168,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 65706.1,
       "days_to_cover": 1.653134183888558,
       "balance_change_pct": 5.319241770494982,
-      "short_squeeze_index": -6.252278527160043,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 67,
+        "score": 47,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -7193,12 +7193,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": 2454.0,
+      "net_5d": 1742.0,
       "net_20d": 3984.0,
-      "net_60d": 3101.0,
-      "net_cumulative": 1010.0,
+      "net_60d": 3117.0,
+      "net_cumulative": 1107.0,
       "cumulative_window_days": 100,
-      "current_price": 43700.0,
+      "current_price": 44800.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7216,18 +7216,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 3638291.25,
       "days_to_cover": 0.3468097833014331,
       "balance_change_pct": 0.09725766697419976,
-      "short_squeeze_index": 53.752039151712886,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 23,
+        "score": 13,
         "grade": {
           "emoji": "🟢",
-          "label": "약함"
+          "label": "매우 약함"
         },
         "breakdown": {
           "short_ratio": 0,
           "loan_increase": 5,
           "balance_increase": 8,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -7238,19 +7238,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 14,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 49689.0,
-      "net_20d": 176343.0,
-      "net_60d": 205067.0,
-      "net_cumulative": 195597.0,
+      "net_5d": 38228.0,
+      "net_20d": 151732.0,
+      "net_60d": 210166.0,
+      "net_cumulative": 199869.0,
       "cumulative_window_days": 100,
-      "current_price": 26750.0,
+      "current_price": 26300.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 14일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -7264,19 +7264,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 278406.45,
       "days_to_cover": 0.23482214582313016,
       "balance_change_pct": 0.7846825042009034,
-      "short_squeeze_index": 34.9705304518664,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 30,
+        "score": 20,
         "grade": {
           "emoji": "🟢",
-          "label": "약함"
+          "label": "매우 약함"
         },
         "breakdown": {
           "short_ratio": 0,
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -7290,11 +7290,11 @@ window.INVESTOR_FLOW_CACHE = {
         "direction": "flat"
       },
       "net_5d": -126.0,
-      "net_20d": 5.0,
-      "net_60d": -1265.0,
-      "net_cumulative": 25.0,
+      "net_20d": -293.0,
+      "net_60d": -1266.0,
+      "net_cumulative": 63.0,
       "cumulative_window_days": 100,
-      "current_price": 5420.0,
+      "current_price": 5470.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7312,19 +7312,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 618005.85,
       "days_to_cover": 0.5196714561844358,
       "balance_change_pct": 0.2948010093187099,
-      "short_squeeze_index": 17.902542372881356,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 30,
+        "score": 20,
         "grade": {
           "emoji": "🟢",
-          "label": "약함"
+          "label": "매우 약함"
         },
         "breakdown": {
           "short_ratio": 0,
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -7334,19 +7334,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 48.0,
-      "net_20d": 175.0,
-      "net_60d": -1451.0,
-      "net_cumulative": -7798.0,
+      "net_20d": -117.0,
+      "net_60d": -1309.0,
+      "net_cumulative": -7626.0,
       "cumulative_window_days": 100,
-      "current_price": 4435.0,
+      "current_price": 4455.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -7360,19 +7360,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 224993.05,
       "days_to_cover": 0.2519144480240612,
       "balance_change_pct": 3.705126797672632,
-      "short_squeeze_index": -3.802469135802469,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -7385,10 +7385,10 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": 82.0,
-      "net_20d": 787.0,
-      "net_60d": 529.0,
-      "net_cumulative": -1458.0,
+      "net_5d": 4.0,
+      "net_20d": 398.0,
+      "net_60d": 523.0,
+      "net_cumulative": -1288.0,
       "cumulative_window_days": 100,
       "current_price": 7160.0,
       "interpretation": {
@@ -7408,9 +7408,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1529181.65,
       "days_to_cover": 2.9184328755187456,
       "balance_change_pct": 3.7004936144741527,
-      "short_squeeze_index": 2.943115671290337,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -7419,7 +7419,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -7430,19 +7430,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 11880.0,
-      "net_20d": 10100.0,
-      "net_60d": -28182.0,
-      "net_cumulative": -22448.0,
+      "net_5d": 11536.0,
+      "net_20d": 9427.0,
+      "net_60d": -27441.0,
+      "net_cumulative": -14552.0,
       "cumulative_window_days": 100,
-      "current_price": 19740.0,
+      "current_price": 19790.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(3일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -7456,7 +7456,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2305054.7,
       "days_to_cover": 3.8827599188860895,
       "balance_change_pct": 2.7195864210509884,
-      "short_squeeze_index": 1.342009976451523,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 60,
         "grade": {
@@ -7478,19 +7478,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 655.0,
-      "net_20d": -859.0,
-      "net_60d": -943.0,
-      "net_cumulative": 38565.0,
+      "net_5d": 988.0,
+      "net_20d": -711.0,
+      "net_60d": 3319.0,
+      "net_cumulative": 37637.0,
       "cumulative_window_days": 100,
-      "current_price": 5250.0,
+      "current_price": 5400.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -7504,9 +7504,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 3062559.55,
       "days_to_cover": 1.9594698166767077,
       "balance_change_pct": 1.60192957544024,
-      "short_squeeze_index": 2.4488458611651307,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 31,
+        "score": 21,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -7516,7 +7516,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -7526,15 +7526,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 556.0,
-      "net_20d": -1874.0,
-      "net_60d": 3380.0,
-      "net_cumulative": 1705.0,
+      "net_5d": -43.0,
+      "net_20d": -1423.0,
+      "net_60d": 3058.0,
+      "net_cumulative": 1748.0,
       "cumulative_window_days": 100,
-      "current_price": 1929.0,
+      "current_price": 1996.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7552,19 +7552,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 8536036.05,
       "days_to_cover": 0.1918156144619375,
       "balance_change_pct": 3.9403963630431043,
-      "short_squeeze_index": 5.889934269880139,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 29,
+        "score": 19,
         "grade": {
           "emoji": "🟢",
-          "label": "약함"
+          "label": "매우 약함"
         },
         "breakdown": {
           "short_ratio": 0,
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -7579,10 +7579,10 @@ window.INVESTOR_FLOW_CACHE = {
       },
       "net_5d": 0.0,
       "net_20d": -1.0,
-      "net_60d": -13.0,
-      "net_cumulative": 673.0,
+      "net_60d": -16.0,
+      "net_cumulative": 704.0,
       "cumulative_window_days": 100,
-      "current_price": 1732.0,
+      "current_price": 1906.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7600,19 +7600,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 59662.75,
       "days_to_cover": 0.8883599901110827,
       "balance_change_pct": 3.7099362110124052,
-      "short_squeeze_index": -1.9514767932489452,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 54,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -7627,10 +7627,10 @@ window.INVESTOR_FLOW_CACHE = {
       },
       "net_5d": 305.0,
       "net_20d": 194.0,
-      "net_60d": -123.0,
-      "net_cumulative": 1718.0,
+      "net_60d": -124.0,
+      "net_cumulative": 1711.0,
       "cumulative_window_days": 100,
-      "current_price": 9510.0,
+      "current_price": 9710.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7648,7 +7648,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 100670.1,
       "days_to_cover": 0.2489517741613448,
       "balance_change_pct": 0.0878594249201278,
-      "short_squeeze_index": 186.36363636363635,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 13,
         "grade": {
@@ -7678,7 +7678,7 @@ window.INVESTOR_FLOW_CACHE = {
       "net_60d": -18.0,
       "net_cumulative": -18.0,
       "cumulative_window_days": 100,
-      "current_price": 1954.0,
+      "current_price": 2410.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7696,7 +7696,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 65362.6,
       "days_to_cover": 0.7641678880583086,
       "balance_change_pct": 1.9055779981229852,
-      "short_squeeze_index": 0.32119914346895073,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 28,
         "grade": {
@@ -7726,7 +7726,7 @@ window.INVESTOR_FLOW_CACHE = {
       "net_60d": -1.0,
       "net_cumulative": -1.0,
       "cumulative_window_days": 100,
-      "current_price": 1887.0,
+      "current_price": 1899.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7744,7 +7744,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 31715.15,
       "days_to_cover": 1.71473254895531,
       "balance_change_pct": 1.7284273929553489,
-      "short_squeeze_index": 7.142857142857142,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 35,
         "grade": {
@@ -7766,19 +7766,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 48.0,
       "net_20d": 389.0,
-      "net_60d": 560.0,
-      "net_cumulative": 736.0,
+      "net_60d": 601.0,
+      "net_cumulative": 693.0,
       "cumulative_window_days": 100,
-      "current_price": 12950.0,
+      "current_price": 12880.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -7792,7 +7792,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 54502.6,
       "days_to_cover": 3.5319415954468227,
       "balance_change_pct": 2.2304832713754648,
-      "short_squeeze_index": 30.928571428571427,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 41,
         "grade": {
@@ -7814,19 +7814,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 292.0,
-      "net_20d": -2882.0,
-      "net_60d": -36192.0,
-      "net_cumulative": -70169.0,
+      "net_5d": 715.0,
+      "net_20d": -3564.0,
+      "net_60d": -33114.0,
+      "net_cumulative": -74289.0,
       "cumulative_window_days": 100,
-      "current_price": 73900.0,
+      "current_price": 74600.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -7840,19 +7840,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 28675.5,
       "days_to_cover": 2.6111140171923766,
       "balance_change_pct": 6.046228365861258,
-      "short_squeeze_index": 2.3424689622862496,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 66,
+        "score": 56,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -7867,10 +7867,10 @@ window.INVESTOR_FLOW_CACHE = {
       },
       "net_5d": 0.0,
       "net_20d": -5.0,
-      "net_60d": -198.0,
-      "net_cumulative": -307.0,
+      "net_60d": -199.0,
+      "net_cumulative": -286.0,
       "cumulative_window_days": 100,
-      "current_price": 15820.0,
+      "current_price": 15930.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7888,7 +7888,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 395530.1,
       "days_to_cover": 2.366626459022967,
       "balance_change_pct": 3.247069100727637,
-      "short_squeeze_index": 55.86466931621319,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 43,
         "grade": {
@@ -7910,15 +7910,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 20385.0,
-      "net_20d": 10231.0,
-      "net_60d": 62592.0,
-      "net_cumulative": -100112.0,
+      "net_5d": 19513.0,
+      "net_20d": 11094.0,
+      "net_60d": 65865.0,
+      "net_cumulative": -96519.0,
       "cumulative_window_days": 100,
-      "current_price": 199600.0,
+      "current_price": 200500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7936,7 +7936,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1286414.85,
       "days_to_cover": 1.3125439278005846,
       "balance_change_pct": 2.338081095823989,
-      "short_squeeze_index": 39.776026545002075,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 44,
         "grade": {
@@ -7958,15 +7958,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1367.0,
-      "net_20d": -2538.0,
-      "net_60d": 73430.0,
-      "net_cumulative": 67121.0,
+      "net_5d": 1233.0,
+      "net_20d": -3934.0,
+      "net_60d": 72936.0,
+      "net_cumulative": 66415.0,
       "cumulative_window_days": 100,
-      "current_price": 71100.0,
+      "current_price": 73100.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -7984,7 +7984,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 103232.45,
       "days_to_cover": 1.6539954248882014,
       "balance_change_pct": 2.0854009972617154,
-      "short_squeeze_index": 46.98967889908257,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 59,
         "grade": {
@@ -8006,19 +8006,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 5,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -8360.0,
-      "net_20d": -29591.0,
-      "net_60d": -22713.0,
-      "net_cumulative": -27757.0,
+      "net_5d": -6519.0,
+      "net_20d": -29721.0,
+      "net_60d": -22688.0,
+      "net_cumulative": -30077.0,
       "cumulative_window_days": 100,
-      "current_price": 452000.0,
+      "current_price": 467000.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 5일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -8032,9 +8032,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 23923.0,
       "days_to_cover": 1.6130502027337708,
       "balance_change_pct": 4.002263906856403,
-      "short_squeeze_index": 11.851851851851853,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 51,
+        "score": 41,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -8044,7 +8044,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -8058,11 +8058,11 @@ window.INVESTOR_FLOW_CACHE = {
         "direction": "flat"
       },
       "net_5d": 0.0,
-      "net_20d": -116.0,
-      "net_60d": -474.0,
-      "net_cumulative": 358.0,
+      "net_20d": 4.0,
+      "net_60d": -475.0,
+      "net_cumulative": 362.0,
       "cumulative_window_days": 100,
-      "current_price": 17220.0,
+      "current_price": 17350.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8080,7 +8080,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 82299.8,
       "days_to_cover": 0.7821161169285952,
       "balance_change_pct": 2.195760895451298,
-      "short_squeeze_index": 15.328994938539406,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 27,
         "grade": {
@@ -8102,19 +8102,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 48.0,
-      "net_20d": -80.0,
-      "net_60d": -1410.0,
-      "net_cumulative": -168.0,
+      "net_20d": -61.0,
+      "net_60d": -1382.0,
+      "net_cumulative": -154.0,
       "cumulative_window_days": 100,
-      "current_price": 13040.0,
+      "current_price": 13110.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -8128,9 +8128,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1088197.3,
       "days_to_cover": 0.527238948304687,
       "balance_change_pct": 3.176173126791565,
-      "short_squeeze_index": 49.06579096365078,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 37,
+        "score": 27,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -8140,7 +8140,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -8150,19 +8150,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3805.0,
-      "net_20d": -65885.0,
-      "net_60d": -50444.0,
-      "net_cumulative": 12663.0,
+      "net_5d": 5347.0,
+      "net_20d": -65789.0,
+      "net_60d": -57079.0,
+      "net_cumulative": 6112.0,
       "cumulative_window_days": 100,
-      "current_price": 88700.0,
+      "current_price": 88200.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(3일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -8176,19 +8176,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 377175.45,
       "days_to_cover": 4.347106896803596,
       "balance_change_pct": 16.58622258881083,
-      "short_squeeze_index": -6.72891426807624,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 100,
+        "score": 80,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 30,
           "balance_increase": 20,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -8198,13 +8198,13 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3302.0,
-      "net_20d": -15046.0,
-      "net_60d": -40597.0,
-      "net_cumulative": -51136.0,
+      "net_5d": -4492.0,
+      "net_20d": -14886.0,
+      "net_60d": -37616.0,
+      "net_cumulative": -51335.0,
       "cumulative_window_days": 100,
       "current_price": 54200.0,
       "interpretation": {
@@ -8224,19 +8224,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1105981.0,
       "days_to_cover": 1.6635746907044515,
       "balance_change_pct": 1.4350115472422518,
-      "short_squeeze_index": -10.907065196511583,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 41,
+        "score": 21,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 5,
           "balance_increase": 8,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -8246,19 +8246,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 8315.0,
-      "net_20d": 1313.0,
-      "net_60d": -24931.0,
-      "net_cumulative": -18281.0,
+      "net_5d": 8737.0,
+      "net_20d": -94.0,
+      "net_60d": -25028.0,
+      "net_cumulative": -19826.0,
       "cumulative_window_days": 100,
-      "current_price": 14960.0,
+      "current_price": 14710.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -8272,9 +8272,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1426393.65,
       "days_to_cover": 1.271627926834924,
       "balance_change_pct": 3.2357611597106413,
-      "short_squeeze_index": 4.161682966298459,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 51,
+        "score": 41,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -8283,7 +8283,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 15,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -8294,19 +8294,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -700.0,
-      "net_20d": -10812.0,
-      "net_60d": -36127.0,
-      "net_cumulative": 3509.0,
+      "net_5d": 774.0,
+      "net_20d": -10258.0,
+      "net_60d": -37997.0,
+      "net_cumulative": 3628.0,
       "cumulative_window_days": 100,
-      "current_price": 47350.0,
+      "current_price": 47200.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -8320,19 +8320,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 296151.85,
       "days_to_cover": 2.0197206264286383,
       "balance_change_pct": 10.77745943613402,
-      "short_squeeze_index": -3.4093447665526777,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 50,
+        "score": 40,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -8345,10 +8345,10 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": -1718.0,
-      "net_20d": -3110.0,
-      "net_60d": -34059.0,
-      "net_cumulative": -34407.0,
+      "net_5d": -160.0,
+      "net_20d": -1774.0,
+      "net_60d": -33249.0,
+      "net_cumulative": -34213.0,
       "cumulative_window_days": 100,
       "current_price": 52100.0,
       "interpretation": {
@@ -8368,9 +8368,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 277002.65,
       "days_to_cover": 3.8781470141170127,
       "balance_change_pct": 4.205540390842195,
-      "short_squeeze_index": 0.6250720793449429,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -8379,7 +8379,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 5,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -8390,15 +8390,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -780.0,
-      "net_20d": -2431.0,
+      "net_5d": -186.0,
+      "net_20d": -2541.0,
       "net_60d": -5091.0,
-      "net_cumulative": -2731.0,
+      "net_cumulative": -2625.0,
       "cumulative_window_days": 100,
-      "current_price": 17560.0,
+      "current_price": 19450.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8416,19 +8416,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 4976179.05,
       "days_to_cover": 3.7149246066618122,
       "balance_change_pct": 5.374782964586889,
-      "short_squeeze_index": 0.7258380969551708,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 82,
+        "score": 72,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 22,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -8438,15 +8438,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3383.0,
-      "net_20d": -14293.0,
-      "net_60d": -43697.0,
-      "net_cumulative": -33157.0,
+      "net_5d": -2886.0,
+      "net_20d": -13916.0,
+      "net_60d": -43407.0,
+      "net_cumulative": -29628.0,
       "cumulative_window_days": 100,
-      "current_price": 11010.0,
+      "current_price": 11180.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8464,19 +8464,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 390854.75,
       "days_to_cover": 1.2933244382983704,
       "balance_change_pct": 5.790738167389375,
-      "short_squeeze_index": -213.46946151066138,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 45,
+        "score": 35,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 0,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -8486,13 +8486,13 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -26924.0,
-      "net_20d": -165669.0,
-      "net_60d": -204929.0,
-      "net_cumulative": -102768.0,
+      "net_5d": -26893.0,
+      "net_20d": -163643.0,
+      "net_60d": -209185.0,
+      "net_cumulative": -99873.0,
       "cumulative_window_days": 100,
       "current_price": 742000.0,
       "interpretation": {
@@ -8512,7 +8512,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 122237.0,
       "days_to_cover": 3.801557629850209,
       "balance_change_pct": 1.5041338561177795,
-      "short_squeeze_index": 15.800174266627941,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 37,
         "grade": {
@@ -8534,19 +8534,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 27.0,
-      "net_20d": 53.0,
-      "net_60d": -1890.0,
-      "net_cumulative": -2762.0,
+      "net_20d": -157.0,
+      "net_60d": -1880.0,
+      "net_cumulative": -3096.0,
       "cumulative_window_days": 100,
-      "current_price": 40400.0,
+      "current_price": 40700.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -8560,9 +8560,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 128113.15,
       "days_to_cover": 3.596453603708909,
       "balance_change_pct": 1.315164522002234,
-      "short_squeeze_index": 23.725129576993815,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -8572,7 +8572,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -8582,15 +8582,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 6176.0,
-      "net_20d": -5865.0,
-      "net_60d": -24826.0,
-      "net_cumulative": 1932.0,
+      "net_5d": 6577.0,
+      "net_20d": -652.0,
+      "net_60d": -25298.0,
+      "net_cumulative": -2522.0,
       "cumulative_window_days": 100,
-      "current_price": 238000.0,
+      "current_price": 239000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8608,9 +8608,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 138678.4,
       "days_to_cover": 2.657342455638369,
       "balance_change_pct": 1.038859201539782,
-      "short_squeeze_index": 8.445500131960939,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -8620,7 +8620,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -8630,15 +8630,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1881.0,
-      "net_20d": 4700.0,
-      "net_60d": 1067.0,
-      "net_cumulative": -159.0,
+      "net_5d": 1324.0,
+      "net_20d": 4831.0,
+      "net_60d": 1058.0,
+      "net_cumulative": -148.0,
       "cumulative_window_days": 100,
-      "current_price": 35150.0,
+      "current_price": 34400.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8656,9 +8656,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 203731.9,
       "days_to_cover": 4.435971980823818,
       "balance_change_pct": 2.8625117943453158,
-      "short_squeeze_index": -1.6620278330019882,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -8667,7 +8667,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -8678,19 +8678,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 63.0,
-      "net_20d": -7402.0,
-      "net_60d": -39731.0,
-      "net_cumulative": -9399.0,
+      "net_5d": 65.0,
+      "net_20d": -5742.0,
+      "net_60d": -39184.0,
+      "net_cumulative": -14354.0,
       "cumulative_window_days": 100,
-      "current_price": 37550.0,
+      "current_price": 38100.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -8704,9 +8704,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 107969.7,
       "days_to_cover": 3.5668525521512056,
       "balance_change_pct": 1.9961597033701914,
-      "short_squeeze_index": -9.59267613108664,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -8716,7 +8716,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -8726,15 +8726,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -2524.0,
-      "net_20d": 21117.0,
-      "net_60d": 151325.0,
-      "net_cumulative": 240143.0,
+      "net_5d": -1564.0,
+      "net_20d": 22037.0,
+      "net_60d": 145668.0,
+      "net_cumulative": 236101.0,
       "cumulative_window_days": 100,
-      "current_price": 248500.0,
+      "current_price": 245000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8752,9 +8752,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 337090.45,
       "days_to_cover": 2.1164141553105407,
       "balance_change_pct": 2.5609214371866957,
-      "short_squeeze_index": 8.605591108117212,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 51,
+        "score": 41,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -8763,7 +8763,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 15,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -8774,15 +8774,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -156.0,
-      "net_20d": -1262.0,
-      "net_60d": -10726.0,
-      "net_cumulative": -9073.0,
+      "net_5d": -101.0,
+      "net_20d": -514.0,
+      "net_60d": -9446.0,
+      "net_cumulative": -8606.0,
       "cumulative_window_days": 100,
-      "current_price": 37050.0,
+      "current_price": 38100.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8800,9 +8800,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 811533.75,
       "days_to_cover": 2.9699307022043135,
       "balance_change_pct": 5.580729296715177,
-      "short_squeeze_index": -0.23783919558545336,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 72,
+        "score": 62,
         "grade": {
           "emoji": "🟠",
           "label": "강함"
@@ -8811,7 +8811,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 30,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -8828,9 +8828,9 @@ window.INVESTOR_FLOW_CACHE = {
       "net_5d": 0.0,
       "net_20d": 153.0,
       "net_60d": -203.0,
-      "net_cumulative": 21.0,
+      "net_cumulative": 5.0,
       "cumulative_window_days": 100,
-      "current_price": 8340.0,
+      "current_price": 8390.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8848,7 +8848,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 305696.45,
       "days_to_cover": 3.317676734551546,
       "balance_change_pct": 3.1768897244484595,
-      "short_squeeze_index": 25.403484052773152,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 49,
         "grade": {
@@ -8870,19 +8870,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 12,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 45295.0,
-      "net_20d": 82220.0,
-      "net_60d": -6509.0,
-      "net_cumulative": -88427.0,
+      "net_5d": 41171.0,
+      "net_20d": 85852.0,
+      "net_60d": 445.0,
+      "net_cumulative": -91055.0,
       "cumulative_window_days": 100,
-      "current_price": 220500.0,
+      "current_price": 225500.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 12일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -8896,18 +8896,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 207541.65,
       "days_to_cover": 1.9786100765798094,
       "balance_change_pct": 6.781150699749848,
-      "short_squeeze_index": 3.343814709717003,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 66,
+        "score": 56,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 24,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -8918,15 +8918,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1805.0,
-      "net_20d": -1500.0,
-      "net_60d": -9245.0,
-      "net_cumulative": -30995.0,
+      "net_5d": 1367.0,
+      "net_20d": -1545.0,
+      "net_60d": -9211.0,
+      "net_cumulative": -28925.0,
       "cumulative_window_days": 100,
-      "current_price": 50700.0,
+      "current_price": 52200.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8944,9 +8944,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 111762.0,
       "days_to_cover": 4.009896029061756,
       "balance_change_pct": 5.319138935890205,
-      "short_squeeze_index": -0.9145533268534064,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 72,
+        "score": 62,
         "grade": {
           "emoji": "🟠",
           "label": "강함"
@@ -8955,7 +8955,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 30,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -8966,15 +8966,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 7589.0,
-      "net_20d": 13287.0,
-      "net_60d": 13719.0,
-      "net_cumulative": -9927.0,
+      "net_5d": 6848.0,
+      "net_20d": 13646.0,
+      "net_60d": 13752.0,
+      "net_cumulative": -10145.0,
       "cumulative_window_days": 100,
-      "current_price": 77500.0,
+      "current_price": 79100.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -8992,7 +8992,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 117326.25,
       "days_to_cover": 3.4785565889986256,
       "balance_change_pct": 5.627591347423016,
-      "short_squeeze_index": 0.8186166298749081,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 62,
         "grade": {
@@ -9014,15 +9014,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -275.0,
-      "net_20d": -423.0,
-      "net_60d": -6641.0,
-      "net_cumulative": -28970.0,
+      "net_5d": -82.0,
+      "net_20d": -374.0,
+      "net_60d": -6617.0,
+      "net_cumulative": -32051.0,
       "cumulative_window_days": 100,
-      "current_price": 42200.0,
+      "current_price": 43050.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9040,9 +9040,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 69899.2,
       "days_to_cover": 3.7867815368416236,
       "balance_change_pct": 1.0116698849802703,
-      "short_squeeze_index": -5.733685401735195,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -9052,7 +9052,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -9062,15 +9062,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 7004.0,
-      "net_20d": -8343.0,
-      "net_60d": -24973.0,
-      "net_cumulative": 24428.0,
+      "net_5d": 3807.0,
+      "net_20d": -8917.0,
+      "net_60d": -22732.0,
+      "net_cumulative": 24738.0,
       "cumulative_window_days": 100,
-      "current_price": 191000.0,
+      "current_price": 194200.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9088,19 +9088,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 52355.4,
       "days_to_cover": 2.868185516680228,
       "balance_change_pct": 1.6696118457132412,
-      "short_squeeze_index": -138.19951338199513,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 45,
+        "score": 35,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -9110,15 +9110,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 19597.0,
-      "net_20d": 18364.0,
-      "net_60d": 50217.0,
-      "net_cumulative": 118090.0,
+      "net_5d": 18947.0,
+      "net_20d": 20309.0,
+      "net_60d": 52641.0,
+      "net_cumulative": 116953.0,
       "cumulative_window_days": 100,
-      "current_price": 1139000.0,
+      "current_price": 1159000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9136,19 +9136,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 285613.7,
       "days_to_cover": 1.6536706747610495,
       "balance_change_pct": 1.7900669173823558,
-      "short_squeeze_index": -32.687214062123765,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 48,
+        "score": 38,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 8,
           "loan_increase": 22,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -9158,15 +9158,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 9022.0,
-      "net_20d": -19698.0,
-      "net_60d": -98280.0,
-      "net_cumulative": -143585.0,
+      "net_5d": 9409.0,
+      "net_20d": -15636.0,
+      "net_60d": -96796.0,
+      "net_cumulative": -144087.0,
       "cumulative_window_days": 100,
-      "current_price": 173500.0,
+      "current_price": 175200.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9184,7 +9184,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 26409.2,
       "days_to_cover": 3.828249246474713,
       "balance_change_pct": 3.0696299316953817,
-      "short_squeeze_index": 58.253072069080034,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 50,
         "grade": {
@@ -9206,15 +9206,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 3251.0,
-      "net_20d": -1114.0,
-      "net_60d": -2132.0,
-      "net_cumulative": -20932.0,
+      "net_20d": -42.0,
+      "net_60d": -1700.0,
+      "net_cumulative": -21024.0,
       "cumulative_window_days": 100,
-      "current_price": 356000.0,
+      "current_price": 361500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9232,18 +9232,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 140017.25,
       "days_to_cover": 2.6482308429854178,
       "balance_change_pct": 3.616248948602375,
-      "short_squeeze_index": 10.02240939649177,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 61,
+        "score": 51,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 22,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -9254,15 +9254,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -474.0,
-      "net_20d": 1554.0,
-      "net_60d": -15178.0,
-      "net_cumulative": -52711.0,
+      "net_5d": -2505.0,
+      "net_20d": 551.0,
+      "net_60d": -15028.0,
+      "net_cumulative": -52337.0,
       "cumulative_window_days": 100,
-      "current_price": 137100.0,
+      "current_price": 137900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9280,19 +9280,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 4742.1,
       "days_to_cover": 6.770207292127959,
       "balance_change_pct": 9.839542919703034,
-      "short_squeeze_index": -34.87482614742698,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 82,
+        "score": 62,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 12,
           "balance_increase": 20,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -9302,19 +9302,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 143.0,
-      "net_20d": 151.0,
-      "net_60d": -3114.0,
-      "net_cumulative": -4564.0,
+      "net_5d": 144.0,
+      "net_20d": 153.0,
+      "net_60d": -3141.0,
+      "net_cumulative": -5023.0,
       "cumulative_window_days": 100,
-      "current_price": 312500.0,
+      "current_price": 317500.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9328,7 +9328,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 18948.6,
       "days_to_cover": 2.7837412790390847,
       "balance_change_pct": 2.2129209781808314,
-      "short_squeeze_index": 36.952714535901926,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 41,
         "grade": {
@@ -9350,19 +9350,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 7,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1951.0,
-      "net_20d": 1210.0,
-      "net_60d": -3762.0,
-      "net_cumulative": -8088.0,
+      "net_5d": 1474.0,
+      "net_20d": 1211.0,
+      "net_60d": -3413.0,
+      "net_cumulative": -8647.0,
       "cumulative_window_days": 100,
-      "current_price": 106500.0,
+      "current_price": 108400.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 7일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9376,9 +9376,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 84378.75,
       "days_to_cover": 4.200417759210702,
       "balance_change_pct": 2.4133566809410705,
-      "short_squeeze_index": -0.44300766283524906,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -9388,7 +9388,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -9398,15 +9398,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -7.0,
-      "net_20d": -1189.0,
-      "net_60d": -6434.0,
-      "net_cumulative": -7431.0,
+      "net_5d": -24.0,
+      "net_20d": -924.0,
+      "net_60d": -5900.0,
+      "net_cumulative": -7527.0,
       "cumulative_window_days": 100,
-      "current_price": 17440.0,
+      "current_price": 17950.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9424,7 +9424,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 423132.0,
       "days_to_cover": 2.9826815272775398,
       "balance_change_pct": 2.738041065324686,
-      "short_squeeze_index": 36.71473167831129,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 41,
         "grade": {
@@ -9446,19 +9446,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 5,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 79294.0,
-      "net_20d": 57629.0,
-      "net_60d": 25085.0,
-      "net_cumulative": -23005.0,
+      "net_5d": 75882.0,
+      "net_20d": 63146.0,
+      "net_60d": 28657.0,
+      "net_cumulative": -29478.0,
       "cumulative_window_days": 100,
-      "current_price": 132100.0,
+      "current_price": 139500.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 5일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9472,7 +9472,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 352021.05,
       "days_to_cover": 2.1805428965114446,
       "balance_change_pct": 3.9805638488672628,
-      "short_squeeze_index": 26.33316317849243,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -9494,19 +9494,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 5,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 11764.0,
-      "net_20d": 23536.0,
-      "net_60d": -6082.0,
-      "net_cumulative": -31529.0,
+      "net_5d": 10666.0,
+      "net_20d": 22848.0,
+      "net_60d": -6151.0,
+      "net_cumulative": -33093.0,
       "cumulative_window_days": 100,
-      "current_price": 80200.0,
+      "current_price": 84400.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 5일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9520,9 +9520,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 148966.1,
       "days_to_cover": 3.6536769103843088,
       "balance_change_pct": 2.2931063970545393,
-      "short_squeeze_index": -1.409720514711909,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -9532,7 +9532,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -9542,19 +9542,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 12,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -3902.0,
-      "net_20d": 3509.0,
-      "net_60d": 687.0,
-      "net_cumulative": 21704.0,
+      "net_5d": -3506.0,
+      "net_20d": 2984.0,
+      "net_60d": 5295.0,
+      "net_cumulative": 19515.0,
       "cumulative_window_days": 100,
-      "current_price": 61800.0,
+      "current_price": 62600.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 12일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9568,9 +9568,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 86562.35,
       "days_to_cover": 1.7892998514943275,
       "balance_change_pct": 3.5105892416779723,
-      "short_squeeze_index": 43.86065105653912,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 51,
+        "score": 41,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -9579,7 +9579,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 15,
           "loan_increase": 12,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -9590,19 +9590,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 3654.0,
-      "net_20d": 3688.0,
-      "net_60d": -18413.0,
-      "net_cumulative": -70769.0,
+      "net_5d": 4038.0,
+      "net_20d": 2008.0,
+      "net_60d": -20259.0,
+      "net_cumulative": -67611.0,
       "cumulative_window_days": 100,
-      "current_price": 117400.0,
+      "current_price": 119800.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9616,9 +9616,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 63432.6,
       "days_to_cover": 4.222497580108651,
       "balance_change_pct": 3.92506828904892,
-      "short_squeeze_index": -0.5733491498616055,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 76,
+        "score": 66,
         "grade": {
           "emoji": "🟠",
           "label": "강함"
@@ -9627,7 +9627,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 30,
           "loan_increase": 22,
           "balance_increase": 14,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -9638,15 +9638,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -60.0,
-      "net_20d": -5268.0,
-      "net_60d": -48323.0,
-      "net_cumulative": -87621.0,
+      "net_5d": 592.0,
+      "net_20d": -5127.0,
+      "net_60d": -46280.0,
+      "net_cumulative": -86994.0,
       "cumulative_window_days": 100,
-      "current_price": 248500.0,
+      "current_price": 273000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9664,19 +9664,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 476197.2,
       "days_to_cover": 2.7983805868661134,
       "balance_change_pct": 5.377775141846075,
-      "short_squeeze_index": -1.1851895420992264,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 65,
+        "score": 55,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 5,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -9686,19 +9686,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -2584.0,
-      "net_20d": -20873.0,
-      "net_60d": 18614.0,
-      "net_cumulative": -1139.0,
+      "net_5d": -1268.0,
+      "net_20d": -21160.0,
+      "net_60d": 19643.0,
+      "net_cumulative": 2753.0,
       "cumulative_window_days": 100,
-      "current_price": 94600.0,
+      "current_price": 95700.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9712,7 +9712,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 375169.3,
       "days_to_cover": 1.943085428365274,
       "balance_change_pct": 3.5756301327043847,
-      "short_squeeze_index": 89.17587220853532,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 41,
         "grade": {
@@ -9734,19 +9734,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -9393.0,
-      "net_20d": -117365.0,
-      "net_60d": -91740.0,
-      "net_cumulative": -76919.0,
+      "net_5d": -4164.0,
+      "net_20d": -129741.0,
+      "net_60d": -90170.0,
+      "net_cumulative": -77924.0,
       "cumulative_window_days": 100,
-      "current_price": 313500.0,
+      "current_price": 319500.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9760,7 +9760,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 645549.55,
       "days_to_cover": 2.555500193594744,
       "balance_change_pct": 1.3632439639573215,
-      "short_squeeze_index": 6.341551358903863,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 21,
         "grade": {
@@ -9782,15 +9782,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -585.0,
-      "net_20d": -18720.0,
-      "net_60d": -47323.0,
-      "net_cumulative": -5442.0,
+      "net_5d": -596.0,
+      "net_20d": -20264.0,
+      "net_60d": -47237.0,
+      "net_cumulative": -15180.0,
       "cumulative_window_days": 100,
-      "current_price": 26900.0,
+      "current_price": 27600.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9808,7 +9808,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 20275.15,
       "days_to_cover": 1.8556212901014295,
       "balance_change_pct": 3.317314293560346,
-      "short_squeeze_index": 313.74172185430467,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 59,
         "grade": {
@@ -9830,19 +9830,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 422.0,
-      "net_20d": 8790.0,
-      "net_60d": -32800.0,
-      "net_cumulative": 247.0,
+      "net_5d": -32.0,
+      "net_20d": 9038.0,
+      "net_60d": -33585.0,
+      "net_cumulative": 2457.0,
       "cumulative_window_days": 100,
-      "current_price": 1043000.0,
+      "current_price": 1065000.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9856,7 +9856,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 246036.6,
       "days_to_cover": 2.035022431621962,
       "balance_change_pct": 1.8936271965973726,
-      "short_squeeze_index": 3.5679742074153684,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 45,
         "grade": {
@@ -9878,19 +9878,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 304.0,
-      "net_20d": 3215.0,
-      "net_60d": -10949.0,
-      "net_cumulative": -1030.0,
+      "net_20d": 2490.0,
+      "net_60d": -10936.0,
+      "net_cumulative": -939.0,
       "cumulative_window_days": 100,
-      "current_price": 8520.0,
+      "current_price": 8710.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -9904,9 +9904,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 30198.8,
       "days_to_cover": 3.9303879624355935,
       "balance_change_pct": 4.303314703504517,
-      "short_squeeze_index": 0.44925464570144985,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 59,
+        "score": 49,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -9916,7 +9916,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -9926,15 +9926,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": -416.0,
-      "net_20d": -2804.0,
-      "net_60d": -3686.0,
-      "net_cumulative": 3974.0,
+      "net_20d": -2806.0,
+      "net_60d": -3691.0,
+      "net_cumulative": 3589.0,
       "cumulative_window_days": 100,
-      "current_price": 36750.0,
+      "current_price": 37200.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -9952,7 +9952,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 1871392.15,
       "days_to_cover": 1.86424208309306,
       "balance_change_pct": 4.379493470163209,
-      "short_squeeze_index": 45.332631952889095,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 60,
         "grade": {
@@ -9974,19 +9974,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 19879.0,
-      "net_20d": 54731.0,
-      "net_60d": -4364.0,
-      "net_cumulative": -24209.0,
+      "net_5d": 30300.0,
+      "net_20d": 59492.0,
+      "net_60d": -7086.0,
+      "net_cumulative": -43697.0,
       "cumulative_window_days": 100,
-      "current_price": 182400.0,
+      "current_price": 196700.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(4일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -10000,9 +10000,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 212985.45,
       "days_to_cover": 2.273221011106627,
       "balance_change_pct": 3.732913399322964,
-      "short_squeeze_index": 13.545313665844,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -10012,7 +10012,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10022,15 +10022,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -2008.0,
-      "net_20d": -28733.0,
-      "net_60d": -49210.0,
-      "net_cumulative": -9376.0,
+      "net_5d": -1531.0,
+      "net_20d": -25865.0,
+      "net_60d": -49076.0,
+      "net_cumulative": -11187.0,
       "cumulative_window_days": 100,
-      "current_price": 89900.0,
+      "current_price": 92300.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10048,7 +10048,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 43027.4,
       "days_to_cover": 2.529411491282299,
       "balance_change_pct": 4.932605719354403,
-      "short_squeeze_index": 8.95230648944488,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 49,
         "grade": {
@@ -10073,12 +10073,12 @@ window.INVESTOR_FLOW_CACHE = {
         "days": 0,
         "direction": "flat"
       },
-      "net_5d": 2057.0,
-      "net_20d": 61.0,
-      "net_60d": 4405.0,
-      "net_cumulative": 6562.0,
+      "net_5d": 1908.0,
+      "net_20d": 271.0,
+      "net_60d": 3960.0,
+      "net_cumulative": 6747.0,
       "cumulative_window_days": 100,
-      "current_price": 63400.0,
+      "current_price": 64900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10096,9 +10096,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 17628.05,
       "days_to_cover": 2.1298441971743896,
       "balance_change_pct": 3.879036051240904,
-      "short_squeeze_index": 0.6419400855920114,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -10108,7 +10108,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10118,19 +10118,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": 76.0,
       "net_20d": 52.0,
-      "net_60d": -597.0,
-      "net_cumulative": 156.0,
+      "net_60d": -559.0,
+      "net_cumulative": 76.0,
       "cumulative_window_days": 100,
-      "current_price": 25200.0,
+      "current_price": 25550.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(3일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -10144,9 +10144,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 165518.1,
       "days_to_cover": 2.584013470430122,
       "balance_change_pct": 2.354605108863692,
-      "short_squeeze_index": -6.006707998780364,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 51,
+        "score": 41,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -10156,7 +10156,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10166,15 +10166,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 4361.0,
-      "net_20d": 11874.0,
-      "net_60d": 82207.0,
-      "net_cumulative": 122475.0,
+      "net_5d": 5290.0,
+      "net_20d": 13242.0,
+      "net_60d": 82271.0,
+      "net_cumulative": 116700.0,
       "cumulative_window_days": 100,
-      "current_price": 155300.0,
+      "current_price": 156200.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10192,19 +10192,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 90982.8,
       "days_to_cover": 2.7390451821662993,
       "balance_change_pct": 1.8880730043992346,
-      "short_squeeze_index": 30.424426158510176,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 63,
+        "score": 53,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 30,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10214,15 +10214,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 414.0,
-      "net_20d": -19584.0,
-      "net_60d": -49991.0,
-      "net_cumulative": -69264.0,
+      "net_5d": -395.0,
+      "net_20d": -16941.0,
+      "net_60d": -49678.0,
+      "net_cumulative": -68736.0,
       "cumulative_window_days": 100,
-      "current_price": 629000.0,
+      "current_price": 641000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10240,9 +10240,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 173788.2,
       "days_to_cover": 2.734955537832833,
       "balance_change_pct": 0.9333033203937925,
-      "short_squeeze_index": -1.001137656427759,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 31,
+        "score": 21,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -10252,7 +10252,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10262,19 +10262,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -5159.0,
-      "net_20d": -14664.0,
-      "net_60d": -3088.0,
-      "net_cumulative": -28574.0,
+      "net_5d": -1480.0,
+      "net_20d": -14625.0,
+      "net_60d": -4033.0,
+      "net_cumulative": -27401.0,
       "cumulative_window_days": 100,
-      "current_price": 167100.0,
+      "current_price": 169700.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(1일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -10288,7 +10288,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 132966.85,
       "days_to_cover": 2.6435009929166555,
       "balance_change_pct": 2.715023363052188,
-      "short_squeeze_index": 31.43902701539124,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 34,
         "grade": {
@@ -10310,15 +10310,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -500.0,
-      "net_20d": -18197.0,
-      "net_60d": -3824.0,
-      "net_cumulative": -24212.0,
+      "net_5d": -558.0,
+      "net_20d": -17278.0,
+      "net_60d": -6366.0,
+      "net_cumulative": -30360.0,
       "cumulative_window_days": 100,
-      "current_price": 81800.0,
+      "current_price": 82700.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10336,7 +10336,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 316454.1,
       "days_to_cover": 2.390248696414425,
       "balance_change_pct": 1.3586326573000207,
-      "short_squeeze_index": 18.078705986783707,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 35,
         "grade": {
@@ -10358,19 +10358,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 11240.0,
-      "net_20d": 15425.0,
-      "net_60d": 45127.0,
-      "net_cumulative": 53673.0,
+      "net_5d": 11083.0,
+      "net_20d": 17072.0,
+      "net_60d": 48049.0,
+      "net_cumulative": 54551.0,
       "cumulative_window_days": 100,
-      "current_price": 50400.0,
+      "current_price": 51200.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -10384,9 +10384,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 666331.7,
       "days_to_cover": 2.601548147866896,
       "balance_change_pct": 4.159734176948984,
-      "short_squeeze_index": 2.3978390558869838,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 60,
+        "score": 50,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -10396,7 +10396,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10406,15 +10406,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -4615.0,
-      "net_20d": -2722.0,
-      "net_60d": -174.0,
-      "net_cumulative": 29128.0,
+      "net_5d": -4215.0,
+      "net_20d": -2849.0,
+      "net_60d": 378.0,
+      "net_cumulative": 26136.0,
       "cumulative_window_days": 100,
-      "current_price": 12660.0,
+      "current_price": 12970.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10432,7 +10432,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 2264330.9,
       "days_to_cover": 1.332690376658288,
       "balance_change_pct": 1.0294609500208074,
-      "short_squeeze_index": 17.64610231227032,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 16,
         "grade": {
@@ -10458,11 +10458,11 @@ window.INVESTOR_FLOW_CACHE = {
         "direction": "flat"
       },
       "net_5d": -3227.0,
-      "net_20d": -4278.0,
+      "net_20d": -3793.0,
       "net_60d": -5124.0,
-      "net_cumulative": -5801.0,
+      "net_cumulative": -5729.0,
       "cumulative_window_days": 100,
-      "current_price": 10230.0,
+      "current_price": 10200.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10480,19 +10480,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 334415.7,
       "days_to_cover": 2.811805785434117,
       "balance_change_pct": 1.3034723711044771,
-      "short_squeeze_index": -0.8347797338623026,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 57,
+        "score": 37,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 24,
           "loan_increase": 5,
           "balance_increase": 8,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -10502,19 +10502,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 58,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -924.0,
-      "net_20d": -4285.0,
+      "net_5d": -797.0,
+      "net_20d": -4047.0,
       "net_60d": -20158.0,
-      "net_cumulative": -23692.0,
+      "net_cumulative": -23700.0,
       "cumulative_window_days": 100,
-      "current_price": 5710.0,
+      "current_price": 5670.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 58일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -10528,19 +10528,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 272045.2,
       "days_to_cover": 2.1459852995017004,
       "balance_change_pct": 4.6954747122602765,
-      "short_squeeze_index": 0.13749379368292403,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 66,
+        "score": 56,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10550,19 +10550,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 58,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -579.0,
-      "net_20d": -2467.0,
+      "net_5d": -509.0,
+      "net_20d": -2322.0,
       "net_60d": -11449.0,
-      "net_cumulative": -12012.0,
+      "net_cumulative": -12069.0,
       "cumulative_window_days": 100,
-      "current_price": 3510.0,
+      "current_price": 3575.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 58일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -10576,9 +10576,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 161942.75,
       "days_to_cover": 1.6097972894742123,
       "balance_change_pct": 0.972562203699687,
-      "short_squeeze_index": -0.27877339705296694,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -10587,7 +10587,7 @@ window.INVESTOR_FLOW_CACHE = {
           "short_ratio": 8,
           "loan_increase": 12,
           "balance_increase": 8,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -10598,19 +10598,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 37,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -395.0,
-      "net_20d": -1776.0,
-      "net_60d": -3656.0,
-      "net_cumulative": -2530.0,
+      "net_5d": -332.0,
+      "net_20d": -1673.0,
+      "net_60d": -3701.0,
+      "net_cumulative": -2580.0,
       "cumulative_window_days": 100,
-      "current_price": 4740.0,
+      "current_price": 4710.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 37일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -10624,9 +10624,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 75857.25,
       "days_to_cover": 0.6636412472110444,
       "balance_change_pct": 0.8049659591509812,
-      "short_squeeze_index": -1.7412935323383085,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -10636,7 +10636,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10654,7 +10654,7 @@ window.INVESTOR_FLOW_CACHE = {
       "net_60d": -190.0,
       "net_cumulative": -268.0,
       "cumulative_window_days": 100,
-      "current_price": 5340.0,
+      "current_price": 5380.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10672,9 +10672,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 373682.35,
       "days_to_cover": 1.1999549885082879,
       "balance_change_pct": 3.068598696247805,
-      "short_squeeze_index": 107.34082397003746,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 39,
+        "score": 29,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -10684,7 +10684,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 0,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10694,15 +10694,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -6188.0,
-      "net_20d": 56693.0,
-      "net_60d": 55729.0,
-      "net_cumulative": -5763.0,
+      "net_5d": 282.0,
+      "net_20d": 48336.0,
+      "net_60d": 53635.0,
+      "net_cumulative": -5988.0,
       "cumulative_window_days": 100,
-      "current_price": 657000.0,
+      "current_price": 645000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10720,7 +10720,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 520819.6,
       "days_to_cover": 2.389111316087183,
       "balance_change_pct": 2.5342344970343014,
-      "short_squeeze_index": 20.91110099499252,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 41,
         "grade": {
@@ -10742,15 +10742,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 3980.0,
-      "net_20d": -25835.0,
-      "net_60d": 17426.0,
-      "net_cumulative": -24498.0,
+      "net_5d": 1616.0,
+      "net_20d": -27564.0,
+      "net_60d": 19034.0,
+      "net_cumulative": -28997.0,
       "cumulative_window_days": 100,
-      "current_price": 101300.0,
+      "current_price": 103900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10768,19 +10768,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 191633.55,
       "days_to_cover": 1.495541881888636,
       "balance_change_pct": 2.10155434507672,
-      "short_squeeze_index": 58.874385489065936,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10790,15 +10790,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -8751.0,
-      "net_20d": -27333.0,
-      "net_60d": -24685.0,
-      "net_cumulative": 3100.0,
+      "net_5d": -11896.0,
+      "net_20d": -26333.0,
+      "net_60d": -26443.0,
+      "net_cumulative": 6910.0,
       "cumulative_window_days": 100,
-      "current_price": 199500.0,
+      "current_price": 208000.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10816,7 +10816,7 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 197441.7,
       "days_to_cover": 3.8071643426895125,
       "balance_change_pct": 2.9891378809551212,
-      "short_squeeze_index": 4.611083100334602,
+      "short_squeeze_index": 0.0,
       "pressure": {
         "score": 43,
         "grade": {
@@ -10838,19 +10838,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -780.0,
-      "net_20d": -3494.0,
-      "net_60d": -46126.0,
-      "net_cumulative": -45224.0,
+      "net_5d": -1199.0,
+      "net_20d": -3221.0,
+      "net_60d": -40912.0,
+      "net_cumulative": -39018.0,
       "cumulative_window_days": 100,
-      "current_price": 93600.0,
+      "current_price": 97300.0,
       "interpretation": {
-        "tone": "neutral_positive",
-        "label": "중립~긍정",
-        "text": "연기금이 순매수 중이나 연속성은 아직 짧습니다(2일)."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -10864,18 +10864,18 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 87936.7,
       "days_to_cover": 1.7756636307707705,
       "balance_change_pct": 5.505479803781132,
-      "short_squeeze_index": 22.876779577810506,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 50,
+        "score": 40,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 20,
-          "foreign_sell": 10,
+          "foreign_sell": 0,
           "inst_sell": 0
         }
       }
@@ -10886,19 +10886,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 12,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -34892.0,
-      "net_20d": -114848.0,
-      "net_60d": -343341.0,
-      "net_cumulative": -251174.0,
+      "net_5d": -26033.0,
+      "net_20d": -99916.0,
+      "net_60d": -347649.0,
+      "net_cumulative": -247527.0,
       "cumulative_window_days": 100,
-      "current_price": 1382000.0,
+      "current_price": 1409000.0,
       "interpretation": {
-        "tone": "caution",
-        "label": "비중 축소 가능성",
-        "text": "연기금이 12일 연속 순매도 중입니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -10912,19 +10912,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 124595.0,
       "days_to_cover": 2.650467514747783,
       "balance_change_pct": 3.5005296709771647,
-      "short_squeeze_index": 27.191333154266275,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10934,15 +10934,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 4,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -4421.0,
-      "net_20d": -5952.0,
-      "net_60d": -8082.0,
-      "net_cumulative": -41975.0,
+      "net_5d": -4450.0,
+      "net_20d": -3811.0,
+      "net_60d": -2605.0,
+      "net_cumulative": -38441.0,
       "cumulative_window_days": 100,
-      "current_price": 142200.0,
+      "current_price": 143900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -10960,9 +10960,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 33161.8,
       "days_to_cover": 3.763758300212895,
       "balance_change_pct": 3.302351373496768,
-      "short_squeeze_index": 11.37844611528822,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 59,
+        "score": 49,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -10972,7 +10972,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -10987,10 +10987,10 @@ window.INVESTOR_FLOW_CACHE = {
       },
       "net_5d": -370.0,
       "net_20d": 1508.0,
-      "net_60d": -7597.0,
-      "net_cumulative": -8581.0,
+      "net_60d": -6566.0,
+      "net_cumulative": -8114.0,
       "cumulative_window_days": 100,
-      "current_price": 155500.0,
+      "current_price": 156800.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -11008,19 +11008,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 260836.75,
       "days_to_cover": 2.277113941957949,
       "balance_change_pct": 2.7116903059795185,
-      "short_squeeze_index": 2.9207320961673364,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 44,
+        "score": 34,
         "grade": {
-          "emoji": "🟡",
-          "label": "보통"
+          "emoji": "🟢",
+          "label": "약함"
         },
         "breakdown": {
           "short_ratio": 15,
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -11030,15 +11030,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -1262.0,
-      "net_20d": -1519.0,
-      "net_60d": -18497.0,
-      "net_cumulative": -27509.0,
+      "net_5d": -1073.0,
+      "net_20d": -1617.0,
+      "net_60d": -17188.0,
+      "net_cumulative": -29868.0,
       "cumulative_window_days": 100,
-      "current_price": 23400.0,
+      "current_price": 23850.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -11056,19 +11056,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 114284.5,
       "days_to_cover": 2.5699460556768416,
       "balance_change_pct": 4.469303549832823,
-      "short_squeeze_index": -7.703939514524473,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 88,
+        "score": 68,
         "grade": {
-          "emoji": "🔴",
-          "label": "매우 강함"
+          "emoji": "🟠",
+          "label": "강함"
         },
         "breakdown": {
           "short_ratio": 24,
           "loan_increase": 30,
           "balance_increase": 14,
-          "foreign_sell": 10,
-          "inst_sell": 10
+          "foreign_sell": 0,
+          "inst_sell": 0
         }
       }
     },
@@ -11078,15 +11078,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 1,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 3658.0,
-      "net_20d": 6406.0,
-      "net_60d": -21325.0,
-      "net_cumulative": -25871.0,
+      "net_5d": 4459.0,
+      "net_20d": 3230.0,
+      "net_60d": -21355.0,
+      "net_cumulative": -25826.0,
       "cumulative_window_days": 100,
-      "current_price": 134700.0,
+      "current_price": 130600.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -11104,9 +11104,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 37794.45,
       "days_to_cover": 1.3040009842715004,
       "balance_change_pct": 1.3094332641272843,
-      "short_squeeze_index": 121.8210361067504,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 38,
+        "score": 28,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -11116,7 +11116,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 8,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -11126,15 +11126,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -490.0,
-      "net_20d": -23798.0,
-      "net_60d": -73294.0,
-      "net_cumulative": -142728.0,
+      "net_5d": -492.0,
+      "net_20d": -21970.0,
+      "net_60d": -72006.0,
+      "net_cumulative": -142691.0,
       "cumulative_window_days": 100,
-      "current_price": 453500.0,
+      "current_price": 455500.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -11152,9 +11152,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 46732.2,
       "days_to_cover": 1.7372817885740455,
       "balance_change_pct": 2.0219156048154012,
-      "short_squeeze_index": 49.844623990055936,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 37,
+        "score": 27,
         "grade": {
           "emoji": "🟢",
           "label": "약함"
@@ -11164,7 +11164,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -11174,15 +11174,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 2,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
       "net_5d": -47.0,
-      "net_20d": -425.0,
-      "net_60d": 5698.0,
-      "net_cumulative": 13401.0,
+      "net_20d": -424.0,
+      "net_60d": 6333.0,
+      "net_cumulative": 13310.0,
       "cumulative_window_days": 100,
-      "current_price": 43900.0,
+      "current_price": 45100.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -11200,9 +11200,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 83960.0,
       "days_to_cover": 2.801238685088137,
       "balance_change_pct": 7.027076222980661,
-      "short_squeeze_index": 13.087682942624014,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 57,
+        "score": 47,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -11212,7 +11212,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 20,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -11226,11 +11226,11 @@ window.INVESTOR_FLOW_CACHE = {
         "direction": "flat"
       },
       "net_5d": -2.0,
-      "net_20d": -438.0,
-      "net_60d": -3725.0,
-      "net_cumulative": -2713.0,
+      "net_20d": -374.0,
+      "net_60d": -3324.0,
+      "net_cumulative": -2731.0,
       "cumulative_window_days": 100,
-      "current_price": 20300.0,
+      "current_price": 20850.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
@@ -11248,19 +11248,19 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 171192.4,
       "days_to_cover": 5.0631219610216345,
       "balance_change_pct": 2.448670352023696,
-      "short_squeeze_index": 1.4529130665636916,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 66,
+        "score": 56,
         "grade": {
-          "emoji": "🟠",
-          "label": "강함"
+          "emoji": "🟡",
+          "label": "보통"
         },
         "breakdown": {
           "short_ratio": 30,
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -11270,19 +11270,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 9,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 1461.0,
-      "net_20d": 6213.0,
-      "net_60d": 8368.0,
-      "net_cumulative": 7387.0,
+      "net_5d": 1061.0,
+      "net_20d": 4830.0,
+      "net_60d": 8355.0,
+      "net_cumulative": 7701.0,
       "cumulative_window_days": 100,
-      "current_price": 25050.0,
+      "current_price": 25450.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 9일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -11296,9 +11296,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 68960.0,
       "days_to_cover": 3.4639646171693736,
       "balance_change_pct": 4.67929026236103,
-      "short_squeeze_index": 2.088406068552163,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 53,
+        "score": 43,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -11308,7 +11308,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 5,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -11318,19 +11318,19 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 7,
-        "direction": "buy"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": 369.0,
-      "net_20d": 546.0,
-      "net_60d": 3817.0,
-      "net_cumulative": 8636.0,
+      "net_5d": 222.0,
+      "net_20d": 540.0,
+      "net_60d": 3749.0,
+      "net_cumulative": 8240.0,
       "cumulative_window_days": 100,
-      "current_price": 17030.0,
+      "current_price": 17460.0,
       "interpretation": {
-        "tone": "very_positive",
-        "label": "매우 긍정",
-        "text": "연기금이 7일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다."
+        "tone": "neutral",
+        "label": "중립",
+        "text": "연기금 매매 방향성이 뚜렷하지 않습니다."
       }
     }
   },
@@ -11344,9 +11344,9 @@ window.INVESTOR_FLOW_CACHE = {
       "avg_volume_20d": 185356.1,
       "days_to_cover": 1.5987280699151525,
       "balance_change_pct": 2.1954146664459526,
-      "short_squeeze_index": 3.3301916431039897,
+      "short_squeeze_index": 0.0,
       "pressure": {
-        "score": 51,
+        "score": 41,
         "grade": {
           "emoji": "🟡",
           "label": "보통"
@@ -11356,7 +11356,7 @@ window.INVESTOR_FLOW_CACHE = {
           "loan_increase": 12,
           "balance_increase": 14,
           "foreign_sell": 0,
-          "inst_sell": 10
+          "inst_sell": 0
         }
       }
     },
@@ -11366,15 +11366,15 @@ window.INVESTOR_FLOW_CACHE = {
     },
     "pension": {
       "streak": {
-        "days": 3,
-        "direction": "sell"
+        "days": 0,
+        "direction": "flat"
       },
-      "net_5d": -2687.0,
-      "net_20d": 2786.0,
-      "net_60d": -6199.0,
-      "net_cumulative": -46704.0,
+      "net_5d": -2369.0,
+      "net_20d": -1142.0,
+      "net_60d": -6985.0,
+      "net_cumulative": -38562.0,
       "cumulative_window_days": 100,
-      "current_price": 69500.0,
+      "current_price": 70900.0,
       "interpretation": {
         "tone": "neutral",
         "label": "중립",
