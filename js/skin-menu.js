@@ -14,7 +14,7 @@
   var MENU_ITEMS = [
     {
       href: '/',
-      label: '전체글',
+      label: '전체 글',
       home: true, // nav-item-home 클래스(첫 항목 스타일)
       icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'
     },
@@ -26,7 +26,7 @@
     },
     {
       href: '/page/market-temp',
-      label: '오늘의 증시 온도',
+      label: '증시온도',
       bold: true,
       icon: '<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
       iconClass: 'nav-icon-temp',
@@ -34,7 +34,7 @@
     },
     {
       href: '/page/marketcap-bubble',
-      label: '실시간 시가총액 히트맵',
+      label: '핵심종목 히트맵',
       bold: true,
       icon: '<circle cx="8" cy="15" r="6"/><circle cx="16" cy="9" r="4"/><circle cx="18" cy="18" r="2.5"/>'
     },
@@ -46,7 +46,7 @@
     },
     {
       href: '/page/stock-news',
-      label: '종목 뉴스',
+      label: '종목뉴스',
       bold: true,
       icon: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>'
     },
@@ -58,7 +58,7 @@
     },
     {
       href: '/page/pattern-scan',
-      label: '차트패턴 검색',
+      label: '차트패턴 스캐너',
       bold: true,
       icon: '<rect x="4" y="10" width="3" height="8"/><rect x="10.5" y="4" width="3" height="14"/><rect x="17" y="7" width="3" height="11"/>'
     },
