@@ -73,6 +73,20 @@ def create_schema(conn):
     conn.commit()
 
 
+def load_daily_prices(conn, code):
+    """daily_prices에서 종목의 오름차순 OHLC를 꺼내 kiwoom_market.fetch_daily_ohlc()와
+    동일한 행 형식({date, open, high, low, close, volume})으로 반환.
+    week52_scan.py/rescan_patterns.py가 공유(API 재호출 없이 이 DB만 읽는 스크립트들)."""
+    rows = conn.execute(
+        'SELECT date, open, high, low, close, volume FROM daily_prices WHERE code=? ORDER BY date',
+        (code,),
+    ).fetchall()
+    return [
+        {'date': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4], 'volume': r[5]}
+        for r in rows
+    ]
+
+
 if __name__ == '__main__':
     conn = get_conn()
     create_schema(conn)

@@ -138,29 +138,11 @@ def main():
             save_ohlc_snapshot(conn, code, daily)
             time.sleep(THROTTLE_SEC)
 
-            if len(daily) >= pd.BOX_WINDOW:
+            scanned_p, scanned_pb = pd.scan_stock(stock, daily, pattern_results, pullback_matches)
+            if scanned_p:
                 pattern_scanned += 1
-                rl = pd.detect_rising_lows(daily)
-                if rl and not rl['breakout'] and pd.pattern_grade(rl['score']) and len(pattern_results['risingLows']) < pd.PATTERN_MAX_MATCHES:
-                    pattern_results['risingLows'].append(pd.build_pattern_match(stock, daily, rl))
-
-                db = pd.detect_double_bottom(daily)
-                if db and not db['breakout'] and pd.pattern_grade(db['score']) and len(pattern_results['doubleBottom']) < pd.PATTERN_MAX_MATCHES:
-                    pattern_results['doubleBottom'].append(pd.build_pattern_match(stock, daily, db))
-
-                ihs = pd.detect_inv_head_shoulders(daily)
-                if ihs and not ihs['breakout'] and pd.pattern_grade(ihs['score']) and len(pattern_results['invHeadShoulders']) < pd.PATTERN_MAX_MATCHES:
-                    pattern_results['invHeadShoulders'].append(pd.build_pattern_match(stock, daily, ihs))
-
-                box = pd.detect_box_range_low(daily)
-                if box and pd.pattern_grade(box['score']) and len(pattern_results['boxRangeLow']) < pd.PATTERN_MAX_MATCHES:
-                    pattern_results['boxRangeLow'].append(pd.build_pattern_match(stock, daily, box))
-
-            if len(daily) >= 65:
+            if scanned_pb:
                 pullback_scanned += 1
-                pullback = pd.detect_pullback(daily)
-                if pullback and pd.pattern_grade(pullback['score']) and len(pullback_matches) < pd.PATTERN_MAX_MATCHES:
-                    pullback_matches.append(pd.build_pattern_match(stock, daily, pullback))
 
             flow_rows = kiwoom_market.fetch_institution_trend(token, code)
             save_investor_flow(conn, code, flow_rows)

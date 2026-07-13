@@ -43,6 +43,7 @@ PULLBACK_MIN_RISE = 0.15
 PULLBACK_MIN_DROP = 0.05
 PULLBACK_MAX_DROP = 0.15
 PULLBACK_MA_TOL = 0.03
+PULLBACK_MIN_DAYS = 65  # detect_pullback을 시도해볼 최소 보유 일수
 
 
 # ---------------------------------------------------------------------------
@@ -593,3 +594,39 @@ def detect_pullback(daily):
         'interpretation': '%.1f%% 상승 후 %.1f%% 눌림목 조정을 받아 %s 부근에서 지지를 시도하는 구간으로 추정됩니다(%d점).'
                            % (rise_ratio * 100, drop_ratio * 100, ma_label, score),
     }
+
+
+def scan_stock(stock, daily, pattern_results, pullback_matches):
+    """단일 종목의 daily(OHLC)로 5종 패턴을 판정해 pattern_results/pullback_matches에
+    append(둘 다 호출부가 미리 만들어서 넘긴 딕셔너리/리스트를 in-place로 채움).
+    daily_scan.py(키움 API 기반)와 rescan_patterns.py(SQLite 기반)가 이 함수를 공유해서
+    판정 로직이 두 곳에서 따로 관리되다 어긋나는 걸 방지한다.
+    반환값: (패턴 스캔 대상이었는지, 눌림목 스캔 대상이었는지)."""
+    pattern_scanned = False
+    pullback_scanned = False
+
+    if len(daily) >= BOX_WINDOW:
+        pattern_scanned = True
+        rl = detect_rising_lows(daily)
+        if rl and not rl['breakout'] and pattern_grade(rl['score']) and len(pattern_results['risingLows']) < PATTERN_MAX_MATCHES:
+            pattern_results['risingLows'].append(build_pattern_match(stock, daily, rl))
+
+        db = detect_double_bottom(daily)
+        if db and not db['breakout'] and pattern_grade(db['score']) and len(pattern_results['doubleBottom']) < PATTERN_MAX_MATCHES:
+            pattern_results['doubleBottom'].append(build_pattern_match(stock, daily, db))
+
+        ihs = detect_inv_head_shoulders(daily)
+        if ihs and not ihs['breakout'] and pattern_grade(ihs['score']) and len(pattern_results['invHeadShoulders']) < PATTERN_MAX_MATCHES:
+            pattern_results['invHeadShoulders'].append(build_pattern_match(stock, daily, ihs))
+
+        box = detect_box_range_low(daily)
+        if box and pattern_grade(box['score']) and len(pattern_results['boxRangeLow']) < PATTERN_MAX_MATCHES:
+            pattern_results['boxRangeLow'].append(build_pattern_match(stock, daily, box))
+
+    if len(daily) >= PULLBACK_MIN_DAYS:
+        pullback_scanned = True
+        pullback = detect_pullback(daily)
+        if pullback and pattern_grade(pullback['score']) and len(pullback_matches) < PATTERN_MAX_MATCHES:
+            pullback_matches.append(build_pattern_match(stock, daily, pullback))
+
+    return pattern_scanned, pullback_scanned

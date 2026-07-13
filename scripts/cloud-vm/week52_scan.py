@@ -38,19 +38,6 @@ def load_sector_pool():
     return out
 
 
-def load_daily_prices(conn, code):
-    """daily_prices에서 종목의 오름차순 OHLC를 꺼내 kiwoom_market.fetch_daily_ohlc()와
-    동일한 행 형식({date, open, high, low, close, volume})으로 반환."""
-    rows = conn.execute(
-        'SELECT date, open, high, low, close, volume FROM daily_prices WHERE code=? ORDER BY date',
-        (code,),
-    ).fetchall()
-    return [
-        {'date': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4], 'volume': r[5]}
-        for r in rows
-    ]
-
-
 def main():
     codes_map = load_sector_pool()
     if not codes_map:
@@ -69,7 +56,7 @@ def main():
     new_low = 0
     missing = 0
     for i, (code, name) in enumerate(codes_map.items()):
-        daily = load_daily_prices(conn, code)
+        daily = db_schema.load_daily_prices(conn, code)
         if not daily:
             missing += 1
             log('[%d/%d] %s(%s) daily_prices에 데이터 없음 - 스킵' % (i + 1, len(codes_map), name, code))
