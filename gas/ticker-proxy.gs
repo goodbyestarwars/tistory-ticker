@@ -62,6 +62,11 @@ function doGet(e) {
     return jsonResponse(getInvestorFlowLive_((params.code || '').trim(), (params.name || '').trim()));
   }
 
+  // 2026-07-13 임시 진단용 - '/investor-flow' 경로 문자열 자체가 문제인지 확인 후 삭제할 것
+  if (params.debugFlow2 === '1') {
+    return jsonResponse(kiwoomVmFetch_('/flow2/' + encodeURIComponent((params.code || '').trim())));
+  }
+
   if (params.action === 'fundamentals') {
     return jsonResponse(getFundamentals_((params.code || '').trim()));
   }

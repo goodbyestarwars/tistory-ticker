@@ -130,6 +130,7 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
 
 
 @app.get('/investor-flow/{code}')
+@app.get('/flow2/{code}')  # 2026-07-13 임시 진단용 별칭 - '/investor-flow' 문자열 자체가 문제인지 테스트, 확인되면 삭제
 def investor_flow_endpoint(
     code: str = Path(..., min_length=6, max_length=6),
     x_api_key: str = Header(default=None),
