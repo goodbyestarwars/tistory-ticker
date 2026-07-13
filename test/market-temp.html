@@ -18,9 +18,11 @@
   <h1>market-temp 로컬 테스트</h1>
   <div class="tools">
     <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-    <button onclick="setMock(82)">매우 강세(82점)</button>
-    <button onclick="setMock(50)">중립(50점)</button>
-    <button onclick="setMock(15)">매우 차가움(15점)</button>
+    <button onclick="setMock(95)">과열(95점=38.0℃)</button>
+    <button onclick="setMock(75)">낙관(75점=30.0℃)</button>
+    <button onclick="setMock(55)">중립(55점=22.0℃)</button>
+    <button onclick="setMock(30)">공포(30점=12.0℃)</button>
+    <button onclick="setMock(10)">극도의공포(10점=4.0℃)</button>
   </div>
   <p style="font-size:13px;color:#888">
     기본은 mock 스코어로 렌더링 검증. 실제 GAS 호출로 테스트하려면 <code>?real=1</code>을 붙이세요(GAS 재배포 후).
@@ -30,31 +32,39 @@
 
 <script src="../js/market-temp.js"></script>
 <script>
-  var currentScore = 82;
+  var currentScore = 95;
 
   function mockResponse(score) {
-    // 4개 지표 배분은 대략적인 예시일 뿐, 합이 score가 되도록만 맞춤
-    var vix = Math.round(Math.min(25, score * 0.25));
-    var flow = Math.round(Math.min(30, score * 0.30));
-    var rise = Math.round(Math.min(25, score * 0.25));
-    var vol = Math.max(0, score - vix - flow - rise);
+    // 7개 지표 배분은 대략적인 예시일 뿐, 합이 score가 되도록만 맞춤
+    var vix = Math.round(Math.min(20, score * 0.20));
+    var foreignFlow = Math.round(Math.min(15, score * 0.15));
+    var instFlow = Math.round(Math.min(10, score * 0.10));
+    var rise = Math.round(Math.min(20, score * 0.20));
+    var vol = Math.round(Math.min(15, score * 0.15));
+    var exchange = Math.round(Math.min(10, score * 0.10));
+    var futures = Math.max(0, score - vix - foreignFlow - instFlow - rise - vol - exchange);
 
-    var grade = score <= 20 ? { emoji: '🧊', label: '매우 차가움' }
-      : score <= 40 ? { emoji: '🔵', label: '약세' }
-      : score <= 60 ? { emoji: '🟡', label: '중립' }
-      : score <= 80 ? { emoji: '🟠', label: '강세' }
-      : { emoji: '🔥', label: '매우 강세' };
+    var temp = Math.round(score * 0.4 * 10) / 10;
+    var grade = temp < 10 ? { emoji: '🧊', label: '극도의 공포', tone: 'extreme-fear' }
+      : temp < 20 ? { emoji: '🔵', label: '공포', tone: 'fear' }
+      : temp < 28 ? { emoji: '🟡', label: '중립', tone: 'neutral' }
+      : temp < 35 ? { emoji: '🟠', label: '낙관', tone: 'greed' }
+      : { emoji: '🔥', label: '과열', tone: 'extreme-greed' };
 
     return {
       score: score,
+      temp: temp,
       grade: grade,
       components: {
         vix: { score: vix, value: 16.4 },
-        flow: { score: flow, ratio: 0.4 },
+        foreignFlow: { score: foreignFlow, ratio: 0.4 },
+        instFlow: { score: instFlow, ratio: 0.3 },
         riseRatio: { score: rise, ratio: 0.62, up: 148, down: 90, total: 238 },
-        tradingValue: { score: vol, relative: 1.12 }
+        tradingValue: { score: vol, relative: 1.12 },
+        exchange: { score: exchange, changeRate: -0.2 },
+        usFutures: { score: futures, changePct: 0.5 }
       },
-      updatedAt: '2026-07-11 10:30:00'
+      updatedAt: '2026-07-13 18:00:00'
     };
   }
 

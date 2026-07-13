@@ -115,6 +115,27 @@
   text-align: right;
 }
 
+/* ---- 온도 구간별 카드 배경 (2026-07-13: 공포=한랭, 과열=온난 톤) ---- */
+#market-temp .mt-card.mt-tone-extreme-fear {
+  background: linear-gradient(160deg, #dceeff 0%, #ffffff 65%);
+  border-color: #b8daf5;
+}
+#market-temp .mt-card.mt-tone-fear {
+  background: linear-gradient(160deg, #eaf4ff 0%, #ffffff 70%);
+  border-color: #cfe6fa;
+}
+#market-temp .mt-card.mt-tone-neutral {
+  background: #fff;
+}
+#market-temp .mt-card.mt-tone-greed {
+  background: linear-gradient(160deg, #fff2e0 0%, #ffffff 70%);
+  border-color: #f7d9b3;
+}
+#market-temp .mt-card.mt-tone-extreme-greed {
+  background: linear-gradient(160deg, #ffe1d6 0%, #fff6f0 65%);
+  border-color: #f6bda6;
+}
+
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
 html.dark #market-temp { color: #ddd !important; }
 html.dark #market-temp .mt-hint,
@@ -122,6 +143,22 @@ html.dark #market-temp .mt-error { color: #999 !important; }
 html.dark #market-temp .mt-card {
   background: #262626 !important;
   border-color: #3a3a3a !important;
+}
+html.dark #market-temp .mt-card.mt-tone-extreme-fear {
+  background: linear-gradient(160deg, #16324a 0%, #262626 65%) !important;
+  border-color: #2f5a80 !important;
+}
+html.dark #market-temp .mt-card.mt-tone-fear {
+  background: linear-gradient(160deg, #1c2e3f 0%, #262626 70%) !important;
+  border-color: #2a4a63 !important;
+}
+html.dark #market-temp .mt-card.mt-tone-greed {
+  background: linear-gradient(160deg, #3d2c14 0%, #262626 70%) !important;
+  border-color: #6b4a1f !important;
+}
+html.dark #market-temp .mt-card.mt-tone-extreme-greed {
+  background: linear-gradient(160deg, #4a2116 0%, #2e2624 65%) !important;
+  border-color: #7a3a26 !important;
 }
 html.dark #market-temp .mt-label { color: #aaa !important; }
 html.dark #market-temp .mt-score { color: #eee !important; }

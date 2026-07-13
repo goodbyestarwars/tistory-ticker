@@ -701,15 +701,20 @@ function getMarketAnalysis() {
 // 점수 분포를 보고 조정 가능하도록 각 스코어 함수에 상수로 분리해둠.
 // ---------------------------------------------------------------------------
 
+// 2026-07-13: 100점 스코어를 "증시온도(℃)"로 재해석 - temp = score * 0.4 (0~100점 -> 0~40℃).
+// 구성 요소를 7개(VIX20+외국인수급15+기관수급10+상승비율20+거래대금15+환율10+미국선물10=100)로
+// 재편하고, 외국인/기관 수급을 분리 + 환율/미국 선물지수를 신규 추가했다(사용자 요청 반영,
+// 가중치는 시장 영향력을 고려해 임의로 배분 - 공식 기준 없음, 배포 후 분포 보고 조정 가능).
 var MARKET_TEMP_CACHE_TTL = 1800;   // 30분
 var VIX_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX';
+var US_FUTURES_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/ES=F'; // S&P500 E-mini 선물
 var MT_FLOW_CODE = '069500'; // KODEX 200 - 코스피200 추종 ETF, 수급 대리지표
-var MT_VOL_HISTORY_KEY = 'mt_vol_hist_v1';
-var MT_VOL_HISTORY_MAX = 10;
+var MT_VOL_HISTORY_KEY = 'mt_vol_hist_v2'; // v1(10일 기록)->v2(5일 평균 기준으로 명확화) 캐시 키 분리
+var MT_VOL_HISTORY_MAX = 6; // 오늘 포함 6개 = "오늘 제외 직전 5거래일 평균"의 기준
 
 function getMarketTemp() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'market_temp_v1';
+  var cacheKey = CACHE_PREFIX + 'market_temp_v2';
   var cached = cache.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
@@ -718,16 +723,25 @@ function getMarketTemp() {
   var quotes = codes.length ? (safeCall(function () { return fetchFromNaver(codes); }) || []) : [];
 
   var vix = scoreVix_(safeCall(fetchVix_));
-  var flow = computeFlowScore_();
+  var foreignFlow = computeForeignFlowScore_();
+  var instFlow = computeInstFlowScore_();
   var rise = computeRiseRatioScore_(quotes);
   var vol = computeVolumeScore_(quotes);
+  var fx = computeExchangeScore_();
+  var futures = computeUsFuturesScore_();
 
-  var total = Math.max(0, Math.min(100, vix.score + flow.score + rise.score + vol.score));
+  var total = Math.max(0, Math.min(100,
+    vix.score + foreignFlow.score + instFlow.score + rise.score + vol.score + fx.score + futures.score));
+  var temp = Math.round(total * 0.4 * 10) / 10; // 0~100점 -> 0~40℃, 소수 1자리
 
   var result = {
     score: total,
-    grade: gradeForScore_(total),
-    components: { vix: vix, flow: flow, riseRatio: rise, tradingValue: vol },
+    temp: temp,
+    grade: gradeForTemp_(temp),
+    components: {
+      vix: vix, foreignFlow: foreignFlow, instFlow: instFlow, riseRatio: rise,
+      tradingValue: vol, exchange: fx, usFutures: futures
+    },
     updatedAt: formatKstTime(Date.now())
   };
 
@@ -746,35 +760,46 @@ function fetchVix_() {
   return (meta && typeof meta.regularMarketPrice === 'number') ? meta.regularMarketPrice : null;
 }
 
-// VIX는 낮을수록 안정(고득점) - 구간 경계는 일반적인 VIX 해석(15/20/25/30) 기준.
+// VIX는 낮을수록 안정(고득점) - 구간 경계는 일반적인 VIX 해석(15/20/25/30) 기준. 최대 20점.
 function scoreVix_(vix) {
-  if (vix == null) return { score: 13, value: null, note: 'VIX 조회 실패 - 중립 처리' };
-  var score = vix < 15 ? 25 : vix < 20 ? 20 : vix < 25 ? 13 : vix < 30 ? 6 : 0;
+  if (vix == null) return { score: 10, value: null, note: 'VIX 조회 실패 - 중립 처리' };
+  var score = vix < 15 ? 20 : vix < 20 ? 16 : vix < 25 ? 10 : vix < 30 ? 5 : 0;
   return { score: score, value: vix };
 }
 
-// KODEX 200 외국인+기관 5일 합산 순매매를, 그 종목 자신의 최근 20일 평균 일별
-// 순매매 절대값 x5(=5일 기준선) 대비 비율로 환산해 -15~+15점으로 매핑(중립 15점).
-function computeFlowScore_() {
+// KODEX 200 외국인/기관 5일 합산 순매매를 각각 따로, 그 종목 자신의 최근 20일 평균 일별
+// 순매매 절대값 x5(=5일 기준선) 대비 비율로 환산 - 외국인 최대 15점, 기관 최대 10점
+// (국내 증시에서 통상 외국인 수급이 더 큰 변수로 취급돼 가중치를 더 줌).
+function computeFlowRatio_(field) {
   var flow = safeCall(function () { return getForeignFlow(MT_FLOW_CODE); });
-  if (!flow || flow.error) return { score: 15, note: 'ETF 수급 데이터 조회 실패 - 중립 처리' };
+  if (!flow || flow.error) return null;
 
   var daily = flow.daily;
-  var v5 = flow.rolling['5d'].foreign + flow.rolling['5d'].inst;
+  var v5 = flow.rolling['5d'][field];
 
   var n = Math.min(20, daily.length);
   var avgDaily = 0;
-  for (var i = 0; i < n; i++) avgDaily += Math.abs(daily[i].foreign_net) + Math.abs(daily[i].inst_net);
+  for (var i = 0; i < n; i++) avgDaily += Math.abs(daily[i][field + '_net']);
   avgDaily = n ? avgDaily / n : 0;
 
   var baseline = avgDaily * 5;
   var ratio = baseline > 0 ? Math.max(-1, Math.min(1, v5 / baseline)) : 0;
-  var score = Math.round(15 + ratio * 15);
-
-  return { score: score, ratio: ratio, v5: v5, note: 'KODEX 200(069500) 외국인+기관 5일 합산 수급 기준' };
+  return { ratio: ratio, v5: v5 };
 }
 
-// 섹터 풀 종목 중 상승/하락 종목 수 비율. 보합(변동 0)은 분모에서 제외.
+function computeForeignFlowScore_() {
+  var r = computeFlowRatio_('foreign');
+  if (!r) return { score: 7.5, note: 'ETF 수급 데이터 조회 실패 - 중립 처리' };
+  return { score: Math.round(7.5 + r.ratio * 7.5), ratio: r.ratio, v5: r.v5, note: 'KODEX 200(069500) 외국인 5일 합산 수급 기준' };
+}
+
+function computeInstFlowScore_() {
+  var r = computeFlowRatio_('inst');
+  if (!r) return { score: 5, note: 'ETF 수급 데이터 조회 실패 - 중립 처리' };
+  return { score: Math.round(5 + r.ratio * 5), ratio: r.ratio, v5: r.v5, note: 'KODEX 200(069500) 기관 5일 합산 수급 기준' };
+}
+
+// 섹터 풀 종목 중 상승/하락 종목 수 비율. 보합(변동 0)은 분모에서 제외. 최대 20점.
 function computeRiseRatioScore_(quotes) {
   var up = 0, down = 0;
   quotes.forEach(function (q) {
@@ -783,14 +808,15 @@ function computeRiseRatioScore_(quotes) {
   });
   var total = up + down;
   var ratio = total ? up / total : 0.5;
-  var score = ratio >= 0.7 ? 25 : ratio >= 0.55 ? 20 : ratio >= 0.45 ? 12 : ratio >= 0.3 ? 6 : 0;
+  var score = ratio >= 0.7 ? 20 : ratio >= 0.55 ? 16 : ratio >= 0.45 ? 10 : ratio >= 0.3 ? 5 : 0;
 
   return { score: score, ratio: ratio, up: up, down: down, total: total };
 }
 
-// 섹터 풀 종목의 가격x거래량 합산(대금 근사치)을 PropertiesService에 최근 10거래일
-// 롤링 저장해두고, 오늘 값을 그 이전 기록 평균과 비교해 상대적으로 점수화.
-// (시장 전체 거래대금의 절대 원화 기준값은 확보할 수 없어 자기 자신의 과거 대비 상대치로 대체)
+// 섹터 풀 종목의 가격x거래량 합산(대금 근사치)을 PropertiesService에 최근 5거래일(오늘 제외)
+// 평균으로 저장해두고, 오늘 값을 그 평균과 비교해 상대적으로 점수화(최대 15점).
+// (시장 전체 거래대금의 절대 원화 기준값은 국내에 무료로 공개된 소스가 없어 확보 불가 -
+// "무조건 몇 조원 이상이면 좋다"는 절대치 대신, 자기 자신의 최근 5일 평균 대비 상대치로 판단)
 function computeVolumeScore_(quotes) {
   var today = 0;
   quotes.forEach(function (q) { today += (q.price || 0) * (q.volume || 0); });
@@ -808,24 +834,54 @@ function computeVolumeScore_(quotes) {
   }
   props.setProperty(MT_VOL_HISTORY_KEY, JSON.stringify(hist));
 
-  var priorEntries = hist.slice(0, -1); // 오늘 제외 이전 기록
+  var priorEntries = hist.slice(0, -1); // 오늘 제외 직전 최대 5거래일
   if (priorEntries.length < 3) {
-    return { score: 10, today: today, note: '기준 데이터 누적 중(3영업일 미만) - 중립 처리' };
+    return { score: 7.5, today: today, note: '5일 평균 기준 데이터 누적 중(3영업일 미만) - 중립 처리' };
   }
 
-  var avg = priorEntries.reduce(function (s, e) { return s + e.total; }, 0) / priorEntries.length;
-  var relative = avg > 0 ? today / avg : 1;
-  var score = relative >= 1.3 ? 20 : relative >= 1.1 ? 15 : relative >= 0.9 ? 10 : relative >= 0.7 ? 5 : 0;
+  var avg5 = priorEntries.reduce(function (s, e) { return s + e.total; }, 0) / priorEntries.length;
+  var relative = avg5 > 0 ? today / avg5 : 1;
+  var score = relative >= 1.3 ? 15 : relative >= 1.1 ? 11 : relative >= 0.9 ? 7 : relative >= 0.7 ? 4 : 0;
 
-  return { score: score, today: today, avg: avg, relative: relative };
+  return { score: score, today: today, avg5: avg5, relative: relative };
 }
 
-function gradeForScore_(score) {
-  if (score <= 20) return { emoji: '🧊', label: '매우 차가움' };
-  if (score <= 40) return { emoji: '🔵', label: '약세' };
-  if (score <= 60) return { emoji: '🟡', label: '중립' };
-  if (score <= 80) return { emoji: '🟠', label: '강세' };
-  return { emoji: '🔥', label: '매우 강세' };
+// 원/달러 환율 - 전일대비 등락률로 점수화(원화 약세=환율 상승은 통상 외국인 이탈/악재로
+// 취급, 원화 강세=환율 하락은 호재). 절대 레벨(예: 1,300원이 적정인지)은 시대별로 계속
+// 바뀌어 기준 삼기 어려워, 하루 변동률만 본다. 최대 10점(중립 5점).
+function computeExchangeScore_() {
+  var fx = safeCall(function () { return fetchExchange('FX_USDKRW'); });
+  if (!fx) return { score: 5, note: '환율 조회 실패 - 중립 처리' };
+  var score = Math.max(0, Math.min(10, Math.round(5 - fx.changeRate * 2)));
+  return { score: score, changeRate: fx.changeRate, price: fx.price };
+}
+
+// 미국 S&P500 E-mini 선물(ES=F) - 전일 종가 대비 등락률로 점수화. 미국 증시 마감 후~한국
+// 장 시작 전 사이의 선행지표로 통상 취급된다. 최대 10점(중립 5점).
+function computeUsFuturesScore_() {
+  var res = safeCall(function () {
+    return UrlFetchApp.fetch(US_FUTURES_URL, { muteHttpExceptions: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
+  });
+  if (!res || res.getResponseCode() !== 200) return { score: 5, note: '미국 선물지수 조회 실패 - 중립 처리' };
+  var meta = safeCall(function () {
+    var body = JSON.parse(res.getContentText('UTF-8'));
+    return body.chart.result[0].meta;
+  });
+  if (!meta || typeof meta.regularMarketPrice !== 'number' || !meta.previousClose) {
+    return { score: 5, note: '미국 선물지수 조회 실패 - 중립 처리' };
+  }
+  var changePct = (meta.regularMarketPrice - meta.previousClose) / meta.previousClose * 100;
+  var score = Math.max(0, Math.min(10, Math.round(5 + changePct * 2)));
+  return { score: score, changePct: changePct, price: meta.regularMarketPrice };
+}
+
+// 온도(℃) 구간 - 사용자 지정 밴드: 0~10 극도의공포 / 10~20 공포 / 20~28 중립 / 28~35 낙관 / 35+ 과열.
+function gradeForTemp_(temp) {
+  if (temp < 10) return { emoji: '🧊', label: '극도의 공포', tone: 'extreme-fear' };
+  if (temp < 20) return { emoji: '🔵', label: '공포', tone: 'fear' };
+  if (temp < 28) return { emoji: '🟡', label: '중립', tone: 'neutral' };
+  if (temp < 35) return { emoji: '🟠', label: '낙관', tone: 'greed' };
+  return { emoji: '🔥', label: '과열', tone: 'extreme-greed' };
 }
 
 // m.stock.naver.com 뉴스 API는 "유사 기사 묶음" 배열을 반환한다.
