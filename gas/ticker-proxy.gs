@@ -597,7 +597,7 @@ function getFlowChart(code) {
   var cached = cache.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
-  var daily = kiwoomVmFetch_('/ohlc?code=' + encodeURIComponent(code));
+  var daily = kiwoomVmFetch_('/ohlc/' + encodeURIComponent(code));
   if (!daily || daily.length < 30) {
     return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
   }
@@ -2234,9 +2234,9 @@ function kiwoomVmFetch_(path) {
 // VM의 /investor-flow는 종목코드 아무거나 다 되므로(섹터풀 제한 없음) 전 종목 커버.
 function getInvestorFlowLive_(code, name) {
   if (!code) return { error: 'code required' };
-  var path = '/investor-flow?code=' + encodeURIComponent(code) + (name ? '&name=' + encodeURIComponent(name) : '');
-  var data = kiwoomVmFetch_(path);
+  var data = kiwoomVmFetch_('/investor-flow/' + encodeURIComponent(code));
   if (!data) return { error: 'vm_unavailable' };
+  if (name && !data.name) data.name = name; // VM은 더 이상 name을 안 돌려줌(경로 파라미터 전환) - GAS가 이미 아는 값으로 채움
   return data;
 }
 

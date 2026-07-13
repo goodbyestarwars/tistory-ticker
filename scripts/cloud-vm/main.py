@@ -8,7 +8,7 @@ import json
 import os
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Path, Query
 
 import investor_flow
 import kiwoom_client
@@ -80,11 +80,14 @@ def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = H
     return envelope(res)
 
 
-@app.get('/ohlc')
-def ohlc(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = Header(default=None)):
+@app.get('/ohlc/{code}')
+def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Header(default=None)):
     """일봉 OHLC(ka10081) 온디맨드 조회 - 종목분석 가격차트(gas의 getFlowChart)용.
     네이버 sise_day.naver 크롤링(FLOW_CHART_PAGES=74) 대체. 서버 캐시 없음
-    (GAS 쪽에서 종목별 30분 캐싱하므로 여기서 또 캐싱할 필요 없음 - /investor-flow와 동일 패턴)."""
+    (GAS 쪽에서 종목별 30분 캐싱하므로 여기서 또 캐싱할 필요 없음 - /investor-flow와 동일 패턴).
+    2026-07-13: 쿼리스트링(?code=)이 붙은 요청만 GAS UrlFetchApp에서 도달 자체가 안 되는
+    현상이 확인돼(nginx 액세스 로그에 구글 쪽 요청이 아예 안 찍힘) code를 경로 파라미터로
+    옮김 - 원인 불명이지만 쿼리스트링 자체를 피하는 쪽으로 우회."""
     require_api_key(x_api_key)
     try:
         token = get_kiwoom_token()
@@ -98,17 +101,19 @@ def ohlc(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = He
     return envelope(daily)
 
 
-@app.get('/investor-flow')
+@app.get('/investor-flow/{code}')
 def investor_flow_endpoint(
-    code: str = Query(..., min_length=6, max_length=6),
-    name: str = Query(default=None),
+    code: str = Path(..., min_length=6, max_length=6),
     x_api_key: str = Header(default=None),
 ):
-    """공매도/대차거래/연기금 수급 - scripts/fetch_investor_flow.py 로직 온디맨드 버전."""
+    """공매도/대차거래/연기금 수급 - scripts/fetch_investor_flow.py 로직 온디맨드 버전.
+    2026-07-13: /ohlc와 동일한 이유로 쿼리스트링(?code=&name=) 대신 경로 파라미터로 전환 -
+    name은 화면표시용 캐스메틱 필드라 없애고, 호출부(GAS)가 이미 갖고 있는 name을 응답에
+    덧씌우는 방식으로 대체(kiwoomVmFetch_ 호출부 참고)."""
     require_api_key(x_api_key)
     try:
         token = get_kiwoom_token()
-        result = investor_flow.fetch_stock(token, code, name or code)
+        result = investor_flow.fetch_stock(token, code, code)
     except HTTPException:
         raise
     except Exception as e:
