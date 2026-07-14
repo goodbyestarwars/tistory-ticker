@@ -22,7 +22,7 @@
   'use strict';
 
   var CONTAINER_SELECTOR = '#overnight-market';
-  var FUTURES_API = 'http://34.28.220.13:8080/futures';
+  var FUTURES_API = 'https://ghlee.duckdns.org/futures';
   var FETCH_TIMEOUT_MS = 10000;
   var REFRESH_INTERVAL_MS = 30000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
