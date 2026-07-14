@@ -71,8 +71,7 @@
     // 공지사항(/notice)도 2026-07-11 커스텀 메뉴에서 내림 - 카테고리 섹션(catCustomList)에
     // 티스토리 '공지사항' 카테고리가 있으면 거기서 자동 표시됨.
     {
-      // TODO: 실제 페이지 생성 후 티스토리가 부여하는 URL로 교체 필요(예상 슬러그를 임시로 넣어둠 - 확정 아님)
-      href: '/pages/overnight-market',
+      href: '/pages/overnight-market', // 실제 페이지 URL 확인됨(2026-07-14)
       label: '간밤 시황',
       bold: true,
       icon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>'
