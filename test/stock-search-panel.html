@@ -15,18 +15,17 @@
 <body>
 
 <div class="page-body">
-  <h1>종목 검색 패널 로컬 테스트</h1>
+  <h1>종목 검색 패널(v2: 소형 드롭다운) 로컬 테스트</h1>
   <div class="tools">
     <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
     <button onclick="localStorage.removeItem('stock:lastSelected'); localStorage.removeItem('stock:favorites'); localStorage.removeItem('stock:recent'); location.reload();">저장 초기화</button>
-    <button onclick="StockSearchPanel.openPanel()">패널 열기</button>
+    <button onclick="StockSearchPanel.openDropdown()">드롭다운 열기</button>
   </div>
   <p style="font-size:13px;color:#888">
-    krx_map.js/foreign-flow.js/GAS(?codes=, ?action=fundamentals, ?news=1, ?patternScan=1)는 CORS가
-    열려있어 로컬에서도 실제 호출됩니다. 단 foreign-flow.js 내부의 VM 직접호출(수급 1차 소스,
-    공매도/대차/연기금 확장 섹션)은 CORS가 ghlee.tistory.com만 허용해 로컬에서는 실패하고 GAS 폴백
-    또는 "데이터 없음" 안내로 대체됩니다(라이브 페이지에서 최종 확인 필요). 우측 하단 🔍 버튼을 눌러
-    패널을 열고 "삼성전자"를 검색해보세요.
+    krx_map.js는 CORS가 열려있어 로컬에서도 실제 로드됩니다. 종목을 고르면
+    <code>/page/foreign-flow?code=&amp;name=</code>로 이동을 시도합니다(로컬엔 그 경로가 없어
+    404가 뜨는 게 정상 - 실제 이동 자체가 되는지만 확인하는 용도). 우측 하단 🔍 버튼을 눌러
+    드롭다운을 열고 "삼성전자"를 검색해보세요.
   </p>
 </div>
 

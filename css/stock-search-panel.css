@@ -1,13 +1,17 @@
-/* 종목 검색 패널 (js/stock-search-panel.js)
- * document.body에 직접 붙는 플로팅 위젯이라 스킨 본문 블랑켓 규칙 영향은 적지만,
- * 다른 위젯과 동일하게 html.dark ... !important 패턴을 유지한다.
+/* 종목 검색 패널 (js/stock-search-panel.js) - 소형 앵커 드롭다운 버전
+ * document.body에 직접 붙는 플로팅 위젯. 티스토리 기본 검색과 헷갈리지 않도록
+ * 트리거 버튼에 항상 "종목검색" 라벨 + 전용 아이콘/색을 노출한다.
  * 상승=빨강 #d24f45, 하락=파랑 #1261c4 (사이트 공통 컬러) */
 
-.ssp-trigger {
+.ssp-wrap {
   position: fixed;
   bottom: 76px;
   right: 18px;
-  z-index: 291;
+  z-index: 400;
+  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+}
+
+.ssp-trigger {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -15,57 +19,38 @@
   padding: 9px 14px;
   border: none;
   border-radius: 999px;
-  background: #111827;
+  background: #7c3aed;
   color: #fff;
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 3px 14px rgba(124, 58, 237, 0.4);
   transition: background 0.15s, transform 0.2s;
 }
-.ssp-trigger:hover { background: #1f2937; transform: translateY(-2px); }
+.ssp-trigger:hover { background: #6d28d9; transform: translateY(-2px); }
 .ssp-trigger-icon { font-size: 14px; line-height: 1; }
 .ssp-trigger-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-@media (max-width: 640px) {
-  .ssp-trigger { bottom: 66px; right: 14px; max-width: 140px; padding: 8px 12px; }
-}
-
-.ssp-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9998;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  justify-content: flex-end;
-}
-
-.ssp-panel {
-  width: min(440px, 100vw);
-  height: 100%;
+.ssp-dropdown {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: min(340px, 88vw);
   background: #fff;
   color: #222;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.25);
-  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  border: 1px solid #eee;
 }
 
-.ssp-panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px;
-  border-bottom: 1px solid #eee;
-  flex-shrink: 0;
-}
+.ssp-dropdown-inner { padding: 14px; max-height: min(60vh, 480px); overflow-y: auto; }
 
-.ssp-input-wrap { position: relative; flex: 1; min-width: 0; }
+.ssp-input-wrap { position: relative; }
 .ssp-input {
   width: 100%;
   box-sizing: border-box;
@@ -75,7 +60,7 @@
   border-radius: 8px;
   outline: none;
 }
-.ssp-input:focus { border-color: #888; }
+.ssp-input:focus { border-color: #7c3aed; }
 
 .ssp-suggest {
   display: none;
@@ -88,157 +73,42 @@
   border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
   z-index: 10;
-  max-height: 280px;
+  max-height: 240px;
   overflow-y: auto;
 }
 .ssp-suggest.active { display: block; }
 .ssp-suggest-item { padding: 9px 12px; font-size: 13.5px; cursor: pointer; }
 .ssp-suggest-item:hover, .ssp-suggest-item.active { background: #f2f2f2; }
 
-.ssp-close-btn {
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border: none;
-  background: transparent;
-  color: #666;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 6px;
-}
-.ssp-close-btn:hover { background: #f0f0f0; }
-
-.ssp-panel-body { flex: 1; overflow-y: auto; padding: 14px; }
-
-/* ---- 홈 화면(즐겨찾기/최근검색) ---- */
-.ssp-home-section { margin-bottom: 18px; }
-.ssp-home-title { font-size: 13px; font-weight: 700; color: #666; margin-bottom: 8px; }
+.ssp-chip-section { margin-top: 14px; }
+.ssp-chip-group { margin-bottom: 12px; }
+.ssp-chip-group:last-child { margin-bottom: 0; }
+.ssp-chip-title { font-size: 12px; font-weight: 700; color: #888; margin-bottom: 6px; }
 .ssp-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .ssp-chip {
-  padding: 7px 12px;
+  padding: 6px 10px;
   border: 1px solid #ddd;
   border-radius: 999px;
   background: #fafafa;
-  font-size: 13px;
-  cursor: pointer;
-}
-.ssp-chip:hover { background: #eee; }
-.ssp-chip-empty { font-size: 12.5px; color: #999; }
-.ssp-home-hint { margin-top: 20px; text-align: center; color: #999; font-size: 13px; }
-
-/* ---- 기본정보 스탯 헤더 ---- */
-.ssp-stat-header { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #eee; }
-.ssp-stat-name-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-.ssp-stat-name { font-size: 18px; font-weight: 700; }
-.ssp-stat-code { font-size: 12.5px; color: #888; }
-.ssp-fav-btn {
-  margin-left: auto;
-  border: none;
-  background: transparent;
-  color: #e0a300;
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 2px 4px;
-}
-.ssp-stat-price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
-.ssp-stat-price { font-size: 22px; font-weight: 700; }
-.ssp-stat-change { font-size: 14px; font-weight: 600; color: #666; }
-.ssp-stat-change.ssp-up { color: #d24f45; }
-.ssp-stat-change.ssp-down { color: #1261c4; }
-
-.ssp-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.ssp-stat-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px;
-  background: #f7f7f8;
-  border-radius: 8px;
-}
-.ssp-stat-cell-label { font-size: 11px; color: #888; }
-.ssp-stat-cell-val { font-size: 13px; font-weight: 700; }
-
-/* ---- foreign-flow.js 임베드 마운트: 자체 CSS가 이미 #foreign-flow 스코프로 스타일링함 ---- */
-.ssp-ff-mount { margin-bottom: 14px; }
-
-/* ---- 패턴/뉴스 확장 섹션 ---- */
-.ssp-extra {
-  border: 1px solid #eee;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  overflow: hidden;
-}
-.ssp-extra summary {
-  padding: 10px 12px;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  background: #fafafa;
-  list-style: none;
-}
-.ssp-extra summary::-webkit-details-marker { display: none; }
-.ssp-extra .ssp-extra-body { padding: 10px 12px; font-size: 13px; }
-.ssp-empty { color: #999; font-size: 13px; }
-
-.ssp-pattern-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-.ssp-pattern-row:last-child { border-bottom: none; }
-.ssp-pattern-name { font-weight: 600; }
-.ssp-pattern-score { color: #888; }
-
-.ssp-news-item {
-  display: block;
-  padding: 7px 0;
-  border-bottom: 1px solid #f0f0f0;
-  color: #222;
-  text-decoration: none;
-  font-size: 13px;
-}
-.ssp-news-item:last-child { border-bottom: none; }
-.ssp-news-item:hover { text-decoration: underline; }
-.ssp-news-ai {
-  padding: 8px 10px;
-  margin-bottom: 8px;
-  background: #f7f7f8;
-  border-radius: 8px;
   font-size: 12.5px;
-  line-height: 1.5;
+  cursor: pointer;
 }
-
-body.ssp-lock-scroll { overflow: hidden; }
+.ssp-chip:hover { background: #f0eaff; border-color: #c9b6f7; }
+.ssp-chip-empty { font-size: 12px; color: #999; }
 
 @media (max-width: 640px) {
-  .ssp-panel { width: 100vw; }
+  .ssp-wrap { bottom: 66px; right: 14px; }
+  .ssp-trigger { max-width: 140px; padding: 8px 12px; }
+  .ssp-dropdown { width: min(300px, 85vw); }
 }
 
 /* ---- 다크모드 ---- */
-html.dark .ssp-panel { background: #1c1c1c !important; color: #ddd !important; }
-html.dark .ssp-panel-header { border-color: #333 !important; }
+html.dark .ssp-dropdown { background: #1c1c1c !important; color: #ddd !important; border-color: #333 !important; }
 html.dark .ssp-input { background: #2a2a2a !important; border-color: #444 !important; color: #eee !important; }
 html.dark .ssp-suggest { background: #2a2a2a !important; border-color: #444 !important; }
 html.dark .ssp-suggest-item { color: #ddd !important; }
 html.dark .ssp-suggest-item:hover, html.dark .ssp-suggest-item.active { background: #3a3a3a !important; }
-html.dark .ssp-close-btn { color: #aaa !important; }
-html.dark .ssp-close-btn:hover { background: #333 !important; }
-html.dark .ssp-home-title { color: #999 !important; }
+html.dark .ssp-chip-title { color: #999 !important; }
 html.dark .ssp-chip { background: #262626 !important; border-color: #3a3a3a !important; color: #ddd !important; }
-html.dark .ssp-chip:hover { background: #333 !important; }
-html.dark .ssp-chip-empty, html.dark .ssp-home-hint, html.dark .ssp-empty { color: #888 !important; }
-html.dark .ssp-stat-header { border-color: #333 !important; }
-html.dark .ssp-stat-code { color: #999 !important; }
-html.dark .ssp-stat-cell { background: #262626 !important; }
-html.dark .ssp-stat-cell-label { color: #999 !important; }
-html.dark .ssp-stat-change.ssp-up { color: #ff6b5b !important; }
-html.dark .ssp-stat-change.ssp-down { color: #4d9fff !important; }
-html.dark .ssp-extra { border-color: #333 !important; }
-html.dark .ssp-extra summary { background: #262626 !important; color: #ddd !important; }
-html.dark .ssp-extra .ssp-extra-body { color: #ccc !important; }
-html.dark .ssp-pattern-row { border-color: #333 !important; }
-html.dark .ssp-pattern-score { color: #999 !important; }
-html.dark .ssp-news-item { color: #ddd !important; border-color: #333 !important; }
-html.dark .ssp-news-ai { background: #262626 !important; }
+html.dark .ssp-chip:hover { background: #33284a !important; border-color: #7c3aed !important; }
+html.dark .ssp-chip-empty { color: #888 !important; }
