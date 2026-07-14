@@ -16,6 +16,14 @@
  * AI(Groq) 해설은 이번 1단계에서 제외함 - 위젯 안의 실시간 숫자를 서버가 못 읽어오는데
  * 다른 소스(야후 등)로 숫자를 받아 해설에 쓰면 위젯에 보이는 값과 어긋날 수 있어서
  * (신뢰도 문제), 정확한 숫자 소스가 정리되면 다음 단계에서 추가하기로 함.
+ *
+ * 2026-07-14: 처음엔 "Mini Symbol Overview" 위젯(작은 카드+스파크라인)으로 만들었으나,
+ * ES1!/NQ1!/CL1!/GC1!/K2I1! 같은 연결선물 심볼은 "실제 매매 가능한 계약이 아니라 분석용
+ * 합성 차트"라 그 위젯의 매매연동 기능이 차트 대신 "이 심볼은 트레이딩뷰에서만 쓸 수
+ * 있습니다" 메시지를 띄우는 문제를 라이브에서 실제로 겪음(chartOnly:true로도 안 고쳐짐).
+ * 매매연동 개념이 아예 없는 "Advanced Real-Time Chart" 위젯으로 교체해서 해결 -
+ * 대신 카드가 작은 미니차트가 아니라 큰 인터랙티브 차트가 됨(요구사항이었던 "미니 차트"
+ * 보다 커졌지만, 이 심볼들에서 확실히 작동하는 위젯이 이쪽임).
  */
 (function (global) {
   'use strict';
@@ -32,14 +40,14 @@
     { symbol: 'COMEX:GC1!', label: '국제 금 선물' }
   ];
 
-  var TV_MINI_CHART_SRC = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
+  var TV_ADVANCED_CHART_SRC = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
   var themeObserver = null;
 
   function isDark() {
     return document.documentElement.classList.contains('dark');
   }
 
-  // TradingView 위젯은 최초 스크립트 삽입 시점의 colorTheme으로 고정 렌더링되고 이후
+  // TradingView 위젯은 최초 스크립트 삽입 시점의 theme으로 고정 렌더링되고 이후
   // 동적으로 못 바꾼다 - 다크모드 토글 시 위젯 div를 통째로 비우고 다시 그려서 대응한다.
   function renderWidget(container, instrument) {
     container.innerHTML =
@@ -50,18 +58,19 @@
 
     var script = document.createElement('script');
     script.type = 'text/javascript';
-    script.src = TV_MINI_CHART_SRC;
+    script.src = TV_ADVANCED_CHART_SRC;
     script.async = true;
     script.text = JSON.stringify({
       symbol: instrument.symbol,
-      width: '100%',
-      height: 240,
-      locale: 'kr',
-      dateRange: '12M',
-      colorTheme: isDark() ? 'dark' : 'light',
-      isTransparent: true,
       autosize: true,
-      chartOnly: true // 연결선물(ES1! 등) 심볼에서 "트레이딩뷰에서만 쓸 수 있음" 매매연동 메시지가 대신 뜨는 문제 시도 - 확실히 고쳐지는지 미검증
+      interval: 'D',
+      timezone: 'Asia/Seoul',
+      theme: isDark() ? 'dark' : 'light',
+      style: '1',
+      locale: 'kr',
+      allow_symbol_change: false,
+      calendar: false,
+      support_host: 'https://www.tradingview.com'
     });
     container.querySelector('.tradingview-widget-container').appendChild(script);
   }
