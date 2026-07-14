@@ -216,6 +216,9 @@ function fetchIndex(code, label) {
 }
 
 // fetchIndex()의 파싱부만 분리 - getMarketRibbon()이 fetchAll로 받은 응답을 재사용하기 위함.
+// 2026-07-14: nv/cv를 100으로 안 나누던 버그 수정 - 네이버 폴링 API가 지수를 100배로 반환함
+// (실측: KOSPI nv=685683는 실제 6856.83). 안 나눈 원값이 AI 시황요약(getMarketAnalysis) 프롬프트에
+// 그대로 들어가서 Groq가 엉뚱한 숫자(2,856.83)를 지어내는 결과로 이어졌음 - 사용자가 발견.
 function parseIndexResponse_(res, label) {
   if (!res || res.getResponseCode() !== 200) return null;
 
@@ -227,8 +230,8 @@ function parseIndexResponse_(res, label) {
   var sign = (d.rf === '4' || d.rf === '5') ? -1 : 1;
   return {
     name: label,
-    price: Number(d.nv) || 0,
-    change: Math.abs(Number(d.cv) || 0) * sign,
+    price: (Number(d.nv) || 0) / 100,
+    change: (Math.abs(Number(d.cv) || 0) / 100) * sign,
     changeRate: Math.abs(Number(d.cr) || 0) * sign
   };
 }
