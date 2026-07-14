@@ -1,0 +1,37 @@
+/* ============ 간밤 시황(나스닥/S&P500/코스피 야간선물/반도체/원유/VIX/금) ============ */
+
+#overnight-market {
+  font-family: inherit;
+}
+
+#overnight-market .om-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+#overnight-market .om-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+#overnight-market .om-widget-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+/* TradingView 위젯 자체 폭/높이는 스크립트 config(width/height)로 이미 지정되지만,
+   컨테이너 쪽에서도 최소 높이를 잡아둬야 위젯 로드 전 레이아웃이 안 튄다(CLS 방지). */
+#overnight-market .tradingview-widget-container {
+  min-height: 240px;
+}
+
+html.dark #overnight-market .om-card {
+  background: #1e1e1e !important;
+  border-color: #3a3a3a !important;
+}
+html.dark #overnight-market .om-widget-title { color: #eee !important; }

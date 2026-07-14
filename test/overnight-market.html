@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>overnight-market 로컬 테스트</title>
+<link rel="stylesheet" href="../css/overnight-market.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 900px; margin: 40px auto; padding: 0 16px; }
+  .toggle-dark { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="page-body">
+  <h1>overnight-market(간밤 시황) 로컬 테스트</h1>
+  <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+  <p style="font-size:13px;color:#888">TradingView 공식 위젯 7개(나스닥/S&P500/코스피 야간선물/필라델피아 반도체/WTI 원유/VIX/국제 금) - 실제 CDN 스크립트를 로드하므로 인터넷 연결 필요.</p>
+  <div id="overnight-market"></div>
+</div>
+
+<script src="../js/overnight-market.js"></script>
+
+</body>
+</html>
