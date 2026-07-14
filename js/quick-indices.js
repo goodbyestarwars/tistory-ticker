@@ -300,7 +300,7 @@
       changeEl.textContent = arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
       changeEl.className = 'qi-card-change ' + tone;
 
-      if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change);
+      if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart);
     });
   }
 
@@ -346,12 +346,14 @@
     delete chartInstances[key];
   }
 
-  function renderSparkline(container, key, rows, change) {
+  // 2026-07-16: 단일 색 영역차트 -> 베이스라인 차트로 변경. 시작가(구간 첫 종가)를
+  // 기준선으로 두고 그 위는 빨강, 아래는 파랑으로 자동으로 나뉘어 칠해진다(사용자 요청:
+  // "시초가 0이면 +면 빨간색 -면 파란색"). change 파라미터는 더 이상 필요 없어 제거.
+  function renderSparkline(container, key, rows) {
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
       if (chartInstances[key]) return; // 같은 카드에 이미 그려져 있으면 재사용(갱신 시 setData만)
 
-      var lineColor = change >= 0 ? '#d24f45' : '#1261c4';
       var chart = LWC.createChart(container, Object.assign({
         autoSize: true,
         height: SPARKLINE_HEIGHT,
@@ -363,10 +365,14 @@
         crosshair: { vertLine: { visible: false, labelVisible: false }, horzLine: { visible: false, labelVisible: false } }
       }, chartThemeOptions()));
 
-      var series = chart.addAreaSeries({
-        lineColor: lineColor,
-        topColor: hexToRgba(lineColor, 0.25),
-        bottomColor: hexToRgba(lineColor, 0.02),
+      var series = chart.addBaselineSeries({
+        baseValue: { type: 'price', price: rows[0].close },
+        topLineColor: '#d24f45',
+        topFillColor1: hexToRgba('#d24f45', 0.25),
+        topFillColor2: hexToRgba('#d24f45', 0.02),
+        bottomLineColor: '#1261c4',
+        bottomFillColor1: hexToRgba('#1261c4', 0.02),
+        bottomFillColor2: hexToRgba('#1261c4', 0.25),
         lineWidth: 1.5,
         priceLineVisible: false,
         lastValueVisible: false,
