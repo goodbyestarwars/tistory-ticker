@@ -25,8 +25,8 @@
     <button onclick="setMock('error')">API 오류</button>
   </div>
   <p style="font-size:13px;color:#888">
-    기본은 mock 데이터로 렌더링 검증(7개 카드: 나스닥100/S&P500/다우/반도체/VIX/WTI/원달러 환율
-    + AI 해설 박스). 실제 VM/GAS 호출로 테스트하려면 <code>?real=1</code>을 붙이세요(CORS가
+    기본은 mock 데이터로 렌더링 검증(11개 카드: 미국 현물지수3+선물3/반도체/VIX/WTI/원달러 환율/
+    BTC + AI 해설 박스). 실제 VM/GAS 호출로 테스트하려면 <code>?real=1</code>을 붙이세요(CORS가
     ghlee.tistory.com만 허용하므로 로컬 http.server에서는 막힐 수 있음 - 라이브 페이지에서
     최종 확인 필요).
   </p>
@@ -36,6 +36,9 @@
 <script src="../js/overnight-market.js"></script>
 <script>
   var SYMBOLS = [
+    { symbol: 'NASDAQ_INDEX', name: '나스닥 종합지수', base: 26107 },
+    { symbol: 'SP500_INDEX', name: 'S&P500 지수', base: 7544 },
+    { symbol: 'DOW_INDEX', name: '다우존스 지수', base: 52508 },
     { symbol: 'NASDAQ100', name: '나스닥 100 선물', base: 29740 },
     { symbol: 'SP500', name: 'S&P500 선물', base: 7575 },
     { symbol: 'DOW', name: '다우 선물', base: 52780 },
@@ -44,6 +47,8 @@
     { symbol: 'WTI', name: 'WTI 원유', base: 79.0 },
     { symbol: 'USDKRW', name: '원/달러 환율', base: 1490.5 }
   ];
+  // BTC는 mockResponse(futures 목록)와 별도로 fetchBtc mock에서 다룬다 - 실제 소스도
+  // VM(futures)이 아니라 GAS(market)라 데이터 흐름이 다름(js/overnight-market.js 주석 참고).
 
   function buildChart(base, days, trend) {
     var rows = [];
@@ -96,11 +101,23 @@
       if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
       return Promise.resolve(mockResponse(window.__mockMode || 'mixed'));
     };
+    OvernightMarket.fetchBtc = function () {
+      console.log('[mock] fetchBtc');
+      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
+      if (window.__mockMode === 'partial') return Promise.resolve(null);
+      var trend = window.__mockMode === 'up' ? 1 : window.__mockMode === 'down' ? -1 : 1;
+      var changeRate = trend * (2 + Math.random() * 2);
+      var price = 95018000 * (1 + changeRate / 100);
+      return Promise.resolve({
+        symbol: 'BTC', name: 'BTC', price: price, change: price * changeRate / 100,
+        change_rate: changeRate, high: null, low: null, updated_at: null, chart: null
+      });
+    };
     OvernightMarket.fetchAiSummary = function () {
       console.log('[mock] fetchAiSummary');
       if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
-      return Promise.resolve('미국 주요 지수는 대체로 상승 마감했고 원달러 환율은 하락(원화 강세)했습니다. '
-        + 'WTI 원유도 안정세를 보여 인플레이션 우려는 제한적입니다. '
+      return Promise.resolve('미국 주요 지수는 현물·선물 모두 상승 마감했고 원달러 환율은 하락(원화 강세)했습니다. '
+        + 'WTI 원유도 안정세를 보여 인플레이션 우려는 제한적이며, 비트코인도 위험자산 선호 심리를 따라 강세입니다. '
         + '이런 흐름은 오늘 코스피/코스닥에 완만한 상승 압력으로 작용할 가능성이 있습니다. '
         + '다만 변동성지수(VIX)가 소폭 높아진 점은 단기 변동성 확대 가능성으로 유의할 필요가 있습니다.');
     };

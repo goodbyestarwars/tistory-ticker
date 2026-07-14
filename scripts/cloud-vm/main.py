@@ -266,18 +266,20 @@ def daily_scan_batch(x_api_key: str = Header(default=None)):
 
 @app.get('/futures')
 def futures():
-    """보조지수/코스피 선물 페이지 전용 - 나스닥100/S&P500/다우/SOX/VIX/WTI(네이버) +
-    코스피200 주간/야간선물(네이버+KIS) + 코스피 현물지수(네이버, 현재가만) + 원/달러 환율(네이버)
-    현재가+최근 일봉을 하나로 묶어 반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로
-    블로그 도메인만 제한) - /investor-flow와 동일한 패턴.
+    """보조지수/코스피 선물 페이지 전용 - 미국 현물지수 3종+선물 3종/SOX/VIX/WTI(네이버) +
+    코스피200 주간/야간선물(네이버+KIS) + 원/달러 환율(네이버) 현재가+최근 일봉을 하나로 묶어
+    반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /investor-flow와
+    동일한 패턴.
     2026-07-16: order에 'DOW'가 빠져 있던 버그 수정(foreign_futures.py의 SYMBOLS에는 있었지만
     이 목록에 반영이 안 돼 DOW 카드가 계속 '데이터 없음'이었을 것) + domestic_futures.py의
-    KOSPI200_DAY/KOSPI_CASH/USDKRW 추가."""
+    KOSPI200_DAY/USDKRW 추가.
+    2026-07-16(2차): 나스닥종합지수/S&P500지수/다우존스지수(현물) 추가, 코스피 현물지수
+    (KOSPI_CASH)는 어느 페이지에서도 안 쓰게 돼 제거(domestic_futures.py 상단 주석 참고)."""
     conn = db_schema.get_conn()
     try:
         prices = {p['symbol']: p for p in db_schema.load_all_future_prices(conn)}
-        order = ['NASDAQ100', 'SP500', 'DOW', 'KOSPI200_DAY', 'KOSPI200_NIGHT', 'KOSPI_CASH',
-                 'SOX', 'VIX', 'WTI', 'USDKRW']
+        order = ['NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
+                 'KOSPI200_DAY', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI', 'USDKRW']
         result = []
         for symbol in order:
             p = prices.get(symbol)

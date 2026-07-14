@@ -26,6 +26,12 @@ SYMBOLS = [
     {'key': 'SOX', 'name': '필라델피아 반도체지수', 'code': '.SOX', 'category': 'index'},
     {'key': 'VIX', 'name': 'VIX(변동성지수)', 'code': '.VIX', 'category': 'index'},
     {'key': 'WTI', 'name': 'WTI 원유', 'code': 'CLcv1', 'category': 'futures'},
+    # 2026-07-16(2차) 추가 - "보조지수" 페이지에 선물뿐 아니라 실제 현물 지수도 같이 보여달라는
+    # 요청. .SOX/.VIX와 동일한 category='index' 패턴이라 코드만 추가하면 됨(curl 실측 확인:
+    # ac.stock.naver.com autocomplete로 .IXIC/.INX/.DJI 코드 확보, realtime 정상 응답 확인).
+    {'key': 'NASDAQ_INDEX', 'name': '나스닥 종합지수', 'code': '.IXIC', 'category': 'index'},
+    {'key': 'SP500_INDEX', 'name': 'S&P500 지수', 'code': '.INX', 'category': 'index'},
+    {'key': 'DOW_INDEX', 'name': '다우존스 지수', 'code': '.DJI', 'category': 'index'},
 ]
 
 _REALTIME_POLL_SEC = 30

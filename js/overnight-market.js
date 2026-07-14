@@ -1,5 +1,5 @@
 /**
- * 보조지수(나스닥100·S&P500·다우·필라델피아 반도체지수·VIX·WTI 원유·원달러 환율) 카드.
+ * 보조지수(미국 현물지수 3종·선물 3종·필라델피아 반도체지수·VIX·WTI 원유·원달러 환율·BTC) 카드.
  *
  * 2026-07-15: TradingView 임베드 위젯을 완전히 걷어내고 자체 구현으로 교체.
  * TradingView 무료 위젯은 CME/NYMEX 연결선물·지수 심볼이 데이터 라이선스로 계속 막혀서
@@ -10,20 +10,28 @@
  *
  * 2026-07-16(2차): "간밤 시황"에서 "보조지수"로 개편(파일명은 유지 - URL이 티스토리 HTML에
  * 박제돼 있어 CLAUDE.md 규칙상 변경 불가). 코스피200 야간선물 카드는 별도 페이지
- * (js/kospi-futures.js, 코스피 현물·주간선물과 함께 다룸)로 분리하며 여기서 제거하고,
- * 대신 원/달러 환율 카드를 추가했다. 규칙기반 요약(buildSummaryText)은 그대로 두고 그 아래에
- * GAS ?action=subIndexAnalysis(Groq)가 만든 AI 해설 문단을 비동기로 붙였다 - "미국주식+환율+
- * 원유 종합이 한국시황에 미칠 영향"을 설명해달라는 요구사항 반영. AI 해설은 30초 데이터
- * 리프레시와 무관하게 페이지 진입 시 1회만 불러온다(Groq 호출량 절약, GAS 쪽도 30분 캐시).
+ * (js/kospi-futures.js)로 분리하며 여기서 제거하고, 대신 원/달러 환율 카드를 추가했다.
+ * 규칙기반 요약(buildSummaryText)은 그대로 두고 그 아래에 GAS ?action=subIndexAnalysis(Groq)가
+ * 만든 AI 해설 문단을 비동기로 붙였다. AI 해설은 30초 데이터 리프레시와 무관하게 페이지 진입 시
+ * 1회만 불러온다(Groq 호출량 절약, GAS 쪽도 30분 캐시).
+ *
+ * 2026-07-16(3차): 사용자 요청으로 "선물만 있고 현물지수가 없다"는 지적을 반영해 미국
+ * 현물지수 3종(나스닥종합/S&P500/다우존스)과 BTC를 추가 - 관심지수 리본(js/quick-indices.js)에
+ * 있는 항목 중 코스피 계열을 뺀 전부가 이 페이지에도 나오도록 맞췄다. 이때 종합 요약
+ * (buildSummaryText)이 VM 원본 응답(코스피200 주간/야간선물 등 이 페이지에 안 쓰는 심볼까지
+ * 포함)을 그대로 세고 있던 버그도 같이 고쳤다 - "N개 중" 카운트가 화면 카드 수보다 많게
+ * 나오던 원인. refresh()에서 SYMBOL_ORDER로 필터링한 배열만 renderAll에 넘기도록 수정.
  *
  * 데이터 소스:
- * - 나스닥100/S&P500/다우/SOX/VIX/WTI/원달러 환율: 네이버 API(GAS를 거치지 않고 VM이 직접 수집,
- *   원달러는 scripts/cloud-vm/domestic_futures.py)
- * 전부 VM(scripts/cloud-vm/foreign_futures.py, domestic_futures.py)이 상시 수집해 SQLite에
- * 저장하고, 이 위젯은 VM의 /futures 엔드포인트 하나만 호출한다(방문자 브라우저가 네이버를
- * 직접 호출하지 않음 - CORS/레이트리밋 문제 회피 + 과거 CDN 캐시 지연 경험 때문에 서버 수집
- * 방식을 선호). AI 해설은 GAS(gas/ticker-proxy.gs의 getSubIndexAnalysis)가 같은 /futures
- * 응답을 프롬프트에 그대로 넣어 생성 - 화면 숫자와 AI 문장이 어긋나지 않도록 소스를 통일.
+ * - 나스닥종합/S&P500/다우존스(현물), 나스닥100/S&P500/다우(선물), SOX, VIX, WTI, 원/달러 환율:
+ *   네이버 API를 VM(scripts/cloud-vm/foreign_futures.py, domestic_futures.py)이 상시 수집해
+ *   SQLite에 저장 - 이 위젯은 VM의 /futures 엔드포인트 하나만 호출한다(방문자 브라우저가
+ *   네이버를 직접 호출하지 않음 - CORS/레이트리밋 문제 회피).
+ * - BTC: 시세 이력이 없는 지표라 VM이 아니라 GAS ?market=1(getMarketRibbon, 빗썸->코인게코
+ *   폴백)에서 현재가만 가져온다 - js/quick-indices.js와 동일한 이유·패턴(주석 참고), 그래서
+ *   BTC 카드만 미니차트가 없다.
+ * AI 해설은 GAS(gas/ticker-proxy.gs의 getSubIndexAnalysis)가 같은 VM /futures 응답 + BTC를
+ * 프롬프트에 그대로 넣어 생성 - 화면 숫자와 AI 문장이 어긋나지 않도록 소스를 통일.
  *
  * 미니차트는 TradingView Lightweight Charts(오픈소스, CDN 지연 로드, js/foreign-flow.js와
  * 동일 라이브러리)로 직접 그린다 - 축/라벨/크로스헤어/줌 전부 끈 순수 스파크라인.
@@ -40,15 +48,20 @@
   var SPARKLINE_HEIGHT = 64;
 
   var LABELS = {
+    NASDAQ_INDEX: '나스닥 종합지수',
+    SP500_INDEX: 'S&P500 지수',
+    DOW_INDEX: '다우존스 지수',
     NASDAQ100: '나스닥 100 선물',
     SP500: 'S&P500 선물',
     DOW: '다우 선물',
     SOX: '필라델피아 반도체지수',
     VIX: 'VIX(변동성지수)',
     WTI: 'WTI 원유',
-    USDKRW: '원/달러 환율'
+    USDKRW: '원/달러 환율',
+    BTC: '비트코인(BTC)'
   };
-  var SYMBOL_ORDER = ['NASDAQ100', 'SP500', 'DOW', 'SOX', 'VIX', 'WTI', 'USDKRW'];
+  var SYMBOL_ORDER = ['NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
+    'SOX', 'VIX', 'WTI', 'USDKRW', 'BTC'];
 
   var lwcLoadPromise = null;
   var chartInstances = {}; // symbol -> { chart, series }
@@ -91,10 +104,37 @@
       });
   }
 
-  function fmtPrice(v) {
+  // BTC는 VM(/futures)이 아니라 GAS ?market=1(getMarketRibbon)에서 가져온다 - 시세 이력이
+  // 없는 지표라 VM의 future_prices/future_chart 스키마(선물/지수 전용)에 안 맞고, 이미
+  // js/quick-indices.js가 같은 방식으로 쓰고 있어 소스를 통일했다. 실패해도 다른 카드는
+  // 정상 렌더링돼야 하므로 이 함수는 항상 예외를 던지지 않고 null로 수렴시킨다(호출부에서 처리).
+  function fetchBtc() {
+    var hasAbort = 'AbortController' in global;
+    var controller = hasAbort ? new AbortController() : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
+    return fetch(GAS_TICKER_URL + '?market=1', hasAbort ? { signal: controller.signal } : {})
+      .then(function (r) {
+        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (timer) clearTimeout(timer);
+        var btc = data && data.btc;
+        if (!btc || typeof btc.price !== 'number') return null;
+        return {
+          symbol: 'BTC', name: 'BTC', price: btc.price, change: btc.change, change_rate: btc.changeRate,
+          high: null, low: null, updated_at: null, chart: null
+        };
+      })
+      .catch(function (err) {
+        if (timer) clearTimeout(timer);
+        throw err;
+      });
+  }
+
+  function fmtPrice(v, digits) {
     if (v == null || isNaN(v)) return '-';
-    var abs = Math.abs(v);
-    var digits = abs >= 1000 ? 2 : 2;
+    if (digits == null) digits = 2;
     return v.toLocaleString('ko-KR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
 
@@ -134,17 +174,20 @@
     var hasPrice = typeof item.price === 'number';
     var tone = item.change_rate > 0 ? 'om-pos' : item.change_rate < 0 ? 'om-neg' : 'om-zero';
     var arrow = item.change_rate > 0 ? '▲' : item.change_rate < 0 ? '▼' : '-';
+    // BTC는 원화 시세가 억 단위라 다른 카드와 같은 소수점 2자리를 쓰면 지저분해 보임 -
+    // 관심지수 리본(js/quick-indices.js formatNumber)과 동일하게 정수로 표시.
+    var priceDigits = item.symbol === 'BTC' ? 0 : 2;
 
     return ''
       + '<div class="om-body">'
-      + '<div class="om-price ' + tone + '">' + (hasPrice ? fmtPrice(item.price) : '데이터 없음') + '</div>'
+      + '<div class="om-price ' + tone + '">' + (hasPrice ? fmtPrice(item.price, priceDigits) : '데이터 없음') + '</div>'
       + (hasPrice
-        ? '<div class="om-change ' + tone + '">' + arrow + ' ' + fmtSigned(item.change, 2) + ' (' + fmtSigned(item.change_rate, 2) + '%)</div>'
+        ? '<div class="om-change ' + tone + '">' + arrow + ' ' + fmtSigned(item.change, priceDigits) + ' (' + fmtSigned(item.change_rate, 2) + '%)</div>'
         : '')
       + '<div class="om-chart" data-symbol="' + escapeHtml(item.symbol) + '"></div>'
       + '<div class="om-hl">'
-      + '<span>고가 ' + fmtPrice(item.high) + '</span>'
-      + '<span>저가 ' + fmtPrice(item.low) + '</span>'
+      + '<span>고가 ' + fmtPrice(item.high, priceDigits) + '</span>'
+      + '<span>저가 ' + fmtPrice(item.low, priceDigits) + '</span>'
       + '</div>'
       + '<div class="om-updated">업데이트 ' + fmtTime(item.updated_at) + '</div>'
       + '</div>';
@@ -300,9 +343,20 @@
     });
   }
 
+  // VM(/futures) + GAS(BTC) 두 소스를 합친 뒤 SYMBOL_ORDER로 필터링해 renderAll에 넘긴다.
+  // 이 필터링이 없으면 renderSummary가 VM 원본 응답의 심볼(코스피200 주간/야간선물 등 이
+  // 페이지에 안 쓰는 것들까지)을 전부 세어버리는 문제가 생긴다 - 과거 실제 발생한 버그.
   function refresh(container) {
     OvernightMarket.fetchFutures()
-      .then(function (items) { renderAll(container, items); })
+      .then(function (futuresItems) {
+        return OvernightMarket.fetchBtc().catch(function () { return null; }).then(function (btcItem) {
+          var bySymbol = {};
+          futuresItems.forEach(function (it) { bySymbol[it.symbol] = it; });
+          if (btcItem) bySymbol.BTC = btcItem;
+          var items = SYMBOL_ORDER.map(function (s) { return bySymbol[s] || { symbol: s }; });
+          renderAll(container, items);
+        });
+      })
       .catch(function () {
         SYMBOL_ORDER.forEach(function (symbol) {
           var card = container.querySelector('.om-card[data-symbol="' + symbol + '"]');
@@ -338,6 +392,7 @@
   var OvernightMarket = {
     init: init,
     fetchFutures: fetchFutures,
+    fetchBtc: fetchBtc,
     fetchAiSummary: fetchAiSummary
   };
   global.OvernightMarket = OvernightMarket;

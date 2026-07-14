@@ -1,21 +1,22 @@
 /**
- * 코스피 선물(주간·야간) 페이지 - 코스피 현물지수/코스피200 주간선물/코스피200 야간선물을
- * 한 화면에 놓고 큰 차트 2개(주간선물/야간선물)로 보여준 뒤, AI가 "선물-현물 관계, 특히
- * 야간선물이 다음 거래일 한국 증시에 미치는 영향" 관점으로 해설한다.
+ * 코스피 선물(주간·야간) 페이지 - 코스피200 주간선물/야간선물을 큰 차트 2개로 보여준 뒤,
+ * AI가 "선물 간 관계와 현물지수와의 연관성, 특히 야간선물이 다음 거래일 한국 증시에
+ * 미치는 영향" 관점으로 해설한다.
  *
  * 2026-07-16 신설. js/overnight-market.js(구 간밤 시황)에서 코스피200 야간선물 카드를
- * 분리해 이 페이지로 옮기고, 코스피 현물지수·주간선물을 새로 추가했다.
+ * 분리해 이 페이지로 옮기고, 코스피200 주간선물을 새로 추가했다.
+ *
+ * 2026-07-16(2차): 사용자 요청으로 코스피 현물지수 카드를 제거하고 선물(주간+야간)만
+ * 남겼다 - 관심지수 리본(js/quick-indices.js)에 코스피 현물이 항상 떠 있어 이 페이지에서
+ * 또 보여주는 게 중복이라는 판단. VM도 더는 코스피 현물지수를 수집하지 않는다
+ * (scripts/cloud-vm/domestic_futures.py 상단 주석 참고).
  *
  * 데이터 소스:
- * - 코스피 현물지수(KOSPI_CASH): 네이버 실시간 API, VM이 현재가만 수집(과거 일봉은 신뢰할 수
- *   없는 데이터를 반환해 수집 안 함 - scripts/cloud-vm/domestic_futures.py 상단 주석 참고).
- *   그래서 이 페이지는 현물 이력을 차트로 겹쳐 그리지 않고, 현재가 패널 숫자 + AI 해설 텍스트로
- *   현물-선물 관계를 설명한다.
  * - 코스피200 주간선물(KOSPI200_DAY): 네이버 API, VM이 현재가+최근 90일 일봉 수집
  *   (scripts/cloud-vm/domestic_futures.py).
  * - 코스피200 야간선물(KOSPI200_NIGHT): 한국투자증권(KIS) API, VM이 웹소켓으로 상시 수집
  *   (scripts/cloud-vm/night_futures_ws.py) - js/overnight-market.js와 동일 소스.
- * 셋 다 VM의 /futures 엔드포인트 하나로 묶여서 나온다(js/overnight-market.js와 동일 API,
+ * 둘 다 VM의 /futures 엔드포인트 하나로 묶여서 나온다(js/overnight-market.js와 동일 API,
  * 이 페이지가 쓰는 심볼만 다름).
  *
  * AI 해설은 GAS(gas/ticker-proxy.gs의 getKospiFuturesAnalysis, ?action=kospiFuturesAnalysis)가
@@ -37,9 +38,8 @@
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var CHART_HEIGHT = 420;
 
-  var PANEL_ORDER = ['KOSPI_CASH', 'KOSPI200_DAY', 'KOSPI200_NIGHT'];
+  var PANEL_ORDER = ['KOSPI200_DAY', 'KOSPI200_NIGHT'];
   var PANEL_LABELS = {
-    KOSPI_CASH: '코스피 현물지수',
     KOSPI200_DAY: '코스피200 주간선물',
     KOSPI200_NIGHT: '코스피200 야간선물'
   };

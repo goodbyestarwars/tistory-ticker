@@ -744,15 +744,14 @@ function getKospiFuturesAnalysis() {
   var futures = safeCall(fetchFuturesFromVm_);
   var lines = [];
   if (futures) {
-    [futuresLine_(futures.KOSPI_CASH, '코스피 현물지수'),
-      futuresLine_(futures.KOSPI200_DAY, '코스피200 주간선물'),
+    [futuresLine_(futures.KOSPI200_DAY, '코스피200 주간선물'),
       futuresLine_(futures.KOSPI200_NIGHT, '코스피200 야간선물')].forEach(function (line) {
       if (line) lines.push(line);
     });
   }
   if (!lines.length) return { analysis: null };
 
-  var prompt = '오늘/간밤 코스피 관련 지표야: ' + lines.join(', ') + '. ' +
+  var prompt = '오늘/간밤 코스피 선물 지표야: ' + lines.join(', ') + '. ' +
     '코스피200 선물(주간·야간)과 코스피 현물지수의 관계를 설명하고, 특히 야간선물 동향이 ' +
     '다음 거래일 한국 증시 개장에 어떤 영향을 줄 수 있는지 투자자 관점에서 4문장으로 ' +
     '한국어로 정리해줘. 문장 외 다른 말은 붙이지 마.';
@@ -772,6 +771,7 @@ function getSubIndexAnalysis() {
   var lines = [];
   if (futures) {
     [
+      ['NASDAQ_INDEX', '나스닥종합지수'], ['SP500_INDEX', 'S&P500지수'], ['DOW_INDEX', '다우존스지수'],
       ['NASDAQ100', '나스닥100 선물'], ['SP500', 'S&P500 선물'], ['DOW', '다우 선물'],
       ['SOX', '필라델피아 반도체지수'], ['VIX', 'VIX(변동성지수)'], ['WTI', 'WTI 원유'],
       ['USDKRW', '원/달러 환율']
@@ -780,9 +780,15 @@ function getSubIndexAnalysis() {
       if (line) lines.push(line);
     });
   }
+  // BTC는 VM이 아니라 GAS 자체 fetchCrypto()(빗썸->코인게코 폴백, getMarketRibbon과 동일 소스)로
+  // 가져온다 - VM은 시세 이력이 없는 지표(BTC)를 다루지 않는 정책(js/quick-indices.js 주석 참고).
+  var btc = safeCall(fetchCrypto);
+  if (btc && typeof btc.price === 'number') {
+    lines.push('BTC ' + btc.price + ' (' + (btc.changeRate >= 0 ? '+' : '') + btc.changeRate.toFixed(2) + '%)');
+  }
   if (!lines.length) return { analysis: null };
 
-  var prompt = '오늘 미국 주요 지수·환율·원자재 동향이야: ' + lines.join(', ') + '. ' +
+  var prompt = '오늘 미국 주요 지수(현물+선물)·환율·원자재·비트코인 동향이야: ' + lines.join(', ') + '. ' +
     '이 지표들을 종합해서 오늘 한국 증시(코스피/코스닥)에 어떤 영향을 줄 수 있는지 ' +
     '투자자 관점에서 4문장으로 한국어로 정리해줘. 문장 외 다른 말은 붙이지 마.';
 

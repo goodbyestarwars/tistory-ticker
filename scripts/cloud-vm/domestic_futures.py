@@ -1,25 +1,25 @@
 # -*- coding: utf-8 -*-
-"""코스피200 주간선물(FUT) + 코스피 현물지수(현재가만) + 원/달러 환율 - 네이버 국내 API 수집.
-foreign_futures.py(나스닥100/S&P500/다우/SOX/VIX/WTI, 해외 5종)와 짝을 이루는 국내판.
-"코스피 선물" 페이지(주간선물+야간선물+현물 연계 해설)와 "보조지수" 페이지(환율 카드)가 공유한다.
+"""코스피200 주간선물(FUT) + 원/달러 환율 - 네이버 국내 API 수집.
+foreign_futures.py(나스닥100/S&P500/다우/SOX/VIX/WTI 등, 해외종)와 짝을 이루는 국내판.
+"코스피 선물" 페이지(주간선물+야간선물)와 "보조지수" 페이지(환율 카드)가 공유한다.
 
 검증 경위(2026-07-15, curl 실측 - 전부 코드 작성 전에 실제 호출로 확인함):
 - 코스피200 주간선물 실시간: polling.finance.naver.com/api/realtime/domestic/index/FUT
   (주의: 카테고리가 'futures'가 아니라 'index' - 과거 일봉 API(chart/domestic/futures/FUT/day)와
   카테고리 표기가 다름, 네이버 API 자체가 그렇게 나뉘어 있음). foreign_futures.py의 fetch_realtime과
   응답 필드가 완전히 동일(closePriceRaw 등)해서 그대로 재사용.
-- 코스피 현물지수(KOSPI): 실시간(domestic/index/KOSPI)은 정상이지만 과거 일봉 API
-  (chart/domestic/index/KOSPI/day)는 하루 변동폭이 5~10%씩 튀는 신뢰할 수 없는 데이터를
-  반환함(실측 확인, 원인 불명) - 그래서 현물지수는 과거 일봉을 수집하지 않고 현재가만 저장한다.
-  "코스피 선물" 페이지의 현물-선물 연계 해석은 차트 오버레이 대신 실시간 숫자 3개(현물/주간선물/
-  야간선물)를 AI 프롬프트에 넣어 텍스트로 설명하는 방식으로 처리한다(js/kospi-futures.js 참고).
 - 원/달러 환율: 현재가는 api.stock.naver.com/marketindex/exchange/FX_USDKRW(exchangeInfo,
   고가/저가 필드 없음 - 카드에 '-'로 표시됨, 정상), 과거 일봉은 같은 경로 뒤에
   /prices?page=1&pageSize=60(최대 60건 - 그 이상 요청하면 에러 메시지 반환, 실측 확인) -
   둘 다 지수/선물 API와 필드 이름이 완전히 달라 별도 파서가 필요하다. 날짜가 'YYYY-MM-DD'로
   오는데 future_chart 테이블은 다른 심볼들과 통일되게 'YYYYMMDD'로 저장한다(대시 제거) -
   프론트 toLwcTime()이 모든 심볼에 동일하게 YYYYMMDD 입력을 가정하기 때문.
-User-Agent를 모바일 값으로 고정해야 함 - 아니면 404/에러 HTML이 돌아옴(foreign_futures.py와 동일)."""
+User-Agent를 모바일 값으로 고정해야 함 - 아니면 404/에러 HTML이 돌아옴(foreign_futures.py와 동일).
+
+2026-07-16(2차): 코스피 현물지수(KOSPI_CASH) 수집을 제거했다. 실시간은 정상이었지만 과거 일봉
+API(chart/domestic/index/KOSPI/day)가 하루 변동폭 5~10%씩 튀는 신뢰 불가 데이터를 반환해서
+차트에는 애초에 못 썼고(git log 참고), 이후 사용자 요청으로 "코스피 선물" 페이지에서도 현물
+카드를 빼기로 하면서(주간·야간선물만 표시) 현재가조차 아무 데서도 안 쓰이게 돼 완전히 제거했다."""
 
 import json
 import logging
@@ -34,10 +34,9 @@ logger = logging.getLogger('domestic_futures')
 
 UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'
 
-# {symbol: (표시명, 네이버 code)} - 전부 realtime/domestic/index/{code} 하나의 API로 커버됨.
+# {symbol: (표시명, 네이버 code)} - realtime/domestic/index/{code} API로 커버됨.
 REALTIME_SYMBOLS = {
     'KOSPI200_DAY': ('코스피200 주간선물', 'FUT'),
-    'KOSPI_CASH': ('코스피', 'KOSPI'),
 }
 
 _REALTIME_POLL_SEC = 30
@@ -172,7 +171,6 @@ def refresh_history_all():
                 logger.info('domestic futures history refreshed: USDKRW %d rows', len(rows))
         except Exception:
             logger.exception('USDKRW history fetch failed')
-        # KOSPI_CASH는 위 주석대로 과거 일봉을 수집하지 않음(신뢰 불가 데이터 확인됨)
     finally:
         conn.close()
 

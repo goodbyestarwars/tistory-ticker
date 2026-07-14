@@ -25,8 +25,8 @@
     <button onclick="setMock('error')">API 오류</button>
   </div>
   <p style="font-size:13px;color:#888">
-    기본은 mock 데이터로 렌더링 검증(현재가 패널 3개: 코스피 현물지수/코스피200 주간선물/
-    코스피200 야간선물 + 큰 차트 2개 + AI 해설 박스). 실제 VM/GAS 호출로 테스트하려면
+    기본은 mock 데이터로 렌더링 검증(현재가 패널 2개: 코스피200 주간선물/야간선물 + 큰 차트 2개
+    + AI 해설 박스). 실제 VM/GAS 호출로 테스트하려면
     <code>?real=1</code>을 붙이세요(CORS가 ghlee.tistory.com만 허용하므로 로컬 http.server에서는
     막힐 수 있음 - 라이브 페이지에서 최종 확인 필요).
   </p>
@@ -36,7 +36,6 @@
 <script src="../js/kospi-futures.js"></script>
 <script>
   var SYMBOLS = [
-    { symbol: 'KOSPI_CASH', name: '코스피', base: 6856.83, hasChart: false },
     { symbol: 'KOSPI200_DAY', name: '코스피200 주간선물', base: 1102.15, hasChart: true },
     { symbol: 'KOSPI200_NIGHT', name: '코스피200 야간선물', base: 1156.0, hasChart: true }
   ];
