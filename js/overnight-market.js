@@ -25,10 +25,18 @@
  * 아니라 심볼(거래소 데이터 소스) 문제였음). 해결: 같은 지표를 추적하는 **TVC/CAPITALCOM
  * CFD 심볼**로 교체(나스닥100→CAPITALCOM:NAS100, S&P500→CAPITALCOM:SPX500, WTI원유→
  * TVC:USOIL, 금→TVC:GOLD) - CFD 데이터는 라이선스가 더 자유로워 무료 위젯에서 정상
- * 렌더링됨. VIX(TVC:VIX)/반도체(TVC:SOX)는 처음부터 TVC라 문제없었음. 코스피 야간선물
- * (KRX:K2I1!)만 국내 거래소 데이터라 CFD 대안이 마땅치 않아 원래 심볼 유지 - 안 뜨면
- * 별도로 다시 봐야 함. 위젯은 다시 "Mini Symbol Overview"로 원복(요구사항이었던
- * "미니 차트" 그대로).
+ * 렌더링됨. 위젯은 다시 "Mini Symbol Overview"로 원복(요구사항이었던 "미니 차트" 그대로).
+ *
+ * 2026-07-14(2차): TVC:VIX/TVC:SOX도 라이브에서 똑같이 막히는 것 확인 - CFD냐 아니냐가
+ * 아니라 **"지수(계산값, 실제 매매 불가)"인지가 진짜 기준**이었음(USOIL/GOLD는 CFD 상품이라
+ * 되고, VIX/SOX는 TVC 접두사여도 "지수"라 안 됨). 반도체는 실제 거래되는 ETF로,
+ * VIX는 CFD 버전 심볼로 교체:
+ * - 반도체: TVC:SOX(지수) -> NASDAQ:SOXX(iShares 반도체 ETF, 실제 상장 종목이라 확실)
+ * - VIX: TVC:VIX(지수) -> CAPITALCOM:VIX(CFD 버전)
+ * 코스피 야간선물(KRX:K2I1!)은 이 패턴대로면 "지수/선물"이라 마찬가지로 막힐 가능성이 높고,
+ * CFD 대안을 못 찾음(KRX:KOSPI200/TVC:KOSPI도 전부 지수 계열이라 마찬가지일 것으로 추정) -
+ * 원래 심볼 유지, 라이브에서 계속 안 뜨면 이 항목은 다른 접근(예: 제외, 또는 야후
+ * ^KS200을 서버에서 받아 직접 그리기)이 필요할 수 있음.
  */
 (function (global) {
   'use strict';
@@ -39,9 +47,9 @@
     { symbol: 'CAPITALCOM:NAS100', label: '나스닥 100 선물' },
     { symbol: 'CAPITALCOM:SPX500', label: 'S&P500 선물' },
     { symbol: 'KRX:K2I1!', label: '코스피200 야간선물' },
-    { symbol: 'TVC:SOX', label: '필라델피아 반도체 지수' },
+    { symbol: 'NASDAQ:SOXX', label: '필라델피아 반도체 ETF' },
     { symbol: 'TVC:USOIL', label: 'WTI 원유 선물' },
-    { symbol: 'TVC:VIX', label: 'VIX(변동성 지수)' },
+    { symbol: 'CAPITALCOM:VIX', label: 'VIX(변동성 지수)' },
     { symbol: 'TVC:GOLD', label: '국제 금 선물' }
   ];
 
