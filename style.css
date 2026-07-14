@@ -165,6 +165,63 @@ a { text-decoration: none; color: inherit; }
 }
 .nav-item-label { font-size: 14px; flex: 1; }
 
+/* 종목검색 (js/skin-menu.js가 커뮤니티 메뉴 뒤에 심고, js/stock-search-panel.js가 동작을 붙임)
+   "음각" 느낌 - 안쪽 그림자로 눌려있는 듯한 인풋 */
+.nav-search-wrap { position: relative; padding: 10px 10px 4px; }
+.nav-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #eef0f3;
+  border: 1px solid #dde1e7;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+}
+.nav-search-icon { font-size: 13px; flex-shrink: 0; opacity: 0.7; }
+.nav-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: #374151;
+}
+.nav-search-input::placeholder { color: #9aa3af; }
+
+.nav-search-suggest {
+  display: none;
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 10px;
+  right: 10px;
+  z-index: 30;
+  background: #fff;
+  border: 1px solid #dde1e7;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.nav-search-suggest.active { display: block; }
+.nav-search-suggest-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #9aa3af;
+  padding: 6px 8px 2px;
+}
+.nav-search-suggest-item {
+  padding: 8px;
+  border-radius: 7px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+.nav-search-suggest-item:hover, .nav-search-suggest-item.active { background: #f1f5f9; }
+
 /* Categories — [##_category_list_##] 출력 스타일 */
 .cat-section { padding: 16px; }
 .section-title {
@@ -2302,6 +2359,18 @@ html.dark .nav-item-home .nav-item-label { color: #a5b4fc; }
 /* 아이콘 SVG(그리드·벨·말풍선 = currentColor) 밝게 */
 html.dark .nav-item-icon svg { stroke: #dbe4f2; }
 html.dark .nav-item-home .nav-item-icon svg { stroke: #a5b4fc; }
+
+html.dark .nav-search-input-wrap {
+  background: #161616;
+  border-color: #333;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+html.dark .nav-search-input { color: #eee; }
+html.dark .nav-search-input::placeholder { color: #777; }
+html.dark .nav-search-suggest { background: #1e1e1e; border-color: #3a3a3a; }
+html.dark .nav-search-suggest-title { color: #888; }
+html.dark .nav-search-suggest-item { color: #ddd; }
+html.dark .nav-search-suggest-item:hover, html.dark .nav-search-suggest-item.active { background: #2a2a2a; }
 /* 온도계(currentColor 방식): 다크에선 밝은 빨강 (인라인 color 오버라이드) */
 html.dark .nav-icon-temp { color: #ff7a6e !important; }
 html.dark .section-title { color: #b3bdcf; }

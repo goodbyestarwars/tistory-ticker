@@ -54,6 +54,11 @@
 }
 .ribbon-add-btn:hover { background: #1e293b; color: #e2e8f0; }
 
+/* .ribbon-popover에 display:grid를 항상 걸어두면(작성자 스타일이 UA [hidden] 규칙보다
+   우선순위가 높아서) hidden 속성만으로는 실제로 안 숨겨진다 - 반드시 명시적으로 덮어써야 함.
+   (2026-07-16: "+ 추가 후 화면이 안 닫힌다" 버그의 원인이었음) */
+.ribbon-popover[hidden] { display: none; }
+
 .ribbon-popover {
   position: absolute;
   top: 34px;

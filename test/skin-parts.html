@@ -4,17 +4,16 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>skin-menu/skin-main 로컬 테스트</title>
+<link rel="stylesheet" href="../style.css" />
 <style>
-  body { font-family: sans-serif; margin: 24px; }
-  .nav-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; text-decoration: none; color: #333; }
-  .nav-item:hover { background: #f2f2f2; }
-  .card { border: 1px solid #ddd; border-radius: 8px; padding: 8px; max-width: 260px; }
+  body { font-family: sans-serif; margin: 24px; max-width: 280px; }
 </style>
 </head>
 <body>
 
-<h1>skin-menu / skin-main 로컬 테스트</h1>
-<p style="font-size:13px;color:#888">티스토리 스킨 밖에서 두 스크립트가 에러 없이 도는지 + 메뉴가 렌더링되는지만 확인.
+<h1 style="max-width:600px;">skin-menu / skin-main / 사이드바 종목검색 로컬 테스트</h1>
+<p style="font-size:13px;color:#888;max-width:600px;">티스토리 스킨 밖에서 세 스크립트가 에러 없이 도는지 + 메뉴가 렌더링되는지 +
+커뮤니티 메뉴 밑 종목검색 입력창(음각 스타일)이 자동완성/이동까지 동작하는지 확인.
 (카테고리/캘린더/공시티커 등은 요소가 없으니 널가드로 건너뛰어야 정상)</p>
 
 <!-- 스킨과 동일한 마운트 -->
@@ -23,6 +22,8 @@
 <!-- skin-main이 참조하는 최소 요소 (없어도 죽으면 안 되지만, 있는 경우 동작 확인용) -->
 <div id="pinnedNotice" style="display:none"></div>
 
+<script src="../data/krx_map.js"></script>
+<script src="../js/stock-search-panel.js"></script>
 <script src="../js/skin-menu.js"></script>
 <script src="../js/skin-main.js"></script>
 <script>
@@ -31,6 +32,7 @@
   console.log('[test] readPost:', typeof window.readPost);
   console.log('[test] sharePost:', typeof window.sharePost);
   console.log('[test] menu items:', document.querySelectorAll('#nav-menu-mount .nav-item').length);
+  console.log('[test] search input:', !!document.getElementById('navSearchInput'));
 </script>
 
 </body>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>quick-indices 로컬 테스트</title>
+<link rel="stylesheet" href="../css/quick-indices.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #f4f4f5; }
+  html.dark body { background: #111; }
+  .page-body { max-width: 720px; margin: 40px auto; padding: 0 16px; }
+  .tools { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  /* 실제 skin.html의 disc-ticker/post-card를 흉내(위치 검증용) */
+  #discTicker { background: #0f172a; color: #fff; padding: 8px; font-size: 12px; }
+  .post-card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; background: #fff; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div id="discTicker">(mock) 공시 티커</div>
+
+<div class="page-body">
+  <h1>quick-indices 로컬 테스트</h1>
+  <div class="tools">
+    <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+    <button onclick="localStorage.removeItem('qi_selected_v1'); location.reload();">선택 초기화(기본 4종으로)</button>
+  </div>
+  <p style="font-size:13px;color:#888">
+    quick-indices.js는 .post-card(첫 글/공지 카드) 바로 앞에 스스로 끼워 넣습니다. 아래
+    "(mock) 첫 글 카드"보다 위에 카드 그리드가 보이면 정상. GAS(?market=1)는 CORS가 열려있어
+    로컬에서도 실제 호출되지만, VM(/futures)은 ghlee.tistory.com만 허용해서 로컬에서는
+    막힐 수 있습니다(해외선물 카드는 라이브에서 최종 확인).
+  </p>
+  <article class="post-card notice-card">(mock) 공지 카드 - 이 위에 지수 카드가 꽂혀야 함</article>
+  <article class="post-card">(mock) 일반 글 카드</article>
+</div>
+
+<script src="../js/quick-indices.js"></script>
+
+</body>
+</html>

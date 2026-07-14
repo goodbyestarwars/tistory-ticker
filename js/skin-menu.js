@@ -91,6 +91,18 @@
     }
   ];
 
+  // 커뮤니티 메뉴 바로 아래 종목검색 입력창(음각 스타일). 자동완성/이동 로직은
+  // js/stock-search-panel.js가 이 마운트(#navSearchInput/#navSearchSuggest)를 찾아 붙인다
+  // (검색 로직을 이 파일에 다시 넣지 않고 한 곳에 모아두기 위함).
+  var SEARCH_HTML = ''
+    + '<div class="nav-search-wrap">'
+    + '<div class="nav-search-input-wrap">'
+    + '<span class="nav-search-icon">🔍</span>'
+    + '<input type="text" id="navSearchInput" class="nav-search-input" placeholder="종목검색" autocomplete="off" />'
+    + '</div>'
+    + '<div id="navSearchSuggest" class="nav-search-suggest"></div>'
+    + '</div>';
+
   function render() {
     var mount = document.getElementById('nav-menu-mount');
     if (!mount) return;
@@ -108,7 +120,9 @@
         + '</div>'
         + '<span class="nav-item-label"' + (it.bold ? ' style="font-weight:700;"' : '') + '>' + it.label + '</span>'
         + '</a>';
-    }).join('');
+    }).join('') + SEARCH_HTML;
+
+    if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
   }
 
   if (document.readyState === 'loading') {

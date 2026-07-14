@@ -1,20 +1,20 @@
 /**
- * 종목 검색 패널 - 사이트 전역 플로팅 위젯 (v2: 소형 드롭다운 + 페이지 이동 방식)
+ * 종목검색 - 왼쪽 사이드바(커뮤니티 메뉴 바로 아래) 검색창
  *
- * v1(전체화면 슬라이드 패널 + ForeignFlow.search() 인라인 임베드)은 실사용 확인 결과
- * 라이브에서 오버레이가 어색하게 뜨고 클릭이 먹통이 되는 문제가 있었고, 사용자 피드백은
- * "검색을 누르면 보통 이렇게 안 뜬다 - 별도 페이지/HTML에서 정보를 보여줘야 한다"였다.
- * 그래서 이 버전은 훨씬 단순하게: 우측 하단 🔍 버튼 -> 작은 드롭다운(검색창 + 자동완성 +
- * 즐겨찾기·최근검색)만 뜨고, 종목을 고르면 이미 있는 종목분석 페이지
- * (/page/foreign-flow?code=&name=, js/invest-signal.js가 쓰는 것과 동일한 이동 방식)로
- * 이동한다. 차트/종합점수/투자시그널/수급/펀더멘탈은 그 페이지가 이미 다 보여주므로
- * 여기서 다시 그리지 않는다 - 새 Tistory 페이지를 만들 필요 없음.
+ * v1(플로팅 🔍 버튼 + 전체화면 오버레이)과 v2(플로팅 버튼 + 소형 드롭다운)는 라이브 확인 결과
+ * 클릭이 먹통이 되거나 어색하게 뜨는 문제가 있었고, 사용자 피드백은 "왼쪽 사이드바 커뮤니티
+ * 밑에 음각 스타일 검색창(플레이스홀더: 종목검색)으로 달라"였다. 그래서 이 v3는 플로팅
+ * 엘리먼트를 만들지 않고, js/skin-menu.js가 사이드바에 미리 심어둔 #navSearchInput/
+ * #navSearchSuggest에 자동완성 + 이동 로직만 붙인다(마크업은 skin-menu.js 담당, 동작은
+ * 여기 담당 - 검색 로직을 한 곳에 모아두기 위한 분리).
  *
- * 즐겨찾기(★)·최근검색(최대 10개)·마지막 조회 종목은 이 브라우저의 localStorage에
- * 저장된다(로그인 불필요, 기기별로 다를 수 있음):
- *   stock:lastSelected - 마지막으로 연 종목 코드
- *   stock:favorites     - [{code,name}, ...]
- *   stock:recent        - [{code,name}, ...] 최신순, 최대 10개
+ * 종목을 고르면 이미 있는 종목분석 페이지(/page/foreign-flow?code=&name=, js/invest-signal.js가
+ * 쓰는 것과 동일한 이동 방식)로 이동한다 - 새 Tistory 페이지를 만들 필요 없음.
+ *
+ * 즐겨찾기(★)·최근검색(최대 10개)·마지막 조회 종목은 이 브라우저의 localStorage에 저장된다:
+ *   stock:lastSelected, stock:favorites, stock:recent
+ * (현재 이 검색창 자체엔 즐겨찾기 추가 UI가 없음 - 검색해서 이동한 종목이 자동으로
+ * 최근검색에 쌓이고, 입력창이 비어있을 때 그 최근검색을 드롭다운으로 보여준다)
  */
 (function (global) {
   'use strict';
@@ -23,14 +23,15 @@
   var TARGET_PAGE = '/page/foreign-flow';
 
   var STORAGE_LAST = 'stock:lastSelected';
-  var STORAGE_FAVORITES = 'stock:favorites';
   var STORAGE_RECENT = 'stock:recent';
   var MAX_RECENT = 10;
   var MAX_SUGGEST = 8;
+  var WIRE_RETRY_MS = 300;
+  var WIRE_RETRY_MAX = 20; // 최대 6초까지 재시도(스크립트 로드 순서가 뒤바뀐 경우 대비)
 
   var krxMapPromise = null;
   var activeIndex = -1;
-  var dropdownOpen = false;
+  var wired = false;
 
   // ---- KRX_MAP 지연 로드 ----
 
@@ -61,25 +62,9 @@
   function writeJson(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* 프라이빗 모드 등 무시 */ }
   }
-
-  function getLast() {
-    try { return localStorage.getItem(STORAGE_LAST) || null; } catch (err) { return null; }
-  }
   function setLast(code) {
     try { localStorage.setItem(STORAGE_LAST, code); } catch (err) { /* 무시 */ }
   }
-
-  function getFavorites() { return readJson(STORAGE_FAVORITES, []); }
-  function isFavorite(code) { return getFavorites().some(function (it) { return it.code === code; }); }
-  function toggleFavorite(code, name) {
-    var list = getFavorites();
-    var idx = list.findIndex(function (it) { return it.code === code; });
-    if (idx > -1) list.splice(idx, 1);
-    else list.unshift({ code: code, name: name });
-    writeJson(STORAGE_FAVORITES, list);
-    return idx === -1; // true면 방금 추가됨
-  }
-
   function getRecent() { return readJson(STORAGE_RECENT, []); }
   function addRecent(code, name) {
     var list = getRecent().filter(function (it) { return it.code !== code; });
@@ -122,53 +107,7 @@
     return starts.concat(contains).slice(0, MAX_SUGGEST);
   }
 
-  // ---- DOM 뼈대: 작은 앵커 드롭다운(전체화면 오버레이 아님) ----
-
-  function buildDom() {
-    var wrap = document.createElement('div');
-    wrap.id = 'sspWrap';
-    wrap.className = 'ssp-wrap';
-    wrap.innerHTML = ''
-      + '<button type="button" id="sspTrigger" class="ssp-trigger" aria-label="종목검색 열기">'
-      + '<span class="ssp-trigger-icon">🔍</span><span class="ssp-trigger-label" id="sspTriggerLabel">종목검색</span>'
-      + '</button>'
-      + '<div id="sspDropdown" class="ssp-dropdown" hidden>'
-      + '<div class="ssp-dropdown-inner">'
-      + '<div class="ssp-input-wrap">'
-      + '<input type="text" id="sspInput" class="ssp-input" placeholder="종목명 또는 코드 (예: 삼성전자, 005930)" autocomplete="off" />'
-      + '<div id="sspSuggest" class="ssp-suggest"></div>'
-      + '</div>'
-      + '<div class="ssp-chip-section" id="sspChipSection"></div>'
-      + '</div>'
-      + '</div>';
-    document.body.appendChild(wrap);
-    return wrap;
-  }
-
-  function buildChipsHtml(list, emptyText) {
-    if (!list.length) return '<div class="ssp-chip-empty">' + emptyText + '</div>';
-    return list.map(function (it) {
-      return '<button type="button" class="ssp-chip" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '">' + escapeHtml(it.name) + '</button>';
-    }).join('');
-  }
-
-  function renderChipSection() {
-    var el = document.getElementById('sspChipSection');
-    if (!el) return;
-    var favorites = getFavorites();
-    var recent = getRecent();
-    el.innerHTML = ''
-      + '<div class="ssp-chip-group"><div class="ssp-chip-title">★ 즐겨찾기</div><div class="ssp-chip-row">' + buildChipsHtml(favorites, '즐겨찾기한 종목이 없어요.') + '</div></div>'
-      + '<div class="ssp-chip-group"><div class="ssp-chip-title">최근 검색</div><div class="ssp-chip-row">' + buildChipsHtml(recent, '최근 검색한 종목이 없어요.') + '</div></div>';
-
-    el.querySelectorAll('.ssp-chip').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        goToStock(btn.getAttribute('data-code'), btn.getAttribute('data-name'));
-      });
-    });
-  }
-
-  // ---- 자동완성 ----
+  // ---- 렌더링 ----
 
   function hideSuggest(box) {
     box.innerHTML = '';
@@ -176,29 +115,45 @@
     activeIndex = -1;
   }
 
-  function renderSuggest(box, query) {
-    if (!query || !global.KRX_MAP) { hideSuggest(box); return; }
+  function renderRecent(box) {
+    var recent = getRecent();
+    if (!recent.length) { hideSuggest(box); return; }
+    box.innerHTML = '<div class="nav-search-suggest-title">최근 검색</div>'
+      + recent.map(function (it, i) {
+        return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '">' + escapeHtml(it.name) + '</div>';
+      }).join('');
+    box.classList.add('active');
+    wireSuggestClicks(box);
+  }
+
+  function renderMatches(box, query) {
     var matches = suggestNames(query);
     if (!matches.length) { hideSuggest(box); return; }
-
     box.innerHTML = matches.map(function (name, i) {
-      return '<div class="ssp-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
+      var code = (global.KRX_MAP || {})[name];
+      return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
     }).join('');
     box.classList.add('active');
+    wireSuggestClicks(box);
+  }
 
-    box.querySelectorAll('.ssp-suggest-item').forEach(function (el) {
+  function wireSuggestClicks(box) {
+    box.querySelectorAll('.nav-search-suggest-item').forEach(function (el) {
       el.addEventListener('click', function () {
-        var stock = resolveStock(el.getAttribute('data-name'));
-        if (stock) goToStock(stock.code, stock.name);
+        goToStock(el.getAttribute('data-code'), el.getAttribute('data-name'));
       });
     });
   }
 
+  function currentSuggestNames(query) {
+    return query ? suggestNames(query) : getRecent().map(function (it) { return it.name; });
+  }
+
   function moveActive(box, delta, query) {
-    var matches = suggestNames(query);
-    if (!matches.length) return;
-    activeIndex = (activeIndex + delta + matches.length) % matches.length;
-    renderSuggest(box, query);
+    var names = currentSuggestNames(query);
+    if (!names.length) return;
+    activeIndex = (activeIndex + delta + names.length) % names.length;
+    if (query) renderMatches(box, query); else renderRecent(box);
   }
 
   // ---- 종목 선택 -> 종목분석 페이지로 이동 ----
@@ -210,75 +165,44 @@
     global.location.href = TARGET_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name || code);
   }
 
-  // ---- 드롭다운 열기/닫기 ----
+  // ---- 사이드바 검색창에 이벤트 바인딩 ----
 
-  function openDropdown() {
-    var dropdown = document.getElementById('sspDropdown');
-    if (!dropdown) return;
-    dropdown.hidden = false;
-    dropdownOpen = true;
-    renderChipSection();
-    ensureKrxMap().catch(function () { /* 자동완성만 늦게 뜰 뿐, 조용히 무시 */ });
-    var input = document.getElementById('sspInput');
-    if (input) { input.value = ''; setTimeout(function () { input.focus(); }, 0); }
-  }
+  function wireSidebarSearch() {
+    var input = document.getElementById('navSearchInput');
+    var box = document.getElementById('navSearchSuggest');
+    if (!input || !box) return; // 아직 skin-menu.js가 안 그렸으면 init()의 재시도가 다시 호출함
+    if (wired) return;
+    wired = true;
 
-  function closeDropdown() {
-    var dropdown = document.getElementById('sspDropdown');
-    if (!dropdown) return;
-    dropdown.hidden = true;
-    dropdownOpen = false;
-    var suggestBox = document.getElementById('sspSuggest');
-    if (suggestBox) hideSuggest(suggestBox);
-  }
-
-  // ---- 이벤트 바인딩 ----
-
-  function wireEvents(wrap) {
-    var trigger = document.getElementById('sspTrigger');
-    trigger.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (dropdownOpen) closeDropdown(); else openDropdown();
+    input.addEventListener('focus', function () {
+      if (input.value.trim()) ensureKrxMap().then(function () { renderMatches(box, input.value.trim()); });
+      else renderRecent(box);
     });
-
-    document.addEventListener('click', function (e) {
-      if (dropdownOpen && !wrap.contains(e.target)) closeDropdown();
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && dropdownOpen) closeDropdown();
-    });
-
-    var input = document.getElementById('sspInput');
-    var suggestBox = document.getElementById('sspSuggest');
-
     input.addEventListener('input', function () {
-      ensureKrxMap().then(function () { renderSuggest(suggestBox, input.value.trim()); });
+      var q = input.value.trim();
+      activeIndex = -1;
+      if (!q) { renderRecent(box); return; }
+      ensureKrxMap().then(function () { renderMatches(box, q); });
     });
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); moveActive(suggestBox, 1, input.value.trim()); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(suggestBox, -1, input.value.trim()); }
+      var q = input.value.trim();
+      if (e.key === 'ArrowDown') { e.preventDefault(); moveActive(box, 1, q); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(box, -1, q); }
       else if (e.key === 'Enter') {
         e.preventDefault();
-        var q = input.value.trim();
-        var matches = suggestNames(q);
-        var name = activeIndex > -1 && matches[activeIndex] ? matches[activeIndex] : q;
-        var stock = resolveStock(name);
+        var names = currentSuggestNames(q);
+        var name = activeIndex > -1 && names[activeIndex] ? names[activeIndex] : q;
+        var stock = q ? resolveStock(name) : (getRecent().filter(function (it) { return it.name === name; })[0]);
         if (stock) goToStock(stock.code, stock.name);
       } else if (e.key === 'Escape') {
-        hideSuggest(suggestBox);
+        hideSuggest(box);
+        input.blur();
       }
     });
-  }
-
-  // ---- 트리거 라벨(마지막 조회 종목 복원) ----
-
-  function restoreLastSelectionLabel() {
-    var lastCode = getLast();
-    if (!lastCode) return;
-    var hit = getRecent().filter(function (it) { return it.code === lastCode; })[0]
-      || getFavorites().filter(function (it) { return it.code === lastCode; })[0];
-    var label = document.getElementById('sspTriggerLabel');
-    if (label && hit) label.textContent = hit.name;
+    document.addEventListener('click', function (e) {
+      var wrap = document.querySelector('.nav-search-wrap');
+      if (wrap && !wrap.contains(e.target)) hideSuggest(box);
+    });
   }
 
   // ---- 포맷 유틸 ----
@@ -290,15 +214,19 @@
   }
   function escapeAttr(s) { return escapeHtml(s); }
 
-  // ---- 초기화 ----
+  // ---- 초기화: skin-menu.js가 먼저 로드됐으면 바로, 아니면 짧게 재시도 ----
 
   function init() {
-    var wrap = buildDom();
-    wireEvents(wrap);
-    restoreLastSelectionLabel();
+    var tries = 0;
+    (function attempt() {
+      wireSidebarSearch();
+      if (wired) return;
+      tries++;
+      if (tries < WIRE_RETRY_MAX) setTimeout(attempt, WIRE_RETRY_MS);
+    })();
   }
 
-  var StockSearchPanel = { init: init, openDropdown: openDropdown, closeDropdown: closeDropdown, goToStock: goToStock };
+  var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock };
   global.StockSearchPanel = StockSearchPanel;
 
   if (document.readyState === 'loading') {
