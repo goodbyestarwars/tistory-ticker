@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import kiwoom_client
 
 OHLC_MIN_DAYS = 100   # gas의 PATTERN_PAGES(10p*10행=100영업일)와 동일 기준
-OHLC_SNAPSHOT_DAYS = 260  # daily_scan.py가 SQLite(daily_prices)에 저장하는 일수 - 향후 일목균형표 구름대/224일선 스캐너에 필요한 최소치
+OHLC_SNAPSHOT_DAYS = 500  # daily_scan.py가 SQLite(daily_prices)에 저장하는 일수 - 일목균형표 구름대/224일선 스캐너 + 장기 추세 분석 여유분(260->500, 2026-07-14). 디스크 실측 550일=290MB(daily_prices+investor_flow_daily 합산)라 30GB 기준 부담 없음. ka10081 단일 호출로 최대 ~600영업일까지 나와서 API 추가 호출 없이 커버됨.
 FLOW_LOOKBACK_DAYS = 60  # 달력일 기준 - 영업일로 환산하면 40영업일(gas FRGN_PAGES=2*20행)를 넉넉히 커버
 
 
