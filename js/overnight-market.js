@@ -60,7 +60,8 @@
       dateRange: '12M',
       colorTheme: isDark() ? 'dark' : 'light',
       isTransparent: true,
-      autosize: true
+      autosize: true,
+      chartOnly: true // 연결선물(ES1! 등) 심볼에서 "트레이딩뷰에서만 쓸 수 있음" 매매연동 메시지가 대신 뜨는 문제 시도 - 확실히 고쳐지는지 미검증
     });
     container.querySelector('.tradingview-widget-container').appendChild(script);
   }
