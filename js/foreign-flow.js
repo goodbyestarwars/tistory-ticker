@@ -201,9 +201,18 @@
   // 종목명/코드 -> { code, name }. 정확일치 우선, 부분일치는 1개일 때만.
   function resolveStock(query) {
     if (!query) return null;
-    if (/^\d{6}$/.test(query)) return { code: query, name: query };
-
     var map = global.KRX_MAP || {};
+
+    // 2026-07-16 버그 수정: 6자리 코드로 검색하면 이름을 못 찾고 name에 코드를 그대로
+    // 넣어서 "005930 (005930)"처럼 이름 자리에 코드가 중복 표시됐음(다른 종목 이동 링크가
+    // ?code=&name=을 안 쓰고 code만 넘기는 경로에서 노출됨). KRX_MAP에서 코드로 역조회한다.
+    if (/^\d{6}$/.test(query)) {
+      for (var nm2 in map) {
+        if (map.hasOwnProperty(nm2) && map[nm2] === query) return { code: query, name: nm2 };
+      }
+      return { code: query, name: query }; // KRX_MAP에 없는 코드(신규상장 등) - 코드라도 보여줌
+    }
+
     if (map[query]) return { code: map[query], name: query };
 
     var q = query.toLowerCase();

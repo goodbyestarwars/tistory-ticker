@@ -3,38 +3,58 @@
 <head>
 <meta charset="UTF-8" />
 <title>quick-indices 로컬 테스트</title>
+<link rel="stylesheet" href="../style.css" />
 <link rel="stylesheet" href="../css/quick-indices.css" />
 <style>
-  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #f4f4f5; }
-  html.dark body { background: #111; }
-  .page-body { max-width: 720px; margin: 40px auto; padding: 0 16px; }
-  .tools { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
-  /* 실제 skin.html의 disc-ticker/post-card를 흉내(위치 검증용) */
-  #discTicker { background: #0f172a; color: #fff; padding: 8px; font-size: 12px; }
-  .post-card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; background: #fff; margin-top: 8px; }
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; }
 </style>
 </head>
 <body>
 
-<div id="discTicker">(mock) 공시 티커</div>
+<!-- 실제 skin.html의 고정 스택을 그대로 흉내(레이아웃 좌표 검증용) -->
+<div class="market-ribbon" id="market-ribbon"></div>
+<div class="navbar"></div>
+<div class="disc-ticker" id="discTicker">
+  <div class="disc-badge">공시</div>
+  <div class="disc-wrap"><div class="disc-track">(mock) 공시 없음</div></div>
+</div>
 
-<div class="page-body">
-  <h1>quick-indices 로컬 테스트</h1>
-  <div class="tools">
-    <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-    <button onclick="localStorage.removeItem('qi_selected_v1'); location.reload();">선택 초기화(기본 4종으로)</button>
+<div class="page-wrap">
+  <div class="main-layout">
+    <div class="sidebar-left card">사이드바</div>
+    <div style="flex:1;">
+      <h1>quick-indices 로컬 테스트</h1>
+      <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+        <button onclick="localStorage.removeItem('qi_selected_v1'); location.reload();">선택 초기화(기본 4종으로)</button>
+        <button id="checkBtn">레이아웃 겹침/틈 체크</button>
+      </div>
+      <p id="checkResult" style="font-size:13px;color:#888;"></p>
+      <p style="font-size:13px;color:#888">
+        quick-indices.js는 이제 페이지 종류와 무관하게 공시 티커 바로 아래 고정 바로 뜹니다
+        (홈/카테고리 글목록뿐 아니라 이 테스트처럼 .post-card가 없는 페이지에서도 동일).
+        GAS(?market=1)는 CORS가 열려있어 로컬에서도 실제 호출되지만, VM(/futures)은
+        ghlee.tistory.com만 허용해서 로컬에서는 막힐 수 있습니다(해외선물 카드/미니차트는
+        라이브에서 최종 확인).
+      </p>
+      <article class="post-card">(mock) 본문 콘텐츠 - 이 위 틈이 없어야 함</article>
+    </div>
   </div>
-  <p style="font-size:13px;color:#888">
-    quick-indices.js는 .post-card(첫 글/공지 카드) 바로 앞에 스스로 끼워 넣습니다. 아래
-    "(mock) 첫 글 카드"보다 위에 카드 그리드가 보이면 정상. GAS(?market=1)는 CORS가 열려있어
-    로컬에서도 실제 호출되지만, VM(/futures)은 ghlee.tistory.com만 허용해서 로컬에서는
-    막힐 수 있습니다(해외선물 카드는 라이브에서 최종 확인).
-  </p>
-  <article class="post-card notice-card">(mock) 공지 카드 - 이 위에 지수 카드가 꽂혀야 함</article>
-  <article class="post-card">(mock) 일반 글 카드</article>
 </div>
 
 <script src="../js/quick-indices.js"></script>
+<script>
+  document.getElementById('checkBtn').addEventListener('click', function () {
+    var qi = document.getElementById('quick-indices');
+    var content = document.querySelector('.main-layout > div:last-child');
+    var qiRect = qi.getBoundingClientRect();
+    var contentRect = content.getBoundingClientRect();
+    var gap = contentRect.top - qiRect.bottom;
+    document.getElementById('checkResult').textContent =
+      'qi bottom=' + qiRect.bottom.toFixed(1) + ', content top=' + contentRect.top.toFixed(1) +
+      ', gap=' + gap.toFixed(1) + 'px (겹치면 음수, 너무 크면 낭비 - 0~30px 정도가 정상)';
+  });
+</script>
 
 </body>
 </html>

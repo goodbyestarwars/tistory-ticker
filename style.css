@@ -97,7 +97,10 @@ a { text-decoration: none; color: inherit; }
 
 /* ============ MAIN LAYOUT ============ */
 .page-wrap {
-  padding-top: 88px; /* navbar(56px) + market-ribbon(32px) */
+  /* navbar(56)+ribbon(32)+disc-ticker(38)=126 + quick-indices 바(100, css/quick-indices.css)
+     + 여백(16) = 242, main-layout 자체 padding(20)을 빼면 222 (2026-07-16 관심지수 카드를
+     공시 아래 고정바로 옮기며 88->222로 조정. 바 높이를 바꾸면 이 값도 같이 고칠 것) */
+  padding-top: 222px;
   min-height: 100vh;
 }
 .main-layout {
@@ -114,7 +117,7 @@ a { text-decoration: none; color: inherit; }
   width: 256px;
   flex-shrink: 0;
   position: sticky;
-  top: 108px; /* navbar(56px) + disc-ticker 여백(20px) + market-ribbon(32px) */
+  top: 242px; /* navbar+ribbon+disc-ticker(126) + quick-indices 바(100) + 여백(16) = 242 (2026-07-16 조정, css/quick-indices.css 와 함께 유지) */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -214,6 +217,10 @@ a { text-decoration: none; color: inherit; }
   padding: 6px 8px 2px;
 }
 .nav-search-suggest-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 8px;
   border-radius: 7px;
   font-size: 13px;
@@ -221,6 +228,20 @@ a { text-decoration: none; color: inherit; }
   cursor: pointer;
 }
 .nav-search-suggest-item:hover, .nav-search-suggest-item.active { background: #f1f5f9; }
+.nav-search-suggest-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-search-fav-btn {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.nav-search-fav-btn:hover { background: rgba(0, 0, 0, 0.06); }
+.nav-search-fav-btn.active { color: #e0a300; }
 
 /* Categories — [##_category_list_##] 출력 스타일 */
 .cat-section { padding: 16px; }
@@ -1560,7 +1581,7 @@ a { text-decoration: none; color: inherit; }
   width: 292px;
   flex-shrink: 0;
   position: sticky;
-  top: 108px; /* navbar(56px) + disc-ticker 여백(20px) + market-ribbon(32px) */
+  top: 242px; /* navbar+ribbon+disc-ticker(126) + quick-indices 바(100) + 여백(16) = 242 (2026-07-16 조정, css/quick-indices.css 와 함께 유지) */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2371,6 +2392,9 @@ html.dark .nav-search-suggest { background: #1e1e1e; border-color: #3a3a3a; }
 html.dark .nav-search-suggest-title { color: #888; }
 html.dark .nav-search-suggest-item { color: #ddd; }
 html.dark .nav-search-suggest-item:hover, html.dark .nav-search-suggest-item.active { background: #2a2a2a; }
+html.dark .nav-search-fav-btn { color: #555; }
+html.dark .nav-search-fav-btn:hover { background: rgba(255, 255, 255, 0.08); }
+html.dark .nav-search-fav-btn.active { color: #e0b040; }
 /* 온도계(currentColor 방식): 다크에선 밝은 빨강 (인라인 color 오버라이드) */
 html.dark .nav-icon-temp { color: #ff7a6e !important; }
 html.dark .section-title { color: #b3bdcf; }

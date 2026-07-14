@@ -13,8 +13,8 @@
  *
  * 즐겨찾기(★)·최근검색(최대 10개)·마지막 조회 종목은 이 브라우저의 localStorage에 저장된다:
  *   stock:lastSelected, stock:favorites, stock:recent
- * (현재 이 검색창 자체엔 즐겨찾기 추가 UI가 없음 - 검색해서 이동한 종목이 자동으로
- * 최근검색에 쌓이고, 입력창이 비어있을 때 그 최근검색을 드롭다운으로 보여준다)
+ * 입력창이 비어있을 때 즐겨찾기+최근검색을 드롭다운으로 보여주고, 각 행 오른쪽 별표를 눌러
+ * 그 자리에서 즐겨찾기 추가/해제할 수 있다(이동 없이 토글만 됨 - stopPropagation).
  */
 (function (global) {
   'use strict';
@@ -23,6 +23,7 @@
   var TARGET_PAGE = '/page/foreign-flow';
 
   var STORAGE_LAST = 'stock:lastSelected';
+  var STORAGE_FAVORITES = 'stock:favorites';
   var STORAGE_RECENT = 'stock:recent';
   var MAX_RECENT = 10;
   var MAX_SUGGEST = 8;
@@ -65,6 +66,19 @@
   function setLast(code) {
     try { localStorage.setItem(STORAGE_LAST, code); } catch (err) { /* 무시 */ }
   }
+
+  function getFavorites() { return readJson(STORAGE_FAVORITES, []); }
+  function isFavorite(code) { return getFavorites().some(function (it) { return it.code === code; }); }
+  function toggleFavorite(code, name) {
+    var list = getFavorites();
+    var idx = list.findIndex(function (it) { return it.code === code; });
+    var added;
+    if (idx > -1) { list.splice(idx, 1); added = false; }
+    else { list.unshift({ code: code, name: name }); added = true; }
+    writeJson(STORAGE_FAVORITES, list);
+    return added;
+  }
+
   function getRecent() { return readJson(STORAGE_RECENT, []); }
   function addRecent(code, name) {
     var list = getRecent().filter(function (it) { return it.code !== code; });
@@ -115,15 +129,35 @@
     activeIndex = -1;
   }
 
-  function renderRecent(box) {
-    var recent = getRecent();
-    if (!recent.length) { hideSuggest(box); return; }
-    box.innerHTML = '<div class="nav-search-suggest-title">최근 검색</div>'
-      + recent.map(function (it, i) {
-        return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '">' + escapeHtml(it.name) + '</div>';
-      }).join('');
+  function buildRow(code, name, i) {
+    var fav = isFavorite(code);
+    return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
+      + '<span class="nav-search-suggest-name">' + escapeHtml(name) + '</span>'
+      + '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>'
+      + '</div>';
+  }
+
+  // 입력창이 비어있을 때: 즐겨찾기 + 최근검색(즐겨찾기와 중복은 최근검색에서 제외)
+  function renderIdle(box) {
+    var favorites = getFavorites();
+    var favCodes = favorites.map(function (it) { return it.code; });
+    var recent = getRecent().filter(function (it) { return favCodes.indexOf(it.code) === -1; });
+
+    if (!favorites.length && !recent.length) { hideSuggest(box); return; }
+
+    var i = 0;
+    var html = '';
+    if (favorites.length) {
+      html += '<div class="nav-search-suggest-title">★ 즐겨찾기</div>';
+      html += favorites.map(function (it) { return buildRow(it.code, it.name, i++); }).join('');
+    }
+    if (recent.length) {
+      html += '<div class="nav-search-suggest-title">최근 검색</div>';
+      html += recent.map(function (it) { return buildRow(it.code, it.name, i++); }).join('');
+    }
+    box.innerHTML = html;
     box.classList.add('active');
-    wireSuggestClicks(box);
+    wireRowClicks(box);
   }
 
   function renderMatches(box, query) {
@@ -131,29 +165,46 @@
     if (!matches.length) { hideSuggest(box); return; }
     box.innerHTML = matches.map(function (name, i) {
       var code = (global.KRX_MAP || {})[name];
-      return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
+      return buildRow(code, name, i);
     }).join('');
     box.classList.add('active');
-    wireSuggestClicks(box);
+    wireRowClicks(box);
   }
 
-  function wireSuggestClicks(box) {
+  function wireRowClicks(box) {
     box.querySelectorAll('.nav-search-suggest-item').forEach(function (el) {
       el.addEventListener('click', function () {
         goToStock(el.getAttribute('data-code'), el.getAttribute('data-name'));
       });
     });
+    box.querySelectorAll('.nav-search-fav-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var added = toggleFavorite(btn.getAttribute('data-code'), btn.getAttribute('data-name'));
+        btn.textContent = added ? '★' : '☆';
+        btn.classList.toggle('active', added);
+        // 즐겨찾기 목록 자체가 바뀌었으니(순서/섹션 이동) 비어있는 상태의 드롭다운은 다시 그린다
+        var input = document.getElementById('navSearchInput');
+        if (input && !input.value.trim()) renderIdle(box);
+      });
+    });
   }
 
-  function currentSuggestNames(query) {
-    return query ? suggestNames(query) : getRecent().map(function (it) { return it.name; });
+  function currentRowList(query) {
+    if (query) {
+      return suggestNames(query).map(function (name) { return { code: (global.KRX_MAP || {})[name], name: name }; });
+    }
+    var favorites = getFavorites();
+    var favCodes = favorites.map(function (it) { return it.code; });
+    var recent = getRecent().filter(function (it) { return favCodes.indexOf(it.code) === -1; });
+    return favorites.concat(recent);
   }
 
   function moveActive(box, delta, query) {
-    var names = currentSuggestNames(query);
-    if (!names.length) return;
-    activeIndex = (activeIndex + delta + names.length) % names.length;
-    if (query) renderMatches(box, query); else renderRecent(box);
+    var rows = currentRowList(query);
+    if (!rows.length) return;
+    activeIndex = (activeIndex + delta + rows.length) % rows.length;
+    if (query) renderMatches(box, query); else renderIdle(box);
   }
 
   // ---- 종목 선택 -> 종목분석 페이지로 이동 ----
@@ -176,12 +227,12 @@
 
     input.addEventListener('focus', function () {
       if (input.value.trim()) ensureKrxMap().then(function () { renderMatches(box, input.value.trim()); });
-      else renderRecent(box);
+      else renderIdle(box);
     });
     input.addEventListener('input', function () {
       var q = input.value.trim();
       activeIndex = -1;
-      if (!q) { renderRecent(box); return; }
+      if (!q) { renderIdle(box); return; }
       ensureKrxMap().then(function () { renderMatches(box, q); });
     });
     input.addEventListener('keydown', function (e) {
@@ -190,10 +241,9 @@
       else if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(box, -1, q); }
       else if (e.key === 'Enter') {
         e.preventDefault();
-        var names = currentSuggestNames(q);
-        var name = activeIndex > -1 && names[activeIndex] ? names[activeIndex] : q;
-        var stock = q ? resolveStock(name) : (getRecent().filter(function (it) { return it.name === name; })[0]);
-        if (stock) goToStock(stock.code, stock.name);
+        var rows = currentRowList(q);
+        var row = activeIndex > -1 && rows[activeIndex] ? rows[activeIndex] : (q ? resolveStock(q) : null);
+        if (row) goToStock(row.code, row.name);
       } else if (e.key === 'Escape') {
         hideSuggest(box);
         input.blur();

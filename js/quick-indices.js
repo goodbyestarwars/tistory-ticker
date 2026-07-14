@@ -1,22 +1,23 @@
 /**
- * 관심 지수 카드 (공시 티커 바로 아래, 공지사항 카드 위쪽)
+ * 관심 지수 카드 - 공시 티커 바로 아래 고정 바 (모든 페이지 공통)
  *
- * js/market-ribbon.js에 있던 "코스피/코스닥/원달러/BTC + 해외선물 6종을 사용자가 골라
- * 보는" 기능을 이 위치로 옮겼다(2026-07-16 피드백: 상단 얇은 바의 팝오버 방식 대신
- * js/overnight-market.js(간밤 시황)처럼 카드로, 다만 그보다 작게).
+ * 이전 버전은 <s_notice_rep>/<s_article_rep> 글 목록의 `.post-card`를 앵커로 삼아 그 위에
+ * 끼워 넣었는데, 종목분석 같은 "페이지"(글 목록이 없는 커스텀 Tistory 페이지)에서는
+ * `.post-card`가 아예 없어 body 맨 앞에 끼워지면서 레이아웃이 깨졌다(2026-07-16 실사 확인).
+ * 그래서 이번엔 페이지 종류와 무관하게 항상 같은 자리에 뜨도록 공시 티커 바로 아래
+ * position:fixed 바로 바꿨다 - 대신 style.css의 콘텐츠 시작 위치(.page-wrap padding-top,
+ * .sidebar-left/.sidebar-right top)를 이 바의 높이(QI_BAR_HEIGHT)만큼 다 같이 밀어야 해서
+ * 그쪽도 같이 수정함(레이아웃 좌표는 style.css 상단 주석 참고).
  *
- * 마운트 위치: #discTicker(공시 티커)는 skin.html에서 position:fixed라 그 DOM 형제로
- * 끼워 넣어도 실제 스크롤되는 본문 흐름엔 들어가지 않는다. 대신 skin.html의 글 목록 루프
- * (<s_notice_rep>/<s_article_rep>, 티스토리 서버 치환 태그라 git으로 옮길 수 없음)가 항상
- * 렌더링하는 리터럴 클래스 `.post-card`(공지 카드는 `.post-card.notice-card`, 일반 글도
- * `.post-card`)를 앵커로 써서, 그 목록의 실제 부모 컨테이너 바로 안쪽 맨 위에 형제로
- * 끼워 넣는다 - 래퍼 div의 class/id를 몰라도 항상 "글 목록 바로 위"에 정확히 꽂힌다.
- *
- * 데이터 소스 2곳(기존 market-ribbon.js와 동일):
- * - 코스피/코스닥/원달러/BTC: GAS ?market=1
+ * 데이터 소스 2곳:
+ * - 코스피/코스닥/원달러/BTC: GAS ?market=1 (과거 시세 이력이 없어 미니차트 불가 - 카드에 차트 생략)
  * - 코스피200 야간선물/나스닥100/S&P500/필라델피아(SOX)/VIX/WTI: VM(https://ghlee.duckdns.org/futures)
- *   (js/overnight-market.js와 같은 소스 - "간밤 시황" 페이지 전용 임베드라 항상 같이 로드된다는
- *   보장이 없어서 이 파일도 독립적으로 다시 fetch한다)
+ *   (js/overnight-market.js와 같은 응답을 쓰는데, 그 응답엔 최근 시세 배열(chart)이 이미
+ *   들어있어서 그걸 그대로 미니 스파크라인으로 그린다 - 렌더링 방식도 overnight-market.js와 동일)
+ *
+ * 60초마다 갱신하되, 매번 카드를 통째로 비웠다가 다시 그리면 깜빡임이 생겨서(2026-07-16
+ * 피드백) 최초 1회만 "불러오는 중" 틀을 그리고, 이후 갱신은 기존 DOM 노드의 텍스트/톤만
+ * 바꾼다(市場-ribbon.js 구버전이 하던 실수를 반복하지 않기 위함).
  */
 (function (global) {
   'use strict';
@@ -24,10 +25,11 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var FUTURES_API = 'https://ghlee.duckdns.org/futures';
   var CONTAINER_ID = 'quick-indices';
-  var ANCHOR_SELECTOR = '.post-card'; // 이 요소(글 목록 첫 카드) 바로 앞에 컨테이너를 끼워 넣는다
   var STORAGE_KEY = 'qi_selected_v1';
   var REFRESH_MS = 60 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var SPARKLINE_HEIGHT = 30;
 
   var OPTIONS = [
     { key: 'kospi', label: '코스피', source: 'market', sourceKey: 'kospi' },
@@ -46,6 +48,9 @@
   var DEFAULT_SELECTED = ['kospi', 'kosdaq', 'usdkrw', 'btc'];
 
   var refreshTimer = null;
+  var lwcLoadPromise = null;
+  var chartInstances = {}; // key -> { chart, series }
+  var themeObserver = null;
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
@@ -110,17 +115,17 @@
         var opt = OPTION_BY_KEY[key];
         if (opt.source === 'market') {
           var m = marketData[opt.sourceKey];
-          if (m) out[key] = { price: m.price, change: m.change, changeRate: m.changeRate };
+          if (m) out[key] = { price: m.price, change: m.change, changeRate: m.changeRate, chart: null };
         } else {
           var f = futuresBySymbol[opt.sourceKey];
-          if (f && typeof f.price === 'number') out[key] = { price: f.price, change: f.change, changeRate: f.change_rate };
+          if (f && typeof f.price === 'number') out[key] = { price: f.price, change: f.change, changeRate: f.change_rate, chart: f.chart || null };
         }
       });
       return out;
     });
   }
 
-  // ---- 렌더링 ----
+  // ---- 포맷/톤 ----
 
   function toneClass(change) {
     if (change > 0) return 'qi-pos';
@@ -138,6 +143,8 @@
     return num.toLocaleString('ko-KR', { maximumFractionDigits: num >= 1000 ? 0 : 2 });
   }
 
+  // ---- 마운트: 페이지 종류와 무관하게 항상 공시 티커 아래 고정 ----
+
   function ensureContainer() {
     var existing = document.getElementById(CONTAINER_ID);
     if (existing) return existing;
@@ -145,44 +152,33 @@
     var el = document.createElement('div');
     el.id = CONTAINER_ID;
     el.className = 'qi-wrap';
-
-    var anchor = document.querySelector(ANCHOR_SELECTOR);
-    if (anchor && anchor.parentNode) {
-      anchor.parentNode.insertBefore(el, anchor);
-    } else {
-      // 글이 하나도 없는 카테고리 등 - 못 찾으면 본문 맨 위에라도 붙여서 기능은 살린다
-      document.body.insertBefore(el, document.body.firstChild);
-    }
+    document.body.appendChild(el); // position:fixed라 DOM 위치는 스타일에 영향 없음
     return el;
   }
 
-  function buildCard(opt, data) {
-    if (!data) {
-      return '<div class="qi-card" data-key="' + opt.key + '"><div class="qi-card-label">' + opt.label + '</div><div class="qi-card-price">-</div></div>';
-    }
+  // ---- 최초 렌더(틀 생성) ----
+
+  function buildCardShell(opt) {
     return '<div class="qi-card" data-key="' + opt.key + '">'
       + '<div class="qi-card-label">' + opt.label + '</div>'
-      + '<div class="qi-card-price ' + toneClass(data.change) + '">' + formatNumber(data.price) + '</div>'
-      + '<div class="qi-card-change ' + toneClass(data.change) + '">' + arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%</div>'
+      + '<div class="qi-card-price" data-field="price">-</div>'
+      + '<div class="qi-card-change" data-field="change"></div>'
+      + '<div class="qi-card-chart" data-field="chart"></div>'
       + '</div>';
   }
 
-  function renderShell(container) {
-    container.innerHTML = ''
-      + '<div class="qi-grid" id="qiGrid"></div>'
-      + '<div class="qi-popover" id="qiPopover"></div>';
-  }
-
-  function renderCards(container, selected, dataByKey) {
-    var grid = container.querySelector('#qiGrid');
-    if (!grid) return;
+  function renderShell(container, selected) {
     var cardsHtml = selected.map(function (key) {
       var opt = OPTION_BY_KEY[key];
-      return opt ? buildCard(opt, dataByKey[key]) : '';
+      return opt ? buildCardShell(opt) : '';
     }).join('');
-    grid.innerHTML = cardsHtml + '<button type="button" class="qi-add-card" id="qiAddBtn">+ 지수 추가</button>';
+    container.innerHTML = ''
+      + '<div class="qi-grid" id="qiGrid">' + cardsHtml
+      + '<button type="button" class="qi-add-btn" id="qiAddBtn" aria-label="지수 추가">+</button>'
+      + '</div>'
+      + '<div class="qi-popover" id="qiPopover"></div>';
 
-    var addBtn = grid.querySelector('#qiAddBtn');
+    var addBtn = container.querySelector('#qiAddBtn');
     if (addBtn) {
       addBtn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -190,6 +186,113 @@
       });
     }
   }
+
+  // ---- 갱신(기존 카드 값만 업데이트 - 깜빡임 방지) ----
+
+  function updateCards(container, selected, dataByKey) {
+    var grid = container.querySelector('#qiGrid');
+    if (!grid) return;
+
+    selected.forEach(function (key) {
+      var card = grid.querySelector('.qi-card[data-key="' + key + '"]');
+      if (!card) return;
+      var data = dataByKey[key];
+      var priceEl = card.querySelector('[data-field="price"]');
+      var changeEl = card.querySelector('[data-field="change"]');
+      var chartEl = card.querySelector('[data-field="chart"]');
+
+      if (!data) {
+        priceEl.textContent = '-';
+        changeEl.textContent = '';
+        return;
+      }
+      var tone = toneClass(data.change);
+      priceEl.textContent = formatNumber(data.price);
+      priceEl.className = 'qi-card-price ' + tone;
+      changeEl.textContent = arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
+      changeEl.className = 'qi-card-change ' + tone;
+
+      if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change);
+    });
+  }
+
+  // ---- 미니 스파크라인 (js/overnight-market.js와 동일한 Lightweight Charts 지연 로드 패턴) ----
+
+  function loadLightweightCharts() {
+    if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
+    if (lwcLoadPromise) return lwcLoadPromise;
+    lwcLoadPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = LWC_CDN;
+      s.onload = function () { resolve(global.LightweightCharts); };
+      s.onerror = function () { lwcLoadPromise = null; reject(new Error('차트 라이브러리 로드 실패')); };
+      document.head.appendChild(s);
+    });
+    return lwcLoadPromise;
+  }
+
+  function isDark() { return document.documentElement.classList.contains('dark'); }
+
+  function chartThemeOptions() {
+    return {
+      layout: { background: { color: 'transparent' }, textColor: '#888', attributionLogo: false },
+      grid: { vertLines: { visible: false }, horzLines: { visible: false } }
+    };
+  }
+
+  function toLwcTime(yyyymmdd) {
+    var s = String(yyyymmdd);
+    if (s.indexOf('-') > -1) return s; // 이미 YYYY-MM-DD
+    return s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8);
+  }
+
+  function hexToRgba(hex, alpha) {
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  function destroyChart(key) {
+    var inst = chartInstances[key];
+    if (!inst) return;
+    try { inst.chart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
+    delete chartInstances[key];
+  }
+
+  function renderSparkline(container, key, rows, change) {
+    loadLightweightCharts().then(function (LWC) {
+      if (!document.body.contains(container)) return;
+      if (chartInstances[key]) return; // 같은 카드에 이미 그려져 있으면 재사용(갱신 시 setData만)
+
+      var lineColor = change >= 0 ? '#d24f45' : '#1261c4';
+      var chart = LWC.createChart(container, Object.assign({
+        autoSize: true,
+        height: SPARKLINE_HEIGHT,
+        handleScroll: false,
+        handleScale: false,
+        rightPriceScale: { visible: false },
+        leftPriceScale: { visible: false },
+        timeScale: { visible: false },
+        crosshair: { vertLine: { visible: false, labelVisible: false }, horzLine: { visible: false, labelVisible: false } }
+      }, chartThemeOptions()));
+
+      var series = chart.addAreaSeries({
+        lineColor: lineColor,
+        topColor: hexToRgba(lineColor, 0.25),
+        bottomColor: hexToRgba(lineColor, 0.02),
+        lineWidth: 1.5,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false
+      });
+      series.setData(rows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; }));
+      chart.timeScale().fitContent();
+      chartInstances[key] = { chart: chart, series: series };
+    }).catch(function () { /* 차트 없이도 가격/등락률은 이미 보이므로 조용히 무시 */ });
+  }
+
+  // ---- "+ 지수 추가" 팝오버 ----
 
   function renderPopover(container, selected) {
     var pop = container.querySelector('#qiPopover');
@@ -222,7 +325,7 @@
       if (!input) return;
       var key = input.getAttribute('data-key');
       var list = toggleSelected(key);
-      tick(container, list);
+      rebuild(container, list);
     });
 
     document.addEventListener('click', function (e) {
@@ -230,26 +333,43 @@
     });
   }
 
-  function tick(container, selected) {
-    selected = selected || loadSelected();
-    renderCards(container, selected, {});
+  // 선택 목록 자체가 바뀔 때만(체크박스 토글, 최초 로드) 카드 틀을 다시 그린다.
+  function rebuild(container, selected) {
+    Object.keys(chartInstances).forEach(destroyChart);
+    renderShell(container, selected);
     if (!selected.length) return;
     fetchSelectedData(selected)
-      .then(function (dataByKey) { renderCards(container, selected, dataByKey); })
+      .then(function (dataByKey) { updateCards(container, selected, dataByKey); })
       .catch(function (err) { logError('[quick-indices] 조회 실패', err); });
+  }
+
+  // 주기적 갱신은 틀을 다시 그리지 않고 값만 바꿔서 깜빡임을 없앤다(2026-07-16 피드백).
+  function refresh(container) {
+    var selected = loadSelected();
+    if (!selected.length) return;
+    fetchSelectedData(selected)
+      .then(function (dataByKey) { updateCards(container, selected, dataByKey); })
+      .catch(function (err) { logError('[quick-indices] 갱신 실패', err); });
   }
 
   function init() {
     var container = ensureContainer();
-    renderShell(container);
     wireEvents(container);
-    tick(container);
+    rebuild(container, loadSelected());
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () {
       if (document.hidden) return;
-      tick(container);
+      refresh(container);
     }, REFRESH_MS);
+
+    if (themeObserver) themeObserver.disconnect();
+    themeObserver = new MutationObserver(function () {
+      Object.keys(chartInstances).forEach(function (key) {
+        chartInstances[key].chart.applyOptions(chartThemeOptions());
+      });
+    });
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   }
 
   var QuickIndices = { init: init, fetchMarket: fetchMarket, fetchFutures: fetchFutures };

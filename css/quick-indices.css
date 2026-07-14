@@ -1,72 +1,97 @@
-/* 관심 지수 카드 (js/quick-indices.js) - 공지사항 카드 바로 위, 간밤 시황보다 작은 카드 */
+/* 관심 지수 카드 - 공시 티커(top:88px, height:38px -> 126px에서 끝남) 바로 아래 고정 바.
+ * 카드 높이(레이블+가격+등락률+미니차트+패딩) 기준 바 전체 높이는 100px로 잡았고,
+ * style.css의 콘텐츠 시작 좌표(.page-wrap padding-top, .sidebar-left/.sidebar-right top)를
+ * 이 값(126+100+16=242px)에 맞춰 함께 조정해뒀다(style.css 상단 주석 참고). 이 두 값이
+ * 어긋나면 콘텐츠가 바에 가려지거나 빈 틈이 생기니, 바 높이를 바꿀 땐 style.css도 같이 고칠 것. */
 
 .qi-wrap {
-  position: relative;
+  position: fixed;
+  top: 126px;
+  left: 0;
+  right: 0;
+  z-index: 96;
+  height: 100px;
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
-  padding: 14px;
-  margin-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 8px 16px;
+  box-sizing: border-box;
 }
 
 .qi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  height: 100%;
+  display: flex;
+  align-items: stretch;
   gap: 8px;
+  overflow-x: auto;
 }
 
 .qi-card {
+  flex: 0 0 auto;
+  width: 108px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 9px 10px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
 }
 
 .qi-card-label {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   color: #888;
-  margin-bottom: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .qi-card-price {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 700;
   color: #222;
+  line-height: 1.3;
 }
 
 .qi-card-change {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   color: #888;
+  min-height: 14px;
+}
+
+.qi-card-chart {
+  flex: 1;
+  min-height: 0;
+  margin-top: 2px;
 }
 
 .qi-pos { color: #d24f45; }
 .qi-neg { color: #1261c4; }
 .qi-zero { color: #888; }
 
-.qi-add-card {
+.qi-add-btn {
+  flex: 0 0 auto;
+  width: 32px;
+  align-self: center;
+  height: 32px;
   border: 1px dashed #ccc;
-  border-radius: 10px;
-  padding: 9px 10px;
+  border-radius: 50%;
   background: transparent;
   color: #888;
-  font-size: 12.5px;
+  font-size: 16px;
+  line-height: 1;
   font-family: inherit;
   cursor: pointer;
-  min-height: 52px;
 }
-.qi-add-card:hover { background: #f7f7f8; color: #555; }
+.qi-add-btn:hover { background: #f7f7f8; color: #555; }
 
 /* .qi-popover에 display:grid를 무조건 걸어두면 hidden 속성으로는 실제로 안 숨겨진다(작성자
    스타일이 UA [hidden] 규칙보다 우선순위가 높음) - class 토글(open) 방식으로만 표시한다. */
 .qi-popover {
   display: none;
   position: absolute;
-  top: calc(100% - 4px);
-  right: 14px;
+  top: 100%;
+  right: 16px;
   z-index: 20;
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -91,12 +116,15 @@
 .qi-pop-item input { cursor: pointer; }
 
 @media (max-width: 640px) {
-  .qi-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
-  .qi-popover { grid-template-columns: 1fr 1fr; left: 14px; right: 14px; }
+  .qi-wrap { padding: 6px 10px; }
+  .qi-card { width: 92px; }
+  .qi-popover { grid-template-columns: 1fr 1fr; left: 10px; right: 10px; }
 }
 
+body.iframe-mode .qi-wrap { display: none !important; }
+
 /* ---- 다크모드 ---- */
-html.dark .qi-wrap { background: #1e1e1e !important; }
+html.dark .qi-wrap { background: #1a1a1a !important; border-color: #2a2a2a !important; }
 html.dark .qi-card { background: #262626 !important; border-color: #3a3a3a !important; }
 html.dark .qi-card-label { color: #999 !important; }
 html.dark .qi-card-price { color: #eee !important; }
@@ -104,8 +132,8 @@ html.dark .qi-card-change { color: #999 !important; }
 html.dark .qi-pos { color: #ff6b5b !important; }
 html.dark .qi-neg { color: #4d9fff !important; }
 html.dark .qi-zero { color: #999 !important; }
-html.dark .qi-add-card { border-color: #444 !important; color: #999 !important; }
-html.dark .qi-add-card:hover { background: #262626 !important; color: #ccc !important; }
+html.dark .qi-add-btn { border-color: #444 !important; color: #999 !important; }
+html.dark .qi-add-btn:hover { background: #262626 !important; color: #ccc !important; }
 html.dark .qi-popover { background: #1e1e1e !important; border-color: #3a3a3a !important; }
 html.dark .qi-pop-item { color: #ddd !important; }
 html.dark .qi-pop-item:hover { background: #333 !important; }
