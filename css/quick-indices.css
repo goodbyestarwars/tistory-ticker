@@ -1,30 +1,42 @@
-/* 관심 지수 카드 - 공시 티커(top:88px, height:38px -> 126px에서 끝남) 바로 아래 고정 바.
- * 카드 높이(레이블+가격+등락률+미니차트+패딩) 기준 바 전체 높이는 100px로 잡았고,
- * style.css의 콘텐츠 시작 좌표(.page-wrap padding-top, .sidebar-left/.sidebar-right top)를
- * 이 값(126+100+16=242px)에 맞춰 함께 조정해뒀다(style.css 상단 주석 참고). 이 두 값이
- * 어긋나면 콘텐츠가 바에 가려지거나 빈 틈이 생기니, 바 높이를 바꿀 땐 style.css도 같이 고칠 것. */
+/* 관심 지수 카드 - 공시 티커 바로 아래 고정 바.
+ * 폭은 .main-layout과 동일한 max-width(1380px)로 맞춰서 뷰포트 전체를 쓰지 않는다
+ * (2026-07-16 피드백: "화면을 너무 full로 쓴다"). 높이는 --qi-height(style.css :root,
+ * js/quick-indices.js가 접힘/펼침에 따라 40px/100px로 setProperty)를 그대로 쓴다 -
+ * 아래 콘텐츠 시작 좌표(.page-wrap, .sidebar-left/right)도 같은 변수를 참조하므로
+ * 접었다 펼쳐도 항상 정확히 맞물린다. */
 
 .qi-wrap {
   position: fixed;
-  top: 126px;
+  top: 94px;
   left: 0;
   right: 0;
   z-index: 96;
-  height: 100px;
+  height: var(--qi-height);
+  max-width: 1380px;
+  margin: 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 8px 12px;
   box-sizing: border-box;
+  overflow: hidden; /* 접힘 상태에서 .qi-scroll이 높이 초과분을 밖으로 새지 않게 */
 }
 
-.qi-grid {
-  height: 100%;
+.qi-scroll {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: stretch;
   gap: 8px;
   overflow-x: auto;
+  overflow-y: hidden;
 }
+.qi-wrap.qi-collapsed .qi-scroll { display: none; }
 
 .qi-card {
   flex: 0 0 auto;
@@ -69,10 +81,31 @@
 .qi-neg { color: #1261c4; }
 .qi-zero { color: #888; }
 
-.qi-add-btn {
+/* 스크롤 영역 밖 컨트롤 - 카드가 몇 개든, 얼마나 스크롤됐든 항상 같은 자리(오른쪽 끝) */
+.qi-controls {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 4px;
+  border-left: 1px solid #f0f0f0;
+}
+
+.qi-collapse-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: #999;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.qi-collapse-btn:hover { background: #f2f2f2; }
+
+.qi-add-wrap { position: relative; }
+.qi-add-btn {
   width: 32px;
-  align-self: center;
   height: 32px;
   border: 1px dashed #ccc;
   border-radius: 50%;
@@ -86,12 +119,15 @@
 .qi-add-btn:hover { background: #f7f7f8; color: #555; }
 
 /* .qi-popover에 display:grid를 무조건 걸어두면 hidden 속성으로는 실제로 안 숨겨진다(작성자
-   스타일이 UA [hidden] 규칙보다 우선순위가 높음) - class 토글(open) 방식으로만 표시한다. */
+   스타일이 UA [hidden] 규칙보다 우선순위가 높음) - class 토글(open) 방식으로만 표시한다.
+   .qi-add-wrap(position:relative)에 바로 앵커해서 카드 스크롤 위치와 무관하게 버튼
+   바로 아래에 뜬다(2026-07-16 버그 수정 - 예전엔 .qi-wrap 기준 right:16px라 스크롤과
+   무관하게 화면 오른쪽 끝에 떠서 "이상한 위치"로 보였음). */
 .qi-popover {
   display: none;
   position: absolute;
-  top: 100%;
-  right: 16px;
+  top: calc(100% + 6px);
+  right: 0;
   z-index: 20;
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -111,20 +147,24 @@
   border-radius: 6px;
   font-size: 12.5px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .qi-pop-item:hover { background: #f2f2f2; }
 .qi-pop-item input { cursor: pointer; }
 
+@media (max-width: 900px) {
+  .qi-popover { grid-template-columns: 1fr; right: -8px; }
+}
 @media (max-width: 640px) {
-  .qi-wrap { padding: 6px 10px; }
+  .qi-wrap { padding: 6px 8px; gap: 6px; }
   .qi-card { width: 92px; }
-  .qi-popover { grid-template-columns: 1fr 1fr; left: 10px; right: 10px; }
 }
 
 body.iframe-mode .qi-wrap { display: none !important; }
 
 /* ---- 다크모드 ---- */
 html.dark .qi-wrap { background: #1a1a1a !important; border-color: #2a2a2a !important; }
+html.dark .qi-controls { border-color: #333 !important; }
 html.dark .qi-card { background: #262626 !important; border-color: #3a3a3a !important; }
 html.dark .qi-card-label { color: #999 !important; }
 html.dark .qi-card-price { color: #eee !important; }
@@ -132,6 +172,8 @@ html.dark .qi-card-change { color: #999 !important; }
 html.dark .qi-pos { color: #ff6b5b !important; }
 html.dark .qi-neg { color: #4d9fff !important; }
 html.dark .qi-zero { color: #999 !important; }
+html.dark .qi-collapse-btn { color: #888 !important; }
+html.dark .qi-collapse-btn:hover { background: #262626 !important; }
 html.dark .qi-add-btn { border-color: #444 !important; color: #999 !important; }
 html.dark .qi-add-btn:hover { background: #262626 !important; color: #ccc !important; }
 html.dark .qi-popover { background: #1e1e1e !important; border-color: #3a3a3a !important; }

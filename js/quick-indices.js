@@ -4,10 +4,21 @@
  * 이전 버전은 <s_notice_rep>/<s_article_rep> 글 목록의 `.post-card`를 앵커로 삼아 그 위에
  * 끼워 넣었는데, 종목분석 같은 "페이지"(글 목록이 없는 커스텀 Tistory 페이지)에서는
  * `.post-card`가 아예 없어 body 맨 앞에 끼워지면서 레이아웃이 깨졌다(2026-07-16 실사 확인).
- * 그래서 이번엔 페이지 종류와 무관하게 항상 같은 자리에 뜨도록 공시 티커 바로 아래
- * position:fixed 바로 바꿨다 - 대신 style.css의 콘텐츠 시작 위치(.page-wrap padding-top,
- * .sidebar-left/.sidebar-right top)를 이 바의 높이(QI_BAR_HEIGHT)만큼 다 같이 밀어야 해서
- * 그쪽도 같이 수정함(레이아웃 좌표는 style.css 상단 주석 참고).
+ * 그래서 페이지 종류와 무관하게 항상 같은 자리에 뜨도록 공시 티커 바로 아래 position:fixed
+ * 바로 바꿨다 - style.css의 콘텐츠 시작 좌표(.page-wrap padding-top, .sidebar-left/
+ * .sidebar-right top)는 이 바의 실제 높이(--qi-height CSS 변수)를 그대로 참조하게 해뒀다.
+ *
+ * 폭/위치: 처음엔 뷰포트 전체 폭을 썼는데 "화면을 너무 full로 쓴다"는 피드백을 받아
+ * .main-layout과 동일한 max-width로 맞췄다(css의 .qi-wrap 참고).
+ *
+ * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/100px로
+ * 바꿔서 그 값을 그대로 아래 콘텐츠 좌표 계산에 재사용한다(style.css :root 주석 참고).
+ * 페이지 로드 시 깜빡임 없이 바로 반영되도록 DOMContentLoaded를 기다리지 않고
+ * 스크립트가 평가되는 즉시(동기) documentElement에 세팅한다.
+ *
+ * "+" 버튼: 처음엔 가로 스크롤되는 카드 줄(.qi-grid) 안에 같이 있어서 스크롤 위치에 따라
+ * 팝오버가 화면 오른쪽 끝 이상한 곳에 뜨는 문제가 있었다(2026-07-16 피드백) - 스크롤 영역
+ * 밖의 별도 .qi-controls로 빼서 항상 버튼 바로 아래에 뜨게 고쳤다.
  *
  * 데이터 소스 2곳:
  * - 코스피/코스닥/원달러/BTC: GAS ?market=1 (과거 시세 이력이 없어 미니차트 불가 - 카드에 차트 생략)
@@ -16,8 +27,7 @@
  *   들어있어서 그걸 그대로 미니 스파크라인으로 그린다 - 렌더링 방식도 overnight-market.js와 동일)
  *
  * 60초마다 갱신하되, 매번 카드를 통째로 비웠다가 다시 그리면 깜빡임이 생겨서(2026-07-16
- * 피드백) 최초 1회만 "불러오는 중" 틀을 그리고, 이후 갱신은 기존 DOM 노드의 텍스트/톤만
- * 바꾼다(市場-ribbon.js 구버전이 하던 실수를 반복하지 않기 위함).
+ * 피드백) 최초 1회만 "불러오는 중" 틀을 그리고, 이후 갱신은 기존 DOM 노드의 텍스트/톤만 바꾼다.
  */
 (function (global) {
   'use strict';
@@ -26,10 +36,20 @@
   var FUTURES_API = 'https://ghlee.duckdns.org/futures';
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
+  var COLLAPSE_KEY = 'qi_collapsed_v1';
+  var HEIGHT_EXPANDED = '100px';
+  var HEIGHT_COLLAPSED = '40px';
   var REFRESH_MS = 60 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 30;
+
+  // 페이지 파싱 도중이라도(DOMContentLoaded 전) 즉시 반영해 접힘 상태 깜빡임을 없앤다.
+  (function applyCollapsedHeightEarly() {
+    var collapsed = false;
+    try { collapsed = localStorage.getItem(COLLAPSE_KEY) === '1'; } catch (err) { /* 무시 */ }
+    document.documentElement.style.setProperty('--qi-height', collapsed ? HEIGHT_COLLAPSED : HEIGHT_EXPANDED);
+  })();
 
   var OPTIONS = [
     { key: 'kospi', label: '코스피', source: 'market', sourceKey: 'kospi' },
@@ -56,7 +76,7 @@
     if (global.console && console.error) console.error.apply(console, arguments);
   }
 
-  // ---- localStorage ----
+  // ---- localStorage: 선택 목록 ----
 
   function loadSelected() {
     try {
@@ -81,6 +101,15 @@
     else list.push(key);
     saveSelected(list);
     return list;
+  }
+
+  // ---- localStorage: 접힘 상태 ----
+
+  function isCollapsed() {
+    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch (err) { return false; }
+  }
+  function saveCollapsed(collapsed) {
+    try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (err) { /* 무시 */ }
   }
 
   // ---- 데이터 조회 ----
@@ -172,29 +201,44 @@
       var opt = OPTION_BY_KEY[key];
       return opt ? buildCardShell(opt) : '';
     }).join('');
-    container.innerHTML = ''
-      + '<div class="qi-grid" id="qiGrid">' + cardsHtml
-      + '<button type="button" class="qi-add-btn" id="qiAddBtn" aria-label="지수 추가">+</button>'
-      + '</div>'
-      + '<div class="qi-popover" id="qiPopover"></div>';
 
-    var addBtn = container.querySelector('#qiAddBtn');
-    if (addBtn) {
-      addBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        togglePopover(container);
-      });
-    }
+    container.classList.toggle('qi-collapsed', isCollapsed());
+    container.innerHTML = ''
+      + '<div class="qi-scroll" id="qiScroll">' + cardsHtml + '</div>'
+      + '<div class="qi-controls">'
+      + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 접기/펼치기">' + (isCollapsed() ? '▸' : '▾') + '</button>'
+      + '<div class="qi-add-wrap">'
+      + '<button type="button" class="qi-add-btn" id="qiAddBtn" aria-label="지수 추가">+</button>'
+      + '<div class="qi-popover" id="qiPopover"></div>'
+      + '</div>'
+      + '</div>';
+
+    container.querySelector('#qiAddBtn').addEventListener('click', function (e) {
+      e.stopPropagation();
+      togglePopover(container);
+    });
+    container.querySelector('#qiCollapseBtn').addEventListener('click', function (e) {
+      e.stopPropagation();
+      setCollapsed(container, !isCollapsed());
+    });
+  }
+
+  function setCollapsed(container, collapsed) {
+    saveCollapsed(collapsed);
+    document.documentElement.style.setProperty('--qi-height', collapsed ? HEIGHT_COLLAPSED : HEIGHT_EXPANDED);
+    container.classList.toggle('qi-collapsed', collapsed);
+    var btn = container.querySelector('#qiCollapseBtn');
+    if (btn) btn.textContent = collapsed ? '▸' : '▾';
   }
 
   // ---- 갱신(기존 카드 값만 업데이트 - 깜빡임 방지) ----
 
   function updateCards(container, selected, dataByKey) {
-    var grid = container.querySelector('#qiGrid');
-    if (!grid) return;
+    var scroll = container.querySelector('#qiScroll');
+    if (!scroll) return;
 
     selected.forEach(function (key) {
-      var card = grid.querySelector('.qi-card[data-key="' + key + '"]');
+      var card = scroll.querySelector('.qi-card[data-key="' + key + '"]');
       if (!card) return;
       var data = dataByKey[key];
       var priceEl = card.querySelector('[data-field="price"]');
@@ -230,8 +274,6 @@
     });
     return lwcLoadPromise;
   }
-
-  function isDark() { return document.documentElement.classList.contains('dark'); }
 
   function chartThemeOptions() {
     return {
@@ -292,7 +334,7 @@
     }).catch(function () { /* 차트 없이도 가격/등락률은 이미 보이므로 조용히 무시 */ });
   }
 
-  // ---- "+ 지수 추가" 팝오버 ----
+  // ---- "+ 지수 추가" 팝오버 (스크롤 영역 밖 .qi-controls에 있어 버튼 바로 아래에 뜬다) ----
 
   function renderPopover(container, selected) {
     var pop = container.querySelector('#qiPopover');
