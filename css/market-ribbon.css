@@ -10,14 +10,27 @@
   height: 32px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   padding: 0 20px;
   background: #0f172a;
   color: #cbd5e1;
   font-size: 12.5px;
   font-family: inherit;
+}
+
+.ribbon-chips {
+  display: flex;
+  align-items: center;
+  gap: 20px;
   overflow-x: auto;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.ribbon-empty-hint {
+  color: #64748b;
+  font-size: 12px;
 }
 
 .ribbon-item {
@@ -25,6 +38,52 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+.ribbon-add-btn {
+  flex-shrink: 0;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-family: inherit;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ribbon-add-btn:hover { background: #1e293b; color: #e2e8f0; }
+
+.ribbon-popover {
+  position: absolute;
+  top: 34px;
+  right: 12px;
+  z-index: 302;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.ribbon-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.ribbon-pop-item:hover { background: #334155; }
+.ribbon-pop-item input { cursor: pointer; }
+
+@media (max-width: 640px) {
+  .ribbon-popover { grid-template-columns: 1fr 1fr; left: 12px; right: 12px; }
 }
 
 .ribbon-label {
