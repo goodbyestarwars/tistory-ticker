@@ -109,8 +109,11 @@ a { text-decoration: none; color: inherit; }
 .page-wrap {
   /* navbar(56)+disc-ticker(38)=94 + quick-indices 바(--qi-height) + 여백(16) = 110+높이,
      main-layout 자체 padding(20)을 빼면 90+높이. --qi-height는 :root에서 정의(위 참고),
-     quick-indices.js가 접힘/펼침에 따라 실시간으로 바꾼다. */
-  padding-top: calc(90px + var(--qi-height));
+     quick-indices.js가 접힘/펼침에 따라 실시간으로 바꾼다.
+     2026-07-16: 실사에서 이 값이 계산대로 안 먹히고 122px(내가 쓴 적 없는 값)로 나오는
+     현상이 확인됨 - skin.html에 직접 박혀있는(git 밖이라 안 보이는) 다른 CSS가 이걸
+     덮어쓰는 것으로 추정, !important로 강제함. */
+  padding-top: calc(90px + var(--qi-height)) !important;
   min-height: 100vh;
 }
 .main-layout {
@@ -127,7 +130,7 @@ a { text-decoration: none; color: inherit; }
   width: 256px;
   flex-shrink: 0;
   position: sticky;
-  top: calc(110px + var(--qi-height)); /* navbar+disc-ticker(94) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다 */
+  top: calc(110px + var(--qi-height)) !important; /* navbar+disc-ticker(94) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다. !important는 page-wrap과 같은 이유(주석 참고) */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1591,7 +1594,7 @@ a { text-decoration: none; color: inherit; }
   width: 292px;
   flex-shrink: 0;
   position: sticky;
-  top: calc(110px + var(--qi-height)); /* navbar+disc-ticker(94) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다 */
+  top: calc(110px + var(--qi-height)) !important; /* navbar+disc-ticker(94) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다. !important는 page-wrap과 같은 이유(주석 참고) */
   display: flex;
   flex-direction: column;
   gap: 12px;
