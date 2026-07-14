@@ -1,4 +1,4 @@
-/* ============ 간밤 시황(나스닥100/S&P500/코스피 야간선물/반도체/VIX/WTI) ============ */
+/* ============ 보조지수(나스닥100/S&P500/다우/반도체/VIX/WTI/원달러 환율) ============ */
 
 #overnight-market {
   font-family: inherit;
@@ -10,6 +10,25 @@
   background: #f7f7f8;
   border-radius: 10px;
   font-size: 13px;
+}
+
+#overnight-market .om-ai {
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #f0f6ff;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#overnight-market .om-ai b {
+  display: block;
+  margin-bottom: 4px;
+}
+
+#overnight-market .om-ai p {
+  margin: 0;
+  color: #444;
 }
 
 #overnight-market .om-grid {
@@ -95,3 +114,5 @@ html.dark #overnight-market .om-hl { color: #999 !important; }
 html.dark #overnight-market .om-updated { color: #777 !important; }
 html.dark #overnight-market .om-zero { color: #ccc !important; }
 html.dark #overnight-market .om-summary { background: #262626 !important; }
+html.dark #overnight-market .om-ai { background: #1c2a3a !important; }
+html.dark #overnight-market .om-ai p { color: #ccc !important; }

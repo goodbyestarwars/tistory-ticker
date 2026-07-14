@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>overnight-market(보조지수) 로컬 테스트</title>
-<link rel="stylesheet" href="../css/overnight-market.css" />
+<title>kospi-futures 로컬 테스트</title>
+<link rel="stylesheet" href="../css/kospi-futures.css" />
 <style>
   body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
   html.dark body { background: #1a1a1a; }
@@ -15,34 +15,30 @@
 <body>
 
 <div class="page-body">
-  <h1>overnight-market(보조지수) 로컬 테스트</h1>
+  <h1>kospi-futures(코스피 선물) 로컬 테스트</h1>
   <div class="tools">
     <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
     <button onclick="setMock('up')">전부 상승</button>
     <button onclick="setMock('down')">전부 하락</button>
     <button onclick="setMock('mixed')">혼합</button>
-    <button onclick="setMock('partial')">일부 데이터 없음</button>
+    <button onclick="setMock('partial')">일부 데이터 없음(야간선물 KIS 미설정 상황)</button>
     <button onclick="setMock('error')">API 오류</button>
   </div>
   <p style="font-size:13px;color:#888">
-    기본은 mock 데이터로 렌더링 검증(7개 카드: 나스닥100/S&P500/다우/반도체/VIX/WTI/원달러 환율
-    + AI 해설 박스). 실제 VM/GAS 호출로 테스트하려면 <code>?real=1</code>을 붙이세요(CORS가
-    ghlee.tistory.com만 허용하므로 로컬 http.server에서는 막힐 수 있음 - 라이브 페이지에서
-    최종 확인 필요).
+    기본은 mock 데이터로 렌더링 검증(현재가 패널 3개: 코스피 현물지수/코스피200 주간선물/
+    코스피200 야간선물 + 큰 차트 2개 + AI 해설 박스). 실제 VM/GAS 호출로 테스트하려면
+    <code>?real=1</code>을 붙이세요(CORS가 ghlee.tistory.com만 허용하므로 로컬 http.server에서는
+    막힐 수 있음 - 라이브 페이지에서 최종 확인 필요).
   </p>
-  <div id="overnight-market"></div>
+  <div id="kospi-futures"></div>
 </div>
 
-<script src="../js/overnight-market.js"></script>
+<script src="../js/kospi-futures.js"></script>
 <script>
   var SYMBOLS = [
-    { symbol: 'NASDAQ100', name: '나스닥 100 선물', base: 29740 },
-    { symbol: 'SP500', name: 'S&P500 선물', base: 7575 },
-    { symbol: 'DOW', name: '다우 선물', base: 52780 },
-    { symbol: 'SOX', name: '필라델피아 반도체지수', base: 12680 },
-    { symbol: 'VIX', name: 'VIX(변동성지수)', base: 16.7 },
-    { symbol: 'WTI', name: 'WTI 원유', base: 79.0 },
-    { symbol: 'USDKRW', name: '원/달러 환율', base: 1490.5 }
+    { symbol: 'KOSPI_CASH', name: '코스피', base: 6856.83, hasChart: false },
+    { symbol: 'KOSPI200_DAY', name: '코스피200 주간선물', base: 1102.15, hasChart: true },
+    { symbol: 'KOSPI200_NIGHT', name: '코스피200 야간선물', base: 1156.0, hasChart: true }
   ];
 
   function buildChart(base, days, trend) {
@@ -65,23 +61,24 @@
 
   function mockResponse(mode) {
     return SYMBOLS.map(function (s, i) {
-      if (mode === 'partial' && s.symbol === 'USDKRW') {
+      if (mode === 'partial' && s.symbol === 'KOSPI200_NIGHT') {
         return { symbol: s.symbol, name: null, price: null, change: null, change_rate: null, high: null, low: null, updated_at: null, chart: [] };
       }
       var trend = mode === 'up' ? 1 : mode === 'down' ? -1 : (i % 2 === 0 ? 1 : -1);
-      var chart = buildChart(s.base, 60, trend);
-      var last = chart[chart.length - 1];
-      var prevClose = chart[chart.length - 2].close;
-      var change = last.close - prevClose;
+      var chart = s.hasChart ? buildChart(s.base, 60, trend) : [];
+      var last = chart.length ? chart[chart.length - 1] : null;
+      var price = last ? last.close : s.base;
+      var prevClose = chart.length > 1 ? chart[chart.length - 2].close : s.base * (1 - trend * 0.005);
+      var change = price - prevClose;
       var changeRate = (change / prevClose) * 100;
       return {
         symbol: s.symbol,
         name: s.name,
-        price: last.close,
+        price: price,
         change: change,
         change_rate: changeRate,
-        high: Math.max.apply(null, chart.slice(-1).map(function (r) { return r.high; })),
-        low: Math.min.apply(null, chart.slice(-1).map(function (r) { return r.low; })),
+        high: last ? last.high : price * 1.003,
+        low: last ? last.low : price * 0.997,
         updated_at: new Date().toISOString(),
         chart: chart
       };
@@ -91,24 +88,25 @@
   if (location.search.indexOf('real=1') === -1) {
     // 모듈의 자체 DOMContentLoaded 리스너가 이 override 적용 이후에 실행되므로
     // 여기서 따로 init()을 호출하지 않아도 첫 렌더는 mock으로 자동 진행된다.
-    OvernightMarket.fetchFutures = function () {
+    KospiFutures.fetchFutures = function () {
       console.log('[mock] fetchFutures');
       if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
       return Promise.resolve(mockResponse(window.__mockMode || 'mixed'));
     };
-    OvernightMarket.fetchAiSummary = function () {
+    KospiFutures.fetchAiSummary = function () {
       console.log('[mock] fetchAiSummary');
       if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
-      return Promise.resolve('미국 주요 지수는 대체로 상승 마감했고 원달러 환율은 하락(원화 강세)했습니다. '
-        + 'WTI 원유도 안정세를 보여 인플레이션 우려는 제한적입니다. '
-        + '이런 흐름은 오늘 코스피/코스닥에 완만한 상승 압력으로 작용할 가능성이 있습니다. '
-        + '다만 변동성지수(VIX)가 소폭 높아진 점은 단기 변동성 확대 가능성으로 유의할 필요가 있습니다.');
+      return Promise.resolve('코스피200 야간선물이 주간선물 종가 대비 소폭 상승 마감하며 위험선호 심리가 '
+        + '이어졌습니다. 야간선물은 미국 증시 마감 이후 흐름을 가장 먼저 반영하는 지표라, 이 흐름이 '
+        + '이어진다면 다음 거래일 코스피 현물은 상승 출발할 가능성이 있습니다. '
+        + '다만 야간선물 거래량이 주간 대비 적어 변동성이 과장될 수 있는 점은 유의해야 합니다. '
+        + '결국 실제 개장 후 방향은 외국인·기관 수급이 확인돼야 더 신뢰할 수 있습니다.');
     };
   }
 
   function setMock(mode) {
     window.__mockMode = mode;
-    if (location.search.indexOf('real=1') === -1) OvernightMarket.init();
+    if (location.search.indexOf('real=1') === -1) KospiFutures.init();
   }
 </script>
 

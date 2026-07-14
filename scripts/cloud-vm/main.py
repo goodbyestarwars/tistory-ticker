@@ -16,6 +16,7 @@ from fastapi import FastAPI, Header, HTTPException, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 import db_schema
+import domestic_futures
 import foreign_flow_compute
 import foreign_futures
 import investor_flow
@@ -43,6 +44,7 @@ def _start_futures_collectors():
     conn.close()
 
     foreign_futures.start_background()
+    domestic_futures.start_background()
 
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
@@ -264,13 +266,18 @@ def daily_scan_batch(x_api_key: str = Header(default=None)):
 
 @app.get('/futures')
 def futures():
-    """간밤 시황 페이지 전용 - 코스피200 야간선물(KIS) + 나스닥100/S&P500/SOX/VIX/WTI(네이버)
-    현재가+최근 90일 일봉을 하나로 묶어 반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로
-    블로그 도메인만 제한) - /investor-flow와 동일한 패턴."""
+    """보조지수/코스피 선물 페이지 전용 - 나스닥100/S&P500/다우/SOX/VIX/WTI(네이버) +
+    코스피200 주간/야간선물(네이버+KIS) + 코스피 현물지수(네이버, 현재가만) + 원/달러 환율(네이버)
+    현재가+최근 일봉을 하나로 묶어 반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로
+    블로그 도메인만 제한) - /investor-flow와 동일한 패턴.
+    2026-07-16: order에 'DOW'가 빠져 있던 버그 수정(foreign_futures.py의 SYMBOLS에는 있었지만
+    이 목록에 반영이 안 돼 DOW 카드가 계속 '데이터 없음'이었을 것) + domestic_futures.py의
+    KOSPI200_DAY/KOSPI_CASH/USDKRW 추가."""
     conn = db_schema.get_conn()
     try:
         prices = {p['symbol']: p for p in db_schema.load_all_future_prices(conn)}
-        order = ['NASDAQ100', 'SP500', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI']
+        order = ['NASDAQ100', 'SP500', 'DOW', 'KOSPI200_DAY', 'KOSPI200_NIGHT', 'KOSPI_CASH',
+                 'SOX', 'VIX', 'WTI', 'USDKRW']
         result = []
         for symbol in order:
             p = prices.get(symbol)

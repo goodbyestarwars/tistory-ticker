@@ -1,0 +1,117 @@
+/* ============ 코스피 선물(주간·야간) + 현물지수 연계 페이지 ============ */
+
+#kospi-futures {
+  font-family: inherit;
+}
+
+#kospi-futures .kf-ai {
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #f0f6ff;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#kospi-futures .kf-ai b {
+  display: block;
+  margin-bottom: 4px;
+}
+
+#kospi-futures .kf-ai p {
+  margin: 0;
+  color: #444;
+}
+
+#kospi-futures .kf-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+#kospi-futures .kf-stat-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+}
+
+#kospi-futures .kf-stat-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+#kospi-futures .kf-stat-price {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+#kospi-futures .kf-stat-change {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+#kospi-futures .kf-stat-updated {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 8px;
+}
+
+#kospi-futures .kf-loading,
+#kospi-futures .kf-error {
+  font-size: 13px;
+  color: #999;
+  padding: 20px 0;
+  text-align: center;
+}
+
+#kospi-futures .kf-pos { color: #d24f45; }
+#kospi-futures .kf-neg { color: #1261c4; }
+#kospi-futures .kf-zero { color: #666; }
+
+#kospi-futures .kf-section {
+  margin-bottom: 24px;
+}
+
+#kospi-futures .kf-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+#kospi-futures .kf-chart {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+#kospi-futures .kf-chart-error {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  padding: 40px 0;
+}
+
+html.dark #kospi-futures .kf-ai { background: #1c2a3a !important; }
+html.dark #kospi-futures .kf-ai p { color: #ccc !important; }
+html.dark #kospi-futures .kf-stat-card {
+  background: #1e1e1e !important;
+  border-color: #3a3a3a !important;
+}
+html.dark #kospi-futures .kf-stat-label { color: #999 !important; }
+html.dark #kospi-futures .kf-stat-updated { color: #777 !important; }
+html.dark #kospi-futures .kf-zero { color: #ccc !important; }
+html.dark #kospi-futures .kf-loading,
+html.dark #kospi-futures .kf-error,
+html.dark #kospi-futures .kf-chart-error { color: #777 !important; }
+html.dark #kospi-futures .kf-chart {
+  background: #222 !important;
+  border-color: #444 !important;
+}

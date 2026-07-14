@@ -72,9 +72,19 @@
     // 티스토리 '공지사항' 카테고리가 있으면 거기서 자동 표시됨.
     {
       href: '/pages/overnight-market', // 실제 페이지 URL 확인됨(2026-07-14)
-      label: '간밤 시황',
+      label: '보조지수', // 2026-07-16: "간밤 시황"에서 개편 - 코스피 야간선물은 아래 "코스피 선물"로 분리
       bold: true,
       icon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>'
+    },
+    {
+      // TODO(2026-07-16): 실제 페이지 URL 미확정 - 사용자가 티스토리에서 새 페이지를
+      // 만든 뒤(js/kospi-futures.js + css/kospi-futures.css + <div id="kospi-futures">
+      // 임베드) 실제 URL로 교체 필요. js/overnight-market.js가 처음 페이지 생성될 때와
+      // 동일한 패턴(당시 href='/pages/overnight-market' placeholder -> 실제 생성 후 그대로 일치).
+      href: '/pages/kospi-futures',
+      label: '코스피 선물',
+      bold: true,
+      icon: '<line x1="7" y1="3" x2="7" y2="21"/><rect x="4" y="8" width="6" height="7"/><line x1="17" y1="3" x2="17" y2="21"/><rect x="14" y="5" width="6" height="9"/>'
     },
     {
       href: 'javascript:void(0)',

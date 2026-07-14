@@ -30,6 +30,14 @@ function doGet(e) {
     return jsonResponse(getMarketAnalysis());
   }
 
+  if (params.action === 'kospiFuturesAnalysis') {
+    return jsonResponse(getKospiFuturesAnalysis());
+  }
+
+  if (params.action === 'subIndexAnalysis') {
+    return jsonResponse(getSubIndexAnalysis());
+  }
+
   if (params.marketTemp === '1') {
     return jsonResponse(getMarketTemp());
   }
@@ -696,6 +704,90 @@ function getMarketAnalysis() {
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? MARKET_ANALYSIS_CACHE_TTL : MARKET_ANALYSIS_FAIL_TTL);
+  return { analysis: analysis };
+}
+
+// ---------------------------------------------------------------------------
+// "코스피 선물" 페이지 및 "보조지수" 페이지 AI 해설 - VM(scripts/cloud-vm, /futures)이
+// 상시 수집해둔 실시간 숫자를 그대로 프롬프트에 넣어 getMarketAnalysis와 동일한 패턴으로
+// Groq 해설을 생성한다. 화면에 보이는 숫자와 AI 문장이 어긋나면 안 되므로(과거 코스피 100배
+// 버그로 AI가 엉뚱한 숫자를 지어낸 전례 있음, 219~221줄 주석 참고) 반드시 이 VM 응답을
+// 유일한 소스로 삼는다 - GAS 자체 fetchIndex 등으로 별도 재조회하지 않는다.
+var FUTURES_API_URL = 'https://ghlee.duckdns.org/futures';
+var KOSPI_FUTURES_ANALYSIS_CACHE_TTL = 1800; // 30분
+var KOSPI_FUTURES_ANALYSIS_FAIL_TTL = 120;   // 2분
+var SUB_INDEX_ANALYSIS_CACHE_TTL = 1800;
+var SUB_INDEX_ANALYSIS_FAIL_TTL = 120;
+
+function fetchFuturesFromVm_() {
+  var res = UrlFetchApp.fetch(FUTURES_API_URL, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return null;
+  var body = JSON.parse(res.getContentText('UTF-8'));
+  var list = body && body.data;
+  if (!list) return null;
+  var bySymbol = {};
+  list.forEach(function (item) { bySymbol[item.symbol] = item; });
+  return bySymbol;
+}
+
+function futuresLine_(item, label) {
+  if (!item || typeof item.price !== 'number') return null;
+  return label + ' ' + item.price + ' (' + (item.change_rate >= 0 ? '+' : '') + item.change_rate.toFixed(2) + '%)';
+}
+
+function getKospiFuturesAnalysis() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis';
+  var cached = cache.get(cacheKey);
+  if (cached) return { analysis: cached };
+
+  var futures = safeCall(fetchFuturesFromVm_);
+  var lines = [];
+  if (futures) {
+    [futuresLine_(futures.KOSPI_CASH, '코스피 현물지수'),
+      futuresLine_(futures.KOSPI200_DAY, '코스피200 주간선물'),
+      futuresLine_(futures.KOSPI200_NIGHT, '코스피200 야간선물')].forEach(function (line) {
+      if (line) lines.push(line);
+    });
+  }
+  if (!lines.length) return { analysis: null };
+
+  var prompt = '오늘/간밤 코스피 관련 지표야: ' + lines.join(', ') + '. ' +
+    '코스피200 선물(주간·야간)과 코스피 현물지수의 관계를 설명하고, 특히 야간선물 동향이 ' +
+    '다음 거래일 한국 증시 개장에 어떤 영향을 줄 수 있는지 투자자 관점에서 4문장으로 ' +
+    '한국어로 정리해줘. 문장 외 다른 말은 붙이지 마.';
+
+  var analysis = safeCall(function () { return callGroq(prompt); });
+  cache.put(cacheKey, analysis || '', analysis ? KOSPI_FUTURES_ANALYSIS_CACHE_TTL : KOSPI_FUTURES_ANALYSIS_FAIL_TTL);
+  return { analysis: analysis };
+}
+
+function getSubIndexAnalysis() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'sub_index_analysis';
+  var cached = cache.get(cacheKey);
+  if (cached) return { analysis: cached };
+
+  var futures = safeCall(fetchFuturesFromVm_);
+  var lines = [];
+  if (futures) {
+    [
+      ['NASDAQ100', '나스닥100 선물'], ['SP500', 'S&P500 선물'], ['DOW', '다우 선물'],
+      ['SOX', '필라델피아 반도체지수'], ['VIX', 'VIX(변동성지수)'], ['WTI', 'WTI 원유'],
+      ['USDKRW', '원/달러 환율']
+    ].forEach(function (pair) {
+      var line = futuresLine_(futures[pair[0]], pair[1]);
+      if (line) lines.push(line);
+    });
+  }
+  if (!lines.length) return { analysis: null };
+
+  var prompt = '오늘 미국 주요 지수·환율·원자재 동향이야: ' + lines.join(', ') + '. ' +
+    '이 지표들을 종합해서 오늘 한국 증시(코스피/코스닥)에 어떤 영향을 줄 수 있는지 ' +
+    '투자자 관점에서 4문장으로 한국어로 정리해줘. 문장 외 다른 말은 붙이지 마.';
+
+  var analysis = safeCall(function () { return callGroq(prompt); });
+  cache.put(cacheKey, analysis || '', analysis ? SUB_INDEX_ANALYSIS_CACHE_TTL : SUB_INDEX_ANALYSIS_FAIL_TTL);
   return { analysis: analysis };
 }
 
