@@ -18,12 +18,17 @@
  * (신뢰도 문제), 정확한 숫자 소스가 정리되면 다음 단계에서 추가하기로 함.
  *
  * 2026-07-14: 처음엔 "Mini Symbol Overview" 위젯(작은 카드+스파크라인)으로 만들었으나,
- * ES1!/NQ1!/CL1!/GC1!/K2I1! 같은 연결선물 심볼은 "실제 매매 가능한 계약이 아니라 분석용
- * 합성 차트"라 그 위젯의 매매연동 기능이 차트 대신 "이 심볼은 트레이딩뷰에서만 쓸 수
- * 있습니다" 메시지를 띄우는 문제를 라이브에서 실제로 겪음(chartOnly:true로도 안 고쳐짐).
- * 매매연동 개념이 아예 없는 "Advanced Real-Time Chart" 위젯으로 교체해서 해결 -
- * 대신 카드가 작은 미니차트가 아니라 큰 인터랙티브 차트가 됨(요구사항이었던 "미니 차트"
- * 보다 커졌지만, 이 심볼들에서 확실히 작동하는 위젯이 이쪽임).
+ * CME_MINI:NQ1!/ES1!, NYMEX:CL1!, COMEX:GC1! 같은 **CME/NYMEX/COMEX 거래소 연결선물
+ * 심볼**은 데이터 라이선스 제한으로 무료 위젯(Mini든 Advanced Chart든 동일)에서
+ * "TradingView에서만 제공되는 심볼입니다" 알림만 뜨고 차트가 안 그려지는 문제를
+ * 라이브에서 실제로 겪음(위젯 종류를 Advanced Chart로 바꿔도 동일하게 막힘 - 위젯 문제가
+ * 아니라 심볼(거래소 데이터 소스) 문제였음). 해결: 같은 지표를 추적하는 **TVC/CAPITALCOM
+ * CFD 심볼**로 교체(나스닥100→CAPITALCOM:NAS100, S&P500→CAPITALCOM:SPX500, WTI원유→
+ * TVC:USOIL, 금→TVC:GOLD) - CFD 데이터는 라이선스가 더 자유로워 무료 위젯에서 정상
+ * 렌더링됨. VIX(TVC:VIX)/반도체(TVC:SOX)는 처음부터 TVC라 문제없었음. 코스피 야간선물
+ * (KRX:K2I1!)만 국내 거래소 데이터라 CFD 대안이 마땅치 않아 원래 심볼 유지 - 안 뜨면
+ * 별도로 다시 봐야 함. 위젯은 다시 "Mini Symbol Overview"로 원복(요구사항이었던
+ * "미니 차트" 그대로).
  */
 (function (global) {
   'use strict';
@@ -31,23 +36,23 @@
   var CONTAINER_SELECTOR = '#overnight-market';
 
   var INSTRUMENTS = [
-    { symbol: 'CME_MINI:NQ1!', label: '나스닥 100 선물' },
-    { symbol: 'CME_MINI:ES1!', label: 'S&P500 선물' },
+    { symbol: 'CAPITALCOM:NAS100', label: '나스닥 100 선물' },
+    { symbol: 'CAPITALCOM:SPX500', label: 'S&P500 선물' },
     { symbol: 'KRX:K2I1!', label: '코스피200 야간선물' },
     { symbol: 'TVC:SOX', label: '필라델피아 반도체 지수' },
-    { symbol: 'NYMEX:CL1!', label: 'WTI 원유 선물' },
+    { symbol: 'TVC:USOIL', label: 'WTI 원유 선물' },
     { symbol: 'TVC:VIX', label: 'VIX(변동성 지수)' },
-    { symbol: 'COMEX:GC1!', label: '국제 금 선물' }
+    { symbol: 'TVC:GOLD', label: '국제 금 선물' }
   ];
 
-  var TV_ADVANCED_CHART_SRC = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  var TV_MINI_CHART_SRC = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
   var themeObserver = null;
 
   function isDark() {
     return document.documentElement.classList.contains('dark');
   }
 
-  // TradingView 위젯은 최초 스크립트 삽입 시점의 theme으로 고정 렌더링되고 이후
+  // TradingView 위젯은 최초 스크립트 삽입 시점의 colorTheme으로 고정 렌더링되고 이후
   // 동적으로 못 바꾼다 - 다크모드 토글 시 위젯 div를 통째로 비우고 다시 그려서 대응한다.
   function renderWidget(container, instrument) {
     container.innerHTML =
@@ -58,19 +63,17 @@
 
     var script = document.createElement('script');
     script.type = 'text/javascript';
-    script.src = TV_ADVANCED_CHART_SRC;
+    script.src = TV_MINI_CHART_SRC;
     script.async = true;
     script.text = JSON.stringify({
       symbol: instrument.symbol,
-      autosize: true,
-      interval: 'D',
-      timezone: 'Asia/Seoul',
-      theme: isDark() ? 'dark' : 'light',
-      style: '1',
+      width: '100%',
+      height: 240,
       locale: 'kr',
-      allow_symbol_change: false,
-      calendar: false,
-      support_host: 'https://www.tradingview.com'
+      dateRange: '12M',
+      colorTheme: isDark() ? 'dark' : 'light',
+      isTransparent: true,
+      autosize: true
     });
     container.querySelector('.tradingview-widget-container').appendChild(script);
   }

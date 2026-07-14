@@ -4,11 +4,9 @@
   font-family: inherit;
 }
 
-/* Advanced Real-Time Chart 위젯(축/툴바 있는 인터랙티브 차트)은 폭이 좁으면 안 예뻐서
-   미니카드 그리드(여러 열) 대신 세로로 하나씩 쌓는다 - 2026-07-14 위젯 종류 교체와 함께 변경. */
 #overnight-market .om-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
 }
 
@@ -26,10 +24,10 @@
   color: #333;
 }
 
-/* TradingView 위젯 자체 높이는 autosize:true라 부모 크기를 따라가므로, 부모에 실제 높이를
-   줘야 함(안 주면 0px) - 위젯 로드 전 레이아웃이 안 튀는 효과도 겸함(CLS 방지). */
+/* TradingView 위젯 자체 폭/높이는 스크립트 config(width/height)로 이미 지정되지만,
+   컨테이너 쪽에서도 최소 높이를 잡아둬야 위젯 로드 전 레이아웃이 안 튄다(CLS 방지). */
 #overnight-market .tradingview-widget-container {
-  height: 480px;
+  min-height: 240px;
 }
 
 html.dark #overnight-market .om-card {
