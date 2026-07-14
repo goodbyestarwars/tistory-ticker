@@ -9,19 +9,98 @@
   body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
   html.dark body { background: #1a1a1a; }
   .page-body { max-width: 900px; margin: 40px auto; padding: 0 16px; }
-  .toggle-dark { margin-bottom: 16px; }
+  .tools { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
 
 <div class="page-body">
   <h1>overnight-market(간밤 시황) 로컬 테스트</h1>
-  <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-  <p style="font-size:13px;color:#888">TradingView 공식 위젯 7개(나스닥/S&P500/코스피 야간선물/필라델피아 반도체/WTI 원유/VIX/국제 금) - 실제 CDN 스크립트를 로드하므로 인터넷 연결 필요.</p>
+  <div class="tools">
+    <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+    <button onclick="setMock('up')">전부 상승</button>
+    <button onclick="setMock('down')">전부 하락</button>
+    <button onclick="setMock('mixed')">혼합</button>
+    <button onclick="setMock('partial')">일부 데이터 없음(KIS 미설정 상황)</button>
+    <button onclick="setMock('error')">API 오류</button>
+  </div>
+  <p style="font-size:13px;color:#888">
+    기본은 mock 데이터로 렌더링 검증(6개 카드: 나스닥100/S&P500/코스피 야간선물/반도체/VIX/WTI).
+    실제 VM 호출로 테스트하려면 <code>?real=1</code>을 붙이세요(CORS가 ghlee.tistory.com만 허용하므로
+    로컬 http.server에서는 막힐 수 있음 - 라이브 페이지에서 최종 확인 필요).
+  </p>
   <div id="overnight-market"></div>
 </div>
 
 <script src="../js/overnight-market.js"></script>
+<script>
+  var SYMBOLS = [
+    { symbol: 'NASDAQ100', name: '나스닥 100 선물', base: 29740 },
+    { symbol: 'SP500', name: 'S&P500 선물', base: 7575 },
+    { symbol: 'KOSPI200_NIGHT', name: '코스피200 야간선물', base: 1156 },
+    { symbol: 'SOX', name: '필라델피아 반도체지수', base: 12680 },
+    { symbol: 'VIX', name: 'VIX(변동성지수)', base: 16.7 },
+    { symbol: 'WTI', name: 'WTI 원유', base: 79.0 }
+  ];
+
+  function buildChart(base, days, trend) {
+    var rows = [];
+    var price = base * (1 - trend * 0.04);
+    var today = new Date();
+    for (var i = days; i >= 0; i--) {
+      var d = new Date(today.getTime() - i * 86400000);
+      var date = d.toISOString().slice(0, 10).replace(/-/g, '');
+      var drift = (base * 0.04 * trend) / days;
+      var noise = (Math.random() - 0.5) * base * 0.01;
+      price = Math.max(0.01, price + drift + noise);
+      var open = price - noise * 0.5;
+      var high = Math.max(open, price) + Math.abs(noise) * 0.5;
+      var low = Math.min(open, price) - Math.abs(noise) * 0.5;
+      rows.push({ date: date, open: open, high: high, low: low, close: price });
+    }
+    return rows;
+  }
+
+  function mockResponse(mode) {
+    return SYMBOLS.map(function (s, i) {
+      if (mode === 'partial' && s.symbol === 'KOSPI200_NIGHT') {
+        return { symbol: s.symbol, name: null, price: null, change: null, change_rate: null, high: null, low: null, updated_at: null, chart: [] };
+      }
+      var trend = mode === 'up' ? 1 : mode === 'down' ? -1 : (i % 2 === 0 ? 1 : -1);
+      var chart = buildChart(s.base, 60, trend);
+      var last = chart[chart.length - 1];
+      var prevClose = chart[chart.length - 2].close;
+      var change = last.close - prevClose;
+      var changeRate = (change / prevClose) * 100;
+      return {
+        symbol: s.symbol,
+        name: s.name,
+        price: last.close,
+        change: change,
+        change_rate: changeRate,
+        high: Math.max.apply(null, chart.slice(-1).map(function (r) { return r.high; })),
+        low: Math.min.apply(null, chart.slice(-1).map(function (r) { return r.low; })),
+        updated_at: new Date().toISOString(),
+        chart: chart
+      };
+    });
+  }
+
+  if (location.search.indexOf('real=1') === -1) {
+    // 모듈의 자체 DOMContentLoaded 리스너가 이 override 적용 이후에 실행되므로
+    // 여기서 따로 init()을 호출하지 않아도 첫 렌더는 mock으로 자동 진행된다.
+    OvernightMarket.fetchFutures = function () {
+      console.log('[mock] fetchFutures');
+      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
+      return Promise.resolve(mockResponse(window.__mockMode || 'mixed'));
+    };
+  }
+
+  function setMock(mode) {
+    window.__mockMode = mode;
+    if (location.search.indexOf('real=1') === -1) OvernightMarket.init();
+  }
+</script>
 
 </body>
 </html>

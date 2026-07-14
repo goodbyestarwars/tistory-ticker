@@ -54,6 +54,27 @@ CREATE TABLE IF NOT EXISTS investor_summary (
     loan_json TEXT,
     pension_json TEXT
 );
+
+CREATE TABLE IF NOT EXISTS future_prices (
+    symbol TEXT PRIMARY KEY,
+    name TEXT,
+    price REAL,
+    change REAL,
+    change_rate REAL,
+    high REAL,
+    low REAL,
+    updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS future_chart (
+    symbol TEXT NOT NULL,
+    date TEXT NOT NULL,
+    open REAL,
+    high REAL,
+    low REAL,
+    close REAL,
+    PRIMARY KEY (symbol, date)
+);
 '''
 
 
@@ -107,6 +128,50 @@ def load_investor_flow_daily(conn, code):
     ).fetchall()
     return [
         {'date': r[0], 'close': r[1], 'change_pct': r[2], 'foreign_net': r[3], 'inst_net': r[4]}
+        for r in rows
+    ]
+
+
+def upsert_future_price(conn, symbol, name, price, change, change_rate, high, low, updated_at):
+    conn.execute(
+        'INSERT INTO future_prices (symbol, name, price, change, change_rate, high, low, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?) '
+        'ON CONFLICT(symbol) DO UPDATE SET '
+        'name=excluded.name, price=excluded.price, change=excluded.change, '
+        'change_rate=excluded.change_rate, high=excluded.high, low=excluded.low, '
+        'updated_at=excluded.updated_at',
+        (symbol, name, price, change, change_rate, high, low, updated_at),
+    )
+    conn.commit()
+
+
+def upsert_future_chart_rows(conn, symbol, rows):
+    """rows: [{date, open, high, low, close}, ...]. 중복 INSERT는 PRIMARY KEY(symbol,date) UPSERT로 방지."""
+    conn.executemany(
+        'INSERT INTO future_chart (symbol, date, open, high, low, close) VALUES (?, ?, ?, ?, ?, ?) '
+        'ON CONFLICT(symbol, date) DO UPDATE SET '
+        'open=excluded.open, high=excluded.high, low=excluded.low, close=excluded.close',
+        [(symbol, r['date'], r['open'], r['high'], r['low'], r['close']) for r in rows],
+    )
+    conn.commit()
+
+
+def load_future_chart(conn, symbol, limit_days=90):
+    rows = conn.execute(
+        'SELECT date, open, high, low, close FROM future_chart WHERE symbol=? ORDER BY date DESC LIMIT ?',
+        (symbol, limit_days),
+    ).fetchall()
+    rows.reverse()
+    return [{'date': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4]} for r in rows]
+
+
+def load_all_future_prices(conn):
+    rows = conn.execute(
+        'SELECT symbol, name, price, change, change_rate, high, low, updated_at FROM future_prices'
+    ).fetchall()
+    return [
+        {'symbol': r[0], 'name': r[1], 'price': r[2], 'change': r[3], 'change_rate': r[4],
+         'high': r[5], 'low': r[6], 'updated_at': r[7]}
         for r in rows
     ]
 

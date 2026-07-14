@@ -1,4 +1,4 @@
-/* ============ 간밤 시황(나스닥/S&P500/코스피 야간선물/반도체/원유/VIX/금) ============ */
+/* ============ 간밤 시황(나스닥100/S&P500/코스피 야간선물/반도체/VIX/WTI) ============ */
 
 #overnight-market {
   font-family: inherit;
@@ -6,32 +6,83 @@
 
 #overnight-market .om-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
 #overnight-market .om-card {
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 12px;
+  padding: 14px;
   background: #fff;
 }
 
-#overnight-market .om-widget-title {
-  font-size: 14px;
+#overnight-market .om-title {
+  font-size: 13px;
   font-weight: 700;
-  margin-bottom: 8px;
-  color: #333;
+  color: #666;
+  margin-bottom: 6px;
 }
 
-/* TradingView 위젯 자체 폭/높이는 스크립트 config(width/height)로 이미 지정되지만,
-   컨테이너 쪽에서도 최소 높이를 잡아둬야 위젯 로드 전 레이아웃이 안 튄다(CLS 방지). */
-#overnight-market .tradingview-widget-container {
-  min-height: 240px;
+#overnight-market .om-loading,
+#overnight-market .om-error {
+  font-size: 13px;
+  color: #999;
+  padding: 20px 0;
+  text-align: center;
+}
+
+#overnight-market .om-price {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+#overnight-market .om-change {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+#overnight-market .om-pos { color: #d24f45; }
+#overnight-market .om-neg { color: #1261c4; }
+#overnight-market .om-zero { color: #666; }
+
+#overnight-market .om-chart {
+  margin: 10px -2px;
+  height: 64px;
+}
+
+#overnight-market .om-chart-error {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  padding: 20px 0;
+}
+
+#overnight-market .om-hl {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #888;
+  margin-top: 6px;
+}
+
+#overnight-market .om-updated {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 8px;
+  text-align: right;
 }
 
 html.dark #overnight-market .om-card {
   background: #1e1e1e !important;
   border-color: #3a3a3a !important;
 }
-html.dark #overnight-market .om-widget-title { color: #eee !important; }
+html.dark #overnight-market .om-title { color: #999 !important; }
+html.dark #overnight-market .om-loading,
+html.dark #overnight-market .om-error,
+html.dark #overnight-market .om-chart-error { color: #777 !important; }
+html.dark #overnight-market .om-hl { color: #999 !important; }
+html.dark #overnight-market .om-updated { color: #777 !important; }
+html.dark #overnight-market .om-zero { color: #ccc !important; }

@@ -2,9 +2,12 @@
 """키움 조회 전용 REST API 서버.
 실행: uvicorn main:app --host 0.0.0.0 --port 8080
 필수 환경변수: KIWOOM_APPKEY, KIWOOM_SECRETKEY, API_TOKEN(이 서버 자체 인증용, 아무 문자열이나 직접 정해서 사용)
+선택 환경변수: KIS_APPKEY, KIS_APPSECRET(코스피200 야간선물 - 없으면 /futures에서 이 항목만 빠짐,
+서버 전체는 정상 동작). 야간선물 웹소켓 사용하려면 `pip install websockets` 필요.
 """
 
 import json
+import logging
 import os
 import time
 from datetime import datetime, timezone
@@ -12,12 +15,43 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, Header, HTTPException, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+import db_schema
 import foreign_flow_compute
+import foreign_futures
 import investor_flow
 import kiwoom_client
 import kiwoom_market
 
+try:
+    import night_futures_ws
+except ImportError:
+    # websockets 패키지가 VM에 아직 설치되지 않았을 수 있음(신규 의존성) - 이 기능만
+    # 건너뛰고 나머지 API(키움 시세/수급 등, 이미 서비스 중인 것들)는 정상 동작해야 하므로
+    # 임포트 실패로 서버 전체가 죽지 않도록 방어.
+    night_futures_ws = None
+
 app = FastAPI(title="kiwoom-readonly-api")
+
+
+@app.on_event('startup')
+def _start_futures_collectors():
+    """야간선물(KIS)/해외선물(네이버) 백그라운드 수집기 - 프로세스 안에서 스레드로 상시 구동.
+    KIS_APPKEY/APPSECRET이 없거나 websockets 미설치면 야간선물만 건너뛰고(나머지 API는
+    정상 동작), 로그만 남긴다."""
+    conn = db_schema.get_conn()
+    db_schema.create_schema(conn)
+    conn.close()
+
+    foreign_futures.start_background()
+
+    kis_appkey = os.environ.get('KIS_APPKEY')
+    kis_appsecret = os.environ.get('KIS_APPSECRET')
+    if night_futures_ws is None:
+        logging.getLogger('main').warning('websockets 미설치 - 야간선물 수집 건너뜀(pip install websockets 필요)')
+    elif kis_appkey and kis_appsecret:
+        night_futures_ws.start_background(kis_appkey, kis_appsecret)
+    else:
+        logging.getLogger('main').warning('KIS_APPKEY/APPSECRET 미설정 - 야간선물 수집 건너뜀')
 
 # 2026-07-13: GAS->VM 구간이 간헐적으로 통째로 막히는 원인 불명 현상 때문에, /investor-flow는
 # GAS를 거치지 않고 방문자 브라우저(js/foreign-flow.js)가 이 VM을 직접 호출하도록 우회.
@@ -226,6 +260,35 @@ def daily_scan_batch(x_api_key: str = Header(default=None)):
     with open(DAILY_SCAN_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return envelope(cached)
+
+
+@app.get('/futures')
+def futures():
+    """간밤 시황 페이지 전용 - 코스피200 야간선물(KIS) + 나스닥100/S&P500/SOX/VIX/WTI(네이버)
+    현재가+최근 90일 일봉을 하나로 묶어 반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로
+    블로그 도메인만 제한) - /investor-flow와 동일한 패턴."""
+    conn = db_schema.get_conn()
+    try:
+        prices = {p['symbol']: p for p in db_schema.load_all_future_prices(conn)}
+        order = ['NASDAQ100', 'SP500', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI']
+        result = []
+        for symbol in order:
+            p = prices.get(symbol)
+            chart = db_schema.load_future_chart(conn, symbol, limit_days=90)
+            result.append({
+                'symbol': symbol,
+                'name': p['name'] if p else None,
+                'price': p['price'] if p else None,
+                'change': p['change'] if p else None,
+                'change_rate': p['change_rate'] if p else None,
+                'high': p['high'] if p else None,
+                'low': p['low'] if p else None,
+                'updated_at': p['updated_at'] if p else None,
+                'chart': chart,
+            })
+    finally:
+        conn.close()
+    return envelope(result)
 
 
 @app.get('/week52-batch')
