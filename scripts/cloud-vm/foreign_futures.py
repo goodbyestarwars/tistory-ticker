@@ -21,6 +21,8 @@ UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.1
 SYMBOLS = [
     {'key': 'NASDAQ100', 'name': '나스닥 100 선물', 'code': 'NQcv1', 'category': 'futures'},
     {'key': 'SP500', 'name': 'S&P500 선물', 'code': 'EScv1', 'category': 'futures'},
+    # 2026-07-16 추가(사용자 요청) - 코드는 realtime/worldstock/futures/YMcv1로 실측 확인됨
+    {'key': 'DOW', 'name': '다우 선물', 'code': 'YMcv1', 'category': 'futures'},
     {'key': 'SOX', 'name': '필라델피아 반도체지수', 'code': '.SOX', 'category': 'index'},
     {'key': 'VIX', 'name': 'VIX(변동성지수)', 'code': '.VIX', 'category': 'index'},
     {'key': 'WTI', 'name': 'WTI 원유', 'code': 'CLcv1', 'category': 'futures'},
