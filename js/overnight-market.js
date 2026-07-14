@@ -139,7 +139,9 @@
   function chartThemeOptions() {
     var dark = isDark();
     return {
-      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555' },
+      // TODO: attributionLogo:false는 Apache 2.0 라이선스상 NOTICE 고지+tradingview.com
+      // 링크를 사이트 어딘가에 별도로 넣어야 함(사용자가 나중에 문서 만들 예정, 아직 미작성).
+      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', attributionLogo: false },
       grid: { vertLines: { visible: false }, horzLines: { visible: false } }
     };
   }
