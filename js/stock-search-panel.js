@@ -26,6 +26,15 @@
   var STORAGE_FAVORITES = 'stock:favorites';
   var STORAGE_RECENT = 'stock:recent';
   var MAX_RECENT = 10;
+  // 즐겨찾기를 한 번도 안 건드린 방문자에게 빈 목록 대신 보여줄 기본값(2026-07-16 피드백:
+  // "아무것도 추가 안해도 일단 즐겨찾기가 있으면 좋겠다"). js/stock-news.js의
+  // WATCHLIST_NAMES("7월 관심종목" 공지 기준)와 동일한 목록을 재사용해 사이트 전체에서
+  // "관심종목"의 기준이 일치하게 한다. 사용자가 ★를 한 번이라도 누르면 그 순간부터는
+  // localStorage에 실제 값이 저장되어 이 기본값 대신 그 값을 쓴다(toggleFavorite 참고).
+  var DEFAULT_FAVORITE_NAMES = [
+    '비에이치아이', '에코프로비엠', 'NAVER', '현대차', '한화오션',
+    'LG전자', 'HD현대일렉트릭', '삼성전자', 'KB금융', '키움증권', '에이비엘바이오'
+  ];
   var MAX_SUGGEST = 8;
   var WIRE_RETRY_MS = 300;
   var WIRE_RETRY_MAX = 20; // 최대 6초까지 재시도(스크립트 로드 순서가 뒤바뀐 경우 대비)
@@ -67,7 +76,23 @@
     try { localStorage.setItem(STORAGE_LAST, code); } catch (err) { /* 무시 */ }
   }
 
-  function getFavorites() { return readJson(STORAGE_FAVORITES, []); }
+  function getFavorites() {
+    var raw = null;
+    try { raw = localStorage.getItem(STORAGE_FAVORITES); } catch (err) { /* 무시 */ }
+    if (raw == null) return getDefaultFavorites(); // 한 번도 저장 안 됨(첫 방문) - 기본 관심종목
+    try {
+      var list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    } catch (err) {
+      return getDefaultFavorites();
+    }
+  }
+  function getDefaultFavorites() {
+    var map = global.KRX_MAP || {};
+    return DEFAULT_FAVORITE_NAMES
+      .filter(function (name) { return map.hasOwnProperty(name); })
+      .map(function (name) { return { code: map[name], name: name }; });
+  }
   function isFavorite(code) { return getFavorites().some(function (it) { return it.code === code; }); }
   function toggleFavorite(code, name) {
     var list = getFavorites();

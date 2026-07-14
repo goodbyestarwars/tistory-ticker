@@ -188,12 +188,55 @@
   // ---- 최초 렌더(틀 생성) ----
 
   function buildCardShell(opt) {
-    return '<div class="qi-card" data-key="' + opt.key + '">'
+    return '<div class="qi-card" data-key="' + opt.key + '" draggable="true">'
       + '<div class="qi-card-label">' + opt.label + '</div>'
       + '<div class="qi-card-price" data-field="price">-</div>'
       + '<div class="qi-card-change" data-field="change"></div>'
       + '<div class="qi-card-chart" data-field="chart"></div>'
       + '</div>';
+  }
+
+  // ---- 카드 순서 드래그 (2026-07-16 추가: 바 위치 자체는 고정, 카드 순서만 바꿀 수 있게) ----
+
+  var dragKey = null;
+
+  function wireCardDrag(scroll) {
+    scroll.addEventListener('dragstart', function (e) {
+      var card = e.target.closest ? e.target.closest('.qi-card') : null;
+      if (!card) return;
+      dragKey = card.getAttribute('data-key');
+      card.classList.add('qi-dragging');
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    });
+    scroll.addEventListener('dragend', function (e) {
+      var card = e.target.closest ? e.target.closest('.qi-card') : null;
+      if (card) card.classList.remove('qi-dragging');
+      dragKey = null;
+    });
+    scroll.addEventListener('dragover', function (e) {
+      if (!dragKey) return;
+      e.preventDefault(); // 드롭 허용
+      var card = e.target.closest ? e.target.closest('.qi-card') : null;
+      if (!card) return;
+      var targetKey = card.getAttribute('data-key');
+      if (targetKey === dragKey) return;
+      var dragging = scroll.querySelector('.qi-card[data-key="' + dragKey + '"]');
+      if (!dragging) return;
+      var rect = card.getBoundingClientRect();
+      var before = (e.clientX - rect.left) < rect.width / 2;
+      scroll.insertBefore(dragging, before ? card : card.nextSibling);
+    });
+    scroll.addEventListener('drop', function (e) {
+      e.preventDefault();
+      persistCardOrder(scroll);
+    });
+  }
+
+  function persistCardOrder(scroll) {
+    var order = Array.prototype.map.call(scroll.querySelectorAll('.qi-card'), function (c) {
+      return c.getAttribute('data-key');
+    });
+    saveSelected(order);
   }
 
   function renderShell(container, selected) {
@@ -221,6 +264,7 @@
       e.stopPropagation();
       setCollapsed(container, !isCollapsed());
     });
+    wireCardDrag(container.querySelector('#qiScroll'));
   }
 
   function setCollapsed(container, collapsed) {
@@ -367,12 +411,48 @@
       if (!input) return;
       var key = input.getAttribute('data-key');
       var list = toggleSelected(key);
-      rebuild(container, list);
+      // 2026-07-16 버그 수정: 예전엔 여기서 rebuild()(전체 다시 그리기)를 불러서 팝오버
+      // 자체가 통째로 새로 그려지며 열림 상태(class="open")가 사라졌다 - 체크할 때마다
+      // 팝오버가 닫혀버려 하나씩만 추가/제거할 수 있었던 원인. 이제 팝오버는 그대로 두고
+      // 카드 목록만 부분적으로 갱신해 여러 개를 연달아 체크/해제해도 열려있는 채로 있다.
+      updateCardList(container, list);
     });
 
     document.addEventListener('click', function (e) {
       if (!container.contains(e.target)) closePopover(container);
     });
+  }
+
+  // 팝오버를 닫지 않고 카드만 추가/제거한다(체크박스 토글 전용 - 최초 로드는 rebuild() 사용).
+  function updateCardList(container, selected) {
+    var scroll = container.querySelector('#qiScroll');
+    if (!scroll) return;
+
+    var removed = [];
+    scroll.querySelectorAll('.qi-card').forEach(function (card) {
+      var key = card.getAttribute('data-key');
+      if (selected.indexOf(key) === -1) {
+        removed.push(key);
+        card.remove();
+      }
+    });
+    removed.forEach(destroyChart);
+
+    var added = [];
+    selected.forEach(function (key) {
+      if (!scroll.querySelector('.qi-card[data-key="' + key + '"]')) {
+        var opt = OPTION_BY_KEY[key];
+        if (!opt) return;
+        scroll.insertAdjacentHTML('beforeend', buildCardShell(opt));
+        added.push(key);
+      }
+    });
+
+    if (added.length) {
+      fetchSelectedData(added)
+        .then(function (dataByKey) { updateCards(container, added, dataByKey); })
+        .catch(function (err) { logError('[quick-indices] 조회 실패', err); });
+    }
   }
 
   // 선택 목록 자체가 바뀔 때만(체크박스 토글, 최초 로드) 카드 틀을 다시 그린다.

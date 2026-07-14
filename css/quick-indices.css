@@ -45,7 +45,9 @@
   padding: 6px 8px;
   display: flex;
   flex-direction: column;
+  cursor: grab;
 }
+.qi-card.qi-dragging { opacity: 0.4; }
 
 .qi-card-label {
   font-size: 11px;
@@ -80,9 +82,12 @@
 .qi-neg { color: #1261c4; }
 .qi-zero { color: #888; }
 
-/* 스크롤 영역 밖 컨트롤 - 카드가 몇 개든, 얼마나 스크롤됐든 항상 같은 자리(오른쪽 끝) */
+/* 스크롤 영역 밖 컨트롤 - 카드가 몇 개든, 얼마나 스크롤됐든 항상 같은 자리(오른쪽 끝).
+   margin-left:auto가 없으면 접혔을 때(.qi-scroll이 display:none) 남은 flex 아이템이
+   왼쪽으로 붙어버려서(2026-07-16 피드백) 항상 오른쪽에 고정되게 강제한다. */
 .qi-controls {
   flex: 0 0 auto;
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 6px;
