@@ -70,11 +70,14 @@ def try_endpoint(token, path, tr_id, params):
         return
     print('rt_cd:', data.get('rt_cd'), 'msg1:', data.get('msg1'))
     print('output1 (요약):', json.dumps(data.get('output1'), ensure_ascii=False)[:500])
-    out2 = data.get('output2') or []
-    print('output2 rows:', len(out2))
-    if out2:
-        print('첫 행:', json.dumps(out2[0], ensure_ascii=False))
-        print('마지막 행:', json.dumps(out2[-1], ensure_ascii=False))
+    out2 = data.get('output2')
+    if isinstance(out2, list):
+        print('output2 rows:', len(out2))
+        if out2:
+            print('첫 행:', json.dumps(out2[0], ensure_ascii=False))
+            print('마지막 행:', json.dumps(out2[-1], ensure_ascii=False))
+    else:
+        print('output2 (list 아님):', json.dumps(out2, ensure_ascii=False)[:800])
 
 
 def main():
@@ -96,7 +99,8 @@ def main():
         token,
         '/uapi/domestic-futureoption/v1/quotations/inquire-time-fuopchartprice',
         'FHKIF03020200',
-        {'FID_COND_MRKT_DIV_CODE': 'CM', 'FID_INPUT_ISCD': code, 'FID_HOUR_CLS_CODE': '60', 'FID_PW_DATA_INCU_YN': 'Y'},
+        {'FID_COND_MRKT_DIV_CODE': 'CM', 'FID_INPUT_ISCD': code, 'FID_HOUR_CLS_CODE': '60',
+         'FID_PW_DATA_INCU_YN': 'Y', 'FID_FAKE_TICK_INCU_YN': 'N'},
     )
 
     # 후보 2: 선물 시세(inquire_price, FHMIF10000000) - 미결제약정(OI) 필드가 여기 포함되는지 확인.
