@@ -761,14 +761,16 @@ function getKospiFuturesAnalysis() {
   return { analysis: analysis };
 }
 
-// 2026-07-16: "요약이 너무 빈약하다"는 피드백으로 4문장 단일 블록 대신, 지표를 (1)미국
-// 3대 지수 (2)원자재·환율·BTC (3)한국 증시 시사점 세 그룹으로 나눠 프롬프트에 넣고
-// 각 그룹을 최소 2문장씩(총 6~8문장) 다루도록 지시를 구체화했다. 프론트(overnight-market.js
-// renderAiSummary)는 결과를 <p> 하나에 그대로 넣으므로 소제목/줄바꿈 서식은 요청하지 않는다
-// (요청해도 화면에서 안 살아남아 프론트까지 같이 고쳐야 하는 범위 확장을 피함).
+// 2026-07-16: "요약이 너무 빈약하다"는 피드백으로 4문장 단일 블록 대신 (1)미국 3대 지수
+// (2)원자재·환율·BTC (3)한국 증시 시사점 세 그룹으로 나눠 6~8문장으로 늘렸는데, 이번엔
+// "너무 길다"는 반대 피드백이 와서 4~5문장으로 다시 줄였다(2차). 대신 정보 밀도를 위해
+// (a) 등락률 숫자를 문장에 직접 쓰라고 명시하고, (b) VIX/WTI/환율은 "오르면 호재"가 아니라
+// 각각 위험회피심리·인플레이션우려·원화약세로 통상 악재라는 해석 원칙을 프롬프트에 박아서
+// AI가 숫자만 보고 "다 올랐으니 좋다"는 식으로 뭉뚱그리지 않게 했다. 프론트(overnight-market.js
+// renderAiSummary)는 결과를 <p> 하나에 그대로 넣으므로 소제목/줄바꿈 서식은 요청하지 않는다.
 function getSubIndexAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v2';
+  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v3';
   var cached = cache.get(cacheKey);
   if (cached) return { analysis: cached };
 
@@ -801,10 +803,14 @@ function getSubIndexAnalysis() {
   var prompt = '오늘 보조지수 데이터야.\n'
     + '① 미국 3대 지수(현물+선물)/반도체지수: ' + (usIndexLines.join(', ') || '데이터 없음') + '\n'
     + '② 원자재·환율·비트코인: ' + (commodityFxLines.join(', ') || '데이터 없음') + '\n'
-    + '이 데이터를 아래 순서로 한국어 평문 7~8문장으로 정리해줘(소제목이나 번호, 줄바꿈 없이 '
-    + '이어지는 문장으로): 먼저 ①번 미국 지수 동향을 2~3문장으로, 다음 ②번 원자재·환율·BTC '
-    + '흐름을 2~3문장으로, 마지막으로 이 둘을 종합했을 때 오늘 한국 증시(코스피/코스닥)에 '
-    + '어떤 영향을 줄 수 있는지 투자자 관점에서 2~3문장으로 설명해줘. 문장 외 다른 말은 붙이지 마.';
+    + '해석 원칙(중요, 반드시 반영): 미국 지수·반도체지수·BTC는 상승=호재/하락=악재로 보고, '
+    + '반대로 VIX(변동성지수)는 오를수록 위험회피 심리가 커지는 악재, WTI 원유는 오르면 '
+    + '인플레이션·비용 부담 우려로 악재, 원/달러 환율은 오르면(원화 약세) 외국인 자금 이탈 '
+    + '우려로 악재야 - 이 셋은 숫자가 올랐다고 무조건 좋게 쓰지 마.\n'
+    + '위 원칙을 반영해서 아래 내용을 한국어 평문 4~5문장으로(소제목·번호·줄바꿈 없이) 정리해줘: '
+    + '①번 미국 지수·반도체 동향을 등락률 숫자를 직접 인용해 1~2문장, ②번 원자재·환율·VIX·BTC '
+    + '동향을 등락률 숫자를 직접 인용하고 해석 원칙에 맞게 1~2문장, 마지막으로 이를 종합했을 때 '
+    + '오늘 한국 증시(코스피/코스닥)에 미칠 영향을 1문장으로. 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? SUB_INDEX_ANALYSIS_CACHE_TTL : SUB_INDEX_ANALYSIS_FAIL_TTL);
