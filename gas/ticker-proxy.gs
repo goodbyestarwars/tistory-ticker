@@ -126,7 +126,7 @@ function doGet(e) {
     return jsonResponse([]);
   }
 
-  var ttl = isMarketOpenNow() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED;
+  var ttl = isAnyTradingSessionOpen_() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED;
   cache.put(cacheKey, JSON.stringify(result), ttl);
 
   return jsonResponse(result);
@@ -160,18 +160,39 @@ function fetchFromNaver(codes) {
     datas.forEach(function (d) {
       // rf: 등락 구분 (1 상한, 2 상승, 3 보합, 4 하한, 5 하락)
       var sign = (d.rf === '4' || d.rf === '5') ? -1 : 1;
+      var q = applyNxtOverride_(d, Number(d.nv) || 0, Math.abs(Number(d.cv) || 0) * sign, Math.abs(Number(d.cr) || 0) * sign);
       out.push({
         code: d.cd,
         name: d.nm,
-        price: Number(d.nv) || 0,
-        change: Math.abs(Number(d.cv) || 0) * sign,
-        changeRate: Math.abs(Number(d.cr) || 0) * sign,
+        price: q.price,
+        change: q.change,
+        changeRate: q.changeRate,
         volume: Number(d.aq) || 0,
         time: time
       });
     });
   }
   return out;
+}
+
+// 정규장(09:00~15:40) 마감 후엔 네이버 폴링 API의 원장(KRX) 필드(nv/cv/cr)가 더 안 바뀌어서
+// "15:00 시세에 고정된 것처럼" 보였다(2026-07-16 사용자 지적). 같은 응답의 각 종목 데이터에
+// 딸려오는 nxtOverMarketPriceInfo(NXT 대체거래소 프리마켓 08:00~09:00/애프터마켓 15:30~20:00
+// 시세)가 있으면 그걸 최신가로 우선한다 - 실측 확인(2026-07-16, 삼성전자 005930):
+// overPrice="273,500"(NXT 애프터마켓 종가), compareToPreviousClosePrice/fluctuationsRatio는
+// 정규장 종가 대비 등락. 정규장 중엔 원장 값이 이미 최신이라 건드리지 않는다(신뢰도 낮은 데이터로
+// 덮어쓰지 않기 위함 - 이 필드가 장중에도 남아있을 때의 동작이 실측 확인이 안 됐음).
+function applyNxtOverride_(d, price, change, changeRate) {
+  if (isMarketOpenNow()) return { price: price, change: change, changeRate: changeRate };
+  var over = d.nxtOverMarketPriceInfo;
+  if (!over) return { price: price, change: change, changeRate: changeRate };
+  var nxtPrice = parseFloat(String(over.overPrice || '').replace(/,/g, ''));
+  if (!nxtPrice) return { price: price, change: change, changeRate: changeRate };
+  var code = over.compareToPreviousPrice && over.compareToPreviousPrice.code;
+  var sign = (code === '4' || code === '5') ? -1 : 1;
+  var nxtChange = Math.abs(parseFloat(String(over.compareToPreviousClosePrice || '').replace(/,/g, '')) || 0) * sign;
+  var nxtChangeRate = Math.abs(parseFloat(String(over.fluctuationsRatio || '').replace(/,/g, '')) || 0) * sign;
+  return { price: nxtPrice, change: nxtChange, changeRate: nxtChangeRate };
 }
 
 // 상단 지수/환율/코인 리본용 (2단계): 코스피/코스닥/원달러환율/BTC 4종을 한 번에 묶어 응답.
@@ -368,7 +389,7 @@ function getMarketcapBubble() {
     }
   };
 
-  var ttl = isMarketOpenNow() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED;
+  var ttl = isAnyTradingSessionOpen_() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED;
   cache.put(cacheKey, JSON.stringify(result), ttl);
   return result;
 }
@@ -437,13 +458,13 @@ function fetchQuotesWithCap(codes) {
 
       datas.forEach(function (d) {
         var sign = (d.rf === '4' || d.rf === '5') ? -1 : 1;
-        var price = Number(d.nv) || 0;
         var shares = Number(d.countOfListedStock) || 0;
+        var q = applyNxtOverride_(d, Number(d.nv) || 0, 0, Math.abs(Number(d.cr) || 0) * sign);
         out[d.cd] = {
           code: d.cd,
           name: d.nm,
-          cap: price * shares,
-          changeRate: Math.abs(Number(d.cr) || 0) * sign
+          cap: q.price * shares,
+          changeRate: q.changeRate
         };
       });
     } catch (err) {
@@ -2497,6 +2518,19 @@ function isMarketOpenNow() {
   if (dow >= 6) return false;
   var hm = Number(Utilities.formatDate(now, 'Asia/Seoul', 'HHmm'));
   return hm >= 900 && hm <= 1540;
+}
+
+// isMarketOpenNow()는 정규장(09:00~15:40)만 본다 - applyNxtOverride_가 "정규장 값이 이미
+// 최신이니 NXT로 덮어쓰지 않는다"를 판단하는 데 그대로 써야 해서 건드리지 않았다. 캐시 TTL은
+// 별도로 이 함수를 써서, NXT 프리마켓(08:00~09:00)·애프터마켓(15:30~20:00)도 "장중"과 동일하게
+// 60초로 캐싱한다 - 안 그러면 NXT 시세를 반영해도 최대 30분(CACHE_TTL_CLOSED)에 한 번만 갱신되어
+// 실시간처럼 안 느껴진다는 지적(2026-07-16)을 반영.
+function isAnyTradingSessionOpen_() {
+  var now = new Date();
+  var dow = Number(Utilities.formatDate(now, 'Asia/Seoul', 'u'));
+  if (dow >= 6) return false;
+  var hm = Number(Utilities.formatDate(now, 'Asia/Seoul', 'HHmm'));
+  return hm >= 800 && hm <= 2000;
 }
 
 function formatKstTime(epochMs) {
