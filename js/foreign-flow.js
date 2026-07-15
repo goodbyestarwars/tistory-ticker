@@ -47,6 +47,8 @@
   var flowChartInflight = {}; // code -> Promise
   var investorFlowCache = {};    // code -> { t, data }
   var investorFlowInflight = {}; // code -> Promise
+  var quoteCache = {};    // code -> { t, data } - 헤더 현재가용
+  var quoteInflight = {}; // code -> Promise
   var fundamentalsCache = {};    // code -> GAS ?action=fundamentals 응답(당일 내내 유효, 새로고침 시 초기화)
   var fundamentalsInflight = {}; // code -> Promise
   var activeView = 'flow';       // 'flow' | 'chart' | 'fundamentals' - 탭 상태(종목 재검색 시 flow로 리셋)
@@ -250,19 +252,22 @@
       .catch(function () { return { error: 'FETCH_FAILED', message: '차트 데이터를 불러오지 못했어요.' }; });
     var investorFlowPromise = fetchInvestorFlowLive(resolved.code, resolved.name)
       .catch(function () { return null; });
+    var quotePromise = fetchLiveQuote(resolved.code)
+      .catch(function () { return null; });
 
-    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise])
+    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise, quotePromise])
       .then(function (results) {
         var data = results[0];
         var chartData = results[1];
         var flowEntry = results[2];
+        var quote = results[3];
         if (!data || data.error || !data.daily || !data.daily.length) {
           resultBox.innerHTML = '<div class="ff-error">'
             + escapeHtml((data && data.message) || '수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
             + '</div>';
           return;
         }
-        renderResult(resultBox, data, chartData, flowEntry);
+        renderResult(resultBox, data, chartData, flowEntry, quote);
       })
       .catch(function () {
         resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
@@ -345,6 +350,30 @@
     return p;
   }
 
+  // 헤더 현재가 - data.daily[0].close는 외국인·기관 수급표(EOD, 당일 정규장 종가 고정)라
+  // 정규장 마감 후엔 그대로 멈춰 보인다(2026-07-16 사용자 지적). ticker-proxy.gs의 ?codes=
+  // 엔드포인트(js/kospi-futures.js 등이 쓰는 것과 동일 소스)는 NXT 시간외가 반영돼 있어
+  // 그걸 따로 불러와 헤더에 우선 쓴다 - 실패해도 daily[0]로 자연스럽게 폴백된다.
+  function fetchLiveQuote(code) {
+    var hit = quoteCache[code];
+    if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
+    if (quoteInflight[code]) return quoteInflight[code];
+
+    var p = fetchJson(GAS_TICKER_URL + '?codes=' + encodeURIComponent(code))
+      .then(function (list) {
+        delete quoteInflight[code];
+        var q = (list && list[0]) || null;
+        if (q) quoteCache[code] = { t: Date.now(), data: q };
+        return q;
+      })
+      .catch(function (err) {
+        delete quoteInflight[code];
+        throw err;
+      });
+    quoteInflight[code] = p;
+    return p;
+  }
+
   function fetchJson(url) {
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
@@ -367,20 +396,28 @@
 
   // ---- 렌더링 ----
 
-  function renderResult(box, data, chartData, entry) {
+  function renderResult(box, data, chartData, entry, quote) {
     var techScore = computeTechnicalScore(chartData);
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
-    var priceHtml = latest
-      ? ' <span class="ff-price ' + signClass(latest.change_pct) + '">' + Number(latest.close).toLocaleString()
-        + '원 (' + (latest.change_pct >= 0 ? '+' : '') + latest.change_pct.toFixed(2) + '%)</span>'
-      : '';
+    // quote(실시간, NXT 시간외 포함)가 있으면 그걸 헤더에 우선 쓰고, 실패 시에만 daily[0](정규장
+    // 종가 고정)로 폴백한다. asOfLabel도 quote 성공 시 "시각"으로, 폴백 시 기존처럼 "날짜"로 보여준다.
+    var priceHtml = '';
+    var asOfLabel = data.as_of;
+    if (quote) {
+      priceHtml = ' <span class="ff-price ' + signClass(quote.changeRate) + '">' + Number(quote.price).toLocaleString()
+        + '원 (' + (quote.changeRate >= 0 ? '+' : '') + quote.changeRate.toFixed(2) + '%)</span>';
+      asOfLabel = quote.time;
+    } else if (latest) {
+      priceHtml = ' <span class="ff-price ' + signClass(latest.change_pct) + '">' + Number(latest.close).toLocaleString()
+        + '원 (' + (latest.change_pct >= 0 ? '+' : '') + latest.change_pct.toFixed(2) + '%)</span>';
+    }
 
     // 헤더(종목명/가격)를 맨 위에 두고 구분선으로 아래 요약 박스와 분리
     var html = '<div class="ff-header">' + escapeHtml(data.name || data.code)
       + ' <span class="ff-code">(' + escapeHtml(data.code) + ')</span>'
       + priceHtml
-      + ' <span class="ff-asof">' + escapeHtml(data.as_of) + ' 기준</span></div>'
+      + ' <span class="ff-asof">' + escapeHtml(asOfLabel) + ' 기준</span></div>'
       + '<div class="ff-divider"></div>';
 
     // 종합평가(점수·별점·AI 투자의견)는 탭 밖에 항상 노출 - 수급/차트/펀더멘탈 어느 탭을
