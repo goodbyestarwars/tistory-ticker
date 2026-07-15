@@ -44,6 +44,12 @@ FIELDS = [
 
 _HISTORY_REFRESH_INTERVAL = 6 * 3600  # 6시간마다 과거 일봉(미니차트용) 갱신
 _MINUTE_REFRESH_INTERVAL = 5 * 60     # 5분마다 분봉 갱신(domestic_futures.py 주간선물과 동일 주기)
+_HISTORY_DAYS = 250  # domestic_futures.py DAY_RANGE(주간선물)와 맞춘 값
+# KIS 일봉 TR(FHKIF03020100, kis_client.fetch_period_chart)은 1회 호출당 최대 100건이라
+# 250일을 한 번에 못 받는다(실측 미확인이나 kis_client.py 문서화된 제한) - 90일씩(트레이딩일
+# 기준 100건 이내로 여유) 나눠 여러 번 호출해 합친다. 과거 90일 단일 호출이던 시절엔 주간선물
+# (250일, 네이버 소스라 제한 없음)과 야간선물 일봉 캔들 개수가 서로 달랐음(2026-07-16 발견).
+_HISTORY_CHUNK_DAYS = 90
 KST = timezone(timedelta(hours=9))
 
 
@@ -83,13 +89,7 @@ def _upsert_tick(conn, row):
                                    oi=oi, oi_change=oi_change)
 
 
-def refresh_history(appkey, appsecret, code):
-    """FID_COND_MRKT_DIV_CODE=CM 과거 일봉(최근 90일)을 future_chart에 저장.
-    자체 커넥션을 열고 닫는다 - 스레드풀에서 호출될 수 있어(sqlite3 커넥션은 생성한
-    스레드에서만 재사용 가능) 웹소켓 수신 루프의 conn과 공유하지 않기 위함."""
-    token = kis_client.get_token(appkey, appsecret)
-    date2 = datetime.now().strftime('%Y%m%d')
-    date1 = (datetime.now() - timedelta(days=90)).strftime('%Y%m%d')
+def _fetch_history_chunk(token, appkey, appsecret, code, date1, date2):
     _output1, output2 = kis_client.fetch_period_chart(token, appkey, appsecret, 'CM', code, date1, date2, 'D')
     rows = []
     for r in output2:
@@ -103,13 +103,40 @@ def refresh_history(appkey, appsecret, code):
             })
         except (KeyError, ValueError):
             continue
+    return rows
+
+
+def refresh_history(appkey, appsecret, code):
+    """FID_COND_MRKT_DIV_CODE=CM 과거 일봉(최근 _HISTORY_DAYS일)을 future_chart에 저장.
+    1회 호출 최대 100건 제한 때문에 _HISTORY_CHUNK_DAYS일씩 나눠 여러 번 호출해 합친다
+    (모듈 상단 주석 참고). 자체 커넥션을 열고 닫는다 - 스레드풀에서 호출될 수 있어(sqlite3
+    커넥션은 생성한 스레드에서만 재사용 가능) 웹소켓 수신 루프의 conn과 공유하지 않기 위함."""
+    token = kis_client.get_token(appkey, appsecret)
+    by_date = {}
+    chunk_end = datetime.now()
+    remaining = _HISTORY_DAYS
+    while remaining > 0:
+        chunk_days = min(_HISTORY_CHUNK_DAYS, remaining)
+        chunk_start = chunk_end - timedelta(days=chunk_days)
+        chunk_rows = _fetch_history_chunk(
+            token, appkey, appsecret, code,
+            chunk_start.strftime('%Y%m%d'), chunk_end.strftime('%Y%m%d'),
+        )
+        for row in chunk_rows:
+            by_date[row['date']] = row
+        chunk_end = chunk_start - timedelta(days=1)
+        remaining -= chunk_days
+        if remaining > 0:
+            time.sleep(0.3)  # 연속 호출 사이 짧게 쉬어 KIS 초당 호출 제한을 피함
+    rows = list(by_date.values())
     if rows:
         conn = db_schema.get_conn()
         try:
             db_schema.upsert_future_chart_rows(conn, SYMBOL_KEY, rows)
         finally:
             conn.close()
-    logger.info('night futures history refreshed: %d rows (code=%s)', len(rows), code)
+    logger.info('night futures history refreshed: %d rows across %d chunk(s) (code=%s)',
+                len(rows), -(-_HISTORY_DAYS // _HISTORY_CHUNK_DAYS), code)
 
 
 # 야간선물은 자정을 넘어가면 stck_cntg_hour가 24~29시로 표기되고(30시간제),

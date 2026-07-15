@@ -204,7 +204,9 @@
     return '<div class="kf-section" data-section-key="option">'
       + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급 분석</div></div>'
       + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
-      + '콜/풋 전체 미결제약정(OI) 증감으로 신규 진입·청산 우세만 추정해서 보여드립니다.</div>'
+      + '콜/풋 전체 미결제약정(OI) 증감으로 신규 진입·청산 우세만 추정해서 보여드립니다. '
+      + '옵션은 야간선물과 달리 야간 세션이 없어 정규장(09:00~15:45)에만 값이 바뀌고, '
+      + '장 마감 후에는 마지막 값이 그대로 표시됩니다.</div>'
       + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
       + '</div>';
   }
