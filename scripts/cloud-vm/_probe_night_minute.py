@@ -20,6 +20,7 @@ import os
 import sys
 import urllib.error
 import urllib.request
+from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -95,12 +96,13 @@ def main():
     # 후보 1: 야간선물 분봉 - KIS 공식 예제(koreainvestment/open-trading-api,
     # examples_user/domestic_futureoption/domestic_futureoption_functions.py의
     # inquire_time_fuopchartprice)와 TR/경로 이름이 일치하는 것까지 확인됨(2026-07-16).
+    today = datetime.now().strftime('%Y%m%d')
     try_endpoint(
         token,
         '/uapi/domestic-futureoption/v1/quotations/inquire-time-fuopchartprice',
         'FHKIF03020200',
         {'FID_COND_MRKT_DIV_CODE': 'CM', 'FID_INPUT_ISCD': code, 'FID_HOUR_CLS_CODE': '60',
-         'FID_PW_DATA_INCU_YN': 'Y', 'FID_FAKE_TICK_INCU_YN': 'N'},
+         'FID_PW_DATA_INCU_YN': 'Y', 'FID_FAKE_TICK_INCU_YN': 'N', 'FID_INPUT_DATE_1': today},
     )
 
     # 후보 2: 선물 시세(inquire_price, FHMIF10000000) - 미결제약정(OI) 필드가 여기 포함되는지 확인.
@@ -113,14 +115,15 @@ def main():
     )
 
     # 후보 3: 옵션 시세판(display_board_callput, FHPIF05030100) - 콜/풋 옵션 거래량·OI가
-    # 나오는지 확인용. 파라미터는 KIS 예제 기준 추정치라 에러 메시지를 보고 조정이 필요할 수 있음
-    # (옵션 기초자산 코드 자체를 아직 안 구했으므로 코스피200 지수옵션 표준 코드 '201'로 시도).
+    # 나오는지 확인용. 1차 시도는 호출 자체는 성공(rt_cd=0)했지만 FID_MTRT_CNT가 비어 있어
+    # 0건이 나왔다 - 코스피200 옵션은 매월 둘째주 목요일 만기라, 7월물(7/9)은 이미 지나
+    # 최근월물은 8월(202608)로 추정해서 재시도.
     try_endpoint(
         token,
         '/uapi/domestic-futureoption/v1/quotations/display-board-callput',
         'FHPIF05030100',
         {'FID_COND_MRKT_DIV_CODE': 'O', 'FID_COND_SCR_DIV_CODE': '20503', 'FID_MRKT_CLS_CODE': 'CO',
-         'FID_MTRT_CNT': '', 'FID_MRKT_CLS_CODE1': 'PO', 'FID_COND_MRKT_CLS_CODE': ''},
+         'FID_MTRT_CNT': '202608', 'FID_MRKT_CLS_CODE1': 'PO', 'FID_COND_MRKT_CLS_CODE': ''},
     )
 
 
