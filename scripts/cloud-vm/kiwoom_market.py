@@ -89,6 +89,33 @@ def fetch_institution_trend(token, code):
     return out
 
 
+def _fetch_live_investor_row(token, code, end_dt):
+    """ka10059(종목별투자자기관별요청)의 오늘 행 - ka10045는 '일별' 확정 TR이라 당일 값이
+    정산 전에는 안 채워지는데, ka10059는 장중 누적치를 실시간으로 반환한다(investor_flow.py의
+    연기금/공매도압박 계산이 이미 이 TR의 frgnr_invsr/orgn을 '오늘' 실제값으로 취급 중 -
+    같은 근거). 반환된 dt가 end_dt(오늘)와 다르면(휴장일 등) None을 돌려줘 호출부가
+    ka10045 결과를 그대로 쓰게 한다."""
+    try:
+        res = kiwoom_client.call_tr(token, 'ka10059', '/api/dostk/stkinfo', {
+            'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1',
+        })
+    except Exception:
+        return None
+    rows = res.get('stk_invsr_orgn') or []
+    if not rows:
+        return None
+    today = sorted(rows, key=lambda r: r.get('dt', ''), reverse=True)[0]
+    if today.get('dt') != end_dt:
+        return None
+    return {
+        'close': abs(to_num(today.get('cur_prc'))),
+        'change_pct': to_num(today.get('flu_rt')),
+        'volume': abs(to_num(today.get('acc_trde_qty'))),
+        'inst_net': to_num(today.get('orgn')),
+        'foreign_net': to_num(today.get('frgnr_invsr')),
+    }
+
+
 def fetch_foreign_inst_daily(token, code):
     """종목분석 메인 수급 표(외국인·기관 순매매 + 외국인 보유주수/비중)용 - ka10045(기관/
     외국인 순매매)와 ka10008(외국인 보유주수/비중)을 날짜로 합쳐 gas의 parseFrgnRows()
@@ -96,7 +123,11 @@ def fetch_foreign_inst_daily(token, code):
     volume, inst_net, foreign_net, foreign_shares, foreign_ratio} - 최신일 우선.
     fetch_institution_trend()과 별도 함수로 둔 이유: daily_scan.py(전종목 배치)는
     foreign_shares/foreign_ratio가 필요 없어서 ka10008 추가 호출을 안 하는 가벼운 버전을
-    그대로 쓰고, 이 함수는 종목분석 페이지 온디맨드 조회 전용으로만 쓴다."""
+    그대로 쓰고, 이 함수는 종목분석 페이지 온디맨드 조회 전용으로만 쓴다.
+    2026-07-15: ka10045의 당일 행은 정산 전까지 비거나 늦게 채워져서(토스/키움 앱 자체
+    수급 화면과 시차 발생), _fetch_live_investor_row()의 ka10059 실시간 누적치로 오늘 행만
+    덮어쓰거나(이미 있으면) 새로 앞에 끼워넣는다(없으면). 과거 행과 foreign_shares/
+    foreign_ratio는 그대로 ka10045/ka10008 확정치를 쓴다."""
     end = datetime.now()
     start = end - timedelta(days=FLOW_LOOKBACK_DAYS)
     strt_dt, end_dt = start.strftime('%Y%m%d'), end.strftime('%Y%m%d')
@@ -136,4 +167,27 @@ def fetch_foreign_inst_daily(token, code):
         })
 
     out.sort(key=lambda r: r['date'], reverse=True)  # 최신일 우선 - gas getForeignFlow와 동일
+
+    today_str = '%s-%s-%s' % (end_dt[0:4], end_dt[4:6], end_dt[6:8])
+    live_row = _fetch_live_investor_row(token, code, end_dt)
+    if live_row:
+        if out and out[0]['date'] == today_str:
+            out[0].update(live_row)
+        else:
+            out.insert(0, dict(live_row, date=today_str, foreign_shares=None, foreign_ratio=None))
+
+    # 오늘 행은 ka10008이 아직 당일 보유주수/비중을 안 내놨을 수 있어 None일 수 있는데,
+    # 프론트 보유율 차트(js/foreign-flow.js buildRatioChart)가 null에 그대로 toFixed()를
+    # 호출해 죽는다 - 직전 확정일 값을 이어붙여 방지(비중은 하루새 급변하지 않아 근사로 안전).
+    last_shares = last_ratio = None
+    for r in reversed(out):
+        if r['foreign_shares'] is not None:
+            last_shares = r['foreign_shares']
+        elif last_shares is not None:
+            r['foreign_shares'] = last_shares
+        if r['foreign_ratio'] is not None:
+            last_ratio = r['foreign_ratio']
+        elif last_ratio is not None:
+            r['foreign_ratio'] = last_ratio
+
     return out
