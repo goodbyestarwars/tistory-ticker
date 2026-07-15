@@ -93,12 +93,15 @@ def _fetch_live_investor_row(token, code, end_dt):
     """ka10059(종목별투자자기관별요청)의 오늘 행 - ka10045는 '일별' 확정 TR이라 당일 값이
     정산 전에는 안 채워지는데, ka10059는 장중 누적치를 실시간으로 반환한다.
     2026-07-15 실측 확인: amt_qty_tp='1'은 "수량"이 아니라 "금액"(백만원 단위)이었음 -
-    Toss/키움HTS 실제 수량과 대조해 검증됨(예: -863(금액,백만원)/종가 ≈ -19,135주 ≈
-    amt_qty_tp='2'의 -19(천주)*1000과 거의 일치). '2'(수량, 천주 단위)로 바꾸고 *1000
-    보정. 외국인은 이 보정 후에도 Toss 대비 절반 정도로 나오는데, 이건 "순수 외국인"과
-    "외국계 전체"(ka10063의 frgn_all 파라미터로 미루어 실존하는 구분) 집계 기준 차이로
-    보이며 파라미터로 해소되지 않아 알려진 한계로 남겨둠. 반환된 dt가 end_dt(오늘)와
-    다르면(휴장일 등) None을 돌려줘 호출부가 ka10045 결과를 그대로 쓰게 한다."""
+    '2'(수량)로 바꿔야 진짜 주식수가 나온다. unit_tp='1'로 호출하면(이 코드처럼) 이미
+    "천주" 아닌 정확한 주식수 그대로 내려온다(Toss/키움HTS 실측과 소수 오차 내로 일치
+    확인됨) - 별도 *1000 배율이 필요 없다(처음엔 MCP 도구로 확인했을 때 "-19" 같은 천주
+    단위 값을 봐서 *1000이 맞다고 착각했는데, 그 MCP 도구는 unit_tp를 노출 안 해서 내부
+    기본값이 여기와 달랐던 것 - 실제 배포 후 -19,259,000처럼 1000배 부풀려진 걸 보고
+    발견해 되돌림). 외국인은 이 수정 후에도 Toss 대비 다소 차이가 있는데, 이건 "순수
+    외국인"과 "외국계 전체"(ka10063의 frgn_all 파라미터로 미루어 실존하는 구분) 집계
+    기준 차이로 보이며 파라미터로 해소되지 않아 알려진 한계로 남겨둠. 반환된 dt가
+    end_dt(오늘)와 다르면(휴장일 등) None을 돌려줘 호출부가 ka10045 결과를 그대로 쓰게 한다."""
     try:
         res = kiwoom_client.call_tr(token, 'ka10059', '/api/dostk/stkinfo', {
             'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '2', 'trde_tp': '0', 'unit_tp': '1',
@@ -116,9 +119,8 @@ def _fetch_live_investor_row(token, code, end_dt):
         # ka10059의 flu_rt는 ka10045와 달리 소수점 없는 100배 정수 문자열("+627"=6.27%)이라 /100 필요
         'change_pct': to_num(today.get('flu_rt')) / 100,
         'volume': abs(to_num(today.get('acc_trde_qty'))),
-        # amt_qty_tp='2'는 천주 단위로 내려와서 실제 주식수로 환산
-        'inst_net': to_num(today.get('orgn')) * 1000,
-        'foreign_net': to_num(today.get('frgnr_invsr')) * 1000,
+        'inst_net': to_num(today.get('orgn')),
+        'foreign_net': to_num(today.get('frgnr_invsr')),
     }
 
 
