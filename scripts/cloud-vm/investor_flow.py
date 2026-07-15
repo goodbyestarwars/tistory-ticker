@@ -128,8 +128,13 @@ def fetch_stock(token, code, name):
     ) if prior_loan_balance else 0.0
 
     today_invsr = invsr_rows[0]
-    foreign_net_today = to_num(today_invsr.get('frgnr_invsr'))
-    inst_net_today = to_num(today_invsr.get('orgn'))
+    current_price = abs(to_num(today_invsr.get('cur_prc')))
+    # amt_qty_tp='1'이라 frgnr_invsr/orgn은 수량이 아니라 금액(백만원 단위)로 내려옴(2026-07-15
+    # Toss/키움HTS 실측 대조로 확인됨) - short_squeeze_index가 공매도거래량(주)과 같은 단위여야
+    # 해서 종가로 나눠 대략적인 주식수로 환산. short_pressure_score의 foreign/inst_score는
+    # 부호만 보므로 이 환산과 무관하게 이전부터 정확했음.
+    foreign_net_today = (to_num(today_invsr.get('frgnr_invsr')) * 1_000_000 / current_price) if current_price else 0.0
+    inst_net_today = (to_num(today_invsr.get('orgn')) * 1_000_000 / current_price) if current_price else 0.0
 
     pressure = short_pressure_score(today_ratio_pct, loan_change_pct, short_balance_change_pct,
                                      foreign_net_today, inst_net_today)
@@ -149,7 +154,6 @@ def fetch_stock(token, code, name):
     net_60d = sum_n(penfnd_daily, 60) if len(penfnd_daily) >= 60 else None
     net_cumulative = sum(penfnd_daily)
 
-    current_price = abs(to_num(today_invsr.get('cur_prc')))
     streak = pension_streak(penfnd_daily)
     interpretation = pension_interpretation(streak, net_5d)
 
