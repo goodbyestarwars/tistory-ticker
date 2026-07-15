@@ -96,13 +96,16 @@ def main():
     # 후보 1: 야간선물 분봉 - KIS 공식 예제(koreainvestment/open-trading-api,
     # examples_user/domestic_futureoption/domestic_futureoption_functions.py의
     # inquire_time_fuopchartprice)와 TR/경로 이름이 일치하는 것까지 확인됨(2026-07-16).
-    today = datetime.now().strftime('%Y%m%d')
+    now = datetime.now()
+    today = now.strftime('%Y%m%d')
+    hour_now = now.strftime('%H%M%S')
     try_endpoint(
         token,
         '/uapi/domestic-futureoption/v1/quotations/inquire-time-fuopchartprice',
         'FHKIF03020200',
         {'FID_COND_MRKT_DIV_CODE': 'CM', 'FID_INPUT_ISCD': code, 'FID_HOUR_CLS_CODE': '60',
-         'FID_PW_DATA_INCU_YN': 'Y', 'FID_FAKE_TICK_INCU_YN': 'N', 'FID_INPUT_DATE_1': today},
+         'FID_PW_DATA_INCU_YN': 'Y', 'FID_FAKE_TICK_INCU_YN': 'N', 'FID_INPUT_DATE_1': today,
+         'FID_INPUT_HOUR_1': hour_now},
     )
 
     # 후보 2: 선물 시세(inquire_price, FHMIF10000000) - 미결제약정(OI) 필드가 여기 포함되는지 확인.
