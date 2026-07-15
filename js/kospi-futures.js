@@ -55,6 +55,16 @@
   var CHART_EL_BY_KEY = {};
   CHARTS.forEach(function (c) { CHART_EL_BY_KEY[c.key] = c.elId; });
 
+  // 섹션별 펼침/접힘 - localStorage에 저장해 다음 방문에도 유지(예: 야간에는 주간선물을
+  // 접어두면 다음에 들어와도 접힌 채로 시작). 기본은 둘 다 펼침.
+  function collapseKey(chartKey) { return 'kf_collapsed_' + chartKey + '_v1'; }
+  function loadCollapsed(chartKey) {
+    try { return localStorage.getItem(collapseKey(chartKey)) === '1'; } catch (err) { return false; }
+  }
+  function saveCollapsed(chartKey, collapsed) {
+    try { localStorage.setItem(collapseKey(chartKey), collapsed ? '1' : '0'); } catch (err) { /* 무시 */ }
+  }
+
   var lwcLoadPromise = null;
   var chartInstances = {}; // key -> { chart, series }
   var themeObserver = null;
@@ -154,12 +164,16 @@
       var toggleHtml = '<div class="kf-interval-toggle" data-chart-key="' + c.key + '">' + c.intervals.map(function (iv) {
         return '<button type="button" class="kf-interval-btn' + (iv === panelState[c.key].interval ? ' active' : '') + '" data-interval="' + iv + '">' + INTERVAL_LABELS[iv] + '</button>';
       }).join('') + '</div>';
-      return '<div class="kf-section">'
+      var collapsed = loadCollapsed(c.key);
+      return '<div class="kf-section' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="' + c.key + '">'
         + '<div class="kf-section-head">'
         + '<div class="kf-section-title">' + escapeHtml(c.label) + '</div>'
-        + toggleHtml
+        + '<button type="button" class="kf-collapse-btn" data-chart-key="' + c.key + '" aria-label="펼치기/접기">' + (collapsed ? '▸' : '▾') + '</button>'
         + '</div>'
+        + '<div class="kf-section-body">'
+        + toggleHtml
         + '<div class="kf-chart" id="' + c.elId + '" style="height:' + CHART_HEIGHT + 'px"></div>'
+        + '</div>'
         + '</div>';
     }).join('');
 
@@ -385,12 +399,32 @@
       .catch(function () { box.hidden = true; });
   }
 
+  // 접힌 상태에서는 차트 컨테이너가 display:none이라 LWC의 autoSize(ResizeObserver)가
+  // 정상적으로 크기를 못 잡을 수 있어, 펼칠 때마다 안전하게 다시 그린다(이미 받아온 데이터를
+  // 그대로 쓰므로 재요청 없음 - renderChartPanel 참고).
+  function wireCollapseToggles(container) {
+    container.querySelectorAll('.kf-collapse-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var key = btn.getAttribute('data-chart-key');
+        var section = container.querySelector('.kf-section[data-section-key="' + key + '"]');
+        var cfg = CHARTS.filter(function (c) { return c.key === key; })[0];
+        if (!section || !cfg) return;
+        var collapsed = !section.classList.contains('kf-collapsed');
+        section.classList.toggle('kf-collapsed', collapsed);
+        btn.textContent = collapsed ? '▸' : '▾';
+        saveCollapsed(key, collapsed);
+        if (!collapsed) renderChartPanel(cfg);
+      });
+    });
+  }
+
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
 
     container.innerHTML = buildShell();
     wireIntervalToggles(container);
+    wireCollapseToggles(container);
     refresh(container);
     renderAiSummary(container);
 
