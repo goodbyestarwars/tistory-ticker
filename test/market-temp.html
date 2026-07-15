@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>market-temp 로컬 테스트</title>
 <link rel="stylesheet" href="../css/market-temp.css" />
+<link rel="stylesheet" href="../css/marketcap-bubble.css" />
 <style>
   body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
   html.dark body { background: #1a1a1a; }
@@ -30,6 +31,11 @@
   <div id="market-temp"></div>
 </div>
 
+<script src="../data/sectors-v3.js"></script>
+<script src="../data/krx_map.js"></script>
+<script src="../js/sector-dashboard-v4.js"></script>
+<script src="../data/marketcap-codes.js"></script>
+<script src="../js/marketcap-bubble.js"></script>
 <script src="../js/market-temp.js"></script>
 <script>
   var MAX_POSSIBLE = 110; // gas의 MT_COMPONENT_MAX 합계와 동일(VIX20+수급20+거래대금15+평균등락15+상승10+섹터10+52주10+환율5+선물5)

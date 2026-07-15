@@ -43,6 +43,15 @@ import db_schema
 
 logger = logging.getLogger('domestic_futures')
 
+# 분봉은 네이버 chart/domestic/futures/FUT/minute 엔드포인트로 실측 확인됨(2026-07-15,
+# curl로 실제 1분봉 데이터 응답 확인). 코스피200 야간선물(KOSPI200_NIGHT)은 KIS 소스라
+# 이 분봉 소스가 없어 제외 - 분봉 지원은 이 심볼만.
+MINUTE_SYMBOLS = {'KOSPI200_DAY'}
+_MINUTE_CHART_CATEGORY = 'futures'
+_MINUTE_CHART_CODE = 'FUT'
+_MINUTE_REFRESH_INTERVAL = 5 * 60
+KST = timezone(timedelta(hours=9))
+
 UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'
 
 # {symbol: (표시명, 네이버 code)} - realtime/domestic/index/{code} API로 커버됨.
@@ -94,7 +103,7 @@ def fetch_index_realtime(code):
     return {'price': price, 'change': change, 'change_rate': change_rate, 'high': high, 'low': low}
 
 
-def fetch_domestic_index_chart(category, code, days=90):
+def fetch_domestic_index_chart(category, code, days=250):
     date2 = datetime.now().strftime('%Y%m%d')
     date1 = (datetime.now() - timedelta(days=days)).strftime('%Y%m%d')
     url = ('https://api.stock.naver.com/chart/domestic/%s/%s/day?startDateTime=%s&endDateTime=%s'
@@ -109,6 +118,31 @@ def fetch_domestic_index_chart(category, code, days=90):
                 'high': float(r['highPrice']),
                 'low': float(r['lowPrice']),
                 'close': float(r['closePrice']),
+            })
+        except (KeyError, ValueError, TypeError):
+            continue
+    return rows
+
+
+# 코스피200 주간선물(KOSPI200_DAY) 전용 분봉 - 실측 확인된 minute 엔드포인트(2026-07-15).
+# days=2면 최근 이틀치를 요청하는데, 정규장 하루 분량(약 390개)이 하루치가 아니라 오늘+어제
+# 걸쳐 나오는 경우가 있어 여유를 둔다 - 어차피 upsert라 중복은 문제없다.
+def fetch_domestic_index_chart_minute(category, code, days=3):
+    date2 = datetime.now().strftime('%Y%m%d')
+    date1 = (datetime.now() - timedelta(days=days)).strftime('%Y%m%d')
+    url = ('https://api.stock.naver.com/chart/domestic/%s/%s/minute?startDateTime=%s&endDateTime=%s'
+           % (category, code, date1, date2))
+    data = _get_json(url)
+    rows = []
+    for r in data:
+        try:
+            dt = datetime.strptime(str(r['localDateTime']), '%Y%m%d%H%M%S').replace(tzinfo=KST)
+            rows.append({
+                'ts': int(dt.timestamp()),
+                'open': float(r['openPrice']),
+                'high': float(r['highPrice']),
+                'low': float(r['lowPrice']),
+                'close': float(r['currentPrice']),
             })
         except (KeyError, ValueError, TypeError):
             continue
@@ -197,8 +231,24 @@ def refresh_history_all():
         conn.close()
 
 
+def refresh_minute_all():
+    conn = db_schema.get_conn()
+    try:
+        for symbol in MINUTE_SYMBOLS:
+            try:
+                rows = fetch_domestic_index_chart_minute(_MINUTE_CHART_CATEGORY, _MINUTE_CHART_CODE)
+                if rows:
+                    db_schema.upsert_future_chart_minute_rows(conn, symbol, rows)
+                    logger.info('domestic futures minute chart refreshed: %s %d rows', symbol, len(rows))
+            except Exception:
+                logger.exception('%s minute chart fetch failed', symbol)
+    finally:
+        conn.close()
+
+
 def _poll_loop():
     last_history_refresh = 0
+    last_minute_refresh = 0
     while True:
         try:
             refresh_realtime_all()
@@ -211,6 +261,12 @@ def _poll_loop():
             except Exception:
                 logger.exception('refresh_history_all failed')
             last_history_refresh = now
+        if now - last_minute_refresh > _MINUTE_REFRESH_INTERVAL:
+            try:
+                refresh_minute_all()
+            except Exception:
+                logger.exception('refresh_minute_all failed')
+            last_minute_refresh = now
         time.sleep(_REALTIME_POLL_SEC)
 
 

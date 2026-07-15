@@ -265,7 +265,7 @@ def daily_scan_batch(x_api_key: str = Header(default=None)):
 
 
 @app.get('/futures')
-def futures():
+def futures(interval: str = 'day', days: int = 90):
     """보조지수/코스피 선물 페이지 전용 - 미국 현물지수 3종+선물 3종/SOX/VIX/WTI(네이버) +
     코스피200 주간/야간선물(네이버+KIS) + 원/달러 환율(네이버) 현재가+최근 일봉을 하나로 묶어
     반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /investor-flow와
@@ -277,7 +277,13 @@ def futures():
     (KOSPI_CASH)는 어느 페이지에서도 안 쓰게 돼 제거.
     2026-07-16(3차): KOSPI_CASH 제거가 "과거 일봉 데이터가 신뢰 불가"라는 잘못된 판단
     때문이었음이 밝혀져 정정 - 코스피/코스닥(KOSPI/KOSDAQ)을 정식으로 다시 추가했다
-    (관심지수 리본 미니차트용, domestic_futures.py 상단 주석 참고)."""
+    (관심지수 리본 미니차트용, domestic_futures.py 상단 주석 참고).
+    2026-07-16(4차): 코스피 선물 페이지의 분봉/일봉/주봉 전환 + 일봉 범위 확대 지원.
+    days는 기존 호출부(관심지수 리본/보조지수)의 기본 동작을 안 건드리려고 기본값을 90으로
+    유지하고, 코스피 선물 페이지만 명시적으로 더 큰 값을 요청한다. interval='minute'는
+    domestic_futures.MINUTE_SYMBOLS에 있는 심볼(현재 KOSPI200_DAY만)만 분봉으로 바뀌고
+    나머지는 그 심볼에 분봉 소스가 없어 평소처럼 일봉을 반환한다(부분 적용 - 에러 아님)."""
+    days = max(1, min(days, 500))
     conn = db_schema.get_conn()
     try:
         prices = {p['symbol']: p for p in db_schema.load_all_future_prices(conn)}
@@ -286,7 +292,10 @@ def futures():
         result = []
         for symbol in order:
             p = prices.get(symbol)
-            chart = db_schema.load_future_chart(conn, symbol, limit_days=90)
+            if interval == 'minute' and symbol in domestic_futures.MINUTE_SYMBOLS:
+                chart = db_schema.load_future_chart_minute(conn, symbol)
+            else:
+                chart = db_schema.load_future_chart(conn, symbol, limit_days=days)
             result.append({
                 'symbol': symbol,
                 'name': p['name'] if p else None,

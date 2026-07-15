@@ -761,36 +761,50 @@ function getKospiFuturesAnalysis() {
   return { analysis: analysis };
 }
 
+// 2026-07-16: "요약이 너무 빈약하다"는 피드백으로 4문장 단일 블록 대신, 지표를 (1)미국
+// 3대 지수 (2)원자재·환율·BTC (3)한국 증시 시사점 세 그룹으로 나눠 프롬프트에 넣고
+// 각 그룹을 최소 2문장씩(총 6~8문장) 다루도록 지시를 구체화했다. 프론트(overnight-market.js
+// renderAiSummary)는 결과를 <p> 하나에 그대로 넣으므로 소제목/줄바꿈 서식은 요청하지 않는다
+// (요청해도 화면에서 안 살아남아 프론트까지 같이 고쳐야 하는 범위 확장을 피함).
 function getSubIndexAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'sub_index_analysis';
+  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v2';
   var cached = cache.get(cacheKey);
   if (cached) return { analysis: cached };
 
   var futures = safeCall(fetchFuturesFromVm_);
-  var lines = [];
+  var usIndexLines = [], commodityFxLines = [];
   if (futures) {
     [
       ['NASDAQ_INDEX', '나스닥종합지수'], ['SP500_INDEX', 'S&P500지수'], ['DOW_INDEX', '다우존스지수'],
       ['NASDAQ100', '나스닥100 선물'], ['SP500', 'S&P500 선물'], ['DOW', '다우 선물'],
-      ['SOX', '필라델피아 반도체지수'], ['VIX', 'VIX(변동성지수)'], ['WTI', 'WTI 원유'],
-      ['USDKRW', '원/달러 환율']
+      ['SOX', '필라델피아 반도체지수']
     ].forEach(function (pair) {
       var line = futuresLine_(futures[pair[0]], pair[1]);
-      if (line) lines.push(line);
+      if (line) usIndexLines.push(line);
+    });
+    [
+      ['VIX', 'VIX(변동성지수)'], ['WTI', 'WTI 원유'], ['USDKRW', '원/달러 환율']
+    ].forEach(function (pair) {
+      var line = futuresLine_(futures[pair[0]], pair[1]);
+      if (line) commodityFxLines.push(line);
     });
   }
   // BTC는 VM이 아니라 GAS 자체 fetchCrypto()(빗썸->코인게코 폴백, getMarketRibbon과 동일 소스)로
   // 가져온다 - VM은 시세 이력이 없는 지표(BTC)를 다루지 않는 정책(js/quick-indices.js 주석 참고).
   var btc = safeCall(fetchCrypto);
   if (btc && typeof btc.price === 'number') {
-    lines.push('BTC ' + btc.price + ' (' + (btc.changeRate >= 0 ? '+' : '') + btc.changeRate.toFixed(2) + '%)');
+    commodityFxLines.push('BTC ' + btc.price + ' (' + (btc.changeRate >= 0 ? '+' : '') + btc.changeRate.toFixed(2) + '%)');
   }
-  if (!lines.length) return { analysis: null };
+  if (!usIndexLines.length && !commodityFxLines.length) return { analysis: null };
 
-  var prompt = '오늘 미국 주요 지수(현물+선물)·환율·원자재·비트코인 동향이야: ' + lines.join(', ') + '. ' +
-    '이 지표들을 종합해서 오늘 한국 증시(코스피/코스닥)에 어떤 영향을 줄 수 있는지 ' +
-    '투자자 관점에서 4문장으로 한국어로 정리해줘. 문장 외 다른 말은 붙이지 마.';
+  var prompt = '오늘 보조지수 데이터야.\n'
+    + '① 미국 3대 지수(현물+선물)/반도체지수: ' + (usIndexLines.join(', ') || '데이터 없음') + '\n'
+    + '② 원자재·환율·비트코인: ' + (commodityFxLines.join(', ') || '데이터 없음') + '\n'
+    + '이 데이터를 아래 순서로 한국어 평문 7~8문장으로 정리해줘(소제목이나 번호, 줄바꿈 없이 '
+    + '이어지는 문장으로): 먼저 ①번 미국 지수 동향을 2~3문장으로, 다음 ②번 원자재·환율·BTC '
+    + '흐름을 2~3문장으로, 마지막으로 이 둘을 종합했을 때 오늘 한국 증시(코스피/코스닥)에 '
+    + '어떤 영향을 줄 수 있는지 투자자 관점에서 2~3문장으로 설명해줘. 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? SUB_INDEX_ANALYSIS_CACHE_TTL : SUB_INDEX_ANALYSIS_FAIL_TTL);

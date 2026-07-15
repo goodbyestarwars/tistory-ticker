@@ -169,11 +169,50 @@
           detail.innerHTML = '<div class="ps-error">' + escapeHtml((data && data.message) || '차트를 불러오지 못했어요.') + '</div>';
           return;
         }
+        // 리스트는 하루 1회 스캔 캐시라서, 클릭 시 실시간 재검증에서 패턴이 더 이상
+        // 안 잡힐 수 있음(그 사이 가격이 움직여서) - 이 경우 깨진 결과를 보여주는 대신
+        // 목록에서 바로 빼서 다음에 같은 종목을 다시 클릭하지 않게 한다.
+        if (!data.detail) {
+          closeDetail(container);
+          removeStaleItem(container, item);
+          return;
+        }
         renderDetail(detail, item, data);
       })
       .catch(function () {
         detail.innerHTML = '<div class="ps-error">차트를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
+  }
+
+  // 재검증 결과 조건을 더 이상 만족하지 않는 종목을 현재 탭 목록에서 제거하고
+  // 왜 사라졌는지 잠깐 안내한다. GAS의 하루 1회 스캔 캐시 자체는 건드리지 않으므로
+  // 페이지를 새로고침하면 다음 재스캔 전까지는 다시 나타날 수 있다.
+  function removeStaleItem(container, item) {
+    if (scanData && scanData.patterns && scanData.patterns[activeTab]) {
+      scanData.patterns[activeTab] = scanData.patterns[activeTab].filter(function (x) {
+        return x.code !== item.code;
+      });
+    }
+    renderList(container);
+    showToast(container, '⚠️ ' + escapeHtml(item.name) + eunNeun(item.name) + ' 스캔 이후 가격이 움직여서 더 이상 패턴 조건을 만족하지 않아 목록에서 제외했어요.');
+  }
+
+  // 종목명 마지막 글자에 받침이 있으면 "은", 없으면 "는" (한글 완성형 유니코드 오프셋 기준).
+  function eunNeun(name) {
+    var ch = String(name || '').trim().slice(-1);
+    var code = ch.charCodeAt(0) - 0xac00;
+    if (code < 0 || code > 11171) return '는';
+    return code % 28 === 0 ? '는' : '은';
+  }
+
+  function showToast(container, html) {
+    var list = container.querySelector('#psList');
+    if (!list) return;
+    var toast = document.createElement('div');
+    toast.className = 'ps-toast';
+    toast.innerHTML = html;
+    list.parentNode.insertBefore(toast, list);
+    setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 5000);
   }
 
   function closeDetail(container) {
@@ -186,14 +225,7 @@
       + '<span class="ps-detail-name">' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
-    if (data.detail) {
-      html += buildScoreBox(data.detail);
-    } else {
-      // 리스트는 하루 1회 스캔 캐시라서, 클릭 시 실시간 재검증에서 패턴이 더 이상
-      // 안 잡힐 수 있음(그 사이 가격이 움직여서) - 오버레이 선 없이 캔들만 나오면
-      // 기능이 고장난 것처럼 보이니 이유를 명시한다.
-      html += '<div class="ps-stale-notice">⚠️ 스캔 이후 가격이 움직여서 지금 다시 확인해보니 이 패턴 조건을 더 이상 만족하지 않아요. 그래서 패턴선 없이 캔들차트만 보여드려요.</div>';
-    }
+    html += buildScoreBox(data.detail);
     html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
     html += '<div class="ps-footnote">※ 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;

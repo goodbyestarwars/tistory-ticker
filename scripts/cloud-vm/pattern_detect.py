@@ -163,9 +163,69 @@ def compute_support_resistance(daily):
     return {'support': support, 'resistance': resistance}
 
 
+def ichimoku_period_mid(daily, i, period):
+    start = i - period + 1
+    if start < 0:
+        return None
+    hi = max(daily[k]['high'] for k in range(start, i + 1))
+    lo = min(daily[k]['low'] for k in range(start, i + 1))
+    return (hi + lo) / 2
+
+
+ICHIMOKU_TENKAN_PERIOD = 9
+ICHIMOKU_KIJUN_PERIOD = 26
+ICHIMOKU_SENKOU_B_PERIOD = 52
+ICHIMOKU_DISPLACEMENT = 26
+
+
+# 구름 위/아래(10) + 전환선-기준선 골든/데드(10) + 구름 색 양운/음운(10) = 0~30점.
+# js/foreign-flow.js의 computeIchimokuScore와 동일 공식(선/구름 렌더링은 프론트에서만 하고
+# 여기서는 점수만 계산 - 그림은 필요 없음).
+def compute_ichimoku_score(daily):
+    n = len(daily)
+    tenkan = [ichimoku_period_mid(daily, i, ICHIMOKU_TENKAN_PERIOD) for i in range(n)]
+    kijun = [ichimoku_period_mid(daily, i, ICHIMOKU_KIJUN_PERIOD) for i in range(n)]
+
+    cloud_idx = n - 1 - ICHIMOKU_DISPLACEMENT
+    today_senkou_a = None
+    today_senkou_b = None
+    if cloud_idx >= 0:
+        if tenkan[cloud_idx] is not None and kijun[cloud_idx] is not None:
+            today_senkou_a = (tenkan[cloud_idx] + kijun[cloud_idx]) / 2
+        today_senkou_b = ichimoku_period_mid(daily, cloud_idx, ICHIMOKU_SENKOU_B_PERIOD)
+
+    close = daily[-1]['close']
+    cloud_score = 0
+    if today_senkou_a is not None and today_senkou_b is not None:
+        top = max(today_senkou_a, today_senkou_b)
+        bottom = min(today_senkou_a, today_senkou_b)
+        if close > top:
+            cloud_score = 10
+        elif close >= bottom:
+            cloud_score = 5
+
+    cross_score = 0
+    last_tenkan, last_kijun = tenkan[-1], kijun[-1]
+    if last_tenkan is not None and last_kijun is not None:
+        if last_tenkan > last_kijun:
+            cross_score = 10
+        elif last_tenkan == last_kijun:
+            cross_score = 5
+
+    color_score = 0
+    if today_senkou_a is not None and today_senkou_b is not None:
+        if today_senkou_a > today_senkou_b:
+            color_score = 10
+        elif today_senkou_a == today_senkou_b:
+            color_score = 5
+
+    return {'score': cloud_score + cross_score + color_score}
+
+
 def compute_tech_score(daily):
-    """이동평균 배열(40) + 지지선 근접도(30) + 저항선 근접도(30) = 0~100점.
-    gas의 computeTechScoreServer_와 동일 공식."""
+    """이동평균 배열(30) + 지지선 근접도(20) + 저항선 근접도(20) + 일목균형표(30) = 0~100점.
+    js/foreign-flow.js의 computeTechnicalScore와 동일 공식 - 종목분석/투자시그널 등급이
+    어긋나지 않으려면 두 구현을 같이 고칠 것."""
     if not daily or len(daily) < 60:
         return None
     close = daily[-1]['close']
@@ -180,11 +240,11 @@ def compute_tech_score(daily):
     ma_score = 0
     if ma5 is not None and ma20 is not None and ma60 is not None:
         if ma5 > ma20 > ma60:
-            ma_score = 40
-        elif ma20 > ma60:
             ma_score = 30
-        elif ma5 > ma20:
+        elif ma20 > ma60:
             ma_score = 20
+        elif ma5 > ma20:
+            ma_score = 10
 
     levels = compute_support_resistance(daily)
     support = levels['support']
@@ -195,11 +255,11 @@ def compute_tech_score(daily):
         if sup_gap < 0:
             sup_score = 0
         elif sup_gap <= 2:
-            sup_score = 30
-        elif sup_gap <= 5:
             sup_score = 20
+        elif sup_gap <= 5:
+            sup_score = 12
         elif sup_gap <= 8:
-            sup_score = 10
+            sup_score = 6
 
     resistance = levels['resistance']
     res_score = 0
@@ -207,13 +267,15 @@ def compute_tech_score(daily):
         nearest_res = min(resistance, key=lambda b: abs(b - close))
         res_gap = (nearest_res - close) / close * 100
         if res_gap < 0:
-            res_score = 30
-        elif res_gap <= 3:
             res_score = 20
+        elif res_gap <= 3:
+            res_score = 12
         elif res_gap <= 8:
-            res_score = 10
+            res_score = 6
 
-    return {'score': ma_score + sup_score + res_score}
+    ichi_score = compute_ichimoku_score(daily)['score']
+
+    return {'score': ma_score + sup_score + res_score + ichi_score}
 
 
 def build_pattern_match(stock, daily, detail):

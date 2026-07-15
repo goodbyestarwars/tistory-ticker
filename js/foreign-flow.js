@@ -595,7 +595,12 @@
       + '</tr></thead><tbody>' + rows + '</tbody></table>';
   }
 
+  var TREND_NEUTRAL_COLOR = '#9ca3af';
+
   // 외부 차트 라이브러리 없이 인라인 SVG 막대그래프(marketcap-bubble.js/섹터 히트맵과 동일한 방식).
+  // items[i].trend가 있으면 그 값('up'/'down')으로 색을 정하고(추세 기준: 증가=빨강/감소=파랑),
+  // 없으면 예전처럼 값의 부호로 정한다(부호 기준 색이 맞는 경우, 예: YoY %처럼 이미 증감을
+  // 나타내는 값).
   function svgBarChart(items, colorPos, colorNeg) {
     var w = 320, h = 90, barW = Math.min(48, (w - 20) / items.length - 10);
     var vals = items.map(function (it) { return it.value == null ? 0 : it.value; });
@@ -607,7 +612,9 @@
       var v = it.value == null ? 0 : it.value;
       var barH = Math.abs(v) * scale;
       var y = v >= 0 ? zeroY - barH : zeroY;
-      var color = v >= 0 ? colorPos : colorNeg;
+      var color = it.trend === 'up' ? colorPos : it.trend === 'down' ? colorNeg
+        : it.trend === null ? TREND_NEUTRAL_COLOR
+        : (v >= 0 ? colorPos : colorNeg);
       var label = it.value == null ? '-' : (Math.abs(v) >= 1e12 ? (v / 1e12).toFixed(1) + '조' : (v / 1e8).toFixed(0) + '억');
       return '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + Math.max(barH, 1) + '" fill="' + color + '" rx="2"></rect>'
         + '<text x="' + (x + barW / 2) + '" y="' + (v >= 0 ? y - 4 : zeroY + barH + 12) + '" text-anchor="middle" class="ff-bar-val">' + label + '</text>'
@@ -618,12 +625,38 @@
 
   function buildAnnualCharts(annual) {
     var years = annual.years;
-    function series(field) { return years.map(function (y) { return { label: String(y.year).slice(2) + "'", value: y[field] }; }); }
+    // 전년 대비 증가=빨강/감소=파랑 (값 자체의 부호가 아니라 추세로 색을 정한다).
+    // 첫 해는 비교할 전년이 없어 중립색.
+    function series(field) {
+      return years.map(function (y, i) {
+        var v = y[field];
+        var prev = i > 0 ? years[i - 1][field] : null;
+        var trend = i === 0 || v == null || prev == null ? null : (v >= prev ? 'up' : 'down');
+        return { label: String(y.year).slice(2) + "'", value: v, trend: trend };
+      });
+    }
     return '<div class="ff-fund-charts">'
       + '<div class="ff-chart-block"><div class="ff-chart-title">매출액 추이</div>' + svgBarChart(series('revenue'), '#d24f45', '#1261c4') + '</div>'
       + '<div class="ff-chart-block"><div class="ff-chart-title">영업이익 추이</div>' + svgBarChart(series('operating_income'), '#d24f45', '#1261c4') + '</div>'
       + '<div class="ff-chart-block"><div class="ff-chart-title">순이익 추이</div>' + svgBarChart(series('net_income'), '#d24f45', '#1261c4') + '</div>'
       + '</div>';
+  }
+
+  // 매출액/영업이익/순이익을 한 차트에 같이 그리면 규모 차이(매출액 >> 순이익) 때문에
+  // 작은 지표 막대가 안 보일 정도로 찌그러진다 - 지표별로 독립된 스케일의 2-바(전년동기 vs
+  // 이번분기) 미니 차트로 나눠서 각자 잘 보이게 하고, 증가/감소를 색으로도 바로 알 수 있게 한다.
+  function quarterMetricChart(title, current, yoyPct) {
+    var prev = null;
+    if (current != null && yoyPct != null) {
+      var ratio = 1 + yoyPct / 100;
+      if (ratio !== 0) prev = current / ratio;
+    }
+    var trend = current == null || prev == null ? null : (current >= prev ? 'up' : 'down');
+    var items = [
+      { label: '전년동기', value: prev, trend: null },
+      { label: '이번분기', value: current, trend: trend }
+    ];
+    return '<div class="ff-chart-block"><div class="ff-chart-title">' + escapeHtml(title) + '</div>' + svgBarChart(items, '#d24f45', '#1261c4') + '</div>';
   }
 
   function buildQuarterBlock(q) {
@@ -639,18 +672,127 @@
         return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td class="' + cls + '">' + r[2] + '</td></tr>';
       }).join('') + '</tbody></table>';
 
-    var chartItems = [
-      { label: '매출액', value: q.revenue },
-      { label: '영업이익', value: q.operating_income },
-      { label: '순이익', value: q.net_income }
-    ];
-    return tableHtml + '<div class="ff-fund-charts"><div class="ff-chart-block"><div class="ff-chart-title">' + escapeHtml(q.label || '') + ' 실적</div>' + svgBarChart(chartItems, '#d24f45', '#1261c4') + '</div></div>';
+    var chartsHtml = '<div class="ff-fund-charts">'
+      + quarterMetricChart('매출액', q.revenue, q.revenue_yoy_pct)
+      + quarterMetricChart('영업이익', q.operating_income, q.operating_income_yoy_pct)
+      + quarterMetricChart('순이익', q.net_income, q.net_income_yoy_pct)
+      + '</div>';
+    return tableHtml + chartsHtml;
   }
 
   // ---- 종합 점수 요약 박스 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
 
-  // 이동평균 배열(40) + 지지선 근접도(30) + 저항선 근접도(30) = 0~100점.
-  // 밴드 경계값은 지시서 표 그대로. 차트 데이터(?action=flowChart)가 없으면 null.
+  var ICHIMOKU_TENKAN_PERIOD = 9, ICHIMOKU_KIJUN_PERIOD = 26, ICHIMOKU_SENKOU_B_PERIOD = 52, ICHIMOKU_DISPLACEMENT = 26;
+  var ICHIMOKU_COLORS = { tenkan: '#d6336c', kijun: '#1971c2', senkouA: '#37b24d', senkouB: '#f08c00', chikou: '#868e96' };
+
+  function ichimokuPeriodMid(daily, i, period) {
+    var start = i - period + 1;
+    if (start < 0) return null;
+    var hi = -Infinity, lo = Infinity;
+    for (var k = start; k <= i; k++) {
+      if (daily[k].high > hi) hi = daily[k].high;
+      if (daily[k].low < lo) lo = daily[k].low;
+    }
+    return (hi + lo) / 2;
+  }
+
+  // 마지막 거래일 이후 26영업일치 날짜를 만들어 선행스팬(미래로 26일 선행)을 그릴 자리를 마련한다.
+  // 공휴일은 고려하지 않는 근사치(주말만 건너뜀) - 캔들이 없는 구간에 참고용 구름 선을 얹는
+  // 용도라 실제 거래일과 1~2일 어긋나도 해석에 지장 없음.
+  function nextBusinessDates(lastDate, count) {
+    var d = new Date(lastDate + 'T00:00:00');
+    var out = [];
+    while (out.length < count) {
+      d.setDate(d.getDate() + 1);
+      var dow = d.getDay();
+      if (dow === 0 || dow === 6) continue;
+      out.push(d.toISOString().slice(0, 10));
+    }
+    return out;
+  }
+
+  // 일목균형표 5선. 전환선(9)/기준선(26)은 daily와 같은 시점에, 선행스팬1·2는 26영업일 뒤,
+  // 후행스팬(종가)은 26영업일 전 자리에 그린다(구름 채우기는 이번 스코프에서 제외 - 5선만).
+  function computeIchimoku(daily) {
+    var n = daily.length;
+    var tenkan = new Array(n).fill(null);
+    var kijun = new Array(n).fill(null);
+    for (var i = 0; i < n; i++) {
+      tenkan[i] = ichimokuPeriodMid(daily, i, ICHIMOKU_TENKAN_PERIOD);
+      kijun[i] = ichimokuPeriodMid(daily, i, ICHIMOKU_KIJUN_PERIOD);
+    }
+    var futureDates = nextBusinessDates(daily[n - 1].date, ICHIMOKU_DISPLACEMENT);
+    function timeAt(idx) { return idx < n ? daily[idx].date : futureDates[idx - n]; }
+
+    var tenkanPts = [], kijunPts = [], senkouAPts = [], senkouBPts = [], chikouPts = [];
+    for (var j = 0; j < n; j++) {
+      if (tenkan[j] != null) tenkanPts.push({ time: daily[j].date, value: tenkan[j] });
+      if (kijun[j] != null) kijunPts.push({ time: daily[j].date, value: kijun[j] });
+      if (tenkan[j] != null && kijun[j] != null) {
+        senkouAPts.push({ time: timeAt(j + ICHIMOKU_DISPLACEMENT), value: (tenkan[j] + kijun[j]) / 2 });
+      }
+      var spanB = ichimokuPeriodMid(daily, j, ICHIMOKU_SENKOU_B_PERIOD);
+      if (spanB != null) senkouBPts.push({ time: timeAt(j + ICHIMOKU_DISPLACEMENT), value: spanB });
+      var laggingIdx = j - ICHIMOKU_DISPLACEMENT;
+      if (laggingIdx >= 0) chikouPts.push({ time: daily[laggingIdx].date, value: daily[j].close });
+    }
+
+    // "오늘" 자리 위의 구름 상/하단은 26영업일 전 시점에 계산된 선행스팬 값과 같다(선행스팬은
+    // 26일 앞서 그려지므로, 오늘 자리에 얹힌 구름은 26일 전 데이터로 만들어진 것) - 점수 계산용.
+    var cloudIdx = n - 1 - ICHIMOKU_DISPLACEMENT;
+    var todaySenkouA = cloudIdx >= 0 && tenkan[cloudIdx] != null && kijun[cloudIdx] != null
+      ? (tenkan[cloudIdx] + kijun[cloudIdx]) / 2 : null;
+    var todaySenkouB = cloudIdx >= 0 ? ichimokuPeriodMid(daily, cloudIdx, ICHIMOKU_SENKOU_B_PERIOD) : null;
+
+    return {
+      tenkan: tenkanPts, kijun: kijunPts, senkouA: senkouAPts, senkouB: senkouBPts, chikou: chikouPts,
+      lastTenkan: tenkan[n - 1], lastKijun: kijun[n - 1],
+      todaySenkouA: todaySenkouA, todaySenkouB: todaySenkouB
+    };
+  }
+
+  // 구름 위/아래(10) + 전환선-기준선 골든/데드(10) + 구름 색 양운/음운(10) = 0~30점.
+  // scripts/cloud-vm/pattern_detect.py의 compute_tech_score와 동일 공식으로 유지해야
+  // 종목분석/투자시그널 등급이 어긋나지 않는다.
+  function computeIchimokuScore(daily) {
+    var ichi = computeIchimoku(daily);
+    var close = daily[daily.length - 1].close;
+
+    var cloudScore = 0, cloudLabel = '데이터 부족';
+    if (ichi.todaySenkouA != null && ichi.todaySenkouB != null) {
+      var top = Math.max(ichi.todaySenkouA, ichi.todaySenkouB);
+      var bottom = Math.min(ichi.todaySenkouA, ichi.todaySenkouB);
+      if (close > top) { cloudScore = 10; cloudLabel = '구름 위'; }
+      else if (close < bottom) { cloudScore = 0; cloudLabel = '구름 아래'; }
+      else { cloudScore = 5; cloudLabel = '구름 안(혼조)'; }
+    }
+
+    var crossScore = 0, crossLabel = '데이터 부족';
+    if (ichi.lastTenkan != null && ichi.lastKijun != null) {
+      if (ichi.lastTenkan > ichi.lastKijun) { crossScore = 10; crossLabel = '전환선 > 기준선(골든)'; }
+      else if (ichi.lastTenkan < ichi.lastKijun) { crossScore = 0; crossLabel = '전환선 < 기준선(데드)'; }
+      else { crossScore = 5; crossLabel = '전환선 = 기준선'; }
+    }
+
+    var colorScore = 0, colorLabel = '데이터 부족';
+    if (ichi.todaySenkouA != null && ichi.todaySenkouB != null) {
+      if (ichi.todaySenkouA > ichi.todaySenkouB) { colorScore = 10; colorLabel = '양운(선행스팬1 > 2)'; }
+      else if (ichi.todaySenkouA < ichi.todaySenkouB) { colorScore = 0; colorLabel = '음운(선행스팬1 < 2)'; }
+      else { colorScore = 5; colorLabel = '중립'; }
+    }
+
+    return {
+      score: cloudScore + crossScore + colorScore,
+      cloud: { score: cloudScore, label: cloudLabel },
+      cross: { score: crossScore, label: crossLabel },
+      color: { score: colorScore, label: colorLabel },
+      lines: ichi
+    };
+  }
+
+  // 이동평균 배열(30) + 지지선 근접도(20) + 저항선 근접도(20) + 일목균형표(30) = 0~100점.
+  // (기존 40/30/30 배분에 일목균형표를 더하며 100점 총합을 유지하도록 재배분함).
+  // 차트 데이터(?action=flowChart)가 없으면 null.
   function computeTechnicalScore(chartData) {
     if (!chartData || chartData.error || !chartData.daily || !chartData.daily.length) return null;
     var daily = chartData.daily;
@@ -661,9 +803,9 @@
 
     var maScore = 0, maLabel = '데이터 부족';
     if (ma5 != null && ma20 != null && ma60 != null) {
-      if (ma5 > ma20 && ma20 > ma60) { maScore = 40; maLabel = '정배열'; }
-      else if (ma20 > ma60) { maScore = 30; maLabel = '20일선 > 60일선'; }
-      else if (ma5 > ma20) { maScore = 20; maLabel = '5일선만 상향'; }
+      if (ma5 > ma20 && ma20 > ma60) { maScore = 30; maLabel = '정배열'; }
+      else if (ma20 > ma60) { maScore = 20; maLabel = '20일선 > 60일선'; }
+      else if (ma5 > ma20) { maScore = 10; maLabel = '5일선만 상향'; }
       else { maScore = 0; maLabel = '역배열'; }
     }
 
@@ -673,9 +815,9 @@
       var nearestSup = support.reduce(function (a, b) { return Math.abs(b - close) < Math.abs(a - close) ? b : a; });
       var supGap = (close - nearestSup) / nearestSup * 100;
       if (supGap < 0) { supScore = 0; supLabel = '지지선 이탈'; }
-      else if (supGap <= 2) { supScore = 30; supLabel = '지지선 ±2% 이내'; }
-      else if (supGap <= 5) { supScore = 20; supLabel = '지지선 ±5% 이내'; }
-      else if (supGap <= 8) { supScore = 10; supLabel = '지지선 ±8% 이내'; }
+      else if (supGap <= 2) { supScore = 20; supLabel = '지지선 ±2% 이내'; }
+      else if (supGap <= 5) { supScore = 12; supLabel = '지지선 ±5% 이내'; }
+      else if (supGap <= 8) { supScore = 6; supLabel = '지지선 ±8% 이내'; }
       else { supScore = 0; supLabel = '지지선과 거리 있음'; }
     }
 
@@ -684,18 +826,21 @@
     if (resistance.length) {
       var nearestRes = resistance.reduce(function (a, b) { return Math.abs(b - close) < Math.abs(a - close) ? b : a; });
       var resGap = (nearestRes - close) / close * 100;
-      // "저항 접근 중" 상한(8%)은 지시서 표에 정확한 경계값이 없어 3%(20점) 다음 구간으로 잡은 값
-      if (resGap < 0) { resScore = 30; resLabel = '저항 돌파'; }
-      else if (resGap <= 3) { resScore = 20; resLabel = '저항 3% 이내'; }
-      else if (resGap <= 8) { resScore = 10; resLabel = '저항 접근 중'; }
+      // "저항 접근 중" 상한(8%)은 지시서 표에 정확한 경계값이 없어 3%(15점) 다음 구간으로 잡은 값
+      if (resGap < 0) { resScore = 20; resLabel = '저항 돌파'; }
+      else if (resGap <= 3) { resScore = 12; resLabel = '저항 3% 이내'; }
+      else if (resGap <= 8) { resScore = 6; resLabel = '저항 접근 중'; }
       else { resScore = 0; resLabel = '저항 아래 멀리'; }
     }
 
+    var ichi = computeIchimokuScore(daily);
+
     return {
-      score: maScore + supScore + resScore,
+      score: maScore + supScore + resScore + ichi.score,
       ma: { score: maScore, label: maLabel },
       support: { score: supScore, label: supLabel },
-      resistance: { score: resScore, label: resLabel }
+      resistance: { score: resScore, label: resLabel },
+      ichimoku: ichi
     };
   }
 
@@ -1185,6 +1330,11 @@
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + BOLL_COLOR + '"></i>볼린저밴드(20,2)</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.tenkan + '"></i>전환선(9)</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.kijun + '"></i>기준선(26)</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.senkouA + '"></i>선행스팬1</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.senkouB + '"></i>선행스팬2</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.chikou + '"></i>후행스팬</span>'
       + '</div>';
   }
 
@@ -1306,16 +1456,22 @@
       + '</div>';
   }
 
-  // 차트 밑에 붙는 설명 + 기술적 점수 채점표(①이평선 40 ②지지선 30 ③저항선 30)
+  // 차트 밑에 붙는 설명 + 기술적 점수 채점표(①이평선 30 ②지지선 20 ③저항선 20 ④일목균형표 30)
   function buildTechBreakdown(t) {
     if (!t) return '';
+    var ichi = t.ichimoku;
+    var ichiRow = ichi
+      ? '<tr><td>④ 일목균형표</td><td>' + escapeHtml(ichi.cloud.label) + ' · ' + escapeHtml(ichi.cross.label) + ' · ' + escapeHtml(ichi.color.label) + '</td><td>' + ichi.score + '/30</td></tr>'
+      : '';
     return '<div class="ff-tech">'
       + '<div class="ff-tech-desc">파란 점선=지지선, 빨간 점선=저항선(최근 120영업일 스윙 고점·저점 기준). '
-      + '5·20·60·224일 이동평균선이 위에서부터 순서대로 놓이면(정배열) 상승 추세, 반대 순서(역배열)면 하락 추세로 봅니다.</div>'
+      + '5·20·60·224일 이동평균선이 위에서부터 순서대로 놓이면(정배열) 상승 추세, 반대 순서(역배열)면 하락 추세로 봅니다. '
+      + '일목균형표는 구름 위/아래, 전환선-기준선 교차, 구름 색(양운/음운)을 종합한 점수입니다.</div>'
       + '<table class="ff-tech-table"><thead><tr><th>구분</th><th>상태</th><th>점수</th></tr></thead><tbody>'
-      + '<tr><td>① 이동평균 상태</td><td>' + escapeHtml(t.ma.label) + '</td><td>' + t.ma.score + '/40</td></tr>'
-      + '<tr><td>② 지지선</td><td>' + escapeHtml(t.support.label) + '</td><td>' + t.support.score + '/30</td></tr>'
-      + '<tr><td>③ 저항선</td><td>' + escapeHtml(t.resistance.label) + '</td><td>' + t.resistance.score + '/30</td></tr>'
+      + '<tr><td>① 이동평균 상태</td><td>' + escapeHtml(t.ma.label) + '</td><td>' + t.ma.score + '/30</td></tr>'
+      + '<tr><td>② 지지선</td><td>' + escapeHtml(t.support.label) + '</td><td>' + t.support.score + '/20</td></tr>'
+      + '<tr><td>③ 저항선</td><td>' + escapeHtml(t.resistance.label) + '</td><td>' + t.resistance.score + '/20</td></tr>'
+      + ichiRow
       + '<tr class="ff-tech-total-row"><td colspan="2">기술적 점수</td><td>' + t.score + '/100</td></tr>'
       + '</tbody></table>'
       + '</div>';
@@ -1416,6 +1572,14 @@
           if (series[i] == null) return;
           pts.push({ time: d.date, value: series[i] });
         });
+        lineSeries.setData(pts);
+      });
+
+      var ichi = computeIchimoku(daily);
+      [['tenkan', ichi.tenkan], ['kijun', ichi.kijun], ['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB], ['chikou', ichi.chikou]].forEach(function (pair) {
+        var key = pair[0], pts = pair[1];
+        if (!pts.length) return;
+        var lineSeries = chart.addLineSeries({ color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         lineSeries.setData(pts);
       });
 

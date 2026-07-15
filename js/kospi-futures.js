@@ -43,15 +43,25 @@
     KOSPI200_DAY: '코스피200 주간선물',
     KOSPI200_NIGHT: '코스피200 야간선물'
   };
+  var DAY_RANGE = 250; // 기존 90일 -> 약 1년으로 확대(VM domestic_futures.py 기본 수집 범위와 일치)
+  var INTERVAL_LABELS = { minute: '분봉', day: '일봉', week: '주봉' };
+  // 분봉은 네이버 소스가 있는 주간선물(KOSPI200_DAY)만 지원 - 야간선물(KIS 소스)은 분봉
+  // 데이터가 없어 일봉/주봉만 제공한다(scripts/cloud-vm/domestic_futures.py MINUTE_SYMBOLS 참고).
   var CHARTS = [
-    { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', title: '코스피200 주간선물 (최근 90일)' },
-    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', title: '코스피200 야간선물 (최근 90일)' }
+    { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: '코스피200 주간선물', intervals: ['minute', 'day', 'week'] },
+    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '코스피200 야간선물', intervals: ['day', 'week'] }
   ];
+
+  var CHART_EL_BY_KEY = {};
+  CHARTS.forEach(function (c) { CHART_EL_BY_KEY[c.key] = c.elId; });
 
   var lwcLoadPromise = null;
   var chartInstances = {}; // key -> { chart, series }
   var themeObserver = null;
   var refreshTimer = null;
+  // key -> { interval, dayItem(마지막 일봉 fetch 결과), minuteRows(마지막 분봉 fetch 결과) }
+  var panelState = {};
+  CHARTS.forEach(function (c) { panelState[c.key] = { interval: c.intervals[0] === 'minute' ? 'day' : c.intervals[0], dayItem: null, minuteRows: null }; });
 
   function loadLightweightCharts() {
     if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
@@ -70,11 +80,12 @@
     return document.documentElement.classList.contains('dark');
   }
 
-  function fetchFutures() {
+  function fetchFutures(interval, days) {
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(FUTURES_API, hasAbort ? { signal: controller.signal } : {})
+    var url = FUTURES_API + '?interval=' + (interval || 'day') + '&days=' + (days || DAY_RANGE);
+    return fetch(url, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('futures API 오류: ' + r.status);
         return r.json();
@@ -140,8 +151,14 @@
     }).join('');
 
     var sections = CHARTS.map(function (c) {
+      var toggleHtml = '<div class="kf-interval-toggle" data-chart-key="' + c.key + '">' + c.intervals.map(function (iv) {
+        return '<button type="button" class="kf-interval-btn' + (iv === panelState[c.key].interval ? ' active' : '') + '" data-interval="' + iv + '">' + INTERVAL_LABELS[iv] + '</button>';
+      }).join('') + '</div>';
       return '<div class="kf-section">'
-        + '<div class="kf-section-title">' + escapeHtml(c.title) + '</div>'
+        + '<div class="kf-section-head">'
+        + '<div class="kf-section-title">' + escapeHtml(c.label) + '</div>'
+        + toggleHtml
+        + '</div>'
         + '<div class="kf-chart" id="' + c.elId + '" style="height:' + CHART_HEIGHT + 'px"></div>'
         + '</div>';
     }).join('');
@@ -208,23 +225,49 @@
     return yyyymmdd.slice(0, 4) + '-' + yyyymmdd.slice(4, 6) + '-' + yyyymmdd.slice(6, 8);
   }
 
-  function renderBigChart(cfg, item) {
-    var container = document.getElementById(cfg.elId);
+  // 일봉 배열을 ISO 주(월요일 시작) 단위로 묶어 주봉을 만든다 - 서버에 새 엔드포인트를
+  // 만들지 않고 이미 받아온 일봉으로 클라이언트에서 처리(주봉 소스가 Naver에 없는 것도 실측
+  // 확인됨 - domestic_futures.py 상단 주석 참고).
+  function resampleWeekly(dailyRows) {
+    var weeks = [];
+    var byWeekKey = {};
+    dailyRows.forEach(function (r) {
+      var d = new Date(r.date.slice(0, 4) + '-' + r.date.slice(4, 6) + '-' + r.date.slice(6, 8) + 'T00:00:00');
+      var dow = d.getDay() || 7; // 일요일(0) -> 7로 바꿔 월요일(1) 시작 주 계산
+      var monday = new Date(d);
+      monday.setDate(d.getDate() - dow + 1);
+      var weekKey = monday.toISOString().slice(0, 10);
+      var bucket = byWeekKey[weekKey];
+      if (!bucket) {
+        bucket = { time: weekKey, open: r.open, high: r.high, low: r.low, close: r.close };
+        byWeekKey[weekKey] = bucket;
+        weeks.push(bucket);
+      } else {
+        bucket.high = Math.max(bucket.high, r.high);
+        bucket.low = Math.min(bucket.low, r.low);
+        bucket.close = r.close;
+      }
+    });
+    return weeks;
+  }
+
+  function renderBigChart(key, points, timeVisible) {
+    var container = document.getElementById(CHART_EL_BY_KEY[key]);
     if (!container) return;
-    var rows = item && item.chart;
-    if (!rows || rows.length < 2) {
+    if (!points || points.length < 2) {
       container.innerHTML = '<div class="kf-chart-error">차트 데이터가 없습니다.</div>';
       return;
     }
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
-      destroyChart(cfg.key);
+      destroyChart(key);
+      container.innerHTML = '';
 
       var chart = LWC.createChart(container, mergeOptions({
         autoSize: true,
         height: CHART_HEIGHT,
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { timeVisible: false, secondsVisible: false },
+        timeScale: { timeVisible: !!timeVisible, secondsVisible: false },
         localization: { priceFormatter: chartPriceFormatter }
       }, chartThemeOptions()));
 
@@ -233,14 +276,65 @@
         borderUpColor: '#d24f45', borderDownColor: '#1261c4',
         wickUpColor: '#d24f45', wickDownColor: '#1261c4'
       });
-      series.setData(rows.map(function (r) {
-        return { time: toLwcTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close };
-      }));
+      series.setData(points);
       chart.timeScale().fitContent();
 
-      chartInstances[cfg.key] = { chart: chart, series: series };
+      chartInstances[key] = { chart: chart, series: series };
     }).catch(function () {
       container.innerHTML = '<div class="kf-chart-error">차트 라이브러리를 불러오지 못했어요.</div>';
+    });
+  }
+
+  // panelState[cfg.key].interval에 맞춰 캐시된 데이터로 다시 그린다(재요청 없음 - 일봉/주봉은
+  // 이미 받아온 dayItem을, 분봉은 이미 받아온 minuteRows를 그대로 씀).
+  function renderChartPanel(cfg) {
+    var st = panelState[cfg.key];
+    if (st.interval === 'minute') {
+      var rows = (st.minuteRows || []).filter(function (r) { return r.ts != null; });
+      var points = rows.map(function (r) { return { time: r.ts, open: r.open, high: r.high, low: r.low, close: r.close }; });
+      renderBigChart(cfg.key, points, true);
+      return;
+    }
+    var dayRows = (st.dayItem && st.dayItem.chart) || [];
+    if (st.interval === 'week') {
+      var weekPts = resampleWeekly(dayRows);
+      renderBigChart(cfg.key, weekPts, false);
+      return;
+    }
+    var dayPts = dayRows.map(function (r) { return { time: toLwcTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close }; });
+    renderBigChart(cfg.key, dayPts, false);
+  }
+
+  function loadMinuteAndRender(cfg) {
+    var container = document.getElementById(CHART_EL_BY_KEY[cfg.key]);
+    if (container) container.innerHTML = '<div class="kf-chart-error">분봉 불러오는 중...</div>';
+    KospiFutures.fetchFutures('minute').then(function (items) {
+      var item = items.filter(function (it) { return it.symbol === cfg.symbol; })[0];
+      panelState[cfg.key].minuteRows = (item && item.chart) || [];
+      if (panelState[cfg.key].interval === 'minute') renderChartPanel(cfg);
+    }).catch(function () {
+      if (container) container.innerHTML = '<div class="kf-chart-error">분봉을 불러오지 못했어요.</div>';
+    });
+  }
+
+  function wireIntervalToggles(container) {
+    container.querySelectorAll('.kf-interval-toggle').forEach(function (toggle) {
+      var key = toggle.getAttribute('data-chart-key');
+      var cfg = CHARTS.filter(function (c) { return c.key === key; })[0];
+      if (!cfg) return;
+      toggle.querySelectorAll('.kf-interval-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var interval = btn.getAttribute('data-interval');
+          if (panelState[key].interval === interval) return;
+          panelState[key].interval = interval;
+          toggle.querySelectorAll('.kf-interval-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+          if (interval === 'minute' && !panelState[key].minuteRows) {
+            loadMinuteAndRender(cfg);
+          } else {
+            renderChartPanel(cfg);
+          }
+        });
+      });
     });
   }
 
@@ -255,7 +349,12 @@
     });
 
     CHARTS.forEach(function (cfg) {
-      renderBigChart(cfg, bySymbol[cfg.symbol]);
+      panelState[cfg.key].dayItem = bySymbol[cfg.symbol];
+      if (panelState[cfg.key].interval === 'minute') {
+        loadMinuteAndRender(cfg);
+      } else {
+        renderChartPanel(cfg);
+      }
     });
   }
 
@@ -291,6 +390,7 @@
     if (!container) return;
 
     container.innerHTML = buildShell();
+    wireIntervalToggles(container);
     refresh(container);
     renderAiSummary(container);
 

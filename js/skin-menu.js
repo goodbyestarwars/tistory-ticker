@@ -15,7 +15,6 @@
     {
       href: '/',
       label: '전체 글',
-      home: true, // nav-item-home 클래스(첫 항목 스타일)
       icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'
     },
     {
@@ -113,13 +112,27 @@
     + '<div id="navSearchSuggest" class="nav-search-suggest"></div>'
     + '</div>';
 
+  // 현재 페이지와 정확히 일치하는 메뉴 항목만 active로 표시한다(부분 문자열 포함 매칭 금지 -
+  // skin-main.js의 카테고리 탭에 있는 indexOf 오남용 버그를 여기서는 반복하지 않는다).
+  function isActiveItem(it) {
+    if (!it.href || it.href.indexOf('javascript:') === 0) return false;
+    var path;
+    try { path = decodeURIComponent(location.pathname); } catch (err) { path = location.pathname; }
+    if (path.length > 1 && path.charAt(path.length - 1) === '/') path = path.slice(0, -1);
+    var href = it.href;
+    if (href.length > 1 && href.charAt(href.length - 1) === '/') href = href.slice(0, -1);
+    if (href === '') href = '/';
+    if (path === '') path = '/';
+    return path === href;
+  }
+
   function render() {
     var mount = document.getElementById('nav-menu-mount');
     if (!mount) return;
 
     mount.innerHTML = MENU_ITEMS.map(function (it) {
       return '<a href="' + it.href + '"' + (it.onclick ? ' onclick="' + it.onclick + '"' : '')
-        + ' class="nav-item' + (it.home ? ' nav-item-home' : '') + '">'
+        + ' class="nav-item' + (isActiveItem(it) ? ' nav-item-home' : '') + '">'
         + '<div class="nav-item-icon">'
         + '<svg' + (it.iconClass ? ' class="' + it.iconClass + '"' : '')
         + ' width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"'

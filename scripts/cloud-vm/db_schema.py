@@ -75,6 +75,16 @@ CREATE TABLE IF NOT EXISTS future_chart (
     close REAL,
     PRIMARY KEY (symbol, date)
 );
+
+CREATE TABLE IF NOT EXISTS future_chart_minute (
+    symbol TEXT NOT NULL,
+    ts INTEGER NOT NULL,
+    open REAL,
+    high REAL,
+    low REAL,
+    close REAL,
+    PRIMARY KEY (symbol, ts)
+);
 '''
 
 
@@ -163,6 +173,27 @@ def load_future_chart(conn, symbol, limit_days=90):
     ).fetchall()
     rows.reverse()
     return [{'date': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4]} for r in rows]
+
+
+def upsert_future_chart_minute_rows(conn, symbol, rows):
+    """rows: [{ts, open, high, low, close}, ...], ts는 UTC epoch초(정수)."""
+    conn.executemany(
+        'INSERT INTO future_chart_minute (symbol, ts, open, high, low, close) VALUES (?, ?, ?, ?, ?, ?) '
+        'ON CONFLICT(symbol, ts) DO UPDATE SET '
+        'open=excluded.open, high=excluded.high, low=excluded.low, close=excluded.close',
+        [(symbol, r['ts'], r['open'], r['high'], r['low'], r['close']) for r in rows],
+    )
+    conn.commit()
+
+
+def load_future_chart_minute(conn, symbol, limit_bars=1500):
+    """최근 limit_bars개 1분봉(대략 최근 3~4거래일치, 하루 정규장 기준 약 390개)."""
+    rows = conn.execute(
+        'SELECT ts, open, high, low, close FROM future_chart_minute WHERE symbol=? ORDER BY ts DESC LIMIT ?',
+        (symbol, limit_bars),
+    ).fetchall()
+    rows.reverse()
+    return [{'ts': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4]} for r in rows]
 
 
 def load_all_future_prices(conn):

@@ -144,6 +144,65 @@
 #market-temp .mt-gauge-bands span:first-child { text-align: left; }
 #market-temp .mt-gauge-bands span:last-child { text-align: right; }
 
+/* ---- 카드 보기/히트맵 보기/시총비례 히트맵 탭 (js/sector-dashboard-v4.js의
+   .sector-view-toggle과 동일한 라벨·톤 - 사용자에게 익숙한 패턴을 재사용) ---- */
+#market-temp .mt-view-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+#market-temp .mt-view-btn {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #6b7280;
+  cursor: pointer;
+}
+#market-temp .mt-view-btn.active {
+  background: #222;
+  color: #fff;
+  border-color: #222;
+}
+#market-temp .mt-view-panel[hidden] { display: none; }
+
+/* 히트맵 보기 탭 - js/sector-dashboard-v4.js(SectorDashboard.renderHeatmapHtml)가 만든
+   .heatmap-grid/.heatmap-tile 마크업을 그대로 재사용(css/sector-dashboard-v3.css와 동일 스타일). */
+#market-temp .heatmap-grid {
+  display: grid;
+  width: 100%;
+  box-sizing: border-box;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 4px;
+}
+#market-temp .heatmap-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 6px;
+  border-radius: 6px;
+  min-height: 56px;
+  min-width: 0;
+  box-sizing: border-box;
+  text-align: center;
+}
+#market-temp .heatmap-tile-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+#market-temp .heatmap-tile-price { font-size: 10.5px; font-weight: 500; color: #4b5563; }
+#market-temp .heatmap-tile-rate { font-size: 11px; font-weight: 700; color: #1f2937; }
+
 /* ---- 지표별 막대 ---- */
 #market-temp .mt-bars {
   display: flex;
@@ -313,6 +372,16 @@ html.dark #market-temp .mt-gauge-bubble { background: #eee !important; color: #2
 html.dark #market-temp .mt-gauge-marker { background: #eee !important; box-shadow: 0 0 0 2px #262626, 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
 html.dark #market-temp .mt-gauge-scale { color: #777 !important; }
 html.dark #market-temp .mt-gauge-bands { color: #666 !important; }
+html.dark #market-temp .mt-view-btn {
+  background: #2c2c2c !important;
+  color: #999 !important;
+  border-color: #3a3a3a !important;
+}
+html.dark #market-temp .mt-view-btn.active {
+  background: #eee !important;
+  color: #222 !important;
+  border-color: #eee !important;
+}
 html.dark #market-temp .mt-guide { background: #202020 !important; }
 html.dark #market-temp .mt-guide-title { color: #888 !important; }
 html.dark #market-temp .mt-guide-grid { color: #999 !important; }

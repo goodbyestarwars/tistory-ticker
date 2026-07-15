@@ -65,8 +65,9 @@
     { key: 'usdkrw', label: '원/달러', source: 'market', sourceKey: 'usdkrw' },
     { key: 'btc', label: 'BTC', source: 'market', sourceKey: 'btc' },
     { key: 'kospi_night', label: '코스피 야간선물', source: 'futures', sourceKey: 'KOSPI200_NIGHT' },
-    { key: 'nasdaq', label: '나스닥', source: 'futures', sourceKey: 'NASDAQ100' },
-    { key: 'sp500', label: 'S&P500', source: 'futures', sourceKey: 'SP500' },
+    { key: 'nasdaq', label: '나스닥 선물', source: 'futures', sourceKey: 'NASDAQ100' },
+    { key: 'sp500', label: 'S&P500 선물', source: 'futures', sourceKey: 'SP500' },
+    { key: 'dow', label: '다우 선물', source: 'futures', sourceKey: 'DOW' },
     { key: 'sox', label: '필라델피아', source: 'futures', sourceKey: 'SOX' },
     { key: 'wti', label: '원유', source: 'futures', sourceKey: 'WTI' },
     { key: 'vix', label: 'VIX', source: 'futures', sourceKey: 'VIX' }

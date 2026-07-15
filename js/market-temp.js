@@ -71,6 +71,7 @@
           return;
         }
         container.innerHTML = buildCard(data);
+        wireViewTabs(container);
       })
       .catch(function () {
         container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
@@ -257,6 +258,87 @@
       + '</div>';
   }
 
+  // 카드 보기(기존 9개 지표 바) / 히트맵 보기(섹터 풀 종목 등락률 히트맵,
+  // js/sector-dashboard-v4.js의 renderHeatmapHtml 재사용) / 시총비례 히트맵
+  // (js/marketcap-bubble.js를 이 탭 안에서 lazy init) 3개 탭 - 상단 게이지는 탭과 무관하게
+  // 항상 보이고, 탭 콘텐츠만 전환된다. 히트맵/시총비례 탭은 최초 클릭 시에만 로드한다
+  // (foreign-flow.js의 wireViewTabs와 동일 패턴 - hidden 상태에서 차트를 그리면 크기가
+  // 0이 되는 문제를 피하기 위해 보여진 뒤에 그린다).
+  var VIEW_TABS = [
+    { key: 'cards', label: '카드 보기' },
+    { key: 'heatmap', label: '히트맵 보기' },
+    { key: 'marketcap', label: '시총비례 히트맵' }
+  ];
+
+  function buildViewToggle() {
+    return '<div class="mt-view-toggle">' + VIEW_TABS.map(function (t, i) {
+      return '<button type="button" class="mt-view-btn' + (i === 0 ? ' active' : '') + '" data-view="' + t.key + '">' + escapeHtml(t.label) + '</button>';
+    }).join('') + '</div>';
+  }
+
+  // 증시온도와 같은 섹터 풀(SECTOR_MAP)을 재사용해 등락률 히트맵을 그린다.
+  // sectors-v3.js/krx_map.js/sector-dashboard-v4.js가 이 페이지에 함께 로드돼 있어야 동작한다.
+  function loadHeatmapPanel(panel) {
+    if (panel.__mtLoaded) return;
+    panel.__mtLoaded = true;
+    var SD = global.SectorDashboard;
+    var sectorMap = global.SECTOR_MAP;
+    if (!SD || !sectorMap) {
+      panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>';
+      return;
+    }
+    var krxMap = global.KRX_MAP || {};
+    var codes = [];
+    Object.keys(sectorMap).forEach(function (sector) {
+      sectorMap[sector].forEach(function (item) {
+        var code = item && typeof item === 'object' ? item.code : krxMap[item];
+        if (code && codes.indexOf(code) === -1) codes.push(code);
+      });
+    });
+    if (!codes.length) { panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>'; return; }
+
+    panel.innerHTML = '<div class="mt-hint">히트맵 불러오는 중...</div>';
+    SD.fetchTickerData(codes).then(function (list) {
+      var byCode = {};
+      (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
+      var html = SD.renderHeatmapHtml(sectorMap, krxMap, byCode);
+      panel.innerHTML = html ? '<div class="heatmap-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>';
+    }).catch(function () {
+      panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>';
+    });
+  }
+
+  // marketcap-bubble.js가 처음부터 페이지에 로드돼 있어도 #marketcap-bubble이 없으면
+  // 자체 DOMContentLoaded 초기화가 조용히 no-op하므로, 탭이 열려 컨테이너가 생긴 뒤
+  // 여기서 직접 init()을 호출해준다.
+  function loadMarketcapPanel(panel) {
+    if (panel.__mtLoaded) return;
+    panel.__mtLoaded = true;
+    if (!global.MarketcapBubble) {
+      panel.innerHTML = '<div class="mt-error">시총비례 히트맵을 불러오지 못했습니다.</div>';
+      return;
+    }
+    panel.innerHTML = '<div id="marketcap-bubble"></div>';
+    global.MarketcapBubble.init();
+  }
+
+  function wireViewTabs(container) {
+    var buttons = container.querySelectorAll('.mt-view-btn');
+    var panels = {};
+    container.querySelectorAll('[data-view-panel]').forEach(function (p) {
+      panels[p.getAttribute('data-view-panel')] = p;
+    });
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var view = btn.getAttribute('data-view');
+        buttons.forEach(function (b) { b.classList.toggle('active', b === btn); });
+        Object.keys(panels).forEach(function (key) { panels[key].hidden = key !== view; });
+        if (view === 'heatmap') loadHeatmapPanel(panels.heatmap);
+        if (view === 'marketcap') loadMarketcapPanel(panels.marketcap);
+      });
+    });
+  }
+
   function buildGuide() {
     var items = GRADE_BANDS.map(function (b) {
       return '<span>' + b.range + ': ' + escapeHtml(b.label) + '</span>';
@@ -290,7 +372,12 @@
       + '</div>'
       + '<div class="mt-sub">시장이 과열되거나 침체된 정도를 온도로 보여드립니다.</div>'
       + buildGauge(data.temp)
-      + '<div class="mt-bars">' + rows + '</div>'
+      + buildViewToggle()
+      + '<div class="mt-view-panels">'
+      + '<div class="mt-view-panel" data-view-panel="cards"><div class="mt-bars">' + rows + '</div></div>'
+      + '<div class="mt-view-panel" data-view-panel="heatmap" hidden></div>'
+      + '<div class="mt-view-panel" data-view-panel="marketcap" hidden></div>'
+      + '</div>'
       + buildGuide()
       + (data.updatedAt ? '<div class="mt-updated">🔄 업데이트 ' + escapeHtml(data.updatedAt) + '</div>' : '')
       + '</div>';

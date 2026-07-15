@@ -78,10 +78,41 @@
   margin-bottom: 24px;
 }
 
+#kospi-futures .kf-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 #kospi-futures .kf-section-title {
   font-size: 15px;
   font-weight: 700;
-  margin-bottom: 10px;
+}
+
+#kospi-futures .kf-interval-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+#kospi-futures .kf-interval-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+#kospi-futures .kf-interval-btn.active {
+  background: #222;
+  color: #fff;
+  border-color: #222;
 }
 
 #kospi-futures .kf-chart {
@@ -114,4 +145,14 @@ html.dark #kospi-futures .kf-chart-error { color: #777 !important; }
 html.dark #kospi-futures .kf-chart {
   background: #222 !important;
   border-color: #444 !important;
+}
+html.dark #kospi-futures .kf-interval-btn {
+  background: #2c2c2c !important;
+  color: #999 !important;
+  border-color: #3a3a3a !important;
+}
+html.dark #kospi-futures .kf-interval-btn.active {
+  background: #eee !important;
+  color: #222 !important;
+  border-color: #eee !important;
 }

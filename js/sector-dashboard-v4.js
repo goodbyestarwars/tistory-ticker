@@ -285,7 +285,8 @@
   var SectorDashboard = {
     init: init,
     fetchTickerData: fetchTickerData,
-    fetchBatch: fetchBatch
+    fetchBatch: fetchBatch,
+    renderHeatmapHtml: renderHeatmapHtml // js/market-temp.js의 "히트맵 보기" 탭이 재사용
   };
   global.SectorDashboard = SectorDashboard;
 

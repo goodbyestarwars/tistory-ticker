@@ -208,8 +208,8 @@
   cursor: pointer;
 }
 
-/* ---- 스캔 이후 패턴이 깨져서 재검증 실패했을 때 안내 ---- */
-#pattern-scan .ps-stale-notice {
+/* ---- 스캔 이후 패턴이 깨져서 재검증 실패한 종목을 목록에서 뺐다는 안내(임시 토스트) ---- */
+#pattern-scan .ps-toast {
   padding: 12px 14px;
   margin-bottom: 12px;
   background: #fffbeb;
@@ -362,7 +362,7 @@ html.dark #pattern-scan .ps-detail {
 html.dark #pattern-scan .ps-score-box {
   background: #0e1320;
 }
-html.dark #pattern-scan .ps-stale-notice {
+html.dark #pattern-scan .ps-toast {
   background: #2a2410;
   border-color: #4a3f10;
   color: #fbbf24 !important;
