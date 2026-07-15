@@ -203,6 +203,71 @@
 #market-temp .heatmap-tile-price { font-size: 10.5px; font-weight: 500; color: #4b5563; }
 #market-temp .heatmap-tile-rate { font-size: 11px; font-weight: 700; color: #1f2937; }
 
+/* "오늘의 증시온도" 박스(.mt-card 첫 번째)와는 별개의 아래쪽 박스 - 종목 살펴보기(카드/히트맵/
+   시총비례 히트맵) 전용. .mt-card를 그대로 재사용해 같은 톤을 유지하되 온도 그라데이션
+   배경(mt-tone-*)은 안 붙으므로 기본 흰 배경 그대로 나온다. */
+#market-temp .mt-explore-card {
+  margin-top: 16px;
+}
+
+/* 카드 보기 탭 - js/sector-dashboard-v4.js(SectorDashboard.renderCardsHtml)가 만든
+   .sector-cards-grid/.sector-card 마크업을 그대로 재사용(css/sector-dashboard-v3.css와 동일 스타일). */
+#market-temp .sector-cards-grid {
+  columns: 3 220px;
+  column-gap: 14px;
+}
+#market-temp .sector-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  break-inside: avoid;
+  margin-bottom: 14px;
+}
+#market-temp .sector-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#market-temp .sector-card-title::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  background: #2563eb;
+  border-radius: 2px;
+  display: inline-block;
+}
+#market-temp .sector-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+#market-temp .sector-row:last-child { border-bottom: none; padding-bottom: 0; }
+#market-temp .sector-row-name {
+  color: #374151;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+#market-temp .sector-row > span:last-child { white-space: nowrap; }
+#market-temp .sector-row-price { color: #6b7280; margin-right: 6px; }
+#market-temp .sector-row-rate { font-weight: 600; }
+#market-temp .sector-row-rate.sector-up { color: #d24f45; }
+#market-temp .sector-row-rate.sector-down { color: #1261c4; }
+#market-temp .sector-row-rate.sector-flat { color: #9ca3af; }
+
 /* ---- 지표별 막대 ---- */
 #market-temp .mt-bars {
   display: flex;
@@ -382,6 +447,16 @@ html.dark #market-temp .mt-view-btn.active {
   color: #222 !important;
   border-color: #eee !important;
 }
+html.dark #market-temp .sector-card {
+  background: #171e2f !important;
+  border-color: #263248 !important;
+  box-shadow: none !important;
+}
+html.dark #market-temp .sector-card-title { color: #eaeef5 !important; }
+html.dark #market-temp .sector-row { border-bottom-color: #263248 !important; }
+html.dark #market-temp .sector-row-name { color: #eaeef5 !important; }
+html.dark #market-temp .sector-row-rate.sector-up { color: #ff6b6b !important; }
+html.dark #market-temp .sector-row-rate.sector-down { color: #4dabf7 !important; }
 html.dark #market-temp .mt-guide { background: #202020 !important; }
 html.dark #market-temp .mt-guide-title { color: #888 !important; }
 html.dark #market-temp .mt-guide-grid { color: #999 !important; }

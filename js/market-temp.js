@@ -70,7 +70,7 @@
           container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
           return;
         }
-        container.innerHTML = buildCard(data);
+        container.innerHTML = buildCard(data) + buildExploreCard();
         wireViewTabs(container);
       })
       .catch(function () {
@@ -258,26 +258,72 @@
       + '</div>';
   }
 
-  // 카드 보기(기존 9개 지표 바) / 히트맵 보기(섹터 풀 종목 등락률 히트맵,
-  // js/sector-dashboard-v4.js의 renderHeatmapHtml 재사용) / 시총비례 히트맵
-  // (js/marketcap-bubble.js를 이 탭 안에서 lazy init) 3개 탭 - 상단 게이지는 탭과 무관하게
-  // 항상 보이고, 탭 콘텐츠만 전환된다. 히트맵/시총비례 탭은 최초 클릭 시에만 로드한다
-  // (foreign-flow.js의 wireViewTabs와 동일 패턴 - hidden 상태에서 차트를 그리면 크기가
-  // 0이 되는 문제를 피하기 위해 보여진 뒤에 그린다).
+  // "오늘의 증시온도" 박스(9개 지표 바 포함)와는 별개의 아래쪽 박스 - 종목을 살펴보는
+  // 3가지 방법(카드 보기: 섹터별 카드, 히트맵 보기: 섹터 풀 등락률 히트맵, 시총비례 히트맵:
+  // 트리맵)을 탭으로 전환한다. 셋 다 js/sector-dashboard-v4.js·js/marketcap-bubble.js를
+  // 그대로 재사용(로직 복붙 없음) - sectors-v3.js/krx_map.js/sector-dashboard-v4.js/
+  // marketcap-codes.js/marketcap-bubble.js가 이 페이지에 함께 로드돼 있어야 동작한다.
+  // 탭은 최초 활성화 시에만 로드한다(foreign-flow.js의 wireViewTabs와 동일 패턴 - hidden
+  // 상태에서 차트를 그리면 크기가 0이 되는 문제를 피하기 위해 보여진 뒤에 그린다).
   var VIEW_TABS = [
     { key: 'cards', label: '카드 보기' },
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' }
   ];
 
-  function buildViewToggle() {
-    return '<div class="mt-view-toggle">' + VIEW_TABS.map(function (t, i) {
+  function buildExploreCard() {
+    var toggleHtml = '<div class="mt-view-toggle">' + VIEW_TABS.map(function (t, i) {
       return '<button type="button" class="mt-view-btn' + (i === 0 ? ' active' : '') + '" data-view="' + t.key + '">' + escapeHtml(t.label) + '</button>';
     }).join('') + '</div>';
+    return ''
+      + '<div class="mt-card mt-explore-card">'
+      + toggleHtml
+      + '<div class="mt-view-panels">'
+      + '<div class="mt-view-panel" data-view-panel="cards"></div>'
+      + '<div class="mt-view-panel" data-view-panel="heatmap" hidden></div>'
+      + '<div class="mt-view-panel" data-view-panel="marketcap" hidden></div>'
+      + '</div>'
+      + '</div>';
   }
 
-  // 증시온도와 같은 섹터 풀(SECTOR_MAP)을 재사용해 등락률 히트맵을 그린다.
-  // sectors-v3.js/krx_map.js/sector-dashboard-v4.js가 이 페이지에 함께 로드돼 있어야 동작한다.
+  // 섹터 풀(SECTOR_MAP) 전체 종목 코드를 모아 시세를 한 번에 조회 - 카드 보기/히트맵 보기가
+  // 공유하는 헬퍼(SD.renderCardsHtml/renderHeatmapHtml 둘 다 이 codes 목록이 필요).
+  function sectorPoolCodes(sectorMap, krxMap) {
+    var codes = [];
+    Object.keys(sectorMap).forEach(function (sector) {
+      sectorMap[sector].forEach(function (item) {
+        var code = item && typeof item === 'object' ? item.code : krxMap[item];
+        if (code && codes.indexOf(code) === -1) codes.push(code);
+      });
+    });
+    return codes;
+  }
+
+  function loadCardsPanel(panel) {
+    if (panel.__mtLoaded) return;
+    panel.__mtLoaded = true;
+    var SD = global.SectorDashboard;
+    var sectorMap = global.SECTOR_MAP;
+    if (!SD || !sectorMap) {
+      panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>';
+      return;
+    }
+    var krxMap = global.KRX_MAP || {};
+    var codes = sectorPoolCodes(sectorMap, krxMap);
+    if (!codes.length) { panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>'; return; }
+
+    if (SD.injectBadgeStyles) SD.injectBadgeStyles();
+    panel.innerHTML = '<div class="mt-hint">종목 카드 불러오는 중...</div>';
+    SD.fetchTickerData(codes).then(function (list) {
+      var byCode = {};
+      (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
+      var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
+      panel.innerHTML = html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>';
+    }).catch(function () {
+      panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>';
+    });
+  }
+
   function loadHeatmapPanel(panel) {
     if (panel.__mtLoaded) return;
     panel.__mtLoaded = true;
@@ -288,13 +334,7 @@
       return;
     }
     var krxMap = global.KRX_MAP || {};
-    var codes = [];
-    Object.keys(sectorMap).forEach(function (sector) {
-      sectorMap[sector].forEach(function (item) {
-        var code = item && typeof item === 'object' ? item.code : krxMap[item];
-        if (code && codes.indexOf(code) === -1) codes.push(code);
-      });
-    });
+    var codes = sectorPoolCodes(sectorMap, krxMap);
     if (!codes.length) { panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>'; return; }
 
     panel.innerHTML = '<div class="mt-hint">히트맵 불러오는 중...</div>';
@@ -322,6 +362,12 @@
     global.MarketcapBubble.init();
   }
 
+  function loadPanel(view, panel) {
+    if (view === 'cards') loadCardsPanel(panel);
+    else if (view === 'heatmap') loadHeatmapPanel(panel);
+    else if (view === 'marketcap') loadMarketcapPanel(panel);
+  }
+
   function wireViewTabs(container) {
     var buttons = container.querySelectorAll('.mt-view-btn');
     var panels = {};
@@ -333,10 +379,11 @@
         var view = btn.getAttribute('data-view');
         buttons.forEach(function (b) { b.classList.toggle('active', b === btn); });
         Object.keys(panels).forEach(function (key) { panels[key].hidden = key !== view; });
-        if (view === 'heatmap') loadHeatmapPanel(panels.heatmap);
-        if (view === 'marketcap') loadMarketcapPanel(panels.marketcap);
+        loadPanel(view, panels[view]);
       });
     });
+    // 기본 활성 탭(카드 보기)은 클릭 없이도 바로 보여야 하니 최초 1회는 직접 로드해준다.
+    if (panels.cards) loadCardsPanel(panels.cards);
   }
 
   function buildGuide() {
@@ -372,14 +419,9 @@
       + '</div>'
       + '<div class="mt-sub">시장이 과열되거나 침체된 정도를 온도로 보여드립니다.</div>'
       + buildGauge(data.temp)
+      + '<div class="mt-bars">' + rows + '</div>'
       + buildGuide()
-      + '<div class="mt-view-panels">'
-      + '<div class="mt-view-panel" data-view-panel="cards"><div class="mt-bars">' + rows + '</div></div>'
-      + '<div class="mt-view-panel" data-view-panel="heatmap" hidden></div>'
-      + '<div class="mt-view-panel" data-view-panel="marketcap" hidden></div>'
-      + '</div>'
       + (data.updatedAt ? '<div class="mt-updated">🔄 업데이트 ' + escapeHtml(data.updatedAt) + '</div>' : '')
-      + buildViewToggle()
       + '</div>';
   }
 

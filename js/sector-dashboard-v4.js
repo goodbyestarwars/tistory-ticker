@@ -286,7 +286,9 @@
     init: init,
     fetchTickerData: fetchTickerData,
     fetchBatch: fetchBatch,
-    renderHeatmapHtml: renderHeatmapHtml // js/market-temp.js의 "히트맵 보기" 탭이 재사용
+    renderHeatmapHtml: renderHeatmapHtml, // js/market-temp.js의 "히트맵 보기" 탭이 재사용
+    renderCardsHtml: renderCardsHtml, // js/market-temp.js의 "카드 보기" 탭이 재사용
+    injectBadgeStyles: injectBadgeStyles // renderCardsHtml의 시장 뱃지(P/Q) 스타일 - 별도 호출 필요
   };
   global.SectorDashboard = SectorDashboard;
 
