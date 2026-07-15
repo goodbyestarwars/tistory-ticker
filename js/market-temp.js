@@ -373,13 +373,13 @@
       + '<div class="mt-sub">시장이 과열되거나 침체된 정도를 온도로 보여드립니다.</div>'
       + buildGauge(data.temp)
       + buildGuide()
-      + buildViewToggle()
       + '<div class="mt-view-panels">'
       + '<div class="mt-view-panel" data-view-panel="cards"><div class="mt-bars">' + rows + '</div></div>'
       + '<div class="mt-view-panel" data-view-panel="heatmap" hidden></div>'
       + '<div class="mt-view-panel" data-view-panel="marketcap" hidden></div>'
       + '</div>'
       + (data.updatedAt ? '<div class="mt-updated">🔄 업데이트 ' + escapeHtml(data.updatedAt) + '</div>' : '')
+      + buildViewToggle()
       + '</div>';
   }
 
