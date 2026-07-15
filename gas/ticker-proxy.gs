@@ -687,7 +687,7 @@ var MARKET_ANALYSIS_FAIL_TTL = 120;        // 2분
 
 function getMarketAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'market_analysis';
+  var cacheKey = CACHE_PREFIX + 'market_analysis_v2';
   var cached = cache.get(cacheKey);
   if (cached) return { analysis: cached };
 
@@ -696,8 +696,8 @@ function getMarketAnalysis() {
   if (!kospi && !kosdaq) return { analysis: null };
 
   var lines = [];
-  if (kospi) lines.push('코스피 ' + kospi.price + ' (' + (kospi.changeRate >= 0 ? '+' : '') + kospi.changeRate.toFixed(2) + '%)');
-  if (kosdaq) lines.push('코스닥 ' + kosdaq.price + ' (' + (kosdaq.changeRate >= 0 ? '+' : '') + kosdaq.changeRate.toFixed(2) + '%)');
+  if (kospi) lines.push('코스피 ' + fmtCommaNum_(kospi.price) + ' (' + (kospi.changeRate >= 0 ? '+' : '') + kospi.changeRate.toFixed(2) + '%)');
+  if (kosdaq) lines.push('코스닥 ' + fmtCommaNum_(kosdaq.price) + ' (' + (kosdaq.changeRate >= 0 ? '+' : '') + kosdaq.changeRate.toFixed(2) + '%)');
 
   var prompt = '오늘 국내 증시 상황이야: ' + lines.join(', ') + '. ' +
     '증시/투자자 관점에서 오늘 시장 분위기를 분석하고, 투자자 입장에서 참고할 만한 의견까지 포함해서 3문장으로 한국어로 정리해줘.';
@@ -730,14 +730,22 @@ function fetchFuturesFromVm_() {
   return bySymbol;
 }
 
+// AI 프롬프트에 넣는 숫자는 AI가 그대로 베껴 쓰는 경향이 있어(예: "26107.01"), 여기서부터
+// 천단위 콤마를 찍어줘야 화면에 나오는 문장도 콤마가 붙는다 - 사이트 공통 규칙(전체 페이지의
+// 숫자 표기는 콤마 포함)을 AI 요약 텍스트에도 동일하게 적용.
+function fmtCommaNum_(n) {
+  if (typeof n !== 'number' || isNaN(n)) return String(n);
+  return n.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+}
+
 function futuresLine_(item, label) {
   if (!item || typeof item.price !== 'number') return null;
-  return label + ' ' + item.price + ' (' + (item.change_rate >= 0 ? '+' : '') + item.change_rate.toFixed(2) + '%)';
+  return label + ' ' + fmtCommaNum_(item.price) + ' (' + (item.change_rate >= 0 ? '+' : '') + item.change_rate.toFixed(2) + '%)';
 }
 
 function getKospiFuturesAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis';
+  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v2';
   var cached = cache.get(cacheKey);
   if (cached) return { analysis: cached };
 
@@ -770,7 +778,7 @@ function getKospiFuturesAnalysis() {
 // renderAiSummary)는 결과를 <p> 하나에 그대로 넣으므로 소제목/줄바꿈 서식은 요청하지 않는다.
 function getSubIndexAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v3';
+  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v4';
   var cached = cache.get(cacheKey);
   if (cached) return { analysis: cached };
 
