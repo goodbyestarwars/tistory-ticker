@@ -109,7 +109,8 @@ def _fetch_live_investor_row(token, code, end_dt):
         return None
     return {
         'close': abs(to_num(today.get('cur_prc'))),
-        'change_pct': to_num(today.get('flu_rt')),
+        # ka10059의 flu_rt는 ka10045와 달리 소수점 없는 100배 정수 문자열("+627"=6.27%)이라 /100 필요
+        'change_pct': to_num(today.get('flu_rt')) / 100,
         'volume': abs(to_num(today.get('acc_trde_qty'))),
         'inst_net': to_num(today.get('orgn')),
         'foreign_net': to_num(today.get('frgnr_invsr')),
