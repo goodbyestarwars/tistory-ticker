@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-"""코스피200 주간선물(FUT) + 원/달러 환율 - 네이버 국내 API 수집.
+"""코스피/코스닥 지수 + 코스피200 주간선물(FUT) + 원/달러 환율 - 네이버 국내 API 수집.
 foreign_futures.py(나스닥100/S&P500/다우/SOX/VIX/WTI 등, 해외종)와 짝을 이루는 국내판.
-"코스피 선물" 페이지(주간선물+야간선물)와 "보조지수" 페이지(환율 카드)가 공유한다.
+관심지수 리본(js/quick-indices.js)의 코스피/코스닥 미니차트, "코스피 선물" 페이지
+(주간선물+야간선물), "보조지수" 페이지(환율 카드)가 이 모듈의 데이터를 공유한다.
 
 검증 경위(2026-07-15, curl 실측 - 전부 코드 작성 전에 실제 호출로 확인함):
 - 코스피200 주간선물 실시간: polling.finance.naver.com/api/realtime/domestic/index/FUT
@@ -16,10 +17,20 @@ foreign_futures.py(나스닥100/S&P500/다우/SOX/VIX/WTI 등, 해외종)와 짝
   프론트 toLwcTime()이 모든 심볼에 동일하게 YYYYMMDD 입력을 가정하기 때문.
 User-Agent를 모바일 값으로 고정해야 함 - 아니면 404/에러 HTML이 돌아옴(foreign_futures.py와 동일).
 
-2026-07-16(2차): 코스피 현물지수(KOSPI_CASH) 수집을 제거했다. 실시간은 정상이었지만 과거 일봉
-API(chart/domestic/index/KOSPI/day)가 하루 변동폭 5~10%씩 튀는 신뢰 불가 데이터를 반환해서
-차트에는 애초에 못 썼고(git log 참고), 이후 사용자 요청으로 "코스피 선물" 페이지에서도 현물
-카드를 빼기로 하면서(주간·야간선물만 표시) 현재가조차 아무 데서도 안 쓰이게 돼 완전히 제거했다."""
+2026-07-16(2차) - 이후 정정됨(3차 참고): 코스피 현물지수(KOSPI_CASH) 수집을 한 차례 제거했었다.
+당시 chart/domestic/index/KOSPI/day가 하루 변동폭 5~10%씩 튀는 걸 보고 "신뢰 불가 데이터"로
+잘못 판단했는데, 실제로는 실시간 시세(polling.finance.naver.com/api/realtime/domestic/index/*)와
+정확히 일치하는 진짜 데이터였다(이 시기 실제로 변동성이 큰 장세였을 뿐) - 사용자가 지적해서
+재검증 후 확인. 이 API 자체는 정상이니 앞으로 이 계열(chart/domestic/index/*)을 다시 의심하지
+말 것 - 아래 3차에서 코스피/코스닥을 다시 정식으로 추가했다.
+
+2026-07-16(3차): 위 오판을 정정하고 코스피/코스닥 지수(KOSPI/KOSDAQ)를 실시간+과거 일봉 둘 다
+정식으로 추가했다(관심지수 리본이 미니차트 없이 현재가만 보여주던 문제 해결 - js/quick-indices.js
+쪽에서 source를 'market'(GAS, 이력 없음)에서 'futures'(이 모듈, 이력 있음)로 전환).
+KOSPI_CASH라는 이름은 되살리지 않고 그냥 심볼명을 'KOSPI'/'KOSDAQ'로 통일했다(이전엔 리본의
+market 소스 키와 겹치지 않게 KOSPI_CASH로 구분했었는데, 이제 이 모듈이 유일한 소스가 됐으니
+불필요). "코스피 선물"/"보조지수" 페이지는 여전히 코스피/코스닥을 안 쓴다(사용자가 리본과
+중복이라고 명시적으로 뺀 부분 - 이건 데이터 품질과 무관한 별개의 스코프 결정이라 그대로 둠)."""
 
 import json
 import logging
@@ -37,6 +48,16 @@ UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.1
 # {symbol: (표시명, 네이버 code)} - realtime/domestic/index/{code} API로 커버됨.
 REALTIME_SYMBOLS = {
     'KOSPI200_DAY': ('코스피200 주간선물', 'FUT'),
+    'KOSPI': ('코스피', 'KOSPI'),
+    'KOSDAQ': ('코스닥', 'KOSDAQ'),
+}
+
+# 과거 일봉을 수집하는 심볼 - {symbol: (네이버 chart category, 네이버 code)}.
+# chart API는 realtime과 카테고리 표기가 다를 수 있음(FUT는 'futures', KOSPI/KOSDAQ는 'index').
+CHART_SYMBOLS = {
+    'KOSPI200_DAY': ('futures', 'FUT'),
+    'KOSPI': ('index', 'KOSPI'),
+    'KOSDAQ': ('index', 'KOSDAQ'),
 }
 
 _REALTIME_POLL_SEC = 30
@@ -73,11 +94,11 @@ def fetch_index_realtime(code):
     return {'price': price, 'change': change, 'change_rate': change_rate, 'high': high, 'low': low}
 
 
-def fetch_fut_daily_chart(days=90):
+def fetch_domestic_index_chart(category, code, days=90):
     date2 = datetime.now().strftime('%Y%m%d')
     date1 = (datetime.now() - timedelta(days=days)).strftime('%Y%m%d')
-    url = ('https://api.stock.naver.com/chart/domestic/futures/FUT/day?startDateTime=%s&endDateTime=%s'
-           % (date1, date2))
+    url = ('https://api.stock.naver.com/chart/domestic/%s/%s/day?startDateTime=%s&endDateTime=%s'
+           % (category, code, date1, date2))
     data = _get_json(url)
     rows = []
     for r in data:
@@ -157,13 +178,14 @@ def refresh_realtime_all():
 def refresh_history_all():
     conn = db_schema.get_conn()
     try:
-        try:
-            rows = fetch_fut_daily_chart()
-            if rows:
-                db_schema.upsert_future_chart_rows(conn, 'KOSPI200_DAY', rows)
-                logger.info('domestic futures history refreshed: KOSPI200_DAY %d rows', len(rows))
-        except Exception:
-            logger.exception('KOSPI200_DAY history fetch failed')
+        for symbol, (category, code) in CHART_SYMBOLS.items():
+            try:
+                rows = fetch_domestic_index_chart(category, code)
+                if rows:
+                    db_schema.upsert_future_chart_rows(conn, symbol, rows)
+                    logger.info('domestic futures history refreshed: %s %d rows', symbol, len(rows))
+            except Exception:
+                logger.exception('%s history fetch failed', symbol)
         try:
             rows = fetch_fx_daily_chart()
             if rows:

@@ -21,10 +21,18 @@
  * 밖의 별도 .qi-controls로 빼서 항상 버튼 바로 아래에 뜨게 고쳤다.
  *
  * 데이터 소스 2곳:
- * - 코스피/코스닥/원달러/BTC: GAS ?market=1 (과거 시세 이력이 없어 미니차트 불가 - 카드에 차트 생략)
- * - 코스피200 야간선물/나스닥100/S&P500/필라델피아(SOX)/VIX/WTI: VM(https://ghlee.duckdns.org/futures)
- *   (js/overnight-market.js와 같은 응답을 쓰는데, 그 응답엔 최근 시세 배열(chart)이 이미
- *   들어있어서 그걸 그대로 미니 스파크라인으로 그린다 - 렌더링 방식도 overnight-market.js와 동일)
+ * - 원달러/BTC: GAS ?market=1 (과거 시세 이력이 없어 미니차트 불가 - 카드에 차트 생략)
+ * - 코스피/코스닥/코스피200 야간선물/나스닥100/S&P500/필라델피아(SOX)/VIX/WTI:
+ *   VM(https://ghlee.duckdns.org/futures) (js/overnight-market.js와 같은 응답을 쓰는데, 그
+ *   응답엔 최근 시세 배열(chart)이 이미 들어있어서 그걸 그대로 미니 스파크라인으로 그린다 -
+ *   렌더링 방식도 overnight-market.js와 동일)
+ *
+ * 2026-07-16: 코스피/코스닥을 'market'(GAS, 이력 없음)에서 'futures'(VM, 이력 있음)로 전환해
+ * 미니차트가 뜨게 했다 - VM의 chart/domestic/index/{KOSPI|KOSDAQ}/day 데이터를 "변동폭이
+ * 튀어 신뢰 불가"로 오판해서 한동안 코스피 현물지수 수집 자체를 뺐었는데, 실시간 시세와
+ * 대조해보니 실제로 정확한 데이터였음이 밝혀져 정정함(scripts/cloud-vm/domestic_futures.py
+ * 상단 주석 참고). 원달러/BTC는 그대로 market 소스 유지(원달러는 VM에도 USDKRW로 있지만
+ * 이 리본까지 굳이 바꿀 필요는 없어서 손대지 않음, BTC는 VM이 아예 안 다룸).
  *
  * 60초마다 갱신하되, 매번 카드를 통째로 비웠다가 다시 그리면 깜빡임이 생겨서(2026-07-16
  * 피드백) 최초 1회만 "불러오는 중" 틀을 그리고, 이후 갱신은 기존 DOM 노드의 텍스트/톤만 바꾼다.
@@ -52,8 +60,8 @@
   })();
 
   var OPTIONS = [
-    { key: 'kospi', label: '코스피', source: 'market', sourceKey: 'kospi' },
-    { key: 'kosdaq', label: '코스닥', source: 'market', sourceKey: 'kosdaq' },
+    { key: 'kospi', label: '코스피', source: 'futures', sourceKey: 'KOSPI' },
+    { key: 'kosdaq', label: '코스닥', source: 'futures', sourceKey: 'KOSDAQ' },
     { key: 'usdkrw', label: '원/달러', source: 'market', sourceKey: 'usdkrw' },
     { key: 'btc', label: 'BTC', source: 'market', sourceKey: 'btc' },
     { key: 'kospi_night', label: '코스피 야간선물', source: 'futures', sourceKey: 'KOSPI200_NIGHT' },

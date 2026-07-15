@@ -274,11 +274,14 @@ def futures():
     이 목록에 반영이 안 돼 DOW 카드가 계속 '데이터 없음'이었을 것) + domestic_futures.py의
     KOSPI200_DAY/USDKRW 추가.
     2026-07-16(2차): 나스닥종합지수/S&P500지수/다우존스지수(현물) 추가, 코스피 현물지수
-    (KOSPI_CASH)는 어느 페이지에서도 안 쓰게 돼 제거(domestic_futures.py 상단 주석 참고)."""
+    (KOSPI_CASH)는 어느 페이지에서도 안 쓰게 돼 제거.
+    2026-07-16(3차): KOSPI_CASH 제거가 "과거 일봉 데이터가 신뢰 불가"라는 잘못된 판단
+    때문이었음이 밝혀져 정정 - 코스피/코스닥(KOSPI/KOSDAQ)을 정식으로 다시 추가했다
+    (관심지수 리본 미니차트용, domestic_futures.py 상단 주석 참고)."""
     conn = db_schema.get_conn()
     try:
         prices = {p['symbol']: p for p in db_schema.load_all_future_prices(conn)}
-        order = ['NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
+        order = ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
                  'KOSPI200_DAY', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI', 'USDKRW']
         result = []
         for symbol in order:
