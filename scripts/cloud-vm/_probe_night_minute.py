@@ -89,12 +89,34 @@ def main():
     code = contracts[0]['code']
     print('근월물 코드:', code, '만기:', contracts[0]['expiry_yyyymm'])
 
-    # 후보 1: 일봉 API(inquire-daily-fuopchartprice, FHKIF03020100)와 이름 규칙이 대응되는 추정 엔드포인트.
+    # 후보 1: 야간선물 분봉 - KIS 공식 예제(koreainvestment/open-trading-api,
+    # examples_user/domestic_futureoption/domestic_futureoption_functions.py의
+    # inquire_time_fuopchartprice)와 TR/경로 이름이 일치하는 것까지 확인됨(2026-07-16).
     try_endpoint(
         token,
         '/uapi/domestic-futureoption/v1/quotations/inquire-time-fuopchartprice',
         'FHKIF03020200',
         {'FID_COND_MRKT_DIV_CODE': 'CM', 'FID_INPUT_ISCD': code, 'FID_HOUR_CLS_CODE': '60', 'FID_PW_DATA_INCU_YN': 'Y'},
+    )
+
+    # 후보 2: 선물 시세(inquire_price, FHMIF10000000) - 미결제약정(OI) 필드가 여기 포함되는지 확인.
+    # 야간선물(CM)이 이 TR도 되는지는 미검증 - 에러가 나면 mrkt_div_code를 바꿔가며 재시도 필요.
+    try_endpoint(
+        token,
+        '/uapi/domestic-futureoption/v1/quotations/inquire-price',
+        'FHMIF10000000',
+        {'FID_COND_MRKT_DIV_CODE': 'CM', 'FID_INPUT_ISCD': code},
+    )
+
+    # 후보 3: 옵션 시세판(display_board_callput, FHPIF05030100) - 콜/풋 옵션 거래량·OI가
+    # 나오는지 확인용. 파라미터는 KIS 예제 기준 추정치라 에러 메시지를 보고 조정이 필요할 수 있음
+    # (옵션 기초자산 코드 자체를 아직 안 구했으므로 코스피200 지수옵션 표준 코드 '201'로 시도).
+    try_endpoint(
+        token,
+        '/uapi/domestic-futureoption/v1/quotations/display-board-callput',
+        'FHPIF05030100',
+        {'FID_COND_MRKT_DIV_CODE': 'O', 'FID_COND_SCR_DIV_CODE': '20503', 'FID_MRKT_CLS_CODE': 'CO',
+         'FID_MTRT_CNT': '', 'FID_MRKT_CLS_CODE1': 'PO', 'FID_COND_MRKT_CLS_CODE': ''},
     )
 
 
