@@ -43,10 +43,12 @@ import db_schema
 
 logger = logging.getLogger('domestic_futures')
 
-# 분봉은 네이버 chart/domestic/futures/FUT/minute 엔드포인트로 실측 확인됨(2026-07-15,
-# curl로 실제 1분봉 데이터 응답 확인). 코스피200 야간선물(KOSPI200_NIGHT)은 KIS 소스라
-# 이 분봉 소스가 없어 제외 - 분봉 지원은 이 심볼만.
-MINUTE_SYMBOLS = {'KOSPI200_DAY'}
+# 분봉 지원 심볼. KOSPI200_DAY는 네이버 chart/domestic/futures/FUT/minute 엔드포인트로
+# 실측 확인됨(2026-07-15). KOSPI200_NIGHT은 처음엔 KIS에 분봉 소스가 없다고 판단했었으나,
+# 공식 예제 저장소(koreainvestment/open-trading-api)에서 inquire_time_fuopchartprice
+# (TR FHKIF03020200)를 찾아 실측 확인 완료(2026-07-16, night_futures_ws.py의 refresh_minute
+# 참고) - 이제 둘 다 지원.
+MINUTE_SYMBOLS = {'KOSPI200_DAY', 'KOSPI200_NIGHT'}
 _MINUTE_CHART_CATEGORY = 'futures'
 _MINUTE_CHART_CODE = 'FUT'
 _MINUTE_REFRESH_INTERVAL = 5 * 60

@@ -45,12 +45,13 @@
   };
   var DAY_RANGE = 250; // 기존 90일 -> 약 1년으로 확대(VM domestic_futures.py 기본 수집 범위와 일치)
   var INTERVAL_LABELS = { minute: '분봉', day: '일봉', week: '주봉' };
-  // 분봉은 네이버 소스가 있는 주간선물(KOSPI200_DAY)만 지원 - 야간선물(KIS 소스)은 분봉
-  // 데이터가 없어 일봉/주봉만 제공한다(scripts/cloud-vm/domestic_futures.py MINUTE_SYMBOLS 참고).
+  // 2026-07-16: 야간선물도 분봉 지원 추가 - 처음엔 KIS에 소스가 없다고 판단했었으나 공식
+  // 예제 저장소에서 TR(FHKIF03020200)을 찾아 실측 확인함(night_futures_ws.py 참고).
   var CHARTS = [
     { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: '코스피200 주간선물', intervals: ['minute', 'day', 'week'] },
-    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '코스피200 야간선물', intervals: ['day', 'week'] }
+    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '코스피200 야간선물', intervals: ['minute', 'day', 'week'] }
   ];
+  var OPTION_FLOW_API = 'https://ghlee.duckdns.org/option-flow';
 
   var CHART_EL_BY_KEY = {};
   CHARTS.forEach(function (c) { CHART_EL_BY_KEY[c.key] = c.elId; });
@@ -180,7 +181,99 @@
     return ''
       + '<div class="kf-ai" id="kfAi" hidden></div>'
       + '<div class="kf-panel" id="kfPanel">' + panelCards + '</div>'
-      + sections;
+      + sections
+      + buildOptionFlowShell();
+  }
+
+  // ---- 옵션 수급 분석(콜/풋) ----
+  // 외국인/기관/개인별 신규·청산 분리는 KIS/키움 어디에도 그런 API가 없어(2026-07-16 조사)
+  // 콜 전체/풋 전체 단위로만 "미결제약정(OI) 증감" 기준 신규·청산 우세를 보여준다 -
+  // 개별 투자자 매수/매도 방향까지는 알 수 없다는 걸 라벨/설명 문구로 명시한다.
+  var OPTION_SIDES = [
+    { key: 'CALL', label: '콜옵션' },
+    { key: 'PUT', label: '풋옵션' }
+  ];
+
+  function buildOptionFlowShell() {
+    var cards = OPTION_SIDES.map(function (s) {
+      return '<div class="kf-opt-card" data-side="' + s.key + '">'
+        + '<div class="kf-opt-title">' + escapeHtml(s.label) + '</div>'
+        + '<div class="kf-opt-body kf-loading">불러오는 중...</div>'
+        + '</div>';
+    }).join('');
+    return '<div class="kf-section" data-section-key="option">'
+      + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급 분석</div></div>'
+      + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
+      + '콜/풋 전체 미결제약정(OI) 증감으로 신규 진입·청산 우세만 추정해서 보여드립니다.</div>'
+      + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
+      + '</div>';
+  }
+
+  function optTendency(oiChange) {
+    if (oiChange == null) return { label: '-', cls: 'kf-zero' };
+    if (oiChange > 0) return { label: '신규 진입 우세', cls: 'kf-pos' };
+    if (oiChange < 0) return { label: '청산 우세', cls: 'kf-neg' };
+    return { label: '보합', cls: 'kf-zero' };
+  }
+
+  function buildOptCardBody(row) {
+    if (!row) return '<div class="kf-opt-body">데이터 없음</div>';
+    var t = optTendency(row.oi_change);
+    var sign = row.oi_change > 0 ? '+' : '';
+    return '<div class="kf-opt-body">'
+      + '<span class="kf-opt-tendency ' + t.cls + '">' + t.label + '</span>'
+      + '<div class="kf-opt-row"><span>거래량</span><b>' + Math.round(row.volume || 0).toLocaleString('ko-KR') + '</b></div>'
+      + '<div class="kf-opt-row"><span>미결제약정(OI)</span><b>' + Math.round(row.oi || 0).toLocaleString('ko-KR') + '</b></div>'
+      + '<div class="kf-opt-row"><span>OI 증감</span><b class="' + t.cls + '">' + sign + Math.round(row.oi_change || 0).toLocaleString('ko-KR') + '</b></div>'
+      + '<div class="kf-opt-updated">업데이트 ' + fmtTime(row.updated_at) + '</div>'
+      + '</div>';
+  }
+
+  function fetchOptionFlow() {
+    var hasAbort = 'AbortController' in global;
+    var controller = hasAbort ? new AbortController() : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
+    return fetch(OPTION_FLOW_API, hasAbort ? { signal: controller.signal } : {})
+      .then(function (r) {
+        if (!r.ok) throw new Error('option-flow API 오류: ' + r.status);
+        return r.json();
+      })
+      .then(function (json) {
+        if (timer) clearTimeout(timer);
+        return json.data || {};
+      })
+      .catch(function (err) {
+        if (timer) clearTimeout(timer);
+        throw err;
+      });
+  }
+
+  function refreshOptionFlow(container) {
+    fetchOptionFlow().then(function (bySide) {
+      OPTION_SIDES.forEach(function (s) {
+        var card = container.querySelector('.kf-opt-card[data-side="' + s.key + '"]');
+        if (!card) return;
+        card.querySelector('.kf-opt-body').outerHTML = buildOptCardBody(bySide[s.key]);
+      });
+    }).catch(function () {
+      container.querySelectorAll('.kf-opt-card').forEach(function (card) {
+        var body = card.querySelector('.kf-opt-body');
+        if (body && body.classList.contains('kf-loading')) {
+          body.outerHTML = '<div class="kf-opt-body kf-error">옵션 수급을 불러오지 못했어요.</div>';
+        }
+      });
+    });
+  }
+
+  // 미결제약정(OI)은 야간선물(KIS 소스)만 값이 있음 - 주간선물(네이버)은 원래 OI를 안 줘서
+  // item.oi가 null로 온다(정상, 에러 아님).
+  function fmtOiLine(oi, oiChange) {
+    if (oi == null) return '';
+    var tone = oiChange > 0 ? 'kf-pos' : oiChange < 0 ? 'kf-neg' : 'kf-zero';
+    var sign = oiChange > 0 ? '+' : '';
+    return '<div class="kf-stat-oi">미결제약정 ' + Math.round(oi).toLocaleString('ko-KR')
+      + (oiChange != null ? ' <span class="' + tone + '">(' + sign + Math.round(oiChange).toLocaleString('ko-KR') + ')</span>' : '')
+      + '</div>';
   }
 
   function buildStatBody(item) {
@@ -193,6 +286,7 @@
       + (hasPrice
         ? '<div class="kf-stat-change ' + tone + '">' + arrow + ' ' + fmtSigned(item.change, 2) + ' (' + fmtSigned(item.change_rate, 2) + '%)</div>'
         : '')
+      + (hasPrice ? fmtOiLine(item.oi, item.oi_change) : '')
       + '<div class="kf-stat-updated">' + (hasPrice ? '업데이트 ' + fmtTime(item.updated_at) : '') + '</div>'
       + '</div>';
   }
@@ -427,9 +521,13 @@
     wireCollapseToggles(container);
     refresh(container);
     renderAiSummary(container);
+    refreshOptionFlow(container);
 
     if (refreshTimer) clearInterval(refreshTimer);
-    refreshTimer = setInterval(function () { refresh(container); }, REFRESH_INTERVAL_MS);
+    refreshTimer = setInterval(function () {
+      refresh(container);
+      refreshOptionFlow(container);
+    }, REFRESH_INTERVAL_MS);
 
     if (themeObserver) themeObserver.disconnect();
     themeObserver = new MutationObserver(function () {

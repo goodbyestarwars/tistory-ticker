@@ -66,6 +66,16 @@ CREATE TABLE IF NOT EXISTS future_prices (
     updated_at TEXT
 );
 
+-- 콜/풋 옵션 수급 요약(전체 만기 합산이 아니라 최근월물 기준 1행씩) - 종목별이 아니라
+-- side(CALL/PUT) 단위 집계만 저장. 상세 행사가별 데이터는 저장하지 않는다(온디맨드 집계만 필요).
+CREATE TABLE IF NOT EXISTS option_flow (
+    side TEXT PRIMARY KEY,
+    volume INTEGER,
+    oi INTEGER,
+    oi_change INTEGER,
+    updated_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS future_chart (
     symbol TEXT NOT NULL,
     date TEXT NOT NULL,
@@ -99,8 +109,18 @@ def get_conn(db_file=None):
     return conn
 
 
+def _ensure_column(conn, table, column, coltype):
+    """CREATE TABLE IF NOT EXISTS는 이미 있는 테이블에 새 컬럼을 추가해주지 않으므로,
+    기존 운영 DB(future_prices)에 나중에 컬럼을 늘릴 때(예: OI) 이 헬퍼로 마이그레이션한다."""
+    cols = [r[1] for r in conn.execute('PRAGMA table_info(%s)' % table)]
+    if column not in cols:
+        conn.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table, column, coltype))
+
+
 def create_schema(conn):
     conn.executescript(SCHEMA)
+    _ensure_column(conn, 'future_prices', 'oi', 'INTEGER')
+    _ensure_column(conn, 'future_prices', 'oi_change', 'INTEGER')
     conn.commit()
 
 
@@ -142,15 +162,16 @@ def load_investor_flow_daily(conn, code):
     ]
 
 
-def upsert_future_price(conn, symbol, name, price, change, change_rate, high, low, updated_at):
+def upsert_future_price(conn, symbol, name, price, change, change_rate, high, low, updated_at, oi=None, oi_change=None):
+    """oi/oi_change(미결제약정/증감)는 KIS 소스(야간선물)만 제공 - 없는 심볼은 None 그대로 저장."""
     conn.execute(
-        'INSERT INTO future_prices (symbol, name, price, change, change_rate, high, low, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?) '
+        'INSERT INTO future_prices (symbol, name, price, change, change_rate, high, low, updated_at, oi, oi_change) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) '
         'ON CONFLICT(symbol) DO UPDATE SET '
         'name=excluded.name, price=excluded.price, change=excluded.change, '
         'change_rate=excluded.change_rate, high=excluded.high, low=excluded.low, '
-        'updated_at=excluded.updated_at',
-        (symbol, name, price, change, change_rate, high, low, updated_at),
+        'updated_at=excluded.updated_at, oi=excluded.oi, oi_change=excluded.oi_change',
+        (symbol, name, price, change, change_rate, high, low, updated_at, oi, oi_change),
     )
     conn.commit()
 
@@ -198,11 +219,29 @@ def load_future_chart_minute(conn, symbol, limit_bars=1500):
 
 def load_all_future_prices(conn):
     rows = conn.execute(
-        'SELECT symbol, name, price, change, change_rate, high, low, updated_at FROM future_prices'
+        'SELECT symbol, name, price, change, change_rate, high, low, updated_at, oi, oi_change FROM future_prices'
     ).fetchall()
     return [
         {'symbol': r[0], 'name': r[1], 'price': r[2], 'change': r[3], 'change_rate': r[4],
-         'high': r[5], 'low': r[6], 'updated_at': r[7]}
+         'high': r[5], 'low': r[6], 'updated_at': r[7], 'oi': r[8], 'oi_change': r[9]}
+        for r in rows
+    ]
+
+
+def upsert_option_flow(conn, side, volume, oi, oi_change, updated_at):
+    conn.execute(
+        'INSERT INTO option_flow (side, volume, oi, oi_change, updated_at) VALUES (?, ?, ?, ?, ?) '
+        'ON CONFLICT(side) DO UPDATE SET '
+        'volume=excluded.volume, oi=excluded.oi, oi_change=excluded.oi_change, updated_at=excluded.updated_at',
+        (side, volume, oi, oi_change, updated_at),
+    )
+    conn.commit()
+
+
+def load_option_flow(conn):
+    rows = conn.execute('SELECT side, volume, oi, oi_change, updated_at FROM option_flow').fetchall()
+    return [
+        {'side': r[0], 'volume': r[1], 'oi': r[2], 'oi_change': r[3], 'updated_at': r[4]}
         for r in rows
     ]
 

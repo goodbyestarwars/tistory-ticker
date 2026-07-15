@@ -104,3 +104,66 @@ def fetch_period_chart(token, appkey, appsecret, mrkt_div_code, iscd, date1, dat
     if data.get('rt_cd') != '0':
         raise RuntimeError('FHKIF03020100 실패: ' + json.dumps(data, ensure_ascii=False))
     return data.get('output1') or {}, data.get('output2') or []
+
+
+def fetch_time_chart(token, appkey, appsecret, mrkt_div_code, iscd, date1, hour1, hour_cls_code='60'):
+    """선물옵션 분봉조회, TR FHKIF03020200 (2026-07-16 실측 확인).
+    date1: 조회 기준일 YYYYMMDD, hour1: 조회 기준시각 HHMMSS(보통 현재 시각) - 이 시각
+    "이전" 최근 분봉들을 내려준다. 야간선물은 자정을 넘어가는 시각을 24:00~29:xx처럼
+    30시간제로 표기해서 온다(stck_bsop_date는 그대로, stck_cntg_hour만 24 이상)."""
+    path = ('/uapi/domestic-futureoption/v1/quotations/inquire-time-fuopchartprice'
+            '?FID_COND_MRKT_DIV_CODE=%s&FID_INPUT_ISCD=%s&FID_HOUR_CLS_CODE=%s'
+            '&FID_PW_DATA_INCU_YN=Y&FID_FAKE_TICK_INCU_YN=N&FID_INPUT_DATE_1=%s&FID_INPUT_HOUR_1=%s'
+            % (mrkt_div_code, iscd, hour_cls_code, date1, hour1))
+    req = urllib.request.Request(
+        BASE_URL + path,
+        headers={
+            'Content-Type': 'application/json; charset=utf-8',
+            'authorization': 'Bearer ' + token,
+            'appkey': appkey,
+            'appsecret': appsecret,
+            'tr_id': 'FHKIF03020200',
+            'custtype': 'P',
+        },
+        method='GET',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('FHKIF03020200 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
+    if data.get('rt_cd') != '0':
+        raise RuntimeError('FHKIF03020200 실패: ' + json.dumps(data, ensure_ascii=False))
+    return data.get('output1') or {}, data.get('output2') or []
+
+
+def fetch_option_board(token, appkey, appsecret, mtrt_yyyymm):
+    """옵션 시세판(콜+풋), TR FHPIF05030100 (2026-07-16 실측 확인). mtrt_yyyymm: 만기 YYYYMM.
+    output1=콜옵션, output2=풋옵션으로 추정(요청 파라미터 순서 FID_MRKT_CLS_CODE=CO/
+    FID_MRKT_CLS_CODE1=PO와 일치 + 실측 응답에서 output1 delta_val이 양수, output2가
+    음수였음(콜은 델타 0~+1, 풋은 -1~0이 금융공식상 항상 성립) - 두 근거가 일치해 이 순서로
+    가정. 필드에 명시적인 콜/풋 구분자가 없어 100% 문서화된 사실은 아니므로, 실사용 시
+    delta_val 부호로 한 번 더 교차검증하는 게 안전하다."""
+    path = ('/uapi/domestic-futureoption/v1/quotations/display-board-callput'
+            '?FID_COND_MRKT_DIV_CODE=O&FID_COND_SCR_DIV_CODE=20503&FID_MRKT_CLS_CODE=CO'
+            '&FID_MTRT_CNT=%s&FID_MRKT_CLS_CODE1=PO&FID_COND_MRKT_CLS_CODE=' % mtrt_yyyymm)
+    req = urllib.request.Request(
+        BASE_URL + path,
+        headers={
+            'Content-Type': 'application/json; charset=utf-8',
+            'authorization': 'Bearer ' + token,
+            'appkey': appkey,
+            'appsecret': appsecret,
+            'tr_id': 'FHPIF05030100',
+            'custtype': 'P',
+        },
+        method='GET',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('FHPIF05030100 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
+    if data.get('rt_cd') != '0':
+        raise RuntimeError('FHPIF05030100 실패: ' + json.dumps(data, ensure_ascii=False))
+    return data.get('output1') or [], data.get('output2') or []

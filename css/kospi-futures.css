@@ -148,6 +148,65 @@
   padding: 40px 0;
 }
 
+#kospi-futures .kf-stat-oi {
+  font-size: 12px;
+  color: #888;
+  margin-top: 6px;
+}
+
+/* ---- 옵션 수급 분석(콜/풋) ---- */
+#kospi-futures .kf-opt-desc {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+#kospi-futures .kf-opt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+#kospi-futures .kf-opt-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+}
+
+#kospi-futures .kf-opt-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+#kospi-futures .kf-opt-tendency {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  margin-bottom: 8px;
+}
+
+#kospi-futures .kf-opt-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+#kospi-futures .kf-opt-row:last-of-type { border-bottom: none; }
+
+#kospi-futures .kf-opt-updated {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 8px;
+}
+
 html.dark #kospi-futures .kf-ai { background: #1c2a3a !important; }
 html.dark #kospi-futures .kf-ai p { color: #ccc !important; }
 html.dark #kospi-futures .kf-stat-card {
@@ -179,3 +238,12 @@ html.dark #kospi-futures .kf-collapse-btn {
   color: #999 !important;
   border-color: #3a3a3a !important;
 }
+html.dark #kospi-futures .kf-stat-oi { color: #999 !important; }
+html.dark #kospi-futures .kf-opt-desc { color: #999 !important; }
+html.dark #kospi-futures .kf-opt-card {
+  background: #1e1e1e !important;
+  border-color: #3a3a3a !important;
+}
+html.dark #kospi-futures .kf-opt-tendency { background: #2c2c2c !important; }
+html.dark #kospi-futures .kf-opt-row { border-bottom-color: #333 !important; }
+html.dark #kospi-futures .kf-opt-updated { color: #777 !important; }

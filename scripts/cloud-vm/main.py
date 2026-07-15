@@ -22,6 +22,7 @@ import foreign_futures
 import investor_flow
 import kiwoom_client
 import kiwoom_market
+import option_flow
 
 try:
     import night_futures_ws
@@ -54,6 +55,13 @@ def _start_futures_collectors():
         night_futures_ws.start_background(kis_appkey, kis_appsecret)
     else:
         logging.getLogger('main').warning('KIS_APPKEY/APPSECRET 미설정 - 야간선물 수집 건너뜀')
+
+    # 옵션 수급(콜/풋)도 야간선물과 같은 KIS 앱키를 쓴다 - 웹소켓이 아니라 REST 폴링이라
+    # websockets 패키지 유무와는 무관.
+    if kis_appkey and kis_appsecret:
+        option_flow.start_background(kis_appkey, kis_appsecret)
+    else:
+        logging.getLogger('main').warning('KIS_APPKEY/APPSECRET 미설정 - 옵션 수급 수집 건너뜀')
 
 # 2026-07-13: GAS->VM 구간이 간헐적으로 통째로 막히는 원인 불명 현상 때문에, /investor-flow는
 # GAS를 거치지 않고 방문자 브라우저(js/foreign-flow.js)가 이 VM을 직접 호출하도록 우회.
@@ -282,7 +290,9 @@ def futures(interval: str = 'day', days: int = 90):
     days는 기존 호출부(관심지수 리본/보조지수)의 기본 동작을 안 건드리려고 기본값을 90으로
     유지하고, 코스피 선물 페이지만 명시적으로 더 큰 값을 요청한다. interval='minute'는
     domestic_futures.MINUTE_SYMBOLS에 있는 심볼(현재 KOSPI200_DAY만)만 분봉으로 바뀌고
-    나머지는 그 심볼에 분봉 소스가 없어 평소처럼 일봉을 반환한다(부분 적용 - 에러 아님)."""
+    나머지는 그 심볼에 분봉 소스가 없어 평소처럼 일봉을 반환한다(부분 적용 - 에러 아님).
+    2026-07-16(5차): 야간선물도 분봉 지원 추가(MINUTE_SYMBOLS에 KOSPI200_NIGHT 포함) +
+    미결제약정(oi/oi_change) 필드 노출(야간선물만 값이 있고 나머지 심볼은 null)."""
     days = max(1, min(days, 500))
     conn = db_schema.get_conn()
     try:
@@ -305,11 +315,26 @@ def futures(interval: str = 'day', days: int = 90):
                 'high': p['high'] if p else None,
                 'low': p['low'] if p else None,
                 'updated_at': p['updated_at'] if p else None,
+                'oi': p['oi'] if p else None,
+                'oi_change': p['oi_change'] if p else None,
                 'chart': chart,
             })
     finally:
         conn.close()
     return envelope(result)
+
+
+@app.get('/option-flow')
+def option_flow_endpoint():
+    """코스피200 옵션(콜/풋) 수급 요약 - option_flow.py가 5분마다 미리 집계해둔 걸 그대로
+    반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /futures와
+    동일한 패턴. KIS_APPKEY/APPSECRET 미설정이면 데이터가 비어 있을 수 있음(정상)."""
+    conn = db_schema.get_conn()
+    try:
+        rows = db_schema.load_option_flow(conn)
+    finally:
+        conn.close()
+    return envelope({r['side']: r for r in rows})
 
 
 @app.get('/week52-batch')

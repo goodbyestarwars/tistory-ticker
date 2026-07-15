@@ -43,6 +43,8 @@ FIELDS = [
 ]
 
 _HISTORY_REFRESH_INTERVAL = 6 * 3600  # 6시간마다 과거 일봉(미니차트용) 갱신
+_MINUTE_REFRESH_INTERVAL = 5 * 60     # 5분마다 분봉 갱신(domestic_futures.py 주간선물과 동일 주기)
+KST = timezone(timedelta(hours=9))
 
 
 def _parse_tick(raw):
@@ -69,7 +71,16 @@ def _upsert_tick(conn, row):
     if sign in ('4', '5'):  # 4:하한 5:하락
         change = -abs(change)
         change_rate = -abs(change_rate)
-    db_schema.upsert_future_price(conn, SYMBOL_KEY, DISPLAY_NAME, price, change, change_rate, high, low, now_iso)
+    # 미결제약정(OI)/증감 - 실시간 틱에 이미 들어있던 필드인데 그동안 안 쓰고 버리고 있었음
+    # (2026-07-16 발견, "선물 수급" 섹션에 노출하려고 추가).
+    oi = oi_change = None
+    try:
+        oi = int(float(row['hts_otst_stpl_qty']))
+        oi_change = int(float(row['otst_stpl_qty_icdc']))
+    except (KeyError, ValueError):
+        pass
+    db_schema.upsert_future_price(conn, SYMBOL_KEY, DISPLAY_NAME, price, change, change_rate, high, low, now_iso,
+                                   oi=oi, oi_change=oi_change)
 
 
 def refresh_history(appkey, appsecret, code):
@@ -101,7 +112,50 @@ def refresh_history(appkey, appsecret, code):
     logger.info('night futures history refreshed: %d rows (code=%s)', len(rows), code)
 
 
-async def _run_once(appkey, appsecret, code, last_history_refresh=0):
+# 야간선물은 자정을 넘어가면 stck_cntg_hour가 24~29시로 표기되고(30시간제),
+# stck_bsop_date는 세션이 시작한 날짜 그대로 유지된다(2026-07-16 실측 확인) - 그래서
+# 실제 달력 날짜로 환산하려면 시(hour)가 24 이상이면 날짜를 하루 미뤄야 한다.
+def _parse_night_minute_ts(bsop_date, cntg_hour):
+    hh = int(cntg_hour[0:2])
+    mm = int(cntg_hour[2:4])
+    ss = int(cntg_hour[4:6])
+    base = datetime.strptime(bsop_date, '%Y%m%d')
+    if hh >= 24:
+        base = base + timedelta(days=1)
+        hh -= 24
+    dt = base.replace(hour=hh, minute=mm, second=ss, tzinfo=KST)
+    return int(dt.timestamp())
+
+
+def refresh_minute(appkey, appsecret, code):
+    """FID_COND_MRKT_DIV_CODE=CM 분봉(60초봉)을 future_chart_minute에 저장.
+    refresh_history와 동일하게 자체 커넥션을 열고 닫는다(스레드풀에서 호출됨)."""
+    token = kis_client.get_token(appkey, appsecret)
+    now = datetime.now(KST)
+    _output1, output2 = kis_client.fetch_time_chart(
+        token, appkey, appsecret, 'CM', code, now.strftime('%Y%m%d'), now.strftime('%H%M%S'))
+    rows = []
+    for r in output2:
+        try:
+            rows.append({
+                'ts': _parse_night_minute_ts(r['stck_bsop_date'], r['stck_cntg_hour']),
+                'open': float(r['futs_oprc']),
+                'high': float(r['futs_hgpr']),
+                'low': float(r['futs_lwpr']),
+                'close': float(r['futs_prpr']),
+            })
+        except (KeyError, ValueError):
+            continue
+    if rows:
+        conn = db_schema.get_conn()
+        try:
+            db_schema.upsert_future_chart_minute_rows(conn, SYMBOL_KEY, rows)
+        finally:
+            conn.close()
+    logger.info('night futures minute chart refreshed: %d rows (code=%s)', len(rows), code)
+
+
+async def _run_once(appkey, appsecret, code, last_history_refresh=0, last_minute_refresh=0):
     approval_key = kis_client.get_approval_key(appkey, appsecret)
     url = kis_client.WS_URL
     conn = db_schema.get_conn()
@@ -145,6 +199,14 @@ async def _run_once(appkey, appsecret, code, last_history_refresh=0):
                         except Exception:
                             logger.exception('night futures history refresh failed')
                     asyncio.ensure_future(_refresh())
+                if now - last_minute_refresh > _MINUTE_REFRESH_INTERVAL:
+                    last_minute_refresh = now
+                    async def _refresh_minute():
+                        try:
+                            await loop.run_in_executor(None, refresh_minute, appkey, appsecret, code)
+                        except Exception:
+                            logger.exception('night futures minute refresh failed')
+                    asyncio.ensure_future(_refresh_minute())
     finally:
         conn.close()
 
