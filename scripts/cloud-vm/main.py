@@ -211,6 +211,21 @@ def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     return envelope(result)
 
 
+@app.get('/debug-ka10059/{code}')
+def debug_ka10059(code: str = Path(..., min_length=6, max_length=6)):
+    """임시 진단용 - ka10059 원본 응답/예외를 그대로 노출한다(kiwoom_market._fetch_live_investor_row가
+    None을 리턴할 때 원인을 밝히기 위함, 확인 끝나면 삭제할 것)."""
+    end_dt = datetime.now().strftime('%Y%m%d')
+    try:
+        token = get_kiwoom_token()
+        res = kiwoom_client.call_tr(token, 'ka10059', '/api/dostk/stkinfo', {
+            'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1',
+        })
+        return envelope({'end_dt': end_dt, 'raw': res})
+    except Exception as e:
+        return envelope({'end_dt': end_dt, 'error': str(e)})
+
+
 @app.get('/foreign-flow/{code}')
 def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     """종목분석 메인 수급 표(외국인·기관 순매매) - 2026-07-13: 네이버 frgn.naver 크롤링을
