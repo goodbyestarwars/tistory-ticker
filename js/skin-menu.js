@@ -31,12 +31,8 @@
       iconClass: 'nav-icon-temp',
       iconStyle: 'color:#d24f45;' // 라이트=빨강, 다크모드 밝기는 스킨 CSS가 처리
     },
-    {
-      href: '/page/marketcap-bubble',
-      label: '핵심종목 히트맵',
-      bold: true,
-      icon: '<circle cx="8" cy="15" r="6"/><circle cx="16" cy="9" r="4"/><circle cx="18" cy="18" r="2.5"/>'
-    },
+    // 핵심종목 히트맵(/page/marketcap-bubble) 단독 메뉴는 2026-07-16 삭제 - 증시온도
+    // 페이지의 "시총비례 히트맵" 탭으로 흡수됐고 사용자가 실제 페이지도 지움(중복 제거).
     {
       href: '/pages/invest-signal',
       label: '오늘의 투자시그널',
