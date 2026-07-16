@@ -23,9 +23,11 @@
  * - Lightweight Charts 로더/테마/destroy는 js/lwc-common.js 공용 모듈 재사용(기존 5개 파일의
  *   중복 보일러플레이트를 6번째로 늘리지 않기 위함).
  *
- * 공시 티커는 이 파일에 아직 없음 - 사이트 전체 상단 고정 티커를 없애고 이 대시보드 전용으로
- * 옮기는 작업은 sitewide 레이아웃(style.css 오프셋)에 영향을 주는 별도 변경이라 분리해서
- * 진행한다.
+ * - 공시 티커: 원래 js/skin-main.js가 사이트 전체 고정 위치(navbar 바로 아래)에 항상
+ *   띄우던 걸 2026-07-16 제거하고 이 대시보드 전용 카드로 옮겼다(로직은 skin-main.js의
+ *   KRX RSS 파싱 코드 그대로 포팅, GAS 주소도 동일 - 메인 GAS_TICKER_URL과는 다른 별도
+ *   배포임에 주의). 그에 맞춰 style.css의 사이트 전체 상단 오프셋(.page-wrap padding-top,
+ *   .sidebar-left/right top)도 disc-ticker 높이(38px)를 뺀 값으로 재계산됐다.
  */
 (function (global) {
   'use strict';
@@ -68,6 +70,7 @@
     wireGaugeAndTreemap();
     wireAiBox(container);
     wireRankNews(container);
+    wireDiscTicker(container);
   }
 
   // ---- 전체 골격 ----
@@ -107,6 +110,13 @@
       + '<div class="hd-rank-grid" id="hdRankGrid"><div class="hd-hint">불러오는 중...</div></div>'
       + '</div>'
       + '<div class="hd-card hd-card-ai" id="hdAiCard"><div class="hd-hint">AI 시황요약 불러오는 중...</div></div>'
+      + '<div class="hd-card hd-card-disc">'
+      + '<div class="hd-disc-badge">'
+      + '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+      + '공시'
+      + '</div>'
+      + '<div class="hd-disc-wrap"><div class="hd-disc-track" id="hdDiscTrack"><span class="hd-hint">공시 로딩 중...</span></div></div>'
+      + '</div>'
       + '</div>';
   }
 
@@ -130,6 +140,13 @@
         if (timer) clearTimeout(timer);
         throw err;
       });
+  }
+
+  // 공시 티커(KRX RSS)는 JSON이 아니라 XML/base64 텍스트라 fetchJson과 별도 - 로직은
+  // HomeDashboard.fetchText를 경유하게 해서 다른 fetch들과 동일하게 테스트 페이지에서
+  // 오버라이드 가능하게 한다.
+  function fetchText(url) {
+    return fetch(url).then(function (r) { return r.text(); });
   }
 
   // ---- 게이지 + 트리맵 위임 ----
@@ -195,6 +212,107 @@
     var hh = String(d.getHours()).padStart(2, '0');
     var mi = String(d.getMinutes()).padStart(2, '0');
     return mm + '.' + dd + ' ' + hh + ':' + mi;
+  }
+
+  // ---- 공시 티커 (js/skin-main.js에서 그대로 포팅 - KRX RSS, 메인 GAS_TICKER_URL과는
+  // 다른 별도 GAS 배포를 씀. 예전엔 사이트 전체 상단에 고정으로 떴는데, 이제는 이 대시보드
+  // 카드 안에서만 렌더링된다) ----
+
+  var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
+
+  function wireDiscTicker(container) {
+    var track = container.querySelector('#hdDiscTrack');
+    if (!track) return;
+
+    function cleanCDATA(str) {
+      var s = str.indexOf('<![CDATA[');
+      var e = str.lastIndexOf(']]>');
+      if (s > -1 && e > -1) return str.slice(s + 9, e).trim();
+      return str.trim();
+    }
+
+    function extractTag(chunk, tag) {
+      var open = '<' + tag + '>';
+      var close = '</' + tag + '>';
+      var s = chunk.indexOf(open);
+      var e = chunk.indexOf(close, s);
+      if (s === -1 || e === -1) return '';
+      return cleanCDATA(chunk.slice(s + open.length, e));
+    }
+
+    function detectMarket(title) {
+      if (title.indexOf('[코]') === 0) return 'KOSDAQ';
+      if (title.indexOf('[코넥스]') === 0) return 'KOSDAQ';
+      return 'KOSPI';
+    }
+
+    function extractCorp(title) {
+      if (title.charAt(0) !== '[') return { corp: '', disc: title };
+      var close = title.indexOf(']');
+      if (close === -1) return { corp: '', disc: title };
+      var rest = title.slice(close + 1).trim();
+      var spaceIdx = rest.indexOf(' ');
+      if (spaceIdx === -1) return { corp: rest, disc: '' };
+      return { corp: rest.slice(0, spaceIdx).trim(), disc: rest.slice(spaceIdx).trim() };
+    }
+
+    function parseXML(text) {
+      var items = [];
+      var parts = text.split('<item>');
+      for (var i = 1; i < parts.length; i++) {
+        var chunk = parts[i].split('</item>')[0];
+        var title = extractTag(chunk, 'title');
+        var link = extractTag(chunk, 'link');
+        if (!title) continue;
+        var market = detectMarket(title);
+        var parsed = extractCorp(title);
+        items.push({ corp: parsed.corp, disc: parsed.disc || title, link: link || '#', market: market });
+      }
+      return items;
+    }
+
+    function renderDiscTicker(items) {
+      if (!items.length) { track.innerHTML = '<span class="hd-hint">공시 없음</span>'; return; }
+
+      function itemHTML(it) {
+        var cls = it.market === 'KOSDAQ' ? 'hd-disc-market-kosdaq' : 'hd-disc-market-kospi';
+        var disc = it.disc.replace(/\s*\|\s*/g, ' ').trim();
+        var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
+        return '<a href="' + it.link + '" target="_blank" class="hd-disc-item">'
+          + '<span class="' + cls + '">' + it.market + '</span>'
+          + (corp ? '<span class="hd-disc-corp">' + corp + '</span>' : '')
+          + disc + '</a>';
+      }
+
+      var html = items.map(itemHTML).join('') + items.map(itemHTML).join('');
+      track.innerHTML = html;
+      track.style.animationDuration = (track.scrollWidth / 2 / 60) + 's';
+    }
+
+    HomeDashboard.fetchText(DISC_GAS_URL + '?market=0')
+      .then(function (text) {
+        var t = text.trim().replace(/^﻿/, ''); // BOM 제거
+        if (t.charAt(0) === '<') {
+          renderDiscTicker(parseXML(t)); // GAS가 텍스트(UTF-8)로 직접 내려준 경우
+        } else if (t.length > 0) {
+          // GAS가 base64(raw bytes)로 내려준 경우 - Utilities.base64Encode()는 줄바꿈
+          // 포함이라 반드시 제거 후 atob, KRX RSS 피드는 UTF-8이라 TextDecoder 사용
+          try {
+            var clean = t.replace(/\s/g, '');
+            var bin = atob(clean);
+            var bytes = new Uint8Array(bin.length);
+            for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+            renderDiscTicker(parseXML(new TextDecoder('utf-8').decode(bytes)));
+          } catch (err) {
+            renderDiscTicker([]);
+          }
+        } else {
+          renderDiscTicker([]);
+        }
+      })
+      .catch(function () {
+        track.innerHTML = '<span class="hd-error">공시 로드 실패</span>';
+      });
   }
 
   // ---- 대형 차트: 심볼 선택(지수 드롭다운 + 종목 자동완성) ----
@@ -446,7 +564,7 @@
     return escapeHtml(s);
   }
 
-  var HomeDashboard = { init: init, fetchJson: fetchJson };
+  var HomeDashboard = { init: init, fetchJson: fetchJson, fetchText: fetchText };
   global.HomeDashboard = HomeDashboard;
 
   if (document.readyState === 'loading') {

@@ -151,6 +151,12 @@
     })
   };
 
+  var MOCK_DISC_XML = '<rss><channel>' + Array.from({ length: 8 }, function (_, i) {
+    var market = i % 2 === 0 ? '' : '[코]';
+    return '<item><title>' + market + '[mock기업' + (i + 1) + '] 주요사항보고서 제출 ' + (i + 1) + '</title>'
+      + '<link>https://example.com/disc/' + (i + 1) + '</link></item>';
+  }).join('') + '</channel></rss>';
+
 </script>
 <script src="../js/home-dashboard.js"></script>
 <script>
@@ -175,6 +181,10 @@
         return Promise.resolve(MOCK_RANK_NEWS);
       }
       return Promise.reject(new Error('mock: unknown url ' + url));
+    };
+    HomeDashboard.fetchText = function (url) {
+      console.log('[mock] HomeDashboard.fetchText', url);
+      return Promise.resolve(MOCK_DISC_XML);
     };
   }
 </script>

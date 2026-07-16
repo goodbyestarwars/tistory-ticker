@@ -5,11 +5,14 @@
  * git push만으로 반영 가능 — skin.html 재배포(스킨 편집기 붙여넣기) 불필요.
  *
  * 반드시 skin-menu.js/skin-main.js보다 먼저 로드돼야 함 — 그 스크립트들이
- * mobileMenuBtn, scrollTopBtn, discTrack 등을 getElementById로 찾기 때문.
+ * mobileMenuBtn, scrollTopBtn 등을 getElementById로 찾기 때문.
  *
  * 태그가 하나라도 섞인 블록(네비바 로고/검색창, 카테고리 데이터, 글 목록,
  * 방문자 통계, 공지/방명록/페이지네이션 등)은 여기로 옮길 수 없음 — skin.html에
  * 그대로 남아있어야 티스토리 서버가 치환해준다.
+ *
+ * 2026-07-16: 공시 티커(discTicker)는 사이트 전체 고정 배치에서 빼서
+ * js/home-dashboard.js의 홈 대시보드 전용 카드로 옮겼다 - 이 파일에서 제거됨.
  */
 (function () {
   'use strict';
@@ -30,18 +33,6 @@
       '<button class="scroll-top-btn" id="scrollTopBtn" aria-label="맨 위로">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>' +
       '</button>',
-
-    /* KRX 공시 티커 껍데기 - 내용은 skin-main.js가 GAS에서 받아와 #discTrack에 채움 */
-    discTicker:
-      '<div class="disc-ticker" id="discTicker">' +
-        '<div class="disc-badge">' +
-          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
-          '공시' +
-        '</div>' +
-        '<div class="disc-wrap">' +
-          '<div class="disc-track" id="discTrack"><span class="disc-loading">공시 로딩 중...</span></div>' +
-        '</div>' +
-      '</div>',
 
     /* 모바일 드로어 헤더 (데스크탑에선 숨김) */
     drawerHeader:

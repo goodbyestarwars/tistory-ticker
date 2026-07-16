@@ -11,7 +11,8 @@
  *
  * 포함 기능: iframe 모드 / 다크모드·폰트 토글 / 카테고리 파싱·필터 탭 /
  * 아티클 모달 / 공유·더보기 / 표 스크롤 래핑 / 요약 줄바꿈 / 모바일 드로어·검색 /
- * 구글 캘린더 위젯 / KRX 공시 티커
+ * 구글 캘린더 위젯
+ * (KRX 공시 티커는 2026-07-16 js/home-dashboard.js로 이전됨)
  */
   /* ── iframe 모드 감지 (모달 안에서 열릴 때 껍데기 숨김) ── */
   if (window !== window.top) {
@@ -377,17 +378,6 @@
     el.innerHTML = raw.replace(/\n/g, '<br>');
   });
 
-  /* 뉴스 티커 초기 패딩 보정 (RSS 로드 전부터 공간 확보) */
-  (function() {
-    var pw = document.querySelector('.page-wrap');
-    var sl = document.querySelector('.sidebar-left');
-    var sr = document.querySelector('.sidebar-right');
-    if (pw) pw.style.paddingTop = '122px'; /* navbar+disc-ticker 여백(90px) + market-ribbon(32px) */
-    /* 모바일에서는 사이드바가 드로어이므로 top 고정하지 않음 */
-    if (sl && window.innerWidth > 720) sl.style.top = '142px';
-    if (sr && window.innerWidth > 1100) sr.style.top = '142px';
-  })();
-
   /* ── 모바일 드로어 & 검색 오버레이 ── */
   (function() {
     var menuBtn    = document.getElementById('mobileMenuBtn');
@@ -591,106 +581,6 @@
     load();
   }
 
-  /* ── KRX 공시 티커 ── */
-  (function() {
-    var GAS = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
-
-    function cleanCDATA(str) {
-      var s = str.indexOf('<![CDATA[');
-      var e = str.lastIndexOf(']]>');
-      if (s > -1 && e > -1) return str.slice(s + 9, e).trim();
-      return str.trim();
-    }
-
-    function extractTag(chunk, tag) {
-      var open = '<' + tag + '>';
-      var close = '</' + tag + '>';
-      var s = chunk.indexOf(open);
-      var e = chunk.indexOf(close, s);
-      if (s === -1 || e === -1) return '';
-      return cleanCDATA(chunk.slice(s + open.length, e));
-    }
-
-    function detectMarket(title) {
-      if (title.indexOf('[코]') === 0) return 'KOSDAQ';
-      if (title.indexOf('[코넥스]') === 0) return 'KOSDAQ';
-      return 'KOSPI';
-    }
-
-    function extractCorp(title) {
-      if (title.charAt(0) !== '[') return { corp: '', disc: title };
-      var close = title.indexOf(']');
-      if (close === -1) return { corp: '', disc: title };
-      var rest = title.slice(close + 1).trim();
-      var spaceIdx = rest.indexOf(' ');
-      if (spaceIdx === -1) return { corp: rest, disc: '' };
-      return { corp: rest.slice(0, spaceIdx).trim(), disc: rest.slice(spaceIdx).trim() };
-    }
-
-    function parseXML(text) {
-      var items = [];
-      var parts = text.split('<item>');
-      for (var i = 1; i < parts.length; i++) {
-        var chunk = parts[i].split('</item>')[0];
-        var title = extractTag(chunk, 'title');
-        var link  = extractTag(chunk, 'link');
-        if (!title) continue;
-        var market = detectMarket(title);
-        var parsed = extractCorp(title);
-        items.push({ corp: parsed.corp, disc: parsed.disc || title, link: link || '#', market: market });
-      }
-      return items;
-    }
-
-    function render(items) {
-      var track = document.getElementById('discTrack');
-      if (!track) return;
-      if (!items.length) { track.innerHTML = '<span class="disc-loading">공시 없음</span>'; return; }
-
-      function itemHTML(it) {
-        var cls = it.market === 'KOSDAQ' ? 'disc-market-kosdaq' : 'disc-market-kospi';
-        var disc = it.disc.replace(/\s*\|\s*/g, ' ').trim();
-        var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
-        return '<a href="' + it.link + '" target="_blank" class="disc-item">'
-          + '<span class="' + cls + '">' + it.market + '</span>'
-          + (corp ? '<span class="disc-corp">' + corp + '</span>' : '')
-          + disc + '</a>';
-      }
-
-      var html = items.map(itemHTML).join('') + items.map(itemHTML).join('');
-      track.innerHTML = html;
-      track.style.animationDuration = (track.scrollWidth / 2 / 60) + 's';
-
-    }
-
-    fetch(GAS + '?market=0')
-      .then(function(r) { return r.text(); })
-      .then(function(text) {
-        /* BOM 제거 */
-        var t = text.trim().replace(/^﻿/, '');
-        if (t.charAt(0) === '<') {
-          /* GAS가 텍스트(UTF-8)로 직접 내려준 경우 */
-          render(parseXML(t));
-        } else if (t.length > 0) {
-          /* GAS가 base64(raw bytes)로 내려준 경우
-             - Utilities.base64Encode()는 줄바꿈 포함 → 반드시 제거 후 atob
-             - KRX RSS 피드는 UTF-8 → TextDecoder('utf-8') 사용 */
-          try {
-            var clean = t.replace(/\s/g, '');
-            var bin   = atob(clean);
-            var bytes = new Uint8Array(bin.length);
-            for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
-            render(parseXML(new TextDecoder('utf-8').decode(bytes)));
-          } catch(err) {
-            render([]);
-          }
-        } else {
-          render([]);
-        }
-      })
-      .catch(function() {
-        var track = document.getElementById('discTrack');
-        if (track) track.innerHTML = '<span class="disc-loading">공시 로드 실패</span>';
-      });
-  })();
+  /* KRX 공시 티커는 2026-07-16 사이트 전체 고정 배치에서 빠지고
+     js/home-dashboard.js의 홈 대시보드 전용 카드로 이전됨 - 이 파일에서 제거. */
 
