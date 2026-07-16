@@ -37,19 +37,27 @@
 }
 .qi-wrap.qi-collapsed .qi-scroll { display: none; }
 
+/* 2026-07-17: 정사각형 카드(108x100, 텍스트 위/차트 아래)를 가로로 넓은 직사각형으로
+   변경(사용자 요청 - 참고 이미지처럼). 텍스트(라벨/가격/등락)는 왼쪽 열, 차트는 오른쪽
+   열에 세로 전체 높이로 배치 - DOM 순서는 그대로 두고 grid-column/row만으로 재배치한다. */
 .qi-card {
   flex: 0 0 auto;
-  width: 108px;
+  width: 208px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 6px 8px;
-  display: flex;
-  flex-direction: column;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(64px, 1fr);
+  grid-template-rows: auto auto 1fr;
+  column-gap: 10px;
+  align-items: center;
   cursor: grab;
 }
 .qi-card.qi-dragging { opacity: 0.4; }
 
 .qi-card-label {
+  grid-column: 1;
+  grid-row: 1;
   font-size: 11px;
   font-weight: 700;
   color: #888;
@@ -59,23 +67,31 @@
 }
 
 .qi-card-price {
-  font-size: 14.5px;
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 16px;
   font-weight: 700;
   color: #222;
   line-height: 1.3;
+  white-space: nowrap;
 }
 
 .qi-card-change {
+  grid-column: 1;
+  grid-row: 3;
+  align-self: start;
   font-size: 11px;
   font-weight: 600;
   color: #888;
   min-height: 14px;
+  white-space: nowrap;
 }
 
 .qi-card-chart {
-  flex: 1;
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: stretch;
   min-height: 0;
-  margin-top: 2px;
 }
 
 .qi-pos { color: #d24f45; }
@@ -161,7 +177,7 @@
 }
 @media (max-width: 640px) {
   .qi-wrap { padding: 6px 8px; gap: 6px; }
-  .qi-card { width: 92px; }
+  .qi-card { width: 168px; grid-template-columns: minmax(0, auto) minmax(48px, 1fr); }
 }
 
 body.iframe-mode .qi-wrap { display: none !important; }
