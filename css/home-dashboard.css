@@ -1,22 +1,17 @@
 /**
  * 메인 첫화면 대시보드(js/home-dashboard.js) 스타일. 풀블리드(뷰포트 전체 폭) 섹션 -
- * .main-layout(1380px 제한) 안에 중첩돼도 벗어나도록 width:100vw 센터링 트릭을 씀
- * (css/quick-indices.css의 .qi-wrap과 달리 position:fixed가 아니라 문서 흐름 안에 있는
- * 섹션이라 이 트릭이 필요). 내부 콘텐츠는 다시 max-width로 가둬서 카드가 과도하게 안 늘어나게
- * 한다. 다크모드는 스킨의 블랑켓 규칙(html.dark .post-single-body * { color:... !important })을
- * 이겨야 해서 다른 위젯들과 동일하게 html.dark #home-dashboard ... !important 패턴을 쓴다.
+ * skin.html에서 이 mount(#shell-homeDashboard → #home-dashboard)를 .main-layout(1380px
+ * 제한) 안이 아니라 .page-wrap의 첫 자식(.main-layout 바로 앞)으로 배치한다.
+ * .page-wrap 자체는 폭 제한이 없어서(min-height/padding-top만 있음) 별도 100vw 트릭
+ * 없이도 이미 뷰포트 전체 폭 - 실제 skin.html 구조 확인 후 확정(2026-07-16).
+ * 내부 콘텐츠는 다시 max-width로 가둬서 카드가 과도하게 안 늘어나게 한다. 다크모드는
+ * 스킨의 블랑켓 규칙(html.dark .post-single-body * { color:... !important })을 이겨야
+ * 해서 다른 위젯들과 동일하게 html.dark #home-dashboard ... !important 패턴을 쓴다.
  */
 
 #home-dashboard:empty { display: none; } /* 홈페이지가 아닌 페이지에서는 빈 mount라 아예 안 보이게 */
 
 #home-dashboard {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  overflow-x: hidden;
   box-sizing: border-box;
   background: #f7f8fa;
   padding: 20px 0 28px;
