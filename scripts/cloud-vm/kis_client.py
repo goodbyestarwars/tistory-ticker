@@ -4,10 +4,13 @@ kiwoom_client.py와 동일한 캐싱 패턴. 코스피200 야간선물(FID_COND_
 필요한 만큼만 구현 - 계좌/주문 관련 API는 다루지 않는다(시세 조회만 필요)."""
 
 import json
+import logging
 import threading
 import time
 import urllib.error
 import urllib.request
+
+logger = logging.getLogger(__name__)
 
 BASE_URL = 'https://openapi.koreainvestment.com:9443'
 WS_URL = 'ws://ops.koreainvestment.com:21000'
@@ -140,10 +143,10 @@ def fetch_time_chart(token, appkey, appsecret, mrkt_div_code, iscd, date1, hour1
 def fetch_option_board(token, appkey, appsecret, mtrt_yyyymm):
     """옵션 시세판(콜+풋), TR FHPIF05030100 (2026-07-16 실측 확인). mtrt_yyyymm: 만기 YYYYMM.
     output1=콜옵션, output2=풋옵션으로 추정(요청 파라미터 순서 FID_MRKT_CLS_CODE=CO/
-    FID_MRKT_CLS_CODE1=PO와 일치 + 실측 응답에서 output1 delta_val이 양수, output2가
-    음수였음(콜은 델타 0~+1, 풋은 -1~0이 금융공식상 항상 성립) - 두 근거가 일치해 이 순서로
-    가정. 필드에 명시적인 콜/풋 구분자가 없어 100% 문서화된 사실은 아니므로, 실사용 시
-    delta_val 부호로 한 번 더 교차검증하는 게 안전하다."""
+    FID_MRKT_CLS_CODE1=PO와 일치). 필드에 명시적인 콜/풋 구분자가 없어 100% 문서화된 사실은
+    아니라서, 매 호출마다 delta_val 부호(콜은 0~+1, 풋은 -1~0)로 실제 순서를 교차검증하고
+    뒤집혀 있으면 함수 끝에서 바로잡는다(풋옵션 거래량이 비정상적으로 낮게 잡히던 원인 -
+    2026-07-16 발견)."""
     path = ('/uapi/domestic-futureoption/v1/quotations/display-board-callput'
             '?FID_COND_MRKT_DIV_CODE=O&FID_COND_SCR_DIV_CODE=20503&FID_MRKT_CLS_CODE=CO'
             '&FID_MTRT_CNT=%s&FID_MRKT_CLS_CODE1=PO&FID_COND_MRKT_CLS_CODE=' % mtrt_yyyymm)
@@ -166,4 +169,21 @@ def fetch_option_board(token, appkey, appsecret, mtrt_yyyymm):
         raise RuntimeError('FHPIF05030100 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
     if data.get('rt_cd') != '0':
         raise RuntimeError('FHPIF05030100 실패: ' + json.dumps(data, ensure_ascii=False))
-    return data.get('output1') or [], data.get('output2') or []
+    output1 = data.get('output1') or []
+    output2 = data.get('output2') or []
+    # 콜 델타는 0~+1, 풋 델타는 -1~0(금융공식상 항상 성립) - 요청 파라미터 순서만 믿지 않고
+    # 실측 delta_val 부호로 한 번 더 교차검증한다. 순서가 뒤집혀 있으면 여기서 바로잡는다.
+    if _avg_delta(output1) < 0 and _avg_delta(output2) > 0:
+        logger.warning('option board output1/output2 reversed vs expected call/put order - swapping')
+        output1, output2 = output2, output1
+    return output1, output2
+
+
+def _avg_delta(rows):
+    vals = []
+    for r in rows:
+        try:
+            vals.append(float(r.get('delta_val') or 0))
+        except (TypeError, ValueError):
+            continue
+    return sum(vals) / len(vals) if vals else 0.0
