@@ -451,6 +451,11 @@
 
   function renderChart(box, chartData, interval) {
     destroyDashboardChart();
+    // loadChart()가 심어둔 "불러오는 중..." 플레이스홀더(.hd-loading)가 차트 생성 후에도
+    // 안 지워지고 남아있으면 고정 높이(420px) 박스를 넘쳐서 바로 아래 그리드 행(증시온도/
+    // 히트맵 카드)과 겹쳐 보였다 - LWC.createChart는 box를 비우지 않고 안에 새 div를
+    // append만 하므로 여기서 명시적으로 비워줘야 함.
+    box.innerHTML = '';
     global.LwcCommon.loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(box)) return;
 
