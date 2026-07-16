@@ -254,7 +254,9 @@
       + '<small>(' + score + '/' + meta.max + ')</small>'
       + '</span>'
       + '</div>'
-      + '<div class="mt-bar-track"><div class="mt-bar-fill ' + meta.barClass + '" style="width:' + pct.toFixed(0) + '%"></div></div>'
+      // 점수 0점은 폭 0%라 막대가 통째로 안 보여 "로딩 실패"처럼 오해받기 쉬워서, 이 경우만
+      // 최소 4px 폭을 줘서 "0점으로 정상 렌더링됐다"는 걸 눈으로 구분할 수 있게 한다.
+      + '<div class="mt-bar-track"><div class="mt-bar-fill ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div></div>'
       + '</div>';
   }
 
