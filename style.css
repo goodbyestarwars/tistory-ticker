@@ -134,13 +134,13 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: calc(100vh - 96px);
-  overflow-y: auto;
-  scrollbar-width: none;
-  overscroll-behavior: contain;
+  /* 2026-07-17: max-height(100vh-96px) + overflow-y:auto 였던 걸 제거 - 메뉴가
+     11개(전체글~커뮤니티)+카테고리+캘린더+방문자통계까지 늘어나면서 뷰포트보다 커지면
+     "보조지수" 근처에서 잘려 보이고 내부 스크롤이 있다는 걸 사용자가 알아채기 어려웠음
+     (사이드바가 잘려서 깨진 것처럼 보인다는 피드백). 높이 제한 없이 자연스러운 높이로
+     늘어나게 하고, sticky는 유지해서 페이지 스크롤 시 따라오는 동작은 그대로 둔다. */
   padding-bottom: 80px;
 }
-.sidebar-left::-webkit-scrollbar { display: none; }
 
 /* Card base */
 .card {
