@@ -23,7 +23,7 @@
  * 데이터 소스 2곳:
  * - 원달러/BTC: GAS ?market=1 (과거 시세 이력이 없어 미니차트 불가 - 카드에 차트 생략)
  * - 코스피/코스닥/코스피200 야간선물/나스닥100/S&P500/필라델피아(SOX)/VIX/WTI:
- *   VM(https://ghlee.duckdns.org/futures) (js/overnight-market.js와 같은 응답을 쓰는데, 그
+ *   VM(https://goodbyestar.cloud/futures) (js/overnight-market.js와 같은 응답을 쓰는데, 그
  *   응답엔 최근 시세 배열(chart)이 이미 들어있어서 그걸 그대로 미니 스파크라인으로 그린다 -
  *   렌더링 방식도 overnight-market.js와 동일)
  *
@@ -41,7 +41,7 @@
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-  var FUTURES_API = 'https://ghlee.duckdns.org/futures';
+  var FUTURES_API = 'https://goodbyestar.cloud/futures';
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
   var COLLAPSE_KEY = 'qi_collapsed_v1';

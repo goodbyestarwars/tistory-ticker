@@ -19,7 +19,7 @@
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-  var KIWOOM_VM_URL = 'https://ghlee.duckdns.org';
+  var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var CONTAINER_SELECTOR = '#foreign-flow';
   var FETCH_TIMEOUT_MS = 20000; // 네이버 2페이지 크롤링 + 파싱이라 여유 있게
   var MAX_SUGGESTIONS = 8;

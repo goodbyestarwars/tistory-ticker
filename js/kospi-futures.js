@@ -31,7 +31,7 @@
   'use strict';
 
   var CONTAINER_SELECTOR = '#kospi-futures';
-  var FUTURES_API = 'https://ghlee.duckdns.org/futures';
+  var FUTURES_API = 'https://goodbyestar.cloud/futures';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var FETCH_TIMEOUT_MS = 10000;
   var REFRESH_INTERVAL_MS = 30000;
@@ -51,7 +51,7 @@
     { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: '코스피200 주간선물', intervals: ['minute', 'day', 'week'] },
     { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '코스피200 야간선물', intervals: ['minute', 'day', 'week'] }
   ];
-  var OPTION_FLOW_API = 'https://ghlee.duckdns.org/option-flow';
+  var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
 
   var CHART_EL_BY_KEY = {};
   CHARTS.forEach(function (c) { CHART_EL_BY_KEY[c.key] = c.elId; });

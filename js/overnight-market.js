@@ -40,7 +40,7 @@
   'use strict';
 
   var CONTAINER_SELECTOR = '#overnight-market';
-  var FUTURES_API = 'https://ghlee.duckdns.org/futures';
+  var FUTURES_API = 'https://goodbyestar.cloud/futures';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var FETCH_TIMEOUT_MS = 10000;
   var REFRESH_INTERVAL_MS = 30000;
