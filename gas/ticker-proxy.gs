@@ -66,6 +66,10 @@ function doGet(e) {
     return jsonResponse(getFlowChart((params.code || '').trim()));
   }
 
+  if (params.action === 'indexChart') {
+    return jsonResponse(getIndexChart((params.symbol || '').trim()));
+  }
+
   // 2026-07-13: ?action=investorFlow(GAS 경유)는 폐기됨 - GAS->VM 구간이 간헐적으로
   // 통째로 막히는 원인 불명 현상 때문에, js/foreign-flow.js가 VM(https://ghlee.duckdns.org)을
   // 직접 호출하도록 전환. getInvestorFlowLive_()/kiwoomVmFetch_('/investor-flow/...')는
@@ -660,6 +664,55 @@ function getFlowChart(code) {
   return result;
 }
 
+// ---------------------------------------------------------------------------
+// 홈 대시보드 대형차트용 지수 차트 (?action=indexChart&symbol=KOSPI). getFlowChart와
+// 완전히 동일한 응답 포맷({daily, ma, levels})을 반환해서 프론트(js/home-dashboard.js)가
+// 지수/종목 상관없이 같은 렌더 함수 하나로 그릴 수 있게 한다. 코스피/코스닥은 종목코드가
+// 아니라 kiwoomVmFetch_('/ohlc/...')로는 조회 불가 - 대신 이미 있는 futures VM
+// (js/kospi-futures.js/quick-indices.js가 브라우저에서 직접 쓰는 것과 동일한
+// fetchFuturesFromVm_/FUTURES_API_URL)에서 일봉을 받아온다. movingAverage_/
+// computeSupportResistance_는 getFlowChart와 완전히 공용.
+// MA224 계산에 224영업일 이상 필요해서 fetchFuturesFromVm_에 넉넉히 800(캘린더일 기준,
+// 주말/공휴일 감안) 요청 - VM/네이버 쪽이 실제로 이만큼 돌려주는지는 별도 실측 필요.
+// ---------------------------------------------------------------------------
+var INDEX_CHART_HISTORY_DAYS = 800;
+var INDEX_CHART_CACHE_TTL = 1800; // 30분
+
+function getIndexChart(symbol) {
+  if (!symbol) return { error: 'INVALID_SYMBOL', message: '지수 심볼이 필요합니다.' };
+
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'index_chart_' + symbol;
+  var cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  var bySymbol = safeCall(function () { return fetchFuturesFromVm_(INDEX_CHART_HISTORY_DAYS); });
+  var item = bySymbol && bySymbol[symbol];
+  var daily = item && item.chart;
+  if (!daily || daily.length < 30) {
+    return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
+  }
+
+  var ma5 = movingAverage_(daily, 'close', 5);
+  var ma20 = movingAverage_(daily, 'close', 20);
+  var ma60 = movingAverage_(daily, 'close', 60);
+  var ma224 = movingAverage_(daily, 'close', 224);
+  var levels = computeSupportResistance_(daily);
+
+  var start = Math.max(0, daily.length - FLOW_CHART_DISPLAY_DAYS);
+  function tail(arr) { return arr.slice(start); }
+
+  var result = {
+    symbol: symbol,
+    daily: tail(daily),
+    ma: { ma5: tail(ma5), ma20: tail(ma20), ma60: tail(ma60), ma224: tail(ma224) },
+    levels: levels
+  };
+
+  cache.put(cacheKey, JSON.stringify(result), INDEX_CHART_CACHE_TTL);
+  return result;
+}
+
 // 최근 120영업일 스윙 고점/저점(findSwingIndices_ 재사용) 중 현재가 기준 위/아래로
 // 가장 가까운 2개씩을 저항/지지로 채택. 1% 이내로 겹치는 레벨은 dedupeLevels_로 하나로 합친다.
 function computeSupportResistance_(daily) {
@@ -740,8 +793,9 @@ var KOSPI_FUTURES_ANALYSIS_FAIL_TTL = 120;   // 2분
 var SUB_INDEX_ANALYSIS_CACHE_TTL = 1800;
 var SUB_INDEX_ANALYSIS_FAIL_TTL = 120;
 
-function fetchFuturesFromVm_() {
-  var res = UrlFetchApp.fetch(FUTURES_API_URL, { muteHttpExceptions: true });
+function fetchFuturesFromVm_(days) {
+  var url = FUTURES_API_URL + (days ? '?interval=day&days=' + days : '');
+  var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) return null;
   var body = JSON.parse(res.getContentText('UTF-8'));
   var list = body && body.data;

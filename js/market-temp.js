@@ -59,7 +59,11 @@
     { range: '35~40℃', emoji: '🔥', label: '극단적 탐욕', tone: 'extreme-greed' }
   ];
 
-  function init() {
+  // opts.gaugeOnly: true면 카드보기/히트맵보기/시총트리맵 탐색카드(buildExploreCard) 없이
+  // 온도 게이지 카드(buildCard)만 렌더링한다 - js/home-dashboard.js가 트리맵을 별도 카드로
+  // 직접 배치할 때, 같은 #marketcap-bubble을 여기서 또 만들지 않기 위해 사용.
+  function init(opts) {
+    var gaugeOnly = !!(opts && opts.gaugeOnly);
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
     container.innerHTML = '<div class="mt-hint">증시온도 불러오는 중...</div>';
@@ -68,6 +72,10 @@
       .then(function (data) {
         if (!data || typeof data.temp !== 'number') {
           container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
+          return;
+        }
+        if (gaugeOnly) {
+          container.innerHTML = buildCard(data);
           return;
         }
         container.innerHTML = buildCard(data) + buildExploreCard();
