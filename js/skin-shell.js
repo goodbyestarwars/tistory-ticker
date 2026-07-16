@@ -43,7 +43,12 @@
 
     /* 세부 카테고리 서브 필터 바 - skin-main.js가 채움 */
     subFilterBar:
-      '<div class="sub-filter-bar" id="subFilterBar" style="display:none;"></div>'
+      '<div class="sub-filter-bar" id="subFilterBar" style="display:none;"></div>',
+
+    /* 메인 첫화면 대시보드 껍데기 - 내용은 js/home-dashboard.js가 채움(홈페이지 전용 가드
+       있어서 다른 페이지에서는 빈 채로 남음) */
+    homeDashboard:
+      '<div id="home-dashboard"></div>'
   };
 
   Object.keys(SHELL).forEach(function (key) {
