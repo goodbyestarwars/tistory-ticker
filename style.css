@@ -162,6 +162,10 @@ a { text-decoration: none; color: inherit; }
   text-decoration: none;
   color: #374151;
 }
+/* 실제로 클릭해본 링크(예: 마켓 브리핑)는 브라우저 기본 방문색(보라/파랑)이 새어나오므로
+   명시적으로 무효화 - 아이콘 svg는 color:inherit이라 이 색을 같이 따라간다 */
+.nav-item:visited,
+.nav-item:visited .nav-item-label { color: #374151; }
 .nav-item-icon svg {
   display: block;
   color: inherit; /* 부모 color 그대로 따라감 */
@@ -315,6 +319,7 @@ a { text-decoration: none; color: inherit; }
   text-decoration: none; transition: background .15s;
   text-align: left; width: 100%;
 }
+.cat-custom-list li > a:visited { color: #374151; }
 .cat-custom-list li > a:hover { background: #f8faff; color: #4338ca; }
 .cat-custom-list li > a.active { background: #eef2ff; color: #4338ca; font-weight: 700; }
 .cat-section .cat-custom-list li > a::before { display: none !important; } /* 이중 점 방지 */
@@ -2385,6 +2390,8 @@ html.dark .related-item-title:hover { color: #818cf8; }
 /* 좌측 사이드바 */
 html.dark .nav-item { color: #ffffff; }
 html.dark .nav-item-label { color: #ffffff; }
+html.dark .nav-item:visited,
+html.dark .nav-item:visited .nav-item-label { color: #ffffff; }
 html.dark .nav-item:hover { background: #1a2436; }
 html.dark .nav-item-home { background: #2e2a78; }
 html.dark .nav-item-icon { background: #2b3852; }
@@ -2413,6 +2420,7 @@ html.dark .nav-icon-temp { color: #ff7a6e !important; }
 html.dark .section-title { color: #b3bdcf; }
 html.dark .cat-section ul li > a,
 html.dark .cat-custom-list li > a { color: #dbe4f2; }
+html.dark .cat-custom-list li > a:visited { color: #dbe4f2; }
 html.dark .cat-section ul li > a:hover,
 html.dark .cat-custom-list li > a:hover { background: #1a2436; color: #a5b4fc; }
 html.dark .cat-custom-list li > a.active { background: #2e2a78; color: #a5b4fc; }
