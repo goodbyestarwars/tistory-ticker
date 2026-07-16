@@ -71,8 +71,10 @@ function doGet(e) {
   }
 
   // 2026-07-13: ?action=investorFlow(GAS 경유)는 폐기됨 - GAS->VM 구간이 간헐적으로
-  // 통째로 막히는 원인 불명 현상 때문에, js/foreign-flow.js가 VM(https://ghlee.duckdns.org)을
-  // 직접 호출하도록 전환. getInvestorFlowLive_()/kiwoomVmFetch_('/investor-flow/...')는
+  // 통째로 막히는 원인 불명 현상 때문에, js/foreign-flow.js가 VM을 직접 호출하도록 전환
+  // (호출 도메인은 2026-07-16 https://ghlee.duckdns.org -> https://goodbyestar.cloud로 교체됨,
+  // 사내망이 duckdns 동적DNS 카테고리를 차단해서 응답을 못 받던 문제 때문 - 커밋 13fd0d6).
+  // getInvestorFlowLive_()/kiwoomVmFetch_('/investor-flow/...')는
   // 더 이상 아무도 안 씀(kiwoomVmFetch_ 자체는 다른 VM 배치 엔드포인트에 계속 씀).
 
   if (params.action === 'fundamentals') {
@@ -787,7 +789,7 @@ function getMarketAnalysis() {
 // Groq 해설을 생성한다. 화면에 보이는 숫자와 AI 문장이 어긋나면 안 되므로(과거 코스피 100배
 // 버그로 AI가 엉뚱한 숫자를 지어낸 전례 있음, 219~221줄 주석 참고) 반드시 이 VM 응답을
 // 유일한 소스로 삼는다 - GAS 자체 fetchIndex 등으로 별도 재조회하지 않는다.
-var FUTURES_API_URL = 'https://ghlee.duckdns.org/futures';
+var FUTURES_API_URL = 'https://goodbyestar.cloud/futures';
 var KOSPI_FUTURES_ANALYSIS_CACHE_TTL = 1800; // 30분
 var KOSPI_FUTURES_ANALYSIS_FAIL_TTL = 120;   // 2분
 var SUB_INDEX_ANALYSIS_CACHE_TTL = 1800;

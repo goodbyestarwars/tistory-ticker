@@ -24,7 +24,7 @@
 | **Tistory (tistory.com)** | 블로그 도메인 자체. `skin.html`(전역 골격: 네비바/사이드바/글목록/댓글/방명록/카테고리), 그리고 각 기능별 "Page"(`/page/foreign-flow`, `/pages/invest-signal` 등, 같은 skin.html 골격 안에 커스텀 본문만 심음) | **Tistory 관리자 스킨 편집기에 수동 붙여넣기.** git push로 반영 안 됨(`skin.html`, `skin.html.bak`은 `.gitignore` 대상 — 캘린더 API 키 등 개인정보 포함) |
 | **GitHub Pages** (`goodbyestarwars.github.io/tistory-ticker/`) | 정적 JS/CSS/데이터 파일 전체(`js/`, `css/`, `data/`, `img/`) | master push → 최대 10분 후 반영(`cache max-age=600`) |
 | **Google Apps Script (GAS)** | 시세/뉴스/AI요약/증시온도/히트맵/수급/랭킹뉴스/패턴스캔/투자시그널 등 모든 API | `gas/ticker-proxy.gs` 수정 후 **script.google.com에서 수동 재배포** 필요 |
-| **사용자 PC + VM(GCP e2-micro)** | 공매도/대차거래/연기금(키움 API, 계정 키 필요), 차트패턴 스캔 SQLite | 로컬/VM 배치 실행 → git commit/push (`data/investor-flow-cache.js`) |
+| **사용자 PC + VM(GCP e2-micro, 고정IP `34.28.220.13:8080` → 도메인 `GOODBYESTAR.CLOUD`)** | 공매도/대차거래/연기금(키움 API 온디맨드 `/investor-flow`, `/investor-flow-batch`), 차트패턴 스캔 SQLite. GAS의 `kiwoomVmFetch_()`가 이 서버를 호출(`js/foreign-flow.js`는 GAS를 경유, VM을 직접 호출하지 않음) | `kiwoom-deploy.timer`가 5분마다 자동 git pull+재시작(수동 SSH 불필요) |
 
 이 4단 구조는 **이번 UI 개편으로 바뀌지 않는다.** 개편 범위는 오직 (a) Tistory에 붙여넣는 `skin.html`/각 Page 본문, (b) GitHub Pages의 `js/`·`css/` 파일뿐이다. GAS 엔드포인트·VM 배치는 그대로 재사용한다.
 
@@ -227,7 +227,7 @@ React/Vue식 `src/components/*.tsx` + 빌드 산출물 구조는 **채택하지 
 ## 9. 미해결 질문 (구현 착수 전 확인 필요)
 
 1. **Hero에 "오늘의 투자시그널" 요약을 넣을 때** — PPT엔 없고 작업지시서 텍스트에만 있는 항목이다. 기존 `/pages/invest-signal`의 등급 분포 데이터를 요약(예: 최다 등급 + 비중)해서 카드 하나로 압축하는 방식으로 진행해도 되는지, 아니면 다른 형태를 원하는지?
-2. **Tistory Page 구조를 유지할지, 완전 별도 정적 HTML로 옮길지.** 작업지시서 9번은 `index.html`/`stock.html`/... 같은 "HTML 기반 구조"를 요구하는데, 이를 문자 그대로 GitHub Pages 도메인의 개별 정적 파일로 옮기면 **댓글, 방명록, 카테고리, 전체글 목록 같은 Tistory 고유 기능을 모두 잃는다.** 이 문서는 "Tistory Page 유지 + git에 정본 소스만 보관"(6.2절)을 권장안으로 제시했다 — 이대로 진행해도 되는지 확인 필요.
+2. ~~**Tistory Page 구조를 유지할지, 완전 별도 정적 HTML로 옮길지.**~~ **[2026-07-17 확정] Pages 유지.** URL은 지금처럼 `/page/foreign-flow` 등을 그대로 쓰고, git에는 `pages-src/*.html`로 정본 소스만 백업(6.2절, 3장 참고) — 배포 경로나 서빙 방식은 바뀌지 않는다. 완전 별도 정적 HTML로 옮기는 안(댓글·방명록·카테고리 등 Tistory 고유 기능 소실)은 채택하지 않기로 함.
 3. **홈 본문에 차트패턴 스캐너/종목뉴스/커뮤니티까지 카드로 다 넣을지, 좌측 메뉴 링크로 충분한지.** 작업지시서 5번은 9개 섹션을 홈에 나열하지만, 이미 각각 전용 페이지가 있어 홈이 과도하게 길어질 위험이 있다.
 4. **다크모드를 기본값(초기 로드 시)으로 바꿀지.** 지금은 라이트 기본 + 토글이고, 작업지시서는 "심플한 다크 테마"를 새 디자인의 기준처럼 서술한다 — 토글은 유지하되 첫 방문 시 기본값을 다크로 바꾸는 것까지 원하는지?
 5. **sidebar-right 제거 후 그 폭을 어떻게 쓸지.** 그냥 없애서 피드 폭을 넓힐지, 다른 콘텐츠(예: AI 관심종목 미니카드)로 채울지?
