@@ -553,7 +553,9 @@
   function buildStrategy(grade) {
     var s = STRATEGY_BY_TONE[grade.tone] || STRATEGY_BY_TONE.neutral;
     return ''
-      + '<div class="mt-card mt-strategy-card" style="border-left:4px solid ' + grade.color + '">'
+      // 2026-07-18(4차): 등급색 왼쪽 강조선 제거(사용자 피드백 - AI브리핑 카드와 같은
+      // "AI가 만든 티" 나는 요소라 앞서 그쪽도 뺐었는데 여기 남아있던 걸 마저 제거).
+      + '<div class="mt-card mt-strategy-card">'
       + '<div class="mt-card-title">🎯 오늘의 전략</div>'
       + '<div class="mt-strategy-action" style="color:' + grade.color + '">' + escapeHtml(s.action) + '</div>'
       + '<div class="mt-strategy-bars">'
