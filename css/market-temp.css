@@ -176,41 +176,13 @@
 #market-temp .mt-hero-stars-empty { color: #e5e5e5; }
 #market-temp .mt-hero-signal-word { font-size: 16px; font-weight: 800; }
 
-/* ================= ② AI 시장 브리핑 (오늘 시장 영향요인 TOP5와 좌우 배치, .mt-row-2col) ================= */
+/* ================= ② AI 시장 브리핑 (5차: TOP5 병합으로 단독 배치, 폭 넓어짐) ================= */
 /* 2026-07-18: 인디고 왼쪽 강조선 제거(사용자 피드백 - AI가 만든 티가 너무 남) - 다른
    섹션과 동일한 평범한 카드 톤으로 통일. */
 /* 2026-07-18(3차): "TOP5랑 비교하면 폰트가 너무 작다"는 피드백 - 13.5px -> 15px,
    줄간격도 살짝 넓혀 가독성 향상. */
 #market-temp .mt-ai-text { font-size: 15px; line-height: 1.6; color: #444; margin: 0; }
 #market-temp .mt-ai-empty { color: #aaa; }
-
-/* ================= ③ 오늘 시장 영향요인 TOP5 ================= */
-#market-temp .mt-top5-list { display: flex; flex-direction: column; gap: 2px; }
-#market-temp .mt-top5-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 4px;
-  border-bottom: 1px solid #f4f4f4;
-  font-size: 13.5px;
-}
-#market-temp .mt-top5-row:last-child { border-bottom: none; }
-#market-temp .mt-top5-rank {
-  flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #f2f2f2;
-  color: #888;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#market-temp .mt-top5-icon { flex: 0 0 auto; font-size: 15px; }
-#market-temp .mt-top5-label { flex: 1; color: #333; font-weight: 500; }
-#market-temp .mt-top5-value { flex: 0 0 auto; font-weight: 700; font-size: 13.5px; }
 
 /* ================= ①-2 온도 게이지 (Hero 카드 안에 병합, .mt-hero-card 참고) ================= */
 #market-temp .mt-gauge { margin: 0; }
@@ -260,28 +232,23 @@
 #market-temp .mt-gauge-bands span:first-child { text-align: left; }
 #market-temp .mt-gauge-bands span:last-child { text-align: right; }
 
-/* ================= ③ 시장 구성 요소 (2026-07-18 2차: 압축 카드형 그리드로 재설계) =================
-   "진행바보다 수치와 점수 기여도가 먼저 보이도록" - 아이콘+라벨 한 줄, 수치, 기여도,
-   맨 아래 얇은(6px) 바 하나만. 색상 모디파이어 클래스(mt-bar-vix 등)는 기존 지표바와
-   공유하던 것 그대로 재사용(베이스 클래스명과 무관하게 매치되도록 단독 선택자로 변경).
-   2026-07-18(3차): 레이더와 좌우 50:50 배치되며 폭이 절반으로 줄어서 ① 열 최소폭을
-   130->104px로 낮추고 ② 라벨 말줄임(단어 잘림)을 없애는 대신 폰트를 줄여 통으로 보이게
-   함(사용자 요청 - "단어잘림 허용하지마, 폰트를 줄여"). */
-#market-temp .mt-component-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: 8px;
-}
-#market-temp .mt-comp-card {
-  border: 1px solid #eee;
-  border-radius: 10px;
-  padding: 8px 9px;
-}
-#market-temp .mt-comp-top { display: flex; align-items: flex-start; gap: 4px; font-size: 10px; color: #888; margin-bottom: 5px; }
-#market-temp .mt-comp-icon { font-size: 11px; line-height: 1.3; }
-#market-temp .mt-comp-label { flex: 1; min-width: 0; line-height: 1.3; word-break: keep-all; }
-#market-temp .mt-comp-value { font-size: 14px; font-weight: 700; color: #222; line-height: 1.2; }
-#market-temp .mt-comp-contrib { font-size: 11px; font-weight: 700; margin: 2px 0 6px; }
+/* ================= ③ 시장 구성 요소 (2026-07-18 5차: 카드형 -> 표 형태로 재설계) =================
+   "오늘 시장 영향요인 TOP5"와 중복이라는 지적에 따라 두 섹션을 하나의 표로 통합 -
+   |기여도| 내림차순 정렬 자체가 "영향 큰 순"이 되어 별도 TOP5 리스트가 필요 없다.
+   상위 3행(.mt-comp-tr-top)은 은은한 배경으로 강조해 예전 TOP5의 "한눈에 보기" 기능을
+   대신한다. 색상 모디파이어 클래스(mt-bar-vix 등)는 기존 지표 표시와 공유. */
+#market-temp .mt-comp-table-wrap { overflow-x: auto; } /* 아주 좁은 화면에서만 안전망 */
+#market-temp .mt-comp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+#market-temp .mt-comp-tr { border-bottom: 1px solid #f4f4f4; }
+#market-temp .mt-comp-tr:last-child { border-bottom: none; }
+#market-temp .mt-comp-tr-top { background: rgba(251, 140, 0, 0.06); }
+#market-temp .mt-comp-table td { padding: 7px 6px; vertical-align: middle; }
+#market-temp .mt-comp-td-label { display: flex; align-items: center; gap: 4px; color: #555; white-space: nowrap; }
+#market-temp .mt-comp-icon { font-size: 12px; flex: 0 0 auto; }
+#market-temp .mt-comp-label { word-break: keep-all; }
+#market-temp .mt-comp-td-value { font-weight: 700; color: #222; white-space: nowrap; text-align: right; }
+#market-temp .mt-comp-td-contrib { font-weight: 700; text-align: right; white-space: nowrap; padding-left: 10px !important; }
+#market-temp .mt-comp-td-bar { width: 30%; min-width: 60px; }
 #market-temp .mt-comp-bar-track { height: 6px; border-radius: 999px; background: #eee; overflow: hidden; }
 #market-temp .mt-comp-bar-fill { height: 100%; border-radius: 999px; }
 
@@ -435,14 +402,15 @@
   #market-temp .mt-hero-right { align-items: flex-start; text-align: left; padding-left: 0; border-left: none; padding-top: 12px; border-top: 1px dashed #eee; width: 100%; }
   #market-temp .mt-score { font-size: 34px; }
   #market-temp .mt-hero-deltas { gap: 12px; }
-  #market-temp .mt-top5-row { font-size: 12.5px; }
   #market-temp .mt-guide-grid-cards { grid-template-columns: repeat(2, 1fr); }
   #market-temp .mt-radar { max-width: 260px; }
   #market-temp .sector-cards-grid { columns: 1 100%; }
-  /* 2026-07-18(2차): 좌우 50:50 배치(AI브리핑|TOP5, 최근7일|오늘의전략)는 좁은 화면에서
-     1열로 스택 - 각 카드 폭이 너무 좁아지면(특히 레이더/스파크라인 SVG) 내용이 눌리므로. */
+  /* 2026-07-18(2차): 좌우 50:50 배치(시장구성요소|레이더, 최근7일|오늘의전략)는 좁은
+     화면에서 1열로 스택 - 각 카드 폭이 너무 좁아지면(특히 레이더/스파크라인 SVG, 표)
+     내용이 눌리므로. */
   #market-temp .mt-row-2col { grid-template-columns: 1fr; }
-  #market-temp .mt-component-grid { grid-template-columns: repeat(2, 1fr); }
+  #market-temp .mt-comp-table { font-size: 11.5px; }
+  #market-temp .mt-comp-td-bar { width: 22%; min-width: 40px; }
 }
 
 /* ---- 온도 구간별 카드 배경 (Hero, 공포=한랭, 과열=온난 톤) ---- */
@@ -481,13 +449,10 @@ html.dark #market-temp .mt-hero-signal-label { color: #888 !important; }
 html.dark #market-temp .mt-ai-text { color: #ccc !important; }
 html.dark #market-temp .mt-ai-empty { color: #777 !important; }
 
-html.dark #market-temp .mt-top5-row { border-color: #333 !important; }
-html.dark #market-temp .mt-top5-rank { background: #333 !important; color: #999 !important; }
-html.dark #market-temp .mt-top5-label { color: #ccc !important; }
-
-html.dark #market-temp .mt-comp-card { border-color: #3a3a3a !important; }
-html.dark #market-temp .mt-comp-top { color: #999 !important; }
-html.dark #market-temp .mt-comp-value { color: #eee !important; }
+html.dark #market-temp .mt-comp-tr { border-color: #333 !important; }
+html.dark #market-temp .mt-comp-tr-top { background: rgba(251, 140, 0, 0.1) !important; }
+html.dark #market-temp .mt-comp-td-label { color: #999 !important; }
+html.dark #market-temp .mt-comp-td-value { color: #eee !important; }
 html.dark #market-temp .mt-comp-bar-track { background: #3a3a3a !important; }
 html.dark #market-temp .mt-bar-vix { background: #ff6b5b !important; }
 html.dark #market-temp .mt-bar-flow { background: #4d9fff !important; }
