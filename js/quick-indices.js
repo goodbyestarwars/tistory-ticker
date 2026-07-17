@@ -11,7 +11,7 @@
  * 폭/위치: 처음엔 뷰포트 전체 폭을 썼는데 "화면을 너무 full로 쓴다"는 피드백을 받아
  * .main-layout과 동일한 max-width로 맞췄다(css의 .qi-wrap 참고).
  *
- * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/100px로
+ * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/180px로
  * 바꿔서 그 값을 그대로 아래 콘텐츠 좌표 계산에 재사용한다(style.css :root 주석 참고).
  * 페이지 로드 시 깜빡임 없이 바로 반영되도록 DOMContentLoaded를 기다리지 않고
  * 스크립트가 평가되는 즉시(동기) documentElement에 세팅한다.
@@ -37,12 +37,15 @@
  * 60초마다 갱신하되, 매번 카드를 통째로 비웠다가 다시 그리면 깜빡임이 생겨서(2026-07-16
  * 피드백) 최초 1회만 "불러오는 중" 틀을 그리고, 이후 갱신은 기존 DOM 노드의 텍스트/톤만 바꾼다.
  *
- * 2026-07-17: 가로 드래그 스크롤을 없애고 좌우 화살표 페이징으로 교체(사용자 요청 - 참고
- * 이미지 스타일, 미니차트는 유지). 선택된 지수 전체 데이터는 그대로 fetch해서 dataCache에
- * 담아두고, 화면(#qiScroll)에는 현재 페이지 분량만 그린다 - 페이지를 넘겨도 새로 fetch하지
- * 않고 캐시에서 바로 채운다. 한 페이지에 몇 장이 들어가는지(perPage)는 #qiScroll의 실제
- * 렌더링 폭을 재서 카드 폭(208px)+gap(8px)으로 나눈 값이라 화면 폭에 따라 자동으로
- * 달라진다(리사이즈 시 재계산).
+ * 2026-07-17: 가로 드래그 스크롤을 없애고 좌우 화살표 페이징으로 교체. 선택된 지수 전체
+ * 데이터는 그대로 fetch해서 dataCache에 담아두고, 화면에는 현재 페이지 분량만 그린다 -
+ * 페이지를 넘겨도 새로 fetch하지 않고 캐시에서 바로 채운다.
+ *
+ * 2026-07-17(6차): 토스증권 위젯 참고해 "큰 카드 1개 + 작은 카드 그리드(4x2)" 배치로
+ * 재구성(사용자 요청 - AI 한줄 코멘트/52주 최고·최저는 뒷받침할 데이터가 없어서 제외,
+ * 레이아웃만 반영). 한 페이지당 정확히 1(큰 카드) + 8(그리드) = 9개 고정 - 이전처럼 화면
+ * 폭을 재서 카드 개수를 동적으로 정하던 방식(getPerPage)은 이 비대칭 레이아웃엔 안 맞아서
+ * PER_PAGE 상수로 단순화했다.
  */
 (function (global) {
   'use strict';
@@ -52,14 +55,14 @@
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
   var COLLAPSE_KEY = 'qi_collapsed_v1';
-  var HEIGHT_EXPANDED = '100px';
+  var HEIGHT_EXPANDED = '180px';
   var HEIGHT_COLLAPSED = '40px';
   var REFRESH_MS = 60 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 30;
-  var CARD_WIDTH = 208;
-  var CARD_GAP = 8;
+  var GRID_SIZE = 8; // 큰 카드 1개 + 그리드 8개(4x2) = 페이지당 9개
+  var PER_PAGE = GRID_SIZE + 1;
 
   // 페이지 파싱 도중이라도(DOMContentLoaded 전) 즉시 반영해 접힘 상태 깜빡임을 없앤다.
   (function applyCollapsedHeightEarly() {
@@ -121,14 +124,12 @@
   }
 
   var refreshTimer = null;
-  var resizeTimer = null;
   var lwcLoadPromise = null;
   var chartInstances = {}; // key -> { chart, series }
   var themeObserver = null;
   var moduleContainer = null;
   var currentPage = 0;
   var dataCache = {}; // key -> {price, change, changeRate, chart} - 마지막으로 받은 값(페이지 전환 시 재사용)
-  var measuredCardWidth = null; // 640px 이하에서 .qi-card 폭이 168px로 바뀌므로 CARD_WIDTH 상수 대신 실측(리사이즈 시 무효화)
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
@@ -245,8 +246,9 @@
 
   // ---- 최초 렌더(틀 생성) ----
 
-  function buildCardShell(opt) {
-    return '<div class="qi-card" data-key="' + opt.key + '" draggable="true">'
+  function buildCardShell(opt, variantClass, draggable) {
+    return '<div class="qi-card ' + variantClass + '" data-key="' + opt.key + '"'
+      + (draggable ? ' draggable="true"' : '') + '>'
       + '<div class="qi-card-top">'
       + '<span class="qi-card-flag" aria-hidden="true">' + (FLAG_BY_KEY[opt.key] || '') + '</span>'
       + '<span class="qi-card-label">' + opt.label + '</span>'
@@ -294,17 +296,16 @@
     });
   }
 
-  // 페이징 도입 이후 #qiScroll에는 현재 페이지 분량만 들어있어서, 그 순서를 그대로
-  // 저장하면 다른 페이지의 항목이 사라진다 - 전체 목록 중 현재 페이지 구간만 새 순서로
-  // 갈아끼운다.
-  function persistCardOrder(scroll) {
-    var pageOrder = Array.prototype.map.call(scroll.querySelectorAll('.qi-card'), function (c) {
+  // 페이징 도입 이후 그리드에는 현재 페이지의 그리드 구간(큰 카드 제외)만 들어있어서,
+  // 그 순서를 그대로 저장하면 다른 페이지/큰 카드 항목이 사라진다 - 전체 목록 중 현재
+  // 페이지의 그리드 구간만 새 순서로 갈아끼운다(큰 카드는 페이지 맨 앞이라 그대로 둠).
+  function persistCardOrder(grid) {
+    var gridOrder = Array.prototype.map.call(grid.querySelectorAll('.qi-card'), function (c) {
       return c.getAttribute('data-key');
     });
     var full = loadSelected();
-    var perPage = moduleContainer ? getPerPage(moduleContainer) : pageOrder.length;
-    var start = currentPage * perPage;
-    var newFull = full.slice(0, start).concat(pageOrder).concat(full.slice(start + pageOrder.length));
+    var gridStart = currentPage * PER_PAGE + 1; // +1은 큰 카드 슬롯
+    var newFull = full.slice(0, gridStart).concat(gridOrder).concat(full.slice(gridStart + gridOrder.length));
     saveSelected(newFull);
   }
 
@@ -313,7 +314,10 @@
     container.classList.toggle('qi-collapsed', isCollapsed());
     container.innerHTML = ''
       + '<button type="button" class="qi-page-btn qi-page-prev" id="qiPrevBtn" aria-label="이전 지수">‹</button>'
-      + '<div class="qi-scroll" id="qiScroll"></div>'
+      + '<div class="qi-scroll" id="qiScroll">'
+      + '<div class="qi-featured" id="qiFeatured"></div>'
+      + '<div class="qi-grid" id="qiGrid"></div>'
+      + '</div>'
       + '<button type="button" class="qi-page-btn qi-page-next" id="qiNextBtn" aria-label="다음 지수">›</button>'
       + '<div class="qi-controls">'
       + '<a class="qi-all-link" href="' + OVERNIGHT_MARKET_URL + '">전체 지수보기 ›</a>'
@@ -342,7 +346,7 @@
       currentPage += 1;
       renderPage(container);
     });
-    wireCardDrag(container.querySelector('#qiScroll'));
+    wireCardDrag(container.querySelector('#qiGrid'));
   }
 
   function setCollapsed(container, collapsed) {
@@ -351,9 +355,6 @@
     container.classList.toggle('qi-collapsed', collapsed);
     var btn = container.querySelector('#qiCollapseBtn');
     if (btn) btn.textContent = collapsed ? '▸' : '▾';
-    // 접혀있는 동안(#qiScroll이 display:none) clientWidth가 0이라 perPage가 1로 잘못
-    // 계산돼 있을 수 있다 - 펼칠 때 실제 폭 기준으로 다시 계산한다.
-    if (!collapsed) renderPage(container);
   }
 
   // ---- 갱신(기존 카드 값만 업데이트 - 깜빡임 방지) ----
@@ -381,39 +382,9 @@
     if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart);
   }
 
-  // ---- 페이징: #qiScroll의 실제 렌더링 폭 / (카드 폭 + gap)으로 한 페이지에 들어갈
-  // 카드 수를 구한다. 접힌 상태(width 0)일 때는 최소 1을 보장한다. ----
-
-  // 카드 실제 폭을 잰다(640px 이하 미디어쿼리에서 168px로 줄어들기 때문에 CARD_WIDTH
-  // 상수를 그대로 쓰면 모바일에서 perPage가 틀어진다) - 화면에 카드가 하나도 없으면
-  // 숨겨진 probe 엘리먼트를 하나 잠깐 넣어서 재고 지운다.
-  function getCardWidth(scroll) {
-    if (measuredCardWidth) return measuredCardWidth;
-    var existing = scroll.querySelector('.qi-card');
-    if (existing) {
-      measuredCardWidth = existing.getBoundingClientRect().width;
-      return measuredCardWidth || CARD_WIDTH;
-    }
-    var probe = document.createElement('div');
-    probe.className = 'qi-card';
-    probe.style.visibility = 'hidden';
-    probe.style.position = 'absolute';
-    scroll.appendChild(probe);
-    var w = probe.getBoundingClientRect().width;
-    scroll.removeChild(probe);
-    if (w) measuredCardWidth = w;
-    return measuredCardWidth || CARD_WIDTH;
-  }
-
-  function getPerPage(container) {
-    var scroll = container.querySelector('#qiScroll');
-    if (!scroll) return 1;
-    var w = scroll.clientWidth;
-    if (!w) return 1;
-    var cardWidth = getCardWidth(scroll);
-    var n = Math.floor((w + CARD_GAP) / (cardWidth + CARD_GAP));
-    return Math.max(1, n);
-  }
+  // ---- 페이징: 큰 카드 1개 + 그리드 8개 = PER_PAGE(9) 고정. 이전엔 화면 폭을 재서
+  // 한 줄에 몇 장이 들어가는지 동적으로 계산했지만, 비대칭 레이아웃(큰 카드+그리드)에서는
+  // "몇 개가 들어가는지"가 아니라 "그리드가 몇 칸인지"가 고정값이라 상수로 충분하다. ----
 
   function updatePagerUI(container, page, totalPages) {
     var prev = container.querySelector('#qiPrevBtn');
@@ -422,29 +393,37 @@
     if (next) next.disabled = page >= totalPages - 1;
   }
 
-  // 현재 페이지 분량만 새로 그리고, dataCache에 있는 값으로 즉시 채운다(재조회 없음).
+  // 현재 페이지 분량(큰 카드 1 + 그리드 8)만 새로 그리고, dataCache에 있는 값으로
+  // 즉시 채운다(재조회 없음).
   function renderPage(container) {
-    var scroll = container.querySelector('#qiScroll');
-    if (!scroll) return;
+    var featured = container.querySelector('#qiFeatured');
+    var grid = container.querySelector('#qiGrid');
+    if (!featured || !grid) return;
     var selected = loadSelected();
-    var perPage = getPerPage(container);
-    var totalPages = Math.max(1, Math.ceil(selected.length / perPage));
+    var totalPages = Math.max(1, Math.ceil(selected.length / PER_PAGE));
     if (currentPage >= totalPages) currentPage = totalPages - 1;
     if (currentPage < 0) currentPage = 0;
-    var start = currentPage * perPage;
-    var pageKeys = selected.slice(start, start + perPage);
+    var start = currentPage * PER_PAGE;
+    var pageKeys = selected.slice(start, start + PER_PAGE);
+    var featuredKey = pageKeys[0];
+    var gridKeys = pageKeys.slice(1);
 
     Object.keys(chartInstances).forEach(function (key) {
       if (pageKeys.indexOf(key) === -1) destroyChart(key);
     });
 
-    scroll.innerHTML = pageKeys.map(function (key) {
+    featured.innerHTML = featuredKey ? (function () {
+      var opt = OPTION_BY_KEY[featuredKey];
+      return opt ? buildCardShell(opt, 'qi-card-featured', false) : '';
+    })() : '';
+
+    grid.innerHTML = gridKeys.map(function (key) {
       var opt = OPTION_BY_KEY[key];
-      return opt ? buildCardShell(opt) : '';
+      return opt ? buildCardShell(opt, 'qi-card-grid', true) : '';
     }).join('');
 
     pageKeys.forEach(function (key) {
-      if (dataCache.hasOwnProperty(key)) applyCardData(scroll, key, dataCache[key]);
+      if (dataCache.hasOwnProperty(key)) applyCardData(container, key, dataCache[key]);
     });
 
     updatePagerUI(container, currentPage, totalPages);
@@ -633,16 +612,6 @@
       if (document.hidden) return;
       refresh(container);
     }, REFRESH_MS);
-
-    // 창 크기가 바뀌면 한 페이지에 들어가는 카드 수(perPage)도 바뀌므로 다시 계산해서
-    // 그린다 - 리사이즈 중 매 프레임 다시 그리지 않도록 짧게 디바운스한다.
-    window.addEventListener('resize', function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () {
-        measuredCardWidth = null; // 640px 브레이크포인트를 넘나들면 카드 폭이 바뀌므로 다시 잰다
-        renderPage(container);
-      }, 150);
-    });
 
     if (themeObserver) themeObserver.disconnect();
     themeObserver = new MutationObserver(function () {
