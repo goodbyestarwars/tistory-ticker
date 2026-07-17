@@ -60,13 +60,15 @@
    확인 - --qi-height를 80~150px로 바꿔도 카드가 그대로였다가 180px에서야 갑자기
    커짐). */
 /* 2026-07-17(8차): 4열x2줄 -> 2열x3줄로 변경(사용자가 직접 그린 스케치 반영) - 카드가
-   더 넓고 긴 모양이 되어 왼쪽 차트 썸네일도 좀 더 여유있게 보인다. */
+   더 넓고 긴 모양이 되어 왼쪽 차트 썸네일도 좀 더 여유있게 보인다.
+   2026-07-17(10차): flex:1로 남는 폭을 그리드가 전부 먹어 카드 2열이 바 전체에 넓게
+   벌어지던 문제 수정(사용자 피드백: "넓게 벌려 놓으면 직관성이 떨어짐" - 토스처럼
+   촘촘하게). 열 폭을 고정하고, 남는 폭은 긴급속보 패널(.qi-news)이 가져간다. */
 .qi-grid {
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 auto;
   height: 100%;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, 168px);
   grid-template-rows: repeat(3, 1fr);
   gap: 5px;
 }
@@ -75,8 +77,10 @@
    스크롤(discScroll)을 세로 스크롤로 옮긴 버전. 목록을 2번 이어붙이고 translateY로
    절반만큼 움직여서 끊김 없이 순환하는 건 원본과 동일한 트릭. */
 .qi-news {
-  flex: 0 0 auto;
-  width: 168px;
+  /* 10차: 고정 168px -> 남는 폭 전체. 카드들이 왼쪽에 촘촘히 모이면서 생긴 여백을
+     속보 헤드라인이 가져가 제목이 잘리지 않고 읽힌다(사용자 시안 반영). */
+  flex: 1;
+  min-width: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -381,7 +385,8 @@
 @media (max-width: 640px) {
   .qi-wrap { padding: 6px 8px; gap: 6px; }
   .qi-card-featured { width: 160px; }
-  .qi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* 좁은 화면에선 속보 패널이 숨겨지므로 그리드가 다시 남는 폭을 차지 */
+  .qi-grid { flex: 1; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .qi-all-link { display: none; }
   .qi-news { display: none; } /* 좁은 화면에서는 카드만으로도 이미 빠듯해서 속보 패널은 숨김 */
 }
