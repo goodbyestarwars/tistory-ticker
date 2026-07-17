@@ -6,14 +6,17 @@
 /* 2026-07-16: 상단 market-ribbon(코스피/코스닥/원달러/BTC 고정바)을 완전히 걷어내고
    그 자리를 없앴다(js/market-ribbon.js가 #market-ribbon을 display:none 처리) - navbar가
    맨 위(top:0)로 올라오고, 그만큼 아래 disc-ticker/page-wrap/sidebar 좌표를 전부 32px씩
-   당겼다. 관심지수 카드바(js/quick-indices.js)는 공시 티커 바로 아래 위치하며, 접었다 폈다
+   당겼다. 관심지수 카드바(js/quick-indices.js)는 navbar 바로 아래 위치하며, 접었다 폈다
    할 때 자기 높이(--qi-height)만 바꾸고 그 값을 아래 콘텐츠 시작 좌표 계산에도 그대로
    재사용한다(quick-indices.js가 collapsed 여부에 따라 이 값을 40px/175px로 setProperty).
    기본값(175px)은 var()의 폴백으로 넣어둬서 JS가 아직 안 붙었을 때도 레이아웃이 안 깨진다.
    2026-07-17: 100 -> 74 -> 100 -> 180(토스 큰 카드+그리드) -> 130(min-height:0 버그
    수정) -> 140(글자 크기 원복) -> 175px(그리드를 4x2에서 2x3으로 바꾸며 줄이 하나
    늘어서 같은 폰트 크기가 겹치지 않으려면 170px 이상 필요해짐 - 사용자가 직접 그린
-   스케치 반영, css/quick-indices.css 참고). */
+   스케치 반영, css/quick-indices.css 참고).
+   2026-07-17(9차): 별도 바였던 KRX 공시 티커(disc-ticker)를 관심지수 바 안의 "긴급속보"
+   패널로 흡수하면서 disc-ticker 자체가 사라졌다 - 아래 .page-wrap/.sidebar-left/right의
+   오프셋 계산에서 disc-ticker 높이(38px)를 뺐다(js/quick-indices.js 상단 주석 참고). */
 :root { --qi-height: 175px; }
 
 /* 2026-07-17: 페이지 배경을 연라벤더(#edf0f7)에서 흰색으로 변경(사용자 요청 - "토스
@@ -115,13 +118,14 @@ a { text-decoration: none; color: inherit; }
 
 /* ============ MAIN LAYOUT ============ */
 .page-wrap {
-  /* navbar(56)+disc-ticker(38)=94 + quick-indices 바(--qi-height) + 여백(16) = 110+높이,
-     main-layout 자체 padding(20)을 빼면 90+높이. --qi-height는 :root에서 정의(위 참고),
-     quick-indices.js가 접힘/펼침에 따라 실시간으로 바꾼다.
+  /* navbar(56) + quick-indices 바(--qi-height) + 여백(16) = 72+높이, main-layout 자체
+     padding(20)을 빼면 52+높이. --qi-height는 :root에서 정의(위 참고), quick-indices.js가
+     접힘/펼침에 따라 실시간으로 바꾼다.
      2026-07-16: 실사에서 이 값이 계산대로 안 먹히고 122px(내가 쓴 적 없는 값)로 나오는
      현상이 확인됨 - skin.html에 직접 박혀있는(git 밖이라 안 보이는) 다른 CSS가 이걸
-     덮어쓰는 것으로 추정, !important로 강제함. */
-  padding-top: calc(90px + var(--qi-height)) !important;
+     덮어쓰는 것으로 추정, !important로 강제함.
+     2026-07-17(9차): disc-ticker(38px)가 없어지면서 base가 94->56으로 줄어 90->52. */
+  padding-top: calc(52px + var(--qi-height)) !important;
   min-height: 100vh;
 }
 .main-layout {
@@ -138,7 +142,7 @@ a { text-decoration: none; color: inherit; }
   width: 256px;
   flex-shrink: 0;
   position: sticky;
-  top: calc(110px + var(--qi-height)) !important; /* navbar+disc-ticker(94) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다. !important는 page-wrap과 같은 이유(주석 참고) */
+  top: calc(72px + var(--qi-height)) !important; /* navbar(56) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다. !important는 page-wrap과 같은 이유(주석 참고). 2026-07-17(9차): disc-ticker 흡수로 110->72 */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1609,7 +1613,7 @@ a { text-decoration: none; color: inherit; }
   width: 292px;
   flex-shrink: 0;
   position: sticky;
-  top: calc(110px + var(--qi-height)) !important; /* navbar+disc-ticker(94) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다. !important는 page-wrap과 같은 이유(주석 참고) */
+  top: calc(72px + var(--qi-height)) !important; /* navbar(56) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다. !important는 page-wrap과 같은 이유(주석 참고). 2026-07-17(9차): disc-ticker 흡수로 110->72 */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1711,81 +1715,8 @@ a { text-decoration: none; color: inherit; }
 }
 
 /* ============ DISCLOSURE TICKER ============ */
-@keyframes discScroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.disc-ticker {
-  position: fixed;
-  top: 56px; left: 0; right: 0; /* navbar(56px) */
-  height: 38px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  z-index: 98;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-}
-.disc-badge {
-  flex-shrink: 0;
-  background: #ffffff;
-  color: #111827;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 0 14px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-  letter-spacing: 0.5px;
-  border-right: 1px solid #e2e8f0;
-}
-.disc-wrap {
-  flex: 1;
-  overflow: hidden;
-  height: 100%;
-  position: relative;
-}
-.disc-track {
-  display: inline-flex;
-  align-items: center;
-  height: 100%;
-  white-space: nowrap;
-  animation: discScroll 90s linear infinite;
-}
-.disc-track:hover { animation-play-state: paused; }
-.disc-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 20px;
-  text-decoration: none;
-  color: #111827;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: color 0.15s;
-}
-.disc-item:hover { color: #6366f1; }
-.disc-item::after { display: none; }
-.disc-market-kospi {
-  font-size: 10px; font-weight: 700;
-  color: #2563eb; background: #eff6ff;
-  padding: 1px 6px; border-radius: 8px; flex-shrink: 0;
-}
-.disc-market-kosdaq {
-  font-size: 10px; font-weight: 700;
-  color: #16a34a; background: #f0fdf4;
-  padding: 1px 6px; border-radius: 8px; flex-shrink: 0;
-}
-.disc-corp {
-  font-size: 11px; color: #374151; flex-shrink: 0; font-weight: 600;
-}
-.disc-loading {
-  color: #6b7280; font-size: 13px; padding: 0 16px;
-}
+/* 2026-07-17(9차): 별도 고정 바였던 공시 티커를 관심지수 바(js/quick-indices.js)의
+   "긴급속보" 패널로 흡수 - 관련 스타일은 css/quick-indices.css의 .qi-news* 참고. */
 
 /* ============ GOOGLE CALENDAR WIDGET ============ */
 .cal-widget { padding: 14px; }
@@ -2088,11 +2019,6 @@ a { text-decoration: none; color: inherit; }
   /* ── 관련 글 ── */
   .related-list { flex-direction: column; }
 
-  /* ── 공시 티커 ── */
-  .disc-badge { padding: 0 10px; font-size: 10px; border-right-color: #6366f1; }
-  .disc-item { font-size: 12px; padding: 0 12px; }
-  .disc-corp { font-size: 10.5px; }
-
   /* ── 페이지네이션 ── */
   .pagination { gap: 4px; }
   .page-btn { width: 34px; height: 34px; font-size: 13px; }
@@ -2118,7 +2044,6 @@ body.iframe-mode .sub-filter-bar,
 body.iframe-mode .pagination,
 body.iframe-mode .guest-section,
 body.iframe-mode .copyright,
-body.iframe-mode .disc-ticker,
 body.iframe-mode .market-ribbon,
 body.iframe-mode .mobile-overlay,
 body.iframe-mode .mobile-search-overlay,
@@ -2471,21 +2396,8 @@ html.dark .si-amber { background: #2d2410; }
 html.dark .si-purple { background: #251b3d; }
 html.dark .si-green { background: #122b1d; }
 
-/* 공시 티커 */
-html.dark .disc-ticker { background: #121828; border-color: #263048; }
-html.dark .disc-badge { background: #121828; color: #e2e9f5; }
-html.dark .disc-badge svg { stroke: #e2e9f5; }
-html.dark .disc-item { color: #c3cddd; }
-html.dark .disc-item:hover { color: #818cf8; }
-html.dark .disc-corp { color: #aebacf; }
-html.dark .disc-market-kospi { background: #1c2c4d; }
-html.dark .disc-market-kosdaq { background: rgba(255,255,255,0.07); }
-html.dark .disc-badge { border-right-color: #263048; } /* 배지 옆 세로 구분선 - 라이트용 #e2e8f0가 다크에선 흰 줄로 보임 */
-html.dark .disc-loading { color: #7c8aa5; } /* "공시없음" 등 로딩/빈 상태 텍스트 */
-/* 모바일에서만 구분선을 파랑으로(PC는 기존 회색 유지) */
-@media (max-width: 720px) {
-  html.dark .disc-badge { border-right-color: #818cf8; }
-}
+/* 공시 티커 - 2026-07-17(9차)부터 관심지수 바 "긴급속보" 패널로 흡수됨.
+   다크모드 스타일은 css/quick-indices.css의 html.dark .qi-news* 참고. */
 
 /* 페이지네이션 */
 html.dark .page-btn { background: #171e2f; border-color: #2e3b55; color: #9aa8c0; }

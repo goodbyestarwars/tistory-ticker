@@ -1,18 +1,21 @@
-/* 관심 지수 카드 - 공시 티커 바로 아래 고정 바.
+/* 관심 지수 카드 - navbar 바로 아래 고정 바.
  * 폭은 .main-layout과 동일한 max-width(1380px)로 맞춰서 뷰포트 전체를 쓰지 않는다
  * (2026-07-16 피드백: "화면을 너무 full로 쓴다"). 높이는 --qi-height(style.css :root,
  * js/quick-indices.js가 접힘/펼침에 따라 40px/180px로 setProperty)를 그대로 쓴다 -
  * 아래 콘텐츠 시작 좌표(.page-wrap, .sidebar-left/right)도 같은 변수를 참조하므로
  * 접었다 펼쳐도 항상 정확히 맞물린다.
  * 2026-07-17(6차): 토스증권 위젯 참고해 "큰 카드 1개 + 작은 카드 그리드(4x2)"로 재구성
- * (사용자 요청). 그리드 2줄이 들어가야 해서 높이를 180px로 늘렸다. */
+ * (사용자 요청). 그리드 2줄이 들어가야 해서 높이를 180px로 늘렸다.
+ * 2026-07-17(9차): 원래 이 바 위에 별도로 떠 있던 KRX 공시 티커(disc-ticker)를 이 바
+ * 오른쪽 "긴급속보" 패널(.qi-news)로 흡수 - 별도 바가 없어지면서 top이 navbar 바로
+ * 아래(56px)로 올라왔다(이전엔 disc-ticker 높이(38px)만큼 아래인 94px). */
 
 /* 2026-07-17(5차): 페이지 배경이 흰색으로 바뀌면서 테두리(border)가 유독 도드라져
    보여서(사용자 피드백: "토스처럼", 큰 테두리 없애자) 제거 - 나머지 사이트 카드(.card,
    .post-card)와 동일하게 테두리 없이 그림자만으로 떠 있는 느낌을 낸다. */
 .qi-wrap {
   position: fixed;
-  top: 94px;
+  top: 56px;
   left: 0;
   right: 0;
   z-index: 96;
@@ -66,6 +69,87 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(3, 1fr);
   gap: 5px;
+}
+
+/* 2026-07-17(9차): KRX 공시 티커를 흡수한 "긴급속보" 패널 - 원래 disc-track의 가로
+   스크롤(discScroll)을 세로 스크롤로 옮긴 버전. 목록을 2번 이어붙이고 translateY로
+   절반만큼 움직여서 끊김 없이 순환하는 건 원본과 동일한 트릭. */
+.qi-news {
+  flex: 0 0 auto;
+  width: 168px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-left: 10px;
+  border-left: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+.qi-news-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #d24f45;
+  letter-spacing: 0.3px;
+  padding-bottom: 3px;
+}
+.qi-news-dot {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d24f45;
+}
+.qi-news-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+@keyframes qiNewsScroll {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+.qi-news-track {
+  display: flex;
+  flex-direction: column;
+  animation: qiNewsScroll 30s linear infinite;
+}
+.qi-news-track:hover { animation-play-state: paused; }
+.qi-news-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 0;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qi-news-item:hover { color: #6366f1; }
+.qi-news-market-kospi {
+  flex: 0 0 auto;
+  font-size: 8.5px; font-weight: 700;
+  color: #2563eb; background: #eff6ff;
+  padding: 1px 5px; border-radius: 7px;
+}
+.qi-news-market-kosdaq {
+  flex: 0 0 auto;
+  font-size: 8.5px; font-weight: 700;
+  color: #16a34a; background: #f0fdf4;
+  padding: 1px 5px; border-radius: 7px;
+}
+.qi-news-corp {
+  flex: 0 0 auto;
+  font-size: 9.5px; font-weight: 700; color: #555;
+}
+.qi-news-loading {
+  color: #999; font-size: 10.5px;
 }
 
 /* 2026-07-17(4차): 화살표 버튼이 바 전체 높이(align-self:stretch)로 늘어나 길쭉한
@@ -299,6 +383,7 @@
   .qi-card-featured { width: 160px; }
   .qi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .qi-all-link { display: none; }
+  .qi-news { display: none; } /* 좁은 화면에서는 카드만으로도 이미 빠듯해서 속보 패널은 숨김 */
 }
 
 body.iframe-mode .qi-wrap { display: none !important; }
@@ -327,3 +412,11 @@ html.dark .qi-add-btn:hover { background: #1a2338 !important; color: #eef2f8 !im
 html.dark .qi-popover { background: #171e2f !important; border-color: #2a3550 !important; }
 html.dark .qi-pop-item { color: #d6dbe8 !important; }
 html.dark .qi-pop-item:hover { background: #232e4a !important; }
+
+html.dark .qi-news { border-color: #2a3550 !important; }
+html.dark .qi-news-item { color: #d6dbe8 !important; }
+html.dark .qi-news-item:hover { color: #818cf8 !important; }
+html.dark .qi-news-corp { color: #aebacf !important; }
+html.dark .qi-news-market-kospi { background: #1c2c4d !important; }
+html.dark .qi-news-market-kosdaq { background: rgba(255,255,255,0.07) !important; }
+html.dark .qi-news-loading { color: #7c8aa5 !important; }

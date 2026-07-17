@@ -47,11 +47,21 @@
  * PER_PAGE 상수로 단순화했다.
  * 2026-07-17(8차): 그리드를 4x2(8개)에서 2x3(6개)로 변경(사용자가 직접 그린 스케치 반영) -
  * 한 페이지당 1(큰 카드) + 6(그리드) = 7개.
+ *
+ * 2026-07-17(9차): 원래 navbar 바로 아래 별도 고정 바였던 KRX 공시 티커(js/skin-main.js +
+ * js/skin-shell.js)를 이 리본 오른쪽 "긴급속보" 패널로 흡수(사용자가 직접 그린 스케치 반영).
+ * skin.html의 #shell-discTicker mount는 티스토리 치환 태그가 없는 순수 mount였어서
+ * skin-shell.js가 더 이상 그 안을 채우지 않으면 그냥 빈 div로 남아 스킨 자체는 안 건드려도
+ * 됐다(skin.html 원본 텍스트 배포 불필요). 공시 데이터 fetch/파싱 로직은 skin-main.js에서
+ * 그대로 옮겨왔고(같은 GAS ?market=0), 가로 스크롤 대신 세로 스크롤 목록으로 렌더링 방식만
+ * 바꿨다. 별도 바가 사라지면서 navbar(56px) 바로 아래로 이 리본 자체의 top이 올라왔다(이전:
+ * navbar+disc-ticker=94px) - style.css의 콘텐츠 시작 좌표 오프셋도 같이 줄었다.
  */
 (function (global) {
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
   var FUTURES_API = 'https://goodbyestar.cloud/futures';
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
@@ -214,6 +224,98 @@
     });
   }
 
+  // ---- 긴급속보(KRX 공시 티커, 옛 js/skin-main.js에서 이식) ----
+  // 파싱 로직은 원본과 동일(같은 GAS ?market=0), 렌더링만 가로->세로 스크롤 목록으로 변경.
+
+  function discCleanCDATA(str) {
+    var s = str.indexOf('<![CDATA[');
+    var e = str.lastIndexOf(']]>');
+    if (s > -1 && e > -1) return str.slice(s + 9, e).trim();
+    return str.trim();
+  }
+  function discExtractTag(chunk, tag) {
+    var open = '<' + tag + '>';
+    var close = '</' + tag + '>';
+    var s = chunk.indexOf(open);
+    var e = chunk.indexOf(close, s);
+    if (s === -1 || e === -1) return '';
+    return discCleanCDATA(chunk.slice(s + open.length, e));
+  }
+  function discDetectMarket(title) {
+    if (title.indexOf('[코]') === 0) return 'KOSDAQ';
+    if (title.indexOf('[코넥스]') === 0) return 'KOSDAQ';
+    return 'KOSPI';
+  }
+  function discExtractCorp(title) {
+    if (title.charAt(0) !== '[') return { corp: '', disc: title };
+    var close = title.indexOf(']');
+    if (close === -1) return { corp: '', disc: title };
+    var rest = title.slice(close + 1).trim();
+    var spaceIdx = rest.indexOf(' ');
+    if (spaceIdx === -1) return { corp: rest, disc: '' };
+    return { corp: rest.slice(0, spaceIdx).trim(), disc: rest.slice(spaceIdx).trim() };
+  }
+  function discParseXML(text) {
+    var items = [];
+    var parts = text.split('<item>');
+    for (var i = 1; i < parts.length; i++) {
+      var chunk = parts[i].split('</item>')[0];
+      var title = discExtractTag(chunk, 'title');
+      var link = discExtractTag(chunk, 'link');
+      if (!title) continue;
+      var market = discDetectMarket(title);
+      var parsed = discExtractCorp(title);
+      items.push({ corp: parsed.corp, disc: parsed.disc || title, link: link || '#', market: market });
+    }
+    return items;
+  }
+
+  function renderDiscNewsInto(track, items) {
+    if (!track) return;
+    if (!items.length) { track.innerHTML = '<span class="qi-news-loading">속보 없음</span>'; return; }
+    function itemHTML(it) {
+      var cls = it.market === 'KOSDAQ' ? 'qi-news-market-kosdaq' : 'qi-news-market-kospi';
+      var disc = it.disc.replace(/\s*\|\s*/g, ' ').trim();
+      var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
+      return '<a href="' + it.link + '" target="_blank" class="qi-news-item">'
+        + '<span class="' + cls + '">' + it.market + '</span>'
+        + (corp ? '<span class="qi-news-corp">' + corp + '</span>' : '')
+        + disc + '</a>';
+    }
+    var html = items.map(itemHTML).join('') + items.map(itemHTML).join('');
+    track.innerHTML = html;
+    // 세로 스크롤 속도(초당 약 18px) - 가로 티커(disc-track)의 scrollWidth/60 방식을
+    // scrollHeight 기준으로 그대로 옮긴 것.
+    track.style.animationDuration = (track.scrollHeight / 2 / 18) + 's';
+  }
+
+  function loadDisclosures(container) {
+    var track = container.querySelector('#qiNewsTrack');
+    fetch(DISC_GAS_URL + '?market=0')
+      .then(function (r) { return r.text(); })
+      .then(function (text) {
+        var t = text.trim().replace(/^﻿/, '');
+        if (t.charAt(0) === '<') {
+          renderDiscNewsInto(track, discParseXML(t));
+        } else if (t.length > 0) {
+          try {
+            var clean = t.replace(/\s/g, '');
+            var bin = atob(clean);
+            var bytes = new Uint8Array(bin.length);
+            for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+            renderDiscNewsInto(track, discParseXML(new TextDecoder('utf-8').decode(bytes)));
+          } catch (err) {
+            renderDiscNewsInto(track, []);
+          }
+        } else {
+          renderDiscNewsInto(track, []);
+        }
+      })
+      .catch(function () {
+        if (track) track.innerHTML = '<span class="qi-news-loading">속보 로드 실패</span>';
+      });
+  }
+
   // ---- 포맷/톤 ----
 
   function toneClass(change) {
@@ -318,6 +420,10 @@
       + '<div class="qi-scroll" id="qiScroll">'
       + '<div class="qi-featured" id="qiFeatured"></div>'
       + '<div class="qi-grid" id="qiGrid"></div>'
+      + '<div class="qi-news" id="qiNews">'
+      + '<div class="qi-news-header"><span class="qi-news-dot" aria-hidden="true"></span>긴급속보</div>'
+      + '<div class="qi-news-wrap"><div class="qi-news-track" id="qiNewsTrack"><span class="qi-news-loading">불러오는 중...</span></div></div>'
+      + '</div>'
       + '</div>'
       + '<button type="button" class="qi-page-btn qi-page-next" id="qiNextBtn" aria-label="다음 지수">›</button>'
       + '<div class="qi-controls">'
@@ -614,6 +720,7 @@
     moduleContainer = container;
     wireEvents(container);
     rebuild(container, loadSelected());
+    loadDisclosures(container);
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () {

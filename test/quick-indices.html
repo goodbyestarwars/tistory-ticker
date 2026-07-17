@@ -11,13 +11,11 @@
 </head>
 <body>
 
-<!-- 실제 skin.html의 고정 스택을 그대로 흉내(레이아웃 좌표 검증용) -->
+<!-- 실제 skin.html의 고정 스택을 그대로 흉내(레이아웃 좌표 검증용).
+     2026-07-17(9차): disc-ticker는 quick-indices.js의 "긴급속보" 패널로 흡수되어
+     별도 바가 없어졌으므로 이 목업에서도 제거(navbar 바로 아래 qi-wrap). -->
 <div class="market-ribbon" id="market-ribbon"></div>
 <div class="navbar"></div>
-<div class="disc-ticker" id="discTicker">
-  <div class="disc-badge">공시</div>
-  <div class="disc-wrap"><div class="disc-track">(mock) 공시 없음</div></div>
-</div>
 
 <div class="page-wrap">
   <div class="main-layout">
@@ -31,11 +29,12 @@
       </div>
       <p id="checkResult" style="font-size:13px;color:#888;"></p>
       <p style="font-size:13px;color:#888">
-        quick-indices.js는 이제 페이지 종류와 무관하게 공시 티커 바로 아래 고정 바로 뜹니다
+        quick-indices.js는 이제 페이지 종류와 무관하게 navbar 바로 아래 고정 바로 뜹니다
         (홈/카테고리 글목록뿐 아니라 이 테스트처럼 .post-card가 없는 페이지에서도 동일).
-        GAS(?market=1)는 CORS가 열려있어 로컬에서도 실제 호출되지만, VM(/futures)은
-        ghlee.tistory.com만 허용해서 로컬에서는 막힐 수 있습니다(코스피/코스닥 포함 - VM
-        소스로 전환됨 - 및 해외선물 카드/미니차트는 라이브에서 최종 확인).
+        GAS(?market=1, 공시용 ?market=0)는 CORS가 열려있어 로컬에서도 실제 호출되지만,
+        VM(/futures)은 ghlee.tistory.com만 허용해서 로컬에서는 막힐 수 있습니다(코스피/코스닥
+        포함 - VM 소스로 전환됨 - 및 해외선물 카드/미니차트는 라이브에서 최종 확인).
+        오른쪽 "긴급속보" 패널(옛 공시 티커)은 실제 GAS를 그대로 호출합니다.
       </p>
       <article class="post-card">(mock) 본문 콘텐츠 - 이 위 틈이 없어야 함</article>
     </div>

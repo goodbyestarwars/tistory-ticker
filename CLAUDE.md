@@ -11,7 +11,8 @@
 | `js/sector-dashboard-v4.js` | 섹터 대시보드 렌더링(시장 뱃지 P/Q 포함, 뱃지 CSS는 JS가 주입) |
 | `css/sector-dashboard-v3.css` | 대시보드 스타일(카드/히트맵/다크모드) |
 | `data/krx_map.js` | 종목명→코드 전 종목 매핑(티커 툴팁·종목뉴스용) |
-| `js/ticker-tooltip-v5.js`, `js/stock-news.js`, `js/market-ribbon.js` | 본문 툴팁 / 종목뉴스 / 상단 리본 |
+| `js/ticker-tooltip-v5.js`, `js/stock-news.js`, `js/market-ribbon.js` | 본문 툴팁 / 종목뉴스 / 상단 리본(`market-ribbon`은 2026-07-16부로 폐기, `js/quick-indices.js`로 기능 이관·display:none) |
+| `js/quick-indices.js`, `css/quick-indices.css` | **관심지수 리본** - navbar 바로 아래 모든 페이지 공통 고정 바(position:fixed). 코스피/코스닥/코스피 야간선물 등은 VM(`https://goodbyestar.cloud/futures`, 이력 있어 미니차트 가능), 원달러/BTC는 GAS `?market=1`(이력 없음). "큰 카드 1개 + 그리드 2x3" 배치(토스증권 참고), 좌우 화살표로 페이징, 접기/펼치기·표시 종목 커스텀은 localStorage(`qi_selected_v1`/`qi_collapsed_v1`). 자기 높이를 `--qi-height`(style.css `:root`)에 실시간 반영해서 `.page-wrap`/`.sidebar-left`/`.sidebar-right`의 좌표 오프셋이 항상 맞물리게 함 - 이 바의 높이를 바꾸면 style.css의 `calc(...+var(--qi-height))` 오프셋도 같이 확인할 것. **2026-07-17(9차)부터 KRX 공시 티커(옛 별도 고정 바)를 이 리본 오른쪽 "긴급속보"(`.qi-news`) 패널로 흡수** - fetch/파싱 로직은 같은 GAS(`?market=0`)를 그대로 쓰되 가로 스크롤 대신 세로 스크롤 목록으로 렌더링 |
 | `data/marketcap-codes.js`, `js/marketcap-bubble.js`, `css/marketcap-bubble.css` | 시가총액 히트맵(트리맵). ETF10/INVERSE4/단일종목레버리지 합산 2종은 `data/marketcap-codes.js`, 코스피·코스닥 개별종목은 `data/sectors-v3.js` 전체 풀(업종 태그 포함, 업종 필터 지원)을 GAS가 재사용. 등락률 -3%~+3% 7단계 색상. GAS `?bubble=1` 액션을 45초 간격 폴링 |
 | `gas/ticker-proxy.gs` | GAS 프록시 소스(시세·뉴스·AI요약·증시온도·히트맵·수급·공매도압박·연기금·랭킹뉴스·차트패턴스캔·오늘의투자시그널). 수정 시 script.google.com에서 수동 재배포 필요 — push만으로는 반영 안 됨. 히트맵 ETF/INVERSE/레버리지 구성 변경 시 `data/marketcap-codes.js`와 이 파일의 `MARKETCAP_CODES` 둘 다 수정. **`scanInvestSignal`(하루 1회 트리거)은 `data/investor-flow-cache.js`를 HTTP로 재fetch해서 재사용** — 이 파일 스키마(short/pension 필드명)가 바뀌면 GAS의 파싱 로직도 같이 고쳐야 함 |
 | `js/foreign-flow.js`, `css/foreign-flow.css` | 종목별 외국인·기관 수급 위젯(연속매매·추세전환 뱃지 포함). GAS `?action=foreignFlow` 온디맨드 크롤링, 서버 캐시 없음. **2026-07-11부터 공매도/대차거래/연기금 섹션이 여기 병합됨**(`buildExtraSections`) — `data/investor-flow-cache.js`에 있는 종목만 추가로 표시, 없으면 안내 문구만 노출. 가격 차트(지지/저항+이평선, 최근 1년)는 TradingView Lightweight Charts(오픈소스, CDN 지연 로드)로 렌더링 — 직접 그리는 SVG 아님 |
@@ -24,9 +25,9 @@
 | `js/pension-fund.js`, `css/pension-fund.css` | **구 연기금 위젯(기관 합산 추정치) - 폐기 예정, 코드만 유지.** 연기금 단독 데이터가 없어 기관 합산으로 대체했던 버전. `js/foreign-flow.js`의 병합 섹션이 키움 API의 진짜 연기금(`penfnd_etc`) 데이터로 이 기능을 대체함 — 단독 페이지로 임베드해뒀다면 수동 정리 필요. |
 | `test/*.html` | 로컬 프리뷰(python -m http.server로 열기). 위젯마다 기본은 mock 데이터, `?real=1`이면 실제 GAS 호출 |
 | `data/sectors-v3-검수표.md` | 종목코드 매핑 검수표 — 섹터 데이터 수정 시 같이 갱신 |
-| `js/skin-shell.js` | 스킨의 **태그 없는 순수 UI 조각**(모바일 오버레이·검색 오버레이·스크롤탑 버튼, 공시 티커 껍데기, 드로어 헤더, 구글 캘린더 위젯 껍데기, 서브 필터 바)을 `skin.html`의 `<div id="shell-*">` mount에 런타임 주입. **반드시 skin-menu.js/skin-main.js보다 먼저 로드**(그 스크립트들이 이 안에서 만든 id를 getElementById로 찾음). 이 파일에 있는 것들은 push만으로 반영, skin.html 재배포 불필요 |
+| `js/skin-shell.js` | 스킨의 **태그 없는 순수 UI 조각**(모바일 오버레이·검색 오버레이·스크롤탑 버튼, 드로어 헤더, 구글 캘린더 위젯 껍데기, 서브 필터 바)을 `skin.html`의 `<div id="shell-*">` mount에 런타임 주입. **반드시 skin-menu.js/skin-main.js보다 먼저 로드**(그 스크립트들이 이 안에서 만든 id를 getElementById로 찾음). 이 파일에 있는 것들은 push만으로 반영, skin.html 재배포 불필요. (구 KRX 공시 티커 껍데기는 2026-07-17(9차)에 제거 — `js/quick-indices.js`의 긴급속보 패널로 흡수됨. `skin.html`의 `#shell-discTicker` mount는 빈 채로 남아있지만 무해함) |
 | `js/skin-menu.js` | 왼쪽 사이드바 커스텀 메뉴(`#nav-menu-mount`) 렌더링. 메뉴 추가/삭제/순서 변경은 `MENU_ITEMS` 배열만 고치면 됨 |
-| `js/skin-main.js` | 스킨 공통 동작 — 다크모드/폰트 토글, 카테고리 파싱(좌측 카테고리 목록·서브 필터 탭), 아티클 모달, 모바일 드로어·검색, 구글 캘린더 위젯 로직, KRX 공시 티커. **`js/skin-main.js`에 구글 캘린더 API 키와 캘린더 ID가 하드코딩되어 있고 이 파일은 public 저장소로 push됨 — 노출 상태.** 키 재발급/리퍼러 제한은 사용자가 Google Cloud Console에서 직접 해야 함(로그인 필요) |
+| `js/skin-main.js` | 스킨 공통 동작 — 다크모드/폰트 토글, 카테고리 파싱(좌측 카테고리 목록·서브 필터 탭), 아티클 모달, 모바일 드로어·검색, 구글 캘린더 위젯 로직. **`js/skin-main.js`에 구글 캘린더 API 키와 캘린더 ID가 하드코딩되어 있고 이 파일은 public 저장소로 push됨 — 노출 상태.** 키 재발급/리퍼러 제한은 사용자가 Google Cloud Console에서 직접 해야 함(로그인 필요). (구 KRX 공시 티커 fetch/파싱 로직은 2026-07-17(9차)에 `js/quick-indices.js`로 이관됨) |
 
 **`skin.html`은 이 저장소에 없음(.gitignore, 캘린더 위젯 등에 개인정보 소지)** — 티스토리 스킨 편집기(관리자 → 꾸미기 → 스킨 편집 → HTML 편집)에 직접 붙여넣어야 반영됨, push로는 절대 안 됨. `style.css`는 2026-07-10부터 git으로 이전되어 일반 파일처럼 push로 반영됨(스킨의 CSS 탭 미사용).
 
