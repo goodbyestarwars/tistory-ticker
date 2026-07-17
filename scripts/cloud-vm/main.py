@@ -20,6 +20,7 @@ import db_schema
 import domestic_futures
 import foreign_flow_compute
 import foreign_futures
+import naver_news
 import investor_flow
 import kiwoom_client
 import kiwoom_market
@@ -326,6 +327,20 @@ def futures(interval: str = 'day', days: int = 90):
     finally:
         conn.close()
     return envelope(result)
+
+
+@app.get('/naver-news')
+def naver_news_endpoint(query: str = Query(..., min_length=1, max_length=100), x_api_key: str = Header(default=None)):
+    """네이버 뉴스 검색 프록시(naver_news.py 참고) - GAS(gas/ticker-proxy.gs getRankingNews)가
+    직접 네이버를 부르는 대신 이 VM을 거치게 해서, NCP API HUB의 IP 화이트리스트를 이
+    VM의 고정 IP 하나로만 등록할 수 있게 한다. GAS->VM 구간은 X-API-Key로 보호(무제한
+    공개 프록시로 남 API 할당량을 소진당하지 않도록 - /futures 같은 공개 엔드포인트와
+    달리 호출마다 실제 네이버 API 쿼터를 쓰기 때문)."""
+    require_api_key(x_api_key)
+    client_id = os.environ.get('NAVER_APIHUB_CLIENT_ID')
+    client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET')
+    items = naver_news.search_news(query, client_id, client_secret)
+    return envelope(items)
 
 
 @app.get('/option-flow')

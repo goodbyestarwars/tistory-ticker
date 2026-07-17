@@ -1297,12 +1297,17 @@ function fetchStockNews(code) {
 }
 
 // ---------------------------------------------------------------------------
-// 랭킹뉴스: "증시"+"코스피"+"코스닥" 3개 키워드로 네이버 뉴스 검색 오픈API를 조회해
-// 라운드로빈으로 섞고 URL 기준 중복 제거한 뒤 상위 10건만 응답 (?rankNews=1).
+// 랭킹뉴스: "증시"+"코스피"+"코스닥" 3개 키워드로 네이버 뉴스 검색을 조회해 라운드로빈으로
+// 섞고 URL 기준 중복 제거한 뒤 상위 10건만 응답 (?rankNews=1).
 // 종목뉴스(getStockNews)와 달리 특정 종목이 아닌 시황 헤드라인이라 별도 API를 씀.
-// 키는 PropertiesService에 저장(코드에 노출 안 함): Apps Script 편집기 > 프로젝트 설정 >
-// 스크립트 속성 > NAVER_CLIENT_ID / NAVER_CLIENT_SECRET
-// (developers.naver.com에서 애플리케이션 등록 후 "검색" API 사용 신청 - 무료, 일 25,000건).
+//
+// 2026-07-18: 네이버가 이 검색 API를 개발자센터(openapi.naver.com)에서 NCP API HUB로
+// 이관(2027-06-30 완전 종료 예고) - 이 참에 옮기면서, 신청한 앱에 IP 화이트리스트(최대
+// 10개)도 걸기로 함. 그런데 GAS(UrlFetchApp)는 고정 IP가 없어서(Google 공개 IP 풀에서
+// 매번 다른 IP로 나감 - 공식 확인됨) 화이트리스트를 걸 수가 없다. 그래서 실제 네이버
+// 호출은 고정 IP(34.28.220.13)를 가진 VM(scripts/cloud-vm/naver_news.py)이 대신 하고,
+// 여기선 그 VM의 /naver-news만 부른다(kiwoomVmFetch_ 재사용, X-API-Key 인증).
+// NCP 콘솔엔 이 VM의 IP 하나만 등록하면 된다.
 // ---------------------------------------------------------------------------
 
 var RANK_NEWS_QUERIES = ['증시', '코스피', '코스닥'];
@@ -1339,40 +1344,12 @@ function getRankingNews() {
 }
 
 function fetchNaverSearchNews(query) {
-  var clientId = PropertiesService.getScriptProperties().getProperty('NAVER_CLIENT_ID');
-  var clientSecret = PropertiesService.getScriptProperties().getProperty('NAVER_CLIENT_SECRET');
-  if (!clientId || !clientSecret) return [];
-
-  var url = 'https://openapi.naver.com/v1/search/news.json?query=' + encodeURIComponent(query) + '&display=10&sort=date';
-  var res = UrlFetchApp.fetch(url, {
-    muteHttpExceptions: true,
-    headers: {
-      'X-Naver-Client-Id': clientId,
-      'X-Naver-Client-Secret': clientSecret
-    }
-  });
-  if (res.getResponseCode() !== 200) return [];
-
-  var body = JSON.parse(res.getContentText('UTF-8'));
-  return (body.items || []).map(function (it) {
-    return {
-      title: stripNaverHtml(it.title),
-      link: it.originallink || it.link,
-      pubDate: it.pubDate
-    };
-  });
+  var items = kiwoomVmFetch_('/naver-news?query=' + encodeURIComponent(query));
+  return items || [];
 }
 
-// 검색 API는 title에 <b> 태그와 HTML 엔티티가 섞여 온다
-function stripNaverHtml(s) {
-  return String(s || '')
-    .replace(/<\/?b>/g, '')
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#39;/g, "'");
-}
+// (구 stripNaverHtml - 2026-07-18 VM 이관으로 HTML 스트립이 naver_news.py._strip_html로
+// 옮겨가 GAS 쪽에서는 더 이상 안 씀, 삭제됨)
 
 // ---------------------------------------------------------------------------
 // 종목별 외국인·기관 수급 조회 (?action=foreignFlow&code=005930)
