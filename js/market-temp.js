@@ -279,6 +279,9 @@
 
   // ---- ① Hero: 온도 + 등급 + 전일/주간/월간 대비 + 투자시그널 별점 ----
 
+  // 2026-07-18(2차 개편): Hero와 게이지를 하나의 카드로 병합(사용자 요청 - "숫자를 본
+  // 직후 바로 위치를 확인할 수 있도록"). buildHero/buildGauge는 이제 각자 outer
+  // .mt-section 래퍼 없이 내부 콘텐츠만 반환하고, buildHeroCard가 하나의 카드로 합친다.
   function buildHero(data) {
     var grade = data.grade || { emoji: '', label: '', tone: 'neutral' };
     var signal = SIGNAL_BY_TONE[grade.tone] || SIGNAL_BY_TONE.neutral;
@@ -303,7 +306,7 @@
     }
 
     return ''
-      + '<div class="mt-section mt-hero">'
+      + '<div class="mt-hero">'
       + '<div class="mt-hero-left">'
       + '<div class="mt-hero-title">🌡 오늘의 증시온도 <span class="mt-info" data-tooltip="시장이 과열되거나 침체된 정도를 온도로 보여드립니다.">ⓘ</span></div>'
       + '<div class="mt-hero-main">'
@@ -328,7 +331,7 @@
 
   function buildAiBriefingShell() {
     return ''
-      + '<div class="mt-section mt-card mt-ai-card">'
+      + '<div class="mt-card mt-ai-card">'
       + '<div class="mt-card-title">🤖 AI 시장 브리핑</div>'
       + '<div id="mtAiBriefing"><div class="mt-hint mt-hint-inline">브리핑 생성 중...</div></div>'
       + '</div>';
@@ -352,13 +355,13 @@
     }).join('');
 
     return ''
-      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card">'
       + '<div class="mt-card-title">🔥 오늘 시장 영향요인 TOP5</div>'
       + '<div class="mt-top5-list">' + rows + '</div>'
       + '</div>';
   }
 
-  // ---- ④ 온도 게이지 ----
+  // ---- ①-2 온도 게이지 (Hero 카드 안으로 병합됨, buildHeroCard 참고) ----
 
   function buildGauge(temp) {
     var pct = Math.max(0, Math.min(100, (temp / GAUGE_MAX_TEMP) * 100));
@@ -366,8 +369,7 @@
       return b.color + ' ' + Math.round(i / (GRADE_BANDS.length - 1) * 100) + '%';
     }).join(', ');
     return ''
-      + '<div class="mt-section mt-card">'
-      + '<div class="mt-card-title">증시온도 게이지</div>'
+      + '<div class="mt-gauge-title">증시온도 게이지</div>'
       // 2026-07-18: 마커/버블 스윕은 순수 CSS 애니메이션(@keyframes mtSweepLeft, CSS
       // 변수 --mt-target-left)으로 구현 - JS/rAF와 무관하게 항상 최종적으로 올바른
       // left 값에 도달한다(rAF가 안 도는 환경에서도 baseline인 inline left:X%가 그대로
@@ -379,50 +381,49 @@
       + '</div>'
       + '<div class="mt-gauge-scale"><span>0℃</span><span>10℃</span><span>20℃</span><span>28℃</span><span>35℃</span><span>40℃</span></div>'
       + '<div class="mt-gauge-bands"><span>극단적 공포</span><span>공포</span><span>중립</span><span>탐욕</span><span>극단적 탐욕</span></div>'
-      + '</div>'
       + '</div>';
   }
 
-  // ---- ⑤ 개별 지표 ----
+  function buildHeroCard(data) {
+    return '<div class="mt-section mt-card mt-hero-card">' + buildHero(data) + buildGauge(data.temp) + '</div>';
+  }
 
-  function buildRow(meta, comp) {
+  // ---- ③ 시장 구성 요소 (2026-07-18 2차 개편: 세로 리스트+굵은 바 -> 압축 카드형 그리드로
+  // 재설계. "진행바보다 수치와 점수 기여도가 먼저 보이도록" - 아이콘/라벨/수치/기여도를
+  // 위→아래로 쌓고 맨 아래 얇은(6px) 바 하나만 남긴다. 계산식 툴팁(ⓘ)/색상 톤/애니메이션
+  // 클래스는 기존 buildRow와 동일한 로직 그대로 재사용 - 마크업 구조만 바뀜. ----
+
+  function buildComponentCard(meta, comp) {
     var score = comp && typeof comp.score === 'number' ? comp.score : 0;
     var pct = meta.max ? Math.max(0, Math.min(100, (score / meta.max) * 100)) : 0;
     var raw = formatRaw(meta, comp);
-    var badge = classify(meta, comp);
     var c = contribution(meta, comp);
     var band = comp && comp.band ? comp.band : null;
     var tooltip = meta.desc + (band ? ' — 현재 구간: ' + band : '');
 
     return ''
-      + '<div class="mt-bar-row">'
-      + '<div class="mt-bar-topline">'
-      + '<span class="mt-bar-head">'
-      + '<span class="mt-bar-icon">' + meta.icon + '</span>'
-      + '<span class="mt-bar-label">' + escapeHtml(meta.label) + '</span>'
+      + '<div class="mt-comp-card">'
+      + '<div class="mt-comp-top">'
+      + '<span class="mt-comp-icon">' + meta.icon + '</span>'
+      + '<span class="mt-comp-label">' + escapeHtml(meta.label) + '</span>'
       + '<span class="mt-info" data-tooltip="' + escapeHtml(tooltip) + '">ⓘ</span>'
-      + '</span>'
-      + '<span class="mt-bar-value">'
-      + (raw ? '<span class="' + raw.tone + '">' + escapeHtml(raw.text) + '</span> ' : '')
-      + (badge ? '<span class="mt-pill ' + badge.tone + '">' + escapeHtml(badge.word) + '</span> ' : '')
-      + '<span class="mt-bar-contrib ' + contribTone(c) + '">' + fmtContribution(c) + '</span>'
-      + '</span>'
       + '</div>'
-      // 점수 0점은 폭 0%라 막대가 통째로 안 보여 "로딩 실패"처럼 오해받기 쉬워서, 이 경우만
+      + '<div class="mt-comp-value' + (raw ? ' ' + raw.tone : '') + '">' + (raw ? escapeHtml(raw.text) : '-') + '</div>'
+      + '<div class="mt-comp-contrib ' + contribTone(c) + '">' + fmtContribution(c) + '</div>'
+      // 점수 0점은 폭 0%라 바가 통째로 안 보여 "로딩 실패"처럼 오해받기 쉬워서, 이 경우만
       // 최소 4px 폭을 줘서 "0점으로 정상 렌더링됐다"는 걸 눈으로 구분할 수 있게 한다.
-      // 채움 애니메이션은 게이지와 동일하게 순수 CSS(@keyframes mtSweepWidth)로 처리.
-      + '<div class="mt-bar-track"><div class="mt-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div></div>'
+      + '<div class="mt-comp-bar-track"><div class="mt-comp-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div></div>'
       + '</div>';
   }
 
   function buildBars(data) {
-    var rows = COMPONENT_META.map(function (meta) {
-      return buildRow(meta, data.components && data.components[meta.key]);
+    var cards = COMPONENT_META.map(function (meta) {
+      return buildComponentCard(meta, data.components && data.components[meta.key]);
     }).join('');
     return ''
       + '<div class="mt-section mt-card">'
       + '<div class="mt-card-title">📊 시장 구성 요소</div>'
-      + '<div class="mt-bars">' + rows + '</div>'
+      + '<div class="mt-component-grid">' + cards + '</div>'
       + '</div>';
   }
 
@@ -432,7 +433,7 @@
     var days = data.recentDays || [];
     if (days.length < 2) {
       return ''
-        + '<div class="mt-section mt-card">'
+        + '<div class="mt-card">'
         + '<div class="mt-card-title">📈 최근 7일 증시온도</div>'
         + '<div class="mt-stats-empty">추이 데이터 수집 중 (며칠 후부터 표시됩니다)</div>'
         + '</div>';
@@ -460,7 +461,7 @@
     }).join('');
 
     return ''
-      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card">'
       + '<div class="mt-card-title">📈 최근 ' + days.length + '일 증시온도</div>'
       + '<svg class="mt-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">'
       + '<path class="mt-spark-path mt-spark-draw" d="' + pathD + '" fill="none" stroke="' + lastColor + '" stroke-width="2.5"></path>'
@@ -530,7 +531,7 @@
   function buildStrategy(grade) {
     var s = STRATEGY_BY_TONE[grade.tone] || STRATEGY_BY_TONE.neutral;
     return ''
-      + '<div class="mt-section mt-card mt-strategy-card" style="border-left:4px solid ' + grade.color + '">'
+      + '<div class="mt-card mt-strategy-card" style="border-left:4px solid ' + grade.color + '">'
       + '<div class="mt-card-title">🎯 오늘의 전략</div>'
       + '<div class="mt-strategy-action" style="color:' + grade.color + '">' + escapeHtml(s.action) + '</div>'
       + '<div class="mt-strategy-bars">'
@@ -698,16 +699,20 @@
     var grade = data.grade;
     var tone = grade.tone || 'neutral';
 
+    // 2026-07-18 2차 개편: 세로로 나열하던 섹션을 연관 정보끼리 묶어 가로 배치(사용자 요청
+    // - "관련 있는 정보는 하나의 카드로 묶는다", "한 줄에 2개 배치 가능한 영역은 최대한
+    // 2개 배치"). row2col()은 두 카드를 .mt-row-2col grid로 감싸 좌우 50:50 배치하고(모바일
+    // 640px 이하에서는 1열로 자동 스택), 페이드인 애니메이션 대상(.mt-section)은 이 wrapper
+    // 하나에만 붙인다.
+    function row2col(a, b) { return '<div class="mt-section mt-row-2col">' + a + b + '</div>'; }
+
     var sections = [
-      buildHero(data),
-      buildAiBriefingShell(),
-      buildTop5(data),
-      buildGauge(data.temp),
-      buildBars(data),
-      buildSparkline(data),
-      buildRadar(data),
-      buildStrategy(grade),
-      buildGuide()
+      buildHeroCard(data),                          // ① Hero + 게이지 (병합)
+      row2col(buildAiBriefingShell(), buildTop5(data)), // ② AI브리핑 | TOP5
+      buildBars(data),                               // ③ 시장 구성요소(카드형 그리드)
+      row2col(buildSparkline(data), buildStrategy(grade)), // ④ 최근7일 | 오늘의 전략
+      buildRadar(data),                              // ⑤ 시장 레이더(단독, 콤팩트)
+      buildGuide()                                   // ⑥ 온도 기준표
     ];
 
     return ''
