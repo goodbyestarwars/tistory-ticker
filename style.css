@@ -180,13 +180,15 @@ a { text-decoration: none; color: inherit; }
   transition: stroke 0.2s;
 }
 .nav-item:hover { background: #f1f5f9; }
-.nav-item-home { background: #eef2ff; }
+/* 2026-07-17: 아이콘 원형 배경(회색/연보라)이 흰 페이지 배경과 도드라져 보여서
+   흰색으로 통일(사용자 요청 - "토스처럼", 배경 대신 텍스트 색으로만 강조). */
+.nav-item-home { background: #fff; }
 .nav-item-home .nav-item-label { color: #4338ca; font-weight: 700; }
-.nav-item-home .nav-item-icon { background: #e0e7ff; }
+.nav-item-home .nav-item-icon { background: #fff; }
 .nav-item-icon {
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: #f1f5f9;
+  background: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 15px;
   flex-shrink: 0;
@@ -2401,9 +2403,11 @@ html.dark .nav-item-label { color: #ffffff; }
 html.dark .nav-item:visited,
 html.dark .nav-item:visited .nav-item-label { color: #ffffff; }
 html.dark .nav-item:hover { background: #1a2436; }
-html.dark .nav-item-home { background: #2e2a78; }
-html.dark .nav-item-icon { background: #2b3852; }
-html.dark .nav-item-home .nav-item-icon { background: #3730a3; }
+/* 2026-07-17: 라이트모드와 동일하게 아이콘 원형 배경을 없앰 - 다크모드는 카드
+   배경색(#171e2f, style.css html.dark .card 참고)과 맞춰서 튀지 않게 한다. */
+html.dark .nav-item-home { background: #171e2f; }
+html.dark .nav-item-icon { background: #171e2f; }
+html.dark .nav-item-home .nav-item-icon { background: #171e2f; }
 html.dark .nav-item-home .nav-item-label { color: #a5b4fc; }
 /* 아이콘 SVG(그리드·벨·말풍선 = currentColor) 밝게 */
 html.dark .nav-item-icon svg { stroke: #dbe4f2; }
