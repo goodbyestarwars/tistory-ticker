@@ -94,8 +94,22 @@
         monthAvg: Math.max(0, temp - 3.2),
         monthDays: total === 33 ? 12 : 30 // 33점 버튼에서는 "수집 중(30일 미만)" 일수 표기도 확인
       },
+      // total===82(탐욕 버튼)일 때만 "수집 중"(1포인트뿐) 케이스, 나머지는 7일치 예시
+      recentDays: total === 82 ? [{ date: '2026-07-13', temp: temp }] : [
+        { date: '2026-07-07', temp: Math.max(0, temp - 5.2 * sign) },
+        { date: '2026-07-08', temp: Math.max(0, temp - 4.0 * sign) },
+        { date: '2026-07-09', temp: Math.max(0, temp - 3.1 * sign) },
+        { date: '2026-07-10', temp: Math.max(0, temp - 1.8 * sign) },
+        { date: '2026-07-11', temp: Math.max(0, temp - 2.5 * sign) },
+        { date: '2026-07-12', temp: Math.max(0, temp - 2.1 * sign) },
+        { date: '2026-07-13', temp: temp }
+      ],
       updatedAt: '2026-07-13 18:00:00'
     };
+  }
+
+  function mockBriefing() {
+    return Promise.resolve({ analysis: '오늘 증시는 VIX 상승, 외국인 순매도, 거래대금 감소 영향으로 공포 구간입니다. 다만 52주 신고가 종목은 증가하고 있어 단기 반등 가능성도 존재합니다.' });
   }
 
   if (location.search.indexOf('real=1') === -1) {
@@ -105,6 +119,7 @@
       console.log('[mock] fetchMarketTemp', currentScore);
       return Promise.resolve(mockResponse(currentScore));
     };
+    MarketTemp.fetchMarketTempBriefing = mockBriefing;
   }
 
   function setMock(score) {

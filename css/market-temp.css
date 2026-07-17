@@ -1,6 +1,7 @@
-/* 오늘의 증시온도 위젯 (js/market-temp.js)
+/* 오늘의 증시온도 위젯 (js/market-temp.js, 2026-07-18 전면 개편)
  * 부호 색: 상승/개선=빨강 #d24f45, 하락/악화=파랑 #1261c4, 0/중립=회색 (사이트 공통 컬러 컨벤션)
- * 지표 카테고리 바 색: VIX=빨강, 수급=파랑, 상승비율=초록, 거래대금=주황, 환율·선물=슬레이트
+ * 등급 5색(스펙 지정, 등급필/게이지/기준표/레이더에 일괄 적용):
+ *   극단적공포 #1565C0, 공포 #42A5F5, 중립 #FFD54F, 탐욕 #FB8C00, 극단적탐욕 #E53935
  * 다크모드: html.dark #market-temp ... !important (9bolt 스킨 블랑켓 규칙 대응) */
 
 #market-temp {
@@ -17,6 +18,13 @@
   color: #888;
   font-size: 14px;
 }
+#market-temp .mt-hint-inline { padding: 8px 0; text-align: left; font-size: 12px; }
+
+#market-temp .mt-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 #market-temp .mt-card {
   padding: 18px 20px;
@@ -25,78 +33,153 @@
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
+#market-temp .mt-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 12px;
+}
 
+/* ---- 섹션 페이드인(순차 등장) ---- */
+#market-temp .mt-fade-in {
+  animation: mtFadeIn 0.45s ease both;
+}
+@keyframes mtFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* ---- 게이지 스윕/진행바 채움: 순수 CSS 애니메이션 (JS/rAF 의존 없음) ----
+   각 요소는 항상 inline style로 최종 정답 값(left:X%/width:X%)을 직접 갖고 있고,
+   --mt-target-left/--mt-target-width 커스텀 프로퍼티도 같은 값을 담고 있다. 애니메이션은
+   0에서 그 목표값(var(...))까지 스윕하는 시각효과일 뿐이라, 애니메이션이 아예 재생되지
+   않아도(prefers-reduced-motion, 오래된 브라우저 등) 요소는 처음부터 올바른 위치/폭으로
+   보인다 - js/market-temp.js가 한때 썼던 rAF 기반 방식은 백그라운드 탭 등 rAF가 아예
+   안 도는 환경에서 값이 0에 고정되는 문제가 실측됐음(2026-07-18), 그래서 이 방식으로 교체. */
+@keyframes mtSweepLeft { from { left: 0%; } to { left: var(--mt-target-left); } }
+@keyframes mtSweepWidth { from { width: 0; } to { width: var(--mt-target-width); } }
+#market-temp .mt-anim-left { animation: mtSweepLeft 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+#market-temp .mt-anim-width { animation: mtSweepWidth 0.6s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  #market-temp .mt-fade-in,
+  #market-temp .mt-anim-left,
+  #market-temp .mt-anim-width { animation: none; }
+}
+
+/* ---- ⓘ 툴팁 (native title -> data-tooltip 커스텀 팝오버) ---- */
 #market-temp .mt-info {
+  position: relative;
   display: inline-block;
   font-size: 11px;
   color: #aaa;
   cursor: help;
   margin-left: 1px;
 }
+#market-temp .mt-info::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 240px;
+  background: #222;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 6px 9px;
+  border-radius: 7px;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 20;
+}
+#market-temp .mt-info:hover::after { opacity: 1; }
 
-/* ---- 상단 헤더: 타이틀 + 전일 대비/1주일 평균/1개월 평균 통계 ---- */
-#market-temp .mt-head {
+/* ================= ① Hero ================= */
+#market-temp .mt-hero {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
-#market-temp .mt-head-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #666;
-  white-space: nowrap;
-}
-#market-temp .mt-stats {
+#market-temp .mt-hero-left { flex: 1 1 260px; min-width: 0; }
+#market-temp .mt-hero-title { font-size: 14px; font-weight: 700; color: #666; margin-bottom: 8px; }
+#market-temp .mt-hero-main { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+#market-temp .mt-score { font-size: 44px; font-weight: 800; line-height: 1.1; }
+#market-temp .mt-score-unit { font-size: 18px; font-weight: 600; margin-left: 2px; }
+#market-temp .mt-grade-pill { font-size: 14px; font-weight: 700; border-radius: 999px; padding: 4px 12px; }
+
+#market-temp .mt-hero-deltas {
   display: flex;
-  gap: 14px;
+  gap: 18px;
   flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #eee;
 }
-#market-temp .mt-stat { text-align: right; }
-#market-temp .mt-stat-label { font-size: 10px; color: #999; }
-#market-temp .mt-stat-value { font-size: 14px; font-weight: 700; color: #666; }
-#market-temp .mt-stat-sub { font-size: 10px; color: #bbb; }
-#market-temp .mt-stats-empty {
-  font-size: 11px;
-  color: #aaa;
+#market-temp .mt-hero-delta { display: flex; flex-direction: column; gap: 2px; }
+#market-temp .mt-hero-delta-label { font-size: 10.5px; color: #999; }
+#market-temp .mt-hero-delta-value { font-size: 14px; font-weight: 700; }
+#market-temp .mt-hero-delta-empty { font-size: 11px; color: #aaa; margin-top: 14px; padding-top: 12px; border-top: 1px dashed #eee; }
+
+#market-temp .mt-hero-right {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  padding-left: 18px;
+  border-left: 1px solid #f0f0f0;
   text-align: right;
 }
+#market-temp .mt-hero-signal-label { font-size: 11px; color: #999; }
+#market-temp .mt-hero-stars { font-size: 18px; letter-spacing: 2px; color: #FB8C00; }
+#market-temp .mt-hero-stars-empty { color: #e5e5e5; }
+#market-temp .mt-hero-signal-word { font-size: 16px; font-weight: 800; }
 
-/* ---- 메인 온도 숫자 + 등급 배지 ---- */
-#market-temp .mt-main {
+/* ================= ② AI 시장 브리핑 ================= */
+#market-temp .mt-ai-card { border-left: 3px solid #6366f1; }
+#market-temp .mt-ai-text { font-size: 13.5px; color: #444; margin: 0; }
+#market-temp .mt-ai-empty { color: #aaa; }
+
+/* ================= ③ 오늘 시장 영향요인 TOP5 ================= */
+#market-temp .mt-top5-list { display: flex; flex-direction: column; gap: 2px; }
+#market-temp .mt-top5-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  padding: 9px 4px;
+  border-bottom: 1px solid #f4f4f4;
+  font-size: 13.5px;
 }
-#market-temp .mt-score {
-  font-size: 40px;
-  font-weight: 800;
-  line-height: 1.1;
-}
-#market-temp .mt-score-unit {
-  font-size: 18px;
-  font-weight: 600;
-  margin-left: 2px;
-}
-#market-temp .mt-grade-pill {
-  font-size: 13px;
-  font-weight: 700;
-  color: #666;
+#market-temp .mt-top5-row:last-child { border-bottom: none; }
+#market-temp .mt-top5-rank {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   background: #f2f2f2;
-  border-radius: 999px;
-  padding: 3px 10px;
+  color: #888;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-#market-temp .mt-sub {
-  font-size: 12px;
-  color: #999;
-  margin: 4px 0 14px;
-}
+#market-temp .mt-top5-icon { flex: 0 0 auto; font-size: 15px; }
+#market-temp .mt-top5-label { flex: 1; color: #333; font-weight: 500; }
+#market-temp .mt-top5-value { flex: 0 0 auto; font-weight: 700; font-size: 13.5px; }
 
-/* ---- 온도 게이지 바 (0~40℃ 스케일 위 현재 위치 마커 + 말풍선 + 구간 라벨) ---- */
-#market-temp .mt-gauge { margin-bottom: 16px; }
+/* ================= ④ 온도 게이지 ================= */
+#market-temp .mt-gauge { margin: 0; }
 #market-temp .mt-gauge-bubble {
   position: relative;
   display: inline-block;
@@ -114,7 +197,6 @@
   position: relative;
   height: 30px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #1261c4 0%, #7fb5e8 22%, #ddd 50%, #f0a868 78%, #d24f45 100%);
 }
 #market-temp .mt-gauge-marker {
   position: absolute;
@@ -144,13 +226,91 @@
 #market-temp .mt-gauge-bands span:first-child { text-align: left; }
 #market-temp .mt-gauge-bands span:last-child { text-align: right; }
 
+/* ================= ⑤ 개별 지표 ================= */
+#market-temp .mt-bars { display: flex; flex-direction: column; gap: 10px; }
+#market-temp .mt-bar-row { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+#market-temp .mt-bar-topline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px 8px;
+}
+#market-temp .mt-bar-head { display: flex; align-items: center; gap: 3px; color: #666; line-height: 1.2; white-space: nowrap; }
+#market-temp .mt-bar-icon { font-size: 11px; }
+#market-temp .mt-bar-label { color: #666; }
+#market-temp .mt-bar-track { height: 14px; border-radius: 999px; background: #ddd; overflow: hidden; }
+#market-temp .mt-bar-fill { height: 100%; border-radius: 999px; }
+#market-temp .mt-bar-fill.mt-bar-vix { background: #d24f45; }
+#market-temp .mt-bar-fill.mt-bar-flow { background: #1261c4; }
+#market-temp .mt-bar-fill.mt-bar-rise { background: #2f9e6b; }
+#market-temp .mt-bar-fill.mt-bar-vol { background: #e08a3c; }
+#market-temp .mt-bar-fill.mt-bar-fx { background: #8a93a6; }
+#market-temp .mt-bar-value { color: #999; text-align: right; white-space: nowrap; }
+#market-temp .mt-bar-contrib { font-size: 11px; font-weight: 700; margin-left: 4px; }
+
+/* 부호 색상 - 상승/개선=빨강, 하락/악화=파랑, 0=회색 (사이트 공통 컬러 컨벤션) */
+#market-temp .mt-val-pos { color: #d24f45; font-weight: 600; }
+#market-temp .mt-val-neg { color: #1261c4; font-weight: 600; }
+#market-temp .mt-val-zero { color: #888; }
+
+/* 지표별 짧은 배지(예: "매도", "활발") - 위 부호색을 배경톤으로 재사용 */
+#market-temp .mt-pill { display: inline-block; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 7px; }
+#market-temp .mt-pill.mt-val-pos { background: #fbe4e1; color: #b3392f; }
+#market-temp .mt-pill.mt-val-neg { background: #e1ecfa; color: #0e4c96; }
+#market-temp .mt-pill.mt-val-zero { background: #eee; color: #888; }
+
+/* ================= ⑥ 최근 7일 스파크라인 ================= */
+#market-temp .mt-spark { width: 100%; height: 70px; display: block; overflow: visible; }
+#market-temp .mt-spark-path { }
+#market-temp .mt-spark-labels {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #999;
+}
+#market-temp .mt-spark-labels b { color: #333; font-weight: 700; }
+
+/* ================= ⑦ 시장 레이더 차트 ================= */
+#market-temp .mt-radar { width: 100%; max-width: 340px; display: block; margin: 0 auto; }
+#market-temp .mt-radar-grid { color: #e5e5e5; }
+#market-temp .mt-radar-label { font-size: 9.5px; fill: #888; }
+#market-temp .mt-radar-data { transition: opacity 0.3s ease; }
+
+/* ================= ⑧ 오늘 투자전략 ================= */
+#market-temp .mt-strategy-action { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+#market-temp .mt-strategy-bars { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+#market-temp .mt-strategy-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666; }
+#market-temp .mt-strategy-bar-row span { flex: 0 0 52px; }
+#market-temp .mt-strategy-bar-row b { flex: 0 0 36px; text-align: right; color: #333; }
+#market-temp .mt-strategy-bar { flex: 1; height: 10px; border-radius: 999px; background: #eee; overflow: hidden; }
+#market-temp .mt-strategy-bar-fill { height: 100%; border-radius: 999px; }
+#market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: #b0b8c4; }
+#market-temp .mt-strategy-note { font-size: 12px; color: #999; }
+
+/* ================= ⑨ 온도 기준표(카드형) ================= */
+#market-temp .mt-guide-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+#market-temp .mt-guide-card {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: center;
+}
+#market-temp .mt-guide-card-range { font-size: 12px; font-weight: 700; }
+#market-temp .mt-guide-card-label { font-size: 12.5px; color: #555; margin: 3px 0; }
+#market-temp .mt-guide-card-stars { font-size: 12px; letter-spacing: 1px; }
+#market-temp .mt-guide-stars-empty { color: #e5e5e5; }
+
+#market-temp .mt-updated { margin-top: 2px; font-size: 11px; color: #aaa; text-align: right; }
+
 /* ---- 카드 보기/히트맵 보기/시총비례 히트맵 탭 (js/sector-dashboard-v4.js의
    .sector-view-toggle과 동일한 라벨·톤 - 사용자에게 익숙한 패턴을 재사용) ---- */
-#market-temp .mt-view-toggle {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 14px;
-}
+#market-temp .mt-view-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
 #market-temp .mt-view-btn {
   font-family: inherit;
   font-size: 12.5px;
@@ -162,15 +322,9 @@
   color: #6b7280;
   cursor: pointer;
 }
-#market-temp .mt-view-btn.active {
-  background: #222;
-  color: #fff;
-  border-color: #222;
-}
+#market-temp .mt-view-btn.active { background: #222; color: #fff; border-color: #222; }
 #market-temp .mt-view-panel[hidden] { display: none; }
 
-/* 히트맵 보기 탭 - js/sector-dashboard-v4.js(SectorDashboard.renderHeatmapHtml)가 만든
-   .heatmap-grid/.heatmap-tile 마크업을 그대로 재사용(css/sector-dashboard-v3.css와 동일 스타일). */
 #market-temp .heatmap-grid {
   display: grid;
   width: 100%;
@@ -203,19 +357,9 @@
 #market-temp .heatmap-tile-price { font-size: 10.5px; font-weight: 500; color: #4b5563; }
 #market-temp .heatmap-tile-rate { font-size: 11px; font-weight: 700; color: #1f2937; }
 
-/* "오늘의 증시온도" 박스(.mt-card 첫 번째)와는 별개의 아래쪽 박스 - 종목 살펴보기(카드/히트맵/
-   시총비례 히트맵) 전용. .mt-card를 그대로 재사용해 같은 톤을 유지하되 온도 그라데이션
-   배경(mt-tone-*)은 안 붙으므로 기본 흰 배경 그대로 나온다. */
-#market-temp .mt-explore-card {
-  margin-top: 16px;
-}
+#market-temp .mt-explore-card { margin-top: 0; }
 
-/* 카드 보기 탭 - js/sector-dashboard-v4.js(SectorDashboard.renderCardsHtml)가 만든
-   .sector-cards-grid/.sector-card 마크업을 그대로 재사용(css/sector-dashboard-v3.css와 동일 스타일). */
-#market-temp .sector-cards-grid {
-  columns: 3 220px;
-  column-gap: 14px;
-}
+#market-temp .sector-cards-grid { columns: 3 220px; column-gap: 14px; }
 #market-temp .sector-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -225,42 +369,11 @@
   break-inside: avoid;
   margin-bottom: 14px;
 }
-#market-temp .sector-card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-#market-temp .sector-card-title::before {
-  content: "";
-  width: 4px;
-  height: 14px;
-  background: #2563eb;
-  border-radius: 2px;
-  display: inline-block;
-}
-#market-temp .sector-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 8px 0;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 13px;
-}
+#market-temp .sector-card-title { font-size: 14px; font-weight: 600; color: #111827; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+#market-temp .sector-card-title::before { content: ""; width: 4px; height: 14px; background: #2563eb; border-radius: 2px; display: inline-block; }
+#market-temp .sector-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
 #market-temp .sector-row:last-child { border-bottom: none; padding-bottom: 0; }
-#market-temp .sector-row-name {
-  color: #374151;
-  font-weight: 500;
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-right: 8px;
-}
+#market-temp .sector-row-name { color: #374151; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 8px; }
 #market-temp .sector-row > span:last-child { white-space: nowrap; }
 #market-temp .sector-row-price { color: #6b7280; margin-right: 6px; }
 #market-temp .sector-row-rate { font-weight: 600; }
@@ -268,155 +381,58 @@
 #market-temp .sector-row-rate.sector-down { color: #1261c4; }
 #market-temp .sector-row-rate.sector-flat { color: #9ca3af; }
 
-/* ---- 지표별 막대 ---- */
-#market-temp .mt-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-#market-temp .mt-bar-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-}
-#market-temp .mt-bar-topline {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 6px 8px;
-}
-#market-temp .mt-bar-head {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  color: #666;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-#market-temp .mt-bar-icon { font-size: 11px; }
-#market-temp .mt-bar-label { color: #666; }
-#market-temp .mt-bar-track {
-  height: 14px;
-  border-radius: 999px;
-  background: #ddd;
-  overflow: hidden;
-}
-#market-temp .mt-bar-fill {
-  height: 100%;
-  border-radius: 999px;
-}
-#market-temp .mt-bar-fill.mt-bar-vix { background: #d24f45; }
-#market-temp .mt-bar-fill.mt-bar-flow { background: #1261c4; }
-#market-temp .mt-bar-fill.mt-bar-rise { background: #2f9e6b; }
-#market-temp .mt-bar-fill.mt-bar-vol { background: #e08a3c; }
-#market-temp .mt-bar-fill.mt-bar-fx { background: #8a93a6; }
-#market-temp .mt-bar-value { color: #999; text-align: right; white-space: nowrap; }
-#market-temp .mt-bar-value small { color: #bbb; }
-
-/* 부호 색상 - 상승/개선=빨강, 하락/악화=파랑, 0=회색 (사이트 공통 컬러 컨벤션) */
-#market-temp .mt-val-pos { color: #d24f45; font-weight: 600; }
-#market-temp .mt-val-neg { color: #1261c4; font-weight: 600; }
-#market-temp .mt-val-zero { color: #888; }
-
-/* 지표별 짧은 배지(예: "매도", "활발") - 위 부호색을 배경톤으로 재사용 */
-#market-temp .mt-pill {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 1px 7px;
-}
-#market-temp .mt-pill.mt-val-pos { background: #fbe4e1; color: #b3392f; }
-#market-temp .mt-pill.mt-val-neg { background: #e1ecfa; color: #0e4c96; }
-#market-temp .mt-pill.mt-val-zero { background: #eee; color: #888; }
-
-/* ---- 하단 해석 가이드 박스 ---- */
-#market-temp .mt-guide {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #f7f7f7;
-}
-#market-temp .mt-guide-icon { font-size: 14px; }
-#market-temp .mt-guide-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: #888;
-  margin-bottom: 4px;
-}
-#market-temp .mt-guide-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 3px 10px;
-  font-size: 11px;
-  color: #777;
+/* ================= 모바일 대응 (2026-07-18 신규 - 기존엔 @media 블록 자체가 없었음) ================= */
+@media (max-width: 640px) {
+  #market-temp .mt-card { padding: 14px 14px; }
+  #market-temp .mt-hero { flex-direction: column; padding: 16px; }
+  #market-temp .mt-hero-right { align-items: flex-start; text-align: left; padding-left: 0; border-left: none; padding-top: 12px; border-top: 1px dashed #eee; width: 100%; }
+  #market-temp .mt-score { font-size: 34px; }
+  #market-temp .mt-hero-deltas { gap: 12px; }
+  #market-temp .mt-top5-row { font-size: 12.5px; }
+  #market-temp .mt-guide-grid-cards { grid-template-columns: repeat(2, 1fr); }
+  #market-temp .mt-radar { max-width: 260px; }
+  #market-temp .sector-cards-grid { columns: 1 100%; }
 }
 
-#market-temp .mt-updated {
-  margin-top: 12px;
-  font-size: 11px;
-  color: #aaa;
-  text-align: right;
-}
+/* ---- 온도 구간별 카드 배경 (Hero, 공포=한랭, 과열=온난 톤) ---- */
+#market-temp .mt-wrap.mt-tone-extreme-fear .mt-hero { background: linear-gradient(160deg, #dceeff 0%, #ffffff 65%); border-color: #b8daf5; }
+#market-temp .mt-wrap.mt-tone-fear .mt-hero { background: linear-gradient(160deg, #eaf4ff 0%, #ffffff 70%); border-color: #cfe6fa; }
+#market-temp .mt-wrap.mt-tone-neutral .mt-hero { background: #fff; }
+#market-temp .mt-wrap.mt-tone-greed .mt-hero { background: linear-gradient(160deg, #fff2e0 0%, #ffffff 70%); border-color: #f7d9b3; }
+#market-temp .mt-wrap.mt-tone-extreme-greed .mt-hero { background: linear-gradient(160deg, #ffe1d6 0%, #fff6f0 65%); border-color: #f6bda6; }
 
-/* ---- 온도 구간별 카드 배경 (공포=한랭, 과열=온난 톤) ---- */
-#market-temp .mt-card.mt-tone-extreme-fear {
-  background: linear-gradient(160deg, #dceeff 0%, #ffffff 65%);
-  border-color: #b8daf5;
-}
-#market-temp .mt-card.mt-tone-fear {
-  background: linear-gradient(160deg, #eaf4ff 0%, #ffffff 70%);
-  border-color: #cfe6fa;
-}
-#market-temp .mt-card.mt-tone-neutral {
-  background: #fff;
-}
-#market-temp .mt-card.mt-tone-greed {
-  background: linear-gradient(160deg, #fff2e0 0%, #ffffff 70%);
-  border-color: #f7d9b3;
-}
-#market-temp .mt-card.mt-tone-extreme-greed {
-  background: linear-gradient(160deg, #ffe1d6 0%, #fff6f0 65%);
-  border-color: #f6bda6;
-}
-
-/* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
+/* ================= 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ================= */
 html.dark #market-temp { color: #ddd !important; }
 html.dark #market-temp .mt-hint,
 html.dark #market-temp .mt-error { color: #999 !important; }
-html.dark #market-temp .mt-card {
+html.dark #market-temp .mt-card,
+html.dark #market-temp .mt-hero {
   background: #262626 !important;
   border-color: #3a3a3a !important;
 }
-html.dark #market-temp .mt-card.mt-tone-extreme-fear {
-  background: linear-gradient(160deg, #16324a 0%, #262626 65%) !important;
-  border-color: #2f5a80 !important;
-}
-html.dark #market-temp .mt-card.mt-tone-fear {
-  background: linear-gradient(160deg, #1c2e3f 0%, #262626 70%) !important;
-  border-color: #2a4a63 !important;
-}
-html.dark #market-temp .mt-card.mt-tone-greed {
-  background: linear-gradient(160deg, #3d2c14 0%, #262626 70%) !important;
-  border-color: #6b4a1f !important;
-}
-html.dark #market-temp .mt-card.mt-tone-extreme-greed {
-  background: linear-gradient(160deg, #4a2116 0%, #2e2624 65%) !important;
-  border-color: #7a3a26 !important;
-}
-html.dark #market-temp .mt-info { color: #777 !important; }
-html.dark #market-temp .mt-head-title { color: #aaa !important; }
-html.dark #market-temp .mt-stat-label { color: #777 !important; }
-html.dark #market-temp .mt-stat-value { color: #ccc !important; }
-html.dark #market-temp .mt-stat-sub { color: #666 !important; }
-html.dark #market-temp .mt-stats-empty { color: #777 !important; }
+html.dark #market-temp .mt-card-title { color: #aaa !important; }
+html.dark #market-temp .mt-info::after { background: #111 !important; }
+
+html.dark #market-temp .mt-wrap.mt-tone-extreme-fear .mt-hero { background: linear-gradient(160deg, #16324a 0%, #262626 65%) !important; border-color: #2f5a80 !important; }
+html.dark #market-temp .mt-wrap.mt-tone-fear .mt-hero { background: linear-gradient(160deg, #1c2e3f 0%, #262626 70%) !important; border-color: #2a4a63 !important; }
+html.dark #market-temp .mt-wrap.mt-tone-greed .mt-hero { background: linear-gradient(160deg, #3d2c14 0%, #262626 70%) !important; border-color: #6b4a1f !important; }
+html.dark #market-temp .mt-wrap.mt-tone-extreme-greed .mt-hero { background: linear-gradient(160deg, #4a2116 0%, #2e2624 65%) !important; border-color: #7a3a26 !important; }
+
+html.dark #market-temp .mt-hero-title { color: #aaa !important; }
 html.dark #market-temp .mt-score { color: #eee !important; }
-html.dark #market-temp .mt-grade-pill { background: #333 !important; color: #ccc !important; }
-html.dark #market-temp .mt-sub { color: #888 !important; }
+html.dark #market-temp .mt-hero-deltas { border-color: #3a3a3a !important; }
+html.dark #market-temp .mt-hero-delta-label { color: #777 !important; }
+html.dark #market-temp .mt-hero-delta-empty { color: #777 !important; border-color: #3a3a3a !important; }
+html.dark #market-temp .mt-hero-right { border-color: #3a3a3a !important; }
+html.dark #market-temp .mt-hero-signal-label { color: #888 !important; }
+
+html.dark #market-temp .mt-ai-text { color: #ccc !important; }
+html.dark #market-temp .mt-ai-empty { color: #777 !important; }
+
+html.dark #market-temp .mt-top5-row { border-color: #333 !important; }
+html.dark #market-temp .mt-top5-rank { background: #333 !important; color: #999 !important; }
+html.dark #market-temp .mt-top5-label { color: #ccc !important; }
+
 html.dark #market-temp .mt-bar-head { color: #999 !important; }
 html.dark #market-temp .mt-bar-label { color: #999 !important; }
 html.dark #market-temp .mt-bar-track { background: #3a3a3a !important; }
@@ -426,38 +442,42 @@ html.dark #market-temp .mt-bar-fill.mt-bar-rise { background: #4cc990 !important
 html.dark #market-temp .mt-bar-fill.mt-bar-vol { background: #f0a868 !important; }
 html.dark #market-temp .mt-bar-fill.mt-bar-fx { background: #a8b0bd !important; }
 html.dark #market-temp .mt-bar-value { color: #888 !important; }
-html.dark #market-temp .mt-bar-value small { color: #666 !important; }
 html.dark #market-temp .mt-val-pos { color: #ff6b5b !important; }
 html.dark #market-temp .mt-val-neg { color: #4d9fff !important; }
 html.dark #market-temp .mt-val-zero { color: #999 !important; }
 html.dark #market-temp .mt-pill.mt-val-pos { background: #4a2620 !important; color: #ff8f80 !important; }
 html.dark #market-temp .mt-pill.mt-val-neg { background: #1c3050 !important; color: #7cb3ff !important; }
 html.dark #market-temp .mt-pill.mt-val-zero { background: #333 !important; color: #aaa !important; }
+
 html.dark #market-temp .mt-gauge-bubble { background: #eee !important; color: #222 !important; }
 html.dark #market-temp .mt-gauge-marker { background: #eee !important; box-shadow: 0 0 0 2px #262626, 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
 html.dark #market-temp .mt-gauge-scale { color: #777 !important; }
 html.dark #market-temp .mt-gauge-bands { color: #666 !important; }
-html.dark #market-temp .mt-view-btn {
-  background: #2c2c2c !important;
-  color: #999 !important;
-  border-color: #3a3a3a !important;
-}
-html.dark #market-temp .mt-view-btn.active {
-  background: #eee !important;
-  color: #222 !important;
-  border-color: #eee !important;
-}
-html.dark #market-temp .sector-card {
-  background: #171e2f !important;
-  border-color: #263248 !important;
-  box-shadow: none !important;
-}
+
+html.dark #market-temp .mt-spark-labels { color: #777 !important; }
+html.dark #market-temp .mt-spark-labels b { color: #ddd !important; }
+
+html.dark #market-temp .mt-radar-grid { color: #3a3a3a !important; }
+html.dark #market-temp .mt-radar-label { fill: #888 !important; }
+
+html.dark #market-temp .mt-strategy-bar-row { color: #999 !important; }
+html.dark #market-temp .mt-strategy-bar-row b { color: #ddd !important; }
+html.dark #market-temp .mt-strategy-bar { background: #3a3a3a !important; }
+html.dark #market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: #5a6472 !important; }
+html.dark #market-temp .mt-strategy-note { color: #888 !important; }
+
+html.dark #market-temp .mt-guide-card { border-color: #3a3a3a !important; }
+html.dark #market-temp .mt-guide-card-label { color: #bbb !important; }
+html.dark #market-temp .mt-guide-stars-empty { color: #3a3a3a !important; }
+
+html.dark #market-temp .mt-updated { color: #777 !important; }
+
+html.dark #market-temp .mt-view-btn { background: #2c2c2c !important; color: #999 !important; border-color: #3a3a3a !important; }
+html.dark #market-temp .mt-view-btn.active { background: #eee !important; color: #222 !important; border-color: #eee !important; }
+
+html.dark #market-temp .sector-card { background: #171e2f !important; border-color: #263248 !important; box-shadow: none !important; }
 html.dark #market-temp .sector-card-title { color: #eaeef5 !important; }
 html.dark #market-temp .sector-row { border-bottom-color: #263248 !important; }
 html.dark #market-temp .sector-row-name { color: #eaeef5 !important; }
 html.dark #market-temp .sector-row-rate.sector-up { color: #ff6b6b !important; }
 html.dark #market-temp .sector-row-rate.sector-down { color: #4dabf7 !important; }
-html.dark #market-temp .mt-guide { background: #202020 !important; }
-html.dark #market-temp .mt-guide-title { color: #888 !important; }
-html.dark #market-temp .mt-guide-grid { color: #999 !important; }
-html.dark #market-temp .mt-updated { color: #777 !important; }

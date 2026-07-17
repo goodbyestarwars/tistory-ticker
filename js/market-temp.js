@@ -1,21 +1,19 @@
 /**
- * 오늘의 증시온도 위젯
- * GAS 프록시 ?marketTemp=1 호출 -> 사용자 지정 스펙(2026-07-14) 9개 지표(VIX20+수급20+
- * 거래대금15+평균등락률15+상승비율10+섹터강도10+52주신고저10+환율5+미국선물5=110점)를
- * 0~40℃로 환산(temp = 총점 × 40/실제만점, 서버가 계산해서 그대로 내려줌)해 온도 카드로
- * 렌더링. 코스피·코스닥 지수(시가총액 가중) 대신 섹터 풀 종목을 동일가중으로 써서
- * 대형주 몇 개가 지수를 왜곡하는 효과를 줄인 게 이 스펙의 핵심 취지.
- * 2026-07-13: 점수(점) 대신 온도(℃) 표시로 전환, 온도 구간별로 카드 배경색이 바뀜
- * (공포=한랭, 과열=온난 톤).
- * 2026-07-14: 지표별 원자료+배지(부호별 색상: 상승/개선=빨강, 하락/악화=파랑, 0=회색)를
- * 같이 표시, 온도 게이지 재설계(말풍선+구간 라벨), 지표별 아이콘/인포툴팁/카테고리 색상 바,
- * 상단 전일 대비·1주일 평균·1개월 평균 통계(서버가 logDailyMarketTemp_ 트리거로 매일
- * 쌓는 일별 기록 기반 - 등록 초기 며칠은 "수집 중" 표시), 하단 해석 가이드 박스 추가.
- * 같은날 후반: 외국인/기관 수급을 "수급" 하나로 통합(외국인75%+기관25% 가중), 268개
- * 평균등락률·상승비율(코스피/코스닥 통합)·섹터강도·52주 신고가/신저가로 배점 전면 개편.
- * 사용자 제공 목업 디자인을 이 사이트 미니멀 톤에 맞게 재구성.
- * 기존 AI 시황요약(js/sector-dashboard-v4.js의 ?marketAnalysis=1)과 같은 페이지에 병행 배치하는
- * 용도라 이 위젯 자체는 독립 컨테이너(#market-temp)에만 마운트하고 섹터 대시보드는 건드리지 않는다.
+ * 오늘의 증시온도 위젯 (2026-07-18 전면 개편)
+ * GAS 프록시 ?marketTemp=1 호출 -> 9개 지표(VIX20+수급20+거래대금15+평균등락률15+상승비율10
+ * +섹터강도10+52주신고저10+환율5+미국선물5=110점)를 0~40℃로 환산해 온도 카드로 렌더링하는
+ * 구조 자체는 유지. 이번 개편은 "정보는 있는데 3초 안에 안 읽힌다"는 피드백에 따라 CNN
+ * Fear&Greed Index 스타일의 대표 콘텐츠로 재구성한 것 - 백엔드 계산은 대부분 그대로 두고
+ * (gas/ticker-proxy.gs getMarketTemp), 응답에 recentDays(스파크라인용)와 지표별 band
+ * (계산식 투명성용) 필드만 추가했다.
+ *
+ * 섹션 순서: Hero(온도+등급+전일/주간/월간대비+투자시그널) -> AI 시장 브리핑 -> 오늘 시장
+ * 영향요인 TOP5 -> 온도 게이지 -> 개별 지표 -> 최근 7일 스파크라인 -> 시장 레이더 차트 ->
+ * 오늘 투자전략 -> 온도 기준표(카드형) -> (기존 유지) 카드보기/히트맵보기/시총비례 탐색.
+ *
+ * 투자시그널/투자전략은 "역발상형"(공포=매수 신호, CNN F&G 지수의 통상적 활용법)으로
+ * 매핑 - 사용자 확정. "Data Quality %" 같은 근거 없는 가짜 수치는 넣지 않고 실시간 배지 +
+ * 업데이트 시각만 표시하기로 함(사용자 확정).
  */
 (function (global) {
   'use strict';
@@ -29,35 +27,63 @@
   // 단위로 들어있는 값) / 'ratio'(상승·하락 종목수) / 'sectorCount'(섹터 강도) /
   // 'week52Count'(52주 신고가/신저가 개수) / 'flow'(외국인+기관 통합 수급 전용 포맷)
   // barClass: css/market-temp.css의 카테고리별 바 색상 클래스
+  // icon: 2026-07-18 스펙 지정 아이콘으로 통일(vix/수급/거래대금/신고가/섹터강도/상승비율/
+  // 환율/미국선물 8개는 스펙 명시 그대로, avgChange만 스펙에 없어 겹치지 않는 신규 아이콘 배정)
   var COMPONENT_META = [
-    { key: 'vix', label: 'VIX', max: 20, unit: 'index', icon: '📊', barClass: 'mt-bar-vix',
+    { key: 'vix', label: 'VIX', max: 20, unit: 'index', icon: '😨', barClass: 'mt-bar-vix',
       desc: '변동성지수(공포지수). 미국 S&P500 옵션의 내재변동성으로 산출 - 낮을수록 시장이 안정적이라는 뜻' },
-    { key: 'flow', label: '수급(외국인+기관)', max: 20, unit: 'flow', icon: '💰', barClass: 'mt-bar-flow',
+    { key: 'flow', label: '수급(외국인+기관)', max: 20, unit: 'flow', icon: '🏦', barClass: 'mt-bar-flow',
       desc: 'KODEX 200 최근 5일 순매수를 20일 평균과 비교, 외국인 75%+기관 25% 가중합산' },
-    { key: 'tradingValue', label: '거래대금', max: 15, unit: 'pct', icon: '📦', barClass: 'mt-bar-vol',
+    { key: 'tradingValue', label: '거래대금', max: 15, unit: 'pct', icon: '📊', barClass: 'mt-bar-vol',
       desc: '섹터 풀 종목 거래대금 합계를 최근 5거래일 평균과 비교(평소보다 활발하면 가점)' },
-    { key: 'avgChange', label: '평균등락률', max: 15, unit: 'pctDirect', icon: '📈', barClass: 'mt-bar-rise',
+    { key: 'avgChange', label: '평균등락률', max: 15, unit: 'pctDirect', icon: '💹', barClass: 'mt-bar-rise',
       desc: '섹터 풀 종목 동일가중(시가총액 가중 아님) 평균 등락률 - 일부 대형주만 오르는 상황을 지수보다 잘 잡아냄' },
-    { key: 'riseRatio', label: '상승비율', max: 10, unit: 'ratio', icon: '↗', barClass: 'mt-bar-rise',
+    { key: 'riseRatio', label: '상승비율', max: 10, unit: 'ratio', icon: '⚡', barClass: 'mt-bar-rise',
       desc: '섹터 풀(코스피+코스닥 통합) 상승·하락 종목 수 비율' },
     { key: 'sectorStrength', label: '섹터 강도', max: 10, unit: 'sectorCount', icon: '🏭', barClass: 'mt-bar-vol',
       desc: '각 섹터의 평균등락률·상승비율을 종합 - 강세 섹터가 많을수록 가점' },
-    { key: 'week52', label: '52주 신고가/신저가', max: 10, unit: 'week52Count', icon: '🚀', barClass: 'mt-bar-vix',
+    { key: 'week52', label: '52주 신고가/신저가', max: 10, unit: 'week52Count', icon: '📈', barClass: 'mt-bar-vix',
       desc: '섹터 풀 종목 중 52주 신고가·신저가 종목 수(VM이 하루 1회 미리 계산)' },
-    { key: 'exchange', label: '환율', max: 5, unit: 'pct', icon: '💲', barClass: 'mt-bar-fx',
+    { key: 'exchange', label: '환율', max: 5, unit: 'pct', icon: '💵', barClass: 'mt-bar-fx',
       desc: '원/달러 환율 전일 대비 등락률(원화 강세=환율 하락일수록 가점)' },
-    { key: 'usFutures', label: '미국 선물지수', max: 5, unit: 'pct', icon: '🌐', barClass: 'mt-bar-fx',
+    { key: 'usFutures', label: '미국 선물지수', max: 5, unit: 'pct', icon: '🌎', barClass: 'mt-bar-fx',
       desc: 'S&P500 E-mini 선물(ES=F) 등락률, 시간대별 가중치 적용 - 미국장 마감~한국장 개장 사이 선행지표' }
   ];
+  var COMPONENT_BY_KEY = {};
+  COMPONENT_META.forEach(function (m) { COMPONENT_BY_KEY[m.key] = m; });
+
+  // 레이더 차트 6축(사용자 스펙 명시 그대로) - COMPONENT_META의 서브셋을 재사용.
+  var RADAR_KEYS = ['vix', 'flow', 'tradingValue', 'exchange', 'usFutures', 'riseRatio'];
 
   // 사용자 지정 온도(℃) 구간 - tone은 css/market-temp.css의 카드 배경색 클래스와 매칭.
+  // color: 2026-07-18 스펙 지정 5색(등급 필/게이지/기준표/레이더 강조색에 일괄 적용).
   var GRADE_BANDS = [
-    { range: '0~10℃', emoji: '🧊', label: '극단적 공포', tone: 'extreme-fear' },
-    { range: '10~20℃', emoji: '🔵', label: '공포', tone: 'fear' },
-    { range: '20~28℃', emoji: '🟡', label: '중립', tone: 'neutral' },
-    { range: '28~35℃', emoji: '🟠', label: '탐욕', tone: 'greed' },
-    { range: '35~40℃', emoji: '🔥', label: '극단적 탐욕', tone: 'extreme-greed' }
+    { range: '0~10℃', emoji: '🧊', label: '극단적 공포', tone: 'extreme-fear', color: '#1565C0' },
+    { range: '10~20℃', emoji: '🔵', label: '공포', tone: 'fear', color: '#42A5F5' },
+    { range: '20~28℃', emoji: '🟡', label: '중립', tone: 'neutral', color: '#FFD54F' },
+    { range: '28~35℃', emoji: '🟠', label: '탐욕', tone: 'greed', color: '#FB8C00' },
+    { range: '35~40℃', emoji: '🔥', label: '극단적 탐욕', tone: 'extreme-greed', color: '#E53935' }
   ];
+  var GRADE_BY_TONE = {};
+  GRADE_BANDS.forEach(function (b) { GRADE_BY_TONE[b.tone] = b; });
+
+  // 역발상형 투자시그널(사용자 확정: 공포=매수 신호, CNN Fear&Greed 지수의 통상적 활용법).
+  var SIGNAL_BY_TONE = {
+    'extreme-fear': { label: '적극매수', stars: 5 },
+    'fear': { label: '매수', stars: 4 },
+    'neutral': { label: '관망', stars: 3 },
+    'greed': { label: '주의', stars: 2 },
+    'extreme-greed': { label: '위험', stars: 1 }
+  };
+
+  // 오늘 투자전략 카드(같은 역발상 논리) - 사용자 확정 룩업.
+  var STRATEGY_BY_TONE = {
+    'extreme-fear': { action: '적극 분할매수', stock: 80, cash: 20, note: '변동성 확대 구간 - 분할 대응 권장' },
+    'fear': { action: '분할매수', stock: 70, cash: 30, note: '수급 개선 여부 확인 필요' },
+    'neutral': { action: '관망', stock: 50, cash: 50, note: '방향성 탐색 구간' },
+    'greed': { action: '비중축소 검토', stock: 30, cash: 70, note: '단기 과열 신호 주의' },
+    'extreme-greed': { action: '현금 확보', stock: 10, cash: 90, note: '극단적 과열 - 조정 리스크 유의' }
+  };
 
   // opts.gaugeOnly: true면 카드보기/히트맵보기/시총트리맵 탐색카드(buildExploreCard) 없이
   // 온도 게이지 카드(buildCard)만 렌더링한다 - js/home-dashboard.js가 트리맵을 별도 카드로
@@ -74,24 +100,22 @@
           container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
           return;
         }
-        if (gaugeOnly) {
-          container.innerHTML = buildCard(data);
-          return;
-        }
-        container.innerHTML = buildCard(data) + buildExploreCard();
-        wireViewTabs(container);
+        container.innerHTML = buildCard(data) + (gaugeOnly ? '' : buildExploreCard());
+        wireAnimations(container, data);
+        loadAiBriefing(container);
+        if (!gaugeOnly) wireViewTabs(container);
       })
       .catch(function () {
         container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
       });
   }
 
-  function fetchMarketTemp() {
+  function fetchJson_(url) {
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
 
-    return fetch(GAS_TICKER_URL + '?marketTemp=1', hasAbort ? { signal: controller.signal } : {})
+    return fetch(url, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
         return r.json();
@@ -103,6 +127,33 @@
       .catch(function (err) {
         if (timer) clearTimeout(timer);
         throw err;
+      });
+  }
+
+  function fetchMarketTemp() {
+    return fetchJson_(GAS_TICKER_URL + '?marketTemp=1');
+  }
+
+  // AI 시장 브리핑은 별도 엔드포인트(Groq 호출이라 메인 온도 조회보다 느릴 수 있음) - 메인
+  // 카드 렌더링을 막지 않도록 init()에서 병렬이 아니라 카드가 이미 그려진 뒤 비동기로
+  // 채워넣는다(다른 페이지의 AI요약 박스와 동일한 패턴 - 실패해도 나머지 카드는 정상 표시).
+  function fetchMarketTempBriefing() {
+    return fetchJson_(GAS_TICKER_URL + '?marketTempBriefing=1');
+  }
+
+  function loadAiBriefing(container) {
+    var mount = container.querySelector('#mtAiBriefing');
+    if (!mount) return;
+    MarketTemp.fetchMarketTempBriefing()
+      .then(function (data) {
+        if (data && data.analysis) {
+          mount.innerHTML = '<p class="mt-ai-text">' + escapeHtml(data.analysis) + '</p>';
+        } else {
+          mount.innerHTML = '<p class="mt-ai-text mt-ai-empty">AI 브리핑을 생성하지 못했습니다.</p>';
+        }
+      })
+      .catch(function () {
+        mount.innerHTML = '<p class="mt-ai-text mt-ai-empty">AI 브리핑을 불러오지 못했습니다.</p>';
       });
   }
 
@@ -211,42 +262,137 @@
     }
   }
 
-  function buildStats(history) {
-    if (!history) {
-      return '<div class="mt-stats"><div class="mt-stats-empty">전일·주간·월간 비교 데이터 수집 중 (며칠 후부터 표시됩니다)</div></div>';
+  // 점수 기여도 = 점수 - 만점/2 (양수=온도 상승 방향/탐욕, 음수=하락 방향/공포).
+  // 개별 지표 행/TOP5 영향요인 카드가 공유하는 계산식 - GAS getMarketTempBriefing()의
+  // AI 프롬프트도 동일한 공식을 쓴다(숫자 불일치 방지).
+  function contribution(meta, comp) {
+    var score = comp && typeof comp.score === 'number' ? comp.score : meta.max / 2;
+    return score - meta.max / 2;
+  }
+
+  function fmtContribution(c) {
+    return (c > 0 ? '+' : c < 0 ? '' : '±') + c.toFixed(1) + '점';
+  }
+  function contribTone(c) {
+    return c > 0 ? 'mt-val-pos' : c < 0 ? 'mt-val-neg' : 'mt-val-zero';
+  }
+
+  // ---- ① Hero: 온도 + 등급 + 전일/주간/월간 대비 + 투자시그널 별점 ----
+
+  function buildHero(data) {
+    var grade = data.grade || { emoji: '', label: '', tone: 'neutral' };
+    var signal = SIGNAL_BY_TONE[grade.tone] || SIGNAL_BY_TONE.neutral;
+    var starsHtml = '<span class="mt-hero-stars">'
+      + '★'.repeat(signal.stars) + '<span class="mt-hero-stars-empty">' + '★'.repeat(5 - signal.stars) + '</span>'
+      + '</span>';
+
+    var deltasHtml;
+    if (data.history) {
+      var h = data.history;
+      var weekDelta = Math.round((data.temp - h.weekAvg) * 10) / 10;
+      var monthDelta = Math.round((data.temp - h.monthAvg) * 10) / 10;
+      function deltaChip(label, v) {
+        var tone = v > 0 ? 'mt-val-pos' : v < 0 ? 'mt-val-neg' : 'mt-val-zero';
+        var arrow = v > 0 ? '▲' : v < 0 ? '▼' : '-';
+        return '<div class="mt-hero-delta"><span class="mt-hero-delta-label">' + label + '</span>'
+          + '<span class="mt-hero-delta-value ' + tone + '">' + arrow + Math.abs(v).toFixed(1) + '℃</span></div>';
+      }
+      deltasHtml = deltaChip('어제 대비', h.dayChange) + deltaChip('지난주 대비', weekDelta) + deltaChip('지난달 대비', monthDelta);
+    } else {
+      deltasHtml = '<div class="mt-hero-delta-empty">전일·주간·월간 비교 데이터 수집 중 (며칠 후부터 표시됩니다)</div>';
     }
-    var dayTone = history.dayChange > 0 ? 'mt-val-pos' : history.dayChange < 0 ? 'mt-val-neg' : 'mt-val-zero';
-    var arrow = history.dayChange > 0 ? '▲' : history.dayChange < 0 ? '▼' : '-';
+
     return ''
-      + '<div class="mt-stats">'
-      + '<div class="mt-stat"><div class="mt-stat-label">전일 대비</div>'
-      + '<div class="mt-stat-value ' + dayTone + '">' + arrow + Math.abs(history.dayChange).toFixed(1) + '℃</div>'
-      + '<div class="mt-stat-sub">어제 ' + history.yesterday.toFixed(1) + '℃</div></div>'
-      + '<div class="mt-stat"><div class="mt-stat-label">1주일 평균</div>'
-      + '<div class="mt-stat-value">' + history.weekAvg.toFixed(1) + '℃</div>'
-      + '<div class="mt-stat-sub">지난 ' + history.weekDays + '일</div></div>'
-      + '<div class="mt-stat"><div class="mt-stat-label">1개월 평균</div>'
-      + '<div class="mt-stat-value">' + history.monthAvg.toFixed(1) + '℃</div>'
-      + '<div class="mt-stat-sub">지난 ' + history.monthDays + '일</div></div>'
+      + '<div class="mt-section mt-hero">'
+      + '<div class="mt-hero-left">'
+      + '<div class="mt-hero-title">🌡 오늘의 증시온도 <span class="mt-info" data-tooltip="시장이 과열되거나 침체된 정도를 온도로 보여드립니다.">ⓘ</span></div>'
+      + '<div class="mt-hero-main">'
+      // 2026-07-18: 초기 렌더 값을 "0.0"(애니메이션 시작점) 대신 이미 정답 온도로 그린다 -
+      // requestAnimationFrame이 안 도는 환경(백그라운드 탭에서 페이지가 로드되는 경우 등
+      // 실제로 존재함, 로컬 테스트에서 rAF가 전혀 안 도는 것을 실측 확인)에서도 항상 올바른
+      // 값이 보이게 하기 위함(count-up은 순수 시각효과, 실패해도 데이터는 정확해야 함).
+      + '<span class="mt-score" data-count-target="' + data.temp.toFixed(1) + '">' + data.temp.toFixed(1) + '<span class="mt-score-unit">℃</span></span>'
+      + '<span class="mt-grade-pill" style="background:' + grade.color + '22;color:' + grade.color + '">' + escapeHtml(grade.emoji) + ' ' + escapeHtml(grade.label) + '</span>'
+      + '</div>'
+      + '<div class="mt-hero-deltas">' + deltasHtml + '</div>'
+      + '</div>'
+      + '<div class="mt-hero-right">'
+      + '<div class="mt-hero-signal-label">오늘의 투자시그널</div>'
+      + starsHtml
+      + '<div class="mt-hero-signal-word" style="color:' + grade.color + '">' + escapeHtml(signal.label) + '</div>'
+      + '</div>'
       + '</div>';
   }
 
-  function buildGauge(temp) {
-    var pct = Math.max(0, Math.min(100, (temp / GAUGE_MAX_TEMP) * 100));
+  // ---- ② AI 시장 브리핑 (비동기로 채워짐 - loadAiBriefing 참고) ----
+
+  function buildAiBriefingShell() {
     return ''
-      + '<div class="mt-gauge">'
-      + '<div class="mt-gauge-bubble" style="left:' + pct.toFixed(1) + '%">' + temp.toFixed(1) + '℃</div>'
-      + '<div class="mt-gauge-track"><div class="mt-gauge-marker" style="left:' + pct.toFixed(1) + '%"></div></div>'
-      + '<div class="mt-gauge-scale"><span>0℃</span><span>10℃</span><span>20℃</span><span>28℃</span><span>35℃</span><span>40℃</span></div>'
-      + '<div class="mt-gauge-bands"><span>극단적 공포</span><span>공포</span><span>중립</span><span>탐욕</span><span>극단적 탐욕</span></div>'
+      + '<div class="mt-section mt-card mt-ai-card">'
+      + '<div class="mt-card-title">🤖 AI 시장 브리핑</div>'
+      + '<div id="mtAiBriefing"><div class="mt-hint mt-hint-inline">브리핑 생성 중...</div></div>'
       + '</div>';
   }
+
+  // ---- ③ 오늘 시장 영향요인 TOP5 ----
+
+  function buildTop5(data) {
+    var ranked = COMPONENT_META.map(function (meta) {
+      var comp = data.components && data.components[meta.key];
+      return { meta: meta, c: contribution(meta, comp) };
+    }).sort(function (a, b) { return Math.abs(b.c) - Math.abs(a.c); }).slice(0, 5);
+
+    var rows = ranked.map(function (r, i) {
+      return '<div class="mt-top5-row">'
+        + '<span class="mt-top5-rank">' + (i + 1) + '</span>'
+        + '<span class="mt-top5-icon">' + r.meta.icon + '</span>'
+        + '<span class="mt-top5-label">' + escapeHtml(r.meta.label) + '</span>'
+        + '<span class="mt-top5-value ' + contribTone(r.c) + '">' + fmtContribution(r.c) + '</span>'
+        + '</div>';
+    }).join('');
+
+    return ''
+      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card-title">🔥 오늘 시장 영향요인 TOP5</div>'
+      + '<div class="mt-top5-list">' + rows + '</div>'
+      + '</div>';
+  }
+
+  // ---- ④ 온도 게이지 ----
+
+  function buildGauge(temp) {
+    var pct = Math.max(0, Math.min(100, (temp / GAUGE_MAX_TEMP) * 100));
+    var stops = GRADE_BANDS.map(function (b, i) {
+      return b.color + ' ' + Math.round(i / (GRADE_BANDS.length - 1) * 100) + '%';
+    }).join(', ');
+    return ''
+      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card-title">증시온도 게이지</div>'
+      // 2026-07-18: 마커/버블 스윕은 순수 CSS 애니메이션(@keyframes mtSweepLeft, CSS
+      // 변수 --mt-target-left)으로 구현 - JS/rAF와 무관하게 항상 최종적으로 올바른
+      // left 값에 도달한다(rAF가 안 도는 환경에서도 baseline인 inline left:X%가 그대로
+      // 정답 위치를 보장, 애니메이션은 그 위에 얹히는 순수 시각효과일 뿐).
+      + '<div class="mt-gauge">'
+      + '<div class="mt-gauge-bubble mt-anim-left" style="left:' + pct.toFixed(1) + '%;--mt-target-left:' + pct.toFixed(1) + '%">' + temp.toFixed(1) + '℃</div>'
+      + '<div class="mt-gauge-track" style="background:linear-gradient(90deg,' + stops + ')">'
+      + '<div class="mt-gauge-marker mt-anim-left" style="left:' + pct.toFixed(1) + '%;--mt-target-left:' + pct.toFixed(1) + '%"></div>'
+      + '</div>'
+      + '<div class="mt-gauge-scale"><span>0℃</span><span>10℃</span><span>20℃</span><span>28℃</span><span>35℃</span><span>40℃</span></div>'
+      + '<div class="mt-gauge-bands"><span>극단적 공포</span><span>공포</span><span>중립</span><span>탐욕</span><span>극단적 탐욕</span></div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  // ---- ⑤ 개별 지표 ----
 
   function buildRow(meta, comp) {
     var score = comp && typeof comp.score === 'number' ? comp.score : 0;
     var pct = meta.max ? Math.max(0, Math.min(100, (score / meta.max) * 100)) : 0;
     var raw = formatRaw(meta, comp);
     var badge = classify(meta, comp);
+    var c = contribution(meta, comp);
+    var band = comp && comp.band ? comp.band : null;
+    var tooltip = meta.desc + (band ? ' — 현재 구간: ' + band : '');
 
     return ''
       + '<div class="mt-bar-row">'
@@ -254,17 +400,162 @@
       + '<span class="mt-bar-head">'
       + '<span class="mt-bar-icon">' + meta.icon + '</span>'
       + '<span class="mt-bar-label">' + escapeHtml(meta.label) + '</span>'
-      + '<span class="mt-info" title="' + escapeHtml(meta.desc) + '">ⓘ</span>'
+      + '<span class="mt-info" data-tooltip="' + escapeHtml(tooltip) + '">ⓘ</span>'
       + '</span>'
       + '<span class="mt-bar-value">'
       + (raw ? '<span class="' + raw.tone + '">' + escapeHtml(raw.text) + '</span> ' : '')
       + (badge ? '<span class="mt-pill ' + badge.tone + '">' + escapeHtml(badge.word) + '</span> ' : '')
-      + '<small>(' + score + '/' + meta.max + ')</small>'
+      + '<span class="mt-bar-contrib ' + contribTone(c) + '">' + fmtContribution(c) + '</span>'
       + '</span>'
       + '</div>'
       // 점수 0점은 폭 0%라 막대가 통째로 안 보여 "로딩 실패"처럼 오해받기 쉬워서, 이 경우만
       // 최소 4px 폭을 줘서 "0점으로 정상 렌더링됐다"는 걸 눈으로 구분할 수 있게 한다.
-      + '<div class="mt-bar-track"><div class="mt-bar-fill ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div></div>'
+      // 채움 애니메이션은 게이지와 동일하게 순수 CSS(@keyframes mtSweepWidth)로 처리.
+      + '<div class="mt-bar-track"><div class="mt-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div></div>'
+      + '</div>';
+  }
+
+  function buildBars(data) {
+    var rows = COMPONENT_META.map(function (meta) {
+      return buildRow(meta, data.components && data.components[meta.key]);
+    }).join('');
+    return ''
+      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card-title">📊 시장 구성 요소</div>'
+      + '<div class="mt-bars">' + rows + '</div>'
+      + '</div>';
+  }
+
+  // ---- ⑥ 최근 7일 스파크라인 ----
+
+  function buildSparkline(data) {
+    var days = data.recentDays || [];
+    if (days.length < 2) {
+      return ''
+        + '<div class="mt-section mt-card">'
+        + '<div class="mt-card-title">📈 최근 7일 증시온도</div>'
+        + '<div class="mt-stats-empty">추이 데이터 수집 중 (며칠 후부터 표시됩니다)</div>'
+        + '</div>';
+    }
+    var W = 600, H = 100, PAD = 8;
+    var temps = days.map(function (d) { return d.temp; });
+    var min = Math.min.apply(null, temps), max = Math.max.apply(null, temps);
+    var range = (max - min) || 1;
+    var stepX = (W - PAD * 2) / (days.length - 1);
+    var points = days.map(function (d, i) {
+      var x = PAD + i * stepX;
+      var y = H - PAD - ((d.temp - min) / range) * (H - PAD * 2);
+      return { x: x, y: y, temp: d.temp, date: d.date };
+    });
+    var pathD = points.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+    var lastColor = (GRADE_BY_TONE[gradeForTempClient_(temps[temps.length - 1]).tone] || {}).color || '#888';
+    var dots = points.map(function (p, i) {
+      var isLast = i === points.length - 1;
+      return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isLast ? 4 : 2.5) + '" fill="' + lastColor + '"'
+        + (isLast ? '' : ' opacity="0.5"') + '><title>' + escapeHtml(p.date) + ' ' + p.temp.toFixed(1) + '℃</title></circle>';
+    }).join('');
+    var recentLabels = points.slice(-3).reverse().map(function (p, i) {
+      var lbl = i === 0 ? '오늘' : i === 1 ? '어제' : '1주전';
+      return '<span>' + lbl + ' <b>' + p.temp.toFixed(1) + '</b></span>';
+    }).join('');
+
+    return ''
+      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card-title">📈 최근 ' + days.length + '일 증시온도</div>'
+      + '<svg class="mt-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">'
+      + '<path class="mt-spark-path mt-spark-draw" d="' + pathD + '" fill="none" stroke="' + lastColor + '" stroke-width="2.5"></path>'
+      + dots
+      + '</svg>'
+      + '<div class="mt-spark-labels">' + recentLabels + '</div>'
+      + '</div>';
+  }
+
+  // GAS gradeForTemp_와 동일한 밴드 - 프론트에서 과거 스파크라인 포인트의 색을 정할 때만
+  // 씀(서버가 각 포인트마다 grade를 안 내려주므로 클라이언트에서 동일 로직 재현).
+  function gradeForTempClient_(temp) {
+    for (var i = 0; i < GRADE_BANDS.length; i++) {
+      var b = GRADE_BANDS[i];
+      var upper = i === GRADE_BANDS.length - 1 ? Infinity : parseInt(b.range.split('~')[1], 10);
+      if (temp < upper || i === GRADE_BANDS.length - 1) return b;
+    }
+    return GRADE_BANDS[GRADE_BANDS.length - 1];
+  }
+
+  // ---- ⑦ 시장 레이더 차트 ----
+
+  function buildRadar(data) {
+    var cx = 150, cy = 150, R = 110;
+    var n = RADAR_KEYS.length;
+    function pointFor(i, ratio) {
+      var angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+      return { x: cx + Math.cos(angle) * R * ratio, y: cy + Math.sin(angle) * R * ratio };
+    }
+    // 배경 동심 육각형 그리드(20/40/60/80/100%)
+    var grid = [0.2, 0.4, 0.6, 0.8, 1.0].map(function (ratio) {
+      var pts = [];
+      for (var i = 0; i < n; i++) { var p = pointFor(i, ratio); pts.push(p.x.toFixed(1) + ',' + p.y.toFixed(1)); }
+      return '<polygon points="' + pts.join(' ') + '" fill="none" stroke="currentColor" class="mt-radar-grid"></polygon>';
+    }).join('');
+    // 축 라인 + 라벨
+    var axes = RADAR_KEYS.map(function (key, i) {
+      var meta = COMPONENT_BY_KEY[key];
+      var edge = pointFor(i, 1);
+      var labelPt = pointFor(i, 1.18);
+      return '<line x1="' + cx + '" y1="' + cy + '" x2="' + edge.x.toFixed(1) + '" y2="' + edge.y.toFixed(1) + '" stroke="currentColor" class="mt-radar-grid"></line>'
+        + '<text x="' + labelPt.x.toFixed(1) + '" y="' + labelPt.y.toFixed(1) + '" class="mt-radar-label" text-anchor="middle">' + meta.icon + ' ' + escapeHtml(meta.label.replace('(외국인+기관)', '')) + '</text>';
+    }).join('');
+    // 데이터 폴리곤(score/max*100 정규화 - 개별 지표 바와 동일 스케일)
+    var dataPts = RADAR_KEYS.map(function (key, i) {
+      var meta = COMPONENT_BY_KEY[key];
+      var comp = data.components && data.components[key];
+      var score = comp && typeof comp.score === 'number' ? comp.score : meta.max / 2;
+      var ratio = meta.max ? Math.max(0, Math.min(1, score / meta.max)) : 0.5;
+      var p = pointFor(i, ratio);
+      return p.x.toFixed(1) + ',' + p.y.toFixed(1);
+    }).join(' ');
+    var color = (GRADE_BY_TONE[(data.grade || {}).tone] || {}).color || '#6366f1';
+
+    return ''
+      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card-title">🕸 시장 레이더 차트</div>'
+      + '<svg class="mt-radar" viewBox="0 0 300 300">'
+      + grid + axes
+      + '<polygon points="' + dataPts + '" fill="' + color + '33" stroke="' + color + '" stroke-width="2" class="mt-radar-data"></polygon>'
+      + '</svg>'
+      + '</div>';
+  }
+
+  // ---- ⑧ 오늘 투자전략 ----
+
+  function buildStrategy(grade) {
+    var s = STRATEGY_BY_TONE[grade.tone] || STRATEGY_BY_TONE.neutral;
+    return ''
+      + '<div class="mt-section mt-card mt-strategy-card" style="border-left:4px solid ' + grade.color + '">'
+      + '<div class="mt-card-title">🎯 오늘의 전략</div>'
+      + '<div class="mt-strategy-action" style="color:' + grade.color + '">' + escapeHtml(s.action) + '</div>'
+      + '<div class="mt-strategy-bars">'
+      + '<div class="mt-strategy-bar-row"><span>주식비중</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill" style="width:' + s.stock + '%;background:' + grade.color + '"></div></div><b>' + s.stock + '%</b></div>'
+      + '<div class="mt-strategy-bar-row"><span>현금</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill mt-strategy-bar-cash" style="width:' + s.cash + '%"></div></div><b>' + s.cash + '%</b></div>'
+      + '</div>'
+      + '<div class="mt-strategy-note">⚠ ' + escapeHtml(s.note) + '</div>'
+      + '</div>';
+  }
+
+  // ---- ⑨ 온도 기준표(카드형) ----
+
+  function buildGuide() {
+    var cards = GRADE_BANDS.map(function (b, i) {
+      var stars = '★'.repeat(5 - i) + '<span class="mt-guide-stars-empty">' + '★'.repeat(i) + '</span>';
+      return '<div class="mt-guide-card" style="border-color:' + b.color + '55">'
+        + '<div class="mt-guide-card-range" style="color:' + b.color + '">' + b.range + '</div>'
+        + '<div class="mt-guide-card-label">' + escapeHtml(b.emoji) + ' ' + escapeHtml(b.label) + '</div>'
+        + '<div class="mt-guide-card-stars" style="color:' + b.color + '">' + stars + '</div>'
+        + '</div>';
+    }).join('');
+    return ''
+      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card-title">📖 증시온도 기준표</div>'
+      + '<div class="mt-guide-grid-cards">' + cards + '</div>'
       + '</div>';
   }
 
@@ -396,43 +687,96 @@
     if (panels.cards) loadCardsPanel(panels.cards);
   }
 
-  function buildGuide() {
-    var items = GRADE_BANDS.map(function (b) {
-      return '<span>' + b.range + ': ' + escapeHtml(b.label) + '</span>';
-    }).join('');
+  function buildCard(data) {
+    var grade = data.grade || { emoji: '', label: '', tone: 'neutral', color: '#888' };
+    var tone = grade.tone || 'neutral';
+
+    var sections = [
+      buildHero(data),
+      buildAiBriefingShell(),
+      buildTop5(data),
+      buildGauge(data.temp),
+      buildBars(data),
+      buildSparkline(data),
+      buildRadar(data),
+      buildStrategy(grade),
+      buildGuide()
+    ];
+
     return ''
-      + '<div class="mt-guide">'
-      + '<span class="mt-guide-icon">💡</span>'
-      + '<div class="mt-guide-body">'
-      + '<div class="mt-guide-title">해석 가이드</div>'
-      + '<div class="mt-guide-grid">' + items + '</div>'
-      + '</div>'
+      + '<div class="mt-wrap mt-tone-' + escapeHtml(tone) + '">'
+      + sections.join('')
+      + (data.updatedAt ? '<div class="mt-updated">🟢 실시간 · 업데이트 ' + escapeHtml(data.updatedAt) + '</div>' : '')
       + '</div>';
   }
 
-  function buildCard(data) {
-    var grade = data.grade || { emoji: '', label: '' };
-    var tone = grade.tone || 'neutral';
-    var rows = COMPONENT_META.map(function (meta) {
-      return buildRow(meta, data.components && data.components[meta.key]);
-    }).join('');
+  // ---- 애니메이션(count-up/게이지 스윕/진행바 채움/섹션 페이드인/스파크라인 draw) ----
+  // 이 저장소 최초의 RAF 기반 count-up. 별도 라이브러리 없이 직접 구현(ease-out cubic).
 
-    return ''
-      + '<div class="mt-card mt-tone-' + escapeHtml(tone) + '">'
-      + '<div class="mt-head">'
-      + '<div class="mt-head-title">🌡 오늘의 증시온도 <span class="mt-info" title="시장이 과열되거나 침체된 정도를 온도로 보여드립니다.">ⓘ</span></div>'
-      + buildStats(data.history)
-      + '</div>'
-      + '<div class="mt-main">'
-      + '<span class="mt-score">' + data.temp.toFixed(1) + '<span class="mt-score-unit">℃</span></span>'
-      + '<span class="mt-grade-pill">' + escapeHtml(grade.emoji) + ' ' + escapeHtml(grade.label) + '</span>'
-      + '</div>'
-      + '<div class="mt-sub">시장이 과열되거나 침체된 정도를 온도로 보여드립니다.</div>'
-      + buildGauge(data.temp)
-      + '<div class="mt-bars">' + rows + '</div>'
-      + buildGuide()
-      + (data.updatedAt ? '<div class="mt-updated">🔄 업데이트 ' + escapeHtml(data.updatedAt) + '</div>' : '')
-      + '</div>';
+  // rAF가 아예 안 도는 환경(백그라운드 탭 등)에서 숫자가 "0.0"(또는 중간값)에 멈춰있지
+  // 않도록 setTimeout 안전장치를 같이 건다 - setTimeout은 백그라운드에서도 스로틀링만
+  // 될 뿐 결국은 실행되므로(rAF는 아예 정지될 수 있는 것과 다름) durationMs 후에는
+  // 무조건 정답값으로 고정된다.
+  function countUp(el, target, durationMs) {
+    var start = null;
+    var done = false;
+    function finish() {
+      if (done) return;
+      done = true;
+      el.innerHTML = target.toFixed(1) + '<span class="mt-score-unit">℃</span>';
+    }
+    function tick(now) {
+      if (done) return;
+      if (start == null) start = now;
+      var t = Math.min(1, (now - start) / durationMs);
+      var eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = (target * eased).toFixed(1);
+      if (t < 1) requestAnimationFrame(tick);
+      else finish();
+    }
+    requestAnimationFrame(tick);
+    setTimeout(finish, durationMs + 200);
+  }
+
+  function wireAnimations(container) {
+    // 섹션 페이드인(순차 등장)
+    var sections = container.querySelectorAll('.mt-section');
+    sections.forEach(function (el, i) {
+      el.style.animationDelay = (i * 0.06) + 's';
+      el.classList.add('mt-fade-in');
+    });
+
+    // 게이지 마커/버블·진행바 스윕은 CSS @keyframes(mt-anim-left/mt-anim-width)로 처리되지만,
+    // "animation:...both"는 문서 타임라인이 아예 안 도는 환경(rAF와 마찬가지로 백그라운드
+    // 탭 등에서 실측 확인됨)에서 from 상태(0)에 영구히 멈춰 base inline left/width 값을
+    // 계속 덮어쓴다 - setTimeout으로 애니메이션 클래스를 떼어내 base 값(이미 정답)이
+    // 그대로 드러나게 하는 안전장치(countUp/스파크라인과 동일한 이유).
+    setTimeout(function () {
+      container.querySelectorAll('.mt-anim-left, .mt-anim-width').forEach(function (el) {
+        el.classList.remove('mt-anim-left', 'mt-anim-width');
+      });
+    }, 900);
+
+    // Hero 온도 count-up
+    var scoreEl = container.querySelector('[data-count-target]');
+    if (scoreEl) {
+      var target = parseFloat(scoreEl.getAttribute('data-count-target'));
+      if (!isNaN(target)) countUp(scoreEl, target, 800);
+    }
+
+    // 스파크라인 draw-on-load(stroke-dasharray 트릭). rAF가 안 도는 환경(백그라운드 탭 등)
+    // 에서 선이 영원히 안 그려진 채로 남는 걸 막기 위해 setTimeout 안전장치를 같이 건다
+    // (countUp과 동일한 이유 - 위 주석 참고).
+    var sparkPath = container.querySelector('.mt-spark-draw');
+    if (sparkPath && sparkPath.getTotalLength) {
+      var len = sparkPath.getTotalLength();
+      var revealed = false;
+      function reveal() { if (revealed) return; revealed = true; sparkPath.style.strokeDashoffset = '0'; }
+      sparkPath.style.strokeDasharray = len;
+      sparkPath.style.strokeDashoffset = len;
+      requestAnimationFrame(function () { requestAnimationFrame(reveal); });
+      setTimeout(reveal, 1000);
+    }
   }
 
   function escapeHtml(s) {
@@ -443,7 +787,8 @@
 
   var MarketTemp = {
     init: init,
-    fetchMarketTemp: fetchMarketTemp
+    fetchMarketTemp: fetchMarketTemp,
+    fetchMarketTempBriefing: fetchMarketTempBriefing
   };
   global.MarketTemp = MarketTemp;
 

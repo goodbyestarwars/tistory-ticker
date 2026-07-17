@@ -42,6 +42,10 @@ function doGet(e) {
     return jsonResponse(getMarketTemp());
   }
 
+  if (params.marketTempBriefing === '1') {
+    return jsonResponse(getMarketTempBriefing());
+  }
+
   if (params.bubble === '1') {
     return jsonResponse(getMarketcapBubble());
   }
@@ -972,6 +976,7 @@ function getMarketTemp() {
       exchange: fx, usFutures: futures
     },
     history: computeMarketTempHistory_(temp),
+    recentDays: computeMarketTempSparkline_(temp),
     updatedAt: formatKstTime(Date.now())
   };
 
@@ -1037,6 +1042,59 @@ function computeMarketTempHistory_(currentTemp) {
   };
 }
 
+// 2026-07-18: "최근 7일 증시온도" 스파크라인용 - computeMarketTempHistory_와 같은 일별
+// 기록(MT_DAILY_HISTORY_KEY)을 읽어 최근 6일(오늘 이전) + 오늘(currentTemp)을 이어붙여
+// 최대 7포인트를 반환한다. 기록이 없으면(트리거 등록 초기) 오늘 1포인트만 반환 - 프론트는
+// 2포인트 미만이면 "수집 중" 처리(history가 null일 때와 동일한 패턴).
+function computeMarketTempSparkline_(currentTemp) {
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty(MT_DAILY_HISTORY_KEY);
+  var hist = raw ? JSON.parse(raw) : [];
+  var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
+  var priorDays = hist.filter(function (h) { return h.date !== today; }).slice(-6);
+  return priorDays.concat([{ date: today, temp: currentTemp }]);
+}
+
+// 2026-07-18: "AI 시장 브리핑" - 오늘 온도에 가장 큰 영향을 준 TOP5 요인(기여도 = 점수 -
+// 만점/2, 양수=탐욕 방향/음수=공포 방향 - 프론트 js/market-temp.js와 동일한 계산식)을
+// 프롬프트에 정확한 수치로 명시해 AI가 숫자를 지어내지 않게 한다(코스피 100배 버그 전례 -
+// VM 응답을 유일한 소스로 삼는 기존 원칙과 동일하게 여기선 이 TOP5 계산 결과를 유일한
+// 소스로 프롬프트에 박음). getMarketTemp()와 같은 30분 캐시 주기.
+function getMarketTempBriefing() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'market_temp_briefing_v1';
+  var cached = cache.get(cacheKey);
+  if (cached) return { analysis: cached };
+
+  var data = safeCall(getMarketTemp);
+  if (!data) return { analysis: null };
+
+  var LABELS = {
+    vix: 'VIX', flow: '수급(외국인+기관)', tradingValue: '거래대금', avgChange: '평균등락률',
+    riseRatio: '상승비율', sectorStrength: '섹터강도', week52: '52주 신고가/신저가',
+    exchange: '환율', usFutures: '미국 선물지수'
+  };
+  var contributions = Object.keys(MT_COMPONENT_MAX).map(function (key) {
+    var comp = data.components[key];
+    var score = comp && typeof comp.score === 'number' ? comp.score : MT_COMPONENT_MAX[key] / 2;
+    return { label: LABELS[key], contribution: score - MT_COMPONENT_MAX[key] / 2 };
+  }).sort(function (a, b) { return Math.abs(b.contribution) - Math.abs(a.contribution); }).slice(0, 5);
+
+  var lines = contributions.map(function (c) {
+    return c.label + ' ' + (c.contribution >= 0 ? '+' : '') + c.contribution.toFixed(1) + '점';
+  });
+
+  var prompt = '오늘 국내 증시 "온도"는 ' + data.temp.toFixed(1) + '℃(' + data.grade.label + ') 입니다' +
+    '(0~40 스케일, 낮을수록 공포·높을수록 탐욕). 오늘 온도에 가장 큰 영향을 준 요인 TOP5' +
+    '(점수는 중립 대비 기여도, 양수=탐욕 방향/음수=공포 방향)는 다음과 같습니다: ' + lines.join(', ') + '. ' +
+    '이 수치만 근거로, 왜 오늘 시장이 이런 상태인지 한국어 평문 3~5문장으로 설명해줘(제공되지 않은 ' +
+    '다른 수치나 종목명을 지어내지 말고, 위 수치만 언급). 문장 외 다른 말은 붙이지 마.';
+
+  var analysis = safeCall(function () { return callGroq(prompt); });
+  cache.put(cacheKey, analysis || '', analysis ? MARKET_TEMP_CACHE_TTL : 120);
+  return { analysis: analysis };
+}
+
 function fetchVix_() {
   var res = UrlFetchApp.fetch(VIX_URL, {
     muteHttpExceptions: true,
@@ -1049,10 +1107,12 @@ function fetchVix_() {
 }
 
 // VIX는 낮을수록 안정(고득점) - 구간 경계는 일반적인 VIX 해석(15/20/25/30) 기준. 최대 20점.
+// band: 프론트 "계산식 투명성" 툴팁용(2026-07-18 추가) - 점수 산정에 쓰인 구간 문자열.
 function scoreVix_(vix) {
-  if (vix == null) return { score: 10, value: null, note: 'VIX 조회 실패 - 중립 처리' };
+  if (vix == null) return { score: 10, value: null, note: 'VIX 조회 실패 - 중립 처리', band: '조회 실패' };
   var score = vix < 15 ? 20 : vix < 20 ? 16 : vix < 25 ? 10 : vix < 30 ? 5 : 0;
-  return { score: score, value: vix };
+  var band = vix < 15 ? '15 미만' : vix < 20 ? '15~20' : vix < 25 ? '20~25' : vix < 30 ? '25~30' : '30 이상';
+  return { score: score, value: vix, band: band };
 }
 
 // KODEX 200 외국인/기관 5일 합산 순매매를, 그 종목 자신의 최근 20일 평균 일별 순매매
@@ -1093,7 +1153,8 @@ function computeCombinedFlowScore_() {
     score: score,
     foreign: { score100: foreignScore100, ratio: foreignR ? foreignR.ratio : null, v5: foreignR ? foreignR.v5 : null },
     inst: { score100: instScore100, ratio: instR ? instR.ratio : null, v5: instR ? instR.v5 : null },
-    note: 'KODEX 200(069500) 5일 합산 수급 기준, 외국인75%+기관25% 가중합산'
+    note: 'KODEX 200(069500) 5일 합산 수급 기준, 외국인75%+기관25% 가중합산',
+    band: '가중 순매수강도 ' + Math.round(combined100) + '%(중립50%)'
   };
 }
 
@@ -1108,7 +1169,8 @@ function computeRiseRatioScore_(quotes) {
   var total = up + down;
   var ratio = total ? up / total : 0.5;
   var score = ratio >= 0.7 ? 10 : ratio >= 0.55 ? 8 : ratio >= 0.45 ? 5 : ratio >= 0.3 ? 3 : 0;
-  return { score: score, ratio: ratio, up: up, down: down, total: total };
+  var band = ratio >= 0.7 ? '70% 이상' : ratio >= 0.55 ? '55~70%' : ratio >= 0.45 ? '45~55%' : ratio >= 0.3 ? '30~45%' : '30% 미만';
+  return { score: score, ratio: ratio, up: up, down: down, total: total, band: band };
 }
 
 // 섹터 풀 종목의 등락률을 동일가중(Equal Weight, 시가총액 가중 아님) 평균 - 최대 15점.
@@ -1119,7 +1181,8 @@ function computeAvgChangeScore_(quotes) {
   quotes.forEach(function (q) { sum += (q.changeRate || 0); });
   var avg = sum / quotes.length;
   var score = avg >= 2 ? 15 : avg >= 1 ? 12 : avg >= 0 ? 8 : avg >= -1 ? 4 : 0;
-  return { score: score, avgChangeRate: avg };
+  var band = avg >= 2 ? '+2% 이상' : avg >= 1 ? '+1~2%' : avg >= 0 ? '0~+1%' : avg >= -1 ? '-1~0%' : '-1% 미만';
+  return { score: score, avgChangeRate: avg, band: band };
 }
 
 // 섹터 강도(10점) - 각 섹터(data/sectors-v3.js의 업종 분류)의 평균등락률·상승비율을 종합.
@@ -1161,7 +1224,10 @@ function computeSectorStrengthScore_(quotes) {
   });
 
   var score = Math.max(0, Math.min(10, Math.round(strongCount / (sectorNames.length * 2) * 10)));
-  return { score: score, sectorCount: sectorNames.length, strongCount: strongCount };
+  return {
+    score: score, sectorCount: sectorNames.length, strongCount: strongCount,
+    band: '강세포인트 ' + strongCount + '/' + (sectorNames.length * 2)
+  };
 }
 
 // 52주 신고가/신저가(10점) - VM(week52_scan.py)이 섹터 풀 대상 하루 1회 미리 계산해둔
@@ -1174,7 +1240,10 @@ function computeWeek52Score_() {
   }
   var diff = w.newHighCount - w.newLowCount;
   var score = Math.max(0, Math.min(10, Math.round(5 + diff * 0.3)));
-  return { score: score, newHigh: w.newHighCount, newLow: w.newLowCount, scanned: w.scanned };
+  return {
+    score: score, newHigh: w.newHighCount, newLow: w.newLowCount, scanned: w.scanned,
+    band: '신고가-신저가 차이 ' + (diff > 0 ? '+' : '') + diff
+  };
 }
 
 // 섹터 풀 종목의 가격x거래량 합산(대금 근사치)을 PropertiesService에 최근 5거래일(오늘 제외)
@@ -1206,8 +1275,10 @@ function computeVolumeScore_(quotes) {
   var avg5 = priorEntries.reduce(function (s, e) { return s + e.total; }, 0) / priorEntries.length;
   var relative = avg5 > 0 ? today / avg5 : 1;
   var score = relative >= 1.3 ? 15 : relative >= 1.1 ? 11 : relative >= 0.9 ? 7 : relative >= 0.7 ? 4 : 0;
+  var band = relative >= 1.3 ? '평균대비 130% 이상' : relative >= 1.1 ? '평균대비 110~130%'
+    : relative >= 0.9 ? '평균대비 90~110%' : relative >= 0.7 ? '평균대비 70~90%' : '평균대비 70% 미만';
 
-  return { score: score, today: today, avg5: avg5, relative: relative };
+  return { score: score, today: today, avg5: avg5, relative: relative, band: band };
 }
 
 // 원/달러 환율 - 전일대비 등락률로 점수화(원화 약세=환율 상승은 통상 외국인 이탈/악재로
@@ -1215,9 +1286,9 @@ function computeVolumeScore_(quotes) {
 // 바뀌어 기준 삼기 어려워, 하루 변동률만 본다. 최대 5점(중립 2.5점).
 function computeExchangeScore_() {
   var fx = safeCall(function () { return fetchExchange('FX_USDKRW'); });
-  if (!fx) return { score: 2.5, note: '환율 조회 실패 - 중립 처리' };
+  if (!fx) return { score: 2.5, note: '환율 조회 실패 - 중립 처리', band: '조회 실패' };
   var score = Math.max(0, Math.min(5, Math.round((2.5 - fx.changeRate) * 10) / 10));
-  return { score: score, changeRate: fx.changeRate, price: fx.price };
+  return { score: score, changeRate: fx.changeRate, price: fx.price, band: '전일대비 ' + (fx.changeRate >= 0 ? '+' : '') + fx.changeRate.toFixed(2) + '%' };
 }
 
 // 09:00~11:00=100%, 11:00~13:00=70%, 13:00~장마감(15:30)=30%, 장마감 후=제외(null - 그날
@@ -1239,21 +1310,22 @@ function computeUsFuturesScore_() {
   var res = safeCall(function () {
     return UrlFetchApp.fetch(US_FUTURES_URL, { muteHttpExceptions: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
   });
-  if (!res || res.getResponseCode() !== 200) return { score: 2.5, note: '미국 선물지수 조회 실패 - 중립 처리' };
+  if (!res || res.getResponseCode() !== 200) return { score: 2.5, note: '미국 선물지수 조회 실패 - 중립 처리', band: '조회 실패' };
   var meta = safeCall(function () {
     var body = JSON.parse(res.getContentText('UTF-8'));
     return body.chart.result[0].meta;
   });
   if (!meta || typeof meta.regularMarketPrice !== 'number' || !meta.previousClose) {
-    return { score: 2.5, note: '미국 선물지수 조회 실패 - 중립 처리' };
+    return { score: 2.5, note: '미국 선물지수 조회 실패 - 중립 처리', band: '조회 실패' };
   }
   var changePct = (meta.regularMarketPrice - meta.previousClose) / meta.previousClose * 100;
   var weight = usFuturesTimeWeight_();
   if (weight === null) {
-    return { score: 2.5, changePct: changePct, price: meta.regularMarketPrice, note: '장 종료 후 - 중립 처리' };
+    return { score: 2.5, changePct: changePct, price: meta.regularMarketPrice, note: '장 종료 후 - 중립 처리', band: '장 종료 후(중립)' };
   }
   var score = Math.max(0, Math.min(5, Math.round((2.5 + changePct * weight) * 10) / 10));
-  return { score: score, changePct: changePct, price: meta.regularMarketPrice, timeWeight: weight };
+  return { score: score, changePct: changePct, price: meta.regularMarketPrice, timeWeight: weight,
+    band: (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%(가중치' + Math.round(weight * 100) + '%)' };
 }
 
 // 온도(℃) 구간 - 사용자 지정 밴드: 0~10 극도의공포 / 10~20 공포 / 20~28 중립 / 28~35 낙관 / 35+ 과열.
