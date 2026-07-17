@@ -59,49 +59,63 @@
 .qi-page-btn:disabled { opacity: 0.3; cursor: default; }
 .qi-wrap.qi-collapsed .qi-page-btn { display: none; }
 
-/* 2026-07-17: 정사각형 카드(108x100, 텍스트 위/차트 아래)를 가로로 넓은 직사각형으로
-   변경(사용자 요청 - 참고 이미지처럼). 텍스트(라벨/가격/등락)는 왼쪽 열, 차트는 오른쪽
-   열에 세로 전체 높이로 배치 - DOM 순서는 그대로 두고 grid-column/row만으로 재배치한다. */
+/* 2026-07-17(3차): 네이버 증시 위젯 스타일로 재구성(사용자 요청 - 참고 이미지와 "완전
+   네이버 스타일로") - 국기/원자재 아이콘 + 라벨 + 장중·장마감 표시를 맨 위 한 줄에 놓고,
+   그 아래 가격/등락, 맨 아래 차트를 카드 폭 전체로 깔아 세로로 쌓는다(전 버전의 텍스트
+   좌/차트 우 2열 배치를 되돌림). */
 .qi-card {
   flex: 0 0 auto;
   width: 208px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 3px 10px;
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(64px, 1fr);
-  grid-template-rows: auto auto 1fr;
-  column-gap: 10px;
-  align-items: center;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
   cursor: grab;
 }
 .qi-card.qi-dragging { opacity: 0.4; }
 
+.qi-card-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.qi-card-flag {
+  font-size: 10px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
 .qi-card-label {
-  grid-column: 1;
-  grid-row: 1;
   font-size: 10px;
   font-weight: 700;
   color: #888;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.qi-card-status {
+  font-size: 9px;
+  font-weight: 600;
+  color: #aaa;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .qi-card-price {
-  grid-column: 1;
-  grid-row: 2;
   font-size: 13px;
   font-weight: 700;
   color: #222;
   line-height: 1.15;
   white-space: nowrap;
+  margin-top: 1px;
 }
 
 .qi-card-change {
-  grid-column: 1;
-  grid-row: 3;
-  align-self: start;
   font-size: 10px;
   font-weight: 600;
   color: #888;
@@ -110,10 +124,9 @@
 }
 
 .qi-card-chart {
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  align-self: stretch;
+  flex: 1;
   min-height: 0;
+  margin-top: 2px;
 }
 
 .qi-pos { color: #d24f45; }
@@ -132,6 +145,15 @@
   padding-left: 4px;
   border-left: 1px solid #f0f0f0;
 }
+
+.qi-all-link {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.qi-all-link:hover { color: #222; text-decoration: underline; }
 
 .qi-collapse-btn {
   width: 26px;
@@ -199,7 +221,8 @@
 }
 @media (max-width: 640px) {
   .qi-wrap { padding: 6px 8px; gap: 6px; }
-  .qi-card { width: 168px; grid-template-columns: minmax(0, auto) minmax(48px, 1fr); }
+  .qi-card { width: 148px; }
+  .qi-all-link { display: none; }
 }
 
 body.iframe-mode .qi-wrap { display: none !important; }
@@ -209,8 +232,11 @@ html.dark .qi-wrap { background: #1a1a1a !important; border-color: #2a2a2a !impo
 html.dark .qi-controls { border-color: #333 !important; }
 html.dark .qi-card { background: #262626 !important; border-color: #3a3a3a !important; }
 html.dark .qi-card-label { color: #999 !important; }
+html.dark .qi-card-status { color: #777 !important; }
 html.dark .qi-card-price { color: #eee !important; }
 html.dark .qi-card-change { color: #999 !important; }
+html.dark .qi-all-link { color: #aaa !important; }
+html.dark .qi-all-link:hover { color: #eee !important; }
 html.dark .qi-pos { color: #ff6b5b !important; }
 html.dark .qi-neg { color: #4d9fff !important; }
 html.dark .qi-zero { color: #999 !important; }

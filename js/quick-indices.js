@@ -11,7 +11,7 @@
  * 폭/위치: 처음엔 뷰포트 전체 폭을 썼는데 "화면을 너무 full로 쓴다"는 피드백을 받아
  * .main-layout과 동일한 max-width로 맞췄다(css의 .qi-wrap 참고).
  *
- * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/74px로
+ * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/100px로
  * 바꿔서 그 값을 그대로 아래 콘텐츠 좌표 계산에 재사용한다(style.css :root 주석 참고).
  * 페이지 로드 시 깜빡임 없이 바로 반영되도록 DOMContentLoaded를 기다리지 않고
  * 스크립트가 평가되는 즉시(동기) documentElement에 세팅한다.
@@ -52,7 +52,7 @@
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
   var COLLAPSE_KEY = 'qi_collapsed_v1';
-  var HEIGHT_EXPANDED = '74px';
+  var HEIGHT_EXPANDED = '100px';
   var HEIGHT_COLLAPSED = '40px';
   var REFRESH_MS = 60 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
@@ -84,6 +84,38 @@
   var OPTION_BY_KEY = {};
   OPTIONS.forEach(function (o) { OPTION_BY_KEY[o.key] = o; });
   var DEFAULT_SELECTED = ['kospi', 'kosdaq', 'usdkrw', 'btc'];
+  var OVERNIGHT_MARKET_URL = 'https://ghlee.tistory.com/pages/overnight-market';
+
+  // 네이버 스타일 참고 - 카드 상단에 국기/원자재 아이콘을 붙인다(2026-07-17).
+  var FLAG_BY_KEY = {
+    kospi: '🇰🇷', kosdaq: '🇰🇷', kospi_night: '🇰🇷',
+    usdkrw: '💵', btc: '🪙',
+    nasdaq: '🇺🇸', sp500: '🇺🇸', dow: '🇺🇸', sox: '🇺🇸', vix: '🇺🇸',
+    wti: '🛢️'
+  };
+
+  // 장중/장마감 표시(네이버 스타일). 공휴일 캘린더가 없어 요일+시간만으로 근사한다 -
+  // 코스피/코스닥은 KRX 정규장(평일 09:00~15:30 KST), 코스피 야간선물은 대략 평일
+  // 18:00~익일 05:00, 나머지(해외선물/원자재/환율/코인)는 사실상 24시간에 가까워
+  // 주말만 장마감으로 취급한다. 정확한 거래소 캘린더(공휴일 등)는 반영하지 않은
+  // 근사치라 실제와 몇 분~하루 단위로 어긋날 수 있음을 감안할 것.
+  function marketStatus(key) {
+    // Date.now()는 방문자 위치와 무관하게 항상 UTC epoch ms라서, 여기에 9시간만 더하면
+    // 방문자의 로컬 시간대(getTimezoneOffset)와 상관없이 정확한 KST 시각이 나온다.
+    var kst = new Date(Date.now() + 9 * 60 * 60000);
+    var day = kst.getUTCDay();
+    var mins = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+    var isWeekday = day >= 1 && day <= 5;
+
+    if (key === 'kospi' || key === 'kosdaq') {
+      return (isWeekday && mins >= 9 * 60 && mins < 15 * 60 + 30) ? '실시간' : '장마감';
+    }
+    if (key === 'kospi_night') {
+      return (mins >= 18 * 60 || mins < 5 * 60) ? '실시간' : '장마감';
+    }
+    if (key === 'btc') return '실시간';
+    return (day === 0 || day === 6) ? '장마감' : '실시간';
+  }
 
   var refreshTimer = null;
   var resizeTimer = null;
@@ -212,7 +244,11 @@
 
   function buildCardShell(opt) {
     return '<div class="qi-card" data-key="' + opt.key + '" draggable="true">'
-      + '<div class="qi-card-label">' + opt.label + '</div>'
+      + '<div class="qi-card-top">'
+      + '<span class="qi-card-flag" aria-hidden="true">' + (FLAG_BY_KEY[opt.key] || '') + '</span>'
+      + '<span class="qi-card-label">' + opt.label + '</span>'
+      + '<span class="qi-card-status" data-field="status"></span>'
+      + '</div>'
       + '<div class="qi-card-price" data-field="price">-</div>'
       + '<div class="qi-card-change" data-field="change"></div>'
       + '<div class="qi-card-chart" data-field="chart"></div>'
@@ -277,6 +313,7 @@
       + '<div class="qi-scroll" id="qiScroll"></div>'
       + '<button type="button" class="qi-page-btn qi-page-next" id="qiNextBtn" aria-label="다음 지수">›</button>'
       + '<div class="qi-controls">'
+      + '<a class="qi-all-link" href="' + OVERNIGHT_MARKET_URL + '">전체 지수보기 ›</a>'
       + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 접기/펼치기">' + (isCollapsed() ? '▸' : '▾') + '</button>'
       + '<div class="qi-add-wrap">'
       + '<button type="button" class="qi-add-btn" id="qiAddBtn" aria-label="지수 추가">+</button>'
@@ -319,6 +356,8 @@
   function applyCardData(scroll, key, data) {
     var card = scroll.querySelector('.qi-card[data-key="' + key + '"]');
     if (!card) return;
+    var statusEl = card.querySelector('[data-field="status"]');
+    if (statusEl) statusEl.textContent = '· ' + marketStatus(key);
     var priceEl = card.querySelector('[data-field="price"]');
     var changeEl = card.querySelector('[data-field="change"]');
     var chartEl = card.querySelector('[data-field="chart"]');
