@@ -20,8 +20,9 @@
  * 팝오버가 화면 오른쪽 끝 이상한 곳에 뜨는 문제가 있었다(2026-07-16 피드백) - 스크롤 영역
  * 밖의 별도 .qi-controls로 빼서 항상 버튼 바로 아래에 뜨게 고쳤다.
  *
- * 데이터 소스 2곳:
- * - 원달러/BTC: GAS ?market=1 (과거 시세 이력이 없어 미니차트 불가 - 카드에 차트 생략)
+ * 데이터 소스:
+ * - 원달러/BTC 시세: GAS ?market=1 (과거 시세 이력 없음). BTC 차트/자정 기준점은 12차부터
+ *   업비트 공개 API(CORS 전체 허용)를 브라우저에서 직접 호출해 보충(fetchUpbitBtc 참고)
  * - 코스피/코스닥/코스피200 야간선물/나스닥100/S&P500/필라델피아(SOX)/VIX/WTI:
  *   VM(https://goodbyestar.cloud/futures) (js/overnight-market.js와 같은 응답을 쓰는데, 그
  *   응답엔 최근 시세 배열(chart)이 이미 들어있어서 그걸 그대로 미니 스파크라인으로 그린다 -
@@ -108,7 +109,6 @@
   var OPTION_BY_KEY = {};
   OPTIONS.forEach(function (o) { OPTION_BY_KEY[o.key] = o; });
   var DEFAULT_SELECTED = ['kospi', 'kosdaq', 'usdkrw', 'btc'];
-  var OVERNIGHT_MARKET_URL = 'https://ghlee.tistory.com/pages/overnight-market';
 
   // 네이버 스타일 참고 - 카드 상단에 국기/원자재 아이콘을 붙인다(2026-07-17).
   var FLAG_BY_KEY = {
@@ -203,13 +203,41 @@
   function fetchMarket() { return fetchJson(GAS_TICKER_URL + '?market=1'); }
   function fetchFutures() { return fetchJson(FUTURES_API).then(function (json) { return json.data || []; }); }
 
+  // ---- BTC 차트/기준점 (2026-07-17 12차) ----
+  // GAS ?market=1의 BTC는 시세 이력이 없어 미니차트가 안 떴다(사용자 피드백: "BTC는 왜
+  // 안 나와?") - 업비트 공개 API가 CORS 전체 허용(Access-Control-Allow-Origin: *)이라
+  // 브라우저에서 직접 받는다. 점선 기준점은 사용자 요청대로 "오늘 자정(00:00 KST)" 시세:
+  // 업비트 60분봉의 to 파라미터는 배타적 상한이라, 자정 시각(UTC로 전일 15:00)을 to로
+  // 주면 자정에 끝나는 봉(23:00~24:00 KST)이 오고 그 종가가 곧 자정 시세다.
+
+  function btcMidnightUtcParam() {
+    var kst = new Date(Date.now() + 9 * 3600000);
+    var midnightUtc = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()) - 9 * 3600000);
+    return midnightUtc.toISOString().slice(0, 19) + 'Z';
+  }
+
+  function fetchUpbitBtc() {
+    return Promise.all([
+      fetchJson('https://api.upbit.com/v1/candles/days?market=KRW-BTC&count=30'),
+      fetchJson('https://api.upbit.com/v1/candles/minutes/60?market=KRW-BTC&count=1&to=' + encodeURIComponent(btcMidnightUtcParam()))
+    ]).then(function (res) {
+      var rows = (res[0] || []).slice().reverse().map(function (c) {
+        return { date: c.candle_date_time_kst.slice(0, 10), close: c.trade_price };
+      });
+      var mid = (res[1] && res[1][0]) ? res[1][0].trade_price : null;
+      return { chart: rows.length > 1 ? rows : null, baseline: (typeof mid === 'number') ? mid : null };
+    });
+  }
+
   function fetchSelectedData(selected) {
     var needMarket = selected.some(function (k) { return OPTION_BY_KEY[k].source === 'market'; });
     var needFutures = selected.some(function (k) { return OPTION_BY_KEY[k].source === 'futures'; });
+    var needBtcHistory = selected.indexOf('btc') > -1;
 
     return Promise.all([
       needMarket ? QuickIndices.fetchMarket().catch(function () { return null; }) : Promise.resolve(null),
-      needFutures ? QuickIndices.fetchFutures().catch(function () { return null; }) : Promise.resolve(null)
+      needFutures ? QuickIndices.fetchFutures().catch(function () { return null; }) : Promise.resolve(null),
+      needBtcHistory ? fetchUpbitBtc().catch(function () { return null; }) : Promise.resolve(null)
     ]).then(function (results) {
       var marketData = results[0] || {};
       var futuresBySymbol = {};
@@ -226,6 +254,12 @@
           if (f && typeof f.price === 'number') out[key] = { price: f.price, change: f.change, changeRate: f.change_rate, chart: f.chart || null };
         }
       });
+      // BTC만 시세(GAS)와 이력(업비트)이 다른 소스라 여기서 합친다 - 업비트가 실패해도
+      // 시세/등락률은 GAS 것이 그대로 나온다(차트만 생략).
+      if (out.btc && results[2]) {
+        out.btc.chart = results[2].chart;
+        out.btc.baseline = results[2].baseline;
+      }
       return out;
     });
   }
@@ -471,8 +505,8 @@
       + '<div class="qi-news-wrap"><div class="qi-news-track" id="qiNewsTrack"><span class="qi-news-loading">불러오는 중...</span></div></div>'
       + '</div>'
       + '</div>'
+      // 12차: "전체 지수보기" 링크 삭제(사용자 요청 - 사이드바 메뉴로 충분)
       + '<div class="qi-controls">'
-      + '<a class="qi-all-link" href="' + OVERNIGHT_MARKET_URL + '">전체 지수보기 ›</a>'
       + '<div class="qi-controls-icons">'
       // 11차: ▾ 아이콘만 있던 접기 버튼에 라벨을 붙여 뭐 하는 버튼인지 보이게 함
       + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 리본 접기/펼치기">' + (isCollapsed() ? '리본 펼치기 ▸' : '리본 접기 ▾') + '</button>'
@@ -524,7 +558,7 @@
     changeEl.textContent = arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
     changeEl.className = 'qi-card-change ' + tone;
 
-    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change >= 0, data.price, data.change);
+    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change >= 0, data.price, data.change, data.baseline);
   }
 
   // 선택된 지수 전부(큰 카드 1 + 나머지 그리드)를 새로 그리고, dataCache에 있는 값으로
@@ -621,7 +655,9 @@
   // 등락 방향과 무관했음). 차트 마지막 점도 현재가로 맞춰서(일봉 이력의 마지막이 어제까지면
   // 오늘 점을 덧붙임) 선 위/아래가 항상 등락 방향과 일치한다. 60초 갱신 때도 값이 바뀌도록
   // 기존 인스턴스가 있으면 setData/기준선 갱신을 한다(예전엔 최초 1회만 그리고 끝이었음).
-  function renderSparkline(container, key, rows, positive, price, change) {
+  // 12차: baselineOverride - BTC처럼 "전일 종가" 대신 별도 기준점(자정 시세)을 쓰는
+  // 종목이 넘겨준다. 없으면 기존대로 price - change(전일 종가).
+  function renderSparkline(container, key, rows, positive, price, change, baselineOverride) {
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
 
@@ -633,7 +669,8 @@
         if (last.time >= today) last.value = price;
         else seriesData.push({ time: today, value: price });
       }
-      var baseline = (typeof price === 'number' && typeof change === 'number') ? price - change : rows[0].close;
+      var baseline = (typeof baselineOverride === 'number') ? baselineOverride
+        : (typeof price === 'number' && typeof change === 'number') ? price - change : rows[0].close;
       var color = positive ? '#d24f45' : '#1261c4';
 
       var existing = chartInstances[key];

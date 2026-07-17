@@ -202,7 +202,8 @@
   padding: 3px 6px;
   cursor: grab;
   display: grid;
-  grid-template-columns: 34px 1fr;
+  /* 12차: 차트 썸네일 34 -> 68px (사용자 요청: 지금의 2배) */
+  grid-template-columns: 68px 1fr;
   grid-template-rows: auto auto;
   column-gap: 6px;
   align-items: center;
@@ -299,14 +300,7 @@
   border-left: 1px solid #f0f0f0;
 }
 
-.qi-all-link {
-  font-size: 11px;
-  font-weight: 600;
-  color: #666;
-  white-space: nowrap;
-  text-decoration: none;
-}
-.qi-all-link:hover { color: #222; text-decoration: underline; }
+/* (12차: "전체 지수보기" 링크(.qi-all-link) 삭제 - 사용자 요청) */
 
 .qi-controls-icons {
   display: flex;
@@ -392,7 +386,6 @@
   /* 좁은 화면에선 속보 패널이 숨겨지므로 그리드가 다시 남는 폭을 차지.
      열 폭도 화면에 맞춰 줄이되 140px 밑으론 안 줄임(넘치는 열은 overflow에 가려짐). */
   .qi-grid { flex: 1; min-width: 0; grid-auto-columns: minmax(140px, 1fr); }
-  .qi-all-link { display: none; }
   .qi-news { display: none; } /* 좁은 화면에서는 카드만으로도 이미 빠듯해서 속보 패널은 숨김 */
 }
 
@@ -408,8 +401,6 @@ html.dark .qi-card-label { color: #8b96b8 !important; }
 html.dark .qi-card-status { color: #616d8c !important; }
 html.dark .qi-card-price { color: #eef2f8 !important; }
 html.dark .qi-card-change { color: #8b96b8 !important; }
-html.dark .qi-all-link { color: #8b96b8 !important; }
-html.dark .qi-all-link:hover { color: #eef2f8 !important; }
 html.dark .qi-pos { color: #ff6b5b !important; }
 html.dark .qi-neg { color: #4d9fff !important; }
 html.dark .qi-zero { color: #8b96b8 !important; }
