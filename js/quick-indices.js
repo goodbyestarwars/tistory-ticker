@@ -11,7 +11,7 @@
  * 폭/위치: 처음엔 뷰포트 전체 폭을 썼는데 "화면을 너무 full로 쓴다"는 피드백을 받아
  * .main-layout과 동일한 max-width로 맞췄다(css의 .qi-wrap 참고).
  *
- * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/100px로
+ * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/74px로
  * 바꿔서 그 값을 그대로 아래 콘텐츠 좌표 계산에 재사용한다(style.css :root 주석 참고).
  * 페이지 로드 시 깜빡임 없이 바로 반영되도록 DOMContentLoaded를 기다리지 않고
  * 스크립트가 평가되는 즉시(동기) documentElement에 세팅한다.
@@ -36,6 +36,13 @@
  *
  * 60초마다 갱신하되, 매번 카드를 통째로 비웠다가 다시 그리면 깜빡임이 생겨서(2026-07-16
  * 피드백) 최초 1회만 "불러오는 중" 틀을 그리고, 이후 갱신은 기존 DOM 노드의 텍스트/톤만 바꾼다.
+ *
+ * 2026-07-17: 가로 드래그 스크롤을 없애고 좌우 화살표 페이징으로 교체(사용자 요청 - 참고
+ * 이미지 스타일, 미니차트는 유지). 선택된 지수 전체 데이터는 그대로 fetch해서 dataCache에
+ * 담아두고, 화면(#qiScroll)에는 현재 페이지 분량만 그린다 - 페이지를 넘겨도 새로 fetch하지
+ * 않고 캐시에서 바로 채운다. 한 페이지에 몇 장이 들어가는지(perPage)는 #qiScroll의 실제
+ * 렌더링 폭을 재서 카드 폭(208px)+gap(8px)으로 나눈 값이라 화면 폭에 따라 자동으로
+ * 달라진다(리사이즈 시 재계산).
  */
 (function (global) {
   'use strict';
@@ -51,6 +58,8 @@
   var FETCH_TIMEOUT_MS = 8000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 30;
+  var CARD_WIDTH = 208;
+  var CARD_GAP = 8;
 
   // 페이지 파싱 도중이라도(DOMContentLoaded 전) 즉시 반영해 접힘 상태 깜빡임을 없앤다.
   (function applyCollapsedHeightEarly() {
@@ -77,9 +86,14 @@
   var DEFAULT_SELECTED = ['kospi', 'kosdaq', 'usdkrw', 'btc'];
 
   var refreshTimer = null;
+  var resizeTimer = null;
   var lwcLoadPromise = null;
   var chartInstances = {}; // key -> { chart, series }
   var themeObserver = null;
+  var moduleContainer = null;
+  var currentPage = 0;
+  var dataCache = {}; // key -> {price, change, changeRate, chart} - 마지막으로 받은 값(페이지 전환 시 재사용)
+  var measuredCardWidth = null; // 640px 이하에서 .qi-card 폭이 168px로 바뀌므로 CARD_WIDTH 상수 대신 실측(리사이즈 시 무효화)
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
@@ -241,22 +255,27 @@
     });
   }
 
+  // 페이징 도입 이후 #qiScroll에는 현재 페이지 분량만 들어있어서, 그 순서를 그대로
+  // 저장하면 다른 페이지의 항목이 사라진다 - 전체 목록 중 현재 페이지 구간만 새 순서로
+  // 갈아끼운다.
   function persistCardOrder(scroll) {
-    var order = Array.prototype.map.call(scroll.querySelectorAll('.qi-card'), function (c) {
+    var pageOrder = Array.prototype.map.call(scroll.querySelectorAll('.qi-card'), function (c) {
       return c.getAttribute('data-key');
     });
-    saveSelected(order);
+    var full = loadSelected();
+    var perPage = moduleContainer ? getPerPage(moduleContainer) : pageOrder.length;
+    var start = currentPage * perPage;
+    var newFull = full.slice(0, start).concat(pageOrder).concat(full.slice(start + pageOrder.length));
+    saveSelected(newFull);
   }
 
-  function renderShell(container, selected) {
-    var cardsHtml = selected.map(function (key) {
-      var opt = OPTION_BY_KEY[key];
-      return opt ? buildCardShell(opt) : '';
-    }).join('');
-
+  // 카드는 여기서 채우지 않는다 - renderPage()가 현재 페이지 분량만 그린다.
+  function renderShell(container) {
     container.classList.toggle('qi-collapsed', isCollapsed());
     container.innerHTML = ''
-      + '<div class="qi-scroll" id="qiScroll">' + cardsHtml + '</div>'
+      + '<button type="button" class="qi-page-btn qi-page-prev" id="qiPrevBtn" aria-label="이전 지수">‹</button>'
+      + '<div class="qi-scroll" id="qiScroll"></div>'
+      + '<button type="button" class="qi-page-btn qi-page-next" id="qiNextBtn" aria-label="다음 지수">›</button>'
       + '<div class="qi-controls">'
       + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 접기/펼치기">' + (isCollapsed() ? '▸' : '▾') + '</button>'
       + '<div class="qi-add-wrap">'
@@ -273,6 +292,14 @@
       e.stopPropagation();
       setCollapsed(container, !isCollapsed());
     });
+    container.querySelector('#qiPrevBtn').addEventListener('click', function () {
+      currentPage -= 1;
+      renderPage(container);
+    });
+    container.querySelector('#qiNextBtn').addEventListener('click', function () {
+      currentPage += 1;
+      renderPage(container);
+    });
     wireCardDrag(container.querySelector('#qiScroll'));
   }
 
@@ -282,35 +309,115 @@
     container.classList.toggle('qi-collapsed', collapsed);
     var btn = container.querySelector('#qiCollapseBtn');
     if (btn) btn.textContent = collapsed ? '▸' : '▾';
+    // 접혀있는 동안(#qiScroll이 display:none) clientWidth가 0이라 perPage가 1로 잘못
+    // 계산돼 있을 수 있다 - 펼칠 때 실제 폭 기준으로 다시 계산한다.
+    if (!collapsed) renderPage(container);
   }
 
   // ---- 갱신(기존 카드 값만 업데이트 - 깜빡임 방지) ----
 
-  function updateCards(container, selected, dataByKey) {
+  function applyCardData(scroll, key, data) {
+    var card = scroll.querySelector('.qi-card[data-key="' + key + '"]');
+    if (!card) return;
+    var priceEl = card.querySelector('[data-field="price"]');
+    var changeEl = card.querySelector('[data-field="change"]');
+    var chartEl = card.querySelector('[data-field="chart"]');
+
+    if (!data) {
+      priceEl.textContent = '-';
+      changeEl.textContent = '';
+      return;
+    }
+    var tone = toneClass(data.change);
+    priceEl.textContent = formatNumber(data.price);
+    priceEl.className = 'qi-card-price ' + tone;
+    changeEl.textContent = arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
+    changeEl.className = 'qi-card-change ' + tone;
+
+    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart);
+  }
+
+  // ---- 페이징: #qiScroll의 실제 렌더링 폭 / (카드 폭 + gap)으로 한 페이지에 들어갈
+  // 카드 수를 구한다. 접힌 상태(width 0)일 때는 최소 1을 보장한다. ----
+
+  // 카드 실제 폭을 잰다(640px 이하 미디어쿼리에서 168px로 줄어들기 때문에 CARD_WIDTH
+  // 상수를 그대로 쓰면 모바일에서 perPage가 틀어진다) - 화면에 카드가 하나도 없으면
+  // 숨겨진 probe 엘리먼트를 하나 잠깐 넣어서 재고 지운다.
+  function getCardWidth(scroll) {
+    if (measuredCardWidth) return measuredCardWidth;
+    var existing = scroll.querySelector('.qi-card');
+    if (existing) {
+      measuredCardWidth = existing.getBoundingClientRect().width;
+      return measuredCardWidth || CARD_WIDTH;
+    }
+    var probe = document.createElement('div');
+    probe.className = 'qi-card';
+    probe.style.visibility = 'hidden';
+    probe.style.position = 'absolute';
+    scroll.appendChild(probe);
+    var w = probe.getBoundingClientRect().width;
+    scroll.removeChild(probe);
+    if (w) measuredCardWidth = w;
+    return measuredCardWidth || CARD_WIDTH;
+  }
+
+  function getPerPage(container) {
+    var scroll = container.querySelector('#qiScroll');
+    if (!scroll) return 1;
+    var w = scroll.clientWidth;
+    if (!w) return 1;
+    var cardWidth = getCardWidth(scroll);
+    var n = Math.floor((w + CARD_GAP) / (cardWidth + CARD_GAP));
+    return Math.max(1, n);
+  }
+
+  function updatePagerUI(container, page, totalPages) {
+    var prev = container.querySelector('#qiPrevBtn');
+    var next = container.querySelector('#qiNextBtn');
+    if (prev) prev.disabled = page <= 0;
+    if (next) next.disabled = page >= totalPages - 1;
+  }
+
+  // 현재 페이지 분량만 새로 그리고, dataCache에 있는 값으로 즉시 채운다(재조회 없음).
+  function renderPage(container) {
     var scroll = container.querySelector('#qiScroll');
     if (!scroll) return;
+    var selected = loadSelected();
+    var perPage = getPerPage(container);
+    var totalPages = Math.max(1, Math.ceil(selected.length / perPage));
+    if (currentPage >= totalPages) currentPage = totalPages - 1;
+    if (currentPage < 0) currentPage = 0;
+    var start = currentPage * perPage;
+    var pageKeys = selected.slice(start, start + perPage);
 
-    selected.forEach(function (key) {
-      var card = scroll.querySelector('.qi-card[data-key="' + key + '"]');
-      if (!card) return;
-      var data = dataByKey[key];
-      var priceEl = card.querySelector('[data-field="price"]');
-      var changeEl = card.querySelector('[data-field="change"]');
-      var chartEl = card.querySelector('[data-field="chart"]');
-
-      if (!data) {
-        priceEl.textContent = '-';
-        changeEl.textContent = '';
-        return;
-      }
-      var tone = toneClass(data.change);
-      priceEl.textContent = formatNumber(data.price);
-      priceEl.className = 'qi-card-price ' + tone;
-      changeEl.textContent = arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
-      changeEl.className = 'qi-card-change ' + tone;
-
-      if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart);
+    Object.keys(chartInstances).forEach(function (key) {
+      if (pageKeys.indexOf(key) === -1) destroyChart(key);
     });
+
+    scroll.innerHTML = pageKeys.map(function (key) {
+      var opt = OPTION_BY_KEY[key];
+      return opt ? buildCardShell(opt) : '';
+    }).join('');
+
+    pageKeys.forEach(function (key) {
+      if (dataCache.hasOwnProperty(key)) applyCardData(scroll, key, dataCache[key]);
+    });
+
+    updatePagerUI(container, currentPage, totalPages);
+  }
+
+  // 체크박스로 선택이 바뀌었을 때: 아직 캐시에 없는(새로 추가된) 항목만 조회하고,
+  // 화면은 바로 현재 페이지 기준으로 다시 그린다.
+  function onSelectionChanged(container, selected) {
+    renderPage(container);
+    var missing = selected.filter(function (k) { return !dataCache.hasOwnProperty(k); });
+    if (!missing.length) return;
+    fetchSelectedData(missing)
+      .then(function (dataByKey) {
+        Object.keys(dataByKey).forEach(function (k) { dataCache[k] = dataByKey[k]; });
+        renderPage(container);
+      })
+      .catch(function (err) { logError('[quick-indices] 조회 실패', err); });
   }
 
   // ---- 미니 스파크라인 (js/overnight-market.js와 동일한 Lightweight Charts 지연 로드 패턴) ----
@@ -429,8 +536,8 @@
       // 2026-07-16 버그 수정: 예전엔 여기서 rebuild()(전체 다시 그리기)를 불러서 팝오버
       // 자체가 통째로 새로 그려지며 열림 상태(class="open")가 사라졌다 - 체크할 때마다
       // 팝오버가 닫혀버려 하나씩만 추가/제거할 수 있었던 원인. 이제 팝오버는 그대로 두고
-      // 카드 목록만 부분적으로 갱신해 여러 개를 연달아 체크/해제해도 열려있는 채로 있다.
-      updateCardList(container, list);
+      // 카드 목록(현재 페이지)만 다시 그려 여러 개를 연달아 체크/해제해도 열려있는 채로 있다.
+      onSelectionChanged(container, list);
     });
 
     document.addEventListener('click', function (e) {
@@ -438,59 +545,42 @@
     });
   }
 
-  // 팝오버를 닫지 않고 카드만 추가/제거한다(체크박스 토글 전용 - 최초 로드는 rebuild() 사용).
-  function updateCardList(container, selected) {
-    var scroll = container.querySelector('#qiScroll');
-    if (!scroll) return;
-
-    var removed = [];
-    scroll.querySelectorAll('.qi-card').forEach(function (card) {
-      var key = card.getAttribute('data-key');
-      if (selected.indexOf(key) === -1) {
-        removed.push(key);
-        card.remove();
-      }
-    });
-    removed.forEach(destroyChart);
-
-    var added = [];
-    selected.forEach(function (key) {
-      if (!scroll.querySelector('.qi-card[data-key="' + key + '"]')) {
-        var opt = OPTION_BY_KEY[key];
-        if (!opt) return;
-        scroll.insertAdjacentHTML('beforeend', buildCardShell(opt));
-        added.push(key);
-      }
-    });
-
-    if (added.length) {
-      fetchSelectedData(added)
-        .then(function (dataByKey) { updateCards(container, added, dataByKey); })
-        .catch(function (err) { logError('[quick-indices] 조회 실패', err); });
-    }
-  }
-
-  // 선택 목록 자체가 바뀔 때만(체크박스 토글, 최초 로드) 카드 틀을 다시 그린다.
+  // 선택 목록 자체가 바뀔 때만(최초 로드) 틀을 다시 그린다.
   function rebuild(container, selected) {
     Object.keys(chartInstances).forEach(destroyChart);
-    renderShell(container, selected);
-    if (!selected.length) return;
+    currentPage = 0;
+    renderShell(container);
+    if (!selected.length) { renderPage(container); return; }
+    renderPage(container); // 캐시가 있으면(재초기화 등) 바로 채우고, 없으면 '-' 상태로 우선 표시
     fetchSelectedData(selected)
-      .then(function (dataByKey) { updateCards(container, selected, dataByKey); })
+      .then(function (dataByKey) {
+        dataCache = dataByKey;
+        renderPage(container);
+      })
       .catch(function (err) { logError('[quick-indices] 조회 실패', err); });
   }
 
   // 주기적 갱신은 틀을 다시 그리지 않고 값만 바꿔서 깜빡임을 없앤다(2026-07-16 피드백).
+  // 페이지 전환과 무관하게 선택된 전체 종목을 계속 조회해 dataCache를 채워둔다.
   function refresh(container) {
     var selected = loadSelected();
     if (!selected.length) return;
     fetchSelectedData(selected)
-      .then(function (dataByKey) { updateCards(container, selected, dataByKey); })
+      .then(function (dataByKey) {
+        dataCache = dataByKey;
+        var scroll = container.querySelector('#qiScroll');
+        if (!scroll) return;
+        Array.prototype.forEach.call(scroll.querySelectorAll('.qi-card'), function (card) {
+          var key = card.getAttribute('data-key');
+          applyCardData(scroll, key, dataByKey[key]);
+        });
+      })
       .catch(function (err) { logError('[quick-indices] 갱신 실패', err); });
   }
 
   function init() {
     var container = ensureContainer();
+    moduleContainer = container;
     wireEvents(container);
     rebuild(container, loadSelected());
 
@@ -499,6 +589,16 @@
       if (document.hidden) return;
       refresh(container);
     }, REFRESH_MS);
+
+    // 창 크기가 바뀌면 한 페이지에 들어가는 카드 수(perPage)도 바뀌므로 다시 계산해서
+    // 그린다 - 리사이즈 중 매 프레임 다시 그리지 않도록 짧게 디바운스한다.
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        measuredCardWidth = null; // 640px 브레이크포인트를 넘나들면 카드 폭이 바뀌므로 다시 잰다
+        renderPage(container);
+      }, 150);
+    });
 
     if (themeObserver) themeObserver.disconnect();
     themeObserver = new MutationObserver(function () {
