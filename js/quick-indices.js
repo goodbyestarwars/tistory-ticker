@@ -379,7 +379,7 @@
     changeEl.textContent = arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
     changeEl.className = 'qi-card-change ' + tone;
 
-    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart);
+    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change >= 0);
   }
 
   // ---- 페이징: 큰 카드 1개 + 그리드 8개 = PER_PAGE(9) 고정. 이전엔 화면 폭을 재서
@@ -485,10 +485,11 @@
     delete chartInstances[key];
   }
 
-  // 2026-07-16: 단일 색 영역차트 -> 베이스라인 차트로 변경. 시작가(구간 첫 종가)를
-  // 기준선으로 두고 그 위는 빨강, 아래는 파랑으로 자동으로 나뉘어 칠해진다(사용자 요청:
-  // "시초가 0이면 +면 빨간색 -면 파란색"). change 파라미터는 더 이상 필요 없어 제거.
-  function renderSparkline(container, key, rows) {
+  // 2026-07-16: 단일 색 영역차트 -> 베이스라인 차트(시가 기준 위/아래 이중톤)로 변경.
+  // 2026-07-17(7차): 토스증권 참고 스크린샷에서 "선(등락률) 차이" 지적 - 토스는 이중톤이
+  // 아니라 등락 방향에 따라 카드 전체가 빨강 또는 파랑 단색 한 줄이다. 다시 단색 영역
+  // 차트로 되돌리되, 색은 changeRate 대신 실제 등락(positive)으로 정한다.
+  function renderSparkline(container, key, rows, positive) {
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
       if (chartInstances[key]) return; // 같은 카드에 이미 그려져 있으면 재사용(갱신 시 setData만)
@@ -504,14 +505,11 @@
         crosshair: { vertLine: { visible: false, labelVisible: false }, horzLine: { visible: false, labelVisible: false } }
       }, chartThemeOptions()));
 
-      var series = chart.addBaselineSeries({
-        baseValue: { type: 'price', price: rows[0].close },
-        topLineColor: '#d24f45',
-        topFillColor1: hexToRgba('#d24f45', 0.25),
-        topFillColor2: hexToRgba('#d24f45', 0.02),
-        bottomLineColor: '#1261c4',
-        bottomFillColor1: hexToRgba('#1261c4', 0.02),
-        bottomFillColor2: hexToRgba('#1261c4', 0.25),
+      var color = positive ? '#d24f45' : '#1261c4';
+      var series = chart.addAreaSeries({
+        lineColor: color,
+        topColor: hexToRgba(color, 0.2),
+        bottomColor: hexToRgba(color, 0.02),
         lineWidth: 1.5,
         priceLineVisible: false,
         lastValueVisible: false,

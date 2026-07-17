@@ -110,14 +110,26 @@
 /* min-height:0이 핵심 - 그리드 아이템의 기본 자동 최소 크기(내용물의 min-content 높이,
    여기선 체결/미니차트 캔버스의 내재 높이 때문에 약 71px)가 1fr 트랙이 그보다 작게
    줄어드는 걸 막아서, 바 높이를 줄여도 그리드 카드가 71px 밑으로 안 줄어드는 버그가
-   있었다(2026-07-17 실측 확인) - 명시적으로 0으로 풀어줘야 1fr이 실제로 작동한다. */
+   있었다(2026-07-17 실측 확인) - 명시적으로 0으로 풀어줘야 1fr이 실제로 작동한다.
+   2026-07-17(7차): 차트가 카드 전체 폭을 차지하던 걸 왼쪽 작은 썸네일로 축소(사용자
+   피드백 - 토스 참고 이미지에서 그리드 카드는 차트가 좁고 텍스트가 오른쪽에 있음).
+   .qi-card 기본(flex-column)을 grid로 오버라이드하고 자식들을 2열로 재배치한다. */
 .qi-card-grid {
   width: 100%;
   height: 100%;
   min-height: 0;
   padding: 3px 6px;
   cursor: grab;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  grid-template-rows: auto auto auto;
+  column-gap: 6px;
+  align-items: center;
 }
+.qi-card-grid .qi-card-top { grid-column: 2; grid-row: 1; }
+.qi-card-grid .qi-card-price { grid-column: 2; grid-row: 2; }
+.qi-card-grid .qi-card-change { grid-column: 2; grid-row: 3; }
+.qi-card-grid .qi-card-chart { grid-column: 1; grid-row: 1 / span 3; align-self: stretch; margin-top: 0; }
 
 .qi-card-top {
   display: flex;
@@ -175,7 +187,6 @@
   min-height: 0;
 }
 .qi-card-featured .qi-card-chart { margin-top: 6px; }
-.qi-card-grid .qi-card-chart { margin-top: 1px; }
 
 .qi-pos { color: #d24f45; }
 .qi-neg { color: #1261c4; }
