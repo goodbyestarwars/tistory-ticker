@@ -11,7 +11,7 @@
  * 폭/위치: 처음엔 뷰포트 전체 폭을 썼는데 "화면을 너무 full로 쓴다"는 피드백을 받아
  * .main-layout과 동일한 max-width로 맞췄다(css의 .qi-wrap 참고).
  *
- * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/130px로
+ * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/140px로
  * 바꿔서 그 값을 그대로 아래 콘텐츠 좌표 계산에 재사용한다(style.css :root 주석 참고).
  * 페이지 로드 시 깜빡임 없이 바로 반영되도록 DOMContentLoaded를 기다리지 않고
  * 스크립트가 평가되는 즉시(동기) documentElement에 세팅한다.
@@ -55,7 +55,7 @@
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
   var COLLAPSE_KEY = 'qi_collapsed_v1';
-  var HEIGHT_EXPANDED = '130px';
+  var HEIGHT_EXPANDED = '140px';
   var HEIGHT_COLLAPSED = '40px';
   var REFRESH_MS = 60 * 1000;
   var FETCH_TIMEOUT_MS = 8000;

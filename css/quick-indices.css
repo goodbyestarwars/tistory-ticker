@@ -130,8 +130,8 @@
   line-height: 1;
   flex: 0 0 auto;
 }
-.qi-card-featured .qi-card-flag { font-size: 10px; }
-.qi-card-grid .qi-card-flag { font-size: 8px; }
+.qi-card-featured .qi-card-flag { font-size: 13px; }
+.qi-card-grid .qi-card-flag { font-size: 10px; }
 
 .qi-card-label {
   font-weight: 700;
@@ -141,8 +141,8 @@
   text-overflow: ellipsis;
   min-width: 0;
 }
-.qi-card-featured .qi-card-label { font-size: 10px; }
-.qi-card-grid .qi-card-label { font-size: 8px; }
+.qi-card-featured .qi-card-label { font-size: 13px; }
+.qi-card-grid .qi-card-label { font-size: 10px; }
 
 .qi-card-status {
   font-weight: 600;
@@ -150,8 +150,8 @@
   white-space: nowrap;
   flex: 0 0 auto;
 }
-.qi-card-featured .qi-card-status { font-size: 9px; }
-.qi-card-grid .qi-card-status { font-size: 7px; }
+.qi-card-featured .qi-card-status { font-size: 11px; }
+.qi-card-grid .qi-card-status { font-size: 9px; }
 
 .qi-card-price {
   font-weight: 700;
@@ -159,16 +159,16 @@
   line-height: 1.1;
   white-space: nowrap;
 }
-.qi-card-featured .qi-card-price { font-size: 17px; margin-top: 2px; }
-.qi-card-grid .qi-card-price { font-size: 10px; margin-top: 1px; }
+.qi-card-featured .qi-card-price { font-size: 24px; margin-top: 2px; }
+.qi-card-grid .qi-card-price { font-size: 13px; margin-top: 1px; }
 
 .qi-card-change {
   font-weight: 600;
   color: #888;
   white-space: nowrap;
 }
-.qi-card-featured .qi-card-change { font-size: 10px; min-height: 13px; }
-.qi-card-grid .qi-card-change { font-size: 8px; min-height: 10px; }
+.qi-card-featured .qi-card-change { font-size: 13px; min-height: 16px; }
+.qi-card-grid .qi-card-change { font-size: 10px; min-height: 13px; }
 
 .qi-card-chart {
   flex: 1;
