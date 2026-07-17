@@ -71,7 +71,8 @@
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
   var COLLAPSE_KEY = 'qi_collapsed_v1';
-  var HEIGHT_EXPANDED = '175px';
+  // 11차: 등락률을 가격 옆 한 줄로 합치면서 카드가 한 줄씩 낮아져 175 -> 140
+  var HEIGHT_EXPANDED = '140px';
   var HEIGHT_COLLAPSED = '40px';
   var REFRESH_MS = 60 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
@@ -284,8 +285,14 @@
     track.style.animationDuration = (track.scrollHeight / 2 / 18) + 's';
   }
 
+  function setNewsTitle(text) {
+    var el = document.getElementById('qiNewsTitle');
+    if (el) el.textContent = text;
+  }
+
   function renderDiscNewsInto(track, items) {
     if (!track) return;
+    setNewsTitle('실시간 공시');
     fillNewsTrack(track, items.map(function (it) {
       var cls = it.market === 'KOSDAQ' ? 'qi-news-market-kosdaq' : 'qi-news-market-kospi';
       var disc = it.disc.replace(/\s*\|\s*/g, ' ').trim();
@@ -302,6 +309,7 @@
   // 코스닥 헤드라인, 서버에서 15분 캐싱)로 폴백해 패널이 비지 않게 한다.
   function renderRankNewsInto(track, items) {
     if (!track) return;
+    setNewsTitle('긴급속보');
     if (!items.length) { track.innerHTML = '<span class="qi-news-loading">속보 없음</span>'; return; }
     fillNewsTrack(track, items.map(function (it) {
       return '<a href="' + it.link + '" target="_blank" class="qi-news-item">'
@@ -388,8 +396,11 @@
       + '<span class="qi-card-label">' + opt.label + '</span>'
       + '<span class="qi-card-status" data-field="status"></span>'
       + '</div>'
-      + '<div class="qi-card-price" data-field="price">-</div>'
-      + '<div class="qi-card-change" data-field="change"></div>'
+      // 11차: 등락률을 가격 아래 줄에서 가격 옆(같은 줄)으로 이동(사용자 요청)
+      + '<div class="qi-card-priceline">'
+      + '<span class="qi-card-price" data-field="price">-</span>'
+      + '<span class="qi-card-change" data-field="change"></span>'
+      + '</div>'
       + '<div class="qi-card-chart" data-field="chart"></div>'
       + '</div>';
   }
@@ -448,14 +459,23 @@
       + '<div class="qi-featured" id="qiFeatured"></div>'
       + '<div class="qi-grid" id="qiGrid"></div>'
       + '<div class="qi-news" id="qiNews">'
-      + '<div class="qi-news-header"><span class="qi-news-dot" aria-hidden="true"></span>긴급속보</div>'
+      // 11차: 빨간 점 -> 확성기 SVG 아이콘(사용자 요청). 타이틀은 데이터 소스에 따라
+      // "실시간 공시"(KIND 공시) / "긴급속보"(네이버 뉴스 폴백)로 바뀐다.
+      + '<div class="qi-news-header">'
+      + '<span class="qi-news-ico" aria-hidden="true">'
+      + '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true">'
+      + '<path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3z"/>'
+      + '<path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'
+      + '</svg></span>'
+      + '<span id="qiNewsTitle">긴급속보</span></div>'
       + '<div class="qi-news-wrap"><div class="qi-news-track" id="qiNewsTrack"><span class="qi-news-loading">불러오는 중...</span></div></div>'
       + '</div>'
       + '</div>'
       + '<div class="qi-controls">'
       + '<a class="qi-all-link" href="' + OVERNIGHT_MARKET_URL + '">전체 지수보기 ›</a>'
       + '<div class="qi-controls-icons">'
-      + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 접기/펼치기">' + (isCollapsed() ? '▸' : '▾') + '</button>'
+      // 11차: ▾ 아이콘만 있던 접기 버튼에 라벨을 붙여 뭐 하는 버튼인지 보이게 함
+      + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 리본 접기/펼치기">' + (isCollapsed() ? '리본 펼치기 ▸' : '리본 접기 ▾') + '</button>'
       + '<div class="qi-add-wrap">'
       + '<button type="button" class="qi-add-btn" id="qiAddBtn" aria-label="지수 추가">+</button>'
       + '<div class="qi-popover" id="qiPopover"></div>'
@@ -479,7 +499,7 @@
     document.documentElement.style.setProperty('--qi-height', collapsed ? HEIGHT_COLLAPSED : HEIGHT_EXPANDED);
     container.classList.toggle('qi-collapsed', collapsed);
     var btn = container.querySelector('#qiCollapseBtn');
-    if (btn) btn.textContent = collapsed ? '▸' : '▾';
+    if (btn) btn.textContent = collapsed ? '리본 펼치기 ▸' : '리본 접기 ▾';
   }
 
   // ---- 갱신(기존 카드 값만 업데이트 - 깜빡임 방지) ----
@@ -504,7 +524,7 @@
     changeEl.textContent = arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
     changeEl.className = 'qi-card-change ' + tone;
 
-    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change >= 0);
+    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change >= 0, data.price, data.change);
   }
 
   // 선택된 지수 전부(큰 카드 1 + 나머지 그리드)를 새로 그리고, dataCache에 있는 값으로
@@ -596,10 +616,34 @@
   // 2026-07-17(7차): 토스증권 참고 스크린샷에서 "선(등락률) 차이" 지적 - 토스는 이중톤이
   // 아니라 등락 방향에 따라 카드 전체가 빨강 또는 파랑 단색 한 줄이다. 다시 단색 영역
   // 차트로 되돌리되, 색은 changeRate 대신 실제 등락(positive)으로 정한다.
-  function renderSparkline(container, key, rows, positive) {
+  // 2026-07-17(11차): 점선 기준선을 "차트 구간 첫 종가"에서 "전일 종가(price - change)"로
+  // 변경(사용자 피드백: 하락 중인데 선 위에 떠 있음 - 몇 달 전 시세가 기준이라 오늘의
+  // 등락 방향과 무관했음). 차트 마지막 점도 현재가로 맞춰서(일봉 이력의 마지막이 어제까지면
+  // 오늘 점을 덧붙임) 선 위/아래가 항상 등락 방향과 일치한다. 60초 갱신 때도 값이 바뀌도록
+  // 기존 인스턴스가 있으면 setData/기준선 갱신을 한다(예전엔 최초 1회만 그리고 끝이었음).
+  function renderSparkline(container, key, rows, positive, price, change) {
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
-      if (chartInstances[key]) return; // 같은 카드에 이미 그려져 있으면 재사용(갱신 시 setData만)
+
+      var seriesData = rows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; });
+      if (typeof price === 'number') {
+        var kst = new Date(Date.now() + 9 * 60 * 60000);
+        var today = kst.toISOString().slice(0, 10);
+        var last = seriesData[seriesData.length - 1];
+        if (last.time >= today) last.value = price;
+        else seriesData.push({ time: today, value: price });
+      }
+      var baseline = (typeof price === 'number' && typeof change === 'number') ? price - change : rows[0].close;
+      var color = positive ? '#d24f45' : '#1261c4';
+
+      var existing = chartInstances[key];
+      if (existing) {
+        existing.series.applyOptions({ lineColor: color, topColor: hexToRgba(color, 0.2), bottomColor: hexToRgba(color, 0.02) });
+        existing.series.setData(seriesData);
+        existing.priceLine.applyOptions({ price: baseline });
+        existing.chart.timeScale().fitContent();
+        return;
+      }
 
       var chart = LWC.createChart(container, Object.assign({
         autoSize: true,
@@ -612,7 +656,6 @@
         crosshair: { vertLine: { visible: false, labelVisible: false }, horzLine: { visible: false, labelVisible: false } }
       }, chartThemeOptions()));
 
-      var color = positive ? '#d24f45' : '#1261c4';
       var series = chart.addAreaSeries({
         lineColor: color,
         topColor: hexToRgba(color, 0.2),
@@ -623,18 +666,17 @@
         lastValueVisible: false,
         crosshairMarkerVisible: false
       });
-      series.setData(rows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; }));
-      // 2026-07-17(8차): 사용자가 직접 그려서 요청 - 차트 시작점(구간 첫 종가) 위치에
-      // 점선 기준선을 그어서 지금 가격이 그 위/아래 어디 있는지 한눈에 보이게 한다.
-      series.createPriceLine({
-        price: rows[0].close,
+      series.setData(seriesData);
+      // 점선 기준선(8차에 도입, 11차부터 전일 종가 기준 - 위 주석 참고)
+      var priceLine = series.createPriceLine({
+        price: baseline,
         color: '#999',
         lineWidth: 1,
         lineStyle: LWC.LineStyle.Dashed,
         axisLabelVisible: false
       });
       chart.timeScale().fitContent();
-      chartInstances[key] = { chart: chart, series: series };
+      chartInstances[key] = { chart: chart, series: series, priceLine: priceLine };
     }).catch(function () { /* 차트 없이도 가격/등락률은 이미 보이므로 조용히 무시 */ });
   }
 
