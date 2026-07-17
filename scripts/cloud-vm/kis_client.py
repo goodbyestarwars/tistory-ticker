@@ -171,6 +171,15 @@ def fetch_option_board(token, appkey, appsecret, mtrt_yyyymm):
         raise RuntimeError('FHPIF05030100 실패: ' + json.dumps(data, ensure_ascii=False))
     output1 = data.get('output1') or []
     output2 = data.get('output2') or []
+    # TEMP DEBUG(2026-07-18): 풋 거래량이 1로 집계되는 원인 조사용 - output2 원본 행을
+    # 그대로 로그에 찍는다. 정규장(09:00~15:45 KST)에 다음 폴링 때 확인 후 제거할 것.
+    logger.info('option board raw: output1_len=%d output2_len=%d', len(output1), len(output2))
+    if output1:
+        logger.info('option board output1[0] raw: %s', json.dumps(output1[0], ensure_ascii=False))
+    if output2:
+        logger.info('option board output2[0] raw: %s', json.dumps(output2[0], ensure_ascii=False))
+        logger.info('option board output2 acml_vol values: %s',
+                     [r.get('acml_vol') for r in output2])
     # 콜 델타는 0~+1, 풋 델타는 -1~0(금융공식상 항상 성립) - 요청 파라미터 순서만 믿지 않고
     # 실측 delta_val 부호로 한 번 더 교차검증한다. 순서가 뒤집혀 있으면 여기서 바로잡는다.
     if _avg_delta(output1) < 0 and _avg_delta(output2) > 0:

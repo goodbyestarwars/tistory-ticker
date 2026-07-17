@@ -26,6 +26,8 @@ import kiwoom_client
 import kiwoom_market
 import option_flow
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
+
 try:
     import night_futures_ws
 except ImportError:
