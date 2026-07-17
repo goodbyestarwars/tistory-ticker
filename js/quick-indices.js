@@ -45,7 +45,7 @@
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
   var COLLAPSE_KEY = 'qi_collapsed_v1';
-  var HEIGHT_EXPANDED = '100px';
+  var HEIGHT_EXPANDED = '74px';
   var HEIGHT_COLLAPSED = '40px';
   var REFRESH_MS = 60 * 1000;
   var FETCH_TIMEOUT_MS = 8000;

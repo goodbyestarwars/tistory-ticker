@@ -8,9 +8,15 @@
    맨 위(top:0)로 올라오고, 그만큼 아래 disc-ticker/page-wrap/sidebar 좌표를 전부 32px씩
    당겼다. 관심지수 카드바(js/quick-indices.js)는 공시 티커 바로 아래 위치하며, 접었다 폈다
    할 때 자기 높이(--qi-height)만 바꾸고 그 값을 아래 콘텐츠 시작 좌표 계산에도 그대로
-   재사용한다(quick-indices.js가 collapsed 여부에 따라 이 값을 40px/100px로 setProperty).
-   기본값(100px)은 var()의 폴백으로 넣어둬서 JS가 아직 안 붙었을 때도 레이아웃이 안 깨진다. */
-:root { --qi-height: 100px; }
+   재사용한다(quick-indices.js가 collapsed 여부에 따라 이 값을 40px/74px로 setProperty).
+   기본값(74px)은 var()의 폴백으로 넣어둬서 JS가 아직 안 붙었을 때도 레이아웃이 안 깨진다.
+   2026-07-17: 세로 두께를 100px에서 74px로 줄임(사용자 요청 - 카드가 많아 가로 스크롤이
+   생기는데 세로로도 자리를 너무 차지한다는 피드백) - 카드 내부 grid 레이아웃(직사각형,
+   텍스트 좌/차트 우)이 stretch로 맞물려 있어 카드 높이도 이 값에 맞춰 같이 줄어든다.
+   74px는 임의값이 아니라 로컬에서 라벨/가격/등락 3줄 텍스트가 겹치지 않는 최소값을
+   실측해서 정한 값(73px부터 안 겹침, 72px 이하는 줄 간 겹침 발생) - 더 줄이려면
+   css/quick-indices.css의 폰트 크기(라벨/등락 10px, 가격 13px)도 같이 낮춰야 함. */
+:root { --qi-height: 74px; }
 
 body {
   font-family: 'Noto Serif KR', Georgia, 'Times New Roman', serif;
