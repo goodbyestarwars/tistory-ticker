@@ -71,7 +71,10 @@
   var OPTIONS = [
     { key: 'kospi', label: '코스피', source: 'futures', sourceKey: 'KOSPI' },
     { key: 'kosdaq', label: '코스닥', source: 'futures', sourceKey: 'KOSDAQ' },
-    { key: 'usdkrw', label: '원/달러', source: 'market', sourceKey: 'usdkrw' },
+    // 2026-07-17: GAS(market, 시세 이력 없음) -> VM(futures, 일봉 이력 있음)로 전환해
+    // 미니차트가 뜨게 함 - VM이 USDKRW를 upsert_future_chart_rows로 따로 수집해두고 있었음
+    // (scripts/cloud-vm/domestic_futures.py fetch_fx_daily_chart 참고).
+    { key: 'usdkrw', label: '원/달러', source: 'futures', sourceKey: 'USDKRW' },
     { key: 'btc', label: 'BTC', source: 'market', sourceKey: 'btc' },
     { key: 'kospi_night', label: '코스피 야간선물', source: 'futures', sourceKey: 'KOSPI200_NIGHT' },
     { key: 'nasdaq', label: '나스닥 선물', source: 'futures', sourceKey: 'NASDAQ100' },
@@ -314,10 +317,12 @@
       + '<button type="button" class="qi-page-btn qi-page-next" id="qiNextBtn" aria-label="다음 지수">›</button>'
       + '<div class="qi-controls">'
       + '<a class="qi-all-link" href="' + OVERNIGHT_MARKET_URL + '">전체 지수보기 ›</a>'
+      + '<div class="qi-controls-icons">'
       + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 접기/펼치기">' + (isCollapsed() ? '▸' : '▾') + '</button>'
       + '<div class="qi-add-wrap">'
       + '<button type="button" class="qi-add-btn" id="qiAddBtn" aria-label="지수 추가">+</button>'
       + '<div class="qi-popover" id="qiPopover"></div>'
+      + '</div>'
       + '</div>'
       + '</div>';
 

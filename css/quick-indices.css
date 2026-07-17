@@ -38,21 +38,29 @@
   min-width: 0;
   display: flex;
   align-items: stretch;
+  justify-content: center;
   gap: 8px;
   overflow: hidden;
 }
 .qi-wrap.qi-collapsed .qi-scroll { display: none; }
 
+/* 2026-07-17(4차): 화살표 버튼이 바 전체 높이(align-self:stretch)로 늘어나 길쭉한
+   막대처럼 보이던 문제 수정(사용자 피드백: 네이버처럼 동그란 버튼이어야 함) - 고정
+   크기 원형으로 바꾸고 세로 중앙에만 놓는다. */
 .qi-page-btn {
   flex: 0 0 auto;
-  width: 26px;
-  align-self: stretch;
+  align-self: center;
+  width: 28px;
+  height: 28px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 50%;
   background: #fff;
   color: #888;
   font-size: 15px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 .qi-page-btn:hover:not(:disabled) { background: #f2f2f2; }
@@ -135,14 +143,18 @@
 
 /* 스크롤 영역 밖 컨트롤 - 카드가 몇 개든, 얼마나 스크롤됐든 항상 같은 자리(오른쪽 끝).
    margin-left:auto가 없으면 접혔을 때(.qi-scroll이 display:none) 남은 flex 아이템이
-   왼쪽으로 붙어버려서(2026-07-16 피드백) 항상 오른쪽에 고정되게 강제한다. */
+   왼쪽으로 붙어버려서(2026-07-16 피드백) 항상 오른쪽에 고정되게 강제한다.
+   2026-07-17(4차): "전체 지수보기" 링크와 접기/추가 버튼이 한 줄에 나란히 있던 걸
+   위/아래 2단으로 분리(사용자 요청 - 나란히 두지 말라고 함). */
 .qi-controls {
   flex: 0 0 auto;
   margin-left: auto;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-left: 4px;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  padding-left: 10px;
   border-left: 1px solid #f0f0f0;
 }
 
@@ -154,6 +166,12 @@
   text-decoration: none;
 }
 .qi-all-link:hover { color: #222; text-decoration: underline; }
+
+.qi-controls-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 .qi-collapse-btn {
   width: 26px;
