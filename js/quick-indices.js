@@ -11,7 +11,7 @@
  * 폭/위치: 처음엔 뷰포트 전체 폭을 썼는데 "화면을 너무 full로 쓴다"는 피드백을 받아
  * .main-layout과 동일한 max-width로 맞췄다(css의 .qi-wrap 참고).
  *
- * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/140px로
+ * 접기/펼치기: qi_collapsed_v1(localStorage)에 저장하고, --qi-height를 40px/175px로
  * 바꿔서 그 값을 그대로 아래 콘텐츠 좌표 계산에 재사용한다(style.css :root 주석 참고).
  * 페이지 로드 시 깜빡임 없이 바로 반영되도록 DOMContentLoaded를 기다리지 않고
  * 스크립트가 평가되는 즉시(동기) documentElement에 세팅한다.
@@ -41,11 +41,12 @@
  * 데이터는 그대로 fetch해서 dataCache에 담아두고, 화면에는 현재 페이지 분량만 그린다 -
  * 페이지를 넘겨도 새로 fetch하지 않고 캐시에서 바로 채운다.
  *
- * 2026-07-17(6차): 토스증권 위젯 참고해 "큰 카드 1개 + 작은 카드 그리드(4x2)" 배치로
- * 재구성(사용자 요청 - AI 한줄 코멘트/52주 최고·최저는 뒷받침할 데이터가 없어서 제외,
- * 레이아웃만 반영). 한 페이지당 정확히 1(큰 카드) + 8(그리드) = 9개 고정 - 이전처럼 화면
- * 폭을 재서 카드 개수를 동적으로 정하던 방식(getPerPage)은 이 비대칭 레이아웃엔 안 맞아서
+ * 2026-07-17(6차): 토스증권 위젯 참고해 "큰 카드 1개 + 작은 카드 그리드" 배치로 재구성
+ * (사용자 요청 - AI 한줄 코멘트/52주 최고·최저는 뒷받침할 데이터가 없어서 제외, 레이아웃만
+ * 반영). 페이지 크기를 동적으로 정하던 방식(getPerPage)은 이 비대칭 레이아웃엔 안 맞아서
  * PER_PAGE 상수로 단순화했다.
+ * 2026-07-17(8차): 그리드를 4x2(8개)에서 2x3(6개)로 변경(사용자가 직접 그린 스케치 반영) -
+ * 한 페이지당 1(큰 카드) + 6(그리드) = 7개.
  */
 (function (global) {
   'use strict';
@@ -55,13 +56,13 @@
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
   var COLLAPSE_KEY = 'qi_collapsed_v1';
-  var HEIGHT_EXPANDED = '140px';
+  var HEIGHT_EXPANDED = '175px';
   var HEIGHT_COLLAPSED = '40px';
   var REFRESH_MS = 60 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 30;
-  var GRID_SIZE = 8; // 큰 카드 1개 + 그리드 8개(4x2) = 페이지당 9개
+  var GRID_SIZE = 6; // 큰 카드 1개 + 그리드 6개(2x3) = 페이지당 7개
   var PER_PAGE = GRID_SIZE + 1;
 
   // 페이지 파싱 도중이라도(DOMContentLoaded 전) 즉시 반영해 접힘 상태 깜빡임을 없앤다.

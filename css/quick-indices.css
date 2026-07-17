@@ -56,13 +56,15 @@
    않아 그리드 카드가 내용 크기(약 71px)에서 안 늘어나는 버그가 있었음(2026-07-17 실측
    확인 - --qi-height를 80~150px로 바꿔도 카드가 그대로였다가 180px에서야 갑자기
    커짐). */
+/* 2026-07-17(8차): 4열x2줄 -> 2열x3줄로 변경(사용자가 직접 그린 스케치 반영) - 카드가
+   더 넓고 긴 모양이 되어 왼쪽 차트 썸네일도 좀 더 여유있게 보인다. */
 .qi-grid {
   flex: 1;
   min-width: 0;
   height: 100%;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, 1fr);
   gap: 5px;
 }
 
