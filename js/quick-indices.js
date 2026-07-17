@@ -516,6 +516,15 @@
         crosshairMarkerVisible: false
       });
       series.setData(rows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; }));
+      // 2026-07-17(8차): 사용자가 직접 그려서 요청 - 차트 시작점(구간 첫 종가) 위치에
+      // 점선 기준선을 그어서 지금 가격이 그 위/아래 어디 있는지 한눈에 보이게 한다.
+      series.createPriceLine({
+        price: rows[0].close,
+        color: '#999',
+        lineWidth: 1,
+        lineStyle: LWC.LineStyle.Dashed,
+        axisLabelVisible: false
+      });
       chart.timeScale().fitContent();
       chartInstances[key] = { chart: chart, series: series };
     }).catch(function () { /* 차트 없이도 가격/등락률은 이미 보이므로 조용히 무시 */ });
