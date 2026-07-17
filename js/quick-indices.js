@@ -64,9 +64,15 @@
  * 통째로 비어 "속보 없음"만 떠 있던 걸 GAS ?rankNews=1(네이버 뉴스 헤드라인)로 폴백.
  *
  * 2026-07-17(13차): position:fixed -> absolute(스크롤하면 페이지와 함께 사라짐 - 사용자
- * 요청). BTC는 업비트 직접 호출로 전환(실시간 ticker + 일봉 차트 + 자정 기준선, 레이트
- * 리밋 때문에 순차 호출 + localStorage 캐시 - fetchUpbitBtc 주석 참고). 금 선물(GOLD)
- * 추가(VM 수집기에도 같이 추가), 시세 소수점 표기, 갱신 20초, 카드 폭 200px(풀네임).
+ * 요청). 금 선물(GOLD) 추가(VM 수집기에도 같이 추가), 시세 소수점 표기, 갱신 20초, 카드
+ * 폭 200px(풀네임).
+ *
+ * 2026-07-17(14차): BTC 미니차트가 라이브에서 간헐적으로 안 뜨는 문제(사용자 재확인) -
+ * 13차의 "클라이언트가 직접 업비트 호출" 방식은 방문자 브라우저마다 업비트 레이트리밋/
+ * CORS에 노출돼 근본적으로 불안정했다(레이트리밋 응답엔 CORS 헤더가 없어 "Failed to
+ * fetch"로만 보임 - 원인 진단에 시간이 걸렸음). 다른 해외지수와 동일하게 VM 서버사이드
+ * 수집(scripts/cloud-vm/btc_futures.py)으로 옮겨 BTC 전용 클라이언트 코드를 전부 제거 -
+ * 이제 모든 지수가 완전히 같은 경로(futures 소스)를 탄다.
  */
 (function (global) {
   'use strict';
@@ -104,7 +110,11 @@
     // 미니차트가 뜨게 함 - VM이 USDKRW를 upsert_future_chart_rows로 따로 수집해두고 있었음
     // (scripts/cloud-vm/domestic_futures.py fetch_fx_daily_chart 참고).
     { key: 'usdkrw', label: '원/달러', source: 'futures', sourceKey: 'USDKRW' },
-    { key: 'btc', label: 'BTC', source: 'market', sourceKey: 'btc' },
+    // 2026-07-17(14차): 클라이언트가 직접 업비트를 호출하던 방식(source:'market' 시절엔
+    // GAS로도 이력이 없었음)을 폐기 - VM(scripts/cloud-vm/btc_futures.py)이 서버사이드로
+    // 수집하도록 옮겼다. 방문자 브라우저가 매번 업비트 레이트리밋/CORS에 노출되던 문제가
+    // 원천적으로 사라짐(VM 자신은 30초에 1번만 호출).
+    { key: 'btc', label: 'BTC', source: 'futures', sourceKey: 'BTC' },
     { key: 'kospi_night', label: '코스피 야간선물', source: 'futures', sourceKey: 'KOSPI200_NIGHT' },
     { key: 'nasdaq', label: '나스닥 선물', source: 'futures', sourceKey: 'NASDAQ100' },
     { key: 'sp500', label: 'S&P500 선물', source: 'futures', sourceKey: 'SP500' },
@@ -213,108 +223,16 @@
   function fetchMarket() { return fetchJson(GAS_TICKER_URL + '?market=1'); }
   function fetchFutures() { return fetchJson(FUTURES_API).then(function (json) { return json.data || []; }); }
 
-  // ---- BTC 차트/기준점/실시간 시세 (2026-07-17 12차, 13차에 재작성) ----
-  // GAS ?market=1의 BTC는 시세 이력이 없어 미니차트가 안 떴다 - 업비트 공개 API가 CORS
-  // 전체 허용(Access-Control-Allow-Origin: *)이라 브라우저에서 직접 받는다.
-  //
-  // 13차: 업비트는 origin당 요청 제한이 매우 빡빡하고(라이브 실측: 병렬 2건 중 1건이
-  // 튕김 - 429 응답엔 CORS 헤더가 없어 "Failed to fetch"로 보임) 12차의 Promise.all이
-  // 하나만 실패해도 통째로 reject라 라이브에서 차트가 아예 안 떴다. 고침:
-  // - 요청을 순차로 바꾸고, 일봉 이력은 localStorage에 10분 캐시(qi_btc_hist_v1),
-  //   자정 기준가는 하루에 딱 1번만 조회해 날짜와 함께 캐시(qi_btc_mid_v1).
-  // - 자정 조회가 실패해도 차트는 그린다(기준선만 생략 - null이면 renderSparkline이
-  //   전일 종가 fallback을 쓴다).
-  // - 시세/등락률도 업비트 ticker로 교체(사용자 요청: "토스처럼 실시간으로") - GAS보다
-  //   즉각적이고, ticker 실패 시엔 GAS 값이 그대로 남는다.
-  // 점선 기준점은 "오늘 자정(00:00 KST)" 시세: 업비트 60분봉 to 파라미터는 배타적
-  // 상한이라, 자정 시각(UTC 전일 15:00)을 to로 주면 자정에 끝나는 봉의 종가가 온다.
-
-  var BTC_HIST_KEY = 'qi_btc_hist_v1';
-  var BTC_MID_KEY = 'qi_btc_mid_v1';
-  var BTC_HIST_TTL_MS = 10 * 60 * 1000;
-
-  function kstToday() {
-    return new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-  }
-
-  function readCache(storageKey) {
-    try { return JSON.parse(localStorage.getItem(storageKey)); } catch (err) { return null; }
-  }
-  function writeCache(storageKey, obj) {
-    try { localStorage.setItem(storageKey, JSON.stringify(obj)); } catch (err) { /* 무시 */ }
-  }
-
-  function fetchBtcHistory() {
-    var cached = readCache(BTC_HIST_KEY);
-    if (cached && cached.rows && (Date.now() - cached.ts) < BTC_HIST_TTL_MS) {
-      return Promise.resolve(cached.rows);
-    }
-    return fetchJson('https://api.upbit.com/v1/candles/days?market=KRW-BTC&count=30')
-      .then(function (candles) {
-        var rows = (candles || []).slice().reverse().map(function (c) {
-          return { date: c.candle_date_time_kst.slice(0, 10), close: c.trade_price };
-        });
-        if (rows.length > 1) writeCache(BTC_HIST_KEY, { ts: Date.now(), rows: rows });
-        return rows.length > 1 ? rows : null;
-      })
-      .catch(function () { return (cached && cached.rows) || null; }); // 만료된 캐시라도 없는 것보단 낫다
-  }
-
-  function fetchBtcMidnight() {
-    var today = kstToday();
-    var cached = readCache(BTC_MID_KEY);
-    if (cached && cached.date === today && typeof cached.price === 'number') {
-      return Promise.resolve(cached.price);
-    }
-    var kst = new Date(Date.now() + 9 * 3600000);
-    var midnightUtc = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()) - 9 * 3600000);
-    var to = midnightUtc.toISOString().slice(0, 19) + 'Z';
-    return fetchJson('https://api.upbit.com/v1/candles/minutes/60?market=KRW-BTC&count=1&to=' + encodeURIComponent(to))
-      .then(function (candles) {
-        var mid = (candles && candles[0]) ? candles[0].trade_price : null;
-        if (typeof mid === 'number') writeCache(BTC_MID_KEY, { date: today, price: mid });
-        return mid;
-      })
-      .catch(function () { return null; });
-  }
-
-  function fetchBtcTicker() {
-    return fetchJson('https://api.upbit.com/v1/ticker?markets=KRW-BTC')
-      .then(function (arr) {
-        var t = arr && arr[0];
-        if (!t || typeof t.trade_price !== 'number') return null;
-        return { price: t.trade_price, change: t.signed_change_price, changeRate: t.signed_change_rate * 100 };
-      })
-      .catch(function () { return null; });
-  }
-
-  // 순차 호출(레이트리밋 회피). ticker -> 이력(캐시면 즉시) -> 자정(하루 1회만 네트워크).
-  function fetchUpbitBtc() {
-    var out = {};
-    return fetchBtcTicker()
-      .then(function (ticker) {
-        out.ticker = ticker;
-        return fetchBtcHistory();
-      })
-      .then(function (rows) {
-        out.chart = rows;
-        return fetchBtcMidnight();
-      })
-      .then(function (mid) {
-        out.baseline = (typeof mid === 'number') ? mid : null;
-        return out;
-      });
-  }
-
+  // 2026-07-17(14차): BTC를 클라이언트 직접 업비트 호출에서 VM 서버사이드 수집(futures
+  // 소스, scripts/cloud-vm/btc_futures.py)으로 옮기면서 다른 해외지수와 완전히 같은
+  // 경로를 타게 됐다 - 더 이상 BTC 전용 분기가 필요 없다.
   function fetchSelectedData(selected) {
     var needMarket = selected.some(function (k) { return OPTION_BY_KEY[k].source === 'market'; });
     var needFutures = selected.some(function (k) { return OPTION_BY_KEY[k].source === 'futures'; });
-    var needBtcHistory = selected.indexOf('btc') > -1;
 
     return Promise.all([
       needMarket ? QuickIndices.fetchMarket().catch(function () { return null; }) : Promise.resolve(null),
-      needFutures ? QuickIndices.fetchFutures().catch(function () { return null; }) : Promise.resolve(null),
-      needBtcHistory ? fetchUpbitBtc().catch(function () { return null; }) : Promise.resolve(null)
+      needFutures ? QuickIndices.fetchFutures().catch(function () { return null; }) : Promise.resolve(null)
     ]).then(function (results) {
       var marketData = results[0] || {};
       var futuresBySymbol = {};
@@ -331,20 +249,6 @@
           if (f && typeof f.price === 'number') out[key] = { price: f.price, change: f.change, changeRate: f.change_rate, chart: f.chart || null };
         }
       });
-      // BTC는 업비트를 우선 소스로 합친다(실시간 ticker + 일봉 이력 + 자정 기준선).
-      // GAS(?market=1) 값은 업비트가 통째로 실패했을 때의 백업 - 그래서 GAS 쪽 카드가
-      // 이미 out.btc에 있으면 덮어쓰고, 없으면(=GAS도 실패) 업비트만으로 카드를 만든다.
-      var up = results[2];
-      if (up && (out.btc || up.ticker)) {
-        if (!out.btc) out.btc = { price: null, change: null, changeRate: null, chart: null };
-        if (up.ticker) {
-          out.btc.price = up.ticker.price;
-          out.btc.change = up.ticker.change;
-          out.btc.changeRate = up.ticker.changeRate;
-        }
-        out.btc.chart = up.chart;
-        out.btc.baseline = up.baseline;
-      }
       return out;
     });
   }
@@ -645,7 +549,7 @@
     changeEl.textContent = arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
     changeEl.className = 'qi-card-change ' + tone;
 
-    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change >= 0, data.price, data.change, data.baseline);
+    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change >= 0, data.price, data.change);
   }
 
   // 선택된 지수 전부(큰 카드 1 + 나머지 그리드)를 새로 그리고, dataCache에 있는 값으로
@@ -742,9 +646,7 @@
   // 등락 방향과 무관했음). 차트 마지막 점도 현재가로 맞춰서(일봉 이력의 마지막이 어제까지면
   // 오늘 점을 덧붙임) 선 위/아래가 항상 등락 방향과 일치한다. 60초 갱신 때도 값이 바뀌도록
   // 기존 인스턴스가 있으면 setData/기준선 갱신을 한다(예전엔 최초 1회만 그리고 끝이었음).
-  // 12차: baselineOverride - BTC처럼 "전일 종가" 대신 별도 기준점(자정 시세)을 쓰는
-  // 종목이 넘겨준다. 없으면 기존대로 price - change(전일 종가).
-  function renderSparkline(container, key, rows, positive, price, change, baselineOverride) {
+  function renderSparkline(container, key, rows, positive, price, change) {
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
 
@@ -756,8 +658,7 @@
         if (last.time >= today) last.value = price;
         else seriesData.push({ time: today, value: price });
       }
-      var baseline = (typeof baselineOverride === 'number') ? baselineOverride
-        : (typeof price === 'number' && typeof change === 'number') ? price - change : rows[0].close;
+      var baseline = (typeof price === 'number' && typeof change === 'number') ? price - change : rows[0].close;
       var color = positive ? '#d24f45' : '#1261c4';
 
       var existing = chartInstances[key];
