@@ -37,25 +37,33 @@
 .qi-scroll {
   flex: 1;
   min-width: 0;
+  height: 100%;
   display: flex;
   align-items: stretch;
-  gap: 10px;
+  gap: 8px;
   overflow: hidden;
 }
 .qi-wrap.qi-collapsed .qi-scroll { display: none; }
 
 .qi-featured {
   flex: 0 0 auto;
+  height: 100%;
   display: flex;
 }
 
+/* height:100%을 명시적으로 줘야 한다 - align-items:stretch(부모 flex)만 믿으면
+   크롬에서 이 높이가 grid-template-rows: 1fr 트랙 계산에 "definite height"로 인정되지
+   않아 그리드 카드가 내용 크기(약 71px)에서 안 늘어나는 버그가 있었음(2026-07-17 실측
+   확인 - --qi-height를 80~150px로 바꿔도 카드가 그대로였다가 180px에서야 갑자기
+   커짐). */
 .qi-grid {
   flex: 1;
   min-width: 0;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-template-rows: repeat(2, 1fr);
-  gap: 8px;
+  gap: 5px;
 }
 
 /* 2026-07-17(4차): 화살표 버튼이 바 전체 높이(align-self:stretch)로 늘어나 길쭉한
@@ -93,16 +101,21 @@
 .qi-card.qi-dragging { opacity: 0.4; }
 
 .qi-card-featured {
-  width: 220px;
+  width: 160px;
   height: 100%;
-  padding: 10px 12px;
+  padding: 6px 8px;
   cursor: default;
 }
 
+/* min-height:0이 핵심 - 그리드 아이템의 기본 자동 최소 크기(내용물의 min-content 높이,
+   여기선 체결/미니차트 캔버스의 내재 높이 때문에 약 71px)가 1fr 트랙이 그보다 작게
+   줄어드는 걸 막아서, 바 높이를 줄여도 그리드 카드가 71px 밑으로 안 줄어드는 버그가
+   있었다(2026-07-17 실측 확인) - 명시적으로 0으로 풀어줘야 1fr이 실제로 작동한다. */
 .qi-card-grid {
   width: 100%;
   height: 100%;
-  padding: 5px 8px;
+  min-height: 0;
+  padding: 3px 6px;
   cursor: grab;
 }
 
@@ -117,8 +130,8 @@
   line-height: 1;
   flex: 0 0 auto;
 }
-.qi-card-featured .qi-card-flag { font-size: 13px; }
-.qi-card-grid .qi-card-flag { font-size: 9px; }
+.qi-card-featured .qi-card-flag { font-size: 10px; }
+.qi-card-grid .qi-card-flag { font-size: 8px; }
 
 .qi-card-label {
   font-weight: 700;
@@ -128,8 +141,8 @@
   text-overflow: ellipsis;
   min-width: 0;
 }
-.qi-card-featured .qi-card-label { font-size: 13px; }
-.qi-card-grid .qi-card-label { font-size: 9px; }
+.qi-card-featured .qi-card-label { font-size: 10px; }
+.qi-card-grid .qi-card-label { font-size: 8px; }
 
 .qi-card-status {
   font-weight: 600;
@@ -137,25 +150,25 @@
   white-space: nowrap;
   flex: 0 0 auto;
 }
-.qi-card-featured .qi-card-status { font-size: 11px; }
-.qi-card-grid .qi-card-status { font-size: 8px; }
+.qi-card-featured .qi-card-status { font-size: 9px; }
+.qi-card-grid .qi-card-status { font-size: 7px; }
 
 .qi-card-price {
   font-weight: 700;
   color: #222;
-  line-height: 1.15;
+  line-height: 1.1;
   white-space: nowrap;
 }
-.qi-card-featured .qi-card-price { font-size: 24px; margin-top: 4px; }
-.qi-card-grid .qi-card-price { font-size: 12px; margin-top: 1px; }
+.qi-card-featured .qi-card-price { font-size: 17px; margin-top: 2px; }
+.qi-card-grid .qi-card-price { font-size: 10px; margin-top: 1px; }
 
 .qi-card-change {
   font-weight: 600;
   color: #888;
   white-space: nowrap;
 }
-.qi-card-featured .qi-card-change { font-size: 13px; min-height: 16px; }
-.qi-card-grid .qi-card-change { font-size: 9px; min-height: 11px; }
+.qi-card-featured .qi-card-change { font-size: 10px; min-height: 13px; }
+.qi-card-grid .qi-card-change { font-size: 8px; min-height: 10px; }
 
 .qi-card-chart {
   flex: 1;
