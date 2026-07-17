@@ -82,7 +82,13 @@
    페이징도 같이 제거 - 카드가 밀집되니 최대 선택(11종)도 한 화면에 들어가서, 그리드는
    3줄을 세로로 채우고 넘치면 오른쪽으로 168px 열이 자동으로 늘어난다(auto-flow). */
 /* 13차: 열 폭 168 -> 200px(사용자 요청 - "코스피 야간..." 같은 말줄임 없이 풀네임 표시),
-   열 사이 간격도 5 -> 12px로 살짝 벌림("너무 확 띄우진 말고") */
+   열 사이 간격도 5 -> 12px로 살짝 벌림("너무 확 띄우진 말고")
+   15차: 열과 열 사이에 회색 구분선 추가(사용자 요청) - DOM을 열 단위로 감싸지 않고도
+   (드래그 정렬 로직이 #qiGrid 직속 자식이 전부 .qi-card라고 가정하고 있어서, 감싸면
+   깨진다) repeating-linear-gradient 배경으로 그린다. 반복 단위(212px = 열폭200+간격12)
+   안에서 간격 한가운데(205~206px)에 1px 선을 긋는 트릭 - 열이 몇 개든 실제 간격 위치에
+   정확히 맞아떨어지고, 마지막 열 뒤에는 실제 간격이 없어 그 자리의 선은 그리드 폭
+   밖으로 밀려나 안 보인다(계산상 항상 폭을 넘어감 - 별도 처리 불필요). */
 .qi-grid {
   flex: 0 0 auto;
   height: 100%;
@@ -92,6 +98,8 @@
   grid-template-rows: repeat(3, 1fr);
   row-gap: 5px;
   column-gap: 12px;
+  background-image: repeating-linear-gradient(to right,
+    transparent 0, transparent 205px, #e2e8f0 205px, #e2e8f0 206px, transparent 206px, transparent 212px);
 }
 
 /* 2026-07-17(9차): KRX 공시 티커를 흡수한 "긴급속보" 패널 - 원래 disc-track의 가로
@@ -326,19 +334,23 @@
   gap: 6px;
 }
 
-/* 11차: ▾ 아이콘만 있던 걸 "리본 접기/펼치기" 텍스트 버튼으로 - 전체 지수보기 링크와
-   같은 톤(11px 회색)으로 맞춰서 오른쪽 컨트롤 열이 위(링크)/아래(버튼들)로 정돈돼 보인다 */
+/* 15차: 11차에서 붙였던 "리본 접기/펼치기" 한글 라벨 제거(사용자 요청) - 아이콘 전용
+   원형 버튼으로 되돌리고, 옆 "+" 버튼과 크기를 맞춰서(26px vs 32px, 둘 다 원형) 가지런히
+   정렬되게 정리했다. */
 .qi-collapse-btn {
-  height: 24px;
-  padding: 0 6px;
-  border: none;
-  background: transparent;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  background: #fff;
   color: #888;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  border-radius: 6px;
 }
 .qi-collapse-btn:hover { background: #f2f2f2; }
 
@@ -402,12 +414,23 @@
   /* 14차: 모바일에선 리본이 화면 양끝에 붙으므로 라운드 제거, 컨트롤도 좀 더 컴팩트하게 */
   .qi-wrap { padding: 6px 8px; gap: 6px; border-radius: 0; }
   .qi-controls { padding-left: 6px; }
-  .qi-collapse-btn { font-size: 10px; padding: 0 4px; }
   .qi-card-featured { width: 150px; }
   /* 14차: 좁은 화면에선 열 폭을 150px로 고정하고 넘치는 만큼 .qi-scroll의 가로
      스와이프로 넘긴다(이전 minmax(140px,1fr)+overflow:hidden 조합은 넘친 카드를
      볼 방법이 없었음). 속보 패널은 계속 숨김. */
-  .qi-grid { grid-auto-columns: 150px; column-gap: 8px; }
+  /* 150(열폭)+8(간격)=158px 반복 단위, 선은 간격 한가운데(153.5~154.5px).
+     html.dark .qi-grid(다음 다크모드 섹션)가 두 클래스라 특이도가 더 높아서 이 규칙을
+     그냥 덮어써버리므로, 다크모드용 158px 패턴도 이 media 블록 안에서 별도로 정의. */
+  .qi-grid {
+    grid-auto-columns: 150px;
+    column-gap: 8px;
+    background-image: repeating-linear-gradient(to right,
+      transparent 0, transparent 153.5px, #e2e8f0 153.5px, #e2e8f0 154.5px, transparent 154.5px, transparent 158px);
+  }
+  html.dark .qi-grid {
+    background-image: repeating-linear-gradient(to right,
+      transparent 0, transparent 153.5px, #2a3550 153.5px, #2a3550 154.5px, transparent 154.5px, transparent 158px) !important;
+  }
   .qi-news { display: none; } /* 좁은 화면에서는 카드만으로도 이미 빠듯해서 속보 패널은 숨김 */
 }
 
@@ -427,8 +450,12 @@ html.dark .qi-card-change { color: #8b96b8 !important; }
 html.dark .qi-pos { color: #ff6b5b !important; }
 html.dark .qi-neg { color: #4d9fff !important; }
 html.dark .qi-zero { color: #8b96b8 !important; }
-html.dark .qi-collapse-btn { color: #8b96b8 !important; }
-html.dark .qi-collapse-btn:hover { background: #1a2338 !important; }
+html.dark .qi-collapse-btn { background: #1a2338 !important; border-color: #2a3550 !important; color: #8b96b8 !important; }
+html.dark .qi-collapse-btn:hover { background: #232e4a !important; }
+html.dark .qi-grid {
+  background-image: repeating-linear-gradient(to right,
+    transparent 0, transparent 205px, #2a3550 205px, #2a3550 206px, transparent 206px, transparent 212px) !important;
+}
 html.dark .qi-add-btn { border-color: #3a4870 !important; color: #8b96b8 !important; }
 html.dark .qi-add-btn:hover { background: #1a2338 !important; color: #eef2f8 !important; }
 html.dark .qi-popover { background: #171e2f !important; border-color: #2a3550 !important; }

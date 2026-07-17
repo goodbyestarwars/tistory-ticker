@@ -499,8 +499,10 @@
       // 12차: "전체 지수보기" 링크 삭제(사용자 요청 - 사이드바 메뉴로 충분)
       + '<div class="qi-controls">'
       + '<div class="qi-controls-icons">'
-      // 11차: ▾ 아이콘만 있던 접기 버튼에 라벨을 붙여 뭐 하는 버튼인지 보이게 함
-      + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 리본 접기/펼치기">' + (isCollapsed() ? '리본 펼치기 ▸' : '리본 접기 ▾') + '</button>'
+      // 15차: 11차에서 붙였던 "리본 접기/펼치기" 한글 라벨 제거(사용자 요청) - 다시
+      // 아이콘 전용 원형 버튼으로. 그만큼 좁아진 .qi-controls 폭은 옆 .qi-news(flex:1)가
+      // 자동으로 흡수해 늘어난다(레이아웃 재계산 불필요, flexbox가 알아서 함).
+      + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 리본 접기/펼치기">' + (isCollapsed() ? '▸' : '▾') + '</button>'
       + '<div class="qi-add-wrap">'
       + '<button type="button" class="qi-add-btn" id="qiAddBtn" aria-label="지수 추가">+</button>'
       + '<div class="qi-popover" id="qiPopover"></div>'
@@ -524,7 +526,7 @@
     document.documentElement.style.setProperty('--qi-height', collapsed ? HEIGHT_COLLAPSED : HEIGHT_EXPANDED);
     container.classList.toggle('qi-collapsed', collapsed);
     var btn = container.querySelector('#qiCollapseBtn');
-    if (btn) btn.textContent = collapsed ? '리본 펼치기 ▸' : '리본 접기 ▾';
+    if (btn) btn.textContent = collapsed ? '▸' : '▾';
   }
 
   // ---- 갱신(기존 카드 값만 업데이트 - 깜빡임 방지) ----
