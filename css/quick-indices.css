@@ -36,7 +36,13 @@
   gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: thin;
 }
+/* 전역 스크롤바 규칙(style.css)은 width만 지정해서 세로 스크롤바만 얇아지고, 가로
+   스크롤바(overflow-x)는 두께가 height로 결정돼서 브라우저 기본 굵기 그대로 나온다
+   (2026-07-17 피드백: 바를 얇게 줄였더니 가로 스크롤바만 두꺼워서 튀어 보임). */
+.qi-scroll::-webkit-scrollbar { height: 6px; }
+.qi-scroll::-webkit-scrollbar-track { background: transparent; }
 .qi-wrap.qi-collapsed .qi-scroll { display: none; }
 
 /* 2026-07-17: 정사각형 카드(108x100, 텍스트 위/차트 아래)를 가로로 넓은 직사각형으로
