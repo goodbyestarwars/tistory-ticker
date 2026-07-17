@@ -688,7 +688,14 @@
   }
 
   function buildCard(data) {
-    var grade = data.grade || { emoji: '', label: '', tone: 'neutral', color: '#888' };
+    // 서버(GAS gradeForTemp_)가 내려주는 grade에는 color가 없다(색상 스펙은 클라이언트
+    // GRADE_BANDS/GRADE_BY_TONE에만 있음) - data.grade 자체에 색을 주입해서 buildHero(data)/
+    // buildStrategy(grade) 등 이 값을 각자 다시 읽는 모든 함수가 동일하게 정확한 색을 쓰게
+    // 한다(2026-07-18 발견 - 이 주입이 빠져서 오늘의 전략 진행바가 폭은 맞는데 색이
+    // undefined라 안 보이는 버그가 있었음).
+    if (!data.grade) data.grade = { emoji: '', label: '', tone: 'neutral' };
+    data.grade.color = (GRADE_BY_TONE[data.grade.tone] || GRADE_BY_TONE.neutral).color;
+    var grade = data.grade;
     var tone = grade.tone || 'neutral';
 
     var sections = [
