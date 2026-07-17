@@ -384,8 +384,16 @@
       + '</div>';
   }
 
+  // 2026-07-18(3차): 게이지를 Hero 아래(세로)가 아니라 옆(가로)에 배치(사용자 요청 -
+  // "온도를 본 직후 바로 옆에서 위치 확인", 크기는 축소 가능) - .mt-hero-row가 좌우로
+  // 나란히 놓고, 게이지 쪽은 .mt-gauge-side로 감싸 CSS에서 폭을 줄이고 글자도 작게 조정.
   function buildHeroCard(data) {
-    return '<div class="mt-section mt-card mt-hero-card">' + buildHero(data) + buildGauge(data.temp) + '</div>';
+    return '<div class="mt-section mt-card mt-hero-card">'
+      + '<div class="mt-hero-row">'
+      + buildHero(data)
+      + '<div class="mt-gauge-side">' + buildGauge(data.temp) + '</div>'
+      + '</div>'
+      + '</div>';
   }
 
   // ---- ③ 시장 구성 요소 (2026-07-18 2차 개편: 세로 리스트+굵은 바 -> 압축 카드형 그리드로
@@ -421,7 +429,7 @@
       return buildComponentCard(meta, data.components && data.components[meta.key]);
     }).join('');
     return ''
-      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card">'
       + '<div class="mt-card-title">📊 시장 구성 요소</div>'
       + '<div class="mt-component-grid">' + cards + '</div>'
       + '</div>';
@@ -505,23 +513,37 @@
       return '<line x1="' + cx + '" y1="' + cy + '" x2="' + edge.x.toFixed(1) + '" y2="' + edge.y.toFixed(1) + '" stroke="currentColor" class="mt-radar-grid"></line>'
         + '<text x="' + labelPt.x.toFixed(1) + '" y="' + labelPt.y.toFixed(1) + '" class="mt-radar-label" text-anchor="middle">' + meta.icon + ' ' + escapeHtml(meta.label.replace('(외국인+기관)', '')) + '</text>';
     }).join('');
-    // 데이터 폴리곤(score/max*100 정규화 - 개별 지표 바와 동일 스케일)
+    // 데이터 폴리곤(score/max*100 정규화 - 개별 지표 바와 동일 스케일) + 꼭짓점마다
+    // 점수 라벨(2026-07-18 3차: "레이더가 너무 썰렁하다"는 피드백 - 마커/점수 텍스트로
+    // 정보 밀도를 높임).
+    var dataPoints = [];
     var dataPts = RADAR_KEYS.map(function (key, i) {
       var meta = COMPONENT_BY_KEY[key];
       var comp = data.components && data.components[key];
       var score = comp && typeof comp.score === 'number' ? comp.score : meta.max / 2;
       var ratio = meta.max ? Math.max(0, Math.min(1, score / meta.max)) : 0.5;
       var p = pointFor(i, ratio);
+      dataPoints.push({ p: p, score: score, max: meta.max });
       return p.x.toFixed(1) + ',' + p.y.toFixed(1);
     }).join(' ');
     var color = (GRADE_BY_TONE[(data.grade || {}).tone] || {}).color || '#6366f1';
+    var markers = dataPoints.map(function (d) {
+      return '<circle cx="' + d.p.x.toFixed(1) + '" cy="' + d.p.y.toFixed(1) + '" r="4" fill="' + color + '" stroke="#fff" stroke-width="1.5"></circle>';
+    }).join('');
+    var scoreLabels = dataPoints.map(function (d) {
+      // 점 바로 위/아래에 "점수/만점" 표시 - 축이 위쪽(0번)이면 라벨을 점 위로, 그 외엔
+      // 중심에서 바깥쪽으로 약간 띄워 라인/축과 안 겹치게 한다.
+      var dy = d.p.y < cy ? -9 : 13;
+      return '<text x="' + d.p.x.toFixed(1) + '" y="' + (d.p.y + dy).toFixed(1) + '" class="mt-radar-score" text-anchor="middle">' + d.score + '</text>';
+    }).join('');
 
     return ''
-      + '<div class="mt-section mt-card">'
+      + '<div class="mt-card">'
       + '<div class="mt-card-title">🕸 시장 레이더 차트</div>'
       + '<svg class="mt-radar" viewBox="0 0 300 300">'
       + grid + axes
-      + '<polygon points="' + dataPts + '" fill="' + color + '33" stroke="' + color + '" stroke-width="2" class="mt-radar-data"></polygon>'
+      + '<polygon points="' + dataPts + '" fill="' + color + '4D" stroke="' + color + '" stroke-width="2.5" class="mt-radar-data"></polygon>'
+      + markers + scoreLabels
       + '</svg>'
       + '</div>';
   }
@@ -707,12 +729,11 @@
     function row2col(a, b) { return '<div class="mt-section mt-row-2col">' + a + b + '</div>'; }
 
     var sections = [
-      buildHeroCard(data),                          // ① Hero + 게이지 (병합)
+      buildHeroCard(data),                          // ① Hero(온도+투자시그널) | 게이지 (좌우)
       row2col(buildAiBriefingShell(), buildTop5(data)), // ② AI브리핑 | TOP5
-      buildBars(data),                               // ③ 시장 구성요소(카드형 그리드)
+      row2col(buildBars(data), buildRadar(data)),   // ③ 시장 구성요소 | 시장 레이더 (좌우, 3차 개편)
       row2col(buildSparkline(data), buildStrategy(grade)), // ④ 최근7일 | 오늘의 전략
-      buildRadar(data),                              // ⑤ 시장 레이더(단독, 콤팩트)
-      buildGuide()                                   // ⑥ 온도 기준표
+      buildGuide()                                   // ⑤ 온도 기준표
     ];
 
     return ''

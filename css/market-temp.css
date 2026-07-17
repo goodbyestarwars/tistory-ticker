@@ -117,14 +117,28 @@
 /* ================= ① Hero + 게이지 (2026-07-18 2차: 하나의 카드로 병합) =================
    외곽 카드 스타일(padding/border/배경/톤 그라데이션)은 부모 .mt-hero-card(.mt-card 상속)가
    맡고, .mt-hero 자체는 순수 내부 레이아웃(flex)만 담당하도록 변경 - 톤별 그라데이션
-   배경 규칙도 전부 .mt-hero-card 타겟으로 옮겨야 함(아래 "온도 구간별 카드 배경" 참고). */
+   배경 규칙도 전부 .mt-hero-card 타겟으로 옮겨야 함(아래 "온도 구간별 카드 배경" 참고).
+   2026-07-18(3차): 게이지를 Hero 아래(세로)가 아니라 옆(가로)으로 이동(사용자 요청) -
+   .mt-hero-row가 좌우로 나란히 놓고, .mt-gauge-side가 게이지 쪽 폭/글자를 축소한다. */
 #market-temp .mt-hero-card { padding: 16px 18px; }
+#market-temp .mt-hero-row { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
 #market-temp .mt-hero {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 16px;
+  flex: 1 1 320px;
+  min-width: 0;
 }
+/* 게이지 쪽 전용 콤팩트 스케일 - 기존 .mt-gauge-* 규칙은 그대로 두고 이 컨테이너 안에서만
+   덮어쓴다(다른 곳에 .mt-gauge를 재사용할 일이 생겨도 영향 없게 스코프 한정). */
+#market-temp .mt-gauge-side { flex: 1 1 260px; max-width: 320px; min-width: 220px; }
+#market-temp .mt-gauge-side .mt-gauge-title { font-size: 11px; margin: 0 0 6px; }
+#market-temp .mt-gauge-side .mt-gauge-track { height: 20px; }
+#market-temp .mt-gauge-side .mt-gauge-marker { height: 28px; top: -4px; width: 4px; }
+#market-temp .mt-gauge-side .mt-gauge-bubble { font-size: 10px; padding: 1px 6px; }
+#market-temp .mt-gauge-side .mt-gauge-scale,
+#market-temp .mt-gauge-side .mt-gauge-bands { font-size: 8.5px; }
 #market-temp .mt-gauge-title { font-size: 12px; font-weight: 700; color: #999; margin: 14px 0 8px; }
 #market-temp .mt-hero-left { flex: 1 1 260px; min-width: 0; }
 #market-temp .mt-hero-title { font-size: 14px; font-weight: 700; color: #666; margin-bottom: 8px; }
@@ -165,7 +179,9 @@
 /* ================= ② AI 시장 브리핑 (오늘 시장 영향요인 TOP5와 좌우 배치, .mt-row-2col) ================= */
 /* 2026-07-18: 인디고 왼쪽 강조선 제거(사용자 피드백 - AI가 만든 티가 너무 남) - 다른
    섹션과 동일한 평범한 카드 톤으로 통일. */
-#market-temp .mt-ai-text { font-size: 13.5px; color: #444; margin: 0; }
+/* 2026-07-18(3차): "TOP5랑 비교하면 폰트가 너무 작다"는 피드백 - 13.5px -> 15px,
+   줄간격도 살짝 넓혀 가독성 향상. */
+#market-temp .mt-ai-text { font-size: 15px; line-height: 1.6; color: #444; margin: 0; }
 #market-temp .mt-ai-empty { color: #aaa; }
 
 /* ================= ③ 오늘 시장 영향요인 TOP5 ================= */
@@ -247,21 +263,24 @@
 /* ================= ③ 시장 구성 요소 (2026-07-18 2차: 압축 카드형 그리드로 재설계) =================
    "진행바보다 수치와 점수 기여도가 먼저 보이도록" - 아이콘+라벨 한 줄, 수치, 기여도,
    맨 아래 얇은(6px) 바 하나만. 색상 모디파이어 클래스(mt-bar-vix 등)는 기존 지표바와
-   공유하던 것 그대로 재사용(베이스 클래스명과 무관하게 매치되도록 단독 선택자로 변경). */
+   공유하던 것 그대로 재사용(베이스 클래스명과 무관하게 매치되도록 단독 선택자로 변경).
+   2026-07-18(3차): 레이더와 좌우 50:50 배치되며 폭이 절반으로 줄어서 ① 열 최소폭을
+   130->104px로 낮추고 ② 라벨 말줄임(단어 잘림)을 없애는 대신 폰트를 줄여 통으로 보이게
+   함(사용자 요청 - "단어잘림 허용하지마, 폰트를 줄여"). */
 #market-temp .mt-component-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
   gap: 8px;
 }
 #market-temp .mt-comp-card {
   border: 1px solid #eee;
   border-radius: 10px;
-  padding: 9px 10px;
+  padding: 8px 9px;
 }
-#market-temp .mt-comp-top { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #888; margin-bottom: 5px; }
-#market-temp .mt-comp-icon { font-size: 12px; }
-#market-temp .mt-comp-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#market-temp .mt-comp-value { font-size: 15px; font-weight: 700; color: #222; line-height: 1.2; }
+#market-temp .mt-comp-top { display: flex; align-items: flex-start; gap: 4px; font-size: 10px; color: #888; margin-bottom: 5px; }
+#market-temp .mt-comp-icon { font-size: 11px; line-height: 1.3; }
+#market-temp .mt-comp-label { flex: 1; min-width: 0; line-height: 1.3; word-break: keep-all; }
+#market-temp .mt-comp-value { font-size: 14px; font-weight: 700; color: #222; line-height: 1.2; }
 #market-temp .mt-comp-contrib { font-size: 11px; font-weight: 700; margin: 2px 0 6px; }
 #market-temp .mt-comp-bar-track { height: 6px; border-radius: 999px; background: #eee; overflow: hidden; }
 #market-temp .mt-comp-bar-fill { height: 100%; border-radius: 999px; }
@@ -301,6 +320,9 @@
 #market-temp .mt-radar-grid { color: #e5e5e5; }
 #market-temp .mt-radar-label { font-size: 9.5px; fill: #888; }
 #market-temp .mt-radar-data { transition: opacity 0.3s ease; }
+/* 2026-07-18(3차): "레이더가 너무 썰렁하다" 피드백 - 꼭짓점 마커 + 점수 라벨 추가로
+   정보 밀도를 높임(buildRadar의 markers/scoreLabels 참고). */
+#market-temp .mt-radar-score { font-size: 10px; font-weight: 700; fill: #333; }
 
 /* ================= ④-2 오늘 투자전략 (최근 7일과 좌우 배치) ================= */
 #market-temp .mt-strategy-action { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
@@ -489,6 +511,7 @@ html.dark #market-temp .mt-spark-labels b { color: #ddd !important; }
 
 html.dark #market-temp .mt-radar-grid { color: #3a3a3a !important; }
 html.dark #market-temp .mt-radar-label { fill: #888 !important; }
+html.dark #market-temp .mt-radar-score { fill: #ddd !important; }
 
 html.dark #market-temp .mt-strategy-bar-row { color: #999 !important; }
 html.dark #market-temp .mt-strategy-bar-row b { color: #ddd !important; }
