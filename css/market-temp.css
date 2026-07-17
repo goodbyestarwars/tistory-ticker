@@ -146,7 +146,8 @@
 #market-temp .mt-hero-signal-word { font-size: 16px; font-weight: 800; }
 
 /* ================= ② AI 시장 브리핑 ================= */
-#market-temp .mt-ai-card { border-left: 3px solid #6366f1; }
+/* 2026-07-18: 인디고 왼쪽 강조선 제거(사용자 피드백 - AI가 만든 티가 너무 남) - 다른
+   섹션과 동일한 평범한 카드 톤으로 통일. */
 #market-temp .mt-ai-text { font-size: 13.5px; color: #444; margin: 0; }
 #market-temp .mt-ai-empty { color: #aaa; }
 
