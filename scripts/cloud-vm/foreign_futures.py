@@ -26,6 +26,9 @@ SYMBOLS = [
     {'key': 'SOX', 'name': '필라델피아 반도체지수', 'code': '.SOX', 'category': 'index'},
     {'key': 'VIX', 'name': 'VIX(변동성지수)', 'code': '.VIX', 'category': 'index'},
     {'key': 'WTI', 'name': 'WTI 원유', 'code': 'CLcv1', 'category': 'futures'},
+    # 2026-07-17 추가(사용자 요청 - 관심지수 리본에 금 시세) - realtime/worldstock/futures/GCcv1
+    # (COMEX 금 선물) curl 실측 확인됨. WTI(CLcv1)와 완전히 같은 패턴.
+    {'key': 'GOLD', 'name': '금 선물', 'code': 'GCcv1', 'category': 'futures'},
     # 2026-07-16(2차) 추가 - "보조지수" 페이지에 선물뿐 아니라 실제 현물 지수도 같이 보여달라는
     # 요청. .SOX/.VIX와 동일한 category='index' 패턴이라 코드만 추가하면 됨(curl 실측 확인:
     # ac.stock.naver.com autocomplete로 .IXIC/.INX/.DJI 코드 확보, realtime 정상 응답 확인).

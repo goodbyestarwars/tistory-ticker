@@ -146,7 +146,7 @@ a { text-decoration: none; color: inherit; }
   width: 256px;
   flex-shrink: 0;
   position: sticky;
-  top: calc(78px + var(--qi-height)) !important; /* navbar(56) + 간격(6, 11차) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다. !important는 page-wrap과 같은 이유(주석 참고). 2026-07-17(9차): disc-ticker 흡수로 110->72, (11차) 72->78 */
+  top: calc(72px) !important; /* navbar(56) + 여백(16). 2026-07-17(13차): 관심지수 리본이 fixed->absolute로 바뀌어 스크롤하면 사라지므로, 스크롤 후 고정 기준은 navbar만 남는다 - 리본 높이(--qi-height) 오프셋 제거. !important는 page-wrap과 같은 이유(주석 참고). */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1617,7 +1617,7 @@ a { text-decoration: none; color: inherit; }
   width: 292px;
   flex-shrink: 0;
   position: sticky;
-  top: calc(78px + var(--qi-height)) !important; /* navbar(56) + 간격(6, 11차) + quick-indices 바(--qi-height) + 여백(16). 바가 접히면 자동으로 따라 올라온다. !important는 page-wrap과 같은 이유(주석 참고). 2026-07-17(9차): disc-ticker 흡수로 110->72, (11차) 72->78 */
+  top: calc(72px) !important; /* navbar(56) + 여백(16). 2026-07-17(13차): 관심지수 리본이 fixed->absolute로 바뀌어 스크롤하면 사라지므로, 스크롤 후 고정 기준은 navbar만 남는다 - 리본 높이(--qi-height) 오프셋 제거. !important는 page-wrap과 같은 이유(주석 참고). */
   display: flex;
   flex-direction: column;
   gap: 12px;

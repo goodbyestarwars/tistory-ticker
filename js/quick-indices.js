@@ -62,6 +62,11 @@
  * "넓게 벌려 놓으면 직관성이 떨어짐") 최대 선택(11종)이 전부 한 화면에 들어가게 돼서
  * 좌우 화살표 페이징을 제거하고 항상 전체를 그린다. 긴급속보는 장외 시간에 공시 RSS가
  * 통째로 비어 "속보 없음"만 떠 있던 걸 GAS ?rankNews=1(네이버 뉴스 헤드라인)로 폴백.
+ *
+ * 2026-07-17(13차): position:fixed -> absolute(스크롤하면 페이지와 함께 사라짐 - 사용자
+ * 요청). BTC는 업비트 직접 호출로 전환(실시간 ticker + 일봉 차트 + 자정 기준선, 레이트
+ * 리밋 때문에 순차 호출 + localStorage 캐시 - fetchUpbitBtc 주석 참고). 금 선물(GOLD)
+ * 추가(VM 수집기에도 같이 추가), 시세 소수점 표기, 갱신 20초, 카드 폭 200px(풀네임).
  */
 (function (global) {
   'use strict';
@@ -75,7 +80,9 @@
   // 11차: 등락률을 가격 옆 한 줄로 합치면서 카드가 한 줄씩 낮아져 175 -> 140
   var HEIGHT_EXPANDED = '140px';
   var HEIGHT_COLLAPSED = '40px';
-  var REFRESH_MS = 60 * 1000;
+  // 13차: 60초 -> 20초(사용자 요청: "토스처럼 실시간으로"). 진짜 실시간(웹소켓)은 소스가
+  // 없어서 폴링 주기 단축으로 근사 - VM은 30초 주기 수집이라 이보다 짧게 줄여도 무의미.
+  var REFRESH_MS = 20 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 30;
@@ -102,8 +109,11 @@
     { key: 'nasdaq', label: '나스닥 선물', source: 'futures', sourceKey: 'NASDAQ100' },
     { key: 'sp500', label: 'S&P500 선물', source: 'futures', sourceKey: 'SP500' },
     { key: 'dow', label: '다우 선물', source: 'futures', sourceKey: 'DOW' },
-    { key: 'sox', label: '필라델피아', source: 'futures', sourceKey: 'SOX' },
-    { key: 'wti', label: '원유', source: 'futures', sourceKey: 'WTI' },
+    { key: 'sox', label: '필라델피아 반도체', source: 'futures', sourceKey: 'SOX' },
+    { key: 'wti', label: 'WTI 원유', source: 'futures', sourceKey: 'WTI' },
+    // 2026-07-17(13차) 추가(사용자 요청) - VM 수집기(scripts/cloud-vm/foreign_futures.py)에
+    // GOLD(GCcv1, COMEX 금 선물)를 같이 추가했다(push 후 5분 내 VM 자동배포).
+    { key: 'gold', label: '금 선물', source: 'futures', sourceKey: 'GOLD' },
     { key: 'vix', label: 'VIX', source: 'futures', sourceKey: 'VIX' }
   ];
   var OPTION_BY_KEY = {};
@@ -115,7 +125,7 @@
     kospi: '🇰🇷', kosdaq: '🇰🇷', kospi_night: '🇰🇷',
     usdkrw: '💵', btc: '🪙',
     nasdaq: '🇺🇸', sp500: '🇺🇸', dow: '🇺🇸', sox: '🇺🇸', vix: '🇺🇸',
-    wti: '🛢️'
+    wti: '🛢️', gold: '🥇'
   };
 
   // 장중/장마감 표시(네이버 스타일). 공휴일 캘린더가 없어 요일+시간만으로 근사한다 -
@@ -203,30 +213,97 @@
   function fetchMarket() { return fetchJson(GAS_TICKER_URL + '?market=1'); }
   function fetchFutures() { return fetchJson(FUTURES_API).then(function (json) { return json.data || []; }); }
 
-  // ---- BTC 차트/기준점 (2026-07-17 12차) ----
-  // GAS ?market=1의 BTC는 시세 이력이 없어 미니차트가 안 떴다(사용자 피드백: "BTC는 왜
-  // 안 나와?") - 업비트 공개 API가 CORS 전체 허용(Access-Control-Allow-Origin: *)이라
-  // 브라우저에서 직접 받는다. 점선 기준점은 사용자 요청대로 "오늘 자정(00:00 KST)" 시세:
-  // 업비트 60분봉의 to 파라미터는 배타적 상한이라, 자정 시각(UTC로 전일 15:00)을 to로
-  // 주면 자정에 끝나는 봉(23:00~24:00 KST)이 오고 그 종가가 곧 자정 시세다.
+  // ---- BTC 차트/기준점/실시간 시세 (2026-07-17 12차, 13차에 재작성) ----
+  // GAS ?market=1의 BTC는 시세 이력이 없어 미니차트가 안 떴다 - 업비트 공개 API가 CORS
+  // 전체 허용(Access-Control-Allow-Origin: *)이라 브라우저에서 직접 받는다.
+  //
+  // 13차: 업비트는 origin당 요청 제한이 매우 빡빡하고(라이브 실측: 병렬 2건 중 1건이
+  // 튕김 - 429 응답엔 CORS 헤더가 없어 "Failed to fetch"로 보임) 12차의 Promise.all이
+  // 하나만 실패해도 통째로 reject라 라이브에서 차트가 아예 안 떴다. 고침:
+  // - 요청을 순차로 바꾸고, 일봉 이력은 localStorage에 10분 캐시(qi_btc_hist_v1),
+  //   자정 기준가는 하루에 딱 1번만 조회해 날짜와 함께 캐시(qi_btc_mid_v1).
+  // - 자정 조회가 실패해도 차트는 그린다(기준선만 생략 - null이면 renderSparkline이
+  //   전일 종가 fallback을 쓴다).
+  // - 시세/등락률도 업비트 ticker로 교체(사용자 요청: "토스처럼 실시간으로") - GAS보다
+  //   즉각적이고, ticker 실패 시엔 GAS 값이 그대로 남는다.
+  // 점선 기준점은 "오늘 자정(00:00 KST)" 시세: 업비트 60분봉 to 파라미터는 배타적
+  // 상한이라, 자정 시각(UTC 전일 15:00)을 to로 주면 자정에 끝나는 봉의 종가가 온다.
 
-  function btcMidnightUtcParam() {
-    var kst = new Date(Date.now() + 9 * 3600000);
-    var midnightUtc = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()) - 9 * 3600000);
-    return midnightUtc.toISOString().slice(0, 19) + 'Z';
+  var BTC_HIST_KEY = 'qi_btc_hist_v1';
+  var BTC_MID_KEY = 'qi_btc_mid_v1';
+  var BTC_HIST_TTL_MS = 10 * 60 * 1000;
+
+  function kstToday() {
+    return new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
   }
 
+  function readCache(storageKey) {
+    try { return JSON.parse(localStorage.getItem(storageKey)); } catch (err) { return null; }
+  }
+  function writeCache(storageKey, obj) {
+    try { localStorage.setItem(storageKey, JSON.stringify(obj)); } catch (err) { /* 무시 */ }
+  }
+
+  function fetchBtcHistory() {
+    var cached = readCache(BTC_HIST_KEY);
+    if (cached && cached.rows && (Date.now() - cached.ts) < BTC_HIST_TTL_MS) {
+      return Promise.resolve(cached.rows);
+    }
+    return fetchJson('https://api.upbit.com/v1/candles/days?market=KRW-BTC&count=30')
+      .then(function (candles) {
+        var rows = (candles || []).slice().reverse().map(function (c) {
+          return { date: c.candle_date_time_kst.slice(0, 10), close: c.trade_price };
+        });
+        if (rows.length > 1) writeCache(BTC_HIST_KEY, { ts: Date.now(), rows: rows });
+        return rows.length > 1 ? rows : null;
+      })
+      .catch(function () { return (cached && cached.rows) || null; }); // 만료된 캐시라도 없는 것보단 낫다
+  }
+
+  function fetchBtcMidnight() {
+    var today = kstToday();
+    var cached = readCache(BTC_MID_KEY);
+    if (cached && cached.date === today && typeof cached.price === 'number') {
+      return Promise.resolve(cached.price);
+    }
+    var kst = new Date(Date.now() + 9 * 3600000);
+    var midnightUtc = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()) - 9 * 3600000);
+    var to = midnightUtc.toISOString().slice(0, 19) + 'Z';
+    return fetchJson('https://api.upbit.com/v1/candles/minutes/60?market=KRW-BTC&count=1&to=' + encodeURIComponent(to))
+      .then(function (candles) {
+        var mid = (candles && candles[0]) ? candles[0].trade_price : null;
+        if (typeof mid === 'number') writeCache(BTC_MID_KEY, { date: today, price: mid });
+        return mid;
+      })
+      .catch(function () { return null; });
+  }
+
+  function fetchBtcTicker() {
+    return fetchJson('https://api.upbit.com/v1/ticker?markets=KRW-BTC')
+      .then(function (arr) {
+        var t = arr && arr[0];
+        if (!t || typeof t.trade_price !== 'number') return null;
+        return { price: t.trade_price, change: t.signed_change_price, changeRate: t.signed_change_rate * 100 };
+      })
+      .catch(function () { return null; });
+  }
+
+  // 순차 호출(레이트리밋 회피). ticker -> 이력(캐시면 즉시) -> 자정(하루 1회만 네트워크).
   function fetchUpbitBtc() {
-    return Promise.all([
-      fetchJson('https://api.upbit.com/v1/candles/days?market=KRW-BTC&count=30'),
-      fetchJson('https://api.upbit.com/v1/candles/minutes/60?market=KRW-BTC&count=1&to=' + encodeURIComponent(btcMidnightUtcParam()))
-    ]).then(function (res) {
-      var rows = (res[0] || []).slice().reverse().map(function (c) {
-        return { date: c.candle_date_time_kst.slice(0, 10), close: c.trade_price };
+    var out = {};
+    return fetchBtcTicker()
+      .then(function (ticker) {
+        out.ticker = ticker;
+        return fetchBtcHistory();
+      })
+      .then(function (rows) {
+        out.chart = rows;
+        return fetchBtcMidnight();
+      })
+      .then(function (mid) {
+        out.baseline = (typeof mid === 'number') ? mid : null;
+        return out;
       });
-      var mid = (res[1] && res[1][0]) ? res[1][0].trade_price : null;
-      return { chart: rows.length > 1 ? rows : null, baseline: (typeof mid === 'number') ? mid : null };
-    });
   }
 
   function fetchSelectedData(selected) {
@@ -254,11 +331,19 @@
           if (f && typeof f.price === 'number') out[key] = { price: f.price, change: f.change, changeRate: f.change_rate, chart: f.chart || null };
         }
       });
-      // BTC만 시세(GAS)와 이력(업비트)이 다른 소스라 여기서 합친다 - 업비트가 실패해도
-      // 시세/등락률은 GAS 것이 그대로 나온다(차트만 생략).
-      if (out.btc && results[2]) {
-        out.btc.chart = results[2].chart;
-        out.btc.baseline = results[2].baseline;
+      // BTC는 업비트를 우선 소스로 합친다(실시간 ticker + 일봉 이력 + 자정 기준선).
+      // GAS(?market=1) 값은 업비트가 통째로 실패했을 때의 백업 - 그래서 GAS 쪽 카드가
+      // 이미 out.btc에 있으면 덮어쓰고, 없으면(=GAS도 실패) 업비트만으로 카드를 만든다.
+      var up = results[2];
+      if (up && (out.btc || up.ticker)) {
+        if (!out.btc) out.btc = { price: null, change: null, changeRate: null, chart: null };
+        if (up.ticker) {
+          out.btc.price = up.ticker.price;
+          out.btc.change = up.ticker.change;
+          out.btc.changeRate = up.ticker.changeRate;
+        }
+        out.btc.chart = up.chart;
+        out.btc.baseline = up.baseline;
       }
       return out;
     });
@@ -404,7 +489,9 @@
   function formatNumber(n) {
     var num = Number(n);
     if (isNaN(num)) return String(n);
-    return num.toLocaleString('ko-KR', { maximumFractionDigits: num >= 1000 ? 0 : 2 });
+    // 13차: 1000 이상이면 소수점을 버리던 규칙 폐지(사용자 피드백: 토스는 코스피를
+    // 6,820.60처럼 소수점까지 보여주는데 우리만 6,821로 반올림돼 "시세가 달라" 보였음).
+    return num.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
   }
 
   // ---- 마운트: 페이지 종류와 무관하게 항상 공시 티커 아래 고정 ----
