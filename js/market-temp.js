@@ -71,12 +71,16 @@
   GRADE_BANDS.forEach(function (b) { GRADE_BY_TONE[b.tone] = b; });
 
   // 역발상형 투자시그널(사용자 확정: 공포=매수 신호, CNN Fear&Greed 지수의 통상적 활용법).
+  // actionTone: 2026-07-18(6차) - Hero의 "매수"가 등급색(공포=하늘색 #42A5F5)을 그대로 써서
+  // "매수인데 파란색으로 보인다"는 피드백 - 오늘의 전략과 동일하게 매수=빨강/매도=파랑
+  // (사이트 공통 부호색)으로 통일. 등급 자체를 나타내는 mt-grade-pill(예: "🔵 공포")은
+  // 온도 밴드 색상이 맞으므로 그대로 grade.color 유지.
   var SIGNAL_BY_TONE = {
-    'extreme-fear': { label: '적극매수', stars: 5 },
-    'fear': { label: '매수', stars: 4 },
-    'neutral': { label: '관망', stars: 3 },
-    'greed': { label: '주의', stars: 2 },
-    'extreme-greed': { label: '위험', stars: 1 }
+    'extreme-fear': { label: '적극매수', stars: 5, tone: 'mt-val-pos' },
+    'fear': { label: '매수', stars: 4, tone: 'mt-val-pos' },
+    'neutral': { label: '관망', stars: 3, tone: 'mt-val-zero' },
+    'greed': { label: '주의', stars: 2, tone: 'mt-val-neg' },
+    'extreme-greed': { label: '위험', stars: 1, tone: 'mt-val-neg' }
   };
 
   // 오늘 투자전략 카드(같은 역발상 논리) - 사용자 확정 룩업.
@@ -328,7 +332,7 @@
       + '<div class="mt-hero-right">'
       + '<div class="mt-hero-signal-label">오늘의 투자시그널</div>'
       + starsHtml
-      + '<div class="mt-hero-signal-word" style="color:' + grade.color + '">' + escapeHtml(signal.label) + '</div>'
+      + '<div class="mt-hero-signal-word ' + signal.tone + '">' + escapeHtml(signal.label) + '</div>'
       + '</div>'
       + '</div>';
   }
