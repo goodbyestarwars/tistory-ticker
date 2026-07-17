@@ -56,6 +56,11 @@
  * 그대로 옮겨왔고(같은 GAS ?market=0), 가로 스크롤 대신 세로 스크롤 목록으로 렌더링 방식만
  * 바꿨다. 별도 바가 사라지면서 navbar(56px) 바로 아래로 이 리본 자체의 top이 올라왔다(이전:
  * navbar+disc-ticker=94px) - style.css의 콘텐츠 시작 좌표 오프셋도 같이 줄었다.
+ *
+ * 2026-07-17(10차): 그리드 열 폭을 168px로 고정해 카드를 왼쪽에 밀집시키자(사용자 피드백:
+ * "넓게 벌려 놓으면 직관성이 떨어짐") 최대 선택(11종)이 전부 한 화면에 들어가게 돼서
+ * 좌우 화살표 페이징을 제거하고 항상 전체를 그린다. 긴급속보는 장외 시간에 공시 RSS가
+ * 통째로 비어 "속보 없음"만 떠 있던 걸 GAS ?rankNews=1(네이버 뉴스 헤드라인)로 폴백.
  */
 (function (global) {
   'use strict';
@@ -72,8 +77,9 @@
   var FETCH_TIMEOUT_MS = 8000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 30;
-  var GRID_SIZE = 6; // 큰 카드 1개 + 그리드 6개(2x3) = 페이지당 7개
-  var PER_PAGE = GRID_SIZE + 1;
+  // 2026-07-17(10차): 카드가 왼쪽에 밀집되면서 선택 가능한 지수 전부(11종)가 한 화면에
+  // 들어가게 됐다 - 좌우 화살표 페이징 제거, 항상 전체를 그린다(그리드는 CSS
+  // grid-auto-flow:column으로 3줄씩 세로로 채우며 오른쪽으로 열이 늘어난다).
 
   // 페이지 파싱 도중이라도(DOMContentLoaded 전) 즉시 반영해 접힘 상태 깜빡임을 없앤다.
   (function applyCollapsedHeightEarly() {
@@ -139,8 +145,7 @@
   var chartInstances = {}; // key -> { chart, series }
   var themeObserver = null;
   var moduleContainer = null;
-  var currentPage = 0;
-  var dataCache = {}; // key -> {price, change, changeRate, chart} - 마지막으로 받은 값(페이지 전환 시 재사용)
+  var dataCache = {}; // key -> {price, change, changeRate, chart} - 마지막으로 받은 값(선택 변경 시 재사용)
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
@@ -270,10 +275,18 @@
     return items;
   }
 
+  // 목록을 2번 이어붙이고 translateY로 절반만큼 움직여 끊김 없이 순환(원본 disc-track 트릭).
+  function fillNewsTrack(track, itemHTMLs) {
+    var html = itemHTMLs.join('') + itemHTMLs.join('');
+    track.innerHTML = html;
+    // 세로 스크롤 속도(초당 약 18px) - 가로 티커(disc-track)의 scrollWidth/60 방식을
+    // scrollHeight 기준으로 그대로 옮긴 것.
+    track.style.animationDuration = (track.scrollHeight / 2 / 18) + 's';
+  }
+
   function renderDiscNewsInto(track, items) {
     if (!track) return;
-    if (!items.length) { track.innerHTML = '<span class="qi-news-loading">속보 없음</span>'; return; }
-    function itemHTML(it) {
+    fillNewsTrack(track, items.map(function (it) {
       var cls = it.market === 'KOSDAQ' ? 'qi-news-market-kosdaq' : 'qi-news-market-kospi';
       var disc = it.disc.replace(/\s*\|\s*/g, ' ').trim();
       var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
@@ -281,39 +294,57 @@
         + '<span class="' + cls + '">' + it.market + '</span>'
         + (corp ? '<span class="qi-news-corp">' + corp + '</span>' : '')
         + disc + '</a>';
-    }
-    var html = items.map(itemHTML).join('') + items.map(itemHTML).join('');
-    track.innerHTML = html;
-    // 세로 스크롤 속도(초당 약 18px) - 가로 티커(disc-track)의 scrollWidth/60 방식을
-    // scrollHeight 기준으로 그대로 옮긴 것.
-    track.style.animationDuration = (track.scrollHeight / 2 / 18) + 's';
+    }));
+  }
+
+  // 2026-07-17(10차): 장외 시간엔 KIND 공시 RSS가 통째로 비어 "속보 없음"만 떠 있었다
+  // (사용자 피드백) - 공시가 없으면 기존 GAS ?rankNews=1(네이버 뉴스 검색: 증시/코스피/
+  // 코스닥 헤드라인, 서버에서 15분 캐싱)로 폴백해 패널이 비지 않게 한다.
+  function renderRankNewsInto(track, items) {
+    if (!track) return;
+    if (!items.length) { track.innerHTML = '<span class="qi-news-loading">속보 없음</span>'; return; }
+    fillNewsTrack(track, items.map(function (it) {
+      return '<a href="' + it.link + '" target="_blank" class="qi-news-item">'
+        + '<span class="qi-news-market-news">뉴스</span>'
+        + it.title + '</a>';
+    }));
+  }
+
+  function loadRankNewsFallback(track) {
+    fetchJson(GAS_TICKER_URL + '?rankNews=1')
+      .then(function (json) { renderRankNewsInto(track, (json && json.items) || []); })
+      .catch(function () {
+        if (track) track.innerHTML = '<span class="qi-news-loading">속보 없음</span>';
+      });
   }
 
   function loadDisclosures(container) {
     var track = container.querySelector('#qiNewsTrack');
+    function handle(items) {
+      if (items.length) renderDiscNewsInto(track, items);
+      else loadRankNewsFallback(track);
+    }
     fetch(DISC_GAS_URL + '?market=0')
       .then(function (r) { return r.text(); })
       .then(function (text) {
         var t = text.trim().replace(/^﻿/, '');
         if (t.charAt(0) === '<') {
-          renderDiscNewsInto(track, discParseXML(t));
+          handle(discParseXML(t));
         } else if (t.length > 0) {
           try {
             var clean = t.replace(/\s/g, '');
             var bin = atob(clean);
             var bytes = new Uint8Array(bin.length);
             for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
-            renderDiscNewsInto(track, discParseXML(new TextDecoder('utf-8').decode(bytes)));
+            handle(discParseXML(new TextDecoder('utf-8').decode(bytes)));
           } catch (err) {
-            renderDiscNewsInto(track, []);
+            handle([]);
           }
         } else {
-          renderDiscNewsInto(track, []);
+          handle([]);
         }
       })
-      .catch(function () {
-        if (track) track.innerHTML = '<span class="qi-news-loading">속보 로드 실패</span>';
-      });
+      .catch(function () { loadRankNewsFallback(track); });
   }
 
   // ---- 포맷/톤 ----
@@ -399,24 +430,20 @@
     });
   }
 
-  // 페이징 도입 이후 그리드에는 현재 페이지의 그리드 구간(큰 카드 제외)만 들어있어서,
-  // 그 순서를 그대로 저장하면 다른 페이지/큰 카드 항목이 사라진다 - 전체 목록 중 현재
-  // 페이지의 그리드 구간만 새 순서로 갈아끼운다(큰 카드는 페이지 맨 앞이라 그대로 둠).
+  // 그리드에는 큰 카드를 뺀 나머지 전부가 들어있다 - 맨 앞(큰 카드) 뒤에 그리드의
+  // 새 순서를 그대로 이어붙여 저장한다.
   function persistCardOrder(grid) {
     var gridOrder = Array.prototype.map.call(grid.querySelectorAll('.qi-card'), function (c) {
       return c.getAttribute('data-key');
     });
     var full = loadSelected();
-    var gridStart = currentPage * PER_PAGE + 1; // +1은 큰 카드 슬롯
-    var newFull = full.slice(0, gridStart).concat(gridOrder).concat(full.slice(gridStart + gridOrder.length));
-    saveSelected(newFull);
+    saveSelected(full.slice(0, 1).concat(gridOrder));
   }
 
   // 카드는 여기서 채우지 않는다 - renderPage()가 현재 페이지 분량만 그린다.
   function renderShell(container) {
     container.classList.toggle('qi-collapsed', isCollapsed());
     container.innerHTML = ''
-      + '<button type="button" class="qi-page-btn qi-page-prev" id="qiPrevBtn" aria-label="이전 지수">‹</button>'
       + '<div class="qi-scroll" id="qiScroll">'
       + '<div class="qi-featured" id="qiFeatured"></div>'
       + '<div class="qi-grid" id="qiGrid"></div>'
@@ -425,7 +452,6 @@
       + '<div class="qi-news-wrap"><div class="qi-news-track" id="qiNewsTrack"><span class="qi-news-loading">불러오는 중...</span></div></div>'
       + '</div>'
       + '</div>'
-      + '<button type="button" class="qi-page-btn qi-page-next" id="qiNextBtn" aria-label="다음 지수">›</button>'
       + '<div class="qi-controls">'
       + '<a class="qi-all-link" href="' + OVERNIGHT_MARKET_URL + '">전체 지수보기 ›</a>'
       + '<div class="qi-controls-icons">'
@@ -444,14 +470,6 @@
     container.querySelector('#qiCollapseBtn').addEventListener('click', function (e) {
       e.stopPropagation();
       setCollapsed(container, !isCollapsed());
-    });
-    container.querySelector('#qiPrevBtn').addEventListener('click', function () {
-      currentPage -= 1;
-      renderPage(container);
-    });
-    container.querySelector('#qiNextBtn').addEventListener('click', function () {
-      currentPage += 1;
-      renderPage(container);
     });
     wireCardDrag(container.querySelector('#qiGrid'));
   }
@@ -489,34 +507,18 @@
     if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change >= 0);
   }
 
-  // ---- 페이징: 큰 카드 1개 + 그리드 8개 = PER_PAGE(9) 고정. 이전엔 화면 폭을 재서
-  // 한 줄에 몇 장이 들어가는지 동적으로 계산했지만, 비대칭 레이아웃(큰 카드+그리드)에서는
-  // "몇 개가 들어가는지"가 아니라 "그리드가 몇 칸인지"가 고정값이라 상수로 충분하다. ----
-
-  function updatePagerUI(container, page, totalPages) {
-    var prev = container.querySelector('#qiPrevBtn');
-    var next = container.querySelector('#qiNextBtn');
-    if (prev) prev.disabled = page <= 0;
-    if (next) next.disabled = page >= totalPages - 1;
-  }
-
-  // 현재 페이지 분량(큰 카드 1 + 그리드 8)만 새로 그리고, dataCache에 있는 값으로
-  // 즉시 채운다(재조회 없음).
+  // 선택된 지수 전부(큰 카드 1 + 나머지 그리드)를 새로 그리고, dataCache에 있는 값으로
+  // 즉시 채운다(재조회 없음). 페이징 없음 - 최대 11종이 전부 한 화면에 들어간다.
   function renderPage(container) {
     var featured = container.querySelector('#qiFeatured');
     var grid = container.querySelector('#qiGrid');
     if (!featured || !grid) return;
     var selected = loadSelected();
-    var totalPages = Math.max(1, Math.ceil(selected.length / PER_PAGE));
-    if (currentPage >= totalPages) currentPage = totalPages - 1;
-    if (currentPage < 0) currentPage = 0;
-    var start = currentPage * PER_PAGE;
-    var pageKeys = selected.slice(start, start + PER_PAGE);
-    var featuredKey = pageKeys[0];
-    var gridKeys = pageKeys.slice(1);
+    var featuredKey = selected[0];
+    var gridKeys = selected.slice(1);
 
     Object.keys(chartInstances).forEach(function (key) {
-      if (pageKeys.indexOf(key) === -1) destroyChart(key);
+      if (selected.indexOf(key) === -1) destroyChart(key);
     });
 
     featured.innerHTML = featuredKey ? (function () {
@@ -529,11 +531,9 @@
       return opt ? buildCardShell(opt, 'qi-card-grid', true) : '';
     }).join('');
 
-    pageKeys.forEach(function (key) {
+    selected.forEach(function (key) {
       if (dataCache.hasOwnProperty(key)) applyCardData(container, key, dataCache[key]);
     });
-
-    updatePagerUI(container, currentPage, totalPages);
   }
 
   // 체크박스로 선택이 바뀌었을 때: 아직 캐시에 없는(새로 추가된) 항목만 조회하고,
@@ -617,7 +617,8 @@
         lineColor: color,
         topColor: hexToRgba(color, 0.2),
         bottomColor: hexToRgba(color, 0.02),
-        lineWidth: 1.5,
+        // 2026-07-17(10차): 1.5 -> 1 (사용자 피드백: "차트 선이 너무 굵어")
+        lineWidth: 1,
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerVisible: false
@@ -685,7 +686,6 @@
   // 선택 목록 자체가 바뀔 때만(최초 로드) 틀을 다시 그린다.
   function rebuild(container, selected) {
     Object.keys(chartInstances).forEach(destroyChart);
-    currentPage = 0;
     renderShell(container);
     if (!selected.length) { renderPage(container); return; }
     renderPage(container); // 캐시가 있으면(재초기화 등) 바로 채우고, 없으면 '-' 상태로 우선 표시
