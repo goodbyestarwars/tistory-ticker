@@ -1,5 +1,6 @@
 /**
- * 보조지수(미국 현물지수 3종·선물 3종·필라델피아 반도체지수·VIX·WTI 원유·원달러 환율·BTC) 카드.
+ * 전체 종합지수(코스피/코스닥, 미국 현물지수 3종·선물 3종, 필라델피아 반도체지수, VIX,
+ * WTI 원유·금 선물, 원달러 환율, 국고채 3년물 금리, BTC) 카드 - 카테고리별로 묶어서 표시.
  *
  * 2026-07-15: TradingView 임베드 위젯을 완전히 걷어내고 자체 구현으로 교체.
  * TradingView 무료 위젯은 CME/NYMEX 연결선물·지수 심볼이 데이터 라이선스로 계속 막혀서
@@ -22,14 +23,30 @@
  * 포함)을 그대로 세고 있던 버그도 같이 고쳤다 - "N개 중" 카운트가 화면 카드 수보다 많게
  * 나오던 원인. refresh()에서 SYMBOL_ORDER로 필터링한 배열만 renderAll에 넘기도록 수정.
  *
+ * 2026-07-18(4차): "보조지수"->"전체 종합지수"로 개편(표시 텍스트만, 파일명/URL 유지).
+ * - BTC를 GAS(?market=1, 이력 없음)에서 VM(/futures)로 전환 - scripts/cloud-vm/btc_futures.py가
+ *   2026-07-17부터 업비트를 서버사이드로 수집해 SQLite에 이력까지 쌓고 있어서, 다른 심볼과
+ *   동일하게 /futures 하나로 통일 가능해짐(BTC 카드만 미니차트가 안 뜨던 문제가 이걸로 해결됨).
+ *   fetchBtc()/GAS 머지 로직은 전부 제거.
+ * - 코스피/코스닥/금선물을 카드에 추가 - 셋 다 VM /futures 응답에는 이미 있었는데
+ *   (domestic_futures.py/foreign_futures.py, 관심지수 리본이 이미 씀) 이 페이지의
+ *   SYMBOL_ORDER/LABELS에서만 빠져 있었음.
+ * - 국고채 3년물 금리를 신규 추가(scripts/cloud-vm/bond_yield.py, 네이버 marketindex 일별시세
+ *   HTML 스크래핑 - JSON API가 없는 지표라 다른 심볼과 소스 형태가 다름).
+ * - "11개 중 4개 상승"처럼 단순 상승/하락 개수만 세면 환율·VIX·채권처럼 "오르면 오히려
+ *   나쁜" 지표가 섞여 오해를 줄 수 있어(사용자 지적), CATEGORIES에 각 지표의 direction
+ *   (1=상승이 호재, -1=상승이 악재, 0=방향성 해석 없음)을 매겨 카테고리별로 나눠 보여주고,
+ *   종합 톤도 방향을 반영해 계산하도록 buildSummaryText를 전면 재작성.
+ *
  * 데이터 소스:
- * - 나스닥종합/S&P500/다우존스(현물), 나스닥100/S&P500/다우(선물), SOX, VIX, WTI, 원/달러 환율:
- *   네이버 API를 VM(scripts/cloud-vm/foreign_futures.py, domestic_futures.py)이 상시 수집해
- *   SQLite에 저장 - 이 위젯은 VM의 /futures 엔드포인트 하나만 호출한다(방문자 브라우저가
- *   네이버를 직접 호출하지 않음 - CORS/레이트리밋 문제 회피).
- * - BTC: 시세 이력이 없는 지표라 VM이 아니라 GAS ?market=1(getMarketRibbon, 빗썸->코인게코
- *   폴백)에서 현재가만 가져온다 - js/quick-indices.js와 동일한 이유·패턴(주석 참고), 그래서
- *   BTC 카드만 미니차트가 없다.
+ * - 나스닥종합/S&P500/다우존스(현물), 나스닥100/S&P500/다우(선물), SOX, VIX, WTI, 금선물,
+ *   코스피/코스닥, 원/달러 환율, BTC: 전부 VM(scripts/cloud-vm/foreign_futures.py,
+ *   domestic_futures.py, btc_futures.py)이 상시 수집해 SQLite에 저장 - 이 위젯은 VM의
+ *   /futures 엔드포인트 하나만 호출한다(방문자 브라우저가 각 소스를 직접 호출하지 않음 -
+ *   CORS/레이트리밋 문제 회피).
+ * - 국고채 3년물 금리: VM(scripts/cloud-vm/bond_yield.py)이 네이버 marketindex 일별시세
+ *   페이지를 스크래핑(하루 1번 갱신되는 채권 종가라 갱신 주기가 다른 심볼보다 느림) - 마찬가지로
+ *   /futures 하나로 합쳐져서 나온다.
  * AI 해설은 GAS(gas/ticker-proxy.gs의 getSubIndexAnalysis)가 같은 VM /futures 응답 + BTC를
  * 프롬프트에 그대로 넣어 생성 - 화면 숫자와 AI 문장이 어긋나지 않도록 소스를 통일.
  *
@@ -48,6 +65,8 @@
   var SPARKLINE_HEIGHT = 64;
 
   var LABELS = {
+    KOSPI: '코스피',
+    KOSDAQ: '코스닥',
     NASDAQ_INDEX: '나스닥 종합지수',
     SP500_INDEX: 'S&P500 지수',
     DOW_INDEX: '다우존스 지수',
@@ -57,11 +76,35 @@
     SOX: '필라델피아 반도체지수',
     VIX: 'VIX(변동성지수)',
     WTI: 'WTI 원유',
+    GOLD: '금 선물',
     USDKRW: '원/달러 환율',
+    KTB3Y: '국고채 3년물 금리',
     BTC: '비트코인(BTC)'
   };
-  var SYMBOL_ORDER = ['NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
-    'SOX', 'VIX', 'WTI', 'USDKRW', 'BTC'];
+
+  // direction: 1=오르면 시장에 호재, -1=오르면 시장에 부담(악재), 0=방향성 해석 없음(그대로 표시만).
+  // 카테고리별로 카드를 묶어 보여주고, 종합 요약(buildSummaryText)도 이 방향을 반영해 계산한다 -
+  // "환율/VIX/채권은 오른다고 무조건 좋은 게 아니다"라는 사용자 지적을 코드로 명시한 것.
+  var CATEGORIES = [
+    { key: 'index', label: '시장지수', direction: 1,
+      symbols: ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW', 'SOX'] },
+    { key: 'volatility', label: '변동성', direction: -1, symbols: ['VIX'] },
+    { key: 'fx', label: '환율', direction: -1, symbols: ['USDKRW'] },
+    { key: 'bond', label: '채권', direction: -1, symbols: ['KTB3Y'] },
+    { key: 'energy', label: '에너지·원자재', direction: 0, symbols: ['WTI', 'GOLD'] },
+    { key: 'crypto', label: '가상자산', direction: 1, symbols: ['BTC'] }
+  ];
+  var SYMBOL_ORDER = CATEGORIES.reduce(function (acc, cat) { return acc.concat(cat.symbols); }, []);
+
+  // 카드 표시 단위/소수점 - 지정 없으면 digits:2, unit:''(가격 그대로).
+  var SYMBOL_META = {
+    BTC: { digits: 0 },
+    KTB3Y: { digits: 2, unit: '%', changeUnit: '%p' }
+  };
+  function symbolMeta(symbol) {
+    var m = SYMBOL_META[symbol] || {};
+    return { digits: m.digits == null ? 2 : m.digits, unit: m.unit || '', changeUnit: m.changeUnit || m.unit || '' };
+  }
 
   var lwcLoadPromise = null;
   var chartInstances = {}; // symbol -> { chart, series }
@@ -104,34 +147,6 @@
       });
   }
 
-  // BTC는 VM(/futures)이 아니라 GAS ?market=1(getMarketRibbon)에서 가져온다 - 시세 이력이
-  // 없는 지표라 VM의 future_prices/future_chart 스키마(선물/지수 전용)에 안 맞고, 이미
-  // js/quick-indices.js가 같은 방식으로 쓰고 있어 소스를 통일했다. 실패해도 다른 카드는
-  // 정상 렌더링돼야 하므로 이 함수는 항상 예외를 던지지 않고 null로 수렴시킨다(호출부에서 처리).
-  function fetchBtc() {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(GAS_TICKER_URL + '?market=1', hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        var btc = data && data.btc;
-        if (!btc || typeof btc.price !== 'number') return null;
-        return {
-          symbol: 'BTC', name: 'BTC', price: btc.price, change: btc.change, change_rate: btc.changeRate,
-          high: null, low: null, updated_at: null, chart: null
-        };
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
-  }
-
   function fmtPrice(v, digits) {
     if (v == null || isNaN(v)) return '-';
     if (digits == null) digits = 2;
@@ -158,36 +173,43 @@
   }
 
   function buildShell() {
-    var cards = SYMBOL_ORDER.map(function (symbol) {
-      return ''
-        + '<div class="om-card" data-symbol="' + symbol + '">'
-        + '<div class="om-title">' + escapeHtml(LABELS[symbol]) + '</div>'
-        + '<div class="om-body om-loading">불러오는 중...</div>'
+    var groups = CATEGORIES.map(function (cat) {
+      var hint = cat.direction === -1
+        ? '<div class="om-cat-hint">상승 = 시장에 부담 요인</div>'
+        : cat.direction === 0 ? '<div class="om-cat-hint">방향성 해석 없음(수치만 참고)</div>' : '';
+      var cards = cat.symbols.map(function (symbol) {
+        return ''
+          + '<div class="om-card" data-symbol="' + symbol + '">'
+          + '<div class="om-title">' + escapeHtml(LABELS[symbol]) + '</div>'
+          + '<div class="om-body om-loading">불러오는 중...</div>'
+          + '</div>';
+      }).join('');
+      return '<div class="om-category">'
+        + '<div class="om-cat-head"><span class="om-cat-label">' + escapeHtml(cat.label) + '</span>' + hint + '</div>'
+        + '<div class="om-grid">' + cards + '</div>'
         + '</div>';
     }).join('');
     return '<div class="om-summary" id="omSummary" hidden></div>'
       + '<div class="om-ai" id="omAi" hidden></div>'
-      + '<div class="om-grid">' + cards + '</div>';
+      + groups;
   }
 
   function buildCardBody(item) {
     var hasPrice = typeof item.price === 'number';
     var tone = item.change_rate > 0 ? 'om-pos' : item.change_rate < 0 ? 'om-neg' : 'om-zero';
     var arrow = item.change_rate > 0 ? '▲' : item.change_rate < 0 ? '▼' : '-';
-    // BTC는 원화 시세가 억 단위라 다른 카드와 같은 소수점 2자리를 쓰면 지저분해 보임 -
-    // 관심지수 리본(js/quick-indices.js formatNumber)과 동일하게 정수로 표시.
-    var priceDigits = item.symbol === 'BTC' ? 0 : 2;
+    var meta = symbolMeta(item.symbol);
 
     return ''
       + '<div class="om-body">'
-      + '<div class="om-price ' + tone + '">' + (hasPrice ? fmtPrice(item.price, priceDigits) : '데이터 없음') + '</div>'
+      + '<div class="om-price ' + tone + '">' + (hasPrice ? fmtPrice(item.price, meta.digits) + meta.unit : '데이터 없음') + '</div>'
       + (hasPrice
-        ? '<div class="om-change ' + tone + '">' + arrow + ' ' + fmtSigned(item.change, priceDigits) + ' (' + fmtSigned(item.change_rate, 2) + '%)</div>'
+        ? '<div class="om-change ' + tone + '">' + arrow + ' ' + fmtSigned(item.change, meta.digits) + meta.changeUnit + ' (' + fmtSigned(item.change_rate, 2) + '%)</div>'
         : '')
       + '<div class="om-chart" data-symbol="' + escapeHtml(item.symbol) + '"></div>'
       + '<div class="om-hl">'
-      + '<span>고가 ' + fmtPrice(item.high, priceDigits) + '</span>'
-      + '<span>저가 ' + fmtPrice(item.low, priceDigits) + '</span>'
+      + '<span>고가 ' + (item.high != null ? fmtPrice(item.high, meta.digits) + meta.unit : '-') + '</span>'
+      + '<span>저가 ' + (item.low != null ? fmtPrice(item.low, meta.digits) + meta.unit : '-') + '</span>'
       + '</div>'
       + '<div class="om-updated">업데이트 ' + fmtTime(item.updated_at) + '</div>'
       + '</div>';
@@ -255,19 +277,48 @@
     });
   }
 
-  // ---- 종합 보조지수 요약(규칙 기반 - AI 호출 없이 클라이언트에서 즉시 계산) ----
+  // ---- 전체 종합지수 요약(규칙 기반 - AI 호출 없이 클라이언트에서 즉시 계산) ----
+  //
+  // 단순히 "N개 중 M개 상승"만 세면 환율/VIX/채권처럼 오르는 게 오히려 시장에 부담인 지표가
+  // 섞여 오해를 준다(사용자 지적) - 카테고리별로 나눠 보여주고, 종합 톤은 CATEGORIES의
+  // direction(1=상승 호재, -1=상승 악재, 0=해석 없음)을 반영한 가중 평균으로 계산한다.
 
   function buildSummaryText(items) {
-    var withData = items.filter(function (it) { return typeof it.change_rate === 'number'; });
-    if (!withData.length) return null;
-    var upCount = withData.filter(function (it) { return it.change_rate > 0; }).length;
-    var downCount = withData.filter(function (it) { return it.change_rate < 0; }).length;
-    var avg = withData.reduce(function (s, it) { return s + it.change_rate; }, 0) / withData.length;
-    var tone = avg > 0.3 ? '상승' : avg < -0.3 ? '하락' : '혼조';
-    var toneClass = avg > 0.3 ? 'om-pos' : avg < -0.3 ? 'om-neg' : 'om-zero';
+    var bySymbol = {};
+    items.forEach(function (it) { bySymbol[it.symbol] = it; });
+
+    var parts = [];
+    var riskScoreSum = 0, riskCatCount = 0;
+
+    CATEGORIES.forEach(function (cat) {
+      var catItems = cat.symbols
+        .map(function (s) { return bySymbol[s]; })
+        .filter(function (it) { return it && typeof it.change_rate === 'number'; });
+      if (!catItems.length) return;
+
+      if (cat.symbols.length > 1) {
+        var up = catItems.filter(function (it) { return it.change_rate > 0; }).length;
+        var down = catItems.filter(function (it) { return it.change_rate < 0; }).length;
+        var avg = catItems.reduce(function (s, it) { return s + it.change_rate; }, 0) / catItems.length;
+        parts.push(cat.label + ' ' + catItems.length + '개 중 ' + up + '개 상승·' + down + '개 하락(평균 '
+          + (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%)');
+        if (cat.direction !== 0) { riskScoreSum += avg * cat.direction; riskCatCount++; }
+      } else {
+        var it = catItems[0];
+        var note = cat.direction === -1
+          ? (it.change_rate > 0 ? '(부담)' : it.change_rate < 0 ? '(완화)' : '')
+          : '';
+        parts.push(cat.label + ' ' + LABELS[it.symbol] + ' ' + (it.change_rate >= 0 ? '+' : '') + it.change_rate.toFixed(2) + '%' + note);
+        if (cat.direction !== 0) { riskScoreSum += it.change_rate * cat.direction; riskCatCount++; }
+      }
+    });
+
+    if (!parts.length) return null;
+    var overallAvg = riskCatCount ? riskScoreSum / riskCatCount : 0;
+    var tone = overallAvg > 0.3 ? '우호적' : overallAvg < -0.3 ? '부담' : '혼조';
+    var toneClass = overallAvg > 0.3 ? 'om-tone-good' : overallAvg < -0.3 ? 'om-tone-bad' : 'om-tone-neutral';
     return {
-      text: withData.length + '개 중 ' + upCount + '개 상승·' + downCount + '개 하락 - 평균 '
-        + (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%로 전반적으로 ' + tone + ' 흐름입니다.',
+      text: parts.join(' · ') + ' — 방향성(환율·VIX·채권은 상승=부담)을 반영하면 전반적으로 ' + tone + ' 흐름입니다.',
       toneClass: toneClass
     };
   }
@@ -278,7 +329,7 @@
     var summary = buildSummaryText(items);
     if (!summary) { box.hidden = true; return; }
     box.hidden = false;
-    box.innerHTML = '<b>종합 보조지수 요약</b> <span class="' + summary.toneClass + '">' + escapeHtml(summary.text) + '</span>';
+    box.innerHTML = '<b>전체 종합지수 요약</b> <span class="' + summary.toneClass + '">' + escapeHtml(summary.text) + '</span>';
   }
 
   // ---- 종합 AI 해설(GAS ?action=subIndexAnalysis, Groq) - 페이지 진입 시 1회만 호출 ----
@@ -343,19 +394,16 @@
     });
   }
 
-  // VM(/futures) + GAS(BTC) 두 소스를 합친 뒤 SYMBOL_ORDER로 필터링해 renderAll에 넘긴다.
-  // 이 필터링이 없으면 renderSummary가 VM 원본 응답의 심볼(코스피200 주간/야간선물 등 이
-  // 페이지에 안 쓰는 것들까지)을 전부 세어버리는 문제가 생긴다 - 과거 실제 발생한 버그.
+  // VM(/futures, BTC 포함)을 SYMBOL_ORDER로 필터링해 renderAll에 넘긴다. 이 필터링이 없으면
+  // renderSummary가 VM 원본 응답의 심볼(코스피200 주간/야간선물 등 이 페이지에 안 쓰는
+  // 것들까지)을 전부 세어버리는 문제가 생긴다 - 과거 실제 발생한 버그.
   function refresh(container) {
     OvernightMarket.fetchFutures()
       .then(function (futuresItems) {
-        return OvernightMarket.fetchBtc().catch(function () { return null; }).then(function (btcItem) {
-          var bySymbol = {};
-          futuresItems.forEach(function (it) { bySymbol[it.symbol] = it; });
-          if (btcItem) bySymbol.BTC = btcItem;
-          var items = SYMBOL_ORDER.map(function (s) { return bySymbol[s] || { symbol: s }; });
-          renderAll(container, items);
-        });
+        var bySymbol = {};
+        futuresItems.forEach(function (it) { bySymbol[it.symbol] = it; });
+        var items = SYMBOL_ORDER.map(function (s) { return bySymbol[s] || { symbol: s }; });
+        renderAll(container, items);
       })
       .catch(function () {
         SYMBOL_ORDER.forEach(function (symbol) {
@@ -392,7 +440,6 @@
   var OvernightMarket = {
     init: init,
     fetchFutures: fetchFutures,
-    fetchBtc: fetchBtc,
     fetchAiSummary: fetchAiSummary
   };
   global.OvernightMarket = OvernightMarket;

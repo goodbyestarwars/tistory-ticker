@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, Header, HTTPException, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+import bond_yield
 import btc_futures
 import db_schema
 import domestic_futures
@@ -51,6 +52,7 @@ def _start_futures_collectors():
     foreign_futures.start_background()
     domestic_futures.start_background()
     btc_futures.start_background()
+    bond_yield.start_background()
 
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
@@ -305,7 +307,7 @@ def futures(interval: str = 'day', days: int = 90):
         # 주의: 새 심볼을 수집기(foreign_futures.SYMBOLS 등)에 추가하면 이 목록에도 같이
         # 넣어야 응답에 실린다(2026-07-17 GOLD 추가 때 빠뜨려서 한 번 헛배포함).
         order = ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
-                 'KOSPI200_DAY', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI', 'GOLD', 'USDKRW', 'BTC']
+                 'KOSPI200_DAY', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI', 'GOLD', 'USDKRW', 'KTB3Y', 'BTC']
         result = []
         for symbol in order:
             p = prices.get(symbol)
