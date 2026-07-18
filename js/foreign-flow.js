@@ -1220,14 +1220,14 @@
     var tone = flowTone(data);
     var toneBadgeCls = TONE_BADGE_CLASS[tone.tone] || 'ff-badge-neutral';
     return '<div class="ff-extra-card">'
-      + '<div class="ff-extra-card-title">🧭 외국인·기관·개인 수급</div>'
+      + '<div class="ff-extra-card-title">🧭 개인·외국인·기관 수급</div>'
       + buildBadges(data)
       + '<div class="ff-extra-interp ff-extra-tone-' + tone.tone + '">'
       + '<span class="ff-badge ' + toneBadgeCls + '">' + tone.label + '</span>'
       + '<span class="ff-extra-interp-text">' + escapeHtml(flowInterpText(data)) + '</span>'
       + '</div>'
       + buildRollingTable(data)
-      + '<div class="ff-chart-title">외국인·기관·개인 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>'
+      + '<div class="ff-chart-title">개인·외국인·기관 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>'
       + buildNetChart(data.daily)
       + '<div class="ff-chart-title">외국인 보유율 추이</div>'
       + buildRatioChart(data.daily)
