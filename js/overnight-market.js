@@ -52,12 +52,21 @@
  *
  * 미니차트는 TradingView Lightweight Charts(오픈소스, CDN 지연 로드, js/foreign-flow.js와
  * 동일 라이브러리)로 직접 그린다 - 축/라벨/크로스헤어/줌 전부 끈 순수 스파크라인.
+ *
+ * 2026-07-18(5차): 모든 미니차트에 기준선(구간 시작가, 회색 점선) 추가 - 베이스라인
+ * 시리즈가 위/아래 색은 자동으로 나누지만 그 경계를 나타내는 선 자체는 없어서 "기준선이
+ * 안 보인다"는 지적을 반영(series.createPriceLine()). WTI 카드에는 "최근 1년 평균"
+ * 참고선(주황 실선)을 하나 더 추가 - "적정 유가 기준을 보여달라, 전쟁 나면 오르지 않냐"는
+ * 요청에 대해, 객관적으로 정해진 적정가는 없어서 대신 실측 장기 평균을 참고선으로 제공한다
+ * (fetchWtiBenchmark(), VM main.py의 /futures/avg?symbol=WTI&days=365 - 페이지 진입 시
+ * 1회만 호출, AI 해설과 동일 패턴).
  */
 (function (global) {
   'use strict';
 
   var CONTAINER_SELECTOR = '#overnight-market';
   var FUTURES_API = 'https://goodbyestar.cloud/futures';
+  var FUTURES_AVG_API = 'https://goodbyestar.cloud/futures/avg';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var FETCH_TIMEOUT_MS = 10000;
   var REFRESH_INTERVAL_MS = 30000;
@@ -110,6 +119,7 @@
   var chartInstances = {}; // symbol -> { chart, series }
   var themeObserver = null;
   var refreshTimer = null;
+  var wtiBenchmark = null; // { avg, min, max, days } - fetchWtiBenchmark() 참고
 
   function loadLightweightCharts() {
     if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
@@ -140,6 +150,28 @@
       .then(function (json) {
         if (timer) clearTimeout(timer);
         return json.data || [];
+      })
+      .catch(function (err) {
+        if (timer) clearTimeout(timer);
+        throw err;
+      });
+  }
+
+  // WTI "최근 1년 평균" 참고선(사용자 요청: "적정 유가 기준을 보여달라, 전쟁 나면 오르잖아") -
+  // 객관적인 "적정가"는 없어서 대신 실제 수집된 가격의 장기 평균을 참고용으로 보여준다.
+  // 페이지 진입 시 1회만 호출(AI 해설과 동일 패턴, 30초 리프레시마다 다시 부를 필요 없음).
+  function fetchWtiBenchmark() {
+    var hasAbort = 'AbortController' in global;
+    var controller = hasAbort ? new AbortController() : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
+    return fetch(FUTURES_AVG_API + '?symbol=WTI&days=365', hasAbort ? { signal: controller.signal } : {})
+      .then(function (r) {
+        if (!r.ok) throw new Error('futures/avg API 오류: ' + r.status);
+        return r.json();
+      })
+      .then(function (json) {
+        if (timer) clearTimeout(timer);
+        return json.data || null;
       })
       .catch(function (err) {
         if (timer) clearTimeout(timer);
@@ -212,6 +244,11 @@
       + '<span>저가 ' + (item.low != null ? fmtPrice(item.low, meta.digits) + meta.unit : '-') + '</span>'
       + '</div>'
       + '<div class="om-updated">업데이트 ' + fmtTime(item.updated_at) + '</div>'
+      + (item.symbol === 'WTI' && wtiBenchmark
+        ? '<div class="om-benchmark">최근 ' + Math.round(wtiBenchmark.days / 30) + '개월 평균 $'
+          + fmtPrice(wtiBenchmark.avg, 2) + ' — 전쟁 등 지정학적 충격 시 이 선 위로 급등하는 경향이'
+          + ' 있습니다(객관적 "적정가"가 아니라 실측 평균 참고선).</div>'
+        : '')
       + '</div>';
   }
 
@@ -281,6 +318,19 @@
         lineStyle: LWC.LineStyle.Dashed,
         axisLabelVisible: false
       });
+
+      // WTI 카드에만 "최근 1년 평균" 참고선을 추가로 그린다(사용자 요청 - 전쟁 등으로
+      // 유가가 이 선 위로 급등하는지 눈으로 바로 볼 수 있게). 기준선(dashed, 회색)과
+      // 헷갈리지 않도록 실선+주황색으로 구분.
+      if (symbol === 'WTI' && wtiBenchmark) {
+        series.createPriceLine({
+          price: wtiBenchmark.avg,
+          color: '#c9701f',
+          lineWidth: 1,
+          lineStyle: LWC.LineStyle.Solid,
+          axisLabelVisible: false
+        });
+      }
 
       chartInstances[symbol] = { chart: chart, series: series, baseLine: baseLine };
     }).catch(function () {
@@ -436,6 +486,14 @@
     refresh(container);
     renderAiSummary(container);
 
+    // WTI 참고선 데이터는 페이지 진입 시 1회만 불러온다(AI 해설과 동일한 이유 - 30초마다
+    // 다시 부를 필요 없는 장기 통계). 도착하면 WTI 카드가 참고선 포함해서 다시 그려지도록
+    // 한 번 더 refresh - 이미 렌더된 다른 카드도 같이 다시 그려지지만 데이터는 캐시돼 있어
+    // 사실상 즉시 끝난다(추가 fetchFutures 호출은 있음, 허용 가능한 비용).
+    OvernightMarket.fetchWtiBenchmark()
+      .then(function (b) { wtiBenchmark = b; refresh(container); })
+      .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
+
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () { refresh(container); }, REFRESH_INTERVAL_MS);
 
@@ -453,7 +511,8 @@
   var OvernightMarket = {
     init: init,
     fetchFutures: fetchFutures,
-    fetchAiSummary: fetchAiSummary
+    fetchAiSummary: fetchAiSummary,
+    fetchWtiBenchmark: fetchWtiBenchmark
   };
   global.OvernightMarket = OvernightMarket;
 

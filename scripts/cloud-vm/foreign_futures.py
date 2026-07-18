@@ -3,7 +3,13 @@
 실시간: polling.finance.naver.com/api/realtime/worldstock/{category}/{code}
 과거일봉: api.stock.naver.com/chart/foreign/{category}/{code}/day (주의: 위 realtime의 'worldstock'과
 다르게 chart 쪽은 반드시 'foreign' - 네이버 API 자체가 두 표현을 섞어 씀, 실측으로 확인된 사실).
-User-Agent를 모바일 값으로 고정해야 함 - 아니면 404/에러 HTML이 돌아옴(실측 확인)."""
+User-Agent를 모바일 값으로 고정해야 함 - 아니면 404/에러 HTML이 돌아옴(실측 확인).
+
+2026-07-18: fetch_daily_chart 기본 조회기간을 90일 -> 400일로 확대(실측: 네이버가 실제로
+282거래일치를 돌려줌, 약 1년+ 분량) - WTI 카드의 "최근 1년 평균" 참고선(main.py /futures/avg,
+js/overnight-market.js) 계산에 필요한 히스토리를 DB에 쌓아두기 위함. 카드 자체의 표시 기간은
+main.py /futures의 `days` 쿼리 파라미터(기본 90)가 별도로 제한하므로 이 확대가 기존 미니차트
+표시에는 영향 없음 - DB에 더 많이 저장해둘 뿐."""
 
 import json
 import logging
@@ -69,7 +75,7 @@ def fetch_realtime(sym):
     return {'price': price, 'change': change, 'change_rate': change_rate, 'high': high, 'low': low}
 
 
-def fetch_daily_chart(sym, days=90):
+def fetch_daily_chart(sym, days=400):
     date2 = datetime.now().strftime('%Y%m%d')
     date1 = (datetime.now() - timedelta(days=days)).strftime('%Y%m%d')
     url = ('https://api.stock.naver.com/chart/foreign/%s/%s/day?startDateTime=%s&endDateTime=%s'

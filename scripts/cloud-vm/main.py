@@ -333,6 +333,35 @@ def futures(interval: str = 'day', days: int = 90):
     return envelope(result)
 
 
+@app.get('/futures/avg')
+def futures_avg(symbol: str, days: int = 365):
+    """지정 심볼의 최근 N일 종가 평균/최저/최고 - "적정 유가가 있을 텐데 전쟁 나면 오르지
+    않냐, 그 기준을 보여달라"는 요청으로 추가(2026-07-18). 객관적으로 확정된 "적정가"라는
+    개념 자체가 없어서(OPEC+ 정책·정제마진 등에 따라 계속 바뀜), 대신 우리가 실제로 수집한
+    가격의 장기 평균을 참고선으로 제공한다 - 평균을 크게 웃도는 구간이 지정학적 리스크
+    프리미엄(전쟁 등)이 낀 구간일 가능성이 높다는 서술적 참고용이지 투자 조언이 아님.
+    WTI 전용이 아니라 심볼을 파라미터로 받는 범용 엔드포인트 - foreign_futures.py가
+    2026-07-18부터 400일치를 저장해두므로 웬만한 심볼은 1년 평균을 낼 수 있다."""
+    days = max(1, min(days, 1000))
+    conn = db_schema.get_conn()
+    try:
+        rows = db_schema.load_future_chart(conn, symbol, limit_days=days)
+    finally:
+        conn.close()
+    closes = [r['close'] for r in rows if r.get('close') is not None]
+    if not closes:
+        raise HTTPException(status_code=404, detail='해당 심볼의 차트 데이터가 없습니다.')
+    return envelope({
+        'symbol': symbol,
+        'days': len(closes),
+        'from': rows[0]['date'],
+        'to': rows[-1]['date'],
+        'avg': sum(closes) / len(closes),
+        'min': min(closes),
+        'max': max(closes),
+    })
+
+
 @app.get('/naver-news')
 def naver_news_endpoint(query: str = Query(..., min_length=1, max_length=100), x_api_key: str = Header(default=None)):
     """네이버 뉴스 검색 프록시(naver_news.py 참고) - GAS(gas/ticker-proxy.gs getRankingNews)가

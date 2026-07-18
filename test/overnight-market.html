@@ -112,6 +112,11 @@
         + '이런 흐름은 오늘 코스피/코스닥에 완만한 상승 압력으로 작용할 가능성이 있습니다. '
         + '다만 변동성지수(VIX)가 소폭 높아진 점은 단기 변동성 확대 가능성으로 유의할 필요가 있습니다.');
     };
+    OvernightMarket.fetchWtiBenchmark = function () {
+      console.log('[mock] fetchWtiBenchmark');
+      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
+      return Promise.resolve({ symbol: 'WTI', days: 282, from: '20250613', to: '20260717', avg: 76.4, min: 61.2, max: 91.8 });
+    };
   }
 
   function setMock(mode) {
