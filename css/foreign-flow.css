@@ -414,7 +414,10 @@
 #foreign-flow .ff-axis { fill: #999; font-size: 11px; }
 #foreign-flow .ff-line-foreign { fill: none; stroke: #e8590c; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-inst { fill: none; stroke: #5f3dc4; stroke-width: 2.4; stroke-linejoin: round; }
-#foreign-flow .ff-line-ind { fill: none; stroke: #1c7ed6; stroke-width: 2.4; stroke-linejoin: round; }
+/* 2026-07-18: 기관(#5f3dc4 보라)과 헷갈린다는 피드백 - 초록(보유율 차트의 #0ca678과도
+   헷갈릴 수 있어 제외)이나 파랑 대신 분홍 계열로 바꾸고, 선도 더 얇게(2.4 -> 1.4) 해서
+   굵은 외국인/기관 선 뒤에서도 구분되게 함. */
+#foreign-flow .ff-line-ind { fill: none; stroke: #e64980; stroke-width: 1.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-ratio { fill: none; stroke: #0ca678; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-rsi { fill: none; stroke: #f08c00; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-rsi-band { stroke-dasharray: 3 3; }
@@ -446,7 +449,7 @@
 }
 #foreign-flow .ff-dot-foreign { background: #e8590c; }
 #foreign-flow .ff-dot-inst { background: #5f3dc4; }
-#foreign-flow .ff-dot-ind { background: #1c7ed6; }
+#foreign-flow .ff-dot-ind { background: #e64980; }
 #foreign-flow .ff-dot-ratio { background: #0ca678; }
 
 /* 호버 가이드선/점/툴팁 */
@@ -454,7 +457,7 @@
 #foreign-flow .ff-hover-dot { stroke: #fff; stroke-width: 1.5; }
 #foreign-flow .ff-hover-dot-foreign { fill: #e8590c; }
 #foreign-flow .ff-hover-dot-inst { fill: #5f3dc4; }
-#foreign-flow .ff-hover-dot-ind { fill: #1c7ed6; }
+#foreign-flow .ff-hover-dot-ind { fill: #e64980; }
 #foreign-flow .ff-hover-dot-ratio { fill: #0ca678; }
 
 #foreign-flow .ff-tt {
