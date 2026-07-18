@@ -100,6 +100,13 @@
  * CRYPTO_SYMBOLS 리스트로 일반화(foreign_futures.py의 SYMBOLS 패턴과 동일). "가상자산"
  * 카테고리도 listIndividually:true로 바꿔 BTC/ETH를 각각 표시(가격 규모가 크게 달라
  * 평균 내면 의미 없음), 52주 이동평균선도 CRYPTO_SYMBOLS 판정으로 일반화해 ETH까지 적용.
+ *
+ * 2026-07-18(10차): 채권 4종(미국채 10/2/30년물+국고채3년)의 참고 기간이 13~20개월로
+ * 제각각이던 걸 정확히 12개월(52주)로 통일해달라는 요청 - 프론트가 아니라 VM main.py의
+ * /futures/avg가 원인이었음(row 개수 기준 LIMIT이라 채권처럼 주5일만 거래되는 심볼과
+ * 저장된 총량에 따라 실제 달력 기간이 달라졌음). db_schema.load_future_chart_since로
+ * 날짜 기준(date>=cutoff) 필터링으로 바꿔 모든 벤치마크 심볼이 항상 정확히 365일(12개월)
+ * 창을 갖도록 수정 - 이 페이지 쪽 코드 변경은 없음(days=365 파라미터는 그대로).
  */
 (function (global) {
   'use strict';

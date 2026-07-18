@@ -196,6 +196,19 @@ def load_future_chart(conn, symbol, limit_days=90):
     return [{'date': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4]} for r in rows]
 
 
+def load_future_chart_since(conn, symbol, since_date):
+    """since_date: 'YYYYMMDD'. date >= since_date인 행만 - 위 load_future_chart의 limit_days는
+    row 개수 제한이라 거래일 밀도가 다른 심볼끼리(채권은 주5일, BTC는 주7일) 'N일치' 의미가
+    달라지는 문제가 있었음(예: 국고채 벤치마크가 20개월, 미국채는 13개월로 들쭉날쭉 - 2026-07-18
+    사용자 지적으로 발견) - main.py의 /futures/avg가 심볼과 무관하게 정확히 같은 달력 기간을
+    비교하고 싶을 때 이 함수를 쓴다."""
+    rows = conn.execute(
+        'SELECT date, open, high, low, close FROM future_chart WHERE symbol=? AND date>=? ORDER BY date',
+        (symbol, since_date),
+    ).fetchall()
+    return [{'date': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4]} for r in rows]
+
+
 def upsert_future_chart_minute_rows(conn, symbol, rows):
     """rows: [{ts, open, high, low, close}, ...], ts는 UTC epoch초(정수)."""
     conn.executemany(

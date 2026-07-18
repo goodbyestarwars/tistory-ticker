@@ -10,7 +10,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Header, HTTPException, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -342,11 +342,16 @@ def futures_avg(symbol: str, days: int = 365):
     가격의 장기 평균을 참고선으로 제공한다 - 평균을 크게 웃도는 구간이 지정학적 리스크
     프리미엄(전쟁 등)이 낀 구간일 가능성이 높다는 서술적 참고용이지 투자 조언이 아님.
     WTI 전용이 아니라 심볼을 파라미터로 받는 범용 엔드포인트 - foreign_futures.py가
-    2026-07-18부터 400일치를 저장해두므로 웬만한 심볼은 1년 평균을 낼 수 있다."""
+    2026-07-18부터 400일치를 저장해두므로 웬만한 심볼은 1년 평균을 낼 수 있다.
+    2026-07-18(2차): row 개수 기준(LIMIT) 대신 실제 달력 날짜(date>=cutoff)로 필터링하도록
+    변경 - 채권처럼 주5일만 거래되는 심볼과 BTC처럼 주7일 거래되는 심볼을 같은 row 개수로
+    비교하면 실제 기간이 서로 달라짐(사용자 지적: 국고채 채권 4종의 참고 기간이 13~20개월로
+    제각각이었음 - 전부 정확히 12개월로 통일하기 위함)."""
     days = max(1, min(days, 1000))
+    since_date = (datetime.now() - timedelta(days=days)).strftime('%Y%m%d')
     conn = db_schema.get_conn()
     try:
-        rows = db_schema.load_future_chart(conn, symbol, limit_days=days)
+        rows = db_schema.load_future_chart_since(conn, symbol, since_date)
     finally:
         conn.close()
     closes = [r['close'] for r in rows if r.get('close') is not None]
