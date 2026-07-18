@@ -394,6 +394,29 @@
 #foreign-flow .ff-tech-total-row td { background: #f7f7f8; }
 
 /* ---- 차트 ---- */
+/* ---- 수급 기간 선택(1개월/3개월/6개월/1년, 2026-07-19) ---- */
+#foreign-flow .ff-flow-period {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0 4px;
+}
+#foreign-flow .ff-flow-period-btn {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+}
+#foreign-flow .ff-flow-period-btn.active {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+
 #foreign-flow .ff-chart-title {
   font-size: 14px;
   font-weight: 700;
@@ -698,6 +721,8 @@ html.dark #foreign-flow .ff-fund-table td { border-color: #444 !important; color
 html.dark #foreign-flow .ff-fund-table th { background: #333 !important; }
 html.dark #foreign-flow .ff-quarter-label { color: #999 !important; }
 html.dark #foreign-flow .ff-chart-title { color: #999 !important; }
+html.dark #foreign-flow .ff-flow-period-btn { background: #262626 !important; border-color: #3a3a3a !important; color: #aaa !important; }
+html.dark #foreign-flow .ff-flow-period-btn.active { background: #2a2a4a !important; border-color: #4338ca !important; color: #a5b4fc !important; }
 html.dark #foreign-flow .ff-bar-axis { stroke: #444 !important; }
 html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }
 html.dark #foreign-flow .ff-bar-label { fill: #888 !important; }

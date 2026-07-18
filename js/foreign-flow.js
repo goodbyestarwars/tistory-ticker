@@ -277,12 +277,17 @@
   // 종목분석 메인 수급 표 - 5분 메모리 캐시 + 진행 중 요청 재사용(연타 디바운스).
   // 2026-07-13: 키움 API(VM 직접 호출)를 1차로 쓰고, 실패할 때만 네이버(GAS 경유) 폴백으로
   // 넘어간다 - 네이버는 백업 전용, 평소엔 안 씀.
-  function fetchFlow(code, name) {
-    var hit = cacheByCode[code];
+  // days: 수급 기간 선택(1개월=30/3개월=63/6개월=126/1년=252, 2026-07-19 도입) - 생략하면
+  // 백엔드 기본치(30)와 맞춰 캐시 키가 겹치도록 여기서도 30으로 고정한다(같은 기간을
+  // 기본 로드 후 버튼으로 다시 눌러도 재요청 없이 캐시로 즉시 응답).
+  function fetchFlow(code, name, days) {
+    days = days || 30;
+    var cacheKey = code + ':' + days;
+    var hit = cacheByCode[cacheKey];
     if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
-    if (inflightByCode[code]) return inflightByCode[code];
+    if (inflightByCode[cacheKey]) return inflightByCode[cacheKey];
 
-    var p = fetchJson(KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code))
+    var p = fetchJson(KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code) + '?days=' + days)
       .then(function (envelope) {
         var data = envelope && envelope.data;
         if (!data || data.error) throw new Error('VM 수급 데이터 없음');
@@ -290,19 +295,19 @@
         return data;
       })
       .catch(function () {
-        // 키움(VM) 실패 시에만 네이버(GAS) 폴백 - 평소 경로 아님
+        // 키움(VM) 실패 시에만 네이버(GAS) 폴백 - 평소 경로 아님, 기간 선택 미지원(항상 기본 기간)
         return fetchJson(GAS_TICKER_URL + '?action=foreignFlow&code=' + encodeURIComponent(code));
       })
       .then(function (data) {
-        delete inflightByCode[code];
-        if (data && !data.error) cacheByCode[code] = { t: Date.now(), data: data };
+        delete inflightByCode[cacheKey];
+        if (data && !data.error) cacheByCode[cacheKey] = { t: Date.now(), data: data };
         return data;
       })
       .catch(function (err) {
-        delete inflightByCode[code];
+        delete inflightByCode[cacheKey];
         throw err;
       });
-    inflightByCode[code] = p;
+    inflightByCode[cacheKey] = p;
     return p;
   }
 
@@ -443,6 +448,7 @@
 
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
+    wireFlowPeriod(box, data.code, data.name);
     loadAiSummary(box, data, entry, techScore, chartData);
     wireViewTabs(box, data.code, data.name, chartData);
   }
@@ -1254,6 +1260,32 @@
     return '<div class="ff-table-scroll">' + html + '</div>';
   }
 
+  // 수급 표/차트 기간 선택 - rolling(5/10/20일 합산)·streak·signal·배지는 daily[0..N]만
+  // 보고 항상 "가장 최근" 기준으로 계산되므로(foreign_flow_compute.py) 이 선택은 순매매량
+  // 차트·보유율 차트에 보여줄 과거 일수만 바꾸고 위 표/배지 값은 그대로다 - 그래서
+  // 기간을 바꿔도 buildRollingTable/buildBadges는 다시 그릴 필요가 없다(#ffFlowChartsWrap만
+  // 교체, wireFlowPeriod 참고).
+  var FLOW_PERIOD_OPTIONS = [
+    { days: 30, label: '1개월' }, { days: 63, label: '3개월' },
+    { days: 126, label: '6개월' }, { days: 252, label: '1년' }
+  ];
+
+  function buildFlowPeriodButtons(activeDays) {
+    return '<div class="ff-flow-period" id="ffFlowPeriod">' + FLOW_PERIOD_OPTIONS.map(function (o) {
+      return '<button type="button" class="ff-flow-period-btn' + (o.days === activeDays ? ' active' : '')
+        + '" data-days="' + o.days + '">' + o.label + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function buildFlowChartsWrap(daily) {
+    return '<div id="ffFlowChartsWrap">'
+      + '<div class="ff-chart-title">개인·외국인·기관 순매매량 추이 (최근 ' + daily.length + '영업일)</div>'
+      + buildNetChart(daily)
+      + '<div class="ff-chart-title">외국인 보유율 추이</div>'
+      + buildRatioChart(daily)
+      + '</div>';
+  }
+
   // ---- 수급(연속매매 배지 + 롤링 표 + 순매매량/보유율 추이) - 하나의 구역 카드로 묶음 ----
   function buildFlowCard(data) {
     var tone = flowTone(data);
@@ -1266,12 +1298,37 @@
       + '<span class="ff-extra-interp-text">' + escapeHtml(flowInterpText(data)) + '</span>'
       + '</div>'
       + buildRollingTable(data)
-      + '<div class="ff-chart-title">개인·외국인·기관 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>'
-      + buildNetChart(data.daily)
-      + '<div class="ff-chart-title">외국인 보유율 추이</div>'
-      + buildRatioChart(data.daily)
+      + buildFlowPeriodButtons(data.daily.length)
+      + buildFlowChartsWrap(data.daily)
       + '<div class="ff-footnote">※ 추정대금은 순매매량 × 당일 종가로 계산한 <b>추정치</b>이며 실제 거래대금과 다를 수 있습니다. 자료: 네이버 금융</div>'
       + '</div>';
+  }
+
+  // 기간 버튼 클릭 시 /foreign-flow?days=를 다시 불러 순매매량/보유율 차트만 교체한다
+  // (표·배지·판정문구는 어느 기간이든 항상 동일해서 다시 그릴 필요 없음, 위 주석 참고).
+  // fetchFlow 캐시가 code+days 조합별로 따로 캐싱하므로 같은 기간 재클릭은 즉시 응답된다.
+  function wireFlowPeriod(box, code, name) {
+    var wrap = box.querySelector('#ffFlowPeriod');
+    var chartsWrap = box.querySelector('#ffFlowChartsWrap');
+    if (!wrap || !chartsWrap) return;
+    wrap.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('.ff-flow-period-btn');
+      if (!btn || btn.classList.contains('active')) return;
+      var days = Number(btn.getAttribute('data-days'));
+      wrap.querySelectorAll('.ff-flow-period-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+      chartsWrap.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>불러오는 중...</div></div>';
+      ForeignFlow.fetchFlow(code, name, days)
+        .then(function (data) {
+          if (!data || data.error || !data.daily || !data.daily.length) throw new Error('기간 데이터 없음');
+          chartsWrap.outerHTML = buildFlowChartsWrap(data.daily);
+          var newWrap = box.querySelector('#ffFlowChartsWrap');
+          wireChartHover(newWrap.querySelector('.ff-chart-net'), data.daily, 'net');
+          wireChartHover(newWrap.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
+        })
+        .catch(function () {
+          chartsWrap.innerHTML = '<div class="ff-error">해당 기간 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+        });
+    });
   }
 
   // ---- 공매도/대차거래/연기금 (GAS ?action=investorFlow 경유 VM 온디맨드) - 수급 탭 ----
