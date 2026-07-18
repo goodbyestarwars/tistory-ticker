@@ -1340,6 +1340,7 @@
 
     var html = '<div class="ff-extra">';
     html += buildShortLoanCard(entry.short, entry.loan, currentClose);
+    html += buildCreditCard(entry.credit);
     html += buildPensionCard(entry.pension, entry.name);
     html += '<div class="ff-extra-note">공매도 압박 점수는 항상 <b>가능성·추정치</b>이며, 공매도가 주가를 누른다고 단정하지 않습니다. '
       + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API</div>';
@@ -1423,6 +1424,40 @@
       + '<b>숏 압박 지수</b>: (외국인+기관 순매수)÷공매도 거래량×100. 0 이상이면 숏스퀴즈 압력 구간, 미만이면 동반 매도 구간.<br>'
       + '<b>대차잔고 증감률</b>: 대차거래(기관·외국인이 주식을 빌리고 빌려주는 거래)로 시중에 풀린 주식 잔고의 증감. '
       + '공매도는 대부분 이렇게 빌린 주식을 팔아서 이뤄지므로, 잔고가 늘면 앞으로 공매도에 쓰일 수 있는 물량이 쌓이는 중(선행 경고 신호), 줄면 빌린 주식이 상환되며 공매도 압박이 누그러지는 중이라는 뜻.'
+      + '</div>'
+      + '</div>';
+  }
+
+  // 반대매매(담보부족·미수 강제청산) 압박 - 개별 계좌 단위 정보라 특정 매도가 반대매매인지
+  // 직접 확인은 불가능하고, "주가 급락+신용융자잔고 급감(대량 상환)"이 동시에 나타나는
+  // 최근 10영업일 내 가장 심한 날을 근사 신호로 보여준다(백엔드 credit_pressure_signal,
+  // scripts/cloud-vm/investor_flow.py). 신용거래 자체가 없는 종목은 credit이 통째로 없을
+  // 수 있어(entry.credit이 아예 undefined) 최상단에서 걸러진다.
+  function buildCreditCard(credit) {
+    if (!credit) return '';
+    var sig = credit.signal || { flag: false, label: '데이터 없음', text: '신용융자 데이터가 없는 종목입니다.' };
+    var tone = sig.flag ? 'caution' : 'neutral';
+    var toneBadgeCls = TONE_BADGE_CLASS[tone] || 'ff-badge-neutral';
+
+    var grid = extraMetric('신용융자잔고', credit.balance_qty == null ? '-' : fmtAbsShares(credit.balance_qty))
+      + extraMetric('신용융자잔고 증감률(당일)', '<span class="' + signClass(credit.balance_change_pct) + '">'
+        + fmtSignedPct(credit.balance_change_pct) + '</span>');
+    if (sig.flag) {
+      grid += extraMetric('감지일', escapeHtml(sig.date || '-'))
+        + extraMetric('그 날 주가 등락률', '<span class="' + signClass(sig.price_change_pct) + '">' + fmtSignedPct(sig.price_change_pct) + '</span>')
+        + extraMetric('그 날 잔고 증감률', '<span class="' + signClass(sig.balance_change_pct) + '">' + fmtSignedPct(sig.balance_change_pct) + '</span>');
+    }
+
+    return '<div class="ff-extra-card">'
+      + '<div class="ff-extra-card-title">⚠️ 반대매매 압박</div>'
+      + '<div class="ff-extra-interp ff-extra-tone-' + tone + '">'
+      + '<span class="ff-badge ' + toneBadgeCls + '">' + escapeHtml(sig.label) + '</span>'
+      + '<span class="ff-extra-interp-text">' + escapeHtml(sig.text) + '</span>'
+      + '</div>'
+      + '<div class="ff-extra-grid">' + grid + '</div>'
+      + '<div class="ff-extra-help">'
+      + '반대매매는 미수·신용 담보비율 미달 시 증권사가 강제로 청산하는 매도로, 개별 계좌 단위라 직접 확인할 방법이 없습니다. '
+      + '"주가가 크게 떨어진 날 신용융자잔고도 크게(대량 상환) 줄었는지"를 최근 10영업일에서 찾아 <b>가능성·추정치</b>로만 보여드립니다 - 실제 반대매매 발생을 확정하지 않습니다.'
       + '</div>'
       + '</div>';
   }
