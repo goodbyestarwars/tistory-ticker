@@ -218,16 +218,26 @@ def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     return envelope(result)
 
 
+FOREIGN_FLOW_DAY_OPTIONS = {30, 63, 126, 252}  # 1개월/3개월/6개월/1년(영업일 근사) - 프론트 기간 선택 버튼과 1:1 대응
+
+
 @app.get('/foreign-flow/{code}')
-def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
+def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6),
+                           days: int = Query(kiwoom_market.FLOW_DEFAULT_DAYS)):
     """종목분석 메인 수급 표(개인·외국인·기관 순매매) - 2026-07-13: 네이버 frgn.naver 크롤링을
     1차로 대체하는 API 버전. 네이버 크롤링은 이제 백업 전용 - 프론트(js/foreign-flow.js)가
     이 엔드포인트를 먼저 시도하고 실패할 때만 GAS의 ?action=foreignFlow(네이버 경로)로
     폴백한다. /investor-flow와 동일하게 공개(인증 없음) + CORS 제한 + 5분 메모리 캐시.
     2026-07-19: 종가/거래량/개인/외국인/기관은 KIS(한국투자증권) API로 소스 교체(NXT 포함
     통합 집계라 Toss/키움HTS와 완전히 일치, kiwoom_market.fetch_foreign_inst_daily 독스트링
-    참고) - KIS_APPKEY/APPSECRET 미설정이면 예전 키움 ka10045 경로로 자동 폴백."""
-    cached = _live_cache_get(_foreign_flow_cache_mem, code)
+    참고) - KIS_APPKEY/APPSECRET 미설정이면 예전 키움 ka10045 경로로 자동 폴백.
+    2026-07-19(2차): ?days= 로 기간 선택 지원(FOREIGN_FLOW_DAY_OPTIONS 외 값은 기본치로
+    보정) - 캐시 키에 days를 같이 넣어야 1개월 조회 캐시가 1년 조회에 잘못 재사용되지
+    않는다(코드만으로 캐시하면 서로 다른 기간 요청이 뒤섞임)."""
+    if days not in FOREIGN_FLOW_DAY_OPTIONS:
+        days = kiwoom_market.FLOW_DEFAULT_DAYS
+    cache_key = '%s:%d' % (code, days)
+    cached = _live_cache_get(_foreign_flow_cache_mem, cache_key)
     if cached is not None:
         return envelope(cached)
     try:
@@ -235,6 +245,7 @@ def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
         daily = kiwoom_market.fetch_foreign_inst_daily(
             token, code,
             kis_appkey=os.environ.get('KIS_APPKEY'), kis_appsecret=os.environ.get('KIS_APPSECRET'),
+            target_days=days,
         )
     except HTTPException:
         raise
@@ -243,7 +254,7 @@ def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     result = foreign_flow_compute.build_result(code, daily)
     if result is None:
         raise HTTPException(status_code=404, detail='수급 데이터를 찾을 수 없습니다.')
-    _live_cache_put(_foreign_flow_cache_mem, code, result)
+    _live_cache_put(_foreign_flow_cache_mem, cache_key, result)
     return envelope(result)
 
 

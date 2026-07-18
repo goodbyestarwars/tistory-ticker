@@ -3,6 +3,7 @@
 gas/ticker-proxy.gs의 fetchDailyOhlc_/getForeignFlow(네이버 크롤링)를 대체하는
 공식 키움 API 버전 - daily_scan.py(패턴/눌림목/투자시그널 배치)가 사용한다."""
 
+import time
 from datetime import datetime, timedelta
 
 import kis_client
@@ -11,6 +12,9 @@ import kiwoom_client
 OHLC_MIN_DAYS = 100   # gas의 PATTERN_PAGES(10p*10행=100영업일)와 동일 기준
 OHLC_SNAPSHOT_DAYS = 500  # daily_scan.py가 SQLite(daily_prices)에 저장하는 일수 - 일목균형표 구름대/224일선 스캐너 + 장기 추세 분석 여유분(260->500, 2026-07-14). 디스크 실측 550일=290MB(daily_prices+investor_flow_daily 합산)라 30GB 기준 부담 없음. ka10081 단일 호출로 최대 ~600영업일까지 나와서 API 추가 호출 없이 커버됨.
 FLOW_LOOKBACK_DAYS = 60  # 달력일 기준 - 영업일로 환산하면 40영업일(gas FRGN_PAGES=2*20행)를 넉넉히 커버
+FLOW_DEFAULT_DAYS = 30  # 기간 선택 없이 종목분석 페이지를 열었을 때 기본치 - KIS 1회 호출 분량과 동일
+FLOW_MAX_KIS_PAGES = 10  # 기간 선택(최대 1년=약 252영업일)용 KIS 다중호출 상한 - 30*10=300영업일로 충분
+KIS_PAGE_THROTTLE_SEC = 0.15
 
 
 def to_num(v):
@@ -150,7 +154,7 @@ def _frgn_by_date_from_ka10008(frgn_res):
     return out
 
 
-def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date):
+def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days=FLOW_DEFAULT_DAYS):
     """KIS 종목별투자자매매동향(일별)(FHPTJ04160001, FID_COND_MRKT_DIV_CODE=UN)로 종가/거래량/
     개인/기관/외국인을 채운다. 2026-07-19 실측(005930): UN(KRX+NXT 통합)으로 조회하니 종가·
     거래량·개인·기관이 Toss/키움HTS와 정확히 일치했고, 외국인은 frgn_reg_ntby_qty(등록
@@ -160,21 +164,36 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date):
     ka10063/ka10066처럼 stex_tp를 받는 TR은 종목별 일별 히스토리가 아니라 시장 전체
     랭킹형이라 대체 불가) NXT 체결분을 뺀 축소된 값만 나왔던 것 - 그래서 이 함수가 메인
     데이터소스가 되고 ka10045는 KIS 실패 시에만 쓰는 폴백으로 격하됨(_daily_rows_from_kiwoom).
-    한 번 호출로 최근 30영업일치가 옴(20일 롤링 계산엔 충분, 실측 확인) - 날짜 범위 파라미터가
-    없어 여러 번 나눠 부를 수는 없다(더 긴 히스토리가 필요해지면 date1을 30영업일 전으로
-    바꿔 한 번 더 호출해 이어붙이는 방식을 고려할 것, 아직 불필요해 안 함)."""
+    2026-07-19(2차): 수급 기간 선택 기능 추가 - KIS는 한 번에 date1 기준 최근 30영업일만
+    주고 날짜범위 파라미터가 없어서, target_days(1개월=30/3개월=63/6개월=126/1년=252)를
+    채울 때까지 이미 받은 행 중 가장 오래된 날짜의 하루 전을 다음 date1로 삼아 반복
+    호출한다. 종목마다 상장일이 다르니 새 행이 하나도 안 늘면(상장일 도달 등) 즉시 멈추고,
+    API 남용 방지로 FLOW_MAX_KIS_PAGES(10회=최대 약 300영업일)에서 강제 종료한다."""
     kis_token = kis_client.get_token(kis_appkey, kis_appsecret)
-    _, rows = kis_client.fetch_investor_trade_daily(kis_token, kis_appkey, kis_appsecret, code, end_dt, 'UN')
-    if not rows:
+
+    rows_by_date = {}
+    cursor_dt = end_dt
+    for page in range(FLOW_MAX_KIS_PAGES):
+        _, page_rows = kis_client.fetch_investor_trade_daily(kis_token, kis_appkey, kis_appsecret, code, cursor_dt, 'UN')
+        if not page_rows:
+            break
+        new_dates = [r.get('stck_bsop_date') for r in page_rows if r.get('stck_bsop_date') and r.get('stck_bsop_date') not in rows_by_date]
+        for r in page_rows:
+            dt = r.get('stck_bsop_date')
+            if dt:
+                rows_by_date[dt] = r
+        if len(rows_by_date) >= target_days or not new_dates:
+            break
+        oldest = min(rows_by_date.keys())
+        cursor_dt = (datetime.strptime(oldest, '%Y%m%d') - timedelta(days=1)).strftime('%Y%m%d')
+        time.sleep(KIS_PAGE_THROTTLE_SEC)
+
+    if not rows_by_date:
         raise RuntimeError('KIS investor-trade-by-stock-daily returned no rows')
 
     out = []
-    seen = set()
-    for r in rows:
-        dt = r.get('stck_bsop_date')
-        if not dt or dt in seen:
-            continue
-        seen.add(dt)
+    for dt in sorted(rows_by_date.keys(), reverse=True)[:target_days]:
+        r = rows_by_date[dt]
         frgn_row = frgn_by_date.get(dt)
         out.append({
             'date': '%s-%s-%s' % (dt[0:4], dt[4:6], dt[6:8]),
@@ -190,10 +209,13 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date):
     return out
 
 
-def _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date):
+def _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, target_days=FLOW_DEFAULT_DAYS):
     """KIS 키가 없거나 KIS 호출이 실패했을 때만 쓰는 폴백 - 예전 ka10045 기반 경로.
-    거래량이 NXT 미포함으로 축소돼 나오는 알려진 한계가 있음(_daily_rows_from_kis 참고)."""
-    start = datetime.now() - timedelta(days=FLOW_LOOKBACK_DAYS)
+    거래량이 NXT 미포함으로 축소돼 나오는 알려진 한계가 있음(_daily_rows_from_kis 참고).
+    ka10045는 날짜범위(strt_dt~end_dt)를 한 번에 받을 수 있어 KIS처럼 여러 번 나눠 부를
+    필요 없이 target_days를 영업일의 1.5배 정도 여유를 둔 달력일로 환산해 strt_dt만 넓힌다."""
+    lookback_days = max(FLOW_LOOKBACK_DAYS, int(target_days * 1.6) + 10)
+    start = datetime.now() - timedelta(days=lookback_days)
     inst_res = kiwoom_client.call_tr(token, 'ka10045', '/api/dostk/mrkcond', {
         'stk_cd': code,
         'strt_dt': start.strftime('%Y%m%d'),
@@ -226,10 +248,14 @@ def _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date):
     return out
 
 
-def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None):
+def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, target_days=FLOW_DEFAULT_DAYS):
     """종목분석 메인 수급 표(개인·외국인·기관 순매매 + 외국인 보유주수/비중)용.
     {date, close, change_pct, volume, inst_net, foreign_net, ind_net, foreign_shares,
     foreign_ratio} - 최신일 우선.
+    target_days: 종목분석 페이지의 "기간 선택"(1개월=30/3개월=63/6개월=126/1년=252, 2026-07-19
+    도입)에 대응 - rolling(5/10/20일 합산)·streak·signal은 daily[0..N]만 보고 항상 "가장
+    최근" 기준으로 계산되므로(foreign_flow_compute.py) target_days는 순수하게 표/차트에
+    보여줄 과거 일수만 늘리고 이 판정들에는 영향을 주지 않는다.
     2026-07-19: 데이터 소스를 키움 ka10045/ka10059에서 KIS(한국투자증권) 종목별투자자매매
     동향(일별)로 교체(_daily_rows_from_kis 독스트링에 원인 상세) - Toss/키움HTS와 완전히
     일치하는 걸 실측 확인함. kis_appkey/kis_appsecret이 없거나 KIS 호출이 실패하면 예전
@@ -250,11 +276,11 @@ def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None):
     out = None
     if kis_appkey and kis_appsecret:
         try:
-            out = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date)
+            out = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days)
         except Exception:
             out = None
     if out is None:
-        out = _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date)
+        out = _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, target_days)
 
     out.sort(key=lambda r: r['date'], reverse=True)  # 최신일 우선 - gas getForeignFlow와 동일
 
