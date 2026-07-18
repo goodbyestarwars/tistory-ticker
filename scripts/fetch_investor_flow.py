@@ -186,20 +186,6 @@ def pension_streak(daily_penfnd):
     return {'days': days, 'direction': 'buy' if direction > 0 else 'sell'}
 
 
-def pension_interpretation(streak, foreign_net_5d):
-    if streak['direction'] == 'buy' and streak['days'] >= 5:
-        if foreign_net_5d > 0:
-            return {'tone': 'very_positive', 'label': '매우 긍정',
-                    'text': '연기금이 %d일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다.' % streak['days']}
-        return {'tone': 'positive', 'label': '긍정', 'text': '연기금이 %d일 연속 순매수 중입니다.' % streak['days']}
-    if streak['direction'] == 'buy':
-        return {'tone': 'neutral_positive', 'label': '중립~긍정',
-                'text': '연기금이 순매수 중이나 연속성은 아직 짧습니다(%d일).' % streak['days']}
-    if streak['direction'] == 'sell' and streak['days'] >= 5:
-        return {'tone': 'caution', 'label': '비중 축소 가능성', 'text': '연기금이 %d일 연속 순매도 중입니다.' % streak['days']}
-    return {'tone': 'neutral', 'label': '중립', 'text': '연기금 매매 방향성이 뚜렷하지 않습니다.'}
-
-
 def fetch_stock(token, code, name, strt_dt, end_dt):
     short_res = call_tr(token, 'ka10014', '/api/dostk/shsa',
                          {'stk_cd': code, 'strt_dt': strt_dt, 'end_dt': end_dt})
@@ -270,7 +256,8 @@ def fetch_stock(token, code, name, strt_dt, end_dt):
     # 여기서는 pension-fund.js 기존 방식대로 종가 근사를 그대로 쓴다.
     current_price = abs(to_num(today_invsr.get('cur_prc')))  # cur_prc는 등락표시 +/-가 붙어있을 뿐 가격 자체는 항상 양수
     streak = pension_streak(penfnd_daily)
-    interpretation = pension_interpretation(streak, net_5d)
+    # 2026-07-19: 해석 문구(pension_interpretation)는 js/foreign-flow.js의
+    # pensionInterpText()로 이관됨 - scripts/cloud-vm/investor_flow.py와 동일 이유(주석 참고).
 
     return {
         'name': name,
@@ -297,7 +284,6 @@ def fetch_stock(token, code, name, strt_dt, end_dt):
             'net_cumulative': net_cumulative,
             'cumulative_window_days': len(penfnd_daily),
             'current_price': current_price,
-            'interpretation': interpretation,
         },
     }
 

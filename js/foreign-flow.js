@@ -905,8 +905,8 @@
 
   // 연기금 톤(very_positive~caution) 기준점수 + 연속매매일수 가중치 -> 0~100점.
   function computePensionScore(p) {
-    if (!p || !p.interpretation) return null;
-    var base = PENSION_TONE_SCORE[p.interpretation.tone];
+    if (!p) return null;
+    var base = PENSION_TONE_SCORE[pensionInterpText(p).tone];
     if (base == null) return null;
     var streak = p.streak || { days: 0, direction: 'flat' };
     var days = Math.min(streak.days || 0, 15);
@@ -965,6 +965,45 @@
     if (s.days_to_cover != null) parts.push('Days to Cover ' + s.days_to_cover.toFixed(1) + '일');
     if (l && l.balance_change_pct != null) parts.push('대차잔고 ' + fmtSignedPct(l.balance_change_pct));
     return parts.join(' · ') + '로 압박 ' + label + ' 수준입니다.';
+  }
+
+  // 연기금 해석(긍정/중립/부정 판정 + 근거 문구) - 예전엔 백엔드가 "N일 연속"만 반복하는
+  // 문구를 내려줬는데, 실제 순매수 금액이 없어 "왜 이 판정인지" 근거가 빈약하다는 피드백
+  // (2026-07-19)으로 shortInterpText와 같은 패턴(원자료만 서버가 주고 문구는 여기서 조립,
+  // fmtSignedWon으로 실제 금액을 근거에 넣음)으로 프론트로 이관.
+  function pensionInterpText(p) {
+    if (!p) return { tone: 'neutral', label: '-', text: '연기금 데이터가 없는 종목입니다.' };
+    var streak = p.streak || { days: 0, direction: 'flat' };
+    var amt5 = fmtSignedWon(p.net_5d) + '원';
+    if (streak.direction === 'buy' && streak.days >= 5) {
+      return {
+        tone: 'very_positive', label: '매우 긍정',
+        text: '연기금이 ' + streak.days + '일 연속 순매수 중이며 최근 5일간 ' + amt5 + '을 사들였습니다. '
+          + '연기금은 장기·안정 지향 자금이라 방향성이 오래 유지될수록 신뢰도가 높은 신호로 봅니다.'
+      };
+    }
+    if (streak.direction === 'buy') {
+      return {
+        tone: 'neutral_positive', label: '중립~긍정',
+        text: '연기금이 ' + streak.days + '일째 순매수 중입니다(최근 5일 ' + amt5 + '). 연속성이 아직 짧아 방향 전환 여부는 더 지켜봐야 합니다.'
+      };
+    }
+    if (streak.direction === 'sell' && streak.days >= 5) {
+      return {
+        tone: 'caution', label: '비중 축소 가능성',
+        text: '연기금이 ' + streak.days + '일 연속 순매도 중이며 최근 5일간 ' + amt5 + '을 팔았습니다. 장기 자금이 지속적으로 비중을 줄이고 있다는 신호로 해석될 수 있습니다.'
+      };
+    }
+    if (streak.direction === 'sell') {
+      return {
+        tone: 'neutral', label: '중립',
+        text: '연기금이 ' + streak.days + '일째 순매도 중이나(최근 5일 ' + amt5 + ') 연속성은 아직 짧습니다.'
+      };
+    }
+    return {
+      tone: 'neutral', label: '중립',
+      text: '최근 연기금 매매 방향성이 뚜렷하지 않습니다(최근 20일 순매매 ' + fmtSignedWon(p.net_20d) + '원).'
+    };
   }
 
   // 종합점수 = 수급x0.40 + 외국인/기관x0.25 + 기술적x0.20 + 공매도x0.10 + 연기금x0.05
@@ -1062,7 +1101,7 @@
       { icon: '🌐', label: '외국인·기관', score: foreignInstScore, desc: foreignInstDescText(data) },
       { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: techInterpText(techScore) },
       { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: shortInterpText(entry && entry.short, entry && entry.loan) },
-      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pension ? pension.interpretation.text : '연기금 데이터가 없는 종목입니다.' }
+      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pensionInterpText(pension).text }
     ];
 
     var rowsHtml = rows.map(function (r, i) {
@@ -1125,7 +1164,7 @@
       + '&shortScore=' + (shortScore == null ? '' : shortScore)
       + '&shortNote=' + encodeURIComponent(shortInterpText(entry && entry.short, entry && entry.loan))
       + '&pensionScore=' + (pensionScore == null ? '' : pensionScore)
-      + '&pensionNote=' + encodeURIComponent(pension ? pension.interpretation.text : '')
+      + '&pensionNote=' + encodeURIComponent(pensionInterpText(pension).text)
       + '&techScore=' + (techScore ? techScore.score : '')
       + '&techNote=' + encodeURIComponent(techInterpText(techScore))
       + '&volNote=' + encodeURIComponent(volNote)
@@ -1336,7 +1375,7 @@
     var streak = p.streak || { days: 0, direction: 'flat' };
     var streakLabel = streak.direction === 'buy' ? '연속 순매수' : streak.direction === 'sell' ? '연속 순매도' : '뚜렷한 방향 없음';
     var streakBadgeCls = streak.direction === 'buy' ? 'ff-badge-buy' : streak.direction === 'sell' ? 'ff-badge-sell' : 'ff-badge-neutral';
-    var interp = p.interpretation || { tone: 'neutral', label: '', text: '' };
+    var interp = pensionInterpText(p);
     var badgeCls = TONE_BADGE_CLASS[interp.tone] || 'ff-badge-neutral';
 
     return '<div class="ff-extra-card">'

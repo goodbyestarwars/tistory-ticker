@@ -73,20 +73,6 @@ def pension_streak(daily_penfnd):
     return {'days': days, 'direction': 'buy' if direction > 0 else 'sell'}
 
 
-def pension_interpretation(streak, foreign_net_5d):
-    if streak['direction'] == 'buy' and streak['days'] >= 5:
-        if foreign_net_5d > 0:
-            return {'tone': 'very_positive', 'label': '매우 긍정',
-                    'text': '연기금이 %d일 연속 순매수 중이고 외국인도 최근 5일 순매수를 동반하고 있습니다.' % streak['days']}
-        return {'tone': 'positive', 'label': '긍정', 'text': '연기금이 %d일 연속 순매수 중입니다.' % streak['days']}
-    if streak['direction'] == 'buy':
-        return {'tone': 'neutral_positive', 'label': '중립~긍정',
-                'text': '연기금이 순매수 중이나 연속성은 아직 짧습니다(%d일).' % streak['days']}
-    if streak['direction'] == 'sell' and streak['days'] >= 5:
-        return {'tone': 'caution', 'label': '비중 축소 가능성', 'text': '연기금이 %d일 연속 순매도 중입니다.' % streak['days']}
-    return {'tone': 'neutral', 'label': '중립', 'text': '연기금 매매 방향성이 뚜렷하지 않습니다.'}
-
-
 def fetch_stock(token, code, name):
     strt_dt, end_dt = date_range()
 
@@ -158,7 +144,10 @@ def fetch_stock(token, code, name):
     net_cumulative = sum(penfnd_daily)
 
     streak = pension_streak(penfnd_daily)
-    interpretation = pension_interpretation(streak, net_5d)
+    # 2026-07-19: 여기서 만들던 긍정/중립/부정 해석 문구(pension_interpretation, 제거됨)는
+    # "연속 N일"만 반복할 뿐 실제 순매수 금액을 안 보여줘서 "왜 이 판정인지 모르겠다"는
+    # 피드백을 받음 - 공매도 카드(shortInterpText)처럼 원자료(streak/net_5d 등)만 내려주고
+    # 문구 조립은 js/foreign-flow.js의 pensionInterpText()가 금액까지 포함해서 하도록 이관.
 
     return {
         'name': name,
@@ -185,6 +174,5 @@ def fetch_stock(token, code, name):
             'net_cumulative': net_cumulative,
             'cumulative_window_days': len(penfnd_daily),
             'current_price': current_price,
-            'interpretation': interpretation,
         },
     }
