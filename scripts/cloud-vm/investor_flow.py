@@ -57,6 +57,61 @@ def short_pressure_score(short_ratio_pct, loan_change_pct, short_balance_change_
     }
 
 
+def _credit_row_change_pct(rows, idx, field):
+    """rows[idx] 대비 rows[idx+1](하루 전) 증감률. 다음 행이 없으면(신규상장 등) 0."""
+    if idx + 1 >= len(rows):
+        return 0.0
+    cur = to_num(rows[idx].get(field))
+    prev = to_num(rows[idx + 1].get(field))
+    return (cur - prev) / prev * 100 if prev else 0.0
+
+
+def _credit_row_price_change_pct(row):
+    """ka10013의 cur_prc/pred_pre는 부호가 붙은 문자열("-255000"/"-24500")이라 전일종가를
+    cur_prc-pred_pre로 역산해 등락률을 구한다(실측: 2026-07-16 -24500/279500=-8.77%로
+    Toss 실제 등락률과 일치 확인됨) - 이 TR엔 등락률 필드 자체가 따로 없음."""
+    cur = abs(to_num(row.get('cur_prc')))
+    pre = to_num(row.get('pred_pre'))
+    prior = cur - pre
+    return (pre / prior * 100) if prior else 0.0
+
+
+def credit_pressure_signal(rows):
+    """반대매매(담보부족·미수 강제청산) 압박 가능성 근사 - 개별 계좌 단위 정보라 특정
+    매도가 반대매매인지 직접 확인할 방법은 없지만, "주가 급락(-5%↓) + 신용융자잔고
+    급감(-3%↓, 대량 상환)"이 동시에 나타나는 건 실제 반대매매가 대량 발생했을 때
+    관찰되는 패턴이라 이 조합을 정황 신호로 쓴다(확정 아님, 최근 10영업일 중 가장
+    심한 날 하나를 찾아 반환)."""
+    window = rows[:10]
+    worst = None
+    for i, row in enumerate(window):
+        price_pct = _credit_row_price_change_pct(row)
+        bal_pct = _credit_row_change_pct(rows, i, 'remn')
+        if price_pct <= -5 and bal_pct <= -3:
+            severity = price_pct + bal_pct  # 둘 다 음수 - 합이 작을수록(더 음수) 더 심함
+            if worst is None or severity < worst['severity']:
+                worst = {'date': row.get('dt'), 'price_change_pct': price_pct,
+                          'balance_change_pct': bal_pct, 'severity': severity}
+    if not worst:
+        return {
+            'flag': False, 'label': '특이사항 없음',
+            'text': '최근 10영업일 내 주가 급락과 신용융자잔고 급감이 동시에 나타나는 반대매매 특유의 패턴은 보이지 않습니다.'
+        }
+    d = worst['date'] or ''
+    date_label = ('%s-%s-%s' % (d[0:4], d[4:6], d[6:8])) if len(d) == 8 else d
+    strong = worst['price_change_pct'] <= -8 and worst['balance_change_pct'] <= -6
+    return {
+        'flag': True,
+        'label': '반대매매 압박 강함' if strong else '반대매매 압박 가능성',
+        'date': date_label,
+        'price_change_pct': worst['price_change_pct'],
+        'balance_change_pct': worst['balance_change_pct'],
+        'text': ('%s 주가가 %.1f%% 급락한 날 신용융자잔고도 %.1f%% 급감(대량 상환)했습니다 - '
+                  '담보부족·미수 반대매매로 강제 청산된 물량이 매도 압력을 더했을 가능성이 있습니다.'
+                  % (date_label, worst['price_change_pct'], worst['balance_change_pct']))
+    }
+
+
 def pension_streak(daily_penfnd):
     if not daily_penfnd:
         return {'days': 0, 'direction': 'flat'}
@@ -83,10 +138,19 @@ def fetch_stock(token, code, name):
     time.sleep(THROTTLE_SEC)
     invsr_res = kiwoom_client.call_tr(token, 'ka10059', '/api/dostk/stkinfo',
                                        {'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'})
+    time.sleep(THROTTLE_SEC)
+    # 2026-07-19: 반대매매(담보부족/미수 강제청산) 압박 근사 신호용 - qry_tp='1'이 신용융자
+    # (레버리지 매수, 반대매매 대상)이고 '2'는 신용대주(공매도성 대주, 잔고가 1/2500 수준으로
+    # 작아 국내 시장에서 규모가 훨씬 작음 - 실측으로 구분 확인, 문서에 설명 없음). dt는
+    # 날짜 필터가 아니라 '0'을 넣으면 최근 100영업일이 그대로 옴(ka10059와 비슷한 동작,
+    # 실측 확인 - "1" 등 다른 값은 빈 배열만 옴).
+    credit_res = kiwoom_client.call_tr(token, 'ka10013', '/api/dostk/stkinfo',
+                                        {'stk_cd': code, 'dt': '0', 'qry_tp': '1'})
 
     short_rows = short_res.get('shrts_trnsn') or []
     loan_rows = loan_res.get('dbrt_trde_trnsn') or []
     invsr_rows = invsr_res.get('stk_invsr_orgn') or []
+    credit_rows = sorted(credit_res.get('crd_trde_trend') or [], key=lambda r: r.get('dt', ''), reverse=True)
 
     short_rows = sorted(short_rows, key=lambda r: r.get('dt', ''), reverse=True)
     loan_rows = sorted(loan_rows, key=lambda r: r.get('dt', ''), reverse=True)
@@ -115,6 +179,12 @@ def fetch_stock(token, code, name):
     loan_change_pct = (
         (loan_balance_qty - prior_loan_balance) / prior_loan_balance * 100
     ) if prior_loan_balance else 0.0
+
+    # 반대매매 압박(신용융자잔고, ka10013 qry_tp='1') - 종목에 따라 신용거래 자체가 없어
+    # crd_trde_trend가 빈 배열일 수 있어 None-safe하게 처리(나머지 응답엔 영향 없음).
+    credit_balance_qty = to_num(credit_rows[0].get('remn')) if credit_rows else None
+    credit_balance_change_pct = _credit_row_change_pct(credit_rows, 0, 'remn') if len(credit_rows) > 1 else 0.0
+    credit_signal = credit_pressure_signal(credit_rows) if credit_rows else None
 
     today_invsr = invsr_rows[0]
     current_price = abs(to_num(today_invsr.get('cur_prc')))
@@ -165,6 +235,11 @@ def fetch_stock(token, code, name):
         'loan': {
             'balance_qty': loan_balance_qty,
             'balance_change_pct': loan_change_pct,
+        },
+        'credit': {
+            'balance_qty': credit_balance_qty,
+            'balance_change_pct': credit_balance_change_pct,
+            'signal': credit_signal,
         },
         'pension': {
             'streak': streak,
