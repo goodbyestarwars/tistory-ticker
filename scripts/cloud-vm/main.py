@@ -308,7 +308,7 @@ def futures(interval: str = 'day', days: int = 90):
         # 넣어야 응답에 실린다(2026-07-17 GOLD 추가 때 빠뜨려서 한 번 헛배포함).
         order = ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
                  'KOSPI200_DAY', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI', 'GOLD', 'USDKRW',
-                 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC']
+                 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC', 'ETH']
         result = []
         for symbol in order:
             p = prices.get(symbol)

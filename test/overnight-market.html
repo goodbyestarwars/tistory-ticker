@@ -25,8 +25,8 @@
     <button onclick="setMock('error')">API 오류</button>
   </div>
   <p style="font-size:13px;color:#888">
-    기본은 mock 데이터로 렌더링 검증(18개 카드, 카테고리 5개: 시장지수/변동성·환율/채권(미국
-    10·2·30년물+국고채3년)/에너지·원자재/가상자산 + WTI·VIX·환율·국고채3년 장기평균 참고선 +
+    기본은 mock 데이터로 렌더링 검증(19개 카드, 카테고리 5개: 시장지수/변동성·환율/채권(미국
+    10·2·30년물+국고채3년)/에너지·원자재/가상자산(BTC+ETH) + 8개 심볼 장기평균 참고선 +
     AI 해설 박스). 실제 VM/GAS 호출로 테스트하려면 <code>?real=1</code>을
     붙이세요(CORS가 ghlee.tistory.com만 허용하므로 로컬 http.server에서는 막힐 수 있음 - 라이브
     페이지에서 최종 확인 필요).
@@ -54,7 +54,8 @@
     { symbol: 'US2Y', name: '미국 국채 2년물 금리', base: 4.16 },
     { symbol: 'US30Y', name: '미국 국채 30년물 금리', base: 5.09 },
     { symbol: 'KTB3Y', name: '국고채 3년물 금리', base: 3.84 },
-    { symbol: 'BTC', name: '비트코인(BTC)', base: 95018000 }
+    { symbol: 'BTC', name: '비트코인(BTC)', base: 95018000 },
+    { symbol: 'ETH', name: '이더리움(ETH)', base: 2728000 }
   ];
 
   function buildChart(base, days, trend) {
@@ -124,7 +125,8 @@
       US10Y: { avg: 4.26, min: 3.97, max: 4.67, days: 272, from: '20250613', to: '20260716' },
       US2Y: { avg: 3.98, min: 3.60, max: 4.45, days: 272, from: '20250613', to: '20260716' },
       US30Y: { avg: 4.78, min: 4.42, max: 5.15, days: 272, from: '20250613', to: '20260716' },
-      BTC: { avg: 88500000, min: 68200000, max: 112000000, days: 379, from: '20250705', to: '20260718' }
+      BTC: { avg: 88500000, min: 68200000, max: 112000000, days: 379, from: '20250705', to: '20260718' },
+      ETH: { avg: 2510000, min: 1820000, max: 3350000, days: 379, from: '20250705', to: '20260718' }
     };
     OvernightMarket.fetchBenchmark = function (symbol) {
       console.log('[mock] fetchBenchmark', symbol);

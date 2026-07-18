@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BTC(KRW-BTC) - 업비트 공개 API 수집.
+"""BTC/ETH(KRW-BTC, KRW-ETH) - 업비트 공개 API 수집.
 2026-07-17: 처음엔 방문자 브라우저가 직접 api.upbit.com을 호출하는 방식(js/quick-indices.js)
 으로 구현했는데, candles(일봉) 엔드포인트가 ticker보다 훨씬 빡빡하게 레이트리밋을 걸고
 그 응답엔 CORS 헤더가 없어(브라우저에서 "Failed to fetch"로만 보임) 라이브에서 차트가
@@ -7,6 +7,8 @@
 동일하게 VM이 서버사이드로 수집해 DB에 저장하면, 방문자 브라우저는 이제 이 VM(/futures)
 만 호출하므로 업비트 레이트리밋/CORS 문제 자체가 사라진다 - VM 자신은 30초에 한 번만
 업비트를 때려서 레이트리밋에 걸릴 일이 거의 없다.
+2026-07-18: 이더리움 추가(사용자 요청) - foreign_futures.py의 SYMBOLS 리스트 패턴과 동일하게
+CRYPTO_SYMBOLS로 일반화(BTC 전용 상수 SYMBOL/NAME/MARKET는 폐기).
 API 문서: https://docs.upbit.com (인증 불필요, public 엔드포인트)."""
 
 import json
@@ -22,9 +24,10 @@ import db_schema
 logger = logging.getLogger('btc_futures')
 
 UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'
-SYMBOL = 'BTC'
-NAME = 'BTC'
-MARKET = 'KRW-BTC'
+CRYPTO_SYMBOLS = [
+    {'key': 'BTC', 'name': 'BTC', 'market': 'KRW-BTC'},
+    {'key': 'ETH', 'name': 'ETH', 'market': 'KRW-ETH'},
+]
 
 _REALTIME_POLL_SEC = 30
 _HISTORY_REFRESH_INTERVAL = 6 * 3600
@@ -40,8 +43,8 @@ def _get_json(url):
         return json.loads(res.read().decode('utf-8'))
 
 
-def fetch_ticker():
-    data = _get_json('https://api.upbit.com/v1/ticker?markets=' + MARKET)
+def fetch_ticker(market):
+    data = _get_json('https://api.upbit.com/v1/ticker?markets=' + market)
     t = (data or [None])[0]
     if not t:
         return None
@@ -56,14 +59,14 @@ def fetch_ticker():
     return {'price': price, 'change': change, 'change_rate': change_rate, 'high': high, 'low': low}
 
 
-def fetch_daily_chart(total_days=_HISTORY_TOTAL_DAYS):
+def fetch_daily_chart(market, total_days=_HISTORY_TOTAL_DAYS):
     """count가 200으로 잘리는 업비트 제약 때문에 to= 파라미터로 과거로 페이징하며 모은다."""
     rows_by_date = {}
     to_param = None
     remaining = total_days
     while remaining > 0:
         count = min(200, remaining)
-        url = 'https://api.upbit.com/v1/candles/days?market=%s&count=%d' % (MARKET, count)
+        url = 'https://api.upbit.com/v1/candles/days?market=%s&count=%d' % (market, count)
         if to_param:
             url += '&to=' + urllib.parse.quote(to_param)
         data = _get_json(url)
@@ -97,15 +100,19 @@ def fetch_daily_chart(total_days=_HISTORY_TOTAL_DAYS):
 def refresh_realtime():
     conn = db_schema.get_conn()
     try:
-        q = fetch_ticker()
-        if not q:
-            return
         now_iso = datetime.now(timezone.utc).isoformat()
-        db_schema.upsert_future_price(
-            conn, SYMBOL, NAME, q['price'], q['change'], q['change_rate'], q['high'], q['low'], now_iso,
-        )
-    except Exception:
-        logger.exception('btc realtime fetch failed')
+        for sym in CRYPTO_SYMBOLS:
+            try:
+                q = fetch_ticker(sym['market'])
+            except Exception:
+                logger.exception('%s realtime fetch failed', sym['key'])
+                continue
+            if not q:
+                continue
+            db_schema.upsert_future_price(
+                conn, sym['key'], sym['name'], q['price'], q['change'], q['change_rate'],
+                q['high'], q['low'], now_iso,
+            )
     finally:
         conn.close()
 
@@ -113,12 +120,15 @@ def refresh_realtime():
 def refresh_history():
     conn = db_schema.get_conn()
     try:
-        rows = fetch_daily_chart()
-        if rows:
-            db_schema.upsert_future_chart_rows(conn, SYMBOL, rows)
-            logger.info('btc history refreshed: %d rows', len(rows))
-    except Exception:
-        logger.exception('btc history fetch failed')
+        for sym in CRYPTO_SYMBOLS:
+            try:
+                rows = fetch_daily_chart(sym['market'])
+            except Exception:
+                logger.exception('%s history fetch failed', sym['key'])
+                continue
+            if rows:
+                db_schema.upsert_future_chart_rows(conn, sym['key'], rows)
+                logger.info('%s history refreshed: %d rows', sym['key'], len(rows))
     finally:
         conn.close()
 

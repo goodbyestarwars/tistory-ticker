@@ -93,6 +93,13 @@
  * btc_futures.py의 fetch_daily_chart를 to= 파라미터로 페이징하도록 재작성해 380일치를
  * 모은다. BENCHMARK_SYMBOLS/BENCHMARK_NOTE에 BTC 추가 - 다른 심볼과 달리 direction:1(상승
  * 자체는 호재)이라 "부담/완화" 대신 통상적인 이동평균선 해석 문구를 붙임.
+ *
+ * 2026-07-18(9차): 미국 국채 3종에도 장기평균 참고선+해설이 빠져있던 걸 추가(다른 벤치마크
+ * 심볼과 동일 패턴, 10년물은 "전세계 주가 밸류에이션에 가장 큰 영향" 문구로 명시). 이더리움
+ * (ETH) 추가(사용자 요청) - scripts/cloud-vm/btc_futures.py를 BTC 전용 상수에서
+ * CRYPTO_SYMBOLS 리스트로 일반화(foreign_futures.py의 SYMBOLS 패턴과 동일). "가상자산"
+ * 카테고리도 listIndividually:true로 바꿔 BTC/ETH를 각각 표시(가격 규모가 크게 달라
+ * 평균 내면 의미 없음), 52주 이동평균선도 CRYPTO_SYMBOLS 판정으로 일반화해 ETH까지 적용.
  */
 (function (global) {
   'use strict';
@@ -124,7 +131,8 @@
     US10Y: '미국 국채 10년물 금리',
     US2Y: '미국 국채 2년물 금리',
     US30Y: '미국 국채 30년물 금리',
-    BTC: '비트코인(BTC)'
+    BTC: '비트코인(BTC)',
+    ETH: '이더리움(ETH)'
   };
 
   // direction: 1=오르면 시장에 호재, -1=오르면 시장에 부담(악재), 0=방향성 해석 없음(그대로 표시만).
@@ -145,13 +153,16 @@
     { key: 'bond', label: '채권', direction: -1, listIndividually: true,
       symbols: ['US10Y', 'US2Y', 'US30Y', 'KTB3Y'] },
     { key: 'energy', label: '에너지·원자재', direction: 0, symbols: ['WTI', 'GOLD'] },
-    { key: 'crypto', label: '가상자산', direction: 1, symbols: ['BTC'] }
+    // 2026-07-18: 이더리움 추가(사용자 요청) - BTC와 가격 규모가 크게 달라(BTC 억 단위 vs
+    // ETH 백만 단위) 평균으로 뭉뚱그리면 의미가 없어서 listIndividually:true.
+    { key: 'crypto', label: '가상자산', direction: 1, listIndividually: true, symbols: ['BTC', 'ETH'] }
   ];
   var SYMBOL_ORDER = CATEGORIES.reduce(function (acc, cat) { return acc.concat(cat.symbols); }, []);
+  var CRYPTO_SYMBOLS = ['BTC', 'ETH']; // benchmarkCaption의 원화 단위/52주 표기 분기에 재사용
 
   // 카드 표시 단위/소수점 - 지정 없으면 digits:2, unit:''(가격 그대로). 채권 카테고리는
   // 전부 금리(%)라 CATEGORIES에서 심볼을 뽑아 한 번에 채운다(심볼 추가할 때 이중 관리 방지).
-  var SYMBOL_META = { BTC: { digits: 0 } };
+  var SYMBOL_META = { BTC: { digits: 0 }, ETH: { digits: 0 } };
   CATEGORIES.filter(function (c) { return c.key === 'bond'; }).forEach(function (c) {
     c.symbols.forEach(function (s) { SYMBOL_META[s] = { digits: 2, unit: '%', changeUnit: '%p' }; });
   });
@@ -167,7 +178,7 @@
   // "이 선 위로 오르면 시장에 부담"이라는 해석이 뚜렷한 지표 + BTC(52주 이동평균선, 통상적인
   // 기술적분석 지표)에 장기평균 참고선을 붙인다. GOLD/시장지수류는 방향성이 뚜렷하지 않거나
   // (에너지) 이미 상승=호재로 직관적이라 생략.
-  var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC'];
+  var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC', 'ETH'];
   var BENCHMARK_NOTE = {
     WTI: '전쟁 등 지정학적 충격 시 이 선 위로 급등하는 경향이 있습니다',
     VIX: '이 선 위로 오르면 시장 불안(위험회피) 심리가 커지고 있다는 뜻입니다',
@@ -178,7 +189,8 @@
     US10Y: '전세계 주가 밸류에이션에 가장 큰 영향을 미치는 지표 - 이 선 위로 오르면(금리 상승) 특히 성장주 중심으로 증시에 부담입니다',
     US2Y: '연준 통화정책 기대를 가장 민감하게 반영 - 이 선 위로 오르면 긴축 장기화 우려로 증시에 부담입니다',
     US30Y: '장기 성장·인플레이션 기대를 반영 - 이 선 위로 오르면 장기 자금조달 비용 상승 우려로 증시에 부담입니다',
-    BTC: '이동평균선 위는 상승 추세, 아래는 하락 추세로 보는 게 일반적입니다'
+    BTC: '이동평균선 위는 상승 추세, 아래는 하락 추세로 보는 게 일반적입니다',
+    ETH: '이동평균선 위는 상승 추세, 아래는 하락 추세로 보는 게 일반적입니다'
   };
   var benchmarks = {}; // symbol -> { avg, min, max, days } - fetchBenchmark() 참고
 
@@ -324,13 +336,13 @@
     var b = benchmarks[symbol];
     if (BENCHMARK_SYMBOLS.indexOf(symbol) === -1 || !b) return '';
     var meta = symbolMeta(symbol);
+    var isCrypto = CRYPTO_SYMBOLS.indexOf(symbol) !== -1;
     var valueStr = symbol === 'WTI' ? '$' + fmtPrice(b.avg, meta.digits)
-      : symbol === 'USDKRW' ? fmtPrice(b.avg, meta.digits) + '원'
-      : symbol === 'BTC' ? fmtPrice(b.avg, meta.digits) + '원'
+      : (symbol === 'USDKRW' || isCrypto) ? fmtPrice(b.avg, meta.digits) + '원'
       : fmtPrice(b.avg, meta.digits) + meta.unit;
-    // BTC는 "52주 이동평균선"이 기술적분석에서 흔히 쓰는 관용적 표현이라 그대로 씀(실제
+    // BTC/ETH는 "52주 이동평균선"이 기술적분석에서 흔히 쓰는 관용적 표현이라 그대로 씀(실제
     // 수집 기간도 380일 ≈ 54주라 근사치로 맞음). 나머지는 실제 달력 기간을 그대로 노출.
-    var periodLabel = symbol === 'BTC' ? '52주' : monthsBetween(b.from, b.to) + '개월';
+    var periodLabel = isCrypto ? '52주' : monthsBetween(b.from, b.to) + '개월';
     return '<div class="om-benchmark">최근 ' + periodLabel + ' 평균 ' + valueStr + ' — '
       + (BENCHMARK_NOTE[symbol] || '') + '(객관적 "적정 수준"이 아니라 실측 평균 참고선).</div>';
   }
