@@ -271,7 +271,18 @@
       series.setData(chartRows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; }));
       chart.timeScale().fitContent();
 
-      chartInstances[symbol] = { chart: chart, series: series };
+      // 기준선(구간 시작가) 표시 - 베이스라인 시리즈는 위/아래 색만 자동으로 나뉘고 그
+      // 경계를 나타내는 선 자체는 안 그려줘서, 기준이 어디인지 보이도록 점선을 따로 긋는다.
+      // priceLine을 chartInstances에 같이 들고 있어야 다크모드 토글 때 색을 다시 맞출 수 있다.
+      var baseLine = series.createPriceLine({
+        price: chartRows[0].close,
+        color: isDark() ? '#666' : '#ccc',
+        lineWidth: 1,
+        lineStyle: LWC.LineStyle.Dashed,
+        axisLabelVisible: false
+      });
+
+      chartInstances[symbol] = { chart: chart, series: series, baseLine: baseLine };
     }).catch(function () {
       container.innerHTML = '<div class="om-chart-error">차트를 불러오지 못했어요.</div>';
     });
@@ -431,7 +442,9 @@
     if (themeObserver) themeObserver.disconnect();
     themeObserver = new MutationObserver(function () {
       Object.keys(chartInstances).forEach(function (symbol) {
-        chartInstances[symbol].chart.applyOptions(chartThemeOptions());
+        var inst = chartInstances[symbol];
+        inst.chart.applyOptions(chartThemeOptions());
+        if (inst.baseLine) inst.baseLine.applyOptions({ color: isDark() ? '#666' : '#ccc' });
       });
     });
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
