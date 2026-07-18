@@ -303,9 +303,10 @@
   function fillNewsTrack(track, itemHTMLs) {
     var html = itemHTMLs.join('') + itemHTMLs.join('');
     track.innerHTML = html;
-    // 세로 스크롤 속도(초당 약 18px) - 가로 티커(disc-track)의 scrollWidth/60 방식을
-    // scrollHeight 기준으로 그대로 옮긴 것.
-    track.style.animationDuration = (track.scrollHeight / 2 / 18) + 's';
+    // 세로 스크롤 속도 - 가로 티커(disc-track)의 scrollWidth/60 방식을 scrollHeight
+    // 기준으로 옮긴 것. 2026-07-18: 18px/초는 너무 빨라 글자를 읽기 전에 지나간다는
+    // 피드백 - 8px/초로 늦춤(약 2배 이상 느려짐).
+    track.style.animationDuration = (track.scrollHeight / 2 / 8) + 's';
   }
 
   function setNewsTitle(text) {

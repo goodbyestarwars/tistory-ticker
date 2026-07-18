@@ -124,7 +124,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 12px; /* 2026-07-18: 10px -> 12px, 폰트가 너무 작다는 피드백 */
   font-weight: 700;
   color: #d24f45;
   letter-spacing: 0.3px;
@@ -156,8 +156,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 0;
-  font-size: 10.5px;
+  padding: 4px 0; /* 폰트가 커진 만큼 줄간격도 살짝 늘림 */
+  font-size: 13px; /* 2026-07-18: 10.5px -> 13px, 폰트가 너무 작다는 피드백 */
   font-weight: 500;
   color: #333;
   line-height: 1.3;
@@ -168,29 +168,29 @@
 .qi-news-item:hover { color: #6366f1; }
 .qi-news-market-kospi {
   flex: 0 0 auto;
-  font-size: 8.5px; font-weight: 700;
+  font-size: 10px; font-weight: 700;
   color: #2563eb; background: #eff6ff;
   padding: 1px 5px; border-radius: 7px;
 }
 .qi-news-market-kosdaq {
   flex: 0 0 auto;
-  font-size: 8.5px; font-weight: 700;
+  font-size: 10px; font-weight: 700;
   color: #16a34a; background: #f0fdf4;
   padding: 1px 5px; border-radius: 7px;
 }
 /* 10차: 공시가 비어 네이버 뉴스 헤드라인으로 폴백했을 때 붙는 회색 "뉴스" 뱃지 */
 .qi-news-market-news {
   flex: 0 0 auto;
-  font-size: 8.5px; font-weight: 700;
+  font-size: 10px; font-weight: 700;
   color: #64748b; background: #f1f5f9;
   padding: 1px 5px; border-radius: 7px;
 }
 .qi-news-corp {
   flex: 0 0 auto;
-  font-size: 9.5px; font-weight: 700; color: #555;
+  font-size: 11.5px; font-weight: 700; color: #555;
 }
 .qi-news-loading {
-  color: #999; font-size: 10.5px;
+  color: #999; font-size: 13px;
 }
 
 /* (10차: 좌우 화살표 페이징 버튼(.qi-page-btn)은 전체가 한 화면에 들어가게 되면서 제거) */
@@ -322,7 +322,7 @@
   align-items: flex-end;
   justify-content: center;
   gap: 4px;
-  padding-left: 10px;
+  padding-left: 6px; /* 2026-07-18: 10px -> 6px, 버튼 영역이 너무 넓다는 피드백 */
   border-left: 1px solid #f0f0f0;
 }
 
@@ -331,21 +331,23 @@
 .qi-controls-icons {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px; /* 2026-07-18: 6px -> 4px */
 }
 
 /* 15차: 11차에서 붙였던 "리본 접기/펼치기" 한글 라벨 제거(사용자 요청) - 아이콘 전용
    원형 버튼으로 되돌리고, 옆 "+" 버튼과 크기를 맞춰서(26px vs 32px, 둘 다 원형) 가지런히
-   정렬되게 정리했다. */
+   정렬되게 정리했다.
+   2026-07-18: "리본 버튼이랑 + 버튼이 중앙에 너무 많은 부분을 차지한다"는 피드백 - 둘 다
+   더 작게(26->20px, 32->24px) 줄임. */
 .qi-collapse-btn {
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   flex: 0 0 auto;
   border: 1px solid #e2e8f0;
   border-radius: 50%;
   background: #fff;
   color: #888;
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -356,13 +358,13 @@
 
 .qi-add-wrap { position: relative; }
 .qi-add-btn {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border: 1px dashed #ccc;
   border-radius: 50%;
   background: transparent;
   color: #888;
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
   font-family: inherit;
   cursor: pointer;
