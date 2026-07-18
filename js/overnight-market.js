@@ -58,8 +58,21 @@
  * 안 보인다"는 지적을 반영(series.createPriceLine()). WTI 카드에는 "최근 1년 평균"
  * 참고선(주황 실선)을 하나 더 추가 - "적정 유가 기준을 보여달라, 전쟁 나면 오르지 않냐"는
  * 요청에 대해, 객관적으로 정해진 적정가는 없어서 대신 실측 장기 평균을 참고선으로 제공한다
- * (fetchWtiBenchmark(), VM main.py의 /futures/avg?symbol=WTI&days=365 - 페이지 진입 시
- * 1회만 호출, AI 해설과 동일 패턴).
+ * (VM main.py의 /futures/avg?symbol=&days= - 페이지 진입 시 심볼별 1회만 호출, AI 해설과
+ * 동일 패턴).
+ *
+ * 2026-07-18(6차): 사용자 요청으로 두 가지 추가.
+ * - VIX/환율을 "변동성·환율" 카테고리로 합쳐 한 줄에 나란히 표시(각자 카테고리였을 때 카드가
+ *   1개씩이라 한 줄에 하나만 놓여 어색했음) - buildSummaryText는 listIndividually 플래그로
+ *   여전히 심볼별로 따로 풀어 씀(둘을 뭉뚱그리면 등락폭 규모 차이 때문에 정보가 사라짐).
+ * - 장기평균 참고선(원래 WTI 전용)을 VIX/환율/채권까지 확장(fetchWtiBenchmark ->
+ *   fetchBenchmark(symbol), BENCHMARK_SYMBOLS/BENCHMARK_NOTE로 일반화) - "채권 기준선 위로는
+ *   주가에 부담" 같은 요청대로 심볼마다 다른 해석 문구를 붙였다.
+ * - BTC 미니차트가 다시 안 보이던 버그도 같이 수정 - scripts/cloud-vm/btc_futures.py가 날짜를
+ *   업비트 원본 그대로('YYYY-MM-DD', 대시 있음) 저장하고 있어서 다른 심볼('YYYYMMDD', 대시
+ *   없음)과 포맷이 달랐고, toLwcTime()이 대시 없는 8자리를 가정하고 슬라이스해서 날짜가
+ *   깨졌던 게 원인(2026-07-17에 GAS->VM 전환할 때 날짜 포맷 통일을 놓쳤음) - VM 쪽에서
+ *   대시를 떼도록 수정.
  */
 (function (global) {
   'use strict';
@@ -97,8 +110,11 @@
   var CATEGORIES = [
     { key: 'index', label: '시장지수', direction: 1,
       symbols: ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW', 'SOX'] },
-    { key: 'volatility', label: '변동성', direction: -1, symbols: ['VIX'] },
-    { key: 'fx', label: '환율', direction: -1, symbols: ['USDKRW'] },
+    // VIX/환율은 한 카드씩이라 각자 카테고리로 나누면 한 줄에 하나만 놓여 어색해 보인다는
+    // 지적(2026-07-18) - 같은 카테고리로 묶어 한 줄에 나란히 표시. listIndividually:true는
+    // buildSummaryText가 "2개 중 N개 상승" 집계 대신 심볼별로 따로 풀어 쓰게 하는 표시(둘의
+    // 등락폭 규모가 서로 크게 달라 뭉뚱그리면 정보가 사라짐).
+    { key: 'volatility_fx', label: '변동성·환율', direction: -1, listIndividually: true, symbols: ['VIX', 'USDKRW'] },
     { key: 'bond', label: '채권', direction: -1, symbols: ['KTB3Y'] },
     { key: 'energy', label: '에너지·원자재', direction: 0, symbols: ['WTI', 'GOLD'] },
     { key: 'crypto', label: '가상자산', direction: 1, symbols: ['BTC'] }
@@ -119,7 +135,16 @@
   var chartInstances = {}; // symbol -> { chart, series }
   var themeObserver = null;
   var refreshTimer = null;
-  var wtiBenchmark = null; // { avg, min, max, days } - fetchWtiBenchmark() 참고
+  // "이 선 위로 오르면 시장에 부담"이라는 해석이 뚜렷한 지표에만 장기평균 참고선을 붙인다.
+  // GOLD/시장지수류는 방향성이 뚜렷하지 않거나(에너지) 이미 상승=호재로 직관적이라 생략.
+  var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'KTB3Y'];
+  var BENCHMARK_NOTE = {
+    WTI: '전쟁 등 지정학적 충격 시 이 선 위로 급등하는 경향이 있습니다',
+    VIX: '이 선 위로 오르면 시장 불안(위험회피) 심리가 커지고 있다는 뜻입니다',
+    USDKRW: '이 선 위로 오르면(원화 약세) 외국인 자금 이탈 우려로 증시에 부담입니다',
+    KTB3Y: '이 선 위로 오르면(금리 상승) 긴축 부담으로 증시에 부담입니다'
+  };
+  var benchmarks = {}; // symbol -> { avg, min, max, days } - fetchBenchmark() 참고
 
   function loadLightweightCharts() {
     if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
@@ -157,14 +182,14 @@
       });
   }
 
-  // WTI "최근 1년 평균" 참고선(사용자 요청: "적정 유가 기준을 보여달라, 전쟁 나면 오르잖아") -
-  // 객관적인 "적정가"는 없어서 대신 실제 수집된 가격의 장기 평균을 참고용으로 보여준다.
-  // 페이지 진입 시 1회만 호출(AI 해설과 동일 패턴, 30초 리프레시마다 다시 부를 필요 없음).
-  function fetchWtiBenchmark() {
+  // "장기평균 참고선"(WTI에서 시작: "적정 유가 기준을 보여달라, 전쟁 나면 오르잖아" ->
+  // VIX/환율/채권으로 확장). 객관적인 "적정 수준"은 없어서 대신 실제 수집된 값의 장기 평균을
+  // 참고용으로 보여준다. 페이지 진입 시 심볼별로 1회만 호출(AI 해설과 동일 패턴).
+  function fetchBenchmark(symbol) {
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(FUTURES_AVG_API + '?symbol=WTI&days=365', hasAbort ? { signal: controller.signal } : {})
+    return fetch(FUTURES_AVG_API + '?symbol=' + symbol + '&days=365', hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('futures/avg API 오류: ' + r.status);
         return r.json();
@@ -244,12 +269,20 @@
       + '<span>저가 ' + (item.low != null ? fmtPrice(item.low, meta.digits) + meta.unit : '-') + '</span>'
       + '</div>'
       + '<div class="om-updated">업데이트 ' + fmtTime(item.updated_at) + '</div>'
-      + (item.symbol === 'WTI' && wtiBenchmark
-        ? '<div class="om-benchmark">최근 ' + Math.round(wtiBenchmark.days / 30) + '개월 평균 $'
-          + fmtPrice(wtiBenchmark.avg, 2) + ' — 전쟁 등 지정학적 충격 시 이 선 위로 급등하는 경향이'
-          + ' 있습니다(객관적 "적정가"가 아니라 실측 평균 참고선).</div>'
-        : '')
+      + benchmarkCaption(item.symbol)
       + '</div>';
+  }
+
+  function benchmarkCaption(symbol) {
+    var b = benchmarks[symbol];
+    if (BENCHMARK_SYMBOLS.indexOf(symbol) === -1 || !b) return '';
+    var meta = symbolMeta(symbol);
+    var months = Math.max(1, Math.round(b.days / 30));
+    var valueStr = symbol === 'WTI' ? '$' + fmtPrice(b.avg, meta.digits)
+      : symbol === 'USDKRW' ? fmtPrice(b.avg, meta.digits) + '원'
+      : fmtPrice(b.avg, meta.digits) + meta.unit;
+    return '<div class="om-benchmark">최근 ' + months + '개월 평균 ' + valueStr + ' — '
+      + (BENCHMARK_NOTE[symbol] || '') + '(객관적 "적정 수준"이 아니라 실측 평균 참고선).</div>';
   }
 
   function chartThemeOptions() {
@@ -319,12 +352,12 @@
         axisLabelVisible: false
       });
 
-      // WTI 카드에만 "최근 1년 평균" 참고선을 추가로 그린다(사용자 요청 - 전쟁 등으로
-      // 유가가 이 선 위로 급등하는지 눈으로 바로 볼 수 있게). 기준선(dashed, 회색)과
-      // 헷갈리지 않도록 실선+주황색으로 구분.
-      if (symbol === 'WTI' && wtiBenchmark) {
+      // BENCHMARK_SYMBOLS 카드에는 "최근 N개월 평균" 참고선을 추가로 그린다(WTI에서 시작해
+      // 사용자 요청으로 VIX/환율/채권까지 확장 - 각각 "이 선 위로 오르면 시장에 부담"이라는
+      // 해석이 뚜렷한 지표들). 기준선(dashed, 회색)과 헷갈리지 않도록 실선+주황색으로 구분.
+      if (BENCHMARK_SYMBOLS.indexOf(symbol) !== -1 && benchmarks[symbol]) {
         series.createPriceLine({
-          price: wtiBenchmark.avg,
+          price: benchmarks[symbol].avg,
           color: '#c9701f',
           lineWidth: 1,
           lineStyle: LWC.LineStyle.Solid,
@@ -357,7 +390,7 @@
         .filter(function (it) { return it && typeof it.change_rate === 'number'; });
       if (!catItems.length) return;
 
-      if (cat.symbols.length > 1) {
+      if (cat.symbols.length > 1 && !cat.listIndividually) {
         var up = catItems.filter(function (it) { return it.change_rate > 0; }).length;
         var down = catItems.filter(function (it) { return it.change_rate < 0; }).length;
         var avg = catItems.reduce(function (s, it) { return s + it.change_rate; }, 0) / catItems.length;
@@ -365,12 +398,18 @@
           + (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%)');
         if (cat.direction !== 0) { riskScoreSum += avg * cat.direction; riskCatCount++; }
       } else {
-        var it = catItems[0];
-        var note = cat.direction === -1
-          ? (it.change_rate > 0 ? '(부담)' : it.change_rate < 0 ? '(완화)' : '')
-          : '';
-        parts.push(cat.label + ' ' + LABELS[it.symbol] + ' ' + (it.change_rate >= 0 ? '+' : '') + it.change_rate.toFixed(2) + '%' + note);
-        if (cat.direction !== 0) { riskScoreSum += it.change_rate * cat.direction; riskCatCount++; }
+        // 단일 종목 카테고리이거나(환율, 채권 등) listIndividually:true(변동성·환율처럼 묶여
+        // 있어도 등락폭 규모가 서로 달라 뭉뚱그리면 안 되는 경우) - 심볼별로 따로 풀어 쓴다.
+        var pieces = catItems.map(function (it) {
+          var note = cat.direction === -1
+            ? (it.change_rate > 0 ? '(부담)' : it.change_rate < 0 ? '(완화)' : '')
+            : '';
+          return LABELS[it.symbol] + ' ' + (it.change_rate >= 0 ? '+' : '') + it.change_rate.toFixed(2) + '%' + note;
+        });
+        parts.push(cat.label + ' ' + pieces.join(', '));
+        catItems.forEach(function (it) {
+          if (cat.direction !== 0) { riskScoreSum += it.change_rate * cat.direction; riskCatCount++; }
+        });
       }
     });
 
@@ -486,13 +525,15 @@
     refresh(container);
     renderAiSummary(container);
 
-    // WTI 참고선 데이터는 페이지 진입 시 1회만 불러온다(AI 해설과 동일한 이유 - 30초마다
-    // 다시 부를 필요 없는 장기 통계). 도착하면 WTI 카드가 참고선 포함해서 다시 그려지도록
-    // 한 번 더 refresh - 이미 렌더된 다른 카드도 같이 다시 그려지지만 데이터는 캐시돼 있어
-    // 사실상 즉시 끝난다(추가 fetchFutures 호출은 있음, 허용 가능한 비용).
-    OvernightMarket.fetchWtiBenchmark()
-      .then(function (b) { wtiBenchmark = b; refresh(container); })
-      .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
+    // 장기평균 참고선 데이터는 페이지 진입 시 심볼별로 1회만 불러온다(AI 해설과 동일한 이유 -
+    // 30초마다 다시 부를 필요 없는 장기 통계). 전부 도착하면 해당 카드들이 참고선 포함해서
+    // 다시 그려지도록 한 번 더 refresh - 이미 렌더된 다른 카드도 같이 다시 그려지지만 데이터는
+    // 캐시돼 있어 사실상 즉시 끝난다(추가 fetchFutures 호출은 있음, 허용 가능한 비용).
+    Promise.all(BENCHMARK_SYMBOLS.map(function (symbol) {
+      return OvernightMarket.fetchBenchmark(symbol)
+        .then(function (b) { benchmarks[symbol] = b; })
+        .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
+    })).then(function () { refresh(container); });
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () { refresh(container); }, REFRESH_INTERVAL_MS);
@@ -512,7 +553,7 @@
     init: init,
     fetchFutures: fetchFutures,
     fetchAiSummary: fetchAiSummary,
-    fetchWtiBenchmark: fetchWtiBenchmark
+    fetchBenchmark: fetchBenchmark
   };
   global.OvernightMarket = OvernightMarket;
 

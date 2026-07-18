@@ -57,7 +57,13 @@ def fetch_daily_chart(count=90):
     for c in reversed(data or []):
         try:
             rows.append({
-                'date': c['candle_date_time_kst'][:10],
+                # future_chart.date는 다른 수집기(foreign_futures.py의 localDate,
+                # domestic_futures.py 등)와 통일되게 'YYYYMMDD'(대시 없음)로 저장해야 한다 -
+                # 업비트 응답은 'YYYY-MM-DD...'라 대시를 떼어내지 않으면 js/overnight-market.js의
+                # toLwcTime()이 대시 없는 8자리를 가정하고 잘라서 날짜가 깨짐(2026-07-18 발견 -
+                # BTC 카드만 미니차트가 다시 안 뜨던 원인. 2026-07-17에 GAS->VM으로 소스를 바꿀 때
+                # 이 포맷 통일을 놓쳤었음).
+                'date': c['candle_date_time_kst'][:10].replace('-', ''),
                 'open': float(c['opening_price']),
                 'high': float(c['high_price']),
                 'low': float(c['low_price']),
