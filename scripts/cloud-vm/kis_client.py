@@ -189,12 +189,15 @@ def fetch_option_board(token, appkey, appsecret, mtrt_yyyymm):
 
 
 def fetch_investor_trade_daily(token, appkey, appsecret, code, date1, mrkt_div_code='UN'):
-    """종목별 투자자매매동향(일별), TR FHPTJ04160001 - 검증 전용(2026-07-19).
-    mrkt_div_code: J=KRX, NX=NXT, UN=통합(KRX+NXT). 키움 ka10045/ka10059가 Toss/키움HTS
-    대비 거래량이 60%대로 낮게 나오는 문제(원인 불명, stex_tp로도 해소 안 됨 확인됨 -
-    kiwoom_market.fetch_foreign_inst_daily() docstring 참고)가 NXT 누락 때문인지 확인하려고
-    KIS의 이 TR로 대조해본다 - KIS는 market_div_code로 KRX/NXT/통합을 명시적으로 선택 가능.
-    output2가 날짜별 시리즈(과거 ~N일), output1은 당일 요약 1행으로 추정(실측 전 문서상 추론)."""
+    """종목별 투자자매매동향(일별), TR FHPTJ04160001 - 종목분석 메인 수급 표
+    (kiwoom_market.fetch_foreign_inst_daily)의 1차 데이터소스(2026-07-19부터).
+    mrkt_div_code: J=KRX, NX=NXT, UN=통합(KRX+NXT). 키움 ka10045/ka10059는 이 두 TR에
+    거래소구분 파라미터 자체가 없어서 NXT 체결분이 빠진 축소된 거래량/수급만 나왔는데
+    (005930 2026-07-16 실측: 키움 27,001,478주 vs 실제 44,712,225주, stex_tp 파라미터를
+    넣어봐도 무시됨 확인됨), KIS는 UN으로 명시 조회하면 종가·거래량·개인·기관이 Toss/
+    키움HTS와 정확히 일치함(실측 확인). 외국인은 frgn_reg_ntby_qty(등록 외국인)를 써야
+    Toss와 일치 - frgn_ntby_qty(등록+비등록 전체)는 다른 값이니 혼동 주의.
+    한 번 호출로 date1 기준 최근 30영업일치가 output2에 옴(output1은 당일 시세 요약 1건)."""
     path = ('/uapi/domestic-stock/v1/quotations/investor-trade-by-stock-daily'
             '?FID_COND_MRKT_DIV_CODE=%s&FID_INPUT_ISCD=%s&FID_INPUT_DATE_1=%s&FID_ORG_ADJ_PRC=&FID_ETC_CLS_CODE='
             % (mrkt_div_code, code, date1))

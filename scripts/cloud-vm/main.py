@@ -23,7 +23,6 @@ import foreign_flow_compute
 import foreign_futures
 import naver_news
 import investor_flow
-import kis_client
 import kiwoom_client
 import kiwoom_market
 import option_flow
@@ -221,17 +220,22 @@ def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
 
 @app.get('/foreign-flow/{code}')
 def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
-    """종목분석 메인 수급 표(외국인·기관 순매매) - 2026-07-13: 네이버 frgn.naver 크롤링을
-    1차로 대체하는 키움 API 버전(ka10045+ka10008). 네이버 크롤링은 이제 백업 전용 -
-    프론트(js/foreign-flow.js)가 이 엔드포인트를 먼저 시도하고 실패할 때만 GAS의
-    ?action=foreignFlow(네이버 경로)로 폴백한다. /investor-flow와 동일하게 공개(인증 없음)
-    + CORS 제한 + 5분 메모리 캐시."""
+    """종목분석 메인 수급 표(개인·외국인·기관 순매매) - 2026-07-13: 네이버 frgn.naver 크롤링을
+    1차로 대체하는 API 버전. 네이버 크롤링은 이제 백업 전용 - 프론트(js/foreign-flow.js)가
+    이 엔드포인트를 먼저 시도하고 실패할 때만 GAS의 ?action=foreignFlow(네이버 경로)로
+    폴백한다. /investor-flow와 동일하게 공개(인증 없음) + CORS 제한 + 5분 메모리 캐시.
+    2026-07-19: 종가/거래량/개인/외국인/기관은 KIS(한국투자증권) API로 소스 교체(NXT 포함
+    통합 집계라 Toss/키움HTS와 완전히 일치, kiwoom_market.fetch_foreign_inst_daily 독스트링
+    참고) - KIS_APPKEY/APPSECRET 미설정이면 예전 키움 ka10045 경로로 자동 폴백."""
     cached = _live_cache_get(_foreign_flow_cache_mem, code)
     if cached is not None:
         return envelope(cached)
     try:
         token = get_kiwoom_token()
-        daily = kiwoom_market.fetch_foreign_inst_daily(token, code)
+        daily = kiwoom_market.fetch_foreign_inst_daily(
+            token, code,
+            kis_appkey=os.environ.get('KIS_APPKEY'), kis_appsecret=os.environ.get('KIS_APPSECRET'),
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -394,24 +398,6 @@ def option_flow_endpoint():
     finally:
         conn.close()
     return envelope({r['side']: r for r in rows})
-
-
-@app.get('/debug-kis-investor/{code}')
-def debug_kis_investor(code: str = Path(..., min_length=6, max_length=6),
-                        date: str = Query(...), mrkt: str = Query('UN')):
-    """검증 전용 임시 엔드포인트(2026-07-19) - 키움 ka10045/ka10059 수급 데이터가 Toss/
-    키움HTS보다 거래량이 낮게 나오는 문제가 NXT 누락 때문인지 KIS API(J/NX/UN 명시 선택
-    가능)로 대조해보기 위함. 확인 끝나면 제거할 것."""
-    kis_appkey = os.environ.get('KIS_APPKEY')
-    kis_appsecret = os.environ.get('KIS_APPSECRET')
-    if not (kis_appkey and kis_appsecret):
-        raise HTTPException(status_code=500, detail='KIS_APPKEY/APPSECRET 미설정')
-    token = kis_client.get_token(kis_appkey, kis_appsecret)
-    try:
-        output1, output2 = kis_client.fetch_investor_trade_daily(token, kis_appkey, kis_appsecret, code, date, mrkt)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
-    return envelope({'output1': output1, 'output2': output2})
 
 
 @app.get('/week52-batch')
