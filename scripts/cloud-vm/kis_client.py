@@ -188,6 +188,38 @@ def fetch_option_board(token, appkey, appsecret, mtrt_yyyymm):
     return output1, output2
 
 
+def fetch_investor_trade_daily(token, appkey, appsecret, code, date1, mrkt_div_code='UN'):
+    """종목별 투자자매매동향(일별), TR FHPTJ04160001 - 검증 전용(2026-07-19).
+    mrkt_div_code: J=KRX, NX=NXT, UN=통합(KRX+NXT). 키움 ka10045/ka10059가 Toss/키움HTS
+    대비 거래량이 60%대로 낮게 나오는 문제(원인 불명, stex_tp로도 해소 안 됨 확인됨 -
+    kiwoom_market.fetch_foreign_inst_daily() docstring 참고)가 NXT 누락 때문인지 확인하려고
+    KIS의 이 TR로 대조해본다 - KIS는 market_div_code로 KRX/NXT/통합을 명시적으로 선택 가능.
+    output2가 날짜별 시리즈(과거 ~N일), output1은 당일 요약 1행으로 추정(실측 전 문서상 추론)."""
+    path = ('/uapi/domestic-stock/v1/quotations/investor-trade-by-stock-daily'
+            '?FID_COND_MRKT_DIV_CODE=%s&FID_INPUT_ISCD=%s&FID_INPUT_DATE_1=%s&FID_ORG_ADJ_PRC=&FID_ETC_CLS_CODE='
+            % (mrkt_div_code, code, date1))
+    req = urllib.request.Request(
+        BASE_URL + path,
+        headers={
+            'Content-Type': 'application/json; charset=utf-8',
+            'authorization': 'Bearer ' + token,
+            'appkey': appkey,
+            'appsecret': appsecret,
+            'tr_id': 'FHPTJ04160001',
+            'custtype': 'P',
+        },
+        method='GET',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('FHPTJ04160001 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
+    if data.get('rt_cd') != '0':
+        raise RuntimeError('FHPTJ04160001 실패: ' + json.dumps(data, ensure_ascii=False))
+    return data.get('output1') or {}, data.get('output2') or []
+
+
 def _avg_delta(rows):
     vals = []
     for r in rows:

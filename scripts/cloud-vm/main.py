@@ -23,6 +23,7 @@ import foreign_flow_compute
 import foreign_futures
 import naver_news
 import investor_flow
+import kis_client
 import kiwoom_client
 import kiwoom_market
 import option_flow
@@ -393,6 +394,24 @@ def option_flow_endpoint():
     finally:
         conn.close()
     return envelope({r['side']: r for r in rows})
+
+
+@app.get('/debug-kis-investor/{code}')
+def debug_kis_investor(code: str = Path(..., min_length=6, max_length=6),
+                        date: str = Query(...), mrkt: str = Query('UN')):
+    """검증 전용 임시 엔드포인트(2026-07-19) - 키움 ka10045/ka10059 수급 데이터가 Toss/
+    키움HTS보다 거래량이 낮게 나오는 문제가 NXT 누락 때문인지 KIS API(J/NX/UN 명시 선택
+    가능)로 대조해보기 위함. 확인 끝나면 제거할 것."""
+    kis_appkey = os.environ.get('KIS_APPKEY')
+    kis_appsecret = os.environ.get('KIS_APPSECRET')
+    if not (kis_appkey and kis_appsecret):
+        raise HTTPException(status_code=500, detail='KIS_APPKEY/APPSECRET 미설정')
+    token = kis_client.get_token(kis_appkey, kis_appsecret)
+    try:
+        output1, output2 = kis_client.fetch_investor_trade_daily(token, kis_appkey, kis_appsecret, code, date, mrkt)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return envelope({'output1': output1, 'output2': output2})
 
 
 @app.get('/week52-batch')
