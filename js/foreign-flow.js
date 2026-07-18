@@ -1297,18 +1297,18 @@
       var ratioWarn = s.today_ratio_pct != null && s.today_ratio_pct >= 10;
       var sg = squeezeGrade(s.short_squeeze_index);
 
-      grid += extraMetric('공매도 누적잔고', fmtAbsShares(s.balance_qty))
-        + extraMetric('공매도 평균가격(추정)', '<span class="' + (gapWarn ? 'ff-warn' : '') + '">' + fmtWon(s.avg_price) + '</span>'
+      // 2026-07-19: 절대수치라 그 자체로는 해석이 안 되는 항목(공매도 누적잔고/일평균
+      // 거래량(20일)/대차잔고 절대량)은 카드에서 제거 - Days to Cover에 이미 20일 평균
+      // 거래량 의미가 녹아있고, 잔고는 "증감률"로 방향성을 보여주는 편이 실제 판단에 쓰임.
+      grid += extraMetric('공매도 평균가격(추정)', '<span class="' + (gapWarn ? 'ff-warn' : '') + '">' + fmtWon(s.avg_price) + '</span>'
           + (gapPct != null ? '<div class="ff-extra-metric-sub">현재가 대비 ' + fmtSignedPct(gapPct) + '</div>' : ''))
         + extraMetric('당일 거래비중', '<span class="' + (ratioWarn ? 'ff-warn' : '') + '">' + fmtPct(s.today_ratio_pct) + '</span>')
-        + extraMetric('일평균 거래량(20일)', fmtAbsShares(s.avg_volume_20d))
         + extraMetric('Days to Cover', s.days_to_cover == null ? '-' : s.days_to_cover.toFixed(2) + '일')
         + extraMetric('숏 압박 지수', (s.short_squeeze_index == null ? '-' : s.short_squeeze_index.toFixed(1))
           + (sg ? ' <span class="ff-squeeze-grade ' + sg.cls + '">' + sg.label + '</span>' : ''));
     }
     if (l) {
-      grid += extraMetric('대차잔고', fmtAbsShares(l.balance_qty))
-        + extraMetric('대차잔고 증감률', '<span class="' + signClass(l.balance_change_pct) + '">' + fmtSignedPct(l.balance_change_pct) + '</span>');
+      grid += extraMetric('대차잔고 증감률', '<span class="' + signClass(l.balance_change_pct) + '">' + fmtSignedPct(l.balance_change_pct) + '</span>');
     }
 
     var tone = SHORT_GRADE_TONE[p.grade.label] || 'neutral';

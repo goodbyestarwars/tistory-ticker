@@ -26,7 +26,10 @@ def date_range():
 
 def short_pressure_score(short_ratio_pct, loan_change_pct, short_balance_change_pct, foreign_net_today, inst_net_today):
     ratio_score = 30 if short_ratio_pct >= 15 else 24 if short_ratio_pct >= 10 else 15 if short_ratio_pct >= 5 else 8 if short_ratio_pct >= 2 else 0
-    loan_score = 30 if loan_change_pct >= 5 else 22 if loan_change_pct >= 2 else 12 if loan_change_pct >= 0 else 5 if loan_change_pct >= -3 else 0
+    # 2026-07-19: -3%까지도 5점을 주던 버킷 제거 - 대차잔고가 실제로 줄어드는(음수) 날인데도
+    # "대차잔고 증가" 배지가 뜨는 라벨 버그의 원인이었음(프론트가 이 점수>0을 "증가"로 표시,
+    # js/foreign-flow.js buildShortLoanCard). bal_score(공매도 잔고)처럼 0 미만이면 0점으로 통일.
+    loan_score = 30 if loan_change_pct >= 5 else 22 if loan_change_pct >= 2 else 12 if loan_change_pct >= 0 else 0
     bal_score = 20 if short_balance_change_pct >= 5 else 14 if short_balance_change_pct >= 2 else 8 if short_balance_change_pct >= 0 else 0
     foreign_score = 10 if foreign_net_today < 0 else 0
     inst_score = 10 if inst_net_today < 0 else 0

@@ -139,7 +139,9 @@ def date_range():
 
 def short_pressure_score(short_ratio_pct, loan_change_pct, short_balance_change_pct, foreign_net_today, inst_net_today):
     ratio_score = 30 if short_ratio_pct >= 15 else 24 if short_ratio_pct >= 10 else 15 if short_ratio_pct >= 5 else 8 if short_ratio_pct >= 2 else 0
-    loan_score = 30 if loan_change_pct >= 5 else 22 if loan_change_pct >= 2 else 12 if loan_change_pct >= 0 else 5 if loan_change_pct >= -3 else 0
+    # 2026-07-19: scripts/cloud-vm/investor_flow.py와 동일한 버그 수정 - -3%까지 5점 주던
+    # 버킷 제거(대차잔고 감소인데도 "증가" 배지가 뜨던 원인). bal_score처럼 0 미만은 0점.
+    loan_score = 30 if loan_change_pct >= 5 else 22 if loan_change_pct >= 2 else 12 if loan_change_pct >= 0 else 0
     bal_score = 20 if short_balance_change_pct >= 5 else 14 if short_balance_change_pct >= 2 else 8 if short_balance_change_pct >= 0 else 0
     foreign_score = 10 if foreign_net_today < 0 else 0
     inst_score = 10 if inst_net_today < 0 else 0
