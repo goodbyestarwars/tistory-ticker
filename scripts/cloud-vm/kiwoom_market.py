@@ -133,9 +133,9 @@ def _live_investor_row_from(rows, end_dt):
     }
 
 
-def _individual_by_date_from(rows):
-    """ka10059 응답 전체에서 날짜별 개인 순매매(ind_invsr)만 뽑는다. 반환 키는 'YYYYMMDD'."""
-    return {r['dt']: to_num(r.get('ind_invsr')) for r in rows if r.get('dt')}
+def _by_date_from(rows, field):
+    """ka10059 응답 전체에서 날짜별 특정 필드만 뽑는다. 반환 키는 'YYYYMMDD'."""
+    return {r['dt']: to_num(r.get(field)) for r in rows if r.get('dt')}
 
 
 def fetch_foreign_inst_daily(token, code):
@@ -154,7 +154,20 @@ def fetch_foreign_inst_daily(token, code):
     2026-07-18: 개인(ind_net) 추가 - ka10045에는 개인 필드가 없어서 ka10059
     (종목별투자자기관별요청, "외인·기관·개인 일별")에서만 구할 수 있는데, 실측해보니 이
     TR이 '오늘' 행뿐 아니라 최근 ~100영업일치를 한 번에 돌려줘서 과거 행에도 그대로
-    매핑해 채운다(사용자 요청 - "개인도 넣고 그래프도 업데이트")."""
+    매핑해 채운다(사용자 요청 - "개인도 넣고 그래프도 업데이트").
+    2026-07-19: 외국인(foreign_net)도 ka10045(for_daly_nettrde_qty) 대신 ka10059
+    (frgnr_invsr)로 소스 교체 - 실측(005930 2026-07-16 등 5영업일)해보니 ka10045의
+    외국인 값을 ka10059의 개인/기관과 합치면 -1,579,803처럼 0에서 크게 벗어나는데,
+    ka10059 자체 필드(개인+외국인+기관)로 3개를 다 채우면 합계가 -198,882 수준으로
+    0에 훨씬 가까워짐(다른 5일도 동일 패턴, 수십만 vs 수만 단위 차이) - 같은 TR의
+    개인/기관과 다른 TR의 외국인을 섞어 쓰던 게 내부 불일치의 원인이었음. 이 교체 후에도
+    거래량 자체가 Toss/키움HTS 공식치보다 낮게 나오는 문제(예: 005930 07-16 실제
+    44,712,225주 vs 이 TR들 27,001,478주, 약 60%)는 남아있음 - stex_tp(거래소구분)
+    파라미터를 0/1/2/3 전부 실측해도 결과가 완전히 동일해 파라미터로 해소 불가 확인됨,
+    ka10045/ka10059 자체가 (아마도 NXT 등 KRX 정규시장 외 체결분을 제외한) 축소된
+    거래 모수를 쓰는 것으로 보이는 키움 REST API 자체의 구조적 한계로 판단 - 이건
+    ka10059로 바꿔도 여전히 남는 문제라 알려진 한계로 남겨둠(기존 "외국인 vs 토스 2배
+    차이" 한계 메모와 같은 종류의 제약)."""
     end = datetime.now()
     start = end - timedelta(days=FLOW_LOOKBACK_DAYS)
     strt_dt, end_dt = start.strftime('%Y%m%d'), end.strftime('%Y%m%d')
@@ -168,7 +181,8 @@ def fetch_foreign_inst_daily(token, code):
     })
     frgn_res = kiwoom_client.call_tr(token, 'ka10008', '/api/dostk/frgnistt', {'stk_cd': code})
     ka10059_rows = _fetch_ka10059_rows(token, code, end_dt)
-    ind_by_date = _individual_by_date_from(ka10059_rows)
+    ind_by_date = _by_date_from(ka10059_rows, 'ind_invsr')
+    frgn_by_date_k59 = _by_date_from(ka10059_rows, 'frgnr_invsr')
 
     frgn_by_date = {}
     for r in (frgn_res.get('stk_frgnr') or []):
@@ -190,7 +204,7 @@ def fetch_foreign_inst_daily(token, code):
             'change_pct': to_num(r.get('flu_rt')),
             'volume': abs(to_num(r.get('trde_qty'))),
             'inst_net': to_num(r.get('orgn_daly_nettrde_qty')),
-            'foreign_net': to_num(r.get('for_daly_nettrde_qty')),
+            'foreign_net': frgn_by_date_k59.get(dt, to_num(r.get('for_daly_nettrde_qty'))),
             'ind_net': ind_by_date.get(dt, 0.0),
             'foreign_shares': abs(to_num(frgn_row.get('poss_stkcnt'))) if frgn_row else None,
             'foreign_ratio': to_num(frgn_row.get('wght')) if frgn_row else None,
