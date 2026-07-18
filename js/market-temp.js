@@ -561,12 +561,16 @@
   // ---- ⑨ 온도 기준표(카드형) ----
 
   function buildGuide() {
+    // 2026-07-19: 온도(range)/설명(label)/별점(stars) 3줄이 카드마다 세로로 길어 보인다는
+    // 피드백 - 설명을 1번째 줄, 온도+별점을 한 줄로 묶어 2번째 줄로 통일(3줄->2줄).
     var cards = GRADE_BANDS.map(function (b, i) {
       var stars = '★'.repeat(5 - i) + '<span class="mt-guide-stars-empty">' + '★'.repeat(i) + '</span>';
       return '<div class="mt-guide-card" style="border-color:' + b.color + '55">'
-        + '<div class="mt-guide-card-range" style="color:' + b.color + '">' + b.range + '</div>'
         + '<div class="mt-guide-card-label">' + escapeHtml(b.emoji) + ' ' + escapeHtml(b.label) + '</div>'
-        + '<div class="mt-guide-card-stars" style="color:' + b.color + '">' + stars + '</div>'
+        + '<div class="mt-guide-card-meta">'
+        + '<span class="mt-guide-card-range" style="color:' + b.color + '">' + b.range + '</span>'
+        + '<span class="mt-guide-card-stars" style="color:' + b.color + '">' + stars + '</span>'
+        + '</div>'
         + '</div>';
     }).join('');
     return ''

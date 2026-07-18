@@ -240,7 +240,11 @@
    |기여도| 내림차순 정렬 자체가 "영향 큰 순"이 되어 별도 TOP5 리스트가 필요 없다.
    상위 3행(.mt-comp-tr-top)은 은은한 배경으로 강조해 예전 TOP5의 "한눈에 보기" 기능을
    대신한다. 색상 모디파이어 클래스(mt-bar-vix 등)는 기존 지표 표시와 공유. */
-#market-temp .mt-comp-table-wrap { overflow-x: auto; } /* 아주 좁은 화면에서만 안전망 */
+/* 2026-07-19: overflow-x:auto가 있으면 CSS 스펙상 overflow-y도 auto로 강제 계산돼(visible과
+   섞어 쓸 수 없음) ⓘ 툴팁(.mt-info::after, 행 위로 팝업)이 위쪽으로 잘리거나 다음 행과
+   겹쳐 보이는 버그가 있었음(사용자 스크린샷으로 확인) - width:100%로 이미 반응형이라
+   가로 스크롤 안전망 없이도 실제로는 넘치지 않아서 제거. */
+#market-temp .mt-comp-table-wrap { overflow: visible; }
 #market-temp .mt-comp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 #market-temp .mt-comp-tr { border-bottom: 1px solid #f4f4f4; }
 #market-temp .mt-comp-tr:last-child { border-bottom: none; }
@@ -317,8 +321,11 @@
   padding: 10px 12px;
   text-align: center;
 }
+/* 2026-07-19: 온도(range)/별점(stars)을 한 줄로 묶음(mt-guide-card-meta) - 설명(label)이
+   1번째 줄, 이 둘이 2번째 줄이라 카드가 3줄->2줄로 줄어듦. */
+#market-temp .mt-guide-card-label { font-size: 12.5px; color: #555; margin-bottom: 4px; }
+#market-temp .mt-guide-card-meta { display: flex; align-items: baseline; justify-content: center; gap: 8px; }
 #market-temp .mt-guide-card-range { font-size: 12px; font-weight: 700; }
-#market-temp .mt-guide-card-label { font-size: 12.5px; color: #555; margin: 3px 0; }
 #market-temp .mt-guide-card-stars { font-size: 12px; letter-spacing: 1px; }
 #market-temp .mt-guide-stars-empty { color: #e5e5e5; }
 
