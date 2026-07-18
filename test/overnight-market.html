@@ -25,9 +25,9 @@
     <button onclick="setMock('error')">API 오류</button>
   </div>
   <p style="font-size:13px;color:#888">
-    기본은 mock 데이터로 렌더링 검증(15개 카드, 카테고리 5개: 시장지수/변동성·환율/채권/
-    에너지·원자재/가상자산 + WTI·VIX·환율·채권 장기평균 참고선 + AI 해설 박스). 실제 VM/GAS
-    호출로 테스트하려면 <code>?real=1</code>을
+    기본은 mock 데이터로 렌더링 검증(18개 카드, 카테고리 5개: 시장지수/변동성·환율/채권(미국
+    10·2·30년물+국고채3년)/에너지·원자재/가상자산 + WTI·VIX·환율·국고채3년 장기평균 참고선 +
+    AI 해설 박스). 실제 VM/GAS 호출로 테스트하려면 <code>?real=1</code>을
     붙이세요(CORS가 ghlee.tistory.com만 허용하므로 로컬 http.server에서는 막힐 수 있음 - 라이브
     페이지에서 최종 확인 필요).
   </p>
@@ -50,6 +50,9 @@
     { symbol: 'WTI', name: 'WTI 원유', base: 79.0 },
     { symbol: 'GOLD', name: '금 선물', base: 3350 },
     { symbol: 'USDKRW', name: '원/달러 환율', base: 1490.5 },
+    { symbol: 'US10Y', name: '미국 국채 10년물 금리', base: 4.57 },
+    { symbol: 'US2Y', name: '미국 국채 2년물 금리', base: 4.16 },
+    { symbol: 'US30Y', name: '미국 국채 30년물 금리', base: 5.09 },
     { symbol: 'KTB3Y', name: '국고채 3년물 금리', base: 3.84 },
     { symbol: 'BTC', name: '비트코인(BTC)', base: 95018000 }
   ];

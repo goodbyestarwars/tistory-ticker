@@ -73,6 +73,12 @@
  *   없음)과 포맷이 달랐고, toLwcTime()이 대시 없는 8자리를 가정하고 슬라이스해서 날짜가
  *   깨졌던 게 원인(2026-07-17에 GAS->VM 전환할 때 날짜 포맷 통일을 놓쳤음) - VM 쪽에서
  *   대시를 떼도록 수정.
+ *
+ * 2026-07-18(7차): 미국 국채 10/2/30년물 추가(사용자가 채권 중요도 순위표를 제시하며 요청).
+ * 데이터 소스는 FRED(세인트루이스 연준 공식 CSV, API 키 불필요, scripts/cloud-vm/bond_yield.py
+ * fetch_fred_series) - 한국 국고채 10년물은 무료 일별 소스를 못 찾아(OECD 월간 데이터만
+ * 있음, 다른 채권 카드와 갱신 주기가 안 맞음) 사용자와 상의 후 보류함. "채권" 카테고리를
+ * listIndividually:true로 바꿔 4개 만기를 각각 풀어 쓰게 함(평균 내면 만기별 의미가 사라짐).
  */
 (function (global) {
   'use strict';
@@ -101,6 +107,9 @@
     GOLD: '금 선물',
     USDKRW: '원/달러 환율',
     KTB3Y: '국고채 3년물 금리',
+    US10Y: '미국 국채 10년물 금리',
+    US2Y: '미국 국채 2년물 금리',
+    US30Y: '미국 국채 30년물 금리',
     BTC: '비트코인(BTC)'
   };
 
@@ -115,17 +124,23 @@
     // buildSummaryText가 "2개 중 N개 상승" 집계 대신 심볼별로 따로 풀어 쓰게 하는 표시(둘의
     // 등락폭 규모가 서로 크게 달라 뭉뚱그리면 정보가 사라짐).
     { key: 'volatility_fx', label: '변동성·환율', direction: -1, listIndividually: true, symbols: ['VIX', 'USDKRW'] },
-    { key: 'bond', label: '채권', direction: -1, symbols: ['KTB3Y'] },
+    // 2026-07-18: 미국 국채 10/2/30년물 추가(사용자 요청 - "가장 중요"~"장기 경기 전망"
+    // 순으로 나열). 만기별로 등락폭 규모가 다르고(2년물이 통화정책에 더 민감하게 움직임)
+    // 평균으로 뭉뚱그리면 의미가 사라져서 listIndividually:true. 한국 국고채 10년물은
+    // 무료 일별 데이터 소스를 못 찾아 보류(scripts/cloud-vm/bond_yield.py 상단 주석 참고).
+    { key: 'bond', label: '채권', direction: -1, listIndividually: true,
+      symbols: ['US10Y', 'US2Y', 'US30Y', 'KTB3Y'] },
     { key: 'energy', label: '에너지·원자재', direction: 0, symbols: ['WTI', 'GOLD'] },
     { key: 'crypto', label: '가상자산', direction: 1, symbols: ['BTC'] }
   ];
   var SYMBOL_ORDER = CATEGORIES.reduce(function (acc, cat) { return acc.concat(cat.symbols); }, []);
 
-  // 카드 표시 단위/소수점 - 지정 없으면 digits:2, unit:''(가격 그대로).
-  var SYMBOL_META = {
-    BTC: { digits: 0 },
-    KTB3Y: { digits: 2, unit: '%', changeUnit: '%p' }
-  };
+  // 카드 표시 단위/소수점 - 지정 없으면 digits:2, unit:''(가격 그대로). 채권 카테고리는
+  // 전부 금리(%)라 CATEGORIES에서 심볼을 뽑아 한 번에 채운다(심볼 추가할 때 이중 관리 방지).
+  var SYMBOL_META = { BTC: { digits: 0 } };
+  CATEGORIES.filter(function (c) { return c.key === 'bond'; }).forEach(function (c) {
+    c.symbols.forEach(function (s) { SYMBOL_META[s] = { digits: 2, unit: '%', changeUnit: '%p' }; });
+  });
   function symbolMeta(symbol) {
     var m = SYMBOL_META[symbol] || {};
     return { digits: m.digits == null ? 2 : m.digits, unit: m.unit || '', changeUnit: m.changeUnit || m.unit || '' };
