@@ -1,6 +1,7 @@
 /**
- * 전체 종합지수(코스피/코스닥, 미국 현물지수 3종·선물 3종, 필라델피아 반도체지수, VIX,
- * WTI 원유·금 선물, 원달러 환율, 국고채 3년물 금리, BTC) 카드 - 카테고리별로 묶어서 표시.
+ * 글로벌 시장지표(코스피/코스닥, 미국 현물지수 3종·선물 3종, 필라델피아 반도체지수, VIX,
+ * WTI 원유·금 선물, 원달러 환율, 국채 금리(한국 3년/미국 10·2·30년), BTC) 카드 - 카테고리별로
+ * 묶어서 표시. (2026-07-18: "전체 종합지수"에서 "글로벌 시장지표"로 재개칭, 파일명/URL 유지)
  *
  * 2026-07-15: TradingView 임베드 위젯을 완전히 걷어내고 자체 구현으로 교체.
  * TradingView 무료 위젯은 CME/NYMEX 연결선물·지수 심볼이 데이터 라이선스로 계속 막혀서
@@ -386,7 +387,7 @@
     });
   }
 
-  // ---- 전체 종합지수 요약(규칙 기반 - AI 호출 없이 클라이언트에서 즉시 계산) ----
+  // ---- 글로벌 시장지표 요약(규칙 기반 - AI 호출 없이 클라이언트에서 즉시 계산) ----
   //
   // 단순히 "N개 중 M개 상승"만 세면 환율/VIX/채권처럼 오르는 게 오히려 시장에 부담인 지표가
   // 섞여 오해를 준다(사용자 지적) - 카테고리별로 나눠 보여주고, 종합 톤은 CATEGORIES의
@@ -444,7 +445,7 @@
     var summary = buildSummaryText(items);
     if (!summary) { box.hidden = true; return; }
     box.hidden = false;
-    box.innerHTML = '<b>전체 종합지수 요약</b> <span class="' + summary.toneClass + '">' + escapeHtml(summary.text) + '</span>';
+    box.innerHTML = '<b>글로벌 시장지표 요약</b> <span class="' + summary.toneClass + '">' + escapeHtml(summary.text) + '</span>';
   }
 
   // ---- 종합 AI 해설(GAS ?action=subIndexAnalysis, Groq) - 페이지 진입 시 1회만 호출 ----

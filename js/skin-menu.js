@@ -15,6 +15,7 @@
     {
       href: '/',
       label: '전체 글',
+      bold: true, // 2026-07-18: 다른 메뉴는 전부 bold인데 이것만 빠져있던 걸 통일(사용자 지적)
       icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'
     },
     {
@@ -67,9 +68,10 @@
     // 티스토리 '공지사항' 카테고리가 있으면 거기서 자동 표시됨.
     {
       href: '/pages/overnight-market', // 실제 페이지 URL 확인됨(2026-07-14)
-      label: '전체 종합지수', // 2026-07-18: "보조지수"에서 개편(js/overnight-market.js 4차 참고)
+      label: '글로벌 시장지표', // 2026-07-18: "전체 종합지수"에서 재개칭(js/overnight-market.js 참고)
       bold: true,
-      icon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>'
+      // 초승달 아이콘(예전 "보조지수"용) -> 지구본 아이콘으로 교체(라벨이 "글로벌"로 바뀐 것과 맞춤)
+      icon: '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>'
     },
     {
       // TODO(2026-07-16): 실제 페이지 URL 미확정 - 사용자가 티스토리에서 새 페이지를
