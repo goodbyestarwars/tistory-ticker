@@ -117,17 +117,18 @@
         + '다만 변동성지수(VIX)가 소폭 높아진 점은 단기 변동성 확대 가능성으로 유의할 필요가 있습니다.');
     };
     var BENCHMARK_MOCK = {
-      WTI: { avg: 76.4, min: 61.2, max: 91.8 },
-      VIX: { avg: 15.9, min: 11.2, max: 34.5 },
-      USDKRW: { avg: 1462.3, min: 1380.1, max: 1548.9 },
-      KTB3Y: { avg: 3.62, min: 3.05, max: 4.10 }
+      WTI: { avg: 76.4, min: 61.2, max: 91.8, days: 282, from: '20250613', to: '20260717' },
+      VIX: { avg: 15.9, min: 11.2, max: 34.5, days: 282, from: '20250613', to: '20260717' },
+      USDKRW: { avg: 1462.3, min: 1380.1, max: 1548.9, days: 282, from: '20250613', to: '20260717' },
+      KTB3Y: { avg: 3.62, min: 3.05, max: 4.10, days: 406, from: '20241118', to: '20260716' },
+      BTC: { avg: 88500000, min: 68200000, max: 112000000, days: 379, from: '20250705', to: '20260718' }
     };
     OvernightMarket.fetchBenchmark = function (symbol) {
       console.log('[mock] fetchBenchmark', symbol);
       if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
       var b = BENCHMARK_MOCK[symbol];
       if (!b) return Promise.resolve(null);
-      return Promise.resolve(Object.assign({ symbol: symbol, days: 282, from: '20250613', to: '20260717' }, b));
+      return Promise.resolve(Object.assign({ symbol: symbol }, b));
     };
   }
 

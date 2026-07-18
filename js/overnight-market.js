@@ -80,6 +80,19 @@
  * fetch_fred_series) - 한국 국고채 10년물은 무료 일별 소스를 못 찾아(OECD 월간 데이터만
  * 있음, 다른 채권 카드와 갱신 주기가 안 맞음) 사용자와 상의 후 보류함. "채권" 카테고리를
  * listIndividually:true로 바꿔 4개 만기를 각각 풀어 쓰게 함(평균 내면 만기별 의미가 사라짐).
+ *
+ * 2026-07-18(8차): 사용자가 "국고채 참고선이 3개월 평균이라 너무 짧다"고 지적 - 원인은
+ * benchmarkCaption의 "개월" 계산이 응답의 실제 rows 개수(거래일 기준, 달력월보다 적음)를
+ * 30으로 나누기만 해서 실제 달력 기간을 과소평가하고 있었던 것 + KTB3Y 자체가
+ * bond_yield.py에서 90일치만 수집하고 있었던 것 두 가지 복합 원인. (1) bond_yield.py의
+ * KTB3Y 수집기간을 400일로 확대(다른 벤치마크 심볼과 맞춤), (2) benchmarkCaption을
+ * "개월" 대신 응답의 from/to(실제 달력 날짜 범위)로 계산하도록 수정 - 앞으로 어떤 심볼을
+ * 추가해도 거래일 밀도와 무관하게 정확한 기간이 표시된다.
+ * BTC에 52주 이동평균선 추가(사용자 요청, 기술적분석에서 흔한 지표) - 업비트 캔들 API가
+ * count를 최대 200으로 자르는 제약이 있어(count=365를 줘도 200개만 옴, 실측 확인)
+ * btc_futures.py의 fetch_daily_chart를 to= 파라미터로 페이징하도록 재작성해 380일치를
+ * 모은다. BENCHMARK_SYMBOLS/BENCHMARK_NOTE에 BTC 추가 - 다른 심볼과 달리 direction:1(상승
+ * 자체는 호재)이라 "부담/완화" 대신 통상적인 이동평균선 해석 문구를 붙임.
  */
 (function (global) {
   'use strict';
@@ -151,14 +164,16 @@
   var chartInstances = {}; // symbol -> { chart, series }
   var themeObserver = null;
   var refreshTimer = null;
-  // "이 선 위로 오르면 시장에 부담"이라는 해석이 뚜렷한 지표에만 장기평균 참고선을 붙인다.
-  // GOLD/시장지수류는 방향성이 뚜렷하지 않거나(에너지) 이미 상승=호재로 직관적이라 생략.
-  var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'KTB3Y'];
+  // "이 선 위로 오르면 시장에 부담"이라는 해석이 뚜렷한 지표 + BTC(52주 이동평균선, 통상적인
+  // 기술적분석 지표)에 장기평균 참고선을 붙인다. GOLD/시장지수류는 방향성이 뚜렷하지 않거나
+  // (에너지) 이미 상승=호재로 직관적이라 생략.
+  var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'KTB3Y', 'BTC'];
   var BENCHMARK_NOTE = {
     WTI: '전쟁 등 지정학적 충격 시 이 선 위로 급등하는 경향이 있습니다',
     VIX: '이 선 위로 오르면 시장 불안(위험회피) 심리가 커지고 있다는 뜻입니다',
     USDKRW: '이 선 위로 오르면(원화 약세) 외국인 자금 이탈 우려로 증시에 부담입니다',
-    KTB3Y: '이 선 위로 오르면(금리 상승) 긴축 부담으로 증시에 부담입니다'
+    KTB3Y: '이 선 위로 오르면(금리 상승) 긴축 부담으로 증시에 부담입니다',
+    BTC: '이동평균선 위는 상승 추세, 아래는 하락 추세로 보는 게 일반적입니다'
   };
   var benchmarks = {}; // symbol -> { avg, min, max, days } - fetchBenchmark() 참고
 
@@ -289,15 +304,29 @@
       + '</div>';
   }
 
+  // b.days(응답에 실린 rows 개수)는 거래일 기준이라 30으로 나누면 달력상 실제 기간보다
+  // 짧게 나온다(예: 채권 시장이 평일에만 열려 400일 요청해도 rows는 그보다 적게 옴) - 응답의
+  // from/to(실제 달력 날짜)로 계산해야 정확하다(2026-07-18, 국고채 참고선이 "3개월"로
+  // 표시돼 사용자가 지적하면서 발견).
+  function monthsBetween(fromStr, toStr) {
+    if (!fromStr || !toStr) return 1;
+    var f = new Date(+fromStr.slice(0, 4), +fromStr.slice(4, 6) - 1, +fromStr.slice(6, 8));
+    var t = new Date(+toStr.slice(0, 4), +toStr.slice(4, 6) - 1, +toStr.slice(6, 8));
+    return Math.max(1, Math.round((t - f) / 86400000 / 30));
+  }
+
   function benchmarkCaption(symbol) {
     var b = benchmarks[symbol];
     if (BENCHMARK_SYMBOLS.indexOf(symbol) === -1 || !b) return '';
     var meta = symbolMeta(symbol);
-    var months = Math.max(1, Math.round(b.days / 30));
     var valueStr = symbol === 'WTI' ? '$' + fmtPrice(b.avg, meta.digits)
       : symbol === 'USDKRW' ? fmtPrice(b.avg, meta.digits) + '원'
+      : symbol === 'BTC' ? fmtPrice(b.avg, meta.digits) + '원'
       : fmtPrice(b.avg, meta.digits) + meta.unit;
-    return '<div class="om-benchmark">최근 ' + months + '개월 평균 ' + valueStr + ' — '
+    // BTC는 "52주 이동평균선"이 기술적분석에서 흔히 쓰는 관용적 표현이라 그대로 씀(실제
+    // 수집 기간도 380일 ≈ 54주라 근사치로 맞음). 나머지는 실제 달력 기간을 그대로 노출.
+    var periodLabel = symbol === 'BTC' ? '52주' : monthsBetween(b.from, b.to) + '개월';
+    return '<div class="om-benchmark">최근 ' + periodLabel + ' 평균 ' + valueStr + ' — '
       + (BENCHMARK_NOTE[symbol] || '') + '(객관적 "적정 수준"이 아니라 실측 평균 참고선).</div>';
   }
 

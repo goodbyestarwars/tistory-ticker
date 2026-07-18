@@ -37,7 +37,10 @@ MARKET_INDEX_CD = 'IRR_GOVT03Y'
 _URL = 'https://finance.naver.com/marketindex/interestDailyQuote.naver?marketindexCd=%s&page=%d'
 
 _POLL_INTERVAL_SEC = 6 * 3600
-_HISTORY_DAYS = 90
+# 2026-07-18: 90일 -> 400일로 확대(사용자 지적 - "3개월 평균은 너무 짧다") - 다른 벤치마크
+# 심볼(foreign_futures.py의 WTI/VIX/USDKRW, FRED 미국 국채)도 전부 400일 안팎을 쓰므로
+# 맞춤. 실측: page=53(약 371일치)까지도 계속 다른 날짜가 나와 400일 확보 가능함을 확인.
+_HISTORY_DAYS = 400
 _ROWS_PER_PAGE = 7
 
 # 미국 국채 - FRED 시리즈 ID. 값 자체가 %(예: 4.57)라 db_schema.upsert_future_price에

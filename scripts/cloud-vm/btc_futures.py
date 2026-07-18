@@ -13,6 +13,7 @@ import json
 import logging
 import threading
 import time
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -27,6 +28,10 @@ MARKET = 'KRW-BTC'
 
 _REALTIME_POLL_SEC = 30
 _HISTORY_REFRESH_INTERVAL = 6 * 3600
+# 52주(365일) 이동평균선을 보여달라는 요청(2026-07-18) - 업비트 캔들 API는 count가 최대
+# 200으로 잘려서(count=365를 줘도 200개만 옴, 실측 확인) 하루치 이상 필요하면 to= 파라미터로
+# 과거로 페이징해야 한다. 380일치를 모아 여유를 둔다.
+_HISTORY_TOTAL_DAYS = 380
 
 
 def _get_json(url):
@@ -51,27 +56,42 @@ def fetch_ticker():
     return {'price': price, 'change': change, 'change_rate': change_rate, 'high': high, 'low': low}
 
 
-def fetch_daily_chart(count=90):
-    data = _get_json('https://api.upbit.com/v1/candles/days?market=%s&count=%d' % (MARKET, count))
-    rows = []
-    for c in reversed(data or []):
-        try:
-            rows.append({
+def fetch_daily_chart(total_days=_HISTORY_TOTAL_DAYS):
+    """count가 200으로 잘리는 업비트 제약 때문에 to= 파라미터로 과거로 페이징하며 모은다."""
+    rows_by_date = {}
+    to_param = None
+    remaining = total_days
+    while remaining > 0:
+        count = min(200, remaining)
+        url = 'https://api.upbit.com/v1/candles/days?market=%s&count=%d' % (MARKET, count)
+        if to_param:
+            url += '&to=' + urllib.parse.quote(to_param)
+        data = _get_json(url)
+        if not data:
+            break
+        for c in data:
+            try:
                 # future_chart.date는 다른 수집기(foreign_futures.py의 localDate,
                 # domestic_futures.py 등)와 통일되게 'YYYYMMDD'(대시 없음)로 저장해야 한다 -
                 # 업비트 응답은 'YYYY-MM-DD...'라 대시를 떼어내지 않으면 js/overnight-market.js의
                 # toLwcTime()이 대시 없는 8자리를 가정하고 잘라서 날짜가 깨짐(2026-07-18 발견 -
                 # BTC 카드만 미니차트가 다시 안 뜨던 원인. 2026-07-17에 GAS->VM으로 소스를 바꿀 때
                 # 이 포맷 통일을 놓쳤었음).
-                'date': c['candle_date_time_kst'][:10].replace('-', ''),
-                'open': float(c['opening_price']),
-                'high': float(c['high_price']),
-                'low': float(c['low_price']),
-                'close': float(c['trade_price']),
-            })
-        except (KeyError, ValueError, TypeError):
-            continue
-    return rows
+                date_key = c['candle_date_time_kst'][:10].replace('-', '')
+                rows_by_date[date_key] = {
+                    'date': date_key,
+                    'open': float(c['opening_price']),
+                    'high': float(c['high_price']),
+                    'low': float(c['low_price']),
+                    'close': float(c['trade_price']),
+                }
+            except (KeyError, ValueError, TypeError):
+                continue
+        remaining -= len(data)
+        if len(data) < count:
+            break  # 업비트가 더 이상 과거 데이터가 없다고 판단(상장 초기 등)
+        to_param = data[-1]['candle_date_time_kst'].replace('T', ' ')
+    return sorted(rows_by_date.values(), key=lambda r: r['date'])
 
 
 def refresh_realtime():
