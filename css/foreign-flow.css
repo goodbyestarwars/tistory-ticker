@@ -231,11 +231,14 @@
 #foreign-flow .ff-signal-note { font-size: 12px; color: #999; }
 
 /* ---- 롤링 합산 표 (첫째 열 bold, 박스 테두리 - 블로그 표 양식) ---- */
+/* 2026-07-18: 개인 열 추가로 7열이 되면서 좁은 화면(모바일)에서 넘칠 수 있어 가로 스크롤 */
+#foreign-flow .ff-table-scroll { overflow-x: auto; margin-bottom: 18px; }
 #foreign-flow .ff-table {
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
   font-size: 13px;
-  margin-bottom: 18px;
+  margin-bottom: 0;
   border: 1px solid #ccc;
 }
 #foreign-flow .ff-table th,
@@ -411,6 +414,7 @@
 #foreign-flow .ff-axis { fill: #999; font-size: 11px; }
 #foreign-flow .ff-line-foreign { fill: none; stroke: #e8590c; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-inst { fill: none; stroke: #5f3dc4; stroke-width: 2.4; stroke-linejoin: round; }
+#foreign-flow .ff-line-ind { fill: none; stroke: #1c7ed6; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-ratio { fill: none; stroke: #0ca678; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-rsi { fill: none; stroke: #f08c00; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-rsi-band { stroke-dasharray: 3 3; }
@@ -442,6 +446,7 @@
 }
 #foreign-flow .ff-dot-foreign { background: #e8590c; }
 #foreign-flow .ff-dot-inst { background: #5f3dc4; }
+#foreign-flow .ff-dot-ind { background: #1c7ed6; }
 #foreign-flow .ff-dot-ratio { background: #0ca678; }
 
 /* 호버 가이드선/점/툴팁 */
@@ -449,6 +454,7 @@
 #foreign-flow .ff-hover-dot { stroke: #fff; stroke-width: 1.5; }
 #foreign-flow .ff-hover-dot-foreign { fill: #e8590c; }
 #foreign-flow .ff-hover-dot-inst { fill: #5f3dc4; }
+#foreign-flow .ff-hover-dot-ind { fill: #1c7ed6; }
 #foreign-flow .ff-hover-dot-ratio { fill: #0ca678; }
 
 #foreign-flow .ff-tt {

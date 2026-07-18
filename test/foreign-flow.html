@@ -40,6 +40,8 @@
         if (i < 6) fn = Math.round(500000 + Math.random() * 2500000);            // 6일 연속 순매수
         else fn = Math.round((Math.random() - 0.62) * 6000000);                   // 과거엔 순매도 우위
         var inet = Math.round((Math.random() - 0.5) * 3000000);
+        // 개인(ind_net) mock - 실제 시장처럼 외국인+기관과 대략 반대 방향으로 대충 흉내
+        var indNet = Math.round(-(fn + inet) * (0.6 + Math.random() * 0.4) + (Math.random() - 0.5) * 1000000);
         close = Math.max(200000, close + Math.round((Math.random() - 0.5) * 8000));
         ratio = Math.max(40, Math.min(52, ratio + (fn > 0 ? 0.02 : -0.03)));
         shares += fn;
@@ -50,6 +52,7 @@
           volume: Math.round(10000000 + Math.random() * 30000000),
           inst_net: inet,
           foreign_net: fn,
+          ind_net: indNet,
           foreign_shares: shares,
           foreign_ratio: +ratio.toFixed(2)
         });
@@ -66,10 +69,10 @@
         return s;
       }
       var rolling = {
-        today: { foreign: daily[0].foreign_net, inst: daily[0].inst_net },
-        '5d': { foreign: rsum('foreign_net', 5), inst: rsum('inst_net', 5) },
-        '10d': { foreign: rsum('foreign_net', 10), inst: rsum('inst_net', 10) },
-        '20d': { foreign: rsum('foreign_net', 20), inst: rsum('inst_net', 20) }
+        today: { foreign: daily[0].foreign_net, inst: daily[0].inst_net, ind: daily[0].ind_net },
+        '5d': { foreign: rsum('foreign_net', 5), inst: rsum('inst_net', 5), ind: rsum('ind_net', 5) },
+        '10d': { foreign: rsum('foreign_net', 10), inst: rsum('inst_net', 10), ind: rsum('ind_net', 10) },
+        '20d': { foreign: rsum('foreign_net', 20), inst: rsum('inst_net', 20), ind: rsum('ind_net', 20) }
       };
       function streakOf(field) {
         var first = daily[0][field];
@@ -137,10 +140,16 @@
           today_krw: asum('foreign_net', 1), '5d_krw': asum('foreign_net', 5),
           '10d_krw': asum('foreign_net', 10), '20d_krw': asum('foreign_net', 20),
           inst_today_krw: asum('inst_net', 1), inst_5d_krw: asum('inst_net', 5),
-          inst_10d_krw: asum('inst_net', 10), inst_20d_krw: asum('inst_net', 20)
+          inst_10d_krw: asum('inst_net', 10), inst_20d_krw: asum('inst_net', 20),
+          ind_today_krw: asum('ind_net', 1), ind_5d_krw: asum('ind_net', 5),
+          ind_10d_krw: asum('ind_net', 10), ind_20d_krw: asum('ind_net', 20)
         },
-        streak: { foreign: streakOf('foreign_net'), inst: streakOf('inst_net') },
-        signal: { foreign: signalOf('foreign_net', 'foreign'), inst: signalOf('inst_net', 'inst') }
+        streak: { foreign: streakOf('foreign_net'), inst: streakOf('inst_net'), ind: streakOf('ind_net') },
+        signal: {
+          foreign: signalOf('foreign_net', 'foreign'),
+          inst: signalOf('inst_net', 'inst'),
+          ind: signalOf('ind_net', 'ind')
+        }
       });
     };
   }

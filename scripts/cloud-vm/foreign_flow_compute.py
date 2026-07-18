@@ -69,15 +69,21 @@ def signal(daily, rolling, kind):
 def build_result(code, daily):
     """gas getForeignFlow()와 동일한 응답 형태({code, as_of, daily, rolling,
     amount_estimate, streak, signal})로 조립. name은 여기서 안 채움(호출부가 이미 아는
-    값을 프론트에서 덧씌움 - /investor-flow, /ohlc와 동일 패턴)."""
+    값을 프론트에서 덧씌움 - /investor-flow, /ohlc와 동일 패턴).
+    2026-07-18: 개인(ind) 추가 - foreign/inst와 동일한 패턴으로 rolling/streak/signal에
+    kind='ind'를 더함(daily 각 행의 ind_net은 kiwoom_market.fetch_foreign_inst_daily가
+    ka10059에서 이미 채워서 넘겨준다)."""
     if not daily:
         return None
 
     rolling = {
-        'today': {'foreign': daily[0]['foreign_net'], 'inst': daily[0]['inst_net']},
-        '5d': {'foreign': rolling_sum(daily, 'foreign_net', 5), 'inst': rolling_sum(daily, 'inst_net', 5)},
-        '10d': {'foreign': rolling_sum(daily, 'foreign_net', 10), 'inst': rolling_sum(daily, 'inst_net', 10)},
-        '20d': {'foreign': rolling_sum(daily, 'foreign_net', 20), 'inst': rolling_sum(daily, 'inst_net', 20)},
+        'today': {'foreign': daily[0]['foreign_net'], 'inst': daily[0]['inst_net'], 'ind': daily[0]['ind_net']},
+        '5d': {'foreign': rolling_sum(daily, 'foreign_net', 5), 'inst': rolling_sum(daily, 'inst_net', 5),
+               'ind': rolling_sum(daily, 'ind_net', 5)},
+        '10d': {'foreign': rolling_sum(daily, 'foreign_net', 10), 'inst': rolling_sum(daily, 'inst_net', 10),
+                'ind': rolling_sum(daily, 'ind_net', 10)},
+        '20d': {'foreign': rolling_sum(daily, 'foreign_net', 20), 'inst': rolling_sum(daily, 'inst_net', 20),
+                'ind': rolling_sum(daily, 'ind_net', 20)},
     }
 
     amount_estimate = {
@@ -89,6 +95,10 @@ def build_result(code, daily):
         'inst_5d_krw': amount_sum(daily, 'inst_net', 5),
         'inst_10d_krw': amount_sum(daily, 'inst_net', 10),
         'inst_20d_krw': amount_sum(daily, 'inst_net', 20),
+        'ind_today_krw': amount_sum(daily, 'ind_net', 1),
+        'ind_5d_krw': amount_sum(daily, 'ind_net', 5),
+        'ind_10d_krw': amount_sum(daily, 'ind_net', 10),
+        'ind_20d_krw': amount_sum(daily, 'ind_net', 20),
     }
 
     return {
@@ -100,9 +110,11 @@ def build_result(code, daily):
         'streak': {
             'foreign': streak(daily, 'foreign_net'),
             'inst': streak(daily, 'inst_net'),
+            'ind': streak(daily, 'ind_net'),
         },
         'signal': {
             'foreign': signal(daily, rolling, 'foreign'),
             'inst': signal(daily, rolling, 'inst'),
+            'ind': signal(daily, rolling, 'ind'),
         },
     }

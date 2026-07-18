@@ -1149,8 +1149,10 @@
     var parts = [
       streakBadge('외국인', streak.foreign),
       streakBadge('기관', streak.inst),
+      streakBadge('개인', streak.ind),
       signalBadge('외국인', signal.foreign),
-      signalBadge('기관', signal.inst)
+      signalBadge('기관', signal.inst),
+      signalBadge('개인', signal.ind)
     ];
     var hasAny = parts.some(function (p) { return !!p; });
 
@@ -1182,15 +1184,19 @@
 
   function buildRollingTable(data) {
     var amt = data.amount_estimate || {};
+    // 2026-07-18: 개인(ind) 열 추가(사용자 요청 - 수급 숫자 검증용으로 필요) - foreign/inst와
+    // 동일한 패턴, amount_estimate.ind_*_krw는 kiwoom_market/foreign_flow_compute가 이미 채워줌.
     var rows = [
-      ['당일', data.rolling.today, amt.today_krw, amt.inst_today_krw],
-      ['5일 합산', data.rolling['5d'], amt['5d_krw'], amt.inst_5d_krw],
-      ['10일 합산', data.rolling['10d'], amt['10d_krw'], amt.inst_10d_krw],
-      ['20일 합산', data.rolling['20d'], amt['20d_krw'], amt.inst_20d_krw]
+      ['당일', data.rolling.today, amt.today_krw, amt.inst_today_krw, amt.ind_today_krw],
+      ['5일 합산', data.rolling['5d'], amt['5d_krw'], amt.inst_5d_krw, amt.ind_5d_krw],
+      ['10일 합산', data.rolling['10d'], amt['10d_krw'], amt.inst_10d_krw, amt.ind_10d_krw],
+      ['20일 합산', data.rolling['20d'], amt['20d_krw'], amt.inst_20d_krw, amt.ind_20d_krw]
     ];
 
     var html = '<table class="ff-table"><thead><tr>'
-      + '<th>구분</th><th>외국인 순매매(주)</th><th>외국인 추정대금</th><th>기관 순매매(주)</th><th>기관 추정대금</th>'
+      + '<th>구분</th><th>외국인 순매매(주)</th><th>외국인 추정대금</th>'
+      + '<th>기관 순매매(주)</th><th>기관 추정대금</th>'
+      + '<th>개인 순매매(주)</th><th>개인 추정대금</th>'
       + '</tr></thead><tbody>';
 
     rows.forEach(function (r) {
@@ -1198,12 +1204,16 @@
         + '<td class="' + signClass(r[1].foreign) + '">' + fmtShares(r[1].foreign) + '</td>'
         + '<td class="' + signClass(r[2]) + '">' + fmtKrw(r[2]) + '</td>'
         + '<td class="' + signClass(r[1].inst) + '">' + fmtShares(r[1].inst) + '</td>'
-        // 기관 추정대금은 GAS 재배포 후부터 내려옴 - 이전 응답(값 없음)은 '-'로 표시
-        + '<td class="' + (r[3] == null ? 'ff-flat' : signClass(r[3])) + '">' + (r[3] == null ? '-' : fmtKrw(r[3])) + '</td></tr>';
+        // 기관/개인 추정대금은 GAS 재배포 후부터 내려옴 - 이전 응답(값 없음)은 '-'로 표시
+        + '<td class="' + (r[3] == null ? 'ff-flat' : signClass(r[3])) + '">' + (r[3] == null ? '-' : fmtKrw(r[3])) + '</td>'
+        + '<td class="' + signClass(r[1].ind) + '">' + fmtShares(r[1].ind) + '</td>'
+        + '<td class="' + (r[4] == null ? 'ff-flat' : signClass(r[4])) + '">' + (r[4] == null ? '-' : fmtKrw(r[4])) + '</td></tr>';
     });
 
     html += '</tbody></table>';
-    return html;
+    // 개인 열 추가로 7열이 되면서 좁은 화면에서 넘칠 수 있어 가로 스크롤 컨테이너로 감쌈
+    // (2026-07-18, 표 자체 레이아웃은 그대로 두고 안전장치만 추가).
+    return '<div class="ff-table-scroll">' + html + '</div>';
   }
 
   // ---- 수급(연속매매 배지 + 롤링 표 + 순매매량/보유율 추이) - 하나의 구역 카드로 묶음 ----
@@ -1211,14 +1221,14 @@
     var tone = flowTone(data);
     var toneBadgeCls = TONE_BADGE_CLASS[tone.tone] || 'ff-badge-neutral';
     return '<div class="ff-extra-card">'
-      + '<div class="ff-extra-card-title">🧭 외국인·기관 수급</div>'
+      + '<div class="ff-extra-card-title">🧭 외국인·기관·개인 수급</div>'
       + buildBadges(data)
       + '<div class="ff-extra-interp ff-extra-tone-' + tone.tone + '">'
       + '<span class="ff-badge ' + toneBadgeCls + '">' + tone.label + '</span>'
       + '<span class="ff-extra-interp-text">' + escapeHtml(flowInterpText(data)) + '</span>'
       + '</div>'
       + buildRollingTable(data)
-      + '<div class="ff-chart-title">외국인·기관 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>'
+      + '<div class="ff-chart-title">외국인·기관·개인 순매매량 추이 (최근 ' + data.daily.length + '영업일)</div>'
       + buildNetChart(data.daily)
       + '<div class="ff-chart-title">외국인 보유율 추이</div>'
       + buildRatioChart(data.daily)
@@ -1663,7 +1673,8 @@
   // y축 범위 계산 - 차트 생성과 호버 좌표 역산이 같은 스케일을 써야 해서 분리
   function netDomain(asc) {
     var vals = [];
-    asc.forEach(function (d) { vals.push(d.foreign_net, d.inst_net); });
+    // ind_net이 없는 옛 캐시 응답과도 안전하게 동작하도록 || 0 방어(2026-07-18 개인 추가).
+    asc.forEach(function (d) { vals.push(d.foreign_net, d.inst_net, d.ind_net || 0); });
     var max = Math.max.apply(null, vals.concat([0]));
     var min = Math.min.apply(null, vals.concat([0]));
     var span = (max - min) || 1;
@@ -1709,7 +1720,8 @@
     svg += xAxisLabels(asc, x, CHART_H - 8);
     svg += '<polyline class="ff-line-foreign" points="' + points('foreign_net') + '"/>';
     svg += '<polyline class="ff-line-inst" points="' + points('inst_net') + '"/>';
-    svg += hoverMarkup(CHART_H, ['foreign', 'inst']);
+    svg += '<polyline class="ff-line-ind" points="' + points('ind_net') + '"/>';
+    svg += hoverMarkup(CHART_H, ['foreign', 'inst', 'ind']);
     svg += '</svg>';
 
     return '<div class="ff-chart ff-chart-net">' + svg
@@ -1717,6 +1729,7 @@
       + '<div class="ff-legend">'
       + '<span class="ff-legend-item"><i class="ff-dot ff-dot-foreign"></i>외국인</span>'
       + '<span class="ff-legend-item"><i class="ff-dot ff-dot-inst"></i>기관</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot ff-dot-ind"></i>개인</span>'
       + '</div></div>';
   }
 
@@ -1786,7 +1799,7 @@
     function yAt(v) { return PAD.t + (1 - (v - dom.min) / (dom.max - dom.min)) * ih; }
 
     var dots = {};
-    ['foreign', 'inst', 'ratio'].forEach(function (key) {
+    ['foreign', 'inst', 'ind', 'ratio'].forEach(function (key) {
       var el = chartEl.querySelector('.ff-hover-dot-' + key);
       if (el) dots[key] = el;
     });
@@ -1816,9 +1829,15 @@
           dots.inst.setAttribute('cy', yAt(d.inst_net));
           dots.inst.setAttribute('visibility', 'visible');
         }
+        if (dots.ind) {
+          dots.ind.setAttribute('cx', X);
+          dots.ind.setAttribute('cy', yAt(d.ind_net));
+          dots.ind.setAttribute('visibility', 'visible');
+        }
         tt.innerHTML = '<div class="ff-tt-date">' + escapeHtml(d.date) + '</div>'
           + '<div class="ff-tt-row"><i class="ff-dot ff-dot-foreign"></i>외국인 <b class="' + signClass(d.foreign_net) + '">' + fmtShares(d.foreign_net) + '</b></div>'
           + '<div class="ff-tt-row"><i class="ff-dot ff-dot-inst"></i>기관 <b class="' + signClass(d.inst_net) + '">' + fmtShares(d.inst_net) + '</b></div>'
+          + '<div class="ff-tt-row"><i class="ff-dot ff-dot-ind"></i>개인 <b class="' + signClass(d.ind_net) + '">' + fmtShares(d.ind_net) + '</b></div>'
           + '<div class="ff-tt-row ff-tt-sub">종가 ' + Number(d.close).toLocaleString() + ' (' + (d.change_pct >= 0 ? '+' : '') + d.change_pct.toFixed(2) + '%)</div>';
       } else {
         if (dots.ratio) {
