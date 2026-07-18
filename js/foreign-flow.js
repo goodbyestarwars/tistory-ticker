@@ -1147,12 +1147,12 @@
     var signal = data.signal || {};
 
     var parts = [
+      streakBadge('개인', streak.ind),
       streakBadge('외국인', streak.foreign),
       streakBadge('기관', streak.inst),
-      streakBadge('개인', streak.ind),
+      signalBadge('개인', signal.ind),
       signalBadge('외국인', signal.foreign),
-      signalBadge('기관', signal.inst),
-      signalBadge('개인', signal.ind)
+      signalBadge('기관', signal.inst)
     ];
     var hasAny = parts.some(function (p) { return !!p; });
 
@@ -1184,29 +1184,28 @@
 
   function buildRollingTable(data) {
     var amt = data.amount_estimate || {};
-    // 2026-07-18: 개인(ind) 열 추가(사용자 요청 - 수급 숫자 검증용으로 필요) - foreign/inst와
-    // 동일한 패턴, amount_estimate.ind_*_krw는 kiwoom_market/foreign_flow_compute가 이미 채워줌.
+    // 2026-07-18: 개인(ind) 열 추가 후, 열 순서를 "개인/외국인/기관"으로 재배치(사용자 요청).
     var rows = [
-      ['당일', data.rolling.today, amt.today_krw, amt.inst_today_krw, amt.ind_today_krw],
-      ['5일 합산', data.rolling['5d'], amt['5d_krw'], amt.inst_5d_krw, amt.ind_5d_krw],
-      ['10일 합산', data.rolling['10d'], amt['10d_krw'], amt.inst_10d_krw, amt.ind_10d_krw],
-      ['20일 합산', data.rolling['20d'], amt['20d_krw'], amt.inst_20d_krw, amt.ind_20d_krw]
+      ['당일', data.rolling.today, amt.ind_today_krw, amt.today_krw, amt.inst_today_krw],
+      ['5일 합산', data.rolling['5d'], amt.ind_5d_krw, amt['5d_krw'], amt.inst_5d_krw],
+      ['10일 합산', data.rolling['10d'], amt.ind_10d_krw, amt['10d_krw'], amt.inst_10d_krw],
+      ['20일 합산', data.rolling['20d'], amt.ind_20d_krw, amt['20d_krw'], amt.inst_20d_krw]
     ];
 
     var html = '<table class="ff-table"><thead><tr>'
-      + '<th>구분</th><th>외국인 순매매(주)</th><th>외국인 추정대금</th>'
+      + '<th>구분</th><th>개인 순매매(주)</th><th>개인 추정대금</th>'
+      + '<th>외국인 순매매(주)</th><th>외국인 추정대금</th>'
       + '<th>기관 순매매(주)</th><th>기관 추정대금</th>'
-      + '<th>개인 순매매(주)</th><th>개인 추정대금</th>'
       + '</tr></thead><tbody>';
 
     rows.forEach(function (r) {
       html += '<tr><td class="ff-td-label">' + r[0] + '</td>'
-        + '<td class="' + signClass(r[1].foreign) + '">' + fmtShares(r[1].foreign) + '</td>'
-        + '<td class="' + signClass(r[2]) + '">' + fmtKrw(r[2]) + '</td>'
-        + '<td class="' + signClass(r[1].inst) + '">' + fmtShares(r[1].inst) + '</td>'
-        // 기관/개인 추정대금은 GAS 재배포 후부터 내려옴 - 이전 응답(값 없음)은 '-'로 표시
-        + '<td class="' + (r[3] == null ? 'ff-flat' : signClass(r[3])) + '">' + (r[3] == null ? '-' : fmtKrw(r[3])) + '</td>'
         + '<td class="' + signClass(r[1].ind) + '">' + fmtShares(r[1].ind) + '</td>'
+        // 개인/기관 추정대금은 GAS 재배포 후부터 내려옴 - 이전 응답(값 없음)은 '-'로 표시
+        + '<td class="' + (r[2] == null ? 'ff-flat' : signClass(r[2])) + '">' + (r[2] == null ? '-' : fmtKrw(r[2])) + '</td>'
+        + '<td class="' + signClass(r[1].foreign) + '">' + fmtShares(r[1].foreign) + '</td>'
+        + '<td class="' + signClass(r[3]) + '">' + fmtKrw(r[3]) + '</td>'
+        + '<td class="' + signClass(r[1].inst) + '">' + fmtShares(r[1].inst) + '</td>'
         + '<td class="' + (r[4] == null ? 'ff-flat' : signClass(r[4])) + '">' + (r[4] == null ? '-' : fmtKrw(r[4])) + '</td></tr>';
     });
 
@@ -1718,18 +1717,18 @@
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(0) + 4).toFixed(1) + '" text-anchor="end">0</text>';
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + fmtCompact(min) + '</text>';
     svg += xAxisLabels(asc, x, CHART_H - 8);
+    svg += '<polyline class="ff-line-ind" points="' + points('ind_net') + '"/>';
     svg += '<polyline class="ff-line-foreign" points="' + points('foreign_net') + '"/>';
     svg += '<polyline class="ff-line-inst" points="' + points('inst_net') + '"/>';
-    svg += '<polyline class="ff-line-ind" points="' + points('ind_net') + '"/>';
-    svg += hoverMarkup(CHART_H, ['foreign', 'inst', 'ind']);
+    svg += hoverMarkup(CHART_H, ['ind', 'foreign', 'inst']);
     svg += '</svg>';
 
     return '<div class="ff-chart ff-chart-net">' + svg
       + '<div class="ff-tt" hidden></div>'
       + '<div class="ff-legend">'
+      + '<span class="ff-legend-item"><i class="ff-dot ff-dot-ind"></i>개인</span>'
       + '<span class="ff-legend-item"><i class="ff-dot ff-dot-foreign"></i>외국인</span>'
       + '<span class="ff-legend-item"><i class="ff-dot ff-dot-inst"></i>기관</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot ff-dot-ind"></i>개인</span>'
       + '</div></div>';
   }
 
@@ -1835,9 +1834,9 @@
           dots.ind.setAttribute('visibility', 'visible');
         }
         tt.innerHTML = '<div class="ff-tt-date">' + escapeHtml(d.date) + '</div>'
+          + '<div class="ff-tt-row"><i class="ff-dot ff-dot-ind"></i>개인 <b class="' + signClass(d.ind_net) + '">' + fmtShares(d.ind_net) + '</b></div>'
           + '<div class="ff-tt-row"><i class="ff-dot ff-dot-foreign"></i>외국인 <b class="' + signClass(d.foreign_net) + '">' + fmtShares(d.foreign_net) + '</b></div>'
           + '<div class="ff-tt-row"><i class="ff-dot ff-dot-inst"></i>기관 <b class="' + signClass(d.inst_net) + '">' + fmtShares(d.inst_net) + '</b></div>'
-          + '<div class="ff-tt-row"><i class="ff-dot ff-dot-ind"></i>개인 <b class="' + signClass(d.ind_net) + '">' + fmtShares(d.ind_net) + '</b></div>'
           + '<div class="ff-tt-row ff-tt-sub">종가 ' + Number(d.close).toLocaleString() + ' (' + (d.change_pct >= 0 ? '+' : '') + d.change_pct.toFixed(2) + '%)</div>';
       } else {
         if (dots.ratio) {
