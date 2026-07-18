@@ -158,7 +158,10 @@
 #market-temp .mt-hero-delta { display: flex; flex-direction: column; gap: 2px; }
 #market-temp .mt-hero-delta-label { font-size: 10.5px; color: #999; }
 #market-temp .mt-hero-delta-value { font-size: 14px; font-weight: 700; }
-#market-temp .mt-hero-delta-empty { font-size: 11px; color: #aaa; margin-top: 14px; padding-top: 12px; border-top: 1px dashed #eee; }
+/* .mt-hero-deltas(부모)가 이미 border-top dashed를 갖고 있어서, 데이터 없을 때 표시되는
+   이 빈 상태 텍스트에 같은 border-top을 또 넣으면 점선이 두 줄로 겹쳐 보이는 버그가 있었음
+   (2026-07-18 발견) - 부모 테두리 하나만 남기고 여기서는 제거. */
+#market-temp .mt-hero-delta-empty { font-size: 11px; color: #aaa; }
 
 #market-temp .mt-hero-right {
   flex: 0 0 auto;
