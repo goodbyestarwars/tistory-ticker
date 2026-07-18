@@ -244,7 +244,7 @@
       return;
     }
 
-    resultBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(resolved.name) + ' 수급 데이터를 불러오는 중... (가격 차트는 최초 조회 시 다소 걸릴 수 있어요)</div></div>';
+    resultBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(resolved.name) + ' 분석 중입니다. (가격 차트는 최초 조회 시 다소 걸릴 수 있어요)</div></div>';
 
     // 차트 크롤링/VM 온디맨드 호출 둘 다 실패 가능성이 있는데, 그것 때문에 나머지
     // 위젯까지 통째로 에러 처리되면 안 되므로 각자 잡아 실패 시 null/에러 객체로 대체한다.
@@ -1128,7 +1128,7 @@
       + '<span class="ff-verdict-score">' + (verdict.score == null ? '-' : verdict.score.toFixed(1) + '점 · ' + verdict.stars.toFixed(1) + '/5') + '</span>'
       + '</div>'
       + '<div class="ff-summary-ai" id="ffAiSummary">'
-      + '<b>AI 투자의견</b>'
+      + '<b>투자의견</b>'
       + '<span class="ff-summary-ai-text">생성 중...</span>'
       + '</div>'
       + '</div>';
@@ -1604,7 +1604,9 @@
         vertLines: { color: dark ? '#3a3a3a' : '#eee' },
         horzLines: { color: dark ? '#3a3a3a' : '#eee' }
       },
-      rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
+      // scaleMargins: 캔들이 세로로 납작해 보인다는 피드백(2026-07-19)으로 기본 여백(대략
+      // 위20%/아래10%)보다 좁혀 캔들이 세로 공간을 더 채우도록 함.
+      rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd', scaleMargins: { top: 0.08, bottom: 0.08 } },
       timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' }
     };
   }
@@ -1621,7 +1623,12 @@
         height: FCHART_H,
         crosshair: { mode: LWC.CrosshairMode.Normal },
         timeScale: { timeVisible: false, secondsVisible: false },
-        localization: { priceFormatter: chartPriceFormatter }
+        localization: { priceFormatter: chartPriceFormatter },
+        // 2026-07-19: 캔들이 세로로 너무 납작해 보인다는 피드백 - 가격축(오른쪽) 드래그로
+        // 직접 세로 확대가 가능하게 함(마우스 휠은 기존처럼 가로/시간축 확대). 위아래 여백은
+        // lwcThemeOptions()의 rightPriceScale에 같이 설정(mergeOptions가 얕은 병합이라
+        // 여기 쓰면 아래서 borderColor로 덮어써짐 - 두 값을 한 객체에 모아야 함).
+        handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true }
       }, lwcThemeOptions(LWC)));
       lwcChart = chart;
 

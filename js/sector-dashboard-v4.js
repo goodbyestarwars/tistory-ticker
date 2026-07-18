@@ -195,7 +195,7 @@
     if (!analysis) return '';
     return (
       '<div class="sn-ai-summary market-ai-summary">' +
-        '<span class="sn-ai-badge">AI요약 (Groq)</span>' +
+        '<span class="sn-ai-badge">요약</span>' +
         '<p class="sn-ai-text">' + escapeHTML(analysis) + '</p>' +
       '</div>'
     );

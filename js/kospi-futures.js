@@ -490,7 +490,7 @@
       .then(function (text) {
         if (!text) { box.hidden = true; return; }
         box.hidden = false;
-        box.innerHTML = '<b>🤖 AI 해설</b><p>' + escapeHtml(text) + '</p>';
+        box.innerHTML = '<b>💬 참고의견</b><p>' + escapeHtml(text) + '</p>';
       })
       .catch(function () { box.hidden = true; });
   }

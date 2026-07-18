@@ -323,14 +323,17 @@
   gap: 6px;
 }
 #foreign-flow .ff-extra-badge {
+  /* 공매도 압박 카드의 원인 배지 전용(외국인/기관 순매도 동반, 잔고 증가 등) - 전부
+     매도/공매도 쪽 경계 신호라 사이트 색상 규약(매수=빨강/매도=파랑)대로 파랑으로 통일
+     (2026-07-19, 전부 빨강이라 "기관 순매도인데 왜 빨강이냐"는 피드백으로 수정). */
   display: inline-block;
   padding: 3px 10px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  background: #fdeceb;
-  color: #d24f45;
-  border: 1px solid #f2c3bf;
+  background: #e9f1fb;
+  color: #1261c4;
+  border: 1px solid #bdd6f2;
 }
 #foreign-flow .ff-extra-streak { margin-bottom: 8px; }
 #foreign-flow .ff-extra-interp {
@@ -661,7 +664,7 @@ html.dark #foreign-flow .ff-extra-metric-value { color: #eee !important; }
 html.dark #foreign-flow .ff-extra-metric-sub { color: #888 !important; }
 html.dark #foreign-flow .ff-warn { color: #e8776d !important; }
 html.dark #foreign-flow .ff-squeeze-grade { background: rgba(255, 255, 255, 0.08) !important; }
-html.dark #foreign-flow .ff-extra-badge { background: #3a2523 !important; border-color: #5c3835 !important; color: #e8776d !important; }
+html.dark #foreign-flow .ff-extra-badge { background: #20304a !important; border-color: #33507a !important; color: #6ea8e8 !important; }
 html.dark #foreign-flow .ff-extra-streak { color: #eee !important; }
 html.dark #foreign-flow .ff-extra-interp { background: #2a2a2a !important; }
 html.dark #foreign-flow .ff-extra-tone-very_positive { background: #3a2323 !important; }

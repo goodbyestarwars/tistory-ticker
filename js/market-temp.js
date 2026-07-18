@@ -159,11 +159,11 @@
         if (data && data.analysis) {
           mount.innerHTML = '<p class="mt-ai-text">' + escapeHtml(data.analysis) + '</p>';
         } else {
-          mount.innerHTML = '<p class="mt-ai-text mt-ai-empty">AI 브리핑을 생성하지 못했습니다.</p>';
+          mount.innerHTML = '<p class="mt-ai-text mt-ai-empty">브리핑을 생성하지 못했습니다.</p>';
         }
       })
       .catch(function () {
-        mount.innerHTML = '<p class="mt-ai-text mt-ai-empty">AI 브리핑을 불러오지 못했습니다.</p>';
+        mount.innerHTML = '<p class="mt-ai-text mt-ai-empty">브리핑을 불러오지 못했습니다.</p>';
       });
   }
 
@@ -342,7 +342,7 @@
   function buildAiBriefingShell() {
     return ''
       + '<div class="mt-card mt-ai-card">'
-      + '<div class="mt-card-title">🤖 AI 시장 브리핑</div>'
+      + '<div class="mt-card-title">📰 시장 브리핑</div>'
       + '<div id="mtAiBriefing"><div class="mt-hint mt-hint-inline">브리핑 생성 중...</div></div>'
       + '</div>';
   }

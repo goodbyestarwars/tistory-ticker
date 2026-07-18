@@ -467,7 +467,7 @@
     var aiSummary = !Array.isArray(data) && data && data.aiSummary;
     if (aiSummary) {
       html += '<div class="sn-ai-summary">'
-        + '<span class="sn-ai-badge">AI요약 (Groq)</span>'
+        + '<span class="sn-ai-badge">요약</span>'
         + '<p class="sn-ai-text">' + escapeHtml(aiSummary) + '</p>'
         + '</div>';
     }
