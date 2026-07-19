@@ -22,6 +22,7 @@ import pattern_detect as pd
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 INVESTOR_FLOW_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
+FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
 THROTTLE_SEC = 0.25
 
@@ -56,11 +57,22 @@ def load_full_universe():
 
 
 def load_flow_cache():
-    """batch_scan.py(공매도/대차/연기금, 섹터풀 238종목)가 미리 만들어둔 캐시 - short/pension
-    점수 계산에 재사용한다(gas의 fetchInvestorFlowCache_와 동일 소스)."""
+    """batch_scan.py(공매도/대차/연기금/반대매매, 섹터풀 238종목)가 미리 만들어둔 캐시 -
+    short/pension/credit 점수 계산에 재사용한다(gas의 fetchInvestorFlowCache_와 동일 소스)."""
     if not os.path.exists(INVESTOR_FLOW_CACHE_FILE):
         return {}
     with open(INVESTOR_FLOW_CACHE_FILE, 'r', encoding='utf-8') as f:
+        cached = json.load(f)
+    return cached.get('data') or {}
+
+
+def load_fundamentals_cache():
+    """batch_scan.py(DART 재무, 전종목 2,691~2,766개, 하루 시간예산 내에서 순회)가 미리
+    만들어둔 캐시 - 펀더멘탈 점수 계산에 재사용(2026-07-19 추가). 같은 VM 로컬 파일이라
+    HTTP 호출 없이 그대로 읽는다(투자자흐름 캐시와 동일 패턴)."""
+    if not os.path.exists(FUNDAMENTALS_CACHE_FILE):
+        return {}
+    with open(FUNDAMENTALS_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return cached.get('data') or {}
 
@@ -120,6 +132,7 @@ def main():
     log('대상 종목 수: %d' % len(universe))
 
     flow_cache = load_flow_cache()
+    fundamentals_cache = load_fundamentals_cache()
     token = kiwoom_client.get_token(appkey, secretkey)
 
     conn = db_schema.get_conn()
@@ -168,14 +181,22 @@ def main():
                 entry = flow_cache.get(code)
                 short_score = None
                 pension_score = None
+                credit_score = None
                 if entry:
                     pressure = (entry.get('short') or {}).get('pressure') or {}
                     short_score = pressure.get('score')
                     pension_score = invest_signal.compute_pension_score(entry.get('pension'))
+                    credit_score = invest_signal.compute_credit_score(entry.get('credit'))
+
+                fund_entry = fundamentals_cache.get(code)
+                fundamental_score = invest_signal.compute_fundamental_score(
+                    (fund_entry or {}).get('annual')
+                )
 
                 flow_score = invest_signal.compute_flow_score(flow)
                 foreign_inst_score = invest_signal.compute_foreign_inst_score(flow['streak'])
-                verdict = invest_signal.compute_verdict(flow_score, foreign_inst_score, tech, short_score, pension_score)
+                verdict = invest_signal.compute_verdict(flow_score, foreign_inst_score, tech, short_score, pension_score,
+                                                         credit_score, fundamental_score)
 
                 last = flow['daily'][0]  # 최신일 우선 정렬
                 r5 = flow['rolling'].get('5d') or {}

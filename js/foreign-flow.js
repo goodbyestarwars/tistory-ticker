@@ -254,20 +254,26 @@
       .catch(function () { return null; });
     var quotePromise = fetchLiveQuote(resolved.code)
       .catch(function () { return null; });
+    // 2026-07-19: 종합점수에 펀더멘탈(ROE/부채비율)을 반영하면서(computeFundamentalScore)
+    // "펀더멘탈" 탭을 열 때만 불러오던 걸 처음부터 같이 불러오도록 변경 - fetchFundamentals가
+    // fundamentalsCache에 저장해두므로 이후 탭 클릭 시 재요청 없음(loadFundamentals 재사용).
+    var fundamentalsPromise = fetchFundamentals(resolved.code, resolved.name)
+      .catch(function () { return null; });
 
-    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise, quotePromise])
+    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
         var data = results[0];
         var chartData = results[1];
         var flowEntry = results[2];
         var quote = results[3];
+        var fundamentals = results[4];
         if (!data || data.error || !data.daily || !data.daily.length) {
           resultBox.innerHTML = '<div class="ff-error">'
             + escapeHtml((data && data.message) || '수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
             + '</div>';
           return;
         }
-        renderResult(resultBox, data, chartData, flowEntry, quote);
+        renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals);
       })
       .catch(function () {
         resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
@@ -402,7 +408,7 @@
 
   // ---- 렌더링 ----
 
-  function renderResult(box, data, chartData, entry, quote) {
+  function renderResult(box, data, chartData, entry, quote, fundamentals) {
     var techScore = computeTechnicalScore(chartData);
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
@@ -428,7 +434,7 @@
 
     // 종합평가(점수·별점·AI 투자의견)는 탭 밖에 항상 노출 - 수급/차트/펀더멘탈 어느 탭을
     // 보고 있어도 판정 결과가 계속 보여야 한다(2026-07-13 사용자 피드백: 탭으로 분리해달라).
-    html += buildSummaryBox(data, entry, techScore);
+    html += buildSummaryBox(data, entry, techScore, fundamentals);
 
     activeView = 'flow'; // 새 검색마다 수급 탭으로 리셋
     html += buildViewTabs();
@@ -450,7 +456,7 @@
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
     wireFlowPeriod(box, data.code, data.name);
-    loadAiSummary(box, data, entry, techScore, chartData);
+    loadAiSummary(box, data, entry, techScore, chartData, fundamentals);
     wireViewTabs(box, data.code, data.name, chartData);
   }
 
@@ -489,21 +495,37 @@
     });
   }
 
+  // 2026-07-19: 종합점수(computeFundamentalScore)가 이 데이터를 필요로 해서 "펀더멘탈" 탭을
+  // 열 때만 부르던 걸 종목 조회 시점에 항상 먼저 불러오도록 분리(캐싱은 그대로 재사용).
+  function fetchFundamentals(code, name) {
+    if (fundamentalsCache[code]) return Promise.resolve(fundamentalsCache[code]);
+    if (fundamentalsInflight[code]) return fundamentalsInflight[code];
+    var p = fetchJson(GAS_TICKER_URL + '?action=fundamentals&code=' + encodeURIComponent(code))
+      .then(function (res) {
+        delete fundamentalsInflight[code];
+        fundamentalsCache[code] = res;
+        return res;
+      })
+      .catch(function (err) {
+        delete fundamentalsInflight[code];
+        throw err;
+      });
+    fundamentalsInflight[code] = p;
+    return p;
+  }
+
   // investorFlowCache와 동일한 패턴: 종목코드별로 캐싱해 탭 재전환 시 재호출하지 않는다.
+  // renderResult 시점에 fetchFundamentals가 이미 불러둬서(위 함수) 보통은 캐시 히트로
+  // 즉시 렌더링되고, 실패했을 때만 여기서 다시 시도한다.
   function loadFundamentals(box, code, name) {
     if (fundamentalsCache[code]) {
       box.innerHTML = buildFundamentalsPanel(fundamentalsCache[code], name);
       return;
     }
     box.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>펀더멘탈 데이터를 불러오는 중...</div></div>';
-    var p = fundamentalsInflight[code] || fetchJson(GAS_TICKER_URL + '?action=fundamentals&code=' + encodeURIComponent(code));
-    fundamentalsInflight[code] = p;
-    p.then(function (res) {
-      delete fundamentalsInflight[code];
-      fundamentalsCache[code] = res;
+    fetchFundamentals(code, name).then(function (res) {
       box.innerHTML = buildFundamentalsPanel(res, name);
     }).catch(function () {
-      delete fundamentalsInflight[code];
       box.innerHTML = '<div class="ff-error">펀더멘탈 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
     });
   }
@@ -921,6 +943,30 @@
     return Math.max(0, Math.min(100, Math.round(base + adj)));
   }
 
+  // 2026-07-19: scripts/cloud-vm/invest_signal.py의 compute_credit_score와 완전히 동일한
+  // 공식(둘 중 하나만 고치면 두 페이지 등급이 어긋남) - 반대매매 압박 신호를 "높을수록
+  // 안전"인 0~100으로 환산(플래그 없음=100, 가능성=40, 강함=10).
+  function computeCreditScore(credit) {
+    if (!credit || !credit.signal) return null;
+    var sig = credit.signal;
+    if (!sig.flag) return 100;
+    return (sig.label || '').indexOf('강함') !== -1 ? 10 : 40;
+  }
+
+  // 2026-07-19: scripts/cloud-vm/invest_signal.py의 compute_fundamental_score와 동일 공식.
+  // DART 연간 재무(ROE 60%+부채비율 40%)만 사용 - PER/PBR은 배치가 라이브 시세를 안 불러와서
+  // 제외(두 페이지가 항상 같은 입력으로 계산 가능해야 함). fundamentals.annual이 없으면(DART
+  // 미제출 등) null -> computeVerdict가 중립(50점)으로 채운다.
+  function computeFundamentalScore(fundamentals) {
+    var annual = fundamentals && fundamentals.fundamentals && fundamentals.fundamentals.annual;
+    if (!annual) return null;
+    var roe = annual.latest_roe_pct, debt = annual.latest_debt_ratio_pct;
+    if (roe == null && debt == null) return null;
+    var roeScore = roe != null ? (roe >= 15 ? 100 : roe >= 10 ? 80 : roe >= 5 ? 60 : roe >= 0 ? 40 : 20) : 50;
+    var debtScore = debt != null ? (debt <= 50 ? 100 : debt <= 100 ? 80 : debt <= 150 ? 60 : debt <= 200 ? 40 : 20) : 50;
+    return Math.round(roeScore * 0.6 + debtScore * 0.4);
+  }
+
   // computeFlowScore와 완전히 같은 신호(5·20일 롤링 합산 부호 4개)로 설명 문구를 만들어서
   // "오늘의 수급" 행의 점수와 설명이 절대 어긋나지 않게 한다(예: 100점인데 "방향이 뚜렷하지
   // 않다"고 나오는 모순 방지) - flowInterpText(아래, streak 기준)는 상단 배지 전용이고
@@ -1013,11 +1059,16 @@
     };
   }
 
-  // 종합점수 = 수급x0.40 + 외국인/기관x0.25 + 기술적x0.20 + 공매도x0.10 + 연기금x0.05
-  // (사용자 확정 가중치). 공매도는 높을수록 악재라 100에서 뺀 값을 넣어 방향을 맞춘다.
+  // 종합점수 = 수급x0.37 + 외국인/기관x0.23 + 기술적x0.17 + 공매도x0.08 + 연기금x0.04
+  // + 반대매매x0.03 + 펀더멘탈x0.08 (2026-07-19: 반대매매·펀더멘탈 신규 추가, 기존 5개는
+  // 비례 축소 - scripts/cloud-vm/invest_signal.py와 동일 가중치, "오늘의 투자시그널"
+  // 페이지 점수와 항상 일치해야 해서 두 곳을 항상 같이 고칠 것).
   // 데이터 없는 항목은 평균 대신 중립(50)으로 채워서 - 있는 항목만으로 재계산해
   // 가중치 배분이 흔들리는 것보다 "이 종목은 정보가 부족해 중립"이 더 예측 가능하다.
-  var SCORE_WEIGHTS = { flow: 0.40, foreignInst: 0.25, tech: 0.20, short: 0.10, pension: 0.05 };
+  var SCORE_WEIGHTS = {
+    flow: 0.37, foreignInst: 0.23, tech: 0.17, short: 0.08, pension: 0.04,
+    credit: 0.03, fundamental: 0.08
+  };
 
   function scoreToStars(score) {
     if (score == null) return null;
@@ -1069,26 +1120,39 @@
   // 쓰는 이유: 단순 평균은 항목 5개가 다 비슷한 무게로 섞여 변별력이 떨어진다(지시서 피드백).
   // 지시서 예시(수급75·외국인기관85·기술적30·공매도49·연기금22 -> 63.25점) 그대로 검증됨:
   // 화면에 표시되는 점수를 방향 보정 없이 그대로 가중합한다(공매도 점수도 raw 값을 그대로 사용).
-  function computeVerdict(flowScore, foreignInstScore, techScoreObj, shortScore, pensionScore) {
+  function computeVerdict(flowScore, foreignInstScore, techScoreObj, shortScore, pensionScore, creditScore, fundamentalScore) {
     var techVal = techScoreObj && techScoreObj.score != null ? techScoreObj.score : null;
     var vals = {
       flow: flowScore != null ? flowScore : 50,
       foreignInst: foreignInstScore != null ? foreignInstScore : 50,
       tech: techVal != null ? techVal : 50,
       short: shortScore != null ? shortScore : 50,
-      pension: pensionScore != null ? pensionScore : 50
+      pension: pensionScore != null ? pensionScore : 50,
+      credit: creditScore != null ? creditScore : 50,
+      fundamental: fundamentalScore != null ? fundamentalScore : 50
     };
     var composite = vals.flow * SCORE_WEIGHTS.flow
       + vals.foreignInst * SCORE_WEIGHTS.foreignInst
       + vals.tech * SCORE_WEIGHTS.tech
       + vals.short * SCORE_WEIGHTS.short
-      + vals.pension * SCORE_WEIGHTS.pension;
+      + vals.pension * SCORE_WEIGHTS.pension
+      + vals.credit * SCORE_WEIGHTS.credit
+      + vals.fundamental * SCORE_WEIGHTS.fundamental;
     var stars = scoreToStars(composite);
     var rec = starRecommendation(stars);
     return { score: composite, stars: stars, label: rec.label, cls: rec.cls };
   }
 
-  function buildSummaryBox(data, entry, techScore) {
+  function fundamentalInterpText(fundamentals) {
+    var annual = fundamentals && fundamentals.fundamentals && fundamentals.fundamentals.annual;
+    if (!annual) return '재무 데이터가 없는 종목입니다(DART 미제출 또는 아직 배치 스캔 전).';
+    var parts = [];
+    if (annual.latest_roe_pct != null) parts.push('ROE ' + fmtPct(annual.latest_roe_pct));
+    if (annual.latest_debt_ratio_pct != null) parts.push('부채비율 ' + fmtPct(annual.latest_debt_ratio_pct));
+    return parts.length ? parts.join(' · ') + ' 기준입니다.' : '재무 데이터가 불완전합니다.';
+  }
+
+  function buildSummaryBox(data, entry, techScore, fundamentals) {
     var flowScore = computeFlowScore(data);
     var foreignInstScore = computeForeignInstScore(data);
 
@@ -1101,14 +1165,24 @@
     var pStreak = pension && pension.streak;
     var pensionEmoji = pStreak ? (pStreak.direction === 'buy' ? '🟢' : pStreak.direction === 'sell' ? '🔴' : '⚪') : '⚪';
 
+    var creditP = entry && entry.credit;
+    var creditScore = computeCreditScore(creditP);
+    var creditEmoji = !creditP || !creditP.signal ? '⚪' : creditP.signal.flag ? '🔴' : '🟢';
+
+    var fundamentalScore = computeFundamentalScore(fundamentals);
+    var fundamentalEmoji = fundamentalScore == null ? '⚪' : fundamentalScore >= 70 ? '🟢' : fundamentalScore <= 40 ? '🔴' : '🟡';
+
     // 각 행의 desc를 일반 설명이 아니라 실제 해석 문장으로 채워서(구 ff-summary-interp 블록을
     // 아래에 따로 두지 않고) 점수 옆 칸에서 바로 이유를 보여준다.
+    // 2026-07-19: 반대매매·펀더멘탈 2행 추가(사용자 요청 - "점수에 반영해줘").
     var rows = [
       { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: flowScoreInterpText(data) },
       { icon: '🌐', label: '외국인·기관', score: foreignInstScore, desc: foreignInstDescText(data) },
       { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: techInterpText(techScore) },
       { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: shortInterpText(entry && entry.short, entry && entry.loan) },
-      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pensionInterpText(pension).text }
+      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pensionInterpText(pension).text },
+      { icon: creditEmoji, label: '반대매매', score: creditScore, desc: creditP && creditP.signal ? creditP.signal.text : '신용융자 데이터가 없는 종목입니다.' },
+      { icon: fundamentalEmoji, label: '펀더멘탈', score: fundamentalScore, desc: fundamentalInterpText(fundamentals) }
     ];
 
     var rowsHtml = rows.map(function (r, i) {
@@ -1121,7 +1195,7 @@
         + '</div>';
     }).join('');
 
-    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore);
+    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
 
     // 판정(별점+등급)과 AI 근거 문장이 한 줄에 뭉치면 안 읽혀서(사용자 피드백),
     // 판정 박스는 등급 색으로 칠해 분리하고 AI 요약은 그 아래 별도 줄로 내린다.
@@ -1145,7 +1219,7 @@
   // 별점 판정(computeVerdict)과 다른 결론을 AI가 스스로 내리는 걸 막기 위해, 여기서도
   // buildSummaryBox와 똑같이 5개 컴포넌트 점수 + verdict를 구해서 GAS에 "이미 이 결론이다"로
   // 넘긴다 - LLM은 근거 문장만 쓰고 매수/매도/보유 자체는 다시 판단하지 않는다.
-  function loadAiSummary(box, data, entry, techScore, chartData) {
+  function loadAiSummary(box, data, entry, techScore, chartData, fundamentals) {
     var el = box.querySelector('#ffAiSummary .ff-summary-ai-text');
     if (!el) return;
 
@@ -1155,7 +1229,10 @@
     var flowScore = computeFlowScore(data);
     var foreignInstScore = computeForeignInstScore(data);
     var shortScore = shortP ? shortP.score : null;
-    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore);
+    var creditP = entry && entry.credit;
+    var creditScore = computeCreditScore(creditP);
+    var fundamentalScore = computeFundamentalScore(fundamentals);
+    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
 
     var daily = chartData && chartData.daily;
     var volNote = volumeMultipleText(daily ? computeVolumeMultiple(daily) : null);
@@ -1178,6 +1255,9 @@
       + '&rsiNote=' + encodeURIComponent(rsiNote)
       + '&verdictLabel=' + encodeURIComponent(verdict.label)
       + '&verdictScore=' + (verdict.score == null ? '' : Math.round(verdict.score));
+    // creditScore/fundamentalScore는 verdict 계산엔 이미 반영됐지만, GAS flowAiSummary
+    // 프롬프트(gas/ticker-proxy.gs)는 아직 이 두 값을 안 읽음 - 근거 문장에 반영하려면
+    // GAS 쪽도 별도로 고치고 수동 재배포해야 함(2026-07-19 기준 미착수, 점수 자체는 정확함).
 
     fetchJson(GAS_TICKER_URL + qs)
       .then(function (res) {

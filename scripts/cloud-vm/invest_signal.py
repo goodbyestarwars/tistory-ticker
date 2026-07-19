@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
-"""투자시그널 점수/등급 계산 - gas/ticker-proxy.gs(및 js/foreign-flow.js와 동일 공식)의
-computeFlowScoreServer_/computeForeignInstScoreServer_/computeVerdictServer_/
-computePensionScoreServer_/foreignInstShiftScore_를 그대로 포팅."""
+"""투자시그널 점수/등급 계산 - js/foreign-flow.js와 동일 공식을 그대로 포팅(원래 GAS에
+있던 computeFlowScoreServer_ 등은 2026-07-13에 이 파일로 이전되며 삭제됨 - GAS 재배포
+없이 git push만으로 반영되는 이 경로가 정본).
+2026-07-19(4차): 반대매매 압박(credit)·펀더멘탈(fundamental) 점수 추가(사용자 요청 -
+"작게만 떼어내서 추가") - 기존 5개 가중치를 비례 축소하고 신규 2개를 작게 배분."""
 
-SCORE_WEIGHTS = {'flow': 0.40, 'foreignInst': 0.25, 'tech': 0.20, 'short': 0.10, 'pension': 0.05}
+SCORE_WEIGHTS = {
+    'flow': 0.37, 'foreignInst': 0.23, 'tech': 0.17, 'short': 0.08, 'pension': 0.04,
+    'credit': 0.03, 'fundamental': 0.08,
+}
 PENSION_TONE_SCORE = {'very_positive': 90, 'positive': 75, 'neutral_positive': 60, 'neutral': 50, 'caution': 25}
 
 INVEST_SIGNAL_BUCKET_CAP = 100
@@ -95,8 +100,43 @@ def compute_pension_score(p):
     return max(0, min(100, round(base + adj)))
 
 
-def compute_verdict(flow_score, foreign_inst_score, tech_score_obj, short_score, pension_score):
-    """가중치 기반 종합점수 -> 별점(0~5, 0.5단위) -> 추천 라벨. 데이터 없는 항목은 중립(50점)."""
+def compute_credit_score(credit):
+    """반대매매 압박 신호(investor_flow.credit_pressure_signal)를 0~100 점수로 환산.
+    다른 컴포넌트와 같은 "높을수록 좋다" 관례를 맞추려고 위험할수록 점수를 낮춘다 -
+    플래그 없음(특이사항 없음)=100(안전), '가능성'=40, '강함'=10. 신용거래 자체가 없는
+    종목(credit 전체가 없음)은 None -> compute_verdict가 중립(50점)으로 채운다."""
+    if not credit or not credit.get('signal'):
+        return None
+    sig = credit['signal']
+    if not sig.get('flag'):
+        return 100
+    return 10 if '강함' in (sig.get('label') or '') else 40
+
+
+def compute_fundamental_score(annual):
+    """DART 연간 재무(annual, fundamentals.fetch_stock의 'annual' 필드)로 펀더멘탈 점수
+    0~100 산출 - ROE(수익성, 60%)와 부채비율(안정성, 40%) 2개만 사용(PER/PBR은 배치가
+    라이브 시세를 안 불러와서 제외 - 종목분석 페이지의 펀더멘탈 탭엔 별도로 표시됨,
+    점수에는 두 페이지가 똑같이 계산 가능한 이 2개 지표만 반영해 일관성을 맞춤).
+    DART 미제출 등으로 annual 자체가 없으면 None -> 중립(50점)."""
+    if not annual:
+        return None
+    roe = annual.get('latest_roe_pct')
+    debt = annual.get('latest_debt_ratio_pct')
+    if roe is None and debt is None:
+        return None
+    roe_score = (100 if roe >= 15 else 80 if roe >= 10 else 60 if roe >= 5 else 40 if roe >= 0 else 20) \
+        if roe is not None else 50
+    debt_score = (100 if debt <= 50 else 80 if debt <= 100 else 60 if debt <= 150 else 40 if debt <= 200 else 20) \
+        if debt is not None else 50
+    return round(roe_score * 0.6 + debt_score * 0.4)
+
+
+def compute_verdict(flow_score, foreign_inst_score, tech_score_obj, short_score, pension_score,
+                     credit_score=None, fundamental_score=None):
+    """가중치 기반 종합점수 -> 별점(0~5, 0.5단위) -> 추천 라벨. 데이터 없는 항목은 중립(50점).
+    credit_score/fundamental_score는 기본값 None을 둬서(2026-07-19 추가) 이 함수를 옛 5개
+    인자로 호출하던 자리가 있어도 깨지지 않는다."""
     tech_val = tech_score_obj.get('score') if tech_score_obj else None
     vals = {
         'flow': flow_score if flow_score is not None else 50,
@@ -104,6 +144,8 @@ def compute_verdict(flow_score, foreign_inst_score, tech_score_obj, short_score,
         'tech': tech_val if tech_val is not None else 50,
         'short': short_score if short_score is not None else 50,
         'pension': pension_score if pension_score is not None else 50,
+        'credit': credit_score if credit_score is not None else 50,
+        'fundamental': fundamental_score if fundamental_score is not None else 50,
     }
     composite = sum(vals[k] * SCORE_WEIGHTS[k] for k in SCORE_WEIGHTS)
     stars = max(0, min(5, round(composite / 20 * 2) / 2))
