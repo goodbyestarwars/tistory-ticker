@@ -1998,10 +1998,17 @@
   }
 
   // 외국인 보유율 미니차트
+  // 2026-07-20: foreign_ratio가 전부 null인 경우(ka10008 소스 일시 장애 등)
+  // last.toFixed()에서 TypeError가 나서 위젯 전체(수급 표까지)가 "불러오지 못했어요"로
+  // 죽는 버그 발견(fetch 자체는 200으로 성공했는데 렌더링 중 예외가 나서 Promise.all
+  // catch로 흡수됨) - 데이터가 아예 없을 땐 차트를 그리지 않고 안내문구만 보여준다.
   function buildRatioChart(daily) {
     var asc = daily.slice().reverse();
     var n = asc.length;
     if (n < 2) return '';
+    if (!asc.some(function (d) { return d.foreign_ratio != null; })) {
+      return '<div class="ff-chart-empty">외국인 보유율 데이터를 일시적으로 가져오지 못했어요.</div>';
+    }
 
     var dom = ratioDomain(asc);
     var min = dom.min;
@@ -2026,10 +2033,15 @@
     svg += hoverMarkup(RATIO_H, ['ratio']);
     svg += '</svg>';
 
-    var last = asc[n - 1].foreign_ratio;
+    // 전체가 null은 아니어도(위 가드 통과) 가장 최근 날짜 하나만 null인 예외적인 경우를
+    // 대비해 last도 개별적으로 null 방어(뒤에서부터 가장 최근 실측치를 찾는다).
+    var last = null;
+    for (var li = n - 1; li >= 0; li--) {
+      if (asc[li].foreign_ratio != null) { last = asc[li].foreign_ratio; break; }
+    }
     return '<div class="ff-chart ff-chart-ratio">' + svg
       + '<div class="ff-tt" hidden></div>'
-      + '<div class="ff-legend"><span class="ff-legend-item"><i class="ff-dot ff-dot-ratio"></i>보유율 (현재 ' + last.toFixed(2) + '%)</span></div>'
+      + '<div class="ff-legend"><span class="ff-legend-item"><i class="ff-dot ff-dot-ratio"></i>보유율 (현재 ' + (last == null ? '-' : last.toFixed(2) + '%') + ')</span></div>'
       + '</div>';
   }
 

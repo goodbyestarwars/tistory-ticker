@@ -283,6 +283,15 @@
   background: #f7f7f8;
   border-radius: 8px;
 }
+/* 2026-07-20: foreign_ratio 데이터가 없을 때(buildRatioChart) 차트 대신 표시하는 안내문구 */
+#foreign-flow .ff-chart-empty {
+  padding: 14px 12px;
+  text-align: center;
+  color: #999;
+  font-size: 12.5px;
+  background: #f7f7f8;
+  border-radius: 8px;
+}
 #foreign-flow .ff-extra {
   display: flex;
   flex-direction: column;
@@ -691,6 +700,7 @@ html.dark #foreign-flow .ff-badge-legend { color: #888 !important; }
 html.dark #foreign-flow .ff-badge-legend b { color: #aaa !important; }
 
 html.dark #foreign-flow .ff-extra-missing { background: #262626 !important; color: #999 !important; }
+html.dark #foreign-flow .ff-chart-empty { background: #262626 !important; color: #999 !important; }
 html.dark #foreign-flow .ff-extra-card { background: #262626 !important; border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-extra-card-title { color: #eee !important; }
 html.dark #foreign-flow .ff-extra-grade { color: #999 !important; }
