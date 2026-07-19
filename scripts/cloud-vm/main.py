@@ -156,6 +156,22 @@ def health():
     return envelope({'status': 'ok'})
 
 
+@app.get('/debug-industry/{code}')
+def debug_industry(code: str = Path(..., min_length=6, max_length=6)):
+    """임시 디버그용(2026-07-20, 확인 후 제거 예정) - 키움 ka10100(종목정보 조회)의
+    upName(업종명) 필드가 실제로 어떤 값을 주는지 확인하기 위함(사용자가 "삼성전자 키움에서
+    뭐라고 되어 있어?"라고 물어봤는데 MCP 키움 토큰이 만료돼 있어서 로컬/MCP로는 확인 불가 -
+    이미 유효한 키를 갖고 있는 이 VM에서 대신 조회). 인증 없이 열어둠(health와 동일 패턴)."""
+    try:
+        token = get_kiwoom_token()
+        res = kiwoom_client.call_tr(token, 'ka10100', '/api/dostk/stkinfo', {'stk_cd': code})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return envelope(res)
+
+
 @app.get('/quote')
 def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = Header(default=None)):
     require_api_key(x_api_key)
