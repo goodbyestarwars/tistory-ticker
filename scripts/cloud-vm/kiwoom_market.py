@@ -3,11 +3,14 @@
 gas/ticker-proxy.gs의 fetchDailyOhlc_/getForeignFlow(네이버 크롤링)를 대체하는
 공식 키움 API 버전 - daily_scan.py(패턴/눌림목/투자시그널 배치)가 사용한다."""
 
+import logging
 import time
 from datetime import datetime, timedelta
 
 import kis_client
 import kiwoom_client
+
+logger = logging.getLogger('kiwoom_market')
 
 OHLC_MIN_DAYS = 100   # gas의 PATTERN_PAGES(10p*10행=100영업일)와 동일 기준
 OHLC_SNAPSHOT_DAYS = 500  # daily_scan.py가 SQLite(daily_prices)에 저장하는 일수 - 일목균형표 구름대/224일선 스캐너 + 장기 추세 분석 여유분(260->500, 2026-07-14). 디스크 실측 550일=290MB(daily_prices+investor_flow_daily 합산)라 30GB 기준 부담 없음. ka10081 단일 호출로 최대 ~600영업일까지 나와서 API 추가 호출 없이 커버됨.
@@ -287,7 +290,12 @@ def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, t
     if kis_appkey and kis_appsecret:
         try:
             out = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days)
-        except Exception:
+        except Exception as e:
+            # 2026-07-19: 이 예외를 조용히 삼키고 키움으로 폴백하기만 해서, 폴백이 실제로
+            # 언제·왜 발동됐는지(유량제한 EGW00201인지, 토큰 만료인지, 다른 오류인지) 확인할
+            # 방법이 없었음(사용자가 KIS 고객센터에 문의해 원인 규명 시도 중 발견) - 최소한
+            # journalctl(kiwoom-api.service)에서 원인을 볼 수 있게 로그만 남긴다.
+            logger.warning('KIS 실패(%s), 키움 폴백으로 전환: %s', code, e)
             out = None
     if out is None:
         out = _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, target_days)
