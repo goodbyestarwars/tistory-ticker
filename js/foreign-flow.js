@@ -551,8 +551,12 @@
     var annual = fundamentals && fundamentals.annual;
     var quarter = fundamentals && fundamentals.latest_quarter;
 
+    // 2026-07-20: 제목이 "기업 개요 · 업종"이었는데 실제로 보여주는 건 시가총액/발행주식수
+    // 등 밸류에이션 숫자뿐이라 사용자가 "이게 왜 업종이야, 시가총액이잖아"라고 지적함(사업을
+    // 설명하는 텍스트 데이터소스 자체가 없어 "기업개요"는 애초에 구현된 적이 없음, 아래
+    // buildSectorTags 참고) - 실제 내용과 맞게 제목을 바꿈. 업종 태그는 그대로 이어붙임.
     var html = '<div class="ff-fund-section">'
-      + '<div class="ff-fund-title">기업 개요 · 업종</div>'
+      + '<div class="ff-fund-title">업종 · 시가총액</div>'
       + (valuation ? buildOverviewGrid(valuation) : '<div class="ff-hint">밸류에이션 데이터를 불러오지 못했어요.</div>')
       + buildSectorTags(res && res.code)
       + '</div>';
@@ -612,7 +616,10 @@
   // 반환한다(기능 깨짐 없음) - 로드하려면 종목분석 포스트 HTML에 스크립트 태그 추가 필요.
   function buildSectorTags(code) {
     var map = global.SECTOR_MAP;
-    if (!map || !code) return '';
+    // 2026-07-20: SECTOR_MAP이 없으면(이 포스트에 data/sectors-v3.js 스크립트 태그가 아직
+    // 안 붙어 있으면) 예전엔 조용히 빈 문자열만 반환해서 "업종" 섹션이 통째로 안 보이는
+    // 것과 "이 종목은 업종 분류가 없는 것"의 구분이 안 됐다 - 안내 문구로 원인을 드러낸다.
+    if (!map || !code) return '<div class="ff-hint">업종 데이터를 불러오지 못했어요.</div>';
     var sectors = [];
     for (var name in map) {
       if (!map.hasOwnProperty(name)) continue;
@@ -621,7 +628,7 @@
         if (list[i].code === code) { sectors.push(name); break; }
       }
     }
-    if (!sectors.length) return '';
+    if (!sectors.length) return '<div class="ff-hint">업종 분류 정보가 없는 종목입니다.</div>';
     return '<div class="ff-sector-tags">' + sectors.map(function (s) {
       return '<span class="ff-badge ff-badge-neutral">' + escapeHtml(s) + '</span>';
     }).join('') + '</div>';
