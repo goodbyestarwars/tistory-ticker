@@ -107,6 +107,12 @@
   overflow: hidden;
   background: #fff;
 }
+/* 2026-07-19: 세로 1열 나열이 너무 길다는 피드백 - 2열 그리드로 배치, 홀수 항목이면
+   마지막 한 칸만 ff-summary-row-full로 전체 폭을 차지. 좁은 화면(모바일)에서는 다시 1열. */
+#foreign-flow .ff-summary-rows {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
 #foreign-flow .ff-summary-row {
   display: flex;
   flex-wrap: wrap;
@@ -116,7 +122,13 @@
   border-bottom: 1px solid #eee;
   font-size: 13.5px;
 }
+#foreign-flow .ff-summary-rows .ff-summary-row:nth-child(odd) { border-right: 1px solid #eee; }
+#foreign-flow .ff-summary-row-full { grid-column: 1 / -1; border-right: none !important; }
 #foreign-flow .ff-summary-row-last { border-bottom: none; }
+@media (max-width: 480px) {
+  #foreign-flow .ff-summary-rows { grid-template-columns: 1fr; }
+  #foreign-flow .ff-summary-rows .ff-summary-row:nth-child(odd) { border-right: none; }
+}
 #foreign-flow .ff-summary-icon { font-size: 15px; }
 #foreign-flow .ff-summary-label { font-weight: 700; min-width: 84px; }
 #foreign-flow .ff-summary-score { font-weight: 700; color: #333; min-width: 42px; }
@@ -630,6 +642,7 @@ html.dark #foreign-flow .ff-error {
 }
 html.dark #foreign-flow .ff-summary { background: #262626 !important; border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-summary-row { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-summary-rows .ff-summary-row:nth-child(odd) { border-right-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-summary-label { color: #eee !important; }
 html.dark #foreign-flow .ff-summary-score { color: #ddd !important; }
 html.dark #foreign-flow .ff-summary-desc { color: #999 !important; }

@@ -1185,8 +1185,13 @@
       { icon: fundamentalEmoji, label: '펀더멘탈', score: fundamentalScore, desc: fundamentalInterpText(fundamentals) }
     ];
 
+    // 2026-07-19: 7개 행이 세로로 쭉 나열돼 스크롤이 길어진다는 피드백 - 2열 그리드로 배치.
+    // 항목 수가 홀수(7)라 마지막 한 칸만 2열을 다 차지하게(ff-summary-row-full) 처리, 짝수로
+    // 바뀌어도 자동으로 맞아떨어지도록 rows.length % 2로 계산(하드코딩 안 함).
     var rowsHtml = rows.map(function (r, i) {
-      return '<div class="ff-summary-row' + (i === rows.length - 1 ? ' ff-summary-row-last' : '') + '">'
+      var isLast = i === rows.length - 1;
+      var cls = 'ff-summary-row' + (isLast ? ' ff-summary-row-last' : '') + (isLast && rows.length % 2 === 1 ? ' ff-summary-row-full' : '');
+      return '<div class="' + cls + '">'
         + '<span class="ff-summary-icon">' + r.icon + '</span>'
         + '<span class="ff-summary-label">' + r.label + '</span>'
         + '<span class="ff-summary-score">' + (r.score == null ? '-' : r.score + '점') + '</span>'
@@ -1202,7 +1207,7 @@
     var verdictTone = verdict.cls === 'ff-buy' ? 'buy' : verdict.cls === 'ff-sell' ? 'sell' : 'flat';
 
     return '<div class="ff-summary">'
-      + rowsHtml
+      + '<div class="ff-summary-rows">' + rowsHtml + '</div>'
       + '<div class="ff-verdict-box ff-verdict-box-' + verdictTone + '">'
       + '<span class="ff-verdict ' + verdict.cls + '">' + verdict.label + '</span>'
       + starsHtml(verdict.stars, 'ff-stars-lg')
@@ -1379,13 +1384,15 @@
     }).join('') + '</div>';
   }
 
-  function buildFlowChartsWrap(daily) {
-    return '<div id="ffFlowChartsWrap">'
-      + '<div class="ff-chart-title">개인·외국인·기관 순매매량 추이 (최근 ' + daily.length + '영업일)</div>'
+  function buildFlowChartsInner(daily) {
+    return '<div class="ff-chart-title">개인·외국인·기관 순매매량 추이 (최근 ' + daily.length + '영업일)</div>'
       + buildNetChart(daily)
       + '<div class="ff-chart-title">외국인 보유율 추이</div>'
-      + buildRatioChart(daily)
-      + '</div>';
+      + buildRatioChart(daily);
+  }
+
+  function buildFlowChartsWrap(daily) {
+    return '<div id="ffFlowChartsWrap">' + buildFlowChartsInner(daily) + '</div>';
   }
 
   // ---- 수급(연속매매 배지 + 롤링 표 + 순매매량/보유율 추이) - 하나의 구역 카드로 묶음 ----
@@ -1409,6 +1416,10 @@
   // 기간 버튼 클릭 시 /foreign-flow?days=를 다시 불러 순매매량/보유율 차트만 교체한다
   // (표·배지·판정문구는 어느 기간이든 항상 동일해서 다시 그릴 필요 없음, 위 주석 참고).
   // fetchFlow 캐시가 code+days 조합별로 따로 캐싱하므로 같은 기간 재클릭은 즉시 응답된다.
+  // 2026-07-19: 첫 클릭만 반응하고 이후 버튼이 먹통이 되는 버그 발견 - chartsWrap.outerHTML로
+  // 통째로 교체하면 그 시점에 잡고 있던 chartsWrap DOM 노드가 문서에서 떨어져나가면서 클로저가
+  // 든 chartsWrap 변수는 계속 "죽은" 노드를 가리키게 됨(재조회 안 함). innerHTML만 갈아끼워
+  // 컨테이너 노드 자체는 항상 같은 걸 쓰도록 고침 - 이제 몇 번을 눌러도 같은 노드가 살아있다.
   function wireFlowPeriod(box, code, name) {
     var wrap = box.querySelector('#ffFlowPeriod');
     var chartsWrap = box.querySelector('#ffFlowChartsWrap');
@@ -1422,10 +1433,9 @@
       ForeignFlow.fetchFlow(code, name, days)
         .then(function (data) {
           if (!data || data.error || !data.daily || !data.daily.length) throw new Error('기간 데이터 없음');
-          chartsWrap.outerHTML = buildFlowChartsWrap(data.daily);
-          var newWrap = box.querySelector('#ffFlowChartsWrap');
-          wireChartHover(newWrap.querySelector('.ff-chart-net'), data.daily, 'net');
-          wireChartHover(newWrap.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
+          chartsWrap.innerHTML = buildFlowChartsInner(data.daily);
+          wireChartHover(chartsWrap.querySelector('.ff-chart-net'), data.daily, 'net');
+          wireChartHover(chartsWrap.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
         })
         .catch(function () {
           chartsWrap.innerHTML = '<div class="ff-error">해당 기간 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
