@@ -631,6 +631,13 @@
   // 이미 이 저장소에 있는 data/sectors-v3.js(SECTOR_MAP)의 업종 태그로 대신한다. 그 파일이
   // 이 페이지에 <script>로 로드돼 있지 않으면 window.SECTOR_MAP이 없어 조용히 빈 문자열을
   // 반환한다(기능 깨짐 없음) - 로드하려면 종목분석 포스트 HTML에 스크립트 태그 추가 필요.
+  // data/sectors-v3.js의 SECTOR_MAP 키는 대부분 실제 업종/테마(반도체, 2차전지 등)지만
+  // "코스피 3대장"처럼 섹터 대시보드용 큐레이션 그룹(시총 상위 강조용)도 섞여 있음 - 그건
+  // 대시보드에서는 의미가 있지만 개별 종목의 "업종" 배지로 보여주면 어색하다(2026-07-20
+  // 사용자 피드백: "코스피 3대장이 왠 업종이냐"). sectors-v3.js 자체는 안 건드리고(대시보드
+  // 쪽 용도는 그대로 유지) 여기 렌더링에서만 제외한다.
+  var NON_INDUSTRY_SECTOR_NAMES = { '코스피 3대장': true };
+
   function buildSectorTags(code) {
     var map = global.SECTOR_MAP;
     // 2026-07-20: SECTOR_MAP이 없으면(이 포스트에 data/sectors-v3.js 스크립트 태그가 아직
@@ -639,7 +646,7 @@
     if (!map || !code) return '<div class="ff-hint">업종 데이터를 불러오지 못했어요.</div>';
     var sectors = [];
     for (var name in map) {
-      if (!map.hasOwnProperty(name)) continue;
+      if (!map.hasOwnProperty(name) || NON_INDUSTRY_SECTOR_NAMES[name]) continue;
       var list = map[name] || [];
       for (var i = 0; i < list.length; i++) {
         if (list[i].code === code) { sectors.push(name); break; }
