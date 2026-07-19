@@ -66,6 +66,12 @@ def signal(daily, rolling, kind):
     return {'trend_shift': shift, 'price_confirmed': price_confirmed, 'note': note}
 
 
+# 2026-07-19(3차): 수급 표를 "당일~4일전 개별행 + 5일/10일/20일/2개월/3개월 합산행"으로
+# 재구성하면서 2개월(42영업일)/3개월(63영업일) 윈도우 추가 - 반복되는 4줄짜리 블록을
+# 늘리는 대신 (dict키, 영업일수) 목록으로 두고 루프 조립.
+ROLLING_WINDOWS = [('5d', 5), ('10d', 10), ('20d', 20), ('2m', 42), ('3m', 63)]
+
+
 def build_result(code, daily):
     """gas getForeignFlow()와 동일한 응답 형태({code, as_of, daily, rolling,
     amount_estimate, streak, signal})로 조립. name은 여기서 안 채움(호출부가 이미 아는
@@ -76,30 +82,21 @@ def build_result(code, daily):
     if not daily:
         return None
 
-    rolling = {
-        'today': {'foreign': daily[0]['foreign_net'], 'inst': daily[0]['inst_net'], 'ind': daily[0]['ind_net']},
-        '5d': {'foreign': rolling_sum(daily, 'foreign_net', 5), 'inst': rolling_sum(daily, 'inst_net', 5),
-               'ind': rolling_sum(daily, 'ind_net', 5)},
-        '10d': {'foreign': rolling_sum(daily, 'foreign_net', 10), 'inst': rolling_sum(daily, 'inst_net', 10),
-                'ind': rolling_sum(daily, 'ind_net', 10)},
-        '20d': {'foreign': rolling_sum(daily, 'foreign_net', 20), 'inst': rolling_sum(daily, 'inst_net', 20),
-                'ind': rolling_sum(daily, 'ind_net', 20)},
-    }
-
+    rolling = {'today': {'foreign': daily[0]['foreign_net'], 'inst': daily[0]['inst_net'], 'ind': daily[0]['ind_net']}}
     amount_estimate = {
         'today_krw': amount_sum(daily, 'foreign_net', 1),
-        '5d_krw': amount_sum(daily, 'foreign_net', 5),
-        '10d_krw': amount_sum(daily, 'foreign_net', 10),
-        '20d_krw': amount_sum(daily, 'foreign_net', 20),
         'inst_today_krw': amount_sum(daily, 'inst_net', 1),
-        'inst_5d_krw': amount_sum(daily, 'inst_net', 5),
-        'inst_10d_krw': amount_sum(daily, 'inst_net', 10),
-        'inst_20d_krw': amount_sum(daily, 'inst_net', 20),
         'ind_today_krw': amount_sum(daily, 'ind_net', 1),
-        'ind_5d_krw': amount_sum(daily, 'ind_net', 5),
-        'ind_10d_krw': amount_sum(daily, 'ind_net', 10),
-        'ind_20d_krw': amount_sum(daily, 'ind_net', 20),
     }
+    for key, n in ROLLING_WINDOWS:
+        rolling[key] = {
+            'foreign': rolling_sum(daily, 'foreign_net', n),
+            'inst': rolling_sum(daily, 'inst_net', n),
+            'ind': rolling_sum(daily, 'ind_net', n),
+        }
+        amount_estimate[key + '_krw'] = amount_sum(daily, 'foreign_net', n)
+        amount_estimate['inst_' + key + '_krw'] = amount_sum(daily, 'inst_net', n)
+        amount_estimate['ind_' + key + '_krw'] = amount_sum(daily, 'ind_net', n)
 
     return {
         'code': code.upper(),

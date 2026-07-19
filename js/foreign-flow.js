@@ -278,10 +278,11 @@
   // 2026-07-13: 키움 API(VM 직접 호출)를 1차로 쓰고, 실패할 때만 네이버(GAS 경유) 폴백으로
   // 넘어간다 - 네이버는 백업 전용, 평소엔 안 씀.
   // days: 수급 기간 선택(1개월=30/3개월=63/6개월=126/1년=252, 2026-07-19 도입) - 생략하면
-  // 백엔드 기본치(30)와 맞춰 캐시 키가 겹치도록 여기서도 30으로 고정한다(같은 기간을
-  // 기본 로드 후 버튼으로 다시 눌러도 재요청 없이 캐시로 즉시 응답).
+  // 백엔드 기본치(63=3개월, kiwoom_market.FLOW_DEFAULT_DAYS와 동일)와 맞춰 캐시 키가
+  // 겹치도록 여기서도 63으로 고정한다(같은 기간을 기본 로드 후 버튼으로 다시 눌러도
+  // 재요청 없이 캐시로 즉시 응답).
   function fetchFlow(code, name, days) {
-    days = days || 30;
+    days = days || 63;
     var cacheKey = code + ':' + days;
     var hit = cacheByCode[cacheKey];
     if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
@@ -1227,15 +1228,33 @@
     return html;
   }
 
+  var ROLLING_TABLE_WINDOWS = [
+    ['5d', '5일 합산'], ['10d', '10일 합산'], ['20d', '20일 합산'],
+    ['2m', '2개월 합산'], ['3m', '3개월 합산']
+  ];
+
   function buildRollingTable(data) {
     var amt = data.amount_estimate || {};
-    // 2026-07-18: 개인(ind) 열 추가 후, 열 순서를 "개인/외국인/기관"으로 재배치(사용자 요청).
-    var rows = [
-      ['당일', data.rolling.today, amt.ind_today_krw, amt.today_krw, amt.inst_today_krw],
-      ['5일 합산', data.rolling['5d'], amt.ind_5d_krw, amt['5d_krw'], amt.inst_5d_krw],
-      ['10일 합산', data.rolling['10d'], amt.ind_10d_krw, amt['10d_krw'], amt.inst_10d_krw],
-      ['20일 합산', data.rolling['20d'], amt.ind_20d_krw, amt['20d_krw'], amt.inst_20d_krw]
-    ];
+    var daily = data.daily || [];
+
+    // 2026-07-19(3차): 당일~4일전은 일자별로, 그 이후는 5일/10일/20일/2개월/3개월 합산만
+    // 보여주도록 재구성(사용자 피드백 - 최근 며칠은 일자별 상세가, 긴 구간은 합산만
+    // 필요하다는 요청). 개인/외국인/기관 열 순서는 기존 그대로(2026-07-18 재배치 유지).
+    var rows = [];
+    for (var i = 0; i < Math.min(5, daily.length); i++) {
+      var d = daily[i];
+      rows.push([
+        i === 0 ? '당일' : d.date.slice(5).replace('-', '/'),
+        { ind: d.ind_net, foreign: d.foreign_net, inst: d.inst_net },
+        d.ind_net * d.close, d.foreign_net * d.close, d.inst_net * d.close
+      ]);
+    }
+    ROLLING_TABLE_WINDOWS.forEach(function (w) {
+      var key = w[0], label = w[1];
+      var r = data.rolling && data.rolling[key];
+      if (!r) return; // 조회 기간이 짧아 데이터가 부족하면(예: 5일치만 불러온 경우) 해당 구간 생략
+      rows.push([label, r, amt['ind_' + key + '_krw'], amt[key + '_krw'], amt['inst_' + key + '_krw']]);
+    });
 
     var html = '<table class="ff-table"><thead><tr>'
       + '<th>구분</th><th>개인 순매매(주)</th><th>개인 추정대금</th>'
@@ -1265,9 +1284,12 @@
   // 차트·보유율 차트에 보여줄 과거 일수만 바꾸고 위 표/배지 값은 그대로다 - 그래서
   // 기간을 바꿔도 buildRollingTable/buildBadges는 다시 그릴 필요가 없다(#ffFlowChartsWrap만
   // 교체, wireFlowPeriod 참고).
+  // 2026-07-19(3차): 1개월/3개월/6개월/1년 -> 5일/10일/20일/2개월/3개월로 축소(사용자
+  // 피드백 - 1년까지는 필요 없고, 표의 합산 구간(5/10/20일/2개월/3개월)과 맞춰 같은
+  // 기간 어휘를 쓰는 게 일관적). 기본 진입 시 활성 버튼은 63일(3개월, FLOW_DEFAULT_DAYS와 동일).
   var FLOW_PERIOD_OPTIONS = [
-    { days: 30, label: '1개월' }, { days: 63, label: '3개월' },
-    { days: 126, label: '6개월' }, { days: 252, label: '1년' }
+    { days: 5, label: '5일' }, { days: 10, label: '10일' }, { days: 20, label: '20일' },
+    { days: 42, label: '2개월' }, { days: 63, label: '3개월' }
   ];
 
   function buildFlowPeriodButtons(activeDays) {

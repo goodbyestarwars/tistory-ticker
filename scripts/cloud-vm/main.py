@@ -218,7 +218,7 @@ def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     return envelope(result)
 
 
-FOREIGN_FLOW_DAY_OPTIONS = {30, 63, 126, 252}  # 1개월/3개월/6개월/1년(영업일 근사) - 프론트 기간 선택 버튼과 1:1 대응
+FOREIGN_FLOW_DAY_OPTIONS = {5, 10, 20, 42, 63}  # 5일/10일/20일/2개월/3개월(영업일 근사) - 프론트 기간 선택 버튼과 1:1 대응
 
 
 @app.get('/foreign-flow/{code}')

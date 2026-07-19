@@ -12,8 +12,13 @@ import kiwoom_client
 OHLC_MIN_DAYS = 100   # gas의 PATTERN_PAGES(10p*10행=100영업일)와 동일 기준
 OHLC_SNAPSHOT_DAYS = 500  # daily_scan.py가 SQLite(daily_prices)에 저장하는 일수 - 일목균형표 구름대/224일선 스캐너 + 장기 추세 분석 여유분(260->500, 2026-07-14). 디스크 실측 550일=290MB(daily_prices+investor_flow_daily 합산)라 30GB 기준 부담 없음. ka10081 단일 호출로 최대 ~600영업일까지 나와서 API 추가 호출 없이 커버됨.
 FLOW_LOOKBACK_DAYS = 60  # 달력일 기준 - 영업일로 환산하면 40영업일(gas FRGN_PAGES=2*20행)를 넉넉히 커버
-FLOW_DEFAULT_DAYS = 30  # 기간 선택 없이 종목분석 페이지를 열었을 때 기본치 - KIS 1회 호출 분량과 동일
-FLOW_MAX_KIS_PAGES = 10  # 기간 선택(최대 1년=약 252영업일)용 KIS 다중호출 상한 - 30*10=300영업일로 충분
+# 2026-07-19(3차): 기간 선택 최댓값을 1년(252)->3개월(63)로 축소(사용자 피드백 - 1년까지는
+# 필요 없고 5일/10일/20일/2개월/3개월이 실제로 쓰는 단위). 기본치도 63으로 올려서(예전
+# 30) 표의 "3개월 합산" 행이 최초 로드 때부터 항상 데이터를 갖도록 함 - 표 집계 구간은
+# 기간 선택 버튼과 무관하게 항상 최신 기준으로 고정이라(foreign_flow_compute.py) 기본
+# 로드 시 최소 63일치가 있어야 3개월 합산이 온전하다.
+FLOW_DEFAULT_DAYS = 63
+FLOW_MAX_KIS_PAGES = 5  # 최댓값 3개월(63영업일)=KIS 3회 호출이면 충분, 여유분 포함 5회 상한
 KIS_PAGE_THROTTLE_SEC = 0.15
 
 
