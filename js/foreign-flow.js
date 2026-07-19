@@ -162,23 +162,40 @@
     }
   }
 
+  // 2026-07-20: data/krx_map.js가 window.KRX_ETF_NAMES(ETF 이름 목록)도 같이 내려준다 -
+  // Set으로 한 번만 변환해 자동완성 정렬에서 "이 이름이 ETF인지" O(1)로 판별한다.
+  var etfNameSet = null;
+  function isEtfName(name) {
+    if (!etfNameSet) {
+      etfNameSet = {};
+      (global.KRX_ETF_NAMES || []).forEach(function (n) { etfNameSet[n] = true; });
+    }
+    return !!etfNameSet[name];
+  }
+
   function renderSuggestions(container, box, query) {
     var map = global.KRX_MAP;
     if (!query || !map) { hideSuggestions(box); return; }
 
     var q = query.toLowerCase();
-    var starts = [];
-    var contains = [];
+    // 2026-07-20: ETF 병합(data/krx_map.js) 이후 "삼성전자"를 검색하면 진짜 삼성전자보다
+    // "KODEX 삼성전자SK하이닉스채권혼합50" 같은, 이름에 검색어가 포함된 ETF가 먼저 뜨는
+    // 문제가 실측 발견됨 - 시작일치/포함일치 2단계 정렬은 그대로 두고, 각 단계 안에서
+    // 일반 종목을 ETF보다 항상 먼저 보여주도록 4단계로 세분화(isEtfName, KRX_ETF_NAMES 참고).
+    var startsStock = [], startsEtf = [], containsStock = [], containsEtf = [];
     for (var name in map) {
       if (!map.hasOwnProperty(name)) continue;
       var lower = name.toLowerCase();
+      var etf = isEtfName(name);
       if (lower.indexOf(q) === 0) {
-        if (starts.length < MAX_SUGGESTIONS) starts.push(name);
+        if (etf) { if (startsEtf.length < MAX_SUGGESTIONS) startsEtf.push(name); }
+        else if (startsStock.length < MAX_SUGGESTIONS) startsStock.push(name);
       } else if (lower.indexOf(q) > -1) {
-        if (contains.length < MAX_SUGGESTIONS) contains.push(name);
+        if (etf) { if (containsEtf.length < MAX_SUGGESTIONS) containsEtf.push(name); }
+        else if (containsStock.length < MAX_SUGGESTIONS) containsStock.push(name);
       }
     }
-    var matches = starts.concat(contains).slice(0, MAX_SUGGESTIONS);
+    var matches = startsStock.concat(startsEtf, containsStock, containsEtf).slice(0, MAX_SUGGESTIONS);
     if (!matches.length) { hideSuggestions(box); return; }
 
     box.innerHTML = matches.map(function (name) {
