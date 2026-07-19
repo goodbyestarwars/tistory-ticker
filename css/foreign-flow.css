@@ -240,6 +240,8 @@
 #foreign-flow .ff-badge-sell { background: #e9f1fb; color: #1261c4; border: 1px solid #bdd6f2; }
 #foreign-flow .ff-badge-shift { background: #fff5e0; color: #b0761a; border: 1px solid #f0dcae; }
 #foreign-flow .ff-badge-neutral { background: #f1f1f1; color: #666; border: 1px solid #ddd; }
+/* 2026-07-20: 테마(2차전지/로봇 등, 내러티브 중심 - 업종과 성격이 달라 구분되는 색으로) */
+#foreign-flow .ff-badge-theme { background: #eef0ff; color: #5b5fc7; border: 1px solid #cfd2f7; }
 #foreign-flow .ff-signal-note { font-size: 12px; color: #999; }
 
 /* ---- 롤링 합산 표 (첫째 열 bold, 박스 테두리 - 블로그 표 양식) ---- */
@@ -472,8 +474,22 @@
   color: #555;
   margin: 4px 0 2px;
 }
-#foreign-flow .ff-sector-tags {
+/* 2026-07-20: 업종/테마 분리 - 각 줄(.ff-sector-row)이 라벨("업종"/"테마") + 태그 목록을
+   한 줄에 놓는다. 예전엔 .ff-sector-tags 하나가 라벨 없이 업종만 보여줬음. */
+#foreign-flow .ff-sector-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 8px;
+}
+#foreign-flow .ff-sector-row-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #888;
+  flex-shrink: 0;
+}
+#foreign-flow .ff-sector-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -679,6 +695,8 @@ html.dark #foreign-flow .ff-badge-buy { background: #3a2523 !important; border-c
 html.dark #foreign-flow .ff-badge-sell { background: #20304a !important; border-color: #33507a !important; color: #6ea8e8 !important; }
 html.dark #foreign-flow .ff-badge-shift { background: #3a3220 !important; border-color: #5c5035 !important; color: #d9a94a !important; }
 html.dark #foreign-flow .ff-badge-neutral { background: #333 !important; border-color: #555 !important; color: #bbb !important; }
+html.dark #foreign-flow .ff-badge-theme { background: #262b52 !important; border-color: #3d4380 !important; color: #a5abf0 !important; }
+html.dark #foreign-flow .ff-sector-row-label { color: #8b96b8 !important; }
 html.dark #foreign-flow .ff-chart {
   background: #222 !important;
   border-color: #444 !important;
