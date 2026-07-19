@@ -156,6 +156,22 @@ def health():
     return envelope({'status': 'ok'})
 
 
+@app.get('/debug-industry-codes')
+def debug_industry_codes(mrkt_tp: str = Query(default='0')):
+    """임시 디버그용(2026-07-20, 확인 후 제거 예정) - 키움 ka10101(업종코드 리스트)이 실제로
+    얼마나 세분화된 카테고리를 주는지 확인(ka10100의 upName이 "전기/전자"처럼 너무 뭉뚱그려져
+    있어서, 이 코드 리스트 자체는 더 세밀한 그룹(반도체 등)을 갖고 있는지 확인하기 위함).
+    mrkt_tp: 0=코스피, 10=코스닥(키움 관례)."""
+    try:
+        token = get_kiwoom_token()
+        res = kiwoom_client.call_tr(token, 'ka10101', '/api/dostk/stkinfo', {'mrkt_tp': mrkt_tp})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return envelope(res)
+
+
 @app.get('/quote')
 def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = Header(default=None)):
     require_api_key(x_api_key)
