@@ -80,7 +80,7 @@
     { key: '매도', bucketKey: 'sell', emoji: '🔴', label: '매도' }
   ];
   var SIGNAL_TABS = [
-    { key: 'flow', label: '수급 40%', metricLabel: '수급 점수', metricFmt: fmtScorePt },
+    { key: 'flow', label: '수급시그널 40%', metricLabel: '수급시그널 점수', metricFmt: fmtScorePt },
     { key: 'foreignInst', label: '외국인·기관 25%', metricLabel: '5일 합산 순매수', metricFmt: fmtSharesUnit },
     { key: 'tech', label: '기술적 20%', metricLabel: '기술적 점수', metricFmt: fmtScorePt },
     { key: 'shortSafe', label: '공매도 10%', metricLabel: '공매도 비중', metricFmt: fmtPct },
@@ -376,7 +376,11 @@
       + '<div class="ff-related-list">'
       + (stocks.length
           ? stocks.map(function (s) {
-              return '<div class="ff-related-item" data-code="' + escapeAttr(s.code) + '" data-name="' + escapeAttr(s.name) + '">' + escapeHtml(s.name) + '</div>';
+              return '<div class="ff-related-item" data-code="' + escapeAttr(s.code) + '" data-name="' + escapeAttr(s.name) + '">'
+                + '<span class="ff-related-name">' + escapeHtml(s.name) + '</span>'
+                + '<span class="ff-related-quote" data-quote-code="' + escapeAttr(s.code) + '">'
+                + '<span class="ff-related-price">-</span><span class="ff-related-rate">-</span></span>'
+                + '</div>';
             }).join('')
           : '<div class="ff-hint">종목이 없습니다.</div>')
       + '</div>'
@@ -398,6 +402,29 @@
       search(container, item.getAttribute('data-code'));
       container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+
+    // 2026-07-20 사용자 요청: 종목명만 나오던 목록에 현재가/등락률도 같이 보여준다 -
+    // 기존 단일종목 시세 조회(GAS ?codes=)를 콤마 목록으로 한 번에 배치 호출.
+    if (stocks.length) loadRelatedQuotes(overlay, stocks);
+  }
+
+  function loadRelatedQuotes(overlay, stocks) {
+    var codes = stocks.map(function (s) { return s.code; });
+    fetchJson(GAS_TICKER_URL + '?codes=' + encodeURIComponent(codes.join(',')))
+      .then(function (list) {
+        if (!document.body.contains(overlay)) return; // 응답 오는 사이 모달을 닫았으면 무시
+        var byCode = {};
+        (list || []).forEach(function (q) { byCode[q.code] = q; });
+        overlay.querySelectorAll('.ff-related-quote').forEach(function (el) {
+          var q = byCode[el.getAttribute('data-quote-code')];
+          if (!q || q.price == null) return;
+          el.querySelector('.ff-related-price').textContent = Math.round(q.price).toLocaleString('ko-KR');
+          var rateEl = el.querySelector('.ff-related-rate');
+          rateEl.textContent = fmtSignedPct(q.changeRate);
+          rateEl.className = 'ff-related-rate ' + signClass(q.changeRate);
+        });
+      })
+      .catch(function () { /* 실패해도 종목명은 이미 보이니 조용히 무시 */ });
   }
 
   function hideSuggestions(box) {
@@ -1493,32 +1520,26 @@
     var fundamentalScore = computeFundamentalScore(fundamentals);
     var fundamentalEmoji = fundamentalScore == null ? '⚪' : fundamentalScore >= 70 ? '🟢' : fundamentalScore <= 40 ? '🔴' : '🟡';
 
-    // 각 행의 desc를 일반 설명이 아니라 실제 해석 문장으로 채워서(구 ff-summary-interp 블록을
-    // 아래에 따로 두지 않고) 점수 옆 칸에서 바로 이유를 보여준다.
-    // 2026-07-19: 반대매매·펀더멘탈 2행 추가(사용자 요청 - "점수에 반영해줘").
+    // 2026-07-20 사용자 피드백: 7개 항목의 상세 설명 문장이 세로로 길게 나열돼 카드가
+    // 너무 길어짐 - 상단 투자시그널 가중치 탭(수급/외국인·기관/기술적/공매도/연기금/펀더멘탈)에
+    // 이미 랭킹으로 보여주는 정보와 겹치기도 해서, 여기서는 배지 한 줄로 압축한다(상세 해석
+    // 문장은 desc로 계속 만들어 AI 요약 프롬프트(loadAiSummary)에는 그대로 넘김 - 화면에만
+    // 안 보일 뿐 근거 품질은 그대로 유지).
+    // "오늘의 수급"은 "외국인·기관"(연속매매 streak 기준)과 이름이 비슷해 헷갈린다는 지적으로
+    // "수급 시그널"(5·20일 방향성 기준)로 이름을 바꿈 - 위 투자시그널 탭 라벨과 통일.
     var rows = [
-      { icon: '🧭', label: '오늘의 수급', score: flowScore, desc: flowScoreInterpText(data) },
+      { icon: '🧭', label: '수급 시그널', score: flowScore, desc: flowScoreInterpText(data) },
       { icon: '🌐', label: '외국인·기관', score: foreignInstScore, desc: foreignInstDescText(data) },
-      { icon: '📊', label: '기술적 점수', score: techScore ? techScore.score : null, desc: techInterpText(techScore) },
-      { icon: shortEmoji, label: '공매도 압박', score: shortScore, desc: shortInterpText(entry && entry.short, entry && entry.loan) },
+      { icon: '📊', label: '기술적', score: techScore ? techScore.score : null, desc: techInterpText(techScore) },
+      { icon: shortEmoji, label: '공매도', score: shortScore, desc: shortInterpText(entry && entry.short, entry && entry.loan) },
       { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pensionInterpText(pension).text },
       { icon: creditEmoji, label: '반대매매', score: creditScore, desc: creditP && creditP.signal ? creditP.signal.text : '신용융자 데이터가 없는 종목입니다.' },
       { icon: fundamentalEmoji, label: '펀더멘탈', score: fundamentalScore, desc: fundamentalInterpText(fundamentals) }
     ];
 
-    // 2026-07-19: 7개 행이 세로로 쭉 나열돼 스크롤이 길어진다는 피드백 - 2열 그리드로 배치.
-    // 항목 수가 홀수(7)라 마지막 한 칸만 2열을 다 차지하게(ff-summary-row-full) 처리, 짝수로
-    // 바뀌어도 자동으로 맞아떨어지도록 rows.length % 2로 계산(하드코딩 안 함).
-    var rowsHtml = rows.map(function (r, i) {
-      var isLast = i === rows.length - 1;
-      var cls = 'ff-summary-row' + (isLast ? ' ff-summary-row-last' : '') + (isLast && rows.length % 2 === 1 ? ' ff-summary-row-full' : '');
-      return '<div class="' + cls + '">'
-        + '<span class="ff-summary-icon">' + r.icon + '</span>'
-        + '<span class="ff-summary-label">' + r.label + '</span>'
-        + '<span class="ff-summary-score">' + (r.score == null ? '-' : r.score + '점') + '</span>'
-        + starsHtml(scoreToStars(r.score))
-        + '<span class="ff-summary-desc">' + escapeHtml(r.desc) + '</span>'
-        + '</div>';
+    var badgesHtml = rows.map(function (r) {
+      var tone = r.score == null ? 'neutral' : r.score >= 70 ? 'buy' : r.score <= 40 ? 'sell' : 'neutral';
+      return '<span class="ff-badge ff-badge-' + tone + '">' + r.icon + ' ' + r.label + ' ' + (r.score == null ? '-' : r.score + '점') + '</span>';
     }).join('');
 
     var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
@@ -1528,12 +1549,12 @@
     var verdictTone = verdict.cls === 'ff-buy' ? 'buy' : verdict.cls === 'ff-sell' ? 'sell' : 'flat';
 
     return '<div class="ff-summary">'
-      + '<div class="ff-summary-rows">' + rowsHtml + '</div>'
       + '<div class="ff-verdict-box ff-verdict-box-' + verdictTone + '">'
       + '<span class="ff-verdict ' + verdict.cls + '">' + verdict.label + '</span>'
       + starsHtml(verdict.stars, 'ff-stars-lg')
       + '<span class="ff-verdict-score">' + (verdict.score == null ? '-' : verdict.score.toFixed(1) + '점 · ' + verdict.stars.toFixed(1) + '/5') + '</span>'
       + '</div>'
+      + '<div class="ff-summary-badges">' + badgesHtml + '</div>'
       + '<div class="ff-summary-ai" id="ffAiSummary">'
       + '<b>투자의견</b>'
       + '<span class="ff-summary-ai-text">생성 중...</span>'

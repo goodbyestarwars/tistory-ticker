@@ -107,37 +107,14 @@
   overflow: hidden;
   background: #fff;
 }
-/* 2026-07-19: 세로 1열 나열이 너무 길다는 피드백 - 2열 그리드로 배치, 홀수 항목이면
-   마지막 한 칸만 ff-summary-row-full로 전체 폭을 차지. 좁은 화면(모바일)에서는 다시 1열. */
-#foreign-flow .ff-summary-rows {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-}
-#foreign-flow .ff-summary-row {
+/* 2026-07-20: 항목별 상세 설명이 딸린 7행 세로 리스트가 너무 길다는 피드백 - 판정 박스
+   바로 아래 배지 한 줄(ff-badge 재사용)로 압축. 상세 해석은 이제 화면엔 안 보이고
+   AI 요약 프롬프트에만 쓰인다(buildSummaryBox 주석 참고). */
+#foreign-flow .ff-summary-badges {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
-  padding: 10px 14px;
-  border-bottom: 1px solid #eee;
-  font-size: 13.5px;
-}
-#foreign-flow .ff-summary-rows .ff-summary-row:nth-child(odd) { border-right: 1px solid #eee; }
-#foreign-flow .ff-summary-row-full { grid-column: 1 / -1; border-right: none !important; }
-#foreign-flow .ff-summary-row-last { border-bottom: none; }
-@media (max-width: 480px) {
-  #foreign-flow .ff-summary-rows { grid-template-columns: 1fr; }
-  #foreign-flow .ff-summary-rows .ff-summary-row:nth-child(odd) { border-right: none; }
-}
-#foreign-flow .ff-summary-icon { font-size: 15px; }
-#foreign-flow .ff-summary-label { font-weight: 700; min-width: 84px; }
-#foreign-flow .ff-summary-score { font-weight: 700; color: #333; min-width: 42px; }
-/* desc가 짧은 라벨에서 실제 해석 문장으로 바뀌어 길어져서, 항상 다음 줄로 떨어뜨려 왼쪽 정렬로 표시 */
-#foreign-flow .ff-summary-desc {
-  color: #777;
-  font-size: 12px;
-  flex-basis: 100%;
-  text-align: left;
+  gap: 6px;
+  padding: 10px 14px 12px;
 }
 #foreign-flow .ff-summary-ai {
   padding: 10px 14px;
@@ -289,12 +266,32 @@
   padding: 6px 0;
 }
 .ff-related-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding: 9px 16px;
   font-size: 13.5px;
   color: #333;
   cursor: pointer;
 }
 .ff-related-item:hover { background: #f2f2f2; }
+.ff-related-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ff-related-quote {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  color: #999;
+}
+.ff-related-price { font-weight: 700; color: #333; }
+/* .ff-related-quote는 document.body 직속이라 #foreign-flow 스코프의 .ff-buy/.ff-sell이
+   안 먹는다 - signClass()가 붙이는 클래스명 그대로 여기서 다시 색을 정의한다. */
+.ff-related-rate { font-weight: 700; }
+.ff-related-rate.ff-buy { color: #d24f45; }
+.ff-related-rate.ff-sell { color: #1261c4; }
+.ff-related-rate.ff-flat { color: #666; }
 #foreign-flow .ff-badge-buy { background: #fdeceb; color: #d24f45; border: 1px solid #f2c3bf; }
 #foreign-flow .ff-badge-sell { background: #e9f1fb; color: #1261c4; border: 1px solid #bdd6f2; }
 #foreign-flow .ff-badge-shift { background: #fff5e0; color: #b0761a; border: 1px solid #f0dcae; }
@@ -725,11 +722,6 @@ html.dark #foreign-flow .ff-error {
   color: #e8877e !important;
 }
 html.dark #foreign-flow .ff-summary { background: #262626 !important; border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-summary-row { border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-summary-rows .ff-summary-row:nth-child(odd) { border-right-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-summary-label { color: #eee !important; }
-html.dark #foreign-flow .ff-summary-score { color: #ddd !important; }
-html.dark #foreign-flow .ff-summary-desc { color: #999 !important; }
 html.dark #foreign-flow .ff-summary-ai { background: #1f1f1f !important; border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-summary-ai-text { color: #ccc !important; }
 html.dark #foreign-flow .ff-stars { color: #444 !important; }
@@ -836,6 +828,11 @@ html.dark .ff-related-count { color: #888 !important; }
 html.dark .ff-related-close { color: #888 !important; }
 html.dark .ff-related-close:hover { color: #ddd !important; }
 html.dark .ff-related-item { color: #ddd !important; }
+html.dark .ff-related-quote { color: #888 !important; }
+html.dark .ff-related-price { color: #eee !important; }
+html.dark .ff-related-rate.ff-buy { color: #e8776d !important; }
+html.dark .ff-related-rate.ff-sell { color: #6ea8e8 !important; }
+html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 
 /* ---- 2026-07-20: 오늘의 투자시그널 통합 (①카운트바 ②가중치 탭+랭킹, js/foreign-flow.js) ---- */
 
