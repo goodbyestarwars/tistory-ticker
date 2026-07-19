@@ -164,7 +164,7 @@ def latest_date(conn, table, code):
 
 def load_investor_flow_daily(conn, code):
     """investor_flow_daily에서 종목의 내림차순(최신일 우선) 행을
-    kiwoom_market.fetch_institution_trend()와 동일한 형식({date, close, change_pct,
+    kiwoom_market.fetch_foreign_inst_daily()와 동일한 형식({date, close, change_pct,
     foreign_net, inst_net})으로 반환."""
     rows = conn.execute(
         'SELECT date, close, change_pct, foreign_net, inst_net FROM investor_flow_daily '

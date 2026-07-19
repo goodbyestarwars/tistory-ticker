@@ -39,7 +39,8 @@ def streak(daily, field):
 
 
 def build_flow(daily):
-    """kiwoom_market.fetch_institution_trend()가 반환하는 daily(내림차순)로 gas getForeignFlow()의
+    """kiwoom_market.fetch_foreign_inst_daily()가 반환하는 daily(내림차순, 2026-07-20부터 KIS
+    기반으로 교체됨)로 gas getForeignFlow()의
     rolling/streak 구조를 재구성한다 - computeFlowScoreServer_/computeForeignInstScoreServer_/
     foreignInstShiftScore_가 그대로 재사용할 수 있도록 동일한 모양을 맞춘다."""
     if not daily:

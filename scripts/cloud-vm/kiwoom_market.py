@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-"""일봉 OHLC(ka10081)와 종목별 기관/외국인 일별 매매추이(ka10045) 조회.
+"""일봉 OHLC(ka10081, ka10045는 미사용 - fetch_institution_trend 참고)와 종목별 기관/외국인
+일별 매매추이(fetch_foreign_inst_daily, KIS 우선/ka10045 폴백) 조회.
 gas/ticker-proxy.gs의 fetchDailyOhlc_/getForeignFlow(네이버 크롤링)를 대체하는
-공식 키움 API 버전 - daily_scan.py(패턴/눌림목/투자시그널 배치)가 사용한다."""
+공식 키움/KIS API 버전 - daily_scan.py(패턴/눌림목/투자시그널 배치)가 사용한다."""
 
 import logging
 import time
@@ -81,7 +82,11 @@ def fetch_daily_ohlc(token, code, max_days=OHLC_MIN_DAYS):
 
 
 def fetch_institution_trend(token, code):
-    """외국인/기관 일별 순매매 추이를 최신일 우선(내림차순)으로 반환. gas의
+    """**미사용(2026-07-20부로 daily_scan.py에서 fetch_foreign_inst_daily로 교체됨) - 코드만
+    유지.** ka10045 기반이라 NXT 체결분이 빠진 축소 거래량만 나오는 구조적 한계가 있었고,
+    이 함수가 계산한 수급 랭킹(TOP20)이 KIS 기반 종목분석 페이지와 부호까지 다르게 나오는
+    문제가 실측 확인되어 교체됨(예: SK하이닉스 5일 외국인 순매수 +16,830,892 vs -783,700).
+    외국인/기관 일별 순매매 추이를 최신일 우선(내림차순)으로 반환. gas의
     getForeignFlow()가 반환하는 daily 배열과 같은 필드({date, close, change_pct,
     foreign_net, inst_net})를 쓴다(foreign_shares/foreign_ratio는 이 TR에 없어 생략 -
     invest_signal.py의 점수 계산은 그 두 필드를 쓰지 않아 무해)."""

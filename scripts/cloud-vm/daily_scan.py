@@ -2,9 +2,12 @@
 """차트패턴(4종)+눌림목+투자시그널을 전종목(data/krx_map.js, ~2,691개) 대상으로 하루 1회 스캔.
 기존에 gas/ticker-proxy.gs가 이어달리기(relay) 방식으로 GAS UrlFetchApp 할당량(20,000/일)을
 넘기며 돌리던 걸(패턴+눌림목+투자시그널 합쳐 종목당 29페이지 네이버 크롤링) 여기로 이전한다.
-네이버 스크래핑 대신 키움 공식 REST API(ka10081 일봉, ka10045 기관/외국인 추이)를 쓰므로
-IP 차단 위험이 없고, 종목당 일봉 크롤링을 1회만 해서 세 스캔이 공유한다(kiwoom_market 참고).
-systemd timer로 하루 1회 실행 - main.py의 /daily-scan-batch가 결과를 즉시 서빙한다."""
+네이버 스크래핑 대신 키움 공식 REST API(ka10081 일봉)+KIS 종목별투자자매매동향(일별, 외국인/
+기관 순매매)을 쓰므로 IP 차단 위험이 없고, 종목당 일봉 크롤링을 1회만 해서 세 스캔이
+공유한다(kiwoom_market 참고). 수급(외국인/기관) 소스는 2026-07-20부터 ka10045(NXT 미포함,
+부정확) 대신 fetch_foreign_inst_daily(KIS 우선, 종목분석 페이지와 동일 소스)로 교체됨.
+systemd timer로 하루 1회 실행(16:00 KST, KIS TIME LIMIT 15:40 이후라 안전) - main.py의
+/daily-scan-batch가 결과를 즉시 서빙한다."""
 
 import json
 import os
@@ -101,7 +104,7 @@ def save_ohlc_snapshot(conn, code, daily):
 
 
 def save_investor_flow(conn, code, flow_rows):
-    """flow_rows(fetch_institution_trend 결과, 외국인/기관 일별 순매매)를 investor_flow_daily에
+    """flow_rows(fetch_foreign_inst_daily 결과, 외국인/기관 일별 순매매)를 investor_flow_daily에
     UPSERT. 지금까지는 투자시그널 계산에만 쓰고 버렸던 데이터 - OHLC와 동일한 이유로 저장."""
     if not flow_rows:
         return
@@ -121,6 +124,16 @@ def main():
     if not appkey or not secretkey:
         log('KIWOOM_APPKEY / KIWOOM_SECRETKEY 환경변수가 필요합니다.')
         sys.exit(1)
+    # 2026-07-20: 수급 랭킹(외국인/기관 순매수 TOP20)이 ka10045(NXT 미포함, stex_tp 파라미터
+    # 자체가 없는 구조적 한계) 기반이라 종목분석 페이지(KIS UN 기반, foreign-flow.js)와
+    # 값이 완전히 다르게 나오는 문제가 실측 확인됨(예: SK하이닉스 5일 외국인 순매수가 여기선
+    # +16,830,892인데 종목분석 페이지는 -783,700) - 아래에서 kis_appkey/secret이 있으면
+    # fetch_foreign_inst_daily(KIS 우선)로 전환한다. 미설정이면 그 함수 내부 폴백으로 예전
+    # ka10045 경로가 그대로 쓰이므로 하위 호환됨.
+    kis_appkey = os.environ.get('KIS_APPKEY')
+    kis_appsecret = os.environ.get('KIS_APPSECRET')
+    if not kis_appkey or not kis_appsecret:
+        log('KIS_APPKEY / KIS_APPSECRET 미설정 - 수급 랭킹이 예전 ka10045 폴백 경로로 계산됩니다(부정확할 수 있음).')
 
     universe = load_full_universe()
     if not universe:
@@ -170,7 +183,10 @@ def main():
                 flow_rows = db_schema.load_investor_flow_daily(conn, code)
                 flow_skipped += 1
             else:
-                flow_rows = kiwoom_market.fetch_institution_trend(token, code)
+                # target_days=25: rolling 20일 합산에 여유분만 더한 최소치(fetch_institution_trend가
+                # 정확도가 떨어져 KIS 기반으로 교체됨, 위 main() 주석 참고) - KIS는 한 번에 약
+                # 30영업일을 주므로 이 정도면 추가 페이지네이션 호출 없이 1콜로 끝난다.
+                flow_rows = kiwoom_market.fetch_foreign_inst_daily(token, code, kis_appkey, kis_appsecret, target_days=25)
                 save_investor_flow(conn, code, flow_rows)
                 conn.commit()  # 종목마다 즉시 커밋 - 쓰기 트랜잭션을 오래 쥐고 있으면 다른 스크립트(migrate_*.py)가 락에 걸림
                 time.sleep(THROTTLE_SEC)
