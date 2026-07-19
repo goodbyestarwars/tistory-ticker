@@ -250,7 +250,12 @@ def _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, tar
             'foreign_shares': abs(to_num(frgn_row.get('poss_stkcnt'))) if frgn_row else None,
             'foreign_ratio': to_num(frgn_row.get('wght')) if frgn_row else None,
         })
-    return out
+    # 2026-07-19: KIS 경로(_daily_rows_from_kis)는 target_days로 정확히 잘라 반환하는데
+    # 이 폴백은 lookback_days 범위 전체를 그대로 돌려주고 있었음 - 기간 선택(예: 5일)에서
+    # KIS가 실패해 이 폴백으로 넘어오면 5일 대신 최대 40여일치가 나오는 불일치가 실측
+    # 확인됨(라이브 /foreign-flow?days=5 응답이 40행). 여기서도 최신 target_days개로 자른다.
+    out.sort(key=lambda r: r['date'], reverse=True)
+    return out[:target_days]
 
 
 def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, target_days=FLOW_DEFAULT_DAYS):
