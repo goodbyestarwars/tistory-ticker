@@ -629,22 +629,19 @@
     }).join('') + '</div>';
   }
 
-  // 사업구조를 설명하는 텍스트 데이터소스가 없어(DART 사업보고서 파싱은 별도 작업 필요),
-  // 이미 이 저장소에 있는 data/sectors-v3.js(SECTOR_MAP)의 태그로 대신한다. 그 파일이 이
-  // 페이지에 <script>로 로드돼 있지 않으면 window.SECTOR_MAP이 없어 조용히 빈 문자열을
-  // 반환한다(기능 깨짐 없음) - 로드하려면 종목분석 포스트 HTML에 스크립트 태그 추가 필요.
-  //
-  // 2026-07-20(2차): SECTOR_MAP의 36개 카테고리는 성격이 다 다르다 - 반도체/자동차/화학처럼
-  // 공식 산업분류에 가까운 "업종"도 있고, 2차전지/로봇/우주항공처럼 여러 업종을 가로지르는
-  // 내러티브·모멘텀 중심 "테마"도 있고, "코스피 3대장"처럼 대시보드용 큐레이션 그룹("meta",
-  // 업종도 테마도 아니라 여기선 아예 안 보여줌)도 있다. 이 구분 없이 하나로 섞어 보여주면
-  // "코스피 3대장이 왜 업종이냐" 같은 어색함이 생긴다(사용자 지적) - 아래 SECTOR_TYPE_MAP으로
-  // 나눠서 "업종"/"테마" 두 줄로 분리해 보여준다. sectors-v3.js 자체(섹터 대시보드가 그대로
-  // 쓰는 원본)는 손대지 않고 여기 표시 로직에서만 분류한다 - 새 카테고리가 나중에 추가되면
-  // 이 맵에 없어도 기본값 'industry'로 처리되니(sectorType 참고) 안전하다. 테마 목록이
-  // 바뀌면(예: 새 테마 추가) 이 맵만 고치면 됨, sectors-v3.js 수정 불필요.
+  // 2026-07-20(3차): "업종"은 원래 data/sectors-v3.js(수작업 큐레이션, ~266종목)의 업종성
+  // 카테고리로 대신했었는데, 커버리지가 좁아 삼성전자조차 빠지는 문제가 있었다(직접 발견).
+  // 키움 공식 업종분류(ka10100 upName)도 실측해봤지만 KOSPI 기준 31개 대분류뿐이라("전기/
+  // 전자" 하나에 반도체·2차전지·가전이 다 섞임) 부적합 판정. 최종적으로 FnGuide WICS(GICS를
+  // 국내 실정에 맞게 재구성, 네이버/다음 증권이 쓰는 것과 같은 체계 - 인증 없는 공개
+  // 엔드포인트)로 교체(사용자 제안, scripts/fetch_wics_map.py가 data/wics-map.js 생성) -
+  // ~2,500종목을 GICS 수준 세밀도(예: "반도체와반도체장비")로 커버한다.
+  // "테마"(2차전지/로봇/우주항공/방위산업/K뷰티 등)는 WICS에 대응 개념이 없는 내러티브
+  // 중심 그룹이라(실측 확인: LG에너지솔루션의 WICS 업종은 "전자와 전기제품"일 뿐 "2차전지"가
+  // 아님, 한화에어로스페이스는 "자본재"일 뿐 "방위산업"이 아님) data/sectors-v3.js의 수작업
+  // 큐레이션을 그대로 유지한다 - 아래 SECTOR_TYPE_MAP은 이제 "테마로 볼 카테고리"만 표시하는
+  // 용도(그 외 sectors-v3.js 카테고리는 대시보드 전용으로만 쓰이고 여기선 안 읽음).
   var SECTOR_TYPE_MAP = {
-    '코스피 3대장': 'meta',
     'IT/스테이블코인': 'theme',
     '2차전지': 'theme',
     '신재생/원자력': 'theme',
@@ -653,24 +650,21 @@
     '방위산업': 'theme',
     'K뷰티': 'theme'
   };
-  function sectorType(name) { return SECTOR_TYPE_MAP.hasOwnProperty(name) ? SECTOR_TYPE_MAP[name] : 'industry'; }
 
   function buildSectorTags(code) {
-    var map = global.SECTOR_MAP;
-    // 2026-07-20: SECTOR_MAP이 없으면(이 포스트에 data/sectors-v3.js 스크립트 태그가 아직
-    // 안 붙어 있으면) 예전엔 조용히 빈 문자열만 반환해서 "업종" 섹션이 통째로 안 보이는
-    // 것과 "이 종목은 업종 분류가 없는 것"의 구분이 안 됐다 - 안내 문구로 원인을 드러낸다.
-    if (!map || !code) return '<div class="ff-hint">업종 데이터를 불러오지 못했어요.</div>';
-    var industries = [], themes = [];
-    for (var name in map) {
-      if (!map.hasOwnProperty(name)) continue;
-      var type = sectorType(name);
-      if (type === 'meta') continue;
-      var list = map[name] || [];
-      for (var i = 0; i < list.length; i++) {
-        if (list[i].code === code) {
-          (type === 'theme' ? themes : industries).push(name);
-          break;
+    if (!code) return '<div class="ff-hint">업종 데이터를 불러오지 못했어요.</div>';
+
+    var wics = global.WICS_MAP && global.WICS_MAP[code];
+    var industries = wics && wics.industry ? [wics.industry] : [];
+
+    var sectorMap = global.SECTOR_MAP;
+    var themes = [];
+    if (sectorMap) {
+      for (var name in sectorMap) {
+        if (!sectorMap.hasOwnProperty(name) || SECTOR_TYPE_MAP[name] !== 'theme') continue;
+        var list = sectorMap[name] || [];
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].code === code) { themes.push(name); break; }
         }
       }
     }
