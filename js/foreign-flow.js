@@ -1506,41 +1506,49 @@
 
     var shortP = entry && entry.short && entry.short.pressure;
     var shortScore = shortP ? shortP.score : null;
-    var shortEmoji = shortP ? shortP.grade.emoji : '⚪';
 
     var pension = entry && entry.pension;
     var pensionScore = pension ? computePensionScore(pension) : null;
-    var pStreak = pension && pension.streak;
-    var pensionEmoji = pStreak ? (pStreak.direction === 'buy' ? '🟢' : pStreak.direction === 'sell' ? '🔴' : '⚪') : '⚪';
 
     var creditP = entry && entry.credit;
     var creditScore = computeCreditScore(creditP);
-    var creditEmoji = !creditP || !creditP.signal ? '⚪' : creditP.signal.flag ? '🔴' : '🟢';
 
     var fundamentalScore = computeFundamentalScore(fundamentals);
-    var fundamentalEmoji = fundamentalScore == null ? '⚪' : fundamentalScore >= 70 ? '🟢' : fundamentalScore <= 40 ? '🔴' : '🟡';
 
-    // 2026-07-20 사용자 피드백: 7개 항목의 상세 설명 문장이 세로로 길게 나열돼 카드가
-    // 너무 길어짐 - 상단 투자시그널 가중치 탭(수급/외국인·기관/기술적/공매도/연기금/펀더멘탈)에
-    // 이미 랭킹으로 보여주는 정보와 겹치기도 해서, 여기서는 배지 한 줄로 압축한다(상세 해석
-    // 문장은 desc로 계속 만들어 AI 요약 프롬프트(loadAiSummary)에는 그대로 넘김 - 화면에만
-    // 안 보일 뿐 근거 품질은 그대로 유지).
-    // "오늘의 수급"은 "외국인·기관"(연속매매 streak 기준)과 이름이 비슷해 헷갈린다는 지적으로
-    // "수급 시그널"(5·20일 방향성 기준)로 이름을 바꿈 - 위 투자시그널 탭 라벨과 통일.
-    var rows = [
-      { icon: '🧭', label: '수급 시그널', score: flowScore, desc: flowScoreInterpText(data) },
-      { icon: '🌐', label: '외국인·기관', score: foreignInstScore, desc: foreignInstDescText(data) },
-      { icon: '📊', label: '기술적', score: techScore ? techScore.score : null, desc: techInterpText(techScore) },
-      { icon: shortEmoji, label: '공매도', score: shortScore, desc: shortInterpText(entry && entry.short, entry && entry.loan) },
-      { icon: pensionEmoji, label: '연기금', score: pensionScore, desc: pensionInterpText(pension).text },
-      { icon: creditEmoji, label: '반대매매', score: creditScore, desc: creditP && creditP.signal ? creditP.signal.text : '신용융자 데이터가 없는 종목입니다.' },
-      { icon: fundamentalEmoji, label: '펀더멘탈', score: fundamentalScore, desc: fundamentalInterpText(fundamentals) }
+    // 2026-07-20(2차) 사용자가 첨부한 목업(적극매수 4.6★ 종합시그널 + 배지 4개 + 수급/
+    // 펀더멘탈 2열 요약)에 맞춰 재구성. 7개 항목 상세 설명 문장은 화면에서 빼고(desc는
+    // AI 요약 프롬프트에만 계속 씀) 대신: ①배지 4개는 랭킹 탭에서 다루지 않는 "등급형" 정보만
+    // (수급/기술=점수를 학점형 등급으로 환산, 공매도/연기금=이미 있는 등급 라벨 그대로 재사용)
+    // ②2열 그리드는 오늘 원자료(외국인/기관 순매매량·공매도 등급, PER/PBR/EPS)를 숫자 그대로 보여줌.
+    var shortLabel = shortP ? shortP.grade.label : '-';
+    var pensionLabel = pension ? pensionInterpText(pension).label : '-';
+    var badges = [
+      { label: '수급', text: scoreToGrade(flowScore) },
+      { label: '기술', text: scoreToGrade(techScore ? techScore.score : null) },
+      { label: '공매도', text: shortLabel },
+      { label: '연기금', text: pensionLabel }
     ];
-
-    var badgesHtml = rows.map(function (r) {
-      var tone = r.score == null ? 'neutral' : r.score >= 70 ? 'buy' : r.score <= 40 ? 'sell' : 'neutral';
-      return '<span class="ff-badge ff-badge-' + tone + '">' + r.icon + ' ' + r.label + ' ' + (r.score == null ? '-' : r.score + '점') + '</span>';
+    var badgesHtml = badges.map(function (b) {
+      return '<span class="ff-badge ff-badge-neutral">' + b.label + ' ' + escapeHtml(b.text) + '</span>';
     }).join('');
+
+    var latest = data.daily && data.daily[0];
+    var valuation = fundamentals && fundamentals.valuation;
+    var leftFacts = [
+      ['외국인', latest ? fmtSharesUnit(latest.foreign_net) : '-'],
+      ['기관', latest ? fmtSharesUnit(latest.inst_net) : '-'],
+      ['공매도', shortLabel]
+    ];
+    var rightFacts = [
+      ['PER', valuation && valuation.per != null ? valuation.per.toFixed(1) + 'x' : '-'],
+      ['PBR', valuation && valuation.pbr != null ? valuation.pbr.toFixed(1) + 'x' : '-'],
+      ['EPS', valuation ? fmtWon(valuation.eps) : '-']
+    ];
+    function factRow(r) { return '<div class="ff-summary-fact"><span class="ff-summary-fact-label">' + r[0] + '</span><span class="ff-summary-fact-val">' + r[1] + '</span></div>'; }
+    var gridHtml = '<div class="ff-summary-grid">'
+      + '<div class="ff-summary-grid-col"><div class="ff-summary-grid-title">수급</div>' + leftFacts.map(factRow).join('') + '</div>'
+      + '<div class="ff-summary-grid-col"><div class="ff-summary-grid-title">펀더멘탈</div>' + rightFacts.map(factRow).join('') + '</div>'
+      + '</div>';
 
     var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
 
@@ -1555,11 +1563,26 @@
       + '<span class="ff-verdict-score">' + (verdict.score == null ? '-' : verdict.score.toFixed(1) + '점 · ' + verdict.stars.toFixed(1) + '/5') + '</span>'
       + '</div>'
       + '<div class="ff-summary-badges">' + badgesHtml + '</div>'
+      + gridHtml
       + '<div class="ff-summary-ai" id="ffAiSummary">'
       + '<b>투자의견</b>'
       + '<span class="ff-summary-ai-text">생성 중...</span>'
       + '</div>'
       + '</div>';
+  }
+
+  // 0~100점 점수를 학점형 등급으로 환산(수급/기술 배지 표기용) - 별점(scoreToStars)과는
+  // 별개로 목업이 요구한 "A+/B+" 식 표기를 위한 간단한 8단 매핑.
+  function scoreToGrade(score) {
+    if (score == null) return '-';
+    if (score >= 90) return 'A+';
+    if (score >= 80) return 'A';
+    if (score >= 70) return 'B+';
+    if (score >= 60) return 'B';
+    if (score >= 50) return 'C+';
+    if (score >= 40) return 'C';
+    if (score >= 30) return 'D+';
+    return 'D';
   }
 
   // AI 한줄요약은 Groq 호출이라 느릴 수 있어 나머지 렌더링을 막지 않고 비동기로 채운다.

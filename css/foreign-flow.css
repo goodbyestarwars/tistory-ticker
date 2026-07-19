@@ -114,8 +114,36 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  padding: 10px 14px 0;
+}
+
+/* 2026-07-20(2차): 사용자 목업의 "수급 / 펀더멘탈" 2열 요약 그리드 */
+#foreign-flow .ff-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 12px;
   padding: 10px 14px 12px;
 }
+#foreign-flow .ff-summary-grid-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+#foreign-flow .ff-summary-fact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+}
+#foreign-flow .ff-summary-fact-label { color: #666; }
+#foreign-flow .ff-summary-fact-val { font-weight: 700; }
+@media (max-width: 420px) {
+  #foreign-flow .ff-summary-grid { grid-template-columns: 1fr; gap: 8px 0; }
+}
+
 #foreign-flow .ff-summary-ai {
   padding: 10px 14px;
   background: #f7f7f8;
@@ -722,6 +750,9 @@ html.dark #foreign-flow .ff-error {
   color: #e8877e !important;
 }
 html.dark #foreign-flow .ff-summary { background: #262626 !important; border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-summary-grid-title { color: #888 !important; }
+html.dark #foreign-flow .ff-summary-fact-label { color: #999 !important; }
+html.dark #foreign-flow .ff-summary-fact-val { color: #eee !important; }
 html.dark #foreign-flow .ff-summary-ai { background: #1f1f1f !important; border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-summary-ai-text { color: #ccc !important; }
 html.dark #foreign-flow .ff-stars { color: #444 !important; }
@@ -866,7 +897,14 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
   margin-bottom: 12px;
 }
 
+/* 2026-07-20 사용자 지적: 비중축소/매도처럼 몇백~1,600종목대인 등급을 펼치면 스크롤이
+   끝없이 길어짐(서버가 이미 최대 100개로 캡을 걸어두지만 그마저도 한 화면엔 과함) -
+   고정 높이 박스 안에서 목록만 스크롤되게 한다. */
 #foreign-flow .ff-sig-bucket-list { margin-bottom: 12px; }
+#foreign-flow .ff-sig-bucket-list .ff-sig-table {
+  max-height: 360px;
+  overflow-y: auto;
+}
 #foreign-flow .ff-sig-list-head {
   font-size: 12.5px;
   font-weight: 700;
