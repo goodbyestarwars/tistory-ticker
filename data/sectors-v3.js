@@ -1,9 +1,13 @@
 /**
- * 커스텀 섹터 분류 v3 (섹터분류_취합본.xlsx "섹터분류_리스트" 시트 기준, 36개 섹터)
+ * 커스텀 섹터 분류 v3 (섹터분류_취합본.xlsx "섹터분류_리스트" 시트 기준, 37개 섹터)
  * v2와 달리 각 종목이 { name, code, market } 객체라서 krx_map.js 없이도 코드 조회가 된다.
  * (market: "KOSPI" | "KOSDAQ")
  * 일부 종목은 의도적으로 여러 섹터에 중복 포함됨 — 중복 제거 금지.
  * sector-dashboard-v4.js보다 먼저 <script>로 로드되어야 함.
+ * 2026-07-20: "반도체" 섹터 추가 - 기존 "반도체부품소재/공정"은 장비·소재 공급망
+ * 업체들만 있고 실제 칩 제조사(삼성전자/SK하이닉스)가 어느 업종에도 안 잡혀 있던
+ * 걸 발견해서(둘 다 "코스피 3대장"에만 있었음, 이건 업종이 아니라 시총 큐레이션
+ * 그룹이라 js/foreign-flow.js가 업종 배지에서 제외함) 추가함.
  */
 window.SECTOR_MAP = {
   "코스피 3대장": [
@@ -36,6 +40,10 @@ window.SECTOR_MAP = {
     { name: "삼천당제약", code: "000250", market: "KOSDAQ" },
     { name: "현대약품", code: "004310", market: "KOSPI" },
     { name: "알지노믹스", code: "476830", market: "KOSDAQ" }
+  ],
+  "반도체": [
+    { name: "삼성전자", code: "005930", market: "KOSPI" },
+    { name: "SK하이닉스", code: "000660", market: "KOSPI" }
   ],
   "반도체부품소재/공정": [
     { name: "한미반도체", code: "042700", market: "KOSPI" },
