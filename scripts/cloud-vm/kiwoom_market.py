@@ -24,6 +24,15 @@ FLOW_DEFAULT_DAYS = 63
 FLOW_MAX_KIS_PAGES = 5  # 최댓값 3개월(63영업일)=KIS 3회 호출이면 충분, 여유분 포함 5회 상한
 KIS_PAGE_THROTTLE_SEC = 0.15
 
+# 2026-07-19(4차): KIS FHPTJ04160001(종목별투자자매매동향(일별))이 00:00~15:40(KST) 사이엔
+# 아예 막혀있다는 걸 실측으로 확인(OPSQ2001 "TIME LIMIT 00:00 ~ 15:40" - KIS 고객센터
+# 확인 결과 유량제한이 아니라 이 TR 고유의 정책. 일별 확정 데이터라 장중엔 집계가 안
+# 끝나서 그런 것으로 추정). 하루의 약 65%가 이 시간대라 그때마다 키움 폴백(NXT 미포함,
+# 부정확)으로 떨어지는 건 아쉬워서 - KIS가 열려있을 때(15:40~24:00) 받은 결과를 넉넉히
+# 캐싱해뒀다가 막힌 시간대엔 재사용한다. 과거 확정일 데이터라 안 바뀌므로 안전.
+_KIS_SUCCESS_TTL_SEC = 20 * 3600  # 다음날 15:40 이전까지 버틸 수 있게 넉넉히
+_kis_success_cache = {}  # (code, target_days) -> (epoch_time, rows)
+
 
 def to_num(v):
     try:
@@ -217,6 +226,26 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, 
     return out
 
 
+def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days):
+    """_daily_rows_from_kis()를 호출하되, KIS가 실패하면(특히 00:00~15:40 TIME LIMIT) 키움
+    폴백으로 곧장 넘어가는 대신 최근(_KIS_SUCCESS_TTL_SEC 이내) 성공했던 KIS 결과를 먼저
+    재사용한다 - 과거 확정일 데이터는 안 바뀌므로 몇 시간 지난 캐시라도 키움 폴백(NXT
+    미포함, 60%대 축소 거래량)보다 훨씬 정확하다. 캐시조차 없으면(재배포 직후 등) 예외를
+    그대로 올려서 호출부가 키움 폴백을 쓰게 한다."""
+    cache_key = (code, target_days)
+    try:
+        rows = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days)
+        _kis_success_cache[cache_key] = (time.time(), rows)
+        return rows
+    except Exception as e:
+        cached = _kis_success_cache.get(cache_key)
+        if not cached or time.time() - cached[0] >= _KIS_SUCCESS_TTL_SEC:
+            raise
+        age_min = (time.time() - cached[0]) / 60
+        logger.warning('KIS 실패(%s), %.0f분 전 성공 캐시로 재사용(키움 폴백 대신): %s', code, age_min, e)
+        return cached[1]
+
+
 def _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, target_days=FLOW_DEFAULT_DAYS):
     """KIS 키가 없거나 KIS 호출이 실패했을 때만 쓰는 폴백 - 예전 ka10045 기반 경로.
     거래량이 NXT 미포함으로 축소돼 나오는 알려진 한계가 있음(_daily_rows_from_kis 참고).
@@ -289,13 +318,14 @@ def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, t
     out = None
     if kis_appkey and kis_appsecret:
         try:
-            out = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days)
+            out = _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days)
         except Exception as e:
             # 2026-07-19: 이 예외를 조용히 삼키고 키움으로 폴백하기만 해서, 폴백이 실제로
-            # 언제·왜 발동됐는지(유량제한 EGW00201인지, 토큰 만료인지, 다른 오류인지) 확인할
-            # 방법이 없었음(사용자가 KIS 고객센터에 문의해 원인 규명 시도 중 발견) - 최소한
-            # journalctl(kiwoom-api.service)에서 원인을 볼 수 있게 로그만 남긴다.
-            logger.warning('KIS 실패(%s), 키움 폴백으로 전환: %s', code, e)
+            # 언제·왜 발동됐는지 확인할 방법이 없었음(KIS 고객센터 문의로 원인 규명) - 최소한
+            # journalctl(kiwoom-api.service)에서 원인을 볼 수 있게 로그만 남긴다. 여기까지
+            # 오는 건 최근 성공 캐시도 없다는 뜻이라(_daily_rows_from_kis_with_fallback_cache
+            # 참고) 진짜 키움 폴백으로 갈 수밖에 없는 경우다.
+            logger.warning('KIS 실패(%s, 최근 성공 캐시도 없음), 키움 폴백으로 전환: %s', code, e)
             out = None
     if out is None:
         out = _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, target_days)
