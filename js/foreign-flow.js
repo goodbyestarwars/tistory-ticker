@@ -73,11 +73,11 @@
   // 데이터는 기존 종목분석 위젯과 같은 GAS(?investSignal=1, gas/ticker-proxy.gs
   // getInvestSignalResult -> VM daily_scan.py)를 그대로 재사용.
   var GRADE_META = [
-    { key: '적극 매수', emoji: '🟢', label: '적극매수' },
-    { key: '매수 우위', emoji: '🟢', label: '매수' },
-    { key: '보유', emoji: '🟡', label: '보유' },
-    { key: '비중축소', emoji: '🟠', label: '비중축소' },
-    { key: '매도', emoji: '🔴', label: '매도' }
+    { key: '적극 매수', bucketKey: 'activeBuy', emoji: '🟢', label: '적극매수' },
+    { key: '매수 우위', bucketKey: 'buy', emoji: '🟢', label: '매수' },
+    { key: '보유', bucketKey: 'hold', emoji: '🟡', label: '보유' },
+    { key: '비중축소', bucketKey: 'reduce', emoji: '🟠', label: '비중축소' },
+    { key: '매도', bucketKey: 'sell', emoji: '🔴', label: '매도' }
   ];
   var SIGNAL_TABS = [
     { key: 'flow', label: '수급 40%', metricLabel: '수급 점수', metricFmt: fmtScorePt },
@@ -93,6 +93,7 @@
   var signalData = null;
   var activeSignalTab = 'flow';
   var signalExpanded = {}; // 탭 key -> 더보기(TOP20) 눌렀는지
+  var activeGradeBucket = null; // 카운트 배지 클릭으로 펼친 등급(GRADE_META.key), null이면 접힘
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -117,12 +118,15 @@
 
   function buildShell() {
     return ''
+      + '<div id="ffSigWrap">'
       + '<div class="ff-sig" id="ffSig">'
       + '<div class="ff-sig-count" id="ffSigCount"><div class="ff-hint">투자시그널 불러오는 중...</div></div>'
+      + '<div class="ff-sig-bucket-list" id="ffSigBucketList" hidden></div>'
       + '<div class="ff-view-tabs ff-sig-tabs" id="ffSigTabs"></div>'
       + '<div class="ff-sig-rank" id="ffSigRank"></div>'
       + '</div>'
       + '<div class="ff-divider"></div>'
+      + '</div>'
       + '<div class="ff-search">'
       + '<div class="ff-input-wrap">'
       + '<input type="text" id="ffInput" class="ff-input" placeholder="종목명을 입력하세요 (예: 삼성전자)" autocomplete="off" />'
@@ -151,18 +155,53 @@
       });
   }
 
+  // 카운트 배지를 클릭 가능한 버튼으로 렌더링(클릭 시 해당 등급 종목목록 펼침, 사용자 피드백
+  // 2026-07-20 - 처음엔 정보성 텍스트로만 만들었는데 예전 페이지처럼 클릭이 되길 원함).
   function renderSignalCount(container) {
     var box = container.querySelector('#ffSigCount');
     if (!box) return;
     var counts = signalData.counts || {};
     var line = GRADE_META.map(function (g) {
-      return g.emoji + ' ' + g.label + ' ' + (counts[g.key] || 0).toLocaleString('ko-KR') + '종목';
-    }).join(' · ');
+      return '<button type="button" class="ff-sig-grade' + (activeGradeBucket === g.key ? ' active' : '') + '" data-grade="' + escapeAttr(g.key) + '">'
+        + g.emoji + ' ' + g.label + ' ' + (counts[g.key] || 0).toLocaleString('ko-KR') + '종목</button>';
+    }).join('');
     var meta = signalData.scannedAt
       ? ('스캔 ' + signalData.scannedAt + ' · 대상 ' + (signalData.scanned || 0) + '/' + (signalData.universe || 0) + '종목')
       : '아직 스캔 결과가 없어요.';
     box.innerHTML = '<div class="ff-sig-count-line">' + line + '</div>'
       + '<div class="ff-sig-meta">' + escapeHtml(meta) + '</div>';
+  }
+
+  function renderSignalBucketList(container) {
+    var box = container.querySelector('#ffSigBucketList');
+    if (!box) return;
+    if (!activeGradeBucket) { box.hidden = true; box.innerHTML = ''; return; }
+
+    var meta = GRADE_META.filter(function (g) { return g.key === activeGradeBucket; })[0];
+    var items = (signalData.buckets && signalData.buckets[meta.bucketKey]) || [];
+    var totalCount = (signalData.counts && signalData.counts[meta.key]) || 0;
+
+    box.hidden = false;
+    if (!items.length) {
+      box.innerHTML = '<div class="ff-hint">해당 등급에 속한 종목이 없어요.</div>';
+      return;
+    }
+    var rowsHtml = items.map(bucketRowHtml).join('');
+    box.innerHTML = '<div class="ff-sig-list-head">' + meta.emoji + ' ' + meta.label + ' 종목 목록'
+      + (totalCount > items.length ? ' <span class="ff-sig-list-cap">(상위 ' + items.length + '/' + totalCount + '종목만 표시)</span>' : '')
+      + '</div>'
+      + '<div class="ff-sig-table">' + rowsHtml + '</div>';
+  }
+
+  // item = [code, name, price, changeRate, stars] (daily_scan.py 버킷 append 순서, 탭별 metricVal 없음)
+  function bucketRowHtml(item) {
+    var code = item[0], name = item[1], price = item[2], changeRate = item[3], stars = item[4];
+    return '<button type="button" class="ff-sig-row" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
+      + '<span class="ff-sig-name">' + escapeHtml(name) + '<span class="ff-sig-code">(' + escapeHtml(code) + ')</span></span>'
+      + '<span class="ff-sig-score">' + starsHtml(stars) + '</span>'
+      + '<span class="ff-sig-quote"><span class="ff-sig-price">' + (price == null || isNaN(price) ? '-' : Math.round(price).toLocaleString('ko-KR')) + '</span>'
+      + '<span class="ff-sig-rate ' + signClass(changeRate) + '">' + fmtSignedPct(changeRate) + '</span></span>'
+      + '</button>';
   }
 
   function renderSignalTabs(container) {
@@ -288,6 +327,14 @@
       if (moreBtn) {
         signalExpanded[activeSignalTab] = true;
         renderSignalRank(container);
+        return;
+      }
+      var gradeBtn = e.target.closest ? e.target.closest('.ff-sig-grade') : null;
+      if (gradeBtn) {
+        var key = gradeBtn.getAttribute('data-grade');
+        activeGradeBucket = activeGradeBucket === key ? null : key;
+        renderSignalCount(container);
+        renderSignalBucketList(container);
       }
     });
   }
@@ -473,6 +520,11 @@
     }
 
     resultBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(resolved.name) + ' 분석 중입니다. (가격 차트는 최초 조회 시 다소 걸릴 수 있어요)</div></div>';
+
+    // 2026-07-20 사용자 피드백: 종목을 조회하면 위 투자시그널 카운트/탭 영역은 화면만
+    // 길어지게 하므로 숨긴다(랭킹 행 클릭이든 직접 입력 검색이든 동일하게 적용).
+    var sigWrap = container.querySelector('#ffSigWrap');
+    if (sigWrap) sigWrap.hidden = true;
 
     // 차트 크롤링/VM 온디맨드 호출 둘 다 실패 가능성이 있는데, 그것 때문에 나머지
     // 위젯까지 통째로 에러 처리되면 안 되므로 각자 잡아 실패 시 null/에러 객체로 대체한다.
