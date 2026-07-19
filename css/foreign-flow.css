@@ -236,6 +236,65 @@
   font-size: 12px;
   font-weight: 700;
 }
+/* 2026-07-20: 업종/테마 배지 클릭 시 관련 종목 모달(아래 .ff-related-*) */
+#foreign-flow .ff-badge-clickable { cursor: pointer; transition: filter .15s; }
+#foreign-flow .ff-badge-clickable:hover { filter: brightness(0.94); }
+
+/* document.body에 직접 붙는 모달이라 #foreign-flow 스코프 밖(선택자에 #foreign-flow 없음) -
+   사이트 전체 최상위 요소(navbar z-index:300 등)보다 위에 오도록 z-index를 넉넉히 잡음. */
+.ff-related-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+.ff-related-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+}
+.ff-related-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+}
+.ff-related-count { font-size: 12px; font-weight: 500; color: #999; }
+.ff-related-close {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #999;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+}
+.ff-related-close:hover { color: #333; }
+.ff-related-list {
+  overflow-y: auto;
+  padding: 6px 0;
+}
+.ff-related-item {
+  padding: 9px 16px;
+  font-size: 13.5px;
+  color: #333;
+  cursor: pointer;
+}
+.ff-related-item:hover { background: #f2f2f2; }
 #foreign-flow .ff-badge-buy { background: #fdeceb; color: #d24f45; border: 1px solid #f2c3bf; }
 #foreign-flow .ff-badge-sell { background: #e9f1fb; color: #1261c4; border: 1px solid #bdd6f2; }
 #foreign-flow .ff-badge-shift { background: #fff5e0; color: #b0761a; border: 1px solid #f0dcae; }
@@ -769,3 +828,12 @@ html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }
 html.dark #foreign-flow .ff-bar-label { fill: #888 !important; }
 html.dark #foreign-flow .ff-tech-total-row td { background: #1f1f1f !important; }
 html.dark #foreign-flow .ff-vol-metric { color: #bbb !important; }
+
+/* .ff-related-*는 document.body 직속이라 #foreign-flow 스코프 없이 html.dark만으로 잡음 */
+html.dark .ff-related-modal { background: #1c1c1c !important; }
+html.dark .ff-related-modal-header { border-color: #3a3a3a !important; color: #eee !important; }
+html.dark .ff-related-count { color: #888 !important; }
+html.dark .ff-related-close { color: #888 !important; }
+html.dark .ff-related-close:hover { color: #ddd !important; }
+html.dark .ff-related-item { color: #ddd !important; }
+html.dark .ff-related-item:hover { background: #2a2a2a !important; }

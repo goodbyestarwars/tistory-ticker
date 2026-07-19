@@ -140,6 +140,76 @@
     document.addEventListener('click', function (e) {
       if (!container.contains(e.target)) hideSuggestions(suggestBox);
     });
+
+    // 2026-07-20: 업종/테마 배지 클릭 -> 같은 분류의 다른 종목 목록 표시(사용자 요청).
+    // 이벤트 위임으로 container에 한 번만 걸어둔다 - search()가 #ffResult 내부를 통째로
+    // 다시 그려도(펀더멘탈 패널 재생성 등) container 자체는 안 바뀌니 리스너가 계속 산다.
+    container.addEventListener('click', function (e) {
+      var badge = e.target.closest ? e.target.closest('.ff-badge-clickable') : null;
+      if (!badge) return;
+      showRelatedStocks(container, badge.getAttribute('data-related'), badge.getAttribute('data-related-type'));
+    });
+  }
+
+  // ---- 업종/테마 배지 클릭 -> 관련 종목 목록 모달 ----
+
+  function relatedStocksFor(name, type) {
+    if (type === 'theme') {
+      var list = (global.SECTOR_MAP && global.SECTOR_MAP[name]) || [];
+      return list.map(function (s) { return { code: s.code, name: s.name }; })
+        .sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); });
+    }
+    var map = global.WICS_MAP || {};
+    var out = [];
+    for (var code in map) {
+      if (!map.hasOwnProperty(code) || map[code].industry !== name) continue;
+      out.push({ code: code, name: map[code].name });
+    }
+    return out.sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); });
+  }
+
+  function closeRelatedModal() {
+    var existing = document.querySelector('.ff-related-overlay');
+    if (existing) existing.remove();
+  }
+
+  function showRelatedStocks(container, name, type) {
+    if (!name) return;
+    var stocks = relatedStocksFor(name, type);
+    closeRelatedModal();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'ff-related-overlay';
+    overlay.innerHTML = '<div class="ff-related-modal">'
+      + '<div class="ff-related-modal-header">'
+      + '<span>' + escapeHtml(name) + ' <span class="ff-related-count">(' + stocks.length + '개 종목)</span></span>'
+      + '<button type="button" class="ff-related-close" aria-label="닫기">✕</button>'
+      + '</div>'
+      + '<div class="ff-related-list">'
+      + (stocks.length
+          ? stocks.map(function (s) {
+              return '<div class="ff-related-item" data-code="' + escapeAttr(s.code) + '" data-name="' + escapeAttr(s.name) + '">' + escapeHtml(s.name) + '</div>';
+            }).join('')
+          : '<div class="ff-hint">종목이 없습니다.</div>')
+      + '</div>'
+      + '</div>';
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', function escHandler(e) {
+      if (e.key !== 'Escape') return;
+      closeRelatedModal();
+      document.removeEventListener('keydown', escHandler);
+    });
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay || e.target.closest('.ff-related-close')) { closeRelatedModal(); return; }
+      var item = e.target.closest('.ff-related-item');
+      if (!item) return;
+      closeRelatedModal();
+      var input = container.querySelector('#ffInput');
+      if (input) input.value = item.getAttribute('data-name');
+      search(container, item.getAttribute('data-code'));
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   function hideSuggestions(box) {
@@ -675,7 +745,10 @@
       return '<div class="ff-sector-row">'
         + '<span class="ff-sector-row-label">' + label + '</span>'
         + '<div class="ff-sector-tags">' + names.map(function (s) {
-            return '<span class="ff-badge ' + cls + '">' + escapeHtml(s) + '</span>';
+            // 2026-07-20: 배지를 클릭하면 같은 업종/테마의 다른 종목 목록을 보여준다
+            // (사용자 요청) - data-related-type으로 WICS_MAP 역조회(업종)와 SECTOR_MAP
+            // 직접 조회(테마)를 구분한다(showRelatedStocks 참고).
+            return '<span class="ff-badge ff-badge-clickable ' + cls + '" data-related="' + escapeAttr(s) + '" data-related-type="' + (cls === 'ff-badge-theme' ? 'theme' : 'industry') + '">' + escapeHtml(s) + '</span>';
           }).join('') + '</div>'
         + '</div>';
     }
