@@ -1796,7 +1796,20 @@
         lineSeries.setData(pts);
       });
 
-      chart.timeScale().fitContent();
+      // 2026-07-19: fitContent()가 전체 히스토리(최대 ~600~700봉)를 억지로 다 우겨넣어서
+      // 캔들 하나가 1~2px로 뭉개져 실선처럼 보이는 문제가 스크린샷으로 제보됨(이동평균/
+      // 볼린저/일목 보조선만 두껍게 보이고 캔들 몸통은 안 보임) - 기본은 최근 90봉만
+      // 보여주고(그래야 캔들이 눈에 띄게 넓어짐), 데이터가 그보다 적을 때만 fitContent로
+      // 폴백한다. 사용자는 마우스 휠/드래그로 왼쪽(과거)까지 자유롭게 스크롤할 수 있다.
+      var DEFAULT_VISIBLE_BARS = 90;
+      if (daily.length > DEFAULT_VISIBLE_BARS) {
+        chart.timeScale().setVisibleLogicalRange({
+          from: daily.length - DEFAULT_VISIBLE_BARS,
+          to: daily.length + 1
+        });
+      } else {
+        chart.timeScale().fitContent();
+      }
 
       lwcThemeObserver = new MutationObserver(function () {
         chart.applyOptions(lwcThemeOptions(LWC));
