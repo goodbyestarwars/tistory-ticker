@@ -836,4 +836,128 @@ html.dark .ff-related-count { color: #888 !important; }
 html.dark .ff-related-close { color: #888 !important; }
 html.dark .ff-related-close:hover { color: #ddd !important; }
 html.dark .ff-related-item { color: #ddd !important; }
+
+/* ---- 2026-07-20: 오늘의 투자시그널 통합 (①카운트바 ②가중치 탭+랭킹, js/foreign-flow.js) ---- */
+
+#foreign-flow .ff-sig { margin-bottom: 4px; }
+
+#foreign-flow .ff-sig-count-line {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.8;
+}
+#foreign-flow .ff-sig-meta {
+  font-size: 11.5px;
+  color: #9ca3af;
+  margin-top: 2px;
+  margin-bottom: 12px;
+}
+
+#foreign-flow .ff-sig-tabs { margin: 0 0 10px; }
+
+#foreign-flow .ff-sig-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#foreign-flow .ff-sig-row {
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 1px solid #eee;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+#foreign-flow .ff-sig-row:last-child { border-bottom: none; }
+#foreign-flow .ff-sig-row:hover { background: #f7f7f8; }
+
+#foreign-flow .ff-sig-rank-num {
+  font-weight: 800;
+  font-size: 12.5px;
+  color: #9ca3af;
+  min-width: 20px;
+}
+
+#foreign-flow .ff-sig-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #222;
+}
+#foreign-flow .ff-sig-code {
+  font-weight: 400;
+  color: #9ca3af;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+#foreign-flow .ff-sig-score { min-width: 90px; }
+
+#foreign-flow .ff-sig-metric {
+  display: flex;
+  flex-direction: column;
+  min-width: 110px;
+}
+#foreign-flow .ff-sig-metric-label { font-size: 10.5px; color: #9ca3af; }
+#foreign-flow .ff-sig-metric-val { font-size: 12.5px; font-weight: 700; color: #222; }
+
+#foreign-flow .ff-sig-quote {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 90px;
+}
+#foreign-flow .ff-sig-price { font-weight: 700; font-size: 13px; color: #222; }
+#foreign-flow .ff-sig-rate { font-size: 12px; font-weight: 700; }
+
+#foreign-flow .ff-sig-more {
+  font-family: inherit;
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #374151;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+#foreign-flow .ff-sig-more:hover { background: #eef1f5; }
+
+@media (max-width: 480px) {
+  #foreign-flow .ff-sig-score,
+  #foreign-flow .ff-sig-metric-label { display: none; }
+  #foreign-flow .ff-sig-metric { min-width: 60px; }
+}
+
+html.dark #foreign-flow .ff-sig-meta { color: #888 !important; }
+html.dark #foreign-flow .ff-sig-table { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-sig-row { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-sig-row:hover { background: #262626 !important; }
+html.dark #foreign-flow .ff-sig-rank-num { color: #888 !important; }
+html.dark #foreign-flow .ff-sig-name { color: #eee !important; }
+html.dark #foreign-flow .ff-sig-code { color: #888 !important; }
+html.dark #foreign-flow .ff-sig-metric-label { color: #888 !important; }
+html.dark #foreign-flow .ff-sig-metric-val { color: #eee !important; }
+html.dark #foreign-flow .ff-sig-price { color: #eee !important; }
+html.dark #foreign-flow .ff-sig-more {
+  background: #262626 !important;
+  border-color: #3a3a3a !important;
+  color: #ccc !important;
+}
+html.dark #foreign-flow .ff-sig-more:hover { background: #2e2e2e !important; }
 html.dark .ff-related-item:hover { background: #2a2a2a !important; }

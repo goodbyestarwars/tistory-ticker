@@ -2701,7 +2701,14 @@ function getInvestSignalResult() {
       inst: rankings.inst || [],
       pension: rankings.pension || [],
       improved: rankings.improved || [],
-      worsened: rankings.worsened || []
+      worsened: rankings.worsened || [],
+      // 2026-07-20: 종목분석 페이지 통합(가중치 탭) - daily_scan.py가 새로 계산하는 5개
+      // 랭킹(수급/외국인·기관 합산/기술적/공매도낮은순/펀더멘탈) passthrough.
+      flow: rankings.flow || [],
+      foreignInst: rankings.foreignInst || [],
+      tech: rankings.tech || [],
+      shortSafe: rankings.shortSafe || [],
+      fundamental: rankings.fundamental || []
     }
   };
 }

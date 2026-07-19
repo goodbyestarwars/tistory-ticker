@@ -68,11 +68,38 @@
     '강함': 'caution', '매우 강함': 'caution'
   };
 
+  // ---- 2026-07-20: 오늘의 투자시그널 통합(작업지시서) - 페이지 최상단 카운트바 + 가중치
+  // 탭·랭킹. 별도 페이지(js/invest-signal.js)는 이 페이지로 리다이렉트만 하도록 교체됨.
+  // 데이터는 기존 종목분석 위젯과 같은 GAS(?investSignal=1, gas/ticker-proxy.gs
+  // getInvestSignalResult -> VM daily_scan.py)를 그대로 재사용.
+  var GRADE_META = [
+    { key: '적극 매수', emoji: '🟢', label: '적극매수' },
+    { key: '매수 우위', emoji: '🟢', label: '매수' },
+    { key: '보유', emoji: '🟡', label: '보유' },
+    { key: '비중축소', emoji: '🟠', label: '비중축소' },
+    { key: '매도', emoji: '🔴', label: '매도' }
+  ];
+  var SIGNAL_TABS = [
+    { key: 'flow', label: '수급 40%', metricLabel: '수급 점수', metricFmt: fmtScorePt },
+    { key: 'foreignInst', label: '외국인·기관 25%', metricLabel: '5일 합산 순매수', metricFmt: fmtSharesUnit },
+    { key: 'tech', label: '기술적 20%', metricLabel: '기술적 점수', metricFmt: fmtScorePt },
+    { key: 'shortSafe', label: '공매도 10%', metricLabel: '공매도 비중', metricFmt: fmtPct },
+    { key: 'pension', label: '연기금 5%', metricLabel: '5일 순매수', metricFmt: fmtSignedWon },
+    { key: 'fundamental', label: '펀더멘탈', metricLabel: '펀더멘탈 점수', metricFmt: fmtScorePt }
+  ];
+  var SIGNAL_TOP_DEFAULT = 10;
+  var SIGNAL_TOP_MAX = 20;
+
+  var signalData = null;
+  var activeSignalTab = 'flow';
+  var signalExpanded = {}; // 탭 key -> 더보기(TOP20) 눌렀는지
+
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
     container.innerHTML = buildShell();
     wireEvents(container);
+    loadSignalData(container);
     autoSearchFromUrl(container);
   }
 
@@ -90,6 +117,12 @@
 
   function buildShell() {
     return ''
+      + '<div class="ff-sig" id="ffSig">'
+      + '<div class="ff-sig-count" id="ffSigCount"><div class="ff-hint">투자시그널 불러오는 중...</div></div>'
+      + '<div class="ff-view-tabs ff-sig-tabs" id="ffSigTabs"></div>'
+      + '<div class="ff-sig-rank" id="ffSigRank"></div>'
+      + '</div>'
+      + '<div class="ff-divider"></div>'
       + '<div class="ff-search">'
       + '<div class="ff-input-wrap">'
       + '<input type="text" id="ffInput" class="ff-input" placeholder="종목명을 입력하세요 (예: 삼성전자)" autocomplete="off" />'
@@ -101,6 +134,101 @@
       + '<div class="ff-hint">종목명을 검색하면 외국인·기관 순매매 동향을 보여드려요.</div>'
       + '</div>';
   }
+
+  // ---- 오늘의 투자시그널(① 카운트 ② 가중치 탭+랭킹) ----
+
+  function loadSignalData(container) {
+    ForeignFlow.fetchJson(GAS_TICKER_URL + '?investSignal=1')
+      .then(function (data) {
+        signalData = data;
+        renderSignalCount(container);
+        renderSignalTabs(container);
+        renderSignalRank(container);
+      })
+      .catch(function () {
+        var box = container.querySelector('#ffSigCount');
+        if (box) box.innerHTML = '<div class="ff-error">투자시그널 데이터를 불러오지 못했어요.</div>';
+      });
+  }
+
+  function renderSignalCount(container) {
+    var box = container.querySelector('#ffSigCount');
+    if (!box) return;
+    var counts = signalData.counts || {};
+    var line = GRADE_META.map(function (g) {
+      return g.emoji + ' ' + g.label + ' ' + (counts[g.key] || 0).toLocaleString('ko-KR') + '종목';
+    }).join(' · ');
+    var meta = signalData.scannedAt
+      ? ('스캔 ' + signalData.scannedAt + ' · 대상 ' + (signalData.scanned || 0) + '/' + (signalData.universe || 0) + '종목')
+      : '아직 스캔 결과가 없어요.';
+    box.innerHTML = '<div class="ff-sig-count-line">' + line + '</div>'
+      + '<div class="ff-sig-meta">' + escapeHtml(meta) + '</div>';
+  }
+
+  function renderSignalTabs(container) {
+    var box = container.querySelector('#ffSigTabs');
+    if (!box) return;
+    box.innerHTML = SIGNAL_TABS.map(function (t) {
+      return '<button type="button" class="ff-view-tab' + (activeSignalTab === t.key ? ' active' : '') + '" data-sig-tab="' + t.key + '">' + t.label + '</button>';
+    }).join('');
+    box.querySelectorAll('.ff-view-tab').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var key = btn.getAttribute('data-sig-tab');
+        if (key === activeSignalTab) return;
+        activeSignalTab = key;
+        renderSignalTabs(container);
+        renderSignalRank(container);
+      });
+    });
+  }
+
+  function renderSignalRank(container) {
+    var box = container.querySelector('#ffSigRank');
+    if (!box) return;
+    if (!signalData) { box.innerHTML = '<div class="ff-hint">불러오는 중...</div>'; return; }
+
+    var tab = SIGNAL_TABS.filter(function (t) { return t.key === activeSignalTab; })[0];
+    var items = (signalData.rankings && signalData.rankings[activeSignalTab]) || [];
+    if (!items.length) {
+      box.innerHTML = '<div class="ff-hint">랭킹 데이터가 아직 없어요.</div>';
+      return;
+    }
+
+    var expanded = !!signalExpanded[activeSignalTab];
+    var shown = items.slice(0, expanded ? SIGNAL_TOP_MAX : SIGNAL_TOP_DEFAULT);
+    var rowsHtml = shown.map(function (it, i) { return signalRowHtml(it, i + 1, tab); }).join('');
+
+    var moreHtml = (!expanded && items.length > SIGNAL_TOP_DEFAULT)
+      ? '<button type="button" class="ff-sig-more" data-sig-more="1">더보기 (TOP ' + Math.min(items.length, SIGNAL_TOP_MAX) + ')</button>'
+      : '';
+
+    box.innerHTML = '<div class="ff-sig-table">' + rowsHtml + '</div>' + moreHtml;
+  }
+
+  // item = [code, name, price, changeRate, metricVal, stars] (invest_signal.upsert_ranked 순서)
+  function signalRowHtml(item, rank, tab) {
+    var code = item[0], name = item[1], price = item[2], changeRate = item[3], metricVal = item[4], stars = item[5];
+    return '<button type="button" class="ff-sig-row" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
+      + '<span class="ff-sig-rank-num">' + rank + '</span>'
+      + '<span class="ff-sig-name">' + escapeHtml(name) + '<span class="ff-sig-code">(' + escapeHtml(code) + ')</span></span>'
+      + '<span class="ff-sig-score">' + starsHtml(stars) + '</span>'
+      + '<span class="ff-sig-metric"><span class="ff-sig-metric-label">' + escapeHtml(tab.metricLabel) + '</span>'
+      + '<span class="ff-sig-metric-val">' + tab.metricFmt(metricVal) + '</span></span>'
+      + '<span class="ff-sig-quote"><span class="ff-sig-price">' + (price == null || isNaN(price) ? '-' : Math.round(price).toLocaleString('ko-KR')) + '</span>'
+      + '<span class="ff-sig-rate ' + signClass(changeRate) + '">' + fmtSignedPct(changeRate) + '</span></span>'
+      + '</button>';
+  }
+
+  function selectSignalStock(container, code, name) {
+    var input = container.querySelector('#ffInput');
+    if (input) input.value = name;
+    search(container, code);
+    var resultBox = container.querySelector('#ffResult');
+    if (resultBox) resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function fmtScorePt(v) { return v == null || isNaN(v) ? '-' : Math.round(v) + '점'; }
+  function fmtSharesUnit(v) { return v == null || isNaN(v) ? '-' : fmtShares(v) + '주'; }
 
   // ---- 검색/자동완성 (stock-news.js와 동일 패턴) ----
 
@@ -146,8 +274,21 @@
     // 다시 그려도(펀더멘탈 패널 재생성 등) container 자체는 안 바뀌니 리스너가 계속 산다.
     container.addEventListener('click', function (e) {
       var badge = e.target.closest ? e.target.closest('.ff-badge-clickable') : null;
-      if (!badge) return;
-      showRelatedStocks(container, badge.getAttribute('data-related'), badge.getAttribute('data-related-type'));
+      if (badge) {
+        showRelatedStocks(container, badge.getAttribute('data-related'), badge.getAttribute('data-related-type'));
+        return;
+      }
+      // 투자시그널 랭킹 행 클릭 -> 아래 종목명 입력란에 자동 입력 후 조회(작업지시서 우선순위 3).
+      var sigRow = e.target.closest ? e.target.closest('.ff-sig-row') : null;
+      if (sigRow) {
+        selectSignalStock(container, sigRow.getAttribute('data-code'), sigRow.getAttribute('data-name'));
+        return;
+      }
+      var moreBtn = e.target.closest ? e.target.closest('.ff-sig-more') : null;
+      if (moreBtn) {
+        signalExpanded[activeSignalTab] = true;
+        renderSignalRank(container);
+      }
     });
   }
 
@@ -2353,7 +2494,11 @@
   var ForeignFlow = {
     init: init,
     fetchFlow: fetchFlow,
-    search: search
+    search: search,
+    // fetchJson을 네임스페이스 경유로 호출(loadSignalData)해서 테스트 페이지가 fetchFlow처럼
+    // ForeignFlow.fetchJson을 몽키패치해 mock 데이터로 검증할 수 있게 한다(js/invest-signal.js와
+    // 동일한 관례).
+    fetchJson: fetchJson
   };
   global.ForeignFlow = ForeignFlow;
 

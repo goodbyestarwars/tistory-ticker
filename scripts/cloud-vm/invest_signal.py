@@ -166,9 +166,12 @@ def foreign_inst_shift_score(rolling):
 
 
 def upsert_ranked(lst, row, field, n, order):
-    """랭킹 후보 하나를 상위/하위 N개짜리 정렬 리스트에 삽입하고 N개 넘으면 자른다."""
+    """랭킹 후보 하나를 상위/하위 N개짜리 정렬 리스트에 삽입하고 N개 넘으면 자른다.
+    2026-07-20: 종목분석 페이지 통합(가중치 탭 랭킹)에서 "점수" 컬럼에 쓰도록 종합
+    별점(row['stars'])을 6번째 원소로 항상 같이 실어보낸다 - 옛 랭킹(외국인/기관/연기금
+    등)도 별도 계산 없이 그대로 받게 되어 무해함."""
     if row.get(field) is None:
         return
-    lst.append([row['code'], row['name'], row['price'], row['changeRate'], row[field]])
+    lst.append([row['code'], row['name'], row['price'], row['changeRate'], row[field], row.get('stars')])
     lst.sort(key=lambda r: r[4], reverse=(order == 'desc'))
     del lst[n:]

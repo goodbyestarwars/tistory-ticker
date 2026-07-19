@@ -28,6 +28,47 @@
 <script>
   // GAS 재배포 전이므로 기본은 mock으로 렌더링 검증 (?real=1이면 실제 GAS 호출)
   if (location.search.indexOf('real=1') === -1) {
+    // 2026-07-20: 투자시그널 통합 카운트바/가중치 탭 검증용 mock - loadSignalData()가
+    // ForeignFlow.fetchJson(namespace 경유)으로만 부르므로 이 함수만 오버라이드해도
+    // 나머지 내부 fetchJson() 직접호출(차트/펀더멘탈/시세 등)은 영향받지 않는다.
+    ForeignFlow.fetchJson = function (url) {
+      console.log('[mock] fetchJson', url);
+      var STOCKS = [
+        ['005930', '삼성전자'], ['000660', 'SK하이닉스'], ['005380', '현대차'], ['000720', '현대건설'],
+        ['267260', 'HD현대일렉트릭'], ['012450', '한화에어로스페이스'], ['035420', 'NAVER'], ['051910', 'LG화학'],
+        ['105560', 'KB금융'], ['055550', '신한지주'], ['009540', 'HD한국조선해양'], ['010140', '삼성중공업'],
+        ['011200', 'HMM'], ['034020', '두산에너빌리티'], ['003550', 'LG'], ['066570', 'LG전자'],
+        ['015760', '한국전력공사'], ['017670', 'SK텔레콤'], ['030200', 'KT'], ['086790', '하나금융지주']
+      ];
+      function genRanked(n, priceBase, metricMin, metricMax) {
+        var out = [];
+        for (var i = 0; i < n; i++) {
+          var s = STOCKS[i % STOCKS.length];
+          var t = (n - i) / n;
+          var metric = metricMin + (metricMax - metricMin) * t;
+          var price = priceBase + Math.round((Math.random() - 0.5) * priceBase * 0.1);
+          var changeRate = +((Math.random() - 0.45) * 6).toFixed(2);
+          var stars = Math.round((1.5 + t * 3.5) * 2) / 2;
+          out.push([s[0], s[1], price, changeRate, Math.round(metric * 100) / 100, stars]);
+        }
+        return out;
+      }
+      return Promise.resolve({
+        scannedAt: '2026-07-20 18:03:11',
+        universe: 2691,
+        scanned: 2534,
+        counts: { '적극 매수': 121, '매수 우위': 402, '보유': 1310, '비중축소': 512, '매도': 189 },
+        rankings: {
+          flow: genRanked(20, 90000, 40, 100),
+          foreignInst: genRanked(20, 80000, 200000, 3000000),
+          tech: genRanked(20, 70000, 30, 100),
+          shortSafe: genRanked(20, 60000, 0.2, 8),
+          pension: genRanked(20, 65000, 500, 15000),
+          fundamental: genRanked(20, 50000, 30, 100)
+        }
+      });
+    };
+
     ForeignFlow.fetchFlow = function (code) {
       var daily = [];
       var close = 280000;

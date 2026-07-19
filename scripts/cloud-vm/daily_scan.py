@@ -86,6 +86,8 @@ def fresh_signal_state():
         'counts': {k: 0 for k in invest_signal.INVEST_SIGNAL_BUCKET_KEYS},
         'buckets': {k: [] for k in invest_signal.INVEST_SIGNAL_BUCKET_KEYS},
         'topForeign': [], 'topInst': [], 'topPension': [], 'improved': [], 'worsened': [],
+        # 2026-07-20: 종목분석 페이지 가중치 탭(수급/외국인·기관/기술적/공매도/펀더멘탈) 통합용 신규 랭킹.
+        'topFlow': [], 'topForeignInst': [], 'topTech': [], 'topShortSafe': [], 'topFundamental': [],
     }
 
 
@@ -196,11 +198,13 @@ def main():
 
                 entry = flow_cache.get(code)
                 short_score = None
+                short_ratio = None
                 pension_score = None
                 credit_score = None
                 if entry:
                     pressure = (entry.get('short') or {}).get('pressure') or {}
                     short_score = pressure.get('score')
+                    short_ratio = (entry.get('short') or {}).get('today_ratio_pct')
                     pension_score = invest_signal.compute_pension_score(entry.get('pension'))
                     credit_score = invest_signal.compute_credit_score(entry.get('credit'))
 
@@ -228,6 +232,14 @@ def main():
                     'inst5d': r5.get('inst', 0),
                     'pension5d': pension_5d,
                     'shift': invest_signal.foreign_inst_shift_score(flow['rolling']),
+                    # 2026-07-20: 종목분석 페이지 가중치 탭 랭킹용(작업지시서 - 수급/외국인·기관/
+                    # 기술적/공매도/펀더멘탈 TOP20). shortRatio는 낮을수록 좋아서(공매도 비중 적음)
+                    # upsert_ranked를 asc로 호출한다(아래).
+                    'flowScore': flow_score,
+                    'foreignInstSum5d': r5.get('foreign', 0) + r5.get('inst', 0),
+                    'techScore': tech.get('score') if tech else None,
+                    'shortRatio': short_ratio,
+                    'fundamentalScore': fundamental_score,
                 }
                 signal_state['scanned'] += 1
                 signal_state['counts'][verdict['label']] = signal_state['counts'].get(verdict['label'], 0) + 1
@@ -240,6 +252,12 @@ def main():
                 invest_signal.upsert_ranked(signal_state['topPension'], row, 'pension5d', invest_signal.INVEST_SIGNAL_TOP_N, 'desc')
                 invest_signal.upsert_ranked(signal_state['improved'], row, 'shift', invest_signal.INVEST_SIGNAL_TOP_N, 'desc')
                 invest_signal.upsert_ranked(signal_state['worsened'], row, 'shift', invest_signal.INVEST_SIGNAL_TOP_N, 'asc')
+
+                invest_signal.upsert_ranked(signal_state['topFlow'], row, 'flowScore', invest_signal.INVEST_SIGNAL_TOP_N, 'desc')
+                invest_signal.upsert_ranked(signal_state['topForeignInst'], row, 'foreignInstSum5d', invest_signal.INVEST_SIGNAL_TOP_N, 'desc')
+                invest_signal.upsert_ranked(signal_state['topTech'], row, 'techScore', invest_signal.INVEST_SIGNAL_TOP_N, 'desc')
+                invest_signal.upsert_ranked(signal_state['topShortSafe'], row, 'shortRatio', invest_signal.INVEST_SIGNAL_TOP_N, 'asc')
+                invest_signal.upsert_ranked(signal_state['topFundamental'], row, 'fundamentalScore', invest_signal.INVEST_SIGNAL_TOP_N, 'desc')
 
             if (i + 1) % 100 == 0 or (i + 1) == len(universe):
                 log('[%d/%d] 진행 중 (패턴 %d / 눌림목 %d / 투자시그널 %d 스캔됨, OHLC스킵 %d / 수급스킵 %d)'
@@ -268,6 +286,11 @@ def main():
                 'pension': signal_state['topPension'],
                 'improved': signal_state['improved'],
                 'worsened': signal_state['worsened'],
+                'flow': signal_state['topFlow'],
+                'foreignInst': signal_state['topForeignInst'],
+                'tech': signal_state['topTech'],
+                'shortSafe': signal_state['topShortSafe'],
+                'fundamental': signal_state['topFundamental'],
             },
         },
     }

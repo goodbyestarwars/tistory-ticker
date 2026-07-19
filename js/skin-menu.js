@@ -34,12 +34,9 @@
     },
     // 핵심종목 히트맵(/page/marketcap-bubble) 단독 메뉴는 2026-07-16 삭제 - 증시온도
     // 페이지의 "시총비례 히트맵" 탭으로 흡수됐고 사용자가 실제 페이지도 지움(중복 제거).
-    {
-      href: '/pages/invest-signal',
-      label: '오늘의 투자시그널',
-      bold: true,
-      icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>'
-    },
+    // 오늘의 투자시그널(/pages/invest-signal) 단독 메뉴는 2026-07-20 삭제 - 종목분석
+    // 페이지 최상단으로 통합됐음(js/invest-signal.js는 이제 /page/foreign-flow로
+    // 리다이렉트만 함) - 아래 "종목분석" 메뉴 하나로 합쳐짐.
     {
       href: '/page/stock-news',
       label: '종목뉴스',
