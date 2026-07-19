@@ -230,6 +230,23 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, 
     return out
 
 
+def _remerge_foreign_holdings(rows, frgn_by_date):
+    """KIS 성공 캐시(SQLite)는 저장 시점의 ka10008 스냅샷이 foreign_shares/foreign_ratio에
+    그대로 박혀 있는데, ka10008은 fetch_foreign_inst_daily가 매 요청마다 새로 불러온다
+    (frgn_by_date 인자) - 캐시를 쓰더라도 이 두 필드만은 항상 최신값으로 덮어써야 한다.
+    2026-07-20 실측 발견: ka10008 자체는 매번 정상 응답하는데도 종목분석 위젯엔
+    foreign_shares/ratio가 계속 null로 나왔음 - KIS가 TIME LIMIT(00:00~15:40)으로 막혀
+    SQLite 캐시를 반환할 때, 캐시에 박제된 옛 ka10008 스냅샷(캐시 작성 시점에 마침 비어
+    있었던 것으로 추정)을 그대로 돌려주고 있었던 게 원인. 이 재병합으로 캐시 히트여도
+    보유주수/비중만큼은 항상 이번 요청의 ka10008 응답을 반영한다."""
+    for r in rows:
+        dt = r['date'].replace('-', '')
+        frgn_row = frgn_by_date.get(dt)
+        r['foreign_shares'] = abs(to_num(frgn_row.get('poss_stkcnt'))) if frgn_row else None
+        r['foreign_ratio'] = to_num(frgn_row.get('wght')) if frgn_row else None
+    return rows
+
+
 def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days):
     """_daily_rows_from_kis()를 호출하되, KIS가 실패하면(특히 00:00~15:40 TIME LIMIT) 키움
     폴백으로 곧장 넘어가는 대신 최근(_KIS_SUCCESS_TTL_SEC 이내) 성공했던 KIS 결과를 먼저
@@ -252,7 +269,7 @@ def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, en
             if age_sec >= _KIS_SUCCESS_TTL_SEC:
                 raise
             logger.warning('KIS 실패(%s), %.0f분 전 성공 캐시로 재사용(키움 폴백 대신): %s', code, age_sec / 60, e)
-            return cached_rows
+            return _remerge_foreign_holdings(cached_rows, frgn_by_date)
     finally:
         conn.close()
 

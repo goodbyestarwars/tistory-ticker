@@ -258,15 +258,6 @@ def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6),
     return envelope(result)
 
 
-@app.get('/debug-ka10008/{code}')
-def debug_ka10008(code: str = Path(..., min_length=6, max_length=6)):
-    """임시 디버그 - foreign_shares/foreign_ratio가 전부 null로 나오는 원인 확인용(2026-07-20).
-    확인 끝나면 제거할 것."""
-    token = get_kiwoom_token()
-    res = kiwoom_client.call_tr(token, 'ka10008', '/api/dostk/frgnistt', {'stk_cd': code})
-    return {'keys': list(res.keys()) if isinstance(res, dict) else str(type(res)), 'raw': res}
-
-
 @app.get('/investor-flow-batch')
 def investor_flow_batch(x_api_key: str = Header(default=None)):
     """batch_scan.py(하루 1회 크론)가 미리 계산해둔 섹터 풀 전체 캐시를 즉시 반환.
