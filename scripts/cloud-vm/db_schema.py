@@ -95,6 +95,21 @@ CREATE TABLE IF NOT EXISTS future_chart_minute (
     close REAL,
     PRIMARY KEY (symbol, ts)
 );
+
+-- 2026-07-19: KIS 종목별투자자매매동향(일별, FHPTJ04160001)이 00:00~15:40(KST)엔 TR
+-- 자체가 막혀있어서(OPSQ2001 TIME LIMIT, kiwoom_market.py 참고) 그 시간대엔 직전 성공
+-- 결과를 재사용해야 하는데, 인메모리 캐시는 배포 때마다(재시작) 사라져서 SQLite로 옮김 -
+-- daily_prices/investor_flow_daily과 달리 batch_scan 대상이 아니라 온디맨드로 "그때그때
+-- 조회된 종목"만 쌓인다(전종목 아님, 무한정 커지지 않음 - 종목당 기간 선택지가 5개뿐이라
+-- 최악의 경우도 "조회된 종목 수 x 5"행 수준). rows_json은 kiwoom_market의 daily 행
+-- 리스트를 그대로 직렬화(다른 *_json 컬럼과 동일 패턴, fundamentals.annual_json 등).
+CREATE TABLE IF NOT EXISTS kis_flow_cache (
+    code TEXT NOT NULL,
+    target_days INTEGER NOT NULL,
+    updated_at TEXT,
+    rows_json TEXT,
+    PRIMARY KEY (code, target_days)
+);
 '''
 
 
@@ -257,6 +272,31 @@ def load_option_flow(conn):
         {'side': r[0], 'volume': r[1], 'oi': r[2], 'oi_change': r[3], 'updated_at': r[4]}
         for r in rows
     ]
+
+
+def upsert_kis_flow_cache(conn, code, target_days, rows, updated_at):
+    """kiwoom_market._daily_rows_from_kis_with_fallback_cache()가 KIS 성공 시 저장.
+    rows는 json.dumps로 그대로 직렬화(dict/list라 별도 컬럼화 불필요)."""
+    import json
+    conn.execute(
+        'INSERT INTO kis_flow_cache (code, target_days, updated_at, rows_json) VALUES (?, ?, ?, ?) '
+        'ON CONFLICT(code, target_days) DO UPDATE SET '
+        'updated_at=excluded.updated_at, rows_json=excluded.rows_json',
+        (code, target_days, updated_at, json.dumps(rows, ensure_ascii=False)),
+    )
+    conn.commit()
+
+
+def load_kis_flow_cache(conn, code, target_days):
+    """(rows, updated_at) 튜플 또는 저장된 게 없으면 (None, None)."""
+    import json
+    row = conn.execute(
+        'SELECT rows_json, updated_at FROM kis_flow_cache WHERE code=? AND target_days=?',
+        (code, target_days),
+    ).fetchone()
+    if not row:
+        return None, None
+    return json.loads(row[0]), row[1]
 
 
 if __name__ == '__main__':
