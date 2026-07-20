@@ -93,8 +93,8 @@ a { text-decoration: none; color: inherit; }
 }
 .nav-search input {
   width: 100%;
-  background: #1a2b54;
-  border: 1.5px solid #2a3f6e;
+  background: #123020;
+  border: 1.5px solid #1f4a34;
   border-radius: 24px;
   padding: 9px 16px 9px 38px;
   color: #fff;
@@ -102,8 +102,8 @@ a { text-decoration: none; color: inherit; }
   outline: none;
   transition: border-color .2s;
 }
-.nav-search input::placeholder { color: #7d94b8; }
-.nav-search input:focus { border-color: #4b7be5; }
+.nav-search input::placeholder { color: #7fa08d; }
+.nav-search input:focus { border-color: #22c55e; }
 .nav-icons {
   margin-left: auto;
   display: flex;
@@ -114,7 +114,7 @@ a { text-decoration: none; color: inherit; }
 .nav-icon-btn {
   width: 36px; height: 36px;
   border-radius: 50%;
-  background: #1a2b54;
+  background: #123020;
   border: none;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
@@ -1814,7 +1814,7 @@ a { text-decoration: none; color: inherit; }
   gap: 5px;
   width: 36px;
   height: 36px;
-  background: #1a2b54;
+  background: #123020;
   border: none;
   border-radius: 9px;
   cursor: pointer;
@@ -1851,7 +1851,7 @@ a { text-decoration: none; color: inherit; }
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(13, 27, 64, 0.97);
+  background: rgba(8, 36, 21, 0.97);
   z-index: 1001;
   flex-direction: column;
   align-items: center;
@@ -1871,8 +1871,8 @@ a { text-decoration: none; color: inherit; }
 }
 .mso-input {
   width: 100%;
-  background: #1a2b54;
-  border: 2px solid #818cf8;
+  background: #123020;
+  border: 2px solid #22c55e;
   border-radius: 30px;
   padding: 14px 52px 14px 22px;
   color: #fff;
@@ -1880,9 +1880,9 @@ a { text-decoration: none; color: inherit; }
   font-family: 'Noto Serif KR', Georgia, serif;
   outline: none;
   letter-spacing: -0.2px;
-  box-shadow: 0 4px 24px rgba(129,140,248,0.25);
+  box-shadow: 0 4px 24px rgba(34,197,94,0.25);
 }
-.mso-input::placeholder { color: #7d94b8; }
+.mso-input::placeholder { color: #7fa08d; }
 .mso-hint {
   margin-top: 14px;
   font-size: 12px;
