@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>investor-trend-widget 로컬 테스트</title>
+<script>
+  // js/investor-trend-widget.js는 홈("/")에서만 마운트하므로 테스트 페이지 경로를
+  // 히스토리 API로 살짝 속인다(실제 이동은 안 하고 pathname만 "/"로 보이게 함).
+  history.replaceState({}, '', '/');
+</script>
+<link rel="stylesheet" href="../style.css" />
+<link rel="stylesheet" href="../css/investor-trend-widget.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #f5f6f8; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 640px; margin: 40px auto; padding: 0 16px; }
+  .tools { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .tools button { font-family: inherit; padding: 6px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="tools">
+  <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+  <button onclick="setMock('normal')">정상 데이터</button>
+  <button onclick="setMock('allNeg')">전부 순매도</button>
+  <button onclick="setMock('empty')">빈 데이터</button>
+  <button onclick="setMock('error')">API 오류(재시도 후 실패)</button>
+  <button onclick="document.querySelector('.itw-card')?.closest('.page-body').style.maxWidth = (document.querySelector('.page-body').style.maxWidth === '340px' ? '640px' : '340px')">모바일 폭 토글</button>
+</div>
+
+<div class="page-body">
+  <section class="feed">
+    <div id="investor-trend-widget"></div>
+  </section>
+</div>
+
+<script src="../js/investor-trend-widget.js"></script>
+<script>
+  function mockRows(period, sign) {
+    var specs = {
+      day: ['07.13', '07.14', '07.15', '07.16', '07.17', '07.20', '07.21', '07.22', '07.23', '07.24'],
+      week: ['6월 4주', '6월 5주', '7월 1주', '7월 2주', '7월 3주'],
+      month: ['2026.02', '2026.03', '2026.04', '2026.05', '2026.06', '2026.07']
+    };
+    var labels = specs[period];
+    return labels.map(function (label, i) {
+      var base = (i + 1) * 3000 * (period === 'month' ? 8 : 1);
+      var s = sign != null ? sign : (i % 2 === 0 ? 1 : -1);
+      return {
+        label: label,
+        ind: -s * base * 0.6,
+        frgn: s * base,
+        orgn: s * base * 0.4 * (i % 3 === 0 ? -1 : 1)
+      };
+    });
+  }
+
+  if (location.search.indexOf('real=1') === -1) {
+    InvestorTrendWidget.fetchOnce = function (period) {
+      console.log('[mock] fetchOnce', period, window.__mockMode);
+      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
+      if (window.__mockMode === 'empty') return Promise.resolve({ period: period, asOf: null, rows: [] });
+      var sign = window.__mockMode === 'allNeg' ? -1 : null;
+      return Promise.resolve({
+        period: period,
+        asOf: new Date().toISOString(),
+        rows: mockRows(period, sign)
+      });
+    };
+  }
+
+  function setMock(mode) {
+    window.__mockMode = mode;
+    if (location.search.indexOf('real=1') === -1) {
+      document.querySelector('#investor-trend-widget').innerHTML = '';
+      InvestorTrendWidget.init();
+    }
+  }
+</script>
+
+</body>
+</html>

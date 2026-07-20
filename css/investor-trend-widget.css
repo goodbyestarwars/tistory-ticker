@@ -1,0 +1,187 @@
+/* 메인 페이지 "투자자별 매매 동향" 위젯(js/investor-trend-widget.js) - 작업지시서 #4
+ * (2026-07-20) 공지사항(#pinnedNotice) 카드 대체. .card는 style.css의 공통 카드 스타일을
+ * 그대로 쓰고 이 파일은 내부 헤더/탭/차트/테이블만 추가한다.
+ * 색상: 개인 #AAAAAA / 외국인 #1D9E75 / 기관 #378ADD (지시서 원문 그대로 - 사이트 공통
+ * 상승/하락색과는 별개 축이라 그대로 사용, sidebar-rank.js처럼 바꿀 이유가 없었음).
+ * 다크모드: html.dark #investor-trend-widget ... !important (9bolt 스킨 블랑켓 규칙 대응). */
+
+#investor-trend-widget .itw-card {
+  padding: 22px 24px 18px;
+}
+
+#investor-trend-widget .itw-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+#investor-trend-widget .itw-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #222;
+}
+#investor-trend-widget .itw-asof {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+#investor-trend-widget .itw-subtext {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ---- 탭 ---- */
+#investor-trend-widget .itw-tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+#investor-trend-widget .itw-tab {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #666;
+  background: #f1f2f5;
+  border: none;
+  border-radius: 999px;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+#investor-trend-widget .itw-tab:hover { color: #222; }
+#investor-trend-widget .itw-tab.active {
+  background: #e2e5ea;
+  color: #111;
+}
+
+/* ---- 스켈레톤 / 에러 ---- */
+#investor-trend-widget .itw-skeleton {
+  height: 130px;
+  margin-top: 16px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f2f3f5 25%, #e9eaed 37%, #f2f3f5 63%);
+  background-size: 400% 100%;
+  animation: itw-shimmer 1.4s ease infinite;
+}
+@keyframes itw-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+#investor-trend-widget .itw-error {
+  margin-top: 16px;
+  padding: 30px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: #9ca3af;
+}
+
+/* ---- 막대 차트: 0선 기준 그룹 막대(개인/외국인/기관 3개씩) ---- */
+#investor-trend-widget .itw-chart {
+  position: relative;
+  height: 130px;
+  margin-top: 16px;
+}
+#investor-trend-widget .itw-zeroline {
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  border-top: 0.5px solid #d7dae0;
+}
+#investor-trend-widget .itw-groups {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  padding: 0 4px;
+}
+#investor-trend-widget .itw-group {
+  position: relative;
+  width: 48px; /* 14px*3 + 3px*2 */
+  height: 100%;
+  display: flex;
+  gap: 3px;
+}
+#investor-trend-widget .itw-bar {
+  position: absolute;
+  width: 14px;
+  border-radius: 3px 3px 0 0;
+}
+#investor-trend-widget .itw-bar.itw-bar-neg { border-radius: 0 0 3px 3px; }
+#investor-trend-widget .itw-bar-ind { left: 0; background: #AAAAAA; }
+#investor-trend-widget .itw-bar-frgn { left: 17px; background: #1D9E75; }
+#investor-trend-widget .itw-bar-orgn { left: 34px; background: #378ADD; }
+#investor-trend-widget .itw-bar.itw-bar-neg { opacity: 0.7; }
+
+/* ---- 수치 테이블 ---- */
+#investor-trend-widget .itw-table-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+#investor-trend-widget .itw-table {
+  width: 100%;
+  min-width: 360px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+#investor-trend-widget .itw-table th,
+#investor-trend-widget .itw-table td {
+  padding: 6px 4px;
+  text-align: right;
+  white-space: nowrap;
+}
+#investor-trend-widget .itw-table th {
+  font-weight: 500;
+  color: #9ca3af;
+  font-size: 11px;
+  border-bottom: 1px solid #eef0f3;
+}
+#investor-trend-widget .itw-table td.itw-legend,
+#investor-trend-widget .itw-table th:first-child {
+  text-align: left;
+}
+#investor-trend-widget .itw-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #444;
+  white-space: nowrap;
+}
+#investor-trend-widget .itw-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+#investor-trend-widget .itw-dot-ind { background: #AAAAAA; }
+#investor-trend-widget .itw-dot-frgn { background: #1D9E75; }
+#investor-trend-widget .itw-dot-orgn { background: #378ADD; }
+
+#investor-trend-widget .itw-cell-ind { color: #888; }
+#investor-trend-widget .itw-cell-frgn { color: #1D9E75; }
+#investor-trend-widget .itw-cell-orgn { color: #378ADD; }
+#investor-trend-widget .itw-cell-ind.itw-neg,
+#investor-trend-widget .itw-cell-frgn.itw-neg,
+#investor-trend-widget .itw-cell-orgn.itw-neg { opacity: 0.8; }
+
+@media (max-width: 720px) {
+  #investor-trend-widget .itw-card { padding: 16px 16px 14px; }
+  #investor-trend-widget .itw-chart,
+  #investor-trend-widget .itw-skeleton { height: 80px; }
+}
+
+/* ---- 다크모드 ---- */
+html.dark #investor-trend-widget .itw-title { color: #eee !important; }
+html.dark #investor-trend-widget .itw-asof,
+html.dark #investor-trend-widget .itw-subtext,
+html.dark #investor-trend-widget .itw-error { color: #888 !important; }
+html.dark #investor-trend-widget .itw-tab { background: #2a2a2a !important; color: #aaa !important; }
+html.dark #investor-trend-widget .itw-tab:hover { color: #eee !important; }
+html.dark #investor-trend-widget .itw-tab.active { background: #3d4149 !important; color: #fff !important; }
+html.dark #investor-trend-widget .itw-skeleton {
+  background: linear-gradient(90deg, #262626 25%, #303030 37%, #262626 63%) !important;
+  background-size: 400% 100% !important;
+}
+html.dark #investor-trend-widget .itw-zeroline { border-color: #3a3a3a !important; }
+html.dark #investor-trend-widget .itw-table th { color: #888 !important; border-color: #333 !important; }
+html.dark #investor-trend-widget .itw-legend { color: #ddd !important; }
+html.dark #investor-trend-widget .itw-cell-ind { color: #aaa !important; }

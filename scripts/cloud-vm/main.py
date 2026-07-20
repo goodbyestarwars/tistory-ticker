@@ -23,6 +23,7 @@ import foreign_flow_compute
 import foreign_futures
 import naver_news
 import investor_flow
+import investor_trend
 import kiwoom_client
 import kiwoom_market
 import market_rank
@@ -54,6 +55,7 @@ def _start_futures_collectors():
     domestic_futures.start_background()
     btc_futures.start_background()
     bond_yield.start_background()
+    investor_trend.start_background()
 
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
@@ -439,6 +441,21 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
         raise HTTPException(status_code=502, detail=str(e))
     _market_rank_cache[limit] = {'t': now, 'data': data}
     return envelope(data)
+
+
+@app.get('/investor-trend')
+def investor_trend_endpoint(period: str = Query('week')):
+    """메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4) - 코스피 시장 전체 개인/외국인/
+    기관계 순매수(억원)를 일/주/월 단위로 반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로
+    블로그 도메인만 제한) - /futures, /market-rank와 동일한 패턴. investor_trend.py의
+    백그라운드 폴러(1분)가 미리 채워둔 SQLite만 읽으므로 요청마다 네이버를 다시 부르지 않는다."""
+    if period not in ('day', 'week', 'month'):
+        period = 'week'
+    try:
+        result = investor_trend.get_result(period)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return envelope(result)
 
 
 @app.get('/week52-batch')

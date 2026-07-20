@@ -110,6 +110,20 @@ CREATE TABLE IF NOT EXISTS kis_flow_cache (
     rows_json TEXT,
     PRIMARY KEY (code, target_days)
 );
+
+-- 2026-07-20: 메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4) - 코스피 시장 전체
+-- 개인/외국인/기관계 일별 순매수(억원, 네이버 investorDealTrendDay.naver 소스,
+-- investor_trend.py 참고). 지시서는 키움 TR(get_investor_summary/get_investor_trend)로
+-- 시장 전체 값을 받는다고 가정했지만 실측 결과 두 TR 모두 종목코드(stk_cd)가 필수라
+-- 종목별 조회만 되고 시장 전체 집계를 안 줘서(2026-07-20 MCP 실호출로 확인) 네이버로
+-- 대체함 - domestic_futures.py(코스피/코스닥 지수)와 같은 소스·같은 우회 사유.
+CREATE TABLE IF NOT EXISTS investor_trend_daily (
+    date TEXT PRIMARY KEY,
+    ind_amt REAL,
+    frgn_amt REAL,
+    orgn_amt REAL,
+    updated_at TEXT
+);
 '''
 
 
@@ -297,6 +311,36 @@ def load_kis_flow_cache(conn, code, target_days):
     if not row:
         return None, None
     return json.loads(row[0]), row[1]
+
+
+def upsert_investor_trend_rows(conn, rows):
+    """rows: [{date('YYYYMMDD'), ind, frgn, orgn}, ...], 단위 억원. 이미 확정된 과거일 값은
+    바뀌지 않지만 당일(장중) 행은 재조회 때마다 갱신돼야 하므로 UPSERT."""
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat()
+    conn.executemany(
+        'INSERT INTO investor_trend_daily (date, ind_amt, frgn_amt, orgn_amt, updated_at) '
+        'VALUES (?, ?, ?, ?, ?) '
+        'ON CONFLICT(date) DO UPDATE SET '
+        'ind_amt=excluded.ind_amt, frgn_amt=excluded.frgn_amt, orgn_amt=excluded.orgn_amt, '
+        'updated_at=excluded.updated_at',
+        [(r['date'], r['ind'], r['frgn'], r['orgn'], now_iso) for r in rows],
+    )
+    conn.commit()
+
+
+def load_investor_trend_daily(conn, limit_days=140):
+    """오름차순(날짜순) 최근 limit_days개 - investor_trend.py의 주/월 집계가 이 위에서 돈다."""
+    rows = conn.execute(
+        'SELECT date, ind_amt, frgn_amt, orgn_amt, updated_at FROM investor_trend_daily '
+        'ORDER BY date DESC LIMIT ?',
+        (limit_days,),
+    ).fetchall()
+    rows.reverse()
+    return [
+        {'date': r[0], 'ind': r[1], 'frgn': r[2], 'orgn': r[3], 'updated_at': r[4]}
+        for r in rows
+    ]
 
 
 if __name__ == '__main__':
