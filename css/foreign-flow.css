@@ -1052,6 +1052,17 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 #foreign-flow .ff-metric-val.ff-sell { color: #1261c4; }
 #foreign-flow .ff-metric-val.ff-flat { color: #666; }
 #foreign-flow .ff-metric-val.ff-warn { color: #EF9F27; font-weight: 800; }
+/* 2026-07-21: 점수 카드에 "왜 이 점수인지" 근거 문구 + 판정 기준 범례 추가(사용자 피드백 -
+   숫자·별점만으로는 근거를 알 수 없음) */
+#foreign-flow .ff-metric-desc { font-size: 10.5px; color: #888; line-height: 1.4; margin-top: 4px; }
+#foreign-flow .ff-score-legend { font-size: 10.5px; color: #9ca3af; line-height: 1.5; margin-top: 8px; }
+/* 2026-07-21: 수급/펀더멘탈을 세로로 각각 풀폭 섹션으로 쌓으면 항목 6개치고 너무 길다는
+   피드백 - 한 섹션 안에서 2칸으로 나란히 배치해 세로 길이를 절반으로 줄인다. */
+#foreign-flow .ff-panel-section-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#foreign-flow .ff-panel-section-row .ff-panel-title { margin-bottom: 6px; }
+@media (max-width: 420px) {
+  #foreign-flow .ff-panel-section-row { grid-template-columns: 1fr; }
+}
 
 /* 3.6 차트 지표: 카드 5개(2x2 + 풀폭 시그널) */
 #foreign-flow .ff-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -1172,6 +1183,8 @@ html.dark #foreign-flow .ff-metric-val.ff-buy { color: #e8776d !important; }
 html.dark #foreign-flow .ff-metric-val.ff-sell { color: #6ea8e8 !important; }
 html.dark #foreign-flow .ff-metric-val.ff-flat { color: #aaa !important; }
 html.dark #foreign-flow .ff-metric-val.ff-warn { color: #EF9F27 !important; }
+html.dark #foreign-flow .ff-metric-desc { color: #888 !important; }
+html.dark #foreign-flow .ff-score-legend { color: #777 !important; }
 html.dark #foreign-flow .ff-chart-card { border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-chart-card-label { color: #888 !important; }
 html.dark #foreign-flow .ff-chart-card-val { color: #eee !important; }

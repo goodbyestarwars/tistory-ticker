@@ -1742,26 +1742,32 @@
     // 컴포넌트 점수를 N점+별점 리스트로 다시 노출한다. 등급 텍스트 배지는 이제 페이지 상단
     // ①시그널 배너(renderSignalBanner)가 맡아서 여기서 중복 표시하지 않는다.
     var shortLabel = shortP ? shortP.grade.label : '-';
+    // 2026-07-21: 점수·별점만으로는 "왜 이 점수인지" 알 수 없다는 피드백 - 각 항목마다
+    // 이미 있던 해석 문구(flowScoreInterpText 등, AI요약에도 같이 쓰는 근거 텍스트)를
+    // 그대로 재사용해 점수 밑에 노출한다(새 문구 만들지 않아 AI요약 근거와 항상 일치).
+    var creditText = (creditP && creditP.signal) ? creditP.signal.text : '신용융자 데이터가 없는 종목입니다.';
     var scoreItems = [
-      ['단기 수급강도', flowScore],
-      ['외국인·기관', foreignInstScore],
-      ['기술적 점수', techScore ? techScore.score : null],
-      ['공매도 압박', shortScore],
-      ['연기금', pensionScore],
-      ['반대매매', creditScore],
-      ['펀더멘탈', fundamentalScore]
+      ['단기 수급강도', flowScore, flowScoreInterpText(data)],
+      ['외국인·기관', foreignInstScore, foreignInstDescText(data)],
+      ['기술적 점수', techScore ? techScore.score : null, techInterpText(techScore)],
+      ['공매도 압박', shortScore, shortInterpText(entry && entry.short, entry && entry.loan)],
+      ['연기금', pensionScore, pensionInterpText(pension).text],
+      ['반대매매', creditScore, creditText],
+      ['펀더멘탈', fundamentalScore, fundamentalInterpText(fundamentals)]
     ];
     // 2026-07-20(5차): 점선 리스트 -> 요약 패널(ffSigSummary)과 동일한 카드/그리드 지표셀로 통일.
     function scoreCell(it) {
-      var label = it[0], score = it[1];
-      return '<div class="ff-metric">'
+      var label = it[0], score = it[1], desc = it[2];
+      return '<div class="ff-metric ff-metric-scored">'
         + '<div class="ff-metric-label">' + label + '</div>'
         + '<div class="ff-metric-val ' + scoreColorCls(score) + '">' + (score == null ? '-' : Math.round(score) + '점') + '</div>'
         + '<div class="ff-metric-sub">' + starsHtml(scoreToStars(score)) + '</div>'
+        + '<div class="ff-metric-desc">' + escapeHtml(desc || '') + '</div>'
         + '</div>';
     }
     var scoreListHtml = '<div class="ff-panel-section"><div class="ff-panel-title">항목별 점수</div>'
       + '<div class="ff-card"><div class="ff-card-grid4">' + scoreItems.map(scoreCell).join('') + '</div></div>'
+      + '<div class="ff-score-legend">※ 65점 이상 긍정(빨강) · 40~64점 중립(회색) · 40점 미만 주의(파랑) 기준으로 색이 매겨지며, 각 점수 밑 설명이 그 점수가 나온 근거입니다.</div>'
       + '</div>';
 
     var latest = data.daily && data.daily[0];
@@ -1779,8 +1785,12 @@
       + metricCell('PBR', valuation && valuation.pbr != null ? valuation.pbr.toFixed(1) + 'x' : '-', '')
       + metricCell('EPS', valuation ? fmtWon(valuation.eps) : '-', '')
       + '</div></div>';
-    var gridHtml = '<div class="ff-panel-section"><div class="ff-panel-title">수급</div>' + flowCard + '</div>'
-      + '<div class="ff-panel-section"><div class="ff-panel-title">펀더멘탈</div>' + fundCard + '</div>';
+    // 2026-07-21: 수급/펀더멘탈 각각 풀폭 섹션으로 세로로 쌓으면 항목 6개(3+3)치고 너무
+    // 길다는 피드백 - 한 섹션 안에 2칸으로 나란히 배치해 세로 길이를 절반으로 줄인다.
+    var gridHtml = '<div class="ff-panel-section ff-panel-section-row">'
+      + '<div class="ff-panel-col"><div class="ff-panel-title">수급</div>' + flowCard + '</div>'
+      + '<div class="ff-panel-col"><div class="ff-panel-title">펀더멘탈</div>' + fundCard + '</div>'
+      + '</div>';
 
     var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
 
