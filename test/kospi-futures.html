@@ -22,6 +22,7 @@
     <button onclick="setMock('down')">전부 하락</button>
     <button onclick="setMock('mixed')">혼합</button>
     <button onclick="setMock('partial')">일부 데이터 없음(야간선물 KIS 미설정 상황)</button>
+    <button onclick="setMock('option-put-zero')">옵션 풋 거래량 0(실제 라이브 버그 재현)</button>
     <button onclick="setMock('error')">API 오류</button>
   </div>
   <p style="font-size:13px;color:#888">
@@ -100,6 +101,23 @@
         + '이어진다면 다음 거래일 코스피 현물은 상승 출발할 가능성이 있습니다. '
         + '다만 야간선물 거래량이 주간 대비 적어 변동성이 과장될 수 있는 점은 유의해야 합니다. '
         + '결국 실제 개장 후 방향은 외국인·기관 수급이 확인돼야 더 신뢰할 수 있습니다.');
+    };
+    // 2026-07-20: 콜은 정상 거래되는데 풋만 거래량 0으로 종일 이어지는 실제 라이브 현상을
+    // 재현해서 "데이터 미제공" 표시(optTendency)가 제대로 뜨는지 검증하기 위한 mock.
+    KospiFutures.fetchOptionFlow = function () {
+      console.log('[mock] fetchOptionFlow');
+      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
+      var nowIso = new Date().toISOString();
+      if (window.__mockMode === 'option-put-zero') {
+        return Promise.resolve({
+          CALL: { volume: 10619, oi: 37083, oi_change: 2853, updated_at: nowIso },
+          PUT: { volume: 0, oi: 1767, oi_change: 0, updated_at: nowIso }
+        });
+      }
+      return Promise.resolve({
+        CALL: { volume: 10619, oi: 37083, oi_change: 2853, updated_at: nowIso },
+        PUT: { volume: 3240, oi: 8120, oi_change: -410, updated_at: nowIso }
+      });
     };
   }
 

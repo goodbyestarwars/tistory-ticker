@@ -211,7 +211,14 @@
       + '</div>';
   }
 
-  function optTendency(oiChange) {
+  // 2026-07-20: 콜은 정상 거래되는데 풋만 거래량 0(+OI증감 0)이 종일 이어지는 현상을
+  // 실측 확인(전광판 TR/개별종목조회 TR 둘 다 동일값 - KIS 쪽 데이터 문제로 추정, 원인
+  // 불명). 이 상태를 "보합"(실제로 거래됐는데 방향성이 없다는 뜻)으로 보여주면 오해를
+  // 유발하므로, 거래량 자체가 0이면 "데이터 미제공"으로 구분해서 보여준다.
+  function optTendency(row) {
+    if (!row) return { label: '-', cls: 'kf-zero' };
+    if (!row.volume) return { label: '데이터 미제공', cls: 'kf-zero' };
+    var oiChange = row.oi_change;
     if (oiChange == null) return { label: '-', cls: 'kf-zero' };
     if (oiChange > 0) return { label: '신규 진입 우세', cls: 'kf-pos' };
     if (oiChange < 0) return { label: '청산 우세', cls: 'kf-neg' };
@@ -220,7 +227,7 @@
 
   function buildOptCardBody(row) {
     if (!row) return '<div class="kf-opt-body">데이터 없음</div>';
-    var t = optTendency(row.oi_change);
+    var t = optTendency(row);
     var sign = row.oi_change > 0 ? '+' : '';
     return '<div class="kf-opt-body">'
       + '<span class="kf-opt-tendency ' + t.cls + '">' + t.label + '</span>'
@@ -251,7 +258,7 @@
   }
 
   function refreshOptionFlow(container) {
-    fetchOptionFlow().then(function (bySide) {
+    KospiFutures.fetchOptionFlow().then(function (bySide) {
       OPTION_SIDES.forEach(function (s) {
         var card = container.querySelector('.kf-opt-card[data-side="' + s.key + '"]');
         if (!card) return;
@@ -543,7 +550,8 @@
   var KospiFutures = {
     init: init,
     fetchFutures: fetchFutures,
-    fetchAiSummary: fetchAiSummary
+    fetchAiSummary: fetchAiSummary,
+    fetchOptionFlow: fetchOptionFlow
   };
   global.KospiFutures = KospiFutures;
 
