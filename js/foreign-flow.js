@@ -73,12 +73,13 @@
   // 등급 종목만 리스트에 필터링되고, 아무 등급도 안 골랐으면 전체 등급을 매수쪽부터 이어붙인
   // 기본 리스트(종합점수순에 근접)를 보여준다. 데이터는 기존과 동일 GAS(?investSignal=1)를
   // 그대로 재사용. 별도 페이지(js/invest-signal.js)는 이 페이지로 리다이렉트만 함.
+  // cls: 필터탭 배경색(작업지시서 3.2 - 적극매수·매수=빨강/보유=주황/비중축소·매도=파랑)
   var GRADE_META = [
-    { key: '적극 매수', bucketKey: 'activeBuy', emoji: '🟢', label: '적극매수' },
-    { key: '매수 우위', bucketKey: 'buy', emoji: '🟢', label: '매수' },
-    { key: '보유', bucketKey: 'hold', emoji: '🟡', label: '보유' },
-    { key: '비중축소', bucketKey: 'reduce', emoji: '🟠', label: '비중축소' },
-    { key: '매도', bucketKey: 'sell', emoji: '🔴', label: '매도' }
+    { key: '적극 매수', bucketKey: 'activeBuy', emoji: '🟢', label: '적극매수', cls: 'grade-buy' },
+    { key: '매수 우위', bucketKey: 'buy', emoji: '🟢', label: '매수', cls: 'grade-buy' },
+    { key: '보유', bucketKey: 'hold', emoji: '🟡', label: '보유', cls: 'grade-hold' },
+    { key: '비중축소', bucketKey: 'reduce', emoji: '🟠', label: '비중축소', cls: 'grade-sell' },
+    { key: '매도', bucketKey: 'sell', emoji: '🔴', label: '매도', cls: 'grade-sell' }
   ];
   var GRADE_BUCKET_ORDER = ['activeBuy', 'buy', 'hold', 'reduce', 'sell']; // 종합점수 높은 순
   var SIGNAL_TOP_DEFAULT = 10;
@@ -110,15 +111,16 @@
     search(container, code);
   }
 
+  // 필터탭(ffSigCount)은 좌측 패널 요소(작업지시서 3.2)라 좌측 컬럼 안에 리스트와 함께 둔다.
   function buildShell() {
     return ''
       + '<div id="ffSigWrap">'
       + '<div class="ff-sig-banner" id="ffSigBanner" hidden></div>'
-      + '<div class="ff-sig" id="ffSig">'
-      + '<div class="ff-sig-count" id="ffSigCount"><div class="ff-hint">투자시그널 불러오는 중...</div></div>'
-      + '</div>'
       + '<div class="ff-sig-twocol">'
+      + '<div class="ff-sig-list-col">'
+      + '<div class="ff-sig-count" id="ffSigCount"><div class="ff-hint">투자시그널 불러오는 중...</div></div>'
       + '<div class="ff-sig-list" id="ffSigList"></div>'
+      + '</div>'
       + '<div class="ff-sig-summary" id="ffSigSummary"><div class="ff-hint">종목을 선택하세요</div></div>'
       + '</div>'
       + '<div class="ff-divider"></div>'
@@ -156,8 +158,8 @@
     if (!box) return;
     var counts = signalData.counts || {};
     var line = GRADE_META.map(function (g) {
-      return '<button type="button" class="ff-sig-grade' + (activeGradeBucket === g.key ? ' active' : '') + '" data-grade="' + escapeAttr(g.key) + '">'
-        + g.emoji + ' ' + g.label + ' ' + (counts[g.key] || 0).toLocaleString('ko-KR') + '종목</button>';
+      return '<button type="button" class="ff-sig-grade ' + g.cls + (activeGradeBucket === g.key ? ' active' : '') + '" data-grade="' + escapeAttr(g.key) + '">'
+        + g.label + ' ' + (counts[g.key] || 0).toLocaleString('ko-KR') + '종목</button>';
     }).join('');
     var meta = signalData.scannedAt
       ? ('스캔 ' + signalData.scannedAt + ' · 대상 ' + (signalData.scanned || 0) + '/' + (signalData.universe || 0) + '종목')
@@ -310,14 +312,15 @@
     var chipsHtml = chips.map(function (c) { return '<span class="ff-sig-banner-chip">' + escapeHtml(c) + '</span>'; }).join('');
 
     box.hidden = false;
-    box.innerHTML = '<span class="ff-sig-banner-dot ' + verdict.cls + '">●</span>'
+    box.innerHTML = '<span class="ff-sig-badge ' + verdict.cls + '">' + verdict.label + '</span>'
       + '<span class="ff-sig-banner-name">' + escapeHtml(data.name || data.code) + '</span>'
-      + '<span class="ff-sig-banner-verdict ' + verdict.cls + '">' + verdict.label + '</span>'
-      + '<span class="ff-sig-banner-score">' + verdict.score.toFixed(1) + '점 · ' + verdict.stars.toFixed(1) + '/5</span>'
+      + '<span class="ff-sig-banner-score"><span class="ff-sig-banner-score-num">' + verdict.score.toFixed(1) + '</span>'
+      + '<span class="ff-sig-banner-score-sub">점 · ' + verdict.stars.toFixed(1) + '/5</span></span>'
       + chipsHtml;
   }
 
-  // ③ 우측 요약 패널 - 수급/차트/펀더멘탈/투자의견 4개 섹션(작업지시서 표).
+  // ③ 우측 요약 패널 - 헤더 + 수급/차트/펀더멘탈/투자의견 4개 섹션(작업지시서 3.3~3.8,
+  // 2026-07-20 4차: 텍스트 나열 -> 카드/그리드/구분선 테이블로 개편).
   function renderSignalSummaryPanel(box, data, entry, techScore, fundamentals, quote, chartData) {
     if (!box) return;
     var latest = data.daily && data.daily[0];
@@ -328,43 +331,81 @@
     var daily = chartData && chartData.daily;
 
     function row(label, val) { return '<div class="ff-panel-row"><span class="ff-panel-label">' + label + '</span><span class="ff-panel-val">' + val + '</span></div>'; }
+    function metricCell(label, val, cls) {
+      return '<div class="ff-metric"><div class="ff-metric-label">' + label + '</div><div class="ff-metric-val' + (cls ? ' ' + cls : '') + '">' + val + '</div></div>';
+    }
+    function chartCard(label, value, sub, cls, full) {
+      return '<div class="ff-chart-card' + (full ? ' ff-chart-card-full' : '') + '">'
+        + '<div class="ff-chart-card-label">' + label + '</div>'
+        + '<div class="ff-chart-card-val' + (cls ? ' ' + cls : '') + '">' + escapeHtml(value) + '</div>'
+        + (sub ? '<div class="ff-chart-card-sub">' + escapeHtml(sub) + '</div>' : '')
+        + '</div>';
+    }
 
-    var priceHtml = quote
-      ? Number(quote.price).toLocaleString() + '원 (' + (quote.changeRate >= 0 ? '+' : '') + quote.changeRate.toFixed(2) + '%)'
-      : (latest ? Number(latest.close).toLocaleString() + '원' : '-');
+    // 3.3 헤더: 종목명+코드 한 줄 / 현재가(24px) / 등락률·등락금액(13px), 전부 동일 색상
+    var priceCls = quote ? signClass(quote.changeRate) : '';
+    var priceNum = quote ? Number(quote.price).toLocaleString() + '원' : (latest ? Number(latest.close).toLocaleString() + '원' : '-');
+    var changeText = quote
+      ? (quote.changeRate >= 0 ? '+' : '') + quote.changeRate.toFixed(2) + '% (' + (quote.change >= 0 ? '+' : '') + Number(quote.change).toLocaleString() + '원)'
+      : '';
+    var headerHtml = '<div class="ff-panel-header">'
+      + '<div class="ff-panel-header-top"><span class="ff-panel-header-name">' + escapeHtml(data.name || data.code) + '</span>'
+      + '<span class="ff-panel-header-code">(' + escapeHtml(data.code) + ')</span></div>'
+      + '<div class="ff-panel-header-price ' + priceCls + '">' + priceNum + '</div>'
+      + (changeText ? '<div class="ff-panel-header-change ' + priceCls + '">' + changeText + '</div>' : '')
+      + '</div>';
 
+    // 3.5 수급 카드: 3그리드(외국인/기관/개인) + 2그리드(공매도비중/Days to Cover), 16%+ 경고색
+    var shortWarnCls = shortEntry && shortEntry.today_ratio_pct != null && shortEntry.today_ratio_pct >= 16 ? 'ff-warn' : '';
     var flowSection = '<div class="ff-panel-section"><div class="ff-panel-title">수급</div>'
-      + row('외국인', latest ? fmtSharesUnit(latest.foreign_net) : '-')
-      + row('기관', latest ? fmtSharesUnit(latest.inst_net) : '-')
-      + row('개인', latest ? fmtSharesUnit(latest.ind_net) : '-')
-      + row('공매도 비중', shortEntry ? fmtPct(shortEntry.today_ratio_pct) : '-')
-      + row('Days to Cover', shortEntry && shortEntry.days_to_cover != null ? shortEntry.days_to_cover.toFixed(1) + '일' : '-')
-      + '</div>';
+      + '<div class="ff-card">'
+      + '<div class="ff-card-grid3">'
+      + metricCell('외국인', latest ? fmtSharesUnit(latest.foreign_net) : '-', latest ? signClass(latest.foreign_net) : '')
+      + metricCell('기관', latest ? fmtSharesUnit(latest.inst_net) : '-', latest ? signClass(latest.inst_net) : '')
+      + metricCell('개인', latest ? fmtSharesUnit(latest.ind_net) : '-', latest ? signClass(latest.ind_net) : '')
+      + '</div>'
+      + '<div class="ff-card-grid2">'
+      + metricCell('공매도 비중', shortEntry ? fmtPct(shortEntry.today_ratio_pct) : '-', shortWarnCls)
+      + metricCell('Days to Cover', shortEntry && shortEntry.days_to_cover != null ? shortEntry.days_to_cover.toFixed(1) + '일' : '-', '')
+      + '</div>'
+      + '</div></div>';
 
+    // 3.6 차트 지표: 2x2 카드 + 풀폭 시그널. 계산은 기존 함수 재사용, 표시만 카드로 분리.
+    var maLabel = techScore ? techScore.ma.label : '-';
+    var maCls = maLabel === '정배열' ? 'ff-buy' : maLabel === '역배열' ? 'ff-sell' : 'ff-flat';
+    var rsi = daily ? computeRSI(daily, 14) : null;
+    var rsiLast = null;
+    if (rsi) { for (var ri = rsi.length - 1; ri >= 0; ri--) { if (rsi[ri] != null) { rsiLast = rsi[ri]; break; } } }
+    var rsiVal = rsiLast == null ? '-' : rsiLast.toFixed(1);
+    var rsiSub = rsiLast == null ? '데이터 부족' : (rsiLast >= 70 ? '과매수' : rsiLast <= 30 ? '과매도' : '중립');
+    var rsiCls = rsiLast == null ? 'ff-flat' : (rsiLast >= 70 ? 'ff-sell' : rsiLast <= 30 ? 'ff-buy' : 'ff-flat');
+    var crossLabel = techScore ? techScore.ichimoku.cross.label : '-';
+    var crossCls = crossLabel.indexOf('골든') !== -1 ? 'ff-buy' : crossLabel.indexOf('데드') !== -1 ? 'ff-sell' : 'ff-flat';
     var chartSection = '<div class="ff-panel-section"><div class="ff-panel-title">차트</div>'
-      + row('이동평균', techScore ? techScore.ma.label : '-')
-      + row('RSI', daily ? rsiInterpText(daily) : '데이터 부족')
-      + row('볼린저밴드', daily ? bollingerInterpText(daily) : '데이터 부족')
-      + row('지지/저항', techScore ? (techScore.support.label + ' · ' + techScore.resistance.label) : '-')
-      + row('시그널', techScore ? techScore.ichimoku.cross.label : '-')
-      + '</div>';
+      + '<div class="ff-chart-grid">'
+      + chartCard('이동평균', maLabel, null, maCls)
+      + chartCard('RSI(14)', rsiVal, rsiSub, rsiCls)
+      + chartCard('볼린저밴드', daily ? bollingerInterpText(daily) : '데이터 부족')
+      + chartCard('지지/저항', techScore ? techScore.support.label : '-', techScore ? techScore.resistance.label : '')
+      + chartCard('시그널', crossLabel, null, crossCls, true)
+      + '</div></div>';
 
-    var fundSection = '<div class="ff-panel-section"><div class="ff-panel-title">펀더멘탈</div>'
+    // 3.7 펀더멘탈: 행 구분선 테이블, 섹션 타이틀에 업종명 병기
+    var fundSection = '<div class="ff-panel-section"><div class="ff-panel-title">펀더멘탈 · ' + escapeHtml(industry) + '</div>'
       + row('PER', valuation && valuation.per != null ? valuation.per.toFixed(1) + 'x' : '-')
       + row('PBR', valuation && valuation.pbr != null ? valuation.pbr.toFixed(1) + 'x' : '-')
       + row('EPS', valuation ? fmtWon(valuation.eps) : '-')
       + row('ROE', annual && annual.latest_roe_pct != null ? fmtPct(annual.latest_roe_pct) : '-')
-      + row('업종', escapeHtml(industry))
       + '</div>';
 
+    // 3.8 투자의견: 파란 배경 카드(#E6F1FB/#0C447C 고정색) + 상세보기 버튼
     var opinionSection = '<div class="ff-panel-section ff-panel-opinion"><div class="ff-panel-title">투자의견</div>'
       + '<div class="ff-panel-opinion-text" id="ffPanelOpinion">생성 중...</div>'
       + '</div>';
 
-    var priceRow = '<div class="ff-panel-price">' + escapeHtml(data.name || data.code) + ' <span class="ff-code">(' + escapeHtml(data.code) + ')</span> ' + priceHtml + '</div>';
     var detailLink = '<button type="button" class="ff-panel-detail-link" data-open-detail="' + escapeAttr(data.code) + '" data-open-detail-name="' + escapeAttr(data.name || data.code) + '">수급·차트·펀더멘탈 상세 보기 →</button>';
 
-    box.innerHTML = priceRow + flowSection + chartSection + fundSection + opinionSection + detailLink;
+    box.innerHTML = headerHtml + flowSection + chartSection + fundSection + opinionSection + detailLink;
 
     loadPanelOpinion(box, data, entry, techScore, chartData, fundamentals);
   }

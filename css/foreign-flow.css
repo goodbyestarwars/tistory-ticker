@@ -868,28 +868,28 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 /* ---- 2026-07-20(3차): 투자시그널 통합 최종본 (①배너 ②카운트칩 ③종목 리스트+요약 패널,
    js/foreign-flow.js) - 가중치 탭 대신 단일 리스트 + 우측 요약 패널 2열 레이아웃 ---- */
 
-#foreign-flow .ff-sig { margin-bottom: 4px; }
-
 #foreign-flow .ff-sig-count-line {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
+/* 필터탭 색상(작업지시서 3.2): 적극매수·매수=빨강 / 보유=주황 / 비중축소·매도=파랑 - 항상
+   등급색 배경을 깔고, active 상태는 currentColor 기반 테두리로 강조(등급마다 다른 강조색). */
 #foreign-flow .ff-sig-grade {
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 700;
   padding: 6px 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: #ffffff;
-  color: #374151;
   cursor: pointer;
   white-space: nowrap;
 }
+#foreign-flow .ff-sig-grade.grade-buy { background: rgba(210, 79, 69, .10); border-color: rgba(210, 79, 69, .3); color: #d24f45; }
+#foreign-flow .ff-sig-grade.grade-hold { background: rgba(239, 159, 39, .14); border-color: rgba(239, 159, 39, .4); color: #b5720f; }
+#foreign-flow .ff-sig-grade.grade-sell { background: rgba(18, 97, 196, .10); border-color: rgba(18, 97, 196, .3); color: #1261c4; }
 #foreign-flow .ff-sig-grade.active {
-  border-color: #111827;
-  box-shadow: 0 0 0 1px #111827 inset;
+  box-shadow: 0 0 0 1.5px currentColor inset;
 }
 #foreign-flow .ff-sig-meta {
   font-size: 11.5px;
@@ -898,7 +898,8 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
   margin-bottom: 12px;
 }
 
-/* ① 시그널 배너 - 작업지시서 고정색(연한 파랑), 등급은 문자 등급 대신 한글 텍스트 칩 */
+/* ① 시그널 배너 = 3.4절 "종합 등급 행" - 작업지시서 고정색(연한 파랑) 배경은 유지하되
+   등급 텍스트를 pill 뱃지로, 점수를 18px 숫자+서브텍스트로 분리(2026-07-20 4차 개편). */
 #foreign-flow .ff-sig-banner {
   display: flex;
   align-items: center;
@@ -911,16 +912,18 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
   border-radius: 10px;
   font-size: 13px;
 }
-#foreign-flow .ff-sig-banner-dot { font-size: 11px; }
-#foreign-flow .ff-sig-banner-dot.ff-buy { color: #d24f45; }
-#foreign-flow .ff-sig-banner-dot.ff-sell { color: #1261c4; }
-#foreign-flow .ff-sig-banner-dot.ff-flat { color: #888; }
+#foreign-flow .ff-sig-badge {
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+#foreign-flow .ff-sig-badge.ff-buy { background: rgba(210, 79, 69, .14); color: #d24f45; }
+#foreign-flow .ff-sig-badge.ff-sell { background: rgba(18, 97, 196, .14); color: #1261c4; }
+#foreign-flow .ff-sig-badge.ff-flat { background: rgba(102, 102, 102, .14); color: #666; }
 #foreign-flow .ff-sig-banner-name { font-weight: 700; }
-#foreign-flow .ff-sig-banner-verdict { font-weight: 800; }
-#foreign-flow .ff-sig-banner-verdict.ff-buy { color: #d24f45; }
-#foreign-flow .ff-sig-banner-verdict.ff-sell { color: #1261c4; }
-#foreign-flow .ff-sig-banner-verdict.ff-flat { color: #666; }
-#foreign-flow .ff-sig-banner-score { color: #4a5568; }
+#foreign-flow .ff-sig-banner-score-num { font-size: 18px; font-weight: 800; color: #222; }
+#foreign-flow .ff-sig-banner-score-sub { font-size: 12px; font-weight: 600; color: #4a5568; margin-left: 2px; }
 #foreign-flow .ff-sig-banner-chip {
   font-size: 11.5px;
   font-weight: 600;
@@ -931,7 +934,7 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
   color: #2c5282;
 }
 
-/* ③ 2열 레이아웃: 종목 리스트 | 요약 패널 */
+/* ③ 2열 레이아웃: 종목 리스트(필터탭+메타+리스트 묶음) | 요약 패널 */
 #foreign-flow .ff-sig-twocol {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
@@ -941,6 +944,11 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 }
 @media (max-width: 640px) {
   #foreign-flow .ff-sig-twocol { grid-template-columns: 1fr; }
+}
+#foreign-flow .ff-sig-list-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 #foreign-flow .ff-sig-list-head {
@@ -1010,21 +1018,23 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 #foreign-flow .ff-sig-price { font-weight: 700; font-size: 13px; color: #222; }
 #foreign-flow .ff-sig-rate { font-size: 12px; font-weight: 700; }
 
+/* 더보기(작업지시서 3.2: 하단 고정, 파랑 텍스트, border-top 구분선 - 채워진 버튼 아님) */
 #foreign-flow .ff-sig-more {
   font-family: inherit;
   display: block;
   width: 100%;
   margin-top: 8px;
-  padding: 9px;
+  padding: 10px 0 0;
   font-size: 12.5px;
   font-weight: 700;
-  color: #374151;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  color: #1261c4;
+  background: none;
+  border: none;
+  border-top: 1px solid #eee;
+  border-radius: 0;
   cursor: pointer;
 }
-#foreign-flow .ff-sig-more:hover { background: #eef1f5; }
+#foreign-flow .ff-sig-more:hover { background: #f7fafd; }
 
 /* 우측 요약 패널 */
 #foreign-flow .ff-sig-summary {
@@ -1034,10 +1044,16 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
   font-size: 13px;
   background: #fff;
 }
-#foreign-flow .ff-panel-price { font-weight: 700; margin-bottom: 8px; }
+/* 3.3 우측 패널 헤더: 종목명+코드 / 현재가(24px) / 등락률·등락금액(13px) 3단 */
+#foreign-flow .ff-panel-header { margin-bottom: 10px; }
+#foreign-flow .ff-panel-header-top { display: flex; align-items: baseline; gap: 6px; }
+#foreign-flow .ff-panel-header-name { font-size: 17px; font-weight: 500; color: #222; }
+#foreign-flow .ff-panel-header-code { font-size: 13px; color: #9ca3af; }
+#foreign-flow .ff-panel-header-price { font-size: 24px; font-weight: 500; margin-top: 2px; }
+#foreign-flow .ff-panel-header-change { font-size: 13px; margin-top: 2px; }
+
 #foreign-flow .ff-panel-section { margin-bottom: 10px; }
-/* .ff-panel-price(가격줄)도 같은 태그(div)라 :first-of-type으로는 첫 섹션을 못 걸러내서
-   일반 형제 선택자(~)로 "앞에 .ff-panel-section이 하나라도 있는 경우"만 구분선을 붙인다. */
+#foreign-flow .ff-panel-header ~ .ff-panel-section,
 #foreign-flow .ff-panel-section ~ .ff-panel-section {
   padding-top: 10px;
   border-top: 1px solid #eee;
@@ -1046,19 +1062,69 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
   font-size: 11.5px;
   font-weight: 700;
   color: #9ca3af;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
+
+/* 3.5/3.6 카드 그리드 공통(수급 카드) */
+#foreign-flow .ff-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+#foreign-flow .ff-card-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#foreign-flow .ff-card-grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #eee;
+}
+#foreign-flow .ff-metric-label { font-size: 10px; color: #9ca3af; margin-bottom: 2px; }
+#foreign-flow .ff-metric-val { font-size: 13px; font-weight: 700; color: #222; }
+/* .ff-buy/.ff-sell/.ff-flat 기본 정의(파일 상단)와 동일 specificity라 소스 순서상 이 규칙이
+   이겨버려서 색이 안 먹던 문제 - 클래스 조합 셀렉터로 specificity를 올려서 확실히 이기게 함. */
+#foreign-flow .ff-metric-val.ff-buy { color: #d24f45; }
+#foreign-flow .ff-metric-val.ff-sell { color: #1261c4; }
+#foreign-flow .ff-metric-val.ff-flat { color: #666; }
+#foreign-flow .ff-metric-val.ff-warn { color: #EF9F27; font-weight: 800; }
+
+/* 3.6 차트 지표: 카드 5개(2x2 + 풀폭 시그널) */
+#foreign-flow .ff-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#foreign-flow .ff-chart-card { border: 1px solid #eee; border-radius: 8px; padding: 8px 10px; }
+#foreign-flow .ff-chart-card-full { grid-column: 1 / -1; }
+#foreign-flow .ff-chart-card-label { font-size: 10.5px; color: #9ca3af; margin-bottom: 3px; }
+#foreign-flow .ff-chart-card-val { font-size: 13px; font-weight: 700; color: #222; }
+#foreign-flow .ff-chart-card-val.ff-buy { color: #d24f45; }
+#foreign-flow .ff-chart-card-val.ff-sell { color: #1261c4; }
+#foreign-flow .ff-chart-card-val.ff-flat { color: #666; }
+#foreign-flow .ff-chart-card-sub { font-size: 11px; color: #888; margin-top: 2px; }
+
+/* 3.7 펀더멘탈: 행 구분선 테이블(카드/그리드 아님 - 지시서 명시) */
 #foreign-flow .ff-panel-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 2px 0;
+  padding: 6px 0;
   font-size: 12.5px;
+  border-bottom: 1px solid #f0f0f0;
 }
-#foreign-flow .ff-panel-label { color: #666; }
-#foreign-flow .ff-panel-val { font-weight: 700; text-align: right; }
-#foreign-flow .ff-panel-opinion-text { color: #444; line-height: 1.6; margin-top: 2px; }
+#foreign-flow .ff-panel-row:last-child { border-bottom: none; }
+#foreign-flow .ff-panel-label { font-size: 12px; color: #666; }
+#foreign-flow .ff-panel-val { font-size: 13px; font-weight: 700; color: #222; text-align: right; }
+
+/* 3.8 투자의견: 파란 배경 카드(#E6F1FB/#0C447C 고정) - 등락 컬러 규칙과 무관한 별개 톤 */
+#foreign-flow .ff-panel-opinion {
+  background: #E6F1FB;
+  border: 1px solid #B5D4F4;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 12px;
+  border-top: 1px solid #B5D4F4 !important;
+}
+#foreign-flow .ff-panel-opinion .ff-panel-title { color: #0C447C; opacity: .75; }
+#foreign-flow .ff-panel-opinion-text { color: #0C447C; font-size: 12px; line-height: 1.7; margin-top: 2px; }
 #foreign-flow .ff-panel-detail-link {
   font-family: inherit;
   display: block;
@@ -1100,21 +1166,19 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 #foreign-flow .ff-score-label { flex: 1; color: #444; }
 #foreign-flow .ff-score-val { font-weight: 700; min-width: 42px; text-align: right; }
 
-html.dark #foreign-flow .ff-sig-grade {
-  background: #262626 !important;
-  border-color: #3a3a3a !important;
-  color: #ccc !important;
-}
-html.dark #foreign-flow .ff-sig-grade.active {
-  border-color: #eee !important;
-  box-shadow: 0 0 0 1px #eee inset !important;
-}
+html.dark #foreign-flow .ff-sig-grade.grade-buy { background: rgba(232, 119, 109, .14) !important; border-color: rgba(232, 119, 109, .4) !important; color: #e8776d !important; }
+html.dark #foreign-flow .ff-sig-grade.grade-hold { background: rgba(240, 180, 41, .16) !important; border-color: rgba(240, 180, 41, .4) !important; color: #f0b429 !important; }
+html.dark #foreign-flow .ff-sig-grade.grade-sell { background: rgba(110, 168, 232, .14) !important; border-color: rgba(110, 168, 232, .4) !important; color: #6ea8e8 !important; }
 html.dark #foreign-flow .ff-sig-meta { color: #888 !important; }
 html.dark #foreign-flow .ff-sig-banner {
   background: #1c2b3d !important;
   border-color: #2c4a6b !important;
 }
-html.dark #foreign-flow .ff-sig-banner-score { color: #a9b6c6 !important; }
+html.dark #foreign-flow .ff-sig-badge.ff-buy { background: rgba(232, 119, 109, .18) !important; color: #e8776d !important; }
+html.dark #foreign-flow .ff-sig-badge.ff-sell { background: rgba(110, 168, 232, .18) !important; color: #6ea8e8 !important; }
+html.dark #foreign-flow .ff-sig-badge.ff-flat { background: rgba(170, 170, 170, .18) !important; color: #aaa !important; }
+html.dark #foreign-flow .ff-sig-banner-score-num { color: #eee !important; }
+html.dark #foreign-flow .ff-sig-banner-score-sub { color: #a9b6c6 !important; }
 html.dark #foreign-flow .ff-sig-banner-chip {
   background: #24354a !important;
   border-color: #2c4a6b !important;
@@ -1129,18 +1193,41 @@ html.dark #foreign-flow .ff-sig-name { color: #eee !important; }
 html.dark #foreign-flow .ff-sig-code { color: #888 !important; }
 html.dark #foreign-flow .ff-sig-price { color: #eee !important; }
 html.dark #foreign-flow .ff-sig-more {
-  background: #262626 !important;
   border-color: #3a3a3a !important;
-  color: #ccc !important;
+  color: #6ea8e8 !important;
 }
-html.dark #foreign-flow .ff-sig-more:hover { background: #2e2e2e !important; }
+html.dark #foreign-flow .ff-sig-more:hover { background: #262626 !important; }
 html.dark #foreign-flow .ff-sig-summary { background: #262626 !important; border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-panel-section { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-panel-header-name { color: #eee !important; }
+html.dark #foreign-flow .ff-panel-header-code { color: #888 !important; }
+html.dark #foreign-flow .ff-panel-header ~ .ff-panel-section,
+html.dark #foreign-flow .ff-panel-section ~ .ff-panel-section { border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-panel-title { color: #888 !important; }
 html.dark #foreign-flow .ff-panel-label { color: #999 !important; }
 html.dark #foreign-flow .ff-panel-val { color: #eee !important; }
-html.dark #foreign-flow .ff-panel-price { color: #eee !important; }
-html.dark #foreign-flow .ff-panel-opinion-text { color: #ccc !important; }
+html.dark #foreign-flow .ff-card { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-card-grid2 { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-metric-label { color: #888 !important; }
+html.dark #foreign-flow .ff-metric-val { color: #eee !important; }
+html.dark #foreign-flow .ff-metric-val.ff-buy { color: #e8776d !important; }
+html.dark #foreign-flow .ff-metric-val.ff-sell { color: #6ea8e8 !important; }
+html.dark #foreign-flow .ff-metric-val.ff-flat { color: #aaa !important; }
+html.dark #foreign-flow .ff-metric-val.ff-warn { color: #EF9F27 !important; }
+html.dark #foreign-flow .ff-chart-card { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-chart-card-label { color: #888 !important; }
+html.dark #foreign-flow .ff-chart-card-val { color: #eee !important; }
+html.dark #foreign-flow .ff-chart-card-val.ff-buy { color: #e8776d !important; }
+html.dark #foreign-flow .ff-chart-card-val.ff-sell { color: #6ea8e8 !important; }
+html.dark #foreign-flow .ff-chart-card-val.ff-flat { color: #aaa !important; }
+html.dark #foreign-flow .ff-chart-card-sub { color: #999 !important; }
+html.dark #foreign-flow .ff-panel-row { border-color: #333 !important; }
+html.dark #foreign-flow .ff-panel-opinion {
+  background: #1c2b3d !important;
+  border-color: #2c4a6b !important;
+  border-top-color: #2c4a6b !important;
+}
+html.dark #foreign-flow .ff-panel-opinion .ff-panel-title { color: #9dc3ea !important; }
+html.dark #foreign-flow .ff-panel-opinion-text { color: #cfe3f7 !important; }
 html.dark #foreign-flow .ff-panel-detail-link {
   background: #20304a !important;
   border-color: #33507a !important;
