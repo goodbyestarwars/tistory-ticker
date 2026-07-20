@@ -26,7 +26,10 @@ def _first_list_field(res, tr_id):
             continue
         if isinstance(val, list):
             return val, key
-    logger.warning('%s 응답에서 리스트 필드를 못 찾음 - raw keys: %s', tr_id, list(res.keys()))
+    # TEMP DEBUG(2026-07-20): return_code!=0(TR 자체 에러 거부)인 경우를 구분하기 위해
+    # 메타 필드 값도 같이 찍는다 - 원인 파악 후(코드 정리 시) 이 필드값 로그는 지워도 됨.
+    logger.warning('%s 응답에서 리스트 필드를 못 찾음 - return_code=%s return_msg=%s raw keys=%s',
+                    tr_id, res.get('return_code'), res.get('return_msg'), list(res.keys()))
     return [], None
 
 
