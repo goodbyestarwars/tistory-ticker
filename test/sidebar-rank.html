@@ -34,26 +34,37 @@
     ['005930', '삼성전자'], ['000660', 'SK하이닉스'], ['005380', '현대차'],
     ['035420', 'NAVER'], ['051910', 'LG화학'], ['012450', '한화에어로스페이스']
   ];
+  function stockAt(i) {
+    if (i < STOCKS.length) return STOCKS[i];
+    return ['T' + String(i).padStart(5, '0'), '테스트종목' + (i + 1)];
+  }
 
-  function mockAmount() {
-    return STOCKS.slice(0, 5).map(function (s, i) {
-      return { code: s[0], name: s[1], price: 50000 + i * 10000, change_rate: (i % 2 === 0 ? 1 : -1) * (0.5 + i), trade_amount: (5000 - i * 700) * 100 };
-    });
+  function mockAmount(n) {
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var s = stockAt(i);
+      out.push({ code: s[0], name: s[1], price: 50000 + i * 10000, change_rate: (i % 2 === 0 ? 1 : -1) * (0.5 + i), trade_amount: (5000 - i * 200) * 100 });
+    }
+    return out;
   }
   function mockLimit(sign, n) {
-    return STOCKS.slice(0, n).map(function (s, i) {
-      return { code: s[0], name: s[1], price: 10000 + i * 500, change_rate: sign * (29.8 - i * 0.1) };
-    });
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var s = stockAt(i);
+      out.push({ code: s[0], name: s[1], price: 10000 + i * 500, change_rate: sign * (29.8 - i * 0.05) });
+    }
+    return out;
   }
 
   if (location.search.indexOf('real=1') === -1) {
-    SidebarRank.fetchRank = function () {
-      console.log('[mock] fetchRank', window.__mockMode);
+    SidebarRank.fetchRank = function (limit) {
+      console.log('[mock] fetchRank', window.__mockMode, 'limit=', limit);
       if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
+      var n = limit || 5;
       if (window.__mockMode === 'empty-limits') {
-        return Promise.resolve({ tradeAmount: mockAmount(), upperLimit: [], lowerLimit: [] });
+        return Promise.resolve({ tradeAmount: mockAmount(n), upperLimit: [], lowerLimit: [] });
       }
-      return Promise.resolve({ tradeAmount: mockAmount(), upperLimit: mockLimit(1, 3), lowerLimit: mockLimit(-1, 4) });
+      return Promise.resolve({ tradeAmount: mockAmount(n), upperLimit: mockLimit(1, n === 5 ? 3 : n), lowerLimit: mockLimit(-1, n === 5 ? 4 : n) });
     };
   }
 

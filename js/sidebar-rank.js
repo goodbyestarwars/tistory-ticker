@@ -13,6 +13,11 @@
  * 썼다 - 다른 페이지들과 색이 어긋나면 안 되므로. 상한가/하한가 뱃지도 지시서가 지정한
  * CSS 변수(--bg-accent 등)가 이 코드베이스에 없어서, 기존 배지 팔레트(ff-badge-buy/sell과
  * 동일 톤)를 재사용했다.
+ *
+ * "더보기"(2026-07-20 2차): 처음엔 네이버 랭킹 페이지로 외부 이동시켰는데, 방문자를 블로그
+ * 밖으로 내보내는 게 아쉽다는 피드백 - 종목분석 페이지의 "업종/테마 관련종목" 모달
+ * (js/foreign-flow.js showRelatedStocks)과 같은 패턴으로, 블로그 안에서 TOP20을 모달로
+ * 보여주도록 교체. /market-rank?limit=20을 그때그때 호출(기본 폴링은 계속 limit=5).
  */
 (function (global) {
   'use strict';
@@ -20,30 +25,34 @@
   var API_URL = 'https://goodbyestar.cloud/market-rank';
   var CONTAINER_SELECTOR = '#sidebar-rank';
   var REFRESH_MS = 30 * 1000;
+  var MODAL_LIMIT = 20;
   var STOCK_ANALYSIS_URL = 'https://ghlee.tistory.com/page/foreign-flow';
 
   var SECTIONS = [
     {
-      key: 'tradeAmount', title: '거래대금 TOP', iconCls: 'si-blue', showAmount: true,
-      more: 'https://finance.naver.com/sise/sise_quant.naver',
+      key: 'tradeAmount', title: '거래대금 TOP', shortTitle: '거래대금', iconCls: 'si-blue', showAmount: true,
       emptyText: '거래대금 데이터가 없어요.', errorText: '거래대금 데이터를 불러오지 못했어요.'
     },
     {
-      key: 'upperLimit', title: '상한가', iconCls: 'si-amber', showAmount: false,
-      more: 'https://finance.naver.com/sise/sise_upper.naver',
+      key: 'upperLimit', title: '상한가', shortTitle: '상한가', iconCls: 'si-amber', showAmount: false,
       emptyText: '오늘 상한가 종목이 없어요.', errorText: '상한가 데이터를 불러오지 못했어요.'
     },
     {
-      key: 'lowerLimit', title: '하한가', iconCls: 'si-purple', showAmount: false,
-      more: 'https://finance.naver.com/sise/sise_low.naver',
+      key: 'lowerLimit', title: '하한가', shortTitle: '하한가', iconCls: 'si-purple', showAmount: false,
       emptyText: '오늘 하한가 종목이 없어요.', errorText: '하한가 데이터를 불러오지 못했어요.'
     }
   ];
+  var SECTION_BY_KEY = {};
+  SECTIONS.forEach(function (s) { SECTION_BY_KEY[s.key] = s; });
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
     container.innerHTML = SECTIONS.map(buildSectionShell).join('');
+    container.addEventListener('click', function (e) {
+      var moreBtn = e.target.closest ? e.target.closest('.sr-more') : null;
+      if (moreBtn) openModal(moreBtn.getAttribute('data-section'));
+    });
     refresh(container);
     setInterval(function () { refresh(container); }, REFRESH_MS);
   }
@@ -56,7 +65,7 @@
       + '<span class="sr-updated" id="srUpdated-' + s.key + '"></span>'
       + '</div>'
       + '<ol class="sr-list" id="srList-' + s.key + '"><li class="sr-hint">불러오는 중...</li></ol>'
-      + '<a class="sr-more" href="' + s.more + '" target="_blank" rel="noopener">더보기 →</a>'
+      + '<button type="button" class="sr-more" data-section="' + s.key + '">더보기 →</button>'
       + '</div>';
   }
 
@@ -100,6 +109,54 @@
       + '</li>';
   }
 
+  // ---- "더보기" 모달(TOP20, 블로그 안에서 보여줌 - 외부 이동 없음) ----
+
+  function closeModal() {
+    var existing = document.querySelector('.sr-modal-overlay');
+    if (existing) existing.remove();
+  }
+
+  function openModal(sectionKey) {
+    var s = SECTION_BY_KEY[sectionKey];
+    if (!s) return;
+    closeModal();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'sr-modal-overlay';
+    overlay.innerHTML = '<div class="sr-modal">'
+      + '<div class="sr-modal-header"><span>' + escapeHtml(s.shortTitle) + ' TOP' + MODAL_LIMIT + '</span>'
+      + '<button type="button" class="sr-modal-close" aria-label="닫기">✕</button></div>'
+      + '<ol class="sr-list sr-modal-list"><li class="sr-hint">불러오는 중...</li></ol>'
+      + '</div>';
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay || e.target.closest('.sr-modal-close')) closeModal();
+    });
+    document.addEventListener('keydown', function escHandler(e) {
+      if (e.key !== 'Escape') return;
+      closeModal();
+      document.removeEventListener('keydown', escHandler);
+    });
+
+    SidebarRank.fetchRank(MODAL_LIMIT)
+      .then(function (data) {
+        if (!document.body.contains(overlay)) return; // 응답 오는 사이 닫았으면 무시
+        var items = (data && data[sectionKey]) || [];
+        var list = overlay.querySelector('.sr-modal-list');
+        if (!items.length) {
+          list.innerHTML = '<li class="sr-hint">' + escapeHtml(s.emptyText) + '</li>';
+          return;
+        }
+        list.innerHTML = items.map(function (it, i) { return rowHtml(it, i + 1, s.showAmount); }).join('');
+      })
+      .catch(function () {
+        if (!document.body.contains(overlay)) return;
+        var list = overlay.querySelector('.sr-modal-list');
+        if (list) list.innerHTML = '<li class="sr-hint sr-error">' + escapeHtml(s.errorText) + '</li>';
+      });
+  }
+
   // trade_amount는 백만원 단위로 온다(키움 ka10032 관례, VM 실측 확인 2026-07-20) -
   // 억원 = 백만원/100.
   function fmtAmount(v) {
@@ -117,11 +174,12 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  function fetchRank() {
+  function fetchRank(limit) {
+    var url = API_URL + (limit ? '?limit=' + encodeURIComponent(limit) : '');
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, 15000) : null;
-    return fetch(API_URL, hasAbort ? { signal: controller.signal } : {})
+    return fetch(url, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('market-rank API 오류: ' + r.status);
         return r.json();

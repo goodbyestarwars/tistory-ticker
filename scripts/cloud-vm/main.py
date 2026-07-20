@@ -101,7 +101,8 @@ _foreign_flow_cache_mem = {}
 # TTL 캐시. 방문자가 여러 명이어도 30초에 한 번만 키움을 실제로 호출하면 되므로 단일
 # 전역값으로 충분(위 _ohlc_cache 같은 종목별 캐시와 달리 키가 하나뿐).
 _MARKET_RANK_TTL = 30
-_market_rank_cache = {'t': 0, 'data': None}
+_MARKET_RANK_MAX_LIMIT = 20  # 사이드바 미리보기(5)보다 큰 값은 "더보기" 모달 전용
+_market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(5는 30초마다 폴링, 20은 모달 열 때만)
 
 
 def _live_cache_get(cache, code):
@@ -419,23 +420,24 @@ def option_flow_endpoint():
 
 
 @app.get('/market-rank')
-def market_rank_endpoint():
-    """사이드바 실시간 랭킹(거래대금 TOP5/상한가/하한가) - 9bolt 우측 사이드바 리디자인
+def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT)):
+    """사이드바 실시간 랭킹(거래대금 TOP/상한가/하한가) - 9bolt 우측 사이드바 리디자인
     (작업지시서 2026-07-20). 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만
     제한) - /futures, /option-flow와 동일한 패턴. 30초 서버 캐시로 실제 키움 호출 빈도를
-    낮춘다(market_rank.py 참고)."""
+    낮춘다(market_rank.py 참고). limit: 기본 5(사이드바 미리보기), "더보기" 모달은
+    limit=20으로 같은 엔드포인트를 재사용(js/sidebar-rank.js)."""
     now = time.time()
-    if _market_rank_cache['data'] is not None and now - _market_rank_cache['t'] < _MARKET_RANK_TTL:
-        return envelope(_market_rank_cache['data'])
+    cached = _market_rank_cache.get(limit)
+    if cached is not None and now - cached['t'] < _MARKET_RANK_TTL:
+        return envelope(cached['data'])
     try:
         token = get_kiwoom_token()
-        data = market_rank.fetch_sidebar_rank(token, limit=5)
+        data = market_rank.fetch_sidebar_rank(token, limit=limit)
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
-    _market_rank_cache['t'] = now
-    _market_rank_cache['data'] = data
+    _market_rank_cache[limit] = {'t': now, 'data': data}
     return envelope(data)
 
 
