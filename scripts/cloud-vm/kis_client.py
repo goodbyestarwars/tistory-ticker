@@ -265,19 +265,26 @@ def fetch_investor_trade_daily(token, appkey, appsecret, code, date1, mrkt_div_c
     return data.get('output1') or {}, data.get('output2') or []
 
 
-def fetch_market_investor_daily(token, appkey, appsecret, date1, date2, market_iscd='KSP'):
+def fetch_market_investor_daily(token, appkey, appsecret, date1, date2, market_iscd='KSP', inds_cd='0001'):
     """시장별 투자자매매동향(일별), TR FHPTJ04040000 [국내주식-075] - 한국투자 HTS(eFriend Plus)
     [0404] 시장별 일별동향 화면과 1:1 대응. 2026-07-20 kis-code-assistant-mcp로 공식 예제를
     확인해 추가(코드 검색 전용 MCP라 실호출 검증은 못 함, 아래 단위 가정은 배포 후 실측 필요).
     공식 예제는 FID_INPUT_DATE_1=FID_INPUT_DATE_2(동일 날짜)만 검증된 사용법이라 이 함수도
     그 방식만 지원 - date1/date2에 다른 날짜를 넣으면 범위 조회가 될지는 미검증(향후 최적화
     여지, investor_trend.py가 현재 날짜별로 반복 호출하는 이유).
-    market_iscd: 'KSP'=코스피, 'KSQ'=코스닥. 응답 output은 날짜 1건짜리 리스트(dict 1개).
-    금액 필드(*_ntby_tr_pbmn)는 원 단위로 추정 - investor_trend.py에서 억원으로 환산 시
-    네이버 확정치와 대조 검증 필요."""
+    market_iscd: 'KSP'=코스피, 'KSQ'=코스닥.
+    inds_cd(FID_INPUT_ISCD/FID_INPUT_ISCD_2, 업종코드): 2026-07-21 발견 - 처음엔 '0001'(코스피
+    종합)로 시장 무관하게 고정했었는데, 코스닥 조회 시 이 값이 여전히 '0001'로 남아있어
+    "KSQ 시장 + 0001(코스피 종합) 업종" 조합이 유효하지 않은 채 200 OK/rt_cd=0으로 응답만
+    비어있게(모든 금액 필드 0) 돌아오는 문제를 실측으로 확인(investor_trend.py가 4개월치를
+    전부 0으로 백필함). KRX 업종코드 관례(코스피 0으로 시작/코스닥 1로 시작, 예: 지수 조회
+    TR들의 0001/1001 패턴)를 따라 코스닥은 '1001'으로 호출하도록 investor_trend.py에서
+    분기 - **미검증**, 배포 후 실측으로 값이 0이 아닌지 재확인 필요.
+    응답 output은 날짜 1건짜리 리스트(dict 1개). 금액 필드(*_ntby_tr_pbmn)는 백만원 단위
+    (2026-07-20 실측 확정, investor_trend.py 참고)."""
     path = ('/uapi/domestic-stock/v1/quotations/inquire-investor-daily-by-market'
-            '?FID_COND_MRKT_DIV_CODE=U&FID_INPUT_ISCD=0001&FID_INPUT_DATE_1=%s&FID_INPUT_ISCD_1=%s'
-            '&FID_INPUT_DATE_2=%s&FID_INPUT_ISCD_2=0001' % (date1, market_iscd, date2))
+            '?FID_COND_MRKT_DIV_CODE=U&FID_INPUT_ISCD=%s&FID_INPUT_DATE_1=%s&FID_INPUT_ISCD_1=%s'
+            '&FID_INPUT_DATE_2=%s&FID_INPUT_ISCD_2=%s' % (inds_cd, date1, market_iscd, date2, inds_cd))
     req = urllib.request.Request(
         BASE_URL + path,
         headers={

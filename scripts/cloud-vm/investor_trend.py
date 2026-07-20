@@ -77,8 +77,8 @@ _HISTORY_REFRESH_SEC = 6 * 3600  # 월 탭은 장마감 후 확정치면 충분 
 # 시장 키(프론트/쿼리파라미터용, 소문자) -> DB에 저장하는 시장명 + 각 소스별 파라미터.
 # 선물은 데이터 소스가 없어 제외(위 모듈 독스트링 참고).
 MARKETS = {
-    'kospi': {'db': 'KOSPI', 'kis_iscd': 'KSP', 'kiwoom_mrkt_tp': '0', 'naver': True, 'label': '코스피'},
-    'kosdaq': {'db': 'KOSDAQ', 'kis_iscd': 'KSQ', 'kiwoom_mrkt_tp': '1', 'naver': False, 'label': '코스닥'},
+    'kospi': {'db': 'KOSPI', 'kis_iscd': 'KSP', 'kis_inds_cd': '0001', 'kiwoom_mrkt_tp': '0', 'naver': True, 'label': '코스피'},
+    'kosdaq': {'db': 'KOSDAQ', 'kis_iscd': 'KSQ', 'kis_inds_cd': '1001', 'kiwoom_mrkt_tp': '1', 'naver': False, 'label': '코스닥'},
 }
 DEFAULT_MARKET = 'kospi'
 
@@ -176,15 +176,16 @@ def _kis_row_to_common(date_str, row):
     }
 
 
-def fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd='KSP'):
+def fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd='KSP', kis_inds_cd='0001'):
     """date_str('YYYYMMDD') 하루치. 휴장일/데이터 없음이면 None."""
-    output = kis_client.fetch_market_investor_daily(token, appkey, appsecret, date_str, date_str, market_iscd=kis_iscd)
+    output = kis_client.fetch_market_investor_daily(
+        token, appkey, appsecret, date_str, date_str, market_iscd=kis_iscd, inds_cd=kis_inds_cd)
     if not output:
         return None
     return _kis_row_to_common(date_str, output[0])
 
 
-def backfill_kis(appkey, appsecret, market_db, kis_iscd, target_days=_KIS_TARGET_DAYS, max_calendar_days=_KIS_MAX_CALENDAR_DAYS):
+def backfill_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd, target_days=_KIS_TARGET_DAYS, max_calendar_days=_KIS_MAX_CALENDAR_DAYS):
     """오늘부터 거슬러 올라가며 날짜별로 호출 - target_days(영업일)를 채우거나
     max_calendar_days(달력일)를 다 돌 때까지. 주말은 호출 자체를 건너뛴다(공휴일은 호출은
     하되 빈 응답으로 자연 스킵). 호출마다 upsert해서 중간에 실패해도 그때까지 진행분은 보존."""
@@ -200,7 +201,7 @@ def backfill_kis(appkey, appsecret, market_db, kis_iscd, target_days=_KIS_TARGET
                 date_str = d.strftime('%Y%m%d')
                 row = None
                 try:
-                    row = fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd)
+                    row = fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd, kis_inds_cd)
                 except Exception:
                     logger.exception('investor_trend[%s] KIS backfill failed at %s', market_db, date_str)
                 if row:
@@ -214,24 +215,30 @@ def backfill_kis(appkey, appsecret, market_db, kis_iscd, target_days=_KIS_TARGET
                  market_db, collected, calendar_checked)
 
 
-def _ensure_kis_backfill(appkey, appsecret, market_db, kis_iscd):
-    """이미 충분히 쌓여있으면(재시작 등) 백필을 건너뛴다 - 매번 130여회 호출은 낭비."""
-    conn = db_schema.get_conn()
-    try:
-        existing = db_schema.load_investor_trend_daily(conn, market_db, limit_days=_KIS_TARGET_DAYS)
-    finally:
-        conn.close()
-    if len(existing) >= _KIS_TARGET_DAYS - 5:
-        logger.info('investor_trend[%s] KIS backfill skipped - already have %d rows', market_db, len(existing))
-        return
-    backfill_kis(appkey, appsecret, market_db, kis_iscd)
+_FORCE_KIS_REBACKFILL = True  # 2026-07-21: 코스닥 업종코드(0001->1001) 수정을 이미 저장된
+# 잘못된(전부 0) 백필 데이터에도 반영하려고 1회 True로 배포 - 라이브 확인되면 False로 되돌릴 것.
 
 
-def refresh_recent_kis(appkey, appsecret, market_db, kis_iscd):
+def _ensure_kis_backfill(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
+    """이미 충분히 쌓여있으면(재시작 등) 백필을 건너뛴다 - 매번 130여회 호출은 낭비.
+    _FORCE_KIS_REBACKFILL=True인 동안은 건너뛰지 않고 항상 재백필."""
+    if not _FORCE_KIS_REBACKFILL:
+        conn = db_schema.get_conn()
+        try:
+            existing = db_schema.load_investor_trend_daily(conn, market_db, limit_days=_KIS_TARGET_DAYS)
+        finally:
+            conn.close()
+        if len(existing) >= _KIS_TARGET_DAYS - 5:
+            logger.info('investor_trend[%s] KIS backfill skipped - already have %d rows', market_db, len(existing))
+            return
+    backfill_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd)
+
+
+def refresh_recent_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
     """1분 폴링용 - 오늘 하루치만 재조회(장중 값 갱신)."""
     token = kis_client.get_token(appkey, appsecret)
     date_str = _today_bizdate()
-    row = fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd)
+    row = fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd, kis_inds_cd)
     if not row:
         logger.warning('investor_trend[%s]: KIS recent fetch got no row for %s', market_db, date_str)
         return
@@ -372,7 +379,7 @@ def _refresh_recent_chain(market_cfg, has_kiwoom, kiwoom_appkey, kiwoom_secretke
     market_db = market_cfg['db']
     if has_kis:
         try:
-            refresh_recent_kis(kis_appkey, kis_appsecret, market_db, market_cfg['kis_iscd'])
+            refresh_recent_kis(kis_appkey, kis_appsecret, market_db, market_cfg['kis_iscd'], market_cfg['kis_inds_cd'])
             return
         except Exception:
             logger.exception('investor_trend[%s] refresh_recent_kis failed - falling back for this tick', market_db)
@@ -398,7 +405,7 @@ def _poll_market(market_key, market_cfg, kis_appkey, kis_appsecret, kiwoom_appke
     if not state.get('backfilled'):
         if has_kis:
             try:
-                _ensure_kis_backfill(kis_appkey, kis_appsecret, market_db, market_cfg['kis_iscd'])
+                _ensure_kis_backfill(kis_appkey, kis_appsecret, market_db, market_cfg['kis_iscd'], market_cfg['kis_inds_cd'])
             except Exception:
                 logger.exception('investor_trend[%s] KIS backfill failed - falling back to Naver history for now', market_db)
                 has_kis = False
