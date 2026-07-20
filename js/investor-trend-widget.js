@@ -14,9 +14,10 @@
  * 투자자매매동향 데이터 소스가 없어(2026-07-21 조사) 이 위젯 범위에서 제외 - 코스피/코스닥
  * 2개 시장만 지원한다.
  *
- * 일(日) 탭은 개인/외국인/기관 3개 막대가 조밀하게 겹쳐 보이던 문제를 해결하려고
- * 투자자별로 3행 분리된 전용 레이아웃(dayRowsHtml)을 쓰고, 주/월 탭은 기존 그룹 막대
- * 레이아웃(chartHtml+tableHtml)을 그대로 유지한다(UI개선 지시서 2026-07-21 "변경 범위" 표).
+ * 개인/외국인/기관 3개 막대가 날짜당 조밀하게 겹쳐 보이던 문제를 해결하려고 투자자별로
+ * 3행 분리된 레이아웃(dayRowsHtml)을 쓴다. UI개선 지시서(2026-07-21) 1차안은 일(日) 탭만
+ * 이 레이아웃으로 바꾸고 주/월은 기존 그룹 막대+테이블을 유지하는 것이었으나, 사용자가
+ * 배포 후 확인하고 "주/월도 일 스타일로" 요청해 전체 탭에 동일하게 적용함(2026-07-21 2차).
  *
  * 홈("/")에서만 마운트 - 예전 #pinnedNotice와 동일하게 카테고리/글 페이지 등에서는 숨김.
  */
@@ -111,7 +112,7 @@
 
   function load(container) {
     var body = container.querySelector('#itwBody');
-    if (body && !body.querySelector('.itw-chart, .itw-day-chart')) {
+    if (body && !body.querySelector('.itw-day-chart')) {
       body.innerHTML = '<div class="itw-skeleton"></div>';
     }
     var period = state.period;
@@ -138,50 +139,10 @@
       body.innerHTML = '<div class="itw-error">데이터를 불러오지 못했어요.</div>';
       return;
     }
-    body.innerHTML = result.period === 'day' ? dayRowsHtml(rows) : (chartHtml(rows) + tableHtml(rows));
+    body.innerHTML = dayRowsHtml(rows);
   }
 
-  // ---- 주/월 탭: 기존 그룹 막대 + 테이블 레이아웃 (변경 없음) ----
-
-  function chartHtml(rows) {
-    var maxAbs = 1;
-    rows.forEach(function (r) {
-      maxAbs = Math.max(maxAbs, Math.abs(r.ind), Math.abs(r.frgn), Math.abs(r.orgn));
-    });
-    var groups = rows.map(function (r) {
-      return '<div class="itw-group">'
-        + barHtml(r.ind, maxAbs, 'ind')
-        + barHtml(r.frgn, maxAbs, 'frgn')
-        + barHtml(r.orgn, maxAbs, 'orgn')
-        + '</div>';
-    }).join('');
-    return '<div class="itw-chart"><div class="itw-zeroline"></div><div class="itw-groups">' + groups + '</div></div>';
-  }
-
-  function barHtml(val, maxAbs, kind) {
-    var pct = (Math.abs(val) / maxAbs * 50).toFixed(2);
-    var neg = val < 0;
-    var pos = neg ? 'top:50%;' : 'bottom:50%;';
-    return '<div class="itw-bar itw-bar-' + kind + (neg ? ' itw-bar-neg' : '')
-      + '" style="' + pos + 'height:' + pct + '%;"></div>';
-  }
-
-  function tableHtml(rows) {
-    var head = '<tr><th></th>' + rows.map(function (r) {
-      return '<th>' + escapeHtml(r.label) + '</th>';
-    }).join('') + '</tr>';
-    var body = INVESTORS.map(function (inv) {
-      var cells = rows.map(function (r) {
-        var v = r[inv.key];
-        var neg = v < 0;
-        return '<td class="itw-cell-' + inv.key + (neg ? ' itw-neg' : '') + '">' + fmtUnit(v) + '</td>';
-      }).join('');
-      return '<tr><td class="itw-legend"><span class="itw-dot itw-dot-' + inv.key + '"></span>' + inv.label + '</td>' + cells + '</tr>';
-    }).join('');
-    return '<div class="itw-table-wrap"><table class="itw-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
-  }
-
-  // ---- 일 탭: 투자자별 3행 분리 레이아웃 (UI개선 지시서 2026-07-21) ----
+  // ---- 투자자별 3행 분리 레이아웃 - 일/주/월 전체 탭 공용(2026-07-21) ----
 
   function dayRowsHtml(rows) {
     return '<div class="itw-day-chart">'

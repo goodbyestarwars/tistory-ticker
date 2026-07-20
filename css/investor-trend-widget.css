@@ -1,8 +1,10 @@
 /* 메인 페이지 "투자자별 매매 동향" 위젯(js/investor-trend-widget.js) - 작업지시서 #4
  * (2026-07-20) 공지사항(#pinnedNotice) 카드 대체. .card는 style.css의 공통 카드 스타일을
- * 그대로 쓰고 이 파일은 내부 헤더/탭/차트/테이블만 추가한다.
- * 색상: 개인 #AAAAAA / 외국인 #d24f45(사이트 공통 상승색 - 지시서 원문 민트 #d24f45에서
- * 2026-07-20 사용자 요청으로 변경) / 기관 #378ADD.
+ * 그대로 쓰고 이 파일은 내부 헤더/탭/차트만 추가한다.
+ * 2026-07-21: 원래 일(日) 탭 전용이던 투자자별 3행 분리 레이아웃(.itw-day-*)을 사용자
+ * 요청으로 주/월 탭에도 그대로 적용해 유일한 렌더링 모드가 됨 - 기존 그룹 막대/테이블
+ * 레이아웃(.itw-chart/.itw-table 등)은 죽은 코드라 이때 함께 제거함(git history 참고).
+ * 색상: 개인 #888888 / 외국인 #e84040 / 기관 #3b82f6(작업지시서 3-3 팔레트).
  * 다크모드: html.dark #investor-trend-widget ... !important (9bolt 스킨 블랑켓 규칙 대응). */
 
 #investor-trend-widget .itw-card {
@@ -97,44 +99,7 @@
   color: #9ca3af;
 }
 
-/* ---- 막대 차트: 0선 기준 그룹 막대(개인/외국인/기관 3개씩) ---- */
-#investor-trend-widget .itw-chart {
-  position: relative;
-  height: 130px;
-  margin-top: 16px;
-}
-#investor-trend-widget .itw-zeroline {
-  position: absolute;
-  left: 0; right: 0; top: 50%;
-  border-top: 0.5px solid #d7dae0;
-}
-#investor-trend-widget .itw-groups {
-  position: relative;
-  height: 100%;
-  display: flex;
-  align-items: stretch;
-  justify-content: space-around;
-  padding: 0 4px;
-}
-#investor-trend-widget .itw-group {
-  position: relative;
-  width: 48px; /* 14px*3 + 3px*2 */
-  height: 100%;
-  display: flex;
-  gap: 3px;
-}
-#investor-trend-widget .itw-bar {
-  position: absolute;
-  width: 14px;
-  border-radius: 3px 3px 0 0;
-}
-#investor-trend-widget .itw-bar.itw-bar-neg { border-radius: 0 0 3px 3px; }
-#investor-trend-widget .itw-bar-ind { left: 0; background: #AAAAAA; }
-#investor-trend-widget .itw-bar-frgn { left: 17px; background: #d24f45; }
-#investor-trend-widget .itw-bar-orgn { left: 34px; background: #378ADD; }
-#investor-trend-widget .itw-bar.itw-bar-neg { opacity: 0.7; }
-
-/* ---- 일(日) 탭: 투자자별 3행 분리 레이아웃(UI개선 지시서 2026-07-21) ----
+/* ---- 투자자별 3행 분리 레이아웃(UI개선 지시서 2026-07-21) - 일/주/월 전체 탭 공용 ----
  * 색상은 지시서 3-3 원문 그대로(기존 그룹 막대/테이블의 사이트 공통색과는 별도 팔레트) -
  * 음수는 지시서가 지정한 8자리 hex(알파 포함)를 그대로 사용, opacity 속성 아님. */
 #investor-trend-widget .itw-day-chart {
@@ -171,8 +136,7 @@
    막대 트랙(.itw-day-bar-track)만 height:130/3px 예산으로 제한(지시서 3-2 "3행 합산 높이 ≤
    기존 차트 높이" - 헤더·날짜·값 레이블은 이 예산 밖에 추가로 붙는 영역). 컬럼 너비는
    내용(예: "-9,000억")이 잘리지 않을 최소폭을 우선하고, 좁은 화면에서 10개가 다 안 들어가면
-   찌그러뜨리는 대신 가로 스크롤(overflow-x)로 넘긴다(값 레이블 잘림 방지 - 지시서 체크리스트,
-   기존 .itw-table-wrap과 동일한 해법). */
+   찌그러뜨리는 대신 가로 스크롤(overflow-x)로 넘긴다(값 레이블 잘림 방지 - 지시서 체크리스트). */
 #investor-trend-widget .itw-day-row-chart {
   overflow-x: auto;
 }
@@ -229,60 +193,15 @@
 }
 #investor-trend-widget .itw-day-col-value.itw-neg { opacity: 0.8; }
 
-/* ---- 수치 테이블 ---- */
-#investor-trend-widget .itw-table-wrap {
-  margin-top: 14px;
-  overflow-x: auto;
-}
-#investor-trend-widget .itw-table {
-  width: 100%;
-  min-width: 360px;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-#investor-trend-widget .itw-table th,
-#investor-trend-widget .itw-table td {
-  padding: 6px 4px;
-  text-align: right;
-  white-space: nowrap;
-}
-#investor-trend-widget .itw-table th {
-  font-weight: 500;
-  color: #9ca3af;
-  font-size: 11px;
-  border-bottom: 1px solid #eef0f3;
-}
-#investor-trend-widget .itw-table td.itw-legend,
-#investor-trend-widget .itw-table th:first-child {
-  text-align: left;
-}
-#investor-trend-widget .itw-legend {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  color: #444;
-  white-space: nowrap;
-}
+/* .itw-dot(8px 원형 점)은 각 행 헤더의 투자자 범례로 쓰임 - 색상은 .itw-day-dot-*가 지정 */
 #investor-trend-widget .itw-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-#investor-trend-widget .itw-dot-ind { background: #AAAAAA; }
-#investor-trend-widget .itw-dot-frgn { background: #d24f45; }
-#investor-trend-widget .itw-dot-orgn { background: #378ADD; }
-
-#investor-trend-widget .itw-cell-ind { color: #888; }
-#investor-trend-widget .itw-cell-frgn { color: #d24f45; }
-#investor-trend-widget .itw-cell-orgn { color: #378ADD; }
-#investor-trend-widget .itw-cell-ind.itw-neg,
-#investor-trend-widget .itw-cell-frgn.itw-neg,
-#investor-trend-widget .itw-cell-orgn.itw-neg { opacity: 0.8; }
 
 @media (max-width: 720px) {
   #investor-trend-widget .itw-card { padding: 16px 16px 14px; }
-  #investor-trend-widget .itw-chart,
   #investor-trend-widget .itw-skeleton { height: 80px; }
   /* 3행 합산이 모바일 차트 높이(80px) 예산을 넘지 않도록 행당 막대 트랙을 80/3px로 축소.
      컬럼 최소폭도 살짝 줄이되(폰트도 축소) 320px 폭에서 다 안 들어가면 가로 스크롤로
@@ -315,8 +234,4 @@ html.dark #investor-trend-widget .itw-day-row-sum-up { color: #e8776d !important
 html.dark #investor-trend-widget .itw-day-row-sum-down { color: #6ea8e8 !important; }
 html.dark #investor-trend-widget .itw-day-col-date { color: #888 !important; }
 html.dark #investor-trend-widget .itw-day-col-value { color: #ddd !important; }
-html.dark #investor-trend-widget .itw-zeroline,
 html.dark #investor-trend-widget .itw-day-zeroline { border-color: #3a3a3a !important; }
-html.dark #investor-trend-widget .itw-table th { color: #888 !important; border-color: #333 !important; }
-html.dark #investor-trend-widget .itw-legend { color: #ddd !important; }
-html.dark #investor-trend-widget .itw-cell-ind { color: #aaa !important; }
