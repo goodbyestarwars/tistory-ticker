@@ -84,11 +84,13 @@
   var GRADE_BUCKET_ORDER = ['activeBuy', 'buy', 'hold', 'reduce', 'sell']; // 종합점수 높은 순
   var SIGNAL_TOP_DEFAULT = 10;
   var SIGNAL_TOP_MAX = 20;
+  var SIGNAL_SEARCH_MAX = 30; // 검색어 입력 시 TOP10/20 캡 대신 이만큼까지 보여줌(GAS가 버킷당 최대 100개로 캡을 걸어둠)
 
   var signalData = null;
   var activeGradeBucket = null; // 카운트 배지 클릭으로 필터링한 등급(GRADE_META.key), null이면 전체
   var listExpanded = false;     // 종목 리스트 더보기(TOP20) 눌렀는지 - 필터 바뀌면 초기화
   var activeSignalCode = null;  // 우측 요약 패널에 표시 중인 종목코드(리스트 하이라이트용)
+  var signalSearchQuery = '';   // 리스트 내부 종목명 검색어(빈 문자열이면 검색 비활성)
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -119,6 +121,9 @@
       + '<div class="ff-sig-twocol">'
       + '<div class="ff-sig-list-col">'
       + '<div class="ff-sig-count" id="ffSigCount"><div class="ff-hint">투자시그널 불러오는 중...</div></div>'
+      + '<div class="ff-sig-search-wrap">'
+      + '<input type="text" id="ffSigSearch" class="ff-sig-search-input" placeholder="목록 내 종목명 검색" autocomplete="off" />'
+      + '</div>'
       + '<div class="ff-sig-list" id="ffSigList"></div>'
       + '</div>'
       + '<div class="ff-sig-summary" id="ffSigSummary"><div class="ff-hint">종목을 선택하세요</div></div>'
@@ -187,17 +192,27 @@
     var meta = activeGradeBucket ? GRADE_META.filter(function (g) { return g.key === activeGradeBucket; })[0] : null;
     var items = meta ? ((signalData.buckets && signalData.buckets[meta.bucketKey]) || []) : combinedSignalItems();
 
+    var query = signalSearchQuery.trim();
+    if (query) {
+      var q = query.toLowerCase();
+      items = items.filter(function (item) {
+        return (item[1] && item[1].toLowerCase().indexOf(q) !== -1) || (item[0] && item[0].indexOf(q) !== -1);
+      });
+    }
+
     if (!items.length) {
-      box.innerHTML = '<div class="ff-hint">해당 종목이 없어요.</div>';
+      box.innerHTML = '<div class="ff-hint">' + (query ? '검색 결과가 없어요.' : '해당 종목이 없어요.') + '</div>';
       return;
     }
 
-    var shown = items.slice(0, listExpanded ? SIGNAL_TOP_MAX : SIGNAL_TOP_DEFAULT);
-    var headHtml = meta
-      ? ('<div class="ff-sig-list-head">' + meta.emoji + ' ' + meta.label + ' 종목</div>')
-      : '<div class="ff-sig-list-head">전체 종목 (종합점수순)</div>';
+    var shown = query ? items.slice(0, SIGNAL_SEARCH_MAX) : items.slice(0, listExpanded ? SIGNAL_TOP_MAX : SIGNAL_TOP_DEFAULT);
+    var headHtml = query
+      ? ('<div class="ff-sig-list-head">"' + escapeHtml(query) + '" 검색결과 (' + items.length.toLocaleString('ko-KR') + '건)</div>')
+      : (meta
+        ? ('<div class="ff-sig-list-head">' + meta.emoji + ' ' + meta.label + ' 종목</div>')
+        : '<div class="ff-sig-list-head">전체 종목 (종합점수순)</div>');
     var rowsHtml = shown.map(listRowHtml).join('');
-    var moreHtml = (!listExpanded && items.length > SIGNAL_TOP_DEFAULT)
+    var moreHtml = (!query && !listExpanded && items.length > SIGNAL_TOP_DEFAULT)
       ? '<button type="button" class="ff-sig-more" data-list-more="1">더보기 (TOP ' + Math.min(items.length, SIGNAL_TOP_MAX) + ')</button>'
       : '';
 
@@ -463,6 +478,14 @@
     var input = container.querySelector('#ffInput');
     var suggestBox = container.querySelector('#ffSuggest');
     var btn = container.querySelector('#ffSearchBtn');
+    var sigSearchInput = container.querySelector('#ffSigSearch');
+
+    if (sigSearchInput) {
+      sigSearchInput.addEventListener('input', function () {
+        signalSearchQuery = sigSearchInput.value;
+        renderSignalList(container);
+      });
+    }
 
     input.addEventListener('input', function () {
       renderSuggestions(container, suggestBox, input.value.trim());
