@@ -158,6 +158,13 @@ a { text-decoration: none; color: inherit; }
      늘어나게 하고, sticky는 유지해서 페이지 스크롤 시 따라오는 동작은 그대로 둔다. */
   padding-bottom: 80px;
 }
+/* 사이드바 완전 숨김(2026-07-21 사이드바 리디자인 #3, navbar #sidebarToggleBtn).
+   .main-layout이 flex라 사이드바를 display:none하면 .feed(flex:1)가 자동으로
+   풀폭 확장됨(별도 width 계산 불필요). 모바일 드로어(max-width:720px 블록)와 충돌하지
+   않도록 데스크톱 폭에서만 적용. */
+@media (min-width: 721px) {
+  html.sidebar-collapsed .sidebar-left { display: none !important; }
+}
 
 /* Card base */
 .card {
@@ -204,9 +211,11 @@ a { text-decoration: none; color: inherit; }
 }
 .nav-item-label { font-size: 14px; flex: 1; }
 
-/* 종목검색 (js/skin-menu.js가 커뮤니티 메뉴 뒤에 심고, js/stock-search-panel.js가 동작을 붙임)
-   "음각" 느낌 - 안쪽 그림자로 눌려있는 듯한 인풋 */
-.nav-search-wrap { position: relative; padding: 10px 10px 4px; }
+/* 종목검색 (2026-07-21부터 js/skin-menu.js가 메뉴 리스트 최상단에 심음, 이전엔 커뮤니티
+   메뉴 뒤. js/stock-search-panel.js가 동작을 붙임) "음각" 느낌 - 안쪽 그림자로 눌려있는
+   듯한 인풋. 아래 메뉴 리스트와 구분되는 얇은 구분선을 하단에 둠(작업지시서 순서표의
+   "─────────────"에 대응). */
+.nav-search-wrap { position: relative; padding: 10px 10px 12px; border-bottom: 1px solid #eee; margin-bottom: 6px; }
 .nav-search-input-wrap {
   display: flex;
   align-items: center;
@@ -1834,6 +1843,12 @@ a { text-decoration: none; color: inherit; }
 .nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: #7aabdf; }
 
+/* ============ 데스크톱 사이드바 토글 버튼 (2026-07-21 사이드바 리디자인 #3) ============
+   .nav-hamburger 스타일/열림 애니메이션을 그대로 재사용하되 노출 조건은 정반대(모바일
+   전용 #mobileMenuBtn은 데스크톱에서 숨김, 이건 모바일에서 숨김 - 모바일은 이미 사이드바가
+   기본 숨김 상태라 완전 숨김 토글이 무의미하고 기존 드로어 햄버거와 겹치면 혼란스러움). */
+.nav-sidebar-toggle-btn { display: flex; }
+
 /* ============ 모바일 드로어 오버레이 ============ */
 .mobile-overlay {
   display: none;
@@ -1941,6 +1956,7 @@ a { text-decoration: none; color: inherit; }
   .nav-logo-sub { display: none; }
   .nav-search { display: none; }
   .nav-hamburger { display: flex; width: 32px; height: 32px; }
+  .nav-sidebar-toggle-btn { display: none !important; }
   .nav-search-btn { display: flex; }
   /* 아이콘 6개(다크토글/방명록/검색/글쓰기/관리자/로그아웃)가 한 줄에 다 들어가야 해서
      기본 36px 크기로는 좁은 화면에서 로그아웃 아이콘이 뷰포트 밖으로 밀려 잘림 -> 축소 */
@@ -2328,6 +2344,7 @@ html.dark .related-item-title { color: #aebacf; }
 html.dark .related-item-title:hover { color: #818cf8; }
 
 /* 좌측 사이드바 */
+html.dark .nav-search-wrap { border-bottom-color: #2f3a4f; }
 html.dark .nav-item { color: #ffffff; }
 html.dark .nav-item-label { color: #ffffff; }
 html.dark .nav-item:visited,

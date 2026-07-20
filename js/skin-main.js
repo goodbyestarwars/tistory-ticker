@@ -41,6 +41,22 @@
     });
   })();
 
+  /* ── 데스크톱 사이드바 토글 (완전 숨김 ↔ 복원, 2026-07-21 사이드바 리디자인 #3)
+     조기 적용 스크립트(head)가 이미 html.sidebar-collapsed를 붙여놨을 수 있으므로
+     버튼 아이콘(햄버거 ⇄ X) 상태만 여기서 동기화. 모바일 드로어(#mobileMenuBtn)와는
+     완전히 별개 기능 - CSS가 min-width:721px 안에서만 .sidebar-collapsed를 해석하므로
+     모바일에서는 이 클래스가 있어도 레이아웃에 영향 없음. ── */
+  (function() {
+    var btn = document.getElementById('sidebarToggleBtn');
+    if (!btn) return;
+    if (document.documentElement.classList.contains('sidebar-collapsed')) btn.classList.add('open');
+    btn.addEventListener('click', function() {
+      var collapsed = document.documentElement.classList.toggle('sidebar-collapsed');
+      btn.classList.toggle('open', collapsed);
+      try { localStorage.setItem('bolt-sidebar-collapsed', collapsed ? '1' : '0'); } catch (e) {}
+    });
+  })();
+
   /* ── 카테고리 동적 파싱 ([##_category_list_##] 기반) ── */
   var catColors = ['#2563eb','#16a34a','#d97706','#7c3aed','#e11d48','#0891b2','#b45309','#0f766e'];
   /* 2026-07-12: 마켓 브리핑은 왼쪽 페이지 메뉴(skin-menu.js)로 승격돼서

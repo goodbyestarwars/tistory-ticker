@@ -95,7 +95,8 @@
     }
   ];
 
-  // 커뮤니티 메뉴 바로 아래 종목검색 입력창(음각 스타일). 자동완성/이동 로직은
+  // 사이드바 최상단 종목검색 입력창(음각 스타일, 2026-07-21 사이드바 리디자인으로
+  // 커뮤니티 메뉴 아래 -> 메뉴 리스트 최상단으로 이동). 자동완성/이동 로직은
   // js/stock-search-panel.js가 이 마운트(#navSearchInput/#navSearchSuggest)를 찾아 붙인다
   // (검색 로직을 이 파일에 다시 넣지 않고 한 곳에 모아두기 위함).
   var SEARCH_HTML = ''
@@ -125,7 +126,7 @@
     var mount = document.getElementById('nav-menu-mount');
     if (!mount) return;
 
-    mount.innerHTML = MENU_ITEMS.map(function (it) {
+    mount.innerHTML = SEARCH_HTML + MENU_ITEMS.map(function (it) {
       return '<a href="' + it.href + '"' + (it.onclick ? ' onclick="' + it.onclick + '"' : '')
         + ' class="nav-item' + (isActiveItem(it) ? ' nav-item-home' : '') + '">'
         + '<div class="nav-item-icon">'
@@ -138,7 +139,7 @@
         + '</div>'
         + '<span class="nav-item-label"' + (it.bold ? ' style="font-weight:700;"' : '') + '>' + it.label + '</span>'
         + '</a>';
-    }).join('') + SEARCH_HTML;
+    }).join('');
 
     if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
   }
