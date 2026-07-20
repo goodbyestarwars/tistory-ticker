@@ -68,10 +68,11 @@
     '강함': 'caution', '매우 강함': 'caution'
   };
 
-  // ---- 2026-07-20: 오늘의 투자시그널 통합(작업지시서) - 페이지 최상단 카운트바 + 가중치
-  // 탭·랭킹. 별도 페이지(js/invest-signal.js)는 이 페이지로 리다이렉트만 하도록 교체됨.
-  // 데이터는 기존 종목분석 위젯과 같은 GAS(?investSignal=1, gas/ticker-proxy.gs
-  // getInvestSignalResult -> VM daily_scan.py)를 그대로 재사용.
+  // ---- 2026-07-20(3차): 작업지시서 최종본 - 가중치 탭(6개) 대신 단일 종목 리스트 + 우측
+  // 요약 패널(2열 레이아웃)로 교체(사용자 확인: 탭 제거, 단일 리스트). 카운트 칩 클릭 시 그
+  // 등급 종목만 리스트에 필터링되고, 아무 등급도 안 골랐으면 전체 등급을 매수쪽부터 이어붙인
+  // 기본 리스트(종합점수순에 근접)를 보여준다. 데이터는 기존과 동일 GAS(?investSignal=1)를
+  // 그대로 재사용. 별도 페이지(js/invest-signal.js)는 이 페이지로 리다이렉트만 함.
   var GRADE_META = [
     { key: '적극 매수', bucketKey: 'activeBuy', emoji: '🟢', label: '적극매수' },
     { key: '매수 우위', bucketKey: 'buy', emoji: '🟢', label: '매수' },
@@ -79,21 +80,14 @@
     { key: '비중축소', bucketKey: 'reduce', emoji: '🟠', label: '비중축소' },
     { key: '매도', bucketKey: 'sell', emoji: '🔴', label: '매도' }
   ];
-  var SIGNAL_TABS = [
-    { key: 'flow', label: '수급시그널 40%', metricLabel: '수급시그널 점수', metricFmt: fmtScorePt },
-    { key: 'foreignInst', label: '외국인·기관 25%', metricLabel: '5일 합산 순매수', metricFmt: fmtSharesUnit },
-    { key: 'tech', label: '기술적 20%', metricLabel: '기술적 점수', metricFmt: fmtScorePt },
-    { key: 'shortSafe', label: '공매도 10%', metricLabel: '공매도 비중', metricFmt: fmtPct },
-    { key: 'pension', label: '연기금 5%', metricLabel: '5일 순매수', metricFmt: fmtSignedWon },
-    { key: 'fundamental', label: '펀더멘탈', metricLabel: '펀더멘탈 점수', metricFmt: fmtScorePt }
-  ];
+  var GRADE_BUCKET_ORDER = ['activeBuy', 'buy', 'hold', 'reduce', 'sell']; // 종합점수 높은 순
   var SIGNAL_TOP_DEFAULT = 10;
   var SIGNAL_TOP_MAX = 20;
 
   var signalData = null;
-  var activeSignalTab = 'flow';
-  var signalExpanded = {}; // 탭 key -> 더보기(TOP20) 눌렀는지
-  var activeGradeBucket = null; // 카운트 배지 클릭으로 펼친 등급(GRADE_META.key), null이면 접힘
+  var activeGradeBucket = null; // 카운트 배지 클릭으로 필터링한 등급(GRADE_META.key), null이면 전체
+  var listExpanded = false;     // 종목 리스트 더보기(TOP20) 눌렀는지 - 필터 바뀌면 초기화
+  var activeSignalCode = null;  // 우측 요약 패널에 표시 중인 종목코드(리스트 하이라이트용)
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -119,15 +113,17 @@
   function buildShell() {
     return ''
       + '<div id="ffSigWrap">'
+      + '<div class="ff-sig-banner" id="ffSigBanner" hidden></div>'
       + '<div class="ff-sig" id="ffSig">'
       + '<div class="ff-sig-count" id="ffSigCount"><div class="ff-hint">투자시그널 불러오는 중...</div></div>'
-      + '<div class="ff-sig-bucket-list" id="ffSigBucketList" hidden></div>'
-      + '<div class="ff-view-tabs ff-sig-tabs" id="ffSigTabs"></div>'
-      + '<div class="ff-sig-rank" id="ffSigRank"></div>'
+      + '</div>'
+      + '<div class="ff-sig-twocol">'
+      + '<div class="ff-sig-list" id="ffSigList"></div>'
+      + '<div class="ff-sig-summary" id="ffSigSummary"><div class="ff-hint">종목을 선택하세요</div></div>'
       + '</div>'
       + '<div class="ff-divider"></div>'
       + '</div>'
-      + '<div class="ff-search">'
+      + '<div class="ff-search ff-search-compact">'
       + '<div class="ff-input-wrap">'
       + '<input type="text" id="ffInput" class="ff-input" placeholder="종목명을 입력하세요 (예: 삼성전자)" autocomplete="off" />'
       + '<div id="ffSuggest" class="ff-suggest"></div>'
@@ -139,15 +135,14 @@
       + '</div>';
   }
 
-  // ---- 오늘의 투자시그널(① 카운트 ② 가중치 탭+랭킹) ----
+  // ---- 오늘의 투자시그널(① 배너 ② 카운트 칩 ③ 종목 리스트+요약 패널) ----
 
   function loadSignalData(container) {
     ForeignFlow.fetchJson(GAS_TICKER_URL + '?investSignal=1')
       .then(function (data) {
         signalData = data;
         renderSignalCount(container);
-        renderSignalTabs(container);
-        renderSignalRank(container);
+        renderSignalList(container);
       })
       .catch(function () {
         var box = container.querySelector('#ffSigCount');
@@ -155,8 +150,7 @@
       });
   }
 
-  // 카운트 배지를 클릭 가능한 버튼으로 렌더링(클릭 시 해당 등급 종목목록 펼침, 사용자 피드백
-  // 2026-07-20 - 처음엔 정보성 텍스트로만 만들었는데 예전 페이지처럼 클릭이 되길 원함).
+  // 카운트 배지를 클릭 가능한 버튼으로 렌더링 - 클릭 시 아래 종목 리스트가 그 등급으로 필터링됨.
   function renderSignalCount(container) {
     var box = container.querySelector('#ffSigCount');
     if (!box) return;
@@ -172,93 +166,63 @@
       + '<div class="ff-sig-meta">' + escapeHtml(meta) + '</div>';
   }
 
-  function renderSignalBucketList(container) {
-    var box = container.querySelector('#ffSigBucketList');
-    if (!box) return;
-    if (!activeGradeBucket) { box.hidden = true; box.innerHTML = ''; return; }
-
-    var meta = GRADE_META.filter(function (g) { return g.key === activeGradeBucket; })[0];
-    var items = (signalData.buckets && signalData.buckets[meta.bucketKey]) || [];
-    var totalCount = (signalData.counts && signalData.counts[meta.key]) || 0;
-
-    box.hidden = false;
-    if (!items.length) {
-      box.innerHTML = '<div class="ff-hint">해당 등급에 속한 종목이 없어요.</div>';
-      return;
-    }
-    var rowsHtml = items.map(bucketRowHtml).join('');
-    box.innerHTML = '<div class="ff-sig-list-head">' + meta.emoji + ' ' + meta.label + ' 종목 목록'
-      + (totalCount > items.length ? ' <span class="ff-sig-list-cap">(상위 ' + items.length + '/' + totalCount + '종목만 표시)</span>' : '')
-      + '</div>'
-      + '<div class="ff-sig-table">' + rowsHtml + '</div>';
-  }
-
-  // item = [code, name, price, changeRate, stars] (daily_scan.py 버킷 append 순서, 탭별 metricVal 없음)
-  function bucketRowHtml(item) {
-    var code = item[0], name = item[1], price = item[2], changeRate = item[3], stars = item[4];
-    return '<button type="button" class="ff-sig-row" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
-      + '<span class="ff-sig-name">' + escapeHtml(name) + '<span class="ff-sig-code">(' + escapeHtml(code) + ')</span></span>'
-      + '<span class="ff-sig-score">' + starsHtml(stars) + '</span>'
-      + '<span class="ff-sig-quote"><span class="ff-sig-price">' + (price == null || isNaN(price) ? '-' : Math.round(price).toLocaleString('ko-KR')) + '</span>'
-      + '<span class="ff-sig-rate ' + signClass(changeRate) + '">' + fmtSignedPct(changeRate) + '</span></span>'
-      + '</button>';
-  }
-
-  function renderSignalTabs(container) {
-    var box = container.querySelector('#ffSigTabs');
-    if (!box) return;
-    box.innerHTML = SIGNAL_TABS.map(function (t) {
-      return '<button type="button" class="ff-view-tab' + (activeSignalTab === t.key ? ' active' : '') + '" data-sig-tab="' + t.key + '">' + t.label + '</button>';
-    }).join('');
-    box.querySelectorAll('.ff-view-tab').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var key = btn.getAttribute('data-sig-tab');
-        if (key === activeSignalTab) return;
-        activeSignalTab = key;
-        renderSignalTabs(container);
-        renderSignalRank(container);
-      });
+  // 등급 필터가 없을 때(기본 상태) 보여줄 리스트 - 등급 버킷(각 버킷 내부는 이미 점수순 정렬됨)을
+  // 적극매수->매도 순으로 이어붙여 "종합점수 높은 순"에 근접하게 만든다(별도 통합 랭킹 API 없음).
+  function combinedSignalItems() {
+    var out = [];
+    GRADE_BUCKET_ORDER.forEach(function (key) {
+      var arr = (signalData.buckets && signalData.buckets[key]) || [];
+      out = out.concat(arr);
     });
+    return out;
   }
 
-  function renderSignalRank(container) {
-    var box = container.querySelector('#ffSigRank');
+  function renderSignalList(container) {
+    var box = container.querySelector('#ffSigList');
     if (!box) return;
     if (!signalData) { box.innerHTML = '<div class="ff-hint">불러오는 중...</div>'; return; }
 
-    var tab = SIGNAL_TABS.filter(function (t) { return t.key === activeSignalTab; })[0];
-    var items = (signalData.rankings && signalData.rankings[activeSignalTab]) || [];
+    var meta = activeGradeBucket ? GRADE_META.filter(function (g) { return g.key === activeGradeBucket; })[0] : null;
+    var items = meta ? ((signalData.buckets && signalData.buckets[meta.bucketKey]) || []) : combinedSignalItems();
+
     if (!items.length) {
-      box.innerHTML = '<div class="ff-hint">랭킹 데이터가 아직 없어요.</div>';
+      box.innerHTML = '<div class="ff-hint">해당 종목이 없어요.</div>';
       return;
     }
 
-    var expanded = !!signalExpanded[activeSignalTab];
-    var shown = items.slice(0, expanded ? SIGNAL_TOP_MAX : SIGNAL_TOP_DEFAULT);
-    var rowsHtml = shown.map(function (it, i) { return signalRowHtml(it, i + 1, tab); }).join('');
-
-    var moreHtml = (!expanded && items.length > SIGNAL_TOP_DEFAULT)
-      ? '<button type="button" class="ff-sig-more" data-sig-more="1">더보기 (TOP ' + Math.min(items.length, SIGNAL_TOP_MAX) + ')</button>'
+    var shown = items.slice(0, listExpanded ? SIGNAL_TOP_MAX : SIGNAL_TOP_DEFAULT);
+    var headHtml = meta
+      ? ('<div class="ff-sig-list-head">' + meta.emoji + ' ' + meta.label + ' 종목</div>')
+      : '<div class="ff-sig-list-head">전체 종목 (종합점수순)</div>';
+    var rowsHtml = shown.map(listRowHtml).join('');
+    var moreHtml = (!listExpanded && items.length > SIGNAL_TOP_DEFAULT)
+      ? '<button type="button" class="ff-sig-more" data-list-more="1">더보기 (TOP ' + Math.min(items.length, SIGNAL_TOP_MAX) + ')</button>'
       : '';
 
-    box.innerHTML = '<div class="ff-sig-table">' + rowsHtml + '</div>' + moreHtml;
+    box.innerHTML = headHtml + '<div class="ff-sig-table">' + rowsHtml + '</div>' + moreHtml;
   }
 
-  // item = [code, name, price, changeRate, metricVal, stars] (invest_signal.upsert_ranked 순서)
-  function signalRowHtml(item, rank, tab) {
-    var code = item[0], name = item[1], price = item[2], changeRate = item[3], metricVal = item[4], stars = item[5];
-    return '<button type="button" class="ff-sig-row" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
-      + '<span class="ff-sig-rank-num">' + rank + '</span>'
+  // item = [code, name, price, changeRate, stars] (daily_scan.py 버킷 append 순서)
+  function listRowHtml(item) {
+    var code = item[0], name = item[1], price = item[2], changeRate = item[3], stars = item[4];
+    var activeCls = code === activeSignalCode ? ' active' : '';
+    return '<button type="button" class="ff-sig-row ff-sig-list-row' + activeCls + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
       + '<span class="ff-sig-name">' + escapeHtml(name) + '<span class="ff-sig-code">(' + escapeHtml(code) + ')</span></span>'
       + '<span class="ff-sig-score">' + starsHtml(stars) + '</span>'
-      + '<span class="ff-sig-metric"><span class="ff-sig-metric-label">' + escapeHtml(tab.metricLabel) + '</span>'
-      + '<span class="ff-sig-metric-val">' + tab.metricFmt(metricVal) + '</span></span>'
       + '<span class="ff-sig-quote"><span class="ff-sig-price">' + (price == null || isNaN(price) ? '-' : Math.round(price).toLocaleString('ko-KR')) + '</span>'
       + '<span class="ff-sig-rate ' + signClass(changeRate) + '">' + fmtSignedPct(changeRate) + '</span></span>'
       + '</button>';
   }
 
-  function selectSignalStock(container, code, name) {
+  // 리스트에서 종목 클릭 -> 우측 요약 패널(+ 상단 배너) 갱신. 페이지 이동 없음(작업지시서 ③).
+  function selectListStock(container, code, name) {
+    activeSignalCode = code;
+    renderSignalList(container); // 활성 행 하이라이트 갱신
+    loadSignalSummary(container, code, name);
+  }
+
+  // 요약 패널의 "상세 보기"를 누르면 그제서야 기존 검색창 흐름(⑤ 상세 영역)을 실행한다.
+  function openFullDetail(container, code, name) {
     var input = container.querySelector('#ffInput');
     if (input) input.value = name;
     search(container, code);
@@ -266,8 +230,191 @@
     if (resultBox) resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function fmtScorePt(v) { return v == null || isNaN(v) ? '-' : Math.round(v) + '점'; }
   function fmtSharesUnit(v) { return v == null || isNaN(v) ? '-' : fmtShares(v) + '주'; }
+
+  // 0~100점 -> 배너/요약패널용 한글 등급 텍스트(작업지시서: 문자 등급 대신 "양호/중립/부진" 등)
+  function scoreToWord(score) {
+    if (score == null) return '-';
+    if (score >= 65) return '양호';
+    if (score >= 40) return '중립';
+    return '부진';
+  }
+  // 공매도 압박 등급 라벨(매우약함~매우강함)을 배너용 2단 텍스트로 압축
+  function shortToWord(label) {
+    if (!label) return '-';
+    if (label.indexOf('약함') !== -1) return '낮음';
+    if (label.indexOf('강함') !== -1) return '높음';
+    return '중립';
+  }
+  // 연기금 톤(긍정/부정)을 화살표로 표시
+  function pensionToWord(pension) {
+    if (!pension) return '-';
+    var tone = pensionInterpText(pension).tone;
+    if (tone === 'very_positive' || tone === 'positive' || tone === 'neutral_positive') return '↑';
+    if (tone === 'caution') return '↓';
+    return '-';
+  }
+
+  // 리스트 클릭 시 필요한 5개 데이터를 병렬로 불러와 배너+요약 패널을 채운다. 기존 search()와
+  // 같은 fetch 함수(fetchFlow/fetchFlowChart/fetchInvestorFlowLive/fetchLiveQuote/fetchFundamentals)를
+  // 그대로 재사용 - 5분 메모리 캐시가 이미 걸려 있어 같은 종목을 리스트에서 눌렀다가 검색창으로
+  // 다시 조회해도 중복 호출이 없다.
+  function loadSignalSummary(container, code, name) {
+    var bannerBox = container.querySelector('#ffSigBanner');
+    var panelBox = container.querySelector('#ffSigSummary');
+    if (bannerBox) bannerBox.hidden = true;
+    if (panelBox) panelBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(name) + ' 불러오는 중...</div></div>';
+
+    var chartPromise = fetchFlowChart(code).catch(function () { return null; });
+    var investorFlowPromise = fetchInvestorFlowLive(code, name).catch(function () { return null; });
+    var quotePromise = fetchLiveQuote(code).catch(function () { return null; });
+    var fundamentalsPromise = fetchFundamentals(code, name).catch(function () { return null; });
+
+    Promise.all([ForeignFlow.fetchFlow(code, name), chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
+      .then(function (results) {
+        if (activeSignalCode !== code) return; // 응답 오는 사이 다른 종목을 눌렀으면 무시(레이스 방지)
+        var data = results[0], chartData = results[1], entry = results[2], quote = results[3], fundamentals = results[4];
+        if (!data || data.error || !data.daily || !data.daily.length) {
+          if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요.</div>';
+          return;
+        }
+        var techScore = computeTechnicalScore(chartData);
+        renderSignalBanner(bannerBox, data, entry, techScore, fundamentals);
+        renderSignalSummaryPanel(panelBox, data, entry, techScore, fundamentals, quote, chartData);
+      })
+      .catch(function () {
+        if (activeSignalCode !== code) return;
+        if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+      });
+  }
+
+  // ① 시그널 배너 - 항상 연한 파랑 고정색(작업지시서 지정), 등급 칩은 문자 등급 대신 한글 텍스트.
+  function renderSignalBanner(box, data, entry, techScore, fundamentals) {
+    if (!box) return;
+    var flowScore = computeFlowScore(data);
+    var shortP = entry && entry.short && entry.short.pressure;
+    var shortScore = shortP ? shortP.score : null;
+    var pension = entry && entry.pension;
+    var pensionScore = pension ? computePensionScore(pension) : null;
+    var foreignInstScore = computeForeignInstScore(data);
+    var creditScore = computeCreditScore(entry && entry.credit);
+    var fundamentalScore = computeFundamentalScore(fundamentals);
+    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
+
+    var chips = [
+      '수급 ' + scoreToWord(flowScore),
+      '기술 ' + scoreToWord(techScore ? techScore.score : null),
+      '공매도 ' + shortToWord(shortP ? shortP.grade.label : null),
+      '연기금' + pensionToWord(pension)
+    ];
+    var chipsHtml = chips.map(function (c) { return '<span class="ff-sig-banner-chip">' + escapeHtml(c) + '</span>'; }).join('');
+
+    box.hidden = false;
+    box.innerHTML = '<span class="ff-sig-banner-dot ' + verdict.cls + '">●</span>'
+      + '<span class="ff-sig-banner-name">' + escapeHtml(data.name || data.code) + '</span>'
+      + '<span class="ff-sig-banner-verdict ' + verdict.cls + '">' + verdict.label + '</span>'
+      + '<span class="ff-sig-banner-score">' + verdict.score.toFixed(1) + '점 · ' + verdict.stars.toFixed(1) + '/5</span>'
+      + chipsHtml;
+  }
+
+  // ③ 우측 요약 패널 - 수급/차트/펀더멘탈/투자의견 4개 섹션(작업지시서 표).
+  function renderSignalSummaryPanel(box, data, entry, techScore, fundamentals, quote, chartData) {
+    if (!box) return;
+    var latest = data.daily && data.daily[0];
+    var shortEntry = entry && entry.short;
+    var valuation = fundamentals && fundamentals.valuation;
+    var annual = fundamentals && fundamentals.fundamentals && fundamentals.fundamentals.annual;
+    var industry = (global.WICS_MAP && global.WICS_MAP[data.code] && global.WICS_MAP[data.code].industry) || '-';
+    var daily = chartData && chartData.daily;
+
+    function row(label, val) { return '<div class="ff-panel-row"><span class="ff-panel-label">' + label + '</span><span class="ff-panel-val">' + val + '</span></div>'; }
+
+    var priceHtml = quote
+      ? Number(quote.price).toLocaleString() + '원 (' + (quote.changeRate >= 0 ? '+' : '') + quote.changeRate.toFixed(2) + '%)'
+      : (latest ? Number(latest.close).toLocaleString() + '원' : '-');
+
+    var flowSection = '<div class="ff-panel-section"><div class="ff-panel-title">수급</div>'
+      + row('외국인', latest ? fmtSharesUnit(latest.foreign_net) : '-')
+      + row('기관', latest ? fmtSharesUnit(latest.inst_net) : '-')
+      + row('개인', latest ? fmtSharesUnit(latest.ind_net) : '-')
+      + row('공매도 비중', shortEntry ? fmtPct(shortEntry.today_ratio_pct) : '-')
+      + row('Days to Cover', shortEntry && shortEntry.days_to_cover != null ? shortEntry.days_to_cover.toFixed(1) + '일' : '-')
+      + '</div>';
+
+    var chartSection = '<div class="ff-panel-section"><div class="ff-panel-title">차트</div>'
+      + row('이동평균', techScore ? techScore.ma.label : '-')
+      + row('RSI', daily ? rsiInterpText(daily) : '데이터 부족')
+      + row('볼린저밴드', daily ? bollingerInterpText(daily) : '데이터 부족')
+      + row('지지/저항', techScore ? (techScore.support.label + ' · ' + techScore.resistance.label) : '-')
+      + row('시그널', techScore ? techScore.ichimoku.cross.label : '-')
+      + '</div>';
+
+    var fundSection = '<div class="ff-panel-section"><div class="ff-panel-title">펀더멘탈</div>'
+      + row('PER', valuation && valuation.per != null ? valuation.per.toFixed(1) + 'x' : '-')
+      + row('PBR', valuation && valuation.pbr != null ? valuation.pbr.toFixed(1) + 'x' : '-')
+      + row('EPS', valuation ? fmtWon(valuation.eps) : '-')
+      + row('ROE', annual && annual.latest_roe_pct != null ? fmtPct(annual.latest_roe_pct) : '-')
+      + row('업종', escapeHtml(industry))
+      + '</div>';
+
+    var opinionSection = '<div class="ff-panel-section ff-panel-opinion"><div class="ff-panel-title">투자의견</div>'
+      + '<div class="ff-panel-opinion-text" id="ffPanelOpinion">생성 중...</div>'
+      + '</div>';
+
+    var priceRow = '<div class="ff-panel-price">' + escapeHtml(data.name || data.code) + ' <span class="ff-code">(' + escapeHtml(data.code) + ')</span> ' + priceHtml + '</div>';
+    var detailLink = '<button type="button" class="ff-panel-detail-link" data-open-detail="' + escapeAttr(data.code) + '" data-open-detail-name="' + escapeAttr(data.name || data.code) + '">수급·차트·펀더멘탈 상세 보기 →</button>';
+
+    box.innerHTML = priceRow + flowSection + chartSection + fundSection + opinionSection + detailLink;
+
+    loadPanelOpinion(box, data, entry, techScore, chartData, fundamentals);
+  }
+
+  // 투자의견 한 줄 - loadAiSummary와 같은 GAS(?action=flowAiSummary), 같은 컴포넌트 점수+verdict를
+  // 넘겨 결론이 서로 어긋나지 않게 한다.
+  function loadPanelOpinion(box, data, entry, techScore, chartData, fundamentals) {
+    var el = box.querySelector('#ffPanelOpinion');
+    if (!el) return;
+
+    var shortP = entry && entry.short && entry.short.pressure;
+    var pension = entry && entry.pension;
+    var pensionScore = pension ? computePensionScore(pension) : null;
+    var flowScore = computeFlowScore(data);
+    var foreignInstScore = computeForeignInstScore(data);
+    var shortScore = shortP ? shortP.score : null;
+    var creditScore = computeCreditScore(entry && entry.credit);
+    var fundamentalScore = computeFundamentalScore(fundamentals);
+    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
+
+    var daily = chartData && chartData.daily;
+    var volNote = volumeMultipleText(daily ? computeVolumeMultiple(daily) : null);
+    var rsiNote = daily ? rsiInterpText(daily) : 'RSI 데이터가 부족합니다.';
+
+    var qs = '?action=flowAiSummary'
+      + '&code=' + encodeURIComponent(data.code)
+      + '&name=' + encodeURIComponent(data.name || data.code)
+      + '&flowScore=' + flowScore
+      + '&flowNote=' + encodeURIComponent(flowScoreInterpText(data))
+      + '&foreignInstScore=' + foreignInstScore
+      + '&foreignInstNote=' + encodeURIComponent(foreignInstDescText(data))
+      + '&shortScore=' + (shortScore == null ? '' : shortScore)
+      + '&shortNote=' + encodeURIComponent(shortInterpText(entry && entry.short, entry && entry.loan))
+      + '&pensionScore=' + (pensionScore == null ? '' : pensionScore)
+      + '&pensionNote=' + encodeURIComponent(pensionInterpText(pension).text)
+      + '&techScore=' + (techScore ? techScore.score : '')
+      + '&techNote=' + encodeURIComponent(techInterpText(techScore))
+      + '&volNote=' + encodeURIComponent(volNote)
+      + '&rsiNote=' + encodeURIComponent(rsiNote)
+      + '&verdictLabel=' + encodeURIComponent(verdict.label)
+      + '&verdictScore=' + (verdict.score == null ? '' : Math.round(verdict.score));
+
+    fetchJson(GAS_TICKER_URL + qs)
+      .then(function (res) {
+        el.textContent = (res && res.summary) || '요약을 생성하지 못했어요.';
+      })
+      .catch(function () {
+        el.textContent = '요약을 생성하지 못했어요.';
+      });
+  }
 
   // ---- 검색/자동완성 (stock-news.js와 동일 패턴) ----
 
@@ -317,24 +464,31 @@
         showRelatedStocks(container, badge.getAttribute('data-related'), badge.getAttribute('data-related-type'));
         return;
       }
-      // 투자시그널 랭킹 행 클릭 -> 아래 종목명 입력란에 자동 입력 후 조회(작업지시서 우선순위 3).
-      var sigRow = e.target.closest ? e.target.closest('.ff-sig-row') : null;
+      // 종목 리스트 행 클릭 -> 우측 요약 패널 갱신(페이지 이동 없음, 작업지시서 ③).
+      var sigRow = e.target.closest ? e.target.closest('.ff-sig-list-row') : null;
       if (sigRow) {
-        selectSignalStock(container, sigRow.getAttribute('data-code'), sigRow.getAttribute('data-name'));
+        selectListStock(container, sigRow.getAttribute('data-code'), sigRow.getAttribute('data-name'));
         return;
       }
       var moreBtn = e.target.closest ? e.target.closest('.ff-sig-more') : null;
       if (moreBtn) {
-        signalExpanded[activeSignalTab] = true;
-        renderSignalRank(container);
+        listExpanded = true;
+        renderSignalList(container);
         return;
       }
       var gradeBtn = e.target.closest ? e.target.closest('.ff-sig-grade') : null;
       if (gradeBtn) {
         var key = gradeBtn.getAttribute('data-grade');
         activeGradeBucket = activeGradeBucket === key ? null : key;
+        listExpanded = false;
         renderSignalCount(container);
-        renderSignalBucketList(container);
+        renderSignalList(container);
+        return;
+      }
+      // 요약 패널의 "상세 보기" -> 기존 검색 흐름(⑤)으로 전환.
+      var detailLink = e.target.closest ? e.target.closest('[data-open-detail]') : null;
+      if (detailLink) {
+        openFullDetail(container, detailLink.getAttribute('data-open-detail'), detailLink.getAttribute('data-open-detail-name'));
       }
     });
   }
@@ -1515,22 +1669,26 @@
 
     var fundamentalScore = computeFundamentalScore(fundamentals);
 
-    // 2026-07-20(2차) 사용자가 첨부한 목업(적극매수 4.6★ 종합시그널 + 배지 4개 + 수급/
-    // 펀더멘탈 2열 요약)에 맞춰 재구성. 7개 항목 상세 설명 문장은 화면에서 빼고(desc는
-    // AI 요약 프롬프트에만 계속 씀) 대신: ①배지 4개는 랭킹 탭에서 다루지 않는 "등급형" 정보만
-    // (수급/기술=점수를 학점형 등급으로 환산, 공매도/연기금=이미 있는 등급 라벨 그대로 재사용)
-    // ②2열 그리드는 오늘 원자료(외국인/기관 순매매량·공매도 등급, PER/PBR/EPS)를 숫자 그대로 보여줌.
+    // 2026-07-20(3차) 작업지시서 "종목 카드 점수 복원": 항목별 배지(등급 문자) 대신 7개
+    // 컴포넌트 점수를 N점+별점 리스트로 다시 노출한다. 등급 텍스트 배지는 이제 페이지 상단
+    // ①시그널 배너(renderSignalBanner)가 맡아서 여기서 중복 표시하지 않는다.
     var shortLabel = shortP ? shortP.grade.label : '-';
-    var pensionLabel = pension ? pensionInterpText(pension).label : '-';
-    var badges = [
-      { label: '수급', text: scoreToGrade(flowScore) },
-      { label: '기술', text: scoreToGrade(techScore ? techScore.score : null) },
-      { label: '공매도', text: shortLabel },
-      { label: '연기금', text: pensionLabel }
+    var scoreItems = [
+      ['단기 수급강도', flowScore],
+      ['외국인·기관', foreignInstScore],
+      ['기술적 점수', techScore ? techScore.score : null],
+      ['공매도 압박', shortScore],
+      ['연기금', pensionScore],
+      ['반대매매', creditScore],
+      ['펀더멘탈', fundamentalScore]
     ];
-    var badgesHtml = badges.map(function (b) {
-      return '<span class="ff-badge ff-badge-neutral">' + b.label + ' ' + escapeHtml(b.text) + '</span>';
-    }).join('');
+    var scoreListHtml = '<div class="ff-score-list">' + scoreItems.map(function (it) {
+      var label = it[0], score = it[1];
+      return '<div class="ff-score-row"><span class="ff-score-label">' + label + '</span>'
+        + '<span class="ff-score-val">' + (score == null ? '-' : Math.round(score) + '점') + '</span>'
+        + starsHtml(scoreToStars(score))
+        + '</div>';
+    }).join('') + '</div>';
 
     var latest = data.daily && data.daily[0];
     var valuation = fundamentals && fundamentals.valuation;
@@ -1562,27 +1720,13 @@
       + starsHtml(verdict.stars, 'ff-stars-lg')
       + '<span class="ff-verdict-score">' + (verdict.score == null ? '-' : verdict.score.toFixed(1) + '점 · ' + verdict.stars.toFixed(1) + '/5') + '</span>'
       + '</div>'
-      + '<div class="ff-summary-badges">' + badgesHtml + '</div>'
+      + scoreListHtml
       + gridHtml
       + '<div class="ff-summary-ai" id="ffAiSummary">'
       + '<b>투자의견</b>'
       + '<span class="ff-summary-ai-text">생성 중...</span>'
       + '</div>'
       + '</div>';
-  }
-
-  // 0~100점 점수를 학점형 등급으로 환산(수급/기술 배지 표기용) - 별점(scoreToStars)과는
-  // 별개로 목업이 요구한 "A+/B+" 식 표기를 위한 간단한 8단 매핑.
-  function scoreToGrade(score) {
-    if (score == null) return '-';
-    if (score >= 90) return 'A+';
-    if (score >= 80) return 'A';
-    if (score >= 70) return 'B+';
-    if (score >= 60) return 'B';
-    if (score >= 50) return 'C+';
-    if (score >= 40) return 'C';
-    if (score >= 30) return 'D+';
-    return 'D';
   }
 
   // AI 한줄요약은 Groq 호출이라 느릴 수 있어 나머지 렌더링을 막지 않고 비동기로 채운다.
@@ -2069,6 +2213,22 @@
     if (last == null) return 'RSI 데이터가 부족합니다.';
     var label = last >= 70 ? '과매수' : last <= 30 ? '과매도' : '중립';
     return 'RSI(14) ' + last.toFixed(1) + '로 ' + label + ' 구간입니다.';
+  }
+
+  // 요약 패널 "볼린저밴드" 행 - 종가가 상단/하단 밴드에 얼마나 붙어있는지를 한 단어로 표현.
+  function bollingerInterpText(daily) {
+    if (!daily || daily.length < 20) return '데이터 부족';
+    var boll = computeBollinger(daily, 20, 2);
+    var i = daily.length - 1;
+    var close = daily[i].close;
+    var upper = boll.upper[i], lower = boll.lower[i];
+    if (upper == null || lower == null) return '데이터 부족';
+    if (close >= upper) return '상단 돌파';
+    if (close <= lower) return '하단 이탈';
+    var pos = (close - lower) / (upper - lower);
+    if (pos >= 0.8) return '상단 근접';
+    if (pos <= 0.2) return '하단 근접';
+    return '중앙권';
   }
 
   function buildVolumeMultipleMetric(daily) {

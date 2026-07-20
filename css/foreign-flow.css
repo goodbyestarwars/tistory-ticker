@@ -865,7 +865,8 @@ html.dark .ff-related-rate.ff-buy { color: #e8776d !important; }
 html.dark .ff-related-rate.ff-sell { color: #6ea8e8 !important; }
 html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 
-/* ---- 2026-07-20: 오늘의 투자시그널 통합 (①카운트바 ②가중치 탭+랭킹, js/foreign-flow.js) ---- */
+/* ---- 2026-07-20(3차): 투자시그널 통합 최종본 (①배너 ②카운트칩 ③종목 리스트+요약 패널,
+   js/foreign-flow.js) - 가중치 탭 대신 단일 리스트 + 우측 요약 패널 2열 레이아웃 ---- */
 
 #foreign-flow .ff-sig { margin-bottom: 4px; }
 
@@ -897,23 +898,64 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
   margin-bottom: 12px;
 }
 
-/* 2026-07-20 사용자 지적: 비중축소/매도처럼 몇백~1,600종목대인 등급을 펼치면 스크롤이
-   끝없이 길어짐(서버가 이미 최대 100개로 캡을 걸어두지만 그마저도 한 화면엔 과함) -
-   고정 높이 박스 안에서 목록만 스크롤되게 한다. */
-#foreign-flow .ff-sig-bucket-list { margin-bottom: 12px; }
-#foreign-flow .ff-sig-bucket-list .ff-sig-table {
-  max-height: 360px;
-  overflow-y: auto;
+/* ① 시그널 배너 - 작업지시서 고정색(연한 파랑), 등급은 문자 등급 대신 한글 텍스트 칩 */
+#foreign-flow .ff-sig-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: #E6F1FB;
+  border: 1px solid #B5D4F4;
+  border-radius: 10px;
+  font-size: 13px;
 }
+#foreign-flow .ff-sig-banner-dot { font-size: 11px; }
+#foreign-flow .ff-sig-banner-dot.ff-buy { color: #d24f45; }
+#foreign-flow .ff-sig-banner-dot.ff-sell { color: #1261c4; }
+#foreign-flow .ff-sig-banner-dot.ff-flat { color: #888; }
+#foreign-flow .ff-sig-banner-name { font-weight: 700; }
+#foreign-flow .ff-sig-banner-verdict { font-weight: 800; }
+#foreign-flow .ff-sig-banner-verdict.ff-buy { color: #d24f45; }
+#foreign-flow .ff-sig-banner-verdict.ff-sell { color: #1261c4; }
+#foreign-flow .ff-sig-banner-verdict.ff-flat { color: #666; }
+#foreign-flow .ff-sig-banner-score { color: #4a5568; }
+#foreign-flow .ff-sig-banner-chip {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #B5D4F4;
+  color: #2c5282;
+}
+
+/* ③ 2열 레이아웃: 종목 리스트 | 요약 패널 */
+#foreign-flow .ff-sig-twocol {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+@media (max-width: 640px) {
+  #foreign-flow .ff-sig-twocol { grid-template-columns: 1fr; }
+}
+
 #foreign-flow .ff-sig-list-head {
   font-size: 12.5px;
   font-weight: 700;
   color: #555;
   margin-bottom: 6px;
 }
-#foreign-flow .ff-sig-list-cap { font-weight: 400; color: #9ca3af; }
-
-#foreign-flow .ff-sig-tabs { margin: 0 0 10px; }
+/* 2026-07-20 사용자 지적: 비중축소/매도처럼 몇백~1,600종목대인 등급을 펼치면 스크롤이
+   끝없이 길어짐(서버가 이미 최대 100개로 캡을 걸어두지만 그마저도 한 화면엔 과함) -
+   고정 높이 박스 안에서 목록만 스크롤되게 한다. */
+#foreign-flow .ff-sig-list .ff-sig-table {
+  max-height: 420px;
+  overflow-y: auto;
+}
 
 #foreign-flow .ff-sig-table {
   display: flex;
@@ -938,13 +980,7 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 }
 #foreign-flow .ff-sig-row:last-child { border-bottom: none; }
 #foreign-flow .ff-sig-row:hover { background: #f7f7f8; }
-
-#foreign-flow .ff-sig-rank-num {
-  font-weight: 800;
-  font-size: 12.5px;
-  color: #9ca3af;
-  min-width: 20px;
-}
+#foreign-flow .ff-sig-list-row.active { background: #eef4fc; }
 
 #foreign-flow .ff-sig-name {
   flex: 1;
@@ -964,14 +1000,6 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 }
 
 #foreign-flow .ff-sig-score { min-width: 90px; }
-
-#foreign-flow .ff-sig-metric {
-  display: flex;
-  flex-direction: column;
-  min-width: 110px;
-}
-#foreign-flow .ff-sig-metric-label { font-size: 10.5px; color: #9ca3af; }
-#foreign-flow .ff-sig-metric-val { font-size: 12.5px; font-weight: 700; color: #222; }
 
 #foreign-flow .ff-sig-quote {
   display: flex;
@@ -998,11 +1026,73 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 }
 #foreign-flow .ff-sig-more:hover { background: #eef1f5; }
 
-@media (max-width: 480px) {
-  #foreign-flow .ff-sig-score,
-  #foreign-flow .ff-sig-metric-label { display: none; }
-  #foreign-flow .ff-sig-metric { min-width: 60px; }
+/* 우측 요약 패널 */
+#foreign-flow .ff-sig-summary {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 13px;
+  background: #fff;
 }
+#foreign-flow .ff-panel-price { font-weight: 700; margin-bottom: 8px; }
+#foreign-flow .ff-panel-section { margin-bottom: 10px; }
+#foreign-flow .ff-panel-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+#foreign-flow .ff-panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 12.5px;
+}
+#foreign-flow .ff-panel-label { color: #666; }
+#foreign-flow .ff-panel-val { font-weight: 700; text-align: right; }
+#foreign-flow .ff-panel-opinion-text { color: #444; line-height: 1.6; margin-top: 2px; }
+#foreign-flow .ff-panel-detail-link {
+  font-family: inherit;
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: center;
+  color: #1261c4;
+  background: #eef4fc;
+  border: 1px solid #bdd6f2;
+  border-radius: 8px;
+  cursor: pointer;
+}
+#foreign-flow .ff-panel-detail-link:hover { background: #e2edf9; }
+
+@media (max-width: 480px) {
+  #foreign-flow .ff-sig-score { display: none; }
+}
+
+/* ④ 검색창 축소(작업지시서: 기존 대비 50% 크기) */
+#foreign-flow .ff-search-compact { max-width: 50%; }
+@media (max-width: 640px) {
+  #foreign-flow .ff-search-compact { max-width: 100%; }
+}
+
+/* 종목 카드 점수 복원(⑤ 기존 상세 영역, buildSummaryBox) - 7개 컴포넌트 N점 + 별점 */
+#foreign-flow .ff-score-list { padding: 10px 14px 0; }
+#foreign-flow .ff-score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  border-bottom: 1px dashed #eee;
+}
+#foreign-flow .ff-score-row:last-child { border-bottom: none; }
+#foreign-flow .ff-score-label { flex: 1; color: #444; }
+#foreign-flow .ff-score-val { font-weight: 700; min-width: 42px; text-align: right; }
 
 html.dark #foreign-flow .ff-sig-grade {
   background: #262626 !important;
@@ -1014,16 +1104,23 @@ html.dark #foreign-flow .ff-sig-grade.active {
   box-shadow: 0 0 0 1px #eee inset !important;
 }
 html.dark #foreign-flow .ff-sig-meta { color: #888 !important; }
+html.dark #foreign-flow .ff-sig-banner {
+  background: #1c2b3d !important;
+  border-color: #2c4a6b !important;
+}
+html.dark #foreign-flow .ff-sig-banner-score { color: #a9b6c6 !important; }
+html.dark #foreign-flow .ff-sig-banner-chip {
+  background: #24354a !important;
+  border-color: #2c4a6b !important;
+  color: #9dc3ea !important;
+}
 html.dark #foreign-flow .ff-sig-list-head { color: #ccc !important; }
-html.dark #foreign-flow .ff-sig-list-cap { color: #888 !important; }
 html.dark #foreign-flow .ff-sig-table { border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-sig-row { border-color: #3a3a3a !important; }
 html.dark #foreign-flow .ff-sig-row:hover { background: #262626 !important; }
-html.dark #foreign-flow .ff-sig-rank-num { color: #888 !important; }
+html.dark #foreign-flow .ff-sig-list-row.active { background: #1f2f42 !important; }
 html.dark #foreign-flow .ff-sig-name { color: #eee !important; }
 html.dark #foreign-flow .ff-sig-code { color: #888 !important; }
-html.dark #foreign-flow .ff-sig-metric-label { color: #888 !important; }
-html.dark #foreign-flow .ff-sig-metric-val { color: #eee !important; }
 html.dark #foreign-flow .ff-sig-price { color: #eee !important; }
 html.dark #foreign-flow .ff-sig-more {
   background: #262626 !important;
@@ -1031,4 +1128,19 @@ html.dark #foreign-flow .ff-sig-more {
   color: #ccc !important;
 }
 html.dark #foreign-flow .ff-sig-more:hover { background: #2e2e2e !important; }
+html.dark #foreign-flow .ff-sig-summary { background: #262626 !important; border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-panel-title { color: #888 !important; }
+html.dark #foreign-flow .ff-panel-label { color: #999 !important; }
+html.dark #foreign-flow .ff-panel-val { color: #eee !important; }
+html.dark #foreign-flow .ff-panel-price { color: #eee !important; }
+html.dark #foreign-flow .ff-panel-opinion-text { color: #ccc !important; }
+html.dark #foreign-flow .ff-panel-detail-link {
+  background: #20304a !important;
+  border-color: #33507a !important;
+  color: #6ea8e8 !important;
+}
+html.dark #foreign-flow .ff-panel-detail-link:hover { background: #29405f !important; }
+html.dark #foreign-flow .ff-score-row { border-color: #333 !important; }
+html.dark #foreign-flow .ff-score-label { color: #ccc !important; }
+html.dark #foreign-flow .ff-score-val { color: #eee !important; }
 html.dark .ff-related-item:hover { background: #2a2a2a !important; }
