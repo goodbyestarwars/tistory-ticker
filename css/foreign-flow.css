@@ -107,57 +107,6 @@
   overflow: hidden;
   background: #fff;
 }
-/* 2026-07-20: 항목별 상세 설명이 딸린 7행 세로 리스트가 너무 길다는 피드백 - 판정 박스
-   바로 아래 배지 한 줄(ff-badge 재사용)로 압축. 상세 해석은 이제 화면엔 안 보이고
-   AI 요약 프롬프트에만 쓰인다(buildSummaryBox 주석 참고). */
-#foreign-flow .ff-summary-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 10px 14px 0;
-}
-
-/* 2026-07-20(2차): 사용자 목업의 "수급 / 펀더멘탈" 2열 요약 그리드 */
-#foreign-flow .ff-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0 12px;
-  padding: 10px 14px 12px;
-}
-#foreign-flow .ff-summary-grid-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #9ca3af;
-  margin-bottom: 4px;
-}
-#foreign-flow .ff-summary-fact {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 3px 0;
-  font-size: 13px;
-}
-#foreign-flow .ff-summary-fact-label { color: #666; }
-#foreign-flow .ff-summary-fact-val { font-weight: 700; }
-@media (max-width: 420px) {
-  #foreign-flow .ff-summary-grid { grid-template-columns: 1fr; gap: 8px 0; }
-}
-
-#foreign-flow .ff-summary-ai {
-  padding: 10px 14px;
-  background: #f7f7f8;
-  font-size: 13px;
-  border-top: 1px solid #eee;
-}
-#foreign-flow .ff-summary-ai b { margin-right: 4px; }
-/* AI 근거 문장은 제목 아래 별도 줄로 - 판정 박스와 한 줄에 뭉치지 않게 */
-#foreign-flow .ff-summary-ai-text {
-  display: block;
-  margin-top: 4px;
-  color: #444;
-  line-height: 1.6;
-}
 #foreign-flow .ff-verdict {
   font-size: 19px;
   font-weight: 800;
@@ -750,11 +699,6 @@ html.dark #foreign-flow .ff-error {
   color: #e8877e !important;
 }
 html.dark #foreign-flow .ff-summary { background: #262626 !important; border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-summary-grid-title { color: #888 !important; }
-html.dark #foreign-flow .ff-summary-fact-label { color: #999 !important; }
-html.dark #foreign-flow .ff-summary-fact-val { color: #eee !important; }
-html.dark #foreign-flow .ff-summary-ai { background: #1f1f1f !important; border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-summary-ai-text { color: #ccc !important; }
 html.dark #foreign-flow .ff-stars { color: #444 !important; }
 html.dark #foreign-flow .ff-stars::before { color: #ffb84d !important; }
 html.dark #foreign-flow .ff-verdict-score { color: #aaa !important; }
@@ -1094,8 +1038,14 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
   padding-top: 8px;
   border-top: 1px dashed #eee;
 }
+/* buildSummaryBox(⑤ 기존 상세 영역) 7개 컴포넌트 점수 카드용 4열 그리드(2026-07-20 5차) */
+#foreign-flow .ff-card-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px; }
+@media (max-width: 480px) {
+  #foreign-flow .ff-card-grid4 { grid-template-columns: repeat(2, 1fr); }
+}
 #foreign-flow .ff-metric-label { font-size: 10px; color: #9ca3af; margin-bottom: 2px; }
 #foreign-flow .ff-metric-val { font-size: 13px; font-weight: 700; color: #222; }
+#foreign-flow .ff-metric-sub { margin-top: 3px; }
 /* .ff-buy/.ff-sell/.ff-flat 기본 정의(파일 상단)와 동일 specificity라 소스 순서상 이 규칙이
    이겨버려서 색이 안 먹던 문제 - 클래스 조합 셀렉터로 specificity를 올려서 확실히 이기게 함. */
 #foreign-flow .ff-metric-val.ff-buy { color: #d24f45; }
@@ -1138,6 +1088,10 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
   border-top: 1px solid #B5D4F4 !important;
 }
 #foreign-flow .ff-panel-opinion .ff-panel-title { color: #0C447C; opacity: .75; }
+/* buildSummaryBox(⑤ 기존 상세 영역, .ff-summary) 재사용 시 - 이 컨테이너는 패딩이 없어
+   (판정 박스가 배경색을 여백 없이 꽉 채우는 디자인) 카드 섹션에 좌우 여백을 직접 부여 */
+#foreign-flow .ff-summary .ff-panel-section { padding-left: 14px; padding-right: 14px; }
+#foreign-flow .ff-summary .ff-panel-opinion { margin-left: 14px; margin-right: 14px; margin-bottom: 14px; }
 #foreign-flow .ff-panel-opinion-text { color: #0C447C; font-size: 12px; line-height: 1.7; margin-top: 2px; }
 #foreign-flow .ff-panel-detail-link {
   font-family: inherit;
@@ -1165,20 +1119,6 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 @media (max-width: 640px) {
   #foreign-flow .ff-search-compact { max-width: 100%; }
 }
-
-/* 종목 카드 점수 복원(⑤ 기존 상세 영역, buildSummaryBox) - 7개 컴포넌트 N점 + 별점 */
-#foreign-flow .ff-score-list { padding: 10px 14px 0; }
-#foreign-flow .ff-score-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 13px;
-  border-bottom: 1px dashed #eee;
-}
-#foreign-flow .ff-score-row:last-child { border-bottom: none; }
-#foreign-flow .ff-score-label { flex: 1; color: #444; }
-#foreign-flow .ff-score-val { font-weight: 700; min-width: 42px; text-align: right; }
 
 html.dark #foreign-flow .ff-sig-grade.grade-buy { background: rgba(232, 119, 109, .14) !important; border-color: rgba(232, 119, 109, .4) !important; color: #e8776d !important; }
 html.dark #foreign-flow .ff-sig-grade.grade-hold { background: rgba(240, 180, 41, .16) !important; border-color: rgba(240, 180, 41, .4) !important; color: #f0b429 !important; }
@@ -1253,7 +1193,4 @@ html.dark #foreign-flow .ff-panel-detail-link {
   color: #6ea8e8 !important;
 }
 html.dark #foreign-flow .ff-panel-detail-link:hover { background: #29405f !important; }
-html.dark #foreign-flow .ff-score-row { border-color: #333 !important; }
-html.dark #foreign-flow .ff-score-label { color: #ccc !important; }
-html.dark #foreign-flow .ff-score-val { color: #eee !important; }
 html.dark .ff-related-item:hover { background: #2a2a2a !important; }

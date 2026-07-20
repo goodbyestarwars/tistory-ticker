@@ -256,6 +256,13 @@
     if (score >= 40) return '중립';
     return '부진';
   }
+  // scoreToWord와 같은 기준(65/40)으로 카드형 지표값 색상을 매수/보유/매도 톤에 맞춘다.
+  function scoreColorCls(score) {
+    if (score == null) return '';
+    if (score >= 65) return 'ff-buy';
+    if (score >= 40) return 'ff-flat';
+    return 'ff-sell';
+  }
   // 공매도 압박 등급 라벨(매우약함~매우강함)을 배너용 2단 텍스트로 압축
   function shortToWord(label) {
     if (!label) return '-';
@@ -1746,31 +1753,36 @@
       ['반대매매', creditScore],
       ['펀더멘탈', fundamentalScore]
     ];
-    var scoreListHtml = '<div class="ff-score-list">' + scoreItems.map(function (it) {
+    // 2026-07-20(5차): 점선 리스트 -> 요약 패널(ffSigSummary)과 동일한 카드/그리드 지표셀로 통일.
+    function scoreCell(it) {
       var label = it[0], score = it[1];
-      return '<div class="ff-score-row"><span class="ff-score-label">' + label + '</span>'
-        + '<span class="ff-score-val">' + (score == null ? '-' : Math.round(score) + '점') + '</span>'
-        + starsHtml(scoreToStars(score))
+      return '<div class="ff-metric">'
+        + '<div class="ff-metric-label">' + label + '</div>'
+        + '<div class="ff-metric-val ' + scoreColorCls(score) + '">' + (score == null ? '-' : Math.round(score) + '점') + '</div>'
+        + '<div class="ff-metric-sub">' + starsHtml(scoreToStars(score)) + '</div>'
         + '</div>';
-    }).join('') + '</div>';
+    }
+    var scoreListHtml = '<div class="ff-panel-section"><div class="ff-panel-title">항목별 점수</div>'
+      + '<div class="ff-card"><div class="ff-card-grid4">' + scoreItems.map(scoreCell).join('') + '</div></div>'
+      + '</div>';
 
     var latest = data.daily && data.daily[0];
     var valuation = fundamentals && fundamentals.valuation;
-    var leftFacts = [
-      ['외국인', latest ? fmtSharesUnit(latest.foreign_net) : '-'],
-      ['기관', latest ? fmtSharesUnit(latest.inst_net) : '-'],
-      ['공매도', shortLabel]
-    ];
-    var rightFacts = [
-      ['PER', valuation && valuation.per != null ? valuation.per.toFixed(1) + 'x' : '-'],
-      ['PBR', valuation && valuation.pbr != null ? valuation.pbr.toFixed(1) + 'x' : '-'],
-      ['EPS', valuation ? fmtWon(valuation.eps) : '-']
-    ];
-    function factRow(r) { return '<div class="ff-summary-fact"><span class="ff-summary-fact-label">' + r[0] + '</span><span class="ff-summary-fact-val">' + r[1] + '</span></div>'; }
-    var gridHtml = '<div class="ff-summary-grid">'
-      + '<div class="ff-summary-grid-col"><div class="ff-summary-grid-title">수급</div>' + leftFacts.map(factRow).join('') + '</div>'
-      + '<div class="ff-summary-grid-col"><div class="ff-summary-grid-title">펀더멘탈</div>' + rightFacts.map(factRow).join('') + '</div>'
-      + '</div>';
+    function metricCell(label, val, cls) {
+      return '<div class="ff-metric"><div class="ff-metric-label">' + label + '</div><div class="ff-metric-val' + (cls ? ' ' + cls : '') + '">' + val + '</div></div>';
+    }
+    var flowCard = '<div class="ff-card"><div class="ff-card-grid3">'
+      + metricCell('외국인', latest ? fmtSharesUnit(latest.foreign_net) : '-', latest ? signClass(latest.foreign_net) : '')
+      + metricCell('기관', latest ? fmtSharesUnit(latest.inst_net) : '-', latest ? signClass(latest.inst_net) : '')
+      + metricCell('공매도', shortLabel, '')
+      + '</div></div>';
+    var fundCard = '<div class="ff-card"><div class="ff-card-grid3">'
+      + metricCell('PER', valuation && valuation.per != null ? valuation.per.toFixed(1) + 'x' : '-', '')
+      + metricCell('PBR', valuation && valuation.pbr != null ? valuation.pbr.toFixed(1) + 'x' : '-', '')
+      + metricCell('EPS', valuation ? fmtWon(valuation.eps) : '-', '')
+      + '</div></div>';
+    var gridHtml = '<div class="ff-panel-section"><div class="ff-panel-title">수급</div>' + flowCard + '</div>'
+      + '<div class="ff-panel-section"><div class="ff-panel-title">펀더멘탈</div>' + fundCard + '</div>';
 
     var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
 
@@ -1786,9 +1798,9 @@
       + '</div>'
       + scoreListHtml
       + gridHtml
-      + '<div class="ff-summary-ai" id="ffAiSummary">'
-      + '<b>투자의견</b>'
-      + '<span class="ff-summary-ai-text">생성 중...</span>'
+      + '<div class="ff-panel-opinion" id="ffAiSummary">'
+      + '<div class="ff-panel-title">투자의견</div>'
+      + '<div class="ff-panel-opinion-text">생성 중...</div>'
       + '</div>'
       + '</div>';
   }
@@ -1798,7 +1810,7 @@
   // buildSummaryBox와 똑같이 5개 컴포넌트 점수 + verdict를 구해서 GAS에 "이미 이 결론이다"로
   // 넘긴다 - LLM은 근거 문장만 쓰고 매수/매도/보유 자체는 다시 판단하지 않는다.
   function loadAiSummary(box, data, entry, techScore, chartData, fundamentals) {
-    var el = box.querySelector('#ffAiSummary .ff-summary-ai-text');
+    var el = box.querySelector('#ffAiSummary .ff-panel-opinion-text');
     if (!el) return;
 
     var shortP = entry && entry.short && entry.short.pressure;
