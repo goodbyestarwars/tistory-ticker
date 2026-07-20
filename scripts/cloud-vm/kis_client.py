@@ -279,7 +279,7 @@ def fetch_market_investor_daily(token, appkey, appsecret, date1, date2, market_i
     비어있게(모든 금액 필드 0) 돌아오는 문제를 실측으로 확인(investor_trend.py가 4개월치를
     전부 0으로 백필함). KRX 업종코드 관례(코스피 0으로 시작/코스닥 1로 시작, 예: 지수 조회
     TR들의 0001/1001 패턴)를 따라 코스닥은 '1001'으로 호출하도록 investor_trend.py에서
-    분기 - **미검증**, 배포 후 실측으로 값이 0이 아닌지 재확인 필요.
+    분기 - 배포 후 실측으로 값이 정상 출력됨을 확인(2026-07-21).
     응답 output은 날짜 1건짜리 리스트(dict 1개). 금액 필드(*_ntby_tr_pbmn)는 백만원 단위
     (2026-07-20 실측 확정, investor_trend.py 참고)."""
     path = ('/uapi/domestic-stock/v1/quotations/inquire-investor-daily-by-market'
@@ -304,14 +304,7 @@ def fetch_market_investor_daily(token, appkey, appsecret, date1, date2, market_i
         raise RuntimeError('FHPTJ04040000 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
     if data.get('rt_cd') != '0':
         raise RuntimeError('FHPTJ04040000 실패: ' + json.dumps(data, ensure_ascii=False))
-    output = data.get('output') or []
-    # TEMP DEBUG(2026-07-21): 코스닥(KSQ) 조회가 전부 0으로 나오는 원인 조사 - inds_cd를
-    # 0001->1001로 바꿔도 여전히 0이라 raw 응답 자체를 봐야 함. 원인 파악 후 이 로그는 제거할 것.
-    if market_iscd != 'KSP':
-        logger.info('FHPTJ04040000 raw(market_iscd=%s, inds_cd=%s, date=%s): rt_cd=%s msg=%s output=%s',
-                     market_iscd, inds_cd, date1, data.get('rt_cd'), data.get('msg1'),
-                     json.dumps(output, ensure_ascii=False))
-    return output
+    return data.get('output') or []
 
 
 def _avg_delta(rows):

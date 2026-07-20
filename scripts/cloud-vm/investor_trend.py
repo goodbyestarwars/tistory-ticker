@@ -215,8 +215,8 @@ def backfill_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd, target_day
                  market_db, collected, calendar_checked)
 
 
-_FORCE_KIS_REBACKFILL = True  # 2026-07-21: 코스닥 업종코드(0001->1001) 수정을 이미 저장된
-# 잘못된(전부 0) 백필 데이터에도 반영하려고 1회 True로 배포 - 라이브 확인되면 False로 되돌릴 것.
+_FORCE_KIS_REBACKFILL = False  # 2026-07-21: 코스닥 업종코드(0001->1001) 수정을 이미 저장된
+# 잘못된(전부 0) 백필 데이터에도 반영하려고 1회 True로 배포해 재백필 완료·라이브 확인됨 - 원복.
 
 
 def _ensure_kis_backfill(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
