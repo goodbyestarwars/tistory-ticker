@@ -104,9 +104,17 @@
     return '<li class="sr-row">'
       + '<span class="sr-rank">' + rank + '</span>'
       + '<a class="sr-name" href="' + url + '" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</a>'
+      + '<span class="sr-quote">'
+      + '<span class="sr-price">' + fmtPrice(item.price) + '</span>'
       + '<span class="sr-rate ' + cls + '">' + arrow + ' ' + Math.abs(rate).toFixed(2) + '%</span>'
+      + '</span>'
       + (showAmount ? '<span class="sr-amount">' + fmtAmount(item.trade_amount) + '</span>' : '')
       + '</li>';
+  }
+
+  function fmtPrice(v) {
+    if (v == null || isNaN(v)) return '-';
+    return Math.round(v).toLocaleString('ko-KR');
   }
 
   // ---- "더보기" 모달(TOP20, 블로그 안에서 보여줌 - 외부 이동 없음) ----
