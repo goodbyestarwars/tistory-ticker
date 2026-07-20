@@ -1826,7 +1826,7 @@ a { text-decoration: none; color: inherit; }
   display: block;
   width: 16px;
   height: 2px;
-  background: #8ba4c8;
+  background: #8fb09e;
   border-radius: 2px;
   transition: transform 0.25s ease, opacity 0.2s ease;
 }
@@ -2159,7 +2159,7 @@ body.iframe-mode .notice-card { border-radius: 0; }
   width: 44px;
   height: 24px;
   border-radius: 999px;
-  background: #2a3a5e;
+  background: #1f4a34;
   border: none;
   padding: 0;
   position: relative;
@@ -2178,7 +2178,7 @@ body.iframe-mode .notice-card { border-radius: 0; }
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   transition: transform 0.2s;
 }
-html.dark .nav-dark-btn { background: #6366f1; }
+html.dark .nav-dark-btn { background: #22c55e; }
 html.dark .dark-toggle-knob { transform: translateX(20px); }
 
 /* 베이스 */
@@ -2458,9 +2458,9 @@ html.font-gothic svg text {
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  border: 1px solid #2a3a5e;
+  border: 1px solid #1f4a34;
   background: transparent;
-  color: #8ba4c8;
+  color: #8fb09e;
   font-size: 14px;
   font-weight: 700;
   font-family: 'Noto Serif KR', Georgia, serif;
@@ -2471,12 +2471,12 @@ html.font-gothic svg text {
   transition: color 0.2s, border-color 0.2s;
 }
 .nav-font-btn:hover {
-  color: #a5b4fc;
-  border-color: #6366f1;
+  color: #86efac;
+  border-color: #22c55e;
 }
 html.font-gothic .nav-font-btn {
-  color: #a5b4fc;
-  border-color: #6366f1;
+  color: #86efac;
+  border-color: #22c55e;
 }
 
 /* ============ full-width 페이지(오늘의 온도 등) ============ */
