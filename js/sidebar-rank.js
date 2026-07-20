@@ -100,10 +100,11 @@
       + '</li>';
   }
 
-  // trade_amount는 원 단위로 온다고 가정(다른 시세 API와 동일 관례) - 억원 단위로 축약 표시.
+  // trade_amount는 백만원 단위로 온다(키움 ka10032 관례, VM 실측 확인 2026-07-20) -
+  // 억원 = 백만원/100.
   function fmtAmount(v) {
     if (v == null || isNaN(v)) return '-';
-    return Math.round(v / 1e8).toLocaleString('ko-KR') + '억';
+    return Math.round(v / 100).toLocaleString('ko-KR') + '억';
   }
 
   function fmtTime(d) {

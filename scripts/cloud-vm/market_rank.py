@@ -22,6 +22,21 @@ logger = logging.getLogger('market_rank')
 _META_KEYS = {'return_code', 'return_msg'}
 
 
+def _clean_code(stk_cd):
+    """stk_cd가 "005930_AL"처럼 시장 구분 접미사(stex_tp=3 통합 조회 시 항상 붙음, 실측
+    확인)가 붙어서 옴 - 순수 6자리 종목코드만 남긴다(KRX_MAP 등 다른 코드 전부 6자리 기준)."""
+    return (stk_cd or '').split('_')[0]
+
+
+def _clean_price(cur_prc):
+    """cur_prc는 하락 종목일 때 부호가 마이너스로 옴(가격 자체가 아니라 전일대비 방향을
+    나타내는 관례 - 키움 여러 TR 공통, 실측 확인) - 표시용 가격은 항상 절댓값."""
+    try:
+        return abs(float(cur_prc or 0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _first_list_field(res, tr_id):
     for key, val in res.items():
         if key in _META_KEYS:
@@ -51,11 +66,11 @@ def fetch_amount_top(token, limit=5):
     for r in rows:
         try:
             out.append({
-                'code': r.get('stk_cd'),
+                'code': _clean_code(r.get('stk_cd')),
                 'name': r.get('stk_nm'),
-                'price': float(r.get('cur_prc') or 0),
+                'price': _clean_price(r.get('cur_prc')),
                 'change_rate': float(r.get('flu_rt') or 0),
-                'trade_amount': float(r.get('trde_prica') or 0),
+                'trade_amount': float(r.get('trde_prica') or 0),  # 백만원 단위(키움 관례) - 프론트에서 억원 환산
             })
         except (TypeError, ValueError):
             continue
@@ -86,9 +101,9 @@ def fetch_updown(token, updown_tp, limit=5):
     for r in rows:
         try:
             out.append({
-                'code': r.get('stk_cd'),
+                'code': _clean_code(r.get('stk_cd')),
                 'name': r.get('stk_nm'),
-                'price': float(r.get('cur_prc') or 0),
+                'price': _clean_price(r.get('cur_prc')),
                 'change_rate': float(r.get('flu_rt') or 0),
             })
         except (TypeError, ValueError):

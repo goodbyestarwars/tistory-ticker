@@ -37,7 +37,7 @@
 
   function mockAmount() {
     return STOCKS.slice(0, 5).map(function (s, i) {
-      return { code: s[0], name: s[1], price: 50000 + i * 10000, change_rate: (i % 2 === 0 ? 1 : -1) * (0.5 + i), trade_amount: (5000 - i * 700) * 1e8 };
+      return { code: s[0], name: s[1], price: 50000 + i * 10000, change_rate: (i % 2 === 0 ? 1 : -1) * (0.5 + i), trade_amount: (5000 - i * 700) * 100 };
     });
   }
   function mockLimit(sign, n) {
