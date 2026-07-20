@@ -450,15 +450,17 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
 
 
 @app.get('/investor-trend')
-def investor_trend_endpoint(period: str = Query('week')):
-    """메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4) - 코스피 시장 전체 개인/외국인/
-    기관계 순매수(억원)를 일/주/월 단위로 반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로
-    블로그 도메인만 제한) - /futures, /market-rank와 동일한 패턴. investor_trend.py의
-    백그라운드 폴러(1분)가 미리 채워둔 SQLite만 읽으므로 요청마다 네이버를 다시 부르지 않는다."""
+def investor_trend_endpoint(period: str = Query('week'), market: str = Query('kospi')):
+    """메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4 + UI개선 지시서 2026-07-21) - 시장별
+    (코스피/코스닥) 개인/외국인/기관계 순매수(억원)를 일/주/월 단위로 반환. 방문자 브라우저가
+    직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /futures, /market-rank와 동일한 패턴.
+    investor_trend.py의 백그라운드 폴러(1분)가 시장별로 미리 채워둔 SQLite만 읽으므로
+    요청마다 실시간 호출을 다시 하지 않는다. market이 모르는 값이면 investor_trend.get_result가
+    코스피로 처리한다(선물은 데이터 소스가 없어 미지원 - investor_trend.py 모듈 독스트링 참고)."""
     if period not in ('day', 'week', 'month'):
         period = 'week'
     try:
-        result = investor_trend.get_result(period)
+        result = investor_trend.get_result(period, market)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     return envelope(result)

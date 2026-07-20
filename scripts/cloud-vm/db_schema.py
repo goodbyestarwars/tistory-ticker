@@ -111,18 +111,19 @@ CREATE TABLE IF NOT EXISTS kis_flow_cache (
     PRIMARY KEY (code, target_days)
 );
 
--- 2026-07-20: 메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4) - 코스피 시장 전체
--- 개인/외국인/기관계 일별 순매수(억원, 네이버 investorDealTrendDay.naver 소스,
--- investor_trend.py 참고). 지시서는 키움 TR(get_investor_summary/get_investor_trend)로
--- 시장 전체 값을 받는다고 가정했지만 실측 결과 두 TR 모두 종목코드(stk_cd)가 필수라
--- 종목별 조회만 되고 시장 전체 집계를 안 줘서(2026-07-20 MCP 실호출로 확인) 네이버로
--- 대체함 - domestic_futures.py(코스피/코스닥 지수)와 같은 소스·같은 우회 사유.
+-- 2026-07-20: 메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4) - 시장별(코스피/코스닥)
+-- 개인/외국인/기관계 일별 순매수(억원, KIS FHPTJ04040000 1차 소스, investor_trend.py 참고).
+-- 2026-07-21: 코스피 단일 시장에서 코스피/코스닥 다중 시장으로 확장하며 market 컬럼 추가
+-- (PK를 date 단독에서 (market, date) 복합키로 변경) - _migrate_investor_trend_market()이
+-- 기존 배포 DB(컬럼 없음)를 'KOSPI'로 마이그레이션한다.
 CREATE TABLE IF NOT EXISTS investor_trend_daily (
-    date TEXT PRIMARY KEY,
+    market TEXT NOT NULL,
+    date TEXT NOT NULL,
     ind_amt REAL,
     frgn_amt REAL,
     orgn_amt REAL,
-    updated_at TEXT
+    updated_at TEXT,
+    PRIMARY KEY (market, date)
 );
 '''
 
@@ -146,10 +147,38 @@ def _ensure_column(conn, table, column, coltype):
         conn.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table, column, coltype))
 
 
+def _migrate_investor_trend_market(conn):
+    """investor_trend_daily가 PK=date 단독(구버전)이면 PK=(market, date)로 재생성하며
+    기존 행은 전부 'KOSPI'로 태깅한다. _ensure_column으로는 PK 자체를 못 바꿔서(SQLite
+    한계) 테이블 재생성이 필요 - 이 데이터는 KIS/네이버에서 재수집 가능해 유실 부담이
+    없으므로 안전하게 처리."""
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(investor_trend_daily)")]
+    if not cols or 'market' in cols:
+        return
+    conn.execute('ALTER TABLE investor_trend_daily RENAME TO investor_trend_daily_old')
+    conn.execute('''
+        CREATE TABLE investor_trend_daily (
+            market TEXT NOT NULL,
+            date TEXT NOT NULL,
+            ind_amt REAL,
+            frgn_amt REAL,
+            orgn_amt REAL,
+            updated_at TEXT,
+            PRIMARY KEY (market, date)
+        )
+    ''')
+    conn.execute('''
+        INSERT INTO investor_trend_daily (market, date, ind_amt, frgn_amt, orgn_amt, updated_at)
+        SELECT 'KOSPI', date, ind_amt, frgn_amt, orgn_amt, updated_at FROM investor_trend_daily_old
+    ''')
+    conn.execute('DROP TABLE investor_trend_daily_old')
+
+
 def create_schema(conn):
     conn.executescript(SCHEMA)
     _ensure_column(conn, 'future_prices', 'oi', 'INTEGER')
     _ensure_column(conn, 'future_prices', 'oi_change', 'INTEGER')
+    _migrate_investor_trend_market(conn)
     conn.commit()
 
 
@@ -313,28 +342,29 @@ def load_kis_flow_cache(conn, code, target_days):
     return json.loads(row[0]), row[1]
 
 
-def upsert_investor_trend_rows(conn, rows):
-    """rows: [{date('YYYYMMDD'), ind, frgn, orgn}, ...], 단위 억원. 이미 확정된 과거일 값은
-    바뀌지 않지만 당일(장중) 행은 재조회 때마다 갱신돼야 하므로 UPSERT."""
+def upsert_investor_trend_rows(conn, market, rows):
+    """market: 'KOSPI'/'KOSDAQ'. rows: [{date('YYYYMMDD'), ind, frgn, orgn}, ...], 단위 억원.
+    이미 확정된 과거일 값은 바뀌지 않지만 당일(장중) 행은 재조회 때마다 갱신돼야 하므로 UPSERT."""
     from datetime import datetime, timezone
     now_iso = datetime.now(timezone.utc).isoformat()
     conn.executemany(
-        'INSERT INTO investor_trend_daily (date, ind_amt, frgn_amt, orgn_amt, updated_at) '
-        'VALUES (?, ?, ?, ?, ?) '
-        'ON CONFLICT(date) DO UPDATE SET '
+        'INSERT INTO investor_trend_daily (market, date, ind_amt, frgn_amt, orgn_amt, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?) '
+        'ON CONFLICT(market, date) DO UPDATE SET '
         'ind_amt=excluded.ind_amt, frgn_amt=excluded.frgn_amt, orgn_amt=excluded.orgn_amt, '
         'updated_at=excluded.updated_at',
-        [(r['date'], r['ind'], r['frgn'], r['orgn'], now_iso) for r in rows],
+        [(market, r['date'], r['ind'], r['frgn'], r['orgn'], now_iso) for r in rows],
     )
     conn.commit()
 
 
-def load_investor_trend_daily(conn, limit_days=140):
-    """오름차순(날짜순) 최근 limit_days개 - investor_trend.py의 주/월 집계가 이 위에서 돈다."""
+def load_investor_trend_daily(conn, market, limit_days=140):
+    """market 하나의 오름차순(날짜순) 최근 limit_days개 - investor_trend.py의 주/월 집계가
+    이 위에서 돈다."""
     rows = conn.execute(
         'SELECT date, ind_amt, frgn_amt, orgn_amt, updated_at FROM investor_trend_daily '
-        'ORDER BY date DESC LIMIT ?',
-        (limit_days,),
+        'WHERE market=? ORDER BY date DESC LIMIT ?',
+        (market, limit_days),
     ).fetchall()
     rows.reverse()
     return [
