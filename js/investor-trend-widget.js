@@ -35,7 +35,7 @@
     { key: 'week', label: '주' },
     { key: 'month', label: '월' }
   ];
-  var DEFAULT_PERIOD = 'week';
+  var DEFAULT_PERIOD = 'day';
 
   var MARKETS = [
     { key: 'kospi', label: '코스피' },
