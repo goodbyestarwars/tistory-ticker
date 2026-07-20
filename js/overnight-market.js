@@ -371,9 +371,15 @@
     delete chartInstances[symbol];
   }
 
-  // 2026-07-16: 단일 색 영역차트 -> 베이스라인 차트로 변경. 구간 시작가를 기준선 삼아
-  // 위로 오르면 빨강, 아래로 내리면 파랑으로 자동 채색된다(js/quick-indices.js와 동일 방식).
-  function renderSparkline(container, symbol, chartRows) {
+  // 2026-07-16: 단일 색 영역차트 -> 베이스라인 차트로 변경(구간 시작가 기준 위/아래 이중톤).
+  // 2026-07-20(11차): 사용자 지적 - 코스피가 당일 -4.46%로 빠졌는데 미니차트는 빨강/파랑이
+  // 섞여 보임(기준선이 "차트에 표시된 기간의 첫 종가", 기본 90거래일 전이라 당일 등락 방향과
+  // 무관했음). js/quick-indices.js가 2026-07-17(11차)에 똑같은 문제를 겪고 고친 해법을
+  // 그대로 이식 - 이중톤 베이스라인 대신 단일 색 영역차트로 되돌리고, 색은 당일 등락 방향
+  // (positive), 점선 기준선은 "전일 종가"(price - change)로 통일해서 상단 등락 배지와 항상
+  // 일치하게 만든다. 차트 마지막 점도 현재가로 맞춰(일봉 이력이 어제까지만 있으면 오늘 점을
+  // 덧붙임) 선의 위/아래가 등락 배지와 어긋나지 않게 한다.
+  function renderSparkline(container, symbol, chartRows, positive, price, change) {
     if (!chartRows || chartRows.length < 2) return;
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
@@ -394,27 +400,32 @@
         }
       }, chartThemeOptions()));
 
-      var series = chart.addBaselineSeries({
-        baseValue: { type: 'price', price: chartRows[0].close },
-        topLineColor: '#d24f45',
-        topFillColor1: hexToRgba('#d24f45', 0.25),
-        topFillColor2: hexToRgba('#d24f45', 0.02),
-        bottomLineColor: '#1261c4',
-        bottomFillColor1: hexToRgba('#1261c4', 0.02),
-        bottomFillColor2: hexToRgba('#1261c4', 0.25),
-        lineWidth: 2,
+      var color = positive ? '#d24f45' : '#1261c4';
+      var series = chart.addAreaSeries({
+        lineColor: color,
+        topColor: hexToRgba(color, 0.2),
+        bottomColor: hexToRgba(color, 0.02),
+        lineWidth: 1,
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerVisible: false
       });
-      series.setData(chartRows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; }));
+      var seriesData = chartRows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; });
+      if (typeof price === 'number') {
+        var kst = new Date(Date.now() + 9 * 60 * 60000);
+        var today = kst.toISOString().slice(0, 10);
+        var last = seriesData[seriesData.length - 1];
+        if (last.time >= today) last.value = price;
+        else seriesData.push({ time: today, value: price });
+      }
+      series.setData(seriesData);
       chart.timeScale().fitContent();
 
-      // 기준선(구간 시작가) 표시 - 베이스라인 시리즈는 위/아래 색만 자동으로 나뉘고 그
-      // 경계를 나타내는 선 자체는 안 그려줘서, 기준이 어디인지 보이도록 점선을 따로 긋는다.
-      // priceLine을 chartInstances에 같이 들고 있어야 다크모드 토글 때 색을 다시 맞출 수 있다.
+      // 기준선(전일 종가) - priceLine을 chartInstances에 같이 들고 있어야 다크모드 토글 때
+      // 색을 다시 맞출 수 있다.
+      var baseValue = (typeof price === 'number' && typeof change === 'number') ? price - change : chartRows[0].close;
       var baseLine = series.createPriceLine({
-        price: chartRows[0].close,
+        price: baseValue,
         color: isDark() ? '#666' : '#ccc',
         lineWidth: 1,
         lineStyle: LWC.LineStyle.Dashed,
@@ -559,7 +570,7 @@
       var item = bySymbol[symbol] || { symbol: symbol };
       card.querySelector('.om-body').outerHTML = buildCardBody(item);
       var chartContainer = card.querySelector('.om-chart');
-      if (chartContainer) renderSparkline(chartContainer, symbol, item.chart);
+      if (chartContainer) renderSparkline(chartContainer, symbol, item.chart, item.change_rate >= 0, item.price, item.change);
     });
   }
 
