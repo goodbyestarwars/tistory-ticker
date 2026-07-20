@@ -137,9 +137,7 @@
       + '</div>'
       + '<div class="ff-divider"></div>'
       + '</div>'
-      + '<div id="ffResult" class="ff-result">'
-      + '<div class="ff-hint">종목명을 검색하면 외국인·기관 순매매 동향을 보여드려요.</div>'
-      + '</div>';
+      + '<div id="ffResult" class="ff-result"></div>';
   }
 
   // ---- 오늘의 투자시그널(① 배너 ② 카운트 칩 ③ 종목 리스트+요약 패널) ----
