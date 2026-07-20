@@ -300,6 +300,40 @@ def fetch_market_investor_daily(token, appkey, appsecret, date1, date2, market_i
     return data.get('output') or []
 
 
+def fetch_market_investor_time(token, appkey, appsecret, market_iscd='999', sector_iscd='S001'):
+    """시장별 투자자매매동향(시세), TR FHPTJ04030000 [v1_국내주식-074] - 한국투자 HTS(eFriend
+    Plus) [0403] 시장별 시간동향 상단 표. FHPTJ04040000(일별, [0404])이 실측 결과 토스/
+    키움HTS의 "투자자별 매매종합" 화면과 값이 안 맞아서(2026-07-20, 사용자가 직접 대조)
+    대안으로 추가 - [0403]은 "시세성"(실시간/당일 스냅샷) 화면이라 HTS가 보여주는 실시간
+    종합 수치와 더 가까울 가능성.
+    market_iscd/sector_iscd: 공식 예제가 "999"/"S001" 조합만 검증돼 있고 각 값의 정확한
+    의미(999=전체 시장? S001=주식 업종?)는 kis-code-assistant-mcp 문서에도 없어 미확인 -
+    실측으로 코스피 단독 값인지 확인 필요. 날짜 파라미터가 없어 "오늘"만 제공(히스토리 불가,
+    ka10051과 동일한 제약)."""
+    path = ('/uapi/domestic-stock/v1/quotations/inquire-investor-time-by-market'
+            '?FID_INPUT_ISCD=%s&FID_INPUT_ISCD_2=%s' % (market_iscd, sector_iscd))
+    req = urllib.request.Request(
+        BASE_URL + path,
+        headers={
+            'Content-Type': 'application/json; charset=utf-8',
+            'authorization': 'Bearer ' + token,
+            'appkey': appkey,
+            'appsecret': appsecret,
+            'tr_id': 'FHPTJ04030000',
+            'custtype': 'P',
+        },
+        method='GET',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('FHPTJ04030000 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
+    if data.get('rt_cd') != '0':
+        raise RuntimeError('FHPTJ04030000 실패: ' + json.dumps(data, ensure_ascii=False))
+    return data.get('output') or []
+
+
 def _avg_delta(rows):
     vals = []
     for r in rows:
