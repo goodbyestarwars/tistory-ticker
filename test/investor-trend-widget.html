@@ -58,15 +58,21 @@
   }
 
   if (location.search.indexOf('real=1') === -1) {
-    InvestorTrendWidget.fetchOnce = function (period) {
-      console.log('[mock] fetchOnce', period, window.__mockMode);
+    InvestorTrendWidget.fetchOnce = function (period, market) {
+      console.log('[mock] fetchOnce', period, market, window.__mockMode);
       if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
-      if (window.__mockMode === 'empty') return Promise.resolve({ period: period, asOf: null, rows: [] });
+      if (window.__mockMode === 'empty') return Promise.resolve({ period: period, market: market, asOf: null, rows: [] });
       var sign = window.__mockMode === 'allNeg' ? -1 : null;
+      // 코스닥은 규모가 작다는 걸 눈으로 확인하기 쉽게 값 스케일을 줄임(실제 데이터 특성 반영).
+      var scale = market === 'kosdaq' ? 0.05 : 1;
+      var rows = mockRows(period, sign).map(function (r) {
+        return { label: r.label, ind: r.ind * scale, frgn: r.frgn * scale, orgn: r.orgn * scale };
+      });
       return Promise.resolve({
         period: period,
+        market: market,
         asOf: new Date().toISOString(),
-        rows: mockRows(period, sign)
+        rows: rows
       });
     };
   }

@@ -31,13 +31,22 @@
   color: #9ca3af;
 }
 
-/* ---- 탭 ---- */
-#investor-trend-widget .itw-tabs {
+/* ---- 탭(기간 + 시장) ---- */
+#investor-trend-widget .itw-tabrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+#investor-trend-widget .itw-tabs,
+#investor-trend-widget .itw-market-tabs {
   display: flex;
   gap: 6px;
-  margin-top: 14px;
 }
-#investor-trend-widget .itw-tab {
+#investor-trend-widget .itw-tab,
+#investor-trend-widget .itw-market-tab {
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 600;
@@ -48,10 +57,23 @@
   padding: 5px 14px;
   cursor: pointer;
 }
-#investor-trend-widget .itw-tab:hover { color: #222; }
-#investor-trend-widget .itw-tab.active {
+#investor-trend-widget .itw-tab:hover,
+#investor-trend-widget .itw-market-tab:hover { color: #222; }
+#investor-trend-widget .itw-tab.active,
+#investor-trend-widget .itw-market-tab.active {
   background: #e2e5ea;
   color: #111;
+}
+/* 시장 탭은 기간 탭보다 한 단계 낮은 시각적 위계(보조 선택) - 살짝 작고 옅게 */
+#investor-trend-widget .itw-market-tab {
+  font-size: 11.5px;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid #e2e5ea;
+}
+#investor-trend-widget .itw-market-tab.active {
+  background: #eef0f3;
+  border-color: #eef0f3;
 }
 
 /* ---- 스켈레톤 / 에러 ---- */
@@ -112,6 +134,101 @@
 #investor-trend-widget .itw-bar-orgn { left: 34px; background: #378ADD; }
 #investor-trend-widget .itw-bar.itw-bar-neg { opacity: 0.7; }
 
+/* ---- 일(日) 탭: 투자자별 3행 분리 레이아웃(UI개선 지시서 2026-07-21) ----
+ * 색상은 지시서 3-3 원문 그대로(기존 그룹 막대/테이블의 사이트 공통색과는 별도 팔레트) -
+ * 음수는 지시서가 지정한 8자리 hex(알파 포함)를 그대로 사용, opacity 속성 아님. */
+#investor-trend-widget .itw-day-chart {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+#investor-trend-widget .itw-day-row-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+#investor-trend-widget .itw-day-row-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #444;
+}
+/* 헤더 점 색상은 아래 막대와 같은 지시서 팔레트(양수색)를 씀 - .itw-dot-*(그룹차트 범례)의
+   사이트 공통색과는 별도. */
+#investor-trend-widget .itw-day-dot-ind { background: #888888; }
+#investor-trend-widget .itw-day-dot-frgn { background: #e84040; }
+#investor-trend-widget .itw-day-dot-orgn { background: #3b82f6; }
+#investor-trend-widget .itw-day-row-sum {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+#investor-trend-widget .itw-day-row-sum-up { color: #d24f45; }
+#investor-trend-widget .itw-day-row-sum-down { color: #1261c4; }
+
+/* 행별 막대 영역 - 3행 합산이 기존 단일 차트 높이(130px 데스크톱/80px 모바일)를 넘지 않도록
+   막대 트랙(.itw-day-bar-track)만 height:130/3px 예산으로 제한(지시서 3-2 "3행 합산 높이 ≤
+   기존 차트 높이" - 헤더·날짜·값 레이블은 이 예산 밖에 추가로 붙는 영역). 컬럼 너비는
+   내용(예: "-9,000억")이 잘리지 않을 최소폭을 우선하고, 좁은 화면에서 10개가 다 안 들어가면
+   찌그러뜨리는 대신 가로 스크롤(overflow-x)로 넘긴다(값 레이블 잘림 방지 - 지시서 체크리스트,
+   기존 .itw-table-wrap과 동일한 해법). */
+#investor-trend-widget .itw-day-row-chart {
+  overflow-x: auto;
+}
+#investor-trend-widget .itw-day-cols {
+  display: flex;
+  justify-content: space-around;
+  gap: 4px;
+}
+#investor-trend-widget .itw-day-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 40px;
+}
+#investor-trend-widget .itw-day-bar-track {
+  position: relative;
+  width: 100%;
+  max-width: 22px;
+  height: 43px;
+}
+#investor-trend-widget .itw-day-zeroline {
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  border-top: 0.5px solid #d7dae0;
+}
+#investor-trend-widget .itw-day-bar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  border-radius: 3px 3px 0 0;
+}
+#investor-trend-widget .itw-day-bar.itw-day-bar-neg { border-radius: 0 0 3px 3px; }
+#investor-trend-widget .itw-day-bar-ind { background: #888888; }
+#investor-trend-widget .itw-day-bar-ind.itw-day-bar-neg { background: #88888860; }
+#investor-trend-widget .itw-day-bar-frgn { background: #e84040; }
+#investor-trend-widget .itw-day-bar-frgn.itw-day-bar-neg { background: #e8404060; }
+#investor-trend-widget .itw-day-bar-orgn { background: #3b82f6; }
+#investor-trend-widget .itw-day-bar-orgn.itw-day-bar-neg { background: #3b82f660; }
+
+#investor-trend-widget .itw-day-col-date {
+  margin-top: 6px;
+  font-size: 9px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+#investor-trend-widget .itw-day-col-value {
+  margin-top: 1px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #444;
+  white-space: nowrap;
+}
+#investor-trend-widget .itw-day-col-value.itw-neg { opacity: 0.8; }
+
 /* ---- 수치 테이블 ---- */
 #investor-trend-widget .itw-table-wrap {
   margin-top: 14px;
@@ -167,6 +284,14 @@
   #investor-trend-widget .itw-card { padding: 16px 16px 14px; }
   #investor-trend-widget .itw-chart,
   #investor-trend-widget .itw-skeleton { height: 80px; }
+  /* 3행 합산이 모바일 차트 높이(80px) 예산을 넘지 않도록 행당 막대 트랙을 80/3px로 축소.
+     컬럼 최소폭도 살짝 줄이되(폰트도 축소) 320px 폭에서 다 안 들어가면 가로 스크롤로
+     넘어가지 찌그러지진 않음(지시서 체크리스트 "값 레이블 잘림 없음" - 위 overflow-x 참고). */
+  #investor-trend-widget .itw-day-bar-track { height: 27px; }
+  #investor-trend-widget .itw-day-col { min-width: 34px; }
+  #investor-trend-widget .itw-day-col-date { font-size: 8px; }
+  #investor-trend-widget .itw-day-col-value { font-size: 8.5px; }
+  #investor-trend-widget .itw-day-chart { gap: 10px; }
 }
 
 /* ---- 다크모드 ---- */
@@ -174,14 +299,24 @@ html.dark #investor-trend-widget .itw-title { color: #eee !important; }
 html.dark #investor-trend-widget .itw-asof,
 html.dark #investor-trend-widget .itw-subtext,
 html.dark #investor-trend-widget .itw-error { color: #888 !important; }
-html.dark #investor-trend-widget .itw-tab { background: #2a2a2a !important; color: #aaa !important; }
-html.dark #investor-trend-widget .itw-tab:hover { color: #eee !important; }
-html.dark #investor-trend-widget .itw-tab.active { background: #3d4149 !important; color: #fff !important; }
+html.dark #investor-trend-widget .itw-tab,
+html.dark #investor-trend-widget .itw-market-tab { background: #2a2a2a !important; color: #aaa !important; }
+html.dark #investor-trend-widget .itw-market-tab { border-color: #3a3a3a !important; }
+html.dark #investor-trend-widget .itw-tab:hover,
+html.dark #investor-trend-widget .itw-market-tab:hover { color: #eee !important; }
+html.dark #investor-trend-widget .itw-tab.active,
+html.dark #investor-trend-widget .itw-market-tab.active { background: #3d4149 !important; color: #fff !important; }
 html.dark #investor-trend-widget .itw-skeleton {
   background: linear-gradient(90deg, #262626 25%, #303030 37%, #262626 63%) !important;
   background-size: 400% 100% !important;
 }
-html.dark #investor-trend-widget .itw-zeroline { border-color: #3a3a3a !important; }
+html.dark #investor-trend-widget .itw-day-row-label { color: #ddd !important; }
+html.dark #investor-trend-widget .itw-day-row-sum-up { color: #e8776d !important; }
+html.dark #investor-trend-widget .itw-day-row-sum-down { color: #6ea8e8 !important; }
+html.dark #investor-trend-widget .itw-day-col-date { color: #888 !important; }
+html.dark #investor-trend-widget .itw-day-col-value { color: #ddd !important; }
+html.dark #investor-trend-widget .itw-zeroline,
+html.dark #investor-trend-widget .itw-day-zeroline { border-color: #3a3a3a !important; }
 html.dark #investor-trend-widget .itw-table th { color: #888 !important; border-color: #333 !important; }
 html.dark #investor-trend-widget .itw-legend { color: #ddd !important; }
 html.dark #investor-trend-widget .itw-cell-ind { color: #aaa !important; }
