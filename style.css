@@ -44,7 +44,7 @@ a { text-decoration: none; color: inherit; }
   top: 0; left: 0; right: 0;
   z-index: 300;
   height: 56px;
-  background: #0d1b40;
+  background: #082415;
   display: flex;
   align-items: center;
   padding: 0 20px;
@@ -2184,7 +2184,7 @@ html.dark .dark-toggle-knob { transform: translateX(20px); }
 /* 베이스 */
 html.dark body { background: #0e1320; color: #eef2f8; }
 html.dark ::-webkit-scrollbar-thumb { background: #334155; }
-html.dark .navbar { background: #0a1128; }
+html.dark .navbar { background: #082415; }
 
 /* 카드 계열 표면 */
 html.dark .card,
@@ -2511,6 +2511,11 @@ body#tt-body-page .sidebar-right { display: none; }
 }
 .nav-logo-emblem {
   display: flex; align-items: center; justify-content: center;
+  /* 2026-07-20: 네비바 배경을 짙은 그린(#082415)으로 바꾸면서 원래 주황/노랑 그라데이션
+     아이콘이 안 어울려 흰색으로 통일. .nav-bolt(안쪽 img)에 직접 걸면 bolt-strike
+     애니메이션이 매 프레임 filter를 drop-shadow로 덮어써서 흰색 처리가 사라지므로,
+     애니메이션이 안 걸리는 이 바깥 wrapper에 걸어서 충돌을 피한다. */
+  filter: brightness(0) invert(1);
 }
 .nav-bolt {
   animation: bolt-strike 3.6s ease-in-out infinite;
