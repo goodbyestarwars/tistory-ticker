@@ -20,6 +20,17 @@ KIS_APPKEY/APPSECRET이 없거나 KIS 호출이 실패하면 네이버(finance.n
 investorDealTrendDay.naver, domestic_futures.py와 동일한 소스·우회 사유)로 폴백한다 -
 아래 fetch_recent/refresh_recent/refresh_history가 그 폴백 경로.
 
+**"오늘" 값은 3차로 키움(2026-07-20)** - 배포 후 KIS 값을 사용자가 토스/키움 HTS와 직접
+대조한 결과 KIS `FHPTJ04040000`(업종코드 경유 집계)이 토스·키움 HTS의 "투자자별 매매종합"
+화면과 값이 달랐음(신선한 데이터끼리 비교해도 다름 - 타이밍 문제 아니라 산정기준 차이).
+사용자가 "키움데이터로 채우고 마무리"를 지시해 `ka10051`(업종별투자자순매수,
+`get_sector_investor` MCP와 동일 TR)의 "종합(KOSPI)" 행(`inds_cd` "001_AL")을 최종
+소스로 채택 - stex_tp=3(통합 KRX+NXT, market_rank.py 등과 동일 관례). 이 TR은 날짜
+파라미터가 없어(현재/최근 확정 스냅샷만 제공) 과거 이력을 못 주므로, "오늘" 한 행만
+매 폴링(1분)마다 이 값으로 덮어쓰고 과거 행은 위 KIS/네이버 백필을 그대로 유지한다
+(fetch_kiwoom_today/refresh_recent_kiwoom 참고) - 그래서 과거 날짜와 "오늘"의 산정
+기준이 완전히 동일하진 않다는 한계가 있음(사용자도 이 트레이드오프를 인지하고 승인).
+
 네이버 폴백 검증 경위(2026-07-20, curl 실측):
 - bizdate 파라미터가 필수 - 생략하면 빈 페이지가 옴(위 URL에 파라미터 없이 호출한 결과 0행).
 - sosok는 비우면(또는 생략) 코스피, 값을 넣어도(예: 1) 이 페이지에서는 빈 결과 - 코스닥이
@@ -40,6 +51,7 @@ from datetime import datetime, timedelta, timezone
 
 import db_schema
 import kis_client
+import kiwoom_client
 
 logger = logging.getLogger('investor_trend')
 
@@ -215,6 +227,56 @@ def refresh_recent_kis(appkey, appsecret):
         conn.close()
 
 
+# ---- 키움(3차, "오늘"만) - ka10051 업종별투자자순매수의 "종합(KOSPI)" 행 ----
+
+def fetch_kiwoom_today(appkey, secretkey):
+    """ka10051은 날짜 파라미터가 없어 현재/최근 확정 스냅샷만 준다 - "오늘" 전용.
+    stex_tp=3(통합 KRX+NXT)이 이 프로젝트 관례(market_rank.py, kis_client.py 등)."""
+    token = kiwoom_client.get_token(appkey, secretkey)
+    res = kiwoom_client.call_tr(token, 'ka10051', '/api/dostk/sect', {
+        'mrkt_tp': '0',
+        'amt_qty_tp': '1',
+        'stex_tp': '3',
+    })
+    rows = res.get('inds_netprps') or []
+    kospi_row = None
+    for r in rows:
+        if str(r.get('inds_cd', '')).startswith('001'):
+            kospi_row = r
+            break
+    if not kospi_row:
+        logger.warning('investor_trend: ka10051 응답에서 종합(KOSPI) 행을 못 찾음 - return_code=%s',
+                        res.get('return_code'))
+        return None
+
+    def amt(key):
+        try:
+            return float(str(kospi_row.get(key) or '0').replace(',', ''))
+        except (TypeError, ValueError):
+            return 0.0
+
+    return {
+        'date': _today_bizdate(),
+        'ind': amt('ind_netprps'),
+        'frgn': amt('frgnr_netprps'),
+        'orgn': amt('orgn_netprps'),
+    }
+
+
+def refresh_recent_kiwoom(appkey, secretkey):
+    """1분 폴링용 - "오늘" 행만 키움으로 덮어쓴다(과거 행은 KIS/네이버 백필 그대로 유지)."""
+    row = fetch_kiwoom_today(appkey, secretkey)
+    if not row:
+        return
+    conn = db_schema.get_conn()
+    try:
+        db_schema.upsert_investor_trend_rows(conn, [row])
+        logger.info('investor_trend Kiwoom recent refreshed: %s ind=%.0f frgn=%.0f orgn=%.0f',
+                     row['date'], row['ind'], row['frgn'], row['orgn'])
+    finally:
+        conn.close()
+
+
 # ---- 일/주/월 집계 - rows는 오름차순(날짜순) [{date, ind, frgn, orgn}, ...] 가정 ----
 
 def bucket_daily(rows, count=10):
@@ -287,9 +349,33 @@ def get_result(period):
     return {'period': period, 'asOf': as_of, 'rows': fn(rows)}
 
 
-def _poll_loop(kis_appkey=None, kis_appsecret=None):
-    has_kis = bool(kis_appkey and kis_appsecret)
+def _refresh_recent_chain(has_kiwoom, kiwoom_appkey, kiwoom_secretkey, has_kis, kis_appkey, kis_appsecret):
+    """"오늘" 행 갱신 - 키움(ka10051) 1순위 -> KIS 2순위 -> 네이버 3순위.
+    상위 소스가 예외를 던지면 그 폴링 tick 안에서 다음 소스로 즉시 넘어간다(완전 실패시에만
+    맨 아래 네이버까지 감 - 평소엔 키움 한 번 호출로 끝남)."""
+    if has_kiwoom:
+        try:
+            refresh_recent_kiwoom(kiwoom_appkey, kiwoom_secretkey)
+            return
+        except Exception:
+            logger.exception('refresh_recent_kiwoom failed - falling back for this tick')
+    if has_kis:
+        try:
+            refresh_recent_kis(kis_appkey, kis_appsecret)
+            return
+        except Exception:
+            logger.exception('refresh_recent_kis failed - falling back to Naver for this tick')
+    try:
+        refresh_recent()
+    except Exception:
+        logger.exception('refresh_recent (Naver fallback) failed')
 
+
+def _poll_loop(kis_appkey=None, kis_appsecret=None, kiwoom_appkey=None, kiwoom_secretkey=None):
+    has_kis = bool(kis_appkey and kis_appsecret)
+    has_kiwoom = bool(kiwoom_appkey and kiwoom_secretkey)
+
+    # 과거 이력(주/월 탭용)은 키움(ka10051)이 못 주므로 여전히 KIS 1차/네이버 2차로 백필.
     if has_kis:
         try:
             _ensure_kis_backfill(kis_appkey, kis_appsecret)
@@ -308,20 +394,8 @@ def _poll_loop(kis_appkey=None, kis_appsecret=None):
 
     last_naver_history_refresh = time.time()
     while True:
-        if has_kis:
-            try:
-                refresh_recent_kis(kis_appkey, kis_appsecret)
-            except Exception:
-                logger.exception('refresh_recent_kis failed - falling back to Naver for this tick')
-                try:
-                    refresh_recent()
-                except Exception:
-                    logger.exception('refresh_recent (Naver fallback) failed')
-        else:
-            try:
-                refresh_recent()
-            except Exception:
-                logger.exception('refresh_recent failed')
+        _refresh_recent_chain(has_kiwoom, kiwoom_appkey, kiwoom_secretkey, has_kis, kis_appkey, kis_appsecret)
+        if not has_kis:
             now = time.time()
             if now - last_naver_history_refresh > _HISTORY_REFRESH_SEC:
                 try:
@@ -332,7 +406,10 @@ def _poll_loop(kis_appkey=None, kis_appsecret=None):
         time.sleep(_RECENT_POLL_SEC)
 
 
-def start_background(kis_appkey=None, kis_appsecret=None):
-    t = threading.Thread(target=_poll_loop, args=(kis_appkey, kis_appsecret), name='investor-trend-poll', daemon=True)
+def start_background(kis_appkey=None, kis_appsecret=None, kiwoom_appkey=None, kiwoom_secretkey=None):
+    t = threading.Thread(
+        target=_poll_loop, args=(kis_appkey, kis_appsecret, kiwoom_appkey, kiwoom_secretkey),
+        name='investor-trend-poll', daemon=True,
+    )
     t.start()
     return t
