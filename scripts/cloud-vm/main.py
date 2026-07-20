@@ -55,10 +55,14 @@ def _start_futures_collectors():
     domestic_futures.start_background()
     btc_futures.start_background()
     bond_yield.start_background()
-    investor_trend.start_background()
 
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
+    # investor_trend은 KIS 앱키가 있으면 시장별 투자자매매동향(일별) TR을 1차로 쓰고,
+    # 없으면 네이버로 자동 폴백한다(investor_trend.py 상단 독스트링 참고) - 그래서 위
+    # 야간선물/옵션수급과 달리 "미설정 시 건너뜀"이 아니라 항상 시작한다.
+    investor_trend.start_background(kis_appkey, kis_appsecret)
+
     if night_futures_ws is None:
         logging.getLogger('main').warning('websockets 미설치 - 야간선물 수집 건너뜀(pip install websockets 필요)')
     elif kis_appkey and kis_appsecret:
