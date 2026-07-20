@@ -2471,12 +2471,12 @@ html.font-gothic svg text {
   transition: color 0.2s, border-color 0.2s;
 }
 .nav-font-btn:hover {
-  color: #86efac;
-  border-color: #22c55e;
+  color: #ffd479;
+  border-color: #ffd479;
 }
 html.font-gothic .nav-font-btn {
-  color: #86efac;
-  border-color: #22c55e;
+  color: #ffd479;
+  border-color: #ffd479;
 }
 
 /* ============ full-width 페이지(오늘의 온도 등) ============ */
