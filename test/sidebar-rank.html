@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>sidebar-rank 로컬 테스트</title>
+<link rel="stylesheet" href="../style.css" />
+<link rel="stylesheet" href="../css/sidebar-rank.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #f5f6f8; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 340px; margin: 40px auto; padding: 0 16px; }
+  .tools { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; max-width: 700px; }
+</style>
+</head>
+<body>
+
+<div class="tools">
+  <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+  <button onclick="setMock('normal')">정상 데이터</button>
+  <button onclick="setMock('empty-limits')">상/하한가 없음</button>
+  <button onclick="setMock('error')">API 오류</button>
+</div>
+
+<div class="page-body">
+  <aside class="sidebar-right" style="position:static;max-height:none;width:100%;">
+    <div id="sidebar-rank"></div>
+  </aside>
+</div>
+
+<script src="../js/sidebar-rank.js"></script>
+<script>
+  var STOCKS = [
+    ['005930', '삼성전자'], ['000660', 'SK하이닉스'], ['005380', '현대차'],
+    ['035420', 'NAVER'], ['051910', 'LG화학'], ['012450', '한화에어로스페이스']
+  ];
+
+  function mockAmount() {
+    return STOCKS.slice(0, 5).map(function (s, i) {
+      return { code: s[0], name: s[1], price: 50000 + i * 10000, change_rate: (i % 2 === 0 ? 1 : -1) * (0.5 + i), trade_amount: (5000 - i * 700) * 1e8 };
+    });
+  }
+  function mockLimit(sign, n) {
+    return STOCKS.slice(0, n).map(function (s, i) {
+      return { code: s[0], name: s[1], price: 10000 + i * 500, change_rate: sign * (29.8 - i * 0.1) };
+    });
+  }
+
+  if (location.search.indexOf('real=1') === -1) {
+    SidebarRank.fetchRank = function () {
+      console.log('[mock] fetchRank', window.__mockMode);
+      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
+      if (window.__mockMode === 'empty-limits') {
+        return Promise.resolve({ tradeAmount: mockAmount(), upperLimit: [], lowerLimit: [] });
+      }
+      return Promise.resolve({ tradeAmount: mockAmount(), upperLimit: mockLimit(1, 3), lowerLimit: mockLimit(-1, 4) });
+    };
+  }
+
+  function setMock(mode) {
+    window.__mockMode = mode;
+    if (location.search.indexOf('real=1') === -1) SidebarRank.init();
+  }
+</script>
+
+</body>
+</html>

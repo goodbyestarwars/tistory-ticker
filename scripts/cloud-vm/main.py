@@ -25,6 +25,7 @@ import naver_news
 import investor_flow
 import kiwoom_client
 import kiwoom_market
+import market_rank
 import option_flow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
@@ -95,6 +96,12 @@ _LIVE_CACHE_MAX_ENTRIES = 500
 _ohlc_cache = {}
 _investor_flow_cache_mem = {}
 _foreign_flow_cache_mem = {}
+
+# 사이드바 랭킹(거래대금/상한가/하한가) - 작업지시서 요구사항(30초~1분 갱신)에 맞춘 짧은
+# TTL 캐시. 방문자가 여러 명이어도 30초에 한 번만 키움을 실제로 호출하면 되므로 단일
+# 전역값으로 충분(위 _ohlc_cache 같은 종목별 캐시와 달리 키가 하나뿐).
+_MARKET_RANK_TTL = 30
+_market_rank_cache = {'t': 0, 'data': None}
 
 
 def _live_cache_get(cache, code):
@@ -409,6 +416,27 @@ def option_flow_endpoint():
     finally:
         conn.close()
     return envelope({r['side']: r for r in rows})
+
+
+@app.get('/market-rank')
+def market_rank_endpoint():
+    """사이드바 실시간 랭킹(거래대금 TOP5/상한가/하한가) - 9bolt 우측 사이드바 리디자인
+    (작업지시서 2026-07-20). 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만
+    제한) - /futures, /option-flow와 동일한 패턴. 30초 서버 캐시로 실제 키움 호출 빈도를
+    낮춘다(market_rank.py 참고)."""
+    now = time.time()
+    if _market_rank_cache['data'] is not None and now - _market_rank_cache['t'] < _MARKET_RANK_TTL:
+        return envelope(_market_rank_cache['data'])
+    try:
+        token = get_kiwoom_token()
+        data = market_rank.fetch_sidebar_rank(token, limit=5)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    _market_rank_cache['t'] = now
+    _market_rank_cache['data'] = data
+    return envelope(data)
 
 
 @app.get('/week52-batch')

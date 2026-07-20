@@ -1,0 +1,108 @@
+/* 우측 사이드바 실시간 랭킹(거래대금/상한가/하한가) 위젯 (js/sidebar-rank.js)
+ * 상승=빨강 #d24f45, 하락=파랑 #1261c4 (사이트 공통 컬러 - 지시서 원문 색상 대신 이 값을
+ * 그대로 씀, js/sidebar-rank.js 상단 주석 참고)
+ * .card/.sidebar-card/.sidebar-title/.sidebar-icon은 style.css의 기존 사이드바 카드
+ * 스타일을 그대로 재사용 - 이 파일은 내부 리스트/행/뱃지 스타일만 추가한다.
+ * 다크모드: html.dark #sidebar-rank ... !important (9bolt 스킨 블랑켓 규칙 대응) */
+
+#sidebar-rank {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#sidebar-rank .sr-card { padding: 16px; }
+
+#sidebar-rank .sr-title {
+  justify-content: space-between;
+}
+#sidebar-rank .sr-title-text { flex: 1; }
+#sidebar-rank .sr-updated {
+  font-size: 11px;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+#sidebar-rank .sr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+#sidebar-rank .sr-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+#sidebar-rank .sr-rank {
+  flex-shrink: 0;
+  width: 16px;
+  font-weight: 800;
+  color: #9ca3af;
+  font-size: 11.5px;
+}
+#sidebar-rank .sr-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: #0d1b40;
+  text-decoration: none;
+}
+#sidebar-rank .sr-name:hover { text-decoration: underline; }
+
+#sidebar-rank .sr-rate {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 11.5px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+#sidebar-rank .sr-rate.sr-up { background: #fdeceb; color: #d24f45; }
+#sidebar-rank .sr-rate.sr-down { background: #e9f1fb; color: #1261c4; }
+#sidebar-rank .sr-rate.sr-flat { background: #f1f1f1; color: #666; }
+
+#sidebar-rank .sr-amount {
+  flex-shrink: 0;
+  min-width: 52px;
+  text-align: right;
+  font-size: 11.5px;
+  color: #555;
+}
+
+#sidebar-rank .sr-hint {
+  font-size: 12.5px;
+  color: #9ca3af;
+  padding: 6px 0;
+  list-style: none;
+}
+#sidebar-rank .sr-error { color: #c0392b; }
+
+#sidebar-rank .sr-more {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #555;
+  text-decoration: none;
+  padding-top: 4px;
+  border-top: 1px solid #f0f0f0;
+}
+#sidebar-rank .sr-more:hover { color: #222; }
+
+html.dark #sidebar-rank .sr-updated { color: #888 !important; }
+html.dark #sidebar-rank .sr-name { color: #eee !important; }
+html.dark #sidebar-rank .sr-rate.sr-up { background: #3a2523 !important; color: #e8776d !important; }
+html.dark #sidebar-rank .sr-rate.sr-down { background: #20304a !important; color: #6ea8e8 !important; }
+html.dark #sidebar-rank .sr-rate.sr-flat { background: #333 !important; color: #bbb !important; }
+html.dark #sidebar-rank .sr-amount { color: #999 !important; }
+html.dark #sidebar-rank .sr-hint { color: #888 !important; }
+html.dark #sidebar-rank .sr-more { color: #aaa !important; border-color: #333 !important; }
+html.dark #sidebar-rank .sr-more:hover { color: #eee !important; }
