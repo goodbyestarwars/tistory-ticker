@@ -1,8 +1,8 @@
 /* 메인 페이지 "투자자별 매매 동향" 위젯(js/investor-trend-widget.js) - 작업지시서 #4
  * (2026-07-20) 공지사항(#pinnedNotice) 카드 대체. .card는 style.css의 공통 카드 스타일을
  * 그대로 쓰고 이 파일은 내부 헤더/탭/차트/테이블만 추가한다.
- * 색상: 개인 #AAAAAA / 외국인 #1D9E75 / 기관 #378ADD (지시서 원문 그대로 - 사이트 공통
- * 상승/하락색과는 별개 축이라 그대로 사용, sidebar-rank.js처럼 바꿀 이유가 없었음).
+ * 색상: 개인 #AAAAAA / 외국인 #d24f45(사이트 공통 상승색 - 지시서 원문 민트 #d24f45에서
+ * 2026-07-20 사용자 요청으로 변경) / 기관 #378ADD.
  * 다크모드: html.dark #investor-trend-widget ... !important (9bolt 스킨 블랑켓 규칙 대응). */
 
 #investor-trend-widget .itw-card {
@@ -108,7 +108,7 @@
 }
 #investor-trend-widget .itw-bar.itw-bar-neg { border-radius: 0 0 3px 3px; }
 #investor-trend-widget .itw-bar-ind { left: 0; background: #AAAAAA; }
-#investor-trend-widget .itw-bar-frgn { left: 17px; background: #1D9E75; }
+#investor-trend-widget .itw-bar-frgn { left: 17px; background: #d24f45; }
 #investor-trend-widget .itw-bar-orgn { left: 34px; background: #378ADD; }
 #investor-trend-widget .itw-bar.itw-bar-neg { opacity: 0.7; }
 
@@ -153,11 +153,11 @@
   flex-shrink: 0;
 }
 #investor-trend-widget .itw-dot-ind { background: #AAAAAA; }
-#investor-trend-widget .itw-dot-frgn { background: #1D9E75; }
+#investor-trend-widget .itw-dot-frgn { background: #d24f45; }
 #investor-trend-widget .itw-dot-orgn { background: #378ADD; }
 
 #investor-trend-widget .itw-cell-ind { color: #888; }
-#investor-trend-widget .itw-cell-frgn { color: #1D9E75; }
+#investor-trend-widget .itw-cell-frgn { color: #d24f45; }
 #investor-trend-widget .itw-cell-orgn { color: #378ADD; }
 #investor-trend-widget .itw-cell-ind.itw-neg,
 #investor-trend-widget .itw-cell-frgn.itw-neg,
