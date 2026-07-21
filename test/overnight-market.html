@@ -128,10 +128,16 @@
       BTC: { avg: 88500000, min: 68200000, max: 112000000, days: 379, from: '20250705', to: '20260718' },
       ETH: { avg: 2510000, min: 1820000, max: 3350000, days: 379, from: '20250705', to: '20260718' }
     };
-    OvernightMarket.fetchBenchmark = function (symbol) {
-      console.log('[mock] fetchBenchmark', symbol);
+    // 6개월(days=180) 평균선 - 52주 평균과 값이 겹치면 두 참고선이 구분되는지 눈으로 확인하기
+    // 어려워 일부러 다른 값으로 mock.
+    var BENCHMARK_6M_MOCK = {
+      BTC: { avg: 96200000, min: 78400000, max: 112000000, days: 180, from: '20260122', to: '20260718' },
+      ETH: { avg: 2680000, min: 2150000, max: 3350000, days: 180, from: '20260122', to: '20260718' }
+    };
+    OvernightMarket.fetchBenchmark = function (symbol, days) {
+      console.log('[mock] fetchBenchmark', symbol, days);
       if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
-      var b = BENCHMARK_MOCK[symbol];
+      var b = days === 180 ? BENCHMARK_6M_MOCK[symbol] : BENCHMARK_MOCK[symbol];
       if (!b) return Promise.resolve(null);
       return Promise.resolve(Object.assign({ symbol: symbol }, b));
     };

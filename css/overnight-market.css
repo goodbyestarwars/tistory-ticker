@@ -144,6 +144,15 @@
   line-height: 1.5;
 }
 
+/* 2026-07-21: BTC/ETH 카드 전용 6개월 평균선 캡션 - 차트의 보라 점선(#8b5fbf)과 짝을
+   맞춘다. 위 .om-benchmark(52주선, 주황) 바로 아래 붙으므로 자체 상단 구분선은 생략. */
+#overnight-market .om-benchmark-6m {
+  color: #8b5fbf;
+  margin-top: 2px;
+  padding-top: 0;
+  border-top: none;
+}
+
 html.dark #overnight-market .om-card {
   background: #1e1e1e !important;
   border-color: #3a3a3a !important;
@@ -162,4 +171,5 @@ html.dark #overnight-market .om-cat-hint { color: #888 !important; }
 html.dark #overnight-market .om-tone-good { color: #3ecb8e !important; }
 html.dark #overnight-market .om-tone-bad { color: #e0954a !important; }
 html.dark #overnight-market .om-benchmark { color: #e0954a !important; border-top-color: #4a3a20 !important; }
+html.dark #overnight-market .om-benchmark-6m { color: #b78ce0 !important; }
 html.dark #overnight-market .om-tone-neutral { color: #ccc !important; }
