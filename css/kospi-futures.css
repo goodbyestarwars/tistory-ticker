@@ -191,6 +191,10 @@
   margin-bottom: 8px;
 }
 
+/* "청산"(포지션 정리)은 "확대"(신규 진입)보다 톤을 낮춰서 같은 색(상승=빨강/하락=파랑) 안에서도
+   두 상태가 구분되게 한다 - 작업지시서의 확대(📈/📉)/청산(💰) 구분을 색 강도로도 보조. */
+#kospi-futures .kf-opt-tendency.kf-tendency-close { opacity: 0.65; }
+
 #kospi-futures .kf-opt-row {
   display: flex;
   justify-content: space-between;
