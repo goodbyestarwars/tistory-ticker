@@ -535,7 +535,9 @@ var GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 // Groq chat completions 공용 호출. 429(레이트리밋)면 1.5초 쉬고 1번 더 시도
 // (실패 캐시 TTL이 짧아서 그래도 안 되면 곧 자동 재시도됨 - Gemini 때와 동일 패턴).
-function callGroq(prompt) {
+// temperature 기본 0.5(기존 호출부와 동일 동작 유지) - 2026-07-21 보조지수 해설처럼 숫자를
+// 원본 그대로 베껴야 하는(창작성보다 정확성이 중요한) 호출은 더 낮은 값을 넘겨서 쓴다.
+function callGroq(prompt, temperature) {
   var apiKey = PropertiesService.getScriptProperties().getProperty('GROQ_API_KEY');
   if (!apiKey) return null;
 
@@ -543,7 +545,7 @@ function callGroq(prompt) {
   var payload = JSON.stringify({
     model: GROQ_MODEL,
     messages: [{ role: 'user', content: prompt }],
-    temperature: 0.5,
+    temperature: temperature == null ? 0.5 : temperature,
     max_tokens: 1024
   });
 
@@ -868,16 +870,33 @@ function getKospiFuturesAnalysis() {
 // (2차) 사용자가 다시 확인해보니 진짜 문제는 숫자 왜곡이 아니라 "단답형으로 툭툭 끊어 쓴 문체"
 // 자체였음("성의도 없고 내가 숫자 읽는 거랑 뭐가 다르냐") - 서술형으로 풀어써 달라는 요청을
 // 반영해 규칙 1번에 나쁜 예/좋은 예 대비를 넣어 문체를 명시적으로 지정했다.
+// (3차) 재배포 후에도 "90% 상승했다. 12% 상승했다. 04% 하락했다."처럼 여전히 이름 없는 단답형
+// 문장이 그대로 나온 걸 확인 - isSubIndexAnalysisValid_가 "텍스트 전체에 지표명이 2개 이상
+// 있으면 통과"라서, 뒤쪽 종합 문장에 이름이 몰려 있으면 앞쪽 개별 문장이 전부 이름 없는
+// 단답형이어도 검증을 통과해버리는 허점이 있었음(진짜 원인). 문장 단위로 쪼개서 "숫자+상승/하락
+// +했다"만 있는 빈 문장이 하나라도 있으면 전체를 무효 처리하도록 강화. 프롬프트도 ①②를
+// "1~2문장"에서 "정확히 한 문장(데이터를 쪼개지 말고 한 문장에 자연스럽게 엮을 것)"으로 바꿔
+// 모델이 리스트 형태로 새는 걸 구조적으로 막았고, 소수점 경고에 "왜 틀리면 안 되는지"(100배
+// 부풀려짐)를 설명해 규칙 준수 확률을 높였다. callGroq도 temperature 0.2로 낮춰 창작보다
+// 정확한 숫자 인용을 우선하도록 했다. 전체 문장 수도 "4~5문장"에서 "정확히 3문장"(①1+②1+종합1)
+// 으로 줄였다 - 문장이 많을수록 그중 하나가 단답형으로 새어나올 확률이 커지기 때문.
 var SUB_INDEX_KNOWN_TERMS_RE = /나스닥|S&P|다우|반도체|VIX|WTI|원\/달러|환율|비트코인|BTC/g;
+// "90% 상승했다.", "0.12% 하락했다" 처럼 지표 이름 없이 숫자+등락 표현만 있는 문장 전체 매치.
+var SUB_INDEX_BARE_SENTENCE_RE = /^\d{1,3}(\.\d+)?%\s*(상승|하락|올랐|내렸)(했다|하였다|다)?\.?$/;
 function isSubIndexAnalysisValid_(text) {
   if (!text) return false;
   var matches = text.match(SUB_INDEX_KNOWN_TERMS_RE);
-  return !!matches && matches.length >= 2;
+  if (!matches || matches.length < 2) return false;
+  var sentences = text.match(/[^.!?]+[.!?]+(\s+|$)/g) || [text];
+  for (var i = 0; i < sentences.length; i++) {
+    if (SUB_INDEX_BARE_SENTENCE_RE.test(sentences[i].trim())) return false;
+  }
+  return true;
 }
 
 function getSubIndexAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v5';
+  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v6';
   var cached = cache.get(cacheKey);
   if (cached) return { analysis: cached };
 
@@ -907,27 +926,30 @@ function getSubIndexAnalysis() {
   }
   if (!usIndexLines.length && !commodityFxLines.length) return { analysis: null };
 
-  var prompt = '너는 국내 투자자를 위한 시황 브리핑을 쓰는 애널리스트야. 오늘 보조지수 데이터를 보고 한국어 평문 4~5문장으로 분석해줘.\n'
+  var prompt = '너는 국내 투자자를 위한 시황 브리핑을 쓰는 애널리스트야. 오늘 보조지수 데이터를 보고 한국어 평문 정확히 3문장으로 분석해줘.\n'
     + '[데이터]\n'
     + '① 미국 3대 지수(현물+선물)/반도체지수: ' + (usIndexLines.join(', ') || '데이터 없음') + '\n'
     + '② 원자재·환율·비트코인: ' + (commodityFxLines.join(', ') || '데이터 없음') + '\n'
     + '[작성 규칙 - 반드시 지켜라]\n'
-    + '1. 서술형 문체로 써라 - "나스닥은 0.59% 하락했다."처럼 단답형으로 툭 끊어 나열하지 말고, 배경·맥락·'
-    + '시사점을 덧붙인 완결된 문장으로 풀어써라. 나쁜 예: "나스닥은 0.59% 하락했다. VIX는 상승했다." (짧고 '
-    + '나열식) 좋은 예: "나스닥 지수는 전일 대비 0.59% 내리며 이틀째 조정 흐름을 이어갔고, 이런 가운데 VIX가 '
-    + '함께 올라 투자 심리도 다소 위축된 모습이다."\n'
-    + '2. 모든 문장에 지표·자산 이름을 반드시 같이 써라(예: "나스닥은 +0.59% 상승했다"). "59% 하락했다"처럼 '
-    + '이름 없이 등락률 숫자만 있는 문장은 절대 금지.\n'
-    + '3. 등락률 숫자는 위 데이터에 적힌 그대로(소수점 포함) 옮겨 써라 - 반올림하거나 소수점을 없애 정수처럼 '
-    + '쓰지 마라(예: +0.59%를 "59%"로 쓰면 안 됨).\n'
+    + '1. 절대 금지: "90% 상승했다.", "0.12% 하락했다." 처럼 지표 이름 없이 숫자+등락 표현만 있는 짧은 '
+    + '문장은 단 하나도 있으면 안 된다. 모든 문장에 어떤 지표·자산인지 이름을 반드시 같이 써라.\n'
+    + '2. 서술형 문체로 써라 - 단답형으로 툭 끊어 나열하지 말고 배경·맥락·시사점을 덧붙인 완결된 문장으로 '
+    + '풀어써라. 나쁜 예(이렇게 쓰면 절대 안 됨): "90% 상승했다. 12% 상승했다. 04% 하락했다." 좋은 예: '
+    + '"나스닥 지수는 전일 대비 0.59% 내리며 이틀째 조정 흐름을 이어갔고, 이런 가운데 VIX가 함께 올라 투자 '
+    + '심리도 다소 위축된 모습이다."\n'
+    + '3. 등락률 숫자는 위 데이터에 적힌 그대로(소수점 포함) 옮겨 써라. 특히 1% 미만 값(예: 0.12%)의 '
+    + '"0."을 빼고 "12%"라고 쓰면 실제보다 100배 부풀려진 완전히 틀린 값이 되니 절대 소수점을 빼지 마라.\n'
     + '4. 해석 원칙(중요): 미국 지수·반도체지수·BTC는 상승=호재/하락=악재로 보고, 반대로 VIX(변동성지수)는 '
     + '오를수록 위험회피 심리가 커지는 악재, WTI 원유는 오르면 인플레이션·비용 부담 우려로 악재, 원/달러 환율은 '
     + '오르면(원화 약세) 외국인 자금 이탈 우려로 악재야 - 이 셋은 숫자가 올랐다고 무조건 좋게 쓰지 마.\n'
-    + '5. 순서: ①번 미국 지수·반도체 동향(숫자 인용) 1~2문장 -> ②번 원자재·환율·VIX·BTC 동향(숫자 인용, '
-    + '해석 원칙 반영) 1~2문장 -> 이를 종합했을 때 오늘 한국 증시(코스피/코스닥)에 미칠 영향 1문장.\n'
+    + '5. 순서와 문장 수(정확히 지켜라): ①번 미국 지수·반도체 동향을 데이터를 쪼개지 말고 자연스럽게 엮어서 '
+    + '정확히 한 문장으로 -> ②번 원자재·환율·VIX·BTC 동향(해석 원칙 반영)을 마찬가지로 정확히 한 문장으로 '
+    + '-> 이를 종합했을 때 오늘 한국 증시(코스피/코스닥)에 미칠 영향을 정확히 한 문장으로. 총 3문장.\n'
     + '소제목·번호·줄바꿈 없이 문장만 이어서 써줘. 문장 외 다른 말은 붙이지 마.';
 
-  var analysis = safeCall(function () { return callGroq(prompt); });
+  // temperature를 기본값(0.5)보다 낮춰(0.2) 창작성보다 데이터 인용 정확도를 우선한다 - 숫자를
+  // 그대로 베끼는 게 중요한 이 프롬프트에서 창작적 표현이 오히려 소수점 누락 등 왜곡을 유발했음.
+  var analysis = safeCall(function () { return callGroq(prompt, 0.2); });
   if (!isSubIndexAnalysisValid_(analysis)) analysis = null;
   cache.put(cacheKey, analysis || '', analysis ? SUB_INDEX_ANALYSIS_CACHE_TTL : SUB_INDEX_ANALYSIS_FAIL_TTL);
   return { analysis: analysis };
