@@ -107,6 +107,14 @@
  * 저장된 총량에 따라 실제 달력 기간이 달라졌음). db_schema.load_future_chart_since로
  * 날짜 기준(date>=cutoff) 필터링으로 바꿔 모든 벤치마크 심볼이 항상 정확히 365일(12개월)
  * 창을 갖도록 수정 - 이 페이지 쪽 코드 변경은 없음(days=365 파라미터는 그대로).
+ *
+ * 2026-07-21: BTC/ETH 카드에 52주 평균선 옆에 "6개월 평균선"을 추가(사용자 요청 - "비트코인이
+ * 6개월 선행한다"는 통설을 봤다며 참고선을 하나 더 요청). VM /futures/avg가 이미 days를
+ * 파라미터로 받는 범용 엔드포인트라 백엔드 변경 없이 프론트에서 days=180으로 한 번 더 호출.
+ * 52주선(주황 실선)과 겹쳐 안 보이지 않도록 보라 점선으로 구분. "6개월 선행" 주장 자체는
+ * 코드 주석이 아니라 사용자에게 채팅으로 별도 팩트체크 결과를 전달함(리서치 결과, 검증된
+ * 통계라기보다 업계에서 도는 경험칙에 가까움 - 4년 반감기 주기와 "선행" 서사가 뒤섞여 있고
+ * 표본이 반감기 3~4회뿐이라 통계적으로 확정하기 어려움).
  */
 (function (global) {
   'use strict';
@@ -186,6 +194,10 @@
   // 기술적분석 지표)에 장기평균 참고선을 붙인다. GOLD/시장지수류는 방향성이 뚜렷하지 않거나
   // (에너지) 이미 상승=호재로 직관적이라 생략.
   var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC', 'ETH'];
+  // 2026-07-21: BTC/ETH 카드에만 6개월 평균선을 추가로 그린다(52주선과 별도 색으로 구분).
+  var BENCHMARK_6M_SYMBOLS = CRYPTO_SYMBOLS;
+  var BENCHMARK_6M_DAYS = 180;
+  var BENCHMARK_6M_COLOR = '#8b5fbf';
   var BENCHMARK_NOTE = {
     WTI: '전쟁 등 지정학적 충격 시 이 선 위로 급등하는 경향이 있습니다',
     VIX: '이 선 위로 오르면 시장 불안(위험회피) 심리가 커지고 있다는 뜻입니다',
@@ -200,6 +212,7 @@
     ETH: '이동평균선 위는 상승 추세, 아래는 하락 추세로 보는 게 일반적입니다'
   };
   var benchmarks = {}; // symbol -> { avg, min, max, days } - fetchBenchmark() 참고
+  var benchmarks6m = {}; // symbol -> { avg, min, max, days } (BENCHMARK_6M_SYMBOLS 전용, days=180)
 
   function loadLightweightCharts() {
     if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
@@ -240,11 +253,11 @@
   // "장기평균 참고선"(WTI에서 시작: "적정 유가 기준을 보여달라, 전쟁 나면 오르잖아" ->
   // VIX/환율/채권으로 확장). 객관적인 "적정 수준"은 없어서 대신 실제 수집된 값의 장기 평균을
   // 참고용으로 보여준다. 페이지 진입 시 심볼별로 1회만 호출(AI 해설과 동일 패턴).
-  function fetchBenchmark(symbol) {
+  function fetchBenchmark(symbol, days) {
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(FUTURES_AVG_API + '?symbol=' + symbol + '&days=365', hasAbort ? { signal: controller.signal } : {})
+    return fetch(FUTURES_AVG_API + '?symbol=' + symbol + '&days=' + (days || 365), hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('futures/avg API 오류: ' + r.status);
         return r.json();
@@ -341,17 +354,28 @@
 
   function benchmarkCaption(symbol) {
     var b = benchmarks[symbol];
-    if (BENCHMARK_SYMBOLS.indexOf(symbol) === -1 || !b) return '';
-    var meta = symbolMeta(symbol);
-    var isCrypto = CRYPTO_SYMBOLS.indexOf(symbol) !== -1;
-    var valueStr = symbol === 'WTI' ? '$' + fmtPrice(b.avg, meta.digits)
-      : (symbol === 'USDKRW' || isCrypto) ? fmtPrice(b.avg, meta.digits) + '원'
-      : fmtPrice(b.avg, meta.digits) + meta.unit;
-    // BTC/ETH는 "52주 이동평균선"이 기술적분석에서 흔히 쓰는 관용적 표현이라 그대로 씀(실제
-    // 수집 기간도 380일 ≈ 54주라 근사치로 맞음). 나머지는 실제 달력 기간을 그대로 노출.
-    var periodLabel = isCrypto ? '52주' : monthsBetween(b.from, b.to) + '개월';
-    return '<div class="om-benchmark">최근 ' + periodLabel + ' 평균 ' + valueStr + ' — '
-      + (BENCHMARK_NOTE[symbol] || '') + '(객관적 "적정 수준"이 아니라 실측 평균 참고선).</div>';
+    var out = '';
+    if (BENCHMARK_SYMBOLS.indexOf(symbol) !== -1 && b) {
+      var meta = symbolMeta(symbol);
+      var isCrypto = CRYPTO_SYMBOLS.indexOf(symbol) !== -1;
+      var valueStr = symbol === 'WTI' ? '$' + fmtPrice(b.avg, meta.digits)
+        : (symbol === 'USDKRW' || isCrypto) ? fmtPrice(b.avg, meta.digits) + '원'
+        : fmtPrice(b.avg, meta.digits) + meta.unit;
+      // BTC/ETH는 "52주 이동평균선"이 기술적분석에서 흔히 쓰는 관용적 표현이라 그대로 씀(실제
+      // 수집 기간도 380일 ≈ 54주라 근사치로 맞음). 나머지는 실제 달력 기간을 그대로 노출.
+      var periodLabel = isCrypto ? '52주' : monthsBetween(b.from, b.to) + '개월';
+      out += '<div class="om-benchmark">최근 ' + periodLabel + ' 평균(주황 실선) ' + valueStr + ' — '
+        + (BENCHMARK_NOTE[symbol] || '') + '(객관적 "적정 수준"이 아니라 실측 평균 참고선).</div>';
+    }
+    // 2026-07-21: BTC/ETH 전용 6개월 평균선(보라 점선) - 52주선과 별도 색으로 구분.
+    var b6 = benchmarks6m[symbol];
+    if (BENCHMARK_6M_SYMBOLS.indexOf(symbol) !== -1 && b6) {
+      var meta6 = symbolMeta(symbol);
+      var valueStr6 = fmtPrice(b6.avg, meta6.digits) + '원';
+      out += '<div class="om-benchmark om-benchmark-6m">최근 6개월 평균(보라 점선) ' + valueStr6
+        + ' — 이동평균선 위는 상승 추세, 아래는 하락 추세로 보는 게 일반적입니다(실측 평균 참고선).</div>';
+    }
+    return out;
   }
 
   function chartThemeOptions() {
@@ -445,6 +469,18 @@
         });
       }
 
+      // 2026-07-21: BTC/ETH 카드 전용 6개월 평균선 - 52주선(주황 실선)과 겹쳐도 구분되도록
+      // 보라 점선으로 그린다.
+      if (BENCHMARK_6M_SYMBOLS.indexOf(symbol) !== -1 && benchmarks6m[symbol]) {
+        series.createPriceLine({
+          price: benchmarks6m[symbol].avg,
+          color: BENCHMARK_6M_COLOR,
+          lineWidth: 1,
+          lineStyle: LWC.LineStyle.Dashed,
+          axisLabelVisible: false
+        });
+      }
+
       chartInstances[symbol] = { chart: chart, series: series, baseLine: baseLine };
     }).catch(function () {
       container.innerHTML = '<div class="om-chart-error">차트를 불러오지 못했어요.</div>';
@@ -457,11 +493,15 @@
   // 섞여 오해를 준다(사용자 지적) - 카테고리별로 나눠 보여주고, 종합 톤은 CATEGORIES의
   // direction(1=상승 호재, -1=상승 악재, 0=해석 없음)을 반영한 가중 평균으로 계산한다.
 
+  // 2026-07-21: 카테고리별 문장을 " · "로 이어붙인 한 줄짜리 blob이던 걸 사용자 요청("단락
+  // 구분 확실하게")으로 카테고리별 한 줄(paragraph)씩 끊어서 반환하도록 변경 - { label, text }
+  // 배열로 돌려주고 렌더링(renderSummary)이 각각 자기 줄에 그린다. 종합 톤 문장도 별도 줄로
+  // 분리해서 renderSummary가 맨 아래에 따로 붙인다.
   function buildSummaryText(items) {
     var bySymbol = {};
     items.forEach(function (it) { bySymbol[it.symbol] = it; });
 
-    var parts = [];
+    var lines = [];
     var riskScoreSum = 0, riskCatCount = 0;
 
     CATEGORIES.forEach(function (cat) {
@@ -474,8 +514,8 @@
         var up = catItems.filter(function (it) { return it.change_rate > 0; }).length;
         var down = catItems.filter(function (it) { return it.change_rate < 0; }).length;
         var avg = catItems.reduce(function (s, it) { return s + it.change_rate; }, 0) / catItems.length;
-        parts.push(cat.label + ' ' + catItems.length + '개 중 ' + up + '개 상승·' + down + '개 하락(평균 '
-          + (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%)');
+        lines.push({ label: cat.label, text: catItems.length + '개 중 ' + up + '개 상승·' + down + '개 하락(평균 '
+          + (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%)' });
         if (cat.direction !== 0) { riskScoreSum += avg * cat.direction; riskCatCount++; }
       } else {
         // 단일 종목 카테고리이거나(환율, 채권 등) listIndividually:true(변동성·환율처럼 묶여
@@ -486,22 +526,27 @@
             : '';
           return LABELS[it.symbol] + ' ' + (it.change_rate >= 0 ? '+' : '') + it.change_rate.toFixed(2) + '%' + note;
         });
-        parts.push(cat.label + ' ' + pieces.join(', '));
+        lines.push({ label: cat.label, text: pieces.join(', ') });
         catItems.forEach(function (it) {
           if (cat.direction !== 0) { riskScoreSum += it.change_rate * cat.direction; riskCatCount++; }
         });
       }
     });
 
-    if (!parts.length) return null;
+    if (!lines.length) return null;
     var overallAvg = riskCatCount ? riskScoreSum / riskCatCount : 0;
     var tone = overallAvg > 0.3 ? '우호적' : overallAvg < -0.3 ? '부담' : '혼조';
-    var toneClass = overallAvg > 0.3 ? 'om-tone-good' : overallAvg < -0.3 ? 'om-tone-bad' : 'om-tone-neutral';
     return {
-      text: parts.join(' · ') + ' — 방향성(환율·VIX·채권은 상승=부담)을 반영하면 전반적으로 ' + tone + ' 흐름입니다.',
-      toneClass: toneClass
+      lines: lines,
+      toneText: '방향성(환율·VIX·채권은 상승=부담)을 반영하면 전반적으로 ' + tone + ' 흐름입니다.'
     };
   }
+
+  // 헤더 라벨 앞에 붙는 간단한 바차트 아이콘 - currentColor라 다크모드에서도 별도 처리 없이
+  // 색이 따라간다.
+  var OM_SUMMARY_ICON = '<svg class="om-summary-icon" width="15" height="15" viewBox="0 0 24 24"'
+    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+    + ' aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>';
 
   function renderSummary(container, items) {
     var box = container.querySelector('#omSummary');
@@ -509,7 +554,13 @@
     var summary = buildSummaryText(items);
     if (!summary) { box.hidden = true; return; }
     box.hidden = false;
-    box.innerHTML = '<b>글로벌 시장지표 요약</b> <span class="' + summary.toneClass + '">' + escapeHtml(summary.text) + '</span>';
+    var linesHtml = summary.lines.map(function (l) {
+      return '<div class="om-summary-line"><b>' + escapeHtml(l.label) + '</b> ' + escapeHtml(l.text) + '</div>';
+    }).join('');
+    box.innerHTML = '<div class="om-summary-head">' + OM_SUMMARY_ICON + '<b>글로벌 시장지표 요약</b></div>'
+      + '<div class="om-summary-body">' + linesHtml
+      + '<div class="om-summary-tone">' + escapeHtml(summary.toneText) + '</div>'
+      + '</div>';
   }
 
   // ---- 종합 AI 해설(GAS ?action=subIndexAnalysis, Groq) - 페이지 진입 시 1회만 호출 ----
@@ -609,11 +660,16 @@
     // 30초마다 다시 부를 필요 없는 장기 통계). 전부 도착하면 해당 카드들이 참고선 포함해서
     // 다시 그려지도록 한 번 더 refresh - 이미 렌더된 다른 카드도 같이 다시 그려지지만 데이터는
     // 캐시돼 있어 사실상 즉시 끝난다(추가 fetchFutures 호출은 있음, 허용 가능한 비용).
-    Promise.all(BENCHMARK_SYMBOLS.map(function (symbol) {
+    var benchmarkFetches = BENCHMARK_SYMBOLS.map(function (symbol) {
       return OvernightMarket.fetchBenchmark(symbol)
         .then(function (b) { benchmarks[symbol] = b; })
         .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
-    })).then(function () { refresh(container); });
+    }).concat(BENCHMARK_6M_SYMBOLS.map(function (symbol) {
+      return OvernightMarket.fetchBenchmark(symbol, BENCHMARK_6M_DAYS)
+        .then(function (b) { benchmarks6m[symbol] = b; })
+        .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
+    }));
+    Promise.all(benchmarkFetches).then(function () { refresh(container); });
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () { refresh(container); }, REFRESH_INTERVAL_MS);
