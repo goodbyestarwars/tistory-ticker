@@ -584,6 +584,21 @@
       });
   }
 
+  // 말풍선 아이콘 - om-summary-icon과 같은 톤의 SVG로 통일(이모지 💬 대신).
+  var OM_AI_ICON = '<svg class="om-ai-icon" width="15" height="15" viewBox="0 0 24 24"'
+    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+    + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+
+  // 2026-07-21: Groq가 돌려주는 AI 해설이 문장 여러 개가 붙은 하나의 blob이라 "단락 구분이
+  // 안 된다"는 지적(글로벌 시장지표 요약 박스와 동일한 요청) - 문장 종결 부호(.!?) + 공백
+  // 기준으로 잘라 문장마다 자기 줄에 그린다. "3.5%"처럼 숫자 뒤 마침표는 공백이 바로 안 따라와
+  // 걸리지 않는다.
+  function splitSentences(text) {
+    var matches = text.match(/[^.!?]+[.!?]+(\s+|$)/g);
+    if (!matches) return [text.trim()];
+    return matches.map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
   function renderAiSummary(container) {
     var box = container.querySelector('#omAi');
     if (!box) return;
@@ -591,7 +606,11 @@
       .then(function (text) {
         if (!text) { box.hidden = true; return; }
         box.hidden = false;
-        box.innerHTML = '<b>💬 참고의견</b><p>' + escapeHtml(text) + '</p>';
+        var linesHtml = splitSentences(text).map(function (line) {
+          return '<div class="om-ai-line">' + escapeHtml(line) + '</div>';
+        }).join('');
+        box.innerHTML = '<div class="om-ai-head">' + OM_AI_ICON + '<b>참고의견</b></div>'
+          + '<div class="om-ai-body">' + linesHtml + '</div>';
       })
       .catch(function () { box.hidden = true; });
   }
