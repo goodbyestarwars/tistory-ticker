@@ -880,23 +880,40 @@ function getKospiFuturesAnalysis() {
 // 부풀려짐)를 설명해 규칙 준수 확률을 높였다. callGroq도 temperature 0.2로 낮춰 창작보다
 // 정확한 숫자 인용을 우선하도록 했다. 전체 문장 수도 "4~5문장"에서 "정확히 3문장"(①1+②1+종합1)
 // 으로 줄였다 - 문장이 많을수록 그중 하나가 단답형으로 새어나올 확률이 커지기 때문.
-var SUB_INDEX_KNOWN_TERMS_RE = /나스닥|S&P|다우|반도체|VIX|WTI|원\/달러|환율|비트코인|BTC/g;
-// "90% 상승했다.", "0.12% 하락했다" 처럼 지표 이름 없이 숫자+등락 표현만 있는 문장 전체 매치.
-var SUB_INDEX_BARE_SENTENCE_RE = /^\d{1,3}(\.\d+)?%\s*(상승|하락|올랐|내렸)(했다|하였다|다)?\.?$/;
+// (4차) 재배포 후에도 "01% 상승하면서 호재를 보였습니다.", "36% 하락하여 투자 심리가 다소
+// 개선되는 호재로 작용합니다."처럼 문장은 서술형으로 길어졌는데 정작 무엇의 등락률인지 이름이
+// 여전히 빠진 사례가 또 나왔음 - 3차의 SUB_INDEX_BARE_SENTENCE_RE가 "숫자+상승/하락+했다"로
+// 끝나는 아주 짧은 템플릿만 잡아서, 서술형으로 살만 붙인 변형(문장 길이·어미가 다름)은 정규식이
+// 못 잡고 통과시켰던 게 원인. 템플릿 매칭을 버리고 "문장 안에 %가 있는데 그 문장 안에 알려진
+// 지표 이름이 하나도 없으면 무효"로 일반화했다 - 문장이 짧든 길든, 서술형이든 아니든 이름 없이
+// 숫자만 있으면 무조건 걸러진다(코스피/코스닥도 지표 이름 목록에 추가 - 종합 문장이 %를
+// 언급해도 안전하게 통과하도록).
+// 이 문장 분리 로직을 검증하면서 별개의 잠재 버그를 하나 더 발견함: 옛 분리 정규식
+// (/[^.!?]+[.!?]+(\s+|$)/g)이 "26,107.01(+0.59%)"처럼 숫자 안의 소수점까지 문장 종결부호로
+// 오인해서 "...107." / "01(+0." / "59%)..." 식으로 문장을 반토막 내는 걸 실제 좋은 응답
+// 샘플로 테스트하다 발견(정상 응답인데도 검증이 거짓으로 실패함). 소수점(숫자 사이의 '.')은
+// 문장 몸통으로 취급하고, 뒤에 공백/끝이 오는 '.'만 진짜 문장 종결로 보도록
+// SUB_INDEX_SENTENCE_SPLIT_RE를 고쳤다 - 프론트(js/overnight-market.js splitSentences)의
+// 문장 분리도 같은 결함이 있어 동일하게 수정함(두 파일이 같은 버그를 각자 갖고 있었음).
+var SUB_INDEX_TERM_RE = /나스닥|S&P|다우|반도체|VIX|WTI|원\/달러|환율|비트코인|BTC|코스피|코스닥/;
+var SUB_INDEX_PERCENT_RE = /\d{1,3}(\.\d+)?\s*%/;
+var SUB_INDEX_SENTENCE_SPLIT_RE = /(?:[^.!?]|\.(?=\d))+[.!?]+(?!\d)(?:\s+|$)/g;
 function isSubIndexAnalysisValid_(text) {
   if (!text) return false;
-  var matches = text.match(SUB_INDEX_KNOWN_TERMS_RE);
-  if (!matches || matches.length < 2) return false;
-  var sentences = text.match(/[^.!?]+[.!?]+(\s+|$)/g) || [text];
+  var sentences = text.match(SUB_INDEX_SENTENCE_SPLIT_RE) || [text];
+  var percentSentenceCount = 0;
   for (var i = 0; i < sentences.length; i++) {
-    if (SUB_INDEX_BARE_SENTENCE_RE.test(sentences[i].trim())) return false;
+    var s = sentences[i].trim();
+    if (!s || !SUB_INDEX_PERCENT_RE.test(s)) continue;
+    percentSentenceCount++;
+    if (!SUB_INDEX_TERM_RE.test(s)) return false; // 등락률 숫자는 있는데 어떤 지표인지 이름이 없음
   }
-  return true;
+  return percentSentenceCount >= 1; // 등락률을 인용한 문장이 최소 1개는 있어야 데이터 기반 응답으로 인정
 }
 
 function getSubIndexAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v6';
+  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v7';
   var cached = cache.get(cacheKey);
   if (cached) return { analysis: cached };
 
@@ -931,10 +948,13 @@ function getSubIndexAnalysis() {
     + '① 미국 3대 지수(현물+선물)/반도체지수: ' + (usIndexLines.join(', ') || '데이터 없음') + '\n'
     + '② 원자재·환율·비트코인: ' + (commodityFxLines.join(', ') || '데이터 없음') + '\n'
     + '[작성 규칙 - 반드시 지켜라]\n'
-    + '1. 절대 금지: "90% 상승했다.", "0.12% 하락했다." 처럼 지표 이름 없이 숫자+등락 표현만 있는 짧은 '
-    + '문장은 단 하나도 있으면 안 된다. 모든 문장에 어떤 지표·자산인지 이름을 반드시 같이 써라.\n'
+    + '1. 절대 금지(가장 중요): 문장이 짧든 길든, 등락률 숫자(%)가 나오는 모든 문장에는 그게 어떤 '
+    + '지표·자산인지 이름이 반드시 함께 있어야 한다. 문장을 서술형으로 길게 늘여도 이름이 없으면 '
+    + '똑같이 위반이다. 나쁜 예(실제 이렇게 나온 적 있음, 절대 이렇게 쓰지 마라): "90% 상승했다.", '
+    + '"01% 상승하면서 호재를 보였습니다.", "36% 하락하여 투자 심리가 다소 개선되는 호재로 작용합니다." '
+    + '(전부 문장은 그럴듯한데 정작 무엇의 등락률인지 이름이 없음 - 이런 문장은 통째로 금지).\n'
     + '2. 서술형 문체로 써라 - 단답형으로 툭 끊어 나열하지 말고 배경·맥락·시사점을 덧붙인 완결된 문장으로 '
-    + '풀어써라. 나쁜 예(이렇게 쓰면 절대 안 됨): "90% 상승했다. 12% 상승했다. 04% 하락했다." 좋은 예: '
+    + '풀어써라. 단, 서술형으로 늘이더라도 규칙 1(지표 이름 필수)은 절대 어기면 안 된다. 좋은 예: '
     + '"나스닥 지수는 전일 대비 0.59% 내리며 이틀째 조정 흐름을 이어갔고, 이런 가운데 VIX가 함께 올라 투자 '
     + '심리도 다소 위축된 모습이다."\n'
     + '3. 등락률 숫자는 위 데이터에 적힌 그대로(소수점 포함) 옮겨 써라. 특히 1% 미만 값(예: 0.12%)의 '
