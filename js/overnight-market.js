@@ -493,11 +493,15 @@
   // 섞여 오해를 준다(사용자 지적) - 카테고리별로 나눠 보여주고, 종합 톤은 CATEGORIES의
   // direction(1=상승 호재, -1=상승 악재, 0=해석 없음)을 반영한 가중 평균으로 계산한다.
 
+  // 2026-07-21: 카테고리별 문장을 " · "로 이어붙인 한 줄짜리 blob이던 걸 사용자 요청("단락
+  // 구분 확실하게")으로 카테고리별 한 줄(paragraph)씩 끊어서 반환하도록 변경 - { label, text }
+  // 배열로 돌려주고 렌더링(renderSummary)이 각각 자기 줄에 그린다. 종합 톤 문장도 별도 줄로
+  // 분리해서 renderSummary가 맨 아래에 따로 붙인다.
   function buildSummaryText(items) {
     var bySymbol = {};
     items.forEach(function (it) { bySymbol[it.symbol] = it; });
 
-    var parts = [];
+    var lines = [];
     var riskScoreSum = 0, riskCatCount = 0;
 
     CATEGORIES.forEach(function (cat) {
@@ -510,8 +514,8 @@
         var up = catItems.filter(function (it) { return it.change_rate > 0; }).length;
         var down = catItems.filter(function (it) { return it.change_rate < 0; }).length;
         var avg = catItems.reduce(function (s, it) { return s + it.change_rate; }, 0) / catItems.length;
-        parts.push(cat.label + ' ' + catItems.length + '개 중 ' + up + '개 상승·' + down + '개 하락(평균 '
-          + (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%)');
+        lines.push({ label: cat.label, text: catItems.length + '개 중 ' + up + '개 상승·' + down + '개 하락(평균 '
+          + (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%)' });
         if (cat.direction !== 0) { riskScoreSum += avg * cat.direction; riskCatCount++; }
       } else {
         // 단일 종목 카테고리이거나(환율, 채권 등) listIndividually:true(변동성·환율처럼 묶여
@@ -522,22 +526,27 @@
             : '';
           return LABELS[it.symbol] + ' ' + (it.change_rate >= 0 ? '+' : '') + it.change_rate.toFixed(2) + '%' + note;
         });
-        parts.push(cat.label + ' ' + pieces.join(', '));
+        lines.push({ label: cat.label, text: pieces.join(', ') });
         catItems.forEach(function (it) {
           if (cat.direction !== 0) { riskScoreSum += it.change_rate * cat.direction; riskCatCount++; }
         });
       }
     });
 
-    if (!parts.length) return null;
+    if (!lines.length) return null;
     var overallAvg = riskCatCount ? riskScoreSum / riskCatCount : 0;
     var tone = overallAvg > 0.3 ? '우호적' : overallAvg < -0.3 ? '부담' : '혼조';
-    var toneClass = overallAvg > 0.3 ? 'om-tone-good' : overallAvg < -0.3 ? 'om-tone-bad' : 'om-tone-neutral';
     return {
-      text: parts.join(' · ') + ' — 방향성(환율·VIX·채권은 상승=부담)을 반영하면 전반적으로 ' + tone + ' 흐름입니다.',
-      toneClass: toneClass
+      lines: lines,
+      toneText: '방향성(환율·VIX·채권은 상승=부담)을 반영하면 전반적으로 ' + tone + ' 흐름입니다.'
     };
   }
+
+  // 헤더 라벨 앞에 붙는 간단한 바차트 아이콘 - currentColor라 다크모드에서도 별도 처리 없이
+  // 색이 따라간다.
+  var OM_SUMMARY_ICON = '<svg class="om-summary-icon" width="15" height="15" viewBox="0 0 24 24"'
+    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+    + ' aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>';
 
   function renderSummary(container, items) {
     var box = container.querySelector('#omSummary');
@@ -545,7 +554,13 @@
     var summary = buildSummaryText(items);
     if (!summary) { box.hidden = true; return; }
     box.hidden = false;
-    box.innerHTML = '<b>글로벌 시장지표 요약</b> <span class="' + summary.toneClass + '">' + escapeHtml(summary.text) + '</span>';
+    var linesHtml = summary.lines.map(function (l) {
+      return '<div class="om-summary-line"><b>' + escapeHtml(l.label) + '</b> ' + escapeHtml(l.text) + '</div>';
+    }).join('');
+    box.innerHTML = '<div class="om-summary-head">' + OM_SUMMARY_ICON + '<b>글로벌 시장지표 요약</b></div>'
+      + '<div class="om-summary-body">' + linesHtml
+      + '<div class="om-summary-tone">' + escapeHtml(summary.toneText) + '</div>'
+      + '</div>';
   }
 
   // ---- 종합 AI 해설(GAS ?action=subIndexAnalysis, Groq) - 페이지 진입 시 1회만 호출 ----

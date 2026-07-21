@@ -5,11 +5,43 @@
 }
 
 #overnight-market .om-summary {
-  padding: 10px 14px;
+  padding: 12px 14px;
   margin-bottom: 14px;
   background: #f7f7f8;
   border-radius: 10px;
   font-size: 13px;
+}
+
+#overnight-market .om-summary-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+#overnight-market .om-summary-icon {
+  flex: 0 0 auto;
+  color: #666;
+}
+
+#overnight-market .om-summary-body {
+  color: #111;
+}
+
+/* 카테고리별 한 줄씩 분리(사용자 요청 - 예전엔 " · "로 이어붙인 한 줄이라 단락 구분이
+   안 됐음). 라벨(<b>)만 굵게, 본문은 검은색 그대로. */
+#overnight-market .om-summary-line {
+  line-height: 1.6;
+  margin-bottom: 5px;
+}
+#overnight-market .om-summary-line:last-child { margin-bottom: 0; }
+
+#overnight-market .om-summary-tone {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e5e7;
+  font-weight: 600;
+  line-height: 1.6;
 }
 
 #overnight-market .om-ai {
@@ -100,12 +132,6 @@
 #overnight-market .om-neg { color: #1261c4; }
 #overnight-market .om-zero { color: #666; }
 
-/* 종합 요약 톤 - 개별 카드의 상승/하락(om-pos/neg, 빨강/파랑) 색상 규칙과는 다른 개념
-   (환율/VIX/채권 등 방향을 반영한 "시장 우호적/부담" 판단)이라 헷갈리지 않게 별도 색상 사용. */
-#overnight-market .om-tone-good { color: #1a8f5e; font-weight: 600; }
-#overnight-market .om-tone-bad { color: #c9701f; font-weight: 600; }
-#overnight-market .om-tone-neutral { color: #666; font-weight: 600; }
-
 #overnight-market .om-chart {
   margin: 10px -2px;
   height: 64px;
@@ -165,11 +191,11 @@ html.dark #overnight-market .om-hl { color: #999 !important; }
 html.dark #overnight-market .om-updated { color: #777 !important; }
 html.dark #overnight-market .om-zero { color: #ccc !important; }
 html.dark #overnight-market .om-summary { background: #262626 !important; }
+html.dark #overnight-market .om-summary-icon { color: #999 !important; }
+html.dark #overnight-market .om-summary-body { color: #eee !important; }
+html.dark #overnight-market .om-summary-tone { border-top-color: #3a3a3a !important; }
 html.dark #overnight-market .om-ai { background: #1c2a3a !important; }
 html.dark #overnight-market .om-ai p { color: #ccc !important; }
 html.dark #overnight-market .om-cat-hint { color: #888 !important; }
-html.dark #overnight-market .om-tone-good { color: #3ecb8e !important; }
-html.dark #overnight-market .om-tone-bad { color: #e0954a !important; }
 html.dark #overnight-market .om-benchmark { color: #e0954a !important; border-top-color: #4a3a20 !important; }
 html.dark #overnight-market .om-benchmark-6m { color: #b78ce0 !important; }
-html.dark #overnight-market .om-tone-neutral { color: #ccc !important; }
