@@ -857,9 +857,23 @@ function getKospiFuturesAnalysis() {
 // 각각 위험회피심리·인플레이션우려·원화약세로 통상 악재라는 해석 원칙을 프롬프트에 박아서
 // AI가 숫자만 보고 "다 올랐으니 좋다"는 식으로 뭉뚱그리지 않게 했다. 프론트(overnight-market.js
 // renderAiSummary)는 결과를 <p> 하나에 그대로 넣으므로 소제목/줄바꿈 서식은 요청하지 않는다.
+// 2026-07-21: 사용자가 실제 응답으로 "59% 하락했다. 60% 상승했다. 34% 상승했다."처럼 어떤
+// 지표인지 이름도 없이 숫자만 나열하는(게다가 +0.59%의 소수점을 지워 59%로 부풀려 읽은 것으로
+// 보이는) 성의 없는 결과를 받은 걸 확인 - v4 프롬프트가 이걸 막지 못했음. 프롬프트에 "이름 없는
+// 숫자 문장 금지"/"소수점 그대로 베낄 것"/"의미 해석까지 포함" 규칙을 명시하고,
+// isSubIndexAnalysisValid_로 응답에 지표 이름이 실제로 들어있는지 최소한의 사후 검증을 추가했다
+// - 검증 실패하면 그 자리에서 캐시하지 않고 null(프론트가 박스를 숨김)로 처리해 다음 캐시
+// 만료 때 재시도되게 한다. 캐시 키도 v4->v5로 올려서 이미 저장된 옛 나쁜 응답이 즉시 무효화됨.
+var SUB_INDEX_KNOWN_TERMS_RE = /나스닥|S&P|다우|반도체|VIX|WTI|원\/달러|환율|비트코인|BTC/g;
+function isSubIndexAnalysisValid_(text) {
+  if (!text) return false;
+  var matches = text.match(SUB_INDEX_KNOWN_TERMS_RE);
+  return !!matches && matches.length >= 2;
+}
+
 function getSubIndexAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v4';
+  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v5';
   var cached = cache.get(cacheKey);
   if (cached) return { analysis: cached };
 
@@ -889,19 +903,25 @@ function getSubIndexAnalysis() {
   }
   if (!usIndexLines.length && !commodityFxLines.length) return { analysis: null };
 
-  var prompt = '오늘 보조지수 데이터야.\n'
+  var prompt = '너는 국내 투자자를 위한 시황 브리핑을 쓰는 애널리스트야. 오늘 보조지수 데이터를 보고 한국어 평문 4~5문장으로 분석해줘.\n'
+    + '[데이터]\n'
     + '① 미국 3대 지수(현물+선물)/반도체지수: ' + (usIndexLines.join(', ') || '데이터 없음') + '\n'
     + '② 원자재·환율·비트코인: ' + (commodityFxLines.join(', ') || '데이터 없음') + '\n'
-    + '해석 원칙(중요, 반드시 반영): 미국 지수·반도체지수·BTC는 상승=호재/하락=악재로 보고, '
-    + '반대로 VIX(변동성지수)는 오를수록 위험회피 심리가 커지는 악재, WTI 원유는 오르면 '
-    + '인플레이션·비용 부담 우려로 악재, 원/달러 환율은 오르면(원화 약세) 외국인 자금 이탈 '
-    + '우려로 악재야 - 이 셋은 숫자가 올랐다고 무조건 좋게 쓰지 마.\n'
-    + '위 원칙을 반영해서 아래 내용을 한국어 평문 4~5문장으로(소제목·번호·줄바꿈 없이) 정리해줘: '
-    + '①번 미국 지수·반도체 동향을 등락률 숫자를 직접 인용해 1~2문장, ②번 원자재·환율·VIX·BTC '
-    + '동향을 등락률 숫자를 직접 인용하고 해석 원칙에 맞게 1~2문장, 마지막으로 이를 종합했을 때 '
-    + '오늘 한국 증시(코스피/코스닥)에 미칠 영향을 1문장으로. 문장 외 다른 말은 붙이지 마.';
+    + '[작성 규칙 - 반드시 지켜라]\n'
+    + '1. 모든 문장에 지표·자산 이름을 반드시 같이 써라(예: "나스닥은 +0.59% 상승했다"). "59% 하락했다"처럼 '
+    + '이름 없이 등락률 숫자만 있는 문장은 절대 금지.\n'
+    + '2. 등락률 숫자는 위 데이터에 적힌 그대로(소수점 포함) 옮겨 써라 - 반올림하거나 소수점을 없애 정수처럼 '
+    + '쓰지 마라(예: +0.59%를 "59%"로 쓰면 안 됨).\n'
+    + '3. 해석 원칙(중요): 미국 지수·반도체지수·BTC는 상승=호재/하락=악재로 보고, 반대로 VIX(변동성지수)는 '
+    + '오를수록 위험회피 심리가 커지는 악재, WTI 원유는 오르면 인플레이션·비용 부담 우려로 악재, 원/달러 환율은 '
+    + '오르면(원화 약세) 외국인 자금 이탈 우려로 악재야 - 이 셋은 숫자가 올랐다고 무조건 좋게 쓰지 마.\n'
+    + '4. 숫자를 나열만 하지 말고 그 숫자가 시장에 무엇을 시사하는지 해석까지 문장에 곁들여라.\n'
+    + '5. 순서: ①번 미국 지수·반도체 동향(숫자 인용) 1~2문장 -> ②번 원자재·환율·VIX·BTC 동향(숫자 인용, '
+    + '해석 원칙 반영) 1~2문장 -> 이를 종합했을 때 오늘 한국 증시(코스피/코스닥)에 미칠 영향 1문장.\n'
+    + '소제목·번호·줄바꿈 없이 문장만 이어서 써줘. 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
+  if (!isSubIndexAnalysisValid_(analysis)) analysis = null;
   cache.put(cacheKey, analysis || '', analysis ? SUB_INDEX_ANALYSIS_CACHE_TTL : SUB_INDEX_ANALYSIS_FAIL_TTL);
   return { analysis: analysis };
 }
