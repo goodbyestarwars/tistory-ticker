@@ -268,8 +268,8 @@
 
     priceEl.textContent = formatNumber(quote.price) + '원';
     changeEl.textContent = arrowSymbol(quote.change) + Math.abs(quote.changeRate).toFixed(2) + '%';
-    changeEl.classList.remove('wl-up', 'wl-down');
-    changeEl.classList.add(quote.change > 0 ? 'wl-up' : quote.change < 0 ? 'wl-down' : '');
+    changeEl.classList.remove('wl-up', 'wl-down', 'wl-flat');
+    changeEl.classList.add(quote.change > 0 ? 'wl-up' : quote.change < 0 ? 'wl-down' : 'wl-flat');
   }
 
   function wireCardEvents(container) {

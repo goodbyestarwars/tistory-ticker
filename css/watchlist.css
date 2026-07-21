@@ -152,11 +152,16 @@
   margin-bottom: 2px;
 }
 #watchlist .wl-change {
-  font-size: 13px;
-  color: #888;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #888780;
+  background: #f1f0ea;
 }
-#watchlist .wl-change.wl-up { color: #d24f45; }
-#watchlist .wl-change.wl-down { color: #1261c4; }
+#watchlist .wl-change.wl-up { color: #d24f45; background: #fdebea; }
+#watchlist .wl-change.wl-down { color: #1261c4; background: #eaf1fb; }
 
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
 html.dark #watchlist { color: #ddd !important; }
@@ -187,6 +192,6 @@ html.dark #watchlist .wl-remove { color: #e0b040 !important; }
 html.dark #watchlist .wl-remove:hover { background: rgba(255, 255, 255, 0.08) !important; }
 html.dark #watchlist .wl-name { color: #eee !important; }
 html.dark #watchlist .wl-price { color: #eee !important; }
-html.dark #watchlist .wl-change { color: #999 !important; }
-html.dark #watchlist .wl-change.wl-up { color: #ff6b5b !important; }
-html.dark #watchlist .wl-change.wl-down { color: #4d9fff !important; }
+html.dark #watchlist .wl-change { color: #999 !important; background: #333 !important; }
+html.dark #watchlist .wl-change.wl-up { color: #ff6b5b !important; background: #3a2323 !important; }
+html.dark #watchlist .wl-change.wl-down { color: #4d9fff !important; background: #1f2c3d !important; }
