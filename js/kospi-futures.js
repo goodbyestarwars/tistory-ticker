@@ -204,7 +204,9 @@
     return '<div class="kf-section" data-section-key="option">'
       + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급 분석</div></div>'
       + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
-      + '콜/풋 전체 미결제약정(OI) 증감으로 신규 진입·청산 우세만 추정해서 보여드립니다. '
+      + '콜/풋 전체 미결제약정(OI) 증감으로 포지션 방향을 추정해서 보여드립니다. 콜옵션은 상승 포지션, 풋옵션은 '
+      + '하락 포지션으로 보고, OI가 늘면 신규 진입(포지션 확대), 줄면 청산(포지션 정리)으로 표시합니다 - '
+      + '단순 순매수/순매도 부호만으로 상승·하락을 단정하지 않고 신규/청산을 구분해서 보여드리는 방식입니다. '
       + '옵션은 야간선물과 달리 야간 세션이 없어 정규장(09:00~15:45)에만 값이 바뀌고, '
       + '장 마감 후에는 마지막 값이 그대로 표시됩니다.</div>'
       + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
@@ -215,19 +217,37 @@
   // 실측 확인(전광판 TR/개별종목조회 TR 둘 다 동일값 - KIS 쪽 데이터 문제로 추정, 원인
   // 불명). 이 상태를 "보합"(실제로 거래됐는데 방향성이 없다는 뜻)으로 보여주면 오해를
   // 유발하므로, 거래량 자체가 0이면 "데이터 미제공"으로 구분해서 보여준다.
-  function optTendency(row) {
+  //
+  // 2026-07-21: "옵션 수급 표현 방식 개선 작업지시서" 반영 - 예전엔 순값 부호만 보고
+  // "신규 진입 우세"/"청산 우세"라고만 표시했는데, 콜/풋 어느 쪽인지를 안 섞어서 보면
+  // "청산"이 실제로는 상승(콜)/하락(풋) 중 어느 방향 포지션이 청산되는 건지 알 수 없어
+  // 오해 소지가 있었다. 지시서는 투자자 유형별 매수/매도-신규/청산 4분류 원 데이터를
+  // 전제하지만 그런 세분화 API는 없다(위 buildOptionFlowShell 설명문 참고) - 대신 이미
+  // 갖고 있는 side(콜=상승 관련/풋=하락 관련)와 oi_change 부호(신규/청산)만으로 지시서의
+  // "최종 상태 표시" 4개 라벨(상승 포지션 확대/청산, 하락 포지션 확대/청산)과 동일한
+  // 결과를 만들 수 있어 그 방식으로 구현 - 매수/매도 거래량을 따로 추정하지 않는다.
+  function optTendency(row, side) {
     if (!row) return { label: '-', cls: 'kf-zero' };
     if (!row.volume) return { label: '데이터 미제공', cls: 'kf-zero' };
     var oiChange = row.oi_change;
     if (oiChange == null) return { label: '-', cls: 'kf-zero' };
-    if (oiChange > 0) return { label: '신규 진입 우세', cls: 'kf-pos' };
-    if (oiChange < 0) return { label: '청산 우세', cls: 'kf-neg' };
+    var bullish = side === 'CALL';
+    if (oiChange > 0) {
+      return bullish
+        ? { label: '📈 상승 포지션 확대', cls: 'kf-pos' }
+        : { label: '📉 하락 포지션 확대', cls: 'kf-neg' };
+    }
+    if (oiChange < 0) {
+      return bullish
+        ? { label: '💰 상승 포지션 청산', cls: 'kf-pos kf-tendency-close' }
+        : { label: '💰 하락 포지션 청산', cls: 'kf-neg kf-tendency-close' };
+    }
     return { label: '보합', cls: 'kf-zero' };
   }
 
-  function buildOptCardBody(row) {
+  function buildOptCardBody(row, side) {
     if (!row) return '<div class="kf-opt-body">데이터 없음</div>';
-    var t = optTendency(row);
+    var t = optTendency(row, side);
     var sign = row.oi_change > 0 ? '+' : '';
     return '<div class="kf-opt-body">'
       + '<span class="kf-opt-tendency ' + t.cls + '">' + t.label + '</span>'
@@ -262,7 +282,7 @@
       OPTION_SIDES.forEach(function (s) {
         var card = container.querySelector('.kf-opt-card[data-side="' + s.key + '"]');
         if (!card) return;
-        card.querySelector('.kf-opt-body').outerHTML = buildOptCardBody(bySide[s.key]);
+        card.querySelector('.kf-opt-body').outerHTML = buildOptCardBody(bySide[s.key], s.key);
       });
     }).catch(function () {
       container.querySelectorAll('.kf-opt-card').forEach(function (card) {
