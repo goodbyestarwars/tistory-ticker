@@ -34,8 +34,16 @@ BOX_TOL = 0.035
 BOX_MAX_RANGE = 0.15
 BOX_MIN_RANGE = 0.05
 BOX_NEAR_LOW_TOL = 0.03
+BOX_MIN_LOW_TOUCHES = 3   # 2026-07-22 개편: 지지선 터치 3회 이상
+BOX_MIN_HIGH_TOUCHES = 2  # 2026-07-22 개편: 저항선 터치 2회 이상
+BOX_MIN_DURATION = 25     # 2026-07-22 개편: 박스 기간(첫 스윙~오늘) 최소 25거래일
 
 BREAKOUT_TOL = 1.02
+
+# 2026-07-22 개편: 저점상승형 20일선 기울기 / 눌림목 20일선 상승 확인에 공용으로 쓰는
+# "며칠 전과 비교할지" 값(gas/ticker-proxy.gs와 동일하게 5거래일).
+MA_SLOPE_LOOKBACK = 5
+IHS_VOL_SURGE_RATIO = 1.2  # 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.2배 이상
 
 PULLBACK_WINDOW = 90
 PULLBACK_LOOKBACK = 20
@@ -99,6 +107,16 @@ def is_volume_declining(win, from_idx, to_idx):
     early = avg_volume(win, from_idx, mid)
     late = avg_volume(win, mid, to_idx)
     return early > 0 and late < early
+
+
+def is_volume_increasing(win, from_idx, to_idx):
+    """is_volume_declining의 반대(눌림목 상승구간 거래량 증가 조건용)."""
+    mid = from_idx + (to_idx - from_idx) // 2
+    if mid <= from_idx or to_idx <= mid:
+        return False
+    early = avg_volume(win, from_idx, mid)
+    late = avg_volume(win, mid, to_idx)
+    return early > 0 and late > early
 
 
 def is_last_candle_bullish(win):
@@ -320,6 +338,21 @@ def detect_rising_lows(daily):
     if low_span < WEDGE_MIN_GAP_DAYS or low_span > WEDGE_MAX_GAP_DAYS:
         return None
 
+    # 2026-07-22 개편: Higher High - 고점도 직전 스윙고점보다 높아야 함
+    if len(high_idxs) < 2:
+        return None
+    prev_high = win[high_idxs[-2]]['high']
+    last_high = win[high_idxs[-1]]['high']
+    if last_high <= prev_high:
+        return None
+
+    # 2026-07-22 개편: 20일선 기울기 0 이상(상승 또는 횡보)
+    ma20_series = moving_average(win, 'close', 20)
+    ma20_now = ma20_series[-1]
+    ma20_prev = ma20_series[-1 - MA_SLOPE_LOOKBACK]
+    if ma20_now is None or ma20_prev is None or ma20_now < ma20_prev:
+        return None
+
     if (len(win) - 1) - last_low_idx > RECENCY_MAX_GAP:
         return None
 
@@ -332,28 +365,34 @@ def detect_rising_lows(daily):
     low_swing_points = [{'date': win[i]['date'], 'price': win[i]['low']} for i in low_idxs]
     current = {'date': win[-1]['date'], 'price': last_close}
 
+    # ---- 점수(100점, 2026-07-22 개편): 저점상승폭35 + 고점상승(HH)15(고정) + 저점간격15(고정)
+    # + 20일선기울기10(고정) + 5일선저항15 + 거래량감소5 + 최근양봉5 ----
     rise_score = score_tier(rise_ratio, [
-        {'min': 0.08, 'score': 40}, {'min': 0.05, 'score': 30}, {'min': WEDGE_MIN_LOW_RISE, 'score': 20}
+        {'min': 0.08, 'score': 35}, {'min': 0.05, 'score': 26}, {'min': WEDGE_MIN_LOW_RISE, 'score': 18}
     ])
-    span_score = 20
+    hh_score = 15
+    span_score = 15
+    slope_score = 10
 
     ma5 = moving_average(win, 'close', 5)
     resistance = max((win[i]['high'] for i in high_idxs), default=None)
     resistance_idx = high_idxs[-1] if high_idxs else None
     ma5_at_resistance = ma5[resistance_idx] if resistance_idx is not None else None
     ma5_diff = abs(win[resistance_idx]['high'] - ma5_at_resistance) / ma5_at_resistance if ma5_at_resistance else 1
-    ma5_score = 20 if ma5_diff <= 0.02 else 10 if ma5_diff <= 0.05 else 0
+    ma5_score = 15 if ma5_diff <= 0.02 else 8 if ma5_diff <= 0.05 else 0
 
-    vol_score = 10 if is_volume_declining(win, prev_low_idx, len(win)) else 0
-    bull_score = 10 if is_last_candle_bullish(win) else 0
+    vol_score = 5 if is_volume_declining(win, prev_low_idx, len(win)) else 0
+    bull_score = 5 if is_last_candle_bullish(win) else 0
 
-    score = clamp_score(rise_score + span_score + ma5_score + vol_score + bull_score)
+    score = clamp_score(rise_score + hh_score + span_score + slope_score + ma5_score + vol_score + bull_score)
     reasons = [
-        '저점 %.1f%% 상승(%d/40점)' % (rise_ratio * 100, rise_score),
-        '저점 간격 %d거래일(%d/20점)' % (low_span, span_score),
-        '5일선 저항 근접도(%d/20점)' % ma5_score,
-        '거래량 %s(%d/10점)' % ('감소' if vol_score else '유지/증가', vol_score),
-        '최근 캔들 %s(%d/10점)' % ('양봉' if bull_score else '음봉', bull_score),
+        '저점 %.1f%% 상승(%d/35점)' % (rise_ratio * 100, rise_score),
+        '고점도 직전 고점 대비 상승, Higher High 확인(%d/15점)' % hh_score,
+        '저점 간격 %d거래일(%d/15점)' % (low_span, span_score),
+        '20일선 기울기 상승/횡보(%d/10점)' % slope_score,
+        '5일선 저항 근접도(%d/15점)' % ma5_score,
+        '거래량 %s(%d/5점)' % ('감소' if vol_score else '유지/증가', vol_score),
+        '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
     ]
 
     return {
@@ -365,7 +404,7 @@ def detect_rising_lows(daily):
         'breakout': resistance is not None and last_close > resistance * BREAKOUT_TOL,
         'score': score,
         'reasons': reasons,
-        'interpretation': '저점이 %.1f%% 높아지며 하락 압력이 약해지는 구간으로 추정됩니다(%d점).' % (rise_ratio * 100, score),
+        'interpretation': '저점과 고점이 함께 높아지고(Higher Low+High) 20일선도 상승/횡보 중인 구간으로 추정됩니다(%d점).' % score,
     }
 
 
@@ -393,6 +432,10 @@ def detect_double_bottom(daily):
             if diff > DB_LOW_TOL:
                 continue
 
+            # 2026-07-22 개편: 두 번째 저점 거래량이 첫 번째 저점 이하
+            if win[i2]['volume'] > win[i1]['volume']:
+                continue
+
             neck = max_high_between(win, i1, i2)
             if not neck:
                 continue
@@ -411,19 +454,23 @@ def detect_double_bottom(daily):
             current = {'date': win[-1]['date'], 'price': last_close}
             left_peak = max_high_between(win, max(-1, i1 - 31), i1)
 
-            sim_score = 40 if diff <= 0.01 else 25 if diff <= DB_LOW_TOL else 0
-            gap_score = 20
-            bounce_score = 20 if rise_from_low1 >= 0.08 else 12 if rise_from_low1 >= DB_PEAK_MIN_RISE else 0
-            vol_score = 10 if is_volume_declining(win, i1, i2) else 0
+            # ---- 점수(100점, 2026-07-22 개편): 저점유사도35 + 넥라인형성20(고정)
+            # + 거래량감소15 + 반등강도15 + 넥라인근접10 + 최근양봉5 ----
+            sim_score = 35 if diff <= 0.01 else 22
+            neck_form_score = 20
+            vol_score = 15 if is_volume_declining(win, i1, i2) else 0
+            bounce_score = 15 if rise_from_low1 >= 0.08 else 9
             neck_score = 10 if proximity >= -0.02 else 5
+            bull_score = 5 if is_last_candle_bullish(win) else 0
 
-            score = clamp_score(sim_score + gap_score + bounce_score + vol_score + neck_score)
+            score = clamp_score(sim_score + neck_form_score + vol_score + bounce_score + neck_score + bull_score)
             reasons = [
-                '저점 가격차 %.1f%%(%d/40점)' % (diff * 100, sim_score),
-                '저점 간격 %d거래일(%d/20점)' % (gap_days, gap_score),
-                '넥라인 반등폭 %.1f%%(%d/20점)' % (rise_from_low1 * 100, bounce_score),
-                '거래량 %s(%d/10점)' % ('감소' if vol_score else '유지/증가', vol_score),
+                '저점 가격차 %.1f%%(%d/35점)' % (diff * 100, sim_score),
+                '넥라인(중간 반등 고점) 형성 확인(%d/20점)' % neck_form_score,
+                '거래량 감소(2번째 저점 거래량도 1번째 이하)(%d/15점)' % vol_score,
+                '넥라인 반등폭 %.1f%%(%d/15점)' % (rise_from_low1 * 100, bounce_score),
                 '현재가-넥라인 근접도(%d/10점)' % neck_score,
+                '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
             ]
 
             return {
@@ -436,7 +483,7 @@ def detect_double_bottom(daily):
                 'breakout': last_close > neck['high'] * BREAKOUT_TOL,
                 'score': score,
                 'reasons': reasons,
-                'interpretation': '두 저점이 %.1f%% 차이로 비슷한 쌍바닥 구조로 추정됩니다(%d점).' % (diff * 100, score),
+                'interpretation': '두 저점이 %.1f%% 차이로 비슷하고 2번째 저점 거래량도 줄어든 쌍바닥 구조로 추정됩니다(%d점).' % (diff * 100, score),
             }
     return None
 
@@ -450,6 +497,9 @@ def detect_inv_head_shoulders(daily):
     low_idxs = find_swing_indices(win, 'low', True)
     if len(low_idxs) < 3:
         return None
+
+    # 2026-07-22 개편: 우어깨 형성 이후 거래량 급증(20일 평균 대비 1.2배 이상) 조건 기준선
+    avg_vol20 = avg_volume(win, max(0, len(win) - 20), len(win))
 
     for a in range(len(low_idxs) - 2):
         for b in range(a + 1, len(low_idxs) - 1):
@@ -482,20 +532,29 @@ def detect_inv_head_shoulders(daily):
                 if proximity < IHS_NECK_PROXIMITY_MIN:
                     continue
 
+                # 2026-07-22 개편: 우어깨 형성 이후 거래량이 20일 평균 대비 1.2배 이상
+                right_vol = avg_volume(win, i_r, len(win))
+                if avg_vol20 <= 0 or right_vol < avg_vol20 * IHS_VOL_SURGE_RATIO:
+                    continue
+
                 current = {'date': win[-1]['date'], 'price': last_close}
 
+                # ---- 점수(100점, 2026-07-22 개편): 형태유사도45 + 넥라인근접15 + 대칭성20
+                # + 거래량15(고정) + 최근양봉5 ----
                 head_drop_avg = ((left - head) / left + (right - head) / right) / 2
-                shape_score = 50 if head_drop_avg >= 0.05 else 35 if head_drop_avg >= 0.03 else 20
-                neck_score_ihs = 20 if proximity >= -0.01 else 10
-                sym_score = 20 if shoulder_diff <= 0.02 else 12 if shoulder_diff <= IHS_SHOULDER_TOL else 0
-                vol_score_ihs = 10 if is_volume_declining(win, i_l, i_r) else 0
+                shape_score = 45 if head_drop_avg >= 0.05 else 32 if head_drop_avg >= 0.03 else 18
+                neck_score_ihs = 15 if proximity >= -0.01 else 8
+                sym_score = 20 if shoulder_diff <= 0.02 else 12
+                vol_score_ihs = 15
+                bull_score = 5 if is_last_candle_bullish(win) else 0
 
-                score = clamp_score(shape_score + neck_score_ihs + sym_score + vol_score_ihs)
+                score = clamp_score(shape_score + neck_score_ihs + sym_score + vol_score_ihs + bull_score)
                 reasons = [
-                    '헤드 하락폭 평균 %.1f%%(%d/50점)' % (head_drop_avg * 100, shape_score),
-                    '현재가-넥라인 근접도(%d/20점)' % neck_score_ihs,
+                    '헤드 하락폭 평균 %.1f%%(%d/45점)' % (head_drop_avg * 100, shape_score),
+                    '현재가-넥라인 근접도(%d/15점)' % neck_score_ihs,
                     '양 어깨 가격차 %.1f%%(%d/20점)' % (shoulder_diff * 100, sym_score),
-                    '거래량 %s(%d/10점)' % ('감소' if vol_score_ihs else '유지/증가', vol_score_ihs),
+                    '우어깨 이후 거래량 20일 평균 대비 급증(%d/15점)' % vol_score_ihs,
+                    '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
                 ]
 
                 return {
@@ -510,7 +569,7 @@ def detect_inv_head_shoulders(daily):
                     'breakout': last_close > neckline_price * BREAKOUT_TOL,
                     'score': score,
                     'reasons': reasons,
-                    'interpretation': '좌우 어깨가 비슷한 높이(차이 %.1f%%)의 역헤드앤숄더 구조로 추정됩니다(%d점).' % (shoulder_diff * 100, score),
+                    'interpretation': '좌우 어깨가 비슷한 높이(차이 %.1f%%)이고 거래량도 급증한 역헤드앤숄더 구조로 추정됩니다(%d점).' % (shoulder_diff * 100, score),
                 }
     return None
 
@@ -523,7 +582,13 @@ def detect_box_range_low(daily):
     win = daily[max(0, len(daily) - BOX_WINDOW):]
     low_idxs = find_swing_indices(win, 'low', True)
     high_idxs = find_swing_indices(win, 'high', False)
-    if len(low_idxs) < 2 or len(high_idxs) < 2:
+    # 2026-07-22 개편: 지지선 터치 3회 이상 + 저항선 터치 2회 이상
+    if len(low_idxs) < BOX_MIN_LOW_TOUCHES or len(high_idxs) < BOX_MIN_HIGH_TOUCHES:
+        return None
+
+    # 2026-07-22 개편: 박스 기간(첫 스윙~오늘)이 최소 25거래일
+    first_swing_idx = min(low_idxs[0], high_idxs[0])
+    if (len(win) - 1) - first_swing_idx < BOX_MIN_DURATION:
         return None
 
     low_prices = [win[i]['low'] for i in low_idxs]
@@ -552,19 +617,24 @@ def detect_box_range_low(daily):
     if (last_close - support) / support > BOX_NEAR_LOW_TOL:
         return None
 
+    # ---- 점수(100점, 2026-07-22 개편): 박스유지25 + 지지선근접35 + 터치횟수20
+    # + 거래량감소15 + 최근양봉5 ----
     flatness = max((low_max - low_min) / low_min, (high_max - high_min) / high_min)
-    box_score = 30 if flatness <= 0.015 else 18 if flatness <= BOX_TOL else 0
+    box_score = 25 if flatness <= 0.015 else 15
     near_ratio = (last_close - support) / support
-    support_score = 40 if near_ratio <= 0.01 else 25 if near_ratio <= BOX_NEAR_LOW_TOL else 0
-    vol_score = 20 if is_volume_declining(win, low_idxs[0], len(win)) else 0
-    bull_score = 10 if is_last_candle_bullish(win) else 0
+    support_score = 35 if near_ratio <= 0.01 else 22
+    extra_touches = (len(low_idxs) - BOX_MIN_LOW_TOUCHES) + (len(high_idxs) - BOX_MIN_HIGH_TOUCHES)
+    touch_score = 20 if extra_touches >= 3 else 14 if extra_touches >= 1 else 8
+    vol_score = 15 if is_volume_declining(win, low_idxs[0], len(win)) else 0
+    bull_score = 5 if is_last_candle_bullish(win) else 0
 
-    score = clamp_score(box_score + support_score + vol_score + bull_score)
+    score = clamp_score(box_score + support_score + touch_score + vol_score + bull_score)
     reasons = [
-        '박스 상/하단 평평도(%d/30점)' % box_score,
-        '지지선 근접도 %.1f%%(%d/40점)' % (near_ratio * 100, support_score),
-        '거래량 %s(%d/20점)' % ('감소' if vol_score else '유지/증가', vol_score),
-        '최근 캔들 %s(%d/10점)' % ('양봉' if bull_score else '음봉', bull_score),
+        '박스 상/하단 평평도(%d/25점)' % box_score,
+        '지지선 근접도 %.1f%%(%d/35점)' % (near_ratio * 100, support_score),
+        '지지선 %d회·저항선 %d회 터치(%d/20점)' % (len(low_idxs), len(high_idxs), touch_score),
+        '거래량 %s(%d/15점)' % ('감소' if vol_score else '유지/증가', vol_score),
+        '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
     ]
 
     return {
@@ -626,20 +696,33 @@ def detect_pullback(daily):
     if diff20 > PULLBACK_MA_TOL and diff60 > PULLBACK_MA_TOL:
         return None
 
+    # 2026-07-22 개편: 20일선이 상승 중이어야 함
+    ma20_slope_from = ma20[n - 1 - MA_SLOPE_LOOKBACK]
+    if ma20_now is None or ma20_slope_from is None or ma20_now < ma20_slope_from:
+        return None
+
+    # 2026-07-22 개편: 상승구간 거래량 증가 + 조정구간 거래량 감소
+    rise_vol_up = is_volume_increasing(win, low_idx, peak_idx)
+    drop_vol_down = is_volume_declining(win, peak_idx, n)
+    if not rise_vol_up or not drop_vol_down:
+        return None
+
+    # ---- 점수(100점, 2026-07-22 개편): 상승추세30 + 조정폭25 + 이평선위치20
+    # + 거래량패턴15(고정) + 최근양봉10 ----
     rise_score = 30 if rise_ratio >= 0.25 else 22 if rise_ratio >= 0.20 else 15
-    drop_score = 30 if (0.07 <= drop_ratio <= 0.12) else 18
+    drop_score = 25 if (0.07 <= drop_ratio <= 0.12) else 15
     ma_score = 20 if (diff20 <= PULLBACK_MA_TOL and diff60 <= PULLBACK_MA_TOL) \
         else 12 if min(diff20, diff60) <= PULLBACK_MA_TOL else 0
-    vol_score = 10 if is_volume_declining(win, peak_idx, n) else 0
+    vol_score = 15
     bull_score = 10 if is_last_candle_bullish(win) else 0
 
     score = clamp_score(rise_score + drop_score + ma_score + vol_score + bull_score)
     ma_label = '20일선' if diff20 <= diff60 else '60일선'
     reasons = [
         '상승폭 %.1f%%(%d/30점)' % (rise_ratio * 100, rise_score),
-        '조정폭 %.1f%%(%d/30점)' % (drop_ratio * 100, drop_score),
-        '%s 근접도(%d/20점)' % (ma_label, ma_score),
-        '거래량 %s(%d/10점)' % ('감소' if vol_score else '유지/증가', vol_score),
+        '조정폭 %.1f%%(%d/25점)' % (drop_ratio * 100, drop_score),
+        '%s 근접도, 20일선 상승 중(%d/20점)' % (ma_label, ma_score),
+        '상승구간 거래량 증가 + 조정구간 거래량 감소(%d/15점)' % vol_score,
         '최근 캔들 %s(%d/10점)' % ('양봉' if bull_score else '음봉', bull_score),
     ]
 
