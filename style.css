@@ -273,7 +273,18 @@ a { text-decoration: none; color: inherit; }
   cursor: pointer;
 }
 .nav-search-suggest-item:hover, .nav-search-suggest-item.active { background: #f1f5f9; }
-.nav-search-suggest-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-search-suggest-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.nav-search-rate-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  color: #888780;
+}
+.nav-search-rate-badge:empty { display: none; }
+.nav-search-rate-badge:not(:empty) { padding: 2px 5px; background: #f1f0ea; }
+.nav-search-rate-badge.rate-up { color: #d24f45; background: #fdebea; }
+.nav-search-rate-badge.rate-down { color: #1261c4; background: #eaf1fb; }
 .nav-search-fav-btn {
   flex-shrink: 0;
   border: none;
@@ -2371,6 +2382,9 @@ html.dark .nav-search-suggest { background: #1e1e1e; border-color: #3a3a3a; }
 html.dark .nav-search-suggest-title { color: #888; }
 html.dark .nav-search-suggest-item { color: #ddd; }
 html.dark .nav-search-suggest-item:hover, html.dark .nav-search-suggest-item.active { background: #2a2a2a; }
+html.dark .nav-search-rate-badge:not(:empty) { background: #333; }
+html.dark .nav-search-rate-badge.rate-up { color: #ff6b5b; background: #3a2323; }
+html.dark .nav-search-rate-badge.rate-down { color: #4d9fff; background: #1f2c3d; }
 html.dark .nav-search-fav-btn { color: #555; }
 html.dark .nav-search-fav-btn:hover { background: rgba(255, 255, 255, 0.08); }
 html.dark .nav-search-fav-btn.active { color: #e0b040; }

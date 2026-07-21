@@ -21,6 +21,8 @@
 
   var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
   var TARGET_PAGE = '/page/foreign-flow';
+  var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var RATE_FETCH_TIMEOUT_MS = 8000;
 
   var STORAGE_LAST = 'stock:lastSelected';
   var STORAGE_FAVORITES = 'stock:favorites';
@@ -179,8 +181,52 @@
     var fav = isFavorite(code);
     return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
       + '<span class="nav-search-suggest-name">' + escapeHtml(name) + '</span>'
+      + '<span class="nav-search-rate-badge" data-rate-code="' + escapeAttr(code) + '"></span>'
       + '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>'
       + '</div>';
+  }
+
+  // ---- 등락률 뱃지 (즐겨찾기/최근검색 행에만 표시, 입력 중 검색결과는 API 호출 절약 위해 생략) ----
+
+  function fetchRates(codes) {
+    if (!codes.length) return Promise.resolve({});
+    var hasAbort = 'AbortController' in global;
+    var controller = hasAbort ? new AbortController() : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, RATE_FETCH_TIMEOUT_MS) : null;
+
+    return fetch(GAS_TICKER_URL + '?codes=' + codes.join(','), hasAbort ? { signal: controller.signal } : {})
+      .then(function (r) {
+        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (timer) clearTimeout(timer);
+        var byCode = {};
+        (data || []).forEach(function (q) { byCode[q.code] = q; });
+        return byCode;
+      })
+      .catch(function (err) {
+        if (timer) clearTimeout(timer);
+        throw err;
+      });
+  }
+
+  function arrowSymbol(change) {
+    if (change > 0) return '+';
+    if (change < 0) return '-';
+    return '';
+  }
+
+  function updateRateBadges(box, quoteByCode) {
+    box.querySelectorAll('.nav-search-rate-badge').forEach(function (badge) {
+      var code = badge.getAttribute('data-rate-code');
+      var quote = quoteByCode[code];
+      if (!quote) return; // 조회 실패 - 뱃지 미표시(빈 상태 유지)
+      badge.textContent = arrowSymbol(quote.change) + Math.abs(quote.changeRate).toFixed(2) + '%';
+      badge.classList.remove('rate-up', 'rate-down');
+      if (quote.change > 0) badge.classList.add('rate-up');
+      else if (quote.change < 0) badge.classList.add('rate-down');
+    });
   }
 
   // 입력창이 비어있을 때: 즐겨찾기 + 최근검색(즐겨찾기와 중복은 최근검색에서 제외)
@@ -204,6 +250,13 @@
     box.innerHTML = html;
     box.classList.add('active');
     wireRowClicks(box);
+
+    var codes = favorites.concat(recent).map(function (it) { return it.code; });
+    fetchRates(codes)
+      .then(function (quoteByCode) { updateRateBadges(box, quoteByCode); })
+      .catch(function () {
+        // 시세 조회 실패 - 뱃지 없이 이름/별표만 표시된 상태 유지
+      });
   }
 
   function renderMatches(box, query) {
