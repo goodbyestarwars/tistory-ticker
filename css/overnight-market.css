@@ -50,18 +50,30 @@
   background: #f0f6ff;
   border-radius: 10px;
   font-size: 13px;
+}
+
+#overnight-market .om-ai-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+#overnight-market .om-ai-icon {
+  flex: 0 0 auto;
+  color: #4a7fd6;
+}
+
+#overnight-market .om-ai-body {
+  color: #111;
+}
+
+/* 문장 단위로 자기 줄에 그린다(글로벌 시장지표 요약 박스와 동일한 단락 구분 패턴). */
+#overnight-market .om-ai-line {
   line-height: 1.6;
+  margin-bottom: 5px;
 }
-
-#overnight-market .om-ai b {
-  display: block;
-  margin-bottom: 4px;
-}
-
-#overnight-market .om-ai p {
-  margin: 0;
-  color: #444;
-}
+#overnight-market .om-ai-line:last-child { margin-bottom: 0; }
 
 #overnight-market .om-category {
   margin-bottom: 22px;
@@ -195,7 +207,8 @@ html.dark #overnight-market .om-summary-icon { color: #999 !important; }
 html.dark #overnight-market .om-summary-body { color: #eee !important; }
 html.dark #overnight-market .om-summary-tone { border-top-color: #3a3a3a !important; }
 html.dark #overnight-market .om-ai { background: #1c2a3a !important; }
-html.dark #overnight-market .om-ai p { color: #ccc !important; }
+html.dark #overnight-market .om-ai-icon { color: #7fa8e8 !important; }
+html.dark #overnight-market .om-ai-body { color: #eee !important; }
 html.dark #overnight-market .om-cat-hint { color: #888 !important; }
 html.dark #overnight-market .om-benchmark { color: #e0954a !important; border-top-color: #4a3a20 !important; }
 html.dark #overnight-market .om-benchmark-6m { color: #b78ce0 !important; }
