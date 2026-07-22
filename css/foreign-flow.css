@@ -502,7 +502,9 @@
 #foreign-flow .ff-line-ratio { fill: none; stroke: #0ca678; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-rsi { fill: none; stroke: #333; stroke-width: 1.6; stroke-linejoin: round; }
 #foreign-flow .ff-rsi-band { stroke-dasharray: 3 3; }
-#foreign-flow .ff-rsi-fill { fill: #d24f45; fill-opacity: 0.55; stroke: none; }
+#foreign-flow .ff-rsi-fill { fill-opacity: 0.55; stroke: none; }
+#foreign-flow .ff-rsi-fill-above { fill: #d24f45; }
+#foreign-flow .ff-rsi-fill-below { fill: #1261c4; }
 /* 2026-07-20: 업종/테마 분리 - 각 줄(.ff-sector-row)이 라벨("업종"/"테마") + 태그 목록을
    한 줄에 놓는다. 예전엔 .ff-sector-tags 하나가 라벨 없이 업종만 보여줬음. */
 #foreign-flow .ff-sector-row {

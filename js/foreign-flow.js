@@ -2495,28 +2495,33 @@
 
   // RSI(14) 미니차트 - buildRatioChart와 동일한 SVG 패턴(외부 라이브러리 없음), 0~100 고정 축 +
   // 30/70 기준선. 2026-07-22: 기술적 점수표 참고행으로 통합했다가 사용자 요청으로 원복.
-  // RSI가 70을 넘는 구간만 y=70 기준선과 RSI 곡선 사이를 빨갛게 채운 폴리곤으로 만든다
-  // (구간 경계는 선형보간으로 70 교차 지점을 정확히 잡아 삐뚤빼뚤한 계단 없이 매끄럽게 이어짐).
-  function buildRsiOverboughtFill(pts, x, y, threshold) {
+  // RSI가 기준선을 넘는(mode='above', 70 과매수) 또는 못 미치는(mode='below', 30 과매도)
+  // 구간만 기준선과 RSI 곡선 사이를 채운 폴리곤으로 만든다(구간 경계는 선형보간으로 기준선
+  // 교차 지점을 정확히 잡아 삐뚤빼뚤한 계단 없이 매끄럽게 이어짐).
+  function buildRsiThresholdFill(pts, x, y, threshold, mode) {
     var yT = y(threshold);
+    var isAbove = mode === 'above';
     var out = '';
     for (var i = 0; i < pts.length - 1; i++) {
       var v0 = pts[i].v, v1 = pts[i + 1].v;
-      if (v0 <= threshold && v1 <= threshold) continue;
+      var bothInside = isAbove ? (v0 <= threshold && v1 <= threshold) : (v0 >= threshold && v1 >= threshold);
+      if (bothInside) continue;
       var x0 = x(i), x1 = x(i + 1);
       var startX = x0, startY = y(v0);
       var endX = x1, endY = y(v1);
-      if (v0 < threshold) {
+      var clip0 = isAbove ? v0 < threshold : v0 > threshold;
+      var clip1 = isAbove ? v1 < threshold : v1 > threshold;
+      if (clip0) {
         var t0 = (threshold - v0) / (v1 - v0);
         startX = x0 + t0 * (x1 - x0);
         startY = yT;
       }
-      if (v1 < threshold) {
+      if (clip1) {
         var t1 = (threshold - v0) / (v1 - v0);
         endX = x0 + t1 * (x1 - x0);
         endY = yT;
       }
-      out += '<polygon class="ff-rsi-fill" points="'
+      out += '<polygon class="ff-rsi-fill ff-rsi-fill-' + mode + '" points="'
         + startX.toFixed(1) + ',' + yT.toFixed(1) + ' '
         + startX.toFixed(1) + ',' + startY.toFixed(1) + ' '
         + endX.toFixed(1) + ',' + endY.toFixed(1) + ' '
@@ -2547,7 +2552,8 @@
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(70) + 4).toFixed(1) + '" text-anchor="end">70</text>';
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(30) + 4).toFixed(1) + '" text-anchor="end">30</text>';
     svg += rsiAxisLabels(pts, x, RATIO_H - 8);
-    svg += buildRsiOverboughtFill(pts, x, y, 70);
+    svg += buildRsiThresholdFill(pts, x, y, 70, 'above');
+    svg += buildRsiThresholdFill(pts, x, y, 30, 'below');
     svg += '<polyline class="ff-line-rsi" points="' + linePts + '"/>';
     svg += '</svg>';
 
@@ -2558,7 +2564,8 @@
     return '<div class="ff-chart-title">RSI(14)</div>'
       + '<div class="ff-chart ff-chart-rsi">' + svg
       + '<div class="ff-legend"><span class="ff-legend-item"><i class="ff-dot" style="background:#666"></i>RSI(14) <span class="' + cls + '">' + last.toFixed(1) + ' · ' + label + '</span></span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>70 이상(과매수)</span></div>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>70 이상(과매수)</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>30 이하(과매도)</span></div>'
       + '</div>';
   }
 
