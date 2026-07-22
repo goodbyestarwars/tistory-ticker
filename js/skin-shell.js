@@ -45,7 +45,20 @@
 
     /* 세부 카테고리 서브 필터 바 - skin-main.js가 채움 */
     subFilterBar:
-      '<div class="sub-filter-bar" id="subFilterBar" style="display:none;"></div>'
+      '<div class="sub-filter-bar" id="subFilterBar" style="display:none;"></div>',
+
+    /* 사이트 하단 푸터: 표준 4종 링크(이용약관/개인정보처리방침/오픈소스 라이선스/문의하기).
+       이용약관·개인정보처리방침·오픈소스 라이선스는 /page/terms, /page/privacy,
+       /page/opensource-license 티스토리 페이지로 연결(2026-07-22 신설), 문의하기는 mailto. */
+    footer:
+      '<footer class="site-footer">' +
+        '<nav class="site-footer-links">' +
+          '<a href="/page/terms">서비스 이용약관</a>' +
+          '<a href="/page/privacy">개인정보처리방침</a>' +
+          '<a href="/page/opensource-license">오픈소스 라이선스</a>' +
+          '<a href="mailto:goodbyestarwars@gmail.com">문의하기</a>' +
+        '</nav>' +
+      '</footer>'
   };
 
   Object.keys(SHELL).forEach(function (key) {

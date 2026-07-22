@@ -1739,6 +1739,34 @@ a { text-decoration: none; color: inherit; }
   line-height: 1.8;
 }
 
+/* ============ SITE FOOTER ============ */
+.site-footer {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 12px;
+  padding: 18px 16px 32px;
+  text-align: center;
+}
+.site-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 6px;
+  font-size: 12px;
+}
+.site-footer-links a {
+  color: #94a3b8;
+  text-decoration: none;
+  padding: 0 12px;
+  border-right: 1px solid #e5e7eb;
+  transition: color .15s;
+}
+.site-footer-links a:last-child { border-right: none; }
+.site-footer-links a:hover { color: #374151; }
+html.dark .site-footer { border-top-color: #263048; }
+html.dark .site-footer-links a { color: #6b7889; border-right-color: #263048; }
+html.dark .site-footer-links a:hover { color: #d3dbe8; }
+body.iframe-mode .site-footer { display: none !important; }
+
 /* ============ DISCLOSURE TICKER ============ */
 /* 2026-07-17(9차): 별도 고정 바였던 공시 티커를 관심지수 바(js/quick-indices.js)의
    "긴급속보" 패널로 흡수 - 관련 스타일은 css/quick-indices.css의 .qi-news* 참고. */
