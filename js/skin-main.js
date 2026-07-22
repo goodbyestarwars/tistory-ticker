@@ -570,24 +570,109 @@
       }
     }
 
+    /* 이벤트 제목 규칙 파싱: "$종목명 나머지텍스트 | 태그"
+       - "$종목명"으로 시작 → 실적발표 등 종목 이벤트로 인식, 종목명을 뱃지로 분리 표시
+       - 국기 이모지(🇺🇸 등)로 시작 → 해외 지표로 인식
+       - "|" 뒤는 "관심"/"주요" 같은 태그로 분리 표시
+       입력 규칙은 구글 캘린더에 일정 등록할 때 사람이 직접 지킴(자동 감지 아님) */
+    function parseCalEvent(rawTitle) {
+      var segs = String(rawTitle || '').split('|').map(function(s) { return s.trim(); });
+      var head = segs[0] || '';
+      var tag  = segs[1] || '';
+      var stockMatch = head.match(/^\$(\S+)\s*(.*)$/);
+      var flagMatch  = !stockMatch && head.match(/^(\p{Regional_Indicator}{2})\s*(.*)$/u);
+      return {
+        isStock: !!stockMatch,
+        isForeign: !!flagMatch,
+        stockName: stockMatch ? stockMatch[1] : null,
+        text: stockMatch ? stockMatch[2] : (flagMatch ? flagMatch[2] : head),
+        flag: flagMatch ? flagMatch[1] : null,
+        tag: tag
+      };
+    }
+
+    function escapeCalHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function renderCalFilterChip(group, val, label, current) {
+      return '<button type="button" class="cal-filter-chip' + (current === val ? ' active' : '') +
+        '" data-group="' + group + '" data-val="' + val + '">' + label + '</button>';
+    }
+
+    function renderCalEventRow(ev, meta) {
+      var time = '';
+      if (ev.start.indexOf('T') !== -1) {
+        var dt = new Date(ev.start);
+        time = dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
+      }
+      var iconClass, iconHtml;
+      if (meta.isStock) {
+        iconClass = 'cal-ev-icon stock';
+        iconHtml  = escapeCalHtml((meta.stockName || '').slice(0, 2));
+      } else if (meta.isForeign) {
+        iconClass = 'cal-ev-icon flag';
+        iconHtml  = meta.flag;
+      } else {
+        iconClass = 'cal-ev-icon default';
+        iconHtml  = '📅';
+      }
+      var titleHtml = meta.isStock
+        ? '<strong class="cal-ev-ticker">$' + escapeCalHtml(meta.stockName) + '</strong> ' + escapeCalHtml(meta.text)
+        : escapeCalHtml(meta.text);
+      var tagHtml = meta.tag ? '<span class="cal-ev-tag">' + escapeCalHtml(meta.tag) + '</span>' : '';
+      return '<a href="' + (ev.link || '#') + '" target="_blank" class="cal-ev-item">' +
+        '<span class="' + iconClass + '">' + iconHtml + '</span>' +
+        '<span class="cal-ev-body"><span class="cal-ev-title">' + titleHtml + tagHtml + '</span></span>' +
+        '<span class="cal-ev-time">' + (time || '종일') + '</span>' +
+      '</a>';
+    }
+
     function showEvents(day, evs) {
       var list = document.getElementById(ids.eventList);
       if (!list) return;
-      list.innerHTML = '<div class="cal-ev-date">' + (curMonth + 1) + '월 ' + day + '일</div>';
-      evs.forEach(function(ev) {
-        var a = document.createElement('a');
-        a.href = ev.link || '#';
-        a.target = '_blank';
-        a.className = 'cal-ev-item';
-        var time = '';
-        if (ev.start.includes('T')) {
-          var dt = new Date(ev.start);
-          time = dt.getHours() + ':' + String(dt.getMinutes()).padStart(2,'0');
-        }
-        a.innerHTML = '<span class="cal-ev-time">' + (time || '종일') + '</span><span class="cal-ev-title">' + ev.title + '</span>';
-        list.appendChild(a);
-      });
-      list.style.display = 'block';
+      var parsed = evs.map(function(ev) { return { ev: ev, meta: parseCalEvent(ev.title) }; });
+      var filterCat    = 'all'; /* all | econ | earnings */
+      var filterRegion = 'all'; /* all | domestic | foreign */
+
+      function render() {
+        var rows = parsed.filter(function(p) {
+          if (filterCat === 'earnings' && !p.meta.isStock) return false;
+          if (filterCat === 'econ' && p.meta.isStock) return false;
+          if (filterRegion === 'foreign' && !p.meta.isForeign) return false;
+          if (filterRegion === 'domestic' && p.meta.isForeign) return false;
+          return true;
+        });
+        var html = '<div class="cal-ev-date">' + (curMonth + 1) + '월 ' + day + '일'
+          + ' <span class="cal-ev-count">' + rows.length + '건</span></div>';
+        html += '<div class="cal-filter-row">'
+          + renderCalFilterChip('cat', 'all', '전체', filterCat)
+          + renderCalFilterChip('cat', 'econ', '경제지표', filterCat)
+          + renderCalFilterChip('cat', 'earnings', '실적', filterCat)
+          + '</div>';
+        html += '<div class="cal-filter-row">'
+          + renderCalFilterChip('region', 'all', '전체', filterRegion)
+          + renderCalFilterChip('region', 'domestic', '국내', filterRegion)
+          + renderCalFilterChip('region', 'foreign', '해외', filterRegion)
+          + '</div>';
+        html += '<div class="cal-ev-rows">';
+        html += rows.length
+          ? rows.map(function(p) { return renderCalEventRow(p.ev, p.meta); }).join('')
+          : '<div class="cal-ev-empty">해당하는 일정이 없습니다.</div>';
+        html += '</div>';
+        list.innerHTML = html;
+        list.style.display = 'block';
+        list.querySelectorAll('.cal-filter-chip').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            if (btn.dataset.group === 'cat') filterCat = btn.dataset.val;
+            else filterRegion = btn.dataset.val;
+            render();
+          });
+        });
+      }
+
+      render();
     }
 
     function load() {
