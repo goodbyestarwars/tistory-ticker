@@ -2,6 +2,8 @@
 """공매도(ka10014)/대차거래(ka20068)/연기금(ka10059) 조회 + 지표 계산.
 scripts/fetch_investor_flow.py의 계산 로직을 그대로 포팅(수치 조건 동일, AI 임의판단 없음)."""
 
+import base64
+import binascii
 import logging
 import re
 import time
@@ -24,7 +26,9 @@ LOOKBACK_DAYS = 100
 # (연장되면 그날 또 공시가 뜸) 이 정도면 충분히 근접한 근사.
 DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec'
 SHORT_OVERHEAT_KEYWORD = '공매도 과열'
-_DISC_HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+# kiwoom_client.COMMON_HEADERS와 동일한 값(실제 브라우저 UA로 검증된 값) - 굳이 다른
+# 문자열을 새로 쓸 이유가 없어 그대로 맞춤.
+_DISC_HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'}
 
 
 def _disc_extract_tag(chunk, tag):
@@ -54,7 +58,14 @@ def _disc_extract_corp(title):
 def _fetch_disclosure_items():
     """KRX 공시 RSS(js/quick-indices.js와 동일 GAS) 파싱. 실패해도 빈 리스트로 조용히
     폴백(safeCall 패턴) - 이 게이트는 "되면 보너스"고, 실패해도 아래 압박점수(100점)
-    계산 자체엔 영향 없어야 한다."""
+    계산 자체엔 영향 없어야 한다.
+
+    2026-07-22 버그 수정: 처음엔 응답이 '<'로 시작 안 하면 그냥 빈 리스트로 스킵했는데,
+    js/quick-indices.js의 discParseXML 호출부(loadDisclosures)를 다시 보니 이게 "혹시 모를
+    예외"가 아니라 실제로 쓰이는 정상 분기였다 - GAS가 XML을 그대로 안 주고 base64로 인코딩해
+    줄 때가 있어(원인 불명, 구버전 포맷 추정) 프론트는 atob()로 디코드 후 파싱한다. 이걸
+    안 하면 "삼천당제약" 공시가 실제로 피드에 있어도 매번 빈 리스트만 받아서 위험 게이트가
+    항상 조용히 꺼져 있었을 것 - 실측(사용자: "보통으로 뜨는데?")과 정확히 일치하는 증상."""
     try:
         req = urllib.request.Request(DISC_GAS_URL + '?market=0', headers=_DISC_HEADERS)
         with urllib.request.urlopen(req, timeout=8) as res:
@@ -64,8 +75,17 @@ def _fetch_disclosure_items():
         return []
 
     text = text.strip().lstrip('﻿')
+    if not text:
+        return []
     if not text.startswith('<'):
-        return []  # market=0이 XML이 아닌 base64(구버전 포맷)를 줄 때 - 이 게이트에선 그냥 스킵
+        try:
+            decoded = base64.b64decode(re.sub(r'\s', '', text))
+            text = decoded.decode('utf-8', 'ignore')
+        except (binascii.Error, ValueError) as e:
+            logger.warning('공시 RSS base64 디코드 실패 - 위험 승격 게이트 건너뜀: %s', e)
+            return []
+    if not text.startswith('<'):
+        return []
 
     items = []
     for chunk in text.split('<item>')[1:]:
