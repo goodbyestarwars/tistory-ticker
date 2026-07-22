@@ -74,6 +74,14 @@
     return dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
   }
 
+  /* "M/D" 형식 - 주차 리스트는 여러 날짜가 섞여 있어 행마다 날짜를 밝혀야 함(사용자 요청) */
+  function dateLabelOf(ev) {
+    var datePart = ev.start.slice(0, 10); /* "YYYY-MM-DD" */
+    var m = parseInt(datePart.slice(5, 7), 10);
+    var d = parseInt(datePart.slice(8, 10), 10);
+    return m + '/' + d;
+  }
+
   function renderEventRow(ev) {
     var meta = parseEvent(ev.title);
     var iconClass, iconHtml;
@@ -92,6 +100,7 @@
       : escapeHtml(meta.text);
     var tagHtml = meta.tag ? '<span class="sc-ev-tag">' + escapeHtml(meta.tag) + '</span>' : '';
     return '<a href="' + (ev.link || '#') + '" target="_blank" class="sc-ev-item">'
+      + '<span class="sc-ev-date">' + dateLabelOf(ev) + '</span>'
       + '<span class="' + iconClass + '">' + iconHtml + '</span>'
       + '<span class="sc-ev-body"><span class="sc-ev-title">' + titleHtml + tagHtml + '</span></span>'
       + '<span class="sc-ev-time">' + timeOf(ev) + '</span>'
