@@ -1771,105 +1771,6 @@ body.iframe-mode .site-footer { display: none !important; }
 /* 2026-07-17(9차): 별도 고정 바였던 공시 티커를 관심지수 바(js/quick-indices.js)의
    "긴급속보" 패널로 흡수 - 관련 스타일은 css/quick-indices.css의 .qi-news* 참고. */
 
-/* ============ GOOGLE CALENDAR WIDGET ============ */
-.cal-widget { padding: 14px; }
-.cal-widget-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 10px;
-}
-.cal-widget-title {
-  font-size: 12px; font-weight: 700; color: #0d1b40;
-}
-.cal-nav {
-  width: 22px; height: 22px; border-radius: 50%;
-  border: 1px solid #e2e8f0; background: #fff;
-  font-size: 14px; color: #64748b; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.15s;
-}
-.cal-nav:hover { background: #eef2ff; color: #6366f1; border-color: #c7d2fe; }
-.cal-dow {
-  display: grid; grid-template-columns: repeat(7,1fr);
-  margin-bottom: 4px;
-}
-.cal-dow span {
-  text-align: center; font-size: 9px; font-weight: 700;
-  color: #94a3b8; padding: 2px 0;
-}
-.cal-grid {
-  display: grid; grid-template-columns: repeat(7,1fr); gap: 2px;
-}
-.cal-day {
-  height: 26px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  border-radius: 6px; position: relative;
-  font-size: 10px; color: #334155; cursor: default;
-  transition: background 0.12s;
-}
-.cal-day.cal-has-event { cursor: pointer; }
-.cal-day.cal-has-event:hover { background: #eef2ff; }
-.cal-day.cal-today {
-  background: #6366f1; color: #fff !important; font-weight: 700;
-}
-.cal-day.cal-today .cal-dot { background: #fff !important; }
-.cal-dot {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: #d97706; position: absolute; bottom: 2px;
-}
-.cal-event-list {
-  margin-top: 8px; padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
-}
-.cal-ev-date {
-  font-size: 11px; font-weight: 700; color: #0d1b40; margin-bottom: 8px;
-  display: flex; align-items: baseline; gap: 6px;
-}
-.cal-ev-count { font-size: 9px; font-weight: 500; color: #94a3b8; }
-.cal-filter-row {
-  display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap;
-}
-.cal-filter-chip {
-  padding: 3px 9px; font-size: 9.5px; font-weight: 600;
-  border-radius: 20px; border: none; background: #f1f5f9; color: #64748b;
-  cursor: pointer; transition: background .12s, color .12s; white-space: nowrap;
-}
-.cal-filter-chip:hover { background: #e0e7ff; color: #4338ca; }
-.cal-filter-chip.active { background: #6366f1; color: #fff; }
-.cal-ev-rows { display: flex; flex-direction: column; gap: 3px; }
-.cal-ev-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 7px; border-radius: 9px; text-decoration: none;
-  background: #f8fafc;
-  transition: background 0.12s;
-}
-.cal-ev-item:hover { background: #eef2ff; }
-.cal-ev-icon {
-  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 700; line-height: 1;
-}
-.cal-ev-icon.stock { background: #eef2ff; color: #4338ca; }
-.cal-ev-icon.flag { background: #f1f5f9; font-size: 12px; }
-.cal-ev-icon.default { background: #f1f5f9; font-size: 11px; }
-.cal-ev-body { flex: 1; min-width: 0; }
-.cal-ev-time {
-  font-size: 9px; color: #94a3b8; white-space: nowrap; flex-shrink: 0;
-}
-.cal-ev-title {
-  font-size: 10px; color: #334155; line-height: 1.4;
-}
-.cal-ev-ticker { color: #4338ca; }
-.cal-ev-tag {
-  margin-left: 5px; font-size: 8.5px; font-weight: 600; color: #6366f1;
-  background: #eef2ff; padding: 1px 6px; border-radius: 8px;
-}
-.cal-ev-empty {
-  font-size: 10px; color: #94a3b8; padding: 10px 0; text-align: center;
-}
-.cal-loading {
-  text-align: center; font-size: 10px; color: #94a3b8; padding: 12px 0;
-}
-
 /* ============ 반응형 ============ */
 @media (max-width: 1100px) {
   .sidebar-right { display: none; }
@@ -2208,31 +2109,6 @@ body.iframe-mode .notice-card { border-radius: 0; }
   .nm-card.nm-wide { width: 100%; height: 94vh; }
 }
 
-/* 증시캘린더 모달(openCalendarModal) — 다른 모달과 달리 높이는 내용에 맞춰 자동 */
-.nm-card.nm-calendar-card { width: min(560px, 92vw); height: auto; max-height: 85vh; }
-.cal-modal-body { padding: 20px 24px 24px; overflow-y: auto; }
-.cal-modal-body .cal-widget-header { margin-bottom: 16px; }
-.cal-modal-body .cal-widget-title { font-size: 18px; }
-.cal-modal-body .cal-nav { width: 32px; height: 32px; font-size: 18px; }
-.cal-modal-body .cal-dow span { font-size: 12px; padding: 6px 0; }
-.cal-modal-body .cal-grid { gap: 6px; }
-.cal-modal-body .cal-day { height: 54px; font-size: 15px; border-radius: 10px; }
-.cal-modal-body .cal-dot { width: 6px; height: 6px; bottom: 6px; }
-.cal-modal-body .cal-event-list { margin-top: 16px; padding-top: 16px; }
-.cal-modal-body .cal-ev-date { font-size: 14px; }
-.cal-modal-body .cal-ev-count { font-size: 11px; }
-.cal-modal-body .cal-filter-chip { padding: 5px 12px; font-size: 12px; }
-.cal-modal-body .cal-ev-item { padding: 10px 12px; border-radius: 12px; gap: 10px; }
-.cal-modal-body .cal-ev-icon { width: 28px; height: 28px; font-size: 11px; }
-.cal-modal-body .cal-ev-icon.flag, .cal-modal-body .cal-ev-icon.default { font-size: 14px; }
-.cal-modal-body .cal-ev-time { font-size: 12px; }
-.cal-modal-body .cal-ev-title { font-size: 13px; }
-.cal-modal-body .cal-ev-tag { font-size: 10px; padding: 2px 8px; }
-@media (max-width: 600px) {
-  .nm-card.nm-calendar-card { width: 100%; max-height: 90vh; }
-  .cal-modal-body .cal-day { height: 42px; }
-}
-
 .nm-scale-wrap { flex: 1; overflow-x: hidden; overflow-y: auto; position: relative; }
 .nm-scale-inner { position: relative; }
 .nm-iframe-fixed {
@@ -2292,7 +2168,6 @@ html.dark .notice-card {
 html.dark .post-title,
 html.dark .post-single-title,
 html.dark .sidebar-title,
-html.dark .cal-widget-title,
 html.dark .guest-title,
 html.dark .stat-item-num,
 html.dark .related-title { color: #ffffff; }
@@ -2463,27 +2338,6 @@ html.dark .cat-custom-list li > a.active { background: #2e2a78; color: #a5b4fc; 
 html.dark .cat-cnt,
 html.dark .cat-section ul li > a span:not(.cat-dot) { background: #2b3852; color: #aeb9cc; }
 html.dark .cat-icon { stroke: #dbe4f2; } /* 왼쪽 페이지 메뉴 아이콘 다크모드 색과 동일 */
-
-/* 캘린더 위젯 */
-html.dark .cal-nav { background: #1c2739; border-color: #2e3b55; color: #9aa8c0; }
-html.dark .cal-nav:hover { background: #2a3467; color: #818cf8; border-color: #3b5bab; }
-html.dark .cal-day { color: #d3dbe8; }
-html.dark .cal-day.cal-has-event:hover { background: #2a3467; }
-html.dark .cal-ev-title { color: #dbe4f2; }
-html.dark .cal-event-list { border-top-color: #263048; }
-html.dark .cal-ev-date { color: #a5b4fc; }
-html.dark .cal-ev-count { color: #6b7a99; }
-html.dark .cal-ev-item { background: #1c2739; }
-html.dark .cal-ev-item:hover { background: #2a3467; }
-html.dark .cal-ev-time { color: #8091ab; }
-html.dark .cal-filter-chip { background: #1c2739; color: #9aa8c0; }
-html.dark .cal-filter-chip:hover { background: #2a3467; color: #a5b4fc; }
-html.dark .cal-filter-chip.active { background: #6366f1; color: #fff; }
-html.dark .cal-ev-icon.stock { background: #2a3467; color: #a5b4fc; }
-html.dark .cal-ev-icon.flag, html.dark .cal-ev-icon.default { background: #1c2739; }
-html.dark .cal-ev-ticker { color: #a5b4fc; }
-html.dark .cal-ev-tag { background: #2a3467; color: #a5b4fc; }
-html.dark .cal-ev-empty { color: #6b7a99; }
 
 /* 방문자 통계 */
 html.dark .stat-item.today { background: #2a3467; }

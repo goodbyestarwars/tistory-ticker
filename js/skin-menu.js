@@ -81,10 +81,13 @@
       icon: '<line x1="7" y1="3" x2="7" y2="21"/><rect x="4" y="8" width="6" height="7"/><line x1="17" y1="3" x2="17" y2="21"/><rect x="14" y="5" width="6" height="9"/>'
     },
     {
-      href: 'javascript:void(0)',
+      // TODO(2026-07-22): 실제 페이지 URL 미확정 - 사용자가 티스토리에서 새 페이지를
+      // 만든 뒤(js/stock-calendar.js + css/stock-calendar.css + <div id="stock-calendar">
+      // 임베드) 실제 URL로 교체 필요(js/kospi-futures.js 최초 추가 때와 동일한 패턴).
+      // 예전엔 중앙 모달(openCalendarModal, js/skin-main.js)이었으나 독립 페이지로 전환.
+      href: '/pages/stock-calendar',
       label: '증시캘린더',
       bold: true,
-      onclick: 'openCalendarModal()', // skin-main.js에 정의 - 중앙 모달로 큰 달력을 띄움
       icon: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'
     },
     {

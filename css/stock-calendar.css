@@ -1,0 +1,119 @@
+/* ============ 증시캘린더 (독립 페이지, js/stock-calendar.js) ============
+   상승=빨강(#d24f45)/하락=파랑(#1261c4) 사이트 공통색과 별개로, 이 위젯은 캘린더
+   본연의 색(일요일 빨강/토요일 파랑, 인디고 포인트)을 그대로 쓴다.
+   다크모드는 html.dark #stock-calendar ... !important (9bolt 스킨 블랑켓 규칙 대응) */
+
+#stock-calendar { font-size: 14px; }
+
+#stock-calendar .sc-layout {
+  display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
+}
+
+/* ── 좌측: 월 달력 ── */
+#stock-calendar .sc-cal-col {
+  flex: 0 0 320px; max-width: 100%;
+  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;
+  padding: 18px;
+}
+#stock-calendar .sc-cal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+#stock-calendar .sc-cal-title { font-size: 16px; font-weight: 700; color: #0d1b40; }
+#stock-calendar .sc-nav {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid #e2e8f0; background: #fff;
+  font-size: 16px; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+#stock-calendar .sc-nav:hover { background: #eef2ff; color: #6366f1; border-color: #c7d2fe; }
+#stock-calendar .sc-dow {
+  display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 6px;
+}
+#stock-calendar .sc-dow span {
+  text-align: center; font-size: 11px; font-weight: 700; color: #94a3b8; padding: 4px 0;
+}
+#stock-calendar .sc-grid {
+  display: grid; grid-template-columns: repeat(7,1fr); gap: 4px;
+}
+#stock-calendar .sc-day {
+  height: 40px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border-radius: 8px; position: relative;
+  font-size: 13px; color: #334155;
+}
+#stock-calendar .sc-day.sc-today {
+  background: #6366f1; color: #fff !important; font-weight: 700;
+}
+#stock-calendar .sc-day.sc-today .sc-dot { background: #fff !important; }
+#stock-calendar .sc-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: #d97706; position: absolute; bottom: 5px;
+}
+#stock-calendar .sc-loading,
+#stock-calendar .sc-error {
+  text-align: center; font-size: 13px; color: #94a3b8; padding: 40px 0;
+}
+
+/* ── 우측: 주차별 이벤트 리스트 ── */
+#stock-calendar .sc-list-col { flex: 1 1 380px; min-width: 0; }
+#stock-calendar .sc-week { margin-bottom: 22px; }
+#stock-calendar .sc-week:last-child { margin-bottom: 0; }
+#stock-calendar .sc-week-title {
+  font-size: 14px; font-weight: 700; color: #0d1b40; margin-bottom: 8px;
+  padding-bottom: 6px; border-bottom: 2px solid #eef2ff;
+}
+#stock-calendar .sc-week-rows { display: flex; flex-direction: column; gap: 5px; }
+#stock-calendar .sc-ev-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px; text-decoration: none;
+  background: #f8fafc; transition: background 0.12s;
+}
+#stock-calendar .sc-ev-item:hover { background: #eef2ff; }
+#stock-calendar .sc-ev-icon {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; line-height: 1;
+}
+#stock-calendar .sc-ev-icon.stock { background: #eef2ff; color: #4338ca; }
+#stock-calendar .sc-ev-icon.flag { background: #f1f5f9; font-size: 13px; }
+#stock-calendar .sc-ev-icon.default { background: #f1f5f9; font-size: 12px; }
+#stock-calendar .sc-ev-body { flex: 1; min-width: 0; }
+#stock-calendar .sc-ev-title { font-size: 13px; color: #334155; line-height: 1.4; }
+#stock-calendar .sc-ev-ticker { color: #4338ca; }
+#stock-calendar .sc-ev-tag {
+  margin-left: 6px; font-size: 10.5px; font-weight: 600; color: #6366f1;
+  background: #eef2ff; padding: 2px 8px; border-radius: 8px;
+}
+#stock-calendar .sc-ev-time { font-size: 12px; color: #94a3b8; white-space: nowrap; flex-shrink: 0; }
+#stock-calendar .sc-empty {
+  font-size: 13px; color: #94a3b8; padding: 30px 0; text-align: center;
+  background: #f8fafc; border-radius: 10px;
+}
+
+@media (max-width: 720px) {
+  #stock-calendar .sc-cal-col { flex: 1 1 100%; }
+  #stock-calendar .sc-day { height: 34px; font-size: 12px; }
+}
+
+/* ── 다크모드 ── */
+html.dark #stock-calendar .sc-cal-col { background: #182238 !important; border-color: #2e3b55 !important; }
+html.dark #stock-calendar .sc-cal-title,
+html.dark #stock-calendar .sc-week-title { color: #dbe4f2 !important; }
+html.dark #stock-calendar .sc-nav { background: #1c2739 !important; border-color: #2e3b55 !important; color: #9aa8c0 !important; }
+html.dark #stock-calendar .sc-nav:hover { background: #2a3467 !important; color: #818cf8 !important; border-color: #3b5bab !important; }
+html.dark #stock-calendar .sc-day { color: #d3dbe8 !important; }
+html.dark #stock-calendar .sc-week-title { border-bottom-color: #263048 !important; }
+html.dark #stock-calendar .sc-ev-item { background: #1c2739 !important; }
+html.dark #stock-calendar .sc-ev-item:hover { background: #2a3467 !important; }
+html.dark #stock-calendar .sc-ev-title { color: #dbe4f2 !important; }
+html.dark #stock-calendar .sc-ev-time { color: #8091ab !important; }
+html.dark #stock-calendar .sc-ev-icon.stock { background: #2a3467 !important; color: #a5b4fc !important; }
+html.dark #stock-calendar .sc-ev-icon.flag,
+html.dark #stock-calendar .sc-ev-icon.default { background: #1c2739 !important; }
+html.dark #stock-calendar .sc-ev-ticker { color: #a5b4fc !important; }
+html.dark #stock-calendar .sc-ev-tag { background: #2a3467 !important; color: #a5b4fc !important; }
+html.dark #stock-calendar .sc-empty,
+html.dark #stock-calendar .sc-loading,
+html.dark #stock-calendar .sc-error { color: #6b7a99 !important; background: #1c2739 !important; }
