@@ -240,10 +240,57 @@ def compute_ichimoku_score(daily):
     return {'score': cloud_score + cross_score + color_score}
 
 
+# 오늘 거래대금(종가x거래량) / 최근 20일(오늘 제외) 평균 거래대금.
+# js/foreign-flow.js의 computeVolumeMultiple과 동일 공식.
+def compute_volume_multiple(daily):
+    if not daily or len(daily) < 21:
+        return None
+    today = daily[-1]
+    if not today.get('volume'):
+        return None
+    today_amt = today['close'] * today['volume']
+    win = daily[-21:-1]
+    avg_amt = (sum(d['close'] * d['volume'] for d in win) / len(win)) if win else 0
+    if not avg_amt:
+        return None
+    return {'today': today_amt, 'avg20': avg_amt, 'multiple': today_amt / avg_amt}
+
+
+# 거래량 점수(15점 만점) - 단순히 거래량이 많을수록 고득점이 아니라 가격 방향과 같이 본다
+# (급증+상승=강한 확인 15점, 급증+하락=분산·투매 경고 0점). js/foreign-flow.js의
+# computeVolumeScore와 동일 공식으로 유지할 것.
+def compute_volume_score(daily):
+    vm = compute_volume_multiple(daily)
+    if not vm:
+        return {'score': 0}
+    last, prev = daily[-1], daily[-2]
+    change_pct = ((last['close'] - prev['close']) / prev['close'] * 100) if prev.get('close') else 0
+    mult = vm['multiple']
+    if mult >= 2:
+        if change_pct > 0.3:
+            score = 15
+        elif change_pct < -0.3:
+            score = 0
+        else:
+            score = 8
+    elif mult >= 1.3:
+        if change_pct > 0.3:
+            score = 11
+        elif change_pct < -0.3:
+            score = 4
+        else:
+            score = 7
+    elif mult >= 0.7:
+        score = 7
+    else:
+        score = 5
+    return {'score': score}
+
+
 def compute_tech_score(daily):
-    """이동평균 배열(30) + 지지선 근접도(20) + 저항선 근접도(20) + 일목균형표(30) = 0~100점.
-    js/foreign-flow.js의 computeTechnicalScore와 동일 공식 - 종목분석/투자시그널 등급이
-    어긋나지 않으려면 두 구현을 같이 고칠 것."""
+    """이동평균(25) + 지지선 근접도(15) + 저항선 근접도(15) + 일목균형표(30) + 거래량(15)
+    = 0~100점. js/foreign-flow.js의 computeTechnicalScore와 동일 공식 - 종목분석/투자시그널
+    등급이 어긋나지 않으려면 두 구현을 같이 고칠 것."""
     if not daily or len(daily) < 60:
         return None
     close = daily[-1]['close']
@@ -258,11 +305,11 @@ def compute_tech_score(daily):
     ma_score = 0
     if ma5 is not None and ma20 is not None and ma60 is not None:
         if ma5 > ma20 > ma60:
-            ma_score = 30
+            ma_score = 25
         elif ma20 > ma60:
-            ma_score = 20
+            ma_score = 17
         elif ma5 > ma20:
-            ma_score = 10
+            ma_score = 8
 
     levels = compute_support_resistance(daily)
     support = levels['support']
@@ -273,11 +320,11 @@ def compute_tech_score(daily):
         if sup_gap < 0:
             sup_score = 0
         elif sup_gap <= 2:
-            sup_score = 20
+            sup_score = 15
         elif sup_gap <= 5:
-            sup_score = 12
+            sup_score = 9
         elif sup_gap <= 8:
-            sup_score = 6
+            sup_score = 4
 
     resistance = levels['resistance']
     res_score = 0
@@ -285,15 +332,16 @@ def compute_tech_score(daily):
         nearest_res = min(resistance, key=lambda b: abs(b - close))
         res_gap = (nearest_res - close) / close * 100
         if res_gap < 0:
-            res_score = 20
+            res_score = 15
         elif res_gap <= 3:
-            res_score = 12
+            res_score = 9
         elif res_gap <= 8:
-            res_score = 6
+            res_score = 4
 
     ichi_score = compute_ichimoku_score(daily)['score']
+    vol_score = compute_volume_score(daily)['score']
 
-    return {'score': ma_score + sup_score + res_score + ichi_score}
+    return {'score': ma_score + sup_score + res_score + ichi_score + vol_score}
 
 
 def build_pattern_match(stock, daily, detail):

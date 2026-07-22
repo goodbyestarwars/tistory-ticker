@@ -1437,8 +1437,10 @@
     };
   }
 
-  // 이동평균 배열(30) + 지지선 근접도(20) + 저항선 근접도(20) + 일목균형표(30) = 0~100점.
-  // (기존 40/30/30 배분에 일목균형표를 더하며 100점 총합을 유지하도록 재배분함).
+  // 이동평균(25) + 지지선 근접도(15) + 저항선 근접도(15) + 일목균형표(30) + 거래량(15) = 0~100점.
+  // (2026-07-22: 거래량을 5번째 항목으로 추가하며 기존 30/20/20/30에서 5점씩 걷어 15점을
+  // 새로 배정 - 일목균형표는 이미 3개 신호(구름/교차/색)를 종합한 지표라 30점 그대로 유지).
+  // scripts/cloud-vm/pattern_detect.py의 compute_tech_score와 배점을 반드시 일치시킬 것.
   // 차트 데이터(?action=flowChart)가 없으면 null.
   function computeTechnicalScore(chartData) {
     if (!chartData || chartData.error || !chartData.daily || !chartData.daily.length) return null;
@@ -1450,9 +1452,9 @@
 
     var maScore = 0, maLabel = '데이터 부족';
     if (ma5 != null && ma20 != null && ma60 != null) {
-      if (ma5 > ma20 && ma20 > ma60) { maScore = 30; maLabel = '정배열'; }
-      else if (ma20 > ma60) { maScore = 20; maLabel = '20일선 > 60일선'; }
-      else if (ma5 > ma20) { maScore = 10; maLabel = '5일선만 상향'; }
+      if (ma5 > ma20 && ma20 > ma60) { maScore = 25; maLabel = '정배열'; }
+      else if (ma20 > ma60) { maScore = 17; maLabel = '20일선 > 60일선'; }
+      else if (ma5 > ma20) { maScore = 8; maLabel = '5일선만 상향'; }
       else { maScore = 0; maLabel = '역배열'; }
     }
 
@@ -1462,9 +1464,9 @@
       var nearestSup = support.reduce(function (a, b) { return Math.abs(b - close) < Math.abs(a - close) ? b : a; });
       var supGap = (close - nearestSup) / nearestSup * 100;
       if (supGap < 0) { supScore = 0; supLabel = '지지선 이탈'; }
-      else if (supGap <= 2) { supScore = 20; supLabel = '지지선 ±2% 이내'; }
-      else if (supGap <= 5) { supScore = 12; supLabel = '지지선 ±5% 이내'; }
-      else if (supGap <= 8) { supScore = 6; supLabel = '지지선 ±8% 이내'; }
+      else if (supGap <= 2) { supScore = 15; supLabel = '지지선 ±2% 이내'; }
+      else if (supGap <= 5) { supScore = 9; supLabel = '지지선 ±5% 이내'; }
+      else if (supGap <= 8) { supScore = 4; supLabel = '지지선 ±8% 이내'; }
       else { supScore = 0; supLabel = '지지선과 거리 있음'; }
     }
 
@@ -1474,20 +1476,22 @@
       var nearestRes = resistance.reduce(function (a, b) { return Math.abs(b - close) < Math.abs(a - close) ? b : a; });
       var resGap = (nearestRes - close) / close * 100;
       // "저항 접근 중" 상한(8%)은 지시서 표에 정확한 경계값이 없어 3%(15점) 다음 구간으로 잡은 값
-      if (resGap < 0) { resScore = 20; resLabel = '저항 돌파'; }
-      else if (resGap <= 3) { resScore = 12; resLabel = '저항 3% 이내'; }
-      else if (resGap <= 8) { resScore = 6; resLabel = '저항 접근 중'; }
+      if (resGap < 0) { resScore = 15; resLabel = '저항 돌파'; }
+      else if (resGap <= 3) { resScore = 9; resLabel = '저항 3% 이내'; }
+      else if (resGap <= 8) { resScore = 4; resLabel = '저항 접근 중'; }
       else { resScore = 0; resLabel = '저항 아래 멀리'; }
     }
 
     var ichi = computeIchimokuScore(daily);
+    var vol = computeVolumeScore(daily);
 
     return {
-      score: maScore + supScore + resScore + ichi.score,
+      score: maScore + supScore + resScore + ichi.score + vol.score,
       ma: { score: maScore, label: maLabel },
       support: { score: supScore, label: supLabel },
       resistance: { score: resScore, label: resLabel },
-      ichimoku: ichi
+      ichimoku: ichi,
+      volume: vol
     };
   }
 
@@ -2213,10 +2217,11 @@
     } else {
       body = '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
         + buildLwLegend()
-        + buildTechBreakdown(techScore, chartData.daily);
+        + buildTechBreakdown(techScore)
+        + buildRsiSection(chartData.daily);
     }
     return '<div class="ff-extra-card ff-flow-chart-card">'
-      + '<div class="ff-extra-card-title">📉 가격 차트 · 이동평균 · 지지/저항</div>'
+      + '<div class="ff-extra-card-title">📉 가격 차트 · 이동평균 · 지지/저항 · RSI</div>'
       + body
       + '</div>';
   }
@@ -2290,6 +2295,36 @@
     return { today: todayAmt, avg20: avgAmt, multiple: todayAmt / avgAmt };
   }
 
+  // 거래량(거래대금 배수) 점수 - 2026-07-22 신설, 15점 만점.
+  // 단순히 "거래량이 많을수록 고득점"으로 채점하지 않는다 - 거래 급증은 방향과 같이 봐야
+  // 의미가 있고(급증+상승=강한 확인, 급증+하락=분산·투매 경고), 방향 정보 없는 거래량 단독
+  // 수치는 매수 신호로 오독되기 쉽다. scripts/cloud-vm/pattern_detect.py의
+  // compute_volume_score와 동일 공식으로 유지할 것(기술적 점수 전체가 daily_scan 배치와
+  // 어긋나면 안 됨).
+  function computeVolumeScore(daily) {
+    var vm = computeVolumeMultiple(daily);
+    if (!vm) return { score: 0, label: '데이터 부족' };
+    var n = daily.length;
+    var last = daily[n - 1], prev = daily[n - 2];
+    var changePct = (prev && prev.close) ? (last.close - prev.close) / prev.close * 100 : 0;
+    var mult = vm.multiple;
+    var score, label;
+    if (mult >= 2) {
+      if (changePct > 0.3) { score = 15; label = '거래 급증 + 상승(강한 확인)'; }
+      else if (changePct < -0.3) { score = 0; label = '거래 급증 + 하락(분산 경고)'; }
+      else { score = 8; label = '거래 급증(방향 불분명)'; }
+    } else if (mult >= 1.3) {
+      if (changePct > 0.3) { score = 11; label = '거래 증가 + 상승'; }
+      else if (changePct < -0.3) { score = 4; label = '거래 증가 + 하락'; }
+      else { score = 7; label = '거래 다소 증가'; }
+    } else if (mult >= 0.7) {
+      score = 7; label = '평이한 거래량';
+    } else {
+      score = 5; label = '거래 부진';
+    }
+    return { score: score, label: label + ' (' + mult.toFixed(1) + '배)' };
+  }
+
   function volumeMultipleText(vm) {
     if (!vm) return '거래대금 데이터가 부족합니다.';
     return '오늘 거래대금이 20일 평균 대비 ' + vm.multiple.toFixed(1) + '배입니다.';
@@ -2320,39 +2355,69 @@
     return '중앙권';
   }
 
+  // RSI(14) 미니차트 - buildRatioChart와 동일한 SVG 패턴(외부 라이브러리 없음), 0~100 고정 축 +
+  // 30/70 기준선. 2026-07-22: 기술적 점수표 참고행으로 통합했다가 사용자 요청으로 원복.
+  function buildRsiSection(daily) {
+    var rsi = computeRSI(daily, 14);
+    var pts = [];
+    for (var i = 0; i < daily.length; i++) {
+      if (rsi[i] != null) pts.push({ date: daily[i].date, v: rsi[i] });
+    }
+    if (pts.length < 2) return '';
 
-  // 차트 밑에 붙는 설명 + 기술적 점수 채점표(①이평선 30 ②지지선 20 ③저항선 20 ④일목균형표 30)
-  // + 참고지표(RSI·거래량 - 2026-07-22부터 차트 오버레이 대신 여기로 통합, 100점 배점에는
-  // 안 들어감: scripts/cloud-vm/pattern_detect.py의 compute_tech_score와 배점을 계속
-  // 일치시켜야 해서 기존 4항목 배분은 그대로 두고 참고 행만 추가함).
-  function buildTechBreakdown(t, daily) {
+    var n = pts.length;
+    var iw = CHART_W - PAD.l - PAD.r;
+    var ih = RATIO_H - PAD.t - PAD.b;
+    function x(i) { return PAD.l + (i / (n - 1)) * iw; }
+    function y(v) { return PAD.t + (1 - v / 100) * ih; }
+
+    var linePts = pts.map(function (p, i) { return x(i).toFixed(1) + ',' + y(p.v).toFixed(1); }).join(' ');
+
+    var svg = '<svg class="ff-svg" viewBox="0 0 ' + CHART_W + ' ' + RATIO_H + '" role="img" aria-label="RSI(14) 추이">';
+    svg += '<line class="ff-grid ff-rsi-band" x1="' + PAD.l + '" y1="' + y(70).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(70).toFixed(1) + '"/>';
+    svg += '<line class="ff-grid ff-rsi-band" x1="' + PAD.l + '" y1="' + y(30).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(30).toFixed(1) + '"/>';
+    svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(70) + 4).toFixed(1) + '" text-anchor="end">70</text>';
+    svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(30) + 4).toFixed(1) + '" text-anchor="end">30</text>';
+    svg += rsiAxisLabels(pts, x, RATIO_H - 8);
+    svg += '<polyline class="ff-line-rsi" points="' + linePts + '"/>';
+    svg += '</svg>';
+
+    var last = pts[n - 1].v;
+    var label = last >= 70 ? '과매수' : last <= 30 ? '과매도' : '중립';
+    var cls = last >= 70 ? 'ff-sell' : last <= 30 ? 'ff-buy' : 'ff-flat';
+
+    return '<div class="ff-chart-title">RSI(14)</div>'
+      + '<div class="ff-chart ff-chart-rsi">' + svg
+      + '<div class="ff-legend"><span class="ff-legend-item"><i class="ff-dot" style="background:#f08c00"></i>RSI(14) <span class="' + cls + '">' + last.toFixed(1) + ' · ' + label + '</span></span></div>'
+      + '</div>';
+  }
+
+  // 차트 밑에 붙는 설명 + 기술적 점수 채점표(①이평선 25 ②지지선 15 ③저항선 15 ④일목균형표 30
+  // ⑤거래량 15 = 100). RSI는 점수에 안 넣고 별도 미니차트(buildRsiSection)로 원복.
+  function buildTechBreakdown(t) {
     if (!t) return '';
     var ichi = t.ichimoku;
     var ichiRow = ichi
       ? '<tr><td>④ 일목균형표</td><td>' + escapeHtml(ichi.cloud.label) + ' · ' + escapeHtml(ichi.cross.label) + ' · ' + escapeHtml(ichi.color.label) + '</td><td>' + ichi.score + '/30</td></tr>'
       : '';
-
-    var rsi = daily ? computeRSI(daily, 14) : null;
-    var rsiLast = null;
-    if (rsi) { for (var i = rsi.length - 1; i >= 0; i--) { if (rsi[i] != null) { rsiLast = rsi[i]; break; } } }
-    var rsiText = rsiLast == null ? '데이터 부족' : rsiLast.toFixed(1) + ' · ' + (rsiLast >= 70 ? '과매수' : rsiLast <= 30 ? '과매도' : '중립');
-    var volMul = daily ? computeVolumeMultiple(daily) : null;
-    var volText = volMul == null ? '데이터 부족' : volMul.multiple.toFixed(1) + '배' + (volMul.multiple >= 2 ? ' · 거래 급증' : '');
+    var vol = t.volume;
+    var volRow = vol
+      ? '<tr><td>⑤ 거래량</td><td>' + escapeHtml(vol.label) + '</td><td>' + vol.score + '/15</td></tr>'
+      : '';
 
     return '<div class="ff-tech">'
       + '<div class="ff-tech-desc">파란 점선=지지선, 빨간 점선=저항선(최근 120영업일 스윙 고점·저점 기준). '
       + '5·20·60·224일 이동평균선이 위에서부터 순서대로 놓이면(정배열) 상승 추세, 반대 순서(역배열)면 하락 추세로 봅니다. '
-      + '일목균형표는 구름 위/아래, 전환선-기준선 교차, 구름 색(양운/음운)을 종합한 점수입니다.</div>'
+      + '일목균형표는 구름 위/아래, 전환선-기준선 교차, 구름 색(양운/음운)을 종합한 점수입니다. '
+      + '거래량은 20일 평균 거래대금 대비 배수를 가격 방향과 같이 봅니다(거래 급증만으로는 고득점 안 됨 - 급증+상승이라야 고득점, 급증+하락은 분산 경고로 0점).</div>'
       + '<table class="ff-tech-table"><thead><tr><th>구분</th><th>상태</th><th>점수</th></tr></thead><tbody>'
-      + '<tr><td>① 이동평균 상태</td><td>' + escapeHtml(t.ma.label) + '</td><td>' + t.ma.score + '/30</td></tr>'
-      + '<tr><td>② 지지선</td><td>' + escapeHtml(t.support.label) + '</td><td>' + t.support.score + '/20</td></tr>'
-      + '<tr><td>③ 저항선</td><td>' + escapeHtml(t.resistance.label) + '</td><td>' + t.resistance.score + '/20</td></tr>'
+      + '<tr><td>① 이동평균 상태</td><td>' + escapeHtml(t.ma.label) + '</td><td>' + t.ma.score + '/25</td></tr>'
+      + '<tr><td>② 지지선</td><td>' + escapeHtml(t.support.label) + '</td><td>' + t.support.score + '/15</td></tr>'
+      + '<tr><td>③ 저항선</td><td>' + escapeHtml(t.resistance.label) + '</td><td>' + t.resistance.score + '/15</td></tr>'
       + ichiRow
+      + volRow
       + '<tr class="ff-tech-total-row"><td colspan="2">기술적 점수</td><td>' + t.score + '/100</td></tr>'
-      + '<tr class="ff-tech-ref-row"><td>RSI(14)</td><td>' + escapeHtml(rsiText) + '</td><td>참고</td></tr>'
-      + '<tr class="ff-tech-ref-row"><td>거래량(20일 평균 거래대금 대비)</td><td>' + escapeHtml(volText) + '</td><td>참고</td></tr>'
       + '</tbody></table>'
-      + '<div class="ff-tech-desc ff-tech-ref-note">RSI·거래량은 참고용 지표로 위 기술적 점수(100점)에는 반영되지 않습니다.</div>'
       + '</div>';
   }
 
@@ -2730,6 +2795,25 @@
   function shortDate(iso) {
     // "2026-07-10" -> "07/10"
     return iso.slice(5, 7) + '/' + iso.slice(8, 10);
+  }
+
+  // RSI 차트는 chartData.daily(최대 500영업일, 약 2년치)를 그대로 쓰기 때문에 순매매/보유율
+  // 차트(40일 안팎)용 shortDate(MM/DD, 연도 생략)를 그대로 쓰면 다른 해의 같은 날짜가 뒤섞여
+  // 보인다 - 연도 2자리를 포함한 별도 포맷을 쓴다.
+  function shortDateWithYear(iso) {
+    // "2026-07-10" -> "26/07/10"
+    return iso.slice(2, 4) + '/' + iso.slice(5, 7) + '/' + iso.slice(8, 10);
+  }
+
+  function rsiAxisLabels(pts, x, textY) {
+    var idxs = [0, Math.floor((pts.length - 1) / 2), pts.length - 1];
+    var out = '';
+    idxs.forEach(function (i, k) {
+      var anchor = k === 0 ? 'start' : (k === 2 ? 'end' : 'middle');
+      out += '<text class="ff-axis" x="' + x(i).toFixed(1) + '" y="' + textY + '" text-anchor="' + anchor + '">'
+        + shortDateWithYear(pts[i].date) + '</text>';
+    });
+    return out;
   }
 
   // ---- 포맷터 ----

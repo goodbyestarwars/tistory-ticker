@@ -448,10 +448,6 @@
 #foreign-flow .ff-tech-table td:first-child { text-align: left; font-weight: 700; }
 #foreign-flow .ff-tech-total-row { font-weight: 700; }
 #foreign-flow .ff-tech-total-row td { background: #f7f7f8; }
-/* RSI·거래량 참고 행(2026-07-22) - 점수에 안 들어가는 걸 시각적으로 구분하기 위해 흐리게 */
-#foreign-flow .ff-tech-ref-row td { color: #888; font-style: italic; }
-#foreign-flow .ff-tech-ref-row td:first-child { font-weight: 400; }
-#foreign-flow .ff-tech-ref-note { margin: 6px 0 0; }
 
 /* ---- 차트 ---- */
 /* ---- 수급 기간 선택(1개월/3개월/6개월/1년, 2026-07-19) ---- */
@@ -504,6 +500,8 @@
    직접 스케치로 지정한 골드/노랑(#fab005)으로 재변경. 얇은 두께(1.4)는 유지. */
 #foreign-flow .ff-line-ind { fill: none; stroke: #fab005; stroke-width: 1.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-ratio { fill: none; stroke: #0ca678; stroke-width: 2.4; stroke-linejoin: round; }
+#foreign-flow .ff-line-rsi { fill: none; stroke: #f08c00; stroke-width: 2.4; stroke-linejoin: round; }
+#foreign-flow .ff-rsi-band { stroke-dasharray: 3 3; }
 /* 2026-07-20: 업종/테마 분리 - 각 줄(.ff-sector-row)이 라벨("업종"/"테마") + 태그 목록을
    한 줄에 놓는다. 예전엔 .ff-sector-tags 하나가 라벨 없이 업종만 보여줬음. */
 #foreign-flow .ff-sector-row {
@@ -791,7 +789,6 @@ html.dark #foreign-flow .ff-bar-axis { stroke: #444 !important; }
 html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }
 html.dark #foreign-flow .ff-bar-label { fill: #888 !important; }
 html.dark #foreign-flow .ff-tech-total-row td { background: #1f1f1f !important; }
-html.dark #foreign-flow .ff-tech-ref-row td { color: #999 !important; }
 
 /* .ff-related-*는 document.body 직속이라 #foreign-flow 스코프 없이 html.dark만으로 잡음 */
 html.dark .ff-related-modal { background: #1c1c1c !important; }

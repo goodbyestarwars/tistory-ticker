@@ -260,11 +260,8 @@
 
   function buildIchimokuLegend() {
     return '<div class="ps-ichimoku-legend"' + (psIchimokuEnabled ? '' : ' hidden') + '>'
-      + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.tenkan + '"></i>전환선(9)</span>'
-      + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.kijun + '"></i>기준선(26)</span>'
       + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.senkouA + '"></i>선행스팬1</span>'
       + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.senkouB + '"></i>선행스팬2</span>'
-      + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.chikou + '"></i>후행스팬</span>'
       + '</div>';
   }
 
@@ -443,11 +440,14 @@
     };
   }
 
+  // 2026-07-22: 전환선/기준선/후행스팬은 구름(선행스팬1·2) 대비 부가 정보라 사용자 요청으로
+  // 화면에서 뺌 - computeIchimoku는 senkouA 계산에 tenkan/kijun이 필요해 그대로 두고, 여기서
+  // 그리는 선만 구름 경계선(선행스팬1·2) 2개로 줄인다.
   function addIchimokuOverlay(daily) {
     if (!psLwcChart || psIchimokuSeries.length || !daily || daily.length < ICHIMOKU_SENKOU_B_PERIOD) return;
     var ichi = computeIchimoku(daily);
     var seriesByKey = {};
-    [['tenkan', ichi.tenkan], ['kijun', ichi.kijun], ['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB], ['chikou', ichi.chikou]].forEach(function (pair) {
+    [['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB]].forEach(function (pair) {
       var key = pair[0], pts = pair[1];
       if (!pts.length) return;
       var series = psLwcChart.addLineSeries({ color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
