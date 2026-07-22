@@ -1730,21 +1730,20 @@ a { text-decoration: none; color: inherit; }
 }
 .tag-pill:hover { background: #e0e7ff; color: #4338ca; }
 
-/* Copyright */
-.copyright {
-  padding: 8px 4px;
-  font-size: 11px;
-  color: #94a3b8;
-  text-align: center;
-  line-height: 1.8;
-}
-
 /* ============ SITE FOOTER ============ */
+/* 링크 4종(.site-footer-links, js/skin-shell.js가 주입) + 카피라이트(.copyright, 티스토리
+   태그가 섞여있어 skin.html에 직접 있음)를 한 행에 배치 - 카피라이트가 "문의하기" 오른쪽에
+   오도록 flex-wrap 행 정렬(2026-07-22, 예전엔 우측 사이드바 하단에 별도로 있었음). */
 .site-footer {
   border-top: 1px solid #e5e7eb;
   margin-top: 12px;
   padding: 18px 16px 32px;
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 16px;
+  row-gap: 8px;
 }
 .site-footer-links {
   display: flex;
@@ -1762,9 +1761,20 @@ a { text-decoration: none; color: inherit; }
 }
 .site-footer-links a:last-child { border-right: none; }
 .site-footer-links a:hover { color: #374151; }
+.copyright {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+  line-height: 1.6;
+  text-decoration: none;
+  transition: color .15s;
+}
+.copyright:hover { color: #374151; text-decoration: underline; }
 html.dark .site-footer { border-top-color: #263048; }
 html.dark .site-footer-links a { color: #6b7889; border-right-color: #263048; }
 html.dark .site-footer-links a:hover { color: #d3dbe8; }
+html.dark .copyright { color: #6b7889; }
+html.dark .copyright:hover { color: #d3dbe8; }
 body.iframe-mode .site-footer { display: none !important; }
 
 /* ============ DISCLOSURE TICKER ============ */
@@ -2103,7 +2113,6 @@ body.iframe-mode .sidebar-right,
 body.iframe-mode .sub-filter-bar,
 body.iframe-mode .pagination,
 body.iframe-mode .guest-section,
-body.iframe-mode .copyright,
 body.iframe-mode .market-ribbon,
 body.iframe-mode .mobile-overlay,
 body.iframe-mode .mobile-search-overlay,
