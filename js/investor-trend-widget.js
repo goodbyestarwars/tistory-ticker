@@ -123,7 +123,7 @@
 
   function load(container) {
     var body = container.querySelector('#itwBody');
-    if (body && !body.querySelector('.itw-day-chart')) {
+    if (body && !body.querySelector('.itw-table-wrap')) {
       body.innerHTML = '<div class="itw-skeleton"></div>';
     }
     var period = state.period;
