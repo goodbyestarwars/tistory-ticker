@@ -28,6 +28,10 @@
   var MA20_COLOR = '#f59e0b';
   var MA60_COLOR = '#8b5cf6';
 
+  // js/foreign-flow.js와 동일한 주기·색상(사이트 전체 일관성) - 일목균형표 토글 전용.
+  var ICHIMOKU_TENKAN_PERIOD = 9, ICHIMOKU_KIJUN_PERIOD = 26, ICHIMOKU_SENKOU_B_PERIOD = 52, ICHIMOKU_DISPLACEMENT = 26;
+  var ICHIMOKU_COLORS = { tenkan: '#d6336c', kijun: '#1971c2', senkouA: '#37b24d', senkouB: '#f08c00', chikou: '#868e96' };
+
   // desc는 각 detect*_ 함수(gas/ticker-proxy.gs)의 판정 조건을 일반 투자자가 읽을 수 있는
   // 말로 옮긴 것 - 목록이 비어 있을 때도(70점 미만이라 노출 종목이 없을 때) 이 패턴이
   // 뭘 찾는 건지는 항상 보이게 하기 위함.
@@ -226,6 +230,8 @@
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
     html += buildScoreBox(data.detail);
+    html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
+    html += buildIchimokuLegend();
     html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
     html += '<div class="ps-footnote">※ 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;
@@ -233,8 +239,33 @@
     var closeBtn = box.querySelector('#psClose');
     if (closeBtn) closeBtn.addEventListener('click', function () { destroyPsChart(); box.hidden = true; box.innerHTML = ''; });
 
+    var ichiToggle = box.querySelector('#psIchimokuToggle');
+    var ichiLegend = box.querySelector('.ps-ichimoku-legend');
+    if (ichiLegend) ichiLegend.hidden = !psIchimokuEnabled;
+    if (ichiToggle) {
+      ichiToggle.addEventListener('change', function () {
+        psIchimokuEnabled = ichiToggle.checked;
+        if (ichiLegend) ichiLegend.hidden = !psIchimokuEnabled;
+        if (psIchimokuEnabled) addIchimokuOverlay(data.daily); else removeIchimokuOverlay();
+      });
+    }
+
     var chartContainer = box.querySelector('#psChart');
     if (chartContainer) renderPatternChart(chartContainer, data.daily, data.pattern, data.detail);
+  }
+
+  // 일목균형표는 패턴별 오버레이(지지/저항/스윙 dot)와 별개의 보조지표라 기본은 꺼둔 채
+  // 체크박스로 켤 수 있게 한다(js/foreign-flow.js와 같은 색상 배정 - 사이트 전체 일관성).
+  var psIchimokuEnabled = false;
+
+  function buildIchimokuLegend() {
+    return '<div class="ps-ichimoku-legend"' + (psIchimokuEnabled ? '' : ' hidden') + '>'
+      + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.tenkan + '"></i>전환선(9)</span>'
+      + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.kijun + '"></i>기준선(26)</span>'
+      + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.senkouA + '"></i>선행스팬1</span>'
+      + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.senkouB + '"></i>선행스팬2</span>'
+      + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.chikou + '"></i>후행스팬</span>'
+      + '</div>';
   }
 
   // 점수 + 원인(부분점수) + AI 한 줄 해석 - 지시서 원칙("결과에는 점수 + 원인 + AI 한 줄 해석을
@@ -279,6 +310,84 @@
       try { psLwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
       psLwcChart = null;
     }
+    psIchimokuSeries = []; // chart.remove()가 시리즈까지 다 정리하므로 참조만 비움
+  }
+
+  // ---- 일목균형표(구름) ----
+  // js/foreign-flow.js의 computeIchimoku와 완전히 동일한 계산(전환선9/기준선26/선행스팬B52/
+  // 26영업일 이동) - 두 페이지가 같은 종목에서 다른 구름을 보여주면 안 되므로 로직을 그대로 옮김.
+  // TODO: 선행스팬1·2 "사이"를 실제로 채워 칠하는 것(진짜 구름 음영)은 Lightweight Charts v4가
+  // 지원하지 않아(두 시리즈 사이 채우기 불가) 선 5개만 그린다 - js/foreign-flow.js에도 동일한
+  // TODO가 있고, v5 업그레이드+커스텀 플러그인이 필요해 사이트 전체 차트 회귀테스트가 걸려
+  // 보류 중(2026-07-16 사용자 결정, git history 참고).
+  function ichimokuPeriodMid(daily, i, period) {
+    var start = i - period + 1;
+    if (start < 0) return null;
+    var hi = -Infinity, lo = Infinity;
+    for (var k = start; k <= i; k++) {
+      if (daily[k].high > hi) hi = daily[k].high;
+      if (daily[k].low < lo) lo = daily[k].low;
+    }
+    return (hi + lo) / 2;
+  }
+
+  function nextBusinessDates(lastDate, count) {
+    var d = new Date(lastDate + 'T00:00:00');
+    var out = [];
+    while (out.length < count) {
+      d.setDate(d.getDate() + 1);
+      var dow = d.getDay();
+      if (dow === 0 || dow === 6) continue;
+      out.push(d.toISOString().slice(0, 10));
+    }
+    return out;
+  }
+
+  function computeIchimoku(daily) {
+    var n = daily.length;
+    var tenkan = new Array(n).fill(null);
+    var kijun = new Array(n).fill(null);
+    for (var i = 0; i < n; i++) {
+      tenkan[i] = ichimokuPeriodMid(daily, i, ICHIMOKU_TENKAN_PERIOD);
+      kijun[i] = ichimokuPeriodMid(daily, i, ICHIMOKU_KIJUN_PERIOD);
+    }
+    var futureDates = nextBusinessDates(daily[n - 1].date, ICHIMOKU_DISPLACEMENT);
+    function timeAt(idx) { return idx < n ? daily[idx].date : futureDates[idx - n]; }
+
+    var tenkanPts = [], kijunPts = [], senkouAPts = [], senkouBPts = [], chikouPts = [];
+    for (var j = 0; j < n; j++) {
+      if (tenkan[j] != null) tenkanPts.push({ time: daily[j].date, value: tenkan[j] });
+      if (kijun[j] != null) kijunPts.push({ time: daily[j].date, value: kijun[j] });
+      if (tenkan[j] != null && kijun[j] != null) {
+        senkouAPts.push({ time: timeAt(j + ICHIMOKU_DISPLACEMENT), value: (tenkan[j] + kijun[j]) / 2 });
+      }
+      var spanB = ichimokuPeriodMid(daily, j, ICHIMOKU_SENKOU_B_PERIOD);
+      if (spanB != null) senkouBPts.push({ time: timeAt(j + ICHIMOKU_DISPLACEMENT), value: spanB });
+      var laggingIdx = j - ICHIMOKU_DISPLACEMENT;
+      if (laggingIdx >= 0) chikouPts.push({ time: daily[laggingIdx].date, value: daily[j].close });
+    }
+    return { tenkan: tenkanPts, kijun: kijunPts, senkouA: senkouAPts, senkouB: senkouBPts, chikou: chikouPts };
+  }
+
+  var psIchimokuSeries = []; // 토글 off 시 이 시리즈들만 골라 제거(캔들/MA/패턴선은 유지)
+
+  function addIchimokuOverlay(daily) {
+    if (!psLwcChart || psIchimokuSeries.length || !daily || daily.length < ICHIMOKU_SENKOU_B_PERIOD) return;
+    var ichi = computeIchimoku(daily);
+    [['tenkan', ichi.tenkan], ['kijun', ichi.kijun], ['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB], ['chikou', ichi.chikou]].forEach(function (pair) {
+      var key = pair[0], pts = pair[1];
+      if (!pts.length) return;
+      var series = psLwcChart.addLineSeries({ color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      series.setData(pts);
+      psIchimokuSeries.push(series);
+    });
+  }
+
+  function removeIchimokuOverlay() {
+    if (psLwcChart) {
+      psIchimokuSeries.forEach(function (s) { try { psLwcChart.removeSeries(s); } catch (e) { /* 이미 제거됐으면 무시 */ } });
+    }
+    psIchimokuSeries = [];
   }
 
   function psThemeOptions() {
@@ -335,6 +444,8 @@
       }
 
       addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
+
+      if (psIchimokuEnabled) addIchimokuOverlay(daily);
 
       chart.timeScale().fitContent();
 

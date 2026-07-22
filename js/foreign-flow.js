@@ -32,7 +32,6 @@
 
   var FCHART_H = 360;
   var MA_COLORS = { ma5: '#e8590c', ma20: '#0ca678', ma60: '#5f3dc4', ma224: '#868e96' };
-  var BOLL_COLOR = '#adb5bd'; // 볼린저밴드 상/하단(중심선=20일선과 겹쳐 별도 표시 안 함)
 
   // TradingView Lightweight Charts(오픈소스, CDN 지연 로드) - 가격 캔들차트 렌더링 엔진.
   // 손으로 그리던 SVG 캔들차트를 대체 - 확대/축소·패닝·크로스헤어를 라이브러리가 제공.
@@ -1327,7 +1326,6 @@
   // ---- 종합 점수 요약 박스 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
 
   var ICHIMOKU_TENKAN_PERIOD = 9, ICHIMOKU_KIJUN_PERIOD = 26, ICHIMOKU_SENKOU_B_PERIOD = 52, ICHIMOKU_DISPLACEMENT = 26;
-  var ICHIMOKU_COLORS = { tenkan: '#d6336c', kijun: '#1971c2', senkouA: '#37b24d', senkouB: '#f08c00', chikou: '#868e96' };
 
   function ichimokuPeriodMid(daily, i, period) {
     var start = i - period + 1;
@@ -2215,12 +2213,10 @@
     } else {
       body = '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
         + buildLwLegend()
-        + buildVolumeMultipleMetric(chartData.daily)
-        + buildTechBreakdown(techScore)
-        + buildRsiSection(chartData.daily);
+        + buildTechBreakdown(techScore, chartData.daily);
     }
     return '<div class="ff-extra-card ff-flow-chart-card">'
-      + '<div class="ff-extra-card-title">📉 가격 차트 · 지지/저항 · 이동평균 · RSI · 볼린저밴드</div>'
+      + '<div class="ff-extra-card-title">📉 가격 차트 · 이동평균 · 지지/저항</div>'
       + body
       + '</div>';
   }
@@ -2233,12 +2229,6 @@
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma224 + '"></i>224일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + BOLL_COLOR + '"></i>볼린저밴드(20,2)</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.tenkan + '"></i>전환선(9)</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.kijun + '"></i>기준선(26)</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.senkouA + '"></i>선행스팬1</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.senkouB + '"></i>선행스팬2</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.chikou + '"></i>후행스팬</span>'
       + '</div>';
   }
 
@@ -2330,59 +2320,25 @@
     return '중앙권';
   }
 
-  function buildVolumeMultipleMetric(daily) {
-    var vm = computeVolumeMultiple(daily);
-    if (!vm) return '';
-    var surge = vm.multiple >= 2;
-    return '<div class="ff-vol-metric">오늘 거래대금 <b>' + vm.multiple.toFixed(1) + '배</b> (20일 평균 대비)'
-      + (surge ? ' <span class="ff-badge ff-badge-shift">거래 급증</span>' : '')
-      + '</div>';
-  }
-
-  // RSI(14) 미니차트 - buildRatioChart와 동일한 SVG 패턴(외부 라이브러리 없음), 0~100 고정 축 +
-  // 30/70 기준선.
-  function buildRsiSection(daily) {
-    var rsi = computeRSI(daily, 14);
-    var pts = [];
-    for (var i = 0; i < daily.length; i++) {
-      if (rsi[i] != null) pts.push({ date: daily[i].date, v: rsi[i] });
-    }
-    if (pts.length < 2) return '';
-
-    var n = pts.length;
-    var iw = CHART_W - PAD.l - PAD.r;
-    var ih = RATIO_H - PAD.t - PAD.b;
-    function x(i) { return PAD.l + (i / (n - 1)) * iw; }
-    function y(v) { return PAD.t + (1 - v / 100) * ih; }
-
-    var linePts = pts.map(function (p, i) { return x(i).toFixed(1) + ',' + y(p.v).toFixed(1); }).join(' ');
-
-    var svg = '<svg class="ff-svg" viewBox="0 0 ' + CHART_W + ' ' + RATIO_H + '" role="img" aria-label="RSI(14) 추이">';
-    svg += '<line class="ff-grid ff-rsi-band" x1="' + PAD.l + '" y1="' + y(70).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(70).toFixed(1) + '"/>';
-    svg += '<line class="ff-grid ff-rsi-band" x1="' + PAD.l + '" y1="' + y(30).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(30).toFixed(1) + '"/>';
-    svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(70) + 4).toFixed(1) + '" text-anchor="end">70</text>';
-    svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(30) + 4).toFixed(1) + '" text-anchor="end">30</text>';
-    svg += rsiAxisLabels(pts, x, RATIO_H - 8);
-    svg += '<polyline class="ff-line-rsi" points="' + linePts + '"/>';
-    svg += '</svg>';
-
-    var last = pts[n - 1].v;
-    var label = last >= 70 ? '과매수' : last <= 30 ? '과매도' : '중립';
-    var cls = last >= 70 ? 'ff-sell' : last <= 30 ? 'ff-buy' : 'ff-flat';
-
-    return '<div class="ff-chart-title">RSI(14)</div>'
-      + '<div class="ff-chart ff-chart-rsi">' + svg
-      + '<div class="ff-legend"><span class="ff-legend-item"><i class="ff-dot" style="background:#f08c00"></i>RSI(14) <span class="' + cls + '">' + last.toFixed(1) + ' · ' + label + '</span></span></div>'
-      + '</div>';
-  }
 
   // 차트 밑에 붙는 설명 + 기술적 점수 채점표(①이평선 30 ②지지선 20 ③저항선 20 ④일목균형표 30)
-  function buildTechBreakdown(t) {
+  // + 참고지표(RSI·거래량 - 2026-07-22부터 차트 오버레이 대신 여기로 통합, 100점 배점에는
+  // 안 들어감: scripts/cloud-vm/pattern_detect.py의 compute_tech_score와 배점을 계속
+  // 일치시켜야 해서 기존 4항목 배분은 그대로 두고 참고 행만 추가함).
+  function buildTechBreakdown(t, daily) {
     if (!t) return '';
     var ichi = t.ichimoku;
     var ichiRow = ichi
       ? '<tr><td>④ 일목균형표</td><td>' + escapeHtml(ichi.cloud.label) + ' · ' + escapeHtml(ichi.cross.label) + ' · ' + escapeHtml(ichi.color.label) + '</td><td>' + ichi.score + '/30</td></tr>'
       : '';
+
+    var rsi = daily ? computeRSI(daily, 14) : null;
+    var rsiLast = null;
+    if (rsi) { for (var i = rsi.length - 1; i >= 0; i--) { if (rsi[i] != null) { rsiLast = rsi[i]; break; } } }
+    var rsiText = rsiLast == null ? '데이터 부족' : rsiLast.toFixed(1) + ' · ' + (rsiLast >= 70 ? '과매수' : rsiLast <= 30 ? '과매도' : '중립');
+    var volMul = daily ? computeVolumeMultiple(daily) : null;
+    var volText = volMul == null ? '데이터 부족' : volMul.multiple.toFixed(1) + '배' + (volMul.multiple >= 2 ? ' · 거래 급증' : '');
+
     return '<div class="ff-tech">'
       + '<div class="ff-tech-desc">파란 점선=지지선, 빨간 점선=저항선(최근 120영업일 스윙 고점·저점 기준). '
       + '5·20·60·224일 이동평균선이 위에서부터 순서대로 놓이면(정배열) 상승 추세, 반대 순서(역배열)면 하락 추세로 봅니다. '
@@ -2393,7 +2349,10 @@
       + '<tr><td>③ 저항선</td><td>' + escapeHtml(t.resistance.label) + '</td><td>' + t.resistance.score + '/20</td></tr>'
       + ichiRow
       + '<tr class="ff-tech-total-row"><td colspan="2">기술적 점수</td><td>' + t.score + '/100</td></tr>'
+      + '<tr class="ff-tech-ref-row"><td>RSI(14)</td><td>' + escapeHtml(rsiText) + '</td><td>참고</td></tr>'
+      + '<tr class="ff-tech-ref-row"><td>거래량(20일 평균 거래대금 대비)</td><td>' + escapeHtml(volText) + '</td><td>참고</td></tr>'
       + '</tbody></table>'
+      + '<div class="ff-tech-desc ff-tech-ref-note">RSI·거래량은 참고용 지표로 위 기술적 점수(100점)에는 반영되지 않습니다.</div>'
       + '</div>';
   }
 
@@ -2490,29 +2449,13 @@
         lineSeries.setData(pts);
       });
 
-      var boll = computeBollinger(daily, 20, 2);
-      ['upper', 'lower'].forEach(function (key) {
-        var series = boll[key];
-        var lineSeries = chart.addLineSeries({ color: BOLL_COLOR, lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, priceLineVisible: false, lastValueVisible: false });
-        var pts = [];
-        daily.forEach(function (d, i) {
-          if (series[i] == null) return;
-          pts.push({ time: d.date, value: series[i] });
-        });
-        lineSeries.setData(pts);
-      });
-
-      var ichi = computeIchimoku(daily);
-      [['tenkan', ichi.tenkan], ['kijun', ichi.kijun], ['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB], ['chikou', ichi.chikou]].forEach(function (pair) {
-        var key = pair[0], pts = pair[1];
-        if (!pts.length) return;
-        var lineSeries = chart.addLineSeries({ color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        lineSeries.setData(pts);
-      });
+      // 2026-07-22: 볼린저밴드·일목균형표 선은 캔들과 겹쳐 차트가 복잡해진다는 피드백으로
+      // 차트 시각화에서 제거(계산 자체는 buildTechBreakdown의 기술적 점수·참고지표에서
+      // 계속 쓰임 - computeBollinger/computeIchimoku 함수는 그대로 둠).
 
       // 2026-07-19: fitContent()가 전체 히스토리(최대 ~600~700봉)를 억지로 다 우겨넣어서
-      // 캔들 하나가 1~2px로 뭉개져 실선처럼 보이는 문제가 스크린샷으로 제보됨(이동평균/
-      // 볼린저/일목 보조선만 두껍게 보이고 캔들 몸통은 안 보임) - 기본은 최근 90봉만
+      // 캔들 하나가 1~2px로 뭉개져 실선처럼 보이는 문제가 스크린샷으로 제보됨(이동평균
+      // 보조선만 두껍게 보이고 캔들 몸통은 안 보임) - 기본은 최근 90봉만
       // 보여주고(그래야 캔들이 눈에 띄게 넓어짐), 데이터가 그보다 적을 때만 fitContent로
       // 폴백한다. 사용자는 마우스 휠/드래그로 왼쪽(과거)까지 자유롭게 스크롤할 수 있다.
       var DEFAULT_VISIBLE_BARS = 90;
@@ -2787,25 +2730,6 @@
   function shortDate(iso) {
     // "2026-07-10" -> "07/10"
     return iso.slice(5, 7) + '/' + iso.slice(8, 10);
-  }
-
-  // RSI 차트는 chartData.daily(최대 500영업일, 약 2년치)를 그대로 쓰기 때문에 순매매/보유율
-  // 차트(40일 안팎)용 shortDate(MM/DD, 연도 생략)를 그대로 쓰면 다른 해의 같은 날짜가 뒤섞여
-  // 보인다 - 연도 2자리를 포함한 별도 포맷을 쓴다.
-  function shortDateWithYear(iso) {
-    // "2026-07-10" -> "26/07/10"
-    return iso.slice(2, 4) + '/' + iso.slice(5, 7) + '/' + iso.slice(8, 10);
-  }
-
-  function rsiAxisLabels(pts, x, textY) {
-    var idxs = [0, Math.floor((pts.length - 1) / 2), pts.length - 1];
-    var out = '';
-    idxs.forEach(function (i, k) {
-      var anchor = k === 0 ? 'start' : (k === 2 ? 'end' : 'middle');
-      out += '<text class="ff-axis" x="' + x(i).toFixed(1) + '" y="' + textY + '" text-anchor="' + anchor + '">'
-        + shortDateWithYear(pts[i].date) + '</text>';
-    });
-    return out;
   }
 
   // ---- 포맷터 ----
