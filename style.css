@@ -1742,7 +1742,6 @@ a { text-decoration: none; color: inherit; }
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  column-gap: 16px;
   row-gap: 8px;
 }
 .site-footer-links {
@@ -1761,7 +1760,8 @@ a { text-decoration: none; color: inherit; }
 }
 .site-footer-links a:last-child { border-right: none; }
 .site-footer-links a:hover { color: #374151; }
-.site-footer-sep { color: #cbd5e1; font-size: 12px; }
+/* 카피라이트를 링크 구분선과 같은 스타일(굵기·색·간격)로 이어붙임 - 문의하기 오른쪽에
+   별도 텍스트 "|" 넣었을 때보다 자연스러움(2026-07-23, 사용자 실측 피드백으로 교체). */
 .copyright {
   font-size: 11px;
   color: #94a3b8;
@@ -1769,13 +1769,14 @@ a { text-decoration: none; color: inherit; }
   line-height: 1.6;
   text-decoration: none;
   transition: color .15s;
+  padding-left: 12px;
+  border-left: 1px solid #e5e7eb;
 }
 .copyright:hover { color: #374151; text-decoration: underline; }
 html.dark .site-footer { border-top-color: #263048; }
 html.dark .site-footer-links a { color: #6b7889; border-right-color: #263048; }
 html.dark .site-footer-links a:hover { color: #d3dbe8; }
-html.dark .site-footer-sep { color: #334155; }
-html.dark .copyright { color: #6b7889; }
+html.dark .copyright { color: #6b7889; border-left-color: #263048; }
 html.dark .copyright:hover { color: #d3dbe8; }
 body.iframe-mode .site-footer { display: none !important; }
 
