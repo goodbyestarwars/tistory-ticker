@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>stock-calendar 로컬 테스트</title>
+<link rel="stylesheet" href="../style.css" />
+<link rel="stylesheet" href="../css/stock-calendar.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #f5f6f8; }
+  html.dark body { background: #10151f; }
+  .page-body { max-width: 900px; margin: 40px auto; padding: 0 16px; }
+  .tools { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="tools">
+  <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+  <button onclick="setMock('normal')">정상 데이터</button>
+  <button onclick="setMock('empty')">이벤트 없음</button>
+  <button onclick="setMock('error')">API 오류</button>
+</div>
+
+<div class="page-body">
+  <div id="stock-calendar"></div>
+</div>
+
+<script src="../js/stock-calendar.js"></script>
+<script>
+  var todayISO = new Date().toISOString().slice(0, 10);
+
+  function mockEvents() {
+    // fetchEvents()가 실제로 resolve하는 후처리된 형태({title, start, link}) - 원본 구글
+    // 캘린더 API 응답 형태({summary, start:{dateTime|date}, htmlLink})가 아님에 주의
+    return [
+      { title: '$SK하이닉스 실적발표 | 관심', start: todayISO + 'T09:00:00+09:00', link: '#' },
+      { title: '$현대오토에버 실적발표 | 관심', start: todayISO + 'T10:00:00+09:00', link: '#' },
+      { title: '🇺🇸 2분기 경제성장률(GDP) 발표(속보치)', start: todayISO, link: '#' },
+      { title: '🇺🇸 FOMC 회의 결과 발표', start: todayISO, link: '#' },
+      { title: '🇺🇸 개인소비지출 물가지수 발표(전년 대비)', start: todayISO, link: '#' },
+      { title: '$램리서치 실적발표 | 주요', start: todayISO + 'T05:00:00+09:00', link: '#' }
+    ];
+  }
+
+  if (location.search.indexOf('real=1') === -1) {
+    StockCalendar.fetchEvents = function (year, month) {
+      console.log('[mock] fetchEvents', year, month, window.__mockMode);
+      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
+      var now = new Date();
+      if (window.__mockMode === 'empty' || year !== now.getFullYear() || month !== now.getMonth()) {
+        return Promise.resolve([]);
+      }
+      return Promise.resolve(mockEvents());
+    };
+  }
+
+  function setMock(mode) {
+    window.__mockMode = mode;
+    if (location.search.indexOf('real=1') === -1) StockCalendar.init();
+  }
+</script>
+
+</body>
+</html>
