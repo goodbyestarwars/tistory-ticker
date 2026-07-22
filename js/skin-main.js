@@ -303,3 +303,157 @@
     } else { window.open(url, '_blank'); }
   };
 
+  /* ── 카테고리 없는 글/페이지(예: /page/market-temp 등 개별 Page)의
+     "카테고리 없음" 뱃지 숨김 ── */
+  document.querySelectorAll('.post-cat-badge').forEach(function(el) {
+    if (el.textContent.trim() === '카테고리 없음') el.style.display = 'none';
+  });
+
+  /* ── 표 가로 스크롤 래핑: table에 overflow-x:auto만 주면 auto 테이블 레이아웃이
+     칸 너비를 억지로 욱여넣어 찌그러지길래, div로 감싸서 그 div가 스크롤되게 함 ── */
+  document.querySelectorAll('.post-single-body table, .post-expand-body table').forEach(function(table) {
+    if (table.parentElement && table.parentElement.classList.contains('table-scroll-wrap')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'table-scroll-wrap';
+    table.parentNode.insertBefore(wrap, table);
+    wrap.appendChild(table);
+  });
+
+  /* ── 인덱스 요약 텍스트 줄바꿈 개선 ── */
+  document.querySelectorAll('.post-excerpt').forEach(function(el) {
+    /* innerHTML 기반 처리: 티스토리가 삽입한 <br> 보존 */
+    var raw = el.innerHTML;
+    /* ① <br> → \n */
+    raw = raw.replace(/<br\s*\/?>/gi, '\n');
+    /* ② 나머지 태그 제거 */
+    raw = raw.replace(/<[^>]+>/g, '');
+    /* ③ HTML 엔티티 디코딩 */
+    var tmp = document.createElement('div');
+    tmp.innerHTML = raw;
+    raw = tmp.textContent.replace(/\r\n|\r/g, '\n').trim();
+    /* ④ 중복 텍스트 제거 */
+    if (raw.length > 20) {
+      var check = raw.slice(0, 30);
+      var dupIdx = raw.indexOf(check, 5);
+      if (dupIdx > 0 && dupIdx <= 60) { raw = raw.slice(dupIdx); }
+    }
+    /* ⑤ "숫자.\n내용" → "숫자. 내용" (번호 혼자 떠있는 현상 방지) */
+    raw = raw.replace(/(\d+)\.\n+/g, '$1. ');
+    /* ⑥ 숫자 목록 앞 줄바꿈 (공백 유무 무관) */
+    /* "?1. " "할인).2. " 처럼 구두점/괄호 뒤 숫자가 바로 붙는 경우 포함 */
+    raw = raw.replace(/([.!?)\]][\s]*(\d+)\.\s+)/g, function(m) {
+      var parts = m.match(/^([.!?)\]])\s*(\d+)\.\s+$/);
+      if (!parts) return m;
+      return parts[1] + '\n' + parts[2] + '. ';
+    });
+    raw = raw.replace(/([^\n])\s+(\d+)\.\s+/g, function(m, before, num) {
+      return before + '\n' + num + '. ';
+    });
+    /* ⑦ 대시·불릿 앞 줄바꿈 */
+    raw = raw.replace(/([^\n])\s*[-•·✦▸]\s+/g, '$1\n- ');
+    /* ⑧ 마침표/느낌표/물음표 뒤 새 한글 문장 단락 구분 */
+    /* 앞 글자가 숫자면 제외: "1. 일단..." 같은 번호목록 점을 건드리지 않음 */
+    raw = raw.replace(/([^\d\n][.!?])\s+([가-힣A-Z])/g, '$1\n$2');
+    /* ⑨ 연속 줄바꿈 정리 */
+    raw = raw.replace(/\n{3,}/g, '\n\n');
+    /* ⑩ 최종 출력 (3줄 클램프는 style.css .post-excerpt 규칙이 담당) */
+    el.innerHTML = raw.replace(/\n/g, '<br>');
+  });
+
+  /* 뉴스 티커 초기 패딩 보정 (RSS 로드 전부터 공간 확보) */
+  (function() {
+    var pw = document.querySelector('.page-wrap');
+    var sl = document.querySelector('.sidebar-left');
+    var sr = document.querySelector('.sidebar-right');
+    if (pw) pw.style.paddingTop = '122px'; /* navbar+disc-ticker 여백(90px) + market-ribbon(32px) */
+    /* 모바일에서는 사이드바가 드로어이므로 top 고정하지 않음 */
+    if (sl && window.innerWidth > 720) sl.style.top = '142px';
+    if (sr && window.innerWidth > 1100) sr.style.top = '142px';
+  })();
+
+  /* ── 모바일 드로어 & 검색 오버레이 ── */
+  (function() {
+    var menuBtn    = document.getElementById('mobileMenuBtn');
+    var overlay    = document.getElementById('mobileOverlay');
+    var sidebar    = document.querySelector('.sidebar-left');
+    var searchBtn  = document.getElementById('mobileSearchBtn');
+    var searchOv   = document.getElementById('mobileSearchOverlay');
+    var msoClose   = document.getElementById('msoCloseBtn');
+    var msoInput   = document.getElementById('msoInput');
+    var scrollBtn  = document.getElementById('scrollTopBtn');
+    var drawerHdr  = document.querySelector('.drawer-header');
+
+    /* 드로어 열기/닫기 */
+    function openDrawer() {
+      if (!sidebar || !menuBtn || !overlay) return;
+      menuBtn.classList.add('open');
+      menuBtn.setAttribute('aria-label', '메뉴 닫기');
+      sidebar.classList.add('drawer-open');
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      if (drawerHdr) drawerHdr.style.display = 'flex';
+    }
+    function closeDrawer() {
+      if (!sidebar || !menuBtn || !overlay) return;
+      menuBtn.classList.remove('open');
+      menuBtn.setAttribute('aria-label', '메뉴 열기');
+      sidebar.classList.remove('drawer-open');
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    if (menuBtn) menuBtn.addEventListener('click', function() {
+      sidebar && sidebar.classList.contains('drawer-open') ? closeDrawer() : openDrawer();
+    });
+    if (overlay) overlay.addEventListener('click', closeDrawer);
+
+    /* 드로어 내부 링크 클릭 시 자동 닫힘 */
+    if (sidebar) sidebar.addEventListener('click', function(e) {
+      if (e.target.tagName === 'A' && window.innerWidth <= 720) {
+        setTimeout(closeDrawer, 120);
+      }
+    });
+
+    /* 검색 오버레이 */
+    if (searchBtn) searchBtn.addEventListener('click', function() {
+      if (!searchOv) return;
+      searchOv.classList.add('open');
+      setTimeout(function() { msoInput && msoInput.focus(); }, 150);
+    });
+    if (msoClose) msoClose.addEventListener('click', function() {
+      searchOv && searchOv.classList.remove('open');
+    });
+    if (searchOv) searchOv.addEventListener('click', function(e) {
+      if (e.target === searchOv) searchOv.classList.remove('open');
+    });
+
+    /* ESC 키 닫힘 */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeDrawer();
+        searchOv && searchOv.classList.remove('open');
+      }
+    });
+
+    /* 스크롤 탑 버튼 */
+    if (scrollBtn) {
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 300) scrollBtn.classList.add('visible');
+        else scrollBtn.classList.remove('visible');
+      }, { passive: true });
+      scrollBtn.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    /* 리사이즈 시 드로어 정리 */
+    window.addEventListener('resize', function() {
+      if (window.innerWidth > 720) {
+        closeDrawer();
+        /* 데스크탑 전환 시 sidebar top 복원 */
+        var sl2 = document.querySelector('.sidebar-left');
+        if (sl2) sl2.style.top = '';
+      }
+    });
+  })();
+
