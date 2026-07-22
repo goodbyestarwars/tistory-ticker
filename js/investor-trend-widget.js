@@ -15,9 +15,20 @@
  * 2개 시장만 지원한다.
  *
  * 개인/외국인/기관 3개 막대가 날짜당 조밀하게 겹쳐 보이던 문제를 해결하려고 투자자별로
- * 3행 분리된 레이아웃(dayRowsHtml)을 쓴다. UI개선 지시서(2026-07-21) 1차안은 일(日) 탭만
+ * 3행 분리된 레이아웃(dayRowsHtml)을 썼었다. UI개선 지시서(2026-07-21) 1차안은 일(日) 탭만
  * 이 레이아웃으로 바꾸고 주/월은 기존 그룹 막대+테이블을 유지하는 것이었으나, 사용자가
  * 배포 후 확인하고 "주/월도 일 스타일로" 요청해 전체 탭에 동일하게 적용함(2026-07-21 2차).
+ *
+ * **2026-07-22 표 UI 개편**: 위 3행 분리 막대 레이아웃을 diverging bar 표(날짜×개인/외국인/
+ * 기관, 0을 기준으로 좌=매도/우=매수)로 교체(작업지시서 "투자자별 매매동향 표 UI 개선").
+ * 막대 스케일은 투자자(열)별 독립 - 개인/외국인/기관은 규모 자릿수가 서로 달라 전역 스케일을
+ * 쓰면 작은 값 열이 안 보이므로, 위 3행 분리 레이아웃의 "행별 독립 스케일" 관례를 표 형태에
+ * 맞게 열 단위로 그대로 이어받았다(지시서에 스케일 기준 열/행 명시가 없어 이 관례를 유지하는
+ * 쪽으로 판단). 일(日) 탭은 최근 5일만 표시(지시서 3항) - 백엔드(VM)는 여전히 10일치를
+ * 내려주므로 프론트에서 slice(-5)만 적용(VM 응답 변경 불필요, 배포 리스크 최소화). 데이터
+ * 소스는 지시서가 "GAS를 꼭 써야 하나" 물었지만, 이 위젯은 애초에 GAS가 아니라 VM
+ * (goodbyestar.cloud/investor-trend)을 직접 호출하는 구조라 변경 불필요 - GAS는 이 위젯과
+ * 무관(공지사항 위젯 자리를 대체한 것뿐, GAS 경유 구조가 아님).
  *
  * 홈("/")에서만 마운트 - 예전 #pinnedNotice와 동일하게 카테고리/글 페이지 등에서는 숨김.
  */
@@ -139,58 +150,71 @@
       body.innerHTML = '<div class="itw-error">데이터를 불러오지 못했어요.</div>';
       return;
     }
-    body.innerHTML = dayRowsHtml(rows);
+    // 표시 행 개수(지시서 3항): 일 단위는 최근 5일 고정, 주/월은 API가 주는 전체를 그대로.
+    var displayRows = state.period === 'day' ? rows.slice(-5) : rows;
+    body.innerHTML = tableHtml(displayRows);
   }
 
-  // ---- 투자자별 3행 분리 레이아웃 - 일/주/월 전체 탭 공용(2026-07-21) ----
+  // ---- diverging bar 표 레이아웃(2026-07-22) - 날짜 | 개인 | 외국인 | 기관 ----
 
-  function dayRowsHtml(rows) {
-    return '<div class="itw-day-chart">'
-      + INVESTORS.map(function (inv) { return dayRowHtml(rows, inv); }).join('')
-      + '</div>';
-  }
-
-  function dayRowHtml(rows, inv) {
-    var maxAbs = 1; // 행별 독립 스케일(지시서 3-4) - 다른 투자자 행과 최대값을 공유하지 않음
-    var sum = 0;
-    rows.forEach(function (r) {
-      maxAbs = Math.max(maxAbs, Math.abs(r[inv.key]));
-      sum += r[inv.key];
+  function tableHtml(rows) {
+    var colMax = {};
+    INVESTORS.forEach(function (inv) {
+      var m = 0;
+      rows.forEach(function (r) { m = Math.max(m, Math.abs(r[inv.key])); });
+      colMax[inv.key] = m;
     });
-    var sumUp = sum >= 0;
-    var cols = rows.map(function (r) {
-      var v = r[inv.key];
-      var neg = v < 0;
-      var pct = (Math.abs(v) / maxAbs * 50).toFixed(2);
-      var pos = neg ? 'top:50%;' : 'bottom:50%;';
-      var title = escapeHtml(r.label) + ' ' + fmtUnit(v);
-      return '<div class="itw-day-col">'
-        + '<div class="itw-day-bar-track">'
-        + '<div class="itw-day-zeroline"></div>'
-        + '<div class="itw-day-bar itw-day-bar-' + inv.key + (neg ? ' itw-day-bar-neg' : '')
-        + '" style="' + pos + 'height:' + pct + '%;" title="' + title + '"></div>'
-        + '</div>'
-        + '<span class="itw-day-col-date">' + escapeHtml(r.label) + '</span>'
-        + '<span class="itw-day-col-value' + (neg ? ' itw-neg' : '') + '">' + fmtUnit(v) + '</span>'
-        + '</div>';
+    var sums = {};
+    INVESTORS.forEach(function (inv) {
+      sums[inv.key] = rows.reduce(function (acc, r) { return acc + r[inv.key]; }, 0);
+    });
+
+    var head = '<tr><th class="itw-th-date">날짜</th>'
+      + INVESTORS.map(function (inv) { return '<th>' + inv.label + '</th>'; }).join('')
+      + '</tr>';
+
+    var bodyRows = rows.map(function (r) {
+      return '<tr class="itw-row">'
+        + '<td class="itw-td-date">' + escapeHtml(r.label) + '</td>'
+        + INVESTORS.map(function (inv) { return tcellHtml(r[inv.key], colMax[inv.key]); }).join('')
+        + '</tr>';
     }).join('');
-    return '<div class="itw-day-row">'
-      + '<div class="itw-day-row-header">'
-      + '<span class="itw-dot itw-day-dot-' + inv.key + '"></span>'
-      + '<span class="itw-day-row-label">' + inv.label + '</span>'
-      + '<span class="itw-day-row-sum ' + (sumUp ? 'itw-day-row-sum-up' : 'itw-day-row-sum-down') + '">'
-      + (sumUp ? '▲ ' : '▼ ') + fmtUnit(Math.abs(sum)) + '</span>'
-      + '</div>'
-      + '<div class="itw-day-row-chart">'
-      + '<div class="itw-day-cols">' + cols + '</div>'
-      + '</div>'
-      + '</div>';
+
+    var sumRow = '<tr class="itw-row itw-row-sum">'
+      + '<td class="itw-td-date">합계</td>'
+      + INVESTORS.map(function (inv) { return sumCellHtml(sums[inv.key]); }).join('')
+      + '</tr>';
+
+    return '<div class="itw-table-wrap"><table class="itw-table">'
+      + '<thead>' + head + '</thead>'
+      + '<tbody>' + bodyRows + sumRow + '</tbody>'
+      + '</table></div>';
   }
 
-  // 억원 단위 입력값을 'N.N조'(1만억 이상) 또는 'N,NNN억'으로 변환, 부호는 '-' 유지.
+  // 셀 하나 = diverging bar. 가운데(50%)가 0 기준선, 오른쪽=매수(+, 빨강)/왼쪽=매도(-, 파랑).
+  // 막대 길이는 열(투자자)별 최대 절댓값 대비 상대 비율(최대 50%, 기준선 기준 반쪽만 씀).
+  function tcellHtml(v, colMax) {
+    var isPos = v >= 0;
+    var pct = colMax > 0 ? Math.min(50, Math.abs(v) / colMax * 50) : 0;
+    var sideClass = isPos ? 'itw-bar-pos' : 'itw-bar-neg';
+    var valClass = isPos ? 'itw-val-pos' : 'itw-val-neg';
+    return '<td class="itw-td-cell"><div class="itw-tcell-track">'
+      + '<div class="itw-tcell-mid"></div>'
+      + '<div class="itw-tcell-bar ' + sideClass + '" style="width:' + pct.toFixed(2) + '%;">'
+      + '<span class="itw-tcell-value ' + valClass + '">' + fmtUnit(v) + '</span>'
+      + '</div></div></td>';
+  }
+
+  function sumCellHtml(v) {
+    var valClass = v >= 0 ? 'itw-val-pos' : 'itw-val-neg';
+    return '<td class="itw-td-cell itw-td-sum"><span class="itw-sum-value ' + valClass + '">' + fmtUnit(v) + '</span></td>';
+  }
+
+  // 억원 단위 입력값을 'N.N조'(1만억 이상) 또는 'N,NNN억'으로 변환, 부호(+/-) 항상 포함(지시서 5항).
   function fmtUnit(v) {
     if (v == null || isNaN(v)) return '-';
-    var sign = v < 0 ? '-' : '';
+    if (v === 0) return '0억';
+    var sign = v < 0 ? '-' : '+';
     var abs = Math.abs(v);
     if (abs >= 10000) return sign + (abs / 10000).toFixed(1) + '조';
     return sign + Math.round(abs).toLocaleString('ko-KR') + '억';
