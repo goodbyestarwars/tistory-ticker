@@ -183,9 +183,9 @@
     }).join('');
 
     return ''
+      + buildReferenceSection()
       + '<div class="kf-panel" id="kfPanel">' + panelCards + '</div>'
-      + sections
-      + buildReferenceSection();
+      + sections;
   }
 
   // ---- 참고의견(선물 AI 해설 + 옵션 수급) ----
@@ -210,13 +210,13 @@
     return '<div class="kf-section" data-section-key="reference">'
       + '<div class="kf-section-head"><div class="kf-section-title">💬 참고의견</div></div>'
       + '<div class="kf-ai" id="kfAi" hidden></div>'
+      + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
       + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
       + '콜/풋 전체 미결제약정(OI) 증감으로 포지션 방향을 추정해서 보여드립니다. 콜옵션은 상승 포지션, 풋옵션은 '
       + '하락 포지션으로 보고, OI가 늘면 신규 진입(포지션 확대), 줄면 청산(포지션 정리)으로 표시합니다 - '
       + '단순 순매수/순매도 부호만으로 상승·하락을 단정하지 않고 신규/청산을 구분해서 보여드리는 방식입니다. '
       + '옵션은 야간선물과 달리 야간 세션이 없어 정규장(09:00~15:45)에만 값이 바뀌고, '
       + '장 마감 후에는 마지막 값이 그대로 표시됩니다.</div>'
-      + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
       + '</div>';
   }
 
