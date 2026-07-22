@@ -13,11 +13,6 @@
   line-height: 1.6;
 }
 
-#kospi-futures .kf-ai b {
-  display: block;
-  margin-bottom: 4px;
-}
-
 #kospi-futures .kf-ai p {
   margin: 0;
   color: #444;
@@ -154,7 +149,7 @@
   margin-top: 6px;
 }
 
-/* ---- 옵션 수급 분석(콜/풋) ---- */
+/* ---- 참고의견 섹션 내 옵션 수급 원자료(콜/풋) ---- */
 #kospi-futures .kf-opt-desc {
   font-size: 12px;
   color: #888;

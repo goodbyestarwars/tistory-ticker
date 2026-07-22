@@ -796,6 +796,7 @@ function getMarketAnalysis() {
 // 버그로 AI가 엉뚱한 숫자를 지어낸 전례 있음, 219~221줄 주석 참고) 반드시 이 VM 응답을
 // 유일한 소스로 삼는다 - GAS 자체 fetchIndex 등으로 별도 재조회하지 않는다.
 var FUTURES_API_URL = 'https://goodbyestar.cloud/futures';
+var OPTION_FLOW_API_URL = 'https://goodbyestar.cloud/option-flow';
 var KOSPI_FUTURES_ANALYSIS_CACHE_TTL = 1800; // 30분
 var KOSPI_FUTURES_ANALYSIS_FAIL_TTL = 120;   // 2분
 var SUB_INDEX_ANALYSIS_CACHE_TTL = 1800;
@@ -813,6 +814,25 @@ function fetchFuturesFromVm_(days) {
   return bySymbol;
 }
 
+// js/kospi-futures.js의 /option-flow 응답과 동일 소스(5분마다 미리 집계된 콜/풋 OI 원자료).
+// 화면 숫자와 AI 문장이 어긋나지 않도록 이 VM 응답을 그대로 프롬프트에 반영한다.
+function fetchOptionFlowFromVm_() {
+  var res = UrlFetchApp.fetch(OPTION_FLOW_API_URL, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return null;
+  var body = JSON.parse(res.getContentText('UTF-8'));
+  return (body && body.data) || null;
+}
+
+// 콜은 상승 포지션/풋은 하락 포지션으로 보고 OI 증감(신규/청산)을 문장으로 만든다 -
+// js/kospi-futures.js의 optTendency와 동일한 해석 규칙(투자자 유형별 매수/매도 구분은
+// 데이터가 없어 불가능하다는 제약도 동일하게 적용).
+function optionFlowLine_(row, label) {
+  if (!row || !row.volume) return label + ' 데이터 미제공';
+  var oiChange = row.oi_change;
+  return label + ' 거래량 ' + fmtCommaNum_(row.volume) + ', 미결제약정(OI) ' + fmtCommaNum_(row.oi)
+    + '(전일대비 ' + (oiChange >= 0 ? '+' : '') + fmtCommaNum_(oiChange) + ')';
+}
+
 // AI 프롬프트에 넣는 숫자는 AI가 그대로 베껴 쓰는 경향이 있어(예: "26107.01"), 여기서부터
 // 천단위 콤마를 찍어줘야 화면에 나오는 문장도 콤마가 붙는다 - 사이트 공통 규칙(전체 페이지의
 // 숫자 표기는 콤마 포함)을 AI 요약 텍스트에도 동일하게 적용.
@@ -826,9 +846,13 @@ function futuresLine_(item, label) {
   return label + ' ' + fmtCommaNum_(item.price) + ' (' + (item.change_rate >= 0 ? '+' : '') + item.change_rate.toFixed(2) + '%)';
 }
 
+// 2026-07-22: "참고의견"과 "옵션 수급 분석"을 프론트(js/kospi-futures.js)에서 하나의
+// 참고의견 섹션으로 합치면서, AI 해설도 옵션 콜/풋 OI 데이터를 같이 받아 해석하도록 확장했다
+// (예전엔 콜/풋 원자료 카드만 보여주고 AI 해석이 없었음). 캐시 키를 v2->v3로 올려 옛 프롬프트로
+// 생성된 캐시가 즉시 무효화되게 했다.
 function getKospiFuturesAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v2';
+  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v3';
   var cached = cache.get(cacheKey);
   if (cached) return { analysis: cached };
 
@@ -842,10 +866,20 @@ function getKospiFuturesAnalysis() {
   }
   if (!lines.length) return { analysis: null };
 
+  var optionFlow = safeCall(fetchOptionFlowFromVm_);
+  var optionLines = [
+    optionFlowLine_(optionFlow && optionFlow.CALL, '콜옵션'),
+    optionFlowLine_(optionFlow && optionFlow.PUT, '풋옵션')
+  ];
+
   var prompt = '오늘/간밤 코스피 선물 지표야: ' + lines.join(', ') + '. ' +
+    '코스피200 옵션(콜/풋) 미결제약정(OI) 동향: ' + optionLines.join(', ') + '. ' +
     '코스피200 선물(주간·야간)과 코스피 현물지수의 관계를 설명하고, 특히 야간선물 동향이 ' +
-    '다음 거래일 한국 증시 개장에 어떤 영향을 줄 수 있는지 투자자 관점에서 4문장으로 ' +
-    '한국어로 정리해줘. 문장 외 다른 말은 붙이지 마.';
+    '다음 거래일 한국 증시 개장에 어떤 영향을 줄 수 있는지 먼저 설명해줘. 이어서 옵션 OI 동향을 보고 ' +
+    '콜(상승 포지션)과 풋(하락 포지션) 중 어느 쪽이 확대(신규 진입)되거나 축소(청산)되고 있는지, ' +
+    '그게 시장 심리에 어떤 신호로 해석되는지 분석해줘 - 옵션 데이터가 "데이터 미제공"이면 그 옵션은 ' +
+    '언급하지 마. 투자자 유형(외국인·기관·개인)별 매수·매도 데이터는 없으니 그걸 안다고 지어내지 마. ' +
+    '투자자 관점에서 5~6문장으로 한국어로 정리해줘. 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? KOSPI_FUTURES_ANALYSIS_CACHE_TTL : KOSPI_FUTURES_ANALYSIS_FAIL_TTL);

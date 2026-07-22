@@ -20,8 +20,12 @@
  * 이 페이지가 쓰는 심볼만 다름).
  *
  * AI 해설은 GAS(gas/ticker-proxy.gs의 getKospiFuturesAnalysis, ?action=kospiFuturesAnalysis)가
- * 같은 /futures 응답을 프롬프트에 그대로 넣어 생성 - 화면 숫자와 AI 문장이 어긋나지 않도록 소스를
+ * /futures 응답을 프롬프트에 그대로 넣어 생성 - 화면 숫자와 AI 문장이 어긋나지 않도록 소스를
  * 통일했다(과거 코스피 100배 버그로 AI가 엉뚱한 숫자를 지어낸 전례 있음).
+ *
+ * 2026-07-22: "참고의견"(선물 AI 해설)과 "옵션 수급 분석"(콜/풋 OI 원자료)을 하나의 "참고의견"
+ * 섹션으로 합쳤다(buildReferenceSection) - AI 해설도 /option-flow 응답을 같이 받아 콜/풋 OI
+ * 동향(신규 진입/청산, 상승·하락 어느 쪽 심리가 우세한지)까지 해석해서 문장에 포함한다.
  *
  * 큰 차트는 js/foreign-flow.js의 renderLwChart 패턴(캔들스틱, 크로스헤어 활성화, 축 표시)을
  * 그대로 재사용한다 - js/overnight-market.js의 축 없는 스파크라인과 다르게 여기는 인터랙션을
@@ -179,30 +183,33 @@
     }).join('');
 
     return ''
-      + '<div class="kf-ai" id="kfAi" hidden></div>'
       + '<div class="kf-panel" id="kfPanel">' + panelCards + '</div>'
       + sections
-      + buildOptionFlowShell();
+      + buildReferenceSection();
   }
 
-  // ---- 옵션 수급 분석(콜/풋) ----
+  // ---- 참고의견(선물 AI 해설 + 옵션 수급) ----
+  // 2026-07-22: 예전엔 "참고의견"(선물 AI 해설)과 "옵션 수급 분석"(콜/풋 OI 원자료, AI 해석 없음)이
+  // 별도 섹션이었는데, 사용자 요청으로 하나의 "참고의견" 섹션으로 합쳤다. AI 해설(getKospiFuturesAnalysis)도
+  // 이제 옵션 OI 데이터를 프롬프트에 같이 받아 콜/풋 포지션 해석까지 문장에 포함한다(gas/ticker-proxy.gs 참고).
   // 외국인/기관/개인별 신규·청산 분리는 KIS/키움 어디에도 그런 API가 없어(2026-07-16 조사)
-  // 콜 전체/풋 전체 단위로만 "미결제약정(OI) 증감" 기준 신규·청산 우세를 보여준다 -
-  // 개별 투자자 매수/매도 방향까지는 알 수 없다는 걸 라벨/설명 문구로 명시한다.
+  // 콜 전체/풋 전체 단위로만 "미결제약정(OI) 증감" 기준 신규·청산 우세를 원자료 카드로 보여준다 -
+  // 개별 투자자 매수/매도 방향까지는 알 수 없다는 걸 설명 문구로 명시한다.
   var OPTION_SIDES = [
     { key: 'CALL', label: '콜옵션' },
     { key: 'PUT', label: '풋옵션' }
   ];
 
-  function buildOptionFlowShell() {
+  function buildReferenceSection() {
     var cards = OPTION_SIDES.map(function (s) {
       return '<div class="kf-opt-card" data-side="' + s.key + '">'
         + '<div class="kf-opt-title">' + escapeHtml(s.label) + '</div>'
         + '<div class="kf-opt-body kf-loading">불러오는 중...</div>'
         + '</div>';
     }).join('');
-    return '<div class="kf-section" data-section-key="option">'
-      + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급 분석</div></div>'
+    return '<div class="kf-section" data-section-key="reference">'
+      + '<div class="kf-section-head"><div class="kf-section-title">💬 참고의견</div></div>'
+      + '<div class="kf-ai" id="kfAi" hidden></div>'
       + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
       + '콜/풋 전체 미결제약정(OI) 증감으로 포지션 방향을 추정해서 보여드립니다. 콜옵션은 상승 포지션, 풋옵션은 '
       + '하락 포지션으로 보고, OI가 늘면 신규 진입(포지션 확대), 줄면 청산(포지션 정리)으로 표시합니다 - '
@@ -517,7 +524,7 @@
       .then(function (text) {
         if (!text) { box.hidden = true; return; }
         box.hidden = false;
-        box.innerHTML = '<b>💬 참고의견</b><p>' + escapeHtml(text) + '</p>';
+        box.innerHTML = '<p>' + escapeHtml(text) + '</p>';
       })
       .catch(function () { box.hidden = true; });
   }
