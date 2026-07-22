@@ -23,9 +23,11 @@
  * /futures 응답을 프롬프트에 그대로 넣어 생성 - 화면 숫자와 AI 문장이 어긋나지 않도록 소스를
  * 통일했다(과거 코스피 100배 버그로 AI가 엉뚱한 숫자를 지어낸 전례 있음).
  *
- * 2026-07-22: "참고의견"(선물 AI 해설)과 "옵션 수급 분석"(콜/풋 OI 원자료)을 하나의 "참고의견"
- * 섹션으로 합쳤다(buildReferenceSection) - AI 해설도 /option-flow 응답을 같이 받아 콜/풋 OI
- * 동향(신규 진입/청산, 상승·하락 어느 쪽 심리가 우세한지)까지 해석해서 문장에 포함한다.
+ * 2026-07-22: AI 해설(getKospiFuturesAnalysis)이 /option-flow 응답도 같이 받아 콜/풋 OI
+ * 동향(신규 진입/청산, 상승·하락 어느 쪽 심리가 우세한지)까지 해석해서 문장에 포함하도록 확장했다
+ * - 참고의견(buildAiSection)과 옵션 수급 원자료(buildOptionSection)는 한 차례 한 섹션으로
+ * 합쳤다가, 페이지 흐름(참고의견 -> 지수 -> 차트 -> 옵션 원자료)을 위해 다시 분리했다
+ * (buildAiSection은 최상단 단독 섹션, buildOptionSection은 차트 다음 맨 아래).
  *
  * 큰 차트는 js/foreign-flow.js의 renderLwChart 패턴(캔들스틱, 크로스헤어 활성화, 축 표시)을
  * 그대로 재사용한다 - js/overnight-market.js의 축 없는 스파크라인과 다르게 여기는 인터랙션을
@@ -183,15 +185,25 @@
     }).join('');
 
     return ''
-      + buildReferenceSection()
+      + buildAiSection()
       + '<div class="kf-panel" id="kfPanel">' + panelCards + '</div>'
-      + sections;
+      + sections
+      + buildOptionSection();
   }
 
-  // ---- 참고의견(선물 AI 해설 + 옵션 수급) ----
-  // 2026-07-22: 예전엔 "참고의견"(선물 AI 해설)과 "옵션 수급 분석"(콜/풋 OI 원자료, AI 해석 없음)이
-  // 별도 섹션이었는데, 사용자 요청으로 하나의 "참고의견" 섹션으로 합쳤다. AI 해설(getKospiFuturesAnalysis)도
-  // 이제 옵션 OI 데이터를 프롬프트에 같이 받아 콜/풋 포지션 해석까지 문장에 포함한다(gas/ticker-proxy.gs 참고).
+  // ---- 참고의견(선물 AI 해설) ----
+  // 2026-07-22: AI 해설(getKospiFuturesAnalysis)이 옵션 OI 데이터도 같이 받아 콜/풋 포지션
+  // 해석까지 문장에 포함한다(gas/ticker-proxy.gs 참고) - 그래서 이 박스 자체는 "선물"만이
+  // 아니라 "선물+옵션" 해설이지만, 페이지 흐름상(참고의견 -> 지수 -> 차트 -> 옵션 원자료)
+  // 최상단에 단독 섹션으로 둔다(사용자 요청, 한 차례 옵션 카드와 합쳤다가 다시 분리함).
+  function buildAiSection() {
+    return '<div class="kf-section" data-section-key="ai">'
+      + '<div class="kf-section-head"><div class="kf-section-title">💬 참고의견</div></div>'
+      + '<div class="kf-ai" id="kfAi" hidden></div>'
+      + '</div>';
+  }
+
+  // ---- 옵션 수급(콜/풋 OI 원자료) ----
   // 외국인/기관/개인별 신규·청산 분리는 KIS/키움 어디에도 그런 API가 없어(2026-07-16 조사)
   // 콜 전체/풋 전체 단위로만 "미결제약정(OI) 증감" 기준 신규·청산 우세를 원자료 카드로 보여준다 -
   // 개별 투자자 매수/매도 방향까지는 알 수 없다는 걸 설명 문구로 명시한다.
@@ -200,16 +212,15 @@
     { key: 'PUT', label: '풋옵션' }
   ];
 
-  function buildReferenceSection() {
+  function buildOptionSection() {
     var cards = OPTION_SIDES.map(function (s) {
       return '<div class="kf-opt-card" data-side="' + s.key + '">'
         + '<div class="kf-opt-title">' + escapeHtml(s.label) + '</div>'
         + '<div class="kf-opt-body kf-loading">불러오는 중...</div>'
         + '</div>';
     }).join('');
-    return '<div class="kf-section" data-section-key="reference">'
-      + '<div class="kf-section-head"><div class="kf-section-title">💬 참고의견</div></div>'
-      + '<div class="kf-ai" id="kfAi" hidden></div>'
+    return '<div class="kf-section" data-section-key="option">'
+      + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급</div></div>'
       + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
       + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
       + '콜/풋 전체 미결제약정(OI) 증감으로 포지션 방향을 추정해서 보여드립니다. 콜옵션은 상승 포지션, 풋옵션은 '
@@ -229,7 +240,7 @@
   // "신규 진입 우세"/"청산 우세"라고만 표시했는데, 콜/풋 어느 쪽인지를 안 섞어서 보면
   // "청산"이 실제로는 상승(콜)/하락(풋) 중 어느 방향 포지션이 청산되는 건지 알 수 없어
   // 오해 소지가 있었다. 지시서는 투자자 유형별 매수/매도-신규/청산 4분류 원 데이터를
-  // 전제하지만 그런 세분화 API는 없다(위 buildReferenceSection 설명문 참고) - 대신 이미
+  // 전제하지만 그런 세분화 API는 없다(위 buildOptionSection 설명문 참고) - 대신 이미
   // 갖고 있는 side(콜=상승 관련/풋=하락 관련)와 oi_change 부호(신규/청산)만으로 지시서의
   // "최종 상태 표시" 4개 라벨(상승 포지션 확대/청산, 하락 포지션 확대/청산)과 동일한
   // 결과를 만들 수 있어 그 방식으로 구현 - 매수/매도 거래량을 따로 추정하지 않는다.
