@@ -48,14 +48,15 @@
       '<div class="sub-filter-bar" id="subFilterBar" style="display:none;"></div>',
 
     /* 사이트 하단 푸터: 표준 4종 링크(이용약관/개인정보처리방침/오픈소스 라이선스/문의하기).
-       이용약관·개인정보처리방침·오픈소스 라이선스는 /page/terms, /page/privacy,
-       /page/opensource-license 티스토리 페이지로 연결(2026-07-22 신설), 문의하기는 mailto. */
+       이용약관·개인정보처리방침·오픈소스 라이선스는 티스토리 페이지가 아니라 이 저장소의
+       legal/*.html 정적 페이지로 연결(2026-07-22 신설) - git push만으로 내용 수정 가능,
+       티스토리 페이지 수동 생성 불필요. 문의하기는 mailto. */
     footer:
       '<footer class="site-footer">' +
         '<nav class="site-footer-links">' +
-          '<a href="/page/terms">서비스 이용약관</a>' +
-          '<a href="/page/privacy">개인정보처리방침</a>' +
-          '<a href="/page/opensource-license">오픈소스 라이선스</a>' +
+          '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/terms.html">서비스 이용약관</a>' +
+          '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>' +
+          '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/opensource-license.html">오픈소스 라이선스</a>' +
           '<a href="mailto:goodbyestarwars@gmail.com">문의하기</a>' +
         '</nav>' +
       '</footer>'

@@ -1,0 +1,90 @@
+/* 이용약관/개인정보처리방침/오픈소스 라이선스 등 정적 법적 고지 페이지 공통 스타일.
+   티스토리 스킨(style.css)과 별개 문서(GitHub Pages 단독 호스팅)라 prefers-color-scheme으로
+   다크모드를 판단한다(localStorage 'bolt-dark'는 tistory.com 도메인이라 이 origin에서 못 읽음). */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;800&display=swap');
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 48px 20px 80px;
+  font-family: 'Noto Serif KR', Georgia, serif;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #374151;
+  background: #fdfdf7;
+}
+
+.legal-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #94a3b8;
+  text-decoration: none;
+  margin-bottom: 28px;
+}
+.legal-back:hover { color: #d24f45; }
+
+h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0 0 6px;
+}
+.legal-effective-date {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0 0 32px;
+}
+
+h2 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 32px 0 10px;
+  padding-top: 4px;
+  border-top: 1px solid #eee;
+}
+h2:first-of-type { border-top: none; padding-top: 0; }
+
+h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #4b5563;
+  margin: 18px 0 6px;
+}
+
+p { margin: 0 0 12px; }
+
+ul, ol { margin: 0 0 12px; padding-left: 20px; }
+li { margin-bottom: 6px; }
+
+a { color: #d24f45; }
+
+.legal-contact {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+@media (prefers-color-scheme: dark) {
+  body { background: #0f1420; color: #d3dbe8; }
+  h1, h2, h3 { color: #ffffff; }
+  h2, .legal-contact { border-top-color: #263048; }
+  .legal-back, .legal-effective-date, .legal-contact { color: #6b7889; }
+  a { color: #ff8a80; }
+}
+
+@media (max-width: 480px) {
+  body { padding: 32px 16px 60px; font-size: 14px; }
+  h1 { font-size: 20px; }
+}
