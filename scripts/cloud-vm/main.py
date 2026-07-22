@@ -212,18 +212,21 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
 
 
 @app.get('/investor-flow/{code}')
-def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6)):
+def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6), name: str = Query('')):
     """공매도/대차거래/연기금 수급 - scripts/fetch_investor_flow.py 로직 온디맨드 버전.
     2026-07-13: GAS를 거치지 않고 브라우저(js/foreign-flow.js)가 직접 호출하도록 전환됨
     (GAS->VM 구간 간헐적 장애 우회) - 그래서 X-API-Key 인증이 없다(CORS로만 제한, 위 주석
-    참고). name은 화면표시용 캐스메틱 필드라 없애고 프론트가 이미 아는 값을 붙여 쓴다.
-    5분 메모리 캐시 적용."""
+    참고). 2026-07-22: name은 원래 화면표시용 캐스메틱 필드라 안 받았는데, "위험" 승격
+    게이트(investor_flow.apply_danger_override)가 KRX 공시 RSS에서 종목명으로 매칭해야 해서
+    다시 필요해짐 - 프론트(js/foreign-flow.js)가 검색 시 이미 아는 한글명을 그대로 보내준다.
+    캐시 키는 code만 쓰므로(동일 종목은 이름이 바뀌지 않음) name 누락 시(구버전 캐시 프론트 등)
+    빈 문자열로 게이트만 조용히 꺼짐. 5분 메모리 캐시 적용."""
     cached = _live_cache_get(_investor_flow_cache_mem, code)
     if cached is not None:
         return envelope(cached)
     try:
         token = get_kiwoom_token()
-        result = investor_flow.fetch_stock(token, code, code)
+        result = investor_flow.fetch_stock(token, code, name)
     except HTTPException:
         raise
     except Exception as e:

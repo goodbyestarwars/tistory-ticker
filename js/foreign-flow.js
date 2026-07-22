@@ -62,10 +62,13 @@
     very_positive: 'ff-badge-buy', positive: 'ff-badge-buy', neutral_positive: 'ff-badge-buy',
     neutral: 'ff-badge-neutral', caution: 'ff-badge-sell'
   };
-  // 공매도 압박 등급(약함=안전)을 위 톤 팔레트에 얹어서 색만 재사용
+  // 공매도 압박 등급(약함=안전)을 위 톤 팔레트에 얹어서 색만 재사용.
+  // '위험'(2026-07-22): KRX 공매도 과열종목 지정 + 실제 주가 하락 + 공매도/대차잔고 증가가
+  // 전부 겹칠 때만 뜨는 별도 승격 등급(investor_flow.py apply_danger_override) - 100점
+  // 계산상의 '매우 강함'과 같은 톤(caution)을 쓰되 라벨 자체로 구분한다.
   var SHORT_GRADE_TONE = {
     '매우 약함': 'very_positive', '약함': 'positive', '보통': 'neutral',
-    '강함': 'caution', '매우 강함': 'caution'
+    '강함': 'caution', '매우 강함': 'caution', '위험': 'caution'
   };
 
   // ---- 2026-07-20(3차): 작업지시서 최종본 - 가중치 탭(6개) 대신 단일 종목 리스트 + 우측
@@ -875,7 +878,11 @@
     if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
     if (investorFlowInflight[code]) return investorFlowInflight[code];
 
-    var url = KIWOOM_VM_URL + '/investor-flow/' + encodeURIComponent(code);
+    // 2026-07-22: name도 같이 보낸다 - VM의 "위험" 승격 게이트가 KRX 공시 RSS에서
+    // 종목명으로 매칭해야 해서(investor_flow.py apply_danger_override), 예전처럼
+    // "화면표시용 캐스메틱이라 안 보내도 됨"이 아니게 됨.
+    var url = KIWOOM_VM_URL + '/investor-flow/' + encodeURIComponent(code)
+      + '?name=' + encodeURIComponent(name || '');
     var p = fetchJson(url)
       .then(function (data) {
         delete investorFlowInflight[code];
@@ -1588,7 +1595,13 @@
     var parts = ['거래비중 ' + fmtPct(s.today_ratio_pct)];
     if (s.days_to_cover != null) parts.push('Days to Cover ' + s.days_to_cover.toFixed(1) + '일');
     if (l && l.balance_change_pct != null) parts.push('대차잔고 ' + fmtSignedPct(l.balance_change_pct));
-    return parts.join(' · ') + '로 압박 ' + label + ' 수준입니다.';
+    var base = parts.join(' · ') + '로 압박 ' + label + ' 수준입니다.';
+    var gate = s.pressure.danger_gate;
+    if (gate && gate.triggered) {
+      base += ' KRX 공매도 과열종목 지정 + 최근 5거래일 ' + fmtSignedPct(gate.price_decline_pct)
+        + ' 하락 + 공매도·대차 물량 증가가 겹쳐 실제 하락 압력으로 확인돼 등급을 위험으로 올렸습니다.';
+    }
+    return base;
   }
 
   // 연기금 해석(긍정/중립/부정 판정 + 근거 문구) - 예전엔 백엔드가 "N일 연속"만 반복하는
@@ -2088,6 +2101,7 @@
       if (b.balance_increase > 0) causes.push('공매도 잔고 증가 ' + fmtSignedPct(s.balance_change_pct));
       if (b.foreign_sell > 0) causes.push('외국인 순매도 동반');
       if (b.inst_sell > 0) causes.push('기관 순매도 동반');
+      if (p.danger_gate && p.danger_gate.triggered) causes.push('KRX 공매도 과열종목 지정');
     }
 
     var grid = '';
@@ -2128,7 +2142,8 @@
       + '<b>Day to Cover</b>: 공매도 잔고를 20일 평균 거래량으로 다 갚는 데 걸리는 거래일 수(클수록 상환 물량 소화가 오래 걸림).<br>'
       + '<b>숏 압박 지수</b>: (외국인+기관 순매수)÷공매도 거래량×100. 0 이상이면 숏스퀴즈 압력 구간, 미만이면 동반 매도 구간.<br>'
       + '<b>대차잔고 증감률</b>: 대차거래(기관·외국인이 주식을 빌리고 빌려주는 거래)로 시중에 풀린 주식 잔고의 증감. '
-      + '공매도는 대부분 이렇게 빌린 주식을 팔아서 이뤄지므로, 잔고가 늘면 앞으로 공매도에 쓰일 수 있는 물량이 쌓이는 중(선행 경고 신호), 줄면 빌린 주식이 상환되며 공매도 압박이 누그러지는 중이라는 뜻.'
+      + '공매도는 대부분 이렇게 빌린 주식을 팔아서 이뤄지므로, 잔고가 늘면 앞으로 공매도에 쓰일 수 있는 물량이 쌓이는 중(선행 경고 신호), 줄면 빌린 주식이 상환되며 공매도 압박이 누그러지는 중이라는 뜻.<br>'
+      + '<b>위험 등급</b>: ①KRX가 오늘 공매도 과열종목으로 지정/연장했고 ②최근 5거래일 주가가 실제로 하락했고 ③공매도·대차 물량이 늘어난 경우, 이 3가지가 전부 겹칠 때만 별도로 승격됩니다(하나라도 안 맞으면 위 100점 계산 등급 그대로).'
       + '</div>'
       + '</div>';
   }
