@@ -39,11 +39,11 @@
     return ['T' + String(i).padStart(5, '0'), '테스트종목' + (i + 1)];
   }
 
-  function mockAmount(n) {
+  function mockVolume(n) {
     var out = [];
     for (var i = 0; i < n; i++) {
       var s = stockAt(i);
-      out.push({ code: s[0], name: s[1], price: 50000 + i * 10000, change_rate: (i % 2 === 0 ? 1 : -1) * (0.5 + i), trade_amount: (5000 - i * 200) * 100 });
+      out.push({ code: s[0], name: s[1], price: 50000 + i * 10000, change_rate: (i % 2 === 0 ? 1 : -1) * (0.5 + i), trade_volume: (5000000 - i * 200000) });
     }
     return out;
   }
@@ -62,9 +62,9 @@
       if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
       var n = limit || 5;
       if (window.__mockMode === 'empty-limits') {
-        return Promise.resolve({ tradeAmount: mockAmount(n), upperLimit: [], lowerLimit: [] });
+        return Promise.resolve({ tradeVolume: mockVolume(n), upperLimit: [], lowerLimit: [] });
       }
-      return Promise.resolve({ tradeAmount: mockAmount(n), upperLimit: mockLimit(1, n === 5 ? 3 : n), lowerLimit: mockLimit(-1, n === 5 ? 4 : n) });
+      return Promise.resolve({ tradeVolume: mockVolume(n), upperLimit: mockLimit(1, n === 5 ? 3 : n), lowerLimit: mockLimit(-1, n === 5 ? 4 : n) });
     };
   }
 

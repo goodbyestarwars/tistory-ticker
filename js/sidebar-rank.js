@@ -1,12 +1,17 @@
 /**
- * 우측 사이드바 - 실시간 시장데이터 TOP 리스트(거래대금/상한가/하한가).
+ * 우측 사이드바 - 실시간 시장데이터 TOP 리스트(거래량/상한가/하한가).
  * 작업지시서(9bolt 사이드바 리디자인, 2026-07-20) Phase 1 범위 - 배당주 TOP은 배당수익률
  * 데이터 소스 자체가 코드베이스에 없어(DART 배당공시 미연동) Phase 2로 미룸(사용자 확인).
  *
- * 데이터: VM(goodbyestar.cloud/market-rank, 키움 REST 랭킹 TR ka10032/ka10017)을 브라우저가
+ * 데이터: VM(goodbyestar.cloud/market-rank, 키움 REST 랭킹 TR ka10030/ka10017)을 브라우저가
  * 직접 호출(인증 없음, CORS로 블로그 도메인만 허용 - js/kospi-futures.js의 /futures, /option-flow
  * 와 동일 패턴). 30초 주기로 갱신(지시서 4.2 "거래대금 TOP 30초~1분"에 맞춤, 상한가/하한가
  * 요구사항인 "1분"보다 촘촘하지만 세 섹션을 한 번의 호출로 같이 받아오는 게 더 단순함).
+ *
+ * **2026-07-22: 거래대금 TOP → 거래량 TOP으로 교체**(사용자 피드백: 거래대금 기준으로
+ * 뽑으면 단가가 비싼 SK하이닉스 같은 종목만 걸려서 의도한 "많이 거래되는 종목"과 어긋남).
+ * VM 쪽 `scripts/cloud-vm/market_rank.py`가 ka10032(거래대금상위) 대신 ka10030(당일거래량
+ * 상위)을 호출하도록 같이 바꿨고, 응답 키도 `tradeAmount`→`tradeVolume`로 변경됨.
  *
  * 색상: 지시서 원문은 #E24B4A(상승)/#378ADD(하락)를 지정했지만, 사이트 전체가 이미
  * #d24f45(상승)/#1261c4(하락)로 통일돼 있어(CLAUDE.md) 그 값 대신 기존 사이트 색을 그대로
@@ -30,8 +35,8 @@
 
   var SECTIONS = [
     {
-      key: 'tradeAmount', title: '거래대금 TOP', shortTitle: '거래대금', iconCls: 'si-blue', showAmount: true,
-      emptyText: '거래대금 데이터가 없어요.', errorText: '거래대금 데이터를 불러오지 못했어요.'
+      key: 'tradeVolume', title: '거래량 TOP', shortTitle: '거래량', iconCls: 'si-blue', showAmount: true,
+      emptyText: '거래량 데이터가 없어요.', errorText: '거래량 데이터를 불러오지 못했어요.'
     },
     {
       key: 'upperLimit', title: '상한가', shortTitle: '상한가', iconCls: 'si-amber', showAmount: false,
@@ -108,7 +113,7 @@
       + '<span class="sr-price">' + fmtPrice(item.price) + '</span>'
       + '<span class="sr-rate ' + cls + '">' + arrow + ' ' + Math.abs(rate).toFixed(2) + '%</span>'
       + '</span>'
-      + (showAmount ? '<span class="sr-amount">' + fmtAmount(item.trade_amount) + '</span>' : '')
+      + (showAmount ? '<span class="sr-amount">' + fmtVolume(item.trade_volume) + '</span>' : '')
       + '</li>';
   }
 
@@ -165,11 +170,10 @@
       });
   }
 
-  // trade_amount는 백만원 단위로 온다(키움 ka10032 관례, VM 실측 확인 2026-07-20) -
-  // 억원 = 백만원/100.
-  function fmtAmount(v) {
+  // trade_volume은 주 단위 원시값으로 온다(키움 ka10030) - 만주 단위로 축약 표시.
+  function fmtVolume(v) {
     if (v == null || isNaN(v)) return '-';
-    return Math.round(v / 100).toLocaleString('ko-KR') + '억';
+    return Math.round(v / 10000).toLocaleString('ko-KR') + '만주';
   }
 
   function fmtTime(d) {
