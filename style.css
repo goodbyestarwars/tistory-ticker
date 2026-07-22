@@ -1761,6 +1761,7 @@ a { text-decoration: none; color: inherit; }
 }
 .site-footer-links a:last-child { border-right: none; }
 .site-footer-links a:hover { color: #374151; }
+.site-footer-sep { color: #cbd5e1; font-size: 12px; }
 .copyright {
   font-size: 11px;
   color: #94a3b8;
@@ -1773,6 +1774,7 @@ a { text-decoration: none; color: inherit; }
 html.dark .site-footer { border-top-color: #263048; }
 html.dark .site-footer-links a { color: #6b7889; border-right-color: #263048; }
 html.dark .site-footer-links a:hover { color: #d3dbe8; }
+html.dark .site-footer-sep { color: #334155; }
 html.dark .copyright { color: #6b7889; }
 html.dark .copyright:hover { color: #d3dbe8; }
 body.iframe-mode .site-footer { display: none !important; }
