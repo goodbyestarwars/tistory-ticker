@@ -29,8 +29,9 @@
   var MA60_COLOR = '#8b5cf6';
 
   // js/foreign-flow.js와 동일한 주기·색상(사이트 전체 일관성) - 일목균형표 토글 전용.
+  // 선행스팬1·2는 둘 다 하늘색으로 통일(2026-07-22 사용자 요청).
   var ICHIMOKU_TENKAN_PERIOD = 9, ICHIMOKU_KIJUN_PERIOD = 26, ICHIMOKU_SENKOU_B_PERIOD = 52, ICHIMOKU_DISPLACEMENT = 26;
-  var ICHIMOKU_COLORS = { tenkan: '#d6336c', kijun: '#1971c2', senkouA: '#37b24d', senkouB: '#f08c00', chikou: '#868e96' };
+  var ICHIMOKU_COLORS = { senkouA: '#4dabf7', senkouB: '#4dabf7' };
 
   // desc는 각 detect*_ 함수(gas/ticker-proxy.gs)의 판정 조건을 일반 투자자가 읽을 수 있는
   // 말로 옮긴 것 - 목록이 비어 있을 때도(70점 미만이라 노출 종목이 없을 때) 이 패턴이

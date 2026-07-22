@@ -31,7 +31,15 @@
   var PAD = { l: 68, r: 16, t: 16, b: 30 };
 
   var FCHART_H = 360;
-  var MA_COLORS = { ma5: '#e8590c', ma20: '#0ca678', ma60: '#5f3dc4', ma224: '#868e96' };
+  var MA_COLORS = { ma5: '#e8590c', ma20: '#0ca678', ma60: '#5f3dc4' };
+  var MA_WIDTHS = { ma5: 1, ma20: 1, ma60: 1, ma224: 2 };
+  // 224일선은 다른 이평선과 구분되는 장기 추세선이라 검은색+굵게(사용자 요청, 2026-07-22) -
+  // 다만 순검은색은 다크모드 차트 배경(#222)에서 안 보이므로 테마에 따라 흰색으로 바꿔준다.
+  function ma224Color() {
+    return document.documentElement.classList.contains('dark') ? '#f1f3f5' : '#000000';
+  }
+  // 선행스팬1·2(구름 경계선)는 js/pattern-scan.js와 동일하게 하늘색 통일(2026-07-22 사용자 요청)
+  var ICHIMOKU_COLORS = { senkouA: '#4dabf7', senkouB: '#4dabf7' };
 
   // TradingView Lightweight Charts(오픈소스, CDN 지연 로드) - 가격 캔들차트 렌더링 엔진.
   // 손으로 그리던 SVG 캔들차트를 대체 - 확대/축소·패닝·크로스헤어를 라이브러리가 제공.
@@ -994,6 +1002,7 @@
     wireFlowPeriod(box, data.code, data.name);
     loadAiSummary(box, data, entry, techScore, chartData, fundamentals);
     wireViewTabs(box, data.code, data.name, chartData);
+    wireIchimokuToggle(box, chartData);
   }
 
   // ---- 탭(수급 / 차트 / 펀더멘탈) ----
@@ -2215,7 +2224,9 @@
     if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 2) {
       body = '<div class="ff-error">' + escapeHtml((chartData && chartData.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
     } else {
-      body = '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
+      body = '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
+        + buildIchimokuLegend()
+        + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
         + buildLwLegend()
         + buildTechBreakdown(techScore)
         + buildRsiSection(chartData.daily);
@@ -2231,10 +2242,137 @@
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma5 + '"></i>5일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma20 + '"></i>20일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma60 + '"></i>60일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma224 + '"></i>224일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ma224Color() + '"></i>224일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
       + '</div>';
+  }
+
+  // 일목균형표는 캔들과 겹쳐 기본 차트를 복잡하게 만드는 별도 보조지표라 js/pattern-scan.js와
+  // 똑같이 체크박스로 켜고 끈다(기본 꺼짐).
+  var ichimokuEnabled = false;
+  var ichimokuOverlaySeries = [];
+  var ichimokuCloudPrimitive = null; // { series, primitive }
+
+  function buildIchimokuLegend() {
+    return '<div class="ff-ichimoku-legend"' + (ichimokuEnabled ? '' : ' hidden') + '>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.senkouA + '"></i>선행스팬1</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.senkouB + '"></i>선행스팬2</span>'
+      + '</div>';
+  }
+
+  // 선행스팬1(A)·2(B)를 같은 시각끼리 짝지어 { time, a, b } 배열로 만든다(js/pattern-scan.js와
+  // 동일 로직 - 두 계열은 필요 기간이 달라 시작 시점이 어긋나므로 B가 있는 시각만 교집합으로 뽑음).
+  function pairIchimokuBand(aPts, bPts) {
+    var bMap = {};
+    for (var i = 0; i < bPts.length; i++) bMap[bPts[i].time] = bPts[i].value;
+    var out = [];
+    for (var j = 0; j < aPts.length; j++) {
+      var t = aPts[j].time;
+      if (Object.prototype.hasOwnProperty.call(bMap, t)) out.push({ time: t, a: aPts[j].value, b: bMap[t] });
+    }
+    return out;
+  }
+
+  // TradingView 공식 "Bands Indicator" 플러그인 예제와 같은 구조(Series Primitive, v4.1+ 지원 -
+  // js/pattern-scan.js 참고). drawBackground()로 캔들/선보다 먼저 그려 구름이 배경에 깔리게 한다.
+  function createIchimokuCloudPrimitive(bandPts, bullColor, bearColor) {
+    return {
+      _chart: null,
+      _series: null,
+      attached: function (params) { this._chart = params.chart; this._series = params.series; },
+      detached: function () { this._chart = null; this._series = null; },
+      updateAllViews: function () {},
+      paneViews: function () {
+        var self = this;
+        return [{
+          renderer: function () {
+            return {
+              draw: function () {},
+              drawBackground: function (target) {
+                var chart = self._chart, series = self._series;
+                if (!chart || !series) return;
+                target.useBitmapCoordinateSpace(function (scope) {
+                  var ctx = scope.context;
+                  var hRatio = scope.horizontalPixelRatio, vRatio = scope.verticalPixelRatio;
+                  var timeScale = chart.timeScale();
+                  var pts = bandPts.map(function (p) {
+                    var x = timeScale.timeToCoordinate(p.time);
+                    var yA = series.priceToCoordinate(p.a);
+                    var yB = series.priceToCoordinate(p.b);
+                    if (x == null || yA == null || yB == null) return null;
+                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio, bull: p.a >= p.b };
+                  });
+                  ctx.save();
+                  for (var k = 0; k < pts.length - 1; k++) {
+                    var p0 = pts[k], p1 = pts[k + 1];
+                    if (!p0 || !p1) continue;
+                    ctx.beginPath();
+                    ctx.moveTo(p0.x, p0.yA);
+                    ctx.lineTo(p1.x, p1.yA);
+                    ctx.lineTo(p1.x, p1.yB);
+                    ctx.lineTo(p0.x, p0.yB);
+                    ctx.closePath();
+                    ctx.fillStyle = p0.bull ? bullColor : bearColor;
+                    ctx.fill();
+                  }
+                  ctx.restore();
+                });
+              }
+            };
+          }
+        }];
+      }
+    };
+  }
+
+  // computeIchimoku(daily)는 computeIchimokuScore가 이미 쓰는 기존 함수를 그대로 재사용한다
+  // (전환선/기준선도 내부적으로 계산해야 선행스팬이 나오지만, 화면엔 구름 경계선 2개만 그림).
+  function addIchimokuOverlay(daily) {
+    if (!lwcChart || ichimokuOverlaySeries.length || !daily || daily.length < ICHIMOKU_SENKOU_B_PERIOD) return;
+    var ichi = computeIchimoku(daily);
+    var seriesByKey = {};
+    [['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB]].forEach(function (pair) {
+      var key = pair[0], pts = pair[1];
+      if (!pts.length) return;
+      var series = lwcChart.addLineSeries({ color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      series.setData(pts);
+      ichimokuOverlaySeries.push(series);
+      seriesByKey[key] = series;
+    });
+
+    if (seriesByKey.senkouA && typeof seriesByKey.senkouA.attachPrimitive === 'function') {
+      try {
+        var bandPts = pairIchimokuBand(ichi.senkouA, ichi.senkouB);
+        if (bandPts.length > 1) {
+          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(55,178,77,0.18)', 'rgba(240,140,0,0.18)');
+          seriesByKey.senkouA.attachPrimitive(cloudPrimitive);
+          ichimokuCloudPrimitive = { series: seriesByKey.senkouA, primitive: cloudPrimitive };
+        }
+      } catch (e) { /* primitive 렌더링 실패해도 구름 경계선 2개는 이미 그려져 있음 */ }
+    }
+  }
+
+  function removeIchimokuOverlay() {
+    if (lwcChart) {
+      if (ichimokuCloudPrimitive) {
+        try { ichimokuCloudPrimitive.series.detachPrimitive(ichimokuCloudPrimitive.primitive); } catch (e) { /* 무시 */ }
+      }
+      ichimokuOverlaySeries.forEach(function (s) { try { lwcChart.removeSeries(s); } catch (e) { /* 이미 제거됐으면 무시 */ } });
+    }
+    ichimokuOverlaySeries = [];
+    ichimokuCloudPrimitive = null;
+  }
+
+  function wireIchimokuToggle(box, chartData) {
+    var toggle = box.querySelector('#ffIchimokuToggle');
+    var legend = box.querySelector('.ff-ichimoku-legend');
+    if (!toggle) return;
+    toggle.addEventListener('change', function () {
+      ichimokuEnabled = toggle.checked;
+      if (legend) legend.hidden = !ichimokuEnabled;
+      if (ichimokuEnabled) addIchimokuOverlay(chartData && chartData.daily); else removeIchimokuOverlay();
+    });
   }
 
   // ---- 보조지표: RSI(14) / 볼린저밴드(20,2) / 거래대금 배수 - 전부 이미 받아온 chartData.daily
@@ -2357,6 +2495,36 @@
 
   // RSI(14) 미니차트 - buildRatioChart와 동일한 SVG 패턴(외부 라이브러리 없음), 0~100 고정 축 +
   // 30/70 기준선. 2026-07-22: 기술적 점수표 참고행으로 통합했다가 사용자 요청으로 원복.
+  // RSI가 70을 넘는 구간만 y=70 기준선과 RSI 곡선 사이를 빨갛게 채운 폴리곤으로 만든다
+  // (구간 경계는 선형보간으로 70 교차 지점을 정확히 잡아 삐뚤빼뚤한 계단 없이 매끄럽게 이어짐).
+  function buildRsiOverboughtFill(pts, x, y, threshold) {
+    var yT = y(threshold);
+    var out = '';
+    for (var i = 0; i < pts.length - 1; i++) {
+      var v0 = pts[i].v, v1 = pts[i + 1].v;
+      if (v0 <= threshold && v1 <= threshold) continue;
+      var x0 = x(i), x1 = x(i + 1);
+      var startX = x0, startY = y(v0);
+      var endX = x1, endY = y(v1);
+      if (v0 < threshold) {
+        var t0 = (threshold - v0) / (v1 - v0);
+        startX = x0 + t0 * (x1 - x0);
+        startY = yT;
+      }
+      if (v1 < threshold) {
+        var t1 = (threshold - v0) / (v1 - v0);
+        endX = x0 + t1 * (x1 - x0);
+        endY = yT;
+      }
+      out += '<polygon class="ff-rsi-fill" points="'
+        + startX.toFixed(1) + ',' + yT.toFixed(1) + ' '
+        + startX.toFixed(1) + ',' + startY.toFixed(1) + ' '
+        + endX.toFixed(1) + ',' + endY.toFixed(1) + ' '
+        + endX.toFixed(1) + ',' + yT.toFixed(1) + '"/>';
+    }
+    return out;
+  }
+
   function buildRsiSection(daily) {
     var rsi = computeRSI(daily, 14);
     var pts = [];
@@ -2379,6 +2547,7 @@
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(70) + 4).toFixed(1) + '" text-anchor="end">70</text>';
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(30) + 4).toFixed(1) + '" text-anchor="end">30</text>';
     svg += rsiAxisLabels(pts, x, RATIO_H - 8);
+    svg += buildRsiOverboughtFill(pts, x, y, 70);
     svg += '<polyline class="ff-line-rsi" points="' + linePts + '"/>';
     svg += '</svg>';
 
@@ -2388,7 +2557,8 @@
 
     return '<div class="ff-chart-title">RSI(14)</div>'
       + '<div class="ff-chart ff-chart-rsi">' + svg
-      + '<div class="ff-legend"><span class="ff-legend-item"><i class="ff-dot" style="background:#f08c00"></i>RSI(14) <span class="' + cls + '">' + last.toFixed(1) + ' · ' + label + '</span></span></div>'
+      + '<div class="ff-legend"><span class="ff-legend-item"><i class="ff-dot" style="background:#666"></i>RSI(14) <span class="' + cls + '">' + last.toFixed(1) + ' · ' + label + '</span></span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>70 이상(과매수)</span></div>'
       + '</div>';
   }
 
@@ -2442,6 +2612,8 @@
       try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
       lwcChart = null;
     }
+    ichimokuOverlaySeries = []; // chart.remove()가 시리즈까지 다 정리하므로 참조만 비움
+    ichimokuCloudPrimitive = null;
   }
 
   // 9bolt 스킨의 html.dark 토글은 새로고침 없이 클래스만 바뀌므로, 캔버스 기반 차트도
@@ -2505,7 +2677,8 @@
       ['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key) {
         var series = (chartData.ma && chartData.ma[key]) || [];
         if (!series.length) return;
-        var lineSeries = chart.addLineSeries({ color: MA_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        var color = key === 'ma224' ? ma224Color() : MA_COLORS[key];
+        var lineSeries = chart.addLineSeries({ color: color, lineWidth: MA_WIDTHS[key], priceLineVisible: false, lastValueVisible: false });
         var pts = [];
         daily.forEach(function (d, i) {
           if (series[i] == null) return;
@@ -2513,6 +2686,8 @@
         });
         lineSeries.setData(pts);
       });
+
+      if (ichimokuEnabled) addIchimokuOverlay(daily);
 
       // 2026-07-22: 볼린저밴드·일목균형표 선은 캔들과 겹쳐 차트가 복잡해진다는 피드백으로
       // 차트 시각화에서 제거(계산 자체는 buildTechBreakdown의 기술적 점수·참고지표에서
