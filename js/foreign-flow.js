@@ -1575,28 +1575,41 @@
     return '최근 5·20일 외국인·기관 수급이 혼조세입니다.';
   }
 
-  // 상단 배지(색·톤) 전용 - 5일 합산 부호만 보면 "오늘은 순매수 전환"인데도 "매도세가
-  // 이어진다"고 나오는 모순이 생길 수 있어(예: 5일 중 나흘은 매도, 오늘만 매수면 합산은
-  // 음수), 배지와 같은 기준인 streak(최신일부터 역순 연속 방향)로 판단해 배지·문구가
-  // 항상 같은 결론을 가리키게 한다. "오늘의 수급" 행에는 쓰지 말 것(flowScoreInterpText 사용).
+  // 상단 배지(색·톤)와 해석 문구가 같은 방향 판정을 쓰도록 하는 공용 헬퍼.
+  // 예전엔 streak.direction(최신일부터 역순 연속 방향)을 그대로 썼는데, 그러면 4일 연속
+  // 순매수하다 오늘 하루만 반대매매가 나와도 streak이 "1일 순매도"로 리셋되면서 곧바로
+  // 중립으로 떨어지는 문제가 있었다(2026-07-23 사용자 리포트: 신일전기 - 외국인이 5일 누적
+  // +51,876주 순매수인데 당일 -4,952주 하나 때문에 "방향이 뚜렷하지 않다"로 표시됨).
+  // streak이 짧으면(3일 미만) 노이즈로 보고 5일 합산 부호로 스무딩하고, streak이 3일
+  // 이상 이어졌다면(=frgnSignal의 "5일 중 3일 이상" 연속성 기준과 동일선상) 이미 노이즈가
+  // 아니라 실제 흐름이므로 raw streak을 그대로 신뢰한다.
+  function flowDirection(kind, data) {
+    var st = (data.streak && data.streak[kind]) || { direction: 'flat', days: 0 };
+    if (st.direction !== 'flat' && st.days >= 3) return st.direction;
+    var v5 = data.rolling && data.rolling['5d'] ? data.rolling['5d'][kind] : 0;
+    if (v5 > 0) return 'buy';
+    if (v5 < 0) return 'sell';
+    return st.direction;
+  }
+
+  // "오늘의 수급" 행(flowScoreInterpText, rolling 5·20일 기준)과는 별개로 상단 배지 전용
+  // 문구 - flowDirection과 같은 방향 판정을 써서 배지·문구가 항상 같은 결론을 가리키게 한다.
   function flowInterpText(data) {
-    var streak = data.streak || {};
-    var f = streak.foreign || { direction: 'flat' };
-    var i = streak.inst || { direction: 'flat' };
-    if (f.direction === 'buy' && i.direction === 'buy') return '외국인과 기관이 동반 순매수하며 수급이 양호합니다.';
-    if (f.direction === 'buy' && i.direction === 'sell') return '외국인은 순매수, 기관은 순매도로 엇갈리고 있습니다.';
-    if (f.direction === 'sell' && i.direction === 'buy') return '기관은 순매수, 외국인은 순매도로 엇갈리고 있습니다.';
-    if (f.direction === 'sell' && i.direction === 'sell') return '외국인과 기관이 동반 순매도하며 수급이 약화되고 있습니다.';
+    var f = flowDirection('foreign', data);
+    var i = flowDirection('inst', data);
+    if (f === 'buy' && i === 'buy') return '외국인과 기관이 동반 순매수하며 수급이 양호합니다.';
+    if (f === 'buy' && i === 'sell') return '외국인은 순매수, 기관은 순매도로 엇갈리고 있습니다.';
+    if (f === 'sell' && i === 'buy') return '기관은 순매수, 외국인은 순매도로 엇갈리고 있습니다.';
+    if (f === 'sell' && i === 'sell') return '외국인과 기관이 동반 순매도하며 수급이 약화되고 있습니다.';
     return '외국인·기관 수급 방향이 뚜렷하지 않습니다.';
   }
 
-  // flowInterpText와 같은 streak 기준으로 색·배지 톤을 정해서 문구와 절대 어긋나지 않게 한다.
+  // flowInterpText와 같은 flowDirection 기준으로 색·배지 톤을 정해서 문구와 절대 어긋나지 않게 한다.
   function flowTone(data) {
-    var streak = data.streak || {};
-    var f = streak.foreign || { direction: 'flat' };
-    var i = streak.inst || { direction: 'flat' };
-    if (f.direction === 'buy' && i.direction === 'buy') return { tone: 'positive', label: '긍정' };
-    if (f.direction === 'sell' && i.direction === 'sell') return { tone: 'caution', label: '주의' };
+    var f = flowDirection('foreign', data);
+    var i = flowDirection('inst', data);
+    if (f === 'buy' && i === 'buy') return { tone: 'positive', label: '긍정' };
+    if (f === 'sell' && i === 'sell') return { tone: 'caution', label: '주의' };
     return { tone: 'neutral', label: '중립' };
   }
 
