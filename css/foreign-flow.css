@@ -534,7 +534,14 @@
   color: #666;
 }
 
-/* 일목균형표 토글(기본 꺼짐, js/pattern-scan.js와 동일 패턴) + 범례 */
+/* 일목균형표/매물대 토글(기본 꺼짐, js/pattern-scan.js와 동일 패턴) + 범례 */
+#foreign-flow .ff-chart-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+#foreign-flow .ff-chart-toggles .ff-ichimoku-toggle { margin-bottom: 0; }
 #foreign-flow .ff-ichimoku-toggle {
   display: flex;
   align-items: center;
@@ -548,6 +555,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  padding: 2px 0 8px;
+  font-size: 12px;
+  color: #666;
+}
+#foreign-flow .ff-vp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
   padding: 2px 0 8px;
   font-size: 12px;
   color: #666;
@@ -750,7 +766,8 @@ html.dark #foreign-flow .ff-axis { fill: #888; }
 html.dark #foreign-flow .ff-line-rsi { stroke: #ccc; }
 html.dark #foreign-flow .ff-legend { color: #aaa !important; }
 html.dark #foreign-flow .ff-ichimoku-toggle,
-html.dark #foreign-flow .ff-ichimoku-legend { color: #aaa !important; }
+html.dark #foreign-flow .ff-ichimoku-legend,
+html.dark #foreign-flow .ff-vp-legend { color: #aaa !important; }
 html.dark #foreign-flow .ff-hover-line { stroke: #777; }
 html.dark #foreign-flow .ff-hover-dot { stroke: #222; }
 html.dark #foreign-flow .ff-tt {
