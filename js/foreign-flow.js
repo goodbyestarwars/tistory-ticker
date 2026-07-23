@@ -1003,6 +1003,7 @@
     loadAiSummary(box, data, entry, techScore, chartData, fundamentals);
     wireViewTabs(box, data.code, data.name, chartData);
     wireIchimokuToggle(box, chartData);
+    wireVolumeProfileToggle(box, chartData);
   }
 
   // ---- 탭(수급 / 차트 / 펀더멘탈) ----
@@ -2237,8 +2238,12 @@
     if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 2) {
       body = '<div class="ff-error">' + escapeHtml((chartData && chartData.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
     } else {
-      body = '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
+      body = '<div class="ff-chart-toggles">'
+        + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
+        + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
+        + '</div>'
         + buildIchimokuLegend()
+        + buildVpLegend()
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
         + buildLwLegend()
         + buildTechBreakdown(techScore)
@@ -2385,6 +2390,139 @@
       ichimokuEnabled = toggle.checked;
       if (legend) legend.hidden = !ichimokuEnabled;
       if (ichimokuEnabled) addIchimokuOverlay(chartData && chartData.daily); else removeIchimokuOverlay();
+    });
+  }
+
+  // ---- 매물대(근사) ----
+  // 진짜 매물대는 틱/체결가 기준인데 우리는 일봉(고가/저가/거래량)만 갖고 있어서, 하루
+  // 거래량을 그날의 고가~저가 구간에 균등 분산시켜 가격대별로 합산하는 근사치다.
+  // computeSupportResistance_(gas/ticker-proxy.gs)와 같은 120거래일 창을 써서 지지/저항과
+  // 보는 기간을 맞춘다(전체 500일을 다 쓰면 산일전기처럼 급등 전 낮은 가격대까지 섞여
+  // 지금 가격대와 무관한 구간이 커짐). 화면엔 근사치라는 걸 범례에 명시한다.
+  var VP_LOOKBACK_DAYS = 120;
+  var VP_BIN_COUNT = 24;
+  var VP_MAX_WIDTH_RATIO = 0.26; // 매물대 막대 최대 폭 = 패널 폭의 26%(캔들을 다 가리지 않게)
+  var vpEnabled = false;
+  var vpPrimitive = null; // { series, primitive }
+  var lwcCandleSeries = null;
+
+  function computeVolumeProfile(daily) {
+    if (!daily || daily.length < 2) return null;
+    var win = daily.slice(Math.max(0, daily.length - VP_LOOKBACK_DAYS));
+    var minLow = Math.min.apply(null, win.map(function (d) { return d.low; }));
+    var maxHigh = Math.max.apply(null, win.map(function (d) { return d.high; }));
+    if (!(maxHigh > minLow)) return null;
+
+    var binSize = (maxHigh - minLow) / VP_BIN_COUNT;
+    var bins = [];
+    for (var i = 0; i < VP_BIN_COUNT; i++) {
+      bins.push({ low: minLow + i * binSize, high: minLow + (i + 1) * binSize, volume: 0 });
+    }
+
+    win.forEach(function (d) {
+      if (!(d.volume > 0)) return;
+      var range = d.high - d.low;
+      if (!(range > 0)) {
+        // 하루 종일 가격 변동이 없으면(상하한가 등) 종가가 속한 구간에 거래량 전량 배정
+        var idx = Math.min(VP_BIN_COUNT - 1, Math.max(0, Math.floor((d.close - minLow) / binSize)));
+        bins[idx].volume += d.volume;
+        return;
+      }
+      var startIdx = Math.max(0, Math.floor((d.low - minLow) / binSize));
+      var endIdx = Math.min(VP_BIN_COUNT - 1, Math.floor((d.high - minLow) / binSize));
+      for (var b = startIdx; b <= endIdx; b++) {
+        var overlap = Math.min(bins[b].high, d.high) - Math.max(bins[b].low, d.low);
+        if (overlap > 0) bins[b].volume += d.volume * (overlap / range);
+      }
+    });
+
+    var maxVolume = 0, pocIndex = 0;
+    bins.forEach(function (b, i) {
+      if (b.volume > maxVolume) { maxVolume = b.volume; pocIndex = i; }
+    });
+    if (maxVolume <= 0) return null;
+    return { bins: bins, maxVolume: maxVolume, pocIndex: pocIndex };
+  }
+
+  function buildVpLegend() {
+    return '<div class="ff-vp-legend"' + (vpEnabled ? '' : ' hidden') + '>'
+      + '<span>※ 매물대(근사): 최근 ' + VP_LOOKBACK_DAYS + '거래일 일봉 고가~저가 구간에 거래량을 분산해 합산한 근사치입니다(체결가 기준 아님).</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#e8590c"></i>거래량 최다 구간(POC)</span>'
+      + '</div>';
+  }
+
+  // 일목균형표 구름과 동일한 Series Primitive 패턴(v4.1+ 지원) - drawBackground()로 캔들보다
+  // 먼저 그려 막대가 캔들 뒤에 깔리게 한다. 패널 오른쪽 끝에서 왼쪽으로 뻗는 가로 막대이고
+  // 길이는 그 가격구간 거래량/최댓값 비율. 시간축과 무관해(항상 오른쪽 고정) time-based
+  // 좌표변환은 필요 없고 series.priceToCoordinate()만 쓴다.
+  function createVolumeProfilePrimitive(profile) {
+    return {
+      _series: null,
+      attached: function (params) { this._series = params.series; },
+      detached: function () { this._series = null; },
+      updateAllViews: function () {},
+      paneViews: function () {
+        var self = this;
+        return [{
+          renderer: function () {
+            return {
+              draw: function () {},
+              drawBackground: function (target) {
+                var series = self._series;
+                if (!series) return;
+                target.useBitmapCoordinateSpace(function (scope) {
+                  var ctx = scope.context;
+                  var hRatio = scope.horizontalPixelRatio, vRatio = scope.verticalPixelRatio;
+                  var paneWidth = scope.bitmapSize.width;
+                  var maxBarPx = paneWidth * VP_MAX_WIDTH_RATIO;
+                  ctx.save();
+                  profile.bins.forEach(function (b, i) {
+                    if (b.volume <= 0) return;
+                    var yTop = series.priceToCoordinate(b.high);
+                    var yBottom = series.priceToCoordinate(b.low);
+                    if (yTop == null || yBottom == null) return;
+                    var barPx = Math.max(2 * hRatio, (b.volume / profile.maxVolume) * maxBarPx);
+                    var top = yTop * vRatio, bottom = yBottom * vRatio;
+                    ctx.fillStyle = i === profile.pocIndex ? 'rgba(232,89,12,0.55)' : 'rgba(130,130,130,0.30)';
+                    ctx.fillRect(paneWidth - barPx, top, barPx, Math.max(1, bottom - top));
+                  });
+                  ctx.restore();
+                });
+              }
+            };
+          }
+        }];
+      }
+    };
+  }
+
+  function addVolumeProfileOverlay(daily) {
+    if (!lwcCandleSeries || vpPrimitive || !daily) return;
+    if (typeof lwcCandleSeries.attachPrimitive !== 'function') return;
+    var profile = computeVolumeProfile(daily);
+    if (!profile) return;
+    try {
+      var primitive = createVolumeProfilePrimitive(profile);
+      lwcCandleSeries.attachPrimitive(primitive);
+      vpPrimitive = { series: lwcCandleSeries, primitive: primitive };
+    } catch (e) { /* primitive 렌더링 실패해도 캔들/이평선은 이미 그려져 있음 */ }
+  }
+
+  function removeVolumeProfileOverlay() {
+    if (vpPrimitive) {
+      try { vpPrimitive.series.detachPrimitive(vpPrimitive.primitive); } catch (e) { /* 무시 */ }
+    }
+    vpPrimitive = null;
+  }
+
+  function wireVolumeProfileToggle(box, chartData) {
+    var toggle = box.querySelector('#ffVolumeProfileToggle');
+    var legend = box.querySelector('.ff-vp-legend');
+    if (!toggle) return;
+    toggle.addEventListener('change', function () {
+      vpEnabled = toggle.checked;
+      if (legend) legend.hidden = !vpEnabled;
+      if (vpEnabled) addVolumeProfileOverlay(chartData && chartData.daily); else removeVolumeProfileOverlay();
     });
   }
 
@@ -2634,6 +2772,8 @@
     }
     ichimokuOverlaySeries = []; // chart.remove()가 시리즈까지 다 정리하므로 참조만 비움
     ichimokuCloudPrimitive = null;
+    lwcCandleSeries = null;
+    vpPrimitive = null;
   }
 
   // 9bolt 스킨의 html.dark 토글은 새로고침 없이 클래스만 바뀌므로, 캔버스 기반 차트도
@@ -2685,6 +2825,7 @@
       candleSeries.setData(daily.map(function (d) {
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
+      lwcCandleSeries = candleSeries;
 
       var levels = chartData.levels || {};
       (levels.support || []).forEach(function (v) {
@@ -2708,6 +2849,7 @@
       });
 
       if (ichimokuEnabled) addIchimokuOverlay(daily);
+      if (vpEnabled) addVolumeProfileOverlay(daily);
 
       // 2026-07-22: 볼린저밴드·일목균형표 선은 캔들과 겹쳐 차트가 복잡해진다는 피드백으로
       // 차트 시각화에서 제거(계산 자체는 buildTechBreakdown의 기술적 점수·참고지표에서
