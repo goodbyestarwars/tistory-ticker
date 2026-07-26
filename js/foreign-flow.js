@@ -2242,7 +2242,6 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
         + '</div>'
-        + buildIchimokuLegend()
         + buildVpLegend()
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
         + buildLwLegend()
@@ -2271,13 +2270,6 @@
   var ichimokuEnabled = false;
   var ichimokuOverlaySeries = [];
   var ichimokuCloudPrimitive = null; // { series, primitive }
-
-  function buildIchimokuLegend() {
-    return '<div class="ff-ichimoku-legend"' + (ichimokuEnabled ? '' : ' hidden') + '>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.senkouA + '"></i>선행스팬1</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ICHIMOKU_COLORS.senkouB + '"></i>선행스팬2</span>'
-      + '</div>';
-  }
 
   // 선행스팬1(A)·2(B)를 같은 시각끼리 짝지어 { time, a, b } 배열로 만든다(js/pattern-scan.js와
   // 동일 로직 - 두 계열은 필요 기간이 달라 시작 시점이 어긋나므로 B가 있는 시각만 교집합으로 뽑음).
@@ -2384,11 +2376,9 @@
 
   function wireIchimokuToggle(box, chartData) {
     var toggle = box.querySelector('#ffIchimokuToggle');
-    var legend = box.querySelector('.ff-ichimoku-legend');
     if (!toggle) return;
     toggle.addEventListener('change', function () {
       ichimokuEnabled = toggle.checked;
-      if (legend) legend.hidden = !ichimokuEnabled;
       if (ichimokuEnabled) addIchimokuOverlay(chartData && chartData.daily); else removeIchimokuOverlay();
     });
   }
@@ -2401,7 +2391,9 @@
   // 지금 가격대와 무관한 구간이 커짐). 화면엔 근사치라는 걸 범례에 명시한다.
   var VP_LOOKBACK_DAYS = 120;
   var VP_BIN_COUNT = 24;
-  var VP_MAX_WIDTH_RATIO = 0.26; // 매물대 막대 최대 폭 = 패널 폭의 26%(캔들을 다 가리지 않게)
+  // 매물대 막대 최대 폭 = 패널 폭의 16%(오른쪽 끝에 바짝 붙여서 캔들을 덜 가리게, 2026-07-24
+  // 사용자 피드백으로 26%->16% 축소 - 막대가 왼쪽으로 너무 많이 뻗어 보인다는 지적)
+  var VP_MAX_WIDTH_RATIO = 0.16;
   var vpEnabled = false;
   var vpPrimitive = null; // { series, primitive }
   var lwcCandleSeries = null;
@@ -2483,7 +2475,7 @@
                     if (yTop == null || yBottom == null) return;
                     var barPx = Math.max(2 * hRatio, (b.volume / profile.maxVolume) * maxBarPx);
                     var top = yTop * vRatio, bottom = yBottom * vRatio;
-                    ctx.fillStyle = i === profile.pocIndex ? 'rgba(232,89,12,0.55)' : 'rgba(130,130,130,0.30)';
+                    ctx.fillStyle = i === profile.pocIndex ? 'rgba(232,89,12,0.32)' : 'rgba(130,130,130,0.16)';
                     ctx.fillRect(paneWidth - barPx, top, barPx, Math.max(1, bottom - top));
                   });
                   ctx.restore();
