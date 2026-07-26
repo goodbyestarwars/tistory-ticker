@@ -551,14 +551,6 @@
   margin-bottom: 4px;
   cursor: pointer;
 }
-#foreign-flow .ff-ichimoku-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 2px 0 8px;
-  font-size: 12px;
-  color: #666;
-}
 #foreign-flow .ff-vp-legend {
   display: flex;
   flex-wrap: wrap;
@@ -766,7 +758,6 @@ html.dark #foreign-flow .ff-axis { fill: #888; }
 html.dark #foreign-flow .ff-line-rsi { stroke: #ccc; }
 html.dark #foreign-flow .ff-legend { color: #aaa !important; }
 html.dark #foreign-flow .ff-ichimoku-toggle,
-html.dark #foreign-flow .ff-ichimoku-legend,
 html.dark #foreign-flow .ff-vp-legend { color: #aaa !important; }
 html.dark #foreign-flow .ff-hover-line { stroke: #777; }
 html.dark #foreign-flow .ff-hover-dot { stroke: #222; }
