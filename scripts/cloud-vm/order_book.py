@@ -60,3 +60,41 @@ def fetch_order_book(token, code):
         'totalAskQty': sum(a['qty'] for a in asks),
         'totalBidQty': sum(b['qty'] for b in bids),
     }
+
+
+def fetch_trade(token, code):
+    """체결정보요청(ka10003) - 조회 시점 마지막 체결 1건(시간/체결가/체결량/체결강도) 스냅샷.
+    문서상 리스트를 감싸는 배열 키가 없어(ka10004와 동일하게 최상위 필드로 바로 옴) 매
+    호출마다 "그 순간의 마지막 체결" 하나만 돌려주는 TR로 보인다 - 그래서 프론트가 2초
+    폴링마다 이 스냅샷을 누적해 '최근 체결' 리스트를 client-side로 구성한다. 실제 체결
+    스트림(0B 웹소켓)만큼 촘촘하진 않아서 폴링 간격보다 빨리 일어난 체결은 놓칠 수 있는
+    근사치다 - js/order-book.js의 dedupe 로직 참고. 필드명은 kiwoom_api.md 문서 기준으로
+    미검증(order_book.py 파일 상단 ka10004 사례와 동일 주의)."""
+    res = kiwoom_client.call_tr(token, 'ka10003', '/api/dostk/stkinfo', {'stk_cd': code})
+    if res.get('return_code') not in (0, '0', None):
+        logger.warning('ka10003(%s) 응답 오류 - return_code=%s return_msg=%s',
+                        code, res.get('return_code'), res.get('return_msg'))
+    try:
+        pred_pre = float(res.get('pred_pre') or 0)
+    except (TypeError, ValueError):
+        pred_pre = 0.0
+    return {
+        'time': res.get('tm'),
+        'price': _num(res.get('cur_prc')),
+        'qty': _num(res.get('cntr_trde_qty')),
+        'up': pred_pre > 0,
+        'down': pred_pre < 0,
+    }
+
+
+def fetch_order_book_full(token, code):
+    """호가 사다리(ka10004) + 최근 체결 스냅샷(ka10003)을 한 응답으로 합친다 - 프론트가
+    2초 폴링 한 번으로 둘 다 받도록. 체결 조회가 실패해도 호가 사다리는 그대로 표시돼야
+    하므로 독립적으로 실패를 흡수한다."""
+    data = fetch_order_book(token, code)
+    try:
+        data['trade'] = fetch_trade(token, code)
+    except Exception as e:
+        logger.warning('ka10003(%s) 체결 조회 실패: %s', code, e)
+        data['trade'] = None
+    return data

@@ -349,6 +349,55 @@
 #order-book .ob-footer-bar-ask { background: #1261c4; }
 #order-book .ob-footer-bar-bid { background: #d24f45; }
 
+/* ---- 최근 체결(ka10003 스냅샷 누적) ---- */
+#order-book .ob-trades {
+  padding: 0 14px 14px;
+  border-top: 1px solid #eee;
+}
+#order-book .ob-trades-title {
+  padding-top: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 6px;
+}
+#order-book .ob-trades-note {
+  font-weight: 400;
+  color: #999;
+  font-size: 11px;
+}
+#order-book .ob-trades-header,
+#order-book .ob-trade-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 72px;
+  gap: 8px;
+  font-size: 12px;
+  padding: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+#order-book .ob-trades-header {
+  color: #9ca3af;
+  font-size: 11px;
+  padding-bottom: 4px;
+}
+#order-book .ob-trades-header span:nth-child(2),
+#order-book .ob-trade-price,
+#order-book .ob-trades-header span:nth-child(3),
+#order-book .ob-trade-qty {
+  text-align: right;
+}
+#order-book .ob-trades-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+#order-book .ob-trade-time { color: #9ca3af; }
+#order-book .ob-trade-price.ob-up,
+#order-book .ob-trade-qty.ob-up { color: #d24f45; }
+#order-book .ob-trade-price.ob-down,
+#order-book .ob-trade-qty.ob-down { color: #1261c4; }
+#order-book .ob-trade-price.ob-flat,
+#order-book .ob-trade-qty.ob-flat { color: #666; }
+
 /* ---- 다크모드 ---- */
 html.dark #order-book { color: #eee !important; }
 html.dark #order-book .ob-view-btn {
@@ -397,3 +446,14 @@ html.dark #order-book .ob-ask-text { color: #6ea8e8 !important; }
 html.dark #order-book .ob-bid-text { color: #e8776d !important; }
 html.dark #order-book .ob-current-row.ob-up { color: #e8776d !important; }
 html.dark #order-book .ob-current-row.ob-down { color: #6ea8e8 !important; }
+html.dark #order-book .ob-trades { border-color: #3a3a3a !important; }
+html.dark #order-book .ob-trades-title { color: #aaa !important; }
+html.dark #order-book .ob-trades-note { color: #777 !important; }
+html.dark #order-book .ob-trades-header { color: #777 !important; }
+html.dark #order-book .ob-trade-time { color: #888 !important; }
+html.dark #order-book .ob-trade-price.ob-up,
+html.dark #order-book .ob-trade-qty.ob-up { color: #e8776d !important; }
+html.dark #order-book .ob-trade-price.ob-down,
+html.dark #order-book .ob-trade-qty.ob-down { color: #6ea8e8 !important; }
+html.dark #order-book .ob-trade-price.ob-flat,
+html.dark #order-book .ob-trade-qty.ob-flat { color: #ccc !important; }

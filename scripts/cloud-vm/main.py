@@ -460,16 +460,17 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
 
 @app.get('/order-book/{code}')
 def order_book_endpoint(code: str = Path(..., min_length=6, max_length=6)):
-    """호가창(매도/매수 각 10단계) - 독립 페이지(js/order-book.js, 2026-07-27)가 2초 간격
-    폴링. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /futures,
-    /market-rank와 동일한 패턴. order_book.py 필드명 미검증 안내 참고."""
+    """호가창(매도/매수 각 10단계) + 최근 체결(ka10003) - 독립 페이지(js/order-book.js,
+    2026-07-27)가 2초 간격 폴링. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그
+    도메인만 제한) - /futures, /market-rank와 동일한 패턴. order_book.py 필드명 미검증
+    안내 참고."""
     now = time.time()
     cached = _order_book_cache.get(code)
     if cached is not None and now - cached['t'] < _ORDER_BOOK_TTL:
         return envelope(cached['data'])
     try:
         token = get_kiwoom_token()
-        data = order_book.fetch_order_book(token, code)
+        data = order_book.fetch_order_book_full(token, code)
     except HTTPException:
         raise
     except Exception as e:

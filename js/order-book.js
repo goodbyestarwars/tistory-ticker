@@ -33,6 +33,7 @@
   var WALL_BREAK_RATIO = 0.15; // 최초로 확인한 벽 잔량의 이 비율 이하로 줄면 "소진"으로 판정
   var MILESTONE_MAX = 8;
   var TOAST_MS = 3500;
+  var TRADE_LIST_MAX = 20; // 최근 체결 리스트 표시 개수(ka10003 스냅샷을 폴링마다 누적)
   // 체결강도(근사치) - 실제 체결(0B 웹소켓) 데이터 없이 "추적 중인 매도벽이 틱 사이에 얼마나
   // 빨리 줄어드는가"만으로 추정한다(2026-07-27 사용자 확인: "지금 데이터로 근사치 계산"
   // 추천안으로 진행 - 진짜 체결강도는 별도 데이터소스 연동이 필요해 범위 밖으로 미룸).
@@ -45,6 +46,7 @@
     timer: null,
     // history[i] = { t: ms, base: 그 시점 현재가(없으면 직전 값 유지), asks:[{price,qty}], bids:[{price,qty}] }
     history: [],
+    trades: [],          // 최근 체결(ka10003 스냅샷 누적) - [{time,price,qty,up,down}], 최신이 앞
     startTime: null,
     lastBase: null,      // 직전 tick의 현재가(quote 조회가 실패한 틱에서 이어받을 기준가)
     viewMode: 'ladder',  // 'ladder' | '3d'
@@ -224,6 +226,7 @@
     state.code = code;
     state.name = name;
     state.history = [];
+    state.trades = [];
     state.startTime = Date.now();
     state.lastBase = null;
     state.trackedWall = null;
@@ -259,6 +262,7 @@
         if (state.code !== code) return; // 응답 오는 사이 다른 종목을 골랐으면 무시(레이스 방지)
         var book = results[0];
         var quote = results[1];
+        if (book) recordTrade(book);
         if (book && (book.asks.length || book.bids.length)) {
           recordSnapshot(book, quote);
           // 강도 계산은 checkWallBreakthrough가 trackedWall을 초기화(돌파 시 null)하기 전에
@@ -286,6 +290,19 @@
     if (base != null) state.lastBase = base;
     state.history.push({ t: Date.now(), base: base, asks: book.asks, bids: book.bids });
     if (state.history.length > HISTORY_MAX) state.history.shift();
+  }
+
+  // ---- 최근 체결(ka10003) ----
+  // 이 TR은 호출 시점의 마지막 체결 1건만 돌려주는 스냅샷이라(order_book.py 주석 참고),
+  // 2초 폴링마다 값을 누적해서 리스트를 만든다 - 직전 스냅샷과 시간/가격/수량이 모두
+  // 같으면 그 사이 새 체결이 없었다는 뜻이라 중복으로 넣지 않는다.
+  function recordTrade(book) {
+    var t = book && book.trade;
+    if (!t || t.price == null || !t.qty) return;
+    var last = state.trades[0];
+    if (last && last.time === t.time && last.price === t.price && last.qty === t.qty) return;
+    state.trades.unshift({ time: t.time, price: t.price, qty: t.qty, up: t.up, down: t.down });
+    if (state.trades.length > TRADE_LIST_MAX) state.trades.length = TRADE_LIST_MAX;
   }
 
   // ---- 매도벽 돌파 감지("게임처럼 뚫는 느낌", 2026-07-27 사용자 요청) ----
@@ -511,7 +528,33 @@
 
     board.innerHTML = headerHtml
       + '<div class="ob-table">' + askRows + '<div class="ob-current-row ' + priceCls + '">' + priceNum + (changeText ? ' <span class="ob-current-change">' + changeText + '</span>' : '') + '</div>' + bidRows + '</div>'
-      + footerHtml;
+      + footerHtml
+      + buildTradesHtml();
+  }
+
+  function fmtTime(tm) {
+    var s = String(tm == null ? '' : tm).replace(/[^0-9]/g, '');
+    if (s.length < 6) return '-';
+    return s.slice(0, 2) + ':' + s.slice(2, 4) + ':' + s.slice(4, 6);
+  }
+
+  // 최근 체결 리스트(시간/체결가/체결량) - 2초 폴링으로 누적한 근사치라는 걸 범례에 명시.
+  function buildTradesHtml() {
+    if (!state.trades.length) return '';
+    var rows = state.trades.map(function (t) {
+      var cls = t.up ? 'ob-up' : (t.down ? 'ob-down' : 'ob-flat');
+      var arrow = t.up ? '▲' : (t.down ? '▼' : '-');
+      return '<div class="ob-trade-row">'
+        + '<span class="ob-trade-time">' + fmtTime(t.time) + '</span>'
+        + '<span class="ob-trade-price ' + cls + '">' + Math.round(t.price).toLocaleString('ko-KR') + ' ' + arrow + '</span>'
+        + '<span class="ob-trade-qty ' + cls + '">' + fmtQty(t.qty) + '</span>'
+        + '</div>';
+    }).join('');
+    return '<div class="ob-trades">'
+      + '<div class="ob-trades-title">최근 체결 <span class="ob-trades-note">(2초 간격 폴링 기준 근사치, 그 사이 체결은 생략될 수 있음)</span></div>'
+      + '<div class="ob-trades-header"><span>시간</span><span>체결가</span><span>체결량</span></div>'
+      + '<div class="ob-trades-list">' + rows + '</div>'
+      + '</div>';
   }
 
   function rowHtml(row, maxQty, side) {

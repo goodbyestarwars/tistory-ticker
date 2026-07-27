@@ -457,6 +457,102 @@
   line-height: 1.7;
 }
 
+/* ---- 매물대 아파트(투자자별 근사, js/foreign-flow.js computeAptData) ---- */
+#foreign-flow .ff-apt-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+#foreign-flow .ff-apt-tab {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+}
+#foreign-flow .ff-apt-tab.active { background: #111827; border-color: #111827; color: #fff; }
+#foreign-flow .ff-apt-tab[data-apt-type="ind"].active { background: #fab005; border-color: #fab005; color: #3a2c00; }
+#foreign-flow .ff-apt-tab[data-apt-type="foreign"].active { background: #e8590c; border-color: #e8590c; color: #fff; }
+#foreign-flow .ff-apt-tab[data-apt-type="inst"].active { background: #5f3dc4; border-color: #5f3dc4; color: #fff; }
+
+#foreign-flow .ff-apt-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 4px 2px 10px;
+  font-size: 12.5px;
+  color: #555;
+}
+#foreign-flow .ff-apt-summary-item b { font-size: 14.5px; margin-left: 3px; }
+
+#foreign-flow .ff-apt-building {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 6px 8px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+#foreign-flow .ff-apt-floor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+#foreign-flow .ff-apt-floor-tag { flex-shrink: 0; width: 26px; color: #aaa; font-weight: 700; }
+#foreign-flow .ff-apt-floor-price { flex-shrink: 0; width: 64px; text-align: right; color: #666; }
+#foreign-flow .ff-apt-floor-bar-wrap {
+  flex: 1;
+  height: 12px;
+  background: #f4f4f5;
+  border-radius: 2px;
+  overflow: hidden;
+}
+#foreign-flow .ff-apt-floor-bar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(102, 102, 102, 0.28);
+}
+#foreign-flow .ff-apt-building-ind .ff-apt-floor-bar { background: rgba(250, 176, 5, 0.35); }
+#foreign-flow .ff-apt-building-foreign .ff-apt-floor-bar { background: rgba(232, 89, 12, 0.32); }
+#foreign-flow .ff-apt-building-inst .ff-apt-floor-bar { background: rgba(95, 61, 196, 0.32); }
+#foreign-flow .ff-apt-floor-poc { background: rgba(0, 0, 0, 0.04); }
+#foreign-flow .ff-apt-poc-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #e8590c;
+  white-space: nowrap;
+}
+#foreign-flow .ff-apt-floor-current {
+  background: rgba(210, 79, 69, 0.08);
+  outline: 1px solid rgba(210, 79, 69, 0.4);
+  font-weight: 700;
+}
+#foreign-flow .ff-apt-arrow {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+  color: #d24f45;
+  white-space: nowrap;
+}
+#foreign-flow .ff-apt-empty {
+  padding: 18px 10px;
+  text-align: center;
+  color: #999;
+  font-size: 12.5px;
+}
+
 /* ---- 가격 차트: TradingView Lightweight Charts 캔버스(연기금 카드 바로 아래) ---- */
 #foreign-flow .ff-chart-candle { padding: 0; overflow: hidden; }
 
@@ -856,6 +952,21 @@ html.dark #foreign-flow .ff-quarter-label { color: #999 !important; }
 html.dark #foreign-flow .ff-chart-title { color: #999 !important; }
 html.dark #foreign-flow .ff-flow-period-btn { background: #262626 !important; border-color: #3a3a3a !important; color: #aaa !important; }
 html.dark #foreign-flow .ff-flow-period-btn.active { background: #2a2a4a !important; border-color: #4338ca !important; color: #a5b4fc !important; }
+html.dark #foreign-flow .ff-apt-tab { background: #262626 !important; border-color: #3a3a3a !important; color: #ccc !important; }
+html.dark #foreign-flow .ff-apt-tab.active { background: #eee !important; border-color: #eee !important; color: #111 !important; }
+html.dark #foreign-flow .ff-apt-tab[data-apt-type="ind"].active { background: #fab005 !important; border-color: #fab005 !important; color: #2a2000 !important; }
+html.dark #foreign-flow .ff-apt-tab[data-apt-type="foreign"].active { background: #e8590c !important; border-color: #e8590c !important; color: #fff !important; }
+html.dark #foreign-flow .ff-apt-tab[data-apt-type="inst"].active { background: #7c5cdb !important; border-color: #7c5cdb !important; color: #fff !important; }
+html.dark #foreign-flow .ff-apt-summary { color: #bbb !important; }
+html.dark #foreign-flow .ff-apt-building { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-apt-floor-tag { color: #888 !important; }
+html.dark #foreign-flow .ff-apt-floor-price { color: #ccc !important; }
+html.dark #foreign-flow .ff-apt-floor-bar-wrap { background: #2a2a2a !important; }
+html.dark #foreign-flow .ff-apt-floor-poc { background: rgba(255, 255, 255, 0.06) !important; }
+html.dark #foreign-flow .ff-apt-poc-tag { color: #f0924a !important; }
+html.dark #foreign-flow .ff-apt-floor-current { background: rgba(232, 119, 109, 0.14) !important; outline-color: rgba(232, 119, 109, 0.55) !important; }
+html.dark #foreign-flow .ff-apt-arrow { color: #e8776d !important; }
+html.dark #foreign-flow .ff-apt-empty { color: #999 !important; }
 html.dark #foreign-flow .ff-bar-axis { stroke: #444 !important; }
 html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }
 html.dark #foreign-flow .ff-bar-label { fill: #888 !important; }

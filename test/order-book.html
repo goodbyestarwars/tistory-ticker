@@ -84,12 +84,18 @@
       if (mockMode === 'empty') return Promise.resolve({ code: code, asks: [], bids: [], totalAskQty: 0, totalBidQty: 0 });
       var base = 70000 + (code.charCodeAt(0) * 37 % 5000);
       var ladder = mockMode === 'wall' ? mockWallLadder(base) : mockLadder(base, 100);
+      var up = Math.random() > 0.5;
+      var fakeSec = 32400 + mockTick * 2; // 09:00:00부터 폴링(2초)마다 증가하는 가짜 체결시각
+      var hh = String(Math.floor(fakeSec / 3600) % 24).padStart(2, '0');
+      var mm = String(Math.floor(fakeSec / 60) % 60).padStart(2, '0');
+      var ss = String(fakeSec % 60).padStart(2, '0');
       return Promise.resolve({
         code: code,
         asks: ladder.asks,
         bids: ladder.bids,
         totalAskQty: ladder.asks.reduce(function (s, r) { return s + r.qty; }, 0),
-        totalBidQty: ladder.bids.reduce(function (s, r) { return s + r.qty; }, 0)
+        totalBidQty: ladder.bids.reduce(function (s, r) { return s + r.qty; }, 0),
+        trade: { time: hh + mm + ss, price: base + Math.round((Math.random() - 0.5) * 200), qty: Math.round(10 + Math.random() * 990), up: up, down: !up }
       });
     };
     OrderBook.fetchQuote = function (code) {
