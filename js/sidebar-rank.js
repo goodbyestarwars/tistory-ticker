@@ -32,6 +32,18 @@
   var REFRESH_MS = 30 * 1000;
   var MODAL_LIMIT = 20;
   var STOCK_ANALYSIS_URL = 'https://ghlee.tistory.com/page/foreign-flow';
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+
+  // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
+  global.__stockIconFallback = global.__stockIconFallback || function (img) {
+    if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
+    img.setAttribute('data-fb', '1');
+    img.src = img.src.replace(/\.svg(\?.*)?$/, '.png');
+  };
+  function stockIconHtml(code) {
+    if (!code) return '';
+    return '<img class="sr-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+  }
 
   var SECTIONS = [
     {
@@ -108,6 +120,7 @@
     var url = STOCK_ANALYSIS_URL + '?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(item.name);
     return '<li class="sr-row">'
       + '<span class="sr-rank">' + rank + '</span>'
+      + stockIconHtml(item.code)
       + '<a class="sr-name" href="' + url + '" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</a>'
       + '<span class="sr-quote">'
       + '<span class="sr-price">' + fmtPrice(item.price) + '</span>'

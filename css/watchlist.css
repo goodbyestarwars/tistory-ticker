@@ -138,11 +138,26 @@
 }
 #watchlist .wl-remove:hover { background: rgba(0, 0, 0, 0.06); }
 #watchlist .wl-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   font-weight: 700;
   padding-right: 22px;
   margin-bottom: 8px;
   white-space: nowrap;
+  overflow: hidden;
+}
+#watchlist .wl-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+}
+#watchlist .wl-name-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }

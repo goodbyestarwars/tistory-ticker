@@ -18,6 +18,18 @@
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
   var NAVER_ITEM_URL = 'https://finance.naver.com/item/main.naver?code=';
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+
+  // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
+  global.__stockIconFallback = global.__stockIconFallback || function (img) {
+    if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
+    img.setAttribute('data-fb', '1');
+    img.src = img.src.replace(/\.svg(\?.*)?$/, '.png');
+  };
+  function stockIconHtml(code) {
+    if (!code) return '';
+    return '<img class="wl-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+  }
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -248,7 +260,7 @@
     return ''
       + '<div class="wl-card" data-code="' + escapeAttr(code) + '">'
       + '<button type="button" class="wl-remove" data-code="' + escapeAttr(code) + '" aria-label="관심종목 삭제">★</button>'
-      + '<div class="wl-name">' + escapeHtml(name) + '</div>'
+      + '<div class="wl-name">' + stockIconHtml(code) + '<span class="wl-name-text">' + escapeHtml(name) + '</span></div>'
       + '<div class="wl-price" data-field="price">-</div>'
       + '<div class="wl-change" data-field="change">-</div>'
       + '</div>';
