@@ -90,7 +90,7 @@
       + '<button type="button" class="ob-view-btn" data-view="3d">3D 산점도</button>'
       + '</div>'
       + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
-      + '<div id="ob3d" class="ob-3d" hidden><div id="ob3dPlot" class="ob-3d-plot"></div><div class="ob-3d-legend">X 현재가 대비 가격차(0=현재가) · Y 경과(초) · Z 잔량(점 크기도 비례) · <span class="ob-ask-text">파랑=매도벽</span> · <span class="ob-bid-text">빨강=매수벽</span> · 최근 약 3분(' + HISTORY_MAX + '틱) 누적, 드래그로 회전</div></div>';
+      + '<div id="ob3d" class="ob-3d" hidden><div id="ob3dPlot" class="ob-3d-plot"></div><div class="ob-3d-legend">X 현재가 대비 가격차(0=현재가) · Y 경과(초) · Z 잔량(점 크기도 비례) · 색상은 범례 참고 · 최근 약 3분(' + HISTORY_MAX + '틱) 누적, 드래그로 회전</div></div>';
   }
 
   // ---- 검색/자동완성 (watchlist.js와 동일 패턴) ----
@@ -381,16 +381,18 @@
         scene: {
           // X=0이 항상 "그 틱 시점의 현재가" - 매도벽(양수 X)이 시간(Y)이 지나며 0쪽으로
           // 다가오거나 잔량(Z)이 줄어드는 걸 보면 현재가가 벽을 뚫는 과정을 읽을 수 있다
-          // (2026-07-27 사용자 요청). zeroline을 굵게 강조해서 "여기가 현재가"를 표시.
+          // (2026-07-27 사용자 요청). zeroline은 옅게(청록 "현재가" 트레이스가 이미 선으로
+          // 그 위치를 또렷하게 그려주므로 배경 기준선은 은은한 보조 표시로만 남긴다).
           xaxis: {
             title: '현재가 대비 가격차(원)', color: textColor, gridcolor: gridColor,
-            zeroline: true, zerolinecolor: dark ? '#eee' : '#111', zerolinewidth: 5
+            zeroline: true, zerolinecolor: CURRENT_PRICE_COLOR, zerolinewidth: 2
           },
           yaxis: { title: '경과(초)', color: textColor, gridcolor: gridColor },
           zaxis: { title: '잔량', color: textColor, gridcolor: gridColor },
           bgcolor: 'rgba(0,0,0,0)'
         },
-        showlegend: false
+        showlegend: true,
+        legend: { font: { color: textColor }, x: 0, y: 1 }
       };
       Plotly.react(plotEl, traces, layout, { displayModeBar: false, responsive: true });
     }).catch(function () {
@@ -398,10 +400,13 @@
     });
   }
 
+  var CURRENT_PRICE_COLOR = '#0ca678'; // 매도(파랑)/매수(빨강)와 겹치지 않는 별도 색(청록)
+
   function buildPlotlyTraces() {
     var startTime = state.startTime || Date.now();
     var ask = { x: [], y: [], z: [], text: [], qty: [] };
     var bid = { x: [], y: [], z: [], text: [], qty: [] };
+    var cur = { x: [], y: [], z: [], text: [] }; // 현재가 궤적(항상 X=0) - 매도/매수와 구분되는 색으로 표시
     var maxQty = 1;
 
     state.history.forEach(function (snap) {
@@ -419,6 +424,8 @@
         bid.text.push('매수 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
         if (r.qty > maxQty) maxQty = r.qty;
       });
+      cur.x.push(0); cur.y.push(elapsed); cur.z.push(0);
+      cur.text.push('현재가 ' + Math.round(snap.base).toLocaleString('ko-KR') + '원 · ' + elapsed + '초');
     });
 
     // 잔량이 클수록(=벽이 셀수록) 점도 커 보이게 - Z높이만으로는 회전시켜 보면 크기 비교가
@@ -437,6 +444,14 @@
         type: 'scatter3d', mode: 'markers', name: '매수(아래쪽 벽)',
         x: bid.x, y: bid.y, z: bid.z, text: bid.text, hoverinfo: 'text',
         marker: { size: sizeOf(bid.qty), color: '#d24f45', opacity: 0.75 }
+      },
+      {
+        // 현재가는 X=0 정의상 항상 이 선 위에 있으므로 매도/매수와 다른 색(청록) 선+점으로
+        // 눈에 띄게 표시 - X=0 zeroline과 겹쳐 그려져 "여기가 현재가"를 이중으로 강조한다.
+        type: 'scatter3d', mode: 'lines+markers', name: '현재가',
+        x: cur.x, y: cur.y, z: cur.z, text: cur.text, hoverinfo: 'text',
+        line: { color: CURRENT_PRICE_COLOR, width: 5 },
+        marker: { size: 3, color: CURRENT_PRICE_COLOR }
       }
     ];
   }
