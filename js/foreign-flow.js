@@ -108,8 +108,28 @@
   var SIGNAL_TOP_MAX = 20;
   var SIGNAL_SEARCH_MAX = 30; // 검색어 입력 시 TOP10/20 캡 대신 이만큼까지 보여줌(GAS가 버킷당 최대 100개로 캡을 걸어둠)
 
+  // 2026-07-27: "9Pay 증권" 개편 작업지시서 #9 - 종목분석에 필터를 추가하되, 새 배치
+  // 필드를 만들지 않고 daily_scan.py가 이미 계산해서 GAS(getInvestSignalResult)가
+  // 내려주는 rankings.*(수급/외국인기관/기술적/공매도/연기금/펀더멘탈 TOP20, 각 항목
+  // [code,name,price,changeRate,metricValue,stars] 6-tuple - invest_signal.upsert_ranked
+  // 참고)를 그대로 정렬 기준 탭으로 재사용한다. "상승률"은 rankings에 없지만 버킷 데이터에
+  // 이미 changeRate가 있어 클라이언트에서 바로 정렬 가능해 추가했다. PER·배당·거래대금·
+  // 차트패턴은 대량 종목에 걸쳐 한 번에 제공하는 데이터 소스가 아직 없어(온디맨드 단건
+  // 조회만 가능) 비활성 탭으로 남겨 "없는 척" 하지 않고 준비 중임을 그대로 보여준다.
+  var RANKING_META = [
+    { key: 'flow', label: '수급강도', metricLabel: '수급점수', fmt: function (v) { return Math.round(v) + '점'; } },
+    { key: 'foreignInst', label: '외국인·기관', metricLabel: '5일 합산', fmt: fmtSharesUnit },
+    { key: 'tech', label: '기술적', metricLabel: '기술점수', fmt: function (v) { return Math.round(v) + '점'; } },
+    { key: 'shortSafe', label: '공매도 안전', metricLabel: '공매도비중', fmt: function (v) { return v.toFixed(1) + '%'; } },
+    { key: 'pension', label: '연기금', metricLabel: '5일 순매수', fmt: fmtSharesUnit },
+    { key: 'fundamental', label: '펀더멘탈', metricLabel: '펀더멘탈점수', fmt: function (v) { return Math.round(v) + '점'; } },
+    { key: 'changeRate', label: '상승률', metricLabel: '등락률', fmt: null, clientSort: true } // fmt는 changeRate 전용 렌더링 재사용
+  ];
+  var DISABLED_RANKING_LABELS = ['PER', '배당', '거래대금', '차트패턴']; // 데이터 소스 준비 전 - 안내용 비활성 탭
+
   var signalData = null;
   var activeGradeBucket = null; // 카운트 배지 클릭으로 필터링한 등급(GRADE_META.key), null이면 전체
+  var activeRanking = null;     // RANKING_META.key - null이면 등급 버킷 기준(기본), 값이 있으면 그 랭킹으로 정렬
   var listExpanded = false;     // 종목 리스트 더보기(TOP20) 눌렀는지 - 필터 바뀌면 초기화
   var activeSignalCode = null;  // 우측 요약 패널에 표시 중인 종목코드(리스트 하이라이트용)
   var signalSearchQuery = '';   // 리스트 내부 종목명 검색어(빈 문자열이면 검색 비활성)
@@ -150,6 +170,7 @@
       + '<div class="ff-sig-twocol">'
       + '<div class="ff-sig-list-col">'
       + '<div class="ff-sig-count" id="ffSigCount"><div class="ff-hint">투자시그널 불러오는 중...</div></div>'
+      + '<div class="ff-sig-rank-tabs" id="ffSigRankTabs"></div>'
       + '<div class="ff-sig-search-wrap">'
       + '<input type="text" id="ffSigSearch" class="ff-sig-search-input" placeholder="목록 내 종목명 검색" autocomplete="off" />'
       + '</div>'
@@ -169,12 +190,28 @@
       .then(function (data) {
         signalData = data;
         renderSignalCount(container);
+        renderRankingTabs(container);
         renderSignalList(container);
       })
       .catch(function () {
         var box = container.querySelector('#ffSigCount');
         if (box) box.innerHTML = '<div class="ff-error">투자시그널 데이터를 불러오지 못했어요.</div>';
       });
+  }
+
+  // 필터 탭 - rankings.*를 그대로 정렬 기준으로 노출(RANKING_META 상단 주석 참고).
+  // 데이터 소스가 아직 없는 PER/배당/거래대금/차트패턴은 비활성 탭으로 같이 보여줘서
+  // "필터가 있는데 안 보인다"가 아니라 "준비 중"임을 명확히 한다.
+  function renderRankingTabs(container) {
+    var box = container.querySelector('#ffSigRankTabs');
+    if (!box) return;
+    var activeTabs = RANKING_META.map(function (r) {
+      return '<button type="button" class="ff-rank-tab' + (activeRanking === r.key ? ' active' : '') + '" data-rank="' + escapeAttr(r.key) + '">' + escapeHtml(r.label) + '</button>';
+    }).join('');
+    var disabledTabs = DISABLED_RANKING_LABELS.map(function (label) {
+      return '<button type="button" class="ff-rank-tab ff-rank-tab-disabled" disabled title="데이터 준비 중입니다">' + escapeHtml(label) + '</button>';
+    }).join('');
+    box.innerHTML = '<span class="ff-rank-tabs-label">필터</span>' + activeTabs + disabledTabs;
   }
 
   // 카운트 배지를 클릭 가능한 버튼으로 렌더링 - 클릭 시 아래 종목 리스트가 그 등급으로 필터링됨.
@@ -209,8 +246,20 @@
     if (!box) return;
     if (!signalData) { box.innerHTML = '<div class="ff-hint">불러오는 중...</div>'; return; }
 
-    var meta = activeGradeBucket ? GRADE_META.filter(function (g) { return g.key === activeGradeBucket; })[0] : null;
-    var items = meta ? ((signalData.buckets && signalData.buckets[meta.bucketKey]) || []) : combinedSignalItems();
+    var rankMeta = activeRanking ? RANKING_META.filter(function (r) { return r.key === activeRanking; })[0] : null;
+    var meta = (!rankMeta && activeGradeBucket) ? GRADE_META.filter(function (g) { return g.key === activeGradeBucket; })[0] : null;
+
+    var items;
+    if (rankMeta && rankMeta.clientSort) {
+      // "상승률"은 rankings.*에 없어 버킷 전체를 합쳐 클라이언트에서 직접 정렬한다(5-tuple 그대로 유지).
+      items = combinedSignalItems().slice().sort(function (a, b) { return (b[3] || 0) - (a[3] || 0); });
+    } else if (rankMeta) {
+      items = (signalData.rankings && signalData.rankings[rankMeta.key]) || [];
+    } else {
+      items = meta ? ((signalData.buckets && signalData.buckets[meta.bucketKey]) || []) : combinedSignalItems();
+    }
+    // "상승률"은 별도 metric 컬럼 없이 기본 행 포맷을 재사용(등락률 자체가 이미 quote에 보임)
+    var rowRankMeta = (rankMeta && !rankMeta.clientSort) ? rankMeta : null;
 
     var query = signalSearchQuery.trim();
     if (query) {
@@ -228,10 +277,15 @@
     var shown = query ? items.slice(0, SIGNAL_SEARCH_MAX) : items.slice(0, listExpanded ? SIGNAL_TOP_MAX : SIGNAL_TOP_DEFAULT);
     var headHtml = query
       ? ('<div class="ff-sig-list-head">"' + escapeHtml(query) + '" 검색결과 (' + items.length.toLocaleString('ko-KR') + '건)</div>')
-      : (meta
-        ? ('<div class="ff-sig-list-head">' + meta.emoji + ' ' + meta.label + ' 종목</div>')
-        : '<div class="ff-sig-list-head">전체 종목 (종합점수순)</div>');
-    var rowsHtml = shown.map(listRowHtml).join('');
+      : (rankMeta
+        // "상승률"은 items가 전체 후보 풀(버킷 합산, 최대 수백 개)이라 items.length를 그대로
+        // 쓰면 실제로 보여주는 개수(최대 SIGNAL_TOP_MAX)와 다른 과장된 숫자가 찍힌다 -
+        // 항상 "실제로 펼쳐질 수 있는 최대치" 기준으로 표기.
+        ? ('<div class="ff-sig-list-head">' + rankMeta.label + ' TOP' + Math.min(items.length, SIGNAL_TOP_MAX) + '</div>')
+        : meta
+          ? ('<div class="ff-sig-list-head">' + meta.emoji + ' ' + meta.label + ' 종목</div>')
+          : '<div class="ff-sig-list-head">전체 종목 (종합점수순)</div>');
+    var rowsHtml = shown.map(function (item) { return listRowHtml(item, rowRankMeta); }).join('');
     var moreHtml = (!query && !listExpanded && items.length > SIGNAL_TOP_DEFAULT)
       ? '<button type="button" class="ff-sig-more" data-list-more="1">더보기 (TOP ' + Math.min(items.length, SIGNAL_TOP_MAX) + ')</button>'
       : '';
@@ -239,13 +293,20 @@
     box.innerHTML = headHtml + '<div class="ff-sig-table">' + rowsHtml + '</div>' + moreHtml;
   }
 
-  // item = [code, name, price, changeRate, stars] (daily_scan.py 버킷 append 순서)
-  function listRowHtml(item) {
-    var code = item[0], name = item[1], price = item[2], changeRate = item[3], stars = item[4];
+  // item = [code, name, price, changeRate, stars](버킷, 5칸) 또는
+  // [code, name, price, changeRate, metricValue, stars](랭킹, 6칸 - invest_signal.upsert_ranked).
+  // rankMeta가 있으면 6칸 형식으로 읽어 metric 컬럼을 추가로 보여준다.
+  function listRowHtml(item, rankMeta) {
+    var code = item[0], name = item[1], price = item[2], changeRate = item[3];
+    var stars = rankMeta ? item[5] : item[4];
     var activeCls = code === activeSignalCode ? ' active' : '';
+    var metricHtml = (rankMeta && item[4] != null)
+      ? '<span class="ff-sig-metric">' + escapeHtml(rankMeta.metricLabel) + ' ' + escapeHtml(rankMeta.fmt(item[4])) + '</span>'
+      : '';
     return '<button type="button" class="ff-sig-row ff-sig-list-row' + activeCls + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
       + stockIconHtml(code, 'ff-sig-icon')
       + '<span class="ff-sig-name">' + escapeHtml(name) + '<span class="ff-sig-code">(' + escapeHtml(code) + ')</span></span>'
+      + metricHtml
       + '<span class="ff-sig-score">' + starsHtml(stars) + '</span>'
       + '<span class="ff-sig-quote"><span class="ff-sig-price">' + (price == null || isNaN(price) ? '-' : Math.round(price).toLocaleString('ko-KR')) + '</span>'
       + '<span class="ff-sig-rate ' + signClass(changeRate) + '">' + fmtSignedPct(changeRate) + '</span></span>'
@@ -574,8 +635,21 @@
       if (gradeBtn) {
         var key = gradeBtn.getAttribute('data-grade');
         activeGradeBucket = activeGradeBucket === key ? null : key;
+        activeRanking = null; // 등급 필터와 정렬 필터는 동시에 적용하지 않음(단순한 단일 리스트 유지)
         listExpanded = false;
         renderSignalCount(container);
+        renderRankingTabs(container);
+        renderSignalList(container);
+        return;
+      }
+      var rankBtn = e.target.closest ? e.target.closest('.ff-rank-tab:not(.ff-rank-tab-disabled)') : null;
+      if (rankBtn) {
+        var rankKey = rankBtn.getAttribute('data-rank');
+        activeRanking = activeRanking === rankKey ? null : rankKey;
+        activeGradeBucket = null;
+        listExpanded = false;
+        renderSignalCount(container);
+        renderRankingTabs(container);
         renderSignalList(container);
         return;
       }
@@ -1816,19 +1890,24 @@
       ['펀더멘탈', fundamentalScore, fundamentalInterpText(fundamentals)]
     ];
     // 2026-07-20(5차): 점선 리스트 -> 요약 패널(ffSigSummary)과 동일한 카드/그리드 지표셀로 통일.
+    // 2026-07-27: "9Pay 증권" 개편 작업지시서 #9 - 값이 없는 항목(공매도·연기금 데이터가
+    // 없는 종목 등)을 "-"로 채운 빈 카드로 보여주는 대신 아예 숨긴다("파란색 원형(점수
+    // 배지) 값이 NULL이면 해당 UI 요소 숨김 처리").
     function scoreCell(it) {
       var label = it[0], score = it[1], desc = it[2];
+      if (score == null) return '';
       return '<div class="ff-metric ff-metric-scored">'
         + '<div class="ff-metric-label">' + label + '</div>'
-        + '<div class="ff-metric-val ' + scoreColorCls(score) + '">' + (score == null ? '-' : Math.round(score) + '점') + '</div>'
+        + '<div class="ff-metric-val ' + scoreColorCls(score) + '">' + Math.round(score) + '점</div>'
         + '<div class="ff-metric-sub">' + starsHtml(scoreToStars(score)) + '</div>'
         + '<div class="ff-metric-desc">' + escapeHtml(desc || '') + '</div>'
         + '</div>';
     }
-    var scoreListHtml = '<div class="ff-panel-section"><div class="ff-panel-title">항목별 점수</div>'
-      + '<div class="ff-card"><div class="ff-card-grid4">' + scoreItems.map(scoreCell).join('') + '</div></div>'
+    var visibleScoreCells = scoreItems.map(scoreCell).filter(function (html) { return html !== ''; });
+    var scoreListHtml = visibleScoreCells.length ? '<div class="ff-panel-section"><div class="ff-panel-title">항목별 점수</div>'
+      + '<div class="ff-card"><div class="ff-card-grid4">' + visibleScoreCells.join('') + '</div></div>'
       + '<div class="ff-score-legend">※ 65점 이상 긍정(빨강) · 40~64점 중립(회색) · 40점 미만 주의(파랑) 기준으로 색이 매겨지며, 각 점수 밑 설명이 그 점수가 나온 근거입니다.</div>'
-      + '</div>';
+      + '</div>' : '';
 
     var latest = data.daily && data.daily[0];
     var valuation = fundamentals && fundamentals.valuation;
