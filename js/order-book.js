@@ -92,6 +92,7 @@
       + '<div class="ob-hud-row"><span class="ob-hud-label ob-bid-text">지지(매수벽)</span><div class="ob-hud-bar"><span id="obSupportBar" class="ob-hud-fill ob-hud-fill-bid"></span></div><span id="obSupportVal" class="ob-hud-val">-</span></div>'
       + '<div class="ob-hud-row"><span class="ob-hud-label">체결강도</span><div class="ob-hud-bar"><span id="obStrengthBar" class="ob-hud-fill ob-hud-fill-strength"></span></div><span id="obStrengthVal" class="ob-hud-val">-</span></div>'
       + '<div id="obHudNote" class="ob-hud-note">종목을 선택하면 실시간으로 계산됩니다.</div>'
+      + '<div id="obBreakoutNote" class="ob-breakout-note"></div>'
       + '</div>'
       + '<div id="obToast" class="ob-toast"></div>'
       + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
@@ -242,6 +243,7 @@
           var strength = computeExecutionStrength();
           checkWallBreakthrough(container, book);
           updateHud(container, book, strength);
+          updateBreakoutNote(container, book);
         }
         renderBoard(container, book, quote);
       })
@@ -373,6 +375,30 @@
     });
     var note = container.querySelector('#obHudNote');
     if (note) note.textContent = '종목을 선택하면 실시간으로 계산됩니다.';
+    var breakoutNote = container.querySelector('#obBreakoutNote');
+    if (breakoutNote) breakoutNote.textContent = '';
+  }
+
+  // 2026-07-28: "체결량이 얼마 정도면 뚫을 수 있는지"(사용자 요청) - 추적 중인 매도벽이
+  // checkWallBreakthrough의 판정 기준(WALL_BREAK_RATIO, 최초 확인한 잔량의 15% 이하)
+  // 밑으로 줄면 "돌파"로 잡으므로, 그 임계치까지 남은 잔량을 그대로 역산해서 보여준다.
+  // 실제 체결량과의 대응은 근사치(체결강도와 동일한 한계 - 2초 폴링 스냅샷 비교라
+  // 그 사이 체결은 누락될 수 있음).
+  function updateBreakoutNote(container, book) {
+    var el = container.querySelector('#obBreakoutNote');
+    if (!el) return;
+    var wall = state.trackedWall;
+    if (!wall) { el.textContent = ''; return; }
+    var level = (book.asks || []).filter(function (r) { return r.price === wall.price; })[0];
+    var currQty = level ? level.qty : 0;
+    var breakThreshold = Math.max(1, Math.ceil(wall.peakQty * WALL_BREAK_RATIO));
+    var remaining = currQty - breakThreshold;
+    if (remaining <= 0) {
+      el.textContent = '🎯 ' + Math.round(wall.price).toLocaleString('ko-KR') + '원 매도벽, 곧 돌파 판정 예정';
+    } else {
+      el.textContent = '🎯 ' + Math.round(wall.price).toLocaleString('ko-KR') + '원 매도벽 - 앞으로 약 '
+        + fmtQty(remaining) + '주 더 소진되면 돌파로 판정돼요(근사치).';
+    }
   }
 
   // 저항(매도벽)/지지(매수벽) 강도는 "위쪽 매도벽과 아래쪽 매수벽의 높이 차이"(사용자 요청)를

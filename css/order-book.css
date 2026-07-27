@@ -154,6 +154,16 @@
   color: #888;
   padding: 2px 0 0;
 }
+/* "체결량이 얼마 정도면 뚫을 수 있는지"(2026-07-28 사용자 요청) - 추적 중인 매도벽이
+   있을 때만 채워지고 없으면 빈 문자열이라 자리를 안 차지함(margin-top 조건부) */
+#order-book .ob-breakout-note:not(:empty) {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #b5720f;
+  padding: 6px 0 0;
+  margin-top: 4px;
+  border-top: 1px dashed #eee;
+}
 
 /* ---- 매도벽 돌파 토스트("게임처럼", 2026-07-27) - absolute 오버레이 대신 HUD와 호가창
    사이 자연스러운 흐름에서 슬라이드다운으로 보여준다(3D 패널 제거로 기준 좌표가 없어짐) ---- */
@@ -354,6 +364,7 @@ html.dark #order-book .ob-hud { background: #1c1c1c !important; border-color: #3
 html.dark #order-book .ob-hud-bar { background: #2a2a2a !important; }
 html.dark #order-book .ob-hud-val { color: #aaa !important; }
 html.dark #order-book .ob-hud-note { color: #999 !important; }
+html.dark #order-book .ob-breakout-note:not(:empty) { color: #f0b429 !important; border-top-color: #333 !important; }
 html.dark #order-book .ob-milestones-title { color: #999 !important; }
 html.dark #order-book .ob-milestones-list { color: #ddd !important; }
 html.dark #order-book .ob-milestone-time { color: #888 !important; }

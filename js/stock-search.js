@@ -31,7 +31,9 @@
     selectedName: null,
     ladderMounted: false,
     timeframe: 'day', // 'day' | 'week' | 'month'
-    chartCache: {}    // code -> flowChart 응답(daily/ma/levels) 5분 캐시
+    chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
+    lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
+    resultsCollapsed: false // 종목을 고르면 목록이 화면을 계속 차지하지 않도록 접음(사용자 리포트)
   };
   var lwcLoadPromise = null;
   var lwcChart = null;
@@ -109,11 +111,26 @@
     input.addEventListener('input', function () {
       renderSuggestions(container, suggestBox, input.value.trim());
     });
+    // 2026-07-28: 자동완성 목록에서 방향키(위/아래)로 항목을 훑을 수 있어야 하는데
+    // Enter/Escape만 처리하고 있었음(사용자 리포트, js/stock-news.js에 이미 있던
+    // getActiveSuggestion/setActiveSuggestion 패턴을 그대로 옮겨옴).
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
+      var items = suggestBox.querySelectorAll('.ss-suggest-item');
+      if (e.key === 'ArrowDown') {
+        if (!items.length) return;
         e.preventDefault();
+        setActiveSuggestion(suggestBox, items, (getActiveSuggestion(suggestBox) + 1) % items.length);
+      } else if (e.key === 'ArrowUp') {
+        if (!items.length) return;
+        e.preventDefault();
+        setActiveSuggestion(suggestBox, items, (getActiveSuggestion(suggestBox) - 1 + items.length) % items.length);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        var idx = getActiveSuggestion(suggestBox);
+        var picked = idx > -1 && items[idx] ? items[idx].getAttribute('data-name') : input.value.trim();
+        if (idx > -1 && items[idx]) input.value = picked;
         hideSuggestions(suggestBox);
-        runSearch(container, input.value.trim());
+        runSearch(container, picked);
       } else if (e.key === 'Escape') {
         hideSuggestions(suggestBox);
       }
@@ -130,6 +147,20 @@
   function hideSuggestions(box) {
     box.innerHTML = '';
     box.classList.remove('active');
+    box.__activeIndex = -1;
+  }
+
+  function getActiveSuggestion(box) {
+    return typeof box.__activeIndex === 'number' ? box.__activeIndex : -1;
+  }
+  function setActiveSuggestion(box, items, idx) {
+    items.forEach(function (el) { el.classList.remove('active'); });
+    box.__activeIndex = idx;
+    var el = items[idx];
+    if (el) {
+      el.classList.add('active');
+      el.scrollIntoView({ block: 'nearest' });
+    }
   }
 
   function matchNames(query, limit) {
@@ -155,8 +186,12 @@
       return '<div class="ss-suggest-item" data-name="' + escapeAttr(name) + '">' + stockIconHtml(global.KRX_MAP[name]) + escapeHtml(name) + '</div>';
     }).join('');
     box.classList.add('active');
+    box.__activeIndex = -1;
 
-    box.querySelectorAll('.ss-suggest-item').forEach(function (el) {
+    box.querySelectorAll('.ss-suggest-item').forEach(function (el, i) {
+      el.addEventListener('mouseenter', function () {
+        setActiveSuggestion(box, box.querySelectorAll('.ss-suggest-item'), i);
+      });
       el.addEventListener('click', function () {
         var name = el.getAttribute('data-name');
         container.querySelector('#ssInput').value = name;
@@ -204,6 +239,8 @@
           it.tradingValue = (it.price != null && it.volume != null) ? it.price * it.volume : null;
           it.sectors = lookupSectors(it.code);
         });
+        state.lastResults = items;
+        state.resultsCollapsed = false;
         renderResults(container, items);
       })
       .catch(function () {
@@ -223,9 +260,30 @@
     return out;
   }
 
+  // 2026-07-28: 검색 결과가 많을 때(예: "삼성" 30건) 종목을 하나 골라도 목록이 화면에
+  // 계속 남아있어 "없어지질 않는다"는 리포트가 있었음 - 종목을 고르면 목록을 접어
+  // "검색 결과 N건 (다시 보기)" 한 줄로 줄인다(재조회 없이 state.lastResults로 다시
+  // 펼칠 수 있음). 선택된 종목이 어떤 건지 잊지 않도록 접힌 줄에도 이름을 같이 보여준다.
   function renderResults(container, items) {
     var resultsBox = container.querySelector('#ssResults');
-    resultsBox.innerHTML = '<div class="ss-results-count">검색 결과 ' + items.length + '건</div>'
+
+    if (state.resultsCollapsed) {
+      var selected = items.filter(function (it) { return it.code === state.selectedCode; })[0];
+      resultsBox.innerHTML = '<div class="ss-results-collapsed">'
+        + '<span>검색 결과 ' + items.length + '건' + (selected ? ' · 선택: ' + escapeHtml(selected.name) : '') + '</span>'
+        + '<button type="button" class="ss-results-toggle" data-action="expand">목록 다시 보기 ▾</button>'
+        + '</div>';
+      var expandBtn = resultsBox.querySelector('.ss-results-toggle');
+      if (expandBtn) expandBtn.addEventListener('click', function () {
+        state.resultsCollapsed = false;
+        renderResults(container, items);
+      });
+      return;
+    }
+
+    resultsBox.innerHTML = '<div class="ss-results-count">검색 결과 ' + items.length + '건'
+      + (items.length > 1 ? '<button type="button" class="ss-results-toggle" data-action="collapse">목록 접기 ▴</button>' : '')
+      + '</div>'
       + '<div class="ss-results-table">'
       + '<div class="ss-results-head">'
       + '<span>종목</span><span>현재가</span><span>등락률</span><span>거래량</span><span>거래대금</span><span>업종</span><span>관심</span>'
@@ -233,12 +291,24 @@
       + items.map(function (it, idx) { return resultRowHtml(it, idx); }).join('')
       + '</div>';
 
+    var collapseBtn = resultsBox.querySelector('.ss-results-toggle');
+    if (collapseBtn) collapseBtn.addEventListener('click', function () {
+      state.resultsCollapsed = true;
+      renderResults(container, items);
+    });
+
     resultsBox.querySelectorAll('.ss-result-row').forEach(function (row) {
       row.addEventListener('click', function () {
         var idx = Number(row.getAttribute('data-idx'));
         selectStock(container, items[idx]);
         resultsBox.querySelectorAll('.ss-result-row').forEach(function (r) { r.classList.remove('active'); });
         row.classList.add('active');
+        // 종목을 골랐으면 목록을 접어서 화면을 계속 차지하지 않게 한다(사용자 리포트) -
+        // 결과가 1건뿐일 때는 접을 목록 자체가 무의미하니 그대로 둠.
+        if (items.length > 1) {
+          state.resultsCollapsed = true;
+          renderResults(container, items);
+        }
       });
     });
 

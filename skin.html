@@ -120,15 +120,15 @@
 <div class="card nav-menu" id="nav-menu-mount"></div>
 
 
-      <div class="card cat-section">
-        <div class="section-title">카테고리</div>
-        <!-- 티스토리 카테고리 치환자 - JS 파싱용 hidden -->
-        <div id="categoryData" style="display:none;">[##_category_list_##]</div>
-        <ul class="cat-custom-list" id="catCustomList"></ul>
-      </div>
-
-      <!-- 구글 캘린더 위젯: git js/skin-shell.js가 주입 -->
-      <div id="shell-calWidget"></div>
+      <!-- 2026-07-27: "9Pay 증권" 개편으로 왼쪽 사이드바가 navbar 아래 얇은 가로 메뉴바로
+           바뀌면서(style.css .sidebar-left, position:fixed + height:50px) 이 안에 있던
+           카테고리 카드가 그 좁은 높이에 안 맞아 화면 위에 떠서 깨져 보이는 문제가 실측
+           확인됨(사용자 리포트) - 사용자 요청으로 카테고리 목록 자체를 삭제함(가로 메뉴바
+           패러다임과 안 맞음). 카테고리 데이터는 여전히 필요하면 skin-main.js가
+           #catCustomList를 null 가드로 건너뛰므로 에러 없이 무해하게 죽는다.
+           구글 캘린더 위젯(#shell-calWidget)도 같은 좁은 컨테이너 문제가 있었지만 이미
+           js/skin-shell.js가 채우지 않는 죽은 mount라 같이 정리함(실제 캘린더는
+           /page/stock-calendar 독립 페이지로 이전됨, js/stock-calendar.js 참고). -->
 
     </aside>
 
