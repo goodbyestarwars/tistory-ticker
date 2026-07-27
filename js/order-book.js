@@ -20,10 +20,10 @@
   var POLL_MS = 2000;
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
-  // 3D 산점도(현재가 대비 가격차 x 경과시간 x 잔량) - "매도벽을 현재가가 뚫고 지나가는
-  // 과정을 보고 싶다"(2026-07-27 사용자 피드백)는 요구라 1분으로는 너무 짧아서 3분(2초
-  // 간격 폴링 기준 90틱)으로 늘림 - 벽이 무너지는 데 걸리는 시간을 고려한 값.
-  var HISTORY_MAX = 90;
+  // 3D 뷰(가격 x 매수/매도 방향 x 잔량) - "시간축 중심이라 호가 전쟁을 못 보여준다"(2026-07-27
+  // 사용자 피드백)는 지적으로 시간(Y)을 공간(매수/매도 방향)으로 바꿔서 매 틱 스냅샷 하나만
+  // 그린다. 그래도 체결강도(아래) 계산에는 최근 몇 틱 비교가 필요해 짧은 버퍼는 유지한다.
+  var HISTORY_MAX = 6;
   var PLOTLY_CDN = 'https://cdn.plot.ly/plotly-gl3d-2.35.2.min.js';
 
   var CURRENT_PRICE_COLOR = '#0ca678'; // 매도(파랑)/매수(빨강)와 겹치지 않는 별도 색(청록)
@@ -33,6 +33,11 @@
   var WALL_BREAK_RATIO = 0.15; // 최초로 확인한 벽 잔량의 이 비율 이하로 줄면 "소진"으로 판정
   var MILESTONE_MAX = 8;
   var TOAST_MS = 3500;
+  // 체결강도(근사치) - 실제 체결(0B 웹소켓) 데이터 없이 "추적 중인 매도벽이 틱 사이에 얼마나
+  // 빨리 줄어드는가"만으로 추정한다(2026-07-27 사용자 확인: "지금 데이터로 근사치 계산"
+  // 추천안으로 진행 - 진짜 체결강도는 별도 데이터소스 연동이 필요해 범위 밖으로 미룸).
+  // peakQty 대비 이 비율(%)만큼 한 틱 사이 줄면 강도 100으로 포화되도록 잡은 경험적 배율.
+  var STRENGTH_SCALE = 7;
 
   var state = {
     code: null,
@@ -102,8 +107,14 @@
       + '</div>'
       + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
       + '<div id="ob3d" class="ob-3d" hidden>'
+      + '<div class="ob-3d-hud">'
+      + '<div class="ob-3d-hud-row"><span class="ob-3d-hud-label ob-ask-text">저항(매도벽)</span><div class="ob-3d-hud-bar"><span id="ob3dResistBar" class="ob-3d-hud-fill ob-3d-hud-fill-ask"></span></div><span id="ob3dResistVal" class="ob-3d-hud-val">-</span></div>'
+      + '<div class="ob-3d-hud-row"><span class="ob-3d-hud-label ob-bid-text">지지(매수벽)</span><div class="ob-3d-hud-bar"><span id="ob3dSupportBar" class="ob-3d-hud-fill ob-3d-hud-fill-bid"></span></div><span id="ob3dSupportVal" class="ob-3d-hud-val">-</span></div>'
+      + '<div class="ob-3d-hud-row"><span class="ob-3d-hud-label">체결강도</span><div class="ob-3d-hud-bar"><span id="ob3dStrengthBar" class="ob-3d-hud-fill ob-3d-hud-fill-strength"></span></div><span id="ob3dStrengthVal" class="ob-3d-hud-val">-</span></div>'
+      + '<div id="ob3dHudNote" class="ob-3d-hud-note">종목을 선택하면 실시간으로 계산됩니다.</div>'
+      + '</div>'
       + '<div class="ob-3d-plot-wrap"><div id="ob3dPlot" class="ob-3d-plot"></div><div id="ob3dToast" class="ob-3d-toast"></div></div>'
-      + '<div class="ob-3d-legend">X 현재가 대비 가격차(0=현재가) · Y 경과(초) · Z 잔량(기둥 높이) · 색상은 범례 참고 · 최근 약 3분(' + HISTORY_MAX + '틱) 누적, 드래그로 회전</div>'
+      + '<div class="ob-3d-legend">X 가격차(0=현재가) · Y 매수 ↔ 매도 · Z 잔량(기둥 높이) · 체결강도는 매도벽 소진 속도 기반 근사치(실제 체결량 아님)</div>'
       + '<div id="ob3dMilestones" class="ob-3d-milestones"></div>'
       + '</div>';
   }
@@ -225,6 +236,7 @@
     if (toast) { toast.className = 'ob-3d-toast'; toast.textContent = ''; }
     var milestoneBox = container.querySelector('#ob3dMilestones');
     if (milestoneBox) milestoneBox.innerHTML = '';
+    resetHud(container);
 
     tick(container);
     state.timer = setInterval(function () { tick(container); }, POLL_MS);
@@ -246,7 +258,11 @@
         var quote = results[1];
         if (book && (book.asks.length || book.bids.length)) {
           recordSnapshot(book, quote);
+          // 강도 계산은 checkWallBreakthrough가 trackedWall을 초기화(돌파 시 null)하기 전에
+          // 먼저 계산해야 "돌파 직전 100에 가까운 강도"가 자연스럽게 찍힌다.
+          var strength = computeExecutionStrength();
           checkWallBreakthrough(container, book);
+          updateHud(container, book, strength);
           if (state.viewMode === '3d') render3D(container);
         }
         renderBoard(container, book, quote);
@@ -337,6 +353,77 @@
     state.toastTimer = setTimeout(function () {
       toast.className = 'ob-3d-toast';
     }, TOAST_MS);
+  }
+
+  // ---- 체결강도(근사치) - 추적 중인 매도벽이 최근 한 틱 사이 얼마나 줄었는지로 추정 ----
+  function computeExecutionStrength() {
+    if (!state.trackedWall || state.history.length < 2) return null;
+    var wall = state.trackedWall;
+    var latest = state.history[state.history.length - 1];
+    var prev = state.history[state.history.length - 2];
+    var prevLevel = (prev.asks || []).filter(function (r) { return r.price === wall.price; })[0];
+    if (!prevLevel) return null; // 직전 틱에도 벽이 있어야 변화량을 잴 수 있음
+    var latestLevel = (latest.asks || []).filter(function (r) { return r.price === wall.price; })[0];
+    var currQty = latestLevel ? latestLevel.qty : 0; // 사다리에서 사라졌으면 완전 소진으로 간주
+    var depleted = prevLevel.qty - currQty; // 양수=소진(체결 추정), 음수=오히려 더 쌓임
+    var pctOfPeak = wall.peakQty > 0 ? (depleted / wall.peakQty) * 100 : 0;
+    var score = Math.max(0, Math.min(100, Math.round(pctOfPeak * STRENGTH_SCALE)));
+    return { score: score, growing: depleted < 0 };
+  }
+
+  function resetHud(container) {
+    ['#ob3dResistBar', '#ob3dSupportBar', '#ob3dStrengthBar'].forEach(function (sel) {
+      var el = container.querySelector(sel);
+      if (el) el.style.width = '0%';
+    });
+    ['#ob3dResistVal', '#ob3dSupportVal', '#ob3dStrengthVal'].forEach(function (sel) {
+      var el = container.querySelector(sel);
+      if (el) el.textContent = '-';
+    });
+    var note = container.querySelector('#ob3dHudNote');
+    if (note) note.textContent = '종목을 선택하면 실시간으로 계산됩니다.';
+  }
+
+  // 저항(매도벽)/지지(매수벽) 강도는 "위쪽 매도벽과 아래쪽 매수벽의 높이 차이"(사용자 요청)를
+  // 그대로 숫자화 - 각 방향에서 가장 큰 단일 호가 잔량을 서로 비교해 막대 길이로 보여준다.
+  function updateHud(container, book, strength) {
+    var maxAsk = 0, maxBid = 0;
+    (book.asks || []).forEach(function (r) { if (r.qty > maxAsk) maxAsk = r.qty; });
+    (book.bids || []).forEach(function (r) { if (r.qty > maxBid) maxBid = r.qty; });
+    var barMax = Math.max(maxAsk, maxBid) || 1;
+
+    var resistBar = container.querySelector('#ob3dResistBar');
+    var supportBar = container.querySelector('#ob3dSupportBar');
+    var resistVal = container.querySelector('#ob3dResistVal');
+    var supportVal = container.querySelector('#ob3dSupportVal');
+    if (resistBar) resistBar.style.width = (maxAsk / barMax * 100) + '%';
+    if (supportBar) supportBar.style.width = (maxBid / barMax * 100) + '%';
+    if (resistVal) resistVal.textContent = fmtQty(maxAsk);
+    if (supportVal) supportVal.textContent = fmtQty(maxBid);
+
+    var strengthBar = container.querySelector('#ob3dStrengthBar');
+    var strengthVal = container.querySelector('#ob3dStrengthVal');
+    var score = strength ? strength.score : 0;
+    if (strengthBar) strengthBar.style.width = score + '%';
+    if (strengthVal) strengthVal.textContent = strength ? score : '-';
+
+    var note = container.querySelector('#ob3dHudNote');
+    if (note) {
+      if (maxAsk === 0 && maxBid === 0) {
+        note.textContent = '종목을 선택하면 실시간으로 계산됩니다.';
+      } else if (maxAsk > maxBid * 1.3) {
+        note.textContent = '저항(매도벽)이 지지보다 두꺼워요 - 위로 뚫기 쉽지 않을 수 있어요.';
+      } else if (maxBid > maxAsk * 1.3) {
+        note.textContent = '지지(매수벽)가 저항보다 두꺼워요 - 아래쪽 방어가 튼튼해 보여요.';
+      } else {
+        note.textContent = '저항과 지지가 팽팽해요.';
+      }
+      if (strength) {
+        if (strength.growing) note.textContent += ' 체결강도: 매도벽이 오히려 두꺼워지는 중.';
+        else if (score >= 70) note.textContent += ' 체결강도: 🔥 매도벽을 강하게 미는 중.';
+        else if (score >= 30) note.textContent += ' 체결강도: 매도벽을 서서히 미는 중.';
+      }
+    }
   }
 
   function fetchOrderBook(code) {
@@ -454,8 +541,9 @@
   function render3D(container) {
     var plotEl = container.querySelector('#ob3dPlot');
     if (!plotEl) return;
-    if (!state.history.some(function (s) { return s.base != null; })) {
-      plotEl.innerHTML = '<div class="ob-hint">데이터를 모으는 중이에요 (2초마다 한 틱씩 쌓입니다)...</div>';
+    var latest = state.history[state.history.length - 1];
+    if (!latest || latest.base == null) {
+      plotEl.innerHTML = '<div class="ob-hint">데이터를 불러오는 중이에요...</div>';
       return;
     }
 
@@ -464,7 +552,7 @@
       if (state.viewMode !== '3d' || !container.isConnected) return;
       if (plotEl.querySelector('.ob-hint')) plotEl.innerHTML = '';
 
-      var traces = buildPlotlyTraces();
+      var traces = buildPlotlyTraces(latest);
       var dark = document.documentElement.classList.contains('dark');
       var gridColor = dark ? '#3a3a3a' : '#e5e5e5';
       var textColor = dark ? '#ccc' : '#444';
@@ -472,15 +560,17 @@
         margin: { l: 0, r: 0, t: 10, b: 0 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         scene: {
-          // X=0이 항상 "그 틱 시점의 현재가" - 매도벽(양수 X)이 시간(Y)이 지나며 0쪽으로
-          // 다가오거나 잔량(Z)이 줄어드는 걸 보면 현재가가 벽을 뚫는 과정을 읽을 수 있다
-          // (2026-07-27 사용자 요청). zeroline은 옅게(청록 "현재가" 트레이스가 이미 선으로
-          // 그 위치를 또렷하게 그려주므로 배경 기준선은 은은한 보조 표시로만 남긴다).
+          // X=0이 항상 현재가 - 매도벽(양수 X)과 매수벽(음수 X 방향이 아니라 Y=매수 레인
+          // 쪽으로 분리 배치)의 X 위치가 0에 가까워질수록 그 압력이 현재가에 임박했다는
+          // 뜻(2026-07-27 사용자 요청: 시간축 대신 매수/매도 방향 축으로 "호가 전쟁"을 표현).
           xaxis: {
-            title: '현재가 대비 가격차(원)', color: textColor, gridcolor: gridColor,
+            title: '가격차(원, 0=현재가)', color: textColor, gridcolor: gridColor,
             zeroline: true, zerolinecolor: CURRENT_PRICE_COLOR, zerolinewidth: 2
           },
-          yaxis: { title: '경과(초)', color: textColor, gridcolor: gridColor },
+          yaxis: {
+            title: '매수 ↔ 매도', color: textColor, gridcolor: gridColor,
+            tickvals: [-1, 1], ticktext: ['매수', '매도'], range: [-1.6, 1.6]
+          },
           zaxis: { title: '잔량', color: textColor, gridcolor: gridColor },
           bgcolor: 'rgba(0,0,0,0)'
         },
@@ -493,10 +583,9 @@
     });
   }
 
-  // 점(산점) 대신 "입체 기둥"으로 표현(2026-07-27 사용자 요청: 호가창을 게임처럼 입체적으로
-  // 보고 싶다) - Plotly에 3D 막대 전용 타입이 없어서, scatter3d의 mode:'lines'에 세그먼트
-  // 사이를 null로 끊어주는 방식으로 "바닥(z=0)에서 잔량 높이까지 솟은 기둥"을 흉내낸다
-  // (라이브러리 관례상 통용되는 방법 - null이 line을 끊는 gap으로 처리됨).
+  // 점(산점) 대신 "입체 기둥"으로 표현(2026-07-27 사용자 요청) - Plotly에 3D 막대 전용
+  // 타입이 없어서, scatter3d의 mode:'lines'에 세그먼트 사이를 null로 끊어주는 방식으로
+  // "바닥(z=0)에서 잔량 높이까지 솟은 기둥"을 흉내낸다(라이브러리 관례상 통용되는 방법).
   function pushBar(acc, x, y, qty, text) {
     acc.x.push(x, x, null);
     acc.y.push(y, y, null);
@@ -504,47 +593,53 @@
     acc.text.push('', text, '');
   }
 
-  function buildPlotlyTraces() {
-    var startTime = state.startTime || Date.now();
+  // 최신 스냅샷 하나만 그린다(시간축을 없애고 Y를 매수/매도 방향으로 바꿈, 2026-07-27
+  // 2차 개편) - 매 틱 Plotly.react로 다시 그려서 기둥이 실시간으로 오르내리는 애니메이션
+  // 효과를 낸다. 매도=Y+1 레인, 매수=Y-1 레인에 나란히 세워서 "현재가를 사이에 두고
+  // 마주보는 두 벽"으로 보이게 한다.
+  function buildPlotlyTraces(snap) {
     var ask = { x: [], y: [], z: [], text: [] };
     var bid = { x: [], y: [], z: [], text: [] };
-    var cur = { x: [], y: [], z: [], text: [] }; // 현재가 궤적(항상 X=0) - 매도/매수와 구분되는 색으로 표시
+    var maxQty = 1;
 
-    state.history.forEach(function (snap) {
-      if (snap.base == null) return; // 첫 틱들 중 시세 조회가 아직 안 된 구간은 기준가가 없어 skip
-      var elapsed = Number(((snap.t - startTime) / 1000).toFixed(1));
-      snap.asks.forEach(function (r) {
-        var diff = r.price - snap.base;
-        pushBar(ask, diff, elapsed, r.qty,
-          '매도 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
-      });
-      snap.bids.forEach(function (r) {
-        var diff = r.price - snap.base;
-        pushBar(bid, diff, elapsed, r.qty,
-          '매수 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
-      });
-      cur.x.push(0); cur.y.push(elapsed); cur.z.push(0);
-      cur.text.push('현재가 ' + Math.round(snap.base).toLocaleString('ko-KR') + '원 · ' + elapsed + '초');
+    snap.asks.forEach(function (r) {
+      var diff = r.price - snap.base;
+      pushBar(ask, diff, 1, r.qty,
+        '매도 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty));
+      if (r.qty > maxQty) maxQty = r.qty;
     });
+    snap.bids.forEach(function (r) {
+      var diff = r.price - snap.base;
+      pushBar(bid, diff, -1, r.qty,
+        '매수 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty));
+      if (r.qty > maxQty) maxQty = r.qty;
+    });
+
+    // 현재가 "중앙 기준선" - X=0에 매수/매도 레인을 가로지르는 문(goalpost) 모양으로 세워서
+    // "이 문을 통과한다=현재가가 벽을 지나간다"는 느낌을 준다(사용자 요청: 현재가를 중앙
+    // 기준선으로 표시). 바닥 가로대(매수 레인<->매도 레인 연결) + 양쪽 세로 기둥 3세그먼트.
+    var gateH = maxQty * 1.05;
+    var gate = { x: [], y: [], z: [], text: [] };
+    gate.x.push(0, 0, null); gate.y.push(-1.4, 1.4, null); gate.z.push(0, 0, null); gate.text.push('현재가', '현재가', '');
+    gate.x.push(0, 0, null); gate.y.push(-1.4, -1.4, null); gate.z.push(0, gateH, null); gate.text.push('', '', '');
+    gate.x.push(0, 0, null); gate.y.push(1.4, 1.4, null); gate.z.push(0, gateH, null); gate.text.push('', '', '');
 
     return [
       {
         type: 'scatter3d', mode: 'lines', name: '매도벽',
         x: ask.x, y: ask.y, z: ask.z, text: ask.text, hoverinfo: 'text',
-        line: { color: '#1261c4', width: 7 }, opacity: 0.75
+        line: { color: '#1261c4', width: 10 }, opacity: 0.8
       },
       {
         type: 'scatter3d', mode: 'lines', name: '매수벽',
         x: bid.x, y: bid.y, z: bid.z, text: bid.text, hoverinfo: 'text',
-        line: { color: '#d24f45', width: 7 }, opacity: 0.75
+        line: { color: '#d24f45', width: 10 }, opacity: 0.8
       },
       {
-        // 현재가는 X=0 정의상 항상 이 선 위에 있으므로 매도/매수와 다른 색(청록) 선+점으로
-        // 눈에 띄게 표시 - X=0 zeroline과 겹쳐 그려져 "여기가 현재가"를 이중으로 강조한다.
-        type: 'scatter3d', mode: 'lines+markers', name: '현재가',
-        x: cur.x, y: cur.y, z: cur.z, text: cur.text, hoverinfo: 'text',
-        line: { color: CURRENT_PRICE_COLOR, width: 5 },
-        marker: { size: 3, color: CURRENT_PRICE_COLOR }
+        // 현재가 기준선(문 모양) - 매도/매수와 다른 색(청록)으로 X=0 위치를 또렷하게 표시.
+        type: 'scatter3d', mode: 'lines', name: '현재가',
+        x: gate.x, y: gate.y, z: gate.z, text: gate.text, hoverinfo: 'text',
+        line: { color: CURRENT_PRICE_COLOR, width: 6 }
       }
     ];
   }

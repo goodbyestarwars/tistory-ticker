@@ -134,6 +134,53 @@
   overflow: hidden;
   background: #fff;
 }
+/* ---- 저항/지지/체결강도 HUD(2026-07-27, "호가 전쟁" 개편) ---- */
+#order-book .ob-3d-hud {
+  padding: 12px 14px 4px;
+  border-bottom: 1px solid #eee;
+}
+#order-book .ob-3d-hud-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+#order-book .ob-3d-hud-label {
+  flex-shrink: 0;
+  width: 70px;
+  font-weight: 700;
+}
+#order-book .ob-3d-hud-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+#order-book .ob-3d-hud-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+#order-book .ob-3d-hud-fill-ask { background: #1261c4; }
+#order-book .ob-3d-hud-fill-bid { background: #d24f45; }
+#order-book .ob-3d-hud-fill-strength { background: #0ca678; }
+#order-book .ob-3d-hud-val {
+  flex-shrink: 0;
+  width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #555;
+}
+#order-book .ob-3d-hud-note {
+  font-size: 11.5px;
+  color: #888;
+  padding: 2px 0 10px;
+}
+
 #order-book .ob-3d-plot-wrap {
   position: relative;
 }
@@ -310,6 +357,10 @@ html.dark #order-book .ob-view-btn.active {
   color: #111 !important;
 }
 html.dark #order-book .ob-3d { background: #1c1c1c !important; border-color: #3a3a3a !important; }
+html.dark #order-book .ob-3d-hud { border-color: #3a3a3a !important; }
+html.dark #order-book .ob-3d-hud-bar { background: #2a2a2a !important; }
+html.dark #order-book .ob-3d-hud-val { color: #aaa !important; }
+html.dark #order-book .ob-3d-hud-note { color: #999 !important; }
 html.dark #order-book .ob-3d-legend { color: #999 !important; border-color: #3a3a3a !important; }
 html.dark #order-book .ob-3d-milestones-title { color: #999 !important; }
 html.dark #order-book .ob-3d-milestones-list { color: #ddd !important; }
