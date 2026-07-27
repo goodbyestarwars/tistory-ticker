@@ -89,6 +89,9 @@
     });
     container.querySelector('#obBoard').hidden = mode !== 'ladder';
     container.querySelector('#ob3d').hidden = mode !== '3d';
+    // 3D 뷰는 더 큰 화면이 필요해서(2026-07-27 사용자 요청: "너무 작다") 이 모드일 때만
+    // 위젯 폭을 넓힌다 - 호가창(리스트) 뷰는 원래의 좁은 카드 폭을 그대로 유지.
+    container.classList.toggle('ob-wide', mode === '3d');
     if (mode === '3d') render3D(container);
   }
 
@@ -556,6 +559,12 @@
       var dark = document.documentElement.classList.contains('dark');
       var gridColor = dark ? '#3a3a3a' : '#e5e5e5';
       var textColor = dark ? '#ccc' : '#444';
+      // 2초마다 Plotly.react로 다시 그리면서 마우스 휠/드래그로 돌려놓은 카메라 각도가 매번
+      // 기본값으로 리셋되는 문제가 있었음(2026-07-27 사용자 리포트) - uirevision만으로는
+      // 이 gl3d 번들에서 카메라가 보존되지 않는 걸 실측으로 확인해서, 직전에 렌더링된
+      // 카메라 상태(_fullLayout, 실제 반영된 값이라 layout보다 신뢰도가 높음)를 읽어와
+      // 새 layout에 그대로 다시 넣어주는 방식으로 명시적으로 유지한다.
+      var prevCamera = plotEl._fullLayout && plotEl._fullLayout.scene && plotEl._fullLayout.scene.camera;
       var layout = {
         margin: { l: 0, r: 0, t: 10, b: 0 },
         paper_bgcolor: 'rgba(0,0,0,0)',
@@ -572,12 +581,16 @@
             tickvals: [-1, 1], ticktext: ['매수', '매도'], range: [-1.6, 1.6]
           },
           zaxis: { title: '잔량', color: textColor, gridcolor: gridColor },
-          bgcolor: 'rgba(0,0,0,0)'
+          bgcolor: 'rgba(0,0,0,0)',
+          camera: prevCamera || undefined
         },
         showlegend: true,
         legend: { font: { color: textColor }, x: 0, y: 1 }
       };
       Plotly.react(plotEl, traces, layout, { displayModeBar: false, responsive: true });
+      // 호가창<->3D 전환 시 컨테이너 폭이 CSS로 바로 바뀌는데(.ob-wide), responsive:true는
+      // window resize 이벤트에만 반응해서 그 순간엔 갱신이 안 됨 - 명시적으로 한 번 맞춰준다.
+      Plotly.Plots.resize(plotEl);
     }).catch(function () {
       plotEl.innerHTML = '<div class="ob-hint ob-error">3D 차트 라이브러리를 불러오지 못했어요.</div>';
     });

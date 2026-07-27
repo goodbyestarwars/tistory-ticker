@@ -9,6 +9,11 @@
   line-height: 1.5;
   margin: 16px 0;
   max-width: 420px;
+  transition: max-width 0.2s ease;
+}
+/* 3D 뷰는 좁은 카드 폭(420px)이 너무 작아서(2026-07-27 사용자 요청) 이 모드일 때만 넓힌다 */
+#order-book.ob-wide {
+  max-width: 820px;
 }
 
 /* ---- 검색 ---- */
@@ -185,7 +190,7 @@
   position: relative;
 }
 #order-book .ob-3d-plot {
-  height: 460px;
+  height: 640px;
 }
 #order-book .ob-3d-plot .ob-hint {
   height: 100%;
