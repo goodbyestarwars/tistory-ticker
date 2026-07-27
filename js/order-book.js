@@ -20,13 +20,12 @@
   var POLL_MS = 2000;
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
-  // 3D 뷰(가격 x 매수/매도 방향 x 잔량) - "시간축 중심이라 호가 전쟁을 못 보여준다"(2026-07-27
-  // 사용자 피드백)는 지적으로 시간(Y)을 공간(매수/매도 방향)으로 바꿔서 매 틱 스냅샷 하나만
-  // 그린다. 그래도 체결강도(아래) 계산에는 최근 몇 틱 비교가 필요해 짧은 버퍼는 유지한다.
+  // 2026-07-27: "9Pay 증권" 개편 작업지시서 #7 - 3D 산점도 뷰를 완전히 삭제(5차례 개편에도
+  // 원하는 그림이 안 나와 폐기하기로 확정됨). 저항/지지 HUD·체결강도·매도벽 돌파 기록은
+  // "유지" 대상이라 3D 패널 밖으로 꺼내 호가창(ladder) 화면에 그대로 옮겨 붙였다.
+  // 체결강도 계산에는 최근 몇 틱 비교가 필요해 짧은 히스토리 버퍼는 계속 유지한다.
   var HISTORY_MAX = 6;
-  var PLOTLY_CDN = 'https://cdn.plot.ly/plotly-gl3d-2.35.2.min.js';
 
-  var CURRENT_PRICE_COLOR = '#0ca678'; // 매도(파랑)/매수(빨강)와 겹치지 않는 별도 색(청록)
   // "매도벽 하나를 완전히 소진해야 돌파"(2026-07-27 사용자 확인) 판정 기준 - 다른 9개
   // 매도호가 평균보다 이 배수 이상 많이 쌓인 호가만 "벽"으로 인정(사소한 잔량 튐 배제).
   var WALL_RATIO = 1.8;
@@ -49,12 +48,10 @@
     trades: [],          // 최근 체결(ka10003 스냅샷 누적) - [{time,price,qty,up,down}], 최신이 앞
     startTime: null,
     lastBase: null,      // 직전 tick의 현재가(quote 조회가 실패한 틱에서 이어받을 기준가)
-    viewMode: 'ladder',  // 'ladder' | '3d'
     trackedWall: null,   // { price, peakQty } - 지금 지켜보고 있는 매도벽
     milestones: [],      // [{ price, t }] - 소진(돌파) 기록, 최신이 앞
     toastTimer: null
   };
-  var plotlyLoadPromise = null;
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -72,29 +69,6 @@
     if (!container) return;
     container.innerHTML = buildShell();
     wireSearch(container);
-    wireViewToggle(container);
-  }
-
-  function wireViewToggle(container) {
-    container.querySelectorAll('.ob-view-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        setViewMode(container, btn.getAttribute('data-view'));
-      });
-    });
-  }
-
-  function setViewMode(container, mode) {
-    if (state.viewMode === mode) return;
-    state.viewMode = mode;
-    container.querySelectorAll('.ob-view-btn').forEach(function (btn) {
-      btn.classList.toggle('active', btn.getAttribute('data-view') === mode);
-    });
-    container.querySelector('#obBoard').hidden = mode !== 'ladder';
-    container.querySelector('#ob3d').hidden = mode !== '3d';
-    // 3D 뷰는 더 큰 화면이 필요해서(2026-07-27 사용자 요청: "너무 작다") 이 모드일 때만
-    // 위젯 폭을 넓힌다 - 호가창(리스트) 뷰는 원래의 좁은 카드 폭을 그대로 유지.
-    container.classList.toggle('ob-wide', mode === '3d');
-    if (mode === '3d') render3D(container);
   }
 
   function buildShell() {
@@ -106,22 +80,15 @@
       + '</div>'
       + '<button type="button" id="obGoBtn" class="ob-go-btn">조회</button>'
       + '</div>'
-      + '<div class="ob-view-toggle">'
-      + '<button type="button" class="ob-view-btn active" data-view="ladder">호가창</button>'
-      + '<button type="button" class="ob-view-btn" data-view="3d">3D 산점도</button>'
+      + '<div id="obHud" class="ob-hud">'
+      + '<div class="ob-hud-row"><span class="ob-hud-label ob-ask-text">저항(매도벽)</span><div class="ob-hud-bar"><span id="obResistBar" class="ob-hud-fill ob-hud-fill-ask"></span></div><span id="obResistVal" class="ob-hud-val">-</span></div>'
+      + '<div class="ob-hud-row"><span class="ob-hud-label ob-bid-text">지지(매수벽)</span><div class="ob-hud-bar"><span id="obSupportBar" class="ob-hud-fill ob-hud-fill-bid"></span></div><span id="obSupportVal" class="ob-hud-val">-</span></div>'
+      + '<div class="ob-hud-row"><span class="ob-hud-label">체결강도</span><div class="ob-hud-bar"><span id="obStrengthBar" class="ob-hud-fill ob-hud-fill-strength"></span></div><span id="obStrengthVal" class="ob-hud-val">-</span></div>'
+      + '<div id="obHudNote" class="ob-hud-note">종목을 선택하면 실시간으로 계산됩니다.</div>'
       + '</div>'
+      + '<div id="obToast" class="ob-toast"></div>'
       + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
-      + '<div id="ob3d" class="ob-3d" hidden>'
-      + '<div class="ob-3d-hud">'
-      + '<div class="ob-3d-hud-row"><span class="ob-3d-hud-label ob-ask-text">저항(매도벽)</span><div class="ob-3d-hud-bar"><span id="ob3dResistBar" class="ob-3d-hud-fill ob-3d-hud-fill-ask"></span></div><span id="ob3dResistVal" class="ob-3d-hud-val">-</span></div>'
-      + '<div class="ob-3d-hud-row"><span class="ob-3d-hud-label ob-bid-text">지지(매수벽)</span><div class="ob-3d-hud-bar"><span id="ob3dSupportBar" class="ob-3d-hud-fill ob-3d-hud-fill-bid"></span></div><span id="ob3dSupportVal" class="ob-3d-hud-val">-</span></div>'
-      + '<div class="ob-3d-hud-row"><span class="ob-3d-hud-label">체결강도</span><div class="ob-3d-hud-bar"><span id="ob3dStrengthBar" class="ob-3d-hud-fill ob-3d-hud-fill-strength"></span></div><span id="ob3dStrengthVal" class="ob-3d-hud-val">-</span></div>'
-      + '<div id="ob3dHudNote" class="ob-3d-hud-note">종목을 선택하면 실시간으로 계산됩니다.</div>'
-      + '</div>'
-      + '<div class="ob-3d-plot-wrap"><div id="ob3dPlot" class="ob-3d-plot"></div><div id="ob3dToast" class="ob-3d-toast"></div></div>'
-      + '<div class="ob-3d-legend">X 가격차(0=현재가) · Y 매수 ↔ 매도 · Z 잔량(기둥 높이) · 체결강도는 매도벽 소진 속도 기반 근사치(실제 체결량 아님)</div>'
-      + '<div id="ob3dMilestones" class="ob-3d-milestones"></div>'
-      + '</div>';
+      + '<div id="obMilestones" class="ob-milestones"></div>';
   }
 
   // ---- 검색/자동완성 (watchlist.js와 동일 패턴) ----
@@ -236,11 +203,9 @@
 
     var board = container.querySelector('#obBoard');
     board.innerHTML = '<div class="ob-hint"><div class="ob-spinner"></div>' + escapeHtml(name) + ' 호가 불러오는 중...</div>';
-    var plot3d = container.querySelector('#ob3dPlot');
-    if (plot3d) plot3d.innerHTML = '';
-    var toast = container.querySelector('#ob3dToast');
-    if (toast) { toast.className = 'ob-3d-toast'; toast.textContent = ''; }
-    var milestoneBox = container.querySelector('#ob3dMilestones');
+    var toast = container.querySelector('#obToast');
+    if (toast) { toast.className = 'ob-toast'; toast.textContent = ''; }
+    var milestoneBox = container.querySelector('#obMilestones');
     if (milestoneBox) milestoneBox.innerHTML = '';
     resetHud(container);
 
@@ -270,7 +235,6 @@
           var strength = computeExecutionStrength();
           checkWallBreakthrough(container, book);
           updateHud(container, book, strength);
-          if (state.viewMode === '3d') render3D(container);
         }
         renderBoard(container, book, quote);
       })
@@ -355,23 +319,23 @@
   }
 
   function renderMilestoneLog(container) {
-    var box = container.querySelector('#ob3dMilestones');
+    var box = container.querySelector('#obMilestones');
     if (!box) return;
     if (!state.milestones.length) { box.innerHTML = ''; return; }
-    box.innerHTML = '<div class="ob-3d-milestones-title">🧱 매도벽 돌파 기록</div>'
-      + '<ul class="ob-3d-milestones-list">' + state.milestones.map(function (m) {
-        return '<li>' + Math.round(m.price).toLocaleString('ko-KR') + '원 돌파 <span class="ob-3d-milestone-time">(' + fmtElapsed(m.t) + ')</span></li>';
+    box.innerHTML = '<div class="ob-milestones-title">🧱 매도벽 돌파 기록</div>'
+      + '<ul class="ob-milestones-list">' + state.milestones.map(function (m) {
+        return '<li>' + Math.round(m.price).toLocaleString('ko-KR') + '원 돌파 <span class="ob-milestone-time">(' + fmtElapsed(m.t) + ')</span></li>';
       }).join('') + '</ul>';
   }
 
   function showMilestoneToast(container, price) {
-    var toast = container.querySelector('#ob3dToast');
+    var toast = container.querySelector('#obToast');
     if (!toast) return;
     toast.textContent = '🎉 ' + Math.round(price).toLocaleString('ko-KR') + '원 돌파!';
-    toast.className = 'ob-3d-toast show';
+    toast.className = 'ob-toast show';
     clearTimeout(state.toastTimer);
     state.toastTimer = setTimeout(function () {
-      toast.className = 'ob-3d-toast';
+      toast.className = 'ob-toast';
     }, TOAST_MS);
   }
 
@@ -392,15 +356,15 @@
   }
 
   function resetHud(container) {
-    ['#ob3dResistBar', '#ob3dSupportBar', '#ob3dStrengthBar'].forEach(function (sel) {
+    ['#obResistBar', '#obSupportBar', '#obStrengthBar'].forEach(function (sel) {
       var el = container.querySelector(sel);
       if (el) el.style.width = '0%';
     });
-    ['#ob3dResistVal', '#ob3dSupportVal', '#ob3dStrengthVal'].forEach(function (sel) {
+    ['#obResistVal', '#obSupportVal', '#obStrengthVal'].forEach(function (sel) {
       var el = container.querySelector(sel);
       if (el) el.textContent = '-';
     });
-    var note = container.querySelector('#ob3dHudNote');
+    var note = container.querySelector('#obHudNote');
     if (note) note.textContent = '종목을 선택하면 실시간으로 계산됩니다.';
   }
 
@@ -412,22 +376,22 @@
     (book.bids || []).forEach(function (r) { if (r.qty > maxBid) maxBid = r.qty; });
     var barMax = Math.max(maxAsk, maxBid) || 1;
 
-    var resistBar = container.querySelector('#ob3dResistBar');
-    var supportBar = container.querySelector('#ob3dSupportBar');
-    var resistVal = container.querySelector('#ob3dResistVal');
-    var supportVal = container.querySelector('#ob3dSupportVal');
+    var resistBar = container.querySelector('#obResistBar');
+    var supportBar = container.querySelector('#obSupportBar');
+    var resistVal = container.querySelector('#obResistVal');
+    var supportVal = container.querySelector('#obSupportVal');
     if (resistBar) resistBar.style.width = (maxAsk / barMax * 100) + '%';
     if (supportBar) supportBar.style.width = (maxBid / barMax * 100) + '%';
     if (resistVal) resistVal.textContent = fmtQty(maxAsk);
     if (supportVal) supportVal.textContent = fmtQty(maxBid);
 
-    var strengthBar = container.querySelector('#ob3dStrengthBar');
-    var strengthVal = container.querySelector('#ob3dStrengthVal');
+    var strengthBar = container.querySelector('#obStrengthBar');
+    var strengthVal = container.querySelector('#obStrengthVal');
     var score = strength ? strength.score : 0;
     if (strengthBar) strengthBar.style.width = score + '%';
     if (strengthVal) strengthVal.textContent = strength ? score : '-';
 
-    var note = container.querySelector('#ob3dHudNote');
+    var note = container.querySelector('#obHudNote');
     if (note) {
       if (maxAsk === 0 && maxBid === 0) {
         note.textContent = '종목을 선택하면 실시간으로 계산됩니다.';
@@ -566,138 +530,6 @@
       + '<span class="ob-bar-wrap"><span class="' + barCls + '" style="width:' + pct + '%"></span></span>'
       + '<span class="ob-price ' + textCls + '">' + Math.round(row.price).toLocaleString('ko-KR') + '</span>'
       + '</div>';
-  }
-
-  // ---- 3D 산점도 (가격 x 경과시간 x 잔량) ----
-  // Plotly gl3d 최소 번들만 CDN에서 1회 지연 로드(TradingView Lightweight Charts를 쓰는
-  // 다른 위젯들과 동일한 "필요할 때만" 패턴 - js/foreign-flow.js의 loadLightweightCharts 참고).
-  function loadPlotly() {
-    if (global.Plotly) return Promise.resolve(global.Plotly);
-    if (plotlyLoadPromise) return plotlyLoadPromise;
-    plotlyLoadPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = PLOTLY_CDN;
-      s.onload = function () { resolve(global.Plotly); };
-      s.onerror = function () { plotlyLoadPromise = null; reject(new Error('3D 차트 라이브러리 로드 실패')); };
-      document.head.appendChild(s);
-    });
-    return plotlyLoadPromise;
-  }
-
-  function render3D(container) {
-    var plotEl = container.querySelector('#ob3dPlot');
-    if (!plotEl) return;
-    var latest = state.history[state.history.length - 1];
-    if (!latest || latest.base == null) {
-      plotEl.innerHTML = '<div class="ob-hint">데이터를 불러오는 중이에요...</div>';
-      return;
-    }
-
-    loadPlotly().then(function (Plotly) {
-      // loadPlotly가 비동기라 그 사이 다른 종목으로 바꿨거나 뷰를 다시 전환했을 수 있음.
-      if (state.viewMode !== '3d' || !container.isConnected) return;
-      if (plotEl.querySelector('.ob-hint')) plotEl.innerHTML = '';
-
-      var traces = buildPlotlyTraces(latest);
-      var dark = document.documentElement.classList.contains('dark');
-      var gridColor = dark ? '#3a3a3a' : '#e5e5e5';
-      var textColor = dark ? '#ccc' : '#444';
-      // 2초마다 Plotly.react로 다시 그리면서 마우스 휠/드래그로 돌려놓은 카메라 각도가 매번
-      // 기본값으로 리셋되는 문제가 있었음(2026-07-27 사용자 리포트) - uirevision만으로는
-      // 이 gl3d 번들에서 카메라가 보존되지 않는 걸 실측으로 확인해서, 직전에 렌더링된
-      // 카메라 상태(_fullLayout, 실제 반영된 값이라 layout보다 신뢰도가 높음)를 읽어와
-      // 새 layout에 그대로 다시 넣어주는 방식으로 명시적으로 유지한다.
-      var prevCamera = plotEl._fullLayout && plotEl._fullLayout.scene && plotEl._fullLayout.scene.camera;
-      var layout = {
-        margin: { l: 0, r: 0, t: 10, b: 0 },
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        scene: {
-          // X=0이 항상 현재가 - 매도벽(양수 X)과 매수벽(음수 X 방향이 아니라 Y=매수 레인
-          // 쪽으로 분리 배치)의 X 위치가 0에 가까워질수록 그 압력이 현재가에 임박했다는
-          // 뜻(2026-07-27 사용자 요청: 시간축 대신 매수/매도 방향 축으로 "호가 전쟁"을 표현).
-          xaxis: {
-            title: '가격차(원, 0=현재가)', color: textColor, gridcolor: gridColor,
-            zeroline: true, zerolinecolor: CURRENT_PRICE_COLOR, zerolinewidth: 2
-          },
-          yaxis: {
-            title: '매수 ↔ 매도', color: textColor, gridcolor: gridColor,
-            tickvals: [-1, 1], ticktext: ['매수', '매도'], range: [-1.6, 1.6]
-          },
-          zaxis: { title: '잔량', color: textColor, gridcolor: gridColor },
-          bgcolor: 'rgba(0,0,0,0)',
-          camera: prevCamera || undefined
-        },
-        showlegend: true,
-        legend: { font: { color: textColor }, x: 0, y: 1 }
-      };
-      Plotly.react(plotEl, traces, layout, { displayModeBar: false, responsive: true });
-      // 호가창<->3D 전환 시 컨테이너 폭이 CSS로 바로 바뀌는데(.ob-wide), responsive:true는
-      // window resize 이벤트에만 반응해서 그 순간엔 갱신이 안 됨 - 명시적으로 한 번 맞춰준다.
-      Plotly.Plots.resize(plotEl);
-    }).catch(function () {
-      plotEl.innerHTML = '<div class="ob-hint ob-error">3D 차트 라이브러리를 불러오지 못했어요.</div>';
-    });
-  }
-
-  // 점(산점) 대신 "입체 기둥"으로 표현(2026-07-27 사용자 요청) - Plotly에 3D 막대 전용
-  // 타입이 없어서, scatter3d의 mode:'lines'에 세그먼트 사이를 null로 끊어주는 방식으로
-  // "바닥(z=0)에서 잔량 높이까지 솟은 기둥"을 흉내낸다(라이브러리 관례상 통용되는 방법).
-  function pushBar(acc, x, y, qty, text) {
-    acc.x.push(x, x, null);
-    acc.y.push(y, y, null);
-    acc.z.push(0, qty, null);
-    acc.text.push('', text, '');
-  }
-
-  // 최신 스냅샷 하나만 그린다(시간축을 없애고 Y를 매수/매도 방향으로 바꿈, 2026-07-27
-  // 2차 개편) - 매 틱 Plotly.react로 다시 그려서 기둥이 실시간으로 오르내리는 애니메이션
-  // 효과를 낸다. 매도=Y+1 레인, 매수=Y-1 레인에 나란히 세워서 "현재가를 사이에 두고
-  // 마주보는 두 벽"으로 보이게 한다.
-  function buildPlotlyTraces(snap) {
-    var ask = { x: [], y: [], z: [], text: [] };
-    var bid = { x: [], y: [], z: [], text: [] };
-    var maxQty = 1;
-
-    snap.asks.forEach(function (r) {
-      var diff = r.price - snap.base;
-      pushBar(ask, diff, 1, r.qty,
-        '매도 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty));
-      if (r.qty > maxQty) maxQty = r.qty;
-    });
-    snap.bids.forEach(function (r) {
-      var diff = r.price - snap.base;
-      pushBar(bid, diff, -1, r.qty,
-        '매수 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty));
-      if (r.qty > maxQty) maxQty = r.qty;
-    });
-
-    // 현재가 "중앙 기준선" - X=0에 매수/매도 레인을 가로지르는 문(goalpost) 모양으로 세워서
-    // "이 문을 통과한다=현재가가 벽을 지나간다"는 느낌을 준다(사용자 요청: 현재가를 중앙
-    // 기준선으로 표시). 바닥 가로대(매수 레인<->매도 레인 연결) + 양쪽 세로 기둥 3세그먼트.
-    var gateH = maxQty * 1.05;
-    var gate = { x: [], y: [], z: [], text: [] };
-    gate.x.push(0, 0, null); gate.y.push(-1.4, 1.4, null); gate.z.push(0, 0, null); gate.text.push('현재가', '현재가', '');
-    gate.x.push(0, 0, null); gate.y.push(-1.4, -1.4, null); gate.z.push(0, gateH, null); gate.text.push('', '', '');
-    gate.x.push(0, 0, null); gate.y.push(1.4, 1.4, null); gate.z.push(0, gateH, null); gate.text.push('', '', '');
-
-    return [
-      {
-        type: 'scatter3d', mode: 'lines', name: '매도벽',
-        x: ask.x, y: ask.y, z: ask.z, text: ask.text, hoverinfo: 'text',
-        line: { color: '#1261c4', width: 10 }, opacity: 0.8
-      },
-      {
-        type: 'scatter3d', mode: 'lines', name: '매수벽',
-        x: bid.x, y: bid.y, z: bid.z, text: bid.text, hoverinfo: 'text',
-        line: { color: '#d24f45', width: 10 }, opacity: 0.8
-      },
-      {
-        // 현재가 기준선(문 모양) - 매도/매수와 다른 색(청록)으로 X=0 위치를 또렷하게 표시.
-        type: 'scatter3d', mode: 'lines', name: '현재가',
-        x: gate.x, y: gate.y, z: gate.z, text: gate.text, hoverinfo: 'text',
-        line: { color: CURRENT_PRICE_COLOR, width: 6 }
-      }
-    ];
   }
 
   function fmtQty(v) {
