@@ -399,7 +399,11 @@
     return num.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
   }
 
-  // ---- 마운트: 페이지 종류와 무관하게 항상 공시 티커 아래 고정 ----
+  // ---- 마운트: 2026-07-27부터 홈("/")에서만 노출(사용자 요청, 다른 페이지는 위젯 자체를 안 띄움) ----
+
+  function isHomePage() {
+    return location.pathname === '/' || location.pathname === '';
+  }
 
   function ensureContainer() {
     var existing = document.getElementById(CONTAINER_ID);
@@ -786,6 +790,7 @@
   }
 
   function init() {
+    if (!isHomePage()) return;
     var container = ensureContainer();
     moduleContainer = container;
     wireEvents(container);

@@ -26,6 +26,13 @@
    --topbar-height로 빼서 아래 page-wrap/sidebar-right/quick-indices 오프셋에 전부
    더한다(패턴은 --qi-height와 동일). */
 :root { --qi-height: 140px; --topbar-height: 50px; }
+/* 2026-07-27: 관심지수 리본을 홈("/")에서만 띄우기로 하면서(js/quick-indices.js의
+   isHomePage() 참고) 다른 페이지에서는 init()이 아예 실행되지 않아 --qi-height를
+   setProperty할 JS가 없다 - :root의 기본값(140px)이 그대로 남아 .page-wrap 등의
+   padding-top 계산에 리본이 없는데도 그 자리만큼 빈 여백이 생김. full-width-page는
+   skin.html 인라인 스크립트가 홈이 아닌 모든 페이지에 미리 붙여두는 클래스라 여기서
+   재사용해 0으로 덮어쓴다(:root보다 명시도가 높아 이김). */
+html.full-width-page { --qi-height: 0px; }
 
 /* 2026-07-17: 페이지 배경을 연라벤더(#edf0f7)에서 흰색으로 변경(사용자 요청 - "토스
    스타일"처럼 배경과 카드가 또렷이 구분되는 옅은 회색/보라 대신, 카드 그림자만으로
@@ -59,7 +66,10 @@ a { text-decoration: none; color: inherit; }
   border-bottom: 1px solid #eee;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  /* 2026-07-28: 로고를 더 왼쪽으로 붙이기 위해 좌측 패딩만 줄임(우측 아이콘 위치는 유지) -
+     아래 .sidebar-left .nav-menu의 좌측 패딩과 반드시 같은 값을 써야 메뉴 탭 첫 글자가
+     9Pay 로고와 같은 x좌표에서 시작함(사용자 요청 "9Pay랑 같이 시작"). */
+  padding: 0 20px 0 14px;
   gap: 16px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
@@ -174,8 +184,13 @@ html.dark .nav-icon-btn svg { stroke: #fff; }
   align-items: stretch;
   gap: 0;
   padding-bottom: 0;
-  background: #fff;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  /* 2026-07-28: 흰 배경이라 navbar와의 경계가 흐릿해 보인다는 피드백 - navbar와 같은
+     옅은 배경(rgb(253,253,247))으로 통일하고, box-shadow 대신 위/아래 회색 실선(hairline)으로
+     경계를 명확히 함(네이버페이 증권 참고 스크린샷 스타일). */
+  background: rgb(253, 253, 247);
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  box-shadow: none;
   border-radius: 0;
 }
 /* 사이드바 완전 숨김(2026-07-21 사이드바 리디자인 #3, navbar #sidebarToggleBtn) -
@@ -189,13 +204,20 @@ html.dark .nav-icon-btn svg { stroke: #fff; }
   flex-direction: row;
   align-items: stretch;
   height: 100%;
-  padding: 0 8px;
+  /* nav-menu는 .card 클래스도 같이 갖고 있어 .card { background:#fff }가 그대로 먹으면
+     .sidebar-left에 새로 준 크림색(rgb(253,253,247))을 이 안쪽 요소가 흰색으로 덮어버림
+     (nav-menu가 사실상 메뉴바 전체 폭/높이를 채우므로 눈에 보이는 배경은 전부 이 색이 됨) -
+     투명으로 재정의해서 부모 배경이 그대로 비치게 함. */
+  background: transparent;
+  /* 2026-07-28: max-width:1380px + margin:0 auto로 가운데 정렬돼있던 걸 제거 - navbar의
+     로고는 뷰포트 왼쪽 끝(padding-left:14px)에 고정인데 이 메뉴는 화면 중앙 기준으로
+     떠 있어서 넓은 화면에서 서로 어긋나 보였음(사용자 리포트). navbar와 동일한
+     좌측 패딩(14px)으로 맞춰 항상 같은 x좌표에서 시작하게 함. */
+  padding: 0 8px 0 14px;
   overflow-x: auto;
   scrollbar-width: none;
   box-shadow: none;
   border-radius: 0;
-  max-width: 1380px;
-  margin: 0 auto;
   width: 100%;
 }
 .sidebar-left .nav-menu::-webkit-scrollbar { display: none; }
@@ -2041,8 +2063,10 @@ body.iframe-mode .site-footer { display: none !important; }
     z-index: 250 !important;
     overflow-y: hidden !important;
     padding: 0 !important;
-    background: #fff !important;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.08) !important;
+    background: rgb(253, 253, 247) !important;
+    box-shadow: none !important;
+    border-top: 1px solid #eee !important;
+    border-bottom: 1px solid #eee !important;
     border-right: none !important;
     transition: none !important;
     max-height: none !important;
@@ -2050,7 +2074,8 @@ body.iframe-mode .site-footer { display: none !important; }
   }
   .drawer-header { display: none !important; }
 
-  .sidebar-left .nav-menu { padding: 0 4px; }
+  /* 모바일 navbar 좌측 패딩(위 .navbar 규칙, 12px)과 맞춰 로고와 같은 x좌표에서 시작 */
+  .sidebar-left .nav-menu { padding: 0 4px 0 12px; }
   .sidebar-left .nav-item { padding: 0 12px; margin-bottom: 0; }
   .sidebar-left .nav-item-label { font-size: 13.5px; }
 
@@ -2088,6 +2113,7 @@ body.iframe-mode .site-footer { display: none !important; }
 
 @media (max-width: 430px) {
   .navbar { gap: 6px; padding: 0 8px; }
+  .sidebar-left .nav-menu { padding: 0 4px 0 8px; }
   .nav-logo-name { font-size: 15px; }
   .nav-logo-icon { width: 32px; height: 32px; }
   .nav-hamburger { width: 30px; height: 30px; }
@@ -2363,9 +2389,16 @@ html.dark .related-item { border-bottom-color: #263048; }
 html.dark .related-item-title { color: #aebacf; }
 html.dark .related-item-title:hover { color: #818cf8; }
 
-/* 상단 메뉴바(구 좌측 사이드바) */
-html.dark .sidebar-left { background: #121828; box-shadow: 0 1px 6px rgba(0,0,0,0.5); }
-html.dark .sidebar-left .nav-item-home { border-bottom-color: #a5b4fc; }
+/* 상단 메뉴바(구 좌측 사이드바)
+   2026-07-28: 다크모드에서 navbar(진초록 #082415)와 메뉴바(진남색 #121828)가 색조가
+   서로 달라 바로 위아래로 붙어있으니 이질감이 심했음(사용자 리포트) - 라이트모드에서
+   navbar/메뉴바 배경을 같은 색(rgb(253,253,247))으로 맞춘 것과 동일하게, 다크모드도
+   메뉴바를 navbar와 같은 진초록으로 통일해 하나의 헤더처럼 보이게 함. */
+html.dark .sidebar-left { background: #082415; box-shadow: 0 1px 6px rgba(0,0,0,0.5); border-top: none; border-bottom: none; }
+/* background도 명시 - html.dark .nav-item-home(구 세로 사이드바용 #171e2f)이 detail
+   specificity상 더 세서 그냥 두면 상단 메뉴바 "홈" 탭 뒤에 안 어울리는 남색 박스가
+   깔림(옛 카드형 메뉴 스타일 잔재). */
+html.dark .sidebar-left .nav-item-home { background: transparent; border-bottom-color: #a5b4fc; }
 html.dark .nav-search-wrap { border-bottom-color: #2f3a4f; }
 html.dark .nav-item { color: #ffffff; }
 html.dark .nav-item-label { color: #ffffff; }
@@ -2453,8 +2486,10 @@ html.dark body.iframe-mode { background: #171e2f; }
 /* 모바일 상단 메뉴바 다크모드 (원본이 !important라 여기도 필요) */
 @media (max-width: 720px) {
   html.dark .sidebar-left {
-    background: #121828 !important;
+    background: #082415 !important;
     box-shadow: 0 1px 6px rgba(0,0,0,0.6) !important;
+    border-top: none !important;
+    border-bottom: none !important;
   }
 }
 
