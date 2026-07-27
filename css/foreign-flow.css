@@ -57,9 +57,20 @@
 }
 #foreign-flow .ff-suggest.active { display: block; }
 #foreign-flow .ff-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 12px;
   font-size: 13px;
   cursor: pointer;
+}
+#foreign-flow .ff-suggest-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
 }
 #foreign-flow .ff-suggest-item:hover,
 #foreign-flow .ff-suggest-item.active { background: #f2f2f2; }
@@ -149,9 +160,21 @@
 
 /* ---- 결과 헤더/구분선/배지 ---- */
 #foreign-flow .ff-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   font-size: 17px;
   font-weight: 700;
   margin: 4px 0 8px;
+}
+#foreign-flow .ff-header-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
 }
 #foreign-flow .ff-divider {
   height: 1px;
@@ -253,6 +276,21 @@
   cursor: pointer;
 }
 .ff-related-item:hover { background: #f2f2f2; }
+.ff-related-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.ff-related-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+}
 .ff-related-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ff-related-quote {
   display: flex;
@@ -892,6 +930,14 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 #foreign-flow .ff-sig-badge.ff-buy { background: rgba(210, 79, 69, .14); color: #d24f45; }
 #foreign-flow .ff-sig-badge.ff-sell { background: rgba(18, 97, 196, .14); color: #1261c4; }
 #foreign-flow .ff-sig-badge.ff-flat { background: rgba(102, 102, 102, .14); color: #666; }
+#foreign-flow .ff-sig-banner-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+}
 #foreign-flow .ff-sig-banner-name { font-weight: 700; }
 #foreign-flow .ff-sig-banner-score-num { font-size: 18px; font-weight: 800; color: #222; }
 #foreign-flow .ff-sig-banner-score-sub { font-size: 12px; font-weight: 600; color: #4a5568; margin-left: 2px; }
@@ -974,6 +1020,14 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 #foreign-flow .ff-sig-row:last-child { border-bottom: none; }
 #foreign-flow .ff-sig-row:hover { background: #f7f7f8; }
 #foreign-flow .ff-sig-list-row.active { background: #eef4fc; }
+#foreign-flow .ff-sig-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+}
 
 #foreign-flow .ff-sig-name {
   flex: 1;
@@ -1031,7 +1085,15 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 }
 /* 3.3 우측 패널 헤더: 종목명+코드 / 현재가(24px) / 등락률·등락금액(13px) 3단 */
 #foreign-flow .ff-panel-header { margin-bottom: 10px; }
-#foreign-flow .ff-panel-header-top { display: flex; align-items: baseline; gap: 6px; }
+#foreign-flow .ff-panel-header-top { display: flex; align-items: center; gap: 6px; }
+#foreign-flow .ff-panel-header-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+}
 #foreign-flow .ff-panel-header-name { font-size: 17px; font-weight: 500; color: #222; }
 #foreign-flow .ff-panel-header-code { font-size: 13px; color: #9ca3af; }
 #foreign-flow .ff-panel-header-price { font-size: 24px; font-weight: 500; margin-top: 2px; }

@@ -24,6 +24,18 @@
   var FETCH_TIMEOUT_MS = 20000; // 네이버 2페이지 크롤링 + 파싱이라 여유 있게
   var MAX_SUGGESTIONS = 8;
   var CLIENT_CACHE_MS = 5 * 60 * 1000;
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+
+  // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
+  global.__stockIconFallback = global.__stockIconFallback || function (img) {
+    if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
+    img.setAttribute('data-fb', '1');
+    img.src = img.src.replace(/\.svg(\?.*)?$/, '.png');
+  };
+  function stockIconHtml(code, cls) {
+    if (!code) return '';
+    return '<img class="' + cls + '" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+  }
 
   var CHART_W = 820;
   var CHART_H = 280;
@@ -232,6 +244,7 @@
     var code = item[0], name = item[1], price = item[2], changeRate = item[3], stars = item[4];
     var activeCls = code === activeSignalCode ? ' active' : '';
     return '<button type="button" class="ff-sig-row ff-sig-list-row' + activeCls + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
+      + stockIconHtml(code, 'ff-sig-icon')
       + '<span class="ff-sig-name">' + escapeHtml(name) + '<span class="ff-sig-code">(' + escapeHtml(code) + ')</span></span>'
       + '<span class="ff-sig-score">' + starsHtml(stars) + '</span>'
       + '<span class="ff-sig-quote"><span class="ff-sig-price">' + (price == null || isNaN(price) ? '-' : Math.round(price).toLocaleString('ko-KR')) + '</span>'
@@ -343,6 +356,7 @@
 
     box.hidden = false;
     box.innerHTML = '<span class="ff-sig-badge ' + verdict.cls + '">' + verdict.label + '</span>'
+      + stockIconHtml(data.code, 'ff-sig-banner-icon')
       + '<span class="ff-sig-banner-name">' + escapeHtml(data.name || data.code) + '</span>'
       + '<span class="ff-sig-banner-score"><span class="ff-sig-banner-score-num">' + verdict.score.toFixed(1) + '</span>'
       + '<span class="ff-sig-banner-score-sub">점 · ' + verdict.stars.toFixed(1) + '/5</span></span>'
@@ -379,7 +393,8 @@
       ? (quote.changeRate >= 0 ? '+' : '') + quote.changeRate.toFixed(2) + '% (' + (quote.change >= 0 ? '+' : '') + Number(quote.change).toLocaleString() + '원)'
       : '';
     var headerHtml = '<div class="ff-panel-header">'
-      + '<div class="ff-panel-header-top"><span class="ff-panel-header-name">' + escapeHtml(data.name || data.code) + '</span>'
+      + '<div class="ff-panel-header-top">' + stockIconHtml(data.code, 'ff-panel-header-icon')
+      + '<span class="ff-panel-header-name">' + escapeHtml(data.name || data.code) + '</span>'
       + '<span class="ff-panel-header-code">(' + escapeHtml(data.code) + ')</span></div>'
       + '<div class="ff-panel-header-price ' + priceCls + '">' + priceNum + '</div>'
       + (changeText ? '<div class="ff-panel-header-change ' + priceCls + '">' + changeText + '</div>' : '')
@@ -610,7 +625,8 @@
       + (stocks.length
           ? stocks.map(function (s) {
               return '<div class="ff-related-item" data-code="' + escapeAttr(s.code) + '" data-name="' + escapeAttr(s.name) + '">'
-                + '<span class="ff-related-name">' + escapeHtml(s.name) + '</span>'
+                + '<span class="ff-related-left">' + stockIconHtml(s.code, 'ff-related-icon')
+                + '<span class="ff-related-name">' + escapeHtml(s.name) + '</span></span>'
                 + '<span class="ff-related-quote" data-quote-code="' + escapeAttr(s.code) + '">'
                 + '<span class="ff-related-price">-</span><span class="ff-related-rate">-</span></span>'
                 + '</div>';
@@ -717,7 +733,7 @@
     if (!matches.length) { hideSuggestions(box); return; }
 
     box.innerHTML = matches.map(function (name) {
-      return '<div class="ff-suggest-item" data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
+      return '<div class="ff-suggest-item" data-name="' + escapeAttr(name) + '">' + stockIconHtml(map[name], 'ff-suggest-icon') + escapeHtml(name) + '</div>';
     }).join('');
     box.classList.add('active');
     box.__activeIndex = -1;
@@ -970,7 +986,7 @@
     }
 
     // 헤더(종목명/가격)를 맨 위에 두고 구분선으로 아래 요약 박스와 분리
-    var html = '<div class="ff-header">' + escapeHtml(data.name || data.code)
+    var html = '<div class="ff-header">' + stockIconHtml(data.code, 'ff-header-icon') + escapeHtml(data.name || data.code)
       + ' <span class="ff-code">(' + escapeHtml(data.code) + ')</span>'
       + priceHtml
       + ' <span class="ff-asof">' + escapeHtml(asOfLabel) + ' 기준</span></div>'

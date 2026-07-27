@@ -45,6 +45,14 @@
   color: #9ca3af;
   font-size: 11.5px;
 }
+#sidebar-rank .sr-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+}
 #sidebar-rank .sr-name {
   flex: 1;
   min-width: 0;
@@ -175,6 +183,7 @@
 }
 .sr-modal-list .sr-row:hover { background: #f7f8fa; }
 .sr-modal-list .sr-rank { flex-shrink: 0; width: 24px; font-weight: 400; color: #9ca3af; font-size: 13.5px; }
+.sr-modal-list .sr-icon { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; object-fit: contain; background: #fff; }
 .sr-modal-list .sr-name {
   flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-weight: 400; font-size: 15px; color: #0d1b40; text-decoration: none;

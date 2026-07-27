@@ -15,6 +15,18 @@
   var SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
   var HOVER_DELAY_MS = 200;
   var NAVER_ITEM_URL = 'https://finance.naver.com/item/main.naver?code=';
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+
+  // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
+  global.__stockIconFallback = global.__stockIconFallback || function (img) {
+    if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
+    img.setAttribute('data-fb', '1');
+    img.src = img.src.replace(/\.svg(\?.*)?$/, '.png');
+  };
+  function stockIconHtml(code, cls) {
+    if (!code) return '';
+    return '<img class="' + cls + '" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+  }
 
   var state = {
     krxMap: {},
@@ -239,7 +251,16 @@
     span.className = 'ticker-badge ' + directionClass(data.change);
     span.setAttribute('data-code', data.code);
     span.setAttribute('tabindex', '0');
-    span.textContent = data.name + ' ' + arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
+
+    var icon = document.createElement('img');
+    icon.className = 'ticker-badge-icon';
+    icon.alt = '';
+    icon.loading = 'lazy';
+    icon.src = STOCK_ICON_BASE + encodeURIComponent(data.code) + '.svg';
+    icon.addEventListener('error', function () { global.__stockIconFallback(icon); });
+    span.appendChild(icon);
+
+    span.appendChild(document.createTextNode(data.name + ' ' + arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%'));
     attachTooltipHandlers(span, data);
     return span;
   }
@@ -257,7 +278,7 @@
     var box = document.createElement('div');
     box.className = 'ticker-tooltip';
     box.innerHTML =
-      '<div class="ticker-tooltip-title">' + escapeHTML(data.name) + ' (' + escapeHTML(data.code) + ')</div>' +
+      '<div class="ticker-tooltip-title">' + stockIconHtml(data.code, 'ticker-tooltip-icon') + escapeHTML(data.name) + ' (' + escapeHTML(data.code) + ')</div>' +
       '<div class="ticker-tooltip-row"><span class="ticker-tooltip-label">현재가</span>' +
         '<span class="ticker-tooltip-value">' + formatNumber(data.price) + '원</span></div>' +
       '<div class="ticker-tooltip-row"><span class="ticker-tooltip-label">등락률</span>' +

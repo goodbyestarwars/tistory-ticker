@@ -15,6 +15,15 @@
   transition: background-color 0.15s, border-color 0.15s;
 }
 
+.ticker-badge-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+}
+
 .ticker-badge.ticker-up {
   color: #d24f45;
   background: rgba(210, 79, 69, 0.08);
@@ -50,9 +59,21 @@
 }
 
 .ticker-tooltip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 700;
   margin-bottom: 6px;
   font-size: 13.5px;
+}
+
+.ticker-tooltip-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
 }
 
 .ticker-tooltip-row {
