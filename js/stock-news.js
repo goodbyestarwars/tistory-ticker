@@ -528,10 +528,12 @@
   }
 
   function buildFeaturedCard(item, idx) {
-    return '<div class="sn-news-featured" data-idx="' + idx + '">'
+    // 미리보기 이미지가 없으면 빈 회색 박스를 그리지 않고 글(제목/요약)만 보여준다
+    // (사용자 피드백 "미리보기 없으면 그냥 글만 보여줘" - 위젯 전체 개편 전 임시 조치).
+    return '<div class="sn-news-featured' + (item.image ? '' : ' sn-news-no-thumb') + '" data-idx="' + idx + '">'
       + (item.image
         ? '<img class="sn-news-featured-img" src="' + escapeAttr(item.image) + '" alt="" loading="lazy" />'
-        : '<div class="sn-news-featured-img sn-news-thumb-empty"></div>')
+        : '')
       + '<div class="sn-news-featured-body">'
       + '<div class="sn-news-featured-title">' + escapeHtml(item.title) + '</div>'
       + '<div class="sn-news-snippet">' + escapeHtml(item.body) + '</div>'
@@ -542,10 +544,10 @@
   }
 
   function buildHeadlineItem(item, idx) {
-    return '<div class="sn-news-headline-item" data-idx="' + idx + '">'
+    return '<div class="sn-news-headline-item' + (item.image ? '' : ' sn-news-no-thumb') + '" data-idx="' + idx + '">'
       + (item.image
         ? '<img class="sn-news-headline-thumb" src="' + escapeAttr(item.image) + '" alt="" loading="lazy" />'
-        : '<div class="sn-news-headline-thumb sn-news-thumb-empty"></div>')
+        : '')
       + '<div class="sn-news-headline-body">'
       + '<div class="sn-news-headline-title">' + escapeHtml(item.title) + '</div>'
       + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
@@ -555,10 +557,10 @@
   }
 
   function buildGridCard(item, idx) {
-    return '<div class="sn-news-grid-item" data-idx="' + idx + '">'
+    return '<div class="sn-news-grid-item' + (item.image ? '' : ' sn-news-no-thumb') + '" data-idx="' + idx + '">'
       + (item.image
         ? '<img class="sn-news-grid-thumb" src="' + escapeAttr(item.image) + '" alt="" loading="lazy" />'
-        : '<div class="sn-news-grid-thumb sn-news-thumb-empty"></div>')
+        : '')
       + '<div class="sn-news-grid-title">' + escapeHtml(item.title) + '</div>'
       + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
       + '<span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'

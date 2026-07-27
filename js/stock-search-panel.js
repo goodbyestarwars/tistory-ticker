@@ -109,14 +109,56 @@
       .filter(function (name) { return map.hasOwnProperty(name); })
       .map(function (name) { return { code: map[name], name: name }; });
   }
-  function isFavorite(code) { return getFavorites().some(function (it) { return it.code === code; }); }
+  // 2026-07-28: 이 검색창의 즐겨찾기(stock:favorites)는 원래 "MY" 페이지(js/watchlist.js,
+  // wl_codes_v1)와 별개 저장소였음 - 여기서 별표를 눌러도 MY에 안 나타난다는 리포트로 동기화한다.
+  // watchlist.js는 /page/watchlist(MY)에만 임베드돼있고 다른 모든 페이지엔 없어서
+  // window.Watchlist가 대부분 undefined - 있으면 그 공개 API를 쓰고, 없으면 같은 저장 형식으로
+  // wl_codes_v1을 직접 읽고 쓴다(watchlist.js의 loadList/saveList와 동일 스키마).
+  var WATCHLIST_STORAGE_KEY = 'wl_codes_v1';
+  var WATCHLIST_MAX_ITEMS = 50;
+  function loadWatchlistRaw() {
+    try {
+      var raw = localStorage.getItem(WATCHLIST_STORAGE_KEY);
+      var list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (err) { return []; }
+  }
+  function isInWatchlist(code) {
+    if (global.Watchlist && typeof global.Watchlist.has === 'function') return global.Watchlist.has(code);
+    return loadWatchlistRaw().some(function (it) { return it.code === code; });
+  }
+  function addToWatchlist(code, name) {
+    if (global.Watchlist && typeof global.Watchlist.add === 'function') { global.Watchlist.add(code, name); return; }
+    var list = loadWatchlistRaw();
+    if (list.some(function (it) { return it.code === code; })) return;
+    if (list.length >= WATCHLIST_MAX_ITEMS) return;
+    list.push({ code: code, name: name || code });
+    try { localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(list)); } catch (err) { /* 무시 */ }
+  }
+  function removeFromWatchlist(code) {
+    if (global.Watchlist && typeof global.Watchlist.remove === 'function') { global.Watchlist.remove(code); return; }
+    var list = loadWatchlistRaw().filter(function (it) { return it.code !== code; });
+    try { localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(list)); } catch (err) { /* 무시 */ }
+  }
+
+  function isFavorite(code) {
+    return isInWatchlist(code) || getFavorites().some(function (it) { return it.code === code; });
+  }
   function toggleFavorite(code, name) {
+    var wasFavorite = isFavorite(code);
     var list = getFavorites();
     var idx = list.findIndex(function (it) { return it.code === code; });
+    if (idx > -1) list.splice(idx, 1);
     var added;
-    if (idx > -1) { list.splice(idx, 1); added = false; }
-    else { list.unshift({ code: code, name: name }); added = true; }
+    if (wasFavorite) {
+      added = false;
+    } else {
+      list.unshift({ code: code, name: name });
+      added = true;
+    }
     writeJson(STORAGE_FAVORITES, list);
+    if (added) addToWatchlist(code, name);
+    else removeFromWatchlist(code);
     return added;
   }
 

@@ -409,8 +409,6 @@
    네이버 증권 "뉴스·리서치" 탭 참고 - 큰 사진 카드 1개 + 헤드라인 리스트(상단),
    나머지는 이미지 카드 그리드(하단). 데이터는 기존 그대로(image/title/body/press/
    datetime) - GAS 변경 없이 레이아웃만 재구성. */
-.sn-news-thumb-empty { background: #f1f5f9; }
-
 .sn-news-top {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
@@ -788,8 +786,7 @@ html.dark #stock-news .sn-news-grid-item:hover {
 
 html.dark #stock-news .sn-news-featured-img,
 html.dark #stock-news .sn-news-headline-thumb,
-html.dark #stock-news .sn-news-grid-thumb,
-html.dark #stock-news .sn-news-thumb-empty {
+html.dark #stock-news .sn-news-grid-thumb {
   background: #0e1320;
 }
 
