@@ -2573,7 +2573,10 @@
       });
     });
 
-    var result = { minLow: minLow, maxHigh: maxHigh, binSize: binSize, days: rows.length };
+    // trendUp: 가장 최근일(rows[0], flowDaily가 최신일 우선 정렬이라 slice 전 순서 그대로)의
+    // 등락 방향 - 사다리 타는 사람 장식 애니메이션 방향(상승장=위로/하락장=아래로)에만 쓰는
+    // 참고용 신호라 근사여도 무방하다(진짜 추세판정 로직이 아님).
+    var result = { minLow: minLow, maxHigh: maxHigh, binSize: binSize, days: rows.length, trendUp: rows[0].changePct >= 0 };
     Object.keys(profiles).forEach(function (key) {
       var bins = profiles[key];
       var totalBuy = 0, totalSell = 0, weighted = 0, weightQty = 0;
@@ -2601,6 +2604,26 @@
     if (!apt || price == null || !(apt.maxHigh > apt.minLow)) return -1;
     var binSize = (apt.maxHigh - apt.minLow) / APT_BIN_COUNT;
     return Math.max(0, Math.min(APT_BIN_COUNT - 1, Math.floor((price - apt.minLow) / binSize)));
+  }
+
+  // 구간 안내판(탑층~로비) 밑에 표시할 가격범위 - "90,000원~" 처럼 각 구간의 실제 최저/최고가를
+  // 보여준다(장식이 아니라 apt.minLow/binSize에서 그대로 계산한 실데이터).
+  function aptBandRanges(apt) {
+    var ranges = {};
+    for (var i = 0; i < APT_BIN_COUNT; i++) {
+      var band = aptBandLabel(i);
+      var lo = apt.minLow + i * apt.binSize, hi = apt.minLow + (i + 1) * apt.binSize;
+      if (!ranges[band]) ranges[band] = { low: lo, high: hi };
+      else { ranges[band].low = Math.min(ranges[band].low, lo); ranges[band].high = Math.max(ranges[band].high, hi); }
+    }
+    return ranges;
+  }
+  function aptBandRangeText(band, ranges) {
+    var r = ranges[band];
+    if (!r) return '';
+    if (band === '탑층') return Math.round(r.low).toLocaleString('ko-KR') + '원 ~';
+    if (band === '로비') return '~ ' + Math.round(r.high).toLocaleString('ko-KR') + '원';
+    return Math.round(r.low).toLocaleString('ko-KR') + '~' + Math.round(r.high).toLocaleString('ko-KR') + '원';
   }
 
   // 매도/매수 우위가 이어지는 구간(연속 bin run) 중 가장 긴 구간을 찾아 가격범위+강도(1~5)를
@@ -2659,11 +2682,18 @@
     return out;
   }
 
-  // 2026-07-27 리디자인: 좌우 매물벽 + 중앙 가격 레일의 듀얼 바 차트 - "매물대 UI
-  // 리디자인 작업지시서" 요청("아파트는 장식이 아니라 데이터 컨테이너") 반영. 층마다 좌측에
-  // 매도(파랑), 우측에 매수(분홍) 막대를 가격 레일 기준 바깥쪽으로 뻗게 그리고, 막대 끝에
-  // 거래량 숫자를 붙인다. 구간 안내판(탑층~로비)은 그 구간의 첫 행에서만 라벨을 보여줘
-  // 세로로 이어진 것처럼 보이게 한다(진짜 rowspan은 아니지만 실질적으로 동일한 효과).
+  // .ff-apt-row 실제 높이(px)와 반드시 일치시킬 것 - 아래 사다리(ladder) 세로 위치/길이를
+  // JS에서 픽셀로 직접 계산하는 유일한 기준값이다(CSS를 바꾸면 이 값도 같이 바꿀 것).
+  var APT_ROW_HEIGHT = 20;
+
+  // 2026-07-27 Ver.2 리디자인("매물대 UI 리디자인 작업지시서 Ver.2"): Ver.1(듀얼 바 차트,
+  // 위 주석 참고)의 데이터 표현은 그대로 두되, "주가가 사는 아파트"라는 컨셉을 다시
+  // 입힌다 - 옥상 헬리패드+헬기(회전 로터), 층마다 가격 옆 미니 창문 아이콘, 구간
+  // 안내판에 가격범위 부기, 현재가 말풍선+좌우 강조선, 현재층→지하실로 이어지는 사다리
+  // (오르내리는 사람), 로비/지하실 장식을 얹는다. 단, Ver.0(2026-07-26 이전)에서 실패했던
+  // "24bin마다 촘촘한 창문 격자"는 반복하지 않음 - 창문은 각 행에 작은 아이콘 2개만
+  // 붙이고(레이아웃 부담 적음), 진짜 일러스트 밀도는 옥상/로비/지하실처럼 반복되지 않는
+  // 고정 구간에만 투입한다(2026-07-28 손그림 스타일 revert 이력 참고).
   function buildAptChartHtml(apt, typeKey, currentPrice) {
     var profile = apt[typeKey];
     if (!profile || (profile.totalBuy <= 0 && profile.totalSell <= 0)) {
@@ -2672,6 +2702,7 @@
     var curIdx = aptBinIndex(apt, currentPrice);
     var maxQtyOverall = Math.max(profile.maxBuyQty, profile.maxSellQty, 1);
     var totalQty = profile.totalBuy + profile.totalSell;
+    var bandRanges = aptBandRanges(apt);
     var prevBand = null;
     var rows = '';
     for (var i = APT_BIN_COUNT - 1; i >= 0; i--) {
@@ -2690,13 +2721,17 @@
       var sharePct = totalQty > 0 ? (b.buyQty + b.sellQty) / totalQty * 100 : 0;
       var title = mid.toLocaleString('ko-KR') + '원\n매도 ' + Math.round(b.sellQty).toLocaleString('ko-KR')
         + '주 · 매수 ' + Math.round(b.buyQty).toLocaleString('ko-KR') + '주\n전체 비중 ' + sharePct.toFixed(1) + '%';
+      var bandLabelHtml = showBand
+        ? '<span class="ff-apt-band-icon">⌂</span><span class="ff-apt-band-name">' + band + '</span>'
+          + '<span class="ff-apt-band-range">' + aptBandRangeText(band, bandRanges) + '</span>'
+        : '';
       rows += '<div class="ff-apt-row' + (showBand ? ' ff-apt-band-start' : '') + (isCurrent ? ' ff-apt-row-current' : '') + '"'
         + ' title="' + escapeHtml(title) + '">'
-        + '<span class="ff-apt-band-label">' + (showBand ? band : '') + '</span>'
+        + '<span class="ff-apt-band-label">' + bandLabelHtml + '</span>'
         + '<span class="ff-apt-bar-slot ff-apt-bar-slot-sell">' + sellLabel
           + '<span class="ff-apt-bar ff-apt-bar-sell' + (isMaxSell ? ' ff-apt-bar-max' : '') + '" style="width:' + sellPct + '%"></span>'
           + '</span>'
-        + '<span class="ff-apt-price">' + mid.toLocaleString('ko-KR') + '</span>'
+        + '<span class="ff-apt-price"><span class="ff-apt-mini-window"></span>' + mid.toLocaleString('ko-KR') + '<span class="ff-apt-mini-window"></span></span>'
         + '<span class="ff-apt-bar-slot ff-apt-bar-slot-buy">'
           + '<span class="ff-apt-bar ff-apt-bar-buy' + (isMaxBuy ? ' ff-apt-bar-max' : '') + '" style="width:' + buyPct + '%"></span>' + buyLabel
           + '</span>'
@@ -2705,7 +2740,46 @@
           : '')
         + '</div>';
     }
-    return '<div class="ff-apt-chart-wrap"><span class="ff-apt-icon">🏢</span>' + rows + '</div>';
+
+    var roofHtml = '<div class="ff-apt-roof-block">'
+      + '<div class="ff-apt-nameplate">매물대 아파트</div>'
+      + '<div class="ff-apt-helipad"><span class="ff-apt-helipad-h">H</span></div>'
+      + '<div class="ff-apt-heli"><span class="ff-apt-heli-rotor"></span><span class="ff-apt-heli-body">🚁</span></div>'
+      + '</div>';
+
+    // 사다리: 현재가 행에서 지하실 쪽으로 이어지는 장식(데이터 아님) - 세로 위치/길이는
+    // curIdx와 APT_ROW_HEIGHT로 픽셀 계산한다(위 상수 설명 참고). 방향(상승/하락)은
+    // apt.trendUp(최근일 등락 방향)을 그대로 반영.
+    var ladderHtml = '';
+    if (curIdx >= 0) {
+      var ladderTop = (APT_BIN_COUNT - 1 - curIdx) * APT_ROW_HEIGHT + APT_ROW_HEIGHT / 2;
+      var ladderHeight = curIdx * APT_ROW_HEIGHT + 12;
+      ladderHtml = '<div class="ff-apt-ladder" style="top:' + ladderTop + 'px;height:' + ladderHeight + 'px">'
+        + '<span class="ff-apt-ladder-rail"></span>'
+        + '<span class="ff-apt-ladder-person ff-apt-ladder-person-' + (apt.trendUp ? 'up' : 'down') + '">🧍</span>'
+        + '</div>';
+    }
+
+    var lobbyHtml = '<div class="ff-apt-lobby">'
+      + '<span class="ff-apt-lobby-item" title="자동문">🚪</span>'
+      + '<span class="ff-apt-lobby-item" title="화분">🪴</span>'
+      + '<span class="ff-apt-lobby-item" title="우편함">📮</span>'
+      + '<span class="ff-apt-lobby-item" title="안내판">📋</span>'
+      + '</div>';
+    // 지하실은 실제 데이터가 존재하는 가격구간이 아니라 "아직 매집되지 않은 가격 / 추가
+    // 하락 가능 영역"을 뜻하는 상징적인 공간이라 bin/거래량과 연결하지 않는다(작업지시서 명시).
+    var basementHtml = '<div class="ff-apt-basement">'
+      + '<div class="ff-apt-basement-title">지하실 · 아직 매집되지 않은 가격대</div>'
+      + '<div class="ff-apt-basement-rooms">'
+      + '<span class="ff-apt-basement-room">📦창고</span>'
+      + '<span class="ff-apt-basement-room">⚡전기실</span>'
+      + '<span class="ff-apt-basement-room">⚙️기계실</span>'
+      + '<span class="ff-apt-basement-room">🅿️주차장</span>'
+      + '</div></div>';
+
+    return '<div class="ff-apt-chart-wrap">' + roofHtml
+      + '<div class="ff-apt-floors">' + rows + ladderHtml + '</div>'
+      + lobbyHtml + basementHtml + '</div>';
   }
 
   function buildAptStatsHtml(profile) {
