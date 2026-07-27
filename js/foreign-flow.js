@@ -2437,7 +2437,14 @@
     { key: 'foreign', label: '외국인' },
     { key: 'inst', label: '기관' }
   ];
-  var APT_WINDOWS_PER_FLOOR = 5; // 층마다 켜진 창문 개수로 물량 비중을 표현(재미 포인트)
+  var APT_WINDOWS_PER_FLOOR = 7; // 층마다 켜진 창문 개수로 물량 비중을 표현
+  // 위로 갈수록 좁아지는 실루엣(고층 타워 관례) - t=0(로비)일 때 100%, t=1(탑층)일 때
+  // 가장 좁게. 지수를 1보다 크게 줘서 아래쪽은 넓게 유지하다 위쪽에서 더 가파르게 좁아지는
+  // 곡선(실제 마천루 세트백과 비슷한 느낌)으로 만든다.
+  function aptFloorWidthPct(i) {
+    var t = i / (APT_BIN_COUNT - 1);
+    return 100 - 44 * Math.pow(t, 1.35);
+  }
 
   function computeAptData(flowDaily, chartByDate) {
     var rows = [];
@@ -2513,17 +2520,19 @@
         : '') + '</div>';
   }
 
-  // 진짜 건물처럼 보이도록: 막대 대신 층마다 "창문"을 5개 두고 그 물량 비중만큼 불을 켠다
-  // (많이 몰린 층일수록 창문이 환하게 켜진 아파트, 텅 빈 층은 깜깜함 - "몇 명이 샀는지"를
-  // 문자 그대로 셀 순 없지만 "이 층이 북적인다"는 느낌은 창문 조명으로 재미있게 표현).
-  // 옥상(안테나+경광등)과 로비(현관문)를 위아래에 붙여서 층 목록이 아니라 하나로 이어진
-  // 건물 실루엣처럼 보이게 한다 - 모든 행이 같은 좌우 칸 너비를 써서 가운데 벽 부분이
-  // 수직으로 곧게 이어진다.
-  function buildAptRowHtml(cls, label, price, wallHtml, annotHtml, title) {
+  // 진짜 고층 건물처럼 보이도록: 층마다 폭이 위로 갈수록 좁아지는 실루엣(aptFloorWidthPct)
+  // 위에 "창문" 7개를 두고 그 물량 비중만큼 불을 켠다(많이 몰린 층일수록 환하게, 텅 빈
+  // 층은 깜깜함 - "몇 명이 샀는지"를 문자 그대로 셀 순 없지만 "이 층이 북적인다"는 느낌은
+  // 창문 조명으로 표현). 옥상(고리 모양 전망대+안테나+경광등)과 로비(현관+포디움)를
+  // 위아래에 붙여 하나로 이어진 타워 실루엣처럼 보이게 한다. 각 행은 폭이 고정된
+  // "슬롯"(좌우 칸 너비를 모든 행이 공유) 안에 폭이 다른 벽을 가운데 정렬로 얹는 방식이라
+  // 슬롯 자체는 곧게 이어지고 안쪽 벽 윤곽만 층마다 계단식으로 좁아진다.
+  function buildAptRowHtml(cls, label, price, wallCls, wallWidthPct, wallInner, annotHtml, title) {
+    var wallStyle = wallWidthPct != null ? ' style="width:' + wallWidthPct + '%"' : '';
     return '<div class="ff-apt-row' + (cls ? ' ' + cls : '') + '"' + (title ? ' title="' + escapeHtml(title) + '"' : '') + '>'
       + '<span class="ff-apt-row-label">' + (label || '') + '</span>'
       + '<span class="ff-apt-row-price">' + (price || '') + '</span>'
-      + wallHtml
+      + '<span class="ff-apt-wall-slot"><span class="ff-apt-wall' + (wallCls ? ' ' + wallCls : '') + '"' + wallStyle + '>' + (wallInner || '') + '</span></span>'
       + '<span class="ff-apt-row-annot">' + (annotHtml || '') + '</span>'
       + '</div>';
   }
@@ -2537,8 +2546,10 @@
     var labelByIdx = {};
     APT_LABEL_BANDS.forEach(function (b) { labelByIdx[b.idx] = b.label; });
 
-    var roofRow = buildAptRowHtml('ff-apt-roof-row', '', '',
-      '<span class="ff-apt-wall ff-apt-roof"><span class="ff-apt-antenna"><span class="ff-apt-beacon"></span></span></span>', '');
+    var topWidth = aptFloorWidthPct(APT_BIN_COUNT - 1);
+    var roofRow = buildAptRowHtml('ff-apt-roof-row', '', '', 'ff-apt-roof', topWidth * 0.6,
+      '<span class="ff-apt-antenna"><span class="ff-apt-beacon"></span></span>', '');
+    var accentRow = buildAptRowHtml('ff-apt-accent-row', '', '', 'ff-apt-accent', topWidth, '', '');
 
     var floors = '';
     for (var i = APT_BIN_COUNT - 1; i >= 0; i--) {
@@ -2553,18 +2564,16 @@
       for (var w = 0; w < APT_WINDOWS_PER_FLOOR; w++) {
         windows += '<span class="ff-apt-window' + (w < lit ? ' lit' : '') + '"></span>';
       }
-      var wallHtml = '<span class="ff-apt-wall">' + windows + '</span>';
       var annot = (isPoc ? '<span class="ff-apt-flag">🚩평단가</span>' : '')
         + (isCurrent ? '<span class="ff-apt-hit"><span class="ff-apt-arrow">▶</span>현재가</span>' : '');
       var rowCls = 'ff-apt-floor' + (isPoc ? ' ff-apt-floor-poc' : '') + (isCurrent ? ' ff-apt-floor-current' : '');
       var title = mid.toLocaleString('ko-KR') + '원대 · 상대 물량 ' + pct + '%';
-      floors += buildAptRowHtml(rowCls, labelByIdx[i] || '', mid.toLocaleString('ko-KR'), wallHtml, annot, title);
+      floors += buildAptRowHtml(rowCls, labelByIdx[i] || '', mid.toLocaleString('ko-KR'), '', aptFloorWidthPct(i), windows, annot, title);
     }
 
-    var groundRow = buildAptRowHtml('ff-apt-ground-row', '', '',
-      '<span class="ff-apt-wall ff-apt-ground"><span class="ff-apt-door">🚪</span></span>', '');
+    var groundRow = buildAptRowHtml('ff-apt-ground-row', '', '', 'ff-apt-ground', 108, '<span class="ff-apt-door">🚪</span>', '');
 
-    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + roofRow + floors + groundRow + '</div>';
+    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + roofRow + accentRow + floors + groundRow + '</div>';
   }
 
   function buildAptBodyHtml(apt, typeKey, currentPrice) {

@@ -489,78 +489,88 @@
 }
 #foreign-flow .ff-apt-summary-item b { font-size: 14.5px; margin-left: 3px; }
 
-/* 건물 실루엣: 옥상/층/로비를 같은 좌우 칸 너비로 쌓아 가운데 "벽"이 수직으로 곧게
-   이어지게 한다(각 행은 그냥 flex row지만 시각적으로는 하나의 타워). */
+/* 건물 실루엣: 모든 행이 같은 좌우 칸 너비(라벨/가격/주석)를 공유하는 "슬롯" 구조라
+   가운데 벽만 층마다 폭이 달라져도 나머지는 수직으로 곧게 정렬된다. 벽 자체는 유리 타워
+   느낌의 중립 톤(남색 창+연회색 스팬드럴)으로 통일하고, 투자자 유형 색은 옥상 아래
+   얇은 "액센트 밴드" 한 줄로만 표현해 화려하지만 과하지 않게 만든다. */
 #foreign-flow .ff-apt-tower-wrap {
-  max-width: 300px;
-  margin: 4px auto 6px;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-  background: #fff;
+  max-width: 280px;
+  margin: 6px auto 8px;
 }
 #foreign-flow .ff-apt-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 6px;
-  padding: 0 6px;
-  height: 15px;
+  padding: 0 4px;
+  height: 13px;
 }
 #foreign-flow .ff-apt-row-label {
   flex-shrink: 0;
   width: 26px;
+  align-self: center;
   font-size: 9.5px;
   font-weight: 700;
   color: #aaa;
 }
 #foreign-flow .ff-apt-row-price {
   flex-shrink: 0;
-  width: 54px;
+  width: 52px;
+  align-self: center;
   text-align: right;
-  font-size: 9.5px;
+  font-size: 9px;
   color: #888;
   font-variant-numeric: tabular-nums;
 }
-#foreign-flow .ff-apt-wall {
+#foreign-flow .ff-apt-wall-slot {
   flex: 1;
-  align-self: stretch;
+  position: relative;
+}
+#foreign-flow .ff-apt-wall {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  background: #eceef0;
+  gap: 2px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 35%),
+    #dde2e8;
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.08);
+  border-left: 1px solid rgba(255, 255, 255, 0.5);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
 }
 #foreign-flow .ff-apt-row-annot {
   flex-shrink: 0;
   min-width: 58px;
+  align-self: center;
   font-size: 10px;
   white-space: nowrap;
 }
 #foreign-flow .ff-apt-window {
-  width: 5px;
-  height: 8px;
-  border-radius: 1px;
-  background: rgba(25, 35, 65, 0.28);
+  width: 4px;
+  height: 7px;
+  border-radius: 0.5px;
+  background: #2b3a55;
 }
 #foreign-flow .ff-apt-window.lit {
-  background: #ffd43b;
-  box-shadow: 0 0 3px rgba(255, 212, 59, 0.95);
+  background: #ffcd45;
+  box-shadow: 0 0 3px rgba(255, 205, 69, 0.95);
 }
-/* 유형별 벽 색(전체=회색/개인=금색/외국인=주황/기관=보라) - poc/current 강조보다 먼저 와야
-   강조 배경이 유형색에 덮이지 않는다(소스 순서=동일 specificity 타이브레이커). */
-#foreign-flow .ff-apt-tower-ind .ff-apt-wall { background: #fbeecb; }
-#foreign-flow .ff-apt-tower-ind .ff-apt-roof,
-#foreign-flow .ff-apt-tower-ind .ff-apt-ground { background: #f0c352; }
-#foreign-flow .ff-apt-tower-foreign .ff-apt-wall { background: #fbe0cf; }
-#foreign-flow .ff-apt-tower-foreign .ff-apt-roof,
-#foreign-flow .ff-apt-tower-foreign .ff-apt-ground { background: #f0a874; }
-#foreign-flow .ff-apt-tower-inst .ff-apt-wall { background: #e6defa; }
-#foreign-flow .ff-apt-tower-inst .ff-apt-roof,
-#foreign-flow .ff-apt-tower-inst .ff-apt-ground { background: #b9a3e8; }
 
-#foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: #f6ead0; box-shadow: inset 0 0 0 1px rgba(232, 150, 12, 0.5); }
+/* 옥상 액센트 밴드 - 탭(전체/개인/외국인/기관)마다 색이 바뀌는 유일한 구간 */
+#foreign-flow .ff-apt-accent-row { height: 4px; }
+#foreign-flow .ff-apt-accent { background: #9aa1ab; }
+#foreign-flow .ff-apt-tower-ind .ff-apt-accent { background: #f0b429; }
+#foreign-flow .ff-apt-tower-foreign .ff-apt-accent { background: #e8590c; }
+#foreign-flow .ff-apt-tower-inst .ff-apt-accent { background: #6741d9; }
+
+/* poc/current 강조는 유형색보다 나중에 와서 항상 위에 보인다 */
+#foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: #f6ead0; box-shadow: inset 0 0 0 1px rgba(232, 150, 12, 0.55); }
 #foreign-flow .ff-apt-flag { color: #b8860b; font-weight: 700; }
-#foreign-flow .ff-apt-floor-current .ff-apt-wall { background: #fbdcd9; box-shadow: inset 0 0 0 1px rgba(210, 79, 69, 0.6); }
+#foreign-flow .ff-apt-floor-current .ff-apt-wall { background: #fbdcd9; box-shadow: inset 0 0 0 1px rgba(210, 79, 69, 0.65); }
 #foreign-flow .ff-apt-hit { display: inline-flex; align-items: center; gap: 2px; color: #d24f45; font-weight: 800; }
 #foreign-flow .ff-apt-arrow {
   display: inline-block;
@@ -571,14 +581,19 @@
   50% { transform: translateX(3px); }
 }
 
-/* 옥상: 안테나 + 깜빡이는 경광등 */
-#foreign-flow .ff-apt-roof-row { height: 14px; }
-#foreign-flow .ff-apt-roof { border-radius: 10px 10px 0 0; position: relative; background: #cfd2d6; }
+/* 옥상: 둥근 전망대 고리 + 안테나 + 깜빡이는 경광등 */
+#foreign-flow .ff-apt-roof-row { height: 12px; }
+#foreign-flow .ff-apt-roof {
+  border-radius: 999px;
+  background: #c7ccd4;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
 #foreign-flow .ff-apt-antenna {
   position: relative;
   width: 2px;
-  height: 10px;
-  background: #888;
+  height: 13px;
+  background: #8a8f99;
+  transform: translateY(-9px);
 }
 #foreign-flow .ff-apt-beacon {
   position: absolute;
@@ -597,12 +612,13 @@
   50% { opacity: 0.25; }
 }
 
-/* 로비: 문 아이콘 */
-#foreign-flow .ff-apt-ground-row { height: 20px; }
+/* 로비: 살짝 넓어지는 포디움 + 현관 */
+#foreign-flow .ff-apt-ground-row { height: 18px; }
 #foreign-flow .ff-apt-ground {
-  border-radius: 0 0 10px 10px;
-  background: #d8dade;
-  font-size: 11px;
+  border-radius: 4px;
+  background: #c3c9d1;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5);
+  font-size: 10px;
   line-height: 1;
 }
 
@@ -1018,23 +1034,28 @@ html.dark #foreign-flow .ff-apt-tab[data-apt-type="ind"].active { background: #f
 html.dark #foreign-flow .ff-apt-tab[data-apt-type="foreign"].active { background: #e8590c !important; border-color: #e8590c !important; color: #fff !important; }
 html.dark #foreign-flow .ff-apt-tab[data-apt-type="inst"].active { background: #7c5cdb !important; border-color: #7c5cdb !important; color: #fff !important; }
 html.dark #foreign-flow .ff-apt-summary { color: #bbb !important; }
-html.dark #foreign-flow .ff-apt-tower-wrap { background: #1c1c1c !important; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4) !important; }
 html.dark #foreign-flow .ff-apt-row-label { color: #777 !important; }
 html.dark #foreign-flow .ff-apt-row-price { color: #999 !important; }
-html.dark #foreign-flow .ff-apt-wall { background: #2c2e31 !important; }
-html.dark #foreign-flow .ff-apt-window { background: rgba(255, 255, 255, 0.1) !important; }
-html.dark #foreign-flow .ff-apt-tower-ind .ff-apt-wall { background: #4a3f19 !important; }
-html.dark #foreign-flow .ff-apt-tower-ind .ff-apt-roof, html.dark #foreign-flow .ff-apt-tower-ind .ff-apt-ground { background: #8a6a1a !important; }
-html.dark #foreign-flow .ff-apt-tower-foreign .ff-apt-wall { background: #4a3120 !important; }
-html.dark #foreign-flow .ff-apt-tower-foreign .ff-apt-roof, html.dark #foreign-flow .ff-apt-tower-foreign .ff-apt-ground { background: #8a4f1e !important; }
-html.dark #foreign-flow .ff-apt-tower-inst .ff-apt-wall { background: #362b4a !important; }
-html.dark #foreign-flow .ff-apt-tower-inst .ff-apt-roof, html.dark #foreign-flow .ff-apt-tower-inst .ff-apt-ground { background: #5f3dc4 !important; }
+html.dark #foreign-flow .ff-apt-wall {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 35%),
+    #3a3d43 !important;
+  border-left-color: rgba(255, 255, 255, 0.12) !important;
+  border-right-color: rgba(0, 0, 0, 0.3) !important;
+}
+html.dark #foreign-flow .ff-apt-window { background: #1a2438 !important; }
+html.dark #foreign-flow .ff-apt-window.lit { background: #ffcd45 !important; box-shadow: 0 0 3px rgba(255, 205, 69, 0.9) !important; }
+html.dark #foreign-flow .ff-apt-accent { background: #7a828d !important; }
+html.dark #foreign-flow .ff-apt-tower-ind .ff-apt-accent { background: #f0b429 !important; }
+html.dark #foreign-flow .ff-apt-tower-foreign .ff-apt-accent { background: #e8590c !important; }
+html.dark #foreign-flow .ff-apt-tower-inst .ff-apt-accent { background: #8767e0 !important; }
 html.dark #foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: #4a3a1a !important; box-shadow: inset 0 0 0 1px rgba(240, 146, 74, 0.6) !important; }
 html.dark #foreign-flow .ff-apt-flag { color: #f0924a !important; }
 html.dark #foreign-flow .ff-apt-floor-current .ff-apt-wall { background: #4a2622 !important; box-shadow: inset 0 0 0 1px rgba(232, 119, 109, 0.65) !important; }
 html.dark #foreign-flow .ff-apt-hit { color: #e8776d !important; }
-html.dark #foreign-flow .ff-apt-roof { background: #444 !important; }
-html.dark #foreign-flow .ff-apt-ground { background: #333 !important; }
+html.dark #foreign-flow .ff-apt-roof { background: #55585e !important; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important; }
+html.dark #foreign-flow .ff-apt-antenna { background: #888 !important; }
+html.dark #foreign-flow .ff-apt-ground { background: #47494e !important; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08) !important; }
 html.dark #foreign-flow .ff-apt-empty { color: #999 !important; }
 html.dark #foreign-flow .ff-bar-axis { stroke: #444 !important; }
 html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }
