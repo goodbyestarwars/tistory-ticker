@@ -521,6 +521,33 @@
   border-radius: 0 0 3px 3px;
   background: repeating-linear-gradient(45deg, #9096a1, #9096a1 3px, #848a96 3px, #848a96 6px);
   box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.25);
+  border: 1px solid #1A1A1A;
+}
+
+/* 2026-07-28 사용자 요청: 지하실로 사다리 타고 내려가는 사람(장식용, 데이터와 무관) -
+   건물 왼쪽 아래에 절대좌표로 겹쳐 놓고, 사람이 사다리를 타고 로비에서 지하실로
+   내려갔다가 사라지고 다시 위에서 나타나는 루프 애니메이션만 준다. */
+#foreign-flow .ff-apt-ladder {
+  position: absolute;
+  left: 96px; /* 로비/지하실 벽 왼쪽 가장자리(약 105px)에 걸쳐 기대선 것처럼 보이는 위치 */
+  bottom: 0;
+  font-size: 13px;
+  line-height: 1;
+  pointer-events: none;
+}
+#foreign-flow .ff-apt-ladder-person {
+  position: absolute;
+  left: 2px;
+  top: -10px;
+  font-size: 9px;
+  animation: ff-apt-ladder-climb 2.6s ease-in-out infinite;
+}
+@keyframes ff-apt-ladder-climb {
+  0% { top: -10px; opacity: 1; }
+  55% { top: 3px; opacity: 1; }
+  70% { top: 3px; opacity: 0; }
+  71% { top: -10px; opacity: 0; }
+  100% { top: -10px; opacity: 1; }
 }
 #foreign-flow .ff-apt-row {
   display: flex;
@@ -560,12 +587,9 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 35%),
-    #dde2e8;
-  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.08);
-  border-left: 1px solid rgba(255, 255, 255, 0.5);
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  /* 2026-07-28 사용자 요청: 회색 유리타워 톤 대신 크림색 + 진한 외곽선의 플랫한 스타일로 변경 */
+  background: #F5EFE0;
+  border: 1px solid #1A1A1A;
 }
 #foreign-flow .ff-apt-row-annot {
   flex-shrink: 0;
@@ -578,11 +602,11 @@
   width: 4px;
   height: 7px;
   border-radius: 0.5px;
-  background: #2b3a55;
+  background: #141414;
 }
 #foreign-flow .ff-apt-window.lit {
-  background: #ffcd45;
-  box-shadow: 0 0 3px rgba(255, 205, 69, 0.95);
+  background: #2BEE34;
+  box-shadow: 0 0 3px rgba(43, 238, 52, 0.95);
 }
 
 /* 옥상 액센트 밴드 - 탭(전체/개인/외국인/기관)마다 색이 바뀌는 유일한 구간 */
@@ -610,8 +634,8 @@
 #foreign-flow .ff-apt-roof-row { height: 12px; }
 #foreign-flow .ff-apt-roof {
   border-radius: 999px;
-  background: #c7ccd4;
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  background: #F5EFE0;
+  border: 1px solid #1A1A1A;
 }
 #foreign-flow .ff-apt-antenna {
   position: relative;
@@ -641,8 +665,8 @@
 #foreign-flow .ff-apt-ground-row { height: 18px; }
 #foreign-flow .ff-apt-ground {
   border-radius: 4px;
-  background: #c3c9d1;
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5);
+  background: #F5EFE0;
+  border: 1px solid #1A1A1A;
   font-size: 10px;
   line-height: 1;
 }
@@ -1062,14 +1086,11 @@ html.dark #foreign-flow .ff-apt-summary { color: #bbb !important; }
 html.dark #foreign-flow .ff-apt-row-label { color: #777 !important; }
 html.dark #foreign-flow .ff-apt-row-price { color: #999 !important; }
 html.dark #foreign-flow .ff-apt-wall {
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 35%),
-    #3a3d43 !important;
-  border-left-color: rgba(255, 255, 255, 0.12) !important;
-  border-right-color: rgba(0, 0, 0, 0.3) !important;
+  background: #F5EFE0 !important;
+  border: 1px solid #1A1A1A !important;
 }
-html.dark #foreign-flow .ff-apt-window { background: #1a2438 !important; }
-html.dark #foreign-flow .ff-apt-window.lit { background: #ffcd45 !important; box-shadow: 0 0 3px rgba(255, 205, 69, 0.9) !important; }
+html.dark #foreign-flow .ff-apt-window { background: #141414 !important; }
+html.dark #foreign-flow .ff-apt-window.lit { background: #2BEE34 !important; box-shadow: 0 0 3px rgba(43, 238, 52, 0.9) !important; }
 html.dark #foreign-flow .ff-apt-accent { background: #7a828d !important; }
 html.dark #foreign-flow .ff-apt-tower-ind .ff-apt-accent { background: #f0b429 !important; }
 html.dark #foreign-flow .ff-apt-tower-foreign .ff-apt-accent { background: #e8590c !important; }
@@ -1078,10 +1099,10 @@ html.dark #foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: #4a3a1a !im
 html.dark #foreign-flow .ff-apt-flag { color: #f0924a !important; }
 html.dark #foreign-flow .ff-apt-floor-current .ff-apt-wall { background: #4a2622 !important; box-shadow: inset 0 0 0 1px rgba(232, 119, 109, 0.65) !important; }
 html.dark #foreign-flow .ff-apt-hit { color: #e8776d !important; }
-html.dark #foreign-flow .ff-apt-roof { background: #55585e !important; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important; }
+html.dark #foreign-flow .ff-apt-roof { background: #F5EFE0 !important; border: 1px solid #1A1A1A !important; }
 html.dark #foreign-flow .ff-apt-antenna { background: #888 !important; }
-html.dark #foreign-flow .ff-apt-ground { background: #47494e !important; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08) !important; }
-html.dark #foreign-flow .ff-apt-basement { background: repeating-linear-gradient(45deg, #2a2c31, #2a2c31 3px, #202124 3px, #202124 6px) !important; }
+html.dark #foreign-flow .ff-apt-ground { background: #F5EFE0 !important; border: 1px solid #1A1A1A !important; }
+html.dark #foreign-flow .ff-apt-basement { background: repeating-linear-gradient(45deg, #2a2c31, #2a2c31 3px, #202124 3px, #202124 6px) !important; border: 1px solid #1A1A1A !important; }
 html.dark #foreign-flow .ff-apt-empty { color: #999 !important; }
 html.dark #foreign-flow .ff-bar-axis { stroke: #444 !important; }
 html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }

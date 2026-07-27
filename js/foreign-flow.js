@@ -2657,8 +2657,11 @@
     // 2026-07-28 사용자 요청: 현관(문) 밑에 지하실 한 층 추가 - 데이터가 없는 장식용
     // 층이라 물량/가격 표시 없이 어둡게 눌린 슬래브 느낌만 낸다.
     var basementRow = buildAptRowHtml('ff-apt-basement-row', '', '', 'ff-apt-basement', 96, '', '', '지하실');
+    // 2026-07-28 사용자 요청: 지하실로 사다리 타고 내려가는 사람 추가(장식용, 헬기와 동일하게
+    // 데이터와 무관 - .ff-apt-tower-wrap 기준 절대좌표로 로비/지하실 옆에 겹쳐 놓는다).
+    var ladderHtml = '<span class="ff-apt-ladder">🪜<span class="ff-apt-ladder-person">🧍</span></span>';
 
-    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + heliHtml + roofRow + accentRow + floors + groundRow + basementRow + '</div>';
+    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + heliHtml + roofRow + accentRow + floors + groundRow + basementRow + ladderHtml + '</div>';
   }
 
   function buildAptBodyHtml(apt, typeKey, currentPrice) {
