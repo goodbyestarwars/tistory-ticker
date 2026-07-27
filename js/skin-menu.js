@@ -57,13 +57,18 @@
       icon: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>'
     },
     {
-      // 실제 페이지 URL 확인됨(2026-07-27) - js/order-book.js + css/order-book.css +
-      // <div id="order-book"> 임베드. 아이콘은 매도/매수 두 블록으로 쌓인 호가창 구조를
-      // 단순화해서 표현(위/아래 사각형 두 개).
-      href: '/page/order-book',
-      label: '호가창',
+      // 2026-07-27: "9Pay 증권" 개편 작업지시서 #6 - "호가창" 메뉴 자리를 "증시검색"으로
+      // 대체(호가창 기능은 js/stock-search.js 안으로 병합됨, js/order-book.js는 그 안에서
+      // 재사용). TODO: /page/stock-search는 실제 페이지 생성 전 placeholder URL -
+      // 실제로 티스토리에 새 페이지(js/stock-search.js + css/stock-search.css +
+      // <div id="stock-search"> 임베드, krx_map.js/sectors-v3.js/order-book.js를 그
+      // 전에 로드)를 만든 뒤 실제 URL로 교체할 것(js/kospi-futures.js 메뉴 항목이 처음
+      // 추가될 때와 동일한 패턴). 기존 "호가창" 단독 페이지(/page/order-book)는 코드는
+      // 그대로 남아있으나 이 메뉴에서는 빠짐.
+      href: '/page/stock-search',
+      label: '증시검색',
       bold: true,
-      icon: '<rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/>'
+      icon: '<circle cx="10" cy="10" r="6"/><line x1="20" y1="20" x2="14.5" y2="14.5"/>'
     },
     {
       href: '/page/pattern-scan',

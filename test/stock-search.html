@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>증시검색 로컬 테스트</title>
+<link rel="stylesheet" href="../css/order-book.css" />
+<link rel="stylesheet" href="../css/stock-search.css" />
+<style>
+  body { font-family: sans-serif; max-width: 1100px; margin: 30px auto; padding: 0 16px; }
+  #stock-search .ss-panel-left { max-width: 420px; }
+</style>
+</head>
+<body>
+<h1>증시검색 로컬 테스트</h1>
+<p style="font-size:13px;color:#888;">기본은 mock 데이터. 실제 GAS/VM 호출로 테스트하려면 <code>?real=1</code>을 붙이세요.</p>
+<div id="stock-search"></div>
+
+<script src="../data/krx_map.js"></script>
+<script src="../data/sectors-v3.js"></script>
+<script>
+  if (location.search.indexOf('real=1') === -1) {
+    // 삼성전자 기준 120거래일 mock 일봉(약한 상승 랜덤워크) - 주봉/월봉 집계와 거래량
+    // 히스토그램까지 로컬에서 확인하기 위한 용도.
+    function buildMockDaily() {
+      var out = [];
+      var price = 70000;
+      var d = new Date('2026-02-01T00:00:00Z');
+      for (var i = 0; i < 120; i++) {
+        while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);
+        var open = price;
+        var drift = (Math.random() - 0.48) * 1200;
+        var close = Math.max(1000, open + drift);
+        var high = Math.max(open, close) + Math.random() * 400;
+        var low = Math.min(open, close) - Math.random() * 400;
+        var volume = Math.round(5000000 + Math.random() * 4000000);
+        out.push({
+          date: d.toISOString().slice(0, 10),
+          open: Math.round(open), high: Math.round(high), low: Math.round(low), close: Math.round(close),
+          volume: volume
+        });
+        price = close;
+        d.setUTCDate(d.getUTCDate() + 1);
+      }
+      return out;
+    }
+    var MOCK_DAILY = buildMockDaily();
+
+    var originalFetch = window.fetch;
+    window.fetch = function (url) {
+      var u = String(url);
+      if (u.indexOf('action=flowChart') > -1) {
+        return Promise.resolve({ ok: true, json: function () {
+          return Promise.resolve({ code: '005930', daily: MOCK_DAILY, ma: {}, levels: {} });
+        } });
+      }
+      if (u.indexOf('/foreign-flow/') > -1) {
+        return Promise.resolve({ ok: true, json: function () {
+          return Promise.resolve({ data: {
+            market_cap_eok: 4123456,
+            rolling: { '5d': { foreign: 128000, inst: -34000 } }
+          } });
+        } });
+      }
+      if (u.indexOf('/order-book/') > -1) {
+        var asks = [], bids = [];
+        var base = 71800;
+        for (var i = 10; i >= 1; i--) asks.push({ price: base + i * 100, qty: Math.round(500 + Math.random() * 9000) });
+        for (var j = 1; j <= 10; j++) bids.push({ price: base - j * 100, qty: Math.round(500 + Math.random() * 9000) });
+        return Promise.resolve({ ok: true, json: function () {
+          return Promise.resolve({ data: {
+            code: '005930', asks: asks, bids: bids,
+            totalAskQty: asks.reduce(function (s, r) { return s + r.qty; }, 0),
+            totalBidQty: bids.reduce(function (s, r) { return s + r.qty; }, 0),
+            trade: { time: '090005', price: base, qty: 120, up: true, down: false }
+          } });
+        } });
+      }
+      if (u.indexOf('codes=') > -1) {
+        var codes = decodeURIComponent(u.split('codes=')[1]).split(',');
+        return Promise.resolve({ ok: true, json: function () {
+          return Promise.resolve(codes.map(function (c) {
+            return { code: c, price: 71800, change: -600, changeRate: -0.83, volume: 8123456, time: '090000' };
+          }));
+        } });
+      }
+      return originalFetch ? originalFetch.apply(window, arguments) : Promise.reject(new Error('no fetch'));
+    };
+  }
+</script>
+<script src="../js/order-book.js"></script>
+<script src="../js/stock-search.js"></script>
+</body>
+</html>

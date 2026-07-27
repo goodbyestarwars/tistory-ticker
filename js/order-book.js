@@ -64,22 +64,29 @@
     return '<img class="ob-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
   }
 
-  function init() {
-    var container = document.querySelector(CONTAINER_SELECTOR);
+  // selector/opts 인자는 2026-07-27 "증시검색" 페이지(js/stock-search.js)가 이 모듈을
+  // 그대로 재사용하려고 추가함 - 기본값(#order-book, 검색창 표시)은 기존 단독 페이지
+  // (/page/order-book)와 100% 하위호환. 두 페이지가 동시에 로드될 일은 없어서(티스토리
+  // 페이지 1개당 위젯 1개) 모듈 전역 state를 그대로 공유해도 안전하다.
+  // opts.hideSearch: true면 자체 검색창(.ob-search)을 안 그림 - 증시검색은 상위 페이지의
+  // 검색 결과 클릭으로 종목이 정해지므로 이 위젯 안에 검색창이 하나 더 있으면 중복이다.
+  function init(selector, opts) {
+    var container = document.querySelector(selector || CONTAINER_SELECTOR);
     if (!container) return;
-    container.innerHTML = buildShell();
-    wireSearch(container);
+    container.innerHTML = buildShell(opts);
+    if (!opts || !opts.hideSearch) wireSearch(container);
   }
 
-  function buildShell() {
-    return ''
+  function buildShell(opts) {
+    var searchHtml = (opts && opts.hideSearch) ? '' : ''
       + '<div class="ob-search">'
       + '<div class="ob-input-wrap">'
       + '<input type="text" id="obInput" class="ob-input" placeholder="종목명을 입력하세요 (예: 삼성전자)" autocomplete="off" />'
       + '<div id="obSuggest" class="ob-suggest"></div>'
       + '</div>'
       + '<button type="button" id="obGoBtn" class="ob-go-btn">조회</button>'
-      + '</div>'
+      + '</div>';
+    return searchHtml
       + '<div id="obHud" class="ob-hud">'
       + '<div class="ob-hud-row"><span class="ob-hud-label ob-ask-text">저항(매도벽)</span><div class="ob-hud-bar"><span id="obResistBar" class="ob-hud-fill ob-hud-fill-ask"></span></div><span id="obResistVal" class="ob-hud-val">-</span></div>'
       + '<div class="ob-hud-row"><span class="ob-hud-label ob-bid-text">지지(매수벽)</span><div class="ob-hud-bar"><span id="obSupportBar" class="ob-hud-fill ob-hud-fill-bid"></span></div><span id="obSupportVal" class="ob-hud-val">-</span></div>'
@@ -550,12 +557,15 @@
   }
   function escapeAttr(s) { return escapeHtml(s); }
 
-  var OrderBook = { init: init, fetchOrderBook: fetchOrderBook, fetchQuote: fetchQuote };
+  var OrderBook = { init: init, fetchOrderBook: fetchOrderBook, fetchQuote: fetchQuote, select: selectStock };
   global.OrderBook = OrderBook;
 
+  // init(selector)에 selector 인자가 추가된 뒤로 addEventListener가 콜백에 넘기는
+  // Event 객체를 selector로 오인하는 버그가 생겨(실측 발견) 인자 없는 래퍼로 감쌌다.
+  function autoInit() { init(); }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', autoInit);
   } else {
-    init();
+    autoInit();
   }
 })(window);
