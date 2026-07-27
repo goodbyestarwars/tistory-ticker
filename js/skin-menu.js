@@ -160,23 +160,32 @@
   }
 
   function render() {
+    // 2026-07-28: 종목검색 입력창을 사이드바(현재는 상단 메뉴바) 최상단이 아니라 navbar
+    // 안(#navSearchMount, skin.html) 자체에 심는다 - 사용자 요청으로 navbar의 기존
+    // 티스토리 블로그글 검색을 아예 없애고 이 자리를 대신 채움. 메뉴 목록(#nav-menu-mount)
+    // 렌더링과 서로 독립적으로 처리 - 어느 한쪽 mount가 없어도(페이지 종류에 따라 있을 수
+    // 있음) 다른 쪽은 정상 동작해야 한다. #navSearchMount가 없는 옛 skin.html(캐시 등)
+    // 에서는 폴백으로 예전 자리(#nav-menu-mount 안)에 넣는다.
+    var searchMount = document.getElementById('navSearchMount');
     var mount = document.getElementById('nav-menu-mount');
-    if (!mount) return;
+    if (searchMount) searchMount.innerHTML = SEARCH_HTML;
 
-    mount.innerHTML = SEARCH_HTML + MENU_ITEMS.map(function (it) {
-      return '<a href="' + it.href + '"' + (it.onclick ? ' onclick="' + it.onclick + '"' : '')
-        + ' class="nav-item' + (isActiveItem(it) ? ' nav-item-home' : '') + '">'
-        + '<div class="nav-item-icon">'
-        + '<svg' + (it.iconClass ? ' class="' + it.iconClass + '"' : '')
-        + ' width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
-        + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'
-        + (it.iconStyle ? ' style="' + it.iconStyle + '"' : '') + '>'
-        + it.icon
-        + '</svg>'
-        + '</div>'
-        + '<span class="nav-item-label"' + (it.bold ? ' style="font-weight:700;"' : '') + '>' + it.label + '</span>'
-        + '</a>';
-    }).join('');
+    if (mount) {
+      mount.innerHTML = (searchMount ? '' : SEARCH_HTML) + MENU_ITEMS.map(function (it) {
+        return '<a href="' + it.href + '"' + (it.onclick ? ' onclick="' + it.onclick + '"' : '')
+          + ' class="nav-item' + (isActiveItem(it) ? ' nav-item-home' : '') + '">'
+          + '<div class="nav-item-icon">'
+          + '<svg' + (it.iconClass ? ' class="' + it.iconClass + '"' : '')
+          + ' width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+          + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'
+          + (it.iconStyle ? ' style="' + it.iconStyle + '"' : '') + '>'
+          + it.icon
+          + '</svg>'
+          + '</div>'
+          + '<span class="nav-item-label"' + (it.bold ? ' style="font-weight:700;"' : '') + '>' + it.label + '</span>'
+          + '</a>';
+      }).join('');
+    }
 
     if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
   }

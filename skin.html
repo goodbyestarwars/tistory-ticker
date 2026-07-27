@@ -66,14 +66,12 @@
     </div>
   </a>
 
-  <div class="nav-search">
-    <s_search>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" name="[##_search_name_##]" value="[##_search_text_##]"
-             placeholder="[##_title_##] 검색..."
-             onkeypress="if(event.keyCode==13){[##_search_onclick_submit_##]}" />
-    </s_search>
-  </div>
+  <!-- 2026-07-28: 티스토리 기본 블로그글 검색(<s_search>, [##_title_##] 치환이라 "9bolt
+       검색..."으로 보였음)을 없애고 종목검색으로 교체(사용자 요청) - git의
+       js/skin-menu.js가 이 빈 mount에 종목검색 입력창(#navSearchInput 등, 예전엔
+       왼쪽 사이드바에 있던 것과 동일 마크업/로직)을 채운다. 블로그글 자체 검색 기능은
+       이 자리에서는 사라짐(필요해지면 별도로 복원 논의). -->
+  <div class="nav-search" id="navSearchMount"></div>
 
   <div class="nav-icons">
     <button class="nav-font-btn" id="fontModeBtn" title="폰트 전환 (명조/고딕)" aria-label="폰트 전환">가</button>

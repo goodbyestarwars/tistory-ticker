@@ -109,6 +109,23 @@ a { text-decoration: none; color: inherit; }
 }
 .nav-search input::placeholder { color: #7fa08d; }
 .nav-search input:focus { border-color: #22c55e; }
+
+/* 2026-07-28: navbar 안에 종목검색 입력창(js/skin-menu.js의 SEARCH_HTML, 원래는 왼쪽
+   사이드바 카드용 "음각" 스타일)을 심으면서 어두운 navbar 배경에 맞게 재도색 - 마크업/
+   자동완성 로직(js/stock-search-panel.js)은 그대로, 색만 다크 그린 테마로 덮어쓴다.
+   .nav-search-wrap 자체 색은 style.css 아래쪽(사이드바용 기본값)에 이미 정의돼 있음. */
+.navbar .nav-search-wrap { padding: 0; border-bottom: none; margin-bottom: 0; }
+.navbar .nav-search-input-wrap {
+  background: #123020;
+  border: 1.5px solid #1f4a34;
+  border-radius: 24px;
+  padding: 9px 14px;
+  box-shadow: none;
+}
+.navbar .nav-search-input-wrap:focus-within { border-color: #22c55e; }
+.navbar .nav-search-icon { color: #7fa08d; opacity: 1; }
+.navbar .nav-search-input { color: #fff; }
+.navbar .nav-search-input::placeholder { color: #7fa08d; }
 .nav-icons {
   margin-left: auto;
   display: flex;
@@ -192,10 +209,10 @@ a { text-decoration: none; color: inherit; }
   width: 100%;
 }
 .sidebar-left .nav-menu::-webkit-scrollbar { display: none; }
-/* 상단 메뉴바 안의 종목검색 입력창은 숨김 - navbar에 이미 .nav-search가 있어서
-   같은 기능이 두 번 노출되는 걸 막는다(모바일은 navbar 검색이 숨겨지므로 아래
-   모바일 미디어쿼리에서 다시 보이게 함). */
-.sidebar-left .nav-search-wrap { display: none; }
+/* 2026-07-28: 종목검색 입력창 자체를 navbar 안(#navSearchMount, skin.html)으로 옮겨서
+   더는 이 상단 메뉴바 쪽에 렌더링되지 않음(js/skin-menu.js) - 예전엔 여기서 CSS로
+   숨기기만 했었는데 모바일 재노출을 못 해서 모바일에 검색창이 아예 없는 버그가 있었음.
+   지금은 애초에 여기 안 그려지니 그 문제 자체가 해소됨. */
 .sidebar-left .nav-item {
   flex-direction: column;
   justify-content: center;
@@ -1991,12 +2008,18 @@ body.iframe-mode .site-footer { display: none !important; }
   /* ── 내비게이션 바 ── */
   .navbar { padding: 0 12px; gap: 10px; }
   .nav-logo-sub { display: none; }
-  .nav-search { display: none; }
+  /* 2026-07-28: 예전엔 여기서 .nav-search를 통째로 숨기고 돋보기 아이콘(.nav-search-btn)이
+     여는 전체화면 오버레이(티스토리 블로그글 검색, /search/{q})로 대신했는데, navbar
+     검색창이 종목검색으로 바뀐 지금은 그 오버레이가 더는 맞는 기능이 아니다. 마침 아래
+     햄버거 버튼들이 없어져 공간이 남아서 종목검색창을 모바일에서도 그대로 노출한다
+     (사이드바 쪽 종목검색은 navbar로 이전되며 사라졌으므로, 여기마저 숨기면 모바일에서
+     종목검색을 아예 할 수 없게 됨). */
+  .nav-search { flex: 1; max-width: none; margin-left: 8px; }
   /* 2026-07-27: 상단 메뉴바가 항상 노출되는 가로 스크롤 형태로 바뀌면서 모바일
      드로어 자체가 없어져 햄버거 버튼도 더는 쓸 일이 없다(9Pay 증권 작업지시서 #12). */
   .nav-hamburger { display: none !important; }
   .nav-sidebar-toggle-btn { display: none !important; }
-  .nav-search-btn { display: flex; }
+  .nav-search-btn { display: none; } /* 이제 옆에 실제 종목검색창이 항상 보이므로 중복 */
   /* 아이콘 6개(다크토글/방명록/검색/글쓰기/관리자/로그아웃)가 한 줄에 다 들어가야 해서
      기본 36px 크기로는 좁은 화면에서 로그아웃 아이콘이 뷰포트 밖으로 밀려 잘림 -> 축소 */
   .nav-icon-btn { width: 32px; height: 32px; }

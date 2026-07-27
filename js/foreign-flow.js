@@ -2626,6 +2626,9 @@
     APT_LABEL_BANDS.forEach(function (b) { labelByIdx[b.idx] = b.label; });
 
     var topWidth = aptFloorWidthPct(APT_BIN_COUNT - 1);
+    // 2026-07-28 사용자 요청: 옥상 위 45도 방향에 헬기 한 대(장식용, 데이터와 무관 -
+    // .ff-apt-tower-wrap이 position:relative라 절대좌표로 건물 위 우측에 띄운다).
+    var heliHtml = '<span class="ff-apt-heli">🚁</span>';
     var roofRow = buildAptRowHtml('ff-apt-roof-row', '', '', 'ff-apt-roof', topWidth * 0.6,
       '<span class="ff-apt-antenna"><span class="ff-apt-beacon"></span></span>', '');
     var accentRow = buildAptRowHtml('ff-apt-accent-row', '', '', 'ff-apt-accent', topWidth, '', '');
@@ -2651,8 +2654,11 @@
     }
 
     var groundRow = buildAptRowHtml('ff-apt-ground-row', '', '', 'ff-apt-ground', 108, '<span class="ff-apt-door">🚪</span>', '');
+    // 2026-07-28 사용자 요청: 현관(문) 밑에 지하실 한 층 추가 - 데이터가 없는 장식용
+    // 층이라 물량/가격 표시 없이 어둡게 눌린 슬래브 느낌만 낸다.
+    var basementRow = buildAptRowHtml('ff-apt-basement-row', '', '', 'ff-apt-basement', 96, '', '', '지하실');
 
-    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + roofRow + accentRow + floors + groundRow + '</div>';
+    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + heliHtml + roofRow + accentRow + floors + groundRow + basementRow + '</div>';
   }
 
   function buildAptBodyHtml(apt, typeKey, currentPrice) {
