@@ -50,6 +50,15 @@
       icon: '<path d="M7 17V7"/><path d="M4 10l3-3 3 3"/><path d="M17 7v10"/><path d="M14 14l3 3 3-3"/>'
     },
     {
+      // 실제 페이지 URL 확인됨(2026-07-27) - js/order-book.js + css/order-book.css +
+      // <div id="order-book"> 임베드. 아이콘은 매도/매수 두 블록으로 쌓인 호가창 구조를
+      // 단순화해서 표현(위/아래 사각형 두 개).
+      href: '/page/order-book',
+      label: '호가창',
+      bold: true,
+      icon: '<rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/>'
+    },
+    {
       href: '/page/pattern-scan',
       label: '차트패턴 스캐너',
       bold: true,
