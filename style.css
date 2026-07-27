@@ -244,7 +244,9 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
   background: transparent;
   border-bottom-color: #082415;
 }
-.sidebar-left .nav-item-home .nav-item-label { color: #082415; font-weight: 700; }
+/* 2026-07-28: 메뉴 전체 bold체 제거 요청으로 활성 탭(현재 페이지) 표시도 굵기 대신
+   색(아래)과 위 .nav-item-home의 border-bottom-color만으로 구분하도록 변경. */
+.sidebar-left .nav-item-home .nav-item-label { color: #082415; }
 
 /* Card base */
 .card {
@@ -279,7 +281,7 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
 /* 2026-07-17: 아이콘 원형 배경(회색/연보라)이 흰 페이지 배경과 도드라져 보여서
    흰색으로 통일(사용자 요청 - "토스처럼", 배경 대신 텍스트 색으로만 강조). */
 .nav-item-home { background: #fff; }
-.nav-item-home .nav-item-label { color: #4338ca; font-weight: 700; }
+.nav-item-home .nav-item-label { color: #4338ca; }
 .nav-item-home .nav-item-icon { background: #fff; }
 .nav-item-icon {
   width: 32px; height: 32px;
