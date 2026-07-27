@@ -49,20 +49,22 @@
   <button class="nav-hamburger" id="mobileMenuBtn" aria-label="메뉴 열기">
     <span></span><span></span><span></span>
   </button>
-  <!-- 데스크톱 사이드바 토글(2026-07-21 사이드바 리디자인 #3): 클릭 시 좌측 사이드바
-       완전 숨김↔복원. 모바일 드로어(#mobileMenuBtn)와 별개 기능, CSS로 노출 폭을 분리 -->
-  <button class="nav-hamburger nav-sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="사이드바 접기/펴기" title="사이드바 접기/펴기">
-    <span></span><span></span><span></span>
-  </button>
+  <!-- 2026-07-28: 데스크톱 사이드바(현재는 상단 메뉴바) 접기/펴기 버튼(#sidebarToggleBtn)
+       사용자 요청으로 삭제("햄버거 아이콘 삭제") - navbar가 어두운 배경일 때만 눈에
+       띄던 UI였고, 밝은 배경으로 바뀌며 시각적으로도 안 맞아 제거함. 메뉴바를 접는
+       기능 자체가 없어짐(html.sidebar-collapsed 토글할 방법이 사라짐) - 되살리고
+       싶으면 이 커밋을 참고해서 버튼만 복구하면 됨. -->
   <a href="[##_blog_link_##]" class="nav-logo">
     <div class="nav-logo-icon nav-logo-emblem">
       <img class="nav-bolt" src="https://goodbyestarwars.github.io/tistory-ticker/img/icon-9bolt-transparent.svg"
         width="28" height="28" alt="9bolt" />
     </div>
     <!-- 2026-07-27: "9Pay 증권" 개편 - 아이콘만 있던 로고에 텍스트 추가(스크린샷 참고 요청).
-         .nav-logo-name/.nav-logo-sub은 style.css에 이미 정의돼 있던 클래스(예전엔 미사용) -->
+         .nav-logo-name/.nav-logo-sub은 style.css에 이미 정의돼 있던 클래스(예전엔 미사용).
+         2026-07-28: "9Pay 증권" -> "9Pay"로 축약(사용자 요청) - 색은 navbar 배경이
+         밝게 바뀌며 검은색으로(style.css .nav-logo-name). -->
     <div class="nav-logo-text">
-      <span class="nav-logo-name">9Pay 증권</span>
+      <span class="nav-logo-name">9Pay</span>
     </div>
   </a>
 

@@ -44,17 +44,24 @@ button, input, textarea { font-family: inherit; }
 a { text-decoration: none; color: inherit; }
 
 /* ============ NAVBAR ============ */
+/* 2026-07-28: 라이트모드 기본 배경을 진한 초록(#082415)에서 사이트 바탕색과 같은
+   rgb(253,253,247)로 변경(사용자 요청) - 다크모드는 원래도 이 진초록으로 별도
+   지정돼 있었으므로(아래 html.dark .navbar) 그대로 둔다("다크모드=진초록 navbar,
+   라이트모드=옅은 배경"으로 자연스럽게 갈림). 배경이 밝아지면서 어두운 배경을
+   전제로 한 로고 텍스트/아이콘/검색창 색도 전부 같이 뒤집어야 해서, 아래 각 요소에
+   라이트/다크 색을 나눠 정의한다(라이트=기본값, 다크=html.dark 오버라이드). */
 .navbar {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 300;
   height: 56px;
-  background: #082415;
+  background: rgb(253, 253, 247);
+  border-bottom: 1px solid #eee;
   display: flex;
   align-items: center;
   padding: 0 20px;
   gap: 16px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
 .nav-logo {
   display: flex;
@@ -72,7 +79,7 @@ a { text-decoration: none; color: inherit; }
 .nav-logo-text { line-height: 1; }
 .nav-logo-name {
   display: block;
-  color: #fff;
+  color: #000;
   font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.5px;
@@ -92,26 +99,17 @@ a { text-decoration: none; color: inherit; }
 }
 
 /* 2026-07-28: navbar 안에 종목검색 입력창(js/skin-menu.js의 SEARCH_HTML, 원래는 왼쪽
-   사이드바 카드용 "음각" 스타일)을 심으면서 어두운 navbar 배경에 맞게 재도색 - 마크업/
-   자동완성 로직(js/stock-search-panel.js)은 그대로, 색만 다크 그린 테마로 덮어쓴다.
-   .nav-search-wrap 자체 색은 style.css 아래쪽(사이드바용 기본값)에 이미 정의돼 있음.
+   사이드바 카드용 "음각" 스타일)을 심었다 - 마크업/자동완성 로직(js/stock-search-panel.js)은
+   그대로. navbar가 라이트모드 기본값에서 밝은 배경(rgb(253,253,247))으로 바뀌면서
+   .nav-search-wrap의 원래 "음각" 라이트 색(아래 사이드바용 기본값 참고)이 그대로 잘
+   맞아 라이트모드 전용 재도색은 더 필요 없음 - padding/border만 navbar 안에서 카드
+   여백 없이 딱 맞게 조정한다. 다크그린 색은 html.dark 전용(아래) 오버라이드로 이동.
    (예전 .nav-search input/.nav-search svg 규칙은 <s_search>가 있던 시절 원시 <input>에
    직접 걸려있던 것 - 지금은 그 자리를 .nav-search-wrap > .nav-search-input-wrap > input
    구조가 대신하는데, 옛 "input" 디센던트 셀렉터가 이 안쪽 input에도 그대로 걸려서 바깥
-   래퍼와 안쪽 input에 각각 둥근 다크그린 박스가 이중으로 그려지는 버그가 있었음
+   래퍼와 안쪽 input에 각각 둥근 박스가 이중으로 그려지는 버그가 있었음
    (사용자 리포트: "검색창이 이중으로 되어 있어") - 옛 규칙을 삭제해서 해결) */
 .navbar .nav-search-wrap { padding: 0; border-bottom: none; margin-bottom: 0; }
-.navbar .nav-search-input-wrap {
-  background: #123020;
-  border: 1.5px solid #1f4a34;
-  border-radius: 24px;
-  padding: 9px 14px;
-  box-shadow: none;
-}
-.navbar .nav-search-input-wrap:focus-within { border-color: #22c55e; }
-.navbar .nav-search-icon { color: #7fa08d; opacity: 1; }
-.navbar .nav-search-input { color: #fff; }
-.navbar .nav-search-input::placeholder { color: #7fa08d; }
 .nav-icons {
   margin-left: auto;
   display: flex;
@@ -122,11 +120,17 @@ a { text-decoration: none; color: inherit; }
 .nav-icon-btn {
   width: 36px; height: 36px;
   border-radius: 50%;
-  background: #123020;
+  background: #f1f5f9;
   border: none;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
 }
+/* 아이콘 svg 자체는 skin.html에 stroke="#ffffff"로 하드코딩돼 있음(마크업 수정 없이
+   CSS로 덮어씀 - SVG presentation attribute는 CSS보다 우선순위가 낮아 그냥 선택자만
+   걸어도 이긴다). 라이트모드 기본값은 어두운 회색, 다크모드는 원래 흰색으로 되돌림. */
+.nav-icon-btn svg { stroke: #555; }
+html.dark .nav-icon-btn { background: #123020; }
+html.dark .nav-icon-btn svg { stroke: #fff; }
 
 /* ============ MAIN LAYOUT ============ */
 .page-wrap {
@@ -2216,7 +2220,8 @@ html.dark .dark-toggle-knob { transform: translateX(20px); }
 /* 베이스 */
 html.dark body { background: #0e1320; color: #eef2f8; }
 html.dark ::-webkit-scrollbar-thumb { background: #334155; }
-html.dark .navbar { background: #082415; }
+html.dark .navbar { background: #082415; border-bottom: none; }
+html.dark .nav-logo-name { color: #fff; }
 
 /* 카드 계열 표면 */
 html.dark .card,
@@ -2481,9 +2486,9 @@ html.font-gothic svg text {
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  border: 1px solid #1f4a34;
+  border: 1px solid #ccc;
   background: transparent;
-  color: #8fb09e;
+  color: #888;
   font-size: 14px;
   font-weight: 700;
   font-family: 'Noto Serif KR', Georgia, serif;
@@ -2494,13 +2499,19 @@ html.font-gothic svg text {
   transition: color 0.2s, border-color 0.2s;
 }
 .nav-font-btn:hover {
-  color: #fff;
-  border-color: #fff;
+  color: #000;
+  border-color: #000;
 }
 html.font-gothic .nav-font-btn {
-  color: #fff;
-  border-color: #fff;
+  color: #000;
+  border-color: #000;
 }
+/* 2026-07-28: navbar 라이트모드 기본 배경 변경으로 위 색을 어두운 배경 전제였던 원래
+   색(옅은 초록)에서 밝은 배경용 회색/검정으로 바꿨다 - 다크모드는 navbar가 여전히
+   진초록이라 원래 색을 그대로 되돌려준다. */
+html.dark .nav-font-btn { border-color: #1f4a34; color: #8fb09e; }
+html.dark .nav-font-btn:hover { color: #fff; border-color: #fff; }
+html.dark.font-gothic .nav-font-btn { color: #fff; border-color: #fff; }
 
 /* ============ full-width 페이지(오늘의 온도 등) ============ */
 html.full-width-page .sidebar-right,
