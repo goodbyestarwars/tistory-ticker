@@ -2437,6 +2437,7 @@
     { key: 'foreign', label: '외국인' },
     { key: 'inst', label: '기관' }
   ];
+  var APT_WINDOWS_PER_FLOOR = 5; // 층마다 켜진 창문 개수로 물량 비중을 표현(재미 포인트)
 
   function computeAptData(flowDaily, chartByDate) {
     var rows = [];
@@ -2512,6 +2513,21 @@
         : '') + '</div>';
   }
 
+  // 진짜 건물처럼 보이도록: 막대 대신 층마다 "창문"을 5개 두고 그 물량 비중만큼 불을 켠다
+  // (많이 몰린 층일수록 창문이 환하게 켜진 아파트, 텅 빈 층은 깜깜함 - "몇 명이 샀는지"를
+  // 문자 그대로 셀 순 없지만 "이 층이 북적인다"는 느낌은 창문 조명으로 재미있게 표현).
+  // 옥상(안테나+경광등)과 로비(현관문)를 위아래에 붙여서 층 목록이 아니라 하나로 이어진
+  // 건물 실루엣처럼 보이게 한다 - 모든 행이 같은 좌우 칸 너비를 써서 가운데 벽 부분이
+  // 수직으로 곧게 이어진다.
+  function buildAptRowHtml(cls, label, price, wallHtml, annotHtml, title) {
+    return '<div class="ff-apt-row' + (cls ? ' ' + cls : '') + '"' + (title ? ' title="' + escapeHtml(title) + '"' : '') + '>'
+      + '<span class="ff-apt-row-label">' + (label || '') + '</span>'
+      + '<span class="ff-apt-row-price">' + (price || '') + '</span>'
+      + wallHtml
+      + '<span class="ff-apt-row-annot">' + (annotHtml || '') + '</span>'
+      + '</div>';
+  }
+
   function buildAptBuildingHtml(apt, typeKey, currentPrice) {
     var profile = apt[typeKey];
     if (!profile || profile.maxQty <= 0) {
@@ -2521,22 +2537,34 @@
     var labelByIdx = {};
     APT_LABEL_BANDS.forEach(function (b) { labelByIdx[b.idx] = b.label; });
 
-    var rows = '';
+    var roofRow = buildAptRowHtml('ff-apt-roof-row', '', '',
+      '<span class="ff-apt-wall ff-apt-roof"><span class="ff-apt-antenna"><span class="ff-apt-beacon"></span></span></span>', '');
+
+    var floors = '';
     for (var i = APT_BIN_COUNT - 1; i >= 0; i--) {
       var b = profile.bins[i];
-      var pct = b.qty > 0 ? Math.max(3, Math.round(b.qty / profile.maxQty * 100)) : 0;
+      var pct = b.qty > 0 ? Math.round(b.qty / profile.maxQty * 100) : 0;
+      var lit = b.qty > 0 ? Math.max(1, Math.round(pct / 100 * APT_WINDOWS_PER_FLOOR)) : 0;
       var isPoc = i === profile.pocIndex && b.qty > 0;
       var isCurrent = i === curIdx;
       var mid = Math.round((b.low + b.high) / 2);
-      rows += '<div class="ff-apt-floor' + (isPoc ? ' ff-apt-floor-poc' : '') + (isCurrent ? ' ff-apt-floor-current' : '') + '" data-apt-key="' + typeKey + '">'
-        + '<span class="ff-apt-floor-tag">' + (labelByIdx[i] || '') + '</span>'
-        + '<span class="ff-apt-floor-price">' + mid.toLocaleString('ko-KR') + '</span>'
-        + '<span class="ff-apt-floor-bar-wrap"><span class="ff-apt-floor-bar" style="width:' + pct + '%"></span></span>'
-        + (isPoc ? '<span class="ff-apt-poc-tag">평단가</span>' : '')
-        + (isCurrent ? '<span class="ff-apt-arrow">◀ 현재가</span>' : '')
-        + '</div>';
+
+      var windows = '';
+      for (var w = 0; w < APT_WINDOWS_PER_FLOOR; w++) {
+        windows += '<span class="ff-apt-window' + (w < lit ? ' lit' : '') + '"></span>';
+      }
+      var wallHtml = '<span class="ff-apt-wall">' + windows + '</span>';
+      var annot = (isPoc ? '<span class="ff-apt-flag">🚩평단가</span>' : '')
+        + (isCurrent ? '<span class="ff-apt-hit"><span class="ff-apt-arrow">▶</span>현재가</span>' : '');
+      var rowCls = 'ff-apt-floor' + (isPoc ? ' ff-apt-floor-poc' : '') + (isCurrent ? ' ff-apt-floor-current' : '');
+      var title = mid.toLocaleString('ko-KR') + '원대 · 상대 물량 ' + pct + '%';
+      floors += buildAptRowHtml(rowCls, labelByIdx[i] || '', mid.toLocaleString('ko-KR'), wallHtml, annot, title);
     }
-    return '<div class="ff-apt-building ff-apt-building-' + typeKey + '">' + rows + '</div>';
+
+    var groundRow = buildAptRowHtml('ff-apt-ground-row', '', '',
+      '<span class="ff-apt-wall ff-apt-ground"><span class="ff-apt-door">🚪</span></span>', '');
+
+    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + roofRow + floors + groundRow + '</div>';
   }
 
   function buildAptBodyHtml(apt, typeKey, currentPrice) {
