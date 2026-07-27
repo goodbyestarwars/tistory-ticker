@@ -199,27 +199,29 @@
 .sr-modal-list .sr-hint { font-size: 14px; color: #9ca3af; padding: 10px; }
 .sr-modal-list .sr-error { color: #c0392b; }
 
-html.dark #sidebar-rank .sr-updated { color: #888 !important; }
-html.dark #sidebar-rank .sr-name { color: #eee !important; }
-html.dark #sidebar-rank .sr-price { color: #eee !important; }
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. 등락 배지(sr-up/down/flat)는 의미가 있는 색이라 유지. */
+html.dark #sidebar-rank .sr-updated { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #sidebar-rank .sr-name { color: #F5EFE0 !important; }
+html.dark #sidebar-rank .sr-price { color: #F5EFE0 !important; }
 html.dark #sidebar-rank .sr-rate.sr-up { background: #3a2523 !important; color: #e8776d !important; }
 html.dark #sidebar-rank .sr-rate.sr-down { background: #20304a !important; color: #6ea8e8 !important; }
-html.dark #sidebar-rank .sr-rate.sr-flat { background: #333 !important; color: #bbb !important; }
-html.dark #sidebar-rank .sr-amount { color: #999 !important; }
-html.dark #sidebar-rank .sr-hint { color: #888 !important; }
-html.dark #sidebar-rank .sr-more { color: #aaa !important; border-color: #333 !important; }
-html.dark #sidebar-rank .sr-more:hover { color: #eee !important; }
+html.dark #sidebar-rank .sr-rate.sr-flat { background: rgba(245, 239, 224, 0.12) !important; color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #sidebar-rank .sr-amount { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #sidebar-rank .sr-hint { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #sidebar-rank .sr-more { color: rgba(245, 239, 224, 0.65) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #sidebar-rank .sr-more:hover { color: #F5EFE0 !important; }
 
-html.dark .sr-modal { background: #1c1c1c !important; }
-html.dark .sr-modal-header { border-color: #3a3a3a !important; color: #eee !important; }
-html.dark .sr-modal-close { color: #888 !important; }
-html.dark .sr-modal-close:hover { color: #ddd !important; }
-html.dark .sr-modal-list .sr-name { color: #eee !important; }
-html.dark .sr-modal-list .sr-price { color: #eee !important; }
-html.dark .sr-modal-list .sr-rank { color: #888 !important; }
-html.dark .sr-modal-list .sr-amount { color: #999 !important; }
-html.dark .sr-modal-list .sr-hint { color: #888 !important; }
+html.dark .sr-modal { background: #1A1A1A !important; border: 1px solid rgba(245, 239, 224, 0.14) !important; }
+html.dark .sr-modal-header { border-color: rgba(245, 239, 224, 0.14) !important; color: #F5EFE0 !important; }
+html.dark .sr-modal-close { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark .sr-modal-close:hover { color: #F5EFE0 !important; }
+html.dark .sr-modal-list .sr-name { color: #F5EFE0 !important; }
+html.dark .sr-modal-list .sr-price { color: #F5EFE0 !important; }
+html.dark .sr-modal-list .sr-rank { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark .sr-modal-list .sr-amount { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark .sr-modal-list .sr-hint { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark .sr-modal-list .sr-rate.sr-up { background: #3a2523 !important; color: #e8776d !important; }
 html.dark .sr-modal-list .sr-rate.sr-down { background: #20304a !important; color: #6ea8e8 !important; }
-html.dark .sr-modal-list .sr-rate.sr-flat { background: #333 !important; color: #bbb !important; }
-html.dark .sr-modal-list .sr-row:hover { background: #262626 !important; }
+html.dark .sr-modal-list .sr-rate.sr-flat { background: rgba(245, 239, 224, 0.12) !important; color: rgba(245, 239, 224, 0.7) !important; }
+html.dark .sr-modal-list .sr-row:hover { background: rgba(245, 239, 224, 0.08) !important; }

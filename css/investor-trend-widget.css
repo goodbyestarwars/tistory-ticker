@@ -214,29 +214,32 @@
   #investor-trend-widget .itw-td-date { width: 56px; font-size: 10.5px; }
 }
 
-/* ---- 다크모드 ---- */
-html.dark #investor-trend-widget .itw-title { color: #eee !important; }
+/* ---- 다크모드 ----
+   2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. 순매수/순매도 막대·수치(itw-bar-pos/neg, itw-val-pos/neg)는
+   의미가 있는 색이라 그대로 유지. */
+html.dark #investor-trend-widget .itw-title { color: #F5EFE0 !important; }
 html.dark #investor-trend-widget .itw-asof,
 html.dark #investor-trend-widget .itw-subtext,
-html.dark #investor-trend-widget .itw-error { color: #888 !important; }
+html.dark #investor-trend-widget .itw-error { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #investor-trend-widget .itw-tab,
-html.dark #investor-trend-widget .itw-market-tab { background: #2a2a2a !important; color: #aaa !important; }
-html.dark #investor-trend-widget .itw-market-tab { border-color: #3a3a3a !important; }
+html.dark #investor-trend-widget .itw-market-tab { background: rgba(245, 239, 224, 0.08) !important; color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #investor-trend-widget .itw-market-tab { border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #investor-trend-widget .itw-tab:hover,
-html.dark #investor-trend-widget .itw-market-tab:hover { color: #eee !important; }
+html.dark #investor-trend-widget .itw-market-tab:hover { color: #F5EFE0 !important; }
 html.dark #investor-trend-widget .itw-tab.active,
-html.dark #investor-trend-widget .itw-market-tab.active { background: #3d4149 !important; color: #fff !important; }
+html.dark #investor-trend-widget .itw-market-tab.active { background: rgba(245, 239, 224, 0.22) !important; color: #F5EFE0 !important; }
 html.dark #investor-trend-widget .itw-skeleton {
-  background: linear-gradient(90deg, #262626 25%, #303030 37%, #262626 63%) !important;
+  background: linear-gradient(90deg, #1A1A1A 25%, rgba(245, 239, 224, 0.08) 37%, #1A1A1A 63%) !important;
   background-size: 400% 100% !important;
 }
-html.dark #investor-trend-widget .itw-table th { color: #888 !important; border-color: #333 !important; }
-html.dark #investor-trend-widget .itw-td-date { color: #ccc !important; }
-html.dark #investor-trend-widget .itw-row td { border-color: #2c2c2c !important; }
-html.dark #investor-trend-widget .itw-tcell-mid { background: #3a3a3a !important; }
+html.dark #investor-trend-widget .itw-table th { color: rgba(245, 239, 224, 0.55) !important; border-color: rgba(245, 239, 224, 0.18) !important; }
+html.dark #investor-trend-widget .itw-td-date { color: rgba(245, 239, 224, 0.8) !important; }
+html.dark #investor-trend-widget .itw-row td { border-color: rgba(245, 239, 224, 0.1) !important; }
+html.dark #investor-trend-widget .itw-tcell-mid { background: rgba(245, 239, 224, 0.16) !important; }
 html.dark #investor-trend-widget .itw-bar-pos { background: rgba(232, 119, 109, .18) !important; }
 html.dark #investor-trend-widget .itw-bar-neg { background: rgba(110, 168, 232, .18) !important; }
 html.dark #investor-trend-widget .itw-val-pos { color: #e8776d !important; }
 html.dark #investor-trend-widget .itw-val-neg { color: #6ea8e8 !important; }
-html.dark #investor-trend-widget .itw-row-sum td { background: #262626 !important; border-color: #444 !important; }
-html.dark #investor-trend-widget .itw-row-sum .itw-td-date { color: #eee !important; }
+html.dark #investor-trend-widget .itw-row-sum td { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.25) !important; }
+html.dark #investor-trend-widget .itw-row-sum .itw-td-date { color: #F5EFE0 !important; }

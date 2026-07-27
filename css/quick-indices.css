@@ -433,7 +433,7 @@
   }
   html.dark .qi-grid {
     background-image: repeating-linear-gradient(to right,
-      transparent 0, transparent 153.5px, #2a3550 153.5px, #2a3550 154.5px, transparent 154.5px, transparent 158px) !important;
+      transparent 0, transparent 153.5px, rgba(245, 239, 224, 0.14) 153.5px, rgba(245, 239, 224, 0.14) 154.5px, transparent 154.5px, transparent 158px) !important;
   }
   .qi-news { display: none; } /* 좁은 화면에서는 카드만으로도 이미 빠듯해서 속보 패널은 숨김 */
 }
@@ -441,36 +441,38 @@
 body.iframe-mode .qi-wrap { display: none !important; }
 
 /* ---- 다크모드 ----
-   2026-07-17(5차): 기존엔 무채색 회색(#1a1a1a/#262626 등)을 썼는데, 사이트 다크모드는
-   전부 남색 톤(body #0e1320, 카드 #171e2f - style.css html.dark .card 참고)이라 이 위젯만
-   붕 떠 보였다(사용자 피드백: "다크모드도 배경색이랑 안 맞다") - 같은 남색 계열로 통일. */
-html.dark .qi-wrap { background: #171e2f !important; box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45) !important; }
-html.dark .qi-scroll::-webkit-scrollbar-thumb { background: #2a3550 !important; }
-html.dark .qi-controls { border-color: #2a3550 !important; }
-html.dark .qi-card-label { color: #d6dbe8 !important; } /* 13차: 라이트모드가 검정으로 진해진 만큼 다크도 밝게 */
-html.dark .qi-card-status { color: #616d8c !important; }
-html.dark .qi-card-price { color: #eef2f8 !important; }
-html.dark .qi-card-change { color: #8b96b8 !important; }
+   2026-07-17(5차): 기존엔 무채색 회색(#1a1a1a/#262626 등)을 썼는데 당시 사이트 다크모드가
+   전부 남색 톤이라 붕 떠 보여서 남색으로 맞췄었음. **2026-07-28**: 사이트 다크모드 전체가
+   #1A1A1A 배경 + #F5EFE0 글자 2색 체계로 재통일되면서(style.css 기타 규칙 참고) 이 위젯도
+   같은 팔레트로 다시 맞춘다 - 상승/하락(qi-pos/qi-neg)과 코스피/코스닥 구분 배지 색은
+   의미가 있는 색이라 그대로 유지. */
+html.dark .qi-wrap { background: #1A1A1A !important; border: 1px solid rgba(245, 239, 224, 0.12) !important; box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45) !important; }
+html.dark .qi-scroll::-webkit-scrollbar-thumb { background: rgba(245, 239, 224, 0.25) !important; }
+html.dark .qi-controls { border-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark .qi-card-label { color: #F5EFE0 !important; }
+html.dark .qi-card-status { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark .qi-card-price { color: #F5EFE0 !important; }
+html.dark .qi-card-change { color: rgba(245, 239, 224, 0.65) !important; }
 html.dark .qi-pos { color: #ff6b5b !important; }
 html.dark .qi-neg { color: #4d9fff !important; }
-html.dark .qi-zero { color: #8b96b8 !important; }
-html.dark .qi-collapse-btn { background: #1a2338 !important; border-color: #2a3550 !important; color: #8b96b8 !important; }
-html.dark .qi-collapse-btn:hover { background: #232e4a !important; }
+html.dark .qi-zero { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark .qi-collapse-btn { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
+html.dark .qi-collapse-btn:hover { background: rgba(245, 239, 224, 0.16) !important; }
 html.dark .qi-grid {
   background-image: repeating-linear-gradient(to right,
-    transparent 0, transparent 205px, #2a3550 205px, #2a3550 206px, transparent 206px, transparent 212px) !important;
+    transparent 0, transparent 205px, rgba(245, 239, 224, 0.14) 205px, rgba(245, 239, 224, 0.14) 206px, transparent 206px, transparent 212px) !important;
 }
-html.dark .qi-add-btn { border-color: #3a4870 !important; color: #8b96b8 !important; }
-html.dark .qi-add-btn:hover { background: #1a2338 !important; color: #eef2f8 !important; }
-html.dark .qi-popover { background: #171e2f !important; border-color: #2a3550 !important; }
-html.dark .qi-pop-item { color: #d6dbe8 !important; }
-html.dark .qi-pop-item:hover { background: #232e4a !important; }
+html.dark .qi-add-btn { border-color: rgba(245, 239, 224, 0.3) !important; color: rgba(245, 239, 224, 0.65) !important; }
+html.dark .qi-add-btn:hover { background: rgba(245, 239, 224, 0.08) !important; color: #F5EFE0 !important; }
+html.dark .qi-popover { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark .qi-pop-item { color: #F5EFE0 !important; }
+html.dark .qi-pop-item:hover { background: rgba(245, 239, 224, 0.1) !important; }
 
-html.dark .qi-news { border-color: #2a3550 !important; }
-html.dark .qi-news-item { color: #d6dbe8 !important; }
-html.dark .qi-news-item:hover { color: #818cf8 !important; }
-html.dark .qi-news-corp { color: #aebacf !important; }
+html.dark .qi-news { border-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark .qi-news-item { color: #F5EFE0 !important; }
+html.dark .qi-news-item:hover { color: rgba(245, 239, 224, 0.7) !important; }
+html.dark .qi-news-corp { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark .qi-news-market-kospi { background: #1c2c4d !important; }
 html.dark .qi-news-market-kosdaq { background: rgba(255,255,255,0.07) !important; }
-html.dark .qi-news-market-news { color: #8b96b8 !important; background: rgba(255,255,255,0.07) !important; }
-html.dark .qi-news-loading { color: #7c8aa5 !important; }
+html.dark .qi-news-market-news { color: rgba(245, 239, 224, 0.65) !important; background: rgba(255,255,255,0.07) !important; }
+html.dark .qi-news-loading { color: rgba(245, 239, 224, 0.5) !important; }
