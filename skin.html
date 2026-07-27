@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>[##_page_title_##]</title>
+  <script>
+    /* 다크모드/폰트/사이드바 조기 적용 (깜빡임 방지) — 토글 버튼은 navbar의
+       #darkModeBtn/#fontModeBtn/#sidebarToggleBtn(2026-07-21 사이드바 리디자인 #3) */
+    try {
+      if (localStorage.getItem('bolt-dark') === '1') document.documentElement.classList.add('dark');
+      if (localStorage.getItem('bolt-font') === 'gothic') document.documentElement.classList.add('font-gothic');
+      if (localStorage.getItem('bolt-sidebar-collapsed') === '1') document.documentElement.classList.add('sidebar-collapsed');
+    } catch (e) {}
+  </script>
+  <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/icon-9bolt-transparent.svg" />
+  <!-- github.io(CSS/JS 다수) · GAS(리본/툴팁 시세)는 첫 요청 전에 연결을 미리 열어둔다 -->
+  <link rel="preconnect" href="https://goodbyestarwars.github.io" crossorigin />
+  <link rel="preconnect" href="https://script.google.com" />
+  <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
+  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css" />
+  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
+  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/market-ribbon.css" />
+  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/sidebar-rank.css" />
+  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/investor-trend-widget.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap" rel="stylesheet" />
+  <!-- 고딕 모드용 Pretendard (동적 서브셋: 고딕 모드를 안 쓰면 폰트 파일은 다운로드 안 됨) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <script>
+    /* 오른쪽 사이드바(인기글/해시태그)는 전체글(홈, "/") 화면에서만 보이고,
+       마켓 브리핑 등 카테고리·커스텀 페이지·개별 글 등 그 외 모든 화면에서는 숨긴다.
+       (예전에는 /page/market-temp 하나만 특별 처리했으나 "전체글에서만 노출"로 일반화함) */
+    if (location.pathname !== '/' && location.pathname !== '') {
+      document.documentElement.classList.add('full-width-page');
+    }
+  </script>
+  <!-- jQuery 3.7.1은 2026-07-12 제거: 커스텀 JS는 전부 vanilla이고,
+       티스토리 자체 기능은 티스토리가 로드하는 jQuery 3.5.1을 쓴다(중복 로드였음) -->
+</head>
+<body id="[##_body_id_##]">
+<s_t3>
+
+<!-- ============ 상단 지수/환율/코인 리본 ============ -->
+<div id="market-ribbon" class="market-ribbon"></div>
+
+<!-- ============ NAVBAR ============ -->
+<nav class="navbar">
+  <!-- 모바일 햄버거 -->
+  <button class="nav-hamburger" id="mobileMenuBtn" aria-label="메뉴 열기">
+    <span></span><span></span><span></span>
+  </button>
+  <!-- 데스크톱 사이드바 토글(2026-07-21 사이드바 리디자인 #3): 클릭 시 좌측 사이드바
+       완전 숨김↔복원. 모바일 드로어(#mobileMenuBtn)와 별개 기능, CSS로 노출 폭을 분리 -->
+  <button class="nav-hamburger nav-sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="사이드바 접기/펴기" title="사이드바 접기/펴기">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="[##_blog_link_##]" class="nav-logo">
+    <div class="nav-logo-icon nav-logo-emblem">
+      <img class="nav-bolt" src="https://goodbyestarwars.github.io/tistory-ticker/img/icon-9bolt-transparent.svg"
+        width="28" height="28" alt="9bolt" />
+    </div>
+  </a>
+
+  <div class="nav-search">
+    <s_search>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" name="[##_search_name_##]" value="[##_search_text_##]"
+             placeholder="[##_title_##] 검색..."
+             onkeypress="if(event.keyCode==13){[##_search_onclick_submit_##]}" />
+    </s_search>
+  </div>
+
+  <div class="nav-icons">
+    <button class="nav-font-btn" id="fontModeBtn" title="폰트 전환 (명조/고딕)" aria-label="폰트 전환">가</button>
+    <button class="nav-dark-btn" id="darkModeBtn" title="다크모드" aria-label="다크모드 전환">
+      <span class="dark-toggle-knob"></span>
+    </button>
+    <a href="[##_guestbook_link_##]" class="nav-icon-btn">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </a>
+    <!-- 모바일 전용 검색 버튼 -->
+    <button class="nav-icon-btn nav-search-btn" id="mobileSearchBtn" aria-label="검색">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+    <a href="javascript:void(0)" class="nav-icon-btn nav-write-btn" title="글쓰기" onclick="openArticleModal('[##_blog_link_##]manage/newpost/', '새 글 쓰기', true)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    </a>
+    <a href="[##_blog_link_##]manage" class="nav-icon-btn nav-manage-btn" title="관리자">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </a>
+    <a href="javascript:void(0)" class="nav-icon-btn nav-logout-btn" title="로그아웃" onclick="location.href='https://www.tistory.com/auth/logout?redirectUrl='+encodeURIComponent(location.href)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </a>
+  </div>
+</nav>
+
+<!-- 모바일 오버레이 / 검색 오버레이 / 스크롤탑 버튼: git js/skin-shell.js가 주입 -->
+<div id="shell-mobileOverlays"></div>
+
+<!-- KRX 공시 티커: git js/skin-shell.js가 껍데기 주입, 내용은 skin-main.js가 GAS에서 받아와 채움 -->
+<div id="shell-discTicker"></div>
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/stock-search-panel.css">
+<script src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-search-panel.js"></script>
+<!-- ============ PAGE ============ -->
+<div class="page-wrap">
+  <div class="main-layout">
+
+    <!-- ====== LEFT SIDEBAR ====== -->
+    <aside class="sidebar-left">
+      <!-- 모바일 드로어 헤더: git js/skin-shell.js가 주입 -->
+      <div id="shell-drawerHeader"></div>
+
+
+<!-- 사이드바 메뉴: git의 js/skin-menu.js가 렌더링. 메뉴 수정은 그 파일에서 (스킨 편집 불필요) -->
+<div class="card nav-menu" id="nav-menu-mount"></div>
+
+
+      <div class="card cat-section">
+        <div class="section-title">카테고리</div>
+        <!-- 티스토리 카테고리 치환자 - JS 파싱용 hidden -->
+        <div id="categoryData" style="display:none;">[##_category_list_##]</div>
+        <ul class="cat-custom-list" id="catCustomList"></ul>
+      </div>
+
+      <!-- 구글 캘린더 위젯: git js/skin-shell.js가 주입 -->
+      <div id="shell-calWidget"></div>
+
+    </aside>
+
+    <!-- ====== CENTER FEED ====== -->
+    <section class="feed">
+
+      <!-- 세부 카테고리 서브 필터: git js/skin-shell.js가 주입, 내용은 skin-main.js가 동적 표시 -->
+      <div id="shell-subFilterBar"></div>
+
+      <!-- 투자자별 매매 동향 위젯(작업지시서 #4, 2026-07-20) — 예전 공지사항 고정 카드
+           (#pinnedNotice) 자리를 대체. js/investor-trend-widget.js가 홈("/")에서만 채움.
+           공지 자체는 삭제가 아니라 비노출 처리(지시서 6.비고) — /notice 글은 그대로 남아있고
+           s_notice_rep 루프(아래)도 유지, 퍼머링크 접근은 그대로 동작함 -->
+      <div id="investor-trend-widget"></div>
+
+      <!-- 공지사항 — 인덱스에서는 요약 카드, /notice/글번호 퍼머링크에서는 전체 본문 -->
+      <s_notice_rep>
+        <s_index_article_rep>
+          <article class="post-card notice-card">
+            <div class="post-header">
+              <span class="post-cat-badge cat-notice">📢 공지사항</span>
+              <span class="post-date">[##_notice_rep_simple_date_##]</span>
+            </div>
+            <a href="[##_notice_rep_link_##]">
+              <div class="post-title">[##_notice_rep_title_##]</div>
+            </a>
+            <div class="post-excerpt">[##_notice_rep_summary_##]</div>
+          </article>
+        </s_index_article_rep>
+        <s_permalink_article_rep>
+          <article class="post-single card">
+            <div class="post-single-header">
+              <span class="post-cat-badge cat-notice">📢 공지사항</span>
+              <h1 class="post-single-title">[##_notice_rep_title_##]</h1>
+              <div class="post-single-meta">
+                <span class="post-date">[##_notice_rep_date_##]</span>
+              </div>
+            </div>
+            <div class="post-single-body">[##_notice_rep_desc_##]</div>
+          </article>
+        </s_permalink_article_rep>
+      </s_notice_rep>
+
+      <!-- 글 루프 -->
+      <s_article_rep>
+
+        <!-- 인덱스: 글 목록 카드 -->
+        <s_index_article_rep>
+          <article class="post-card" data-cat="[##_article_rep_category_##]" data-url="[##_article_rep_link_##]">
+            <div class="post-header">
+              <a href="[##_article_rep_category_link_##]" class="post-cat-badge">[##_article_rep_category_##]</a>
+              <span class="post-date">[##_article_rep_simple_date_##]</span>
+            </div>
+            <a href="[##_article_rep_link_##]">
+              <div class="post-title">[##_article_rep_title_##]</div>
+            </a>
+            <div class="post-excerpt">[##_article_rep_summary_##]</div>
+            <s_tag_label>
+              <div class="post-tags">[##_tag_label_rep_##]</div>
+            </s_tag_label>
+            <div class="post-footer">
+              <div class="post-footer-left">
+                <div class="post-meta">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <s_rp_count><span>[##_article_rep_rp_cnt_##]</span></s_rp_count>
+                </div>
+              </div>
+              <div class="post-footer-right">
+                <button class="btn-share" type="button" onclick="sharePost(this)">공유</button>
+                <button class="btn-read" type="button" onclick="readPost(this)">더 보기 →</button>
+              </div>
+            </div>
+          </article>
+        </s_index_article_rep>
+
+        <!-- 퍼머링크: 본문 -->
+        <s_permalink_article_rep>
+          <article class="post-single card">
+            <div class="post-single-header">
+              <a href="[##_article_rep_category_link_##]" class="post-cat-badge">[##_article_rep_category_##]</a>
+              <h1 class="post-single-title">[##_article_rep_title_##]</h1>
+              <div class="post-single-meta">
+                <span class="post-date">[##_article_rep_date_##]</span>
+                <div class="post-meta">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <s_rp_count><span>[##_article_rep_rp_cnt_##]</span></s_rp_count>
+                </div>
+              </div>
+            </div>
+            <div class="post-single-body">
+              [##_article_rep_desc_##]
+            </div>
+            <s_tag_label>
+              <div class="post-tags post-single-tags">[##_tag_label_rep_##]</div>
+            </s_tag_label>
+            <s_article_related>
+              <div class="related-posts">
+                <div class="related-title">'[##_article_rep_category_##]' 의 다른 글</div>
+                <div class="related-list">
+                  <s_article_related_rep>
+                    <a href="[##_article_related_rep_link_##]" class="related-item">
+                      <s_article_related_rep_thumbnail>
+                        <img src="[##_article_related_rep_thumbnail_link_##]" alt="" class="related-thumb" />
+                      </s_article_related_rep_thumbnail>
+                      <span class="related-item-title">[##_article_related_rep_title_##]</span>
+                      <span class="related-item-date">[##_article_related_rep_date_##]</span>
+                    </a>
+                  </s_article_related_rep>
+                </div>
+              </div>
+            </s_article_related>
+            <!-- 댓글 — s_rp는 article 안에 위치해야 동작함 -->
+            <s_rp>
+              <div class="post-comments">
+                [##_comment_group_##]
+              </div>
+            </s_rp>
+          </article>
+        </s_permalink_article_rep>
+
+      </s_article_rep>
+
+      <!-- 방명록 -->
+      <s_guest>
+        <div class="card guest-section">
+          <div class="guest-title">💬 방명록</div>
+          [##_guestbook_group_##]
+        </div>
+      </s_guest>
+
+      <!-- 페이지네이션 -->
+      <s_paging>
+        <div class="pagination">
+          <a [##_prev_page_##] class="page-btn page-arrow">‹</a>
+          <s_paging_rep>
+            <a [##_paging_rep_link_##] class="page-btn">[##_paging_rep_link_num_##]</a>
+          </s_paging_rep>
+          <a [##_next_page_##] class="page-btn page-arrow">›</a>
+        </div>
+      </s_paging>
+
+    </section>
+
+    <!-- ====== RIGHT SIDEBAR ====== -->
+    <aside class="sidebar-right">
+
+      <!-- 2026-07-20: 인기글/해시태그(태그 없는 순수 UI 아님, 티스토리 서버 치환 태그라
+           git으로 못 옮김) -> 실시간 시장데이터(거래대금/상한가/하한가)로 교체(작업지시서).
+           js/sidebar-rank.js가 이 빈 mount를 채운다(quick-indices의 shell-* mount와 동일 패턴,
+           단 이건 페이지 태그가 아니라 순수 위젯이라 skin-shell.js를 거치지 않고 자기 스스로 마운트). -->
+      <div id="sidebar-rank"></div>
+
+    </aside>
+
+  </div>
+
+  <!-- 사이트 하단 푸터: 링크 4종(shell-footerLinks, 태그 없는 순수 UI라 git js/skin-shell.js가
+       주입) + 카피라이트(© [##_blogger_##] 티스토리 서버 치환 태그가 섞여있어 git으로 못
+       옮김, 여기 직접 유지 - 우측 사이드바 하단에 있던 걸 2026-07-22에 이 자리로 이동,
+       문의하기 옆에 오도록 배치). "(사이트 이용 방법)" 라벨과 함께 클릭하면 사이트 사용법
+       안내(legal/guide.html)로 이동 - 2026-07-23: "2017 ~" 연도 표기 삭제(요청).
+       문의하기와의 구분은 별도 텍스트 "|" 대신 .copyright의 border-left로 처리
+       (앞의 링크 구분선과 굵기·색·간격이 완전히 같아 보이도록, 실측 후 텍스트 방식 폐기). -->
+  <footer class="site-footer">
+    <div id="shell-footerLinks"></div>
+    <a class="copyright" href="https://goodbyestarwars.github.io/tistory-ticker/legal/guide.html">© [##_blogger_##] (사이트 이용 방법)</a>
+  </footer>
+
+</div>
+
+<!-- ============ JAVASCRIPT ============ -->
+<!-- 스킨 공통 스크립트: git 관리. 수정은 git push로 (스킨 편집 불필요)
+     skin-shell.js는 shell-* mount에 태그 없는 UI를 주입하므로 반드시 먼저 로드
+     (defer는 선언 순서 실행을 보장하므로 shell→menu→main, krx_map→tooltip 순서 유지됨) -->
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-shell.js"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js"></script>
+
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/market-ribbon.js"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/sidebar-rank.js"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/investor-trend-widget.js"></script>
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/quick-indices.css">
+<script src="https://goodbyestarwars.github.io/tistory-ticker/js/quick-indices.js"></script>
+</s_t3>
+</body>
+</html>
