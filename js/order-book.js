@@ -20,12 +20,20 @@
   var POLL_MS = 2000;
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
+  // 3D 산점도(가격x경과시간x잔량) - 마켓뎁스가 시간에 따라 어떻게 쌓이는지 보여주는 용도라
+  // 너무 오래된 스냅샷은 화면만 복잡해짐 - 최근 30틱(2초 간격이라 약 1분)만 유지.
+  var HISTORY_MAX = 30;
+  var PLOTLY_CDN = 'https://cdn.plot.ly/plotly-gl3d-2.35.2.min.js';
 
   var state = {
     code: null,
     name: null,
-    timer: null
+    timer: null,
+    history: [],       // [{ t: ms, asks:[{price,qty}], bids:[{price,qty}] }, ...]
+    startTime: null,
+    viewMode: 'ladder'  // 'ladder' | '3d'
   };
+  var plotlyLoadPromise = null;
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -43,6 +51,26 @@
     if (!container) return;
     container.innerHTML = buildShell();
     wireSearch(container);
+    wireViewToggle(container);
+  }
+
+  function wireViewToggle(container) {
+    container.querySelectorAll('.ob-view-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setViewMode(container, btn.getAttribute('data-view'));
+      });
+    });
+  }
+
+  function setViewMode(container, mode) {
+    if (state.viewMode === mode) return;
+    state.viewMode = mode;
+    container.querySelectorAll('.ob-view-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-view') === mode);
+    });
+    container.querySelector('#obBoard').hidden = mode !== 'ladder';
+    container.querySelector('#ob3d').hidden = mode !== '3d';
+    if (mode === '3d') render3D(container);
   }
 
   function buildShell() {
@@ -54,7 +82,12 @@
       + '</div>'
       + '<button type="button" id="obGoBtn" class="ob-go-btn">조회</button>'
       + '</div>'
-      + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>';
+      + '<div class="ob-view-toggle">'
+      + '<button type="button" class="ob-view-btn active" data-view="ladder">호가창</button>'
+      + '<button type="button" class="ob-view-btn" data-view="3d">3D 산점도</button>'
+      + '</div>'
+      + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
+      + '<div id="ob3d" class="ob-3d" hidden><div id="ob3dPlot" class="ob-3d-plot"></div><div class="ob-3d-legend">X 가격 · Y 경과(초) · Z 잔량 · <span class="ob-ask-text">파랑=매도</span> · <span class="ob-bid-text">빨강=매수</span> (최근 ' + HISTORY_MAX + '틱 누적, 드래그로 회전)</div></div>';
   }
 
   // ---- 검색/자동완성 (watchlist.js와 동일 패턴) ----
@@ -158,10 +191,14 @@
   function selectStock(container, code, name) {
     state.code = code;
     state.name = name;
+    state.history = [];
+    state.startTime = Date.now();
     if (state.timer) clearInterval(state.timer);
 
     var board = container.querySelector('#obBoard');
     board.innerHTML = '<div class="ob-hint"><div class="ob-spinner"></div>' + escapeHtml(name) + ' 호가 불러오는 중...</div>';
+    var plot3d = container.querySelector('#ob3dPlot');
+    if (plot3d) plot3d.innerHTML = '';
 
     tick(container);
     state.timer = setInterval(function () { tick(container); }, POLL_MS);
@@ -173,7 +210,12 @@
     Promise.all([OrderBook.fetchOrderBook(code), OrderBook.fetchQuote(code)])
       .then(function (results) {
         if (state.code !== code) return; // 응답 오는 사이 다른 종목을 골랐으면 무시(레이스 방지)
-        renderBoard(container, results[0], results[1]);
+        var book = results[0];
+        if (book && (book.asks.length || book.bids.length)) {
+          recordSnapshot(book);
+          if (state.viewMode === '3d') render3D(container);
+        }
+        renderBoard(container, book, results[1]);
       })
       .catch(function () {
         if (state.code !== code) return;
@@ -182,6 +224,11 @@
           board.innerHTML = '<div class="ob-hint ob-error">호가 데이터를 불러오지 못했어요. 다음 갱신에 자동으로 재시도합니다.</div>';
         }
       });
+  }
+
+  function recordSnapshot(book) {
+    state.history.push({ t: Date.now(), asks: book.asks, bids: book.bids });
+    if (state.history.length > HISTORY_MAX) state.history.shift();
   }
 
   function fetchOrderBook(code) {
@@ -278,6 +325,87 @@
       + '<span class="ob-bar-wrap"><span class="' + barCls + '" style="width:' + pct + '%"></span></span>'
       + '<span class="ob-price ' + textCls + '">' + Math.round(row.price).toLocaleString('ko-KR') + '</span>'
       + '</div>';
+  }
+
+  // ---- 3D 산점도 (가격 x 경과시간 x 잔량) ----
+  // Plotly gl3d 최소 번들만 CDN에서 1회 지연 로드(TradingView Lightweight Charts를 쓰는
+  // 다른 위젯들과 동일한 "필요할 때만" 패턴 - js/foreign-flow.js의 loadLightweightCharts 참고).
+  function loadPlotly() {
+    if (global.Plotly) return Promise.resolve(global.Plotly);
+    if (plotlyLoadPromise) return plotlyLoadPromise;
+    plotlyLoadPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = PLOTLY_CDN;
+      s.onload = function () { resolve(global.Plotly); };
+      s.onerror = function () { plotlyLoadPromise = null; reject(new Error('3D 차트 라이브러리 로드 실패')); };
+      document.head.appendChild(s);
+    });
+    return plotlyLoadPromise;
+  }
+
+  function render3D(container) {
+    var plotEl = container.querySelector('#ob3dPlot');
+    if (!plotEl) return;
+    if (!state.history.length) {
+      plotEl.innerHTML = '<div class="ob-hint">데이터를 모으는 중이에요 (2초마다 한 틱씩 쌓입니다)...</div>';
+      return;
+    }
+
+    loadPlotly().then(function (Plotly) {
+      // loadPlotly가 비동기라 그 사이 다른 종목으로 바꿨거나 뷰를 다시 전환했을 수 있음.
+      if (state.viewMode !== '3d' || !container.isConnected) return;
+      if (plotEl.querySelector('.ob-hint')) plotEl.innerHTML = '';
+
+      var traces = buildPlotlyTraces();
+      var dark = document.documentElement.classList.contains('dark');
+      var gridColor = dark ? '#3a3a3a' : '#e5e5e5';
+      var textColor = dark ? '#ccc' : '#444';
+      var layout = {
+        margin: { l: 0, r: 0, t: 10, b: 0 },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        scene: {
+          xaxis: { title: '가격', color: textColor, gridcolor: gridColor },
+          yaxis: { title: '경과(초)', color: textColor, gridcolor: gridColor },
+          zaxis: { title: '잔량', color: textColor, gridcolor: gridColor },
+          bgcolor: 'rgba(0,0,0,0)'
+        },
+        showlegend: false
+      };
+      Plotly.react(plotEl, traces, layout, { displayModeBar: false, responsive: true });
+    }).catch(function () {
+      plotEl.innerHTML = '<div class="ob-hint ob-error">3D 차트 라이브러리를 불러오지 못했어요.</div>';
+    });
+  }
+
+  function buildPlotlyTraces() {
+    var startTime = state.startTime || Date.now();
+    var askX = [], askY = [], askZ = [], askText = [];
+    var bidX = [], bidY = [], bidZ = [], bidText = [];
+
+    state.history.forEach(function (snap) {
+      var elapsed = ((snap.t - startTime) / 1000).toFixed(1);
+      snap.asks.forEach(function (r) {
+        askX.push(r.price); askY.push(Number(elapsed)); askZ.push(r.qty);
+        askText.push('매도 ' + Math.round(r.price).toLocaleString('ko-KR') + '원 · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
+      });
+      snap.bids.forEach(function (r) {
+        bidX.push(r.price); bidY.push(Number(elapsed)); bidZ.push(r.qty);
+        bidText.push('매수 ' + Math.round(r.price).toLocaleString('ko-KR') + '원 · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
+      });
+    });
+
+    return [
+      {
+        type: 'scatter3d', mode: 'markers', name: '매도',
+        x: askX, y: askY, z: askZ, text: askText, hoverinfo: 'text',
+        marker: { size: 3.5, color: '#1261c4', opacity: 0.75 }
+      },
+      {
+        type: 'scatter3d', mode: 'markers', name: '매수',
+        x: bidX, y: bidY, z: bidZ, text: bidText, hoverinfo: 'text',
+        marker: { size: 3.5, color: '#d24f45', opacity: 0.75 }
+      }
+    ];
   }
 
   function fmtQty(v) {

@@ -104,6 +104,52 @@
   background: #fff;
 }
 
+/* ---- 뷰 전환(호가창/3D 산점도) ---- */
+#order-book .ob-view-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+#order-book .ob-view-btn {
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-family: inherit;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background: #fff;
+  color: #666;
+  cursor: pointer;
+}
+#order-book .ob-view-btn.active {
+  border-color: #333;
+  background: #333;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ---- 3D 산점도 ---- */
+#order-book .ob-3d {
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+#order-book .ob-3d-plot {
+  height: 460px;
+}
+#order-book .ob-3d-plot .ob-hint {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  justify-content: center;
+}
+#order-book .ob-3d-legend {
+  padding: 8px 14px 12px;
+  font-size: 11.5px;
+  color: #888;
+  border-top: 1px solid #eee;
+}
+
 /* ---- 보드 ---- */
 #order-book .ob-board {
   border: 1px solid #e5e5e5;
@@ -201,6 +247,18 @@
 
 /* ---- 다크모드 ---- */
 html.dark #order-book { color: #eee !important; }
+html.dark #order-book .ob-view-btn {
+  background: #1c1c1c !important;
+  border-color: #3a3a3a !important;
+  color: #aaa !important;
+}
+html.dark #order-book .ob-view-btn.active {
+  background: #eee !important;
+  border-color: #eee !important;
+  color: #111 !important;
+}
+html.dark #order-book .ob-3d { background: #1c1c1c !important; border-color: #3a3a3a !important; }
+html.dark #order-book .ob-3d-legend { color: #999 !important; border-color: #3a3a3a !important; }
 html.dark #order-book .ob-input {
   background: #1c1c1c !important;
   border-color: #3a3a3a !important;
