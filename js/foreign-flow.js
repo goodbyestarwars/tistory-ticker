@@ -2660,8 +2660,11 @@
     // 2026-07-28 사용자 요청: 지하실로 사다리 타고 내려가는 사람 추가(장식용, 헬기와 동일하게
     // 데이터와 무관 - .ff-apt-tower-wrap 기준 절대좌표로 로비/지하실 옆에 겹쳐 놓는다).
     var ladderHtml = '<span class="ff-apt-ladder">🪜<span class="ff-apt-ladder-person">🧍</span></span>';
+    // 2026-07-28 2차: 사용자가 보여준 참고 스케치(선 그림 건물 + 바닥의 나무/화단)의
+    // 조경 느낌을 살리려고 건물 좌우 하단에 장식용 나무를 추가(데이터와 무관).
+    var bushHtml = '<span class="ff-apt-bush ff-apt-bush-left">🌳</span><span class="ff-apt-bush ff-apt-bush-right">🌳</span>';
 
-    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + heliHtml + roofRow + accentRow + floors + groundRow + basementRow + ladderHtml + '</div>';
+    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + heliHtml + roofRow + accentRow + floors + groundRow + basementRow + ladderHtml + bushHtml + '</div>';
   }
 
   function buildAptBodyHtml(apt, typeKey, currentPrice) {

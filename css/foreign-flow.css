@@ -517,11 +517,11 @@
 
 /* 2026-07-28 사용자 요청: 현관 밑 지하실 한 층 - 로비보다 어둡게 눌린 슬래브로 표현 */
 #foreign-flow .ff-apt-basement-row { height: 10px; margin-top: 1px; }
+/* 2026-07-28 2차: 회색 눌린 슬래브 대신 건축 스케치의 음영 해칭(가는 사선) 느낌으로 변경 */
 #foreign-flow .ff-apt-basement {
   border-radius: 0 0 3px 3px;
-  background: repeating-linear-gradient(45deg, #9096a1, #9096a1 3px, #848a96 3px, #848a96 6px);
-  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.25);
-  border: 1px solid #1A1A1A;
+  background: repeating-linear-gradient(45deg, transparent, transparent 2px, #1A1A1A 2px, #1A1A1A 2.6px);
+  border: 1.4px solid #1A1A1A;
 }
 
 /* 2026-07-28 사용자 요청: 지하실로 사다리 타고 내려가는 사람(장식용, 데이터와 무관) -
@@ -549,6 +549,17 @@
   71% { top: -10px; opacity: 0; }
   100% { top: -10px; opacity: 1; }
 }
+
+/* 2026-07-28 2차 사용자 요청: 참고 스케치 이미지의 조경(나무) 느낌을 살린 장식용 나무 -
+   건물 좌우 맨 아래에 절대좌표로 고정. */
+#foreign-flow .ff-apt-bush {
+  position: absolute;
+  bottom: -4px;
+  font-size: 12px;
+  pointer-events: none;
+}
+#foreign-flow .ff-apt-bush-left { left: -6px; }
+#foreign-flow .ff-apt-bush-right { right: -6px; }
 #foreign-flow .ff-apt-row {
   display: flex;
   align-items: stretch;
@@ -587,9 +598,13 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  /* 2026-07-28 사용자 요청: 회색 유리타워 톤 대신 크림색 + 진한 외곽선의 플랫한 스타일로 변경 */
-  background: #F5EFE0;
-  border: 1px solid #1A1A1A;
+  /* 2026-07-28 2차: 사용자가 참고 이미지(흰 종이+검은 잉크 선의 건축 스케치)를 보여줘서
+     채워진 색 블록 대신 "선 그림" 톤으로 다시 변경 - 벽 자체는 배경이 비치는 무색(카드
+     배경과 동일)이고 검은 외곽선만으로 형태를 표현한다. 층/창문/현재가 등 데이터는
+     그대로 이 선 구조 위에 얹힌다(이미지 자체는 고정된 그림이라 데이터를 넣을 수 없어서
+     "스타일"만 참고함, 사용자 확인). */
+  background: transparent;
+  border: 1.4px solid #1A1A1A;
 }
 #foreign-flow .ff-apt-row-annot {
   flex-shrink: 0;
@@ -598,15 +613,20 @@
   font-size: 10px;
   white-space: nowrap;
 }
+/* 꺼진 창은 벽처럼 외곽선만 있는 빈 사각형(선 그림 창문), 켜진 창만 색이 채워져
+   "몇 층에 물량이 몰렸는지"를 눈에 띄게 표시한다. */
 #foreign-flow .ff-apt-window {
   width: 4px;
   height: 7px;
   border-radius: 0.5px;
-  background: #141414;
+  background: transparent;
+  border: 1px solid #141414;
+  box-sizing: border-box;
 }
 #foreign-flow .ff-apt-window.lit {
   background: #2BEE34;
-  box-shadow: 0 0 3px rgba(43, 238, 52, 0.95);
+  border-color: #1A1A1A;
+  box-shadow: 0 0 3px rgba(43, 238, 52, 0.85);
 }
 
 /* 옥상 액센트 밴드 - 탭(전체/개인/외국인/기관)마다 색이 바뀌는 유일한 구간 */
@@ -616,10 +636,11 @@
 #foreign-flow .ff-apt-tower-foreign .ff-apt-accent { background: #e8590c; }
 #foreign-flow .ff-apt-tower-inst .ff-apt-accent { background: #6741d9; }
 
-/* poc/current 강조는 유형색보다 나중에 와서 항상 위에 보인다 */
-#foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: #f6ead0; box-shadow: inset 0 0 0 1px rgba(232, 150, 12, 0.55); }
+/* poc/current 강조는 유형색보다 나중에 와서 항상 위에 보인다 - 선 그림 톤에 맞춰 배경을
+   채우는 대신 그 층 외곽선만 색 있는 굵은 선으로 바꿔 표시한다. */
+#foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: transparent; border: 2px solid #b8860b; }
 #foreign-flow .ff-apt-flag { color: #b8860b; font-weight: 700; }
-#foreign-flow .ff-apt-floor-current .ff-apt-wall { background: #fbdcd9; box-shadow: inset 0 0 0 1px rgba(210, 79, 69, 0.65); }
+#foreign-flow .ff-apt-floor-current .ff-apt-wall { background: transparent; border: 2px solid #d24f45; }
 #foreign-flow .ff-apt-hit { display: inline-flex; align-items: center; gap: 2px; color: #d24f45; font-weight: 800; }
 #foreign-flow .ff-apt-arrow {
   display: inline-block;
@@ -634,8 +655,8 @@
 #foreign-flow .ff-apt-roof-row { height: 12px; }
 #foreign-flow .ff-apt-roof {
   border-radius: 999px;
-  background: #F5EFE0;
-  border: 1px solid #1A1A1A;
+  background: transparent;
+  border: 1.4px solid #1A1A1A;
 }
 #foreign-flow .ff-apt-antenna {
   position: relative;
@@ -665,8 +686,8 @@
 #foreign-flow .ff-apt-ground-row { height: 18px; }
 #foreign-flow .ff-apt-ground {
   border-radius: 4px;
-  background: #F5EFE0;
-  border: 1px solid #1A1A1A;
+  background: transparent;
+  border: 1.4px solid #1A1A1A;
   font-size: 10px;
   line-height: 1;
 }
@@ -1085,24 +1106,27 @@ html.dark #foreign-flow .ff-apt-tab[data-apt-type="inst"].active { background: #
 html.dark #foreign-flow .ff-apt-summary { color: #bbb !important; }
 html.dark #foreign-flow .ff-apt-row-label { color: #777 !important; }
 html.dark #foreign-flow .ff-apt-row-price { color: #999 !important; }
+/* 2026-07-28 2차: 라이트모드가 흰 종이+검은 잉크선 스케치로 바뀌면서, 다크모드는 그
+   반대 톤(어두운 배경+밝은 선)의 "야간 스케치"로 맞춘다 - 검은 선을 그대로 쓰면
+   어두운 카드 배경 위에서 안 보인다. */
 html.dark #foreign-flow .ff-apt-wall {
-  background: #F5EFE0 !important;
-  border: 1px solid #1A1A1A !important;
+  background: transparent !important;
+  border: 1.4px solid #d8d8d8 !important;
 }
-html.dark #foreign-flow .ff-apt-window { background: #141414 !important; }
-html.dark #foreign-flow .ff-apt-window.lit { background: #2BEE34 !important; box-shadow: 0 0 3px rgba(43, 238, 52, 0.9) !important; }
+html.dark #foreign-flow .ff-apt-window { background: transparent !important; border: 1px solid #d8d8d8 !important; }
+html.dark #foreign-flow .ff-apt-window.lit { background: #2BEE34 !important; border-color: #d8d8d8 !important; box-shadow: 0 0 3px rgba(43, 238, 52, 0.9) !important; }
 html.dark #foreign-flow .ff-apt-accent { background: #7a828d !important; }
 html.dark #foreign-flow .ff-apt-tower-ind .ff-apt-accent { background: #f0b429 !important; }
 html.dark #foreign-flow .ff-apt-tower-foreign .ff-apt-accent { background: #e8590c !important; }
 html.dark #foreign-flow .ff-apt-tower-inst .ff-apt-accent { background: #8767e0 !important; }
-html.dark #foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: #4a3a1a !important; box-shadow: inset 0 0 0 1px rgba(240, 146, 74, 0.6) !important; }
+html.dark #foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: transparent !important; border: 2px solid #f0924a !important; }
 html.dark #foreign-flow .ff-apt-flag { color: #f0924a !important; }
-html.dark #foreign-flow .ff-apt-floor-current .ff-apt-wall { background: #4a2622 !important; box-shadow: inset 0 0 0 1px rgba(232, 119, 109, 0.65) !important; }
+html.dark #foreign-flow .ff-apt-floor-current .ff-apt-wall { background: transparent !important; border: 2px solid #e8776d !important; }
 html.dark #foreign-flow .ff-apt-hit { color: #e8776d !important; }
-html.dark #foreign-flow .ff-apt-roof { background: #F5EFE0 !important; border: 1px solid #1A1A1A !important; }
+html.dark #foreign-flow .ff-apt-roof { background: transparent !important; border: 1.4px solid #d8d8d8 !important; }
 html.dark #foreign-flow .ff-apt-antenna { background: #888 !important; }
-html.dark #foreign-flow .ff-apt-ground { background: #F5EFE0 !important; border: 1px solid #1A1A1A !important; }
-html.dark #foreign-flow .ff-apt-basement { background: repeating-linear-gradient(45deg, #2a2c31, #2a2c31 3px, #202124 3px, #202124 6px) !important; border: 1px solid #1A1A1A !important; }
+html.dark #foreign-flow .ff-apt-ground { background: transparent !important; border: 1.4px solid #d8d8d8 !important; }
+html.dark #foreign-flow .ff-apt-basement { background: repeating-linear-gradient(45deg, transparent, transparent 2px, #d8d8d8 2px, #d8d8d8 2.6px) !important; border: 1.4px solid #d8d8d8 !important; }
 html.dark #foreign-flow .ff-apt-empty { color: #999 !important; }
 html.dark #foreign-flow .ff-bar-axis { stroke: #444 !important; }
 html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }
