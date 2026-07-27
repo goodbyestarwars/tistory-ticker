@@ -63,3 +63,4 @@
 - `.json` 업로드 제약 때문에 데이터는 전부 `window.XXX = {...}` 형태의 `.js`로 만든다.
 - **KRX 내부 크롤링 경로(`data.krx.co.kr/comm/bldAttendant/getJsonData.cmd`, OTP+CSV 다운로드 경로 `generate.cmd` 포함)는 2026-07-11부로 완전 차단.** 세션 쿠키를 붙여도, OTP 발급을 시도해도 "LOGOUT"으로 거부됨(실측 확인됨). KRX 정식 Open API(`openapi.krx.co.kr`)에도 공매도·투자자별 매매동향 서비스 자체가 없음 — **새 KRX 직접 크롤링 코드를 다시 추가하지 말 것.**
 - **공매도/대차거래/연기금은 KRX 대신 증권사(키움) 정식 REST API로 우회한다.** `scripts/fetch_investor_flow.py` 참고. 이 데이터는 사용자 개인 계좌의 API 키가 필요해 GAS 같은 공개 서버에 둘 수 없고, 앱키가 IP 등록 방식이라 GitHub Actions 같은 유동 IP 클라우드도 못 씀 — 그래서 PC 로컬 실행 + git push 구조. 오픈API 이용약관(재배포/제3자 제공 제한 여부)은 미확인 상태로 진행 중임을 인지할 것.
+- **push 전에 CLAUDE.md도 같이 갱신할 것.** 새 파일 추가/역할 변경/폐기·이관/데이터 소스 변경 같은 구조적 변경은 코드만 push하고 문서를 나중으로 미루면 표(파일 구성)와 실제 코드가 어긋난 상태로 남는다 — 같은 커밋 또는 같은 작업 단위 안에서 문서까지 갱신한 뒤 push한다.
