@@ -26,6 +26,14 @@
   var HISTORY_MAX = 90;
   var PLOTLY_CDN = 'https://cdn.plot.ly/plotly-gl3d-2.35.2.min.js';
 
+  var CURRENT_PRICE_COLOR = '#0ca678'; // 매도(파랑)/매수(빨강)와 겹치지 않는 별도 색(청록)
+  // "매도벽 하나를 완전히 소진해야 돌파"(2026-07-27 사용자 확인) 판정 기준 - 다른 9개
+  // 매도호가 평균보다 이 배수 이상 많이 쌓인 호가만 "벽"으로 인정(사소한 잔량 튐 배제).
+  var WALL_RATIO = 1.8;
+  var WALL_BREAK_RATIO = 0.15; // 최초로 확인한 벽 잔량의 이 비율 이하로 줄면 "소진"으로 판정
+  var MILESTONE_MAX = 8;
+  var TOAST_MS = 3500;
+
   var state = {
     code: null,
     name: null,
@@ -33,8 +41,11 @@
     // history[i] = { t: ms, base: 그 시점 현재가(없으면 직전 값 유지), asks:[{price,qty}], bids:[{price,qty}] }
     history: [],
     startTime: null,
-    lastBase: null,     // 직전 tick의 현재가(quote 조회가 실패한 틱에서 이어받을 기준가)
-    viewMode: 'ladder'  // 'ladder' | '3d'
+    lastBase: null,      // 직전 tick의 현재가(quote 조회가 실패한 틱에서 이어받을 기준가)
+    viewMode: 'ladder',  // 'ladder' | '3d'
+    trackedWall: null,   // { price, peakQty } - 지금 지켜보고 있는 매도벽
+    milestones: [],      // [{ price, t }] - 소진(돌파) 기록, 최신이 앞
+    toastTimer: null
   };
   var plotlyLoadPromise = null;
 
@@ -90,7 +101,11 @@
       + '<button type="button" class="ob-view-btn" data-view="3d">3D 산점도</button>'
       + '</div>'
       + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
-      + '<div id="ob3d" class="ob-3d" hidden><div id="ob3dPlot" class="ob-3d-plot"></div><div class="ob-3d-legend">X 현재가 대비 가격차(0=현재가) · Y 경과(초) · Z 잔량(점 크기도 비례) · 색상은 범례 참고 · 최근 약 3분(' + HISTORY_MAX + '틱) 누적, 드래그로 회전</div></div>';
+      + '<div id="ob3d" class="ob-3d" hidden>'
+      + '<div class="ob-3d-plot-wrap"><div id="ob3dPlot" class="ob-3d-plot"></div><div id="ob3dToast" class="ob-3d-toast"></div></div>'
+      + '<div class="ob-3d-legend">X 현재가 대비 가격차(0=현재가) · Y 경과(초) · Z 잔량(기둥 높이) · 색상은 범례 참고 · 최근 약 3분(' + HISTORY_MAX + '틱) 누적, 드래그로 회전</div>'
+      + '<div id="ob3dMilestones" class="ob-3d-milestones"></div>'
+      + '</div>';
   }
 
   // ---- 검색/자동완성 (watchlist.js와 동일 패턴) ----
@@ -197,12 +212,19 @@
     state.history = [];
     state.startTime = Date.now();
     state.lastBase = null;
+    state.trackedWall = null;
+    state.milestones = [];
+    clearTimeout(state.toastTimer);
     if (state.timer) clearInterval(state.timer);
 
     var board = container.querySelector('#obBoard');
     board.innerHTML = '<div class="ob-hint"><div class="ob-spinner"></div>' + escapeHtml(name) + ' 호가 불러오는 중...</div>';
     var plot3d = container.querySelector('#ob3dPlot');
     if (plot3d) plot3d.innerHTML = '';
+    var toast = container.querySelector('#ob3dToast');
+    if (toast) { toast.className = 'ob-3d-toast'; toast.textContent = ''; }
+    var milestoneBox = container.querySelector('#ob3dMilestones');
+    if (milestoneBox) milestoneBox.innerHTML = '';
 
     tick(container);
     state.timer = setInterval(function () { tick(container); }, POLL_MS);
@@ -224,6 +246,7 @@
         var quote = results[1];
         if (book && (book.asks.length || book.bids.length)) {
           recordSnapshot(book, quote);
+          checkWallBreakthrough(container, book);
           if (state.viewMode === '3d') render3D(container);
         }
         renderBoard(container, book, quote);
@@ -244,6 +267,76 @@
     if (base != null) state.lastBase = base;
     state.history.push({ t: Date.now(), base: base, asks: book.asks, bids: book.bids });
     if (state.history.length > HISTORY_MAX) state.history.shift();
+  }
+
+  // ---- 매도벽 돌파 감지("게임처럼 뚫는 느낌", 2026-07-27 사용자 요청) ----
+  // 다른 매도호가 평균보다 눈에 띄게 잔량이 많은 한 단계를 "벽"으로 찍어두고, 그 잔량이
+  // 거의 다 소진되거나(체결로 흡수) 아예 사라지면(현재가가 그 가격대를 완전히 지나감)
+  // "돌파"로 판정한다 - 한 번에 벽 하나만 추적(요청 확인).
+  function findWallCandidate(asks) {
+    if (asks.length < 3) return null;
+    var best = null;
+    asks.forEach(function (r) {
+      var others = asks.filter(function (o) { return o !== r; });
+      var avgOthers = others.reduce(function (s, o) { return s + o.qty; }, 0) / others.length;
+      if (avgOthers > 0 && r.qty >= avgOthers * WALL_RATIO && (!best || r.qty > best.qty)) {
+        best = r;
+      }
+    });
+    return best;
+  }
+
+  function checkWallBreakthrough(container, book) {
+    var asks = book.asks || [];
+    if (!state.trackedWall) {
+      var candidate = findWallCandidate(asks);
+      if (candidate) state.trackedWall = { price: candidate.price, peakQty: candidate.qty };
+      return;
+    }
+
+    var found = asks.filter(function (r) { return r.price === state.trackedWall.price; })[0];
+    if (found) {
+      if (found.qty > state.trackedWall.peakQty) state.trackedWall.peakQty = found.qty;
+      if (found.qty > Math.max(1, state.trackedWall.peakQty * WALL_BREAK_RATIO)) return; // 아직 안 무너짐
+    }
+    // found가 없으면(그 가격대가 더 이상 매도 사다리에 없음 = 현재가가 완전히 지나감) 또는
+    // 잔량이 임계치 밑으로 줄었으면 돌파로 판정.
+    recordMilestone(container, state.trackedWall.price);
+    state.trackedWall = null;
+  }
+
+  function recordMilestone(container, price) {
+    state.milestones.unshift({ price: price, t: Date.now() });
+    if (state.milestones.length > MILESTONE_MAX) state.milestones.length = MILESTONE_MAX;
+    renderMilestoneLog(container);
+    showMilestoneToast(container, price);
+  }
+
+  function fmtElapsed(t) {
+    var sec = Math.max(0, Math.round((t - (state.startTime || t)) / 1000));
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function renderMilestoneLog(container) {
+    var box = container.querySelector('#ob3dMilestones');
+    if (!box) return;
+    if (!state.milestones.length) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="ob-3d-milestones-title">🧱 매도벽 돌파 기록</div>'
+      + '<ul class="ob-3d-milestones-list">' + state.milestones.map(function (m) {
+        return '<li>' + Math.round(m.price).toLocaleString('ko-KR') + '원 돌파 <span class="ob-3d-milestone-time">(' + fmtElapsed(m.t) + ')</span></li>';
+      }).join('') + '</ul>';
+  }
+
+  function showMilestoneToast(container, price) {
+    var toast = container.querySelector('#ob3dToast');
+    if (!toast) return;
+    toast.textContent = '🎉 ' + Math.round(price).toLocaleString('ko-KR') + '원 돌파!';
+    toast.className = 'ob-3d-toast show';
+    clearTimeout(state.toastTimer);
+    state.toastTimer = setTimeout(function () {
+      toast.className = 'ob-3d-toast';
+    }, TOAST_MS);
   }
 
   function fetchOrderBook(code) {
@@ -400,50 +493,50 @@
     });
   }
 
-  var CURRENT_PRICE_COLOR = '#0ca678'; // 매도(파랑)/매수(빨강)와 겹치지 않는 별도 색(청록)
+  // 점(산점) 대신 "입체 기둥"으로 표현(2026-07-27 사용자 요청: 호가창을 게임처럼 입체적으로
+  // 보고 싶다) - Plotly에 3D 막대 전용 타입이 없어서, scatter3d의 mode:'lines'에 세그먼트
+  // 사이를 null로 끊어주는 방식으로 "바닥(z=0)에서 잔량 높이까지 솟은 기둥"을 흉내낸다
+  // (라이브러리 관례상 통용되는 방법 - null이 line을 끊는 gap으로 처리됨).
+  function pushBar(acc, x, y, qty, text) {
+    acc.x.push(x, x, null);
+    acc.y.push(y, y, null);
+    acc.z.push(0, qty, null);
+    acc.text.push('', text, '');
+  }
 
   function buildPlotlyTraces() {
     var startTime = state.startTime || Date.now();
-    var ask = { x: [], y: [], z: [], text: [], qty: [] };
-    var bid = { x: [], y: [], z: [], text: [], qty: [] };
+    var ask = { x: [], y: [], z: [], text: [] };
+    var bid = { x: [], y: [], z: [], text: [] };
     var cur = { x: [], y: [], z: [], text: [] }; // 현재가 궤적(항상 X=0) - 매도/매수와 구분되는 색으로 표시
-    var maxQty = 1;
 
     state.history.forEach(function (snap) {
       if (snap.base == null) return; // 첫 틱들 중 시세 조회가 아직 안 된 구간은 기준가가 없어 skip
       var elapsed = Number(((snap.t - startTime) / 1000).toFixed(1));
       snap.asks.forEach(function (r) {
         var diff = r.price - snap.base;
-        ask.x.push(diff); ask.y.push(elapsed); ask.z.push(r.qty); ask.qty.push(r.qty);
-        ask.text.push('매도 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
-        if (r.qty > maxQty) maxQty = r.qty;
+        pushBar(ask, diff, elapsed, r.qty,
+          '매도 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
       });
       snap.bids.forEach(function (r) {
         var diff = r.price - snap.base;
-        bid.x.push(diff); bid.y.push(elapsed); bid.z.push(r.qty); bid.qty.push(r.qty);
-        bid.text.push('매수 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
-        if (r.qty > maxQty) maxQty = r.qty;
+        pushBar(bid, diff, elapsed, r.qty,
+          '매수 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
       });
       cur.x.push(0); cur.y.push(elapsed); cur.z.push(0);
       cur.text.push('현재가 ' + Math.round(snap.base).toLocaleString('ko-KR') + '원 · ' + elapsed + '초');
     });
 
-    // 잔량이 클수록(=벽이 셀수록) 점도 커 보이게 - Z높이만으로는 회전시켜 보면 크기 비교가
-    // 어려워서 마커 크기에도 같은 신호를 이중으로 인코딩.
-    function sizeOf(qtyArr) {
-      return qtyArr.map(function (q) { return 3 + (q / maxQty) * 13; });
-    }
-
     return [
       {
-        type: 'scatter3d', mode: 'markers', name: '매도(위쪽 벽)',
+        type: 'scatter3d', mode: 'lines', name: '매도벽',
         x: ask.x, y: ask.y, z: ask.z, text: ask.text, hoverinfo: 'text',
-        marker: { size: sizeOf(ask.qty), color: '#1261c4', opacity: 0.75 }
+        line: { color: '#1261c4', width: 7 }, opacity: 0.75
       },
       {
-        type: 'scatter3d', mode: 'markers', name: '매수(아래쪽 벽)',
+        type: 'scatter3d', mode: 'lines', name: '매수벽',
         x: bid.x, y: bid.y, z: bid.z, text: bid.text, hoverinfo: 'text',
-        marker: { size: sizeOf(bid.qty), color: '#d24f45', opacity: 0.75 }
+        line: { color: '#d24f45', width: 7 }, opacity: 0.75
       },
       {
         // 현재가는 X=0 정의상 항상 이 선 위에 있으므로 매도/매수와 다른 색(청록) 선+점으로

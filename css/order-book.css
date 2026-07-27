@@ -134,6 +134,9 @@
   overflow: hidden;
   background: #fff;
 }
+#order-book .ob-3d-plot-wrap {
+  position: relative;
+}
 #order-book .ob-3d-plot {
   height: 460px;
 }
@@ -148,6 +151,55 @@
   font-size: 11.5px;
   color: #888;
   border-top: 1px solid #eee;
+}
+
+/* ---- 매도벽 돌파 토스트("게임처럼", 2026-07-27) ---- */
+#order-book .ob-3d-toast {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translate(-50%, -10px);
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: #0ca678;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(12, 166, 120, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  white-space: nowrap;
+}
+#order-book .ob-3d-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+#order-book .ob-3d-milestones {
+  padding: 0 14px 14px;
+}
+#order-book .ob-3d-milestones-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 6px;
+}
+#order-book .ob-3d-milestones-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: #333;
+  max-height: 130px;
+  overflow-y: auto;
+}
+#order-book .ob-3d-milestone-time {
+  color: #999;
+  font-size: 11px;
 }
 
 /* ---- 보드 ---- */
@@ -259,6 +311,10 @@ html.dark #order-book .ob-view-btn.active {
 }
 html.dark #order-book .ob-3d { background: #1c1c1c !important; border-color: #3a3a3a !important; }
 html.dark #order-book .ob-3d-legend { color: #999 !important; border-color: #3a3a3a !important; }
+html.dark #order-book .ob-3d-milestones-title { color: #999 !important; }
+html.dark #order-book .ob-3d-milestones-list { color: #ddd !important; }
+html.dark #order-book .ob-3d-milestone-time { color: #888 !important; }
+html.dark #order-book .ob-3d-toast { color: #fff !important; }
 html.dark #order-book .ob-input {
   background: #1c1c1c !important;
   border-color: #3a3a3a !important;
