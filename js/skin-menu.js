@@ -11,10 +11,16 @@
 (function () {
   'use strict';
 
+  // 2026-07-27: "9Pay 증권" 개편 작업지시서 #3 - "전체 글"을 "홈"으로 개명(역할은 동일,
+  // 메인 대시보드 성격 강화는 별도 후속 작업). 작업지시서의 대메뉴(홈/마켓브리핑/증시온도/
+  // 증시검색/종목분석/종목뉴스/MY/커뮤니티) 중 "증시검색"(호가창+종목검색+차트 통합)과
+  // "MY"(관심종목)는 아직 실제 페이지가 없어 메뉴에 추가하지 않음 - 없는 페이지로 링크를
+  // 걸면 클릭 시 빈 화면만 나온다. 그 전까지 기존 "호가창" 메뉴를 그대로 유지하고, 두
+  // 신규 메뉴는 해당 페이지 실제 구현 후 이 자리에 추가할 것.
   var MENU_ITEMS = [
     {
       href: '/',
-      label: '전체 글',
+      label: '홈',
       bold: true, // 2026-07-18: 다른 메뉴는 전부 bold인데 이것만 빠져있던 걸 통일(사용자 지적)
       icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'
     },
@@ -38,16 +44,17 @@
     // 페이지 최상단으로 통합됐음(js/invest-signal.js는 이제 /page/foreign-flow로
     // 리다이렉트만 함) - 아래 "종목분석" 메뉴 하나로 합쳐짐.
     {
-      href: '/page/stock-news',
-      label: '종목뉴스',
-      bold: true,
-      icon: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>'
-    },
-    {
+      // 2026-07-27: 작업지시서 대메뉴 순서(종목분석 -> 종목뉴스)에 맞춰 순서 교체(기능 변경 없음).
       href: '/page/foreign-flow',
       label: '종목분석',
       bold: true,
       icon: '<path d="M7 17V7"/><path d="M4 10l3-3 3 3"/><path d="M17 7v10"/><path d="M14 14l3 3 3-3"/>'
+    },
+    {
+      href: '/page/stock-news',
+      label: '종목뉴스',
+      bold: true,
+      icon: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>'
     },
     {
       // 실제 페이지 URL 확인됨(2026-07-27) - js/order-book.js + css/order-book.css +
