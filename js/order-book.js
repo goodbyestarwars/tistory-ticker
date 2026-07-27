@@ -20,17 +20,20 @@
   var POLL_MS = 2000;
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
-  // 3D 산점도(가격x경과시간x잔량) - 마켓뎁스가 시간에 따라 어떻게 쌓이는지 보여주는 용도라
-  // 너무 오래된 스냅샷은 화면만 복잡해짐 - 최근 30틱(2초 간격이라 약 1분)만 유지.
-  var HISTORY_MAX = 30;
+  // 3D 산점도(현재가 대비 가격차 x 경과시간 x 잔량) - "매도벽을 현재가가 뚫고 지나가는
+  // 과정을 보고 싶다"(2026-07-27 사용자 피드백)는 요구라 1분으로는 너무 짧아서 3분(2초
+  // 간격 폴링 기준 90틱)으로 늘림 - 벽이 무너지는 데 걸리는 시간을 고려한 값.
+  var HISTORY_MAX = 90;
   var PLOTLY_CDN = 'https://cdn.plot.ly/plotly-gl3d-2.35.2.min.js';
 
   var state = {
     code: null,
     name: null,
     timer: null,
-    history: [],       // [{ t: ms, asks:[{price,qty}], bids:[{price,qty}] }, ...]
+    // history[i] = { t: ms, base: 그 시점 현재가(없으면 직전 값 유지), asks:[{price,qty}], bids:[{price,qty}] }
+    history: [],
     startTime: null,
+    lastBase: null,     // 직전 tick의 현재가(quote 조회가 실패한 틱에서 이어받을 기준가)
     viewMode: 'ladder'  // 'ladder' | '3d'
   };
   var plotlyLoadPromise = null;
@@ -87,7 +90,7 @@
       + '<button type="button" class="ob-view-btn" data-view="3d">3D 산점도</button>'
       + '</div>'
       + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
-      + '<div id="ob3d" class="ob-3d" hidden><div id="ob3dPlot" class="ob-3d-plot"></div><div class="ob-3d-legend">X 가격 · Y 경과(초) · Z 잔량 · <span class="ob-ask-text">파랑=매도</span> · <span class="ob-bid-text">빨강=매수</span> (최근 ' + HISTORY_MAX + '틱 누적, 드래그로 회전)</div></div>';
+      + '<div id="ob3d" class="ob-3d" hidden><div id="ob3dPlot" class="ob-3d-plot"></div><div class="ob-3d-legend">X 현재가 대비 가격차(0=현재가) · Y 경과(초) · Z 잔량(점 크기도 비례) · <span class="ob-ask-text">파랑=매도벽</span> · <span class="ob-bid-text">빨강=매수벽</span> · 최근 약 3분(' + HISTORY_MAX + '틱) 누적, 드래그로 회전</div></div>';
   }
 
   // ---- 검색/자동완성 (watchlist.js와 동일 패턴) ----
@@ -193,6 +196,7 @@
     state.name = name;
     state.history = [];
     state.startTime = Date.now();
+    state.lastBase = null;
     if (state.timer) clearInterval(state.timer);
 
     var board = container.querySelector('#obBoard');
@@ -207,15 +211,22 @@
   function tick(container) {
     var code = state.code;
     if (!code) return;
-    Promise.all([OrderBook.fetchOrderBook(code), OrderBook.fetchQuote(code)])
+    // 호가(order-book)와 시세(quote)는 서로 다른 소스라 하나만 실패할 수 있다 - 특히 시세만
+    // 실패해도 호가 사다리/3D 누적은 계속돼야 하므로(recordSnapshot의 기준가 이어받기가
+    // 뜻이 있으려면) 각각 독립적으로 실패를 흡수하고, 정작 중요한 호가만 없을 때만 에러로 취급.
+    Promise.all([
+      OrderBook.fetchOrderBook(code),
+      OrderBook.fetchQuote(code).catch(function () { return null; })
+    ])
       .then(function (results) {
         if (state.code !== code) return; // 응답 오는 사이 다른 종목을 골랐으면 무시(레이스 방지)
         var book = results[0];
+        var quote = results[1];
         if (book && (book.asks.length || book.bids.length)) {
-          recordSnapshot(book);
+          recordSnapshot(book, quote);
           if (state.viewMode === '3d') render3D(container);
         }
-        renderBoard(container, book, results[1]);
+        renderBoard(container, book, quote);
       })
       .catch(function () {
         if (state.code !== code) return;
@@ -226,8 +237,12 @@
       });
   }
 
-  function recordSnapshot(book) {
-    state.history.push({ t: Date.now(), asks: book.asks, bids: book.bids });
+  function recordSnapshot(book, quote) {
+    // quote 조회가 이번 틱에 실패했으면(호가는 왔는데 시세만 실패) 직전 기준가를 그대로
+    // 이어받는다 - 기준가가 갑자기 사라져서 X축(현재가 대비 가격차)이 튀는 걸 방지.
+    var base = (quote && quote.price != null) ? Number(quote.price) : state.lastBase;
+    if (base != null) state.lastBase = base;
+    state.history.push({ t: Date.now(), base: base, asks: book.asks, bids: book.bids });
     if (state.history.length > HISTORY_MAX) state.history.shift();
   }
 
@@ -346,7 +361,7 @@
   function render3D(container) {
     var plotEl = container.querySelector('#ob3dPlot');
     if (!plotEl) return;
-    if (!state.history.length) {
+    if (!state.history.some(function (s) { return s.base != null; })) {
       plotEl.innerHTML = '<div class="ob-hint">데이터를 모으는 중이에요 (2초마다 한 틱씩 쌓입니다)...</div>';
       return;
     }
@@ -364,7 +379,13 @@
         margin: { l: 0, r: 0, t: 10, b: 0 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         scene: {
-          xaxis: { title: '가격', color: textColor, gridcolor: gridColor },
+          // X=0이 항상 "그 틱 시점의 현재가" - 매도벽(양수 X)이 시간(Y)이 지나며 0쪽으로
+          // 다가오거나 잔량(Z)이 줄어드는 걸 보면 현재가가 벽을 뚫는 과정을 읽을 수 있다
+          // (2026-07-27 사용자 요청). zeroline을 굵게 강조해서 "여기가 현재가"를 표시.
+          xaxis: {
+            title: '현재가 대비 가격차(원)', color: textColor, gridcolor: gridColor,
+            zeroline: true, zerolinecolor: dark ? '#eee' : '#111', zerolinewidth: 5
+          },
           yaxis: { title: '경과(초)', color: textColor, gridcolor: gridColor },
           zaxis: { title: '잔량', color: textColor, gridcolor: gridColor },
           bgcolor: 'rgba(0,0,0,0)'
@@ -379,31 +400,43 @@
 
   function buildPlotlyTraces() {
     var startTime = state.startTime || Date.now();
-    var askX = [], askY = [], askZ = [], askText = [];
-    var bidX = [], bidY = [], bidZ = [], bidText = [];
+    var ask = { x: [], y: [], z: [], text: [], qty: [] };
+    var bid = { x: [], y: [], z: [], text: [], qty: [] };
+    var maxQty = 1;
 
     state.history.forEach(function (snap) {
-      var elapsed = ((snap.t - startTime) / 1000).toFixed(1);
+      if (snap.base == null) return; // 첫 틱들 중 시세 조회가 아직 안 된 구간은 기준가가 없어 skip
+      var elapsed = Number(((snap.t - startTime) / 1000).toFixed(1));
       snap.asks.forEach(function (r) {
-        askX.push(r.price); askY.push(Number(elapsed)); askZ.push(r.qty);
-        askText.push('매도 ' + Math.round(r.price).toLocaleString('ko-KR') + '원 · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
+        var diff = r.price - snap.base;
+        ask.x.push(diff); ask.y.push(elapsed); ask.z.push(r.qty); ask.qty.push(r.qty);
+        ask.text.push('매도 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
+        if (r.qty > maxQty) maxQty = r.qty;
       });
       snap.bids.forEach(function (r) {
-        bidX.push(r.price); bidY.push(Number(elapsed)); bidZ.push(r.qty);
-        bidText.push('매수 ' + Math.round(r.price).toLocaleString('ko-KR') + '원 · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
+        var diff = r.price - snap.base;
+        bid.x.push(diff); bid.y.push(elapsed); bid.z.push(r.qty); bid.qty.push(r.qty);
+        bid.text.push('매수 ' + Math.round(r.price).toLocaleString('ko-KR') + '원(현재가 ' + (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + ') · 잔량 ' + fmtQty(r.qty) + ' · ' + elapsed + '초');
+        if (r.qty > maxQty) maxQty = r.qty;
       });
     });
 
+    // 잔량이 클수록(=벽이 셀수록) 점도 커 보이게 - Z높이만으로는 회전시켜 보면 크기 비교가
+    // 어려워서 마커 크기에도 같은 신호를 이중으로 인코딩.
+    function sizeOf(qtyArr) {
+      return qtyArr.map(function (q) { return 3 + (q / maxQty) * 13; });
+    }
+
     return [
       {
-        type: 'scatter3d', mode: 'markers', name: '매도',
-        x: askX, y: askY, z: askZ, text: askText, hoverinfo: 'text',
-        marker: { size: 3.5, color: '#1261c4', opacity: 0.75 }
+        type: 'scatter3d', mode: 'markers', name: '매도(위쪽 벽)',
+        x: ask.x, y: ask.y, z: ask.z, text: ask.text, hoverinfo: 'text',
+        marker: { size: sizeOf(ask.qty), color: '#1261c4', opacity: 0.75 }
       },
       {
-        type: 'scatter3d', mode: 'markers', name: '매수',
-        x: bidX, y: bidY, z: bidZ, text: bidText, hoverinfo: 'text',
-        marker: { size: 3.5, color: '#d24f45', opacity: 0.75 }
+        type: 'scatter3d', mode: 'markers', name: '매수(아래쪽 벽)',
+        x: bid.x, y: bid.y, z: bid.z, text: bid.text, hoverinfo: 'text',
+        marker: { size: sizeOf(bid.qty), color: '#d24f45', opacity: 0.75 }
       }
     ];
   }

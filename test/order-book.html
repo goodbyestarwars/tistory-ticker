@@ -19,6 +19,8 @@
   <div class="tools">
     <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
     <button onclick="reQuery('normal', '삼성전자')">삼성전자 조회</button>
+    <button onclick="reQuery('wall', '삼성전자')">매도벽 뚫기 시나리오</button>
+    <button onclick="reQuery('quote-fail', '삼성전자')">시세만 실패(호가는 정상)</button>
     <button onclick="reQuery('empty')">호가 없음</button>
     <button onclick="reQuery('error')">API 오류</button>
     <button onclick="reQuery('normal')">정상 데이터</button>
@@ -54,6 +56,26 @@
     return { asks: asks, bids: bids };
   }
 
+  // "매도벽 뚫기" 시나리오: 현재가 위 700원 지점에 큰 매도벽(30,000주)을 두고, 틱이 지날수록
+  // 벽 잔량은 줄고(체결로 소진) 현재가는 벽 쪽으로 서서히 올라가는 흐름을 흉내낸다 -
+  // 3D 뷰에서 "매도벽이 X=0(현재가)으로 다가오며 Z(잔량)가 낮아지는" 모습을 눈으로 검증하기 위함.
+  var wallTick = 0;
+
+  function mockWallLadder(base) {
+    wallTick++;
+    var asks = [], bids = [];
+    for (var i = 10; i >= 1; i--) {
+      var price = base + i * 100;
+      var qty = Math.round(300 + Math.random() * 2000);
+      if (i === 7) qty = Math.max(1000, 30000 - wallTick * 1800); // 벽: 현재가 위 700원
+      asks.push({ price: price, qty: qty });
+    }
+    for (var j = 1; j <= 10; j++) {
+      bids.push({ price: base - j * 100, qty: Math.round(300 + Math.random() * 2000) });
+    }
+    return { asks: asks, bids: bids };
+  }
+
   if (location.search.indexOf('real=1') === -1) {
     OrderBook.fetchOrderBook = function (code) {
       mockTick++;
@@ -61,7 +83,7 @@
       if (mockMode === 'error') return Promise.reject(new Error('mock error'));
       if (mockMode === 'empty') return Promise.resolve({ code: code, asks: [], bids: [], totalAskQty: 0, totalBidQty: 0 });
       var base = 70000 + (code.charCodeAt(0) * 37 % 5000);
-      var ladder = mockLadder(base, 100);
+      var ladder = mockMode === 'wall' ? mockWallLadder(base) : mockLadder(base, 100);
       return Promise.resolve({
         code: code,
         asks: ladder.asks,
@@ -71,12 +93,13 @@
       });
     };
     OrderBook.fetchQuote = function (code) {
-      if (mockMode === 'error') return Promise.reject(new Error('mock error'));
+      if (mockMode === 'error' || mockMode === 'quote-fail') return Promise.reject(new Error('mock error'));
       var base = 70000 + (code.charCodeAt(0) * 37 % 5000);
+      if (mockMode === 'wall') base += Math.min(600, wallTick * 40); // 벽 쪽으로 서서히 상승
       var changeRate = (Math.random() * 6 - 3);
       return Promise.resolve({
         code: code,
-        price: base + Math.round((Math.random() - 0.5) * 200),
+        price: base + Math.round((Math.random() - 0.5) * 50),
         change: changeRate >= 0 ? 1 : -1,
         changeRate: changeRate
       });
