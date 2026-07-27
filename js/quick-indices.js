@@ -790,7 +790,14 @@
   }
 
   function init() {
-    if (!isHomePage()) return;
+    if (!isHomePage()) {
+      // style.css의 html.full-width-page { --qi-height:0 } CSS만으로는 홈이 아닌 페이지에서
+      // 여백이 그대로 남는 게 실측됐다 - skin.html에 git 밖의 숨은 CSS가 이 계산을 덮어쓰는
+      // 전례(2026-07-16, 위 style.css 주석 참고)가 있어 JS로 documentElement 인라인 스타일에
+      // 직접 0을 박아 넣어 어떤 스타일시트보다도 확실히 이기게 한다.
+      document.documentElement.style.setProperty('--qi-height', '0px');
+      return;
+    }
     var container = ensureContainer();
     moduleContainer = container;
     wireEvents(container);
