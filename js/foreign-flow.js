@@ -2502,36 +2502,35 @@
   // 있음 - 실제 사용된 일수는 apt.days로 카드에 그대로 노출한다.
   var APT_BIN_COUNT = 24;
   var APT_LOOKBACK_DAYS = 120;
-  // 왼쪽에 표시할 층 이름표(네이버 위젯의 로비/저층/중층/고층/탑층 참고) - bin index 기준.
-  var APT_LABEL_BANDS = [
-    { idx: APT_BIN_COUNT - 1, label: '탑층' },
-    { idx: Math.round(APT_BIN_COUNT * 0.75) - 1, label: '고층' },
-    { idx: Math.round(APT_BIN_COUNT * 0.5) - 1, label: '중층' },
-    { idx: Math.round(APT_BIN_COUNT * 0.25) - 1, label: '저층' },
-    { idx: 0, label: '로비' }
-  ];
   var APT_TYPE_TABS = [
     { key: 'total', label: '전체' },
     { key: 'ind', label: '개인' },
     { key: 'foreign', label: '외국인' },
     { key: 'inst', label: '기관' }
   ];
-  var APT_WINDOWS_PER_FLOOR = 7; // 층마다 켜진 창문 개수로 물량 비중을 표현
-  // 위로 갈수록 좁아지는 실루엣(고층 타워 관례) - t=0(로비)일 때 100%, t=1(탑층)일 때
-  // 가장 좁게. 지수를 1보다 크게 줘서 아래쪽은 넓게 유지하다 위쪽에서 더 가파르게 좁아지는
-  // 곡선(실제 마천루 세트백과 비슷한 느낌)으로 만든다.
-  function aptFloorWidthPct(i) {
+  // 왼쪽 구간 안내판 라벨(네이버 위젯의 로비/저층/중층/고층/탑층 참고) - bin index를
+  // t=0(로비)~1(탑층)로 정규화해 5개 구간으로 나눈다(24bin 기준 5/5/5/6/3분포).
+  function aptBandLabel(i) {
     var t = i / (APT_BIN_COUNT - 1);
-    return 100 - 44 * Math.pow(t, 1.35);
+    if (t >= 0.8) return '탑층';
+    if (t >= 0.6) return '고층';
+    if (t >= 0.35) return '중층';
+    if (t >= 0.12) return '저층';
+    return '로비';
   }
 
+  // 2026-07-27 리디자인: 층별 창문(APT_WINDOWS_PER_FLOOR)·세트백 실루엣(aptFloorWidthPct)
+  // 방식은 "매물대 UI 리디자인 작업지시서" 요청으로 폐기 - 24bin × 창문 7개의 촘촘한
+  // 격자는 색만 바꿔선 프리미엄하게 안 보인다는 게 2026-07-28 손그림 스타일 시도에서
+  // 이미 확인됐던 문제라(revert 이력 참고), 이번엔 표현 방식 자체를 매도/매수 듀얼
+  // 바 차트(가격 레일 중심, 좌우 막대)로 바꿔 데이터 가독성 문제를 해결한다.
   function computeAptData(flowDaily, chartByDate) {
     var rows = [];
     (flowDaily || []).slice(0, APT_LOOKBACK_DAYS).forEach(function (d) {
       var c = chartByDate[d.date];
       if (!c || !(c.high > 0) || !(c.low > 0) || !(c.high >= c.low)) return;
       rows.push({
-        high: c.high, low: c.low, volume: c.volume || 0,
+        high: c.high, low: c.low, volume: c.volume || 0, changePct: c.change_pct || 0,
         ind: d.ind_net || 0, foreign: d.foreign_net || 0, inst: d.inst_net || 0
       });
     });
@@ -2544,7 +2543,7 @@
 
     function emptyBins() {
       var bins = [];
-      for (var i = 0; i < APT_BIN_COUNT; i++) bins.push({ low: minLow + i * binSize, high: minLow + (i + 1) * binSize, qty: 0 });
+      for (var i = 0; i < APT_BIN_COUNT; i++) bins.push({ low: minLow + i * binSize, high: minLow + (i + 1) * binSize, buyQty: 0, sellQty: 0 });
       return bins;
     }
     var profiles = { total: emptyBins(), ind: emptyBins(), foreign: emptyBins(), inst: emptyBins() };
@@ -2553,28 +2552,47 @@
       var range = r.high - r.low;
       var startIdx = Math.max(0, Math.floor((r.low - minLow) / binSize));
       var endIdx = range > 0 ? Math.min(APT_BIN_COUNT - 1, Math.floor((r.high - minLow) / binSize)) : startIdx;
-      ['total', 'ind', 'foreign', 'inst'].forEach(function (key) {
-        var qty = key === 'total' ? r.volume : (r[key] > 0 ? r[key] : 0);
+
+      function distribute(bins, qty, side) {
         if (!(qty > 0)) return;
-        var bins = profiles[key];
-        if (!(range > 0)) { bins[startIdx].qty += qty; return; }
+        if (!(range > 0)) { bins[startIdx][side] += qty; return; }
         for (var b = startIdx; b <= endIdx; b++) {
           var overlap = Math.min(bins[b].high, r.high) - Math.max(bins[b].low, r.low);
-          if (overlap > 0) bins[b].qty += qty * (overlap / range);
+          if (overlap > 0) bins[b][side] += qty * (overlap / range);
         }
+      }
+      // total: 체결 단위로 매수/매도가 태깅된 데이터가 없어, 그날 총거래량 전체를
+      // 등락 방향(상승일=매수 우세/하락일=매도 우세)에 몰아 계상하는 근사치다(OBV류 관례).
+      distribute(profiles.total, r.volume, r.changePct >= 0 ? 'buyQty' : 'sellQty');
+      // ind/foreign/inst: 그날 실제 순매수(+)/순매도(-) 부호를 그대로 매수/매도 벽으로
+      // 나눈다 - total 탭과 달리 근사가 아니라 실측 순매매 수량 자체를 쓰는 것이라 더 정확하다.
+      ['ind', 'foreign', 'inst'].forEach(function (key) {
+        var v = r[key];
+        if (v > 0) distribute(profiles[key], v, 'buyQty');
+        else if (v < 0) distribute(profiles[key], -v, 'sellQty');
       });
     });
 
-    var result = { minLow: minLow, maxHigh: maxHigh, days: rows.length };
+    var result = { minLow: minLow, maxHigh: maxHigh, binSize: binSize, days: rows.length };
     Object.keys(profiles).forEach(function (key) {
       var bins = profiles[key];
-      var totalQty = 0, weighted = 0, maxQty = 0, pocIndex = 0;
+      var totalBuy = 0, totalSell = 0, weighted = 0, weightQty = 0;
+      var maxBuyQty = 0, maxBuyIndex = -1, maxSellQty = 0, maxSellIndex = -1;
       bins.forEach(function (b, i) {
         var mid = (b.low + b.high) / 2;
-        totalQty += b.qty; weighted += b.qty * mid;
-        if (b.qty > maxQty) { maxQty = b.qty; pocIndex = i; }
+        totalBuy += b.buyQty; totalSell += b.sellQty;
+        // 'total' 탭은 매수+매도 합이 곧 전체 거래대금 가중(원래 의미), ind/foreign/inst는
+        // 매집(매수) 물량만으로 평단가를 잡아야 순매도일 때문에 "추정 평단가"가 흔들리지 않는다.
+        var w = key === 'total' ? (b.buyQty + b.sellQty) : b.buyQty;
+        weighted += w * mid; weightQty += w;
+        if (b.buyQty > maxBuyQty) { maxBuyQty = b.buyQty; maxBuyIndex = i; }
+        if (b.sellQty > maxSellQty) { maxSellQty = b.sellQty; maxSellIndex = i; }
       });
-      result[key] = { bins: bins, maxQty: maxQty, pocIndex: pocIndex, avgPrice: totalQty > 0 ? weighted / totalQty : null };
+      result[key] = {
+        bins: bins, totalBuy: totalBuy, totalSell: totalSell,
+        maxBuyQty: maxBuyQty, maxBuyIndex: maxBuyIndex, maxSellQty: maxSellQty, maxSellIndex: maxSellIndex,
+        avgPrice: weightQty > 0 ? weighted / weightQty : null
+      };
     });
     return result;
   }
@@ -2585,6 +2603,32 @@
     return Math.max(0, Math.min(APT_BIN_COUNT - 1, Math.floor((price - apt.minLow) / binSize)));
   }
 
+  // 매도/매수 우위가 이어지는 구간(연속 bin run) 중 가장 긴 구간을 찾아 가격범위+강도(1~5)를
+  // 반환한다 - "매도 우위 구간"/"매수 우위 구간" 카드용.
+  function aptDominantRange(bins, side) {
+    var other = side === 'sellQty' ? 'buyQty' : 'sellQty';
+    var bestStart = -1, bestLen = 0, curStart = -1, curLen = 0;
+    for (var i = 0; i < bins.length; i++) {
+      var dominant = bins[i][side] > bins[i][other] && bins[i][side] > 0;
+      if (dominant) {
+        if (curStart === -1) curStart = i;
+        curLen++;
+      } else {
+        if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
+        curStart = -1; curLen = 0;
+      }
+    }
+    if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
+    if (bestLen === 0) return null;
+    var sideSum = 0, otherSum = 0;
+    for (var j = bestStart; j < bestStart + bestLen; j++) { sideSum += bins[j][side]; otherSum += bins[j][other]; }
+    var dominance = sideSum + otherSum > 0 ? sideSum / (sideSum + otherSum) : 0;
+    return {
+      low: bins[bestStart].low, high: bins[bestStart + bestLen - 1].high,
+      strength: Math.max(1, Math.min(5, Math.round(1 + dominance * 4)))
+    };
+  }
+
   function buildAptSummaryHtml(profile, currentPrice) {
     if (!profile || profile.avgPrice == null) {
       return '<div class="ff-apt-summary">이 구간엔 추정할 매집 데이터가 부족해요.</div>';
@@ -2592,80 +2636,106 @@
     var avgPrice = profile.avgPrice;
     var returnPct = currentPrice != null ? (currentPrice - avgPrice) / avgPrice * 100 : null;
     var cls = returnPct == null ? 'ff-flat' : signClass(returnPct);
+    var totalQty = profile.totalBuy + profile.totalSell;
     return '<div class="ff-apt-summary">'
       + '<span class="ff-apt-summary-item">추정 평단가 <b>' + Math.round(avgPrice).toLocaleString('ko-KR') + '원</b></span>'
       + (returnPct != null
         ? '<span class="ff-apt-summary-item ' + cls + '">추정 수익률 <b>' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(2) + '%</b></span>'
-        : '') + '</div>';
+        : '')
+      + '<span class="ff-apt-legend"><span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-sell"></i>매도벽</span>'
+      + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-buy"></i>매수벽</span></span>'
+      + '</div>'
+      + (totalQty > 0
+        ? '<div class="ff-apt-totals">'
+          + '<span class="ff-apt-total ff-apt-total-sell">매도 총합 <b>' + Math.round(profile.totalSell).toLocaleString('ko-KR') + '주</b></span>'
+          + '<span class="ff-apt-total ff-apt-total-buy">매수 총합 <b>' + Math.round(profile.totalBuy).toLocaleString('ko-KR') + '주</b></span>'
+          + '</div>'
+        : '');
   }
 
-  // 진짜 고층 건물처럼 보이도록: 층마다 폭이 위로 갈수록 좁아지는 실루엣(aptFloorWidthPct)
-  // 위에 "창문" 7개를 두고 그 물량 비중만큼 불을 켠다(많이 몰린 층일수록 환하게, 텅 빈
-  // 층은 깜깜함 - "몇 명이 샀는지"를 문자 그대로 셀 순 없지만 "이 층이 북적인다"는 느낌은
-  // 창문 조명으로 표현). 옥상(고리 모양 전망대+안테나+경광등)과 로비(현관+포디움)를
-  // 위아래에 붙여 하나로 이어진 타워 실루엣처럼 보이게 한다. 각 행은 폭이 고정된
-  // "슬롯"(좌우 칸 너비를 모든 행이 공유) 안에 폭이 다른 벽을 가운데 정렬로 얹는 방식이라
-  // 슬롯 자체는 곧게 이어지고 안쪽 벽 윤곽만 층마다 계단식으로 좁아진다.
-  function buildAptRowHtml(cls, label, price, wallCls, wallWidthPct, wallInner, annotHtml, title) {
-    var wallStyle = wallWidthPct != null ? ' style="width:' + wallWidthPct + '%"' : '';
-    return '<div class="ff-apt-row' + (cls ? ' ' + cls : '') + '"' + (title ? ' title="' + escapeHtml(title) + '"' : '') + '>'
-      + '<span class="ff-apt-row-label">' + (label || '') + '</span>'
-      + '<span class="ff-apt-row-price">' + (price || '') + '</span>'
-      + '<span class="ff-apt-wall-slot"><span class="ff-apt-wall' + (wallCls ? ' ' + wallCls : '') + '"' + wallStyle + '>' + (wallInner || '') + '</span></span>'
-      + '<span class="ff-apt-row-annot">' + (annotHtml || '') + '</span>'
+  function aptDotsHtml(n) {
+    var out = '';
+    for (var i = 0; i < 5; i++) out += '<span class="ff-apt-dot' + (i < n ? ' on' : '') + '"></span>';
+    return out;
+  }
+
+  // 2026-07-27 리디자인: 좌우 매물벽 + 중앙 가격 레일의 듀얼 바 차트 - "매물대 UI
+  // 리디자인 작업지시서" 요청("아파트는 장식이 아니라 데이터 컨테이너") 반영. 층마다 좌측에
+  // 매도(파랑), 우측에 매수(분홍) 막대를 가격 레일 기준 바깥쪽으로 뻗게 그리고, 막대 끝에
+  // 거래량 숫자를 붙인다. 구간 안내판(탑층~로비)은 그 구간의 첫 행에서만 라벨을 보여줘
+  // 세로로 이어진 것처럼 보이게 한다(진짜 rowspan은 아니지만 실질적으로 동일한 효과).
+  function buildAptChartHtml(apt, typeKey, currentPrice) {
+    var profile = apt[typeKey];
+    if (!profile || (profile.totalBuy <= 0 && profile.totalSell <= 0)) {
+      return '<div class="ff-apt-empty">이 유형은 최근 구간에 매매 기록이 없어요.</div>';
+    }
+    var curIdx = aptBinIndex(apt, currentPrice);
+    var maxQtyOverall = Math.max(profile.maxBuyQty, profile.maxSellQty, 1);
+    var totalQty = profile.totalBuy + profile.totalSell;
+    var prevBand = null;
+    var rows = '';
+    for (var i = APT_BIN_COUNT - 1; i >= 0; i--) {
+      var b = profile.bins[i];
+      var mid = Math.round((b.low + b.high) / 2);
+      var band = aptBandLabel(i);
+      var showBand = band !== prevBand;
+      prevBand = band;
+      var isCurrent = i === curIdx;
+      var isMaxSell = i === profile.maxSellIndex && b.sellQty > 0;
+      var isMaxBuy = i === profile.maxBuyIndex && b.buyQty > 0;
+      var sellPct = Math.max(0, Math.round(b.sellQty / maxQtyOverall * 100));
+      var buyPct = Math.max(0, Math.round(b.buyQty / maxQtyOverall * 100));
+      var sellLabel = b.sellQty > 0 ? '<span class="ff-apt-bar-value">' + Math.round(b.sellQty).toLocaleString('ko-KR') + '</span>' : '';
+      var buyLabel = b.buyQty > 0 ? '<span class="ff-apt-bar-value">' + Math.round(b.buyQty).toLocaleString('ko-KR') + '</span>' : '';
+      var sharePct = totalQty > 0 ? (b.buyQty + b.sellQty) / totalQty * 100 : 0;
+      var title = mid.toLocaleString('ko-KR') + '원\n매도 ' + Math.round(b.sellQty).toLocaleString('ko-KR')
+        + '주 · 매수 ' + Math.round(b.buyQty).toLocaleString('ko-KR') + '주\n전체 비중 ' + sharePct.toFixed(1) + '%';
+      rows += '<div class="ff-apt-row' + (showBand ? ' ff-apt-band-start' : '') + (isCurrent ? ' ff-apt-row-current' : '') + '"'
+        + ' title="' + escapeHtml(title) + '">'
+        + '<span class="ff-apt-band-label">' + (showBand ? band : '') + '</span>'
+        + '<span class="ff-apt-bar-slot ff-apt-bar-slot-sell">' + sellLabel
+          + '<span class="ff-apt-bar ff-apt-bar-sell' + (isMaxSell ? ' ff-apt-bar-max' : '') + '" style="width:' + sellPct + '%"></span>'
+          + '</span>'
+        + '<span class="ff-apt-price">' + mid.toLocaleString('ko-KR') + '</span>'
+        + '<span class="ff-apt-bar-slot ff-apt-bar-slot-buy">'
+          + '<span class="ff-apt-bar ff-apt-bar-buy' + (isMaxBuy ? ' ff-apt-bar-max' : '') + '" style="width:' + buyPct + '%"></span>' + buyLabel
+          + '</span>'
+        + (isCurrent
+          ? '<span class="ff-apt-current-badge"><span class="ff-apt-current-arrow">◀</span>현재가 ' + mid.toLocaleString('ko-KR') + '원</span>'
+          : '')
+        + '</div>';
+    }
+    return '<div class="ff-apt-chart-wrap"><span class="ff-apt-icon">🏢</span>' + rows + '</div>';
+  }
+
+  function buildAptStatsHtml(profile) {
+    if (!profile || (profile.totalBuy <= 0 && profile.totalSell <= 0)) return '';
+    var sellRange = aptDominantRange(profile.bins, 'sellQty');
+    var buyRange = aptDominantRange(profile.bins, 'buyQty');
+    function rangeCard(title, range, dotLabel) {
+      var body = range
+        ? '<div class="ff-apt-stat-value">' + Math.round(range.low).toLocaleString('ko-KR') + '~' + Math.round(range.high).toLocaleString('ko-KR') + '원</div>'
+          + '<div class="ff-apt-stat-sub">' + dotLabel + ' ' + aptDotsHtml(range.strength) + '</div>'
+        : '<div class="ff-apt-stat-value ff-apt-stat-empty">뚜렷한 구간 없음</div>';
+      return '<div class="ff-apt-stat"><div class="ff-apt-stat-title">' + title + '</div>' + body + '</div>';
+    }
+    var maxSellMid = profile.maxSellIndex >= 0 ? Math.round((profile.bins[profile.maxSellIndex].low + profile.bins[profile.maxSellIndex].high) / 2) : null;
+    var maxBuyMid = profile.maxBuyIndex >= 0 ? Math.round((profile.bins[profile.maxBuyIndex].low + profile.bins[profile.maxBuyIndex].high) / 2) : null;
+    return '<div class="ff-apt-stats">'
+      + rangeCard('매도 우위 구간', sellRange, '매도벽 강함')
+      + rangeCard('매수 우위 구간', buyRange, '매수벽 강함')
+      + '<div class="ff-apt-stat"><div class="ff-apt-stat-title">최대 매물대(매도)</div>'
+        + '<div class="ff-apt-stat-value ff-apt-stat-sell">' + (maxSellMid != null ? maxSellMid.toLocaleString('ko-KR') + '원' : '-') + '</div>'
+        + '<div class="ff-apt-stat-sub">' + (profile.maxSellQty > 0 ? Math.round(profile.maxSellQty).toLocaleString('ko-KR') + '주' : '') + '</div></div>'
+      + '<div class="ff-apt-stat"><div class="ff-apt-stat-title">최대 매물대(매수)</div>'
+        + '<div class="ff-apt-stat-value ff-apt-stat-buy">' + (maxBuyMid != null ? maxBuyMid.toLocaleString('ko-KR') + '원' : '-') + '</div>'
+        + '<div class="ff-apt-stat-sub">' + (profile.maxBuyQty > 0 ? Math.round(profile.maxBuyQty).toLocaleString('ko-KR') + '주' : '') + '</div></div>'
       + '</div>';
   }
 
-  function buildAptBuildingHtml(apt, typeKey, currentPrice) {
-    var profile = apt[typeKey];
-    if (!profile || profile.maxQty <= 0) {
-      return '<div class="ff-apt-empty">이 유형은 최근 구간에 순매수 기록이 없어요.</div>';
-    }
-    var curIdx = aptBinIndex(apt, currentPrice);
-    var labelByIdx = {};
-    APT_LABEL_BANDS.forEach(function (b) { labelByIdx[b.idx] = b.label; });
-
-    var topWidth = aptFloorWidthPct(APT_BIN_COUNT - 1);
-    // 2026-07-28 사용자 요청: 옥상 위 45도 방향에 헬기 한 대(장식용, 데이터와 무관 -
-    // .ff-apt-tower-wrap이 position:relative라 절대좌표로 건물 위 우측에 띄운다).
-    var heliHtml = '<span class="ff-apt-heli">🚁</span>';
-    var roofRow = buildAptRowHtml('ff-apt-roof-row', '', '', 'ff-apt-roof', topWidth * 0.6,
-      '<span class="ff-apt-antenna"><span class="ff-apt-beacon"></span></span>', '');
-    var accentRow = buildAptRowHtml('ff-apt-accent-row', '', '', 'ff-apt-accent', topWidth, '', '');
-
-    var floors = '';
-    for (var i = APT_BIN_COUNT - 1; i >= 0; i--) {
-      var b = profile.bins[i];
-      var pct = b.qty > 0 ? Math.round(b.qty / profile.maxQty * 100) : 0;
-      var lit = b.qty > 0 ? Math.max(1, Math.round(pct / 100 * APT_WINDOWS_PER_FLOOR)) : 0;
-      var isPoc = i === profile.pocIndex && b.qty > 0;
-      var isCurrent = i === curIdx;
-      var mid = Math.round((b.low + b.high) / 2);
-
-      var windows = '';
-      for (var w = 0; w < APT_WINDOWS_PER_FLOOR; w++) {
-        windows += '<span class="ff-apt-window' + (w < lit ? ' lit' : '') + '"></span>';
-      }
-      var annot = (isPoc ? '<span class="ff-apt-flag">🚩평단가</span>' : '')
-        + (isCurrent ? '<span class="ff-apt-hit"><span class="ff-apt-arrow">▶</span>현재가</span>' : '');
-      var rowCls = 'ff-apt-floor' + (isPoc ? ' ff-apt-floor-poc' : '') + (isCurrent ? ' ff-apt-floor-current' : '');
-      var title = mid.toLocaleString('ko-KR') + '원대 · 상대 물량 ' + pct + '%';
-      floors += buildAptRowHtml(rowCls, labelByIdx[i] || '', mid.toLocaleString('ko-KR'), '', aptFloorWidthPct(i), windows, annot, title);
-    }
-
-    var groundRow = buildAptRowHtml('ff-apt-ground-row', '', '', 'ff-apt-ground', 108, '<span class="ff-apt-door">🚪</span>', '');
-    // 2026-07-28 사용자 요청: 현관(문) 밑에 지하실 한 층 추가 - 데이터가 없는 장식용
-    // 층이라 물량/가격 표시 없이 어둡게 눌린 슬래브 느낌만 낸다.
-    var basementRow = buildAptRowHtml('ff-apt-basement-row', '', '', 'ff-apt-basement', 96, '', '', '지하실');
-    // 2026-07-28 사용자 요청: 지하실로 사다리 타고 내려가는 사람 추가(장식용, 헬기와 동일하게
-    // 데이터와 무관 - .ff-apt-tower-wrap 기준 절대좌표로 로비/지하실 옆에 겹쳐 놓는다).
-    var ladderHtml = '<span class="ff-apt-ladder">🪜<span class="ff-apt-ladder-person">🧍</span></span>';
-
-    return '<div class="ff-apt-tower-wrap ff-apt-tower-' + typeKey + '">' + heliHtml + roofRow + accentRow + floors + groundRow + basementRow + ladderHtml + '</div>';
-  }
-
   function buildAptBodyHtml(apt, typeKey, currentPrice) {
-    return buildAptSummaryHtml(apt[typeKey], currentPrice) + buildAptBuildingHtml(apt, typeKey, currentPrice);
+    var profile = apt[typeKey];
+    return buildAptSummaryHtml(profile, currentPrice) + buildAptChartHtml(apt, typeKey, currentPrice) + buildAptStatsHtml(profile);
   }
 
   function buildAptCard(apt, currentPrice) {
@@ -2674,25 +2744,38 @@
       return '<button type="button" class="ff-apt-tab' + (t.key === 'total' ? ' active' : '') + '" data-apt-type="' + t.key + '">' + t.label + '</button>';
     }).join('') + '</div>';
     return '<div class="ff-extra-card ff-apt-card" id="ffAptCard">'
-      + '<div class="ff-extra-card-title">🏢 매물대 아파트(추정)</div>'
+      + '<div class="ff-extra-card-title">🏢 매물대(추정)</div>'
       + tabsHtml
       + '<div id="ffAptBody">' + buildAptBodyHtml(apt, 'total', currentPrice) + '</div>'
       + '<div class="ff-footnote">※ 실제 체결가·매수 주체가 태깅된 데이터가 아니라, 최근 ' + apt.days
-      + '거래일의 일별 고가~저가 구간에 (전체 거래량 또는 개인·외국인·기관의 그날 순매수량)을 분산해 합산한 '
-      + '<b>근사 추정치</b>입니다. 순매도한 날은 "매집"이 아니므로 제외했고, "평단가"·"추정 수익률"도 이 근사 분포의 '
-      + '가중평균이라 실제 매수 단가와 다를 수 있습니다.</div>'
+      + '거래일의 일별 고가~저가 구간에 (전체 거래량 또는 개인·외국인·기관의 그날 순매수·순매도량)을 분산해 합산한 '
+      + '<b>근사 추정치</b>입니다. "전체" 탭의 매도/매수 구분은 체결 태깅이 아니라 그날 등락 방향으로 나눈 근사이고, '
+      + '"평단가"·"추정 수익률"도 매수(매집) 물량만의 가중평균이라 실제 매수 단가와 다를 수 있습니다.</div>'
       + '</div>';
+  }
+
+  // 탭을 바꿀 때마다 막대를 처음부터 다시 자라나게 해서(더블 rAF로 0폭 상태를 한 프레임
+  // 확실히 그린 뒤 목표폭으로 전환) 데이터가 바뀌었다는 걸 시각적으로도 알려준다.
+  function playAptEntrance(card) {
+    var wrap = card.querySelector('.ff-apt-chart-wrap');
+    if (!wrap) return;
+    wrap.classList.remove('ff-apt-in');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { wrap.classList.add('ff-apt-in'); });
+    });
   }
 
   function wireAptTabs(box, apt, currentPrice) {
     var card = box.querySelector('#ffAptCard');
     if (!card || !apt) return;
+    playAptEntrance(card);
     card.querySelectorAll('.ff-apt-tab').forEach(function (btn) {
       btn.addEventListener('click', function () {
         card.querySelectorAll('.ff-apt-tab').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         var body = card.querySelector('#ffAptBody');
         if (body) body.innerHTML = buildAptBodyHtml(apt, btn.getAttribute('data-apt-type'), currentPrice);
+        playAptEntrance(card);
       });
     });
   }

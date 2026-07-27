@@ -457,7 +457,12 @@
   line-height: 1.7;
 }
 
-/* ---- 매물대 아파트(투자자별 근사, js/foreign-flow.js computeAptData) ---- */
+/* ---- 매물대(투자자별 근사, js/foreign-flow.js computeAptData) ----
+   2026-07-27 리디자인("매물대 UI 리디자인 작업지시서"): 층별 창문이 켜지는 "아파트"
+   일러스트를 폐기하고, 가격 레일을 중심으로 좌(매도)·우(매수) 막대가 뻗는 프리미엄
+   데이터 시각화로 전환. 24bin × 창문 7개의 촘촘한 격자는 팔레트만 바꿔선 예뻐지지
+   않는다는 게 2026-07-28 손그림 스타일 시도(즉시 revert)에서 이미 확인됐던 문제라,
+   이번엔 표현 방식 자체를 바꿔 해결한다. */
 #foreign-flow .ff-apt-tabs {
   display: flex;
   gap: 6px;
@@ -482,194 +487,143 @@
 #foreign-flow .ff-apt-summary {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 16px;
-  padding: 4px 2px 10px;
+  padding: 4px 2px 6px;
   font-size: 12.5px;
   color: #555;
 }
 #foreign-flow .ff-apt-summary-item b { font-size: 14.5px; margin-left: 3px; }
+#foreign-flow .ff-apt-legend { margin-left: auto; display: flex; gap: 12px; }
+#foreign-flow .ff-apt-legend-item { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #888; }
+#foreign-flow .ff-apt-swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
+#foreign-flow .ff-apt-swatch-sell { background: #4A90E2; }
+#foreign-flow .ff-apt-swatch-buy { background: #FF5B6E; }
 
-/* 건물 실루엣: 모든 행이 같은 좌우 칸 너비(라벨/가격/주석)를 공유하는 "슬롯" 구조라
-   가운데 벽만 층마다 폭이 달라져도 나머지는 수직으로 곧게 정렬된다. 벽 자체는 유리 타워
-   느낌의 중립 톤(남색 창+연회색 스팬드럴)으로 통일하고, 투자자 유형 색은 옥상 아래
-   얇은 "액센트 밴드" 한 줄로만 표현해 화려하지만 과하지 않게 만든다. */
-#foreign-flow .ff-apt-tower-wrap {
-  position: relative;
-  max-width: 280px;
-  margin: 6px auto 8px;
-}
-
-/* 2026-07-28 사용자 요청: 옥상 위 45도 방향에 헬기 한 대(장식용) - 건물 우상단에
-   절대좌표로 띄우고 살짝 위아래로 맴도는 느낌만 준다. */
-#foreign-flow .ff-apt-heli {
-  position: absolute;
-  top: -14px;
-  right: 6px;
-  font-size: 15px;
-  transform: rotate(-45deg);
-  animation: ff-apt-heli-hover 2.2s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes ff-apt-heli-hover {
-  0%, 100% { transform: rotate(-45deg) translateY(0); }
-  50% { transform: rotate(-45deg) translateY(-3px); }
-}
-
-/* 2026-07-28 사용자 요청: 현관 밑 지하실 한 층 - 로비보다 어둡게 눌린 슬래브로 표현 */
-#foreign-flow .ff-apt-basement-row { height: 10px; margin-top: 1px; }
-#foreign-flow .ff-apt-basement {
-  border-radius: 0 0 3px 3px;
-  background: repeating-linear-gradient(45deg, #9096a1, #9096a1 3px, #848a96 3px, #848a96 6px);
-  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.25);
-  border: 1px solid #1A1A1A;
-}
-
-/* 2026-07-28 사용자 요청: 지하실로 사다리 타고 내려가는 사람(장식용, 데이터와 무관) -
-   건물 왼쪽 아래에 절대좌표로 겹쳐 놓고, 사람이 사다리를 타고 로비에서 지하실로
-   내려갔다가 사라지고 다시 위에서 나타나는 루프 애니메이션만 준다. */
-#foreign-flow .ff-apt-ladder {
-  position: absolute;
-  left: 96px; /* 로비/지하실 벽 왼쪽 가장자리(약 105px)에 걸쳐 기대선 것처럼 보이는 위치 */
-  bottom: 0;
-  font-size: 13px;
-  line-height: 1;
-  pointer-events: none;
-}
-#foreign-flow .ff-apt-ladder-person {
-  position: absolute;
-  left: 2px;
-  top: -10px;
-  font-size: 9px;
-  animation: ff-apt-ladder-climb 2.6s ease-in-out infinite;
-}
-@keyframes ff-apt-ladder-climb {
-  0% { top: -10px; opacity: 1; }
-  55% { top: 3px; opacity: 1; }
-  70% { top: 3px; opacity: 0; }
-  71% { top: -10px; opacity: 0; }
-  100% { top: -10px; opacity: 1; }
-}
-#foreign-flow .ff-apt-row {
+#foreign-flow .ff-apt-totals {
   display: flex;
-  align-items: stretch;
-  gap: 6px;
-  padding: 0 4px;
-  height: 13px;
+  justify-content: center;
+  gap: 24px;
+  padding: 0 2px 10px;
+  font-size: 12px;
+  color: #667085;
 }
-#foreign-flow .ff-apt-row-label {
-  flex-shrink: 0;
-  width: 26px;
-  align-self: center;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: #aaa;
-}
-#foreign-flow .ff-apt-row-price {
-  flex-shrink: 0;
-  width: 52px;
-  align-self: center;
-  text-align: right;
-  font-size: 9px;
-  color: #888;
-  font-variant-numeric: tabular-nums;
-}
-#foreign-flow .ff-apt-wall-slot {
-  flex: 1;
+#foreign-flow .ff-apt-total b { margin-left: 4px; font-size: 14px; }
+#foreign-flow .ff-apt-total-sell b { color: #3776c9; }
+#foreign-flow .ff-apt-total-buy b { color: #e0435a; }
+
+/* 차트 프레임: 배경 #F8FAFC 위에 가격 레일을 중심으로 좌우 막대가 자란다.
+   건물은 더 이상 데이터를 담는 실루엣이 아니라 상단의 작은 아이콘 하나로만 남긴다. */
+#foreign-flow .ff-apt-chart-wrap {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  background: #F8FAFC;
+  border: 1px solid #e7ebf1;
+  border-radius: 10px;
+  padding: 6px 10px 4px;
+  margin: 4px 0 10px;
 }
-#foreign-flow .ff-apt-wall {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  transform: translateX(-50%);
+#foreign-flow .ff-apt-icon {
+  display: block;
+  text-align: center;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.55;
+  margin-bottom: 4px;
+}
+
+#foreign-flow .ff-apt-row {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  /* 2026-07-28 사용자 요청: 회색 유리타워 톤 대신 크림색 + 진한 외곽선의 플랫한 스타일로 변경 */
-  background: #F5EFE0;
-  border: 1px solid #1A1A1A;
+  gap: 6px;
+  height: 20px;
 }
-#foreign-flow .ff-apt-row-annot {
+#foreign-flow .ff-apt-band-start { border-top: 1px dashed #dde3ec; margin-top: 1px; padding-top: 1px; }
+#foreign-flow .ff-apt-row:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+
+#foreign-flow .ff-apt-band-label {
   flex-shrink: 0;
-  min-width: 58px;
-  align-self: center;
-  font-size: 10px;
+  width: 30px;
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #9aa5b1;
+  letter-spacing: -0.2px;
+}
+#foreign-flow .ff-apt-price {
+  flex-shrink: 0;
+  width: 62px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+}
+#foreign-flow .ff-apt-bar-slot {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+}
+#foreign-flow .ff-apt-bar-slot-sell { justify-content: flex-end; }
+#foreign-flow .ff-apt-bar-slot-buy { justify-content: flex-start; }
+#foreign-flow .ff-apt-bar-value {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  color: #9aa5b1;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
-#foreign-flow .ff-apt-window {
-  width: 4px;
-  height: 7px;
-  border-radius: 0.5px;
-  background: #141414;
+#foreign-flow .ff-apt-bar {
+  flex-shrink: 0;
+  width: 100%;
+  height: 11px;
+  border-radius: 2px;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
+  transform: scaleX(0);
 }
-#foreign-flow .ff-apt-window.lit {
-  background: #2BEE34;
-  box-shadow: 0 0 3px rgba(43, 238, 52, 0.95);
-}
+#foreign-flow .ff-apt-bar-sell { background: #4A90E2; transform-origin: right center; }
+#foreign-flow .ff-apt-bar-buy { background: #FF5B6E; transform-origin: left center; }
+#foreign-flow .ff-apt-chart-wrap.ff-apt-in .ff-apt-bar { transform: scaleX(1); }
+/* 최대 매물대: 외곽선 + 은은한 그림자로 첫눈에 띄게 */
+#foreign-flow .ff-apt-bar-sell.ff-apt-bar-max { box-shadow: 0 0 0 1px #2f6fc4, 0 0 7px 1px rgba(74, 144, 226, 0.7); }
+#foreign-flow .ff-apt-bar-buy.ff-apt-bar-max { box-shadow: 0 0 0 1px #e0435a, 0 0 7px 1px rgba(255, 91, 110, 0.7); }
 
-/* 옥상 액센트 밴드 - 탭(전체/개인/외국인/기관)마다 색이 바뀌는 유일한 구간 */
-#foreign-flow .ff-apt-accent-row { height: 4px; }
-#foreign-flow .ff-apt-accent { background: #9aa1ab; }
-#foreign-flow .ff-apt-tower-ind .ff-apt-accent { background: #f0b429; }
-#foreign-flow .ff-apt-tower-foreign .ff-apt-accent { background: #e8590c; }
-#foreign-flow .ff-apt-tower-inst .ff-apt-accent { background: #6741d9; }
-
-/* poc/current 강조는 유형색보다 나중에 와서 항상 위에 보인다 */
-#foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: #f6ead0; box-shadow: inset 0 0 0 1px rgba(232, 150, 12, 0.55); }
-#foreign-flow .ff-apt-flag { color: #b8860b; font-weight: 700; }
-#foreign-flow .ff-apt-floor-current .ff-apt-wall { background: #fbdcd9; box-shadow: inset 0 0 0 1px rgba(210, 79, 69, 0.65); }
-#foreign-flow .ff-apt-hit { display: inline-flex; align-items: center; gap: 2px; color: #d24f45; font-weight: 800; }
-#foreign-flow .ff-apt-arrow {
-  display: inline-block;
-  animation: ff-apt-poke 0.9s ease-in-out infinite;
-}
-@keyframes ff-apt-poke {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(3px); }
-}
-
-/* 옥상: 둥근 전망대 고리 + 안테나 + 깜빡이는 경광등 */
-#foreign-flow .ff-apt-roof-row { height: 12px; }
-#foreign-flow .ff-apt-roof {
-  border-radius: 999px;
-  background: #F5EFE0;
-  border: 1px solid #1A1A1A;
-}
-#foreign-flow .ff-apt-antenna {
-  position: relative;
-  width: 2px;
-  height: 13px;
-  background: #8a8f99;
-  transform: translateY(-9px);
-}
-#foreign-flow .ff-apt-beacon {
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #ff4d4f;
-  box-shadow: 0 0 4px rgba(255, 77, 79, 0.9);
-  animation: ff-apt-blink 1.4s ease-in-out infinite;
-}
-@keyframes ff-apt-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
-}
-
-/* 로비: 살짝 넓어지는 포디움 + 현관 */
-#foreign-flow .ff-apt-ground-row { height: 18px; }
-#foreign-flow .ff-apt-ground {
+/* 현재가 행: 주황 테두리 + 은은한 배경 + 은근한 pulse, 오른쪽에 뱃지로 강조 */
+#foreign-flow .ff-apt-row-current {
+  background: rgba(255, 152, 0, 0.10);
   border-radius: 4px;
-  background: #F5EFE0;
-  border: 1px solid #1A1A1A;
-  font-size: 10px;
-  line-height: 1;
+  border-top: 1px dashed #FF9800 !important;
+  border-bottom: 1px dashed #FF9800;
+  animation: ff-apt-current-pulse 1.8s ease-in-out infinite;
 }
+#foreign-flow .ff-apt-row-current .ff-apt-price { color: #d97a00; font-weight: 800; }
+@keyframes ff-apt-current-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.35); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 152, 0, 0); }
+}
+#foreign-flow .ff-apt-current-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 2px;
+  padding: 1px 8px 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #d97a00;
+  background: #fff;
+  border: 1px solid #FF9800;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.45);
+}
+#foreign-flow .ff-apt-current-arrow { color: #FF9800; }
 
 #foreign-flow .ff-apt-empty {
   padding: 18px 10px;
@@ -677,6 +631,28 @@
   color: #999;
   font-size: 12.5px;
 }
+
+/* 하단 통계 카드 4장: 매도/매수 우위 구간 + 최대 매물대(매도/매수) */
+#foreign-flow .ff-apt-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+#foreign-flow .ff-apt-stat {
+  background: #fff;
+  border: 1px solid #e7ebf1;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+#foreign-flow .ff-apt-stat-title { font-size: 10px; font-weight: 700; color: #9aa5b1; margin-bottom: 4px; }
+#foreign-flow .ff-apt-stat-value { font-size: 12.5px; font-weight: 800; color: #334155; }
+#foreign-flow .ff-apt-stat-value.ff-apt-stat-sell { color: #3776c9; }
+#foreign-flow .ff-apt-stat-value.ff-apt-stat-buy { color: #e0435a; }
+#foreign-flow .ff-apt-stat-empty { color: #aaa; font-weight: 500; font-size: 11.5px; }
+#foreign-flow .ff-apt-stat-sub { font-size: 10.5px; color: #8a94a3; margin-top: 4px; }
+#foreign-flow .ff-apt-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #e2e8f0; margin-right: 2px; }
+#foreign-flow .ff-apt-dot.on { background: #FF9800; }
 
 /* ---- 가격 차트: TradingView Lightweight Charts 캔버스(연기금 카드 바로 아래) ---- */
 #foreign-flow .ff-chart-candle { padding: 0; overflow: hidden; }
@@ -1083,27 +1059,29 @@ html.dark #foreign-flow .ff-apt-tab[data-apt-type="ind"].active { background: #f
 html.dark #foreign-flow .ff-apt-tab[data-apt-type="foreign"].active { background: #e8590c !important; border-color: #e8590c !important; color: #fff !important; }
 html.dark #foreign-flow .ff-apt-tab[data-apt-type="inst"].active { background: #7c5cdb !important; border-color: #7c5cdb !important; color: #fff !important; }
 html.dark #foreign-flow .ff-apt-summary { color: #bbb !important; }
-html.dark #foreign-flow .ff-apt-row-label { color: #777 !important; }
-html.dark #foreign-flow .ff-apt-row-price { color: #999 !important; }
-html.dark #foreign-flow .ff-apt-wall {
-  background: #F5EFE0 !important;
-  border: 1px solid #1A1A1A !important;
-}
-html.dark #foreign-flow .ff-apt-window { background: #141414 !important; }
-html.dark #foreign-flow .ff-apt-window.lit { background: #2BEE34 !important; box-shadow: 0 0 3px rgba(43, 238, 52, 0.9) !important; }
-html.dark #foreign-flow .ff-apt-accent { background: #7a828d !important; }
-html.dark #foreign-flow .ff-apt-tower-ind .ff-apt-accent { background: #f0b429 !important; }
-html.dark #foreign-flow .ff-apt-tower-foreign .ff-apt-accent { background: #e8590c !important; }
-html.dark #foreign-flow .ff-apt-tower-inst .ff-apt-accent { background: #8767e0 !important; }
-html.dark #foreign-flow .ff-apt-floor-poc .ff-apt-wall { background: #4a3a1a !important; box-shadow: inset 0 0 0 1px rgba(240, 146, 74, 0.6) !important; }
-html.dark #foreign-flow .ff-apt-flag { color: #f0924a !important; }
-html.dark #foreign-flow .ff-apt-floor-current .ff-apt-wall { background: #4a2622 !important; box-shadow: inset 0 0 0 1px rgba(232, 119, 109, 0.65) !important; }
-html.dark #foreign-flow .ff-apt-hit { color: #e8776d !important; }
-html.dark #foreign-flow .ff-apt-roof { background: #F5EFE0 !important; border: 1px solid #1A1A1A !important; }
-html.dark #foreign-flow .ff-apt-antenna { background: #888 !important; }
-html.dark #foreign-flow .ff-apt-ground { background: #F5EFE0 !important; border: 1px solid #1A1A1A !important; }
-html.dark #foreign-flow .ff-apt-basement { background: repeating-linear-gradient(45deg, #2a2c31, #2a2c31 3px, #202124 3px, #202124 6px) !important; border: 1px solid #1A1A1A !important; }
+html.dark #foreign-flow .ff-apt-legend-item { color: #999 !important; }
+html.dark #foreign-flow .ff-apt-totals { color: #aaa !important; }
+html.dark #foreign-flow .ff-apt-chart-wrap { background: #21262e !important; border-color: #363c46 !important; }
+html.dark #foreign-flow .ff-apt-band-start { border-top-color: #3a4048 !important; }
+html.dark #foreign-flow .ff-apt-band-label { color: #7a828d !important; }
+html.dark #foreign-flow .ff-apt-price { color: #ddd !important; }
+html.dark #foreign-flow .ff-apt-bar-value { color: #7a828d !important; }
+html.dark #foreign-flow .ff-apt-bar-sell { background: #5b9ee8 !important; }
+html.dark #foreign-flow .ff-apt-bar-buy { background: #ff7d8e !important; }
+html.dark #foreign-flow .ff-apt-bar-sell.ff-apt-bar-max { box-shadow: 0 0 0 1px #8fc0f0 !important, 0 0 8px 1px rgba(91, 158, 232, 0.75) !important; }
+html.dark #foreign-flow .ff-apt-bar-buy.ff-apt-bar-max { box-shadow: 0 0 0 1px #ffb0ba !important, 0 0 8px 1px rgba(255, 125, 142, 0.75) !important; }
+html.dark #foreign-flow .ff-apt-row-current { background: rgba(255, 152, 0, 0.16) !important; }
+html.dark #foreign-flow .ff-apt-row-current .ff-apt-price { color: #ffb154 !important; }
+html.dark #foreign-flow .ff-apt-current-badge { background: #262626 !important; color: #ffb154 !important; }
 html.dark #foreign-flow .ff-apt-empty { color: #999 !important; }
+html.dark #foreign-flow .ff-apt-stat { background: #262c34 !important; border-color: #3a4048 !important; }
+html.dark #foreign-flow .ff-apt-stat-title { color: #7a828d !important; }
+html.dark #foreign-flow .ff-apt-stat-value { color: #ddd !important; }
+html.dark #foreign-flow .ff-apt-stat-value.ff-apt-stat-sell { color: #8fc0f0 !important; }
+html.dark #foreign-flow .ff-apt-stat-value.ff-apt-stat-buy { color: #ff9fac !important; }
+html.dark #foreign-flow .ff-apt-stat-sub { color: #8a94a3 !important; }
+html.dark #foreign-flow .ff-apt-dot { background: #3a4048 !important; }
+html.dark #foreign-flow .ff-apt-dot.on { background: #ffb154 !important; }
 html.dark #foreign-flow .ff-bar-axis { stroke: #444 !important; }
 html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }
 html.dark #foreign-flow .ff-bar-label { fill: #888 !important; }
