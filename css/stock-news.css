@@ -327,21 +327,6 @@
     font-size: 13px;
   }
 
-  .sn-news-item {
-    gap: 10px;
-    padding: 10px 12px;
-  }
-
-  .sn-news-thumb,
-  .sn-news-thumb-empty {
-    width: 56px;
-    height: 56px;
-  }
-
-  .sn-news-title {
-    font-size: 13.5px;
-  }
-
   .sn-modal-card {
     padding: 16px 16px 20px;
   }
@@ -377,6 +362,17 @@
   font-size: 13px;
 }
 
+/* 종목이 속한 섹터 태그(data/sectors-v3.js 필요 - buildSectorTags 참고) */
+.sn-sector-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.sn-sector-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4338ca;
+  background: #eef2ff;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
 /* ============ AI 요약 (Groq) ============ */
 /* 시황분석 박스(sector-dashboard-v3.css의 .market-ai-summary)와 동일 톤 */
 
@@ -409,50 +405,44 @@
   color: #312e81;
 }
 
-.sn-news-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* ============ 뉴스 카드 (2026-07-27 개편) ============
+   네이버 증권 "뉴스·리서치" 탭 참고 - 큰 사진 카드 1개 + 헤드라인 리스트(상단),
+   나머지는 이미지 카드 그리드(하단). 데이터는 기존 그대로(image/title/body/press/
+   datetime) - GAS 변경 없이 레이아웃만 재구성. */
+.sn-news-thumb-empty { background: #f1f5f9; }
+
+.sn-news-top {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
-.sn-news-item {
+.sn-news-featured {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 14px;
+  overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   cursor: pointer;
 }
-
-.sn-news-item:hover {
-  border-color: #cbd5e1;
-}
-
-.sn-news-thumb {
-  width: 72px;
-  height: 72px;
-  border-radius: 8px;
+.sn-news-featured:hover { border-color: #cbd5e1; }
+.sn-news-featured-img {
+  width: 100%;
+  height: 220px;
   object-fit: cover;
+  background: #f1f5f9;
   flex-shrink: 0;
-  background: #f1f5f9;
 }
-
-.sn-news-thumb-empty {
-  background: #f1f5f9;
-}
-
-.sn-news-body {
-  min-width: 0;
-  flex: 1;
-}
-
-.sn-news-title {
-  font-size: 14px;
-  font-weight: 600;
+.sn-news-featured-body { padding: 14px 16px; }
+.sn-news-featured-title {
+  font-size: 16px;
+  font-weight: 700;
   color: #111827;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  line-height: 1.4;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -462,7 +452,7 @@
 .sn-news-snippet {
   font-size: 12.5px;
   color: #6b7280;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -478,6 +468,86 @@
 
 .sn-news-press {
   font-weight: 600;
+}
+
+.sn-news-headlines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sn-news-headline-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.sn-news-headline-item:hover { border-color: #cbd5e1; }
+.sn-news-headline-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f1f5f9;
+}
+.sn-news-headline-body { min-width: 0; flex: 1; }
+.sn-news-headline-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.sn-news-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.sn-news-grid-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+}
+.sn-news-grid-item:hover { border-color: #cbd5e1; }
+.sn-news-grid-thumb {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: #f1f5f9;
+}
+.sn-news-grid-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  padding: 10px 12px 4px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.sn-news-grid-item .sn-news-meta { padding: 0 12px 10px; }
+
+/* 2026-07-27: 카드형 개편(featured+headlines+grid) 모바일 축소값 - 위 기본 규칙보다
+   뒤에 와야 우선순위가 밀리지 않는다(동일 특이도라 소스 순서로 결정됨, 이전에 313번째줄
+   쪽 media 블록에 넣었다가 여기 기본 규칙에 밀려 3열 그리드가 그대로 나오는 버그가
+   있었음 - 실측으로 발견). */
+@media (max-width: 480px) {
+  .sn-news-top { grid-template-columns: 1fr; }
+  .sn-news-featured-img { height: 160px; }
+  .sn-news-featured-title { font-size: 14.5px; }
+  .sn-news-grid { grid-template-columns: repeat(2, 1fr); }
+  .sn-news-headline-thumb { width: 44px; height: 44px; }
 }
 
 /* ============ 뉴스 상세 모달 ============ */
@@ -702,22 +772,30 @@ html.dark #stock-news .sn-result-code {
   color: #8590a8 !important;
 }
 
-html.dark #stock-news .sn-news-item {
+html.dark #stock-news .sn-news-featured,
+html.dark #stock-news .sn-news-headline-item,
+html.dark #stock-news .sn-news-grid-item {
   background: #171e2f;
   border-color: #263248;
   box-shadow: none;
 }
 
-html.dark #stock-news .sn-news-item:hover {
+html.dark #stock-news .sn-news-featured:hover,
+html.dark #stock-news .sn-news-headline-item:hover,
+html.dark #stock-news .sn-news-grid-item:hover {
   border-color: #3b4a68;
 }
 
-html.dark #stock-news .sn-news-thumb,
+html.dark #stock-news .sn-news-featured-img,
+html.dark #stock-news .sn-news-headline-thumb,
+html.dark #stock-news .sn-news-grid-thumb,
 html.dark #stock-news .sn-news-thumb-empty {
   background: #0e1320;
 }
 
-html.dark #stock-news .sn-news-title {
+html.dark #stock-news .sn-news-featured-title,
+html.dark #stock-news .sn-news-headline-title,
+html.dark #stock-news .sn-news-grid-title {
   color: #eaeef5 !important;
 }
 
@@ -727,6 +805,11 @@ html.dark #stock-news .sn-news-snippet {
 
 html.dark #stock-news .sn-news-meta {
   color: #7c8aa5 !important;
+}
+
+html.dark #stock-news .sn-sector-tag {
+  background: #1c2340;
+  color: #a5b4fc;
 }
 
 html.dark #stock-news .sn-ai-summary {

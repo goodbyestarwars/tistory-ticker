@@ -465,6 +465,14 @@
       });
   }
 
+  // 2026-07-27: "9Pay 증권" 개편 작업지시서 #10 - 텍스트 위주 나열형을 네이버 증권
+  // 뉴스·리서치 탭처럼 "큰 사진 1개 + 헤드라인 리스트" 상단 + 카드형 그리드 하단으로
+  // 재구성. 데이터(title/body/press/datetime/image/link)는 그대로라 GAS 변경은 불필요 -
+  // 이미 모든 뉴스 항목에 image 필드가 내려오고 있어(renderNews 원본 코드) 프론트
+  // 레이아웃만 바꾸면 된다.
+  var FEATURED_COUNT = 1;
+  var HEADLINE_COUNT = 4;
+
   function renderNews(box, stock, data) {
     // GAS 캐시 갱신 전환기에는 옛날 응답 형태(배열)가 아직 캐시에 남아있을 수 있어
     // 신/구 형태를 둘 다 받아준다.
@@ -478,6 +486,8 @@
     var html = '<div class="sn-result-header">' + escapeHtml(stock.name)
       + ' <span class="sn-result-code">(' + escapeHtml(stock.code) + ')</span> 관련 뉴스</div>';
 
+    html += buildSectorTags(stock.code);
+
     // AI 요약(Groq) - null이면(키 없음/레이트리밋/네트워크 오류) 박스 없이 뉴스만 표시
     var aiSummary = !Array.isArray(data) && data && data.aiSummary;
     if (aiSummary) {
@@ -487,30 +497,94 @@
         + '</div>';
     }
 
-    html += '<div class="sn-news-list">';
+    var featured = list.slice(0, FEATURED_COUNT);
+    var headlines = list.slice(FEATURED_COUNT, FEATURED_COUNT + HEADLINE_COUNT);
+    var rest = list.slice(FEATURED_COUNT + HEADLINE_COUNT);
 
-    list.forEach(function (item, idx) {
-      html += '<div class="sn-news-item" data-idx="' + idx + '">'
-        + (item.image
-          ? '<img class="sn-news-thumb" src="' + escapeAttr(item.image) + '" alt="" loading="lazy" />'
-          : '<div class="sn-news-thumb sn-news-thumb-empty"></div>')
-        + '<div class="sn-news-body">'
-        + '<div class="sn-news-title">' + escapeHtml(item.title) + '</div>'
-        + '<div class="sn-news-snippet">' + escapeHtml(item.body) + '</div>'
-        + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
-        + '<span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
-        + '</div>'
-        + '</div>';
-    });
+    if (featured.length) {
+      html += '<div class="sn-news-top">';
+      html += featured.map(function (item, idx) { return buildFeaturedCard(item, idx); }).join('');
+      if (headlines.length) {
+        html += '<div class="sn-news-headlines">' + headlines.map(function (item, idx) {
+          return buildHeadlineItem(item, idx + FEATURED_COUNT);
+        }).join('') + '</div>';
+      }
+      html += '</div>';
+    }
 
-    html += '</div>';
+    if (rest.length) {
+      html += '<div class="sn-news-grid">' + rest.map(function (item, idx) {
+        return buildGridCard(item, idx + FEATURED_COUNT + HEADLINE_COUNT);
+      }).join('') + '</div>';
+    }
+
     box.innerHTML = html;
 
-    box.querySelectorAll('.sn-news-item').forEach(function (el) {
+    box.querySelectorAll('[data-idx]').forEach(function (el) {
       el.addEventListener('click', function () {
         openNewsModal(list[Number(el.getAttribute('data-idx'))]);
       });
     });
+  }
+
+  function buildFeaturedCard(item, idx) {
+    return '<div class="sn-news-featured" data-idx="' + idx + '">'
+      + (item.image
+        ? '<img class="sn-news-featured-img" src="' + escapeAttr(item.image) + '" alt="" loading="lazy" />'
+        : '<div class="sn-news-featured-img sn-news-thumb-empty"></div>')
+      + '<div class="sn-news-featured-body">'
+      + '<div class="sn-news-featured-title">' + escapeHtml(item.title) + '</div>'
+      + '<div class="sn-news-snippet">' + escapeHtml(item.body) + '</div>'
+      + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
+      + '<span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function buildHeadlineItem(item, idx) {
+    return '<div class="sn-news-headline-item" data-idx="' + idx + '">'
+      + (item.image
+        ? '<img class="sn-news-headline-thumb" src="' + escapeAttr(item.image) + '" alt="" loading="lazy" />'
+        : '<div class="sn-news-headline-thumb sn-news-thumb-empty"></div>')
+      + '<div class="sn-news-headline-body">'
+      + '<div class="sn-news-headline-title">' + escapeHtml(item.title) + '</div>'
+      + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
+      + '<span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function buildGridCard(item, idx) {
+    return '<div class="sn-news-grid-item" data-idx="' + idx + '">'
+      + (item.image
+        ? '<img class="sn-news-grid-thumb" src="' + escapeAttr(item.image) + '" alt="" loading="lazy" />'
+        : '<div class="sn-news-grid-thumb sn-news-thumb-empty"></div>')
+      + '<div class="sn-news-grid-title">' + escapeHtml(item.title) + '</div>'
+      + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
+      + '<span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
+      + '</div>';
+  }
+
+  // 작업지시서는 "반도체/AI/바이오/자동차/금융" 같은 고정 5개 카테고리를 예시로 들었지만
+  // 종목뉴스는 종목 하나를 고르는 화면이라 뉴스 자체를 카테고리로 나눌 대상이 없다 -
+  // 대신 이미 있는 실제 섹터 분류(data/sectors-v3.js, 37개 섹터)에서 이 종목이 속한
+  // 섹터를 찾아 태그로 보여준다(고정 5개보다 정확함). 그 파일이 이 페이지에 없으면
+  // (기본 test/stock-news.html·기존 운영 페이지엔 krx_map.js만 로드) 조용히 생략 -
+  // 실제 반영하려면 티스토리 /page/stock-news 편집 화면에 아래 한 줄을 추가해야 한다:
+  // <script src="https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js"></script>
+  function buildSectorTags(code) {
+    var map = global.SECTOR_MAP;
+    if (!map || !code) return '';
+    var sectors = [];
+    for (var sector in map) {
+      if (!map.hasOwnProperty(sector)) continue;
+      var found = map[sector].some(function (s) { return s.code === code; });
+      if (found) sectors.push(sector);
+    }
+    if (!sectors.length) return '';
+    return '<div class="sn-sector-tags">' + sectors.map(function (s) {
+      return '<span class="sn-sector-tag">' + escapeHtml(s) + '</span>';
+    }).join('') + '</div>';
   }
 
   function formatDatetime(raw) {
