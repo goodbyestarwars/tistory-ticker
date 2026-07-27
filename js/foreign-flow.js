@@ -70,7 +70,7 @@
   var quoteInflight = {}; // code -> Promise
   var fundamentalsCache = {};    // code -> GAS ?action=fundamentals 응답(당일 내내 유효, 새로고침 시 초기화)
   var fundamentalsInflight = {}; // code -> Promise
-  var activeView = 'flow';       // 'flow' | 'chart' | 'fundamentals' - 탭 상태(종목 재검색 시 flow로 리셋)
+  var activeView = 'flow';       // 'flow' | 'apt' | 'chart' | 'fundamentals' - 탭 상태(종목 재검색 시 flow로 리셋)
 
   // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
   var PENSION_TONE_SCORE = {
@@ -1078,9 +1078,11 @@
     html += buildViewTabs();
 
     html += '<div class="ff-view" id="ffViewFlow">';
-    html += buildAptCard(apt, aptCurrentPrice);
     html += buildFlowCard(data);
     html += buildFlowExtraSections(entry, latest && latest.close);
+    html += '</div>';
+    html += '<div class="ff-view" id="ffViewApt" hidden>';
+    html += buildAptCard(apt, aptCurrentPrice);
     html += '</div>';
     html += '<div class="ff-view" id="ffViewChart" hidden>';
     html += buildChartSection(chartData, techScore);
@@ -1102,11 +1104,15 @@
     wireAptTabs(box, apt, aptCurrentPrice);
   }
 
-  // ---- 탭(수급 / 차트 / 펀더멘탈) ----
+  // ---- 탭(수급 / 매물대 / 차트 / 펀더멘탈) ----
+  // 2026-07-27: 매물대(아파트) 카드가 원래 "수급" 탭 안에 얹혀 있었는데, Ver.2 리디자인으로
+  // 카드 자체가 옥상/사다리/로비/지하실까지 딸린 큰 위젯이 되면서 수급 탭이 너무 길어져
+  // 별도 탭으로 분리(사용자 요청).
 
   function buildViewTabs() {
     return '<div class="ff-view-tabs">'
       + '<button type="button" class="ff-view-tab active" data-view="flow">수급</button>'
+      + '<button type="button" class="ff-view-tab" data-view="apt">매물대</button>'
       + '<button type="button" class="ff-view-tab" data-view="chart">차트</button>'
       + '<button type="button" class="ff-view-tab" data-view="fundamentals">펀더멘탈</button>'
       + '</div>';
@@ -1115,6 +1121,7 @@
   function wireViewTabs(box, code, name, chartData) {
     var tabs = box.querySelectorAll('.ff-view-tab');
     var flowBox = box.querySelector('#ffViewFlow');
+    var aptBox = box.querySelector('#ffViewApt');
     var chartBox = box.querySelector('#ffViewChart');
     var fundBox = box.querySelector('#ffViewFundamentals');
     tabs.forEach(function (btn) {
@@ -1124,9 +1131,16 @@
         activeView = view;
         tabs.forEach(function (b) { b.classList.toggle('active', b === btn); });
         if (flowBox) flowBox.hidden = view !== 'flow';
+        if (aptBox) aptBox.hidden = view !== 'apt';
         if (chartBox) chartBox.hidden = view !== 'chart';
         if (fundBox) fundBox.hidden = view !== 'fundamentals';
         if (view === 'fundamentals' && fundBox) loadFundamentals(fundBox, code, name);
+        // 매물대 탭은 hidden(display:none) 상태에서 진입 애니메이션(class 토글)이 이미
+        // 끝나버려 처음 열 때 정지 상태로 보이므로, 탭을 열 때마다 다시 재생한다.
+        if (view === 'apt' && aptBox) {
+          var aptCard = aptBox.querySelector('#ffAptCard');
+          if (aptCard) playAptEntrance(aptCard);
+        }
         // 차트 탭은 처음 열릴 때만 렌더링(hidden 상태에서 그리면 크기 0으로 잡히는 문제 방지)
         if (view === 'chart' && chartBox && !chartBox.dataset.rendered) {
           chartBox.dataset.rendered = '1';
