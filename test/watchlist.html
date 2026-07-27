@@ -34,6 +34,19 @@
 <script>
   // GAS 재배포와 무관한 기능(신규 엔드포인트 없음)이라 기본은 mock, ?real=1이면 실제 GAS 호출
   if (location.search.indexOf('real=1') === -1) {
+    // 2026-07-27: 수급(외국인·기관) 카드 표시는 VM /foreign-flow/{code}를 fetch()로 직접
+    // 부르므로(Watchlist.fetchQuotes 경유 아님) 여기서 별도로 가로챈다.
+    var originalFetch = window.fetch;
+    window.fetch = function (url) {
+      if (String(url).indexOf('/foreign-flow/') > -1) {
+        var buy = Math.random() > 0.5;
+        return Promise.resolve({ ok: true, json: function () {
+          return Promise.resolve({ data: { rolling: { '5d': { foreign: buy ? 50000 : -30000, inst: buy ? -10000 : 20000 } } } });
+        } });
+      }
+      return originalFetch ? originalFetch.apply(window, arguments) : Promise.reject(new Error('no fetch'));
+    };
+
     Watchlist.fetchQuotes = function (codes) {
       console.log('[mock] fetchQuotes', codes);
       var byCode = {};

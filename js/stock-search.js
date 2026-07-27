@@ -51,6 +51,20 @@
     if (!container) return;
     container.innerHTML = buildShell();
     wireSearch(container);
+    autoSearchFromUrl(container);
+  }
+
+  // 관심종목(MY) 카드의 "차트 보기" 버튼이 ?code=005930&name=삼성전자로 넘어오면
+  // 사용자가 직접 검색하지 않아도 바로 그 종목을 조회한다(js/foreign-flow.js의
+  // autoSearchFromUrl과 동일 패턴, js/watchlist.js가 이 URL로 링크를 건다).
+  function autoSearchFromUrl(container) {
+    var params = new URLSearchParams(location.search);
+    var code = (params.get('code') || '').trim();
+    if (!code) return;
+    var name = (params.get('name') || '').trim();
+    var input = container.querySelector('#ssInput');
+    if (input) input.value = name || code;
+    runSearch(container, code);
   }
 
   function buildShell() {
@@ -214,7 +228,7 @@
     resultsBox.innerHTML = '<div class="ss-results-count">검색 결과 ' + items.length + '건</div>'
       + '<div class="ss-results-table">'
       + '<div class="ss-results-head">'
-      + '<span>종목</span><span>현재가</span><span>등락률</span><span>거래량</span><span>거래대금</span><span>업종</span>'
+      + '<span>종목</span><span>현재가</span><span>등락률</span><span>거래량</span><span>거래대금</span><span>업종</span><span>관심</span>'
       + '</div>'
       + items.map(function (it, idx) { return resultRowHtml(it, idx); }).join('')
       + '</div>';
@@ -225,6 +239,26 @@
         selectStock(container, items[idx]);
         resultsBox.querySelectorAll('.ss-result-row').forEach(function (r) { r.classList.remove('active'); });
         row.classList.add('active');
+      });
+    });
+
+    // 2026-07-27: "9Pay 증권" 개편 작업지시서 #11 - 검색 결과의 ⭐ 버튼으로 관심종목(MY)에
+    // 바로 등록. js/watchlist.js가 이 페이지에 없으면(로드 순서 누락 등) 버튼을 눌러도
+    // 조용히 무시되게 존재 체크만 하고 에러는 안 던진다.
+    resultsBox.querySelectorAll('.ss-fav-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (!global.Watchlist) return;
+        var code = btn.getAttribute('data-code');
+        var name = btn.getAttribute('data-name');
+        if (global.Watchlist.has(code)) {
+          global.Watchlist.remove(code);
+          btn.classList.remove('active');
+        } else {
+          var result = global.Watchlist.add(code, name);
+          if (result.ok) btn.classList.add('active');
+          else if (result.reason === 'full') alert('관심종목은 최대 ' + global.Watchlist.MAX_ITEMS + '개까지 담을 수 있습니다.');
+        }
       });
     });
 
@@ -241,6 +275,7 @@
     var sectorHtml = it.sectors.length
       ? it.sectors.slice(0, 2).map(function (s) { return '<span class="ss-sector-tag">' + escapeHtml(s) + '</span>'; }).join('')
       : '<span class="ss-sector-tag ss-sector-tag-empty">-</span>';
+    var isFav = !!(global.Watchlist && global.Watchlist.has(it.code));
     return '<div class="ss-result-row" data-idx="' + idx + '">'
       + '<span class="ss-result-name">' + stockIconHtml(it.code) + '<span>' + escapeHtml(it.name) + '</span><span class="ss-result-code">' + escapeHtml(it.code) + '</span></span>'
       + '<span class="' + cls + '">' + fmtPrice(it.price) + '</span>'
@@ -248,6 +283,7 @@
       + '<span>' + fmtQty(it.volume) + '</span>'
       + '<span>' + fmtEok(it.tradingValue) + '</span>'
       + '<span class="ss-result-sectors">' + sectorHtml + '</span>'
+      + '<span><button type="button" class="ss-fav-btn' + (isFav ? ' active' : '') + '" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" title="관심종목에 추가/제거" aria-label="관심종목 토글">★</button></span>'
       + '</div>';
   }
 

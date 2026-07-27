@@ -1,17 +1,23 @@
 /**
- * 관심종목 카드 위젯
+ * 관심종목 카드 위젯 - "9Pay 증권" 개편 작업지시서 #11(MY 메뉴).
  * 로그인 없이 localStorage에 저장(코드+이름, 최대 50개, 순서 보존 배열).
  * 종목명 검색(KRX_MAP 자동완성, foreign-flow.js와 동일 패턴)으로 추가하고,
  * 기존 GAS 시세 프록시(?codes=)를 그대로 재사용해 카드에 현재가/등락률을 채운다.
- * 카드 클릭 시 네이버 금융 종목 페이지로 이동(ticker-tooltip-v5.js의 NAVER_ITEM_URL과 동일 목적지).
+ * 카드 클릭 시 네이버 금융 종목 페이지로 이동(ticker-tooltip-v5.js의 NAVER_ITEM_URL과 동일 목적지),
+ * "차트 이동" 버튼은 우리 사이트 증시검색 페이지로 이동(js/stock-search.js).
  *
  * window.KRX_MAP(종목명->코드)이 이 스크립트보다 먼저 로드되어야 함.
  * data-code 속성을 순서대로 유지해두어 향후 Drag & Drop으로 순서 변경을 붙이기 쉽게 해둔다.
+ *
+ * 2026-07-27: add/has/remove를 공개 API로 노출 - js/stock-search.js의 검색 결과 ⭐
+ * 버튼이 이 모듈의 localStorage를 직접 건드리지 않고 이 함수들을 통해서만 접근한다
+ * (저장 형식이 바뀌어도 호출부는 안 바뀌게).
  */
 (function (global) {
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var CONTAINER_SELECTOR = '#watchlist';
   var STORAGE_KEY = 'wl_codes_v1';
   var MAX_ITEMS = 50;
@@ -19,6 +25,9 @@
   var FETCH_TIMEOUT_MS = 8000;
   var NAVER_ITEM_URL = 'https://finance.naver.com/item/main.naver?code=';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  // TODO: /page/stock-search는 실제 페이지 생성 전 placeholder(js/skin-menu.js와 동일 사유) -
+  // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
+  var STOCK_SEARCH_PAGE_URL = '/page/stock-search';
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -181,6 +190,34 @@
     return null;
   }
 
+  // 코드/이름을 이미 아는 호출자(증시검색 ⭐ 버튼 등)를 위한 공개 API - 결과 코드로
+  // 호출부가 버튼 상태(담김/실패 사유)를 갱신할 수 있게 한다. 위젯이 이 페이지에 없어도
+  // (컨테이너 없이 localStorage만 조작) 동작해야 하므로 render(container) 호출은 컨테이너가
+  // 있을 때만 한다.
+  function addStock(code, name) {
+    if (!code) return { ok: false, reason: 'invalid' };
+    var list = loadList();
+    if (list.some(function (it) { return it.code === code; })) return { ok: false, reason: 'exists' };
+    if (list.length >= MAX_ITEMS) return { ok: false, reason: 'full' };
+
+    list.push({ code: code, name: name || code });
+    saveList(list);
+    var container = document.querySelector(CONTAINER_SELECTOR);
+    if (container) render(container);
+    return { ok: true };
+  }
+
+  function removeStock(code) {
+    var list = loadList().filter(function (it) { return it.code !== code; });
+    saveList(list);
+    var container = document.querySelector(CONTAINER_SELECTOR);
+    if (container) render(container);
+  }
+
+  function hasStock(code) {
+    return loadList().some(function (it) { return it.code === code; });
+  }
+
   function addByQuery(container, query) {
     var stock = resolveStock(query);
     var input = container.querySelector('#wlInput');
@@ -189,28 +226,20 @@
       return;
     }
 
-    var list = loadList();
-    if (list.some(function (it) { return it.code === stock.code; })) {
-      showMsg(container, stock.name + '은(는) 이미 관심종목에 있습니다.');
+    var result = addStock(stock.code, stock.name);
+    if (!result.ok) {
+      if (result.reason === 'exists') showMsg(container, stock.name + '은(는) 이미 관심종목에 있습니다.');
+      else if (result.reason === 'full') showMsg(container, '관심종목은 최대 ' + MAX_ITEMS + '개까지 담을 수 있습니다.');
       input.value = '';
       return;
     }
-    if (list.length >= MAX_ITEMS) {
-      showMsg(container, '관심종목은 최대 ' + MAX_ITEMS + '개까지 담을 수 있습니다.');
-      return;
-    }
 
-    list.push({ code: stock.code, name: stock.name });
-    saveList(list);
     input.value = '';
     hideMsg(container);
-    render(container);
   }
 
   function removeCode(container, code) {
-    var list = loadList().filter(function (it) { return it.code !== code; });
-    saveList(list);
-    render(container);
+    removeStock(code); // container가 있으니 removeStock 내부에서 다시 렌더링됨
   }
 
   function showMsg(container, text) {
@@ -254,6 +283,7 @@
       .catch(function () {
         // 시세 조회 실패 - 카드는 이름/코드만 표시된 상태로 유지 (원문 유지 원칙과 동일)
       });
+    loadFlowSummaries(container, list.map(function (it) { return it.code; }));
   }
 
   function buildCard(code, name) {
@@ -263,6 +293,8 @@
       + '<div class="wl-name">' + stockIconHtml(code) + '<span class="wl-name-text">' + escapeHtml(name) + '</span></div>'
       + '<div class="wl-price" data-field="price">-</div>'
       + '<div class="wl-change" data-field="change">-</div>'
+      + '<div class="wl-flow" data-field="flow">수급 조회 중...</div>'
+      + '<button type="button" class="wl-chart-btn" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">차트 보기 →</button>'
       + '</div>';
   }
 
@@ -284,11 +316,53 @@
     changeEl.classList.add(quote.change > 0 ? 'wl-up' : quote.change < 0 ? 'wl-down' : 'wl-flat');
   }
 
+  // 수급(외국인·기관 5일 방향) - 종목당 온디맨드 호출만 가능해(js/stock-search.js와 동일
+  // 제약) 관심종목 카드마다 병렬로 호출한다. 최대 50개(MAX_ITEMS)라 한 화면에서 폭발적으로
+  // 늘어나진 않지만, 실패해도 카드 자체는 정상 표시돼야 하므로 개별 catch로 흡수한다.
+  function loadFlowSummaries(container, codes) {
+    codes.forEach(function (code) {
+      fetchJson(KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code) + '?days=5')
+        .then(function (envelope) {
+          var data = envelope && envelope.data;
+          var card = container.querySelector('.wl-card[data-code="' + cssEscape(code) + '"] [data-field="flow"]');
+          if (!card) return;
+          var rolling = data && !data.error && data.rolling && data.rolling['5d'];
+          if (!rolling) { card.textContent = '수급 자료 없음'; return; }
+          var f = rolling.foreign, i = rolling.inst;
+          var fText = f > 0 ? '외국인 매수' : (f < 0 ? '외국인 매도' : '외국인 중립');
+          var iText = i > 0 ? '기관 매수' : (i < 0 ? '기관 매도' : '기관 중립');
+          card.textContent = fText + ' · ' + iText;
+        })
+        .catch(function () {
+          var el = container.querySelector('.wl-card[data-code="' + cssEscape(code) + '"] [data-field="flow"]');
+          if (el) el.textContent = '수급 자료 없음';
+        });
+    });
+  }
+
+  function fetchJson(url) {
+    var hasAbort = 'AbortController' in global;
+    var controller = hasAbort ? new AbortController() : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
+    return fetch(url, hasAbort ? { signal: controller.signal } : {})
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) { if (timer) clearTimeout(timer); return data; })
+      .catch(function (err) { if (timer) clearTimeout(timer); throw err; });
+  }
+
   function wireCardEvents(container) {
     container.querySelectorAll('.wl-remove').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
         removeCode(container, btn.getAttribute('data-code'));
+      });
+    });
+    container.querySelectorAll('.wl-chart-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var code = btn.getAttribute('data-code');
+        var name = btn.getAttribute('data-name');
+        location.href = STOCK_SEARCH_PAGE_URL + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
       });
     });
     container.querySelectorAll('.wl-card').forEach(function (card) {
@@ -351,6 +425,9 @@
   var Watchlist = {
     init: init,
     fetchQuotes: fetchQuotes,
+    add: addStock,
+    remove: removeStock,
+    has: hasStock,
     MAX_ITEMS: MAX_ITEMS
   };
   global.Watchlist = Watchlist;

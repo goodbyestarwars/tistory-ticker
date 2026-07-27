@@ -111,6 +111,20 @@
       icon: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'
     },
     {
+      // 2026-07-27: "9Pay 증권" 개편 작업지시서 #11 - MY(관심종목) 메뉴 신설.
+      // TODO: /page/watchlist는 실제 페이지 생성 전 placeholder - 티스토리에 새 페이지
+      // (js/watchlist.js + css/watchlist.css + <div id="watchlist"> 임베드, krx_map.js를
+      // 그 전에 로드)를 만든 뒤 실제 URL로 교체할 것. 하위 메뉴(관심종목)는 페이지가
+      // 이거 하나뿐이라 별도 드롭다운 없이 이 메뉴 자체가 그 역할을 한다.
+      href: '/page/watchlist',
+      label: 'MY',
+      bold: true,
+      // 다른 메뉴 아이콘과 동일하게 stroke 렌더링(fill:none) 기준 별 모양(Feather/Lucide
+      // "star" 아이콘과 동일한 폴리곤) - 위에서 썼던 채움형(fill) 별 path는 stroke로
+      // 그리면 모서리가 어색해서 폴리곤으로 교체.
+      icon: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'
+    },
+    {
       href: '/guestbook',
       label: '커뮤니티',
       bold: true,

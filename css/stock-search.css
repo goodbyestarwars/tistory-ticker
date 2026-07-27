@@ -112,7 +112,7 @@
 #stock-search .ss-results-head,
 #stock-search .ss-result-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 0.8fr 1fr 1fr 1.4fr;
+  grid-template-columns: 2fr 1fr 0.8fr 1fr 1fr 1.4fr 0.5fr;
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
@@ -150,6 +150,21 @@
   white-space: nowrap;
 }
 #stock-search .ss-sector-tag-empty { color: #bbb; background: transparent; padding: 0; }
+
+/* 관심종목(MY) 토글 - 2026-07-27 "9Pay 증권" 개편 #11 */
+#stock-search .ss-fav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #ccc;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+#stock-search .ss-fav-btn:hover { border-color: #e0a300; }
+#stock-search .ss-fav-btn.active { color: #e0a300; border-color: #e0a300; background: #fffbeb; }
 
 /* ---- 선택 종목 상세 (요약 + 호가 + 차트) ---- */
 #stock-search .ss-detail { margin-top: 18px; }
@@ -222,7 +237,7 @@
 @media (max-width: 860px) {
   #stock-search .ss-panels { grid-template-columns: 1fr; }
   #stock-search .ss-results-head,
-  #stock-search .ss-result-row { grid-template-columns: 1.6fr 1fr 0.8fr 1fr; }
+  #stock-search .ss-result-row { grid-template-columns: 1.6fr 1fr 0.8fr 1fr 0.5fr; }
   #stock-search .ss-results-head span:nth-child(5),
   #stock-search .ss-results-head span:nth-child(6),
   #stock-search .ss-result-row span:nth-child(5),
@@ -249,3 +264,5 @@ html.dark #stock-search .ss-hint { color: #999 !important; }
 html.dark #stock-search .ss-summary-extra { color: #aaa !important; }
 html.dark #stock-search .ss-tf-btn { background: #1c1c1c !important; border-color: #3a3a3a !important; color: #aaa !important; }
 html.dark #stock-search .ss-tf-btn.active { background: #eee !important; border-color: #eee !important; color: #111 !important; }
+html.dark #stock-search .ss-fav-btn { background: #1c1c1c !important; border-color: #3a3a3a !important; color: #555 !important; }
+html.dark #stock-search .ss-fav-btn.active { color: #e0b040 !important; border-color: #e0b040 !important; background: #3a2f10 !important; }
