@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>order-book 로컬 테스트</title>
+<link rel="stylesheet" href="../css/order-book.css" />
+<style>
+  body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
+  html.dark body { background: #1a1a1a; }
+  .page-body { max-width: 780px; margin: 40px auto; padding: 0 16px; }
+  .tools { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="page-body">
+  <h1>order-book 로컬 테스트</h1>
+  <div class="tools">
+    <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+    <button onclick="reQuery('normal', '삼성전자')">삼성전자 조회</button>
+    <button onclick="reQuery('empty')">호가 없음</button>
+    <button onclick="reQuery('error')">API 오류</button>
+    <button onclick="reQuery('normal')">정상 데이터</button>
+  </div>
+  <p style="font-size:13px;color:#888">
+    기본은 mock 데이터로 2초마다 랜덤하게 흔들리는 호가/시세를 렌더링 검증. 실제 VM/GAS 호출로 테스트하려면 <code>?real=1</code>을 붙이세요(VM 배포 후).
+  </p>
+  <div id="order-book"></div>
+</div>
+
+<script src="../data/krx_map.js"></script>
+<script src="../js/order-book.js"></script>
+<script>
+  var mockMode = 'normal';
+  var mockTick = 0;
+
+  function reQuery(mode, name) {
+    mockMode = mode;
+    var input = document.querySelector('#obInput');
+    if (name) input.value = name;
+    if (!input.value) input.value = '삼성전자';
+    document.querySelector('#obGoBtn').click();
+  }
+
+  function mockLadder(basePrice, tickSize) {
+    var asks = [], bids = [];
+    for (var i = 10; i >= 1; i--) {
+      asks.push({ price: basePrice + i * tickSize, qty: Math.round(500 + Math.random() * 9500) });
+    }
+    for (var j = 1; j <= 10; j++) {
+      bids.push({ price: basePrice - j * tickSize, qty: Math.round(500 + Math.random() * 9500) });
+    }
+    return { asks: asks, bids: bids };
+  }
+
+  if (location.search.indexOf('real=1') === -1) {
+    OrderBook.fetchOrderBook = function (code) {
+      mockTick++;
+      console.log('[mock] fetchOrderBook', code, mockTick);
+      if (mockMode === 'error') return Promise.reject(new Error('mock error'));
+      if (mockMode === 'empty') return Promise.resolve({ code: code, asks: [], bids: [], totalAskQty: 0, totalBidQty: 0 });
+      var base = 70000 + (code.charCodeAt(0) * 37 % 5000);
+      var ladder = mockLadder(base, 100);
+      return Promise.resolve({
+        code: code,
+        asks: ladder.asks,
+        bids: ladder.bids,
+        totalAskQty: ladder.asks.reduce(function (s, r) { return s + r.qty; }, 0),
+        totalBidQty: ladder.bids.reduce(function (s, r) { return s + r.qty; }, 0)
+      });
+    };
+    OrderBook.fetchQuote = function (code) {
+      if (mockMode === 'error') return Promise.reject(new Error('mock error'));
+      var base = 70000 + (code.charCodeAt(0) * 37 % 5000);
+      var changeRate = (Math.random() * 6 - 3);
+      return Promise.resolve({
+        code: code,
+        price: base + Math.round((Math.random() - 0.5) * 200),
+        change: changeRate >= 0 ? 1 : -1,
+        changeRate: changeRate
+      });
+    };
+  }
+</script>
+
+</body>
+</html>

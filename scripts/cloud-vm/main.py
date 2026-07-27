@@ -28,6 +28,7 @@ import kiwoom_client
 import kiwoom_market
 import market_rank
 import option_flow
+import order_book
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 
@@ -111,6 +112,11 @@ _foreign_flow_cache_mem = {}
 _MARKET_RANK_TTL = 30
 _MARKET_RANK_MAX_LIMIT = 20  # 사이드바 미리보기(5)보다 큰 값은 "더보기" 모달 전용
 _market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(5는 30초마다 폴링, 20은 모달 열 때만)
+
+# 호가창(js/order-book.js) - 프론트가 2초 간격으로 폴링하므로 서버 캐시는 그보다 짧게 걸어
+# 같은 종목을 여러 탭/방문자가 동시에 보고 있어도 키움 호출은 한 번으로 묶는다.
+_ORDER_BOOK_TTL = 1.5
+_order_book_cache = {}  # code -> {'t':.., 'data':..}
 
 
 def _live_cache_get(cache, code):
@@ -449,6 +455,28 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     _market_rank_cache[limit] = {'t': now, 'data': data}
+    return envelope(data)
+
+
+@app.get('/order-book/{code}')
+def order_book_endpoint(code: str = Path(..., min_length=6, max_length=6)):
+    """호가창(매도/매수 각 10단계) - 독립 페이지(js/order-book.js, 2026-07-27)가 2초 간격
+    폴링. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /futures,
+    /market-rank와 동일한 패턴. order_book.py 필드명 미검증 안내 참고."""
+    now = time.time()
+    cached = _order_book_cache.get(code)
+    if cached is not None and now - cached['t'] < _ORDER_BOOK_TTL:
+        return envelope(cached['data'])
+    try:
+        token = get_kiwoom_token()
+        data = order_book.fetch_order_book(token, code)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    _order_book_cache[code] = {'t': now, 'data': data}
+    if len(_order_book_cache) > 200:  # 무제한 증가 방지(단순 전량 비우기, market_rank류와 동일)
+        _order_book_cache.clear()
     return envelope(data)
 
 
