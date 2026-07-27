@@ -41,9 +41,23 @@
   var WIRE_RETRY_MS = 300;
   var WIRE_RETRY_MAX = 20; // 최대 6초까지 재시도(스크립트 로드 순서가 뒤바뀐 경우 대비)
 
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+
   var krxMapPromise = null;
   var activeIndex = -1;
   var wired = false;
+
+  // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md
+  // 규칙, 다른 위젯들과 동일 패턴). 2026-07-28 사용자 요청 - 자동완성 목록에 종목 아이콘 추가.
+  global.__stockIconFallback = global.__stockIconFallback || function (img) {
+    if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
+    img.setAttribute('data-fb', '1');
+    img.src = img.src.replace(/\.svg(\?.*)?$/, '.png');
+  };
+  function stockIconHtml(code) {
+    if (!code) return '';
+    return '<img class="nav-search-suggest-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+  }
 
   // ---- KRX_MAP 지연 로드 ----
 
@@ -180,6 +194,7 @@
   function buildRow(code, name, i) {
     var fav = isFavorite(code);
     return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
+      + stockIconHtml(code)
       + '<span class="nav-search-suggest-name">' + escapeHtml(name) + '</span>'
       + '<span class="nav-search-rate-badge" data-rate-code="' + escapeAttr(code) + '"></span>'
       + '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>'

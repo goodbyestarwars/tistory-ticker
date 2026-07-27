@@ -90,30 +90,16 @@ a { text-decoration: none; color: inherit; }
   margin-left: 20px;
   position: relative;
 }
-.nav-search svg {
-  position: absolute;
-  left: 13px; top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-.nav-search input {
-  width: 100%;
-  background: #123020;
-  border: 1.5px solid #1f4a34;
-  border-radius: 24px;
-  padding: 9px 16px 9px 38px;
-  color: #fff;
-  font-size: 13px;
-  outline: none;
-  transition: border-color .2s;
-}
-.nav-search input::placeholder { color: #7fa08d; }
-.nav-search input:focus { border-color: #22c55e; }
 
 /* 2026-07-28: navbar 안에 종목검색 입력창(js/skin-menu.js의 SEARCH_HTML, 원래는 왼쪽
    사이드바 카드용 "음각" 스타일)을 심으면서 어두운 navbar 배경에 맞게 재도색 - 마크업/
    자동완성 로직(js/stock-search-panel.js)은 그대로, 색만 다크 그린 테마로 덮어쓴다.
-   .nav-search-wrap 자체 색은 style.css 아래쪽(사이드바용 기본값)에 이미 정의돼 있음. */
+   .nav-search-wrap 자체 색은 style.css 아래쪽(사이드바용 기본값)에 이미 정의돼 있음.
+   (예전 .nav-search input/.nav-search svg 규칙은 <s_search>가 있던 시절 원시 <input>에
+   직접 걸려있던 것 - 지금은 그 자리를 .nav-search-wrap > .nav-search-input-wrap > input
+   구조가 대신하는데, 옛 "input" 디센던트 셀렉터가 이 안쪽 input에도 그대로 걸려서 바깥
+   래퍼와 안쪽 input에 각각 둥근 다크그린 박스가 이중으로 그려지는 버그가 있었음
+   (사용자 리포트: "검색창이 이중으로 되어 있어") - 옛 규칙을 삭제해서 해결) */
 .navbar .nav-search-wrap { padding: 0; border-bottom: none; margin-bottom: 0; }
 .navbar .nav-search-input-wrap {
   background: #123020;
@@ -338,6 +324,15 @@ a { text-decoration: none; color: inherit; }
   font-size: 13px;
   color: #374151;
   cursor: pointer;
+}
+/* 2026-07-28 사용자 요청: 자동완성 목록에 종목 아이콘 표시 */
+.nav-search-suggest-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
 }
 .nav-search-suggest-item:hover, .nav-search-suggest-item.active { background: #f1f5f9; }
 .nav-search-suggest-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
