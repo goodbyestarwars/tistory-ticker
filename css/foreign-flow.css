@@ -539,7 +539,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 54px;
+  height: 66px;
   margin-bottom: 2px;
 }
 #foreign-flow .ff-apt-nameplate {
@@ -563,24 +563,26 @@
   justify-content: center;
 }
 #foreign-flow .ff-apt-helipad-h { font-size: 11px; font-weight: 800; color: #8b95a3; }
+/* 2026-07-28 사용자 요청: 헬기 사이즈업(15px -> 28px) - 옥상 블록 높이도 같이 늘려서
+   커진 헬기가 아래 층 목록과 겹치지 않게 함(위 .ff-apt-roof-block height 참고). */
 #foreign-flow .ff-apt-heli {
   position: absolute;
-  top: -8px;
+  top: -14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 42px;
+  height: 42px;
   animation: ff-apt-heli-hover 2.4s ease-in-out infinite;
 }
-#foreign-flow .ff-apt-heli-body { font-size: 15px; line-height: 1; }
+#foreign-flow .ff-apt-heli-body { font-size: 28px; line-height: 1; }
 #foreign-flow .ff-apt-heli-rotor {
   position: absolute;
-  top: 1px;
+  top: 3px;
   left: 50%;
-  width: 20px;
-  height: 2px;
-  margin-left: -10px;
+  width: 34px;
+  height: 3px;
+  margin-left: -17px;
   background: rgba(80, 90, 105, 0.55);
   border-radius: 999px;
   animation: ff-apt-rotor-spin 0.35s linear infinite;
@@ -763,17 +765,36 @@
   100% { top: 0; opacity: 1; }
 }
 
-/* ---- 로비: 자동문/화분/우편함/안내판(전부 장식) ---- */
+/* ---- 로비: 큰 출입구 하나(전부 장식) - 2026-07-28 사용자 요청으로 자동문/화분/
+   우편함/안내판 4소품에서 문 하나로 단순화, 크기도 키움 ---- */
 #foreign-flow .ff-apt-lobby {
   display: flex;
   justify-content: center;
-  gap: 14px;
   padding: 4px 0;
   margin-top: 2px;
   border-top: 1px solid #e7ebf1;
-  font-size: 13px;
 }
-#foreign-flow .ff-apt-lobby-item { opacity: 0.85; }
+#foreign-flow .ff-apt-lobby-door { font-size: 26px; opacity: 0.9; line-height: 1; }
+
+/* ---- 맨홀 뚜껑: 로비 -> 지하실로 내려가는 입구(2026-07-28 사용자 요청, 전부 장식) ----
+   원형 금속 뚜껑 느낌을 순수 CSS로 표현(이모지 중엔 딱 맞는 게 없어 직접 그림). */
+#foreign-flow .ff-apt-manhole-row { display: flex; justify-content: center; padding: 3px 0 5px; }
+#foreign-flow .ff-apt-manhole {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #aeb7c2, #7a8492 55%, #565f6b 100%);
+  border: 2px solid #414a55;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.18), inset 0 0 0 6px rgba(0, 0, 0, 0.18);
+  position: relative;
+}
+#foreign-flow .ff-apt-manhole::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+}
 
 /* ---- 지하실: 단면도 느낌의 해치 배경 + 상징적 서브룸 라벨(전부 장식, 실데이터 아님) ---- */
 #foreign-flow .ff-apt-basement {

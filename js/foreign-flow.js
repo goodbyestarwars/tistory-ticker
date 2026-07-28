@@ -861,6 +861,7 @@
   function search(container, query) {
     var resultBox = container.querySelector('#ffResult');
     destroyLwChart(); // 이전 검색의 차트 인스턴스/리스너 정리(리렌더 전에 먼저 끊는다)
+    stopQuotePolling(); // 이전 종목의 헤더 시세 폴링도 같이 정리
     var resolved = resolveStock(query);
     if (!resolved) {
       resultBox.innerHTML = '<div class="ff-error">'
@@ -1000,9 +1001,9 @@
   // 정규장 마감 후엔 그대로 멈춰 보인다(2026-07-16 사용자 지적). ticker-proxy.gs의 ?codes=
   // 엔드포인트(js/kospi-futures.js 등이 쓰는 것과 동일 소스)는 NXT 시간외가 반영돼 있어
   // 그걸 따로 불러와 헤더에 우선 쓴다 - 실패해도 daily[0]로 자연스럽게 폴백된다.
-  function fetchLiveQuote(code) {
+  function fetchLiveQuote(code, force) {
     var hit = quoteCache[code];
-    if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
+    if (!force && hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
     if (quoteInflight[code]) return quoteInflight[code];
 
     var p = fetchJson(GAS_TICKER_URL + '?codes=' + encodeURIComponent(code))
@@ -1102,6 +1103,35 @@
     wireIchimokuToggle(box, chartData);
     wireVolumeProfileToggle(box, chartData);
     wireAptTabs(box, apt, aptCurrentPrice);
+    startQuotePolling(box, data.code);
+  }
+
+  // 2026-07-28 사용자 리포트: 종목을 조회한 뒤 탭을 오래 열어두면 가격이 조회 시점에
+  // 멈춘 채로 안 바뀜(예: 실제 -2%인데 화면엔 +5.99% 그대로) - 이 위젯이 검색 시 딱
+  // 한 번만 fetch하고 자동 갱신을 전혀 안 했던 게 원인. 전체 리렌더 대신 헤더의
+  // 가격/기준시각만 주기적으로 갱신한다(전체 리렌더는 스크롤 위치·차트 확대상태·열어둔
+  // 탭 등을 리셋시켜 오히려 방해가 됨 - 수급/매물대/차트/펀더멘탈 값 자체는 검색 시점
+  // 스냅샷 그대로 두는 게 사용자 경험상 낫다는 판단).
+  var QUOTE_POLL_MS = 15000;
+  var quotePollTimer = null;
+  function stopQuotePolling() {
+    if (quotePollTimer) { clearInterval(quotePollTimer); quotePollTimer = null; }
+  }
+  function startQuotePolling(box, code) {
+    stopQuotePolling();
+    quotePollTimer = setInterval(function () {
+      fetchLiveQuote(code, true).then(function (q) {
+        if (!q) return;
+        var header = box.querySelector('.ff-header');
+        if (!header) { stopQuotePolling(); return; } // 다른 종목 재검색으로 이 헤더 자체가 사라짐
+        var priceEl = header.querySelector('.ff-price');
+        var asofEl = header.querySelector('.ff-asof');
+        if (!priceEl) return; // 최초 조회 때 시세를 아예 못 받아온 드문 경우 - 다음 tick 재시도
+        priceEl.className = 'ff-price ' + signClass(q.changeRate);
+        priceEl.textContent = Number(q.price).toLocaleString() + '원 (' + (q.changeRate >= 0 ? '+' : '') + q.changeRate.toFixed(2) + '%)';
+        if (asofEl) asofEl.textContent = q.time + ' 기준';
+      }).catch(function () {}); // 실패는 조용히 무시하고 다음 tick에 재시도
+    }, QUOTE_POLL_MS);
   }
 
   // ---- 탭(수급 / 매물대 / 차트 / 펀더멘탈) ----
@@ -2498,19 +2528,21 @@
     });
   }
 
-  // ---- 매물대 아파트(투자자별 근사, 2026-07-27) ----
+  // ---- 매물대 아파트(투자자별 근사, 2026-07-27, 2026-07-28 total 산출방식 수정) ----
   // 네이버페이증권 "다른 투자자들은 얼마에 샀어요" 위젯(계좌 연동 사용자 자기신고 데이터
   // 기반)을 참고해 "건물 층=가격대, 현재가=그 층을 지나가는 빨간 화살표"로 표현하되,
-  // 우리는 그런 사용자 자기신고 데이터가 없어 아래 computeVolumeProfile과 동일한 방식
-  // (일별 고가~저가 구간에 그날의 물량을 분산)으로 근사한다. 차이는 "물량"의 정의 -
-  // 전체 탭은 그날 총거래량, 개인/외국인/기관 탭은 그날 그 투자자의 순매수량(양수인 날만,
-  // 순매도일은 "매집"이 아니므로 0 처리)을 쓴다. 네 탭이 서로 다른 최저/최고가로 각자
+  // 우리는 그런 사용자 자기신고 데이터가 없어 일별 고가~저가 구간에 그날의 물량을
+  // 분산하는 방식으로 근사한다. 개인/외국인/기관 탭은 그날 그 투자자의 순매수(+)/순매도(-)
+  // 부호를 그대로 매수/매도 벽으로 나누고(실측값, 근사 아님), 전체 탭은 이 세 탭의 bin별
+  // 매수·매도 벽을 그대로 합산한 값이다(2026-07-28 수정 - 예전엔 그날 총거래량을 등락
+  // 방향에 몰아 계상했는데, 그 판정에 쓰던 change_pct 필드가 데이터 소스에 아예 없어
+  // 매도 총합이 항상 0으로 고정되는 버그가 있었음). 네 탭이 서로 다른 최저/최고가로 각자
   // bin을 나누면 층 위치가 탭마다 달라져 비교가 안 되므로, bin 경계(minLow/maxHigh)는
   // 전체 구간 기준으로 한 번만 정하고 네 탭이 공유한다(탭을 바꿔도 "몇 층"인지 그대로
   // 비교 가능). "평단가"(추정)는 그 히스토그램의 가중평균(centroid) - 실제 계좌 평균
   // 매수가가 아니라 근사 분포에서 역산한 값이라는 걸 카드 하단 각주에 명시한다.
   // 데이터 소스: data.daily(수급, ind_net/foreign_net/inst_net - 최신일이 앞)와
-  // chartData.daily(가격, high/low/volume)를 날짜(date)로 조인 - 둘 다 renderResult가
+  // chartData.daily(가격, high/low/close)를 날짜(date)로 조인 - 둘 다 renderResult가
   // 이미 병렬로 받아온 데이터라 새 API 호출은 필요 없다. 수급 데이터가 최대 63거래일
   // (FLOW_PERIOD_OPTIONS 최댓값)까지만 있어서 아래 매물대(근사)의 120일 창보다 짧을 수
   // 있음 - 실제 사용된 일수는 apt.days로 카드에 그대로 노출한다.
@@ -2544,7 +2576,7 @@
       var c = chartByDate[d.date];
       if (!c || !(c.high > 0) || !(c.low > 0) || !(c.high >= c.low)) return;
       rows.push({
-        high: c.high, low: c.low, volume: c.volume || 0, changePct: c.change_pct || 0,
+        high: c.high, low: c.low, close: c.close,
         ind: d.ind_net || 0, foreign: d.foreign_net || 0, inst: d.inst_net || 0
       });
     });
@@ -2575,11 +2607,8 @@
           if (overlap > 0) bins[b][side] += qty * (overlap / range);
         }
       }
-      // total: 체결 단위로 매수/매도가 태깅된 데이터가 없어, 그날 총거래량 전체를
-      // 등락 방향(상승일=매수 우세/하락일=매도 우세)에 몰아 계상하는 근사치다(OBV류 관례).
-      distribute(profiles.total, r.volume, r.changePct >= 0 ? 'buyQty' : 'sellQty');
-      // ind/foreign/inst: 그날 실제 순매수(+)/순매도(-) 부호를 그대로 매수/매도 벽으로
-      // 나눈다 - total 탭과 달리 근사가 아니라 실측 순매매 수량 자체를 쓰는 것이라 더 정확하다.
+      // ind/foreign/inst: 그날 실제 순매수(+)/순매도(-) 부호를 그대로 매수/매도 벽으로 나눈다
+      // - 실측 순매매 수량 자체를 쓰는 것이라 근사가 아니다.
       ['ind', 'foreign', 'inst'].forEach(function (key) {
         var v = r[key];
         if (v > 0) distribute(profiles[key], v, 'buyQty');
@@ -2587,10 +2616,22 @@
       });
     });
 
-    // trendUp: 가장 최근일(rows[0], flowDaily가 최신일 우선 정렬이라 slice 전 순서 그대로)의
-    // 등락 방향 - 사다리 타는 사람 장식 애니메이션 방향(상승장=위로/하락장=아래로)에만 쓰는
-    // 참고용 신호라 근사여도 무방하다(진짜 추세판정 로직이 아님).
-    var result = { minLow: minLow, maxHigh: maxHigh, binSize: binSize, days: rows.length, trendUp: rows[0].changePct >= 0 };
+    // 2026-07-28 버그 수정: total은 원래 "그날 총거래량을 등락 방향에 몰아 계상"하는
+    // 근사치였는데, 등락 방향 판정에 쓰던 chartData.daily[i].change_pct가 이 위젯의
+    // 소스(VM /ohlc, kiwoom_market.py fetch_daily_ohlc)엔 애초에 없는 필드라 `|| 0`
+    // 폴백이 항상 걸려 "0 >= 0"으로 매일 매수 쪽에만 쌓이고 매도 총합이 항상 0으로
+    // 고정되는 버그였음(장중/장마감 여부와 무관하게 늘 재현 - 사용자 리포트). 사용자 제안대로
+    // 개인/외국인/기관 세 탭의 실측 매수/매도 벽을 bin별로 그대로 더해 total을 구성한다 -
+    // 근사가 사라지고 코드도 단순해진다(기타법인 등 세 유형 밖의 수급은 total에서도 빠짐).
+    for (var bi = 0; bi < APT_BIN_COUNT; bi++) {
+      profiles.total[bi].buyQty = profiles.ind[bi].buyQty + profiles.foreign[bi].buyQty + profiles.inst[bi].buyQty;
+      profiles.total[bi].sellQty = profiles.ind[bi].sellQty + profiles.foreign[bi].sellQty + profiles.inst[bi].sellQty;
+    }
+
+    // trendUp: 가장 최근 이틀의 종가 비교 - 사다리 타는 사람 장식 애니메이션 방향(상승장=
+    // 위로/하락장=아래로)에만 쓰는 참고용 신호라 근사여도 무방하다(진짜 추세판정 로직 아님).
+    // rows[0]이 최신일(flowDaily가 최신일 우선 정렬).
+    var result = { minLow: minLow, maxHigh: maxHigh, binSize: binSize, days: rows.length, trendUp: rows[0].close >= rows[1].close };
     Object.keys(profiles).forEach(function (key) {
       var bins = profiles[key];
       var totalBuy = 0, totalSell = 0, weighted = 0, weightQty = 0;
@@ -2774,12 +2815,11 @@
         + '</div>';
     }
 
-    var lobbyHtml = '<div class="ff-apt-lobby">'
-      + '<span class="ff-apt-lobby-item" title="자동문">🚪</span>'
-      + '<span class="ff-apt-lobby-item" title="화분">🪴</span>'
-      + '<span class="ff-apt-lobby-item" title="우편함">📮</span>'
-      + '<span class="ff-apt-lobby-item" title="안내판">📋</span>'
-      + '</div>';
+    // 2026-07-28 사용자 요청: 로비 소품 4개(자동문/화분/우편함/안내판)를 큰 문 하나로
+    // 단순화 - "문만 좀 큰거 있으면 좋겠다"는 피드백. 그 아래엔 지하실로 내려가는
+    // 맨홀 뚜껑(원형, CSS로 그린 금속 뚜껑 느낌)을 둬서 1층->지하 전환을 시각적으로 잇는다.
+    var lobbyHtml = '<div class="ff-apt-lobby"><span class="ff-apt-lobby-door" title="출입구">🚪</span></div>'
+      + '<div class="ff-apt-manhole-row"><span class="ff-apt-manhole" title="지하실 입구"></span></div>';
     // 지하실은 실제 데이터가 존재하는 가격구간이 아니라 "아직 매집되지 않은 가격 / 추가
     // 하락 가능 영역"을 뜻하는 상징적인 공간이라 bin/거래량과 연결하지 않는다(작업지시서 명시).
     var basementHtml = '<div class="ff-apt-basement">'
@@ -2835,10 +2875,10 @@
       + '<div class="ff-extra-card-title">🏢 매물대(추정)</div>'
       + tabsHtml
       + '<div id="ffAptBody">' + buildAptBodyHtml(apt, 'total', currentPrice) + '</div>'
-      + '<div class="ff-footnote">※ 실제 체결가·매수 주체가 태깅된 데이터가 아니라, 최근 ' + apt.days
-      + '거래일의 일별 고가~저가 구간에 (전체 거래량 또는 개인·외국인·기관의 그날 순매수·순매도량)을 분산해 합산한 '
-      + '<b>근사 추정치</b>입니다. "전체" 탭의 매도/매수 구분은 체결 태깅이 아니라 그날 등락 방향으로 나눈 근사이고, '
-      + '"평단가"·"추정 수익률"도 매수(매집) 물량만의 가중평균이라 실제 매수 단가와 다를 수 있습니다.</div>'
+      + '<div class="ff-footnote">※ 실제 체결가가 태깅된 데이터가 아니라, 최근 ' + apt.days
+      + '거래일의 일별 고가~저가 구간에 개인·외국인·기관의 그날 순매수·순매도량을 분산해 합산한 '
+      + '<b>근사 추정치</b>입니다. "전체" 탭은 이 세 유형의 매수·매도 벽을 그대로 합산한 값이라 기타법인 등 '
+      + '세 유형 밖의 수급은 반영되지 않고, "평단가"·"추정 수익률"도 매수(매집) 물량만의 가중평균이라 실제 매수 단가와 다를 수 있습니다.</div>'
       + '</div>';
   }
 
