@@ -45,6 +45,7 @@
 - 오류 수정: `/bug-fix`
 - UI 개선: `/ui-improvement`
 - 배포 점검: `/deploy`
+- 티스토리 포스팅 HTML: `/tistory-post-html`
 
 ## 배포 주의
 
