@@ -821,7 +821,7 @@
   position: relative;
   height: 42px;
   margin-top: 2px;
-  border-top: 4px solid #6f573f;
+  border-top: 1px solid rgba(111, 87, 63, 0.35);
   background: linear-gradient(180deg, #f7f2e8 0 46%, #d9c5a8 47% 100%);
 }
 #foreign-flow .ff-apt-ground::after {
@@ -883,11 +883,11 @@
 #foreign-flow .ff-apt-basement {
   position: relative;
   padding: 8px;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0;
   background: #d9c5a8;
-  border: 4px solid #6f573f;
-  border-top-width: 3px;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(111, 87, 63, 0.45);
+  border-top-color: rgba(111, 87, 63, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
 }
 #foreign-flow .ff-apt-basement-heading {
   display: flex;
@@ -925,7 +925,7 @@
   text-align: center;
   color: #4f3d2e;
   background: #f7f2e8;
-  border: 2px solid #80664c;
+  border: 1px solid rgba(128, 102, 76, 0.55);
   border-radius: 2px;
   padding: 5px 3px;
   white-space: nowrap;
@@ -937,7 +937,7 @@
   height: 58px;
   margin: 0 7px;
   overflow: hidden;
-  border: 4px solid #4b2a24;
+  border: 1px solid rgba(75, 42, 36, 0.55);
   border-top: 0;
   border-radius: 0 0 18px 18px;
   background:
@@ -1491,7 +1491,7 @@ html.dark #foreign-flow .ff-apt-row-current .ff-apt-price { color: #ffb154 !impo
 html.dark #foreign-flow .ff-apt-current-badge { background: #1A1A1A !important; color: #ffb154 !important; }
 html.dark #foreign-flow .ff-apt-ladder-rail { background: repeating-linear-gradient(180deg, rgba(245, 239, 224, 0.3), rgba(245, 239, 224, 0.3) 3px, transparent 3px, transparent 6px) !important; }
 html.dark #foreign-flow .ff-apt-ground {
-  border-top-color: #F5EFE0 !important;
+  border-top-color: rgba(245, 239, 224, 0.35) !important;
   background: linear-gradient(180deg, #1A1A1A 0 46%, rgba(245, 239, 224, 0.18) 47% 100%) !important;
 }
 html.dark #foreign-flow .ff-apt-ground-label,
@@ -1499,7 +1499,7 @@ html.dark #foreign-flow .ff-apt-entry-stairs b { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-apt-entry-stairs i { background: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-apt-basement {
   background: rgba(245, 239, 224, 0.12) !important;
-  border-color: #F5EFE0 !important;
+  border-color: rgba(245, 239, 224, 0.35) !important;
 }
 html.dark #foreign-flow .ff-apt-basement-heading { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-apt-basement-level { background: #F5EFE0 !important; color: #1A1A1A !important; }
@@ -1620,6 +1620,7 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
   border-radius: 10px;
   font-size: 13px;
 }
+#foreign-flow #ffSigBanner[hidden] { display: none !important; }
 #foreign-flow .ff-sig-badge {
   font-size: 12.5px;
   font-weight: 800;
@@ -1653,22 +1654,34 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 /* ③ 2열 레이아웃: 종목 리스트(필터탭+메타+리스트 묶음) | 요약 패널 */
 #foreign-flow .ff-sig-twocol {
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
+  height: var(--ff-sig-panel-height, auto);
   margin-bottom: 12px;
 }
-@media (max-width: 640px) {
-  #foreign-flow .ff-sig-twocol { grid-template-columns: 1fr; }
-}
 #foreign-flow .ff-sig-list-col {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  padding: 14px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
 }
 
 /* 리스트 내부 종목명 검색(2026-07-20 5차: 비중축소 등 버킷이 커서 TOP10/20 밖의 종목을
    찾기 위한 실시간 필터 - 등급 필터와 별개로 항상 노출) */
+#foreign-flow .ff-sig-list-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
 #foreign-flow .ff-sig-search-input {
   width: 100%;
   box-sizing: border-box;
@@ -1680,18 +1693,47 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
   font-family: inherit;
 }
 #foreign-flow .ff-sig-search-input:focus { border-color: #888; }
+#foreign-flow .ff-sig-sort-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #777;
+  white-space: nowrap;
+}
+#foreign-flow .ff-sig-sort-select {
+  padding: 7px 26px 7px 9px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+}
+#foreign-flow .ff-sig-sort-select:focus { border-color: #888; }
 
 #foreign-flow .ff-sig-list-head {
   font-size: 12.5px;
   font-weight: 700;
   color: #555;
   margin-bottom: 6px;
+  flex-shrink: 0;
 }
 /* 2026-07-20 사용자 지적: 비중축소/매도처럼 몇백~1,600종목대인 등급을 펼치면 스크롤이
    끝없이 길어짐(서버가 이미 최대 100개로 캡을 걸어두지만 그마저도 한 화면엔 과함) -
    고정 높이 박스 안에서 목록만 스크롤되게 한다. */
+#foreign-flow .ff-sig-list {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
 #foreign-flow .ff-sig-list .ff-sig-table {
-  max-height: 420px;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
 }
 
@@ -1761,26 +1803,55 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
   font-family: inherit;
   display: block;
   width: 100%;
-  margin-top: 8px;
-  padding: 10px 0 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: 0;
+  padding: 11px 8px;
   font-size: 12.5px;
   font-weight: 700;
   color: #1261c4;
-  background: none;
+  background: rgba(255, 255, 255, 0.97);
   border: none;
   border-top: 1px solid #eee;
   border-radius: 0;
   cursor: pointer;
 }
+#foreign-flow .ff-sig-more span {
+  margin-left: 5px;
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 600;
+}
 #foreign-flow .ff-sig-more:hover { background: #f7fafd; }
 
 /* 우측 요약 패널 */
 #foreign-flow .ff-sig-summary {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
   border: 1px solid #eee;
   border-radius: 10px;
   padding: 14px;
   font-size: 13px;
   background: #fff;
+}
+
+@media (max-width: 760px) {
+  #foreign-flow .ff-sig-twocol {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  #foreign-flow .ff-sig-list-col,
+  #foreign-flow .ff-sig-summary {
+    height: auto;
+    overflow: visible;
+  }
+  #foreign-flow .ff-sig-list .ff-sig-table { max-height: 520px; }
+  #foreign-flow .ff-sig-list-tools { grid-template-columns: 1fr; }
+  #foreign-flow .ff-sig-sort-label { justify-content: space-between; }
+  #foreign-flow .ff-sig-sort-select { flex: 1; }
 }
 /* 3.3 우측 패널 헤더: 종목명+코드 / 현재가(24px) / 등락률·등락금액(13px) 3단 */
 #foreign-flow .ff-panel-header { margin-bottom: 10px; }
@@ -1890,6 +1961,15 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 /* buildSummaryBox(⑤ 기존 상세 영역, .ff-summary) 재사용 시 - 이 컨테이너는 패딩이 없어
    (판정 박스가 배경색을 여백 없이 꽉 채우는 디자인) 카드 섹션에 좌우 여백을 직접 부여 */
 #foreign-flow .ff-summary .ff-panel-section { padding-left: 14px; padding-right: 14px; }
+#foreign-flow .ff-summary .ff-verdict-box + .ff-panel-section {
+  margin-top: 14px;
+  padding-top: 0;
+  border-top: 0;
+}
+#foreign-flow .ff-summary .ff-verdict-box + .ff-panel-section > .ff-panel-title {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
 #foreign-flow .ff-summary .ff-panel-opinion { margin-left: 14px; margin-right: 14px; margin-bottom: 14px; }
 #foreign-flow .ff-panel-opinion-text { color: #0C447C; font-size: 12px; line-height: 1.7; margin-top: 2px; }
 #foreign-flow .ff-panel-detail-link {
@@ -1912,6 +1992,7 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 @media (max-width: 480px) {
   #foreign-flow .ff-sig-score { display: none; }
   #foreign-flow .ff-sig-metric { display: none; }
+  #foreign-flow .ff-summary .ff-verdict-box + .ff-panel-section { margin-top: 11px; }
 }
 
 /* ④ 검색창 축소(작업지시서: 기존 대비 50% 크기) */
@@ -1924,6 +2005,7 @@ html.dark #foreign-flow .ff-sig-grade.grade-buy { background: rgba(232, 119, 109
 html.dark #foreign-flow .ff-sig-grade.grade-hold { background: rgba(240, 180, 41, .16) !important; border-color: rgba(240, 180, 41, .4) !important; color: #f0b429 !important; }
 html.dark #foreign-flow .ff-sig-grade.grade-sell { background: rgba(110, 168, 232, .14) !important; border-color: rgba(110, 168, 232, .4) !important; color: #6ea8e8 !important; }
 html.dark #foreign-flow .ff-sig-meta { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-sig-list-col { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-rank-tab { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.25) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #foreign-flow .ff-rank-tab.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
 html.dark #foreign-flow .ff-rank-tabs-label { color: rgba(245, 239, 224, 0.55) !important; }
@@ -1947,6 +2029,12 @@ html.dark #foreign-flow .ff-sig-search-input {
   border-color: rgba(245, 239, 224, 0.25) !important;
   color: #F5EFE0 !important;
 }
+html.dark #foreign-flow .ff-sig-sort-label { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-sig-sort-select {
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
+  color: #F5EFE0 !important;
+}
 html.dark #foreign-flow .ff-sig-list-head { color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #foreign-flow .ff-sig-table { border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-sig-row { border-color: rgba(245, 239, 224, 0.14) !important; }
@@ -1956,9 +2044,11 @@ html.dark #foreign-flow .ff-sig-name { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-sig-code { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-sig-price { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-sig-more {
+  background: rgba(26, 26, 26, 0.97) !important;
   border-color: rgba(245, 239, 224, 0.2) !important;
   color: #6ea8e8 !important;
 }
+html.dark #foreign-flow .ff-sig-more span { color: rgba(245, 239, 224, 0.45) !important; }
 html.dark #foreign-flow .ff-sig-more:hover { background: rgba(245, 239, 224, 0.08) !important; }
 html.dark #foreign-flow .ff-sig-summary { background: rgba(245, 239, 224, 0.06) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-panel-header-name { color: #F5EFE0 !important; }

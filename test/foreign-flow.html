@@ -53,21 +53,33 @@
         }
         return out;
       }
-      function genBucket(n, priceBase) {
-        var out = genRanked(n, priceBase, 1.5, 5).map(function (r) { return [r[0], r[1], r[2], r[3], r[5]]; });
+      function genBucket(n, priceBase, codeBase, keepNamedStocks) {
+        var out = [];
+        for (var i = 0; i < n; i++) {
+          var s = keepNamedStocks && i < STOCKS.length
+            ? STOCKS[i]
+            : [String(codeBase + i).padStart(6, '0'), '모의종목 ' + (codeBase + i)];
+          var t = (n - i) / n;
+          var price = priceBase + Math.round((Math.random() - 0.5) * priceBase * 0.1);
+          var changeRate = +((Math.random() - 0.45) * 6).toFixed(2);
+          var score = Math.round((30 + t * 65) * 10) / 10;
+          var stars = Math.round(score / 20 * 2) / 2;
+          var tradingValue = price * (100000 + i * 350);
+          out.push([s[0], s[1], price, changeRate, stars, score, tradingValue]);
+        }
         return out;
       }
       return Promise.resolve({
         scannedAt: '2026-07-20 18:03:11',
         universe: 2691,
-        scanned: 2534,
-        counts: { '적극 매수': 121, '매수 우위': 402, '보유': 1310, '비중축소': 512, '매도': 189 },
+        scanned: 2059,
+        counts: { '적극 매수': 121, '매수 우위': 402, '보유': 835, '비중축소': 512, '매도': 189 },
         buckets: {
-          activeBuy: genBucket(20, 90000),
-          buy: genBucket(20, 70000),
-          hold: genBucket(20, 60000),
-          reduce: genBucket(20, 40000),
-          sell: genBucket(20, 20000)
+          activeBuy: genBucket(121, 90000, 100000, true),
+          buy: genBucket(402, 70000, 200000, false),
+          hold: genBucket(835, 60000, 300000, false),
+          reduce: genBucket(512, 40000, 400000, false),
+          sell: genBucket(189, 20000, 500000, false)
         },
         rankings: {
           flow: genRanked(20, 90000, 40, 100),

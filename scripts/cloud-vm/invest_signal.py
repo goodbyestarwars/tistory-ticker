@@ -11,7 +11,10 @@ SCORE_WEIGHTS = {
 }
 PENSION_TONE_SCORE = {'very_positive': 90, 'positive': 75, 'neutral_positive': 60, 'neutral': 50, 'caution': 25}
 
-INVEST_SIGNAL_BUCKET_CAP = 100
+# 프론트 종목분석에서 등급별 전체 검색·정렬·20개씩 점진 로딩에 사용한다. 예전 100개
+# cap은 화면 렌더링 성능을 서버 응답 절단으로 해결한 값이라 "보유 835종목" 중 100개만
+# 검색되는 문제가 있었다. DOM은 프론트가 20개씩만 만들므로 캐시는 전종목을 보존한다.
+INVEST_SIGNAL_BUCKET_CAP = 3000
 INVEST_SIGNAL_TOP_N = 20
 INVEST_SIGNAL_BUCKET_KEYS = ['적극 매수', '매수 우위', '보유', '비중축소', '매도']
 

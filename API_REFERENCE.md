@@ -203,6 +203,12 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | GET | `/investor-flow-batch` | **필요** | 하루 1회(`batch_scan.py`) | 섹터 풀(238종목) 공매도/대차/연기금 배치 캐시 |
 | GET | `/fundamentals-batch` | **필요** | 하루 1회(`batch_scan.py`) | DART 재무제표(5년 추세+최근분기) 배치 캐시 |
 | GET | `/daily-scan-batch` | **필요** | 하루 1회(`daily_scan.py`) | 차트패턴·눌림목·투자시그널 전종목 스캔 결과 |
+
+`/daily-scan-batch`의 `data.investSignal.buckets[등급]`은 전종목 검색·정렬용으로 최대
+3,000개를 보존한다. 각 항목은
+`[code, name, price, changeRate, stars, totalScore, tradingValue]` 순서이며
+`price`는 원, `changeRate`는 %, `totalScore`는 0~100점, `tradingValue`는 원 단위
+`종가×거래량`이다. 앞 5개 필드 순서는 구버전과 동일하다.
 | GET | `/week52-batch` | **필요** | 하루 1회(`week52_scan.py`) | 섹터 풀 52주 신고가/신저가 캐시 |
 
 ---

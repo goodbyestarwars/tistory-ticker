@@ -227,6 +227,8 @@ def main():
                     'price': last['close'],
                     'changeRate': last['change_pct'],
                     'stars': verdict['stars'],
+                    'score': verdict['score'],
+                    'tradingValue': last['close'] * (last.get('volume') or 0),
                     'label': verdict['label'],
                     'foreign5d': r5.get('foreign', 0),
                     'inst5d': r5.get('inst', 0),
@@ -245,7 +247,10 @@ def main():
                 signal_state['counts'][verdict['label']] = signal_state['counts'].get(verdict['label'], 0) + 1
                 bucket = signal_state['buckets'].get(verdict['label'])
                 if bucket is not None and len(bucket) < invest_signal.INVEST_SIGNAL_BUCKET_CAP:
-                    bucket.append([row['code'], row['name'], row['price'], row['changeRate'], row['stars']])
+                    # 뒤 2개 필드는 2026-07-28 전체 목록 정렬용. 앞 5개 순서는 기존 프론트와
+                    # 호환 유지: [code,name,price,changeRate,stars,totalScore,tradingValue].
+                    bucket.append([row['code'], row['name'], row['price'], row['changeRate'], row['stars'],
+                                   row['score'], row['tradingValue']])
 
                 invest_signal.upsert_ranked(signal_state['topForeign'], row, 'foreign5d', invest_signal.INVEST_SIGNAL_TOP_N, 'desc')
                 invest_signal.upsert_ranked(signal_state['topInst'], row, 'inst5d', invest_signal.INVEST_SIGNAL_TOP_N, 'desc')

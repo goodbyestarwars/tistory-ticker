@@ -25,6 +25,8 @@
 
 **2026-07-28 새로고침 시 검은 영역 FOUC 수정**: 라이트모드 새로고침 때 화면 상단 일부가 검게 먼저 나타났다 흰색으로 바뀌는 현상은 다크모드 초기화 문제가 아니라, 2026-07-16에 폐기된 구형 `#market-ribbon`의 CSS/JS 실행 시점 차이였다. `skin.html`에 빈 컨테이너와 `css/market-ribbon.css`/`js/market-ribbon.js` 로드가 남아 있는데, CSS가 먼저 높이 32px·검은 배경의 fixed bar를 페인트하고 `defer`된 JS가 DOMContentLoaded 이후에야 인라인 `display:none`을 적용했다. `css/market-ribbon.css`의 첫 규칙에 `.market-ribbon{display:none!important}`을 추가해 첫 스타일 계산부터 숨기도록 수정했다. 이제 JS 로드·DOMContentLoaded·네트워크 속도와 무관하게 검은 바가 한 프레임도 노출되지 않는다. 구형 규칙과 JS는 롤백 이력 때문에 유지한다.
 
+**2026-07-28 종목분석 목록·패널·매물대 UI 개선**: 투자시그널 등급 버킷의 100종목 제한을 3,000으로 확대해 보유 835종목을 포함한 스캔 전종목을 검색·필터할 수 있게 하고, bucket tuple 뒤에 종합점수와 거래대금(`[code,name,price,changeRate,stars,totalScore,tradingValue]`)을 추가했다. 프론트는 전체 데이터를 한 번에 DOM에 만들지 않고 20개씩 점진 렌더링하며 종합점수·등락률·거래대금·종목명 정렬을 지원한다. 목록 제목에는 조건별 실제 건수와 정렬 기준을 함께 표시한다. 미선택 `ffSigBanner`는 `[hidden]{display:none!important}`으로 첫 화면의 빈 파란 바와 여백을 제거했다. PC의 목록·상세 카드는 오른쪽 상세 높이에 맞추고 목록만 내부 스크롤하며, 모바일은 세로 스택과 20개 더보기를 유지한다. 상세의 판정 카드와 항목별 점수 사이 간격을 14px(모바일 11px)로 분리했고, 매물대 지상/B1/B2 외곽선은 1px 저채도 선으로 줄였다. 새 bucket 데이터는 다음 `daily_scan.py` 배치부터 채워지며 기존 5칸 tuple도 프론트에서 호환한다.
+
 ## 필요한 문서만 읽기
 
 아래 문서를 시작 시 전부 읽지 않는다.

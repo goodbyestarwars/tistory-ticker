@@ -104,9 +104,7 @@
     { key: '매도', bucketKey: 'sell', emoji: '🔴', label: '매도', cls: 'grade-sell' }
   ];
   var GRADE_BUCKET_ORDER = ['activeBuy', 'buy', 'hold', 'reduce', 'sell']; // 종합점수 높은 순
-  var SIGNAL_TOP_DEFAULT = 10;
-  var SIGNAL_TOP_MAX = 20;
-  var SIGNAL_SEARCH_MAX = 30; // 검색어 입력 시 TOP10/20 캡 대신 이만큼까지 보여줌(GAS가 버킷당 최대 100개로 캡을 걸어둠)
+  var SIGNAL_PAGE_SIZE = 20; // 전체를 한 번에 DOM에 넣지 않고 PC·모바일 모두 20개씩 점진 렌더링
 
   // 2026-07-27: "9Pay 증권" 개편 작업지시서 #9 - 종목분석에 필터를 추가하되, 새 배치
   // 필드를 만들지 않고 daily_scan.py가 이미 계산해서 GAS(getInvestSignalResult)가
@@ -122,15 +120,21 @@
     { key: 'tech', label: '기술적', metricLabel: '기술점수', fmt: function (v) { return Math.round(v) + '점'; } },
     { key: 'shortSafe', label: '공매도 안전', metricLabel: '공매도비중', fmt: function (v) { return v.toFixed(1) + '%'; } },
     { key: 'pension', label: '연기금', metricLabel: '5일 순매수', fmt: fmtSharesUnit },
-    { key: 'fundamental', label: '펀더멘탈', metricLabel: '펀더멘탈점수', fmt: function (v) { return Math.round(v) + '점'; } },
-    { key: 'changeRate', label: '상승률', metricLabel: '등락률', fmt: null, clientSort: true } // fmt는 changeRate 전용 렌더링 재사용
+    { key: 'fundamental', label: '펀더멘탈', metricLabel: '펀더멘탈점수', fmt: function (v) { return Math.round(v) + '점'; } }
   ];
-  var DISABLED_RANKING_LABELS = ['PER', '배당', '거래대금', '차트패턴']; // 데이터 소스 준비 전 - 안내용 비활성 탭
+  var DISABLED_RANKING_LABELS = ['PER', '배당', '차트패턴']; // 데이터 소스 준비 전 - 안내용 비활성 탭
+  var SIGNAL_SORT_META = [
+    { key: 'score', label: '종합점수순' },
+    { key: 'changeRate', label: '등락률순' },
+    { key: 'tradingValue', label: '거래대금순' },
+    { key: 'name', label: '종목명순' }
+  ];
 
   var signalData = null;
   var activeGradeBucket = null; // 카운트 배지 클릭으로 필터링한 등급(GRADE_META.key), null이면 전체
   var activeRanking = null;     // RANKING_META.key - null이면 등급 버킷 기준(기본), 값이 있으면 그 랭킹으로 정렬
-  var listExpanded = false;     // 종목 리스트 더보기(TOP20) 눌렀는지 - 필터 바뀌면 초기화
+  var signalSortKey = 'score';
+  var signalVisibleCount = SIGNAL_PAGE_SIZE;
   var activeSignalCode = null;  // 우측 요약 패널에 표시 중인 종목코드(리스트 하이라이트용)
   var signalSearchQuery = '';   // 리스트 내부 종목명 검색어(빈 문자열이면 검색 비활성)
 
@@ -149,6 +153,7 @@
       var sigWrap = container.querySelector('#ffSigWrap');
       if (sigWrap && !sigWrap.hidden && !document.hidden) patchSignalListPrices(container);
     }, 20000);
+    global.addEventListener('resize', function () { syncSignalPanelHeight(container); });
   }
 
   // 다른 페이지(오늘의 투자시그널 등)에서 ?code=005930&name=삼성전자로 넘어오면
@@ -179,8 +184,12 @@
       + '<div class="ff-sig-list-col">'
       + '<div class="ff-sig-count" id="ffSigCount"><div class="ff-hint">투자시그널 불러오는 중...</div></div>'
       + '<div class="ff-sig-rank-tabs" id="ffSigRankTabs"></div>'
-      + '<div class="ff-sig-search-wrap">'
+      + '<div class="ff-sig-list-tools">'
       + '<input type="text" id="ffSigSearch" class="ff-sig-search-input" placeholder="목록 내 종목명 검색" autocomplete="off" />'
+      + '<label class="ff-sig-sort-label" for="ffSigSort">정렬'
+      + '<select id="ffSigSort" class="ff-sig-sort-select">'
+      + SIGNAL_SORT_META.map(function (s) { return '<option value="' + s.key + '">' + s.label + '</option>'; }).join('')
+      + '</select></label>'
       + '</div>'
       + '<div class="ff-sig-list" id="ffSigList"></div>'
       + '</div>'
@@ -200,6 +209,7 @@
         renderSignalCount(container);
         renderRankingTabs(container);
         renderSignalList(container);
+        syncSignalPanelHeight(container);
       })
       .catch(function () {
         var box = container.querySelector('#ffSigCount');
@@ -238,15 +248,74 @@
       + '<div class="ff-sig-meta">' + escapeHtml(meta) + '</div>';
   }
 
-  // 등급 필터가 없을 때(기본 상태) 보여줄 리스트 - 등급 버킷(각 버킷 내부는 이미 점수순 정렬됨)을
-  // 적극매수->매도 순으로 이어붙여 "종합점수 높은 순"에 근접하게 만든다(별도 통합 랭킹 API 없음).
-  function combinedSignalItems() {
+  // bucket tuple은 구버전 [code,name,price,changeRate,stars]와 신버전
+  // [code,name,price,changeRate,stars,totalScore,tradingValue]를 모두 허용한다.
+  function bucketSignalRecord(item, gradeMeta) {
+    var stars = Number(item[4]);
+    var totalScore = item.length > 5 && item[5] != null ? Number(item[5]) : stars * 20;
+    return {
+      code: item[0],
+      name: item[1],
+      price: Number(item[2]),
+      changeRate: Number(item[3]),
+      stars: isNaN(stars) ? 0 : stars,
+      totalScore: isNaN(totalScore) ? 0 : totalScore,
+      tradingValue: item.length > 6 && item[6] != null ? Number(item[6]) || 0 : 0,
+      gradeKey: gradeMeta ? gradeMeta.key : null,
+      metricValue: null,
+      rankMeta: null
+    };
+  }
+
+  // 다섯 등급 버킷을 하나의 전체 종목 풀로 정규화한다. 동일 종목이 중복으로 들어와도
+  // code 기준 한 번만 유지해 검색·건수·점진 렌더링이 서로 어긋나지 않게 한다.
+  function allSignalRecords() {
     var out = [];
-    GRADE_BUCKET_ORDER.forEach(function (key) {
-      var arr = (signalData.buckets && signalData.buckets[key]) || [];
-      out = out.concat(arr);
+    var seen = {};
+    GRADE_META.forEach(function (gradeMeta) {
+      var arr = (signalData.buckets && signalData.buckets[gradeMeta.bucketKey]) || [];
+      arr.forEach(function (item) {
+        if (!item || !item[0] || seen[item[0]]) return;
+        seen[item[0]] = true;
+        out.push(bucketSignalRecord(item, gradeMeta));
+      });
     });
     return out;
+  }
+
+  function rankingSignalRecords(rankMeta, baseRecords) {
+    var byCode = {};
+    baseRecords.forEach(function (record) { byCode[record.code] = record; });
+    var ranked = (signalData.rankings && signalData.rankings[rankMeta.key]) || [];
+    return ranked.map(function (item) {
+      var base = byCode[item[0]] || bucketSignalRecord([item[0], item[1], item[2], item[3], item[5]], null);
+      return {
+        code: base.code,
+        name: base.name,
+        price: base.price,
+        changeRate: base.changeRate,
+        stars: item[5] == null ? base.stars : Number(item[5]),
+        totalScore: base.totalScore,
+        tradingValue: base.tradingValue,
+        gradeKey: base.gradeKey,
+        metricValue: item[4],
+        rankMeta: rankMeta
+      };
+    });
+  }
+
+  function signalSortLabel() {
+    var meta = SIGNAL_SORT_META.filter(function (s) { return s.key === signalSortKey; })[0];
+    return meta ? meta.label : '종합점수순';
+  }
+
+  function sortSignalRecords(records) {
+    return records.slice().sort(function (a, b) {
+      if (signalSortKey === 'changeRate') return (b.changeRate || 0) - (a.changeRate || 0) || (b.totalScore || 0) - (a.totalScore || 0);
+      if (signalSortKey === 'tradingValue') return (b.tradingValue || 0) - (a.tradingValue || 0) || (b.totalScore || 0) - (a.totalScore || 0);
+      if (signalSortKey === 'name') return (a.name || '').localeCompare(b.name || '', 'ko');
+      return (b.totalScore || 0) - (a.totalScore || 0) || (b.stars || 0) - (a.stars || 0);
+    });
   }
 
   function renderSignalList(container) {
@@ -257,45 +326,35 @@
     var rankMeta = activeRanking ? RANKING_META.filter(function (r) { return r.key === activeRanking; })[0] : null;
     var meta = (!rankMeta && activeGradeBucket) ? GRADE_META.filter(function (g) { return g.key === activeGradeBucket; })[0] : null;
 
-    var items;
-    if (rankMeta && rankMeta.clientSort) {
-      // "상승률"은 rankings.*에 없어 버킷 전체를 합쳐 클라이언트에서 직접 정렬한다(5-tuple 그대로 유지).
-      items = combinedSignalItems().slice().sort(function (a, b) { return (b[3] || 0) - (a[3] || 0); });
-    } else if (rankMeta) {
-      items = (signalData.rankings && signalData.rankings[rankMeta.key]) || [];
-    } else {
-      items = meta ? ((signalData.buckets && signalData.buckets[meta.bucketKey]) || []) : combinedSignalItems();
-    }
-    // "상승률"은 별도 metric 컬럼 없이 기본 행 포맷을 재사용(등락률 자체가 이미 quote에 보임)
-    var rowRankMeta = (rankMeta && !rankMeta.clientSort) ? rankMeta : null;
+    var allRecords = allSignalRecords();
+    var items = rankMeta
+      ? rankingSignalRecords(rankMeta, allRecords)
+      : (meta ? allRecords.filter(function (record) { return record.gradeKey === meta.key; }) : allRecords);
 
     var query = signalSearchQuery.trim();
     if (query) {
       var q = query.toLowerCase();
-      items = items.filter(function (item) {
-        return (item[1] && item[1].toLowerCase().indexOf(q) !== -1) || (item[0] && item[0].indexOf(q) !== -1);
+      items = items.filter(function (record) {
+        return (record.name && record.name.toLowerCase().indexOf(q) !== -1) || (record.code && record.code.indexOf(q) !== -1);
       });
     }
+    items = sortSignalRecords(items);
+
+    var filterLabel = rankMeta ? (rankMeta.label + ' 조건') : (meta ? (meta.label + ' 조건') : '전체 종목');
+    var headText = filterLabel + ' ' + items.length.toLocaleString('ko-KR') + '개 · ' + signalSortLabel();
+    if (query) headText = '"' + query + '" 검색 · ' + headText;
+    var headHtml = '<div class="ff-sig-list-head">' + escapeHtml(headText) + '</div>';
 
     if (!items.length) {
-      box.innerHTML = '<div class="ff-hint">' + (query ? '검색 결과가 없어요.' : '해당 종목이 없어요.') + '</div>';
+      box.innerHTML = headHtml + '<div class="ff-hint">' + (query ? '검색 결과가 없어요.' : '해당 종목이 없어요.') + '</div>';
       return;
     }
 
-    var shown = query ? items.slice(0, SIGNAL_SEARCH_MAX) : items.slice(0, listExpanded ? SIGNAL_TOP_MAX : SIGNAL_TOP_DEFAULT);
-    var headHtml = query
-      ? ('<div class="ff-sig-list-head">"' + escapeHtml(query) + '" 검색결과 (' + items.length.toLocaleString('ko-KR') + '건)</div>')
-      : (rankMeta
-        // "상승률"은 items가 전체 후보 풀(버킷 합산, 최대 수백 개)이라 items.length를 그대로
-        // 쓰면 실제로 보여주는 개수(최대 SIGNAL_TOP_MAX)와 다른 과장된 숫자가 찍힌다 -
-        // 항상 "실제로 펼쳐질 수 있는 최대치" 기준으로 표기.
-        ? ('<div class="ff-sig-list-head">' + rankMeta.label + ' TOP' + Math.min(items.length, SIGNAL_TOP_MAX) + '</div>')
-        : meta
-          ? ('<div class="ff-sig-list-head">' + meta.emoji + ' ' + meta.label + ' 종목</div>')
-          : '<div class="ff-sig-list-head">전체 종목 (종합점수순)</div>');
-    var rowsHtml = shown.map(function (item) { return listRowHtml(item, rowRankMeta); }).join('');
-    var moreHtml = (!query && !listExpanded && items.length > SIGNAL_TOP_DEFAULT)
-      ? '<button type="button" class="ff-sig-more" data-list-more="1">더보기 (TOP ' + Math.min(items.length, SIGNAL_TOP_MAX) + ')</button>'
+    var shown = items.slice(0, signalVisibleCount);
+    var rowsHtml = shown.map(function (record) { return listRowHtml(record); }).join('');
+    var moreHtml = items.length > shown.length
+      ? '<button type="button" class="ff-sig-more" data-list-more="1">전체 ' + items.length.toLocaleString('ko-KR')
+        + '종목 보기 <span>현재 ' + shown.length.toLocaleString('ko-KR') + '개</span></button>'
       : '';
 
     box.innerHTML = headHtml + '<div class="ff-sig-table">' + rowsHtml + '</div>' + moreHtml;
@@ -336,31 +395,65 @@
       .catch(function () { /* 실패하면 배치 스냅샷 값 그대로 둔다 */ });
   }
 
-  // item = [code, name, price, changeRate, stars](버킷, 5칸) 또는
-  // [code, name, price, changeRate, metricValue, stars](랭킹, 6칸 - invest_signal.upsert_ranked).
-  // rankMeta가 있으면 6칸 형식으로 읽어 metric 컬럼을 추가로 보여준다.
-  function listRowHtml(item, rankMeta) {
-    var code = item[0], name = item[1], price = item[2], changeRate = item[3];
-    var stars = rankMeta ? item[5] : item[4];
-    var activeCls = code === activeSignalCode ? ' active' : '';
-    var metricHtml = (rankMeta && item[4] != null)
-      ? '<span class="ff-sig-metric">' + escapeHtml(rankMeta.metricLabel) + ' ' + escapeHtml(rankMeta.fmt(item[4])) + '</span>'
+  function listRowHtml(record) {
+    var activeCls = record.code === activeSignalCode ? ' active' : '';
+    var metricHtml = (record.rankMeta && record.metricValue != null)
+      ? '<span class="ff-sig-metric">' + escapeHtml(record.rankMeta.metricLabel) + ' ' + escapeHtml(record.rankMeta.fmt(record.metricValue)) + '</span>'
       : '';
-    return '<button type="button" class="ff-sig-row ff-sig-list-row' + activeCls + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
-      + stockIconHtml(code, 'ff-sig-icon')
-      + '<span class="ff-sig-name">' + escapeHtml(name) + '<span class="ff-sig-code">(' + escapeHtml(code) + ')</span></span>'
+    return '<button type="button" class="ff-sig-row ff-sig-list-row' + activeCls + '" data-code="' + escapeAttr(record.code) + '" data-name="' + escapeAttr(record.name) + '">'
+      + stockIconHtml(record.code, 'ff-sig-icon')
+      + '<span class="ff-sig-name">' + escapeHtml(record.name) + '<span class="ff-sig-code">(' + escapeHtml(record.code) + ')</span></span>'
       + metricHtml
-      + '<span class="ff-sig-score">' + starsHtml(stars) + '</span>'
-      + '<span class="ff-sig-quote"><span class="ff-sig-price">' + (price == null || isNaN(price) ? '-' : Math.round(price).toLocaleString('ko-KR')) + '</span>'
-      + '<span class="ff-sig-rate ' + signClass(changeRate) + '">' + fmtSignedPct(changeRate) + '</span></span>'
+      + '<span class="ff-sig-score">' + starsHtml(record.stars) + '</span>'
+      + '<span class="ff-sig-quote"><span class="ff-sig-price">' + (record.price == null || isNaN(record.price) ? '-' : Math.round(record.price).toLocaleString('ko-KR')) + '</span>'
+      + '<span class="ff-sig-rate ' + signClass(record.changeRate) + '">' + fmtSignedPct(record.changeRate) + '</span></span>'
       + '</button>';
   }
 
   // 리스트에서 종목 클릭 -> 우측 요약 패널(+ 상단 배너) 갱신. 페이지 이동 없음(작업지시서 ③).
   function selectListStock(container, code, name) {
+    if (activeSignalCode === code) {
+      clearSignalSelection(container);
+      return;
+    }
     activeSignalCode = code;
     renderSignalList(container); // 활성 행 하이라이트 갱신
     loadSignalSummary(container, code, name);
+  }
+
+  function clearSignalSelection(container) {
+    activeSignalCode = null;
+    var bannerBox = container.querySelector('#ffSigBanner');
+    var panelBox = container.querySelector('#ffSigSummary');
+    if (bannerBox) {
+      bannerBox.hidden = true;
+      bannerBox.innerHTML = '';
+    }
+    if (panelBox) panelBox.innerHTML = '<div class="ff-hint">종목을 선택하세요</div>';
+    renderSignalList(container);
+    syncSignalPanelHeight(container);
+  }
+
+  // PC에서는 오른쪽 상세 카드의 자연 높이를 기준으로 한 행의 높이를 정하고, 왼쪽 목록만
+  // 내부 스크롤한다. 모바일은 CSS가 세로 스택으로 바꾸므로 높이 제한을 제거한다.
+  function syncSignalPanelHeight(container) {
+    var layout = container.querySelector('.ff-sig-twocol');
+    var panel = container.querySelector('#ffSigSummary');
+    if (!layout || !panel) return;
+    layout.style.removeProperty('--ff-sig-panel-height');
+    if (global.matchMedia && global.matchMedia('(max-width: 760px)').matches) return;
+    global.requestAnimationFrame(function () {
+      // grid의 align-items:stretch 때문에 panel.scrollHeight는 왼쪽 목록의 자연 높이까지
+      // 따라 늘어난다. 마지막 실제 자식의 하단 좌표로 오른쪽 콘텐츠 고유 높이만 측정한다.
+      var lastChild = panel.lastElementChild;
+      var panelRect = panel.getBoundingClientRect();
+      var paddingBottom = parseFloat(global.getComputedStyle(panel).paddingBottom) || 0;
+      var naturalHeight = lastChild
+        ? lastChild.getBoundingClientRect().bottom - panelRect.top + paddingBottom
+        : 0;
+      var targetHeight = Math.max(560, Math.ceil(naturalHeight));
+      layout.style.setProperty('--ff-sig-panel-height', targetHeight + 'px');
+    });
   }
 
   // 요약 패널의 "상세 보기"를 누르면 그제서야 기존 검색창 흐름(⑤ 상세 영역)을 실행한다.
@@ -413,6 +506,7 @@
     var panelBox = container.querySelector('#ffSigSummary');
     if (bannerBox) bannerBox.hidden = true;
     if (panelBox) panelBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(name) + ' 불러오는 중...</div></div>';
+    syncSignalPanelHeight(container);
 
     var chartPromise = fetchFlowChart(code).catch(function () { return null; });
     var investorFlowPromise = fetchInvestorFlowLive(code, name).catch(function () { return null; });
@@ -430,10 +524,12 @@
         var techScore = computeTechnicalScore(chartData);
         renderSignalBanner(bannerBox, data, entry, techScore, fundamentals);
         renderSignalSummaryPanel(panelBox, data, entry, techScore, fundamentals, quote, chartData);
+        syncSignalPanelHeight(container);
       })
       .catch(function () {
         if (activeSignalCode !== code) return;
         if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+        syncSignalPanelHeight(container);
       });
   }
 
@@ -613,10 +709,19 @@
     var suggestBox = container.querySelector('#ffSuggest');
     var btn = container.querySelector('#ffSearchBtn');
     var sigSearchInput = container.querySelector('#ffSigSearch');
+    var sigSortSelect = container.querySelector('#ffSigSort');
 
     if (sigSearchInput) {
       sigSearchInput.addEventListener('input', function () {
         signalSearchQuery = sigSearchInput.value;
+        signalVisibleCount = SIGNAL_PAGE_SIZE;
+        renderSignalList(container);
+      });
+    }
+    if (sigSortSelect) {
+      sigSortSelect.addEventListener('change', function () {
+        signalSortKey = sigSortSelect.value || 'score';
+        signalVisibleCount = SIGNAL_PAGE_SIZE;
         renderSignalList(container);
       });
     }
@@ -670,7 +775,7 @@
       }
       var moreBtn = e.target.closest ? e.target.closest('.ff-sig-more') : null;
       if (moreBtn) {
-        listExpanded = true;
+        signalVisibleCount += SIGNAL_PAGE_SIZE;
         renderSignalList(container);
         return;
       }
@@ -679,7 +784,7 @@
         var key = gradeBtn.getAttribute('data-grade');
         activeGradeBucket = activeGradeBucket === key ? null : key;
         activeRanking = null; // 등급 필터와 정렬 필터는 동시에 적용하지 않음(단순한 단일 리스트 유지)
-        listExpanded = false;
+        signalVisibleCount = SIGNAL_PAGE_SIZE;
         renderSignalCount(container);
         renderRankingTabs(container);
         renderSignalList(container);
@@ -690,7 +795,7 @@
         var rankKey = rankBtn.getAttribute('data-rank');
         activeRanking = activeRanking === rankKey ? null : rankKey;
         activeGradeBucket = null;
-        listExpanded = false;
+        signalVisibleCount = SIGNAL_PAGE_SIZE;
         renderSignalCount(container);
         renderRankingTabs(container);
         renderSignalList(container);
