@@ -2936,6 +2936,10 @@
     }
 
     var roofHtml = '<div class="ff-apt-roof-block">'
+      + '<div class="ff-apt-clouds" aria-hidden="true">'
+      + '<span class="ff-apt-cloud ff-apt-cloud-left"></span>'
+      + '<span class="ff-apt-cloud ff-apt-cloud-right"></span>'
+      + '</div>'
       + '<div class="ff-apt-nameplate">매물대 아파트</div>'
       + '<div class="ff-apt-helipad"><span class="ff-apt-helipad-h">H</span></div>'
       + '<div class="ff-apt-heli"><span class="ff-apt-heli-rotor"></span><span class="ff-apt-heli-body">🚁</span></div>'
@@ -2978,9 +2982,20 @@
       + '<span class="ff-apt-basement-room">🅿️주차장</span>'
       + '</div></div>';
 
+    // B2 마그마방도 실제 가격구간이 아닌 장식이다. B1 아래에 암반층을 두어 별도 공간으로
+    // 분리하고, 최저가보다 훨씬 아래의 극단적 하락 영역이라는 은유만 전달한다.
+    var magmaHtml = '<div class="ff-apt-magma" aria-label="B2 마그마방 · 극단적 하락 영역">'
+      + '<div class="ff-apt-magma-crust"></div>'
+      + '<div class="ff-apt-magma-label"><strong>B2 마그마방</strong><span>최저가보다 훨씬 아래 · 극단적 하락 영역</span></div>'
+      + '<span class="ff-apt-magma-bubble ff-apt-magma-bubble-1"></span>'
+      + '<span class="ff-apt-magma-bubble ff-apt-magma-bubble-2"></span>'
+      + '<span class="ff-apt-magma-bubble ff-apt-magma-bubble-3"></span>'
+      + '<span class="ff-apt-magma-glow"></span>'
+      + '</div>';
+
     return '<div class="ff-apt-chart-wrap">' + roofHtml
       + '<div class="ff-apt-floors">' + rows + ladderHtml + '</div>'
-      + lobbyHtml + basementHtml + '</div>';
+      + lobbyHtml + basementHtml + magmaHtml + '</div>';
   }
 
   function buildAptStatsHtml(profile) {

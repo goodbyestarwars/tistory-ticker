@@ -533,7 +533,7 @@
 }
 #foreign-flow .ff-apt-chart-wrap.ff-apt-in { opacity: 1; transform: translateY(0); }
 
-/* ---- 옥상: 이름표 + 헬리패드 + 로터가 도는 헬기 ---- */
+/* ---- 옥상: 구름 + 이름표 + 헬리패드 + 로터가 도는 헬기 ---- */
 #foreign-flow .ff-apt-roof-block {
   position: relative;
   display: flex;
@@ -541,6 +541,55 @@
   align-items: center;
   height: 74px;
   margin-bottom: 2px;
+}
+#foreign-flow .ff-apt-clouds {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+#foreign-flow .ff-apt-cloud {
+  position: absolute;
+  width: 54px;
+  height: 15px;
+  background: #fff;
+  border: 1px solid #dbe3ec;
+  border-radius: 999px;
+  box-shadow: 0 2px 5px rgba(92, 110, 130, 0.12);
+}
+#foreign-flow .ff-apt-cloud::before,
+#foreign-flow .ff-apt-cloud::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  background: inherit;
+  border: inherit;
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0;
+}
+#foreign-flow .ff-apt-cloud::before { left: 9px; width: 20px; height: 18px; }
+#foreign-flow .ff-apt-cloud::after { right: 8px; width: 25px; height: 25px; }
+#foreign-flow .ff-apt-cloud-left {
+  left: 17%;
+  top: 34px;
+  animation: ff-apt-cloud-drift-left 7s ease-in-out infinite;
+}
+#foreign-flow .ff-apt-cloud-right {
+  right: 15%;
+  top: 14px;
+  transform: scale(0.82);
+  opacity: 0.82;
+  animation: ff-apt-cloud-drift-right 8.5s ease-in-out infinite;
+}
+#foreign-flow .ff-apt-roof-block > :not(.ff-apt-clouds) { position: relative; z-index: 1; }
+@keyframes ff-apt-cloud-drift-left {
+  0%, 100% { transform: translateX(-5px); }
+  50% { transform: translateX(8px); }
+}
+@keyframes ff-apt-cloud-drift-right {
+  0%, 100% { transform: translateX(6px) scale(0.82); }
+  50% { transform: translateX(-9px) scale(0.82); }
 }
 /* 2026-07-28 사용자 요청: "매물대 아파트" 이름표와 "H" 글자 크기를 키움 */
 #foreign-flow .ff-apt-nameplate {
@@ -881,9 +930,96 @@
   padding: 5px 3px;
   white-space: nowrap;
 }
+
+/* ---- B2 마그마방: B1 아래 암반층으로 분리된 극단적 하락 은유(실데이터 아님) ---- */
+#foreign-flow .ff-apt-magma {
+  position: relative;
+  height: 58px;
+  margin: 0 7px;
+  overflow: hidden;
+  border: 4px solid #4b2a24;
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+  background:
+    radial-gradient(circle at 18% 90%, #ffd45c 0 7px, transparent 8px),
+    radial-gradient(circle at 72% 115%, #ffbd3e 0 18px, transparent 19px),
+    linear-gradient(180deg, #c52d1c 0%, #f4511e 42%, #ff9800 100%);
+  box-shadow: inset 0 8px 14px rgba(76, 13, 4, 0.38), 0 3px 8px rgba(174, 42, 16, 0.2);
+}
+#foreign-flow .ff-apt-magma-crust {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background:
+    linear-gradient(135deg, #4b2a24 25%, transparent 25%) 0 0 / 16px 10px,
+    linear-gradient(225deg, #4b2a24 25%, transparent 25%) 0 0 / 16px 10px;
+}
+#foreign-flow .ff-apt-magma-label {
+  position: absolute;
+  inset: 16px 10px auto;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #fff8e8;
+  text-shadow: 0 1px 2px rgba(72, 10, 2, 0.75);
+}
+#foreign-flow .ff-apt-magma-label strong {
+  padding: 2px 7px;
+  font-size: 11px;
+  white-space: nowrap;
+  background: rgba(75, 23, 13, 0.72);
+  border: 1px solid rgba(255, 224, 130, 0.65);
+  border-radius: 4px;
+}
+#foreign-flow .ff-apt-magma-label span { font-size: 9px; font-weight: 700; }
+#foreign-flow .ff-apt-magma-bubble {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  width: 8px;
+  height: 8px;
+  bottom: -9px;
+  background: #ffd45c;
+  border: 2px solid #ff7a1a;
+  border-radius: 50%;
+  box-shadow: 0 0 7px rgba(255, 214, 92, 0.85);
+  animation: ff-apt-magma-rise 2.8s ease-in infinite;
+}
+#foreign-flow .ff-apt-magma-bubble-1 { left: 14%; animation-delay: -0.4s; }
+#foreign-flow .ff-apt-magma-bubble-2 { left: 62%; width: 11px; height: 11px; animation-delay: -1.7s; }
+#foreign-flow .ff-apt-magma-bubble-3 { right: 12%; width: 6px; height: 6px; animation-delay: -2.2s; }
+#foreign-flow .ff-apt-magma-glow {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -11px;
+  height: 24px;
+  background: #ffd54f;
+  border-radius: 50%;
+  filter: blur(9px);
+  opacity: 0.72;
+  animation: ff-apt-magma-pulse 2s ease-in-out infinite;
+}
+@keyframes ff-apt-magma-rise {
+  0% { transform: translateY(0) scale(0.75); opacity: 0; }
+  18% { opacity: 1; }
+  78% { opacity: 0.9; }
+  100% { transform: translateY(-52px) scale(1.15); opacity: 0; }
+}
+@keyframes ff-apt-magma-pulse {
+  0%, 100% { opacity: 0.55; transform: scaleX(0.94); }
+  50% { opacity: 0.82; transform: scaleX(1.03); }
+}
 @media (max-width: 520px) {
   #foreign-flow .ff-apt-basement-heading { flex-direction: column; gap: 3px; }
   #foreign-flow .ff-apt-basement-rooms { grid-template-columns: repeat(2, 1fr); }
+  #foreign-flow .ff-apt-cloud-left { left: 4%; }
+  #foreign-flow .ff-apt-cloud-right { right: 3%; }
+  #foreign-flow .ff-apt-magma-label { flex-direction: column; gap: 2px; top: 13px; }
 }
 
 #foreign-flow .ff-apt-empty {
@@ -1333,6 +1469,11 @@ html.dark #foreign-flow .ff-apt-nameplate { background: rgba(245, 239, 224, 0.08
 html.dark #foreign-flow .ff-apt-helipad { background: rgba(245, 239, 224, 0.1) !important; border-color: rgba(245, 239, 224, 0.3) !important; }
 html.dark #foreign-flow .ff-apt-helipad-h { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-apt-heli-rotor { background: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-apt-cloud {
+  background: rgba(245, 239, 224, 0.22) !important;
+  border-color: rgba(245, 239, 224, 0.45) !important;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35) !important;
+}
 html.dark #foreign-flow .ff-apt-band-start { border-top-color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #foreign-flow .ff-apt-band-icon,
 html.dark #foreign-flow .ff-apt-band-range { color: rgba(245, 239, 224, 0.45) !important; }
