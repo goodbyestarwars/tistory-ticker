@@ -38,6 +38,15 @@ TIMEREOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now kiwoom-news-momentum.timer
 if [ "$RUN_NOW" = "--run-now" ]; then
-  sudo systemctl start kiwoom-news-momentum.service
+  if ! sudo systemctl start kiwoom-news-momentum.service; then
+    ACTIVE_STATE="$(systemctl show kiwoom-news-momentum.service -p ActiveState --value 2>/dev/null || echo unknown)"
+    RESULT="$(systemctl show kiwoom-news-momentum.service -p Result --value 2>/dev/null || echo unknown)"
+    EXEC_CODE="$(systemctl show kiwoom-news-momentum.service -p ExecMainCode --value 2>/dev/null || echo unknown)"
+    EXEC_STATUS="$(systemctl show kiwoom-news-momentum.service -p ExecMainStatus --value 2>/dev/null || echo unknown)"
+    printf '{"status":"failed-before-batch","activeState":"%s","result":"%s","execMainCode":"%s","execMainStatus":"%s","user":"%s","workingDirectory":"%s"}\n' \
+      "$ACTIVE_STATE" "$RESULT" "$EXEC_CODE" "$EXEC_STATUS" "$APP_USER" "$HOME_DIR" \
+      > "$HOME_DIR/news_momentum_batch_status.json"
+    exit 1
+  fi
 fi
 systemctl list-timers kiwoom-news-momentum.timer --no-pager
