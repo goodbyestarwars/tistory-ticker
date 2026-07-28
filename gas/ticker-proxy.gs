@@ -70,6 +70,10 @@ function doGet(e) {
     return jsonResponse(getFlowChart((params.code || '').trim()));
   }
 
+  if (params.action === 'priceReason') {
+    return jsonResponse(getPriceMoveReason((params.code || '').trim(), (params.name || '').trim(), params.changeRate));
+  }
+
   if (params.action === 'indexChart') {
     return jsonResponse(getIndexChart((params.symbol || '').trim()));
   }
@@ -525,6 +529,53 @@ function summarizeStockNews(name, items) {
   var prompt = '다음은 "' + name + '" 종목 관련 최근 뉴스야:\n' + lines.join('\n') + '\n\n' +
     '이 뉴스들을 종합해서 단기 주가 흐름에 미칠 영향과 투자자 입장에서 참고할 만한 의견까지 포함해 3문장으로 한국어로 요약해줘. 문장 외 다른 말은 붙이지 마.';
   return callGroq(prompt);
+}
+
+// ---------------------------------------------------------------------------
+// 증시검색: 선택 종목의 "오늘 등락 이유" 한 줄 AI 요약 (?action=priceReason&code=&name=&changeRate=)
+// 종목뉴스(getStockNews)의 3문장 종합 요약과 달리 오늘 발행된 뉴스만 추려 "오늘 왜 이렇게
+// 움직였는지"에 초점을 맞춘 한 문장만 만든다. js/stock-search.js가 종목 요약 아래에 있던
+// 시가총액/외국인·기관 수급(5일) 라인을 대체(사용자 요청, 2026-07-28).
+// ---------------------------------------------------------------------------
+var PRICE_REASON_CACHE_TTL = 1800; // 30분
+var PRICE_REASON_FAIL_TTL = 120;   // 오늘 뉴스가 없거나 AI 요약 실패 시
+
+function getPriceMoveReason(code, name, changeRate) {
+  if (!code) return { reason: null };
+
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'price_reason_' + code;
+  var cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  var items;
+  try { items = fetchStockNews(code); } catch (err) { items = []; }
+
+  var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyyMMdd');
+  var todayItems = items.filter(function (it) { return it.datetime && it.datetime.slice(0, 8) === today; });
+
+  var reason = todayItems.length
+    ? safeCall(function () { return summarizePriceMoveReason(name || code, changeRate, todayItems); })
+    : null;
+
+  var result = { reason: reason };
+  var ttl = reason ? PRICE_REASON_CACHE_TTL : PRICE_REASON_FAIL_TTL;
+  cache.put(cacheKey, JSON.stringify(result), ttl);
+  return result;
+}
+
+function summarizePriceMoveReason(name, changeRate, items) {
+  var rate = parseFloat(changeRate);
+  var dirText = !isNaN(rate)
+    ? (rate > 0 ? (rate.toFixed(2) + '% 상승') : rate < 0 ? (Math.abs(rate).toFixed(2) + '% 하락') : '보합')
+    : '등락';
+  var lines = items.slice(0, 8).map(function (it, i) {
+    return (i + 1) + '. ' + it.title + (it.body ? ' - ' + it.body : '');
+  });
+  var prompt = '"' + name + '" 종목이 오늘 ' + dirText + '했어. 다음은 오늘 나온 이 종목 관련 뉴스야:\n' + lines.join('\n') +
+    '\n\n이 뉴스들을 참고해서 오늘 주가가 왜 이렇게 움직였는지 핵심 이유만 한국어 한 문장(50자 이내)으로 요약해줘. ' +
+    '뉴스에 뚜렷한 이유가 안 보이면 "특별한 이슈 없이 시장 전반 흐름을 따라간 것으로 보입니다" 같은 문장으로 답해. 문장 외 다른 말은 붙이지 마.';
+  return callGroq(prompt, 0.3);
 }
 
 // Groq API (OpenAI 호환). 키는 PropertiesService에 저장(코드에 노출 안 함):

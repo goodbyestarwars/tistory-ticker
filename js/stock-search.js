@@ -10,16 +10,16 @@
  *
  * 검색 결과 리스트에 표시하는 필드는 일부러 "무료로 대량 조회 가능한 것"만 넣었다 -
  * 종목명/코드/현재가/등락률/거래량/거래대금(계산)/업종(sectors-v3.js 조회)은 기존
- * ?codes= 배치 시세로 여러 종목을 한 번에 받을 수 있지만, 시가총액·외국인/기관 수급은
- * 종목 하나씩 온디맨드로만 제공돼(VM /foreign-flow/{code}) 검색 결과 전체에 걸면 종목
- * 수만큼 호출이 폭발한다 - 그래서 그 두 필드는 "선택한 종목 요약"에서만 보여준다
- * (검색 결과 클릭 -> 상세, 라는 작업지시서 흐름과도 맞음).
+ * ?codes= 배치 시세로 여러 종목을 한 번에 받을 수 있다.
+ *
+ * 2026-07-28: 선택 종목 요약의 "시가총액"/"외국인·기관 수급(5일)" 라인은 사용자 요청으로
+ * 제거하고, 대신 GAS ?action=priceReason(오늘 뉴스 기반 AI 한줄요약 - "오늘 왜 올랐는지/
+ * 빠졌는지")으로 교체했다.
  */
 (function (global) {
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-  var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var CONTAINER_SELECTOR = '#stock-search';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var MAX_RESULTS = 30;
@@ -367,10 +367,7 @@
     detail.hidden = false;
 
     renderSummary(container, item);
-    fetchSummaryExtra(item.code, item.name).then(function (extra) {
-      if (state.selectedCode !== item.code) return; // 그 사이 다른 종목을 골랐으면 무시
-      renderSummary(container, item, extra);
-    });
+    loadPriceReason(container, item);
 
     var ladderBox = container.querySelector('#order-book');
     if (!state.ladderMounted && global.OrderBook) {
@@ -385,16 +382,9 @@
     wireChartTabs(container);
   }
 
-  function renderSummary(container, item, extra) {
+  function renderSummary(container, item) {
     var box = container.querySelector('#ssSummary');
     var cls = signClass(item.changeRate);
-    var marketCapHtml = extra && extra.market_cap_eok != null
-      ? fmtEokWon(extra.market_cap_eok)
-      : (extra === null ? '자료 없음' : '조회 중...');
-    var flowHtml = extra
-      ? summaryFlowText(extra)
-      : (extra === null ? '자료 없음' : '조회 중...');
-
     box.innerHTML = ''
       + '<div class="ss-summary-head">'
       + stockIconHtml(item.code)
@@ -403,32 +393,30 @@
       + '<span class="ss-summary-price ' + cls + '">' + fmtPrice(item.price) + '원</span>'
       + '<span class="ss-summary-change ' + cls + '">' + fmtSignedPct(item.changeRate) + '</span>'
       + '</div>'
-      + '<div class="ss-summary-extra">'
-      + '<span><b>시가총액</b> ' + marketCapHtml + '</span>'
-      + '<span><b>외국인·기관 수급(5일)</b> ' + flowHtml + '</span>'
+      + '<div class="ss-summary-reason" id="ssSummaryReason">'
+      + '<span class="ss-reason-badge">AI</span>'
+      + '<span class="ss-reason-text">오늘 움직인 이유를 불러오는 중...</span>'
       + '</div>';
   }
 
-  function summaryFlowText(extra) {
-    var rolling = extra.rolling && extra.rolling['5d'];
-    if (!rolling) return '자료 없음';
-    var f = rolling.foreign, i = rolling.inst;
-    var fText = f > 0 ? '외국인 순매수' : (f < 0 ? '외국인 순매도' : '외국인 중립');
-    var iText = i > 0 ? '기관 순매수' : (i < 0 ? '기관 순매도' : '기관 중립');
-    return fText + ' · ' + iText;
-  }
-
-  // 시가총액/외국인·기관 수급 - 종목 하나씩만 온디맨드 조회 가능해 "선택한 종목"에서만 호출.
-  // 실패해도(장기 미상장/데이터 없음 등) 나머지 화면은 정상 동작해야 하므로 null로 흡수.
-  function fetchSummaryExtra(code, name) {
-    var url = KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code) + '?days=5';
-    return fetchJson(url)
-      .then(function (envelope) {
-        var data = envelope && envelope.data;
-        if (!data || data.error) return null;
-        return data;
+  // 2026-07-28 사용자 요청: "시가총액"/"외국인·기관 수급(5일)" 라인을 없애고, 대신 오늘
+  // 이 종목이 왜 올랐는지/빠졌는지 뉴스 기반 AI 한줄요약으로 교체(GAS ?action=priceReason -
+  // 오늘 발행된 뉴스만 추려 Groq에 한 문장 요약을 요청, js/stock-news.js의 3문장 종합요약과는
+  // 별개의 가벼운 엔드포인트). 오늘 관련 뉴스가 없으면 요약을 만들지 않고 안내 문구만 표시.
+  function loadPriceReason(container, item) {
+    var url = GAS_TICKER_URL + '?action=priceReason&code=' + encodeURIComponent(item.code)
+      + '&name=' + encodeURIComponent(item.name) + '&changeRate=' + encodeURIComponent(item.changeRate);
+    fetchJson(url)
+      .then(function (data) {
+        if (state.selectedCode !== item.code) return; // 그 사이 다른 종목을 골랐으면 무시
+        var el = container.querySelector('#ssSummaryReason .ss-reason-text');
+        if (el) el.textContent = (data && data.reason) ? data.reason : '오늘 이 종목에 대한 특별한 뉴스가 없어요.';
       })
-      .catch(function () { return null; });
+      .catch(function () {
+        if (state.selectedCode !== item.code) return;
+        var el = container.querySelector('#ssSummaryReason .ss-reason-text');
+        if (el) el.textContent = '오늘 움직인 이유를 불러오지 못했어요.';
+      });
   }
 
   // ---- 차트 (일/주/월봉 + 거래량, 분봉은 데이터 소스 없어 비활성) ----
@@ -624,7 +612,6 @@
   function fmtQty(v) { return v == null ? '-' : Math.round(v).toLocaleString('ko-KR'); }
   // 거래대금(원)을 억원 단위로 - 사이트 다른 위젯(마켓 브리핑 등)과 동일한 단위 관례
   function fmtEok(v) { return v == null ? '-' : (v / 1e8).toFixed(1) + '억'; }
-  function fmtEokWon(v) { return v == null ? '-' : Math.round(v).toLocaleString('ko-KR') + '억원'; }
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {

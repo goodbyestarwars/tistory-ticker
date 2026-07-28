@@ -215,14 +215,27 @@
 #stock-search .ss-summary-code { color: #999; font-size: 12.5px; }
 #stock-search .ss-summary-price { font-size: 18px; font-weight: 700; margin-left: auto; }
 #stock-search .ss-summary-change { font-size: 13.5px; font-weight: 600; }
-#stock-search .ss-summary-extra {
+/* 2026-07-28: "시가총액"/"외국인·기관 수급(5일)" 라인을 없애고, 오늘 등락 이유를
+   뉴스 기반 AI 한줄요약(GAS ?action=priceReason)으로 교체(사용자 요청). */
+#stock-search .ss-summary-reason {
   display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
   font-size: 12.5px;
   color: #555;
+  line-height: 1.4;
 }
-#stock-search .ss-summary-extra b { color: #888; font-weight: 600; margin-right: 4px; }
+#stock-search .ss-reason-badge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #ffffff;
+  background: #6366f1;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.2px;
+}
+#stock-search .ss-reason-text { color: #374151; }
 
 #stock-search .ss-panels {
   display: grid;
@@ -298,7 +311,9 @@ html.dark #stock-search .ss-sector-tag { background: rgba(245, 239, 224, 0.16) !
 html.dark #stock-search .ss-summary-code,
 html.dark #stock-search .ss-results-count,
 html.dark #stock-search .ss-hint { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #stock-search .ss-summary-extra { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #stock-search .ss-summary-reason { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #stock-search .ss-reason-badge { background: rgba(245, 239, 224, 0.85) !important; color: #1A1A1A !important; }
+html.dark #stock-search .ss-reason-text { color: rgba(245, 239, 224, 0.85) !important; }
 html.dark #stock-search .ss-tf-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #stock-search .ss-tf-btn.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
 html.dark #stock-search .ss-fav-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.35) !important; }
