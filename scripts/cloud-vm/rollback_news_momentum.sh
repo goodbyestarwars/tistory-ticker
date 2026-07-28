@@ -1,9 +1,11 @@
 #!/bin/bash
 # 모멘텀 기능만 격리하고 기존 시세 API를 유지하는 운영 롤백.
 set -euo pipefail
-APP_DIR="$HOME/kiwoom-api"
+APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 ENV_FILE="$APP_DIR/.env"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+REASON="${1:-unknown}"
+RELEASE="${2:-unknown}"
 
 sudo systemctl stop kiwoom-news-momentum.timer 2>/dev/null || true
 sudo systemctl stop kiwoom-news-momentum.service 2>/dev/null || true
@@ -18,5 +20,9 @@ if [ -f "$APP_DIR/news_momentum.db" ]; then
   mv "$APP_DIR/news_momentum.db" "$APP_DIR/news_momentum.db.disabled.$STAMP"
 fi
 
+printf '%s\n' "$RELEASE" > "$APP_DIR/.news_momentum_disabled_release"
+printf '{"status":"rolled_back","reason":"%s","release":"%s","at":"%s"}\n' \
+  "$REASON" "$RELEASE" "$STAMP" > "$APP_DIR/news_momentum_status.json"
+
 sudo systemctl restart kiwoom-api
-echo "뉴스 모멘텀 롤백 완료: feature flag 비활성화, DB 격리"
+echo "뉴스 모멘텀 롤백 완료: feature flag 비활성화, DB 격리, reason=$REASON"

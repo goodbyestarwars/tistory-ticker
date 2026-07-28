@@ -1,7 +1,8 @@
 #!/bin/bash
 # 뉴스·검색 관심도 모멘텀 8종목 파일럿을 하루 1회 실행한다.
 set -euo pipefail
-HOME_DIR="$HOME/kiwoom-api"
+HOME_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+APP_USER="$(stat -c '%U' "$HOME_DIR")"
 PILOT_CODES="000660,005930,005380,083650,042660,035420,066570,247540"
 RUN_NOW="${1:-}"
 
@@ -12,7 +13,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-User=$USER
+User=$APP_USER
 WorkingDirectory=$HOME_DIR
 ExecStart=$HOME_DIR/venv/bin/python $HOME_DIR/news_momentum_scan.py --codes $PILOT_CODES
 Environment=PYTHONUNBUFFERED=1

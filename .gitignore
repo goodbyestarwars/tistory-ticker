@@ -34,3 +34,5 @@ scripts/cloud-vm/backups/
 /ohlc_snapshot.db
 /ohlc_snapshot.db-*
 /backups/
+/.news_momentum_disabled_release
+/news_momentum_status.json

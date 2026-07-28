@@ -430,12 +430,22 @@ def news_momentum_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     외부 API를 호출하지 않고 별도 news_momentum.db만 읽는다."""
     enabled = os.environ.get('NEWS_MOMENTUM_ENABLED', '1').strip().lower()
     if enabled not in ('1', 'true', 'yes', 'on'):
+        status = None
+        status_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   'news_momentum_status.json')
+        if os.path.exists(status_file):
+            try:
+                with open(status_file, 'r', encoding='utf-8') as source:
+                    status = json.load(source)
+            except (OSError, ValueError):
+                status = None
         return envelope({
             'enabled': False,
             'stockCode': code,
             'stockName': None,
             'dataAsOf': None,
             'coverage': None,
+            'deploymentStatus': status,
             'topics': [],
         })
     if not os.path.exists(news_momentum.DB_FILE):

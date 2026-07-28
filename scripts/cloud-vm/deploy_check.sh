@@ -19,6 +19,12 @@ if [ "$LAST_DEPLOYED" = "$REMOTE" ]; then
 fi
 
 git pull origin master -q
+NEWS_RELEASE=$(cat scripts/cloud-vm/news_momentum_release.txt 2>/dev/null || echo "none")
+DISABLED_RELEASE=$(cat .news_momentum_disabled_release 2>/dev/null || echo "")
+NEWS_ATTEMPT=1
+if [ "$NEWS_RELEASE" = "$DISABLED_RELEASE" ]; then
+  NEWS_ATTEMPT=0
+fi
 
 # 기존 204MB 시세 DB는 파일 복사가 아니라 Python sqlite3 backup API로 일관성 있게 백업한다.
 # backup_sqlite.py가 integrity_check까지 통과해야 배포를 계속한다.
@@ -28,22 +34,35 @@ git pull origin master -q
   --keep 7
 
 cp scripts/cloud-vm/*.py .
+
+if [ "$NEWS_ATTEMPT" = "1" ]; then
+  if grep -q '^NEWS_MOMENTUM_ENABLED=' .env 2>/dev/null; then
+    sed -i 's/^NEWS_MOMENTUM_ENABLED=.*/NEWS_MOMENTUM_ENABLED=1/' .env
+  else
+    printf '\nNEWS_MOMENTUM_ENABLED=1\n' >> .env
+  fi
+fi
+
 if ! sudo systemctl restart kiwoom-api; then
-  bash scripts/cloud-vm/rollback_news_momentum.sh
+  bash scripts/cloud-vm/rollback_news_momentum.sh "api-restart-failed" "$NEWS_RELEASE"
   exit 1
 fi
 
-# 초기/갱신 배포 모두 지정 8종목만 실행한다. 파일 잠금으로 timer와 중복되어도 한 번만 돈다.
-if ! bash scripts/cloud-vm/setup_news_momentum_timer.sh --run-now; then
-  bash scripts/cloud-vm/rollback_news_momentum.sh
-  exit 1
-fi
+if [ "$NEWS_ATTEMPT" = "1" ]; then
+  # 지정 8종목만 실행한다. 파일 잠금으로 timer와 중복되어도 한 번만 돈다.
+  if ! bash scripts/cloud-vm/setup_news_momentum_timer.sh --run-now; then
+    bash scripts/cloud-vm/rollback_news_momentum.sh "pilot-batch-failed" "$NEWS_RELEASE"
+    exit 1
+  fi
 
-# 키·응답 본문을 출력하지 않는 로컬 회귀 검사. 실패하면 모멘텀만 비활성화하고 DB 이름을
-# 바꿔 격리한 뒤 기존 kiwoom-api를 다시 올린다.
-if ! ./venv/bin/python post_deploy_check.py; then
-  bash scripts/cloud-vm/rollback_news_momentum.sh
-  exit 1
+  # 키·응답 본문을 출력하지 않는 로컬 회귀 검사.
+  if ! ./venv/bin/python post_deploy_check.py; then
+    bash scripts/cloud-vm/rollback_news_momentum.sh "regression-check-failed" "$NEWS_RELEASE"
+    exit 1
+  fi
+  rm -f .news_momentum_disabled_release
+  printf '{"status":"active","release":"%s","at":"%s"}\n' \
+    "$NEWS_RELEASE" "$(date -u +%Y%m%dT%H%M%SZ)" > news_momentum_status.json
 fi
 
 echo "$REMOTE" > "$DEPLOYED_FILE"

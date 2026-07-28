@@ -82,7 +82,9 @@
   `ohlc_snapshot.db`를 `backups/`에 백업하고 무결성 검사 후 최근 7개만 보관한다. 배포 뒤
   `/health`, `/news-momentum/000660`, 인증 `/ohlc/005930`을 점검한다. 실패 시
   `rollback_news_momentum.sh`가 `NEWS_MOMENTUM_ENABLED=0`으로 바꾸고 `news_momentum.db`를
-  `.disabled.<UTC시각>` 이름으로 격리한 뒤 기존 API만 재시작한다.
+  `.disabled.<UTC시각>` 이름으로 격리한 뒤 기존 API만 재시작한다. 실패한
+  `news_momentum_release.txt` 릴리스는 로컬 상태 파일에 기록해 일반 후속 배포가 임의로
+  재활성화하지 않으며, 수정 후 릴리스 번호를 올린 경우에만 한 번 다시 시도한다.
 - 필수 환경변수: `KIWOOM_APPKEY`/`KIWOOM_SECRETKEY`(키움 REST), `API_TOKEN`(GAS→VM 인증용
   자체 토큰), 선택: `KIS_APPKEY`/`KIS_APPSECRET`(KIS API), `NAVER_APIHUB_CLIENT_ID`/`_SECRET`
 - 두 가지 호출 경로가 있음:
