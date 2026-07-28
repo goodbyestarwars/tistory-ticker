@@ -141,6 +141,14 @@
     wireEvents(container);
     loadSignalData(container);
     autoSearchFromUrl(container);
+
+    // 리스트가 화면에 떠 있는 동안(=종목을 조회 중이 아닐 때) 가격·등락률을 주기적으로
+    // 최신화한다(위 patchSignalListPrices 주석 참고). 종목 조회 중엔 ffSigWrap이 숨겨지므로
+    // 그때는 건드리지 않는다.
+    setInterval(function () {
+      var sigWrap = container.querySelector('#ffSigWrap');
+      if (sigWrap && !sigWrap.hidden && !document.hidden) patchSignalListPrices(container);
+    }, 20000);
   }
 
   // 다른 페이지(오늘의 투자시그널 등)에서 ?code=005930&name=삼성전자로 넘어오면
@@ -291,6 +299,41 @@
       : '';
 
     box.innerHTML = headHtml + '<div class="ff-sig-table">' + rowsHtml + '</div>' + moreHtml;
+    patchSignalListPrices(container);
+  }
+
+  // 2026-07-28 사용자 리포트: 리스트 행의 가격·등락률이 daily_scan(하루 1회 배치) 시점
+  // 스냅샷이라 상세 헤더(startQuotePolling으로 실시간 갱신)와 값이 어긋나 보임 -
+  // 등급·점수·순위는 배치 기준이 맞는 값이라 그대로 두고, 화면에 보이는 종목들의 가격·
+  // 등락률만 GAS ?codes=(실시간)로 덮어쓴다.
+  function patchSignalListPrices(container) {
+    var box = container.querySelector('#ffSigList');
+    if (!box) return;
+    var rows = box.querySelectorAll('.ff-sig-row[data-code]');
+    var codes = [];
+    rows.forEach(function (row) {
+      var code = row.getAttribute('data-code');
+      if (code && codes.indexOf(code) === -1) codes.push(code);
+    });
+    if (!codes.length) return;
+
+    fetchJson(GAS_TICKER_URL + '?codes=' + codes.join(','))
+      .then(function (list) {
+        var byCode = {};
+        (list || []).forEach(function (d) { byCode[d.code] = d; });
+        rows.forEach(function (row) {
+          var d = byCode[row.getAttribute('data-code')];
+          if (!d) return;
+          var priceEl = row.querySelector('.ff-sig-price');
+          var rateEl = row.querySelector('.ff-sig-rate');
+          if (priceEl && d.price != null && !isNaN(d.price)) priceEl.textContent = Math.round(d.price).toLocaleString('ko-KR');
+          if (rateEl && d.changeRate != null && !isNaN(d.changeRate)) {
+            rateEl.textContent = fmtSignedPct(d.changeRate);
+            rateEl.className = 'ff-sig-rate ' + signClass(d.changeRate);
+          }
+        });
+      })
+      .catch(function () { /* 실패하면 배치 스냅샷 값 그대로 둔다 */ });
   }
 
   // item = [code, name, price, changeRate, stars](버킷, 5칸) 또는
@@ -2912,10 +2955,10 @@
     }
 
     // 2026-07-28 사용자 요청: 로비 소품 4개(자동문/화분/우편함/안내판)를 큰 문 하나로
-    // 단순화 - "문만 좀 큰거 있으면 좋겠다"는 피드백. 그 아래엔 지하실로 내려가는
-    // 맨홀 뚜껑(원형, CSS로 그린 금속 뚜껑 느낌)을 둬서 1층->지하 전환을 시각적으로 잇는다.
-    var lobbyHtml = '<div class="ff-apt-lobby"><span class="ff-apt-lobby-door" title="출입구">🚪</span></div>'
-      + '<div class="ff-apt-manhole-row"><span class="ff-apt-manhole" title="지하실 입구"></span></div>';
+    // 단순화 - "문만 좀 큰거 있으면 좋겠다"는 피드백. 그 아래 지하실로 내려가는 맨홀
+    // 뚜껑을 따로 뒀었는데, 문+맨홀 두 아이콘이 "그냥 던져 놓은" 느낌이라는 후속 피드백으로
+    // 맨홀은 지우고 문 하나만 남김.
+    var lobbyHtml = '<div class="ff-apt-lobby"><span class="ff-apt-lobby-door" title="출입구">🚪</span></div>';
     // 지하실은 실제 데이터가 존재하는 가격구간이 아니라 "아직 매집되지 않은 가격 / 추가
     // 하락 가능 영역"을 뜻하는 상징적인 공간이라 bin/거래량과 연결하지 않는다(작업지시서 명시).
     var basementHtml = '<div class="ff-apt-basement">'

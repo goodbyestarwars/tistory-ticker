@@ -539,22 +539,23 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 66px;
+  height: 74px;
   margin-bottom: 2px;
 }
+/* 2026-07-28 사용자 요청: "매물대 아파트" 이름표와 "H" 글자 크기를 키움 */
 #foreign-flow .ff-apt-nameplate {
-  font-size: 9.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #6b7686;
   background: #fff;
   border: 1px solid #dde3ec;
   border-radius: 999px;
-  padding: 1px 9px;
+  padding: 2px 12px;
   margin-bottom: 3px;
 }
 #foreign-flow .ff-apt-helipad {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #eef1f5;
   border: 2px solid #c7cfd9;
@@ -562,7 +563,7 @@
   align-items: center;
   justify-content: center;
 }
-#foreign-flow .ff-apt-helipad-h { font-size: 11px; font-weight: 800; color: #8b95a3; }
+#foreign-flow .ff-apt-helipad-h { font-size: 15px; font-weight: 800; color: #8b95a3; }
 /* 2026-07-28 사용자 요청: 헬기 사이즈업(15px -> 28px) - 옥상 블록 높이도 같이 늘려서
    커진 헬기가 아래 층 목록과 겹치지 않게 함(위 .ff-apt-roof-block height 참고). */
 #foreign-flow .ff-apt-heli {
@@ -775,26 +776,6 @@
   border-top: 1px solid #e7ebf1;
 }
 #foreign-flow .ff-apt-lobby-door { font-size: 26px; opacity: 0.9; line-height: 1; }
-
-/* ---- 맨홀 뚜껑: 로비 -> 지하실로 내려가는 입구(2026-07-28 사용자 요청, 전부 장식) ----
-   원형 금속 뚜껑 느낌을 순수 CSS로 표현(이모지 중엔 딱 맞는 게 없어 직접 그림). */
-#foreign-flow .ff-apt-manhole-row { display: flex; justify-content: center; padding: 3px 0 5px; }
-#foreign-flow .ff-apt-manhole {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 32%, #aeb7c2, #7a8492 55%, #565f6b 100%);
-  border: 2px solid #414a55;
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.18), inset 0 0 0 6px rgba(0, 0, 0, 0.18);
-  position: relative;
-}
-#foreign-flow .ff-apt-manhole::before {
-  content: '';
-  position: absolute;
-  inset: 7px;
-  border-radius: 50%;
-  border: 1px dashed rgba(255, 255, 255, 0.35);
-}
 
 /* ---- 지하실: 단면도 느낌의 해치 배경 + 상징적 서브룸 라벨(전부 장식, 실데이터 아님) ---- */
 #foreign-flow .ff-apt-basement {
