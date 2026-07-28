@@ -2589,12 +2589,11 @@ body#tt-body-page .sidebar-right { display: none; }
 }
 .nav-logo-emblem {
   display: flex; align-items: center; justify-content: center;
-  /* 2026-07-20: 네비바 배경을 짙은 그린(#082415)으로 바꾸면서 원래 주황/노랑 그라데이션
-     아이콘이 안 어울려 흰색으로 통일. .nav-bolt(안쪽 img)에 직접 걸면 bolt-strike
-     애니메이션이 매 프레임 filter를 drop-shadow로 덮어써서 흰색 처리가 사라지므로,
-     애니메이션이 안 걸리는 이 바깥 wrapper에 걸어서 충돌을 피한다. */
-  filter: brightness(0) invert(1);
+  /* .nav-bolt 자체의 filter는 번개 애니메이션이 매 프레임 덮어쓰므로 바깥 wrapper에서
+     테마별 색을 적용한다. 라이트는 검정, 다크는 아래 html.dark 규칙에서 크림색으로 전환. */
+  filter: brightness(0);
 }
+html.dark .nav-logo-emblem { filter: brightness(0) invert(1); }
 .nav-bolt {
   animation: bolt-strike 3.6s ease-in-out infinite;
 }
