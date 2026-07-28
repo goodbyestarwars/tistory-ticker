@@ -92,6 +92,69 @@
       });
     };
 
+    ForeignFlow.fetchNewsMomentum = function (code) {
+      console.log('[mock] fetchNewsMomentum', code);
+      return Promise.resolve({
+        stockCode: code,
+        stockName: 'SK하이닉스',
+        dataAsOf: '2026-07-29',
+        coverage: {
+          requestedStartDate: '2026-05-01',
+          actualStartDate: '2026-05-01',
+          actualEndDate: '2026-07-29',
+          backfillDays: 90,
+          backfillComplete: true,
+          fetchedArticles: 184,
+          newsApiCalls: 2,
+          updatedAt: '2026-07-29T09:00:00+00:00'
+        },
+        topics: [
+          {
+            id: 1,
+            topicName: 'SK하이닉스 HBM 수요 증가',
+            keywords: ['SK하이닉스 HBM 수요 증가', 'SK하이닉스 HBM', '하이닉스 HBM 수요'],
+            firstSeenAt: '2026-07-03',
+            lastSeenAt: '2026-07-29',
+            totalCount: 18,
+            count7d: 7,
+            count30d: 18,
+            sentiment: 'positive',
+            status: 'active',
+            representativeUrls: ['https://example.com/hbm-1', 'https://example.com/hbm-2'],
+            latestSearchInterest: 82.4,
+            searchInterestChange: 16.8,
+            daily: [
+              { date: '2026-07-18', news_count: 1, search_interest: 31.2 },
+              { date: '2026-07-21', news_count: 2, search_interest: 47.8 },
+              { date: '2026-07-24', news_count: 1, search_interest: 59.1 },
+              { date: '2026-07-27', news_count: 2, search_interest: 74.6 },
+              { date: '2026-07-29', news_count: 1, search_interest: 82.4 }
+            ]
+          },
+          {
+            id: 2,
+            topicName: 'SK하이닉스 광주공장 신설',
+            keywords: ['SK하이닉스 광주공장 신설', 'SK하이닉스 광주공장', 'SK하이닉스 AI공장'],
+            firstSeenAt: '2026-07-20',
+            lastSeenAt: '2026-07-28',
+            totalCount: 5,
+            count7d: 4,
+            count30d: 5,
+            sentiment: 'neutral',
+            status: 'active',
+            representativeUrls: ['https://example.com/factory-1'],
+            latestSearchInterest: 45.2,
+            searchInterestChange: -2.1,
+            daily: [
+              { date: '2026-07-20', news_count: 1, search_interest: 12.4 },
+              { date: '2026-07-24', news_count: 2, search_interest: 48.0 },
+              { date: '2026-07-28', news_count: 1, search_interest: 45.2 }
+            ]
+          }
+        ]
+      });
+    };
+
     ForeignFlow.fetchFlow = function (code) {
       var daily = [];
       var close = 280000;

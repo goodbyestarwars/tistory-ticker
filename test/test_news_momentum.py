@@ -1,0 +1,313 @@
+# -*- coding: utf-8 -*-
+import json
+import os
+import sys
+import tempfile
+import unittest
+from datetime import date, datetime, timezone
+from unittest import mock
+
+
+CLOUD_VM_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts', 'cloud-vm'))
+if CLOUD_VM_DIR not in sys.path:
+    sys.path.insert(0, CLOUD_VM_DIR)
+
+import news_momentum
+import news_momentum_scan
+import backup_sqlite
+import main as vm_main
+
+
+TODAY = date(2026, 7, 29)
+
+MOCK_NEWS = {
+    '000660': (
+        'SK하이닉스',
+        [
+            {'title': 'SK하이닉스 HBM 수요 증가…AI 반도체 공급 확대', 'link': 'https://n/1', 'pubDate': 'Tue, 28 Jul 2026 09:00:00 +0900'},
+            {'title': 'AI 반도체 핵심 SK하이닉스, HBM 신규 공급 계약', 'link': 'https://n/2', 'pubDate': 'Mon, 27 Jul 2026 09:00:00 +0900'},
+            {'title': 'SK하이닉스 광주 AI공장 신설 투자', 'link': 'https://n/3', 'pubDate': 'Sun, 26 Jul 2026 09:00:00 +0900'},
+            {'title': '광주에 AI 반도체 생산라인 구축…SK하이닉스 투자 확대', 'link': 'https://n/4', 'pubDate': 'Sat, 25 Jul 2026 09:00:00 +0900'},
+        ],
+    ),
+    '005930': (
+        '삼성전자',
+        [
+            {'title': '삼성전자 AI 반도체 신규 공급계약 체결', 'link': 'https://n/5', 'pubDate': '202607281200'},
+            {'title': '삼성전자 AI 반도체 수주 확대', 'link': 'https://n/6', 'pubDate': '202607271200'},
+        ],
+    ),
+    '005380': (
+        '현대차',
+        [
+            {'title': '현대차 전기차 신규 수주 계약', 'link': 'https://n/7', 'pubDate': '202607261200'},
+            {'title': '현대차 공급계약…신규 수주 확대', 'link': 'https://n/8', 'pubDate': '202607251200'},
+        ],
+    ),
+}
+
+
+class FakeResponse:
+    def __init__(self, payload):
+        self.payload = json.dumps(payload).encode('utf-8')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def read(self):
+        return self.payload
+
+
+class NewsMomentumTest(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.db_path = os.path.join(self.temp_dir.name, 'news_momentum.db')
+        self.conn = news_momentum.get_conn(self.db_path)
+        news_momentum.create_schema(self.conn)
+
+    def tearDown(self):
+        self.conn.close()
+        self.temp_dir.cleanup()
+
+    def test_schema_is_separate_and_has_required_indexes(self):
+        self.assertNotEqual(os.path.basename(self.db_path), 'ohlc_snapshot.db')
+        tables = {row[0] for row in self.conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )}
+        self.assertTrue({
+            'news_topics', 'news_topic_daily', 'datalab_trends', 'news_stock_coverage'
+        } <= tables)
+        indexes = {row[0] for row in self.conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='index'"
+        )}
+        self.assertTrue({
+            'idx_news_topics_stock_code',
+            'idx_news_topics_stock_status',
+            'idx_news_topics_last_seen',
+            'idx_news_topic_daily_topic_date',
+            'idx_news_topic_daily_stock_date',
+            'idx_datalab_trends_topic_fetched',
+        } <= indexes)
+        self.assertEqual(self.conn.execute('PRAGMA journal_mode').fetchone()[0].lower(), 'wal')
+        self.assertEqual(self.conn.execute('PRAGMA synchronous').fetchone()[0], 1)
+        self.assertEqual(self.conn.execute('PRAGMA foreign_keys').fetchone()[0], 1)
+
+    def test_three_stock_topic_extraction_and_idempotent_upsert(self):
+        expected = {
+            '000660': {'SK하이닉스 HBM 수요 증가', 'SK하이닉스 AI 반도체', 'SK하이닉스 광주공장 신설'},
+            '005930': {'삼성전자 AI 반도체', '삼성전자 신규 수주'},
+            '005380': {'현대차 신규 수주'},
+        }
+        for code, (name, items) in MOCK_NEWS.items():
+            topics = news_momentum.extract_topics(code, name, items, today=TODAY)
+            names = {topic['topic_name'] for topic in topics}
+            self.assertTrue(expected[code] <= names)
+            news_momentum.upsert_topics(self.conn, code, name, topics, today=TODAY)
+            news_momentum.upsert_topics(self.conn, code, name, topics, today=TODAY)
+
+        sk = news_momentum.load_stock_momentum(self.conn, '000660')
+        self.assertGreaterEqual(len(sk['topics']), 3)
+        hbm = next(topic for topic in sk['topics'] if topic['topicName'] == 'SK하이닉스 HBM 수요 증가')
+        self.assertEqual(hbm['totalCount'], 2)
+        self.assertEqual(len(hbm['representativeUrls']), 2)
+        self.assertEqual(hbm['sentiment'], 'positive')
+
+    def test_keyword_change_increments_query_version(self):
+        name, items = MOCK_NEWS['005380']
+        topics = news_momentum.extract_topics('005380', name, items, today=TODAY)
+        news_momentum.upsert_topics(self.conn, '005380', name, topics, today=TODAY)
+        topics[0]['keywords'].append('현대차 글로벌 수주')
+        news_momentum.upsert_topics(self.conn, '005380', name, topics, today=TODAY)
+        version = self.conn.execute(
+            'SELECT query_version FROM news_topics WHERE stock_code=?', ('005380',)
+        ).fetchone()[0]
+        self.assertEqual(version, 2)
+
+    def test_datalab_request_and_save(self):
+        name, items = MOCK_NEWS['005930']
+        topics = news_momentum.extract_topics('005930', name, items, today=TODAY)
+        news_momentum.upsert_topics(self.conn, '005930', name, topics, today=TODAY)
+        due = news_momentum.datalab_topics_due(self.conn, '005930', today=TODAY)
+        captured = {}
+
+        def fake_urlopen(request, timeout):
+            captured['url'] = request.full_url
+            captured['body'] = json.loads(request.data.decode('utf-8'))
+            groups = captured['body']['keywordGroups']
+            return FakeResponse({
+                'results': [
+                    {'title': group['groupName'], 'keywords': group['keywords'],
+                     'data': [{'period': '2026-07-28', 'ratio': 61.5},
+                              {'period': '2026-07-29', 'ratio': 82.0}]}
+                    for group in groups
+                ]
+            })
+
+        with mock.patch('urllib.request.urlopen', side_effect=fake_urlopen):
+            trends = news_momentum.fetch_datalab_trends(
+                due, 'client-id', 'client-secret', '2026-05-01', '2026-07-29'
+            )
+        self.assertEqual(captured['url'], news_momentum.DATALAB_URL)
+        self.assertLessEqual(len(captured['body']['keywordGroups']), 5)
+        self.assertTrue(all(len(group['keywords']) <= 20 for group in captured['body']['keywordGroups']))
+        news_momentum.save_datalab_trends(
+            self.conn, due, trends, '2026-05-01', '2026-07-29',
+            now=datetime(2026, 7, 29, tzinfo=timezone.utc),
+        )
+        loaded = news_momentum.load_stock_momentum(self.conn, '005930')
+        self.assertEqual(loaded['topics'][0]['latestSearchInterest'], 82.0)
+        self.assertEqual(news_momentum.datalab_topics_due(self.conn, '005930', today=TODAY), [])
+
+    def test_retention_deletes_detail_without_vacuum(self):
+        name, _ = MOCK_NEWS['005380']
+        old_topic = [{
+            'stock_code': '005380',
+            'stock_name': name,
+            'topic_name': '현대차 과거 수주',
+            'label': '과거 수주',
+            'keywords': ['현대차 과거 수주'],
+            'sentiment': 'neutral',
+            'daily_counts': {'2026-04-01': 2},
+            'representative_urls': [],
+        }]
+        news_momentum.upsert_topics(self.conn, '005380', name, old_topic, today=TODAY)
+        result = news_momentum.prune_old_details(self.conn, today=TODAY)
+        self.assertEqual(result['dailyDeleted'], 1)
+        self.assertEqual(self.conn.execute(
+            'SELECT COUNT(*) FROM news_topics WHERE stock_code=?', ('005380',)
+        ).fetchone()[0], 1)
+
+    def test_stale_topic_status_and_datalab_snapshot_are_bounded(self):
+        name, items = MOCK_NEWS['000660']
+        topics = news_momentum.extract_topics('000660', name, items, today=TODAY)
+        rows = news_momentum.upsert_topics(
+            self.conn, '000660', name, topics, today=TODAY
+        )
+        topic = rows[0]
+        trend = {'topic-%s' % topic['id']: [
+            {'period': '2026-07-29', 'ratio': 50.0},
+        ]}
+        news_momentum.save_datalab_trends(
+            self.conn, [topic], trend, '2026-07-01', '2026-07-29',
+            now=datetime(2026, 7, 29, tzinfo=timezone.utc),
+        )
+        news_momentum.save_datalab_trends(
+            self.conn, [topic], trend, '2026-07-02', '2026-07-30',
+            now=datetime(2026, 7, 30, tzinfo=timezone.utc),
+        )
+        snapshots = self.conn.execute(
+            'SELECT COUNT(*) FROM datalab_trends WHERE topic_id=? AND query_version=?',
+            (topic['id'], topic['query_version']),
+        ).fetchone()[0]
+        self.assertEqual(snapshots, 1)
+
+        changed = news_momentum.refresh_topic_statuses(
+            self.conn, today=date(2026, 9, 1), stock_code='000660'
+        )
+        status = self.conn.execute(
+            'SELECT status FROM news_topics WHERE id=?', (topic['id'],)
+        ).fetchone()[0]
+        self.assertGreater(changed, 0)
+        self.assertEqual(status, 'ended')
+
+    def test_default_scan_scope_is_approved_eight_stocks(self):
+        names = {
+            '000660': 'SK하이닉스', '005930': '삼성전자', '005380': '현대차',
+            '083650': '비에이치아이', '042660': '한화오션', '035420': 'NAVER',
+            '066570': 'LG전자', '247540': '에코프로비엠',
+        }
+        universe = [{'code': code, 'name': name} for code, name in names.items()]
+        selected = news_momentum_scan.select_universe(
+            universe, news_momentum_scan.parse_args([])
+        )
+        self.assertEqual([row['code'] for row in selected], list(news_momentum_scan.TEST_CODES))
+
+    def test_90day_backfill_coverage_and_api_metadata(self):
+        recent = [
+            {'title': '삼성전자 AI 반도체 공급 확대', 'link': 'https://n/%d' % index,
+             'pubDate': '2026-07-%02d' % (29 - (index % 20))}
+            for index in range(100)
+        ]
+        older = [
+            {'title': '삼성전자 AI 반도체 신규 수주', 'link': 'https://old/1',
+             'pubDate': '2026-04-30'}
+        ]
+        with mock.patch.object(
+            news_momentum_scan.naver_news,
+            'search_news',
+            side_effect=[recent, older],
+        ) as search:
+            items, coverage = news_momentum_scan.fetch_news_backfill(
+                '삼성전자', 'secret-id', 'secret-key', TODAY
+            )
+        self.assertEqual(search.call_count, 2)
+        self.assertTrue(coverage['backfillComplete'])
+        self.assertEqual(coverage['requestedStartDate'], '2026-05-01')
+        self.assertEqual(coverage['actualEndDate'], '2026-07-29')
+        self.assertEqual(len(items), 100)
+
+        news_momentum.save_stock_coverage(
+            self.conn, '005930', '삼성전자',
+            coverage['requestedStartDate'], coverage['actualStartDate'],
+            coverage['actualEndDate'], coverage['backfillComplete'],
+            len(items), coverage['newsApiCalls'], coverage['backfillDays'],
+        )
+        loaded = news_momentum.load_stock_momentum(self.conn, '005930')
+        self.assertEqual(loaded['dataAsOf'], '2026-07-29')
+        self.assertTrue(loaded['coverage']['backfillComplete'])
+
+    def test_duplicate_batch_lock_is_rejected(self):
+        lock_path = os.path.join(self.temp_dir.name, 'momentum.lock')
+        with news_momentum_scan.BatchLock(lock_path):
+            with self.assertRaises(news_momentum_scan.AlreadyRunning):
+                with news_momentum_scan.BatchLock(lock_path):
+                    pass
+
+    def test_sqlite_backup_api_creates_valid_backup(self):
+        source = os.path.join(self.temp_dir.name, 'ohlc_snapshot.db')
+        backup_dir = os.path.join(self.temp_dir.name, 'backups')
+        import sqlite3
+        conn = sqlite3.connect(source)
+        conn.execute('CREATE TABLE sample (id INTEGER PRIMARY KEY, value TEXT)')
+        conn.execute('INSERT INTO sample(value) VALUES (?)', ('preserved',))
+        conn.commit()
+        conn.close()
+
+        result = backup_sqlite.backup_database(source, backup_dir, keep=2)
+        restored = sqlite3.connect(result['backup'])
+        try:
+            self.assertEqual(
+                restored.execute('SELECT value FROM sample').fetchone()[0],
+                'preserved',
+            )
+            self.assertEqual(
+                restored.execute('PRAGMA integrity_check').fetchone()[0],
+                'ok',
+            )
+        finally:
+            restored.close()
+
+    def test_fastapi_momentum_response_and_health_regression(self):
+        name, items = MOCK_NEWS['000660']
+        topics = news_momentum.extract_topics('000660', name, items, today=TODAY)
+        news_momentum.upsert_topics(self.conn, '000660', name, topics, today=TODAY)
+        with mock.patch.object(news_momentum, 'DB_FILE', self.db_path), \
+                mock.patch.dict(os.environ, {'NEWS_MOMENTUM_ENABLED': '1'}):
+            response = vm_main.news_momentum_endpoint('000660')
+        self.assertTrue(response['success'])
+        self.assertTrue(response['data']['enabled'])
+        self.assertEqual(response['data']['stockCode'], '000660')
+        self.assertGreaterEqual(len(response['data']['topics']), 3)
+        self.assertEqual(vm_main.health()['data']['status'], 'ok')
+
+        with mock.patch.dict(os.environ, {'NEWS_MOMENTUM_ENABLED': '0'}):
+            disabled = vm_main.news_momentum_endpoint('000660')
+        self.assertFalse(disabled['data']['enabled'])
+        self.assertEqual(disabled['data']['topics'], [])
+
+
+if __name__ == '__main__':
+    unittest.main()

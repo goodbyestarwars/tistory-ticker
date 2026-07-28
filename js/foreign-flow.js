@@ -70,7 +70,9 @@
   var quoteInflight = {}; // code -> Promise
   var fundamentalsCache = {};    // code -> GAS ?action=fundamentals 응답(당일 내내 유효, 새로고침 시 초기화)
   var fundamentalsInflight = {}; // code -> Promise
-  var activeView = 'flow';       // 'flow' | 'apt' | 'chart' | 'fundamentals' - 탭 상태(종목 재검색 시 flow로 리셋)
+  var newsMomentumCache = {};    // code -> VM news_momentum.db 조회 결과
+  var newsMomentumInflight = {}; // code -> Promise
+  var activeView = 'flow';       // 'flow' | 'apt' | 'chart' | 'fundamentals' | 'momentum'
 
   // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
   var PENSION_TONE_SCORE = {
@@ -648,7 +650,7 @@
       + '<div class="ff-panel-opinion-text" id="ffPanelOpinion">생성 중...</div>'
       + '</div>';
 
-    var detailLink = '<button type="button" class="ff-panel-detail-link" data-open-detail="' + escapeAttr(data.code) + '" data-open-detail-name="' + escapeAttr(data.name || data.code) + '">수급·차트·펀더멘탈 상세 보기 →</button>';
+    var detailLink = '<button type="button" class="ff-panel-detail-link" data-open-detail="' + escapeAttr(data.code) + '" data-open-detail-name="' + escapeAttr(data.name || data.code) + '">수급·차트·펀더멘탈·모멘텀 상세 보기 →</button>';
 
     box.innerHTML = headerHtml + flowSection + chartSection + fundSection + opinionSection + detailLink;
 
@@ -1237,6 +1239,7 @@
     html += buildChartSection(chartData, techScore);
     html += '</div>';
     html += '<div class="ff-view" id="ffViewFundamentals" hidden></div>';
+    html += '<div class="ff-view" id="ffViewMomentum" hidden></div>';
 
     box.innerHTML = html;
 
@@ -1282,7 +1285,7 @@
     }, QUOTE_POLL_MS);
   }
 
-  // ---- 탭(수급 / 매물대 / 차트 / 펀더멘탈) ----
+  // ---- 탭(수급 / 매물대 / 차트 / 펀더멘탈 / 모멘텀) ----
   // 2026-07-27: 매물대(아파트) 카드가 원래 "수급" 탭 안에 얹혀 있었는데, Ver.2 리디자인으로
   // 카드 자체가 옥상/사다리/로비/지하실까지 딸린 큰 위젯이 되면서 수급 탭이 너무 길어져
   // 별도 탭으로 분리(사용자 요청).
@@ -1293,6 +1296,7 @@
       + '<button type="button" class="ff-view-tab" data-view="apt">매물대</button>'
       + '<button type="button" class="ff-view-tab" data-view="chart">차트</button>'
       + '<button type="button" class="ff-view-tab" data-view="fundamentals">펀더멘탈</button>'
+      + '<button type="button" class="ff-view-tab" data-view="momentum">모멘텀</button>'
       + '</div>';
   }
 
@@ -1302,6 +1306,7 @@
     var aptBox = box.querySelector('#ffViewApt');
     var chartBox = box.querySelector('#ffViewChart');
     var fundBox = box.querySelector('#ffViewFundamentals');
+    var momentumBox = box.querySelector('#ffViewMomentum');
     tabs.forEach(function (btn) {
       btn.addEventListener('click', function () {
         var view = btn.getAttribute('data-view');
@@ -1312,7 +1317,12 @@
         if (aptBox) aptBox.hidden = view !== 'apt';
         if (chartBox) chartBox.hidden = view !== 'chart';
         if (fundBox) fundBox.hidden = view !== 'fundamentals';
+        if (momentumBox) momentumBox.hidden = view !== 'momentum';
         if (view === 'fundamentals' && fundBox) loadFundamentals(fundBox, code, name);
+        if (view === 'momentum' && momentumBox && !momentumBox.dataset.loaded) {
+          momentumBox.dataset.loaded = '1';
+          loadNewsMomentum(momentumBox, code, name);
+        }
         // 매물대 탭은 hidden(display:none) 상태에서 진입 애니메이션(class 토글)이 이미
         // 끝나버려 처음 열 때 정지 상태로 보이므로, 탭을 열 때마다 다시 재생한다.
         if (view === 'apt' && aptBox) {
@@ -1348,11 +1358,127 @@
     return p;
   }
 
+  // 뉴스·검색 관심도 모멘텀은 배치가 별도 news_momentum.db에 미리 계산한 결과만 읽는다.
+  // 사용자 탭 진입 시 네이버 뉴스/DataLab API를 직접 호출하지 않는다.
+  function fetchNewsMomentum(code) {
+    if (newsMomentumCache[code]) return Promise.resolve(newsMomentumCache[code]);
+    if (newsMomentumInflight[code]) return newsMomentumInflight[code];
+    var p = fetchJson(KIWOOM_VM_URL + '/news-momentum/' + encodeURIComponent(code))
+      .then(function (res) {
+        delete newsMomentumInflight[code];
+        var data = res && res.data ? res.data : res;
+        newsMomentumCache[code] = data || { stockCode: code, topics: [] };
+        return newsMomentumCache[code];
+      })
+      .catch(function (err) {
+        delete newsMomentumInflight[code];
+        throw err;
+      });
+    newsMomentumInflight[code] = p;
+    return p;
+  }
+
+  function safeExternalUrl(value) {
+    return /^https?:\/\//i.test(value || '') ? value : '';
+  }
+
+  function momentumStatusLabel(status) {
+    if (status === 'active') return '활성';
+    if (status === 'cooling') return '관심 둔화';
+    return '종료';
+  }
+
+  function momentumSentimentLabel(sentiment) {
+    if (sentiment === 'positive') return '긍정';
+    if (sentiment === 'negative') return '부정';
+    return '중립';
+  }
+
+  function momentumAgeLabel(lastSeenAt) {
+    if (!lastSeenAt) return '-';
+    var seen = new Date(lastSeenAt + 'T00:00:00');
+    var age = Math.max(0, Math.floor((Date.now() - seen.getTime()) / 86400000));
+    return age === 0 ? '오늘' : 'D-' + age;
+  }
+
+  function momentumTrendBars(daily) {
+    var points = (daily || []).filter(function (row) { return row.search_interest != null; }).slice(-14);
+    if (!points.length) return '<div class="ff-momentum-no-trend">검색 관심도 준비 중</div>';
+    var max = Math.max.apply(null, points.map(function (row) { return Number(row.search_interest) || 0; })) || 1;
+    return '<div class="ff-momentum-trend" aria-label="최근 검색 관심도">'
+      + points.map(function (row) {
+        var height = Math.max(4, Math.round((Number(row.search_interest) || 0) / max * 42));
+        return '<i style="height:' + height + 'px" title="' + escapeAttr(row.date + ' · ' + Number(row.search_interest).toFixed(1)) + '"></i>';
+      }).join('')
+      + '</div>';
+  }
+
+  function buildNewsMomentumPanel(data, stockName) {
+    var topics = (data && data.topics) || [];
+    var coverage = data && data.coverage;
+    var coverageText = coverage
+      ? '데이터 기준일 ' + escapeHtml(data.dataAsOf || coverage.actualEndDate || '-')
+        + ' · 최근 ' + Number(coverage.backfillDays || 90) + '일 뉴스 백필 '
+        + (coverage.backfillComplete ? '완료' : '부분')
+        + ' (' + escapeHtml(coverage.actualStartDate || '-') + ' ~ '
+        + escapeHtml(coverage.actualEndDate || '-') + ')'
+      : '데이터 기준일 준비 중 · 최근 90일 뉴스 백필 여부 확인 중';
+    var intro = '<div class="ff-momentum-intro"><b>이슈·재료 지속성 분석</b>'
+      + '<span>가격 변동이 아니라 뉴스 반복성·최근성·네이버 통합검색 관심도를 배치 집계한 결과입니다.</span>'
+      + '<span class="ff-momentum-coverage">' + coverageText + '</span></div>';
+    if (!topics.length) {
+      return intro + '<div class="ff-momentum-empty"><b>' + escapeHtml(stockName) + ' 모멘텀 데이터 준비 중</b>'
+        + '<span>서로 다른 기사에서 2회 이상 반복된 이슈가 생기면 표시됩니다.</span></div>';
+    }
+    var cards = topics.map(function (topic) {
+      var sentiment = topic.sentiment || 'neutral';
+      var latestInterest = topic.latestSearchInterest == null ? '-' : Number(topic.latestSearchInterest).toFixed(1);
+      var interestChange = topic.searchInterestChange;
+      var interestChangeText = interestChange == null
+        ? '비교 데이터 없음'
+        : '7일 평균 대비 ' + (interestChange >= 0 ? '+' : '') + Number(interestChange).toFixed(1);
+      var urls = (topic.representativeUrls || []).map(function (url, index) {
+        var safe = safeExternalUrl(url);
+        return safe ? '<a href="' + escapeAttr(safe) + '" target="_blank" rel="noopener">대표 기사 ' + (index + 1) + '</a>' : '';
+      }).join('');
+      return '<article class="ff-momentum-card">'
+        + '<div class="ff-momentum-card-head"><h4>' + escapeHtml(topic.topicName) + '</h4>'
+        + '<span class="ff-momentum-status status-' + escapeAttr(topic.status) + '">' + momentumStatusLabel(topic.status) + '</span>'
+        + '<span class="ff-momentum-sentiment sentiment-' + escapeAttr(sentiment) + '">' + momentumSentimentLabel(sentiment) + '</span></div>'
+        + '<div class="ff-momentum-metrics">'
+        + '<div><span>뉴스 반복성</span><b>7일 ' + Number(topic.count7d || 0).toLocaleString() + '회</b><small>30일 ' + Number(topic.count30d || 0).toLocaleString() + '회</small></div>'
+        + '<div><span>최근성</span><b>' + escapeHtml(momentumAgeLabel(topic.lastSeenAt)) + '</b><small>' + escapeHtml(topic.lastSeenAt || '-') + '</small></div>'
+        + '<div><span>검색 관심도</span><b>' + latestInterest + '</b><small>' + escapeHtml(interestChangeText) + '</small></div>'
+        + '<div><span>방향성</span><b class="sentiment-' + escapeAttr(sentiment) + '">' + momentumSentimentLabel(sentiment) + '</b><small>뉴스 제목 기준</small></div>'
+        + '</div>'
+        + momentumTrendBars(topic.daily)
+        + '<div class="ff-momentum-keywords">' + (topic.keywords || []).slice(0, 4).map(function (keyword) {
+          return '<span>' + escapeHtml(keyword) + '</span>';
+        }).join('') + '</div>'
+        + (urls ? '<div class="ff-momentum-links">' + urls + '</div>' : '')
+        + '</article>';
+    }).join('');
+    return intro + '<div class="ff-momentum-list">' + cards + '</div>';
+  }
+
+  function loadNewsMomentum(box, code, name) {
+    box.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>뉴스·검색 관심도 모멘텀을 불러오는 중...</div></div>';
+    // 테스트 페이지에서 외부 VM 호출 없이 고정 데이터를 주입할 수 있도록 공개 API를 경유한다.
+    var api = global.ForeignFlow && global.ForeignFlow.fetchNewsMomentum
+      ? global.ForeignFlow.fetchNewsMomentum : fetchNewsMomentum;
+    api(code).then(function (data) {
+      box.innerHTML = buildNewsMomentumPanel(data, name);
+    }).catch(function () {
+      box.innerHTML = '<div class="ff-error">모멘텀 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+      delete box.dataset.loaded;
+    });
+  }
+
   // 2026-07-28: js/stock-news.js의 "종목분석 요약" 패널이 쓰는 경량 API - #foreign-flow
   // 위젯 전체(검색창/투자시그널 리스트/차트)를 초기화하지 않고, 종합점수 8개 컴포넌트만
   // 계산해 데이터로 돌려준다. 점수 공식은 buildSummaryBox(이 파일)와 완전히 동일한 함수를
   // 그대로 호출하므로 두 화면의 등급이 어긋나지 않는다 - 종목뉴스 쪽에서 점수를 별도로
-  // 다시 계산하지 말 것. 모멘텀은 이 패널에서만 쓰는 8번째 항목이라 종합점수(computeVerdict)
+  // 다시 계산하지 말 것. 가격추세는 이 패널에서만 쓰는 8번째 항목이라 종합점수(computeVerdict)
   // 계산에는 포함하지 않는다(그 공식은 VM의 invest_signal.py와 공유되는 계약이라 항목 수를
   // 바꾸면 daily_scan 배치와 어긋남 - CLAUDE.md 기타 규칙 참고).
   function fetchAnalysisSummary(code, name) {
@@ -1391,7 +1517,7 @@
             { key: 'pension', label: '연기금', score: pensionScore, desc: pensionInterpText(pension).text },
             { key: 'credit', label: '반대매매', score: creditScore, desc: (creditP && creditP.signal) ? creditP.signal.text : '신용융자 데이터가 없는 종목입니다.' },
             { key: 'fundamental', label: '펀더멘탈', score: fundamentalScore, desc: fundamentalInterpText(fundamentals) },
-            { key: 'momentum', label: '모멘텀', score: momentum ? momentum.score : null, desc: momentumInterpText(momentum) }
+            { key: 'momentum', label: '가격추세', score: momentum ? momentum.score : null, desc: momentumInterpText(momentum) }
           ]
         };
       });
@@ -1847,7 +1973,7 @@
     return t.ma.label + ' · ' + t.support.label + ' · ' + t.resistance.label;
   }
 
-  // 모멘텀 - 2026-07-28 종목뉴스 페이지("종목분석" 요약 패널) 신규 항목. 최근 가격 추세의
+  // 가격추세 - 2026-07-28 종목뉴스 페이지("종목분석" 요약 패널) 참고 항목. 최근 가격 추세의
   // 강도를 0~100점으로 환산 - 5·20거래일 수익률(chartData.daily, ?action=flowChart 응답을
   // 그대로 재사용)과 5일선 기울기(정배열/역배열과는 별개로 "방향이 막 바뀌었는지"를 봄)를
   // 합산한다. 새 백엔드 없이 이미 있는 차트 데이터만으로 클라이언트에서 계산.
@@ -1888,7 +2014,7 @@
   }
 
   function momentumInterpText(m) {
-    if (!m) return '차트 데이터가 부족해 모멘텀을 계산하지 못했습니다.';
+    if (!m) return '차트 데이터가 부족해 가격추세를 계산하지 못했습니다.';
     var s5 = (m.ret5 >= 0 ? '+' : '') + m.ret5.toFixed(1) + '%';
     var s20 = (m.ret20 >= 0 ? '+' : '') + m.ret20.toFixed(1) + '%';
     return '최근 5일 ' + s5 + ' · 20일 ' + s20 + ' · ' + m.slopeLabel;
@@ -3992,6 +4118,7 @@
     // ForeignFlow.fetchJson을 몽키패치해 mock 데이터로 검증할 수 있게 한다(js/invest-signal.js와
     // 동일한 관례).
     fetchJson: fetchJson,
+    fetchNewsMomentum: fetchNewsMomentum,
     // js/stock-news.js "종목분석 요약" 패널 전용 경량 API(위 정의부 주석 참고) - #foreign-flow
     // 마운트 없이도(즉 이 스크립트를 로드만 해도) 호출 가능.
     fetchAnalysisSummary: fetchAnalysisSummary

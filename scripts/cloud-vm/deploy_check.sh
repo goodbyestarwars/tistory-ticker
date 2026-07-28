@@ -28,10 +28,16 @@ git pull origin master -q
   --keep 7
 
 cp scripts/cloud-vm/*.py .
-sudo systemctl restart kiwoom-api
+if ! sudo systemctl restart kiwoom-api; then
+  bash scripts/cloud-vm/rollback_news_momentum.sh
+  exit 1
+fi
 
 # 초기/갱신 배포 모두 지정 8종목만 실행한다. 파일 잠금으로 timer와 중복되어도 한 번만 돈다.
-bash scripts/cloud-vm/setup_news_momentum_timer.sh --run-now
+if ! bash scripts/cloud-vm/setup_news_momentum_timer.sh --run-now; then
+  bash scripts/cloud-vm/rollback_news_momentum.sh
+  exit 1
+fi
 
 # 키·응답 본문을 출력하지 않는 로컬 회귀 검사. 실패하면 모멘텀만 비활성화하고 DB 이름을
 # 바꿔 격리한 뒤 기존 kiwoom-api를 다시 올린다.

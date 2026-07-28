@@ -72,6 +72,17 @@
   `btc_futures.py`/`bond_yield.py`(글로벌 시장지표), `naver_news.py`(네이버 뉴스 검색 우회),
   `pattern_detect.py`/`daily_scan.py`/`invest_signal.py`(차트패턴·투자시그널 배치 스캔),
   `fundamentals.py`/`dart_client.py`(재무제표), `db_schema.py`(SQLite)
+- 뉴스 모멘텀은 `news_momentum.py`(별도 `news_momentum.db` 스키마·이슈 집계·DataLab 저장)와
+  `news_momentum_scan.py`(기본 지정 8종목 파일럿, 명시적 `--full`만 전종목)로 분리한다. 브라우저의
+  `/news-momentum/{code}` 조회는 DB만 읽고 NAVER API를 호출하지 않는다. 초기 타이머 등록은
+  `setup_news_momentum_timer.sh`가 담당하며, 전종목 전환 전까지 `--full`을 붙이지 않는다.
+  배치는 OS 파일 잠금으로 중복 실행을 건너뛰고, 최근 90일 백필의 요청 시작일·실제 시작일·
+  기준일·완료 여부를 `news_stock_coverage`에 기록한다.
+- 자동 배포는 서비스 재시작 전에 `backup_sqlite.py`의 Python `sqlite3.Connection.backup()`으로
+  `ohlc_snapshot.db`를 `backups/`에 백업하고 무결성 검사 후 최근 7개만 보관한다. 배포 뒤
+  `/health`, `/news-momentum/000660`, 인증 `/ohlc/005930`을 점검한다. 실패 시
+  `rollback_news_momentum.sh`가 `NEWS_MOMENTUM_ENABLED=0`으로 바꾸고 `news_momentum.db`를
+  `.disabled.<UTC시각>` 이름으로 격리한 뒤 기존 API만 재시작한다.
 - 필수 환경변수: `KIWOOM_APPKEY`/`KIWOOM_SECRETKEY`(키움 REST), `API_TOKEN`(GAS→VM 인증용
   자체 토큰), 선택: `KIS_APPKEY`/`KIS_APPSECRET`(KIS API), `NAVER_APIHUB_CLIENT_ID`/`_SECRET`
 - 두 가지 호출 경로가 있음:

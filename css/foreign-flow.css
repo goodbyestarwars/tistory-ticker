@@ -1255,8 +1255,11 @@
   display: flex;
   gap: 6px;
   margin: 10px 0 14px;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 #foreign-flow .ff-view-tab {
+  flex: 0 0 auto;
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -1328,6 +1331,105 @@
 #foreign-flow .ff-bar-axis { stroke: #ddd; stroke-width: 1; }
 #foreign-flow .ff-bar-val { font-size: 9px; fill: #666; }
 #foreign-flow .ff-bar-label { font-size: 9px; fill: #999; }
+
+/* ---- 뉴스·검색 관심도 모멘텀 탭 ---- */
+#foreign-flow .ff-momentum-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 13px 15px;
+  margin-bottom: 12px;
+  border: 1px solid #dbe7f3;
+  border-radius: 10px;
+  background: #f7fafd;
+}
+#foreign-flow .ff-momentum-intro b { font-size: 14px; color: #0c447c; }
+#foreign-flow .ff-momentum-intro span { font-size: 12px; line-height: 1.55; color: #667085; }
+#foreign-flow .ff-momentum-intro .ff-momentum-coverage {
+  margin-top: 3px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(12, 68, 124, .12);
+  color: #3b6085;
+  font-size: 11px;
+}
+#foreign-flow .ff-momentum-list { display: grid; gap: 12px; }
+#foreign-flow .ff-momentum-card {
+  padding: 15px;
+  border: 1px solid #e5e7eb;
+  border-radius: 11px;
+  background: #fff;
+}
+#foreign-flow .ff-momentum-card-head { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
+#foreign-flow .ff-momentum-card-head h4 { flex: 1; min-width: 0; margin: 0; font-size: 15px; line-height: 1.4; }
+#foreign-flow .ff-momentum-status,
+#foreign-flow .ff-momentum-sentiment {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #667085;
+}
+#foreign-flow .ff-momentum-status.status-active { border-color: rgba(29, 158, 117, .35); color: #147a5b; background: rgba(29, 158, 117, .08); }
+#foreign-flow .ff-momentum-status.status-cooling { border-color: rgba(239, 159, 39, .4); color: #9a5d00; background: rgba(239, 159, 39, .08); }
+#foreign-flow .ff-momentum-sentiment.sentiment-positive,
+#foreign-flow .sentiment-positive { color: #d24f45; }
+#foreign-flow .ff-momentum-sentiment.sentiment-negative,
+#foreign-flow .sentiment-negative { color: #1261c4; }
+#foreign-flow .ff-momentum-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #edf0f3;
+  border-radius: 9px;
+  overflow: hidden;
+}
+#foreign-flow .ff-momentum-metrics > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 11px;
+  border-right: 1px solid #edf0f3;
+}
+#foreign-flow .ff-momentum-metrics > div:last-child { border-right: 0; }
+#foreign-flow .ff-momentum-metrics span { font-size: 10.5px; color: #8a94a3; }
+#foreign-flow .ff-momentum-metrics b { font-size: 14px; }
+#foreign-flow .ff-momentum-metrics small { overflow: hidden; font-size: 10.5px; color: #8a94a3; text-overflow: ellipsis; white-space: nowrap; }
+#foreign-flow .ff-momentum-trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 48px;
+  margin: 12px 0 8px;
+  padding: 0 3px;
+  border-bottom: 1px solid #e5e7eb;
+}
+#foreign-flow .ff-momentum-trend i { flex: 1; min-width: 3px; max-width: 24px; border-radius: 2px 2px 0 0; background: #378add; }
+#foreign-flow .ff-momentum-no-trend { margin: 11px 0 7px; font-size: 11.5px; color: #9ca3af; }
+#foreign-flow .ff-momentum-keywords { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+#foreign-flow .ff-momentum-keywords span { padding: 4px 7px; border-radius: 999px; background: #f3f4f6; color: #5e6877; font-size: 10.5px; }
+#foreign-flow .ff-momentum-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+#foreign-flow .ff-momentum-links a { color: #1261c4; font-size: 11.5px; text-decoration: none; }
+#foreign-flow .ff-momentum-links a:hover { text-decoration: underline; }
+#foreign-flow .ff-momentum-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 28px 18px;
+  border: 1px dashed #d7dce2;
+  border-radius: 10px;
+  text-align: center;
+}
+#foreign-flow .ff-momentum-empty span { color: #8a94a3; font-size: 12px; }
+
+@media (max-width: 640px) {
+  #foreign-flow .ff-momentum-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #foreign-flow .ff-momentum-metrics > div:nth-child(2) { border-right: 0; }
+  #foreign-flow .ff-momentum-metrics > div:nth-child(-n+2) { border-bottom: 1px solid #edf0f3; }
+  #foreign-flow .ff-momentum-card-head { align-items: flex-start; flex-wrap: wrap; }
+  #foreign-flow .ff-momentum-card-head h4 { flex-basis: 100%; }
+}
 
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ----
    2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
@@ -2089,4 +2191,24 @@ html.dark #foreign-flow .ff-panel-detail-link {
   color: #6ea8e8 !important;
 }
 html.dark #foreign-flow .ff-panel-detail-link:hover { background: rgba(245, 239, 224, 0.16) !important; }
+html.dark #foreign-flow .ff-momentum-intro,
+html.dark #foreign-flow .ff-momentum-card,
+html.dark #foreign-flow .ff-momentum-empty {
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
+}
+html.dark #foreign-flow .ff-momentum-intro b,
+html.dark #foreign-flow .ff-momentum-card-head h4 { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-momentum-intro span,
+html.dark #foreign-flow .ff-momentum-metrics span,
+html.dark #foreign-flow .ff-momentum-metrics small,
+html.dark #foreign-flow .ff-momentum-no-trend,
+html.dark #foreign-flow .ff-momentum-empty span { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-momentum-metrics,
+html.dark #foreign-flow .ff-momentum-metrics > div,
+html.dark #foreign-flow .ff-momentum-trend,
+html.dark #foreign-flow .ff-momentum-intro .ff-momentum-coverage { border-color: rgba(245, 239, 224, 0.18) !important; }
+html.dark #foreign-flow .ff-momentum-keywords span { background: rgba(245, 239, 224, 0.1) !important; color: rgba(245, 239, 224, 0.75) !important; }
+html.dark #foreign-flow .ff-momentum-status.status-active { color: #69d0ae !important; }
+html.dark #foreign-flow .ff-momentum-status.status-cooling { color: #efb35c !important; }
 html.dark .ff-related-item:hover { background: rgba(245, 239, 224, 0.08) !important; }

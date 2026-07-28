@@ -22,6 +22,7 @@ import domestic_futures
 import foreign_flow_compute
 import foreign_futures
 import naver_news
+import news_momentum
 import investor_flow
 import investor_trend
 import kiwoom_client
@@ -421,6 +422,38 @@ def naver_news_endpoint(query: str = Query(..., min_length=1, max_length=100), x
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET')
     items = naver_news.search_news(query, client_id, client_secret)
     return envelope(items)
+
+
+@app.get('/news-momentum/{code}')
+def news_momentum_endpoint(code: str = Path(..., min_length=6, max_length=6)):
+    """배치가 미리 계산한 뉴스 반복 이슈·DataLab 검색 관심도를 종목 단위로 반환한다.
+    외부 API를 호출하지 않고 별도 news_momentum.db만 읽는다."""
+    enabled = os.environ.get('NEWS_MOMENTUM_ENABLED', '1').strip().lower()
+    if enabled not in ('1', 'true', 'yes', 'on'):
+        return envelope({
+            'enabled': False,
+            'stockCode': code,
+            'stockName': None,
+            'dataAsOf': None,
+            'coverage': None,
+            'topics': [],
+        })
+    if not os.path.exists(news_momentum.DB_FILE):
+        return envelope({
+            'enabled': True,
+            'stockCode': code,
+            'stockName': None,
+            'dataAsOf': None,
+            'coverage': None,
+            'topics': [],
+        })
+    conn = news_momentum.get_conn()
+    try:
+        result = news_momentum.load_stock_momentum(conn, code)
+    finally:
+        conn.close()
+    result['enabled'] = True
+    return envelope(result)
 
 
 @app.get('/option-flow')

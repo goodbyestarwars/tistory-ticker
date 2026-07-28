@@ -23,11 +23,17 @@ API_URL = 'https://naverapihub.apigw.ntruss.com/search/v1/news'
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
 
 
-def search_news(query, client_id, client_secret, display=10, sort='date'):
+def search_news(query, client_id, client_secret, display=10, sort='date', start=1,
+                raise_errors=False):
     if not client_id or not client_secret:
         return []
 
-    url = API_URL + '?' + urllib.parse.urlencode({'query': query, 'display': display, 'sort': sort})
+    url = API_URL + '?' + urllib.parse.urlencode({
+        'query': query,
+        'display': display,
+        'sort': sort,
+        'start': start,
+    })
     req = urllib.request.Request(url, headers={
         'User-Agent': UA,
         'X-NCP-APIGW-API-KEY-ID': client_id,
@@ -37,6 +43,9 @@ def search_news(query, client_id, client_secret, display=10, sort='date'):
         with urllib.request.urlopen(req, timeout=10) as res:
             data = json.loads(res.read().decode('utf-8'))
     except Exception:
+        if raise_errors:
+            raise
+        # 인증 헤더와 응답 본문은 기록하지 않는다. 검색어만 기존 진단 로그에 남긴다.
         logger.exception('naver news search failed: %s', query)
         return []
 

@@ -111,6 +111,23 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/investor-flow/005930?name=삼성전자"` |
 | 오류 응답 예시 | 데이터 없음 → 404 `{"detail":"해당 종목의 공매도/대차/수급 데이터를 찾을 수 없습니다."}` |
 
+### `GET /news-momentum/{code}`
+
+| 항목 | 내용 |
+|---|---|
+| 인증 필요 여부 | **불필요** (공개, 기존 VM CORS 정책 적용) |
+| 필수 파라미터 | `code` (경로) |
+| 파라미터 형식·허용값 | `code`: 문자열, 정확히 6자리 |
+| 응답 JSON 구조 | `data={"enabled","stockCode","stockName","dataAsOf","coverage":{"requestedStartDate","actualStartDate","actualEndDate","backfillDays","backfillComplete","fetchedArticles","newsApiCalls","updatedAt"},"topics":[{"id","topicName","keywords","queryVersion","firstSeenAt","lastSeenAt","totalCount","count7d","count30d","sentiment","status","representativeUrls","latestSearchInterest","searchInterestChange","daily":[{"date","news_count","search_interest"}]}]}` |
+| 데이터 단위 | 뉴스 횟수는 기사 건수 · `latestSearchInterest`/`searchInterestChange`는 NAVER DataLab 상대지수(조회 묶음의 최고 검색량=100) |
+| 데이터 소스 | `news_momentum_scan.py`가 NAVER 뉴스 제목에서 반복 이슈를 규칙 기반으로 추출하고, 활성 이슈만 NAVER API HUB Search Trend로 확인 |
+| 데이터 갱신 주기 | 8종목 파일럿 하루 1회: SK하이닉스·삼성전자·현대차·비에이치아이·한화오션·NAVER·LG전자·에코프로비엠 |
+| 캐시/DB | 기존 `ohlc_snapshot.db`와 분리된 `news_momentum.db` 즉시 조회. 사용자 요청 시 외부 API 호출 없음 |
+| 초기 백필·기준일 | 최신순 뉴스 API를 최대 1,000건까지 페이지 조회해 최근 90일 경계에 도달했는지 저장한다. 화면의 `데이터 기준일`과 `최근 90일 뉴스 백필 완료/부분` 표시는 `coverage` 값에 따른 실제 상태이며, 1,000건 한도로 경계에 못 닿으면 `backfillComplete=false` |
+| Feature Flag | `.env`의 `NEWS_MOMENTUM_ENABLED=0`이면 DB를 열지 않고 `enabled:false`, `topics:[]` 반환 |
+| 호출 예시 | `curl "https://goodbyestar.cloud/news-momentum/000660"` |
+| 빈 데이터 | DB가 아직 없거나 반복 이슈가 없으면 200과 `topics:[]` 반환 |
+
 ### `GET /investor-trend`
 
 | 항목 | 내용 |
