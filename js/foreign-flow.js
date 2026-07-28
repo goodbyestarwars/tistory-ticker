@@ -1200,6 +1200,55 @@
     return p;
   }
 
+  // 2026-07-28: js/stock-news.js의 "종목분석 요약" 패널이 쓰는 경량 API - #foreign-flow
+  // 위젯 전체(검색창/투자시그널 리스트/차트)를 초기화하지 않고, 종합점수 8개 컴포넌트만
+  // 계산해 데이터로 돌려준다. 점수 공식은 buildSummaryBox(이 파일)와 완전히 동일한 함수를
+  // 그대로 호출하므로 두 화면의 등급이 어긋나지 않는다 - 종목뉴스 쪽에서 점수를 별도로
+  // 다시 계산하지 말 것. 모멘텀은 이 패널에서만 쓰는 8번째 항목이라 종합점수(computeVerdict)
+  // 계산에는 포함하지 않는다(그 공식은 VM의 invest_signal.py와 공유되는 계약이라 항목 수를
+  // 바꾸면 daily_scan 배치와 어긋남 - CLAUDE.md 기타 규칙 참고).
+  function fetchAnalysisSummary(code, name) {
+    var chartPromise = fetchFlowChart(code).catch(function () { return null; });
+    var investorFlowPromise = fetchInvestorFlowLive(code, name).catch(function () { return null; });
+    var fundamentalsPromise = fetchFundamentals(code, name).catch(function () { return null; });
+
+    return Promise.all([fetchFlow(code, name), chartPromise, investorFlowPromise, fundamentalsPromise])
+      .then(function (results) {
+        var data = results[0];
+        if (!data || data.error || !data.daily || !data.daily.length) return null;
+        var chartData = results[1];
+        var entry = results[2];
+        var fundamentals = results[3];
+
+        var techScore = computeTechnicalScore(chartData);
+        var momentum = computeMomentumScore(chartData);
+        var flowScore = computeFlowScore(data);
+        var foreignInstScore = computeForeignInstScore(data);
+        var shortP = entry && entry.short && entry.short.pressure;
+        var shortScore = shortP ? shortP.score : null;
+        var pension = entry && entry.pension;
+        var pensionScore = pension ? computePensionScore(pension) : null;
+        var creditP = entry && entry.credit;
+        var creditScore = computeCreditScore(creditP);
+        var fundamentalScore = computeFundamentalScore(fundamentals);
+
+        return {
+          code: data.code,
+          name: data.name || name,
+          items: [
+            { key: 'flow', label: '단기 수급강도', score: flowScore, desc: flowScoreInterpText(data) },
+            { key: 'foreignInst', label: '외국인·기관', score: foreignInstScore, desc: foreignInstDescText(data) },
+            { key: 'tech', label: '기술적 점수', score: techScore ? techScore.score : null, desc: techInterpText(techScore) },
+            { key: 'short', label: '공매도 압박', score: shortScore, desc: shortInterpText(entry && entry.short, entry && entry.loan) },
+            { key: 'pension', label: '연기금', score: pensionScore, desc: pensionInterpText(pension).text },
+            { key: 'credit', label: '반대매매', score: creditScore, desc: (creditP && creditP.signal) ? creditP.signal.text : '신용융자 데이터가 없는 종목입니다.' },
+            { key: 'fundamental', label: '펀더멘탈', score: fundamentalScore, desc: fundamentalInterpText(fundamentals) },
+            { key: 'momentum', label: '모멘텀', score: momentum ? momentum.score : null, desc: momentumInterpText(momentum) }
+          ]
+        };
+      });
+  }
+
   // investorFlowCache와 동일한 패턴: 종목코드별로 캐싱해 탭 재전환 시 재호출하지 않는다.
   // renderResult 시점에 fetchFundamentals가 이미 불러둬서(위 함수) 보통은 캐시 히트로
   // 즉시 렌더링되고, 실패했을 때만 여기서 다시 시도한다.
@@ -1648,6 +1697,53 @@
   function techInterpText(t) {
     if (!t) return '차트 데이터가 부족해 기술적 점수를 계산하지 못했습니다.';
     return t.ma.label + ' · ' + t.support.label + ' · ' + t.resistance.label;
+  }
+
+  // 모멘텀 - 2026-07-28 종목뉴스 페이지("종목분석" 요약 패널) 신규 항목. 최근 가격 추세의
+  // 강도를 0~100점으로 환산 - 5·20거래일 수익률(chartData.daily, ?action=flowChart 응답을
+  // 그대로 재사용)과 5일선 기울기(정배열/역배열과는 별개로 "방향이 막 바뀌었는지"를 봄)를
+  // 합산한다. 새 백엔드 없이 이미 있는 차트 데이터만으로 클라이언트에서 계산.
+  function computeMomentumScore(chartData) {
+    if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 21) return null;
+    var daily = chartData.daily;
+    var close = daily[daily.length - 1].close;
+    var close5 = daily[daily.length - 6].close;
+    var close20 = daily[daily.length - 21].close;
+    var ret5 = (close - close5) / close5 * 100;
+    var ret20 = (close - close20) / close20 * 100;
+
+    function bandScore(v, bands) {
+      for (var i = 0; i < bands.length; i++) {
+        if (v >= bands[i][0]) return bands[i][1];
+      }
+      return 0;
+    }
+    var ret5Score = bandScore(ret5, [[10, 40], [5, 32], [2, 24], [0, 16], [-2, 8]]);
+    var ret20Score = bandScore(ret20, [[20, 35], [10, 28], [5, 21], [0, 14], [-5, 7]]);
+
+    var ma5arr = (chartData.ma && chartData.ma.ma5) || [];
+    var slopeScore = 10, slopeLabel = '5일선 데이터 부족';
+    if (ma5arr.length >= 6 && ma5arr[ma5arr.length - 1] != null && ma5arr[ma5arr.length - 6] != null) {
+      var slope = (ma5arr[ma5arr.length - 1] - ma5arr[ma5arr.length - 6]) / ma5arr[ma5arr.length - 6] * 100;
+      if (slope > 1) { slopeScore = 25; slopeLabel = '5일선 상승 전환'; }
+      else if (slope > 0) { slopeScore = 15; slopeLabel = '5일선 완만한 상승'; }
+      else if (slope > -1) { slopeScore = 8; slopeLabel = '5일선 완만한 하락'; }
+      else { slopeScore = 0; slopeLabel = '5일선 하락 전환'; }
+    }
+
+    return {
+      score: Math.max(0, Math.min(100, Math.round(ret5Score + ret20Score + slopeScore))),
+      ret5: ret5,
+      ret20: ret20,
+      slopeLabel: slopeLabel
+    };
+  }
+
+  function momentumInterpText(m) {
+    if (!m) return '차트 데이터가 부족해 모멘텀을 계산하지 못했습니다.';
+    var s5 = (m.ret5 >= 0 ? '+' : '') + m.ret5.toFixed(1) + '%';
+    var s20 = (m.ret20 >= 0 ? '+' : '') + m.ret20.toFixed(1) + '%';
+    return '최근 5일 ' + s5 + ' · 20일 ' + s20 + ' · ' + m.slopeLabel;
   }
 
   // 외국인/기관 5일·20일 순매매 방향(4개) 각 ±12.5점, 기준 50점 -> 0~100점.
@@ -3724,7 +3820,10 @@
     // fetchJson을 네임스페이스 경유로 호출(loadSignalData)해서 테스트 페이지가 fetchFlow처럼
     // ForeignFlow.fetchJson을 몽키패치해 mock 데이터로 검증할 수 있게 한다(js/invest-signal.js와
     // 동일한 관례).
-    fetchJson: fetchJson
+    fetchJson: fetchJson,
+    // js/stock-news.js "종목분석 요약" 패널 전용 경량 API(위 정의부 주석 참고) - #foreign-flow
+    // 마운트 없이도(즉 이 스크립트를 로드만 해도) 호출 가능.
+    fetchAnalysisSummary: fetchAnalysisSummary
   };
   global.ForeignFlow = ForeignFlow;
 

@@ -18,6 +18,9 @@
   var REMOVED_STORAGE_KEY = 'stock-news-removed-v1';
   var RANK_OPEN_KEY = 'stock-news-rank-open-v1';
   var RANK_REFRESH_MS = 30 * 60 * 1000; // 30분
+  // 실시간 공시(KRX 공시 RSS) - js/quick-indices.js "긴급속보" 패널과 동일한 GAS(?market=0)
+  var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
+  var DISC_REFRESH_MS = 30 * 1000; // 30초
 
   var WATCHLIST_NAMES = [
     '비에이치아이', '에코프로비엠', 'NAVER', '현대차', '한화오션',
@@ -46,6 +49,13 @@
       var box = container.querySelector('#snRank');
       if (box && box.open) loadRankNews(container, true);
     }, RANK_REFRESH_MS);
+
+    // 실시간 공시는 선택 종목과 무관한 시장 전체 피드라 종목 선택 여부와 상관없이
+    // 페이지 진입 시 바로 불러오고 주기적으로 갱신한다(js/quick-indices.js와 동일 패턴).
+    loadDisclosures(container);
+    setInterval(function () {
+      if (!document.hidden) loadDisclosures(container);
+    }, DISC_REFRESH_MS);
   }
 
   function buildShell() {
@@ -65,7 +75,19 @@
       + '</div>'
       + '<div class="sn-layout">'
       + '<div class="sn-watchlist" id="snWatchlist"></div>'
-      + '<div class="sn-main"><div id="snResult"><div class="sn-hint">관심종목을 클릭하거나, 종목명을 검색해보세요.</div></div></div>'
+      + '<div class="sn-main">'
+      + '<div class="sn-news-col" id="snResult"><div class="sn-hint">관심종목을 클릭하거나, 종목명을 검색해보세요.</div></div>'
+      + '<div class="sn-side-col">'
+      + '<div class="sn-analysis" id="snAnalysis">'
+      + '<div class="sn-af-title">종목분석 요약</div>'
+      + '<div class="sn-hint">종목을 선택하면 표시돼요.</div>'
+      + '</div>'
+      + '<div class="sn-disclosure" id="snDisclosure">'
+      + '<div class="sn-disc-title">실시간 공시</div>'
+      + '<div class="sn-disc-list" id="snDiscList"><div class="sn-hint">불러오는 중...</div></div>'
+      + '</div>'
+      + '</div>'
+      + '</div>'
       + '</div>';
   }
 
@@ -443,6 +465,177 @@
       .catch(function () {
         resultBox.innerHTML = '<div class="sn-error">뉴스를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
+
+    loadAnalysis(container, stock);
+  }
+
+  // ---- 종목분석 요약 (js/foreign-flow.js의 점수 계산을 재사용) ----
+  // 이 패널이 동작하려면 /page/stock-news 편집 화면에 js/foreign-flow.js도 같이 로드돼
+  // 있어야 한다(js/watchlist.js를 stock-search.js 페이지에 같이 로드하는 것과 동일한 관례
+  // - CLAUDE.md js/stock-search.js 행 참고). 스크립트가 없으면 조용히 안내만 보여준다.
+  function loadAnalysis(container, stock) {
+    var box = container.querySelector('#snAnalysis');
+    if (!box) return;
+
+    if (!global.ForeignFlow || !global.ForeignFlow.fetchAnalysisSummary) {
+      box.innerHTML = '<div class="sn-af-title">종목분석 요약</div>'
+        + '<div class="sn-hint">종목분석 데이터를 사용할 수 없어요.</div>';
+      return;
+    }
+
+    box.innerHTML = '<div class="sn-af-title">종목분석 요약</div><div class="sn-loading">불러오는 중...</div>';
+    var requestCode = stock.code;
+    global.ForeignFlow.fetchAnalysisSummary(stock.code, stock.name)
+      .then(function (summary) {
+        if (selectedCode !== requestCode) return; // 그 사이 다른 종목을 선택했으면 버림
+        box.innerHTML = buildAnalysisPanel(summary);
+      })
+      .catch(function () {
+        if (selectedCode !== requestCode) return;
+        box.innerHTML = '<div class="sn-af-title">종목분석 요약</div>'
+          + '<div class="sn-error">종목분석 데이터를 불러오지 못했어요.</div>';
+      });
+  }
+
+  function analysisScoreClass(score) {
+    if (score >= 65) return 'sn-af-buy';
+    if (score >= 40) return 'sn-af-flat';
+    return 'sn-af-sell';
+  }
+
+  function buildAnalysisPanel(summary) {
+    if (!summary) {
+      return '<div class="sn-af-title">종목분석 요약</div>'
+        + '<div class="sn-error">종목분석 데이터를 불러오지 못했어요.</div>';
+    }
+    var cells = summary.items.map(function (it) {
+      if (it.score == null) return '';
+      var cls = analysisScoreClass(it.score);
+      return '<div class="sn-af-cell">'
+        + '<div class="sn-af-label">' + escapeHtml(it.label) + '</div>'
+        + '<div class="sn-af-score ' + cls + '">' + Math.round(it.score) + '점</div>'
+        + '<div class="sn-af-bar"><div class="sn-af-bar-fill ' + cls + '" style="width:' + Math.max(0, Math.min(100, it.score)) + '%"></div></div>'
+        + '<div class="sn-af-desc">' + escapeHtml(it.desc || '') + '</div>'
+        + '</div>';
+    }).join('');
+    if (!cells) {
+      return '<div class="sn-af-title">종목분석 요약</div>'
+        + '<div class="sn-hint">계산 가능한 항목이 없어요.</div>';
+    }
+    return '<div class="sn-af-title">종목분석 요약</div>'
+      + '<div class="sn-af-grid">' + cells + '</div>'
+      + '<div class="sn-af-note">※ 65점 이상 긍정 · 40~64점 중립 · 40점 미만 주의 기준입니다. 모멘텀(최근 추세 강도)은 참고 지표로, 종목분석 페이지의 종합판정 점수에는 포함되지 않습니다.</div>';
+  }
+
+  // ---- 실시간 공시 (js/quick-indices.js "긴급속보" 패널과 동일 GAS·파싱 로직 재사용) ----
+  // KRX 공시 RSS 포맷 파서라 점수 계산식과 달리 두 파일이 어긋나도 등급이 틀어지는 문제는
+  // 없음 - 안정적인 외부 피드 포맷이라 간단히 그대로 복제해 옴.
+
+  function discCleanCDATA(str) {
+    var s = str.indexOf('<![CDATA[');
+    var e = str.lastIndexOf(']]>');
+    if (s > -1 && e > -1) return str.slice(s + 9, e).trim();
+    return str.trim();
+  }
+  function discExtractTag(chunk, tag) {
+    var open = '<' + tag + '>';
+    var close = '</' + tag + '>';
+    var s = chunk.indexOf(open);
+    var e = chunk.indexOf(close, s);
+    if (s === -1 || e === -1) return '';
+    return discCleanCDATA(chunk.slice(s + open.length, e));
+  }
+  function discDetectMarket(title) {
+    if (title.indexOf('[코]') === 0) return 'KOSDAQ';
+    if (title.indexOf('[코넥스]') === 0) return 'KOSDAQ';
+    return 'KOSPI';
+  }
+  function discExtractCorp(title) {
+    if (title.charAt(0) !== '[') return { corp: '', disc: title };
+    var close = title.indexOf(']');
+    if (close === -1) return { corp: '', disc: title };
+    var rest = title.slice(close + 1).trim();
+    var spaceIdx = rest.indexOf(' ');
+    if (spaceIdx === -1) return { corp: rest, disc: '' };
+    return { corp: rest.slice(0, spaceIdx).trim(), disc: rest.slice(spaceIdx).trim() };
+  }
+  function discParseXML(text) {
+    var items = [];
+    var parts = text.split('<item>');
+    for (var i = 1; i < parts.length; i++) {
+      var chunk = parts[i].split('</item>')[0];
+      var title = discExtractTag(chunk, 'title');
+      var link = discExtractTag(chunk, 'link');
+      if (!title) continue;
+      var market = discDetectMarket(title);
+      var parsed = discExtractCorp(title);
+      items.push({ corp: parsed.corp, disc: parsed.disc || title, link: link || '#', market: market });
+    }
+    return items;
+  }
+
+  function renderDiscList(list, items) {
+    if (!list) return;
+    if (!items.length) { list.innerHTML = '<div class="sn-hint">공시가 없어요.</div>'; return; }
+    list.innerHTML = items.slice(0, 20).map(function (it) {
+      var cls = it.market === 'KOSDAQ' ? 'sn-disc-kosdaq' : 'sn-disc-kospi';
+      var disc = it.disc.replace(/\s*\|\s*/g, ' ').trim();
+      var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
+      return '<a href="' + escapeAttr(it.link) + '" target="_blank" rel="noopener" class="sn-disc-item">'
+        + '<span class="sn-disc-market ' + cls + '">' + it.market + '</span>'
+        + (corp ? '<span class="sn-disc-corp">' + escapeHtml(corp) + '</span>' : '')
+        + '<span class="sn-disc-text">' + escapeHtml(disc) + '</span>'
+        + '</a>';
+    }).join('');
+  }
+
+  function renderRankNewsAsDisc(list, items) {
+    if (!list) return;
+    if (!items.length) { list.innerHTML = '<div class="sn-hint">속보가 없어요.</div>'; return; }
+    list.innerHTML = items.slice(0, 20).map(function (it) {
+      return '<a href="' + escapeAttr(it.link) + '" target="_blank" rel="noopener" class="sn-disc-item">'
+        + '<span class="sn-disc-market sn-disc-news">뉴스</span>'
+        + '<span class="sn-disc-text">' + escapeHtml(it.title) + '</span>'
+        + '</a>';
+    }).join('');
+  }
+
+  // 장외 시간엔 KIND 공시 RSS가 통째로 빌 수 있어(js/quick-indices.js와 동일 사유)
+  // 그때만 GAS ?rankNews=1(네이버 뉴스 헤드라인)로 폴백한다.
+  function loadDisclosureFallback(list) {
+    fetchJson(GAS_TICKER_URL + '?rankNews=1')
+      .then(function (json) { renderRankNewsAsDisc(list, (json && json.items) || []); })
+      .catch(function () { if (list) list.innerHTML = '<div class="sn-hint">속보가 없어요.</div>'; });
+  }
+
+  function loadDisclosures(container) {
+    var list = container.querySelector('#snDiscList');
+    if (!list) return;
+    function handle(items) {
+      if (items.length) renderDiscList(list, items);
+      else loadDisclosureFallback(list);
+    }
+    fetch(DISC_GAS_URL + '?market=0')
+      .then(function (r) { return r.text(); })
+      .then(function (text) {
+        var t = text.trim().replace(/^﻿/, '');
+        if (t.charAt(0) === '<') {
+          handle(discParseXML(t));
+        } else if (t.length > 0) {
+          try {
+            var clean = t.replace(/\s/g, '');
+            var bin = atob(clean);
+            var bytes = new Uint8Array(bin.length);
+            for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+            handle(discParseXML(new TextDecoder('utf-8').decode(bytes)));
+          } catch (err) {
+            handle([]);
+          }
+        } else {
+          handle([]);
+        }
+      })
+      .catch(function () { loadDisclosureFallback(list); });
   }
 
   function fetchJson(url) {

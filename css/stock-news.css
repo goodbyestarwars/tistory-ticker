@@ -291,9 +291,27 @@
   color: #f87171;
 }
 
+/* 2026-07-28: 뉴스 칼럼 + 우측 사이드 칼럼(종목분석 요약/실시간 공시)으로 분할
+   (사용자 요청 "칸을 분할해서, 실시간 공시도 보여줬으면 좋겠어"). */
 .sn-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.sn-news-col {
+  flex: 1.6;
+  min-width: 0;
+}
+
+.sn-side-col {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 @media (max-width: 640px) {
@@ -306,6 +324,159 @@
     max-height: 260px;
     overflow-y: auto;
   }
+}
+
+@media (max-width: 900px) {
+  .sn-main {
+    flex-direction: column;
+  }
+  .sn-side-col {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* ============ 종목분석 요약 (js/foreign-flow.js 점수 계산 재사용) ============ */
+
+.sn-analysis {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #ffffff;
+}
+
+.sn-af-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 10px;
+}
+
+.sn-af-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sn-af-cell {
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.sn-af-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 3px;
+}
+
+.sn-af-score {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.sn-af-score.sn-af-buy { color: #d24f45; }
+.sn-af-score.sn-af-flat { color: #6b7280; }
+.sn-af-score.sn-af-sell { color: #1261c4; }
+
+.sn-af-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.sn-af-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.sn-af-bar-fill.sn-af-buy { background: #d24f45; }
+.sn-af-bar-fill.sn-af-flat { background: #9ca3af; }
+.sn-af-bar-fill.sn-af-sell { background: #1261c4; }
+
+.sn-af-desc {
+  font-size: 10.5px;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+
+.sn-af-note {
+  margin-top: 10px;
+  font-size: 10.5px;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .sn-af-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============ 실시간 공시 (js/quick-indices.js "긴급속보" 패널과 동일 소스) ============ */
+
+.sn-disclosure {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #ffffff;
+}
+
+.sn-disc-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 10px;
+}
+
+.sn-disc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.sn-disc-item {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  text-decoration: none;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.sn-disc-item:last-child { border-bottom: none; }
+.sn-disc-item:hover .sn-disc-text { color: #2563eb; text-decoration: underline; }
+
+.sn-disc-market {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.sn-disc-market.sn-disc-kospi { background: #fee2e2; color: #d24f45; }
+.sn-disc-market.sn-disc-kosdaq { background: #dbeafe; color: #1261c4; }
+.sn-disc-market.sn-disc-news { background: #f1f5f9; color: #6b7280; }
+
+.sn-disc-corp {
+  font-weight: 700;
+  color: #111827;
+  flex-shrink: 0;
+}
+
+.sn-disc-text {
+  color: #374151;
 }
 
 /* ============ 모바일 최적화 ============ */
@@ -795,6 +966,62 @@ html.dark #stock-news .sn-news-meta {
 html.dark #stock-news .sn-sector-tag {
   background: rgba(245, 239, 224, 0.16);
   color: #F5EFE0;
+}
+
+html.dark #stock-news .sn-analysis,
+html.dark #stock-news .sn-disclosure {
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.2);
+}
+
+html.dark #stock-news .sn-af-title,
+html.dark #stock-news .sn-disc-title {
+  color: #F5EFE0 !important;
+}
+
+html.dark #stock-news .sn-af-cell {
+  border-color: rgba(245, 239, 224, 0.14);
+}
+
+html.dark #stock-news .sn-af-label {
+  color: rgba(245, 239, 224, 0.55) !important;
+}
+
+html.dark #stock-news .sn-af-score.sn-af-buy { color: #ff6b6b !important; }
+html.dark #stock-news .sn-af-score.sn-af-flat { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #stock-news .sn-af-score.sn-af-sell { color: #4dabf7 !important; }
+
+html.dark #stock-news .sn-af-bar {
+  background: rgba(245, 239, 224, 0.14);
+}
+
+html.dark #stock-news .sn-af-bar-fill.sn-af-buy { background: #ff6b6b; }
+html.dark #stock-news .sn-af-bar-fill.sn-af-flat { background: rgba(245, 239, 224, 0.5); }
+html.dark #stock-news .sn-af-bar-fill.sn-af-sell { background: #4dabf7; }
+
+html.dark #stock-news .sn-af-desc,
+html.dark #stock-news .sn-af-note {
+  color: rgba(245, 239, 224, 0.45) !important;
+}
+
+html.dark #stock-news .sn-disc-item {
+  border-bottom-color: rgba(245, 239, 224, 0.14);
+}
+
+html.dark #stock-news .sn-disc-item:hover .sn-disc-text {
+  color: #F5EFE0 !important;
+}
+
+html.dark #stock-news .sn-disc-market.sn-disc-kospi { background: rgba(255, 107, 107, 0.18); color: #ff6b6b !important; }
+html.dark #stock-news .sn-disc-market.sn-disc-kosdaq { background: rgba(77, 171, 247, 0.18); color: #4dabf7 !important; }
+html.dark #stock-news .sn-disc-market.sn-disc-news { background: rgba(245, 239, 224, 0.14); color: rgba(245, 239, 224, 0.6) !important; }
+
+html.dark #stock-news .sn-disc-corp {
+  color: #F5EFE0 !important;
+}
+
+html.dark #stock-news .sn-disc-text {
+  color: rgba(245, 239, 224, 0.75) !important;
 }
 
 html.dark #stock-news .sn-ai-summary {
