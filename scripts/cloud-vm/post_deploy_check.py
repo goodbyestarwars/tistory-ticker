@@ -5,6 +5,7 @@ API 키와 응답 본문은 출력하지 않고 엔드포인트별 통과 여부
 """
 
 import json
+import argparse
 import os
 import time
 import urllib.request
@@ -37,33 +38,45 @@ def fetch_json(path, api_token=None, timeout=30):
         return json.loads(response.read().decode('utf-8'))
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description='배포 후 API 회귀 점검')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--base-only', action='store_true',
+                      help='health와 기존 OHLC API만 점검')
+    mode.add_argument('--momentum-only', action='store_true',
+                      help='뉴스 모멘텀 API만 점검')
+    args = parser.parse_args(argv)
     load_dotenv()
-    token = os.environ.get('API_TOKEN')
-    if not token:
-        raise SystemExit('API_TOKEN이 없어 인증 시세 API 회귀 점검을 수행할 수 없습니다.')
 
-    health = None
-    for _ in range(20):
-        try:
-            health = fetch_json('/health', timeout=5)
-            break
-        except Exception:
-            time.sleep(1)
-    if not health or health.get('data', {}).get('status') != 'ok':
-        raise RuntimeError('/health 회귀 점검 실패')
-    print('PASS /health')
+    if not args.momentum_only:
+        token = os.environ.get('API_TOKEN')
+        if not token:
+            raise SystemExit('API_TOKEN이 없어 인증 시세 API 회귀 점검을 수행할 수 없습니다.')
 
-    momentum = fetch_json('/news-momentum/000660')
-    momentum_data = momentum.get('data') or {}
-    if momentum_data.get('enabled') is not True or momentum_data.get('stockCode') != '000660':
-        raise RuntimeError('/news-momentum/000660 응답 계약 불일치')
-    print('PASS /news-momentum/000660')
+        health = None
+        for _ in range(20):
+            try:
+                health = fetch_json('/health', timeout=5)
+                break
+            except Exception:
+                time.sleep(1)
+        if not health or health.get('data', {}).get('status') != 'ok':
+            raise RuntimeError('/health 회귀 점검 실패')
+        print('PASS /health')
 
-    ohlc = fetch_json('/ohlc/005930', token, timeout=60)
-    if not isinstance(ohlc.get('data'), list) or not ohlc['data']:
-        raise RuntimeError('/ohlc/005930 응답 계약 불일치')
-    print('PASS /ohlc/005930')
+        ohlc = fetch_json('/ohlc/005930', token, timeout=60)
+        if not isinstance(ohlc.get('data'), list) or not ohlc['data']:
+            raise RuntimeError('/ohlc/005930 응답 계약 불일치')
+        print('PASS /ohlc/005930')
+
+    if not args.base_only:
+        momentum = fetch_json('/news-momentum/000660')
+        momentum_data = momentum.get('data') or {}
+        if (momentum_data.get('enabled') is not True
+                or momentum_data.get('stockCode') != '000660'
+                or not momentum_data.get('coverage')):
+            raise RuntimeError('/news-momentum/000660 응답 계약 불일치')
+        print('PASS /news-momentum/000660')
     return 0
 
 

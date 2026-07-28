@@ -15,6 +15,7 @@ if CLOUD_VM_DIR not in sys.path:
 import news_momentum
 import news_momentum_scan
 import backup_sqlite
+import verify_news_momentum_db
 import main as vm_main
 
 
@@ -289,6 +290,33 @@ class NewsMomentumTest(unittest.TestCase):
             )
         finally:
             restored.close()
+
+    def test_deployed_db_verifier_requires_all_eight_stocks(self):
+        for code in verify_news_momentum_db.PILOT_CODES:
+            news_momentum.save_stock_coverage(
+                self.conn, code, code, '2026-05-01', '2026-05-01',
+                '2026-07-29', True, 10, 1,
+            )
+        result = verify_news_momentum_db.verify_database(self.db_path)
+        self.assertEqual(result['stocks'], 8)
+        self.assertEqual(result['latestDataDate'], '2026-07-29')
+
+    def test_deploy_timer_momentum_contract(self):
+        deploy_path = os.path.join(CLOUD_VM_DIR, 'deploy_check.sh')
+        with open(deploy_path, 'r', encoding='utf-8') as source:
+            script = source.read()
+        self.assertIn('APP_DIR="/home/goodbyestarwars/kiwoom-api"', script)
+        self.assertIn('PYTHON="$APP_DIR/venv/bin/python"', script)
+        self.assertIn('if [ "$(id -un)" != "goodbyestarwars" ]', script)
+        self.assertIn('TZ=Asia/Seoul date +%F', script)
+        self.assertIn('flock -n -E 75', script)
+        self.assertIn(
+            '000660,005930,005380,083650,042660,035420,066570,247540',
+            script,
+        )
+        self.assertIn('run_news_momentum_if_due "$DEPLOY_OCCURRED" || true', script)
+        self.assertNotIn('/etc/systemd/system/kiwoom-news-momentum', script)
+        self.assertNotIn('rollback_news_momentum.sh', script)
 
     def test_fastapi_momentum_response_and_health_regression(self):
         name, items = MOCK_NEWS['000660']

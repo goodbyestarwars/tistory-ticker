@@ -75,17 +75,19 @@
 - 뉴스 모멘텀은 `news_momentum.py`(별도 `news_momentum.db` 스키마·이슈 집계·DataLab 저장)와
   `news_momentum_scan.py`(기본 지정 8종목 파일럿, 명시적 `--full`만 전종목)로 분리한다. 브라우저의
   `/news-momentum/{code}` 조회는 DB만 읽고 NAVER API를 호출하지 않는다. 별도 systemd 쓰기
-  권한을 요구하지 않고 기존 `kiwoom-deploy.timer`의 5분 주기를 재사용하되 KST 날짜 마커로
-  하루 한 번만 8종목 배치를 실행한다. 전종목 전환 전까지 `--full`을 붙이지 않는다.
+  권한을 요구하지 않고 기존 `kiwoom-deploy.timer`의 5분 주기를 재사용한다.
+  `deploy_check.sh`는 `goodbyestarwars` 사용자·`/home/goodbyestarwars/kiwoom-api`
+  WorkingDirectory·venv Python 절대경로를 검증하고, `flock`과 Asia/Seoul 날짜 마커로 하루
+  한 번만 8종목 배치를 실행한다. 배치·DB·API 확인이 모두 성공한 뒤에만 날짜 마커를 쓰며
+  실패는 배포 SHA나 FastAPI 재시작 결과에 영향을 주지 않고 다음 5분 회차에서 재시도한다.
+  전종목 전환 전까지 `--full`을 붙이지 않는다.
   배치는 OS 파일 잠금으로 중복 실행을 건너뛰고, 최근 90일 백필의 요청 시작일·실제 시작일·
   기준일·완료 여부를 `news_stock_coverage`에 기록한다.
 - 자동 배포는 서비스 재시작 전에 `backup_sqlite.py`의 Python `sqlite3.Connection.backup()`으로
   `ohlc_snapshot.db`를 `backups/`에 백업하고 무결성 검사 후 최근 7개만 보관한다. 배포 뒤
   `/health`, `/news-momentum/000660`, 인증 `/ohlc/005930`을 점검한다. 실패 시
-  `rollback_news_momentum.sh`가 `NEWS_MOMENTUM_ENABLED=0`으로 바꾸고 `news_momentum.db`를
-  `.disabled.<UTC시각>` 이름으로 격리한 뒤 기존 API만 재시작한다. 실패한
-  `news_momentum_release.txt` 릴리스는 로컬 상태 파일에 기록해 일반 후속 배포가 임의로
-  재활성화하지 않으며, 수정 후 릴리스 번호를 올린 경우에만 한 번 다시 시도한다.
+  기존 API 배포 회귀검사는 모멘텀 배치와 분리한다. 모멘텀 실패 시 기존 배포를 롤백하거나
+  FastAPI를 다시 시작하지 않고 날짜 마커를 남기지 않는 방식으로만 재시도를 예약한다.
 - 필수 환경변수: `KIWOOM_APPKEY`/`KIWOOM_SECRETKEY`(키움 REST), `API_TOKEN`(GAS→VM 인증용
   자체 토큰), 선택: `KIS_APPKEY`/`KIS_APPSECRET`(KIS API), `NAVER_APIHUB_CLIENT_ID`/`_SECRET`
 - 두 가지 호출 경로가 있음:
