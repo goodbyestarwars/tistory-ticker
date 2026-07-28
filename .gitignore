@@ -20,3 +20,17 @@ __pycache__/
 # VM에서 배치가 생성하는 캐시(소스 아님, 매일 재생성됨)
 scripts/cloud-vm/*_cache.json
 scripts/cloud-vm/dart_corp_code_map.json
+
+# VM SQLite 데이터와 sqlite3 backup API로 만든 운영 백업은 소스가 아니다.
+scripts/cloud-vm/*.db
+scripts/cloud-vm/*.db-wal
+scripts/cloud-vm/*.db-shm
+scripts/cloud-vm/*.db.lock
+scripts/cloud-vm/backups/
+/news_momentum.db
+/news_momentum.db-*
+/news_momentum.db.lock
+/news_momentum.db.disabled.*
+/ohlc_snapshot.db
+/ohlc_snapshot.db-*
+/backups/

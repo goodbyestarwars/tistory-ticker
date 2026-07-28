@@ -175,7 +175,7 @@ def get_kiwoom_token():
 
 @app.get('/health')
 def health():
-    return envelope({'status': 'ok'})
+    return envelope({'status': 'ok', 'deployGuardVersion': 2})
 
 
 @app.get('/quote')
