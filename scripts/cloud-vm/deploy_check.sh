@@ -7,6 +7,8 @@ APP_DIR="/home/goodbyestarwars/kiwoom-api"
 PYTHON="$APP_DIR/venv/bin/python"
 DEPLOYED_FILE="$APP_DIR/.last_deployed_sha"
 MOMENTUM_MARKER="$APP_DIR/.news_momentum_last_run_date"
+MOMENTUM_SCHEMA_MARKER="$APP_DIR/.news_momentum_batch_schema_version"
+MOMENTUM_SCHEMA_VERSION="2"
 MOMENTUM_LOCK="$APP_DIR/.news_momentum_timer.lock"
 MOMENTUM_DB="$APP_DIR/news_momentum.db"
 PILOT_CODES="000660,005930,005380,083650,042660,035420,066570,247540"
@@ -17,6 +19,7 @@ run_news_momentum_if_due() {
   local verify_after_deploy="${1:-0}"
   local today_kst
   local last_run
+  local schema_version
   local lock_status
 
   if [ "$(id -un)" != "goodbyestarwars" ]; then
@@ -30,7 +33,8 @@ run_news_momentum_if_due() {
 
   today_kst="$(TZ=Asia/Seoul date +%F)"
   last_run="$(cat "$MOMENTUM_MARKER" 2>/dev/null || echo "")"
-  if [ "$last_run" = "$today_kst" ]; then
+  schema_version="$(cat "$MOMENTUM_SCHEMA_MARKER" 2>/dev/null || echo "")"
+  if [ "$last_run" = "$today_kst" ] && [ "$schema_version" = "$MOMENTUM_SCHEMA_VERSION" ]; then
     if [ "$verify_after_deploy" = "1" ]; then
       "$PYTHON" "$APP_DIR/verify_news_momentum_db.py" \
         && "$PYTHON" "$APP_DIR/post_deploy_check.py" --momentum-only \
@@ -50,6 +54,8 @@ run_news_momentum_if_due() {
       # 배치·DB·API 검증이 모두 성공한 뒤에만 KST 날짜 마커를 원자적으로 교체한다.
       printf '%s\n' "$today_kst" > "$MOMENTUM_MARKER.tmp"
       mv "$MOMENTUM_MARKER.tmp" "$MOMENTUM_MARKER"
+      printf '%s\n' "$MOMENTUM_SCHEMA_VERSION" > "$MOMENTUM_SCHEMA_MARKER.tmp"
+      mv "$MOMENTUM_SCHEMA_MARKER.tmp" "$MOMENTUM_SCHEMA_MARKER"
       echo "뉴스 모멘텀 일일 배치 완료: $today_kst"
     else
       echo "뉴스 모멘텀 검증 실패: 날짜 마커 미기록, 5분 뒤 재시도" >&2

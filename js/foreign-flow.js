@@ -1394,6 +1394,22 @@
     return '중립';
   }
 
+  function momentumChangeStatusLabel(status) {
+    if (status === 'new') return '신규';
+    if (status === 'expanding') return '확산';
+    if (status === 'declining') return '감소';
+    if (status === 'persistent') return '지속';
+    return '데이터 없음';
+  }
+
+  function momentumChangeDescription(status) {
+    if (status === 'new') return '최근 7일에 새로 등장했습니다.';
+    if (status === 'expanding') return '최근 뉴스가 이전 기간보다 증가하고 있습니다.';
+    if (status === 'declining') return '최근 뉴스가 이전 기간보다 감소하고 있습니다.';
+    if (status === 'persistent') return '이전 기간과 비슷한 수준을 유지하고 있습니다.';
+    return '기간 비교 데이터가 없습니다.';
+  }
+
   function momentumAgeLabel(lastSeenAt) {
     if (!lastSeenAt) return '-';
     var seen = new Date(lastSeenAt + 'T00:00:00');
@@ -1403,7 +1419,7 @@
 
   function momentumTrendBars(daily) {
     var points = (daily || []).filter(function (row) { return row.search_interest != null; }).slice(-14);
-    if (!points.length) return '<div class="ff-momentum-no-trend">검색 관심도 준비 중</div>';
+    if (!points.length) return '<div class="ff-momentum-no-trend">검색 관심도 데이터 부족</div>';
     var max = Math.max.apply(null, points.map(function (row) { return Number(row.search_interest) || 0; })) || 1;
     return '<div class="ff-momentum-trend" aria-label="최근 검색 관심도">'
       + points.map(function (row) {
@@ -1432,7 +1448,28 @@
     }
     var cards = topics.map(function (topic) {
       var sentiment = topic.sentiment || 'neutral';
-      var latestInterest = topic.latestSearchInterest == null ? '-' : Number(topic.latestSearchInterest).toFixed(1);
+      var sentimentCounts = topic.sentimentCounts;
+      var sentimentCountsText = sentimentCounts
+        ? '긍정 ' + Number(sentimentCounts.positive).toLocaleString() + '건 · 중립 '
+          + Number(sentimentCounts.neutral).toLocaleString() + '건 · 부정 '
+          + Number(sentimentCounts.negative).toLocaleString() + '건'
+        : '감성 데이터 없음';
+      var sentimentExtra = sentimentCounts
+        ? '순감성 ' + (Number(topic.netSentiment) > 0 ? '+' : '') + Number(topic.netSentiment).toLocaleString()
+          + ' · 부정 비중 ' + (Number(topic.negativeShare || 0) * 100).toFixed(1) + '%'
+        : '분류 가능한 기사 집계 전';
+      var recent7dCount = topic.recent7dCount == null ? topic.count7d : topic.recent7dCount;
+      var previous7dCount = topic.previous7dCount;
+      var changeStatus = topic.momentumStatus;
+      var changeRateText = topic.changeRate == null
+        ? (changeStatus === 'new' ? '이전 기간 0건' : '변화율 데이터 없음')
+        : '변화율 ' + (Number(topic.changeRate) >= 0 ? '+' : '') + Number(topic.changeRate).toFixed(1) + '%';
+      var recentComparisonText = previous7dCount == null
+        ? '기간별 뉴스 데이터 없음'
+        : '최근 7일 ' + Number(recent7dCount || 0).toLocaleString() + '건 · 이전 7일 '
+          + Number(previous7dCount).toLocaleString() + '건';
+      var latestInterest = topic.latestSearchInterest == null
+        ? '데이터 부족' : Number(topic.latestSearchInterest).toFixed(1);
       var interestChange = topic.searchInterestChange;
       var interestChangeText = interestChange == null
         ? '비교 데이터 없음'
@@ -1446,10 +1483,19 @@
         + '<span class="ff-momentum-status status-' + escapeAttr(topic.status) + '">' + momentumStatusLabel(topic.status) + '</span>'
         + '<span class="ff-momentum-sentiment sentiment-' + escapeAttr(sentiment) + '">' + momentumSentimentLabel(sentiment) + '</span></div>'
         + '<div class="ff-momentum-metrics">'
-        + '<div><span>뉴스 반복성</span><b>7일 ' + Number(topic.count7d || 0).toLocaleString() + '회</b><small>30일 ' + Number(topic.count30d || 0).toLocaleString() + '회</small></div>'
-        + '<div><span>최근성</span><b>' + escapeHtml(momentumAgeLabel(topic.lastSeenAt)) + '</b><small>' + escapeHtml(topic.lastSeenAt || '-') + '</small></div>'
-        + '<div><span>검색 관심도</span><b>' + latestInterest + '</b><small>' + escapeHtml(interestChangeText) + '</small></div>'
-        + '<div><span>방향성</span><b class="sentiment-' + escapeAttr(sentiment) + '">' + momentumSentimentLabel(sentiment) + '</b><small>뉴스 제목 기준</small></div>'
+        + '<div class="ff-momentum-metric ff-momentum-sentiment-metric"><span>뉴스 방향성</span>'
+        + '<b class="sentiment-' + escapeAttr(sentiment) + '">' + momentumSentimentLabel(sentiment) + '</b>'
+        + '<small>' + escapeHtml(sentimentCountsText) + '</small><small>' + escapeHtml(sentimentExtra) + '</small>'
+        + '<small>※ 뉴스 제목 기준 자동 분류</small></div>'
+        + '<div class="ff-momentum-metric ff-momentum-change-metric"><span>모멘텀 상태</span>'
+        + '<b class="ff-momentum-change status-' + escapeAttr(changeStatus || 'unknown') + '">'
+        + momentumChangeStatusLabel(changeStatus) + '</b><small>' + escapeHtml(recentComparisonText) + '</small>'
+        + '<small>' + escapeHtml(changeRateText) + ' · ' + escapeHtml(momentumChangeDescription(changeStatus)) + '</small></div>'
+        + '<div class="ff-momentum-metric"><span>검색 관심도</span><b>' + latestInterest + '</b>'
+        + '<small>' + escapeHtml(interestChangeText) + '</small></div>'
+        + '<div class="ff-momentum-metric"><span>뉴스 반복·최근성</span>'
+        + '<b>30일 ' + Number(topic.count30d || 0).toLocaleString() + '건</b>'
+        + '<small>' + escapeHtml(momentumAgeLabel(topic.lastSeenAt)) + ' · ' + escapeHtml(topic.lastSeenAt || '-') + '</small></div>'
         + '</div>'
         + momentumTrendBars(topic.daily)
         + '<div class="ff-momentum-keywords">' + (topic.keywords || []).slice(0, 4).map(function (keyword) {

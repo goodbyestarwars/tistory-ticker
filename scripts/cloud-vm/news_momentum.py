@@ -33,6 +33,12 @@ CREATE TABLE IF NOT EXISTS news_topics (
     count_7d INTEGER NOT NULL DEFAULT 0,
     count_30d INTEGER NOT NULL DEFAULT 0,
     sentiment TEXT NOT NULL DEFAULT 'neutral',
+    positive_count INTEGER,
+    neutral_count INTEGER,
+    negative_count INTEGER,
+    previous_7d_count INTEGER,
+    change_rate REAL,
+    momentum_status TEXT,
     status TEXT NOT NULL DEFAULT 'active',
     representative_urls_json TEXT NOT NULL DEFAULT '[]',
     created_at TEXT NOT NULL,
@@ -46,6 +52,9 @@ CREATE TABLE IF NOT EXISTS news_topic_daily (
     stock_code TEXT NOT NULL,
     date TEXT NOT NULL,
     news_count INTEGER NOT NULL DEFAULT 0,
+    positive_count INTEGER,
+    neutral_count INTEGER,
+    negative_count INTEGER,
     search_interest REAL,
     created_at TEXT NOT NULL,
     UNIQUE(topic_id, date),
@@ -112,7 +121,33 @@ def get_conn(db_file=None):
 
 def create_schema(conn):
     conn.executescript(SCHEMA)
+    _add_missing_columns(conn, 'news_topics', {
+        'positive_count': 'INTEGER',
+        'neutral_count': 'INTEGER',
+        'negative_count': 'INTEGER',
+        'previous_7d_count': 'INTEGER',
+        'change_rate': 'REAL',
+        'momentum_status': 'TEXT',
+    })
+    _add_missing_columns(conn, 'news_topic_daily', {
+        'positive_count': 'INTEGER',
+        'neutral_count': 'INTEGER',
+        'negative_count': 'INTEGER',
+    })
     conn.commit()
+
+
+def _add_missing_columns(conn, table_name, columns):
+    """기존 news_momentum.db에 nullable 집계 컬럼만 안전하게 추가한다."""
+    existing = {
+        row['name'] for row in conn.execute('PRAGMA table_info(%s)' % table_name)
+    }
+    for column_name, column_type in columns.items():
+        if column_name not in existing:
+            conn.execute(
+                'ALTER TABLE %s ADD COLUMN %s %s'
+                % (table_name, column_name, column_type)
+            )
 
 
 def _iso_now(now=None):
@@ -232,14 +267,48 @@ def _keyword_group(stock_name, label):
     return [item for item in base if item and not (item in seen or seen.add(item))][:20]
 
 
-def _sentiment(titles):
-    positive = sum(sum(word in title for word in POSITIVE_WORDS) for title in titles)
-    negative = sum(sum(word in title for word in NEGATIVE_WORDS) for title in titles)
+def _sentiment_score(title):
+    return (
+        sum(word in title for word in POSITIVE_WORDS),
+        sum(word in title for word in NEGATIVE_WORDS),
+    )
+
+
+def _classify_sentiment(title):
+    positive, negative = _sentiment_score(title)
     if positive > negative:
         return 'positive'
     if negative > positive:
         return 'negative'
     return 'neutral'
+
+
+def _sentiment(titles):
+    positive = 0
+    negative = 0
+    for title in titles:
+        title_positive, title_negative = _sentiment_score(title)
+        positive += title_positive
+        negative += title_negative
+    if positive > negative:
+        return 'positive'
+    if negative > positive:
+        return 'negative'
+    return 'neutral'
+
+
+def _momentum_change(recent_count, previous_count):
+    if previous_count == 0:
+        return None, 'new' if recent_count > 0 else 'persistent'
+    change_rate = round((recent_count - previous_count) / previous_count * 100, 1)
+    difference = recent_count - previous_count
+    if change_rate >= 20 and difference >= 2:
+        status = 'expanding'
+    elif change_rate <= -20 and difference <= -2:
+        status = 'declining'
+    else:
+        status = 'persistent'
+    return change_rate, status
 
 
 def extract_topics(stock_code, stock_name, news_items, today=None):
@@ -267,8 +336,12 @@ def extract_topics(stock_code, stock_name, news_items, today=None):
         if len(articles) < 2 and recent_count < 2:
             continue
         by_date = defaultdict(int)
+        sentiment_by_date = defaultdict(lambda: {
+            'positive': 0, 'neutral': 0, 'negative': 0,
+        })
         for article in articles:
             by_date[article['date']] += 1
+            sentiment_by_date[article['date']][_classify_sentiment(article['title'])] += 1
         urls = []
         for article in sorted(articles, key=lambda row: row['date'], reverse=True):
             if article['url'] and article['url'] not in urls:
@@ -281,6 +354,7 @@ def extract_topics(stock_code, stock_name, news_items, today=None):
             'keywords': _keyword_group(stock_name, label),
             'sentiment': _sentiment([article['title'] for article in articles]),
             'daily_counts': dict(by_date),
+            'daily_sentiment_counts': dict(sentiment_by_date),
             'representative_urls': urls[:3],
         })
     return sorted(topics, key=lambda row: (-sum(row['daily_counts'].values()), row['topic_name']))
@@ -332,15 +406,55 @@ def _refresh_topic_aggregates(conn, topic_id, today_iso, now_iso):
         'SELECT COALESCE(SUM(news_count),0) FROM news_topic_daily WHERE topic_id=? AND date>=?',
         (topic_id, cutoff_7d),
     ).fetchone()[0]
+    cutoff_previous_7d = (date.fromisoformat(today_iso) - timedelta(days=13)).isoformat()
+    previous_7d_count = conn.execute(
+        'SELECT COALESCE(SUM(news_count),0) FROM news_topic_daily '
+        'WHERE topic_id=? AND date>=? AND date<?',
+        (topic_id, cutoff_previous_7d, cutoff_7d),
+    ).fetchone()[0]
     count_30d = conn.execute(
         'SELECT COALESCE(SUM(news_count),0) FROM news_topic_daily WHERE topic_id=? AND date>=?',
         (topic_id, cutoff_30d),
     ).fetchone()[0]
+    daily_rows = conn.execute(
+        'SELECT news_count,positive_count,neutral_count,negative_count '
+        'FROM news_topic_daily WHERE topic_id=?',
+        (topic_id,),
+    ).fetchall()
+    sentiment_complete = all(
+        row['positive_count'] is not None
+        and row['neutral_count'] is not None
+        and row['negative_count'] is not None
+        and (
+            row['positive_count'] + row['neutral_count'] + row['negative_count']
+            == row['news_count']
+        )
+        for row in daily_rows
+    )
+    positive_count = (
+        sum(row['positive_count'] for row in daily_rows)
+        if sentiment_complete else None
+    )
+    neutral_count = (
+        sum(row['neutral_count'] for row in daily_rows)
+        if sentiment_complete else None
+    )
+    negative_count = (
+        sum(row['negative_count'] for row in daily_rows)
+        if sentiment_complete else None
+    )
+    change_rate, momentum_status = _momentum_change(count_7d, previous_7d_count)
     conn.execute(
         'UPDATE news_topics SET first_seen_at=?, last_seen_at=?, total_count=?, count_7d=?, '
-        'count_30d=?, status=?, updated_at=? WHERE id=?',
-        (first_seen, last_seen, total_count or 0, count_7d, count_30d,
-         _topic_status(last_seen, today_iso), now_iso, topic_id),
+        'count_30d=?, positive_count=?, neutral_count=?, negative_count=?, '
+        'previous_7d_count=?, change_rate=?, momentum_status=?, status=?, updated_at=? '
+        'WHERE id=?',
+        (
+            first_seen, last_seen, total_count or 0, count_7d, count_30d,
+            positive_count, neutral_count, negative_count, previous_7d_count,
+            change_rate, momentum_status, _topic_status(last_seen, today_iso),
+            now_iso, topic_id,
+        ),
     )
 
 
@@ -388,11 +502,27 @@ def upsert_topics(conn, stock_code, stock_name, topics, today=None, now=None):
                 topic_id = cursor.lastrowid
 
             conn.executemany(
-                'INSERT INTO news_topic_daily (topic_id,stock_code,date,news_count,search_interest,created_at) '
-                'VALUES (?,?,?,?,NULL,?) ON CONFLICT(topic_id,date) DO UPDATE SET '
-                'news_count=MAX(news_topic_daily.news_count,excluded.news_count)',
-                [(topic_id, stock_code, day, count, now_iso)
-                 for day, count in topic['daily_counts'].items()],
+                'INSERT INTO news_topic_daily '
+                '(topic_id,stock_code,date,news_count,positive_count,neutral_count,'
+                'negative_count,search_interest,created_at) '
+                'VALUES (?,?,?,?,?,?,?,NULL,?) ON CONFLICT(topic_id,date) DO UPDATE SET '
+                'news_count=MAX(news_topic_daily.news_count,excluded.news_count), '
+                'positive_count=CASE WHEN excluded.news_count>=news_topic_daily.news_count '
+                'THEN excluded.positive_count ELSE news_topic_daily.positive_count END, '
+                'neutral_count=CASE WHEN excluded.news_count>=news_topic_daily.news_count '
+                'THEN excluded.neutral_count ELSE news_topic_daily.neutral_count END, '
+                'negative_count=CASE WHEN excluded.news_count>=news_topic_daily.news_count '
+                'THEN excluded.negative_count ELSE news_topic_daily.negative_count END',
+                [
+                    (
+                        topic_id, stock_code, day, count,
+                        topic.get('daily_sentiment_counts', {}).get(day, {}).get('positive'),
+                        topic.get('daily_sentiment_counts', {}).get(day, {}).get('neutral'),
+                        topic.get('daily_sentiment_counts', {}).get(day, {}).get('negative'),
+                        now_iso,
+                    )
+                    for day, count in topic['daily_counts'].items()
+                ],
             )
             _refresh_topic_aggregates(conn, topic_id, today_iso, now_iso)
             touched_ids.append(topic_id)
@@ -532,6 +662,17 @@ def load_stock_momentum(conn, stock_code, daily_days=30):
     ).fetchall()
     topics = []
     for row in topic_rows:
+        row_keys = set(row.keys())
+        positive_count = row['positive_count'] if 'positive_count' in row_keys else None
+        neutral_count = row['neutral_count'] if 'neutral_count' in row_keys else None
+        negative_count = row['negative_count'] if 'negative_count' in row_keys else None
+        previous_7d_count = (
+            row['previous_7d_count'] if 'previous_7d_count' in row_keys else None
+        )
+        change_rate = row['change_rate'] if 'change_rate' in row_keys else None
+        momentum_status = (
+            row['momentum_status'] if 'momentum_status' in row_keys else None
+        )
         daily = conn.execute(
             'SELECT date,news_count,search_interest FROM news_topic_daily '
             'WHERE topic_id=? ORDER BY date DESC LIMIT ?',
@@ -556,9 +697,34 @@ def load_stock_momentum(conn, stock_code, daily_days=30):
             'firstSeenAt': row['first_seen_at'],
             'lastSeenAt': row['last_seen_at'],
             'totalCount': row['total_count'],
+            'newsCount': row['total_count'],
             'count7d': row['count_7d'],
+            'recent7dCount': row['count_7d'],
             'count30d': row['count_30d'],
             'sentiment': row['sentiment'],
+            'sentimentCounts': (
+                {
+                    'positive': positive_count,
+                    'neutral': neutral_count,
+                    'negative': negative_count,
+                }
+                if positive_count is not None
+                and neutral_count is not None
+                and negative_count is not None
+                else None
+            ),
+            'netSentiment': (
+                positive_count - negative_count
+                if positive_count is not None and negative_count is not None
+                else None
+            ),
+            'negativeShare': (
+                round(negative_count / row['total_count'], 4)
+                if negative_count is not None and row['total_count'] else None
+            ),
+            'previous7dCount': previous_7d_count,
+            'changeRate': change_rate,
+            'momentumStatus': momentum_status,
             'status': row['status'],
             'representativeUrls': json.loads(row['representative_urls_json'] or '[]')[:3],
             'latestSearchInterest': latest_interest,

@@ -118,8 +118,8 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 인증 필요 여부 | **불필요** (공개, 기존 VM CORS 정책 적용) |
 | 필수 파라미터 | `code` (경로) |
 | 파라미터 형식·허용값 | `code`: 문자열, 정확히 6자리 |
-| 응답 JSON 구조 | `data={"enabled","stockCode","stockName","dataAsOf","coverage":{"requestedStartDate","actualStartDate","actualEndDate","backfillDays","backfillComplete","fetchedArticles","newsApiCalls","updatedAt"},"topics":[{"id","topicName","keywords","queryVersion","firstSeenAt","lastSeenAt","totalCount","count7d","count30d","sentiment","status","representativeUrls","latestSearchInterest","searchInterestChange","daily":[{"date","news_count","search_interest"}]}]}` |
-| 데이터 단위 | 뉴스 횟수는 기사 건수 · `latestSearchInterest`/`searchInterestChange`는 NAVER DataLab 상대지수(조회 묶음의 최고 검색량=100) |
+| 응답 JSON 구조 | 기존 필드를 유지하고 topic마다 `newsCount`, `recent7dCount`, `previous7dCount`, `changeRate`, `momentumStatus`(`new`/`expanding`/`declining`/`persistent`), `sentimentCounts`(`positive`/`neutral`/`negative`), `netSentiment`, `negativeShare`를 추가한다. 감성 집계 근거가 없는 기존 행은 `sentimentCounts=null`이며 임의의 0건으로 반환하지 않는다. |
+| 데이터 단위 | 뉴스 횟수는 중복 제거된 기사 건수이며 감성별 합계는 `newsCount`와 같다. 최근 7일은 기준일 포함 7일, 이전 7일은 8~14일 구간이다. `changeRate`는 이전 7일이 0이면 `null`이다. `latestSearchInterest`/`searchInterestChange`는 NAVER DataLab 상대지수(조회 묶음의 최고 검색량=100)다. |
 | 데이터 소스 | `news_momentum_scan.py`가 NAVER 뉴스 제목에서 반복 이슈를 규칙 기반으로 추출하고, 활성 이슈만 NAVER API HUB Search Trend로 확인 |
 | 데이터 갱신 주기 | 8종목 파일럿 하루 1회: SK하이닉스·삼성전자·현대차·비에이치아이·한화오션·NAVER·LG전자·에코프로비엠 |
 | 캐시/DB | 기존 `ohlc_snapshot.db`와 분리된 `news_momentum.db` 즉시 조회. 사용자 요청 시 외부 API 호출 없음 |

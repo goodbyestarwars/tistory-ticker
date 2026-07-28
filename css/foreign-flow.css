@@ -1395,7 +1395,23 @@
 #foreign-flow .ff-momentum-metrics > div:last-child { border-right: 0; }
 #foreign-flow .ff-momentum-metrics span { font-size: 10.5px; color: #8a94a3; }
 #foreign-flow .ff-momentum-metrics b { font-size: 14px; }
-#foreign-flow .ff-momentum-metrics small { overflow: hidden; font-size: 10.5px; color: #8a94a3; text-overflow: ellipsis; white-space: nowrap; }
+#foreign-flow .ff-momentum-metrics small {
+  overflow-wrap: anywhere;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #8a94a3;
+}
+#foreign-flow .ff-momentum-change {
+  align-self: flex-start;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f3f4f6;
+}
+#foreign-flow .ff-momentum-change.status-new { color: #7452a8; background: rgba(116, 82, 168, .1); }
+#foreign-flow .ff-momentum-change.status-expanding { color: #b43d34; background: rgba(210, 79, 69, .1); }
+#foreign-flow .ff-momentum-change.status-declining { color: #1261c4; background: rgba(18, 97, 196, .1); }
+#foreign-flow .ff-momentum-change.status-persistent { color: #147a5b; background: rgba(29, 158, 117, .1); }
+#foreign-flow .ff-momentum-change.status-unknown { color: #667085; }
 #foreign-flow .ff-momentum-trend {
   display: flex;
   align-items: flex-end;
@@ -1429,6 +1445,16 @@
   #foreign-flow .ff-momentum-metrics > div:nth-child(-n+2) { border-bottom: 1px solid #edf0f3; }
   #foreign-flow .ff-momentum-card-head { align-items: flex-start; flex-wrap: wrap; }
   #foreign-flow .ff-momentum-card-head h4 { flex-basis: 100%; }
+}
+
+@media (max-width: 420px) {
+  #foreign-flow .ff-momentum-card { padding: 12px; }
+  #foreign-flow .ff-momentum-metrics { grid-template-columns: minmax(0, 1fr); }
+  #foreign-flow .ff-momentum-metrics > div {
+    border-right: 0;
+    border-bottom: 1px solid #edf0f3;
+  }
+  #foreign-flow .ff-momentum-metrics > div:last-child { border-bottom: 0; }
 }
 
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ----
@@ -2211,4 +2237,9 @@ html.dark #foreign-flow .ff-momentum-intro .ff-momentum-coverage { border-color:
 html.dark #foreign-flow .ff-momentum-keywords span { background: rgba(245, 239, 224, 0.1) !important; color: rgba(245, 239, 224, 0.75) !important; }
 html.dark #foreign-flow .ff-momentum-status.status-active { color: #69d0ae !important; }
 html.dark #foreign-flow .ff-momentum-status.status-cooling { color: #efb35c !important; }
+html.dark #foreign-flow .ff-momentum-change.status-new { color: #c5a7ee !important; background: rgba(197, 167, 238, .12) !important; }
+html.dark #foreign-flow .ff-momentum-change.status-expanding { color: #ef8d84 !important; background: rgba(210, 79, 69, .14) !important; }
+html.dark #foreign-flow .ff-momentum-change.status-declining { color: #6ea8e8 !important; background: rgba(18, 97, 196, .16) !important; }
+html.dark #foreign-flow .ff-momentum-change.status-persistent { color: #69d0ae !important; background: rgba(29, 158, 117, .14) !important; }
+html.dark #foreign-flow .ff-momentum-change.status-unknown { color: rgba(245, 239, 224, .6) !important; background: rgba(245, 239, 224, .1) !important; }
 html.dark .ff-related-item:hover { background: rgba(245, 239, 224, 0.08) !important; }

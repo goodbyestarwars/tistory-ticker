@@ -38,5 +38,6 @@ scripts/cloud-vm/backups/
 /news_momentum_status.json
 /news_momentum_batch_status.json
 /.news_momentum_last_run_date
+/.news_momentum_batch_schema_version
 /.news_momentum_timer.lock
 /.news_momentum_python.lock

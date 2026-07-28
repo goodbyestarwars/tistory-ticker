@@ -23,10 +23,31 @@ def verify_database(db_file=DB_FILE):
         integrity = conn.execute('PRAGMA quick_check').fetchone()[0]
         if integrity != 'ok':
             raise RuntimeError('news_momentum.db quick-check-failed')
+        topic_columns = {
+            row[1] for row in conn.execute('PRAGMA table_info(news_topics)')
+        }
+        daily_columns = {
+            row[1] for row in conn.execute('PRAGMA table_info(news_topic_daily)')
+        }
+        if not {
+            'positive_count', 'neutral_count', 'negative_count',
+            'previous_7d_count', 'change_rate', 'momentum_status',
+        } <= topic_columns:
+            raise RuntimeError('news_momentum.db topic-schema-outdated')
+        if not {
+            'positive_count', 'neutral_count', 'negative_count',
+        } <= daily_columns:
+            raise RuntimeError('news_momentum.db daily-schema-outdated')
         placeholders = ','.join('?' for _ in PILOT_CODES)
         rows = conn.execute(
             'SELECT stock_code,actual_end_date,updated_at FROM news_stock_coverage '
             'WHERE stock_code IN (%s)' % placeholders,
+            PILOT_CODES,
+        ).fetchall()
+        sentiment_rows = conn.execute(
+            'SELECT stock_code,total_count,positive_count,neutral_count,negative_count '
+            'FROM news_topics WHERE stock_code IN (%s)'
+            % placeholders,
             PILOT_CODES,
         ).fetchall()
     finally:
@@ -37,6 +58,20 @@ def verify_database(db_file=DB_FILE):
         raise RuntimeError('news_momentum.db missing-pilot-coverage')
     if any(not row[1] or not row[2] for row in rows):
         raise RuntimeError('news_momentum.db incomplete-coverage')
+    complete_sentiment_stocks = {
+        row[0] for row in sentiment_rows
+        if row[2] is not None and row[3] is not None and row[4] is not None
+    }
+    if any(
+        (row[2] is None or row[3] is None or row[4] is None)
+        and not (row[2] is None and row[3] is None and row[4] is None)
+        or (
+            row[2] is not None
+            and row[2] + row[3] + row[4] != row[1]
+        )
+        for row in sentiment_rows
+    ) or complete_sentiment_stocks != set(PILOT_CODES):
+        raise RuntimeError('news_momentum.db incomplete-sentiment-aggregates')
     return {
         'bytes': os.path.getsize(db_file),
         'stocks': len(found),

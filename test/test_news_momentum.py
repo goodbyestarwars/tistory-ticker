@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import os
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -115,6 +116,8 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertEqual(hbm['totalCount'], 2)
         self.assertEqual(len(hbm['representativeUrls']), 2)
         self.assertEqual(hbm['sentiment'], 'positive')
+        self.assertEqual(sum(hbm['sentimentCounts'].values()), hbm['newsCount'])
+        self.assertEqual(hbm['sentimentCounts']['positive'], 2)
 
     def test_keyword_change_increments_query_version(self):
         name, items = MOCK_NEWS['005380']
@@ -126,6 +129,115 @@ class NewsMomentumTest(unittest.TestCase):
             'SELECT query_version FROM news_topics WHERE stock_code=?', ('005380',)
         ).fetchone()[0]
         self.assertEqual(version, 2)
+
+    def test_sentiment_counts_dedupe_and_missing_data(self):
+        items = [
+            {'title': '삼성전자 AI 반도체 공급 확대', 'link': 'https://n/same',
+             'pubDate': '2026-07-29'},
+            {'title': '삼성전자 AI 반도체 공급 확대 복제', 'link': 'https://n/same',
+             'pubDate': '2026-07-29'},
+            {'title': '삼성전자 AI 반도체 우려 하락', 'link': 'https://n/negative',
+             'pubDate': '2026-07-28'},
+            {'title': '삼성전자 AI 반도체 관련 소식', 'link': 'https://n/neutral',
+             'pubDate': '2026-07-27'},
+        ]
+        topics = news_momentum.extract_topics('005930', '삼성전자', items, today=TODAY)
+        news_momentum.upsert_topics(self.conn, '005930', '삼성전자', topics, today=TODAY)
+        ai = next(
+            topic for topic in news_momentum.load_stock_momentum(self.conn, '005930')['topics']
+            if topic['topicName'] == '삼성전자 AI 반도체'
+        )
+        self.assertEqual(ai['newsCount'], 3)
+        self.assertEqual(ai['sentimentCounts'], {
+            'positive': 1, 'neutral': 1, 'negative': 1,
+        })
+        self.assertEqual(sum(ai['sentimentCounts'].values()), ai['newsCount'])
+
+        legacy_topic = [{
+            'stock_code': '005930',
+            'stock_name': '삼성전자',
+            'topic_name': '삼성전자 과거 이슈',
+            'label': '과거 이슈',
+            'keywords': ['삼성전자 과거 이슈'],
+            'sentiment': 'neutral',
+            'daily_counts': {'2026-07-20': 2},
+            'representative_urls': [],
+        }]
+        news_momentum.upsert_topics(
+            self.conn, '005930', '삼성전자', legacy_topic, today=TODAY
+        )
+        legacy = next(
+            topic for topic in news_momentum.load_stock_momentum(self.conn, '005930')['topics']
+            if topic['topicName'] == '삼성전자 과거 이슈'
+        )
+        self.assertIsNone(legacy['sentimentCounts'])
+        self.assertIsNone(legacy['netSentiment'])
+        self.assertIsNone(legacy['negativeShare'])
+
+    def test_recent_previous_windows_and_momentum_statuses(self):
+        topic = [{
+            'stock_code': '005930',
+            'stock_name': '삼성전자',
+            'topic_name': '삼성전자 기간 비교',
+            'label': '기간 비교',
+            'keywords': ['삼성전자 기간 비교'],
+            'sentiment': 'positive',
+            'daily_counts': {
+                '2026-07-29': 4,
+                '2026-07-22': 2,
+                '2026-07-15': 9,
+            },
+            'daily_sentiment_counts': {
+                '2026-07-29': {'positive': 4, 'neutral': 0, 'negative': 0},
+                '2026-07-22': {'positive': 1, 'neutral': 1, 'negative': 0},
+                '2026-07-15': {'positive': 9, 'neutral': 0, 'negative': 0},
+            },
+            'representative_urls': [],
+        }]
+        news_momentum.upsert_topics(self.conn, '005930', '삼성전자', topic, today=TODAY)
+        loaded = news_momentum.load_stock_momentum(self.conn, '005930')['topics'][0]
+        self.assertEqual(loaded['recent7dCount'], 4)
+        self.assertEqual(loaded['previous7dCount'], 2)
+        self.assertEqual(loaded['changeRate'], 100.0)
+        self.assertEqual(loaded['momentumStatus'], 'expanding')
+        self.assertEqual(news_momentum._momentum_change(3, 0), (None, 'new'))
+        self.assertEqual(news_momentum._momentum_change(3, 6), (-50.0, 'declining'))
+        self.assertEqual(news_momentum._momentum_change(5, 4), (25.0, 'persistent'))
+        self.assertEqual(news_momentum._momentum_change(0, 0), (None, 'persistent'))
+
+    def test_legacy_schema_response_remains_backward_compatible(self):
+        legacy = sqlite3.connect(':memory:')
+        legacy.row_factory = sqlite3.Row
+        legacy.executescript('''
+            CREATE TABLE news_topics (
+                id INTEGER PRIMARY KEY, stock_code TEXT, stock_name TEXT,
+                topic_name TEXT, keywords_json TEXT, query_version INTEGER,
+                first_seen_at TEXT, last_seen_at TEXT, total_count INTEGER,
+                count_7d INTEGER, count_30d INTEGER, sentiment TEXT,
+                status TEXT, representative_urls_json TEXT
+            );
+            CREATE TABLE news_topic_daily (
+                topic_id INTEGER, date TEXT, news_count INTEGER, search_interest REAL
+            );
+            CREATE TABLE news_stock_coverage (
+                stock_code TEXT, stock_name TEXT, requested_start_date TEXT,
+                actual_start_date TEXT, actual_end_date TEXT, backfill_days INTEGER,
+                backfill_complete INTEGER, fetched_articles INTEGER,
+                news_api_calls INTEGER, updated_at TEXT
+            );
+            INSERT INTO news_topics VALUES (
+                1,'005930','삼성전자','삼성전자 AI 반도체','[]',1,
+                '2026-07-28','2026-07-29',2,2,2,'positive','active','[]'
+            );
+            INSERT INTO news_topic_daily VALUES (1,'2026-07-29',2,NULL);
+        ''')
+        try:
+            topic = news_momentum.load_stock_momentum(legacy, '005930')['topics'][0]
+        finally:
+            legacy.close()
+        self.assertEqual(topic['totalCount'], 2)
+        self.assertIsNone(topic['sentimentCounts'])
+        self.assertIsNone(topic['momentumStatus'])
 
     def test_datalab_request_and_save(self):
         name, items = MOCK_NEWS['005930']
@@ -270,7 +382,6 @@ class NewsMomentumTest(unittest.TestCase):
     def test_sqlite_backup_api_creates_valid_backup(self):
         source = os.path.join(self.temp_dir.name, 'ohlc_snapshot.db')
         backup_dir = os.path.join(self.temp_dir.name, 'backups')
-        import sqlite3
         conn = sqlite3.connect(source)
         conn.execute('CREATE TABLE sample (id INTEGER PRIMARY KEY, value TEXT)')
         conn.execute('INSERT INTO sample(value) VALUES (?)', ('preserved',))
@@ -293,6 +404,20 @@ class NewsMomentumTest(unittest.TestCase):
 
     def test_deployed_db_verifier_requires_all_eight_stocks(self):
         for code in verify_news_momentum_db.PILOT_CODES:
+            topic = [{
+                'stock_code': code,
+                'stock_name': code,
+                'topic_name': '%s 검증 이슈' % code,
+                'label': '검증 이슈',
+                'keywords': ['%s 검증 이슈' % code],
+                'sentiment': 'neutral',
+                'daily_counts': {'2026-07-29': 1},
+                'daily_sentiment_counts': {
+                    '2026-07-29': {'positive': 0, 'neutral': 1, 'negative': 0},
+                },
+                'representative_urls': [],
+            }]
+            news_momentum.upsert_topics(self.conn, code, code, topic, today=TODAY)
             news_momentum.save_stock_coverage(
                 self.conn, code, code, '2026-05-01', '2026-05-01',
                 '2026-07-29', True, 10, 1,
@@ -309,6 +434,7 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertIn('PYTHON="$APP_DIR/venv/bin/python"', script)
         self.assertIn('if [ "$(id -un)" != "goodbyestarwars" ]', script)
         self.assertIn('TZ=Asia/Seoul date +%F', script)
+        self.assertIn('MOMENTUM_SCHEMA_VERSION="2"', script)
         self.assertIn('flock -n -E 75', script)
         self.assertIn(
             '000660,005930,005380,083650,042660,035420,066570,247540',
@@ -329,6 +455,11 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertTrue(response['data']['enabled'])
         self.assertEqual(response['data']['stockCode'], '000660')
         self.assertGreaterEqual(len(response['data']['topics']), 3)
+        topic = response['data']['topics'][0]
+        self.assertIn('sentimentCounts', topic)
+        self.assertIn('previous7dCount', topic)
+        self.assertIn('changeRate', topic)
+        self.assertIn('momentumStatus', topic)
         health = vm_main.health()['data']
         self.assertEqual(health['status'], 'ok')
         self.assertEqual(health['momentumSchedulerVersion'], 'deploy-timer-flock-v1')
