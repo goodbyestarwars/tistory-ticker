@@ -768,34 +768,122 @@
 
 /* ---- 로비: 큰 출입구 하나(전부 장식) - 2026-07-28 사용자 요청으로 자동문/화분/
    우편함/안내판 4소품에서 문 하나로 단순화, 크기도 키움 ---- */
-#foreign-flow .ff-apt-lobby {
+#foreign-flow .ff-apt-ground {
+  position: relative;
+  height: 42px;
+  margin-top: 2px;
+  border-top: 4px solid #6f573f;
+  background: linear-gradient(180deg, #f7f2e8 0 46%, #d9c5a8 47% 100%);
+}
+#foreign-flow .ff-apt-ground::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background: repeating-linear-gradient(135deg, rgba(111, 87, 63, 0.18) 0 4px, transparent 4px 8px);
+}
+#foreign-flow .ff-apt-ground-label {
+  position: absolute;
+  left: 8px;
+  top: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #6f573f;
+}
+#foreign-flow .ff-apt-basement-entry {
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  z-index: 1;
   display: flex;
-  justify-content: center;
-  padding: 4px 0;
-  margin-top: 2px;
-  border-top: 1px solid #e7ebf1;
+  align-items: flex-start;
+  gap: 4px;
+  transform: translateX(-50%);
 }
-#foreign-flow .ff-apt-lobby-door { font-size: 26px; opacity: 0.9; line-height: 1; }
+#foreign-flow .ff-apt-entry-door { font-size: 27px; line-height: 1; }
+#foreign-flow .ff-apt-entry-stairs {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 34px;
+  padding-top: 12px;
+}
+#foreign-flow .ff-apt-entry-stairs i {
+  display: block;
+  height: 3px;
+  margin-top: 2px;
+  background: #80664c;
+  border-radius: 1px;
+}
+#foreign-flow .ff-apt-entry-stairs i:nth-child(1) { width: 12px; }
+#foreign-flow .ff-apt-entry-stairs i:nth-child(2) { width: 22px; }
+#foreign-flow .ff-apt-entry-stairs i:nth-child(3) { width: 32px; }
+#foreign-flow .ff-apt-entry-stairs b {
+  position: absolute;
+  top: -2px;
+  right: -1px;
+  color: #5b4633;
+  font-size: 9px;
+  line-height: 1;
+}
 
-/* ---- 지하실: 단면도 느낌의 해치 배경 + 상징적 서브룸 라벨(전부 장식, 실데이터 아님) ---- */
+/* ---- 지하실: 굵은 외벽 + 방 칸막이의 단면도(전부 장식, 실데이터 아님) ---- */
 #foreign-flow .ff-apt-basement {
-  margin-top: 2px;
-  padding: 6px 8px;
+  position: relative;
+  padding: 8px;
   border-radius: 0 0 6px 6px;
-  background: repeating-linear-gradient(135deg, #eef1f5, #eef1f5 5px, #e4e8ee 5px, #e4e8ee 10px);
-  border: 1px solid #dde3ec;
-  border-top: none;
+  background: #d9c5a8;
+  border: 4px solid #6f573f;
+  border-top-width: 3px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.28);
 }
-#foreign-flow .ff-apt-basement-title { font-size: 9.5px; color: #8b95a3; font-weight: 700; margin-bottom: 4px; text-align: center; }
-#foreign-flow .ff-apt-basement-rooms { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
+#foreign-flow .ff-apt-basement-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: #4f3d2e;
+}
+#foreign-flow .ff-apt-basement-heading strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+#foreign-flow .ff-apt-basement-heading > span {
+  font-size: 9.5px;
+  font-weight: 700;
+}
+#foreign-flow .ff-apt-basement-level {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 18px;
+  color: #fff;
+  background: #594432;
+  border-radius: 3px;
+  font-size: 10px;
+}
+#foreign-flow .ff-apt-basement-rooms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
 #foreign-flow .ff-apt-basement-room {
   font-size: 9.5px;
-  color: #6b7686;
-  background: #fff;
-  border: 1px solid #dde3ec;
-  border-radius: 999px;
-  padding: 2px 8px;
+  font-weight: 700;
+  text-align: center;
+  color: #4f3d2e;
+  background: #f7f2e8;
+  border: 2px solid #80664c;
+  border-radius: 2px;
+  padding: 5px 3px;
   white-space: nowrap;
+}
+@media (max-width: 520px) {
+  #foreign-flow .ff-apt-basement-heading { flex-direction: column; gap: 3px; }
+  #foreign-flow .ff-apt-basement-rooms { grid-template-columns: repeat(2, 1fr); }
 }
 
 #foreign-flow .ff-apt-empty {
@@ -1261,13 +1349,20 @@ html.dark #foreign-flow .ff-apt-row-current { background: rgba(255, 152, 0, 0.16
 html.dark #foreign-flow .ff-apt-row-current .ff-apt-price { color: #ffb154 !important; }
 html.dark #foreign-flow .ff-apt-current-badge { background: #1A1A1A !important; color: #ffb154 !important; }
 html.dark #foreign-flow .ff-apt-ladder-rail { background: repeating-linear-gradient(180deg, rgba(245, 239, 224, 0.3), rgba(245, 239, 224, 0.3) 3px, transparent 3px, transparent 6px) !important; }
-html.dark #foreign-flow .ff-apt-lobby { border-top-color: rgba(245, 239, 224, 0.25) !important; }
-html.dark #foreign-flow .ff-apt-basement {
-  background: repeating-linear-gradient(135deg, rgba(245, 239, 224, 0.08), rgba(245, 239, 224, 0.08) 5px, rgba(245, 239, 224, 0.03) 5px, rgba(245, 239, 224, 0.03) 10px) !important;
-  border-color: rgba(245, 239, 224, 0.25) !important;
+html.dark #foreign-flow .ff-apt-ground {
+  border-top-color: #F5EFE0 !important;
+  background: linear-gradient(180deg, #1A1A1A 0 46%, rgba(245, 239, 224, 0.18) 47% 100%) !important;
 }
-html.dark #foreign-flow .ff-apt-basement-title { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #foreign-flow .ff-apt-basement-room { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.25) !important; color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #foreign-flow .ff-apt-ground-label,
+html.dark #foreign-flow .ff-apt-entry-stairs b { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-apt-entry-stairs i { background: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-apt-basement {
+  background: rgba(245, 239, 224, 0.12) !important;
+  border-color: #F5EFE0 !important;
+}
+html.dark #foreign-flow .ff-apt-basement-heading { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-apt-basement-level { background: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #foreign-flow .ff-apt-basement-room { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.55) !important; color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-apt-empty { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-apt-stat { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #foreign-flow .ff-apt-stat-title { color: rgba(245, 239, 224, 0.55) !important; }

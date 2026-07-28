@@ -2958,11 +2958,19 @@
     // 단순화 - "문만 좀 큰거 있으면 좋겠다"는 피드백. 그 아래 지하실로 내려가는 맨홀
     // 뚜껑을 따로 뒀었는데, 문+맨홀 두 아이콘이 "그냥 던져 놓은" 느낌이라는 후속 피드백으로
     // 맨홀은 지우고 문 하나만 남김.
-    var lobbyHtml = '<div class="ff-apt-lobby"><span class="ff-apt-lobby-door" title="출입구">🚪</span></div>';
+    var lobbyHtml = '<div class="ff-apt-ground">'
+      + '<span class="ff-apt-ground-label">최저가 · 지상 1층</span>'
+      + '<span class="ff-apt-basement-entry" aria-hidden="true">'
+      + '<span class="ff-apt-entry-door">🚪</span>'
+      + '<span class="ff-apt-entry-stairs"><i></i><i></i><i></i><b>↓ B1</b></span>'
+      + '</span></div>';
     // 지하실은 실제 데이터가 존재하는 가격구간이 아니라 "아직 매집되지 않은 가격 / 추가
     // 하락 가능 영역"을 뜻하는 상징적인 공간이라 bin/거래량과 연결하지 않는다(작업지시서 명시).
     var basementHtml = '<div class="ff-apt-basement">'
-      + '<div class="ff-apt-basement-title">지하실 · 아직 매집되지 않은 가격대</div>'
+      + '<div class="ff-apt-basement-heading">'
+      + '<strong><span class="ff-apt-basement-level">B1</span> 지하실</strong>'
+      + '<span>최저가 아래 · 아직 매집되지 않은 가격대</span>'
+      + '</div>'
       + '<div class="ff-apt-basement-rooms">'
       + '<span class="ff-apt-basement-room">📦창고</span>'
       + '<span class="ff-apt-basement-room">⚡전기실</span>'
