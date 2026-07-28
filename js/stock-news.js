@@ -21,6 +21,11 @@
   // 실시간 공시(KRX 공시 RSS) - js/quick-indices.js "긴급속보" 패널과 동일한 GAS(?market=0)
   var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
   var DISC_REFRESH_MS = 30 * 1000; // 30초
+  var stockNewsScriptSrc = document.currentScript && document.currentScript.src;
+  var FOREIGN_FLOW_JS_URL = stockNewsScriptSrc
+    ? new URL('foreign-flow.js', stockNewsScriptSrc).href
+    : 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js';
+  var foreignFlowLoadPromise = null;
 
   var WATCHLIST_NAMES = [
     '비에이치아이', '에코프로비엠', 'NAVER', '현대차', '한화오션',
@@ -470,22 +475,48 @@
   }
 
   // ---- 종목분석 요약 (js/foreign-flow.js의 점수 계산을 재사용) ----
-  // 이 패널이 동작하려면 /page/stock-news 편집 화면에 js/foreign-flow.js도 같이 로드돼
-  // 있어야 한다(js/watchlist.js를 stock-search.js 페이지에 같이 로드하는 것과 동일한 관례
-  // - CLAUDE.md js/stock-search.js 행 참고). 스크립트가 없으면 조용히 안내만 보여준다.
+  // 종목뉴스 페이지에 foreign-flow.js를 별도로 붙이지 않아도 stock-news.js와 같은 CDN
+  // 디렉터리에서 한 번만 지연 로드한다. 티스토리 페이지 편집 누락 때문에 첫 진입부터
+  // "데이터를 사용할 수 없어요"로 고정되던 문제를 막는다.
+  function ensureForeignFlow() {
+    if (global.ForeignFlow && global.ForeignFlow.fetchAnalysisSummary) {
+      return Promise.resolve(global.ForeignFlow);
+    }
+    if (foreignFlowLoadPromise) return foreignFlowLoadPromise;
+
+    foreignFlowLoadPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = FOREIGN_FLOW_JS_URL;
+      script.async = true;
+      script.setAttribute('data-stock-news-dependency', 'foreign-flow');
+      script.onload = function () {
+        if (global.ForeignFlow && global.ForeignFlow.fetchAnalysisSummary) {
+          resolve(global.ForeignFlow);
+        } else {
+          reject(new Error('ForeignFlow summary API is unavailable'));
+        }
+      };
+      script.onerror = function () {
+        reject(new Error('Failed to load foreign-flow.js'));
+      };
+      document.head.appendChild(script);
+    }).catch(function (err) {
+      foreignFlowLoadPromise = null;
+      throw err;
+    });
+    return foreignFlowLoadPromise;
+  }
+
   function loadAnalysis(container, stock) {
     var box = container.querySelector('#snAnalysis');
     if (!box) return;
 
-    if (!global.ForeignFlow || !global.ForeignFlow.fetchAnalysisSummary) {
-      box.innerHTML = '<div class="sn-af-title">종목분석 요약</div>'
-        + '<div class="sn-hint">종목분석 데이터를 사용할 수 없어요.</div>';
-      return;
-    }
-
     box.innerHTML = '<div class="sn-af-title">종목분석 요약</div><div class="sn-loading">불러오는 중...</div>';
     var requestCode = stock.code;
-    global.ForeignFlow.fetchAnalysisSummary(stock.code, stock.name)
+    ensureForeignFlow()
+      .then(function (foreignFlow) {
+        return foreignFlow.fetchAnalysisSummary(stock.code, stock.name);
+      })
       .then(function (summary) {
         if (selectedCode !== requestCode) return; // 그 사이 다른 종목을 선택했으면 버림
         box.innerHTML = buildAnalysisPanel(summary);
