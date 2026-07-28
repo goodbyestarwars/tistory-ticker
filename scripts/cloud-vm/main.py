@@ -431,14 +431,23 @@ def news_momentum_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     enabled = os.environ.get('NEWS_MOMENTUM_ENABLED', '1').strip().lower()
     if enabled not in ('1', 'true', 'yes', 'on'):
         status = None
+        batch_status = None
         status_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                    'news_momentum_status.json')
+        batch_status_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                         'news_momentum_batch_status.json')
         if os.path.exists(status_file):
             try:
                 with open(status_file, 'r', encoding='utf-8') as source:
                     status = json.load(source)
             except (OSError, ValueError):
                 status = None
+        if os.path.exists(batch_status_file):
+            try:
+                with open(batch_status_file, 'r', encoding='utf-8') as source:
+                    batch_status = json.load(source)
+            except (OSError, ValueError):
+                batch_status = None
         return envelope({
             'enabled': False,
             'stockCode': code,
@@ -446,6 +455,7 @@ def news_momentum_endpoint(code: str = Path(..., min_length=6, max_length=6)):
             'dataAsOf': None,
             'coverage': None,
             'deploymentStatus': status,
+            'batchStatus': batch_status,
             'topics': [],
         })
     if not os.path.exists(news_momentum.DB_FILE):

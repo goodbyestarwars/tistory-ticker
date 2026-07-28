@@ -6,10 +6,11 @@
 """
 
 import argparse
+import json
 import os
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import daily_scan
 import naver_news
@@ -27,6 +28,22 @@ PILOT_CODES = (
     '247540',  # 에코프로비엠
 )
 TEST_CODES = PILOT_CODES  # 기존 테스트/운영 호출부 호환
+STATUS_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    'news_momentum_batch_status.json',
+)
+
+
+def write_batch_status(status, **fields):
+    payload = {
+        'status': status,
+        'at': datetime.now(timezone.utc).isoformat(),
+    }
+    payload.update(fields)
+    temp_path = STATUS_FILE + '.tmp'
+    with open(temp_path, 'w', encoding='utf-8') as output:
+        json.dump(payload, output, ensure_ascii=False)
+    os.replace(temp_path, STATUS_FILE)
 
 
 class AlreadyRunning(Exception):
@@ -167,12 +184,12 @@ def run(args):
     started = time.monotonic()
     universe = select_universe(daily_scan.load_full_universe(), args)
     if not universe:
-        raise SystemExit('처리할 종목이 없습니다.')
+        raise RuntimeError('empty-pilot-universe')
 
     client_id = os.environ.get('NAVER_APIHUB_CLIENT_ID')
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET')
     if not client_id or not client_secret:
-        raise SystemExit('NAVER_APIHUB_CLIENT_ID / NAVER_APIHUB_CLIENT_SECRET이 필요합니다.')
+        raise RuntimeError('missing-naver-environment')
 
     before_size = os.path.getsize(args.db) if os.path.exists(args.db) else 0
     conn = news_momentum.get_conn(args.db)
@@ -248,6 +265,16 @@ def run(args):
     print('DB: %d -> %d bytes (%+d), 보관정책: %s, 실행시간: %.2f초' % (
         before_size, after_size, after_size - before_size, prune, time.monotonic() - started
     ))
+    write_batch_status(
+        'completed' if not failures else 'failed',
+        stockCodes=[stock['code'] for stock in universe],
+        failures=failures,
+        newsApiCalls=news_calls,
+        datalabCalls=datalab_calls,
+        topics=topic_count,
+        dbBytes=after_size,
+        elapsedSeconds=round(time.monotonic() - started, 2),
+    )
     return 1 if failures else 0
 
 
@@ -259,7 +286,19 @@ def main(argv=None):
             return run(args)
     except AlreadyRunning:
         print('이미 뉴스 모멘텀 배치가 실행 중이므로 이번 실행을 건너뜁니다.')
+        write_batch_status('skipped', reason='already-running')
         return 0
+    except Exception as exc:
+        # 인증값·요청·응답은 쓰지 않고 예외 종류와 내부 고정 메시지만 남긴다.
+        write_batch_status(
+            'failed',
+            fatalType=type(exc).__name__,
+            fatalReason=str(exc) if str(exc) in (
+                'empty-pilot-universe', 'missing-naver-environment'
+            ) else 'unexpected-batch-error',
+        )
+        print('뉴스 모멘텀 배치 실패: %s' % type(exc).__name__, file=sys.stderr)
+        return 1
 
 
 if __name__ == '__main__':
