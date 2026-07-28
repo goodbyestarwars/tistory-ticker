@@ -7,7 +7,9 @@ skin.html.bak
 dist/
 
 # 로컬 설정
-.claude/
+# 2026-07-29: .claude/는 skill·rule 파일만 있고(개인정보·로컬 전용 설정 없음) 오히려
+# 세션마다 공유돼야 해서 추적 대상으로 전환 - 그동안은 이 줄 때문에 매번 git add -f로
+# 강제 추가해야 했음.
 __pycache__/
 .env
 
