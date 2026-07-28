@@ -74,8 +74,9 @@
   `fundamentals.py`/`dart_client.py`(재무제표), `db_schema.py`(SQLite)
 - 뉴스 모멘텀은 `news_momentum.py`(별도 `news_momentum.db` 스키마·이슈 집계·DataLab 저장)와
   `news_momentum_scan.py`(기본 지정 8종목 파일럿, 명시적 `--full`만 전종목)로 분리한다. 브라우저의
-  `/news-momentum/{code}` 조회는 DB만 읽고 NAVER API를 호출하지 않는다. 초기 타이머 등록은
-  `setup_news_momentum_timer.sh`가 담당하며, 전종목 전환 전까지 `--full`을 붙이지 않는다.
+  `/news-momentum/{code}` 조회는 DB만 읽고 NAVER API를 호출하지 않는다. 별도 systemd 쓰기
+  권한을 요구하지 않고 기존 `kiwoom-deploy.timer`의 5분 주기를 재사용하되 KST 날짜 마커로
+  하루 한 번만 8종목 배치를 실행한다. 전종목 전환 전까지 `--full`을 붙이지 않는다.
   배치는 OS 파일 잠금으로 중복 실행을 건너뛰고, 최근 90일 백필의 요청 시작일·실제 시작일·
   기준일·완료 여부를 `news_stock_coverage`에 기록한다.
 - 자동 배포는 서비스 재시작 전에 `backup_sqlite.py`의 Python `sqlite3.Connection.backup()`으로

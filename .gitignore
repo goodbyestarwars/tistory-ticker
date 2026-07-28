@@ -37,3 +37,4 @@ scripts/cloud-vm/backups/
 /.news_momentum_disabled_release
 /news_momentum_status.json
 /news_momentum_batch_status.json
+/.news_momentum_last_run_date

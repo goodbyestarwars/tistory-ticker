@@ -10,11 +10,28 @@ cd "$(dirname "$0")/../.."   # scripts/cloud-vm -> 저장소 루트(cp 대상 �
 # 다음 실행부터 "새로운 거 없음"으로 오판하고 cp를 영원히 재시도 안 하는 문제를 막기 위함.
 DEPLOYED_FILE=".last_deployed_sha"
 LAST_DEPLOYED=$(cat "$DEPLOYED_FILE" 2>/dev/null || echo "")
+PILOT_CODES="000660,005930,005380,083650,042660,035420,066570,247540"
+LAST_NEWS_RUN_FILE=".news_momentum_last_run_date"
 
 git fetch origin master -q
 REMOTE=$(git rev-parse origin/master)
 
 if [ "$LAST_DEPLOYED" = "$REMOTE" ]; then
+  NEWS_RELEASE=$(cat scripts/cloud-vm/news_momentum_release.txt 2>/dev/null || echo "none")
+  DISABLED_RELEASE=$(cat .news_momentum_disabled_release 2>/dev/null || echo "")
+  TODAY_KST=$(TZ=Asia/Seoul date +%F)
+  LAST_NEWS_RUN=$(cat "$LAST_NEWS_RUN_FILE" 2>/dev/null || echo "")
+  # 기존 kiwoom-deploy.timer(5분 주기)를 재사용하되 KST 날짜 마커로 하루 한 번만 실행한다.
+  if [ "$NEWS_RELEASE" != "$DISABLED_RELEASE" ] \
+      && grep -q '^NEWS_MOMENTUM_ENABLED=1$' .env 2>/dev/null \
+      && [ "$LAST_NEWS_RUN" != "$TODAY_KST" ]; then
+    if ./venv/bin/python news_momentum_scan.py --codes "$PILOT_CODES"; then
+      echo "$TODAY_KST" > "$LAST_NEWS_RUN_FILE"
+    else
+      bash scripts/cloud-vm/rollback_news_momentum.sh "daily-pilot-batch-failed" "$NEWS_RELEASE"
+      exit 1
+    fi
+  fi
   exit 0
 fi
 
@@ -61,6 +78,7 @@ if [ "$NEWS_ATTEMPT" = "1" ]; then
     exit 1
   fi
   rm -f .news_momentum_disabled_release
+  TZ=Asia/Seoul date +%F > "$LAST_NEWS_RUN_FILE"
   printf '{"status":"active","release":"%s","at":"%s"}\n' \
     "$NEWS_RELEASE" "$(date -u +%Y%m%dT%H%M%SZ)" > news_momentum_status.json
 fi
