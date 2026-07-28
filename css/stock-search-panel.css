@@ -103,12 +103,14 @@
 }
 
 /* ---- 다크모드 ---- */
-html.dark .ssp-dropdown { background: #1c1c1c !important; color: #ddd !important; border-color: #333 !important; }
-html.dark .ssp-input { background: #2a2a2a !important; border-color: #444 !important; color: #eee !important; }
-html.dark .ssp-suggest { background: #2a2a2a !important; border-color: #444 !important; }
-html.dark .ssp-suggest-item { color: #ddd !important; }
-html.dark .ssp-suggest-item:hover, html.dark .ssp-suggest-item.active { background: #3a3a3a !important; }
-html.dark .ssp-chip-title { color: #999 !important; }
-html.dark .ssp-chip { background: #262626 !important; border-color: #3a3a3a !important; color: #ddd !important; }
-html.dark .ssp-chip:hover { background: #33284a !important; border-color: #7c3aed !important; }
-html.dark .ssp-chip-empty { color: #888 !important; }
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. */
+html.dark .ssp-dropdown { background: #1A1A1A !important; color: #F5EFE0 !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark .ssp-input { background: rgba(245, 239, 224, 0.06) !important; border-color: rgba(245, 239, 224, 0.25) !important; color: #F5EFE0 !important; }
+html.dark .ssp-suggest { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark .ssp-suggest-item { color: #F5EFE0 !important; }
+html.dark .ssp-suggest-item:hover, html.dark .ssp-suggest-item.active { background: rgba(245, 239, 224, 0.1) !important; }
+html.dark .ssp-chip-title { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark .ssp-chip { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; color: #F5EFE0 !important; }
+html.dark .ssp-chip:hover { background: rgba(245, 239, 224, 0.16) !important; border-color: rgba(245, 239, 224, 0.4) !important; }
+html.dark .ssp-chip-empty { color: rgba(245, 239, 224, 0.5) !important; }

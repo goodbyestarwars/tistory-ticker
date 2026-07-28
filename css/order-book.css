@@ -359,50 +359,53 @@
 #order-book .ob-trade-qty.ob-flat { color: #666; }
 
 /* ---- 다크모드 ---- */
-html.dark #order-book { color: #eee !important; }
-html.dark #order-book .ob-hud { background: #1c1c1c !important; border-color: #3a3a3a !important; }
-html.dark #order-book .ob-hud-bar { background: #2a2a2a !important; }
-html.dark #order-book .ob-hud-val { color: #aaa !important; }
-html.dark #order-book .ob-hud-note { color: #999 !important; }
-html.dark #order-book .ob-breakout-note:not(:empty) { color: #f0b429 !important; border-top-color: #333 !important; }
-html.dark #order-book .ob-milestones-title { color: #999 !important; }
-html.dark #order-book .ob-milestones-list { color: #ddd !important; }
-html.dark #order-book .ob-milestone-time { color: #888 !important; }
-html.dark #order-book .ob-toast { color: #fff !important; }
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. 매도/매수(ob-ask/bid/up/down) 등락색은 의미가 있는
+   색이라 유지. */
+html.dark #order-book { color: #F5EFE0 !important; }
+html.dark #order-book .ob-hud { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #order-book .ob-hud-bar { background: rgba(245, 239, 224, 0.12) !important; }
+html.dark #order-book .ob-hud-val { color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #order-book .ob-hud-note { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #order-book .ob-breakout-note:not(:empty) { color: #f0b429 !important; border-top-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #order-book .ob-milestones-title { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #order-book .ob-milestones-list { color: #F5EFE0 !important; }
+html.dark #order-book .ob-milestone-time { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #order-book .ob-toast { color: #F5EFE0 !important; }
 html.dark #order-book .ob-input {
-  background: #1c1c1c !important;
-  border-color: #3a3a3a !important;
-  color: #eee !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
+  color: #F5EFE0 !important;
 }
 html.dark #order-book .ob-suggest {
-  background: #1c1c1c !important;
-  border-color: #3a3a3a !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
 }
-html.dark #order-book .ob-suggest-item:hover { background: #2a2a2a !important; }
-html.dark #order-book .ob-hint { color: #999 !important; border-color: #3a3a3a !important; }
+html.dark #order-book .ob-suggest-item:hover { background: rgba(245, 239, 224, 0.1) !important; }
+html.dark #order-book .ob-hint { color: rgba(245, 239, 224, 0.55) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #order-book .ob-spinner {
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  border-top-color: #4dabf7 !important;
+  border-color: rgba(245, 239, 224, 0.15) !important;
+  border-top-color: #F5EFE0 !important;
 }
-html.dark #order-book .ob-board { background: #1c1c1c !important; border-color: #3a3a3a !important; }
-html.dark #order-book .ob-header { border-color: #3a3a3a !important; }
-html.dark #order-book .ob-header-code { color: #888 !important; }
-html.dark #order-book .ob-bar-wrap { background: #2a2a2a !important; }
-html.dark #order-book .ob-current-row { background: #222 !important; border-color: #3a3a3a !important; }
-html.dark #order-book .ob-footer-label { color: #999 !important; }
-html.dark #order-book .ob-footer-bar { background: #2a2a2a !important; }
+html.dark #order-book .ob-board { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #order-book .ob-header { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #order-book .ob-header-code { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #order-book .ob-bar-wrap { background: rgba(245, 239, 224, 0.12) !important; }
+html.dark #order-book .ob-current-row { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #order-book .ob-footer-label { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #order-book .ob-footer-bar { background: rgba(245, 239, 224, 0.12) !important; }
 html.dark #order-book .ob-ask-text { color: #6ea8e8 !important; }
 html.dark #order-book .ob-bid-text { color: #e8776d !important; }
 html.dark #order-book .ob-current-row.ob-up { color: #e8776d !important; }
 html.dark #order-book .ob-current-row.ob-down { color: #6ea8e8 !important; }
-html.dark #order-book .ob-trades { border-color: #3a3a3a !important; }
-html.dark #order-book .ob-trades-title { color: #aaa !important; }
-html.dark #order-book .ob-trades-note { color: #777 !important; }
-html.dark #order-book .ob-trades-header { color: #777 !important; }
-html.dark #order-book .ob-trade-time { color: #888 !important; }
+html.dark #order-book .ob-trades { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #order-book .ob-trades-title { color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #order-book .ob-trades-note { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #order-book .ob-trades-header { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #order-book .ob-trade-time { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #order-book .ob-trade-price.ob-up,
 html.dark #order-book .ob-trade-qty.ob-up { color: #e8776d !important; }
 html.dark #order-book .ob-trade-price.ob-down,
 html.dark #order-book .ob-trade-qty.ob-down { color: #6ea8e8 !important; }
 html.dark #order-book .ob-trade-price.ob-flat,
-html.dark #order-book .ob-trade-qty.ob-flat { color: #ccc !important; }
+html.dark #order-book .ob-trade-qty.ob-flat { color: rgba(245, 239, 224, 0.7) !important; }

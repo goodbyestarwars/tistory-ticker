@@ -36,16 +36,16 @@
    박스 안 텍스트까지 흰색으로 덮어써서 밝은 배경(#eef2ff)과 겹쳐 안 보이던 문제 수정.
    #sector-dashboard로 specificity를 그 규칙보다 높여야 이김(stock-news.css와 동일 패턴). */
 html.dark #sector-dashboard .market-ai-summary {
-  background: #1c2340;
-  border-color: #2e3a6b;
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.2);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 html.dark #sector-dashboard .market-ai-summary .sn-ai-badge {
-  background: #818cf8;
-  color: #1c2340 !important;
+  background: rgba(245, 239, 224, 0.85);
+  color: #1A1A1A !important;
 }
 html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
-  color: #d6dbf5 !important;
+  color: #F5EFE0 !important;
 }
 
 /* 카드 높이가 제각각(4종목 vs 25종목)이라 grid로 하면 옆에 빈 공간이 크게 남는다.
@@ -214,36 +214,36 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
    style.css의 블랑켓 규칙이 글자만 흰색으로 덮어써서 흰 배경+흰 글씨로 안 보이던 문제 수정.
    (market-ai-summary와 동일 패턴: #sector-dashboard로 specificity 확보) */
 html.dark #sector-dashboard .sector-card {
-  background: #171e2f;
-  border-color: #263248;
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.14);
   box-shadow: none;
 }
 html.dark #sector-dashboard .sector-card-title {
-  color: #eaeef5 !important;
+  color: #F5EFE0 !important;
 }
 html.dark #sector-dashboard .sector-row {
-  border-bottom-color: #263248;
+  border-bottom-color: rgba(245, 239, 224, 0.12);
 }
 html.dark #sector-dashboard .sector-row-name {
-  color: #eaeef5 !important;
+  color: #F5EFE0 !important;
 }
 html.dark #sector-dashboard .sector-row-price {
-  color: #b3bdcf !important;
+  color: rgba(245, 239, 224, 0.6) !important;
 }
 html.dark #sector-dashboard .sector-row-rate.sector-up { color: #ff6b6b !important; }
 html.dark #sector-dashboard .sector-row-rate.sector-down { color: #4dabf7 !important; }
-html.dark #sector-dashboard .sector-row-rate.sector-flat { color: #7c8aa5 !important; }
+html.dark #sector-dashboard .sector-row-rate.sector-flat { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #sector-dashboard .sector-loading,
 html.dark #sector-dashboard .sector-error {
-  color: #b3bdcf !important;
+  color: rgba(245, 239, 224, 0.6) !important;
 }
 html.dark #sector-dashboard .sector-view-btn {
-  background: #171e2f;
-  border-color: #334155;
-  color: #b3bdcf !important;
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.2);
+  color: rgba(245, 239, 224, 0.65) !important;
 }
 html.dark #sector-dashboard .sector-view-btn.active {
-  background: #2a3f6e;
-  border-color: #2a3f6e;
-  color: #ffffff !important;
+  background: rgba(245, 239, 224, 0.22);
+  border-color: rgba(245, 239, 224, 0.4);
+  color: #F5EFE0 !important;
 }

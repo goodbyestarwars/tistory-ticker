@@ -431,39 +431,42 @@
 #market-temp .mt-wrap.mt-tone-extreme-greed .mt-hero-card { background: linear-gradient(160deg, #ffe1d6 0%, #fff6f0 65%); border-color: #f6bda6; }
 
 /* ================= 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ================= */
-html.dark #market-temp { color: #ddd !important; }
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. 공포/탐욕 톤 그라데이션·지표별 색상(mt-bar-*)·등락색은
+   전부 의미가 있는 색이라 그대로 유지. */
+html.dark #market-temp { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-hint,
-html.dark #market-temp .mt-error { color: #999 !important; }
+html.dark #market-temp .mt-error { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #market-temp .mt-card,
 html.dark #market-temp .mt-hero-card {
-  background: #262626 !important;
-  border-color: #3a3a3a !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
 }
-html.dark #market-temp .mt-card-title { color: #aaa !important; }
-html.dark #market-temp .mt-gauge-title { color: #777 !important; }
-html.dark #market-temp .mt-info::after { background: #111 !important; }
+html.dark #market-temp .mt-card-title { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #market-temp .mt-gauge-title { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #market-temp .mt-info::after { background: #050505 !important; }
 
-html.dark #market-temp .mt-wrap.mt-tone-extreme-fear .mt-hero-card { background: linear-gradient(160deg, #16324a 0%, #262626 65%) !important; border-color: #2f5a80 !important; }
-html.dark #market-temp .mt-wrap.mt-tone-fear .mt-hero-card { background: linear-gradient(160deg, #1c2e3f 0%, #262626 70%) !important; border-color: #2a4a63 !important; }
-html.dark #market-temp .mt-wrap.mt-tone-greed .mt-hero-card { background: linear-gradient(160deg, #3d2c14 0%, #262626 70%) !important; border-color: #6b4a1f !important; }
-html.dark #market-temp .mt-wrap.mt-tone-extreme-greed .mt-hero-card { background: linear-gradient(160deg, #4a2116 0%, #2e2624 65%) !important; border-color: #7a3a26 !important; }
+html.dark #market-temp .mt-wrap.mt-tone-extreme-fear .mt-hero-card { background: linear-gradient(160deg, #16324a 0%, #1A1A1A 65%) !important; border-color: #2f5a80 !important; }
+html.dark #market-temp .mt-wrap.mt-tone-fear .mt-hero-card { background: linear-gradient(160deg, #1c2e3f 0%, #1A1A1A 70%) !important; border-color: #2a4a63 !important; }
+html.dark #market-temp .mt-wrap.mt-tone-greed .mt-hero-card { background: linear-gradient(160deg, #3d2c14 0%, #1A1A1A 70%) !important; border-color: #6b4a1f !important; }
+html.dark #market-temp .mt-wrap.mt-tone-extreme-greed .mt-hero-card { background: linear-gradient(160deg, #4a2116 0%, #1A1A1A 65%) !important; border-color: #7a3a26 !important; }
 
-html.dark #market-temp .mt-hero-title { color: #aaa !important; }
-html.dark #market-temp .mt-score { color: #eee !important; }
-html.dark #market-temp .mt-hero-deltas { border-color: #3a3a3a !important; }
-html.dark #market-temp .mt-hero-delta-label { color: #777 !important; }
-html.dark #market-temp .mt-hero-delta-empty { color: #777 !important; border-color: #3a3a3a !important; }
-html.dark #market-temp .mt-hero-right { border-color: #3a3a3a !important; }
-html.dark #market-temp .mt-hero-signal-label { color: #888 !important; }
+html.dark #market-temp .mt-hero-title { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #market-temp .mt-score { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-hero-deltas { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #market-temp .mt-hero-delta-label { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #market-temp .mt-hero-delta-empty { color: rgba(245, 239, 224, 0.45) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #market-temp .mt-hero-right { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #market-temp .mt-hero-signal-label { color: rgba(245, 239, 224, 0.5) !important; }
 
-html.dark #market-temp .mt-ai-text { color: #ccc !important; }
-html.dark #market-temp .mt-ai-empty { color: #777 !important; }
+html.dark #market-temp .mt-ai-text { color: rgba(245, 239, 224, 0.8) !important; }
+html.dark #market-temp .mt-ai-empty { color: rgba(245, 239, 224, 0.45) !important; }
 
-html.dark #market-temp .mt-comp-tr { border-color: #333 !important; }
+html.dark #market-temp .mt-comp-tr { border-color: rgba(245, 239, 224, 0.14) !important; }
 html.dark #market-temp .mt-comp-tr-top { background: rgba(251, 140, 0, 0.1) !important; }
-html.dark #market-temp .mt-comp-td-label { color: #999 !important; }
-html.dark #market-temp .mt-comp-td-value { color: #eee !important; }
-html.dark #market-temp .mt-comp-bar-track { background: #3a3a3a !important; }
+html.dark #market-temp .mt-comp-td-label { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #market-temp .mt-comp-td-value { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-comp-bar-track { background: rgba(245, 239, 224, 0.14) !important; }
 html.dark #market-temp .mt-bar-vix { background: #ff6b5b !important; }
 html.dark #market-temp .mt-bar-flow { background: #4d9fff !important; }
 html.dark #market-temp .mt-bar-rise { background: #4cc990 !important; }
@@ -471,41 +474,41 @@ html.dark #market-temp .mt-bar-vol { background: #f0a868 !important; }
 html.dark #market-temp .mt-bar-fx { background: #a8b0bd !important; }
 html.dark #market-temp .mt-val-pos { color: #ff6b5b !important; }
 html.dark #market-temp .mt-val-neg { color: #4d9fff !important; }
-html.dark #market-temp .mt-val-zero { color: #999 !important; }
+html.dark #market-temp .mt-val-zero { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #market-temp .mt-pill.mt-val-pos { background: #4a2620 !important; color: #ff8f80 !important; }
 html.dark #market-temp .mt-pill.mt-val-neg { background: #1c3050 !important; color: #7cb3ff !important; }
-html.dark #market-temp .mt-pill.mt-val-zero { background: #333 !important; color: #aaa !important; }
+html.dark #market-temp .mt-pill.mt-val-zero { background: rgba(245, 239, 224, 0.14) !important; color: rgba(245, 239, 224, 0.7) !important; }
 
-html.dark #market-temp .mt-gauge-bubble { background: #eee !important; color: #222 !important; }
-html.dark #market-temp .mt-gauge-marker { background: #eee !important; box-shadow: 0 0 0 2px #262626, 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
-html.dark #market-temp .mt-gauge-scale { color: #777 !important; }
-html.dark #market-temp .mt-gauge-bands { color: #666 !important; }
+html.dark #market-temp .mt-gauge-bubble { background: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #market-temp .mt-gauge-marker { background: #F5EFE0 !important; box-shadow: 0 0 0 2px #1A1A1A, 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
+html.dark #market-temp .mt-gauge-scale { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #market-temp .mt-gauge-bands { color: rgba(245, 239, 224, 0.4) !important; }
 
-html.dark #market-temp .mt-spark-labels { color: #777 !important; }
-html.dark #market-temp .mt-spark-labels b { color: #ddd !important; }
+html.dark #market-temp .mt-spark-labels { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #market-temp .mt-spark-labels b { color: #F5EFE0 !important; }
 
-html.dark #market-temp .mt-radar-grid { color: #3a3a3a !important; }
-html.dark #market-temp .mt-radar-label { fill: #888 !important; }
-html.dark #market-temp .mt-radar-score { fill: #ddd !important; }
+html.dark #market-temp .mt-radar-grid { color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #market-temp .mt-radar-label { fill: rgba(245, 239, 224, 0.55) !important; }
+html.dark #market-temp .mt-radar-score { fill: #F5EFE0 !important; }
 
-html.dark #market-temp .mt-strategy-bar-row { color: #999 !important; }
-html.dark #market-temp .mt-strategy-bar-row b { color: #ddd !important; }
-html.dark #market-temp .mt-strategy-bar { background: #3a3a3a !important; }
-html.dark #market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: #5a6472 !important; }
-html.dark #market-temp .mt-strategy-note { color: #888 !important; }
+html.dark #market-temp .mt-strategy-bar-row { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #market-temp .mt-strategy-bar-row b { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-strategy-bar { background: rgba(245, 239, 224, 0.14) !important; }
+html.dark #market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: rgba(245, 239, 224, 0.35) !important; }
+html.dark #market-temp .mt-strategy-note { color: rgba(245, 239, 224, 0.5) !important; }
 
-html.dark #market-temp .mt-guide-card { border-color: #3a3a3a !important; }
-html.dark #market-temp .mt-guide-card-label { color: #bbb !important; }
-html.dark #market-temp .mt-guide-stars-empty { color: #3a3a3a !important; }
+html.dark #market-temp .mt-guide-card { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #market-temp .mt-guide-card-label { color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #market-temp .mt-guide-stars-empty { color: rgba(245, 239, 224, 0.2) !important; }
 
-html.dark #market-temp .mt-updated { color: #777 !important; }
+html.dark #market-temp .mt-updated { color: rgba(245, 239, 224, 0.45) !important; }
 
-html.dark #market-temp .mt-view-btn { background: #2c2c2c !important; color: #999 !important; border-color: #3a3a3a !important; }
-html.dark #market-temp .mt-view-btn.active { background: #eee !important; color: #222 !important; border-color: #eee !important; }
+html.dark #market-temp .mt-view-btn { background: rgba(245, 239, 224, 0.08) !important; color: rgba(245, 239, 224, 0.55) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #market-temp .mt-view-btn.active { background: #F5EFE0 !important; color: #1A1A1A !important; border-color: #F5EFE0 !important; }
 
-html.dark #market-temp .sector-card { background: #171e2f !important; border-color: #263248 !important; box-shadow: none !important; }
-html.dark #market-temp .sector-card-title { color: #eaeef5 !important; }
-html.dark #market-temp .sector-row { border-bottom-color: #263248 !important; }
-html.dark #market-temp .sector-row-name { color: #eaeef5 !important; }
+html.dark #market-temp .sector-card { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.14) !important; box-shadow: none !important; }
+html.dark #market-temp .sector-card-title { color: #F5EFE0 !important; }
+html.dark #market-temp .sector-row { border-bottom-color: rgba(245, 239, 224, 0.12) !important; }
+html.dark #market-temp .sector-row-name { color: #F5EFE0 !important; }
 html.dark #market-temp .sector-row-rate.sector-up { color: #ff6b6b !important; }
 html.dark #market-temp .sector-row-rate.sector-down { color: #4dabf7 !important; }

@@ -314,74 +314,76 @@
 /* ============ 다크모드 ============ */
 /* 스킨의 html.dark .post-single-body * !important 규칙을 #pattern-scan으로 specificity 확보해 오버라이드 */
 
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. 등락색(ps-up/down/flat)은 의미가 있는 색이라 유지. */
 html.dark #pattern-scan .ps-tab {
-  background: #171e2f;
-  border-color: #334155;
-  color: #d3dbe8 !important;
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.2);
+  color: rgba(245, 239, 224, 0.8) !important;
 }
 
 html.dark #pattern-scan .ps-tab.active {
-  background: #2a3f6e;
-  border-color: #2a3f6e;
-  color: #ffffff !important;
+  background: rgba(245, 239, 224, 0.22);
+  border-color: rgba(245, 239, 224, 0.4);
+  color: #F5EFE0 !important;
 }
 
 html.dark #pattern-scan .ps-meta {
-  color: #7c8aa5 !important;
+  color: rgba(245, 239, 224, 0.5) !important;
 }
 
 html.dark #pattern-scan .ps-tab-desc {
-  color: #b3bdcf !important;
-  background: #171e2f !important;
-  border-color: #263248 !important;
+  color: rgba(245, 239, 224, 0.6) !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.14) !important;
 }
 
 html.dark #pattern-scan .ps-item {
-  background: #171e2f;
-  border-color: #263248;
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.14);
 }
 
 html.dark #pattern-scan .ps-icon {
-  color: #64748b;
+  color: rgba(245, 239, 224, 0.45);
 }
 
 html.dark #pattern-scan .ps-item:hover {
-  border-color: #3b4a68;
+  border-color: rgba(245, 239, 224, 0.3);
 }
 
 html.dark #pattern-scan .ps-name {
-  color: #eaeef5 !important;
+  color: #F5EFE0 !important;
 }
 
 html.dark #pattern-scan .ps-code {
-  color: #7c8aa5 !important;
+  color: rgba(245, 239, 224, 0.5) !important;
 }
 
 html.dark #pattern-scan .ps-price {
-  color: #eaeef5 !important;
+  color: #F5EFE0 !important;
 }
 
 html.dark #pattern-scan .ps-up { color: #ff6b6b !important; }
 html.dark #pattern-scan .ps-down { color: #4dabf7 !important; }
-html.dark #pattern-scan .ps-flat { color: #7c8aa5 !important; }
+html.dark #pattern-scan .ps-flat { color: rgba(245, 239, 224, 0.55) !important; }
 
 html.dark #pattern-scan .ps-hint,
 html.dark #pattern-scan .ps-loading,
 html.dark #pattern-scan .ps-error {
-  color: #b3bdcf !important;
+  color: rgba(245, 239, 224, 0.6) !important;
 }
 html.dark #pattern-scan .ps-spinner {
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  border-top-color: #4dabf7 !important;
+  border-color: rgba(245, 239, 224, 0.15) !important;
+  border-top-color: #F5EFE0 !important;
 }
 
 html.dark #pattern-scan .ps-detail {
-  background: #171e2f;
-  border-color: #263248;
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.14);
 }
 
 html.dark #pattern-scan .ps-score-box {
-  background: #0e1320;
+  background: rgba(245, 239, 224, 0.06);
 }
 html.dark #pattern-scan .ps-toast {
   background: #2a2410;
@@ -389,34 +391,34 @@ html.dark #pattern-scan .ps-toast {
   color: #fbbf24 !important;
 }
 html.dark #pattern-scan .ps-interp {
-  color: #eaeef5 !important;
+  color: #F5EFE0 !important;
 }
 html.dark #pattern-scan .ps-reasons {
-  color: #9aa7bd !important;
+  color: rgba(245, 239, 224, 0.65) !important;
 }
 html.dark #pattern-scan .ps-ichimoku-toggle,
 html.dark #pattern-scan .ps-ichimoku-legend {
-  color: #9aa7bd !important;
+  color: rgba(245, 239, 224, 0.65) !important;
 }
 
 html.dark #pattern-scan .ps-detail-name {
-  color: #eaeef5 !important;
+  color: #F5EFE0 !important;
 }
 
 html.dark #pattern-scan .ps-close {
-  background: #0e1320;
-  border-color: #334155;
-  color: #b3bdcf !important;
+  background: rgba(245, 239, 224, 0.06);
+  border-color: rgba(245, 239, 224, 0.2);
+  color: rgba(245, 239, 224, 0.6) !important;
 }
 
 html.dark #pattern-scan .ps-chart {
-  border-color: #263248;
+  border-color: rgba(245, 239, 224, 0.14);
 }
 
 html.dark #pattern-scan .ps-footnote {
-  color: #8590a8 !important;
+  color: rgba(245, 239, 224, 0.45) !important;
 }
 
 html.dark #pattern-scan .ps-footnote b {
-  color: #aaaeb8 !important;
+  color: rgba(245, 239, 224, 0.65) !important;
 }

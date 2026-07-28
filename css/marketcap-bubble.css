@@ -200,22 +200,22 @@ html.dark #marketcap-bubble .mcb-legend-seg.mcb-c1 { background: #ff9d90; }
 html.dark #marketcap-bubble .mcb-legend-seg.mcb-c2 { background: #ff6b6b; }
 html.dark #marketcap-bubble .mcb-legend-seg.mcb-c3 { background: #d94a3f; }
 html.dark #marketcap-bubble .mcb-zone-label {
-  fill: #8b98b3;
+  fill: rgba(245, 239, 224, 0.55);
 }
 html.dark #marketcap-bubble .mcb-legend {
-  color: #b3bdcf !important;
+  color: rgba(245, 239, 224, 0.6) !important;
 }
 html.dark #marketcap-bubble .mcb-updated {
-  color: #7c8aa5 !important;
+  color: rgba(245, 239, 224, 0.4) !important;
 }
 html.dark #marketcap-bubble .mcb-error {
-  color: #b3bdcf !important;
+  color: rgba(245, 239, 224, 0.6) !important;
 }
 html.dark #marketcap-bubble .mcb-filter-label {
-  color: #b3bdcf !important;
+  color: rgba(245, 239, 224, 0.6) !important;
 }
 html.dark #marketcap-bubble .mcb-filter-select {
-  background: #262626 !important;
-  border-color: #444 !important;
-  color: #eee !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
+  color: #F5EFE0 !important;
 }

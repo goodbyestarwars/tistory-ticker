@@ -191,24 +191,27 @@
   border-top: none;
 }
 
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. 참고선 색(om-benchmark 주황/6m 보라)은 차트 실선 색과
+   맞춰야 하는 의미색이라 유지. */
 html.dark #overnight-market .om-card {
-  background: #1e1e1e !important;
-  border-color: #3a3a3a !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
 }
-html.dark #overnight-market .om-title { color: #999 !important; }
+html.dark #overnight-market .om-title { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #overnight-market .om-loading,
 html.dark #overnight-market .om-error,
-html.dark #overnight-market .om-chart-error { color: #777 !important; }
-html.dark #overnight-market .om-hl { color: #999 !important; }
-html.dark #overnight-market .om-updated { color: #777 !important; }
-html.dark #overnight-market .om-zero { color: #ccc !important; }
-html.dark #overnight-market .om-summary { background: #262626 !important; }
-html.dark #overnight-market .om-summary-icon { color: #999 !important; }
-html.dark #overnight-market .om-summary-body { color: #eee !important; }
-html.dark #overnight-market .om-summary-tone { border-top-color: #3a3a3a !important; }
-html.dark #overnight-market .om-ai { background: #1c2a3a !important; }
-html.dark #overnight-market .om-ai-icon { color: #7fa8e8 !important; }
-html.dark #overnight-market .om-ai-body { color: #eee !important; }
-html.dark #overnight-market .om-cat-hint { color: #888 !important; }
-html.dark #overnight-market .om-benchmark { color: #e0954a !important; border-top-color: #4a3a20 !important; }
+html.dark #overnight-market .om-chart-error { color: rgba(245, 239, 224, 0.4) !important; }
+html.dark #overnight-market .om-hl { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #overnight-market .om-updated { color: rgba(245, 239, 224, 0.4) !important; }
+html.dark #overnight-market .om-zero { color: #F5EFE0 !important; }
+html.dark #overnight-market .om-summary { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #overnight-market .om-summary-icon { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #overnight-market .om-summary-body { color: #F5EFE0 !important; }
+html.dark #overnight-market .om-summary-tone { border-top-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #overnight-market .om-ai { background: rgba(245, 239, 224, 0.06) !important; }
+html.dark #overnight-market .om-ai-icon { color: #F5EFE0 !important; }
+html.dark #overnight-market .om-ai-body { color: #F5EFE0 !important; }
+html.dark #overnight-market .om-cat-hint { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #overnight-market .om-benchmark { color: #e0954a !important; border-top-color: rgba(245, 239, 224, 0.14) !important; }
 html.dark #overnight-market .om-benchmark-6m { color: #b78ce0 !important; }

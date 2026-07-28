@@ -276,28 +276,30 @@
 }
 
 /* ---- 다크모드 ---- */
-html.dark #stock-search { color: #eee !important; }
-html.dark #stock-search .ss-input { background: #1c1c1c !important; border-color: #3a3a3a !important; color: #eee !important; }
-html.dark #stock-search .ss-suggest { background: #1c1c1c !important; border-color: #3a3a3a !important; }
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. 즐겨찾기 별(gold)은 의미가 있는 색이라 유지. */
+html.dark #stock-search { color: #F5EFE0 !important; }
+html.dark #stock-search .ss-input { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.25) !important; color: #F5EFE0 !important; }
+html.dark #stock-search .ss-suggest { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #stock-search .ss-suggest-item:hover,
-html.dark #stock-search .ss-suggest-item.active { background: #2a2a2a !important; }
+html.dark #stock-search .ss-suggest-item.active { background: rgba(245, 239, 224, 0.1) !important; }
 html.dark #stock-search .ss-results-table,
 html.dark #stock-search .ss-results-collapsed,
 html.dark #stock-search .ss-panel-left,
 html.dark #stock-search .ss-panel-right,
-html.dark #stock-search .ss-summary { border-color: #3a3a3a !important; }
-html.dark #stock-search .ss-results-collapsed { color: #ccc !important; }
-html.dark #stock-search .ss-results-toggle { color: #a5b4fc !important; }
-html.dark #stock-search .ss-results-head { background: #1c1c1c !important; color: #999 !important; }
-html.dark #stock-search .ss-result-row { background: #171e2f !important; border-top-color: #263248 !important; }
-html.dark #stock-search .ss-result-row:hover { background: #1a2436 !important; }
-html.dark #stock-search .ss-result-row.active { background: #1c2340 !important; }
-html.dark #stock-search .ss-sector-tag { background: #1c2340 !important; color: #a5b4fc !important; }
+html.dark #stock-search .ss-summary { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #stock-search .ss-results-collapsed { color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #stock-search .ss-results-toggle { color: #F5EFE0 !important; }
+html.dark #stock-search .ss-results-head { background: #1A1A1A !important; color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #stock-search .ss-result-row { background: #1A1A1A !important; border-top-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #stock-search .ss-result-row:hover { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #stock-search .ss-result-row.active { background: rgba(245, 239, 224, 0.16) !important; }
+html.dark #stock-search .ss-sector-tag { background: rgba(245, 239, 224, 0.16) !important; color: #F5EFE0 !important; }
 html.dark #stock-search .ss-summary-code,
 html.dark #stock-search .ss-results-count,
-html.dark #stock-search .ss-hint { color: #999 !important; }
-html.dark #stock-search .ss-summary-extra { color: #aaa !important; }
-html.dark #stock-search .ss-tf-btn { background: #1c1c1c !important; border-color: #3a3a3a !important; color: #aaa !important; }
-html.dark #stock-search .ss-tf-btn.active { background: #eee !important; border-color: #eee !important; color: #111 !important; }
-html.dark #stock-search .ss-fav-btn { background: #1c1c1c !important; border-color: #3a3a3a !important; color: #555 !important; }
+html.dark #stock-search .ss-hint { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #stock-search .ss-summary-extra { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #stock-search .ss-tf-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #stock-search .ss-tf-btn.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #stock-search .ss-fav-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.35) !important; }
 html.dark #stock-search .ss-fav-btn.active { color: #e0b040 !important; border-color: #e0b040 !important; background: #3a2f10 !important; }

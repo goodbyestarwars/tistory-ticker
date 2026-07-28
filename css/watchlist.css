@@ -201,37 +201,40 @@
 #watchlist .wl-chart-btn:hover { background: #e0e7ff; }
 
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
-html.dark #watchlist { color: #ddd !important; }
-html.dark #watchlist .wl-count { color: #999 !important; }
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. 등락색(wl-up/down)·즐겨찾기 별(gold) 등은 의미가 있는
+   색이라 유지. */
+html.dark #watchlist { color: #F5EFE0 !important; }
+html.dark #watchlist .wl-count { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #watchlist .wl-input {
-  background: #2a2a2a !important;
-  border-color: #444 !important;
-  color: #eee !important;
+  background: rgba(245, 239, 224, 0.06) !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
+  color: #F5EFE0 !important;
 }
-html.dark #watchlist .wl-add-btn { background: #555 !important; color: #eee !important; }
+html.dark #watchlist .wl-add-btn { background: rgba(245, 239, 224, 0.2) !important; color: #F5EFE0 !important; }
 html.dark #watchlist .wl-suggest {
-  background: #2a2a2a !important;
-  border-color: #444 !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
 }
-html.dark #watchlist .wl-suggest-item { color: #ddd !important; }
-html.dark #watchlist .wl-suggest-item:hover { background: #3a3a3a !important; }
+html.dark #watchlist .wl-suggest-item { color: #F5EFE0 !important; }
+html.dark #watchlist .wl-suggest-item:hover { background: rgba(245, 239, 224, 0.1) !important; }
 html.dark #watchlist .wl-msg {
   color: #ff8a80 !important;
   background: #3a2323 !important;
   border-color: #5a3333 !important;
 }
-html.dark #watchlist .wl-empty { color: #999 !important; border-color: #444 !important; }
+html.dark #watchlist .wl-empty { color: rgba(245, 239, 224, 0.5) !important; border-color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #watchlist .wl-card {
-  background: #262626 !important;
-  border-color: #3a3a3a !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
 }
 html.dark #watchlist .wl-remove { color: #e0b040 !important; }
-html.dark #watchlist .wl-remove:hover { background: rgba(255, 255, 255, 0.08) !important; }
-html.dark #watchlist .wl-name { color: #eee !important; }
-html.dark #watchlist .wl-price { color: #eee !important; }
-html.dark #watchlist .wl-change { color: #999 !important; background: #333 !important; }
+html.dark #watchlist .wl-remove:hover { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #watchlist .wl-name { color: #F5EFE0 !important; }
+html.dark #watchlist .wl-price { color: #F5EFE0 !important; }
+html.dark #watchlist .wl-change { color: rgba(245, 239, 224, 0.55) !important; background: rgba(245, 239, 224, 0.12) !important; }
 html.dark #watchlist .wl-change.wl-up { color: #ff6b5b !important; background: #3a2323 !important; }
 html.dark #watchlist .wl-change.wl-down { color: #4d9fff !important; background: #1f2c3d !important; }
-html.dark #watchlist .wl-flow { color: #999 !important; }
-html.dark #watchlist .wl-chart-btn { background: #1c2340 !important; color: #a5b4fc !important; }
-html.dark #watchlist .wl-chart-btn:hover { background: #232b52 !important; }
+html.dark #watchlist .wl-flow { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #watchlist .wl-chart-btn { background: rgba(245, 239, 224, 0.12) !important; color: #F5EFE0 !important; }
+html.dark #watchlist .wl-chart-btn:hover { background: rgba(245, 239, 224, 0.2) !important; }

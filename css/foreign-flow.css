@@ -1124,189 +1124,195 @@
 #foreign-flow .ff-bar-val { font-size: 9px; fill: #666; }
 #foreign-flow .ff-bar-label { font-size: 9px; fill: #999; }
 
-/* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
-html.dark #foreign-flow { color: #ddd !important; }
+/* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ----
+   2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체(매물대 아파트 위젯도 포함 - Ver.1/Ver.2 때 만든 남색
+   팔레트를 여기서 같이 정리). 등락색(ff-buy/sell/flat)·배지 색(badge-buy/sell/shift/
+   theme)·판정 톤(verdict-box-*, extra-tone-*)·별점(gold)·매물대 매도·매수 막대색·
+   투자자 유형별 탭 강조색(개인=amber/외국인=orange/기관=purple) 등 "의미"를 담은 색은
+   전부 유지. */
+html.dark #foreign-flow { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-input {
-  background: #2a2a2a !important;
-  border-color: #555 !important;
-  color: #eee !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.3) !important;
+  color: #F5EFE0 !important;
 }
-html.dark #foreign-flow .ff-search-btn { background: #555 !important; color: #eee !important; }
+html.dark #foreign-flow .ff-search-btn { background: rgba(245, 239, 224, 0.25) !important; color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-suggest {
-  background: #2a2a2a !important;
-  border-color: #555 !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.3) !important;
 }
-html.dark #foreign-flow .ff-suggest-item { color: #ddd !important; }
+html.dark #foreign-flow .ff-suggest-item { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-suggest-item:hover,
-html.dark #foreign-flow .ff-suggest-item.active { background: #3a3a3a !important; }
+html.dark #foreign-flow .ff-suggest-item.active { background: rgba(245, 239, 224, 0.14) !important; }
 html.dark #foreign-flow .ff-hint,
-html.dark #foreign-flow .ff-loading { color: #999 !important; }
+html.dark #foreign-flow .ff-loading { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-spinner {
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  border-top-color: #4dabf7 !important;
+  border-color: rgba(245, 239, 224, 0.15) !important;
+  border-top-color: #F5EFE0 !important;
 }
 html.dark #foreign-flow .ff-error {
   background: #3a2523 !important;
   border-color: #5c3835 !important;
   color: #e8877e !important;
 }
-html.dark #foreign-flow .ff-summary { background: #262626 !important; border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-stars { color: #444 !important; }
+html.dark #foreign-flow .ff-summary { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-stars { color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #foreign-flow .ff-stars::before { color: #ffb84d !important; }
-html.dark #foreign-flow .ff-verdict-score { color: #aaa !important; }
-html.dark #foreign-flow .ff-verdict-box { border-color: #3a3a3a !important; }
+html.dark #foreign-flow .ff-verdict-score { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #foreign-flow .ff-verdict-box { border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-verdict-box-buy { background: #3a2523 !important; }
 html.dark #foreign-flow .ff-verdict-box-sell { background: #20304a !important; }
-html.dark #foreign-flow .ff-verdict-box-flat { background: #2a2a2a !important; }
-html.dark #foreign-flow .ff-extra-help { background: #1f1f1f !important; color: #999 !important; }
-html.dark #foreign-flow .ff-header { color: #eee !important; }
-html.dark #foreign-flow .ff-divider { background: #3a3a3a !important; }
+html.dark #foreign-flow .ff-verdict-box-flat { background: rgba(245, 239, 224, 0.1) !important; }
+html.dark #foreign-flow .ff-extra-help { background: rgba(245, 239, 224, 0.06) !important; color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-header { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-divider { background: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-table,
 html.dark #foreign-flow .ff-table th,
-html.dark #foreign-flow .ff-table td { border-color: #555 !important; }
-html.dark #foreign-flow .ff-table th { background: #333 !important; color: #ddd !important; }
-html.dark #foreign-flow .ff-table .ff-td-label { background: #2e2e2e !important; color: #ddd !important; }
+html.dark #foreign-flow .ff-table td { border-color: rgba(245, 239, 224, 0.3) !important; }
+html.dark #foreign-flow .ff-table th { background: rgba(245, 239, 224, 0.14) !important; color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-table .ff-td-label { background: rgba(245, 239, 224, 0.1) !important; color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-buy { color: #e8776d !important; }
 html.dark #foreign-flow .ff-sell { color: #6ea8e8 !important; }
-html.dark #foreign-flow .ff-flat { color: #aaa !important; }
+html.dark #foreign-flow .ff-flat { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-badge-buy { background: #3a2523 !important; border-color: #5c3835 !important; color: #e8776d !important; }
 html.dark #foreign-flow .ff-badge-sell { background: #20304a !important; border-color: #33507a !important; color: #6ea8e8 !important; }
 html.dark #foreign-flow .ff-badge-shift { background: #3a3220 !important; border-color: #5c5035 !important; color: #d9a94a !important; }
-html.dark #foreign-flow .ff-badge-neutral { background: #333 !important; border-color: #555 !important; color: #bbb !important; }
+html.dark #foreign-flow .ff-badge-neutral { background: rgba(245, 239, 224, 0.12) !important; border-color: rgba(245, 239, 224, 0.3) !important; color: rgba(245, 239, 224, 0.75) !important; }
 html.dark #foreign-flow .ff-badge-theme { background: #262b52 !important; border-color: #3d4380 !important; color: #a5abf0 !important; }
-html.dark #foreign-flow .ff-sector-row-label { color: #8b96b8 !important; }
+html.dark #foreign-flow .ff-sector-row-label { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-chart {
-  background: #222 !important;
-  border-color: #444 !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
 }
-html.dark #foreign-flow .ff-grid { stroke: #3a3a3a; }
-html.dark #foreign-flow .ff-zero { stroke: #666; }
-html.dark #foreign-flow .ff-axis { fill: #888; }
-html.dark #foreign-flow .ff-line-rsi { stroke: #ccc; }
-html.dark #foreign-flow .ff-legend { color: #aaa !important; }
+html.dark #foreign-flow .ff-grid { stroke: rgba(245, 239, 224, 0.2); }
+html.dark #foreign-flow .ff-zero { stroke: rgba(245, 239, 224, 0.4); }
+html.dark #foreign-flow .ff-axis { fill: rgba(245, 239, 224, 0.5); }
+html.dark #foreign-flow .ff-line-rsi { stroke: #F5EFE0; }
+html.dark #foreign-flow .ff-legend { color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #foreign-flow .ff-ichimoku-toggle,
-html.dark #foreign-flow .ff-vp-legend { color: #aaa !important; }
-html.dark #foreign-flow .ff-hover-line { stroke: #777; }
-html.dark #foreign-flow .ff-hover-dot { stroke: #222; }
+html.dark #foreign-flow .ff-vp-legend { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #foreign-flow .ff-hover-line { stroke: rgba(245, 239, 224, 0.45); }
+html.dark #foreign-flow .ff-hover-dot { stroke: #1A1A1A; }
 html.dark #foreign-flow .ff-tt {
-  background: #2a2a2a !important;
-  border-color: #555 !important;
-  color: #ddd !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.3) !important;
+  color: #F5EFE0 !important;
 }
-html.dark #foreign-flow .ff-tt-sub { color: #999 !important; }
-html.dark #foreign-flow .ff-footnote { color: #888 !important; }
-html.dark #foreign-flow .ff-badge-legend { color: #888 !important; }
-html.dark #foreign-flow .ff-badge-legend b { color: #aaa !important; }
+html.dark #foreign-flow .ff-tt-sub { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-footnote { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-badge-legend { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-badge-legend b { color: rgba(245, 239, 224, 0.65) !important; }
 
-html.dark #foreign-flow .ff-extra-missing { background: #262626 !important; color: #999 !important; }
-html.dark #foreign-flow .ff-chart-empty { background: #262626 !important; color: #999 !important; }
-html.dark #foreign-flow .ff-extra-card { background: #262626 !important; border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-extra-card-title { color: #eee !important; }
-html.dark #foreign-flow .ff-extra-grade { color: #999 !important; }
-html.dark #foreign-flow .ff-extra-grid { background: #1f1f1f !important; }
-html.dark #foreign-flow .ff-extra-metric-label { color: #999 !important; }
-html.dark #foreign-flow .ff-extra-metric-value { color: #eee !important; }
-html.dark #foreign-flow .ff-extra-metric-sub { color: #888 !important; }
+html.dark #foreign-flow .ff-extra-missing { background: #1A1A1A !important; color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-chart-empty { background: #1A1A1A !important; color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-extra-card { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-extra-card-title { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-extra-grade { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-extra-grid { background: rgba(245, 239, 224, 0.06) !important; }
+html.dark #foreign-flow .ff-extra-metric-label { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-extra-metric-value { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-extra-metric-sub { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #foreign-flow .ff-warn { color: #e8776d !important; }
-html.dark #foreign-flow .ff-squeeze-grade { background: rgba(255, 255, 255, 0.08) !important; }
-html.dark #foreign-flow .ff-extra-badge { background: #20304a !important; border-color: #33507a !important; color: #6ea8e8 !important; }
-html.dark #foreign-flow .ff-extra-streak { color: #eee !important; }
-html.dark #foreign-flow .ff-extra-interp { background: #2a2a2a !important; }
+html.dark #foreign-flow .ff-squeeze-grade { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #foreign-flow .ff-extra-badge { background: rgba(245, 239, 224, 0.14) !important; border-color: rgba(245, 239, 224, 0.3) !important; color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-extra-streak { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-extra-interp { background: rgba(245, 239, 224, 0.08) !important; }
 html.dark #foreign-flow .ff-extra-tone-very_positive { background: #3a2323 !important; }
 html.dark #foreign-flow .ff-extra-tone-positive { background: #362a1f !important; }
 html.dark #foreign-flow .ff-extra-tone-neutral_positive { background: #34301f !important; }
 html.dark #foreign-flow .ff-extra-tone-caution { background: #202a38 !important; }
-html.dark #foreign-flow .ff-extra-tone-neutral { background: #2a2a2a !important; }
-html.dark #foreign-flow .ff-extra-note { color: #888 !important; }
-html.dark #foreign-flow .ff-tech { border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-tech-desc { color: #999 !important; }
+html.dark #foreign-flow .ff-extra-tone-neutral { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #foreign-flow .ff-extra-note { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-tech { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-tech-desc { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-tech-table th,
-html.dark #foreign-flow .ff-tech-table td { border-color: #444 !important; color: #ddd !important; }
-html.dark #foreign-flow .ff-tech-table th { background: #333 !important; }
+html.dark #foreign-flow .ff-tech-table td { border-color: rgba(245, 239, 224, 0.25) !important; color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-tech-table th { background: rgba(245, 239, 224, 0.14) !important; }
 
 html.dark #foreign-flow .ff-view-tab {
-  background: #262626 !important;
-  border-color: #3a3a3a !important;
-  color: #ccc !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
+  color: rgba(245, 239, 224, 0.75) !important;
 }
 html.dark #foreign-flow .ff-view-tab.active {
-  background: #eee !important;
-  border-color: #eee !important;
-  color: #111 !important;
+  background: #F5EFE0 !important;
+  border-color: #F5EFE0 !important;
+  color: #1A1A1A !important;
 }
-html.dark #foreign-flow .ff-fund-title { color: #eee !important; }
-html.dark #foreign-flow .ff-fund-cell { background: #262626 !important; }
-html.dark #foreign-flow .ff-fund-label { color: #999 !important; }
-html.dark #foreign-flow .ff-fund-val { color: #eee !important; }
+html.dark #foreign-flow .ff-fund-title { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-fund-cell { background: #1A1A1A !important; }
+html.dark #foreign-flow .ff-fund-label { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-fund-val { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-fund-table th,
-html.dark #foreign-flow .ff-fund-table td { border-color: #444 !important; color: #ddd !important; }
-html.dark #foreign-flow .ff-fund-table th { background: #333 !important; }
-html.dark #foreign-flow .ff-quarter-label { color: #999 !important; }
-html.dark #foreign-flow .ff-chart-title { color: #999 !important; }
-html.dark #foreign-flow .ff-flow-period-btn { background: #262626 !important; border-color: #3a3a3a !important; color: #aaa !important; }
-html.dark #foreign-flow .ff-flow-period-btn.active { background: #2a2a4a !important; border-color: #4338ca !important; color: #a5b4fc !important; }
-html.dark #foreign-flow .ff-apt-tab { background: #262626 !important; border-color: #3a3a3a !important; color: #ccc !important; }
-html.dark #foreign-flow .ff-apt-tab.active { background: #eee !important; border-color: #eee !important; color: #111 !important; }
+html.dark #foreign-flow .ff-fund-table td { border-color: rgba(245, 239, 224, 0.25) !important; color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-fund-table th { background: rgba(245, 239, 224, 0.14) !important; }
+html.dark #foreign-flow .ff-quarter-label { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-chart-title { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-flow-period-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #foreign-flow .ff-flow-period-btn.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #foreign-flow .ff-apt-tab { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.75) !important; }
+html.dark #foreign-flow .ff-apt-tab.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
 html.dark #foreign-flow .ff-apt-tab[data-apt-type="ind"].active { background: #fab005 !important; border-color: #fab005 !important; color: #2a2000 !important; }
 html.dark #foreign-flow .ff-apt-tab[data-apt-type="foreign"].active { background: #e8590c !important; border-color: #e8590c !important; color: #fff !important; }
 html.dark #foreign-flow .ff-apt-tab[data-apt-type="inst"].active { background: #7c5cdb !important; border-color: #7c5cdb !important; color: #fff !important; }
-html.dark #foreign-flow .ff-apt-summary { color: #bbb !important; }
-html.dark #foreign-flow .ff-apt-legend-item { color: #999 !important; }
-html.dark #foreign-flow .ff-apt-totals { color: #aaa !important; }
-html.dark #foreign-flow .ff-apt-chart-wrap { background: #21262e !important; border-color: #363c46 !important; }
-html.dark #foreign-flow .ff-apt-nameplate { background: #262c34 !important; border-color: #3a4048 !important; color: #9aa5b1 !important; }
-html.dark #foreign-flow .ff-apt-helipad { background: #2a3038 !important; border-color: #454d58 !important; }
-html.dark #foreign-flow .ff-apt-helipad-h { color: #7a828d !important; }
-html.dark #foreign-flow .ff-apt-heli-rotor { background: rgba(180, 188, 200, 0.6) !important; }
-html.dark #foreign-flow .ff-apt-band-start { border-top-color: #3a4048 !important; }
+html.dark #foreign-flow .ff-apt-summary { color: rgba(245, 239, 224, 0.75) !important; }
+html.dark #foreign-flow .ff-apt-legend-item { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-apt-totals { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #foreign-flow .ff-apt-chart-wrap { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-apt-nameplate { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.25) !important; color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #foreign-flow .ff-apt-helipad { background: rgba(245, 239, 224, 0.1) !important; border-color: rgba(245, 239, 224, 0.3) !important; }
+html.dark #foreign-flow .ff-apt-helipad-h { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-apt-heli-rotor { background: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-apt-band-start { border-top-color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #foreign-flow .ff-apt-band-icon,
-html.dark #foreign-flow .ff-apt-band-range { color: #6b7280 !important; }
-html.dark #foreign-flow .ff-apt-band-name { color: #7a828d !important; }
-html.dark #foreign-flow .ff-apt-price { color: #ddd !important; }
-html.dark #foreign-flow .ff-apt-mini-window { background: #2c3742 !important; border-color: #45505d !important; }
-html.dark #foreign-flow .ff-apt-mini-window::after { background: #45505d !important; }
-html.dark #foreign-flow .ff-apt-bar-value { color: #7a828d !important; }
+html.dark #foreign-flow .ff-apt-band-range { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #foreign-flow .ff-apt-band-name { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-apt-price { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-apt-mini-window { background: rgba(245, 239, 224, 0.12) !important; border-color: rgba(245, 239, 224, 0.3) !important; }
+html.dark #foreign-flow .ff-apt-mini-window::after { background: rgba(245, 239, 224, 0.3) !important; }
+html.dark #foreign-flow .ff-apt-bar-value { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-apt-bar-sell { background: #5b9ee8 !important; }
 html.dark #foreign-flow .ff-apt-bar-buy { background: #ff7d8e !important; }
 html.dark #foreign-flow .ff-apt-bar-sell.ff-apt-bar-max { box-shadow: 0 0 0 1px #8fc0f0 !important, 0 0 8px 1px rgba(91, 158, 232, 0.75) !important; }
 html.dark #foreign-flow .ff-apt-bar-buy.ff-apt-bar-max { box-shadow: 0 0 0 1px #ffb0ba !important, 0 0 8px 1px rgba(255, 125, 142, 0.75) !important; }
 html.dark #foreign-flow .ff-apt-row-current { background: rgba(255, 152, 0, 0.16) !important; }
 html.dark #foreign-flow .ff-apt-row-current .ff-apt-price { color: #ffb154 !important; }
-html.dark #foreign-flow .ff-apt-current-badge { background: #262626 !important; color: #ffb154 !important; }
-html.dark #foreign-flow .ff-apt-ladder-rail { background: repeating-linear-gradient(180deg, #454d58, #454d58 3px, transparent 3px, transparent 6px) !important; }
-html.dark #foreign-flow .ff-apt-lobby { border-top-color: #3a4048 !important; }
+html.dark #foreign-flow .ff-apt-current-badge { background: #1A1A1A !important; color: #ffb154 !important; }
+html.dark #foreign-flow .ff-apt-ladder-rail { background: repeating-linear-gradient(180deg, rgba(245, 239, 224, 0.3), rgba(245, 239, 224, 0.3) 3px, transparent 3px, transparent 6px) !important; }
+html.dark #foreign-flow .ff-apt-lobby { border-top-color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #foreign-flow .ff-apt-basement {
-  background: repeating-linear-gradient(135deg, #262c34, #262c34 5px, #1d2228 5px, #1d2228 10px) !important;
-  border-color: #3a4048 !important;
+  background: repeating-linear-gradient(135deg, rgba(245, 239, 224, 0.08), rgba(245, 239, 224, 0.08) 5px, rgba(245, 239, 224, 0.03) 5px, rgba(245, 239, 224, 0.03) 10px) !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
 }
-html.dark #foreign-flow .ff-apt-basement-title { color: #7a828d !important; }
-html.dark #foreign-flow .ff-apt-basement-room { background: #262c34 !important; border-color: #3a4048 !important; color: #9aa5b1 !important; }
-html.dark #foreign-flow .ff-apt-empty { color: #999 !important; }
-html.dark #foreign-flow .ff-apt-stat { background: #262c34 !important; border-color: #3a4048 !important; }
-html.dark #foreign-flow .ff-apt-stat-title { color: #7a828d !important; }
-html.dark #foreign-flow .ff-apt-stat-value { color: #ddd !important; }
+html.dark #foreign-flow .ff-apt-basement-title { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-apt-basement-room { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.25) !important; color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #foreign-flow .ff-apt-empty { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-apt-stat { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.25) !important; }
+html.dark #foreign-flow .ff-apt-stat-title { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-apt-stat-value { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-apt-stat-value.ff-apt-stat-sell { color: #8fc0f0 !important; }
 html.dark #foreign-flow .ff-apt-stat-value.ff-apt-stat-buy { color: #ff9fac !important; }
-html.dark #foreign-flow .ff-apt-stat-sub { color: #8a94a3 !important; }
-html.dark #foreign-flow .ff-apt-dot { background: #3a4048 !important; }
+html.dark #foreign-flow .ff-apt-stat-sub { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-apt-dot { background: rgba(245, 239, 224, 0.25) !important; }
 html.dark #foreign-flow .ff-apt-dot.on { background: #ffb154 !important; }
-html.dark #foreign-flow .ff-bar-axis { stroke: #444 !important; }
-html.dark #foreign-flow .ff-bar-val { fill: #ccc !important; }
-html.dark #foreign-flow .ff-bar-label { fill: #888 !important; }
-html.dark #foreign-flow .ff-tech-total-row td { background: #1f1f1f !important; }
+html.dark #foreign-flow .ff-bar-axis { stroke: rgba(245, 239, 224, 0.3) !important; }
+html.dark #foreign-flow .ff-bar-val { fill: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-bar-label { fill: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-tech-total-row td { background: rgba(245, 239, 224, 0.06) !important; }
 
 /* .ff-related-*는 document.body 직속이라 #foreign-flow 스코프 없이 html.dark만으로 잡음 */
-html.dark .ff-related-modal { background: #1c1c1c !important; }
-html.dark .ff-related-modal-header { border-color: #3a3a3a !important; color: #eee !important; }
-html.dark .ff-related-count { color: #888 !important; }
-html.dark .ff-related-close { color: #888 !important; }
-html.dark .ff-related-close:hover { color: #ddd !important; }
-html.dark .ff-related-item { color: #ddd !important; }
-html.dark .ff-related-quote { color: #888 !important; }
-html.dark .ff-related-price { color: #eee !important; }
+html.dark .ff-related-modal { background: #1A1A1A !important; }
+html.dark .ff-related-modal-header { border-color: rgba(245, 239, 224, 0.2) !important; color: #F5EFE0 !important; }
+html.dark .ff-related-count { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark .ff-related-close { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark .ff-related-close:hover { color: #F5EFE0 !important; }
+html.dark .ff-related-item { color: #F5EFE0 !important; }
+html.dark .ff-related-quote { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark .ff-related-price { color: #F5EFE0 !important; }
 html.dark .ff-related-rate.ff-buy { color: #e8776d !important; }
 html.dark .ff-related-rate.ff-sell { color: #6ea8e8 !important; }
-html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
+html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important; }
 
 /* ---- 2026-07-20(3차): 투자시그널 통합 최종본 (①배너 ②카운트칩 ③종목 리스트+요약 패널,
    js/foreign-flow.js) - 가중치 탭 대신 단일 리스트 + 우측 요약 패널 2열 레이아웃 ---- */
@@ -1700,80 +1706,80 @@ html.dark .ff-related-rate.ff-flat { color: #aaa !important; }
 html.dark #foreign-flow .ff-sig-grade.grade-buy { background: rgba(232, 119, 109, .14) !important; border-color: rgba(232, 119, 109, .4) !important; color: #e8776d !important; }
 html.dark #foreign-flow .ff-sig-grade.grade-hold { background: rgba(240, 180, 41, .16) !important; border-color: rgba(240, 180, 41, .4) !important; color: #f0b429 !important; }
 html.dark #foreign-flow .ff-sig-grade.grade-sell { background: rgba(110, 168, 232, .14) !important; border-color: rgba(110, 168, 232, .4) !important; color: #6ea8e8 !important; }
-html.dark #foreign-flow .ff-sig-meta { color: #888 !important; }
-html.dark #foreign-flow .ff-rank-tab { background: #171e2f !important; border-color: #3a3a3a !important; color: #ccc !important; }
-html.dark #foreign-flow .ff-rank-tab.active { background: #eee !important; border-color: #eee !important; color: #111 !important; }
-html.dark #foreign-flow .ff-rank-tabs-label { color: #888 !important; }
-html.dark #foreign-flow .ff-sig-metric { color: #9aa5b8 !important; }
+html.dark #foreign-flow .ff-sig-meta { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-rank-tab { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.25) !important; color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #foreign-flow .ff-rank-tab.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #foreign-flow .ff-rank-tabs-label { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-sig-metric { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-sig-banner {
-  background: #1c2b3d !important;
-  border-color: #2c4a6b !important;
+  background: rgba(245, 239, 224, 0.06) !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
 }
 html.dark #foreign-flow .ff-sig-badge.ff-buy { background: rgba(232, 119, 109, .18) !important; color: #e8776d !important; }
 html.dark #foreign-flow .ff-sig-badge.ff-sell { background: rgba(110, 168, 232, .18) !important; color: #6ea8e8 !important; }
-html.dark #foreign-flow .ff-sig-badge.ff-flat { background: rgba(170, 170, 170, .18) !important; color: #aaa !important; }
-html.dark #foreign-flow .ff-sig-banner-score-num { color: #eee !important; }
-html.dark #foreign-flow .ff-sig-banner-score-sub { color: #a9b6c6 !important; }
+html.dark #foreign-flow .ff-sig-badge.ff-flat { background: rgba(245, 239, 224, 0.16) !important; color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-sig-banner-score-num { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-sig-banner-score-sub { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-sig-banner-chip {
-  background: #24354a !important;
-  border-color: #2c4a6b !important;
-  color: #9dc3ea !important;
+  background: rgba(245, 239, 224, 0.1) !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
+  color: #F5EFE0 !important;
 }
 html.dark #foreign-flow .ff-sig-search-input {
-  background: #2a2a2a !important;
-  border-color: #555 !important;
-  color: #eee !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
+  color: #F5EFE0 !important;
 }
-html.dark #foreign-flow .ff-sig-list-head { color: #ccc !important; }
-html.dark #foreign-flow .ff-sig-table { border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-sig-row { border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-sig-row:hover { background: #262626 !important; }
-html.dark #foreign-flow .ff-sig-list-row.active { background: #1f2f42 !important; }
-html.dark #foreign-flow .ff-sig-name { color: #eee !important; }
-html.dark #foreign-flow .ff-sig-code { color: #888 !important; }
-html.dark #foreign-flow .ff-sig-price { color: #eee !important; }
+html.dark #foreign-flow .ff-sig-list-head { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #foreign-flow .ff-sig-table { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-sig-row { border-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #foreign-flow .ff-sig-row:hover { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #foreign-flow .ff-sig-list-row.active { background: rgba(245, 239, 224, 0.14) !important; }
+html.dark #foreign-flow .ff-sig-name { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-sig-code { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-sig-price { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-sig-more {
-  border-color: #3a3a3a !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
   color: #6ea8e8 !important;
 }
-html.dark #foreign-flow .ff-sig-more:hover { background: #262626 !important; }
-html.dark #foreign-flow .ff-sig-summary { background: #262626 !important; border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-panel-header-name { color: #eee !important; }
-html.dark #foreign-flow .ff-panel-header-code { color: #888 !important; }
+html.dark #foreign-flow .ff-sig-more:hover { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #foreign-flow .ff-sig-summary { background: rgba(245, 239, 224, 0.06) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-panel-header-name { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-panel-header-code { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-panel-header ~ .ff-panel-section,
-html.dark #foreign-flow .ff-panel-section ~ .ff-panel-section { border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-panel-title { color: #888 !important; }
-html.dark #foreign-flow .ff-panel-label { color: #999 !important; }
-html.dark #foreign-flow .ff-panel-val { color: #eee !important; }
-html.dark #foreign-flow .ff-card { border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-card-grid2 { border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-metric-label { color: #888 !important; }
-html.dark #foreign-flow .ff-metric-val { color: #eee !important; }
+html.dark #foreign-flow .ff-panel-section ~ .ff-panel-section { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-panel-title { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-panel-label { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-panel-val { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-card { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-card-grid2 { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-metric-label { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-metric-val { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-metric-val.ff-buy { color: #e8776d !important; }
 html.dark #foreign-flow .ff-metric-val.ff-sell { color: #6ea8e8 !important; }
-html.dark #foreign-flow .ff-metric-val.ff-flat { color: #aaa !important; }
+html.dark #foreign-flow .ff-metric-val.ff-flat { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-metric-val.ff-warn { color: #EF9F27 !important; }
-html.dark #foreign-flow .ff-metric-desc { color: #888 !important; }
-html.dark #foreign-flow .ff-score-legend { color: #777 !important; }
-html.dark #foreign-flow .ff-chart-card { border-color: #3a3a3a !important; }
-html.dark #foreign-flow .ff-chart-card-label { color: #888 !important; }
-html.dark #foreign-flow .ff-chart-card-val { color: #eee !important; }
+html.dark #foreign-flow .ff-metric-desc { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-score-legend { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #foreign-flow .ff-chart-card { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-chart-card-label { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-chart-card-val { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-chart-card-val.ff-buy { color: #e8776d !important; }
 html.dark #foreign-flow .ff-chart-card-val.ff-sell { color: #6ea8e8 !important; }
-html.dark #foreign-flow .ff-chart-card-val.ff-flat { color: #aaa !important; }
-html.dark #foreign-flow .ff-chart-card-sub { color: #999 !important; }
-html.dark #foreign-flow .ff-panel-row { border-color: #333 !important; }
+html.dark #foreign-flow .ff-chart-card-val.ff-flat { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-chart-card-sub { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-panel-row { border-color: rgba(245, 239, 224, 0.16) !important; }
 html.dark #foreign-flow .ff-panel-opinion {
-  background: #1c2b3d !important;
-  border-color: #2c4a6b !important;
-  border-top-color: #2c4a6b !important;
+  background: rgba(245, 239, 224, 0.06) !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
+  border-top-color: rgba(245, 239, 224, 0.2) !important;
 }
-html.dark #foreign-flow .ff-panel-opinion .ff-panel-title { color: #9dc3ea !important; }
-html.dark #foreign-flow .ff-panel-opinion-text { color: #cfe3f7 !important; }
+html.dark #foreign-flow .ff-panel-opinion .ff-panel-title { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-panel-opinion-text { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-panel-detail-link {
-  background: #20304a !important;
-  border-color: #33507a !important;
+  background: rgba(245, 239, 224, 0.1) !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
   color: #6ea8e8 !important;
 }
-html.dark #foreign-flow .ff-panel-detail-link:hover { background: #29405f !important; }
-html.dark .ff-related-item:hover { background: #2a2a2a !important; }
+html.dark #foreign-flow .ff-panel-detail-link:hover { background: rgba(245, 239, 224, 0.16) !important; }
+html.dark .ff-related-item:hover { background: rgba(245, 239, 224, 0.08) !important; }

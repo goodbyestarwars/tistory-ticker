@@ -101,23 +101,25 @@
 }
 
 /* ── 다크모드 ── */
-html.dark #stock-calendar .sc-cal-col { background: #182238 !important; border-color: #2e3b55 !important; }
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. */
+html.dark #stock-calendar .sc-cal-col { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #stock-calendar .sc-cal-title,
-html.dark #stock-calendar .sc-week-title { color: #dbe4f2 !important; }
-html.dark #stock-calendar .sc-nav { background: #1c2739 !important; border-color: #2e3b55 !important; color: #9aa8c0 !important; }
-html.dark #stock-calendar .sc-nav:hover { background: #2a3467 !important; color: #818cf8 !important; border-color: #3b5bab !important; }
-html.dark #stock-calendar .sc-day { color: #d3dbe8 !important; }
-html.dark #stock-calendar .sc-week-title { border-bottom-color: #263048 !important; }
-html.dark #stock-calendar .sc-ev-item { background: #1c2739 !important; }
-html.dark #stock-calendar .sc-ev-item:hover { background: #2a3467 !important; }
-html.dark #stock-calendar .sc-ev-date { color: #a5b4fc !important; }
-html.dark #stock-calendar .sc-ev-title { color: #dbe4f2 !important; }
-html.dark #stock-calendar .sc-ev-time { color: #8091ab !important; }
-html.dark #stock-calendar .sc-ev-icon.stock { background: #2a3467 !important; color: #a5b4fc !important; }
+html.dark #stock-calendar .sc-week-title { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-nav { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #stock-calendar .sc-nav:hover { background: rgba(245, 239, 224, 0.18) !important; color: #F5EFE0 !important; border-color: rgba(245, 239, 224, 0.4) !important; }
+html.dark #stock-calendar .sc-day { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-week-title { border-bottom-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #stock-calendar .sc-ev-item { background: rgba(245, 239, 224, 0.06) !important; }
+html.dark #stock-calendar .sc-ev-item:hover { background: rgba(245, 239, 224, 0.14) !important; }
+html.dark #stock-calendar .sc-ev-date { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-ev-title { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-ev-time { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #stock-calendar .sc-ev-icon.stock { background: rgba(245, 239, 224, 0.18) !important; color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-ev-icon.flag,
-html.dark #stock-calendar .sc-ev-icon.default { background: #1c2739 !important; }
-html.dark #stock-calendar .sc-ev-ticker { color: #a5b4fc !important; }
-html.dark #stock-calendar .sc-ev-tag { background: #2a3467 !important; color: #a5b4fc !important; }
+html.dark #stock-calendar .sc-ev-icon.default { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #stock-calendar .sc-ev-ticker { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-ev-tag { background: rgba(245, 239, 224, 0.18) !important; color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-empty,
 html.dark #stock-calendar .sc-loading,
-html.dark #stock-calendar .sc-error { color: #6b7a99 !important; background: #1c2739 !important; }
+html.dark #stock-calendar .sc-error { color: rgba(245, 239, 224, 0.5) !important; background: rgba(245, 239, 224, 0.06) !important; }

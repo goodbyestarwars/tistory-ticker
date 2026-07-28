@@ -206,43 +206,45 @@
   margin-top: 8px;
 }
 
-html.dark #kospi-futures .kf-ai { background: #1c2a3a !important; }
-html.dark #kospi-futures .kf-ai p { color: #ccc !important; }
+/* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
+   배경 + #F5EFE0 글자로 교체. */
+html.dark #kospi-futures .kf-ai { background: rgba(245, 239, 224, 0.06) !important; }
+html.dark #kospi-futures .kf-ai p { color: #F5EFE0 !important; }
 html.dark #kospi-futures .kf-stat-card {
-  background: #1e1e1e !important;
-  border-color: #3a3a3a !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
 }
-html.dark #kospi-futures .kf-stat-label { color: #999 !important; }
-html.dark #kospi-futures .kf-stat-updated { color: #777 !important; }
-html.dark #kospi-futures .kf-zero { color: #ccc !important; }
+html.dark #kospi-futures .kf-stat-label { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #kospi-futures .kf-stat-updated { color: rgba(245, 239, 224, 0.4) !important; }
+html.dark #kospi-futures .kf-zero { color: #F5EFE0 !important; }
 html.dark #kospi-futures .kf-loading,
 html.dark #kospi-futures .kf-error,
-html.dark #kospi-futures .kf-chart-error { color: #777 !important; }
+html.dark #kospi-futures .kf-chart-error { color: rgba(245, 239, 224, 0.4) !important; }
 html.dark #kospi-futures .kf-chart {
-  background: #222 !important;
-  border-color: #444 !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
 }
 html.dark #kospi-futures .kf-interval-btn {
-  background: #2c2c2c !important;
-  color: #999 !important;
-  border-color: #3a3a3a !important;
+  background: rgba(245, 239, 224, 0.08) !important;
+  color: rgba(245, 239, 224, 0.55) !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
 }
 html.dark #kospi-futures .kf-interval-btn.active {
-  background: #eee !important;
-  color: #222 !important;
-  border-color: #eee !important;
+  background: #F5EFE0 !important;
+  color: #1A1A1A !important;
+  border-color: #F5EFE0 !important;
 }
 html.dark #kospi-futures .kf-collapse-btn {
-  background: #2c2c2c !important;
-  color: #999 !important;
-  border-color: #3a3a3a !important;
+  background: rgba(245, 239, 224, 0.08) !important;
+  color: rgba(245, 239, 224, 0.55) !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
 }
-html.dark #kospi-futures .kf-stat-oi { color: #999 !important; }
-html.dark #kospi-futures .kf-opt-desc { color: #999 !important; }
+html.dark #kospi-futures .kf-stat-oi { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #kospi-futures .kf-opt-desc { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #kospi-futures .kf-opt-card {
-  background: #1e1e1e !important;
-  border-color: #3a3a3a !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
 }
-html.dark #kospi-futures .kf-opt-tendency { background: #2c2c2c !important; }
-html.dark #kospi-futures .kf-opt-row { border-bottom-color: #333 !important; }
-html.dark #kospi-futures .kf-opt-updated { color: #777 !important; }
+html.dark #kospi-futures .kf-opt-tendency { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #kospi-futures .kf-opt-row { border-bottom-color: rgba(245, 239, 224, 0.12) !important; }
+html.dark #kospi-futures .kf-opt-updated { color: rgba(245, 239, 224, 0.4) !important; }
