@@ -1,4 +1,12 @@
-/* ============ 상단 지수/환율/코인 리본 ============ */
+/* ============ 상단 지수/환율/코인 리본 (2026-07-16 폐기) ============ */
+
+/*
+ * skin.html에 빈 #market-ribbon과 이 스타일시트가 아직 남아 있다. 기존에는 아래의 검은
+ * 32px 바가 먼저 페인트된 뒤 defer된 market-ribbon.js가 DOMContentLoaded에서 숨겨,
+ * 새로고침 때 검은 영역이 잠깐 보이는 FOUC가 발생했다. JS를 기다리지 않고 CSS 첫 계산부터
+ * 숨긴다. 아래 구형 규칙은 이력/롤백용으로 유지하되 !important라 다시 노출되지 않는다.
+ */
+.market-ribbon { display: none !important; }
 
 /* navbar(z-index:300, top:0)보다 위에 고정해야 하는 세 번째 fixed 바.
    navbar/disc-ticker/page-wrap/sidebar의 top 오프셋도 이 높이(32px)만큼 같이 밀려있다
@@ -8,7 +16,7 @@
   top: 0; left: 0; right: 0;
   z-index: 301;
   height: 32px;
-  display: flex;
+  display: none;
   align-items: center;
   gap: 12px;
   padding: 0 20px;
