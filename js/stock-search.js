@@ -535,7 +535,15 @@
         horzLines: { color: dark ? '#3a3a3a' : '#eee' }
       },
       rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
-      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' }
+      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
+      // 2026-07-28 사용자 리포트: 다크모드에서 차트 위에 안 어울리는 회색 네모(십자선
+      // 가격/시각 라벨의 기본 배경색, 라이브러리 기본값이라 다크 팔레트와 무관하게 고정)가
+      // 떴음 - 라벨 배경색을 테마에 맞게 명시(js/foreign-flow.js와 동일 수정).
+      crosshair: {
+        mode: LWC.CrosshairMode.Normal,
+        vertLine: { labelBackgroundColor: dark ? '#2a2a2a' : '#555' },
+        horzLine: { labelBackgroundColor: dark ? '#2a2a2a' : '#555' }
+      }
     };
   }
 
@@ -549,7 +557,8 @@
       var chart = LWC.createChart(container, mergeOptions({
         autoSize: true,
         height: 420,
-        crosshair: { mode: LWC.CrosshairMode.Normal },
+        // crosshair는 lwcThemeOptions()에 있음(mergeOptions가 얕은 병합이라 두 곳에 나눠
+        // 쓰면 뒤에 오는 쪽이 통째로 덮어씀).
         localization: { priceFormatter: function (v) { return Math.round(v).toLocaleString(); } },
         rightPriceScale: { scaleMargins: { top: 0.08, bottom: 0.22 } }
       }, lwcThemeOptions(LWC)));

@@ -473,13 +473,24 @@
   var FEATURED_COUNT = 1;
   var HEADLINE_COUNT = 4;
 
+  // item.datetime 형식 "YYYYMMDDHHmm" 기준 오늘 날짜(YYYYMMDD) - 로컬 타임존 사용(국내
+  // 종목 뉴스라 KST 사용자 기준으로 충분, 사이트 다른 날짜 로직도 별도 KST 변환 없음).
+  function todayYyyymmdd() {
+    var d = new Date();
+    return '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  }
+
   function renderNews(box, stock, data) {
     // GAS 캐시 갱신 전환기에는 옛날 응답 형태(배열)가 아직 캐시에 남아있을 수 있어
     // 신/구 형태를 둘 다 받아준다.
     var list = Array.isArray(data) ? data : ((data && data.items) || []);
 
+    // 2026-07-28 사용자 요청: 오늘 뉴스만 출력(예전 뉴스가 계속 섞여 나와 최신성이 떨어짐).
+    var today = todayYyyymmdd();
+    list = list.filter(function (item) { return item.datetime && item.datetime.slice(0, 8) === today; });
+
     if (!list.length) {
-      box.innerHTML = '<div class="sn-error">' + escapeHtml(stock.name) + '에 대한 최근 뉴스가 없어요.</div>';
+      box.innerHTML = '<div class="sn-error">' + escapeHtml(stock.name) + '에 대한 오늘 뉴스가 아직 없어요.</div>';
       return;
     }
 
@@ -527,8 +538,11 @@
     });
   }
 
+  // 2026-07-28 사용자 요청: "작은 미리보기(사진)+제목만 있어도 충분하다" - 큰 카드에만
+  // 있던 본문 스니펫(sn-news-snippet)을 빼서 헤드라인/그리드 카드와 동일하게 사진+제목+
+  // 출처/시각만 보여주도록 통일.
   function buildFeaturedCard(item, idx) {
-    // 미리보기 이미지가 없으면 빈 회색 박스를 그리지 않고 글(제목/요약)만 보여준다
+    // 미리보기 이미지가 없으면 빈 회색 박스를 그리지 않고 제목만 보여준다
     // (사용자 피드백 "미리보기 없으면 그냥 글만 보여줘" - 위젯 전체 개편 전 임시 조치).
     return '<div class="sn-news-featured' + (item.image ? '' : ' sn-news-no-thumb') + '" data-idx="' + idx + '">'
       + (item.image
@@ -536,7 +550,6 @@
         : '')
       + '<div class="sn-news-featured-body">'
       + '<div class="sn-news-featured-title">' + escapeHtml(item.title) + '</div>'
-      + '<div class="sn-news-snippet">' + escapeHtml(item.body) + '</div>'
       + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
       + '<span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
       + '</div>'

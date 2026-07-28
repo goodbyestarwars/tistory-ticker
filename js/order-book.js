@@ -241,9 +241,9 @@
           // 강도 계산은 checkWallBreakthrough가 trackedWall을 초기화(돌파 시 null)하기 전에
           // 먼저 계산해야 "돌파 직전 100에 가까운 강도"가 자연스럽게 찍힌다.
           var strength = computeExecutionStrength();
-          checkWallBreakthrough(container, book);
-          updateHud(container, book, strength);
-          updateBreakoutNote(container, book);
+          checkWallBreakthrough(container, book, quote);
+          updateHud(container, book, strength, quote);
+          updateBreakoutNote(container, book, quote);
         }
         renderBoard(container, book, quote);
       })
@@ -295,7 +295,18 @@
     return best;
   }
 
-  function checkWallBreakthrough(container, book) {
+  // 2026-07-28 사용자 리포트: SK하이닉스가 -10%로 급락 중인데도 "매도벽 돌파!"가 떴음 -
+  // 이 감지 로직은 "추적하던 매도호가가 사다리에서 사라지거나 거의 소진됨"만 보는데, 이건
+  // 진짜 매수세가 벽을 뚫은 경우뿐 아니라 가격이 급락해서 그 가격대가 화면에 보이는 상위
+  // 10호가 창 밖으로 밀려난 경우에도 똑같이 "사라짐"으로 잡힌다. 후자는 돌파가 아니라
+  // 오히려 그 반대(하락)인데 "돌파!"라고 표현하면 오해를 준다. 감지 로직 자체(벽 소진 여부)는
+  // 그대로 두고, 그 순간 캔들 방향(양봉/음봉, quote.changeRate)에 따라 문구만 다르게 낸다 -
+  // 양봉=진짜 돌파, 음봉=지지라인 관련 문구(사용자 제안).
+  function isUpCandle(quote) {
+    return !quote || quote.changeRate == null || quote.changeRate >= 0;
+  }
+
+  function checkWallBreakthrough(container, book, quote) {
     var asks = book.asks || [];
     if (!state.trackedWall) {
       var candidate = findWallCandidate(asks);
@@ -309,16 +320,16 @@
       if (found.qty > Math.max(1, state.trackedWall.peakQty * WALL_BREAK_RATIO)) return; // 아직 안 무너짐
     }
     // found가 없으면(그 가격대가 더 이상 매도 사다리에 없음 = 현재가가 완전히 지나감) 또는
-    // 잔량이 임계치 밑으로 줄었으면 돌파로 판정.
-    recordMilestone(container, state.trackedWall.price);
+    // 잔량이 임계치 밑으로 줄었으면 이벤트로 판정(문구는 캔들 방향에 따라 분기).
+    recordMilestone(container, state.trackedWall.price, isUpCandle(quote));
     state.trackedWall = null;
   }
 
-  function recordMilestone(container, price) {
-    state.milestones.unshift({ price: price, t: Date.now() });
+  function recordMilestone(container, price, up) {
+    state.milestones.unshift({ price: price, t: Date.now(), up: up });
     if (state.milestones.length > MILESTONE_MAX) state.milestones.length = MILESTONE_MAX;
     renderMilestoneLog(container);
-    showMilestoneToast(container, price);
+    showMilestoneToast(container, price, up);
   }
 
   function fmtElapsed(t) {
@@ -331,16 +342,21 @@
     var box = container.querySelector('#obMilestones');
     if (!box) return;
     if (!state.milestones.length) { box.innerHTML = ''; return; }
-    box.innerHTML = '<div class="ob-milestones-title">🧱 매도벽 돌파 기록</div>'
+    box.innerHTML = '<div class="ob-milestones-title">🧱 매물벽 이벤트 기록</div>'
       + '<ul class="ob-milestones-list">' + state.milestones.map(function (m) {
-        return '<li>' + Math.round(m.price).toLocaleString('ko-KR') + '원 돌파 <span class="ob-milestone-time">(' + fmtElapsed(m.t) + ')</span></li>';
+        var label = m.up
+          ? Math.round(m.price).toLocaleString('ko-KR') + '원 돌파'
+          : Math.round(m.price).toLocaleString('ko-KR') + '원대 지지라인 재구축';
+        return '<li>' + label + ' <span class="ob-milestone-time">(' + fmtElapsed(m.t) + ')</span></li>';
       }).join('') + '</ul>';
   }
 
-  function showMilestoneToast(container, price) {
+  function showMilestoneToast(container, price, up) {
     var toast = container.querySelector('#obToast');
     if (!toast) return;
-    toast.textContent = '🎉 ' + Math.round(price).toLocaleString('ko-KR') + '원 돌파!';
+    toast.textContent = up
+      ? '🎉 ' + Math.round(price).toLocaleString('ko-KR') + '원 돌파!'
+      : '🔄 ' + Math.round(price).toLocaleString('ko-KR') + '원대 지지라인 재구축';
     toast.className = 'ob-toast show';
     clearTimeout(state.toastTimer);
     state.toastTimer = setTimeout(function () {
@@ -384,7 +400,7 @@
   // 밑으로 줄면 "돌파"로 잡으므로, 그 임계치까지 남은 잔량을 그대로 역산해서 보여준다.
   // 실제 체결량과의 대응은 근사치(체결강도와 동일한 한계 - 2초 폴링 스냅샷 비교라
   // 그 사이 체결은 누락될 수 있음).
-  function updateBreakoutNote(container, book) {
+  function updateBreakoutNote(container, book, quote) {
     var el = container.querySelector('#obBreakoutNote');
     if (!el) return;
     var wall = state.trackedWall;
@@ -393,17 +409,24 @@
     var currQty = level ? level.qty : 0;
     var breakThreshold = Math.max(1, Math.ceil(wall.peakQty * WALL_BREAK_RATIO));
     var remaining = currQty - breakThreshold;
+    var up = isUpCandle(quote);
+    var priceLabel = Math.round(wall.price).toLocaleString('ko-KR');
     if (remaining <= 0) {
-      el.textContent = '🎯 ' + Math.round(wall.price).toLocaleString('ko-KR') + '원 매도벽, 곧 돌파 판정 예정';
-    } else {
-      el.textContent = '🎯 ' + Math.round(wall.price).toLocaleString('ko-KR') + '원 매도벽 - 앞으로 약 '
+      el.textContent = up
+        ? '🎯 ' + priceLabel + '원 매도벽, 곧 돌파 판정 예정'
+        : '🛡️ ' + priceLabel + '원대 지지라인 방어중, 곧 재구축 신호 예정';
+    } else if (up) {
+      el.textContent = '🎯 ' + priceLabel + '원 매도벽 - 앞으로 약 '
         + fmtQty(remaining) + '주 더 소진되면 돌파로 판정돼요(근사치).';
+    } else {
+      el.textContent = '🛡️ ' + priceLabel + '원대 지지라인 방어중 - 앞으로 약 '
+        + fmtQty(remaining) + '주 더 소진되면 재구축 신호로 바뀌어요(근사치).';
     }
   }
 
   // 저항(매도벽)/지지(매수벽) 강도는 "위쪽 매도벽과 아래쪽 매수벽의 높이 차이"(사용자 요청)를
   // 그대로 숫자화 - 각 방향에서 가장 큰 단일 호가 잔량을 서로 비교해 막대 길이로 보여준다.
-  function updateHud(container, book, strength) {
+  function updateHud(container, book, strength, quote) {
     var maxAsk = 0, maxBid = 0;
     (book.asks || []).forEach(function (r) { if (r.qty > maxAsk) maxAsk = r.qty; });
     (book.bids || []).forEach(function (r) { if (r.qty > maxBid) maxBid = r.qty; });
@@ -435,10 +458,14 @@
       } else {
         note.textContent = '저항과 지지가 팽팽해요.';
       }
+      // 2026-07-28: "매도벽을 미는 중"이라는 문구가 급락 중에도 뜨는 게 이상하다는 지적으로
+      // 캔들 방향에 따라 어휘를 분기(위 checkWallBreakthrough 주석 참고 - 감지 로직은 동일,
+      // 표현만 다르게).
       if (strength) {
+        var up = isUpCandle(quote);
         if (strength.growing) note.textContent += ' 체결강도: 매도벽이 오히려 두꺼워지는 중.';
-        else if (score >= 70) note.textContent += ' 체결강도: 🔥 매도벽을 강하게 미는 중.';
-        else if (score >= 30) note.textContent += ' 체결강도: 매도벽을 서서히 미는 중.';
+        else if (score >= 70) note.textContent += up ? ' 체결강도: 🔥 매도벽을 강하게 미는 중.' : ' 체결강도: 🔥 지지라인이 강하게 흔들리는 중.';
+        else if (score >= 30) note.textContent += up ? ' 체결강도: 매도벽을 서서히 미는 중.' : ' 체결강도: 지지라인이 서서히 흔들리는 중.';
       }
     }
   }
