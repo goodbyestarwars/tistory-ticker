@@ -444,6 +444,28 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertNotIn('/etc/systemd/system/kiwoom-news-momentum', script)
         self.assertNotIn('rollback_news_momentum.sh', script)
 
+    def test_momentum_card_mobile_dark_and_missing_data_contract(self):
+        repo_root = os.path.abspath(os.path.join(CLOUD_VM_DIR, '..', '..'))
+        with open(
+            os.path.join(repo_root, 'css', 'foreign-flow.css'),
+            'r', encoding='utf-8',
+        ) as source:
+            css = source.read()
+        with open(
+            os.path.join(repo_root, 'js', 'foreign-flow.js'),
+            'r', encoding='utf-8',
+        ) as source:
+            javascript = source.read()
+        self.assertIn('@media (max-width: 420px)', css)
+        self.assertIn('grid-template-columns: minmax(0, 1fr)', css)
+        self.assertIn(
+            'html.dark #foreign-flow .ff-momentum-change.status-expanding',
+            css,
+        )
+        self.assertIn('감성 데이터 없음', javascript)
+        self.assertIn('검색 관심도 데이터 부족', javascript)
+        self.assertIn('※ 뉴스 제목 기준 자동 분류', javascript)
+
     def test_fastapi_momentum_response_and_health_regression(self):
         name, items = MOCK_NEWS['000660']
         topics = news_momentum.extract_topics('000660', name, items, today=TODAY)
