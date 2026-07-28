@@ -180,7 +180,7 @@ def health():
         'status': 'ok',
         'deployGuardVersion': 2,
         'momentumSchedulerVersion': 'deploy-timer-flock-v1',
-        'momentumAggregationVersion': 2,
+        'momentumAggregationVersion': 3,
     })
 
 

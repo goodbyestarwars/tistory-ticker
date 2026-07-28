@@ -471,7 +471,7 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertIn('PYTHON="$APP_DIR/venv/bin/python"', script)
         self.assertIn('if [ "$(id -un)" != "goodbyestarwars" ]', script)
         self.assertIn('TZ=Asia/Seoul date +%F', script)
-        self.assertIn('MOMENTUM_SCHEMA_VERSION="2"', script)
+        self.assertIn('MOMENTUM_SCHEMA_VERSION="3"', script)
         self.assertIn('flock -n -E 75', script)
         self.assertIn(
             '000660,005930,005380,083650,042660,035420,066570,247540',
@@ -522,7 +522,7 @@ class NewsMomentumTest(unittest.TestCase):
         health = vm_main.health()['data']
         self.assertEqual(health['status'], 'ok')
         self.assertEqual(health['momentumSchedulerVersion'], 'deploy-timer-flock-v1')
-        self.assertEqual(health['momentumAggregationVersion'], 2)
+        self.assertEqual(health['momentumAggregationVersion'], 3)
 
         with mock.patch.dict(os.environ, {'NEWS_MOMENTUM_ENABLED': '0'}):
             disabled = vm_main.news_momentum_endpoint('000660')
