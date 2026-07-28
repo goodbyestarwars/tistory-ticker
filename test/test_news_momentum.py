@@ -174,6 +174,43 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertIsNone(legacy['netSentiment'])
         self.assertIsNone(legacy['negativeShare'])
 
+    def test_current_batch_replaces_legacy_daily_count_without_sentiment(self):
+        topics = news_momentum.extract_topics(
+            '005930', '삼성전자', [
+                {'title': '삼성전자 AI 반도체 공급 확대', 'link': 'https://n/current-1',
+                 'pubDate': '2026-07-29'},
+                {'title': '삼성전자 AI 반도체 우려 하락', 'link': 'https://n/current-2',
+                 'pubDate': '2026-07-29'},
+            ], today=TODAY,
+        )
+        topic = next(row for row in topics if row['topic_name'] == '삼성전자 AI 반도체')
+        topic_id = self.conn.execute(
+            '''INSERT INTO news_topics
+               (stock_code,stock_name,topic_name,keywords_json,query_version,
+                first_seen_at,last_seen_at,total_count,count_7d,count_30d,sentiment,
+                status,representative_urls_json,created_at,updated_at)
+               VALUES (?,?,?,?,1,?,?,3,3,3,?,'active','[]',?,?)''',
+            (
+                '005930', '삼성전자', topic['topic_name'], '[]',
+                '2026-07-29', '2026-07-29', 'neutral',
+                '2026-07-29T00:00:00+00:00', '2026-07-29T00:00:00+00:00',
+            ),
+        ).lastrowid
+        self.conn.execute(
+            '''INSERT INTO news_topic_daily
+               (topic_id,stock_code,date,news_count,search_interest,created_at)
+               VALUES (?,?,?,?,NULL,?)''',
+            (topic_id, '005930', '2026-07-29', 3, '2026-07-29T00:00:00+00:00'),
+        )
+        self.conn.commit()
+
+        news_momentum.upsert_topics(
+            self.conn, '005930', '삼성전자', [topic], today=TODAY
+        )
+        loaded = news_momentum.load_stock_momentum(self.conn, '005930')['topics'][0]
+        self.assertEqual(loaded['newsCount'], 2)
+        self.assertEqual(sum(loaded['sentimentCounts'].values()), 2)
+
     def test_recent_previous_windows_and_momentum_statuses(self):
         topic = [{
             'stock_code': '005930',

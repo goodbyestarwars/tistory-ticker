@@ -506,13 +506,10 @@ def upsert_topics(conn, stock_code, stock_name, topics, today=None, now=None):
                 '(topic_id,stock_code,date,news_count,positive_count,neutral_count,'
                 'negative_count,search_interest,created_at) '
                 'VALUES (?,?,?,?,?,?,?,NULL,?) ON CONFLICT(topic_id,date) DO UPDATE SET '
-                'news_count=MAX(news_topic_daily.news_count,excluded.news_count), '
-                'positive_count=CASE WHEN excluded.news_count>=news_topic_daily.news_count '
-                'THEN excluded.positive_count ELSE news_topic_daily.positive_count END, '
-                'neutral_count=CASE WHEN excluded.news_count>=news_topic_daily.news_count '
-                'THEN excluded.neutral_count ELSE news_topic_daily.neutral_count END, '
-                'negative_count=CASE WHEN excluded.news_count>=news_topic_daily.news_count '
-                'THEN excluded.negative_count ELSE news_topic_daily.negative_count END',
+                'news_count=excluded.news_count, '
+                'positive_count=excluded.positive_count, '
+                'neutral_count=excluded.neutral_count, '
+                'negative_count=excluded.negative_count',
                 [
                     (
                         topic_id, stock_code, day, count,
