@@ -176,7 +176,11 @@ def get_kiwoom_token():
 
 @app.get('/health')
 def health():
-    return envelope({'status': 'ok', 'deployGuardVersion': 2})
+    return envelope({
+        'status': 'ok',
+        'deployGuardVersion': 2,
+        'momentumSchedulerVersion': 'deploy-timer-flock-v1',
+    })
 
 
 @app.get('/quote')

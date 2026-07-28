@@ -329,7 +329,9 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertTrue(response['data']['enabled'])
         self.assertEqual(response['data']['stockCode'], '000660')
         self.assertGreaterEqual(len(response['data']['topics']), 3)
-        self.assertEqual(vm_main.health()['data']['status'], 'ok')
+        health = vm_main.health()['data']
+        self.assertEqual(health['status'], 'ok')
+        self.assertEqual(health['momentumSchedulerVersion'], 'deploy-timer-flock-v1')
 
         with mock.patch.dict(os.environ, {'NEWS_MOMENTUM_ENABLED': '0'}):
             disabled = vm_main.news_momentum_endpoint('000660')
