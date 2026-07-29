@@ -239,6 +239,7 @@
       + stockIconHtml(code)
       + '<span class="nav-search-suggest-name">' + escapeHtml(name) + '</span>'
       + '<span class="nav-search-rate-badge" data-rate-code="' + escapeAttr(code) + '"></span>'
+      + '<span class="nav-search-current-price" data-price-code="' + escapeAttr(code) + '"></span>'
       + '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>'
       + '</div>';
   }
@@ -279,9 +280,9 @@
       var code = badge.getAttribute('data-rate-code');
       var quote = quoteByCode[code];
       if (!quote) return; // 조회 실패 - 뱃지 미표시(빈 상태 유지)
-      var rateText = arrowSymbol(quote.change) + Math.abs(quote.changeRate).toFixed(2) + '%';
-      var priceText = Number(quote.price).toLocaleString('ko-KR') + '원';
-      badge.textContent = rateText + ' · ' + priceText;
+      badge.textContent = arrowSymbol(quote.change) + Math.abs(quote.changeRate).toFixed(2) + '%';
+      var price = box.querySelector('[data-price-code="' + code + '"]');
+      if (price) price.textContent = Number(quote.price).toLocaleString('ko-KR') + '원';
       badge.classList.remove('rate-up', 'rate-down');
       if (quote.change > 0) badge.classList.add('rate-up');
       else if (quote.change < 0) badge.classList.add('rate-down');
