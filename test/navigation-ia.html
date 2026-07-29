@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>9Pay navigation IA test</title>
+  <link rel="stylesheet" href="../style.css?v=20260730">
+  <style>
+    :root { --qi-height: 0px; }
+    .test-content { margin: 150px auto 40px; max-width: 900px; padding: 20px; }
+    .test-content h1 { font-size: 22px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="nav-logo">
+      <span class="nav-logo-name">9Pay</span>
+    </a>
+    <div class="nav-search" id="navSearchMount"></div>
+    <div class="nav-icons">
+      <a href="/guestbook" class="nav-icon-btn" title="커뮤니티" aria-label="커뮤니티">●</a>
+    </div>
+  </nav>
+  <aside class="sidebar-left">
+    <div class="card nav-menu" id="nav-menu-mount"></div>
+  </aside>
+  <main class="test-content">
+    <h1>메뉴 정보구조 검수</h1>
+    <p>PC 드롭다운, 모바일 1·2차 가로 메뉴, MY 아이콘과 검색창 겹침을 확인하는 정적 테스트입니다.</p>
+  </main>
+  <script src="../data/krx_map.js"></script>
+  <script src="../js/stock-search-panel.js?v=20260730"></script>
+  <script src="../js/skin-shell.js?v=20260730"></script>
+  <script src="../js/skin-menu.js?v=20260730"></script>
+</body>
+</html>
