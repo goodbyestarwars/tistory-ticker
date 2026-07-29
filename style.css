@@ -3246,8 +3246,10 @@ html.full-width-page .sidebar-right,
 body#tt-body-page .sidebar-right { display: none; }
 
 /* ============ 2026-07 IA 재개편: 7개 1차 메뉴 + 고정형 2차 메뉴 ============ */
+.sidebar-left .card.nav-menu,
 .sidebar-left .nav-menu {
-  display: block;
+  display: flex;
+  flex-direction: column;
   padding: 0 14px;
   overflow: visible;
 }
