@@ -2675,8 +2675,8 @@ html.dark .sidebar-left .nav-dropdown-item.active {
   .sidebar-left .nav-group { position: static; }
   .sidebar-left .nav-group:hover .nav-dropdown,
   .sidebar-left .nav-group:focus-within .nav-dropdown { display: none; }
-  .sidebar-left .nav-group-active .nav-dropdown,
-  .sidebar-left .nav-group-open .nav-dropdown {
+  .sidebar-left .nav-group.nav-group-active .nav-dropdown,
+  .sidebar-left .nav-group.nav-group-open .nav-dropdown {
     display: flex;
     position: absolute;
     top: 43px;
