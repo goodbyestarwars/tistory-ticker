@@ -92,7 +92,7 @@
    정확히 맞아떨어지고, 마지막 열 뒤에는 실제 간격이 없어 그 자리의 선은 그리드 폭
    밖으로 밀려나 안 보인다(계산상 항상 폭을 넘어감 - 별도 처리 불필요). */
 .qi-grid {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   height: 100%;
   display: grid;
   grid-auto-flow: column;
@@ -102,6 +102,18 @@
   column-gap: 12px;
   background-image: repeating-linear-gradient(to right,
     transparent 0, transparent 205px, #e2e8f0 205px, #e2e8f0 206px, transparent 206px, transparent 212px);
+}
+
+/* 상단 뉴스 패널을 제거한 뒤, 대표 지수 1개 + 나머지 7개가 전체 폭을 고르게 사용한다. */
+@media (min-width: 901px) {
+  .qi-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: 1fr;
+    grid-auto-flow: row;
+    grid-auto-columns: 0;
+    background-image: none;
+  }
+  html.dark .qi-grid { background-image: none !important; }
 }
 
 /* 2026-07-17(9차): KRX 공시 티커를 흡수한 "긴급속보" 패널 - 원래 disc-track의 가로

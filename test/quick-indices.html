@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <title>quick-indices 로컬 테스트</title>
-<link rel="stylesheet" href="../style.css" />
-<link rel="stylesheet" href="../css/quick-indices.css" />
+<link rel="stylesheet" href="../style.css?v=20260730e" />
+<link rel="stylesheet" href="../css/quick-indices.css?v=20260730e" />
 <style>
   body { font-family: 'Nanum Myeongjo', Georgia, serif; }
 </style>
@@ -24,24 +24,24 @@
       <h1>quick-indices 로컬 테스트</h1>
       <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
         <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-        <button onclick="localStorage.removeItem('qi_selected_v1'); location.reload();">선택 초기화(기본 4종으로)</button>
+        <button onclick="localStorage.removeItem('qi_selected_v1'); localStorage.removeItem('qi_market_only_v2'); location.reload();">선택 초기화(핵심 8종)</button>
         <button id="checkBtn">레이아웃 겹침/틈 체크</button>
       </div>
       <p id="checkResult" style="font-size:13px;color:#888;"></p>
       <p style="font-size:13px;color:#888">
         quick-indices.js는 이제 페이지 종류와 무관하게 navbar 바로 아래 고정 바로 뜹니다
         (홈/카테고리 글목록뿐 아니라 이 테스트처럼 .post-card가 없는 페이지에서도 동일).
-        GAS(?market=1, 공시용 ?market=0)는 CORS가 열려있어 로컬에서도 실제 호출되지만,
+        GAS(?market=1)는 CORS가 열려있어 로컬에서도 실제 호출되지만,
         VM(/futures)은 ghlee.tistory.com만 허용해서 로컬에서는 막힐 수 있습니다(코스피/코스닥
         포함 - VM 소스로 전환됨 - 및 해외선물 카드/미니차트는 라이브에서 최종 확인).
-        오른쪽 "긴급속보" 패널(옛 공시 티커)은 실제 GAS를 그대로 호출합니다.
+        상단 영역은 시장지표 전용이며 뉴스·공시 패널은 렌더링하지 않습니다.
       </p>
       <article class="post-card">(mock) 본문 콘텐츠 - 이 위 틈이 없어야 함</article>
     </div>
   </div>
 </div>
 
-<script src="../js/quick-indices.js"></script>
+<script src="../js/quick-indices.js?v=20260730e"></script>
 <script>
   document.getElementById('checkBtn').addEventListener('click', function () {
     var qi = document.getElementById('quick-indices');

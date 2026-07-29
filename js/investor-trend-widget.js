@@ -111,10 +111,10 @@
     }).join('');
     return '<div class="card itw-card">'
       + '<div class="itw-header">'
-      + '<span class="itw-title">투자자별 매매 동향</span>'
+      + '<div class="itw-heading-copy"><span class="itw-title">투자자별 매매 동향</span>'
+      + '<span class="itw-subtext">외국인 순매수량은 장외거래 포함</span></div>'
       + '<span class="itw-asof" id="itwAsOf"></span>'
       + '</div>'
-      + '<div class="itw-subtext">외국인 순매수량은 장외거래를 포함한 거래량이에요</div>'
       + '<div class="itw-tabrow">'
       + '<div class="itw-tabs" role="tablist">' + periodTabs + '</div>'
       + '<div class="itw-market-tabs" role="tablist">' + marketTabs + '</div>'

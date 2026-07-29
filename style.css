@@ -215,7 +215,10 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
      떠 있어서 넓은 화면에서 서로 어긋나 보였음(사용자 리포트). navbar와 동일한
      좌측 패딩(14px)으로 맞춰 항상 같은 x좌표에서 시작하게 함. */
   padding: 0 8px 0 14px;
-  overflow-x: auto;
+  /* 데스크톱에서 overflow-x:auto를 주면 CSS 계산상 overflow-y도 auto가 되어,
+     position:absolute 드롭다운이 50px 메뉴바 안에서 잘린다. PC는 완전히 열어두고
+     가로 스크롤이 필요한 모바일에서만 아래 media query로 다시 활성화한다. */
+  overflow: visible;
   scrollbar-width: none;
   box-shadow: none;
   border-radius: 0;
@@ -2675,7 +2678,10 @@ html.dark .sidebar-left .nav-dropdown-item.active {
 @media (max-width: 720px) {
   html.nav-mobile-submenu-open { --topbar-height: 88px; }
   html.nav-mobile-submenu-open .sidebar-left { height: 88px !important; overflow: visible !important; }
-  .sidebar-left .nav-menu { overflow-y: visible; }
+  .sidebar-left .nav-menu {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
   .sidebar-left .nav-group { position: static; }
   .sidebar-left .nav-group:hover .nav-dropdown,
   .sidebar-left .nav-group:focus-within .nav-dropdown { display: none; }

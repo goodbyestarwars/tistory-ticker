@@ -10,14 +10,23 @@
  * 다크모드: html.dark #investor-trend-widget ... !important (9bolt 스킨 블랑켓 규칙 대응). */
 
 #investor-trend-widget .itw-card {
-  padding: 14px 20px 10px;
+  height: 232px;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 10px 18px 8px;
 }
 
 #investor-trend-widget .itw-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+#investor-trend-widget .itw-heading-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
 }
 #investor-trend-widget .itw-title {
   font-size: 14px;
@@ -30,9 +39,10 @@
   white-space: nowrap;
 }
 #investor-trend-widget .itw-subtext {
-  margin-top: 4px;
+  margin-top: 0;
   font-size: 11px;
   color: #9ca3af;
+  white-space: nowrap;
 }
 
 /* ---- 탭(기간 + 시장) ---- */
@@ -41,7 +51,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 9px;
+  margin-top: 5px;
   flex-wrap: wrap;
 }
 #investor-trend-widget .itw-tabs,
@@ -58,7 +68,7 @@
   background: #f1f2f5;
   border: none;
   border-radius: 999px;
-  padding: 4px 12px;
+  padding: 3px 11px;
   cursor: pointer;
 }
 #investor-trend-widget .itw-tab:hover,
@@ -71,7 +81,7 @@
 /* 시장 탭은 기간 탭보다 한 단계 낮은 시각적 위계(보조 선택) - 살짝 작고 옅게 */
 #investor-trend-widget .itw-market-tab {
   font-size: 11.5px;
-  padding: 4px 12px;
+  padding: 3px 11px;
   background: transparent;
   border: 1px solid #e2e5ea;
 }
@@ -116,7 +126,7 @@
  * 폭을 균등분배(브라우저 기본 동작, 헤더 행 폭이 기준). 좁은 화면에서 찌그러지는 대신
  * min-width로 가로 스크롤 유도(기존 3행 분리 레이아웃과 동일한 방침 - 값 레이블 잘림 방지). */
 #investor-trend-widget .itw-table-wrap {
-  margin-top: 10px;
+  margin-top: 5px;
   overflow-x: auto;
 }
 #investor-trend-widget .itw-table {
@@ -130,7 +140,7 @@
   font-weight: 600;
   color: #9ca3af;
   text-align: center;
-  padding: 0 4px 6px;
+  padding: 0 4px 3px;
   border-bottom: 1px solid #eceff2;
 }
 #investor-trend-widget .itw-th-date {
@@ -139,7 +149,7 @@
   padding-left: 2px;
 }
 #investor-trend-widget .itw-row td {
-  padding: 3px 4px;
+  padding: 1px 4px;
   border-bottom: 1px solid #f4f5f7;
 }
 #investor-trend-widget .itw-td-date {
@@ -155,7 +165,7 @@
    최대 절댓값 대비 %로 계산해 인라인 style width로 넣는다(최대 50% = 기준선에서 트랙 끝까지). */
 #investor-trend-widget .itw-tcell-track {
   position: relative;
-  height: 20px;
+  height: 16px;
 }
 #investor-trend-widget .itw-tcell-mid {
   position: absolute;
@@ -201,8 +211,8 @@
   border-top: 2px solid #cfd3da;
   border-bottom: none;
   background: #f4f5f7;
-  padding-top: 5px;
-  padding-bottom: 5px;
+  padding-top: 3px;
+  padding-bottom: 3px;
 }
 #investor-trend-widget .itw-row-sum .itw-td-date {
   font-weight: 700;
@@ -215,7 +225,8 @@
 }
 
 @media (max-width: 720px) {
-  #investor-trend-widget .itw-card { padding: 16px 16px 14px; }
+  #investor-trend-widget .itw-card { height: auto; overflow: visible; padding: 12px 14px 10px; }
+  #investor-trend-widget .itw-heading-copy { align-items: flex-start; flex-direction: column; gap: 1px; }
   #investor-trend-widget .itw-skeleton { height: 80px; }
   #investor-trend-widget .itw-table { min-width: 400px; }
   #investor-trend-widget .itw-tcell-track { height: 22px; }

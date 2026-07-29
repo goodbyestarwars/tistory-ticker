@@ -11,7 +11,13 @@
   gap: 12px;
 }
 
-#sidebar-rank .sr-card { padding: 16px; }
+#sidebar-rank .sr-card {
+  height: 232px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+}
 
 #sidebar-rank .sr-tabs {
   display: grid;
@@ -57,6 +63,7 @@
   margin: 0 0 10px;
   padding: 0;
   list-style: none;
+  flex: 1;
 }
 
 #sidebar-rank .sr-row {

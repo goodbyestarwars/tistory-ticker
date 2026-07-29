@@ -32,12 +32,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_home_compaction_contract(self):
         main = self.read("js/skin-main.js")
         rank = self.read("js/sidebar-rank.js")
-        disclosures = self.read("js/quick-indices.js")
+        indices = self.read("js/quick-indices.js")
         self.assertIn("cards.slice(3)", main)
         self.assertIn("마켓브리핑 전체보기", main)
         self.assertIn("실시간 랭킹", rank)
-        self.assertIn("itemHTMLs.slice(0, 5)", disclosures)
-        self.assertIn("주요 공시", disclosures)
+        self.assertIn("qi_market_only_v2", indices)
+        self.assertNotIn("id=\"qiNews\"", indices)
+        self.assertNotIn("loadDisclosures(container);", indices)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")

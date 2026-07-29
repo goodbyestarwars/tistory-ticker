@@ -82,6 +82,7 @@
   var FUTURES_API = 'https://goodbyestar.cloud/futures';
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
+  var LAYOUT_MIGRATION_KEY = 'qi_market_only_v2';
   var COLLAPSE_KEY = 'qi_collapsed_v1';
   // 11차: 등락률을 가격 옆 한 줄로 합치면서 카드가 한 줄씩 낮아져 175 -> 140
   var HEIGHT_EXPANDED = '140px';
@@ -128,7 +129,7 @@
   ];
   var OPTION_BY_KEY = {};
   OPTIONS.forEach(function (o) { OPTION_BY_KEY[o.key] = o; });
-  var DEFAULT_SELECTED = ['kospi', 'kosdaq', 'usdkrw', 'btc'];
+  var DEFAULT_SELECTED = ['kospi', 'kosdaq', 'usdkrw', 'nasdaq', 'sp500', 'vix', 'btc', 'wti'];
 
   // 네이버 스타일 참고 - 카드 상단에 국기/원자재 아이콘을 붙인다(2026-07-17).
   var FLAG_BY_KEY = {
@@ -176,6 +177,13 @@
 
   function loadSelected() {
     try {
+      /* 뉴스 패널 제거 후 시장지표 8개를 균형 배치하는 1회 마이그레이션.
+         이후 사용자가 + 메뉴에서 바꾼 선택은 다시 덮어쓰지 않는다. */
+      if (localStorage.getItem(LAYOUT_MIGRATION_KEY) !== '1') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SELECTED));
+        localStorage.setItem(LAYOUT_MIGRATION_KEY, '1');
+        return DEFAULT_SELECTED.slice();
+      }
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw == null) return DEFAULT_SELECTED.slice();
       var list = JSON.parse(raw);
@@ -513,18 +521,6 @@
       + '<div class="qi-scroll" id="qiScroll">'
       + '<div class="qi-featured" id="qiFeatured"></div>'
       + '<div class="qi-grid" id="qiGrid"></div>'
-      + '<div class="qi-news" id="qiNews">'
-      // 11차: 빨간 점 -> 확성기 SVG 아이콘(사용자 요청). 타이틀은 데이터 소스에 따라
-      // "실시간 공시"(KIND 공시) / "긴급속보"(네이버 뉴스 폴백)로 바뀐다.
-      + '<div class="qi-news-header">'
-      + '<span class="qi-news-ico" aria-hidden="true">'
-      + '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true">'
-      + '<path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3z"/>'
-      + '<path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'
-      + '</svg></span>'
-      + '<span id="qiNewsTitle">긴급속보</span></div>'
-      + '<div class="qi-news-wrap"><div class="qi-news-track" id="qiNewsTrack"><span class="qi-news-loading">불러오는 중...</span></div></div>'
-      + '</div>'
       + '</div>'
       // 12차: "전체 지수보기" 링크 삭제(사용자 요청 - 사이드바 메뉴로 충분)
       + '<div class="qi-controls">'
@@ -827,8 +823,6 @@
     moduleContainer = container;
     wireEvents(container);
     rebuild(container, loadSelected());
-    loadDisclosures(container);
-
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () {
       if (document.hidden) return;
