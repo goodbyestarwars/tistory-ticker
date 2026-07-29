@@ -243,7 +243,7 @@
       + '</div>';
   }
 
-  // ---- 등락률 뱃지 (즐겨찾기/최근검색 행에만 표시, 입력 중 검색결과는 API 호출 절약 위해 생략) ----
+  // ---- 등락률·현재가 뱃지 (즐겨찾기/최근검색 행에만 표시, 입력 중 검색결과는 API 호출 절약 위해 생략) ----
 
   function fetchRates(codes) {
     if (!codes.length) return Promise.resolve({});
@@ -279,7 +279,9 @@
       var code = badge.getAttribute('data-rate-code');
       var quote = quoteByCode[code];
       if (!quote) return; // 조회 실패 - 뱃지 미표시(빈 상태 유지)
-      badge.textContent = arrowSymbol(quote.change) + Math.abs(quote.changeRate).toFixed(2) + '%';
+      var rateText = arrowSymbol(quote.change) + Math.abs(quote.changeRate).toFixed(2) + '%';
+      var priceText = Number(quote.price).toLocaleString('ko-KR') + '원';
+      badge.textContent = rateText + ' · ' + priceText;
       badge.classList.remove('rate-up', 'rate-down');
       if (quote.change > 0) badge.classList.add('rate-up');
       else if (quote.change < 0) badge.classList.add('rate-down');
