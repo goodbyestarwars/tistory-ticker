@@ -65,6 +65,11 @@
 
   function buildShell() {
     return ''
+      + '<div class="sn-analysis-entry">'
+      + '<div><strong>뉴스를 투자 판단으로 연결해 보세요</strong>'
+      + '<span>수급·차트·펀더멘털·모멘텀을 한 화면에서 확인할 수 있습니다.</span></div>'
+      + '<a href="/page/foreign-flow">종목분석으로 이동 →</a>'
+      + '</div>'
       + '<details class="sn-rank" id="snRank">'
       + '<summary class="sn-rank-summary">랭킹뉴스 · 증시·코스피·코스닥 헤드라인 TOP 10'
       + '<span class="sn-rank-hint"><span class="sn-rank-closed">펼치기 ▾</span><span class="sn-rank-open-t">접기 ▴</span></span>'

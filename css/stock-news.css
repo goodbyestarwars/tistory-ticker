@@ -1,4 +1,36 @@
 /* ============ 랭킹뉴스 (접이식, 종목뉴스 검색창 위) ============ */
+.sn-analysis-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid #dfe7e2;
+  border-radius: 12px;
+  background: #f5f8f6;
+}
+.sn-analysis-entry div { display: grid; gap: 3px; }
+.sn-analysis-entry strong { color: #1f3528; font-size: 14px; }
+.sn-analysis-entry span { color: #6b7280; font-size: 12px; }
+.sn-analysis-entry a {
+  flex: 0 0 auto;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 13px;
+  border-radius: 9px;
+  background: #315b43;
+  color: #fff;
+  font-size: 12px;
+}
+html.dark #stock-news .sn-analysis-entry { background: rgba(245,239,224,.06) !important; border-color: rgba(245,239,224,.16) !important; }
+html.dark #stock-news .sn-analysis-entry strong { color: #F5EFE0 !important; }
+html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !important; }
+@media (max-width: 540px) {
+  .sn-analysis-entry { align-items: stretch; flex-direction: column; }
+  .sn-analysis-entry a { justify-content: center; }
+}
 
 .sn-rank {
   margin-bottom: 18px;
