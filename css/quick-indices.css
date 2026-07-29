@@ -206,6 +206,20 @@
   display: flex;
   flex-direction: column;
 }
+.qi-card-group {
+  flex: 0 0 auto;
+  padding: 1px 4px;
+  border-radius: 5px;
+  background: #eef2ef;
+  color: #607067;
+  font-size: 8.5px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+html.dark .qi-card-group {
+  background: rgba(245, 239, 224, .1) !important;
+  color: rgba(245, 239, 224, .65) !important;
+}
 .qi-card.qi-dragging { opacity: 0.4; }
 
 .qi-card-featured {
@@ -272,7 +286,7 @@
   flex: 0 0 auto;
 }
 .qi-card-featured .qi-card-status { font-size: 11px; }
-.qi-card-grid .qi-card-status { font-size: 9px; }
+.qi-card-grid .qi-card-status { display: none; }
 
 /* 11차: 가격+등락률을 한 줄로(사용자 요청 - 그만큼 카드 높이가 한 줄 줄었다) */
 .qi-card-priceline {

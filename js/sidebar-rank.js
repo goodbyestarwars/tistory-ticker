@@ -61,49 +61,71 @@
   ];
   var SECTION_BY_KEY = {};
   SECTIONS.forEach(function (s) { SECTION_BY_KEY[s.key] = s; });
+  var latestData = {};
+  var activeSection = 'tradeVolume';
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
-    container.innerHTML = SECTIONS.map(buildSectionShell).join('');
+    container.innerHTML = buildCardShell();
     container.addEventListener('click', function (e) {
       var moreBtn = e.target.closest ? e.target.closest('.sr-more') : null;
-      if (moreBtn) openModal(moreBtn.getAttribute('data-section'));
+      if (moreBtn) { openModal(activeSection); return; }
+      var tab = e.target.closest ? e.target.closest('.sr-tab') : null;
+      if (tab) {
+        activeSection = tab.getAttribute('data-section');
+        container.querySelectorAll('.sr-tab').forEach(function (item) {
+          var selected = item === tab;
+          item.classList.toggle('active', selected);
+          item.setAttribute('aria-selected', String(selected));
+        });
+        renderActive(container);
+        return;
+      }
+      if (e.target.closest && e.target.closest('.sr-retry')) refresh(container);
     });
     refresh(container);
     setInterval(function () { refresh(container); }, REFRESH_MS);
   }
 
-  function buildSectionShell(s) {
-    return '<div class="card sidebar-card sr-card" data-section="' + s.key + '">'
+  function buildCardShell() {
+    var tabs = SECTIONS.map(function (s) {
+      var label = s.key === 'upperLimit' ? '상승률' : s.key === 'lowerLimit' ? '하락률' : '거래량';
+      var active = s.key === activeSection;
+      return '<button type="button" class="sr-tab' + (active ? ' active' : '') + '" data-section="' + s.key
+        + '" role="tab" aria-selected="' + String(active) + '">' + label + '</button>';
+    }).join('');
+    return '<div class="card sidebar-card sr-card" data-section="' + activeSection + '">'
       + '<div class="sidebar-title sr-title">'
-      + '<div class="sidebar-icon ' + s.iconCls + '"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-4-4L3 15.5"/></svg></div>'
-      + '<span class="sr-title-text">' + s.title + '</span>'
-      + '<span class="sr-updated" id="srUpdated-' + s.key + '"></span>'
+      + '<div class="sidebar-icon si-blue"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-4-4L3 15.5"/></svg></div>'
+      + '<span class="sr-title-text">실시간 랭킹</span><span class="sr-updated" id="srUpdated"></span>'
       + '</div>'
-      + '<ol class="sr-list" id="srList-' + s.key + '"><li class="sr-hint">불러오는 중...</li></ol>'
-      + '<button type="button" class="sr-more" data-section="' + s.key + '">더보기 →</button>'
+      + '<div class="sr-tabs" role="tablist" aria-label="실시간 랭킹 기준">' + tabs + '</div>'
+      + '<ol class="sr-list" id="srList"><li class="sr-hint">불러오는 중...</li></ol>'
+      + '<button type="button" class="sr-more">전체보기 →</button>'
       + '</div>';
   }
 
   function refresh(container) {
     SidebarRank.fetchRank()
       .then(function (data) {
-        SECTIONS.forEach(function (s) {
-          renderSection(container, s, (data && data[s.key]) || []);
-        });
+        latestData = data || {};
+        renderActive(container);
       })
       .catch(function () {
-        SECTIONS.forEach(function (s) {
-          var list = container.querySelector('#srList-' + s.key);
-          if (list) list.innerHTML = '<li class="sr-hint sr-error">' + escapeHtml(s.errorText) + '</li>';
-        });
+        var list = container.querySelector('#srList');
+        if (list) list.innerHTML = '<li class="sr-hint sr-error">데이터를 불러오지 못했습니다.'
+          + '<small>잠시 후 다시 확인해 주세요.</small><button type="button" class="sr-retry">다시 시도</button></li>';
       });
   }
 
-  function renderSection(container, s, items) {
-    var list = container.querySelector('#srList-' + s.key);
-    var updated = container.querySelector('#srUpdated-' + s.key);
+  function renderActive(container) {
+    var s = SECTION_BY_KEY[activeSection];
+    var items = (latestData && latestData[activeSection]) || [];
+    var card = container.querySelector('.sr-card');
+    if (card) card.setAttribute('data-section', activeSection);
+    var list = container.querySelector('#srList');
+    var updated = container.querySelector('#srUpdated');
     if (updated) updated.textContent = fmtTime(new Date());
     if (!list) return;
     if (!items.length) {

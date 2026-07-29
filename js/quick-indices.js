@@ -301,12 +301,8 @@
 
   // 목록을 2번 이어붙이고 translateY로 절반만큼 움직여 끊김 없이 순환(원본 disc-track 트릭).
   function fillNewsTrack(track, itemHTMLs) {
-    var html = itemHTMLs.join('') + itemHTMLs.join('');
-    track.innerHTML = html;
-    // 세로 스크롤 속도 - 가로 티커(disc-track)의 scrollWidth/60 방식을 scrollHeight
-    // 기준으로 옮긴 것. 2026-07-18: 18px/초는 너무 빨라 글자를 읽기 전에 지나간다는
-    // 피드백 - 8px/초로 늦춤(약 2배 이상 느려짐).
-    track.style.animationDuration = (track.scrollHeight / 2 / 8) + 's';
+    track.innerHTML = itemHTMLs.slice(0, 5).join('');
+    track.style.animation = 'none';
   }
 
   function setNewsTitle(text) {
@@ -316,8 +312,8 @@
 
   function renderDiscNewsInto(track, items) {
     if (!track) return;
-    setNewsTitle('실시간 공시');
-    fillNewsTrack(track, items.map(function (it) {
+    setNewsTitle('주요 공시');
+    fillNewsTrack(track, selectImportantDisclosures(items).map(function (it) {
       var cls = it.market === 'KOSDAQ' ? 'qi-news-market-kosdaq' : 'qi-news-market-kospi';
       var disc = it.disc.replace(/\s*\|\s*/g, ' ').trim();
       var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
@@ -328,14 +324,34 @@
     }));
   }
 
+  /* AI 중요도 판정을 새로 만들지 않고 제목 기반의 명시적 우선순위만 적용한다.
+     투자 판단 영향이 큰 공시를 먼저 두고, 부족한 자리는 최신 원본 순서로 채운다. */
+  function selectImportantDisclosures(items) {
+    var keywords = [
+      '유상증자', '무상증자', '감자', '자기주식', '자사주', '소각', '최대주주',
+      '공급계약', '단일판매', '영업정지', '회생절차', '상장폐지', '불성실공시',
+      '실적', '잠정실적', '배당', '합병', '분할', '주식교환', '전환사채',
+      '신주인수권', '시설투자'
+    ];
+    var selected = [];
+    items.forEach(function (item) {
+      var title = (item.corp || '') + ' ' + (item.disc || '');
+      if (keywords.some(function (keyword) { return title.indexOf(keyword) !== -1; })) selected.push(item);
+    });
+    items.forEach(function (item) {
+      if (selected.indexOf(item) === -1) selected.push(item);
+    });
+    return selected.slice(0, 5);
+  }
+
   // 2026-07-17(10차): 장외 시간엔 KIND 공시 RSS가 통째로 비어 "속보 없음"만 떠 있었다
   // (사용자 피드백) - 공시가 없으면 기존 GAS ?rankNews=1(네이버 뉴스 검색: 증시/코스피/
   // 코스닥 헤드라인, 서버에서 15분 캐싱)로 폴백해 패널이 비지 않게 한다.
   function renderRankNewsInto(track, items) {
     if (!track) return;
-    setNewsTitle('긴급속보');
+    setNewsTitle('주요 뉴스');
     if (!items.length) { track.innerHTML = '<span class="qi-news-loading">속보 없음</span>'; return; }
-    fillNewsTrack(track, items.map(function (it) {
+    fillNewsTrack(track, items.slice(0, 5).map(function (it) {
       return '<a href="' + it.link + '" target="_blank" class="qi-news-item">'
         + '<span class="qi-news-market-news">뉴스</span>'
         + it.title + '</a>';
@@ -418,12 +434,21 @@
 
   // ---- 최초 렌더(틀 생성) ----
 
+  function marketGroup(key) {
+    if (key === 'kospi' || key === 'kosdaq' || key === 'kospi_night') return '국내';
+    if (key === 'nasdaq' || key === 'sp500' || key === 'dow' || key === 'sox' || key === 'vix') return '해외';
+    if (key === 'usdkrw' || key === 'wti' || key === 'gold') return '환율·원자재';
+    return '디지털';
+  }
+
   function buildCardShell(opt, variantClass, draggable) {
     return '<div class="qi-card ' + variantClass + '" data-key="' + opt.key + '"'
+      + ' data-group="' + marketGroup(opt.key) + '"'
       + (draggable ? ' draggable="true"' : '') + '>'
       + '<div class="qi-card-top">'
       + '<span class="qi-card-flag" aria-hidden="true">' + (FLAG_BY_KEY[opt.key] || '') + '</span>'
       + '<span class="qi-card-label">' + opt.label + '</span>'
+      + '<span class="qi-card-group">' + marketGroup(opt.key) + '</span>'
       + '<span class="qi-card-status" data-field="status"></span>'
       + '</div>'
       // 11차: 등락률을 가격 아래 줄에서 가격 옆(같은 줄)으로 이동(사용자 요청)

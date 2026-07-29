@@ -10,7 +10,7 @@
  * 다크모드: html.dark #investor-trend-widget ... !important (9bolt 스킨 블랑켓 규칙 대응). */
 
 #investor-trend-widget .itw-card {
-  padding: 22px 24px 18px;
+  padding: 16px 20px 14px;
 }
 
 #investor-trend-widget .itw-header {
@@ -41,7 +41,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 9px;
   flex-wrap: wrap;
 }
 #investor-trend-widget .itw-tabs,
@@ -58,7 +58,7 @@
   background: #f1f2f5;
   border: none;
   border-radius: 999px;
-  padding: 5px 14px;
+  padding: 4px 12px;
   cursor: pointer;
 }
 #investor-trend-widget .itw-tab:hover,
@@ -82,8 +82,8 @@
 
 /* ---- 스켈레톤 / 에러 ---- */
 #investor-trend-widget .itw-skeleton {
-  height: 130px;
-  margin-top: 16px;
+  height: 96px;
+  margin-top: 10px;
   border-radius: 10px;
   background: linear-gradient(90deg, #f2f3f5 25%, #e9eaed 37%, #f2f3f5 63%);
   background-size: 400% 100%;
@@ -94,11 +94,21 @@
   100% { background-position: 0 50%; }
 }
 #investor-trend-widget .itw-error {
-  margin-top: 16px;
-  padding: 30px 0;
+  margin-top: 10px;
+  padding: 16px 0 8px;
   text-align: center;
   font-size: 12.5px;
   color: #9ca3af;
+}
+#investor-trend-widget .itw-error small { display: block; margin-top: 4px; }
+#investor-trend-widget .itw-retry {
+  margin-top: 9px;
+  padding: 6px 12px;
+  border: 1px solid #d8dedb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
 }
 
 /* ---- diverging bar 표(2026-07-22) - 날짜 | 개인 | 외국인 | 기관 ----
@@ -106,7 +116,7 @@
  * 폭을 균등분배(브라우저 기본 동작, 헤더 행 폭이 기준). 좁은 화면에서 찌그러지는 대신
  * min-width로 가로 스크롤 유도(기존 3행 분리 레이아웃과 동일한 방침 - 값 레이블 잘림 방지). */
 #investor-trend-widget .itw-table-wrap {
-  margin-top: 16px;
+  margin-top: 10px;
   overflow-x: auto;
 }
 #investor-trend-widget .itw-table {
@@ -129,7 +139,7 @@
   padding-left: 2px;
 }
 #investor-trend-widget .itw-row td {
-  padding: 5px 4px;
+  padding: 3px 4px;
   border-bottom: 1px solid #f4f5f7;
 }
 #investor-trend-widget .itw-td-date {
@@ -145,7 +155,7 @@
    최대 절댓값 대비 %로 계산해 인라인 style width로 넣는다(최대 50% = 기준선에서 트랙 끝까지). */
 #investor-trend-widget .itw-tcell-track {
   position: relative;
-  height: 24px;
+  height: 20px;
 }
 #investor-trend-widget .itw-tcell-mid {
   position: absolute;
@@ -191,8 +201,8 @@
   border-top: 2px solid #cfd3da;
   border-bottom: none;
   background: #f4f5f7;
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 #investor-trend-widget .itw-row-sum .itw-td-date {
   font-weight: 700;
@@ -219,6 +229,7 @@
    배경 + #F5EFE0 글자로 교체. 순매수/순매도 막대·수치(itw-bar-pos/neg, itw-val-pos/neg)는
    의미가 있는 색이라 그대로 유지. */
 html.dark #investor-trend-widget .itw-title { color: #F5EFE0 !important; }
+html.dark #investor-trend-widget .itw-retry { background: transparent !important; color: #F5EFE0 !important; border-color: rgba(245,239,224,.25) !important; }
 html.dark #investor-trend-widget .itw-asof,
 html.dark #investor-trend-widget .itw-subtext,
 html.dark #investor-trend-widget .itw-error { color: rgba(245, 239, 224, 0.55) !important; }

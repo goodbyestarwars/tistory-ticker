@@ -91,7 +91,9 @@
           });
           load(container);
         }
+        return;
       }
+      if (e.target.closest && e.target.closest('.itw-retry')) load(container);
     });
 
     load(container);
@@ -136,7 +138,7 @@
       })
       .catch(function () {
         if (state.period !== period || state.market !== market) return;
-        if (body) body.innerHTML = '<div class="itw-error">데이터를 불러오지 못했어요.</div>';
+        if (body) body.innerHTML = errorHtml();
       });
   }
 
@@ -147,12 +149,18 @@
     if (!body) return;
     var rows = result.rows || [];
     if (!rows.length) {
-      body.innerHTML = '<div class="itw-error">데이터를 불러오지 못했어요.</div>';
+      body.innerHTML = errorHtml();
       return;
     }
     // 표시 행 개수(지시서 3항): 일 단위는 최근 5일 고정, 주/월은 API가 주는 전체를 그대로.
     var displayRows = state.period === 'day' ? rows.slice(-5) : rows;
     body.innerHTML = tableHtml(displayRows);
+  }
+
+  function errorHtml() {
+    return '<div class="itw-error">투자자별 매매동향 데이터를 불러오지 못했습니다.'
+      + '<small>잠시 후 다시 확인해 주세요.</small>'
+      + '<button type="button" class="itw-retry">다시 시도</button></div>';
   }
 
   // ---- diverging bar 표 레이아웃(2026-07-22) - 날짜 | 개인 | 외국인 | 기관 ----

@@ -13,6 +13,33 @@
 
 #sidebar-rank .sr-card { padding: 16px; }
 
+#sidebar-rank .sr-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 12px 0;
+  padding: 3px;
+  border-radius: 10px;
+  background: #f1f3f2;
+}
+#sidebar-rank .sr-tab {
+  min-height: 36px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #667085;
+  font-size: 12px;
+  cursor: pointer;
+}
+#sidebar-rank .sr-tab.active {
+  background: #fff;
+  color: #082415;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+#sidebar-rank .sr-tab:focus-visible,
+#sidebar-rank .sr-retry:focus-visible { outline: 2px solid #315b43; outline-offset: 1px; }
+
 #sidebar-rank .sr-title {
   justify-content: space-between;
 }
@@ -104,6 +131,17 @@
   list-style: none;
 }
 #sidebar-rank .sr-error { color: #c0392b; }
+#sidebar-rank .sr-error small { display: block; margin-top: 4px; color: #9ca3af; }
+#sidebar-rank .sr-retry {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 1px solid #d8dedb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+}
 
 #sidebar-rank .sr-more {
   display: block;
@@ -202,6 +240,10 @@
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. 등락 배지(sr-up/down/flat)는 의미가 있는 색이라 유지. */
 html.dark #sidebar-rank .sr-updated { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #sidebar-rank .sr-tabs { background: rgba(245, 239, 224, .08) !important; }
+html.dark #sidebar-rank .sr-tab { color: rgba(245, 239, 224, .65) !important; }
+html.dark #sidebar-rank .sr-tab.active { background: rgba(245, 239, 224, .16) !important; color: #F5EFE0 !important; }
+html.dark #sidebar-rank .sr-retry { background: transparent !important; color: #F5EFE0 !important; border-color: rgba(245,239,224,.25) !important; }
 html.dark #sidebar-rank .sr-name { color: #F5EFE0 !important; }
 html.dark #sidebar-rank .sr-price { color: #F5EFE0 !important; }
 html.dark #sidebar-rank .sr-rate.sr-up { background: #3a2523 !important; color: #e8776d !important; }

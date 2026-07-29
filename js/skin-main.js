@@ -34,6 +34,32 @@
     });
   })();
 
+  /* 홈은 최신 브리핑 3건만 남겨 블로그형 무한 목록이 되지 않게 한다.
+     카테고리 페이지와 기존 글 URL/페이지네이션은 건드리지 않는다. */
+  (function compactHomeBriefing() {
+    if (location.pathname !== '/' && location.pathname !== '') return;
+    var feed = document.querySelector('.feed');
+    if (!feed) return;
+    var cards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
+    if (!cards.length) return;
+    cards.slice(3).forEach(function (card) { card.remove(); });
+    cards[0].classList.add('home-briefing-featured');
+
+    var heading = document.createElement('div');
+    heading.className = 'home-section-heading';
+    heading.innerHTML = '<div><strong>마켓브리핑</strong><span>투자 판단에 필요한 핵심 해석</span></div>';
+    feed.insertBefore(heading, cards[0]);
+
+    var more = document.createElement('a');
+    more.className = 'home-briefing-more';
+    more.href = '/category/마켓 브리핑';
+    more.textContent = '마켓브리핑 전체보기 →';
+    cards[Math.min(cards.length, 3) - 1].insertAdjacentElement('afterend', more);
+
+    var pagination = feed.querySelector(':scope > .pagination');
+    if (pagination) pagination.remove();
+  })();
+
   /* ── 폰트 전환 토글 (명조 ⇄ 고딕, 조기 적용 스크립트는 head에 있음) ── */
   (function() {
     var btn = document.getElementById('fontModeBtn');
