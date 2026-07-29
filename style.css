@@ -376,6 +376,16 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
 .nav-search-rate-badge:not(:empty) { padding: 2px 5px; background: #f1f0ea; }
 .nav-search-rate-badge.rate-up { color: #d24f45; background: #fdebea; }
 .nav-search-rate-badge.rate-down { color: #1261c4; background: #eaf1fb; }
+.nav-search-current-price {
+  flex-shrink: 0;
+  min-width: 68px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4b5563;
+  font-variant-numeric: tabular-nums;
+}
+.nav-search-current-price:empty { display: none; }
 .nav-search-fav-btn {
   flex-shrink: 0;
   border: none;
@@ -2438,6 +2448,7 @@ html.dark .nav-search-suggest-item:hover, html.dark .nav-search-suggest-item.act
 html.dark .nav-search-rate-badge:not(:empty) { background: rgba(245, 239, 224, 0.14); }
 html.dark .nav-search-rate-badge.rate-up { color: #ff6b5b; background: #3a2323; }
 html.dark .nav-search-rate-badge.rate-down { color: #4d9fff; background: #1f2c3d; }
+html.dark .nav-search-current-price { color: #F5EFE0; }
 html.dark .nav-search-fav-btn { color: rgba(245, 239, 224, 0.35); }
 html.dark .nav-search-fav-btn:hover { background: rgba(245, 239, 224, 0.08); }
 html.dark .nav-search-fav-btn.active { color: #e0b040; }
