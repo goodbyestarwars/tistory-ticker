@@ -246,6 +246,8 @@
           updateBreakoutNote(container, book, quote);
         }
         renderBoard(container, book, quote);
+        // 새 이벤트가 없어도 상대시간(예: 10초 전)이 폴링 주기마다 계속 갱신되도록 한다.
+        renderMilestoneLog(container);
       })
       .catch(function () {
         if (state.code !== code) return;
@@ -332,10 +334,16 @@
     showMilestoneToast(container, price, up);
   }
 
+  // 이벤트가 발생한 시각을 기준으로 현재까지의 경과시간을 사람이 읽기 쉬운 상대시간으로 표시.
   function fmtElapsed(t) {
-    var sec = Math.max(0, Math.round((t - (state.startTime || t)) / 1000));
-    var m = Math.floor(sec / 60), s = sec % 60;
-    return m + ':' + String(s).padStart(2, '0');
+    var sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    if (sec < 60) return sec + '초 전';
+
+    var min = Math.floor(sec / 60);
+    if (min < 60) return min + '분 ' + (sec % 60) + '초 전';
+
+    var hour = Math.floor(min / 60);
+    return hour + '시간 ' + (min % 60) + '분 전';
   }
 
   function renderMilestoneLog(container) {
@@ -347,7 +355,7 @@
         var label = m.up
           ? Math.round(m.price).toLocaleString('ko-KR') + '원 돌파'
           : Math.round(m.price).toLocaleString('ko-KR') + '원대 지지라인 재구축';
-        return '<li>' + label + ' <span class="ob-milestone-time">(' + fmtElapsed(m.t) + ')</span></li>';
+        return '<li>' + label + ' <span class="ob-milestone-time">' + fmtElapsed(m.t) + '</span></li>';
       }).join('') + '</ul>';
   }
 
