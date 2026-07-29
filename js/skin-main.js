@@ -212,20 +212,59 @@
       };
     }
 
+    function resolveMarketDirection(marketTemp, indexData) {
+      var components = marketTemp && marketTemp.components;
+      var rise = components && components.riseRatio;
+      var avgChange = components && components.avgChange;
+      var kospi = indexData && indexData.kospi;
+      var kospiRate = kospi && typeof kospi.changeRate === 'number' ? kospi.changeRate : null;
+      var riseRatio = rise && typeof rise.ratio === 'number' ? rise.ratio : null;
+      var averageRate = avgChange && typeof avgChange.avgChangeRate === 'number'
+        ? avgChange.avgChangeRate
+        : null;
+
+      // 대표지수의 큰 변동을 최우선으로 반영한다. 기존 구현은 상승 종목 비율만 사용해
+      // 코스피가 -5%대여도 모두 같은 "약세 우위"로 표시되는 문제가 있었다.
+      if (kospiRate != null && kospiRate <= -4) return { label: '급락', tone: 'home-negative' };
+      if (kospiRate != null && kospiRate >= 4) return { label: '급등', tone: 'home-positive' };
+      if (kospiRate != null && kospiRate <= -2) return { label: '강한 약세', tone: 'home-negative' };
+      if (kospiRate != null && kospiRate >= 2) return { label: '강한 강세', tone: 'home-positive' };
+
+      // 지수 조회가 일시적으로 실패해도 기존 증시온도의 시장 폭·평균등락률로 강도를
+      // 판정한다. 숫자가 없는 경우에는 임의 상태를 만들지 않는다.
+      if (riseRatio != null && averageRate != null && riseRatio <= 0.15 && averageRate <= -1) {
+        return { label: '급락', tone: 'home-negative' };
+      }
+      if ((riseRatio != null && riseRatio <= 0.3) || (averageRate != null && averageRate <= -1)) {
+        return { label: '강한 약세', tone: 'home-negative' };
+      }
+      if (riseRatio != null && averageRate != null && riseRatio >= 0.85 && averageRate >= 1) {
+        return { label: '급등', tone: 'home-positive' };
+      }
+      if ((riseRatio != null && riseRatio >= 0.7) || (averageRate != null && averageRate >= 1)) {
+        return { label: '강한 강세', tone: 'home-positive' };
+      }
+      if (riseRatio != null && riseRatio <= 0.45) return { label: '약세 우위', tone: 'home-negative' };
+      if (riseRatio != null && riseRatio >= 0.55) return { label: '상승 우위', tone: 'home-positive' };
+      if (riseRatio != null || averageRate != null || kospiRate != null) {
+        return { label: '혼조', tone: 'home-neutral' };
+      }
+      return { label: '데이터 확인 중', tone: 'home-neutral' };
+    }
+
     Promise.all([
       fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 20000).catch(function () { return null; }),
-      fetchHomeJson(GAS_TICKER_URL + '?bubble=1', 20000).catch(function () { return null; })
+      fetchHomeJson(GAS_TICKER_URL + '?bubble=1', 20000).catch(function () { return null; }),
+      fetchHomeJson(GAS_TICKER_URL + '?market=1', 20000).catch(function () { return null; })
     ]).then(function (results) {
       var market = results[0];
       var bubble = results[1];
+      var indices = results[2];
       if (market && typeof market.temp === 'number') {
         var grade = market.grade && market.grade.label ? ' ' + market.grade.label : '';
         setField('temperature', market.temp.toFixed(market.temp % 1 ? 1 : 0) + '℃' + grade, 'home-neutral');
-        var rise = market.components && market.components.riseRatio;
-        if (rise && typeof rise.ratio === 'number') {
-          var direction = rise.ratio >= 0.55 ? '상승 우위' : rise.ratio <= 0.45 ? '약세 우위' : '혼조';
-          setField('direction', direction, rise.ratio >= 0.55 ? 'home-positive' : rise.ratio <= 0.45 ? 'home-negative' : 'home-neutral');
-        }
+        var direction = resolveMarketDirection(market, indices);
+        setField('direction', direction.label, direction.tone);
         var exchange = market.components && market.components.exchange;
         if (exchange && typeof exchange.price === 'number') {
           var exchangeRate = Number(exchange.changeRate);

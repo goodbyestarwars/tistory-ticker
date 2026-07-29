@@ -58,6 +58,52 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
 
+    def test_home_market_direction_uses_index_and_breadth_strength(self):
+        source = self.read("js/skin-main.js")
+        for token in (
+            "resolveMarketDirection",
+            "?market=1",
+            "kospi.changeRate",
+            "kospiRate <= -4",
+            "label: '급락'",
+            "label: '강한 약세'",
+            "riseRatio <= 0.15",
+            "averageRate <= -1",
+        ):
+            self.assertIn(token, source)
+
+    def test_investor_table_fills_card_height(self):
+        source = self.read("css/investor-trend-widget.css")
+        card_rule = re.search(
+            r"#investor-trend-widget \.itw-card \{(?P<body>.*?)\}",
+            source,
+            re.DOTALL,
+        )
+        table_wrap_rule = re.search(
+            r"#investor-trend-widget \.itw-table-wrap \{(?P<body>.*?)\}",
+            source,
+            re.DOTALL,
+        )
+        body_rule = re.search(
+            r"#investor-trend-widget \.itw-body \{(?P<body>.*?)\}",
+            source,
+            re.DOTALL,
+        )
+        table_rule = re.search(
+            r"#investor-trend-widget \.itw-table \{(?P<body>.*?)\}",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(card_rule)
+        self.assertIn("display: flex", card_rule.group("body"))
+        self.assertIn("flex-direction: column", card_rule.group("body"))
+        self.assertIsNotNone(body_rule)
+        self.assertIn("flex: 1 1 auto", body_rule.group("body"))
+        self.assertIsNotNone(table_wrap_rule)
+        self.assertIn("flex: 1 1 auto", table_wrap_rule.group("body"))
+        self.assertIsNotNone(table_rule)
+        self.assertIn("height: 100%", table_rule.group("body"))
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (
