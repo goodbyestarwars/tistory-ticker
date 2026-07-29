@@ -6,14 +6,13 @@
 서버 전체는 정상 동작). 야간선물 웹소켓 사용하려면 `pip install websockets` 필요.
 """
 
-import asyncio
 import json
 import logging
 import os
 import time
 from datetime import datetime, timedelta, timezone
 
-from fastapi import FastAPI, Header, HTTPException, Path, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Header, HTTPException, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 import bond_yield
@@ -31,7 +30,6 @@ import kiwoom_market
 import market_rank
 import option_flow
 import order_book
-import realtime_quotes
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 
@@ -184,52 +182,6 @@ def health():
         'momentumSchedulerVersion': 'deploy-timer-flock-v1',
         'momentumAggregationVersion': 3,
     })
-
-
-@app.websocket('/ws/quotes')
-async def realtime_quote_socket(websocket: WebSocket):
-    """관심종목용 실시간 체결가 중계. 키움 토큰은 서버 안에서만 사용한다."""
-    origin = websocket.headers.get('origin')
-    if origin != 'https://ghlee.tistory.com':
-        await websocket.close(code=1008)
-        return
-
-    codes = realtime_quotes.normalize_codes((websocket.query_params.get('codes') or '').split(','))
-    if not codes:
-        await websocket.close(code=1008)
-        return
-
-    await websocket.accept()
-    relay_task = asyncio.create_task(realtime_quotes.relay_quotes(websocket, codes))
-    receive_task = asyncio.create_task(websocket.receive_text())
-    try:
-        while True:
-            done, _ = await asyncio.wait(
-                {relay_task, receive_task},
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-            if relay_task in done:
-                await relay_task
-                return
-            receive_task = asyncio.create_task(websocket.receive_text())
-    except WebSocketDisconnect:
-        pass
-    except Exception as exc:
-        logging.getLogger('main').warning(
-            '관심종목 WebSocket 종료: %s', type(exc).__name__
-        )
-        try:
-            await websocket.send_json({'type': 'error', 'message': '실시간 시세 연결이 종료되었습니다.'})
-        except Exception:
-            pass
-    finally:
-        for task in (relay_task, receive_task):
-            if not task.done():
-                task.cancel()
-        try:
-            await websocket.close()
-        except Exception:
-            pass
 
 
 @app.get('/quote')
