@@ -10,7 +10,7 @@
  * 다크모드: html.dark #investor-trend-widget ... !important (9bolt 스킨 블랑켓 규칙 대응). */
 
 #investor-trend-widget .itw-card {
-  padding: 16px 20px 14px;
+  padding: 14px 20px 10px;
 }
 
 #investor-trend-widget .itw-header {
