@@ -54,13 +54,12 @@
 - 저장소: `goodbyestarwars/tistory-ticker`, `master` 브랜치를 그대로 서빙
 - 파일명 버저닝 금지 — 같은 URL이 티스토리 HTML에 그대로 박혀 있어서, 새 파일을 만들지 않고
   기존 파일을 계속 덮어쓴다
-- 공통 메뉴는 `js/skin-menu.js`가 `#nav-menu-mount`에 렌더링한다. 1차 메뉴는 6개로
-  제한하고 기존 페이지는 시장·종목·패턴·발굴 드롭다운에 묶는다. MY 아이콘은 최신
-  `skin.html`에 포함되며, 운영 스킨을 다시 붙여넣기 전에도 `js/skin-shell.js`가 중복 없이
-  주입한다.
-- 홈의 `js/sidebar-rank.js`는 기존 `/market-rank` 응답을 재사용해 단일 탭 카드로
-  표현한다. `js/investor-trend-widget.js`와 `js/quick-indices.js` 역시 기존 데이터 호출을
-  유지하고 표시 높이·표시 개수만 축소한다.
+- 공통 메뉴는 `js/skin-menu.js`가 `#nav-menu-mount`에 렌더링한다. 1차 메뉴는 MY를 포함한
+  7개이며 시장·종목·패턴·발굴은 드롭다운 없이 고정형 2차 메뉴 바를 연다.
+- 홈의 `js/skin-main.js`는 투자자별 매매동향·오늘의 시장판, 랭킹·패턴·일정, 대표형
+  마켓브리핑 순으로 DOM을 재배치한다. `js/sidebar-rank.js`, `js/investor-trend-widget.js`,
+  `js/quick-indices.js`는 기존 엔드포인트를 유지하며, 패턴·캘린더·증시온도·시총 버블
+  응답도 홈 요약 카드가 그대로 재사용한다.
 
 ### 2. Google Apps Script 프록시 (`gas/ticker-proxy.gs`)
 - 단일 GAS 프로젝트, 웹앱으로 배포(`{URL}?codes=...`, `?action=...` 등 쿼리파라미터로 라우팅)

@@ -51,12 +51,12 @@
       emptyText: '거래량 데이터가 없어요.', errorText: '거래량 데이터를 불러오지 못했어요.'
     },
     {
-      key: 'upperLimit', title: '상한가', shortTitle: '상한가', iconCls: 'si-amber', showAmount: false,
-      emptyText: '오늘 상한가 종목이 없어요.', errorText: '상한가 데이터를 불러오지 못했어요.'
+      key: 'upperLimit', title: '상승률 TOP', shortTitle: '상승률', iconCls: 'si-amber', showAmount: true,
+      emptyText: '상승률 데이터가 없어요.', errorText: '상승률 데이터를 불러오지 못했어요.'
     },
     {
-      key: 'lowerLimit', title: '하한가', shortTitle: '하한가', iconCls: 'si-purple', showAmount: false,
-      emptyText: '오늘 하한가 종목이 없어요.', errorText: '하한가 데이터를 불러오지 못했어요.'
+      key: 'lowerLimit', title: '하락률 TOP', shortTitle: '하락률', iconCls: 'si-purple', showAmount: true,
+      emptyText: '하락률 데이터가 없어요.', errorText: '하락률 데이터를 불러오지 못했어요.'
     }
   ];
   var SECTION_BY_KEY = {};

@@ -18,7 +18,7 @@
 <div class="tools">
   <button onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
   <button onclick="setMock('normal')">정상 데이터</button>
-  <button onclick="setMock('empty-limits')">상/하한가 없음</button>
+  <button onclick="setMock('empty-limits')">상승/하락 데이터 없음</button>
   <button onclick="setMock('error')">API 오류</button>
 </div>
 
@@ -51,7 +51,7 @@
     var out = [];
     for (var i = 0; i < n; i++) {
       var s = stockAt(i);
-      out.push({ code: s[0], name: s[1], price: 10000 + i * 500, change_rate: sign * (29.8 - i * 0.05) });
+      out.push({ code: s[0], name: s[1], price: 10000 + i * 500, change_rate: sign * (29.8 - i * 0.05), trade_volume: 3000000 - i * 100000 });
     }
     return out;
   }

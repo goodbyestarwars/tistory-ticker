@@ -25,7 +25,8 @@
    그대로, position만 fixed 가로바로 변경 - skin.html 수정 불필요). 그 높이를
    --topbar-height로 빼서 아래 page-wrap/sidebar-right/quick-indices 오프셋에 전부
    더한다(패턴은 --qi-height와 동일). */
-:root { --qi-height: 140px; --topbar-height: 50px; }
+:root { --qi-height: 86px; --topbar-height: 48px; }
+html.nav-secondary-open { --topbar-height: 92px; }
 /* 2026-07-27: 관심지수 리본을 홈("/")에서만 띄우기로 하면서(js/quick-indices.js의
    isHomePage() 참고) 다른 페이지에서는 init()이 아예 실행되지 않아 --qi-height를
    setProperty할 JS가 없다 - :root의 기본값(140px)이 그대로 남아 .page-wrap 등의
@@ -532,6 +533,309 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
 html.dark .home-section-heading strong { color: #F5EFE0 !important; }
 html.dark .home-section-heading span { color: rgba(245,239,224,.55) !important; }
 html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rgba(245,239,224,.16) !important; color: #F5EFE0 !important; }
+
+/* ============ 홈 시장 상황판 ============ */
+.home-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.home-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.home-investor-slot,
+.home-investor-slot #investor-trend-widget,
+.home-investor-slot #investor-trend-widget .itw-card {
+  min-width: 0;
+  height: 100%;
+}
+.home-market-board {
+  height: 298px;
+  min-width: 0;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+}
+.home-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.home-card-heading > div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.home-card-heading strong {
+  color: #171717;
+  font-size: 15px;
+  font-weight: 600;
+}
+.home-card-heading span {
+  color: #A8ADB5;
+  font-size: 10.5px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.hmb-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin: 11px 0 0;
+}
+.hmb-list > div {
+  min-height: 25px;
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #f1f2f3;
+}
+.hmb-list dt {
+  color: #7d828a;
+  font-size: 11.5px;
+  font-weight: 400;
+}
+.hmb-list dd {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #171717;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+.home-positive { color: #d24f45 !important; }
+.home-negative { color: #1261c4 !important; }
+.home-neutral { color: #555 !important; }
+.hmb-interpretation {
+  margin-top: auto;
+  padding: 10px 11px;
+  border-radius: 10px;
+  background: #f5f7f6;
+  color: #555;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.home-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+.home-rank-slot,
+.home-rank-slot #sidebar-rank,
+.home-rank-slot #sidebar-rank .sr-card {
+  min-width: 0;
+  height: 100%;
+}
+.home-card-grid #sidebar-rank .sr-card,
+.home-mini-card {
+  height: 370px;
+}
+.home-mini-card {
+  min-width: 0;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+}
+.home-card-state {
+  color: #9ca3af;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.home-pattern-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 13px;
+}
+.home-pattern-row,
+.home-pattern-new {
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #f0f1f2;
+  color: #555;
+  font-size: 12.5px;
+}
+.home-pattern-row strong,
+.home-pattern-new strong {
+  color: #171717;
+  font-size: 13px;
+  font-weight: 600;
+}
+.home-pattern-new {
+  margin-top: 10px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 10px;
+  background: #f5f7f6;
+}
+.home-pattern-new strong { color: #315b43; }
+.home-schedule-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 13px;
+}
+.home-schedule-row {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid #f0f1f2;
+}
+.home-schedule-row time {
+  color: #555;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.home-schedule-title {
+  min-width: 0;
+  overflow: hidden;
+  color: #171717;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-schedule-category {
+  max-width: 72px;
+  overflow: hidden;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #f1f3f2;
+  color: #7a8088;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-card-more {
+  min-height: 34px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #eceeed;
+  color: #315b43;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* 최신 3건: 대표 1개 + 일반 2개 */
+.home-briefing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.home-briefing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.home-briefing-featured-slot,
+.home-briefing-small-stack { min-width: 0; }
+.home-briefing-featured-slot .post-card { height: 100%; }
+.home-briefing-small-stack {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.home-briefing-featured {
+  border-left: 3px solid #315b43;
+  padding: 24px 26px;
+}
+.home-briefing-featured .post-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.home-briefing-featured .post-tags,
+.home-briefing-featured .btn-share { display: none; }
+.home-briefing-small {
+  padding: 18px 20px;
+}
+.home-briefing-small .post-cat-badge,
+.home-briefing-small .post-tags,
+.home-briefing-small .post-footer { display: none; }
+.home-briefing-small .post-header {
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+.home-briefing-small .post-title {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-bottom: 7px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 15px;
+}
+.home-briefing-small .post-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 12.5px;
+}
+
+html.dark .home-market-board,
+html.dark .home-mini-card { background: #1A1A1A !important; }
+html.dark .home-card-heading strong,
+html.dark .home-pattern-row strong,
+html.dark .home-schedule-title { color: #F5EFE0 !important; }
+html.dark .home-card-heading span,
+html.dark .home-card-state,
+html.dark .hmb-list dt { color: rgba(245, 239, 224, .5) !important; }
+html.dark .hmb-list > div,
+html.dark .home-pattern-row,
+html.dark .home-schedule-row,
+html.dark .home-card-more { border-color: rgba(245, 239, 224, .12) !important; }
+html.dark .hmb-list dd,
+html.dark .home-pattern-row,
+html.dark .home-schedule-row time { color: rgba(245, 239, 224, .82) !important; }
+html.dark .hmb-interpretation,
+html.dark .home-pattern-new,
+html.dark .home-schedule-category {
+  background: rgba(245, 239, 224, .08) !important;
+  color: rgba(245, 239, 224, .7) !important;
+}
+html.dark .home-card-more,
+html.dark .home-pattern-new strong { color: #F5EFE0 !important; }
+
+@media (max-width: 1100px) {
+  .home-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-schedule-card { grid-column: 1 / -1; }
+}
+@media (max-width: 820px) {
+  .home-overview-grid { grid-template-columns: 1fr; }
+  .home-market-board,
+  .home-investor-slot #investor-trend-widget .itw-card { height: 298px; }
+  .home-briefing-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .home-dashboard { gap: 12px; }
+  .home-overview-grid,
+  .home-card-grid { grid-template-columns: 1fr; gap: 12px; }
+  .home-schedule-card { grid-column: auto; }
+  .home-card-grid #sidebar-rank .sr-card,
+  .home-mini-card { height: auto; min-height: 340px; }
+  .home-market-board { height: auto; min-height: 298px; padding: 16px; }
+  .home-card-heading > div { flex-wrap: wrap; }
+  .home-briefing-small-stack { grid-template-rows: none; grid-auto-rows: auto; }
+  .home-briefing-featured,
+  .home-briefing-small { padding: 17px 16px; }
+}
 
 /* Notice card — 블루~인디고 그라데이션 보더 + 은은한 틴트 배경 */
 .notice-card {
@@ -2155,9 +2459,9 @@ body.iframe-mode .site-footer { display: none !important; }
 @media (max-width: 430px) {
   .navbar { gap: 6px; padding: 0 8px; }
   .nav-search { min-width: 0; margin-left: 2px; }
-  /* 작은 화면에서는 핵심 전역 기능(폰트·다크·MY)을 우선한다. 글쓰기/관리/로그아웃과
-     방명록은 커뮤니티 메뉴에서도 접근 가능하므로 헤더 폭을 차지하지 않게 한다. */
-  .nav-icons > .nav-icon-btn:not(.nav-my-btn) { display: none; }
+  /* 작은 화면에서는 폰트·다크 토글과 1차 텍스트 메뉴를 우선한다. MY와 커뮤니티는
+     1차 메뉴에서 직접 접근하므로 원형 보조 아이콘은 헤더 폭을 차지하지 않게 한다. */
+  .nav-icons > .nav-icon-btn { display: none; }
   .sidebar-left .nav-menu { padding: 0 4px 0 8px; }
   .nav-logo-name { font-size: 15px; }
   .nav-logo-icon { width: 32px; height: 32px; }
@@ -2604,124 +2908,124 @@ html.dark.font-gothic .nav-font-btn { color: #F5EFE0; border-color: #F5EFE0; }
 html.full-width-page .sidebar-right,
 body#tt-body-page .sidebar-right { display: none; }
 
-/* ============ 2026-07 IA 개편: 6개 1차 메뉴 + 접근 가능한 2차 메뉴 ============ */
-.sidebar-left .nav-group {
-  position: relative;
+/* ============ 2026-07 IA 재개편: 7개 1차 메뉴 + 고정형 2차 메뉴 ============ */
+.sidebar-left .nav-menu {
+  display: block;
+  padding: 0 14px;
+  overflow: visible;
+}
+.sidebar-left .nav-primary-row {
+  height: 48px;
   display: flex;
   align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.sidebar-left .nav-primary-row::-webkit-scrollbar,
+.sidebar-left .nav-secondary-inner::-webkit-scrollbar { display: none; }
+.sidebar-left .nav-primary-item {
   flex: 0 0 auto;
-}
-.sidebar-left .nav-group-trigger {
+  height: 48px;
+  padding: 0 18px;
   border: 0;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   background: transparent;
+  color: #51555c;
+  font-weight: 400;
+}
+.sidebar-left .nav-primary-item:hover { background: rgba(23, 23, 23, .03); }
+.sidebar-left .nav-primary-item.nav-item-active {
+  border-bottom-color: #171717;
+  color: #171717;
+  font-weight: 600;
+}
+.sidebar-left .nav-primary-item .nav-item-label {
+  color: inherit;
+  font-weight: inherit;
+}
+.sidebar-left .nav-secondary-row {
+  height: 44px;
+  margin: 0 -14px;
+  border-top: 1px solid #ececed;
+  background: rgb(253, 253, 247);
+}
+.sidebar-left .nav-secondary-inner {
   height: 100%;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0 32px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
-.sidebar-left .nav-chevron {
-  margin-left: 5px;
-  color: #7b8491;
-  font-size: 13px;
-  transition: transform .16s ease;
-}
-.sidebar-left .nav-group-open .nav-chevron { transform: rotate(180deg); }
-.sidebar-left .nav-dropdown {
-  display: none;
-  position: absolute;
-  top: calc(100% - 1px);
-  left: 4px;
-  z-index: 310;
-  min-width: 190px;
-  padding: 8px;
-  border: 1px solid rgba(8, 36, 21, .12);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 12px 28px rgba(17, 24, 39, .14);
-}
-.sidebar-left .nav-group:hover .nav-dropdown,
-.sidebar-left .nav-group:focus-within .nav-dropdown,
-.sidebar-left .nav-group-open .nav-dropdown { display: grid; }
-.sidebar-left .nav-dropdown-item {
-  min-height: 40px;
+.sidebar-left .nav-secondary-item {
+  flex: 0 0 auto;
+  height: 44px;
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  border-radius: 8px;
-  color: #374151;
-  font-size: 13.5px;
+  padding: 0 14px;
+  border-bottom: 2px solid transparent;
+  color: #A8ADB5;
+  font-size: 13px;
+  font-weight: 400;
   white-space: nowrap;
 }
-.sidebar-left .nav-dropdown-item:hover,
-.sidebar-left .nav-dropdown-item:focus-visible { background: #f3f6f4; outline: none; }
-.sidebar-left .nav-dropdown-item.active {
-  color: #082415;
-  background: #edf3ef;
+.sidebar-left .nav-secondary-item:hover,
+.sidebar-left .nav-secondary-item:focus-visible {
+  color: rgba(23, 23, 23, .72);
+  outline: none;
+}
+.sidebar-left .nav-secondary-item.active {
+  color: #171717;
+  font-weight: 600;
+  border-bottom-color: #171717;
+}
+.sidebar-left .nav-secondary-separator {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  color: #D8DADD;
+  font-size: 12px;
+  font-weight: 400;
 }
 .sidebar-left .nav-item:focus-visible,
 .nav-icon-btn:focus-visible {
   outline: 2px solid #315b43;
   outline-offset: -2px;
 }
-.nav-my-btn { position: relative; }
-
-html.dark .sidebar-left .nav-dropdown {
+html.dark .sidebar-left .nav-primary-item { color: rgba(245, 239, 224, .58) !important; }
+html.dark .sidebar-left .nav-primary-item.nav-item-active {
+  color: #F5EFE0 !important;
+  border-bottom-color: #F5EFE0 !important;
+}
+html.dark .sidebar-left .nav-secondary-row {
   background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, .18) !important;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, .5) !important;
+  border-top-color: rgba(245, 239, 224, .12) !important;
 }
-html.dark .sidebar-left .nav-dropdown-item { color: #F5EFE0 !important; }
-html.dark .sidebar-left .nav-dropdown-item:hover,
-html.dark .sidebar-left .nav-dropdown-item:focus-visible,
-html.dark .sidebar-left .nav-dropdown-item.active {
-  background: rgba(245, 239, 224, .1) !important;
+html.dark .sidebar-left .nav-secondary-item { color: rgba(245, 239, 224, .48) !important; }
+html.dark .sidebar-left .nav-secondary-item.active {
+  color: #F5EFE0 !important;
+  border-bottom-color: #F5EFE0 !important;
 }
+html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .18) !important; }
 
 @media (max-width: 720px) {
-  html.nav-mobile-submenu-open { --topbar-height: 88px; }
-  html.nav-mobile-submenu-open .sidebar-left { height: 88px !important; overflow: visible !important; }
+  .sidebar-left { height: var(--topbar-height) !important; overflow: visible !important; }
   .sidebar-left .nav-menu {
-    align-items: flex-start;
-    overflow-x: auto;
-    overflow-y: visible;
+    padding: 0;
+    overflow: visible;
   }
-  /* 서브메뉴가 열리면 메뉴바가 88px로 커지지만, 1차 행은 43px만 차지해야 한다.
-     height:100%를 그대로 두면 버튼이 86px까지 늘어 43px 지점의 서브메뉴를 덮는다. */
-  .sidebar-left .nav-item,
-  .sidebar-left .nav-group,
-  .sidebar-left .nav-group-trigger {
-    height: 43px;
-  }
-  .sidebar-left .nav-group { position: static; }
-  .sidebar-left .nav-group:hover .nav-dropdown,
-  .sidebar-left .nav-group:focus-within .nav-dropdown { display: none; }
-  .sidebar-left .nav-group.nav-group-active .nav-dropdown,
-  .sidebar-left .nav-group.nav-group-open .nav-dropdown {
-    display: flex;
-    position: absolute;
-    top: 43px;
-    left: 0;
-    right: 0;
-    min-width: 0;
-    height: 45px;
-    padding: 0 8px;
-    border: 0;
-    border-top: 1px solid #eee;
-    border-radius: 0;
-    box-shadow: none;
-    overflow-x: auto;
-    scrollbar-width: none;
-    background: rgb(253, 253, 247);
-  }
-  .sidebar-left .nav-dropdown::-webkit-scrollbar { display: none; }
-  .sidebar-left .nav-dropdown-item {
-    flex: 0 0 auto;
-    min-height: 44px;
-    padding: 0 12px;
-  }
-  html.dark .sidebar-left .nav-group-active .nav-dropdown,
-  html.dark .sidebar-left .nav-group-open .nav-dropdown {
-    background: #1A1A1A !important;
-    border-top-color: rgba(245, 239, 224, .12) !important;
-  }
+  .sidebar-left .nav-primary-row { padding: 0 8px; }
+  .sidebar-left .nav-primary-item { padding: 0 12px; }
+  .sidebar-left .nav-primary-item .nav-item-label { font-size: 13.5px; }
+  .sidebar-left .nav-secondary-row { margin: 0; }
+  .sidebar-left .nav-secondary-inner { padding: 0 8px; }
+  .sidebar-left .nav-secondary-item { padding: 0 12px; }
 }
 /* 단, 카테고리 글목록(마켓 브리핑 등)에선 우측 사이드바(인기글·해시태그) 유지.
    공지 카드는 티스토리가 카테고리 화면에 안 내려주므로(빈 #pinnedNotice) 원래 없음.

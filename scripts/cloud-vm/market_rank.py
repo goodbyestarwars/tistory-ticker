@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""사이드바 실시간 랭킹(거래량 TOP/상한가/하한가) - 키움 REST 랭킹정보 TR 직접 호출.
+"""홈 실시간 랭킹(거래량/상승률/하락률) - 키움 REST 랭킹정보 TR 직접 호출.
 전종목을 우리가 스캔해서 순위를 계산하는 대신, 키움이 이미 계산해둔 랭킹 TR을 그대로
 재사용한다(작업지시서: 9bolt 우측 사이드바 리디자인, 2026-07-20 - 인기글/해시태그를
 실시간 시장데이터로 교체).
@@ -93,7 +93,7 @@ def fetch_volume_top(token, limit=5):
 
 
 def fetch_updown(token, updown_tp, limit=5):
-    """상하한가요청(ka10017). updown_tp 공식 코드값(키움 공식 예제 기준, 2026-07-20 확인):
+    """등락률순위요청(ka10017). updown_tp 공식 코드값(키움 공식 예제 기준, 2026-07-20 확인):
     1=상한, 2=상승, 3=보합, 4=하한, 5=하락, 6=전일상한, 7=전일하한 - 처음엔 '2'를 하한가로
     잘못 짐작해서 실제로는 "상승" 종목을 하한가로 표시하는 버그가 있었음(실측 전 추정치였음).
     응답이 오면 flu_rt 부호(상한가는 양수, 하한가는 음수)로 한 번 더 교차검증해서 뒤바뀌어
@@ -120,6 +120,7 @@ def fetch_updown(token, updown_tp, limit=5):
                 'name': r.get('stk_nm'),
                 'price': _clean_price(r.get('cur_prc')),
                 'change_rate': float(r.get('flu_rt') or 0),
+                'trade_volume': float(r.get('trde_qty') or 0),
             })
         except (TypeError, ValueError):
             continue
@@ -128,11 +129,12 @@ def fetch_updown(token, updown_tp, limit=5):
 
 def fetch_sidebar_rank(token, limit=5):
     volume = fetch_volume_top(token, limit)
-    upper = fetch_updown(token, '1', limit)  # 1=상한
-    lower = fetch_updown(token, '4', limit)  # 4=하한
-    # 방어적 교차검증: 상한가로 요청한 결과에 음수 등락률이 섞여 있으면(=코드값이 반대)
-    # 두 리스트를 통째로 맞바꾼다.
-    if upper and all(r['change_rate'] < 0 for r in upper) and lower and all(r['change_rate'] > 0 for r in lower):
-        logger.warning('ka10017 updown_tp 1/2가 예상과 반대로 응답됨 - swap')
-        upper, lower = lower, upper
-    return {'tradeVolume': volume, 'upperLimit': upper, 'lowerLimit': lower}
+    # ka10017 공식 코드: 2=상승, 5=하락. sort_tp=3(등락률순)은 fetch_updown에서 유지한다.
+    # 응답 키는 기존 프론트 호환을 위해 upperLimit/lowerLimit을 그대로 둔다.
+    rising = fetch_updown(token, '2', limit)
+    falling = fetch_updown(token, '5', limit)
+    # 방어적 교차검증: 상승/하락 목록 부호가 완전히 뒤집혀 오면 리스트를 맞바꾼다.
+    if rising and all(r['change_rate'] < 0 for r in rising) and falling and all(r['change_rate'] > 0 for r in falling):
+        logger.warning('ka10017 updown_tp 2/5가 예상과 반대로 응답됨 - swap')
+        rising, falling = falling, rising
+    return {'tradeVolume': volume, 'upperLimit': rising, 'lowerLimit': falling}

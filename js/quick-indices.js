@@ -85,8 +85,8 @@
   var LAYOUT_MIGRATION_KEY = 'qi_market_only_v2';
   var COLLAPSE_KEY = 'qi_collapsed_v1';
   // 11차: 등락률을 가격 옆 한 줄로 합치면서 카드가 한 줄씩 낮아져 175 -> 140
-  var HEIGHT_EXPANDED = '140px';
-  var HEIGHT_COLLAPSED = '40px';
+  var HEIGHT_EXPANDED = '86px';
+  var HEIGHT_COLLAPSED = '86px';
   // 13차: 60초 -> 20초(사용자 요청: "토스처럼 실시간으로"). 진짜 실시간(웹소켓)은 소스가
   // 없어서 폴링 주기 단축으로 근사 - VM은 30초 주기 수집이라 이보다 짧게 줄여도 무의미.
   var REFRESH_MS = 20 * 1000;
@@ -99,9 +99,8 @@
 
   // 페이지 파싱 도중이라도(DOMContentLoaded 전) 즉시 반영해 접힘 상태 깜빡임을 없앤다.
   (function applyCollapsedHeightEarly() {
-    var collapsed = false;
-    try { collapsed = localStorage.getItem(COLLAPSE_KEY) === '1'; } catch (err) { /* 무시 */ }
-    document.documentElement.style.setProperty('--qi-height', collapsed ? HEIGHT_COLLAPSED : HEIGHT_EXPANDED);
+    try { localStorage.removeItem(COLLAPSE_KEY); } catch (err) { /* 무시 */ }
+    document.documentElement.style.setProperty('--qi-height', HEIGHT_EXPANDED);
   })();
 
   var OPTIONS = [
@@ -176,22 +175,7 @@
   // ---- localStorage: 선택 목록 ----
 
   function loadSelected() {
-    try {
-      /* 뉴스 패널 제거 후 시장지표 8개를 균형 배치하는 1회 마이그레이션.
-         이후 사용자가 + 메뉴에서 바꾼 선택은 다시 덮어쓰지 않는다. */
-      if (localStorage.getItem(LAYOUT_MIGRATION_KEY) !== '1') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SELECTED));
-        localStorage.setItem(LAYOUT_MIGRATION_KEY, '1');
-        return DEFAULT_SELECTED.slice();
-      }
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw == null) return DEFAULT_SELECTED.slice();
-      var list = JSON.parse(raw);
-      if (!Array.isArray(list)) return DEFAULT_SELECTED.slice();
-      return list.filter(function (k) { return OPTION_BY_KEY.hasOwnProperty(k); });
-    } catch (err) {
-      return DEFAULT_SELECTED.slice();
-    }
+    return DEFAULT_SELECTED.slice();
   }
 
   function saveSelected(list) {
@@ -516,35 +500,10 @@
 
   // 카드는 여기서 채우지 않는다 - renderPage()가 현재 페이지 분량만 그린다.
   function renderShell(container) {
-    container.classList.toggle('qi-collapsed', isCollapsed());
     container.innerHTML = ''
       + '<div class="qi-scroll" id="qiScroll">'
-      + '<div class="qi-featured" id="qiFeatured"></div>'
       + '<div class="qi-grid" id="qiGrid"></div>'
-      + '</div>'
-      // 12차: "전체 지수보기" 링크 삭제(사용자 요청 - 사이드바 메뉴로 충분)
-      + '<div class="qi-controls">'
-      + '<div class="qi-controls-icons">'
-      // 15차: 11차에서 붙였던 "리본 접기/펼치기" 한글 라벨 제거(사용자 요청) - 다시
-      // 아이콘 전용 원형 버튼으로. 그만큼 좁아진 .qi-controls 폭은 옆 .qi-news(flex:1)가
-      // 자동으로 흡수해 늘어난다(레이아웃 재계산 불필요, flexbox가 알아서 함).
-      + '<button type="button" class="qi-collapse-btn" id="qiCollapseBtn" aria-label="관심지수 리본 접기/펼치기">' + (isCollapsed() ? '▸' : '▾') + '</button>'
-      + '<div class="qi-add-wrap">'
-      + '<button type="button" class="qi-add-btn" id="qiAddBtn" aria-label="지수 추가">+</button>'
-      + '<div class="qi-popover" id="qiPopover"></div>'
-      + '</div>'
-      + '</div>'
       + '</div>';
-
-    container.querySelector('#qiAddBtn').addEventListener('click', function (e) {
-      e.stopPropagation();
-      togglePopover(container);
-    });
-    container.querySelector('#qiCollapseBtn').addEventListener('click', function (e) {
-      e.stopPropagation();
-      setCollapsed(container, !isCollapsed());
-    });
-    wireCardDrag(container.querySelector('#qiGrid'));
   }
 
   function setCollapsed(container, collapsed) {
@@ -577,31 +536,25 @@
     changeEl.textContent = arrowSymbol(data.change) + Math.abs(data.changeRate).toFixed(2) + '%';
     changeEl.className = 'qi-card-change ' + tone;
 
-    if (data.chart && data.chart.length > 1) renderSparkline(chartEl, key, data.chart, data.change >= 0, data.price, data.change);
+    if (chartEl && data.chart && data.chart.length > 1 && chartEl.offsetParent !== null) {
+      renderSparkline(chartEl, key, data.chart, data.change >= 0, data.price, data.change);
+    }
   }
 
   // 선택된 지수 전부(큰 카드 1 + 나머지 그리드)를 새로 그리고, dataCache에 있는 값으로
   // 즉시 채운다(재조회 없음). 페이징 없음 - 최대 11종이 전부 한 화면에 들어간다.
   function renderPage(container) {
-    var featured = container.querySelector('#qiFeatured');
     var grid = container.querySelector('#qiGrid');
-    if (!featured || !grid) return;
+    if (!grid) return;
     var selected = loadSelected();
-    var featuredKey = selected[0];
-    var gridKeys = selected.slice(1);
 
     Object.keys(chartInstances).forEach(function (key) {
       if (selected.indexOf(key) === -1) destroyChart(key);
     });
 
-    featured.innerHTML = featuredKey ? (function () {
-      var opt = OPTION_BY_KEY[featuredKey];
-      return opt ? buildCardShell(opt, 'qi-card-featured', false) : '';
-    })() : '';
-
-    grid.innerHTML = gridKeys.map(function (key) {
+    grid.innerHTML = selected.map(function (key) {
       var opt = OPTION_BY_KEY[key];
-      return opt ? buildCardShell(opt, 'qi-card-grid', true) : '';
+      return opt ? buildCardShell(opt, 'qi-card-grid', false) : '';
     }).join('');
 
     selected.forEach(function (key) {

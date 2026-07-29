@@ -152,6 +152,11 @@
       body.innerHTML = errorHtml();
       return;
     }
+    // 홈의 '오늘의 시장판'이 같은 응답을 재호출하지 않고 수급값을 재사용한다.
+    // CustomEvent에는 이미 화면에 사용한 정규화 결과만 전달하며 API/계산은 바꾸지 않는다.
+    window.dispatchEvent(new CustomEvent('investor-trend-data', {
+      detail: { period: state.period, market: state.market, result: result }
+    }));
     // 표시 행 개수(지시서 3항): 일 단위는 최근 5일 고정, 주/월은 API가 주는 전체를 그대로.
     var displayRows = state.period === 'day' ? rows.slice(-5) : rows;
     body.innerHTML = tableHtml(displayRows);

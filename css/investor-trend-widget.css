@@ -10,10 +10,10 @@
  * 다크모드: html.dark #investor-trend-widget ... !important (9bolt 스킨 블랑켓 규칙 대응). */
 
 #investor-trend-widget .itw-card {
-  height: 232px;
+  height: 298px;
   box-sizing: border-box;
   overflow: hidden;
-  padding: 10px 18px 8px;
+  padding: 14px 20px 10px;
 }
 
 #investor-trend-widget .itw-header {
@@ -51,7 +51,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 5px;
+  margin-top: 8px;
   flex-wrap: wrap;
 }
 #investor-trend-widget .itw-tabs,
@@ -126,7 +126,7 @@
  * 폭을 균등분배(브라우저 기본 동작, 헤더 행 폭이 기준). 좁은 화면에서 찌그러지는 대신
  * min-width로 가로 스크롤 유도(기존 3행 분리 레이아웃과 동일한 방침 - 값 레이블 잘림 방지). */
 #investor-trend-widget .itw-table-wrap {
-  margin-top: 5px;
+  margin-top: 10px;
   overflow-x: auto;
 }
 #investor-trend-widget .itw-table {
@@ -149,7 +149,7 @@
   padding-left: 2px;
 }
 #investor-trend-widget .itw-row td {
-  padding: 1px 4px;
+  padding: 3px 4px;
   border-bottom: 1px solid #f4f5f7;
 }
 #investor-trend-widget .itw-td-date {
@@ -165,7 +165,7 @@
    최대 절댓값 대비 %로 계산해 인라인 style width로 넣는다(최대 50% = 기준선에서 트랙 끝까지). */
 #investor-trend-widget .itw-tcell-track {
   position: relative;
-  height: 16px;
+  height: 20px;
 }
 #investor-trend-widget .itw-tcell-mid {
   position: absolute;

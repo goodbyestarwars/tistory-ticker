@@ -1,6 +1,6 @@
 /**
  * 9Pay 공통 내비게이션.
- * 1차 메뉴는 의사결정 흐름에 맞춘 6개만 노출하고 기존 페이지 URL은 그대로 유지한다.
+ * 1차 메뉴와 고정형 2차 메뉴를 분리하고, 현재 페이지의 두 단계 메뉴를 함께 활성화한다.
  */
 (function () {
   'use strict';
@@ -10,7 +10,7 @@
     {
       label: '시장',
       children: [
-        { href: '/category/마켓 브리핑', label: '마켓 브리핑' },
+        { href: '/category/마켓 브리핑', label: '마켓브리핑' },
         { href: '/page/market-temp', label: '증시온도' },
         { href: '/pages/overnight-market', label: '글로벌 시장지표' },
         { href: '/pages/kospi-futures', label: '코스피 선물' }
@@ -30,7 +30,8 @@
       ]
     },
     { href: '/page/stock-calendar', label: '캘린더' },
-    { href: '/guestbook', label: '커뮤니티' }
+    { href: '/guestbook', label: '커뮤니티' },
+    { href: '/page/watchlist', label: 'MY' }
   ];
 
   var SEARCH_HTML = ''
@@ -40,6 +41,8 @@
     + '<input type="text" id="navSearchInput" class="nav-search-input" placeholder="종목검색"'
     + ' aria-label="전체 종목 검색" autocomplete="off" />'
     + '</div><div id="navSearchSuggest" class="nav-search-suggest"></div></div>';
+
+  var selectedGroupIndex = -1;
 
   function currentPath() {
     var path;
@@ -56,69 +59,63 @@
     return Boolean(item.children && item.children.some(isActive));
   }
 
-  function directHtml(item) {
-    var active = isActive(item);
-    return '<a class="nav-item nav-primary-item' + (active ? ' nav-item-home' : '') + '"'
-      + ' href="' + item.href + '"' + (active ? ' aria-current="page"' : '') + '>'
-      + '<span class="nav-item-label">' + item.label + '</span></a>';
+  function activeGroupIndex() {
+    for (var i = 0; i < NAV_ITEMS.length; i++) {
+      if (groupIsActive(NAV_ITEMS[i])) return i;
+    }
+    return -1;
   }
 
-  function groupHtml(item, index) {
-    var active = groupIsActive(item);
-    var menuId = 'navDropdown-' + index;
-    var children = item.children.map(function (child) {
-      var childActive = isActive(child);
-      return '<a class="nav-dropdown-item' + (childActive ? ' active' : '') + '" href="' + child.href + '"'
-        + (childActive ? ' aria-current="page"' : '') + ' role="menuitem">'
-        + child.label + '</a>';
+  function primaryHtml(item, index) {
+    var current = item.children ? groupIsActive(item) : isActive(item);
+    var selected = item.children && index === selectedGroupIndex;
+    var cls = 'nav-item nav-primary-item' + (current || selected ? ' nav-item-active' : '');
+    if (!item.children) {
+      return '<a class="' + cls + '" href="' + item.href + '"'
+        + (current ? ' aria-current="page"' : '') + '>'
+        + '<span class="nav-item-label">' + item.label + '</span></a>';
+    }
+    return '<button type="button" class="' + cls + ' nav-group-trigger" data-group-index="' + index + '"'
+      + ' aria-expanded="' + String(selected) + '" aria-controls="nav-secondary-row">'
+      + '<span class="nav-item-label">' + item.label + '</span></button>';
+  }
+
+  function secondaryHtml() {
+    var group = NAV_ITEMS[selectedGroupIndex];
+    if (!group || !group.children) return '';
+    var items = group.children.map(function (child, index) {
+      var active = isActive(child);
+      return (index ? '<span class="nav-secondary-separator" aria-hidden="true">|</span>' : '')
+        + '<a class="nav-secondary-item' + (active ? ' active' : '') + '" href="' + child.href + '"'
+        + (active ? ' aria-current="page"' : '') + '>' + child.label + '</a>';
     }).join('');
-    return '<div class="nav-group' + (active ? ' nav-group-active' : '') + '">'
-      + '<button type="button" class="nav-item nav-primary-item nav-group-trigger'
-      + (active ? ' nav-item-home' : '') + '" aria-haspopup="true" aria-expanded="false"'
-      + ' aria-controls="' + menuId + '"><span class="nav-item-label">' + item.label + '</span>'
-      + '<span class="nav-chevron" aria-hidden="true">⌄</span></button>'
-      + '<div class="nav-dropdown" id="' + menuId + '" role="menu" aria-label="' + item.label + ' 하위 메뉴">'
-      + children + '</div></div>';
+    return '<div class="nav-secondary-row" id="nav-secondary-row" aria-label="' + group.label + ' 2차 메뉴">'
+      + '<div class="nav-secondary-inner">' + items + '</div></div>';
   }
 
-  function closeGroups(mount, except) {
-    mount.querySelectorAll('.nav-group-open').forEach(function (group) {
-      if (group === except) return;
-      group.classList.remove('nav-group-open');
-      var trigger = group.querySelector('.nav-group-trigger');
-      if (trigger) trigger.setAttribute('aria-expanded', 'false');
-    });
-    syncMobileHeight(mount);
+  function syncSecondaryHeight(open) {
+    document.documentElement.classList.toggle('nav-secondary-open', open);
   }
 
-  function syncMobileHeight(mount) {
-    var open = mount.querySelector('.nav-group-open, .nav-group-active');
-    document.documentElement.classList.toggle('nav-mobile-submenu-open', Boolean(open));
+  function renderMenu(mount) {
+    var primary = NAV_ITEMS.map(primaryHtml).join('');
+    var secondary = secondaryHtml();
+    mount.innerHTML = '<div class="nav-primary-row">' + primary + '</div>' + secondary;
+    syncSecondaryHeight(Boolean(secondary));
   }
 
   function wireNavigation(mount) {
     mount.addEventListener('click', function (event) {
       var trigger = event.target.closest ? event.target.closest('.nav-group-trigger') : null;
       if (!trigger) return;
-      var group = trigger.closest('.nav-group');
-      var willOpen = !group.classList.contains('nav-group-open');
-      closeGroups(mount, group);
-      group.classList.toggle('nav-group-open', willOpen);
-      trigger.setAttribute('aria-expanded', String(willOpen));
-      syncMobileHeight(mount);
-      if (willOpen) group.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      var nextIndex = Number(trigger.getAttribute('data-group-index'));
+      selectedGroupIndex = selectedGroupIndex === nextIndex && !groupIsActive(NAV_ITEMS[nextIndex])
+        ? -1
+        : nextIndex;
+      renderMenu(mount);
+      var currentTrigger = mount.querySelector('.nav-group-trigger[data-group-index="' + nextIndex + '"]');
+      if (currentTrigger) currentTrigger.focus();
     });
-
-    document.addEventListener('click', function (event) {
-      if (!mount.contains(event.target)) closeGroups(mount);
-    });
-    document.addEventListener('keydown', function (event) {
-      if (event.key !== 'Escape') return;
-      var openTrigger = mount.querySelector('.nav-group-open .nav-group-trigger');
-      closeGroups(mount);
-      if (openTrigger) openTrigger.focus();
-    });
-    syncMobileHeight(mount);
   }
 
   function render() {
@@ -126,10 +123,13 @@
     var mount = document.getElementById('nav-menu-mount');
     if (searchMount) searchMount.innerHTML = SEARCH_HTML;
 
+    // MY는 아이콘 보조 기능이 아니라 1차 텍스트 메뉴로만 제공한다. 운영 스킨에 남아 있는
+    // 이전 아이콘도 정적 자산 배포만으로 즉시 제거되도록 런타임에서 함께 정리한다.
+    document.querySelectorAll('.nav-my-btn').forEach(function (item) { item.remove(); });
+
     if (mount) {
-      mount.innerHTML = (searchMount ? '' : SEARCH_HTML) + NAV_ITEMS.map(function (item, index) {
-        return item.children ? groupHtml(item, index) : directHtml(item);
-      }).join('');
+      selectedGroupIndex = activeGroupIndex();
+      renderMenu(mount);
       wireNavigation(mount);
     }
     if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();

@@ -67,18 +67,4 @@
     var mount = document.getElementById('shell-' + key);
     if (mount) mount.outerHTML = SHELL[key];
   });
-
-  /* 운영 스킨을 다시 붙여넣기 전에도 MY 이동이 즉시 반영되도록 런타임 폴백을 둔다.
-     최신 skin.html에는 같은 링크가 정적으로 있으므로 중복 생성하지 않는다. */
-  var navIcons = document.querySelector('.nav-icons');
-  if (navIcons && !navIcons.querySelector('.nav-my-btn')) {
-    var myLink = document.createElement('a');
-    myLink.href = '/page/watchlist';
-    myLink.className = 'nav-icon-btn nav-my-btn';
-    myLink.title = 'MY';
-    myLink.setAttribute('aria-label', 'MY');
-    myLink.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
-    var guestbook = navIcons.querySelector('.nav-icon-btn');
-    navIcons.insertBefore(myLink, guestbook);
-  }
 })();
