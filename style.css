@@ -2151,6 +2151,10 @@ body.iframe-mode .site-footer { display: none !important; }
 
 @media (max-width: 430px) {
   .navbar { gap: 6px; padding: 0 8px; }
+  .nav-search { min-width: 0; margin-left: 2px; }
+  /* 작은 화면에서는 핵심 전역 기능(폰트·다크·MY)을 우선한다. 글쓰기/관리/로그아웃과
+     방명록은 커뮤니티 메뉴에서도 접근 가능하므로 헤더 폭을 차지하지 않게 한다. */
+  .nav-icons > .nav-icon-btn:not(.nav-my-btn) { display: none; }
   .sidebar-left .nav-menu { padding: 0 4px 0 8px; }
   .nav-logo-name { font-size: 15px; }
   .nav-logo-icon { width: 32px; height: 32px; }
