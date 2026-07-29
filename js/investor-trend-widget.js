@@ -154,9 +154,10 @@
     }
     // 홈의 '오늘의 시장판'이 같은 응답을 재호출하지 않고 수급값을 재사용한다.
     // CustomEvent에는 이미 화면에 사용한 정규화 결과만 전달하며 API/계산은 바꾸지 않는다.
-    window.dispatchEvent(new CustomEvent('investor-trend-data', {
-      detail: { period: state.period, market: state.market, result: result }
-    }));
+    var trendDetail = { period: state.period, market: state.market, result: result };
+    // 홈 위젯 모듈이 비동기로 늦게 로드되더라도 마지막 정상 응답을 다시 쓸 수 있게 보관한다.
+    window.__latestInvestorTrendData = trendDetail;
+    window.dispatchEvent(new CustomEvent('investor-trend-data', { detail: trendDetail }));
     // 표시 행 개수(지시서 3항): 일 단위는 최근 5일 고정, 주/월은 API가 주는 전체를 그대로.
     var displayRows = state.period === 'day' ? rows.slice(-5) : rows;
     body.innerHTML = tableHtml(displayRows);

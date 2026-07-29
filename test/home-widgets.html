@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>홈 위젯 v3 검수</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../css/sidebar-rank.css">
+  <link rel="stylesheet" href="../css/investor-trend-widget.css">
+  <style>
+    body { margin: 0; background: #f7f8f5; }
+    .fixture-wrap { max-width: 1348px; margin: 30px auto; padding: 0 12px; }
+    .post-card { min-height: 180px; }
+  </style>
+</head>
+<body id="tt-body-index">
+<main class="fixture-wrap">
+  <section class="home-dashboard" id="fixtureDashboard">
+    <div class="home-overview-grid">
+      <div class="home-investor-slot">
+        <div id="investor-trend-widget"><div class="itw-card card"><strong>투자자별 매매동향</strong></div></div>
+      </div>
+      <article class="card home-market-board">
+        <div class="home-card-heading"><div><strong>오늘의 시장판</strong></div></div>
+      </article>
+    </div>
+    <div class="home-card-grid">
+      <div class="home-rank-slot">
+        <div id="sidebar-rank"><div class="card sr-card"><div class="sr-title">실시간 랭킹</div></div></div>
+      </div>
+      <article class="card home-mini-card home-pattern-card">
+        <div class="home-card-heading"><div><strong>오늘의 패턴</strong></div></div>
+      </article>
+      <article class="card home-mini-card home-schedule-card">
+        <div class="home-card-heading"><div><strong>주요 일정</strong></div></div>
+      </article>
+    </div>
+  </section>
+  <section class="home-briefing-section" id="fixtureBriefing">
+    <div class="home-section-heading"><div><strong>마켓브리핑</strong></div></div>
+    <div class="home-briefing-grid">
+      <div class="home-briefing-featured-slot">
+        <article class="post-card home-briefing-featured"><div class="post-title">대표 브리핑</div></article>
+      </div>
+      <div class="home-briefing-small-stack">
+        <article class="post-card home-briefing-small"><div class="post-title">중간 브리핑 1</div></article>
+        <article class="post-card home-briefing-small"><div class="post-title">중간 브리핑 2</div></article>
+        <article class="post-card home-briefing-small"><div class="post-title">중간 브리핑 3</div></article>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="../js/home-widgets.js"></script>
+<script>
+  if (!localStorage.getItem('wl_codes_v1')) {
+    localStorage.setItem('wl_codes_v1', JSON.stringify([
+      { code: '005930', name: '삼성전자' },
+      { code: '035420', name: 'NAVER' },
+      { code: '000660', name: 'SK하이닉스' }
+    ]));
+  }
+  HomeDashboardWidgets.init({
+    dashboard: document.getElementById('fixtureDashboard'),
+    briefing: document.getElementById('fixtureBriefing'),
+    gasUrl: '/mock',
+    fetchJson: function () {
+      return Promise.resolve([
+        { code: '005930', price: 73500, change: 900, changeRate: 1.24 },
+        { code: '035420', price: 221000, change: -1800, changeRate: -0.81 },
+        { code: '000660', price: 212500, change: 7200, changeRate: 3.51 }
+      ]);
+    }
+  });
+</script>
+</body>
+</html>

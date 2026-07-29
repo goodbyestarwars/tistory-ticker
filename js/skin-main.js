@@ -45,6 +45,9 @@
 
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js';
+    var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js';
     var homeState = { foreign: null, institution: null, flowReady: false };
 
     function escapeHomeHtml(value) {
@@ -351,17 +354,18 @@
         if (list) list.innerHTML = '<p class="home-card-state">일정을 불러오지 못했습니다.</p>';
       });
 
-    /* 최신 마켓브리핑 3건을 대표 1건 + 일반 2건으로 재구성한다. */
+    /* 최신 마켓브리핑 4건을 대표 1건 + 중간 3건으로 재구성한다. */
     var allCards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     var marketCards = allCards.filter(function (card) { return card.getAttribute('data-cat') === '마켓 브리핑'; });
-    var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 3);
+    var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 4);
     allCards.forEach(function (card) {
       if (selectedCards.indexOf(card) === -1) card.remove();
     });
     feed.querySelectorAll(':scope > .notice-card').forEach(function (card) { card.remove(); });
 
+    var briefing = null;
     if (selectedCards.length) {
-      var briefing = document.createElement('section');
+      briefing = document.createElement('section');
       briefing.className = 'home-briefing-section';
       briefing.innerHTML = '<div class="home-section-heading"><div><strong>마켓브리핑</strong>'
         + '<span>투자 판단에 필요한 핵심 해석</span></div></div>'
@@ -379,6 +383,22 @@
 
     var pagination = feed.querySelector(':scope > .pagination');
     if (pagination) pagination.remove();
+
+    if (briefing) {
+      loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets')
+        .then(function (widgets) {
+          if (!widgets || !widgets.init) return;
+          widgets.init({
+            dashboard: dashboardSection,
+            briefing: briefing,
+            gasUrl: GAS_TICKER_URL,
+            fetchJson: fetchHomeJson
+          });
+        })
+        .catch(function () {
+          /* 위젯 관리 모듈이 막혀도 기존 고정형 대시보드는 그대로 사용할 수 있게 둔다. */
+        });
+    }
   })();
 
   /* ── 폰트 전환 토글 (명조 ⇄ 고딕, 조기 적용 스크립트는 head에 있음) ── */

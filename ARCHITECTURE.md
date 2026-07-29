@@ -56,10 +56,11 @@
   기존 파일을 계속 덮어쓴다
 - 공통 메뉴는 `js/skin-menu.js`가 `#nav-menu-mount`에 렌더링한다. 1차 메뉴는 MY를 포함한
   7개이며 시장·종목·패턴·발굴은 드롭다운 없이 고정형 2차 메뉴 바를 연다.
-- 홈의 `js/skin-main.js`는 투자자별 매매동향·오늘의 시장판, 랭킹·패턴·일정, 대표형
-  마켓브리핑 순으로 DOM을 재배치한다. `js/sidebar-rank.js`, `js/investor-trend-widget.js`,
-  `js/quick-indices.js`는 기존 엔드포인트를 유지하며, 패턴·캘린더·증시온도·시총 버블
-  응답도 홈 요약 카드가 그대로 재사용한다.
+- 홈의 `js/skin-main.js`는 기존 데이터로 기본 DOM을 만들고 `js/home-widgets.js`를 같은
+  정적 자산 경로에서 지연 로드한다. 위젯 관리 모듈은 투자자 수급·시장판·랭킹·패턴·MY·
+  일정·공시·브리핑 8개 레지스트리의 순서/숨김 상태만 담당하며 `localStorage`에 자동 저장한다.
+  `js/sidebar-rank.js`, `js/investor-trend-widget.js`, `js/quick-indices.js`와 기존 패턴·
+  캘린더·증시온도·시총 버블·관심종목 시세·공시 RSS 엔드포인트는 그대로 재사용한다.
 
 ### 2. Google Apps Script 프록시 (`gas/ticker-proxy.gs`)
 - 단일 GAS 프로젝트, 웹앱으로 배포(`{URL}?codes=...`, `?action=...` 등 쿼리파라미터로 라우팅)

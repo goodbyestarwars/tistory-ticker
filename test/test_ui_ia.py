@@ -32,14 +32,27 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("nav-dropdown", source)
         self.assertNotIn("nav-chevron", source)
 
-    def test_home_compaction_contract(self):
+    def test_home_dashboard_contract(self):
         main = self.read("js/skin-main.js")
+        widgets = self.read("js/home-widgets.js")
         rank = self.read("js/sidebar-rank.js")
         indices = self.read("js/quick-indices.js")
         for token in ("오늘의 시장판", "오늘의 패턴", "주요 일정", "home-overview-grid", "home-card-grid"):
             self.assertIn(token, main)
-        self.assertIn("slice(0, 3)", main)
+        self.assertIn("slice(0, 4)", main)
         self.assertIn("마켓브리핑 전체보기", main)
+        for token in (
+            "investor-flow",
+            "market-summary",
+            "my-watchlist",
+            "disclosure",
+            "home_dashboard_layout_v1",
+            "dragstart",
+            "pointerdown",
+            "홈 화면 초기화",
+            "data-widget-action=\"hide\"",
+        ):
+            self.assertIn(token, widgets)
         self.assertIn("실시간 랭킹", rank)
         self.assertIn("DEFAULT_SELECTED", indices)
         self.assertNotIn("id=\"qiNews\"", indices)
