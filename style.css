@@ -2679,8 +2679,16 @@ html.dark .sidebar-left .nav-dropdown-item.active {
   html.nav-mobile-submenu-open { --topbar-height: 88px; }
   html.nav-mobile-submenu-open .sidebar-left { height: 88px !important; overflow: visible !important; }
   .sidebar-left .nav-menu {
+    align-items: flex-start;
     overflow-x: auto;
     overflow-y: visible;
+  }
+  /* 서브메뉴가 열리면 메뉴바가 88px로 커지지만, 1차 행은 43px만 차지해야 한다.
+     height:100%를 그대로 두면 버튼이 86px까지 늘어 43px 지점의 서브메뉴를 덮는다. */
+  .sidebar-left .nav-item,
+  .sidebar-left .nav-group,
+  .sidebar-left .nav-group-trigger {
+    height: 43px;
   }
   .sidebar-left .nav-group { position: static; }
   .sidebar-left .nav-group:hover .nav-dropdown,
