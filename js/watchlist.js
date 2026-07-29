@@ -22,7 +22,6 @@
   var MAX_ITEMS = 50;
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
-  var NAVER_ITEM_URL = 'https://finance.naver.com/item/main.naver?code=';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   // TODO: /page/stock-search는 실제 페이지 생성 전 placeholder(js/skin-menu.js와 동일 사유) -
   // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
@@ -416,12 +415,6 @@
         var code = btn.getAttribute('data-code');
         var name = btn.getAttribute('data-name');
         location.href = STOCK_SEARCH_PAGE_URL + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
-      });
-    });
-    container.querySelectorAll('.wl-card').forEach(function (card) {
-      card.addEventListener('click', function () {
-        var code = card.getAttribute('data-code');
-        global.open(NAVER_ITEM_URL + encodeURIComponent(code), '_blank', 'noopener');
       });
     });
   }
