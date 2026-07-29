@@ -17,7 +17,6 @@
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-  var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var CONTAINER_SELECTOR = '#watchlist';
   var STORAGE_KEY = 'wl_codes_v1';
   var MAX_ITEMS = 50;
@@ -28,6 +27,14 @@
   // TODO: /page/stock-search는 실제 페이지 생성 전 placeholder(js/skin-menu.js와 동일 사유) -
   // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
   var STOCK_SEARCH_PAGE_URL = '/page/stock-search';
+  var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
+  var REALTIME_FALLBACK_MS = 30000;
+  var REALTIME_RECONNECT_MS = 5000;
+  var realtimeSocket = null;
+  var realtimeReconnectTimer = null;
+  var realtimeFallbackTimer = null;
+  var realtimeKeepaliveTimer = null;
+  var realtimeGeneration = 0;
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -46,6 +53,10 @@
     container.innerHTML = buildShell();
     wireEvents(container);
     render(container);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stopRealtimeQuotes();
+      else render(container);
+    });
   }
 
   function buildShell() {
@@ -281,9 +292,9 @@
         });
       })
       .catch(function () {
-        // 시세 조회 실패 - 카드는 이름/코드만 표시된 상태로 유지 (원문 유지 원칙과 동일)
+        // 최초 시세 조회 실패 시에도 WebSocket 연결과 저빈도 폴백이 이어서 갱신한다.
       });
-    loadFlowSummaries(container, list.map(function (it) { return it.code; }));
+    startRealtimeQuotes(container, list.map(function (it) { return it.code; }));
   }
 
   function buildCard(code, name) {
@@ -293,7 +304,6 @@
       + '<div class="wl-name">' + stockIconHtml(code) + '<span class="wl-name-text">' + escapeHtml(name) + '</span></div>'
       + '<div class="wl-price" data-field="price">-</div>'
       + '<div class="wl-change" data-field="change">-</div>'
-      + '<div class="wl-flow" data-field="flow">수급 조회 중...</div>'
       + '<button type="button" class="wl-chart-btn" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">차트 보기 →</button>'
       + '</div>';
   }
@@ -316,38 +326,81 @@
     changeEl.classList.add(quote.change > 0 ? 'wl-up' : quote.change < 0 ? 'wl-down' : 'wl-flat');
   }
 
-  // 수급(외국인·기관 5일 방향) - 종목당 온디맨드 호출만 가능해(js/stock-search.js와 동일
-  // 제약) 관심종목 카드마다 병렬로 호출한다. 최대 50개(MAX_ITEMS)라 한 화면에서 폭발적으로
-  // 늘어나진 않지만, 실패해도 카드 자체는 정상 표시돼야 하므로 개별 catch로 흡수한다.
-  function loadFlowSummaries(container, codes) {
-    codes.forEach(function (code) {
-      fetchJson(KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code) + '?days=5')
-        .then(function (envelope) {
-          var data = envelope && envelope.data;
-          var card = container.querySelector('.wl-card[data-code="' + cssEscape(code) + '"] [data-field="flow"]');
-          if (!card) return;
-          var rolling = data && !data.error && data.rolling && data.rolling['5d'];
-          if (!rolling) { card.textContent = '수급 자료 없음'; return; }
-          var f = rolling.foreign, i = rolling.inst;
-          var fText = f > 0 ? '외국인 매수' : (f < 0 ? '외국인 매도' : '외국인 중립');
-          var iText = i > 0 ? '기관 매수' : (i < 0 ? '기관 매도' : '기관 중립');
-          card.textContent = fText + ' · ' + iText;
-        })
-        .catch(function () {
-          var el = container.querySelector('.wl-card[data-code="' + cssEscape(code) + '"] [data-field="flow"]');
-          if (el) el.textContent = '수급 자료 없음';
-        });
-    });
+  // ---- 실시간 시세(WebSocket) ----
+
+  function stopRealtimeQuotes() {
+    realtimeGeneration += 1;
+    clearTimeout(realtimeReconnectTimer);
+    clearInterval(realtimeFallbackTimer);
+    clearInterval(realtimeKeepaliveTimer);
+    realtimeReconnectTimer = null;
+    realtimeFallbackTimer = null;
+    realtimeKeepaliveTimer = null;
+    if (realtimeSocket) {
+      realtimeSocket.onclose = null;
+      realtimeSocket.close();
+      realtimeSocket = null;
+    }
   }
 
-  function fetchJson(url) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(url, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(function (data) { if (timer) clearTimeout(timer); return data; })
-      .catch(function (err) { if (timer) clearTimeout(timer); throw err; });
+  function refreshQuotesOnce(container, codes) {
+    Watchlist.fetchQuotes(codes)
+      .then(function (quoteByCode) {
+        codes.forEach(function (code) {
+          updateCard(container, code, quoteByCode[code] || null);
+        });
+      })
+      .catch(function () {});
+  }
+
+  function startRealtimeQuotes(container, codes) {
+    stopRealtimeQuotes();
+    if (!codes.length || document.hidden || !('WebSocket' in global)) return;
+
+    var generation = realtimeGeneration;
+    var encodedCodes = codes.map(encodeURIComponent).join(',');
+
+    function connect() {
+      if (generation !== realtimeGeneration || document.hidden) return;
+
+      var socket = new WebSocket(REALTIME_QUOTES_URL + '?codes=' + encodedCodes);
+      realtimeSocket = socket;
+
+      socket.onmessage = function (event) {
+        if (generation !== realtimeGeneration) return;
+        try {
+          var quote = JSON.parse(event.data);
+          if (quote.type === 'quote' && quote.code) updateCard(container, quote.code, quote);
+        } catch (err) {}
+      };
+
+      socket.onopen = function () {
+        clearInterval(realtimeKeepaliveTimer);
+        realtimeKeepaliveTimer = setInterval(function () {
+          if (socket.readyState === WebSocket.OPEN) socket.send('ping');
+        }, 20000);
+      };
+
+      socket.onerror = function () {
+        socket.close();
+      };
+
+      socket.onclose = function () {
+        clearInterval(realtimeKeepaliveTimer);
+        realtimeKeepaliveTimer = null;
+        if (generation !== realtimeGeneration || document.hidden) return;
+        realtimeReconnectTimer = setTimeout(connect, REALTIME_RECONNECT_MS);
+      };
+    }
+
+    // WebSocket 연결이 막히거나 장 종료로 체결 이벤트가 없을 때만 30초 묶음 조회로 보완한다.
+    realtimeFallbackTimer = setInterval(function () {
+      if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) {
+        refreshQuotesOnce(container, codes);
+      }
+    }, REALTIME_FALLBACK_MS);
+
+    connect();
   }
 
   function wireCardEvents(container) {
