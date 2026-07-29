@@ -51,6 +51,10 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    document.title = document.title.replace(/증시검색/g, '실시간 시세');
+    document.querySelectorAll('.post-single-title').forEach(function (title) {
+      if (title.textContent.trim() === '증시검색') title.textContent = '실시간 시세';
+    });
     container.innerHTML = buildShell();
     wireSearch(container);
     autoSearchFromUrl(container);

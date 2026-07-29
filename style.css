@@ -504,6 +504,31 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
   transition: box-shadow .2s;
 }
 .post-card:hover { box-shadow: 0 4px 20px rgba(29,78,216,0.12); }
+.home-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 8px 2px 0;
+}
+.home-section-heading div { display: flex; align-items: baseline; gap: 10px; }
+.home-section-heading strong { font-size: 17px; color: #1a202c; }
+.home-section-heading span { font-size: 12px; color: #8a94a3; }
+.home-briefing-featured { border-left: 3px solid #315b43; }
+.home-briefing-more {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e7e4;
+  border-radius: 12px;
+  background: #fff;
+  color: #315b43;
+  font-size: 13px;
+}
+.home-briefing-more:hover { background: #f3f6f4; }
+html.dark .home-section-heading strong { color: #F5EFE0 !important; }
+html.dark .home-section-heading span { color: rgba(245,239,224,.55) !important; }
+html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rgba(245,239,224,.16) !important; color: #F5EFE0 !important; }
 
 /* Notice card — 블루~인디고 그라데이션 보더 + 은은한 틴트 배경 */
 .notice-card {
@@ -2571,6 +2596,115 @@ html.dark.font-gothic .nav-font-btn { color: #F5EFE0; border-color: #F5EFE0; }
 /* ============ full-width 페이지(오늘의 온도 등) ============ */
 html.full-width-page .sidebar-right,
 body#tt-body-page .sidebar-right { display: none; }
+
+/* ============ 2026-07 IA 개편: 6개 1차 메뉴 + 접근 가능한 2차 메뉴 ============ */
+.sidebar-left .nav-group {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+.sidebar-left .nav-group-trigger {
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  height: 100%;
+}
+.sidebar-left .nav-chevron {
+  margin-left: 5px;
+  color: #7b8491;
+  font-size: 13px;
+  transition: transform .16s ease;
+}
+.sidebar-left .nav-group-open .nav-chevron { transform: rotate(180deg); }
+.sidebar-left .nav-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 4px;
+  z-index: 310;
+  min-width: 190px;
+  padding: 8px;
+  border: 1px solid rgba(8, 36, 21, .12);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(17, 24, 39, .14);
+}
+.sidebar-left .nav-group:hover .nav-dropdown,
+.sidebar-left .nav-group:focus-within .nav-dropdown,
+.sidebar-left .nav-group-open .nav-dropdown { display: grid; }
+.sidebar-left .nav-dropdown-item {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #374151;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+.sidebar-left .nav-dropdown-item:hover,
+.sidebar-left .nav-dropdown-item:focus-visible { background: #f3f6f4; outline: none; }
+.sidebar-left .nav-dropdown-item.active {
+  color: #082415;
+  background: #edf3ef;
+}
+.sidebar-left .nav-item:focus-visible,
+.nav-icon-btn:focus-visible {
+  outline: 2px solid #315b43;
+  outline-offset: -2px;
+}
+.nav-my-btn { position: relative; }
+
+html.dark .sidebar-left .nav-dropdown {
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, .18) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .5) !important;
+}
+html.dark .sidebar-left .nav-dropdown-item { color: #F5EFE0 !important; }
+html.dark .sidebar-left .nav-dropdown-item:hover,
+html.dark .sidebar-left .nav-dropdown-item:focus-visible,
+html.dark .sidebar-left .nav-dropdown-item.active {
+  background: rgba(245, 239, 224, .1) !important;
+}
+
+@media (max-width: 720px) {
+  html.nav-mobile-submenu-open { --topbar-height: 88px; }
+  html.nav-mobile-submenu-open .sidebar-left { height: 88px !important; overflow: visible !important; }
+  .sidebar-left .nav-menu { overflow-y: visible; }
+  .sidebar-left .nav-group { position: static; }
+  .sidebar-left .nav-group:hover .nav-dropdown,
+  .sidebar-left .nav-group:focus-within .nav-dropdown { display: none; }
+  .sidebar-left .nav-group-active .nav-dropdown,
+  .sidebar-left .nav-group-open .nav-dropdown {
+    display: flex;
+    position: absolute;
+    top: 43px;
+    left: 0;
+    right: 0;
+    min-width: 0;
+    height: 45px;
+    padding: 0 8px;
+    border: 0;
+    border-top: 1px solid #eee;
+    border-radius: 0;
+    box-shadow: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: rgb(253, 253, 247);
+  }
+  .sidebar-left .nav-dropdown::-webkit-scrollbar { display: none; }
+  .sidebar-left .nav-dropdown-item {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 12px;
+  }
+  html.dark .sidebar-left .nav-group-active .nav-dropdown,
+  html.dark .sidebar-left .nav-group-open .nav-dropdown {
+    background: #1A1A1A !important;
+    border-top-color: rgba(245, 239, 224, .12) !important;
+  }
+}
 /* 단, 카테고리 글목록(마켓 브리핑 등)에선 우측 사이드바(인기글·해시태그) 유지.
    공지 카드는 티스토리가 카테고리 화면에 안 내려주므로(빈 #pinnedNotice) 원래 없음.
    min-width로 감싸는 이유: body#tt-body-category의 ID 셀렉터가 특이도가 높아
