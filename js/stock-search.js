@@ -498,6 +498,32 @@
     return daily;
   }
 
+  function movingAveragePoints(bars, field, period) {
+    var sum = 0;
+    var points = [];
+    bars.forEach(function (bar, i) {
+      sum += Number(bar[field]) || 0;
+      if (i >= period) sum -= Number(bars[i - period][field]) || 0;
+      if (i >= period - 1) points.push({ time: bar.date, value: sum / period });
+    });
+    return points;
+  }
+
+  function compactVolume(value) {
+    var n = Number(value) || 0;
+    function scaled(divisor, suffix) {
+      var v = n / divisor;
+      var digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
+      var text = v.toFixed(digits);
+      if (text.indexOf('.') !== -1) text = text.replace(/0+$/, '').replace(/\.$/, '');
+      return text + suffix;
+    }
+    if (Math.abs(n) >= 1000000000) return scaled(1000000000, 'B');
+    if (Math.abs(n) >= 1000000) return scaled(1000000, 'M');
+    if (Math.abs(n) >= 1000) return scaled(1000, 'K');
+    return Math.round(n).toLocaleString('ko-KR');
+  }
+
   function renderChartForCode(container, code) {
     var cached = state.chartCache[code];
     if (!cached) return;
@@ -541,6 +567,7 @@
 
   function renderLwChart(container, bars) {
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
+    container.querySelectorAll('.ss-volume-study-label').forEach(function (label) { label.remove(); });
 
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
@@ -551,34 +578,59 @@
         height: 420,
         // crosshair는 lwcThemeOptions()에 있음(mergeOptions가 얕은 병합이라 두 곳에 나눠
         // 쓰면 뒤에 오는 쪽이 통째로 덮어씀).
-        localization: { priceFormatter: function (v) { return Math.round(v).toLocaleString(); } },
-        rightPriceScale: { scaleMargins: { top: 0.08, bottom: 0.22 } }
+        localization: { locale: 'ko-KR' }
       }, lwcThemeOptions(LWC)));
       lwcChart = chart;
 
       var candleSeries = chart.addCandlestickSeries({
         upColor: '#d24f45', downColor: '#1261c4',
         borderUpColor: '#d24f45', borderDownColor: '#1261c4',
-        wickUpColor: '#d24f45', wickDownColor: '#1261c4'
+        wickUpColor: '#d24f45', wickDownColor: '#1261c4',
+        priceFormat: {
+          type: 'custom',
+          minMove: 1,
+          formatter: function (v) { return Math.round(v).toLocaleString('ko-KR'); }
+        }
       });
+      candleSeries.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.36 } });
       candleSeries.setData(bars.map(function (d) {
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
 
-      // 거래량은 캔들과 같은 패널 하단 20%에 별도 가격축(overlay)으로 겹쳐 그린다(HTS 관례).
-      // overlay 시리즈의 기본 lastValueVisible/priceLineVisible=true를 그대로 두면 마지막
-      // 거래량이 오른쪽 주가축에 가격 라벨처럼 표시된다. 거래량 막대는 유지하고, 오해를
-      // 만드는 오른쪽 숫자 라벨과 수평 점선만 숨긴다.
+      // TradingView 방식처럼 거래량을 하단 30% overlay 영역에 배치한다. 차트 전체의
+      // localization.priceFormatter를 없애고 시리즈별 포맷을 사용해야 거래량 값이
+      // 2,539,179 같은 주가형 숫자가 아니라 2.54M처럼 축약 표시된다.
       var volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' },
-        priceScaleId: 'ss-volume',
-        lastValueVisible: false,
-        priceLineVisible: false
+        priceScaleId: '',
+        lastValueVisible: true,
+        priceLineVisible: true
       });
-      chart.priceScale('ss-volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 } });
       volumeSeries.setData(bars.map(function (d) {
         return { time: d.date, value: d.volume || 0, color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
       }));
+
+      var volumeMaPoints = movingAveragePoints(bars, 'volume', 20);
+      var volumeMaSeries = chart.addLineSeries({
+        color: '#3b82f6',
+        lineWidth: 2,
+        priceScaleId: '',
+        priceFormat: { type: 'volume' },
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false
+      });
+      volumeMaSeries.setData(volumeMaPoints);
+
+      var latestBar = bars[bars.length - 1] || {};
+      var latestVolumeMa = volumeMaPoints.length ? volumeMaPoints[volumeMaPoints.length - 1].value : null;
+      var volumeLegend = document.createElement('div');
+      volumeLegend.className = 'ss-volume-study-label';
+      volumeLegend.innerHTML = '<span>거래량 (20)</span>'
+        + '<b>' + compactVolume(latestBar.volume) + '</b>'
+        + (latestVolumeMa == null ? '' : '<b class="ss-volume-ma-value">' + compactVolume(latestVolumeMa) + '</b>');
+      container.appendChild(volumeLegend);
 
       chart.timeScale().fitContent();
     }).catch(function () {

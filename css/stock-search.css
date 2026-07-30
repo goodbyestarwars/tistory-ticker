@@ -268,7 +268,31 @@
 }
 #stock-search .ss-tf-btn.active { border-color: #333; background: #333; color: #fff; font-weight: 700; }
 #stock-search .ss-tf-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-#stock-search .ss-chart { height: 420px; }
+#stock-search .ss-chart { position: relative; height: 420px; }
+#stock-search .ss-chart::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: 70%;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #e8eaed;
+  pointer-events: none;
+}
+#stock-search .ss-volume-study-label {
+  position: absolute;
+  z-index: 3;
+  top: calc(70% + 7px);
+  left: 8px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 10.5px;
+  color: #8a9099;
+  pointer-events: none;
+}
+#stock-search .ss-volume-study-label b { color: #4f8df7; font-weight: 600; }
+#stock-search .ss-volume-study-label .ss-volume-ma-value { color: #2563eb; }
 #stock-search .ss-chart .ss-hint { height: 100%; justify-content: center; }
 #stock-search .ss-chart-legend {
   margin-top: 8px;
@@ -316,5 +340,7 @@ html.dark #stock-search .ss-reason-badge { background: rgba(245, 239, 224, 0.85)
 html.dark #stock-search .ss-reason-text { color: rgba(245, 239, 224, 0.85) !important; }
 html.dark #stock-search .ss-tf-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #stock-search .ss-tf-btn.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #stock-search .ss-chart::after { border-top-color: rgba(245, 239, 224, 0.16) !important; }
+html.dark #stock-search .ss-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-search .ss-fav-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.35) !important; }
 html.dark #stock-search .ss-fav-btn.active { color: #e0b040 !important; border-color: #e0b040 !important; background: #3a2f10 !important; }

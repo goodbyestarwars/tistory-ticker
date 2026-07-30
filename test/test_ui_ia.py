@@ -201,17 +201,24 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("며칠 후부터 표시됩니다", source)
         self.assertIn(".mt-spark-single", style)
 
-    def test_stock_search_volume_does_not_render_as_price_axis_label(self):
+    def test_stock_search_volume_uses_compact_overlay_study(self):
         source = self.read("js/stock-search.js")
+        style = self.read("css/stock-search.css")
         volume_series = re.search(
             r"var volumeSeries = chart\.addHistogramSeries\(\{(?P<body>.*?)\}\);",
             source,
             re.DOTALL,
         )
         self.assertIsNotNone(volume_series)
-        self.assertIn("priceScaleId: 'ss-volume'", volume_series.group("body"))
-        self.assertIn("lastValueVisible: false", volume_series.group("body"))
-        self.assertIn("priceLineVisible: false", volume_series.group("body"))
+        self.assertIn("priceFormat: { type: 'volume' }", volume_series.group("body"))
+        self.assertIn("priceScaleId: ''", volume_series.group("body"))
+        self.assertIn("lastValueVisible: true", volume_series.group("body"))
+        self.assertNotIn("localization: { priceFormatter:", source)
+        self.assertIn("movingAveragePoints(bars, 'volume', 20)", source)
+        self.assertIn("querySelectorAll('.ss-volume-study-label')", source)
+        self.assertIn("ss-volume-study-label", source)
+        self.assertIn(".ss-volume-study-label", style)
+        self.assertIn("top: 70%", style)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
