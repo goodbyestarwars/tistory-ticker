@@ -201,6 +201,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("며칠 후부터 표시됩니다", source)
         self.assertIn(".mt-spark-single", style)
 
+    def test_stock_search_volume_does_not_render_as_price_axis_label(self):
+        source = self.read("js/stock-search.js")
+        volume_series = re.search(
+            r"var volumeSeries = chart\.addHistogramSeries\(\{(?P<body>.*?)\}\);",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(volume_series)
+        self.assertIn("priceScaleId: 'ss-volume'", volume_series.group("body"))
+        self.assertIn("lastValueVisible: false", volume_series.group("body"))
+        self.assertIn("priceLineVisible: false", volume_series.group("body"))
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (

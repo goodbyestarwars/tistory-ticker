@@ -566,9 +566,14 @@
       }));
 
       // 거래량은 캔들과 같은 패널 하단 20%에 별도 가격축(overlay)으로 겹쳐 그린다(HTS 관례).
+      // overlay 시리즈의 기본 lastValueVisible/priceLineVisible=true를 그대로 두면 마지막
+      // 거래량이 오른쪽 주가축에 가격 라벨처럼 표시된다. 거래량 막대는 유지하고, 오해를
+      // 만드는 오른쪽 숫자 라벨과 수평 점선만 숨긴다.
       var volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' },
-        priceScaleId: 'ss-volume'
+        priceScaleId: 'ss-volume',
+        lastValueVisible: false,
+        priceLineVisible: false
       });
       chart.priceScale('ss-volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
       volumeSeries.setData(bars.map(function (d) {
