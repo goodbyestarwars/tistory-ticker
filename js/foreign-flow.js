@@ -43,15 +43,15 @@
   var PAD = { l: 68, r: 16, t: 16, b: 30 };
 
   var FCHART_H = 360;
-  var MA_COLORS = { ma5: '#e8590c', ma20: '#0ca678', ma60: '#5f3dc4' };
-  var MA_WIDTHS = { ma5: 1, ma20: 1, ma60: 1, ma224: 2 };
+  var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' };
+  var MA_WIDTHS = { ma5: 1, ma20: 1, ma60: 1, ma224: 3 };
   // 224일선은 다른 이평선과 구분되는 장기 추세선이라 검은색+굵게(사용자 요청, 2026-07-22) -
   // 다만 순검은색은 다크모드 차트 배경(#222)에서 안 보이므로 테마에 따라 흰색으로 바꿔준다.
   function ma224Color() {
     return document.documentElement.classList.contains('dark') ? '#f1f3f5' : '#000000';
   }
-  // 선행스팬1·2(구름 경계선)는 js/pattern-scan.js와 동일하게 하늘색 통일(2026-07-22 사용자 요청)
-  var ICHIMOKU_COLORS = { senkouA: '#4dabf7', senkouB: '#4dabf7' };
+  // 실시간 시세 차트와 동일하게 양운은 상승색(빨강), 음운은 하락색(파랑)으로 통일한다.
+  var ICHIMOKU_COLORS = { senkouA: '#d24f45', senkouB: '#1261c4' };
 
   // TradingView Lightweight Charts(오픈소스, CDN 지연 로드) - 가격 캔들차트 렌더링 엔진.
   // 손으로 그리던 SVG 캔들차트를 대체 - 확대/축소·패닝·크로스헤어를 라이브러리가 제공.
@@ -1251,8 +1251,8 @@
     wireFlowPeriod(box, data.code, data.name);
     loadAiSummary(box, data, entry, techScore, chartData, fundamentals);
     wireViewTabs(box, data.code, data.name, chartData);
+    wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
-    wireVolumeProfileToggle(box, chartData);
     wireAptTabs(box, apt, aptCurrentPrice);
     startQuotePolling(box, data.code);
   }
@@ -2800,17 +2800,16 @@
       body = '<div class="ff-error">' + escapeHtml((chartData && chartData.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
     } else {
       body = '<div class="ff-chart-toggles">'
+        + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffMovingAverageToggle"' + (movingAverageEnabled ? ' checked' : '') + ' /> 이동평균선 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
-        + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
         + '</div>'
-        + buildVpLegend()
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
         + buildLwLegend()
         + buildTechBreakdown(techScore)
         + buildRsiSection(chartData.daily);
     }
     return '<div class="ff-extra-card ff-flow-chart-card">'
-      + '<div class="ff-extra-card-title">📉 가격 차트 · 이동평균 · 지지/저항 · RSI</div>'
+      + '<div class="ff-extra-card-title">📉 가격 차트 · 이동평균 · 일목균형표 · 거래량 · 지지/저항 · RSI</div>'
       + body
       + '</div>';
   }
@@ -2826,8 +2825,21 @@
       + '</div>';
   }
 
-  // 일목균형표는 캔들과 겹쳐 기본 차트를 복잡하게 만드는 별도 보조지표라 js/pattern-scan.js와
-  // 똑같이 체크박스로 켜고 끈다(기본 꺼짐).
+  var movingAverageEnabled = true;
+  var movingAverageOverlaySeries = [];
+
+  function wireMovingAverageToggle(box) {
+    var toggle = box.querySelector('#ffMovingAverageToggle');
+    if (!toggle) return;
+    toggle.addEventListener('change', function () {
+      movingAverageEnabled = toggle.checked;
+      movingAverageOverlaySeries.forEach(function (series) {
+        try { series.applyOptions({ visible: movingAverageEnabled }); } catch (e) { /* 제거된 차트면 무시 */ }
+      });
+    });
+  }
+
+  // 일목균형표는 캔들과 겹치는 별도 보조지표라 체크박스로 켜고 끈다(기본 꺼짐).
   var ichimokuEnabled = false;
   var ichimokuOverlaySeries = [];
   var ichimokuCloudPrimitive = null; // { series, primitive }
@@ -2916,7 +2928,7 @@
       try {
         var bandPts = pairIchimokuBand(ichi.senkouA, ichi.senkouB);
         if (bandPts.length > 1) {
-          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(55,178,77,0.18)', 'rgba(240,140,0,0.18)');
+          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(210,79,69,0.13)', 'rgba(18,97,196,0.12)');
           seriesByKey.senkouA.attachPrimitive(cloudPrimitive);
           ichimokuCloudPrimitive = { series: seriesByKey.senkouA, primitive: cloudPrimitive };
         }
@@ -3726,6 +3738,7 @@
       try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
       lwcChart = null;
     }
+    movingAverageOverlaySeries = [];
     ichimokuOverlaySeries = []; // chart.remove()가 시리즈까지 다 정리하므로 참조만 비움
     ichimokuCloudPrimitive = null;
     lwcCandleSeries = null;
@@ -3763,6 +3776,7 @@
   // GAS ?action=flowChart 응답(daily 오름차순 + ma5/20/60/224 + levels)을 그대로 먹인다.
   function renderLwChart(container, chartData) {
     destroyLwChart();
+    container.querySelectorAll('.ff-volume-study-label').forEach(function (el) { el.remove(); });
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return; // 로딩 중 다른 종목 재검색되면 중단
 
@@ -3772,7 +3786,7 @@
         // crosshair는 lwcThemeOptions()에 있음(mergeOptions가 얕은 병합이라 두 곳에 나눠
         // 쓰면 뒤에 오는 쪽이 통째로 덮어씀 - rightPriceScale과 동일한 이유).
         timeScale: { timeVisible: false, secondsVisible: false },
-        localization: { priceFormatter: chartPriceFormatter },
+        localization: { locale: 'ko-KR' },
         // 2026-07-19: 캔들이 세로로 너무 납작해 보인다는 피드백 - 가격축(오른쪽) 드래그로
         // 직접 세로 확대가 가능하게 함(마우스 휠은 기존처럼 가로/시간축 확대). 위아래 여백은
         // lwcThemeOptions()의 rightPriceScale에 같이 설정(mergeOptions가 얕은 병합이라
@@ -3785,8 +3799,14 @@
       var candleSeries = chart.addCandlestickSeries({
         upColor: '#d24f45', downColor: '#1261c4',
         borderUpColor: '#d24f45', borderDownColor: '#1261c4',
-        wickUpColor: '#d24f45', wickDownColor: '#1261c4'
+        wickUpColor: '#d24f45', wickDownColor: '#1261c4',
+        priceFormat: {
+          type: 'custom',
+          minMove: 1,
+          formatter: chartPriceFormatter
+        }
       });
+      candleSeries.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.36 } });
       candleSeries.setData(daily.map(function (d) {
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
@@ -3804,17 +3824,62 @@
         var series = (chartData.ma && chartData.ma[key]) || [];
         if (!series.length) return;
         var color = key === 'ma224' ? ma224Color() : MA_COLORS[key];
-        var lineSeries = chart.addLineSeries({ color: color, lineWidth: MA_WIDTHS[key], priceLineVisible: false, lastValueVisible: false });
+        var lineSeries = chart.addLineSeries({
+          color: color,
+          lineWidth: MA_WIDTHS[key],
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+          visible: movingAverageEnabled
+        });
         var pts = [];
         daily.forEach(function (d, i) {
           if (series[i] == null) return;
           pts.push({ time: d.date, value: series[i] });
         });
         lineSeries.setData(pts);
+        movingAverageOverlaySeries.push(lineSeries);
       });
 
       if (ichimokuEnabled) addIchimokuOverlay(daily);
-      if (vpEnabled) addVolumeProfileOverlay(daily);
+
+      // 실시간 시세와 같은 하단 30% 거래량 영역. 전체 localization formatter를 쓰지
+      // 않고 시리즈별 포맷을 적용해야 우측 값이 가격처럼 보이지 않고 K/M/B로 축약된다.
+      var volumeSeries = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+        lastValueVisible: true,
+        priceLineVisible: true
+      });
+      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 } });
+      volumeSeries.setData(daily.map(function (d) {
+        return {
+          time: d.date,
+          value: d.volume || 0,
+          color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)'
+        };
+      }));
+
+      var volumeMaPoints = movingAverageChartPoints(daily, 'volume', 20);
+      var volumeMaSeries = chart.addLineSeries({
+        color: '#3b82f6',
+        lineWidth: 2,
+        priceScaleId: '',
+        priceFormat: { type: 'volume' },
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false
+      });
+      volumeMaSeries.setData(volumeMaPoints);
+
+      var latest = daily[daily.length - 1] || {};
+      var latestVolumeMa = volumeMaPoints.length ? volumeMaPoints[volumeMaPoints.length - 1].value : null;
+      var volumeLegend = document.createElement('div');
+      volumeLegend.className = 'ff-volume-study-label';
+      volumeLegend.innerHTML = '<span>거래량 (20)</span>'
+        + '<b>' + compactChartVolume(latest.volume) + '</b>'
+        + (latestVolumeMa == null ? '' : '<b class="ff-volume-ma-value">' + compactChartVolume(latestVolumeMa) + '</b>');
+      container.appendChild(volumeLegend);
 
       // 2026-07-22: 볼린저밴드·일목균형표 선은 캔들과 겹쳐 차트가 복잡해진다는 피드백으로
       // 차트 시각화에서 제거(계산 자체는 buildTechBreakdown의 기술적 점수·참고지표에서
@@ -3855,6 +3920,28 @@
   function fmtWon(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '원'; }
   // 캔들차트 축·지지/저항선·크로스헤어에 표시되는 가격에 천단위 콤마(원화는 소수점 없음)
   function chartPriceFormatter(v) { return v == null || isNaN(v) ? '' : Math.round(v).toLocaleString(); }
+  function movingAverageChartPoints(bars, field, period) {
+    var sum = 0;
+    var points = [];
+    bars.forEach(function (bar, i) {
+      sum += Number(bar[field]) || 0;
+      if (i >= period) sum -= Number(bars[i - period][field]) || 0;
+      if (i >= period - 1) points.push({ time: bar.date, value: sum / period });
+    });
+    return points;
+  }
+  function compactChartVolume(value) {
+    var n = Number(value) || 0;
+    function scaled(divisor, suffix) {
+      var v = n / divisor;
+      var digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
+      return v.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '') + suffix;
+    }
+    if (Math.abs(n) >= 1000000000) return scaled(1000000000, 'B');
+    if (Math.abs(n) >= 1000000) return scaled(1000000, 'M');
+    if (Math.abs(n) >= 1000) return scaled(1000, 'K');
+    return Math.round(n).toLocaleString('ko-KR');
+  }
   function fmtPct(v) { return v == null || isNaN(v) ? '-' : v.toFixed(2) + '%'; }
   function fmtSignedPct(v) {
     if (v == null || isNaN(v)) return '-';

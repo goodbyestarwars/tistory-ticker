@@ -31,6 +31,8 @@
     selectedName: null,
     ladderMounted: false,
     timeframe: 'day', // 'day' | 'week' | 'month'
+    movingAverageEnabled: true,
+    ichimokuEnabled: false,
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
     resultsCollapsed: false // 종목을 고르면 목록이 화면을 계속 차지하지 않도록 접음(사용자 리포트)
@@ -98,6 +100,10 @@
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="month">월봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="minute" disabled title="실시간 분봉 데이터 소스가 아직 없어요(준비 중)">분봉</button>'
+      + '</div>'
+      + '<div class="ss-chart-studies">'
+      + '<label><input type="checkbox" id="ssMovingAverageToggle" checked /> 이동평균선 표시</label>'
+      + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint">차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래 막대로 표시됩니다.</div>'
@@ -437,6 +443,22 @@
         renderChartForCode(container, state.selectedCode);
       };
     });
+    var movingAverageToggle = container.querySelector('#ssMovingAverageToggle');
+    if (movingAverageToggle) {
+      movingAverageToggle.checked = state.movingAverageEnabled;
+      movingAverageToggle.onchange = function () {
+        state.movingAverageEnabled = movingAverageToggle.checked;
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
+    var ichimokuToggle = container.querySelector('#ssIchimokuToggle');
+    if (ichimokuToggle) {
+      ichimokuToggle.checked = state.ichimokuEnabled;
+      ichimokuToggle.onchange = function () {
+        state.ichimokuEnabled = ichimokuToggle.checked;
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
   }
 
   function loadChart(container, code) {
@@ -656,6 +678,10 @@
     return Math.round(n).toLocaleString('ko-KR');
   }
 
+  function ma224Color() {
+    return document.documentElement.classList.contains('dark') ? '#f1f3f5' : '#000000';
+  }
+
   function renderChartForCode(container, code) {
     var cached = state.chartCache[code];
     if (!cached) return;
@@ -731,56 +757,63 @@
       }));
 
       var priceStudies = [
-        { period: 5, label: '5', color: '#16a085' },
-        { period: 20, label: '20', color: '#f59e0b' },
-        { period: 224, label: '224', color: '#8e44ad' }
+        { period: 5, label: '5', color: '#d24f45' },
+        { period: 20, label: '20', color: '#1261c4' },
+        { period: 60, label: '60', color: '#0ca678' },
+        { period: 224, label: '224', color: ma224Color() }
       ];
       var priceLegendHtml = [];
-      priceStudies.forEach(function (study) {
-        var points = movingAveragePoints(bars, 'close', study.period);
-        var series = chart.addLineSeries({
-          color: study.color,
-          lineWidth: study.period === 224 ? 2 : 1,
+      if (state.movingAverageEnabled) {
+        priceStudies.forEach(function (study) {
+          var points = movingAveragePoints(bars, 'close', study.period);
+          var series = chart.addLineSeries({
+            color: study.color,
+            lineWidth: study.period === 224 ? 3 : 1,
+            priceScaleId: 'right',
+            lastValueVisible: false,
+            priceLineVisible: false,
+            crosshairMarkerVisible: false,
+            priceFormat: {
+              type: 'custom',
+              minMove: 1,
+              formatter: function (v) { return Math.round(v).toLocaleString('ko-KR'); }
+            }
+          });
+          series.setData(points);
+          var latest = points.length ? Math.round(points[points.length - 1].value).toLocaleString('ko-KR') : '—';
+          priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.label + ' <b>' + latest + '</b></span>');
+        });
+      }
+
+      var cloudPoints = state.ichimokuEnabled ? ichimokuCloudPoints(bars, timeframe) : [];
+      if (state.ichimokuEnabled) {
+        var spanASeries = chart.addLineSeries({
+          color: 'rgba(210,79,69,0.62)',
+          lineWidth: 1,
           priceScaleId: 'right',
           lastValueVisible: false,
           priceLineVisible: false,
-          crosshairMarkerVisible: false,
-          priceFormat: {
-            type: 'custom',
-            minMove: 1,
-            formatter: function (v) { return Math.round(v).toLocaleString('ko-KR'); }
-          }
+          crosshairMarkerVisible: false
         });
-        series.setData(points);
-        var latest = points.length ? Math.round(points[points.length - 1].value).toLocaleString('ko-KR') : '—';
-        priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.label + ' <b>' + latest + '</b></span>');
-      });
+        var spanBSeries = chart.addLineSeries({
+          color: 'rgba(18,97,196,0.62)',
+          lineWidth: 1,
+          priceScaleId: 'right',
+          lastValueVisible: false,
+          priceLineVisible: false,
+          crosshairMarkerVisible: false
+        });
+        spanASeries.setData(cloudPoints.map(function (point) { return { time: point.time, value: point.spanA }; }));
+        spanBSeries.setData(cloudPoints.map(function (point) { return { time: point.time, value: point.spanB }; }));
+        priceLegendHtml.push('<span class="ss-ichimoku-label">일목 구름대' + (cloudPoints.length ? '' : ' <b>데이터 부족</b>') + '</span>');
+      }
 
-      var cloudPoints = ichimokuCloudPoints(bars, timeframe);
-      var spanASeries = chart.addLineSeries({
-        color: 'rgba(210,79,69,0.62)',
-        lineWidth: 1,
-        priceScaleId: 'right',
-        lastValueVisible: false,
-        priceLineVisible: false,
-        crosshairMarkerVisible: false
-      });
-      var spanBSeries = chart.addLineSeries({
-        color: 'rgba(18,97,196,0.62)',
-        lineWidth: 1,
-        priceScaleId: 'right',
-        lastValueVisible: false,
-        priceLineVisible: false,
-        crosshairMarkerVisible: false
-      });
-      spanASeries.setData(cloudPoints.map(function (point) { return { time: point.time, value: point.spanA }; }));
-      spanBSeries.setData(cloudPoints.map(function (point) { return { time: point.time, value: point.spanB }; }));
-
-      var priceLegend = document.createElement('div');
-      priceLegend.className = 'ss-price-study-label';
-      priceLegend.innerHTML = priceLegendHtml.join('')
-        + '<span class="ss-ichimoku-label">일목 구름대' + (cloudPoints.length ? '' : ' <b>데이터 부족</b>') + '</span>';
-      container.appendChild(priceLegend);
+      if (priceLegendHtml.length) {
+        var priceLegend = document.createElement('div');
+        priceLegend.className = 'ss-price-study-label';
+        priceLegend.innerHTML = priceLegendHtml.join('');
+        container.appendChild(priceLegend);
+      }
 
       // TradingView 방식처럼 거래량을 하단 30% overlay 영역에 배치한다. 차트 전체의
       // localization.priceFormatter를 없애고 시리즈별 포맷을 사용해야 거래량 값이

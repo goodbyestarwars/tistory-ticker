@@ -225,7 +225,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/stock-search.css")
         self.assertIn("{ period: 5, label: '5'", source)
         self.assertIn("{ period: 20, label: '20'", source)
+        self.assertIn("{ period: 60, label: '60'", source)
         self.assertIn("{ period: 224, label: '224'", source)
+        self.assertIn("color: '#d24f45'", source)
+        self.assertIn("color: '#1261c4'", source)
+        self.assertIn("color: '#0ca678'", source)
+        self.assertIn("study.period === 224 ? 3 : 1", source)
+        self.assertIn("id=\"ssMovingAverageToggle\"", source)
+        self.assertIn("id=\"ssIchimokuToggle\"", source)
         self.assertIn("ichimokuCloudPoints(bars, timeframe)", source)
         self.assertIn("rollingMidpointValues(bars, 9)", source)
         self.assertIn("rollingMidpointValues(bars, 26)", source)
@@ -236,6 +243,30 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ss-ichimoku-cloud", style)
         self.assertIn(".ss-price-study-label", style)
         self.assertIn(".ss-chart { position: relative; height: 420px; }", style)
+
+    def test_stock_analysis_chart_matches_price_studies_and_replaces_volume_profile_with_volume(self):
+        source = self.read("js/foreign-flow.js")
+        style = self.read("css/foreign-flow.css")
+        chart_card = re.search(
+            r"function buildFlowChartCard\(chartData, techScore\) \{(?P<body>.*?)\n  \}",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(chart_card)
+        body = chart_card.group("body")
+        self.assertIn('id="ffMovingAverageToggle"', body)
+        self.assertIn('id="ffIchimokuToggle"', body)
+        self.assertLess(body.index('id="ffMovingAverageToggle"'), body.index('id="ffIchimokuToggle"'))
+        self.assertNotIn('id="ffVolumeProfileToggle"', body)
+        self.assertNotIn("buildVpLegend()", body)
+        self.assertIn("var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' };", source)
+        self.assertIn("var MA_WIDTHS = { ma5: 1, ma20: 1, ma60: 1, ma224: 3 };", source)
+        self.assertIn("movingAverageOverlaySeries.push(lineSeries)", source)
+        self.assertIn("var volumeSeries = chart.addHistogramSeries", source)
+        self.assertIn("priceFormat: { type: 'volume' }", source)
+        self.assertIn("movingAverageChartPoints(daily, 'volume', 20)", source)
+        self.assertIn(".ff-volume-study-label", style)
+        self.assertIn(".ff-chart-candle::after", style)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")

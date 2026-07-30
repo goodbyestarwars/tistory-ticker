@@ -1166,7 +1166,7 @@
   color: #666;
 }
 
-/* 일목균형표/매물대 토글(기본 꺼짐, js/pattern-scan.js와 동일 패턴) + 범례 */
+/* 이동평균선/일목균형표 토글 */
 #foreign-flow .ff-chart-toggles {
   display: flex;
   flex-wrap: wrap;
@@ -1192,6 +1192,30 @@
   font-size: 12px;
   color: #666;
 }
+#foreign-flow .ff-chart-candle::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: 70%;
+  left: 8px;
+  right: 8px;
+  border-top: 1px solid #e8eaed;
+  pointer-events: none;
+}
+#foreign-flow .ff-volume-study-label {
+  position: absolute;
+  z-index: 3;
+  top: calc(70% + 7px);
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10.5px;
+  color: #8a9099;
+  pointer-events: none;
+}
+#foreign-flow .ff-volume-study-label b { color: #4f8df7; font-weight: 600; }
+#foreign-flow .ff-volume-study-label .ff-volume-ma-value { color: #2563eb; }
 #foreign-flow .ff-legend-item { display: inline-flex; align-items: center; gap: 5px; }
 #foreign-flow .ff-dot {
   display: inline-block;
@@ -1539,6 +1563,8 @@ html.dark #foreign-flow .ff-badge-legend b { color: rgba(245, 239, 224, 0.65) !i
 
 html.dark #foreign-flow .ff-extra-missing { background: #1A1A1A !important; color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-chart-empty { background: #1A1A1A !important; color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-chart-candle::after { border-top-color: rgba(245, 239, 224, 0.16) !important; }
+html.dark #foreign-flow .ff-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #foreign-flow .ff-extra-card { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-extra-card-title { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-extra-grade { color: rgba(245, 239, 224, 0.6) !important; }
