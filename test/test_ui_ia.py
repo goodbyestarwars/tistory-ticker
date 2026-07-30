@@ -114,6 +114,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIsNotNone(table_rule)
         self.assertIn("height: 100%", table_rule.group("body"))
 
+    def test_pattern_buttons_reset_native_border(self):
+        source = self.read("style.css")
+        row_rule = re.search(
+            r"\.home-pattern-row \{(?P<body>.*?)\}",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(row_rule)
+        self.assertIn("appearance: none", row_rule.group("body"))
+        self.assertIn("border: 0", row_rule.group("body"))
+        self.assertIn("border-bottom: 1px solid #f0f1f2", row_rule.group("body"))
+        self.assertIn("box-shadow: none", row_rule.group("body"))
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (

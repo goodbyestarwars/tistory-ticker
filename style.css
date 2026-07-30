@@ -667,19 +667,23 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   font-size: 12.5px;
 }
 .home-pattern-row {
+  appearance: none;
   width: 100%;
   padding: 0;
+  border: 0;
+  border-bottom: 1px solid #f0f1f2;
+  border-radius: 0;
   background: transparent;
+  box-shadow: none;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background .16s ease, padding .16s ease;
+  transition: background .16s ease;
 }
-.home-pattern-row:hover,
+.home-pattern-row:hover { background: #f7f8f8; }
 .home-pattern-row:focus-visible {
-  padding: 0 7px;
-  background: #f7f8f8;
-  outline: none;
+  outline: 2px solid rgba(49, 91, 67, .24);
+  outline-offset: -2px;
 }
 .home-pattern-row strong,
 .home-pattern-new strong {
