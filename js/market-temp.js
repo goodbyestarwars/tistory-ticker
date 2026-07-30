@@ -437,11 +437,25 @@
 
   function buildSparkline(data) {
     var days = data.recentDays || [];
-    if (days.length < 2) {
+    if (!days.length) {
       return ''
         + '<div class="mt-card">'
         + '<div class="mt-card-title">📈 최근 7일 증시온도</div>'
-        + '<div class="mt-stats-empty">추이 데이터 수집 중 (며칠 후부터 표시됩니다)</div>'
+        + '<div class="mt-stats-empty">증시온도 기록을 확인할 수 없습니다.</div>'
+        + '</div>';
+    }
+    if (days.length === 1) {
+      var onlyDay = days[0];
+      var onlyGrade = gradeForTempClient_(onlyDay.temp);
+      var onlyColor = (GRADE_BY_TONE[onlyGrade.tone] || {}).color || '#888';
+      return ''
+        + '<div class="mt-card">'
+        + '<div class="mt-card-title">📈 최근 1일 증시온도</div>'
+        + '<div class="mt-spark-single">'
+        + '<strong style="color:' + onlyColor + '">' + onlyDay.temp.toFixed(1) + '℃</strong>'
+        + '<span>' + escapeHtml(onlyDay.date) + '</span>'
+        + '<small>오늘부터 일별 기록을 시작했습니다.</small>'
+        + '</div>'
         + '</div>';
     }
     var W = 600, H = 100, PAD = 8;

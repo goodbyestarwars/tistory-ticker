@@ -1097,7 +1097,7 @@ function getMarketTemp() {
   // 응답에 recentDays/band 필드 추가 - 재배포해도 CacheService는 자동으로 안 비워지므로
   // (실측: 재배포 후에도 30분간 옛 스키마가 그대로 응답됨) 스키마 바뀔 때마다 캐시 키도
   // 같이 올려야 함(이 프로젝트 반복 관례, news_ 캐시 키 이력 참고).
-  var cacheKey = CACHE_PREFIX + 'market_temp_v4';
+  var cacheKey = CACHE_PREFIX + 'market_temp_v5';
   var cached = cache.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
@@ -1123,6 +1123,8 @@ function getMarketTemp() {
     + sectorStrength.score + week52.score + fx.score + futures.score));
   var temp = Math.round(total * (40 / maxPossible) * 10) / 10; // 만점(maxPossible) -> 40.0℃로 항상 정규화
 
+  var dailyHistory = upsertDailyMarketTemp_(temp);
+
   var result = {
     score: total,
     maxScore: maxPossible,
@@ -1133,8 +1135,8 @@ function getMarketTemp() {
       riseRatio: rise, sectorStrength: sectorStrength, week52: week52,
       exchange: fx, usFutures: futures
     },
-    history: computeMarketTempHistory_(temp),
-    recentDays: computeMarketTempSparkline_(temp),
+    history: computeMarketTempHistory_(temp, dailyHistory),
+    recentDays: computeMarketTempSparkline_(temp, dailyHistory),
     updatedAt: formatKstTime(Date.now())
   };
 
@@ -1146,18 +1148,49 @@ function getMarketTemp() {
 // 날짜별로 누적 - "전일 대비/1주일 평균/1개월 평균" 계산의 재료. 같은 날 재실행되면 최신값으로 덮어씀.
 function logDailyMarketTemp_() {
   var data = getMarketTemp();
+  upsertDailyMarketTemp_(data.temp);
+}
+
+// Save today's temperature whenever the market page reads it.
+// The installable close-time trigger remains an optional end-of-day correction.
+function upsertDailyMarketTemp_(temp) {
+  if (typeof temp !== 'number' || !isFinite(temp)) return readDailyMarketTempHistory_();
+
   var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
   var props = PropertiesService.getScriptProperties();
-  var raw = props.getProperty(MT_DAILY_HISTORY_KEY);
-  var hist = raw ? JSON.parse(raw) : [];
+  var hist = readDailyMarketTempHistory_();
+  var matched = false;
 
-  if (hist.length && hist[hist.length - 1].date === today) {
-    hist[hist.length - 1].temp = data.temp;
-  } else {
-    hist.push({ date: today, temp: data.temp });
-  }
+  hist.forEach(function (item) {
+    if (item.date !== today) return;
+    item.temp = temp;
+    matched = true;
+  });
+  if (!matched) hist.push({ date: today, temp: temp });
+
+  hist.sort(function (a, b) { return a.date.localeCompare(b.date); });
   if (hist.length > MT_DAILY_HISTORY_MAX) hist = hist.slice(hist.length - MT_DAILY_HISTORY_MAX);
   props.setProperty(MT_DAILY_HISTORY_KEY, JSON.stringify(hist));
+  return hist;
+}
+
+function readDailyMarketTempHistory_() {
+  var raw = PropertiesService.getScriptProperties().getProperty(MT_DAILY_HISTORY_KEY);
+  if (!raw) return [];
+
+  try {
+    var parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(function (item) {
+      return item
+        && typeof item.date === 'string'
+        && /^\d{4}-\d{2}-\d{2}$/.test(item.date)
+        && typeof item.temp === 'number'
+        && isFinite(item.temp);
+    });
+  } catch (e) {
+    return [];
+  }
 }
 
 // 스크립트 편집기에서 이 함수를 딱 한 번 수동 실행하면(또는 배포 후 1회) 매일 15:40 KST(장마감 직후)
@@ -1177,10 +1210,8 @@ function setupMarketTempTrigger_() {
 
 // 오늘 이전(오늘 값은 아직 형성 중이라 제외)의 일별 기록으로 전일 대비/1주일·1개월 평균을 계산.
 // 기록이 하나도 없으면(트리거 등록 직후 며칠) null을 반환 - 프론트에서 "데이터 수집 중" 처리.
-function computeMarketTempHistory_(currentTemp) {
-  var props = PropertiesService.getScriptProperties();
-  var raw = props.getProperty(MT_DAILY_HISTORY_KEY);
-  var hist = raw ? JSON.parse(raw) : [];
+function computeMarketTempHistory_(currentTemp, storedHistory) {
+  var hist = storedHistory || readDailyMarketTempHistory_();
   var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
   var priorDays = hist.filter(function (h) { return h.date !== today; });
   if (!priorDays.length) return null;
@@ -1204,10 +1235,8 @@ function computeMarketTempHistory_(currentTemp) {
 // 기록(MT_DAILY_HISTORY_KEY)을 읽어 최근 6일(오늘 이전) + 오늘(currentTemp)을 이어붙여
 // 최대 7포인트를 반환한다. 기록이 없으면(트리거 등록 초기) 오늘 1포인트만 반환 - 프론트는
 // 2포인트 미만이면 "수집 중" 처리(history가 null일 때와 동일한 패턴).
-function computeMarketTempSparkline_(currentTemp) {
-  var props = PropertiesService.getScriptProperties();
-  var raw = props.getProperty(MT_DAILY_HISTORY_KEY);
-  var hist = raw ? JSON.parse(raw) : [];
+function computeMarketTempSparkline_(currentTemp, storedHistory) {
+  var hist = storedHistory || readDailyMarketTempHistory_();
   var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
   var priorDays = hist.filter(function (h) { return h.date !== today; }).slice(-6);
   return priorDays.concat([{ date: today, temp: currentTemp }]);

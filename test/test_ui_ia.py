@@ -183,6 +183,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("border-bottom: 1px solid #f0f1f2", row_rule.group("body"))
         self.assertIn("box-shadow: none", row_rule.group("body"))
 
+    def test_market_temperature_history_self_records_without_manual_trigger(self):
+        gas = self.read("gas/ticker-proxy.gs")
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        for token in (
+            "market_temp_v5",
+            "upsertDailyMarketTemp_(temp)",
+            "readDailyMarketTempHistory_",
+            "computeMarketTempHistory_(temp, dailyHistory)",
+            "computeMarketTempSparkline_(temp, dailyHistory)",
+        ):
+            self.assertIn(token, gas)
+        self.assertIn("if (days.length === 1)", source)
+        self.assertIn("오늘부터 일별 기록을 시작했습니다.", source)
+        self.assertNotIn("추이 데이터 수집 중 (며칠 후부터 표시됩니다)", source)
+        self.assertIn(".mt-spark-single", style)
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (
