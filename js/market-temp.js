@@ -318,7 +318,7 @@
       }
       deltasHtml = deltaChip('어제 대비', h.dayChange) + deltaChip('지난주 대비', weekDelta) + deltaChip('지난달 대비', monthDelta);
     } else {
-      deltasHtml = '<div class="mt-hero-delta-empty">전일·주간·월간 비교 데이터 수집 중 (며칠 후부터 표시됩니다)</div>';
+      deltasHtml = '<div class="mt-hero-delta-empty">오늘부터 일별 기록을 시작했습니다. 비교값은 실제 기록이 쌓이면 표시됩니다.</div>';
     }
 
     return ''

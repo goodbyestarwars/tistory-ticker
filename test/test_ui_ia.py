@@ -198,6 +198,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (days.length === 1)", source)
         self.assertIn("오늘부터 일별 기록을 시작했습니다.", source)
         self.assertNotIn("추이 데이터 수집 중 (며칠 후부터 표시됩니다)", source)
+        self.assertNotIn("며칠 후부터 표시됩니다", source)
         self.assertIn(".mt-spark-single", style)
 
     def test_existing_urls_are_preserved(self):
