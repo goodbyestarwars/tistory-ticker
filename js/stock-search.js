@@ -37,6 +37,7 @@
   };
   var lwcLoadPromise = null;
   var lwcChart = null;
+  var lwcCloudCleanup = null;
 
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
     if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
@@ -509,6 +510,137 @@
     return points;
   }
 
+  function rollingMidpointValues(bars, period) {
+    return bars.map(function (_, i) {
+      if (i < period - 1) return null;
+      var high = -Infinity;
+      var low = Infinity;
+      for (var j = i - period + 1; j <= i; j++) {
+        high = Math.max(high, Number(bars[j].high) || 0);
+        low = Math.min(low, Number(bars[j].low) || 0);
+      }
+      return (high + low) / 2;
+    });
+  }
+
+  function futureBarTimes(lastDate, timeframe, count) {
+    var out = [];
+    var d = new Date(lastDate + 'T00:00:00Z');
+    var originalDay = d.getUTCDate();
+    for (var i = 0; i < count; i++) {
+      if (timeframe === 'week') {
+        d.setUTCDate(d.getUTCDate() + 7);
+      } else if (timeframe === 'month') {
+        var nextMonth = d.getUTCMonth() + 1;
+        var nextYear = d.getUTCFullYear() + Math.floor(nextMonth / 12);
+        nextMonth = nextMonth % 12;
+        var lastDay = new Date(Date.UTC(nextYear, nextMonth + 1, 0)).getUTCDate();
+        d = new Date(Date.UTC(nextYear, nextMonth, Math.min(originalDay, lastDay)));
+      } else {
+        do { d.setUTCDate(d.getUTCDate() + 1); }
+        while (d.getUTCDay() === 0 || d.getUTCDay() === 6);
+      }
+      out.push(d.toISOString().slice(0, 10));
+    }
+    return out;
+  }
+
+  // 일목균형표 구름대: 전환선(9), 기준선(26), 선행스팬B(52)를 계산한 뒤
+  // 선행스팬 A/B를 현재 봉 기준 26봉 앞으로 이동한다. 미래 구간은 일봉이면 주말을,
+  // 주봉/월봉이면 각각 7일/1개월 간격을 사용하며 공휴일 값을 임의 생성하지 않는다.
+  function ichimokuCloudPoints(bars, timeframe) {
+    if (!bars.length) return [];
+    var conversion = rollingMidpointValues(bars, 9);
+    var base = rollingMidpointValues(bars, 26);
+    var spanBValues = rollingMidpointValues(bars, 52);
+    var times = bars.map(function (bar) { return bar.date; })
+      .concat(futureBarTimes(bars[bars.length - 1].date, timeframe, 26));
+    var points = [];
+    bars.forEach(function (_, i) {
+      if (conversion[i] == null || base[i] == null || spanBValues[i] == null) return;
+      points.push({
+        time: times[i + 26],
+        spanA: (conversion[i] + base[i]) / 2,
+        spanB: spanBValues[i]
+      });
+    });
+    return points;
+  }
+
+  function installIchimokuCloudCanvas(container, chart, candleSeries, points) {
+    if (!points.length) return function () {};
+    var chartRoot = container.firstElementChild;
+    if (chartRoot) chartRoot.classList.add('ss-lw-chart-root');
+
+    var canvas = document.createElement('canvas');
+    canvas.className = 'ss-ichimoku-cloud';
+    canvas.setAttribute('aria-hidden', 'true');
+    container.insertBefore(canvas, chartRoot || container.firstChild);
+
+    var frameId = 0;
+    var resizeObserver = null;
+    function draw() {
+      frameId = 0;
+      if (!document.body.contains(container)) return;
+      var width = container.clientWidth;
+      var height = container.clientHeight;
+      if (!width || !height) return;
+      var ratio = Math.max(1, global.devicePixelRatio || 1);
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      var ctx = canvas.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      var coordinates = points.map(function (point) {
+        return {
+          x: chart.timeScale().timeToCoordinate(point.time),
+          yA: candleSeries.priceToCoordinate(point.spanA),
+          yB: candleSeries.priceToCoordinate(point.spanB),
+          bullish: point.spanA >= point.spanB
+        };
+      });
+      for (var i = 1; i < coordinates.length; i++) {
+        var prev = coordinates[i - 1];
+        var curr = coordinates[i];
+        if (![prev.x, prev.yA, prev.yB, curr.x, curr.yA, curr.yB].every(Number.isFinite)) continue;
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.yA);
+        ctx.lineTo(curr.x, curr.yA);
+        ctx.lineTo(curr.x, curr.yB);
+        ctx.lineTo(prev.x, prev.yB);
+        ctx.closePath();
+        ctx.fillStyle = (prev.bullish && curr.bullish)
+          ? 'rgba(210,79,69,0.13)'
+          : (!prev.bullish && !curr.bullish)
+            ? 'rgba(18,97,196,0.12)'
+            : 'rgba(132,139,148,0.10)';
+        ctx.fill();
+      }
+    }
+    function scheduleDraw() {
+      if (frameId) global.cancelAnimationFrame(frameId);
+      frameId = global.requestAnimationFrame(draw);
+    }
+
+    chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
+    if ('ResizeObserver' in global) {
+      resizeObserver = new ResizeObserver(scheduleDraw);
+      resizeObserver.observe(container);
+    } else {
+      global.addEventListener('resize', scheduleDraw);
+    }
+    scheduleDraw();
+
+    return function () {
+      if (frameId) global.cancelAnimationFrame(frameId);
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw);
+      if (resizeObserver) resizeObserver.disconnect();
+      else global.removeEventListener('resize', scheduleDraw);
+      canvas.remove();
+    };
+  }
+
   function compactVolume(value) {
     var n = Number(value) || 0;
     function scaled(divisor, suffix) {
@@ -528,7 +660,7 @@
     var cached = state.chartCache[code];
     if (!cached) return;
     var bars = barsForTimeframe(cached.data.daily, state.timeframe);
-    renderLwChart(container.querySelector('#ssChart'), bars);
+    renderLwChart(container.querySelector('#ssChart'), bars, state.timeframe);
   }
 
   function loadLightweightCharts() {
@@ -565,9 +697,10 @@
     };
   }
 
-  function renderLwChart(container, bars) {
+  function renderLwChart(container, bars, timeframe) {
+    if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
-    container.querySelectorAll('.ss-volume-study-label').forEach(function (label) { label.remove(); });
+    container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-ichimoku-cloud').forEach(function (el) { el.remove(); });
 
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
@@ -596,6 +729,58 @@
       candleSeries.setData(bars.map(function (d) {
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
+
+      var priceStudies = [
+        { period: 5, label: '5', color: '#16a085' },
+        { period: 20, label: '20', color: '#f59e0b' },
+        { period: 224, label: '224', color: '#8e44ad' }
+      ];
+      var priceLegendHtml = [];
+      priceStudies.forEach(function (study) {
+        var points = movingAveragePoints(bars, 'close', study.period);
+        var series = chart.addLineSeries({
+          color: study.color,
+          lineWidth: study.period === 224 ? 2 : 1,
+          priceScaleId: 'right',
+          lastValueVisible: false,
+          priceLineVisible: false,
+          crosshairMarkerVisible: false,
+          priceFormat: {
+            type: 'custom',
+            minMove: 1,
+            formatter: function (v) { return Math.round(v).toLocaleString('ko-KR'); }
+          }
+        });
+        series.setData(points);
+        var latest = points.length ? Math.round(points[points.length - 1].value).toLocaleString('ko-KR') : '—';
+        priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.label + ' <b>' + latest + '</b></span>');
+      });
+
+      var cloudPoints = ichimokuCloudPoints(bars, timeframe);
+      var spanASeries = chart.addLineSeries({
+        color: 'rgba(210,79,69,0.62)',
+        lineWidth: 1,
+        priceScaleId: 'right',
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false
+      });
+      var spanBSeries = chart.addLineSeries({
+        color: 'rgba(18,97,196,0.62)',
+        lineWidth: 1,
+        priceScaleId: 'right',
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false
+      });
+      spanASeries.setData(cloudPoints.map(function (point) { return { time: point.time, value: point.spanA }; }));
+      spanBSeries.setData(cloudPoints.map(function (point) { return { time: point.time, value: point.spanB }; }));
+
+      var priceLegend = document.createElement('div');
+      priceLegend.className = 'ss-price-study-label';
+      priceLegend.innerHTML = priceLegendHtml.join('')
+        + '<span class="ss-ichimoku-label">일목 구름대' + (cloudPoints.length ? '' : ' <b>데이터 부족</b>') + '</span>';
+      container.appendChild(priceLegend);
 
       // TradingView 방식처럼 거래량을 하단 30% overlay 영역에 배치한다. 차트 전체의
       // localization.priceFormatter를 없애고 시리즈별 포맷을 사용해야 거래량 값이
@@ -633,6 +818,7 @@
       container.appendChild(volumeLegend);
 
       chart.timeScale().fitContent();
+      lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
     }).catch(function () {
       container.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });

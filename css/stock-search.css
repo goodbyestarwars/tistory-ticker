@@ -272,16 +272,44 @@
 #stock-search .ss-chart::after {
   content: "";
   position: absolute;
-  z-index: 2;
+  z-index: 4;
   top: 70%;
   left: 0;
   right: 0;
   border-top: 1px solid #e8eaed;
   pointer-events: none;
 }
+#stock-search .ss-lw-chart-root {
+  position: relative;
+  z-index: 2;
+}
+#stock-search .ss-ichimoku-cloud {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+#stock-search .ss-price-study-label {
+  position: absolute;
+  z-index: 5;
+  top: 7px;
+  left: 8px;
+  right: 76px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  font-size: 10.5px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+#stock-search .ss-price-study-label b { font-weight: 600; }
+#stock-search .ss-price-study-label .ss-ichimoku-label { color: #8a9099; }
 #stock-search .ss-volume-study-label {
   position: absolute;
-  z-index: 3;
+  z-index: 5;
   top: calc(70% + 7px);
   left: 8px;
   display: flex;
@@ -310,6 +338,11 @@
   #stock-search .ss-results-head span:nth-child(6),
   #stock-search .ss-result-row span:nth-child(5),
   #stock-search .ss-result-row span:nth-child(6) { display: none; }
+  #stock-search .ss-price-study-label {
+    right: 58px;
+    gap: 3px 7px;
+    font-size: 9.5px;
+  }
 }
 
 /* ---- 다크모드 ---- */
@@ -341,6 +374,7 @@ html.dark #stock-search .ss-reason-text { color: rgba(245, 239, 224, 0.85) !impo
 html.dark #stock-search .ss-tf-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #stock-search .ss-tf-btn.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
 html.dark #stock-search .ss-chart::after { border-top-color: rgba(245, 239, 224, 0.16) !important; }
+html.dark #stock-search .ss-price-study-label .ss-ichimoku-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-search .ss-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-search .ss-fav-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.35) !important; }
 html.dark #stock-search .ss-fav-btn.active { color: #e0b040 !important; border-color: #e0b040 !important; background: #3a2f10 !important; }

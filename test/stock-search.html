@@ -20,13 +20,13 @@
 <script src="../data/sectors-v3.js"></script>
 <script>
   if (location.search.indexOf('real=1') === -1) {
-    // 삼성전자 기준 120거래일 mock 일봉(약한 상승 랜덤워크) - 주봉/월봉 집계와 거래량
-    // 히스토그램까지 로컬에서 확인하기 위한 용도.
+    // 삼성전자 기준 320거래일 mock 일봉(약한 상승 랜덤워크) - 224일 이동평균선,
+    // 일목 구름대, 주봉/월봉 집계와 거래량 히스토그램까지 로컬에서 확인하기 위한 용도.
     function buildMockDaily() {
       var out = [];
       var price = 70000;
       var d = new Date('2026-02-01T00:00:00Z');
-      for (var i = 0; i < 120; i++) {
+      for (var i = 0; i < 320; i++) {
         while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);
         var open = price;
         var drift = (Math.random() - 0.48) * 1200;

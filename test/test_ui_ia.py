@@ -215,10 +215,27 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("lastValueVisible: true", volume_series.group("body"))
         self.assertNotIn("localization: { priceFormatter:", source)
         self.assertIn("movingAveragePoints(bars, 'volume', 20)", source)
-        self.assertIn("querySelectorAll('.ss-volume-study-label')", source)
+        self.assertIn("querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-ichimoku-cloud')", source)
         self.assertIn("ss-volume-study-label", source)
         self.assertIn(".ss-volume-study-label", style)
         self.assertIn("top: 70%", style)
+
+    def test_stock_search_renders_requested_price_studies_without_resizing_chart(self):
+        source = self.read("js/stock-search.js")
+        style = self.read("css/stock-search.css")
+        self.assertIn("{ period: 5, label: '5'", source)
+        self.assertIn("{ period: 20, label: '20'", source)
+        self.assertIn("{ period: 224, label: '224'", source)
+        self.assertIn("ichimokuCloudPoints(bars, timeframe)", source)
+        self.assertIn("rollingMidpointValues(bars, 9)", source)
+        self.assertIn("rollingMidpointValues(bars, 26)", source)
+        self.assertIn("rollingMidpointValues(bars, 52)", source)
+        self.assertIn("installIchimokuCloudCanvas", source)
+        self.assertIn("spanASeries.setData", source)
+        self.assertIn("spanBSeries.setData", source)
+        self.assertIn(".ss-ichimoku-cloud", style)
+        self.assertIn(".ss-price-study-label", style)
+        self.assertIn(".ss-chart { position: relative; height: 420px; }", style)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
