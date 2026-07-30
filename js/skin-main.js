@@ -223,15 +223,22 @@
         ? avgChange.avgChangeRate
         : null;
 
-      // 대표지수의 큰 변동을 최우선으로 반영한다. 기존 구현은 상승 종목 비율만 사용해
-      // 코스피가 -5%대여도 모두 같은 "약세 우위"로 표시되는 문제가 있었다.
-      if (kospiRate != null && kospiRate <= -4) return { label: '급락', tone: 'home-negative' };
-      if (kospiRate != null && kospiRate >= 4) return { label: '급등', tone: 'home-positive' };
-      if (kospiRate != null && kospiRate <= -2) return { label: '강한 약세', tone: 'home-negative' };
-      if (kospiRate != null && kospiRate >= 2) return { label: '강한 강세', tone: 'home-positive' };
+      // 대표지수가 있으면 지수 등락률로 강도를 확정한다. 시장 폭이 좋아도 코스피가
+      // 보합권이면 "강한 강세"로 과장하지 않고 방향만 보조 판정한다.
+      if (kospiRate != null) {
+        if (kospiRate <= -4) return { label: '급락', tone: 'home-negative' };
+        if (kospiRate >= 4) return { label: '급등', tone: 'home-positive' };
+        if (kospiRate <= -2) return { label: '강한 약세', tone: 'home-negative' };
+        if (kospiRate >= 2) return { label: '강한 강세', tone: 'home-positive' };
+        if (kospiRate <= -0.5) return { label: '약세 우위', tone: 'home-negative' };
+        if (kospiRate >= 0.5) return { label: '상승 우위', tone: 'home-positive' };
+        if (riseRatio != null && riseRatio <= 0.45) return { label: '약세 우위', tone: 'home-negative' };
+        if (riseRatio != null && riseRatio >= 0.55) return { label: '상승 우위', tone: 'home-positive' };
+        return { label: '혼조', tone: 'home-neutral' };
+      }
 
-      // 지수 조회가 일시적으로 실패해도 기존 증시온도의 시장 폭·평균등락률로 강도를
-      // 판정한다. 숫자가 없는 경우에는 임의 상태를 만들지 않는다.
+      // 지수 조회가 실패한 경우에만 기존 증시온도의 시장 폭·평균등락률로 강도를
+      // 대체 판정한다. 숫자가 없는 경우에는 임의 상태를 만들지 않는다.
       if (riseRatio != null && averageRate != null && riseRatio <= 0.15 && averageRate <= -1) {
         return { label: '급락', tone: 'home-negative' };
       }
@@ -246,7 +253,7 @@
       }
       if (riseRatio != null && riseRatio <= 0.45) return { label: '약세 우위', tone: 'home-negative' };
       if (riseRatio != null && riseRatio >= 0.55) return { label: '상승 우위', tone: 'home-positive' };
-      if (riseRatio != null || averageRate != null || kospiRate != null) {
+      if (riseRatio != null || averageRate != null) {
         return { label: '혼조', tone: 'home-neutral' };
       }
       return { label: '데이터 확인 중', tone: 'home-neutral' };
@@ -320,7 +327,7 @@
       function renderPatternPreview(item) {
         var stocks = patternItems(item).slice().sort(function (a, b) {
           return Number(b.score || 0) - Number(a.score || 0);
-        }).slice(0, 4);
+        });
         var rows = stocks.length ? stocks.map(function (stock) {
           var rate = Number(stock.changeRate);
           var tone = isNaN(rate) || rate === 0 ? 'home-neutral' : rate > 0 ? 'home-positive' : 'home-negative';
@@ -333,8 +340,7 @@
         list.innerHTML = '<div class="home-pattern-preview" id="homePatternPreview">'
           + '<button type="button" class="home-pattern-preview-back">← 전체 패턴</button>'
           + '<div class="home-pattern-preview-heading"><strong>' + item.label + '</strong>'
-          + '<span>' + patternItems(item).length.toLocaleString('ko-KR') + '종목 중 상위 '
-          + Math.min(4, patternItems(item).length) + '개</span></div>'
+          + '<span>' + patternItems(item).length.toLocaleString('ko-KR') + '종목 · 스크롤</span></div>'
           + '<div class="home-pattern-stock-list">' + rows + '</div></div>';
         var back = list.querySelector('.home-pattern-preview-back');
         if (back) back.addEventListener('click', renderPatternOverview);
@@ -416,8 +422,9 @@
         var meta = calendarMeta(event.title);
         return '<a class="home-schedule-row" href="' + escapeHomeHtml(event.link || '/page/stock-calendar') + '" target="_blank" rel="noopener">'
           + '<time>' + scheduleTime(event, result.includeDate) + '</time>'
-          + '<span class="home-schedule-title">' + escapeHomeHtml(meta.title) + '</span>'
-          + '<span class="home-schedule-category">' + escapeHomeHtml(meta.category) + '</span></a>';
+          + '<span class="home-schedule-content">'
+          + '<span class="home-schedule-category">' + escapeHomeHtml(meta.category) + '</span>'
+          + '<span class="home-schedule-title">' + escapeHomeHtml(meta.title) + '</span></span></a>';
       }).join('');
     }
 

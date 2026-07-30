@@ -47,7 +47,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "data-pattern-key",
             "renderPatternPreview",
             "home-pattern-preview-back",
-            "slice(0, 4)",
+            "종목 · 스크롤",
             "stock.changeRate",
         ):
             self.assertIn(token, main)
@@ -75,12 +75,36 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "?market=1",
             "kospi.changeRate",
             "kospiRate <= -4",
+            "kospiRate >= 0.5",
             "label: '급락'",
             "label: '강한 약세'",
+            "label: '상승 우위'",
             "riseRatio <= 0.15",
             "averageRate <= -1",
         ):
             self.assertIn(token, source)
+
+    def test_pattern_schedule_and_rank_compact_layout(self):
+        main = self.read("js/skin-main.js")
+        style = self.read("style.css")
+        self.assertNotIn("}).slice(0, 4);", main)
+        self.assertIn("home-pattern-stock-list", main)
+        self.assertIn("overflow-y: auto", style)
+        self.assertIn("scrollbar-color: transparent transparent", style)
+        self.assertIn("scrollbar-width: none", style)
+        self.assertIn("home-schedule-content", main)
+        schedule = re.search(
+            r"function renderSchedule\(result\)(?P<body>.*?)loadHomeScript\(CALENDAR_SCRIPT_URL",
+            main,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(schedule)
+        self.assertLess(
+            schedule.group("body").find("home-schedule-category"),
+            schedule.group("body").find("home-schedule-title"),
+        )
+        self.assertIn("text-overflow: ellipsis", style)
+        self.assertIn("white-space: nowrap", style)
 
     def test_investor_table_fills_card_height(self):
         source = self.read("css/investor-trend-widget.css")

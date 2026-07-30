@@ -651,8 +651,10 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 }
 .home-pattern-list {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 0;
+  min-height: 0;
   margin-top: 13px;
 }
 .home-pattern-row,
@@ -712,6 +714,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 .home-pattern-new strong { color: #315b43; }
 .home-pattern-preview {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
 }
@@ -745,9 +748,22 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 }
 .home-pattern-stock-list {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: transparent transparent;
+  scrollbar-width: none;
 }
+.home-pattern-stock-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+.home-pattern-stock-list::-webkit-scrollbar-thumb { background: transparent; }
 .home-pattern-stock {
+  flex: 0 0 auto;
   min-height: 47px;
   display: flex;
   align-items: center;
@@ -790,7 +806,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 .home-schedule-row {
   min-height: 58px;
   display: grid;
-  grid-template-columns: 50px minmax(0, 1fr) auto;
+  grid-template-columns: 50px minmax(0, 1fr);
   align-items: center;
   gap: 9px;
   border-bottom: 1px solid #f0f1f2;
@@ -801,7 +817,14 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.home-schedule-content {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
 .home-schedule-title {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   color: #171717;
@@ -811,6 +834,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   white-space: nowrap;
 }
 .home-schedule-category {
+  flex: 0 0 auto;
   max-width: 72px;
   overflow: hidden;
   padding: 3px 7px;
@@ -1224,6 +1248,15 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   .home-widget--compact.home-rank-slot #sidebar-rank .sr-name,
   .home-widget--compact.home-rank-slot #sidebar-rank .sr-quote,
   .home-widget--compact.home-rank-slot #sidebar-rank .sr-amount { grid-column: 2; }
+  .home-widget--compact.home-rank-slot #sidebar-rank .sr-name {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .home-widget--compact.home-rank-slot #sidebar-rank .sr-quote {
     justify-content: space-between;
     gap: 4px;
@@ -1238,10 +1271,7 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
     grid-template-columns: 42px minmax(0, 1fr);
     gap: 6px;
   }
-  .home-widget--compact.home-schedule-card .home-schedule-category {
-    grid-column: 2;
-    justify-self: start;
-  }
+  .home-widget--compact.home-schedule-card .home-schedule-content { gap: 5px; }
 }
 
 html.dark .home-settings-button,
