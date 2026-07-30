@@ -290,6 +290,55 @@
         { key: 'invHeadShoulders', label: '역헤드앤숄더' },
         { key: 'boxRangeLow', label: '박스권 하단' }
       ];
+      function patternItems(item) {
+        return Array.isArray(patterns[item.key]) ? patterns[item.key] : [];
+      }
+      function rateText(value) {
+        var rate = Number(value);
+        if (isNaN(rate)) return '';
+        return (rate > 0 ? '+' : '') + rate.toFixed(2) + '%';
+      }
+      function renderPatternOverview() {
+        list.innerHTML = items.map(function (item) {
+          var count = patternItems(item).length;
+          return '<button type="button" class="home-pattern-row" data-pattern-key="' + item.key + '"'
+            + ' aria-expanded="false" aria-controls="homePatternPreview">'
+            + '<span>' + item.label + '</span><strong>' + count.toLocaleString('ko-KR') + '종목'
+            + '<span class="home-pattern-chevron" aria-hidden="true">›</span></strong></button>';
+        }).join('')
+          + '<div class="home-pattern-new"><span>오늘 신규 발견</span><strong>'
+          + Object.keys(newCodes).length.toLocaleString('ko-KR') + '종목</strong></div>';
+
+        list.querySelectorAll('.home-pattern-row').forEach(function (button) {
+          button.addEventListener('click', function () {
+            var key = button.getAttribute('data-pattern-key');
+            var item = items.filter(function (candidate) { return candidate.key === key; })[0];
+            if (item) renderPatternPreview(item);
+          });
+        });
+      }
+      function renderPatternPreview(item) {
+        var stocks = patternItems(item).slice().sort(function (a, b) {
+          return Number(b.score || 0) - Number(a.score || 0);
+        }).slice(0, 4);
+        var rows = stocks.length ? stocks.map(function (stock) {
+          var rate = Number(stock.changeRate);
+          var tone = isNaN(rate) || rate === 0 ? 'home-neutral' : rate > 0 ? 'home-positive' : 'home-negative';
+          return '<a class="home-pattern-stock" href="/page/pattern-scan">'
+            + '<span><strong>' + escapeHomeHtml(stock.name || stock.code || '종목명 확인 중') + '</strong>'
+            + (stock.code ? '<small>' + escapeHomeHtml(stock.code) + '</small>' : '') + '</span>'
+            + '<em class="' + tone + '">' + rateText(stock.changeRate) + '</em></a>';
+        }).join('') : '<p class="home-pattern-empty">현재 이 패턴에 해당하는 종목이 없습니다.</p>';
+
+        list.innerHTML = '<div class="home-pattern-preview" id="homePatternPreview">'
+          + '<button type="button" class="home-pattern-preview-back">← 전체 패턴</button>'
+          + '<div class="home-pattern-preview-heading"><strong>' + item.label + '</strong>'
+          + '<span>' + patternItems(item).length.toLocaleString('ko-KR') + '종목 중 상위 '
+          + Math.min(4, patternItems(item).length) + '개</span></div>'
+          + '<div class="home-pattern-stock-list">' + rows + '</div></div>';
+        var back = list.querySelector('.home-pattern-preview-back');
+        if (back) back.addEventListener('click', renderPatternOverview);
+      }
       var today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
       var newCodes = {};
       Object.keys(patterns).forEach(function (key) {
@@ -297,11 +346,7 @@
           if (item && item.date === today && item.code) newCodes[item.code] = true;
         });
       });
-      list.innerHTML = items.map(function (item) {
-        var count = Array.isArray(patterns[item.key]) ? patterns[item.key].length : 0;
-        return '<div class="home-pattern-row"><span>' + item.label + '</span><strong>' + count.toLocaleString('ko-KR') + '종목</strong></div>';
-      }).join('')
-        + '<div class="home-pattern-new"><span>오늘 신규 발견</span><strong>' + Object.keys(newCodes).length.toLocaleString('ko-KR') + '종목</strong></div>';
+      renderPatternOverview();
       var updated = document.getElementById('homePatternUpdated');
       if (updated && data.scannedAt) {
         var date = new Date(data.scannedAt);
@@ -393,10 +438,10 @@
         if (list) list.innerHTML = '<p class="home-card-state">일정을 불러오지 못했습니다.</p>';
       });
 
-    /* 최신 마켓브리핑 4건을 대표 1건 + 중간 3건으로 재구성한다. */
+    /* 최신 마켓브리핑 6건: 대표 1건 + 대표 아래 2건 + 오른쪽 3건으로 재구성한다. */
     var allCards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     var marketCards = allCards.filter(function (card) { return card.getAttribute('data-cat') === '마켓 브리핑'; });
-    var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 4);
+    var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 6);
     allCards.forEach(function (card) {
       if (selectedCards.indexOf(card) === -1) card.remove();
     });
@@ -408,15 +453,20 @@
       briefing.className = 'home-briefing-section';
       briefing.innerHTML = '<div class="home-section-heading"><div><strong>마켓브리핑</strong>'
         + '<span>투자 판단에 필요한 핵심 해석</span></div></div>'
-        + '<div class="home-briefing-grid"><div class="home-briefing-featured-slot"></div>'
+        + '<div class="home-briefing-grid"><div class="home-briefing-left-column">'
+        + '<div class="home-briefing-featured-slot"></div><div class="home-briefing-left-more"></div></div>'
         + '<div class="home-briefing-small-stack"></div></div>'
         + '<a class="home-briefing-more" href="/category/마켓 브리핑">마켓브리핑 전체보기 →</a>';
       feed.appendChild(briefing);
       selectedCards[0].classList.add('home-briefing-featured');
       briefing.querySelector('.home-briefing-featured-slot').appendChild(selectedCards[0]);
-      selectedCards.slice(1).forEach(function (card) {
+      selectedCards.slice(1, 4).forEach(function (card) {
         card.classList.add('home-briefing-small');
         briefing.querySelector('.home-briefing-small-stack').appendChild(card);
+      });
+      selectedCards.slice(4, 6).forEach(function (card) {
+        card.classList.add('home-briefing-small', 'home-briefing-left-small');
+        briefing.querySelector('.home-briefing-left-more').appendChild(card);
       });
     }
 
