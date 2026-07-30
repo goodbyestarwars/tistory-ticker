@@ -64,8 +64,10 @@
       + '<div class="wl-title">⭐ 관심종목 <span id="wlCount" class="wl-count"></span></div>'
       + '<div class="wl-add">'
       + '<div class="wl-input-wrap">'
-      + '<input type="text" id="wlInput" class="wl-input" placeholder="종목명을 입력하세요 (예: 삼성전자)" autocomplete="off" />'
-      + '<div id="wlSuggest" class="wl-suggest"></div>'
+      + '<input type="text" id="wlInput" class="wl-input" placeholder="종목명을 입력하세요 (예: 삼성전자)"'
+      + ' autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="wlSuggest"'
+      + ' aria-expanded="false" aria-activedescendant="" />'
+      + '<div id="wlSuggest" class="wl-suggest" role="listbox"></div>'
       + '</div>'
       + '<button type="button" id="wlAddBtn" class="wl-add-btn">추가</button>'
       + '</div>'
@@ -101,16 +103,30 @@
     var input = container.querySelector('#wlInput');
     var suggestBox = container.querySelector('#wlSuggest');
     var addBtn = container.querySelector('#wlAddBtn');
+    suggestBox.__input = input;
 
     input.addEventListener('input', function () {
       renderSuggestions(container, suggestBox, input.value.trim());
     });
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
+      var items = suggestBox.querySelectorAll('.wl-suggest-item');
+      if (e.key === 'ArrowDown') {
+        if (!items.length) return;
         e.preventDefault();
+        setActiveSuggestion(suggestBox, items, (getActiveSuggestion(suggestBox) + 1) % items.length);
+      } else if (e.key === 'ArrowUp') {
+        if (!items.length) return;
+        e.preventDefault();
+        setActiveSuggestion(suggestBox, items, (getActiveSuggestion(suggestBox) - 1 + items.length) % items.length);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        var idx = getActiveSuggestion(suggestBox);
+        var picked = idx > -1 && items[idx] ? items[idx].getAttribute('data-name') : input.value.trim();
+        if (idx > -1 && items[idx]) input.value = picked;
         hideSuggestions(suggestBox);
-        addByQuery(container, input.value.trim());
+        addByQuery(container, picked);
       } else if (e.key === 'Escape') {
+        e.preventDefault();
         hideSuggestions(suggestBox);
       }
     });
@@ -126,6 +142,29 @@
   function hideSuggestions(box) {
     box.innerHTML = '';
     box.classList.remove('active');
+    box.__activeIndex = -1;
+    if (box.__input) {
+      box.__input.setAttribute('aria-expanded', 'false');
+      box.__input.setAttribute('aria-activedescendant', '');
+    }
+  }
+
+  function getActiveSuggestion(box) {
+    return typeof box.__activeIndex === 'number' ? box.__activeIndex : -1;
+  }
+
+  function setActiveSuggestion(box, items, idx) {
+    items.forEach(function (el) {
+      el.classList.remove('active');
+      el.setAttribute('aria-selected', 'false');
+    });
+    box.__activeIndex = idx;
+    var active = items[idx];
+    if (!active) return;
+    active.classList.add('active');
+    active.setAttribute('aria-selected', 'true');
+    if (box.__input) box.__input.setAttribute('aria-activedescendant', active.id);
+    active.scrollIntoView({ block: 'nearest' });
   }
 
   // 2026-07-20: data/krx_map.js가 window.KRX_ETF_NAMES(ETF 이름 목록)도 같이 내려준다 -
@@ -162,12 +201,21 @@
     var matches = startsStock.concat(startsEtf, containsStock, containsEtf).slice(0, MAX_SUGGESTIONS);
     if (!matches.length) { hideSuggestions(box); return; }
 
-    box.innerHTML = matches.map(function (name) {
-      return '<div class="wl-suggest-item" data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
+    box.innerHTML = matches.map(function (name, index) {
+      return '<div class="wl-suggest-item" id="wlSuggestOption' + index + '" role="option" aria-selected="false"'
+        + ' data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
     }).join('');
     box.classList.add('active');
+    box.__activeIndex = -1;
+    if (box.__input) {
+      box.__input.setAttribute('aria-expanded', 'true');
+      box.__input.setAttribute('aria-activedescendant', '');
+    }
 
-    box.querySelectorAll('.wl-suggest-item').forEach(function (el) {
+    box.querySelectorAll('.wl-suggest-item').forEach(function (el, index) {
+      el.addEventListener('mouseenter', function () {
+        setActiveSuggestion(box, box.querySelectorAll('.wl-suggest-item'), index);
+      });
       el.addEventListener('click', function () {
         var name = el.getAttribute('data-name');
         container.querySelector('#wlInput').value = name;

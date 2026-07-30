@@ -80,7 +80,8 @@
   font-size: 13px;
   cursor: pointer;
 }
-#watchlist .wl-suggest-item:hover { background: #f2f2f2; }
+#watchlist .wl-suggest-item:hover,
+#watchlist .wl-suggest-item.active { background: #f2f2f2; }
 
 /* ---- 상태 메시지 ---- */
 #watchlist .wl-msg {
@@ -217,7 +218,8 @@ html.dark #watchlist .wl-suggest {
   border-color: rgba(245, 239, 224, 0.25) !important;
 }
 html.dark #watchlist .wl-suggest-item { color: #F5EFE0 !important; }
-html.dark #watchlist .wl-suggest-item:hover { background: rgba(245, 239, 224, 0.1) !important; }
+html.dark #watchlist .wl-suggest-item:hover,
+html.dark #watchlist .wl-suggest-item.active { background: rgba(245, 239, 224, 0.1) !important; }
 html.dark #watchlist .wl-msg {
   color: #ff8a80 !important;
   background: #3a2323 !important;

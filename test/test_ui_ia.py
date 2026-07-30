@@ -106,6 +106,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("text-overflow: ellipsis", style)
         self.assertIn("white-space: nowrap", style)
 
+    def test_watchlist_search_supports_keyboard_selection(self):
+        source = self.read("js/watchlist.js")
+        style = self.read("css/watchlist.css")
+        for token in (
+            'role="combobox"',
+            'role="listbox"',
+            'role="option"',
+            "aria-activedescendant",
+            "e.key === 'ArrowDown'",
+            "e.key === 'ArrowUp'",
+            "getActiveSuggestion",
+            "setActiveSuggestion",
+            "scrollIntoView({ block: 'nearest' })",
+        ):
+            self.assertIn(token, source)
+        self.assertIn(".wl-suggest-item.active", style)
+
     def test_investor_table_fills_card_height(self):
         source = self.read("css/investor-trend-widget.css")
         card_rule = re.search(
