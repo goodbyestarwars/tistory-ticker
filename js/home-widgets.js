@@ -402,7 +402,7 @@
     try { list = JSON.parse(safeStorageGet(WATCHLIST_KEY) || '[]'); } catch (err) { list = []; }
     return Array.isArray(list) ? list.filter(function (item) {
       return item && item.code && item.name;
-    }).slice(0, 5) : [];
+    }) : [];
   }
 
   function formatPrice(value) {
@@ -426,8 +426,9 @@
       var rateText = rate == null || isNaN(rate) ? '데이터 확인 중' : arrow + Math.abs(rate).toFixed(2) + '%';
       return '<a class="home-my-row" href="/page/stock-search?code=' + encodeURIComponent(item.code)
         + '&name=' + encodeURIComponent(item.name) + '">'
-        + '<span><strong>' + escapeHtml(item.name) + '</strong><small>' + (quote ? formatPrice(quote.price) : '') + '</small></span>'
-        + '<em class="' + tone + '">' + rateText + '</em></a>';
+        + '<span class="home-my-name"><strong>' + escapeHtml(item.name) + '</strong></span>'
+        + '<span class="home-my-quote"><small>' + (quote ? formatPrice(quote.price) : '현재가 확인 중') + '</small>'
+        + '<em class="' + tone + '">' + rateText + '</em></span></a>';
     }).join('');
   }
 

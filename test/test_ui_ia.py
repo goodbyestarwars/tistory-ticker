@@ -123,6 +123,21 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, source)
         self.assertIn(".wl-suggest-item.active", style)
 
+    def test_home_my_scrolls_all_quotes_and_rank_keeps_price_line(self):
+        widgets = self.read("js/home-widgets.js")
+        rank = self.read("js/sidebar-rank.js")
+        style = self.read("style.css")
+        rank_style = self.read("css/sidebar-rank.css")
+        self.assertNotIn("}).slice(0, 5) : [];", widgets)
+        for token in ("home-my-name", "home-my-quote", "현재가 확인 중", "formatPrice(quote.price)"):
+            self.assertIn(token, widgets)
+        self.assertIn(".home-my-list", style)
+        self.assertIn("scrollbar-color: transparent transparent", style)
+        self.assertIn("scrollbar-width: none", style)
+        self.assertIn("sr-details", rank)
+        self.assertIn("grid-template-rows: minmax(16px, auto) minmax(18px, auto)", style)
+        self.assertIn("line-height: 1.35", rank_style)
+
     def test_investor_table_fills_card_height(self):
         source = self.read("css/investor-trend-widget.css")
         card_rule = re.search(

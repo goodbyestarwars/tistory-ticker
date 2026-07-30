@@ -99,6 +99,14 @@
 }
 #sidebar-rank .sr-name:hover { text-decoration: underline; }
 
+#sidebar-rank .sr-details {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
 #sidebar-rank .sr-quote {
   flex-shrink: 0;
   display: flex;
@@ -107,8 +115,10 @@
   gap: 6px;
 }
 #sidebar-rank .sr-price {
+  display: block;
   font-weight: 400;
   font-size: 11.5px;
+  line-height: 1.35;
   color: #222;
   white-space: nowrap;
 }
@@ -126,6 +136,7 @@
 #sidebar-rank .sr-amount {
   flex-shrink: 0;
   min-width: 52px;
+  line-height: 1.35;
   text-align: right;
   font-size: 11.5px;
   color: #555;

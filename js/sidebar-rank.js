@@ -144,11 +144,12 @@
       + '<span class="sr-rank">' + rank + '</span>'
       + stockIconHtml(item.code)
       + '<a class="sr-name" href="' + url + '" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</a>'
-      + '<span class="sr-quote">'
+      + '<span class="sr-details"><span class="sr-quote">'
       + '<span class="sr-price">' + fmtPrice(item.price) + '</span>'
       + '<span class="sr-rate ' + cls + '">' + arrow + ' ' + Math.abs(rate).toFixed(2) + '%</span>'
       + '</span>'
       + (showAmount ? '<span class="sr-amount">' + fmtVolume(item.trade_volume) + '</span>' : '')
+      + '</span>'
       + '</li>';
   }
 
