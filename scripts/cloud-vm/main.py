@@ -375,7 +375,7 @@ def daily_scan_batch(x_api_key: str = Header(default=None)):
 
 
 @app.get('/futures')
-def futures(interval: str = 'day', days: int = 90):
+def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
     """보조지수/코스피 선물 페이지 전용 - 미국 현물지수 3종+선물 3종/SOX/VIX/WTI(네이버) +
     코스피200 주간/야간선물(네이버+KIS) + 원/달러 환율(네이버) 현재가+최근 일봉을 하나로 묶어
     반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /investor-flow와
@@ -394,7 +394,11 @@ def futures(interval: str = 'day', days: int = 90):
     domestic_futures.MINUTE_SYMBOLS에 있는 심볼(현재 KOSPI200_DAY만)만 분봉으로 바뀌고
     나머지는 그 심볼에 분봉 소스가 없어 평소처럼 일봉을 반환한다(부분 적용 - 에러 아님).
     2026-07-16(5차): 야간선물도 분봉 지원 추가(MINUTE_SYMBOLS에 KOSPI200_NIGHT 포함) +
-    미결제약정(oi/oi_change) 필드 노출(야간선물만 값이 있고 나머지 심볼은 null)."""
+    미결제약정(oi/oi_change) 필드 노출(야간선물만 값이 있고 나머지 심볼은 null).
+    2026-07-31: symbols(쉼표 구분) 파라미터 추가 - 응답에 실을 심볼을 아래 order 화이트리스트
+    안에서만 좁힌다. 코스피 선물 페이지는 선물 2개만 쓰는데 21개 심볼 전체를 매번 받아
+    분봉 요청이 브라우저 타임아웃(10초)에 걸리던 문제 대응. 미지정이면 기존과 완전히 동일하게
+    전체를 반환하므로 관심지수 리본/보조지수 등 기존 호출부는 영향 없다."""
     days = max(1, min(days, 500))
     conn = db_schema.get_conn()
     try:
@@ -404,6 +408,13 @@ def futures(interval: str = 'day', days: int = 90):
         order = ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
                  'KOSPI200_DAY', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI', 'GOLD', 'USDKRW',
                  'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC', 'ETH']
+        # 화이트리스트 교집합만 사용한다 - 모르는 심볼명으로 임의 조회가 되지 않게, 그리고
+        # 매칭이 하나도 없으면(오타 등) 빈 응답 대신 기존 전체 동작으로 폴백한다.
+        if symbols:
+            wanted = set(s.strip().upper() for s in symbols.split(',') if s.strip())
+            narrowed = [s for s in order if s in wanted]
+            if narrowed:
+                order = narrowed
         result = []
         for symbol in order:
             p = prices.get(symbol)
