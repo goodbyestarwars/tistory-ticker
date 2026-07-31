@@ -7,6 +7,11 @@
  * js/kospi-futures.js의 /futures와 동일 패턴. 현재가/등락률은 이미 검증된 기존 GAS 시세
  * 프록시(?codes=)를 그대로 재사용한다(호가 사다리와 별도 소스지만 같은 2초 주기로 갱신).
  *
+ * 2026-07-31: 현재가/등락률 헤더 표시는 watchlist.js와 동일한 VM 실시간 체결가
+ * WebSocket(wss://goodbyestar.cloud/ws/quotes, 키움 0B 중계)도 함께 구독해 GAS 2초
+ * 폴링보다 먼저 화면을 갱신한다. 호가 사다리·HUD·매물벽 계산은 기존 2초 폴링(tick) 그대로 -
+ * WebSocket은 헤더/현재가 행 표시만 갱신하고 그 계산 로직은 건드리지 않는다.
+ *
  * 종목 검색은 watchlist.js/foreign-flow.js와 동일한 KRX_MAP 자동완성 패턴.
  * window.KRX_MAP(종목명->코드)이 이 스크립트보다 먼저 로드되어야 함.
  */
@@ -15,6 +20,8 @@
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var VM_ORDER_BOOK_URL = 'https://goodbyestar.cloud/order-book/';
+  var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
+  var REALTIME_RECONNECT_MS = 5000;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var CONTAINER_SELECTOR = '#order-book';
   var POLL_MS = 2000;
@@ -50,7 +57,11 @@
     lastBase: null,      // 직전 tick의 현재가(quote 조회가 실패한 틱에서 이어받을 기준가)
     trackedWall: null,   // { price, peakQty } - 지금 지켜보고 있는 매도벽
     milestones: [],      // [{ price, t }] - 소진(돌파) 기록, 최신이 앞
-    toastTimer: null
+    toastTimer: null,
+    realtimeSocket: null,
+    realtimeReconnectTimer: null,
+    realtimeKeepaliveTimer: null,
+    realtimeGeneration: 0
   };
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
@@ -75,6 +86,10 @@
     if (!container) return;
     container.innerHTML = buildShell(opts);
     if (!opts || !opts.hideSearch) wireSearch(container);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stopRealtimeQuote();
+      else if (state.code) startRealtimeQuote(container, state.code);
+    });
   }
 
   function buildShell(opts) {
@@ -219,6 +234,93 @@
 
     tick(container);
     state.timer = setInterval(function () { tick(container); }, POLL_MS);
+    startRealtimeQuote(container, code);
+  }
+
+  // ---- 실시간 체결가(WebSocket, watchlist.js와 동일 패턴) ----
+  // 호가 사다리/HUD/매물벽 계산은 그대로 2초 폴링(tick)에 맡기고, 이 소켓은 헤더/현재가 행의
+  // 표시(가격·등락률 텍스트)만 더 빠르게 갱신한다.
+
+  function stopRealtimeQuote() {
+    state.realtimeGeneration += 1;
+    clearTimeout(state.realtimeReconnectTimer);
+    clearInterval(state.realtimeKeepaliveTimer);
+    state.realtimeReconnectTimer = null;
+    state.realtimeKeepaliveTimer = null;
+    if (state.realtimeSocket) {
+      state.realtimeSocket.onclose = null;
+      state.realtimeSocket.close();
+      state.realtimeSocket = null;
+    }
+  }
+
+  function startRealtimeQuote(container, code) {
+    stopRealtimeQuote();
+    if (!code || document.hidden || !('WebSocket' in global)) return;
+
+    var generation = state.realtimeGeneration;
+
+    function connect() {
+      if (generation !== state.realtimeGeneration || document.hidden) return;
+
+      var socket = new WebSocket(REALTIME_QUOTES_URL + '?codes=' + encodeURIComponent(code));
+      state.realtimeSocket = socket;
+
+      socket.onmessage = function (event) {
+        if (generation !== state.realtimeGeneration) return;
+        try {
+          var quote = JSON.parse(event.data);
+          if (quote.type === 'quote' && quote.code === code) applyRealtimeQuote(container, quote);
+        } catch (err) {}
+      };
+
+      socket.onopen = function () {
+        clearInterval(state.realtimeKeepaliveTimer);
+        state.realtimeKeepaliveTimer = setInterval(function () {
+          if (socket.readyState === WebSocket.OPEN) socket.send('ping');
+        }, 20000);
+      };
+
+      socket.onerror = function () {
+        socket.close();
+      };
+
+      socket.onclose = function () {
+        clearInterval(state.realtimeKeepaliveTimer);
+        state.realtimeKeepaliveTimer = null;
+        if (generation !== state.realtimeGeneration || document.hidden) return;
+        state.realtimeReconnectTimer = setTimeout(connect, REALTIME_RECONNECT_MS);
+      };
+    }
+
+    connect();
+  }
+
+  // 헤더 가격/등락률과 현재가 행 텍스트만 갱신한다(renderBoard가 tick()마다 다시 그리므로
+  // 다음 폴링 때 최종적으로 book 기준 값과 합쳐서 재작성됨) - 그사이 기준가가 갑자기
+  // 사라지는 걸 막기 위해 lastBase도 같이 갱신한다(recordSnapshot의 폴백 기준가).
+  function applyRealtimeQuote(container, quote) {
+    if (typeof quote.price !== 'number') return;
+    state.lastBase = quote.price;
+
+    var board = container.querySelector('#obBoard');
+    if (!board) return;
+    var cls = signClass(quote.changeRate);
+    var priceText = Number(quote.price).toLocaleString('ko-KR') + '원';
+    var changeText = (quote.changeRate >= 0 ? '+' : '') + quote.changeRate.toFixed(2)
+      + '% (' + (quote.change >= 0 ? '+' : '') + Number(quote.change).toLocaleString('ko-KR') + '원)';
+
+    var headerPrice = board.querySelector('[data-field="header-price"]');
+    if (headerPrice) { headerPrice.textContent = priceText; headerPrice.className = 'ob-header-price ' + cls; }
+    var headerChange = board.querySelector('[data-field="header-change"]');
+    if (headerChange) { headerChange.textContent = changeText; headerChange.className = 'ob-header-change ' + cls; }
+
+    var currentRow = board.querySelector('[data-field="current-row"]');
+    if (currentRow) currentRow.className = 'ob-current-row ' + cls;
+    var currentPrice = board.querySelector('[data-field="current-price"]');
+    if (currentPrice) currentPrice.textContent = priceText;
+    var currentChange = board.querySelector('[data-field="current-change"]');
+    if (currentChange) currentChange.textContent = changeText;
   }
 
   function tick(container) {
@@ -540,8 +642,8 @@
       + stockIconHtml(state.code)
       + '<span class="ob-header-name">' + escapeHtml(state.name) + '</span>'
       + '<span class="ob-header-code">(' + escapeHtml(state.code) + ')</span>'
-      + '<span class="ob-header-price ' + priceCls + '">' + priceNum + '</span>'
-      + (changeText ? '<span class="ob-header-change ' + priceCls + '">' + changeText + '</span>' : '')
+      + '<span class="ob-header-price ' + priceCls + '" data-field="header-price">' + priceNum + '</span>'
+      + '<span class="ob-header-change ' + priceCls + '" data-field="header-change">' + (changeText || '') + '</span>'
       + '</div>';
 
     var askRows = book.asks.map(function (r) { return rowHtml(r, maxQty, 'ask'); }).join('');
@@ -559,7 +661,11 @@
       + '</div>';
 
     board.innerHTML = headerHtml
-      + '<div class="ob-table">' + askRows + '<div class="ob-current-row ' + priceCls + '">' + priceNum + (changeText ? ' <span class="ob-current-change">' + changeText + '</span>' : '') + '</div>' + bidRows + '</div>'
+      + '<div class="ob-table">' + askRows
+      + '<div class="ob-current-row ' + priceCls + '" data-field="current-row">'
+      + '<span data-field="current-price">' + priceNum + '</span>'
+      + ' <span class="ob-current-change" data-field="current-change">' + (changeText || '') + '</span>'
+      + '</div>' + bidRows + '</div>'
       + footerHtml
       + buildTradesHtml();
   }
