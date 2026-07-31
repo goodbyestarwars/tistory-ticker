@@ -31,6 +31,8 @@
   var CONTAINER_SELECTOR = '#sidebar-rank';
   var REFRESH_MS = 30 * 1000;
   var MODAL_LIMIT = 20;
+  var CACHE_KEY = 'home_market_rank_v1';
+  var CACHE_MAX_AGE_MS = 3 * 60 * 1000;
   var STOCK_ANALYSIS_URL = 'https://ghlee.tistory.com/page/foreign-flow';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
 
@@ -64,6 +66,24 @@
   var latestData = {};
   var activeSection = 'tradeVolume';
 
+  function readRankCache() {
+    try {
+      var cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (!cached || !cached.data || Date.now() - Number(cached.savedAt) > CACHE_MAX_AGE_MS) return null;
+      return cached.data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeRankCache(data) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: data }));
+    } catch (error) {
+      /* 캐시를 저장하지 못해도 현재 응답은 그대로 사용한다. */
+    }
+  }
+
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
@@ -84,6 +104,11 @@
       }
       if (e.target.closest && e.target.closest('.sr-retry')) refresh(container);
     });
+    var cached = readRankCache();
+    if (cached) {
+      latestData = cached;
+      renderActive(container);
+    }
     refresh(container);
     setInterval(function () { refresh(container); }, REFRESH_MS);
   }
@@ -110,6 +135,7 @@
     SidebarRank.fetchRank()
       .then(function (data) {
         latestData = data || {};
+        writeRankCache(latestData);
         renderActive(container);
       })
       .catch(function () {

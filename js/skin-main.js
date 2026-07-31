@@ -75,21 +75,74 @@
         });
     }
 
+    function readHomeDataCache(key, maxAgeMs) {
+      try {
+        var cached = JSON.parse(localStorage.getItem(key) || 'null');
+        if (!cached || !cached.data || !cached.savedAt) return null;
+        if (Date.now() - Number(cached.savedAt) > maxAgeMs) return null;
+        return cached.data;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function writeHomeDataCache(key, data) {
+      try {
+        localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data: data }));
+      } catch (error) {
+        /* 저장 공간이 없으면 이번 응답만 표시한다. */
+      }
+    }
+
     function loadHomeScript(src, globalName) {
       if (window[globalName]) return Promise.resolve(window[globalName]);
       return new Promise(function (resolve, reject) {
         var existing = document.querySelector('script[data-home-source="' + src + '"]');
+        var settled = false;
+        var timeout = setTimeout(function () {
+          finish(new Error(globalName + ' 스크립트 로드 시간 초과'));
+        }, 10000);
+
+        function finish(error) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          if (error) reject(error);
+          else resolve(window[globalName]);
+        }
+
+        function bind(script) {
+          script.addEventListener('load', function () {
+            script.setAttribute('data-home-state', 'loaded');
+            finish(window[globalName] ? null : new Error(globalName + ' 모듈 없음'));
+          }, { once: true });
+          script.addEventListener('error', function () {
+            script.setAttribute('data-home-state', 'error');
+            finish(new Error(globalName + ' 스크립트 로드 실패'));
+          }, { once: true });
+        }
+
         if (existing) {
-          existing.addEventListener('load', function () { resolve(window[globalName]); }, { once: true });
-          existing.addEventListener('error', reject, { once: true });
+          if (existing.getAttribute('data-home-state') === 'loaded') {
+            finish(window[globalName] ? null : new Error(globalName + ' 모듈 없음'));
+            return;
+          }
+          if (existing.getAttribute('data-home-state') === 'error') existing.remove();
+          else {
+            bind(existing);
+            return;
+          }
+        }
+        if (window[globalName]) {
+          finish();
           return;
         }
         var script = document.createElement('script');
         script.src = src;
         script.defer = true;
         script.setAttribute('data-home-source', src);
-        script.onload = function () { resolve(window[globalName]); };
-        script.onerror = reject;
+        script.setAttribute('data-home-state', 'loading');
+        bind(script);
         document.head.appendChild(script);
       });
     }
@@ -212,33 +265,17 @@
       };
     }
 
-    function resolveMarketDirection(marketTemp, indexData) {
+    function resolveMarketDirection(marketTemp) {
       var components = marketTemp && marketTemp.components;
       var rise = components && components.riseRatio;
       var avgChange = components && components.avgChange;
-      var kospi = indexData && indexData.kospi;
-      var kospiRate = kospi && typeof kospi.changeRate === 'number' ? kospi.changeRate : null;
       var riseRatio = rise && typeof rise.ratio === 'number' ? rise.ratio : null;
       var averageRate = avgChange && typeof avgChange.avgChangeRate === 'number'
         ? avgChange.avgChangeRate
         : null;
 
-      // 대표지수가 있으면 지수 등락률로 강도를 확정한다. 시장 폭이 좋아도 코스피가
-      // 보합권이면 "강한 강세"로 과장하지 않고 방향만 보조 판정한다.
-      if (kospiRate != null) {
-        if (kospiRate <= -4) return { label: '급락', tone: 'home-negative' };
-        if (kospiRate >= 4) return { label: '급등', tone: 'home-positive' };
-        if (kospiRate <= -2) return { label: '강한 약세', tone: 'home-negative' };
-        if (kospiRate >= 2) return { label: '강한 강세', tone: 'home-positive' };
-        if (kospiRate <= -0.5) return { label: '약세 우위', tone: 'home-negative' };
-        if (kospiRate >= 0.5) return { label: '상승 우위', tone: 'home-positive' };
-        if (riseRatio != null && riseRatio <= 0.45) return { label: '약세 우위', tone: 'home-negative' };
-        if (riseRatio != null && riseRatio >= 0.55) return { label: '상승 우위', tone: 'home-positive' };
-        return { label: '혼조', tone: 'home-neutral' };
-      }
-
-      // 지수 조회가 실패한 경우에만 기존 증시온도의 시장 폭·평균등락률로 강도를
-      // 대체 판정한다. 숫자가 없는 경우에는 임의 상태를 만들지 않는다.
+      // 증시온도 계산에 이미 포함된 전체 시장 상승 비율과 평균등락률을 함께 본다.
+      // 숫자가 없는 경우에는 임의 상태를 만들지 않는다.
       if (riseRatio != null && averageRate != null && riseRatio <= 0.15 && averageRate <= -1) {
         return { label: '급락', tone: 'home-negative' };
       }
@@ -259,18 +296,11 @@
       return { label: '데이터 확인 중', tone: 'home-neutral' };
     }
 
-    Promise.all([
-      fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 20000).catch(function () { return null; }),
-      fetchHomeJson(GAS_TICKER_URL + '?bubble=1', 20000).catch(function () { return null; }),
-      fetchHomeJson(GAS_TICKER_URL + '?market=1', 20000).catch(function () { return null; })
-    ]).then(function (results) {
-      var market = results[0];
-      var bubble = results[1];
-      var indices = results[2];
+    function renderMarketTemperature(market) {
       if (market && typeof market.temp === 'number') {
         var grade = market.grade && market.grade.label ? ' ' + market.grade.label : '';
         setField('temperature', market.temp.toFixed(market.temp % 1 ? 1 : 0) + '℃' + grade, 'home-neutral');
-        var direction = resolveMarketDirection(market, indices);
+        var direction = resolveMarketDirection(market);
         setField('direction', direction.label, direction.tone);
         var exchange = market.components && market.components.exchange;
         if (exchange && typeof exchange.price === 'number') {
@@ -282,10 +312,45 @@
         var updated = document.getElementById('hmbUpdated');
         if (updated && market.updatedAt) updated.textContent = market.updatedAt + ' 기준';
       }
+    }
+
+    function renderMarketSectors(bubble) {
       var summary = sectorSummary(bubble);
       setField('leaders', summary.leaders.length ? summary.leaders.map(function (item) { return item.sector; }).join(' · ') : '데이터 확인 중', 'home-positive');
       setField('cautions', summary.cautions.length ? summary.cautions.map(function (item) { return item.sector; }).join(' · ') : '데이터 확인 중', 'home-negative');
-    });
+    }
+
+    var marketTempCacheKey = 'home_market_temp_v1';
+    var marketSectorCacheKey = 'home_market_sectors_v1';
+    var cachedMarketTemp = readHomeDataCache(marketTempCacheKey, 10 * 60 * 1000);
+    var cachedMarketSectors = readHomeDataCache(marketSectorCacheKey, 30 * 60 * 1000);
+    if (cachedMarketTemp) renderMarketTemperature(cachedMarketTemp);
+    if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
+
+    fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 12000)
+      .then(function (market) {
+        writeHomeDataCache(marketTempCacheKey, market);
+        renderMarketTemperature(market);
+      })
+      .catch(function () {
+        if (!cachedMarketTemp) {
+          setField('temperature', '일시 지연', 'home-neutral');
+          setField('direction', '데이터 확인 중', 'home-neutral');
+          setField('exchange', '일시 지연', 'home-neutral');
+        }
+      });
+
+    fetchHomeJson(GAS_TICKER_URL + '?bubble=1', 12000)
+      .then(function (bubble) {
+        writeHomeDataCache(marketSectorCacheKey, bubble);
+        renderMarketSectors(bubble);
+      })
+      .catch(function () {
+        if (!cachedMarketSectors) {
+          setField('leaders', '일시 지연', 'home-neutral');
+          setField('cautions', '일시 지연', 'home-neutral');
+        }
+      });
 
     function renderPatterns(data) {
       var list = document.getElementById('homePatternList');
@@ -360,11 +425,17 @@
       }
     }
 
-    fetchHomeJson(GAS_TICKER_URL + '?patternScan=1', 20000)
-      .then(renderPatterns)
+    var patternCacheKey = 'home_pattern_scan_v1';
+    var cachedPatterns = readHomeDataCache(patternCacheKey, 18 * 60 * 60 * 1000);
+    if (cachedPatterns) renderPatterns(cachedPatterns);
+    fetchHomeJson(GAS_TICKER_URL + '?patternScan=1', 25000)
+      .then(function (data) {
+        writeHomeDataCache(patternCacheKey, data);
+        renderPatterns(data);
+      })
       .catch(function () {
         var list = document.getElementById('homePatternList');
-        if (list) list.innerHTML = '<p class="home-card-state">패턴 데이터를 불러오지 못했습니다.</p>';
+        if (list && !cachedPatterns) list.innerHTML = '<p class="home-card-state">패턴 데이터를 불러오지 못했습니다.</p>';
       });
 
     function calendarMeta(rawTitle) {
@@ -475,26 +546,32 @@
         card.classList.add('home-briefing-small', 'home-briefing-left-small');
         briefing.querySelector('.home-briefing-left-more').appendChild(card);
       });
+    } else {
+      briefing = document.createElement('section');
+      briefing.className = 'home-briefing-section';
+      briefing.innerHTML = '<div class="home-section-heading"><div><strong>마켓브리핑</strong>'
+        + '<span>투자 판단에 필요한 핵심 해석</span></div></div>'
+        + '<div class="home-card-state">최신 마켓브리핑을 확인하는 중입니다.</div>'
+        + '<a class="home-briefing-more" href="/category/마켓 브리핑">마켓브리핑 전체보기 →</a>';
+      feed.appendChild(briefing);
     }
 
     var pagination = feed.querySelector(':scope > .pagination');
     if (pagination) pagination.remove();
 
-    if (briefing) {
-      loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets')
-        .then(function (widgets) {
-          if (!widgets || !widgets.init) return;
-          widgets.init({
-            dashboard: dashboardSection,
-            briefing: briefing,
-            gasUrl: GAS_TICKER_URL,
-            fetchJson: fetchHomeJson
-          });
-        })
-        .catch(function () {
-          /* 위젯 관리 모듈이 막혀도 기존 고정형 대시보드는 그대로 사용할 수 있게 둔다. */
+    loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets')
+      .then(function (widgets) {
+        if (!widgets || !widgets.init) return;
+        widgets.init({
+          dashboard: dashboardSection,
+          briefing: briefing,
+          gasUrl: GAS_TICKER_URL,
+          fetchJson: fetchHomeJson
         });
-    }
+      })
+      .catch(function () {
+        /* 위젯 관리 모듈이 막혀도 기존 고정형 대시보드는 그대로 사용할 수 있게 둔다. */
+      });
   })();
 
   /* ── 폰트 전환 토글 (명조 ⇄ 고딕, 조기 적용 스크립트는 head에 있음) ── */

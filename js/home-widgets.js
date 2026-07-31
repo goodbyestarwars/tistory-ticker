@@ -10,6 +10,8 @@
 
   var STORAGE_KEY = 'home_dashboard_layout_v1';
   var WATCHLIST_KEY = 'wl_codes_v1';
+  var WATCHLIST_QUOTES_CACHE_KEY = 'home_watchlist_quotes_v1';
+  var DISCLOSURE_CACHE_KEY = 'home_disclosures_v1';
   var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
   // 2026-07-31: 홈 MY 카드도 /page/watchlist(js/watchlist.js)와 동일한 VM 실시간 체결가
   // WebSocket 중계에 연결한다 - 페이지 로드 시 1회 GAS 조회 후 갱신이 없던 것을 보완.
@@ -64,6 +66,22 @@
 
   function safeStorageSet(key, value) {
     try { localStorage.setItem(key, value); } catch (err) { /* 프라이빗 모드는 현재 세션 DOM만 유지 */ }
+  }
+
+  function readTimedCache(key, maxAgeMs) {
+    try {
+      var cached = JSON.parse(safeStorageGet(key) || 'null');
+      if (!cached || !cached.data || Date.now() - Number(cached.savedAt) > maxAgeMs) return null;
+      return cached;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeTimedCache(key, data, extra) {
+    var value = { savedAt: Date.now(), data: data };
+    Object.keys(extra || {}).forEach(function (name) { value[name] = extra[name]; });
+    safeStorageSet(key, JSON.stringify(value));
   }
 
   function loadState() {
@@ -521,7 +539,10 @@
 
   function loadMyWidget() {
     var list = readWatchlist();
-    renderMyRows(list, null);
+    var codeKey = list.map(function (item) { return item.code; }).join(',');
+    var cached = readTimedCache(WATCHLIST_QUOTES_CACHE_KEY, 3 * 60 * 1000);
+    var cachedQuotes = cached && cached.codes === codeKey ? cached.data : null;
+    renderMyRows(list, cachedQuotes);
     if (!list.length) { stopMyRealtime(); return; }
     startMyRealtime(list);
     if (!context.fetchJson) return;
@@ -532,9 +553,10 @@
       (Array.isArray(data) ? data : []).forEach(function (quote) {
         if (quote && quote.code) byCode[quote.code] = quote;
       });
+      writeTimedCache(WATCHLIST_QUOTES_CACHE_KEY, byCode, { codes: codeKey });
       renderMyRows(list, byCode);
     }).catch(function () {
-      renderMyRows(list, null);
+      if (!cachedQuotes) renderMyRows(list, null);
     });
   }
 
@@ -620,6 +642,8 @@
   }
 
   function loadDisclosures() {
+    var cached = readTimedCache(DISCLOSURE_CACHE_KEY, 6 * 60 * 60 * 1000);
+    if (cached) renderDisclosures(cached.data);
     var controller = 'AbortController' in global ? new AbortController() : null;
     var timer = controller ? setTimeout(function () { controller.abort(); }, 12000) : null;
     fetch(DISC_GAS_URL + '?market=0', controller ? { signal: controller.signal } : {})
@@ -629,11 +653,13 @@
       })
       .then(function (text) {
         if (timer) clearTimeout(timer);
-        renderDisclosures(parseDisclosureXml(decodeDisclosureResponse(text)));
+        var items = parseDisclosureXml(decodeDisclosureResponse(text));
+        writeTimedCache(DISCLOSURE_CACHE_KEY, items);
+        renderDisclosures(items);
       })
       .catch(function () {
         if (timer) clearTimeout(timer);
-        renderDisclosures([]);
+        if (!cached) renderDisclosures([]);
       });
   }
 

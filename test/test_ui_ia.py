@@ -68,14 +68,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
 
-    def test_home_market_direction_uses_index_and_breadth_strength(self):
+    def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")
         for token in (
             "resolveMarketDirection",
-            "?market=1",
-            "kospi.changeRate",
-            "kospiRate <= -4",
-            "kospiRate >= 0.5",
             "label: '급락'",
             "label: '강한 약세'",
             "label: '상승 우위'",
@@ -83,6 +79,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "averageRate <= -1",
         ):
             self.assertIn(token, source)
+        self.assertNotIn("?market=1", source)
 
     def test_pattern_schedule_and_rank_compact_layout(self):
         main = self.read("js/skin-main.js")
@@ -267,6 +264,24 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("movingAverageChartPoints(daily, 'volume', 20)", source)
         self.assertIn(".ff-volume-study-label", style)
         self.assertIn(".ff-chart-candle::after", style)
+
+    def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
+        home = self.read("js/skin-main.js")
+        widgets = self.read("js/home-widgets.js")
+        ranking = self.read("js/sidebar-rank.js")
+        self.assertNotIn("GAS_TICKER_URL + '?market=1'", home)
+        self.assertIn("home_market_temp_v1", home)
+        self.assertIn("home_market_sectors_v1", home)
+        self.assertIn("home_pattern_scan_v1", home)
+        self.assertIn("readHomeDataCache", home)
+        self.assertIn("writeHomeDataCache", home)
+        self.assertIn("스크립트 로드 시간 초과", home)
+        self.assertIn("최신 마켓브리핑을 확인하는 중입니다.", home)
+        self.assertIn("home_market_rank_v1", ranking)
+        self.assertIn("readRankCache", ranking)
+        self.assertIn("home_watchlist_quotes_v1", widgets)
+        self.assertIn("home_disclosures_v1", widgets)
+        self.assertIn("readTimedCache", widgets)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
