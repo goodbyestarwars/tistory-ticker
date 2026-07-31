@@ -460,15 +460,22 @@
     renderBigChart(cfg.key, dayPts, false);
   }
 
+  // 2026-07-31: 30초 주기 자동 새로고침(refresh -> renderAll)도 interval이 'minute'이면
+  // 매번 이 함수를 다시 타는데, 기존엔 요청 시작과 동시에 이미 떠 있던 차트를 지우고
+  // "불러오는 중..."으로 덮었다가 실패하면 그대로 에러로 덮어써서 - 처음 로딩은 잘 되다가
+  // 이후 새로고침 때 반짝이던 차트가 통째로 에러로 바뀌는 원인이었다. 일봉/주봉은 주기적
+  // 새로고침에서 캐시된 dayItem을 재사용해 이런 문제가 없는 것과 같은 방식으로, 이미 받아온
+  // minuteRows가 있으면 백그라운드에서 갱신만 시도하고 실패해도 기존 차트를 그대로 둔다.
   function loadMinuteAndRender(cfg) {
     var container = document.getElementById(CHART_EL_BY_KEY[cfg.key]);
-    if (container) container.innerHTML = '<div class="kf-chart-error">분봉 불러오는 중...</div>';
+    var hasCached = !!(panelState[cfg.key].minuteRows && panelState[cfg.key].minuteRows.length);
+    if (container && !hasCached) container.innerHTML = '<div class="kf-chart-error">분봉 불러오는 중...</div>';
     KospiFutures.fetchFutures('minute').then(function (items) {
       var item = items.filter(function (it) { return it.symbol === cfg.symbol; })[0];
       panelState[cfg.key].minuteRows = (item && item.chart) || [];
       if (panelState[cfg.key].interval === 'minute') renderChartPanel(cfg);
     }).catch(function () {
-      if (container) container.innerHTML = '<div class="kf-chart-error">분봉을 불러오지 못했어요.</div>';
+      if (!hasCached && container) container.innerHTML = '<div class="kf-chart-error">분봉을 불러오지 못했어요.</div>';
     });
   }
 
