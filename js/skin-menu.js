@@ -127,6 +127,14 @@
     // 이전 아이콘도 정적 자산 배포만으로 즉시 제거되도록 런타임에서 함께 정리한다.
     document.querySelectorAll('.nav-my-btn').forEach(function (item) { item.remove(); });
 
+    // 2026-07-31: 로고 텍스트 변경(사용자 요청) - skin.html은 티스토리 관리자 수동 반영
+    // 대상이라 git push만으로는 운영 화면에 안 뜬다. 이 스크립트는 정적 자산이라 master
+    // push 즉시 배포되므로, 운영 스킨에 남아있는 이전 텍스트를 런타임에 덮어써 수동 반영
+    // 없이도 바로 보이게 한다(위 MY 아이콘 정리와 동일한 패턴).
+    document.querySelectorAll('.nav-logo-name').forEach(function (item) {
+      item.textContent = 'ㄱㅖ조 ㅏ심폐소생술';
+    });
+
     if (mount) {
       selectedGroupIndex = activeGroupIndex();
       renderMenu(mount);
