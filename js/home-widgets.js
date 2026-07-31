@@ -11,6 +11,14 @@
   var STORAGE_KEY = 'home_dashboard_layout_v1';
   var WATCHLIST_KEY = 'wl_codes_v1';
   var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
+  // 2026-07-31: 홈 MY 카드도 /page/watchlist(js/watchlist.js)와 동일한 VM 실시간 체결가
+  // WebSocket 중계에 연결한다 - 페이지 로드 시 1회 GAS 조회 후 갱신이 없던 것을 보완.
+  var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
+  var REALTIME_RECONNECT_MS = 5000;
+  var myRealtimeSocket = null;
+  var myRealtimeReconnectTimer = null;
+  var myRealtimeKeepaliveTimer = null;
+  var myRealtimeGeneration = 0;
   var DEFAULT_ORDER = [
     'investor-flow',
     'market-summary',
@@ -424,18 +432,99 @@
       var tone = change > 0 ? 'home-positive' : change < 0 ? 'home-negative' : 'home-neutral';
       var arrow = change > 0 ? '▲' : change < 0 ? '▼' : '';
       var rateText = rate == null || isNaN(rate) ? '데이터 확인 중' : arrow + Math.abs(rate).toFixed(2) + '%';
-      return '<a class="home-my-row" href="/page/stock-search?code=' + encodeURIComponent(item.code)
+      return '<a class="home-my-row" data-code="' + escapeHtml(item.code) + '" href="/page/stock-search?code=' + encodeURIComponent(item.code)
         + '&name=' + encodeURIComponent(item.name) + '">'
         + '<span class="home-my-name"><strong>' + escapeHtml(item.name) + '</strong></span>'
-        + '<span class="home-my-quote"><small>' + (quote ? formatPrice(quote.price) : '현재가 확인 중') + '</small>'
-        + '<em class="' + tone + '">' + rateText + '</em></span></a>';
+        + '<span class="home-my-quote"><small data-field="price">' + (quote ? formatPrice(quote.price) : '현재가 확인 중') + '</small>'
+        + '<em class="' + tone + '" data-field="change">' + rateText + '</em></span></a>';
     }).join('');
+  }
+
+  function cssEscape(value) {
+    return String(value).replace(/["\\]/g, '\\$&');
+  }
+
+  // WebSocket 틱마다 목록 전체를 다시 그리지 않고 해당 종목 행의 가격/등락률 텍스트만 갱신한다.
+  function updateMyRow(code, quote) {
+    var mount = document.getElementById('homeMyList');
+    if (!mount) return;
+    var row = mount.querySelector('.home-my-row[data-code="' + cssEscape(code) + '"]');
+    if (!row) return;
+    var change = Number(quote.change);
+    var rate = Number(quote.changeRate);
+    var tone = change > 0 ? 'home-positive' : change < 0 ? 'home-negative' : 'home-neutral';
+    var arrow = change > 0 ? '▲' : change < 0 ? '▼' : '';
+    var rateText = isNaN(rate) ? '데이터 확인 중' : arrow + Math.abs(rate).toFixed(2) + '%';
+    var priceEl = row.querySelector('[data-field="price"]');
+    var changeEl = row.querySelector('[data-field="change"]');
+    if (priceEl) priceEl.textContent = formatPrice(quote.price);
+    if (changeEl) { changeEl.textContent = rateText; changeEl.className = tone; }
+  }
+
+  // ---- 실시간 체결가(WebSocket, js/watchlist.js와 동일 패턴) ----
+
+  function stopMyRealtime() {
+    myRealtimeGeneration += 1;
+    clearTimeout(myRealtimeReconnectTimer);
+    clearInterval(myRealtimeKeepaliveTimer);
+    myRealtimeReconnectTimer = null;
+    myRealtimeKeepaliveTimer = null;
+    if (myRealtimeSocket) {
+      myRealtimeSocket.onclose = null;
+      myRealtimeSocket.close();
+      myRealtimeSocket = null;
+    }
+  }
+
+  function startMyRealtime(list) {
+    stopMyRealtime();
+    if (!list.length || document.hidden || !('WebSocket' in global)) return;
+
+    var generation = myRealtimeGeneration;
+    var encodedCodes = list.map(function (item) { return encodeURIComponent(item.code); }).join(',');
+
+    function connect() {
+      if (generation !== myRealtimeGeneration || document.hidden) return;
+
+      var socket = new WebSocket(REALTIME_QUOTES_URL + '?codes=' + encodedCodes);
+      myRealtimeSocket = socket;
+
+      socket.onmessage = function (event) {
+        if (generation !== myRealtimeGeneration) return;
+        try {
+          var quote = JSON.parse(event.data);
+          if (quote.type === 'quote' && quote.code) updateMyRow(quote.code, quote);
+        } catch (err) {}
+      };
+
+      socket.onopen = function () {
+        clearInterval(myRealtimeKeepaliveTimer);
+        myRealtimeKeepaliveTimer = setInterval(function () {
+          if (socket.readyState === WebSocket.OPEN) socket.send('ping');
+        }, 20000);
+      };
+
+      socket.onerror = function () {
+        socket.close();
+      };
+
+      socket.onclose = function () {
+        clearInterval(myRealtimeKeepaliveTimer);
+        myRealtimeKeepaliveTimer = null;
+        if (generation !== myRealtimeGeneration || document.hidden) return;
+        myRealtimeReconnectTimer = setTimeout(connect, REALTIME_RECONNECT_MS);
+      };
+    }
+
+    connect();
   }
 
   function loadMyWidget() {
     var list = readWatchlist();
     renderMyRows(list, null);
-    if (!list.length || !context.fetchJson) return;
+    if (!list.length) { stopMyRealtime(); return; }
+    startMyRealtime(list);
+    if (!context.fetchJson) return;
     context.fetchJson(context.gasUrl + '?codes=' + list.map(function (item) {
       return encodeURIComponent(item.code);
     }).join(','), 10000).then(function (data) {
@@ -565,6 +654,10 @@
     loadDisclosures();
     global.addEventListener('storage', function (event) {
       if (event.key === WATCHLIST_KEY) loadMyWidget();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stopMyRealtime();
+      else startMyRealtime(readWatchlist());
     });
   }
 
