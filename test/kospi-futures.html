@@ -142,6 +142,11 @@
       if (mode === 'minute-slow' && call.interval === 'minute') {
         return new Promise(function (resolve) { setTimeout(function () { resolve(payload); }, 2000); });
       }
+      // 'slow': 모든 응답을 1.5초 지연 - 차트 라이브러리(CDN)를 데이터와 병렬로 받는지
+      // 확인하는 용도(예전엔 응답이 온 뒤에야 라이브러리를 받기 시작했다).
+      if (mode === 'slow') {
+        return new Promise(function (resolve) { setTimeout(function () { resolve(payload); }, 1500); });
+      }
       return Promise.resolve(payload);
     };
     KospiFutures.fetchAiSummary = function () {

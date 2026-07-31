@@ -656,7 +656,7 @@
   }
 
   function refresh(container) {
-    KospiFutures.fetchFutures('day', DAY_RANGE, { symbols: PAGE_SYMBOLS })
+    return KospiFutures.fetchFutures('day', DAY_RANGE, { symbols: PAGE_SYMBOLS })
       .then(function (items) { renderAll(container, items); })
       .catch(function () {
         PANEL_ORDER.forEach(function (symbol) {
@@ -712,9 +712,25 @@
     container.innerHTML = buildShell();
     wireIntervalToggles(container);
     wireCollapseToggles(container);
-    refresh(container);
-    renderAiSummary(container);
+
+    // 차트 라이브러리(CDN)를 데이터 요청과 동시에 받기 시작한다 - 예전엔 /futures 응답이
+    // 온 뒤에야 renderBigChart에서 처음 로드해서 첫 차트까지 CDN 왕복이 직렬로 한 번 더
+    // 붙었다(2026-07-31 첫 로딩 지연 신고). 실패 처리는 renderBigChart가 그대로 담당한다.
+    loadLightweightCharts().catch(function () { /* renderBigChart에서 문구 표시 */ });
+
     refreshOptionFlow(container);
+
+    // AI 해설(GAS)은 생성에 수십 초가 걸릴 수 있고 서버에서 /futures와 /option-flow를 또
+    // 호출하므로, 차트 데이터가 먼저 도착하도록 뒤로 미룬다 - 차트 응답이 끝나는 즉시, 늦어도
+    // 3초 뒤에는 시작한다(차트 요청이 실패·지연돼도 참고의견이 안 뜨는 일은 없게).
+    var aiStarted = false;
+    function startAi() {
+      if (aiStarted) return;
+      aiStarted = true;
+      renderAiSummary(container);
+    }
+    refresh(container).then(startAi);
+    setTimeout(startAi, 3000);
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () {

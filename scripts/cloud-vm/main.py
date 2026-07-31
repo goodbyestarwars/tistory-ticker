@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Header, HTTPException, Path, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 import bond_yield
 import btc_futures
@@ -94,6 +95,12 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
+# 2026-07-31: 응답 gzip 압축. 이 서버의 응답은 전부 반복 구조의 JSON(일봉/분봉 배열)이라
+# 압축률이 매우 높은데 그동안 무압축으로 내려가고 있었다 - 방문자 회선이 느릴 때 첫 로딩이
+# 오래 걸리던 원인 중 하나(관심지수 리본이 /futures 전체를 받는 것까지 같이 개선된다).
+# minimum_size 미만(작은 JSON·프리플라이트)은 그대로 두고, 웹소켓(/ws/quotes)은 대상이 아니다.
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 BATCH_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
 FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 DAILY_SCAN_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
@@ -120,6 +127,14 @@ _market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐
 # 같은 종목을 여러 탭/방문자가 동시에 보고 있어도 키움 호출은 한 번으로 묶는다.
 _ORDER_BOOK_TTL = 1.5
 _order_book_cache = {}  # code -> {'t':.., 'data':..}
+
+# /futures는 관심지수 리본(js/quick-indices.js)·코스피 선물 페이지가 각각 30초마다,
+# GAS AI 해설(gas/ticker-proxy.gs)이 또 따로 같은 데이터를 조회한다 - 한 페이지 로드에도
+# 같은 쿼리가 여러 번 겹쳐 DB를 반복해서 읽고 있었다(2026-07-31 "첫 로딩 30초" 신고).
+# 수집 주기(실시간 30초 폴링, 분봉 5분)보다 짧은 TTL이라 신선도 손실 없이 중복 조회만 없앤다
+# (_market_rank_cache와 동일 패턴).
+_FUTURES_TTL = 10
+_futures_cache = {}  # (interval, days, symbols) -> {'t':.., 'data':..}
 
 
 def _live_cache_get(cache, code):
@@ -398,8 +413,15 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
     2026-07-31: symbols(쉼표 구분) 파라미터 추가 - 응답에 실을 심볼을 아래 order 화이트리스트
     안에서만 좁힌다. 코스피 선물 페이지는 선물 2개만 쓰는데 21개 심볼 전체를 매번 받아
     분봉 요청이 브라우저 타임아웃(10초)에 걸리던 문제 대응. 미지정이면 기존과 완전히 동일하게
-    전체를 반환하므로 관심지수 리본/보조지수 등 기존 호출부는 영향 없다."""
+    전체를 반환하므로 관심지수 리본/보조지수 등 기존 호출부는 영향 없다.
+    2026-07-31(2차): 같은 파라미터 조합에 대한 짧은 TTL 메모리 캐시(_FUTURES_TTL) 추가 -
+    리본/페이지/GAS가 같은 쿼리를 겹쳐 호출하던 중복 DB 조회를 없앤다."""
     days = max(1, min(days, 500))
+    started = time.time()
+    cache_key = (interval, days, symbols)
+    cached = _futures_cache.get(cache_key)
+    if cached is not None and started - cached['t'] < _FUTURES_TTL:
+        return envelope(cached['data'])
     conn = db_schema.get_conn()
     try:
         prices = {p['symbol']: p for p in db_schema.load_all_future_prices(conn)}
@@ -437,6 +459,15 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
             })
     finally:
         conn.close()
+    _futures_cache[cache_key] = {'t': started, 'data': result}
+    if len(_futures_cache) > 50:  # 무제한 증가 방지(단순 전량 비우기, order_book류와 동일)
+        _futures_cache.clear()
+    # 첫 로딩이 느릴 때 원인을 로그로 좁히기 위한 측정 - 정상 구간(수백 ms)에서는 조용하다.
+    elapsed = time.time() - started
+    if elapsed > 1.0:
+        logging.getLogger('main').warning(
+            '/futures 응답 %.1fs (interval=%s days=%d symbols=%s rows=%d)',
+            elapsed, interval, days, symbols or '-', sum(len(r['chart']) for r in result))
     return envelope(result)
 
 
