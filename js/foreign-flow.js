@@ -1119,6 +1119,60 @@
     return p;
   }
 
+  // 일부 폴백 소스(네이버 수급 표)는 개인 순매매를 제공하지 않는다. 값을 억지로
+  // 0으로 채우면 실제 순매도/순매수로 오해할 수 있으므로, 숫자가 아닌 값은 null로
+  // 유지해 화면에서 '-'로 표시한다.
+  function finiteNumber(v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+
+  function amountFromShares(shares, close) {
+    var s = finiteNumber(shares), c = finiteNumber(close);
+    return s == null || c == null ? null : s * c;
+  }
+
+  // 차트 VM/GAS가 일시적으로 실패해도 이미 받아온 수급의 종가·거래량으로 최소한의
+  // 가격 차트를 제공한다. OHLC가 없는 구간은 종가를 그대로 사용하며, 추정 데이터임을
+  // chartData.source로 표시한다. 실제 OHLC가 도착하면 이 데이터는 사용하지 않는다.
+  function buildFlowChartFallback(flowData) {
+    var source = flowData && flowData.daily || [];
+    var asc = source.slice().reverse().map(function (d, i, all) {
+      var close = finiteNumber(d.close);
+      if (close == null) return null;
+      var prev = i > 0 ? finiteNumber(all[i - 1].close) : null;
+      var pct = finiteNumber(d.change_pct);
+      var open = pct != null && pct > -99 ? close / (1 + pct / 100) : (prev == null ? close : prev);
+      return {
+        date: d.date,
+        open: open,
+        high: Math.max(open, close),
+        low: Math.min(open, close),
+        close: close,
+        volume: finiteNumber(d.volume) || 0
+      };
+    }).filter(function (d) { return d; });
+    if (asc.length < 2) return null;
+
+    function movingAverage(period) {
+      var values = new Array(asc.length).fill(null), sum = 0;
+      asc.forEach(function (d, i) {
+        sum += d.close;
+        if (i >= period) sum -= asc[i - period].close;
+        if (i >= period - 1) values[i] = sum / period;
+      });
+      return values;
+    }
+    return {
+      code: flowData.code,
+      daily: asc,
+      ma: { ma5: movingAverage(5), ma20: movingAverage(20), ma60: movingAverage(60), ma224: movingAverage(224) },
+      levels: { support: [], resistance: [] },
+      source: 'flow-fallback'
+    };
+  }
+
   // 공매도/대차거래/연기금(VM 직접 온디맨드 호출, GAS 미경유) - 5분 메모리 캐시 +
   // 진행 중 요청 재사용. 실패해도 나머지 위젯은 정상 표시돼야 하므로 호출부에서 catch로 null 처리.
   function fetchInvestorFlowLive(code, name) {
@@ -1194,6 +1248,9 @@
   // ---- 렌더링 ----
 
   function renderResult(box, data, chartData, entry, quote, fundamentals) {
+    if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 2) {
+      chartData = buildFlowChartFallback(data);
+    }
     var techScore = computeTechnicalScore(chartData);
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
@@ -1606,6 +1663,10 @@
     var annual = fundamentals && fundamentals.annual;
     var quarter = fundamentals && fundamentals.latest_quarter;
 
+    var valuationHint = valuation
+      ? ''
+      : '<div class="ff-hint">실시간 밸류에이션(PER·PBR·EPS)은 현재 원천 시세 응답이 없어 표시하지 않습니다. 아래 DART 연간 실적은 별도로 표시됩니다.</div>';
+
     // 2026-07-20: 제목이 "기업 개요 · 업종"이었는데 실제로 보여주는 건 시가총액/발행주식수
     // 등 밸류에이션 숫자뿐이라 사용자가 "이게 왜 업종이야, 시가총액이잖아"라고 지적함(사업을
     // 설명하는 텍스트 데이터소스 자체가 없어 "기업개요"는 애초에 구현된 적이 없음, 아래
@@ -1614,7 +1675,7 @@
     // 아예 분리해서 보여주도록 확장(buildSectorTags 참고) - 제목도 그에 맞게 갱신.
     var html = '<div class="ff-fund-section">'
       + '<div class="ff-fund-title">업종 · 테마 · 시가총액</div>'
-      + (valuation ? buildOverviewGrid(valuation) : '<div class="ff-hint">밸류에이션 데이터를 불러오지 못했어요.</div>')
+      + (valuation ? buildOverviewGrid(valuation) : valuationHint)
       + buildSectorTags(res && res.code)
       + '</div>';
 
@@ -1635,7 +1696,7 @@
 
     html += '<div class="ff-fund-section">'
       + '<div class="ff-fund-title">투자지표</div>'
-      + (valuation ? buildValuationGrid(valuation) : '<div class="ff-hint">밸류에이션 데이터를 불러오지 못했어요.</div>')
+      + (valuation ? buildValuationGrid(valuation) : '<div class="ff-hint">실시간 PER·PBR·EPS 데이터가 없습니다. 재무 실적 기준 지표는 위 연간 실적을 확인해주세요.</div>')
       + '</div>';
 
     html += '<div class="ff-footnote">재무 데이터는 DART(금융감독원 전자공시) 기준, 밸류에이션은 키움 API 실시간 기준입니다. 투자판단 및 그에 따른 책임은 본인에게 있습니다.</div>';
@@ -2523,7 +2584,7 @@
       rows.push([
         i === 0 ? '당일' : d.date.slice(5).replace('-', '/'),
         { ind: d.ind_net, foreign: d.foreign_net, inst: d.inst_net },
-        d.ind_net * d.close, d.foreign_net * d.close, d.inst_net * d.close
+        amountFromShares(d.ind_net, d.close), amountFromShares(d.foreign_net, d.close), amountFromShares(d.inst_net, d.close)
       ]);
     }
     ROLLING_TABLE_WINDOWS.forEach(function (w) {
@@ -2533,6 +2594,7 @@
       rows.push([label, r, amt['ind_' + key + '_krw'], amt[key + '_krw'], amt['inst_' + key + '_krw']]);
     });
 
+    var hasMissingIndividual = rows.some(function (r) { return finiteNumber(r[1].ind) == null; });
     var html = '<table class="ff-table"><thead><tr>'
       + '<th>구분</th><th>개인 순매매(주)</th><th>개인 추정대금</th>'
       + '<th>외국인 순매매(주)</th><th>외국인 추정대금</th>'
@@ -2553,7 +2615,9 @@
     html += '</tbody></table>';
     // 개인 열 추가로 7열이 되면서 좁은 화면에서 넘칠 수 있어 가로 스크롤 컨테이너로 감쌈
     // (2026-07-18, 표 자체 레이아웃은 그대로 두고 안전장치만 추가).
-    return '<div class="ff-table-scroll">' + html + '</div>';
+    return (hasMissingIndividual
+      ? '<div class="ff-hint">개인 순매매 데이터가 원본에 없는 날짜는 `-`로 표시합니다. 외국인·기관 합계만 제공되는 폴백 응답을 개인 수급으로 추정하지 않습니다.</div>'
+      : '') + '<div class="ff-table-scroll">' + html + '</div>';
   }
 
   // 수급 표/차트 기간 선택 - rolling(5/10/20일 합산)·streak·signal·배지는 daily[0..N]만
@@ -2804,6 +2868,9 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '</div>'
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
+        + (chartData.source === 'flow-fallback'
+          ? '<div class="ff-hint">일봉 원천 응답이 지연되어 수급 응답의 종가·거래량으로 임시 표시 중입니다. 실제 OHLC가 도착하면 자동으로 교체됩니다.</div>'
+          : '')
         + buildLwLegend()
         + buildTechBreakdown(techScore)
         + buildRsiSection(chartData.daily);
@@ -3958,8 +4025,13 @@
   // y축 범위 계산 - 차트 생성과 호버 좌표 역산이 같은 스케일을 써야 해서 분리
   function netDomain(asc) {
     var vals = [];
-    // ind_net이 없는 옛 캐시 응답과도 안전하게 동작하도록 || 0 방어(2026-07-18 개인 추가).
-    asc.forEach(function (d) { vals.push(d.foreign_net, d.inst_net, d.ind_net || 0); });
+    // 개인 순매매가 없는 폴백 응답도 다른 선의 스케일 계산을 깨뜨리지 않는다.
+    asc.forEach(function (d) {
+      [d.foreign_net, d.inst_net, d.ind_net].forEach(function (v) {
+        var n = finiteNumber(v);
+        if (n != null) vals.push(n);
+      });
+    });
     var max = Math.max.apply(null, vals.concat([0]));
     var min = Math.min.apply(null, vals.concat([0]));
     var span = (max - min) || 1;
@@ -3991,9 +4063,11 @@
 
     function points(field) {
       return asc.map(function (d, i) {
-        return x(i).toFixed(1) + ',' + y(d[field]).toFixed(1);
+        var value = finiteNumber(d[field]);
+        return x(i).toFixed(1) + ',' + y(value == null ? 0 : value).toFixed(1);
       }).join(' ');
     }
+    var hasIndividual = asc.some(function (d) { return finiteNumber(d.ind_net) != null; });
 
     var svg = '<svg class="ff-svg" viewBox="0 0 ' + CHART_W + ' ' + CHART_H + '" role="img" aria-label="외국인 기관 순매매량 추이">';
     svg += '<line class="ff-grid" x1="' + PAD.l + '" y1="' + y(max).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(max).toFixed(1) + '"/>';
@@ -4003,7 +4077,7 @@
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(0) + 4).toFixed(1) + '" text-anchor="end">0</text>';
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + fmtCompact(min) + '</text>';
     svg += xAxisLabels(asc, x, CHART_H - 8);
-    svg += '<polyline class="ff-line-ind" points="' + points('ind_net') + '"/>';
+    if (hasIndividual) svg += '<polyline class="ff-line-ind" points="' + points('ind_net') + '"/>';
     svg += '<polyline class="ff-line-foreign" points="' + points('foreign_net') + '"/>';
     svg += '<polyline class="ff-line-inst" points="' + points('inst_net') + '"/>';
     svg += hoverMarkup(CHART_H, ['ind', 'foreign', 'inst']);
@@ -4127,9 +4201,14 @@
           dots.inst.setAttribute('visibility', 'visible');
         }
         if (dots.ind) {
-          dots.ind.setAttribute('cx', X);
-          dots.ind.setAttribute('cy', yAt(d.ind_net));
-          dots.ind.setAttribute('visibility', 'visible');
+          var individual = finiteNumber(d.ind_net);
+          if (individual == null) {
+            dots.ind.setAttribute('visibility', 'hidden');
+          } else {
+            dots.ind.setAttribute('cx', X);
+            dots.ind.setAttribute('cy', yAt(individual));
+            dots.ind.setAttribute('visibility', 'visible');
+          }
         }
         tt.innerHTML = '<div class="ff-tt-date">' + escapeHtml(d.date) + '</div>'
           + '<div class="ff-tt-row"><i class="ff-dot ff-dot-ind"></i>개인 <b class="' + signClass(d.ind_net) + '">' + fmtShares(d.ind_net) + '</b></div>'
@@ -4208,14 +4287,18 @@
   // ---- 포맷터 ----
 
   function signClass(v) {
-    if (v > 0) return 'ff-buy';
-    if (v < 0) return 'ff-sell';
+    var n = finiteNumber(v);
+    if (n == null) return 'ff-flat';
+    if (n > 0) return 'ff-buy';
+    if (n < 0) return 'ff-sell';
     return 'ff-flat';
   }
 
   function fmtShares(v) {
-    var sign = v > 0 ? '+' : '';
-    return sign + Math.round(v).toLocaleString();
+    var n = finiteNumber(v);
+    if (n == null) return '-';
+    var sign = n > 0 ? '+' : '';
+    return sign + Math.round(n).toLocaleString();
   }
 
   // 축 레이블용 축약: 12,880,455 -> "+1,288만"
@@ -4228,8 +4311,10 @@
   }
 
   function fmtKrw(v) {
-    var abs = Math.abs(v);
-    var sign = v > 0 ? '+' : v < 0 ? '-' : '';
+    var n = finiteNumber(v);
+    if (n == null) return '-';
+    var abs = Math.abs(n);
+    var sign = n > 0 ? '+' : n < 0 ? '-' : '';
     if (abs >= 1e12) return sign + (abs / 1e12).toFixed(2) + '조원';
     if (abs >= 1e8) return sign + Math.round(abs / 1e8).toLocaleString() + '억원';
     if (abs >= 1e4) return sign + Math.round(abs / 1e4).toLocaleString() + '만원';

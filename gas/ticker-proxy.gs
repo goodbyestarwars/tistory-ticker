@@ -699,6 +699,10 @@ function getFlowChart(code) {
   if (cached) return JSON.parse(cached);
 
   var daily = kiwoomVmFetch_('/ohlc/' + encodeURIComponent(code));
+  // VM 키움 토큰/일봉 응답이 일시적으로 실패해도 차트 전체가 빈 화면이 되지 않도록
+  // 기존에 사용하던 네이버 일봉 파서를 최후 폴백으로 재사용한다. VM이 정상일 때는
+  // 추가 네트워크 요청이 없고, 폴백 시에만 약 2년치(50페이지)를 조회한다.
+  if (!daily || daily.length < 30) daily = fetchDailyOhlc_(code, PATTERN_CHART_PAGES);
   if (!daily || daily.length < 30) {
     return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
   }
