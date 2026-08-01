@@ -539,10 +539,10 @@
         if (list) list.innerHTML = '<p class="home-card-state">일정을 불러오지 못했습니다.</p>';
       });
 
-    /* 최신 마켓브리핑 6건: 대표 1건 + 대표 아래 2건 + 오른쪽 3건으로 재구성한다. */
+    /* 최신 마켓브리핑 8건: 대표 1건 + 오른쪽 3건 + 왼쪽 아래 4건으로 재구성한다. */
     var allCards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     var marketCards = allCards.filter(function (card) { return card.getAttribute('data-cat') === '마켓 브리핑'; });
-    var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 6);
+    var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 8);
     allCards.forEach(function (card) {
       if (selectedCards.indexOf(card) === -1) card.remove();
     });
@@ -565,7 +565,7 @@
         card.classList.add('home-briefing-small');
         briefing.querySelector('.home-briefing-small-stack').appendChild(card);
       });
-      selectedCards.slice(4, 6).forEach(function (card) {
+      selectedCards.slice(4, 8).forEach(function (card) {
         card.classList.add('home-briefing-small', 'home-briefing-left-small');
         briefing.querySelector('.home-briefing-left-more').appendChild(card);
       });

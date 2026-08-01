@@ -39,10 +39,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         indices = self.read("js/quick-indices.js")
         for token in ("오늘의 시장판", "오늘의 패턴", "주요 일정", "home-overview-grid", "home-card-grid"):
             self.assertIn(token, main)
-        self.assertIn("slice(0, 6)", main)
+        self.assertIn("slice(0, 8)", main)
         self.assertIn("마켓브리핑 전체보기", main)
         self.assertIn("home-briefing-left-more", main)
-        self.assertIn("selectedCards.slice(4, 6)", main)
+        self.assertIn("selectedCards.slice(4, 8)", main)
         for token in (
             "data-pattern-key",
             "renderPatternPreview",
