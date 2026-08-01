@@ -40,6 +40,14 @@
   var FUTURES_API = 'https://goodbyestar.cloud/futures';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var FETCH_TIMEOUT_MS = 10000;
+  // 분봉 응답은 심볼당 최대 1500봉(db_schema.load_future_chart_minute)이라 일봉보다 훨씬 커서
+  // 10초로는 장중에 자주 타임아웃됐다(2026-07-31 "시간이 너무 오래걸려서 뜬다" 신고) -
+  // 아래 payload 축소와 함께 분봉 요청만 타임아웃을 더 넉넉하게 준다.
+  var MINUTE_FETCH_TIMEOUT_MS = 25000;
+  // 서버(VM)의 분봉 수집 주기가 5분이라(domestic_futures.py의 _MINUTE_REFRESH_INTERVAL,
+  // night_futures_ws.py도 동일) 30초마다 다시 받아도 대부분 같은 데이터다 - 자동 새로고침에서는
+  // 최소 이 간격으로만 재요청한다(재시도 버튼처럼 사용자가 직접 요청하면 즉시 재요청).
+  var MINUTE_MIN_REFETCH_MS = 60000;
   var REFRESH_INTERVAL_MS = 30000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var CHART_HEIGHT = 420;
@@ -49,6 +57,11 @@
     KOSPI200_DAY: '코스피200 주간선물',
     KOSPI200_NIGHT: '코스피200 야간선물'
   };
+  // 이 페이지가 실제로 쓰는 심볼만 서버에 요청한다 - /futures는 코스피/코스닥·미국지수·원자재·
+  // 환율·채권·코인까지 21개 심볼을 한 번에 주는 공용 엔드포인트인데, 이 페이지는 선물 2개만
+  // 쓰면서 나머지 19개 심볼의 일봉까지 매번 받아 응답이 필요 이상으로 컸다(2026-07-31).
+  // symbols를 모르는 구버전 서버에 붙어도 파라미터가 무시되고 기존 전체 응답이 와서 동작은 같다.
+  var PAGE_SYMBOLS = PANEL_ORDER.join(',');
   var DAY_RANGE = 250; // 기존 90일 -> 약 1년으로 확대(VM domestic_futures.py 기본 수집 범위와 일치)
   var INTERVAL_LABELS = { minute: '분봉', day: '일봉', week: '주봉' };
   // 2026-07-16: 야간선물도 분봉 지원 추가 - 처음엔 KIS에 소스가 없다고 판단했었으나 공식
@@ -97,11 +110,15 @@
     return document.documentElement.classList.contains('dark');
   }
 
-  function fetchFutures(interval, days) {
+  // opts: { symbols: 'A,B'(응답에 실을 심볼 제한), timeoutMs }
+  function fetchFutures(interval, days, opts) {
+    var options = opts || {};
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    var url = FUTURES_API + '?interval=' + (interval || 'day') + '&days=' + (days || DAY_RANGE);
+    var timeoutMs = options.timeoutMs || FETCH_TIMEOUT_MS;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
+    var url = FUTURES_API + '?interval=' + (interval || 'day') + '&days=' + (days || DAY_RANGE)
+      + (options.symbols ? '&symbols=' + encodeURIComponent(options.symbols) : '');
     return fetch(url, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('futures API 오류: ' + r.status);
@@ -370,8 +387,65 @@
   function destroyChart(key) {
     var inst = chartInstances[key];
     if (!inst) return;
+    if (inst.rangeSaveTimer) clearTimeout(inst.rangeSaveTimer);
     try { inst.chart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
     delete chartInstances[key];
+  }
+
+  // ---- 확대·이동(zoom/pan) 구간 유지 ----
+  // 2026-07-31: 확대해 둔 차트가 30초 자동 새로고침이나 페이지 새로고침 때마다 전체 구간으로
+  // 되돌아간다는 신고 대응. 섹션 접힘(collapseKey)과 동일하게 localStorage에 차트별·주기별로
+  // 보이는 구간을 저장하고 다시 그릴 때 복원한다(주기마다 따로 저장해 분봉/일봉/주봉이 서로
+  // 확대 상태를 덮어쓰지 않게 한다).
+  function rangeKey(chartKey, interval) { return 'kf_range_' + chartKey + '_' + interval + '_v1'; }
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  // LWC 시간값은 분봉이면 epoch초(number), 일·주봉이면 'YYYY-MM-DD' 문자열인데
+  // getVisibleRange()가 business day를 {year,month,day} 객체로 주는 경우도 있어 문자열로 통일한다.
+  function normalizeTime(t) {
+    if (typeof t === 'number' || typeof t === 'string') return t;
+    if (t && t.year && t.month && t.day) return t.year + '-' + pad2(t.month) + '-' + pad2(t.day);
+    return null;
+  }
+
+  // 같은 주기 안에서는 number끼리 또는 문자열끼리만 비교되므로(분봉=epoch초, 일·주봉=날짜문자열)
+  // 문자열 비교로도 시간 순서가 그대로 유지된다.
+  function timeLte(a, b) {
+    if (typeof a === 'number' && typeof b === 'number') return a <= b;
+    return String(a) <= String(b);
+  }
+
+  function loadSavedRange(chartKey, interval) {
+    try {
+      var raw = localStorage.getItem(rangeKey(chartKey, interval));
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || parsed.from == null || parsed.to == null) return null;
+      return parsed;
+    } catch (err) { return null; }
+  }
+
+  function saveRange(chartKey, interval, range) {
+    if (!range) return;
+    var from = normalizeTime(range.from);
+    var to = normalizeTime(range.to);
+    if (from == null || to == null) return;
+    try {
+      localStorage.setItem(rangeKey(chartKey, interval), JSON.stringify({ from: from, to: to }));
+    } catch (err) { /* 무시 */ }
+  }
+
+  // 저장된 구간이 지금 데이터 범위와 아예 겹치지 않으면(오래 지난 값) 전체 보기로 시작한다.
+  function applySavedRange(chart, chartKey, interval, points) {
+    var saved = loadSavedRange(chartKey, interval);
+    if (saved && timeLte(saved.from, points[points.length - 1].time) && timeLte(points[0].time, saved.to)) {
+      try {
+        chart.timeScale().setVisibleRange({ from: saved.from, to: saved.to });
+        return;
+      } catch (err) { /* 아래 fitContent로 폴백 */ }
+    }
+    chart.timeScale().fitContent();
   }
 
   // 백엔드(KIS stck_bsop_date, 네이버 localDate)가 전부 'YYYYMMDD' 포맷을 주는데
@@ -406,12 +480,24 @@
     return weeks;
   }
 
-  function renderBigChart(key, points, timeVisible) {
+  function renderBigChart(key, points, interval) {
     var container = document.getElementById(CHART_EL_BY_KEY[key]);
     if (!container) return;
     if (!points || points.length < 2) {
+      destroyChart(key);
       container.innerHTML = '<div class="kf-chart-error">차트 데이터가 없습니다.</div>';
       return;
+    }
+    // 같은 주기 차트가 이미 살아 있으면 remove/재생성하지 않고 데이터만 갈아끼운다 -
+    // 차트를 새로 만들면 사용자가 확대해 둔 구간이 매번 초기화되기 때문(setData는 현재
+    // 보이는 구간을 유지한다). 캔버스 존재도 같이 확인한다 - 로딩·에러 문구로 innerHTML이
+    // 덮인 뒤라면 인스턴스만 남고 DOM은 사라진 상태일 수 있다.
+    var live = chartInstances[key];
+    if (live && live.interval === interval && live.container === container && container.querySelector('canvas')) {
+      try {
+        live.series.setData(points);
+        return;
+      } catch (err) { /* 재사용 실패 시 아래에서 새로 만든다 */ }
     }
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
@@ -422,7 +508,7 @@
         autoSize: true,
         height: CHART_HEIGHT,
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { timeVisible: !!timeVisible, secondsVisible: false },
+        timeScale: { timeVisible: interval === 'minute', secondsVisible: false },
         localization: { priceFormatter: chartPriceFormatter }
       }, chartThemeOptions()));
 
@@ -432,9 +518,19 @@
         wickUpColor: '#d24f45', wickDownColor: '#1261c4'
       });
       series.setData(points);
-      chart.timeScale().fitContent();
 
-      chartInstances[key] = { chart: chart, series: series };
+      var inst = { chart: chart, series: series, interval: interval, container: container, rangeSaveTimer: null };
+      chartInstances[key] = inst;
+      applySavedRange(chart, key, interval, points);
+
+      // 사용자가 확대·이동할 때마다 현재 구간을 저장(디바운스) - 페이지를 새로고침해도 복원된다.
+      chart.timeScale().subscribeVisibleTimeRangeChange(function () {
+        if (inst.rangeSaveTimer) clearTimeout(inst.rangeSaveTimer);
+        inst.rangeSaveTimer = setTimeout(function () {
+          if (chartInstances[key] !== inst) return;
+          try { saveRange(key, interval, chart.timeScale().getVisibleRange()); } catch (err) { /* 무시 */ }
+        }, 500);
+      });
     }).catch(function () {
       container.innerHTML = '<div class="kf-chart-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });
@@ -447,29 +543,75 @@
     if (st.interval === 'minute') {
       var rows = (st.minuteRows || []).filter(function (r) { return r.ts != null; });
       var points = rows.map(function (r) { return { time: r.ts, open: r.open, high: r.high, low: r.low, close: r.close }; });
-      renderBigChart(cfg.key, points, true);
+      renderBigChart(cfg.key, points, 'minute');
       return;
     }
     var dayRows = (st.dayItem && st.dayItem.chart) || [];
     if (st.interval === 'week') {
       var weekPts = resampleWeekly(dayRows);
-      renderBigChart(cfg.key, weekPts, false);
+      renderBigChart(cfg.key, weekPts, 'week');
       return;
     }
     var dayPts = dayRows.map(function (r) { return { time: toLwcTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close }; });
-    renderBigChart(cfg.key, dayPts, false);
+    renderBigChart(cfg.key, dayPts, 'day');
   }
 
-  function loadMinuteAndRender(cfg) {
-    var container = document.getElementById(CHART_EL_BY_KEY[cfg.key]);
-    if (container) container.innerHTML = '<div class="kf-chart-error">분봉 불러오는 중...</div>';
-    KospiFutures.fetchFutures('minute').then(function (items) {
-      var item = items.filter(function (it) { return it.symbol === cfg.symbol; })[0];
-      panelState[cfg.key].minuteRows = (item && item.chart) || [];
-      if (panelState[cfg.key].interval === 'minute') renderChartPanel(cfg);
-    }).catch(function () {
-      if (container) container.innerHTML = '<div class="kf-chart-error">분봉을 불러오지 못했어요.</div>';
+  var minuteInflight = null;  // 주간·야간 두 패널이 같은 분봉 응답 하나를 공유(예전엔 각자 따로 요청)
+  var minuteFetchedAt = 0;
+
+  // 분봉 요청은 이 함수 하나로만 나간다. 원래는 패널마다 30초마다 같은 요청을 각각 던져
+  // (요청 2배 + 응답에 안 쓰는 심볼 19개 일봉까지 포함) 자주 타임아웃됐다 - 요청을 공유하고
+  // days=1 + symbols로 payload를 줄이고, 서버 수집 주기(5분)를 감안해 재요청 간격도 둔다.
+  // 반환값 true면 응답으로 캐시를 갱신했고, false면 최근 값이 있어 요청을 건너뛴 것이다.
+  function fetchMinuteShared(force) {
+    if (minuteInflight) return minuteInflight;
+    if (!force && minuteFetchedAt && Date.now() - minuteFetchedAt < MINUTE_MIN_REFETCH_MS) {
+      return Promise.resolve(false);
+    }
+    minuteInflight = KospiFutures.fetchFutures('minute', 1, {
+      symbols: PAGE_SYMBOLS,
+      timeoutMs: MINUTE_FETCH_TIMEOUT_MS
+    }).then(function (items) {
+      minuteFetchedAt = Date.now();
+      minuteInflight = null;
+      // 응답 하나에 두 심볼이 다 들어 있으니 요청한 패널만이 아니라 전부 갱신한다.
+      CHARTS.forEach(function (c) {
+        var item = (items || []).filter(function (it) { return it.symbol === c.symbol; })[0];
+        if (item) panelState[c.key].minuteRows = item.chart || [];
+      });
+      return true;
+    }).catch(function (err) {
+      minuteInflight = null;
+      throw err;
     });
+    return minuteInflight;
+  }
+
+  // 2026-07-31: 30초 주기 자동 새로고침(refresh -> renderAll)도 interval이 'minute'이면
+  // 매번 이 함수를 다시 타는데, 기존엔 요청 시작과 동시에 이미 떠 있던 차트를 지우고
+  // "불러오는 중..."으로 덮었다가 실패하면 그대로 에러로 덮어써서 - 처음 로딩은 잘 되다가
+  // 이후 새로고침 때 차트가 통째로 에러로 바뀌는 원인이었다. 일봉/주봉이 캐시된 dayItem을
+  // 재사용하는 것과 같은 방식으로, 이미 받아온 minuteRows가 있으면 백그라운드에서 갱신만
+  // 시도하고 실패해도 기존 차트를 그대로 둔다.
+  function loadMinuteAndRender(cfg, force) {
+    var container = document.getElementById(CHART_EL_BY_KEY[cfg.key]);
+    var st = panelState[cfg.key];
+    var hasCached = !!(st.minuteRows && st.minuteRows.length);
+    if (container && !hasCached) container.innerHTML = '<div class="kf-chart-error">분봉 불러오는 중...</div>';
+    fetchMinuteShared(force).then(function () {
+      if (st.interval === 'minute') renderChartPanel(cfg);
+    }).catch(function () {
+      if (!hasCached && container && st.interval === 'minute') showMinuteError(cfg, container);
+    });
+  }
+
+  // 최초 로딩 실패 때만 에러를 띄우고, 페이지 전체를 새로고침하지 않고 이 자리에서 다시 받을 수
+  // 있게 재시도 버튼을 준다(새로고침은 다른 차트까지 다시 그리게 되므로).
+  function showMinuteError(cfg, container) {
+    container.innerHTML = '<div class="kf-chart-error">분봉을 불러오지 못했어요. '
+      + '<button type="button" class="kf-retry-btn">다시 시도</button></div>';
+    var btn = container.querySelector('.kf-retry-btn');
+    if (btn) btn.addEventListener('click', function () { loadMinuteAndRender(cfg, true); });
   }
 
   function wireIntervalToggles(container) {
@@ -483,7 +625,7 @@
           if (panelState[key].interval === interval) return;
           panelState[key].interval = interval;
           toggle.querySelectorAll('.kf-interval-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
-          if (interval === 'minute' && !panelState[key].minuteRows) {
+          if (interval === 'minute' && !(panelState[key].minuteRows && panelState[key].minuteRows.length)) {
             loadMinuteAndRender(cfg);
           } else {
             renderChartPanel(cfg);
@@ -514,7 +656,7 @@
   }
 
   function refresh(container) {
-    KospiFutures.fetchFutures()
+    return KospiFutures.fetchFutures('day', DAY_RANGE, { symbols: PAGE_SYMBOLS })
       .then(function (items) { renderAll(container, items); })
       .catch(function () {
         PANEL_ORDER.forEach(function (symbol) {
@@ -541,8 +683,9 @@
   }
 
   // 접힌 상태에서는 차트 컨테이너가 display:none이라 LWC의 autoSize(ResizeObserver)가
-  // 정상적으로 크기를 못 잡을 수 있어, 펼칠 때마다 안전하게 다시 그린다(이미 받아온 데이터를
-  // 그대로 쓰므로 재요청 없음 - renderChartPanel 참고).
+  // 정상적으로 크기를 못 잡을 수 있어, 펼칠 때마다 기존 인스턴스를 버리고 다시 만든다
+  // (이미 받아온 데이터를 그대로 쓰므로 재요청 없음 - renderChartPanel 참고. 확대해 둔
+  // 구간은 localStorage에서 복원되므로 다시 만들어도 그대로 유지된다 - applySavedRange).
   function wireCollapseToggles(container) {
     container.querySelectorAll('.kf-collapse-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -554,7 +697,10 @@
         section.classList.toggle('kf-collapsed', collapsed);
         btn.textContent = collapsed ? '▸' : '▾';
         saveCollapsed(key, collapsed);
-        if (!collapsed) renderChartPanel(cfg);
+        if (!collapsed) {
+          destroyChart(key);
+          renderChartPanel(cfg);
+        }
       });
     });
   }
@@ -566,9 +712,25 @@
     container.innerHTML = buildShell();
     wireIntervalToggles(container);
     wireCollapseToggles(container);
-    refresh(container);
-    renderAiSummary(container);
+
+    // 차트 라이브러리(CDN)를 데이터 요청과 동시에 받기 시작한다 - 예전엔 /futures 응답이
+    // 온 뒤에야 renderBigChart에서 처음 로드해서 첫 차트까지 CDN 왕복이 직렬로 한 번 더
+    // 붙었다(2026-07-31 첫 로딩 지연 신고). 실패 처리는 renderBigChart가 그대로 담당한다.
+    loadLightweightCharts().catch(function () { /* renderBigChart에서 문구 표시 */ });
+
     refreshOptionFlow(container);
+
+    // AI 해설(GAS)은 생성에 수십 초가 걸릴 수 있고 서버에서 /futures와 /option-flow를 또
+    // 호출하므로, 차트 데이터가 먼저 도착하도록 뒤로 미룬다 - 차트 응답이 끝나는 즉시, 늦어도
+    // 3초 뒤에는 시작한다(차트 요청이 실패·지연돼도 참고의견이 안 뜨는 일은 없게).
+    var aiStarted = false;
+    function startAi() {
+      if (aiStarted) return;
+      aiStarted = true;
+      renderAiSummary(container);
+    }
+    refresh(container).then(startAi);
+    setTimeout(startAi, 3000);
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () {

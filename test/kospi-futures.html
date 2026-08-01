@@ -24,6 +24,9 @@
     <button onclick="setMock('partial')">일부 데이터 없음(야간선물 KIS 미설정 상황)</button>
     <button onclick="setMock('option-put-zero')">옵션 풋 거래량 0(실제 라이브 버그 재현)</button>
     <button onclick="setMock('error')">API 오류</button>
+    <button onclick="setMock('minute-error')">분봉만 실패(재시도 버튼 확인)</button>
+    <button onclick="setMock('minute-slow')">분봉 응답 지연 2초</button>
+    <button onclick="console.log(JSON.stringify(window.__calls, null, 2))">요청 로그 출력</button>
   </div>
   <p style="font-size:13px;color:#888">
     기본은 mock 데이터로 렌더링 검증(현재가 패널 2개: 코스피200 주간선물/야간선물 + 큰 차트 2개
@@ -59,12 +62,49 @@
     return rows;
   }
 
-  function mockResponse(mode) {
+  // 분봉 mock - 서버(db_schema.load_future_chart_minute)와 같은 형태로 ts(epoch초) 기반 행을 만든다.
+  // 1분 간격, 최신 봉이 지금 시각. 실제 응답은 심볼당 최대 1500봉이라 기본값도 그에 맞춘다.
+  function buildMinuteChart(base, bars, trend) {
+    var rows = [];
+    var nowTs = Math.floor(Date.now() / 1000 / 60) * 60;
+    var price = base * (1 - trend * 0.01);
+    for (var i = bars; i >= 0; i--) {
+      var drift = (base * 0.01 * trend) / bars;
+      var noise = (Math.random() - 0.5) * base * 0.002;
+      price = Math.max(0.01, price + drift + noise);
+      var open = price - noise * 0.5;
+      rows.push({
+        ts: nowTs - i * 60,
+        open: open,
+        high: Math.max(open, price) + Math.abs(noise) * 0.5,
+        low: Math.min(open, price) - Math.abs(noise) * 0.5,
+        close: price
+      });
+    }
+    return rows;
+  }
+
+  function mockResponse(mode, interval) {
     return SYMBOLS.map(function (s, i) {
       if (mode === 'partial' && s.symbol === 'KOSPI200_NIGHT') {
         return { symbol: s.symbol, name: null, price: null, change: null, change_rate: null, high: null, low: null, updated_at: null, chart: [] };
       }
       var trend = mode === 'up' ? 1 : mode === 'down' ? -1 : (i % 2 === 0 ? 1 : -1);
+      if (interval === 'minute') {
+        var minuteRows = s.hasChart ? buildMinuteChart(s.base, 1500, trend) : [];
+        var lastMin = minuteRows.length ? minuteRows[minuteRows.length - 1] : null;
+        return {
+          symbol: s.symbol,
+          name: s.name,
+          price: lastMin ? lastMin.close : s.base,
+          change: 0,
+          change_rate: 0,
+          high: lastMin ? lastMin.high : null,
+          low: lastMin ? lastMin.low : null,
+          updated_at: new Date().toISOString(),
+          chart: minuteRows
+        };
+      }
       var chart = s.hasChart ? buildChart(s.base, 60, trend) : [];
       var last = chart.length ? chart[chart.length - 1] : null;
       var price = last ? last.close : s.base;
@@ -88,10 +128,26 @@
   if (location.search.indexOf('real=1') === -1) {
     // 모듈의 자체 DOMContentLoaded 리스너가 이 override 적용 이후에 실행되므로
     // 여기서 따로 init()을 호출하지 않아도 첫 렌더는 mock으로 자동 진행된다.
-    KospiFutures.fetchFutures = function () {
-      console.log('[mock] fetchFutures');
-      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
-      return Promise.resolve(mockResponse(window.__mockMode || 'mixed'));
+    // 요청 파라미터(interval/days/symbols)까지 기록해 둔다 - 분봉 요청이 불필요하게 250일치
+    // 일봉을 같이 받아오거나 패널마다 중복 요청하지 않는지 확인하는 용도(2026-07-31).
+    window.__calls = [];
+    KospiFutures.fetchFutures = function (interval, days, opts) {
+      var call = { interval: interval || 'day', days: days, symbols: (opts || {}).symbols, at: Date.now() };
+      window.__calls.push(call);
+      console.log('[mock] fetchFutures', JSON.stringify(call));
+      var mode = window.__mockMode || 'mixed';
+      if (mode === 'error') return Promise.reject(new Error('mock error'));
+      if (mode === 'minute-error' && call.interval === 'minute') return Promise.reject(new Error('mock minute error'));
+      var payload = mockResponse(mode, call.interval);
+      if (mode === 'minute-slow' && call.interval === 'minute') {
+        return new Promise(function (resolve) { setTimeout(function () { resolve(payload); }, 2000); });
+      }
+      // 'slow': 모든 응답을 1.5초 지연 - 차트 라이브러리(CDN)를 데이터와 병렬로 받는지
+      // 확인하는 용도(예전엔 응답이 온 뒤에야 라이브러리를 받기 시작했다).
+      if (mode === 'slow') {
+        return new Promise(function (resolve) { setTimeout(function () { resolve(payload); }, 1500); });
+      }
+      return Promise.resolve(payload);
     };
     KospiFutures.fetchAiSummary = function () {
       console.log('[mock] fetchAiSummary');
