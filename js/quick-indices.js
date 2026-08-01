@@ -128,6 +128,18 @@
   ];
   var OPTION_BY_KEY = {};
   OPTIONS.forEach(function (o) { OPTION_BY_KEY[o.key] = o; });
+
+  // 2026-07-31: 리본이 실제로 쓰는 심볼만 요청한다 - /futures는 21개 심볼을 한 번에 주는
+  // 공용 엔드포인트라 리본이 안 쓰는 심볼(코스피200 주간선물·미국 현물지수·국채·ETH 등 9종)의
+  // 일봉까지 홈 진입/폴링(20초)마다 받고 있었다. 위 OPTIONS에서 자동으로 뽑으므로 지표를
+  // 추가해도 여기를 따로 고칠 필요가 없다. 선택 항목별로 쪼개지 않고 항상 같은 목록을
+  // 보내는 이유는, 요청 URL이 고정돼야 VM의 짧은 TTL 캐시(main.py _futures_cache)를
+  // 모든 방문자가 공유하고 지표 선택을 바꿔도 재조회가 안 생기기 때문이다.
+  // symbols를 모르는 구버전 서버에서는 무시되고 기존 전체 응답이 온다(동작 동일).
+  var FUTURES_SYMBOLS = OPTIONS
+    .filter(function (o) { return o.source === 'futures'; })
+    .map(function (o) { return o.sourceKey; })
+    .join(',');
   var DEFAULT_SELECTED = ['kospi', 'kosdaq', 'usdkrw', 'nasdaq', 'sp500', 'vix', 'btc', 'wti'];
 
   // 네이버 스타일 참고 - 카드 상단에 국기/원자재 아이콘을 붙인다(2026-07-17).
@@ -213,7 +225,11 @@
   }
 
   function fetchMarket() { return fetchJson(GAS_TICKER_URL + '?market=1'); }
-  function fetchFutures() { return fetchJson(FUTURES_API).then(function (json) { return json.data || []; }); }
+  // days는 붙이지 않는다 - 서버 기본값(90일)이 미니차트 구간이라 그대로 유지해야 한다.
+  function fetchFutures() {
+    return fetchJson(FUTURES_API + '?symbols=' + encodeURIComponent(FUTURES_SYMBOLS))
+      .then(function (json) { return json.data || []; });
+  }
 
   // 2026-07-17(14차): BTC를 클라이언트 직접 업비트 호출에서 VM 서버사이드 수집(futures
   // 소스, scripts/cloud-vm/btc_futures.py)으로 옮기면서 다른 해외지수와 완전히 같은

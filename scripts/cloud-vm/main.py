@@ -128,9 +128,10 @@ _market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐
 _ORDER_BOOK_TTL = 1.5
 _order_book_cache = {}  # code -> {'t':.., 'data':..}
 
-# /futures는 관심지수 리본(js/quick-indices.js)·코스피 선물 페이지가 각각 30초마다,
-# GAS AI 해설(gas/ticker-proxy.gs)이 또 따로 같은 데이터를 조회한다 - 한 페이지 로드에도
-# 같은 쿼리가 여러 번 겹쳐 DB를 반복해서 읽고 있었다(2026-07-31 "첫 로딩 30초" 신고).
+# /futures는 홈의 관심지수 리본(js/quick-indices.js, 20초 폴링 - 2026-07-27부터 홈에서만
+# 렌더)·코스피 선물 페이지(30초 폴링)·GAS AI 해설(gas/ticker-proxy.gs가 서버사이드로 또 호출)이
+# 같은 데이터를 각자 조회한다 - 방문자가 여러 명이면 같은 쿼리가 계속 겹쳐 DB를 반복해서
+# 읽고 있었다(2026-07-31 "첫 로딩 30초" 신고).
 # 수집 주기(실시간 30초 폴링, 분봉 5분)보다 짧은 TTL이라 신선도 손실 없이 중복 조회만 없앤다
 # (_market_rank_cache와 동일 패턴).
 _FUTURES_TTL = 10
