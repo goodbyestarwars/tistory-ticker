@@ -53,6 +53,8 @@
     { key: 'kosdaq', label: '코스닥' }
   ];
   var DEFAULT_MARKET = 'kospi';
+  var CACHE_PREFIX = 'investor_trend_v1_';
+  var CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 
   var INVESTORS = [
     { key: 'ind', label: '개인' },
@@ -60,7 +62,24 @@
     { key: 'orgn', label: '기관' }
   ];
 
-  var state = { period: DEFAULT_PERIOD, market: DEFAULT_MARKET, timer: null };
+  var state = { period: DEFAULT_PERIOD, market: DEFAULT_MARKET, timer: null, loadingKey: '' };
+
+  function cacheKey(period, market) {
+    return CACHE_PREFIX + period + '_' + market;
+  }
+
+  function readCache(period, market) {
+    try {
+      var cached = JSON.parse(localStorage.getItem(cacheKey(period, market)) || 'null');
+      if (!cached || !cached.data || Date.now() - Number(cached.savedAt) > CACHE_MAX_AGE_MS) return null;
+      return cached.data;
+    } catch (error) { return null; }
+  }
+
+  function writeCache(period, market, data) {
+    try { localStorage.setItem(cacheKey(period, market), JSON.stringify({ savedAt: Date.now(), data: data })); }
+    catch (error) { /* 저장 공간이 없는 환경에서도 현재 응답은 표시한다. */ }
+  }
 
   function init() {
     if (location.pathname !== '/' && location.pathname !== '') return;
@@ -125,20 +144,29 @@
 
   function load(container) {
     var body = container.querySelector('#itwBody');
-    if (body && !body.querySelector('.itw-table-wrap')) {
-      body.innerHTML = '<div class="itw-skeleton"></div>';
-    }
     var period = state.period;
     var market = state.market;
+    var requestKey = period + '|' + market;
+    if (state.loadingKey === requestKey) return;
+    var cached = readCache(period, market);
+    if (cached) render(container, cached);
+    if (body && !cached && !body.querySelector('.itw-table-wrap')) {
+      body.innerHTML = '<div class="itw-skeleton"></div>';
+    }
+    state.loadingKey = requestKey;
     fetchWithRetry(period, market, RETRY_ATTEMPTS)
       .then(function (result) {
+        if (state.loadingKey === requestKey) state.loadingKey = '';
         // 응답 오는 사이 탭이 바뀌었으면 무시
         if (state.period !== period || state.market !== market) return;
+        writeCache(period, market, result);
         render(container, result);
       })
       .catch(function () {
+        if (state.loadingKey === requestKey) state.loadingKey = '';
         if (state.period !== period || state.market !== market) return;
-        if (body) body.innerHTML = errorHtml();
+        // 이전 정상 응답이 있으면 네트워크 지연 때문에 화면을 오류 상태로 되돌리지 않는다.
+        if (body && !cached) body.innerHTML = errorHtml();
       });
   }
 

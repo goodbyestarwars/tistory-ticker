@@ -5,7 +5,8 @@
  * 월 달력 + 주차별 이벤트 리스트만 항상 펼쳐서 보여준다.
  *
  * 데이터 소스는 이전과 동일한 구글 캘린더 이벤트(제목+날짜/시간)뿐 - 예측치/이전치 같은
- * 경제지표 수치는 소스가 없어 표시하지 않는다.
+ * 경제지표 수치는 소스가 없어 표시하지 않는다. 2026-08-01부터는 DART에 실제 접수된
+ * 잠정실적/실적 공시도 자동으로 병합한다(미래 발표일을 임의로 추정하지 않음).
  *
  * 이벤트 제목 규칙(사람이 구글 캘린더에 입력할 때 지켜야 함):
  *   "$종목명 텍스트 | 태그"
@@ -21,7 +22,38 @@
 
   var API_KEY = 'AIzaSyB9zgyudgEblbLoP-fW231dwf6VjOFK00o';
   var CAL_ID  = encodeURIComponent('405dbd75cc8e798f6dfb0003494d0fa64eecbc00ae2edeb1cdbf6deee0b07f76@group.calendar.google.com');
+  var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
   var CONTAINER_SELECTOR = '#stock-calendar';
+
+  function fetchJson(url) {
+    var controller = 'AbortController' in global ? new AbortController() : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, 7000) : null;
+    return fetch(url, controller ? { signal: controller.signal } : {})
+      .then(function (r) {
+        if (!r.ok) throw new Error('캘린더 API 오류: ' + r.status);
+        return r.json();
+      })
+      .then(function (data) { if (timer) clearTimeout(timer); return data; })
+      .catch(function (error) { if (timer) clearTimeout(timer); throw error; });
+  }
+
+  function fetchEarnings(year, month) {
+    return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month + 1))
+      .then(function (data) { return Array.isArray(data) ? data : (data && data.data) || []; })
+      .catch(function () { return []; });
+  }
+
+  function mergeEvents(primary, secondary) {
+    var seen = {};
+    return (primary || []).concat(secondary || []).filter(function (event) {
+      var key = String(event.start || '') + '|' + String(event.title || '').replace(/\s+/g, ' ').trim();
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    }).sort(function (a, b) {
+      return String(a.start || '').localeCompare(String(b.start || ''));
+    });
+  }
 
   function fetchEvents(year, month) {
     var tMin = new Date(year, month, 1).toISOString();
@@ -31,8 +63,11 @@
       + '&timeMin=' + encodeURIComponent(tMin)
       + '&timeMax=' + encodeURIComponent(tMax)
       + '&singleEvents=true&orderBy=startTime&maxResults=100';
-    return fetch(url)
-      .then(function (r) { return r.json(); })
+    var googleEvents = fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error('Google Calendar API 오류: ' + r.status);
+        return r.json();
+      })
       .then(function (data) {
         return (data.items || []).map(function (it) {
           var title = it.summary
@@ -40,7 +75,10 @@
             : (it.visibility === 'private' ? '🔒 비공개 일정' : '(제목 없음)');
           return { title: title, start: it.start.dateTime || it.start.date, link: it.htmlLink };
         });
-      });
+      })
+      .catch(function () { return []; });
+    return Promise.all([googleEvents, fetchEarnings(year, month)])
+      .then(function (results) { return mergeEvents(results[0], results[1]); });
   }
 
   function parseEvent(rawTitle) {
@@ -162,9 +200,14 @@
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
 
+    var currentYear;
+    var currentMonth;
+
     function load(year, month) {
       if (month < 0) { month = 11; year -= 1; }
       if (month > 11) { month = 0; year += 1; }
+      currentYear = year;
+      currentMonth = month;
       container.innerHTML = '<div class="sc-loading">불러오는 중...</div>';
       StockCalendar.fetchEvents(year, month)
         .then(function (evs) { renderPage(year, month, evs); })
@@ -203,6 +246,11 @@
 
     var today = new Date();
     load(today.getFullYear(), today.getMonth());
+    // 새로 접수된 실적 공시가 같은 달 화면에 반영되도록 열어둔 달을 주기적으로 갱신한다.
+    // 페이지를 떠나면 브라우저가 타이머를 정리하므로 별도 서버 작업은 필요 없다.
+    setInterval(function () {
+      if (!document.hidden) load(currentYear, currentMonth);
+    }, 15 * 60 * 1000);
   }
 
   var StockCalendar = { fetchEvents: fetchEvents, init: init };

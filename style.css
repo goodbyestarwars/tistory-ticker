@@ -91,6 +91,7 @@ a { text-decoration: none; color: inherit; }
 .nav-logo-text { line-height: 1; }
 .nav-logo-name {
   display: block;
+  font-family: 'Noto Serif KR', Georgia, serif !important;
   color: #000;
   font-size: 17px;
   font-weight: 800;
@@ -657,6 +658,12 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   min-height: 0;
   margin-top: 13px;
 }
+.home-pattern-explainer {
+  margin: 7px 0 0;
+  color: #8a94a3;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
 .home-pattern-row,
 .home-pattern-new {
   min-height: 43px;
@@ -872,7 +879,11 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 .home-briefing-small-stack,
 .home-briefing-left-column,
 .home-briefing-left-more { min-width: 0; }
-.home-briefing-featured-slot .post-card { height: 100%; }
+.home-briefing-featured-slot .post-card {
+  height: auto;
+  min-height: 0;
+  align-self: flex-start;
+}
 .home-briefing-left-column {
   display: grid;
   grid-template-rows: minmax(0, 1.2fr) minmax(0, .8fr);
@@ -904,8 +915,9 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   padding: 18px 20px;
 }
 .home-briefing-small .post-cat-badge,
-.home-briefing-small .post-tags,
-.home-briefing-small .post-footer { display: none; }
+.home-briefing-small .post-tags { display: none; }
+.home-briefing-small .post-footer { display: flex; }
+.home-briefing-small .btn-share { display: none; }
 .home-briefing-small .post-header {
   justify-content: flex-end;
   margin-bottom: 6px;
@@ -1353,7 +1365,7 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
     grid-template-columns: 1fr;
     min-height: 0;
   }
-  .home-widget--full .home-briefing-featured-slot .post-card { min-height: 360px; }
+  .home-widget--full .home-briefing-featured-slot .post-card { height: auto; min-height: 0; }
   .home-widget--full .home-briefing-left-column { grid-template-rows: auto auto; }
   .home-widget--full .home-briefing-small-stack { grid-template-rows: repeat(3, minmax(190px, auto)); }
 }
@@ -3412,6 +3424,10 @@ html.font-gothic [class^="tt-"] *, html.font-gothic [class*=" tt-"] * {
 }
 
 /* 예외: 로고는 Space Grotesk 유지 (브랜드 아이덴티티) */
+html.font-gothic .nav-logo-name {
+  font-family: 'Noto Serif KR', Georgia, serif !important;
+}
+
 html.font-gothic .nav-logo-name-gradient,
 html.font-gothic svg text {
   font-family: 'Space Grotesk', 'Noto Sans KR', sans-serif !important;

@@ -124,6 +124,8 @@
   var FUTURES_AVG_API = 'https://goodbyestar.cloud/futures/avg';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var FETCH_TIMEOUT_MS = 10000;
+  var FUTURES_CACHE_KEY = 'overnight_market_futures_v1';
+  var FUTURES_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
   var REFRESH_INTERVAL_MS = 30000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 64;
@@ -191,14 +193,15 @@
   var themeObserver = null;
   var refreshTimer = null;
   // "이 선 위로 오르면 시장에 부담"이라는 해석이 뚜렷한 지표 + BTC(52주 이동평균선, 통상적인
-  // 기술적분석 지표)에 장기평균 참고선을 붙인다. GOLD/시장지수류는 방향성이 뚜렷하지 않거나
-  // (에너지) 이미 상승=호재로 직관적이라 생략.
-  var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC', 'ETH'];
+  // 기술적분석 지표)에 장기평균 참고선을 붙인다. 시장지수류는 방향성이 뚜렷하지 않거나
+  // (에너지) 이미 상승=호재로 직관적이라 생략하고, GOLD는 별도 해석 코멘트를 함께 제공한다.
+  var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'GOLD', 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC', 'ETH'];
   // 2026-07-21: BTC/ETH 카드에만 6개월 평균선을 추가로 그린다(52주선과 별도 색으로 구분).
   var BENCHMARK_6M_SYMBOLS = CRYPTO_SYMBOLS;
   var BENCHMARK_6M_DAYS = 180;
   var BENCHMARK_6M_COLOR = '#8b5fbf';
   var BENCHMARK_NOTE = {
+    GOLD: '금값 상승은 달러 약세·금리 하락 또는 안전자산 선호가 반영된 신호일 수 있습니다. 금값만으로 달러 강세/약세를 단정하지 말고 원/달러 환율과 미 국채금리를 함께 확인하세요',
     WTI: '전쟁 등 지정학적 충격 시 이 선 위로 급등하는 경향이 있습니다',
     VIX: '이 선 위로 오르면 시장 불안(위험회피) 심리가 커지고 있다는 뜻입니다',
     USDKRW: '이 선 위로 오르면(원화 약세) 외국인 자금 이탈 우려로 증시에 부담입니다',
@@ -232,22 +235,43 @@
   }
 
   function fetchFutures() {
+    var cached = readFuturesCache();
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(FUTURES_API, hasAbort ? { signal: controller.signal } : {})
+    var request = fetch(FUTURES_API, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('futures API 오류: ' + r.status);
         return r.json();
       })
       .then(function (json) {
         if (timer) clearTimeout(timer);
-        return json.data || [];
+        var items = json.data || [];
+        writeFuturesCache(items);
+        return items;
       })
       .catch(function (err) {
         if (timer) clearTimeout(timer);
         throw err;
       });
+    if (cached) {
+      request.catch(function () {});
+      return Promise.resolve(cached);
+    }
+    return request;
+  }
+
+  function readFuturesCache() {
+    try {
+      var cached = JSON.parse(localStorage.getItem(FUTURES_CACHE_KEY) || 'null');
+      if (!cached || !Array.isArray(cached.data) || Date.now() - Number(cached.savedAt) > FUTURES_CACHE_MAX_AGE_MS) return null;
+      return cached.data;
+    } catch (error) { return null; }
+  }
+
+  function writeFuturesCache(data) {
+    try { localStorage.setItem(FUTURES_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: data })); }
+    catch (error) { /* 캐시 저장 실패 시 현재 응답만 사용한다. */ }
   }
 
   // "장기평균 참고선"(WTI에서 시작: "적정 유가 기준을 보여달라, 전쟁 나면 오르잖아" ->
@@ -683,16 +707,20 @@
     // 30초마다 다시 부를 필요 없는 장기 통계). 전부 도착하면 해당 카드들이 참고선 포함해서
     // 다시 그려지도록 한 번 더 refresh - 이미 렌더된 다른 카드도 같이 다시 그려지지만 데이터는
     // 캐시돼 있어 사실상 즉시 끝난다(추가 fetchFutures 호출은 있음, 허용 가능한 비용).
-    var benchmarkFetches = BENCHMARK_SYMBOLS.map(function (symbol) {
-      return OvernightMarket.fetchBenchmark(symbol)
-        .then(function (b) { benchmarks[symbol] = b; })
-        .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
-    }).concat(BENCHMARK_6M_SYMBOLS.map(function (symbol) {
-      return OvernightMarket.fetchBenchmark(symbol, BENCHMARK_6M_DAYS)
-        .then(function (b) { benchmarks6m[symbol] = b; })
-        .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
-    }));
-    Promise.all(benchmarkFetches).then(function () { refresh(container); });
+    var loadBenchmarks = function () {
+      var benchmarkFetches = BENCHMARK_SYMBOLS.map(function (symbol) {
+        return OvernightMarket.fetchBenchmark(symbol)
+          .then(function (b) { benchmarks[symbol] = b; })
+          .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
+      }).concat(BENCHMARK_6M_SYMBOLS.map(function (symbol) {
+        return OvernightMarket.fetchBenchmark(symbol, BENCHMARK_6M_DAYS)
+          .then(function (b) { benchmarks6m[symbol] = b; })
+          .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
+      }));
+      Promise.all(benchmarkFetches).then(function () { refresh(container); });
+    };
+    // 평균선은 보조 정보이므로 시세 카드의 첫 화면을 기다리게 하지 않는다.
+    setTimeout(loadBenchmarks, 1200);
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () { refresh(container); }, REFRESH_INTERVAL_MS);

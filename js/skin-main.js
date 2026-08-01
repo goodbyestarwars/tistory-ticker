@@ -168,6 +168,7 @@
         + '<div class="home-rank-slot"></div>'
         + '<article class="card home-mini-card home-pattern-card">'
         + '<div class="home-card-heading"><div><strong>오늘의 패턴</strong><span id="homePatternUpdated"></span></div></div>'
+        + '<p class="home-pattern-explainer">오늘 신규 발견은 최신 스캔 거래일에 패턴 조건을 만족한 고유 종목 수입니다 · 신규 상장 의미 아님</p>'
         + '<div class="home-pattern-list" id="homePatternList"><p class="home-card-state">패턴 데이터를 불러오는 중...</p></div>'
         + '<a class="home-card-more" href="/page/pattern-scan">패턴 종목 보기 →</a>'
         + '</article>'
@@ -340,17 +341,24 @@
         }
       });
 
-    fetchHomeJson(GAS_TICKER_URL + '?bubble=1', 12000)
-      .then(function (bubble) {
-        writeHomeDataCache(marketSectorCacheKey, bubble);
-        renderMarketSectors(bubble);
-      })
-      .catch(function () {
-        if (!cachedMarketSectors) {
-          setField('leaders', '일시 지연', 'home-neutral');
-          setField('cautions', '일시 지연', 'home-neutral');
-        }
-      });
+    // 시총 버블은 전 종목·업종을 여러 배치로 묶어 만드는 느린 응답이다.
+    // 첫 페인트와 수급/패턴/랭킹 렌더를 막지 않고, 브라우저가 유휴 상태가 된 뒤
+    // 업종 요약만 채운다. 이전 정상 응답은 위에서 즉시 재사용한다.
+    var loadHomeSectors = function () {
+      fetchHomeJson(GAS_TICKER_URL + '?bubble=1', 12000)
+        .then(function (bubble) {
+          writeHomeDataCache(marketSectorCacheKey, bubble);
+          renderMarketSectors(bubble);
+        })
+        .catch(function () {
+          if (!cachedMarketSectors) {
+            setField('leaders', '일시 지연', 'home-neutral');
+            setField('cautions', '일시 지연', 'home-neutral');
+          }
+        });
+    };
+    if (window.requestIdleCallback) window.requestIdleCallback(loadHomeSectors, { timeout: 2500 });
+    else setTimeout(loadHomeSectors, 0);
 
     function renderPatterns(data) {
       var list = document.getElementById('homePatternList');
@@ -378,7 +386,7 @@
             + '<span>' + item.label + '</span><strong>' + count.toLocaleString('ko-KR') + '종목'
             + '<span class="home-pattern-chevron" aria-hidden="true">›</span></strong></button>';
         }).join('')
-          + '<div class="home-pattern-new"><span>오늘 신규 발견</span><strong>'
+          + '<div class="home-pattern-new" title="최신 스캔 거래일에 패턴 조건을 만족한 고유 종목 수입니다. 신규 상장 종목 수가 아닙니다."><span>오늘 신규 발견</span><strong>'
           + Object.keys(newCodes).length.toLocaleString('ko-KR') + '종목</strong></div>';
 
         list.querySelectorAll('.home-pattern-row').forEach(function (button) {
@@ -410,11 +418,26 @@
         var back = list.querySelector('.home-pattern-preview-back');
         if (back) back.addEventListener('click', renderPatternOverview);
       }
-      var today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
       var newCodes = {};
+      // item.date는 마지막 거래일이다. 주말/휴장일에는 브라우저의 오늘 날짜와
+      // 거래일이 달라져 기존 로직이 계속 0건을 보여줬다. 최신 스캔 결과에 포함된
+      // 가장 최근 거래일을 기준일로 사용한다.
+      var scanDate = data && data.scannedAt ? new Date(data.scannedAt) : null;
+      var scanDateKey = scanDate && !isNaN(scanDate.getTime())
+        ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(scanDate)
+        : '';
+      var latestPatternDate = '';
       Object.keys(patterns).forEach(function (key) {
         (patterns[key] || []).forEach(function (item) {
-          if (item && item.date === today && item.code) newCodes[item.code] = true;
+          if (item && item.date && item.date <= (scanDateKey || '9999-12-31') && item.date > latestPatternDate) {
+            latestPatternDate = item.date;
+          }
+        });
+      });
+      var referencePatternDate = latestPatternDate || scanDateKey;
+      Object.keys(patterns).forEach(function (key) {
+        (patterns[key] || []).forEach(function (item) {
+          if (item && item.date === referencePatternDate && item.code) newCodes[item.code] = true;
         });
       });
       renderPatternOverview();

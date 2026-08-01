@@ -20,6 +20,7 @@ import bond_yield
 import btc_futures
 import db_schema
 import domestic_futures
+import earnings_calendar
 import foreign_flow_compute
 import foreign_futures
 import naver_news
@@ -115,6 +116,10 @@ _foreign_flow_cache_mem = {}
 _MARKET_RANK_TTL = 30
 _MARKET_RANK_MAX_LIMIT = 20  # 사이드바 미리보기(5)보다 큰 값은 "더보기" 모달 전용
 _market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(5는 30초마다 폴링, 20은 모달 열 때만)
+
+# 캘린더의 Google Calendar 이벤트와 병합하는 자동 실적발표 피드 캐시.
+_earnings_calendar_cache = {}
+_EARNINGS_CALENDAR_TTL = 10 * 60
 
 # 호가창(js/order-book.js) - 프론트가 2초 간격으로 폴링하므로 서버 캐시는 그보다 짧게 걸어
 # 같은 종목을 여러 탭/방문자가 동시에 보고 있어도 키움 호출은 한 번으로 묶는다.
@@ -427,6 +432,22 @@ def futures(interval: str = 'day', days: int = 90):
     finally:
         conn.close()
     return envelope(result)
+
+
+@app.get('/earnings-calendar')
+def earnings_calendar_endpoint(year: int = Query(..., ge=2000, le=2100), month: int = Query(..., ge=1, le=12)):
+    """DART에 실제 접수된 잠정실적/실적 공시를 캘린더 이벤트로 반환한다.
+
+    미래 발표일을 추정하지 않고, DART 접수일만 사용한다. DART 키가 없거나
+    외부 조회가 실패하면 빈 배열을 반환해 기존 Google Calendar 일정은 유지한다.
+    """
+    key = '%04d-%02d' % (year, month)
+    cached = _earnings_calendar_cache.get(key)
+    if cached and time.time() - cached['t'] < _EARNINGS_CALENDAR_TTL:
+        return {'success': True, 'data': cached['data'], 'source': 'dart', 'cached': True}
+    data = earnings_calendar.safe_fetch_month(year, month)
+    _earnings_calendar_cache[key] = {'t': time.time(), 'data': data}
+    return {'success': True, 'data': data, 'source': 'dart', 'cached': False}
 
 
 @app.get('/futures/avg')

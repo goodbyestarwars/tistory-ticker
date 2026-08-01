@@ -64,6 +64,7 @@
   var SECTION_BY_KEY = {};
   SECTIONS.forEach(function (s) { SECTION_BY_KEY[s.key] = s; });
   var latestData = {};
+  var refreshPromise = null;
   var activeSection = 'tradeVolume';
 
   function readRankCache() {
@@ -132,7 +133,8 @@
   }
 
   function refresh(container) {
-    SidebarRank.fetchRank()
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = SidebarRank.fetchRank()
       .then(function (data) {
         latestData = data || {};
         writeRankCache(latestData);
@@ -142,7 +144,8 @@
         var list = container.querySelector('#srList');
         if (list) list.innerHTML = '<li class="sr-hint sr-error">데이터를 불러오지 못했습니다.'
           + '<small>잠시 후 다시 확인해 주세요.</small><button type="button" class="sr-retry">다시 시도</button></li>';
-      });
+      })
+      .then(function () { refreshPromise = null; }, function () { refreshPromise = null; });
   }
 
   function renderActive(container) {
@@ -252,7 +255,7 @@
     var url = API_URL + (limit ? '?limit=' + encodeURIComponent(limit) : '');
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, 15000) : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, 8000) : null;
     return fetch(url, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('market-rank API 오류: ' + r.status);

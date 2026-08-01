@@ -91,6 +91,8 @@
   // 없어서 폴링 주기 단축으로 근사 - VM은 30초 주기 수집이라 이보다 짧게 줄여도 무의미.
   var REFRESH_MS = 20 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
+  var FUTURES_CACHE_KEY = 'quick_indices_futures_v1';
+  var FUTURES_CACHE_MAX_AGE_MS = 60 * 1000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 30;
   // 2026-07-17(10차): 카드가 왼쪽에 밀집되면서 선택 가능한 지수 전부(11종)가 한 화면에
@@ -200,6 +202,19 @@
     try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (err) { /* 무시 */ }
   }
 
+  function readFuturesCache() {
+    try {
+      var cached = JSON.parse(localStorage.getItem(FUTURES_CACHE_KEY) || 'null');
+      if (!cached || !Array.isArray(cached.data) || Date.now() - Number(cached.savedAt) > FUTURES_CACHE_MAX_AGE_MS) return null;
+      return cached.data;
+    } catch (error) { return null; }
+  }
+
+  function writeFuturesCache(data) {
+    try { localStorage.setItem(FUTURES_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: data })); }
+    catch (error) { /* 캐시가 없어도 현재 응답은 표시한다. */ }
+  }
+
   // ---- 데이터 조회 ----
 
   function fetchJson(url) {
@@ -213,7 +228,23 @@
   }
 
   function fetchMarket() { return fetchJson(GAS_TICKER_URL + '?market=1'); }
-  function fetchFutures() { return fetchJson(FUTURES_API).then(function (json) { return json.data || []; }); }
+  function fetchFutures() {
+    var cached = readFuturesCache();
+    var request = fetchJson(FUTURES_API).then(function (json) {
+      var items = json.data || [];
+      writeFuturesCache(items);
+      return items;
+    });
+    // 이전 시세를 먼저 그려 차트/지표 카드가 네트워크 응답을 기다리지 않게 하고,
+    // 다음 20초 갱신에서 백그라운드의 최신 응답으로 교체한다.
+    if (cached) {
+      // 캐시를 즉시 반환하되 백그라운드 갱신 실패가 콘솔의 unhandled rejection이
+      // 되지 않도록 소비한다. 다음 폴링에서 저장된 최신 응답을 사용한다.
+      request.catch(function () {});
+      return Promise.resolve(cached);
+    }
+    return request;
+  }
 
   // 2026-07-17(14차): BTC를 클라이언트 직접 업비트 호출에서 VM 서버사이드 수집(futures
   // 소스, scripts/cloud-vm/btc_futures.py)으로 옮기면서 다른 해외지수와 완전히 같은
@@ -292,8 +323,8 @@
   }
 
   // 목록을 2번 이어붙이고 translateY로 절반만큼 움직여 끊김 없이 순환(원본 disc-track 트릭).
-  function fillNewsTrack(track, itemHTMLs) {
-    track.innerHTML = itemHTMLs.slice(0, 5).join('');
+  function fillNewsTrack(track, itemHTMLs, limit) {
+    track.innerHTML = itemHTMLs.slice(0, limit || 5).join('');
     track.style.animation = 'none';
   }
 
@@ -350,6 +381,48 @@
     }));
   }
 
+  function escapeNewsHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // 장중에는 공시와 뉴스가 동시에 도착하므로 한 소스만 보여주지 않고 번갈아 섞는다.
+  // 공시가 없는 장외/주말에도 뉴스가 그대로 남고, 양쪽 모두 없을 때만 빈 상태를 표시한다.
+  function renderMixedNewsInto(track, disclosures, news) {
+    if (!track) return;
+    setNewsTitle('공시·주요 뉴스');
+    var discs = selectImportantDisclosures(disclosures || []).slice(0, 5);
+    var marketTerms = ['증시', '주식', '코스피', '코스닥', '상장', '실적', '반도체', '주가', '투자', '금리', '환율', '증권', 'etf', '원유', '비트코인'];
+    var marketNews = (news || []).filter(function (item) {
+      var title = String(item && item.title || '').toLowerCase();
+      return marketTerms.some(function (term) { return title.indexOf(term) !== -1; });
+    });
+    var headlines = (marketNews.length ? marketNews : (news || [])).slice(0, 5);
+    var merged = [];
+    var max = Math.max(discs.length, headlines.length);
+    for (var i = 0; i < max; i++) {
+      if (discs[i]) merged.push({ kind: 'disclosure', item: discs[i] });
+      if (headlines[i]) merged.push({ kind: 'news', item: headlines[i] });
+    }
+    if (!merged.length) {
+      track.innerHTML = '<span class="qi-news-loading">속보 없음</span>';
+      return;
+    }
+    fillNewsTrack(track, merged.map(function (entry) {
+      if (entry.kind === 'disclosure') {
+        var disc = entry.item;
+        var market = disc.market === 'KOSDAQ' ? 'KOSDAQ' : 'KOSPI';
+        return '<a href="' + escapeNewsHtml(disc.link || '#') + '" target="_blank" rel="noopener" class="qi-news-item">'
+          + '<span class="qi-news-market-news">공시</span>'
+          + '<span class="qi-news-corp">' + escapeNewsHtml(disc.corp || '') + '</span>'
+          + escapeNewsHtml(disc.disc || '') + '</a>';
+      }
+      return '<a href="' + escapeNewsHtml(entry.item.link || '#') + '" target="_blank" rel="noopener" class="qi-news-item">'
+        + '<span class="qi-news-market-news">뉴스</span>' + escapeNewsHtml(entry.item.title || '') + '</a>';
+    }), 10);
+  }
+
   function loadRankNewsFallback(track) {
     fetchJson(GAS_TICKER_URL + '?rankNews=1')
       .then(function (json) { renderRankNewsInto(track, (json && json.items) || []); })
@@ -360,31 +433,29 @@
 
   function loadDisclosures(container) {
     var track = container.querySelector('#qiNewsTrack');
-    function handle(items) {
-      if (items.length) renderDiscNewsInto(track, items);
-      else loadRankNewsFallback(track);
-    }
-    fetch(DISC_GAS_URL + '?market=0')
+    var disclosureRequest = fetch(DISC_GAS_URL + '?market=0')
       .then(function (r) { return r.text(); })
       .then(function (text) {
         var t = text.trim().replace(/^﻿/, '');
-        if (t.charAt(0) === '<') {
-          handle(discParseXML(t));
-        } else if (t.length > 0) {
+        if (t.charAt(0) === '<') return discParseXML(t);
+        if (t.length > 0) {
           try {
             var clean = t.replace(/\s/g, '');
             var bin = atob(clean);
             var bytes = new Uint8Array(bin.length);
             for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
-            handle(discParseXML(new TextDecoder('utf-8').decode(bytes)));
-          } catch (err) {
-            handle([]);
-          }
-        } else {
-          handle([]);
+            return discParseXML(new TextDecoder('utf-8').decode(bytes));
+          } catch (err) { return []; }
         }
+        return [];
       })
-      .catch(function () { loadRankNewsFallback(track); });
+      .catch(function () { return []; });
+    var newsRequest = fetchJson(GAS_TICKER_URL + '?rankNews=1')
+      .then(function (json) { return (json && json.items) || []; })
+      .catch(function () { return []; });
+    Promise.all([disclosureRequest, newsRequest]).then(function (result) {
+      renderMixedNewsInto(track, result[0], result[1]);
+    });
   }
 
   // ---- 포맷/톤 ----
