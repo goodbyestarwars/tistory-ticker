@@ -873,7 +873,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
   gap: 14px;
-  align-items: stretch;
+  align-items: start;
 }
 .home-briefing-featured-slot,
 .home-briefing-small-stack,
@@ -886,7 +886,8 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 }
 .home-briefing-left-column {
   display: grid;
-  grid-template-rows: minmax(0, 1.2fr) minmax(0, .8fr);
+  grid-template-rows: auto auto;
+  align-content: start;
   gap: 14px;
 }
 .home-briefing-left-more {
@@ -894,10 +895,11 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
-.home-briefing-left-more .post-card { height: 100%; }
+.home-briefing-left-more .post-card { height: auto; }
 .home-briefing-small-stack {
   display: grid;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, auto);
+  align-content: start;
   gap: 14px;
 }
 .home-briefing-featured {
@@ -907,7 +909,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
 }
 .home-briefing-featured .post-tags,
 .home-briefing-featured .btn-share { display: none; }
@@ -934,7 +936,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 4;
   font-size: 12.5px;
 }
 .home-briefing-left-small {
@@ -1256,19 +1258,22 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   white-space: nowrap;
 }
 
-/* 대표 1개와 중간 3개의 바깥 높이를 grid stretch로 정확히 일치시킨다. */
+/* 대표·중간 포스팅은 콘텐츠 높이를 따르고, 빈 공간이 생기지 않도록 위에서부터 쌓는다. */
 .home-widget--full .home-briefing-grid {
   grid-template-columns: minmax(0, 1.15fr) minmax(390px, 1fr);
-  min-height: 630px;
+  min-height: 0;
+  align-items: start;
 }
 .home-widget--full .home-briefing-left-column {
-  grid-template-rows: minmax(0, 1.2fr) minmax(0, .8fr);
+  grid-template-rows: auto auto;
+  align-content: start;
 }
 .home-widget--full .home-briefing-small-stack {
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, auto);
+  align-content: start;
 }
 .home-widget--full .home-briefing-small .post-excerpt {
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   line-height: 1.65;
 }
 
@@ -1367,7 +1372,7 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   }
   .home-widget--full .home-briefing-featured-slot .post-card { height: auto; min-height: 0; }
   .home-widget--full .home-briefing-left-column { grid-template-rows: auto auto; }
-  .home-widget--full .home-briefing-small-stack { grid-template-rows: repeat(3, minmax(190px, auto)); }
+  .home-widget--full .home-briefing-small-stack { grid-template-rows: repeat(3, auto); }
 }
 @media (max-width: 640px) {
   .home-dashboard-toolbar { align-items: flex-start; }
