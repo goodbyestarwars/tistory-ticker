@@ -42,12 +42,22 @@ CURSOR_FILE = os.path.join(
 
 # --full 이어달리기 기본 예산. batch_scan.py의 펀더멘탈 스캔(20분 예산 + 커서)과 같은 값·패턴.
 FULL_TIME_BUDGET_SEC = 20 * 60
-# 네이버 검색 API 일일 한도(25,000)와 DataLab 일일 한도(1,000)에 여유를 둔 값.
-# 예산은 실행 단위가 아니라 KST 하루 단위로 누적 집계한다.
-FULL_NEWS_CALL_BUDGET = 18000
+
+# 네이버 검색 API(API HUB) 한도: 일 25,000회 / 월 775,000건(검색 카테고리 통합 관리).
+# 같은 키를 쓰는 다른 소비자는 /naver-news(증시·코스피·코스닥 3개 쿼리, GAS 15분 캐시)로
+# 하루 300회 남짓이라 나머지를 이 배치가 쓴다 - 양쪽 한도에 여유를 두고 잡은 값이다.
+# 예산은 실행 단위가 아니라 KST 하루/월 단위로 누적 집계한다.
+FULL_NEWS_CALL_BUDGET = 22000
+FULL_NEWS_MONTHLY_BUDGET = 680000
+# DataLab(Search Trend)은 검색 API와 별개 한도라 기존 보수적인 값을 유지한다.
 FULL_DATALAB_CALL_BUDGET = 900
 # 하루 안에 같은 종목을 다시 조회하지 않는다(뉴스 기준일이 하루 단위라 재조회 이득이 없음).
 FULL_REFRESH_INTERVAL_DAYS = 1
+
+# run()의 종료코드. deploy_check.sh가 "오늘 할 일이 남았는지"를 이걸로 판단한다.
+EXIT_DONE_FOR_TODAY = 0   # 전수 완료 또는 오늘 예산 소진 - 날짜 마커 기록
+EXIT_BATCH_FAILED = 1     # 처리된 종목 없이 전량 실패
+EXIT_SLICE_ONLY = 2       # 시간 예산으로 슬라이스만 끝남 - 다음 회차가 이어서 진행
 
 
 def kst_today():
@@ -55,8 +65,11 @@ def kst_today():
 
 
 def load_cursor():
-    """이어달리기 위치와 KST 하루 단위 API 호출 사용량."""
-    state = {'cursor': 0, 'day': None, 'newsCalls': 0, 'datalabCalls': 0, 'lastPassCompletedAt': None}
+    """이어달리기 위치와 KST 하루/월 단위 API 호출 사용량."""
+    state = {
+        'cursor': 0, 'day': None, 'newsCalls': 0, 'datalabCalls': 0,
+        'month': None, 'monthNewsCalls': 0, 'lastPassCompletedAt': None,
+    }
     if os.path.exists(CURSOR_FILE):
         try:
             with open(CURSOR_FILE, 'r', encoding='utf-8') as source:
@@ -69,7 +82,7 @@ def load_cursor():
         state['cursor'] = max(0, int(state['cursor'] or 0))
     except (TypeError, ValueError):
         state['cursor'] = 0
-    for key in ('newsCalls', 'datalabCalls'):
+    for key in ('newsCalls', 'datalabCalls', 'monthNewsCalls'):
         try:
             state[key] = max(0, int(state[key] or 0))
         except (TypeError, ValueError):
@@ -173,6 +186,8 @@ def parse_args(argv=None):
                         help='--full에서 이번 회차에 쓸 시간 예산(초)')
     parser.add_argument('--news-call-budget', type=int, default=FULL_NEWS_CALL_BUDGET,
                         help='--full에서 KST 하루 동안 쓸 네이버 뉴스 API 호출 예산')
+    parser.add_argument('--news-monthly-budget', type=int, default=FULL_NEWS_MONTHLY_BUDGET,
+                        help='--full에서 KST 한 달 동안 쓸 네이버 뉴스 API 호출 예산')
     parser.add_argument('--datalab-call-budget', type=int, default=FULL_DATALAB_CALL_BUDGET,
                         help='--full에서 KST 하루 동안 쓸 DataLab 호출 예산')
     parser.add_argument('--refresh-interval-days', type=int, default=FULL_REFRESH_INTERVAL_DAYS,
@@ -258,11 +273,19 @@ def run(args):
         raise RuntimeError('missing-naver-environment')
 
     today_kst = kst_today()
+    month_kst = today_kst.strftime('%Y-%m')
     cursor_state = load_cursor() if args.full else None
-    if cursor_state is not None and cursor_state['day'] != today_kst.isoformat():
-        # KST 날짜가 바뀌면 하루 단위 호출 예산을 초기화한다(커서 위치는 유지).
-        cursor_state.update({'day': today_kst.isoformat(), 'newsCalls': 0, 'datalabCalls': 0})
-    news_budget = max(0, args.news_call_budget - cursor_state['newsCalls']) if cursor_state else None
+    if cursor_state is not None:
+        if cursor_state['day'] != today_kst.isoformat():
+            # KST 날짜가 바뀌면 하루 단위 호출 예산을 초기화한다(커서 위치는 유지).
+            cursor_state.update({'day': today_kst.isoformat(), 'newsCalls': 0, 'datalabCalls': 0})
+        if cursor_state['month'] != month_kst:
+            cursor_state.update({'month': month_kst, 'monthNewsCalls': 0})
+    # 일 25,000회와 월 775,000건 두 한도를 모두 지켜야 하므로 남은 예산 중 작은 쪽을 쓴다.
+    news_budget = min(
+        max(0, args.news_call_budget - cursor_state['newsCalls']),
+        max(0, args.news_monthly_budget - cursor_state['monthNewsCalls']),
+    ) if cursor_state else None
     datalab_budget = (
         max(0, args.datalab_call_budget - cursor_state['datalabCalls']) if cursor_state else None
     )
@@ -371,6 +394,7 @@ def run(args):
 
     if cursor_state is not None:
         cursor_state['newsCalls'] += news_calls
+        cursor_state['monthNewsCalls'] += news_calls
         cursor_state['datalabCalls'] += datalab_calls
         if stop_reason == 'universe-complete':
             cursor_state['lastPassCompletedAt'] = datetime.now(timezone.utc).isoformat()
@@ -409,12 +433,20 @@ def run(args):
             'stopReason': stop_reason,
             'nextCursor': cursor_state['cursor'],
             'dayKst': cursor_state['day'],
+            'dayNewsCalls': cursor_state['newsCalls'],
+            'monthNewsCalls': cursor_state['monthNewsCalls'],
         })
     # 일부 종목이 실패해도 나머지 수집 결과는 정상이므로, 전 종목 모드에서는
     # 전량 실패일 때만 failed로 본다(개별 실패는 failures 목록으로 남긴다).
     batch_failed = bool(failures) if cursor_state is None else (bool(failures) and processed == 0)
     write_batch_status('failed' if batch_failed else 'completed', **status_fields)
-    return 1 if batch_failed else 0
+    if batch_failed:
+        return EXIT_BATCH_FAILED
+    # 시간 예산 때문에 멈춘 거라면 오늘 호출 예산이 아직 남아 있다는 뜻이다.
+    # 다음 5분 회차가 커서부터 이어받도록 "슬라이스만 끝남"을 알린다(deploy_check.sh).
+    if cursor_state is not None and stop_reason == 'time-budget-exhausted':
+        return EXIT_SLICE_ONLY
+    return EXIT_DONE_FOR_TODAY
 
 
 def main(argv=None):

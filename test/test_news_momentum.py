@@ -461,7 +461,8 @@ class NewsMomentumTest(unittest.TestCase):
         exit_code = self._run_full_scan(
             universe, ['--full', '--news-call-budget', '4'], status, cursor_path
         )
-        self.assertEqual(exit_code, 0)
+        # 호출 예산 소진은 "오늘 할 일 끝" - deploy_check.sh가 날짜 마커를 기록한다.
+        self.assertEqual(exit_code, news_momentum_scan.EXIT_DONE_FOR_TODAY)
         self.assertEqual(status[-1]['stopReason'], 'news-budget-exhausted')
         self.assertEqual(status[-1]['processed'], 4)
         self.assertEqual(status[-1]['universeSize'], 10)
@@ -487,6 +488,34 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertEqual(status[-1]['processed'], 6)
         self.assertEqual(status[-1]['skippedFresh'], 4)  # 오늘 이미 수집한 앞 4종목
         self.assertEqual(len(news_momentum.load_coverage_dates(self.conn)), 10)
+        # 하루 누계와 월 누계를 함께 집계한다(일 25,000 / 월 775,000 두 한도 대응).
+        self.assertEqual(status[-1]['dayNewsCalls'], 10)
+        self.assertEqual(status[-1]['monthNewsCalls'], 10)
+
+    def test_full_scan_stops_on_monthly_budget_even_with_daily_left(self):
+        universe = [{'code': '%06d' % index, 'name': '종목%d' % index} for index in range(6)]
+        cursor_path = os.path.join(self.temp_dir.name, 'cursor.json')
+        status = []
+        self._run_full_scan(
+            universe,
+            ['--full', '--news-call-budget', '10000', '--news-monthly-budget', '3'],
+            status, cursor_path,
+        )
+        self.assertEqual(status[-1]['processed'], 3)
+        self.assertEqual(status[-1]['stopReason'], 'news-budget-exhausted')
+        self.assertEqual(status[-1]['monthNewsCalls'], 3)
+
+    def test_full_scan_time_budget_signals_slice_to_deploy_script(self):
+        """시간 예산으로 멈추면 오늘 호출 예산이 남아 있으므로 종료코드 2로 알린다."""
+        universe = [{'code': '%06d' % index, 'name': '종목%d' % index} for index in range(4)]
+        cursor_path = os.path.join(self.temp_dir.name, 'cursor.json')
+        status = []
+        exit_code = self._run_full_scan(
+            universe, ['--full', '--time-budget-sec', '0'], status, cursor_path
+        )
+        self.assertEqual(exit_code, news_momentum_scan.EXIT_SLICE_ONLY)
+        self.assertEqual(status[-1]['stopReason'], 'time-budget-exhausted')
+        self.assertEqual(status[-1]['processed'], 0)
 
     def test_full_scan_skips_failed_stock_without_blocking_cursor(self):
         universe = [{'code': '%06d' % index, 'name': '종목%d' % index} for index in range(3)]
@@ -516,7 +545,7 @@ class NewsMomentumTest(unittest.TestCase):
             exit_code = news_momentum_scan.run(args)
 
         # 한 종목이 실패해도 나머지는 수집되고 배치 자체는 성공(날짜 마커 기록 가능)이다.
-        self.assertEqual(exit_code, 0)
+        self.assertEqual(exit_code, news_momentum_scan.EXIT_DONE_FOR_TODAY)
         self.assertEqual(status[-1]['status'], 'completed')
         self.assertEqual(status[-1]['failureCount'], 1)
         self.assertEqual(status[-1]['processed'], 2)
@@ -627,6 +656,8 @@ class NewsMomentumTest(unittest.TestCase):
             '000660,005930,005380,083650,042660,035420,066570,247540',
             script,
         )
+        # 종료코드 2(슬라이스만 끝남)는 날짜 마커를 기록하지 않고 다음 회차가 이어받는다.
+        self.assertIn('elif [ "$lock_status" = "2" ]', script)
         self.assertIn('run_news_momentum_if_due "$DEPLOY_OCCURRED" || true', script)
         self.assertNotIn('/etc/systemd/system/kiwoom-news-momentum', script)
         self.assertNotIn('rollback_news_momentum.sh', script)
