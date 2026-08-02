@@ -1273,10 +1273,10 @@
     var techScore = computeTechnicalScore(chartData);
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
-    var chartByDate = {};
-    (chartData && chartData.daily || []).forEach(function (d) { chartByDate[d.date] = d; });
     var aptCurrentPrice = quote ? Number(quote.price) : (latest && latest.close);
-    var apt = computeAptData(data.daily, chartByDate);
+    // 매물대 아파트는 chartData.daily(가격+거래량, 최대 500거래일)만으로 계산한다 - 수급
+    // API(63거래일 상한)와 무관해서 apt.days가 더 긴 이력을 반영할 수 있다.
+    var aptProfile = computeVolumeProfile(chartData && chartData.daily, APT_LOOKBACK_DAYS, APT_BIN_STEPS[APT_BIN_DEFAULT_INDEX]);
     // quote(실시간, NXT 시간외 포함)가 있으면 그걸 헤더에 우선 쓰고, 실패 시에만 daily[0](정규장
     // 종가 고정)로 폴백한다. asOfLabel도 quote 성공 시 "시각"으로, 폴백 시 기존처럼 "날짜"로 보여준다.
     var priceHtml = '';
@@ -1309,7 +1309,7 @@
     html += buildFlowExtraSections(entry, latest && latest.close);
     html += '</div>';
     html += '<div class="ff-view" id="ffViewApt" hidden>';
-    html += buildAptCard(apt, aptCurrentPrice);
+    html += buildAptCard(aptProfile, aptCurrentPrice);
     html += '</div>';
     html += '<div class="ff-view" id="ffViewChart" hidden>';
     html += buildChartSection(chartData, techScore);
@@ -1329,7 +1329,7 @@
     wireViewTabs(box, data.code, data.name, chartData);
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
-    wireAptTabs(box, apt, aptCurrentPrice, data.code, data.name, chartByDate);
+    wireAptTabs(box, chartData && chartData.daily, aptCurrentPrice);
     startQuotePolling(box, data.code);
   }
 
@@ -3075,36 +3075,24 @@
     });
   }
 
-  // ---- 매물대 아파트(투자자별 근사, 2026-07-27, 2026-07-28 total 산출방식 수정) ----
-  // 네이버페이증권 "다른 투자자들은 얼마에 샀어요" 위젯(계좌 연동 사용자 자기신고 데이터
-  // 기반)을 참고해 "건물 층=가격대, 현재가=그 층을 지나가는 빨간 화살표"로 표현하되,
-  // 우리는 그런 사용자 자기신고 데이터가 없어 일별 고가~저가 구간에 그날의 물량을
-  // 분산하는 방식으로 근사한다. 개인/외국인/기관 탭은 그날 그 투자자의 순매수(+)/순매도(-)
-  // 부호를 그대로 매수/매도 벽으로 나누고(실측값, 근사 아님), 전체 탭은 이 세 탭의 bin별
-  // 매수·매도 벽을 그대로 합산한 값이다(2026-07-28 수정 - 예전엔 그날 총거래량을 등락
-  // 방향에 몰아 계상했는데, 그 판정에 쓰던 change_pct 필드가 데이터 소스에 아예 없어
-  // 매도 총합이 항상 0으로 고정되는 버그가 있었음). 네 탭이 서로 다른 최저/최고가로 각자
-  // bin을 나누면 층 위치가 탭마다 달라져 비교가 안 되므로, bin 경계(minLow/maxHigh)는
-  // 전체 구간 기준으로 한 번만 정하고 네 탭이 공유한다(탭을 바꿔도 "몇 층"인지 그대로
-  // 비교 가능). "평단가"(추정)는 그 히스토그램의 가중평균(centroid) - 실제 계좌 평균
-  // 매수가가 아니라 근사 분포에서 역산한 값이라는 걸 카드 하단 각주에 명시한다.
-  // 데이터 소스: data.daily(수급, ind_net/foreign_net/inst_net - 최신일이 앞)와
-  // chartData.daily(가격, high/low/close)를 날짜(date)로 조인 - 둘 다 renderResult가
-  // 이미 병렬로 받아온 데이터라 새 API 호출은 필요 없다. 수급 데이터가 최대 63거래일
-  // (FLOW_PERIOD_OPTIONS 최댓값)까지만 있어서 아래 매물대(근사)의 120일 창보다 짧을 수
-  // 있음 - 실제 사용된 일수는 apt.days로 카드에 그대로 노출한다.
-  var APT_BIN_COUNT = 24;
+  // ---- 매물대 아파트(2026-08-02: 매수/매도벽 구분 폐기, 순수 거래량 매물대로 전환) ----
+  // 개인/외국인/기관 순매수·순매도 벽으로 나눠 보여주던 이전 버전은 "매도벽은 필요 없다,
+  // 토스처럼 그냥 매물대(거래량)만 보여달라"는 사용자 요청으로 걷어냈다. 이제 차트 탭의
+  // 매물대 오버레이(VP, 아래 computeVolumeProfile)와 완전히 같은 계산을 아파트 형태로만
+  // 다르게 그린다 - 데이터도 chartData.daily(가격+거래량, 최대 500거래일)를 그대로
+  // 재사용해서 수급 API(63거래일 상한)에 더는 의존하지 않는다. 층수(bin 개수)는 카드 안의
+  // 확대(+)/축소(-) 버튼으로 즉시 바꿀 수 있다 - 서버 재조회 없이 이미 받아온
+  // chartData.daily만으로 다시 계산하므로 즉시 반영된다(토스 차트에서 확대/축소하면
+  // 매물대가 다시 그려지는 것과 같은 원리를 층수 조절로 구현).
   var APT_LOOKBACK_DAYS = 120;
-  var APT_TYPE_TABS = [
-    { key: 'total', label: '전체' },
-    { key: 'ind', label: '개인' },
-    { key: 'foreign', label: '외국인' },
-    { key: 'inst', label: '기관' }
-  ];
+  var APT_BIN_STEPS = [12, 18, 24, 36, 48];
+  var APT_BIN_DEFAULT_INDEX = 2; // 24층 기본
+
   // 왼쪽 구간 안내판 라벨(네이버 위젯의 로비/저층/중층/고층/탑층 참고) - bin index를
-  // t=0(로비)~1(탑층)로 정규화해 5개 구간으로 나눈다(24bin 기준 5/5/5/6/3분포).
-  function aptBandLabel(i) {
-    var t = i / (APT_BIN_COUNT - 1);
+  // t=0(로비)~1(탑층)로 정규화해 5개 구간으로 나눈다. binCount가 줌에 따라 바뀌므로
+  // 매개변수로 받는다.
+  function aptBandLabel(i, binCount) {
+    var t = i / (binCount - 1);
     if (t >= 0.8) return '탑층';
     if (t >= 0.6) return '고층';
     if (t >= 0.35) return '중층';
@@ -3112,109 +3100,20 @@
     return '로비';
   }
 
-  // 2026-07-27 리디자인: 층별 창문(APT_WINDOWS_PER_FLOOR)·세트백 실루엣(aptFloorWidthPct)
-  // 방식은 "매물대 UI 리디자인 작업지시서" 요청으로 폐기 - 24bin × 창문 7개의 촘촘한
-  // 격자는 색만 바꿔선 프리미엄하게 안 보인다는 게 2026-07-28 손그림 스타일 시도에서
-  // 이미 확인됐던 문제라(revert 이력 참고), 이번엔 표현 방식 자체를 매도/매수 듀얼
-  // 바 차트(가격 레일 중심, 좌우 막대)로 바꿔 데이터 가독성 문제를 해결한다.
-  function computeAptData(flowDaily, chartByDate) {
-    var rows = [];
-    (flowDaily || []).slice(0, APT_LOOKBACK_DAYS).forEach(function (d) {
-      var c = chartByDate[d.date];
-      if (!c || !(c.high > 0) || !(c.low > 0) || !(c.high >= c.low)) return;
-      rows.push({
-        high: c.high, low: c.low, close: c.close,
-        ind: d.ind_net || 0, foreign: d.foreign_net || 0, inst: d.inst_net || 0
-      });
-    });
-    if (rows.length < 2) return null;
-
-    var minLow = Math.min.apply(null, rows.map(function (r) { return r.low; }));
-    var maxHigh = Math.max.apply(null, rows.map(function (r) { return r.high; }));
-    if (!(maxHigh > minLow)) return null;
-    var binSize = (maxHigh - minLow) / APT_BIN_COUNT;
-
-    function emptyBins() {
-      var bins = [];
-      for (var i = 0; i < APT_BIN_COUNT; i++) bins.push({ low: minLow + i * binSize, high: minLow + (i + 1) * binSize, buyQty: 0, sellQty: 0 });
-      return bins;
-    }
-    var profiles = { total: emptyBins(), ind: emptyBins(), foreign: emptyBins(), inst: emptyBins() };
-
-    rows.forEach(function (r) {
-      var range = r.high - r.low;
-      var startIdx = Math.max(0, Math.floor((r.low - minLow) / binSize));
-      var endIdx = range > 0 ? Math.min(APT_BIN_COUNT - 1, Math.floor((r.high - minLow) / binSize)) : startIdx;
-
-      function distribute(bins, qty, side) {
-        if (!(qty > 0)) return;
-        if (!(range > 0)) { bins[startIdx][side] += qty; return; }
-        for (var b = startIdx; b <= endIdx; b++) {
-          var overlap = Math.min(bins[b].high, r.high) - Math.max(bins[b].low, r.low);
-          if (overlap > 0) bins[b][side] += qty * (overlap / range);
-        }
-      }
-      // ind/foreign/inst: 그날 실제 순매수(+)/순매도(-) 부호를 그대로 매수/매도 벽으로 나눈다
-      // - 실측 순매매 수량 자체를 쓰는 것이라 근사가 아니다.
-      ['ind', 'foreign', 'inst'].forEach(function (key) {
-        var v = r[key];
-        if (v > 0) distribute(profiles[key], v, 'buyQty');
-        else if (v < 0) distribute(profiles[key], -v, 'sellQty');
-      });
-    });
-
-    // 2026-07-28 버그 수정: total은 원래 "그날 총거래량을 등락 방향에 몰아 계상"하는
-    // 근사치였는데, 등락 방향 판정에 쓰던 chartData.daily[i].change_pct가 이 위젯의
-    // 소스(VM /ohlc, kiwoom_market.py fetch_daily_ohlc)엔 애초에 없는 필드라 `|| 0`
-    // 폴백이 항상 걸려 "0 >= 0"으로 매일 매수 쪽에만 쌓이고 매도 총합이 항상 0으로
-    // 고정되는 버그였음(장중/장마감 여부와 무관하게 늘 재현 - 사용자 리포트). 사용자 제안대로
-    // 개인/외국인/기관 세 탭의 실측 매수/매도 벽을 bin별로 그대로 더해 total을 구성한다 -
-    // 근사가 사라지고 코드도 단순해진다(기타법인 등 세 유형 밖의 수급은 total에서도 빠짐).
-    for (var bi = 0; bi < APT_BIN_COUNT; bi++) {
-      profiles.total[bi].buyQty = profiles.ind[bi].buyQty + profiles.foreign[bi].buyQty + profiles.inst[bi].buyQty;
-      profiles.total[bi].sellQty = profiles.ind[bi].sellQty + profiles.foreign[bi].sellQty + profiles.inst[bi].sellQty;
-    }
-
-    // trendUp: 가장 최근 이틀의 종가 비교 - 사다리 타는 사람 장식 애니메이션 방향(상승장=
-    // 위로/하락장=아래로)에만 쓰는 참고용 신호라 근사여도 무방하다(진짜 추세판정 로직 아님).
-    // rows[0]이 최신일(flowDaily가 최신일 우선 정렬).
-    var result = { minLow: minLow, maxHigh: maxHigh, binSize: binSize, days: rows.length, trendUp: rows[0].close >= rows[1].close };
-    Object.keys(profiles).forEach(function (key) {
-      var bins = profiles[key];
-      var totalBuy = 0, totalSell = 0, weighted = 0, weightQty = 0;
-      var maxBuyQty = 0, maxBuyIndex = -1, maxSellQty = 0, maxSellIndex = -1;
-      bins.forEach(function (b, i) {
-        var mid = (b.low + b.high) / 2;
-        totalBuy += b.buyQty; totalSell += b.sellQty;
-        // 'total' 탭은 매수+매도 합이 곧 전체 거래대금 가중(원래 의미), ind/foreign/inst는
-        // 매집(매수) 물량만으로 평단가를 잡아야 순매도일 때문에 "추정 평단가"가 흔들리지 않는다.
-        var w = key === 'total' ? (b.buyQty + b.sellQty) : b.buyQty;
-        weighted += w * mid; weightQty += w;
-        if (b.buyQty > maxBuyQty) { maxBuyQty = b.buyQty; maxBuyIndex = i; }
-        if (b.sellQty > maxSellQty) { maxSellQty = b.sellQty; maxSellIndex = i; }
-      });
-      result[key] = {
-        bins: bins, totalBuy: totalBuy, totalSell: totalSell,
-        maxBuyQty: maxBuyQty, maxBuyIndex: maxBuyIndex, maxSellQty: maxSellQty, maxSellIndex: maxSellIndex,
-        avgPrice: weightQty > 0 ? weighted / weightQty : null
-      };
-    });
-    return result;
-  }
-
-  function aptBinIndex(apt, price) {
-    if (!apt || price == null || !(apt.maxHigh > apt.minLow)) return -1;
-    var binSize = (apt.maxHigh - apt.minLow) / APT_BIN_COUNT;
-    return Math.max(0, Math.min(APT_BIN_COUNT - 1, Math.floor((price - apt.minLow) / binSize)));
+  function aptBinIndex(profile, price) {
+    if (!profile || price == null || !(profile.maxHigh > profile.minLow)) return -1;
+    var n = profile.bins.length;
+    return Math.max(0, Math.min(n - 1, Math.floor((price - profile.minLow) / profile.binSize)));
   }
 
   // 구간 안내판(탑층~로비) 밑에 표시할 가격범위 - "90,000원~" 처럼 각 구간의 실제 최저/최고가를
-  // 보여준다(장식이 아니라 apt.minLow/binSize에서 그대로 계산한 실데이터).
-  function aptBandRanges(apt) {
+  // 보여준다(장식이 아니라 profile.minLow/binSize에서 그대로 계산한 실데이터).
+  function aptBandRanges(profile) {
+    var n = profile.bins.length;
     var ranges = {};
-    for (var i = 0; i < APT_BIN_COUNT; i++) {
-      var band = aptBandLabel(i);
-      var lo = apt.minLow + i * apt.binSize, hi = apt.minLow + (i + 1) * apt.binSize;
+    for (var i = 0; i < n; i++) {
+      var band = aptBandLabel(i, n);
+      var lo = profile.minLow + i * profile.binSize, hi = profile.minLow + (i + 1) * profile.binSize;
       if (!ranges[band]) ranges[band] = { low: lo, high: hi };
       else { ranges[band].low = Math.min(ranges[band].low, lo); ranges[band].high = Math.max(ranges[band].high, hi); }
     }
@@ -3228,101 +3127,50 @@
     return Math.round(r.low).toLocaleString('ko-KR') + '~' + Math.round(r.high).toLocaleString('ko-KR') + '원';
   }
 
-  // 매도/매수 우위가 이어지는 구간(연속 bin run) 중 가장 긴 구간을 찾아 가격범위+강도(1~5)를
-  // 반환한다 - "매도 우위 구간"/"매수 우위 구간" 카드용.
-  function aptDominantRange(bins, side) {
-    var other = side === 'sellQty' ? 'buyQty' : 'sellQty';
-    var bestStart = -1, bestLen = 0, curStart = -1, curLen = 0;
-    for (var i = 0; i < bins.length; i++) {
-      var dominant = bins[i][side] > bins[i][other] && bins[i][side] > 0;
-      if (dominant) {
-        if (curStart === -1) curStart = i;
-        curLen++;
-      } else {
-        if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
-        curStart = -1; curLen = 0;
-      }
+  function buildAptSummaryHtml(profile) {
+    if (!profile) {
+      return '<div class="ff-apt-summary">이 구간엔 계산할 매물대 데이터가 부족해요.</div>';
     }
-    if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
-    if (bestLen === 0) return null;
-    var sideSum = 0, otherSum = 0;
-    for (var j = bestStart; j < bestStart + bestLen; j++) { sideSum += bins[j][side]; otherSum += bins[j][other]; }
-    var dominance = sideSum + otherSum > 0 ? sideSum / (sideSum + otherSum) : 0;
-    return {
-      low: bins[bestStart].low, high: bins[bestStart + bestLen - 1].high,
-      strength: Math.max(1, Math.min(5, Math.round(1 + dominance * 4)))
-    };
-  }
-
-  function buildAptSummaryHtml(profile, currentPrice) {
-    if (!profile || profile.avgPrice == null) {
-      return '<div class="ff-apt-summary">이 구간엔 추정할 매집 데이터가 부족해요.</div>';
-    }
-    var avgPrice = profile.avgPrice;
-    var returnPct = currentPrice != null ? (currentPrice - avgPrice) / avgPrice * 100 : null;
-    var cls = returnPct == null ? 'ff-flat' : signClass(returnPct);
-    var totalQty = profile.totalBuy + profile.totalSell;
+    var poc = profile.bins[profile.pocIndex];
+    var pocMid = poc ? Math.round((poc.low + poc.high) / 2) : null;
     return '<div class="ff-apt-summary">'
-      + '<span class="ff-apt-summary-item">추정 평단가 <b>' + Math.round(avgPrice).toLocaleString('ko-KR') + '원</b></span>'
-      + (returnPct != null
-        ? '<span class="ff-apt-summary-item ' + cls + '">추정 수익률 <b>' + (returnPct >= 0 ? '+' : '') + returnPct.toFixed(2) + '%</b></span>'
+      + '<span class="ff-apt-summary-item">최근 ' + profile.days + '거래일</span>'
+      + (pocMid != null
+        ? '<span class="ff-apt-summary-item">거래량 최다(POC) <b>' + pocMid.toLocaleString('ko-KR') + '원</b></span>'
         : '')
-      + '<span class="ff-apt-legend"><span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-sell"></i>매도벽</span>'
-      + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-buy"></i>매수벽</span></span>'
-      + '</div>'
-      + (totalQty > 0
-        ? '<div class="ff-apt-totals">'
-          + '<span class="ff-apt-total ff-apt-total-sell">매도 총합 <b>' + Math.round(profile.totalSell).toLocaleString('ko-KR') + '주</b></span>'
-          + '<span class="ff-apt-total ff-apt-total-buy">매수 총합 <b>' + Math.round(profile.totalBuy).toLocaleString('ko-KR') + '주</b></span>'
-          + '</div>'
-        : '');
-  }
-
-  function aptDotsHtml(n) {
-    var out = '';
-    for (var i = 0; i < 5; i++) out += '<span class="ff-apt-dot' + (i < n ? ' on' : '') + '"></span>';
-    return out;
+      + '<span class="ff-apt-legend"><span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-vol"></i>매물대</span>'
+      + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-poc"></i>POC</span></span>'
+      + '</div>';
   }
 
   // .ff-apt-row 실제 높이(px)와 반드시 일치시킬 것 - 아래 사다리(ladder) 세로 위치/길이를
   // JS에서 픽셀로 직접 계산하는 유일한 기준값이다(CSS를 바꾸면 이 값도 같이 바꿀 것).
   var APT_ROW_HEIGHT = 20;
 
-  // 2026-07-27 Ver.2 리디자인("매물대 UI 리디자인 작업지시서 Ver.2"): Ver.1(듀얼 바 차트,
-  // 위 주석 참고)의 데이터 표현은 그대로 두되, "주가가 사는 아파트"라는 컨셉을 다시
-  // 입힌다 - 옥상 헬리패드+헬기(회전 로터), 층마다 가격 옆 미니 창문 아이콘, 구간
-  // 안내판에 가격범위 부기, 현재가 말풍선+좌우 강조선, 현재층→지하실로 이어지는 사다리
-  // (오르내리는 사람), 로비/지하실 장식을 얹는다. 단, Ver.0(2026-07-26 이전)에서 실패했던
-  // "24bin마다 촘촘한 창문 격자"는 반복하지 않음 - 창문은 각 행에 작은 아이콘 2개만
-  // 붙이고(레이아웃 부담 적음), 진짜 일러스트 밀도는 옥상/로비/지하실처럼 반복되지 않는
-  // 고정 구간에만 투입한다(2026-07-28 손그림 스타일 revert 이력 참고).
-  function buildAptChartHtml(apt, typeKey, currentPrice) {
-    var profile = apt[typeKey];
-    if (!profile || (profile.totalBuy <= 0 && profile.totalSell <= 0)) {
-      return '<div class="ff-apt-empty">이 유형은 최근 구간에 매매 기록이 없어요.</div>';
+  // "주가가 사는 아파트"라는 컨셉(옥상 헬리패드+헬기, 층마다 가격 옆 미니 창문 아이콘, 구간
+  // 안내판에 가격범위 부기, 현재가 말풍선+좌우 강조선, 현재층→지하실로 이어지는 사다리, 로비/
+  // 지하실 장식)은 그대로 유지하고, 각 층의 막대만 매수/매도 듀얼 바에서 거래량 단일 바로
+  // 바꿨다(2026-08-02, 위 헤더 주석 참고) - POC(거래량 최다 구간)만 강조색으로 표시한다.
+  function buildAptChartHtml(profile, currentPrice) {
+    if (!profile) {
+      return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
     }
-    var curIdx = aptBinIndex(apt, currentPrice);
-    var maxQtyOverall = Math.max(profile.maxBuyQty, profile.maxSellQty, 1);
-    var totalQty = profile.totalBuy + profile.totalSell;
-    var bandRanges = aptBandRanges(apt);
+    var n = profile.bins.length;
+    var curIdx = aptBinIndex(profile, currentPrice);
+    var bandRanges = aptBandRanges(profile);
     var prevBand = null;
     var rows = '';
-    for (var i = APT_BIN_COUNT - 1; i >= 0; i--) {
+    for (var i = n - 1; i >= 0; i--) {
       var b = profile.bins[i];
       var mid = Math.round((b.low + b.high) / 2);
-      var band = aptBandLabel(i);
+      var band = aptBandLabel(i, n);
       var showBand = band !== prevBand;
       prevBand = band;
       var isCurrent = i === curIdx;
-      var isMaxSell = i === profile.maxSellIndex && b.sellQty > 0;
-      var isMaxBuy = i === profile.maxBuyIndex && b.buyQty > 0;
-      var sellPct = Math.max(0, Math.round(b.sellQty / maxQtyOverall * 100));
-      var buyPct = Math.max(0, Math.round(b.buyQty / maxQtyOverall * 100));
-      var sellLabel = b.sellQty > 0 ? '<span class="ff-apt-bar-value">' + Math.round(b.sellQty).toLocaleString('ko-KR') + '</span>' : '';
-      var buyLabel = b.buyQty > 0 ? '<span class="ff-apt-bar-value">' + Math.round(b.buyQty).toLocaleString('ko-KR') + '</span>' : '';
-      var sharePct = totalQty > 0 ? (b.buyQty + b.sellQty) / totalQty * 100 : 0;
-      var title = mid.toLocaleString('ko-KR') + '원\n매도 ' + Math.round(b.sellQty).toLocaleString('ko-KR')
-        + '주 · 매수 ' + Math.round(b.buyQty).toLocaleString('ko-KR') + '주\n전체 비중 ' + sharePct.toFixed(1) + '%';
+      var isPoc = i === profile.pocIndex && b.volume > 0;
+      var pct = profile.maxVolume > 0 ? Math.max(0, Math.round(b.volume / profile.maxVolume * 100)) : 0;
+      var valueLabel = b.volume > 0 ? '<span class="ff-apt-bar-value">' + Math.round(b.volume).toLocaleString('ko-KR') + '주</span>' : '';
+      var title = mid.toLocaleString('ko-KR') + '원\n거래량 ' + Math.round(b.volume).toLocaleString('ko-KR') + '주';
       var bandLabelHtml = showBand
         ? '<span class="ff-apt-band-icon">⌂</span><span class="ff-apt-band-name">' + band + '</span>'
           + '<span class="ff-apt-band-range">' + aptBandRangeText(band, bandRanges) + '</span>'
@@ -3330,12 +3178,9 @@
       rows += '<div class="ff-apt-row' + (showBand ? ' ff-apt-band-start' : '') + (isCurrent ? ' ff-apt-row-current' : '') + '"'
         + ' title="' + escapeHtml(title) + '">'
         + '<span class="ff-apt-band-label">' + bandLabelHtml + '</span>'
-        + '<span class="ff-apt-bar-slot ff-apt-bar-slot-sell">' + sellLabel
-          + '<span class="ff-apt-bar ff-apt-bar-sell' + (isMaxSell ? ' ff-apt-bar-max' : '') + '" style="width:' + sellPct + '%"></span>'
-          + '</span>'
         + '<span class="ff-apt-price"><span class="ff-apt-mini-window"></span>' + mid.toLocaleString('ko-KR') + '<span class="ff-apt-mini-window"></span></span>'
-        + '<span class="ff-apt-bar-slot ff-apt-bar-slot-buy">'
-          + '<span class="ff-apt-bar ff-apt-bar-buy' + (isMaxBuy ? ' ff-apt-bar-max' : '') + '" style="width:' + buyPct + '%"></span>' + buyLabel
+        + '<span class="ff-apt-bar-slot">'
+          + '<span class="ff-apt-bar ff-apt-bar-vol' + (isPoc ? ' ff-apt-bar-max' : '') + '" style="width:' + pct + '%"></span>' + valueLabel
           + '</span>'
         + (isCurrent
           ? '<span class="ff-apt-current-badge"><span class="ff-apt-current-arrow">◀</span>현재가 ' + mid.toLocaleString('ko-KR') + '원</span>'
@@ -3355,14 +3200,14 @@
 
     // 사다리: 현재가 행에서 지하실 쪽으로 이어지는 장식(데이터 아님) - 세로 위치/길이는
     // curIdx와 APT_ROW_HEIGHT로 픽셀 계산한다(위 상수 설명 참고). 방향(상승/하락)은
-    // apt.trendUp(최근일 등락 방향)을 그대로 반영.
+    // profile.trendUp(최근일 등락 방향)을 그대로 반영.
     var ladderHtml = '';
     if (curIdx >= 0) {
-      var ladderTop = (APT_BIN_COUNT - 1 - curIdx) * APT_ROW_HEIGHT + APT_ROW_HEIGHT / 2;
+      var ladderTop = (n - 1 - curIdx) * APT_ROW_HEIGHT + APT_ROW_HEIGHT / 2;
       var ladderHeight = curIdx * APT_ROW_HEIGHT + 12;
       ladderHtml = '<div class="ff-apt-ladder" style="top:' + ladderTop + 'px;height:' + ladderHeight + 'px">'
         + '<span class="ff-apt-ladder-rail"></span>'
-        + '<span class="ff-apt-ladder-person ff-apt-ladder-person-' + (apt.trendUp ? 'up' : 'down') + '">🧍</span>'
+        + '<span class="ff-apt-ladder-person ff-apt-ladder-person-' + (profile.trendUp ? 'up' : 'down') + '">🧍</span>'
         + '</div>';
     }
 
@@ -3406,68 +3251,28 @@
       + lobbyHtml + basementHtml + magmaHtml + '</div>';
   }
 
-  function buildAptStatsHtml(profile) {
-    if (!profile || (profile.totalBuy <= 0 && profile.totalSell <= 0)) return '';
-    var sellRange = aptDominantRange(profile.bins, 'sellQty');
-    var buyRange = aptDominantRange(profile.bins, 'buyQty');
-    function rangeCard(title, range, dotLabel) {
-      var body = range
-        ? '<div class="ff-apt-stat-value">' + Math.round(range.low).toLocaleString('ko-KR') + '~' + Math.round(range.high).toLocaleString('ko-KR') + '원</div>'
-          + '<div class="ff-apt-stat-sub">' + dotLabel + ' ' + aptDotsHtml(range.strength) + '</div>'
-        : '<div class="ff-apt-stat-value ff-apt-stat-empty">뚜렷한 구간 없음</div>';
-      return '<div class="ff-apt-stat"><div class="ff-apt-stat-title">' + title + '</div>' + body + '</div>';
-    }
-    var maxSellMid = profile.maxSellIndex >= 0 ? Math.round((profile.bins[profile.maxSellIndex].low + profile.bins[profile.maxSellIndex].high) / 2) : null;
-    var maxBuyMid = profile.maxBuyIndex >= 0 ? Math.round((profile.bins[profile.maxBuyIndex].low + profile.bins[profile.maxBuyIndex].high) / 2) : null;
-    return '<div class="ff-apt-stats">'
-      + rangeCard('매도 우위 구간', sellRange, '매도벽 강함')
-      + rangeCard('매수 우위 구간', buyRange, '매수벽 강함')
-      + '<div class="ff-apt-stat"><div class="ff-apt-stat-title">최대 매물대(매도)</div>'
-        + '<div class="ff-apt-stat-value ff-apt-stat-sell">' + (maxSellMid != null ? maxSellMid.toLocaleString('ko-KR') + '원' : '-') + '</div>'
-        + '<div class="ff-apt-stat-sub">' + (profile.maxSellQty > 0 ? Math.round(profile.maxSellQty).toLocaleString('ko-KR') + '주' : '') + '</div></div>'
-      + '<div class="ff-apt-stat"><div class="ff-apt-stat-title">최대 매물대(매수)</div>'
-        + '<div class="ff-apt-stat-value ff-apt-stat-buy">' + (maxBuyMid != null ? maxBuyMid.toLocaleString('ko-KR') + '원' : '-') + '</div>'
-        + '<div class="ff-apt-stat-sub">' + (profile.maxBuyQty > 0 ? Math.round(profile.maxBuyQty).toLocaleString('ko-KR') + '주' : '') + '</div></div>'
+  function buildAptZoomButtons(stepIndex) {
+    var atMin = stepIndex <= 0, atMax = stepIndex >= APT_BIN_STEPS.length - 1;
+    return '<div class="ff-apt-zoom" id="ffAptZoom">'
+      + '<button type="button" class="ff-apt-zoom-btn" data-zoom="out"' + (atMin ? ' disabled' : '') + '>축소 −</button>'
+      + '<span class="ff-apt-zoom-label" id="ffAptZoomLabel">' + APT_BIN_STEPS[stepIndex] + '층</span>'
+      + '<button type="button" class="ff-apt-zoom-btn" data-zoom="in"' + (atMax ? ' disabled' : '') + '>확대 ＋</button>'
       + '</div>';
   }
 
-  function buildAptBodyHtml(apt, typeKey, currentPrice) {
-    var profile = apt[typeKey];
-    return buildAptSummaryHtml(profile, currentPrice) + buildAptChartHtml(apt, typeKey, currentPrice) + buildAptStatsHtml(profile);
+  function buildAptDynamicHtml(profile, currentPrice, stepIndex) {
+    return buildAptZoomButtons(stepIndex)
+      + buildAptSummaryHtml(profile)
+      + buildAptChartHtml(profile, currentPrice)
+      + '<div class="ff-footnote">※ 실제 체결가가 태깅된 데이터가 아니라, 최근 ' + (profile ? profile.days : APT_LOOKBACK_DAYS)
+      + '거래일의 일별 고가~저가 구간에 거래량을 분산해 합산한 <b>근사 매물대</b>입니다(체결가 기준 아님).</div>';
   }
 
-  // 2026-08-02: 매물대 아파트도 수급 탭처럼 기간(일수)을 바꾸면 최저/최고가 구간이 바뀌어
-  // bin 경계 자체가 재계산된다(토스 차트에서 확대/축소하면 화면에 보이는 가격 범위가 달라져
-  // 매물대가 달라지는 것과 같은 원리, 사용자 요청) - 단 차트 탭과 연동하지 않고 이 카드
-  // 안에서 독립적으로 기간을 고른다. 백엔드(/foreign-flow?days=)가 허용하는 값이
-  // FOREIGN_FLOW_DAY_OPTIONS(5/10/20/42/63)로 고정돼 있어 수급 탭과 같은
-  // FLOW_PERIOD_OPTIONS를 그대로 재사용한다(캐시 키도 code+days라 수급 탭에서 같은 기간을
-  // 이미 눌러봤다면 재요청 없이 즉시 응답됨).
-  function buildAptPeriodButtons(activeDays) {
-    return '<div class="ff-flow-period" id="ffAptPeriod">' + FLOW_PERIOD_OPTIONS.map(function (o) {
-      return '<button type="button" class="ff-flow-period-btn' + (o.days === activeDays ? ' active' : '')
-        + '" data-days="' + o.days + '">' + o.label + '</button>';
-    }).join('') + '</div>';
-  }
-
-  function buildAptDynamicHtml(apt, typeKey, currentPrice) {
-    var tabsHtml = '<div class="ff-apt-tabs">' + APT_TYPE_TABS.map(function (t) {
-      return '<button type="button" class="ff-apt-tab' + (t.key === typeKey ? ' active' : '') + '" data-apt-type="' + t.key + '">' + t.label + '</button>';
-    }).join('') + '</div>';
-    return tabsHtml
-      + '<div id="ffAptBody">' + buildAptBodyHtml(apt, typeKey, currentPrice) + '</div>'
-      + '<div class="ff-footnote">※ 실제 체결가가 태깅된 데이터가 아니라, 최근 ' + apt.days
-      + '거래일의 일별 고가~저가 구간에 개인·외국인·기관의 그날 순매수·순매도량을 분산해 합산한 '
-      + '<b>근사 추정치</b>입니다. "전체" 탭은 이 세 유형의 매수·매도 벽을 그대로 합산한 값이라 기타법인 등 '
-      + '세 유형 밖의 수급은 반영되지 않고, "평단가"·"추정 수익률"도 매수(매집) 물량만의 가중평균이라 실제 매수 단가와 다를 수 있습니다.</div>';
-  }
-
-  function buildAptCard(apt, currentPrice) {
-    if (!apt) return '';
+  function buildAptCard(profile, currentPrice) {
+    if (!profile) return '';
     return '<div class="ff-extra-card ff-apt-card" id="ffAptCard">'
       + '<div class="ff-extra-card-title">🏢 매물대(추정)</div>'
-      + buildAptPeriodButtons(apt.days)
-      + '<div id="ffAptDynamic">' + buildAptDynamicHtml(apt, 'total', currentPrice) + '</div>'
+      + '<div id="ffAptDynamic">' + buildAptDynamicHtml(profile, currentPrice, APT_BIN_DEFAULT_INDEX) + '</div>'
       + '</div>';
   }
 
@@ -3482,57 +3287,33 @@
     });
   }
 
-  function wireAptTabs(box, apt, currentPrice, code, name, chartByDate) {
+  // 확대(+)/축소(-) 버튼: 서버 재조회 없이 이미 받아온 chartData.daily로 층수(bin count)만
+  // 바꿔 즉시 재계산한다 - 토스 차트에서 확대/축소하면 매물대가 다시 그려지는 것과 같은
+  // 반응성을 층수 조절로 구현(위 헤더 주석 참고).
+  function wireAptTabs(box, chartDaily, currentPrice) {
     var card = box.querySelector('#ffAptCard');
-    if (!card || !apt) return;
-    var activeType = 'total';
+    if (!card || !chartDaily) return;
+    var stepIndex = APT_BIN_DEFAULT_INDEX;
+    playAptEntrance(card);
 
-    function wireTypeTabs() {
-      card.querySelectorAll('.ff-apt-tab').forEach(function (btn) {
+    function wireZoom() {
+      var zoomWrap = card.querySelector('#ffAptZoom');
+      if (!zoomWrap) return;
+      zoomWrap.querySelectorAll('.ff-apt-zoom-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
-          activeType = btn.getAttribute('data-apt-type');
-          card.querySelectorAll('.ff-apt-tab').forEach(function (b) { b.classList.remove('active'); });
-          btn.classList.add('active');
-          var body = card.querySelector('#ffAptBody');
-          if (body) body.innerHTML = buildAptBodyHtml(apt, activeType, currentPrice);
+          var dir = btn.getAttribute('data-zoom');
+          var nextIndex = stepIndex + (dir === 'in' ? 1 : -1);
+          if (nextIndex < 0 || nextIndex >= APT_BIN_STEPS.length) return;
+          stepIndex = nextIndex;
+          var newProfile = computeVolumeProfile(chartDaily, APT_LOOKBACK_DAYS, APT_BIN_STEPS[stepIndex]);
+          var dynamic = card.querySelector('#ffAptDynamic');
+          if (dynamic) dynamic.innerHTML = buildAptDynamicHtml(newProfile, currentPrice, stepIndex);
+          wireZoom();
           playAptEntrance(card);
         });
       });
     }
-
-    playAptEntrance(card);
-    wireTypeTabs();
-
-    // 기간 버튼: /foreign-flow?days=로 다시 불러 그 일수만큼의 고가~저가로 bin 경계
-    // (minLow/maxHigh)를 재계산한다 - fetchFlow가 code+days별로 캐싱하므로 같은 기간
-    // 재클릭은 즉시 응답된다. chartByDate(가격)는 이미 renderResult에서 받아온 걸 그대로
-    // 재사용 - 가격 데이터를 다시 조회할 필요는 없다.
-    var periodWrap = card.querySelector('#ffAptPeriod');
-    if (periodWrap) {
-      periodWrap.querySelectorAll('.ff-flow-period-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          if (btn.classList.contains('active')) return;
-          var days = Number(btn.getAttribute('data-days'));
-          periodWrap.querySelectorAll('.ff-flow-period-btn').forEach(function (b) { b.classList.remove('active'); });
-          btn.classList.add('active');
-          var dynamic = card.querySelector('#ffAptDynamic');
-          if (dynamic) dynamic.innerHTML = '<div class="ff-apt-empty">불러오는 중…</div>';
-          ForeignFlow.fetchFlow(code, name, days).then(function (newData) {
-            var newApt = computeAptData(newData.daily, chartByDate);
-            if (!newApt) {
-              if (dynamic) dynamic.innerHTML = '<div class="ff-apt-empty">이 기간엔 매물대를 계산할 데이터가 부족해요.</div>';
-              return;
-            }
-            apt = newApt;
-            if (dynamic) dynamic.innerHTML = buildAptDynamicHtml(apt, activeType, currentPrice);
-            wireTypeTabs();
-            playAptEntrance(card);
-          }).catch(function () {
-            if (dynamic) dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 다시 불러오지 못했어요.</div>';
-          });
-        });
-      });
-    }
+    wireZoom();
   }
 
   // ---- 매물대(근사) ----
@@ -3550,16 +3331,21 @@
   var vpPrimitive = null; // { series, primitive }
   var lwcCandleSeries = null;
 
-  function computeVolumeProfile(daily) {
+  // lookbackDays/binCount 생략 시 차트 탭 오버레이 기본값(VP_LOOKBACK_DAYS/VP_BIN_COUNT)을
+  // 쓴다. 매물대 아파트 카드(위 aptBinIndex 등)도 이 함수를 그대로 재사용해 층수(줌)만
+  // 다르게 넘긴다 - 계산 로직이 완전히 같아 중복 구현을 피한다.
+  function computeVolumeProfile(daily, lookbackDays, binCount) {
+    lookbackDays = lookbackDays || VP_LOOKBACK_DAYS;
+    binCount = binCount || VP_BIN_COUNT;
     if (!daily || daily.length < 2) return null;
-    var win = daily.slice(Math.max(0, daily.length - VP_LOOKBACK_DAYS));
+    var win = daily.slice(Math.max(0, daily.length - lookbackDays));
     var minLow = Math.min.apply(null, win.map(function (d) { return d.low; }));
     var maxHigh = Math.max.apply(null, win.map(function (d) { return d.high; }));
     if (!(maxHigh > minLow)) return null;
 
-    var binSize = (maxHigh - minLow) / VP_BIN_COUNT;
+    var binSize = (maxHigh - minLow) / binCount;
     var bins = [];
-    for (var i = 0; i < VP_BIN_COUNT; i++) {
+    for (var i = 0; i < binCount; i++) {
       bins.push({ low: minLow + i * binSize, high: minLow + (i + 1) * binSize, volume: 0 });
     }
 
@@ -3568,12 +3354,12 @@
       var range = d.high - d.low;
       if (!(range > 0)) {
         // 하루 종일 가격 변동이 없으면(상하한가 등) 종가가 속한 구간에 거래량 전량 배정
-        var idx = Math.min(VP_BIN_COUNT - 1, Math.max(0, Math.floor((d.close - minLow) / binSize)));
+        var idx = Math.min(binCount - 1, Math.max(0, Math.floor((d.close - minLow) / binSize)));
         bins[idx].volume += d.volume;
         return;
       }
       var startIdx = Math.max(0, Math.floor((d.low - minLow) / binSize));
-      var endIdx = Math.min(VP_BIN_COUNT - 1, Math.floor((d.high - minLow) / binSize));
+      var endIdx = Math.min(binCount - 1, Math.floor((d.high - minLow) / binSize));
       for (var b = startIdx; b <= endIdx; b++) {
         var overlap = Math.min(bins[b].high, d.high) - Math.max(bins[b].low, d.low);
         if (overlap > 0) bins[b].volume += d.volume * (overlap / range);
@@ -3585,7 +3371,12 @@
       if (b.volume > maxVolume) { maxVolume = b.volume; pocIndex = i; }
     });
     if (maxVolume <= 0) return null;
-    return { bins: bins, maxVolume: maxVolume, pocIndex: pocIndex };
+    var last = win[win.length - 1], prev = win[win.length - 2];
+    return {
+      bins: bins, maxVolume: maxVolume, pocIndex: pocIndex,
+      minLow: minLow, maxHigh: maxHigh, binSize: binSize, days: win.length,
+      trendUp: last && prev ? last.close >= prev.close : true
+    };
   }
 
   function buildVpLegend() {

@@ -457,12 +457,9 @@
   line-height: 1.7;
 }
 
-/* ---- 매물대(투자자별 근사, js/foreign-flow.js computeAptData) ----
-   2026-07-27 리디자인("매물대 UI 리디자인 작업지시서"): 층별 창문이 켜지는 "아파트"
-   일러스트를 폐기하고, 가격 레일을 중심으로 좌(매도)·우(매수) 막대가 뻗는 프리미엄
-   데이터 시각화로 전환. 24bin × 창문 7개의 촘촘한 격자는 팔레트만 바꿔선 예뻐지지
-   않는다는 게 2026-07-28 손그림 스타일 시도(즉시 revert)에서 이미 확인됐던 문제라,
-   이번엔 표현 방식 자체를 바꿔 해결한다. */
+/* ---- 매물대 아파트(순수 거래량 기준, js/foreign-flow.js computeVolumeProfile) ----
+   2026-08-02: 개인/외국인/기관 매수·매도벽 구분을 걷어내고 층마다 거래량 단일 막대만
+   보여주는 방식으로 전환(.ff-apt-tab류는 더 안 쓰이지만 과거 흔적으로 남겨둠). */
 #foreign-flow .ff-apt-tabs {
   display: flex;
   gap: 6px;
@@ -484,6 +481,28 @@
 #foreign-flow .ff-apt-tab[data-apt-type="foreign"].active { background: #e8590c; border-color: #e8590c; color: #fff; }
 #foreign-flow .ff-apt-tab[data-apt-type="inst"].active { background: #5f3dc4; border-color: #5f3dc4; color: #fff; }
 
+/* 2026-08-02: 투자자별 매수/매도벽 탭을 걷어내고 확대(+)/축소(-) 층수 조절로 대체
+   (아파트 카드 전용, .ff-flow-period와 톤은 맞추되 라벨이 있어 구조가 다름). */
+#foreign-flow .ff-apt-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 6px;
+}
+#foreign-flow .ff-apt-zoom-btn {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+}
+#foreign-flow .ff-apt-zoom-btn:disabled { opacity: 0.4; cursor: default; }
+#foreign-flow .ff-apt-zoom-label { font-size: 11.5px; font-weight: 700; color: #9aa5b1; min-width: 32px; text-align: center; }
+
 #foreign-flow .ff-apt-summary {
   display: flex;
   flex-wrap: wrap;
@@ -499,6 +518,8 @@
 #foreign-flow .ff-apt-swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
 #foreign-flow .ff-apt-swatch-sell { background: #4A90E2; }
 #foreign-flow .ff-apt-swatch-buy { background: #FF5B6E; }
+#foreign-flow .ff-apt-swatch-vol { background: #f6ad55; }
+#foreign-flow .ff-apt-swatch-poc { background: #e8590c; }
 
 #foreign-flow .ff-apt-totals {
   display: flex;
@@ -731,10 +752,13 @@
 }
 #foreign-flow .ff-apt-bar-sell { background: #4A90E2; transform-origin: right center; }
 #foreign-flow .ff-apt-bar-buy { background: #FF5B6E; transform-origin: left center; }
+#foreign-flow .ff-apt-bar-vol { background: #f6ad55; transform-origin: left center; }
 #foreign-flow .ff-apt-chart-wrap.ff-apt-in .ff-apt-bar { transform: scaleX(1); }
 /* 최대 매물대: 외곽선 + 은은한 그림자로 첫눈에 띄게 */
 #foreign-flow .ff-apt-bar-sell.ff-apt-bar-max { box-shadow: 0 0 0 1px #2f6fc4, 0 0 7px 1px rgba(74, 144, 226, 0.7); }
 #foreign-flow .ff-apt-bar-buy.ff-apt-bar-max { box-shadow: 0 0 0 1px #e0435a, 0 0 7px 1px rgba(255, 91, 110, 0.7); }
+/* POC(거래량 최다 구간): 진한 주황 + 그림자로 강조 */
+#foreign-flow .ff-apt-bar-vol.ff-apt-bar-max { background: #e8590c; box-shadow: 0 0 0 1px #c94a09, 0 0 7px 1px rgba(232, 89, 12, 0.7); }
 
 /* 현재가 행: 주황 테두리 + 은은한 배경 + 좌우 강조선 + 은근한 pulse, 오른쪽에 말풍선 뱃지 */
 #foreign-flow .ff-apt-row-current {
@@ -1638,8 +1662,13 @@ html.dark #foreign-flow .ff-apt-mini-window::after { background: rgba(245, 239, 
 html.dark #foreign-flow .ff-apt-bar-value { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-apt-bar-sell { background: #5b9ee8 !important; }
 html.dark #foreign-flow .ff-apt-bar-buy { background: #ff7d8e !important; }
+html.dark #foreign-flow .ff-apt-bar-vol { background: #ffb066 !important; }
 html.dark #foreign-flow .ff-apt-bar-sell.ff-apt-bar-max { box-shadow: 0 0 0 1px #8fc0f0 !important, 0 0 8px 1px rgba(91, 158, 232, 0.75) !important; }
 html.dark #foreign-flow .ff-apt-bar-buy.ff-apt-bar-max { box-shadow: 0 0 0 1px #ffb0ba !important, 0 0 8px 1px rgba(255, 125, 142, 0.75) !important; }
+html.dark #foreign-flow .ff-apt-bar-vol.ff-apt-bar-max { background: #ff7d33 !important; box-shadow: 0 0 0 1px #ffb066 !important, 0 0 8px 1px rgba(255, 125, 51, 0.75) !important; }
+html.dark #foreign-flow .ff-apt-zoom-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #foreign-flow .ff-apt-zoom-btn:disabled { opacity: 0.35 !important; }
+html.dark #foreign-flow .ff-apt-zoom-label { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-apt-row-current { background: rgba(255, 152, 0, 0.16) !important; }
 html.dark #foreign-flow .ff-apt-row-current .ff-apt-price { color: #ffb154 !important; }
 html.dark #foreign-flow .ff-apt-current-badge { background: #1A1A1A !important; color: #ffb154 !important; }
