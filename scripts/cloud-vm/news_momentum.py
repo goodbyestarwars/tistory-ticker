@@ -107,6 +107,14 @@ STOP_WORDS = {
     '관련', '대한', '통해', '위한', '올해', '내년', '오늘', '전망', '주가', '증권', '종목',
     '기업', '시장', '업계', '기자', '단독', '종합', '속보', '코스피', '코스닥',
 }
+# 언제(시점)일 뿐 무엇(사건)이 아닌 말. "종목명 + 시점어 + 등락 단어" 조합은
+# 그 종목이 그 시점에 올랐다/내렸다는 것 외엔 아무 정보가 없는데, _issue_labels()의
+# 폴백 규칙("핵심명사 + 사건어")이 시점어를 핵심명사로 오인해 "장중 하락"·"마감 상승"
+# 같은 라벨을 만들어냈다(2026-08-02 사용자 리포트) - 이 탭이 구분하려는 "가격 변동"
+# 그 자체이며 재료·이슈가 아니므로 핵심명사 후보에서 제외한다.
+MARKET_SESSION_WORDS = {
+    '장중', '마감', '개장', '특징주', '장초반', '장마감', '시가', '종가',
+}
 
 
 def get_conn(db_file=None):
@@ -193,7 +201,7 @@ def _location_factory_issue(title):
     return '%s공장 %s' % (location, '증설' if match.group(2) == '증설' else '신설')
 
 
-def _issue_labels(title):
+def _issue_labels(title, stock_name=''):
     """한 제목에서 일반 단어가 아닌 복합 이슈 라벨만 추출한다."""
     labels = []
     upper = title.upper()
@@ -225,7 +233,11 @@ def _issue_labels(title):
     if not labels:
         tokens = [
             token for token in re.findall(r'[A-Za-z][A-Za-z0-9-]{1,}|[가-힣]{2,}', title)
-            if token not in STOP_WORDS
+            # 종목명 자체와 시점어(장중/마감 등)는 "핵심명사" 후보가 되면 안 된다 - 전자는
+            # "비에이치아이 비에이치아이 하락" 같은 자기중복 라벨을, 후자는 "장중 하락" 같은
+            # 순수 가격 서술 라벨을 만든다(둘 다 2026-08-02 사용자 리포트로 실측 확인).
+            if token not in STOP_WORDS and token not in MARKET_SESSION_WORDS
+            and not (stock_name and token in stock_name)
         ]
         event_tokens = [
             token for token in tokens
@@ -278,7 +290,7 @@ DEGREE_WORDS = {
     '감소', '축소', '하락', '부진', '급락', '우려', '경고',
 }
 UNIT_WORDS = {'조원', '억원', '만원', '달러', '포인트', '퍼센트'}
-_WEAK_KEYWORD_TOKENS = DEGREE_WORDS | UNIT_WORDS | STOP_WORDS
+_WEAK_KEYWORD_TOKENS = DEGREE_WORDS | UNIT_WORDS | STOP_WORDS | MARKET_SESSION_WORDS
 
 
 def _factory_search_terms(label):
@@ -410,7 +422,7 @@ def extract_topics(stock_code, stock_name, news_items, today=None):
             continue
         article_key = item.get('link') or title
         published = _parse_date(item.get('pubDate') or item.get('datetime'), today_iso)
-        for label in _issue_labels(title):
+        for label in _issue_labels(title, stock_name):
             grouped[label][article_key] = {
                 'title': title,
                 'date': published,

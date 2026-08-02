@@ -1068,6 +1068,8 @@
   // 백엔드 기본치(63=3개월, kiwoom_market.FLOW_DEFAULT_DAYS와 동일)와 맞춰 캐시 키가
   // 겹치도록 여기서도 63으로 고정한다(같은 기간을 기본 로드 후 버튼으로 다시 눌러도
   // 재요청 없이 캐시로 즉시 응답).
+  var FLOW_VM_RETRY_DELAY_MS = 800;
+
   function fetchFlow(code, name, days) {
     days = days || 63;
     var cacheKey = code + ':' + days;
@@ -1075,15 +1077,32 @@
     if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
     if (inflightByCode[cacheKey]) return inflightByCode[cacheKey];
 
-    var p = fetchJson(KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code) + '?days=' + days)
-      .then(function (envelope) {
+    var vmUrl = KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code) + '?days=' + days;
+    function fetchFromVm() {
+      return fetchJson(vmUrl).then(function (envelope) {
         var data = envelope && envelope.data;
         if (!data || data.error) throw new Error('VM 수급 데이터 없음');
+        return data;
+      });
+    }
+
+    // VM(키움+KIS)은 개인 순매매까지 포함하지만, 네이버 폴백(finance.naver.com/item/frgn.naver)은
+    // 그 페이지 자체에 개인 열이 없어 구조적으로 항상 "-"만 나온다(2026-08-02 사용자 리포트 -
+    // 비에이치아이 개인 열이 통째로 미표시). VM이 한 번 실패했다고 바로 폴백하면 일시적
+    // 오류 하나로 이번 조회 내내 개인 수급이 안 보이게 되므로, 폴백 전에 짧게 한 번만 더
+    // 재시도한다. 재시도까지 실패해야 네이버로 넘어간다 - 그때는 여전히 개인 데이터가 없고,
+    // 값을 임의로 채우지 않고 "-"로 표시하는 게 맞다(원본에 없는 값을 추정하지 않는다).
+    var p = fetchFromVm()
+      .catch(function () {
+        return new Promise(function (resolve) { setTimeout(resolve, FLOW_VM_RETRY_DELAY_MS); })
+          .then(fetchFromVm);
+      })
+      .then(function (data) {
         if (name && !data.name) data.name = name;
         return data;
       })
       .catch(function () {
-        // 키움(VM) 실패 시에만 네이버(GAS) 폴백 - 평소 경로 아님, 기간 선택 미지원(항상 기본 기간)
+        // 재시도까지 실패했을 때만 네이버(GAS) 폴백 - 기간 선택 미지원(항상 기본 기간)
         return fetchJson(GAS_TICKER_URL + '?action=foreignFlow&code=' + encodeURIComponent(code));
       })
       .then(function (data) {

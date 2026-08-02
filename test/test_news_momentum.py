@@ -120,6 +120,45 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertEqual(sum(hbm['sentimentCounts'].values()), hbm['newsCount'])
         self.assertEqual(hbm['sentimentCounts']['positive'], 2)
 
+    def test_price_recap_headlines_produce_no_issue_label(self):
+        """'장중 하락'·'마감 상승' 같은 순수 가격 서술은 재료·이슈가 아니므로 라벨을
+        만들지 않아야 한다(2026-08-02 사용자 리포트 - 비에이치아이 모멘텀 탭에 이런
+        노이즈 라벨이 뜸). 이 탭이 구분하려는 대상 자체가 "가격 변동이 아닌 뉴스
+        반복성"이라 가격 방향만 재서술하는 제목은 통과시키면 안 된다."""
+        noisy_titles = [
+            '[특징주] 비에이치아이 장중 하락',
+            '비에이치아이 마감 하락',
+            '비에이치아이, 마감 상승 마감',
+            '비에이치아이 개장 하락',
+        ]
+        for title in noisy_titles:
+            self.assertEqual(
+                news_momentum._issue_labels(title, '비에이치아이'), [],
+                '가격 서술뿐인 제목("%s")에서 라벨이 만들어지면 안 된다' % title,
+            )
+
+        # 실제 배치 파이프라인(extract_topics)에서도 이런 제목만으로는 이슈가 생기지 않는다.
+        items = [
+            {'title': t, 'link': 'https://n/%d' % i, 'pubDate': '2026-07-31'}
+            for i, t in enumerate(noisy_titles)
+        ]
+        topics = news_momentum.extract_topics('083650', '비에이치아이', items, today=TODAY)
+        self.assertEqual(topics, [])
+
+    def test_issue_label_excludes_stock_name_as_subject(self):
+        """핵심명사 후보에 종목명 자체가 남으면 "비에이치아이 비에이치아이 하락" 같은
+        자기중복 라벨이 생긴다 - stock_name을 넘겨 후보에서 제외해야 한다."""
+        self.assertEqual(news_momentum._issue_labels('비에이치아이 마감 하락', '비에이치아이'), [])
+        # stock_name을 안 넘긴 하위호환 호출도 최소한 죽지는 않는다(기본값 '').
+        news_momentum._issue_labels('비에이치아이 마감 하락')
+
+    def test_legitimate_milestone_label_survives_session_word_filter(self):
+        """시점어 필터가 과도해서 진짜 사건(수주잔고 30조원 돌파 등)까지 지우면 안 된다."""
+        label = news_momentum._issue_labels(
+            '[특징주] 한화오션 수주잔고 30조원 돌파', '한화오션',
+        )
+        self.assertEqual(label, ['조원 돌파'])
+
     def test_datalab_keywords_expand_without_losing_issue_discrimination(self):
         """DataLab 검색어는 짧게 넓히되 이슈별 변별력은 유지해야 한다(2026-08-02)."""
         # 규칙 라벨은 표에서 실제로 검색되는 짧은 표현을 함께 받는다.
