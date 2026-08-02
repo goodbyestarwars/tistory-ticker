@@ -1500,8 +1500,22 @@
       + '<span>가격 변동이 아니라 뉴스 반복성·최근성·네이버 통합검색 관심도를 배치 집계한 결과입니다.</span>'
       + '<span class="ff-momentum-coverage">' + coverageText + '</span></div>';
     if (!topics.length) {
-      return intro + '<div class="ff-momentum-empty"><b>' + escapeHtml(stockName) + ' 모멘텀 데이터 준비 중</b>'
-        + '<span>서로 다른 기사에서 2회 이상 반복된 이슈가 생기면 표시됩니다.</span></div>';
+      // 2026-08-02: 예전에는 "수집 대상이 아직 아님"과 "수집했지만 반복 이슈가 없음"이
+      // 같은 문구로 나와서, 사용자 눈에는 모멘텀 탭이 그냥 안 나오는 것처럼 보였다.
+      // 배치 진행 상태(coverage 유무)로 실제 이유를 구분해 표시한다.
+      var emptyTitle, emptyDesc;
+      if (data && data.enabled === false) {
+        emptyTitle = '모멘텀 수집이 일시 중지됨';
+        emptyDesc = '서버에서 뉴스·검색 관심도 수집을 잠시 꺼둔 상태입니다. 다시 켜지면 자동으로 표시됩니다.';
+      } else if (!coverage) {
+        emptyTitle = escapeHtml(stockName) + ' 뉴스 수집 대기 중';
+        emptyDesc = '전 종목을 순서대로 수집하고 있어 아직 이 종목 차례가 오지 않았습니다. 수집이 끝나면 자동으로 표시됩니다.';
+      } else {
+        emptyTitle = escapeHtml(stockName) + ' 반복 이슈 없음';
+        emptyDesc = '최근 90일 뉴스를 수집했지만 서로 다른 기사에서 2회 이상 반복된 이슈가 없습니다.';
+      }
+      return intro + '<div class="ff-momentum-empty"><b>' + emptyTitle + '</b>'
+        + '<span>' + escapeHtml(emptyDesc) + '</span></div>';
     }
     var cards = topics.map(function (topic) {
       var sentiment = topic.sentiment || 'neutral';
@@ -1570,7 +1584,12 @@
     var api = global.ForeignFlow && global.ForeignFlow.fetchNewsMomentum
       ? global.ForeignFlow.fetchNewsMomentum : fetchNewsMomentum;
     api(code).then(function (data) {
-      box.innerHTML = buildNewsMomentumPanel(data, name);
+      // 조회는 됐는데 그리다가 실패한 경우와 조회 자체가 실패한 경우를 구분해 안내한다.
+      try {
+        box.innerHTML = buildNewsMomentumPanel(data, name);
+      } catch (err) {
+        box.innerHTML = '<div class="ff-error">모멘텀 데이터를 표시하지 못했어요. 응답 형식이 예상과 달라 화면을 그릴 수 없습니다.</div>';
+      }
     }).catch(function () {
       box.innerHTML = '<div class="ff-error">모멘텀 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       delete box.dataset.loaded;
@@ -1629,14 +1648,25 @@
   // investorFlowCache와 동일한 패턴: 종목코드별로 캐싱해 탭 재전환 시 재호출하지 않는다.
   // renderResult 시점에 fetchFundamentals가 이미 불러둬서(위 함수) 보통은 캐시 히트로
   // 즉시 렌더링되고, 실패했을 때만 여기서 다시 시도한다.
+  // 2026-08-02: 캐시 히트 경로는 동기 실행이라 buildFundamentalsPanel이 예외를 던지면
+  // box.innerHTML이 아예 설정되지 않아 탭이 빈 화면으로 남았다(응답 구조가 조금만 달라도
+  // 사용자 눈에는 "펀더멘탈이 안 나온다"로 보임). 두 경로 모두 렌더 실패를 잡아 안내한다.
+  function renderFundamentalsPanel(box, res, name) {
+    try {
+      box.innerHTML = buildFundamentalsPanel(res, name);
+    } catch (err) {
+      box.innerHTML = '<div class="ff-error">펀더멘탈 데이터를 표시하지 못했어요. 응답 형식이 예상과 달라 화면을 그릴 수 없습니다.</div>';
+    }
+  }
+
   function loadFundamentals(box, code, name) {
     if (fundamentalsCache[code]) {
-      box.innerHTML = buildFundamentalsPanel(fundamentalsCache[code], name);
+      renderFundamentalsPanel(box, fundamentalsCache[code], name);
       return;
     }
     box.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>펀더멘탈 데이터를 불러오는 중...</div></div>';
     fetchFundamentals(code, name).then(function (res) {
-      box.innerHTML = buildFundamentalsPanel(res, name);
+      renderFundamentalsPanel(box, res, name);
     }).catch(function () {
       box.innerHTML = '<div class="ff-error">펀더멘탈 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
     });
@@ -1679,14 +1709,17 @@
       + buildSectorTags(res && res.code)
       + '</div>';
 
+    // annual은 있는데 years 배열이 비었거나 없는 응답도 "데이터 없음"으로 다룬다
+    // (예전에는 여기서 예외가 나면서 탭 전체가 빈 화면이 됐다).
+    var hasAnnualYears = !!(annual && annual.years && annual.years.length);
     html += '<div class="ff-fund-section">'
       + '<div class="ff-fund-title">재무 (최근 5년)</div>'
-      + (annual ? buildAnnualTable(annual) + buildAnnualCharts(annual) : '<div class="ff-hint">' + escapeHtml(name || '') + '은(는) 재무 데이터가 없는 종목입니다(DART 미제출 또는 아직 배치 스캔 전).</div>')
+      + (hasAnnualYears ? buildAnnualTable(annual) + buildAnnualCharts(annual) : '<div class="ff-hint">' + escapeHtml(name || '') + '은(는) 재무 데이터가 없는 종목입니다(DART 미제출 또는 아직 배치 스캔 전).</div>')
       + '</div>';
 
     html += '<div class="ff-fund-section">'
       + '<div class="ff-fund-title">성장성 (5년 CAGR)</div>'
-      + (annual ? buildGrowthGrid(annual) : '<div class="ff-hint">재무 데이터가 없어 성장성을 계산할 수 없습니다.</div>')
+      + (hasAnnualYears ? buildGrowthGrid(annual) : '<div class="ff-hint">재무 데이터가 없어 성장성을 계산할 수 없습니다.</div>')
       + '</div>';
 
     html += '<div class="ff-fund-section">'

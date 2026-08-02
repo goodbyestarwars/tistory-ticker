@@ -3026,9 +3026,50 @@ function getFundamentals_(code) {
     bps: toNum_(quote.bps),
   } : null;
 
-  var fundamentals = fetchFundamentalsCache_()[code] || null;
+  return { code: code, valuation: valuation, fundamentals: fetchFundamentalsForCode_(code) };
+}
 
-  return { code: code, valuation: valuation, fundamentals: fundamentals };
+// 2026-08-02: 종목 하나를 보여주려고 fetchFundamentalsCache_()가 전 종목 배치 캐시
+// (/fundamentals-batch, 수 MB)를 매 요청 통째로 받아 파싱하고 있었다. 응답이 프론트
+// 타임아웃(20초)을 넘기면 펀더멘탈 탭이 통째로 비어 보인다. VM의 단건 엔드포인트를
+// 우선 쓰고, 아직 배포되지 않은 VM에서도 동작하도록 기존 배치 경로를 폴백으로 남긴다.
+// DART 재무는 하루 1회 갱신이라 종목별로 캐시해도 신선도 손실이 없다.
+var FUNDAMENTALS_CACHE_SEC = 6 * 60 * 60;
+
+function fetchFundamentalsForCode_(code) {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'fundamentals_v1_' + code;
+  var cached = cache.get(cacheKey);
+  if (cached) {
+    try {
+      var parsed = JSON.parse(cached);
+      return parsed.hit ? parsed.value : null;
+    } catch (err) {
+      // 손상된 캐시는 무시하고 아래에서 다시 조회한다.
+    }
+  }
+
+  var single = kiwoomVmFetch_('/fundamentals/' + encodeURIComponent(code));
+  var value = single ? (single.fundamentals || null) : null;
+  var resolved = !!single;
+  if (!resolved) {
+    // VM에 단건 엔드포인트가 아직 없거나 실패한 경우 - 기존 배치 경로로 폴백.
+    var batch = fetchFundamentalsCache_();
+    if (batch && Object.keys(batch).length) {
+      value = batch[code] || null;
+      resolved = true;
+    }
+  }
+  if (!resolved) return null; // 조회 자체가 실패한 상태는 캐시하지 않는다.
+
+  try {
+    // 캐시 항목 상한(100KB)을 넘는 종목은 캐시만 건너뛰고 값은 그대로 반환한다.
+    var payload = JSON.stringify({ hit: true, value: value });
+    if (payload.length < 90000) cache.put(cacheKey, payload, FUNDAMENTALS_CACHE_SEC);
+  } catch (err) {
+    // 캐시 실패는 조회 결과에 영향을 주지 않는다.
+  }
+  return value;
 }
 
 function toNum_(v) {
@@ -3038,8 +3079,8 @@ function toNum_(v) {
 }
 
 // DART 재무제표(5년 실적 추세 + 최근 분기 YoY) - VM의 batch_scan.py(scan_fundamentals)가
-// 하루 1회 미리 계산해둔 캐시를 그대로 받아온다.
-// 아직 어디서도 호출하지 않음 - 종목분석 펀더멘탈 탭에서 처음 소비할 예정.
+// 하루 1회 미리 계산해둔 전 종목 캐시를 그대로 받아온다.
+// 단건 조회(/fundamentals/{code})가 실패했을 때의 폴백 경로 - fetchFundamentalsForCode_ 참고.
 function fetchFundamentalsCache_() {
   var batch = kiwoomVmFetch_('/fundamentals-batch');
   return (batch && batch.data) || {};

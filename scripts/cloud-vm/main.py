@@ -116,6 +116,8 @@ _LIVE_CACHE_MAX_ENTRIES = 500
 _ohlc_cache = {}
 _investor_flow_cache_mem = {}
 _foreign_flow_cache_mem = {}
+# fundamentals_cache.json 파싱 결과(파일 mtime/크기가 바뀔 때만 재파싱) - /fundamentals/{code}용.
+_fundamentals_cache_mem = {}
 
 # 사이드바 랭킹(거래대금/상한가/하한가) - 작업지시서 요구사항(30초~1분 갱신)에 맞춘 짧은
 # TTL 캐시. 방문자가 여러 명이어도 30초에 한 번만 키움을 실제로 호출하면 되므로 단일
@@ -373,13 +375,51 @@ def investor_flow_batch(x_api_key: str = Header(default=None)):
 @app.get('/fundamentals-batch')
 def fundamentals_batch(x_api_key: str = Header(default=None)):
     """batch_scan.py(scan_fundamentals)가 하루 1회 미리 계산해둔 DART 재무제표(5년 실적
-    추세 + 최근 분기 YoY) 캐시를 즉시 반환. /investor-flow-batch와 동일한 서빙 패턴."""
+    추세 + 최근 분기 YoY) 캐시를 즉시 반환. /investor-flow-batch와 동일한 서빙 패턴.
+    단일 종목 조회는 /fundamentals/{code}를 쓴다 - 이 엔드포인트는 배치 소비자 전용."""
     require_api_key(x_api_key)
     if not os.path.exists(FUNDAMENTALS_CACHE_FILE):
         raise HTTPException(status_code=503, detail='펀더멘탈 캐시가 아직 생성되지 않았습니다(batch_scan.py 첫 실행 대기 중).')
     with open(FUNDAMENTALS_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return envelope(cached)
+
+
+def load_fundamentals_cache_cached():
+    """fundamentals_cache.json을 mtime이 바뀔 때만 다시 파싱해 메모리에 보관한다.
+    전 종목 캐시라 파일이 크고, 단건 조회마다 재파싱하면 응답이 느려진다."""
+    global _fundamentals_cache_mem
+    if not os.path.exists(FUNDAMENTALS_CACHE_FILE):
+        return None
+    stat = os.stat(FUNDAMENTALS_CACHE_FILE)
+    signature = (stat.st_mtime_ns, stat.st_size)
+    if _fundamentals_cache_mem.get('signature') != signature:
+        with open(FUNDAMENTALS_CACHE_FILE, 'r', encoding='utf-8') as f:
+            cached = json.load(f)
+        _fundamentals_cache_mem = {
+            'signature': signature,
+            'data': cached.get('data') or {},
+            'fetchedAt': cached.get('fetchedAt') or {},
+        }
+    return _fundamentals_cache_mem
+
+
+@app.get('/fundamentals/{code}')
+def fundamentals_single(code: str = Path(..., min_length=6, max_length=6),
+                        x_api_key: str = Header(default=None)):
+    """종목분석 펀더멘탈 탭용 단건 조회. GAS가 종목 하나를 보여주려고 전 종목 배치
+    캐시(/fundamentals-batch, 수 MB)를 통째로 받아 파싱하던 걸 대체한다.
+    데이터 소스와 계산은 그대로이고 응답에서 해당 종목만 잘라 준다.
+    캐시에 없는 종목(DART 미제출·최근 상장·아직 스캔 전)은 fundamentals: null."""
+    require_api_key(x_api_key)
+    cache = load_fundamentals_cache_cached()
+    if cache is None:
+        raise HTTPException(status_code=503, detail='펀더멘탈 캐시가 아직 생성되지 않았습니다(batch_scan.py 첫 실행 대기 중).')
+    return envelope({
+        'code': code,
+        'fundamentals': cache['data'].get(code),
+        'fetchedAt': cache['fetchedAt'].get(code),
+    })
 
 
 @app.get('/daily-scan-batch')

@@ -375,6 +375,154 @@ class NewsMomentumTest(unittest.TestCase):
         )
         self.assertEqual([row['code'] for row in selected], list(news_momentum_scan.TEST_CODES))
 
+    def test_full_scope_covers_entire_universe(self):
+        universe = [{'code': '%06d' % index, 'name': 'stock%d' % index} for index in range(50)]
+        selected = news_momentum_scan.select_universe(
+            universe, news_momentum_scan.parse_args(['--full'])
+        )
+        self.assertEqual(len(selected), 50)
+
+    def test_full_scan_rotates_from_cursor(self):
+        universe = [{'code': '%06d' % index} for index in range(5)]
+        rotated = news_momentum_scan.rotate_from_cursor(universe, 3)
+        self.assertEqual(
+            [row['code'] for row in rotated],
+            ['000003', '000004', '000000', '000001', '000002'],
+        )
+        # 커서가 종목 수를 넘어가도 안전하게 되돌아온다.
+        self.assertEqual(
+            [row['code'] for row in news_momentum_scan.rotate_from_cursor(universe, 7)],
+            ['000002', '000003', '000004', '000000', '000001'],
+        )
+        self.assertEqual(news_momentum_scan.rotate_from_cursor([], 3), [])
+
+    def test_full_scan_cursor_state_roundtrip_and_recovery(self):
+        cursor_path = os.path.join(self.temp_dir.name, 'cursor.json')
+        with mock.patch.object(news_momentum_scan, 'CURSOR_FILE', cursor_path):
+            fresh = news_momentum_scan.load_cursor()
+            self.assertEqual(fresh['cursor'], 0)
+            self.assertEqual(fresh['newsCalls'], 0)
+
+            fresh.update({'cursor': 120, 'day': '2026-08-02', 'newsCalls': 300, 'datalabCalls': 12})
+            news_momentum_scan.save_cursor(fresh)
+            self.assertEqual(news_momentum_scan.load_cursor()['cursor'], 120)
+            self.assertEqual(news_momentum_scan.load_cursor()['newsCalls'], 300)
+
+            # 손상된 커서 파일은 처음부터 다시 시작한다(예외 없이).
+            with open(cursor_path, 'w', encoding='utf-8') as broken:
+                broken.write('{not json')
+            self.assertEqual(news_momentum_scan.load_cursor()['cursor'], 0)
+
+            # 음수·문자열 같은 비정상 값도 0으로 정규화한다.
+            with open(cursor_path, 'w', encoding='utf-8') as odd:
+                json.dump({'cursor': -5, 'newsCalls': 'x'}, odd)
+            recovered = news_momentum_scan.load_cursor()
+            self.assertEqual(recovered['cursor'], 0)
+            self.assertEqual(recovered['newsCalls'], 0)
+
+    def test_coverage_dates_use_kst_day(self):
+        # UTC 2026-08-01T20:00Z = KST 2026-08-02 05:00 - 하루 단위 스킵 판정이 KST여야 한다.
+        news_momentum.save_stock_coverage(
+            self.conn, '000660', 'SK하이닉스', '2026-05-01', '2026-05-01',
+            '2026-08-01', True, 10, 1, now=datetime(2026, 8, 1, 20, 0, tzinfo=timezone.utc),
+        )
+        dates = news_momentum.load_coverage_dates(self.conn)
+        self.assertEqual(dates['000660'], date(2026, 8, 2))
+
+    def _run_full_scan(self, universe, argv, status_sink, cursor_path):
+        """--full 실행을 외부 호출 없이 돌린다(뉴스 1페이지 = API 1회)."""
+        def fake_search(name, client_id, client_secret, **kwargs):
+            return [{
+                'title': '%s AI 반도체 공급 확대 계약' % name,
+                'link': 'https://n/%s/1' % name,
+                'pubDate': '2026-08-01',
+            }]
+
+        args = news_momentum_scan.parse_args(argv + ['--db', self.db_path, '--skip-datalab'])
+        with mock.patch.object(news_momentum_scan, 'CURSOR_FILE', cursor_path), \
+                mock.patch.object(news_momentum_scan, 'load_dotenv', lambda: None), \
+                mock.patch.object(
+                    news_momentum_scan.daily_scan, 'load_full_universe', lambda: universe), \
+                mock.patch.object(
+                    news_momentum_scan.naver_news, 'search_news', side_effect=fake_search), \
+                mock.patch.object(
+                    news_momentum_scan, 'write_batch_status',
+                    lambda status, **fields: status_sink.append(dict(fields, status=status))), \
+                mock.patch.dict(os.environ, {
+                    'NAVER_APIHUB_CLIENT_ID': 'id', 'NAVER_APIHUB_CLIENT_SECRET': 'secret'}):
+            return news_momentum_scan.run(args)
+
+    def test_full_scan_resumes_from_cursor_within_daily_call_budget(self):
+        universe = [{'code': '%06d' % index, 'name': '종목%d' % index} for index in range(10)]
+        cursor_path = os.path.join(self.temp_dir.name, 'cursor.json')
+        status = []
+
+        # 뉴스 호출 예산 4회 = 4종목까지만 처리하고 커서를 남긴다.
+        exit_code = self._run_full_scan(
+            universe, ['--full', '--news-call-budget', '4'], status, cursor_path
+        )
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(status[-1]['stopReason'], 'news-budget-exhausted')
+        self.assertEqual(status[-1]['processed'], 4)
+        self.assertEqual(status[-1]['universeSize'], 10)
+        with mock.patch.object(news_momentum_scan, 'CURSOR_FILE', cursor_path):
+            saved = news_momentum_scan.load_cursor()
+        self.assertEqual(saved['cursor'], 4)
+        self.assertEqual(saved['newsCalls'], 4)
+        covered = news_momentum.load_coverage_dates(self.conn)
+        self.assertEqual(sorted(covered), ['000000', '000001', '000002', '000003'])
+
+        # 같은 날 다시 돌리면 남은 예산이 없어 아무 종목도 처리하지 않는다.
+        self._run_full_scan(
+            universe, ['--full', '--news-call-budget', '4'], status, cursor_path
+        )
+        self.assertEqual(status[-1]['processed'], 0)
+        self.assertEqual(status[-1]['stopReason'], 'news-budget-exhausted')
+
+        # 예산을 늘리면 커서 위치(4번)부터 이어서 나머지를 처리한다.
+        self._run_full_scan(
+            universe, ['--full', '--news-call-budget', '100'], status, cursor_path
+        )
+        self.assertEqual(status[-1]['stopReason'], 'universe-complete')
+        self.assertEqual(status[-1]['processed'], 6)
+        self.assertEqual(status[-1]['skippedFresh'], 4)  # 오늘 이미 수집한 앞 4종목
+        self.assertEqual(len(news_momentum.load_coverage_dates(self.conn)), 10)
+
+    def test_full_scan_skips_failed_stock_without_blocking_cursor(self):
+        universe = [{'code': '%06d' % index, 'name': '종목%d' % index} for index in range(3)]
+        cursor_path = os.path.join(self.temp_dir.name, 'cursor.json')
+        status = []
+
+        def flaky_search(name, client_id, client_secret, **kwargs):
+            if name == '종목0':
+                raise RuntimeError('네이버 일시 오류')
+            return [{'title': '%s 신규 수주 계약' % name, 'link': 'https://n/%s' % name,
+                     'pubDate': '2026-08-01'}]
+
+        args = news_momentum_scan.parse_args(
+            ['--full', '--db', self.db_path, '--skip-datalab']
+        )
+        with mock.patch.object(news_momentum_scan, 'CURSOR_FILE', cursor_path), \
+                mock.patch.object(news_momentum_scan, 'load_dotenv', lambda: None), \
+                mock.patch.object(
+                    news_momentum_scan.daily_scan, 'load_full_universe', lambda: universe), \
+                mock.patch.object(
+                    news_momentum_scan.naver_news, 'search_news', side_effect=flaky_search), \
+                mock.patch.object(
+                    news_momentum_scan, 'write_batch_status',
+                    lambda s, **fields: status.append(dict(fields, status=s))), \
+                mock.patch.dict(os.environ, {
+                    'NAVER_APIHUB_CLIENT_ID': 'id', 'NAVER_APIHUB_CLIENT_SECRET': 'secret'}):
+            exit_code = news_momentum_scan.run(args)
+
+        # 한 종목이 실패해도 나머지는 수집되고 배치 자체는 성공(날짜 마커 기록 가능)이다.
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(status[-1]['status'], 'completed')
+        self.assertEqual(status[-1]['failureCount'], 1)
+        self.assertEqual(status[-1]['processed'], 2)
+        self.assertEqual(sorted(news_momentum.load_coverage_dates(self.conn)),
+                         ['000001', '000002'])
+
     def test_90day_backfill_coverage_and_api_metadata(self):
         recent = [
             {'title': '삼성전자 AI 반도체 공급 확대', 'link': 'https://n/%d' % index,
@@ -473,7 +621,9 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertIn('TZ=Asia/Seoul date +%F', script)
         self.assertIn('MOMENTUM_SCHEMA_VERSION="3"', script)
         self.assertIn('flock -n -E 75', script)
-        self.assertIn(
+        # 2026-08-02: 파일럿 8종목 고정 목록 -> 전 상장종목 커서 이어달리기(--full)
+        self.assertIn('--full', script)
+        self.assertNotIn(
             '000660,005930,005380,083650,042660,035420,066570,247540',
             script,
         )
@@ -528,6 +678,46 @@ class NewsMomentumTest(unittest.TestCase):
             disabled = vm_main.news_momentum_endpoint('000660')
         self.assertFalse(disabled['data']['enabled'])
         self.assertEqual(disabled['data']['topics'], [])
+
+    def test_fundamentals_single_endpoint_slices_batch_cache(self):
+        """종목분석 펀더멘탈 탭이 전 종목 배치 대신 단건만 받도록 추가한 엔드포인트."""
+        cache_path = os.path.join(self.temp_dir.name, 'fundamentals_cache.json')
+        annual = {'years': [{'year': 2025, 'revenue': 100}], 'latest_roe_pct': 12.5}
+        with open(cache_path, 'w', encoding='utf-8') as output:
+            json.dump({
+                'data': {
+                    '000660': {'annual': annual, 'latest_quarter': None},
+                    '005930': {'annual': None, 'latest_quarter': None},
+                },
+                'fetchedAt': {'000660': '2026-08-01T00:00:00+00:00'},
+            }, output)
+
+        with mock.patch.object(vm_main, 'FUNDAMENTALS_CACHE_FILE', cache_path), \
+                mock.patch.object(vm_main, '_fundamentals_cache_mem', {}), \
+                mock.patch.object(vm_main, 'require_api_key', lambda key: None):
+            hit = vm_main.fundamentals_single('000660')
+            miss = vm_main.fundamentals_single('123456')
+            # 두 번째 호출은 mtime이 그대로라 파일을 다시 파싱하지 않는다.
+            with mock.patch.object(vm_main.json, 'load', side_effect=AssertionError('re-parsed')):
+                cached = vm_main.fundamentals_single('000660')
+
+        self.assertTrue(hit['success'])
+        self.assertEqual(hit['data']['code'], '000660')
+        self.assertEqual(hit['data']['fundamentals']['annual'], annual)
+        self.assertEqual(hit['data']['fetchedAt'], '2026-08-01T00:00:00+00:00')
+        # 캐시에 없는 종목은 오류가 아니라 fundamentals: null - 화면이 안내 문구를 띄운다.
+        self.assertIsNone(miss['data']['fundamentals'])
+        self.assertEqual(cached['data']['fundamentals']['annual'], annual)
+
+    def test_fundamentals_single_reports_missing_cache(self):
+        with mock.patch.object(
+            vm_main, 'FUNDAMENTALS_CACHE_FILE',
+            os.path.join(self.temp_dir.name, 'absent.json'),
+        ), mock.patch.object(vm_main, '_fundamentals_cache_mem', {}), \
+                mock.patch.object(vm_main, 'require_api_key', lambda key: None):
+            with self.assertRaises(vm_main.HTTPException) as raised:
+                vm_main.fundamentals_single('000660')
+        self.assertEqual(raised.exception.status_code, 503)
 
 
 if __name__ == '__main__':

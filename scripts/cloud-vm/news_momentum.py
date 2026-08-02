@@ -18,6 +18,7 @@ from email.utils import parsedate_to_datetime
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'news_momentum.db')
 DATALAB_URL = 'https://naverapihub.apigw.ntruss.com/search-trend/v1/search'
 RETENTION_DAYS = 90
+KST = timezone(timedelta(hours=9))
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS news_topics (
@@ -648,6 +649,26 @@ def prune_old_details(conn, today=None, retention_days=RETENTION_DAYS):
             (cutoff,),
         ).rowcount
     return {'dailyDeleted': daily_deleted, 'trendsDeleted': trends_deleted, 'cutoff': cutoff}
+
+
+def load_coverage_dates(conn):
+    """{종목코드: 마지막 수집 KST 날짜}. --full 이어달리기가 이미 처리한 종목을
+    건너뛰는 데 쓴다. updated_at은 UTC ISO 문자열이라 KST 날짜로 환산한다."""
+    result = {}
+    for row in conn.execute(
+        'SELECT stock_code, updated_at FROM news_stock_coverage'
+    ).fetchall():
+        updated_at = row['updated_at']
+        if not updated_at:
+            continue
+        try:
+            parsed = datetime.fromisoformat(updated_at)
+        except (TypeError, ValueError):
+            continue
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        result[row['stock_code']] = (parsed.astimezone(KST)).date()
+    return result
 
 
 def load_stock_momentum(conn, stock_code, daily_days=30):

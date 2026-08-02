@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """종목 뉴스 모멘텀 배치.
 
-기본 실행은 안전하게 테스트 종목 3개만 처리한다. 전 종목 전환은 운영 검수 뒤
-명시적으로 --full을 준 경우에만 허용한다.
+기본 실행은 안전하게 파일럿 종목만 처리한다. --full은 전 상장종목을 대상으로 하되,
+한 번에 전부 돌지 않고 batch_scan.py(scan_fundamentals)와 같은 이어달리기 방식으로
+동작한다 - 커서 위치부터 시간 예산과 KST 하루 단위 API 호출 예산 안에서만 처리하고,
+남은 종목은 다음 회차가 이어서 처리한다. 네이버 뉴스/DataLab 일일 한도를 넘지 않으면서
+전 종목 커버리지를 며칠에 걸쳐 채우고, 이후에는 같은 순서로 계속 순환 갱신한다.
 """
 
 import argparse
@@ -32,6 +35,53 @@ STATUS_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     'news_momentum_batch_status.json',
 )
+CURSOR_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    'news_momentum_cursor.json',
+)
+
+# --full 이어달리기 기본 예산. batch_scan.py의 펀더멘탈 스캔(20분 예산 + 커서)과 같은 값·패턴.
+FULL_TIME_BUDGET_SEC = 20 * 60
+# 네이버 검색 API 일일 한도(25,000)와 DataLab 일일 한도(1,000)에 여유를 둔 값.
+# 예산은 실행 단위가 아니라 KST 하루 단위로 누적 집계한다.
+FULL_NEWS_CALL_BUDGET = 18000
+FULL_DATALAB_CALL_BUDGET = 900
+# 하루 안에 같은 종목을 다시 조회하지 않는다(뉴스 기준일이 하루 단위라 재조회 이득이 없음).
+FULL_REFRESH_INTERVAL_DAYS = 1
+
+
+def kst_today():
+    return (datetime.now(timezone.utc) + timedelta(hours=9)).date()
+
+
+def load_cursor():
+    """이어달리기 위치와 KST 하루 단위 API 호출 사용량."""
+    state = {'cursor': 0, 'day': None, 'newsCalls': 0, 'datalabCalls': 0, 'lastPassCompletedAt': None}
+    if os.path.exists(CURSOR_FILE):
+        try:
+            with open(CURSOR_FILE, 'r', encoding='utf-8') as source:
+                stored = json.load(source)
+            if isinstance(stored, dict):
+                state.update({k: stored.get(k, v) for k, v in state.items()})
+        except (OSError, ValueError):
+            pass  # 손상된 커서는 처음부터 다시 시작한다(데이터 유실 없음).
+    try:
+        state['cursor'] = max(0, int(state['cursor'] or 0))
+    except (TypeError, ValueError):
+        state['cursor'] = 0
+    for key in ('newsCalls', 'datalabCalls'):
+        try:
+            state[key] = max(0, int(state[key] or 0))
+        except (TypeError, ValueError):
+            state[key] = 0
+    return state
+
+
+def save_cursor(state):
+    temp_path = CURSOR_FILE + '.tmp'
+    with open(temp_path, 'w', encoding='utf-8') as output:
+        json.dump(state, output, ensure_ascii=False)
+    os.replace(temp_path, CURSOR_FILE)
 
 
 def write_batch_status(status, **fields):
@@ -114,11 +164,19 @@ def load_dotenv():
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='뉴스·검색 관심도 모멘텀 배치')
     scope = parser.add_mutually_exclusive_group()
-    scope.add_argument('--full', action='store_true', help='전체 종목 처리(운영 검수 후에만 사용)')
+    scope.add_argument('--full', action='store_true', help='전 상장종목 대상(커서 이어달리기)')
     scope.add_argument('--codes', help='쉼표로 구분한 6자리 종목코드')
     parser.add_argument('--skip-datalab', action='store_true', help='뉴스만 집계하고 DataLab 호출 생략')
     parser.add_argument('--db', default=news_momentum.DB_FILE, help='SQLite 파일 경로')
     parser.add_argument('--lock-file', help='중복 실행 방지 잠금 파일 경로')
+    parser.add_argument('--time-budget-sec', type=int, default=FULL_TIME_BUDGET_SEC,
+                        help='--full에서 이번 회차에 쓸 시간 예산(초)')
+    parser.add_argument('--news-call-budget', type=int, default=FULL_NEWS_CALL_BUDGET,
+                        help='--full에서 KST 하루 동안 쓸 네이버 뉴스 API 호출 예산')
+    parser.add_argument('--datalab-call-budget', type=int, default=FULL_DATALAB_CALL_BUDGET,
+                        help='--full에서 KST 하루 동안 쓸 DataLab 호출 예산')
+    parser.add_argument('--refresh-interval-days', type=int, default=FULL_REFRESH_INTERVAL_DAYS,
+                        help='--full에서 같은 종목을 다시 조회하기까지의 최소 일수')
     return parser.parse_args(argv)
 
 
@@ -179,11 +237,19 @@ def fetch_news_backfill(stock_name, client_id, client_secret, today, backfill_da
     }
 
 
+def rotate_from_cursor(universe, cursor):
+    """커서 위치부터 한 바퀴 순서대로 돌려준다(마지막까지 가면 처음으로 되돌아감)."""
+    if not universe:
+        return []
+    start = cursor % len(universe)
+    return universe[start:] + universe[:start]
+
+
 def run(args):
     load_dotenv()
     started = time.monotonic()
-    universe = select_universe(daily_scan.load_full_universe(), args)
-    if not universe:
+    full_universe = select_universe(daily_scan.load_full_universe(), args)
+    if not full_universe:
         raise RuntimeError('empty-pilot-universe')
 
     client_id = os.environ.get('NAVER_APIHUB_CLIENT_ID')
@@ -191,11 +257,24 @@ def run(args):
     if not client_id or not client_secret:
         raise RuntimeError('missing-naver-environment')
 
+    today_kst = kst_today()
+    cursor_state = load_cursor() if args.full else None
+    if cursor_state is not None and cursor_state['day'] != today_kst.isoformat():
+        # KST 날짜가 바뀌면 하루 단위 호출 예산을 초기화한다(커서 위치는 유지).
+        cursor_state.update({'day': today_kst.isoformat(), 'newsCalls': 0, 'datalabCalls': 0})
+    news_budget = max(0, args.news_call_budget - cursor_state['newsCalls']) if cursor_state else None
+    datalab_budget = (
+        max(0, args.datalab_call_budget - cursor_state['datalabCalls']) if cursor_state else None
+    )
+
     before_size = os.path.getsize(args.db) if os.path.exists(args.db) else 0
     conn = news_momentum.get_conn(args.db)
     news_calls = 0
     datalab_calls = 0
     topic_count = 0
+    processed = 0
+    skipped_fresh = 0
+    stop_reason = 'universe-complete'
     failures = []
     try:
         news_momentum.create_schema(conn)
@@ -203,7 +282,31 @@ def run(args):
         start_date = (today - timedelta(days=89)).isoformat()
         end_date = today.isoformat()
 
+        if cursor_state is None:
+            universe = full_universe
+            coverage_dates = {}
+        else:
+            universe = rotate_from_cursor(full_universe, cursor_state['cursor'])
+            coverage_dates = news_momentum.load_coverage_dates(conn)
+            if news_budget <= 0:
+                stop_reason = 'news-budget-exhausted'
+                universe = []
+
         for index, stock in enumerate(universe, 1):
+            if cursor_state is not None:
+                # 시간·호출 예산을 넘기면 커서만 남기고 멈춘다 - 남은 종목은 다음 회차가 잇는다.
+                if time.monotonic() - started >= args.time_budget_sec:
+                    stop_reason = 'time-budget-exhausted'
+                    break
+                if news_calls >= news_budget:
+                    stop_reason = 'news-budget-exhausted'
+                    break
+                last_scanned = coverage_dates.get(stock['code'])
+                if (last_scanned is not None
+                        and (today_kst - last_scanned).days < args.refresh_interval_days):
+                    skipped_fresh += 1
+                    cursor_state['cursor'] = (cursor_state['cursor'] + 1) % len(full_universe)
+                    continue
             try:
                 items, coverage = fetch_news_backfill(
                     stock['name'], client_id, client_secret, today
@@ -232,7 +335,10 @@ def run(args):
                 )
                 topic_count += len(topics)
 
-                if not args.skip_datalab:
+                # DataLab은 일일 한도가 뉴스 검색보다 훨씬 작아서 예산을 따로 확인한다.
+                # 예산이 떨어져도 뉴스 집계는 계속하고 검색 관심도만 다음 회차로 미룬다.
+                datalab_allowed = datalab_budget is None or datalab_calls < datalab_budget
+                if not args.skip_datalab and datalab_allowed:
                     due = news_momentum.datalab_topics_due(conn, stock['code'], today=today)
                     if due:
                         trends = news_momentum.fetch_datalab_trends(
@@ -242,6 +348,7 @@ def run(args):
                         news_momentum.save_datalab_trends(
                             conn, due, trends, start_date, end_date, 'date'
                         )
+                processed += 1
                 print('[%d/%d] %s(%s): 뉴스 %d건 / 이슈 %d개 / 기준일 %s / 90일 백필 %s' % (
                     index, len(universe), stock['name'], stock['code'], len(items), len(topics),
                     coverage['actualEndDate'] or '-',
@@ -253,29 +360,61 @@ def run(args):
                     stock['name'], stock['code'], type(exc).__name__
                 ))
                 print('[%d/%d] 실패: %s' % (index, len(universe), failures[-1]), file=sys.stderr)
+            finally:
+                # 실패한 종목도 커서를 넘긴다 - 한 종목이 계속 실패해도 나머지가 막히지 않는다.
+                if cursor_state is not None:
+                    cursor_state['cursor'] = (cursor_state['cursor'] + 1) % len(full_universe)
 
         prune = news_momentum.prune_old_details(conn, today=today)
     finally:
         conn.close()
 
+    if cursor_state is not None:
+        cursor_state['newsCalls'] += news_calls
+        cursor_state['datalabCalls'] += datalab_calls
+        if stop_reason == 'universe-complete':
+            cursor_state['lastPassCompletedAt'] = datetime.now(timezone.utc).isoformat()
+        save_cursor(cursor_state)
+
     after_size = os.path.getsize(args.db) if os.path.exists(args.db) else 0
-    print('완료: 종목 %d / 이슈 %d / 뉴스 API %d회 / DataLab %d회 / 실패 %d' % (
-        len(universe), topic_count, news_calls, datalab_calls, len(failures)
+    print('완료: 처리 %d / 오늘 이미 수집돼 건너뜀 %d / 이슈 %d / 뉴스 API %d회 / DataLab %d회 / 실패 %d' % (
+        processed, skipped_fresh, topic_count, news_calls, datalab_calls, len(failures)
     ))
+    if cursor_state is not None:
+        print('대상 %d종목 / 중단사유 %s / 다음 커서 %d' % (
+            len(full_universe), stop_reason, cursor_state['cursor']
+        ))
     print('DB: %d -> %d bytes (%+d), 보관정책: %s, 실행시간: %.2f초' % (
         before_size, after_size, after_size - before_size, prune, time.monotonic() - started
     ))
-    write_batch_status(
-        'completed' if not failures else 'failed',
-        stockCodes=[stock['code'] for stock in universe],
-        failures=failures,
-        newsApiCalls=news_calls,
-        datalabCalls=datalab_calls,
-        topics=topic_count,
-        dbBytes=after_size,
-        elapsedSeconds=round(time.monotonic() - started, 2),
-    )
-    return 1 if failures else 0
+    status_fields = {
+        # 전 종목 모드에서 실패 목록이 무한정 커지지 않도록 상한을 둔다(종류 파악용).
+        'failures': failures[:50],
+        'failureCount': len(failures),
+        'newsApiCalls': news_calls,
+        'datalabCalls': datalab_calls,
+        'topics': topic_count,
+        'dbBytes': after_size,
+        'elapsedSeconds': round(time.monotonic() - started, 2),
+    }
+    if cursor_state is None:
+        status_fields['stockCodes'] = [stock['code'] for stock in universe]
+    else:
+        # 전 종목 모드에서는 종목코드를 전부 남기지 않고 진행 상황만 기록한다.
+        status_fields.update({
+            'mode': 'full',
+            'universeSize': len(full_universe),
+            'processed': processed,
+            'skippedFresh': skipped_fresh,
+            'stopReason': stop_reason,
+            'nextCursor': cursor_state['cursor'],
+            'dayKst': cursor_state['day'],
+        })
+    # 일부 종목이 실패해도 나머지 수집 결과는 정상이므로, 전 종목 모드에서는
+    # 전량 실패일 때만 failed로 본다(개별 실패는 failures 목록으로 남긴다).
+    batch_failed = bool(failures) if cursor_state is None else (bool(failures) and processed == 0)
+    write_batch_status('failed' if batch_failed else 'completed', **status_fields)
+    return 1 if batch_failed else 0
 
 
 def main(argv=None):

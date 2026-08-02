@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""배포 후 news_momentum.db가 지정 8종목으로 실제 생성·갱신됐는지 확인한다."""
+"""배포 후 news_momentum.db가 실제로 생성·갱신됐는지 확인한다.
+
+배치는 전 상장종목을 커서로 순회하지만, 회귀 검사 기준은 처음부터 수집돼 있던
+파일럿 8종목의 커버리지·감성 집계를 그대로 쓴다(전 종목 커버리지는 며칠에 걸쳐
+채워지므로 배포 시점의 합격 조건으로 삼을 수 없다).
+"""
 
 import os
 import sqlite3
@@ -50,6 +55,9 @@ def verify_database(db_file=DB_FILE):
             % placeholders,
             PILOT_CODES,
         ).fetchall()
+        covered_total = conn.execute(
+            'SELECT COUNT(*) FROM news_stock_coverage'
+        ).fetchone()[0]
     finally:
         conn.close()
     found = {row[0] for row in rows}
@@ -75,6 +83,7 @@ def verify_database(db_file=DB_FILE):
     return {
         'bytes': os.path.getsize(db_file),
         'stocks': len(found),
+        'coveredStocks': covered_total,
         'latestDataDate': max(row[1] for row in rows),
         'latestUpdatedAt': max(row[2] for row in rows),
     }
@@ -82,8 +91,8 @@ def verify_database(db_file=DB_FILE):
 
 def main():
     result = verify_database()
-    print('PASS news_momentum.db stocks=%d bytes=%d dataDate=%s' % (
-        result['stocks'], result['bytes'], result['latestDataDate']
+    print('PASS news_momentum.db pilotStocks=%d coveredStocks=%d bytes=%d dataDate=%s' % (
+        result['stocks'], result['coveredStocks'], result['bytes'], result['latestDataDate']
     ))
     return 0
 

@@ -11,7 +11,6 @@ MOMENTUM_SCHEMA_MARKER="$APP_DIR/.news_momentum_batch_schema_version"
 MOMENTUM_SCHEMA_VERSION="3"
 MOMENTUM_LOCK="$APP_DIR/.news_momentum_timer.lock"
 MOMENTUM_DB="$APP_DIR/news_momentum.db"
-PILOT_CODES="000660,005930,005380,083650,042660,035420,066570,247540"
 
 cd "$APP_DIR"
 
@@ -44,9 +43,12 @@ run_news_momentum_if_due() {
   fi
 
   # flock 종료코드 75는 다른 5분 회차가 이미 배치를 실행 중이라는 뜻이다.
+  # --full은 전 상장종목이 대상이지만 한 회차에 20분 시간 예산과 KST 하루 단위
+  # API 호출 예산까지만 쓰고 커서를 남긴다(news_momentum_cursor.json).
+  # 첫 전수 커버리지는 며칠에 걸쳐 채워지고 이후에는 같은 순서로 순환 갱신된다.
   if flock -n -E 75 "$MOMENTUM_LOCK" \
       "$PYTHON" "$APP_DIR/news_momentum_scan.py" \
-      --codes "$PILOT_CODES" \
+      --full \
       --db "$MOMENTUM_DB" \
       --lock-file "$APP_DIR/.news_momentum_python.lock"; then
     if "$PYTHON" "$APP_DIR/verify_news_momentum_db.py" \

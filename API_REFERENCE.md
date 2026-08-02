@@ -121,12 +121,12 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 응답 JSON 구조 | 기존 필드를 유지하고 topic마다 `newsCount`, `recent7dCount`, `previous7dCount`, `changeRate`, `momentumStatus`(`new`/`expanding`/`declining`/`persistent`), `sentimentCounts`(`positive`/`neutral`/`negative`), `netSentiment`, `negativeShare`를 추가한다. 감성 집계 근거가 없는 기존 행은 `sentimentCounts=null`이며 임의의 0건으로 반환하지 않는다. |
 | 데이터 단위 | 뉴스 횟수는 중복 제거된 기사 건수이며 감성별 합계는 `newsCount`와 같다. 최근 7일은 기준일 포함 7일, 이전 7일은 8~14일 구간이다. `changeRate`는 이전 7일이 0이면 `null`이다. `latestSearchInterest`/`searchInterestChange`는 NAVER DataLab 상대지수(조회 묶음의 최고 검색량=100)다. |
 | 데이터 소스 | `news_momentum_scan.py`가 NAVER 뉴스 제목에서 반복 이슈를 규칙 기반으로 추출하고, 활성 이슈만 NAVER API HUB Search Trend로 확인 |
-| 데이터 갱신 주기 | 8종목 파일럿 하루 1회: SK하이닉스·삼성전자·현대차·비에이치아이·한화오션·NAVER·LG전자·에코프로비엠 |
+| 데이터 갱신 주기 | 전 상장종목 대상, 하루 1회 이어달리기(`news_momentum_scan.py --full`). 한 회차는 20분 시간 예산과 KST 하루 단위 호출 예산(뉴스 18,000회·DataLab 900회)까지만 쓰고 `news_momentum_cursor.json`에 커서를 남긴다. 첫 전수 커버리지는 며칠에 걸쳐 채워지고 이후 같은 순서로 순환 갱신된다 |
 | 캐시/DB | 기존 `ohlc_snapshot.db`와 분리된 `news_momentum.db` 즉시 조회. 사용자 요청 시 외부 API 호출 없음 |
 | 초기 백필·기준일 | 최신순 뉴스 API를 최대 1,000건까지 페이지 조회해 최근 90일 경계에 도달했는지 저장한다. 화면의 `데이터 기준일`과 `최근 90일 뉴스 백필 완료/부분` 표시는 `coverage` 값에 따른 실제 상태이며, 1,000건 한도로 경계에 못 닿으면 `backfillComplete=false` |
 | Feature Flag | `.env`의 `NEWS_MOMENTUM_ENABLED=0`이면 DB를 열지 않고 `enabled:false`, `topics:[]` 반환 |
 | 호출 예시 | `curl "https://goodbyestar.cloud/news-momentum/000660"` |
-| 빈 데이터 | DB가 아직 없거나 반복 이슈가 없으면 200과 `topics:[]` 반환 |
+| 빈 데이터 | DB가 아직 없거나 반복 이슈가 없으면 200과 `topics:[]` 반환. 아직 수집 차례가 오지 않은 종목은 `coverage:null`이고, 수집은 됐지만 반복 이슈가 없으면 `coverage`가 채워진 채 `topics:[]`다(화면이 두 상태를 구분해 안내한다) |
 
 ### `GET /investor-trend`
 
@@ -218,7 +218,8 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | GET | `/futures/avg` | 불필요 | 없음(즉시계산) | 쿼리 `symbol`(필수) · `days`(1~1000, 기본365) - 지정 심볼의 장기평균/최고/최저 |
 | GET | `/naver-news` | **필요** | 없음 | 쿼리 `query`(필수, 1~100자) - 네이버 뉴스검색 프록시, 호출마다 네이버 API 쿼터 소모 |
 | GET | `/investor-flow-batch` | **필요** | 하루 1회(`batch_scan.py`) | 섹터 풀(238종목) 공매도/대차/연기금 배치 캐시 |
-| GET | `/fundamentals-batch` | **필요** | 하루 1회(`batch_scan.py`) | DART 재무제표(5년 추세+최근분기) 배치 캐시 |
+| GET | `/fundamentals-batch` | **필요** | 하루 1회(`batch_scan.py`) | DART 재무제표(5년 추세+최근분기) 전종목 배치 캐시 - 배치 소비자 전용 |
+| GET | `/fundamentals/{code}` | **필요** | 하루 1회(`batch_scan.py`) | 위 캐시에서 해당 종목만 잘라 반환(`{code, fundamentals, fetchedAt}`). 종목분석 펀더멘탈 탭용 단건 조회 - 캐시에 없으면 `fundamentals: null` |
 | GET | `/earnings-calendar?year=YYYY&month=M` | 불필요 | 10분 메모리 캐시 | DART 거래소 공시 중 실제 접수된 잠정실적/실적 공시를 캘린더 이벤트로 반환. `DART_API_KEY`가 없으면 빈 배열 |
 | GET | `/daily-scan-batch` | **필요** | 하루 1회(`daily_scan.py`) | 차트패턴·눌림목·투자시그널 전종목 스캔 결과 |
 
