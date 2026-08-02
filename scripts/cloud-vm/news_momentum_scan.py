@@ -42,6 +42,13 @@ CURSOR_FILE = os.path.join(
 
 # --full 이어달리기 기본 예산. batch_scan.py의 펀더멘탈 스캔(20분 예산 + 커서)과 같은 값·패턴.
 FULL_TIME_BUDGET_SEC = 20 * 60
+# 2026-08-02: 파일럿 8종목일 땐 안 드러났지만 --full로 전 종목을 도는 동안 종목 사이에
+# 쉬는 시간이 전혀 없어서(batch_scan.py는 이미 THROTTLE_SEC=0.25로 쉬어감) VM 전체가
+# 느려지는 문제가 실측 확인됐다(사용자 리포트 - 자원과 무관한 로컬 `clear` 명령조차 느려짐,
+# CPU/디스크 I/O 경합으로 추정). 같은 값으로 맞춘다 - 종목당 여러 번 호출하므로 배치 전체
+# 소요시간에 큰 영향은 없지만(호출 자체가 네트워크 대기가 대부분), 요청 사이 텀을 둬 VM의
+# 다른 프로세스가 CPU/디스크를 나눠 쓸 여유를 준다.
+THROTTLE_SEC = 0.25
 
 # 네이버 검색 API(API HUB) 한도: 일 25,000회 / 월 775,000건(검색 카테고리 통합 관리).
 # 같은 키를 쓰는 다른 소비자는 /naver-news(증시·코스피·코스닥 3개 쿼리, GAS 15분 캐시)로
@@ -387,6 +394,7 @@ def run(args):
                 # 실패한 종목도 커서를 넘긴다 - 한 종목이 계속 실패해도 나머지가 막히지 않는다.
                 if cursor_state is not None:
                     cursor_state['cursor'] = (cursor_state['cursor'] + 1) % len(full_universe)
+                time.sleep(THROTTLE_SEC)
 
         prune = news_momentum.prune_old_details(conn, today=today)
     finally:

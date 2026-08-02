@@ -538,9 +538,42 @@ class NewsMomentumTest(unittest.TestCase):
                 mock.patch.object(
                     news_momentum_scan, 'write_batch_status',
                     lambda status, **fields: status_sink.append(dict(fields, status=status))), \
+                mock.patch.object(news_momentum_scan.time, 'sleep', lambda s: None), \
                 mock.patch.dict(os.environ, {
                     'NAVER_APIHUB_CLIENT_ID': 'id', 'NAVER_APIHUB_CLIENT_SECRET': 'secret'}):
             return news_momentum_scan.run(args)
+
+    def test_full_scan_throttles_between_stocks(self):
+        """2026-08-02 사용자 리포트: --full로 전 종목을 도는 동안 종목 사이 딜레이가
+        없어 VM 전체가 느려졌다(다른 배치 batch_scan.py는 이미 종목마다 쉬어감). 매
+        종목 처리 후 정확히 THROTTLE_SEC만큼 쉬는지 직접 검증한다(성공/실패 모두)."""
+        universe = [{'code': '%06d' % index, 'name': '종목%d' % index} for index in range(4)]
+        cursor_path = os.path.join(self.temp_dir.name, 'cursor.json')
+        sleep_calls = []
+
+        def fake_search(name, client_id, client_secret, **kwargs):
+            if name == '종목1':
+                raise RuntimeError('일시 오류')  # 실패한 종목도 쉬어가는지 함께 확인
+            return [{'title': '%s 신규 수주 계약' % name, 'link': 'https://n/%s' % name,
+                     'pubDate': '2026-08-01'}]
+
+        args = news_momentum_scan.parse_args(
+            ['--full', '--db', self.db_path, '--skip-datalab']
+        )
+        with mock.patch.object(news_momentum_scan, 'CURSOR_FILE', cursor_path), \
+                mock.patch.object(news_momentum_scan, 'load_dotenv', lambda: None), \
+                mock.patch.object(
+                    news_momentum_scan.daily_scan, 'load_full_universe', lambda: universe), \
+                mock.patch.object(
+                    news_momentum_scan.naver_news, 'search_news', side_effect=fake_search), \
+                mock.patch.object(news_momentum_scan, 'write_batch_status', lambda *a, **k: None), \
+                mock.patch.object(
+                    news_momentum_scan.time, 'sleep', side_effect=sleep_calls.append), \
+                mock.patch.dict(os.environ, {
+                    'NAVER_APIHUB_CLIENT_ID': 'id', 'NAVER_APIHUB_CLIENT_SECRET': 'secret'}):
+            news_momentum_scan.run(args)
+
+        self.assertEqual(sleep_calls, [news_momentum_scan.THROTTLE_SEC] * len(universe))
 
     def test_full_scan_resumes_from_cursor_within_daily_call_budget(self):
         universe = [{'code': '%06d' % index, 'name': '종목%d' % index} for index in range(10)]
@@ -630,6 +663,7 @@ class NewsMomentumTest(unittest.TestCase):
                 mock.patch.object(
                     news_momentum_scan, 'write_batch_status',
                     lambda s, **fields: status.append(dict(fields, status=s))), \
+                mock.patch.object(news_momentum_scan.time, 'sleep', lambda s: None), \
                 mock.patch.dict(os.environ, {
                     'NAVER_APIHUB_CLIENT_ID': 'id', 'NAVER_APIHUB_CLIENT_SECRET': 'secret'}):
             exit_code = news_momentum_scan.run(args)
