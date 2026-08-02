@@ -10,6 +10,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
 | `UI_GUIDE.md` | 색상, 레이아웃, 반응형 원칙 | UI 작업 |
 | `WORK_HISTORY.md` | 중요한 기능·구조·배포 이력 | 이력 확인·갱신 시 |
+| `CLAUDE_SKILLS_GUIDE.md` | Claude Code 외부 스킬/플러그인 설치 가이드(로컬 도구, 앱 코드 무관) | 스킬 설치 검토 시 |
 | `../.claude/rules/` | 경로별 세부 규칙 | 관련 파일 작업 시 |
 | `../.claude/skills/` | 반복 작업 절차 | Skill 호출 시 |
 
