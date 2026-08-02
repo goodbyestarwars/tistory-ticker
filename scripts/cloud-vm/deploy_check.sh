@@ -11,6 +11,9 @@ MOMENTUM_SCHEMA_MARKER="$APP_DIR/.news_momentum_batch_schema_version"
 MOMENTUM_SCHEMA_VERSION="3"
 MOMENTUM_LOCK="$APP_DIR/.news_momentum_timer.lock"
 MOMENTUM_DB="$APP_DIR/news_momentum.db"
+# 2026-08-02: _issue_labels() 폴백이 만들던 "장중 하락"·"마감 상승" 같은 순수 가격서술
+# 이슈를 코드 수정 이후에도 이미 저장된 행은 안 지워지므로, 배포 후 1회만 정리한다.
+PRICE_RECAP_CLEANUP_MARKER="$APP_DIR/.news_momentum_price_recap_cleanup_v1_done"
 
 cd "$APP_DIR"
 
@@ -76,6 +79,26 @@ run_news_momentum_if_due() {
   return 0
 }
 
+# 코드가 바뀌어도 news_topics에 이미 저장된 행은 자동으로 안 지워지므로(정리는 별도
+# 마이그레이션 몫), 마커 파일이 없을 때만 1회 실행하고 성공해야 마커를 남긴다. 실패하면
+# 마커를 안 남겨 다음 5분 회차가 재시도한다(모멘텀 배치와 동일한 재시도 패턴).
+run_price_recap_cleanup_once() {
+  if [ -f "$PRICE_RECAP_CLEANUP_MARKER" ]; then
+    return 0
+  fi
+  if [ ! -f "$MOMENTUM_DB" ]; then
+    return 0  # DB가 아직 없으면(모멘텀 배치 첫 실행 전) 정리할 것도 없음 - 다음 회차 재확인
+  fi
+  if "$PYTHON" "$APP_DIR/cleanup_price_recap_topics.py" \
+      --db "$MOMENTUM_DB" --backup-dir "$APP_DIR/backups" --apply; then
+    touch "$PRICE_RECAP_CLEANUP_MARKER"
+    echo "가격서술 노이즈 이슈 정리 완료(1회성)"
+  else
+    echo "가격서술 노이즈 이슈 정리 실패: 5분 뒤 재시도" >&2
+  fi
+  return 0
+}
+
 LAST_DEPLOYED="$(cat "$DEPLOYED_FILE" 2>/dev/null || echo "")"
 git fetch origin master -q
 REMOTE="$(git rev-parse origin/master)"
@@ -104,3 +127,4 @@ fi
 
 # 실패해도 위 배포 결과와 FastAPI 재시작 성공을 되돌리거나 비정상 종료시키지 않는다.
 run_news_momentum_if_due "$DEPLOY_OCCURRED" || true
+run_price_recap_cleanup_once || true

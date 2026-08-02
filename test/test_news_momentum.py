@@ -17,6 +17,7 @@ if CLOUD_VM_DIR not in sys.path:
 import news_momentum
 import news_momentum_scan
 import backup_sqlite
+import cleanup_price_recap_topics
 import verify_news_momentum_db
 import main as vm_main
 
@@ -682,6 +683,98 @@ class NewsMomentumTest(unittest.TestCase):
                 with news_momentum_scan.BatchLock(lock_path):
                     pass
 
+    def _insert_topic(self, code, name, topic_name, status='active'):
+        self.conn.execute(
+            '''INSERT INTO news_topics
+               (stock_code,stock_name,topic_name,keywords_json,first_seen_at,last_seen_at,
+                status,created_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?)''',
+            (code, name, topic_name, '[]', '2026-07-31', '2026-07-31', status,
+             '2026-07-31T00:00:00+00:00', '2026-07-31T00:00:00+00:00'),
+        )
+        topic_id = self.conn.execute(
+            'SELECT id FROM news_topics WHERE stock_code=? AND topic_name=?', (code, topic_name),
+        ).fetchone()[0]
+        self.conn.execute(
+            'INSERT INTO news_topic_daily (topic_id,stock_code,date,news_count,created_at) '
+            'VALUES (?,?,?,?,?)',
+            (topic_id, code, '2026-07-31', 2, '2026-07-31T00:00:00+00:00'),
+        )
+        self.conn.commit()
+        return topic_id
+
+    def test_cleanup_identifies_price_recap_and_self_duplicate_labels_only(self):
+        """2026-08-02 사용자 리포트: 배치 코드는 고쳤지만 이미 저장된 노이즈 행은
+        그대로 남는다 - 이걸 골라내는 판정 자체를 검증한다(topic_name만으로 역판정)."""
+        noisy_ids = {
+            self._insert_topic('083650', '비에이치아이', '비에이치아이 장중 하락'),
+            self._insert_topic('083650', '비에이치아이', '비에이치아이 마감 상승'),
+            self._insert_topic('083650', '비에이치아이', '비에이치아이 비에이치아이 하락'),
+        }
+        clean_ids = {
+            self._insert_topic('083650', '비에이치아이', '비에이치아이 신규 수주'),
+            self._insert_topic('042660', '한화오션', '한화오션 조원 돌파'),
+            self._insert_topic('000660', 'SK하이닉스', 'SK하이닉스 실적 개선'),
+        }
+
+        found = cleanup_price_recap_topics.find_noisy_topics(self.conn)
+        found_ids = {row[0] for row in found}
+        self.assertEqual(found_ids, noisy_ids)
+        self.assertEqual(found_ids & clean_ids, set())
+
+    def test_cleanup_dry_run_does_not_delete(self):
+        topic_id = self._insert_topic('083650', '비에이치아이', '비에이치아이 마감 하락')
+        exit_code = cleanup_price_recap_topics.main([
+            '--db', self.db_path, '--backup-dir', os.path.join(self.temp_dir.name, 'backups'),
+        ])
+        self.assertEqual(exit_code, 0)
+        remaining = self.conn.execute(
+            'SELECT COUNT(*) FROM news_topics WHERE id=?', (topic_id,)
+        ).fetchone()[0]
+        self.assertEqual(remaining, 1, '미리보기(dry-run)는 아무것도 지우면 안 된다')
+
+    def test_cleanup_apply_deletes_only_noisy_rows_with_cascade_and_backup(self):
+        noisy_id = self._insert_topic('083650', '비에이치아이', '비에이치아이 장중 하락')
+        clean_id = self._insert_topic('083650', '비에이치아이', '비에이치아이 신규 수주')
+        backup_dir = os.path.join(self.temp_dir.name, 'backups')
+
+        exit_code = cleanup_price_recap_topics.main(['--db', self.db_path, '--backup-dir', backup_dir])
+        self.assertEqual(exit_code, 0)
+
+        self.assertEqual(
+            self.conn.execute('SELECT COUNT(*) FROM news_topics WHERE id=?', (noisy_id,)).fetchone()[0], 1,
+            '--apply 없이는 여전히 지워지면 안 된다',
+        )
+
+        exit_code = cleanup_price_recap_topics.main([
+            '--db', self.db_path, '--backup-dir', backup_dir, '--apply',
+        ])
+        self.assertEqual(exit_code, 0)
+
+        self.assertEqual(
+            self.conn.execute('SELECT COUNT(*) FROM news_topics WHERE id=?', (noisy_id,)).fetchone()[0], 0,
+        )
+        self.assertEqual(
+            self.conn.execute('SELECT COUNT(*) FROM news_topics WHERE id=?', (clean_id,)).fetchone()[0], 1,
+            '정상 이슈는 건드리면 안 된다',
+        )
+        self.assertEqual(
+            self.conn.execute('SELECT COUNT(*) FROM news_topic_daily WHERE topic_id=?', (noisy_id,)).fetchone()[0], 0,
+            'FK CASCADE로 딸린 일별 데이터도 함께 지워져야 한다',
+        )
+        self.assertEqual(
+            self.conn.execute('SELECT COUNT(*) FROM news_topic_daily WHERE topic_id=?', (clean_id,)).fetchone()[0], 1,
+        )
+        self.assertTrue(
+            os.path.isdir(backup_dir) and os.listdir(backup_dir),
+            '삭제 전 백업 파일이 남아있어야 한다',
+        )
+
+    def test_cleanup_no_db_file_is_a_noop(self):
+        missing_path = os.path.join(self.temp_dir.name, 'does-not-exist.db')
+        exit_code = cleanup_price_recap_topics.main(['--db', missing_path])
+        self.assertEqual(exit_code, 0)
+
     def test_sqlite_backup_api_creates_valid_backup(self):
         source = os.path.join(self.temp_dir.name, 'ohlc_snapshot.db')
         backup_dir = os.path.join(self.temp_dir.name, 'backups')
@@ -750,6 +843,12 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertIn('run_news_momentum_if_due "$DEPLOY_OCCURRED" || true', script)
         self.assertNotIn('/etc/systemd/system/kiwoom-news-momentum', script)
         self.assertNotIn('rollback_news_momentum.sh', script)
+        # 2026-08-02: 가격서술 노이즈 이슈(장중 하락 등) 1회성 정리 - 마커 파일로 게이팅해
+        # 배포 때마다 반복 실행되지 않고, 실패 시에만 마커 없이 다음 5분 회차가 재시도한다.
+        self.assertIn('PRICE_RECAP_CLEANUP_MARKER=', script)
+        self.assertIn('cleanup_price_recap_topics.py', script)
+        self.assertIn('--apply', script)
+        self.assertIn('run_price_recap_cleanup_once || true', script)
 
     def test_momentum_card_mobile_dark_and_missing_data_contract(self):
         repo_root = os.path.abspath(os.path.join(CLOUD_VM_DIR, '..', '..'))
