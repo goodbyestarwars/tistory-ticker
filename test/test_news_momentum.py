@@ -5,6 +5,8 @@ import os
 import sqlite3
 import sys
 import tempfile
+import threading
+import time
 import unittest
 from datetime import date, datetime, timezone
 from unittest import mock
@@ -831,6 +833,84 @@ class NewsMomentumTest(unittest.TestCase):
             )
         finally:
             restored.close()
+
+    def test_backup_completes_promptly_despite_concurrent_writer(self):
+        """2026-08-02 실측 사고: 예전 sqlite3.Connection.backup()은 원본이 백업 도중
+        바뀌면 처음부터 재시작하는 공식 동작이 있어, 실시간 시세가 계속 커밋하는
+        ohlc_snapshot.db에서 40분 넘게 안 끝나고 같은 파일을 300배(59GB) 다시 쓰며
+        VM 디스크를 포화시켰다. VACUUM INTO는 단일 트랜잭션 스냅샷이라 이 재시작이
+        없어야 한다 - 배경 스레드가 쉬지 않고 커밋하는 동안에도 정상 시간 안에
+        끝나는지로 이를 검증한다(예전 API였다면 이 테스트가 타임아웃 없이 훨씬 오래
+        걸리거나 결과가 매 순간 달라졌을 것)."""
+        source = os.path.join(self.temp_dir.name, 'ohlc_snapshot.db')
+        backup_dir = os.path.join(self.temp_dir.name, 'backups')
+        writer = sqlite3.connect(source)
+        writer.execute('PRAGMA journal_mode=WAL')
+        writer.execute('CREATE TABLE quotes (id INTEGER PRIMARY KEY, price REAL)')
+        writer.commit()
+
+        stop = threading.Event()
+        errors = []
+
+        def hammer():
+            conn = sqlite3.connect(source, timeout=30)
+            try:
+                i = 0
+                while not stop.is_set():
+                    conn.execute('INSERT INTO quotes(price) VALUES (?)', (i,))
+                    conn.commit()
+                    i += 1
+            except Exception as exc:  # pragma: no cover - 실패하면 아래 assert에서 드러남
+                errors.append(exc)
+            finally:
+                conn.close()
+
+        thread = threading.Thread(target=hammer)
+        thread.start()
+        try:
+            started = time.monotonic()
+            result = backup_sqlite.backup_database(source, backup_dir, keep=2)
+            elapsed = time.monotonic() - started
+        finally:
+            stop.set()
+            thread.join(timeout=5)
+        writer.close()
+
+        self.assertEqual(errors, [])
+        self.assertEqual(result['integrity'], 'ok')
+        # 계속 커밋 중이어도 재시작 없이 몇 초 안에 끝나야 한다(예전 API의 재시작
+        # 증폭이 재현됐다면 이 시간 안에 못 끝났을 것).
+        self.assertLess(elapsed, 10)
+        restored = sqlite3.connect(result['backup'])
+        try:
+            self.assertEqual(
+                restored.execute('PRAGMA integrity_check').fetchone()[0], 'ok',
+            )
+        finally:
+            restored.close()
+
+    def test_backup_rejects_preexisting_destination_path(self):
+        source = os.path.join(self.temp_dir.name, 'ohlc_snapshot.db')
+        backup_dir = os.path.join(self.temp_dir.name, 'backups')
+        conn = sqlite3.connect(source)
+        conn.execute('CREATE TABLE t (id INTEGER)')
+        conn.commit()
+        conn.close()
+        os.makedirs(backup_dir, exist_ok=True)
+
+        frozen = datetime(2026, 8, 2, 10, 0, 0, tzinfo=timezone.utc)
+        collide_path = os.path.join(backup_dir, 'ohlc_snapshot_20260802T100000Z.db')
+        with open(collide_path, 'w', encoding='utf-8') as f:
+            f.write('이미 존재하는 파일 - 진짜 SQLite DB 아님')
+
+        with mock.patch.object(backup_sqlite, 'datetime') as mock_datetime:
+            mock_datetime.now.return_value = frozen
+            with self.assertRaises(FileExistsError):
+                backup_sqlite.backup_database(source, backup_dir, keep=2)
+
+        # 실패 시에도 기존 파일을 건드리면 안 된다(삭제·덮어쓰기 금지).
+        with open(collide_path, 'r', encoding='utf-8') as f:
+            self.assertEqual(f.read(), '이미 존재하는 파일 - 진짜 SQLite DB 아님')
 
     def test_deployed_db_verifier_requires_all_eight_stocks(self):
         for code in verify_news_momentum_db.PILOT_CODES:
