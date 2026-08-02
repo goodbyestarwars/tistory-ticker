@@ -1329,7 +1329,7 @@
     wireViewTabs(box, data.code, data.name, chartData);
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
-    wireAptTabs(box, apt, aptCurrentPrice);
+    wireAptTabs(box, apt, aptCurrentPrice, data.code, data.name, chartByDate);
     startQuotePolling(box, data.code);
   }
 
@@ -3436,19 +3436,38 @@
     return buildAptSummaryHtml(profile, currentPrice) + buildAptChartHtml(apt, typeKey, currentPrice) + buildAptStatsHtml(profile);
   }
 
-  function buildAptCard(apt, currentPrice) {
-    if (!apt) return '';
-    var tabsHtml = '<div class="ff-apt-tabs">' + APT_TYPE_TABS.map(function (t) {
-      return '<button type="button" class="ff-apt-tab' + (t.key === 'total' ? ' active' : '') + '" data-apt-type="' + t.key + '">' + t.label + '</button>';
+  // 2026-08-02: 매물대 아파트도 수급 탭처럼 기간(일수)을 바꾸면 최저/최고가 구간이 바뀌어
+  // bin 경계 자체가 재계산된다(토스 차트에서 확대/축소하면 화면에 보이는 가격 범위가 달라져
+  // 매물대가 달라지는 것과 같은 원리, 사용자 요청) - 단 차트 탭과 연동하지 않고 이 카드
+  // 안에서 독립적으로 기간을 고른다. 백엔드(/foreign-flow?days=)가 허용하는 값이
+  // FOREIGN_FLOW_DAY_OPTIONS(5/10/20/42/63)로 고정돼 있어 수급 탭과 같은
+  // FLOW_PERIOD_OPTIONS를 그대로 재사용한다(캐시 키도 code+days라 수급 탭에서 같은 기간을
+  // 이미 눌러봤다면 재요청 없이 즉시 응답됨).
+  function buildAptPeriodButtons(activeDays) {
+    return '<div class="ff-flow-period" id="ffAptPeriod">' + FLOW_PERIOD_OPTIONS.map(function (o) {
+      return '<button type="button" class="ff-flow-period-btn' + (o.days === activeDays ? ' active' : '')
+        + '" data-days="' + o.days + '">' + o.label + '</button>';
     }).join('') + '</div>';
-    return '<div class="ff-extra-card ff-apt-card" id="ffAptCard">'
-      + '<div class="ff-extra-card-title">🏢 매물대(추정)</div>'
-      + tabsHtml
-      + '<div id="ffAptBody">' + buildAptBodyHtml(apt, 'total', currentPrice) + '</div>'
+  }
+
+  function buildAptDynamicHtml(apt, typeKey, currentPrice) {
+    var tabsHtml = '<div class="ff-apt-tabs">' + APT_TYPE_TABS.map(function (t) {
+      return '<button type="button" class="ff-apt-tab' + (t.key === typeKey ? ' active' : '') + '" data-apt-type="' + t.key + '">' + t.label + '</button>';
+    }).join('') + '</div>';
+    return tabsHtml
+      + '<div id="ffAptBody">' + buildAptBodyHtml(apt, typeKey, currentPrice) + '</div>'
       + '<div class="ff-footnote">※ 실제 체결가가 태깅된 데이터가 아니라, 최근 ' + apt.days
       + '거래일의 일별 고가~저가 구간에 개인·외국인·기관의 그날 순매수·순매도량을 분산해 합산한 '
       + '<b>근사 추정치</b>입니다. "전체" 탭은 이 세 유형의 매수·매도 벽을 그대로 합산한 값이라 기타법인 등 '
-      + '세 유형 밖의 수급은 반영되지 않고, "평단가"·"추정 수익률"도 매수(매집) 물량만의 가중평균이라 실제 매수 단가와 다를 수 있습니다.</div>'
+      + '세 유형 밖의 수급은 반영되지 않고, "평단가"·"추정 수익률"도 매수(매집) 물량만의 가중평균이라 실제 매수 단가와 다를 수 있습니다.</div>';
+  }
+
+  function buildAptCard(apt, currentPrice) {
+    if (!apt) return '';
+    return '<div class="ff-extra-card ff-apt-card" id="ffAptCard">'
+      + '<div class="ff-extra-card-title">🏢 매물대(추정)</div>'
+      + buildAptPeriodButtons(apt.days)
+      + '<div id="ffAptDynamic">' + buildAptDynamicHtml(apt, 'total', currentPrice) + '</div>'
       + '</div>';
   }
 
@@ -3463,19 +3482,57 @@
     });
   }
 
-  function wireAptTabs(box, apt, currentPrice) {
+  function wireAptTabs(box, apt, currentPrice, code, name, chartByDate) {
     var card = box.querySelector('#ffAptCard');
     if (!card || !apt) return;
-    playAptEntrance(card);
-    card.querySelectorAll('.ff-apt-tab').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        card.querySelectorAll('.ff-apt-tab').forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        var body = card.querySelector('#ffAptBody');
-        if (body) body.innerHTML = buildAptBodyHtml(apt, btn.getAttribute('data-apt-type'), currentPrice);
-        playAptEntrance(card);
+    var activeType = 'total';
+
+    function wireTypeTabs() {
+      card.querySelectorAll('.ff-apt-tab').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          activeType = btn.getAttribute('data-apt-type');
+          card.querySelectorAll('.ff-apt-tab').forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          var body = card.querySelector('#ffAptBody');
+          if (body) body.innerHTML = buildAptBodyHtml(apt, activeType, currentPrice);
+          playAptEntrance(card);
+        });
       });
-    });
+    }
+
+    playAptEntrance(card);
+    wireTypeTabs();
+
+    // 기간 버튼: /foreign-flow?days=로 다시 불러 그 일수만큼의 고가~저가로 bin 경계
+    // (minLow/maxHigh)를 재계산한다 - fetchFlow가 code+days별로 캐싱하므로 같은 기간
+    // 재클릭은 즉시 응답된다. chartByDate(가격)는 이미 renderResult에서 받아온 걸 그대로
+    // 재사용 - 가격 데이터를 다시 조회할 필요는 없다.
+    var periodWrap = card.querySelector('#ffAptPeriod');
+    if (periodWrap) {
+      periodWrap.querySelectorAll('.ff-flow-period-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.classList.contains('active')) return;
+          var days = Number(btn.getAttribute('data-days'));
+          periodWrap.querySelectorAll('.ff-flow-period-btn').forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          var dynamic = card.querySelector('#ffAptDynamic');
+          if (dynamic) dynamic.innerHTML = '<div class="ff-apt-empty">불러오는 중…</div>';
+          ForeignFlow.fetchFlow(code, name, days).then(function (newData) {
+            var newApt = computeAptData(newData.daily, chartByDate);
+            if (!newApt) {
+              if (dynamic) dynamic.innerHTML = '<div class="ff-apt-empty">이 기간엔 매물대를 계산할 데이터가 부족해요.</div>';
+              return;
+            }
+            apt = newApt;
+            if (dynamic) dynamic.innerHTML = buildAptDynamicHtml(apt, activeType, currentPrice);
+            wireTypeTabs();
+            playAptEntrance(card);
+          }).catch(function () {
+            if (dynamic) dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 다시 불러오지 못했어요.</div>';
+          });
+        });
+      });
+    }
   }
 
   // ---- 매물대(근사) ----
