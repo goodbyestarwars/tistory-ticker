@@ -247,25 +247,113 @@ def _issue_labels(title):
     return out
 
 
-def _keyword_group(stock_name, label):
+# 이슈 라벨 -> 네이버에서 실제로 검색될 만한 짧은 표현.
+# 2026-08-02: 예전에는 확장 규칙이 공장/HBM/AI 반도체 3개에만 하드코딩돼 있어서, 그 외
+# 이슈는 "종목명 + 라벨 전체"라는 롱테일 문구 하나로만 조회됐다(예: "한화오션 조원 돌파").
+# 아무도 그렇게 검색하지 않으니 DataLab이 빈 응답을 주고 화면에는 "데이터 부족"만 떴다.
+# 모든 규칙 라벨을 표로 옮겨 짧은 검색어를 함께 넣는다.
+# 키워드는 반드시 "종목명 + 이슈어" 형태로만 만들고 종목명 단독은 절대 넣지 않는다 -
+# 종목명만 넣으면 검색량은 늘지만 이슈별 변별력이 사라진다(사용자 확인 사항).
+# 같은 이유로 실적 개선/부진은 공통어 '실적'을 쓰지 않고 서로 다른 표현만 쓴다.
+ISSUE_SEARCH_TERMS = {
+    'HBM': ('HBM',),
+    'HBM 수요 증가': ('HBM', 'HBM 수요', 'HBM 공급'),
+    'AI 반도체': ('AI 반도체', 'AI칩', 'AI 메모리'),
+    '신규 수주': ('수주', '신규 수주', '수주 계약', '공급계약'),
+    '신약 승인': ('신약', '신약 승인', '품목허가'),
+    '실적 개선': ('실적 개선', '영업이익 증가', '흑자'),
+    '실적 부진': ('실적 부진', '영업이익 감소', '적자'),
+    '주주환원 확대': ('배당', '배당 확대', '주주환원'),
+    '유상증자': ('유상증자', '증자'),
+    '인수합병': ('인수합병', 'M&A', '인수'),
+    '리콜·판매중단': ('리콜', '판매 중단'),
+    '규제·법적 위험': ('소송', '제재', '과징금'),
+}
+# 종목명과 붙여도 검색어가 되지 못하는 말들.
+# 정도·상태어("한화오션 증가")와 단위어("한화오션 조원")는 아무도 검색하지 않는다.
+# 반면 사건 명사(수주·계약·소송·리콜·배당 등)는 종목명과 붙이면 실제로 검색되는
+# 조합이라 남긴다 - 위 ISSUE_SEARCH_TERMS 표도 같은 기준으로 만들었다.
+DEGREE_WORDS = {
+    '증가', '확대', '성장', '호조', '상승', '최대', '돌파', '개선',
+    '감소', '축소', '하락', '부진', '급락', '우려', '경고',
+}
+UNIT_WORDS = {'조원', '억원', '만원', '달러', '포인트', '퍼센트'}
+_WEAK_KEYWORD_TOKENS = DEGREE_WORDS | UNIT_WORDS | STOP_WORDS
+
+
+def _factory_search_terms(label):
+    """'{지역}공장 신설/증설'은 지역명이 라벨마다 달라서 표 대신 규칙으로 만든다."""
+    match = re.match(r'^(.+?)공장 (신설|증설)$', label)
+    if not match:
+        return ()
+    location, action = match.group(1), match.group(2)
+    return ('%s공장' % location, '%s 공장' % location, '공장 %s' % action, '신규 공장')
+
+
+def _core_tokens(text, stock_name):
+    """검색어로 쓸 만한 핵심 명사만 남긴다(정도어·사건어·종목명 자체는 제외)."""
+    out = []
+    for token in re.findall(r'[A-Za-z][A-Za-z0-9-]{1,}|[가-힣]{2,}', text or ''):
+        if token in _WEAK_KEYWORD_TOKENS or token in stock_name or len(token) < 2:
+            continue
+        if token not in out:
+            out.append(token)
+    return out
+
+
+def _keyword_group(stock_name, label, titles=None):
+    """DataLab 조회용 키워드 묶음. 모든 항목이 종목명을 포함해 이슈 변별력을 유지한다."""
     short_name = re.sub(r'(주식회사|㈜|\(주\)|홀딩스)$', '', stock_name).strip()
-    base = [
-        '%s %s' % (stock_name, label),
-        '%s %s' % (short_name, label),
-    ]
-    if '공장 신설' in label:
-        location = label.split('공장', 1)[0]
-        base.extend([
-            '%s %s공장' % (stock_name, location),
-            '%s AI공장' % stock_name,
-            '%s 공장 신설' % stock_name,
-        ])
-    if label == 'HBM 수요 증가':
-        base.extend(['%s HBM' % stock_name, '%s HBM 수요' % short_name])
-    if label == 'AI 반도체':
-        base.extend(['%s AI 반도체' % stock_name, '%s AI칩' % short_name])
+    known_terms = tuple(ISSUE_SEARCH_TERMS.get(label, ())) + _factory_search_terms(label)
+    terms = [label]
+    terms.extend(known_terms)
+    if not known_terms:
+        # 표에 없는 라벨(제목에서 즉석 조합된 이슈)은 라벨의 핵심어를 검색어로 쓴다.
+        terms.extend(_core_tokens(label, stock_name))
+        # 라벨만으로는 검색어를 만들기 어려우므로, 그 이슈의 기사 제목에서 2건 이상
+        # 반복된 핵심어도 함께 넣는다 - 이슈 안에서만 뽑으므로 변별력은 유지된다.
+        counts = defaultdict(int)
+        for title in titles or []:
+            for token in set(_core_tokens(title, stock_name)):
+                counts[token] += 1
+        repeated = sorted(
+            (token for token, count in counts.items() if count >= 2),
+            key=lambda token: (-counts[token], token),
+        )
+        terms.extend(repeated[:3])
+
+    keywords = []
     seen = set()
-    return [item for item in base if item and not (item in seen or seen.add(item))][:20]
+    for name in (stock_name, short_name):
+        for term in terms:
+            if not term:
+                continue
+            keyword = '%s %s' % (name, term)
+            if keyword not in seen:
+                seen.add(keyword)
+                keywords.append(keyword)
+    return keywords[:20]
+
+
+def _drop_shared_keywords(topics):
+    """한 종목의 이슈들 사이에 겹치는 키워드를 제거해 이슈별 변별력을 보장한다.
+
+    표의 검색어와 제목에서 뽑은 핵심어가 우연히 겹칠 수 있는데(예: '신규 수주'
+    이슈와 제목에 '수주'가 반복된 다른 이슈), 그대로 두면 두 이슈의 검색 관심도가
+    같은 검색량을 나눠 갖게 된다. 겹치는 키워드는 양쪽에서 모두 빼고, 이슈마다
+    고유한 '종목명 + 라벨 전체'는 항상 남겨 빈 묶음이 생기지 않게 한다.
+    """
+    counts = defaultdict(int)
+    for topic in topics:
+        for keyword in set(topic['keywords']):
+            counts[keyword] += 1
+    for topic in topics:
+        full_label_keyword = '%s %s' % (topic['stock_name'], topic['label'])
+        kept = [kw for kw in topic['keywords'] if counts[kw] == 1]
+        if not kept:
+            kept = [full_label_keyword]
+        topic['keywords'] = kept
+    return topics
 
 
 def _sentiment_score(title):
@@ -352,12 +440,15 @@ def extract_topics(stock_code, stock_name, news_items, today=None):
             'stock_name': stock_name,
             'topic_name': '%s %s' % (stock_name, label),
             'label': label,
-            'keywords': _keyword_group(stock_name, label),
+            'keywords': _keyword_group(
+                stock_name, label, [article['title'] for article in articles]
+            ),
             'sentiment': _sentiment([article['title'] for article in articles]),
             'daily_counts': dict(by_date),
             'daily_sentiment_counts': dict(sentiment_by_date),
             'representative_urls': urls[:3],
         })
+    _drop_shared_keywords(topics)
     return sorted(topics, key=lambda row: (-sum(row['daily_counts'].values()), row['topic_name']))
 
 

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import itertools
 import json
 import os
 import sqlite3
@@ -118,6 +119,55 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertEqual(hbm['sentiment'], 'positive')
         self.assertEqual(sum(hbm['sentimentCounts'].values()), hbm['newsCount'])
         self.assertEqual(hbm['sentimentCounts']['positive'], 2)
+
+    def test_datalab_keywords_expand_without_losing_issue_discrimination(self):
+        """DataLab 검색어는 짧게 넓히되 이슈별 변별력은 유지해야 한다(2026-08-02)."""
+        # 규칙 라벨은 표에서 실제로 검색되는 짧은 표현을 함께 받는다.
+        legal = news_momentum._keyword_group('한화오션', '규제·법적 위험')
+        self.assertIn('한화오션 규제·법적 위험', legal)
+        self.assertIn('한화오션 소송', legal)
+        self.assertIn('한화오션 과징금', legal)
+
+        # 표에 없는 폴백 라벨은 그 이슈 기사 제목에서 반복된 핵심어를 검색어로 쓴다.
+        # (화면에서 "데이터 부족"만 나오던 '한화오션 조원 돌파' 유형)
+        fallback = news_momentum._keyword_group('한화오션', '조원 돌파', [
+            '한화오션 수주잔고 30조원 돌파',
+            '한화오션, 수주잔고 첫 30조원 돌파',
+            '[특징주] 한화오션 수주잔고 30조원 돌파에 강세',
+        ])
+        self.assertIn('한화오션 수주잔고', fallback)
+        # 정도어·단위어는 종목명과 붙여도 검색되지 않으므로 단독 키워드로 쓰지 않는다.
+        self.assertNotIn('한화오션 돌파', fallback)
+        self.assertNotIn('한화오션 조원', fallback)
+
+        # 모든 키워드는 종목명을 포함하고, 종목명 단독 키워드는 만들지 않는다.
+        for keyword in legal + fallback:
+            self.assertIn('한화오션', keyword)
+            self.assertNotEqual(keyword.strip(), '한화오션')
+
+        # 실적 개선/부진은 공통어를 공유하지 않아 서로 구분된다.
+        better = set(news_momentum._keyword_group('셀트리온', '실적 개선'))
+        worse = set(news_momentum._keyword_group('셀트리온', '실적 부진'))
+        self.assertEqual(better & worse, set())
+
+    def test_same_stock_topics_never_share_datalab_keywords(self):
+        items = [
+            {'title': '한화오션, 신규 수주 확대…공급계약 체결', 'link': 'https://n/1', 'pubDate': '2026-07-28'},
+            {'title': '한화오션 신규 수주 증가세 지속', 'link': 'https://n/2', 'pubDate': '2026-07-27'},
+            {'title': '한화오션, 하도급 과징금 소송 제기', 'link': 'https://n/3', 'pubDate': '2026-07-26'},
+            {'title': '공정위, 한화오션 압수수색…제재 절차 착수', 'link': 'https://n/4', 'pubDate': '2026-07-25'},
+        ]
+        topics = news_momentum.extract_topics('042660', '한화오션', items, today=TODAY)
+        self.assertGreaterEqual(len(topics), 2)
+        for first, second in itertools.combinations(topics, 2):
+            self.assertEqual(
+                set(first['keywords']) & set(second['keywords']), set(),
+                '이슈 간 키워드가 겹치면 검색 관심도의 변별력이 사라진다',
+            )
+        for topic in topics:
+            # 겹침 제거 후에도 이슈마다 고유한 "종목명 + 라벨"은 반드시 남는다.
+            self.assertTrue(topic['keywords'])
+            self.assertIn('%s %s' % (topic['stock_name'], topic['label']), topic['keywords'])
 
     def test_keyword_change_increments_query_version(self):
         name, items = MOCK_NEWS['005380']
