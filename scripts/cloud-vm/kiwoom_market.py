@@ -147,11 +147,20 @@ def _live_investor_row_from(rows, end_dt):
     """ka10059 응답에서 '오늘' 행만 뽑는다 - ka10045는 '일별' 확정 TR이라 당일 값이 정산
     전에는 안 채워지는데, ka10059는 장중 누적치를 실시간으로 반환하기 때문. 최신 행의
     dt가 end_dt(오늘)와 다르면(휴장일 등) None을 돌려줘 호출부가 ka10045 결과를 그대로
-    쓰게 한다."""
+    쓰게 한다.
+    2026-08-03 실측 리포트: 개장 직후(누적거래량 0)엔 ka10059가 이미 오늘 날짜 행을
+    내려주지만 orgn/frgnr_invsr/ind_invsr이 아직 집계 전이라 값이 비어 있고, to_num()이
+    이를 실제 순매매 0으로 오인해 종목분석 표에 "당일" 행이 개인·외국인·기관 전부 0으로
+    뜨는 문제가 있었다(진짜 0인지 아직 집계 전인지 구분 불가능한 값을 확정치처럼 보여줌).
+    누적거래량이 0이면 그날 아직 아무 체결도 없었다는 뜻이라 투자자별 순매매도 집계될
+    수 없으므로, 이 경우엔 None을 돌려줘 호출부가 '당일' 행을 만들지 않고 직전 확정일을
+    그대로 보여주게 한다(실측 확인 전 필드를 확정값처럼 쓰지 않는다)."""
     if not rows:
         return None
     today = sorted(rows, key=lambda r: r.get('dt', ''), reverse=True)[0]
     if today.get('dt') != end_dt:
+        return None
+    if to_num(today.get('acc_trde_qty')) == 0:
         return None
     return {
         'close': abs(to_num(today.get('cur_prc'))),
