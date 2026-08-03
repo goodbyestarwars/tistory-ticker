@@ -1,28 +1,37 @@
 # -*- coding: utf-8 -*-
 """종목분석 메인 수급 표(rolling/streak/signal/amount_estimate) 계산 -
 gas/ticker-proxy.gs의 frgnRollingSum/frgnAmountSum/frgnStreak/frgnSignal을 그대로 포팅.
-daily는 kiwoom_market.fetch_foreign_inst_daily()가 반환하는 최신일 우선(내림차순) 배열."""
+daily는 kiwoom_market.fetch_foreign_inst_daily()가 반환하는 최신일 우선(내림차순) 배열.
+2026-08-03(3차): '당일' 개인 순매매(ind_net)는 실시간 소스를 신뢰할 수 없을 때
+kiwoom_market이 None으로 채워 넘길 수 있다(원본에 없는 값을 0으로 채우지 않는다는
+원칙 - 상세 이유는 kiwoom_market._live_investor_row_from 참고). 아래 집계 함수들은
+그 None을 실제 0 순매매로 오인하지 않도록 합산에서는 제외(0 기여)하고, 연속매매
+판정에서는 그 시작일 값을 신뢰할 수 없다고 보고 즉시 중단한다."""
 
 
 def rolling_sum(daily, field, n):
     length = min(n, len(daily))
-    return sum(daily[i][field] for i in range(length))
+    return sum((daily[i][field] or 0) for i in range(length))
 
 
 def amount_sum(daily, field, n):
     length = min(n, len(daily))
-    return sum(daily[i][field] * daily[i]['close'] for i in range(length))
+    return sum((daily[i][field] or 0) * daily[i]['close'] for i in range(length))
 
 
 def streak(daily, field):
     if not daily:
         return {'days': 0, 'direction': 'flat'}
     first = daily[0][field]
+    if first is None:
+        return {'days': 0, 'direction': 'flat'}
     direction = 1 if first > 0 else -1 if first < 0 else 0
     days = 0
     if direction != 0:
         for row in daily:
             v = row[field]
+            if v is None:
+                break
             d = 1 if v > 0 else -1 if v < 0 else 0
             if d != direction:
                 break
@@ -39,7 +48,7 @@ def signal(daily, rolling, kind):
     prior15 = v20 - v5
 
     n = min(20, len(daily))
-    avg_daily = (sum(abs(daily[i][field]) for i in range(n)) / n) if n else 0
+    avg_daily = (sum(abs(daily[i][field] or 0) for i in range(n)) / n) if n else 0
     magnitude_ok = abs(v5) >= avg_daily * 2
 
     direction = 'buy' if (v5 > 0 and prior15 < 0) else 'sell' if (v5 < 0 and prior15 > 0) else None
@@ -48,6 +57,8 @@ def signal(daily, rolling, kind):
     same_dir_days = 0
     for d in range(m):
         v = daily[d][field]
+        if v is None:
+            continue
         if (direction == 'buy' and v > 0) or (direction == 'sell' and v < 0):
             same_dir_days += 1
     consistency_ok = same_dir_days >= 3
