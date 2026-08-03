@@ -6,6 +6,7 @@ set -euo pipefail
 APP_DIR="/home/goodbyestarwars/kiwoom-api"
 PYTHON="$APP_DIR/venv/bin/python"
 DEPLOYED_FILE="$APP_DIR/.last_deployed_sha"
+DEPLOY_LOCK="$APP_DIR/.deploy_check.lock"
 MOMENTUM_MARKER="$APP_DIR/.news_momentum_last_run_date"
 MOMENTUM_SCHEMA_MARKER="$APP_DIR/.news_momentum_batch_schema_version"
 MOMENTUM_SCHEMA_VERSION="3"
@@ -16,6 +17,21 @@ MOMENTUM_DB="$APP_DIR/news_momentum.db"
 PRICE_RECAP_CLEANUP_MARKER="$APP_DIR/.news_momentum_price_recap_cleanup_v1_done"
 
 cd "$APP_DIR"
+
+# 2026-08-03 VM 장애 대응(2차): 2026-08-02 SQLite 백업 재시작 증폭 사고 당시 "짧은 시간에
+# 여러 커밋을 연속 push하면 deploy_check.sh가 각 push마다 재트리거돼 겹쳐 실행될 수 있다"는
+# 문제를 발견했지만 그때는 news_momentum 하위 작업에만 flock을 걸고 배포 블록 자체(git pull -
+# backup_sqlite.py - sudo systemctl restart)는 잠금 없이 남겨뒀었다(당시 "후속 과제"로 미룸).
+# 오늘 같은 세션에서 짧은 시간에 여러 PR을 연달아 머지하는 동안 실제로 여러 엔드포인트
+# (/futures, /market-rank 등)가 한꺼번에 응답 불가 상태가 되는 게 재현돼, 그 후속 과제를
+# 지금 처리한다 - 스크립트 전체를 하나의 flock으로 감싸 5분 타이머 회차가 겹치면 뒤 회차는
+# 아무 것도 하지 않고 조용히 넘어가게 한다(다음 회차가 다시 최신 커밋을 반영하므로 배포
+# 자체가 누락되지 않는다 - git fetch는 멱등이라 건너뛴 회차의 커밋도 다음 회차가 그대로 잡는다).
+exec 200>"$DEPLOY_LOCK"
+if ! flock -n 200; then
+  echo "이전 배포/점검이 아직 진행 중 - 이번 5분 회차는 건너뜁니다."
+  exit 0
+fi
 
 run_news_momentum_if_due() {
   local verify_after_deploy="${1:-0}"
