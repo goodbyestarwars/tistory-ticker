@@ -2928,7 +2928,7 @@
         + buildRsiSection(chartData.daily);
     }
     return '<div class="ff-extra-card ff-flow-chart-card">'
-      + '<div class="ff-extra-card-title">📉 가격 차트 · 이동평균 · 일목균형표 · 거래량 · 지지/저항 · RSI</div>'
+      + '<div class="ff-extra-card-title">📉 가격 차트</div>'
       + body
       + '</div>';
   }
