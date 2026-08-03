@@ -64,5 +64,36 @@ class LiveInvestorRowFromTests(unittest.TestCase):
         self.assertIsNone(row['ind_net'])
 
 
+class MergeLiveRowTests(unittest.TestCase):
+    """2026-08-03(4차) 실측 리포트(비에이치아이): 15:40(KST) 이후 KIS 확정 TR이 열려
+    out[0]에 이미 오늘의 확정 개인 순매매가 들어와 있는데도, live_row(ind_net=None
+    고정)로 무조건 덮어써서 확정치가 있는데도 "-"로 보이는 문제 - _merge_live_row가
+    확정 개인 순매매를 None으로 지우지 않는지 검증한다."""
+
+    def test_confirmed_ind_net_is_not_clobbered_by_live_none(self):
+        out = [{'date': '2026-08-03', 'close': 10000, 'ind_net': -300.0, 'foreign_net': 100.0, 'inst_net': 50.0}]
+        live_row = {'close': 10100.0, 'change_pct': 1.0, 'volume': 5000.0,
+                    'inst_net': 60.0, 'foreign_net': 120.0, 'ind_net': None}
+        kiwoom_market._merge_live_row(out, live_row, '2026-08-03')
+        self.assertEqual(out[0]['ind_net'], -300.0)
+        self.assertEqual(out[0]['foreign_net'], 120.0)
+        self.assertEqual(out[0]['inst_net'], 60.0)
+        self.assertEqual(out[0]['close'], 10100.0)
+
+    def test_inserts_new_row_when_no_confirmed_row_for_today(self):
+        out = [{'date': '2026-07-31', 'close': 9000, 'ind_net': -100.0, 'foreign_net': 10.0, 'inst_net': 5.0}]
+        live_row = {'close': 10100.0, 'change_pct': 1.0, 'volume': 5000.0,
+                    'inst_net': 60.0, 'foreign_net': 120.0, 'ind_net': None}
+        kiwoom_market._merge_live_row(out, live_row, '2026-08-03')
+        self.assertEqual(len(out), 2)
+        self.assertEqual(out[0]['date'], '2026-08-03')
+        self.assertIsNone(out[0]['ind_net'])
+
+    def test_noop_when_live_row_is_none(self):
+        out = [{'date': '2026-08-03', 'close': 10000, 'ind_net': -300.0, 'foreign_net': 100.0, 'inst_net': 50.0}]
+        kiwoom_market._merge_live_row(out, None, '2026-08-03')
+        self.assertEqual(out, [{'date': '2026-08-03', 'close': 10000, 'ind_net': -300.0, 'foreign_net': 100.0, 'inst_net': 50.0}])
+
+
 if __name__ == '__main__':
     unittest.main()

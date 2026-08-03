@@ -355,6 +355,27 @@ def _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, tar
     return out[:target_days]
 
 
+def _merge_live_row(out, live_row, today_str):
+    """live_row(ka10059 장중 패치, _live_investor_row_from)를 out(KIS/키움 확정 일별
+    목록, 최신일 우선)에 합친다. out에 이미 오늘 확정 행이 있으면(15:40 KST 이후 KIS
+    TR이 열려 채워진 경우) 그 위에 live_row를 덮어써 갱신하고, 없으면 새 '당일' 행으로
+    맨 앞에 끼워 넣는다.
+    2026-08-03 실측 리포트: out[0]에 이미 오늘의 확정 개인 순매매(ind_net)가 들어와
+    있는데도 무조건 live_row로 덮어써서, live_row['ind_net']가 항상 None(장중엔 개인을
+    신뢰하지 않음, _live_investor_row_from 독스트링 참고)이라 확정치가 있는데도 "-"로
+    보이는 문제가 있었다. live_row는 확정 데이터가 아직 없을 때만 채우는 보조 수단이므로,
+    이미 확정된 개인 순매매를 갖고 있으면 None으로 지우지 않고 그대로 둔다."""
+    if not live_row:
+        return
+    if out and out[0]['date'] == today_str:
+        confirmed_ind_net = out[0].get('ind_net')
+        out[0].update(live_row)
+        if live_row.get('ind_net') is None and confirmed_ind_net is not None:
+            out[0]['ind_net'] = confirmed_ind_net
+    else:
+        out.insert(0, dict(live_row, date=today_str, foreign_shares=None, foreign_ratio=None))
+
+
 def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, target_days=FLOW_DEFAULT_DAYS):
     """종목분석 메인 수급 표(개인·외국인·기관 순매매 + 외국인 보유주수/비중)용.
     {date, close, change_pct, volume, inst_net, foreign_net, ind_net, foreign_shares,
@@ -399,11 +420,7 @@ def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, t
 
     today_str = '%s-%s-%s' % (end_dt[0:4], end_dt[4:6], end_dt[6:8])
     live_row = _live_investor_row_from(ka10059_rows, end_dt)
-    if live_row:
-        if out and out[0]['date'] == today_str:
-            out[0].update(live_row)
-        else:
-            out.insert(0, dict(live_row, date=today_str, foreign_shares=None, foreign_ratio=None))
+    _merge_live_row(out, live_row, today_str)
 
     # 오늘 행은 ka10008이 아직 당일 보유주수/비중을 안 내놨을 수 있어 None일 수 있는데,
     # 프론트 보유율 차트(js/foreign-flow.js buildRatioChart)가 null에 그대로 toFixed()를
