@@ -973,6 +973,10 @@ class NewsMomentumTest(unittest.TestCase):
         # 잠금 획득 실패 시 조용히 종료(exit 0)해야 타이머 자체가 실패로 기록되지 않는다.
         deploy_lock_idx = script.index('if ! flock -n 200; then')
         self.assertIn('exit 0', script[deploy_lock_idx:deploy_lock_idx + 200])
+        # 2026-08-03: 지연시간 모니터링 - VM 장애 진단 때 매번 SSH로 curl -w 재던 걸
+        # 자동화. 배포 타이머를 막지 않도록 백그라운드(&)로 던지고 기다리지 않는다.
+        self.assertIn('latency_monitor.py', script)
+        self.assertIn('disown', script)
 
     def test_momentum_card_mobile_dark_and_missing_data_contract(self):
         repo_root = os.path.abspath(os.path.join(CLOUD_VM_DIR, '..', '..'))

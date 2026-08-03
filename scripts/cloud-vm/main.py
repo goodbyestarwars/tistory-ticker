@@ -106,6 +106,7 @@ BATCH_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'inv
 FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 DAILY_SCAN_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
 WEEK52_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'week52_cache.json')
+LATENCY_LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'latency_monitor.log')
 
 # /ohlc, /investor-flow 온디맨드 조회용 메모리 캐시(종목코드 -> (기록시각, 결과)).
 # GAS가 이 두 엔드포인트를 호출할 때만 유독 응답이 느려서(타임아웃) 실패하는 현상이 있어
@@ -207,6 +208,21 @@ def health():
         'momentumSchedulerVersion': 'deploy-timer-flock-v1',
         'momentumAggregationVersion': 3,
     })
+
+
+@app.get('/health/latency')
+def latency_health(lines: int = Query(50, ge=1, le=500)):
+    """latency_monitor.py(deploy_check.sh가 5분마다 백그라운드로 실행)가 남기는 로컬
+    엔드포인트 응답시간 로그의 최근 N줄을 그대로 반환한다. 2026-08-03 VM 장애 진단 때
+    "느려진 것 같다"를 확인하려면 매번 VM에 SSH 접속해 직접 curl -w로 재야 했던 걸,
+    브라우저·curl로 바로 확인할 수 있게 하려는 목적이다. 인증 없음(민감정보 없는 응답시간
+    수치뿐이라 /futures·/market-rank와 동일하게 공개) + CORS는 기본 미들웨어 설정을 그대로 따른다."""
+    if not os.path.exists(LATENCY_LOG_FILE):
+        return envelope({'lines': [], 'message': '아직 기록이 없습니다(다음 5분 배포 주기부터 쌓입니다).'})
+    with open(LATENCY_LOG_FILE, 'r', encoding='utf-8') as f:
+        all_lines = f.readlines()
+    tail = [line.rstrip('\n') for line in all_lines[-lines:]]
+    return envelope({'lines': tail})
 
 
 @app.websocket('/ws/quotes')
