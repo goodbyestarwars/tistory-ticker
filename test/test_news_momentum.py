@@ -963,6 +963,16 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertIn('cleanup_price_recap_topics.py', script)
         self.assertIn('--apply', script)
         self.assertIn('run_price_recap_cleanup_once || true', script)
+        # 2026-08-03: 짧은 시간에 연속 push되면 5분 타이머 회차가 겹쳐 배포 블록(git pull -
+        # backup_sqlite.py - sudo systemctl restart)이 동시 실행될 수 있던 문제(2026-08-02
+        # 사고 당시 발견했지만 news_momentum에만 flock을 걸고 미뤄뒀던 부분) - 스크립트
+        # 전체를 flock으로 감싸 겹치는 회차는 아무 것도 하지 않고 건너뛰도록 고쳤다.
+        self.assertIn('DEPLOY_LOCK="$APP_DIR/.deploy_check.lock"', script)
+        self.assertIn('exec 200>"$DEPLOY_LOCK"', script)
+        self.assertIn('if ! flock -n 200; then', script)
+        # 잠금 획득 실패 시 조용히 종료(exit 0)해야 타이머 자체가 실패로 기록되지 않는다.
+        deploy_lock_idx = script.index('if ! flock -n 200; then')
+        self.assertIn('exit 0', script[deploy_lock_idx:deploy_lock_idx + 200])
 
     def test_momentum_card_mobile_dark_and_missing_data_contract(self):
         repo_root = os.path.abspath(os.path.join(CLOUD_VM_DIR, '..', '..'))
