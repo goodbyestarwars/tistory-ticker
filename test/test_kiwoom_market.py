@@ -37,6 +37,17 @@ class LiveInvestorRowFromTests(unittest.TestCase):
             'inst_net': 100.0, 'foreign_net': -50.0, 'ind_net': -50.0,
         })
 
+    def test_returns_none_when_only_foreign_net_is_populated(self):
+        # 2026-08-03(2차) 실측 리포트: 거래는 시작됐지만 기관·개인 필드는 아직 빈 문자열
+        rows = [{'dt': '20260803', 'acc_trde_qty': '15000', 'cur_prc': '12345', 'flu_rt': '150',
+                 'orgn': '', 'frgnr_invsr': '-50', 'ind_invsr': ''}]
+        self.assertIsNone(kiwoom_market._live_investor_row_from(rows, '20260803'))
+
+    def test_returns_none_when_investor_field_key_missing_entirely(self):
+        rows = [{'dt': '20260803', 'acc_trde_qty': '15000', 'cur_prc': '12345', 'flu_rt': '150',
+                 'frgnr_invsr': '-50'}]  # orgn/ind_invsr 키 자체가 없음
+        self.assertIsNone(kiwoom_market._live_investor_row_from(rows, '20260803'))
+
 
 if __name__ == '__main__':
     unittest.main()
