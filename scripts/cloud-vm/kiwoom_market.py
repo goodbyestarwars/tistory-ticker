@@ -158,10 +158,19 @@ def _live_investor_row_from(rows, end_dt):
     2026-08-03(2차) 실측 리포트: 거래가 시작된 뒤에도 투자자 유형별 집계는 외국인·기관·
     개인이 동시에 채워지지 않는다 - 외국인은 실제 순매매가 찍히는데 기관·개인 필드는
     여전히 빈 문자열(아직 집계 전)인 채로 남아 있어, to_num()이 그 둘만 0으로 오인해
-    "외국인만 있고 개인·기관은 0"으로 보이는 문제가 있었다. 세 필드 중 하나라도 원본이
-    비어 있으면(키 없음/None/빈 문자열) 그 시점엔 셋 다 신뢰할 수 있는 상태가 아니라고
-    보고 행 전체를 None으로 돌린다 - 일부 필드만 실제값, 나머지는 0으로 뒤섞인 행을
-    보여주지 않는다(원본에 없는 값을 0으로 채우지 않는다는 원칙과 동일)."""
+    "외국인만 있고 개인·기관은 0"으로 보이는 문제가 있었다. 빈 문자열 가드를 추가했었다.
+    2026-08-03(3차) 실측 리포트: 그런데도 재현됨 - 이번엔 외국인·기관은 실제 순매매(예:
+    -1,000 / +10,000)가 찍히는데 개인만 정확히 0으로 남았다. ka10059가 개인 필드를
+    "집계 전"에도 빈 문자열이 아니라 문자열 "0"으로 내려주는 것으로 보여(2차 가드가 못
+    잡음), 값만으로는 "진짜 개인 순매매 0"과 "아직 계산 안 됨"을 구분할 방법이 없다.
+    같은 패턴(외국인·기관은 0이 아닌데 개인만 0)이 서로 다른 두 종목에서 반복 관측된 점,
+    그리고 개인은 통상 전체 거래에서 외국인·기관·기타법인을 뺀 잔차로 집계되어 셋 중
+    가장 늦게 확정되는 값이라는 점을 근거로, 이 실시간 패치에서는 개인 순매매를 아예
+    신뢰하지 않기로 한다 - ind_invsr 값은 쓰지 않고 항상 None으로 둬(호출부가 '당일'
+    행의 ind_net을 None으로 채움) 프론트가 기존 규칙대로 "-"로 표시하게 한다(개인 열이
+    구조적으로 없는 네이버 폴백과 동일한 처리 - 원본을 신뢰할 수 없는 값은 0으로 채우지
+    않는다). 외국인·기관은 두 차례 실측에서 모두 그럴듯한 실제값을 보여 계속 신뢰한다.
+    개인의 확정치는 KIS 일별 TR이 열리는 15:40(KST) 이후 다음 조회부터 정상 반영된다."""
     if not rows:
         return None
     today = sorted(rows, key=lambda r: r.get('dt', ''), reverse=True)[0]
@@ -169,7 +178,7 @@ def _live_investor_row_from(rows, end_dt):
         return None
     if to_num(today.get('acc_trde_qty')) == 0:
         return None
-    if any(today.get(f) in (None, '') for f in ('orgn', 'frgnr_invsr', 'ind_invsr')):
+    if any(today.get(f) in (None, '') for f in ('orgn', 'frgnr_invsr')):
         return None
     return {
         'close': abs(to_num(today.get('cur_prc'))),
@@ -178,7 +187,7 @@ def _live_investor_row_from(rows, end_dt):
         'volume': abs(to_num(today.get('acc_trde_qty'))),
         'inst_net': to_num(today.get('orgn')),
         'foreign_net': to_num(today.get('frgnr_invsr')),
-        'ind_net': to_num(today.get('ind_invsr')),
+        'ind_net': None,
     }
 
 
