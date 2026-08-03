@@ -26,6 +26,10 @@
   var CONTAINER_SELECTOR = '#stock-calendar';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
 
+  // DART 공시의 정식 회사명이 KRX_MAP(data/krx_map.js)의 약칭 키와 다른 경우의 별칭.
+  // 예: DART corp_name "현대자동차" vs KRX_MAP 키 "현대차"(005380).
+  var DART_NAME_ALIAS = { '현대자동차': '현대차' };
+
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙,
   // js/foreign-flow.js·js/stock-search.js와 동일 패턴 - window.__stockIconFallback 공유).
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -36,6 +40,10 @@
   function stockIconHtml(code) {
     if (!code) return '';
     return '<img src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+  }
+  function krxCodeFor(stockName) {
+    if (!stockName || !global.KRX_MAP) return null;
+    return global.KRX_MAP[stockName] || global.KRX_MAP[DART_NAME_ALIAS[stockName]] || null;
   }
 
   function fetchJson(url) {
@@ -142,7 +150,7 @@
       // 실제 로고 이미지를 그 위에 겹쳐 그린다 - 이름이 KRX_MAP과 정확히 안 맞거나
       // (예: 표기 차이) 로고 파일이 없는 종목은 svg->png 3단 폴백 끝에 이미지가 숨겨져도
       // 밑에 깔린 약칭이 그대로 보여 빈 원으로 남지 않는다.
-      var code = global.KRX_MAP && global.KRX_MAP[meta.stockName];
+      var code = krxCodeFor(meta.stockName);
       iconHtml = escapeHtml((meta.stockName || '').slice(0, 2)) + stockIconHtml(code);
     } else if (meta.isForeign) {
       iconClass = 'sc-ev-icon flag';
