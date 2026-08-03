@@ -144,3 +144,12 @@ fi
 # 실패해도 위 배포 결과와 FastAPI 재시작 성공을 되돌리거나 비정상 종료시키지 않는다.
 run_news_momentum_if_due "$DEPLOY_OCCURRED" || true
 run_price_recap_cleanup_once || true
+
+# 2026-08-03: 주요 엔드포인트 로컬 응답시간을 5분마다 기록(GET /health/latency로 노출) -
+# VM 장애 진단 때 "느려진 것 같다"를 매번 SSH로 curl -w 재던 걸 자동화한 것. 엔드포인트가
+# 느려도(최악의 경우 5개 x 25초 타임아웃) 이 배포 타이머 자체가 막히면 안 되므로 백그라운드로
+# 던지고 기다리지 않는다 - latency_monitor.py 내부에서 각 호출을 개별 예외 처리하고 결과를
+# 파일에 추가만 하므로, 이 회차가 안 끝난 채 다음 5분 회차가 겹쳐도(위 flock과 무관하게 이
+# 백그라운드 프로세스는 별도) 로그 줄이 뒤섞이는 정도이지 크래시하지 않는다.
+"$PYTHON" "$APP_DIR/latency_monitor.py" >/dev/null 2>&1 &
+disown
