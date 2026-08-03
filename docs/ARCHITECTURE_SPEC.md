@@ -42,7 +42,7 @@ flowchart LR
 ### 2.2 Google Apps Script 프록시 (`gas/ticker-proxy.gs`)
 
 - 단일 GAS 프로젝트, 웹앱 배포. `doGet` 쿼리파라미터로 22개 라우트 처리(§3 `SOURCE_CODE_SPEC.md` 3.1 참고).
-- 시크릿 3종(`GROQ_API_KEY`, `KIWOOM_VM_URL`, `KIWOOM_VM_TOKEN`)은 스크립트 속성(PropertiesService)에서만 로드 — 코드 하드코딩 없음(확인됨). 2026-08-03에 `DEBUG_ACCESS_KEY`(선택, 미설정 시 `?debugShortNaver=1` 디버그 라우트 전체 비활성화)와 `GOOGLE_CALENDAR_API_KEY`·`GOOGLE_CALENDAR_ID`(필수, `js/stock-calendar.js`에 하드코딩돼 있던 값을 이관 — 설정 전까지는 `?action=calendarEvents`가 빈 배열만 반환)가 추가되었다.
+- 시크릿 3종(`GROQ_API_KEY`, `KIWOOM_VM_URL`, `KIWOOM_VM_TOKEN`)은 스크립트 속성(PropertiesService)에서만 로드 — 코드 하드코딩 없음(확인됨). 2026-08-03에 `DEBUG_ACCESS_KEY`(선택, 미설정 시 `?debugShortNaver=1` 디버그 라우트 전체 비활성화)가 추가되었다. Google Calendar API 키는 GAS로 이관하는 방안을 검토했으나, 사용자가 GCP 콘솔에 리퍼러 제한을 이미 걸어둔 상태라 원복했다(§5, §7 참고).
 - `CacheService`로 응답 캐싱, TTL은 항목별 60초(장중 시세)~3시간(AI요약).
 - VM 호출 시 `X-API-Key: {KIWOOM_VM_TOKEN}` 헤더로 인증.
 - **git push만으로는 반영되지 않는다** — script.google.com에서 "배포 → 새 버전"을 수동으로 눌러야 한다.
@@ -129,7 +129,7 @@ GAS 캐시는 배포해도 자동으로 비워지지 않으므로, 응답 스키
 | 네이버 금융 | 실시간 시세(백업), 종목뉴스, 뉴스검색(VM 경유 IP 화이트리스트 우회) | GAS 직접 + VM(`naver_news.py`) |
 | DART(전자공시) | 재무제표, 실적발표 캘린더 | VM(`dart_client.py`, `earnings_calendar.py`) |
 | Groq API(`llama-3.3-70b-versatile`) | AI 요약 전반 | GAS(`callGroq`), 스크립트 속성에 키 저장 |
-| 구글 캘린더 API | 증시캘린더 이벤트 | `js/stock-calendar.js`에 API 키 하드코딩(리퍼러 제한 여부 미검증) |
+| 구글 캘린더 API | 증시캘린더 이벤트 | `js/stock-calendar.js`에 API 키 하드코딩(사용자 확인: GCP 콘솔에 리퍼러 제한 적용됨, 2026-08-03) |
 | KRX 공시 RSS | 실시간 공시 피드 | GAS(`?market=0`) 경유 |
 | 업비트 | BTC/ETH 시세 | VM(`btc_futures.py`) |
 | FRED | 미국채 금리 | VM(`bond_yield.py`) |
@@ -148,7 +148,7 @@ GAS 캐시는 배포해도 자동으로 비워지지 않으므로, 응답 스키
 
 이 절은 2026-08-03 리뷰 시점의 발견 사실이다. 같은 날 후속 작업 2건으로 `gas/ticker-proxy.gs` 항목, 이어서 VM(`main.py` 등)·프론트(`js/`) 항목까지 대부분 실제로 수정했다. `.nav-logo-name` 깨진 문구(사용자 확인 필요)만 미수정으로 남아 있다.
 
-- 시크릿 관리: VM은 환경변수, GAS는 스크립트 속성 — 코드 하드코딩 없음(백엔드/GAS 확인 완료). 예외였던 프론트엔드 `js/stock-calendar.js`의 Google Calendar API 키도 **수정 완료**: GAS `?action=calendarEvents` 프록시로 이관해 다른 시크릿과 동일하게 스크립트 속성에서만 관리한다.
+- 시크릿 관리: VM은 환경변수, GAS는 스크립트 속성 — 코드 하드코딩 없음(백엔드/GAS 확인 완료). 예외인 프론트엔드 `js/stock-calendar.js`의 Google Calendar API 키는 GAS 프록시 이관을 한 차례 적용했다가 원복했다 — 사용자가 GCP 콘솔에 리퍼러 제한(이 블로그 도메인만 허용)을 이미 걸어둔 상태라 키가 노출돼도 다른 도메인에서 남용할 수 없어, GAS 경유의 실익이 없다고 판단했다.
 - 인증 경계: GAS↔VM은 `X-API-Key`로 보호되지만, VM의 "브라우저 공개" 라우트군은 CORS만으로는 서버-서버 호출을 막지 못해 사실상 공개 API다. **부분 수정(2026-08-03)**: 종목코드별 캐시로 순회 남용에 특히 취약한 3개 라우트(`/investor-flow/{code}`,`/foreign-flow/{code}`,`/order-book/{code}`)에 IP당 분당 요청 상한을 추가했다. 나머지 라우트(고정 키/좁은 파라미터 공간이라 캐시가 이미 효과적)는 대상에서 제외했다.
 - `/ws/quotes`의 `Origin` 헤더 검사 우회 가능성 자체는 구조적 한계로 남아있지만, **부분 수정(2026-08-03)**: 동시 연결 수 상한(`_WS_MAX_CONNECTIONS=200`)을 추가해 자원 고갈 규모를 제한했다.
 - `main.py`의 `require_api_key` 비상수시간 비교도 **수정 완료**: `hmac.compare_digest`로 교체.

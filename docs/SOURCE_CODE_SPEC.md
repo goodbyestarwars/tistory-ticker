@@ -50,7 +50,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `pension-fund.js` | 257 | 연기금 단독 수급 분석 위젯 | `window.PensionFund`, `#pension-fund` | GAS `?action=pensionFund&code=` |
 | `short-pressure.js` | 279 | 공매도 압박 점수 위젯 | `window.ShortPressure`, `#short-pressure` | GAS `?action=shortPressure&code=` |
 | `sidebar-rank.js` | 285 | 우측 사이드바 실시간 랭킹(거래량/등락률 TOP) | `window.SidebarRank`, `#sidebar-rank` | VM `/market-rank` |
-| `stock-calendar.js` | ~280 | 증시 캘린더(구글 캘린더 + DART 실적 병합) | `window.StockCalendar`, `#stock-calendar` | GAS `?action=calendarEvents`(2026-08-03부터, 예전엔 Google Calendar API 키 하드코딩), VM `/earnings-calendar` |
+| `stock-calendar.js` | 285 | 증시 캘린더(구글 캘린더 + DART 실적 병합) | `window.StockCalendar`, `#stock-calendar` | **Google Calendar API(키 하드코딩, 리퍼러 제한 적용됨)**, VM `/earnings-calendar` |
 | `sector-dashboard-v4.js` | 300 | 섹터별 카드/히트맵(증시온도 위젯이 재사용) | `window.SectorDashboard`, `#sector-dashboard` | GAS `?codes=`, `?marketAnalysis=1` |
 | `investor-trend-widget.js` | 320 | 홈 전용 투자자별(개인/외국인/기관) 매매동향 표 | `window.InvestorTrendWidget`, `#investor-trend-widget` | VM `/investor-trend` |
 | `stock-search-panel.js` | 446 | 사이드바 종목검색 드롭다운(즐겨찾기/최근검색) | `window.StockSearchPanel`, `#navSearchInput` | GAS `?codes=`, `data/krx_map.js` 지연로드 |
@@ -116,7 +116,6 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `action` | `indexChart`(+`symbol`) | `getIndexChart()` | 지수 차트 |
 | `action` | `investorFlow` | (폐기, 실제 분기 없음) | — |
 | `action` | `fundamentals`(+`code`) | `getFundamentals_()` | 펀더멘탈 |
-| `action` | `calendarEvents`(+`year`,`month`) | `getStockCalendarEvents_()` | 증시캘린더 구글 캘린더 이벤트(2026-08-03 신설, `js/stock-calendar.js`의 하드코딩 키 이관) |
 | `debugShortNaver` | `1`(+`code`,`debugKey`) | `debugShortTradeNaver()` | 진단용, 2026-08-03부터 `DEBUG_ACCESS_KEY` 스크립트 속성 필요(속성 미설정 시 비활성화, §6 보안 참고) |
 | `rankNews` | `1` | `getRankingNews()` | 랭킹뉴스 |
 | `patternScan` | `1` | `getPatternScanResult()` | 패턴스캔 배치 결과 |
@@ -247,7 +246,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `gas/ticker-proxy.gs` `getFlowAiSummary` | 중간 | `code`만 정규식 검증되고 `name`/`flowNote`/`verdictLabel` 등은 검증 없이 Groq 프롬프트에 직접 삽입 + 결과가 캐시되어 다른 방문자에게 노출. 프롬프트 인젝션 + Groq 쿼터 남용 벡터. **GAS 수정됨(2026-08-03)**: 각 필드 길이 제한(200자)·제어문자 제거로 정제하고, 정제된 값들의 해시를 캐시 키에 포함시켜 위조 입력이 정상 캐시를 덮어쓰지 못하도록(별도 슬롯으로 격리) 변경 |
 | `main.py` (`/futures`,`/option-flow`,`/market-rank`,`/order-book/{code}`,`/investor-trend`,`/investor-flow/{code}`,`/foreign-flow/{code}`,`/earnings-calendar`,`/health/latency`) | 중간 | 인증 없이 CORS만으로 "보호" — CORS는 서버-서버 직접 호출을 막지 못하므로 사실상 공개 API. 종목코드/기간 조합을 순회하면 캐시 미스를 유도해 키움/KIS/DART 쿼터를 소진시킬 수 있음(의도된 설계이나 레이트리밋 부재) | **부분 수정됨(2026-08-03)**: 종목코드별 캐시로 순회 남용에 특히 취약한 `/investor-flow/{code}`·`/foreign-flow/{code}`·`/order-book/{code}` 3곳에 IP당 분당 요청 상한(각 30·30·60회, `_check_rate_limit`)을 추가. `/futures`·`/option-flow`·`/market-rank`·`/investor-trend`·`/earnings-calendar`·`/health/latency`는 고정 키/좁은 파라미터 공간이라 캐시가 이미 효과적으로 방어하고 있어 대상에서 제외 |
 | `main.py:228-234` `/ws/quotes` | 중간 | 접근 제어가 `Origin` 헤더 검사뿐이며 브라우저 외 클라이언트는 이 헤더를 임의 설정 가능. 동시 연결 수 상한도 없음 | **부분 수정됨(2026-08-03)**: 동시 연결 수 상한(`_WS_MAX_CONNECTIONS=200`) 추가로 자원 고갈 규모를 제한. `Origin` 검사 우회 가능성 자체는 구조적 한계라 미해결(별도 인증 토큰 도입이 필요한 더 큰 변경) |
-| `js/stock-calendar.js:23-24` | 낮음~중간(확인됨) | Google Calendar API 키와 캘린더 ID가 소스에 하드코딩(ARCHITECTURE.md에 이미 "노출 상태"로 문서화됨). 리퍼러 제한 여부는 GCP 콘솔에서 별도 확인 필요(미검증) | **수정됨(2026-08-03)**: GAS `?action=calendarEvents` 프록시를 신설해 다른 시크릿(Groq, 키움 VM 토큰)과 동일하게 스크립트 속성(`GOOGLE_CALENDAR_API_KEY`,`GOOGLE_CALENDAR_ID`)으로 이관 - `js/stock-calendar.js`에는 더 이상 키가 없음. GAS 재배포 + 스크립트 속성 설정 필요 |
+| `js/stock-calendar.js:23-24` | 낮음~중간(확인됨) | Google Calendar API 키와 캘린더 ID가 소스에 하드코딩(ARCHITECTURE.md에 이미 "노출 상태"로 문서화됨) | **조치 확인됨(2026-08-03)**: GAS 프록시로 이관하는 방안을 한 차례 적용했으나, 사용자가 GCP 콘솔에서 이미 리퍼러 제한(이 블로그 도메인만 허용)을 걸어둔 상태라고 확인해 원복 — 키가 노출돼도 다른 도메인에서 남용할 수 없어 GAS 경유가 불필요하다고 판단, 기존 방식 유지 |
 | `gas/ticker-proxy.gs` | 낮음 | `?debugShortNaver=1` 디버그 엔드포인트가 인증 없이 운영에 노출, 호출마다 네이버 실크롤링 유발(캐시 없음). **GAS 수정됨(2026-08-03)**: 스크립트 속성 `DEBUG_ACCESS_KEY`와 일치하는 `debugKey` 쿼리파라미터가 있을 때만 동작하도록 잠금(속성 미설정 시 라우트 전체 비활성화) |
 | `js/marketcap-bubble.js:444-459` | 낮음~중간 | `item.name`/`item.breakdown`/`cl.label`을 이스케이프 없이 `innerHTML`에 삽입(같은 파일에 `escapeHtml` 유틸이 있음에도 누락). 공격 표면은 GAS 백엔드 손상 시로 제한 | **수정됨(2026-08-03)**: 세 곳 모두 기존 `escapeHtml` 적용 |
 | `js/quick-indices.js:348-393` | 정보성 | 이스케이프 없는 `renderDiscNewsInto`/`renderRankNewsInto`가 정의돼 있으나 호출부가 없는 죽은 코드(현재 도달 불가, 재사용 시 XSS 소스가 됨) | **수정됨(2026-08-03)**: 기존 `escapeNewsHtml` 적용(여전히 도달 불가한 죽은 코드지만, 재사용 시에도 안전하도록 방어) |
