@@ -152,7 +152,7 @@
       iconHtml  = '📅';
     }
     var titleHtml = meta.isStock
-      ? '<strong class="sc-ev-ticker">$' + escapeHtml(meta.stockName) + '</strong> ' + escapeHtml(meta.text)
+      ? '<strong class="sc-ev-ticker">' + escapeHtml(meta.stockName) + '</strong> ' + escapeHtml(meta.text)
       : escapeHtml(meta.text);
     var tagHtml = meta.tag ? '<span class="sc-ev-tag">' + escapeHtml(meta.tag) + '</span>' : '';
     return '<a href="' + (ev.link || '#') + '" target="_blank" class="sc-ev-item">'
