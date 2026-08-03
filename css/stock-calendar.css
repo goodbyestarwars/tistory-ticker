@@ -75,9 +75,15 @@
   flex-shrink: 0; width: 34px; font-size: 12px; font-weight: 700; color: #6366f1;
 }
 #stock-calendar .sc-ev-icon {
+  position: relative; overflow: hidden;
   flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 700; line-height: 1;
+}
+/* 종목 로고 이미지는 2글자 약칭(배경) 위에 겹쳐 그린다 - 로고가 없거나 로딩 실패하면
+   onerror 폴백(js/stock-calendar.js __stockIconFallback)이 이 img를 숨겨 약칭이 보인다. */
+#stock-calendar .sc-ev-icon img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
 }
 #stock-calendar .sc-ev-icon.stock { background: #eef2ff; color: #4338ca; }
 #stock-calendar .sc-ev-icon.flag { background: #f1f5f9; font-size: 13px; }
