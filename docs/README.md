@@ -10,6 +10,9 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
 | `UI_GUIDE.md` | 색상, 레이아웃, 반응형 원칙 | UI 작업 |
 | `WORK_HISTORY.md` | 중요한 기능·구조·배포 이력 | 이력 확인·갱신 시 |
+| `SOURCE_CODE_SPEC.md` | 파일별 역할·함수·코드 품질 점검(속도/오류/보안) | 전체 구조 파악·리팩터링 전 |
+| `ARCHITECTURE_SPEC.md` | 컴포넌트 간 호출·인증·캐싱·동시성 상세 | 인프라 심화 작업 |
+| `DB_SPEC.md` | SQLite 2종 + 파일 기반 데이터 스키마 정의 | DB/캐시 구조 작업 |
 | `../.claude/rules/` | 경로별 세부 규칙 | 관련 파일 작업 시 |
 | `../.claude/skills/` | 반복 작업 절차 | Skill 호출 시 |
 
