@@ -44,11 +44,17 @@ import db_schema
 logger = logging.getLogger('domestic_futures')
 
 # 분봉 지원 심볼. KOSPI200_DAY는 네이버 chart/domestic/futures/FUT/minute 엔드포인트로
-# 실측 확인됨(2026-07-15). KOSPI200_NIGHT은 처음엔 KIS에 분봉 소스가 없다고 판단했었으나,
-# 공식 예제 저장소(koreainvestment/open-trading-api)에서 inquire_time_fuopchartprice
-# (TR FHKIF03020200)를 찾아 실측 확인 완료(2026-07-16, night_futures_ws.py의 refresh_minute
-# 참고) - 이제 둘 다 지원.
-MINUTE_SYMBOLS = {'KOSPI200_DAY', 'KOSPI200_NIGHT'}
+# 실측 확인됨(2026-07-15).
+# 2026-08-03 버그 수정: 예전엔 여기에 KOSPI200_NIGHT도 포함돼 있었는데, refresh_minute_all()이
+# 심볼과 무관하게 항상 이 카테고리(_MINUTE_CHART_CATEGORY/_MINUTE_CHART_CODE, 주간선물 FUT)만
+# 조회해서 그 결과를 KOSPI200_NIGHT 이름으로도 그대로 저장하고 있었다. night_futures_ws.py가
+# KIS 실시간 야간선물(TR FHKIF03020200)로 같은 (symbol='KOSPI200_NIGHT', ts) 행을 별도로
+# 갱신하므로, 두 백그라운드 스레드가 서로 다른 데이터(하나는 주간선물, 하나는 실제 야간선물)로
+# 같은 행을 번갈아 덮어써 "코스피 선물" 페이지의 야간선물 분봉 차트가 간헐적으로 주간선물
+# 시세로 뒤바뀌는 데이터 정확성 버그가 있었다. 야간선물 분봉은 night_futures_ws.py가 유일한
+# 소스여야 하므로 여기서는 제거한다 - night_futures_ws가 못 뜬 환경(KIS_APPKEY 미설정 등)에서는
+# 야간선물 분봉이 그냥 비어있는 게, 다른 상품 시세로 잘못 채워지는 것보다 낫다.
+MINUTE_SYMBOLS = {'KOSPI200_DAY'}
 _MINUTE_CHART_CATEGORY = 'futures'
 _MINUTE_CHART_CODE = 'FUT'
 _MINUTE_REFRESH_INTERVAL = 5 * 60

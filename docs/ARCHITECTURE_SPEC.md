@@ -42,7 +42,7 @@ flowchart LR
 ### 2.2 Google Apps Script 프록시 (`gas/ticker-proxy.gs`)
 
 - 단일 GAS 프로젝트, 웹앱 배포. `doGet` 쿼리파라미터로 22개 라우트 처리(§3 `SOURCE_CODE_SPEC.md` 3.1 참고).
-- 시크릿 3종(`GROQ_API_KEY`, `KIWOOM_VM_URL`, `KIWOOM_VM_TOKEN`)은 스크립트 속성(PropertiesService)에서만 로드 — 코드 하드코딩 없음(확인됨). 2026-08-03에 `DEBUG_ACCESS_KEY`(선택, 미설정 시 `?debugShortNaver=1` 디버그 라우트 전체 비활성화)가 추가되었다.
+- 시크릿 3종(`GROQ_API_KEY`, `KIWOOM_VM_URL`, `KIWOOM_VM_TOKEN`)은 스크립트 속성(PropertiesService)에서만 로드 — 코드 하드코딩 없음(확인됨). 2026-08-03에 `DEBUG_ACCESS_KEY`(선택, 미설정 시 `?debugShortNaver=1` 디버그 라우트 전체 비활성화)와 `GOOGLE_CALENDAR_API_KEY`·`GOOGLE_CALENDAR_ID`(필수, `js/stock-calendar.js`에 하드코딩돼 있던 값을 이관 — 설정 전까지는 `?action=calendarEvents`가 빈 배열만 반환)가 추가되었다.
 - `CacheService`로 응답 캐싱, TTL은 항목별 60초(장중 시세)~3시간(AI요약).
 - VM 호출 시 `X-API-Key: {KIWOOM_VM_TOKEN}` 헤더로 인증.
 - **git push만으로는 반영되지 않는다** — script.google.com에서 "배포 → 새 버전"을 수동으로 눌러야 한다.
@@ -64,7 +64,7 @@ flowchart LR
 
 CORS는 서버-서버 호출(브라우저가 아닌 curl/스크립트)에는 적용되지 않는다 — 즉 "공개" 그룹은 사실상 누구나 직접 호출 가능한 공개 API다. 이는 "GAS→VM 구간 간헐적 차단" 문제를 우회하기 위한 의도된 설계이며(`main.py:88-97` 주석), 공개 시세 데이터라 민감정보 노출은 아니지만 레이트리밋이 없다(상세는 `SOURCE_CODE_SPEC.md` §6.3).
 
-`/ws/quotes`(WebSocket)는 `Origin` 헤더 검사로만 접근을 제한한다(`main.py:228-234`).
+`/ws/quotes`(WebSocket)는 `Origin` 헤더 검사로만 접근을 제한하며(`main.py:228-234`), 2026-08-03부터 동시 연결 수 상한(`_WS_MAX_CONNECTIONS=200`)도 함께 적용한다.
 
 #### 2.3.2 백그라운드 프로세스 모델
 
@@ -80,7 +80,7 @@ CORS는 서버-서버 호출(브라우저가 아닌 curl/스크립트)에는 적
 | `night_futures_ws.start_background()` | `KIS_APPKEY/APPSECRET` 설정 + `websockets` 설치 시 | 실시간 WS, 5분마다 일/분봉 갱신 | `future_prices`, `future_chart`, `future_chart_minute` |
 | `option_flow.start_background()` | `KIS_APPKEY/APPSECRET` 설정 시 | 5분(REST 폴링) | `option_flow` |
 
-최대 7개 스레드가 동시에 `db_schema.get_conn()`으로 독립 커넥션을 열어 같은 `ohlc_snapshot.db`에 쓴다. `PRAGMA journal_mode=WAL` + `busy_timeout=600000`(`db_schema.py:136-139`)으로 파일 잠금 충돌은 대기 후 자동 해소되지만, **같은 키를 서로 다른 의미의 값으로 동시에 쓰는 논리적 충돌**은 이 메커니즘으로 막을 수 없다 — 실제로 `domestic_futures.py`와 `night_futures_ws.py`가 `KOSPI200_NIGHT` 분봉을 서로 다른 소스로 같은 행에 upsert하는 문제가 발견되었다(`SOURCE_CODE_SPEC.md` §6.2).
+최대 7개 스레드가 동시에 `db_schema.get_conn()`으로 독립 커넥션을 열어 같은 `ohlc_snapshot.db`에 쓴다. `PRAGMA journal_mode=WAL` + `busy_timeout=600000`(`db_schema.py:136-139`)으로 파일 잠금 충돌은 대기 후 자동 해소되지만, **같은 키를 서로 다른 의미의 값으로 동시에 쓰는 논리적 충돌**은 이 메커니즘으로 막을 수 없다 — 실제로 `domestic_futures.py`와 `night_futures_ws.py`가 `KOSPI200_NIGHT` 분봉을 서로 다른 소스로 같은 행에 upsert하는 문제가 있었다(`SOURCE_CODE_SPEC.md` §6.2). **수정됨(2026-08-03)**: `domestic_futures.MINUTE_SYMBOLS`에서 `KOSPI200_NIGHT`를 제거해 `night_futures_ws.py`만 이 심볼의 분봉을 쓰도록 단일 소스화했다.
 
 ### 2.4 skin.html (Tistory 스킨 HTML)
 
@@ -139,19 +139,24 @@ GAS 캐시는 배포해도 자동으로 비워지지 않으므로, 응답 스키
 ## 6. 성능 특성 요약 (상세는 `SOURCE_CODE_SPEC.md` §6.1)
 
 - GAS `getMarketTemp()`가 캐시 미스 시 외부 HTTP 15회 이상을 직렬 호출하는 것이 가장 큰 단일 지연 요인이었다 — 2026-08-03에 `sectors-v3.js` 중복 fetch와 `computeCombinedFlowScore_`의 중복 크롤링을 제거해 일부 완화했다(전면 병렬화는 리스크 대비 효과가 작아 보류).
-- VM 메모리 캐시의 "전량 비움" 정책은 트래픽 스파이크 시 thundering herd를 유발할 수 있다(백엔드, 미수정).
+- VM 메모리 캐시의 "전량 비움" 정책은 트래픽 스파이크 시 thundering herd를 유발할 수 있었다 — 2026-08-03에 6개 캐시 전부 `OrderedDict` 기반 LRU로 교체해 해결했다.
 - `/futures`에 대한 GZip 압축(`main.py:98-102`, `minimum_size=500`)과 SQLite 즉시읽기 TTL(`_FUTURES_TTL=10`)은 2026-07-31 "첫 로딩 30초" 장애 대응으로 이미 반영되어 있다.
 - GAS `fetchQuotesWithCap`(히트맵)과 `getRankingNews`(랭킹뉴스)의 순차 `UrlFetchApp.fetch` 반복도 2026-08-03에 `fetchAll` 병렬 패턴으로 교체했다.
+- `kis_client.py`의 옵션수급 5분 폴링마다 상시 실행되던 디버그 크로스체크 API 호출(+응답 원문 로깅)도 2026-08-03에 제거했다.
 
 ## 7. 보안 아키텍처 관점 요약 (상세는 `SOURCE_CODE_SPEC.md` §6.3)
 
-이 절은 2026-08-03 리뷰 시점의 발견 사실이다. 같은 날 후속 작업으로 `gas/ticker-proxy.gs`에 해당하는 항목은 아래처럼 실제로 수정했다 — VM(`main.py` 등)·프론트(`js/`) 항목은 미수정 상태로 남아 있다.
+이 절은 2026-08-03 리뷰 시점의 발견 사실이다. 같은 날 후속 작업 2건으로 `gas/ticker-proxy.gs` 항목, 이어서 VM(`main.py` 등)·프론트(`js/`) 항목까지 대부분 실제로 수정했다. `.nav-logo-name` 깨진 문구(사용자 확인 필요)만 미수정으로 남아 있다.
 
-- 시크릿 관리: VM은 환경변수, GAS는 스크립트 속성 — 코드 하드코딩 없음(백엔드/GAS 확인 완료). 예외는 프론트엔드 `js/stock-calendar.js`의 Google Calendar API 키(공개 클라이언트 키 성격, 이미 문서화된 알려진 노출, 미수정).
-- 인증 경계: GAS↔VM은 `X-API-Key`로 보호되지만, VM의 "브라우저 공개" 라우트군은 CORS만으로는 서버-서버 호출을 막지 못해 사실상 공개 API다. 레이트리밋이 없어 외부 유료/제한 API(DART, KIS, 키움) 쿼터 소진 벡터가 있다(VM 쪽, 미수정).
+- 시크릿 관리: VM은 환경변수, GAS는 스크립트 속성 — 코드 하드코딩 없음(백엔드/GAS 확인 완료). 예외였던 프론트엔드 `js/stock-calendar.js`의 Google Calendar API 키도 **수정 완료**: GAS `?action=calendarEvents` 프록시로 이관해 다른 시크릿과 동일하게 스크립트 속성에서만 관리한다.
+- 인증 경계: GAS↔VM은 `X-API-Key`로 보호되지만, VM의 "브라우저 공개" 라우트군은 CORS만으로는 서버-서버 호출을 막지 못해 사실상 공개 API다. **부분 수정(2026-08-03)**: 종목코드별 캐시로 순회 남용에 특히 취약한 3개 라우트(`/investor-flow/{code}`,`/foreign-flow/{code}`,`/order-book/{code}`)에 IP당 분당 요청 상한을 추가했다. 나머지 라우트(고정 키/좁은 파라미터 공간이라 캐시가 이미 효과적)는 대상에서 제외했다.
+- `/ws/quotes`의 `Origin` 헤더 검사 우회 가능성 자체는 구조적 한계로 남아있지만, **부분 수정(2026-08-03)**: 동시 연결 수 상한(`_WS_MAX_CONNECTIONS=200`)을 추가해 자원 고갈 규모를 제한했다.
+- `main.py`의 `require_api_key` 비상수시간 비교도 **수정 완료**: `hmac.compare_digest`로 교체.
 - GAS 캐시 키 네임스페이스 충돌(`?codes=` vs 고정 키)로 인한 캐시 포이즈닝은 이번 리뷰에서 발견된 가장 위험도 높은 항목이었다 — **수정 완료**: `cacheKeyFor`에 `quotes_` 네임스페이스를 추가해 다른 라우트의 고정 키와 겹치지 않도록 분리.
 - GAS `getFlowAiSummary`의 프롬프트 인젝션·캐시 오염도 **수정 완료**: 입력값 정제(길이 제한·제어문자 제거) + 캐시 키에 입력 해시를 포함시켜 위조 입력이 정상 캐시를 덮어쓰지 못하도록 격리.
 - GAS `?debugShortNaver=1` 디버그 엔드포인트 무인증 노출도 **수정 완료**: 스크립트 속성 `DEBUG_ACCESS_KEY` 검증을 추가해 기본적으로 비활성화.
+- `js/marketcap-bubble.js`의 `innerHTML` 이스케이프 누락, `js/quick-indices.js`의 도달 불가 죽은 코드 이스케이프 누락도 **수정 완료**(기존 escape 유틸 적용).
+- 코스피200 야간선물 분봉 데이터 정확성 버그(`domestic_futures.py` vs `night_futures_ws.py`)도 **수정 완료**: 야간선물 분봉을 `night_futures_ws.py` 단일 소스로 정리.
 - SQL 인젝션, 커맨드 인젝션, 하드코딩된 백엔드 시크릿은 전수 조사 결과 발견되지 않았다.
 
 ## 8. 이 문서가 다루지 않는 것

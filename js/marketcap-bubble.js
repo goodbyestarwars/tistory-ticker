@@ -440,19 +440,21 @@
     }
 
     function showTooltip(item) {
+      // 2026-08-03: item.name/item.breakdown(GAS ?bubble=1 응답)을 이스케이프 없이 innerHTML에
+      // 삽입하고 있었다 - 같은 파일에 escapeHtml이 이미 있는데 여기서만 누락돼 있었다.
       var rateTxt = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(2) + '%';
       tooltip.innerHTML =
-        '<div class="mcb-tt-name">' + item.name + '</div>' +
+        '<div class="mcb-tt-name">' + escapeHtml(item.name) + '</div>' +
         '<div class="mcb-tt-cap">시가총액 ' + formatCap(item.cap) + '</div>' +
         '<div class="mcb-tt-rate ' + heatClass(item.changeRate) + '">' + rateTxt + '</div>' +
-        (item.breakdown ? '<div class="mcb-tt-breakdown">' + item.breakdown + '</div>' : '');
+        (item.breakdown ? '<div class="mcb-tt-breakdown">' + escapeHtml(item.breakdown) + '</div>' : '');
       tooltip.hidden = false;
       positionTooltip(item.x + item.w / 2, item.y);
     }
 
     function showZoneTooltip(cl, evt) {
       tooltip.innerHTML =
-        '<div class="mcb-tt-name">' + cl.label + '</div>' +
+        '<div class="mcb-tt-name">' + escapeHtml(cl.label) + '</div>' +
         '<div class="mcb-tt-cap">전체 시가총액 ' + formatCap(cl.totalCap) + '</div>';
       tooltip.hidden = false;
       positionTooltipAtEvent(evt);

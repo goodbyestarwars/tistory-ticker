@@ -345,6 +345,10 @@
     if (el) el.textContent = text;
   }
 
+  // 2026-08-03: 현재 이 함수를 호출하는 곳이 없다(확인됨 - renderMixedNewsInto가 공시+뉴스를
+  // 함께 쓰는 활성 경로). 다만 이스케이프 없이 innerHTML에 넣는 게 그대로 있으면 나중에
+  // 누가 다시 연결했을 때 XSS 소스가 되므로, escapeNewsHtml로 방어해둔다(도달 불가라 지금
+  // 당장의 위험은 없음).
   function renderDiscNewsInto(track, items) {
     if (!track) return;
     setNewsTitle('주요 공시');
@@ -352,10 +356,10 @@
       var cls = it.market === 'KOSDAQ' ? 'qi-news-market-kosdaq' : 'qi-news-market-kospi';
       var disc = it.disc.replace(/\s*\|\s*/g, ' ').trim();
       var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
-      return '<a href="' + it.link + '" target="_blank" class="qi-news-item">'
-        + '<span class="' + cls + '">' + it.market + '</span>'
-        + (corp ? '<span class="qi-news-corp">' + corp + '</span>' : '')
-        + disc + '</a>';
+      return '<a href="' + escapeNewsHtml(it.link || '#') + '" target="_blank" class="qi-news-item">'
+        + '<span class="' + cls + '">' + escapeNewsHtml(it.market) + '</span>'
+        + (corp ? '<span class="qi-news-corp">' + escapeNewsHtml(corp) + '</span>' : '')
+        + escapeNewsHtml(disc) + '</a>';
     }));
   }
 
@@ -382,14 +386,16 @@
   // 2026-07-17(10차): 장외 시간엔 KIND 공시 RSS가 통째로 비어 "속보 없음"만 떠 있었다
   // (사용자 피드백) - 공시가 없으면 기존 GAS ?rankNews=1(네이버 뉴스 검색: 증시/코스피/
   // 코스닥 헤드라인, 서버에서 15분 캐싱)로 폴백해 패널이 비지 않게 한다.
+  // 2026-08-03: renderDiscNewsInto와 동일한 사유로 escapeNewsHtml 방어 추가 - 이 함수를 부르는
+  // loadRankNewsFallback도 현재 호출부가 없어(확인됨) 도달 불가지만 재사용 대비 안전하게 둔다.
   function renderRankNewsInto(track, items) {
     if (!track) return;
     setNewsTitle('주요 뉴스');
     if (!items.length) { track.innerHTML = '<span class="qi-news-loading">속보 없음</span>'; return; }
     fillNewsTrack(track, items.slice(0, 5).map(function (it) {
-      return '<a href="' + it.link + '" target="_blank" class="qi-news-item">'
+      return '<a href="' + escapeNewsHtml(it.link || '#') + '" target="_blank" class="qi-news-item">'
         + '<span class="qi-news-market-news">뉴스</span>'
-        + it.title + '</a>';
+        + escapeNewsHtml(it.title) + '</a>';
     }));
   }
 

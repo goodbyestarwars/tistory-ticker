@@ -89,6 +89,12 @@ function doGet(e) {
     return jsonResponse(getFundamentals_((params.code || '').trim()));
   }
 
+  // 2026-08-03: js/stock-calendar.js가 Google Calendar API 키를 클라이언트 코드에 그대로
+  // 들고 있던 것을 GAS 경유로 옮긴다(다른 모든 외부 시크릿과 동일 패턴 - 스크립트 속성).
+  if (params.action === 'calendarEvents') {
+    return jsonResponse(getStockCalendarEvents_(params.year, params.month));
+  }
+
   // 2026-08-03: 인증 없이 노출된 진단 엔드포인트였다 - 호출마다 네이버에 실크롤링을
   // 유발하는 무료 프록시로 악용될 수 있어(캐시 없음), 스크립트 속성 DEBUG_ACCESS_KEY와
   // 일치하는 debugKey를 보낼 때만 동작하도록 인증을 추가했다. 속성이 비어있으면(기본값)
@@ -3200,6 +3206,60 @@ function getFundamentals_(code) {
   } : null;
 
   return { code: code, valuation: valuation, fundamentals: fetchFundamentalsForCode_(code) };
+}
+
+// ---------------------------------------------------------------------------
+// 증시캘린더 구글 캘린더 이벤트 프록시 (?action=calendarEvents&year=&month=)
+// 2026-08-03: js/stock-calendar.js가 Google Calendar API 키·캘린더 ID를 클라이언트 코드에
+// 하드코딩해서 호출하고 있었다(공개 소스에 그대로 노출). 다른 모든 외부 시크릿(GROQ_API_KEY,
+// KIWOOM_VM_TOKEN)과 동일하게 스크립트 속성(GOOGLE_CALENDAR_API_KEY, GOOGLE_CALENDAR_ID)으로
+// 옮기고 GAS가 대신 호출한다. month는 프론트 관례대로 1~12(자바스크립트 Date의 0~11이 아님).
+// ---------------------------------------------------------------------------
+var CALENDAR_EVENTS_CACHE_TTL = 900; // 15분 - 프론트(js/stock-calendar.js)의 자체 갱신 주기와 동일
+
+function getStockCalendarEvents_(yearParam, monthParam) {
+  var year = parseInt(yearParam, 10);
+  var month = parseInt(monthParam, 10); // 1~12
+  if (!year || !month || month < 1 || month > 12) {
+    return { items: [] };
+  }
+
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'calendar_events_v1_' + year + '_' + month;
+  var cached = cache.get(cacheKey);
+  if (cached !== null) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
+
+  var props = PropertiesService.getScriptProperties();
+  var apiKey = props.getProperty('GOOGLE_CALENDAR_API_KEY');
+  var calId = props.getProperty('GOOGLE_CALENDAR_ID');
+  if (!apiKey || !calId) return { items: [] };
+
+  var tMin = new Date(year, month - 1, 1).toISOString();
+  var tMax = new Date(year, month, 0, 23, 59, 59).toISOString();
+  var url = 'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calId)
+    + '/events?key=' + apiKey
+    + '&timeMin=' + encodeURIComponent(tMin)
+    + '&timeMax=' + encodeURIComponent(tMax)
+    + '&singleEvents=true&orderBy=startTime&maxResults=100';
+
+  var items = safeCall(function () {
+    var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return [];
+    var data = JSON.parse(res.getContentText('UTF-8'));
+    return (data.items || []).map(function (it) {
+      var title = it.summary
+        ? it.summary
+        : (it.visibility === 'private' ? '🔒 비공개 일정' : '(제목 없음)');
+      return { title: title, start: it.start.dateTime || it.start.date, link: it.htmlLink };
+    });
+  }) || [];
+
+  var result = { items: items };
+  cache.put(cacheKey, JSON.stringify(result), CALENDAR_EVENTS_CACHE_TTL);
+  return result;
 }
 
 // 2026-08-02: 종목 하나를 보여주려고 fetchFundamentalsCache_()가 전 종목 배치 캐시

@@ -171,63 +171,17 @@ def fetch_option_board(token, appkey, appsecret, mtrt_yyyymm):
         raise RuntimeError('FHPIF05030100 실패: ' + json.dumps(data, ensure_ascii=False))
     output1 = data.get('output1') or []
     output2 = data.get('output2') or []
-    # TEMP DEBUG(2026-07-20 2차): 풋 거래량이 100건 전부 0으로 잡히는 원인 조사용 - 1차
-    # 디버그(2026-07-18)로 FID_MTRT_CNT 파라미터는 KIS 공식 예제와 동일함을 확인해 배제됨.
-    # 2차 디버그로 콜/풋이 정확히 같은 행사가 100개(1350.00~1597.50)를 조회하는데 콜은
-    # 실거래가 분포하고 풋은 전부 0임을 확인 - "100건 윈도우가 ATM을 놓친다"는 가설도 배제됨.
-    # 원인 파악 후 제거할 것.
-    logger.info('option board raw: output1_len=%d output2_len=%d', len(output1), len(output2))
-    if output1:
-        logger.info('option board output1[0] raw: %s', json.dumps(output1[0], ensure_ascii=False))
-        logger.info('option board output1 (acpr, acml_vol) pairs: %s',
-                     [(r.get('acpr'), r.get('acml_vol')) for r in output1])
-    if output2:
-        logger.info('option board output2[0] raw: %s', json.dumps(output2[0], ensure_ascii=False))
-        logger.info('option board output2 (acpr, acml_vol) pairs: %s',
-                     [(r.get('acpr'), r.get('acml_vol')) for r in output2])
-        # TEMP DEBUG 3차: 이 전광판(FHPIF05030100)의 풋 슬롯만 죽어있는 건지, 아니면 개별
-        # 종목 조회(FHMIF10000000)로 같은 풋을 찍어도 거래량이 0인지 교차검증 - 전자면 이
-        # TR 자체의 한계, 후자면 계정/데이터 권한 문제로 원인이 갈린다.
-        try:
-            put_iscd = output2[0].get('optn_shrn_iscd')
-            if put_iscd:
-                quote = fetch_option_quote(token, appkey, appsecret, put_iscd)
-                logger.info('option board cross-check via inquire-price(%s): %s',
-                             put_iscd, json.dumps(quote, ensure_ascii=False))
-        except Exception:
-            logger.exception('option board cross-check via inquire-price failed')
+    # 2026-08-03: 풋 거래량 0 버그 조사용 TEMP DEBUG 블록(2026-07-20, 매 5분 옵션수급 폴링마다
+    # 원본 응답 전체를 로깅 + fetch_option_quote로 개별 종목 교차검증 API를 추가 호출)을
+    # 제거했다. 원인 조사는 이미 아래 delta_val 부호 기반 자동 교정 로직으로 마무리됐고
+    # (콜/풋이 뒤집혀 있으면 여기서 바로잡음), 디버그 블록만 상시 실행 상태로 남아있었다
+    # (불필요한 KIS API 호출 + 매 폴링 응답 원문 로깅, 2026-08-03 리뷰에서 발견).
     # 콜 델타는 0~+1, 풋 델타는 -1~0(금융공식상 항상 성립) - 요청 파라미터 순서만 믿지 않고
     # 실측 delta_val 부호로 한 번 더 교차검증한다. 순서가 뒤집혀 있으면 여기서 바로잡는다.
     if _avg_delta(output1) < 0 and _avg_delta(output2) > 0:
         logger.warning('option board output1/output2 reversed vs expected call/put order - swapping')
         output1, output2 = output2, output1
     return output1, output2
-
-
-# TEMP DEBUG(2026-07-20 3차): 옵션 전광판(fetch_option_board)의 풋 거래량 0 버그 교차검증 전용.
-# 개별 종목 시세 조회, TR FHMIF10000000(선물옵션 시세, KIS 공식 예제 기준). 원인 파악 후
-# fetch_option_board의 호출부와 함께 제거할 것.
-def fetch_option_quote(token, appkey, appsecret, iscd):
-    """선물옵션 시세(개별 종목), TR FHMIF10000000. iscd: 옵션 단축 종목코드(전광판 API의
-    optn_shrn_iscd를 그대로 재사용 - 두 TR이 같은 단축코드 체계를 쓰는지는 미확인이라
-    이 호출 자체가 그 가정을 검증하는 목적도 겸함)."""
-    path = ('/uapi/domestic-futureoption/v1/quotations/inquire-price'
-            '?FID_COND_MRKT_DIV_CODE=O&FID_INPUT_ISCD=%s' % iscd)
-    req = urllib.request.Request(
-        BASE_URL + path,
-        headers={
-            'Content-Type': 'application/json; charset=utf-8',
-            'authorization': 'Bearer ' + token,
-            'appkey': appkey,
-            'appsecret': appsecret,
-            'tr_id': 'FHMIF10000000',
-            'custtype': 'P',
-        },
-        method='GET',
-    )
-    with urllib.request.urlopen(req, timeout=15) as res:
-        data = json.loads(res.read().decode('utf-8'))
-    return data
 
 
 def fetch_investor_trade_daily(token, appkey, appsecret, code, date1, mrkt_div_code='UN'):

@@ -7,13 +7,15 @@
 """
 
 import asyncio
+import hmac
 import json
 import logging
 import os
 import time
+from collections import OrderedDict, deque
 from datetime import datetime, timedelta, timezone
 
-from fastapi import FastAPI, Header, HTTPException, Path, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Header, HTTPException, Path, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
@@ -111,12 +113,16 @@ LATENCY_LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lat
 # /ohlc, /investor-flow 온디맨드 조회용 메모리 캐시(종목코드 -> (기록시각, 결과)).
 # GAS가 이 두 엔드포인트를 호출할 때만 유독 응답이 느려서(타임아웃) 실패하는 현상이 있어
 # 재조회는 즉시 응답하도록 방어 - 최초 1회는 여전히 키움 실시간 호출이 필요하다.
-# 무제한 증가 방지로 개수 상한을 넘으면 통째로 비운다(정교한 LRU 대신 단순하게).
+# 2026-08-03: 예전엔 개수 상한을 넘으면 cache.clear()로 통째로 비웠는데(무제한 증가 방지),
+# 상한에 걸리는 순간 그동안 캐시로 흡수되던 요청이 한꺼번에 콜드패스(키움/KIS 실호출)로
+# 몰려 지연 스파이크(thundering herd)를 유발할 수 있었다. OrderedDict 기반 LRU로 바꿔
+# 상한 초과 시 가장 오래 전에 쓰인 항목 하나씩만 제거한다 - 나머지 캐시는 그대로 유지되어
+# 스파이크 없이 서서히 교체된다.
 _LIVE_CACHE_TTL = 300  # 5분
 _LIVE_CACHE_MAX_ENTRIES = 500
-_ohlc_cache = {}
-_investor_flow_cache_mem = {}
-_foreign_flow_cache_mem = {}
+_ohlc_cache = OrderedDict()
+_investor_flow_cache_mem = OrderedDict()
+_foreign_flow_cache_mem = OrderedDict()
 # fundamentals_cache.json 파싱 결과(파일 mtime/크기가 바뀔 때만 재파싱) - /fundamentals/{code}용.
 _fundamentals_cache_mem = {}
 
@@ -128,13 +134,17 @@ _MARKET_RANK_MAX_LIMIT = 20  # 사이드바 미리보기(5)보다 큰 값은 "�
 _market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(5는 30초마다 폴링, 20은 모달 열 때만)
 
 # 캘린더의 Google Calendar 이벤트와 병합하는 자동 실적발표 피드 캐시.
-_earnings_calendar_cache = {}
+# 2026-08-03: 다른 메모리 캐시와 달리 상한/정리 로직이 아예 없었다 - year(2000~2100)x
+# month(1~12) 조합이 최대 1,212개로 사실상 무한 증가는 아니지만, 나머지 캐시와 동일한
+# 방어 수준으로 맞춘다.
+_earnings_calendar_cache = OrderedDict()
 _EARNINGS_CALENDAR_TTL = 10 * 60
+_EARNINGS_CALENDAR_MAX_ENTRIES = 200
 
 # 호가창(js/order-book.js) - 프론트가 2초 간격으로 폴링하므로 서버 캐시는 그보다 짧게 걸어
 # 같은 종목을 여러 탭/방문자가 동시에 보고 있어도 키움 호출은 한 번으로 묶는다.
 _ORDER_BOOK_TTL = 1.5
-_order_book_cache = {}  # code -> {'t':.., 'data':..}
+_order_book_cache = OrderedDict()  # code -> {'t':.., 'data':..}
 
 # /futures는 홈의 관심지수 리본(js/quick-indices.js, 20초 폴링 - 2026-07-27부터 홈에서만
 # 렌더)·코스피 선물 페이지(30초 폴링)·GAS AI 해설(gas/ticker-proxy.gs가 서버사이드로 또 호출)이
@@ -143,20 +153,56 @@ _order_book_cache = {}  # code -> {'t':.., 'data':..}
 # 수집 주기(실시간 30초 폴링, 분봉 5분)보다 짧은 TTL이라 신선도 손실 없이 중복 조회만 없앤다
 # (_market_rank_cache와 동일 패턴).
 _FUTURES_TTL = 10
-_futures_cache = {}  # (interval, days, symbols) -> {'t':.., 'data':..}
+_futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'data':..}
+
+
+def _evict_lru(cache, max_entries):
+    """OrderedDict 캐시가 max_entries를 넘으면 가장 오래 전에 쓰인 항목부터 하나씩만
+    제거한다(2026-08-03, cache.clear() 전량비움 대체 - thundering herd 방지)."""
+    while len(cache) > max_entries:
+        cache.popitem(last=False)
 
 
 def _live_cache_get(cache, code):
     entry = cache.get(code)
     if entry and time.time() - entry[0] < _LIVE_CACHE_TTL:
+        cache.move_to_end(code)
         return entry[1]
     return None
 
 
 def _live_cache_put(cache, code, value):
-    if len(cache) >= _LIVE_CACHE_MAX_ENTRIES:
-        cache.clear()
     cache[code] = (time.time(), value)
+    cache.move_to_end(code)
+    _evict_lru(cache, _LIVE_CACHE_MAX_ENTRIES)
+
+
+# 2026-08-03: /investor-flow, /foreign-flow, /order-book는 인증 없이 공개된 데다(CORS는
+# 서버-서버 호출을 막지 못함) 종목코드(+옵션)별로 캐시가 나뉘어 있어, 코드를 기계적으로
+# 순회하면 캐시를 우회해 매번 키움/KIS 실호출을 유도할 수 있다(외부 API 쿼터 소진 벡터).
+# IP당 라우트별 분당 상한을 넉넉하게 둬서 정상적인 방문자 탐색(수동 클릭)은 막지 않으면서
+# 기계적 순회만 걸러낸다. 단일 프로세스 메모리 상태라 재시작 시 초기화되며, 무제한 증가
+# 방지로 추적 중인 (라우트,IP) 키 수가 상한을 넘으면 통째로 비운다(방문자 IP 다양성이
+# 극단적으로 클 때만 발생하는 드문 경로라 단순하게 처리).
+_RATE_LIMIT_WINDOW_SEC = 60
+_RATE_LIMIT_MAX_PER_WINDOW = 30
+_RATE_LIMIT_MAX_TRACKED_KEYS = 5000
+_rate_limit_buckets = {}  # (route_name, ip) -> deque[timestamp]
+
+
+def _check_rate_limit(route_name, request, max_per_window=None):
+    ip = request.client.host if request.client else 'unknown'
+    key = (route_name, ip)
+    now = time.time()
+    bucket = _rate_limit_buckets.setdefault(key, deque())
+    while bucket and now - bucket[0] > _RATE_LIMIT_WINDOW_SEC:
+        bucket.popleft()
+    limit = max_per_window if max_per_window is not None else _RATE_LIMIT_MAX_PER_WINDOW
+    if len(bucket) >= limit:
+        raise HTTPException(status_code=429, detail='요청이 너무 많습니다. 잠시 후 다시 시도해주세요.')
+    bucket.append(now)
+    if len(_rate_limit_buckets) > _RATE_LIMIT_MAX_TRACKED_KEYS:
+        _rate_limit_buckets.clear()
 
 
 def load_dotenv():
@@ -188,7 +234,10 @@ def require_api_key(x_api_key: str = Header(default=None)):
     expected = os.environ.get('API_TOKEN')
     if not expected:
         raise HTTPException(status_code=500, detail='서버에 API_TOKEN이 설정되지 않았습니다.')
-    if x_api_key != expected:
+    # 2026-08-03: 일반 문자열 비교(!=)는 단락 평가라 이론적으로 타이밍 사이드채널에 노출될 수
+    # 있어 상수시간 비교로 교체. hmac.compare_digest는 두 인자 모두 str 또는 둘 다 bytes여야
+    # 하므로 헤더 누락 시 빈 문자열로 맞춘다.
+    if not hmac.compare_digest(x_api_key or '', expected):
         raise HTTPException(status_code=401, detail='invalid or missing X-API-Key header')
 
 
@@ -225,9 +274,16 @@ def latency_health(lines: int = Query(50, ge=1, le=500)):
     return envelope({'lines': tail})
 
 
+_WS_MAX_CONNECTIONS = 200  # 2026-08-03: 동시 연결 수 상한 - Origin 헤더는 브라우저만 신뢰할
+# 수 있는 값이라(비-브라우저 클라이언트가 임의로 설정 가능) 완전한 인증은 아니지만, 최소한
+# 이 상한으로 키움 실시간 세션/서버 스레드 자원 고갈을 막는다.
+_ws_active_connections = 0
+
+
 @app.websocket('/ws/quotes')
 async def realtime_quote_socket(websocket: WebSocket):
     """관심종목용 실시간 체결가 중계. 키움 토큰은 서버 안에서만 사용한다."""
+    global _ws_active_connections
     origin = websocket.headers.get('origin')
     if origin != 'https://ghlee.tistory.com':
         await websocket.close(code=1008)
@@ -238,7 +294,12 @@ async def realtime_quote_socket(websocket: WebSocket):
         await websocket.close(code=1008)
         return
 
+    if _ws_active_connections >= _WS_MAX_CONNECTIONS:
+        await websocket.close(code=1013)  # Try Again Later
+        return
+
     await websocket.accept()
+    _ws_active_connections += 1
     relay_task = asyncio.create_task(realtime_quotes.relay_quotes(websocket, codes))
     receive_task = asyncio.create_task(websocket.receive_text())
     try:
@@ -262,6 +323,7 @@ async def realtime_quote_socket(websocket: WebSocket):
         except Exception:
             pass
     finally:
+        _ws_active_connections -= 1
         for task in (relay_task, receive_task):
             if not task.done():
                 task.cancel()
@@ -311,7 +373,7 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
 
 
 @app.get('/investor-flow/{code}')
-def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6), name: str = Query('')):
+def investor_flow_endpoint(request: Request, code: str = Path(..., min_length=6, max_length=6), name: str = Query('')):
     """공매도/대차거래/연기금 수급 - scripts/fetch_investor_flow.py 로직 온디맨드 버전.
     2026-07-13: GAS를 거치지 않고 브라우저(js/foreign-flow.js)가 직접 호출하도록 전환됨
     (GAS->VM 구간 간헐적 장애 우회) - 그래서 X-API-Key 인증이 없다(CORS로만 제한, 위 주석
@@ -320,6 +382,7 @@ def investor_flow_endpoint(code: str = Path(..., min_length=6, max_length=6), na
     다시 필요해짐 - 프론트(js/foreign-flow.js)가 검색 시 이미 아는 한글명을 그대로 보내준다.
     캐시 키는 code만 쓰므로(동일 종목은 이름이 바뀌지 않음) name 누락 시(구버전 캐시 프론트 등)
     빈 문자열로 게이트만 조용히 꺼짐. 5분 메모리 캐시 적용."""
+    _check_rate_limit('investor_flow', request)
     cached = _live_cache_get(_investor_flow_cache_mem, code)
     if cached is not None:
         return envelope(cached)
@@ -340,7 +403,7 @@ FOREIGN_FLOW_DAY_OPTIONS = {5, 10, 20, 42, 63}  # 5일/10일/20일/2개월/3개�
 
 
 @app.get('/foreign-flow/{code}')
-def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6),
+def foreign_flow_endpoint(request: Request, code: str = Path(..., min_length=6, max_length=6),
                            days: int = Query(kiwoom_market.FLOW_DEFAULT_DAYS)):
     """종목분석 메인 수급 표(개인·외국인·기관 순매매) - 2026-07-13: 네이버 frgn.naver 크롤링을
     1차로 대체하는 API 버전. 네이버 크롤링은 이제 백업 전용 - 프론트(js/foreign-flow.js)가
@@ -352,6 +415,7 @@ def foreign_flow_endpoint(code: str = Path(..., min_length=6, max_length=6),
     2026-07-19(2차): ?days= 로 기간 선택 지원(FOREIGN_FLOW_DAY_OPTIONS 외 값은 기본치로
     보정) - 캐시 키에 days를 같이 넣어야 1개월 조회 캐시가 1년 조회에 잘못 재사용되지
     않는다(코드만으로 캐시하면 서로 다른 기간 요청이 뒤섞임)."""
+    _check_rate_limit('foreign_flow', request)
     if days not in FOREIGN_FLOW_DAY_OPTIONS:
         days = kiwoom_market.FLOW_DEFAULT_DAYS
     cache_key = '%s:%d' % (code, days)
@@ -522,8 +586,8 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
     finally:
         conn.close()
     _futures_cache[cache_key] = {'t': started, 'data': result}
-    if len(_futures_cache) > 50:  # 무제한 증가 방지(단순 전량 비우기, order_book류와 동일)
-        _futures_cache.clear()
+    _futures_cache.move_to_end(cache_key)
+    _evict_lru(_futures_cache, 50)  # 2026-08-03: 전량비움 대신 LRU 1건씩 제거
     # 첫 로딩이 느릴 때 원인을 로그로 좁히기 위한 측정 - 정상 구간(수백 ms)에서는 조용하다.
     elapsed = time.time() - started
     if elapsed > 1.0:
@@ -546,6 +610,8 @@ def earnings_calendar_endpoint(year: int = Query(..., ge=2000, le=2100), month: 
         return {'success': True, 'data': cached['data'], 'source': 'dart', 'cached': True}
     data = earnings_calendar.safe_fetch_month(year, month)
     _earnings_calendar_cache[key] = {'t': time.time(), 'data': data}
+    _earnings_calendar_cache.move_to_end(key)
+    _evict_lru(_earnings_calendar_cache, _EARNINGS_CALENDAR_MAX_ENTRIES)
     return {'success': True, 'data': data, 'source': 'dart', 'cached': False}
 
 
@@ -685,11 +751,13 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
 
 
 @app.get('/order-book/{code}')
-def order_book_endpoint(code: str = Path(..., min_length=6, max_length=6)):
+def order_book_endpoint(request: Request, code: str = Path(..., min_length=6, max_length=6)):
     """호가창(매도/매수 각 10단계) + 최근 체결(ka10003) - 독립 페이지(js/order-book.js,
     2026-07-27)가 2초 간격 폴링. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그
     도메인만 제한) - /futures, /market-rank와 동일한 패턴. order_book.py 필드명 미검증
-    안내 참고."""
+    안내 참고. 2초 폴링(분당 30회)이 정상 트래픽이라 rate limit은 여유를 둬서 분당 60회로
+    맞춘다(정상 사용은 절반만 소비, 종목코드 기계적 순회만 걸러냄)."""
+    _check_rate_limit('order_book', request, max_per_window=60)
     now = time.time()
     cached = _order_book_cache.get(code)
     if cached is not None and now - cached['t'] < _ORDER_BOOK_TTL:
@@ -702,8 +770,8 @@ def order_book_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     _order_book_cache[code] = {'t': now, 'data': data}
-    if len(_order_book_cache) > 200:  # 무제한 증가 방지(단순 전량 비우기, market_rank류와 동일)
-        _order_book_cache.clear()
+    _order_book_cache.move_to_end(code)
+    _evict_lru(_order_book_cache, 200)  # 2026-08-03: 전량비움 대신 LRU 1건씩 제거
     return envelope(data)
 
 

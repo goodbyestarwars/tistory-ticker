@@ -50,7 +50,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `pension-fund.js` | 257 | 연기금 단독 수급 분석 위젯 | `window.PensionFund`, `#pension-fund` | GAS `?action=pensionFund&code=` |
 | `short-pressure.js` | 279 | 공매도 압박 점수 위젯 | `window.ShortPressure`, `#short-pressure` | GAS `?action=shortPressure&code=` |
 | `sidebar-rank.js` | 285 | 우측 사이드바 실시간 랭킹(거래량/등락률 TOP) | `window.SidebarRank`, `#sidebar-rank` | VM `/market-rank` |
-| `stock-calendar.js` | 285 | 증시 캘린더(구글 캘린더 + DART 실적 병합) | `window.StockCalendar`, `#stock-calendar` | **Google Calendar API(키 하드코딩)**, VM `/earnings-calendar` |
+| `stock-calendar.js` | ~280 | 증시 캘린더(구글 캘린더 + DART 실적 병합) | `window.StockCalendar`, `#stock-calendar` | GAS `?action=calendarEvents`(2026-08-03부터, 예전엔 Google Calendar API 키 하드코딩), VM `/earnings-calendar` |
 | `sector-dashboard-v4.js` | 300 | 섹터별 카드/히트맵(증시온도 위젯이 재사용) | `window.SectorDashboard`, `#sector-dashboard` | GAS `?codes=`, `?marketAnalysis=1` |
 | `investor-trend-widget.js` | 320 | 홈 전용 투자자별(개인/외국인/기관) 매매동향 표 | `window.InvestorTrendWidget`, `#investor-trend-widget` | VM `/investor-trend` |
 | `stock-search-panel.js` | 446 | 사이드바 종목검색 드롭다운(즐겨찾기/최근검색) | `window.StockSearchPanel`, `#navSearchInput` | GAS `?codes=`, `data/krx_map.js` 지연로드 |
@@ -116,7 +116,8 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `action` | `indexChart`(+`symbol`) | `getIndexChart()` | 지수 차트 |
 | `action` | `investorFlow` | (폐기, 실제 분기 없음) | — |
 | `action` | `fundamentals`(+`code`) | `getFundamentals_()` | 펀더멘탈 |
-| `debugShortNaver` | `1`(+`code`) | `debugShortTradeNaver()` | **운영 노출 디버그 엔드포인트**(§6 보안 참고) |
+| `action` | `calendarEvents`(+`year`,`month`) | `getStockCalendarEvents_()` | 증시캘린더 구글 캘린더 이벤트(2026-08-03 신설, `js/stock-calendar.js`의 하드코딩 키 이관) |
+| `debugShortNaver` | `1`(+`code`,`debugKey`) | `debugShortTradeNaver()` | 진단용, 2026-08-03부터 `DEBUG_ACCESS_KEY` 스크립트 속성 필요(속성 미설정 시 비활성화, §6 보안 참고) |
 | `rankNews` | `1` | `getRankingNews()` | 랭킹뉴스 |
 | `patternScan` | `1` | `getPatternScanResult()` | 패턴스캔 배치 결과 |
 | `patternChart` | `1`(+`code`,`pattern`) | `getPatternChart()` | 패턴 차트 |
@@ -211,7 +212,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 
 ## 6. 코드 품질 점검 결과
 
-전체 소스(프론트 25개 JS + GAS 1개 파일 + 백엔드 38개 Python)를 직접 읽고 확인한 결과다. 이 시점에는 **보안 항목을 포함해 발견 사실만 기록**했다. **2026-08-03(같은 날 후속 작업)**: 사용자 요청으로 `gas/ticker-proxy.gs`에 해당하는 항목(아래 "GAS 수정됨" 표시)은 전부 실제로 수정·배포 준비까지 마쳤다 — 표는 발견 당시 기록을 그대로 남기고 수정 여부만 각주로 남긴다. 프론트(`js/`)·백엔드(`scripts/cloud-vm/`) 항목은 이 리뷰 시점 기준으로 아직 미수정이다.
+전체 소스(프론트 25개 JS + GAS 1개 파일 + 백엔드 38개 Python)를 직접 읽고 확인한 결과다. 이 시점에는 **보안 항목을 포함해 발견 사실만 기록**했다. **2026-08-03(같은 날 후속 작업 2건)**: 사용자 요청으로 (1) `gas/ticker-proxy.gs` 항목, 이어서 (2) 백엔드(`scripts/cloud-vm/`)·프론트(`js/`) 항목까지 표에 남은 것 대부분을 실제로 수정했다 — 표는 발견 당시 기록을 그대로 남기고 수정 여부만 각주로 남긴다. `.nav-logo-name` 깨진 문구(사용자 확인 필요)만 임의로 바꾸지 않고 미수정으로 남겼다.
 
 ### 6.1 속도 — 우선순위 상위
 
@@ -220,8 +221,8 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `gas/ticker-proxy.gs` `getMarketTemp()` | 캐시 미스 1건당 외부 HTTP 15회 이상 직렬 호출(네이버 배치 6회 + Yahoo 2회 + VM 2회 + GitHub Pages 2회 등) | **GAS 일부 수정됨(2026-08-03)**: `sectors-v3.js` 중복 fetch 제거(1회→0회 절감) + `computeCombinedFlowScore_` 중복 크롤링 제거로 요청 수 축소. VIX/Week52/환율/미국선물 등 나머지 독립 호출의 전면 병렬화(fetchAll 재구조화)는 리스크 대비 효과가 작아 보류 |
 | `gas/ticker-proxy.gs` `computeCombinedFlowScore_` | `foreign`/`inst` 계산을 위해 동일 종목(069500) 수급을 2번 크롤링(총 4요청) | **GAS 수정됨(2026-08-03)**: `computeFlowRatioFromData_`로 분리해 `getForeignFlow`를 1회만 호출하도록 변경(4회→2회) |
 | `gas/ticker-proxy.gs` `fetchQuotesWithCap` | ~266개 코드를 `UrlFetchApp.fetchAll` 대신 `for` 루프 순차 fetch(같은 파일의 `fetchDailyOhlc_`는 이미 `fetchAll` 사용 중) | **GAS 수정됨(2026-08-03)**: `fetchDailyOhlc_`와 동일한 `fetchAll` 청크 병렬 패턴으로 교체 |
-| `main.py:157-159, 525-526, 705-706` | 캐시 상한 도달 시 LRU가 아니라 `cache.clear()`로 전량 비움 | 콜드패스 몰림(thundering herd) 위험, 특히 `/investor-flow`,`/foreign-flow` |
-| `kis_client.py:174-198` | "TEMP DEBUG(2026-07-20 3차)" 표시된 디버그용 교차검증 호출이 옵션 수급 5분 폴링마다 상시 실행 | 불필요한 KIS API 호출+응답 원문 매회 로깅 |
+| `main.py:157-159, 525-526, 705-706` | 캐시 상한 도달 시 LRU가 아니라 `cache.clear()`로 전량 비움 | **수정됨(2026-08-03)**: `_ohlc_cache`/`_investor_flow_cache_mem`/`_foreign_flow_cache_mem`/`_futures_cache`/`_order_book_cache`/`_earnings_calendar_cache` 6곳 모두 `OrderedDict` 기반 LRU(`_evict_lru`)로 교체 - 상한 초과 시 1건씩만 제거 |
+| `kis_client.py:174-198` | "TEMP DEBUG(2026-07-20 3차)" 표시된 디버그용 교차검증 호출이 옵션 수급 5분 폴링마다 상시 실행 | **수정됨(2026-08-03)**: 디버그 로깅 블록과 `fetch_option_quote` 교차검증 호출(+ 이제 미사용인 `fetch_option_quote` 함수)을 제거. 콜/풋 자동 교정 로직(delta 부호 기반)은 그대로 유지 |
 | `domestic_futures.py:236-248` | `refresh_minute_all`이 심볼과 무관하게 항상 동일 카테고리 조회(§6.2 오류와 동일 지점) | 5분마다 동일 API 중복 호출 |
 | `market_rank.py:130-140`, `investor_flow.py:266-283`, `order_book.py:90-100` | 각 3~4회 외부 TR을 순차 블로킹 호출(`investor_flow`는 `sleep(0.25)`×3 포함) | 캐시 미스 시 응답시간 누적(최소 0.75초+) |
 | `gas/ticker-proxy.gs` `getRankingNews()` | `RANK_NEWS_QUERIES` 3개를 `kiwoomVmFetch_`로 순차 호출(각 최대 2회 재시도, 최대 6회 직렬 왕복) | **GAS 수정됨(2026-08-03)**: `fetchNaverSearchNewsAll_`로 `UrlFetchApp.fetchAll` 1회 병렬 요청 + 실패한 쿼리만 개별 폴백하도록 변경 |
@@ -231,11 +232,11 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | 위치 | 문제 | 재현/영향 |
 |---|---|---|
 | `gas/ticker-proxy.gs` (`getFlowAiSummary`, `getMarketAnalysis`, `getKospiFuturesAnalysis`, `getSubIndexAnalysis`, `getMarketTempBriefing`) | Groq 실패 시 빈 문자열 `''`을 "실패 캐시"로 저장 → `if (cached)` 검사가 `''`을 falsy로 판정해 **캐시 히트가 항상 무효화**됨 | **GAS 수정됨(2026-08-03)**: 5곳 전부 `cached !== null` 판정으로 교체해 의도한 2분 백오프가 실제로 동작하도록 수정. `getMarketAnalysis`/`getKospiFuturesAnalysis`/`getSubIndexAnalysis`의 "데이터 없음" 조기 반환 분기에도 실패 캐시를 추가해 장애 중 반복 재시도를 줄임 |
-| `domestic_futures.py:51,236-248` ↔ `night_futures_ws.py:157-182` | 코스피200 **야간선물** 분봉을 두 백그라운드 스레드가 서로 다른 소스(하나는 주간 FUT, 하나는 실제 야간선물)로 같은 `(symbol='KOSPI200_NIGHT', ts)` 행에 upsert | 코스피 선물 페이지의 야간선물 분봉 차트가 간헐적으로 주간선물 시세로 뒤바뀔 수 있음(데이터 정확성 문제) — **미수정**(백엔드, 이번 GAS 작업 범위 밖) |
+| `domestic_futures.py:51,236-248` ↔ `night_futures_ws.py:157-182` | 코스피200 **야간선물** 분봉을 두 백그라운드 스레드가 서로 다른 소스(하나는 주간 FUT, 하나는 실제 야간선물)로 같은 `(symbol='KOSPI200_NIGHT', ts)` 행에 upsert | **수정됨(2026-08-03)**: `domestic_futures.MINUTE_SYMBOLS`에서 `KOSPI200_NIGHT`를 제거해 `night_futures_ws.py`만 이 심볼의 분봉을 쓰도록 단일 소스화. `night_futures_ws`가 못 뜬 환경에서는 야간선물 분봉이 비어있는 게, 다른 상품 시세로 잘못 채워지는 것보다 낫다는 원칙 적용 |
 | `gas/ticker-proxy.gs:1893-1996` `getShortPressure()` | `finance.naver.com/item/short_trade.naver` 컬럼 순서가 "frgn.naver와 같을 것"이라는 **미검증 추정**으로 파싱, 그대로 프론트에 확정값처럼 노출 | **부분 대응(2026-08-03)**: 실제 컬럼 순서를 라이브로 확인할 수단인 `?debugShortNaver=1`이 인증 없이 열려 있던 것을 `DEBUG_ACCESS_KEY` 스크립트 속성 검증으로 잠갔다(보안 §6.3). 컬럼 순서 자체의 검증은 실제 네이버 응답 대조가 필요해 이 세션(외부망 접근 불가)에서는 못함 — 개발자가 `DEBUG_ACCESS_KEY`를 설정해 `?debugShortNaver=1&debugKey=...`로 직접 확인 필요 |
-| `js/skin-menu.js:130-136` | 모든 페이지 로드마다 `.nav-logo-name` 텍스트를 `'ㄱㅖ조 ㅏ심폐소생술'`(자모 분리된 깨진 한글)로 강제 치환 | 의도한 문구인지 재확인 필요 — **미수정**(프론트, 사용자 확인 필요 사안이라 임의 변경하지 않음) |
+| `js/skin-menu.js:130-136` | 모든 페이지 로드마다 `.nav-logo-name` 텍스트를 `'ㄱㅖ조 ㅏ심폐소생술'`(자모 분리된 깨진 한글)로 강제 치환 | 의도한 문구인지 재확인 필요 — **미수정**(브랜드 문구라 사용자 확인 없이 임의로 바꾸지 않음, 2026-08-03에도 보류) |
 | `gas/ticker-proxy.gs` 8곳 (기본 `?codes=` 라우트 포함) | 캐시값 `JSON.parse(cached)`를 try/catch 없이 호출(같은 파일 `fetchFundamentalsForCode_`는 방어 처리됨) | **GAS 수정됨(2026-08-03)**: 공용 헬퍼 `parseCachedJson_`을 추가해 8곳 모두 파싱 실패 시 캐시 미스처럼 새로 조회하도록 통일 |
-| `main.py:536-549` `_earnings_calendar_cache` | 다른 모든 메모리 캐시와 달리 상한/정리 로직 없음 | 방어 로직 누락(실질 증가량은 제한적) — **미수정**(백엔드, 이번 GAS 작업 범위 밖) |
+| `main.py:536-549` `_earnings_calendar_cache` | 다른 모든 메모리 캐시와 달리 상한/정리 로직 없음 | **수정됨(2026-08-03)**: `OrderedDict` + `_EARNINGS_CALENDAR_MAX_ENTRIES=200`으로 다른 캐시와 동일한 LRU 방어 추가 |
 | `gas/ticker-proxy.gs:1228-1231` `logDailyMarketTemp_()` | 하루 1회 트리거가 `getMarketTemp()` 예외 처리 없이 호출 | **GAS 수정됨(2026-08-03)**: `safeCall`로 감싸 예외 발생 시에도 다음 날 트리거가 정상 동작하도록 수정 |
 
 ### 6.3 보안 — 발견 사실만 기록(수정 없음)
@@ -244,13 +245,13 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 |---|---|---|
 | `gas/ticker-proxy.gs` `cacheKeyFor` | **높음** | `?codes=` 파라미터에 형식 검증이 없어, `?codes=market_ribbon3` 같은 값으로 다른 라우트(`getMarketRibbon` 등, 동일 `ticker_` prefix 고정 키 다수)의 캐시를 오염시킬 수 있다. 인증 없는 단일 GET 요청으로 재현 가능, 최대 3시간(AI요약류) 동안 모든 방문자에게 오염된 응답 노출. **GAS 수정됨(2026-08-03)**: 캐시 키에 전용 네임스페이스(`quotes_`)를 붙여 다른 라우트의 고정 키와 절대 겹치지 않도록 분리 |
 | `gas/ticker-proxy.gs` `getFlowAiSummary` | 중간 | `code`만 정규식 검증되고 `name`/`flowNote`/`verdictLabel` 등은 검증 없이 Groq 프롬프트에 직접 삽입 + 결과가 캐시되어 다른 방문자에게 노출. 프롬프트 인젝션 + Groq 쿼터 남용 벡터. **GAS 수정됨(2026-08-03)**: 각 필드 길이 제한(200자)·제어문자 제거로 정제하고, 정제된 값들의 해시를 캐시 키에 포함시켜 위조 입력이 정상 캐시를 덮어쓰지 못하도록(별도 슬롯으로 격리) 변경 |
-| `main.py` (`/futures`,`/option-flow`,`/market-rank`,`/order-book/{code}`,`/investor-trend`,`/investor-flow/{code}`,`/foreign-flow/{code}`,`/earnings-calendar`,`/health/latency`) | 중간 | 인증 없이 CORS만으로 "보호" — CORS는 서버-서버 직접 호출을 막지 못하므로 사실상 공개 API. 종목코드/기간 조합을 순회하면 캐시 미스를 유도해 키움/KIS/DART 쿼터를 소진시킬 수 있음(의도된 설계이나 레이트리밋 부재) — **미수정**(백엔드, 이번 GAS 작업 범위 밖) |
-| `main.py:228-234` `/ws/quotes` | 중간 | 접근 제어가 `Origin` 헤더 검사뿐이며 브라우저 외 클라이언트는 이 헤더를 임의 설정 가능. 동시 연결 수 상한도 없음 — **미수정**(백엔드) |
-| `js/stock-calendar.js:23-24` | 낮음~중간(확인됨) | Google Calendar API 키와 캘린더 ID가 소스에 하드코딩(ARCHITECTURE.md에 이미 "노출 상태"로 문서화됨). 리퍼러 제한 여부는 GCP 콘솔에서 별도 확인 필요(미검증) — **미수정**(프론트, 이번 GAS 작업 범위 밖) |
+| `main.py` (`/futures`,`/option-flow`,`/market-rank`,`/order-book/{code}`,`/investor-trend`,`/investor-flow/{code}`,`/foreign-flow/{code}`,`/earnings-calendar`,`/health/latency`) | 중간 | 인증 없이 CORS만으로 "보호" — CORS는 서버-서버 직접 호출을 막지 못하므로 사실상 공개 API. 종목코드/기간 조합을 순회하면 캐시 미스를 유도해 키움/KIS/DART 쿼터를 소진시킬 수 있음(의도된 설계이나 레이트리밋 부재) | **부분 수정됨(2026-08-03)**: 종목코드별 캐시로 순회 남용에 특히 취약한 `/investor-flow/{code}`·`/foreign-flow/{code}`·`/order-book/{code}` 3곳에 IP당 분당 요청 상한(각 30·30·60회, `_check_rate_limit`)을 추가. `/futures`·`/option-flow`·`/market-rank`·`/investor-trend`·`/earnings-calendar`·`/health/latency`는 고정 키/좁은 파라미터 공간이라 캐시가 이미 효과적으로 방어하고 있어 대상에서 제외 |
+| `main.py:228-234` `/ws/quotes` | 중간 | 접근 제어가 `Origin` 헤더 검사뿐이며 브라우저 외 클라이언트는 이 헤더를 임의 설정 가능. 동시 연결 수 상한도 없음 | **부분 수정됨(2026-08-03)**: 동시 연결 수 상한(`_WS_MAX_CONNECTIONS=200`) 추가로 자원 고갈 규모를 제한. `Origin` 검사 우회 가능성 자체는 구조적 한계라 미해결(별도 인증 토큰 도입이 필요한 더 큰 변경) |
+| `js/stock-calendar.js:23-24` | 낮음~중간(확인됨) | Google Calendar API 키와 캘린더 ID가 소스에 하드코딩(ARCHITECTURE.md에 이미 "노출 상태"로 문서화됨). 리퍼러 제한 여부는 GCP 콘솔에서 별도 확인 필요(미검증) | **수정됨(2026-08-03)**: GAS `?action=calendarEvents` 프록시를 신설해 다른 시크릿(Groq, 키움 VM 토큰)과 동일하게 스크립트 속성(`GOOGLE_CALENDAR_API_KEY`,`GOOGLE_CALENDAR_ID`)으로 이관 - `js/stock-calendar.js`에는 더 이상 키가 없음. GAS 재배포 + 스크립트 속성 설정 필요 |
 | `gas/ticker-proxy.gs` | 낮음 | `?debugShortNaver=1` 디버그 엔드포인트가 인증 없이 운영에 노출, 호출마다 네이버 실크롤링 유발(캐시 없음). **GAS 수정됨(2026-08-03)**: 스크립트 속성 `DEBUG_ACCESS_KEY`와 일치하는 `debugKey` 쿼리파라미터가 있을 때만 동작하도록 잠금(속성 미설정 시 라우트 전체 비활성화) |
-| `js/marketcap-bubble.js:444-459` | 낮음~중간 | `item.name`/`item.breakdown`/`cl.label`을 이스케이프 없이 `innerHTML`에 삽입(같은 파일에 `escapeHtml` 유틸이 있음에도 누락). 공격 표면은 GAS 백엔드 손상 시로 제한 — **미수정**(프론트) |
-| `js/quick-indices.js:348-393` | 정보성 | 이스케이프 없는 `renderDiscNewsInto`/`renderRankNewsInto`가 정의돼 있으나 호출부가 없는 죽은 코드(현재 도달 불가, 재사용 시 XSS 소스가 됨) — **미수정**(프론트) |
-| `main.py:187-192` `require_api_key` | 낮음 | `X-API-Key` 비교가 `hmac.compare_digest`가 아닌 일반 문자열 비교(이론적 타이밍 사이드채널) — **미수정**(백엔드) |
+| `js/marketcap-bubble.js:444-459` | 낮음~중간 | `item.name`/`item.breakdown`/`cl.label`을 이스케이프 없이 `innerHTML`에 삽입(같은 파일에 `escapeHtml` 유틸이 있음에도 누락). 공격 표면은 GAS 백엔드 손상 시로 제한 | **수정됨(2026-08-03)**: 세 곳 모두 기존 `escapeHtml` 적용 |
+| `js/quick-indices.js:348-393` | 정보성 | 이스케이프 없는 `renderDiscNewsInto`/`renderRankNewsInto`가 정의돼 있으나 호출부가 없는 죽은 코드(현재 도달 불가, 재사용 시 XSS 소스가 됨) | **수정됨(2026-08-03)**: 기존 `escapeNewsHtml` 적용(여전히 도달 불가한 죽은 코드지만, 재사용 시에도 안전하도록 방어) |
+| `main.py:187-192` `require_api_key` | 낮음 | `X-API-Key` 비교가 `hmac.compare_digest`가 아닌 일반 문자열 비교(이론적 타이밍 사이드채널) | **수정됨(2026-08-03)**: `hmac.compare_digest`로 교체 |
 | `gas/ticker-proxy.gs` | 정보성 | VM 실 IP가 소스 주석에 노출(토큰 자체는 노출 안 됨). **GAS 수정됨(2026-08-03)**: 주석의 실 IP를 `{VM 고정 IP}` 플레이스홀더로 교체 |
 | SQL 인젝션 / 커맨드 인젝션 / eval·Function 생성자 / 하드코딩된 백엔드 시크릿 | **발견 없음** | 백엔드 38개 파일 전수 확인 — `subprocess`/`os.system`/`eval`/`exec` 사용 0건, 테이블명 조립은 화이트리스트(`assert`)로만 제한, 모든 쿼리 파라미터 바인딩. GAS 시크릿 3종(`GROQ_API_KEY`,`KIWOOM_VM_URL`,`KIWOOM_VM_TOKEN`) 전부 `PropertiesService`에서만 로드 확인 |
 | `js/` 25개 전체 | **발견 없음** | `eval`/`new Function` 0건, `postMessage` 사용 0건, localStorage에 저장되는 값은 종목코드/UI상태/시세캐시뿐(토큰·PII 없음) |

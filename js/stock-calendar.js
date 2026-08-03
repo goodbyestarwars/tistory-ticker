@@ -20,8 +20,10 @@
 (function (global) {
   'use strict';
 
-  var API_KEY = 'AIzaSyB9zgyudgEblbLoP-fW231dwf6VjOFK00o';
-  var CAL_ID  = encodeURIComponent('405dbd75cc8e798f6dfb0003494d0fa64eecbc00ae2edeb1cdbf6deee0b07f76@group.calendar.google.com');
+  // 2026-08-03: Google Calendar API 키를 여기 하드코딩해서 소스에 그대로 노출하고 있었다.
+  // GAS 프록시(?action=calendarEvents)로 옮겨 다른 외부 시크릿(Groq, 키움 VM 토큰)과 동일하게
+  // 스크립트 속성에서만 관리하도록 바꿨다 - 이 파일엔 더 이상 키/캘린더ID가 없다.
+  var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
   var CONTAINER_SELECTOR = '#stock-calendar';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
@@ -77,26 +79,11 @@
   }
 
   function fetchEvents(year, month) {
-    var tMin = new Date(year, month, 1).toISOString();
-    var tMax = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
-    var url = 'https://www.googleapis.com/calendar/v3/calendars/' + CAL_ID
-      + '/events?key=' + API_KEY
-      + '&timeMin=' + encodeURIComponent(tMin)
-      + '&timeMax=' + encodeURIComponent(tMax)
-      + '&singleEvents=true&orderBy=startTime&maxResults=100';
-    var googleEvents = fetch(url)
-      .then(function (r) {
-        if (!r.ok) throw new Error('Google Calendar API 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        return (data.items || []).map(function (it) {
-          var title = it.summary
-            ? it.summary
-            : (it.visibility === 'private' ? '🔒 비공개 일정' : '(제목 없음)');
-          return { title: title, start: it.start.dateTime || it.start.date, link: it.htmlLink };
-        });
-      })
+    // month: 0~11(자바스크립트 Date 관례) - GAS 쪽은 1~12를 기대하므로 +1해서 넘긴다.
+    var url = GAS_TICKER_URL + '?action=calendarEvents&year=' + encodeURIComponent(year)
+      + '&month=' + encodeURIComponent(month + 1);
+    var googleEvents = fetchJson(url)
+      .then(function (data) { return (data && data.items) || []; })
       .catch(function () { return []; });
     return Promise.all([googleEvents, fetchEarnings(year, month)])
       .then(function (results) { return mergeEvents(results[0], results[1]); });
@@ -120,7 +107,7 @@
 
   function escapeHtml(s) {
     return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function dayOf(ev) {
@@ -163,7 +150,7 @@
       ? '<strong class="sc-ev-ticker">' + escapeHtml(meta.stockName) + '</strong> ' + escapeHtml(meta.text)
       : escapeHtml(meta.text);
     var tagHtml = meta.tag ? '<span class="sc-ev-tag">' + escapeHtml(meta.tag) + '</span>' : '';
-    return '<a href="' + (ev.link || '#') + '" target="_blank" class="sc-ev-item">'
+    return '<a href="' + escapeHtml(ev.link || '#') + '" target="_blank" class="sc-ev-item">'
       + '<span class="sc-ev-date">' + dateLabelOf(ev) + '</span>'
       + '<span class="' + iconClass + '">' + iconHtml + '</span>'
       + '<span class="sc-ev-body"><span class="sc-ev-title">' + titleHtml + tagHtml + '</span></span>'
