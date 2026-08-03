@@ -89,7 +89,16 @@ function doGet(e) {
     return jsonResponse(getFundamentals_((params.code || '').trim()));
   }
 
+  // 2026-08-03: 인증 없이 노출된 진단 엔드포인트였다 - 호출마다 네이버에 실크롤링을
+  // 유발하는 무료 프록시로 악용될 수 있어(캐시 없음), 스크립트 속성 DEBUG_ACCESS_KEY와
+  // 일치하는 debugKey를 보낼 때만 동작하도록 인증을 추가했다. 속성이 비어있으면(기본값)
+  // 이 라우트 전체를 비활성화한다 - 컬럼 순서 검증이 필요할 때만 개발자가 직접 속성을
+  // 채워 한시적으로 켜는 용도.
   if (params.debugShortNaver === '1') {
+    var debugKey = PropertiesService.getScriptProperties().getProperty('DEBUG_ACCESS_KEY');
+    if (!debugKey || params.debugKey !== debugKey) {
+      return jsonResponse({ error: 'FORBIDDEN', message: '디버그 엔드포인트가 비활성화되어 있습니다.' });
+    }
     return jsonResponse(debugShortTradeNaver((params.code || '').trim()));
   }
 
@@ -129,7 +138,8 @@ function doGet(e) {
   var cacheKey = cacheKeyFor(codes);
   var cached = cache.get(cacheKey);
   if (cached) {
-    return jsonResponse(JSON.parse(cached));
+    var parsedQuotesCache_ = parseCachedJson_(cached);
+    if (parsedQuotesCache_ !== null) return jsonResponse(parsedQuotesCache_);
   }
 
   var result;
@@ -216,7 +226,10 @@ function getMarketRibbon() {
   // market_ribbon3: BTC 소스 교체(빗썸 1순위 + 코인게코 폴백) 배포와 함께 옛 null 캐시 무효화
   var cacheKey = CACHE_PREFIX + 'market_ribbon3';
   var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
 
   // 코스피/코스닥/환율은 서로 독립적인 요청이라 fetchAll로 동시에 쏴서 지연시간을 줄인다.
   // (코인은 빗썸->코인게코 순차 폴백 로직이라 별도로 둔다.)
@@ -378,7 +391,10 @@ function getMarketcapBubble() {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'bubble_v2'; // v1(코스피20/코스닥15 고정) -> v2(섹터 풀 전체+업종+인버스)로 캐시 키 분리
   var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
 
   var universe = fetchSectorUniverseWithSectors_(); // [{code,name,market,sectors:[...]}, ...]
   var universeCodes = universe.map(function (u) { return u.code; });
@@ -449,42 +465,61 @@ function aggregateLeverage(label, codes, quoteByCode) {
 }
 
 // 40개씩 배치로 나눠 SERVICE_ITEM 쿼리 호출, code -> {code,name,cap,changeRate} 맵으로 반환.
-// 한 배치가 실패해도 나머지 배치는 살리도록 개별 try/catch.
+// 2026-08-03: 예전엔 배치를 UrlFetchApp.fetch로 순차 호출해서(히트맵 유니버스 ~266종목
+// 기준 최대 7배치) 응답이 느렸다. 같은 파일 fetchDailyOhlc_가 이미 검증한 fetchAll 병렬
+// 패턴(FETCH_ALL_CHUNK개씩 묶어 요청 - 요청 수는 동일, 왕복 대기만 겹침)을 그대로 적용한다.
+// 청크(최대 FETCH_ALL_CHUNK개 배치) 단위로 실패해도 나머지 청크는 살리도록 try/catch 유지.
 function fetchQuotesWithCap(codes) {
   var out = {};
+  var batches = [];
   for (var i = 0; i < codes.length; i += MARKETCAP_BATCH_SIZE) {
-    var batch = codes.slice(i, i + MARKETCAP_BATCH_SIZE);
-    try {
-      var url = 'https://polling.finance.naver.com/api/realtime?query=SERVICE_ITEM:' + batch.join(',');
-      var res = UrlFetchApp.fetch(url, {
+    batches.push(codes.slice(i, i + MARKETCAP_BATCH_SIZE));
+  }
+
+  for (var start = 0; start < batches.length; start += FETCH_ALL_CHUNK) {
+    var chunk = batches.slice(start, start + FETCH_ALL_CHUNK);
+    var reqs = chunk.map(function (batch) {
+      return {
+        url: 'https://polling.finance.naver.com/api/realtime?query=SERVICE_ITEM:' + batch.join(','),
         muteHttpExceptions: true,
         headers: { 'User-Agent': 'Mozilla/5.0' }
-      });
-      if (res.getResponseCode() !== 200) continue;
+      };
+    });
 
-      var body = JSON.parse(res.getContentText('EUC-KR'));
-      var areas = (body && body.result && body.result.areas) || [];
-      var itemArea = null;
-      for (var a = 0; a < areas.length; a++) {
-        if (areas[a].name === 'SERVICE_ITEM') { itemArea = areas[a]; break; }
-      }
-      var datas = (itemArea && itemArea.datas) || [];
-
-      datas.forEach(function (d) {
-        var sign = (d.rf === '4' || d.rf === '5') ? -1 : 1;
-        var shares = Number(d.countOfListedStock) || 0;
-        var q = applyNxtOverride_(d, Number(d.nv) || 0, 0, Math.abs(Number(d.cr) || 0) * sign);
-        out[d.cd] = {
-          code: d.cd,
-          name: d.nm,
-          cap: q.price * shares,
-          changeRate: q.changeRate
-        };
-      });
+    var responses;
+    try {
+      responses = UrlFetchApp.fetchAll(reqs);
     } catch (err) {
-      // 이 배치만 스킵 - 나머지 배치 결과는 유지
-      continue;
+      continue; // 이 청크만 스킵 - 나머지 청크 결과는 유지
     }
+
+    responses.forEach(function (res) {
+      try {
+        if (res.getResponseCode() !== 200) return;
+
+        var body = JSON.parse(res.getContentText('EUC-KR'));
+        var areas = (body && body.result && body.result.areas) || [];
+        var itemArea = null;
+        for (var a = 0; a < areas.length; a++) {
+          if (areas[a].name === 'SERVICE_ITEM') { itemArea = areas[a]; break; }
+        }
+        var datas = (itemArea && itemArea.datas) || [];
+
+        datas.forEach(function (d) {
+          var sign = (d.rf === '4' || d.rf === '5') ? -1 : 1;
+          var shares = Number(d.countOfListedStock) || 0;
+          var q = applyNxtOverride_(d, Number(d.nv) || 0, 0, Math.abs(Number(d.cr) || 0) * sign);
+          out[d.cd] = {
+            code: d.cd,
+            name: d.nm,
+            cap: q.price * shares,
+            changeRate: q.changeRate
+          };
+        });
+      } catch (err) {
+        // 이 배치만 스킵 - 나머지 배치 결과는 유지
+      }
+    });
   }
   return out;
 }
@@ -503,7 +538,10 @@ function getStockNews(code, name) {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'news5_' + code;
   var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
 
   var items;
   try {
@@ -546,7 +584,10 @@ function getPriceMoveReason(code, name, changeRate) {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'price_reason_' + code;
   var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
 
   var items;
   try { items = fetchStockNews(code); } catch (err) { items = []; }
@@ -634,28 +675,52 @@ function callGroq(prompt, temperature) {
 var FLOW_AI_CACHE_TTL = 3 * 3600; // 3시간
 var FLOW_AI_FAIL_TTL = 120;       // 2분
 
+// 2026-08-03 보안 리뷰에서 발견: code만 형식 검증되고 name/*Note/verdictLabel은 검증 없이
+// Groq 프롬프트에 그대로 들어가는데, 캐시 키가 code+당일날짜뿐이라 임의 값을 보내면 그
+// 결과가 해당 종목의 그날 "AI 한줄평"으로 캐싱되어 이후 모든 방문자에게 노출될 수 있었다
+// (프롬프트 인젝션 + 캐시 오염). 정식 위젯(js/foreign-flow.js)은 같은 종목·같은 날엔 항상
+// 같은 실데이터 기반 값을 보내므로, 이 값들의 해시를 캐시 키에 포함시키면 정상 사용은 그대로
+// 캐시 히트하고, 위조된 입력은 그 자체로 별도 캐시 슬롯에 격리되어 정상 캐시를 덮어쓰지 못한다.
+// 줄바꿈/제어문자 제거 + 길이 제한(각 필드 200자)으로 프롬프트 인젝션 표면도 함께 줄인다.
+function sanitizeAiNote_(text, maxLen) {
+  var s = (text == null ? '' : String(text)).replace(/[\r\n\t\x00-\x1F\x7F]+/g, ' ').trim();
+  return s.slice(0, maxLen || 200);
+}
+
 function getFlowAiSummary(params) {
   var code = (params.code || '').trim();
   if (!/^[0-9A-Za-z]{6}$/.test(code)) return { summary: null };
 
+  var name = sanitizeAiNote_(params.name || code, 40);
+  var flowNote = sanitizeAiNote_(params.flowNote, 200) || '데이터 없음';
+  var foreignInstNote = sanitizeAiNote_(params.foreignInstNote, 200) || '데이터 없음';
+  var shortNote = sanitizeAiNote_(params.shortNote, 200) || '데이터 없음';
+  var pensionNote = sanitizeAiNote_(params.pensionNote, 200) || '데이터 없음';
+  var techNote = sanitizeAiNote_(params.techNote, 200) || '데이터 없음';
+  var volNote = sanitizeAiNote_(params.volNote, 200) || '데이터 없음';
+  var rsiNote = sanitizeAiNote_(params.rsiNote, 200) || '데이터 없음';
+  var verdictLabel = sanitizeAiNote_(params.verdictLabel, 40);
+  var verdictScore = sanitizeAiNote_(params.verdictScore, 10);
+
   var cache = CacheService.getScriptCache();
   var todayKey = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
-  var cacheKey = CACHE_PREFIX + 'flow_ai_' + code + '_' + todayKey;
+  var inputDigest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.MD5,
+    [name, flowNote, foreignInstNote, shortNote, pensionNote, techNote, volNote, rsiNote, verdictLabel, verdictScore].join('|')
+  ).map(function (b) { return ((b < 0 ? b + 256 : b).toString(16)).padStart(2, '0'); }).join('');
+  var cacheKey = CACHE_PREFIX + 'flow_ai_' + code + '_' + todayKey + '_' + inputDigest;
   var cached = cache.get(cacheKey);
-  if (cached) return { summary: cached };
+  if (cached !== null) return { summary: cached || null };
 
-  var name = (params.name || code).trim();
   var lines = [
-    '수급(외국인·기관 5일/20일 방향) 점수 ' + (params.flowScore || '-') + '점 - ' + (params.flowNote || '데이터 없음'),
-    '외국인·기관 연속매매 점수 ' + (params.foreignInstScore || '-') + '점 - ' + (params.foreignInstNote || '데이터 없음'),
-    '공매도 압박 점수 ' + (params.shortScore || '-') + '점 - ' + (params.shortNote || '데이터 없음'),
-    '연기금 점수 ' + (params.pensionScore || '-') + '점 - ' + (params.pensionNote || '데이터 없음'),
-    '기술적 점수(이평선·지지·저항) ' + (params.techScore || '-') + '점 - ' + (params.techNote || '데이터 없음'),
-    '거래대금(20일 평균 대비) - ' + (params.volNote || '데이터 없음'),
-    'RSI(14) - ' + (params.rsiNote || '데이터 없음')
+    '수급(외국인·기관 5일/20일 방향) 점수 ' + (params.flowScore || '-') + '점 - ' + flowNote,
+    '외국인·기관 연속매매 점수 ' + (params.foreignInstScore || '-') + '점 - ' + foreignInstNote,
+    '공매도 압박 점수 ' + (params.shortScore || '-') + '점 - ' + shortNote,
+    '연기금 점수 ' + (params.pensionScore || '-') + '점 - ' + pensionNote,
+    '기술적 점수(이평선·지지·저항) ' + (params.techScore || '-') + '점 - ' + techNote,
+    '거래대금(20일 평균 대비) - ' + volNote,
+    'RSI(14) - ' + rsiNote
   ];
-  var verdictLabel = (params.verdictLabel || '').trim();
-  var verdictScore = params.verdictScore || '';
   // 별점 판정(가중합)이 이미 확정한 결론을 AI가 다시 판단하지 않도록, 결론을 프롬프트에
   // 못박고 근거 문장만 요청한다 - 화면에서 별점 배지와 AI 한줄평이 서로 다른 의견을
   // 가리키는 모순을 막기 위함(2026-07 사용자 피드백). 거래대금/RSI는 verdict 점수 계산에는
@@ -696,7 +761,10 @@ function getFlowChart(code) {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'flow_chart_' + code;
   var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
 
   var daily = kiwoomVmFetch_('/ohlc/' + encodeURIComponent(code));
   // VM 키움 토큰/일봉 응답이 일시적으로 실패해도 차트 전체가 빈 화면이 되지 않도록
@@ -747,7 +815,10 @@ function getIndexChart(symbol) {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'index_chart_' + symbol;
   var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
 
   var bySymbol = safeCall(function () { return fetchFuturesFromVm_(INDEX_CHART_HISTORY_DAYS); });
   var item = bySymbol && bySymbol[symbol];
@@ -825,12 +896,23 @@ var MARKET_ANALYSIS_FAIL_TTL = 120;        // 2분
 function getMarketAnalysis() {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'market_analysis_v2';
+  // 2026-08-03: CacheService.get()은 캐시가 없으면 null, 실패-캐시로 저장해둔 빈 문자열이면
+  // ''을 반환한다. 예전엔 `if (cached)`로 검사해 ''도 "캐시 없음"과 똑같이 falsy 취급되는
+  // 바람에 실패 캐시(120초 백오프 의도)가 실제로는 매 요청 재시도로 무력화되고 있었다.
+  // null 여부로 정확히 구분해야 의도한 백오프가 동작한다(같은 버그가 아래 3개 AI 해설
+  // 엔드포인트+getFlowAiSummary에도 있어 전부 동일하게 수정).
   var cached = cache.get(cacheKey);
-  if (cached) return { analysis: cached };
+  if (cached !== null) return { analysis: cached || null };
 
   var kospi = safeCall(function () { return fetchIndex('KOSPI', '코스피'); });
   var kosdaq = safeCall(function () { return fetchIndex('KOSDAQ', '코스닥'); });
-  if (!kospi && !kosdaq) return { analysis: null };
+  if (!kospi && !kosdaq) {
+    // 2026-08-03: 다른 AI 해설 엔드포인트와 달리 이 분기만 실패 캐시를 안 남겨서, 네이버
+    // 폴링 장애 중에는 방문자마다 매번 재조회가 발생했다 - 나머지와 동일하게 짧은 TTL로
+    // 캐시해 장애 중 반복 재시도를 줄인다.
+    cache.put(cacheKey, '', MARKET_ANALYSIS_FAIL_TTL);
+    return { analysis: null };
+  }
 
   var lines = [];
   if (kospi) lines.push('코스피 ' + fmtCommaNum_(kospi.price) + ' (' + (kospi.changeRate >= 0 ? '+' : '') + kospi.changeRate.toFixed(2) + '%)');
@@ -908,8 +990,10 @@ function futuresLine_(item, label) {
 function getKospiFuturesAnalysis() {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v3';
+  // 2026-08-03: 실패-캐시로 저장된 ''을 `if (cached)`가 falsy로 오판해 백오프가 무력화되던
+  // 버그 수정(getMarketAnalysis와 동일 원인, null 여부로 정확히 구분).
   var cached = cache.get(cacheKey);
-  if (cached) return { analysis: cached };
+  if (cached !== null) return { analysis: cached || null };
 
   var futures = safeCall(fetchFuturesFromVm_);
   var lines = [];
@@ -919,7 +1003,10 @@ function getKospiFuturesAnalysis() {
       if (line) lines.push(line);
     });
   }
-  if (!lines.length) return { analysis: null };
+  if (!lines.length) {
+    cache.put(cacheKey, '', KOSPI_FUTURES_ANALYSIS_FAIL_TTL);
+    return { analysis: null };
+  }
 
   var optionFlow = safeCall(fetchOptionFlowFromVm_);
   var optionLines = [
@@ -1003,8 +1090,9 @@ function isSubIndexAnalysisValid_(text) {
 function getSubIndexAnalysis() {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v7';
+  // 2026-08-03: 실패-캐시(''): null 여부로 정확히 구분(다른 AI 해설 엔드포인트와 동일 수정).
   var cached = cache.get(cacheKey);
-  if (cached) return { analysis: cached };
+  if (cached !== null) return { analysis: cached || null };
 
   var futures = safeCall(fetchFuturesFromVm_);
   var usIndexLines = [], commodityFxLines = [];
@@ -1030,7 +1118,10 @@ function getSubIndexAnalysis() {
   if (btc && typeof btc.price === 'number') {
     commodityFxLines.push('BTC ' + btc.price + ' (' + (btc.changeRate >= 0 ? '+' : '') + btc.changeRate.toFixed(2) + '%)');
   }
-  if (!usIndexLines.length && !commodityFxLines.length) return { analysis: null };
+  if (!usIndexLines.length && !commodityFxLines.length) {
+    cache.put(cacheKey, '', SUB_INDEX_ANALYSIS_FAIL_TTL);
+    return { analysis: null };
+  }
 
   var prompt = '너는 국내 투자자를 위한 시황 브리핑을 쓰는 애널리스트야. 오늘 보조지수 데이터를 보고 한국어 평문 정확히 3문장으로 분석해줘.\n'
     + '[데이터]\n'
@@ -1103,9 +1194,19 @@ function getMarketTemp() {
   // 같이 올려야 함(이 프로젝트 반복 관례, news_ 캐시 키 이력 참고).
   var cacheKey = CACHE_PREFIX + 'market_temp_v5';
   var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
 
-  var universe = fetchSectorUniverse_();
+  // 2026-08-03: fetchSectorUniverse_()(이름·코드·시장만)와 fetchSectorUniverseWithSectors_()
+  // (업종 태그 포함)가 같은 URL(data/sectors-v3.js)을 각자 fetch하고 있어, 캐시 미스 1건당
+  // 같은 파일을 GitHub Pages에 2번 요청했다. 업종 태그가 있는 쪽이 정보를 더 포함하므로
+  // 이것만 한 번 fetch하고 나머지는 여기서 파생시킨다(computeSectorStrengthScore_에도 그대로 전달).
+  // safeCall로 감싸 fetch 실패(네트워크 예외)가 doGet까지 전파되지 않도록 방어 - 이 함수의
+  // 다른 외부 호출들과 동일한 방어 수준으로 맞춘다.
+  var universeWithSectors = safeCall(fetchSectorUniverseWithSectors_) || [];
+  var universe = universeWithSectors.map(function (u) { return { name: u.name, code: u.code, market: u.market }; });
   var codes = universe.map(function (u) { return u.code; });
   var quotes = codes.length ? (safeCall(function () { return fetchFromNaver(codes); }) || []) : [];
 
@@ -1114,7 +1215,7 @@ function getMarketTemp() {
   var vol = computeVolumeScore_(quotes);
   var avgChange = computeAvgChangeScore_(quotes);
   var rise = computeRiseRatioScore_(quotes);
-  var sectorStrength = computeSectorStrengthScore_(quotes);
+  var sectorStrength = computeSectorStrengthScore_(quotes, universeWithSectors);
   var week52 = computeWeek52Score_();
   var fx = computeExchangeScore_();
   var futures = computeUsFuturesScore_();
@@ -1151,8 +1252,13 @@ function getMarketTemp() {
 // 장마감 후 하루 1회(setupMarketTempTrigger_로 등록한 트리거) 오늘의 온도를 PropertiesService에
 // 날짜별로 누적 - "전일 대비/1주일 평균/1개월 평균" 계산의 재료. 같은 날 재실행되면 최신값으로 덮어씀.
 function logDailyMarketTemp_() {
-  var data = getMarketTemp();
-  upsertDailyMarketTemp_(data.temp);
+  // 2026-08-03: getMarketTemp()가 예외를 던지면(예: fetchSectorUniverse_ 실패) 트리거
+  // 실행 자체가 중단돼 그날의 온도 기록이 누락되고, "전일 대비/1주일·1개월 평균" 계산에
+  // 결측일이 생긴다. safeCall로 감싸 실패해도 다음 날 트리거가 정상 동작하도록 한다.
+  var data = safeCall(getMarketTemp);
+  if (data && typeof data.temp === 'number') {
+    upsertDailyMarketTemp_(data.temp);
+  }
 }
 
 // Save today's temperature whenever the market page reads it.
@@ -1254,8 +1360,9 @@ function computeMarketTempSparkline_(currentTemp, storedHistory) {
 function getMarketTempBriefing() {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'market_temp_briefing_v1';
+  // 2026-08-03: 실패-캐시(''): null 여부로 정확히 구분(다른 AI 해설 엔드포인트와 동일 수정).
   var cached = cache.get(cacheKey);
-  if (cached) return { analysis: cached };
+  if (cached !== null) return { analysis: cached || null };
 
   var data = safeCall(getMarketTemp);
   if (!data) return { analysis: null };
@@ -1308,8 +1415,11 @@ function scoreVix_(vix) {
 
 // KODEX 200 외국인/기관 5일 합산 순매매를, 그 종목 자신의 최근 20일 평균 일별 순매매
 // 절대값 x5(=5일 기준선) 대비 비율(-1~1)로 환산 - 외국인/기관 공통으로 재사용.
-function computeFlowRatio_(field) {
-  var flow = safeCall(function () { return getForeignFlow(MT_FLOW_CODE); });
+// 2026-08-03: 예전엔 이 함수가 매번 getForeignFlow(MT_FLOW_CODE)를 새로 호출해서, 호출부
+// (computeCombinedFlowScore_)가 foreign/inst 두 필드를 계산하려고 완전히 동일한 069500
+// 수급 데이터를 2번 크롤링(각 2페이지, 총 4회 요청)하고 있었다. flow 데이터를 인자로 받도록
+// 분리해 호출부가 한 번만 조회하고 재사용하게 한다.
+function computeFlowRatioFromData_(flow, field) {
   if (!flow || flow.error) return null;
 
   var daily = flow.daily;
@@ -1333,8 +1443,9 @@ function flowRatioToScore100_(ratio) {
 // 더 크다고 보고 비중을 더 줌). 외국인/기관 각각 0~100점으로 정규화한 뒤 가중합산하고,
 // 그 결과를 다시 20점 만점으로 환산. 개별 외국인/기관 수치는 참고용으로 같이 반환한다.
 function computeCombinedFlowScore_() {
-  var foreignR = computeFlowRatio_('foreign');
-  var instR = computeFlowRatio_('inst');
+  var flow = safeCall(function () { return getForeignFlow(MT_FLOW_CODE); });
+  var foreignR = computeFlowRatioFromData_(flow, 'foreign');
+  var instR = computeFlowRatioFromData_(flow, 'inst');
   var foreignScore100 = foreignR ? flowRatioToScore100_(foreignR.ratio) : 50;
   var instScore100 = instR ? flowRatioToScore100_(instR.ratio) : 50;
   var combined100 = foreignScore100 * 0.75 + instScore100 * 0.25;
@@ -1381,8 +1492,10 @@ function computeAvgChangeScore_(quotes) {
 // (섹터당 최대 2개), 전체 섹터 대비 강세 포인트 비율을 10점 만점으로 환산.
 // 지시서의 3요소(평균등락률/상승비율/거래대금 증가율) 중 거래대금 증가율은 섹터별 과거
 // 거래대금 이력이 없어 이번 구현에서는 제외(2요소만 반영) - 필요하면 추후 보강 가능.
-function computeSectorStrengthScore_(quotes) {
-  var universeWithSectors = safeCall(fetchSectorUniverseWithSectors_) || [];
+// universeWithSectors: 호출부(getMarketTemp)가 이미 fetch한 결과를 넘겨받아 재사용한다
+// (2026-08-03, 같은 URL 중복 fetch 제거). 생략하면 기존처럼 직접 조회한다(다른 호출부 대비).
+function computeSectorStrengthScore_(quotes, universeWithSectors) {
+  universeWithSectors = universeWithSectors || safeCall(fetchSectorUniverseWithSectors_) || [];
   if (!universeWithSectors.length) return { score: 5, note: '섹터 데이터 조회 실패 - 중립 처리' };
 
   var quoteByCode = {};
@@ -1568,7 +1681,7 @@ function fetchStockNews(code) {
 // 이관(2027-06-30 완전 종료 예고) - 이 참에 옮기면서, 신청한 앱에 IP 화이트리스트(최대
 // 10개)도 걸기로 함. 그런데 GAS(UrlFetchApp)는 고정 IP가 없어서(Google 공개 IP 풀에서
 // 매번 다른 IP로 나감 - 공식 확인됨) 화이트리스트를 걸 수가 없다. 그래서 실제 네이버
-// 호출은 고정 IP(34.28.220.13)를 가진 VM(scripts/cloud-vm/naver_news.py)이 대신 하고,
+// 호출은 고정 IP를 가진 VM(scripts/cloud-vm/naver_news.py, 실 IP는 인프라 설정 참고)이 대신 하고,
 // 여기선 그 VM의 /naver-news만 부른다(kiwoomVmFetch_ 재사용, X-API-Key 인증).
 // NCP 콘솔엔 이 VM의 IP 하나만 등록하면 된다.
 // ---------------------------------------------------------------------------
@@ -1581,11 +1694,12 @@ function getRankingNews() {
   var cache = CacheService.getScriptCache();
   var cacheKey = CACHE_PREFIX + 'rank_news_v1';
   var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  if (cached) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
 
-  var perQuery = RANK_NEWS_QUERIES.map(function (q) {
-    return safeCall(function () { return fetchNaverSearchNews(q); }) || [];
-  });
+  var perQuery = fetchNaverSearchNewsAll_(RANK_NEWS_QUERIES);
 
   var seen = {};
   var merged = [];
@@ -1609,6 +1723,45 @@ function getRankingNews() {
 function fetchNaverSearchNews(query) {
   var items = kiwoomVmFetch_('/naver-news?query=' + encodeURIComponent(query));
   return items || [];
+}
+
+// 2026-08-03: RANK_NEWS_QUERIES(3개)를 kiwoomVmFetch_로 순차 호출하면 각 최대 2회
+// 재시도 포함 최대 6회 직렬 왕복이 발생했다. UrlFetchApp.fetchAll로 한 번에 병렬 요청해
+// 왕복 대기를 겹치고, 병렬 1차 시도에서 실패한 쿼리만 기존 kiwoomVmFetch_(재시도 포함)로
+// 개별 폴백한다 - 정상 상황에서의 응답 지연을 줄이면서 실패 시 관용은 그대로 유지한다.
+function fetchNaverSearchNewsAll_(queries) {
+  var props = PropertiesService.getScriptProperties();
+  var base = props.getProperty('KIWOOM_VM_URL');
+  var token = props.getProperty('KIWOOM_VM_TOKEN');
+  if (!base || !token) return queries.map(function () { return []; });
+
+  var reqs = queries.map(function (q) {
+    return {
+      url: base.replace(/\/$/, '') + '/naver-news?query=' + encodeURIComponent(q),
+      headers: { 'X-API-Key': token },
+      muteHttpExceptions: true
+    };
+  });
+
+  var responses;
+  try {
+    responses = UrlFetchApp.fetchAll(reqs);
+  } catch (err) {
+    responses = null;
+  }
+
+  return queries.map(function (q, i) {
+    var res = responses && responses[i];
+    if (res && res.getResponseCode() === 200) {
+      try {
+        var json = JSON.parse(res.getContentText('UTF-8'));
+        if (json && json.data) return json.data;
+      } catch (err) {
+        // 아래 개별 폴백으로 넘어감
+      }
+    }
+    return safeCall(function () { return fetchNaverSearchNews(q); }) || [];
+  });
 }
 
 // (구 stripNaverHtml - 2026-07-18 VM 이관으로 HTML 스트립이 naver_news.py._strip_html로
@@ -2912,16 +3065,36 @@ function formatKstTime(epochMs) {
   return Utilities.formatDate(new Date(epochMs), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
 }
 
+// 2026-08-03: 캐시값 JSON.parse를 무방비로 호출하는 지점이 여럿 있었다 - 캐시가 어떤 이유로든
+// 손상되면 그 예외가 doGet 최상위까지 전파돼 Apps Script 기본 오류 페이지(HTML)가 나가고,
+// JSON을 기대하는 프론트 위젯이 그대로 깨진다. fetchFundamentalsForCode_는 이미 try/catch로
+// "손상된 캐시는 무시하고 다시 조회"하도록 방어돼 있었는데, 그 패턴을 공용 헬퍼로 뽑아
+// 나머지 캐시 읽기 지점에도 동일하게 적용한다. 파싱 실패 시 null을 반환해 호출부가 캐시
+// 미스처럼 새로 조회하게 한다(이 프로젝트가 캐싱하는 값은 전부 객체/배열이라 JSON.stringify(null)을
+// 저장하는 경로가 없으므로, 파싱 결과 null을 "손상"과 동일하게 취급해도 안전하다).
+function parseCachedJson_(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
 // CacheService 키는 250자 제한 -> 정렬된 codes 문자열이 길면 MD5 해시로 줄인다.
 // (섹터 대시보드처럼 종목이 수백 개면 codes.join(',')만으로 쉽게 250자를 넘는다)
+// 'quotes_' 네임스페이스: ?codes= 는 값 검증 없이 그대로 캐시 키에 들어가므로, 다른 라우트가
+// 쓰는 고정 캐시 키(예: ticker_market_ribbon3, ticker_bubble_v2)와 문자열이 겹치면 그 라우트의
+// 캐시를 덮어쓸 수 있었다(2026-08-03 보안 리뷰에서 발견 - ?codes=market_ribbon3 요청 1건으로
+// 재현 가능한 캐시 포이즈닝). 전용 네임스페이스를 붙여 어떤 codes 값을 보내도 다른 라우트의
+// 캐시 키 공간을 절대 침범하지 못하게 분리한다.
 function cacheKeyFor(codes) {
   var joined = codes.slice().sort().join(',');
-  if (joined.length <= 200) return CACHE_PREFIX + joined;
+  if (joined.length <= 200) return CACHE_PREFIX + 'quotes_' + joined;
   var digestBytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, joined);
   var hex = digestBytes.map(function (b) {
     return ((b < 0 ? b + 256 : b).toString(16)).padStart(2, '0');
   }).join('');
-  return CACHE_PREFIX + hex;
+  return CACHE_PREFIX + 'quotes_' + hex;
 }
 
 function uniqueList(arr) {
@@ -2981,7 +3154,7 @@ function getInvestSignalResult() {
 
 // 공매도/대차/연기금 - GCP VM(키움 REST API 상시 서버, 고정IP)을 호출.
 // VM 주소·인증 토큰은 스크립트 속성(Apps Script 편집기 > 프로젝트 설정 > 스크립트 속성)에
-// KIWOOM_VM_URL(예: http://34.28.220.13:8080), KIWOOM_VM_TOKEN으로 저장(코드에 노출 안 함).
+// KIWOOM_VM_URL(예: http://{VM 고정 IP}:8080), KIWOOM_VM_TOKEN으로 저장(코드에 노출 안 함).
 // 2026-07-13: GAS->VM 구간이 간헐적으로 ~11초 타임아웃 나는 현상 확인됨(VM 자체는 로컬/외부
 // 어디서 찍어도 항상 즉시 응답 - VM 문제가 아니라 GAS 쪽 네트워크 경로 문제로 추정). 원인을
 // 못 잡아서 1회 재시도로 방어 - 재시도까지 실패하면 그때만 null(호출부는 기존처럼 폴백 처리).

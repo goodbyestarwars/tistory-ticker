@@ -42,7 +42,7 @@ flowchart LR
 ### 2.2 Google Apps Script 프록시 (`gas/ticker-proxy.gs`)
 
 - 단일 GAS 프로젝트, 웹앱 배포. `doGet` 쿼리파라미터로 22개 라우트 처리(§3 `SOURCE_CODE_SPEC.md` 3.1 참고).
-- 시크릿 3종(`GROQ_API_KEY`, `KIWOOM_VM_URL`, `KIWOOM_VM_TOKEN`)은 스크립트 속성(PropertiesService)에서만 로드 — 코드 하드코딩 없음(확인됨).
+- 시크릿 3종(`GROQ_API_KEY`, `KIWOOM_VM_URL`, `KIWOOM_VM_TOKEN`)은 스크립트 속성(PropertiesService)에서만 로드 — 코드 하드코딩 없음(확인됨). 2026-08-03에 `DEBUG_ACCESS_KEY`(선택, 미설정 시 `?debugShortNaver=1` 디버그 라우트 전체 비활성화)가 추가되었다.
 - `CacheService`로 응답 캐싱, TTL은 항목별 60초(장중 시세)~3시간(AI요약).
 - VM 호출 시 `X-API-Key: {KIWOOM_VM_TOKEN}` 헤더로 인증.
 - **git push만으로는 반영되지 않는다** — script.google.com에서 "배포 → 새 버전"을 수동으로 눌러야 한다.
@@ -118,7 +118,7 @@ CORS는 서버-서버 호출(브라우저가 아닌 curl/스크립트)에는 적
 
 VM 메모리 캐시(`_ohlc_cache`, `_investor_flow_cache_mem`, `_foreign_flow_cache_mem`, `_futures_cache`)는 상한 도달 시 LRU가 아니라 전량 비움(`cache.clear()`) 방식이라, 트래픽이 몰릴 때 콜드패스가 한꺼번에 발생할 수 있다(`SOURCE_CODE_SPEC.md` §6.1).
 
-GAS 캐시는 배포해도 자동으로 비워지지 않으므로, 응답 스키마를 바꿀 때는 캐시 키 버전을 올리는 관례(`market_temp_v5` 등)를 따른다. 단, `?codes=` 라우트는 캐시 키에 사용자 입력이 그대로 들어가(`cacheKeyFor`) 다른 라우트의 고정 캐시 키(`ticker_market_ribbon3` 등)와 충돌할 수 있다는 점이 이번 리뷰에서 확인되었다(`SOURCE_CODE_SPEC.md` §6.3, 위험도 높음).
+GAS 캐시는 배포해도 자동으로 비워지지 않으므로, 응답 스키마를 바꿀 때는 캐시 키 버전을 올리는 관례(`market_temp_v5` 등)를 따른다. `?codes=` 라우트는 캐시 키에 사용자 입력이 그대로 들어가는데(`cacheKeyFor`), 예전에는 다른 라우트의 고정 캐시 키(`ticker_market_ribbon3` 등)와 충돌할 수 있는 상태였다(2026-08-03 리뷰에서 발견, 위험도 높음) — 같은 날 `cacheKeyFor`에 전용 네임스페이스(`quotes_`)를 추가해 수정했다(`SOURCE_CODE_SPEC.md` §6.3).
 
 ## 5. 외부 API / 데이터 소스
 
@@ -138,15 +138,20 @@ GAS 캐시는 배포해도 자동으로 비워지지 않으므로, 응답 스키
 
 ## 6. 성능 특성 요약 (상세는 `SOURCE_CODE_SPEC.md` §6.1)
 
-- GAS `getMarketTemp()`가 캐시 미스 시 외부 HTTP 15회 이상을 직렬 호출하는 것이 가장 큰 단일 지연 요인이다.
-- VM 메모리 캐시의 "전량 비움" 정책은 트래픽 스파이크 시 thundering herd를 유발할 수 있다.
+- GAS `getMarketTemp()`가 캐시 미스 시 외부 HTTP 15회 이상을 직렬 호출하는 것이 가장 큰 단일 지연 요인이었다 — 2026-08-03에 `sectors-v3.js` 중복 fetch와 `computeCombinedFlowScore_`의 중복 크롤링을 제거해 일부 완화했다(전면 병렬화는 리스크 대비 효과가 작아 보류).
+- VM 메모리 캐시의 "전량 비움" 정책은 트래픽 스파이크 시 thundering herd를 유발할 수 있다(백엔드, 미수정).
 - `/futures`에 대한 GZip 압축(`main.py:98-102`, `minimum_size=500`)과 SQLite 즉시읽기 TTL(`_FUTURES_TTL=10`)은 2026-07-31 "첫 로딩 30초" 장애 대응으로 이미 반영되어 있다.
+- GAS `fetchQuotesWithCap`(히트맵)과 `getRankingNews`(랭킹뉴스)의 순차 `UrlFetchApp.fetch` 반복도 2026-08-03에 `fetchAll` 병렬 패턴으로 교체했다.
 
-## 7. 보안 아키텍처 관점 요약 (상세는 `SOURCE_CODE_SPEC.md` §6.3, 수정 없이 발견만 기록)
+## 7. 보안 아키텍처 관점 요약 (상세는 `SOURCE_CODE_SPEC.md` §6.3)
 
-- 시크릿 관리: VM은 환경변수, GAS는 스크립트 속성 — 코드 하드코딩 없음(백엔드/GAS 확인 완료). 예외는 프론트엔드 `js/stock-calendar.js`의 Google Calendar API 키(공개 클라이언트 키 성격, 이미 문서화된 알려진 노출).
-- 인증 경계: GAS↔VM은 `X-API-Key`로 보호되지만, VM의 "브라우저 공개" 라우트군은 CORS만으로는 서버-서버 호출을 막지 못해 사실상 공개 API다. 레이트리밋이 없어 외부 유료/제한 API(DART, KIS, 키움) 쿼터 소진 벡터가 있다.
-- GAS 캐시 키 네임스페이스 충돌(`?codes=` vs 고정 키)로 인한 캐시 포이즈닝이 이번 리뷰에서 발견된 가장 위험도 높은 항목이다.
+이 절은 2026-08-03 리뷰 시점의 발견 사실이다. 같은 날 후속 작업으로 `gas/ticker-proxy.gs`에 해당하는 항목은 아래처럼 실제로 수정했다 — VM(`main.py` 등)·프론트(`js/`) 항목은 미수정 상태로 남아 있다.
+
+- 시크릿 관리: VM은 환경변수, GAS는 스크립트 속성 — 코드 하드코딩 없음(백엔드/GAS 확인 완료). 예외는 프론트엔드 `js/stock-calendar.js`의 Google Calendar API 키(공개 클라이언트 키 성격, 이미 문서화된 알려진 노출, 미수정).
+- 인증 경계: GAS↔VM은 `X-API-Key`로 보호되지만, VM의 "브라우저 공개" 라우트군은 CORS만으로는 서버-서버 호출을 막지 못해 사실상 공개 API다. 레이트리밋이 없어 외부 유료/제한 API(DART, KIS, 키움) 쿼터 소진 벡터가 있다(VM 쪽, 미수정).
+- GAS 캐시 키 네임스페이스 충돌(`?codes=` vs 고정 키)로 인한 캐시 포이즈닝은 이번 리뷰에서 발견된 가장 위험도 높은 항목이었다 — **수정 완료**: `cacheKeyFor`에 `quotes_` 네임스페이스를 추가해 다른 라우트의 고정 키와 겹치지 않도록 분리.
+- GAS `getFlowAiSummary`의 프롬프트 인젝션·캐시 오염도 **수정 완료**: 입력값 정제(길이 제한·제어문자 제거) + 캐시 키에 입력 해시를 포함시켜 위조 입력이 정상 캐시를 덮어쓰지 못하도록 격리.
+- GAS `?debugShortNaver=1` 디버그 엔드포인트 무인증 노출도 **수정 완료**: 스크립트 속성 `DEBUG_ACCESS_KEY` 검증을 추가해 기본적으로 비활성화.
 - SQL 인젝션, 커맨드 인젝션, 하드코딩된 백엔드 시크릿은 전수 조사 결과 발견되지 않았다.
 
 ## 8. 이 문서가 다루지 않는 것
