@@ -154,13 +154,22 @@ def _live_investor_row_from(rows, end_dt):
     뜨는 문제가 있었다(진짜 0인지 아직 집계 전인지 구분 불가능한 값을 확정치처럼 보여줌).
     누적거래량이 0이면 그날 아직 아무 체결도 없었다는 뜻이라 투자자별 순매매도 집계될
     수 없으므로, 이 경우엔 None을 돌려줘 호출부가 '당일' 행을 만들지 않고 직전 확정일을
-    그대로 보여주게 한다(실측 확인 전 필드를 확정값처럼 쓰지 않는다)."""
+    그대로 보여주게 한다(실측 확인 전 필드를 확정값처럼 쓰지 않는다).
+    2026-08-03(2차) 실측 리포트: 거래가 시작된 뒤에도 투자자 유형별 집계는 외국인·기관·
+    개인이 동시에 채워지지 않는다 - 외국인은 실제 순매매가 찍히는데 기관·개인 필드는
+    여전히 빈 문자열(아직 집계 전)인 채로 남아 있어, to_num()이 그 둘만 0으로 오인해
+    "외국인만 있고 개인·기관은 0"으로 보이는 문제가 있었다. 세 필드 중 하나라도 원본이
+    비어 있으면(키 없음/None/빈 문자열) 그 시점엔 셋 다 신뢰할 수 있는 상태가 아니라고
+    보고 행 전체를 None으로 돌린다 - 일부 필드만 실제값, 나머지는 0으로 뒤섞인 행을
+    보여주지 않는다(원본에 없는 값을 0으로 채우지 않는다는 원칙과 동일)."""
     if not rows:
         return None
     today = sorted(rows, key=lambda r: r.get('dt', ''), reverse=True)[0]
     if today.get('dt') != end_dt:
         return None
     if to_num(today.get('acc_trde_qty')) == 0:
+        return None
+    if any(today.get(f) in (None, '') for f in ('orgn', 'frgnr_invsr', 'ind_invsr')):
         return None
     return {
         'close': abs(to_num(today.get('cur_prc'))),
