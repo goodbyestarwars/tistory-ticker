@@ -24,6 +24,19 @@
   var CAL_ID  = encodeURIComponent('405dbd75cc8e798f6dfb0003494d0fa64eecbc00ae2edeb1cdbf6deee0b07f76@group.calendar.google.com');
   var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
   var CONTAINER_SELECTOR = '#stock-calendar';
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+
+  // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙,
+  // js/foreign-flow.js·js/stock-search.js와 동일 패턴 - window.__stockIconFallback 공유).
+  global.__stockIconFallback = global.__stockIconFallback || function (img) {
+    if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
+    img.setAttribute('data-fb', '1');
+    img.src = img.src.replace(/\.svg(\?.*)?$/, '.png');
+  };
+  function stockIconHtml(code) {
+    if (!code) return '';
+    return '<img src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+  }
 
   function fetchJson(url) {
     var controller = 'AbortController' in global ? new AbortController() : null;
@@ -125,7 +138,12 @@
     var iconClass, iconHtml;
     if (meta.isStock) {
       iconClass = 'sc-ev-icon stock';
-      iconHtml  = escapeHtml((meta.stockName || '').slice(0, 2));
+      // 2글자 약칭을 바탕색으로 항상 먼저 깔고, KRX_MAP(종목명->코드)에서 코드를 찾으면
+      // 실제 로고 이미지를 그 위에 겹쳐 그린다 - 이름이 KRX_MAP과 정확히 안 맞거나
+      // (예: 표기 차이) 로고 파일이 없는 종목은 svg->png 3단 폴백 끝에 이미지가 숨겨져도
+      // 밑에 깔린 약칭이 그대로 보여 빈 원으로 남지 않는다.
+      var code = global.KRX_MAP && global.KRX_MAP[meta.stockName];
+      iconHtml = escapeHtml((meta.stockName || '').slice(0, 2)) + stockIconHtml(code);
     } else if (meta.isForeign) {
       iconClass = 'sc-ev-icon flag';
       iconHtml  = meta.flag;
