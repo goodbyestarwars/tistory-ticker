@@ -121,6 +121,7 @@ LATENCY_LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lat
 _LIVE_CACHE_TTL = 300  # 5분
 _LIVE_CACHE_MAX_ENTRIES = 500
 _ohlc_cache = OrderedDict()
+_ohlc_minute_cache = OrderedDict()  # (code, tic_scope) -> (t, data)
 _investor_flow_cache_mem = OrderedDict()
 _foreign_flow_cache_mem = OrderedDict()
 # fundamentals_cache.json 파싱 결과(파일 mtime/크기가 바뀔 때만 재파싱) - /fundamentals/{code}용.
@@ -370,6 +371,33 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
         raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
     _live_cache_put(_ohlc_cache, code, daily)
     return envelope(daily)
+
+
+@app.get('/ohlc-minute/{code}')
+def ohlc_minute(code: str = Path(..., min_length=6, max_length=6),
+                 tic_scope: str = Query('1'), x_api_key: str = Header(default=None)):
+    """분봉 OHLC(ka10080) 온디맨드 조회 - js/stock-search.js 분봉 탭용.
+    2026-08-03: /ohlc(ka10081, 일봉)과 별개 신규 엔드포인트. ka10080 응답 필드명이
+    이 프로젝트에서 실호출로 검증된 적이 없어(kiwoom_market.fetch_minute_ohlc 참고)
+    502로 원인 메시지를 그대로 노출한다 - 필드명이 틀렸으면 여기서 바로 드러난다."""
+    require_api_key(x_api_key)
+    if tic_scope not in kiwoom_market.MINUTE_TIC_SCOPES:
+        raise HTTPException(status_code=400, detail='tic_scope는 1/3/5/10/15/30/45/60 중 하나여야 합니다.')
+    cache_key = (code, tic_scope)
+    cached = _live_cache_get(_ohlc_minute_cache, cache_key)
+    if cached is not None:
+        return envelope(cached)
+    try:
+        token = get_kiwoom_token()
+        minute = kiwoom_market.fetch_minute_ohlc(token, code, tic_scope=tic_scope)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    if not minute:
+        raise HTTPException(status_code=404, detail='분봉 데이터를 찾을 수 없습니다.')
+    _live_cache_put(_ohlc_minute_cache, cache_key, minute)
+    return envelope(minute)
 
 
 @app.get('/investor-flow/{code}')

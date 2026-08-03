@@ -81,6 +81,48 @@ def fetch_daily_ohlc(token, code, max_days=OHLC_MIN_DAYS):
     return out
 
 
+MINUTE_TIC_SCOPES = ('1', '3', '5', '10', '15', '30', '45', '60')
+
+
+def fetch_minute_ohlc(token, code, tic_scope='1', max_bars=None):
+    """분봉 OHLC(ka10080)를 오름차순(과거->최신)으로 반환. fetch_daily_ohlc와 같은 행 형식에
+    시각(time, 'HH:MM')만 추가. tic_scope는 분단위(1/3/5/10/15/30/45/60) 문자열.
+    **주의(미검증)**: 이 프로젝트에서 ka10080을 실제로 호출해본 적이 없어 응답 필드명
+    ('stk_min_pole_chart_qry', 'cntr_tm' 등)이 ka10081과 같은 명명 규칙일 거라는 추정에
+    기반함. 최초 실호출 후 필드가 다르면 아래 KeyError/빈 배열로 바로 드러나므로, 실제
+    응답을 한 번 확인해 필요하면 필드명을 고쳐야 한다."""
+    res = kiwoom_client.call_tr(token, 'ka10080', '/api/dostk/chart', {
+        'stk_cd': code,
+        'tic_scope': tic_scope,
+        'upd_stkpc_tp': '1',
+    })
+    rows = res.get('stk_min_pole_chart_qry')
+    if rows is None:
+        raise RuntimeError('ka10080 응답에 stk_min_pole_chart_qry가 없음(필드명 재검증 필요) - 응답 키: %s' % list(res.keys()))
+
+    out = []
+    seen = set()
+    for r in rows:
+        tm = r.get('cntr_tm') or r.get('dt')
+        if not tm or tm in seen:
+            continue
+        seen.add(tm)
+        out.append({
+            'date': '%s-%s-%s' % (tm[0:4], tm[4:6], tm[6:8]),
+            'time': '%s:%s' % (tm[8:10], tm[10:12]) if len(tm) >= 12 else '',
+            'open': abs(to_num(r.get('open_pric'))),
+            'high': abs(to_num(r.get('high_pric'))),
+            'low': abs(to_num(r.get('low_pric'))),
+            'close': abs(to_num(r.get('cur_prc'))),
+            'volume': abs(to_num(r.get('trde_qty'))),
+        })
+
+    out.sort(key=lambda r: r['date'] + r['time'])
+    if max_bars and len(out) > max_bars:
+        out = out[-max_bars:]
+    return out
+
+
 def fetch_institution_trend(token, code):
     """**미사용(2026-07-20부로 daily_scan.py에서 fetch_foreign_inst_daily로 교체됨) - 코드만
     유지.** ka10045 기반이라 NXT 체결분이 빠진 축소 거래량만 나오는 구조적 한계가 있었고,
