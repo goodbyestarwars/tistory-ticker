@@ -1274,9 +1274,6 @@
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
     var aptCurrentPrice = quote ? Number(quote.price) : (latest && latest.close);
-    // 매물대 아파트는 chartData.daily(가격+거래량, 최대 500거래일)만으로 계산한다 - 수급
-    // API(63거래일 상한)와 무관해서 apt.days가 더 긴 이력을 반영할 수 있다.
-    var aptProfile = computeVolumeProfile(chartData && chartData.daily, APT_LOOKBACK_DAYS, APT_BIN_STEPS[APT_BIN_DEFAULT_INDEX]);
     // quote(실시간, NXT 시간외 포함)가 있으면 그걸 헤더에 우선 쓰고, 실패 시에만 daily[0](정규장
     // 종가 고정)로 폴백한다. asOfLabel도 quote 성공 시 "시각"으로, 폴백 시 기존처럼 "날짜"로 보여준다.
     var priceHtml = '';
@@ -1309,7 +1306,7 @@
     html += buildFlowExtraSections(entry, latest && latest.close);
     html += '</div>';
     html += '<div class="ff-view" id="ffViewApt" hidden>';
-    html += buildAptCard(aptProfile, aptCurrentPrice);
+    html += buildAptCard();
     html += '</div>';
     html += '<div class="ff-view" id="ffViewChart" hidden>';
     html += buildChartSection(chartData, techScore);
@@ -3266,33 +3263,25 @@
       + '</div>';
   }
 
-  // mode: 'approx'(기존 근사치, 기본) | 'real'(한국투자 pbar-tratio 실제 체결가 - 조회할 때마다
-  // 그날 스냅샷이 DB에 쌓여서 여러 거래일치로 자연히 늘어난다, daysIncluded 참고).
-  function buildAptDynamicHtml(profile, currentPrice, stepIndex, mode, daysIncluded) {
-    var footnote = mode === 'real'
-      ? '<div class="ff-footnote">※ 한국투자 API(실제 체결가·체결거래량)로 만든 매물대입니다. 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>' + (daysIncluded || 1) + '거래일</b>치가 반영돼 있어요(뜸하게 조회된 종목은 며칠치만 있을 수 있음, 최대 ' + APT_LOOKBACK_DAYS + '일).</div>'
-      : '<div class="ff-footnote">※ 실제 체결가가 태깅된 데이터가 아니라, 최근 ' + (profile ? profile.days : APT_LOOKBACK_DAYS)
-        + '거래일의 일별 고가~저가 구간에 거래량을 분산해 합산한 <b>근사 매물대</b>입니다(체결가 기준 아님).</div>';
-    var periodLabel = mode === 'real' ? ((daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일(실제)') : null;
+  // 한국투자 pbar-tratio(실제 체결가) 기반 - ?days=로 VM이 SQLite 누적분까지 합산해준다.
+  // 조회할 때마다 그날 스냅샷이 쌓여서 daysIncluded가 자연히 늘어난다.
+  // 2026-08-05: "최근 120일(근사)" 병행 뷰는 혼란만 준다는 사용자 판단으로 제거하고
+  // 이 실제 체결가 뷰 하나로 통일했다(computeVolumeProfile 자체는 차트 탭 매물대
+  // 오버레이(addVolumeProfileOverlay)가 여전히 써서 남겨둠).
+  function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded) {
+    var footnote = '<div class="ff-footnote">※ 한국투자 API(실제 체결가·체결거래량)로 만든 매물대입니다. 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>'
+      + (daysIncluded || 1) + '거래일</b>치가 반영돼 있어요(뜸하게 조회된 종목은 며칠치만 있을 수 있음, 최대 ' + APT_LOOKBACK_DAYS + '일).</div>';
+    var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
     return buildAptZoomButtons(stepIndex)
       + buildAptSummaryHtml(profile, periodLabel)
       + buildAptChartHtml(profile, currentPrice)
       + footnote;
   }
 
-  function buildAptPeriodToggle(mode) {
-    return '<div class="ff-apt-period-toggle" id="ffAptPeriodToggle">'
-      + '<button type="button" class="ff-apt-period-btn' + (mode !== 'real' ? ' active' : '') + '" data-period="approx">최근 ' + APT_LOOKBACK_DAYS + '일(근사)</button>'
-      + '<button type="button" class="ff-apt-period-btn' + (mode === 'real' ? ' active' : '') + '" data-period="real">실제 체결가</button>'
-      + '</div>';
-  }
-
-  function buildAptCard(profile, currentPrice) {
-    if (!profile) return '';
+  function buildAptCard() {
     return '<div class="ff-extra-card ff-apt-card" id="ffAptCard">'
-      + '<div class="ff-extra-card-title">🏢 매물대(추정)</div>'
-      + buildAptPeriodToggle('approx')
-      + '<div id="ffAptDynamic">' + buildAptDynamicHtml(profile, currentPrice, APT_BIN_DEFAULT_INDEX, 'approx') + '</div>'
+      + '<div class="ff-extra-card-title">🏢 매물대</div>'
+      + '<div id="ffAptDynamic"><div class="ff-apt-empty">매물대를 불러오는 중...</div></div>'
       + '</div>';
   }
 
@@ -3354,18 +3343,16 @@
     };
   }
 
-  // 확대(+)/축소(-) 버튼: 서버 재조회 없이 이미 받아온 chartData.daily(근사)나 캐시된
-  // pbar-tratio 원자료(오늘)로 층수(bin count)만 바꿔 즉시 재계산한다 - 토스 차트에서
-  // 확대/축소하면 매물대가 다시 그려지는 것과 같은 반응성을 층수 조절로 구현.
-  // "최근 N일"/"오늘" 토글은 계산 방식(근사 vs 실체결가)과 조회 기간이 통째로 바뀐다.
+  // 확대(+)/축소(-) 버튼: 캐시된 pbar-tratio 원자료로 층수(bin count)만 바꿔 즉시
+  // 재계산한다(fetchRealVolumeProfile 자체가 1분 캐시라 층수만 바꿀 땐 재조회 없음) -
+  // 토스 차트에서 확대/축소하면 매물대가 다시 그려지는 것과 같은 반응성을 구현.
   function wireAptTabs(box, chartDaily, currentPrice, code) {
     var card = box.querySelector('#ffAptCard');
-    if (!card || !chartDaily) return;
+    if (!card) return;
     var stepIndex = APT_BIN_DEFAULT_INDEX;
-    var mode = 'approx';
-    playAptEntrance(card);
 
     function trendUpFromDaily() {
+      if (!chartDaily || !chartDaily.length) return true;
       var last = chartDaily[chartDaily.length - 1], prev = chartDaily[chartDaily.length - 2];
       return last && prev ? last.close >= prev.close : true;
     }
@@ -3373,24 +3360,14 @@
     function render() {
       var dynamic = card.querySelector('#ffAptDynamic');
       if (!dynamic) return;
-      if (mode === 'real') {
-        dynamic.innerHTML = '<div class="ff-apt-empty">실제 체결가 매물대를 불러오는 중...</div>';
-        fetchRealVolumeProfile(code, APT_LOOKBACK_DAYS).then(function (result) {
-          if (mode !== 'real') return; // 응답 오는 사이 다시 "최근 N일(근사)"로 바꿨으면 무시
-          var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
-          dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, 'real', result.daysIncluded);
-          wireZoom();
-          playAptEntrance(card);
-        }).catch(function () {
-          if (mode !== 'real') return;
-          dynamic.innerHTML = '<div class="ff-apt-empty">실제 체결가 매물대를 불러오지 못했어요.</div>';
-        });
-      } else {
-        var profile = computeVolumeProfile(chartDaily, APT_LOOKBACK_DAYS, APT_BIN_STEPS[stepIndex]);
-        dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, 'approx');
+      fetchRealVolumeProfile(code, APT_LOOKBACK_DAYS).then(function (result) {
+        var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
+        dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded);
         wireZoom();
         playAptEntrance(card);
-      }
+      }).catch(function () {
+        dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 불러오지 못했어요.</div>';
+      });
     }
 
     function wireZoom() {
@@ -3407,22 +3384,7 @@
       });
     }
 
-    function wirePeriodToggle() {
-      var toggle = card.querySelector('#ffAptPeriodToggle');
-      if (!toggle) return;
-      toggle.querySelectorAll('.ff-apt-period-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var period = btn.getAttribute('data-period');
-          if (period === mode) return;
-          mode = period;
-          toggle.querySelectorAll('.ff-apt-period-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
-          render();
-        });
-      });
-    }
-
-    wireZoom();
-    wirePeriodToggle();
+    render();
   }
 
   // ---- 매물대(근사) ----
