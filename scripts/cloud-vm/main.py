@@ -122,7 +122,6 @@ _LIVE_CACHE_TTL = 300  # 5분
 _LIVE_CACHE_MAX_ENTRIES = 500
 _ohlc_cache = OrderedDict()
 _ohlc_minute_cache = OrderedDict()  # (code, tic_scope) -> (t, data)
-_volume_profile_cache = OrderedDict()  # (code, cycle_tp, prpscnt) -> (t, data)
 _investor_flow_cache_mem = OrderedDict()
 _foreign_flow_cache_mem = OrderedDict()
 # fundamentals_cache.json 파싱 결과(파일 mtime/크기가 바뀔 때만 재파싱) - /fundamentals/{code}용.
@@ -399,32 +398,6 @@ def ohlc_minute(request: Request, code: str = Path(..., min_length=6, max_length
         raise HTTPException(status_code=404, detail='분봉 데이터를 찾을 수 없습니다.')
     _live_cache_put(_ohlc_minute_cache, cache_key, minute)
     return envelope(minute)
-
-
-@app.get('/volume-profile/{code}')
-def volume_profile(request: Request, code: str = Path(..., min_length=6, max_length=6),
-                    cycle_tp: str = Query('50'), prpscnt: str = Query('40')):
-    """매물대집중(ka10025) 온디맨드 조회 - js/foreign-flow.js 매물대 아파트/VP 오버레이가
-    브라우저에서 직접 호출할 예정(연동 전, 백엔드만 우선 배포 후 curl로 필드명 검증).
-    /ohlc-minute와 동일하게 공개(인증 없음) + CORS + rate limit 패턴."""
-    _check_rate_limit('volume_profile', request)
-    if cycle_tp not in kiwoom_market.VOLUME_CONCENTRATION_CYCLES:
-        raise HTTPException(status_code=400, detail='cycle_tp는 50/100/150/200/250 중 하나여야 합니다.')
-    cache_key = (code, cycle_tp, prpscnt)
-    cached = _live_cache_get(_volume_profile_cache, cache_key)
-    if cached is not None:
-        return envelope(cached)
-    try:
-        token = get_kiwoom_token()
-        bins = kiwoom_market.fetch_volume_concentration(token, code, cycle_tp=cycle_tp, prpscnt=prpscnt)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
-    if not bins:
-        raise HTTPException(status_code=404, detail='매물대 데이터를 찾을 수 없습니다.')
-    _live_cache_put(_volume_profile_cache, cache_key, bins)
-    return envelope(bins)
 
 
 @app.get('/investor-flow/{code}')

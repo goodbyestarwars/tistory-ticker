@@ -93,20 +93,6 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/ohlc-minute/005930?tic_scope=1"` |
 | 오류 응답 예시 | `tic_scope` 오류 → 400 / 데이터 없음 → 404 / 키움 실패 → 502(원인 메시지 그대로 노출) |
 
-### `GET /volume-profile/{code}` (**미검증** — 아래 참고)
-
-| 항목 | 내용 |
-|---|---|
-| 인증 필요 여부 | **불필요** (`/ohlc-minute`와 동일 패턴) |
-| 필수 파라미터 | `code` (경로) |
-| 선택 파라미터 | `cycle_tp`: `50`\|`100`\|`150`\|`200`\|`250`(기준 영업일수, 기본 `50`) · `prpscnt`: 가격구간 개수 문자열(기본 `40`) |
-| 응답 JSON 구조 | `data` = 가격구간별 매물량 배열, 가격 오름차순: `[{"low":..,"high":..,"volume":..}, ...]` |
-| 시장 범위 | ka10025(매물대집중요청) - 키움이 서버에서 직접 계산한 값. `js/foreign-flow.js`의 `computeVolumeProfile`(일봉 고가~저가 클라이언트 비례배분 근사치)을 대체할 목적으로 추가 |
-| 캐시 시간 | VM 프로세스 메모리 5분(`_LIVE_CACHE_TTL=300`) |
-| 호출 예시 | `curl "https://goodbyestar.cloud/volume-profile/005930?cycle_tp=50&prpscnt=40"` |
-| 오류 응답 예시 | `cycle_tp` 오류 → 400 / 데이터 없음 → 404 / 키움 실패 → 502(원인 메시지 그대로 노출) |
-| **미검증 경고** | 이 프로젝트에서 ka10025를 실제로 호출해본 적이 없음. 응답 키(`prps_cnctr`)와 행 필드(`pric_strt`/`pric_end`/`prps_qty`)는 문서 설명 텍스트에서 나온 이름을 그대로 가정한 것 - **최초 실호출로 정상 응답을 확인하기 전까지 확정값으로 신뢰하지 말 것.** |
-
 ### `GET /foreign-flow/{code}`
 
 | 항목 | 내용 |

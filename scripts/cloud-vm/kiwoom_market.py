@@ -4,7 +4,6 @@
 gas/ticker-proxy.gs의 fetchDailyOhlc_/getForeignFlow(네이버 크롤링)를 대체하는
 공식 키움/KIS API 버전 - daily_scan.py(패턴/눌림목/투자시그널 배치)가 사용한다."""
 
-import json
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -125,58 +124,6 @@ def fetch_minute_ohlc(token, code, tic_scope='1', max_bars=None):
     out.sort(key=lambda r: r['date'] + r['time'])
     if max_bars and len(out) > max_bars:
         out = out[-max_bars:]
-    return out
-
-
-VOLUME_CONCENTRATION_CYCLES = ('50', '100', '150', '200', '250')
-
-
-def fetch_volume_concentration(token, code, cycle_tp='50', prpscnt='40'):
-    """매물대집중요청(ka10025) - 키움이 서버에서 직접 계산한 가격구간별 누적 매물량
-    (js/foreign-flow.js의 computeVolumeProfile처럼 일봉 고가~저가를 클라이언트에서
-    비례 배분하는 근사치가 아니라, 키움 쪽 매매 데이터로 만든 값). cycle_tp는 기준
-    영업일수(50/100/150/200/250), prpscnt는 반환받을 가격구간 개수.
-    **주의(미검증)**: 이 프로젝트에서 ka10025를 실제로 호출해본 적이 없다. 응답 최상위
-    키('prps_cnctr')와 각 행 필드(pric_strt/pric_end/prps_qty)는 문서 설명에서 나온
-    이름을 그대로 가정한 것 - 실호출 후 KeyError/빈 배열로 드러나면 필드명을 다시
-    확인해야 한다(fetch_minute_ohlc 때와 동일 절차)."""
-    res = kiwoom_client.call_tr(token, 'ka10025', '/api/dostk/stkinfo', {
-        'mrkt_tp': '000',
-        'stk_cd': code,
-        'prps_cnctr_rt': '0',
-        'cur_prc_entry': '1',
-        'prpscnt': prpscnt,
-        'cycle_tp': cycle_tp,
-        'stex_tp': '3',
-    })
-    rows = res.get('prps_cnctr')
-    if rows is None:
-        raise RuntimeError(
-            'ka10025 응답에 prps_cnctr가 없음 - return_code=%s return_msg=%s 응답 키: %s'
-            % (res.get('return_code'), res.get('return_msg'), list(res.keys()))
-        )
-    if not rows:
-        raise RuntimeError(
-            'ka10025 prps_cnctr가 빈 배열 - return_code=%s return_msg=%s (파라미터 문제일 수 있음)'
-            % (res.get('return_code'), res.get('return_msg'))
-        )
-
-    out = []
-    for r in rows:
-        low = abs(to_num(r.get('pric_strt')))
-        high = abs(to_num(r.get('pric_end')))
-        qty = abs(to_num(r.get('prps_qty')))
-        if not (high > low):
-            continue
-        out.append({'low': low, 'high': high, 'volume': qty})
-
-    if not out:
-        raise RuntimeError(
-            'ka10025 prps_cnctr %d건 있으나 pric_strt/pric_end 파싱 후 전부 걸러짐(필드명 재검증 필요) - 첫 행 원본: %s'
-            % (len(rows), json.dumps(rows[0], ensure_ascii=False))
-        )
-
-    out.sort(key=lambda r: r['low'])
     return out
 
 
