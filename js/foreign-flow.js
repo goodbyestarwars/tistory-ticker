@@ -3100,20 +3100,26 @@
     return '로비';
   }
 
+  // bins[i].low/high를 직접 훑어 찾는다(예전엔 minLow+i*binSize로 계산했는데, 균등폭
+  // bins에서만 맞는 공식이라 "오늘" 매물대처럼 실제 호가 경계에 맞춰 폭이 들쭉날쭉한
+  // bins(computeTodayVolumeProfile 참고)에서는 틀린 값이 나왔다).
   function aptBinIndex(profile, price) {
     if (!profile || price == null || !(profile.maxHigh > profile.minLow)) return -1;
-    var n = profile.bins.length;
-    return Math.max(0, Math.min(n - 1, Math.floor((price - profile.minLow) / profile.binSize)));
+    var bins = profile.bins;
+    for (var i = 0; i < bins.length; i++) {
+      if (price <= bins[i].high) return i;
+    }
+    return bins.length - 1;
   }
 
   // 구간 안내판(탑층~로비) 밑에 표시할 가격범위 - "90,000원~" 처럼 각 구간의 실제 최저/최고가를
-  // 보여준다(장식이 아니라 profile.minLow/binSize에서 그대로 계산한 실데이터).
+  // 보여준다(장식이 아니라 bins[i].low/high에서 그대로 읽은 실데이터).
   function aptBandRanges(profile) {
     var n = profile.bins.length;
     var ranges = {};
     for (var i = 0; i < n; i++) {
       var band = aptBandLabel(i, n);
-      var lo = profile.minLow + i * profile.binSize, hi = profile.minLow + (i + 1) * profile.binSize;
+      var lo = profile.bins[i].low, hi = profile.bins[i].high;
       if (!ranges[band]) ranges[band] = { low: lo, high: hi };
       else { ranges[band].low = Math.min(ranges[band].low, lo); ranges[band].high = Math.max(ranges[band].high, hi); }
     }
@@ -3315,25 +3321,34 @@
       });
   }
 
-  // 오늘 매물대는 이미 실제 가격×체결거래량 쌍(pbar-tratio)이라, 근사치처럼 고가~저가
-  // 구간에 비례 분산할 필요 없이 각 가격을 해당 구간에 그대로 더하기만 하면 된다.
+  // 오늘 매물대는 이미 실제 가격×체결거래량 쌍(pbar-tratio, 실제 호가단위로 옴)이다.
+  // (maxHigh-minLow)/binCount로 균등분할하면 근사치와 똑같은 문제(구간 경계가 실제
+  // 존재한 적 없는 가격이 됨)가 재발하므로, 대신 정렬된 원본 가격들을 개수 기준으로
+  // binCount개 묶음으로 나눈다 - 각 층의 저가/고가가 항상 실제 체결가 중 하나가 된다.
   function computeTodayVolumeProfile(rawBins, binCount, trendUp) {
     if (!rawBins || !rawBins.length) return null;
-    var minLow = rawBins[0].price, maxHigh = rawBins[rawBins.length - 1].price;
-    if (!(maxHigh > minLow)) return null;
-    var binSize = (maxHigh - minLow) / binCount;
+    var n = rawBins.length;
+    var perBucket = Math.max(1, Math.ceil(n / binCount));
     var bins = [];
-    for (var i = 0; i < binCount; i++) {
-      bins.push({ low: minLow + i * binSize, high: minLow + (i + 1) * binSize, volume: 0 });
+    for (var start = 0; start < n; start += perBucket) {
+      var chunk = rawBins.slice(start, start + perBucket);
+      var volume = 0;
+      chunk.forEach(function (r) { volume += r.volume || 0; });
+      bins.push({ low: chunk[0].price, high: chunk[chunk.length - 1].price, volume: volume });
     }
-    rawBins.forEach(function (r) {
-      var idx = Math.min(binCount - 1, Math.max(0, Math.floor((r.price - minLow) / binSize)));
-      bins[idx].volume += r.volume || 0;
-    });
+    // 묶음이 가격 1개짜리라 low===high인 층은 다음 층의 저가까지 살짝 넓혀(실제 가격이라
+    // 안전) 폭 0 막대가 이상해 보이지 않게 한다. 마지막 층은 넓힐 다음 층이 없으면 그대로 둔다.
+    for (var i = 0; i < bins.length - 1; i++) {
+      if (bins[i].high === bins[i].low) bins[i].high = bins[i + 1].low;
+    }
     var maxVolume = 0, pocIndex = 0;
     bins.forEach(function (b, i) { if (b.volume > maxVolume) { maxVolume = b.volume; pocIndex = i; } });
     if (maxVolume <= 0) return null;
-    return { bins: bins, maxVolume: maxVolume, pocIndex: pocIndex, minLow: minLow, maxHigh: maxHigh, binSize: binSize, days: 1, trendUp: trendUp };
+    return {
+      bins: bins, maxVolume: maxVolume, pocIndex: pocIndex,
+      minLow: bins[0].low, maxHigh: bins[bins.length - 1].high,
+      days: 1, trendUp: trendUp
+    };
   }
 
   // 확대(+)/축소(-) 버튼: 서버 재조회 없이 이미 받아온 chartData.daily(근사)나 캐시된
