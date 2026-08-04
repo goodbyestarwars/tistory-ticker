@@ -4,6 +4,7 @@
 gas/ticker-proxy.gs의 fetchDailyOhlc_/getForeignFlow(네이버 크롤링)를 대체하는
 공식 키움/KIS API 버전 - daily_scan.py(패턴/눌림목/투자시그널 배치)가 사용한다."""
 
+import json
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -154,6 +155,11 @@ def fetch_volume_concentration(token, code, cycle_tp='50', prpscnt='40'):
             'ka10025 응답에 prps_cnctr가 없음 - return_code=%s return_msg=%s 응답 키: %s'
             % (res.get('return_code'), res.get('return_msg'), list(res.keys()))
         )
+    if not rows:
+        raise RuntimeError(
+            'ka10025 prps_cnctr가 빈 배열 - return_code=%s return_msg=%s (파라미터 문제일 수 있음)'
+            % (res.get('return_code'), res.get('return_msg'))
+        )
 
     out = []
     for r in rows:
@@ -163,6 +169,12 @@ def fetch_volume_concentration(token, code, cycle_tp='50', prpscnt='40'):
         if not (high > low):
             continue
         out.append({'low': low, 'high': high, 'volume': qty})
+
+    if not out:
+        raise RuntimeError(
+            'ka10025 prps_cnctr %d건 있으나 pric_strt/pric_end 파싱 후 전부 걸러짐(필드명 재검증 필요) - 첫 행 원본: %s'
+            % (len(rows), json.dumps(rows[0], ensure_ascii=False))
+        )
 
     out.sort(key=lambda r: r['low'])
     return out
