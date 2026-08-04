@@ -1,0 +1,58 @@
+version: "1.0"
+
+metadata:
+  name: "변동성 확장"
+  description: "변동성이 종가 대비 3% 미만으로 수축된 상태에서 20일 고점을 돌파하면 매수"
+  author: "9Pay"
+  tags: [volatility, breakout, contraction]
+
+strategy:
+  id: volatility
+  category: breakout
+
+  indicators:
+    # normalize: true - 절대 표준편차(원) 대신 '20일 평균 대비 %'로 계산해 가격대가
+    # 다른 종목끼리도 같은 기준으로 비교할 수 있게 한다.
+    - id: stddev
+      alias: vol_pct
+      params:
+        period: 20
+        normalize: true
+    - id: highest
+      alias: resistance
+      params:
+        period: 20
+        field: high
+        exclude_current: true
+    - id: price
+      alias: close_price
+      params:
+        field: close
+
+  entry:
+    logic: AND
+    conditions:
+      - indicator: vol_pct
+        operator: less_than
+        compare_to: 3
+      - indicator: close_price
+        operator: cross_above
+        compare_to: resistance
+
+  exit:
+    logic: AND
+    conditions:
+      - indicator: close_price
+        operator: cross_below
+        compare_to: resistance
+
+risk:
+  stop_loss:
+    enabled: true
+    percent: 6.0
+  take_profit:
+    enabled: true
+    percent: 15.0
+  trailing_stop:
+    enabled: true
+    percent: 5.0
