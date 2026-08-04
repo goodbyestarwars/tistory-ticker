@@ -30,6 +30,7 @@ import naver_news
 import news_momentum
 import investor_flow
 import investor_trend
+import kis_client
 import kiwoom_client
 import kiwoom_market
 import market_rank
