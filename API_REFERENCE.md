@@ -93,7 +93,7 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/ohlc-minute/005930?tic_scope=1"` |
 | 오류 응답 예시 | `tic_scope` 오류 → 400 / 데이터 없음 → 404 / 키움 실패 → 502(원인 메시지 그대로 노출) |
 
-### `GET /pbar-tratio/{code}` (**미검증** — 아래 참고)
+### `GET /pbar-tratio/{code}`
 
 | 항목 | 내용 |
 |---|---|
@@ -105,7 +105,7 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 캐시 시간 | VM 프로세스 메모리 5분(`_LIVE_CACHE_TTL=300`) |
 | 호출 예시 | `curl "https://goodbyestar.cloud/pbar-tratio/005930"` |
 | 오류 응답 예시 | KIS 미설정 → 503 / 데이터 없음 → 404 / KIS 실패 → 502(원인 메시지 그대로 노출) |
-| **미검증 경고** | 요청 파라미터·응답 필드는 한국투자 공식 GitHub(`koreainvestment/open-trading-api`, `examples_llm/domestic_stock/pbar_tratio/`) 예제 코드를 그대로 반영한 것(2026-08-04 확인) - 문서 설명 텍스트보다 신뢰도는 높지만, 이 프로젝트에서 직접 실호출은 아직 안 해봄. |
+| 검증 | 요청 파라미터·응답 필드는 한국투자 공식 GitHub(`koreainvestment/open-trading-api`, `examples_llm/domestic_stock/pbar_tratio/`)로 확인했고, 2026-08-04 실호출(005930)로 정상 응답까지 검증 완료. |
 
 ### `GET /foreign-flow/{code}`
 

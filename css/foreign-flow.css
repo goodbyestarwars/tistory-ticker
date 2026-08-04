@@ -503,6 +503,26 @@
 #foreign-flow .ff-apt-zoom-btn:disabled { opacity: 0.4; cursor: default; }
 #foreign-flow .ff-apt-zoom-label { font-size: 11.5px; font-weight: 700; color: #9aa5b1; min-width: 32px; text-align: center; }
 
+/* 2026-08-04: 근사(최근 N일) vs 오늘(한국투자 pbar-tratio 실체결가) 매물대 전환 - 톤은
+   .ff-apt-zoom-btn과 맞추되 선택된 쪽만 채워서 지금 어느 기간을 보고 있는지 표시한다. */
+#foreign-flow .ff-apt-period-toggle {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+#foreign-flow .ff-apt-period-btn {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+}
+#foreign-flow .ff-apt-period-btn.active { background: #333; border-color: #333; color: #fff; }
+
 #foreign-flow .ff-apt-summary {
   display: flex;
   flex-wrap: wrap;
@@ -1669,6 +1689,8 @@ html.dark #foreign-flow .ff-apt-bar-vol.ff-apt-bar-max { background: #ff7d33 !im
 html.dark #foreign-flow .ff-apt-zoom-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #foreign-flow .ff-apt-zoom-btn:disabled { opacity: 0.35 !important; }
 html.dark #foreign-flow .ff-apt-zoom-label { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-apt-period-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #foreign-flow .ff-apt-period-btn.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
 html.dark #foreign-flow .ff-apt-row-current { background: rgba(255, 152, 0, 0.16) !important; }
 html.dark #foreign-flow .ff-apt-row-current .ff-apt-price { color: #ffb154 !important; }
 html.dark #foreign-flow .ff-apt-current-badge { background: #1A1A1A !important; color: #ffb154 !important; }

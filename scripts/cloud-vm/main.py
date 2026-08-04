@@ -405,8 +405,8 @@ def ohlc_minute(request: Request, code: str = Path(..., min_length=6, max_length
 @app.get('/pbar-tratio/{code}')
 def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length=6)):
     """당일 가격대별 매물대(KIS FHPST01130000, [국내주식-196]) 온디맨드 조회 - 종목분석
-    매물대 카드의 "오늘 매물대" 뷰가 브라우저에서 직접 호출할 예정. 여러 날에 걸친
-    매물대(js/foreign-flow.js computeVolumeProfile)와 달리 이건 오늘 하루치만 준다.
+    매물대 카드의 "오늘" 토글이 브라우저에서 직접 호출(js/foreign-flow.js wireAptTabs).
+    여러 날에 걸친 매물대(computeVolumeProfile)와 달리 이건 오늘 하루치만 준다.
     KIS_APPKEY/APPSECRET 미설정이면(선택 환경변수) 503. /ohlc-minute와 동일하게
     공개(인증 없음) + CORS + rate limit 패턴."""
     _check_rate_limit('pbar_tratio', request)
