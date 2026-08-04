@@ -402,19 +402,45 @@ def ohlc_minute(request: Request, code: str = Path(..., min_length=6, max_length
     return envelope(minute)
 
 
+_VOLUME_PROFILE_PRUNE_INTERVAL_SEC = 3600
+_VOLUME_PROFILE_RETENTION_DAYS = 200  # 120거래일 + 주말/휴장일 여유분
+_last_volume_profile_prune = [0.0]  # 리스트에 담아 클로저 밖에서도 재할당 가능하게
+
+
+def _maybe_prune_volume_profile():
+    now = time.time()
+    if now - _last_volume_profile_prune[0] < _VOLUME_PROFILE_PRUNE_INTERVAL_SEC:
+        return
+    _last_volume_profile_prune[0] = now
+    try:
+        cutoff = (datetime.now(timezone.utc) + timedelta(hours=9) - timedelta(days=_VOLUME_PROFILE_RETENTION_DAYS)).strftime('%Y-%m-%d')
+        conn = db_schema.get_conn()
+        db_schema.prune_volume_profile_daily(conn, cutoff)
+        conn.close()
+    except Exception:
+        logging.getLogger('main').exception('volume_profile_daily 정리 실패')
+
+
 @app.get('/pbar-tratio/{code}')
-def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length=6)):
-    """당일 가격대별 매물대(KIS FHPST01130000, [국내주식-196]) 온디맨드 조회 - 종목분석
-    매물대 카드의 "오늘" 토글이 브라우저에서 직접 호출(js/foreign-flow.js wireAptTabs).
-    여러 날에 걸친 매물대(computeVolumeProfile)와 달리 이건 오늘 하루치만 준다.
-    KIS_APPKEY/APPSECRET 미설정이면(선택 환경변수) 503. /ohlc-minute와 동일하게
-    공개(인증 없음) + CORS + rate limit 패턴."""
+def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length=6),
+                 days: int = Query(1, ge=1, le=120)):
+    """가격대별 매물대(KIS FHPST01130000, [국내주식-196]) 온디맨드 조회 - 종목분석 매물대
+    카드의 "실제 체결가" 뷰가 브라우저에서 직접 호출(js/foreign-flow.js wireAptTabs).
+    KIS pbar-tratio 자체는 "오늘"치만 주지만(days=1과 동일), days>1이면 이 엔드포인트가
+    호출될 때마다(=사용자가 실제로 조회한 종목만, 배치 없음) volume_profile_daily에 그날
+    최신 누적 스냅샷을 UPSERT해두고, 저장된 과거 거래일과 오늘 실시간 응답을 가격별로
+    합산해 반환한다 - 그래서 "최근 N일"은 항상 정확히 최근 N거래일이 아니라 "조회된 적
+    있는 날짜 중 최근 N개"다(db_schema.load_volume_profile_days 참고, 뜸하게 조회되는
+    종목은 커버리지가 듬성듬성할 수 있음 - 응답의 daysIncluded로 실제 반영된 거래일 수를
+    알 수 있다). KIS_APPKEY/APPSECRET 미설정이면(선택 환경변수) 503. /ohlc-minute와
+    동일하게 공개(인증 없음) + CORS + rate limit 패턴."""
     _check_rate_limit('pbar_tratio', request)
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
     if not kis_appkey or not kis_appsecret:
         raise HTTPException(status_code=503, detail='서버에 KIS_APPKEY/KIS_APPSECRET가 설정되지 않았습니다.')
-    cached = _live_cache_get(_pbar_tratio_cache, code)
+    cache_key = (code, days)
+    cached = _live_cache_get(_pbar_tratio_cache, cache_key)
     if cached is not None:
         return envelope(cached)
     try:
@@ -424,22 +450,41 @@ def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length
         raise
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
-    bins = []
+    today_bins = {}
     for r in rows:
         price = kiwoom_market.to_num(r.get('stck_prpr'))
         volume = kiwoom_market.to_num(r.get('cntg_vol'))
-        ratio = kiwoom_market.to_num(r.get('acml_vol_rlim'))
         if price <= 0:
             continue
-        bins.append({'price': price, 'volume': volume, 'ratio': ratio})
-    if not bins:
+        today_bins[price] = today_bins.get(price, 0) + volume
+    if not today_bins:
         raise HTTPException(status_code=404, detail='매물대 데이터를 찾을 수 없습니다.')
-    bins.sort(key=lambda b: b['price'])
+
+    today_kst = (datetime.now(timezone.utc) + timedelta(hours=9)).strftime('%Y-%m-%d')
+    days_included = 1
+    try:
+        conn = db_schema.get_conn()
+        db_schema.upsert_volume_profile_daily(
+            conn, code, today_kst,
+            [{'price': p, 'volume': v} for p, v in today_bins.items()],
+        )
+        if days > 1:
+            hist_bins, hist_days = db_schema.load_volume_profile_days(conn, code, days - 1, exclude_date=today_kst)
+            for h in hist_bins:
+                today_bins[h['price']] = today_bins.get(h['price'], 0) + h['volume']
+            days_included += hist_days
+        conn.close()
+    except Exception:
+        logging.getLogger('main').exception('volume_profile_daily 저장/조회 실패(%s) - 오늘 응답만으로 계속 진행', code)
+    _maybe_prune_volume_profile()
+
+    bins = sorted(({'price': p, 'volume': v} for p, v in today_bins.items()), key=lambda b: b['price'])
     result = {
         'currentPrice': kiwoom_market.to_num(summary.get('stck_prpr')) or None,
+        'daysIncluded': days_included,
         'bins': bins,
     }
-    _live_cache_put(_pbar_tratio_cache, code, result)
+    _live_cache_put(_pbar_tratio_cache, cache_key, result)
     return envelope(result)
 
 

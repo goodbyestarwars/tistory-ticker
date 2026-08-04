@@ -3101,8 +3101,8 @@
   }
 
   // bins[i].low/high를 직접 훑어 찾는다(예전엔 minLow+i*binSize로 계산했는데, 균등폭
-  // bins에서만 맞는 공식이라 "오늘" 매물대처럼 실제 호가 경계에 맞춰 폭이 들쭉날쭉한
-  // bins(computeTodayVolumeProfile 참고)에서는 틀린 값이 나왔다).
+  // bins에서만 맞는 공식이라 "실제 체결가" 매물대처럼 실제 호가 경계에 맞춰 폭이 들쭉날쭉한
+  // bins(computeRealVolumeProfile 참고)에서는 틀린 값이 나왔다).
   function aptBinIndex(profile, price) {
     if (!profile || price == null || !(profile.maxHigh > profile.minLow)) return -1;
     var bins = profile.bins;
@@ -3266,22 +3266,24 @@
       + '</div>';
   }
 
-  // mode: 'approx'(기존 근사치, 기본) | 'today'(한국투자 pbar-tratio 실제 체결가, 오늘 하루치만).
-  function buildAptDynamicHtml(profile, currentPrice, stepIndex, mode) {
-    var footnote = mode === 'today'
-      ? '<div class="ff-footnote">※ 한국투자 API(오늘 실제 체결가·체결거래량)로 만든 <b>당일 매물대</b>입니다. 여러 거래일에 걸친 지지/저항이 아니라 오늘 하루 거래가 몰린 가격대만 보여줍니다.</div>'
+  // mode: 'approx'(기존 근사치, 기본) | 'real'(한국투자 pbar-tratio 실제 체결가 - 조회할 때마다
+  // 그날 스냅샷이 DB에 쌓여서 여러 거래일치로 자연히 늘어난다, daysIncluded 참고).
+  function buildAptDynamicHtml(profile, currentPrice, stepIndex, mode, daysIncluded) {
+    var footnote = mode === 'real'
+      ? '<div class="ff-footnote">※ 한국투자 API(실제 체결가·체결거래량)로 만든 매물대입니다. 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>' + (daysIncluded || 1) + '거래일</b>치가 반영돼 있어요(뜸하게 조회된 종목은 며칠치만 있을 수 있음, 최대 ' + APT_LOOKBACK_DAYS + '일).</div>'
       : '<div class="ff-footnote">※ 실제 체결가가 태깅된 데이터가 아니라, 최근 ' + (profile ? profile.days : APT_LOOKBACK_DAYS)
         + '거래일의 일별 고가~저가 구간에 거래량을 분산해 합산한 <b>근사 매물대</b>입니다(체결가 기준 아님).</div>';
+    var periodLabel = mode === 'real' ? ((daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일(실제)') : null;
     return buildAptZoomButtons(stepIndex)
-      + buildAptSummaryHtml(profile, mode === 'today' ? '오늘' : null)
+      + buildAptSummaryHtml(profile, periodLabel)
       + buildAptChartHtml(profile, currentPrice)
       + footnote;
   }
 
   function buildAptPeriodToggle(mode) {
     return '<div class="ff-apt-period-toggle" id="ffAptPeriodToggle">'
-      + '<button type="button" class="ff-apt-period-btn' + (mode !== 'today' ? ' active' : '') + '" data-period="approx">최근 ' + APT_LOOKBACK_DAYS + '일</button>'
-      + '<button type="button" class="ff-apt-period-btn' + (mode === 'today' ? ' active' : '') + '" data-period="today">오늘</button>'
+      + '<button type="button" class="ff-apt-period-btn' + (mode !== 'real' ? ' active' : '') + '" data-period="approx">최근 ' + APT_LOOKBACK_DAYS + '일(근사)</button>'
+      + '<button type="button" class="ff-apt-period-btn' + (mode === 'real' ? ' active' : '') + '" data-period="real">실제 체결가</button>'
       + '</div>';
   }
 
@@ -3305,27 +3307,28 @@
     });
   }
 
-  // 오늘 매물대(한국투자 pbar-tratio) 캐시 - 같은 종목을 다시 열거나 층수만 바꿀 때
-  // 매번 재조회하지 않도록 1분 캐시(장중 갱신 빈도로 충분, /ohlc-minute와 동일 감각).
-  var todayAptCache = {};
-  var TODAY_APT_CACHE_MS = 60 * 1000;
+  // 실제 체결가 매물대(한국투자 pbar-tratio, ?days=로 VM이 SQLite 누적분까지 합산해줌) 캐시 -
+  // 같은 종목을 다시 열거나 층수만 바꿀 때 매번 재조회하지 않도록 1분 캐시.
+  var realAptCache = {};
+  var REAL_APT_CACHE_MS = 60 * 1000;
 
-  function fetchTodayVolumeProfile(code) {
-    var cached = todayAptCache[code];
-    if (cached && Date.now() - cached.t < TODAY_APT_CACHE_MS) return Promise.resolve(cached.bins);
-    return fetchJson(KIWOOM_VM_URL + '/pbar-tratio/' + encodeURIComponent(code))
+  function fetchRealVolumeProfile(code, days) {
+    var cached = realAptCache[code];
+    if (cached && Date.now() - cached.t < REAL_APT_CACHE_MS) return Promise.resolve(cached);
+    return fetchJson(KIWOOM_VM_URL + '/pbar-tratio/' + encodeURIComponent(code) + '?days=' + days)
       .then(function (json) {
-        var bins = (json && json.data && json.data.bins) || [];
-        todayAptCache[code] = { t: Date.now(), bins: bins };
-        return bins;
+        var data = (json && json.data) || {};
+        var result = { bins: data.bins || [], daysIncluded: data.daysIncluded || 1 };
+        realAptCache[code] = { t: Date.now(), bins: result.bins, daysIncluded: result.daysIncluded };
+        return result;
       });
   }
 
-  // 오늘 매물대는 이미 실제 가격×체결거래량 쌍(pbar-tratio, 실제 호가단위로 옴)이다.
+  // 실제 체결가 매물대는 이미 실제 가격×체결거래량 쌍(pbar-tratio, 실제 호가단위로 옴)이다.
   // (maxHigh-minLow)/binCount로 균등분할하면 근사치와 똑같은 문제(구간 경계가 실제
   // 존재한 적 없는 가격이 됨)가 재발하므로, 대신 정렬된 원본 가격들을 개수 기준으로
   // binCount개 묶음으로 나눈다 - 각 층의 저가/고가가 항상 실제 체결가 중 하나가 된다.
-  function computeTodayVolumeProfile(rawBins, binCount, trendUp) {
+  function computeRealVolumeProfile(rawBins, binCount, trendUp) {
     if (!rawBins || !rawBins.length) return null;
     var n = rawBins.length;
     var perBucket = Math.max(1, Math.ceil(n / binCount));
@@ -3370,17 +3373,17 @@
     function render() {
       var dynamic = card.querySelector('#ffAptDynamic');
       if (!dynamic) return;
-      if (mode === 'today') {
-        dynamic.innerHTML = '<div class="ff-apt-empty">오늘 매물대를 불러오는 중...</div>';
-        fetchTodayVolumeProfile(code).then(function (rawBins) {
-          if (mode !== 'today') return; // 응답 오는 사이 다시 "최근 N일"로 바꿨으면 무시
-          var profile = computeTodayVolumeProfile(rawBins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
-          dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, 'today');
+      if (mode === 'real') {
+        dynamic.innerHTML = '<div class="ff-apt-empty">실제 체결가 매물대를 불러오는 중...</div>';
+        fetchRealVolumeProfile(code, APT_LOOKBACK_DAYS).then(function (result) {
+          if (mode !== 'real') return; // 응답 오는 사이 다시 "최근 N일(근사)"로 바꿨으면 무시
+          var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
+          dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, 'real', result.daysIncluded);
           wireZoom();
           playAptEntrance(card);
         }).catch(function () {
-          if (mode !== 'today') return;
-          dynamic.innerHTML = '<div class="ff-apt-empty">오늘 매물대를 불러오지 못했어요.</div>';
+          if (mode !== 'real') return;
+          dynamic.innerHTML = '<div class="ff-apt-empty">실제 체결가 매물대를 불러오지 못했어요.</div>';
         });
       } else {
         var profile = computeVolumeProfile(chartDaily, APT_LOOKBACK_DAYS, APT_BIN_STEPS[stepIndex]);

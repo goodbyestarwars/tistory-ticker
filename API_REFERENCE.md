@@ -99,13 +99,15 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 |---|---|
 | 인증 필요 여부 | **불필요** (`/ohlc-minute`와 동일 패턴) |
 | 필수 파라미터 | `code` (경로) |
-| 응답 JSON 구조 | `data` = `{"currentPrice": .., "bins": [{"price":..,"volume":..,"ratio":..}, ...]}`, `bins`는 가격 오름차순 |
-| 시장 범위 | KIS FHPST01130000(국내주식 매물대/거래비중, [국내주식-196]) - HTS(eFriend Plus) [0113] 당일가격대별 매물대 화면과 동일. **"오늘 하루"치만 제공** - `js/foreign-flow.js`의 `computeVolumeProfile`(최근 120거래일 근사치)과는 기간 범위가 다른 별개 뷰 |
+| 선택 파라미터 | `days`: 1~120(기본 1) - 1이면 오늘치만, 2 이상이면 SQLite(`volume_profile_daily`)에 누적된 과거 거래일과 오늘 실시간 응답을 가격별로 합산 |
+| 응답 JSON 구조 | `data` = `{"currentPrice": .., "daysIncluded": N, "bins": [{"price":..,"volume":..}, ...]}`, `bins`는 가격 오름차순. `daysIncluded`는 실제로 합산에 반영된 거래일 수(요청한 `days`보다 적을 수 있음) |
+| 시장 범위 | KIS FHPST01130000(국내주식 매물대/거래비중, [국내주식-196]) - HTS(eFriend Plus) [0113] 당일가격대별 매물대 화면과 동일. `js/foreign-flow.js`의 `computeVolumeProfile`(최근 120거래일 근사치)과 별개로 실제 체결가 기반 뷰 |
+| 데이터 누적 방식 | 배치 없음 - 이 엔드포인트가 호출될 때(=사용자가 실제로 조회한 종목만)마다 그날 최신 누적 스냅샷을 `volume_profile_daily`에 UPSERT(같은 날은 덮어쓰기, 더하지 않음 - pbar-tratio 응답 자체가 이미 그 시점까지의 당일 누적치라서). 그래서 "최근 N일"은 정확히 최근 N거래일이 아니라 "조회된 적 있는 날짜 중 최근 N개"임(뜸하게 조회되는 종목은 커버리지가 듬성듬성할 수 있음). 200일보다 오래된 행은 시간당 최대 1회 정리(`_maybe_prune_volume_profile`) |
 | 선택 환경변수 | `KIS_APPKEY`/`KIS_APPSECRET` 미설정 시 503 |
-| 캐시 시간 | VM 프로세스 메모리 5분(`_LIVE_CACHE_TTL=300`) |
-| 호출 예시 | `curl "https://goodbyestar.cloud/pbar-tratio/005930"` |
+| 캐시 시간 | VM 프로세스 메모리 5분(`_LIVE_CACHE_TTL=300`), `(code, days)` 단위 |
+| 호출 예시 | `curl "https://goodbyestar.cloud/pbar-tratio/005930?days=120"` |
 | 오류 응답 예시 | KIS 미설정 → 503 / 데이터 없음 → 404 / KIS 실패 → 502(원인 메시지 그대로 노출) |
-| 검증 | 요청 파라미터·응답 필드는 한국투자 공식 GitHub(`koreainvestment/open-trading-api`, `examples_llm/domestic_stock/pbar_tratio/`)로 확인했고, 2026-08-04 실호출(005930)로 정상 응답까지 검증 완료. |
+| 검증 | 요청 파라미터·응답 필드는 한국투자 공식 GitHub(`koreainvestment/open-trading-api`, `examples_llm/domestic_stock/pbar_tratio/`)로 확인했고, 2026-08-04 실호출(005930)로 정상 응답까지 검증 완료. `days` 다일 누적 로직은 db_schema 단위 테스트로 검증(실제 여러 거래일 데이터 축적 확인은 배포 후 시간 경과에 따라 자연히 확인됨). |
 
 ### `GET /foreign-flow/{code}`
 

@@ -220,6 +220,18 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 
 당일(장중) 행은 재조회 때마다 UPSERT로 갱신, 과거 확정일은 불변. `load_investor_trend_daily(limit_days=140)`가 주/월 집계의 기반.
 
+### 2.10 `volume_profile_daily` — 종목분석 매물대 "실제 체결가" 뷰 온디맨드 누적
+
+| 컬럼 | 타입 | 설명 |
+|---|---|---|
+| code | TEXT PK(복합) | |
+| trade_date | TEXT PK(복합) | YYYY-MM-DD(KST) |
+| price | REAL PK(복합) | 실제 체결가(호가단위) |
+| volume | REAL | 그날 그 가격의 누적 체결거래량 |
+| updated_at | TEXT | |
+
+`kis_flow_cache`와 동일하게 배치 없이 **온디맨드로 조회된 종목만** 쌓인다(2026-08-05 도입). KIS `pbar-tratio`(FHPST01130000) 응답 자체가 이미 "그 시점까지의 당일 누적치"라 같은 날 안에서는 UPSERT로 덮어쓰기만 하고 더하지 않는다 - 날짜가 바뀌면 그 행은 더 이상 갱신되지 않아 그날의 마감 근접 스냅샷으로 자연히 고정된다. `main.py`의 `GET /pbar-tratio/{code}?days=N`이 요청마다 오늘 스냅샷을 저장하고, 저장된 과거 거래일(최대 N-1개, `exclude_date`로 오늘 제외)과 오늘 실시간 응답을 가격별로 합산해 반환한다. 그래서 "최근 N일"은 정확히 최근 N거래일이 아니라 "조회된 적 있는 날짜 중 최근 N개"다. 200일보다 오래된 행은 `main.py`가 시간당 최대 1회 정리(`_maybe_prune_volume_profile`, 120거래일 + 주말/휴장일 여유분).
+
 ---
 
 ## 3. `news_momentum.db`

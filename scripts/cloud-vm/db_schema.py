@@ -125,6 +125,23 @@ CREATE TABLE IF NOT EXISTS investor_trend_daily (
     updated_at TEXT,
     PRIMARY KEY (market, date)
 );
+
+-- 2026-08-05: 종목분석 매물대 카드 "실제 체결가" 뷰(js/foreign-flow.js) - KIS pbar-tratio는
+-- "오늘"만 주므로, 조회될 때마다(kis_flow_cache와 동일한 온디맨드 적재 패턴 - 배치 없음)
+-- 그날 최신 누적 스냅샷을 가격별로 UPSERT해 여러 거래일치를 자연히 쌓는다. pbar-tratio
+-- 자체가 이미 "그 시점까지의 당일 누적치"라 같은 날 안에서는 새 값으로 덮어쓰기만 하면
+-- 되고(더하지 않음), 날짜가 바뀌면 그 행은 더 이상 갱신되지 않아 그날의 마감 근접
+-- 스냅샷으로 자연히 고정된다. 온디맨드라 "정확히 최근 N거래일"이 아니라 "조회된 적
+-- 있는 날짜 중 최근 N개"임을 감안할 것(main.py pbar_tratio 엔드포인트 참고).
+CREATE TABLE IF NOT EXISTS volume_profile_daily (
+    code TEXT NOT NULL,
+    trade_date TEXT NOT NULL,
+    price REAL NOT NULL,
+    volume REAL,
+    updated_at TEXT,
+    PRIMARY KEY (code, trade_date, price)
+);
+CREATE INDEX IF NOT EXISTS idx_volume_profile_daily_code ON volume_profile_daily(code);
 '''
 
 
@@ -371,6 +388,58 @@ def load_investor_trend_daily(conn, market, limit_days=140):
         {'date': r[0], 'ind': r[1], 'frgn': r[2], 'orgn': r[3], 'updated_at': r[4]}
         for r in rows
     ]
+
+
+def upsert_volume_profile_daily(conn, code, trade_date, bins):
+    """bins: [{price, volume}, ...] - 그날의 최신 누적 스냅샷으로 덮어쓴다(더하지 않음,
+    pbar-tratio 응답 자체가 이미 그 시점까지의 누적치라서 - 스키마 주석 참고)."""
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat()
+    if not bins:
+        return
+    conn.executemany(
+        'INSERT INTO volume_profile_daily (code, trade_date, price, volume, updated_at) '
+        'VALUES (?, ?, ?, ?, ?) '
+        'ON CONFLICT(code, trade_date, price) DO UPDATE SET '
+        'volume=excluded.volume, updated_at=excluded.updated_at',
+        [(code, trade_date, b['price'], b['volume'], now_iso) for b in bins],
+    )
+    conn.commit()
+
+
+def load_volume_profile_days(conn, code, days, exclude_date=None):
+    """code에 저장된 거래일 중 최신순 최대 days개(exclude_date가 있으면 그 날짜는 제외 -
+    보통 오늘 날짜를 넘겨 호출부의 실시간 응답과 이중 반영되지 않게 한다)를 골라 가격별로
+    거래량을 합산해 반환한다. 반환값: [{price, volume}, ...], 실제 반영된 거래일 수는
+    len(dates)로 호출부에서 따로 알 수 있게 (rows, date_count) 튜플로 준다."""
+    if exclude_date:
+        date_rows = conn.execute(
+            'SELECT DISTINCT trade_date FROM volume_profile_daily WHERE code=? AND trade_date<>? '
+            'ORDER BY trade_date DESC LIMIT ?',
+            (code, exclude_date, days),
+        ).fetchall()
+    else:
+        date_rows = conn.execute(
+            'SELECT DISTINCT trade_date FROM volume_profile_daily WHERE code=? ORDER BY trade_date DESC LIMIT ?',
+            (code, days),
+        ).fetchall()
+    dates = [r[0] for r in date_rows]
+    if not dates:
+        return [], 0
+    placeholders = ','.join('?' * len(dates))
+    rows = conn.execute(
+        'SELECT price, SUM(volume) FROM volume_profile_daily WHERE code=? AND trade_date IN (%s) '
+        'GROUP BY price' % placeholders,
+        [code] + dates,
+    ).fetchall()
+    return [{'price': r[0], 'volume': r[1]} for r in rows], len(dates)
+
+
+def prune_volume_profile_daily(conn, cutoff_date):
+    """cutoff_date('YYYY-MM-DD')보다 이전인 행을 지운다 - 배치 없이 조회할 때마다 쌓이기만
+    하는 걸 막는 정리용(main.py가 주기적으로 호출)."""
+    conn.execute('DELETE FROM volume_profile_daily WHERE trade_date<?', (cutoff_date,))
+    conn.commit()
 
 
 if __name__ == '__main__':
