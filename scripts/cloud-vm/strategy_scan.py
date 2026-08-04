@@ -25,8 +25,27 @@ import db_schema
 import kisyaml_strategy
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
-STRATEGIES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'strategies')
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'strategy_scan_cache.json')
+
+
+def _resolve_strategies_dir():
+    """deploy_check.sh는 scripts/cloud-vm/*.py만 VM의 평평한 $APP_DIR 루트로 복사하고
+    strategies/(.kis.yaml, *.py가 아님) 같은 하위 디렉터리는 그대로 두기 때문에, 이 파일이
+    실행되는 위치에 따라 실제 전략 파일이 있는 곳이 다르다.
+    1) 이 파일과 같은 디렉터리의 strategies/ (저장소를 그대로 쓸 때 - scripts/cloud-vm/에서 실행)
+    2) $APP_DIR/scripts/cloud-vm/strategies/ (VM 배포 후 평평하게 복사된 위치에서 실행할 때 -
+       $APP_DIR 자체가 git clone이라 이 하위 경로는 git pull로 항상 최신 상태)
+    어느 쪽도 없으면 배포/체크아웃이 잘못된 것이므로 명확한 에러를 낸다."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(here, 'strategies'),
+        os.path.join(here, 'scripts', 'cloud-vm', 'strategies'),
+    ]
+    for path in candidates:
+        if os.path.isdir(path):
+            return path
+    raise FileNotFoundError('strategies/ 디렉터리를 찾을 수 없습니다. 확인한 경로: %s' % candidates)
+
 
 # sma60(추세 필터)처럼 최소 60거래일이 있어야 웬만한 프리셋이 의미 있는 값을 낸다.
 # week52_high(253일 필요)처럼 더 긴 지표는 데이터가 모자라면 evaluate()가 에러 없이
@@ -66,11 +85,12 @@ def load_full_universe():
 def load_presets():
     """strategies/*.kis.yaml 전부를 로드해 {strategy id: 파싱된 전략 dict}로 반환.
     이 디렉터리에 파일을 추가/삭제하기만 하면 스캔 대상이 자동으로 늘고 준다."""
+    strategies_dir = _resolve_strategies_dir()
     presets = {}
-    for fname in sorted(os.listdir(STRATEGIES_DIR)):
+    for fname in sorted(os.listdir(strategies_dir)):
         if not fname.endswith('.kis.yaml'):
             continue
-        strategy = kisyaml_strategy.load_strategy_file(os.path.join(STRATEGIES_DIR, fname))
+        strategy = kisyaml_strategy.load_strategy_file(os.path.join(strategies_dir, fname))
         presets[strategy['strategy']['id']] = strategy
     return presets
 
