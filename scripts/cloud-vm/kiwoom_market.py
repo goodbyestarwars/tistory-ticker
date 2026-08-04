@@ -127,6 +127,47 @@ def fetch_minute_ohlc(token, code, tic_scope='1', max_bars=None):
     return out
 
 
+VOLUME_CONCENTRATION_CYCLES = ('50', '100', '150', '200', '250')
+
+
+def fetch_volume_concentration(token, code, cycle_tp='50', prpscnt='40'):
+    """매물대집중요청(ka10025) - 키움이 서버에서 직접 계산한 가격구간별 누적 매물량
+    (js/foreign-flow.js의 computeVolumeProfile처럼 일봉 고가~저가를 클라이언트에서
+    비례 배분하는 근사치가 아니라, 키움 쪽 매매 데이터로 만든 값). cycle_tp는 기준
+    영업일수(50/100/150/200/250), prpscnt는 반환받을 가격구간 개수.
+    **주의(미검증)**: 이 프로젝트에서 ka10025를 실제로 호출해본 적이 없다. 응답 최상위
+    키('prps_cnctr')와 각 행 필드(pric_strt/pric_end/prps_qty)는 문서 설명에서 나온
+    이름을 그대로 가정한 것 - 실호출 후 KeyError/빈 배열로 드러나면 필드명을 다시
+    확인해야 한다(fetch_minute_ohlc 때와 동일 절차)."""
+    res = kiwoom_client.call_tr(token, 'ka10025', '/api/dostk/stkinfo', {
+        'mrkt_tp': '000',
+        'stk_cd': code,
+        'prps_cnctr_rt': '0',
+        'cur_prc_entry': '1',
+        'prpscnt': prpscnt,
+        'cycle_tp': cycle_tp,
+        'stex_tp': '3',
+    })
+    rows = res.get('prps_cnctr')
+    if rows is None:
+        raise RuntimeError(
+            'ka10025 응답에 prps_cnctr가 없음 - return_code=%s return_msg=%s 응답 키: %s'
+            % (res.get('return_code'), res.get('return_msg'), list(res.keys()))
+        )
+
+    out = []
+    for r in rows:
+        low = abs(to_num(r.get('pric_strt')))
+        high = abs(to_num(r.get('pric_end')))
+        qty = abs(to_num(r.get('prps_qty')))
+        if not (high > low):
+            continue
+        out.append({'low': low, 'high': high, 'volume': qty})
+
+    out.sort(key=lambda r: r['low'])
+    return out
+
+
 def fetch_institution_trend(token, code):
     """**미사용(2026-07-20부로 daily_scan.py에서 fetch_foreign_inst_daily로 교체됨) - 코드만
     유지.** ka10045 기반이라 NXT 체결분이 빠진 축소 거래량만 나오는 구조적 한계가 있었고,
