@@ -87,6 +87,18 @@ def fetch_trade(token, code):
     }
 
 
+def fetch_execution_strength_raw(token, code):
+    """체결강도추이시간별요청(ka10046) - 진단용 원본 통과. 2026-08-05 사용자가 공식 문서로
+    필드명(cntr_str/cntr_str_5min/cntr_str_20min/cntr_str_60min)은 확인했지만, 응답을
+    감싸는 최상위 리스트 키 이름은 아직 안 나와 있어 여기서 추측하지 않는다 - 실호출로
+    실제 응답을 확인한 뒤(main.py의 임시 진단 엔드포인트) 파싱을 완성할 것."""
+    res = kiwoom_client.call_tr(token, 'ka10046', '/api/dostk/mrkcond', {'stk_cd': code})
+    if res.get('return_code') not in (0, '0', None):
+        logger.warning('ka10046(%s) 응답 오류 - return_code=%s return_msg=%s',
+                        code, res.get('return_code'), res.get('return_msg'))
+    return res
+
+
 def fetch_order_book_full(token, code):
     """호가 사다리(ka10004) + 최근 체결 스냅샷(ka10003)을 한 응답으로 합친다 - 프론트가
     2초 폴링 한 번으로 둘 다 받도록. 체결 조회가 실패해도 호가 사다리는 그대로 표시돼야

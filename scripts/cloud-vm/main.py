@@ -898,6 +898,22 @@ def order_book_endpoint(request: Request, code: str = Path(..., min_length=6, ma
     return envelope(data)
 
 
+@app.get('/_diag/execution-strength/{code}')
+def execution_strength_diag(request: Request, code: str = Path(..., min_length=6, max_length=6)):
+    """임시 진단용(2026-08-05) - ka10046(체결강도추이시간별) 원본 응답을 그대로 노출해
+    실제 리스트 감싸는 키를 확인한다. 필드명이 확정되면 order-book HUD의 근사치 체결강도를
+    실제 값으로 교체하고 이 엔드포인트는 지운다."""
+    _check_rate_limit('execution_strength_diag', request, max_per_window=10)
+    try:
+        token = get_kiwoom_token()
+        raw = order_book.fetch_execution_strength_raw(token, code)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return envelope(raw)
+
+
 @app.get('/investor-trend')
 def investor_trend_endpoint(period: str = Query('week'), market: str = Query('kospi')):
     """메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4 + UI개선 지시서 2026-07-21) - 시장별
