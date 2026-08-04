@@ -201,9 +201,9 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 필수 파라미터 | `code` (경로) |
 | 선택 파라미터 | 없음 |
 | 파라미터 형식·허용값 | `code`: 6자리 |
-| 응답 JSON 구조 | `data = {"code","asks":[{"price","qty"}, ...최대10, 가격 내림차순],"bids":[{"price","qty"}, ...최대10, 내림차순],"totalAskQty","totalBidQty","trade":{"time","price","qty","up","down"}\|null,"strength":{"value","value5min","value20min","value60min"}\|null}` |
+| 응답 JSON 구조 | `data = {"code","asks":[{"price","qty"}, ...최대10, 가격 내림차순],"bids":[{"price","qty"}, ...최대10, 내림차순],"totalAskQty","totalBidQty","stexTp","trade":{"time","price","qty","up","down"}\|null,"strength":{"value","value5min","value20min","value60min","stexTp"}\|null}` |
 | 데이터 단위 | `price`: 원 · `qty`/`totalAskQty`/`totalBidQty`: 주 · `strength.*`: % (100=매수/매도 균형, ka10046 실측 확인) |
-| 시장 범위 | 명시 없음(ka10004/ka10003/ka10046). **미검증 주의**: 매도1~5차선·매수 전체 필드명이 문서에 없어 명명규칙을 확장 추정한 값 — 응답이 계속 비면 VM 로그(`order_book.py`의 "호가 필드를 하나도 못 찾음" 경고)로 확인 필요. `strength`는 장 시간 외엔 최근 틱이 없어 정상적으로 `null`(js/order-book.js가 그럴 땐 매도벽 소진 근사치로 폴백) |
+| 시장 범위 | 명시 없음(ka10004/ka10003/ka10046). **미검증 주의**: 매도1~5차선·매수 전체 필드명이 문서에 없어 명명규칙을 확장 추정한 값 — 응답이 계속 비면 VM 로그(`order_book.py`의 "호가 필드를 하나도 못 찾음" 경고)로 확인 필요. `strength`는 장 시간 외엔 최근 틱이 없어 정상적으로 `null`(js/order-book.js가 그럴 땐 매도벽 소진 근사치로 폴백). 2026-08-05: KRX+NXT 통합 호가를 시도하려고 종목코드에 `_AL` 접미사를 붙여 우선 호출하고(미검증, 사용자 제공 안내) 빈 응답이면 원래 코드로 자동 재시도 - `stexTp`(거래소구분) 값으로 실제 통합됐는지 확인 가능 |
 | 데이터 갱신 주기 | 실시간 — 호출마다 키움 라이브 조회, 프론트는 2초 간격 폴링 |
 | 캐시 시간 | 서버 메모리 1.5초(동시 다중 요청을 키움 호출 1번으로 묶기 위함) |
 | 호출 예시 | `curl "https://goodbyestar.cloud/order-book/005930"` |
