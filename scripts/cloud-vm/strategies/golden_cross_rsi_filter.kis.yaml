@@ -1,0 +1,53 @@
+version: "1.0"
+
+metadata:
+  name: "골든크로스 + RSI 필터"
+  description: "단기 MA가 장기 MA를 상향 돌파하고 RSI(14)가 50을 넘을 때 매수 (README의 Strategy Builder 사용 흐름 예시를 kisyaml로 표현)"
+  author: "9Pay"
+  tags: [ma, crossover, rsi, trend]
+
+strategy:
+  id: golden_cross_rsi_filter
+  category: trend
+
+  indicators:
+    - id: sma
+      alias: sma_fast
+      params:
+        period: 5
+    - id: sma
+      alias: sma_slow
+      params:
+        period: 20
+    - id: rsi
+      alias: rsi14
+      params:
+        period: 14
+
+  entry:
+    logic: AND
+    conditions:
+      - indicator: sma_fast
+        operator: cross_above
+        compare_to: sma_slow
+      - indicator: rsi14
+        operator: greater_than
+        compare_to: 50
+
+  exit:
+    logic: AND
+    conditions:
+      - indicator: sma_fast
+        operator: cross_below
+        compare_to: sma_slow
+
+risk:
+  stop_loss:
+    enabled: true
+    percent: 5.0
+  take_profit:
+    enabled: true
+    percent: 10.0
+  trailing_stop:
+    enabled: false
+    percent: 3.0
