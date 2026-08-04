@@ -164,6 +164,99 @@ class EvaluateTests(unittest.TestCase):
         self.assertNotIn('trailing_stop_percent', levels)  # enabled: false
 
 
+class NewIndicatorTests(unittest.TestCase):
+    def test_disparity_basic(self):
+        # sma(3)=[_,_,2,3,4] (test_sma_basic과 동일 데이터) -> disparity = close/sma*100
+        daily = [_bar(str(i), v) for i, v in enumerate([1, 2, 3, 4, 5])]
+        out = kisyaml_strategy._disparity(daily, period=3, basis='sma')
+        self.assertIsNone(out[1])
+        self.assertAlmostEqual(out[2], 3 / 2 * 100)
+        self.assertAlmostEqual(out[4], 5 / 4 * 100)
+
+    def test_streak_signed_consecutive_days(self):
+        daily = [_bar(str(i), v) for i, v in enumerate([10, 11, 12, 11, 10, 9, 9])]
+        # +1(11>10) +2(12>11) -1(11<12) -2(10<11) -3(9<10) 0(9==9)
+        self.assertEqual(kisyaml_strategy._streak(daily), [0, 1, 2, -1, -2, -3, 0])
+
+    def test_range_position(self):
+        daily = [
+            {'date': '0', 'open': 10, 'high': 12, 'low': 8, 'close': 11.6, 'volume': 1},  # 상단 근접
+            {'date': '1', 'open': 10, 'high': 12, 'low': 8, 'close': 8.4, 'volume': 1},   # 하단 근접
+            {'date': '2', 'open': 10, 'high': 10, 'low': 10, 'close': 10, 'volume': 1},   # 고가=저가
+        ]
+        out = kisyaml_strategy._range_position(daily)
+        self.assertAlmostEqual(out[0], 90.0)
+        self.assertAlmostEqual(out[1], 10.0)
+        self.assertEqual(out[2], 50.0)
+
+    def test_highest_exclude_current_shifts_window_back_one_bar(self):
+        daily = [_bar(str(i), v, high=v + 1, low=v - 1) for i, v in enumerate([5, 3, 8, 2, 9])]
+        # exclude_current=False(기존): index4의 window=[2,3,4] -> high 값 [3,10,3] max=10
+        # exclude_current=True: index4의 window=[1,2,3] -> high 값 [4,9,3] max=9(자기 자신 제외)
+        out = kisyaml_strategy._highest(daily, 3, exclude_current=True)
+        self.assertIsNone(out[2])  # period=3이면 index3부터 값이 생김
+        self.assertEqual(out[3], max(6, 4, 9))  # window=[0,1,2] high=[6,4,9]
+        self.assertEqual(out[4], max(4, 9, 3))  # window=[1,2,3] high=[4,9,3]
+
+    def test_stddev_normalize_returns_percent_of_mean(self):
+        daily = [_bar(str(i), v) for i, v in enumerate([100, 100, 100, 100])]
+        raw = kisyaml_strategy._stddev(daily, 4, normalize=False)
+        pct = kisyaml_strategy._stddev(daily, 4, normalize=True)
+        self.assertAlmostEqual(raw[3], 0.0)
+        self.assertAlmostEqual(pct[3], 0.0)  # 변동 없음 -> 0%
+
+        daily2 = [_bar(str(i), v) for i, v in enumerate([90, 100, 110, 100])]
+        pct2 = kisyaml_strategy._stddev(daily2, 4, normalize=True)
+        self.assertGreater(pct2[3], 0)
+
+
+class TenPresetTests(unittest.TestCase):
+    """README '10개 프리셋 전략' 표 전부를 kisyaml로 옮긴 strategies/*.kis.yaml이 실제
+    daily_prices 모양 데이터에 대해 예외 없이 평가되는지 확인한다(정확한 매수 시그널
+    여부보다 '깨지지 않고 결과 스키마를 지키는지'가 목적 - 각 프리셋의 세부 판정은
+    IndicatorTests/NewIndicatorTests에서 별도 검증)."""
+
+    PRESET_IDS = [
+        'golden_cross', 'momentum', 'trend_filter', 'week52_high', 'consecutive',
+        'disparity', 'breakout_fail', 'strong_close', 'volatility', 'mean_reversion',
+    ]
+
+    @classmethod
+    def setUpClass(cls):
+        # 시드 고정 의사난수 - 300거래일치(week52_high가 최소 253일 필요)를 재현 가능하게 생성.
+        import random
+        rnd = random.Random(42)
+        price = 10000.0
+        daily = []
+        for i in range(300):
+            price = max(100.0, price * (1 + rnd.uniform(-0.03, 0.032)))
+            high = price * (1 + rnd.uniform(0, 0.02))
+            low = price * (1 - rnd.uniform(0, 0.02))
+            daily.append({
+                'date': '2026-%03d' % i,
+                'open': price, 'high': high, 'low': low, 'close': price,
+                'volume': 1000 + i,
+            })
+        cls.daily = daily
+
+    def test_all_ten_presets_exist(self):
+        strategies_dir = os.path.join(CLOUD_VM_DIR, 'strategies')
+        found = {f[:-len('.kis.yaml')] for f in os.listdir(strategies_dir) if f.endswith('.kis.yaml')}
+        missing = set(self.PRESET_IDS) - found
+        self.assertFalse(missing, '누락된 프리셋 파일: %s' % missing)
+
+    def test_all_ten_presets_evaluate_without_error(self):
+        strategies_dir = os.path.join(CLOUD_VM_DIR, 'strategies')
+        for preset_id in self.PRESET_IDS:
+            path = os.path.join(strategies_dir, preset_id + '.kis.yaml')
+            strategy = kisyaml_strategy.load_strategy_file(path)
+            self.assertEqual(strategy['strategy']['id'], preset_id)
+            result = kisyaml_strategy.evaluate(strategy, self.daily)
+            self.assertIn(result['action'], ('BUY', 'SELL', 'HOLD'))
+            self.assertGreaterEqual(result['confidence'], 0.0)
+            self.assertLessEqual(result['confidence'], 1.0)
+
+
 class ExampleFileTests(unittest.TestCase):
     def test_bundled_example_files_parse(self):
         strategies_dir = os.path.join(CLOUD_VM_DIR, 'strategies')

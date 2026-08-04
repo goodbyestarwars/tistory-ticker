@@ -1,0 +1,42 @@
+version: "1.0"
+
+metadata:
+  name: "연속 상승/하락"
+  description: "종가가 3거래일 연속 상승하면 매수, 상승 흐름이 끊기면 매도"
+  author: "9Pay"
+  tags: [streak, momentum, trend]
+
+strategy:
+  id: consecutive
+  category: trend
+
+  indicators:
+    - id: streak
+      alias: up_streak
+      params:
+        field: close
+
+  entry:
+    logic: AND
+    conditions:
+      - indicator: up_streak
+        operator: greater_equal
+        compare_to: 3
+
+  exit:
+    logic: AND
+    conditions:
+      - indicator: up_streak
+        operator: less_than
+        compare_to: 1
+
+risk:
+  stop_loss:
+    enabled: true
+    percent: 5.0
+  take_profit:
+    enabled: true
+    percent: 8.0
+  trailing_stop:
+    enabled: false
+    percent: 3.0

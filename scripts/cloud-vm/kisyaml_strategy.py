@@ -14,8 +14,11 @@ API 없음). 화면 위젯 연동도 이 모듈의 범위 밖이다.
 지표 계산은 db_schema.load_daily_prices()가 주는 오름차순 OHLC
 ({date, open, high, low, close, volume})를 입력으로 한다. README가 언급한 "80개 지표"를
 전부 구현하지 않고, README의 .kis.yaml 예시(golden_cross)와 명세가 분명한 기본 지표
-(sma/ema/rsi/roc/highest/lowest/stddev/atr/price)만 지원한다 - INDICATORS 딕셔너리에
-계산 함수를 추가하면 확장 가능하다.
+(sma/ema/rsi/roc/highest/lowest/stddev/atr/price)에 더해, strategies/ 10개 프리셋(README의
+"10개 프리셋 전략" 표)을 표현하는 데 필요한 지표 3개(disparity/streak/range_position, 아래
+정의는 이 프로젝트에서 새로 만든 것으로 KIS 원본 80개 목록에 이름이 그대로 있는 건 아니다 -
+이격도·연속상승·강한종가라는 프리셋 설명을 만족하는 계산식을 직접 구현)를 지원한다.
+INDICATORS 딕셔너리에 계산 함수를 추가하면 계속 확장 가능하다.
 
 compare_to는 README 예시(entry 조건이 다른 지표 alias인 sma_slow를 참조)와 서술("RSI > 70")
 을 근거로 '다른 지표의 alias 문자열' 또는 '숫자 리터럴' 둘 다 허용하는 것으로 해석했다 -
@@ -274,30 +277,43 @@ def _roc(daily, period=12, field='close'):
     return out
 
 
-def _highest(daily, period, field='high'):
+def _highest(daily, period, field='high', exclude_current=False):
+    """exclude_current=True면 창을 [i-period, i-1]로 한 칸 밀어 '오늘을 뺀 직전 N일 고점'
+    (전고점/저항선)을 계산한다 - breakout_fail/volatility 프리셋이 씀."""
     n = len(daily)
     out = [None] * n
+    if exclude_current:
+        for i in range(period, n):
+            out[i] = max(daily[j][field] for j in range(i - period, i))
+        return out
     for i in range(period - 1, n):
         out[i] = max(daily[j][field] for j in range(i - period + 1, i + 1))
     return out
 
 
-def _lowest(daily, period, field='low'):
+def _lowest(daily, period, field='low', exclude_current=False):
     n = len(daily)
     out = [None] * n
+    if exclude_current:
+        for i in range(period, n):
+            out[i] = min(daily[j][field] for j in range(i - period, i))
+        return out
     for i in range(period - 1, n):
         out[i] = min(daily[j][field] for j in range(i - period + 1, i + 1))
     return out
 
 
-def _stddev(daily, period, field='close'):
+def _stddev(daily, period, field='close', normalize=False):
+    """normalize=True면 절대 표준편차 대신 '창 평균 대비 %'(변동계수 x100)를 돌려준다 -
+    가격대가 다른 종목끼리도 비교 가능한 상대 변동성이 필요한 volatility 프리셋용."""
     n = len(daily)
     out = [None] * n
     for i in range(period - 1, n):
         window = [daily[j][field] for j in range(i - period + 1, i + 1)]
         mean = sum(window) / period
         var = sum((v - mean) ** 2 for v in window) / period
-        out[i] = var ** 0.5
+        sd = var ** 0.5
+        out[i] = (sd / mean * 100) if (normalize and mean) else sd
     return out
 
 
@@ -329,16 +345,64 @@ def _price(daily, field='close'):
     return [row[field] for row in daily]
 
 
+def _disparity(daily, period=20, field='close', basis='sma'):
+    """이격도 - field가 기준선(sma 또는 ema) 대비 몇 %인지. 100 = 기준선과 동일,
+    100 미만은 기준선 아래(이탈), 100 초과는 위. disparity(이격도)·mean_reversion(평균회귀)
+    프리셋이 공유해서 쓰고, basis/period로 구분한다(이격도=20일 SMA 기준, 평균회귀=10일
+    EMA 기준처럼 서로 다른 기준선을 쓸 수 있게)."""
+    base = _sma(daily, period, field) if basis == 'sma' else _ema(daily, period, field)
+    n = len(daily)
+    out = [None] * n
+    for i in range(n):
+        if base[i]:
+            out[i] = daily[i][field] / base[i] * 100
+    return out
+
+
+def _streak(daily, field='close'):
+    """연속 상승/하락 일수 - 상승 중이면 양수(1,2,3...), 하락 중이면 음수(-1,-2,-3...),
+    보합(전일과 동일)이면 0으로 리셋. consecutive(연속 상승/하락) 프리셋이 쓴다."""
+    n = len(daily)
+    out = [0] * n
+    for i in range(1, n):
+        diff = daily[i][field] - daily[i - 1][field]
+        if diff > 0:
+            out[i] = out[i - 1] + 1 if out[i - 1] > 0 else 1
+        elif diff < 0:
+            out[i] = out[i - 1] - 1 if out[i - 1] < 0 else -1
+        else:
+            out[i] = 0
+    return out
+
+
+def _range_position(daily):
+    """당일 고가-저가 범위 안에서 종가의 위치(0~100). 100=고가로 마감(강한 종가),
+    0=저가로 마감. strong_close(강한 종가) 프리셋이 쓴다. 고가=저가(가격변동 없음)인
+    날은 위/아래 어느 쪽도 아니므로 중립값 50을 넣는다."""
+    out = []
+    for row in daily:
+        span = row['high'] - row['low']
+        out.append(50.0 if not span else (row['close'] - row['low']) / span * 100)
+    return out
+
+
 INDICATORS = {
     'sma': lambda daily, p: _sma(daily, int(p.get('period', 20)), p.get('field', 'close')),
     'ema': lambda daily, p: _ema(daily, int(p.get('period', 20)), p.get('field', 'close')),
     'rsi': lambda daily, p: _rsi(daily, int(p.get('period', 14)), p.get('field', 'close')),
     'roc': lambda daily, p: _roc(daily, int(p.get('period', 12)), p.get('field', 'close')),
-    'highest': lambda daily, p: _highest(daily, int(p.get('period', 20)), p.get('field', 'high')),
-    'lowest': lambda daily, p: _lowest(daily, int(p.get('period', 20)), p.get('field', 'low')),
-    'stddev': lambda daily, p: _stddev(daily, int(p.get('period', 20)), p.get('field', 'close')),
+    'highest': lambda daily, p: _highest(daily, int(p.get('period', 20)), p.get('field', 'high'),
+                                          bool(p.get('exclude_current', False))),
+    'lowest': lambda daily, p: _lowest(daily, int(p.get('period', 20)), p.get('field', 'low'),
+                                        bool(p.get('exclude_current', False))),
+    'stddev': lambda daily, p: _stddev(daily, int(p.get('period', 20)), p.get('field', 'close'),
+                                        bool(p.get('normalize', False))),
     'atr': lambda daily, p: _atr(daily, int(p.get('period', 14))),
     'price': lambda daily, p: _price(daily, p.get('field', 'close')),
+    'disparity': lambda daily, p: _disparity(daily, int(p.get('period', 20)), p.get('field', 'close'),
+                                              p.get('basis', 'sma')),
+    'streak': lambda daily, p: _streak(daily, p.get('field', 'close')),
+    'range_position': lambda daily, p: _range_position(daily),
 }
 
 

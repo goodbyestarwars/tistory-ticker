@@ -1,0 +1,55 @@
+version: "1.0"
+
+metadata:
+  name: "52주 신고가"
+  description: "종가가 직전 252거래일(약 52주) 고점을 새로 넘어서면 매수, 20일선을 깨면 매도"
+  author: "9Pay"
+  tags: [breakout, week52, high]
+
+strategy:
+  id: week52_high
+  category: breakout
+
+  indicators:
+    # exclude_current: true - 오늘을 뺀 직전 252거래일 고점(=어제까지의 52주 신고가선).
+    # 오늘 종가를 이 값과 비교해야 "오늘 새로 경신했는지"를 판정할 수 있다(오늘을 포함해
+    # 계산하면 항상 자기 자신이 최댓값이 돼 버려 판정 자체가 성립하지 않는다).
+    - id: highest
+      alias: year_high
+      params:
+        period: 252
+        field: high
+        exclude_current: true
+    - id: price
+      alias: close_price
+      params:
+        field: close
+    - id: sma
+      alias: sma20
+      params:
+        period: 20
+
+  entry:
+    logic: AND
+    conditions:
+      - indicator: close_price
+        operator: greater_equal
+        compare_to: year_high
+
+  exit:
+    logic: AND
+    conditions:
+      - indicator: close_price
+        operator: less_than
+        compare_to: sma20
+
+risk:
+  stop_loss:
+    enabled: true
+    percent: 10.0
+  take_profit:
+    enabled: true
+    percent: 20.0
+  trailing_stop:
+    enabled: true
+    percent: 8.0
