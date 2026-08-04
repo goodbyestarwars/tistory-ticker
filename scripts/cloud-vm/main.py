@@ -374,13 +374,13 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
 
 
 @app.get('/ohlc-minute/{code}')
-def ohlc_minute(code: str = Path(..., min_length=6, max_length=6),
-                 tic_scope: str = Query('1'), x_api_key: str = Header(default=None)):
-    """분봉 OHLC(ka10080) 온디맨드 조회 - js/stock-search.js 분봉 탭용.
-    2026-08-03: /ohlc(ka10081, 일봉)과 별개 신규 엔드포인트. ka10080 응답 필드명이
-    이 프로젝트에서 실호출로 검증된 적이 없어(kiwoom_market.fetch_minute_ohlc 참고)
-    502로 원인 메시지를 그대로 노출한다 - 필드명이 틀렸으면 여기서 바로 드러난다."""
-    require_api_key(x_api_key)
+def ohlc_minute(request: Request, code: str = Path(..., min_length=6, max_length=6),
+                 tic_scope: str = Query('1')):
+    """분봉 OHLC(ka10080) 온디맨드 조회 - js/stock-search.js 분봉 탭이 브라우저에서 직접 호출.
+    2026-08-03: /ohlc(ka10081, 일봉, GAS 경유)와 달리 이건 /order-book, /foreign-flow와
+    동일하게 공개(인증 없음) + CORS(ghlee.tistory.com만) + rate limit 패턴을 쓴다 - VM 시크릿을
+    프론트 JS에 박아넣지 않기 위함. 실호출로 필드명(stk_min_pole_chart_qry 등) 검증 완료."""
+    _check_rate_limit('ohlc_minute', request)
     if tic_scope not in kiwoom_market.MINUTE_TIC_SCOPES:
         raise HTTPException(status_code=400, detail='tic_scope는 1/3/5/10/15/30/45/60 중 하나여야 합니다.')
     cache_key = (code, tic_scope)

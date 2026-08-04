@@ -87,10 +87,11 @@ MINUTE_TIC_SCOPES = ('1', '3', '5', '10', '15', '30', '45', '60')
 def fetch_minute_ohlc(token, code, tic_scope='1', max_bars=None):
     """분봉 OHLC(ka10080)를 오름차순(과거->최신)으로 반환. fetch_daily_ohlc와 같은 행 형식에
     시각(time, 'HH:MM')만 추가. tic_scope는 분단위(1/3/5/10/15/30/45/60) 문자열.
-    **주의(미검증)**: 이 프로젝트에서 ka10080을 실제로 호출해본 적이 없어 응답 필드명
-    ('stk_min_pole_chart_qry', 'cntr_tm' 등)이 ka10081과 같은 명명 규칙일 거라는 추정에
-    기반함. 최초 실호출 후 필드가 다르면 아래 KeyError/빈 배열로 바로 드러나므로, 실제
-    응답을 한 번 확인해 필요하면 필드명을 고쳐야 한다."""
+    2026-08-04: 응답 필드(stk_min_pole_chart_qry, cntr_tm 등)를 실호출로 검증 완료
+    (005930 1분봉 정상 수신). 한 번 호출에 최근 며칠치가 오며, 정규장 마감 후
+    15:20~15:30 구간(종가 단일가)에는 거래량이 비정상적으로 크게 찍히니(누적치로 추정,
+    이 필드 자체는 여전히 미검증) 프론트에서 그대로 캔들/거래량 축에 반영하지 않도록
+    주의(js/stock-search.js minuteRowsToBars 참고)."""
     res = kiwoom_client.call_tr(token, 'ka10080', '/api/dostk/chart', {
         'stk_cd': code,
         'tic_scope': tic_scope,

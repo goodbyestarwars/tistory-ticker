@@ -79,19 +79,19 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl -H "X-API-Key: $TOKEN" "https://goodbyestar.cloud/ohlc/005930"` |
 | 오류 응답 예시 | 데이터 없음 → 404 `{"detail":"일봉 데이터를 찾을 수 없습니다."}` / 키움 실패 → 502 |
 
-### `GET /ohlc-minute/{code}` (**미검증** — 아래 참고)
+### `GET /ohlc-minute/{code}`
 
 | 항목 | 내용 |
 |---|---|
-| 인증 필요 여부 | **필요** (`X-API-Key`) |
+| 인증 필요 여부 | **불필요** (`/order-book`, `/foreign-flow`와 동일 패턴 - CORS(`ghlee.tistory.com`만) + rate limit로 대체, 브라우저가 직접 호출) |
 | 필수 파라미터 | `code` (경로) |
 | 선택 파라미터 | `tic_scope`: `1`\|`3`\|`5`\|`10`\|`15`\|`30`\|`45`\|`60`(분, 기본 `1`) |
 | 응답 JSON 구조 | `data` = 분봉 배열, **오름차순(과거→최신)**: `[{"date":"2026-08-03","time":"09:01","open":...,"high":...,"low":...,"close":...,"volume":...}, ...]` |
-| 시장 범위 | ka10080(주식분봉차트조회) |
-| 캐시 시간 | VM 프로세스 메모리 5분(`_LIVE_CACHE_TTL=300`) |
-| 호출 예시 | `curl -H "X-API-Key: $TOKEN" "https://goodbyestar.cloud/ohlc-minute/005930?tic_scope=1"` |
-| 오류 응답 예시 | 데이터 없음 → 404 / 키움 실패 → 502(응답 필드명 불일치 시에도 502로 원인 노출) |
-| **미검증 경고** | 이 프로젝트에서 ka10080을 실제로 호출해본 적이 없음. 응답 필드명(`stk_min_pole_chart_qry`/`cntr_tm` 등)은 ka10081과 같은 명명 규칙일 거라는 추정. **최초 실호출 후 정상 응답을 확인하기 전까지는 이 문서와 파싱 코드를 확정값으로 신뢰하지 말 것.** |
+| 시장 범위 | ka10080(주식분봉차트조회) - 2026-08-04 실호출로 필드명 검증 완료(005930 1분봉 정상 수신, 최근 며칠치가 한 번에 옴) |
+| 데이터 주의 | 정규장 마감 후 15:20~15:30(종가 단일가) 구간 행은 거래량이 비정상적으로 크게 찍힘(누적치로 추정, 미검증) - 프론트(`js/stock-search.js`)가 09:00~15:20만 걸러 사용 |
+| 캐시 시간 | VM 프로세스 메모리 5분(`_LIVE_CACHE_TTL=300`) + `(code, tic_scope)` 단위 rate limit |
+| 호출 예시 | `curl "https://goodbyestar.cloud/ohlc-minute/005930?tic_scope=1"` |
+| 오류 응답 예시 | `tic_scope` 오류 → 400 / 데이터 없음 → 404 / 키움 실패 → 502(원인 메시지 그대로 노출) |
 
 ### `GET /foreign-flow/{code}`
 

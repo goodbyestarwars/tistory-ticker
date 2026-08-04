@@ -25,15 +25,17 @@
   var MAX_RESULTS = 30;
   var FETCH_TIMEOUT_MS = 15000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
 
   var state = {
     selectedCode: null,
     selectedName: null,
     ladderMounted: false,
-    timeframe: 'day', // 'day' | 'week' | 'month'
+    timeframe: 'day', // 'day' | 'week' | 'month' | 'minute'
     movingAverageEnabled: true,
     ichimokuEnabled: false,
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
+    minuteCache: {},  // code -> { t, bars(LWC 형식으로 변환 완료) } 1분 캐시
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
     resultsCollapsed: false // 종목을 고르면 목록이 화면을 계속 차지하지 않도록 접음(사용자 리포트)
   };
@@ -99,7 +101,7 @@
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="month">월봉</button>'
-      + '<button type="button" class="ss-tf-btn" data-tf="minute" disabled title="실시간 분봉 데이터 소스가 아직 없어요(준비 중)">분봉</button>'
+      + '<button type="button" class="ss-tf-btn" data-tf="minute">분봉</button>'
       + '</div>'
       + '<div class="ss-chart-studies">'
       + '<label><input type="checkbox" id="ssMovingAverageToggle" checked /> 이동평균선 표시</label>'
@@ -430,7 +432,9 @@
       });
   }
 
-  // ---- 차트 (일/주/월봉 + 거래량, 분봉은 데이터 소스 없어 비활성) ----
+  // ---- 차트 (일/주/월/분봉 + 거래량) ----
+  // 분봉은 VM /ohlc-minute를 브라우저가 직접 호출(js/order-book.js와 동일 패턴, 인증 없음).
+  // 일/주/월봉과 달리 state.chartCache(daily)가 아니라 별도 state.minuteCache를 쓴다.
 
   function wireChartTabs(container) {
     container.querySelectorAll('.ss-tf-btn').forEach(function (btn) {
@@ -683,10 +687,52 @@
   }
 
   function renderChartForCode(container, code) {
+    if (state.timeframe === 'minute') {
+      renderMinuteChart(container, code);
+      return;
+    }
     var cached = state.chartCache[code];
     if (!cached) return;
     var bars = barsForTimeframe(cached.data.daily, state.timeframe);
     renderLwChart(container.querySelector('#ssChart'), bars, state.timeframe);
+  }
+
+  // 정규장 연속거래(09:00~15:20)만 사용한다 - 15:20~15:30 종가 단일가 구간은 거래량이
+  // 비정상적으로 크게 찍혀(실측 확인, 누적치로 추정) 그대로 넣으면 캔들/거래량 축이
+  // 그 한 칸 때문에 왜곡된다. LWC의 분봉 time은 날짜 문자열이 아니라 UNIX 초 단위여야
+  // 해서 date+time을 KST(UTC+9) 기준으로 변환한다.
+  function minuteRowsToBars(rows) {
+    return rows
+      .filter(function (r) { return r.time >= '09:00' && r.time <= '15:20'; })
+      .map(function (r) {
+        return {
+          date: Math.floor(new Date(r.date + 'T' + r.time + ':00+09:00').getTime() / 1000),
+          open: r.open, high: r.high, low: r.low, close: r.close, volume: r.volume || 0
+        };
+      });
+  }
+
+  function renderMinuteChart(container, code) {
+    var chartEl = container.querySelector('#ssChart');
+    var cached = state.minuteCache[code];
+    if (cached && Date.now() - cached.t < 60 * 1000) {
+      renderLwChart(chartEl, cached.bars, 'minute');
+      return;
+    }
+    chartEl.innerHTML = '<div class="ss-hint"><div class="ss-spinner"></div>분봉을 불러오는 중...</div>';
+    fetchJson(VM_OHLC_MINUTE_URL + encodeURIComponent(code) + '?tic_scope=1')
+      .then(function (json) {
+        var bars = minuteRowsToBars((json && json.data) || []);
+        state.minuteCache[code] = { t: Date.now(), bars: bars };
+        if (state.selectedCode === code && state.timeframe === 'minute') {
+          renderLwChart(container.querySelector('#ssChart'), bars, 'minute');
+        }
+      })
+      .catch(function () {
+        if (state.selectedCode === code && state.timeframe === 'minute') {
+          chartEl.innerHTML = '<div class="ss-hint ss-error">분봉 데이터를 불러오지 못했어요.</div>';
+        }
+      });
   }
 
   function loadLightweightCharts() {
@@ -785,7 +831,9 @@
         });
       }
 
-      var cloudPoints = state.ichimokuEnabled ? ichimokuCloudPoints(bars, timeframe) : [];
+      // futureBarTimes가 분봉 간격을 모르는 채로 하루씩 미래 날짜를 만들어버리므로
+      // 분봉 탭에서는 구름대 투영을 건너뛴다(체크돼 있어도 "데이터 부족"으로만 표시됨).
+      var cloudPoints = (state.ichimokuEnabled && timeframe !== 'minute') ? ichimokuCloudPoints(bars, timeframe) : [];
       if (state.ichimokuEnabled) {
         var spanASeries = chart.addLineSeries({
           color: 'rgba(210,79,69,0.62)',
