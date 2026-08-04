@@ -432,8 +432,10 @@ def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length
     합산해 반환한다 - 그래서 "최근 N일"은 항상 정확히 최근 N거래일이 아니라 "조회된 적
     있는 날짜 중 최근 N개"다(db_schema.load_volume_profile_days 참고, 뜸하게 조회되는
     종목은 커버리지가 듬성듬성할 수 있음 - 응답의 daysIncluded로 실제 반영된 거래일 수를
-    알 수 있다). KIS_APPKEY/APPSECRET 미설정이면(선택 환경변수) 503. /ohlc-minute와
-    동일하게 공개(인증 없음) + CORS + rate limit 패턴."""
+    알 수 있다). 응답의 avgPrice는 이 bins(실제 체결가·체결거래량) 기준 거래량 가중평균가
+    (VWAP)로, 사용자가 자기 평단과 비교해볼 수 있게 계산해 넣는다. KIS_APPKEY/APPSECRET
+    미설정이면(선택 환경변수) 503. /ohlc-minute와 동일하게 공개(인증 없음) + CORS +
+    rate limit 패턴."""
     _check_rate_limit('pbar_tratio', request)
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
@@ -479,8 +481,13 @@ def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length
     _maybe_prune_volume_profile()
 
     bins = sorted(({'price': p, 'volume': v} for p, v in today_bins.items()), key=lambda b: b['price'])
+    total_volume = sum(today_bins.values())
+    # 평균단가(VWAP) = Σ(가격×거래량) / Σ(거래량) - price/volume이 실제 체결가·체결거래량
+    # 이라 그대로 계산 가능(비중%이 아님, kis_client.fetch_pbar_tratio 독스트링 참고).
+    avg_price = (sum(p * v for p, v in today_bins.items()) / total_volume) if total_volume > 0 else None
     result = {
         'currentPrice': kiwoom_market.to_num(summary.get('stck_prpr')) or None,
+        'avgPrice': avg_price,
         'daysIncluded': days_included,
         'bins': bins,
     }

@@ -3130,7 +3130,7 @@
     return Math.round(r.low).toLocaleString('ko-KR') + '~' + Math.round(r.high).toLocaleString('ko-KR') + '원';
   }
 
-  function buildAptSummaryHtml(profile, periodLabel) {
+  function buildAptSummaryHtml(profile, periodLabel, avgPrice) {
     if (!profile) {
       return '<div class="ff-apt-summary">이 구간엔 계산할 매물대 데이터가 부족해요.</div>';
     }
@@ -3140,6 +3140,9 @@
       + '<span class="ff-apt-summary-item">' + (periodLabel || ('최근 ' + profile.days + '거래일')) + '</span>'
       + (pocMid != null
         ? '<span class="ff-apt-summary-item">거래량 최다(POC) <b>' + pocMid.toLocaleString('ko-KR') + '원</b></span>'
+        : '')
+      + (avgPrice != null
+        ? '<span class="ff-apt-summary-item">평균단가 <b>' + Math.round(avgPrice).toLocaleString('ko-KR') + '원</b></span>'
         : '')
       + '<span class="ff-apt-legend"><span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-vol"></i>매물대</span>'
       + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-poc"></i>POC</span></span>'
@@ -3268,12 +3271,12 @@
   // 2026-08-05: "최근 120일(근사)" 병행 뷰는 혼란만 준다는 사용자 판단으로 제거하고
   // 이 실제 체결가 뷰 하나로 통일했다(computeVolumeProfile 자체는 차트 탭 매물대
   // 오버레이(addVolumeProfileOverlay)가 여전히 써서 남겨둠).
-  function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded) {
+  function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice) {
     var footnote = '<div class="ff-footnote">※ 한국투자 API(실제 체결가·체결거래량)로 만든 매물대입니다. 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>'
       + (daysIncluded || 1) + '거래일</b>치가 반영돼 있어요(뜸하게 조회된 종목은 며칠치만 있을 수 있음, 최대 ' + APT_LOOKBACK_DAYS + '일).</div>';
     var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
     return buildAptZoomButtons(stepIndex)
-      + buildAptSummaryHtml(profile, periodLabel)
+      + buildAptSummaryHtml(profile, periodLabel, avgPrice)
       + buildAptChartHtml(profile, currentPrice)
       + footnote;
   }
@@ -3307,8 +3310,8 @@
     return fetchJson(KIWOOM_VM_URL + '/pbar-tratio/' + encodeURIComponent(code) + '?days=' + days)
       .then(function (json) {
         var data = (json && json.data) || {};
-        var result = { bins: data.bins || [], daysIncluded: data.daysIncluded || 1 };
-        realAptCache[code] = { t: Date.now(), bins: result.bins, daysIncluded: result.daysIncluded };
+        var result = { bins: data.bins || [], daysIncluded: data.daysIncluded || 1, avgPrice: data.avgPrice };
+        realAptCache[code] = { t: Date.now(), bins: result.bins, daysIncluded: result.daysIncluded, avgPrice: result.avgPrice };
         return result;
       });
   }
@@ -3362,7 +3365,7 @@
       if (!dynamic) return;
       fetchRealVolumeProfile(code, APT_LOOKBACK_DAYS).then(function (result) {
         var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
-        dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded);
+        dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded, result.avgPrice);
         wireZoom();
         playAptEntrance(card);
       }).catch(function () {

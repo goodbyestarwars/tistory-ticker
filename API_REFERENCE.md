@@ -100,7 +100,7 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 인증 필요 여부 | **불필요** (`/ohlc-minute`와 동일 패턴) |
 | 필수 파라미터 | `code` (경로) |
 | 선택 파라미터 | `days`: 1~120(기본 1) - 1이면 오늘치만, 2 이상이면 SQLite(`volume_profile_daily`)에 누적된 과거 거래일과 오늘 실시간 응답을 가격별로 합산 |
-| 응답 JSON 구조 | `data` = `{"currentPrice": .., "daysIncluded": N, "bins": [{"price":..,"volume":..}, ...]}`, `bins`는 가격 오름차순. `daysIncluded`는 실제로 합산에 반영된 거래일 수(요청한 `days`보다 적을 수 있음) |
+| 응답 JSON 구조 | `data` = `{"currentPrice": .., "avgPrice": .., "daysIncluded": N, "bins": [{"price":..,"volume":..}, ...]}`, `bins`는 가격 오름차순. `daysIncluded`는 실제로 합산에 반영된 거래일 수(요청한 `days`보다 적을 수 있음). `avgPrice`는 거래량 가중평균가(VWAP, Σ가격×거래량/Σ거래량) - `bins`가 실제 체결가·체결거래량이라 정확히 계산됨(비중%이 아님) |
 | 시장 범위 | KIS FHPST01130000(국내주식 매물대/거래비중, [국내주식-196]) - HTS(eFriend Plus) [0113] 당일가격대별 매물대 화면과 동일. `js/foreign-flow.js`의 `computeVolumeProfile`(최근 120거래일 근사치)과 별개로 실제 체결가 기반 뷰 |
 | 데이터 누적 방식 | 배치 없음 - 이 엔드포인트가 호출될 때(=사용자가 실제로 조회한 종목만)마다 그날 최신 누적 스냅샷을 `volume_profile_daily`에 UPSERT(같은 날은 덮어쓰기, 더하지 않음 - pbar-tratio 응답 자체가 이미 그 시점까지의 당일 누적치라서). 그래서 "최근 N일"은 정확히 최근 N거래일이 아니라 "조회된 적 있는 날짜 중 최근 N개"임(뜸하게 조회되는 종목은 커버리지가 듬성듬성할 수 있음). 200일보다 오래된 행은 시간당 최대 1회 정리(`_maybe_prune_volume_profile`) |
 | 선택 환경변수 | `KIS_APPKEY`/`KIS_APPSECRET` 미설정 시 503 |
