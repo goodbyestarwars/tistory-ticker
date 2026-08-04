@@ -325,7 +325,10 @@
 #stock-search .ss-volume-study-label {
   position: absolute;
   z-index: 5;
-  top: calc(70% + 7px);
+  /* 2026-08-05 사용자 리포트: 거래량 라벨이 가격(캔들/그리드 라인)에 묻혀 보였음 -
+     거래량 시리즈 자체의 scaleMargins.top(0.72, renderLwChart 참고)과 맞춰 그 영역
+     안쪽으로 옮김(70% -> 72%+여유). */
+  top: calc(72% + 10px);
   left: 8px;
   display: flex;
   gap: 7px;
