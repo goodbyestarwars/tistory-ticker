@@ -98,7 +98,10 @@ def fetch_minute_ohlc(token, code, tic_scope='1', max_bars=None):
     })
     rows = res.get('stk_min_pole_chart_qry')
     if rows is None:
-        raise RuntimeError('ka10080 응답에 stk_min_pole_chart_qry가 없음(필드명 재검증 필요) - 응답 키: %s' % list(res.keys()))
+        raise RuntimeError(
+            'ka10080 응답에 stk_min_pole_chart_qry가 없음 - return_code=%s return_msg=%s 응답 키: %s'
+            % (res.get('return_code'), res.get('return_msg'), list(res.keys()))
+        )
 
     out = []
     seen = set()
