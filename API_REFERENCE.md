@@ -93,6 +93,20 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/ohlc-minute/005930?tic_scope=1"` |
 | 오류 응답 예시 | `tic_scope` 오류 → 400 / 데이터 없음 → 404 / 키움 실패 → 502(원인 메시지 그대로 노출) |
 
+### `GET /pbar-tratio/{code}` (**미검증** — 아래 참고)
+
+| 항목 | 내용 |
+|---|---|
+| 인증 필요 여부 | **불필요** (`/ohlc-minute`와 동일 패턴) |
+| 필수 파라미터 | `code` (경로) |
+| 응답 JSON 구조 | `data` = `{"currentPrice": .., "bins": [{"price":..,"volume":..,"ratio":..}, ...]}`, `bins`는 가격 오름차순 |
+| 시장 범위 | KIS FHPST01130000(국내주식 매물대/거래비중, [국내주식-196]) - HTS(eFriend Plus) [0113] 당일가격대별 매물대 화면과 동일. **"오늘 하루"치만 제공** - `js/foreign-flow.js`의 `computeVolumeProfile`(최근 120거래일 근사치)과는 기간 범위가 다른 별개 뷰 |
+| 선택 환경변수 | `KIS_APPKEY`/`KIS_APPSECRET` 미설정 시 503 |
+| 캐시 시간 | VM 프로세스 메모리 5분(`_LIVE_CACHE_TTL=300`) |
+| 호출 예시 | `curl "https://goodbyestar.cloud/pbar-tratio/005930"` |
+| 오류 응답 예시 | KIS 미설정 → 503 / 데이터 없음 → 404 / KIS 실패 → 502(원인 메시지 그대로 노출) |
+| **미검증 경고** | 요청 파라미터·응답 필드는 한국투자 공식 GitHub(`koreainvestment/open-trading-api`, `examples_llm/domestic_stock/pbar_tratio/`) 예제 코드를 그대로 반영한 것(2026-08-04 확인) - 문서 설명 텍스트보다 신뢰도는 높지만, 이 프로젝트에서 직접 실호출은 아직 안 해봄. |
+
 ### `GET /foreign-flow/{code}`
 
 | 항목 | 내용 |

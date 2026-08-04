@@ -261,6 +261,42 @@ def fetch_market_investor_daily(token, appkey, appsecret, date1, date2, market_i
     return data.get('output') or []
 
 
+def fetch_pbar_tratio(token, appkey, appsecret, code, hour1=''):
+    """국내주식 매물대/거래비중, TR FHPST01130000 [국내주식-196] - 한국투자 HTS(eFriend Plus)
+    [0113] 당일가격대별 매물대 화면과 1:1 대응. 2026-08-04 공식 GitHub 예제
+    (koreainvestment/open-trading-api, examples_llm/domestic_stock/pbar_tratio/pbar_tratio.py)로
+    요청 파라미터와 응답 컬럼명을 확인해 추가 - 이 프로젝트에서 직접 실호출은 아직 안 해봄.
+    **주의: 이건 "당일"(오늘 하루) 가격대별 체결거래량이지, js/foreign-flow.js의
+    computeVolumeProfile(최근 120거래일 근사치)처럼 여러 날에 걸친 매물대가 아니다.**
+    output1(dict, 요약 1건): 종목명/현재가/전일대비/누적거래량 등.
+    output2(list, 가격대별): data_rank(순위), stck_prpr(그 가격대의 실제 체결가),
+    cntg_vol(그 가격 체결거래량), acml_vol_rlim(누적거래량 대비 비중%).
+    hour1(FID_INPUT_HOUR_1)은 조회 기준 시각 - 비워두면(기본) 현재 시각 기준."""
+    path = ('/uapi/domestic-stock/v1/quotations/pbar-tratio'
+            '?FID_COND_MRKT_DIV_CODE=J&FID_INPUT_ISCD=%s&FID_COND_SCR_DIV_CODE=20113&FID_INPUT_HOUR_1=%s'
+            % (code, hour1))
+    req = urllib.request.Request(
+        BASE_URL + path,
+        headers={
+            'Content-Type': 'application/json; charset=utf-8',
+            'authorization': 'Bearer ' + token,
+            'appkey': appkey,
+            'appsecret': appsecret,
+            'tr_id': 'FHPST01130000',
+            'custtype': 'P',
+        },
+        method='GET',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('FHPST01130000 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
+    if data.get('rt_cd') != '0':
+        raise RuntimeError('FHPST01130000 실패: ' + json.dumps(data, ensure_ascii=False))
+    return data.get('output1') or {}, data.get('output2') or []
+
+
 def _avg_delta(rows):
     vals = []
     for r in rows:

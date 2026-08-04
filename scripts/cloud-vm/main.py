@@ -122,6 +122,7 @@ _LIVE_CACHE_TTL = 300  # 5분
 _LIVE_CACHE_MAX_ENTRIES = 500
 _ohlc_cache = OrderedDict()
 _ohlc_minute_cache = OrderedDict()  # (code, tic_scope) -> (t, data)
+_pbar_tratio_cache = OrderedDict()  # code -> (t, data)
 _investor_flow_cache_mem = OrderedDict()
 _foreign_flow_cache_mem = OrderedDict()
 # fundamentals_cache.json 파싱 결과(파일 mtime/크기가 바뀔 때만 재파싱) - /fundamentals/{code}용.
@@ -398,6 +399,47 @@ def ohlc_minute(request: Request, code: str = Path(..., min_length=6, max_length
         raise HTTPException(status_code=404, detail='분봉 데이터를 찾을 수 없습니다.')
     _live_cache_put(_ohlc_minute_cache, cache_key, minute)
     return envelope(minute)
+
+
+@app.get('/pbar-tratio/{code}')
+def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length=6)):
+    """당일 가격대별 매물대(KIS FHPST01130000, [국내주식-196]) 온디맨드 조회 - 종목분석
+    매물대 카드의 "오늘 매물대" 뷰가 브라우저에서 직접 호출할 예정. 여러 날에 걸친
+    매물대(js/foreign-flow.js computeVolumeProfile)와 달리 이건 오늘 하루치만 준다.
+    KIS_APPKEY/APPSECRET 미설정이면(선택 환경변수) 503. /ohlc-minute와 동일하게
+    공개(인증 없음) + CORS + rate limit 패턴."""
+    _check_rate_limit('pbar_tratio', request)
+    kis_appkey = os.environ.get('KIS_APPKEY')
+    kis_appsecret = os.environ.get('KIS_APPSECRET')
+    if not kis_appkey or not kis_appsecret:
+        raise HTTPException(status_code=503, detail='서버에 KIS_APPKEY/KIS_APPSECRET가 설정되지 않았습니다.')
+    cached = _live_cache_get(_pbar_tratio_cache, code)
+    if cached is not None:
+        return envelope(cached)
+    try:
+        kis_token = kis_client.get_token(kis_appkey, kis_appsecret)
+        summary, rows = kis_client.fetch_pbar_tratio(kis_token, kis_appkey, kis_appsecret, code)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    bins = []
+    for r in rows:
+        price = kiwoom_market.to_num(r.get('stck_prpr'))
+        volume = kiwoom_market.to_num(r.get('cntg_vol'))
+        ratio = kiwoom_market.to_num(r.get('acml_vol_rlim'))
+        if price <= 0:
+            continue
+        bins.append({'price': price, 'volume': volume, 'ratio': ratio})
+    if not bins:
+        raise HTTPException(status_code=404, detail='매물대 데이터를 찾을 수 없습니다.')
+    bins.sort(key=lambda b: b['price'])
+    result = {
+        'currentPrice': kiwoom_market.to_num(summary.get('stck_prpr')) or None,
+        'bins': bins,
+    }
+    _live_cache_put(_pbar_tratio_cache, code, result)
+    return envelope(result)
 
 
 @app.get('/investor-flow/{code}')
