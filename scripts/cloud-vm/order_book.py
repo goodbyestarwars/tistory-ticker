@@ -87,26 +87,44 @@ def fetch_trade(token, code):
     }
 
 
-def fetch_execution_strength_raw(token, code):
-    """체결강도추이시간별요청(ka10046) - 진단용 원본 통과. 2026-08-05 사용자가 공식 문서로
-    필드명(cntr_str/cntr_str_5min/cntr_str_20min/cntr_str_60min)은 확인했지만, 응답을
-    감싸는 최상위 리스트 키 이름은 아직 안 나와 있어 여기서 추측하지 않는다 - 실호출로
-    실제 응답을 확인한 뒤(main.py의 임시 진단 엔드포인트) 파싱을 완성할 것."""
+def fetch_execution_strength(token, code):
+    """체결강도추이시간별요청(ka10046) - 진짜 체결강도(틱 기준, 키움이 직접 계산해서 줌).
+    2026-08-05 공식 문서로 요청/응답 확정: body는 stk_cd 하나뿐이고, 응답
+    cntr_str_tm(리스트, 최신이 맨 앞으로 추정 - 예시 응답의 시각이 163713 -> 163500 ->
+    163016 순으로 내림차순)의 각 원소에 cntr_str(현재)/cntr_str_5min/cntr_str_20min/
+    cntr_str_60min(전부 %, 문자열)이 들어있다. 장 시간 외에는 최근 틱이 없어 빈 리스트가
+    정상 응답으로 옴(에러 아님) - 그럴 땐 None을 반환해 호출부가 기존 근사치로 폴백하게 한다."""
     res = kiwoom_client.call_tr(token, 'ka10046', '/api/dostk/mrkcond', {'stk_cd': code})
     if res.get('return_code') not in (0, '0', None):
         logger.warning('ka10046(%s) 응답 오류 - return_code=%s return_msg=%s',
                         code, res.get('return_code'), res.get('return_msg'))
-    return res
+        return None
+    rows = res.get('cntr_str_tm') or []
+    if not rows:
+        return None
+    latest = rows[0]
+    return {
+        'value': _num(latest.get('cntr_str')),
+        'value5min': _num(latest.get('cntr_str_5min')),
+        'value20min': _num(latest.get('cntr_str_20min')),
+        'value60min': _num(latest.get('cntr_str_60min')),
+    }
 
 
 def fetch_order_book_full(token, code):
-    """호가 사다리(ka10004) + 최근 체결 스냅샷(ka10003)을 한 응답으로 합친다 - 프론트가
-    2초 폴링 한 번으로 둘 다 받도록. 체결 조회가 실패해도 호가 사다리는 그대로 표시돼야
-    하므로 독립적으로 실패를 흡수한다."""
+    """호가 사다리(ka10004) + 최근 체결 스냅샷(ka10003) + 체결강도(ka10046)를 한 응답으로
+    합친다 - 프론트가 2초 폴링 한 번으로 다 받도록. 각 조회가 실패해도 나머지는 그대로
+    표시돼야 하므로 독립적으로 실패를 흡수한다. strength는 장 시간 외엔 정상적으로 None
+    (js/order-book.js가 그럴 땐 기존 근사치로 폴백)."""
     data = fetch_order_book(token, code)
     try:
         data['trade'] = fetch_trade(token, code)
     except Exception as e:
         logger.warning('ka10003(%s) 체결 조회 실패: %s', code, e)
         data['trade'] = None
+    try:
+        data['strength'] = fetch_execution_strength(token, code)
+    except Exception as e:
+        logger.warning('ka10046(%s) 체결강도 조회 실패: %s', code, e)
+        data['strength'] = None
     return data

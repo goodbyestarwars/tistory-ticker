@@ -344,7 +344,10 @@
           // 먼저 계산해야 "돌파 직전 100에 가까운 강도"가 자연스럽게 찍힌다.
           var strength = computeExecutionStrength();
           checkWallBreakthrough(container, book, quote);
-          updateHud(container, book, strength, quote);
+          // 2026-08-05: 키움 ka10046(체결강도추이시간별)이 진짜 체결강도(book.strength, 틱
+          // 기준)를 주면 그걸 우선 쓰고, 장 시간 외라 비어있으면(정상) 기존 매도벽 소진
+          // 근사치(strength)로 폴백한다 - updateHud 참고.
+          updateHud(container, book, strength, quote, book.strength);
           updateBreakoutNote(container, book, quote);
         }
         renderBoard(container, book, quote);
@@ -536,7 +539,9 @@
 
   // 저항(매도벽)/지지(매수벽) 강도는 "위쪽 매도벽과 아래쪽 매수벽의 높이 차이"(사용자 요청)를
   // 그대로 숫자화 - 각 방향에서 가장 큰 단일 호가 잔량을 서로 비교해 막대 길이로 보여준다.
-  function updateHud(container, book, strength, quote) {
+  // realStrength: ka10046 체결강도(있으면 우선 사용, {value,...}) - 100=매수/매도 균형
+  // 기준인 실제 값이라 매도벽 소진 근사치(strength, 0~100 스코어)와 척도가 다르다.
+  function updateHud(container, book, strength, quote, realStrength) {
     var maxAsk = 0, maxBid = 0;
     (book.asks || []).forEach(function (r) { if (r.qty > maxAsk) maxAsk = r.qty; });
     (book.bids || []).forEach(function (r) { if (r.qty > maxBid) maxBid = r.qty; });
@@ -553,9 +558,12 @@
 
     var strengthBar = container.querySelector('#obStrengthBar');
     var strengthVal = container.querySelector('#obStrengthVal');
+    // 실제 체결강도(0=매도만, 100=균형, 200%+=매수 압도적 우위)는 0~100 스코어 막대와
+    // 척도가 달라 200%를 만땅으로 잡아 절반(50%)이 "균형"에 오도록 매핑한다.
+    var realPct = realStrength ? Math.max(0, Math.min(100, realStrength.value / 2)) : null;
     var score = strength ? strength.score : 0;
-    if (strengthBar) strengthBar.style.width = score + '%';
-    if (strengthVal) strengthVal.textContent = strength ? score : '-';
+    if (strengthBar) strengthBar.style.width = (realStrength ? realPct : score) + '%';
+    if (strengthVal) strengthVal.textContent = realStrength ? realStrength.value.toFixed(1) + '%' : (strength ? score : '-');
 
     var note = container.querySelector('#obHudNote');
     if (note) {
@@ -568,10 +576,18 @@
       } else {
         note.textContent = '저항과 지지가 팽팽해요.';
       }
+      // 2026-08-05: 실제 체결강도(키움 ka10046)가 있으면 이걸 우선 설명한다 - 100 기준
+      // 매수/매도 우위를 그대로 알려주는 값이라 매도벽 소진 근사치보다 정확함.
       // 2026-07-28: "매도벽을 미는 중"이라는 문구가 급락 중에도 뜨는 게 이상하다는 지적으로
       // 캔들 방향에 따라 어휘를 분기(위 checkWallBreakthrough 주석 참고 - 감지 로직은 동일,
-      // 표현만 다르게).
-      if (strength) {
+      // 표현만 다르게) - 이건 실제 체결강도가 없을 때(장 시간 외 등)의 근사치 폴백에만 적용.
+      if (realStrength) {
+        var v = realStrength.value;
+        if (v >= 130) note.textContent += ' 체결강도: 🔥 매수세 강한 우위(' + v.toFixed(0) + '%).';
+        else if (v >= 100) note.textContent += ' 체결강도: 매수 우위(' + v.toFixed(0) + '%).';
+        else if (v >= 70) note.textContent += ' 체결강도: 매도 우위(' + v.toFixed(0) + '%).';
+        else note.textContent += ' 체결강도: 🔥 매도세 강한 우위(' + v.toFixed(0) + '%).';
+      } else if (strength) {
         var up = isUpCandle(quote);
         if (strength.growing) note.textContent += ' 체결강도: 매도벽이 오히려 두꺼워지는 중.';
         else if (score >= 70) note.textContent += up ? ' 체결강도: 🔥 매도벽을 강하게 미는 중.' : ' 체결강도: 🔥 지지라인이 강하게 흔들리는 중.';
