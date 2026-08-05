@@ -773,6 +773,12 @@
     renderLwChart(container.querySelector('#ssChart'), bars, state.timeframe);
   }
 
+  // 2026-08-05(5차) 사용자 리포트: 분봉 차트가 여러 날짜(8/3~8/5)가 이어붙어 그려지고,
+  // 새로고침할 때마다 그 전체 구간에 맞춰 줌아웃된 것처럼 보였다 - API_REFERENCE.md에
+  // 이미 문서화돼 있던 대로 /ohlc-minute(ka10080)는 "최근 며칠치가 한 번에" 온다. 아래
+  // 시간 필터만으로는 날짜는 안 걸러지므로, 응답에 포함된 날짜 중 가장 최근 날짜만 남긴다
+  // (오늘 데이터가 아직 없는 장 시작 전에는 어제 등 최근 거래일이 대신 나오게 된다).
+  //
   // 정규장 연속거래(09:00~15:20)만 사용한다 - 15:20~15:30 종가 단일가 구간은 거래량이
   // 비정상적으로 크게 찍혀(실측 확인, 누적치로 추정) 그대로 넣으면 캔들/거래량 축이
   // 그 한 칸 때문에 왜곡된다. LWC의 분봉 time은 날짜 문자열이 아니라 UNIX 초 단위여야 한다.
@@ -787,8 +793,9 @@
   // 몇 시 몇 분"이라는 표시만 중요하므로 문제없다(다른 시간대 방문자가 봐도 거래소
   // 기준 시각이 그대로 보여야 한다는 요구사항과도 맞음).
   function minuteRowsToBars(rows) {
+    var latestDate = rows.reduce(function (max, r) { return r.date > max ? r.date : max; }, '');
     return rows
-      .filter(function (r) { return r.time >= '09:00' && r.time <= '15:20'; })
+      .filter(function (r) { return r.date === latestDate && r.time >= '09:00' && r.time <= '15:20'; })
       .map(function (r) {
         return {
           date: Math.floor(new Date(r.date + 'T' + r.time + ':00Z').getTime() / 1000),

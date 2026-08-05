@@ -206,6 +206,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("timeVisible: timeframe === 'minute'", source)
         self.assertIn("lwcThemeOptions(LWC, timeframe)", source)
 
+    def test_stock_search_minute_chart_keeps_only_latest_date(self):
+        # 2026-08-05(5차) 사용자 리포트: 분봉 차트가 8/3~8/5 여러 날짜가 이어붙어 그려지고
+        # 새로고침마다 그 전체 구간에 맞춰 줌아웃된 것처럼 보였음 - API_REFERENCE.md에 이미
+        # 문서화된 대로 /ohlc-minute(ka10080)는 "최근 며칠치가 한 번에" 온다. 시간만 걸러선
+        # 안 되고 응답에 포함된 날짜 중 가장 최근 날짜만 남겨야 한다.
+        source = self.read("js/stock-search.js")
+        self.assertIn(
+            "var latestDate = rows.reduce(function (max, r) { return r.date > max ? r.date : max; }, '');",
+            source,
+        )
+        self.assertIn("r.date === latestDate && r.time >= '09:00' && r.time <= '15:20'", source)
+
     def test_stock_search_minute_chart_time_matches_kst_not_utc(self):
         # 2026-08-05(4차) 사용자 리포트: timeVisible을 켠 뒤 시:분이 09:30이 아니라
         # 00:30처럼 9시간 이르게 나왔음 - Lightweight Charts가 UNIX 타임스탬프를 항상
