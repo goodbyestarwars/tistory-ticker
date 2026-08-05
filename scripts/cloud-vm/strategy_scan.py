@@ -240,14 +240,8 @@ def main():
     (sectors, scanned, skipped_no_data, skipped_illiquid,
      skipped_no_sector, skipped_no_fundamentals) = scan(universe, wics_map, fundamentals_cache, conn)
 
-    output = {
-        'scannedAt': datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'),
-        'scanned': scanned,
-        'universe': len(universe),
-        'skippedNoData': skipped_no_data,
-        'skippedIlliquid': skipped_illiquid,
-        'skippedNoSector': skipped_no_sector,
-        'skippedNoFundamentals': skipped_no_fundamentals,
+    undervalued_category = {
+        'name': '저평가 종목',
         'methodology': METHODOLOGY_NOTE,
         'sectors': {
             sector: {'name': sector, 'matches': matches}
@@ -256,17 +250,35 @@ def main():
         },
     }
 
+    output = {
+        'scannedAt': datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'),
+        'scanned': scanned,
+        'universe': len(universe),
+        'skippedNoData': skipped_no_data,
+        'skippedIlliquid': skipped_illiquid,
+        'skippedNoSector': skipped_no_sector,
+        'skippedNoFundamentals': skipped_no_fundamentals,
+        # 전략검색은 카테고리 여러 개를 탭으로 보여주는 틀이고, "저평가 종목"은 그 중 첫
+        # 카테고리일 뿐이다(2026-08 사용자 피드백 - "전략검색은 냅두고 10개를 1개로
+        # 줄이는 거였지, 페이지 자체를 저평가 종목으로 박아버리라는 게 아니었다. 계속
+        # 추가할 것"). 그래서 sectors를 최상위에 바로 두지 않고 categories.undervalued
+        # 밑에 넣는다 - 다음 카테고리를 추가할 때 이 딕셔너리에 키 하나만 더 넣으면 된다.
+        'categories': {
+            'undervalued': undervalued_category,
+        },
+    }
+
     tmp_path = OUTPUT_FILE + '.tmp'
     with open(tmp_path, 'w', encoding='utf-8') as f:
         json.dump(output, f, ensure_ascii=False)
     os.replace(tmp_path, OUTPUT_FILE)  # 원자적 교체 - 쓰는 도중 /strategy-scan-batch가 읽어도 반쪽 파일을 못 봄
 
-    total_matches = sum(len(s['matches']) for s in output['sectors'].values())
+    total_matches = sum(len(s['matches']) for s in undervalued_category['sectors'].values())
     log('완료: 판정 %d / 유니버스 %d, 데이터부족 %d, 유동성부족 %d, 섹터미분류 %d, 펀더멘탈없음 %d'
         % (scanned, len(universe), skipped_no_data, skipped_illiquid, skipped_no_sector, skipped_no_fundamentals))
-    log('  섹터 %d개, 저평가 후보 총 %d종목' % (len(output['sectors']), total_matches))
-    for sector in sorted(output['sectors']):
-        log('  %s: %d종목' % (sector, len(output['sectors'][sector]['matches'])))
+    log('  섹터 %d개, 저평가 후보 총 %d종목' % (len(undervalued_category['sectors']), total_matches))
+    for sector in sorted(undervalued_category['sectors']):
+        log('  %s: %d종목' % (sector, len(undervalued_category['sectors'][sector]['matches'])))
 
 
 if __name__ == '__main__':

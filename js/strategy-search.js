@@ -1,13 +1,19 @@
 /**
- * 저평가 종목 위젯
+ * 전략검색 위젯
  *
- * 2026-08 전면 개편: kisyaml 프리셋 전략 10개(탭 전환 UI)를 전량 폐기하고 "저평가 종목"
- * 단일 스캔으로 다시 만들었다 - scripts/cloud-vm/strategy_scan.py의 새 정의(품질 게이트:
- * 펀더멘탈 점수, 가격 게이트: 120일 이평 대비 이격도) 참고. 결과는 WICS 대분류 섹터별로
- * 묶여 오므로, 탭이 아니라 js/sector-dashboard-v4.js·js/market-temp.js의 카드보기와 같은
- * 시각 언어(섹터 = 카드, 종목 = 행)로 보여준다 - 이번엔 실제로 여러 카드가 나열되는
- * 상황이라 그 스타일을 그대로 재사용하는 게 맞다(2026-08 UI 피드백 "증시온도 카드보기
- * 그대로 가져다 써"가 이번 화면과 정확히 같은 모양이 됨).
+ * 카테고리(전략)를 탭으로 여러 개 보여주는 틀 - 지금은 "저평가 종목" 1개뿐이지만 계속
+ * 추가될 예정이라 탭 구조를 유지한다(2026-08 사용자 피드백: "전략검색은 냅두고 10개를
+ * 1개로 줄이는 거였지, 페이지 자체를 저평가 종목으로 박아버리라는 게 아니었다").
+ * scripts/cloud-vm/strategy_scan.py가 내려주는 categories(카테고리id -> {name,
+ * methodology, sectors}) 그대로 탭 목록을 만든다 - 서버 쪽 카테고리가 늘거나 줄어도 이
+ * 파일을 고칠 필요가 없다(js/pattern-scan.js와 동일한 설계 원칙).
+ *
+ * "저평가 종목" 카테고리의 판정 기준(품질 게이트: 펀더멘탈 점수, 가격 게이트: 120일 이평
+ * 대비 이격도)은 strategy_scan.py 참고. 결과는 WICS 대분류 섹터별로 묶여 오므로, 카테고리
+ * 안에서는 js/sector-dashboard-v4.js·js/market-temp.js의 카드보기와 같은 시각 언어
+ * (섹터 = 카드, 종목 = 행)로 보여준다(2026-08 UI 피드백 "증시온도 카드보기 그대로 가져다
+ * 써"). 다른 모양의 결과를 내는 카테고리가 나중에 추가되면 renderCategoryBody를 그
+ * 카테고리 타입에 맞게 분기해야 한다 - 지금은 섹터 그룹 하나뿐이라 분기 없음.
  *
  * 리스트는 VM(strategy_scan.py)이 하루 1회 미리 스캔해둔 결과(?strategyScan=1)를 그대로
  * 보여준다(가벼움) - js/pattern-scan.js와 동일한 패턴.
@@ -20,10 +26,11 @@
   var FETCH_TIMEOUT_MS = 15000;
   // 종목분석 상세 페이지 - js/stock-search-panel.js·js/watchlist.js와 동일한 이동 방식
   // (?code=&name=). 펀더멘탈(PER·PBR·DART 재무)·차트·수급을 바로 확인할 수 있어 "왜 이
-  // 종목이 저평가로 뽑혔는지" 근거를 확인하기 가장 가까운 기존 페이지다.
+  // 종목이 뽑혔는지" 근거를 확인하기 가장 가까운 기존 페이지다.
   var STOCK_DETAIL_PAGE = '/page/foreign-flow';
 
   var scanData = null;
+  var activeKey = null;
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -36,8 +43,14 @@
     StrategySearch.fetchJson(GAS_TICKER_URL + '?strategyScan=1')
       .then(function (data) {
         scanData = data;
+        var keys = Object.keys((data && data.categories) || {});
+        if (!keys.length) {
+          container.innerHTML = '<div class="ss-error">아직 스캔 결과가 없어요. (VM에서 strategy_scan.py가 한 번 실행돼야 함)</div>';
+          return;
+        }
+        if (!activeKey || keys.indexOf(activeKey) === -1) activeKey = keys[0];
         container.innerHTML = buildShell();
-        wireRows(container);
+        wireContainer(container);
         renderAll(container);
       })
       .catch(function () {
@@ -48,24 +61,46 @@
   function buildShell() {
     return ''
       + '<div class="ss-head">'
-      + '<div class="ss-title">저평가 종목</div>'
+      + '<div class="ss-tabs" id="ssTabs"></div>'
       + '<div class="ss-meta" id="ssMeta"></div>'
       + '</div>'
       + '<div class="ss-methodology" id="ssMethodology"></div>'
       + '<div id="ssCards"></div>';
   }
 
+  function categoryKeys() {
+    return Object.keys(scanData.categories);
+  }
+
   function renderAll(container) {
+    renderTabs(container);
     renderMeta(container);
     renderMethodology(container);
     renderCards(container);
   }
 
-  // 클릭 위임을 컨테이너에 한 번만 건다 - renderCards()가 매번 innerHTML을 새로 그려도
-  // 이 리스너는 컨테이너 자체에 붙어있어 재등록할 필요가 없다(js/sector-dashboard-v4.js와
-  // 다르게 이 화면은 재조회/탭이 없어 한 번 그리고 끝이지만, 패턴은 일관되게 유지).
-  function wireRows(container) {
+  function renderTabs(container) {
+    var tabsEl = container.querySelector('#ssTabs');
+    if (!tabsEl) return;
+    tabsEl.innerHTML = categoryKeys().map(function (key) {
+      var c = scanData.categories[key];
+      return '<button type="button" class="ss-tab' + (key === activeKey ? ' active' : '') + '" data-key="' + key + '">'
+        + escapeHtml((c && c.name) || key) + '</button>';
+    }).join('');
+  }
+
+  // 탭 전환 클릭과 종목 행 클릭(종목분석 이동)을 컨테이너 하나에 위임한다 - renderCards()가
+  // 매번 innerHTML을 새로 그려도 이 리스너는 컨테이너 자체에 붙어있어 재등록할 필요가 없다.
+  function wireContainer(container) {
     container.addEventListener('click', function (event) {
+      var tabBtn = event.target.closest ? event.target.closest('.ss-tab') : null;
+      if (tabBtn) {
+        var key = tabBtn.getAttribute('data-key');
+        if (key === activeKey) return;
+        activeKey = key;
+        renderAll(container);
+        return;
+      }
       var row = event.target.closest ? event.target.closest('.ss-row') : null;
       if (!row) return;
       var code = row.getAttribute('data-code');
@@ -89,24 +124,26 @@
     meta.textContent = text;
   }
 
-  // "저평가"의 실제 판정 기준을 화면에 그대로 밝힌다 - PER/PBR 없이 근사한 값이라는 한계까지
-  // scripts/cloud-vm/strategy_scan.py의 METHODOLOGY_NOTE에 이미 문장으로 들어있어 그대로
-  // 옮기기만 한다(프론트에서 새로 요약·해석하지 않음 - 근거 문구를 임의로 바꾸지 않기 위해).
+  // 카테고리의 실제 판정 기준을 화면에 그대로 밝힌다(예: "저평가 종목"은 PER/PBR 없이
+  // 근사한 값이라는 한계까지) - scripts/cloud-vm/strategy_scan.py가 이미 문장으로 채워
+  // 보내주는 methodology를 그대로 옮기기만 한다(프론트에서 새로 요약·해석하지 않음).
   function renderMethodology(container) {
     var box = container.querySelector('#ssMethodology');
     if (!box) return;
-    box.textContent = (scanData && scanData.methodology) || '';
+    var cat = scanData.categories[activeKey];
+    box.textContent = (cat && cat.methodology) || '';
   }
 
   function renderCards(container) {
     var wrap = container.querySelector('#ssCards');
     if (!wrap) return;
-    var sectors = (scanData && scanData.sectors) || {};
+    var cat = scanData.categories[activeKey];
+    var sectors = (cat && cat.sectors) || {};
     var sectorNames = Object.keys(sectors).filter(function (name) {
       return sectors[name] && sectors[name].matches && sectors[name].matches.length;
     });
     if (!sectorNames.length) {
-      wrap.innerHTML = '<div class="ss-hint">지금은 조건에 맞는 저평가 종목이 없어요.</div>';
+      wrap.innerHTML = '<div class="ss-hint">지금은 이 카테고리 조건에 맞는 종목이 없어요.</div>';
       return;
     }
     var html = sectorNames.map(function (name) {

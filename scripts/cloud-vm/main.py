@@ -676,10 +676,12 @@ def daily_scan_batch(x_api_key: str = Header(default=None)):
 
 @app.get('/strategy-scan-batch')
 def strategy_scan_batch(x_api_key: str = Header(default=None)):
-    """strategy_scan.py(하루 1회 크론, daily_scan.py 20분 뒤)가 "저평가 종목"(펀더멘탈
-    점수 + 120일 이평 대비 이격도 기준, WICS 섹터별 그룹)을 전종목에 대해 미리 판정해둔
+    """strategy_scan.py(하루 1회 크론, daily_scan.py 20분 뒤)가 전종목을 미리 판정해둔
     결과를 즉시 반환. /daily-scan-batch와 동일한 서빙 패턴(캐시 파일을 그대로 읽어 반환) -
-    전략검색 화면(js/strategy-search.js)이 이 엔드포인트를 호출한다. 2026-08 전까지는
+    전략검색 화면(js/strategy-search.js)이 이 엔드포인트를 호출한다. 응답은
+    categories(카테고리id -> {name, methodology, sectors}) 구조 - 전략검색은 카테고리
+    여러 개를 탭으로 보여주는 틀이고, 지금은 "저평가 종목"(펀더멘탈 점수 + 120일 이평 대비
+    이격도 기준, WICS 섹터별 그룹) 1개뿐이지만 계속 추가될 예정이다. 2026-08 전까지는
     kisyaml 프리셋 전략 10개를 서빙했으나(strategy_scan.py docstring 참고) 변별력 부족
     피드백으로 전면 개편됐다."""
     require_api_key(x_api_key)

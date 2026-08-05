@@ -2,17 +2,35 @@
 
 #strategy-search .ss-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
-#strategy-search .ss-title {
-  font-size: 17px;
+#strategy-search .ss-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+#strategy-search .ss-tab {
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 700;
-  color: #111827;
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+}
+
+#strategy-search .ss-tab.active {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
 }
 
 #strategy-search .ss-meta {
@@ -156,6 +174,10 @@
   }
 }
 @media (max-width: 480px) {
+  #strategy-search .ss-tab {
+    padding: 7px 11px;
+    font-size: 12px;
+  }
   #strategy-search .ss-card {
     padding: 13px 14px;
   }
@@ -164,7 +186,14 @@
 /* ============ 다크모드 ============ */
 /* css/pattern-scan.css와 동일한 팔레트(#1A1A1A 배경 + #F5EFE0 글자, 등락색은 의미가
    있어 별도 유지)로 사이트 전체 다크모드와 통일한다. */
-html.dark #strategy-search .ss-title {
+html.dark #strategy-search .ss-tab {
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.2);
+  color: rgba(245, 239, 224, 0.8) !important;
+}
+html.dark #strategy-search .ss-tab.active {
+  background: rgba(245, 239, 224, 0.22);
+  border-color: rgba(245, 239, 224, 0.4);
   color: #F5EFE0 !important;
 }
 html.dark #strategy-search .ss-meta {
