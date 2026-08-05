@@ -63,6 +63,31 @@ def get_corp_code_map(api_key):
     return mapping
 
 
+def call_stock_totqy(api_key, corp_code, bsns_year, reprt_code='11011'):
+    """주식의 총수 현황(stockTotqySttus) - 발행주식총수 조회용, 2026-08 진단 단계.
+    응답 리스트 안 필드명(발행할 주식의 총수에 해당하는 키 등)이 공식 문서를 이 환경에서
+    확인할 수 없어(opendart.fss.or.kr 접속 차단) 아직 미검증 - main.py의
+    /_diag/stock-totqy가 원본을 그대로 노출해 실호출로 확인한다. status 처리는
+    call_fnltt와 동일(013=데이터 없음, 000 외 에러는 예외)."""
+    params = {
+        'crtfc_key': api_key,
+        'corp_code': corp_code,
+        'bsns_year': str(bsns_year),
+        'reprt_code': reprt_code,
+    }
+    url = BASE_URL + '/stockTotqySttus.json?' + urllib.parse.urlencode(params)
+    data = json.loads(_fetch(url).decode('utf-8'))
+    status = data.get('status')
+    if status == '013':  # 조회된 데이터가 없습니다
+        return []
+    if status != '000':
+        message = data.get('message') or ''
+        if '한도' in message or '제한' in message:
+            raise DartRateLimitError('DART stockTotqySttus status %s: %s' % (status, message))
+        raise RuntimeError('DART stockTotqySttus status %s: %s' % (status, message))
+    return data.get('list') or []
+
+
 def call_fnltt(api_key, corp_code, bsns_year, reprt_code, fs_div='CFS'):
     """전체 재무제표 조회(fnlttSinglAcntAll). 데이터 없음(status 013)은 빈 리스트로
     정상 처리(사업보고서 미제출 소형주 등) - 그 외 에러 status는 예외를 던진다."""
