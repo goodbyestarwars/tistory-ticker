@@ -182,8 +182,13 @@
         <!-- 인덱스: 글 목록 카드 -->
         <s_index_article_rep>
           <article class="post-card" data-cat="[##_article_rep_category_##]" data-url="[##_article_rep_link_##]">
+            <!-- 2026-08-05: 목록 카드에서 제목 앞 카테고리 배지(굵은 글씨 알약, 사용자가
+                 "왼쪽 대괄호 bold 부분"이라고 표현)를 제거 - 네이버 뉴스 헤드라인처럼 제목 위에
+                 카테고리 표시 없이 바로 시작하도록. data-cat 속성은 남겨둔다(홈 대시보드가
+                 "마켓 브리핑" 카드만 골라내는 필터에 씀 - js/skin-main.js buildHomeDashboard).
+                 퍼머링크(단일 글) 화면의 배지는 그대로 유지 - 거기선 "지금 어느 카테고리 글을
+                 보고 있는지" 안내가 여전히 필요해서 이번 요청 범위(목록 카드) 밖으로 뒀다. -->
             <div class="post-header">
-              <a href="[##_article_rep_category_link_##]" class="post-cat-badge">[##_article_rep_category_##]</a>
               <span class="post-date">[##_article_rep_simple_date_##]</span>
             </div>
             <a href="[##_article_rep_link_##]">

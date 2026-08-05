@@ -597,42 +597,47 @@
       });
   })();
 
-  /* ── 카테고리 글목록: 배치 모양 다양화(2026-08-05) ──
-     마켓 브리핑 등 카테고리 글목록이 전부 같은 모양 카드로만 세로로 나열되던 것을,
-     5개 묶음 단위로 [대표 1(featured, 풀폭 강조) + 2단 그리드 2(duo) + 기본 2(standard)]
-     리듬이 반복되도록 바꾼다. 글 순서(Tistory 기본 최신순)는 절대 건드리지 않고
-     카드 DOM 위치를 유지한 채(duo 2장만 grid 래퍼로 묶어 재배치) 클래스만 부여한다.
-     페이지네이션 등 카드 뒤 요소는 항상 원래 순서 그대로 맨 끝에 남는다. */
-  (function diversifyCategoryFeedLayout() {
+  /* ── 카테고리 글목록: 배치 모양 다양화(2026-08-05, 네이버 뉴스 홈 배치 참고로 재설계) ──
+     처음엔 5개 묶음 반복 리듬(featured+2단 듀오+기본 2)으로 짰었는데, 사용자가 네이버
+     뉴스 홈 스크린샷을 주며 "배치만 참고하라"고 다시 요청 - 네이버는 페이지당 이런 묶음이
+     반복되는 게 아니라 맨 위에 [큰 기사 1개 + 오른쪽 헤드라인 목록] 하나만 있고 그 아래는
+     평범한 목록/그리드다. 그 구조로 다시 짰다: 1번째 글(최신) = 대표(featured, 풀폭 강조),
+     2~5번째 글 = 오른쪽 헤드라인 목록(제목+날짜만, 카드 테두리 없이 목록형), 6번째 글부터는
+     손대지 않고 원래 기본 카드 그대로 아래에 이어진다 - "1 페이지 10개 글" 기준 대표1+헤드라인
+     4+기본 5로 딱 맞아떨어진다(단, 페이지당 글 개수 자체는 Tistory 관리자 설정이라 여기서
+     바꿀 수 없음). 글 순서(Tistory 기본 최신순)는 그대로 두고 DOM 위치만 옮겨 묶는다. */
+  (function buildCategoryFeedHero() {
     if (location.pathname.indexOf('/category/') !== 0) return;
     var feed = document.querySelector('.feed');
     if (!feed) return;
     var cards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     if (cards.length < 2) return; /* 카드가 1개뿐이면 다양화할 의미가 없음 */
 
-    var PATTERN = ['featured', 'duo', 'duo', 'standard', 'standard'];
-    var tailAnchor = cards[cards.length - 1].nextSibling; /* 마지막 카드 뒤 요소(페이지네이션 등) 앞에 삽입 */
-    var duoBuffer = [];
+    var HEADLINE_COUNT = 4;
+    var featured = cards[0];
+    var headlines = cards.slice(1, 1 + HEADLINE_COUNT);
 
-    function flushDuo(beforeNode) {
-      if (duoBuffer.length < 2) { duoBuffer = []; return; } /* 짝 없는 1장은 기본 카드로 남김 */
-      var row = document.createElement('div');
-      row.className = 'feed-duo-row';
-      feed.insertBefore(row, beforeNode);
-      duoBuffer.forEach(function (card) {
-        card.classList.add('feed-duo-item');
-        row.appendChild(card);
+    var hero = document.createElement('div');
+    hero.className = 'feed-hero';
+    feed.insertBefore(hero, featured); // featured가 아직 원래 위치에 있을 때 그 자리에 삽입
+
+    var featuredSlot = document.createElement('div');
+    featuredSlot.className = 'feed-hero-featured-slot';
+    hero.appendChild(featuredSlot);
+    featured.classList.add('feed-featured');
+    featuredSlot.appendChild(featured);
+
+    if (headlines.length) {
+      var headlineList = document.createElement('div');
+      headlineList.className = 'feed-hero-headlines';
+      hero.appendChild(headlineList);
+      headlines.forEach(function (card) {
+        card.classList.add('feed-headline-item');
+        headlineList.appendChild(card);
       });
-      duoBuffer = [];
     }
-
-    cards.forEach(function (card, i) {
-      var kind = PATTERN[i % PATTERN.length];
-      if (kind === 'duo') { duoBuffer.push(card); return; }
-      flushDuo(card);
-      if (kind === 'featured') card.classList.add('feed-featured');
-    });
-    flushDuo(tailAnchor);
+    /* 6번째 글부터는 이 함수가 건드리지 않는다 - feed에 원래 순서·모양 그대로 남아
+       hero 블록 아래에 이어진다(네이버 뉴스 홈의 "많이 본 뉴스" 같은 하단 목록 자리). */
   })();
 
   /* ── 폰트 전환 토글 (명조 ⇄ 고딕, 조기 적용 스크립트는 head에 있음) ── */

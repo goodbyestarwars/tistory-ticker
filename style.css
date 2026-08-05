@@ -1423,6 +1423,12 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 13px;
 }
+/* 2026-08-05: 목록 카드는 카테고리 배지를 뺐다(skin.html 주석 참고) - .post-header에
+   날짜 하나만 남아 space-between이 왼쪽으로 붙여버리는 걸 막고 원래처럼 오른쪽에 그대로
+   둔다. 공지 카드(.notice-card)는 배지를 그대로 유지하므로 대상에서 뺀다. */
+.post-card:not(.notice-card) > .post-header {
+  justify-content: flex-end;
+}
 .post-cat-badge {
   font-size: 10.5px;
   font-weight: 700;
@@ -1542,17 +1548,27 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 }
 .btn-share:hover { background: #e2e8f0; }
 
-/* ============ 카테고리 글목록: 배치 모양 다양화(2026-08-05) ============
-   마켓 브리핑 등 카테고리 글목록이 전부 같은 모양 카드로만 나열되던 것을 바꾼다.
-   실제 클래스 부여·재배치는 js/skin-main.js의 diversifyCategoryFeedLayout이 담당
-   (5개 묶음 단위로 [대표 1 + 2단 그리드 2 + 기본 2] 리듬 반복) - 글 순서(최신순)는
+/* ============ 카테고리 글목록: 배치 모양 다양화(2026-08-05, 네이버 뉴스 홈 배치 참고) ============
+   마켓 브리핑 등 카테고리 글목록 맨 위에 [대표 글(featured, 풀폭 강조) + 오른쪽 헤드라인
+   목록 4개] 히어로 블록을 만들고, 그 아래는 손대지 않은 기본 카드가 그대로 이어진다.
+   실제 DOM 재배치는 js/skin-main.js의 buildCategoryFeedHero가 담당 - 글 순서(최신순)는
    그대로 두고 시각적 크기·레이아웃만 바꾼다. */
-.feed-duo-row {
+.feed-hero {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
   gap: 14px;
+  align-items: start;
 }
-.feed-duo-row .post-card { height: auto; }
+.feed-hero-featured-slot { min-width: 0; }
+.feed-hero-headlines {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+  padding: 4px 18px;
+}
 .post-card.feed-featured {
   padding: 26px 28px;
   border-left: 3px solid #6366f1;
@@ -1562,21 +1578,36 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   font-size: 14.5px;
   -webkit-line-clamp: 4;
 }
-.post-card.feed-duo-item { padding: 18px 20px; }
-.post-card.feed-duo-item .post-title {
+/* 헤드라인 목록 항목 - 개별 카드 테두리/그림자를 없애고 얇은 구분선만 남긴 목록형으로
+   (네이버 뉴스 홈 오른쪽 헤드라인 열 참고). 날짜(.post-header)는 남기고 배지는 이미
+   목록 카드 전체에서 뺐다(skin.html 참고) - 요약·태그·버튼만 이 안에서 추가로 숨긴다. */
+.post-card.feed-headline-item {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.post-card.feed-headline-item:last-child { border-bottom: none; }
+.post-card.feed-headline-item .post-header { margin-bottom: 4px; }
+.post-card.feed-headline-item .post-date { font-size: 10.5px; }
+.post-card.feed-headline-item .post-title {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  font-size: 15px;
+  font-size: 14px;
+  margin-bottom: 0;
 }
-.post-card.feed-duo-item .post-excerpt {
-  -webkit-line-clamp: 2;
-  font-size: 12.5px;
-}
-.post-card.feed-duo-item .post-tags,
-.post-card.feed-duo-item .btn-share { display: none; }
+.post-card.feed-headline-item .post-excerpt,
+.post-card.feed-headline-item .post-tags,
+.post-card.feed-headline-item .post-footer { display: none; }
 html.dark .post-card.feed-featured { border-left-color: #818cf8; }
+html.dark .feed-hero-headlines {
+  background: #1A1A1A !important;
+  border: 1px solid rgba(245, 239, 224, 0.2) !important;
+}
+html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 224, 0.12) !important; }
 
 /* ============ 퍼머링크 단일 글 ============ */
 .post-single {
@@ -3032,7 +3063,8 @@ body.iframe-mode .site-footer { display: none !important; }
 
   /* ── 피드 ── */
   .feed { gap: 10px; }
-  .feed-duo-row { grid-template-columns: 1fr; gap: 10px; }
+  .feed-hero { grid-template-columns: 1fr; gap: 10px; }
+  .feed-hero-headlines { padding: 2px 14px; }
   .post-card.feed-featured { padding: 18px 16px; }
   .post-card.feed-featured .post-title { font-size: 17px; }
 
