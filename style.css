@@ -1510,22 +1510,24 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 .post-footer-left { display: flex; align-items: center; gap: 14px; }
 .post-meta { display: flex; align-items: center; gap: 5px; color: #94a3b8; font-size: 12px; }
 .post-footer-right { display: flex; align-items: center; gap: 8px; }
+/* 2026-08: 진한 보라 알약 + 그림자가 카드 안에서 너무 무겁다는 피드백으로, .post-tags
+   a와 같은 옅은 인디고 톤(배경 #eef2ff/글자 #4338ca)으로 톤다운 - "더 보기"가 CTA처럼
+   튀지 않고 카드 안 보조 액션 정도의 무게감이 되도록. */
 .btn-read {
-  font-size: 12.5px; color: #fff;
-  background: #4338ca;
+  font-size: 12.5px; color: #4338ca;
+  background: #eef2ff;
   border: none;
   padding: 7px 18px;
   border-radius: 20px;
   cursor: pointer;
   font-weight: 700;
   letter-spacing: -0.2px;
-  box-shadow: 0 2px 8px rgba(29,78,216,0.3);
-  transition: background .15s, box-shadow .15s;
+  transition: background .15s, color .15s;
   text-decoration: none;
   display: inline-block;
 }
-.btn-read:hover { background: #1e40af; }
-.btn-read.open { background: #f1f5f9; color: #374151; box-shadow: none; }
+.btn-read:hover { background: #e0e7ff; color: #312e81; }
+.btn-read.open { background: #f1f5f9; color: #374151; }
 
 /* 공유 버튼 */
 .btn-share {
@@ -3306,6 +3308,8 @@ html.dark .tag-pill:hover { background: rgba(245, 239, 224, 0.16); color: #F5EFE
 html.dark .post-footer { border-top-color: rgba(245, 239, 224, 0.14); }
 html.dark .btn-share { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.2); color: rgba(245, 239, 224, 0.75); }
 html.dark .btn-share:hover { background: rgba(245, 239, 224, 0.08); }
+html.dark .btn-read { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; }
+html.dark .btn-read:hover { background: rgba(99, 102, 241, 0.28); color: #c7d2fe; }
 html.dark .btn-read.open { background: rgba(245, 239, 224, 0.1); color: #F5EFE0; }
 
 /* 관련 글 */
