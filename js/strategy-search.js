@@ -110,9 +110,17 @@
   function renderMeta(container) {
     var meta = container.querySelector('#ssMeta');
     if (!meta) return;
-    meta.textContent = scanData.scannedAt
-      ? ('스캔 ' + scanData.scannedAt + ' · 대상 ' + (scanData.scanned || 0) + '/' + (scanData.universe || 0) + '종목')
-      : '아직 스캔 결과가 없어요.';
+    if (!scanData.scannedAt) {
+      meta.textContent = '아직 스캔 결과가 없어요.';
+      return;
+    }
+    var text = '스캔 ' + scanData.scannedAt + ' · 대상 ' + (scanData.scanned || 0) + '/' + (scanData.universe || 0) + '종목';
+    // scripts/cloud-vm/strategy_scan.py의 유동성 하한(MIN_AVG_TURNOVER) 필터로 빠진 종목 수 -
+    // 0이면 굳이 안 보여준다(구형 GAS 배포에선 이 필드 자체가 없을 수도 있어 존재 확인).
+    if (scanData.skippedIlliquid) {
+      text += ' · 유동성 부족 제외 ' + scanData.skippedIlliquid + '종목';
+    }
+    meta.textContent = text;
   }
 
   // 목록이 비어 있어도(조건 충족 종목이 없어도) 이 전략이 뭘 찾는 건지는 항상 보이게 한다
