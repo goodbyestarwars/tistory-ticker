@@ -597,27 +597,76 @@
       });
   })();
 
-  /* ── 카테고리 글목록: 카드 모양 무작위 배정(2026-08-05, 재요청으로 단순화) ──
-     "히어로(대표1+오른쪽 헤드라인4) + 나머지 기본" 고정 배치를 만들었는데, 사용자가 다시
-     "그냥 랜덤(최신순만 유지)으로 해줘"라고 요청했다 - 확인 결과(AskUserQuestion) "모양 종류는
-     여러 개 유지하되 어느 글이 어느 모양을 받을지는 무작위, 글 순서는 그대로"가 맞는 방향.
-     그래서 카드를 묶거나 DOM 위치를 옮기는 걸 그만두고, 각 카드에 독립적으로 무작위 모양
-     클래스만 부여한다 - 카드가 문서에 나타나는 순서(=Tistory 기본 최신순)는 전혀 안 건드리고,
-     그 자리에서 크기·타이포그래피만 바뀐다. 새로고침/페이지 이동마다 모양이 다시 섞인다. */
-  (function randomizeCategoryFeedShapes() {
+  /* ── 카테고리 글목록: 블록 단위 무작위 배치(2026-08-05, 재요청으로 재설계) ──
+     처음엔 카드 하나하나에 독립적으로 크기만 다른 클래스를 줬는데(모두 세로 1열, "왜 일열이야"
+     피드백) - 사용자가 표로 예를 들어 요구한 건 그게 아니라 진짜 구조가 다른 "블록"들이
+     섞이는 것. 처음엔 "제목만 목록"을 독립된 블록으로 뒀는데, 사용자가 "그럴 땐 왼쪽에 포스팅
+     하나 + 오른쪽에 제목만 있는 목록으로 해야 하지 않을까?"라고 재지적 - 제목만 있는 목록이
+     혼자 둥둥 떠 있는 것보다 큰 글 옆에 붙어야 자연스럽다는 지적이 맞아서, single(대표 1개)과
+     headline(제목 목록)을 하나의 hero 블록(왼쪽 대표 1 + 오른쪽 제목 목록 최대 4)으로 합쳤다.
+     글을 앞에서부터 순서대로(최신순 그대로, 절대 재정렬 안 함) 소비하면서, 매번 남은 글 수에
+     맞는 블록 타입을 무작위로 골라 그만큼씩 묶어 서로 다른 모양의 블록으로 렌더링한다. */
+  (function buildCategoryFeedBlocks() {
     if (location.pathname.indexOf('/category/') !== 0) return;
     var feed = document.querySelector('.feed');
     if (!feed) return;
     var cards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     if (cards.length < 2) return; /* 카드가 1개뿐이면 다양화할 의미가 없음 */
 
-    // 대표(featured)는 존재감이 커서 드물게, 컴팩트(compact)는 자주, 나머지는 기본 그대로 -
-    // 배열에 담긴 비율대로 뽑히도록 가중치를 준다(featured 1/6, compact 2/6, standard 3/6).
-    var SHAPES = ['featured', 'compact', 'compact', 'standard', 'standard', 'standard'];
-    cards.forEach(function (card) {
-      var shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-      if (shape !== 'standard') card.classList.add('feed-' + shape);
-    });
+    var BLOCK_TYPES = [
+      { key: 'single', min: 1, max: 1 }, // 1개 단독 - 대표 글만(feed-featured)
+      { key: 'hero', min: 2, max: 5 },   // 왼쪽 대표 1 + 오른쪽 제목 목록 최대 4(최소 1개는 있어야 hero다움)
+      { key: 'cards', min: 3, max: 3 },  // 작은 카드형 3개 그리드
+      { key: 'duo', min: 2, max: 2 }     // 가로로 나란한 2개
+    ];
+    var tailAnchor = cards[cards.length - 1].nextSibling; /* 마지막 카드 뒤 요소(페이지네이션 등) 앞에 삽입 */
+
+    function renderBlock(type, slice, beforeNode) {
+      if (type === 'single') {
+        slice[0].classList.add('feed-featured'); // 이미 제자리에 있으므로 이동 없이 클래스만
+        return;
+      }
+      if (type === 'hero') {
+        var hero = document.createElement('div');
+        hero.className = 'feed-block feed-block-hero';
+        feed.insertBefore(hero, beforeNode);
+        var featuredSlot = document.createElement('div');
+        featuredSlot.className = 'feed-hero-featured-slot';
+        hero.appendChild(featuredSlot);
+        slice[0].classList.add('feed-featured');
+        featuredSlot.appendChild(slice[0]);
+        if (slice.length > 1) {
+          var headlineList = document.createElement('div');
+          headlineList.className = 'feed-block-headline';
+          hero.appendChild(headlineList);
+          slice.slice(1).forEach(function (card) {
+            card.classList.add('feed-headline-item');
+            headlineList.appendChild(card);
+          });
+        }
+        return;
+      }
+      var wrap = document.createElement('div');
+      wrap.className = 'feed-block feed-block-' + type;
+      feed.insertBefore(wrap, beforeNode);
+      slice.forEach(function (card) {
+        card.classList.add('feed-' + type + '-item');
+        wrap.appendChild(card);
+      });
+    }
+
+    var idx = 0;
+    while (idx < cards.length) {
+      var remaining = cards.length - idx;
+      // 남은 글 수보다 최소 소요량이 큰 블록 타입은 후보에서 뺀다(single은 1개라 항상 가능).
+      var candidates = BLOCK_TYPES.filter(function (b) { return b.min <= remaining; });
+      var block = candidates[Math.floor(Math.random() * candidates.length)];
+      var take = Math.min(block.max, remaining);
+      var slice = cards.slice(idx, idx + take);
+      var beforeNode = idx + take < cards.length ? cards[idx + take] : tailAnchor;
+      renderBlock(block.key, slice, beforeNode);
+      idx += take;
+    }
   })();
 
   /* ── 폰트 전환 토글 (명조 ⇄ 고딕, 조기 적용 스크립트는 head에 있음) ── */
