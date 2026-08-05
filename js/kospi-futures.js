@@ -187,8 +187,15 @@
   }
 
   // 2026-08-05 요청: "(장 마감)" 배지 - 주간선물 정규장은 09:00~15:45(옵션 수급 설명문의
-  // "정규장(09:00~15:45)"과 동일 값, 사용자 확인). 야간선물은 평일 18:00~익일 05:00
-  // (js/kospi-futures.js 헤더 주석·night_futures_ws.py와 동일 값).
+  // "정규장(09:00~15:45)"과 동일 값, 사용자 확인).
+  //
+  // 야간선물 마감 시각 정정(2026-08-05, 같은 날 후속): 처음엔 js/quick-indices.js의
+  // marketStatus() 주석에 있던 "익일 05:00"을 그대로 가져다 썼는데, 사용자가 실제로
+  // 05:20에 야간선물이 아직 거래되는 걸 보고 "장 마감"으로 잘못 뜬다고 리포트 - 실거래
+  // 확인 결과 마감은 06:00이었다(참고했던 주석 값 자체가 틀렸던 것, 공식 문서 대조는
+  // 못 했지만 실시간 관찰이 오래된 주석보다 신뢰도가 높다고 판단해 이 값으로 정정).
+  // quick-indices.js의 marketStatus()에도 같은 05:00이 남아있지만 이번 요청 범위(코스피
+  // 선물 페이지) 밖이라 손대지 않았다 - 필요하면 후속으로.
   //
   // js/quick-indices.js에도 비슷한 marketStatus()가 있지만 그쪽은 야간선물 판정에서 요일을
   // 안 따져(mins만 봄) 토요일 저녁·일요일 새벽처럼 실제로는 세션이 없는 구간도 "실시간"으로
@@ -207,7 +214,7 @@
       return isWeekday && mins >= 9 * 60 && mins < 15 * 60 + 45;
     }
     var eveningOpen = isWeekday && mins >= 18 * 60;
-    var earlyMorningOpen = day >= 2 && day <= 6 && mins < 5 * 60;
+    var earlyMorningOpen = day >= 2 && day <= 6 && mins < 6 * 60;
     return eveningOpen || earlyMorningOpen;
   }
 
