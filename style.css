@@ -1548,27 +1548,11 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 }
 .btn-share:hover { background: #e2e8f0; }
 
-/* ============ 카테고리 글목록: 배치 모양 다양화(2026-08-05, 네이버 뉴스 홈 배치 참고) ============
-   마켓 브리핑 등 카테고리 글목록 맨 위에 [대표 글(featured, 풀폭 강조) + 오른쪽 헤드라인
-   목록 4개] 히어로 블록을 만들고, 그 아래는 손대지 않은 기본 카드가 그대로 이어진다.
-   실제 DOM 재배치는 js/skin-main.js의 buildCategoryFeedHero가 담당 - 글 순서(최신순)는
-   그대로 두고 시각적 크기·레이아웃만 바꾼다. */
-.feed-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
-  gap: 14px;
-  align-items: start;
-}
-.feed-hero-featured-slot { min-width: 0; }
-.feed-hero-headlines {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 1px 8px rgba(0,0,0,0.07);
-  padding: 4px 18px;
-}
+/* ============ 카테고리 글목록: 카드 모양 무작위 배정(2026-08-05) ============
+   마켓 브리핑 등 카테고리 글목록의 카드들이 각자 독립적으로 무작위 모양을 받는다 - 서로
+   묶거나 나란히 배치하지 않고(고정된 히어로 배치를 시도했다가 "그냥 랜덤으로" 요청받아
+   단순화함) 세로 목록 안에서 카드 하나하나의 크기·타이포그래피만 바뀐다. 실제 클래스 부여는
+   js/skin-main.js의 randomizeCategoryFeedShapes가 담당 - 글 순서(최신순)는 항상 그대로다. */
 .post-card.feed-featured {
   padding: 26px 28px;
 }
@@ -1577,35 +1561,22 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   font-size: 14.5px;
   -webkit-line-clamp: 4;
 }
-/* 헤드라인 목록 항목 - 개별 카드 테두리/그림자를 없애고 얇은 구분선만 남긴 목록형으로
-   (네이버 뉴스 홈 오른쪽 헤드라인 열 참고). 날짜(.post-header)는 남기고 배지는 이미
-   목록 카드 전체에서 뺐다(skin.html 참고) - 요약·태그·버튼만 이 안에서 추가로 숨긴다. */
-.post-card.feed-headline-item {
-  background: transparent;
-  box-shadow: none;
-  border-radius: 0;
-  padding: 12px 0;
-  border-bottom: 1px solid #f1f5f9;
-}
-.post-card.feed-headline-item:last-child { border-bottom: none; }
-.post-card.feed-headline-item .post-header { margin-bottom: 4px; }
-.post-card.feed-headline-item .post-date { font-size: 10.5px; }
-.post-card.feed-headline-item .post-title {
+/* 컴팩트 카드 - 카드 테두리·그림자는 기본과 동일하게 유지하고(독립된 카드라 목록형 구분선
+   대신 카드 자체를 남김), 안쪽 패딩·글자 크기만 줄여 기본 카드보다 작아 보이게 한다. */
+.post-card.feed-compact { padding: 16px 18px; }
+.post-card.feed-compact .post-title {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  font-size: 14px;
-  margin-bottom: 0;
+  font-size: 15px;
 }
-.post-card.feed-headline-item .post-excerpt,
-.post-card.feed-headline-item .post-tags,
-.post-card.feed-headline-item .post-footer { display: none; }
-html.dark .feed-hero-headlines {
-  background: #1A1A1A !important;
-  border: 1px solid rgba(245, 239, 224, 0.2) !important;
+.post-card.feed-compact .post-excerpt {
+  -webkit-line-clamp: 2;
+  font-size: 12.5px;
 }
-html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 224, 0.12) !important; }
+.post-card.feed-compact .post-tags,
+.post-card.feed-compact .btn-share { display: none; }
 
 /* ============ 퍼머링크 단일 글 ============ */
 .post-single {
@@ -3061,8 +3032,6 @@ body.iframe-mode .site-footer { display: none !important; }
 
   /* ── 피드 ── */
   .feed { gap: 10px; }
-  .feed-hero { grid-template-columns: 1fr; gap: 10px; }
-  .feed-hero-headlines { padding: 2px 14px; }
   .post-card.feed-featured { padding: 18px 16px; }
   .post-card.feed-featured .post-title { font-size: 17px; }
 
