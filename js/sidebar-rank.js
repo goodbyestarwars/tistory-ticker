@@ -277,9 +277,17 @@
   };
   global.SidebarRank = SidebarRank;
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  /* 2026-08-05: 카테고리 글목록 등 우측 사이드바에서 이 위젯을 없애기로 하면서,
+     이제 #sidebar-rank가 실제로 보이는 화면은 홈(js/skin-main.js buildHomeDashboard가
+     이 DOM을 "오늘의 시장판" 카드 쪽으로 옮겨 붙임)뿐이다. 홈이 아닌 화면은 컨테이너가
+     style.css로 숨겨질 뿐 DOM에는 계속 남아있어서, 여기서 막지 않으면 보이지도 않는
+     위젯이 계속 30초 주기로 API를 호출하게 된다 - 그래서 홈에서만 초기화한다. */
+  var isHomePage = location.pathname === '/' || location.pathname === '';
+  if (isHomePage) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   }
 })(window);

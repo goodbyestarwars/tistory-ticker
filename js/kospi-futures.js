@@ -51,12 +51,22 @@
   var REFRESH_INTERVAL_MS = 30000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var CHART_HEIGHT = 420;
+  // Lightweight Charts는 UNIX 타임스탬프의 시:분을 표시할 때 항상 UTC 기준으로 읽는다(라이브러리
+  // 문서화된 동작 - js/stock-search.js가 2026-08-05에 분봉 X축에서 먼저 확인·수정한 것과 동일
+  // 원인). 서버(domestic_futures.py/night_futures_ws.py)의 분봉 ts는 정확히 변환된 진짜 UTC초라서
+  // 그대로 넣으면 X축에 KST보다 9시간 이른 시각(예: 09:30 대신 00:30)이 찍힌다 - "KST 시:분
+  // 숫자를 UTC인 척" 보여줘야 화면에 실제 거래소 시각이 그대로 나오므로, renderChartPanel에서
+  // 분봉 point를 만들 때 진짜 UTC초에 이 오프셋을 더해 넣는다(stock-search.js의 문자열+'Z' 트릭과
+  // 목적은 같고 시작 표현만 다름 - 여긴 이미 true UTC초라 9시간을 더해 되돌린다).
+  var KST_OFFSET_SEC = 9 * 60 * 60;
 
   var PANEL_ORDER = ['KOSPI200_DAY', 'KOSPI200_NIGHT'];
   var PANEL_LABELS = {
     KOSPI200_DAY: '코스피200 주간선물',
     KOSPI200_NIGHT: '코스피200 야간선물'
   };
+  // buildStatBody/updateMarketStatusBadges가 심볼 -> 세션 종류를 찾을 때 쓴다(아래 isMarketOpen).
+  var PANEL_KEY_BY_SYMBOL = { KOSPI200_DAY: 'day', KOSPI200_NIGHT: 'night' };
   // 이 페이지가 실제로 쓰는 심볼만 서버에 요청한다 - /futures는 코스피/코스닥·미국지수·원자재·
   // 환율·채권·코인까지 21개 심볼을 한 번에 주는 공용 엔드포인트인데, 이 페이지는 선물 2개만
   // 쓰면서 나머지 19개 심볼의 일봉까지 매번 받아 응답이 필요 이상으로 컸다(2026-07-31).
@@ -176,10 +186,47 @@
     });
   }
 
+  // 2026-08-05 요청: "(장 마감)" 배지 - 주간선물 정규장은 09:00~15:45(옵션 수급 설명문의
+  // "정규장(09:00~15:45)"과 동일 값, 사용자 확인). 야간선물은 평일 18:00~익일 05:00
+  // (js/kospi-futures.js 헤더 주석·night_futures_ws.py와 동일 값).
+  //
+  // js/quick-indices.js에도 비슷한 marketStatus()가 있지만 그쪽은 야간선물 판정에서 요일을
+  // 안 따져(mins만 봄) 토요일 저녁·일요일 새벽처럼 실제로는 세션이 없는 구간도 "실시간"으로
+  // 잘못 표시한다 - 사용자가 명시적으로 "주말에는 휴장"을 요구해서 여기서는 정확히 따진다.
+  // 야간선물은 "평일 저녁에 열려 다음날 새벽에 닫히는" 세션이라 시작(그날이 평일 저녁)과
+  // 종료(전날이 평일이었던 새벽, 즉 오늘이 화~토)를 따로 확인해야 토요일 밤(금요일 세션의
+  // 정상 연장)은 열림으로, 일요일 새벽(토요일엔 세션이 없었으므로)은 닫힘으로 구분된다.
+  function isMarketOpen(panelKey) {
+    // Date.now()는 방문자 위치와 무관하게 항상 UTC epoch ms라서, 9시간을 더하면 방문자
+    // 로컬 시간대와 상관없이 정확한 KST 시각이 나온다(js/quick-indices.js와 동일 기법).
+    var kst = new Date(Date.now() + 9 * 60 * 60000);
+    var day = kst.getUTCDay(); // 0=일요일 ... 6=토요일
+    var mins = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+    var isWeekday = day >= 1 && day <= 5;
+    if (panelKey === 'day') {
+      return isWeekday && mins >= 9 * 60 && mins < 15 * 60 + 45;
+    }
+    var eveningOpen = isWeekday && mins >= 18 * 60;
+    var earlyMorningOpen = day >= 2 && day <= 6 && mins < 5 * 60;
+    return eveningOpen || earlyMorningOpen;
+  }
+
+  // 가격 fetch 성공/실패와 무관하게(시각은 API 응답 없이도 계산 가능) 항상 최신 상태를
+  // 반영하도록 배지 갱신을 렌더 결과가 아니라 별도 타이머(REFRESH_INTERVAL_MS)로 돌린다.
+  function updateMarketStatusBadges(container) {
+    PANEL_ORDER.forEach(function (symbol) {
+      var badge = container.querySelector('.kf-stat-status[data-symbol="' + symbol + '"]');
+      if (!badge) return;
+      var panelKey = PANEL_KEY_BY_SYMBOL[symbol];
+      badge.textContent = panelKey && !isMarketOpen(panelKey) ? '(장 마감)' : '';
+    });
+  }
+
   function buildShell() {
     var panelCards = PANEL_ORDER.map(function (symbol) {
       return '<div class="kf-stat-card" data-symbol="' + symbol + '">'
-        + '<div class="kf-stat-label">' + escapeHtml(PANEL_LABELS[symbol]) + '</div>'
+        + '<div class="kf-stat-label">' + escapeHtml(PANEL_LABELS[symbol])
+        + ' <span class="kf-stat-status" data-symbol="' + symbol + '"></span></div>'
         + '<div class="kf-stat-body kf-loading">불러오는 중...</div>'
         + '</div>';
     }).join('');
@@ -542,7 +589,8 @@
     var st = panelState[cfg.key];
     if (st.interval === 'minute') {
       var rows = (st.minuteRows || []).filter(function (r) { return r.ts != null; });
-      var points = rows.map(function (r) { return { time: r.ts, open: r.open, high: r.high, low: r.low, close: r.close }; });
+      // KST_OFFSET_SEC: 위 상수 설명 참고 - X축에 실제 거래소(KST) 시:분이 나오도록 보정.
+      var points = rows.map(function (r) { return { time: r.ts + KST_OFFSET_SEC, open: r.open, high: r.high, low: r.low, close: r.close }; });
       renderBigChart(cfg.key, points, 'minute');
       return;
     }
@@ -712,6 +760,7 @@
     container.innerHTML = buildShell();
     wireIntervalToggles(container);
     wireCollapseToggles(container);
+    updateMarketStatusBadges(container); // 가격 fetch를 기다리지 않고 바로 표시
 
     // 차트 라이브러리(CDN)를 데이터 요청과 동시에 받기 시작한다 - 예전엔 /futures 응답이
     // 온 뒤에야 renderBigChart에서 처음 로드해서 첫 차트까지 CDN 왕복이 직렬로 한 번 더
@@ -736,6 +785,7 @@
     refreshTimer = setInterval(function () {
       refresh(container);
       refreshOptionFlow(container);
+      updateMarketStatusBadges(container);
     }, REFRESH_INTERVAL_MS);
 
     if (themeObserver) themeObserver.disconnect();

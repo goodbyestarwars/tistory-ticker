@@ -1423,6 +1423,12 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 13px;
 }
+/* 2026-08-05: 목록 카드는 카테고리 배지를 뺐다(skin.html 주석 참고) - .post-header에
+   날짜 하나만 남아 space-between이 왼쪽으로 붙여버리는 걸 막고 원래처럼 오른쪽에 그대로
+   둔다. 공지 카드(.notice-card)는 배지를 그대로 유지하므로 대상에서 뺀다. */
+.post-card:not(.notice-card) > .post-header {
+  justify-content: flex-end;
+}
 .post-cat-badge {
   font-size: 10.5px;
   font-weight: 700;
@@ -1541,6 +1547,121 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   font-family: inherit;
 }
 .btn-share:hover { background: #e2e8f0; }
+
+/* ============ 카테고리 글목록: 블록 단위 무작위 배치(2026-08-05) ============
+   마켓 브리핑 등 카테고리 글목록을 앞에서부터 순서대로(최신순, 재정렬 없음) 소비하면서
+   [대표 1개 단독 / 히어로(대표1+제목목록 최대4) / 작은 카드 3개 그리드 / 가로 2단] 네 가지
+   블록 타입 중 하나를 무작위로 골라 그만큼씩 묶는다 - 실제 그룹핑·클래스 부여는
+   js/skin-main.js의 buildCategoryFeedBlocks가 담당. */
+.post-card.feed-featured {
+  padding: 26px 28px;
+}
+.post-card.feed-featured .post-title { font-size: 20px; }
+.post-card.feed-featured .post-excerpt {
+  font-size: 14.5px;
+  -webkit-line-clamp: 4;
+}
+
+/* 히어로 블록 - 왼쪽 대표 글(feed-featured 재사용) + 오른쪽 제목 목록(최대 4).
+   "제목만 있는 목록이 혼자 떠 있으면 어색하다"는 지적으로, 제목 목록은 항상 대표 글
+   옆에 붙어서만 나온다(js/skin-main.js buildCategoryFeedBlocks 참고). */
+.feed-block-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.feed-hero-featured-slot { min-width: 0; }
+/* 제목 목록 패널 - 카드 하나하나의 테두리/그림자 대신 목록 전체를 감싸는 패널
+   하나(.feed-block-headline)에 얇은 구분선으로 나눈 행(.feed-headline-item)을 넣는다. */
+.feed-block-headline {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+  padding: 4px 18px;
+}
+/* 2026-08-05: 날짜가 제목 위에 혼자 한 줄을 차지해 밀도가 떨어진다는 지적으로,
+   순서를 뒤집어(order) 제목 다음에 작게 붙는 한 줄로 바꿨다 - 마크업(skin.html)은
+   그대로 두고 flex order만으로 처리해서 다른 블록(기본 카드 등)에는 영향 없다. */
+.post-card.feed-headline-item {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.post-card.feed-headline-item:last-child { border-bottom: none; }
+.post-card.feed-headline-item > a { order: 1; }
+.post-card.feed-headline-item .post-header {
+  order: 2;
+  justify-content: flex-start;
+  margin: 3px 0 0;
+}
+.post-card.feed-headline-item .post-date { font-size: 10.5px; }
+.post-card.feed-headline-item .post-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 14px;
+  margin-bottom: 0;
+}
+.post-card.feed-headline-item .post-excerpt,
+.post-card.feed-headline-item .post-tags,
+.post-card.feed-headline-item .post-footer { display: none; }
+
+/* 작은 카드형 3개 그리드 - 카드 자체 테두리·그림자는 유지한 채(각자 독립 카드) 3단으로 배치. */
+.feed-block-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.post-card.feed-cards-item { padding: 16px 16px; }
+.post-card.feed-cards-item .post-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 14.5px;
+}
+.post-card.feed-cards-item .post-excerpt {
+  -webkit-line-clamp: 2;
+  font-size: 12px;
+}
+.post-card.feed-cards-item .post-tags,
+.post-card.feed-cards-item .btn-share { display: none; }
+
+/* 가로로 나란한 2개 - cards보다 넓어서 발췌문을 조금 더 보여준다. */
+.feed-block-duo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.post-card.feed-duo-item { padding: 18px 20px; }
+.post-card.feed-duo-item .post-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 15px;
+}
+.post-card.feed-duo-item .post-excerpt {
+  -webkit-line-clamp: 2;
+  font-size: 12.5px;
+}
+.post-card.feed-duo-item .post-tags,
+.post-card.feed-duo-item .btn-share { display: none; }
+
+html.dark .feed-block-headline {
+  background: #1A1A1A !important;
+  border: 1px solid rgba(245, 239, 224, 0.2) !important;
+}
+html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 224, 0.12) !important; }
 
 /* ============ 퍼머링크 단일 글 ============ */
 .post-single {
@@ -2996,6 +3117,12 @@ body.iframe-mode .site-footer { display: none !important; }
 
   /* ── 피드 ── */
   .feed { gap: 10px; }
+  .post-card.feed-featured { padding: 18px 16px; }
+  .post-card.feed-featured .post-title { font-size: 17px; }
+  .feed-block-cards { grid-template-columns: 1fr; gap: 10px; }
+  .feed-block-duo { grid-template-columns: 1fr; gap: 10px; }
+  .feed-block-hero { grid-template-columns: 1fr; gap: 10px; }
+  .feed-block-headline { padding: 2px 14px; }
 
   /* ── 서브 필터 ── */
   .sub-filter-bar { padding: 0 8px; }
@@ -3606,14 +3733,13 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
   .sidebar-left .nav-secondary-inner { padding: 0 8px; }
   .sidebar-left .nav-secondary-item { padding: 0 12px; }
 }
-/* 단, 카테고리 글목록(마켓 브리핑 등)에선 우측 사이드바(인기글·해시태그) 유지.
-   공지 카드는 티스토리가 카테고리 화면에 안 내려주므로(빈 #pinnedNotice) 원래 없음.
-   min-width로 감싸는 이유: body#tt-body-category의 ID 셀렉터가 특이도가 높아
-   감싸지 않으면 max-width:1100px/720px 모바일 규칙(.sidebar-right{display:none})을
-   그대로 이겨버려 좁은 화면에서도 사이드바가 강제로 나타나 레이아웃이 깨졌었음. */
-@media (min-width: 1101px) {
-  html.full-width-page body#tt-body-category .sidebar-right { display: flex; }
-}
+/* 2026-08-05: 카테고리 글목록(마켓 브리핑 등)에서 우측 "실시간 랭킹" 위젯을 없애달라는
+   요청으로, 카테고리 화면만 예외로 우측 사이드바를 강제로 띄우던 규칙을 삭제함.
+   이제 위 skin.html head 스크립트의 원래 의도(우측 사이드바는 전체글 "/"에서만 노출)
+   그대로 3523행 `html.full-width-page .sidebar-right { display: none; }` 일반 규칙을 탄다.
+   #sidebar-rank DOM 자체와 js/sidebar-rank.js는 홈 대시보드(오늘의 시장판 카드)가 그대로
+   재사용하므로 삭제하지 않음 - js/sidebar-rank.js 쪽에서 홈이 아닌 화면에서는 아예
+   초기화(폴링)하지 않도록 별도로 막아둠. */
 
 /* 번개 로고: 실제로 내리치듯 한 주기 안에서 두 번 번쩍하고 잠깐 쉬는 패턴을 반복
    (아이콘 자체가 주황/노랑 그라디언트라 글로우도 같은 톤으로 맞춤) */
