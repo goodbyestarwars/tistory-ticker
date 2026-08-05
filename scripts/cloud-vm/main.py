@@ -692,6 +692,12 @@ def strategy_scan_batch(x_api_key: str = Header(default=None)):
     return envelope(cached)
 
 
+# 분봉을 "읽을 수 있는" 심볼 집합 - domestic_futures.MINUTE_SYMBOLS(주간선물만, 도메스틱
+# 수집기 자신이 갱신하는 범위)와 night_futures_ws.py가 별도 소스(KIS 웹소켓)로 채우는
+# KOSPI200_NIGHT을 합친 것. 아래 futures() 독스트링 2026-08-05 항목 참고.
+_MINUTE_CHART_READ_SYMBOLS = domestic_futures.MINUTE_SYMBOLS | {'KOSPI200_NIGHT'}
+
+
 @app.get('/futures')
 def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
     """보조지수/코스피 선물 페이지 전용 - 미국 현물지수 3종+선물 3종/SOX/VIX/WTI(네이버) +
@@ -709,8 +715,8 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
     2026-07-16(4차): 코스피 선물 페이지의 분봉/일봉/주봉 전환 + 일봉 범위 확대 지원.
     days는 기존 호출부(관심지수 리본/보조지수)의 기본 동작을 안 건드리려고 기본값을 90으로
     유지하고, 코스피 선물 페이지만 명시적으로 더 큰 값을 요청한다. interval='minute'는
-    domestic_futures.MINUTE_SYMBOLS에 있는 심볼(현재 KOSPI200_DAY만)만 분봉으로 바뀌고
-    나머지는 그 심볼에 분봉 소스가 없어 평소처럼 일봉을 반환한다(부분 적용 - 에러 아님).
+    _MINUTE_CHART_READ_SYMBOLS에 있는 심볼만 분봉으로 바뀌고 나머지는 그 심볼에 분봉 소스가
+    없어 평소처럼 일봉을 반환한다(부분 적용 - 에러 아님).
     2026-07-16(5차): 야간선물도 분봉 지원 추가(MINUTE_SYMBOLS에 KOSPI200_NIGHT 포함) +
     미결제약정(oi/oi_change) 필드 노출(야간선물만 값이 있고 나머지 심볼은 null).
     2026-07-31: symbols(쉼표 구분) 파라미터 추가 - 응답에 실을 심볼을 아래 order 화이트리스트
@@ -718,7 +724,13 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
     분봉 요청이 브라우저 타임아웃(10초)에 걸리던 문제 대응. 미지정이면 기존과 완전히 동일하게
     전체를 반환하므로 관심지수 리본/보조지수 등 기존 호출부는 영향 없다.
     2026-07-31(2차): 같은 파라미터 조합에 대한 짧은 TTL 메모리 캐시(_FUTURES_TTL) 추가 -
-    리본/페이지/GAS가 같은 쿼리를 겹쳐 호출하던 중복 DB 조회를 없앤다."""
+    리본/페이지/GAS가 같은 쿼리를 겹쳐 호출하던 중복 DB 조회를 없앤다.
+    2026-08-05: 야간선물 분봉이 아예 응답에 안 실리는 회귀 수정 - 2026-08-03에
+    domestic_futures.MINUTE_SYMBOLS에서 KOSPI200_NIGHT을 뺀 건 "도메스틱 수집기 자신이 갱신할
+    심볼"(쓰기 범위, night_futures_ws.py가 이미 별도로 채우고 있어 도메스틱 수집기까지 손대면
+    서로 덮어쓰는 버그가 있었음)만 좁힌 것이었는데, 아래 분봉 판정이 같은 집합을 "분봉이
+    존재할 수 있는 심볼"(읽기 범위) 게이트로도 재사용하고 있어 KOSPI200_NIGHT 분봉까지 통째로
+    빠지는 부작용이 있었다. 이제 _MINUTE_CHART_READ_SYMBOLS(아래)로 분리한다."""
     days = max(1, min(days, 500))
     started = time.time()
     cache_key = (interval, days, symbols)
@@ -743,7 +755,7 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
         result = []
         for symbol in order:
             p = prices.get(symbol)
-            if interval == 'minute' and symbol in domestic_futures.MINUTE_SYMBOLS:
+            if interval == 'minute' and symbol in _MINUTE_CHART_READ_SYMBOLS:
                 chart = db_schema.load_future_chart_minute(conn, symbol)
             else:
                 chart = db_schema.load_future_chart(conn, symbol, limit_days=days)
