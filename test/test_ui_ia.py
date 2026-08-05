@@ -206,6 +206,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("timeVisible: timeframe === 'minute'", source)
         self.assertIn("lwcThemeOptions(LWC, timeframe)", source)
 
+    def test_stock_search_minute_chart_time_matches_kst_not_utc(self):
+        # 2026-08-05(4차) 사용자 리포트: timeVisible을 켠 뒤 시:분이 09:30이 아니라
+        # 00:30처럼 9시간 이르게 나왔음 - Lightweight Charts가 UNIX 타임스탬프를 항상
+        # UTC 기준으로 표시하기 때문에, 실제 KST를 정확히 UTC로 환산해 넣으면(+09:00)
+        # 표시는 9시간 밀려 보인다. 'Z'로 넣어 "KST 시:분 숫자를 UTC인 척" 만들어야
+        # 화면에 09:30이 그대로 찍힌다.
+        source = self.read("js/stock-search.js")
+        self.assertIn("new Date(r.date + 'T' + r.time + ':00Z')", source)
+        self.assertNotIn("new Date(r.date + 'T' + r.time + ':00+09:00')", source)
+
     def test_stock_search_reuses_order_book_realtime_socket(self):
         # 2026-08-05(3차) 사용자 리포트: 상단 요약과 호가창이 서로 다른 가격을 보여줬음 -
         # 원인은 같은 코드에 WebSocket을 2개(order-book.js 것 + stock-search.js 자체 것)
