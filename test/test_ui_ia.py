@@ -19,7 +19,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         )
         self.assertEqual(source.count("      label: '시장',"), 1)
         self.assertEqual(source.count("      label: '종목',"), 1)
-        self.assertEqual(source.count("      label: '패턴·발굴',"), 1)
+        self.assertEqual(source.count("      label: '종목검색',"), 1)
         self.assertNotIn("label: '종목뉴스'", source)
         self.assertIn("label: '실시간 시세'", source)
         self.assertIn("{ href: '/page/watchlist', label: 'MY' }", source)

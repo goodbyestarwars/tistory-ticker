@@ -48,12 +48,21 @@ class BuildMatchTests(unittest.TestCase):
             {'date': '2026-01-01', 'open': 100, 'high': 105, 'low': 95, 'close': 100, 'volume': 1},
             {'date': '2026-01-02', 'open': 100, 'high': 112, 'low': 99, 'close': 110, 'volume': 1},
         ]
-        result = {'date': '2026-01-02', 'confidence': 1.0}
+        result = {'date': '2026-01-02', 'confidence': 1.0, 'entry': {'passed': True, 'matched': 2, 'total': 2}}
         match = strategy_scan.build_match({'code': '005930', 'name': '삼성전자'}, daily, result)
         self.assertEqual(match['code'], '005930')
         self.assertEqual(match['price'], 110)
         self.assertAlmostEqual(match['changeRate'], 10.0)
         self.assertEqual(match['confidence'], 1.0)
+        self.assertEqual(match['matched'], 2)
+        self.assertEqual(match['total'], 2)
+
+    def test_build_match_tolerates_missing_entry_key(self):
+        daily = [{'date': '2026-01-01', 'open': 100, 'high': 105, 'low': 95, 'close': 100, 'volume': 1}]
+        result = {'date': '2026-01-01', 'confidence': 0.5}  # entry 키 없음
+        match = strategy_scan.build_match({'code': '000660', 'name': 'SK하이닉스'}, daily, result)
+        self.assertIsNone(match['matched'])
+        self.assertIsNone(match['total'])
 
     def test_change_rate_none_with_single_bar(self):
         daily = [{'date': '2026-01-01', 'open': 100, 'high': 105, 'low': 95, 'close': 100, 'volume': 1}]

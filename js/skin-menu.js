@@ -24,9 +24,10 @@
       ]
     },
     {
-      label: '패턴·발굴',
+      label: '종목검색',
       children: [
-        { href: '/page/pattern-scan', label: '차트패턴 스캐너' }
+        { href: '/page/pattern-scan', label: '차트검색' },
+        { href: '/page/strategy-search', label: '전략검색' }
       ]
     },
     { href: '/page/stock-calendar', label: '캘린더' },

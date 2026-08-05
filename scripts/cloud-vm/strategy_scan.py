@@ -99,6 +99,7 @@ def build_match(stock, daily, result):
     last = daily[-1]
     prev = daily[-2] if len(daily) > 1 else None
     change_rate = ((last['close'] - prev['close']) / prev['close'] * 100) if (prev and prev['close']) else None
+    entry = result.get('entry') or {}
     return {
         'code': stock['code'],
         'name': stock['name'],
@@ -106,6 +107,9 @@ def build_match(stock, daily, result):
         'changeRate': change_rate,
         'date': result['date'],
         'confidence': result['confidence'],
+        # 화면 배지("2/2 충족")용 - kisyaml_strategy.evaluate()의 entry 조건 충족 개수/전체.
+        'matched': entry.get('matched'),
+        'total': entry.get('total'),
     }
 
 

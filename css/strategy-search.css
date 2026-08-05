@@ -1,0 +1,222 @@
+/* ============ 전략검색 ============ */
+
+#strategy-search .ss-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+#strategy-search .ss-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+#strategy-search .ss-tab {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+}
+
+#strategy-search .ss-tab.active {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+
+#strategy-search .ss-meta {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+#strategy-search .ss-tab-desc {
+  font-size: 12.5px;
+  color: #6b7280;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+#strategy-search .ss-cat-chip {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #9ca3af;
+  background: #f1f5f9;
+  border-radius: 5px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+#strategy-search .ss-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+#strategy-search .ss-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+#strategy-search .ss-item-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+#strategy-search .ss-name {
+  max-width: 100%;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#strategy-search .ss-code {
+  font-size: 11px;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 3px;
+}
+
+#strategy-search .ss-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7c5cff;
+  background: #efeaff;
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+/* breakout_fail(손절 카테고리) 전용 - 매수 신호가 아니라 이탈 경보라는 걸 색으로도 구분 */
+#strategy-search .ss-badge-warn {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+#strategy-search .ss-quote {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+#strategy-search .ss-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+#strategy-search .ss-rate {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+#strategy-search .ss-up { color: #d24f45; }
+#strategy-search .ss-down { color: #1261c4; }
+#strategy-search .ss-flat { color: #9ca3af; }
+
+#strategy-search .ss-hint,
+#strategy-search .ss-error {
+  grid-column: 1 / -1;
+  padding: 28px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+#strategy-search .ss-error { color: #d24f45; }
+
+/* ============ 모바일 ============ */
+@media (max-width: 480px) {
+  #strategy-search .ss-tab {
+    padding: 7px 11px;
+    font-size: 12px;
+  }
+  #strategy-search .ss-item {
+    padding: 9px 11px;
+  }
+  #strategy-search .ss-list {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+/* ============ 다크모드 ============ */
+/* css/pattern-scan.css와 동일한 팔레트(#1A1A1A 배경 + #F5EFE0 글자, 등락색은 의미가
+   있어 별도 유지)로 사이트 전체 다크모드와 통일한다. */
+html.dark #strategy-search .ss-tab {
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.2);
+  color: rgba(245, 239, 224, 0.8) !important;
+}
+html.dark #strategy-search .ss-tab.active {
+  background: rgba(245, 239, 224, 0.22);
+  border-color: rgba(245, 239, 224, 0.4);
+  color: #F5EFE0 !important;
+}
+html.dark #strategy-search .ss-meta {
+  color: rgba(245, 239, 224, 0.5) !important;
+}
+html.dark #strategy-search .ss-tab-desc {
+  color: rgba(245, 239, 224, 0.6) !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.14) !important;
+}
+html.dark #strategy-search .ss-cat-chip {
+  color: rgba(245, 239, 224, 0.5) !important;
+  background: rgba(245, 239, 224, 0.08) !important;
+}
+html.dark #strategy-search .ss-item {
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.14);
+}
+html.dark #strategy-search .ss-name {
+  color: #F5EFE0 !important;
+}
+html.dark #strategy-search .ss-code {
+  color: rgba(245, 239, 224, 0.5) !important;
+}
+html.dark #strategy-search .ss-price {
+  color: #F5EFE0 !important;
+}
+html.dark #strategy-search .ss-up { color: #ff6b6b !important; }
+html.dark #strategy-search .ss-down { color: #4dabf7 !important; }
+html.dark #strategy-search .ss-flat { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #strategy-search .ss-hint,
+html.dark #strategy-search .ss-error {
+  color: rgba(245, 239, 224, 0.6) !important;
+}
+html.dark #strategy-search .ss-badge {
+  color: #b8a7ff !important;
+  background: rgba(167, 139, 250, 0.16) !important;
+}
+html.dark #strategy-search .ss-badge-warn {
+  color: #fbbf24 !important;
+  background: rgba(251, 191, 36, 0.14) !important;
+}
