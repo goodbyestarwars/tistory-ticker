@@ -27,7 +27,7 @@
       label: '종목검색',
       children: [
         { href: '/page/pattern-scan', label: '차트검색' },
-        { href: '/page/strategy-search', label: '저평가 종목' }
+        { href: '/page/strategy-search', label: '전략검색' }
       ]
     },
     { href: '/page/stock-calendar', label: '캘린더' },

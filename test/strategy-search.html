@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>strategy-search(저평가 종목) 로컬 테스트</title>
+<title>strategy-search 로컬 테스트</title>
 <link rel="stylesheet" href="../css/strategy-search.css" />
 <style>
   body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
@@ -15,9 +15,9 @@
 <body>
 
 <div class="page-body">
-  <h1>strategy-search(저평가 종목) 로컬 테스트</h1>
+  <h1>strategy-search 로컬 테스트</h1>
   <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-  <p style="font-size:13px;color:#888">mock 데이터로 섹터별 카드/행 + 판정 근거(이격도·ROE) 표시 + 클릭 이동을 확인. 실제 GAS/VM 호출은 배포 후 별도 확인.</p>
+  <p style="font-size:13px;color:#888">mock 데이터로 카테고리 탭 전환(저평가 종목 + 두 번째 mock 카테고리로 확장성 확인) + 섹터별 카드/행 + 판정 근거(이격도·ROE) 표시 + 클릭 이동을 확인. 실제 GAS/VM 호출은 배포 후 별도 확인.</p>
   <div id="strategy-search"></div>
 </div>
 
@@ -30,23 +30,39 @@
     };
   }
 
-  var mockSectors = {
-    'IT': {
-      name: 'IT',
-      matches: [
-        match('005930', '삼성전자', 68400, -1.2, 84.3, 12.1, 38.2),
-        match('000660', 'SK하이닉스', 174500, 0.6, 88.7, 21.4, 55.0)
-      ]
+  var mockCategories = {
+    undervalued: {
+      name: '저평가 종목',
+      methodology: '펀더멘탈 점수(DART ROE·부채비율 기준) 60점 이상 + 120일 이동평균 대비 90% 이하로 가격이 눌린 종목만 후보로 삼고, 섹터별로 가장 많이 눌린 상위 5개만 보여줍니다. PER·PBR 같은 실제 밸류에이션 데이터가 없어 "장기 추세 대비 가격 눌림"으로 근사한 것이라 진짜 저평가(이익·자산 대비 싼 가격)와는 다를 수 있습니다.',
+      sectors: {
+        'IT': {
+          name: 'IT',
+          matches: [
+            match('005930', '삼성전자', 68400, -1.2, 84.3, 12.1, 38.2),
+            match('000660', 'SK하이닉스', 174500, 0.6, 88.7, 21.4, 55.0)
+          ]
+        },
+        '금융': {
+          name: '금융',
+          matches: [
+            match('105560', 'KB금융', 82600, -0.4, 86.1, 10.8, 120.5)
+          ]
+        },
+        '산업재': { name: '산업재', matches: [] }
+      }
     },
-    '금융': {
-      name: '금융',
-      matches: [
-        match('105560', 'KB금융', 82600, -0.4, 86.1, 10.8, 120.5)
-      ]
-    },
-    '산업재': {
-      name: '산업재',
-      matches: []
+    // 카테고리 탭이 앞으로 계속 늘어난다는 걸 로컬에서도 확인할 수 있도록 넣은 두 번째
+    // mock 카테고리(실제 서버 구현은 아직 없음) - 전략검색이 "저평가 종목 전용 페이지"가
+    // 아니라 여러 카테고리를 담는 탭 틀이라는 걸 시각적으로 보여준다.
+    momentum_placeholder: {
+      name: '모멘텀(예시)',
+      methodology: '실제 구현 전 - 탭이 여러 개일 때 전환이 정상 동작하는지 확인하기 위한 mock 카테고리입니다.',
+      sectors: {
+        '경기소비재': {
+          name: '경기소비재',
+          matches: [match('035420', 'NAVER', 220000, 2.3, 105.4, 15.0, 42.0)]
+        }
+      }
     }
   };
 
@@ -61,8 +77,7 @@
         skippedIlliquid: 420,
         skippedNoSector: 53,
         skippedNoFundamentals: 200,
-        methodology: '펀더멘탈 점수(DART ROE·부채비율 기준) 60점 이상 + 120일 이동평균 대비 90% 이하로 가격이 눌린 종목만 후보로 삼고, 섹터별로 가장 많이 눌린 상위 5개만 보여줍니다. PER·PBR 같은 실제 밸류에이션 데이터가 없어 "장기 추세 대비 가격 눌림"으로 근사한 것이라 진짜 저평가(이익·자산 대비 싼 가격)와는 다를 수 있습니다.',
-        sectors: mockSectors
+        categories: mockCategories
       });
     }
     return Promise.resolve({});

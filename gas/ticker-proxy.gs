@@ -2377,18 +2377,19 @@ function getPatternScanResult() {
   };
 }
 
-// 전략검색(js/strategy-search.js, "저평가 종목") - VM의 strategy_scan.py(하루 1회 systemd
-// timer, daily_scan 20분 뒤)가 전종목을 미리 스캔해둔 결과를 그대로 재포장한다 -
+// 전략검색(js/strategy-search.js) - VM의 strategy_scan.py(하루 1회 systemd timer,
+// daily_scan 20분 뒤)가 전종목을 미리 스캔해둔 결과를 그대로 재포장한다 -
 // getPatternScanResult()와 동일 패턴(캐시 없이 매 요청 kiwoomVmFetch_ 호출, VM 쪽이 이미
-// 파일 캐시라 가벼움). 2026-08 전면개편으로 kisyaml 프리셋 10개(전략별 탭)를 폐기하고
-// "저평가 종목" 단일 스캔(WICS 섹터별 그룹)으로 바뀌면서 strategy_scan.py 출력 모양도
-// strategies(전략id->매칭)에서 sectors(섹터명->매칭)로 바뀌었다.
+// 파일 캐시라 가벼움). 2026-08: kisyaml 프리셋 10개(전략별 탭)를 폐기하고 "저평가 종목"을
+// 첫 카테고리로 신설했다 - "전략검색"은 여러 카테고리를 탭으로 보여주는 틀이고 저평가
+// 종목은 그 중 하나일 뿐이라(계속 추가 예정), strategy_scan.py 출력이 categories(카테고리
+// id -> {name, methodology, sectors}) 구조로 한 겹 감싸져 있다.
 function getStrategyScanResult() {
   var data = kiwoomVmFetch_('/strategy-scan-batch');
   if (!data) {
     return {
       scannedAt: null, scanned: 0, universe: 0, skippedNoData: 0, skippedIlliquid: 0,
-      skippedNoSector: 0, skippedNoFundamentals: 0, methodology: '', sectors: {}
+      skippedNoSector: 0, skippedNoFundamentals: 0, categories: {}
     };
   }
   return {
@@ -2399,8 +2400,7 @@ function getStrategyScanResult() {
     skippedIlliquid: data.skippedIlliquid || 0,
     skippedNoSector: data.skippedNoSector || 0,
     skippedNoFundamentals: data.skippedNoFundamentals || 0,
-    methodology: data.methodology || '',
-    sectors: data.sectors || {}
+    categories: data.categories || {}
   };
 }
 
