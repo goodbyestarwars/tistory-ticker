@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>strategy-search 로컬 테스트</title>
+<title>strategy-search(저평가 종목) 로컬 테스트</title>
 <link rel="stylesheet" href="../css/strategy-search.css" />
 <style>
   body { font-family: 'Nanum Myeongjo', Georgia, serif; margin: 0; background: #fff; }
@@ -15,45 +15,38 @@
 <body>
 
 <div class="page-body">
-  <h1>strategy-search 로컬 테스트</h1>
+  <h1>strategy-search(저평가 종목) 로컬 테스트</h1>
   <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-  <p style="font-size:13px;color:#888">mock 데이터로 프리셋 탭 전환 + 카드/행 스타일 종목 리스트 + breakout_fail 경보 행 강조 + 클릭 이동을 확인. 실제 GAS/VM 호출은 배포 후 별도 확인.</p>
+  <p style="font-size:13px;color:#888">mock 데이터로 섹터별 카드/행 + 판정 근거(이격도·ROE) 표시 + 클릭 이동을 확인. 실제 GAS/VM 호출은 배포 후 별도 확인.</p>
   <div id="strategy-search"></div>
 </div>
 
 <script src="../js/strategy-search.js"></script>
 <script>
-  function match(code, name, price, rate, matched, total) {
-    return { code: code, name: name, price: price, changeRate: rate, date: '2026-08-05', confidence: matched / total, matched: matched, total: total };
+  function match(code, name, price, rate, disparity, roe, debtRatio) {
+    return {
+      code: code, name: name, price: price, changeRate: rate, date: '2026-08-05',
+      disparity: disparity, fundamentalScore: 72, roe: roe, debtRatio: debtRatio
+    };
   }
 
-  var mockStrategies = {
-    golden_cross: {
-      name: '골든크로스', category: 'trend',
-      description: '5일 이동평균선이 20일 이동평균선을 상향 돌파하면 매수',
+  var mockSectors = {
+    'IT': {
+      name: 'IT',
       matches: [
-        match('005930', '삼성전자', 78400, 1.8, 2, 2),
-        match('000660', 'SK하이닉스', 214500, 3.2, 2, 2)
+        match('005930', '삼성전자', 68400, -1.2, 84.3, 12.1, 38.2),
+        match('000660', 'SK하이닉스', 174500, 0.6, 88.7, 21.4, 55.0)
       ]
     },
-    week52_high: {
-      name: '52주 신고가', category: 'breakout',
-      description: '종가가 직전 252거래일(약 52주) 고점을 새로 넘어서면 매수',
+    '금융': {
+      name: '금융',
       matches: [
-        match('373220', 'LG에너지솔루션', 452500, 2.9, 1, 1)
+        match('105560', 'KB금융', 82600, -0.4, 86.1, 10.8, 120.5)
       ]
     },
-    disparity: {
-      name: '이격도', category: 'reversion',
-      description: '종가가 20일 이동평균 대비 8% 넘게 아래로 벌어지면(과매도) 매수',
+    '산업재': {
+      name: '산업재',
       matches: []
-    },
-    breakout_fail: {
-      name: '돌파 실패', category: 'stop_loss',
-      description: '직전 20일 고점을 넘봤다가 다시 그 아래로 밀리면 경보 - 매수 신호가 아니라 이탈 경보',
-      matches: [
-        match('096770', 'SK이노베이션', 128500, -2.1, 1, 1)
-      ]
     }
   };
 
@@ -62,11 +55,14 @@
     if (url.indexOf('strategyScan=1') > -1) {
       return Promise.resolve({
         scannedAt: '2026-08-05T07:20:00Z',
-        scanned: 3120,
-        universe: 3913,
-        skippedNoData: 210,
-        skippedIlliquid: 583,
-        strategies: mockStrategies
+        scanned: 2140,
+        universe: 2913,
+        skippedNoData: 300,
+        skippedIlliquid: 420,
+        skippedNoSector: 53,
+        skippedNoFundamentals: 200,
+        methodology: '펀더멘탈 점수(DART ROE·부채비율 기준) 60점 이상 + 120일 이동평균 대비 90% 이하로 가격이 눌린 종목만 후보로 삼고, 섹터별로 가장 많이 눌린 상위 5개만 보여줍니다. PER·PBR 같은 실제 밸류에이션 데이터가 없어 "장기 추세 대비 가격 눌림"으로 근사한 것이라 진짜 저평가(이익·자산 대비 싼 가격)와는 다를 수 있습니다.',
+        sectors: mockSectors
       });
     }
     return Promise.resolve({});

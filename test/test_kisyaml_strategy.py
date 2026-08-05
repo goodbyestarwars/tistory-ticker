@@ -210,59 +210,13 @@ class NewIndicatorTests(unittest.TestCase):
         self.assertGreater(pct2[3], 0)
 
 
-class TenPresetTests(unittest.TestCase):
-    """README '10개 프리셋 전략' 표 전부를 kisyaml로 옮긴 strategies/*.kis.yaml이 실제
-    daily_prices 모양 데이터에 대해 예외 없이 평가되는지 확인한다(정확한 매수 시그널
-    여부보다 '깨지지 않고 결과 스키마를 지키는지'가 목적 - 각 프리셋의 세부 판정은
-    IndicatorTests/NewIndicatorTests에서 별도 검증)."""
-
-    PRESET_IDS = [
-        'golden_cross', 'momentum', 'trend_filter', 'week52_high', 'consecutive',
-        'disparity', 'breakout_fail', 'strong_close', 'volatility', 'mean_reversion',
-    ]
-
-    @classmethod
-    def setUpClass(cls):
-        # 시드 고정 의사난수 - 300거래일치(week52_high가 최소 253일 필요)를 재현 가능하게 생성.
-        import random
-        rnd = random.Random(42)
-        price = 10000.0
-        daily = []
-        for i in range(300):
-            price = max(100.0, price * (1 + rnd.uniform(-0.03, 0.032)))
-            high = price * (1 + rnd.uniform(0, 0.02))
-            low = price * (1 - rnd.uniform(0, 0.02))
-            daily.append({
-                'date': '2026-%03d' % i,
-                'open': price, 'high': high, 'low': low, 'close': price,
-                'volume': 1000 + i,
-            })
-        cls.daily = daily
-
-    def test_all_ten_presets_exist(self):
-        strategies_dir = os.path.join(CLOUD_VM_DIR, 'strategies')
-        found = {f[:-len('.kis.yaml')] for f in os.listdir(strategies_dir) if f.endswith('.kis.yaml')}
-        missing = set(self.PRESET_IDS) - found
-        self.assertFalse(missing, '누락된 프리셋 파일: %s' % missing)
-
-    def test_all_ten_presets_evaluate_without_error(self):
-        strategies_dir = os.path.join(CLOUD_VM_DIR, 'strategies')
-        for preset_id in self.PRESET_IDS:
-            path = os.path.join(strategies_dir, preset_id + '.kis.yaml')
-            strategy = kisyaml_strategy.load_strategy_file(path)
-            self.assertEqual(strategy['strategy']['id'], preset_id)
-            result = kisyaml_strategy.evaluate(strategy, self.daily)
-            self.assertIn(result['action'], ('BUY', 'SELL', 'HOLD'))
-            self.assertGreaterEqual(result['confidence'], 0.0)
-            self.assertLessEqual(result['confidence'], 1.0)
-
-
-class ExampleFileTests(unittest.TestCase):
-    def test_bundled_example_files_parse(self):
-        strategies_dir = os.path.join(CLOUD_VM_DIR, 'strategies')
-        for fname in os.listdir(strategies_dir):
-            if fname.endswith('.kis.yaml'):
-                kisyaml_strategy.load_strategy_file(os.path.join(strategies_dir, fname))
+# 2026-08: scripts/cloud-vm/strategies/*.kis.yaml(10개 프리셋)는 "매칭=항상 100%"라는
+# 구조적 한계와 변별력 부족 피드백으로 전량 삭제되고 strategy_scan.py가 완전히 다른
+# 데이터 모델(저평가 스캔, test/test_strategy_scan.py)로 재작성됐다 - 예전엔 여기 그
+# 10개 프리셋 파일이 실제로 존재하는지/예외 없이 평가되는지 검증하는 TenPresetTests/
+# ExampleFileTests가 있었지만, 검증 대상 자체가 없어져 제거했다. kisyaml_strategy.py
+# 엔진 자체(파서·지표·evaluate())는 이 파일의 나머지 테스트들이 인라인 YAML 문자열로
+# 계속 검증한다 - 다른 프리셋 기반 기능이 다시 필요해지면 그대로 재사용 가능.
 
 
 if __name__ == '__main__':

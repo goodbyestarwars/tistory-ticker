@@ -1,14 +1,15 @@
 #!/bin/bash
-# kiwoom-strategyscan.service/.timer를 등록해서 strategy_scan.py(kisyaml 프리셋 전략
-# 전종목 스캔)가 하루 1회(16:20 KST=07:20 UTC) 자동 실행되게 한다. daily_scan.py
-# (16:00 KST)가 그날의 daily_prices를 다 채운 뒤에 돌아야 하므로 20분 뒤로 잡았다.
+# kiwoom-strategyscan.service/.timer를 등록해서 strategy_scan.py(저평가 종목 전종목 스캔
+# - 2026-08 전엔 kisyaml 프리셋 전략 스캔이었음)가 하루 1회(16:20 KST=07:20 UTC) 자동
+# 실행되게 한다. daily_scan.py(16:00 KST)가 그날의 daily_prices를 다 채운 뒤에 돌아야
+# 하므로 20분 뒤로 잡았다.
 # VM에서 한 번만 실행하면 됨: bash scripts/cloud-vm/setup_strategyscan_timer.sh
 set -e
 HOME_DIR="$HOME/kiwoom-api"
 
 sudo tee /etc/systemd/system/kiwoom-strategyscan.service > /dev/null << SERVICEEOF
 [Unit]
-Description=Kiwoom kisyaml strategy scan (full universe, DB-only, no external API calls)
+Description=Kiwoom undervalued-stock scan (full universe, DB-only, no external API calls)
 
 [Service]
 Type=oneshot

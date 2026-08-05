@@ -2377,24 +2377,30 @@ function getPatternScanResult() {
   };
 }
 
-// 2026-08-05: 전략검색(js/strategy-search.js) - VM의 strategy_scan.py(하루 1회 systemd timer,
-// daily_scan 20분 뒤)가 kisyaml 프리셋 전략(scripts/cloud-vm/strategies/*.kis.yaml, 현재
-// 10개)으로 전종목을 미리 스캔해둔 결과를 그대로 재포장한다 - getPatternScanResult()와 동일
-// 패턴(캐시 없이 매 요청 kiwoomVmFetch_ 호출, VM 쪽이 이미 파일 캐시라 가벼움).
+// 전략검색(js/strategy-search.js, "저평가 종목") - VM의 strategy_scan.py(하루 1회 systemd
+// timer, daily_scan 20분 뒤)가 전종목을 미리 스캔해둔 결과를 그대로 재포장한다 -
+// getPatternScanResult()와 동일 패턴(캐시 없이 매 요청 kiwoomVmFetch_ 호출, VM 쪽이 이미
+// 파일 캐시라 가벼움). 2026-08 전면개편으로 kisyaml 프리셋 10개(전략별 탭)를 폐기하고
+// "저평가 종목" 단일 스캔(WICS 섹터별 그룹)으로 바뀌면서 strategy_scan.py 출력 모양도
+// strategies(전략id->매칭)에서 sectors(섹터명->매칭)로 바뀌었다.
 function getStrategyScanResult() {
   var data = kiwoomVmFetch_('/strategy-scan-batch');
   if (!data) {
-    return { scannedAt: null, scanned: 0, universe: 0, skippedNoData: 0, skippedIlliquid: 0, strategies: {} };
+    return {
+      scannedAt: null, scanned: 0, universe: 0, skippedNoData: 0, skippedIlliquid: 0,
+      skippedNoSector: 0, skippedNoFundamentals: 0, methodology: '', sectors: {}
+    };
   }
   return {
     scannedAt: data.scannedAt || null,
     scanned: data.scanned || 0,
     universe: data.universe || 0,
-    // 2026-08-05: 유동성 하한 필터(strategy_scan.py MIN_AVG_TURNOVER) 추가로 생긴 필드 -
-    // 화면(js/strategy-search.js)에서 "왜 종목이 이만큼밖에 안 남았나"를 설명하는 데 씀.
     skippedNoData: data.skippedNoData || 0,
     skippedIlliquid: data.skippedIlliquid || 0,
-    strategies: data.strategies || {}
+    skippedNoSector: data.skippedNoSector || 0,
+    skippedNoFundamentals: data.skippedNoFundamentals || 0,
+    methodology: data.methodology || '',
+    sectors: data.sectors || {}
   };
 }
 
