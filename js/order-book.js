@@ -61,7 +61,12 @@
     realtimeSocket: null,
     realtimeReconnectTimer: null,
     realtimeKeepaliveTimer: null,
-    realtimeGeneration: 0
+    realtimeGeneration: 0,
+    onQuote: null // 2026-08-05: 이 위젯을 임베드하는 상위 페이지(js/stock-search.js)가 자기
+                  // 화면의 가격 표시도 같은 틱으로 갱신하고 싶을 때 쓰는 훅. 상위 페이지가
+                  // 별도로 wss://.../ws/quotes 소켓을 또 열면(같은 코드에 소켓 2개) 두 소켓의
+                  // 수신 타이밍이 어긋나 서로 다른 가격이 잠깐씩 보이는 문제가 있어서(실측
+                  // 리포트), 소켓은 이 위젯 하나만 열고 값만 콜백으로 전달한다.
   };
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
@@ -81,10 +86,13 @@
   // 페이지 1개당 위젯 1개) 모듈 전역 state를 그대로 공유해도 안전하다.
   // opts.hideSearch: true면 자체 검색창(.ob-search)을 안 그림 - 증시검색은 상위 페이지의
   // 검색 결과 클릭으로 종목이 정해지므로 이 위젯 안에 검색창이 하나 더 있으면 중복이다.
+  // opts.onQuote: 실시간 체결가 WebSocket 틱마다 호출되는 콜백(quote 그대로 전달) - 상위
+  // 페이지가 이 위젯의 소켓 하나를 그대로 재사용할 수 있게 한다(위 state.onQuote 주석 참고).
   function init(selector, opts) {
     var container = document.querySelector(selector || CONTAINER_SELECTOR);
     if (!container) return;
     container.innerHTML = buildShell(opts);
+    state.onQuote = (opts && opts.onQuote) || null;
     if (!opts || !opts.hideSearch) wireSearch(container);
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stopRealtimeQuote();
@@ -321,6 +329,8 @@
     if (currentPrice) currentPrice.textContent = priceText;
     var currentChange = board.querySelector('[data-field="current-change"]');
     if (currentChange) currentChange.textContent = changeText;
+
+    if (state.onQuote) state.onQuote(quote);
   }
 
   function tick(container) {
