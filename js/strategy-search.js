@@ -8,8 +8,15 @@
  * 객체 키를 그대로 쓰므로, 서버 쪽 프리셋이 늘거나 줄어도 이 파일을 고칠 필요가 없다.
  *
  * breakout_fail(카테고리 stop_loss, "돌파 실패")은 매수 신호가 아니라 "전고점을 다시
- * 하회했다"는 이탈 경보다(scripts/cloud-vm/strategy_scan.py 참고) - 이 카테고리만 배지를
- * 다르게(⚠ 이탈 경보) 표시한다.
+ * 하회했다"는 이탈 경보다(scripts/cloud-vm/strategy_scan.py 참고) - 이 카테고리만 행을
+ * 다르게(⚠ 접두사 + 경고색 강조) 표시한다.
+ *
+ * 리스트 시각 스타일은 js/sector-dashboard-v4.js의 카드(제목 앞 파란 바)/행(종목명·가격·
+ * 등락률) 구성을 그대로 옮겨왔다(2026-08 UI 피드백) - 다만 두 페이지가 서로 다른 Tistory
+ * Page라 CSS를 공유하지 않으므로, 클래스는 여기서 ss- 접두사로 새로 정의한다(같은 이름
+ * 재사용 아님). 시장 구분(KOSPI=P/KOSDAQ=Q) 뱃지는 sector-dashboard-v4.js가 쓰는
+ * data/sectors-v3.js(curated ~238종목, market 필드 있음)와 달리 이 위젯의 대상은 전종목
+ * (data/krx_map.js, market 필드 없음)이라 데이터가 없어 넣지 않았다.
  */
 (function (global) {
   'use strict';
@@ -63,14 +70,21 @@
       + '<div class="ss-tabs" id="ssTabs"></div>'
       + '<div class="ss-meta" id="ssMeta"></div>'
       + '</div>'
-      + '<div class="ss-tab-desc" id="ssDesc"></div>'
-      + '<div class="ss-list" id="ssList"></div>';
+      + '<div id="ssList"></div>'
+      // .kis.yaml 포맷 출처 - kisyaml_strategy.py 모듈 독스트링 참고("포맷 출처: 한국투자증권
+      // open-trading-api strategy_builder README"). 실제 진입/청산 조건과 임계값은 골든크로스
+      // 1개(원본 README 예시, author: KIS)를 뺀 나머지 9개를 9Pay가 그 포맷 위에서 직접
+      // 구성한 것이라 "10개 전략 자체가 한투증권 제공"이라고 쓰면 부정확하다 - 포맷 출처만
+      // 정확히 밝힌다.
+      + '<div class="ss-footnote">'
+      + '전략 조건은 한국투자증권(KIS) open-trading-api strategy_builder의 .kis.yaml 포맷을 기반으로 구성했습니다. '
+      + '(골든크로스는 원본 README 예시, 나머지 9개는 그 포맷 위에서 9Pay가 직접 구성)'
+      + '</div>';
   }
 
   function renderAll(container) {
     renderTabs(container);
     renderMeta(container);
-    renderDesc(container);
     renderList(container);
   }
 
@@ -98,11 +112,11 @@
         renderAll(container);
         return;
       }
-      var item = event.target.closest ? event.target.closest('.ss-item') : null;
-      if (!item) return;
-      var code = item.getAttribute('data-code');
+      var row = event.target.closest ? event.target.closest('.ss-row') : null;
+      if (!row) return;
+      var code = row.getAttribute('data-code');
       if (!code) return;
-      var name = item.getAttribute('data-name') || code;
+      var name = row.getAttribute('data-name') || code;
       global.location.href = STOCK_DETAIL_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
     });
   }
@@ -123,51 +137,40 @@
     meta.textContent = text;
   }
 
-  // 목록이 비어 있어도(조건 충족 종목이 없어도) 이 전략이 뭘 찾는 건지는 항상 보이게 한다
-  // (js/pattern-scan.js의 renderTabDesc와 동일한 이유).
-  function renderDesc(container) {
-    var box = container.querySelector('#ssDesc');
-    if (!box) return;
-    var strat = scanData.strategies[activeKey];
-    if (!strat) { box.innerHTML = ''; return; }
-    var catLabel = CATEGORY_LABELS[strat.category] || strat.category || '';
-    box.innerHTML = escapeHtml(strat.description || '')
-      + (catLabel ? '<span class="ss-cat-chip">' + escapeHtml(catLabel) + '</span>' : '');
-  }
-
+  // 카드 제목·설명은 목록이 비어 있어도(조건 충족 종목이 없어도) 항상 보이게 한다 - 이
+  // 전략이 뭘 찾는 건지는 알 수 있어야 하니까(js/pattern-scan.js의 renderTabDesc와 동일 이유).
   function renderList(container) {
     var list = container.querySelector('#ssList');
     if (!list) return;
     var strat = scanData.strategies[activeKey];
-    var items = (strat && strat.matches) || [];
-    if (!items.length) {
-      list.innerHTML = '<div class="ss-hint">지금 이 전략 조건에 해당하는 종목이 없어요.</div>';
-      return;
-    }
+    if (!strat) { list.innerHTML = ''; return; }
 
-    var isWatch = strat && strat.category === 'stop_loss';
-    list.innerHTML = items.map(function (it) {
-      var cc = chgClass(it.changeRate);
-      return '<div class="ss-item" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" title="눌러서 종목분석 보기">'
-        + '<div class="ss-item-top">'
-        + '<span class="ss-name">' + escapeHtml(it.name) + '<span class="ss-code">(' + escapeHtml(it.code) + ')</span></span>'
-        + '</div>'
-        + '<span class="ss-badge' + (isWatch ? ' ss-badge-warn' : '') + '">' + escapeHtml(badgeText(isWatch)) + '</span>'
-        + '<span class="ss-quote"><span class="ss-price">' + fmt(it.price) + '</span>'
-        + '<span class="ss-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
-        + '</div>';
-    }).join('');
+    var catLabel = CATEGORY_LABELS[strat.category] || strat.category || '';
+    var isWatch = strat.category === 'stop_loss';
+    var items = strat.matches || [];
+
+    var head = '<div class="ss-card-title">' + escapeHtml(strat.name || activeKey)
+      + (catLabel ? '<span class="ss-cat-chip">' + escapeHtml(catLabel) + '</span>' : '')
+      + '</div>'
+      + '<div class="ss-card-desc">' + escapeHtml(strat.description || '') + '</div>';
+
+    var body = items.length
+      ? '<div class="ss-rows">' + items.map(function (it) { return rowHtml(it, isWatch); }).join('') + '</div>'
+      : '<div class="ss-hint">지금 이 전략 조건에 해당하는 종목이 없어요.</div>';
+
+    list.innerHTML = '<div class="ss-card">' + head + body + '</div>';
   }
 
-  // matched/total, confidence는 항상 entry 조건이 전부(AND) 충족된 종목만 결과에 담기므로
-  // (scripts/cloud-vm/strategy_scan.py의 scan() 참고) 값이 사실상 항상 최댓값(=1/1, 100%)
-  // 이다 - 종목마다 달라지는 실제 신호 강도가 아니라서 배지에 그 숫자를 그대로 보여주면
-  // "왜 다 100%야?"처럼 오해를 준다. 그래서 숫자 대신 "조건에 맞았다"는 사실만 알려준다.
-  function badgeText(isWatch) {
-    return isWatch ? '⚠ 이탈 경보' : '조건 충족';
+  function rowHtml(it, isWatch) {
+    var cc = chgClass(it.changeRate);
+    return '<div class="ss-row' + (isWatch ? ' ss-row-warn' : '') + '" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" title="눌러서 종목분석 보기">'
+      + '<span class="ss-row-name">' + (isWatch ? '⚠ ' : '') + escapeHtml(it.name) + '<span class="ss-row-code">(' + escapeHtml(it.code) + ')</span></span>'
+      + '<span><span class="ss-row-price">' + fmt(it.price) + '</span>'
+      + '<span class="ss-row-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
+      + '</div>';
   }
 
-  // ---- 유틸(js/pattern-scan.js와 동일) ----
+  // ---- 유틸(js/pattern-scan.js와 동일, 등락 표시는 js/sector-dashboard-v4.js와 동일 형식) ----
 
   function fetchJson(url) {
     var hasAbort = 'AbortController' in global;
@@ -197,7 +200,8 @@
   function chgSign(rt) {
     if (rt == null) return '';
     var r = parseFloat(rt);
-    return (r > 0 ? '+' : '') + r.toFixed(2) + '%';
+    var arrow = r > 0 ? '▲' : (r < 0 ? '▼' : '');
+    return arrow + Math.abs(r).toFixed(2) + '%';
   }
   function fmt(n) { return n == null ? '-' : Math.round(n).toLocaleString('ko-KR'); }
 
