@@ -1571,7 +1571,6 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 }
 .post-card.feed-featured {
   padding: 26px 28px;
-  border-left: 3px solid #6366f1;
 }
 .post-card.feed-featured .post-title { font-size: 20px; }
 .post-card.feed-featured .post-excerpt {
@@ -1602,7 +1601,6 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 .post-card.feed-headline-item .post-excerpt,
 .post-card.feed-headline-item .post-tags,
 .post-card.feed-headline-item .post-footer { display: none; }
-html.dark .post-card.feed-featured { border-left-color: #818cf8; }
 html.dark .feed-hero-headlines {
   background: #1A1A1A !important;
   border: 1px solid rgba(245, 239, 224, 0.2) !important;
