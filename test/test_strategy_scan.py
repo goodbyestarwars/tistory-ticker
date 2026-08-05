@@ -18,7 +18,10 @@ EXPECTED_PRESET_IDS = {
 }
 
 
-def _insert_synthetic_daily(conn, code, n, seed):
+def _insert_synthetic_daily(conn, code, n, seed, volume=200000):
+    """volume 기본값(20만주, 종가~1만원 기준 거래대금 약 20억원)은 strategy_scan.
+    MIN_AVG_TURNOVER(10억원) 유동성 필터를 통과하도록 일부러 넉넉히 잡았다 - 유동성 필터
+    자체를 테스트하려면 volume을 그보다 낮게 넘긴다(ScanTests.test_skips_illiquid_codes)."""
     rnd = random.Random(seed)
     price = 10000.0
     rows = []
@@ -26,7 +29,7 @@ def _insert_synthetic_daily(conn, code, n, seed):
         price = max(100.0, price * (1 + rnd.uniform(-0.03, 0.032)))
         high = price * (1 + rnd.uniform(0, 0.02))
         low = price * (1 - rnd.uniform(0, 0.02))
-        rows.append((code, '2026-%04d' % i, price, high, low, price, 1000 + i))
+        rows.append((code, '2026-%04d' % i, price, high, low, price, volume + i))
     conn.executemany(
         'INSERT INTO daily_prices (code, date, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?)',
         rows,
@@ -84,9 +87,22 @@ class ScanTests(unittest.TestCase):
         _insert_synthetic_daily(self.conn, '000001', n=10, seed=1)  # MIN_BARS(60) 미만
         universe = [{'code': '000001', 'name': '데이터부족종목'}]
         presets = strategy_scan.load_presets()
-        matches, scanned, skipped = strategy_scan.scan(universe, presets, self.conn)
+        matches, scanned, skipped_no_data, skipped_illiquid = strategy_scan.scan(universe, presets, self.conn)
         self.assertEqual(scanned, 0)
-        self.assertEqual(skipped, 1)
+        self.assertEqual(skipped_no_data, 1)
+        self.assertEqual(skipped_illiquid, 0)
+        for preset_id in EXPECTED_PRESET_IDS:
+            self.assertEqual(matches[preset_id], [])
+
+    def test_skips_illiquid_codes(self):
+        # 종가~1만원 기준 거래대금이 MIN_AVG_TURNOVER(10억원)에 크게 못 미치는 거래량(100주).
+        _insert_synthetic_daily(self.conn, '000009', n=80, seed=9, volume=100)
+        universe = [{'code': '000009', 'name': '품절주'}]
+        presets = strategy_scan.load_presets()
+        matches, scanned, skipped_no_data, skipped_illiquid = strategy_scan.scan(universe, presets, self.conn)
+        self.assertEqual(scanned, 0)
+        self.assertEqual(skipped_no_data, 0)
+        self.assertEqual(skipped_illiquid, 1)
         for preset_id in EXPECTED_PRESET_IDS:
             self.assertEqual(matches[preset_id], [])
 
@@ -97,10 +113,11 @@ class ScanTests(unittest.TestCase):
         universe = [{'code': c, 'name': '종목' + c} for c in codes]
         presets = strategy_scan.load_presets()
 
-        matches, scanned, skipped = strategy_scan.scan(universe, presets, self.conn)
+        matches, scanned, skipped_no_data, skipped_illiquid = strategy_scan.scan(universe, presets, self.conn)
 
         self.assertEqual(scanned, 3)
-        self.assertEqual(skipped, 0)
+        self.assertEqual(skipped_no_data, 0)
+        self.assertEqual(skipped_illiquid, 0)
         self.assertEqual(set(matches), EXPECTED_PRESET_IDS)
         for preset_id, items in matches.items():
             codes_seen = set()

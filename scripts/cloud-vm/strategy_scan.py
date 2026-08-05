@@ -12,7 +12,13 @@ evaluate()는 이 프리셋에서도 entry 조건(전고점을 다시 하회)이
 action='BUY'를 돌려주는데(엔진은 프리셋 카테고리를 모른다), 여기서는 이것도 동일하게
 "조건 충족 = 매칭"으로 취급해 그대로 캐시에 담는다 - "매수 신호"가 아니라 "이탈 경보"
 라는 의미 차이는 화면(프론트)에서 프리셋 category로 구분해 라벨을 다르게 보여줘야 한다.
-main.py의 /strategy-scan-batch가 이 캐시를 그대로 서빙한다."""
+main.py의 /strategy-scan-batch가 이 캐시를 그대로 서빙한다.
+
+유동성 하한(MIN_AVG_TURNOVER): 프리셋 조건과 무관하게, 실제로 사고팔기 어려운 초소형·
+품절주가 조건만 맞으면 그대로 결과에 뜨는 문제가 있었다(2026-08 UI 피드백). 조건 평가
+전에 최근 20거래일 평균 거래대금(종가×거래량 근사, pattern_detect.compute_volume_multiple과
+동일 공식)이 기준 미만이면 어떤 프리셋과도 매칭 대상에서 제외한다 - 신호 조건(거래량
+급증 등)이 아니라 "거래 가능한 종목만 보여준다"는 위생 필터라 전 프리셋에 공통 적용."""
 
 import json
 import os
@@ -23,6 +29,7 @@ from datetime import datetime, timezone
 
 import db_schema
 import kisyaml_strategy
+import pattern_detect
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'strategy_scan_cache.json')
@@ -51,6 +58,11 @@ def _resolve_strategies_dir():
 # week52_high(253일 필요)처럼 더 긴 지표는 데이터가 모자라면 evaluate()가 에러 없이
 # 그냥 HOLD를 돌려주므로(조건 값이 None -> False) 별도 처리가 필요 없다.
 MIN_BARS = 60
+
+# 최근 20거래일 평균 거래대금(원) 하한 - 이 미만이면 신호 조건과 무관하게 스캔에서 제외.
+# 백테스트로 검증한 값이 아니라 "거래 자체가 사실상 어려운 초소형·품절주는 거른다"는
+# 취지의 잠정 기준이다 - 실제 매매 가능성을 보고 조정할 값(운영 중 피드백으로 튜닝).
+MIN_AVG_TURNOVER = 1_000_000_000  # 10억원
 
 
 def log(msg):
@@ -117,11 +129,18 @@ def scan(universe, presets, conn):
     matches = {preset_id: [] for preset_id in presets}
     scanned = 0
     skipped_no_data = 0
+    skipped_illiquid = 0
 
     for stock in universe:
         daily = db_schema.load_daily_prices(conn, stock['code'])
         if len(daily) < MIN_BARS:
             skipped_no_data += 1
+            continue
+        # 유동성 하한 - 조건 평가 전에 걸러 어떤 프리셋과도 매칭되지 않게 한다(신호가 아니라
+        # "거래 가능한 종목만 보여준다"는 공통 위생 필터, 모듈 docstring 참고).
+        vol_multiple = pattern_detect.compute_volume_multiple(daily)
+        if vol_multiple and vol_multiple['avg20'] < MIN_AVG_TURNOVER:
+            skipped_illiquid += 1
             continue
         scanned += 1
         for preset_id, strategy in presets.items():
@@ -132,7 +151,7 @@ def scan(universe, presets, conn):
     for preset_id in matches:
         matches[preset_id].sort(key=lambda m: m['confidence'], reverse=True)
 
-    return matches, scanned, skipped_no_data
+    return matches, scanned, skipped_no_data, skipped_illiquid
 
 
 def main():
@@ -155,13 +174,14 @@ def main():
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
 
-    matches, scanned, skipped_no_data = scan(universe, presets, conn)
+    matches, scanned, skipped_no_data, skipped_illiquid = scan(universe, presets, conn)
 
     output = {
         'scannedAt': datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'),
         'scanned': scanned,
         'universe': len(universe),
         'skippedNoData': skipped_no_data,
+        'skippedIlliquid': skipped_illiquid,
         'strategies': {
             preset_id: {
                 'name': strategy['metadata'].get('name'),
@@ -178,7 +198,8 @@ def main():
         json.dump(output, f, ensure_ascii=False)
     os.replace(tmp_path, OUTPUT_FILE)  # 원자적 교체 - 쓰는 도중 /strategy-scan-batch가 읽어도 반쪽 파일을 못 봄
 
-    log('완료: 스캔 %d / 유니버스 %d, 데이터부족 제외 %d' % (scanned, len(universe), skipped_no_data))
+    log('완료: 스캔 %d / 유니버스 %d, 데이터부족 제외 %d, 유동성부족 제외 %d'
+        % (scanned, len(universe), skipped_no_data, skipped_illiquid))
     for preset_id in sorted(matches):
         log('  %s: %d종목 매칭' % (preset_id, len(matches[preset_id])))
 
