@@ -349,7 +349,11 @@ def _disparity(daily, period=20, field='close', basis='sma'):
     """이격도 - field가 기준선(sma 또는 ema) 대비 몇 %인지. 100 = 기준선과 동일,
     100 미만은 기준선 아래(이탈), 100 초과는 위. disparity(이격도)·mean_reversion(평균회귀)
     프리셋이 공유해서 쓰고, basis/period로 구분한다(이격도=20일 SMA 기준, 평균회귀=10일
-    EMA 기준처럼 서로 다른 기준선을 쓸 수 있게)."""
+    EMA 기준처럼 서로 다른 기준선을 쓸 수 있게).
+    field가 close 전용은 아니다 - week52_high/volatility 프리셋은 field: volume으로 같은
+    함수를 그대로 써서 "오늘 거래량 / N일 평균 거래량 x 100"(거래량 급증 확인)을 얻는다.
+    이 경우도 base(평균)에 오늘 값이 포함돼(exclude_current 미지원) 실제보다 비율이 살짝
+    낮게 나올 수 있음에 유의."""
     base = _sma(daily, period, field) if basis == 'sma' else _ema(daily, period, field)
     n = len(daily)
     out = [None] * n
