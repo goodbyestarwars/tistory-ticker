@@ -118,6 +118,10 @@ function doGet(e) {
     return jsonResponse(getInvestSignalResult());
   }
 
+  if (params.strategyScan === '1') {
+    return jsonResponse(getStrategyScanResult());
+  }
+
   var raw = (params.codes || '').trim();
 
   if (!raw) {
@@ -2370,6 +2374,23 @@ function getPatternScanResult() {
       boxRangeLow: (patternScan.patterns && patternScan.patterns.boxRangeLow) || [],
       pullback: pullbackScan.matches || []
     }
+  };
+}
+
+// 2026-08-05: 전략검색(js/strategy-search.js) - VM의 strategy_scan.py(하루 1회 systemd timer,
+// daily_scan 20분 뒤)가 kisyaml 프리셋 전략(scripts/cloud-vm/strategies/*.kis.yaml, 현재
+// 10개)으로 전종목을 미리 스캔해둔 결과를 그대로 재포장한다 - getPatternScanResult()와 동일
+// 패턴(캐시 없이 매 요청 kiwoomVmFetch_ 호출, VM 쪽이 이미 파일 캐시라 가벼움).
+function getStrategyScanResult() {
+  var data = kiwoomVmFetch_('/strategy-scan-batch');
+  if (!data) {
+    return { scannedAt: null, scanned: 0, universe: 0, strategies: {} };
+  }
+  return {
+    scannedAt: data.scannedAt || null,
+    scanned: data.scanned || 0,
+    universe: data.universe || 0,
+    strategies: data.strategies || {}
   };
 }
 
