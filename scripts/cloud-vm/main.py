@@ -122,6 +122,11 @@ LATENCY_LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lat
 # 스파이크 없이 서서히 교체된다.
 _LIVE_CACHE_TTL = 300  # 5분
 _LIVE_CACHE_MAX_ENTRIES = 500
+# 2026-08-05 사용자 리포트: 실시간 시세 분봉 탭이 60초마다 재조회하도록 프론트를 고쳤는데도
+# 화면이 최대 5분(_LIVE_CACHE_TTL)까지 그대로였다 - 이 캐시가 프론트 폴링 주기보다 훨씬
+# 길어서 대부분의 재요청이 그냥 5분 전 캐시를 그대로 돌려받고 있었다. 분봉만 프론트 폴링
+# 주기(60초)에 맞춰 짧게 둔다(다른 엔드포인트의 _LIVE_CACHE_TTL은 그대로 - 분봉만의 문제였음).
+_OHLC_MINUTE_CACHE_TTL = 60
 _ohlc_cache = OrderedDict()
 _ohlc_minute_cache = OrderedDict()  # (code, tic_scope) -> (t, data)
 _pbar_tratio_cache = OrderedDict()  # code -> (t, data)
@@ -167,9 +172,9 @@ def _evict_lru(cache, max_entries):
         cache.popitem(last=False)
 
 
-def _live_cache_get(cache, code):
+def _live_cache_get(cache, code, ttl=_LIVE_CACHE_TTL):
     entry = cache.get(code)
-    if entry and time.time() - entry[0] < _LIVE_CACHE_TTL:
+    if entry and time.time() - entry[0] < ttl:
         cache.move_to_end(code)
         return entry[1]
     return None
@@ -387,7 +392,7 @@ def ohlc_minute(request: Request, code: str = Path(..., min_length=6, max_length
     if tic_scope not in kiwoom_market.MINUTE_TIC_SCOPES:
         raise HTTPException(status_code=400, detail='tic_scope는 1/3/5/10/15/30/45/60 중 하나여야 합니다.')
     cache_key = (code, tic_scope)
-    cached = _live_cache_get(_ohlc_minute_cache, cache_key)
+    cached = _live_cache_get(_ohlc_minute_cache, cache_key, ttl=_OHLC_MINUTE_CACHE_TTL)
     if cached is not None:
         return envelope(cached)
     try:
