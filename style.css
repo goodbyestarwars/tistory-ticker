@@ -1542,6 +1542,42 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 }
 .btn-share:hover { background: #e2e8f0; }
 
+/* ============ 카테고리 글목록: 배치 모양 다양화(2026-08-05) ============
+   마켓 브리핑 등 카테고리 글목록이 전부 같은 모양 카드로만 나열되던 것을 바꾼다.
+   실제 클래스 부여·재배치는 js/skin-main.js의 diversifyCategoryFeedLayout이 담당
+   (5개 묶음 단위로 [대표 1 + 2단 그리드 2 + 기본 2] 리듬 반복) - 글 순서(최신순)는
+   그대로 두고 시각적 크기·레이아웃만 바꾼다. */
+.feed-duo-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.feed-duo-row .post-card { height: auto; }
+.post-card.feed-featured {
+  padding: 26px 28px;
+  border-left: 3px solid #6366f1;
+}
+.post-card.feed-featured .post-title { font-size: 20px; }
+.post-card.feed-featured .post-excerpt {
+  font-size: 14.5px;
+  -webkit-line-clamp: 4;
+}
+.post-card.feed-duo-item { padding: 18px 20px; }
+.post-card.feed-duo-item .post-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 15px;
+}
+.post-card.feed-duo-item .post-excerpt {
+  -webkit-line-clamp: 2;
+  font-size: 12.5px;
+}
+.post-card.feed-duo-item .post-tags,
+.post-card.feed-duo-item .btn-share { display: none; }
+html.dark .post-card.feed-featured { border-left-color: #818cf8; }
+
 /* ============ 퍼머링크 단일 글 ============ */
 .post-single {
   padding: 28px 32px;
@@ -2996,6 +3032,9 @@ body.iframe-mode .site-footer { display: none !important; }
 
   /* ── 피드 ── */
   .feed { gap: 10px; }
+  .feed-duo-row { grid-template-columns: 1fr; gap: 10px; }
+  .post-card.feed-featured { padding: 18px 16px; }
+  .post-card.feed-featured .post-title { font-size: 17px; }
 
   /* ── 서브 필터 ── */
   .sub-filter-bar { padding: 0 8px; }
@@ -3606,14 +3645,13 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
   .sidebar-left .nav-secondary-inner { padding: 0 8px; }
   .sidebar-left .nav-secondary-item { padding: 0 12px; }
 }
-/* 단, 카테고리 글목록(마켓 브리핑 등)에선 우측 사이드바(인기글·해시태그) 유지.
-   공지 카드는 티스토리가 카테고리 화면에 안 내려주므로(빈 #pinnedNotice) 원래 없음.
-   min-width로 감싸는 이유: body#tt-body-category의 ID 셀렉터가 특이도가 높아
-   감싸지 않으면 max-width:1100px/720px 모바일 규칙(.sidebar-right{display:none})을
-   그대로 이겨버려 좁은 화면에서도 사이드바가 강제로 나타나 레이아웃이 깨졌었음. */
-@media (min-width: 1101px) {
-  html.full-width-page body#tt-body-category .sidebar-right { display: flex; }
-}
+/* 2026-08-05: 카테고리 글목록(마켓 브리핑 등)에서 우측 "실시간 랭킹" 위젯을 없애달라는
+   요청으로, 카테고리 화면만 예외로 우측 사이드바를 강제로 띄우던 규칙을 삭제함.
+   이제 위 skin.html head 스크립트의 원래 의도(우측 사이드바는 전체글 "/"에서만 노출)
+   그대로 3523행 `html.full-width-page .sidebar-right { display: none; }` 일반 규칙을 탄다.
+   #sidebar-rank DOM 자체와 js/sidebar-rank.js는 홈 대시보드(오늘의 시장판 카드)가 그대로
+   재사용하므로 삭제하지 않음 - js/sidebar-rank.js 쪽에서 홈이 아닌 화면에서는 아예
+   초기화(폴링)하지 않도록 별도로 막아둠. */
 
 /* 번개 로고: 실제로 내리치듯 한 주기 안에서 두 번 번쩍하고 잠깐 쉬는 패턴을 반복
    (아이콘 자체가 주황/노랑 그라디언트라 글로우도 같은 톤으로 맞춤) */
