@@ -2384,12 +2384,16 @@ function getPatternScanResult() {
 function getStrategyScanResult() {
   var data = kiwoomVmFetch_('/strategy-scan-batch');
   if (!data) {
-    return { scannedAt: null, scanned: 0, universe: 0, strategies: {} };
+    return { scannedAt: null, scanned: 0, universe: 0, skippedNoData: 0, skippedIlliquid: 0, strategies: {} };
   }
   return {
     scannedAt: data.scannedAt || null,
     scanned: data.scanned || 0,
     universe: data.universe || 0,
+    // 2026-08-05: 유동성 하한 필터(strategy_scan.py MIN_AVG_TURNOVER) 추가로 생긴 필드 -
+    // 화면(js/strategy-search.js)에서 "왜 종목이 이만큼밖에 안 남았나"를 설명하는 데 씀.
+    skippedNoData: data.skippedNoData || 0,
+    skippedIlliquid: data.skippedIlliquid || 0,
     strategies: data.strategies || {}
   };
 }

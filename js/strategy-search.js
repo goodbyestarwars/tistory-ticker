@@ -17,6 +17,11 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#strategy-search';
   var FETCH_TIMEOUT_MS = 15000;
+  // 종목분석 상세 페이지 - js/stock-search-panel.js·js/watchlist.js와 동일한 이동 방식
+  // (?code=&name=). 이 페이지가 펀더멘탈(PER·PBR·DART 재무)과 차트(캔들+이치모쿠)를
+  // 함께 보여주므로, 전략검색이 찾아낸 종목을 눌렀을 때 근거를 확인할 수 있는 가장 가까운
+  // 기존 페이지다.
+  var STOCK_DETAIL_PAGE = '/page/foreign-flow';
 
   // README(KIS strategy_builder) "10개 프리셋 전략" 표의 카테고리 한글 라벨.
   var CATEGORY_LABELS = {
@@ -85,21 +90,37 @@
 
   function wireTabs(container) {
     container.addEventListener('click', function (event) {
-      var btn = event.target.closest ? event.target.closest('.ss-tab') : null;
-      if (!btn) return;
-      var key = btn.getAttribute('data-key');
-      if (key === activeKey) return;
-      activeKey = key;
-      renderAll(container);
+      var tabBtn = event.target.closest ? event.target.closest('.ss-tab') : null;
+      if (tabBtn) {
+        var key = tabBtn.getAttribute('data-key');
+        if (key === activeKey) return;
+        activeKey = key;
+        renderAll(container);
+        return;
+      }
+      var item = event.target.closest ? event.target.closest('.ss-item') : null;
+      if (!item) return;
+      var code = item.getAttribute('data-code');
+      if (!code) return;
+      var name = item.getAttribute('data-name') || code;
+      global.location.href = STOCK_DETAIL_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
     });
   }
 
   function renderMeta(container) {
     var meta = container.querySelector('#ssMeta');
     if (!meta) return;
-    meta.textContent = scanData.scannedAt
-      ? ('스캔 ' + scanData.scannedAt + ' · 대상 ' + (scanData.scanned || 0) + '/' + (scanData.universe || 0) + '종목')
-      : '아직 스캔 결과가 없어요.';
+    if (!scanData.scannedAt) {
+      meta.textContent = '아직 스캔 결과가 없어요.';
+      return;
+    }
+    var text = '스캔 ' + scanData.scannedAt + ' · 대상 ' + (scanData.scanned || 0) + '/' + (scanData.universe || 0) + '종목';
+    // scripts/cloud-vm/strategy_scan.py의 유동성 하한(MIN_AVG_TURNOVER) 필터로 빠진 종목 수 -
+    // 0이면 굳이 안 보여준다(구형 GAS 배포에선 이 필드 자체가 없을 수도 있어 존재 확인).
+    if (scanData.skippedIlliquid) {
+      text += ' · 유동성 부족 제외 ' + scanData.skippedIlliquid + '종목';
+    }
+    meta.textContent = text;
   }
 
   // 목록이 비어 있어도(조건 충족 종목이 없어도) 이 전략이 뭘 찾는 건지는 항상 보이게 한다
@@ -127,22 +148,23 @@
     var isWatch = strat && strat.category === 'stop_loss';
     list.innerHTML = items.map(function (it) {
       var cc = chgClass(it.changeRate);
-      return '<div class="ss-item">'
+      return '<div class="ss-item" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" title="눌러서 종목분석 보기">'
         + '<div class="ss-item-top">'
         + '<span class="ss-name">' + escapeHtml(it.name) + '<span class="ss-code">(' + escapeHtml(it.code) + ')</span></span>'
         + '</div>'
-        + '<span class="ss-badge' + (isWatch ? ' ss-badge-warn' : '') + '">' + escapeHtml(badgeText(it, isWatch)) + '</span>'
+        + '<span class="ss-badge' + (isWatch ? ' ss-badge-warn' : '') + '">' + escapeHtml(badgeText(isWatch)) + '</span>'
         + '<span class="ss-quote"><span class="ss-price">' + fmt(it.price) + '</span>'
         + '<span class="ss-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
         + '</div>';
     }).join('');
   }
 
-  function badgeText(it, isWatch) {
-    if (isWatch) return '⚠ 이탈 경보';
-    if (it.matched != null && it.total != null) return it.matched + '/' + it.total + ' 충족';
-    if (it.confidence != null) return Math.round(it.confidence * 100) + '%';
-    return '조건 충족';
+  // matched/total, confidence는 항상 entry 조건이 전부(AND) 충족된 종목만 결과에 담기므로
+  // (scripts/cloud-vm/strategy_scan.py의 scan() 참고) 값이 사실상 항상 최댓값(=1/1, 100%)
+  // 이다 - 종목마다 달라지는 실제 신호 강도가 아니라서 배지에 그 숫자를 그대로 보여주면
+  // "왜 다 100%야?"처럼 오해를 준다. 그래서 숫자 대신 "조건에 맞았다"는 사실만 알려준다.
+  function badgeText(isWatch) {
+    return isWatch ? '⚠ 이탈 경보' : '조건 충족';
   }
 
   // ---- 유틸(js/pattern-scan.js와 동일) ----
@@ -184,6 +206,7 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function escapeAttr(s) { return escapeHtml(s); }
 
   global.StrategySearch = { init: init, fetchJson: fetchJson };
 

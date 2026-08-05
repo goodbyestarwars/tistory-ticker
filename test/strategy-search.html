@@ -62,8 +62,10 @@
     if (url.indexOf('strategyScan=1') > -1) {
       return Promise.resolve({
         scannedAt: '2026-08-05T07:20:00Z',
-        scanned: 3913,
+        scanned: 3120,
         universe: 3913,
+        skippedNoData: 210,
+        skippedIlliquid: 583,
         strategies: mockStrategies
       });
     }
