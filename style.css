@@ -1548,11 +1548,11 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 }
 .btn-share:hover { background: #e2e8f0; }
 
-/* ============ 카테고리 글목록: 카드 모양 무작위 배정(2026-08-05) ============
-   마켓 브리핑 등 카테고리 글목록의 카드들이 각자 독립적으로 무작위 모양을 받는다 - 서로
-   묶거나 나란히 배치하지 않고(고정된 히어로 배치를 시도했다가 "그냥 랜덤으로" 요청받아
-   단순화함) 세로 목록 안에서 카드 하나하나의 크기·타이포그래피만 바뀐다. 실제 클래스 부여는
-   js/skin-main.js의 randomizeCategoryFeedShapes가 담당 - 글 순서(최신순)는 항상 그대로다. */
+/* ============ 카테고리 글목록: 블록 단위 무작위 배치(2026-08-05) ============
+   마켓 브리핑 등 카테고리 글목록을 앞에서부터 순서대로(최신순, 재정렬 없음) 소비하면서
+   [대표 1개 / 제목만 4줄 목록 / 작은 카드 3개 그리드 / 가로 2단] 네 가지 블록 타입 중
+   하나를 무작위로 골라 그만큼씩 묶는다 - 실제 그룹핑·클래스 부여는 js/skin-main.js의
+   buildCategoryFeedBlocks가 담당. */
 .post-card.feed-featured {
   padding: 26px 28px;
 }
@@ -1561,22 +1561,86 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   font-size: 14.5px;
   -webkit-line-clamp: 4;
 }
-/* 컴팩트 카드 - 카드 테두리·그림자는 기본과 동일하게 유지하고(독립된 카드라 목록형 구분선
-   대신 카드 자체를 남김), 안쪽 패딩·글자 크기만 줄여 기본 카드보다 작아 보이게 한다. */
-.post-card.feed-compact { padding: 16px 18px; }
-.post-card.feed-compact .post-title {
+
+/* 제목만 4줄 목록 - 카드 하나하나의 테두리/그림자 대신 목록 전체를 감싸는 패널
+   하나(.feed-block-headline)에 얇은 구분선으로 나눈 행(.feed-headline-item)을 넣는다. */
+.feed-block-headline {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+  padding: 4px 18px;
+}
+.post-card.feed-headline-item {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.post-card.feed-headline-item:last-child { border-bottom: none; }
+.post-card.feed-headline-item .post-header { margin-bottom: 4px; }
+.post-card.feed-headline-item .post-date { font-size: 10.5px; }
+.post-card.feed-headline-item .post-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 14px;
+  margin-bottom: 0;
+}
+.post-card.feed-headline-item .post-excerpt,
+.post-card.feed-headline-item .post-tags,
+.post-card.feed-headline-item .post-footer { display: none; }
+
+/* 작은 카드형 3개 그리드 - 카드 자체 테두리·그림자는 유지한 채(각자 독립 카드) 3단으로 배치. */
+.feed-block-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.post-card.feed-cards-item { padding: 16px 16px; }
+.post-card.feed-cards-item .post-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 14.5px;
+}
+.post-card.feed-cards-item .post-excerpt {
+  -webkit-line-clamp: 2;
+  font-size: 12px;
+}
+.post-card.feed-cards-item .post-tags,
+.post-card.feed-cards-item .btn-share { display: none; }
+
+/* 가로로 나란한 2개 - cards보다 넓어서 발췌문을 조금 더 보여준다. */
+.feed-block-duo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.post-card.feed-duo-item { padding: 18px 20px; }
+.post-card.feed-duo-item .post-title {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   font-size: 15px;
 }
-.post-card.feed-compact .post-excerpt {
+.post-card.feed-duo-item .post-excerpt {
   -webkit-line-clamp: 2;
   font-size: 12.5px;
 }
-.post-card.feed-compact .post-tags,
-.post-card.feed-compact .btn-share { display: none; }
+.post-card.feed-duo-item .post-tags,
+.post-card.feed-duo-item .btn-share { display: none; }
+
+html.dark .feed-block-headline {
+  background: #1A1A1A !important;
+  border: 1px solid rgba(245, 239, 224, 0.2) !important;
+}
+html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 224, 0.12) !important; }
 
 /* ============ 퍼머링크 단일 글 ============ */
 .post-single {
@@ -3034,6 +3098,9 @@ body.iframe-mode .site-footer { display: none !important; }
   .feed { gap: 10px; }
   .post-card.feed-featured { padding: 18px 16px; }
   .post-card.feed-featured .post-title { font-size: 17px; }
+  .feed-block-cards { grid-template-columns: 1fr; gap: 10px; }
+  .feed-block-duo { grid-template-columns: 1fr; gap: 10px; }
+  .feed-block-headline { padding: 2px 14px; }
 
   /* ── 서브 필터 ── */
   .sub-filter-bar { padding: 0 8px; }
