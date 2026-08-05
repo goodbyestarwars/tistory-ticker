@@ -775,14 +775,23 @@
 
   // 정규장 연속거래(09:00~15:20)만 사용한다 - 15:20~15:30 종가 단일가 구간은 거래량이
   // 비정상적으로 크게 찍혀(실측 확인, 누적치로 추정) 그대로 넣으면 캔들/거래량 축이
-  // 그 한 칸 때문에 왜곡된다. LWC의 분봉 time은 날짜 문자열이 아니라 UNIX 초 단위여야
-  // 해서 date+time을 KST(UTC+9) 기준으로 변환한다.
+  // 그 한 칸 때문에 왜곡된다. LWC의 분봉 time은 날짜 문자열이 아니라 UNIX 초 단위여야 한다.
+  //
+  // 2026-08-05 사용자 리포트: X축에 timeVisible을 켰더니(위 lwcThemeOptions) 시각이
+  // "09:30" 아니라 "00:30"처럼 9시간 이른 값으로 나왔다 - Lightweight Charts가 UNIX
+  // 타임스탬프의 시:분을 표시할 때 브라우저 로컬 시간대가 아니라 항상 UTC 기준으로 읽기
+  // 때문이다(라이브러리 문서화된 동작). 그래서 실제 KST 시각을 '+09:00'으로 정확히
+  // UTC로 환산해 넣으면, 화면엔 그 UTC 값의 시:분이 그대로 찍혀 9시간 밀린 것처럼
+  // 보인다. 해결책은 반대로 "KST 시:분 숫자를 UTC인 척" 넣는 것('+09:00' 대신 'Z') -
+  // 실제 시간대와는 다른 순간을 가리키게 되지만, 이 차트는 절대시각이 아니라 "장중
+  // 몇 시 몇 분"이라는 표시만 중요하므로 문제없다(다른 시간대 방문자가 봐도 거래소
+  // 기준 시각이 그대로 보여야 한다는 요구사항과도 맞음).
   function minuteRowsToBars(rows) {
     return rows
       .filter(function (r) { return r.time >= '09:00' && r.time <= '15:20'; })
       .map(function (r) {
         return {
-          date: Math.floor(new Date(r.date + 'T' + r.time + ':00+09:00').getTime() / 1000),
+          date: Math.floor(new Date(r.date + 'T' + r.time + ':00Z').getTime() / 1000),
           open: r.open, high: r.high, low: r.low, close: r.close, volume: r.volume || 0
         };
       });
