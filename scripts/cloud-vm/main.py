@@ -21,6 +21,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 
 import bond_yield
 import btc_futures
+import dart_client
 import db_schema
 import domestic_futures
 import earnings_calendar
@@ -592,6 +593,35 @@ def fundamentals_batch(x_api_key: str = Header(default=None)):
     with open(FUNDAMENTALS_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return envelope(cached)
+
+
+@app.get('/_diag/stock-totqy/{code}')
+def stock_totqy_diag(request: Request, code: str = Path(..., min_length=6, max_length=6)):
+    """임시 진단용(2026-08) - DART stockTotqySttus(주식의 총수 현황) 원본 응답을 그대로
+    노출해 발행주식총수에 해당하는 실제 필드명을 확인한다(공식 문서 사이트가 이 환경에서
+    접속 차단돼 필드명 미검증 - scripts/cloud-vm/dart_client.py의 call_stock_totqy 참고).
+    필드명이 확정되면 fundamentals.py에 파싱을 붙이고(상장주식수 + 자본총계로 PER/PBR
+    계산) 이 엔드포인트는 지운다 - ka10046 체결강도 붙일 때와 동일한 순서
+    (docs/WORK_HISTORY.md 참고)."""
+    _check_rate_limit('stock_totqy_diag', request, max_per_window=10)
+    api_key = os.environ.get('DART_API_KEY', '').strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail='DART_API_KEY 환경변수가 설정되지 않았습니다.')
+    try:
+        corp_map = dart_client.get_corp_code_map(api_key)
+        corp_code = corp_map.get(code)
+        if not corp_code:
+            raise HTTPException(status_code=404, detail='DART corp_code 매핑에 없는 종목코드입니다: %s' % code)
+        # 사업보고서(11011)와 반기보고서(11012)를 둘 다 확인 - 최신 정기보고서가 어느 쪽에
+        # 실제로 값이 채워지는지도 이 진단에서 같이 확인한다.
+        year = datetime.now().year - 1
+        annual = dart_client.call_stock_totqy(api_key, corp_code, year, '11011')
+        half = dart_client.call_stock_totqy(api_key, corp_code, year, '11012')
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return envelope({'code': code, 'corp_code': corp_code, 'year': year, 'business_report': annual, 'half_report': half})
 
 
 def load_fundamentals_cache_cached():
