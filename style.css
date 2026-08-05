@@ -1550,9 +1550,9 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 
 /* ============ 카테고리 글목록: 블록 단위 무작위 배치(2026-08-05) ============
    마켓 브리핑 등 카테고리 글목록을 앞에서부터 순서대로(최신순, 재정렬 없음) 소비하면서
-   [대표 1개 / 제목만 4줄 목록 / 작은 카드 3개 그리드 / 가로 2단] 네 가지 블록 타입 중
-   하나를 무작위로 골라 그만큼씩 묶는다 - 실제 그룹핑·클래스 부여는 js/skin-main.js의
-   buildCategoryFeedBlocks가 담당. */
+   [대표 1개 단독 / 히어로(대표1+제목목록 최대4) / 작은 카드 3개 그리드 / 가로 2단] 네 가지
+   블록 타입 중 하나를 무작위로 골라 그만큼씩 묶는다 - 실제 그룹핑·클래스 부여는
+   js/skin-main.js의 buildCategoryFeedBlocks가 담당. */
 .post-card.feed-featured {
   padding: 26px 28px;
 }
@@ -1562,25 +1562,46 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   -webkit-line-clamp: 4;
 }
 
-/* 제목만 4줄 목록 - 카드 하나하나의 테두리/그림자 대신 목록 전체를 감싸는 패널
+/* 히어로 블록 - 왼쪽 대표 글(feed-featured 재사용) + 오른쪽 제목 목록(최대 4).
+   "제목만 있는 목록이 혼자 떠 있으면 어색하다"는 지적으로, 제목 목록은 항상 대표 글
+   옆에 붙어서만 나온다(js/skin-main.js buildCategoryFeedBlocks 참고). */
+.feed-block-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.feed-hero-featured-slot { min-width: 0; }
+/* 제목 목록 패널 - 카드 하나하나의 테두리/그림자 대신 목록 전체를 감싸는 패널
    하나(.feed-block-headline)에 얇은 구분선으로 나눈 행(.feed-headline-item)을 넣는다. */
 .feed-block-headline {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.07);
   padding: 4px 18px;
 }
+/* 2026-08-05: 날짜가 제목 위에 혼자 한 줄을 차지해 밀도가 떨어진다는 지적으로,
+   순서를 뒤집어(order) 제목 다음에 작게 붙는 한 줄로 바꿨다 - 마크업(skin.html)은
+   그대로 두고 flex order만으로 처리해서 다른 블록(기본 카드 등)에는 영향 없다. */
 .post-card.feed-headline-item {
+  display: flex;
+  flex-direction: column;
   background: transparent;
   box-shadow: none;
   border-radius: 0;
-  padding: 12px 0;
+  padding: 10px 0;
   border-bottom: 1px solid #f1f5f9;
 }
 .post-card.feed-headline-item:last-child { border-bottom: none; }
-.post-card.feed-headline-item .post-header { margin-bottom: 4px; }
+.post-card.feed-headline-item > a { order: 1; }
+.post-card.feed-headline-item .post-header {
+  order: 2;
+  justify-content: flex-start;
+  margin: 3px 0 0;
+}
 .post-card.feed-headline-item .post-date { font-size: 10.5px; }
 .post-card.feed-headline-item .post-title {
   display: -webkit-box;
@@ -3100,6 +3121,7 @@ body.iframe-mode .site-footer { display: none !important; }
   .post-card.feed-featured .post-title { font-size: 17px; }
   .feed-block-cards { grid-template-columns: 1fr; gap: 10px; }
   .feed-block-duo { grid-template-columns: 1fr; gap: 10px; }
+  .feed-block-hero { grid-template-columns: 1fr; gap: 10px; }
   .feed-block-headline { padding: 2px 14px; }
 
   /* ── 서브 필터 ── */
