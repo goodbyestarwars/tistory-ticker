@@ -78,6 +78,12 @@
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
+  cursor: pointer;
+}
+
+#strategy-search .ss-item:hover {
+  border-color: #c7d2fe;
+  background: #f8fafc;
 }
 
 #strategy-search .ss-item-top {
@@ -195,6 +201,10 @@ html.dark #strategy-search .ss-cat-chip {
 html.dark #strategy-search .ss-item {
   background: #1A1A1A;
   border-color: rgba(245, 239, 224, 0.14);
+}
+html.dark #strategy-search .ss-item:hover {
+  background: rgba(245, 239, 224, 0.06);
+  border-color: rgba(245, 239, 224, 0.28);
 }
 html.dark #strategy-search .ss-name {
   color: #F5EFE0 !important;
