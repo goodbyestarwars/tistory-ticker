@@ -3,6 +3,16 @@
 중요한 기능, 구조, API, 데이터베이스, 배포 변경만 기록한다.
 세부 파일 변경은 Git 커밋을 기준으로 확인한다.
 
+**2026-08-05(후속16) 코스피 선물 페이지: 장 마감 배지 추가 + 분봉 X축 시간·야간선물 분봉 누락 수정**: "시장 > 코스피 선물" 페이지에서 세 가지 리포트를 받았다.
+
+(1) 주간·야간선물 정규장 마감 시 "(장 마감)" 표시: `js/kospi-futures.js`에 `isMarketOpen(panelKey)`을 추가했다. 주간선물은 09:00~15:45(같은 파일 옵션 수급 설명문에 이미 있던 값, 사용자가 요청한 15:00과 달라 확인 후 15:45로 확정), 야간선물은 평일 18:00~익일 05:00. `js/quick-indices.js`에도 비슷한 `marketStatus()`가 있지만 야간선물 판정에서 요일을 안 따져 토요일 밤/일요일 새벽처럼 세션이 없는 구간도 "실시간"으로 잘못 표시하는 문제가 있어(사용자가 "주말에는 휴장" 요구), 여기서는 세션 시작(평일 저녁)과 종료(전날이 평일이었던 새벽)를 따로 확인하도록 새로 짰다 - 토·일 경계 6가지 케이스를 Node로 직접 검증(전부 PASS). 배지는 가격 fetch 성공 여부와 무관하게 즉시·30초마다 갱신된다(`updateMarketStatusBadges`).
+
+(2) 분봉 차트 X축 시간 오류: Lightweight Charts는 UNIX 타임스탬프의 시:분을 항상 UTC 기준으로 읽는데, 서버(`domestic_futures.py`/`night_futures_ws.py`)가 주는 분봉 `ts`는 정확히 변환된 진짜 UTC초라 그대로 넣으면 X축에 KST보다 9시간 이른 시각이 찍힌다 - 같은 날 `js/stock-search.js`가 분봉 탭에서 먼저 발견·수정한 것과 동일한 라이브러리 특성(반대 방향으로 문자열+'Z' 트릭 사용). `js/kospi-futures.js`는 이미 true UTC초를 갖고 있으므로 반대로 9시간을 더해(`KST_OFFSET_SEC`) 화면에 실제 거래소 시각이 나오게 했다(Node로 09:30 KST가 09:30으로 표시되는지 계산 검증).
+
+(3) 야간선물 분봉이 아예 안 나오는 문제: `scripts/cloud-vm/main.py`의 `/futures?interval=minute`이 `domestic_futures.MINUTE_SYMBOLS`를 "분봉이 존재할 수 있는 심볼" 읽기 게이트로 재사용하고 있었는데, 이 집합은 2026-08-03에 KOSPI200_NIGHT이 빠졌다(도메스틱 수집기 자신이 야간선물 자리를 주간선물 데이터로 잘못 덮어쓰던 버그 수정 - `domestic_futures.py` 상단 주석 참고, 그때는 "쓰기 범위"만 좁힌 것이었다). 그런데 `night_futures_ws.py`는 여전히 별도 KIS 웹소켓 소스로 KOSPI200_NIGHT 분봉을 정상적으로 DB에 채우고 있어서, 읽기 게이트가 같은 집합을 재사용하는 바람에 이미 존재하는 야간선물 분봉까지 응답에서 통째로 빠지는 회귀였다. `_MINUTE_CHART_READ_SYMBOLS = domestic_futures.MINUTE_SYMBOLS | {'KOSPI200_NIGHT'}`로 읽기/쓰기 범위를 분리해 수정.
+
+`py_compile`·Node `--check`로 문법 검증. `js/`·`css/`는 GitHub Pages 자동 배포, `scripts/cloud-vm/`은 `master` 반영 후 VM 자동 배포 대상.
+
 **2026-08-05(후속15) 카테고리 글목록 우측 "실시간 랭킹" 제거 + 카드 배치 다양화**: `/category/마켓 브리핑` 등 카테고리 글목록 화면에서 우측 사이드바에 뜨던 "실시간 랭킹"(거래량/상승률/하락률 TOP) 위젯을 없애달라는 요청. 위젯 DOM(`#sidebar-rank`)과 `js/sidebar-rank.js` 자체는 지우지 않았다 - 같은 DOM을 홈("/") 대시보드("오늘의 시장판" 카드 옆 `home-rank-slot`)가 그대로 옮겨 재사용하기 때문(`js/skin-main.js`의 `buildHomeDashboard`). 대신 카테고리 화면만 우측 사이드바를 강제로 띄우던 `style.css` 예외 규칙(`html.full-width-page body#tt-body-category .sidebar-right`)을 삭제해, skin.html head 스크립트가 원래 의도한 대로("우측 사이드바는 전체글에서만 노출") 일반 규칙을 타게 했다. 화면에서 숨겨져도 백그라운드에서 계속 30초 폴링하지 않도록 `js/sidebar-rank.js`의 초기화 자체를 홈 경로("/")에서만 실행하도록 가드를 추가했다.
 
 같은 화면에서 카드가 전부 같은 모양으로만 세로 나열되던 것도 "여러 모양을 써달라"는 요청에 따라 바꿨다. `js/skin-main.js`에 `diversifyCategoryFeedLayout`을 추가해, 카테고리 글목록(`/category/`)의 `.post-card` 목록을 5개 묶음 단위로 [대표 1장(featured, 풀폭+좌측 강조선) + 2단 그리드 2장(duo) + 기본 2장(standard)] 리듬이 반복되도록 클래스만 부여·재배치한다 - 글 순서(Tistory 기본 최신순)는 그대로 두고 시각적 크기만 바꾸며, 페이지네이션은 항상 원래 위치(맨 끝)에 남는다. 관련 스타일은 `style.css`의 `.feed-featured`/`.feed-duo-row`/`.feed-duo-item`, 모바일(720px 이하)에서는 2단 그리드를 1단으로 접는다. 로컬 Playwright로 데스크톱·모바일 렌더링을 확인(우측 사이드바 사라짐, featured/duo/standard 3가지 모양 정상 배치, 순서 유지, 모바일 1단 collapse). `js/`·`css/`는 GitHub Pages 자동 배포 대상.
