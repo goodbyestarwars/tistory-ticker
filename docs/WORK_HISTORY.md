@@ -3,6 +3,12 @@
 중요한 기능, 구조, API, 데이터베이스, 배포 변경만 기록한다.
 세부 파일 변경은 Git 커밋을 기준으로 확인한다.
 
+**2026-08-05(후속9) 전략검색 목록을 카드/행 스타일로 전면 개편**: 사용자가 다른 위젯(js/sector-dashboard-v4.js, 섹터별 실시간 시세 - 제목 앞 파란 바 카드 + 종목명·가격·등락률 행)의 스크린샷을 주고 같은 스타일로 바꿔달라고 요청했다. 기존 박스형 그리드(`.ss-item`)를 걷어내고 카드(`.ss-card`, 제목 앞 파란 바) + 행 목록(`.ss-rows`/`.ss-row`) 구조로 다시 짰다 - 두 위젯이 서로 다른 Tistory Page라 CSS를 공유하지 않으므로 클래스는 `ss-` 접두사로 새로 정의(재사용 아님). 이전에 뺐던 "조건 충족" 배지도 요청대로 완전히 없앴고, breakout_fail(이탈 경보)은 배지 대신 행 배경색(호박색)+이름 앞 ⚠로 구분한다. 등락률 표시도 sector-dashboard와 동일하게 `▲/▼` 기호 형식으로 맞췄다. 시장구분(P=KOSPI/Q=KOSDAQ) 뱃지는 스크린샷에는 있지만 넣지 않았다 - sector-dashboard는 curated ~238종목 풀(`data/sectors-v3.js`, market 필드 있음)을 쓰는 반면 전략검색은 전종목(`data/krx_map.js`, market 필드 없음)을 스캔해서 근거 데이터가 없다(코드로 KOSPI/KOSDAQ을 추정하지 않음 - 미검증 값 확정 표시 금지 원칙).
+
+"10개 전략이 한국투자증권 제공"이라고 써달라는 요청은 정확히 그대로 쓰지 않고 수정했다 - `kisyaml_strategy.py` 모듈 독스트링과 프리셋 야믈의 `author` 필드를 보면 한투증권(KIS) open-trading-api strategy_builder README에서 가져온 건 `.kis.yaml` "포맷" 자체와 골든크로스 1개(author: KIS, README 예시)뿐이고, 나머지 9개는 그 포맷 위에서 9Pay가 직접 만든 것(author: 9Pay)이라 "10개 다 한투증권 제공"은 부정확하다. 화면 하단 각주에 "전략 조건은 한국투자증권(KIS) open-trading-api strategy_builder의 .kis.yaml 포맷을 기반으로 구성했습니다(골든크로스는 원본 README 예시, 나머지 9개는 그 포맷 위에서 9Pay가 직접 구성)"라고 정확하게 밝혔다.
+
+Playwright로 라이트·다크모드, 매칭 있음/없음, 이탈 경보 상태를 스크린샷 확인. `js/`·`css/`는 GitHub Pages 자동 배포 대상.
+
 **2026-08-05(후속8) 돌파 계열 2개 프리셋에 거래량 급증 확인 조건 추가**: `week52_high`(52주 신고가)·`volatility`(변동성 확장) - 프리셋 category가 실제로 `breakout`인 2개 - 는 가격만 보고 매칭돼 거래 없이 슬쩍 넘는 저거래량 돌파도 잡히는 문제가 있었다. 새 지표를 만들지 않고 기존 `disparity` 지표를 `field: volume`으로 재사용해(`kisyaml_strategy.py`의 `_disparity`는 field 종류를 안 가림 - "오늘 거래량 / 20일 평균 거래량 x 100") entry AND 조건에 "20일 평균 대비 1.5배 이상"을 추가했다(`vol_surge > 150`, 백테스트로 정한 값이 아닌 잠정 기준). 20일 평균에 오늘 거래량 자체가 포함돼 계산되는 한계(`highest`의 `exclude_current`와 달리 `sma`엔 없음)는 두 프리셋 야믈과 `_disparity` 독스트링에 명시했다. `breakout_fail`(카테고리는 stop_loss)은 신규 매수가 아니라 이탈 경보라 이번엔 대상에서 뺐다 - 필요하면 별도로. 합성 데이터로 "신고가인데 평시 거래량"은 HOLD, "신고가+거래량 2배"는 BUY로 갈리는 걸 직접 확인했고, 기존 `test/test_kisyaml_strategy.py`(18개)·`test/test_strategy_scan.py`(7개) 전부 통과. `scripts/cloud-vm/`은 `master` 반영 후 VM 자동 배포 대상(다음 크론 스캔부터 반영).
 
 **2026-08-05(후속7) 전략검색 메타줄에 유동성 부족 제외 종목 수 노출**: 후속6에서 추가한 `skippedIlliquid`가 VM 캐시 JSON에는 있어도 GAS(`gas/ticker-proxy.gs`의 `getStrategyScanResult`)가 화이트리스트로 필드를 걸러 넘기고 있어 프론트까지 안 나오던 걸 연결했다. GAS 응답에 `skippedNoData`·`skippedIlliquid`를 추가하고, `js/strategy-search.js`의 메타줄에 "스캔 …·대상 N/M종목" 뒤에 값이 0보다 클 때만 "· 유동성 부족 제외 K종목"을 덧붙였다(값이 없는 구형 GAS 배포와도 안전하게 호환). **`gas/ticker-proxy.gs`는 GAS 관리자에서 새 버전으로 수동 배포해야 반영된다 - 아직 배포 전.** `js/`는 GitHub Pages 자동 배포 대상.

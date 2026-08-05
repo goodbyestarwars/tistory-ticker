@@ -38,15 +38,41 @@
   color: #9ca3af;
 }
 
-#strategy-search .ss-tab-desc {
+/* 카드 - js/sector-dashboard-v4.js의 .sector-card와 동일한 시각 언어(둥근 사각형 + 옅은
+   그림자 + 제목 앞 파란 바)를 이 페이지 전용 클래스로 옮겨온 것(두 Page가 CSS를 공유하지
+   않아 새로 정의). */
+#strategy-search .ss-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+#strategy-search .ss-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#strategy-search .ss-card-title::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  background: #2563eb;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+#strategy-search .ss-card-desc {
   font-size: 12.5px;
   color: #6b7280;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 14px;
   line-height: 1.5;
+  margin-bottom: 12px;
 }
 
 #strategy-search .ss-cat-chip {
@@ -57,90 +83,62 @@
   background: #f1f5f9;
   border-radius: 5px;
   padding: 1px 7px;
-  margin-left: 6px;
   vertical-align: middle;
 }
 
-#strategy-search .ss-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 8px;
-  margin-bottom: 14px;
+#strategy-search .ss-rows {
+  display: block;
 }
 
-#strategy-search .ss-item {
+#strategy-search .ss-row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 5px;
-  min-width: 0;
-  padding: 10px 12px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
   cursor: pointer;
 }
 
-#strategy-search .ss-item:hover {
-  border-color: #c7d2fe;
+#strategy-search .ss-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+#strategy-search .ss-row:hover {
   background: #f8fafc;
 }
 
-#strategy-search .ss-item-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
-}
-
-#strategy-search .ss-name {
-  max-width: 100%;
-  font-size: 13px;
-  font-weight: 700;
+#strategy-search .ss-row-name {
   color: #111827;
+  font-weight: 700;
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-#strategy-search .ss-code {
+#strategy-search .ss-row-code {
   font-size: 11px;
   font-weight: 400;
   color: #9ca3af;
   margin-left: 3px;
 }
 
-#strategy-search .ss-badge {
-  align-self: flex-start;
-  font-size: 11px;
-  font-weight: 700;
-  color: #7c5cff;
-  background: #efeaff;
-  border-radius: 999px;
-  padding: 2px 9px;
+#strategy-search .ss-row > span:last-child {
+  white-space: nowrap;
 }
 
-/* breakout_fail(손절 카테고리) 전용 - 매수 신호가 아니라 이탈 경보라는 걸 색으로도 구분 */
-#strategy-search .ss-badge-warn {
-  color: #b45309;
-  background: #fef3c7;
+#strategy-search .ss-row-price {
+  font-size: 13px;
+  color: #6b7280;
+  margin-right: 8px;
 }
 
-#strategy-search .ss-quote {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-#strategy-search .ss-price {
-  font-size: 14px;
-  font-weight: 700;
-  color: #111827;
-}
-
-#strategy-search .ss-rate {
-  font-size: 12.5px;
+#strategy-search .ss-row-rate {
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -148,9 +146,27 @@
 #strategy-search .ss-down { color: #1261c4; }
 #strategy-search .ss-flat { color: #9ca3af; }
 
+/* breakout_fail(손절 카테고리) 전용 - 매수 신호가 아니라 이탈 경보라는 걸 행 배경/글자색으로
+   구분(이전엔 별도 배지였으나, 카드+행 스타일로 바뀌면서 행 자체를 강조하는 방식으로 변경). */
+#strategy-search .ss-row-warn {
+  background: #fffbeb;
+  border-radius: 6px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+#strategy-search .ss-row-warn .ss-row-name {
+  color: #b45309;
+}
+
+#strategy-search .ss-footnote {
+  font-size: 11.5px;
+  color: #9ca3af;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
 #strategy-search .ss-hint,
 #strategy-search .ss-error {
-  grid-column: 1 / -1;
   padding: 28px 12px;
   text-align: center;
   font-size: 13px;
@@ -165,11 +181,8 @@
     padding: 7px 11px;
     font-size: 12px;
   }
-  #strategy-search .ss-item {
-    padding: 9px 11px;
-  }
-  #strategy-search .ss-list {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  #strategy-search .ss-card {
+    padding: 13px 14px;
   }
 }
 
@@ -189,44 +202,49 @@ html.dark #strategy-search .ss-tab.active {
 html.dark #strategy-search .ss-meta {
   color: rgba(245, 239, 224, 0.5) !important;
 }
-html.dark #strategy-search .ss-tab-desc {
+html.dark #strategy-search .ss-card {
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.14);
+  box-shadow: none;
+}
+html.dark #strategy-search .ss-card-title {
+  color: #F5EFE0 !important;
+}
+html.dark #strategy-search .ss-card-desc {
   color: rgba(245, 239, 224, 0.6) !important;
-  background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.14) !important;
 }
 html.dark #strategy-search .ss-cat-chip {
   color: rgba(245, 239, 224, 0.5) !important;
   background: rgba(245, 239, 224, 0.08) !important;
 }
-html.dark #strategy-search .ss-item {
-  background: #1A1A1A;
-  border-color: rgba(245, 239, 224, 0.14);
+html.dark #strategy-search .ss-row {
+  border-bottom-color: rgba(245, 239, 224, 0.12);
 }
-html.dark #strategy-search .ss-item:hover {
+html.dark #strategy-search .ss-row:hover {
   background: rgba(245, 239, 224, 0.06);
-  border-color: rgba(245, 239, 224, 0.28);
 }
-html.dark #strategy-search .ss-name {
+html.dark #strategy-search .ss-row-name {
   color: #F5EFE0 !important;
 }
-html.dark #strategy-search .ss-code {
+html.dark #strategy-search .ss-row-code {
   color: rgba(245, 239, 224, 0.5) !important;
 }
-html.dark #strategy-search .ss-price {
-  color: #F5EFE0 !important;
+html.dark #strategy-search .ss-row-price {
+  color: rgba(245, 239, 224, 0.6) !important;
 }
 html.dark #strategy-search .ss-up { color: #ff6b6b !important; }
 html.dark #strategy-search .ss-down { color: #4dabf7 !important; }
 html.dark #strategy-search .ss-flat { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #strategy-search .ss-row-warn {
+  background: rgba(251, 191, 36, 0.1);
+}
+html.dark #strategy-search .ss-row-warn .ss-row-name {
+  color: #fbbf24 !important;
+}
+html.dark #strategy-search .ss-footnote {
+  color: rgba(245, 239, 224, 0.45) !important;
+}
 html.dark #strategy-search .ss-hint,
 html.dark #strategy-search .ss-error {
   color: rgba(245, 239, 224, 0.6) !important;
-}
-html.dark #strategy-search .ss-badge {
-  color: #b8a7ff !important;
-  background: rgba(167, 139, 250, 0.16) !important;
-}
-html.dark #strategy-search .ss-badge-warn {
-  color: #fbbf24 !important;
-  background: rgba(251, 191, 36, 0.14) !important;
 }
