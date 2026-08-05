@@ -2,14 +2,14 @@
    티스토리 스킨(style.css)과 별개 문서(GitHub Pages 단독 호스팅)라 prefers-color-scheme으로
    다크모드를 판단한다(localStorage 'bolt-dark'는 tistory.com 도메인이라 이 origin에서 못 읽음). */
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;800&display=swap');
+@import url('https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css');
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
   padding: 48px 20px 80px;
-  font-family: 'Noto Serif KR', Georgia, serif;
+  font-family: 'MaruBuri', Georgia, serif;
   font-size: 15px;
   line-height: 1.8;
   color: #374151;
