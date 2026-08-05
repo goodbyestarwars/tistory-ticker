@@ -646,12 +646,12 @@ def daily_scan_batch(x_api_key: str = Header(default=None)):
 
 @app.get('/strategy-scan-batch')
 def strategy_scan_batch(x_api_key: str = Header(default=None)):
-    """strategy_scan.py(하루 1회 크론, daily_scan.py 20분 뒤)가 kisyaml 프리셋 전략
-    (strategies/*.kis.yaml, 현재 10개)을 전종목에 대해 미리 평가해둔 결과를 즉시 반환.
-    /daily-scan-batch와 동일한 서빙 패턴(캐시 파일을 그대로 읽어 반환) - 전략검색
-    화면(예정)이 이 엔드포인트를 호출한다. breakout_fail(돌파 실패)은 매수 신호가 아니라
-    손절/이탈 경보이니 프론트에서 category로 구분해 표시해야 한다(strategy_scan.py
-    docstring 참고)."""
+    """strategy_scan.py(하루 1회 크론, daily_scan.py 20분 뒤)가 "저평가 종목"(펀더멘탈
+    점수 + 120일 이평 대비 이격도 기준, WICS 섹터별 그룹)을 전종목에 대해 미리 판정해둔
+    결과를 즉시 반환. /daily-scan-batch와 동일한 서빙 패턴(캐시 파일을 그대로 읽어 반환) -
+    전략검색 화면(js/strategy-search.js)이 이 엔드포인트를 호출한다. 2026-08 전까지는
+    kisyaml 프리셋 전략 10개를 서빙했으나(strategy_scan.py docstring 참고) 변별력 부족
+    피드백으로 전면 개편됐다."""
     require_api_key(x_api_key)
     if not os.path.exists(STRATEGY_SCAN_CACHE_FILE):
         raise HTTPException(status_code=503, detail='전략 스캔 캐시가 아직 생성되지 않았습니다(strategy_scan.py 첫 실행 대기 중).')

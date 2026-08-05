@@ -1,36 +1,18 @@
-/* ============ 전략검색 ============ */
+/* ============ 저평가 종목 ============ */
 
 #strategy-search .ss-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
-#strategy-search .ss-tabs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-#strategy-search .ss-tab {
-  font-family: inherit;
-  font-size: 13px;
+#strategy-search .ss-title {
+  font-size: 17px;
   font-weight: 700;
-  padding: 8px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #374151;
-  cursor: pointer;
-}
-
-#strategy-search .ss-tab.active {
-  background: #111827;
-  border-color: #111827;
-  color: #ffffff;
+  color: #111827;
 }
 
 #strategy-search .ss-meta {
@@ -38,15 +20,37 @@
   color: #9ca3af;
 }
 
-/* 카드 - js/sector-dashboard-v4.js의 .sector-card와 동일한 시각 언어(둥근 사각형 + 옅은
-   그림자 + 제목 앞 파란 바)를 이 페이지 전용 클래스로 옮겨온 것(두 Page가 CSS를 공유하지
-   않아 새로 정의). */
+/* "저평가"를 실제로 어떤 기준으로 판정했는지(+ PER/PBR 없이 근사한 값이라는 한계)를
+   그대로 밝히는 상자 - scripts/cloud-vm/strategy_scan.py의 METHODOLOGY_NOTE 문구를
+   그대로 옮겨온다. */
+#strategy-search .ss-methodology {
+  font-size: 12.5px;
+  color: #6b7280;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+/* 카드 하나 = WICS 대분류 섹터 하나. js/market-temp.js 카드보기(css/market-temp.css의
+   #market-temp .sector-cards-grid/.sector-card/.sector-row)와 동일한 값을 그대로 옮겼다
+   (2026-08 UI 피드백 "증시온도 카드보기 그대로 가져다 써") - 이번엔 실제로 여러 카드가
+   나열되는 상황이라(섹터별) 그 스타일이 그대로 들어맞는다. */
+#strategy-search .ss-cards-grid {
+  columns: 3 220px;
+  column-gap: 14px;
+}
+
 #strategy-search .ss-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px 18px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  break-inside: avoid;
+  margin-bottom: 14px;
 }
 
 #strategy-search .ss-card-title {
@@ -68,46 +72,11 @@
   display: inline-block;
 }
 
-#strategy-search .ss-card-desc {
-  font-size: 12.5px;
-  color: #6b7280;
-  line-height: 1.5;
-  margin-bottom: 12px;
-}
-
-#strategy-search .ss-cat-chip {
-  display: inline-block;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #9ca3af;
-  background: #f1f5f9;
-  border-radius: 5px;
-  padding: 1px 7px;
-  vertical-align: middle;
-}
-
-/* 2026-08 피드백: "증시온도 > 카드보기 그대로 가져다 써" - js/market-temp.js의 카드
-   보기가 쓰는 js/sector-dashboard-v4.js 카드/행을 css/market-temp.css가 #market-temp
-   스코프로 그대로 복제해둔 것과 동일하게, 여기서도 값(패딩·폭·줄간격·글자굵기)을
-   임의로 조정하지 않고 #market-temp .sector-cards-grid/.sector-row 그대로 옮긴다
-   (앞서 직접 줄인 line-height:1.3·padding:6px·columns:3 210px는 "다닥다닥 붙었다"는
-   피드백으로 되돌림 - line-height는 아예 지정하지 않아 post-single-body의 1.9를
-   그대로 쓰는 게 원래 기준이었다). */
-#strategy-search .ss-rows {
-  columns: 3 220px;
-  column-gap: 14px;
-}
-
 #strategy-search .ss-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
   padding: 8px 0;
   border-bottom: 1px solid #f1f5f9;
   font-size: 13px;
   cursor: pointer;
-  break-inside: avoid; /* market-temp는 카드 단위로 다단이라 카드에 붙지만, 여긴 행 단위로
-                           다단이라(.ss-rows) 행에 붙여야 한 행이 단 사이에서 안 갈라진다 */
 }
 
 #strategy-search .ss-row:last-child {
@@ -117,6 +86,12 @@
 
 #strategy-search .ss-row:hover {
   background: #f8fafc;
+}
+
+#strategy-search .ss-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
 }
 
 #strategy-search .ss-row-name {
@@ -130,8 +105,6 @@
   margin-right: 8px;
 }
 
-/* market-temp의 .sector-row-name에는 없는 부분 - 전략검색은 종목코드도 함께 보여줘야 해서
-   이 한 클래스만 추가했다. */
 #strategy-search .ss-row-code {
   font-size: 11px;
   font-weight: 400;
@@ -139,7 +112,7 @@
   margin-left: 3px;
 }
 
-#strategy-search .ss-row > span:last-child {
+#strategy-search .ss-row-top > span:last-child {
   white-space: nowrap;
 }
 
@@ -152,28 +125,18 @@
   font-weight: 600;
 }
 
+/* 왜 이 종목이 뽑혔는지(가격 게이트·품질 게이트 실측값) - 이전 배지가 항상 100%였던
+   문제의 재발 방지: 종목마다 실제로 다른 숫자를 그대로 보여준다. */
+#strategy-search .ss-row-metric {
+  font-size: 11px;
+  color: #9ca3af;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
 #strategy-search .ss-up { color: #d24f45; }
 #strategy-search .ss-down { color: #1261c4; }
 #strategy-search .ss-flat { color: #9ca3af; }
-
-/* breakout_fail(손절 카테고리) 전용 - 매수 신호가 아니라 이탈 경보라는 걸 행 배경/글자색으로
-   구분(이전엔 별도 배지였으나, 카드+행 스타일로 바뀌면서 행 자체를 강조하는 방식으로 변경). */
-#strategy-search .ss-row-warn {
-  background: #fffbeb;
-  border-radius: 6px;
-  padding-left: 6px;
-  padding-right: 6px;
-}
-#strategy-search .ss-row-warn .ss-row-name {
-  color: #b45309;
-}
-
-#strategy-search .ss-footnote {
-  font-size: 11.5px;
-  color: #9ca3af;
-  line-height: 1.5;
-  margin-top: 12px;
-}
 
 #strategy-search .ss-hint,
 #strategy-search .ss-error {
@@ -188,15 +151,11 @@
 /* ============ 모바일 ============ */
 /* css/market-temp.css의 .sector-cards-grid 모바일 대응(640px에서 1단)과 동일 기준. */
 @media (max-width: 640px) {
-  #strategy-search .ss-rows {
+  #strategy-search .ss-cards-grid {
     columns: 1 100%;
   }
 }
 @media (max-width: 480px) {
-  #strategy-search .ss-tab {
-    padding: 7px 11px;
-    font-size: 12px;
-  }
   #strategy-search .ss-card {
     padding: 13px 14px;
   }
@@ -205,18 +164,16 @@
 /* ============ 다크모드 ============ */
 /* css/pattern-scan.css와 동일한 팔레트(#1A1A1A 배경 + #F5EFE0 글자, 등락색은 의미가
    있어 별도 유지)로 사이트 전체 다크모드와 통일한다. */
-html.dark #strategy-search .ss-tab {
-  background: #1A1A1A;
-  border-color: rgba(245, 239, 224, 0.2);
-  color: rgba(245, 239, 224, 0.8) !important;
-}
-html.dark #strategy-search .ss-tab.active {
-  background: rgba(245, 239, 224, 0.22);
-  border-color: rgba(245, 239, 224, 0.4);
+html.dark #strategy-search .ss-title {
   color: #F5EFE0 !important;
 }
 html.dark #strategy-search .ss-meta {
   color: rgba(245, 239, 224, 0.5) !important;
+}
+html.dark #strategy-search .ss-methodology {
+  color: rgba(245, 239, 224, 0.6) !important;
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.14) !important;
 }
 html.dark #strategy-search .ss-card {
   background: #1A1A1A;
@@ -225,13 +182,6 @@ html.dark #strategy-search .ss-card {
 }
 html.dark #strategy-search .ss-card-title {
   color: #F5EFE0 !important;
-}
-html.dark #strategy-search .ss-card-desc {
-  color: rgba(245, 239, 224, 0.6) !important;
-}
-html.dark #strategy-search .ss-cat-chip {
-  color: rgba(245, 239, 224, 0.5) !important;
-  background: rgba(245, 239, 224, 0.08) !important;
 }
 html.dark #strategy-search .ss-row {
   border-bottom-color: rgba(245, 239, 224, 0.12);
@@ -248,18 +198,12 @@ html.dark #strategy-search .ss-row-code {
 html.dark #strategy-search .ss-row-price {
   color: rgba(245, 239, 224, 0.6) !important;
 }
+html.dark #strategy-search .ss-row-metric {
+  color: rgba(245, 239, 224, 0.45) !important;
+}
 html.dark #strategy-search .ss-up { color: #ff6b6b !important; }
 html.dark #strategy-search .ss-down { color: #4dabf7 !important; }
 html.dark #strategy-search .ss-flat { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #strategy-search .ss-row-warn {
-  background: rgba(251, 191, 36, 0.1);
-}
-html.dark #strategy-search .ss-row-warn .ss-row-name {
-  color: #fbbf24 !important;
-}
-html.dark #strategy-search .ss-footnote {
-  color: rgba(245, 239, 224, 0.45) !important;
-}
 html.dark #strategy-search .ss-hint,
 html.dark #strategy-search .ss-error {
   color: rgba(245, 239, 224, 0.6) !important;

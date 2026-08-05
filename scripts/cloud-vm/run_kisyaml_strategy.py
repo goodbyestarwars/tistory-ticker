@@ -2,12 +2,11 @@
 """`.kis.yaml` 전략 파일을 종목 1개에 대해 평가해보는 수동 실행용 CLI(daily_scan.py 같은
 자동 배치에는 연결돼 있지 않음 - kisyaml_strategy.py 사용법 확인·수동 점검용).
 
-사용(저장소 그대로, scripts/cloud-vm/에서 실행):
-    python run_kisyaml_strategy.py strategies/golden_cross.kis.yaml 005930
-
-VM 배포 후(deploy_check.sh가 *.py만 $APP_DIR 루트로 평평하게 복사하므로 strategies/는
-그 자리에 없음 - git으로 받은 scripts/cloud-vm/strategies/ 경로를 그대로 가리켜야 함):
-    cd ~/kiwoom-api && venv/bin/python run_kisyaml_strategy.py scripts/cloud-vm/strategies/golden_cross.kis.yaml 005930
+2026-08: 번들로 제공하던 프리셋 10개(scripts/cloud-vm/strategies/*.kis.yaml)는 변별력
+부족 피드백으로 삭제됐다(strategy_scan.py가 이제 "저평가 종목" 스캔으로 대체) - 이 CLI
+자체는 임의의 .kis.yaml 파일 경로를 받으므로 여전히 동작한다. 직접 작성한 .kis.yaml로
+써보려면:
+    python run_kisyaml_strategy.py 내가_만든_전략.kis.yaml 005930
 
 DB(ohlc_snapshot.db)의 daily_prices를 그대로 읽는다 - 별도 API 호출 없음. daily_scan.py가
 먼저 한 번 이상 돌아서 해당 종목의 일봉이 DB에 쌓여 있어야 한다."""
