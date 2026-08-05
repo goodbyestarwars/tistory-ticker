@@ -484,13 +484,37 @@
   }
 
   // 저장된 구간이 지금 데이터 범위와 아예 겹치지 않으면(오래 지난 값) 전체 보기로 시작한다.
+  //
+  // 2026-08-05: 분봉은 저장된 확대 구간이 없는 첫 방문 때 fitContent()로 최근 3~4거래일치
+  // (최대 1500봉, db_schema.load_future_chart_minute 상한)를 한 화면에 다 보여줬는데,
+  // 그러면 캔들이 지나치게 촘촘해져서 Lightweight Charts가 X축에 날짜 경계("30일", "31일",
+  // "8월")만 듬성듬성 찍고 시:분 눈금은 사실상 하나도 안 그린다("X축 시간이 분단위로
+  // 안나온다" 리포트 - 앞서 KST_OFFSET_SEC로 고친 시간대 버그와는 별개의 원인이었음, 실측은
+  // scratchpad에서 실제 lightweight-charts 4.2.0 라이브러리로 확인). 분봉은 저장된 구간이
+  // 없을 때 fitContent 대신 "가장 최근 캔들이 속한 하루"로만 기본 구간을 좁힌다 - 나머지
+  // 이전 거래일 데이터는 그대로 남아있어 확대 축소/좌로 이동하면 보인다.
   function applySavedRange(chart, chartKey, interval, points) {
     var saved = loadSavedRange(chartKey, interval);
     if (saved && timeLte(saved.from, points[points.length - 1].time) && timeLte(points[0].time, saved.to)) {
       try {
         chart.timeScale().setVisibleRange({ from: saved.from, to: saved.to });
         return;
-      } catch (err) { /* 아래 fitContent로 폴백 */ }
+      } catch (err) { /* 아래 폴백으로 진행 */ }
+    }
+    if (interval === 'minute') {
+      // KST_OFFSET_SEC 보정으로 point.time은 "KST 벽시계 값을 UTC인 척" 넣어둔 것이라,
+      // UTC 게터(getUTCFullYear 등)로 읽으면 그대로 KST 날짜가 나온다.
+      var lastTime = points[points.length - 1].time;
+      var lastDate = new Date(lastTime * 1000);
+      var dayStart = Date.UTC(lastDate.getUTCFullYear(), lastDate.getUTCMonth(), lastDate.getUTCDate(), 0, 0, 0) / 1000;
+      var dayEnd = dayStart + 24 * 60 * 60;
+      var sameDay = points.filter(function (p) { return p.time >= dayStart && p.time < dayEnd; });
+      if (sameDay.length > 1) {
+        try {
+          chart.timeScale().setVisibleRange({ from: sameDay[0].time, to: sameDay[sameDay.length - 1].time });
+          return;
+        } catch (err) { /* 아래 fitContent로 폴백 */ }
+      }
     }
     chart.timeScale().fitContent();
   }
