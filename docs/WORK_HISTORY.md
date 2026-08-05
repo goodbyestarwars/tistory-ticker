@@ -3,6 +3,10 @@
 중요한 기능, 구조, API, 데이터베이스, 배포 변경만 기록한다.
 세부 파일 변경은 Git 커밋을 기준으로 확인한다.
 
+**2026-08-05(후속15) 카테고리 글목록 우측 "실시간 랭킹" 제거 + 카드 배치 다양화**: `/category/마켓 브리핑` 등 카테고리 글목록 화면에서 우측 사이드바에 뜨던 "실시간 랭킹"(거래량/상승률/하락률 TOP) 위젯을 없애달라는 요청. 위젯 DOM(`#sidebar-rank`)과 `js/sidebar-rank.js` 자체는 지우지 않았다 - 같은 DOM을 홈("/") 대시보드("오늘의 시장판" 카드 옆 `home-rank-slot`)가 그대로 옮겨 재사용하기 때문(`js/skin-main.js`의 `buildHomeDashboard`). 대신 카테고리 화면만 우측 사이드바를 강제로 띄우던 `style.css` 예외 규칙(`html.full-width-page body#tt-body-category .sidebar-right`)을 삭제해, skin.html head 스크립트가 원래 의도한 대로("우측 사이드바는 전체글에서만 노출") 일반 규칙을 타게 했다. 화면에서 숨겨져도 백그라운드에서 계속 30초 폴링하지 않도록 `js/sidebar-rank.js`의 초기화 자체를 홈 경로("/")에서만 실행하도록 가드를 추가했다.
+
+같은 화면에서 카드가 전부 같은 모양으로만 세로 나열되던 것도 "여러 모양을 써달라"는 요청에 따라 바꿨다. `js/skin-main.js`에 `diversifyCategoryFeedLayout`을 추가해, 카테고리 글목록(`/category/`)의 `.post-card` 목록을 5개 묶음 단위로 [대표 1장(featured, 풀폭+좌측 강조선) + 2단 그리드 2장(duo) + 기본 2장(standard)] 리듬이 반복되도록 클래스만 부여·재배치한다 - 글 순서(Tistory 기본 최신순)는 그대로 두고 시각적 크기만 바꾸며, 페이지네이션은 항상 원래 위치(맨 끝)에 남는다. 관련 스타일은 `style.css`의 `.feed-featured`/`.feed-duo-row`/`.feed-duo-item`, 모바일(720px 이하)에서는 2단 그리드를 1단으로 접는다. 로컬 Playwright로 데스크톱·모바일 렌더링을 확인(우측 사이드바 사라짐, featured/duo/standard 3가지 모양 정상 배치, 순서 유지, 모바일 1단 collapse). `js/`·`css/`는 GitHub Pages 자동 배포 대상.
+
 **2026-08-05(후속14) 전략검색을 "저평가 종목 전용 페이지"로 잘못 만든 것 수정 - 카테고리 탭 구조 복원**: 후속13에서 kisyaml 10개를 지우고 "저평가 종목"을 만들면서, 탭 자체를 없애고 페이지 정체성(위젯 타이틀 "저평가 종목", 메뉴 라벨도 "전략검색"→"저평가 종목")까지 그 하나로 고정해버렸다. 사용자 피드백: "전략검색은 냅두고 10개를 1개로 줄이는 거였지, 페이지 자체를 저평가 종목으로 박아버리라는 게 아니었다 - 계속 추가할 것". 즉 "전략검색"은 여러 카테고리를 탭으로 보여주는 틀이고 "저평가 종목"은 그 중 첫 카테고리일 뿐이어야 했다.
 
 바로잡음: `strategy_scan.py` 출력을 `sectors: {...}`(최상위)에서 `categories: {undervalued: {name, methodology, sectors}}`로 한 겹 감쌌다 - 카테고리를 추가할 땐 이 딕셔너리에 키 하나만 더 넣으면 됨. `gas/ticker-proxy.gs`의 `getStrategyScanResult()`도 `categories`를 그대로 통과시키게 갱신. `js/strategy-search.js`는 탭 UI(`.ss-tabs`/`.ss-tab`)를 되살려 `categories` 키들을 탭으로 렌더링하고, 활성 탭의 methodology+섹터 카드만 보여주도록 재작성(카드/행 렌더링 로직 자체는 유지). `js/skin-menu.js` 메뉴 라벨은 "전략검색"으로 원복. `test/strategy-search.html`에 mock 카테고리를 2개(저평가 종목 + 예시용 두 번째 카테고리)로 넣어 탭 전환이 실제로 되는지 로컬에서 확인.

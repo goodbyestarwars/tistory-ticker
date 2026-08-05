@@ -597,6 +597,44 @@
       });
   })();
 
+  /* ── 카테고리 글목록: 배치 모양 다양화(2026-08-05) ──
+     마켓 브리핑 등 카테고리 글목록이 전부 같은 모양 카드로만 세로로 나열되던 것을,
+     5개 묶음 단위로 [대표 1(featured, 풀폭 강조) + 2단 그리드 2(duo) + 기본 2(standard)]
+     리듬이 반복되도록 바꾼다. 글 순서(Tistory 기본 최신순)는 절대 건드리지 않고
+     카드 DOM 위치를 유지한 채(duo 2장만 grid 래퍼로 묶어 재배치) 클래스만 부여한다.
+     페이지네이션 등 카드 뒤 요소는 항상 원래 순서 그대로 맨 끝에 남는다. */
+  (function diversifyCategoryFeedLayout() {
+    if (location.pathname.indexOf('/category/') !== 0) return;
+    var feed = document.querySelector('.feed');
+    if (!feed) return;
+    var cards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
+    if (cards.length < 2) return; /* 카드가 1개뿐이면 다양화할 의미가 없음 */
+
+    var PATTERN = ['featured', 'duo', 'duo', 'standard', 'standard'];
+    var tailAnchor = cards[cards.length - 1].nextSibling; /* 마지막 카드 뒤 요소(페이지네이션 등) 앞에 삽입 */
+    var duoBuffer = [];
+
+    function flushDuo(beforeNode) {
+      if (duoBuffer.length < 2) { duoBuffer = []; return; } /* 짝 없는 1장은 기본 카드로 남김 */
+      var row = document.createElement('div');
+      row.className = 'feed-duo-row';
+      feed.insertBefore(row, beforeNode);
+      duoBuffer.forEach(function (card) {
+        card.classList.add('feed-duo-item');
+        row.appendChild(card);
+      });
+      duoBuffer = [];
+    }
+
+    cards.forEach(function (card, i) {
+      var kind = PATTERN[i % PATTERN.length];
+      if (kind === 'duo') { duoBuffer.push(card); return; }
+      flushDuo(card);
+      if (kind === 'featured') card.classList.add('feed-featured');
+    });
+    flushDuo(tailAnchor);
+  })();
+
   /* ── 폰트 전환 토글 (명조 ⇄ 고딕, 조기 적용 스크립트는 head에 있음) ── */
   (function() {
     var btn = document.getElementById('fontModeBtn');
