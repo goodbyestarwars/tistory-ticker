@@ -87,14 +87,19 @@
   vertical-align: middle;
 }
 
+/* 행 하나가 카드 전체 폭(글 본문 너비, 보통 700px+)을 혼자 차지해서 종목명과 가격
+   사이만 텅 비어 보이던 문제(2026-08 피드백: "높이가 아니라 좌우 폭 낭비") -
+   css/sector-dashboard-v3.css의 .sector-cards-grid(columns 다단)와 동일한 기법으로
+   210px 안팎씩 여러 단으로 흘려보내 한 행의 폭 자체를 좁힌다. 화면이 좁으면(모바일)
+   자동으로 1단이 된다. */
 #strategy-search .ss-rows {
-  display: block;
+  columns: 3 210px;
+  column-gap: 20px;
 }
 
 /* .post-single-body(style.css)의 line-height:1.9가 그대로 상속되면 13px 텍스트 한 줄에도
-   줄간격이 크게 붙어 행이 불필요하게 두꺼워진다(2026-08 피드백: "몇 줄로 해도 될 걸
-   너무 넓게 씀") - css/quick-indices.css의 .qi-news-item과 동일하게 줄간격을 직접
-   좁혀서 상속을 끊는다. */
+   줄간격이 크게 붙어 행이 불필요하게 두꺼워진다(2026-08 피드백) - css/quick-indices.css의
+   .qi-news-item과 동일하게 줄간격을 직접 좁혀서 상속을 끊는다. */
 #strategy-search .ss-row {
   display: flex;
   justify-content: space-between;
@@ -105,6 +110,7 @@
   font-size: 13px;
   line-height: 1.3;
   cursor: pointer;
+  break-inside: avoid;
 }
 
 #strategy-search .ss-row:last-child {
