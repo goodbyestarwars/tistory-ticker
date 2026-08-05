@@ -18,11 +18,22 @@
  *
  * 2026-08-05 사용자 리포트: 종목을 고른 뒤 가만히 있으면 가격/등락률/분봉차트가 전혀
  * 갱신되지 않았다(최초 1회만 그리고 끝 - 이 파일에 주기적 재조회가 아예 없었음). 두 가지를
- * 추가했다 - (1) watchlist.js/order-book.js와 동일한 실시간 체결가 WebSocket
- * (wss://goodbyestar.cloud/ws/quotes)을 구독해 상단 요약의 가격/등락률만 빠르게 갱신,
+ * 추가했다 - (1) 상단 요약의 가격/등락률을 체결 단위로 갱신(아래 (2차) 참고),
  * (2) 분봉 탭에 있는 동안 60초 간격으로 분봉을 다시 불러온다(캔들/이평선/거래량 전체
  * 다시 그림 - kospi-futures.js처럼 확대구간을 보존하는 setData() 갱신은 아니라서 60초마다
  * 살짝 다시 그려지는 깜빡임은 남아있음, 필요하면 후속 개선 대상).
+ *
+ * 2026-08-05(2차) 사용자 리포트: 위 (1)을 처음엔 watchlist.js/order-book.js와 동일하게
+ * 이 파일에서 별도로 wss://goodbyestar.cloud/ws/quotes 소켓을 열어 구현했는데, 같은 코드에
+ * 소켓이 2개(이 파일 것 + order-book.js 것) 뜨면서 수신 타이밍이 어긋나 상단 요약과
+ * 호가창에 서로 다른 가격이 잠깐씩 보였다. 소켓은 order-book.js(#order-book 위젯) 하나만
+ * 열도록 되돌리고, 그 위젯의 실시간 틱을 콜백(OrderBook.init의 opts.onQuote)으로 받아써서
+ * 항상 같은 값을 보여주게 했다(applyRealtimeQuote 참고).
+ *
+ * 2026-08-05(3차) 사용자 리포트: 분봉 차트 X축이 날짜만 반복 표시됐음("5일 5일...") -
+ * 분봉의 time은 UNIX 타임스탬프인데 timeScale.timeVisible이 꺼져 있어 라이브러리가 날짜만
+ * 찍은 것. 분봉일 때만 시:분(HH:mm)을 보여주도록 lwcThemeOptions에 timeframe 인자를
+ * 추가했다.
  */
 (function (global) {
   'use strict';
@@ -34,8 +45,6 @@
   var FETCH_TIMEOUT_MS = 15000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
-  var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
-  var REALTIME_RECONNECT_MS = 5000;
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
 
   var state = {
@@ -49,11 +58,7 @@
     minuteCache: {},  // code -> { t, bars(LWC 형식으로 변환 완료) } 1분 캐시
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
     resultsCollapsed: false, // 종목을 고르면 목록이 화면을 계속 차지하지 않도록 접음(사용자 리포트)
-    minuteRefreshTimer: null,
-    realtimeSocket: null,
-    realtimeReconnectTimer: null,
-    realtimeKeepaliveTimer: null,
-    realtimeGeneration: 0
+    minuteRefreshTimer: null
   };
   var lwcLoadPromise = null;
   var lwcChart = null;
@@ -80,13 +85,13 @@
     wireSearch(container);
     autoSearchFromUrl(container);
 
+    // 실시간 체결가 소켓의 visibilitychange 처리는 order-book.js가 자기 자신의 init()에서
+    // 이미 하고 있다(#order-book 위젯을 그대로 재사용 - 위 applyRealtimeQuote 주석 참고).
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) {
-        stopRealtimeQuote();
         stopMinuteRefresh();
-      } else {
-        if (state.selectedCode) startRealtimeQuote(container, state.selectedCode);
-        if (state.timeframe === 'minute' && state.selectedCode) startMinuteRefresh(container, state.selectedCode);
+      } else if (state.timeframe === 'minute' && state.selectedCode) {
+        startMinuteRefresh(container, state.selectedCode);
       }
     });
   }
@@ -407,11 +412,13 @@
 
     renderSummary(container, item);
     loadPriceReason(container, item);
-    startRealtimeQuote(container, item.code);
 
     var ladderBox = container.querySelector('#order-book');
     if (!state.ladderMounted && global.OrderBook) {
-      global.OrderBook.init('#order-book', { hideSearch: true });
+      global.OrderBook.init('#order-book', {
+        hideSearch: true,
+        onQuote: function (quote) { applyRealtimeQuote(container, quote); }
+      });
       state.ladderMounted = true;
     }
     if (global.OrderBook && ladderBox) {
@@ -459,67 +466,15 @@
       });
   }
 
-  // ---- 실시간 체결가(WebSocket, watchlist.js/order-book.js와 동일 패턴) ----
-  // 상단 요약(#ssSummary)의 가격/등락률 텍스트만 체결 단위로 갱신한다 - 나머지(AI 한줄요약,
-  // 호가창, 차트)는 각자의 기존 갱신 경로를 그대로 쓴다.
-
-  function stopRealtimeQuote() {
-    state.realtimeGeneration += 1;
-    clearTimeout(state.realtimeReconnectTimer);
-    clearInterval(state.realtimeKeepaliveTimer);
-    state.realtimeReconnectTimer = null;
-    state.realtimeKeepaliveTimer = null;
-    if (state.realtimeSocket) {
-      state.realtimeSocket.onclose = null;
-      state.realtimeSocket.close();
-      state.realtimeSocket = null;
-    }
-  }
-
-  function startRealtimeQuote(container, code) {
-    stopRealtimeQuote();
-    if (!code || document.hidden || !('WebSocket' in global)) return;
-
-    var generation = state.realtimeGeneration;
-
-    function connect() {
-      if (generation !== state.realtimeGeneration || document.hidden) return;
-
-      var socket = new WebSocket(REALTIME_QUOTES_URL + '?codes=' + encodeURIComponent(code));
-      state.realtimeSocket = socket;
-
-      socket.onmessage = function (event) {
-        if (generation !== state.realtimeGeneration) return;
-        try {
-          var quote = JSON.parse(event.data);
-          if (quote.type === 'quote' && quote.code === code) applyRealtimeQuote(container, quote);
-        } catch (err) { /* 파싱 실패한 메시지는 무시 - 다음 틱을 기다림 */ }
-      };
-
-      socket.onopen = function () {
-        clearInterval(state.realtimeKeepaliveTimer);
-        state.realtimeKeepaliveTimer = setInterval(function () {
-          if (socket.readyState === WebSocket.OPEN) socket.send('ping');
-        }, 20000);
-      };
-
-      socket.onerror = function () {
-        socket.close();
-      };
-
-      socket.onclose = function () {
-        clearInterval(state.realtimeKeepaliveTimer);
-        state.realtimeKeepaliveTimer = null;
-        if (generation !== state.realtimeGeneration || document.hidden) return;
-        state.realtimeReconnectTimer = setTimeout(connect, REALTIME_RECONNECT_MS);
-      };
-    }
-
-    connect();
-  }
-
+  // ---- 실시간 체결가 ----
+  // 2026-08-05(2차) 사용자 리포트: 상단 요약(27,250원)과 호가창(27,350원)이 서로 다른
+  // 가격을 보여줬다 - 처음엔 order-book.js와 별개로 이 파일에서도 wss://.../ws/quotes
+  // 소켓을 하나 더 열었는데, 같은 코드에 소켓이 2개 뜨면 두 소켓의 수신 타이밍이 미묘하게
+  // 어긋나 서로 다른 시점의 값이 잠깐씩 보였다. 소켓은 order-book.js(#order-book 위젯)
+  // 하나만 열고, 그 위젯이 이미 갱신에 성공한 값을 콜백(opts.onQuote, selectStock 참고)으로
+  // 그대로 받아써서 항상 같은 값을 보여주게 했다.
   function applyRealtimeQuote(container, quote) {
-    if (typeof quote.price !== 'number') return;
+    if (state.selectedCode !== quote.code || typeof quote.price !== 'number') return;
     var box = container.querySelector('#ssSummary');
     if (!box) return;
     var cls = signClass(quote.changeRate);
@@ -869,7 +824,7 @@
     return lwcLoadPromise;
   }
 
-  function lwcThemeOptions(LWC) {
+  function lwcThemeOptions(LWC, timeframe) {
     var dark = document.documentElement.classList.contains('dark');
     return {
       layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', attributionLogo: false },
@@ -878,7 +833,11 @@
         horzLines: { color: dark ? '#3a3a3a' : '#eee' }
       },
       rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
-      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
+      // 2026-08-05 사용자 리포트: 분봉 X축이 같은 날짜("5일")만 반복 표시됐음 - 분봉의
+      // time은 UNIX 타임스탬프(minuteRowsToBars 참고)인데 timeVisible이 꺼져 있으면
+      // 라이브러리가 날짜만 찍는다. 분봉일 때만 시:분(HH:mm)을 보여주고, 일/주/월봉은
+      // (time이 날짜 문자열이라 시간 개념이 없어) 그대로 둔다.
+      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd', timeVisible: timeframe === 'minute', secondsVisible: false },
       // 2026-07-28 사용자 리포트: 다크모드에서 차트 위에 안 어울리는 회색 네모(십자선
       // 가격/시각 라벨의 기본 배경색, 라이브러리 기본값이라 다크 팔레트와 무관하게 고정)가
       // 떴음 - 라벨 배경색을 테마에 맞게 명시(js/foreign-flow.js와 동일 수정).
@@ -905,7 +864,7 @@
         // crosshair는 lwcThemeOptions()에 있음(mergeOptions가 얕은 병합이라 두 곳에 나눠
         // 쓰면 뒤에 오는 쪽이 통째로 덮어씀).
         localization: { locale: 'ko-KR' }
-      }, lwcThemeOptions(LWC)));
+      }, lwcThemeOptions(LWC, timeframe)));
       lwcChart = chart;
 
       var candleSeries = chart.addCandlestickSeries({

@@ -198,6 +198,27 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("며칠 후부터 표시됩니다", source)
         self.assertIn(".mt-spark-single", style)
 
+    def test_stock_search_minute_chart_shows_time_of_day(self):
+        # 2026-08-05(3차) 사용자 리포트: 분봉 X축이 날짜만 반복 표시됨 - 분봉일 때만
+        # timeVisible을 켜서 시:분(HH:mm)이 보이게 했다(일/주/월봉은 날짜 문자열이라 그대로).
+        source = self.read("js/stock-search.js")
+        self.assertIn("function lwcThemeOptions(LWC, timeframe)", source)
+        self.assertIn("timeVisible: timeframe === 'minute'", source)
+        self.assertIn("lwcThemeOptions(LWC, timeframe)", source)
+
+    def test_stock_search_reuses_order_book_realtime_socket(self):
+        # 2026-08-05(3차) 사용자 리포트: 상단 요약과 호가창이 서로 다른 가격을 보여줬음 -
+        # 원인은 같은 코드에 WebSocket을 2개(order-book.js 것 + stock-search.js 자체 것)
+        # 열어서 수신 타이밍이 어긋난 것. stock-search.js가 자체 소켓을 열지 않고
+        # order-book.js의 onQuote 콜백을 그대로 받아쓰는지 확인한다.
+        stock_search = self.read("js/stock-search.js")
+        order_book = self.read("js/order-book.js")
+        self.assertNotIn("var REALTIME_QUOTES_URL", stock_search)  # 자체 소켓 상수는 없어야 함(주석의 경위 설명 문구는 남아있어도 됨)
+        self.assertNotIn("new WebSocket(", stock_search)
+        self.assertIn("onQuote: function (quote) { applyRealtimeQuote(container, quote); }", stock_search)
+        self.assertIn("state.onQuote = (opts && opts.onQuote) || null;", order_book)
+        self.assertIn("if (state.onQuote) state.onQuote(quote);", order_book)
+
     def test_stock_search_volume_uses_compact_overlay_study(self):
         source = self.read("js/stock-search.js")
         style = self.read("css/stock-search.css")
