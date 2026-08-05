@@ -209,7 +209,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIsNotNone(volume_series)
         self.assertIn("priceFormat: { type: 'volume' }", volume_series.group("body"))
         self.assertIn("priceScaleId: ''", volume_series.group("body"))
-        self.assertIn("lastValueVisible: true", volume_series.group("body"))
+        # 2026-08-05 사용자 리포트(거래량 Y축이 가격과 겹쳐 보임): 라이브러리 네이티브
+        # 마지막값 배지/점선은 .ss-volume-study-label 커스텀 범례와 같은 값을 중복 표시하며
+        # 가격축 배지와 같은 여백에 그려져 겹쳤다 - 다른 보조지표 시리즈와 동일하게 끈다.
+        self.assertIn("lastValueVisible: false", volume_series.group("body"))
+        self.assertIn("priceLineVisible: false", volume_series.group("body"))
         self.assertNotIn("localization: { priceFormatter:", source)
         self.assertIn("movingAveragePoints(bars, 'volume', 20)", source)
         self.assertIn("querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-ichimoku-cloud')", source)

@@ -15,6 +15,14 @@
  * 2026-07-28: 선택 종목 요약의 "시가총액"/"외국인·기관 수급(5일)" 라인은 사용자 요청으로
  * 제거하고, 대신 GAS ?action=priceReason(오늘 뉴스 기반 AI 한줄요약 - "오늘 왜 올랐는지/
  * 빠졌는지")으로 교체했다.
+ *
+ * 2026-08-05 사용자 리포트: 종목을 고른 뒤 가만히 있으면 가격/등락률/분봉차트가 전혀
+ * 갱신되지 않았다(최초 1회만 그리고 끝 - 이 파일에 주기적 재조회가 아예 없었음). 두 가지를
+ * 추가했다 - (1) watchlist.js/order-book.js와 동일한 실시간 체결가 WebSocket
+ * (wss://goodbyestar.cloud/ws/quotes)을 구독해 상단 요약의 가격/등락률만 빠르게 갱신,
+ * (2) 분봉 탭에 있는 동안 60초 간격으로 분봉을 다시 불러온다(캔들/이평선/거래량 전체
+ * 다시 그림 - kospi-futures.js처럼 확대구간을 보존하는 setData() 갱신은 아니라서 60초마다
+ * 살짝 다시 그려지는 깜빡임은 남아있음, 필요하면 후속 개선 대상).
  */
 (function (global) {
   'use strict';
@@ -26,6 +34,9 @@
   var FETCH_TIMEOUT_MS = 15000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
+  var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
+  var REALTIME_RECONNECT_MS = 5000;
+  var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
 
   var state = {
     selectedCode: null,
@@ -37,7 +48,12 @@
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     minuteCache: {},  // code -> { t, bars(LWC 형식으로 변환 완료) } 1분 캐시
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
-    resultsCollapsed: false // 종목을 고르면 목록이 화면을 계속 차지하지 않도록 접음(사용자 리포트)
+    resultsCollapsed: false, // 종목을 고르면 목록이 화면을 계속 차지하지 않도록 접음(사용자 리포트)
+    minuteRefreshTimer: null,
+    realtimeSocket: null,
+    realtimeReconnectTimer: null,
+    realtimeKeepaliveTimer: null,
+    realtimeGeneration: 0
   };
   var lwcLoadPromise = null;
   var lwcChart = null;
@@ -63,6 +79,16 @@
     container.innerHTML = buildShell();
     wireSearch(container);
     autoSearchFromUrl(container);
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        stopRealtimeQuote();
+        stopMinuteRefresh();
+      } else {
+        if (state.selectedCode) startRealtimeQuote(container, state.selectedCode);
+        if (state.timeframe === 'minute' && state.selectedCode) startMinuteRefresh(container, state.selectedCode);
+      }
+    });
   }
 
   // 관심종목(MY) 카드의 "차트 보기" 버튼이 ?code=005930&name=삼성전자로 넘어오면
@@ -381,6 +407,7 @@
 
     renderSummary(container, item);
     loadPriceReason(container, item);
+    startRealtimeQuote(container, item.code);
 
     var ladderBox = container.querySelector('#order-book');
     if (!state.ladderMounted && global.OrderBook) {
@@ -430,6 +457,98 @@
         var el = container.querySelector('#ssSummaryReason .ss-reason-text');
         if (el) el.textContent = '오늘 움직인 이유를 불러오지 못했어요.';
       });
+  }
+
+  // ---- 실시간 체결가(WebSocket, watchlist.js/order-book.js와 동일 패턴) ----
+  // 상단 요약(#ssSummary)의 가격/등락률 텍스트만 체결 단위로 갱신한다 - 나머지(AI 한줄요약,
+  // 호가창, 차트)는 각자의 기존 갱신 경로를 그대로 쓴다.
+
+  function stopRealtimeQuote() {
+    state.realtimeGeneration += 1;
+    clearTimeout(state.realtimeReconnectTimer);
+    clearInterval(state.realtimeKeepaliveTimer);
+    state.realtimeReconnectTimer = null;
+    state.realtimeKeepaliveTimer = null;
+    if (state.realtimeSocket) {
+      state.realtimeSocket.onclose = null;
+      state.realtimeSocket.close();
+      state.realtimeSocket = null;
+    }
+  }
+
+  function startRealtimeQuote(container, code) {
+    stopRealtimeQuote();
+    if (!code || document.hidden || !('WebSocket' in global)) return;
+
+    var generation = state.realtimeGeneration;
+
+    function connect() {
+      if (generation !== state.realtimeGeneration || document.hidden) return;
+
+      var socket = new WebSocket(REALTIME_QUOTES_URL + '?codes=' + encodeURIComponent(code));
+      state.realtimeSocket = socket;
+
+      socket.onmessage = function (event) {
+        if (generation !== state.realtimeGeneration) return;
+        try {
+          var quote = JSON.parse(event.data);
+          if (quote.type === 'quote' && quote.code === code) applyRealtimeQuote(container, quote);
+        } catch (err) { /* 파싱 실패한 메시지는 무시 - 다음 틱을 기다림 */ }
+      };
+
+      socket.onopen = function () {
+        clearInterval(state.realtimeKeepaliveTimer);
+        state.realtimeKeepaliveTimer = setInterval(function () {
+          if (socket.readyState === WebSocket.OPEN) socket.send('ping');
+        }, 20000);
+      };
+
+      socket.onerror = function () {
+        socket.close();
+      };
+
+      socket.onclose = function () {
+        clearInterval(state.realtimeKeepaliveTimer);
+        state.realtimeKeepaliveTimer = null;
+        if (generation !== state.realtimeGeneration || document.hidden) return;
+        state.realtimeReconnectTimer = setTimeout(connect, REALTIME_RECONNECT_MS);
+      };
+    }
+
+    connect();
+  }
+
+  function applyRealtimeQuote(container, quote) {
+    if (typeof quote.price !== 'number') return;
+    var box = container.querySelector('#ssSummary');
+    if (!box) return;
+    var cls = signClass(quote.changeRate);
+    var priceEl = box.querySelector('.ss-summary-price');
+    if (priceEl) { priceEl.textContent = fmtPrice(quote.price) + '원'; priceEl.className = 'ss-summary-price ' + cls; }
+    var changeEl = box.querySelector('.ss-summary-change');
+    if (changeEl) { changeEl.textContent = fmtSignedPct(quote.changeRate); changeEl.className = 'ss-summary-change ' + cls; }
+  }
+
+  // ---- 분봉 자동 재조회 ----
+  // 분봉 탭에 머무는 동안 60초마다 다시 불러온다(캔들·이평선·거래량 전체 재렌더 - 확대구간
+  // 보존 없음, kospi-futures.js의 setData() 방식보다 단순하다).
+
+  function stopMinuteRefresh() {
+    clearInterval(state.minuteRefreshTimer);
+    state.minuteRefreshTimer = null;
+  }
+
+  function startMinuteRefresh(container, code) {
+    stopMinuteRefresh();
+    if (!code || document.hidden) return;
+    state.minuteRefreshTimer = setInterval(function () {
+      if (state.selectedCode !== code || state.timeframe !== 'minute' || document.hidden) {
+        stopMinuteRefresh();
+        return;
+      }
+      delete state.minuteCache[code]; // 60초 캐시 TTL과 무관하게 이 타이머 주기마다 강제로 새로 받음
+      renderMinuteChart(container, code);
+    }, MINUTE_REFRESH_MS);
   }
 
   // ---- 차트 (일/주/월/분봉 + 거래량) ----
@@ -689,8 +808,10 @@
   function renderChartForCode(container, code) {
     if (state.timeframe === 'minute') {
       renderMinuteChart(container, code);
+      startMinuteRefresh(container, code);
       return;
     }
+    stopMinuteRefresh();
     var cached = state.chartCache[code];
     if (!cached) return;
     var bars = barsForTimeframe(cached.data.daily, state.timeframe);
@@ -866,11 +987,16 @@
       // TradingView 방식처럼 거래량을 하단 30% overlay 영역에 배치한다. 차트 전체의
       // localization.priceFormatter를 없애고 시리즈별 포맷을 사용해야 거래량 값이
       // 2,539,179 같은 주가형 숫자가 아니라 2.54M처럼 축약 표시된다.
+      // 2026-08-05 사용자 리포트: 거래량 Y축에 가격 데이터와 거래량 데이터가 겹쳐 보였음 -
+      // lastValueVisible/priceLineVisible을 켜두면 라이브러리가 거래량 시리즈의 마지막 값
+      // 배지·점선을 오른쪽 가격축(캔들과 같은 여백)에 그대로 그려서 가격 마지막 값 배지·
+      // 눈금 라벨과 겹친다. 같은 값은 이미 아래 .ss-volume-study-label(커스텀 범례)이
+      // 텍스트로 보여주고 있어 중복이라, 다른 보조지표 시리즈(MA/일목균형표)와 동일하게 끈다.
       var volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' },
         priceScaleId: '',
-        lastValueVisible: true,
-        priceLineVisible: true
+        lastValueVisible: false,
+        priceLineVisible: false
       });
       volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 } });
       volumeSeries.setData(bars.map(function (d) {
