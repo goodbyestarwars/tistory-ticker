@@ -357,6 +357,9 @@ def build_pattern_match(stock, daily, detail):
         'score': detail['score'],
         'reasons': detail['reasons'],
         'interpretation': detail['interpretation'],
+        # 상세 클릭 시 장중 봉으로 재판정하지 않아도 전날 스캔 근거선을 그대로 그릴 수 있게
+        # 패턴 좌표(저점/고점/넥라인/지지·저항)를 스냅샷에 함께 보관한다.
+        'patternDetail': detail,
     }
 
 

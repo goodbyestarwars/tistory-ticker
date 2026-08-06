@@ -46,6 +46,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("snapshotFallback", pattern)
         self.assertIn("evaluationDaily", gas)
         self.assertIn("row.date <= scanDate", gas)
+        self.assertIn("lineWidth: 4", pattern)
+        self.assertIn("item.patternDetail", pattern)
 
     def test_home_dashboard_contract(self):
         main = self.read("js/skin-main.js")

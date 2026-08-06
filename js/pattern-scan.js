@@ -181,7 +181,7 @@
         if (!data.detail) {
           // GAS 새 버전 배포 전이거나 일시적으로 재현이 실패해도, 전날 스캔 목록에 저장된
           // 점수/근거를 사용해 최신 차트는 계속 보여준다. 목록 삭제나 경고 토스트는 하지 않는다.
-          data.detail = {
+          data.detail = item.patternDetail || {
             score: item.score,
             reasons: item.reasons || [],
             interpretation: item.interpretation || '',
@@ -208,6 +208,10 @@
     html += buildScoreBox(data.detail);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
     html += buildIchimokuLegend();
+    html += '<div class="ps-pattern-legend">'
+      + '<span><i class="ps-pattern-line ps-pattern-line-shape"></i>패턴 형성 근거</span>'
+      + '<span><i class="ps-pattern-line ps-pattern-line-level"></i>넥라인 · 지지/저항</span>'
+      + '</div>';
     html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
     html += '<div class="ps-footnote">※ 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;
@@ -549,7 +553,7 @@
       return -1;
     }
     // 여러 점을 순서대로 잇는 선(쌍바닥/역헤드앤숄더의 실제 굴곡을 그대로 표현하기 위함).
-    // opts.bold를 주면 굵은 실선으로 그려서 패턴 모양(W자 등)이 한눈에 보이게 강조한다.
+    // 근거선은 캔들 위에서도 즉시 읽히도록 전부 최대 굵기(4px) 실선으로 표시한다.
     function addLine(points, color, opts) {
       var data = (points || []).filter(function (p) { return p && idxByDate(p.date) >= 0; })
         .map(function (p) { return { time: p.date, value: p.price }; });
@@ -557,8 +561,8 @@
       var o = opts || {};
       chart.addLineSeries({
         color: color,
-        lineWidth: o.bold ? 3 : 2,
-        lineStyle: o.bold ? LWC.LineStyle.Solid : LWC.LineStyle.Dashed,
+        lineWidth: 4,
+        lineStyle: LWC.LineStyle.Solid,
         priceLineVisible: false, lastValueVisible: false
       }).setData(data);
     }
@@ -584,8 +588,8 @@
       // 패턴이 이미 끝난 게 아니라 지금도 진행 중임을 보여주기 위함
       var lows = detail.low_swings_display || detail.low_swings || [];
       var highs = detail.high_swings || [];
-      addLine(lows, SUPPORT_COLOR);
-      addLine(highs, RESIST_COLOR);
+      addLine(lows, SUPPORT_COLOR, { bold: true });
+      addLine(highs, RESIST_COLOR, { bold: true });
       (detail.low_swings || []).forEach(function (p) { addDot(p, SUPPORT_COLOR, 'belowBar'); });
       highs.forEach(function (p) { addDot(p, RESIST_COLOR, 'aboveBar'); });
       if (detail.signal) addSignal(detail.signal); // 오늘(현재가) - 항상 최근 봉 기준
@@ -610,7 +614,7 @@
       var seq = [detail.left_shoulder, detail.left_peak, detail.head, detail.right_peak, detail.right_shoulder];
       if (seq.every(function (p) { return !!p; })) {
         if (detail.current) seq.push(detail.current);
-        addLine(seq, SUPPORT_COLOR);
+        addLine(seq, SUPPORT_COLOR, { bold: true });
         addHLine(detail.neckline.price, detail.left_shoulder.date, RESIST_COLOR);
         ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) { addDot(detail[k], SUPPORT_COLOR, 'belowBar'); });
         addDot(detail.neckline, RESIST_COLOR, 'aboveBar');
@@ -628,7 +632,7 @@
       // 상승 시작(저점) -> 고점 -> 현재가(조정 중) 순서로 이어 "얼마나 올랐다가 얼마나
       // 눌렸는지"를 한눈에 보여준다. 이평선은 addMaLine으로 배경에 이미 그림.
       if (detail.rise_start && detail.peak && detail.current) {
-        addLine([detail.rise_start, detail.peak, detail.current], SUPPORT_COLOR);
+        addLine([detail.rise_start, detail.peak, detail.current], SUPPORT_COLOR, { bold: true });
         addDot(detail.rise_start, SUPPORT_COLOR, 'belowBar');
         addDot(detail.peak, RESIST_COLOR, 'aboveBar');
         addSignal(detail.current);
