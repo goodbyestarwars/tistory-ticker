@@ -7,6 +7,8 @@
   color: #222;
   line-height: 1.5;
   margin: 16px 0;
+  width: min(100%, 380px);
+  margin-left: auto;
 }
 
 /* ---- 헤더/추가 ---- */
@@ -21,6 +23,16 @@
 #watchlist .wl-title {
   font-size: 17px;
   font-weight: 700;
+}
+#watchlist .wl-group-add {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #555;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
 }
 #watchlist .wl-count {
   font-size: 13px;
@@ -104,28 +116,36 @@
 
 /* ---- 카드 그리드 ---- */
 #watchlist .wl-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
+  display: block;
 }
+#watchlist .wl-group { border-top: 1px solid #e8eaed; }
+#watchlist .wl-group-head { display: flex; align-items: center; min-height: 42px; }
+#watchlist .wl-group-toggle { display: flex; align-items: center; gap: 7px; flex: 1; padding: 10px 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+#watchlist .wl-group-count { color: #9aa0aa; font-size: 11px; font-weight: 500; }
+#watchlist .wl-chevron { margin-left: auto; color: #8c939f; transition: transform .15s; }
+#watchlist .wl-group.is-collapsed .wl-chevron { transform: rotate(180deg); }
+#watchlist .wl-group.is-collapsed .wl-group-items { display: none; }
+#watchlist .wl-group-delete { border: 0; background: transparent; color: #999; font-size: 11px; cursor: pointer; }
+#watchlist .wl-group-empty { margin: 0 0 10px; color: #999; font-size: 12px; }
 #watchlist .wl-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 24px;
+  grid-template-areas: "name quote remove" "group group group";
+  align-items: center;
+  gap: 2px 10px;
   position: relative;
-  padding: 14px 12px 12px;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 9px 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
   cursor: pointer;
-  transition: box-shadow 0.15s, transform 0.15s;
+  transition: background 0.15s;
 }
 #watchlist .wl-card:hover {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+  background: #f7f8fa;
 }
 #watchlist .wl-remove {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  grid-area: remove;
   width: 22px;
   height: 22px;
   padding: 0;
@@ -139,13 +159,14 @@
 }
 #watchlist .wl-remove:hover { background: rgba(0, 0, 0, 0.06); }
 #watchlist .wl-name {
+  grid-area: name;
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 14px;
   font-weight: 700;
   padding-right: 22px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -163,21 +184,19 @@
   text-overflow: ellipsis;
 }
 #watchlist .wl-price {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 500;
   margin-bottom: 2px;
 }
 #watchlist .wl-change {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
   color: #888780;
-  background: #f1f0ea;
 }
-#watchlist .wl-change.wl-up { color: #d24f45; background: #fdebea; }
-#watchlist .wl-change.wl-down { color: #1261c4; background: #eaf1fb; }
+#watchlist .wl-change.wl-up { color: #d24f45; }
+#watchlist .wl-change.wl-down { color: #1261c4; }
+#watchlist .wl-quote { grid-area: quote; min-width: 92px; text-align: right; }
+#watchlist .wl-group-select { grid-area: group; justify-self: end; max-width: 120px; border: 0; background: transparent; color: #999; font: inherit; font-size: 10px; cursor: pointer; }
 
 /* 수급(외국인·기관 5일 방향) + 차트 이동 (2026-07-27, "9Pay 증권" MY 메뉴 개편) */
 #watchlist .wl-flow {
@@ -185,21 +204,10 @@
   font-size: 11px;
   color: #888;
 }
-#watchlist .wl-chart-btn {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  padding: 6px 0;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #4338ca;
-  background: #eef2ff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+@media (max-width: 640px) {
+  #watchlist { width: 100%; margin-left: 0; }
+  #watchlist .wl-add { order: 3; flex-basis: 100%; max-width: none; }
 }
-#watchlist .wl-chart-btn:hover { background: #e0e7ff; }
 
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
@@ -227,9 +235,12 @@ html.dark #watchlist .wl-msg {
 }
 html.dark #watchlist .wl-empty { color: rgba(245, 239, 224, 0.5) !important; border-color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #watchlist .wl-card {
-  background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.2) !important;
+  background: transparent !important;
 }
+html.dark #watchlist .wl-card:hover { background: rgba(245, 239, 224, 0.07) !important; }
+html.dark #watchlist .wl-group { border-color: rgba(245, 239, 224, 0.16) !important; }
+html.dark #watchlist .wl-group-add,
+html.dark #watchlist .wl-group-select { color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #watchlist .wl-remove { color: #e0b040 !important; }
 html.dark #watchlist .wl-remove:hover { background: rgba(245, 239, 224, 0.08) !important; }
 html.dark #watchlist .wl-name { color: #F5EFE0 !important; }
@@ -238,5 +249,3 @@ html.dark #watchlist .wl-change { color: rgba(245, 239, 224, 0.55) !important; b
 html.dark #watchlist .wl-change.wl-up { color: #ff6b5b !important; background: #3a2323 !important; }
 html.dark #watchlist .wl-change.wl-down { color: #4d9fff !important; background: #1f2c3d !important; }
 html.dark #watchlist .wl-flow { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #watchlist .wl-chart-btn { background: rgba(245, 239, 224, 0.12) !important; color: #F5EFE0 !important; }
-html.dark #watchlist .wl-chart-btn:hover { background: rgba(245, 239, 224, 0.2) !important; }

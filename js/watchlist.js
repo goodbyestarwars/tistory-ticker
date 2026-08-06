@@ -3,8 +3,8 @@
  * 로그인 없이 localStorage에 저장(코드+이름, 최대 50개, 순서 보존 배열).
  * 종목명 검색(KRX_MAP 자동완성, foreign-flow.js와 동일 패턴)으로 추가하고,
  * 기존 GAS 시세 프록시(?codes=)를 그대로 재사용해 카드에 현재가/등락률을 채운다.
- * 카드 클릭 시 네이버 금융 종목 페이지로 이동(ticker-tooltip-v5.js의 NAVER_ITEM_URL과 동일 목적지),
- * "차트 이동" 버튼은 우리 사이트 증시검색 페이지로 이동(js/stock-search.js).
+ * 종목 행 클릭 시 우리 사이트 실시간 시세 페이지로 이동(js/stock-search.js).
+ * 관심종목은 사용자가 만든 그룹으로 분류할 수 있으며 기존 저장 목록은 기본 그룹으로 호환한다.
  *
  * window.KRX_MAP(종목명->코드)이 이 스크립트보다 먼저 로드되어야 함.
  * data-code 속성을 순서대로 유지해두어 향후 Drag & Drop으로 순서 변경을 붙이기 쉽게 해둔다.
@@ -19,6 +19,8 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#watchlist';
   var STORAGE_KEY = 'wl_codes_v1';
+  var GROUP_STORAGE_KEY = 'wl_groups_v1';
+  var DEFAULT_GROUP_ID = 'default';
   var MAX_ITEMS = 50;
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
@@ -61,7 +63,8 @@
   function buildShell() {
     return ''
       + '<div class="wl-header">'
-      + '<div class="wl-title">⭐ 관심종목 <span id="wlCount" class="wl-count"></span></div>'
+      + '<div class="wl-title">관심종목 <span id="wlCount" class="wl-count"></span></div>'
+      + '<button type="button" id="wlGroupAddBtn" class="wl-group-add">+ 그룹 만들기</button>'
       + '<div class="wl-add">'
       + '<div class="wl-input-wrap">'
       + '<input type="text" id="wlInput" class="wl-input" placeholder="종목명을 입력하세요 (예: 삼성전자)"'
@@ -97,12 +100,31 @@
     }
   }
 
+  function loadGroups() {
+    try {
+      var raw = localStorage.getItem(GROUP_STORAGE_KEY);
+      var groups = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(groups)) groups = [];
+      if (!groups.some(function (group) { return group.id === DEFAULT_GROUP_ID; })) {
+        groups.unshift({ id: DEFAULT_GROUP_ID, name: '기본', collapsed: false });
+      }
+      return groups;
+    } catch (err) {
+      return [{ id: DEFAULT_GROUP_ID, name: '기본', collapsed: false }];
+    }
+  }
+
+  function saveGroups(groups) {
+    try { localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(groups)); } catch (err) {}
+  }
+
   // ---- 검색/자동완성 (foreign-flow.js와 동일 패턴) ----
 
   function wireEvents(container) {
     var input = container.querySelector('#wlInput');
     var suggestBox = container.querySelector('#wlSuggest');
     var addBtn = container.querySelector('#wlAddBtn');
+    var groupAddBtn = container.querySelector('#wlGroupAddBtn');
     suggestBox.__input = input;
 
     input.addEventListener('input', function () {
@@ -133,6 +155,14 @@
     addBtn.addEventListener('click', function () {
       hideSuggestions(suggestBox);
       addByQuery(container, input.value.trim());
+    });
+    groupAddBtn.addEventListener('click', function () {
+      var name = global.prompt('새 그룹 이름을 입력하세요.');
+      if (!name || !name.trim()) return;
+      var groups = loadGroups();
+      groups.push({ id: 'group-' + Date.now(), name: name.trim().slice(0, 20), collapsed: false });
+      saveGroups(groups);
+      render(container);
     });
     document.addEventListener('click', function (e) {
       if (!container.contains(e.target)) hideSuggestions(suggestBox);
@@ -258,7 +288,7 @@
     if (list.some(function (it) { return it.code === code; })) return { ok: false, reason: 'exists' };
     if (list.length >= MAX_ITEMS) return { ok: false, reason: 'full' };
 
-    list.push({ code: code, name: name || code });
+    list.push({ code: code, name: name || code, groupId: DEFAULT_GROUP_ID });
     saveList(list);
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (container) render(container);
@@ -314,6 +344,7 @@
 
   function render(container) {
     var list = loadList();
+    var groups = loadGroups();
     var grid = container.querySelector('#wlGrid');
     var empty = container.querySelector('#wlEmpty');
     var count = container.querySelector('#wlCount');
@@ -321,14 +352,14 @@
     count.textContent = '(' + list.length + '/' + MAX_ITEMS + ')';
 
     if (!list.length) {
-      grid.innerHTML = '';
       empty.hidden = false;
-      return;
+    } else {
+      empty.hidden = true;
     }
-    empty.hidden = true;
 
-    grid.innerHTML = list.map(function (it) {
-      return buildCard(it.code, it.name, null);
+    grid.innerHTML = groups.map(function (group) {
+      var items = list.filter(function (it) { return (it.groupId || DEFAULT_GROUP_ID) === group.id; });
+      return buildGroup(group, items, groups);
     }).join('');
 
     wireCardEvents(container);
@@ -344,14 +375,29 @@
     startRealtimeQuotes(container, list.map(function (it) { return it.code; }));
   }
 
-  function buildCard(code, name) {
+  function buildGroup(group, items, groups) {
+    var options = groups.map(function (item) {
+      return '<option value="' + escapeAttr(item.id) + '">' + escapeHtml(item.name) + '</option>';
+    }).join('');
+    return '<section class="wl-group' + (group.collapsed ? ' is-collapsed' : '') + '" data-group-id="' + escapeAttr(group.id) + '">'
+      + '<div class="wl-group-head">'
+      + '<button type="button" class="wl-group-toggle" aria-expanded="' + (!group.collapsed) + '">'
+      + '<span>' + escapeHtml(group.name) + '</span><span class="wl-group-count">' + items.length + '</span><span class="wl-chevron">⌃</span>'
+      + '</button>'
+      + (group.id === DEFAULT_GROUP_ID ? '' : '<button type="button" class="wl-group-delete" aria-label="그룹 삭제">삭제</button>')
+      + '</div><div class="wl-group-items">'
+      + (items.length ? items.map(function (it) { return buildCard(it.code, it.name, it.groupId || DEFAULT_GROUP_ID, options); }).join('') : '<p class="wl-group-empty">이 그룹에 종목이 없습니다.</p>')
+      + '</div></section>';
+  }
+
+  function buildCard(code, name, groupId, options) {
     return ''
-      + '<div class="wl-card" data-code="' + escapeAttr(code) + '">'
+      + '<div class="wl-card" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" tabindex="0" role="link">'
       + '<button type="button" class="wl-remove" data-code="' + escapeAttr(code) + '" aria-label="관심종목 삭제">★</button>'
       + '<div class="wl-name">' + stockIconHtml(code) + '<span class="wl-name-text">' + escapeHtml(name) + '</span></div>'
-      + '<div class="wl-price" data-field="price">-</div>'
-      + '<div class="wl-change" data-field="change">-</div>'
-      + '<button type="button" class="wl-chart-btn" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">차트 보기 →</button>'
+      + '<div class="wl-quote"><div class="wl-price" data-field="price">-</div><div class="wl-change" data-field="change">-</div></div>'
+      + '<select class="wl-group-select" data-code="' + escapeAttr(code) + '" aria-label="관심종목 그룹 이동">'
+      + options.replace('value="' + escapeAttr(groupId) + '"', 'value="' + escapeAttr(groupId) + '" selected') + '</select>'
       + '</div>';
   }
 
@@ -457,12 +503,42 @@
         removeCode(container, btn.getAttribute('data-code'));
       });
     });
-    container.querySelectorAll('.wl-chart-btn').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var code = btn.getAttribute('data-code');
-        var name = btn.getAttribute('data-name');
-        location.href = STOCK_SEARCH_PAGE_URL + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
+    container.querySelectorAll('.wl-card').forEach(function (card) {
+      function goToRealtime() {
+        location.href = STOCK_SEARCH_PAGE_URL + '?code=' + encodeURIComponent(card.getAttribute('data-code'))
+          + '&name=' + encodeURIComponent(card.getAttribute('data-name'));
+      }
+      card.addEventListener('click', function (e) { if (!e.target.closest('button, select')) goToRealtime(); });
+      card.addEventListener('keydown', function (e) { if (e.key === 'Enter') goToRealtime(); });
+    });
+    container.querySelectorAll('.wl-group-select').forEach(function (select) {
+      select.addEventListener('click', function (e) { e.stopPropagation(); });
+      select.addEventListener('change', function () {
+        var code = select.getAttribute('data-code');
+        var list = loadList();
+        list.forEach(function (item) { if (item.code === code) item.groupId = select.value; });
+        saveList(list);
+        render(container);
+      });
+    });
+    container.querySelectorAll('.wl-group-toggle').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.closest('.wl-group').getAttribute('data-group-id');
+        var groups = loadGroups();
+        groups.forEach(function (group) { if (group.id === id) group.collapsed = !group.collapsed; });
+        saveGroups(groups);
+        render(container);
+      });
+    });
+    container.querySelectorAll('.wl-group-delete').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.closest('.wl-group').getAttribute('data-group-id');
+        var groups = loadGroups().filter(function (group) { return group.id !== id; });
+        var list = loadList();
+        list.forEach(function (item) { if ((item.groupId || DEFAULT_GROUP_ID) === id) item.groupId = DEFAULT_GROUP_ID; });
+        saveGroups(groups);
+        saveList(list);
+        render(container);
       });
     });
   }

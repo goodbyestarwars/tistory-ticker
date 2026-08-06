@@ -141,6 +141,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, source)
         self.assertIn(".wl-suggest-item.active", style)
 
+    def test_watchlist_is_right_panel_with_groups_and_realtime_row_links(self):
+        source = self.read("js/watchlist.js")
+        style = self.read("css/watchlist.css")
+        for token in (
+            "wl_groups_v1",
+            "+ 그룹 만들기",
+            "wl-group-toggle",
+            "wl-group-select",
+            "location.href = STOCK_SEARCH_PAGE_URL",
+        ):
+            self.assertIn(token, source)
+        self.assertNotIn("차트 보기", source)
+        self.assertIn("width: min(100%, 380px)", style)
+        self.assertIn("margin-left: auto", style)
+        self.assertIn("@media (max-width: 640px)", style)
+
     def test_home_my_scrolls_all_quotes_and_rank_keeps_price_line(self):
         widgets = self.read("js/home-widgets.js")
         rank = self.read("js/sidebar-rank.js")
