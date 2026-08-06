@@ -26,7 +26,7 @@
   var RESIST_COLOR = '#1261c4';
   var SIGNAL_COLOR = '#ec4899';
   var MA20_COLOR = '#f59e0b';
-  var MA60_COLOR = '#8b5cf6';
+  var MA240_COLOR = '#8b5cf6';
 
   // js/foreign-flow.js와 동일한 주기·색상(사이트 전체 일관성) - 일목균형표 토글 전용.
   // 선행스팬1·2는 둘 다 하늘색으로 통일(2026-07-22 사용자 요청).
@@ -41,7 +41,7 @@
     { key: 'doubleBottom', label: '쌍바닥', desc: '비슷한 높이의 저점을 두 번 찍고 그 사이 반등한 고점(넥라인)이 있는 W자 모양. 바닥을 두 번 확인했다는 신호입니다.' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '저점 3개가 어깨-머리-어깨 모양(가운데가 가장 낮음)을 이루는 패턴. 하락 추세가 상승으로 반전될 때 자주 나타납니다.' },
     { key: 'boxRangeLow', label: '박스권 하단', desc: '일정 가격대(박스권)에서 등락을 반복하다 그 박스 하단(지지선) 근처까지 내려온 구간. 지지가 버텨주는지 확인하는 자리입니다.' },
-    { key: 'pullback', label: '눌림목', desc: '단기간 15% 이상 오른 뒤 5~15% 정도 되돌림(조정)이 나와 20일선·60일선 부근까지 내려온 구간. 상승 추세 중 쉬어가는 자리입니다.' }
+    { key: 'pullback', label: '눌림목', desc: '단기간 15% 이상 오른 뒤 5~15% 정도 되돌림(조정)이 나와 20일선 또는 1년선(240일선) 부근까지 내려온 구간. 상승 추세 중 쉬어가는 자리입니다.' }
   ];
 
   // 리스트 항목용 미니 패턴 아이콘 - 실제 캔들을 축소한 게 아니라 O(고점/저점)와 선으로
@@ -203,7 +203,7 @@
   function renderDetail(box, item, data) {
     var html = '<div class="ps-detail-head">'
       + '<span class="ps-detail-name">' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span>'
-      + '<span class="ps-timeframe-badge">일봉 · 1D</span></span>'
+      + '<span class="ps-timeframe-badge">2년 일봉 · 1D</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
     html += buildScoreBox(data.detail);
@@ -509,20 +509,18 @@
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
 
-      // 눌림목: 20일선/60일선 중 어디 근처에서 지지받는지 눈으로 보여주기 위해 둘 다 그림(선 색 구분)
+      // 눌림목: 단기 20일선과 장기 1년선(240거래일) 중 어디에서 지지받는지 함께 표시한다.
       if (pattern === 'pullback') {
         addMaLine(chart, daily, 20, MA20_COLOR);
-        addMaLine(chart, daily, 60, MA60_COLOR);
+        addMaLine(chart, daily, 240, MA240_COLOR);
       }
 
       addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
 
       if (psIchimokuEnabled) addIchimokuOverlay(daily);
 
-      // 원본은 약 2년치 일봉 전체를 fitContent()로 압축해 봉이 분봉처럼 가늘게 보였다.
-      // 패턴 판정 최대 구간(90일)에 이동평균 여유를 더한 최근 120거래일만 기본 노출한다.
-      // 사용자는 좌우 드래그/휠로 이전 일봉도 그대로 확인할 수 있다.
-      var visibleBars = Math.min(120, daily.length);
+      // 약 2년(500거래일) 일봉을 기본 표시한다. 서버가 보유한 일봉이 더 적으면 전체를 쓴다.
+      var visibleBars = Math.min(500, daily.length);
       chart.timeScale().setVisibleLogicalRange({
         from: Math.max(0, daily.length - visibleBars),
         to: daily.length - 1 + 3

@@ -45,13 +45,13 @@ BREAKOUT_TOL = 1.02
 MA_SLOPE_LOOKBACK = 5
 IHS_VOL_SURGE_RATIO = 1.2  # 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.2배 이상
 
-PULLBACK_WINDOW = 90
+PULLBACK_WINDOW = 260
 PULLBACK_LOOKBACK = 20
 PULLBACK_MIN_RISE = 0.15
 PULLBACK_MIN_DROP = 0.05
 PULLBACK_MAX_DROP = 0.15
 PULLBACK_MA_TOL = 0.03
-PULLBACK_MIN_DAYS = 65  # detect_pullback을 시도해볼 최소 보유 일수
+PULLBACK_MIN_DAYS = 240  # 1년선(240거래일) 계산에 필요한 최소 보유 일수
 
 
 # ---------------------------------------------------------------------------
@@ -708,11 +708,11 @@ def detect_box_range_low(daily):
 def detect_pullback(daily):
     win = daily[max(0, len(daily) - PULLBACK_WINDOW):]
     n = len(win)
-    if n < 65:
+    if n < 240:
         return None
 
     ma20 = moving_average(win, 'close', 20)
-    ma60 = moving_average(win, 'close', 60)
+    ma240 = moving_average(win, 'close', 240)
 
     recent_start = max(0, n - PULLBACK_LOOKBACK - 5)
     peak_idx = recent_start
@@ -741,10 +741,10 @@ def detect_pullback(daily):
         return None
 
     ma20_now = ma20[n - 1]
-    ma60_now = ma60[n - 1]
+    ma240_now = ma240[n - 1]
     diff20 = abs(last_close - ma20_now) / ma20_now if ma20_now else math.inf
-    diff60 = abs(last_close - ma60_now) / ma60_now if ma60_now else math.inf
-    if diff20 > PULLBACK_MA_TOL and diff60 > PULLBACK_MA_TOL:
+    diff240 = abs(last_close - ma240_now) / ma240_now if ma240_now else math.inf
+    if diff20 > PULLBACK_MA_TOL and diff240 > PULLBACK_MA_TOL:
         return None
 
     # 2026-07-22 개편: 20일선이 상승 중이어야 함
@@ -762,13 +762,13 @@ def detect_pullback(daily):
     # + 거래량패턴15(고정) + 최근양봉10 ----
     rise_score = 30 if rise_ratio >= 0.25 else 22 if rise_ratio >= 0.20 else 15
     drop_score = 25 if (0.07 <= drop_ratio <= 0.12) else 15
-    ma_score = 20 if (diff20 <= PULLBACK_MA_TOL and diff60 <= PULLBACK_MA_TOL) \
-        else 12 if min(diff20, diff60) <= PULLBACK_MA_TOL else 0
+    ma_score = 20 if (diff20 <= PULLBACK_MA_TOL and diff240 <= PULLBACK_MA_TOL) \
+        else 12 if min(diff20, diff240) <= PULLBACK_MA_TOL else 0
     vol_score = 15
     bull_score = 10 if is_last_candle_bullish(win) else 0
 
     score = clamp_score(rise_score + drop_score + ma_score + vol_score + bull_score)
-    ma_label = '20일선' if diff20 <= diff60 else '60일선'
+    ma_label = '20일선' if diff20 <= diff240 else '1년선(240일선)'
     reasons = [
         '상승폭 %.1f%%(%d/30점)' % (rise_ratio * 100, rise_score),
         '조정폭 %.1f%%(%d/25점)' % (drop_ratio * 100, drop_score),
@@ -783,7 +783,7 @@ def detect_pullback(daily):
         'current': {'date': win[n - 1]['date'], 'price': last_close},
         'signal': {'date': win[n - 1]['date'], 'price': last_close},
         'ma20': ma20_now,
-        'ma60': ma60_now,
+        'ma240': ma240_now,
         'breakout': False,
         'score': score,
         'reasons': reasons,
