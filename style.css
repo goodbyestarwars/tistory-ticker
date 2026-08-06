@@ -3553,7 +3553,7 @@ html.dark body.iframe-mode { background: #1A1A1A; }
 /* 토글 버튼은 navbar의 #fontModeBtn, 선택은 localStorage('bolt-font')에 저장.
    본문 font-family가 곳곳에 'MaruBuri' !important로 박혀 있어서,
    여기(파일 끝)에 같은 !important + 더 높은 specificity로 덮어쓴다.
-   고딕은 Pretendard 웹폰트(skin.html에서 로드, 애플 산돌고딕 대체용) - 모든 기기 동일 렌더링.
+   고딕은 NanumGothic 웹폰트(skin.html에서 로드) - 모든 기기 동일 렌더링.
    웹폰트 로드 실패 시 맑은고딕/시스템 고딕 폴백. */
 html.font-gothic body,
 html.font-gothic body *,
@@ -3563,7 +3563,7 @@ html.font-gothic .post-comments *,
 html.font-gothic .guest-section *,
 html.font-gothic [class^="tt-"], html.font-gothic [class*=" tt-"],
 html.font-gothic [class^="tt-"] *, html.font-gothic [class*=" tt-"] * {
-  font-family: 'Pretendard Variable', Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+  font-family: 'NanumGothic', 'Malgun Gothic', sans-serif !important;
 }
 
 /* 예외: 로고는 Space Grotesk 유지 (브랜드 아이덴티티) */
