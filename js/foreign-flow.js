@@ -3149,7 +3149,7 @@
       + '</div>';
   }
 
-  // .ff-apt-row 실제 높이(px)와 반드시 일치시킬 것 - 아래 사다리(ladder) 세로 위치/길이를
+  // .ff-apt-row 실제 높이(px)와 반드시 일치시킬 것 - 엘리베이터 세로 위치/길이를
   // JS에서 픽셀로 직접 계산하는 유일한 기준값이다(CSS를 바꾸면 이 값도 같이 바꿀 것).
   var APT_ROW_HEIGHT = 20;
 
@@ -3211,16 +3211,15 @@
       + '<div class="ff-apt-heli"><span class="ff-apt-heli-rotor"></span><span class="ff-apt-heli-body">🚁</span></div>'
       + '</div>';
 
-    // 사다리: 현재가 행에서 지하실 쪽으로 이어지는 장식(데이터 아님) - 세로 위치/길이는
-    // curIdx와 APT_ROW_HEIGHT로 픽셀 계산한다(위 상수 설명 참고). 방향(상승/하락)은
-    // profile.trendUp(최근일 등락 방향)을 그대로 반영.
-    var ladderHtml = '';
+    // 유리 엘리베이터: 현재가 층과 지하 로비 사이를 왕복하는 장식(데이터 아님).
+    // 위치와 높이만 현재가 bin에서 계산하고, 운행 방향은 최근일 등락 방향을 반영한다.
+    var elevatorHtml = '';
     if (curIdx >= 0) {
-      var ladderTop = (n - 1 - curIdx) * APT_ROW_HEIGHT + APT_ROW_HEIGHT / 2;
-      var ladderHeight = curIdx * APT_ROW_HEIGHT + 12;
-      ladderHtml = '<div class="ff-apt-ladder" style="top:' + ladderTop + 'px;height:' + ladderHeight + 'px">'
-        + '<span class="ff-apt-ladder-rail"></span>'
-        + '<span class="ff-apt-ladder-person ff-apt-ladder-person-' + (profile.trendUp ? 'up' : 'down') + '">🧍</span>'
+      var elevatorTop = (n - 1 - curIdx) * APT_ROW_HEIGHT + APT_ROW_HEIGHT / 2;
+      var elevatorHeight = curIdx * APT_ROW_HEIGHT + 12;
+      elevatorHtml = '<div class="ff-apt-elevator" style="top:' + elevatorTop + 'px;height:' + elevatorHeight + 'px">'
+        + '<span class="ff-apt-elevator-shaft"></span>'
+        + '<span class="ff-apt-elevator-car ff-apt-elevator-car-' + (profile.trendUp ? 'up' : 'down') + '"><i></i><b>↕</b></span>'
         + '</div>';
     }
 
@@ -3231,7 +3230,7 @@
     var lobbyHtml = '<div class="ff-apt-ground">'
       + '<span class="ff-apt-ground-label">최저가 · 지상 1층</span>'
       + '<span class="ff-apt-basement-entry" aria-hidden="true">'
-      + '<span class="ff-apt-entry-door">🚪</span>'
+      + '<span class="ff-apt-entry-door"><i></i><i></i></span>'
       + '<span class="ff-apt-entry-stairs"><i></i><i></i><i></i><b>↓ B1</b></span>'
       + '</span></div>';
     // 지하실은 실제 데이터가 존재하는 가격구간이 아니라 "아직 매집되지 않은 가격 / 추가
@@ -3260,7 +3259,7 @@
       + '</div>';
 
     return '<div class="ff-apt-chart-wrap">' + roofHtml
-      + '<div class="ff-apt-floors">' + rows + ladderHtml + '</div>'
+      + '<div class="ff-apt-floors">' + rows + elevatorHtml + '</div>'
       + lobbyHtml + basementHtml + magmaHtml + '</div>';
   }
 

@@ -825,38 +825,43 @@
 }
 #foreign-flow .ff-apt-current-arrow { color: #FF9800; }
 
-/* ---- 사다리: 현재가 층 -> 지하실(장식, 데이터 아님). top/height는 JS가 픽셀로 계산 ---- */
-#foreign-flow .ff-apt-ladder {
+/* ---- 유리 엘리베이터: 현재가 층 ↔ 지하 로비(장식, 데이터 아님) ---- */
+#foreign-flow .ff-apt-elevator {
   position: absolute;
-  left: 44px; /* 밴드 라벨(44px) 바로 옆, 매도벽 슬롯 시작 지점에 겹쳐 걸쳐 놓는다 */
-  width: 10px;
-  z-index: 2;
+  left: 83px;
+  width: 18px;
+  z-index: 4;
   pointer-events: none;
 }
-#foreign-flow .ff-apt-ladder-rail {
+#foreign-flow .ff-apt-elevator-shaft {
   position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  margin-left: -1px;
-  background: repeating-linear-gradient(180deg, #c7cfd9, #c7cfd9 3px, transparent 3px, transparent 6px);
+  inset: 0 2px;
+  border-left: 1px solid rgba(112, 132, 154, .34);
+  border-right: 1px solid rgba(112, 132, 154, .34);
+  background: linear-gradient(90deg, rgba(255,255,255,.68), rgba(173,207,232,.18), rgba(255,255,255,.72));
+  box-shadow: inset 0 0 5px rgba(110, 151, 181, .15);
 }
-#foreign-flow .ff-apt-ladder-person {
+#foreign-flow .ff-apt-elevator-car {
   position: absolute;
-  left: 50%;
+  left: 1px;
   top: 0;
-  font-size: 9px;
-  margin-left: -5px;
-  animation: ff-apt-ladder-climb 3s ease-in-out infinite;
+  width: 16px;
+  height: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(78, 104, 129, .65);
+  border-radius: 5px 5px 3px 3px;
+  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(183,217,240,.78));
+  box-shadow: 0 3px 8px rgba(32, 63, 91, .22), inset 0 0 0 1px rgba(255,255,255,.75);
+  animation: ff-apt-elevator-ride 4.8s cubic-bezier(.55,.05,.25,1) infinite;
 }
-#foreign-flow .ff-apt-ladder-person-up { animation-direction: reverse; }
-@keyframes ff-apt-ladder-climb {
-  0% { top: 0; opacity: 1; }
-  85% { top: calc(100% - 9px); opacity: 1; }
-  93% { top: calc(100% - 9px); opacity: 0; }
-  94% { top: 0; opacity: 0; }
-  100% { top: 0; opacity: 1; }
+#foreign-flow .ff-apt-elevator-car::before { content: ''; position: absolute; inset: 3px 2px 5px; border-radius: 2px; background: linear-gradient(90deg, #92b8d1 0 46%, #dbeaf4 47% 53%, #7fa8c4 54%); }
+#foreign-flow .ff-apt-elevator-car i { position: absolute; left: 3px; right: 3px; top: 1px; height: 2px; border-radius: 3px; background: #63d89a; box-shadow: 0 0 5px rgba(58,210,139,.75); }
+#foreign-flow .ff-apt-elevator-car b { position: absolute; left: 0; right: 0; bottom: -1px; color: #425a70; font-size: 7px; text-align: center; }
+#foreign-flow .ff-apt-elevator-car-up { animation-direction: reverse; }
+@keyframes ff-apt-elevator-ride {
+  0%, 12% { top: 0; }
+  44%, 58% { top: calc(100% - 21px); }
+  90%, 100% { top: 0; }
 }
 
 /* ---- 로비: 큰 출입구 하나(전부 장식) - 2026-07-28 사용자 요청으로 자동문/화분/
@@ -895,7 +900,9 @@
   gap: 4px;
   transform: translateX(-50%);
 }
-#foreign-flow .ff-apt-entry-door { font-size: 27px; line-height: 1; }
+#foreign-flow .ff-apt-entry-door { display: flex; width: 30px; height: 31px; overflow: hidden; border: 2px solid #7f8a96; border-radius: 7px 7px 2px 2px; background: #dce3e8; box-shadow: inset 0 2px 5px rgba(255,255,255,.8), 0 3px 7px rgba(48,58,68,.18); }
+#foreign-flow .ff-apt-entry-door i { width: 50%; border-right: 1px solid #8e9aa6; background: linear-gradient(135deg, rgba(255,255,255,.75), rgba(134,169,191,.55)); }
+#foreign-flow .ff-apt-entry-door i:last-child { border-right: 0; border-left: 1px solid rgba(255,255,255,.6); }
 #foreign-flow .ff-apt-entry-stairs {
   position: relative;
   display: flex;
@@ -1058,12 +1065,72 @@
   0%, 100% { opacity: 0.55; transform: scaleX(0.94); }
   50% { opacity: 0.82; transform: scaleX(1.03); }
 }
+
+/* 미래형 글라스 타워 + 절제된 제품 카드 표면 */
+#foreign-flow .ff-apt-chart-wrap {
+  background: linear-gradient(155deg, rgba(255,255,255,.98), rgba(242,247,251,.92));
+  border: 1px solid rgba(171,184,198,.32);
+  border-radius: 24px;
+  padding: 12px 14px 14px;
+  box-shadow: 0 18px 42px rgba(38,55,74,.10), inset 0 1px 0 rgba(255,255,255,.95);
+}
+#foreign-flow .ff-apt-roof-block { background: radial-gradient(ellipse at 24% 86%, rgba(111,180,224,.12), transparent 48%); }
+#foreign-flow .ff-apt-nameplate { color: #455566; background: rgba(255,255,255,.72); border-color: rgba(145,163,181,.32); box-shadow: 0 5px 16px rgba(56,77,99,.09); backdrop-filter: blur(12px); }
+#foreign-flow .ff-apt-helipad { background: rgba(225,235,243,.62); border-color: rgba(116,137,158,.38); box-shadow: inset 0 0 0 4px rgba(255,255,255,.45), 0 5px 14px rgba(45,68,90,.12); }
+#foreign-flow .ff-apt-tower-floor {
+  overflow: hidden;
+  border-color: rgba(99,126,151,.46);
+  border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(100deg, rgba(88,129,158,.68), rgba(228,242,251,.96) 24%, rgba(144,190,220,.62) 54%, rgba(237,248,253,.92) 73%, rgba(79,118,150,.72));
+  box-shadow: inset 0 -2px rgba(61,89,113,.38), inset 0 2px rgba(255,255,255,.82), 0 1px 4px rgba(56,87,112,.12);
+}
+#foreign-flow .ff-apt-tower-floor::before { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 0 28%, rgba(255,255,255,.72) 29% 34%, transparent 35% 64%, rgba(255,255,255,.35) 65% 68%, transparent 69%); }
+#foreign-flow .ff-apt-tower-floor i { position: relative; width: 3px; height: 9px; border-radius: 2px; background: rgba(45,92,124,.62); box-shadow: 0 0 5px rgba(132,212,255,.5); }
+#foreign-flow .ff-apt-bar { height: 8px; border-radius: 999px; }
+#foreign-flow .ff-apt-bar-vol { background: linear-gradient(90deg, #f7b267, #ff8a4c); box-shadow: inset 0 1px rgba(255,255,255,.55); }
+#foreign-flow .ff-apt-bar-vol.ff-apt-bar-max { background: linear-gradient(90deg, #ff7a3d, #e45113); }
+
+/* B1: 콘크리트 단면, 배관, 차가운 안전등 */
+#foreign-flow .ff-apt-basement {
+  overflow: hidden;
+  padding: 12px;
+  border-color: #65717d;
+  background:
+    linear-gradient(90deg, transparent 0 7%, rgba(44,55,65,.22) 7% 8%, transparent 8% 92%, rgba(44,55,65,.22) 92% 93%, transparent 93%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 1px, transparent 1px 12px),
+    linear-gradient(145deg, #7b858d, #4f5a64 58%, #69747d);
+  box-shadow: inset 0 9px 18px rgba(25,33,40,.38), inset 0 0 0 2px rgba(255,255,255,.08);
+}
+#foreign-flow .ff-apt-basement::before { content: ''; position: absolute; left: 3%; right: 3%; top: 8px; height: 5px; border: 2px solid #303b44; border-bottom: 0; border-radius: 6px 6px 0 0; box-shadow: 0 2px 0 rgba(255,255,255,.12); }
+#foreign-flow .ff-apt-basement-heading { position: relative; z-index: 1; color: #f2f5f7; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+#foreign-flow .ff-apt-basement-level { color: #dff8eb; background: #203a31; border: 1px solid #4bd18a; box-shadow: 0 0 10px rgba(75,209,138,.35); }
+#foreign-flow .ff-apt-basement-room { position: relative; color: #eaf0f4; background: linear-gradient(155deg, rgba(37,46,54,.88), rgba(75,86,96,.9)); border-color: rgba(222,232,239,.34); border-radius: 6px; box-shadow: inset 0 1px rgba(255,255,255,.12), 0 4px 8px rgba(22,29,35,.25); }
+#foreign-flow .ff-apt-basement-room::before { content: ''; position: absolute; top: 3px; right: 4px; width: 4px; height: 4px; border-radius: 50%; background: #68e6a4; box-shadow: 0 0 5px #68e6a4; }
+
+/* B2: 어두운 암반층 아래에서 갈라진 균열 사이로 비치는 용암 */
+#foreign-flow .ff-apt-magma {
+  height: 86px;
+  margin: 0 10px;
+  border-color: #241814;
+  border-radius: 0 0 28px 28px;
+  background:
+    radial-gradient(ellipse at 18% 110%, #fff0a6 0 5%, #ffb329 6% 12%, #e54718 13% 25%, transparent 26%),
+    radial-gradient(ellipse at 67% 112%, #fff3b0 0 8%, #ffad21 9% 20%, #dc3217 21% 37%, transparent 38%),
+    radial-gradient(ellipse at 94% 106%, #ffd86b 0 5%, #f36b1b 6% 18%, transparent 19%),
+    linear-gradient(180deg, #211917 0 24%, #3b1c17 40%, #8f2417 68%, #e84b16 100%);
+  box-shadow: inset 0 18px 25px rgba(0,0,0,.62), inset 0 -14px 30px rgba(255,126,25,.42), 0 8px 20px rgba(78,25,14,.25);
+}
+#foreign-flow .ff-apt-magma-crust { height: 24px; background: linear-gradient(160deg, #141211 0 35%, transparent 36%) 0 0/42px 24px, linear-gradient(205deg, #2b2421 0 44%, transparent 45%) 12px 0/48px 24px; filter: drop-shadow(0 5px 4px rgba(0,0,0,.48)); }
+#foreign-flow .ff-apt-magma-label { top: 29px; }
+#foreign-flow .ff-apt-magma-label strong { background: rgba(20,15,13,.78); border-color: rgba(255,154,67,.62); box-shadow: 0 0 16px rgba(255,93,27,.26); }
+#foreign-flow .ff-apt-magma-glow { bottom: -8px; height: 36px; background: #ffb428; filter: blur(13px); }
 @media (max-width: 520px) {
   #foreign-flow .ff-apt-basement-heading { flex-direction: column; gap: 3px; }
   #foreign-flow .ff-apt-basement-rooms { grid-template-columns: repeat(2, 1fr); }
   #foreign-flow .ff-apt-cloud-left { left: 4%; }
   #foreign-flow .ff-apt-cloud-right { right: 3%; }
-  #foreign-flow .ff-apt-magma-label { flex-direction: column; gap: 2px; top: 13px; }
+  #foreign-flow .ff-apt-magma-label { flex-direction: column; gap: 2px; top: 27px; }
+  #foreign-flow .ff-apt-elevator { left: 45px; }
   #foreign-flow .ff-apt-roof-block { padding-left: 25px; }
   #foreign-flow .ff-apt-roof-block::after { left: 52px; }
   #foreign-flow .ff-apt-heli { animation-name: ff-apt-heli-patrol-mobile; }
@@ -1704,7 +1771,8 @@ html.dark #foreign-flow .ff-apt-zoom-label { color: rgba(245, 239, 224, 0.55) !i
 html.dark #foreign-flow .ff-apt-row-current { background: rgba(255, 152, 0, 0.16) !important; }
 html.dark #foreign-flow .ff-apt-row-current .ff-apt-price { color: #ffb154 !important; }
 html.dark #foreign-flow .ff-apt-current-badge { background: #1A1A1A !important; color: #ffb154 !important; }
-html.dark #foreign-flow .ff-apt-ladder-rail { background: repeating-linear-gradient(180deg, rgba(245, 239, 224, 0.3), rgba(245, 239, 224, 0.3) 3px, transparent 3px, transparent 6px) !important; }
+html.dark #foreign-flow .ff-apt-elevator-shaft { background: linear-gradient(90deg, rgba(169,205,225,.15), rgba(225,242,250,.42), rgba(169,205,225,.15)) !important; border-color: rgba(222,240,250,.38) !important; }
+html.dark #foreign-flow .ff-apt-elevator-car { border-color: rgba(225,242,250,.82) !important; box-shadow: 0 0 10px rgba(123,205,245,.35) !important; }
 html.dark #foreign-flow .ff-apt-ground {
   border-top-color: rgba(245, 239, 224, 0.35) !important;
   background: linear-gradient(180deg, #1A1A1A 0 46%, rgba(245, 239, 224, 0.18) 47% 100%) !important;
