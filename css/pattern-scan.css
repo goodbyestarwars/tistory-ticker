@@ -196,6 +196,21 @@
   color: #111827;
 }
 
+#pattern-scan .ps-pattern-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 10px 0 8px;
+  color: #555;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+#pattern-scan .ps-pattern-legend span { display: inline-flex; align-items: center; gap: 6px; }
+#pattern-scan .ps-pattern-line { display: inline-block; width: 28px; height: 4px; border-radius: 99px; }
+#pattern-scan .ps-pattern-line-shape { background: #d24f45; }
+#pattern-scan .ps-pattern-line-level { background: #1261c4; }
+
 #pattern-scan .ps-close {
   font-family: inherit;
   font-size: 12.5px;
@@ -404,6 +419,7 @@ html.dark #pattern-scan .ps-ichimoku-legend {
 html.dark #pattern-scan .ps-detail-name {
   color: #F5EFE0 !important;
 }
+html.dark #pattern-scan .ps-pattern-legend { color: rgba(245, 239, 224, 0.75) !important; }
 
 html.dark #pattern-scan .ps-close {
   background: rgba(245, 239, 224, 0.06);
