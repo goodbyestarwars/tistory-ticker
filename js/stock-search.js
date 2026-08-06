@@ -439,6 +439,8 @@
       + '<span class="ss-summary-code">(' + escapeHtml(item.code) + ')</span>'
       + '<span class="ss-summary-price ' + cls + '">' + fmtPrice(item.price) + '원</span>'
       + '<span class="ss-summary-change ' + cls + '">' + fmtSignedPct(item.changeRate) + '</span>'
+      + '<a class="ss-analysis-link" href="/page/foreign-flow?code=' + encodeURIComponent(item.code)
+      + '&amp;name=' + encodeURIComponent(item.name) + '">종목분석</a>'
       + '</div>'
       + '<div class="ss-summary-reason" id="ssSummaryReason">'
       + '<span class="ss-reason-badge">AI</span>'

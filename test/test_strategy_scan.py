@@ -109,6 +109,45 @@ class ScanTests(unittest.TestCase):
         self.assertEqual(illiquid, 1)
         self.assertEqual(sectors, {})
 
+    def test_skips_codes_without_volume(self):
+        _insert_flat_then_drop(self.conn, '000010', last_price=8000, volume=0)
+        universe = [{'code': '000010', 'name': '무거래종목'}]
+        wics_map = {'000010': {'name': '무거래종목', 'sector': 'IT', 'industry': 'IT'}}
+        fundamentals_cache = {'000010': {'annual': GOOD_ANNUAL}}
+
+        sectors, scanned, _, filtered, *_ = strategy_scan.scan(
+            universe, wics_map, fundamentals_cache, self.conn)
+
+        self.assertEqual(scanned, 0)
+        self.assertEqual(filtered, 1)
+        self.assertEqual(sectors, {})
+
+    def test_skips_stocks_below_1000_won(self):
+        _insert_flat_then_drop(self.conn, '000008', base_price=1100, last_price=900, volume=2000000)
+        universe = [{'code': '000008', 'name': '초저가주'}]
+        wics_map = {'000008': {'name': '초저가주', 'sector': 'IT', 'industry': 'IT'}}
+        fundamentals_cache = {'000008': {'annual': GOOD_ANNUAL}}
+
+        sectors, scanned, _, filtered, *_ = strategy_scan.scan(
+            universe, wics_map, fundamentals_cache, self.conn)
+
+        self.assertEqual(scanned, 0)
+        self.assertEqual(filtered, 1)
+        self.assertEqual(sectors, {})
+
+    def test_skips_curated_theme_stocks(self):
+        _insert_flat_then_drop(self.conn, '000007', last_price=8000)
+        universe = [{'code': '000007', 'name': '테마후보'}]
+        wics_map = {'000007': {'name': '테마후보', 'sector': 'IT', 'industry': 'IT'}}
+        fundamentals_cache = {'000007': {'annual': GOOD_ANNUAL}}
+
+        sectors, scanned, _, filtered, *_ = strategy_scan.scan(
+            universe, wics_map, fundamentals_cache, self.conn, theme_codes={'000007'})
+
+        self.assertEqual(scanned, 0)
+        self.assertEqual(filtered, 1)
+        self.assertEqual(sectors, {})
+
     def test_skips_codes_without_wics_sector(self):
         _insert_flat_then_drop(self.conn, '000002', last_price=8000)
         universe = [{'code': '000002', 'name': '미분류종목'}]

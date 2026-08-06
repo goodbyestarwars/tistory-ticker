@@ -45,6 +45,7 @@ import pattern_detect
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 WICS_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js'
+SECTOR_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js'
 FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'strategy_scan_cache.json')
 
@@ -56,6 +57,16 @@ MIN_BARS = 120
 # 백테스트로 검증한 값이 아니라 "거래 자체가 사실상 어려운 초소형·품절주는 거른다"는
 # 취지의 잠정 기준이다.
 MIN_AVG_TURNOVER = 1_000_000_000  # 10억원
+
+# 초저가주는 호가 한두 틱의 왜곡과 작전성 변동이 커 저평가 후보에서 제외한다.
+MIN_PRICE = 1_000
+
+# 서비스에서 업종이 아니라 테마로 명시해 쓰는 수작업 분류. 이 중 하나에 포함된 종목은
+# 펀더멘탈 저평가 검색에서 제외해 테마 모멘텀이 가격 눌림으로 오인되지 않게 한다.
+THEME_SECTORS = {
+    'IT/스테이블코인', '2차전지', '신재생/원자력', '로봇',
+    '우주항공', '방위산업', 'K뷰티',
+}
 
 # 품질 게이트 - invest_signal.compute_fundamental_score()는 0~100점(ROE 60%+부채비율
 # 40%). 60점은 "ROE 5%대 이상 + 부채비율 150% 이하" 근방의 조합에서 나오는 수준 -
@@ -77,6 +88,11 @@ METHODOLOGY_NOTE = (
     '{top_n}개만 보여줍니다. PER·PBR 같은 실제 밸류에이션 데이터가 없어 "장기 추세 대비 '
     '가격 눌림"으로 근사한 것이라 진짜 저평가(이익·자산 대비 싼 가격)와는 다를 수 있습니다.'
 ).format(min_score=FUNDAMENTAL_SCORE_MIN, max_disp=DISPARITY_MAX, top_n=SECTOR_TOP_N)
+
+METHODOLOGY_NOTE += (
+    ' 또한 최근 20일 평균 거래대금 10억원 미만, 주가 1,000원 미만, '
+    '서비스 테마 분류 종목은 후보에서 제외합니다.'
+)
 
 
 def log(msg):
@@ -123,6 +139,20 @@ def load_wics_map():
     return out
 
 
+def load_theme_codes():
+    """sectors-v3.js에서 명시적 테마 카테고리에 속한 종목 코드를 읽는다."""
+    req = urllib.request.Request(SECTOR_MAP_URL, headers={'User-Agent': 'Mozilla/5.0'})
+    with urllib.request.urlopen(req, timeout=20) as res:
+        text = res.read().decode('utf-8')
+    codes = set()
+    sector_re = re.compile(r'"([^"]+)"\s*:\s*\[([\s\S]*?)\]')
+    code_re = re.compile(r'code:\s*"([0-9A-Za-z]{6})"')
+    for sector_name, block in sector_re.findall(text):
+        if sector_name in THEME_SECTORS:
+            codes.update(code_re.findall(block))
+    return codes
+
+
 def load_fundamentals_cache():
     """batch_scan.py(DART 재무, 전종목 2,691~2,766개, 하루 시간예산 내에서 이어달리기 순회)가
     미리 만들어둔 캐시 - daily_scan.py의 load_fundamentals_cache()와 동일 패턴(같은 VM 로컬
@@ -161,7 +191,8 @@ def build_match(stock, daily, disparity, fundamental_score, annual):
     }
 
 
-def scan(universe, wics_map, fundamentals_cache, conn):
+def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
+    theme_codes = theme_codes or set()
     sectors = {}  # sector_name -> [match, ...] (필터 통과자 전부, 정렬/컷은 이후 일괄)
     scanned = 0
     skipped_no_data = 0
@@ -176,8 +207,12 @@ def scan(universe, wics_map, fundamentals_cache, conn):
             skipped_no_data += 1
             continue
 
+        if daily[-1]['close'] < MIN_PRICE or code in theme_codes:
+            skipped_illiquid += 1
+            continue
+
         vol_multiple = pattern_detect.compute_volume_multiple(daily)
-        if vol_multiple and vol_multiple['avg20'] < MIN_AVG_TURNOVER:
+        if not vol_multiple or vol_multiple['avg20'] < MIN_AVG_TURNOVER:
             skipped_illiquid += 1
             continue
 
@@ -231,6 +266,9 @@ def main():
         sys.exit(1)
     log('WICS 섹터 맵 종목 수: %d' % len(wics_map))
 
+    theme_codes = load_theme_codes()
+    log('제외 테마 종목 수: %d' % len(theme_codes))
+
     fundamentals_cache = load_fundamentals_cache()
     log('펀더멘탈 캐시 종목 수: %d' % len(fundamentals_cache))
 
@@ -238,7 +276,8 @@ def main():
     db_schema.create_schema(conn)
 
     (sectors, scanned, skipped_no_data, skipped_illiquid,
-     skipped_no_sector, skipped_no_fundamentals) = scan(universe, wics_map, fundamentals_cache, conn)
+     skipped_no_sector, skipped_no_fundamentals) = scan(
+        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
 
     undervalued_category = {
         'name': '저평가 종목',

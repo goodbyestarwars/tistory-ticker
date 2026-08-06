@@ -111,7 +111,11 @@ function doGet(e) {
   }
 
   if (params.patternChart === '1') {
-    return jsonResponse(getPatternChart((params.code || '').trim(), (params.pattern || '').trim()));
+    return jsonResponse(getPatternChart(
+      (params.code || '').trim(),
+      (params.pattern || '').trim(),
+      (params.scanDate || '').trim()
+    ));
   }
 
   if (params.investSignal === '1') {
@@ -2408,7 +2412,7 @@ function getStrategyScanResult() {
 // (스캔 결과에는 캔들 전체를 저장하지 않음 - PropertiesService 9KB/속성 제한 때문)
 // 화면 표시는 PATTERN_CHART_PAGES(2년치)로 넉넉히 가져오고, 패턴 판정(detect*_)은 각 함수가
 // daily.slice()로 자기 window(60/90/40일 등)만 잘라 쓰므로 스캔 리스트와 결과가 동일하게 유지된다.
-function getPatternChart(code, patternType) {
+function getPatternChart(code, patternType, scanDate) {
   if (!/^[0-9A-Za-z]{6}$/i.test(code)) {
     return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
   }
@@ -2418,14 +2422,23 @@ function getPatternChart(code, patternType) {
     return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
   }
 
-  var detail = null;
-  if (patternType === 'risingLows') detail = detectRisingLows_(daily);
-  else if (patternType === 'doubleBottom') detail = detectDoubleBottom_(daily);
-  else if (patternType === 'invHeadShoulders') detail = detectInvHeadShoulders_(daily);
-  else if (patternType === 'boxRangeLow') detail = detectBoxRangeLow_(daily);
-  else if (patternType === 'pullback') detail = detectPullback_(daily);
+  // 목록은 전날 배치 스캔의 스냅샷이다. 장중에는 오늘 봉이 계속 움직이므로 최신 daily 전체로
+  // 재판정하면 전날 발견 종목이 상세 클릭 순간 사라진다. 차트 데이터는 최신 상태를 유지하되,
+  // 판정 입력만 목록에 기록된 스캔 거래일까지 잘라 동일한 결과를 재현한다.
+  var evaluationDaily = daily;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(scanDate)) {
+    var asOf = daily.filter(function (row) { return row.date <= scanDate; });
+    if (asOf.length >= BOX_WINDOW) evaluationDaily = asOf;
+  }
 
-  return { code: code.toUpperCase(), daily: daily, pattern: patternType, detail: detail };
+  var detail = null;
+  if (patternType === 'risingLows') detail = detectRisingLows_(evaluationDaily);
+  else if (patternType === 'doubleBottom') detail = detectDoubleBottom_(evaluationDaily);
+  else if (patternType === 'invHeadShoulders') detail = detectInvHeadShoulders_(evaluationDaily);
+  else if (patternType === 'boxRangeLow') detail = detectBoxRangeLow_(evaluationDaily);
+  else if (patternType === 'pullback') detail = detectPullback_(evaluationDaily);
+
+  return { code: code.toUpperCase(), daily: daily, pattern: patternType, detail: detail, evaluatedAsOf: scanDate || null };
 }
 
 // detail: 각 detect*_ 함수의 반환값(score/reasons/interpretation 포함) - 스캔 리스트에도

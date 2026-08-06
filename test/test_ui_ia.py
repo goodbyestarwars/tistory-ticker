@@ -32,6 +32,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("nav-dropdown", source)
         self.assertNotIn("nav-chevron", source)
 
+    def test_global_search_routes_to_realtime_then_analysis(self):
+        panel = self.read("js/stock-search-panel.js")
+        realtime = self.read("js/stock-search.js")
+        self.assertIn("var TARGET_PAGE = '/page/stock-search';", panel)
+        self.assertIn('class="ss-analysis-link"', realtime)
+        self.assertIn('/page/foreign-flow?code=', realtime)
+
+    def test_pattern_detail_uses_scan_date_snapshot(self):
+        pattern = self.read("js/pattern-scan.js")
+        gas = self.read("gas/ticker-proxy.gs")
+        self.assertIn("&scanDate=", pattern)
+        self.assertIn("evaluationDaily", gas)
+        self.assertIn("row.date <= scanDate", gas)
+
     def test_home_dashboard_contract(self):
         main = self.read("js/skin-main.js")
         widgets = self.read("js/home-widgets.js")
