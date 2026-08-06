@@ -10,6 +10,7 @@ batch_scan.py의 investor_flow_cache.json에서 이관.
 종목 1개분만 올라가는 게 SQLite를 고른 핵심 이유(JSON 전체 로드 시 메모리 4배 증폭 실측됨)."""
 
 import os
+import json
 import sqlite3
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ohlc_snapshot.db')
@@ -142,6 +143,15 @@ CREATE TABLE IF NOT EXISTS volume_profile_daily (
     PRIMARY KEY (code, trade_date, price)
 );
 CREATE INDEX IF NOT EXISTS idx_volume_profile_daily_code ON volume_profile_daily(code);
+
+-- User-managed 증시온도 카드 구성. 실제 시세/분석 테이블과 분리하고,
+-- 작은 설정 JSON을 한 행으로 원자적으로 교체해 읽기 비용과 마이그레이션 복잡도를 낮춘다.
+CREATE TABLE IF NOT EXISTS sector_cards_config (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    config_json TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL
+);
 '''
 
 
@@ -197,6 +207,46 @@ def create_schema(conn):
     _ensure_column(conn, 'future_prices', 'oi_change', 'INTEGER')
     _migrate_investor_trend_market(conn)
     conn.commit()
+
+
+def load_sector_cards_config(conn):
+    row = conn.execute(
+        'SELECT config_json, revision, updated_at FROM sector_cards_config WHERE id=1'
+    ).fetchone()
+    if not row:
+        return None
+    try:
+        sectors = json.loads(row[0])
+    except (TypeError, ValueError) as exc:
+        raise ValueError('sector_cards_config contains invalid JSON') from exc
+    return {'sectors': sectors, 'revision': row[1], 'updatedAt': row[2]}
+
+
+def save_sector_cards_config(conn, sectors, updated_at, expected_revision=None):
+    """Atomically replace the card map and enforce optimistic concurrency."""
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        current = conn.execute(
+            'SELECT revision FROM sector_cards_config WHERE id=1'
+        ).fetchone()
+        current_revision = current[0] if current else 0
+        if expected_revision is not None and int(expected_revision) != current_revision:
+            raise RuntimeError('SECTOR_CONFIG_REVISION_CONFLICT')
+
+        next_revision = current_revision + 1 if current else 1
+        payload = json.dumps(sectors, ensure_ascii=False, separators=(',', ':'))
+        conn.execute(
+            'INSERT INTO sector_cards_config (id, config_json, revision, updated_at) '
+            'VALUES (1, ?, ?, ?) '
+            'ON CONFLICT(id) DO UPDATE SET config_json=excluded.config_json, '
+            'revision=excluded.revision, updated_at=excluded.updated_at',
+            (payload, next_revision, updated_at),
+        )
+        conn.commit()
+        return {'sectors': sectors, 'revision': next_revision, 'updatedAt': updated_at}
+    except Exception:
+        conn.rollback()
+        raise
 
 
 def load_daily_prices(conn, code):

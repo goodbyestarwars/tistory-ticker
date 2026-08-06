@@ -2462,20 +2462,22 @@ function buildPatternMatch_(stock, daily, detail) {
 // data/sectors-v3.js(GitHub Pages)를 fetch해서 { name, code } 유니크 목록으로 파싱.
 // 섹터 데이터가 바뀌어도 GAS 쪽 코드를 따로 수정할 필요 없게 하기 위한 설계.
 function fetchSectorUniverse_() {
-  var url = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js';
+  var url = 'https://goodbyestar.cloud/sector-cards';
   var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) return [];
-
-  var text = res.getContentText('UTF-8');
+  var body;
+  try { body = JSON.parse(res.getContentText('UTF-8')); } catch (err) { return []; }
+  var sectors = body && body.data && body.data.sectors;
+  if (!sectors || typeof sectors !== 'object') return [];
   var out = [];
   var seen = {};
-  var re = /name:\s*"([^"]+)",\s*code:\s*"([0-9A-Za-z]{6})",\s*market:\s*"(KOSPI|KOSDAQ)"/g;
-  var m;
-  while ((m = re.exec(text)) !== null) {
-    if (seen[m[2]]) continue;
-    seen[m[2]] = true;
-    out.push({ name: m[1], code: m[2], market: m[3] });
-  }
+  Object.keys(sectors).forEach(function (sector) {
+    (sectors[sector] || []).forEach(function (item) {
+      if (!item || !item.code || seen[item.code]) return;
+      seen[item.code] = true;
+      out.push({ name: item.name, code: item.code, market: item.market });
+    });
+  });
   return out;
 }
 
@@ -2486,28 +2488,21 @@ function fetchSectorUniverse_() {
 // 쪼갠 뒤(entries에 대괄호가 없어 non-greedy ]까지가 정확히 한 섹터 블록) 그 안에서
 // 종목 객체를 뽑는 2단 정규식 파싱을 쓴다.
 function fetchSectorUniverseWithSectors_() {
-  var url = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js';
+  var url = 'https://goodbyestar.cloud/sector-cards';
   var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) return [];
-
-  var text = res.getContentText('UTF-8');
+  var body;
+  try { body = JSON.parse(res.getContentText('UTF-8')); } catch (err) { return []; }
+  var sectors = body && body.data && body.data.sectors;
+  if (!sectors || typeof sectors !== 'object') return [];
   var byCode = {};
-  var sectorRe = /"([^"]+)":\s*\[([\s\S]*?)\]/g;
-  var itemRe = /name:\s*"([^"]+)",\s*code:\s*"([0-9A-Za-z]{6})",\s*market:\s*"([^"]+)"/g;
-
-  var sm;
-  while ((sm = sectorRe.exec(text)) !== null) {
-    var sectorName = sm[1];
-    var block = sm[2];
-    var im;
-    itemRe.lastIndex = 0;
-    while ((im = itemRe.exec(block)) !== null) {
-      var code = im[2];
-      if (!byCode[code]) byCode[code] = { code: code, name: im[1], market: im[3], sectors: [] };
-      if (byCode[code].sectors.indexOf(sectorName) === -1) byCode[code].sectors.push(sectorName);
-    }
-  }
-
+  Object.keys(sectors).forEach(function (sectorName) {
+    (sectors[sectorName] || []).forEach(function (item) {
+      if (!item || !item.code) return;
+      if (!byCode[item.code]) byCode[item.code] = { code: item.code, name: item.name, market: item.market, sectors: [] };
+      if (byCode[item.code].sectors.indexOf(sectorName) === -1) byCode[item.code].sectors.push(sectorName);
+    });
+  });
   return Object.keys(byCode).map(function (c) { return byCode[c]; });
 }
 
