@@ -675,6 +675,26 @@
   gap: 6px;
   height: 20px;
 }
+
+/* 2026-08-06: 실제 체결가 층은 유지하고 외형만 롯데월드타워형으로 재구성한다. */
+#foreign-flow .ff-apt-roof-block { height: 104px; align-items: flex-start; padding-left: 64px; box-sizing: border-box; }
+#foreign-flow .ff-apt-roof-block::after { content: ''; position: absolute; z-index: 1; left: 91px; bottom: -3px; width: 7px; height: 62px; background: linear-gradient(90deg, #aeb9c7, #f8fbff 48%, #99a7b8); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+#foreign-flow .ff-apt-nameplate { margin-left: 2px; }
+#foreign-flow .ff-apt-helipad { margin-left: 21px; }
+#foreign-flow .ff-apt-heli { z-index: 3 !important; left: 0; top: 15px; animation: ff-apt-heli-patrol 7s ease-in-out infinite; }
+@keyframes ff-apt-heli-patrol { 0% { transform: translate(8px, 5px) scaleX(1); } 46% { transform: translate(250px, -8px) scaleX(1); } 50% { transform: translate(250px, -8px) scaleX(-1); } 96%, 100% { transform: translate(10px, 3px) scaleX(-1); } }
+#foreign-flow .ff-apt-row { gap: 7px; border-top: 1px dashed rgba(190, 199, 210, 0.34); }
+#foreign-flow .ff-apt-tower-floor { position: relative; z-index: 2; flex: 0 0 auto; align-self: stretch; margin-left: auto; display: flex; align-items: center; justify-content: space-evenly; box-sizing: border-box; background: linear-gradient(90deg, #aab6c6, #edf3f8 28%, #d9e2ec 72%, #98a7b9); border-left: 3px solid #a5b1c0; border-right: 3px solid #8e9eb1; box-shadow: inset 0 -2px #94a4b6, inset 0 2px rgba(255,255,255,.72); transform: skewX(-1.2deg); }
+#foreign-flow .ff-apt-tower-floor i { width: 4px; height: 8px; background: #8498af; box-shadow: inset 1px 0 #eef5fb; }
+#foreign-flow .ff-apt-row-average::after, #foreign-flow .ff-apt-row-current::after { content: ''; position: absolute; z-index: 1; left: 38px; right: 2px; top: 50%; width: auto; height: 1px; transform: none; }
+#foreign-flow .ff-apt-row-average::after { background: #626870; }
+#foreign-flow .ff-apt-row-current::after { background: #b6bbc2; }
+#foreign-flow .ff-apt-row-average .ff-apt-tower-floor { background: linear-gradient(90deg, #00a957, #00cf70 48%, #009e52); border-color: #008f49; box-shadow: inset 0 -2px #007c40, inset 0 2px rgba(255,255,255,.25), 0 0 8px rgba(0,169,87,.3); }
+#foreign-flow .ff-apt-average-badge { position: absolute; z-index: 5; right: 4px; bottom: 11px; padding: 2px 8px; border-radius: 999px; color: #fff; background: #626870; font-size: 9.5px; font-weight: 800; white-space: nowrap; }
+#foreign-flow .ff-apt-current-badge { position: absolute; z-index: 5; right: 4px; top: 11px; }
+#foreign-flow .ff-apt-price { width: 76px; justify-content: flex-start; font-size: 10px; }
+#foreign-flow .ff-apt-band-label { order: 5; margin-left: 2px; }
+#foreign-flow .ff-apt-bar-slot { min-width: 110px; }
 #foreign-flow .ff-apt-band-start { border-top: 1px dashed #dde3ec; margin-top: 1px; padding-top: 1px; }
 #foreign-flow .ff-apt-row:first-child { border-top: none; margin-top: 0; padding-top: 0; }
 
@@ -1044,7 +1064,15 @@
   #foreign-flow .ff-apt-cloud-left { left: 4%; }
   #foreign-flow .ff-apt-cloud-right { right: 3%; }
   #foreign-flow .ff-apt-magma-label { flex-direction: column; gap: 2px; top: 13px; }
+  #foreign-flow .ff-apt-roof-block { padding-left: 25px; }
+  #foreign-flow .ff-apt-roof-block::after { left: 52px; }
+  #foreign-flow .ff-apt-heli { animation-name: ff-apt-heli-patrol-mobile; }
+  #foreign-flow .ff-apt-price { width: 62px; font-size: 9px; }
+  #foreign-flow .ff-apt-bar-slot { min-width: 60px; }
+  #foreign-flow .ff-apt-band-label { width: 35px; }
+  #foreign-flow .ff-apt-bar-value { display: none; }
 }
+@keyframes ff-apt-heli-patrol-mobile { 0% { transform: translate(5px, 5px) scaleX(1); } 46% { transform: translate(175px, -8px) scaleX(1); } 50% { transform: translate(175px, -8px) scaleX(-1); } 96%, 100% { transform: translate(7px, 3px) scaleX(-1); } }
 
 #foreign-flow .ff-apt-empty {
   padding: 18px 10px;
@@ -1659,6 +1687,10 @@ html.dark #foreign-flow .ff-apt-band-name { color: rgba(245, 239, 224, 0.55) !im
 html.dark #foreign-flow .ff-apt-price { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-apt-mini-window { background: rgba(245, 239, 224, 0.12) !important; border-color: rgba(245, 239, 224, 0.3) !important; }
 html.dark #foreign-flow .ff-apt-mini-window::after { background: rgba(245, 239, 224, 0.3) !important; }
+html.dark #foreign-flow .ff-apt-tower-floor { background: linear-gradient(90deg, rgba(245,239,224,.24), rgba(245,239,224,.08) 45%, rgba(245,239,224,.2)) !important; border-color: rgba(245,239,224,.32) !important; box-shadow: inset 0 -2px rgba(245,239,224,.2), inset 0 2px rgba(245,239,224,.12) !important; }
+html.dark #foreign-flow .ff-apt-tower-floor i { background: rgba(245,239,224,.38) !important; box-shadow: none !important; }
+html.dark #foreign-flow .ff-apt-row-average .ff-apt-tower-floor { background: linear-gradient(90deg, #008f49, #00bf65 48%, #007f42) !important; border-color: #00c56a !important; }
+html.dark #foreign-flow .ff-apt-average-badge { background: #F5EFE0 !important; color: #1A1A1A !important; }
 html.dark #foreign-flow .ff-apt-bar-value { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-apt-bar-sell { background: #5b9ee8 !important; }
 html.dark #foreign-flow .ff-apt-bar-buy { background: #ff7d8e !important; }

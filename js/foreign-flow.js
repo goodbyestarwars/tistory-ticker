@@ -3157,12 +3157,13 @@
   // 안내판에 가격범위 부기, 현재가 말풍선+좌우 강조선, 현재층→지하실로 이어지는 사다리, 로비/
   // 지하실 장식)은 그대로 유지하고, 각 층의 막대만 매수/매도 듀얼 바에서 거래량 단일 바로
   // 바꿨다(2026-08-02, 위 헤더 주석 참고) - POC(거래량 최다 구간)만 강조색으로 표시한다.
-  function buildAptChartHtml(profile, currentPrice) {
+  function buildAptChartHtml(profile, currentPrice, avgPrice) {
     if (!profile) {
       return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
     }
     var n = profile.bins.length;
     var curIdx = aptBinIndex(profile, currentPrice);
+    var avgIdx = aptBinIndex(profile, avgPrice);
     var bandRanges = aptBandRanges(profile);
     var prevBand = null;
     var rows = '';
@@ -3173,6 +3174,7 @@
       var showBand = band !== prevBand;
       prevBand = band;
       var isCurrent = i === curIdx;
+      var isAverage = i === avgIdx;
       var isPoc = i === profile.pocIndex && b.volume > 0;
       var pct = profile.maxVolume > 0 ? Math.max(0, Math.round(b.volume / profile.maxVolume * 100)) : 0;
       var valueLabel = b.volume > 0 ? '<span class="ff-apt-bar-value">' + Math.round(b.volume).toLocaleString('ko-KR') + '주</span>' : '';
@@ -3181,15 +3183,20 @@
         ? '<span class="ff-apt-band-icon">⌂</span><span class="ff-apt-band-name">' + band + '</span>'
           + '<span class="ff-apt-band-range">' + aptBandRangeText(band, bandRanges) + '</span>'
         : '';
-      rows += '<div class="ff-apt-row' + (showBand ? ' ff-apt-band-start' : '') + (isCurrent ? ' ff-apt-row-current' : '') + '"'
+      var floorWidth = Math.round(52 + ((n - 1 - i) / Math.max(1, n - 1)) * 42);
+      rows += '<div class="ff-apt-row' + (showBand ? ' ff-apt-band-start' : '') + (isCurrent ? ' ff-apt-row-current' : '') + (isAverage ? ' ff-apt-row-average' : '') + '"'
         + ' title="' + escapeHtml(title) + '">'
         + '<span class="ff-apt-band-label">' + bandLabelHtml + '</span>'
-        + '<span class="ff-apt-price"><span class="ff-apt-mini-window"></span>' + mid.toLocaleString('ko-KR') + '<span class="ff-apt-mini-window"></span></span>'
+        + '<span class="ff-apt-tower-floor" style="width:' + floorWidth + 'px"><i></i><i></i><i></i></span>'
+        + '<span class="ff-apt-price">' + mid.toLocaleString('ko-KR') + '</span>'
         + '<span class="ff-apt-bar-slot">'
           + '<span class="ff-apt-bar ff-apt-bar-vol' + (isPoc ? ' ff-apt-bar-max' : '') + '" style="width:' + pct + '%"></span>' + valueLabel
           + '</span>'
         + (isCurrent
           ? '<span class="ff-apt-current-badge"><span class="ff-apt-current-arrow">◀</span>현재가 ' + mid.toLocaleString('ko-KR') + '원</span>'
+          : '')
+        + (isAverage
+          ? '<span class="ff-apt-average-badge">평균단가 ' + Math.round(avgPrice).toLocaleString('ko-KR') + '원</span>'
           : '')
         + '</div>';
     }
@@ -3199,7 +3206,7 @@
       + '<span class="ff-apt-cloud ff-apt-cloud-left"></span>'
       + '<span class="ff-apt-cloud ff-apt-cloud-right"></span>'
       + '</div>'
-      + '<div class="ff-apt-nameplate">매물대 아파트</div>'
+      + '<div class="ff-apt-nameplate">매물대 타워</div>'
       + '<div class="ff-apt-helipad"><span class="ff-apt-helipad-h">H</span></div>'
       + '<div class="ff-apt-heli"><span class="ff-apt-heli-rotor"></span><span class="ff-apt-heli-body">🚁</span></div>'
       + '</div>';
@@ -3277,7 +3284,7 @@
     var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
     return buildAptZoomButtons(stepIndex)
       + buildAptSummaryHtml(profile, periodLabel, avgPrice)
-      + buildAptChartHtml(profile, currentPrice)
+      + buildAptChartHtml(profile, currentPrice, avgPrice)
       + footnote;
   }
 
