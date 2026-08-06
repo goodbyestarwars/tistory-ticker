@@ -43,6 +43,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         pattern = self.read("js/pattern-scan.js")
         gas = self.read("gas/ticker-proxy.gs")
         self.assertIn("&scanDate=", pattern)
+        self.assertIn("snapshotFallback", pattern)
         self.assertIn("evaluationDaily", gas)
         self.assertIn("row.date <= scanDate", gas)
 
