@@ -22,6 +22,7 @@
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var SECTOR_CARDS_API_URL = 'https://goodbyestar.cloud/sector-cards';
   var CONTAINER_SELECTOR = '#market-temp';
   // 2026-07-22: 8000 -> 20000. 캐시 미스 시 GAS가 VIX/미국선물/환율/52주신고저(VM)/전종목
   // 시세 등 9개 지표를 순차로 조회해 8초를 넘기기 일쑤였다 - 이때 클라이언트 fetch는
@@ -31,6 +32,7 @@
   // 여러 소스를 조합하는 다른 무거운 위젯들도 이미 20000을 쓰고 있어 그 값에 맞춤.
   var FETCH_TIMEOUT_MS = 20000;
   var GAUGE_MAX_TEMP = 40; // 서버가 실제 만점(현재 110점) 기준으로 이미 0~40℃로 정규화해서 내려줌
+  var sectorConfigPromise = null;
 
   // unit: 'index'(그대로 표기) / 'pct'(부호 있는 % - 붉은/파란색) / 'pctDirect'(comp에 이미 %
   // 단위로 들어있는 값) / 'ratio'(상승·하락 종목수) / 'sectorCount'(섹터 강도) /
@@ -630,6 +632,199 @@
 
   // 섹터 풀(SECTOR_MAP) 전체 종목 코드를 모아 시세를 한 번에 조회 - 카드 보기/히트맵 보기가
   // 공유하는 헬퍼(SD.renderCardsHtml/renderHeatmapHtml 둘 다 이 codes 목록이 필요).
+  function fetchSectorConfig_() {
+    if (sectorConfigPromise) return sectorConfigPromise;
+    sectorConfigPromise = fetch(SECTOR_CARDS_API_URL, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('sector config HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (body) {
+        if (!body || !body.data || !body.data.sectors) throw new Error('invalid sector config');
+        return body.data;
+      })
+      .catch(function (err) {
+        sectorConfigPromise = null;
+        throw err;
+      });
+    return sectorConfigPromise;
+  }
+
+  function invalidateSectorConfig_() {
+    sectorConfigPromise = null;
+  }
+
+  function cloneSectorMap_(sectorMap) {
+    return JSON.parse(JSON.stringify(sectorMap || {}));
+  }
+
+  function stockOptionsHtml_() {
+    var map = global.KRX_MAP || {};
+    return Object.keys(map).map(function (name) {
+      return '<option value="' + escapeHtml(name) + '"></option>';
+    }).join('');
+  }
+
+  function buildSectorEditorHtml_(sectorMap) {
+    var categories = Object.keys(sectorMap);
+    var rows = categories.map(function (category, categoryIndex) {
+      var stocks = Array.isArray(sectorMap[category]) ? sectorMap[category] : [];
+      var stockRows = stocks.map(function (stock, stockIndex) {
+        return '<div class="mt-sector-editor-stock" data-stock-index="' + stockIndex + '">' +
+          '<input data-editor-role="stock-name" list="mt-sector-stock-names" value="' + escapeHtml(stock.name || '') + '" placeholder="종목명">' +
+          '<input data-editor-role="stock-code" value="' + escapeHtml(stock.code || '') + '" placeholder="종목코드" maxlength="6">' +
+          '<select data-editor-role="stock-market">' +
+            '<option value="KOSPI"' + (stock.market === 'KOSPI' ? ' selected' : '') + '>KOSPI</option>' +
+            '<option value="KOSDAQ"' + (stock.market === 'KOSDAQ' ? ' selected' : '') + '>KOSDAQ</option>' +
+          '</select>' +
+          '<button type="button" data-editor-action="delete-stock">삭제</button>' +
+        '</div>';
+      }).join('');
+      return '<section class="mt-sector-editor-category" data-category-index="' + categoryIndex + '">' +
+        '<div class="mt-sector-editor-category-head">' +
+          '<input data-editor-role="category-name" value="' + escapeHtml(category) + '" aria-label="카테고리명">' +
+          '<button type="button" data-editor-action="delete-category">카테고리 삭제</button>' +
+        '</div>' +
+        '<div class="mt-sector-editor-stocks">' + stockRows + '</div>' +
+        '<button type="button" class="mt-sector-editor-add-stock" data-editor-action="add-stock">+ 종목 추가</button>' +
+      '</section>';
+    }).join('');
+
+    return '<div class="mt-sector-editor">' +
+      '<div class="mt-sector-editor-head"><strong>카테고리·종목 편집</strong><span>저장하면 모든 사용자에게 반영됩니다.</span></div>' +
+      '<datalist id="mt-sector-stock-names">' + stockOptionsHtml_() + '</datalist>' +
+      '<div class="mt-sector-editor-categories">' + rows + '</div>' +
+      '<div class="mt-sector-editor-actions">' +
+        '<button type="button" data-editor-action="add-category">+ 카테고리 추가</button>' +
+        '<input type="password" data-editor-role="admin-token" placeholder="관리자 토큰" autocomplete="current-password">' +
+        '<button type="button" class="primary" data-editor-action="save">저장</button>' +
+        '<button type="button" data-editor-action="cancel">취소</button>' +
+      '</div>' +
+      '<div class="mt-sector-editor-message" data-editor-role="message"></div>' +
+    '</div>';
+  }
+
+  function collectSectorMapFromEditor_(root, allowIncomplete) {
+    var result = {};
+    root.querySelectorAll('.mt-sector-editor-category').forEach(function (categoryEl) {
+      var nameEl = categoryEl.querySelector('[data-editor-role="category-name"]');
+      var name = (nameEl && nameEl.value || '').trim();
+      if (!name) throw new Error('카테고리명을 입력하세요.');
+      if (result[name]) throw new Error('카테고리명이 중복됩니다: ' + name);
+      var stocks = [];
+      categoryEl.querySelectorAll('.mt-sector-editor-stock').forEach(function (stockEl) {
+        var stockName = (stockEl.querySelector('[data-editor-role="stock-name"]').value || '').trim();
+        var code = (stockEl.querySelector('[data-editor-role="stock-code"]').value || '').trim().toUpperCase();
+        var market = stockEl.querySelector('[data-editor-role="stock-market"]').value;
+        if (!stockName || !/^[0-9A-Z]{6}$/.test(code)) {
+          if (allowIncomplete) {
+            stocks.push({ name: stockName, code: code, market: market });
+            return;
+          }
+          throw new Error('종목명과 6자리 종목코드를 확인하세요.');
+        }
+        if (code && stocks.some(function (stock) { return stock.code === code; })) {
+          throw new Error(name + ' 카테고리에 같은 종목이 중복됩니다: ' + code);
+        }
+        stocks.push({ name: stockName, code: code, market: market });
+      });
+      result[name] = stocks;
+    });
+    if (!allowIncomplete && !Object.keys(result).length) throw new Error('카테고리를 하나 이상 남겨두세요.');
+    return result;
+  }
+
+  function renderSectorEditor_(panel, sectorMap, revision, onSaved) {
+    var model = cloneSectorMap_(sectorMap);
+    var tokenKey = 'sector-card-admin-token';
+    var rerender = function () {
+      panel.innerHTML = buildSectorEditorHtml_(model);
+      var savedToken = '';
+      try { savedToken = sessionStorage.getItem(tokenKey) || ''; } catch (err) { /* ignore */ }
+      var tokenEl = panel.querySelector('[data-editor-role="admin-token"]');
+      if (tokenEl) tokenEl.value = savedToken;
+    };
+    var setMessage = function (text, isError) {
+      var message = panel.querySelector('[data-editor-role="message"]');
+      if (message) { message.textContent = text; message.className = 'mt-sector-editor-message' + (isError ? ' error' : ''); }
+    };
+
+    rerender();
+    panel.onclick = function (event) {
+      var actionEl = event.target.closest('[data-editor-action]');
+      if (!actionEl) return;
+      var action = actionEl.getAttribute('data-editor-action');
+      try {
+        if (action === 'add-category') {
+          model = collectSectorMapFromEditor_(panel, true);
+          var base = '새 카테고리';
+          var name = base;
+          var count = 2;
+          while (model[name]) name = base + ' ' + count++;
+          model[name] = [];
+          rerender();
+        } else if (action === 'delete-category') {
+          model = collectSectorMapFromEditor_(panel, true);
+          var categoryEl = actionEl.closest('.mt-sector-editor-category');
+          var categoryIndex = Number(categoryEl.getAttribute('data-category-index'));
+          var categoryName = Object.keys(model)[categoryIndex];
+          delete model[categoryName];
+          rerender();
+        } else if (action === 'add-stock') {
+          model = collectSectorMapFromEditor_(panel, true);
+          var targetEl = actionEl.closest('.mt-sector-editor-category');
+          var targetIndex = Number(targetEl.getAttribute('data-category-index'));
+          var targetName = Object.keys(model)[targetIndex];
+          model[targetName].push({ name: '', code: '', market: 'KOSPI' });
+          rerender();
+        } else if (action === 'delete-stock') {
+          model = collectSectorMapFromEditor_(panel, true);
+          var stockCategoryEl = actionEl.closest('.mt-sector-editor-category');
+          var stockEl = actionEl.closest('.mt-sector-editor-stock');
+          var stockCategoryIndex = Number(stockCategoryEl.getAttribute('data-category-index'));
+          var stockIndex = Number(stockEl.getAttribute('data-stock-index'));
+          var stockCategoryName = Object.keys(model)[stockCategoryIndex];
+          model[stockCategoryName].splice(stockIndex, 1);
+          rerender();
+        } else if (action === 'cancel') {
+          if (onSaved && onSaved.cancel) onSaved.cancel();
+        } else if (action === 'save') {
+          var sectors = collectSectorMapFromEditor_(panel);
+          var token = (panel.querySelector('[data-editor-role="admin-token"]').value || '').trim();
+          if (!token) throw new Error('관리자 토큰을 입력하세요.');
+          setMessage('저장 중...', false);
+          fetch(SECTOR_CARDS_API_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': token },
+            body: JSON.stringify({ sectors: sectors, revision: revision })
+          }).then(function (response) {
+            return response.json().then(function (body) {
+              if (!response.ok) throw new Error(body.detail || '저장에 실패했습니다.');
+              return body;
+            });
+          }).then(function (body) {
+            try { sessionStorage.setItem(tokenKey, token); } catch (err) { /* ignore */ }
+            invalidateSectorConfig_();
+            if (typeof onSaved === 'function') onSaved(body.data);
+            else if (onSaved && onSaved.saved) onSaved.saved(body.data);
+          }).catch(function (error) {
+            setMessage(error.message || '저장에 실패했습니다.', true);
+          });
+        }
+      } catch (error) {
+        setMessage(error.message || '입력값을 확인하세요.', true);
+      }
+    };
+    panel.onchange = function (event) {
+      if (!event.target.matches('[data-editor-role="stock-name"]')) return;
+      var code = (global.KRX_MAP || {})[event.target.value.trim()];
+      if (code) {
+        var row = event.target.closest('.mt-sector-editor-stock');
+        row.querySelector('[data-editor-role="stock-code"]').value = code;
+      }
+    };
+  }
+
   function sectorPoolCodes(sectorMap, krxMap) {
     var codes = [];
     Object.keys(sectorMap).forEach(function (sector) {
@@ -641,10 +836,52 @@
     return codes;
   }
 
+  function renderCardsPanelFromConfig_(panel, SD, config) {
+    var sectorMap = config.sectors;
+    var krxMap = global.KRX_MAP || {};
+    var codes = sectorPoolCodes(sectorMap, krxMap);
+    if (!codes.length) throw new Error('empty sector config');
+    return SD.fetchTickerData(codes).then(function (list) {
+      var byCode = {};
+      (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
+      var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
+      var toolbar = '<div class="mt-sector-toolbar"><span>카테고리와 종목을 직접 관리할 수 있습니다.</span>' +
+        '<button type="button" data-sector-editor-open>카테고리·종목 편집</button></div>';
+      panel.innerHTML = toolbar + (html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>');
+      var editButton = panel.querySelector('[data-sector-editor-open]');
+      if (editButton) editButton.addEventListener('click', function () {
+        renderSectorEditor_(panel, sectorMap, config.revision, {
+          cancel: function () { panel.__mtLoaded = false; loadCardsPanel(panel); },
+          saved: function () { panel.__mtLoaded = false; loadCardsPanel(panel); }
+        });
+      });
+    });
+  }
+
+  function renderHeatmapPanelFromConfig_(panel, SD, config) {
+    var sectorMap = config.sectors;
+    var krxMap = global.KRX_MAP || {};
+    var codes = sectorPoolCodes(sectorMap, krxMap);
+    if (!codes.length) throw new Error('empty sector config');
+    return SD.fetchTickerData(codes).then(function (list) {
+      var byCode = {};
+      (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
+      var html = SD.renderHeatmapHtml(sectorMap, krxMap, byCode);
+      panel.innerHTML = html ? '<div class="heatmap-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>';
+    });
+  }
+
   function loadCardsPanel(panel) {
     if (panel.__mtLoaded) return;
     panel.__mtLoaded = true;
     var SD = global.SectorDashboard;
+    if (SD) {
+      panel.innerHTML = '<div class="mt-hint">종목 카드 불러오는 중...</div>';
+      fetchSectorConfig_()
+        .then(function (config) { return renderCardsPanelFromConfig_(panel, SD, config); })
+        .catch(function () { panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>'; });
+      return;
+    }
     var sectorMap = global.SECTOR_MAP;
     if (!SD || !sectorMap) {
       panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>';
@@ -670,6 +907,13 @@
     if (panel.__mtLoaded) return;
     panel.__mtLoaded = true;
     var SD = global.SectorDashboard;
+    if (SD) {
+      panel.innerHTML = '<div class="mt-hint">히트맵 불러오는 중...</div>';
+      fetchSectorConfig_()
+        .then(function (config) { return renderHeatmapPanelFromConfig_(panel, SD, config); })
+        .catch(function () { panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>'; });
+      return;
+    }
     var sectorMap = global.SECTOR_MAP;
     if (!SD || !sectorMap) {
       panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>';

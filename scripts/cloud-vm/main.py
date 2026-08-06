@@ -38,6 +38,7 @@ import market_rank
 import option_flow
 import order_book
 import realtime_quotes
+import sector_cards
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 
@@ -59,6 +60,14 @@ def _start_futures_collectors():
     정상 동작), 로그만 남긴다."""
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
+    if db_schema.load_sector_cards_config(conn) is None:
+        seeded = sector_cards.load_static_sector_map()
+        db_schema.save_sector_cards_config(
+            conn,
+            seeded,
+            datetime.now(timezone.utc).isoformat(),
+        )
+        logging.getLogger('main').info('seeded sector card configuration from data/sectors-v3.js')
     conn.close()
 
     foreign_futures.start_background()
@@ -96,7 +105,7 @@ def _start_futures_collectors():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['https://ghlee.tistory.com'],
-    allow_methods=['GET'],
+    allow_methods=['GET', 'PUT', 'OPTIONS'],
     allow_headers=['*'],
 )
 
@@ -164,6 +173,7 @@ _order_book_cache = OrderedDict()  # code -> {'t':.., 'data':..}
 # (_market_rank_cache와 동일 패턴).
 _FUTURES_TTL = 10
 _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'data':..}
+_sector_cards_cache = None
 
 
 def _evict_lru(cache, max_entries):
@@ -251,6 +261,26 @@ def require_api_key(x_api_key: str = Header(default=None)):
         raise HTTPException(status_code=401, detail='invalid or missing X-API-Key header')
 
 
+def _load_sector_cards_cached():
+    global _sector_cards_cache
+    if _sector_cards_cache is not None:
+        return _sector_cards_cache
+    conn = db_schema.get_conn()
+    try:
+        config = db_schema.load_sector_cards_config(conn)
+        if config is None:
+            config = db_schema.save_sector_cards_config(
+                conn,
+                sector_cards.load_static_sector_map(),
+                datetime.now(timezone.utc).isoformat(),
+            )
+        config['sectors'] = sector_cards.normalize_sector_map(config['sectors'])
+        _sector_cards_cache = config
+        return config
+    finally:
+        conn.close()
+
+
 def get_kiwoom_token():
     appkey = os.environ.get('KIWOOM_APPKEY')
     secretkey = os.environ.get('KIWOOM_SECRETKEY')
@@ -267,6 +297,53 @@ def health():
         'momentumSchedulerVersion': 'deploy-timer-flock-v1',
         'momentumAggregationVersion': 3,
     })
+
+
+@app.get('/sector-cards')
+def sector_cards_endpoint():
+    """증시온도 카드/히트맵/분석에서 공통으로 사용하는 사용자 설정."""
+    return envelope(_load_sector_cards_cached())
+
+
+@app.put('/sector-cards')
+async def update_sector_cards(request: Request, x_api_key: str = Header(default=None)):
+    """관리자 전용 카드 구성 전체 교체 API."""
+    require_api_key(x_api_key)
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail='request body must be an object')
+
+    raw_sectors = body.get('sectors', body)
+    try:
+        sectors = sector_cards.normalize_sector_map(raw_sectors)
+    except sector_cards.SectorConfigError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    expected_revision = body.get('revision')
+    conn = db_schema.get_conn()
+    try:
+        try:
+            saved = db_schema.save_sector_cards_config(
+                conn,
+                sectors,
+                datetime.now(timezone.utc).isoformat(),
+                expected_revision=expected_revision,
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail='revision must be an integer') from exc
+        except RuntimeError as exc:
+            if str(exc) == 'SECTOR_CONFIG_REVISION_CONFLICT':
+                raise HTTPException(status_code=409, detail='sector card configuration was changed by another editor') from exc
+            raise
+    finally:
+        conn.close()
+
+    global _sector_cards_cache
+    _sector_cards_cache = saved
+    return envelope(saved)
 
 
 @app.get('/health/latency')
