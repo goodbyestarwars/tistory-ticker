@@ -39,7 +39,7 @@
   (function loadDashboardEnhancements() {
     if (document.querySelector('script[data-dashboard-enhancements]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/dashboard-enhancements.js';
+    script.src = 'https://raw.githubusercontent.com/goodbyestarwars/tistory-ticker/master/js/dashboard-enhancements.js';
     script.defer = true;
     script.setAttribute('data-dashboard-enhancements', '1');
     document.body.appendChild(script);

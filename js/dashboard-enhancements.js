@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css';
+  var STYLE_HREF = 'https://raw.githubusercontent.com/goodbyestarwars/tistory-ticker/master/css/dashboard-enhancements.css';
   var customCardsReady = false;
   var observer;
 
