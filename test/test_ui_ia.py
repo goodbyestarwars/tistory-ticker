@@ -149,7 +149,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "wl_groups_v1",
             "+ 그룹 만들기",
             "wl-group-toggle",
-            "wl-group-select",
             "location.href = STOCK_SEARCH_PAGE_URL",
             'draggable="true"',
             "persistDraggedOrder",
@@ -159,10 +158,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in ("global-watchlist-drawer", "bootGlobalWatchlist", "WATCHLIST_OPEN_KEY"):
             self.assertIn(token, bootstrap)
         self.assertNotIn("차트 보기", source)
+        self.assertNotIn("wl-group-select", source)
         self.assertIn("position: fixed", style)
         self.assertIn("right: 0", style)
         self.assertIn("transform: translateX(100%)", style)
         self.assertIn(".wl-card.is-dragging", style)
+        self.assertIn("display: flex", style)
+        self.assertIn('grid-template-areas: "handle name quote remove"', style)
         self.assertIn("@media (max-width: 640px)", style)
 
     def test_home_my_scrolls_all_quotes_and_rank_keeps_price_line(self):

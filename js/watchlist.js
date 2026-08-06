@@ -363,7 +363,7 @@
 
     grid.innerHTML = groups.map(function (group) {
       var items = list.filter(function (it) { return (it.groupId || DEFAULT_GROUP_ID) === group.id; });
-      return buildGroup(group, items, groups);
+      return buildGroup(group, items);
     }).join('');
 
     wireCardEvents(container);
@@ -379,10 +379,7 @@
     startRealtimeQuotes(container, list.map(function (it) { return it.code; }));
   }
 
-  function buildGroup(group, items, groups) {
-    var options = groups.map(function (item) {
-      return '<option value="' + escapeAttr(item.id) + '">' + escapeHtml(item.name) + '</option>';
-    }).join('');
+  function buildGroup(group, items) {
     return '<section class="wl-group' + (group.collapsed ? ' is-collapsed' : '') + '" data-group-id="' + escapeAttr(group.id) + '">'
       + '<div class="wl-group-head">'
       + '<button type="button" class="wl-group-toggle" aria-expanded="' + (!group.collapsed) + '">'
@@ -390,19 +387,17 @@
       + '</button>'
       + (group.id === DEFAULT_GROUP_ID ? '' : '<button type="button" class="wl-group-delete" aria-label="그룹 삭제">삭제</button>')
       + '</div><div class="wl-group-items" data-group-id="' + escapeAttr(group.id) + '">'
-      + (items.length ? items.map(function (it) { return buildCard(it.code, it.name, it.groupId || DEFAULT_GROUP_ID, options); }).join('') : '<p class="wl-group-empty">이 그룹에 종목이 없습니다.</p>')
+      + (items.length ? items.map(function (it) { return buildCard(it.code, it.name); }).join('') : '<p class="wl-group-empty">이 그룹에 종목이 없습니다.</p>')
       + '</div></section>';
   }
 
-  function buildCard(code, name, groupId, options) {
+  function buildCard(code, name) {
     return ''
       + '<div class="wl-card" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" tabindex="0" role="link" draggable="true">'
       + '<span class="wl-drag-handle" aria-hidden="true">⋮⋮</span>'
       + '<button type="button" class="wl-remove" data-code="' + escapeAttr(code) + '" aria-label="관심종목 삭제">★</button>'
       + '<div class="wl-name">' + stockIconHtml(code) + '<span class="wl-name-text">' + escapeHtml(name) + '</span></div>'
       + '<div class="wl-quote"><div class="wl-price" data-field="price">-</div><div class="wl-change" data-field="change">-</div></div>'
-      + '<select class="wl-group-select" data-code="' + escapeAttr(code) + '" aria-label="관심종목 그룹 이동">'
-      + options.replace('value="' + escapeAttr(groupId) + '"', 'value="' + escapeAttr(groupId) + '" selected') + '</select>'
       + '</div>';
   }
 
@@ -547,16 +542,6 @@
         if (!items.contains(e.relatedTarget)) items.classList.remove('is-drag-over');
       });
       items.addEventListener('drop', function (e) { e.preventDefault(); items.classList.remove('is-drag-over'); });
-    });
-    container.querySelectorAll('.wl-group-select').forEach(function (select) {
-      select.addEventListener('click', function (e) { e.stopPropagation(); });
-      select.addEventListener('change', function () {
-        var code = select.getAttribute('data-code');
-        var list = loadList();
-        list.forEach(function (item) { if (item.code === code) item.groupId = select.value; });
-        saveList(list);
-        render(container);
-      });
     });
     container.querySelectorAll('.wl-group-toggle').forEach(function (button) {
       button.addEventListener('click', function () {
