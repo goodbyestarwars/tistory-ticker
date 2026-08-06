@@ -48,8 +48,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("row.date <= scanDate", gas)
         self.assertIn("lineWidth: 4", pattern)
         self.assertIn("item.patternDetail", pattern)
-        self.assertIn("일봉 · 1D", pattern)
+        self.assertIn("2년 일봉 · 1D", pattern)
         self.assertIn("setVisibleLogicalRange", pattern)
+        self.assertIn("Math.min(500, daily.length)", pattern)
+        self.assertIn("addMaLine(chart, daily, 240", pattern)
 
     def test_home_dashboard_contract(self):
         main = self.read("js/skin-main.js")

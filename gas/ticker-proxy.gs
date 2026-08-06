@@ -2993,23 +2993,22 @@ function detectBoxRangeLow_(daily) {
 }
 
 // 눌림목(지시서 ⑤): 최근 20거래일 중 15% 이상 상승한 뒤, 고점 대비 5~15% 조정을 받고
-// 20일선 또는 60일선 ±3% 부근까지 내려온 구간. MA60이 필요해 다른 4개 패턴보다 긴
-// 윈도(PULLBACK_WINDOW≈90영업일)를 쓴다 - getPatternChart()가 PATTERN_CHART_PAGES(50페이지,
-// ≥90영업일)로 크롤링한 daily를 그대로 슬라이스해서 쓰므로 이 함수 자체엔 크롤링이 없다.
-var PULLBACK_WINDOW = 90;
+// 20일선 또는 1년선(240일선) ±3% 부근까지 내려온 구간. 1년선을 안정적으로 계산하도록
+// 260거래일 창을 쓴다. getPatternChart()의 약 2년 일봉에서 이 구간만 판정에 사용한다.
+var PULLBACK_WINDOW = 260;
 var PULLBACK_LOOKBACK = 20;     // "최근 20거래일" 안에서 고점을 찾음
 var PULLBACK_MIN_RISE = 0.15;   // 저점->고점 15% 이상 상승
 var PULLBACK_MIN_DROP = 0.05;   // 고점 대비 조정폭 하한 5%
 var PULLBACK_MAX_DROP = 0.15;   // 조정폭 상한 15%
-var PULLBACK_MA_TOL = 0.03;     // 20일선/60일선 ±3%
+var PULLBACK_MA_TOL = 0.03;     // 20일선/240일선 ±3%
 
 function detectPullback_(daily) {
   var win = daily.slice(Math.max(0, daily.length - PULLBACK_WINDOW));
   var n = win.length;
-  if (n < 65) return null; // MA60 계산 + 상승 관찰 여유
+  if (n < 240) return null; // 1년선(240거래일) 계산
 
   var ma20 = movingAverage_(win, 'close', 20);
-  var ma60 = movingAverage_(win, 'close', 60);
+  var ma240 = movingAverage_(win, 'close', 240);
 
   var recentStart = Math.max(0, n - PULLBACK_LOOKBACK - 5); // 고점 탐색을 조금 넉넉하게
   var peakIdx = recentStart;
@@ -3034,10 +3033,10 @@ function detectPullback_(daily) {
   if (dropRatio < PULLBACK_MIN_DROP || dropRatio > PULLBACK_MAX_DROP) return null;
 
   var ma20Now = ma20[n - 1];
-  var ma60Now = ma60[n - 1];
+  var ma240Now = ma240[n - 1];
   var diff20 = ma20Now ? Math.abs(lastClose - ma20Now) / ma20Now : Infinity;
-  var diff60 = ma60Now ? Math.abs(lastClose - ma60Now) / ma60Now : Infinity;
-  if (diff20 > PULLBACK_MA_TOL && diff60 > PULLBACK_MA_TOL) return null;
+  var diff240 = ma240Now ? Math.abs(lastClose - ma240Now) / ma240Now : Infinity;
+  if (diff20 > PULLBACK_MA_TOL && diff240 > PULLBACK_MA_TOL) return null;
 
   // 2026-07-22 개편: 20일선이 상승 중이어야 함 - 조정이 추세 이탈이 아니라 일시적으로
   // 쉬어가는 자리임을 확인
@@ -3054,13 +3053,13 @@ function detectPullback_(daily) {
   // + 거래량패턴15(필터 통과 시 고정) + 최근양봉10 ----
   var riseScore = riseRatio >= 0.25 ? 30 : riseRatio >= 0.20 ? 22 : 15;
   var dropScore = (dropRatio >= 0.07 && dropRatio <= 0.12) ? 25 : 15;
-  var maScore = (diff20 <= PULLBACK_MA_TOL && diff60 <= PULLBACK_MA_TOL) ? 20
-    : (Math.min(diff20, diff60) <= PULLBACK_MA_TOL) ? 12 : 0;
+  var maScore = (diff20 <= PULLBACK_MA_TOL && diff240 <= PULLBACK_MA_TOL) ? 20
+    : (Math.min(diff20, diff240) <= PULLBACK_MA_TOL) ? 12 : 0;
   var volScore = 15;
   var bullScore = isLastCandleBullish_(win) ? 10 : 0;
 
   var score = clampScore_(riseScore + dropScore + maScore + volScore + bullScore);
-  var maLabel = diff20 <= diff60 ? '20일선' : '60일선';
+  var maLabel = diff20 <= diff240 ? '20일선' : '1년선(240일선)';
   var reasons = [
     '상승폭 ' + (riseRatio * 100).toFixed(1) + '%(' + riseScore + '/30점)',
     '조정폭 ' + (dropRatio * 100).toFixed(1) + '%(' + dropScore + '/25점)',
@@ -3075,7 +3074,7 @@ function detectPullback_(daily) {
     current: { date: win[n - 1].date, price: lastClose },
     signal: { date: win[n - 1].date, price: lastClose },
     ma20: ma20Now,
-    ma60: ma60Now,
+    ma240: ma240Now,
     breakout: false,
     score: score,
     reasons: reasons,
