@@ -168,7 +168,8 @@
     detail.innerHTML = '<div class="ps-loading"><div class="ps-spinner"></div><div>' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div></div>';
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    PatternScan.fetchJson(GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code) + '&pattern=' + encodeURIComponent(activeTab))
+    PatternScan.fetchJson(GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code)
+      + '&pattern=' + encodeURIComponent(activeTab) + '&scanDate=' + encodeURIComponent(item.date || ''))
       .then(function (data) {
         if (data.error || !data.daily || !data.daily.length) {
           detail.innerHTML = '<div class="ps-error">' + escapeHtml((data && data.message) || '차트를 불러오지 못했어요.') + '</div>';
@@ -178,8 +179,7 @@
         // 안 잡힐 수 있음(그 사이 가격이 움직여서) - 이 경우 깨진 결과를 보여주는 대신
         // 목록에서 바로 빼서 다음에 같은 종목을 다시 클릭하지 않게 한다.
         if (!data.detail) {
-          closeDetail(container);
-          removeStaleItem(container, item);
+          detail.innerHTML = '<div class="ps-error">스캔 당시 패턴 판정 정보를 다시 불러오지 못했어요. 목록은 전날 스캔 결과 그대로 유지합니다.</div>';
           return;
         }
         renderDetail(detail, item, data);
@@ -187,37 +187,6 @@
       .catch(function () {
         detail.innerHTML = '<div class="ps-error">차트를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
-  }
-
-  // 재검증 결과 조건을 더 이상 만족하지 않는 종목을 현재 탭 목록에서 제거하고
-  // 왜 사라졌는지 잠깐 안내한다. GAS의 하루 1회 스캔 캐시 자체는 건드리지 않으므로
-  // 페이지를 새로고침하면 다음 재스캔 전까지는 다시 나타날 수 있다.
-  function removeStaleItem(container, item) {
-    if (scanData && scanData.patterns && scanData.patterns[activeTab]) {
-      scanData.patterns[activeTab] = scanData.patterns[activeTab].filter(function (x) {
-        return x.code !== item.code;
-      });
-    }
-    renderList(container);
-    showToast(container, '⚠️ ' + escapeHtml(item.name) + eunNeun(item.name) + ' 스캔 이후 가격이 움직여서 더 이상 패턴 조건을 만족하지 않아 목록에서 제외했어요.');
-  }
-
-  // 종목명 마지막 글자에 받침이 있으면 "은", 없으면 "는" (한글 완성형 유니코드 오프셋 기준).
-  function eunNeun(name) {
-    var ch = String(name || '').trim().slice(-1);
-    var code = ch.charCodeAt(0) - 0xac00;
-    if (code < 0 || code > 11171) return '는';
-    return code % 28 === 0 ? '는' : '은';
-  }
-
-  function showToast(container, html) {
-    var list = container.querySelector('#psList');
-    if (!list) return;
-    var toast = document.createElement('div');
-    toast.className = 'ps-toast';
-    toast.innerHTML = html;
-    list.parentNode.insertBefore(toast, list);
-    setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 5000);
   }
 
   function closeDetail(container) {

@@ -20,7 +20,9 @@
   'use strict';
 
   var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-  var TARGET_PAGE = '/page/foreign-flow';
+  // 상단/사이드바 종목검색은 먼저 실시간 호가와 차트를 확인하는 흐름으로 연결한다.
+  // 종목분석은 실시간 시세 상세의 명시적 버튼에서 이어간다.
+  var TARGET_PAGE = '/page/stock-search';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var RATE_FETCH_TIMEOUT_MS = 8000;
 

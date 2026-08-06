@@ -215,6 +215,22 @@
 #stock-search .ss-summary-code { color: #999; font-size: 12.5px; }
 #stock-search .ss-summary-price { font-size: 18px; font-weight: 700; margin-left: auto; }
 #stock-search .ss-summary-change { font-size: 13.5px; font-weight: 600; }
+#stock-search .ss-analysis-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid #1d1d1f;
+  border-radius: 999px;
+  background: #1d1d1f;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform .15s ease, background .15s ease;
+}
+#stock-search .ss-analysis-link:hover { background: #3a3a3c; color: #fff; transform: translateY(-1px); }
 /* 2026-07-28: "시가총액"/"외국인·기관 수급(5일)" 라인을 없애고, 오늘 등락 이유를
    뉴스 기반 AI 한줄요약(GAS ?action=priceReason)으로 교체(사용자 요청). */
 #stock-search .ss-summary-reason {
@@ -376,6 +392,7 @@ html.dark #stock-search .ss-results-collapsed,
 html.dark #stock-search .ss-panel-left,
 html.dark #stock-search .ss-panel-right,
 html.dark #stock-search .ss-summary { border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #stock-search .ss-analysis-link { background: #f5efe0 !important; border-color: #f5efe0 !important; color: #1a1a1a !important; }
 html.dark #stock-search .ss-results-collapsed { color: rgba(245, 239, 224, 0.7) !important; }
 html.dark #stock-search .ss-results-toggle { color: #F5EFE0 !important; }
 html.dark #stock-search .ss-results-head { background: #1A1A1A !important; color: rgba(245, 239, 224, 0.55) !important; }
