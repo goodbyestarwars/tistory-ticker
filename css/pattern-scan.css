@@ -195,6 +195,19 @@
   font-weight: 700;
   color: #111827;
 }
+#pattern-scan .ps-timeframe-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 7px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-family: NanumGothic, "Malgun Gothic", sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  vertical-align: 2px;
+}
 
 #pattern-scan .ps-pattern-legend {
   display: flex;
@@ -419,6 +432,7 @@ html.dark #pattern-scan .ps-ichimoku-legend {
 html.dark #pattern-scan .ps-detail-name {
   color: #F5EFE0 !important;
 }
+html.dark #pattern-scan .ps-timeframe-badge { background: rgba(129, 140, 248, .16) !important; color: #c7d2fe !important; }
 html.dark #pattern-scan .ps-pattern-legend { color: rgba(245, 239, 224, 0.75) !important; }
 
 html.dark #pattern-scan .ps-close {

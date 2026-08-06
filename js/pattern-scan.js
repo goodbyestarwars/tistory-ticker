@@ -202,7 +202,8 @@
 
   function renderDetail(box, item, data) {
     var html = '<div class="ps-detail-head">'
-      + '<span class="ps-detail-name">' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span></span>'
+      + '<span class="ps-detail-name">' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span>'
+      + '<span class="ps-timeframe-badge">일봉 · 1D</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
     html += buildScoreBox(data.detail);
@@ -518,7 +519,14 @@
 
       if (psIchimokuEnabled) addIchimokuOverlay(daily);
 
-      chart.timeScale().fitContent();
+      // 원본은 약 2년치 일봉 전체를 fitContent()로 압축해 봉이 분봉처럼 가늘게 보였다.
+      // 패턴 판정 최대 구간(90일)에 이동평균 여유를 더한 최근 120거래일만 기본 노출한다.
+      // 사용자는 좌우 드래그/휠로 이전 일봉도 그대로 확인할 수 있다.
+      var visibleBars = Math.min(120, daily.length);
+      chart.timeScale().setVisibleLogicalRange({
+        from: Math.max(0, daily.length - visibleBars),
+        to: daily.length - 1 + 3
+      });
 
       psLwcThemeObserver = new MutationObserver(function () {
         chart.applyOptions(psThemeOptions());
