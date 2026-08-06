@@ -34,6 +34,17 @@
     });
   })();
 
+  /* 시세·증시온도 페이지의 공통 시각 개선은 페이지별 위젯이 비동기로 DOM을
+     만든 뒤에도 연결되어야 하므로 별도 모듈로 지연 로드한다. */
+  (function loadDashboardEnhancements() {
+    if (document.querySelector('script[data-dashboard-enhancements]')) return;
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/dashboard-enhancements.js';
+    script.defer = true;
+    script.setAttribute('data-dashboard-enhancements', '1');
+    document.body.appendChild(script);
+  })();
+
   /* 홈은 기존 위젯/API를 시장 상황판 구조로 재배치한다. 백엔드 계산과 URL은 그대로 두고,
      여기서는 카드 배치·요약 집계·수급 부호 기반 규칙문만 담당한다. */
   (function buildHomeDashboard() {

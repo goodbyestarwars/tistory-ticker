@@ -1,0 +1,212 @@
+/*
+ * Dashboard presentation enhancements.
+ *
+ * This file is loaded by skin-main.js so the live Tistory skin does not need a
+ * second manual script tag for every visual-only change. It is deliberately
+ * dependency-free: page widgets are created asynchronously, so a small
+ * MutationObserver wires them as soon as they appear.
+ */
+(function (global) {
+  'use strict';
+
+  var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
+  var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css';
+  var customCardsReady = false;
+  var observer;
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function readCards() {
+    try {
+      var value = JSON.parse(localStorage.getItem(CUSTOM_CARDS_KEY) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch (err) { return []; }
+  }
+
+  function writeCards(cards) {
+    try { localStorage.setItem(CUSTOM_CARDS_KEY, JSON.stringify(cards)); } catch (err) { /* no-op */ }
+  }
+
+  function loadStyle() {
+    if (document.querySelector('link[data-dashboard-enhancements-style]')) return;
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = STYLE_HREF;
+    link.setAttribute('data-dashboard-enhancements-style', '1');
+    document.head.appendChild(link);
+  }
+
+  function customCardHtml(card) {
+    return '<article class="de-custom-card" data-custom-card-id="' + escapeHtml(card.id) + '" style="--de-card-accent:' + escapeHtml(card.color) + '">' +
+      '<div class="de-custom-card-heading"><span>' + escapeHtml(card.emoji || '📌') + '</span><strong>' + escapeHtml(card.title) + '</strong>' +
+      '<button type="button" class="de-custom-edit" data-custom-action="edit" aria-label="카드 편집">편집</button>' +
+      '<button type="button" class="de-custom-delete" data-custom-action="delete" aria-label="카드 삭제">삭제</button></div>' +
+      '<p>' + escapeHtml(card.body).replace(/\n/g, '<br>') + '</p>' +
+      '</article>';
+  }
+
+  function renderCustomCards(root) {
+    var list = root.querySelector('.de-custom-list');
+    if (!list) return;
+    var cards = readCards();
+    list.innerHTML = cards.length
+      ? cards.map(customCardHtml).join('')
+      : '<div class="de-custom-empty">아직 만든 카드가 없습니다. 관심 포인트를 직접 기록해 보세요.</div>';
+  }
+
+  function formHtml(card) {
+    card = card || { id: '', title: '', body: '', emoji: '📌', color: '#315b43' };
+    return '<div class="de-custom-editor" hidden>' +
+      '<div class="de-custom-editor-title">내 카드 만들기</div>' +
+      '<input class="de-custom-input" data-custom-field="title" maxlength="40" placeholder="카드 제목" value="' + escapeHtml(card.title) + '">' +
+      '<textarea class="de-custom-input de-custom-textarea" data-custom-field="body" maxlength="500" placeholder="메모나 분석 기준을 적어보세요">' + escapeHtml(card.body) + '</textarea>' +
+      '<div class="de-custom-editor-row"><label>아이콘 <input class="de-custom-emoji" data-custom-field="emoji" maxlength="2" value="' + escapeHtml(card.emoji) + '"></label>' +
+      '<label>색상 <select class="de-custom-color" data-custom-field="color"><option value="#315b43">숲</option><option value="#1261c4">파랑</option><option value="#d24f45">빨강</option><option value="#e08a3c">주황</option><option value="#7c5cdb">보라</option></select></label></div>' +
+      '<div class="de-custom-editor-actions"><button type="button" data-custom-action="cancel">취소</button><button type="button" class="primary" data-custom-action="save">저장</button></div>' +
+      '<input type="hidden" data-custom-field="id" value="' + escapeHtml(card.id) + '"></div>';
+  }
+
+  function openCustomEditor(root, card) {
+    var editor = root.querySelector('.de-custom-editor');
+    if (!editor) return;
+    editor.outerHTML = formHtml(card);
+    editor = root.querySelector('.de-custom-editor');
+    editor.hidden = false;
+    var color = editor.querySelector('[data-custom-field="color"]');
+    if (color && card && card.color) color.value = card.color;
+    var title = editor.querySelector('[data-custom-field="title"]');
+    if (title) title.focus();
+  }
+
+  function wireCustomCards(root) {
+    if (root.getAttribute('data-custom-cards-ready') === '1') return;
+    root.setAttribute('data-custom-cards-ready', '1');
+    var viewPanels = root.querySelector('.mt-view-panels');
+    if (!viewPanels) return;
+    var tools = document.createElement('div');
+    tools.className = 'de-custom-card-tools';
+    tools.innerHTML = '<div class="de-custom-card-toolbar"><div><strong>Custom Card</strong><span>내가 만드는 관심 메모</span></div><button type="button" class="de-custom-add" data-custom-action="new">＋ 내 카드 만들기</button></div>' +
+      formHtml(null) + '<div class="de-custom-list"></div>';
+    root.insertBefore(tools, viewPanels);
+    renderCustomCards(tools);
+    tools.addEventListener('click', function (event) {
+      var actionButton = event.target.closest('[data-custom-action]');
+      if (!actionButton) return;
+      var action = actionButton.getAttribute('data-custom-action');
+      var cardNode = actionButton.closest('[data-custom-card-id]');
+      var cards = readCards();
+      if (action === 'new') openCustomEditor(tools, null);
+      if (action === 'cancel') {
+        var editor = tools.querySelector('.de-custom-editor');
+        if (editor) editor.hidden = true;
+      }
+      if (action === 'edit' && cardNode) {
+        var card = cards.filter(function (item) { return item.id === cardNode.getAttribute('data-custom-card-id'); })[0];
+        if (card) openCustomEditor(tools, card);
+      }
+      if (action === 'delete' && cardNode && global.confirm('이 카드를 삭제할까요?')) {
+        writeCards(cards.filter(function (item) { return item.id !== cardNode.getAttribute('data-custom-card-id'); }));
+        renderCustomCards(tools);
+      }
+      if (action === 'save') {
+        var editor = tools.querySelector('.de-custom-editor');
+        var title = editor.querySelector('[data-custom-field="title"]').value.trim();
+        var body = editor.querySelector('[data-custom-field="body"]').value.trim();
+        if (!title || !body) { global.alert('제목과 내용을 입력해 주세요.'); return; }
+        var id = editor.querySelector('[data-custom-field="id"]').value || ('custom-' + Date.now());
+        var next = { id: id, title: title, body: body,
+          emoji: editor.querySelector('[data-custom-field="emoji"]').value.trim() || '📌',
+          color: editor.querySelector('[data-custom-field="color"]').value };
+        var found = false;
+        cards = cards.map(function (item) { if (item.id !== id) return item; found = true; return next; });
+        if (!found) cards.unshift(next);
+        writeCards(cards);
+        editor.hidden = true;
+        renderCustomCards(tools);
+      }
+    });
+  }
+
+  function addExpandButton(target, title) {
+    if (!target || target.getAttribute('data-de-expand-ready') === '1') return;
+    target.setAttribute('data-de-expand-ready', '1');
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'de-expand-button';
+    button.textContent = '⛶ 크게 보기';
+    button.setAttribute('data-de-expand-title', title);
+    button.addEventListener('click', function () { openChartModal(target, title); });
+    var anchor = target.parentElement;
+    if (target.classList.contains('ff-apt-chart-wrap')) {
+      target.appendChild(button);
+    } else if (anchor && anchor.querySelector('.ff-extra-card-title')) {
+      anchor.querySelector('.ff-extra-card-title').appendChild(button);
+    } else if (anchor && anchor.querySelector('.ss-chart-legend')) {
+      anchor.querySelector('.ss-chart-legend').appendChild(button);
+    } else if (anchor) {
+      anchor.insertBefore(button, target);
+    }
+  }
+
+  function openChartModal(target, title) {
+    if (document.querySelector('.de-chart-overlay')) return;
+    var root = target.closest('#foreign-flow, #stock-search, #kospi-futures') || document.body;
+    var placeholder = document.createElement('div');
+    placeholder.className = 'de-chart-placeholder';
+    target.parentNode.insertBefore(placeholder, target);
+    var overlay = document.createElement('div');
+    overlay.className = 'de-chart-overlay';
+    overlay.innerHTML = '<div class="de-chart-modal" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '"><div class="de-chart-modal-head"><strong>' + escapeHtml(title) + '</strong><button type="button" class="de-chart-close" aria-label="닫기">✕</button></div><div class="de-chart-modal-body"></div></div>';
+    root.appendChild(overlay);
+    var body = overlay.querySelector('.de-chart-modal-body');
+    var oldStyle = target.getAttribute('style');
+    target.classList.add('de-modal-target');
+    body.appendChild(target);
+    if (target.id === 'ffLwChart' || target.id === 'ssChart' || target.classList.contains('kf-chart')) {
+      target.style.height = Math.max(520, Math.round(global.innerHeight * 0.72)) + 'px';
+    }
+    function close() {
+      if (!overlay.parentNode) return;
+      placeholder.parentNode.insertBefore(target, placeholder);
+      if (oldStyle == null) target.removeAttribute('style'); else target.setAttribute('style', oldStyle);
+      target.classList.remove('de-modal-target');
+      placeholder.remove();
+      overlay.remove();
+      document.removeEventListener('keydown', onKeydown);
+    }
+    function onKeydown(event) { if (event.key === 'Escape') close(); }
+    overlay.querySelector('.de-chart-close').addEventListener('click', close);
+    overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });
+    document.addEventListener('keydown', onKeydown);
+    requestAnimationFrame(function () { global.dispatchEvent(new Event('resize')); });
+  }
+
+  function wireCharts() {
+    document.querySelectorAll('#foreign-flow .ff-flow-chart-card #ffLwChart').forEach(function (el) { addExpandButton(el, '종목분석 가격·거래량 차트'); });
+    document.querySelectorAll('#foreign-flow .ff-apt-chart-wrap').forEach(function (el) { addExpandButton(el, '종목분석 매물대'); });
+    document.querySelectorAll('#stock-search .ss-chart').forEach(function (el) { addExpandButton(el, '실시간 시세 차트'); });
+    document.querySelectorAll('#kospi-futures .kf-chart').forEach(function (el) { addExpandButton(el, el.closest('.kf-section') ? el.closest('.kf-section').querySelector('.kf-section-title').textContent : '선물 차트'); });
+  }
+
+  function scan() {
+    loadStyle();
+    var market = document.querySelector('#market-temp .mt-explore-card');
+    if (market) wireCustomCards(market);
+    wireCharts();
+  }
+
+  function init() {
+    scan();
+    observer = new MutationObserver(scan);
+    observer.observe(document.body, { childList: true, subtree: true });
+    global.setTimeout(scan, 1200);
+    global.setTimeout(scan, 3000);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})(window);

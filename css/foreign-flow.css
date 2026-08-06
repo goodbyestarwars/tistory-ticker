@@ -603,6 +603,36 @@
   opacity: 0.82;
   animation: ff-apt-cloud-drift-right 8.5s ease-in-out infinite;
 }
+#foreign-flow .ff-apt-cloud-high {
+  left: 48%;
+  top: 7px;
+  transform: scale(.58);
+  opacity: .55;
+  animation: ff-apt-cloud-drift-high 9.5s ease-in-out infinite;
+}
+#foreign-flow .ff-apt-cloud-rain {
+  right: 31%;
+  top: 31px;
+  width: 46px;
+  height: 13px;
+  background: #cbd5e1;
+  border-color: #aebdcb;
+  opacity: .88;
+  animation: ff-apt-cloud-rain-drift 6.5s ease-in-out infinite;
+}
+#foreign-flow .ff-apt-cloud-rain i {
+  position: absolute;
+  top: 17px;
+  width: 2px;
+  height: 7px;
+  border-radius: 2px;
+  background: #5da9df;
+  transform: rotate(15deg);
+  animation: ff-apt-rain-drop 1.15s linear infinite;
+}
+#foreign-flow .ff-apt-cloud-rain i:nth-child(1) { left: 13px; animation-delay: -.5s; }
+#foreign-flow .ff-apt-cloud-rain i:nth-child(2) { left: 23px; animation-delay: -.2s; }
+#foreign-flow .ff-apt-cloud-rain i:nth-child(3) { left: 33px; animation-delay: -.8s; }
 #foreign-flow .ff-apt-roof-block > :not(.ff-apt-clouds) { position: relative; z-index: 1; }
 @keyframes ff-apt-cloud-drift-left {
   0%, 100% { transform: translateX(-5px); }
@@ -611,6 +641,19 @@
 @keyframes ff-apt-cloud-drift-right {
   0%, 100% { transform: translateX(6px) scale(0.82); }
   50% { transform: translateX(-9px) scale(0.82); }
+}
+@keyframes ff-apt-cloud-drift-high {
+  0%, 100% { transform: translateX(5px) scale(.58); }
+  50% { transform: translateX(-10px) scale(.58); }
+}
+@keyframes ff-apt-cloud-rain-drift {
+  0%, 100% { transform: translateX(3px); }
+  50% { transform: translateX(-7px); }
+}
+@keyframes ff-apt-rain-drop {
+  0% { opacity: 0; transform: translateY(-2px) rotate(15deg); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(13px) rotate(15deg); }
 }
 /* 2026-07-28 사용자 요청: "매물대 아파트" 이름표와 "H" 글자 크기를 키움 */
 #foreign-flow .ff-apt-nameplate {
@@ -687,10 +730,10 @@
 #foreign-flow .ff-apt-tower-floor { position: relative; z-index: 2; flex: 0 0 auto; align-self: stretch; margin-left: auto; display: flex; align-items: center; justify-content: space-evenly; box-sizing: border-box; background: linear-gradient(90deg, #aab6c6, #edf3f8 28%, #d9e2ec 72%, #98a7b9); border-left: 3px solid #a5b1c0; border-right: 3px solid #8e9eb1; box-shadow: inset 0 -2px #94a4b6, inset 0 2px rgba(255,255,255,.72); transform: skewX(-1.2deg); }
 #foreign-flow .ff-apt-tower-floor i { width: 4px; height: 8px; background: #8498af; box-shadow: inset 1px 0 #eef5fb; }
 #foreign-flow .ff-apt-row-average::after, #foreign-flow .ff-apt-row-current::after { content: ''; position: absolute; z-index: 1; left: 38px; right: 2px; top: 50%; width: auto; height: 1px; transform: none; }
-#foreign-flow .ff-apt-row-average::after { background: #626870; }
+#foreign-flow .ff-apt-row-average::after { background: #1971c2; height: 2px; }
 #foreign-flow .ff-apt-row-current::after { background: #b6bbc2; }
-#foreign-flow .ff-apt-row-average .ff-apt-tower-floor { background: linear-gradient(90deg, #00a957, #00cf70 48%, #009e52); border-color: #008f49; box-shadow: inset 0 -2px #007c40, inset 0 2px rgba(255,255,255,.25), 0 0 8px rgba(0,169,87,.3); }
-#foreign-flow .ff-apt-average-badge { position: absolute; z-index: 5; right: 4px; bottom: 11px; padding: 2px 8px; border-radius: 999px; color: #fff; background: #626870; font-size: 9.5px; font-weight: 800; white-space: nowrap; }
+#foreign-flow .ff-apt-row-average .ff-apt-tower-floor { background: linear-gradient(90deg, #1971c2, #4dabf7 48%, #1864ab); border-color: #155fa8; box-shadow: inset 0 -2px #124d88, inset 0 2px rgba(255,255,255,.25), 0 0 8px rgba(25,113,194,.35); }
+#foreign-flow .ff-apt-average-badge { position: absolute; z-index: 5; right: 4px; bottom: 11px; padding: 2px 8px; border-radius: 999px; color: #fff; background: #1971c2; font-size: 9.5px; font-weight: 800; white-space: nowrap; }
 #foreign-flow .ff-apt-current-badge { position: absolute; z-index: 5; right: 4px; top: 11px; }
 #foreign-flow .ff-apt-price { width: 76px; justify-content: flex-start; font-size: 10px; }
 #foreign-flow .ff-apt-band-label { order: 5; margin-left: 2px; }
@@ -782,10 +825,10 @@
 
 /* 현재가 행: 주황 테두리 + 은은한 배경 + 좌우 강조선 + 은근한 pulse, 오른쪽에 말풍선 뱃지 */
 #foreign-flow .ff-apt-row-current {
-  background: rgba(255, 152, 0, 0.10);
+  background: rgba(224, 49, 49, 0.10);
   border-radius: 4px;
-  border-top: 1px dashed #FF9800 !important;
-  border-bottom: 1px dashed #FF9800;
+  border-top: 1px dashed #e03131 !important;
+  border-bottom: 1px dashed #e03131;
   animation: ff-apt-current-pulse 1.8s ease-in-out infinite;
 }
 #foreign-flow .ff-apt-row-current::before,
@@ -796,14 +839,14 @@
   transform: translateY(-50%);
   width: 5px;
   height: 2px;
-  background: #FF9800;
+  background: #e03131;
 }
 #foreign-flow .ff-apt-row-current::before { left: -3px; }
 #foreign-flow .ff-apt-row-current::after { right: -3px; }
-#foreign-flow .ff-apt-row-current .ff-apt-price { color: #d97a00; font-weight: 800; }
+#foreign-flow .ff-apt-row-current .ff-apt-price { color: #e03131; font-weight: 800; }
 @keyframes ff-apt-current-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.35); }
-  50% { box-shadow: 0 0 0 4px rgba(255, 152, 0, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 49, 49, 0.35); }
+  50% { box-shadow: 0 0 0 4px rgba(224, 49, 49, 0); }
 }
 /* 말풍선 뱃지: 왼쪽에 꼬리(작은 삼각형)를 붙여 현재가 행을 가리키는 느낌을 낸다 */
 #foreign-flow .ff-apt-current-badge {
@@ -816,14 +859,14 @@
   padding: 1px 8px 1px 6px;
   font-size: 10px;
   font-weight: 800;
-  color: #d97a00;
+  color: #e03131;
   background: #fff;
-  border: 1px solid #FF9800;
+  border: 1px solid #e03131;
   border-radius: 999px;
   white-space: nowrap;
   box-shadow: 0 0 6px rgba(255, 152, 0, 0.45);
 }
-#foreign-flow .ff-apt-current-arrow { color: #FF9800; }
+#foreign-flow .ff-apt-current-arrow { color: #e03131; }
 
 /* ---- 유리 엘리베이터: 현재가 층 ↔ 지하 로비(장식, 데이터 아님) ---- */
 #foreign-flow .ff-apt-elevator {
@@ -1065,6 +1108,27 @@
   0%, 100% { opacity: 0.55; transform: scaleX(0.94); }
   50% { opacity: 0.82; transform: scaleX(1.03); }
 }
+
+/* ---- B3 지구 핵: 마그마보다 깊은 장식 구간(실데이터 아님) ---- */
+#foreign-flow .ff-apt-core {
+  position: relative;
+  height: 68px;
+  margin: 0 7px;
+  overflow: hidden;
+  border: 1px solid rgba(29, 21, 54, .72);
+  border-radius: 0 0 22px 22px;
+  background: radial-gradient(circle at 50% 118%, #ffd166 0 18px, transparent 19px), linear-gradient(180deg, #2b155b, #130b2b 72%, #070512);
+  box-shadow: inset 0 10px 20px rgba(0,0,0,.42), 0 0 20px rgba(104,72,190,.28);
+}
+#foreign-flow .ff-apt-core-label { position: absolute; inset: 19px 10px auto; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 8px; color: #f5eaff; text-shadow: 0 1px 3px #000; }
+#foreign-flow .ff-apt-core-label strong { padding: 3px 8px; border: 1px solid rgba(255,209,102,.72); border-radius: 5px; background: rgba(28,12,63,.84); color: #ffd166; font-size: 11px; white-space: nowrap; }
+#foreign-flow .ff-apt-core-label span { font-size: 9px; font-weight: 700; }
+#foreign-flow .ff-apt-core-glow { position: absolute; left: 26%; right: 26%; bottom: -18px; height: 40px; border-radius: 50%; background: #ff6b35; filter: blur(15px); opacity: .72; animation: ff-apt-core-pulse 2.4s ease-in-out infinite; }
+#foreign-flow .ff-apt-core-bubble { position: absolute; bottom: -9px; width: 7px; height: 7px; border: 1px solid #ffd166; border-radius: 50%; background: #ff6b35; box-shadow: 0 0 8px #ff6b35; animation: ff-apt-core-rise 3.4s ease-in infinite; }
+#foreign-flow .ff-apt-core-bubble-1 { left: 28%; animation-delay: -.6s; }
+#foreign-flow .ff-apt-core-bubble-2 { right: 25%; width: 10px; height: 10px; animation-delay: -1.9s; }
+@keyframes ff-apt-core-rise { 0% { opacity: 0; transform: translateY(0); } 18% { opacity: 1; } 100% { opacity: 0; transform: translateY(-55px) scale(.7); } }
+@keyframes ff-apt-core-pulse { 0%, 100% { opacity: .45; transform: scaleX(.9); } 50% { opacity: .85; transform: scaleX(1.08); } }
 
 /* 미래형 글라스 타워 + 절제된 제품 카드 표면 */
 #foreign-flow .ff-apt-chart-wrap {
@@ -1756,8 +1820,8 @@ html.dark #foreign-flow .ff-apt-mini-window { background: rgba(245, 239, 224, 0.
 html.dark #foreign-flow .ff-apt-mini-window::after { background: rgba(245, 239, 224, 0.3) !important; }
 html.dark #foreign-flow .ff-apt-tower-floor { background: linear-gradient(90deg, rgba(245,239,224,.24), rgba(245,239,224,.08) 45%, rgba(245,239,224,.2)) !important; border-color: rgba(245,239,224,.32) !important; box-shadow: inset 0 -2px rgba(245,239,224,.2), inset 0 2px rgba(245,239,224,.12) !important; }
 html.dark #foreign-flow .ff-apt-tower-floor i { background: rgba(245,239,224,.38) !important; box-shadow: none !important; }
-html.dark #foreign-flow .ff-apt-row-average .ff-apt-tower-floor { background: linear-gradient(90deg, #008f49, #00bf65 48%, #007f42) !important; border-color: #00c56a !important; }
-html.dark #foreign-flow .ff-apt-average-badge { background: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #foreign-flow .ff-apt-row-average .ff-apt-tower-floor { background: linear-gradient(90deg, #155fa8, #1971c2 48%, #124d88) !important; border-color: #4dabf7 !important; }
+html.dark #foreign-flow .ff-apt-average-badge { background: #1971c2 !important; color: #fff !important; }
 html.dark #foreign-flow .ff-apt-bar-value { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-apt-bar-sell { background: #5b9ee8 !important; }
 html.dark #foreign-flow .ff-apt-bar-buy { background: #ff7d8e !important; }
@@ -1768,9 +1832,9 @@ html.dark #foreign-flow .ff-apt-bar-vol.ff-apt-bar-max { background: #ff7d33 !im
 html.dark #foreign-flow .ff-apt-zoom-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #foreign-flow .ff-apt-zoom-btn:disabled { opacity: 0.35 !important; }
 html.dark #foreign-flow .ff-apt-zoom-label { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #foreign-flow .ff-apt-row-current { background: rgba(255, 152, 0, 0.16) !important; }
-html.dark #foreign-flow .ff-apt-row-current .ff-apt-price { color: #ffb154 !important; }
-html.dark #foreign-flow .ff-apt-current-badge { background: #1A1A1A !important; color: #ffb154 !important; }
+html.dark #foreign-flow .ff-apt-row-current { background: rgba(224, 49, 49, 0.16) !important; border-top-color: #e03131 !important; border-bottom-color: #e03131 !important; }
+html.dark #foreign-flow .ff-apt-row-current .ff-apt-price { color: #ff8787 !important; }
+html.dark #foreign-flow .ff-apt-current-badge { background: #1A1A1A !important; color: #ff8787 !important; border-color: #e03131 !important; }
 html.dark #foreign-flow .ff-apt-elevator-shaft { background: linear-gradient(90deg, rgba(169,205,225,.15), rgba(225,242,250,.42), rgba(169,205,225,.15)) !important; border-color: rgba(222,240,250,.38) !important; }
 html.dark #foreign-flow .ff-apt-elevator-car { border-color: rgba(225,242,250,.82) !important; box-shadow: 0 0 10px rgba(123,205,245,.35) !important; }
 html.dark #foreign-flow .ff-apt-ground {

@@ -977,7 +977,7 @@
       });
       volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 } });
       volumeSeries.setData(bars.map(function (d) {
-        return { time: d.date, value: d.volume || 0, color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
+        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
       }));
 
       var volumeMaPoints = movingAveragePoints(bars, 'volume', 20);
@@ -990,7 +990,9 @@
         priceLineVisible: false,
         crosshairMarkerVisible: false
       });
-      volumeMaSeries.setData(volumeMaPoints);
+      volumeMaSeries.setData(volumeMaPoints.map(function (point) {
+        return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
+      }));
 
       var latestBar = bars[bars.length - 1] || {};
       var latestVolumeMa = volumeMaPoints.length ? volumeMaPoints[volumeMaPoints.length - 1].value : null;

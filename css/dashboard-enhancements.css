@@ -1,0 +1,93 @@
+/* Shared enhancements loaded by js/dashboard-enhancements.js. */
+
+#watchlist,
+#watchlist *,
+.home-my-card,
+.home-my-card * {
+  font-family: 'MaruBuri', 'MaruBuriOTF', '나눔고딕', 'NanumGothic', system-ui, sans-serif;
+}
+
+#market-temp .mt-guide-card {
+  position: relative;
+  overflow: hidden;
+  border-width: 1px;
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(247,249,252,.92));
+  box-shadow: 0 8px 18px rgba(26, 35, 48, .08), inset 0 1px rgba(255,255,255,.9);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+#market-temp .mt-guide-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, currentColor, transparent);
+  opacity: .75;
+}
+#market-temp .mt-guide-card:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 14px 28px rgba(26, 35, 48, .16), 0 0 0 1px rgba(255,255,255,.8) inset;
+  filter: saturate(1.12);
+}
+#market-temp .mt-section:has(.mt-guide-grid-cards) .mt-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  margin: -14px -16px 14px;
+  color: #fff;
+  background: linear-gradient(115deg, #315b43, #4f8c6a 48%, #d08a3f);
+  box-shadow: 0 6px 14px rgba(49,91,67,.22);
+}
+
+.de-custom-card-tools { margin: 0 0 14px; }
+.de-custom-card-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #e3e8ef; border-radius: 10px; background: linear-gradient(110deg, #f8fbf9, #f8fafc); }
+.de-custom-card-toolbar strong { display: block; color: #315b43; font-size: 13px; }
+.de-custom-card-toolbar span { display: block; margin-top: 2px; color: #8b95a3; font-size: 11px; }
+.de-custom-add, .de-custom-editor-actions button, .de-custom-edit, .de-custom-delete { border: 1px solid #dce3eb; border-radius: 999px; background: #fff; color: #5f6b78; cursor: pointer; font: inherit; font-size: 11px; padding: 5px 9px; }
+.de-custom-add { border-color: #315b43; color: #315b43; font-weight: 700; white-space: nowrap; }
+.de-custom-editor { display: grid; gap: 8px; margin-top: 8px; padding: 12px; border: 1px solid #d8e4db; border-radius: 10px; background: #fbfefc; }
+.de-custom-editor[hidden] { display: none; }
+.de-custom-editor-title { color: #315b43; font-size: 12px; font-weight: 700; }
+.de-custom-input { width: 100%; box-sizing: border-box; border: 1px solid #dce3eb; border-radius: 7px; padding: 8px 9px; background: #fff; color: #25303b; font: inherit; font-size: 12px; }
+.de-custom-textarea { min-height: 82px; resize: vertical; }
+.de-custom-editor-row { display: flex; gap: 10px; flex-wrap: wrap; color: #6c7784; font-size: 11px; }
+.de-custom-editor-row label { display: flex; align-items: center; gap: 5px; }
+.de-custom-emoji { width: 38px; border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; font: inherit; text-align: center; }
+.de-custom-color { border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; color: #5f6b78; font: inherit; }
+.de-custom-editor-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.de-custom-editor-actions .primary { border-color: #315b43; background: #315b43; color: #fff; font-weight: 700; }
+.de-custom-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 8px; }
+.de-custom-card { min-height: 96px; border: 1px solid #e1e6ec; border-left: 4px solid var(--de-card-accent); border-radius: 9px; padding: 10px 11px; background: #fff; box-shadow: 0 3px 10px rgba(28,39,51,.06); }
+.de-custom-card-heading { display: flex; align-items: center; gap: 5px; color: #25303b; font-size: 12px; }
+.de-custom-card-heading strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.de-custom-card p { margin: 8px 0 0; color: #657181; font-size: 12px; line-height: 1.55; word-break: break-word; }
+.de-custom-delete { color: #a35d5d; }
+.de-custom-empty { grid-column: 1 / -1; padding: 10px; color: #9aa5b1; font-size: 12px; text-align: center; }
+
+.de-expand-button { position: relative; z-index: 7; float: right; margin-left: 8px; border: 1px solid #dce3eb; border-radius: 999px; padding: 4px 9px; background: rgba(255,255,255,.92); color: #5f6b78; cursor: pointer; font: inherit; font-size: 10.5px; white-space: nowrap; }
+.de-expand-button:hover { border-color: #315b43; color: #315b43; }
+#foreign-flow .ff-apt-chart-wrap > .de-expand-button { position: absolute; top: 8px; right: 8px; }
+#foreign-flow .ff-apt-chart-wrap { padding-top: 30px; }
+#foreign-flow .ff-chart-candle { height: 560px !important; }
+#stock-search .ss-chart { height: 560px; }
+#kospi-futures .kf-chart { height: 560px !important; }
+.de-chart-overlay { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(8, 13, 20, .72); }
+.de-chart-modal { display: flex; flex-direction: column; width: min(1280px, 100%); max-height: calc(100vh - 36px); overflow: hidden; border-radius: 14px; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.35); }
+.de-chart-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #e5e9ef; color: #25303b; font-size: 14px; }
+.de-chart-close { border: 0; background: transparent; color: #7e8995; cursor: pointer; font-size: 16px; }
+.de-chart-modal-body { min-height: 0; overflow: auto; padding: 10px 14px 14px; }
+.de-chart-modal-body > #ffLwChart, .de-chart-modal-body > #ssChart, .de-chart-modal-body > .kf-chart { width: 100%; }
+.de-chart-placeholder { display: none; }
+html.dark .de-custom-card-toolbar, html.dark .de-custom-editor, html.dark .de-custom-card, html.dark .de-chart-modal { background: #1A1A1A; border-color: rgba(245,239,224,.2); }
+html.dark .de-custom-card-toolbar strong, html.dark .de-custom-editor-title, html.dark .de-custom-card-heading, html.dark .de-chart-modal-head { color: #F5EFE0; }
+html.dark .de-custom-card-toolbar span, html.dark .de-custom-card p, html.dark .de-custom-empty { color: rgba(245,239,224,.55); }
+html.dark .de-custom-input, html.dark .de-custom-emoji, html.dark .de-custom-color, html.dark .de-expand-button { background: #242424; border-color: rgba(245,239,224,.24); color: #F5EFE0; }
+html.dark .de-custom-add { background: #1A1A1A; color: #9bd4ad; border-color: #9bd4ad; }
+html.dark .de-chart-modal-body { background: #1A1A1A; }
+
+@media (max-width: 720px) {
+  #foreign-flow .ff-chart-candle, #stock-search .ss-chart, #kospi-futures .kf-chart { height: 460px !important; }
+  .de-chart-overlay { padding: 8px; }
+  .de-chart-modal { max-height: calc(100vh - 16px); }
+  .de-custom-card-toolbar { align-items: flex-start; flex-direction: column; }
+}

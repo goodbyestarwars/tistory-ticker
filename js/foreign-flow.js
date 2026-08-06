@@ -3205,6 +3205,8 @@
       + '<div class="ff-apt-clouds" aria-hidden="true">'
       + '<span class="ff-apt-cloud ff-apt-cloud-left"></span>'
       + '<span class="ff-apt-cloud ff-apt-cloud-right"></span>'
+      + '<span class="ff-apt-cloud ff-apt-cloud-high"></span>'
+      + '<span class="ff-apt-cloud ff-apt-cloud-rain"><i></i><i></i><i></i></span>'
       + '</div>'
       + '<div class="ff-apt-nameplate">매물대 타워</div>'
       + '<div class="ff-apt-helipad"><span class="ff-apt-helipad-h">H</span></div>'
@@ -3258,9 +3260,16 @@
       + '<span class="ff-apt-magma-glow"></span>'
       + '</div>';
 
+    var coreHtml = '<div class="ff-apt-core" aria-label="B3 지구 핵 · 장기 하락 위험 구간">'
+      + '<span class="ff-apt-core-glow"></span>'
+      + '<div class="ff-apt-core-label"><strong>B3 지구 핵</strong><span>최저가보다 더 아래 · 장기 하락 위험 구간</span></div>'
+      + '<span class="ff-apt-core-bubble ff-apt-core-bubble-1"></span>'
+      + '<span class="ff-apt-core-bubble ff-apt-core-bubble-2"></span>'
+      + '</div>';
+
     return '<div class="ff-apt-chart-wrap">' + roofHtml
       + '<div class="ff-apt-floors">' + rows + elevatorHtml + '</div>'
-      + lobbyHtml + basementHtml + magmaHtml + '</div>';
+      + lobbyHtml + basementHtml + magmaHtml + coreHtml + '</div>';
   }
 
   function buildAptZoomButtons(stepIndex) {
@@ -3902,7 +3911,7 @@
       volumeSeries.setData(daily.map(function (d) {
         return {
           time: d.date,
-          value: d.volume || 0,
+          value: Math.max(0, Number(d.volume) || 0),
           color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)'
         };
       }));
@@ -3917,7 +3926,9 @@
         priceLineVisible: false,
         crosshairMarkerVisible: false
       });
-      volumeMaSeries.setData(volumeMaPoints);
+      volumeMaSeries.setData(volumeMaPoints.map(function (point) {
+        return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
+      }));
 
       var latest = daily[daily.length - 1] || {};
       var latestVolumeMa = volumeMaPoints.length ? volumeMaPoints[volumeMaPoints.length - 1].value : null;
