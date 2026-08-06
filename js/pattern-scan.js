@@ -179,8 +179,14 @@
         // 안 잡힐 수 있음(그 사이 가격이 움직여서) - 이 경우 깨진 결과를 보여주는 대신
         // 목록에서 바로 빼서 다음에 같은 종목을 다시 클릭하지 않게 한다.
         if (!data.detail) {
-          detail.innerHTML = '<div class="ps-error">스캔 당시 패턴 판정 정보를 다시 불러오지 못했어요. 목록은 전날 스캔 결과 그대로 유지합니다.</div>';
-          return;
+          // GAS 새 버전 배포 전이거나 일시적으로 재현이 실패해도, 전날 스캔 목록에 저장된
+          // 점수/근거를 사용해 최신 차트는 계속 보여준다. 목록 삭제나 경고 토스트는 하지 않는다.
+          data.detail = {
+            score: item.score,
+            reasons: item.reasons || [],
+            interpretation: item.interpretation || '',
+            snapshotFallback: true
+          };
         }
         renderDetail(detail, item, data);
       })
