@@ -645,6 +645,15 @@
       })
       .catch(function (err) {
         sectorConfigPromise = null;
+        // The static sector file remains a safe read-only fallback while the VM
+        // deploys the new /sector-cards endpoint or during a transient outage.
+        if (global.SECTOR_MAP && typeof global.SECTOR_MAP === 'object') {
+          return {
+            sectors: global.SECTOR_MAP,
+            revision: 0,
+            editable: false
+          };
+        }
         throw err;
       });
     return sectorConfigPromise;
@@ -846,7 +855,8 @@
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
       var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
       var toolbar = '<div class="mt-sector-toolbar"><span>카테고리와 종목을 직접 관리할 수 있습니다.</span>' +
-        '<button type="button" data-sector-editor-open>카테고리·종목 편집</button></div>';
+        (config.editable === false ? '' : '<button type="button" data-sector-editor-open>카테고리·종목 편집</button>') +
+        '</div>';
       panel.innerHTML = toolbar + (html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>');
       var editButton = panel.querySelector('[data-sector-editor-open]');
       if (editButton) editButton.addEventListener('click', function () {
