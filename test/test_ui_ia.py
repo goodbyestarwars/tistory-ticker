@@ -159,6 +159,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, bootstrap)
         self.assertNotIn("차트 보기", source)
         self.assertNotIn("wl-group-select", source)
+        self.assertLess(source.find('data-field="change"'), source.find('data-field="price"'))
         self.assertIn("position: fixed", style)
         self.assertIn("right: 0", style)
         self.assertIn("transform: translateX(100%)", style)

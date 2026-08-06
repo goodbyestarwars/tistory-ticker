@@ -397,7 +397,7 @@
       + '<span class="wl-drag-handle" aria-hidden="true">⋮⋮</span>'
       + '<button type="button" class="wl-remove" data-code="' + escapeAttr(code) + '" aria-label="관심종목 삭제">★</button>'
       + '<div class="wl-name">' + stockIconHtml(code) + '<span class="wl-name-text">' + escapeHtml(name) + '</span></div>'
-      + '<div class="wl-quote"><div class="wl-price" data-field="price">-</div><div class="wl-change" data-field="change">-</div></div>'
+      + '<div class="wl-quote"><div class="wl-change" data-field="change">-</div><div class="wl-price" data-field="price">-</div></div>'
       + '</div>';
   }
 
