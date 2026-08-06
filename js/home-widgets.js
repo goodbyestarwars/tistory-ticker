@@ -138,7 +138,7 @@
     return '<article class="card home-mini-card home-my-card">'
       + '<div class="home-card-heading"><div><strong>MY</strong><span>관심종목</span></div></div>'
       + '<div class="home-my-list" id="homeMyList"><p class="home-card-state">관심종목을 확인하는 중...</p></div>'
-      + '<a class="home-card-more" href="/page/watchlist">더보기 →</a>'
+      + '<button type="button" class="home-card-more" data-open-global-watchlist>관심종목 열기 →</button>'
       + '</article>';
   }
 

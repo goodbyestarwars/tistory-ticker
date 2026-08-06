@@ -10,7 +10,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def read(self, relative):
         return (ROOT / relative).read_text(encoding="utf-8")
 
-    def test_primary_navigation_has_seven_items(self):
+    def test_primary_navigation_has_six_items(self):
         source = self.read("js/skin-menu.js")
         primary_labels = re.findall(
             r"^\s{4}(?:\{ href: '[^']+', label: '([^']+)' \}|\{\s*$)",
@@ -22,8 +22,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertEqual(source.count("      label: '종목검색',"), 1)
         self.assertNotIn("label: '종목뉴스'", source)
         self.assertIn("label: '실시간 시세'", source)
-        self.assertIn("{ href: '/page/watchlist', label: 'MY' }", source)
-        self.assertEqual(len(primary_labels), 7)
+        self.assertNotIn("{ href: '/page/watchlist', label: 'MY' }", source)
+        self.assertEqual(len(primary_labels), 6)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")
@@ -141,8 +141,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, source)
         self.assertIn(".wl-suggest-item.active", style)
 
-    def test_watchlist_is_right_panel_with_groups_and_realtime_row_links(self):
+    def test_watchlist_is_global_right_drawer_with_groups_drag_and_realtime_row_links(self):
         source = self.read("js/watchlist.js")
+        bootstrap = self.read("js/stock-search-panel.js")
         style = self.read("css/watchlist.css")
         for token in (
             "wl_groups_v1",
@@ -150,11 +151,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "wl-group-toggle",
             "wl-group-select",
             "location.href = STOCK_SEARCH_PAGE_URL",
+            'draggable="true"',
+            "persistDraggedOrder",
+            "getDragBeforeElement",
         ):
             self.assertIn(token, source)
+        for token in ("global-watchlist-drawer", "bootGlobalWatchlist", "WATCHLIST_OPEN_KEY"):
+            self.assertIn(token, bootstrap)
         self.assertNotIn("차트 보기", source)
-        self.assertIn("width: min(100%, 380px)", style)
-        self.assertIn("margin-left: auto", style)
+        self.assertIn("position: fixed", style)
+        self.assertIn("right: 0", style)
+        self.assertIn("transform: translateX(100%)", style)
+        self.assertIn(".wl-card.is-dragging", style)
         self.assertIn("@media (max-width: 640px)", style)
 
     def test_home_my_scrolls_all_quotes_and_rank_keeps_price_line(self):

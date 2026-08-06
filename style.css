@@ -869,6 +869,15 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   font-weight: 600;
   text-align: right;
 }
+.home-card-more[data-open-global-watchlist] {
+  width: 100%;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
 
 /* 최신 6건: 대표 1개 + 대표 아래 2개 + 오른쪽 3개 */
 .home-briefing-section {

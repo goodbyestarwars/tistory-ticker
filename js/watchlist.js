@@ -4,7 +4,7 @@
  * 종목명 검색(KRX_MAP 자동완성, foreign-flow.js와 동일 패턴)으로 추가하고,
  * 기존 GAS 시세 프록시(?codes=)를 그대로 재사용해 카드에 현재가/등락률을 채운다.
  * 종목 행 클릭 시 우리 사이트 실시간 시세 페이지로 이동(js/stock-search.js).
- * 관심종목은 사용자가 만든 그룹으로 분류할 수 있으며 기존 저장 목록은 기본 그룹으로 호환한다.
+ * 관심종목은 사용자가 만든 그룹으로 분류하고 블록 드래그앤드롭으로 순서와 그룹을 바꿀 수 있다.
  *
  * window.KRX_MAP(종목명->코드)이 이 스크립트보다 먼저 로드되어야 함.
  * data-code 속성을 순서대로 유지해두어 향후 Drag & Drop으로 순서 변경을 붙이기 쉽게 해둔다.
@@ -36,6 +36,8 @@
   var realtimeFallbackTimer = null;
   var realtimeKeepaliveTimer = null;
   var realtimeGeneration = 0;
+  var draggedCode = null;
+  var didDrag = false;
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -51,6 +53,8 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    if (container.getAttribute('data-watchlist-ready') === '1') return;
+    container.setAttribute('data-watchlist-ready', '1');
     container.innerHTML = buildShell();
     wireEvents(container);
     render(container);
@@ -385,14 +389,15 @@
       + '<span>' + escapeHtml(group.name) + '</span><span class="wl-group-count">' + items.length + '</span><span class="wl-chevron">⌃</span>'
       + '</button>'
       + (group.id === DEFAULT_GROUP_ID ? '' : '<button type="button" class="wl-group-delete" aria-label="그룹 삭제">삭제</button>')
-      + '</div><div class="wl-group-items">'
+      + '</div><div class="wl-group-items" data-group-id="' + escapeAttr(group.id) + '">'
       + (items.length ? items.map(function (it) { return buildCard(it.code, it.name, it.groupId || DEFAULT_GROUP_ID, options); }).join('') : '<p class="wl-group-empty">이 그룹에 종목이 없습니다.</p>')
       + '</div></section>';
   }
 
   function buildCard(code, name, groupId, options) {
     return ''
-      + '<div class="wl-card" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" tabindex="0" role="link">'
+      + '<div class="wl-card" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" tabindex="0" role="link" draggable="true">'
+      + '<span class="wl-drag-handle" aria-hidden="true">⋮⋮</span>'
       + '<button type="button" class="wl-remove" data-code="' + escapeAttr(code) + '" aria-label="관심종목 삭제">★</button>'
       + '<div class="wl-name">' + stockIconHtml(code) + '<span class="wl-name-text">' + escapeHtml(name) + '</span></div>'
       + '<div class="wl-quote"><div class="wl-price" data-field="price">-</div><div class="wl-change" data-field="change">-</div></div>'
@@ -508,8 +513,40 @@
         location.href = STOCK_SEARCH_PAGE_URL + '?code=' + encodeURIComponent(card.getAttribute('data-code'))
           + '&name=' + encodeURIComponent(card.getAttribute('data-name'));
       }
-      card.addEventListener('click', function (e) { if (!e.target.closest('button, select')) goToRealtime(); });
+      card.addEventListener('click', function (e) {
+        if (didDrag) { didDrag = false; return; }
+        if (!e.target.closest('button, select')) goToRealtime();
+      });
       card.addEventListener('keydown', function (e) { if (e.key === 'Enter') goToRealtime(); });
+      card.addEventListener('dragstart', function (e) {
+        draggedCode = card.getAttribute('data-code');
+        didDrag = true;
+        card.classList.add('is-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedCode);
+      });
+      card.addEventListener('dragend', function () {
+        card.classList.remove('is-dragging');
+        container.querySelectorAll('.wl-group-items').forEach(function (items) { items.classList.remove('is-drag-over'); });
+        persistDraggedOrder(container);
+        draggedCode = null;
+        setTimeout(function () { didDrag = false; }, 0);
+      });
+    });
+    container.querySelectorAll('.wl-group-items').forEach(function (items) {
+      items.addEventListener('dragover', function (e) {
+        if (!draggedCode) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        items.classList.add('is-drag-over');
+        var dragging = container.querySelector('.wl-card[data-code="' + cssEscape(draggedCode) + '"]');
+        var before = getDragBeforeElement(items, e.clientY);
+        if (dragging) items.insertBefore(dragging, before);
+      });
+      items.addEventListener('dragleave', function (e) {
+        if (!items.contains(e.relatedTarget)) items.classList.remove('is-drag-over');
+      });
+      items.addEventListener('drop', function (e) { e.preventDefault(); items.classList.remove('is-drag-over'); });
     });
     container.querySelectorAll('.wl-group-select').forEach(function (select) {
       select.addEventListener('click', function (e) { e.stopPropagation(); });
@@ -541,6 +578,38 @@
         render(container);
       });
     });
+  }
+
+  function getDragBeforeElement(items, pointerY) {
+    var cards = Array.prototype.slice.call(items.querySelectorAll('.wl-card:not(.is-dragging)'));
+    var closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+    cards.forEach(function (card) {
+      var rect = card.getBoundingClientRect();
+      var offset = pointerY - rect.top - rect.height / 2;
+      if (offset < 0 && offset > closest.offset) closest = { offset: offset, element: card };
+    });
+    return closest.element;
+  }
+
+  function persistDraggedOrder(container) {
+    if (!draggedCode) return;
+    var current = loadList();
+    var byCode = {};
+    current.forEach(function (item) { byCode[item.code] = item; });
+    var next = [];
+    container.querySelectorAll('.wl-group-items').forEach(function (items) {
+      var groupId = items.getAttribute('data-group-id') || DEFAULT_GROUP_ID;
+      items.querySelectorAll('.wl-card').forEach(function (card) {
+        var item = byCode[card.getAttribute('data-code')];
+        if (!item) return;
+        item.groupId = groupId;
+        next.push(item);
+      });
+    });
+    if (next.length === current.length) {
+      saveList(next);
+      render(container);
+    }
   }
 
   // ---- 시세 조회 (기존 티커 프록시 재사용, 신규 GAS 엔드포인트 불필요) ----

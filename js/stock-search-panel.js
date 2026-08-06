@@ -20,6 +20,9 @@
   'use strict';
 
   var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+  var WATCHLIST_JS = 'https://goodbyestarwars.github.io/tistory-ticker/js/watchlist.js';
+  var WATCHLIST_CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/watchlist.css';
+  var WATCHLIST_OPEN_KEY = 'wl_drawer_open_v1';
   // 상단/사이드바 종목검색은 먼저 실시간 호가와 차트를 확인하는 흐름으로 연결한다.
   // 종목분석은 실시간 시세 상세의 명시적 버튼에서 이어간다.
   var TARGET_PAGE = '/page/stock-search';
@@ -48,6 +51,7 @@
   var krxMapPromise = null;
   var activeIndex = -1;
   var wired = false;
+  var watchlistBooted = false;
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md
   // 규칙, 다른 위젯들과 동일 패턴). 2026-07-28 사용자 요청 - 자동완성 목록에 종목 아이콘 추가.
@@ -113,9 +117,8 @@
   }
   // 2026-07-28: 이 검색창의 즐겨찾기(stock:favorites)는 원래 "MY" 페이지(js/watchlist.js,
   // wl_codes_v1)와 별개 저장소였음 - 여기서 별표를 눌러도 MY에 안 나타난다는 리포트로 동기화한다.
-  // watchlist.js는 /page/watchlist(MY)에만 임베드돼있고 다른 모든 페이지엔 없어서
-  // window.Watchlist가 대부분 undefined - 있으면 그 공개 API를 쓰고, 없으면 같은 저장 형식으로
-  // wl_codes_v1을 직접 읽고 쓴다(watchlist.js의 loadList/saveList와 동일 스키마).
+  // 전역 드로어가 로드되기 전에도 검색 별표가 즉시 동작하도록 window.Watchlist가 있으면 공개
+  // API를 쓰고, 아직 없으면 같은 저장 형식으로 wl_codes_v1을 직접 읽고 쓴다.
   var WATCHLIST_STORAGE_KEY = 'wl_codes_v1';
   var WATCHLIST_MAX_ITEMS = 50;
   function loadWatchlistRaw() {
@@ -416,6 +419,69 @@
     });
   }
 
+  // ---- 모든 페이지 공통 관심종목 우측 드로어 ----
+
+  function ensureStylesheet(href) {
+    if (document.querySelector('link[href*="/css/watchlist.css"]')) return;
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
+  function isWatchlistDrawerOpen() {
+    try { return localStorage.getItem(WATCHLIST_OPEN_KEY) === '1'; } catch (err) { return false; }
+  }
+
+  function setWatchlistDrawerOpen(drawer, open) {
+    drawer.classList.toggle('is-open', open);
+    var toggle = drawer.querySelector('.global-watchlist-toggle');
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? '관심종목 닫기' : '관심종목 열기');
+    try { localStorage.setItem(WATCHLIST_OPEN_KEY, open ? '1' : '0'); } catch (err) {}
+  }
+
+  function loadWatchlistScript() {
+    if (global.Watchlist) { global.Watchlist.init(); return; }
+    if (document.querySelector('script[src*="/js/watchlist.js"]')) return;
+    var script = document.createElement('script');
+    script.src = WATCHLIST_JS;
+    document.body.appendChild(script);
+  }
+
+  function bootGlobalWatchlist() {
+    if (watchlistBooted || document.querySelector('.global-watchlist-drawer')) return;
+    watchlistBooted = true;
+    ensureStylesheet(WATCHLIST_CSS);
+
+    var legacyMount = document.getElementById('watchlist');
+    var drawer = document.createElement('aside');
+    drawer.className = 'global-watchlist-drawer';
+    drawer.setAttribute('aria-label', '관심종목');
+    drawer.innerHTML = '<button type="button" class="global-watchlist-toggle" aria-controls="watchlist" aria-expanded="false">'
+      + '<span class="global-watchlist-toggle-icon">♥</span><span>관심</span></button>'
+      + '<div class="global-watchlist-panel"></div>';
+    var panel = drawer.querySelector('.global-watchlist-panel');
+    if (legacyMount) panel.appendChild(legacyMount);
+    else {
+      legacyMount = document.createElement('div');
+      legacyMount.id = 'watchlist';
+      panel.appendChild(legacyMount);
+    }
+    document.body.appendChild(drawer);
+    setWatchlistDrawerOpen(drawer, isWatchlistDrawerOpen());
+    drawer.querySelector('.global-watchlist-toggle').addEventListener('click', function () {
+      setWatchlistDrawerOpen(drawer, !drawer.classList.contains('is-open'));
+    });
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest('[data-open-global-watchlist]')) return;
+      event.preventDefault();
+      setWatchlistDrawerOpen(drawer, true);
+    });
+
+    ensureKrxMap().then(loadWatchlistScript).catch(loadWatchlistScript);
+  }
+
   // ---- 포맷 유틸 ----
 
   function escapeHtml(s) {
@@ -428,6 +494,7 @@
   // ---- 초기화: skin-menu.js가 먼저 로드됐으면 바로, 아니면 짧게 재시도 ----
 
   function init() {
+    bootGlobalWatchlist();
     var tries = 0;
     (function attempt() {
       wireSidebarSearch();
@@ -437,7 +504,7 @@
     })();
   }
 
-  var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock };
+  var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist };
   global.StockSearchPanel = StockSearchPanel;
 
   if (document.readyState === 'loading') {
