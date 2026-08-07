@@ -149,17 +149,7 @@
   }
 
   function buildToolbar() {
-    var toolbar = document.createElement('div');
-    toolbar.className = 'home-dashboard-toolbar';
-    toolbar.innerHTML = '<span>카드의 ⋮⋮ 핸들을 드래그해 홈을 재배치할 수 있습니다.</span>'
-      + '<div class="home-dashboard-settings">'
-      + '<button type="button" class="home-settings-button" aria-expanded="false">홈 설정</button>'
-      + '<div class="home-settings-panel" hidden>'
-      + '<strong>숨긴 카드</strong><div class="home-hidden-widgets"></div>'
-      + '<button type="button" class="home-reset-button">홈 화면 초기화</button>'
-      + '</div></div>';
-    settingsPanel = toolbar.querySelector('.home-settings-panel');
-    return toolbar;
+    return null;
   }
 
   function buildRegistry(options) {
@@ -189,7 +179,6 @@
     ].forEach(function (node) { grid.appendChild(node); });
 
     dashboard.innerHTML = '';
-    dashboard.appendChild(buildToolbar());
     dashboard.appendChild(grid);
 
     decorate(investor, 'investor-flow', 'wide');
@@ -305,34 +294,8 @@
       closeWidgetMenus();
     });
 
-    var settingsButton = toolbar.querySelector('.home-settings-button');
-    settingsButton.addEventListener('click', function () {
-      var open = settingsPanel.hidden;
-      settingsPanel.hidden = !open;
-      settingsButton.setAttribute('aria-expanded', String(open));
-      refreshSettings();
-    });
-    settingsPanel.addEventListener('click', function (event) {
-      var restore = event.target.closest ? event.target.closest('[data-restore-widget]') : null;
-      if (restore) {
-        var id = restore.getAttribute('data-restore-widget');
-        if (registry[id]) registry[id].hidden = false;
-        saveState();
-        refreshSettings();
-        return;
-      }
-      if (!event.target.closest('.home-reset-button')) return;
-      layoutStorage.set(JSON.stringify({ order: DEFAULT_ORDER, hidden: [] }));
-      applyState({ order: DEFAULT_ORDER, hidden: [] });
-      settingsPanel.hidden = true;
-      settingsButton.setAttribute('aria-expanded', 'false');
-    });
     document.addEventListener('click', function (event) {
       if (!event.target.closest('.home-widget-actions')) closeWidgetMenus();
-      if (!event.target.closest('.home-dashboard-settings')) {
-        settingsPanel.hidden = true;
-        settingsButton.setAttribute('aria-expanded', 'false');
-      }
     });
   }
 
@@ -674,8 +637,7 @@
     if (!buildRegistry(options)) return;
     options.dashboard.setAttribute('data-widgets-ready', '1');
     applyState(loadState());
-    var toolbar = options.dashboard.querySelector('.home-dashboard-toolbar');
-    wireMenus(toolbar);
+    wireMenus(null);
     wireDrag();
     loadDisclosures();
   }
