@@ -3243,29 +3243,58 @@
     function priceText(value) {
       return value == null || isNaN(value) ? '-' : Math.round(value).toLocaleString('ko-KR');
     }
+    var priceLow = Number(profile.minLow);
+    var priceHigh = Number(profile.maxHigh);
+    if (!isFinite(priceLow)) priceLow = Number(bins[0].low);
+    if (!isFinite(priceHigh)) priceHigh = Number(bins[n - 1].high);
+    function yForPrice(price) {
+      if (!(priceHigh > priceLow)) return plotBottom;
+      var ratio = Math.max(0, Math.min(1, (priceHigh - Number(price)) / (priceHigh - priceLow)));
+      return plotTop + ratio * (plotBottom - plotTop);
+    }
     function yForIndex(index) {
-      return plotTop + ((n - 1 - index) / Math.max(1, n - 1)) * (plotBottom - plotTop);
+      var safeIndex = Math.max(0, Math.min(n - 1, index));
+      var bin = bins[safeIndex];
+      return yForPrice((Number(bin.low) + Number(bin.high)) / 2);
     }
     function xForVolume(volume) {
       var ratio = maxVolume > 0 ? Math.max(0, Math.min(1, Number(volume) / maxVolume)) : 0;
       return plotLeft + ratio * (plotRight - plotLeft);
     }
     function building(x, width, band) {
-      var height = 80 + Math.round(band.ratio * 120);
-      var y = 379 - height;
-      var rows = 3 + Math.round(band.ratio * 4);
+      // 건물의 세로 위치와 높이는 거래량이 아니라 이 가격 구간의 low/high를 그대로
+      // 가격축에 매핑한다. 거래량은 창문 개수·농도로만 표현한다.
+      var y = yForPrice(band.high);
+      var height = Math.max(24, yForPrice(band.low) - y);
+      var rows = Math.max(1, Math.min(6, 1 + Math.round(band.ratio * 5)));
+      rows = Math.min(rows, Math.max(1, Math.floor((height - 8) / 10)));
       var cols = width >= 100 ? 4 : 3;
       var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '">'
         + '<rect x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '" rx="2" />'
         + '<path class="ff-apt-building-roof" d="M' + (x + 5) + ' ' + (y - 6) + ' H' + (x + width - 5) + '" />';
       var cellW = Math.max(7, (width - 16) / cols - 4);
-      var cellH = Math.max(7, (height - 24) / rows - 4);
+      var cellH = Math.max(5, (height - 14) / rows - 3);
+      var markerColumns = [];
+      if (band.current) markerColumns.push({ col: 0, type: 'current' });
+      if (band.average) markerColumns.push({ col: Math.min(1, cols - 1), type: 'average' });
+      if (band.poc) markerColumns.push({ col: Math.min(2, cols - 1), type: 'poc' });
       for (var row = 0; row < rows; row++) {
         for (var col = 0; col < cols; col++) {
           var wx = x + 8 + col * (cellW + 4);
           var wy = y + 10 + row * (cellH + 4);
           var isAccent = col === (row % cols) || (row + col) % Math.max(2, cols) === 0;
-          html += '<rect class="' + (isAccent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window') + '" style="opacity:' + (0.42 + band.ratio * 0.5).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
+          var windowMarker = markerColumns.filter(function (item) { return item.col === col && row === 0; })[0];
+          var windowClass = isAccent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window';
+          if (windowMarker) windowClass += ' ' + windowMarker.type + '-window';
+          html += '<rect class="' + windowClass + '" style="opacity:' + (0.42 + band.ratio * 0.5).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
+          if (windowMarker && windowMarker.type === 'average') {
+            var fx = wx + cellW / 2, fy = wy + cellH / 2;
+            html += '<g class="ff-apt-building-face" transform="translate(' + fx + ' ' + fy + ')"><circle r="' + Math.min(4, cellH / 2 - 1) + '" /><circle class="eye" cx="-1.5" cy="-1" r=".6" /><circle class="eye" cx="1.5" cy="-1" r=".6" /><path d="M-1.8 1 Q0 2.5 1.8 1" /></g>';
+          } else if (windowMarker && windowMarker.type === 'current') {
+            html += '<path class="ff-apt-building-current-icon" d="M' + (wx + cellW / 2 - 3) + ' ' + (wy + cellH / 2) + ' h6 m-3-3 v6" />';
+          } else if (windowMarker && windowMarker.type === 'poc') {
+            html += '<circle class="ff-apt-building-poc-icon" cx="' + (wx + cellW / 2) + '" cy="' + (wy + cellH / 2) + '" r="3" />';
+          }
         }
       }
       html += '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 12) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
@@ -3331,7 +3360,7 @@
       + '<div class="ff-apt-lineart-head"><strong>가격대별 매물대</strong><span>POC ' + pocText + '</span></div>'
       + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg" viewBox="0 0 900 430" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
       + '<title>가격대별 매물대 일러스트</title>'
-      + '<desc>얇은 선으로 표현한 가격대 도시 위에 실제 거래량 프로파일과 현재가, 평균단가, POC를 표시합니다.</desc>'
+      + '<desc>건물의 세로 위치와 높이는 가격 구간을, 창문은 거래량을 나타내며 현재가와 평균단가를 아이콘으로 표시합니다.</desc>'
       + '<rect class="ff-apt-illustration-canvas" x="10" y="12" width="880" height="406" rx="22" />'
       + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
       + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
@@ -3357,7 +3386,7 @@
       + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', 'POC', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
       + '</svg>'
-      + '<div class="ff-apt-lineart-note">건물 높이·창문 밀도 = 가격구간 거래량 · 초록 점 = 현재가 · 주황 점 = POC</div>'
+      + '<div class="ff-apt-lineart-note">건물 위치·높이 = 가격대 · 창문 밀도 = 거래량 · 얼굴 = 평균 · 십자 = 현재가 · 점 = POC</div>'
       + '</div>';
   }
 
