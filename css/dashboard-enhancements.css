@@ -42,6 +42,45 @@
   box-shadow: 0 6px 14px rgba(49,91,67,.22);
 }
 
+/* Keep the temperature guide calm: preserve the five bands without the neon palette. */
+#market-temp .mt-section:has(.mt-guide-grid-cards) .mt-card-title {
+  color: #315b43;
+  background: #f1f5f2;
+  border-bottom: 1px solid #dfe8e1;
+  box-shadow: none;
+}
+#market-temp .mt-guide-card {
+  border-color: #dfe5e8 !important;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(31,41,55,.05);
+}
+#market-temp .mt-guide-card::before {
+  height: 3px;
+  background: #9aa7a0;
+  opacity: .45;
+}
+#market-temp .mt-guide-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(31,41,55,.08);
+  filter: none;
+}
+#market-temp .mt-guide-card-extreme-fear .mt-guide-season,
+#market-temp .mt-guide-card-extreme-fear .mt-guide-card-range,
+#market-temp .mt-guide-card-extreme-fear .mt-guide-card-stars { color: #55728f !important; }
+#market-temp .mt-guide-card-fear .mt-guide-season,
+#market-temp .mt-guide-card-fear .mt-guide-card-range,
+#market-temp .mt-guide-card-fear .mt-guide-card-stars { color: #6f9bb7 !important; }
+#market-temp .mt-guide-card-neutral .mt-guide-season,
+#market-temp .mt-guide-card-neutral .mt-guide-card-range,
+#market-temp .mt-guide-card-neutral .mt-guide-card-stars { color: #a28d58 !important; }
+#market-temp .mt-guide-card-greed .mt-guide-season,
+#market-temp .mt-guide-card-greed .mt-guide-card-range,
+#market-temp .mt-guide-card-greed .mt-guide-card-stars { color: #b27d58 !important; }
+#market-temp .mt-guide-card-extreme-greed .mt-guide-season,
+#market-temp .mt-guide-card-extreme-greed .mt-guide-card-range,
+#market-temp .mt-guide-card-extreme-greed .mt-guide-card-stars { color: #a66b6b !important; }
+#market-temp .mt-guide-stars-empty { color: #e1e5e8 !important; }
+
 .de-custom-card-tools { margin: 0 0 14px; }
 .de-custom-card-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #e3e8ef; border-radius: 10px; background: linear-gradient(110deg, #f8fbf9, #f8fafc); }
 .de-custom-card-toolbar strong { display: block; color: #315b43; font-size: 13px; }
