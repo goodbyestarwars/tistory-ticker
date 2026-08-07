@@ -3326,10 +3326,10 @@
         + '<text class="ff-apt-illustration-marker-label" x="' + (plotLeft + 6) + '" y="' + (y + labelOffset + 12) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
     }
 
-    // 화면에는 6개 안팎의 건물이 보이지만, 전체 가격 구간은 10개 건물로
+    // 화면에는 6~7개 안팎의 건물이 보이지만, 전체 가격 구간은 최대 14개 건물로
     // 이어서 만든다. 그래서 지도 자체를 드래그하면 양옆의 인접 가격대가
     // 실제 건물처럼 화면 안으로 들어온다.
-    var bandCount = Math.min(10, n);
+    var bandCount = Math.min(14, n);
     var bands = [];
     for (var bandIndex = 0; bandIndex < bandCount; bandIndex++) {
       var bandStart = Math.floor(bandIndex * n / bandCount);
@@ -3376,11 +3376,15 @@
       + '<path class="ff-apt-basement-shell" d="M190 390 H520 V458 H190 Z" />'
       + '<path class="ff-apt-basement-ceiling" d="M218 390 H486" />'
       + '<path class="ff-apt-basement-stair" d="M166 390 l24 68 M176 390 l24 68 M186 390 l24 68" />'
+      + '<path class="ff-apt-basement-flow-line" d="M244 360 C244 378 250 386 250 405 M360 360 V405 M476 360 C476 378 470 386 470 405" />'
+      + '<path class="ff-apt-basement-flow-arrow" d="M250 399 l-4 7 h8 Z M360 399 l-4 7 h8 Z M470 399 l-4 7 h8 Z" />'
       + '<rect class="ff-apt-basement-window" x="224" y="411" width="42" height="18" rx="2" />'
       + '<rect class="ff-apt-basement-window" x="280" y="411" width="42" height="18" rx="2" />'
       + '<rect class="ff-apt-basement-window" x="336" y="411" width="42" height="18" rx="2" />'
       + '<rect class="ff-apt-basement-window" x="392" y="411" width="42" height="18" rx="2" />'
       + '<rect class="ff-apt-basement-door" x="452" y="405" width="42" height="38" rx="2" />'
+      + '<path class="ff-apt-basement-door-light" d="M458 411 V437 H488 V411" />'
+      + '<path class="ff-apt-basement-door-seam" d="M472 407 V441" />'
       + '<circle class="ff-apt-basement-handle" cx="483" cy="424" r="1.8" />'
       + '<text class="ff-apt-basement-label" x="360" y="450" text-anchor="middle">지하실 · 미체결 가격대</text>'
       + '</g>';
@@ -3391,6 +3395,11 @@
       + '<path class="ff-apt-helicopter-rotor" d="M374 115 H413 M393 115 V120" />'
       + '<path class="ff-apt-helicopter-skid" d="M357 137 H411 M367 133 V137 M401 133 V137" />'
       + '<circle class="ff-apt-helicopter-light" cx="350" cy="128" r="2" />'
+      + '</g>';
+    var ladder = '<g class="ff-apt-illustration-ladder" role="img" aria-label="헬기에서 지상으로 이어지는 가격 흐름 사다리">'
+      + '<path class="ff-apt-ladder-rail" d="M382 141 V390 M402 141 V390" />'
+      + '<path class="ff-apt-ladder-rungs" d="M382 154 H402 M382 170 H402 M382 186 H402 M382 202 H402 M382 218 H402 M382 234 H402 M382 250 H402 M382 266 H402 M382 282 H402 M382 298 H402 M382 314 H402 M382 330 H402 M382 346 H402 M382 362 H402 M382 378 H402" />'
+      + '<circle class="ff-apt-ladder-beacon" cx="392" cy="148" r="3" />'
       + '</g>';
     var profilePoints = [];
     for (var i = n - 1; i >= 0; i--) {
@@ -3448,6 +3457,7 @@
       + '<g class="ff-apt-illustration-tag"><rect x="48" y="118" width="122" height="28" rx="6" /><text x="66" y="137">거래량 지도</text></g>'
       + '<g class="ff-apt-illustration-tag"><rect x="520" y="72" width="112" height="28" rx="6" /><text x="540" y="91">체결 흐름</text></g>'
       + skylineTrack
+      + ladder
       + helicopter
       + basement
       + '<path class="ff-apt-illustration-ground" d="M28 380 H680" />'
