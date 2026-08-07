@@ -281,7 +281,8 @@ html.dark .de-chart-modal-body { background: #1A1A1A; }
 #market-temp .mt-gauge-side .mt-gauge-title { margin: 0 0 8px; color: #53645b; text-align: center; }
 #market-temp .mt-gauge-side .mt-gauge { max-width: 760px; margin: 0 auto; }
 #market-temp .mt-hero-right {
-  flex: 1 1 100%;
+  flex: 0 0 220px;
+  width: 220px;
   align-items: center;
   justify-content: center;
   padding-left: 0;
@@ -289,6 +290,19 @@ html.dark .de-chart-modal-body { background: #1A1A1A; }
   border-top: 1px solid #edf0ef;
   padding-top: 14px;
   text-align: center;
+}
+#market-temp .mt-hero {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  align-items: center;
+}
+#market-temp .mt-hero-left { min-height: 0; }
+@media (max-width: 640px) {
+  #market-temp .mt-hero { grid-template-columns: 1fr; }
+  #market-temp .mt-hero-right { width: 100%; flex-basis: auto; }
 }
 
 @media (max-width: 720px) {
