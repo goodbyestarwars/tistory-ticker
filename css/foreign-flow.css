@@ -2535,7 +2535,7 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
   border-color: #e1e4e6;
 }
 #foreign-flow .ff-apt-illustration-svg { height: 500px; }
-#foreign-flow .ff-apt-price-map-surface { cursor: grab; touch-action: pan-x; user-select: none; }
+#foreign-flow .ff-apt-price-map-surface { cursor: grab; touch-action: none; user-select: none; }
 #foreign-flow .ff-apt-price-map-surface.is-dragging { cursor: grabbing; }
 #foreign-flow .ff-apt-price-map-surface .ff-apt-illustration-building { cursor: grab; }
 #foreign-flow .ff-apt-price-map-surface.is-dragging .ff-apt-illustration-building { cursor: grabbing; }

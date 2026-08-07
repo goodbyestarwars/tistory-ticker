@@ -3326,7 +3326,10 @@
         + '<text class="ff-apt-illustration-marker-label" x="' + (plotLeft + 6) + '" y="' + (y + labelOffset + 12) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
     }
 
-    var bandCount = 6;
+    // 화면에는 6개 안팎의 건물이 보이지만, 전체 가격 구간은 10개 건물로
+    // 이어서 만든다. 그래서 지도 자체를 드래그하면 양옆의 인접 가격대가
+    // 실제 건물처럼 화면 안으로 들어온다.
+    var bandCount = Math.min(10, n);
     var bands = [];
     for (var bandIndex = 0; bandIndex < bandCount; bandIndex++) {
       var bandStart = Math.floor(bandIndex * n / bandCount);
@@ -3348,14 +3351,27 @@
     }
     var maxBandVolume = Math.max.apply(null, bands.map(function (band) { return band.volume; })) || 1;
     bands.forEach(function (band) { band.ratio = Math.max(0, Math.min(1, band.volume / maxBandVolume)); });
-    var buildingSpecs = [
-      { x: 38, width: 94 }, { x: 132, width: 112 }, { x: 244, width: 84 },
-      { x: 328, width: 104 }, { x: 432, width: 96 }, { x: 528, width: 132 }
-    ];
+    var buildingViewportLeft = 28;
+    var buildingViewportRight = 680;
+    var buildingStartX = 38;
+    var buildingWidth = 88;
+    var buildingGap = 8;
+    var buildingStep = buildingWidth + buildingGap;
+    var buildingTrackRight = buildingStartX + (bandCount - 1) * buildingStep + buildingWidth;
+    var buildingMinOffset = Math.min(0, buildingViewportRight - buildingTrackRight);
+    var currentBandIndex = Math.max(0, Math.min(bandCount - 1, Math.floor(curIdx * bandCount / n)));
+    var viewportCenter = (buildingViewportLeft + buildingViewportRight) / 2;
+    var currentBuildingCenter = buildingStartX + currentBandIndex * buildingStep + buildingWidth / 2;
+    var buildingInitialOffset = Math.max(buildingMinOffset, Math.min(0, viewportCenter - currentBuildingCenter));
+    var buildingSpecs = bands.map(function (band, index) {
+      return { x: buildingStartX + index * buildingStep, width: buildingWidth };
+    });
     var skyline = bands.map(function (band, index) {
       var spec = buildingSpecs[index];
       return building(spec.x, spec.width, band, index);
     }).join('');
+    var buildingClipId = 'ff-apt-buildings-clip-' + Math.floor(Math.random() * 1000000000);
+    var skylineTrack = '<g class="ff-apt-illustration-building-track" data-price-map-buildings data-building-offset="' + buildingInitialOffset + '" data-building-min-offset="' + buildingMinOffset + '" data-building-max-offset="0" transform="translate(' + buildingInitialOffset + ' 0)" clip-path="url(#' + buildingClipId + ')">' + skyline + '</g>';
     var basement = '<g class="ff-apt-illustration-basement" role="group" aria-label="지하실">'
       + '<path class="ff-apt-basement-shell" d="M190 390 H520 V458 H190 Z" />'
       + '<path class="ff-apt-basement-ceiling" d="M218 390 H486" />'
@@ -3422,6 +3438,7 @@
       + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg ff-apt-price-map-surface" data-price-map-surface viewBox="0 0 900 465" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
       + '<title>가격대별 매물대 일러스트</title>'
       + '<desc>건물의 크기와 창문 밀도는 거래량을 나타내며 평균·현재가·중심 가격을 창문 아이콘으로 표시합니다.</desc>'
+      + '<defs><clipPath id="' + buildingClipId + '"><rect x="' + buildingViewportLeft + '" y="90" width="' + (buildingViewportRight - buildingViewportLeft) + '" height="310" /></clipPath></defs>'
       + '<rect class="ff-apt-illustration-canvas" x="10" y="12" width="880" height="441" rx="22" />'
       + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
       + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
@@ -3430,7 +3447,7 @@
       + signalCards
       + '<g class="ff-apt-illustration-tag"><rect x="48" y="118" width="122" height="28" rx="6" /><text x="66" y="137">거래량 지도</text></g>'
       + '<g class="ff-apt-illustration-tag"><rect x="520" y="72" width="112" height="28" rx="6" /><text x="540" y="91">체결 흐름</text></g>'
-      + skyline
+      + skylineTrack
       + helicopter
       + basement
       + '<path class="ff-apt-illustration-ground" d="M28 380 H680" />'
@@ -3450,10 +3467,10 @@
       + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
       + '</svg>'
-      + '<div class="ff-apt-bin-guide"><strong>가격별 매물대</strong><span>건물을 좌우로 드래그하면 아래 가격 구간도 함께 이동합니다 · 막대가 높을수록 체결량이 많습니다</span><div class="ff-apt-bin-controls"><button type="button" data-bin-scroll="-1" aria-label="가격대 왼쪽 보기">←</button><button type="button" data-bin-scroll="1" aria-label="가격대 오른쪽 보기">→</button></div></div>'
+      + '<div class="ff-apt-bin-guide"><strong>가격별 매물대</strong><span>건물들을 좌우로 드래그하면 인접 가격대 건물이 나타납니다 · 막대가 높을수록 체결량이 많습니다</span><div class="ff-apt-bin-controls"><button type="button" data-bin-scroll="-1" aria-label="가격대 왼쪽 보기">←</button><button type="button" data-bin-scroll="1" aria-label="가격대 오른쪽 보기">→</button></div></div>'
       + '<div class="ff-apt-bin-rail" data-price-bin-rail tabindex="0" aria-label="가격별 매물대 좌우 탐색">' + binRail + '</div>'
       + '<div class="ff-apt-visual-key"><span><i class="current"></i>십자 현재가</span><span><i class="average"></i>파란 사람 평균단가</span><span><i class="poc"></i>왕관 POC</span><span><i class="window"></i>창문 밀도 거래량</span></div>'
-      + '<div class="ff-apt-lineart-note">건물 지도를 좌우로 드래그하면 하단 가격별 매물대가 같은 방향으로 이동합니다. 각 건물은 여러 가격 구간을 묶어 표현하며, 현재가·평균단가·POC는 창문 아이콘으로 표시됩니다.</div>'
+      + '<div class="ff-apt-lineart-note">건물 지도를 좌우로 드래그하면 화면 밖의 인접 가격대 건물이 들어옵니다. 건물의 창문 밀도는 체결량을, 현재가·평균단가·POC는 아이콘을 나타냅니다.</div>'
       + '</div>';
   }
 
@@ -3783,20 +3800,30 @@
 
       var map = card.querySelector('[data-price-map-surface]');
       if (map && map.getAttribute('data-drag-ready') !== '1') {
-        var mapDragging = false, mapStartX = 0, mapStartScroll = 0;
+        var buildingTrack = map.querySelector('[data-price-map-buildings]');
+        var mapDragging = false, mapStartX = 0, mapStartScroll = 0, mapStartOffset = 0;
         map.setAttribute('data-drag-ready', '1');
         map.addEventListener('pointerdown', function (event) {
           if (event.pointerType === 'mouse' && event.button !== 0) return;
           mapDragging = true;
           mapStartX = event.clientX;
           mapStartScroll = rail.scrollLeft;
+          mapStartOffset = buildingTrack ? Number(buildingTrack.getAttribute('data-building-offset')) || 0 : 0;
           map.classList.add('is-dragging');
           try { map.setPointerCapture(event.pointerId); } catch (ignore) {}
           event.preventDefault();
         });
         map.addEventListener('pointermove', function (event) {
           if (!mapDragging) return;
-          rail.scrollLeft = mapStartScroll - (event.clientX - mapStartX);
+          var deltaX = event.clientX - mapStartX;
+          if (buildingTrack) {
+            var minOffset = Number(buildingTrack.getAttribute('data-building-min-offset')) || 0;
+            var maxOffset = Number(buildingTrack.getAttribute('data-building-max-offset')) || 0;
+            var nextOffset = Math.max(minOffset, Math.min(maxOffset, mapStartOffset + deltaX));
+            buildingTrack.setAttribute('data-building-offset', nextOffset);
+            buildingTrack.setAttribute('transform', 'translate(' + nextOffset + ' 0)');
+          }
+          rail.scrollLeft = mapStartScroll - deltaX;
           event.preventDefault();
         });
         function stopMapDragging() {
