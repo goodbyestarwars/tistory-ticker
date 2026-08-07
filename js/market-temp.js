@@ -23,6 +23,9 @@
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var SECTOR_CARDS_API_URL = 'https://goodbyestar.cloud/sector-cards';
+  var GOOGLE_AUTH_START_URL = 'https://goodbyestar.cloud/auth/google/start';
+  var GOOGLE_AUTH_ME_URL = 'https://goodbyestar.cloud/auth/google/me';
+  var GOOGLE_AUTH_LOGOUT_URL = 'https://goodbyestar.cloud/auth/google/logout';
   var CONTAINER_SELECTOR = '#market-temp';
   // 2026-07-22: 8000 -> 20000. 캐시 미스 시 GAS가 VIX/미국선물/환율/52주신고저(VM)/전종목
   // 시세 등 9개 지표를 순차로 조회해 8초를 넘기기 일쑤였다 - 이때 클라이언트 fetch는
@@ -674,7 +677,34 @@
     }).join('');
   }
 
-  function buildSectorEditorHtml_(sectorMap) {
+  function fetchGoogleAuth_() {
+    return fetch(GOOGLE_AUTH_ME_URL, { credentials: 'include', cache: 'no-store' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('auth status HTTP ' + response.status);
+        return response.json();
+      })
+      .then(function (body) {
+        return body && body.data ? body.data : { configured: false, authenticated: false, isAdmin: false };
+      })
+      .catch(function () {
+        // Keep the legacy token UI available until the VM OAuth settings are deployed.
+        return { configured: false, authenticated: false, isAdmin: false };
+      });
+  }
+
+  function buildSectorEditorHtml_(sectorMap, authState) {
+    var googleAuthConfigured = !!(authState && authState.configured);
+    var authControls = googleAuthConfigured
+      ? '<div class="mt-sector-editor-auth"><span>' +
+        (authState.authenticated && authState.isAdmin
+          ? 'Google 로그인됨: ' + escapeHtml(authState.email || '')
+          : '관리자 Google 로그인이 필요합니다.') +
+        '</span>' +
+        (authState.authenticated && authState.isAdmin
+          ? '<button type="button" data-editor-action="google-logout">로그아웃</button>'
+          : '<button type="button" data-editor-action="google-login">Google로 로그인</button>') +
+        '</div>'
+      : '<input type="password" data-editor-role="admin-token" aria-label="저장용 관리자 토큰" placeholder="저장용 관리자 토큰" autocomplete="current-password">';
     var categories = Object.keys(sectorMap);
     var rows = categories.map(function (category, categoryIndex) {
       var stocks = Array.isArray(sectorMap[category]) ? sectorMap[category] : [];
@@ -709,7 +739,7 @@
       '<div class="mt-sector-editor-categories">' + rows + '</div>' +
       '<div class="mt-sector-editor-actions">' +
         '<button type="button" data-editor-action="add-category">+ 카테고리 추가</button>' +
-        '<input type="password" data-editor-role="admin-token" aria-label="저장용 관리자 토큰" placeholder="저장용 관리자 토큰" autocomplete="current-password">' +
+        authControls +
         '<button type="button" class="primary" data-editor-action="save">저장</button>' +
         '<button type="button" data-editor-action="cancel">취소</button>' +
       '</div>' +
@@ -750,8 +780,9 @@
   function renderSectorEditor_(panel, sectorMap, revision, onSaved) {
     var model = cloneSectorMap_(sectorMap);
     var tokenKey = 'sector-card-admin-token';
+    var authState = { configured: false, authenticated: false, isAdmin: false };
     var rerender = function () {
-      panel.innerHTML = buildSectorEditorHtml_(model);
+      panel.innerHTML = buildSectorEditorHtml_(model, authState);
       var savedToken = '';
       try { savedToken = sessionStorage.getItem(tokenKey) || ''; } catch (err) { /* ignore */ }
       var tokenEl = panel.querySelector('[data-editor-role="admin-token"]');
@@ -763,6 +794,10 @@
     };
 
     rerender();
+    fetchGoogleAuth_().then(function (nextAuthState) {
+      authState = nextAuthState;
+      rerender();
+    });
     var setCategoryCollapsed = function (categoryEl, collapsed) {
       categoryEl.classList.toggle('is-collapsed', collapsed);
       var toggle = categoryEl.querySelector('[data-editor-action="toggle-category"]');
@@ -776,7 +811,11 @@
       if (!actionEl) return;
       var action = actionEl.getAttribute('data-editor-action');
       try {
-        if (action === 'toggle-category') {
+        if (action === 'google-login') {
+          window.location.href = GOOGLE_AUTH_START_URL;
+        } else if (action === 'google-logout') {
+          window.location.href = GOOGLE_AUTH_LOGOUT_URL;
+        } else if (action === 'toggle-category') {
           var categoryEl = actionEl.closest('.mt-sector-editor-category');
           setCategoryCollapsed(categoryEl, !categoryEl.classList.contains('is-collapsed'));
         } else if (action === 'collapse-all' || action === 'expand-all') {
@@ -819,20 +858,31 @@
           if (onSaved && onSaved.cancel) onSaved.cancel();
         } else if (action === 'save') {
           var sectors = collectSectorMapFromEditor_(panel);
-          var token = (panel.querySelector('[data-editor-role="admin-token"]').value || '').trim();
-          if (!token) throw new Error('관리자 토큰을 입력하세요.');
-          setMessage('저장 중...', false);
-          fetch(SECTOR_CARDS_API_URL, {
+          var requestOptions = {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-API-Key': token },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sectors: sectors, revision: revision })
-          }).then(function (response) {
+          };
+          if (authState.configured) {
+            if (!authState.authenticated || !authState.isAdmin) throw new Error('Google 관리자 로그인을 먼저 하세요.');
+            requestOptions.credentials = 'include';
+          } else {
+            var tokenEl = panel.querySelector('[data-editor-role="admin-token"]');
+            var token = tokenEl ? (tokenEl.value || '').trim() : '';
+            if (!token) throw new Error('관리자 토큰을 입력하세요.');
+            requestOptions.headers['X-API-Key'] = token;
+          }
+          setMessage('저장 중...', false);
+          fetch(SECTOR_CARDS_API_URL, requestOptions).then(function (response) {
             return response.json().then(function (body) {
               if (!response.ok) throw new Error(body.detail || '저장에 실패했습니다.');
               return body;
             });
           }).then(function (body) {
-            try { sessionStorage.setItem(tokenKey, token); } catch (err) { /* ignore */ }
+            if (!authState.configured) {
+              var savedToken = panel.querySelector('[data-editor-role="admin-token"]');
+              try { sessionStorage.setItem(tokenKey, savedToken ? savedToken.value : ''); } catch (err) { /* ignore */ }
+            }
             invalidateSectorConfig_();
             if (typeof onSaved === 'function') onSaved(body.data);
             else if (onSaved && onSaved.saved) onSaved.saved(body.data);
