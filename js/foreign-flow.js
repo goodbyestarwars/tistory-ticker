@@ -3343,6 +3343,18 @@
       var spec = buildingSpecs[index];
       return building(spec.x, spec.width, band);
     }).join('');
+    var basement = '<g class="ff-apt-illustration-basement" role="group" aria-label="지하실">'
+      + '<path class="ff-apt-basement-shell" d="M218 390 H486 V414 H218 Z" />'
+      + '<path class="ff-apt-basement-ceiling" d="M218 390 H486" />'
+      + '<path class="ff-apt-basement-stair" d="M198 390 l18 24 M206 390 l18 24 M214 390 l18 24" />'
+      + '<rect class="ff-apt-basement-window" x="246" y="399" width="24" height="9" rx="1" />'
+      + '<rect class="ff-apt-basement-window" x="282" y="399" width="24" height="9" rx="1" />'
+      + '<rect class="ff-apt-basement-window" x="318" y="399" width="24" height="9" rx="1" />'
+      + '<rect class="ff-apt-basement-window" x="354" y="399" width="24" height="9" rx="1" />'
+      + '<rect class="ff-apt-basement-door" x="420" y="398" width="25" height="16" rx="1" />'
+      + '<circle class="ff-apt-basement-handle" cx="440" cy="406" r="1" />'
+      + '<text class="ff-apt-basement-label" x="366" y="388" text-anchor="middle">지하실</text>'
+      + '</g>';
     var profilePoints = [];
     for (var i = n - 1; i >= 0; i--) {
       profilePoints.push(Math.round(xForVolume(bins[i].volume) * 10) / 10 + ',' + Math.round(yForIndex(i) * 10) / 10);
@@ -3371,6 +3383,7 @@
       + '<g class="ff-apt-illustration-tag"><rect x="48" y="118" width="122" height="28" rx="6" /><text x="66" y="137">거래량 지도</text></g>'
       + '<g class="ff-apt-illustration-tag"><rect x="520" y="72" width="112" height="28" rx="6" /><text x="540" y="91">체결 흐름</text></g>'
       + skyline
+      + basement
       + '<path class="ff-apt-illustration-ground" d="M28 380 H680" />'
       + '<path class="ff-apt-illustration-ground" d="M28 390 H680" />'
       + '<path class="ff-apt-illustration-ribbon" d="M62 174 C136 154 202 194 274 174 S416 154 492 178 S586 198 654 170" />'
