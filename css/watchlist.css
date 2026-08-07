@@ -74,11 +74,58 @@
   font-weight: 700;
 }
 #watchlist .wl-auth { display:flex; align-items:center; gap:7px; margin-left:auto; color:#748095; font-size:11px; }
-#watchlist .wl-auth button { border:1px solid #d1d5db; border-radius:6px; background:#fff; color:#374151; padding:4px 7px; cursor:pointer; font:inherit; font-size:11px; }
-#watchlist .wl-login-gate { padding:28px 18px; border:1px solid #dbe3ef; border-radius:10px; background:#f8fafc; text-align:center; }
-#watchlist .wl-login-gate strong { display:block; color:#1f2937; font-size:14px; }
-#watchlist .wl-login-gate p { margin:7px 0 14px; color:#6b7280; font-size:12px; }
-#watchlist .wl-login-btn { border:1px solid #2563eb; border-radius:7px; background:#2563eb; color:#fff; padding:8px 12px; cursor:pointer; font:inherit; font-size:12px; }
+#watchlist .wl-auth button { border:1px solid #d1d5db; border-radius:7px; background:#fff; color:#374151; padding:5px 8px; cursor:pointer; font:inherit; font-size:11px; transition:border-color .15s ease, background .15s ease; }
+#watchlist .wl-auth button:hover { border-color:#aebbd0; background:#f8fafc; }
+#watchlist .wl-login-gate {
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr);
+  grid-template-rows:auto auto auto;
+  align-items:center;
+  gap:2px 11px;
+  padding:20px;
+  border:1px solid #dbe5f2;
+  border-radius:14px;
+  background:linear-gradient(135deg,#f7fbff 0%,#ffffff 72%);
+  box-shadow:0 8px 20px rgba(31,41,55,.05);
+  text-align:left;
+}
+#watchlist .wl-login-gate::before {
+  grid-column:1;
+  grid-row:1 / span 2;
+  content:"G";
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  border:1px solid #d6e2f2;
+  border-radius:11px;
+  background:#fff;
+  color:#4285f4;
+  font-family:Arial,sans-serif;
+  font-size:18px;
+  font-weight:700;
+  box-shadow:0 3px 10px rgba(66,133,244,.12);
+}
+#watchlist .wl-login-gate strong { grid-column:2; grid-row:1; display:block; color:#172033; font-size:14px; line-height:1.35; }
+#watchlist .wl-login-gate p { grid-column:2; grid-row:2; margin:0; color:#6b7280; font-size:12px; line-height:1.5; }
+#watchlist .wl-login-btn {
+  grid-column:1 / -1;
+  grid-row:3;
+  justify-self:stretch;
+  border:1px solid #2563eb;
+  border-radius:9px;
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:#fff;
+  padding:9px 12px;
+  cursor:pointer;
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  box-shadow:0 5px 12px rgba(37,99,235,.22);
+  transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+#watchlist .wl-login-btn:hover { background:linear-gradient(135deg,#1d4ed8,#1e40af); box-shadow:0 7px 14px rgba(37,99,235,.28); transform:translateY(-1px); }
+#watchlist .wl-login-btn:focus-visible { outline:3px solid rgba(37,99,235,.2); outline-offset:2px; }
 #watchlist .wl-group-add {
   margin-left: auto;
   border: 0;
@@ -282,8 +329,11 @@ html.dark #watchlist .wl-count { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #watchlist .wl-auth,
 html.dark #watchlist .wl-login-gate p { color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #watchlist .wl-auth button { background:#242424; border-color:rgba(245,239,224,.24); color:#f5efe0; }
-html.dark #watchlist .wl-login-gate { background:#242424; border-color:rgba(245,239,224,.24); }
+html.dark #watchlist .wl-auth button:hover { background:#2b2b2b; border-color:rgba(245,239,224,.38); }
+html.dark #watchlist .wl-login-gate { background:linear-gradient(135deg,#202b3a 0%,#242424 72%); border-color:rgba(245,239,224,.24); box-shadow:none; }
+html.dark #watchlist .wl-login-gate::before { background:#1a1a1a; border-color:rgba(245,239,224,.2); color:#8ab4f8; }
 html.dark #watchlist .wl-login-gate strong { color:#f5efe0; }
+html.dark #watchlist .wl-login-btn { background:linear-gradient(135deg,#3b82f6,#2563eb); border-color:#3b82f6; }
 html.dark #watchlist .wl-input {
   background: rgba(245, 239, 224, 0.06) !important;
   border-color: rgba(245, 239, 224, 0.25) !important;
