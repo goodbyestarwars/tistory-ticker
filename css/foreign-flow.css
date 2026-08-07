@@ -2494,6 +2494,19 @@ html.dark .ff-related-item:hover { background: rgba(245, 239, 224, 0.08) !import
 #foreign-flow .ff-apt-line-axis-label { fill: #64748b; font-size: 10px; font-variant-numeric: tabular-nums; }
 #foreign-flow .ff-apt-line-volume-label { fill: #94a3b8; font-size: 10px; }
 #foreign-flow .ff-apt-lineart-note { padding-top: 3px; color: #94a3b8; font-size: 10px; text-align: right; }
+#foreign-flow .ff-apt-meaning {
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  border: 1px solid #dbe4ec;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #526171;
+  font-size: 12px;
+  line-height: 1.7;
+}
+#foreign-flow .ff-apt-meaning strong { display: block; margin-bottom: 5px; color: #26384a; font-size: 13px; }
+#foreign-flow .ff-apt-meaning p { margin: 3px 0 0; }
+#foreign-flow .ff-apt-meaning b { color: #34495e; }
 html.dark #foreign-flow .ff-apt-line-art { background: linear-gradient(145deg, #1f252d, #171c23); border-color: rgba(245,239,224,.2); }
 html.dark #foreign-flow .ff-apt-lineart-head { color: #f5efe0; }
 html.dark #foreign-flow .ff-apt-lineart-head span { color: #ffad70; }
@@ -2503,6 +2516,9 @@ html.dark #foreign-flow .ff-apt-line-marker-label { stroke: #1f252d; }
 html.dark #foreign-flow .ff-apt-line-axis-label,
 html.dark #foreign-flow .ff-apt-line-volume-label,
 html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
+html.dark #foreign-flow .ff-apt-meaning { border-color: rgba(245,239,224,.18); background: #20262d; color: rgba(245,239,224,.7); }
+html.dark #foreign-flow .ff-apt-meaning strong,
+html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 
 @media (max-width: 640px) {
   #foreign-flow .ff-apt-line-art { min-height: 420px; padding: 10px 8px 8px; }

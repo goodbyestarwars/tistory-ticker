@@ -3567,6 +3567,11 @@
     return buildAptZoomButtons(stepIndex)
       + buildAptSummaryHtml(profile, periodLabel, avgPrice)
       + buildAptIllustratedLineArtHtml(profile, currentPrice, avgPrice)
+      + '<div class="ff-apt-meaning" role="note">'
+      + '<strong>매물대는 이렇게 읽습니다</strong>'
+      + '<p>가격별로 실제 체결 거래량이 얼마나 쌓였는지를 보여주는 지도입니다. 건물의 높이와 창문 밀도가 클수록 해당 가격에서 거래가 많이 일어났다는 뜻입니다.</p>'
+      + '<p><b>현재가</b>는 지금 가격, <b>평균단가</b>는 조회 기간의 거래량 가중 평균 가격, <b>중심 가격(POC)</b>은 거래량이 가장 많이 몰린 가격입니다. 현재가가 두꺼운 매물대 위에 있으면 지지, 아래에 있으면 저항으로 해석할 수 있지만 단독 매매 신호는 아닙니다.</p>'
+      + '</div>'
       + footnote;
   }
 
