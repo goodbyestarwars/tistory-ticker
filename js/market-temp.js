@@ -7,9 +7,8 @@
  * (gas/ticker-proxy.gs getMarketTemp), 응답에 recentDays(스파크라인용)와 지표별 band
  * (계산식 투명성용) 필드만 추가했다.
  *
- * 섹션 순서(2026-07-18 5차 기준): Hero+게이지(좌우 병합) -> AI 시장 브리핑(단독) -> 시장
- * 구성요소(표, 영향 큰 순 정렬) | 시장 레이더(좌우) -> 최근 7일 스파크라인 | 오늘 투자전략
- * (좌우) -> 온도 기준표(카드형) -> (기존 유지) 카드보기/히트맵보기/시총비례 탐색.
+ * 섹션 순서: Hero+최근 흐름 꼬리 -> 시장 구성요소(표) | 시장 레이더 -> 온도 기준표
+ * -> 시장 브리핑+오늘의 전략(마지막) -> (기존 유지) 카드보기/히트맵보기/시총비례 탐색.
  * "오늘 시장 영향요인 TOP5"는 시장 구성요소와 내용이 중복이라는 지적(5차)에 따라 별도
  * 섹션을 없애고 구성요소 표를 |기여도| 내림차순 정렬하는 것으로 흡수 통합함.
  *
@@ -36,6 +35,7 @@
   var FETCH_TIMEOUT_MS = 20000;
   var GAUGE_MAX_TEMP = 40; // 서버가 실제 만점(현재 110점) 기준으로 이미 0~40℃로 정규화해서 내려줌
   var sectorConfigPromise = null;
+  var sparklineId = 0;
 
   // unit: 'index'(그대로 표기) / 'pct'(부호 있는 % - 붉은/파란색) / 'pctDirect'(comp에 이미 %
   // 단위로 들어있는 값) / 'ratio'(상승·하락 종목수) / 'sectorCount'(섹터 강도) /
@@ -336,7 +336,7 @@
       // requestAnimationFrame이 안 도는 환경(백그라운드 탭에서 페이지가 로드되는 경우 등
       // 실제로 존재함, 로컬 테스트에서 rAF가 전혀 안 도는 것을 실측 확인)에서도 항상 올바른
       // 값이 보이게 하기 위함(count-up은 순수 시각효과, 실패해도 데이터는 정확해야 함).
-      + '<span class="mt-score" data-count-target="' + data.temp.toFixed(1) + '">' + data.temp.toFixed(1) + '<span class="mt-score-unit">℃</span></span>'
+      + '<span class="mt-score" style="--mt-score-color:' + grade.color + ';color:var(--mt-score-color)" data-count-target="' + data.temp.toFixed(1) + '">' + data.temp.toFixed(1) + '<span class="mt-score-unit">℃</span></span>'
       + '<span class="mt-grade-pill" style="background:' + grade.color + '22;color:' + grade.color + '">' + escapeHtml(grade.emoji) + ' ' + escapeHtml(grade.label) + '</span>'
       + '</div>'
       + '<div class="mt-hero-deltas">' + deltasHtml + '</div>'
@@ -353,8 +353,8 @@
 
   function buildAiBriefingShell() {
     return ''
-      + '<div class="mt-card mt-ai-card">'
-      + '<div class="mt-card-title">📰 시장 브리핑</div>'
+      + '<div class="mt-briefing-panel">'
+      + '<div class="mt-briefing-panel-title">📰 시장 브리핑</div>'
       + '<div id="mtAiBriefing"><div class="mt-hint mt-hint-inline">브리핑 생성 중...</div></div>'
       + '</div>';
   }
@@ -438,7 +438,7 @@
       + '</div>';
   }
 
-  // ---- ⑥ 최근 7일 스파크라인 ----
+  // ---- ⑥ 최근 7일 흐름 ----
 
   function buildSparkline(data, compact) {
     var days = data.recentDays || [];
@@ -479,30 +479,61 @@
       var y = H - PAD - ((d.temp - min) / range) * (H - PAD * 2);
       return { x: x, y: y, temp: d.temp, date: d.date };
     });
+    var pointGrades = points.map(function (p) { return gradeForTempClient_(p.temp); });
+    var averageTemp = temps.reduce(function (sum, value) { return sum + value; }, 0) / temps.length;
+    var averageGrade = gradeForTempClient_(averageTemp);
+    var averageColor = averageGrade.color || '#888';
+    var firstTemp = temps[0];
+    var currentTemp = temps[temps.length - 1];
+    var trendDelta = Math.round((currentTemp - firstTemp) * 10) / 10;
+    var trendTone = trendDelta > 0 ? 'mt-val-pos' : trendDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
+    var trendArrow = trendDelta > 0 ? '▲' : trendDelta < 0 ? '▼' : '—';
     var pathD = points.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
-    var lastColor = (GRADE_BY_TONE[gradeForTempClient_(temps[temps.length - 1]).tone] || {}).color || '#888';
+    var areaD = pathD + ' L' + points[points.length - 1].x.toFixed(1) + ',' + (H - PAD) + ' L' + points[0].x.toFixed(1) + ',' + (H - PAD) + ' Z';
+    var gradientId = 'mt-spark-area-' + (++sparklineId);
+    var gridLines = [0.25, 0.5, 0.75].map(function (ratio) {
+      var y = (PAD + (H - PAD * 2) * ratio).toFixed(1);
+      return '<line class="mt-spark-grid-line" x1="' + PAD + '" y1="' + y + '" x2="' + (W - PAD) + '" y2="' + y + '"></line>';
+    }).join('');
+    var segmentPaths = points.slice(1).map(function (p, i) {
+      var previous = points[i];
+      var segmentTemp = (previous.temp + p.temp) / 2;
+      var segmentColor = gradeForTempClient_(segmentTemp).color || '#888';
+      return '<path class="mt-spark-segment mt-spark-draw" d="M' + previous.x.toFixed(1) + ',' + previous.y.toFixed(1) + ' L' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + '" stroke="' + segmentColor + '"></path>';
+    }).join('');
     var dots = points.map(function (p, i) {
       var isLast = i === points.length - 1;
-      return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isLast ? 4 : 2.5) + '" fill="' + lastColor + '"'
-        + (isLast ? '' : ' opacity="0.5"') + '><title>' + escapeHtml(p.date) + ' ' + p.temp.toFixed(1) + '℃</title></circle>';
+      var pointColor = pointGrades[i].color || '#888';
+      return '<circle class="' + (isLast ? 'mt-spark-current-dot' : 'mt-spark-dot') + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isLast ? 5 : 3.5) + '" fill="' + pointColor + '"'
+        + '><title>' + escapeHtml(p.date) + ' ' + p.temp.toFixed(1) + '℃</title></circle>';
     }).join('');
-    var summaryPoints = [
-      { label: points.length >= 7 ? '1주 전' : '시작일', point: points[0] },
-      { label: '어제', point: points[Math.max(0, points.length - 2)] },
-      { label: '오늘', point: points[points.length - 1], current: true }
-    ];
+    var summaryPoints = [];
+    if (points.length > 2) summaryPoints.push({ label: points.length >= 7 ? '1주 전' : '시작일', point: points[0] });
+    if (points.length > 1) summaryPoints.push({ label: '어제', point: points[points.length - 2] });
+    summaryPoints.push({ label: '오늘', point: points[points.length - 1], current: true });
     var recentLabels = summaryPoints.map(function (item) {
-      return '<span' + (item.current ? ' class="is-current"' : '') + '>' + item.label + ' <b>' + item.point.temp.toFixed(1) + '</b></span>';
+      var itemColor = gradeForTempClient_(item.point.temp).color || '#888';
+      return '<span' + (item.current ? ' class="is-current"' : '') + '><i style="background:' + itemColor + '"></i>' + item.label + ' <b style="color:' + itemColor + '">' + item.point.temp.toFixed(1) + '</b></span>';
     }).join('');
+    var metricsHtml = '<div class="mt-history-metrics">'
+      + '<span><small>7일 평균</small><b style="color:' + averageColor + '">' + averageTemp.toFixed(1) + '℃</b></span>'
+      + '<span><small>최저</small><b style="color:' + (gradeForTempClient_(min).color || '#888') + '">' + min.toFixed(1) + '℃</b></span>'
+      + '<span><small>최고</small><b style="color:' + (gradeForTempClient_(max).color || '#888') + '">' + max.toFixed(1) + '℃</b></span>'
+      + '<span><small>시작 대비</small><b class="' + trendTone + '">' + trendArrow + ' ' + Math.abs(trendDelta).toFixed(1) + '℃</b></span>'
+      + '</div>';
 
     return ''
       + '<div class="' + frameClass + '">'
-      + titleHtml('📈 최근 ' + days.length + '일 흐름')
+      + '<div class="mt-history-tail-head"><div class="mt-card-title">📈 최근 ' + days.length + '일 흐름</div><span class="mt-history-tail-summary" style="color:' + averageColor + '">평균 ' + averageTemp.toFixed(1) + '℃</span></div>'
       + '<svg class="mt-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">'
-      + '<path class="mt-spark-path mt-spark-draw" d="' + pathD + '" fill="none" stroke="' + lastColor + '" stroke-width="2.5"></path>'
+      + '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + averageColor + '" stop-opacity=".22"></stop><stop offset="100%" stop-color="' + averageColor + '" stop-opacity="0"></stop></linearGradient></defs>'
+      + gridLines
+      + '<path class="mt-spark-area" d="' + areaD + '" fill="url(#' + gradientId + ')"></path>'
+      + segmentPaths
       + dots
       + '</svg>'
       + '<div class="mt-spark-labels">' + recentLabels + '</div>'
+      + metricsHtml
       + '</div>';
   }
 
@@ -580,16 +611,23 @@
   function buildStrategy(grade) {
     var s = STRATEGY_BY_TONE[grade.tone] || STRATEGY_BY_TONE.neutral;
     return ''
-      // 2026-07-18(4차): 등급색 왼쪽 강조선 제거(사용자 피드백 - AI브리핑 카드와 같은
-      // "AI가 만든 티" 나는 요소라 앞서 그쪽도 뺐었는데 여기 남아있던 걸 마저 제거).
-      + '<div class="mt-card mt-strategy-card">'
-      + '<div class="mt-card-title">🎯 오늘의 전략</div>'
+      + '<div class="mt-strategy-panel">'
+      + '<div class="mt-strategy-panel-title">🎯 오늘의 전략</div>'
       + '<div class="mt-strategy-action ' + s.actionTone + '">' + escapeHtml(s.action) + '</div>'
       + '<div class="mt-strategy-bars">'
       + '<div class="mt-strategy-bar-row"><span>주식비중</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill" style="width:' + s.stock + '%;background:' + grade.color + '"></div></div><b>' + s.stock + '%</b></div>'
       + '<div class="mt-strategy-bar-row"><span>현금</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill mt-strategy-bar-cash" style="width:' + s.cash + '%"></div></div><b>' + s.cash + '%</b></div>'
       + '</div>'
       + '<div class="mt-strategy-note">⚠ ' + escapeHtml(s.note) + '</div>'
+      + '</div>';
+  }
+
+  function buildBriefingStrategy(grade) {
+    return '<div class="mt-section mt-card mt-briefing-strategy-card">'
+      + '<div class="mt-briefing-strategy-grid">'
+      + buildAiBriefingShell()
+      + buildStrategy(grade)
+      + '</div>'
       + '</div>';
   }
 
@@ -1110,9 +1148,8 @@
 
     var sections = [
       buildHeroCard(data),                          // ① 오늘의 온도 | 과거→오늘 흐름 꼬리
-      '<div class="mt-section">' + buildAiBriefingShell() + '</div>', // ② AI 시장 브리핑(5차: TOP5 병합으로 단독 배치, 폭 넓어져 가독성 개선)
-      row2col(buildBars(data), buildRadar(data)),   // ③ 시장 구성요소(표) | 시장 레이더 (좌우)
-      '<div class="mt-section">' + buildStrategy(grade) + '</div>', // ④ 오늘의 전략
+      row2col(buildBars(data), buildRadar(data)),   // ② 시장 구성요소(표) | 시장 레이더 (좌우)
+      buildBriefingStrategy(grade),                 // ③ 시장 브리핑 + 오늘의 전략(마지막)
     ];
 
     return ''
@@ -1179,13 +1216,20 @@
     // 스파크라인 draw-on-load(stroke-dasharray 트릭). rAF가 안 도는 환경(백그라운드 탭 등)
     // 에서 선이 영원히 안 그려진 채로 남는 걸 막기 위해 setTimeout 안전장치를 같이 건다
     // (countUp과 동일한 이유 - 위 주석 참고).
-    var sparkPath = container.querySelector('.mt-spark-draw');
-    if (sparkPath && sparkPath.getTotalLength) {
-      var len = sparkPath.getTotalLength();
+    var sparkPaths = container.querySelectorAll('.mt-spark-draw');
+    if (sparkPaths.length) {
       var revealed = false;
-      function reveal() { if (revealed) return; revealed = true; sparkPath.style.strokeDashoffset = '0'; }
-      sparkPath.style.strokeDasharray = len;
-      sparkPath.style.strokeDashoffset = len;
+      function reveal() {
+        if (revealed) return;
+        revealed = true;
+        sparkPaths.forEach(function (path) { path.style.strokeDashoffset = '0'; });
+      }
+      sparkPaths.forEach(function (path) {
+        if (!path.getTotalLength) return;
+        var len = path.getTotalLength();
+        path.style.strokeDasharray = len;
+        path.style.strokeDashoffset = len;
+      });
       requestAnimationFrame(function () { requestAnimationFrame(reveal); });
       setTimeout(reveal, 1000);
     }
