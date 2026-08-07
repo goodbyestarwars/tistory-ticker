@@ -359,12 +359,11 @@
 #market-temp .mt-strategy-action { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
 #market-temp .mt-strategy-action.mt-val-zero {
   border: 0;
-  border-left: 4px solid #FFD54F;
-  border-radius: 10px;
-  padding: 11px 14px 11px 18px;
-  background: linear-gradient(90deg, rgba(255, 213, 79, .2), rgba(255, 213, 79, .06));
+  border-radius: 0;
+  padding: 0 0 12px;
+  background: transparent;
   box-shadow: none;
-  color: #8b741d;
+  color: #888;
   text-align: left;
 }
 #market-temp .mt-strategy-bars { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
@@ -594,9 +593,10 @@ html.dark #market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: 
 html.dark #market-temp .mt-strategy-note { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #market-temp .mt-strategy-action.mt-val-zero {
   border: 0 !important;
-  border-left: 4px solid #e6c95b !important;
-  background: rgba(255, 213, 79, .12) !important;
-  color: #e6c95b !important;
+  border-radius: 0 !important;
+  padding: 0 0 12px !important;
+  background: transparent !important;
+  color: rgba(245, 239, 224, 0.65) !important;
   box-shadow: none !important;
 }
 
