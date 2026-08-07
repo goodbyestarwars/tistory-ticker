@@ -1079,7 +1079,7 @@
 
     var vmUrl = KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code) + '?days=' + days;
     function fetchFromVm() {
-      return fetchJson(vmUrl).then(function (envelope) {
+      return fetchJson(vmUrl, 60000).then(function (envelope) {
         var data = envelope && envelope.data;
         if (!data || data.error) throw new Error('VM 수급 데이터 없음');
         return data;
@@ -1244,10 +1244,11 @@
     return p;
   }
 
-  function fetchJson(url) {
+  function fetchJson(url, timeoutMs) {
+    timeoutMs = timeoutMs || FETCH_TIMEOUT_MS;
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
 
     return fetch(url, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
@@ -3590,7 +3591,10 @@
   // 이 실제 체결가 뷰 하나로 통일했다(computeVolumeProfile 자체는 차트 탭 매물대
   // 오버레이(addVolumeProfileOverlay)가 여전히 써서 남겨둠).
   function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice) {
-    var footnote = '<div class="ff-footnote">※ 한국투자 API(실제 체결가·체결거래량)로 만든 매물대입니다. 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>'
+    var sourceText = profile.source === 'ohlc-estimate'
+      ? '※ 실제 체결가 API가 응답하지 않아 일봉 고가·저가·거래량 기반의 근사 매물대를 표시합니다.'
+      : '※ 한국투자 API(실제 체결가·체결거래량)로 만든 매물대입니다.';
+    var footnote = '<div class="ff-footnote">' + sourceText + ' 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>'
       + (daysIncluded || 1) + '거래일</b>치가 반영돼 있어요(뜸하게 조회된 종목은 며칠치만 있을 수 있음, 최대 ' + APT_LOOKBACK_DAYS + '일).</div>';
     var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
     return buildAptZoomButtons(stepIndex)
@@ -3637,6 +3641,26 @@
         realAptCache[code] = { t: Date.now(), bins: result.bins, daysIncluded: result.daysIncluded, avgPrice: result.avgPrice };
         return result;
       });
+  }
+
+  // KIS 가격대 API가 휴장일·장 시작 전·일시적인 호출 제한으로 실패해도
+  // OHLC에 거래량이 있으면 근사 매물대를 표시한다. 실제 체결가와 섞지 않고
+  // 결과에 출처를 남겨 화면에서 구분한다.
+  function buildApproxVolumeProfile(daily, binCount) {
+    var profile = computeVolumeProfile(daily, APT_LOOKBACK_DAYS, binCount);
+    if (!profile) return null;
+    var total = profile.bins.reduce(function (sum, bin) { return sum + Math.max(0, Number(bin.volume) || 0); }, 0);
+    var avg = total > 0 ? profile.bins.reduce(function (sum, bin) {
+      return sum + ((Number(bin.low) + Number(bin.high)) / 2) * (Math.max(0, Number(bin.volume) || 0));
+    }, 0) / total : null;
+    return {
+      bins: profile.bins.map(function (bin) {
+        return { price: (Number(bin.low) + Number(bin.high)) / 2, volume: Number(bin.volume) || 0 };
+      }),
+      daysIncluded: profile.days,
+      avgPrice: avg,
+      source: 'ohlc-estimate'
+    };
   }
 
   // 실제 체결가 매물대는 이미 실제 가격×체결거래량 쌍(pbar-tratio, 실제 호가단위로 옴)이다.
@@ -3688,12 +3712,28 @@
       if (!dynamic) return;
       fetchRealVolumeProfile(code, APT_LOOKBACK_DAYS).then(function (result) {
         var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
+        if (!profile) throw new Error('실제 체결 데이터가 비어 있습니다.');
+        profile.source = result.source || 'kis-pbar';
         dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded, result.avgPrice);
         wireZoom();
         wireBinRail();
         playAptEntrance(card);
       }).catch(function () {
-        dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 불러오지 못했어요.</div>';
+        var fallback = buildApproxVolumeProfile(chartDaily, APT_BIN_STEPS[stepIndex]);
+        if (!fallback) {
+          dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 불러오지 못했어요. 거래량 데이터가 없습니다.</div>';
+          return;
+        }
+        var fallbackProfile = computeRealVolumeProfile(fallback.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
+        if (!fallbackProfile) {
+          dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 계산할 거래량 데이터가 없습니다.</div>';
+          return;
+        }
+        fallbackProfile.source = fallback.source;
+        dynamic.innerHTML = buildAptDynamicHtml(fallbackProfile, currentPrice, stepIndex, fallback.daysIncluded, fallback.avgPrice);
+        wireZoom();
+        wireBinRail();
+        playAptEntrance(card);
       });
     }
 
