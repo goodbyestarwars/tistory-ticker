@@ -3153,11 +3153,84 @@
   // JS에서 픽셀로 직접 계산하는 유일한 기준값이다(CSS를 바꾸면 이 값도 같이 바꿀 것).
   var APT_ROW_HEIGHT = 20;
 
+  // 데이터 호환용 레거시 아파트 렌더러. 현재 화면은 아래 라인아트 렌더러를 사용한다.
+  function buildAptLineArtHtml(profile, currentPrice, avgPrice) {
+    if (!profile || !profile.bins || !profile.bins.length) {
+      return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
+    }
+    var bins = profile.bins;
+    var n = bins.length;
+    var maxVolume = Number(profile.maxVolume) || 0;
+    var curIdx = aptBinIndex(profile, currentPrice);
+    var avgIdx = aptBinIndex(profile, avgPrice);
+    var pocIdx = profile.pocIndex >= 0 && profile.pocIndex < n ? profile.pocIndex : -1;
+    var left = 94, right = 468, top = 58, bottom = 466;
+    var plotHeight = bottom - top;
+
+    function yForIndex(index) {
+      return top + ((n - 1 - index) / Math.max(1, n - 1)) * plotHeight;
+    }
+    function xForVolume(volume) {
+      var ratio = maxVolume > 0 ? Math.max(0, Math.min(1, Number(volume) / maxVolume)) : 0;
+      return left + ratio * (right - left);
+    }
+    function priceText(value) {
+      return value == null || isNaN(value) ? '-' : Math.round(value).toLocaleString('ko-KR');
+    }
+    function marker(index, color, label, value) {
+      if (index < 0 || index >= n) return '';
+      var y = yForIndex(index);
+      return '<line class="ff-apt-line-marker" x1="' + (left - 12) + '" x2="' + right + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
+        + '<circle class="ff-apt-line-marker-dot" cx="' + (left - 12) + '" cy="' + y + '" r="4" fill="' + color + '" />'
+        + '<text class="ff-apt-line-marker-label" x="' + (left + 8) + '" y="' + (y - 7) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
+    }
+
+    var gridHtml = '';
+    for (var i = 0; i < n; i++) {
+      var gy = yForIndex(i);
+      gridHtml += '<line class="ff-apt-line-grid" x1="' + left + '" x2="' + right + '" y1="' + gy + '" y2="' + gy + '" />';
+    }
+
+    var points = [];
+    for (var j = n - 1; j >= 0; j--) {
+      var bin = bins[j];
+      points.push(Math.round(xForVolume(bin.volume) * 10) / 10 + ',' + Math.round(yForIndex(j) * 10) / 10);
+    }
+    var profilePath = points.length ? 'M' + points.join(' L') : '';
+    var fillPath = profilePath ? profilePath + ' L' + left + ',' + bottom + ' L' + left + ',' + top + ' Z' : '';
+    var high = bins[n - 1];
+    var middle = bins[Math.floor((n - 1) / 2)];
+    var low = bins[0];
+    var labelHtml = ''
+      + '<text class="ff-apt-line-axis-label" x="12" y="' + (top + 4) + '">' + priceText(high.high) + '원</text>'
+      + '<text class="ff-apt-line-axis-label" x="12" y="' + (yForIndex(Math.floor((n - 1) / 2)) + 4) + '">' + priceText((middle.low + middle.high) / 2) + '원</text>'
+      + '<text class="ff-apt-line-axis-label" x="12" y="' + (bottom + 4) + '">' + priceText(low.low) + '원</text>';
+    var pocText = pocIdx >= 0 && bins[pocIdx] ? priceText((bins[pocIdx].low + bins[pocIdx].high) / 2) + '원' : '-';
+
+    return '<div class="ff-apt-chart-wrap ff-apt-line-art" role="img" aria-label="가격대별 거래량 매물대 라인아트">'
+      + '<div class="ff-apt-lineart-head"><strong>가격대별 거래량 라인</strong><span>POC ' + pocText + '</span></div>'
+      + '<svg class="ff-apt-lineart-svg" viewBox="0 0 520 520" preserveAspectRatio="none" aria-hidden="true">'
+      + '<title>가격대별 거래량 매물대 라인아트</title>'
+      + '<desc>가격이 높아질수록 위로 표시되며 선의 오른쪽 끝이 해당 가격대 거래량입니다.</desc>'
+      + '<line class="ff-apt-line-axis" x1="' + left + '" x2="' + left + '" y1="' + top + '" y2="' + bottom + '" />'
+      + gridHtml
+      + labelHtml
+      + '<path class="ff-apt-line-fill" d="' + fillPath + '" />'
+      + '<path class="ff-apt-line-profile" d="' + profilePath + '" />'
+      + marker(curIdx, '#d24f45', '현재가', currentPrice)
+      + marker(avgIdx, '#1971c2', '평균', avgPrice)
+      + (pocIdx >= 0 ? marker(pocIdx, '#e8590c', 'POC', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
+      + '<text class="ff-apt-line-volume-label" x="' + right + '" y="' + (bottom + 30) + '" text-anchor="end">거래량 →</text>'
+      + '</svg>'
+      + '<div class="ff-apt-lineart-note">선의 길이 = 가격대별 체결거래량 · 점선 = 가격 구간</div>'
+      + '</div>';
+  }
+
   // "주가가 사는 아파트"라는 컨셉(옥상 헬리패드+헬기, 층마다 가격 옆 미니 창문 아이콘, 구간
   // 안내판에 가격범위 부기, 현재가 말풍선+좌우 강조선, 현재층→지하실로 이어지는 사다리, 로비/
   // 지하실 장식)은 그대로 유지하고, 각 층의 막대만 매수/매도 듀얼 바에서 거래량 단일 바로
   // 바꿨다(2026-08-02, 위 헤더 주석 참고) - POC(거래량 최다 구간)만 강조색으로 표시한다.
-  function buildAptChartHtml(profile, currentPrice, avgPrice) {
+  function buildAptChartHtmlLegacy(profile, currentPrice, avgPrice) {
     if (!profile) {
       return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
     }
@@ -3292,7 +3365,7 @@
     var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
     return buildAptZoomButtons(stepIndex)
       + buildAptSummaryHtml(profile, periodLabel, avgPrice)
-      + buildAptChartHtml(profile, currentPrice, avgPrice)
+      + buildAptLineArtHtml(profile, currentPrice, avgPrice)
       + footnote;
   }
 
@@ -3903,11 +3976,13 @@
       // 않고 시리즈별 포맷을 적용해야 우측 값이 가격처럼 보이지 않고 K/M/B로 축약된다.
       var volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' },
-        priceScaleId: '',
-        lastValueVisible: true,
-        priceLineVisible: true
+        priceScaleId: 'volume',
+        lastValueVisible: false,
+        priceLineVisible: false
       });
-      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 } });
+      // 거래량용 overlay 축은 가격 축과 분리하고 눈금/마지막 값은 감춘다. 그래야
+      // 거래량 영역 오른쪽에 가격 formatter가 붙는 현상이 사라진다.
+      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 }, visible: false, borderVisible: false });
       volumeSeries.setData(daily.map(function (d) {
         return {
           time: d.date,
@@ -3920,7 +3995,7 @@
       var volumeMaSeries = chart.addLineSeries({
         color: '#3b82f6',
         lineWidth: 2,
-        priceScaleId: '',
+        priceScaleId: 'volume',
         priceFormat: { type: 'volume' },
         lastValueVisible: false,
         priceLineVisible: false,

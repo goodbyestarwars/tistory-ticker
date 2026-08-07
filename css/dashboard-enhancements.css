@@ -67,18 +67,18 @@
 .de-custom-delete { color: #a35d5d; }
 .de-custom-empty { grid-column: 1 / -1; padding: 10px; color: #9aa5b1; font-size: 12px; text-align: center; }
 
-.de-expand-button { position: relative; z-index: 7; float: right; margin-left: 8px; border: 1px solid #dce3eb; border-radius: 999px; padding: 4px 9px; background: rgba(255,255,255,.92); color: #5f6b78; cursor: pointer; font: inherit; font-size: 10.5px; white-space: nowrap; }
+.de-expand-button { position: relative; z-index: 7; float: right; margin-left: 8px; border: 1px solid #cfd9e5; border-radius: 999px; padding: 6px 11px; background: rgba(255,255,255,.96); color: #405266; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 8px rgba(30,48,67,.08); }
 .de-expand-button:hover { border-color: #315b43; color: #315b43; }
 #foreign-flow .ff-apt-chart-wrap > .de-expand-button { position: absolute; top: 8px; right: 8px; }
 #foreign-flow .ff-apt-chart-wrap { padding-top: 30px; }
-#foreign-flow .ff-chart-candle { height: 560px !important; }
-#stock-search .ss-chart { height: 560px; }
-#kospi-futures .kf-chart { height: 560px !important; }
+#foreign-flow .ff-chart-candle { height: 640px !important; }
+#stock-search .ss-chart { height: 640px; }
+#kospi-futures .kf-chart { height: 640px !important; }
 .de-chart-overlay { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(8, 13, 20, .72); }
-.de-chart-modal { display: flex; flex-direction: column; width: min(1280px, 100%); max-height: calc(100vh - 36px); overflow: hidden; border-radius: 14px; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.35); }
+.de-chart-modal { display: flex; flex-direction: column; width: min(1480px, 100%); height: min(94vh, 100%); max-height: calc(100vh - 36px); overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.35); }
 .de-chart-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #e5e9ef; color: #25303b; font-size: 14px; }
 .de-chart-close { border: 0; background: transparent; color: #7e8995; cursor: pointer; font-size: 16px; }
-.de-chart-modal-body { min-height: 0; overflow: auto; padding: 10px 14px 14px; }
+.de-chart-modal-body { display: flex; min-height: 0; flex: 1 1 auto; overflow: auto; padding: 10px 14px 14px; }
 .de-chart-modal-body > #ffLwChart, .de-chart-modal-body > #ssChart, .de-chart-modal-body > .kf-chart { width: 100%; }
 .de-chart-placeholder { display: none; }
 html.dark .de-custom-card-toolbar, html.dark .de-custom-editor, html.dark .de-custom-card, html.dark .de-chart-modal { background: #1A1A1A; border-color: rgba(245,239,224,.2); }
@@ -89,8 +89,8 @@ html.dark .de-custom-add { background: #1A1A1A; color: #9bd4ad; border-color: #9
 html.dark .de-chart-modal-body { background: #1A1A1A; }
 
 @media (max-width: 720px) {
-  #foreign-flow .ff-chart-candle, #stock-search .ss-chart, #kospi-futures .kf-chart { height: 460px !important; }
+  #foreign-flow .ff-chart-candle, #stock-search .ss-chart, #kospi-futures .kf-chart { height: 520px !important; }
   .de-chart-overlay { padding: 8px; }
-  .de-chart-modal { max-height: calc(100vh - 16px); }
+  .de-chart-modal { height: calc(100vh - 16px); max-height: calc(100vh - 16px); border-radius: 12px; }
   .de-custom-card-toolbar { align-items: flex-start; flex-direction: column; }
 }

@@ -972,11 +972,13 @@
       // 텍스트로 보여주고 있어 중복이라, 다른 보조지표 시리즈(MA/일목균형표)와 동일하게 끈다.
       var volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' },
-        priceScaleId: '',
+        priceScaleId: 'volume',
         lastValueVisible: false,
         priceLineVisible: false
       });
-      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 } });
+      // 거래량은 가격과 별도 overlay 축을 쓰고 축 자체는 숨긴다. 기본 overlay 축('')을
+      // 공유하면 차트 localization의 가격 formatter가 거래량 눈금에 붙는 경우가 있다.
+      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 }, visible: false, borderVisible: false });
       volumeSeries.setData(bars.map(function (d) {
         return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
       }));
@@ -985,7 +987,7 @@
       var volumeMaSeries = chart.addLineSeries({
         color: '#3b82f6',
         lineWidth: 2,
-        priceScaleId: '',
+        priceScaleId: 'volume',
         priceFormat: { type: 'volume' },
         lastValueVisible: false,
         priceLineVisible: false,

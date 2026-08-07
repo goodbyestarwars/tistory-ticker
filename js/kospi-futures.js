@@ -62,7 +62,7 @@
 
   var PANEL_ORDER = ['KOSPI200_DAY', 'KOSPI200_NIGHT'];
   var PANEL_LABELS = {
-    KOSPI200_DAY: '코스피200 주간선물',
+    KOSPI200_DAY: '코스피200 주간선물 (09:00~15:45)',
     KOSPI200_NIGHT: '코스피200 야간선물 (18:00~06:00)'
   };
   // buildStatBody/updateMarketStatusBadges가 심볼 -> 세션 종류를 찾을 때 쓴다(아래 isMarketOpen).
@@ -77,7 +77,7 @@
   // 2026-07-16: 야간선물도 분봉 지원 추가 - 처음엔 KIS에 소스가 없다고 판단했었으나 공식
   // 예제 저장소에서 TR(FHKIF03020200)을 찾아 실측 확인함(night_futures_ws.py 참고).
   var CHARTS = [
-    { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: '코스피200 주간선물', intervals: ['minute', 'day', 'week'] },
+    { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: '코스피200 주간선물 (09:00~15:45)', intervals: ['minute', 'day', 'week'] },
     { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '코스피200 야간선물 (18:00~06:00)', intervals: ['minute', 'day', 'week'] }
   ];
   var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
@@ -218,6 +218,59 @@
     return eveningOpen || earlyMorningOpen;
   }
 
+  // 한국거래소 파생상품 야간장은 세션 시작일이 휴일이면 열리지 않는다. 날짜 계산은
+  // 방문자 로컬 타임존이 아니라 KST 기준으로 고정하고, 공휴일은 매년 거래소 일정에
+  // 맞춰 갱신할 수 있도록 연도별 목록으로 둔다. 주말은 목록을 보완하는 휴장일로 처리한다.
+  var KRX_HOLIDAYS = {
+    '2026': {
+      '20260101': true, '20260216': true, '20260217': true, '20260218': true,
+      '20260301': true, '20260302': true, '20260501': true, '20260505': true,
+      '20260525': true, '20260603': true, '20260606': true, '20260717': true,
+      '20260815': true, '20260817': true, '20260924': true, '20260925': true,
+      '20260926': true, '20261003': true, '20261005': true, '20261009': true,
+      '20261225': true, '20261231': true
+    }
+  };
+
+  function kstDateParts() {
+    var kst = new Date(Date.now() + 9 * 60 * 60000);
+    return {
+      year: kst.getUTCFullYear(),
+      month: kst.getUTCMonth() + 1,
+      date: kst.getUTCDate(),
+      day: kst.getUTCDay(),
+      mins: kst.getUTCHours() * 60 + kst.getUTCMinutes()
+    };
+  }
+
+  function dateKey(parts) {
+    return String(parts.year) + String(parts.month).padStart(2, '0') + String(parts.date).padStart(2, '0');
+  }
+
+  function previousDateParts(parts) {
+    var previous = new Date(Date.UTC(parts.year, parts.month - 1, parts.date - 1));
+    return {
+      year: previous.getUTCFullYear(),
+      month: previous.getUTCMonth() + 1,
+      date: previous.getUTCDate(),
+      day: previous.getUTCDay(),
+      mins: parts.mins
+    };
+  }
+
+  function isKrxHoliday(parts) {
+    if (parts.day === 0 || parts.day === 6) return true;
+    var yearHolidays = KRX_HOLIDAYS[String(parts.year)];
+    return !!(yearHolidays && yearHolidays[dateKey(parts)]);
+  }
+
+  function isSessionHoliday(panelKey) {
+    var now = kstDateParts();
+    // 야간선물 00:00~06:00 구간은 전날 저녁에 시작한 세션이므로 전날을 판정한다.
+    var sessionDate = panelKey === 'night' && now.mins < 6 * 60 ? previousDateParts(now) : now;
+    return isKrxHoliday(sessionDate);
+  }
+
   // 가격 fetch 성공/실패와 무관하게(시각은 API 응답 없이도 계산 가능) 항상 최신 상태를
   // 반영하도록 배지 갱신을 렌더 결과가 아니라 별도 타이머(REFRESH_INTERVAL_MS)로 돌린다.
   function updateMarketStatusBadges(container) {
@@ -225,7 +278,11 @@
       var badge = container.querySelector('.kf-stat-status[data-symbol="' + symbol + '"]');
       if (!badge) return;
       var panelKey = PANEL_KEY_BY_SYMBOL[symbol];
-      badge.textContent = panelKey && !isMarketOpen(panelKey) ? '(장 마감)' : '';
+      if (!panelKey || isMarketOpen(panelKey)) {
+        badge.textContent = '';
+      } else {
+        badge.textContent = isSessionHoliday(panelKey) ? '(휴장)' : '(장 마감)';
+      }
     });
   }
 
