@@ -201,6 +201,72 @@ html.dark .de-custom-input, html.dark .de-custom-emoji, html.dark .de-custom-col
 html.dark .de-custom-add { background: #1A1A1A; color: #9bd4ad; border-color: #9bd4ad; }
 html.dark .de-chart-modal-body { background: #1A1A1A; }
 
+/* A small illustrated thermometer for the market-temperature hero. */
+#market-temp .mt-hero-main { align-items: center; }
+#market-temp .mt-thermometer-art {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 72px;
+  flex: 0 0 30px;
+  margin-right: 2px;
+  border: 3px solid #68747a;
+  border-radius: 18px 18px 12px 12px;
+  background: #f6f8f8;
+  box-sizing: border-box;
+}
+#market-temp .mt-thermometer-art::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  width: 8px;
+  height: 43px;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  background: #e5e9e8;
+}
+#market-temp .mt-thermometer-art::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 27px;
+  height: 27px;
+  transform: translateX(-50%);
+  border: 3px solid #68747a;
+  border-radius: 50%;
+  background: #f6f8f8;
+  box-sizing: border-box;
+}
+#market-temp .mt-thermometer-mercury {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 8px;
+  width: 8px;
+  height: 31px;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  background: #7f9baa;
+}
+#market-temp .mt-thermometer-mercury::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -13px;
+  width: 19px;
+  height: 19px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: inherit;
+}
+#market-temp .mt-wrap.mt-tone-extreme-fear .mt-thermometer-mercury,
+#market-temp .mt-wrap.mt-tone-fear .mt-thermometer-mercury { background: #6f93aa; }
+#market-temp .mt-wrap.mt-tone-neutral .mt-thermometer-mercury { background: #a58d5d; }
+#market-temp .mt-wrap.mt-tone-greed .mt-thermometer-mercury,
+#market-temp .mt-wrap.mt-tone-extreme-greed .mt-thermometer-mercury { background: #b87969; }
+
 @media (max-width: 720px) {
   #foreign-flow .ff-chart-candle, #stock-search .ss-chart, #kospi-futures .kf-chart { height: 600px !important; }
   .de-chart-overlay { padding: 8px; }

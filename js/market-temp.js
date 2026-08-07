@@ -331,6 +331,7 @@
       + '<div class="mt-hero-left">'
       + '<div class="mt-hero-title">🌡 오늘의 증시온도 <span class="mt-info" data-tooltip="시장이 과열되거나 침체된 정도를 온도로 보여드립니다.">ⓘ</span></div>'
       + '<div class="mt-hero-main">'
+      + '<span class="mt-thermometer-art" aria-hidden="true"><span class="mt-thermometer-mercury"></span></span>'
       // 2026-07-18: 초기 렌더 값을 "0.0"(애니메이션 시작점) 대신 이미 정답 온도로 그린다 -
       // requestAnimationFrame이 안 도는 환경(백그라운드 탭에서 페이지가 로드되는 경우 등
       // 실제로 존재함, 로컬 테스트에서 rAF가 전혀 안 도는 것을 실측 확인)에서도 항상 올바른
