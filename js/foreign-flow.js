@@ -3388,18 +3388,28 @@
       + '<circle class="ff-apt-basement-handle" cx="483" cy="424" r="1.8" />'
       + '<text class="ff-apt-basement-label" x="360" y="450" text-anchor="middle">지하실 · 미체결 가격대</text>'
       + '</g>';
-    var helicopter = '<g class="ff-apt-illustration-helicopter" role="img" aria-label="옥상 헬기">'
+    var ladderDockX = 392;
+    var ladderDockIndex = Math.max(0, Math.min(bandCount - 1, Math.round((ladderDockX - buildingInitialOffset - buildingStartX - buildingWidth / 2) / buildingStep)));
+    var ladderDockBand = bands[ladderDockIndex];
+    var ladderDockHeight = 150 + Math.round((ladderDockBand ? ladderDockBand.ratio : 0) * 90);
+    var ladderTopY = 110;
+    var ladderBottomY = Math.max(ladderTopY + 28, 379 - ladderDockHeight - 6);
+    var ladderRungs = '';
+    for (var ladderY = ladderTopY + 12; ladderY < ladderBottomY - 4; ladderY += 14) {
+      ladderRungs += 'M382 ' + ladderY + ' H402 ';
+    }
+    var helicopter = '<g class="ff-apt-helicopter-lift" transform="translate(0 -28)"><g class="ff-apt-illustration-helicopter" role="img" aria-label="옥상 헬기">'
       + '<path class="ff-apt-helicopter-body" d="M345 128 Q354 119 372 119 H397 Q410 119 420 127 L413 134 H354 Z" />'
       + '<path class="ff-apt-helicopter-window" d="M360 121 H376 L382 128 H355 Z" />'
       + '<path class="ff-apt-helicopter-tail" d="M418 126 L434 118 L440 120 L425 130" />'
       + '<path class="ff-apt-helicopter-rotor" d="M374 115 H413 M393 115 V120" />'
       + '<path class="ff-apt-helicopter-skid" d="M357 137 H411 M367 133 V137 M401 133 V137" />'
       + '<circle class="ff-apt-helicopter-light" cx="350" cy="128" r="2" />'
-      + '</g>';
-    var ladder = '<g class="ff-apt-illustration-ladder" role="img" aria-label="헬기에서 지상으로 이어지는 가격 흐름 사다리">'
-      + '<path class="ff-apt-ladder-rail" d="M382 141 V390 M402 141 V390" />'
-      + '<path class="ff-apt-ladder-rungs" d="M382 154 H402 M382 170 H402 M382 186 H402 M382 202 H402 M382 218 H402 M382 234 H402 M382 250 H402 M382 266 H402 M382 282 H402 M382 298 H402 M382 314 H402 M382 330 H402 M382 346 H402 M382 362 H402 M382 378 H402" />'
-      + '<circle class="ff-apt-ladder-beacon" cx="392" cy="148" r="3" />'
+      + '</g></g>';
+    var ladder = '<g class="ff-apt-illustration-ladder" role="img" aria-label="헬기에서 옥상으로 이어지는 가격 흐름 사다리">'
+      + '<path class="ff-apt-ladder-rail" d="M382 ' + ladderTopY + ' V' + ladderBottomY + ' M402 ' + ladderTopY + ' V' + ladderBottomY + '" />'
+      + '<path class="ff-apt-ladder-rungs" d="' + ladderRungs + '" />'
+      + '<circle class="ff-apt-ladder-beacon" cx="392" cy="' + (ladderTopY + 7) + '" r="3" />'
       + '</g>';
     var profilePoints = [];
     for (var i = n - 1; i >= 0; i--) {
