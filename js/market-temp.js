@@ -384,15 +384,14 @@
       + '</div>';
   }
 
-  // 2026-07-18(3차): 게이지를 Hero 아래(세로)가 아니라 옆(가로)에 배치(사용자 요청 -
-  // "온도를 본 직후 바로 옆에서 위치 확인", 크기는 축소 가능) - .mt-hero-row가 좌우로
-  // 나란히 놓고, 게이지 쪽은 .mt-gauge-side로 감싸 CSS에서 폭을 줄이고 글자도 작게 조정.
+  // 오늘의 온도를 먼저 읽고 과거 추이가 오른쪽으로 이어지는 "꼬리" 구조.
+  // 현재 값과 스파크라인을 같은 카드 안에서 현재 값 | 최근 흐름으로 묶는다.
   function buildHeroCard(data) {
     return '<div class="mt-section mt-card mt-hero-card">'
-      + '<div class="mt-hero-row">'
-      + buildHero(data)
+      + '<div class="mt-hero-history-layout">'
+      + '<div class="mt-hero-current">' + buildHero(data) + '</div>'
+      + '<div class="mt-hero-history">' + buildSparkline(data, true) + '</div>'
       + '</div>'
-      + buildSparkline(data)
       + '</div>';
   }
 
@@ -441,12 +440,18 @@
 
   // ---- ⑥ 최근 7일 스파크라인 ----
 
-  function buildSparkline(data) {
+  function buildSparkline(data, compact) {
     var days = data.recentDays || [];
+    var frameClass = compact ? 'mt-history-tail' : 'mt-card';
+    function titleHtml(label) {
+      return compact
+        ? '<div class="mt-history-tail-head"><div class="mt-card-title">' + label + '</div><span class="mt-history-tail-direction">과거 → 오늘</span></div>'
+        : '<div class="mt-card-title">' + label + '</div>';
+    }
     if (!days.length) {
       return ''
-        + '<div class="mt-card">'
-        + '<div class="mt-card-title">📈 최근 7일 증시온도</div>'
+        + '<div class="' + frameClass + '">'
+        + titleHtml('📈 최근 7일 흐름')
         + '<div class="mt-stats-empty">증시온도 기록을 확인할 수 없습니다.</div>'
         + '</div>';
     }
@@ -455,8 +460,8 @@
       var onlyGrade = gradeForTempClient_(onlyDay.temp);
       var onlyColor = (GRADE_BY_TONE[onlyGrade.tone] || {}).color || '#888';
       return ''
-        + '<div class="mt-card">'
-        + '<div class="mt-card-title">📈 최근 1일 증시온도</div>'
+        + '<div class="' + frameClass + '">'
+        + titleHtml('📈 최근 1일 흐름')
         + '<div class="mt-spark-single">'
         + '<strong style="color:' + onlyColor + '">' + onlyDay.temp.toFixed(1) + '℃</strong>'
         + '<span>' + escapeHtml(onlyDay.date) + '</span>'
@@ -481,14 +486,18 @@
       return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isLast ? 4 : 2.5) + '" fill="' + lastColor + '"'
         + (isLast ? '' : ' opacity="0.5"') + '><title>' + escapeHtml(p.date) + ' ' + p.temp.toFixed(1) + '℃</title></circle>';
     }).join('');
-    var recentLabels = points.slice(-3).reverse().map(function (p, i) {
-      var lbl = i === 0 ? '오늘' : i === 1 ? '어제' : '1주전';
-      return '<span>' + lbl + ' <b>' + p.temp.toFixed(1) + '</b></span>';
+    var summaryPoints = [
+      { label: points.length >= 7 ? '1주 전' : '시작일', point: points[0] },
+      { label: '어제', point: points[Math.max(0, points.length - 2)] },
+      { label: '오늘', point: points[points.length - 1], current: true }
+    ];
+    var recentLabels = summaryPoints.map(function (item) {
+      return '<span' + (item.current ? ' class="is-current"' : '') + '>' + item.label + ' <b>' + item.point.temp.toFixed(1) + '</b></span>';
     }).join('');
 
     return ''
-      + '<div class="mt-card">'
-      + '<div class="mt-card-title">📈 최근 ' + days.length + '일 증시온도</div>'
+      + '<div class="' + frameClass + '">'
+      + titleHtml('📈 최근 ' + days.length + '일 흐름')
       + '<svg class="mt-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">'
       + '<path class="mt-spark-path mt-spark-draw" d="' + pathD + '" fill="none" stroke="' + lastColor + '" stroke-width="2.5"></path>'
       + dots
@@ -1100,10 +1109,10 @@
     function row2col(a, b) { return '<div class="mt-section mt-row-2col">' + a + b + '</div>'; }
 
     var sections = [
-      buildHeroCard(data),                          // ① Hero(온도+투자시그널) | 게이지 (좌우)
+      buildHeroCard(data),                          // ① 오늘의 온도 | 과거→오늘 흐름 꼬리
       '<div class="mt-section">' + buildAiBriefingShell() + '</div>', // ② AI 시장 브리핑(5차: TOP5 병합으로 단독 배치, 폭 넓어져 가독성 개선)
       row2col(buildBars(data), buildRadar(data)),   // ③ 시장 구성요소(표) | 시장 레이더 (좌우)
-      row2col(buildSparkline(data), buildStrategy(grade)), // ④ 최근7일 | 오늘의 전략
+      '<div class="mt-section">' + buildStrategy(grade) + '</div>', // ④ 오늘의 전략
     ];
 
     return ''

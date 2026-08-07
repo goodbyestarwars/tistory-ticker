@@ -114,14 +114,27 @@
 }
 #market-temp .mt-info:hover::after { opacity: 1; }
 
-/* ================= ① Hero + 게이지 (2026-07-18 2차: 하나의 카드로 병합) =================
+/* ================= ① Hero + 최근 흐름 꼬리 =================
    외곽 카드 스타일(padding/border/배경/톤 그라데이션)은 부모 .mt-hero-card(.mt-card 상속)가
-   맡고, .mt-hero 자체는 순수 내부 레이아웃(flex)만 담당하도록 변경 - 톤별 그라데이션
-   배경 규칙도 전부 .mt-hero-card 타겟으로 옮겨야 함(아래 "온도 구간별 카드 배경" 참고).
-   2026-07-18(3차): 게이지를 Hero 아래(세로)가 아니라 옆(가로)으로 이동(사용자 요청) -
-   .mt-hero-row가 좌우로 나란히 놓고, .mt-gauge-side가 게이지 쪽 폭/글자를 축소한다. */
+   맡는다. 오늘 값은 왼쪽, 최근 흐름은 오른쪽에 배치해 과거 데이터가 꼬리처럼
+   이어지도록 한다. */
 #market-temp .mt-hero-card { padding: 16px 18px; }
-#market-temp .mt-hero-row { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+#market-temp .mt-hero-history-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, .9fr) minmax(360px, 1.6fr);
+  gap: 26px;
+  align-items: stretch;
+}
+#market-temp .mt-hero-current { min-width: 0; display: flex; align-items: center; }
+#market-temp .mt-hero-history { min-width: 0; display: flex; align-items: center; position: relative; }
+#market-temp .mt-hero-history::before {
+  content: '';
+  position: absolute;
+  left: -13px;
+  top: 14px;
+  bottom: 14px;
+  border-left: 1px solid rgba(107, 114, 128, .16);
+}
 #market-temp .mt-hero {
   display: flex;
   flex-wrap: wrap;
@@ -178,6 +191,11 @@
 #market-temp .mt-hero-stars { font-size: 18px; letter-spacing: 2px; color: #FB8C00; }
 #market-temp .mt-hero-stars-empty { color: #e5e5e5; }
 #market-temp .mt-hero-signal-word { font-size: 16px; font-weight: 800; }
+
+#market-temp .mt-history-tail { width: 100%; min-width: 0; }
+#market-temp .mt-history-tail-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+#market-temp .mt-history-tail-head .mt-card-title { margin-bottom: 9px; }
+#market-temp .mt-history-tail-direction { color: #aaa; font-size: 11px; white-space: nowrap; }
 
 /* ================= ② AI 시장 브리핑 (5차: TOP5 병합으로 단독 배치, 폭 넓어짐) ================= */
 /* 2026-07-18: 인디고 왼쪽 강조선 제거(사용자 피드백 - AI가 만든 티가 너무 남) - 다른
@@ -282,12 +300,14 @@
 #market-temp .mt-spark-path { }
 #market-temp .mt-spark-labels {
   display: flex;
-  gap: 16px;
+  justify-content: space-between;
   margin-top: 8px;
   font-size: 12px;
   color: #999;
 }
 #market-temp .mt-spark-labels b { color: #333; font-weight: 700; }
+#market-temp .mt-spark-labels .is-current { color: #666; }
+#market-temp .mt-spark-labels .is-current b { color: #d49a1f; }
 #market-temp .mt-spark-single {
   min-height: 96px;
   display: flex;
@@ -423,6 +443,12 @@
 #market-temp .sector-row-rate.sector-flat { color: #9ca3af; }
 
 /* ================= 모바일 대응 (2026-07-18 신규 - 기존엔 @media 블록 자체가 없었음) ================= */
+@media (max-width: 760px) {
+  #market-temp .mt-hero-history-layout { grid-template-columns: 1fr; gap: 14px; }
+  #market-temp .mt-hero-history { padding-top: 14px; }
+  #market-temp .mt-hero-history::before { left: 0; right: 0; top: 0; bottom: auto; border-left: none; border-top: 1px solid rgba(107, 114, 128, .16); }
+}
+
 @media (max-width: 640px) {
   #market-temp .mt-card { padding: 12px 12px; }
   #market-temp .mt-hero-card { padding: 14px; }
@@ -476,6 +502,8 @@ html.dark #market-temp .mt-hero-delta-label { color: rgba(245, 239, 224, 0.45) !
 html.dark #market-temp .mt-hero-delta-empty { color: rgba(245, 239, 224, 0.45) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #market-temp .mt-hero-right { border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #market-temp .mt-hero-signal-label { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #market-temp .mt-hero-history::before { border-color: rgba(245, 239, 224, 0.16) !important; }
+html.dark #market-temp .mt-history-tail-direction { color: rgba(245, 239, 224, 0.45) !important; }
 
 html.dark #market-temp .mt-ai-text { color: rgba(245, 239, 224, 0.8) !important; }
 html.dark #market-temp .mt-ai-empty { color: rgba(245, 239, 224, 0.45) !important; }
@@ -504,6 +532,8 @@ html.dark #market-temp .mt-gauge-bands { color: rgba(245, 239, 224, 0.4) !import
 
 html.dark #market-temp .mt-spark-labels { color: rgba(245, 239, 224, 0.45) !important; }
 html.dark #market-temp .mt-spark-labels b { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-spark-labels .is-current { color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #market-temp .mt-spark-labels .is-current b { color: #e6b74a !important; }
 html.dark #market-temp .mt-spark-single { color: rgba(245, 239, 224, 0.45) !important; }
 html.dark #market-temp .mt-spark-single small { color: rgba(245, 239, 224, 0.62) !important; }
 

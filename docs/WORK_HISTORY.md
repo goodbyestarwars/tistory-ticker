@@ -3,6 +3,8 @@
 중요한 기능, 구조, API, 데이터베이스, 배포 변경만 기록한다.
 세부 파일 변경은 Git 커밋을 기준으로 확인한다.
 
+**2026-08-08 증시온도 현재값·과거 추이 재배치**: 오늘의 증시온도와 최근 7일 스파크라인을 하나의 히어로 카드 안에서 `오늘 값 | 과거→오늘 흐름`으로 재구성했다. 기존 아래쪽 중복 차트를 제거하고, 요약 라벨도 시간 흐름에 맞게 `1주 전 → 어제 → 오늘` 순서로 정렬했으며 PC·모바일·다크모드 대응을 유지했다. `node --check` 및 증시온도 이력 UI 계약 테스트를 통과했으며 아직 배포하지 않았다.
+
 **2026-08-07 증시온도 관리자 Google 로그인**: 카드 편집 저장을 기존 브라우저 `X-API-Key` 입력 방식에서 Google OAuth/OIDC 관리자 세션 방식으로 전환할 수 있도록 FastAPI에 `/auth/google/start`, `/auth/google/callback`, `/auth/google/me`, `/auth/google/logout`을 추가했다. Google ID 토큰은 discovery JWKS의 RS256 공개키로 서버에서 검증하고, `state`·`nonce`·HttpOnly Secure 세션 쿠키를 사용한다. 관리자 허용 이메일은 기본 `goodbyestarwars@gmail.com`이며 Google OAuth 환경변수가 설정되기 전에는 기존 토큰 방식이 임시 fallback으로 유지된다. 설정 절차는 `docs/GOOGLE_AUTH_SETUP.md`에 기록했다.
 
 **2026-08-07 증시온도 카드 구성 DB 편집 기반 전환**: 기존 `data/sectors-v3.js` 정적 파일을 최초 1회 기존 VM SQLite(`ohlc_snapshot.db`)의 `sector_cards_config`로 시드하고, FastAPI `/sector-cards` 조회 및 관리자 `PUT` update API를 추가했다. revision 기반 낙관적 동시성 검사를 적용해 다른 편집자의 변경을 덮어쓰지 않도록 했으며, 증시온도 카드보기에서 카테고리·종목 추가/수정/삭제와 종목명 자동검색, 관리자 토큰 저장, 저장 후 재조회 UI를 추가했다. GAS 증시온도 섹터 풀도 DB API를 읽도록 전환했다. `py_compile`, Node 문법 검사, SQLite 스키마·시드·revision 충돌 검증을 통과했다. VM API 변경은 master 반영 후 자동 배포되고, GAS 변경은 GAS 웹앱 수동 재배포가 필요하다.
