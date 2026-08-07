@@ -601,7 +601,6 @@
     }).join('');
     return ''
       + '<div class="mt-section mt-card">'
-      + '<div class="mt-card-title">📖 증시온도 기준표</div>'
       + '<div class="mt-guide-grid-cards">' + cards + '</div>'
       + '</div>';
   }
