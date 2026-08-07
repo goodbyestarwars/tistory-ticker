@@ -3354,7 +3354,15 @@
       + '<rect class="ff-apt-basement-window" x="354" y="399" width="24" height="9" rx="1" />'
       + '<rect class="ff-apt-basement-door" x="420" y="398" width="25" height="16" rx="1" />'
       + '<circle class="ff-apt-basement-handle" cx="440" cy="406" r="1" />'
-      + '<text class="ff-apt-basement-label" x="366" y="388" text-anchor="middle">지하실</text>'
+      + '<text class="ff-apt-basement-label" x="392" y="411" text-anchor="middle">지하실</text>'
+      + '</g>';
+    var helicopter = '<g class="ff-apt-illustration-helicopter" role="img" aria-label="옥상 헬기">'
+      + '<path class="ff-apt-helicopter-body" d="M345 128 Q354 119 372 119 H397 Q410 119 420 127 L413 134 H354 Z" />'
+      + '<path class="ff-apt-helicopter-window" d="M360 121 H376 L382 128 H355 Z" />'
+      + '<path class="ff-apt-helicopter-tail" d="M418 126 L434 118 L440 120 L425 130" />'
+      + '<path class="ff-apt-helicopter-rotor" d="M374 115 H413 M393 115 V120" />'
+      + '<path class="ff-apt-helicopter-skid" d="M357 137 H411 M367 133 V137 M401 133 V137" />'
+      + '<circle class="ff-apt-helicopter-light" cx="350" cy="128" r="2" />'
       + '</g>';
     var profilePoints = [];
     for (var i = n - 1; i >= 0; i--) {
@@ -3373,9 +3381,9 @@
         + '<text class="ff-apt-signal-value" x="' + (x + 24) + '" y="42">' + value + '</text>'
         + '</g>';
     }
-    var signalCards = signalCard(314, 98, '현재가', priceText(currentPrice) + '원', '#0f766e', 'current')
-      + signalCard(420, 112, '평균 단가', priceText(avgPrice) + '원', '#3b82f6', 'average')
-      + signalCard(540, 134, '중심 가격', pocText, '#f08c46', 'poc');
+    var signalCards = signalCard(314, 104, '현재가', priceText(currentPrice) + '원', '#0f766e', 'current')
+      + signalCard(428, 104, '평균 단가', priceText(avgPrice) + '원', '#3b82f6', 'average')
+      + signalCard(542, 104, '중심 가격', pocText, '#f08c46', 'poc');
     var grid = '';
     for (var g = 0; g < n; g += Math.max(1, Math.ceil(n / 12))) {
       var gy = yForIndex(g);
@@ -3391,11 +3399,12 @@
       + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
       + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
       + '<path class="ff-apt-illustration-orbit" d="M120 430 C230 172 566 126 924 190" />'
-      + '<g class="ff-apt-illustration-title"><rect x="48" y="42" width="248" height="50" rx="8" /><path d="M70 68 h26 m-13-13 v26" /><text x="116" y="73">가격 지형도</text></g>'
+      + '<g class="ff-apt-illustration-title"><rect x="48" y="48" width="200" height="40" rx="8" /><path d="M68 68 h22 m-11-11 v22" /><text x="104" y="74">가격 지형도</text></g>'
       + signalCards
       + '<g class="ff-apt-illustration-tag"><rect x="48" y="118" width="122" height="28" rx="6" /><text x="66" y="137">거래량 지도</text></g>'
       + '<g class="ff-apt-illustration-tag"><rect x="520" y="72" width="112" height="28" rx="6" /><text x="540" y="91">체결 흐름</text></g>'
       + skyline
+      + helicopter
       + basement
       + '<path class="ff-apt-illustration-ground" d="M28 380 H680" />'
       + '<path class="ff-apt-illustration-ground" d="M28 390 H680" />'

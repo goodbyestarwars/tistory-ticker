@@ -2522,7 +2522,7 @@ html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
 #foreign-flow .ff-apt-illustration-orbit { fill: none; stroke: #aeb4b8; stroke-width: 1; stroke-dasharray: 4 5; opacity: .78; }
 #foreign-flow .ff-apt-illustration-title rect { fill: #fff; stroke: #0f766e; stroke-width: 1.6; }
 #foreign-flow .ff-apt-illustration-title path { fill: none; stroke: #0f766e; stroke-width: 1.6; stroke-linecap: round; }
-#foreign-flow .ff-apt-illustration-title text { fill: #1f2529; font-size: 16px; font-weight: 800; letter-spacing: 1.2px; }
+#foreign-flow .ff-apt-illustration-title text { fill: #1f2529; font-size: 14px; font-weight: 800; letter-spacing: .6px; }
 #foreign-flow .ff-apt-illustration-tag rect { fill: #fff; stroke: #12b886; stroke-width: 1.4; }
 #foreign-flow .ff-apt-illustration-tag text { fill: #263238; font-size: 12px; font-weight: 700; }
 #foreign-flow .ff-apt-signal-card rect { fill: rgba(255,255,255,.94); stroke: var(--ff-signal-color); stroke-width: 1.2; }
@@ -2552,6 +2552,10 @@ html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
   0%, 100% { opacity: .72; }
   50% { opacity: 1; filter: drop-shadow(0 0 2px rgba(245,159,0,.85)); }
 }
+@keyframes ff-apt-helicopter-hover {
+  0%, 100% { transform: translateX(-1px) translateY(0); }
+  50% { transform: translateX(2px) translateY(-3px); }
+}
 #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #f7f8f8; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { fill: none; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-illustration-building.current-band > rect:first-child { stroke: #0f766e; stroke-width: 2; }
@@ -2563,7 +2567,14 @@ html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
 #foreign-flow .ff-apt-basement-window { fill: #b7d9d2; stroke: #0f766e; stroke-width: .8; }
 #foreign-flow .ff-apt-basement-door { fill: #f7f8f8; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-basement-handle { fill: #0f766e; stroke: none; }
-#foreign-flow .ff-apt-basement-label { fill: #445057; font-size: 10px; font-weight: 800; }
+#foreign-flow .ff-apt-basement-label { fill: #1f2937; font-size: 11px; font-weight: 900; letter-spacing: .8px; paint-order: stroke; stroke: #eef0f1; stroke-width: 2; }
+#foreign-flow .ff-apt-illustration-helicopter { animation: ff-apt-helicopter-hover 6.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+#foreign-flow .ff-apt-helicopter-body { fill: #fff; stroke: #0f766e; stroke-width: 1.2; }
+#foreign-flow .ff-apt-helicopter-window { fill: #b7d9d2; stroke: #0f766e; stroke-width: .8; }
+#foreign-flow .ff-apt-helicopter-tail,
+#foreign-flow .ff-apt-helicopter-rotor,
+#foreign-flow .ff-apt-helicopter-skid { fill: none; stroke: #69737a; stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
+#foreign-flow .ff-apt-helicopter-light { fill: #f59f00; stroke: #fff; stroke-width: .8; }
 #foreign-flow .ff-apt-building-price { fill: #445057; font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; }
 #foreign-flow .ff-apt-building-volume { fill: #8a9499; font-size: 8px; font-variant-numeric: tabular-nums; }
 #foreign-flow .ff-apt-building-average-person .head { fill: #3b82f6; stroke: #1d4ed8; stroke-width: .8; }
@@ -2609,7 +2620,13 @@ html.dark #foreign-flow .ff-apt-basement-stair { stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-basement-window { fill: #285b55; stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-basement-door { fill: #2c3336; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-basement-handle { fill: #74c9b6; }
-html.dark #foreign-flow .ff-apt-basement-label { fill: #e3e7e8; }
+html.dark #foreign-flow .ff-apt-basement-label { fill: #f5efe0; stroke: #2c3336; }
+html.dark #foreign-flow .ff-apt-helicopter-body { fill: #2c3336; stroke: #74c9b6; }
+html.dark #foreign-flow .ff-apt-helicopter-window { fill: #285b55; stroke: #74c9b6; }
+html.dark #foreign-flow .ff-apt-helicopter-tail,
+html.dark #foreign-flow .ff-apt-helicopter-rotor,
+html.dark #foreign-flow .ff-apt-helicopter-skid { stroke: #9da5aa; }
+html.dark #foreign-flow .ff-apt-helicopter-light { stroke: #2c3336; }
 html.dark #foreign-flow .ff-apt-illustration-window { fill: #343c40; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-illustration-window.accent { fill: #285b55; stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-price { fill: #e3e7e8; }
@@ -2626,7 +2643,8 @@ html.dark #foreign-flow .ff-apt-illustration-volume { fill: #b7c0c5; }
   #foreign-flow .ff-apt-illustration-building,
   #foreign-flow .ff-apt-building-current-ring,
   #foreign-flow .ff-apt-building-average-person .head,
-  #foreign-flow .ff-apt-building-poc-icon { animation: none; }
+  #foreign-flow .ff-apt-building-poc-icon,
+  #foreign-flow .ff-apt-illustration-helicopter { animation: none; }
 }
 @media (max-width: 640px) {
   #foreign-flow .ff-apt-illustration { min-height: 400px; }
