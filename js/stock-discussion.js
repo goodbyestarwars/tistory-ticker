@@ -42,7 +42,7 @@
       var bExact = b.name.toLowerCase() === query || b.code === query;
       if (aExact !== bExact) return aExact ? -1 : 1;
       return a.name.localeCompare(b.name, 'ko');
-    }).slice(0, 10);
+    }).slice(0, 8);
   }
   function closeSuggestions() {
     suggestionBox.classList.remove('is-open');
@@ -54,18 +54,31 @@
     suggestionItems = results;
     results.forEach(function (item, index) {
       var li = document.createElement('li');
+      li.className = 'discussion-stock-suggest-row';
       var button = document.createElement('button');
       button.type = 'button';
+      button.className = 'discussion-stock-suggest-select';
       button.setAttribute('role', 'option');
       button.setAttribute('data-suggestion-index', index);
-      button.innerHTML = '<span>' + item.name + '</span><span class="code">' + item.code + '</span>';
+      button.innerHTML = '<img class="discussion-stock-suggest-icon" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(item.code) + '.svg" alt="" onerror="this.style.display=\'none\'">' + '<span class="name">' + item.name + '</span><span class="code">' + item.code + '</span>';
       button.addEventListener('click', function () {
         input.value = item.name;
         applyFilter(item.code, true);
         closeSuggestions();
         input.focus();
       });
+      var favorite = document.createElement('button');
+      favorite.type = 'button';
+      favorite.className = 'discussion-stock-suggest-favorite';
+      favorite.setAttribute('aria-label', item.name + ' 관심종목');
+      favorite.textContent = '☆';
+      favorite.addEventListener('click', function (event) {
+        event.stopPropagation();
+        favorite.classList.toggle('is-active');
+        favorite.textContent = favorite.classList.contains('is-active') ? '★' : '☆';
+      });
       li.appendChild(button);
+      li.appendChild(favorite);
       suggestionBox.appendChild(li);
     });
     suggestionBox.classList.toggle('is-open', results.length > 0);

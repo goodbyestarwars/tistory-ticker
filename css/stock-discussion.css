@@ -6,12 +6,18 @@
 .discussion-stockbar { display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin:24px 0 14px; padding:14px; border:1px solid #e3eaf3; border-radius:16px; background:#f8fafc; }
 .discussion-stockbar label { color:#3d536c; font-size:14px; font-weight:700; }
 .discussion-stock-input-wrap { position:relative; flex:1 1 260px; min-width:220px; }
-.discussion-stockbar input { width:100%; box-sizing:border-box; height:40px; padding:0 13px; border:1px solid #d6e0eb; border-radius:10px; background:#fff; color:#263b55; font:inherit; }
+.discussion-stock-input-wrap::before { content:'⌕'; position:absolute; z-index:1; left:13px; top:7px; color:#7e9cc1; font-size:22px; line-height:1; pointer-events:none; }
+.discussion-stockbar input { width:100%; box-sizing:border-box; height:40px; padding:0 13px 0 37px; border:1px solid #d6e0eb; border-radius:10px; background:#fff; color:#263b55; font:inherit; }
 .discussion-stock-suggest { position:absolute; z-index:20; top:calc(100% + 6px); left:0; right:0; display:none; max-height:280px; overflow:auto; margin:0; padding:6px; border:1px solid #dbe6f2; border-radius:12px; background:#fff; box-shadow:0 12px 26px rgba(44,73,109,.16); list-style:none; }
 .discussion-stock-suggest.is-open { display:block; }
-.discussion-stock-suggest button { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:10px 11px; border:0; border-radius:8px; background:transparent; color:#314b69; cursor:pointer; font:inherit; text-align:left; }
-.discussion-stock-suggest button:hover, .discussion-stock-suggest button.is-active { background:#eef5ff; }
+.discussion-stock-suggest-row { display:flex; align-items:center; gap:2px; }
+.discussion-stock-suggest-select { display:flex; align-items:center; gap:10px; flex:1; min-width:0; padding:10px 8px 10px 9px; border:0; border-radius:8px; background:transparent; color:#314b69; cursor:pointer; font:inherit; text-align:left; }
+.discussion-stock-suggest-select:hover, .discussion-stock-suggest-select:focus { background:#eef5ff; outline:0; }
+.discussion-stock-suggest-icon { width:27px; height:27px; flex:0 0 27px; border-radius:50%; object-fit:contain; background:#f1f4f8; }
+.discussion-stock-suggest-select .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .discussion-stock-suggest .code { color:#8a9bb0; font-size:12px; }
+.discussion-stock-suggest-favorite { flex:0 0 34px; padding:7px 6px; border:0; background:transparent; color:#bdcad9; cursor:pointer; font-size:22px; line-height:1; }
+.discussion-stock-suggest-favorite:hover, .discussion-stock-suggest-favorite.is-active { color:#6f9bd4; }
 .discussion-stock-btn, .discussion-current button { border:1px solid #d5e0ec; border-radius:999px; background:#fff; color:#536a83; padding:9px 13px; cursor:pointer; font:inherit; font-size:13px; }
 .discussion-stock-btn.is-active { background:#172335; border-color:#172335; color:#fff; }
 .discussion-current { display:flex; align-items:center; gap:10px; margin:16px 0; color:#718398; font-size:14px; }
