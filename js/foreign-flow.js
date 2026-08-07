@@ -3277,15 +3277,21 @@
       var cellW = Math.max(7, (width - 16) / cols - 4);
       var cellH = Math.max(8, (height - 24) / rows - 4);
       var markerColumns = [];
-      if (band.current) markerColumns.push({ col: 0, type: 'current' });
-      if (band.average) markerColumns.push({ col: Math.min(1, cols - 1), type: 'average' });
-      if (band.poc) markerColumns.push({ col: Math.min(2, cols - 1), type: 'poc' });
+      function markerRow(index) {
+        var span = Math.max(1, band.end - band.start - 1);
+        var relative = Math.max(0, Math.min(1, (index - band.start) / span));
+        // SVG의 0행은 고가 쪽이므로 저가 bin일수록 아래 행에 놓는다.
+        return Math.max(0, Math.min(rows - 1, Math.round((1 - relative) * (rows - 1))));
+      }
+      if (band.current) markerColumns.push({ col: 0, row: markerRow(curIdx), type: 'current' });
+      if (band.average) markerColumns.push({ col: Math.min(1, cols - 1), row: markerRow(avgIdx), type: 'average' });
+      if (band.poc) markerColumns.push({ col: Math.min(2, cols - 1), row: markerRow(pocIdx), type: 'poc' });
       for (var row = 0; row < rows; row++) {
         for (var col = 0; col < cols; col++) {
           var wx = x + 8 + col * (cellW + 4);
           var wy = y + 10 + row * (cellH + 4);
           var isAccent = col === (row % cols) || (row + col) % Math.max(2, cols) === 0;
-          var windowMarker = markerColumns.filter(function (item) { return item.col === col && row === 0; })[0];
+          var windowMarker = markerColumns.filter(function (item) { return item.col === col && row === item.row; })[0];
           var windowClass = isAccent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window';
           if (windowMarker) windowClass += ' ' + windowMarker.type + '-window';
           html += '<rect class="' + windowClass + '" style="opacity:' + (0.42 + band.ratio * 0.5).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
@@ -3394,6 +3400,21 @@
       grid += '<line class="ff-apt-illustration-grid" x1="' + plotLeft + '" x2="' + plotRight + '" y1="' + gy + '" y2="' + gy + '" />';
     }
 
+    var binMaxVolume = Math.max.apply(null, bins.map(function (bin) { return Math.max(0, Number(bin.volume) || 0); })) || 1;
+    var binRail = bins.map(function (bin, binIndex) {
+      var midpoint = (Number(bin.low) + Number(bin.high)) / 2;
+      var isCurrent = binIndex === curIdx;
+      var isAverage = binIndex === avgIdx;
+      var isPoc = binIndex === pocIdx;
+      var markerText = isCurrent ? '현재가' : isAverage ? '평균단가' : isPoc ? 'POC' : '';
+      var markers = markerText ? '<b class="ff-apt-bin-marker ' + (isCurrent ? 'current' : isAverage ? 'average' : 'poc') + '">' + markerText + '</b>' : '';
+      return '<div class="ff-apt-bin' + (markerText ? ' has-marker' : '') + '" data-bin-index="' + binIndex + '" title="' + priceText(bin.low) + ' ~ ' + priceText(bin.high) + '원 · 거래량 ' + Math.round(Number(bin.volume) || 0).toLocaleString('ko-KR') + '">'
+        + markers
+        + '<span class="ff-apt-bin-price">' + priceText(midpoint) + '</span>'
+        + '<span class="ff-apt-bin-bar" style="height:' + Math.max(8, Math.round((Math.max(0, Number(bin.volume) || 0) / binMaxVolume) * 54)) + 'px"></span>'
+        + '</div>';
+    }).join('');
+
     return '<div class="ff-apt-chart-wrap ff-apt-line-art ff-apt-illustration" role="img" aria-label="가격대별 매물대 일러스트">'
       + '<div class="ff-apt-lineart-head"><strong>가격대별 매물대</strong><span>중심 가격 ' + pocText + '</span></div>'
       + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg" viewBox="0 0 900 430" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
@@ -3427,6 +3448,8 @@
       + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
       + '</svg>'
+      + '<div class="ff-apt-bin-guide"><strong>가격별 매물대</strong><span>좌우로 드래그하면 실제 가격 구간을 더 볼 수 있습니다 · 막대가 높을수록 체결량이 많습니다</span></div>'
+      + '<div class="ff-apt-bin-rail" data-price-bin-rail tabindex="0" aria-label="가격별 매물대 좌우 탐색">' + binRail + '</div>'
       + '<div class="ff-apt-visual-key"><span><i class="current"></i>십자 현재가</span><span><i class="average"></i>파란 사람 평균단가</span><span><i class="poc"></i>왕관 POC</span><span><i class="window"></i>창문 밀도 거래량</span></div>'
       + '<div class="ff-apt-lineart-note">각 건물은 가격 구간 하나를 묶어 표현합니다. 현재가와 평균단가가 같은 건물에 있으면 겹치지 않도록 옆 창에 나란히 표시됩니다.</div>'
       + '</div>';
@@ -3666,6 +3689,7 @@
         var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
         dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded, result.avgPrice);
         wireZoom();
+        wireBinRail();
         playAptEntrance(card);
       }).catch(function () {
         dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 불러오지 못했어요.</div>';
@@ -3684,6 +3708,37 @@
           render();
         });
       });
+    }
+
+    function wireBinRail() {
+      var rail = card.querySelector('[data-price-bin-rail]');
+      if (!rail || rail.getAttribute('data-drag-ready') === '1') return;
+      rail.setAttribute('data-drag-ready', '1');
+      var dragging = false, startX = 0, startScroll = 0;
+      rail.addEventListener('pointerdown', function (event) {
+        dragging = true;
+        startX = event.clientX;
+        startScroll = rail.scrollLeft;
+        rail.classList.add('is-dragging');
+        try { rail.setPointerCapture(event.pointerId); } catch (ignore) {}
+      });
+      rail.addEventListener('pointermove', function (event) {
+        if (!dragging) return;
+        rail.scrollLeft = startScroll - (event.clientX - startX);
+      });
+      function stopDragging() {
+        dragging = false;
+        rail.classList.remove('is-dragging');
+      }
+      rail.addEventListener('pointerup', stopDragging);
+      rail.addEventListener('pointercancel', stopDragging);
+      rail.addEventListener('pointerleave', function () { if (dragging) stopDragging(); });
+      rail.addEventListener('wheel', function (event) {
+        if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+          rail.scrollLeft += event.deltaY;
+          event.preventDefault();
+        }
+      }, { passive: false });
     }
 
     render();
