@@ -550,6 +550,9 @@ html.dark #market-temp .mt-view-btn.active { background: #F5EFE0 !important; col
 #market-temp .mt-sector-editor select { box-sizing:border-box; width:100%; min-height:34px; border:1px solid #d1d5db; border-radius:6px; padding:6px 8px; font:inherit; font-size:12px; }
 #market-temp .mt-sector-editor-stock button { min-height:34px; padding:6px 7px; color:#8b5e5e; }
 #market-temp .mt-sector-editor-add-stock { margin-top:3px; padding:5px 8px !important; color:#2563eb !important; font-size:11px !important; }
+#market-temp .mt-sector-editor-auth { display:flex; align-items:center; justify-content:space-between; gap:8px; flex:1 1 240px; min-width:220px; padding:5px 8px; border:1px solid #dbe3ef; border-radius:7px; background:#fff; color:#6b7280; font-size:11px; }
+#market-temp .mt-sector-editor-auth span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#market-temp .mt-sector-editor-auth button { padding:4px 7px; color:#2563eb; font-size:11px; }
 #market-temp .mt-sector-editor-actions { position:sticky; bottom:0; z-index:2; display:flex; align-items:center; flex-wrap:wrap; gap:7px; flex:0 0 auto; margin:8px -4px -4px; padding:10px 4px 4px; border-top:1px solid #e5e7eb; background:linear-gradient(#f8fafc 75%, rgba(248,250,252,.96)); }
 #market-temp .mt-sector-editor-actions [data-editor-role="admin-token"] { flex:1 1 240px; min-width:180px; box-sizing:border-box; }
 #market-temp .mt-sector-editor button.primary { background:#2563eb; color:#fff; border-color:#2563eb; box-shadow:0 3px 8px rgba(37,99,235,.2); }
@@ -566,6 +569,7 @@ html.dark #market-temp .mt-sector-editor-stock-labels { color:rgba(245,239,224,.
 html.dark #market-temp .mt-sector-editor input,
 html.dark #market-temp .mt-sector-editor select { background:#242424; color:#f5efe0; border-color:rgba(245,239,224,.25); }
 html.dark #market-temp .mt-sector-editor-actions { border-color:rgba(245,239,224,.16); background:linear-gradient(#1a1a1a 75%, rgba(26,26,26,.96)); }
+html.dark #market-temp .mt-sector-editor-auth { background:#242424; border-color:rgba(245,239,224,.24); color:rgba(245,239,224,.65); }
 @media (max-width:640px) {
   #market-temp .mt-sector-toolbar { align-items:flex-start; flex-direction:column; }
   #market-temp .mt-sector-editor { max-height:calc(100vh - 24px); padding:10px; }
@@ -580,6 +584,7 @@ html.dark #market-temp .mt-sector-editor-actions { border-color:rgba(245,239,224
   #market-temp .mt-sector-editor-stock select,
   #market-temp .mt-sector-editor-stock button { width:100%; }
   #market-temp .mt-sector-editor-actions { align-items:stretch; }
+  #market-temp .mt-sector-editor-auth { flex-basis:100%; min-width:0; }
   #market-temp .mt-sector-editor-actions > button,
   #market-temp .mt-sector-editor-actions [data-editor-role="admin-token"] { flex:1 1 calc(50% - 7px); min-width:0; }
 }

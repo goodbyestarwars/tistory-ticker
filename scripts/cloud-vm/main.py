@@ -11,13 +11,16 @@ import hmac
 import json
 import logging
 import os
+import secrets
 import time
+import urllib.parse
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Header, HTTPException, Path, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import RedirectResponse
 
 import bond_yield
 import btc_futures
@@ -39,6 +42,7 @@ import option_flow
 import order_book
 import realtime_quotes
 import sector_cards
+from google_auth import GoogleAuthError, GoogleAuthService
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 
@@ -107,6 +111,7 @@ app.add_middleware(
     allow_origins=['https://ghlee.tistory.com'],
     allow_methods=['GET', 'PUT', 'OPTIONS'],
     allow_headers=['*'],
+    allow_credentials=True,
 )
 
 # 2026-07-31: 응답 gzip 압축. 이 서버의 응답은 전부 반복 구조의 JSON(일봉/분봉 배열)이라
@@ -241,6 +246,8 @@ def load_dotenv():
 
 load_dotenv()
 
+GOOGLE_AUTH = GoogleAuthService()
+
 
 def envelope(data):
     return {
@@ -259,6 +266,30 @@ def require_api_key(x_api_key: str = Header(default=None)):
     # 하므로 헤더 누락 시 빈 문자열로 맞춘다.
     if not hmac.compare_digest(x_api_key or '', expected):
         raise HTTPException(status_code=401, detail='invalid or missing X-API-Key header')
+
+
+def require_google_admin(request: Request):
+    if not GOOGLE_AUTH.configured:
+        raise HTTPException(status_code=503, detail='Google login is not configured on the server')
+    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    if not session or session.get('email') != GOOGLE_AUTH.admin_email:
+        raise HTTPException(status_code=401, detail='Google admin login is required')
+    return session
+
+
+def require_sector_cards_editor(request: Request, x_api_key: str):
+    # Keep the legacy token only until Google OAuth is configured. Once the
+    # OAuth client is configured, browser writes must use the owner session.
+    if GOOGLE_AUTH.configured:
+        return require_google_admin(request)
+    require_api_key(x_api_key)
+    return None
+
+
+def _google_auth_error_redirect(reason):
+    separator = '&' if '?' in GOOGLE_AUTH.success_redirect else '?'
+    location = GOOGLE_AUTH.success_redirect + separator + 'google_auth_error=' + urllib.parse.quote(reason, safe='')
+    return RedirectResponse(location=location, status_code=303)
 
 
 def _load_sector_cards_cached():
@@ -299,6 +330,67 @@ def health():
     })
 
 
+@app.get('/auth/google/start')
+def google_auth_start():
+    if not GOOGLE_AUTH.configured:
+        raise HTTPException(status_code=503, detail='Google login is not configured on the server')
+    state = secrets.token_urlsafe(32)
+    nonce = secrets.token_urlsafe(32)
+    response = RedirectResponse(GOOGLE_AUTH.authorization_url(state, nonce), status_code=302)
+    response.set_cookie(
+        GOOGLE_AUTH.STATE_COOKIE, state, max_age=600, httponly=True,
+        secure=True, samesite='lax', path='/',
+    )
+    response.set_cookie(
+        GOOGLE_AUTH.NONCE_COOKIE, nonce, max_age=600, httponly=True,
+        secure=True, samesite='lax', path='/',
+    )
+    return response
+
+
+@app.get('/auth/google/callback')
+def google_auth_callback(request: Request, code: str = None, state: str = None, error: str = None):
+    if error:
+        return _google_auth_error_redirect('google_' + error)
+    saved_state = request.cookies.get(GOOGLE_AUTH.STATE_COOKIE)
+    saved_nonce = request.cookies.get(GOOGLE_AUTH.NONCE_COOKIE)
+    if not state or not saved_state or not hmac.compare_digest(state, saved_state):
+        return _google_auth_error_redirect('invalid_state')
+    if not code or not saved_nonce:
+        return _google_auth_error_redirect('missing_code')
+    try:
+        user = GOOGLE_AUTH.authenticate_code(code, saved_nonce)
+    except GoogleAuthError:
+        logging.getLogger('main').warning('Google OAuth callback verification failed')
+        return _google_auth_error_redirect('login_failed')
+    if user.get('email') != GOOGLE_AUTH.admin_email:
+        return _google_auth_error_redirect('not_admin')
+
+    response = RedirectResponse(GOOGLE_AUTH.success_redirect, status_code=303)
+    response.set_cookie(
+        GOOGLE_AUTH.SESSION_COOKIE, GOOGLE_AUTH.make_session(user),
+        max_age=7 * 24 * 60 * 60, httponly=True, secure=True,
+        # The Tistory page and goodbyestar.cloud are different sites, so the
+        # authenticated fetch from the editor requires SameSite=None+Secure.
+        samesite='none', path='/',
+    )
+    response.delete_cookie(GOOGLE_AUTH.STATE_COOKIE, path='/')
+    response.delete_cookie(GOOGLE_AUTH.NONCE_COOKIE, path='/')
+    return response
+
+
+@app.get('/auth/google/me')
+def google_auth_me(request: Request):
+    return envelope(GOOGLE_AUTH.status(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)))
+
+
+@app.get('/auth/google/logout')
+def google_auth_logout():
+    response = RedirectResponse(GOOGLE_AUTH.success_redirect, status_code=303)
+    response.delete_cookie(GOOGLE_AUTH.SESSION_COOKIE, path='/')
+    return response
+
+
 @app.get('/sector-cards')
 def sector_cards_endpoint():
     """증시온도 카드/히트맵/분석에서 공통으로 사용하는 사용자 설정."""
@@ -308,7 +400,7 @@ def sector_cards_endpoint():
 @app.put('/sector-cards')
 async def update_sector_cards(request: Request, x_api_key: str = Header(default=None)):
     """관리자 전용 카드 구성 전체 교체 API."""
-    require_api_key(x_api_key)
+    require_sector_cards_editor(request, x_api_key)
     try:
         body = await request.json()
     except Exception as exc:
