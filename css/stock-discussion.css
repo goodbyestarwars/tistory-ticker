@@ -25,7 +25,7 @@
 .discussion-current button { margin-left:auto; padding:6px 10px; font-size:12px; }
 .discussion-native-guestbook { padding:20px; border:1px solid #dbe6f2; border-radius:18px; background:linear-gradient(135deg,#f7faff,#fbfdff); }
 .discussion-write-title { color:#213a56; font-weight:800; font-size:18px; letter-spacing:-.02em; }
-.discussion-write-help { margin:7px 0 14px; color:#8495a8; font-size:13px; }
+.discussion-write-help { margin:7px 0 14px; color:#8495a8; font-size:16px; line-height:1.6; }
 .discussion-guest-fields { display:flex; gap:8px; margin-bottom:9px; }
 .discussion-guest-fields input { min-width:0; flex:1; height:38px; padding:0 11px; border:1px solid #d8e2ed; border-radius:9px; background:#fff; font:inherit; }
 .discussion-write textarea { display:block; width:100%; box-sizing:border-box; min-height:110px; resize:vertical; padding:13px; border:1px solid #d8e2ed; border-radius:11px; background:#fff; font:inherit; line-height:1.6; }
