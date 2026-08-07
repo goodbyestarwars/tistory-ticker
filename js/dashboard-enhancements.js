@@ -137,7 +137,7 @@
     var button = document.createElement('button');
     button.type = 'button';
     button.className = 'de-expand-button';
-    button.textContent = '⛶ 크게 보기';
+    button.textContent = '⛶ 전체 화면';
     button.setAttribute('data-de-expand-title', title);
     button.addEventListener('click', function () { openChartModal(target, title); });
     var anchor = target.parentElement;
@@ -167,7 +167,7 @@
     target.classList.add('de-modal-target');
     body.appendChild(target);
     if (target.id === 'ffLwChart' || target.id === 'ssChart' || target.classList.contains('kf-chart')) {
-      target.style.height = Math.max(520, Math.round(global.innerHeight * 0.72)) + 'px';
+      target.style.height = Math.max(620, Math.round(global.innerHeight * 0.82)) + 'px';
     }
     function close() {
       if (!overlay.parentNode) return;

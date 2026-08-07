@@ -2462,3 +2462,50 @@ html.dark #foreign-flow .ff-momentum-change.status-declining { color: #6ea8e8 !i
 html.dark #foreign-flow .ff-momentum-change.status-persistent { color: #69d0ae !important; background: rgba(29, 158, 117, .14) !important; }
 html.dark #foreign-flow .ff-momentum-change.status-unknown { color: rgba(245, 239, 224, .6) !important; background: rgba(245, 239, 224, .1) !important; }
 html.dark .ff-related-item:hover { background: rgba(245, 239, 224, 0.08) !important; }
+
+/* 2026-08-07: 매물대 카드를 장식적인 타워 대신 데이터 중심 라인아트로 재구성.
+   SVG가 실제 bins를 직접 연결하므로 가격축과 거래량 프로파일이 한눈에 대응된다. */
+#foreign-flow .ff-apt-line-art {
+  min-height: 540px;
+  padding: 12px 14px 10px;
+  background: linear-gradient(145deg, #fbfcfe, #f3f6fa);
+  border-color: #dfe6ef;
+  overflow: hidden;
+}
+#foreign-flow .ff-apt-lineart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px 8px;
+  color: #334155;
+  font-size: 12px;
+}
+#foreign-flow .ff-apt-lineart-head strong { font-size: 13px; }
+#foreign-flow .ff-apt-lineart-head span { color: #e8590c; font-weight: 700; }
+#foreign-flow .ff-apt-lineart-svg { display: block; width: 100%; height: 500px; overflow: visible; }
+#foreign-flow .ff-apt-line-axis { stroke: #64748b; stroke-width: 1.2; }
+#foreign-flow .ff-apt-line-grid { stroke: #cbd5e1; stroke-width: .8; stroke-dasharray: 2 5; opacity: .64; }
+#foreign-flow .ff-apt-line-fill { fill: rgba(232, 89, 12, .08); stroke: none; }
+#foreign-flow .ff-apt-line-profile { fill: none; stroke: #e8590c; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 2px 2px rgba(232,89,12,.18)); }
+#foreign-flow .ff-apt-line-marker { stroke-width: 1.2; stroke-dasharray: 5 4; opacity: .78; vector-effect: non-scaling-stroke; }
+#foreign-flow .ff-apt-line-marker-dot { stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+#foreign-flow .ff-apt-line-marker-label { font-size: 11px; font-weight: 700; paint-order: stroke; stroke: #fbfcfe; stroke-width: 4px; stroke-linejoin: round; }
+#foreign-flow .ff-apt-line-axis-label { fill: #64748b; font-size: 10px; font-variant-numeric: tabular-nums; }
+#foreign-flow .ff-apt-line-volume-label { fill: #94a3b8; font-size: 10px; }
+#foreign-flow .ff-apt-lineart-note { padding-top: 3px; color: #94a3b8; font-size: 10px; text-align: right; }
+html.dark #foreign-flow .ff-apt-line-art { background: linear-gradient(145deg, #1f252d, #171c23); border-color: rgba(245,239,224,.2); }
+html.dark #foreign-flow .ff-apt-lineart-head { color: #f5efe0; }
+html.dark #foreign-flow .ff-apt-lineart-head span { color: #ffad70; }
+html.dark #foreign-flow .ff-apt-line-axis { stroke: #94a3b8; }
+html.dark #foreign-flow .ff-apt-line-grid { stroke: #64748b; opacity: .38; }
+html.dark #foreign-flow .ff-apt-line-marker-label { stroke: #1f252d; }
+html.dark #foreign-flow .ff-apt-line-axis-label,
+html.dark #foreign-flow .ff-apt-line-volume-label,
+html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
+
+@media (max-width: 640px) {
+  #foreign-flow .ff-apt-line-art { min-height: 420px; padding: 10px 8px 8px; }
+  #foreign-flow .ff-apt-lineart-svg { height: 390px; }
+  #foreign-flow .ff-apt-line-marker-label { font-size: 10px; }
+}
