@@ -167,7 +167,7 @@
     target.classList.add('de-modal-target');
     body.appendChild(target);
     if (target.id === 'ffLwChart' || target.id === 'ssChart' || target.classList.contains('kf-chart')) {
-      target.style.height = Math.max(620, Math.round(global.innerHeight * 0.82)) + 'px';
+      target.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
     }
     function close() {
       if (!overlay.parentNode) return;

@@ -3,7 +3,7 @@
  * window.SECTOR_MAP(sectors-v3.js: 섹터명 -> {name, code, market} 배열)을 읽어
  * GAS 프록시에 배치 조회 후 섹터 카드로 렌더링한다.
  * v3 대비: 종목 항목이 객체(code 내장)라 krx_map.js 없이 동작하고,
- * 시장 구분은 데이터 조회용으로만 사용하며 카드의 종목명에는 노출하지 않는다.
+ * 시장 구분은 카드에서 KOSPI/KOSDAQ 텍스트 뱃지로 구분한다.
  * v2 형식(종목명 문자열 배열 + KRX_MAP)도 하위 호환으로 지원.
  * data/sectors-v3.js가 이 스크립트보다 먼저 로드되어야 함.
  */
@@ -89,9 +89,10 @@
     });
   }
 
-  // 시장 구분은 조회·편집 데이터에는 필요하지만 카드의 종목명 옆에는 표시하지 않는다.
-  // 기존 호출부 호환을 위해 함수는 남겨 두되 항상 빈 문자열을 반환한다.
+  // 시장 구분은 한 글자 P/Q 대신 읽기 쉬운 전체 시장명으로 표시한다.
   function marketBadgeHtml(market) {
+    if (market === 'KOSPI') return '<span class="sector-mkt-badge mkt-kospi" title="KOSPI">KOSPI</span>';
+    if (market === 'KOSDAQ') return '<span class="sector-mkt-badge mkt-kosdaq" title="KOSDAQ">KOSDAQ</span>';
     return '';
   }
 
@@ -125,7 +126,7 @@
         var d = e.data;
         return (
           '<div class="sector-row">' +
-            '<span class="sector-row-name">' + escapeHTML(e.name) + '</span>' +
+            '<span class="sector-row-name">' + escapeHTML(e.name) + marketBadgeHtml(e.market) + '</span>' +
             '<span><span class="sector-row-price">' + formatNumber(d.price) + '</span>' +
             '<span class="sector-row-rate ' + directionClass(d.change) + '">' +
               arrowSymbol(d.change) + Math.abs(d.changeRate).toFixed(2) + '%</span></span>' +
