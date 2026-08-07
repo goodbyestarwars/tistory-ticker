@@ -3261,7 +3261,7 @@
       var ratio = maxVolume > 0 ? Math.max(0, Math.min(1, Number(volume) / maxVolume)) : 0;
       return plotLeft + ratio * (plotRight - plotLeft);
     }
-    function building(x, width, band) {
+    function building(x, width, band, index) {
       // 건물의 세로 위치와 높이는 거래량이 아니라 이 가격 구간의 low/high를 그대로
       // 가격축에 매핑한다. 거래량은 창문 개수·농도로만 표현한다.
       // 건물의 위치는 가격축에 맞추지 않고, 크기와 창문 밀도로 거래량을 표현한다.
@@ -3270,7 +3270,8 @@
       var y = groundY - height;
       var rows = Math.max(3, Math.min(7, 3 + Math.round(band.ratio * 4)));
       var cols = width >= 100 ? 4 : 3;
-      var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '">'
+      var delay = ((Number(index) || 0) * -0.55).toFixed(2);
+      var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
         + '<rect x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '" rx="2" />'
         + '<path class="ff-apt-building-roof" d="M' + (x + 5) + ' ' + (y - 6) + ' H' + (x + width - 5) + '" />';
       var cellW = Math.max(7, (width - 16) / cols - 4);
@@ -3292,7 +3293,7 @@
             var fx = wx + cellW / 2, fy = wy + cellH / 2;
             html += '<g class="ff-apt-building-average-person" transform="translate(' + fx + ' ' + (fy + 1) + ')"><path class="shoulders" d="M-5 5 Q0 1 5 5 V7 H-5 Z" /><circle class="head" r="4.4" /><path class="hair" d="M-4 -1 Q0 -6 4 -1 Z" /><circle class="eye" cx="-1.5" cy="0" r=".55" /><circle class="eye" cx="1.5" cy="0" r=".55" /></g>';
           } else if (windowMarker && windowMarker.type === 'current') {
-            html += '<circle class="ff-apt-building-current-icon" cx="' + (wx + cellW / 2) + '" cy="' + (wy + cellH / 2) + '" r="4" /><path class="ff-apt-building-current-icon" d="M' + (wx + cellW / 2 - 6) + ' ' + (wy + cellH / 2) + ' h12 M' + (wx + cellW / 2) + ' ' + (wy + cellH / 2 - 6) + ' v12" />';
+            html += '<circle class="ff-apt-building-current-icon ff-apt-building-current-ring" cx="' + (wx + cellW / 2) + '" cy="' + (wy + cellH / 2) + '" r="4" /><path class="ff-apt-building-current-icon" d="M' + (wx + cellW / 2 - 6) + ' ' + (wy + cellH / 2) + ' h12 M' + (wx + cellW / 2) + ' ' + (wy + cellH / 2 - 6) + ' v12" />';
           } else if (windowMarker && windowMarker.type === 'poc') {
             var px = wx + cellW / 2, py = wy + cellH / 2;
             html += '<path class="ff-apt-building-poc-icon" d="M' + (px - 5) + ' ' + (py - 2) + ' l2 3 3-5 3 5 2-3-1 6 H' + (px - 4) + ' Z" />';
@@ -3341,7 +3342,7 @@
     ];
     var skyline = bands.map(function (band, index) {
       var spec = buildingSpecs[index];
-      return building(spec.x, spec.width, band);
+      return building(spec.x, spec.width, band, index);
     }).join('');
     var basement = '<g class="ff-apt-illustration-basement" role="group" aria-label="지하실">'
       + '<path class="ff-apt-basement-shell" d="M218 390 H486 V414 H218 Z" />'
@@ -3364,6 +3365,17 @@
     var middle = bins[Math.floor((n - 1) / 2)];
     var low = bins[0];
     var pocText = pocIdx >= 0 && bins[pocIdx] ? priceText((bins[pocIdx].low + bins[pocIdx].high) / 2) + '원' : '-';
+    function signalCard(x, width, label, value, color, kind) {
+      return '<g class="ff-apt-signal-card ' + kind + '-signal" style="--ff-signal-color:' + color + '">'
+        + '<rect x="' + x + '" y="18" width="' + width + '" height="32" rx="10" />'
+        + '<circle class="ff-apt-signal-dot" cx="' + (x + 14) + '" cy="28" r="4" />'
+        + '<text class="ff-apt-signal-label" x="' + (x + 24) + '" y="28">' + label + '</text>'
+        + '<text class="ff-apt-signal-value" x="' + (x + 24) + '" y="42">' + value + '</text>'
+        + '</g>';
+    }
+    var signalCards = signalCard(314, 98, '현재가', priceText(currentPrice) + '원', '#0f766e', 'current')
+      + signalCard(420, 112, '평균 단가', priceText(avgPrice) + '원', '#3b82f6', 'average')
+      + signalCard(540, 134, '중심 가격', pocText, '#f08c46', 'poc');
     var grid = '';
     for (var g = 0; g < n; g += Math.max(1, Math.ceil(n / 12))) {
       var gy = yForIndex(g);
@@ -3380,6 +3392,7 @@
       + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
       + '<path class="ff-apt-illustration-orbit" d="M120 430 C230 172 566 126 924 190" />'
       + '<g class="ff-apt-illustration-title"><rect x="48" y="42" width="248" height="50" rx="8" /><path d="M70 68 h26 m-13-13 v26" /><text x="116" y="73">가격 지형도</text></g>'
+      + signalCards
       + '<g class="ff-apt-illustration-tag"><rect x="48" y="118" width="122" height="28" rx="6" /><text x="66" y="137">거래량 지도</text></g>'
       + '<g class="ff-apt-illustration-tag"><rect x="520" y="72" width="112" height="28" rx="6" /><text x="540" y="91">체결 흐름</text></g>'
       + skyline
