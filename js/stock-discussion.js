@@ -9,7 +9,7 @@
   var count = root.querySelector('[data-discussion-count]');
   var entries = Array.prototype.slice.call(root.querySelectorAll('[data-discussion-entry]'));
   var buttons = Array.prototype.slice.call(root.querySelectorAll('[data-discussion-stock]'));
-  var names = { '005930': '삼성전자', '000660': 'SK하이닉스' };
+  var names = { '005930': '삼성전자', '000660': 'SK하이닉스', '042660': '한화오션' };
 
   function normalize(value) {
     return String(value || '').trim().replace(/\s+/g, ' ');
