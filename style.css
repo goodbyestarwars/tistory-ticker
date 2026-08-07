@@ -3045,6 +3045,54 @@ body.iframe-mode .site-footer { display: none !important; }
 .nav-search-btn { display: none; }
 .nav-manage-btn:hover svg { stroke: #745b37; }
 
+body.account-login-open { overflow: hidden; }
+.account-login-modal[hidden] { display: none; }
+.account-login-modal { position: fixed; inset: 0; z-index: 2200; font-family: 'MaruBuri', 'Maru Buri', 'Nanum Gothic', system-ui, sans-serif; }
+.account-login-backdrop { display: grid; place-items: center; min-height: 100%; padding: 24px; box-sizing: border-box; background: rgba(15, 23, 42, .42); backdrop-filter: blur(5px); }
+.account-login-dialog { position: relative; width: min(520px, 100%); box-sizing: border-box; padding: 32px; border: 1px solid rgba(255, 255, 255, .7); border-radius: 24px; background: linear-gradient(145deg, #fff 0%, #f8fbff 100%); box-shadow: 0 24px 70px rgba(15, 23, 42, .24); color: #172033; }
+.account-login-close { position: absolute; top: 18px; right: 18px; width: 34px; height: 34px; border: 1px solid #e2e8f0; border-radius: 50%; background: rgba(255, 255, 255, .8); color: #64748b; font: inherit; font-size: 22px; line-height: 1; cursor: pointer; transition: background .15s ease, color .15s ease, transform .15s ease; }
+.account-login-close:hover { background: #eef3f9; color: #1e293b; transform: rotate(90deg); }
+.account-login-close:focus-visible, .account-login-option:focus-visible { outline: 3px solid rgba(37, 99, 235, .22); outline-offset: 3px; }
+.account-login-heading { padding-right: 36px; margin-bottom: 24px; }
+.account-login-eyebrow { display: block; margin-bottom: 8px; color: #2563eb; font-family: Arial, sans-serif; font-size: 10px; font-weight: 800; letter-spacing: .18em; }
+.account-login-heading h2 { margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -.04em; }
+.account-login-heading p { margin: 9px 0 0; color: #64748b; font-size: 13px; line-height: 1.6; }
+.account-login-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.account-login-option { display: grid; grid-template-columns: 40px minmax(0, 1fr) 18px; align-items: center; gap: 11px; min-height: 92px; box-sizing: border-box; padding: 15px; border: 1px solid #dbe5f2; border-radius: 16px; background: #fff; color: #172033; text-align: left; text-decoration: none; font: inherit; cursor: pointer; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease; }
+.account-login-option:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(31, 41, 55, .09); }
+.account-login-tistory:hover { border-color: #e6c77b; background: #fffdf7; }
+.account-login-google:hover { border-color: #9fc0f8; background: #f8fbff; }
+.account-login-option-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-family: Arial, sans-serif; font-size: 20px; font-weight: 800; }
+.account-login-kakao-icon { background: #fee500; color: #191919; font-size: 13px; }
+.account-login-google-icon { border: 1px solid #d6e2f2; background: #fff; color: #4285f4; box-shadow: 0 3px 10px rgba(66, 133, 244, .12); }
+.account-login-option-copy { min-width: 0; }
+.account-login-option-copy strong { display: block; font-size: 13px; line-height: 1.35; }
+.account-login-option-copy small { display: block; margin-top: 4px; color: #7b8798; font-size: 11px; line-height: 1.35; white-space: nowrap; }
+.account-login-option-arrow { color: #94a3b8; font-size: 18px; transition: transform .15s ease, color .15s ease; }
+.account-login-option:hover .account-login-option-arrow { color: #2563eb; transform: translateX(2px); }
+.account-login-google-status { min-height: 18px; margin-top: 16px; color: #64748b; font-size: 11px; line-height: 1.5; }
+.account-login-footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e8eef5; color: #94a3b8; font-size: 10px; line-height: 1.5; }
+html.dark .account-login-backdrop { background: rgba(0, 0, 0, .62); }
+html.dark .account-login-dialog { border-color: rgba(245, 239, 224, .15); background: linear-gradient(145deg, #202b3a 0%, #1a1a1a 100%); color: #f5efe0; box-shadow: 0 24px 70px rgba(0, 0, 0, .5); }
+html.dark .account-login-close { border-color: rgba(245, 239, 224, .2); background: #242424; color: rgba(245, 239, 224, .7); }
+html.dark .account-login-close:hover { background: #2b2b2b; color: #f5efe0; }
+html.dark .account-login-heading p, html.dark .account-login-google-status { color: rgba(245, 239, 224, .65); }
+html.dark .account-login-option { border-color: rgba(245, 239, 224, .18); background: #1a1a1a; color: #f5efe0; }
+html.dark .account-login-tistory:hover { border-color: #a3843f; background: #2e291d; }
+html.dark .account-login-google:hover { border-color: #4678bd; background: #202b3a; }
+html.dark .account-login-google-icon { border-color: rgba(245, 239, 224, .2); background: #242424; color: #8ab4f8; }
+html.dark .account-login-option-copy small, html.dark .account-login-footer { color: rgba(245, 239, 224, .5); }
+html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
+@media (max-width: 560px) {
+  .account-login-backdrop { align-items: end; padding: 12px; }
+  .account-login-dialog { padding: 25px 18px 18px; border-radius: 22px; }
+  .account-login-heading { margin-bottom: 18px; }
+  .account-login-heading h2 { font-size: 20px; }
+  .account-login-options { grid-template-columns: 1fr; gap: 9px; }
+  .account-login-option { min-height: 72px; }
+  .account-login-option-icon { width: 36px; height: 36px; }
+}
+
 /* ============ 스크롤 투 탑 ============ */
 .scroll-top-btn {
   position: fixed;
