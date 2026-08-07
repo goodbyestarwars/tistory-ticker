@@ -308,6 +308,46 @@ html.dark .de-chart-modal-body { background: #1A1A1A; }
   #market-temp .mt-hero-right { width: 100%; flex-basis: auto; }
 }
 
+/* Simplify the hero: no separate gauge or investment-signal panel. */
+#market-temp .mt-gauge-side,
+#market-temp .mt-hero-right { display: none !important; }
+#market-temp .mt-hero-card > .mt-card {
+  margin-top: 18px;
+  border-top: 1px solid #edf0ef;
+  padding-top: 14px;
+}
+#market-temp .mt-row-2col:has(.mt-spark) > .mt-card:first-child { display: none; }
+#market-temp .mt-strategy-action {
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,.75);
+  box-shadow: 0 3px 10px rgba(47,62,54,.08);
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* Short explanations keep each block interpretable without adding visual noise. */
+#market-temp .mt-hero-card::after,
+#market-temp .mt-ai-card::after,
+#market-temp .mt-row-2col > .mt-card:first-child::after,
+#market-temp .mt-row-2col > .mt-card:last-child::after,
+#market-temp .mt-strategy-card::after {
+  display: block;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #edf0ef;
+  color: #7b8780;
+  font-size: 11px;
+  line-height: 1.55;
+}
+#market-temp .mt-hero-card::after { content: '현재 시장의 과열·침체 정도와 최근 7일 흐름을 함께 보여줍니다.'; }
+#market-temp .mt-ai-card::after { content: '주요 지표를 종합해 오늘 시장 흐름을 요약한 내용입니다.'; }
+#market-temp .mt-row-2col > .mt-card:first-child::after { content: '증시온도에 영향을 준 지표를 기여도 순으로 보여줍니다.'; }
+#market-temp .mt-row-2col > .mt-card:last-child::after { content: '시장 흐름을 여러 축으로 나누어 상대적인 강도를 보여줍니다.'; }
+#market-temp .mt-strategy-card::after { content: '현재 온도와 시장 흐름을 바탕으로 한 참고용 대응 방향입니다.'; }
+
 @media (max-width: 720px) {
   #foreign-flow .ff-chart-candle, #stock-search .ss-chart, #kospi-futures .kf-chart { height: 600px !important; }
   .de-chart-overlay { padding: 8px; }

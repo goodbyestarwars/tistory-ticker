@@ -391,8 +391,8 @@
     return '<div class="mt-section mt-card mt-hero-card">'
       + '<div class="mt-hero-row">'
       + buildHero(data)
-      + '<div class="mt-gauge-side">' + buildGauge(data.temp) + '</div>'
       + '</div>'
+      + buildSparkline(data)
       + '</div>';
   }
 
