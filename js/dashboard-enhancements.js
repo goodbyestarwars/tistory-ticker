@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20260807-1';
+  var ENHANCEMENT_VERSION = '20260807-2';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -155,14 +155,15 @@
 
   function openChartModal(target, title) {
     if (document.querySelector('.de-chart-overlay')) return;
-    var root = target.closest('#foreign-flow, #stock-search, #kospi-futures') || document.body;
     var placeholder = document.createElement('div');
     placeholder.className = 'de-chart-placeholder';
     target.parentNode.insertBefore(placeholder, target);
     var overlay = document.createElement('div');
     overlay.className = 'de-chart-overlay';
     overlay.innerHTML = '<div class="de-chart-modal" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '"><div class="de-chart-modal-head"><strong>' + escapeHtml(title) + '</strong><button type="button" class="de-chart-close" aria-label="닫기">✕</button></div><div class="de-chart-modal-body"></div></div>';
-    root.appendChild(overlay);
+    // 위젯 내부에 붙이면 부모의 폭/transform/overflow 규칙이 fixed 모달에
+    // 전파되어 화면이 밀리거나 좌우가 잘릴 수 있다. 모달은 문서 최상위에 둔다.
+    document.body.appendChild(overlay);
     var body = overlay.querySelector('.de-chart-modal-body');
     var oldStyle = target.getAttribute('style');
     target.classList.add('de-modal-target');
@@ -183,7 +184,13 @@
     overlay.querySelector('.de-chart-close').addEventListener('click', close);
     overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });
     document.addEventListener('keydown', onKeydown);
-    requestAnimationFrame(function () { global.dispatchEvent(new Event('resize')); });
+    requestAnimationFrame(function () {
+      global.dispatchEvent(new Event('resize'));
+      // Lightweight Charts가 이동 후 새 컨테이너 폭을 다시 측정하도록 보정한다.
+      if (target.clientWidth && target.clientHeight) {
+        target.dispatchEvent(new Event('resize'));
+      }
+    });
   }
 
   function wireCharts() {
