@@ -17,6 +17,21 @@
 .discussion-guest-fields { display:flex; gap:8px; margin-bottom:9px; }
 .discussion-guest-fields input { min-width:0; flex:1; height:38px; padding:0 11px; border:1px solid #d8e2ed; border-radius:9px; background:#fff; font:inherit; }
 .discussion-write textarea { display:block; width:100%; box-sizing:border-box; min-height:110px; resize:vertical; padding:13px; border:1px solid #d8e2ed; border-radius:11px; background:#fff; font:inherit; line-height:1.6; }
+.market-discussion .discussion-write textarea {
+  display:block !important;
+  width:100% !important;
+  min-height:140px !important;
+  box-sizing:border-box !important;
+  padding:14px !important;
+  border:1px solid #d8e2ed !important;
+  border-radius:11px !important;
+  background:#fff !important;
+  color:#263b55 !important;
+  resize:vertical !important;
+  opacity:1 !important;
+  visibility:visible !important;
+}
+.market-discussion .discussion-write textarea::placeholder { color:#9aaabd !important; opacity:1 !important; }
 .discussion-write-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:10px; }
 .discussion-write-note { color:#91a0b0; font-size:12px; }
 .discussion-write-actions input[type=submit] { border:0; border-radius:10px; padding:11px 18px; background:#4285f4; color:#fff; font-weight:700; cursor:pointer; }
