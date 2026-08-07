@@ -81,6 +81,79 @@
 #market-temp .mt-guide-card-extreme-greed .mt-guide-card-stars { color: #a66b6b !important; }
 #market-temp .mt-guide-stars-empty { color: #e1e5e8 !important; }
 
+/* Guide redesign: a quiet, readable five-step scale instead of decorative color blocks. */
+#market-temp .mt-section:has(.mt-guide-grid-cards) {
+  padding-top: 14px;
+}
+#market-temp .mt-section:has(.mt-guide-grid-cards) .mt-card-title {
+  margin: -14px -16px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8e4;
+  background: #f7f9f8;
+  color: #263b31;
+  font-size: 15px;
+  letter-spacing: -.2px;
+}
+#market-temp .mt-guide-grid-cards {
+  gap: 10px;
+}
+#market-temp .mt-guide-card {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid #e1e7e4 !important;
+  border-radius: 12px;
+  padding: 12px 13px 11px;
+  background: #fff;
+  box-shadow: none;
+}
+#market-temp .mt-guide-card::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 12px 0 0 12px;
+  background: var(--mt-guide-color);
+  opacity: .38;
+}
+#market-temp .mt-guide-season {
+  justify-content: flex-start;
+  margin-bottom: 8px;
+  color: #33463c !important;
+  font-size: 12px;
+}
+#market-temp .mt-guide-season-emoji {
+  width: 20px;
+  filter: grayscale(1);
+  opacity: .62;
+}
+#market-temp .mt-guide-card-label {
+  margin-bottom: 8px;
+  color: #65716b;
+  font-size: 12px;
+  text-align: left;
+}
+#market-temp .mt-guide-card-meta {
+  justify-content: space-between;
+  gap: 6px;
+  border-top: 1px solid #edf0ef;
+  padding-top: 8px;
+}
+#market-temp .mt-guide-card-range,
+#market-temp .mt-guide-card-stars {
+  color: #52665b !important;
+  font-size: 11px;
+}
+#market-temp .mt-guide-card-stars {
+  letter-spacing: 2px;
+}
+#market-temp .mt-guide-card:hover {
+  border-color: #cbd8d0 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(40,58,49,.08);
+}
+
 .de-custom-card-tools { margin: 0 0 14px; }
 .de-custom-card-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #e3e8ef; border-radius: 10px; background: linear-gradient(110deg, #f8fbf9, #f8fafc); }
 .de-custom-card-toolbar strong { display: block; color: #315b43; font-size: 13px; }
