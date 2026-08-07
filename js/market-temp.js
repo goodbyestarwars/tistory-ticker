@@ -692,20 +692,24 @@
       return '<section class="mt-sector-editor-category" data-category-index="' + categoryIndex + '">' +
         '<div class="mt-sector-editor-category-head">' +
           '<input data-editor-role="category-name" value="' + escapeHtml(category) + '" aria-label="카테고리명">' +
+          '<span class="mt-sector-editor-category-count">' + stocks.length + '종목</span>' +
+          '<button type="button" class="mt-sector-editor-toggle" data-editor-action="toggle-category" aria-expanded="true">접기</button>' +
           '<button type="button" data-editor-action="delete-category">카테고리 삭제</button>' +
         '</div>' +
+        '<div class="mt-sector-editor-stock-labels" aria-hidden="true"><span>종목명</span><span>종목코드</span><span>시장</span><span></span></div>' +
         '<div class="mt-sector-editor-stocks">' + stockRows + '</div>' +
         '<button type="button" class="mt-sector-editor-add-stock" data-editor-action="add-stock">+ 종목 추가</button>' +
       '</section>';
     }).join('');
 
     return '<div class="mt-sector-editor">' +
-      '<div class="mt-sector-editor-head"><strong>카테고리·종목 편집</strong><span>저장하면 모든 사용자에게 반영됩니다.</span></div>' +
+      '<div class="mt-sector-editor-head"><div><strong>카테고리·종목 편집</strong><span>저장하면 모든 사용자에게 반영됩니다.</span></div>' +
+        '<div class="mt-sector-editor-head-actions"><button type="button" data-editor-action="collapse-all">전체 접기</button><button type="button" data-editor-action="expand-all">전체 펼치기</button></div></div>' +
       '<datalist id="mt-sector-stock-names">' + stockOptionsHtml_() + '</datalist>' +
       '<div class="mt-sector-editor-categories">' + rows + '</div>' +
       '<div class="mt-sector-editor-actions">' +
         '<button type="button" data-editor-action="add-category">+ 카테고리 추가</button>' +
-        '<input type="password" data-editor-role="admin-token" placeholder="관리자 토큰" autocomplete="current-password">' +
+        '<input type="password" data-editor-role="admin-token" aria-label="저장용 관리자 토큰" placeholder="저장용 관리자 토큰" autocomplete="current-password">' +
         '<button type="button" class="primary" data-editor-action="save">저장</button>' +
         '<button type="button" data-editor-action="cancel">취소</button>' +
       '</div>' +
@@ -759,12 +763,28 @@
     };
 
     rerender();
+    var setCategoryCollapsed = function (categoryEl, collapsed) {
+      categoryEl.classList.toggle('is-collapsed', collapsed);
+      var toggle = categoryEl.querySelector('[data-editor-action="toggle-category"]');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        toggle.textContent = collapsed ? '펼치기' : '접기';
+      }
+    };
     panel.onclick = function (event) {
       var actionEl = event.target.closest('[data-editor-action]');
       if (!actionEl) return;
       var action = actionEl.getAttribute('data-editor-action');
       try {
-        if (action === 'add-category') {
+        if (action === 'toggle-category') {
+          var categoryEl = actionEl.closest('.mt-sector-editor-category');
+          setCategoryCollapsed(categoryEl, !categoryEl.classList.contains('is-collapsed'));
+        } else if (action === 'collapse-all' || action === 'expand-all') {
+          var shouldCollapse = action === 'collapse-all';
+          panel.querySelectorAll('.mt-sector-editor-category').forEach(function (categoryEl) {
+            setCategoryCollapsed(categoryEl, shouldCollapse);
+          });
+        } else if (action === 'add-category') {
           model = collectSectorMapFromEditor_(panel, true);
           var base = '새 카테고리';
           var name = base;
