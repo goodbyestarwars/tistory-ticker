@@ -72,11 +72,11 @@
   // 사용자 지정 온도(℃) 구간 - tone은 css/market-temp.css의 카드 배경색 클래스와 매칭.
   // color: 2026-07-18 스펙 지정 5색(등급 필/게이지/기준표/레이더 강조색에 일괄 적용).
   var GRADE_BANDS = [
-    { range: '0~10℃', emoji: '🧊', label: '극단적 공포', tone: 'extreme-fear', color: '#1565C0' },
-    { range: '10~20℃', emoji: '🔵', label: '공포', tone: 'fear', color: '#42A5F5' },
-    { range: '20~28℃', emoji: '🟡', label: '중립', tone: 'neutral', color: '#FFD54F' },
-    { range: '28~35℃', emoji: '🟠', label: '탐욕', tone: 'greed', color: '#FB8C00' },
-    { range: '35~40℃', emoji: '🔥', label: '극단적 탐욕', tone: 'extreme-greed', color: '#E53935' }
+    { range: '0~10℃', emoji: '🧊', label: '극단적 공포', season: '한겨울', seasonEmoji: '❄️', tone: 'extreme-fear', color: '#1565C0' },
+    { range: '10~20℃', emoji: '🔵', label: '공포', season: '초봄', seasonEmoji: '🌱', tone: 'fear', color: '#42A5F5' },
+    { range: '20~28℃', emoji: '🟡', label: '중립', season: '포근한 봄', seasonEmoji: '🌼', tone: 'neutral', color: '#FFD54F' },
+    { range: '28~35℃', emoji: '🟠', label: '탐욕', season: '한여름', seasonEmoji: '☀️', tone: 'greed', color: '#FB8C00' },
+    { range: '35~40℃', emoji: '🔥', label: '극단적 탐욕', season: '폭염', seasonEmoji: '🔥', tone: 'extreme-greed', color: '#E53935' }
   ];
   var GRADE_BY_TONE = {};
   GRADE_BANDS.forEach(function (b) { GRADE_BY_TONE[b.tone] = b; });
@@ -590,7 +590,8 @@
     // 피드백 - 설명을 1번째 줄, 온도+별점을 한 줄로 묶어 2번째 줄로 통일(3줄->2줄).
     var cards = GRADE_BANDS.map(function (b, i) {
       var stars = '★'.repeat(5 - i) + '<span class="mt-guide-stars-empty">' + '★'.repeat(i) + '</span>';
-      return '<div class="mt-guide-card" style="border-color:' + b.color + '55">'
+      return '<div class="mt-guide-card mt-guide-card-' + escapeHtml(b.tone) + '" style="--mt-guide-color:' + b.color + ';border-color:' + b.color + '55">'
+        + '<div class="mt-guide-season"><span class="mt-guide-season-emoji">' + escapeHtml(b.seasonEmoji) + '</span><span>' + escapeHtml(b.season) + '</span></div>'
         + '<div class="mt-guide-card-label">' + escapeHtml(b.emoji) + ' ' + escapeHtml(b.label) + '</div>'
         + '<div class="mt-guide-card-meta">'
         + '<span class="mt-guide-card-range" style="color:' + b.color + '">' + b.range + '</span>'
