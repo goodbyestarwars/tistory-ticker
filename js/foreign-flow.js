@@ -3153,8 +3153,8 @@
   // JS에서 픽셀로 직접 계산하는 유일한 기준값이다(CSS를 바꾸면 이 값도 같이 바꿀 것).
   var APT_ROW_HEIGHT = 20;
 
-  // 데이터 호환용 레거시 아파트 렌더러. 현재 화면은 아래 라인아트 렌더러를 사용한다.
-  function buildAptLineArtHtml(profile, currentPrice, avgPrice) {
+  // 이전 프로파일 라인 렌더러는 데이터 호환용으로 남겨 둔다.
+  function buildAptLineArtHtmlLegacy(profile, currentPrice, avgPrice) {
     if (!profile || !profile.bins || !profile.bins.length) {
       return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
     }
@@ -3223,6 +3223,110 @@
       + '<text class="ff-apt-line-volume-label" x="' + right + '" y="' + (bottom + 30) + '" text-anchor="end">거래량 →</text>'
       + '</svg>'
       + '<div class="ff-apt-lineart-note">선의 길이 = 가격대별 체결거래량 · 점선 = 가격 구간</div>'
+      + '</div>';
+  }
+
+  // 네이버식 얇은 선과 초록 포인트를 참고한 매물대 일러스트. 도시는 장식이지만 오른쪽
+  // 프로파일 선은 실제 bins의 거래량을 그대로 사용해 데이터 의미를 유지한다.
+  function buildAptIllustratedLineArtHtml(profile, currentPrice, avgPrice) {
+    if (!profile || !profile.bins || !profile.bins.length) {
+      return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
+    }
+    var bins = profile.bins;
+    var n = bins.length;
+    var maxVolume = Number(profile.maxVolume) || 0;
+    var curIdx = aptBinIndex(profile, currentPrice);
+    var avgIdx = aptBinIndex(profile, avgPrice);
+    var pocIdx = profile.pocIndex >= 0 && profile.pocIndex < n ? profile.pocIndex : -1;
+    var plotLeft = 720, plotRight = 868, plotTop = 116, plotBottom = 382;
+
+    function priceText(value) {
+      return value == null || isNaN(value) ? '-' : Math.round(value).toLocaleString('ko-KR');
+    }
+    function yForIndex(index) {
+      return plotTop + ((n - 1 - index) / Math.max(1, n - 1)) * (plotBottom - plotTop);
+    }
+    function xForVolume(volume) {
+      var ratio = maxVolume > 0 ? Math.max(0, Math.min(1, Number(volume) / maxVolume)) : 0;
+      return plotLeft + ratio * (plotRight - plotLeft);
+    }
+    function building(x, y, width, height, rows, cols, accentColumn) {
+      var html = '<g class="ff-apt-illustration-building"><rect x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '" rx="2" />';
+      var cellW = Math.max(7, (width - 16) / cols - 4);
+      var cellH = Math.max(7, (height - 24) / rows - 4);
+      for (var row = 0; row < rows; row++) {
+        for (var col = 0; col < cols; col++) {
+          var wx = x + 8 + col * (cellW + 4);
+          var wy = y + 10 + row * (cellH + 4);
+          var accent = col === accentColumn && row % 2 === 0;
+          html += '<rect class="' + (accent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window') + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
+        }
+      }
+      html += '</g>';
+      return html;
+    }
+    function marker(index, color, label, value) {
+      if (index < 0 || index >= n) return '';
+      var y = yForIndex(index);
+      return '<line class="ff-apt-illustration-marker" x1="' + (plotLeft - 8) + '" x2="' + plotRight + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
+        + '<circle cx="' + (plotLeft - 8) + '" cy="' + y + '" r="4" fill="' + color + '" />'
+        + '<rect class="ff-apt-illustration-label-bg" x="' + (plotLeft - 4) + '" y="' + (y - 14) + '" width="140" height="18" rx="9" />'
+        + '<text class="ff-apt-illustration-marker-label" x="' + (plotLeft + 6) + '" y="' + (y - 2) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
+    }
+
+    var skyline = ''
+      + building(58, 215, 88, 164, 5, 3, 1)
+      + building(142, 188, 116, 191, 6, 4, 2)
+      + building(250, 239, 76, 140, 4, 2, 0)
+      + building(318, 160, 108, 219, 7, 3, 1)
+      + building(422, 207, 92, 172, 5, 3, 2)
+      + building(510, 178, 124, 201, 6, 4, 1);
+    var profilePoints = [];
+    for (var i = n - 1; i >= 0; i--) {
+      profilePoints.push(Math.round(xForVolume(bins[i].volume) * 10) / 10 + ',' + Math.round(yForIndex(i) * 10) / 10);
+    }
+    var profilePath = profilePoints.length ? 'M' + profilePoints.join(' L') : '';
+    var high = bins[n - 1];
+    var middle = bins[Math.floor((n - 1) / 2)];
+    var low = bins[0];
+    var pocText = pocIdx >= 0 && bins[pocIdx] ? priceText((bins[pocIdx].low + bins[pocIdx].high) / 2) + '원' : '-';
+    var grid = '';
+    for (var g = 0; g < n; g += Math.max(1, Math.ceil(n / 12))) {
+      var gy = yForIndex(g);
+      grid += '<line class="ff-apt-illustration-grid" x1="' + plotLeft + '" x2="' + plotRight + '" y1="' + gy + '" y2="' + gy + '" />';
+    }
+
+    return '<div class="ff-apt-chart-wrap ff-apt-line-art ff-apt-illustration" role="img" aria-label="가격대별 매물대 일러스트">'
+      + '<div class="ff-apt-lineart-head"><strong>가격대별 매물대</strong><span>POC ' + pocText + '</span></div>'
+      + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg" viewBox="0 0 900 430" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
+      + '<title>가격대별 매물대 일러스트</title>'
+      + '<desc>얇은 선으로 표현한 가격대 도시 위에 실제 거래량 프로파일과 현재가, 평균단가, POC를 표시합니다.</desc>'
+      + '<rect class="ff-apt-illustration-canvas" x="10" y="12" width="880" height="406" rx="22" />'
+      + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
+      + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
+      + '<path class="ff-apt-illustration-orbit" d="M120 430 C230 172 566 126 924 190" />'
+      + '<g class="ff-apt-illustration-search"><rect x="164" y="43" width="432" height="54" rx="27" /><circle cx="194" cy="70" r="10" /><path d="M201 77 l8 8" /><text x="222" y="77">가격대별 매물대</text><circle class="accent-dot" cx="566" cy="70" r="7" /></g>'
+      + '<g class="ff-apt-illustration-tag"><rect x="42" y="122" width="112" height="30" rx="15" /><text x="61" y="142">거래량 지도</text></g>'
+      + '<g class="ff-apt-illustration-tag"><rect x="596" y="72" width="90" height="30" rx="15" /><text x="616" y="92">체결 밀도</text></g>'
+      + skyline
+      + '<path class="ff-apt-illustration-ground" d="M28 380 H680" />'
+      + '<path class="ff-apt-illustration-ground" d="M28 390 H680" />'
+      + '<g class="ff-apt-illustration-person"><circle cx="210" cy="278" r="12" /><path d="M210 290 v44 m-18 14 l18-14 18 14 m-28-28 h20" /></g>'
+      + '<g class="ff-apt-illustration-person"><circle cx="468" cy="260" r="11" /><path d="M468 271 v42 m-16 15 l16-15 17 15 m-24-28 h21" /></g>'
+      + '<g class="ff-apt-illustration-car"><rect x="544" y="352" width="52" height="18" rx="7" /><path d="M554 352 l8-12 h18 l10 12" /><circle cx="557" cy="371" r="5" /><circle cx="584" cy="371" r="5" /></g>'
+      + '<g class="ff-apt-illustration-profile"><rect x="696" y="100" width="178" height="300" rx="12" /><text class="ff-apt-illustration-profile-title" x="714" y="126">거래량 프로파일</text>'
+      + '<line class="ff-apt-illustration-axis" x1="' + plotLeft + '" x2="' + plotLeft + '" y1="' + plotTop + '" y2="' + plotBottom + '" />'
+      + grid
+      + '<path class="ff-apt-illustration-profile-line" d="' + profilePath + '" />'
+      + '<text class="ff-apt-illustration-price" x="714" y="150">' + priceText(high.high) + '원</text>'
+      + '<text class="ff-apt-illustration-price" x="714" y="252">' + priceText((middle.low + middle.high) / 2) + '원</text>'
+      + '<text class="ff-apt-illustration-price" x="714" y="386">' + priceText(low.low) + '원</text>'
+      + marker(curIdx, '#12b886', '현재가', currentPrice)
+      + marker(avgIdx, '#3b82f6', '평균', avgPrice)
+      + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', 'POC', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
+      + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
+      + '</svg>'
+      + '<div class="ff-apt-lineart-note">선의 길이 = 실제 체결거래량 · 초록 점 = 현재가 · 주황 점 = POC</div>'
       + '</div>';
   }
 
@@ -3365,7 +3469,7 @@
     var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
     return buildAptZoomButtons(stepIndex)
       + buildAptSummaryHtml(profile, periodLabel, avgPrice)
-      + buildAptLineArtHtml(profile, currentPrice, avgPrice)
+      + buildAptIllustratedLineArtHtml(profile, currentPrice, avgPrice)
       + footnote;
   }
 
