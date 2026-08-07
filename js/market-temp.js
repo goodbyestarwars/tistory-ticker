@@ -1103,7 +1103,6 @@
       '<div class="mt-section">' + buildAiBriefingShell() + '</div>', // ② AI 시장 브리핑(5차: TOP5 병합으로 단독 배치, 폭 넓어져 가독성 개선)
       row2col(buildBars(data), buildRadar(data)),   // ③ 시장 구성요소(표) | 시장 레이더 (좌우)
       row2col(buildSparkline(data), buildStrategy(grade)), // ④ 최근7일 | 오늘의 전략
-      buildGuide()                                   // ⑤ 온도 기준표
     ];
 
     return ''
