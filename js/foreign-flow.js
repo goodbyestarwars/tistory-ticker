@@ -3226,7 +3226,7 @@
       + '</div>';
   }
 
-  // 네이버식 얇은 선과 초록 포인트를 참고한 매물대 일러스트. 도시는 장식이지만 오른쪽
+  // 참고 이미지의 정보 전달 방식만 차용한 독자적인 매물대 일러스트. 도시는 장식이지만 오른쪽
   // 프로파일 선은 실제 bins의 거래량을 그대로 사용해 데이터 의미를 유지한다.
   function buildAptIllustratedLineArtHtml(profile, currentPrice, avgPrice) {
     if (!profile || !profile.bins || !profile.bins.length) {
@@ -3305,15 +3305,15 @@
       + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
       + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
       + '<path class="ff-apt-illustration-orbit" d="M120 430 C230 172 566 126 924 190" />'
-      + '<g class="ff-apt-illustration-search"><rect x="164" y="43" width="432" height="54" rx="27" /><circle cx="194" cy="70" r="10" /><path d="M201 77 l8 8" /><text x="222" y="77">가격대별 매물대</text><circle class="accent-dot" cx="566" cy="70" r="7" /></g>'
-      + '<g class="ff-apt-illustration-tag"><rect x="42" y="122" width="112" height="30" rx="15" /><text x="61" y="142">거래량 지도</text></g>'
-      + '<g class="ff-apt-illustration-tag"><rect x="596" y="72" width="90" height="30" rx="15" /><text x="616" y="92">체결 밀도</text></g>'
+      + '<g class="ff-apt-illustration-title"><rect x="48" y="42" width="248" height="50" rx="8" /><path d="M70 68 h26 m-13-13 v26" /><text x="116" y="73">PRICE TERRAIN</text></g>'
+      + '<g class="ff-apt-illustration-tag"><rect x="48" y="118" width="122" height="28" rx="6" /><text x="66" y="137">VOLUME MAP</text></g>'
+      + '<g class="ff-apt-illustration-tag"><rect x="520" y="72" width="112" height="28" rx="6" /><text x="540" y="91">DATA FLOW</text></g>'
       + skyline
       + '<path class="ff-apt-illustration-ground" d="M28 380 H680" />'
       + '<path class="ff-apt-illustration-ground" d="M28 390 H680" />'
-      + '<g class="ff-apt-illustration-person"><circle cx="210" cy="278" r="12" /><path d="M210 290 v44 m-18 14 l18-14 18 14 m-28-28 h20" /></g>'
-      + '<g class="ff-apt-illustration-person"><circle cx="468" cy="260" r="11" /><path d="M468 271 v42 m-16 15 l16-15 17 15 m-24-28 h21" /></g>'
-      + '<g class="ff-apt-illustration-car"><rect x="544" y="352" width="52" height="18" rx="7" /><path d="M554 352 l8-12 h18 l10 12" /><circle cx="557" cy="371" r="5" /><circle cx="584" cy="371" r="5" /></g>'
+      + '<path class="ff-apt-illustration-ribbon" d="M62 174 C136 154 202 194 274 174 S416 154 492 178 S586 198 654 170" />'
+      + '<circle class="ff-apt-illustration-node" cx="274" cy="174" r="5" />'
+      + '<circle class="ff-apt-illustration-node" cx="492" cy="178" r="5" />'
       + '<g class="ff-apt-illustration-profile"><rect x="696" y="100" width="178" height="300" rx="12" /><text class="ff-apt-illustration-profile-title" x="714" y="126">거래량 프로파일</text>'
       + '<line class="ff-apt-illustration-axis" x1="' + plotLeft + '" x2="' + plotLeft + '" y1="' + plotTop + '" y2="' + plotBottom + '" />'
       + grid
@@ -3321,7 +3321,7 @@
       + '<text class="ff-apt-illustration-price" x="714" y="150">' + priceText(high.high) + '원</text>'
       + '<text class="ff-apt-illustration-price" x="714" y="252">' + priceText((middle.low + middle.high) / 2) + '원</text>'
       + '<text class="ff-apt-illustration-price" x="714" y="386">' + priceText(low.low) + '원</text>'
-      + marker(curIdx, '#12b886', '현재가', currentPrice)
+      + marker(curIdx, '#0f766e', '현재가', currentPrice)
       + marker(avgIdx, '#3b82f6', '평균', avgPrice)
       + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', 'POC', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'

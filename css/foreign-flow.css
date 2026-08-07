@@ -2510,7 +2510,7 @@ html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
   #foreign-flow .ff-apt-line-marker-label { font-size: 10px; }
 }
 
-/* 2026-08-07: 참고 이미지처럼 얇은 회색 선과 초록 포인트를 쓰는 일러스트형 매물대. */
+/* 2026-08-07: 참고 이미지의 선형 정보 전달만 차용한 독자적인 일러스트형 매물대. */
 #foreign-flow .ff-apt-illustration {
   min-height: 470px;
   padding: 12px 14px 10px;
@@ -2520,27 +2520,22 @@ html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
 #foreign-flow .ff-apt-illustration-svg { height: 430px; }
 #foreign-flow .ff-apt-illustration-canvas { fill: #eef0f1; stroke: none; }
 #foreign-flow .ff-apt-illustration-orbit { fill: none; stroke: #aeb4b8; stroke-width: 1; stroke-dasharray: 4 5; opacity: .78; }
-#foreign-flow .ff-apt-illustration-search rect { fill: #fff; stroke: #12b886; stroke-width: 2; }
-#foreign-flow .ff-apt-illustration-search circle:not(.accent-dot) { fill: none; stroke: #12b886; stroke-width: 2; }
-#foreign-flow .ff-apt-illustration-search path { fill: none; stroke: #12b886; stroke-width: 2; }
-#foreign-flow .ff-apt-illustration-search text { fill: #1f2529; font-size: 20px; font-weight: 700; }
-#foreign-flow .ff-apt-illustration-search .accent-dot { fill: #12b886; }
+#foreign-flow .ff-apt-illustration-title rect { fill: #fff; stroke: #0f766e; stroke-width: 1.6; }
+#foreign-flow .ff-apt-illustration-title path { fill: none; stroke: #0f766e; stroke-width: 1.6; stroke-linecap: round; }
+#foreign-flow .ff-apt-illustration-title text { fill: #1f2529; font-size: 16px; font-weight: 800; letter-spacing: 1.2px; }
 #foreign-flow .ff-apt-illustration-tag rect { fill: #fff; stroke: #12b886; stroke-width: 1.4; }
 #foreign-flow .ff-apt-illustration-tag text { fill: #263238; font-size: 12px; font-weight: 700; }
 #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #f7f8f8; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-illustration-window { fill: #fff; stroke: #9da5aa; stroke-width: .8; }
-#foreign-flow .ff-apt-illustration-window.accent { fill: #8ce0be; stroke: #45b98b; }
+#foreign-flow .ff-apt-illustration-window.accent { fill: #b7d9d2; stroke: #0f766e; }
 #foreign-flow .ff-apt-illustration-ground { fill: none; stroke: #737b80; stroke-width: 1.1; }
-#foreign-flow .ff-apt-illustration-person { fill: none; stroke: #69737a; stroke-width: 1.3; stroke-linecap: round; }
-#foreign-flow .ff-apt-illustration-person circle { fill: #f7f8f8; }
-#foreign-flow .ff-apt-illustration-car { fill: #12b886; stroke: #506168; stroke-width: 1; }
-#foreign-flow .ff-apt-illustration-car path { fill: #9de3c8; }
-#foreign-flow .ff-apt-illustration-car circle { fill: #fff; stroke: #506168; stroke-width: 1; }
+#foreign-flow .ff-apt-illustration-ribbon { fill: none; stroke: #0f766e; stroke-width: 1.4; stroke-dasharray: 6 4; }
+#foreign-flow .ff-apt-illustration-node { fill: #f59f00; stroke: #fff; stroke-width: 2; }
 #foreign-flow .ff-apt-illustration-profile > rect { fill: rgba(255,255,255,.74); stroke: #aeb4b8; stroke-width: 1; }
 #foreign-flow .ff-apt-illustration-profile-title { fill: #263238; font-size: 13px; font-weight: 700; }
 #foreign-flow .ff-apt-illustration-axis { stroke: #69737a; stroke-width: 1.1; }
 #foreign-flow .ff-apt-illustration-grid { stroke: #aeb4b8; stroke-width: .8; stroke-dasharray: 2 4; opacity: .65; }
-#foreign-flow .ff-apt-illustration-profile-line { fill: none; stroke: #12b886; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+#foreign-flow .ff-apt-illustration-profile-line { fill: none; stroke: #0f766e; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 #foreign-flow .ff-apt-illustration-marker { stroke-width: 1.1; stroke-dasharray: 4 3; opacity: .82; vector-effect: non-scaling-stroke; }
 #foreign-flow .ff-apt-illustration-label-bg { fill: #fff; opacity: .9; }
 #foreign-flow .ff-apt-illustration-marker-label { font-size: 10px; font-weight: 700; }
@@ -2548,16 +2543,15 @@ html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
 #foreign-flow .ff-apt-illustration-volume { fill: #7b858a; font-size: 9px; font-variant-numeric: tabular-nums; }
 html.dark #foreign-flow .ff-apt-illustration { background: #202528; border-color: rgba(245,239,224,.2); }
 html.dark #foreign-flow .ff-apt-illustration-canvas { fill: #2c3336; }
-html.dark #foreign-flow .ff-apt-illustration-search rect,
+html.dark #foreign-flow .ff-apt-illustration-title rect,
 html.dark #foreign-flow .ff-apt-illustration-profile > rect,
 html.dark #foreign-flow .ff-apt-illustration-label-bg { fill: #262c2f; }
-html.dark #foreign-flow .ff-apt-illustration-search text,
+html.dark #foreign-flow .ff-apt-illustration-title text,
 html.dark #foreign-flow .ff-apt-illustration-tag text,
 html.dark #foreign-flow .ff-apt-illustration-profile-title { fill: #f5efe0; }
 html.dark #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #2c3336; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-illustration-window { fill: #343c40; stroke: #9da5aa; }
-html.dark #foreign-flow .ff-apt-illustration-window.accent { fill: #287d63; stroke: #61cfa5; }
-html.dark #foreign-flow .ff-apt-illustration-person circle { fill: #2c3336; }
+html.dark #foreign-flow .ff-apt-illustration-window.accent { fill: #285b55; stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-illustration-price,
 html.dark #foreign-flow .ff-apt-illustration-volume { fill: #b7c0c5; }
 @media (max-width: 640px) {
