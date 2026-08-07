@@ -2526,6 +2526,12 @@ html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
 #foreign-flow .ff-apt-illustration-tag rect { fill: #fff; stroke: #12b886; stroke-width: 1.4; }
 #foreign-flow .ff-apt-illustration-tag text { fill: #263238; font-size: 12px; font-weight: 700; }
 #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #f7f8f8; stroke: #69737a; stroke-width: 1; }
+#foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { fill: none; stroke: #69737a; stroke-width: 1; }
+#foreign-flow .ff-apt-illustration-building.current-band > rect:first-child { stroke: #0f766e; stroke-width: 2; }
+#foreign-flow .ff-apt-illustration-building.average-band > rect:first-child { stroke: #3b82f6; stroke-width: 1.6; }
+#foreign-flow .ff-apt-illustration-building.poc-band > rect:first-child { stroke: #f08c46; stroke-width: 2; }
+#foreign-flow .ff-apt-building-price { fill: #445057; font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#foreign-flow .ff-apt-building-volume { fill: #8a9499; font-size: 8px; font-variant-numeric: tabular-nums; }
 #foreign-flow .ff-apt-illustration-window { fill: #fff; stroke: #9da5aa; stroke-width: .8; }
 #foreign-flow .ff-apt-illustration-window.accent { fill: #b7d9d2; stroke: #0f766e; }
 #foreign-flow .ff-apt-illustration-ground { fill: none; stroke: #737b80; stroke-width: 1.1; }
@@ -2550,8 +2556,14 @@ html.dark #foreign-flow .ff-apt-illustration-title text,
 html.dark #foreign-flow .ff-apt-illustration-tag text,
 html.dark #foreign-flow .ff-apt-illustration-profile-title { fill: #f5efe0; }
 html.dark #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #2c3336; stroke: #9da5aa; }
+html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { stroke: #9da5aa; }
+html.dark #foreign-flow .ff-apt-illustration-building.current-band > rect:first-child { stroke: #74c9b6; }
+html.dark #foreign-flow .ff-apt-illustration-building.average-band > rect:first-child { stroke: #8bb5ff; }
+html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-child { stroke: #ffb37a; }
 html.dark #foreign-flow .ff-apt-illustration-window { fill: #343c40; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-illustration-window.accent { fill: #285b55; stroke: #74c9b6; }
+html.dark #foreign-flow .ff-apt-building-price { fill: #e3e7e8; }
+html.dark #foreign-flow .ff-apt-building-volume { fill: #b7c0c5; }
 html.dark #foreign-flow .ff-apt-illustration-price,
 html.dark #foreign-flow .ff-apt-illustration-volume { fill: #b7c0c5; }
 @media (max-width: 640px) {

@@ -3250,19 +3250,27 @@
       var ratio = maxVolume > 0 ? Math.max(0, Math.min(1, Number(volume) / maxVolume)) : 0;
       return plotLeft + ratio * (plotRight - plotLeft);
     }
-    function building(x, y, width, height, rows, cols, accentColumn) {
-      var html = '<g class="ff-apt-illustration-building"><rect x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '" rx="2" />';
+    function building(x, width, band) {
+      var height = 80 + Math.round(band.ratio * 120);
+      var y = 379 - height;
+      var rows = 3 + Math.round(band.ratio * 4);
+      var cols = width >= 100 ? 4 : 3;
+      var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '">'
+        + '<rect x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '" rx="2" />'
+        + '<path class="ff-apt-building-roof" d="M' + (x + 5) + ' ' + (y - 6) + ' H' + (x + width - 5) + '" />';
       var cellW = Math.max(7, (width - 16) / cols - 4);
       var cellH = Math.max(7, (height - 24) / rows - 4);
       for (var row = 0; row < rows; row++) {
         for (var col = 0; col < cols; col++) {
           var wx = x + 8 + col * (cellW + 4);
           var wy = y + 10 + row * (cellH + 4);
-          var accent = col === accentColumn && row % 2 === 0;
-          html += '<rect class="' + (accent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window') + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
+          var isAccent = col === (row % cols) || (row + col) % Math.max(2, cols) === 0;
+          html += '<rect class="' + (isAccent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window') + '" style="opacity:' + (0.42 + band.ratio * 0.5).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
         }
       }
-      html += '</g>';
+      html += '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 12) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
+        + '<text class="ff-apt-building-volume" x="' + (x + width / 2) + '" y="' + (y - 1) + '" text-anchor="middle">' + Math.round(band.volume).toLocaleString('ko-KR') + '주</text>'
+        + '</g>';
       return html;
     }
     function marker(index, color, label, value) {
@@ -3274,13 +3282,36 @@
         + '<text class="ff-apt-illustration-marker-label" x="' + (plotLeft + 6) + '" y="' + (y - 2) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
     }
 
-    var skyline = ''
-      + building(58, 215, 88, 164, 5, 3, 1)
-      + building(142, 188, 116, 191, 6, 4, 2)
-      + building(250, 239, 76, 140, 4, 2, 0)
-      + building(318, 160, 108, 219, 7, 3, 1)
-      + building(422, 207, 92, 172, 5, 3, 2)
-      + building(510, 178, 124, 201, 6, 4, 1);
+    var bandCount = 6;
+    var bands = [];
+    for (var bandIndex = 0; bandIndex < bandCount; bandIndex++) {
+      var bandStart = Math.floor(bandIndex * n / bandCount);
+      var bandEnd = Math.max(bandStart + 1, Math.floor((bandIndex + 1) * n / bandCount));
+      bandEnd = Math.min(n, bandEnd);
+      var bandVolume = 0;
+      for (var bandRow = bandStart; bandRow < bandEnd; bandRow++) bandVolume += Math.max(0, Number(bins[bandRow].volume) || 0);
+      bands.push({
+        low: bins[bandStart].low,
+        high: bins[bandEnd - 1].high,
+        mid: (bins[bandStart].low + bins[bandEnd - 1].high) / 2,
+        volume: bandVolume,
+        start: bandStart,
+        end: bandEnd,
+        current: curIdx >= bandStart && curIdx < bandEnd,
+        average: avgIdx >= bandStart && avgIdx < bandEnd,
+        poc: pocIdx >= bandStart && pocIdx < bandEnd
+      });
+    }
+    var maxBandVolume = Math.max.apply(null, bands.map(function (band) { return band.volume; })) || 1;
+    bands.forEach(function (band) { band.ratio = Math.max(0, Math.min(1, band.volume / maxBandVolume)); });
+    var buildingSpecs = [
+      { x: 58, width: 88 }, { x: 142, width: 116 }, { x: 250, width: 76 },
+      { x: 318, width: 108 }, { x: 422, width: 92 }, { x: 510, width: 124 }
+    ];
+    var skyline = bands.map(function (band, index) {
+      var spec = buildingSpecs[index];
+      return building(spec.x, spec.width, band);
+    }).join('');
     var profilePoints = [];
     for (var i = n - 1; i >= 0; i--) {
       profilePoints.push(Math.round(xForVolume(bins[i].volume) * 10) / 10 + ',' + Math.round(yForIndex(i) * 10) / 10);
@@ -3326,7 +3357,7 @@
       + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', 'POC', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
       + '</svg>'
-      + '<div class="ff-apt-lineart-note">선의 길이 = 실제 체결거래량 · 초록 점 = 현재가 · 주황 점 = POC</div>'
+      + '<div class="ff-apt-lineart-note">건물 높이·창문 밀도 = 가격구간 거래량 · 초록 점 = 현재가 · 주황 점 = POC</div>'
       + '</div>';
   }
 
