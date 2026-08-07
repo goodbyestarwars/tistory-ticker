@@ -3139,13 +3139,13 @@
     return '<div class="ff-apt-summary">'
       + '<span class="ff-apt-summary-item">' + (periodLabel || ('최근 ' + profile.days + '거래일')) + '</span>'
       + (pocMid != null
-        ? '<span class="ff-apt-summary-item">거래량 최다(POC) <b>' + pocMid.toLocaleString('ko-KR') + '원</b></span>'
+        ? '<span class="ff-apt-summary-item">거래량 최다 구간 <b>' + pocMid.toLocaleString('ko-KR') + '원</b></span>'
         : '')
       + (avgPrice != null
         ? '<span class="ff-apt-summary-item">평균단가 <b>' + Math.round(avgPrice).toLocaleString('ko-KR') + '원</b></span>'
         : '')
       + '<span class="ff-apt-legend"><span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-vol"></i>매물대</span>'
-      + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-poc"></i>POC</span></span>'
+      + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-poc"></i>거래량 최다</span></span>'
       + '</div>';
   }
 
@@ -3208,7 +3208,7 @@
     var pocText = pocIdx >= 0 && bins[pocIdx] ? priceText((bins[pocIdx].low + bins[pocIdx].high) / 2) + '원' : '-';
 
     return '<div class="ff-apt-chart-wrap ff-apt-line-art" role="img" aria-label="가격대별 거래량 매물대 라인아트">'
-      + '<div class="ff-apt-lineart-head"><strong>가격대별 거래량 라인</strong><span>POC ' + pocText + '</span></div>'
+      + '<div class="ff-apt-lineart-head"><strong>가격대별 거래량 라인</strong><span>중심 가격 ' + pocText + '</span></div>'
       + '<svg class="ff-apt-lineart-svg" viewBox="0 0 520 520" preserveAspectRatio="none" aria-hidden="true">'
       + '<title>가격대별 거래량 매물대 라인아트</title>'
       + '<desc>가격이 높아질수록 위로 표시되며 선의 오른쪽 끝이 해당 가격대 거래량입니다.</desc>'
@@ -3219,7 +3219,7 @@
       + '<path class="ff-apt-line-profile" d="' + profilePath + '" />'
       + marker(curIdx, '#d24f45', '현재가', currentPrice)
       + marker(avgIdx, '#1971c2', '평균', avgPrice)
-      + (pocIdx >= 0 ? marker(pocIdx, '#e8590c', 'POC', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
+      + (pocIdx >= 0 ? marker(pocIdx, '#e8590c', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-line-volume-label" x="' + right + '" y="' + (bottom + 30) + '" text-anchor="end">거래량 →</text>'
       + '</svg>'
       + '<div class="ff-apt-lineart-note">선의 길이 = 가격대별 체결거래량 · 점선 = 가격 구간</div>'
@@ -3264,16 +3264,17 @@
     function building(x, width, band) {
       // 건물의 세로 위치와 높이는 거래량이 아니라 이 가격 구간의 low/high를 그대로
       // 가격축에 매핑한다. 거래량은 창문 개수·농도로만 표현한다.
-      var y = yForPrice(band.high);
-      var height = Math.max(24, yForPrice(band.low) - y);
-      var rows = Math.max(1, Math.min(6, 1 + Math.round(band.ratio * 5)));
-      rows = Math.min(rows, Math.max(1, Math.floor((height - 8) / 10)));
+      // 건물의 위치는 가격축에 맞추지 않고, 크기와 창문 밀도로 거래량을 표현한다.
+      var groundY = 379;
+      var height = 150 + Math.round(band.ratio * 90);
+      var y = groundY - height;
+      var rows = Math.max(3, Math.min(7, 3 + Math.round(band.ratio * 4)));
       var cols = width >= 100 ? 4 : 3;
       var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '">'
         + '<rect x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '" rx="2" />'
         + '<path class="ff-apt-building-roof" d="M' + (x + 5) + ' ' + (y - 6) + ' H' + (x + width - 5) + '" />';
       var cellW = Math.max(7, (width - 16) / cols - 4);
-      var cellH = Math.max(5, (height - 14) / rows - 3);
+      var cellH = Math.max(8, (height - 24) / rows - 4);
       var markerColumns = [];
       if (band.current) markerColumns.push({ col: 0, type: 'current' });
       if (band.average) markerColumns.push({ col: Math.min(1, cols - 1), type: 'average' });
@@ -3289,11 +3290,12 @@
           html += '<rect class="' + windowClass + '" style="opacity:' + (0.42 + band.ratio * 0.5).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
           if (windowMarker && windowMarker.type === 'average') {
             var fx = wx + cellW / 2, fy = wy + cellH / 2;
-            html += '<g class="ff-apt-building-face" transform="translate(' + fx + ' ' + fy + ')"><circle r="' + Math.min(4, cellH / 2 - 1) + '" /><circle class="eye" cx="-1.5" cy="-1" r=".6" /><circle class="eye" cx="1.5" cy="-1" r=".6" /><path d="M-1.8 1 Q0 2.5 1.8 1" /></g>';
+            html += '<g class="ff-apt-building-average-person" transform="translate(' + fx + ' ' + (fy + 1) + ')"><path class="shoulders" d="M-5 5 Q0 1 5 5 V7 H-5 Z" /><circle class="head" r="4.4" /><path class="hair" d="M-4 -1 Q0 -6 4 -1 Z" /><circle class="eye" cx="-1.5" cy="0" r=".55" /><circle class="eye" cx="1.5" cy="0" r=".55" /></g>';
           } else if (windowMarker && windowMarker.type === 'current') {
-            html += '<path class="ff-apt-building-current-icon" d="M' + (wx + cellW / 2 - 3) + ' ' + (wy + cellH / 2) + ' h6 m-3-3 v6" />';
+            html += '<circle class="ff-apt-building-current-icon" cx="' + (wx + cellW / 2) + '" cy="' + (wy + cellH / 2) + '" r="4" /><path class="ff-apt-building-current-icon" d="M' + (wx + cellW / 2 - 6) + ' ' + (wy + cellH / 2) + ' h12 M' + (wx + cellW / 2) + ' ' + (wy + cellH / 2 - 6) + ' v12" />';
           } else if (windowMarker && windowMarker.type === 'poc') {
-            html += '<circle class="ff-apt-building-poc-icon" cx="' + (wx + cellW / 2) + '" cy="' + (wy + cellH / 2) + '" r="3" />';
+            var px = wx + cellW / 2, py = wy + cellH / 2;
+            html += '<path class="ff-apt-building-poc-icon" d="M' + (px - 5) + ' ' + (py - 2) + ' l2 3 3-5 3 5 2-3-1 6 H' + (px - 4) + ' Z" />';
           }
         }
       }
@@ -3334,8 +3336,8 @@
     var maxBandVolume = Math.max.apply(null, bands.map(function (band) { return band.volume; })) || 1;
     bands.forEach(function (band) { band.ratio = Math.max(0, Math.min(1, band.volume / maxBandVolume)); });
     var buildingSpecs = [
-      { x: 58, width: 88 }, { x: 142, width: 116 }, { x: 250, width: 76 },
-      { x: 318, width: 108 }, { x: 422, width: 92 }, { x: 510, width: 124 }
+      { x: 38, width: 94 }, { x: 132, width: 112 }, { x: 244, width: 84 },
+      { x: 328, width: 104 }, { x: 432, width: 96 }, { x: 528, width: 132 }
     ];
     var skyline = bands.map(function (band, index) {
       var spec = buildingSpecs[index];
@@ -3357,17 +3359,17 @@
     }
 
     return '<div class="ff-apt-chart-wrap ff-apt-line-art ff-apt-illustration" role="img" aria-label="가격대별 매물대 일러스트">'
-      + '<div class="ff-apt-lineart-head"><strong>가격대별 매물대</strong><span>POC ' + pocText + '</span></div>'
+      + '<div class="ff-apt-lineart-head"><strong>가격대별 매물대</strong><span>중심 가격 ' + pocText + '</span></div>'
       + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg" viewBox="0 0 900 430" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
       + '<title>가격대별 매물대 일러스트</title>'
-      + '<desc>건물의 세로 위치와 높이는 가격 구간을, 창문은 거래량을 나타내며 현재가와 평균단가를 아이콘으로 표시합니다.</desc>'
+      + '<desc>건물의 크기와 창문 밀도는 거래량을 나타내며 평균·현재가·중심 가격을 창문 아이콘으로 표시합니다.</desc>'
       + '<rect class="ff-apt-illustration-canvas" x="10" y="12" width="880" height="406" rx="22" />'
       + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
       + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
       + '<path class="ff-apt-illustration-orbit" d="M120 430 C230 172 566 126 924 190" />'
-      + '<g class="ff-apt-illustration-title"><rect x="48" y="42" width="248" height="50" rx="8" /><path d="M70 68 h26 m-13-13 v26" /><text x="116" y="73">PRICE TERRAIN</text></g>'
-      + '<g class="ff-apt-illustration-tag"><rect x="48" y="118" width="122" height="28" rx="6" /><text x="66" y="137">VOLUME MAP</text></g>'
-      + '<g class="ff-apt-illustration-tag"><rect x="520" y="72" width="112" height="28" rx="6" /><text x="540" y="91">DATA FLOW</text></g>'
+      + '<g class="ff-apt-illustration-title"><rect x="48" y="42" width="248" height="50" rx="8" /><path d="M70 68 h26 m-13-13 v26" /><text x="116" y="73">가격 지형도</text></g>'
+      + '<g class="ff-apt-illustration-tag"><rect x="48" y="118" width="122" height="28" rx="6" /><text x="66" y="137">거래량 지도</text></g>'
+      + '<g class="ff-apt-illustration-tag"><rect x="520" y="72" width="112" height="28" rx="6" /><text x="540" y="91">체결 흐름</text></g>'
       + skyline
       + '<path class="ff-apt-illustration-ground" d="M28 380 H680" />'
       + '<path class="ff-apt-illustration-ground" d="M28 390 H680" />'
@@ -3383,10 +3385,10 @@
       + '<text class="ff-apt-illustration-price" x="714" y="386">' + priceText(low.low) + '원</text>'
       + marker(curIdx, '#0f766e', '현재가', currentPrice)
       + marker(avgIdx, '#3b82f6', '평균', avgPrice)
-      + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', 'POC', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
+      + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
       + '</svg>'
-      + '<div class="ff-apt-lineart-note">건물 위치·높이 = 가격대 · 창문 밀도 = 거래량 · 얼굴 = 평균 · 십자 = 현재가 · 점 = POC</div>'
+      + '<div class="ff-apt-lineart-note">건물 크기·창문 밀도 = 거래량 · 파란 머리 = 평균 · 십자 = 현재가 · 왕관 = 거래량 최다</div>'
       + '</div>';
   }
 
@@ -3708,7 +3710,7 @@
   function buildVpLegend() {
     return '<div class="ff-vp-legend"' + (vpEnabled ? '' : ' hidden') + '>'
       + '<span>※ 매물대(근사): 최근 ' + VP_LOOKBACK_DAYS + '거래일 일봉 고가~저가 구간에 거래량을 분산해 합산한 근사치입니다(체결가 기준 아님).</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#e8590c"></i>거래량 최다 구간(POC)</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#e8590c"></i>거래량 최다 구간</span>'
       + '</div>';
   }
 
