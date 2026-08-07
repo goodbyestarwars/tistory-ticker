@@ -57,7 +57,7 @@
 .discussion-item-head .date { color:#a0adba; font-size:12px; }
 .discussion-item-head .control { margin-left:auto; display:flex; gap:9px; }
 .discussion-item-head .control a { color:#8293a5; font-size:12px; text-decoration:none; }
-.discussion-item-body { margin:12px 0 0; color:#4c6076; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+.discussion-item-body { margin:12px 0 0; color:#4c6076; font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
 .discussion-replies { margin:14px 0 0 25px; padding:12px 0 0 15px; border-left:2px solid #e7eef6; list-style:none; }
 .discussion-reply { padding:8px 0; }
 .discussion-empty { padding:35px; text-align:center; color:#9aa8b8; }
