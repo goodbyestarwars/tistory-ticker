@@ -226,6 +226,10 @@
         setField('interpretation', '장 마감 후 수급 데이터가 업데이트됩니다.', 'home-neutral');
         return;
       }
+      if (homeState.flowStale) {
+        setField('interpretation', '장 마감 후 마지막 정상 확정 수급을 표시하고 있습니다.', 'home-neutral');
+        return;
+      }
       var foreign = homeState.foreign;
       var institution = homeState.institution;
       var sentence;
@@ -241,17 +245,25 @@
       var detail = event.detail || {};
       if (detail.period !== 'day' || detail.market !== 'kospi') return;
       var rows = detail.result && detail.result.rows;
-      var latest = rows && rows.length ? rows[rows.length - 1] : null;
-      if (!latest || (Number(latest.ind) === 0 && Number(latest.frgn) === 0 && Number(latest.orgn) === 0)) {
+      var latestRow = rows && rows.length ? rows[rows.length - 1] : null;
+      var validRows = (rows || []).filter(function (row) {
+        return [row && row.ind, row && row.frgn, row && row.orgn].some(function (value) {
+          return value != null && isFinite(Number(value)) && Number(value) !== 0;
+        });
+      });
+      var latest = validRows.length ? validRows[validRows.length - 1] : null;
+      if (!latest) {
         setField('foreign', '장 마감 후 업데이트', 'home-neutral');
         setField('institution', '장 마감 후 업데이트', 'home-neutral');
         homeState.flowReady = false;
+        homeState.flowStale = false;
         renderRuleInterpretation();
         return;
       }
       homeState.foreign = Number(latest.frgn);
       homeState.institution = Number(latest.orgn);
       homeState.flowReady = !isNaN(homeState.foreign) && !isNaN(homeState.institution);
+      homeState.flowStale = latestRow !== latest;
       setField('foreign', formatFlow(homeState.foreign), homeState.foreign > 0 ? 'home-positive' : homeState.foreign < 0 ? 'home-negative' : 'home-neutral');
       setField('institution', formatFlow(homeState.institution), homeState.institution > 0 ? 'home-positive' : homeState.institution < 0 ? 'home-negative' : 'home-neutral');
       renderRuleInterpretation();
