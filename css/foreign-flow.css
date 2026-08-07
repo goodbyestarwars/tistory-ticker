@@ -2525,6 +2525,33 @@ html.dark #foreign-flow .ff-apt-lineart-note { fill: #cbd5e1; color: #94a3b8; }
 #foreign-flow .ff-apt-illustration-title text { fill: #1f2529; font-size: 16px; font-weight: 800; letter-spacing: 1.2px; }
 #foreign-flow .ff-apt-illustration-tag rect { fill: #fff; stroke: #12b886; stroke-width: 1.4; }
 #foreign-flow .ff-apt-illustration-tag text { fill: #263238; font-size: 12px; font-weight: 700; }
+#foreign-flow .ff-apt-signal-card rect { fill: rgba(255,255,255,.94); stroke: var(--ff-signal-color); stroke-width: 1.2; }
+#foreign-flow .ff-apt-signal-card.current-signal rect { stroke-width: 1.8; }
+#foreign-flow .ff-apt-signal-card.average-signal rect { stroke-dasharray: 3 2; }
+#foreign-flow .ff-apt-signal-card.poc-signal rect { stroke-width: 1.6; }
+#foreign-flow .ff-apt-signal-dot { fill: var(--ff-signal-color); stroke: #fff; stroke-width: 1; }
+#foreign-flow .ff-apt-signal-label { fill: #445057; font-size: 9px; font-weight: 800; }
+#foreign-flow .ff-apt-signal-value { fill: var(--ff-signal-color); font-size: 9px; font-weight: 800; font-variant-numeric: tabular-nums; }
+#foreign-flow .ff-apt-illustration-building { animation: ff-apt-building-drift 5.4s ease-in-out var(--ff-building-delay, 0s) infinite; transform-box: fill-box; transform-origin: center bottom; }
+#foreign-flow .ff-apt-building-current-ring { animation: ff-apt-current-pulse 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+#foreign-flow .ff-apt-building-average-person .head { animation: ff-apt-average-breathe 2.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+#foreign-flow .ff-apt-building-poc-icon { animation: ff-apt-poc-glow 2.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes ff-apt-building-drift {
+  0%, 100% { transform: translateX(-1px) translateY(0); }
+  50% { transform: translateX(2px) translateY(-1px); }
+}
+@keyframes ff-apt-current-pulse {
+  0%, 100% { opacity: .72; transform: scale(.85); }
+  50% { opacity: 1; transform: scale(1.28); }
+}
+@keyframes ff-apt-average-breathe {
+  0%, 100% { transform: translateY(1px); }
+  50% { transform: translateY(-1px); }
+}
+@keyframes ff-apt-poc-glow {
+  0%, 100% { opacity: .72; }
+  50% { opacity: 1; filter: drop-shadow(0 0 2px rgba(245,159,0,.85)); }
+}
 #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #f7f8f8; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { fill: none; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-illustration-building.current-band > rect:first-child { stroke: #0f766e; stroke-width: 2; }
@@ -2568,6 +2595,9 @@ html.dark #foreign-flow .ff-apt-illustration-label-bg { fill: #262c2f; }
 html.dark #foreign-flow .ff-apt-illustration-title text,
 html.dark #foreign-flow .ff-apt-illustration-tag text,
 html.dark #foreign-flow .ff-apt-illustration-profile-title { fill: #f5efe0; }
+html.dark #foreign-flow .ff-apt-signal-card rect { fill: rgba(38,44,47,.96); }
+html.dark #foreign-flow .ff-apt-signal-dot { stroke: #262c2f; }
+html.dark #foreign-flow .ff-apt-signal-label { fill: #e3e7e8; }
 html.dark #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #2c3336; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-illustration-building.current-band > rect:first-child { stroke: #74c9b6; }
@@ -2592,6 +2622,12 @@ html.dark #foreign-flow .ff-apt-building-current-icon { stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-poc-icon { stroke: #2c3336; }
 html.dark #foreign-flow .ff-apt-illustration-price,
 html.dark #foreign-flow .ff-apt-illustration-volume { fill: #b7c0c5; }
+@media (prefers-reduced-motion: reduce) {
+  #foreign-flow .ff-apt-illustration-building,
+  #foreign-flow .ff-apt-building-current-ring,
+  #foreign-flow .ff-apt-building-average-person .head,
+  #foreign-flow .ff-apt-building-poc-icon { animation: none; }
+}
 @media (max-width: 640px) {
   #foreign-flow .ff-apt-illustration { min-height: 400px; }
   #foreign-flow .ff-apt-illustration-svg { height: 360px; }
