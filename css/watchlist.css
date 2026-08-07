@@ -2,6 +2,9 @@
  * 상승=빨강 #d24f45, 하락=파랑 #1261c4 (사이트 공통 컬러)
  * 다크모드: html.dark #watchlist ... !important (9bolt 스킨 블랑켓 규칙 대응) */
 
+@import url('https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css');
+@import url('https://cdn.jsdelivr.net/gh/fonts-archive/NanumGothic/NanumGothic.css');
+
 .global-watchlist-drawer {
   position: fixed;
   top: 112px;
@@ -50,7 +53,7 @@
 }
 
 #watchlist {
-  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+  font-family: 'Maru Buri', 'MaruBuri', 'Nanum Gothic', '나눔고딕', system-ui, sans-serif;
   color: #222;
   line-height: 1.5;
   width: 100%;

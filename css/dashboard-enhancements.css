@@ -1,10 +1,13 @@
 /* Shared enhancements loaded by js/dashboard-enhancements.js. */
 
+@import url('https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css');
+@import url('https://cdn.jsdelivr.net/gh/fonts-archive/NanumGothic/NanumGothic.css');
+
 #watchlist,
 #watchlist *,
 .home-my-card,
 .home-my-card * {
-  font-family: 'MaruBuri', 'MaruBuriOTF', '나눔고딕', 'NanumGothic', system-ui, sans-serif;
+  font-family: 'Maru Buri', 'MaruBuri', 'Nanum Gothic', '나눔고딕', system-ui, sans-serif;
 }
 
 #market-temp .mt-guide-card {
