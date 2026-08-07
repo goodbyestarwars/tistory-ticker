@@ -36,6 +36,7 @@ class GoogleAuthService:
     SESSION_COOKIE = 'google_admin_session'
     STATE_COOKIE = 'google_oauth_state'
     NONCE_COOKIE = 'google_oauth_nonce'
+    RETURN_COOKIE = 'google_oauth_return'
 
     def __init__(self):
         self._jwks = None

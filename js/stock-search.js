@@ -371,6 +371,7 @@
         } else {
           var result = global.Watchlist.add(code, name);
           if (result.ok) btn.classList.add('active');
+          else if (result.reason === 'login') alert('Google 로그인 후 관심종목을 저장할 수 있습니다.');
           else if (result.reason === 'full') alert('관심종목은 최대 ' + global.Watchlist.MAX_ITEMS + '개까지 담을 수 있습니다.');
         }
       });
