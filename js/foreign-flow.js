@@ -3318,10 +3318,11 @@
     function marker(index, color, label, value) {
       if (index < 0 || index >= n) return '';
       var y = yForIndex(index);
+      var labelOffset = color === '#3b82f6' ? -32 : color === '#0f766e' ? 8 : -14;
       return '<line class="ff-apt-illustration-marker" x1="' + (plotLeft - 8) + '" x2="' + plotRight + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
         + '<circle cx="' + (plotLeft - 8) + '" cy="' + y + '" r="4" fill="' + color + '" />'
-        + '<rect class="ff-apt-illustration-label-bg" x="' + (plotLeft - 4) + '" y="' + (y - 14) + '" width="140" height="18" rx="9" />'
-        + '<text class="ff-apt-illustration-marker-label" x="' + (plotLeft + 6) + '" y="' + (y - 2) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
+        + '<rect class="ff-apt-illustration-label-bg" x="' + (plotLeft - 4) + '" y="' + (y + labelOffset) + '" width="140" height="18" rx="9" />'
+        + '<text class="ff-apt-illustration-marker-label" x="' + (plotLeft + 6) + '" y="' + (y + labelOffset + 12) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
     }
 
     var bandCount = 6;
@@ -3355,16 +3356,16 @@
       return building(spec.x, spec.width, band, index);
     }).join('');
     var basement = '<g class="ff-apt-illustration-basement" role="group" aria-label="지하실">'
-      + '<path class="ff-apt-basement-shell" d="M190 390 H520 V432 H190 Z" />'
+      + '<path class="ff-apt-basement-shell" d="M190 390 H520 V458 H190 Z" />'
       + '<path class="ff-apt-basement-ceiling" d="M218 390 H486" />'
-      + '<path class="ff-apt-basement-stair" d="M166 390 l24 42 M176 390 l24 42 M186 390 l24 42" />'
-      + '<rect class="ff-apt-basement-window" x="232" y="402" width="34" height="14" rx="2" />'
-      + '<rect class="ff-apt-basement-window" x="278" y="402" width="34" height="14" rx="2" />'
-      + '<rect class="ff-apt-basement-window" x="324" y="402" width="34" height="14" rx="2" />'
-      + '<rect class="ff-apt-basement-window" x="370" y="402" width="34" height="14" rx="2" />'
-      + '<rect class="ff-apt-basement-door" x="448" y="399" width="34" height="27" rx="2" />'
-      + '<circle class="ff-apt-basement-handle" cx="473" cy="413" r="1.5" />'
-      + '<text class="ff-apt-basement-label" x="410" y="426" text-anchor="middle">지하실 · 미체결 가격대</text>'
+      + '<path class="ff-apt-basement-stair" d="M166 390 l24 68 M176 390 l24 68 M186 390 l24 68" />'
+      + '<rect class="ff-apt-basement-window" x="224" y="411" width="42" height="18" rx="2" />'
+      + '<rect class="ff-apt-basement-window" x="280" y="411" width="42" height="18" rx="2" />'
+      + '<rect class="ff-apt-basement-window" x="336" y="411" width="42" height="18" rx="2" />'
+      + '<rect class="ff-apt-basement-window" x="392" y="411" width="42" height="18" rx="2" />'
+      + '<rect class="ff-apt-basement-door" x="452" y="405" width="42" height="38" rx="2" />'
+      + '<circle class="ff-apt-basement-handle" cx="483" cy="424" r="1.8" />'
+      + '<text class="ff-apt-basement-label" x="360" y="450" text-anchor="middle">지하실 · 미체결 가격대</text>'
       + '</g>';
     var helicopter = '<g class="ff-apt-illustration-helicopter" role="img" aria-label="옥상 헬기">'
       + '<path class="ff-apt-helicopter-body" d="M345 128 Q354 119 372 119 H397 Q410 119 420 127 L413 134 H354 Z" />'
@@ -3417,10 +3418,10 @@
 
     return '<div class="ff-apt-chart-wrap ff-apt-line-art ff-apt-illustration" role="img" aria-label="가격대별 매물대 일러스트">'
       + '<div class="ff-apt-lineart-head"><strong>가격대별 매물대</strong><span>중심 가격 ' + pocText + '</span></div>'
-      + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg" viewBox="0 0 900 430" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
+      + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg" viewBox="0 0 900 465" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
       + '<title>가격대별 매물대 일러스트</title>'
       + '<desc>건물의 크기와 창문 밀도는 거래량을 나타내며 평균·현재가·중심 가격을 창문 아이콘으로 표시합니다.</desc>'
-      + '<rect class="ff-apt-illustration-canvas" x="10" y="12" width="880" height="406" rx="22" />'
+      + '<rect class="ff-apt-illustration-canvas" x="10" y="12" width="880" height="441" rx="22" />'
       + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
       + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
       + '<path class="ff-apt-illustration-orbit" d="M120 430 C230 172 566 126 924 190" />'
@@ -3448,7 +3449,7 @@
       + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
       + '</svg>'
-      + '<div class="ff-apt-bin-guide"><strong>가격별 매물대</strong><span>좌우로 드래그하면 실제 가격 구간을 더 볼 수 있습니다 · 막대가 높을수록 체결량이 많습니다</span></div>'
+      + '<div class="ff-apt-bin-guide"><strong>가격별 매물대</strong><span>좌우로 드래그하면 실제 가격 구간을 더 볼 수 있습니다 · 막대가 높을수록 체결량이 많습니다</span><div class="ff-apt-bin-controls"><button type="button" data-bin-scroll="-1" aria-label="가격대 왼쪽 보기">←</button><button type="button" data-bin-scroll="1" aria-label="가격대 오른쪽 보기">→</button></div></div>'
       + '<div class="ff-apt-bin-rail" data-price-bin-rail tabindex="0" aria-label="가격별 매물대 좌우 탐색">' + binRail + '</div>'
       + '<div class="ff-apt-visual-key"><span><i class="current"></i>십자 현재가</span><span><i class="average"></i>파란 사람 평균단가</span><span><i class="poc"></i>왕관 POC</span><span><i class="window"></i>창문 밀도 거래량</span></div>'
       + '<div class="ff-apt-lineart-note">각 건물은 가격 구간 하나를 묶어 표현합니다. 현재가와 평균단가가 같은 건물에 있으면 겹치지 않도록 옆 창에 나란히 표시됩니다.</div>'
@@ -3739,6 +3740,11 @@
           event.preventDefault();
         }
       }, { passive: false });
+      card.querySelectorAll('[data-bin-scroll]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          rail.scrollBy({ left: Number(button.getAttribute('data-bin-scroll')) * Math.max(180, rail.clientWidth * 0.72), behavior: 'smooth' });
+        });
+      });
     }
 
     render();
