@@ -259,7 +259,9 @@
 
           <div class="discussion-stockbar">
             <label for="discussionStockInput">종목 선택</label>
-            <input id="discussionStockInput" type="text" inputmode="search" placeholder="종목명 또는 코드 (예: 삼성전자, 005930)" autocomplete="off" />
+            <div class="discussion-stock-input-wrap">
+              <input id="discussionStockInput" type="text" inputmode="search" placeholder="초성·첫 글자·종목코드로 검색" autocomplete="off" />
+            </div>
             <button type="button" class="discussion-stock-btn" data-discussion-stock="all">전체 글</button>
             <button type="button" class="discussion-stock-btn" data-discussion-stock="005930">삼성전자</button>
             <button type="button" class="discussion-stock-btn" data-discussion-stock="000660">SK하이닉스</button>
