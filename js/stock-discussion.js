@@ -15,7 +15,14 @@
   var suggestionBox = document.createElement('ul');
   suggestionBox.className = 'discussion-stock-suggest';
   suggestionBox.setAttribute('role', 'listbox');
-  input.parentNode.appendChild(suggestionBox);
+  var inputWrap = input.parentNode;
+  if (!inputWrap.classList.contains('discussion-stock-input-wrap')) {
+    inputWrap = document.createElement('div');
+    inputWrap.className = 'discussion-stock-input-wrap';
+    input.parentNode.insertBefore(inputWrap, input);
+    inputWrap.appendChild(input);
+  }
+  inputWrap.appendChild(suggestionBox);
   var suggestionItems = [];
 
   function normalize(value) {
@@ -38,9 +45,18 @@
       var name = item.name.toLowerCase();
       return name.indexOf(query) !== -1 || item.code.indexOf(query) !== -1 || initials(item.name).indexOf(query) !== -1;
     }).sort(function (a, b) {
-      var aExact = a.name.toLowerCase() === query || a.code === query;
-      var bExact = b.name.toLowerCase() === query || b.code === query;
-      if (aExact !== bExact) return aExact ? -1 : 1;
+      function rank(item) {
+        var name = item.name.toLowerCase();
+        var initial = initials(item.name);
+        if (name === query || item.code === query) return 0;
+        if (name.indexOf(query) === 0) return 1;
+        if (initial.indexOf(query) === 0) return 2;
+        if (name.indexOf(query) !== -1) return 3;
+        if (initial.indexOf(query) !== -1) return 4;
+        return 5;
+      }
+      var rankDiff = rank(a) - rank(b);
+      if (rankDiff) return rankDiff;
       return a.name.localeCompare(b.name, 'ko');
     }).slice(0, 8);
   }
