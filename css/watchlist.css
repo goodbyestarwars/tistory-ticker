@@ -73,6 +73,12 @@
   font-size: 17px;
   font-weight: 700;
 }
+#watchlist .wl-auth { display:flex; align-items:center; gap:7px; margin-left:auto; color:#748095; font-size:11px; }
+#watchlist .wl-auth button { border:1px solid #d1d5db; border-radius:6px; background:#fff; color:#374151; padding:4px 7px; cursor:pointer; font:inherit; font-size:11px; }
+#watchlist .wl-login-gate { padding:28px 18px; border:1px solid #dbe3ef; border-radius:10px; background:#f8fafc; text-align:center; }
+#watchlist .wl-login-gate strong { display:block; color:#1f2937; font-size:14px; }
+#watchlist .wl-login-gate p { margin:7px 0 14px; color:#6b7280; font-size:12px; }
+#watchlist .wl-login-btn { border:1px solid #2563eb; border-radius:7px; background:#2563eb; color:#fff; padding:8px 12px; cursor:pointer; font:inherit; font-size:12px; }
 #watchlist .wl-group-add {
   margin-left: auto;
   border: 0;
@@ -273,6 +279,11 @@ html.dark .global-watchlist-panel,
 html.dark .global-watchlist-toggle { background: #1A1A1A !important; border-color: rgba(245, 239, 224, .2) !important; color: #F5EFE0 !important; }
 html.dark #watchlist .wl-group-items.is-drag-over { background: rgba(245, 239, 224, .08) !important; box-shadow: inset 0 0 0 1px rgba(245, 239, 224, .2) !important; }
 html.dark #watchlist .wl-count { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #watchlist .wl-auth,
+html.dark #watchlist .wl-login-gate p { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #watchlist .wl-auth button { background:#242424; border-color:rgba(245,239,224,.24); color:#f5efe0; }
+html.dark #watchlist .wl-login-gate { background:#242424; border-color:rgba(245,239,224,.24); }
+html.dark #watchlist .wl-login-gate strong { color:#f5efe0; }
 html.dark #watchlist .wl-input {
   background: rgba(245, 239, 224, 0.06) !important;
   border-color: rgba(245, 239, 224, 0.25) !important;

@@ -424,11 +424,18 @@
   }
 
   function readWatchlist() {
+    if (global.Watchlist && typeof global.Watchlist.getList === 'function') {
+      return global.Watchlist.getList();
+    }
+    return [];
+    /* Legacy localStorage watchlists are no longer read. */
+    //
     var list = [];
     try { list = JSON.parse(safeStorageGet(WATCHLIST_KEY) || '[]'); } catch (err) { list = []; }
     return Array.isArray(list) ? list.filter(function (item) {
       return item && item.code && item.name;
     }) : [];
+    //
   }
 
   function formatPrice(value) {
@@ -681,6 +688,7 @@
     global.addEventListener('storage', function (event) {
       if (event.key === WATCHLIST_KEY) loadMyWidget();
     });
+    global.addEventListener('watchlist:changed', loadMyWidget);
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stopMyRealtime();
       else startMyRealtime(readWatchlist());

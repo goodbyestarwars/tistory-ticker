@@ -99,6 +99,12 @@
   }
 
   function getFavorites() {
+    if (global.Watchlist && typeof global.Watchlist.getList === 'function') {
+      return global.Watchlist.getList();
+    }
+    return [];
+    /* Legacy browser favorites are intentionally no longer used. */
+    //
     var raw = null;
     try { raw = localStorage.getItem(STORAGE_FAVORITES); } catch (err) { /* 무시 */ }
     if (raw == null) return getDefaultFavorites(); // 한 번도 저장 안 됨(첫 방문) - 기본 관심종목
@@ -108,6 +114,7 @@
     } catch (err) {
       return getDefaultFavorites();
     }
+    //
   }
   function getDefaultFavorites() {
     var map = global.KRX_MAP || {};
@@ -130,20 +137,15 @@
   }
   function isInWatchlist(code) {
     if (global.Watchlist && typeof global.Watchlist.has === 'function') return global.Watchlist.has(code);
-    return loadWatchlistRaw().some(function (it) { return it.code === code; });
+    return false;
   }
   function addToWatchlist(code, name) {
-    if (global.Watchlist && typeof global.Watchlist.add === 'function') { global.Watchlist.add(code, name); return; }
-    var list = loadWatchlistRaw();
-    if (list.some(function (it) { return it.code === code; })) return;
-    if (list.length >= WATCHLIST_MAX_ITEMS) return;
-    list.push({ code: code, name: name || code });
-    try { localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(list)); } catch (err) { /* 무시 */ }
+    if (global.Watchlist && typeof global.Watchlist.add === 'function') return global.Watchlist.add(code, name);
+    return { ok: false, reason: 'login' };
   }
   function removeFromWatchlist(code) {
-    if (global.Watchlist && typeof global.Watchlist.remove === 'function') { global.Watchlist.remove(code); return; }
-    var list = loadWatchlistRaw().filter(function (it) { return it.code !== code; });
-    try { localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(list)); } catch (err) { /* 무시 */ }
+    if (global.Watchlist && typeof global.Watchlist.remove === 'function') return global.Watchlist.remove(code);
+    return { ok: false, reason: 'login' };
   }
 
   function isFavorite(code) {
@@ -151,20 +153,12 @@
   }
   function toggleFavorite(code, name) {
     var wasFavorite = isFavorite(code);
-    var list = getFavorites();
-    var idx = list.findIndex(function (it) { return it.code === code; });
-    if (idx > -1) list.splice(idx, 1);
-    var added;
     if (wasFavorite) {
-      added = false;
-    } else {
-      list.unshift({ code: code, name: name });
-      added = true;
+      removeFromWatchlist(code);
+      return false;
     }
-    writeJson(STORAGE_FAVORITES, list);
-    if (added) addToWatchlist(code, name);
-    else removeFromWatchlist(code);
-    return added;
+    var result = addToWatchlist(code, name);
+    return !!(result && result.ok);
   }
 
   function getRecent() { return readJson(STORAGE_RECENT, []); }
@@ -345,6 +339,9 @@
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
         var added = toggleFavorite(btn.getAttribute('data-code'), btn.getAttribute('data-name'));
+        if (!added && global.Watchlist && typeof global.Watchlist.isReady === 'function' && !global.Watchlist.isReady()) {
+          alert('Google 로그인 후 관심종목을 저장할 수 있습니다.');
+        }
         btn.textContent = added ? '★' : '☆';
         btn.classList.toggle('active', added);
         // 즐겨찾기 목록 자체가 바뀌었으니(순서/섹션 이동) 비어있는 상태의 드롭다운은 다시 그린다

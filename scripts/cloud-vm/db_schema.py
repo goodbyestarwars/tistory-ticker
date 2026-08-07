@@ -152,6 +152,23 @@ CREATE TABLE IF NOT EXISTS sector_cards_config (
     revision INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS app_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    google_sub TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS watchlist_configs (
+    user_id INTEGER PRIMARY KEY,
+    config_json TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
+);
 '''
 
 
@@ -244,6 +261,71 @@ def save_sector_cards_config(conn, sectors, updated_at, expected_revision=None):
         )
         conn.commit()
         return {'sectors': sectors, 'revision': next_revision, 'updatedAt': updated_at}
+    except Exception:
+        conn.rollback()
+        raise
+
+
+def upsert_google_user(conn, user, updated_at):
+    google_sub = str(user.get('sub', '')).strip()
+    email = str(user.get('email', '')).strip().lower()
+    name = str(user.get('name', '')).strip()
+    if not google_sub or not email:
+        raise ValueError('Google user identity is incomplete')
+    conn.execute(
+        'INSERT INTO app_users (google_sub, email, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?) '
+        'ON CONFLICT(google_sub) DO UPDATE SET email=excluded.email, name=excluded.name, updated_at=excluded.updated_at',
+        (google_sub, email, name, updated_at, updated_at),
+    )
+    row = conn.execute('SELECT id FROM app_users WHERE google_sub=?', (google_sub,)).fetchone()
+    conn.commit()
+    return row[0]
+
+
+def load_watchlist_config(conn, user_id):
+    row = conn.execute(
+        'SELECT config_json, revision, updated_at FROM watchlist_configs WHERE user_id=?',
+        (user_id,),
+    ).fetchone()
+    if not row:
+        return None
+    try:
+        config = json.loads(row[0])
+    except (TypeError, ValueError) as exc:
+        raise ValueError('watchlist_configs contains invalid JSON') from exc
+    return {
+        'items': config.get('items', []),
+        'groups': config.get('groups', []),
+        'revision': row[1],
+        'updatedAt': row[2],
+    }
+
+
+def save_watchlist_config(conn, user_id, config, updated_at, expected_revision=None):
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        current = conn.execute(
+            'SELECT revision FROM watchlist_configs WHERE user_id=?',
+            (user_id,),
+        ).fetchone()
+        current_revision = current[0] if current else 0
+        if expected_revision is not None and int(expected_revision) != current_revision:
+            raise RuntimeError('WATCHLIST_REVISION_CONFLICT')
+        next_revision = current_revision + 1 if current else 1
+        payload = json.dumps(config, ensure_ascii=False, separators=(',', ':'))
+        conn.execute(
+            'INSERT INTO watchlist_configs (user_id, config_json, revision, updated_at) VALUES (?, ?, ?, ?) '
+            'ON CONFLICT(user_id) DO UPDATE SET config_json=excluded.config_json, '
+            'revision=excluded.revision, updated_at=excluded.updated_at',
+            (user_id, payload, next_revision, updated_at),
+        )
+        conn.commit()
+        return {
+            'items': config['items'],
+            'groups': config['groups'],
+            'revision': next_revision,
+            'updatedAt': updated_at,
+        }
     except Exception:
         conn.rollback()
         raise

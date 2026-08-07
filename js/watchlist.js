@@ -17,6 +17,11 @@
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var API_BASE_URL = 'https://goodbyestar.cloud';
+  var WATCHLIST_API_URL = API_BASE_URL + '/watchlist';
+  var GOOGLE_AUTH_ME_URL = API_BASE_URL + '/auth/google/me';
+  var GOOGLE_AUTH_START_URL = API_BASE_URL + '/auth/google/start';
+  var GOOGLE_AUTH_LOGOUT_URL = API_BASE_URL + '/auth/google/logout';
   var CONTAINER_SELECTOR = '#watchlist';
   var STORAGE_KEY = 'wl_codes_v1';
   var GROUP_STORAGE_KEY = 'wl_groups_v1';
@@ -38,6 +43,11 @@
   var realtimeGeneration = 0;
   var draggedCode = null;
   var didDrag = false;
+  var remoteState = { items: [], groups: [], revision: 0 };
+  var remoteReady = false;
+  var authState = { configured: false, authenticated: false, isAdmin: false, email: null };
+  var saveQueue = Promise.resolve();
+  var changeListeners = [];
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -57,10 +67,11 @@
     container.setAttribute('data-watchlist-ready', '1');
     container.innerHTML = buildShell();
     wireEvents(container);
-    render(container);
+    loadRemoteState(container);
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stopRealtimeQuotes();
-      else render(container);
+      else if (remoteReady && authState.authenticated) render(container);
+      else loadRemoteState(container);
     });
   }
 
@@ -86,7 +97,7 @@
 
   // ---- localStorage ----
 
-  function loadList() {
+  function loadLocalList() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       var list = raw ? JSON.parse(raw) : [];
@@ -96,7 +107,7 @@
     }
   }
 
-  function saveList(list) {
+  function saveLocalList(list) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     } catch (err) {
@@ -104,7 +115,7 @@
     }
   }
 
-  function loadGroups() {
+  function loadLocalGroups() {
     try {
       var raw = localStorage.getItem(GROUP_STORAGE_KEY);
       var groups = raw ? JSON.parse(raw) : [];
@@ -118,8 +129,152 @@
     }
   }
 
-  function saveGroups(groups) {
+  function saveLocalGroups(groups) {
     try { localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(groups)); } catch (err) {}
+  }
+
+  function cloneState() {
+    return JSON.parse(JSON.stringify({ items: remoteState.items, groups: remoteState.groups }));
+  }
+
+  function loadList() {
+    return remoteState.items.slice();
+  }
+
+  function saveList(list, container) {
+    remoteState.items = list.slice();
+    persistRemoteState(container);
+  }
+
+  function loadGroups() {
+    return remoteState.groups.slice();
+  }
+
+  function saveGroups(groups, container) {
+    remoteState.groups = groups.slice();
+    persistRemoteState(container);
+  }
+
+  function fetchAuthState() {
+    return fetch(GOOGLE_AUTH_ME_URL, { credentials: 'include', cache: 'no-store' })
+      .then(function (response) { if (!response.ok) throw new Error('auth status HTTP ' + response.status); return response.json(); })
+      .then(function (body) { return body && body.data ? body.data : { configured: false, authenticated: false }; })
+      .catch(function () { return { configured: false, authenticated: false, isAdmin: false, email: null }; });
+  }
+
+  function renderLoginRequired(container, message) {
+    var input = container.querySelector('#wlInput');
+    var add = container.querySelector('#wlAddBtn');
+    var groupAdd = container.querySelector('#wlGroupAddBtn');
+    if (input) input.disabled = true;
+    if (add) add.disabled = true;
+    if (groupAdd) groupAdd.disabled = true;
+    var grid = container.querySelector('#wlGrid');
+    if (grid) {
+      grid.innerHTML = '<div class="wl-login-gate"><strong>Google 로그인이 필요합니다.</strong><p>' +
+        escapeHtml(message || '관심종목은 Google 계정별로 안전하게 저장됩니다.') +
+        '</p><button type="button" class="wl-login-btn">Google로 로그인</button></div>';
+      var button = grid.querySelector('.wl-login-btn');
+      if (button) button.addEventListener('click', function () {
+        var returnTo = encodeURIComponent(global.location.href);
+        global.location.href = GOOGLE_AUTH_START_URL + '?return_to=' + returnTo;
+      });
+    }
+    var empty = container.querySelector('#wlEmpty');
+    if (empty) empty.hidden = true;
+  }
+
+  function renderAuthStatus(container) {
+    var input = container.querySelector('#wlInput');
+    var add = container.querySelector('#wlAddBtn');
+    var groupAdd = container.querySelector('#wlGroupAddBtn');
+    var authenticated = !!(authState.authenticated && authState.email);
+    if (input) input.disabled = !authenticated;
+    if (add) add.disabled = !authenticated;
+    if (groupAdd) groupAdd.disabled = !authenticated;
+    var header = container.querySelector('.wl-header');
+    if (!header) return;
+    var status = header.querySelector('.wl-auth');
+    if (!status) {
+      status = document.createElement('div');
+      status.className = 'wl-auth';
+      header.insertBefore(status, header.firstChild);
+    }
+    status.innerHTML = authenticated
+      ? '<span>Google: ' + escapeHtml(authState.email) + '</span><button type="button" class="wl-logout-btn">로그아웃</button>'
+      : '<span>로그인 필요</span>';
+    var logout = status.querySelector('.wl-logout-btn');
+    if (logout) logout.addEventListener('click', function () {
+      global.location.href = GOOGLE_AUTH_LOGOUT_URL + '?return_to=' + encodeURIComponent(global.location.href);
+    });
+  }
+
+  function notifyChanged() {
+    changeListeners.slice().forEach(function (listener) { try { listener(remoteState.items.slice()); } catch (err) {} });
+    try { global.dispatchEvent(new Event('watchlist:changed')); } catch (err) {}
+  }
+
+  function persistRemoteState(container) {
+    if (!remoteReady || !authState.authenticated) return;
+    saveQueue = saveQueue.catch(function () {}).then(function () {
+      var payload = cloneState();
+      payload.revision = remoteState.revision;
+      return fetch(WATCHLIST_API_URL, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (response) {
+        return response.json().then(function (body) {
+          if (!response.ok) throw new Error(body.detail || '관심종목 저장에 실패했습니다.');
+          return body;
+        });
+      }).then(function (body) {
+        var saved = body.data || {};
+        remoteState.revision = Number(saved.revision || remoteState.revision);
+        notifyChanged();
+      }).catch(function (error) {
+        var msg = container && container.querySelector('#wlMsg');
+        if (msg) { msg.textContent = error.message; msg.hidden = false; }
+      });
+    });
+  }
+
+  function loadRemoteState(container) {
+    fetchAuthState().then(function (nextAuth) {
+      authState = nextAuth;
+      renderAuthStatus(container);
+      if (!authState.configured || !authState.authenticated) {
+        renderLoginRequired(container, authState.configured ? '관심종목을 저장하려면 Google 계정으로 로그인하세요.' : 'Google 로그인 서버 설정을 확인 중입니다.');
+        return null;
+      }
+      return fetch(WATCHLIST_API_URL, { credentials: 'include', cache: 'no-store' })
+        .then(function (response) {
+          return response.json().then(function (body) {
+            if (!response.ok) throw new Error(body.detail || '관심종목을 불러오지 못했습니다.');
+            return body.data || {};
+          });
+        });
+    }).then(function (data) {
+      if (!data) return;
+      var localItems = loadLocalList();
+      var localGroups = loadLocalGroups();
+      remoteState.items = Array.isArray(data.items) ? data.items : [];
+      remoteState.groups = Array.isArray(data.groups) && data.groups.length ? data.groups : localGroups;
+      remoteState.revision = Number(data.revision || 0);
+      remoteReady = true;
+      if (!remoteState.items.length && localItems.length) {
+        remoteState.items = localItems;
+        remoteState.groups = localGroups;
+        persistRemoteState(container);
+        try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(GROUP_STORAGE_KEY); } catch (err) {}
+      }
+      renderAuthStatus(container);
+      render(container);
+      notifyChanged();
+    }).catch(function (error) {
+      renderLoginRequired(container, error.message || '관심종목을 불러오지 못했습니다.');
+    });
   }
 
   // ---- 검색/자동완성 (foreign-flow.js와 동일 패턴) ----
@@ -165,7 +320,7 @@
       if (!name || !name.trim()) return;
       var groups = loadGroups();
       groups.push({ id: 'group-' + Date.now(), name: name.trim().slice(0, 20), collapsed: false });
-      saveGroups(groups);
+      saveGroups(groups, container);
       render(container);
     });
     document.addEventListener('click', function (e) {
@@ -288,21 +443,22 @@
   // 있을 때만 한다.
   function addStock(code, name) {
     if (!code) return { ok: false, reason: 'invalid' };
+    if (!remoteReady || !authState.authenticated) return { ok: false, reason: 'login' };
     var list = loadList();
     if (list.some(function (it) { return it.code === code; })) return { ok: false, reason: 'exists' };
     if (list.length >= MAX_ITEMS) return { ok: false, reason: 'full' };
 
     list.push({ code: code, name: name || code, groupId: DEFAULT_GROUP_ID });
-    saveList(list);
     var container = document.querySelector(CONTAINER_SELECTOR);
+    saveList(list, container);
     if (container) render(container);
     return { ok: true };
   }
 
   function removeStock(code) {
     var list = loadList().filter(function (it) { return it.code !== code; });
-    saveList(list);
     var container = document.querySelector(CONTAINER_SELECTOR);
+    saveList(list, container);
     if (container) render(container);
   }
 
@@ -320,6 +476,7 @@
 
     var result = addStock(stock.code, stock.name);
     if (!result.ok) {
+      if (result.reason === 'login') showMsg(container, 'Google 로그인 후 관심종목을 저장할 수 있습니다.');
       if (result.reason === 'exists') showMsg(container, stock.name + '은(는) 이미 관심종목에 있습니다.');
       else if (result.reason === 'full') showMsg(container, '관심종목은 최대 ' + MAX_ITEMS + '개까지 담을 수 있습니다.');
       input.value = '';
@@ -548,7 +705,7 @@
         var id = button.closest('.wl-group').getAttribute('data-group-id');
         var groups = loadGroups();
         groups.forEach(function (group) { if (group.id === id) group.collapsed = !group.collapsed; });
-        saveGroups(groups);
+        saveGroups(groups, container);
         render(container);
       });
     });
@@ -558,8 +715,8 @@
         var groups = loadGroups().filter(function (group) { return group.id !== id; });
         var list = loadList();
         list.forEach(function (item) { if ((item.groupId || DEFAULT_GROUP_ID) === id) item.groupId = DEFAULT_GROUP_ID; });
-        saveGroups(groups);
-        saveList(list);
+        saveGroups(groups, container);
+        saveList(list, container);
         render(container);
       });
     });
@@ -592,7 +749,7 @@
       });
     });
     if (next.length === current.length) {
-      saveList(next);
+      saveList(next, container);
       render(container);
     }
   }
@@ -652,6 +809,10 @@
     add: addStock,
     remove: removeStock,
     has: hasStock,
+    getList: function () { return loadList(); },
+    getGroups: function () { return loadGroups(); },
+    onChange: function (listener) { if (typeof listener === 'function') changeListeners.push(listener); },
+    isReady: function () { return remoteReady && authState.authenticated; },
     MAX_ITEMS: MAX_ITEMS
   };
   global.Watchlist = Watchlist;

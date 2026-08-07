@@ -749,16 +749,24 @@
 
   function buildSectorEditorAuthGateHtml_(authState) {
     var configured = !!(authState && authState.configured);
-    var message = configured
-      ? '카테고리와 종목을 편집하려면 관리자 Google 계정으로 로그인하세요.'
+    var authenticated = !!(authState && authState.authenticated);
+    var isAdmin = !!(authState && authState.isAdmin);
+    var message = configured && authenticated && !isAdmin
+      ? '현재 Google 계정에는 증시온도 카드 관리자 권한이 없습니다.'
+      : configured
+        ? '카테고리와 종목을 편집하려면 관리자 Google 계정으로 로그인하세요.'
       : '관리자 인증 설정을 확인하는 중입니다. 잠시 후 다시 시도하세요.';
-    var loginButton = configured
+    var loginButton = configured && !authenticated
       ? '<button type="button" class="primary" data-editor-action="google-login">Google로 로그인</button>'
+      : '';
+    var logoutButton = authenticated
+      ? '<button type="button" data-editor-action="google-logout">다른 계정으로 로그인</button>'
       : '';
     return '<div class="mt-sector-auth-gate">' +
       '<strong>관리자 로그인 필요</strong>' +
       '<p>' + message + '</p>' +
       loginButton +
+      logoutButton +
       '<button type="button" data-editor-action="cancel">취소</button>' +
       '</div>';
   }

@@ -42,6 +42,7 @@ import option_flow
 import order_book
 import realtime_quotes
 import sector_cards
+import watchlist
 from google_auth import GoogleAuthError, GoogleAuthService
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
@@ -277,6 +278,15 @@ def require_google_admin(request: Request):
     return session
 
 
+def require_google_user(request: Request):
+    if not GOOGLE_AUTH.configured:
+        raise HTTPException(status_code=503, detail='Google login is not configured on the server')
+    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    if not session or not session.get('sub') or not session.get('email'):
+        raise HTTPException(status_code=401, detail='Google login is required')
+    return session
+
+
 def require_sector_cards_editor(request: Request, x_api_key: str):
     # Keep the legacy token only until Google OAuth is configured. Once the
     # OAuth client is configured, browser writes must use the owner session.
@@ -290,6 +300,14 @@ def _google_auth_error_redirect(reason):
     separator = '&' if '?' in GOOGLE_AUTH.success_redirect else '?'
     location = GOOGLE_AUTH.success_redirect + separator + 'google_auth_error=' + urllib.parse.quote(reason, safe='')
     return RedirectResponse(location=location, status_code=303)
+
+
+def _safe_google_return_url(value):
+    fallback = GOOGLE_AUTH.success_redirect
+    parsed = urllib.parse.urlparse(str(value or ''))
+    if parsed.scheme != 'https' or parsed.netloc != 'ghlee.tistory.com':
+        return fallback
+    return str(value)
 
 
 def _load_sector_cards_cached():
@@ -331,7 +349,7 @@ def health():
 
 
 @app.get('/auth/google/start')
-def google_auth_start():
+def google_auth_start(return_to: str = None):
     if not GOOGLE_AUTH.configured:
         raise HTTPException(status_code=503, detail='Google login is not configured on the server')
     state = secrets.token_urlsafe(32)
@@ -344,6 +362,10 @@ def google_auth_start():
     response.set_cookie(
         GOOGLE_AUTH.NONCE_COOKIE, nonce, max_age=600, httponly=True,
         secure=True, samesite='lax', path='/',
+    )
+    response.set_cookie(
+        GOOGLE_AUTH.RETURN_COOKIE, _safe_google_return_url(return_to), max_age=600,
+        httponly=True, secure=True, samesite='lax', path='/',
     )
     return response
 
@@ -363,10 +385,8 @@ def google_auth_callback(request: Request, code: str = None, state: str = None, 
     except GoogleAuthError:
         logging.getLogger('main').warning('Google OAuth callback verification failed')
         return _google_auth_error_redirect('login_failed')
-    if user.get('email') != GOOGLE_AUTH.admin_email:
-        return _google_auth_error_redirect('not_admin')
-
-    response = RedirectResponse(GOOGLE_AUTH.success_redirect, status_code=303)
+    return_to = _safe_google_return_url(request.cookies.get(GOOGLE_AUTH.RETURN_COOKIE))
+    response = RedirectResponse(return_to, status_code=303)
     response.set_cookie(
         GOOGLE_AUTH.SESSION_COOKIE, GOOGLE_AUTH.make_session(user),
         max_age=7 * 24 * 60 * 60, httponly=True, secure=True,
@@ -376,6 +396,7 @@ def google_auth_callback(request: Request, code: str = None, state: str = None, 
     )
     response.delete_cookie(GOOGLE_AUTH.STATE_COOKIE, path='/')
     response.delete_cookie(GOOGLE_AUTH.NONCE_COOKIE, path='/')
+    response.delete_cookie(GOOGLE_AUTH.RETURN_COOKIE, path='/')
     return response
 
 
@@ -385,10 +406,63 @@ def google_auth_me(request: Request):
 
 
 @app.get('/auth/google/logout')
-def google_auth_logout():
-    response = RedirectResponse(GOOGLE_AUTH.success_redirect, status_code=303)
+def google_auth_logout(return_to: str = None):
+    response = RedirectResponse(_safe_google_return_url(return_to), status_code=303)
     response.delete_cookie(GOOGLE_AUTH.SESSION_COOKIE, path='/')
     return response
+
+
+def _load_user_watchlist(request: Request):
+    session = require_google_user(request)
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        config = db_schema.load_watchlist_config(conn, user_id)
+        if config is None:
+            config = watchlist.empty_config()
+            config.update({'revision': 0, 'updatedAt': None})
+        return config
+    finally:
+        conn.close()
+
+
+@app.get('/watchlist')
+def watchlist_endpoint(request: Request):
+    return envelope(_load_user_watchlist(request))
+
+
+@app.put('/watchlist')
+async def update_watchlist(request: Request):
+    session = require_google_user(request)
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail='request body must be an object')
+    try:
+        config = watchlist.normalize_config(body)
+    except watchlist.WatchlistConfigError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        try:
+            saved = db_schema.save_watchlist_config(
+                conn, user_id, config, now, expected_revision=body.get('revision'),
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail='revision must be an integer') from exc
+        except RuntimeError as exc:
+            if str(exc) == 'WATCHLIST_REVISION_CONFLICT':
+                raise HTTPException(status_code=409, detail='watchlist changed; reload and try again') from exc
+            raise
+    finally:
+        conn.close()
+    return envelope(saved)
 
 
 @app.get('/sector-cards')
