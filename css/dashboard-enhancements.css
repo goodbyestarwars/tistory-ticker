@@ -193,6 +193,7 @@
 .de-chart-modal-body { display: flex; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; padding: 22px 18px 26px; }
 .de-chart-modal-body > #ffLwChart, .de-chart-modal-body > #ssChart, .de-chart-modal-body > .kf-chart { width: 100%; }
 .de-chart-modal-body > .ff-apt-chart-wrap { width: 100%; min-width: 0; }
+.de-chart-modal-body > .de-foreign-flow-scope { width: 100%; min-width: 0; }
 .de-chart-placeholder { display: none; }
 html.dark .de-custom-card-toolbar, html.dark .de-custom-editor, html.dark .de-custom-card, html.dark .de-chart-modal { background: #1A1A1A; border-color: rgba(245,239,224,.2); }
 html.dark .de-custom-card-toolbar strong, html.dark .de-custom-editor-title, html.dark .de-custom-card-heading, html.dark .de-chart-modal-head { color: #F5EFE0; }

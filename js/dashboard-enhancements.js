@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20260808-3';
+  var ENHANCEMENT_VERSION = '20260808-4';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -166,8 +166,22 @@
     document.body.appendChild(overlay);
     var body = overlay.querySelector('.de-chart-modal-body');
     var oldStyle = target.getAttribute('style');
+    var flowRoot = target.closest ? target.closest('#foreign-flow') : null;
+    var flowScope = null;
     target.classList.add('de-modal-target');
-    body.appendChild(target);
+    // 매물대 차트의 CSS는 원래 #foreign-flow 아래를 기준으로 범위를 좁혀 두었다.
+    // 문서 최상위 모달로 옮길 때도 같은 스코프를 유지해야 SVG가 기본 검정색으로
+    // 렌더링되지 않고 건물·배경·프로파일 색상을 그대로 사용한다.
+    if (flowRoot && target.classList.contains('ff-apt-chart-wrap')) {
+      flowScope = document.createElement('div');
+      flowScope.className = 'de-foreign-flow-scope';
+      flowScope.id = 'foreign-flow';
+      flowRoot.id = 'foreign-flow-original';
+      body.appendChild(flowScope);
+      flowScope.appendChild(target);
+    } else {
+      body.appendChild(target);
+    }
     if (target.id === 'ffLwChart' || target.id === 'ssChart' || target.classList.contains('kf-chart')) {
       target.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
     }
@@ -176,6 +190,10 @@
       placeholder.parentNode.insertBefore(target, placeholder);
       if (oldStyle == null) target.removeAttribute('style'); else target.setAttribute('style', oldStyle);
       target.classList.remove('de-modal-target');
+      if (flowScope) {
+        flowScope.remove();
+        flowRoot.id = 'foreign-flow';
+      }
       placeholder.remove();
       overlay.remove();
       document.removeEventListener('keydown', onKeydown);
