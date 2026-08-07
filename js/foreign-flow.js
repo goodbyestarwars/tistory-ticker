@@ -3419,7 +3419,7 @@
 
     return '<div class="ff-apt-chart-wrap ff-apt-line-art ff-apt-illustration" role="img" aria-label="가격대별 매물대 일러스트">'
       + '<div class="ff-apt-lineart-head"><strong>가격대별 매물대</strong><span>중심 가격 ' + pocText + '</span></div>'
-      + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg" viewBox="0 0 900 465" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
+      + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg ff-apt-price-map-surface" data-price-map-surface viewBox="0 0 900 465" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
       + '<title>가격대별 매물대 일러스트</title>'
       + '<desc>건물의 크기와 창문 밀도는 거래량을 나타내며 평균·현재가·중심 가격을 창문 아이콘으로 표시합니다.</desc>'
       + '<rect class="ff-apt-illustration-canvas" x="10" y="12" width="880" height="441" rx="22" />'
@@ -3450,10 +3450,10 @@
       + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
       + '</svg>'
-      + '<div class="ff-apt-bin-guide"><strong>가격별 매물대</strong><span>좌우로 드래그하면 실제 가격 구간을 더 볼 수 있습니다 · 막대가 높을수록 체결량이 많습니다</span><div class="ff-apt-bin-controls"><button type="button" data-bin-scroll="-1" aria-label="가격대 왼쪽 보기">←</button><button type="button" data-bin-scroll="1" aria-label="가격대 오른쪽 보기">→</button></div></div>'
+      + '<div class="ff-apt-bin-guide"><strong>가격별 매물대</strong><span>건물을 좌우로 드래그하면 아래 가격 구간도 함께 이동합니다 · 막대가 높을수록 체결량이 많습니다</span><div class="ff-apt-bin-controls"><button type="button" data-bin-scroll="-1" aria-label="가격대 왼쪽 보기">←</button><button type="button" data-bin-scroll="1" aria-label="가격대 오른쪽 보기">→</button></div></div>'
       + '<div class="ff-apt-bin-rail" data-price-bin-rail tabindex="0" aria-label="가격별 매물대 좌우 탐색">' + binRail + '</div>'
       + '<div class="ff-apt-visual-key"><span><i class="current"></i>십자 현재가</span><span><i class="average"></i>파란 사람 평균단가</span><span><i class="poc"></i>왕관 POC</span><span><i class="window"></i>창문 밀도 거래량</span></div>'
-      + '<div class="ff-apt-lineart-note">각 건물은 가격 구간 하나를 묶어 표현합니다. 현재가와 평균단가가 같은 건물에 있으면 겹치지 않도록 옆 창에 나란히 표시됩니다.</div>'
+      + '<div class="ff-apt-lineart-note">건물 지도를 좌우로 드래그하면 하단 가격별 매물대가 같은 방향으로 이동합니다. 각 건물은 여러 가격 구간을 묶어 표현하며, 현재가·평균단가·POC는 창문 아이콘으로 표시됩니다.</div>'
       + '</div>';
   }
 
@@ -3780,6 +3780,33 @@
           event.preventDefault();
         }
       }, { passive: false });
+
+      var map = card.querySelector('[data-price-map-surface]');
+      if (map && map.getAttribute('data-drag-ready') !== '1') {
+        var mapDragging = false, mapStartX = 0, mapStartScroll = 0;
+        map.setAttribute('data-drag-ready', '1');
+        map.addEventListener('pointerdown', function (event) {
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          mapDragging = true;
+          mapStartX = event.clientX;
+          mapStartScroll = rail.scrollLeft;
+          map.classList.add('is-dragging');
+          try { map.setPointerCapture(event.pointerId); } catch (ignore) {}
+          event.preventDefault();
+        });
+        map.addEventListener('pointermove', function (event) {
+          if (!mapDragging) return;
+          rail.scrollLeft = mapStartScroll - (event.clientX - mapStartX);
+          event.preventDefault();
+        });
+        function stopMapDragging() {
+          mapDragging = false;
+          map.classList.remove('is-dragging');
+        }
+        map.addEventListener('pointerup', stopMapDragging);
+        map.addEventListener('pointercancel', stopMapDragging);
+        map.addEventListener('pointerleave', function () { if (mapDragging) stopMapDragging(); });
+      }
       card.querySelectorAll('[data-bin-scroll]').forEach(function (button) {
         button.addEventListener('click', function () {
           rail.scrollBy({ left: Number(button.getAttribute('data-bin-scroll')) * Math.max(180, rail.clientWidth * 0.72), behavior: 'smooth' });

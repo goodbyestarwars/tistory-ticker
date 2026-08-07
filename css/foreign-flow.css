@@ -2535,6 +2535,10 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
   border-color: #e1e4e6;
 }
 #foreign-flow .ff-apt-illustration-svg { height: 500px; }
+#foreign-flow .ff-apt-price-map-surface { cursor: grab; touch-action: pan-x; user-select: none; }
+#foreign-flow .ff-apt-price-map-surface.is-dragging { cursor: grabbing; }
+#foreign-flow .ff-apt-price-map-surface .ff-apt-illustration-building { cursor: grab; }
+#foreign-flow .ff-apt-price-map-surface.is-dragging .ff-apt-illustration-building { cursor: grabbing; }
 #foreign-flow .ff-apt-illustration-canvas { fill: #eef0f1; stroke: none; }
 #foreign-flow .ff-apt-illustration-orbit { fill: none; stroke: #aeb4b8; stroke-width: 1; stroke-dasharray: 4 5; opacity: .78; }
 #foreign-flow .ff-apt-illustration-title rect { fill: #fff; stroke: #0f766e; stroke-width: 1.6; }
