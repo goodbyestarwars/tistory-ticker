@@ -3773,7 +3773,7 @@
       }
       rail.addEventListener('pointerup', stopDragging);
       rail.addEventListener('pointercancel', stopDragging);
-      rail.addEventListener('pointerleave', function () { if (dragging) stopDragging(); });
+      rail.addEventListener('lostpointercapture', stopDragging);
       rail.addEventListener('wheel', function (event) {
         if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
           rail.scrollLeft += event.deltaY;
@@ -3805,7 +3805,7 @@
         }
         map.addEventListener('pointerup', stopMapDragging);
         map.addEventListener('pointercancel', stopMapDragging);
-        map.addEventListener('pointerleave', function () { if (mapDragging) stopMapDragging(); });
+        map.addEventListener('lostpointercapture', stopMapDragging);
       }
       card.querySelectorAll('[data-bin-scroll]').forEach(function (button) {
         button.addEventListener('click', function () {

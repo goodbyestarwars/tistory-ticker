@@ -2638,7 +2638,7 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-bin-controls button:hover { border-color: #0f766e; color: #0f766e; }
 #foreign-flow .ff-apt-bin-rail { display: flex; align-items: flex-end; gap: 4px; min-height: 142px; overflow-x: auto; overflow-y: hidden; padding: 26px 10px 50px; border: 1px solid #dbe4ec; border-radius: 10px; background: rgba(255,255,255,.72); cursor: grab; scrollbar-width: thin; touch-action: pan-x; }
 #foreign-flow .ff-apt-bin-rail.is-dragging { cursor: grabbing; user-select: none; }
-#foreign-flow .ff-apt-bin { position: relative; display: flex; flex: 0 0 40px; flex-direction: column; align-items: center; justify-content: flex-end; height: 92px; }
+#foreign-flow .ff-apt-bin { position: relative; display: flex; flex: 0 0 88px; flex-direction: column; align-items: center; justify-content: flex-end; height: 92px; }
 #foreign-flow .ff-apt-bin-price { order: 2; margin-top: 7px; color: #89949c; font-size: 8px; white-space: nowrap; transform: rotate(-42deg) translate(-7px, 7px); transform-origin: top center; }
 #foreign-flow .ff-apt-bin-bar { order: 1; display: block; width: 15px; min-height: 8px; border-radius: 3px 3px 1px 1px; background: #b7d9d2; border: 1px solid #0f766e; }
 #foreign-flow .ff-apt-bin.has-marker .ff-apt-bin-bar { background: #f08c46; border-color: #e8590c; }
@@ -2704,4 +2704,5 @@ html.dark #foreign-flow .ff-apt-bin-price { color: #b7c0c5; }
 @media (max-width: 640px) {
   #foreign-flow .ff-apt-illustration { min-height: 400px; }
   #foreign-flow .ff-apt-illustration-svg { height: 360px; }
+  #foreign-flow .ff-apt-bin { flex-basis: 64px; }
 }
