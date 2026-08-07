@@ -357,6 +357,16 @@
 
 /* ================= ④-2 오늘 투자전략 (최근 7일과 좌우 배치) ================= */
 #market-temp .mt-strategy-action { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+#market-temp .mt-strategy-action.mt-val-zero {
+  border: 0;
+  border-left: 4px solid #FFD54F;
+  border-radius: 10px;
+  padding: 11px 14px 11px 18px;
+  background: linear-gradient(90deg, rgba(255, 213, 79, .2), rgba(255, 213, 79, .06));
+  box-shadow: none;
+  color: #8b741d;
+  text-align: left;
+}
 #market-temp .mt-strategy-bars { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
 #market-temp .mt-strategy-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666; }
 #market-temp .mt-strategy-bar-row span { flex: 0 0 52px; }
@@ -582,6 +592,13 @@ html.dark #market-temp .mt-strategy-bar-row b { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-strategy-bar { background: rgba(245, 239, 224, 0.14) !important; }
 html.dark #market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: rgba(245, 239, 224, 0.35) !important; }
 html.dark #market-temp .mt-strategy-note { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #market-temp .mt-strategy-action.mt-val-zero {
+  border: 0 !important;
+  border-left: 4px solid #e6c95b !important;
+  background: rgba(255, 213, 79, .12) !important;
+  color: #e6c95b !important;
+  box-shadow: none !important;
+}
 
 html.dark #market-temp .mt-guide-card { border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #market-temp .mt-guide-card-label { color: rgba(245, 239, 224, 0.7) !important; }
