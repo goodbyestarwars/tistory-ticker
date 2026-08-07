@@ -951,6 +951,7 @@
     return SD.fetchTickerData(codes).then(function (list) {
       var byCode = {};
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
+      if (SD.injectBadgeStyles) SD.injectBadgeStyles();
       var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
       var toolbar = '<div class="mt-sector-toolbar"><span>카테고리와 종목을 직접 관리할 수 있습니다.</span>' +
         '<button type="button" data-sector-editor-open>카테고리·종목 편집</button></div>';

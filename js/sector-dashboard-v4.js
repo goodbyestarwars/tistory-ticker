@@ -91,8 +91,8 @@
 
   // 시장 구분은 한 글자 P/Q 대신 읽기 쉬운 전체 시장명으로 표시한다.
   function marketBadgeHtml(market) {
-    if (market === 'KOSPI') return '<span class="sector-mkt-badge mkt-kospi" title="KOSPI">KOSPI</span>';
-    if (market === 'KOSDAQ') return '<span class="sector-mkt-badge mkt-kosdaq" title="KOSDAQ">KOSDAQ</span>';
+    if (market === 'KOSPI') return ' <span class="sector-mkt-badge mkt-kospi" title="KOSPI">KOSPI</span>';
+    if (market === 'KOSDAQ') return ' <span class="sector-mkt-badge mkt-kosdaq" title="KOSDAQ">KOSDAQ</span>';
     return '';
   }
 
