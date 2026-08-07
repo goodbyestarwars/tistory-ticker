@@ -26,7 +26,6 @@
     'market-summary',
     'ranking',
     'pattern',
-    'my-watchlist',
     'schedule',
     'disclosure',
     'briefing'
@@ -36,7 +35,6 @@
     'market-summary': '오늘의 시장판',
     ranking: '실시간 랭킹',
     pattern: '오늘의 패턴',
-    'my-watchlist': 'MY',
     schedule: '주요 일정',
     disclosure: '실시간 공시',
     briefing: '마켓브리핑'
@@ -175,8 +173,6 @@
     var schedule = cards && cards.querySelector('.home-schedule-card');
     if (!investor || !market || !ranking || !pattern || !schedule || !options.briefing) return false;
 
-    var my = document.createElement('div');
-    my.innerHTML = myCardHtml();
     var disclosure = document.createElement('div');
     disclosure.innerHTML = disclosureCardHtml();
 
@@ -187,7 +183,6 @@
       market,
       ranking,
       pattern,
-      my.firstElementChild,
       schedule,
       disclosure.firstElementChild,
       options.briefing
@@ -201,7 +196,6 @@
     decorate(market, 'market-summary', 'summary');
     decorate(ranking, 'ranking', 'compact');
     decorate(pattern, 'pattern', 'compact');
-    decorate(grid.querySelector('.home-my-card'), 'my-watchlist', 'compact');
     decorate(schedule, 'schedule', 'compact');
     decorate(grid.querySelector('.home-disclosure-card'), 'disclosure', 'compact');
     decorate(options.briefing, 'briefing', 'full');
@@ -683,16 +677,7 @@
     var toolbar = options.dashboard.querySelector('.home-dashboard-toolbar');
     wireMenus(toolbar);
     wireDrag();
-    loadMyWidget();
     loadDisclosures();
-    global.addEventListener('storage', function (event) {
-      if (event.key === WATCHLIST_KEY) loadMyWidget();
-    });
-    global.addEventListener('watchlist:changed', loadMyWidget);
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) stopMyRealtime();
-      else startMyRealtime(readWatchlist());
-    });
   }
 
   global.HomeDashboardWidgets = { init: init, storageKey: STORAGE_KEY };
