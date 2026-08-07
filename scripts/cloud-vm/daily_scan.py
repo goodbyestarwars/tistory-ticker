@@ -106,17 +106,9 @@ def save_ohlc_snapshot(conn, code, daily):
 
 
 def save_investor_flow(conn, code, flow_rows):
-    """flow_rows(fetch_foreign_inst_daily 결과, 외국인/기관 일별 순매매)를 investor_flow_daily에
+    """flow_rows(fetch_foreign_inst_daily 결과, 개인/외국인/기관 일별 순매매)를 investor_flow_daily에
     UPSERT. 지금까지는 투자시그널 계산에만 쓰고 버렸던 데이터 - OHLC와 동일한 이유로 저장."""
-    if not flow_rows:
-        return
-    conn.executemany(
-        'INSERT INTO investor_flow_daily (code, date, close, change_pct, foreign_net, inst_net) '
-        'VALUES (?, ?, ?, ?, ?, ?) '
-        'ON CONFLICT(code, date) DO UPDATE SET close=excluded.close, change_pct=excluded.change_pct, '
-        'foreign_net=excluded.foreign_net, inst_net=excluded.inst_net',
-        [(code, r['date'], r['close'], r['change_pct'], r['foreign_net'], r['inst_net']) for r in flow_rows],
-    )
+    db_schema.upsert_investor_flow_daily(conn, code, flow_rows)
 
 
 def main():
@@ -181,8 +173,9 @@ def main():
             if scanned_pb:
                 pullback_scanned += 1
 
-            if db_schema.latest_date(conn, 'investor_flow_daily', code) == today_str:
-                flow_rows = db_schema.load_investor_flow_daily(conn, code)
+            flow_rows = db_schema.load_investor_flow_daily(conn, code)
+            has_confirmed_individual = bool(flow_rows and flow_rows[0].get('ind_net') is not None)
+            if flow_rows and flow_rows[0].get('date') == today_str and has_confirmed_individual:
                 flow_skipped += 1
             else:
                 # target_days=25: rolling 20일 합산에 여유분만 더한 최소치(fetch_institution_trend가

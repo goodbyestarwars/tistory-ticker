@@ -2,8 +2,7 @@
 """OHLC 스냅샷 + 펀더멘탈 + 수급 공유 SQLite DB 스키마.
 daily_prices: 종목별 일봉 260일 - daily_scan.py가 INSERT.
 fundamentals: DART 재무제표 요약 - migrate_fundamentals.py가 fundamentals_cache.json에서 이관.
-investor_flow_daily: 외국인/기관 일별 순매매(ka10045) - daily_scan.py가 INSERT(투자시그널 계산에
-쓰고 버리던 걸 이제 같이 저장).
+investor_flow_daily: 개인/외국인/기관 일별 순매매 - daily_scan.py와 /foreign-flow가 INSERT.
 investor_summary: 공매도/대차거래/연기금 요약(ka10014/ka20068/ka10059) - migrate_investor_summary.py가
 batch_scan.py의 investor_flow_cache.json에서 이관.
 종목 하나씩 SELECT ... WHERE code=?로 커서 순회하면 전체 종목 수와 무관하게 메모리에
@@ -41,6 +40,7 @@ CREATE TABLE IF NOT EXISTS investor_flow_daily (
     date TEXT NOT NULL,
     close REAL,
     change_pct REAL,
+    ind_net REAL,
     foreign_net REAL,
     inst_net REAL,
     PRIMARY KEY (code, date)
@@ -220,6 +220,7 @@ def _migrate_investor_trend_market(conn):
 
 def create_schema(conn):
     conn.executescript(SCHEMA)
+    _ensure_column(conn, 'investor_flow_daily', 'ind_net', 'REAL')
     _ensure_column(conn, 'future_prices', 'oi', 'INTEGER')
     _ensure_column(conn, 'future_prices', 'oi_change', 'INTEGER')
     _migrate_investor_trend_market(conn)
@@ -357,16 +358,32 @@ def latest_date(conn, table, code):
 def load_investor_flow_daily(conn, code):
     """investor_flow_daily에서 종목의 내림차순(최신일 우선) 행을
     kiwoom_market.fetch_foreign_inst_daily()와 동일한 형식({date, close, change_pct,
-    foreign_net, inst_net})으로 반환."""
+    ind_net, foreign_net, inst_net})으로 반환."""
     rows = conn.execute(
-        'SELECT date, close, change_pct, foreign_net, inst_net FROM investor_flow_daily '
+        'SELECT date, close, change_pct, ind_net, foreign_net, inst_net FROM investor_flow_daily '
         'WHERE code=? ORDER BY date DESC',
         (code,),
     ).fetchall()
     return [
-        {'date': r[0], 'close': r[1], 'change_pct': r[2], 'foreign_net': r[3], 'inst_net': r[4]}
+        {'date': r[0], 'close': r[1], 'change_pct': r[2], 'ind_net': r[3], 'foreign_net': r[4], 'inst_net': r[5]}
         for r in rows
     ]
+
+
+def upsert_investor_flow_daily(conn, code, flow_rows):
+    """KIS 확정 개인 수급을 포함한 종목별 일별 수급을 영속 저장한다.
+    개인 데이터가 아직 잠정치로 None이면 기존에 저장된 확정치를 덮어쓰지 않는다."""
+    if not flow_rows:
+        return
+    conn.executemany(
+        'INSERT INTO investor_flow_daily (code, date, close, change_pct, ind_net, foreign_net, inst_net) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?) '
+        'ON CONFLICT(code, date) DO UPDATE SET close=excluded.close, change_pct=excluded.change_pct, '
+        'ind_net=COALESCE(excluded.ind_net, investor_flow_daily.ind_net), '
+        'foreign_net=excluded.foreign_net, inst_net=excluded.inst_net',
+        [(code, r['date'], r['close'], r['change_pct'], r.get('ind_net'), r['foreign_net'], r['inst_net'])
+         for r in flow_rows],
+    )
 
 
 def upsert_future_price(conn, symbol, name, price, change, change_rate, high, low, updated_at, oi=None, oi_change=None):

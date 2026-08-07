@@ -802,10 +802,23 @@ def foreign_flow_endpoint(request: Request, code: str = Path(..., min_length=6, 
             kis_appkey=os.environ.get('KIS_APPKEY'), kis_appsecret=os.environ.get('KIS_APPSECRET'),
             target_days=days,
         )
+        conn = db_schema.get_conn()
+        try:
+            db_schema.upsert_investor_flow_daily(conn, code, daily)
+        finally:
+            conn.close()
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        # KIS가 장중 제한되거나 일시 실패해도 직전에 저장한 확정 개인 수급을 우선 사용한다.
+        conn = db_schema.get_conn()
+        try:
+            daily = db_schema.load_investor_flow_daily(conn, code)
+        finally:
+            conn.close()
+        if not daily:
+            raise HTTPException(status_code=502, detail=str(e))
+        logging.getLogger('main').warning('foreign-flow DB 확정 데이터 폴백(%s): %s', code, e)
     result = foreign_flow_compute.build_result(code, daily)
     if result is None:
         raise HTTPException(status_code=404, detail='수급 데이터를 찾을 수 없습니다.')
