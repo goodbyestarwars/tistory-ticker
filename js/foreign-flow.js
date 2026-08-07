@@ -3298,6 +3298,10 @@
             var px = wx + cellW / 2, py = wy + cellH / 2;
             html += '<path class="ff-apt-building-poc-icon" d="M' + (px - 5) + ' ' + (py - 2) + ' l2 3 3-5 3 5 2-3-1 6 H' + (px - 4) + ' Z" />';
           }
+          if (windowMarker) {
+            html += '<text class="ff-apt-window-marker-label ' + windowMarker.type + '" x="' + (wx + cellW / 2) + '" y="' + (wy - 3) + '" text-anchor="middle">'
+              + (windowMarker.type === 'average' ? '평균' : windowMarker.type === 'current' ? '현재' : 'POC') + '</text>';
+          }
         }
       }
       html += '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 12) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
@@ -3345,16 +3349,16 @@
       return building(spec.x, spec.width, band, index);
     }).join('');
     var basement = '<g class="ff-apt-illustration-basement" role="group" aria-label="지하실">'
-      + '<path class="ff-apt-basement-shell" d="M218 390 H486 V414 H218 Z" />'
+      + '<path class="ff-apt-basement-shell" d="M190 390 H520 V432 H190 Z" />'
       + '<path class="ff-apt-basement-ceiling" d="M218 390 H486" />'
-      + '<path class="ff-apt-basement-stair" d="M198 390 l18 24 M206 390 l18 24 M214 390 l18 24" />'
-      + '<rect class="ff-apt-basement-window" x="246" y="399" width="24" height="9" rx="1" />'
-      + '<rect class="ff-apt-basement-window" x="282" y="399" width="24" height="9" rx="1" />'
-      + '<rect class="ff-apt-basement-window" x="318" y="399" width="24" height="9" rx="1" />'
-      + '<rect class="ff-apt-basement-window" x="354" y="399" width="24" height="9" rx="1" />'
-      + '<rect class="ff-apt-basement-door" x="420" y="398" width="25" height="16" rx="1" />'
-      + '<circle class="ff-apt-basement-handle" cx="440" cy="406" r="1" />'
-      + '<text class="ff-apt-basement-label" x="392" y="411" text-anchor="middle">지하실</text>'
+      + '<path class="ff-apt-basement-stair" d="M166 390 l24 42 M176 390 l24 42 M186 390 l24 42" />'
+      + '<rect class="ff-apt-basement-window" x="232" y="402" width="34" height="14" rx="2" />'
+      + '<rect class="ff-apt-basement-window" x="278" y="402" width="34" height="14" rx="2" />'
+      + '<rect class="ff-apt-basement-window" x="324" y="402" width="34" height="14" rx="2" />'
+      + '<rect class="ff-apt-basement-window" x="370" y="402" width="34" height="14" rx="2" />'
+      + '<rect class="ff-apt-basement-door" x="448" y="399" width="34" height="27" rx="2" />'
+      + '<circle class="ff-apt-basement-handle" cx="473" cy="413" r="1.5" />'
+      + '<text class="ff-apt-basement-label" x="410" y="426" text-anchor="middle">지하실 · 미체결 가격대</text>'
       + '</g>';
     var helicopter = '<g class="ff-apt-illustration-helicopter" role="img" aria-label="옥상 헬기">'
       + '<path class="ff-apt-helicopter-body" d="M345 128 Q354 119 372 119 H397 Q410 119 420 127 L413 134 H354 Z" />'
@@ -3423,7 +3427,8 @@
       + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
       + '</svg>'
-      + '<div class="ff-apt-lineart-note">건물 크기·창문 밀도 = 거래량 · 파란 머리 = 평균 · 십자 = 현재가 · 왕관 = 거래량 최다</div>'
+      + '<div class="ff-apt-visual-key"><span><i class="current"></i>십자 현재가</span><span><i class="average"></i>파란 사람 평균단가</span><span><i class="poc"></i>왕관 POC</span><span><i class="window"></i>창문 밀도 거래량</span></div>'
+      + '<div class="ff-apt-lineart-note">각 건물은 가격 구간 하나를 묶어 표현합니다. 현재가와 평균단가가 같은 건물에 있으면 겹치지 않도록 옆 창에 나란히 표시됩니다.</div>'
       + '</div>';
   }
 
