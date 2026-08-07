@@ -747,6 +747,22 @@
     '</div>';
   }
 
+  function buildSectorEditorAuthGateHtml_(authState) {
+    var configured = !!(authState && authState.configured);
+    var message = configured
+      ? '카테고리와 종목을 편집하려면 관리자 Google 계정으로 로그인하세요.'
+      : '관리자 인증 설정을 확인하는 중입니다. 잠시 후 다시 시도하세요.';
+    var loginButton = configured
+      ? '<button type="button" class="primary" data-editor-action="google-login">Google로 로그인</button>'
+      : '';
+    return '<div class="mt-sector-auth-gate">' +
+      '<strong>관리자 로그인 필요</strong>' +
+      '<p>' + message + '</p>' +
+      loginButton +
+      '<button type="button" data-editor-action="cancel">취소</button>' +
+      '</div>';
+  }
+
   function collectSectorMapFromEditor_(root, allowIncomplete) {
     var result = {};
     root.querySelectorAll('.mt-sector-editor-category').forEach(function (categoryEl) {
@@ -781,8 +797,12 @@
     var model = cloneSectorMap_(sectorMap);
     var tokenKey = 'sector-card-admin-token';
     var authState = { configured: false, authenticated: false, isAdmin: false };
+    var authReady = false;
     var rerender = function () {
-      panel.innerHTML = buildSectorEditorHtml_(model, authState);
+      var canEdit = !authState.configured || (authState.authenticated && authState.isAdmin);
+      panel.innerHTML = authReady && canEdit
+        ? buildSectorEditorHtml_(model, authState)
+        : buildSectorEditorAuthGateHtml_(authState);
       var savedToken = '';
       try { savedToken = sessionStorage.getItem(tokenKey) || ''; } catch (err) { /* ignore */ }
       var tokenEl = panel.querySelector('[data-editor-role="admin-token"]');
@@ -793,9 +813,9 @@
       if (message) { message.textContent = text; message.className = 'mt-sector-editor-message' + (isError ? ' error' : ''); }
     };
 
-    rerender();
     fetchGoogleAuth_().then(function (nextAuthState) {
       authState = nextAuthState;
+      authReady = true;
       rerender();
     });
     var setCategoryCollapsed = function (categoryEl, collapsed) {
