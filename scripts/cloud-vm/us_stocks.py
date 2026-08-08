@@ -1,47 +1,39 @@
 # -*- coding: utf-8 -*-
-"""미국 개별주식 검색·시세 조회.
+"""미국주식 검색·시세 어댑터.
 
-Yahoo Finance의 공개 chart/search 응답을 서버에서 받아 브라우저에 전달한다.
-프론트에 외부 호출을 직접 노출하지 않고, 짧은 메모리 캐시로 같은 종목을 여러
-방문자가 동시에 조회할 때 외부 요청을 중복하지 않는다. 공개 시세는 거래소·상품에
-따라 지연될 수 있으므로 응답에 source와 updated_at을 함께 넣는다.
+시세 우선순위는 키움 REST API -> 한국투자증권 Open API다.
+두 증권사 모두 실패하면 공개 중계 시세를 섞지 않고 명확히 실패시킨다.
 """
 
-import json
 import logging
+import os
 import re
 import threading
 import time
-import urllib.parse
-import urllib.request
+from datetime import datetime, time as datetime_time
+from zoneinfo import ZoneInfo
+
+import kiwoom_client
+import kis_client
 
 
 logger = logging.getLogger('us_stocks')
 
-BASE_URL = 'https://query1.finance.yahoo.com'
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
 SYMBOL_RE = re.compile(r'^[A-Z][A-Z0-9.\-^=]{0,11}$')
-US_EXCHANGES = {'NMS', 'NYQ', 'ASE', 'BTS', 'NGM', 'NCM', 'PCX'}
-SEARCH_TTL_SEC = 60
+SEARCH_TTL_SEC = 600
 QUOTE_TTL_SEC = 10
 MAX_CACHE_ENTRIES = 100
+NY_TZ = ZoneInfo('America/New_York')
 
 _cache_lock = threading.Lock()
 _search_cache = {}
 _quote_cache = {}
+_symbol_cache = {'saved_at': 0, 'rows': []}
+_symbol_exchange = {}
 
 
 class UsStockUnavailable(RuntimeError):
-    """Yahoo 공개 API에서 미국주식 데이터를 받을 수 없을 때 사용한다."""
-
-
-def _get_json(url):
-    req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-            return json.loads(response.read().decode('utf-8'))
-    except Exception as exc:
-        raise UsStockUnavailable('미국주식 데이터 조회 실패') from exc
+    """증권사 API에서 미국주식 데이터를 받을 수 없는 경우."""
 
 
 def _cache_get(cache, key, ttl):
@@ -70,6 +62,90 @@ def normalize_symbol(symbol):
     return value
 
 
+def _number(value):
+    if value is None or value == '':
+        return None
+    try:
+        return float(str(value).replace(',', '').replace('%', '').strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _first(row, *names):
+    if not isinstance(row, dict):
+        return None
+    lowered = {str(key).lower(): value for key, value in row.items()}
+    for name in names:
+        value = lowered.get(name.lower())
+        if value not in (None, ''):
+            return value
+    return None
+
+
+def _records(payload):
+    """키움 응답의 output/data/list 포장 차이를 흡수한다."""
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if not isinstance(payload, dict):
+        return []
+    for key in ('output', 'output1', 'data', 'items', 'rows', 'result'):
+        if key in payload:
+            rows = _records(payload[key])
+            if rows:
+                return rows
+    if any(key in payload for key in ('stk_cd', 'stk_nm', 'cur_prc', 'last', 'symbol')):
+        return [payload]
+    return []
+
+
+def _has_kiwoom():
+    return bool(os.environ.get('KIWOOM_APPKEY') and os.environ.get('KIWOOM_SECRETKEY'))
+
+
+def _has_kis():
+    return bool(os.environ.get('KIS_APPKEY') and os.environ.get('KIS_APPSECRET'))
+
+
+def _exchange_code(exchange, broker):
+    text = str(exchange or '').upper()
+    if broker == 'kiwoom':
+        return {'NASDAQ': 'ND', 'NMS': 'ND', 'NYSE': 'NY', 'NYQ': 'NY', 'AMEX': 'NA', 'ASE': 'NA'}.get(text)
+    return {'NASDAQ': 'NAS', 'NMS': 'NAS', 'NYSE': 'NYS', 'NYQ': 'NYS', 'AMEX': 'AMS', 'ASE': 'AMS'}.get(text)
+
+
+def _records_from_kiwoom_symbol_list():
+    now = time.time()
+    if _symbol_cache['rows'] and now - _symbol_cache['saved_at'] < SEARCH_TTL_SEC:
+        return _symbol_cache['rows']
+    if not _has_kiwoom():
+        raise UsStockUnavailable('키움증권 인증정보가 없습니다.')
+    token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
+    response = kiwoom_client.call_tr(token, 'usa10099', '/api/us/mrkcond', {'stex_tp': '%'})
+    rows = _records(response)
+    if not rows:
+        raise UsStockUnavailable('키움 미국주식 종목 목록이 비어 있습니다.')
+    normalized = []
+    for row in rows:
+        symbol = str(_first(row, 'stk_cd', 'symbol', 'code') or '').upper()
+        if not SYMBOL_RE.fullmatch(symbol):
+            continue
+        name = _first(row, 'stk_nm', 'stk_enm', 'name', 'short_name') or symbol
+        exchange = _first(row, 'stex_tp', 'exchange') or ''
+        normalized.append({
+            'market': 'us',
+            'symbol': symbol,
+            'code': 'US:' + symbol,
+            'name': name,
+            'exchange': exchange,
+            'quote_type': 'EQUITY',
+        })
+        broker_exchange = _exchange_code(exchange, 'kiwoom') or exchange
+        if broker_exchange in ('ND', 'NY', 'NA'):
+            _symbol_exchange[symbol] = broker_exchange
+    _symbol_cache.update(saved_at=now, rows=normalized)
+    return normalized
+
+
 def search(query, limit=8):
     text = str(query or '').strip()
     if not text:
@@ -79,52 +155,117 @@ def search(query, limit=8):
     cached = _cache_get(_search_cache, key, SEARCH_TTL_SEC)
     if cached is not None:
         return cached
-
-    url = BASE_URL + '/v1/finance/search?' + urllib.parse.urlencode({
-        'q': text,
-        'quotesCount': limit * 2,
-        'newsCount': 0,
-    })
-    payload = _get_json(url)
-    rows = []
-    for item in (payload.get('quotes') or []):
-        symbol = str(item.get('symbol') or '').upper()
-        if item.get('quoteType') not in ('EQUITY', 'ETF'):
-            continue
-        if item.get('exchange') not in US_EXCHANGES or not SYMBOL_RE.fullmatch(symbol):
-            continue
-        rows.append({
-            'market': 'us',
-            'symbol': symbol,
-            'code': 'US:' + symbol,
-            'name': item.get('longname') or item.get('shortname') or symbol,
-            'exchange': item.get('exchDisp') or item.get('exchange') or '',
-            'quote_type': item.get('quoteType'),
-        })
-        if len(rows) >= limit:
-            break
-    _cache_put(_search_cache, key, rows)
-    return rows
+    try:
+        rows = _records_from_kiwoom_symbol_list()
+        needle = text.casefold()
+        ranked = sorted(
+            rows,
+            key=lambda row: (
+                0 if row['symbol'].casefold() == needle else 1,
+                0 if row['symbol'].casefold().startswith(needle) else 1,
+                0 if needle in row['name'].casefold() else 1,
+                row['symbol'],
+            ),
+        )
+        result = [row for row in ranked if needle in row['symbol'].casefold() or needle in row['name'].casefold()][:limit]
+    except Exception as exc:
+        logger.warning('Kiwoom 미국주식 검색 실패: %s', exc)
+        # 인증 전에도 티커 직접 입력은 페이지에서 조회할 수 있도록 최소 행을 만든다.
+        symbol = text.upper()
+        result = ([{
+            'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
+            'name': symbol, 'exchange': '', 'quote_type': 'EQUITY',
+        }] if SYMBOL_RE.fullmatch(symbol) else [])
+    _cache_put(_search_cache, key, result)
+    return result
 
 
-def _market_state(meta):
-    now = int(time.time())
-    periods = meta.get('currentTradingPeriod') or {}
-    for name in ('pre', 'regular', 'post'):
-        period = periods.get(name) or {}
-        if period.get('start') and period.get('end') and period['start'] <= now < period['end']:
-            return name
+def _market_state():
+    now = datetime.now(NY_TZ)
+    if now.weekday() >= 5:
+        return 'closed'
+    current = now.time()
+    if datetime_time(4, 0) <= current < datetime_time(9, 30):
+        return 'pre'
+    if datetime_time(9, 30) <= current < datetime_time(16, 0):
+        return 'regular'
+    if datetime_time(16, 0) <= current < datetime_time(20, 0):
+        return 'post'
     return 'closed'
 
 
-def _latest_close(result):
-    timestamps = result.get('timestamp') or []
-    quote_rows = (result.get('indicators') or {}).get('quote') or []
-    closes = quote_rows[0].get('close') if quote_rows else []
-    for index in range(min(len(timestamps), len(closes or [])) - 1, -1, -1):
-        if closes[index] is not None:
-            return float(closes[index]), int(timestamps[index])
-    return None, None
+def _normalize_quote(row, symbol, provider, exchange):
+    price = _number(_first(row, 'cur_prc', 'last', 'last_pric', 'last_price', 'price'))
+    if price is None:
+        raise UsStockUnavailable(provider + ' 미국주식 현재가가 비어 있습니다.')
+    previous_close = _number(_first(row, 'base_close_pric', 'base', 'base_pric', 'previous_close', 'prev_close'))
+    change = _number(_first(row, 'diff', 'change', 'prdy_vrss'))
+    change_rate = _number(_first(row, 'rate', 'change_rate', 'prdy_ctrt'))
+    if change is None and previous_close is not None:
+        change = price - previous_close
+    if change_rate is None and previous_close:
+        change_rate = change / previous_close * 100 if change is not None else None
+    return {
+        'market': 'us',
+        'symbol': symbol,
+        'code': 'US:' + symbol,
+        'name': _first(row, 'stk_nm', 'stk_enm', 'name', 'prdt_name', 'ovrs_item_name') or symbol,
+        'exchange': exchange or _first(row, 'stex_tp', 'excd', 'exchange') or '',
+        'currency': 'USD',
+        'price': price,
+        'previous_close': previous_close,
+        'change': change,
+        'change_rate': change_rate,
+        'day_high': _number(_first(row, 'high_pric', 'high', 'day_high')),
+        'day_low': _number(_first(row, 'low_pric', 'low', 'day_low')),
+        'volume': _number(_first(row, 'acc_trde_qty', 'tvol', 'volume', 'acml_vol')),
+        'week52_high': _number(_first(row, '52wk_hgst_pric', 'fifty_two_week_high')),
+        'week52_low': _number(_first(row, '52wk_lwst_pric', 'fifty_two_week_low')),
+        'market_state': _market_state(),
+        'updated_at': int(time.time()),
+        'source': provider,
+        'provider': 'kiwoom' if provider.startswith('키움') else 'kis',
+    }
+
+
+def _kiwoom_quote(symbol):
+    if not _has_kiwoom():
+        raise UsStockUnavailable('키움증권 인증정보가 없습니다.')
+    token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
+    candidates = [_symbol_exchange.get(symbol)] if _symbol_exchange.get(symbol) else []
+    candidates.extend(code for code in ('ND', 'NY', 'NA') if code not in candidates)
+    last_error = None
+    for exchange in candidates:
+        try:
+            response = kiwoom_client.call_tr(token, 'usa20100', '/api/us/mrkcond', {
+                'stex_tp': exchange,
+                'stk_cd': symbol,
+            })
+            rows = _records(response)
+            if rows:
+                return _normalize_quote(rows[0], symbol, '키움증권 REST API', exchange)
+        except Exception as exc:
+            last_error = exc
+    raise UsStockUnavailable('키움 미국주식 현재가 조회 실패') from last_error
+
+
+def _kis_quote(symbol):
+    if not _has_kis():
+        raise UsStockUnavailable('한국투자증권 인증정보가 없습니다.')
+    token = kis_client.get_token(os.environ['KIS_APPKEY'], os.environ['KIS_APPSECRET'])
+    candidates = [_symbol_exchange.get(symbol)] if _symbol_exchange.get(symbol) else []
+    candidates.extend(code for code in ('NAS', 'NYS', 'AMS') if code not in candidates)
+    last_error = None
+    for exchange in candidates:
+        try:
+            row = kis_client.fetch_overseas_price(token, os.environ['KIS_APPKEY'], os.environ['KIS_APPSECRET'], exchange, symbol)
+            if isinstance(row, list):
+                row = row[0] if row else {}
+            if row:
+                return _normalize_quote(row, symbol, '한국투자증권 Open API', exchange)
+        except Exception as exc:
+            last_error = exc
+    raise UsStockUnavailable('한국투자증권 미국주식 현재가 조회 실패') from last_error
 
 
 def quote(symbol):
@@ -132,49 +273,13 @@ def quote(symbol):
     cached = _cache_get(_quote_cache, symbol, QUOTE_TTL_SEC)
     if cached is not None:
         return cached
-
-    url = BASE_URL + '/v8/finance/chart/' + urllib.parse.quote(symbol, safe='') + '?' + urllib.parse.urlencode({
-        'range': '1d',
-        'interval': '1m',
-        'includePrePost': 'true',
-    })
-    payload = _get_json(url)
-    results = (payload.get('chart') or {}).get('result') or []
-    if not results:
-        raise UsStockUnavailable('미국주식 티커를 찾을 수 없습니다.')
-    result = results[0]
-    meta = result.get('meta') or {}
-    price, latest_timestamp = _latest_close(result)
-    if price is None:
-        price = meta.get('regularMarketPrice')
-    if price is None:
-        raise UsStockUnavailable('현재가 데이터가 없습니다.')
-    previous_close = meta.get('chartPreviousClose') or meta.get('previousClose')
-    try:
-        previous_close = float(previous_close) if previous_close is not None else None
-    except (TypeError, ValueError):
-        previous_close = None
-    change = price - previous_close if previous_close is not None else None
-    change_rate = (change / previous_close * 100) if previous_close else None
-    data = {
-        'market': 'us',
-        'symbol': symbol,
-        'code': 'US:' + symbol,
-        'name': meta.get('longName') or meta.get('shortName') or symbol,
-        'exchange': meta.get('fullExchangeName') or meta.get('exchangeName') or '',
-        'currency': meta.get('currency') or 'USD',
-        'price': price,
-        'previous_close': previous_close,
-        'change': change,
-        'change_rate': change_rate,
-        'day_high': meta.get('regularMarketDayHigh'),
-        'day_low': meta.get('regularMarketDayLow'),
-        'volume': meta.get('regularMarketVolume'),
-        'week52_high': meta.get('fiftyTwoWeekHigh'),
-        'week52_low': meta.get('fiftyTwoWeekLow'),
-        'market_state': _market_state(meta),
-        'updated_at': (latest_timestamp or meta.get('regularMarketTime')),
-        'source': 'Yahoo Finance 공개 시세(지연 가능)',
-    }
-    _cache_put(_quote_cache, symbol, data)
-    return data
+    errors = []
+    for fetcher in (_kiwoom_quote, _kis_quote):
+        try:
+            data = fetcher(symbol)
+            _cache_put(_quote_cache, symbol, data)
+            return data
+        except Exception as exc:
+            errors.append(str(exc))
+            logger.warning('%s quote failed for %s: %s', getattr(fetcher, '__name__', 'broker'), symbol, exc)
+    raise UsStockUnavailable('키움·한국투자증권 미국주식 시세를 모두 조회하지 못했습니다.')

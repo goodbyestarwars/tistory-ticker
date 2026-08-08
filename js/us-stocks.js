@@ -50,7 +50,7 @@
       + '<button id="usStocksSearchBtn" type="button">검색</button></div>'
       + '<div id="usStocksResults" class="us-stocks-results"><div class="us-stocks-empty">미국 종목명이나 티커를 검색해보세요.</div></div>'
       + '<div id="usStocksDetail" class="us-stocks-detail" hidden></div>'
-      + '<p class="us-stocks-disclaimer">공개 시세 기반 · 거래소와 시간대에 따라 지연될 수 있습니다.</p>'
+      + '<p class="us-stocks-disclaimer">키움증권 1차 · 한국투자증권 2차 · 증권사 API 상태와 거래소 시간대에 따라 지연될 수 있습니다.</p>'
       + '</section>';
   }
 

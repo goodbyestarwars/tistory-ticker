@@ -12,42 +12,54 @@ class UsStockTests(unittest.TestCase):
     def setUp(self):
         us_stocks._search_cache.clear()
         us_stocks._quote_cache.clear()
+        us_stocks._symbol_cache.update(saved_at=0, rows=[])
+        us_stocks._symbol_exchange.clear()
 
-    def test_search_keeps_us_equities_and_etfs(self):
-        payload = {
-            'quotes': [
-                {'symbol': 'AAPL', 'quoteType': 'EQUITY', 'exchange': 'NMS', 'longname': 'Apple Inc.', 'exchDisp': 'NASDAQ'},
-                {'symbol': '7203.T', 'quoteType': 'EQUITY', 'exchange': 'TSE', 'longname': 'Toyota'},
-                {'symbol': 'SPY', 'quoteType': 'ETF', 'exchange': 'PCX', 'shortname': 'SPDR S&P 500 ETF'},
-            ]
-        }
-        with mock.patch.object(us_stocks, '_get_json', return_value=payload):
+    def test_search_uses_kiwoom_symbol_list(self):
+        rows = [
+            {'symbol': 'AAPL', 'code': 'US:AAPL', 'name': 'Apple Inc.', 'exchange': 'ND'},
+            {'symbol': 'MSFT', 'code': 'US:MSFT', 'name': 'Microsoft Corporation', 'exchange': 'ND'},
+            {'symbol': '7203.T', 'code': 'US:7203.T', 'name': 'Toyota', 'exchange': 'TSE'},
+        ]
+        with mock.patch.object(us_stocks, '_records_from_kiwoom_symbol_list', return_value=rows):
             rows = us_stocks.search('apple')
-        self.assertEqual([row['symbol'] for row in rows], ['AAPL', 'SPY'])
+        self.assertEqual([row['symbol'] for row in rows], ['AAPL'])
         self.assertEqual(rows[0]['code'], 'US:AAPL')
 
-    def test_quote_normalizes_chart_payload(self):
-        payload = {
-            'chart': {'result': [{
-                'meta': {
-                    'currency': 'USD', 'symbol': 'AAPL', 'exchangeName': 'NMS',
-                    'fullExchangeName': 'NasdaqGS', 'longName': 'Apple Inc.',
-                    'regularMarketPrice': 201.5, 'chartPreviousClose': 200.0,
-                    'regularMarketDayHigh': 203.0, 'regularMarketDayLow': 198.0,
-                    'regularMarketVolume': 123456, 'fiftyTwoWeekHigh': 220.0,
-                    'fiftyTwoWeekLow': 150.0, 'currentTradingPeriod': {},
-                },
-                'timestamp': [100, 200],
-                'indicators': {'quote': [{'close': [200.5, 201.5]}]},
-            }]}
-        }
-        with mock.patch.object(us_stocks, '_get_json', return_value=payload):
+    def test_quote_prefers_kiwoom(self):
+        with mock.patch.object(us_stocks, '_kiwoom_quote', return_value={
+            'symbol': 'AAPL', 'price': 201.5, 'change': 1.5,
+            'change_rate': 0.75, 'provider': 'kiwoom',
+        }) as kiwoom, mock.patch.object(us_stocks, '_kis_quote') as kis:
             data = us_stocks.quote('US:AAPL')
         self.assertEqual(data['symbol'], 'AAPL')
         self.assertEqual(data['price'], 201.5)
         self.assertEqual(data['change'], 1.5)
         self.assertEqual(data['change_rate'], 0.75)
-        self.assertEqual(data['code'], 'US:AAPL')
+        kiwoom.assert_called_once_with('AAPL')
+        kis.assert_not_called()
+
+    def test_quote_falls_back_to_kis(self):
+        with (
+            mock.patch.object(us_stocks, '_kiwoom_quote', side_effect=RuntimeError('kiwoom down')),
+            mock.patch.object(us_stocks, '_kis_quote', return_value={
+                'symbol': 'MSFT', 'price': 500.0, 'provider': 'kis',
+            }) as kis,
+        ):
+            data = us_stocks.quote('MSFT')
+        self.assertEqual(data['provider'], 'kis')
+        kis.assert_called_once_with('MSFT')
+
+    def test_broker_quote_normalizes_fields(self):
+        data = us_stocks._normalize_quote({
+            'stk_nm': 'Apple Inc.', 'cur_prc': '+201.5000',
+            'base_close_pric': '200.0000', 'high_pric': '203.0000',
+            'low_pric': '198.0000', 'acc_trde_qty': '123456',
+        }, 'AAPL', '키움증권 REST API', 'ND')
+        self.assertEqual(data['price'], 201.5)
+        self.assertEqual(data['change'], 1.5)
+        self.assertEqual(data['change_rate'], 0.75)
+        self.assertEqual(data['source'], '키움증권 REST API')
 
     def test_invalid_symbol_is_rejected(self):
         with self.assertRaises(ValueError):

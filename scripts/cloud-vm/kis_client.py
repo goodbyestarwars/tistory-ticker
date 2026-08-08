@@ -297,6 +297,36 @@ def fetch_pbar_tratio(token, appkey, appsecret, code, hour1=''):
     return data.get('output1') or {}, data.get('output2') or []
 
 
+def fetch_overseas_price(token, appkey, appsecret, excd, symb):
+    """해외주식 현재체결가(v1_해외주식-009)를 조회한다.
+
+    미국주식은 KIS 무료시세 정책상 지연체결가일 수 있으나, 공개 중계 소스가
+    아니라 KIS 계정에 연결된 공식 Open API 응답을 사용한다.
+    """
+    path = ('/uapi/overseas-price/v1/quotations/price'
+            '?AUTH=&EXCD=%s&SYMB=%s' % (excd, symb))
+    req = urllib.request.Request(
+        BASE_URL + path,
+        headers={
+            'Content-Type': 'application/json; charset=utf-8',
+            'authorization': 'Bearer ' + token,
+            'appkey': appkey,
+            'appsecret': appsecret,
+            'tr_id': 'HHDFS00000300',
+            'custtype': 'P',
+        },
+        method='GET',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('HHDFS00000300 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
+    if data.get('rt_cd') not in (None, '0', 0):
+        raise RuntimeError('HHDFS00000300 실패: ' + json.dumps(data, ensure_ascii=False))
+    return data.get('output') or data.get('output1') or {}
+
+
 def _avg_delta(rows):
     vals = []
     for r in rows:
