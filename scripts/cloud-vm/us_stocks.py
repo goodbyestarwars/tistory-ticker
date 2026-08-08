@@ -10,7 +10,7 @@ import os
 import re
 import threading
 import time
-from datetime import datetime, time as datetime_time
+from datetime import datetime, timedelta, time as datetime_time
 from zoneinfo import ZoneInfo
 
 import kiwoom_client
@@ -88,7 +88,7 @@ def _records(payload):
         return [item for item in payload if isinstance(item, dict)]
     if not isinstance(payload, dict):
         return []
-    for key in ('output', 'output1', 'data', 'items', 'rows', 'result'):
+    for key in ('output', 'output1', 'result_list', 'data', 'items', 'rows', 'result'):
         if key in payload:
             rows = _records(payload[key])
             if rows:
@@ -199,8 +199,10 @@ def _normalize_quote(row, symbol, provider, exchange):
     if price is None:
         raise UsStockUnavailable(provider + ' 미국주식 현재가가 비어 있습니다.')
     previous_close = _number(_first(row, 'base_close_pric', 'base', 'base_pric', 'previous_close', 'prev_close'))
-    change = _number(_first(row, 'diff', 'change', 'prdy_vrss'))
-    change_rate = _number(_first(row, 'rate', 'change_rate', 'prdy_ctrt'))
+    change = _number(_first(row, 'diff', 'change', 'pred_pre', 'prdy_vrss'))
+    change_rate = _number(_first(row, 'rate', 'flu_rt', 'change_rate', 'prdy_ctrt'))
+    if previous_close is None and change is not None:
+        previous_close = price - change
     if change is None and previous_close is not None:
         change = price - previous_close
     if change_rate is None and previous_close:
@@ -247,6 +249,109 @@ def _kiwoom_quote(symbol):
         except Exception as exc:
             last_error = exc
     raise UsStockUnavailable('키움 미국주식 현재가 조회 실패') from last_error
+
+
+def _kiwoom_exchange_candidates(symbol):
+    known = _symbol_exchange.get(symbol)
+    candidates = [known] if known else []
+    candidates.extend(code for code in ('ND', 'NY', 'NA') if code not in candidates)
+    return candidates
+
+
+def _kiwoom_orderbook(symbol):
+    if not _has_kiwoom():
+        raise UsStockUnavailable('키움증권 인증정보가 없습니다.')
+    token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
+    last_error = None
+    for exchange in _kiwoom_exchange_candidates(symbol):
+        try:
+            response = kiwoom_client.call_tr(token, 'usa20101', '/api/us/mrkcond', {
+                'stex_tp': exchange,
+                'stk_cd': symbol,
+            })
+            rows = _records(response)
+            if not rows:
+                continue
+            row = rows[0]
+            asks = []
+            bids = []
+            for level in range(1, 11):
+                ask_price = _number(_first(row, 'sel_%dbid' % level))
+                ask_size = _number(_first(row, 'sel_%dbid_req' % level))
+                bid_price = _number(_first(row, 'buy_%dbid' % level))
+                bid_size = _number(_first(row, 'buy_%dbid_req' % level))
+                if ask_price is not None:
+                    asks.append({'level': level, 'price': ask_price, 'size': ask_size})
+                if bid_price is not None:
+                    bids.append({'level': level, 'price': bid_price, 'size': bid_size})
+            return {
+                'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
+                'exchange': exchange, 'asks': asks, 'bids': bids,
+                'updated_at': int(time.time()), 'source': '키움증권 REST API',
+            }
+        except Exception as exc:
+            last_error = exc
+    raise UsStockUnavailable('키움 미국주식 호가 조회 실패') from last_error
+
+
+def _chart_time(row, daily):
+    date_text = str(_first(row, 'bus_dt', 'dt', 'date') or '')
+    time_text = str(_first(row, 'cntr_tm', 'time') or '')
+    if daily:
+        return date_text[:4] + '-' + date_text[4:6] + '-' + date_text[6:8] if len(date_text) == 8 else date_text
+    if len(time_text) == 14:
+        date_text, time_text = time_text[:8], time_text[8:]
+    if len(date_text) != 8 or len(time_text) < 4:
+        return None
+    try:
+        local = datetime.strptime(date_text + time_text[:6], '%Y%m%d%H%M%S').replace(tzinfo=NY_TZ)
+        return int(local.timestamp())
+    except ValueError:
+        return None
+
+
+def chart(symbol, timeframe='minute'):
+    """키움 미국주식 분봉 또는 일봉을 공통 포맷으로 반환한다."""
+    symbol = normalize_symbol(symbol)
+    if timeframe not in ('minute', 'daily'):
+        raise ValueError('timeframe은 minute 또는 daily여야 합니다.')
+    if not _has_kiwoom():
+        raise UsStockUnavailable('키움증권 인증정보가 없습니다.')
+    token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
+    api_id = 'usa06011' if timeframe == 'minute' else 'usa06012'
+    start_date = (datetime.now(NY_TZ).date() - timedelta(days=120)).strftime('%Y%m%d')
+    last_error = None
+    for exchange in _kiwoom_exchange_candidates(symbol):
+        body = {
+            'stex_tp': exchange, 'stk_cd': symbol, 'strt_dt': start_date,
+            'upd_stkpc_tp': '1', 'exrt_appl_tp': '0',
+        }
+        if timeframe == 'minute':
+            body['tic_scope'] = '1'
+        try:
+            response = kiwoom_client.call_tr(token, api_id, '/api/us/mrkcond', body)
+            rows = _records(response)
+            points = []
+            for row in rows:
+                stamp = _chart_time(row, timeframe == 'daily')
+                price = _number(_first(row, 'cur_prc', 'price'))
+                if stamp is None or price is None:
+                    continue
+                points.append({
+                    'time': stamp,
+                    'price': price,
+                    'volume': _number(_first(row, 'trde_qty', 'acc_trde_qty')) or 0,
+                })
+            if points:
+                return {
+                    'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
+                    'timeframe': timeframe, 'exchange': exchange,
+                    'points': points, 'updated_at': int(time.time()),
+                    'source': '키움증권 REST API',
+                }
+        except Exception as exc:
+            last_error = exc
+    raise UsStockUnavailable('키움 미국주식 차트 조회 실패') from last_error
 
 
 def _kis_quote(symbol):

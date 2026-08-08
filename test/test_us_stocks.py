@@ -61,6 +61,31 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual(data['change_rate'], 0.75)
         self.assertEqual(data['source'], '키움증권 REST API')
 
+    def test_orderbook_maps_kiwoom_levels(self):
+        response = {
+            'stk_cd': 'AAPL',
+            'sel_1bid': '202.10', 'sel_1bid_req': '100',
+            'buy_1bid': '202.00', 'buy_1bid_req': '120',
+        }
+        with mock.patch.dict(os.environ, {'KIWOOM_APPKEY': 'key', 'KIWOOM_SECRETKEY': 'secret'}), \
+             mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='token'), \
+             mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response):
+            data = us_stocks._kiwoom_orderbook('AAPL')
+        self.assertEqual(data['asks'][0]['price'], 202.1)
+        self.assertEqual(data['bids'][0]['size'], 120.0)
+
+    def test_chart_maps_kiwoom_result_list(self):
+        response = {'result_list': [
+            {'bus_dt': '20260808', 'cntr_tm': '20260808143000', 'cur_prc': '201.5', 'trde_qty': '10'},
+            {'bus_dt': '20260808', 'cntr_tm': '20260808143100', 'cur_prc': '202.7', 'trde_qty': '12'},
+        ]}
+        with mock.patch.dict(os.environ, {'KIWOOM_APPKEY': 'key', 'KIWOOM_SECRETKEY': 'secret'}), \
+             mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='token'), \
+             mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response):
+            data = us_stocks.chart('AAPL', 'minute')
+        self.assertEqual(len(data['points']), 2)
+        self.assertEqual(data['points'][0]['price'], 201.5)
+
     def test_invalid_symbol_is_rejected(self):
         with self.assertRaises(ValueError):
             us_stocks.normalize_symbol('AAPL/../../etc')

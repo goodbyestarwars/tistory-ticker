@@ -10,6 +10,20 @@
   var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css';
   var REFRESH_MS = 15000;
   var state = { container: null, symbol: null, refreshTimer: null, initialized: false };
+  var LOCAL_US_SYMBOLS = [
+    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
+    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia' },
+    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
+    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
+    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
+    { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
+    { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd' },
+    { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix' },
+    { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', aliases: 'spy s&p500' },
+    { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq 나스닥' }
+  ];
 
   function init() {
     var container = document.querySelector('#stock-search');
@@ -81,7 +95,7 @@
 
   function searchSuggestions(query) {
     if (!query) { hideSuggestions(); return; }
-    fetchJson(API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=6')
+    searchRows(query, 6)
       .then(function (rows) {
         var box = document.querySelector('#usStocksSuggest');
         if (!box || !rows.length) { hideSuggestions(); return; }
@@ -107,7 +121,7 @@
     hideSuggestions();
     var results = document.querySelector('#usStocksResults');
     results.innerHTML = '<div class="us-stocks-loading">미국주식 시세를 불러오는 중...</div>';
-    fetchJson(API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=8')
+    searchRows(query, 8)
       .then(function (rows) {
         if (!rows.length) throw new Error('NO_RESULTS');
         return Promise.all(rows.map(function (row) {
@@ -139,6 +153,28 @@
       + '</button>';
   }
 
+  function searchRows(query, limit) {
+    return fetchJson(API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=' + limit)
+      .then(function (rows) {
+        if (rows && rows.length) return rows;
+        return localSearchRows(query, limit);
+      })
+      .catch(function () { return localSearchRows(query, limit); });
+  }
+
+  function localSearchRows(query, limit) {
+    var needle = String(query || '').toLowerCase();
+    var rows = LOCAL_US_SYMBOLS.filter(function (row) {
+      return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(needle) !== -1;
+    }).slice(0, limit).map(function (row) {
+      return { symbol: row.symbol, name: row.name, exchange: 'US', market: 'us' };
+    });
+    if (!rows.length && /^[a-z][a-z0-9.\-^=]{0,11}$/i.test(query)) {
+      rows.push({ symbol: String(query).toUpperCase(), name: String(query).toUpperCase(), exchange: 'US', market: 'us' });
+    }
+    return rows;
+  }
+
   function select(symbol) {
     stopRefresh();
     state.symbol = String(symbol || '').toUpperCase().replace(/^US:/, '');
@@ -164,7 +200,12 @@
   function refreshQuote() {
     if (!state.symbol) return;
     fetchJson(API_BASE + '/us-quote/' + encodeURIComponent(state.symbol))
-      .then(renderQuote)
+      .then(function (quote) {
+        renderQuote(quote);
+        loadOrderbook();
+        loadChart();
+        loadNews(quote.name || state.symbol);
+      })
       .catch(function () {
         var detail = document.querySelector('#usStocksDetail');
         if (detail && !detail.querySelector('.us-stocks-live-card')) detail.innerHTML = '<div class="us-stocks-empty us-stocks-error">시세를 불러오지 못했어요.</div>';
@@ -188,7 +229,93 @@
       + metric('52주 범위', formatPrice(quote.week52_low) + ' ~ ' + formatPrice(quote.week52_high))
       + '</div>'
       + '<div class="us-stocks-live-footer"><span>15초 자동 갱신</span><span>' + escapeHtml(formatUpdated(quote.updated_at)) + '</span><span>' + escapeHtml(quote.source || '') + '</span></div>'
-      + '</div>';
+      + '</div>'
+      + '<div class="us-stocks-market-grid">'
+      + '<section class="us-stocks-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>키움 10호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">호가를 불러오는 중...</div></div></section>'
+      + '<section class="us-stocks-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>오늘 1분봉</span></div><div id="usStocksChart" class="us-stocks-chart"><div class="us-stocks-loading">차트를 불러오는 중...</div></div></section>'
+      + '</div>'
+      + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 헤드라인</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">뉴스를 불러오는 중...</div></div></section>';
+  }
+
+  function loadOrderbook() {
+    if (!state.symbol) return;
+    fetchJson(API_BASE + '/us-orderbook/' + encodeURIComponent(state.symbol))
+      .then(renderOrderbook)
+      .catch(function () {
+        var mount = document.querySelector('#usStocksOrderbook');
+        if (mount) mount.innerHTML = '<div class="us-stocks-empty">호가 데이터를 확인할 수 없습니다.</div>';
+      });
+  }
+
+  function renderOrderbook(book) {
+    var mount = document.querySelector('#usStocksOrderbook');
+    if (!mount) return;
+    var asks = (book.asks || []).slice().reverse();
+    var bids = book.bids || [];
+    var rows = Math.max(asks.length, bids.length);
+    var html = '<div class="us-stocks-book-head"><span>매도 잔량</span><span>가격</span><span>매수 잔량</span></div>';
+    for (var i = 0; i < rows; i++) {
+      var ask = asks[i] || {};
+      var bid = bids[i] || {};
+      html += '<div class="us-stocks-book-row"><span class="us-down">' + formatVolume(ask.size) + '</span><b>' + formatPrice(ask.price || bid.price) + '</b><span class="us-up">' + formatVolume(bid.size) + '</span></div>';
+    }
+    mount.innerHTML = html || '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
+  }
+
+  function loadChart() {
+    if (!state.symbol) return;
+    fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(state.symbol) + '?timeframe=minute')
+      .then(renderChart)
+      .catch(function () {
+        var mount = document.querySelector('#usStocksChart');
+        if (mount) mount.innerHTML = '<div class="us-stocks-empty">차트 데이터를 확인할 수 없습니다.</div>';
+      });
+  }
+
+  function renderChart(chart) {
+    var mount = document.querySelector('#usStocksChart');
+    var points = chart && chart.points ? chart.points : [];
+    if (!mount || points.length < 2) {
+      if (mount) mount.innerHTML = '<div class="us-stocks-empty">차트 데이터가 없습니다.</div>';
+      return;
+    }
+    var width = 720, height = 250, pad = 18;
+    var prices = points.map(function (point) { return Number(point.price); });
+    var min = Math.min.apply(Math, prices), max = Math.max.apply(Math, prices);
+    var range = max - min || 1;
+    var coords = points.map(function (point, index) {
+      var x = pad + (width - pad * 2) * index / (points.length - 1);
+      var y = height - pad - (height - pad * 2) * (Number(point.price) - min) / range;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    var tone = prices[prices.length - 1] >= prices[0] ? 'up' : 'down';
+    mount.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="미국주식 가격 차트">'
+      + '<line class="us-chart-grid" x1="' + pad + '" y1="' + (height / 2) + '" x2="' + (width - pad) + '" y2="' + (height / 2) + '"></line>'
+      + '<polyline class="us-chart-line ' + tone + '" points="' + coords + '"></polyline>'
+      + '</svg><div class="us-chart-range"><span>' + formatPrice(min) + '</span><span>' + formatPrice(max) + '</span></div>';
+  }
+
+  function loadNews(name) {
+    if (!state.symbol) return;
+    fetchJson(API_BASE + '/us-news/' + encodeURIComponent(state.symbol) + '?name=' + encodeURIComponent(name || state.symbol))
+      .then(function (payload) { renderNews(payload && payload.items ? payload.items : []); })
+      .catch(function () {
+        var mount = document.querySelector('#usStocksNews');
+        if (mount) mount.innerHTML = '<div class="us-stocks-empty">뉴스를 확인할 수 없습니다.</div>';
+      });
+  }
+
+  function renderNews(items) {
+    var mount = document.querySelector('#usStocksNews');
+    if (!mount) return;
+    if (!items.length) {
+      mount.innerHTML = '<div class="us-stocks-empty">관련 최신 뉴스가 없습니다.</div>';
+      return;
+    }
+    mount.innerHTML = items.map(function (item) {
+      return '<a class="us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener">'
+        + '<b>' + escapeHtml(item.title || '') + '</b><small>' + escapeHtml(item.pubDate || '') + '</small></a>';
+    }).join('');
   }
 
   function metric(label, value) {

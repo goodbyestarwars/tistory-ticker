@@ -646,6 +646,50 @@ def us_quote(request: Request, symbol: str = Path(..., min_length=1, max_length=
         raise HTTPException(status_code=502, detail=str(exc))
 
 
+@app.get('/us-orderbook/{symbol}')
+def us_orderbook(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
+    """미국주식 매도·매수 10호가 조회."""
+    _check_rate_limit('us_orderbook', request, max_per_window=30)
+    try:
+        return envelope(us_stocks._kiwoom_orderbook(symbol))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except us_stocks.UsStockUnavailable as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get('/us-chart/{symbol}')
+def us_chart(request: Request, symbol: str = Path(..., min_length=1, max_length=12),
+             timeframe: str = Query('minute', pattern='^(minute|daily)$')):
+    """미국주식 분봉·일봉 차트 조회."""
+    _check_rate_limit('us_chart', request, max_per_window=30)
+    try:
+        return envelope(us_stocks.chart(symbol, timeframe=timeframe))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except us_stocks.UsStockUnavailable as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get('/us-news/{symbol}')
+def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=12),
+            name: str = Query('', max_length=100)):
+    """미국주식 종목 관련 최신 뉴스."""
+    _check_rate_limit('us_news', request, max_per_window=20)
+    try:
+        ticker = us_stocks.normalize_symbol(symbol)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    query = ((name or '').strip() + ' ' + ticker).strip()
+    items = naver_news.search_news(
+        query,
+        os.environ.get('NAVER_APIHUB_CLIENT_ID'),
+        os.environ.get('NAVER_APIHUB_CLIENT_SECRET'),
+        display=10,
+    )
+    return envelope({'symbol': ticker, 'query': query, 'items': items, 'source': '네이버 뉴스 검색 API'})
+
+
 @app.get('/ohlc/{code}')
 def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Header(default=None)):
     """일봉 OHLC(ka10081) 온디맨드 조회 - 종목분석 가격차트(gas의 getFlowChart)용.

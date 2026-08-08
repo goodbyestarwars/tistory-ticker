@@ -28,6 +28,20 @@
   var TARGET_PAGE = '/page/stock-search';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var US_API_BASE = 'https://goodbyestar.cloud';
+  var LOCAL_US_SYMBOLS = [
+    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
+    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia' },
+    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
+    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
+    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
+    { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
+    { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd' },
+    { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix' },
+    { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', aliases: 'spy s&p500' },
+    { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq 나스닥' }
+  ];
   var RATE_FETCH_TIMEOUT_MS = 8000;
 
   var STORAGE_LAST = 'stock:lastSelected';
@@ -361,6 +375,18 @@
         return (body && body.data ? body.data : []).map(function (row) {
           return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
         });
+      })
+      .catch(function () {
+        var needle = String(query || '').toLowerCase();
+        var rows = LOCAL_US_SYMBOLS.filter(function (row) {
+          return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(needle) !== -1;
+        }).slice(0, MAX_SUGGEST).map(function (row) {
+          return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
+        });
+        if (!rows.length && /^[a-z][a-z0-9.\-^=]{0,11}$/i.test(query)) {
+          rows.push({ code: 'US:' + String(query).toUpperCase(), name: String(query).toUpperCase(), market: 'us' });
+        }
+        return rows;
       });
   }
 
