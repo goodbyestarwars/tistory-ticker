@@ -19,6 +19,14 @@ logger = logging.getLogger('public_data')
 KRX_LIST_URL = 'https://apis.data.go.kr/1160100/service/GetKrxListedInfoService/getItemInfo'
 STOCK_PRICE_URL = 'https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo'
 PRODUCT_PRICE_URL = 'https://apis.data.go.kr/1160100/service/GetSecuritiesProductInfoService/getETFPriceInfo'
+KOFIA_CREDIT_URL = (
+    'https://apis.data.go.kr/1160100/service/'
+    'GetKofiaStatisticsInfoService/getGrantingOfCreditBalanceInfo'
+)
+KOFIA_MARKET_FUNDS_URL = (
+    'https://apis.data.go.kr/1160100/service/'
+    'GetKofiaStatisticsInfoService/getSecuritiesMarketTotalCapitalInfo'
+)
 NPS_HOLDING_URL = (
     'https://api.odcloud.kr/api/3070507/v1/'
     'uddi:cc757223-fdc0-45b2-a617-dcbecec3fe1f_20241231'
@@ -27,6 +35,7 @@ NPS_HOLDING_URL = (
 _CACHE = {}
 _STOCK_CACHE_TTL = 15 * 60
 _NPS_CACHE_TTL = 24 * 60 * 60
+_KOFIA_CACHE_TTL = 30 * 60
 
 
 class PublicDataUnavailable(RuntimeError):
@@ -39,6 +48,7 @@ def _service_key(kind):
         'krx': ('DATA_GO_KR_KRX_SERVICE_KEY', 'DATA_GO_KR_SERVICE_KEY'),
         'product': ('DATA_GO_KR_PRODUCT_SERVICE_KEY', 'DATA_GO_KR_SERVICE_KEY'),
         'nps': ('DATA_GO_KR_NPS_SERVICE_KEY', 'DATA_GO_KR_SERVICE_KEY'),
+        'kofia': ('DATA_GO_KR_KOFIA_SERVICE_KEY', 'DATA_GO_KR_SERVICE_KEY'),
     }
     for name in names[kind]:
         value = os.environ.get(name)
@@ -259,6 +269,102 @@ def fetch_product_quote(code):
         if str(row.get('srtnCd') or '').strip() == code:
             return _quote_from_row(row, 'data.go.kr:security-product')
     return None
+
+
+def _clean_number(value):
+    number = _number(value)
+    return int(number) if number.is_integer() else number
+
+
+def _kofia_date(value):
+    date_value = str(value or '').replace('-', '').strip()
+    if len(date_value) != 8 or not date_value.isdigit():
+        return None
+    return '%s-%s-%s' % (date_value[:4], date_value[4:6], date_value[6:8])
+
+
+def _fetch_kofia_rows(url, begin_date, end_date):
+    payload = _request_json(url, {
+        'beginBasDt': begin_date,
+        # KOFIA's endBasDt is exclusive, so tomorrow includes today's row.
+        'endBasDt': end_date,
+        'numOfRows': 1000,
+        'pageNo': 1,
+    }, 'kofia')
+    _, rows = _body_items(payload)
+    return rows
+
+
+def fetch_kofia_market(days=30):
+    """Return KOFIA credit-balance and market-funds history for dashboard context.
+
+    The KOFIA fields use different source units: credit-balance amounts are in
+    million KRW, while market-funds amounts are in KRW. Keeping the units
+    explicit prevents the UI from presenting a misleading comparison.
+    """
+    window = max(7, min(int(days or 30), 90))
+    cache_key = 'kofia-market:%s' % window
+    cached = _CACHE.get(cache_key)
+    if cached and time.time() - cached[0] < _KOFIA_CACHE_TTL:
+        return cached[1]
+
+    begin_date = (datetime.now() - timedelta(days=window * 2)).strftime('%Y%m%d')
+    end_date = (datetime.now() + timedelta(days=1)).strftime('%Y%m%d')
+    credit_rows = _fetch_kofia_rows(KOFIA_CREDIT_URL, begin_date, end_date)
+    funds_rows = _fetch_kofia_rows(KOFIA_MARKET_FUNDS_URL, begin_date, end_date)
+
+    credit_by_date = {}
+    for row in credit_rows:
+        date_value = _kofia_date(row.get('basDt'))
+        if not date_value:
+            continue
+        credit_by_date[date_value] = {
+            'date': date_value,
+            'loan_total': _clean_number(row.get('crdTrFingWhl')),
+            'loan_securities': _clean_number(row.get('crdTrFingScrs')),
+            'loan_kosdaq': _clean_number(row.get('crdTrFingKosdaq')),
+            'lending_total': _clean_number(row.get('crdTrLndrWhl')),
+            'collateral_loan': _clean_number(row.get('dpsgScrtMogFing')),
+        }
+
+    funds_by_date = {}
+    for row in funds_rows:
+        date_value = _kofia_date(row.get('basDt'))
+        if not date_value:
+            continue
+        funds_by_date[date_value] = {
+            'date': date_value,
+            'investor_deposits': _clean_number(row.get('invrDpsgAmt')),
+            'derivative_deposits': _clean_number(row.get('onbdDrvPrdTrRcAdvAmt')),
+            'rp_balance': _clean_number(row.get('toCstRpchCndBndSlgBal')),
+            'unsettled': _clean_number(row.get('brkTrdUcolMny')),
+            'forced_sale_amount': _clean_number(row.get('brkTrdUcolMnyVsOppsTrdAmt')),
+            'forced_sale_ratio_pct': _clean_number(row.get('ucolMnyVsOppsTrdRlImpt')),
+        }
+
+    dates = sorted(set(credit_by_date) | set(funds_by_date))[-window:]
+    series = [{
+        'date': date_value,
+        'credit': credit_by_date.get(date_value),
+        'market_funds': funds_by_date.get(date_value),
+    } for date_value in dates]
+    if not series:
+        raise PublicDataUnavailable('KOFIA 시장자금 통계가 비어 있습니다.')
+
+    latest_credit = next((item['credit'] for item in reversed(series) if item['credit']), None)
+    latest_funds = next((item['market_funds'] for item in reversed(series) if item['market_funds']), None)
+    result = {
+        'available': True,
+        'source': 'data.go.kr: 금융위원회 금융투자협회 종합통계정보',
+        'credit_unit': 'million_krw',
+        'market_funds_unit': 'krw',
+        'latest_date': series[-1]['date'],
+        'credit': latest_credit,
+        'market_funds': latest_funds,
+        'series': series,
+    }
+    _CACHE[cache_key] = (time.time(), result)
+    return result
 
 
 def _nps_name(value):

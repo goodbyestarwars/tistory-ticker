@@ -1227,6 +1227,8 @@ function getMarketTemp() {
   var week52 = computeWeek52Score_();
   var fx = computeExchangeScore_();
   var futures = computeUsFuturesScore_();
+  // KOFIA는 실시간 점수에 섞지 않고, 마지막 시장 브리핑의 자금 맥락만 보완한다.
+  var kofia = safeCall(fetchKofiaMarketFromVm_) || null;
 
   var maxPossible = 0;
   Object.keys(MT_COMPONENT_MAX).forEach(function (k) { maxPossible += MT_COMPONENT_MAX[k]; });
@@ -1248,6 +1250,7 @@ function getMarketTemp() {
       riseRatio: rise, sectorStrength: sectorStrength, week52: week52,
       exchange: fx, usFutures: futures
     },
+    kofia: kofia,
     history: computeMarketTempHistory_(temp, dailyHistory),
     recentDays: computeMarketTempSparkline_(temp, dailyHistory),
     updatedAt: formatKstTime(Date.now())
@@ -3216,6 +3219,10 @@ function kiwoomVmFetch_(path) {
     }
   }
   return null;
+}
+
+function fetchKofiaMarketFromVm_() {
+  return kiwoomVmFetch_('/kofia-market?days=30');
 }
 
 // 종목분석 펀더멘탈 탭 (?action=fundamentals&code=). 밸류에이션 스냅샷(키움 ka10001, VM

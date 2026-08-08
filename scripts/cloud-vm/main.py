@@ -158,6 +158,8 @@ _fundamentals_cache_mem = {}
 _MARKET_RANK_TTL = 30
 _MARKET_RANK_MAX_LIMIT = 20  # 사이드바 미리보기(5)보다 큰 값은 "더보기" 모달 전용
 _market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(5는 30초마다 폴링, 20은 모달 열 때만)
+_KOFIA_MARKET_TTL = 30 * 60
+_kofia_market_cache = {}
 
 # 캘린더의 Google Calendar 이벤트와 병합하는 자동 실적발표 피드 캐시.
 # 2026-08-03: 다른 메모리 캐시와 달리 상한/정리 로직이 아예 없었다 - year(2000~2100)x
@@ -1207,6 +1209,40 @@ def option_flow_endpoint():
     finally:
         conn.close()
     return envelope({r['side']: r for r in rows})
+
+
+@app.get('/kofia-market')
+def kofia_market_endpoint(days: int = Query(30, ge=7, le=90)):
+    """KOFIA 공공데이터 보조지표(신용융자·증시자금) - 30분 캐시.
+
+    키움/KIS의 실시간 시세를 대체하지 않고, 시장 브리핑의 중기 자금 맥락만
+    보완한다. 키가 아직 VM에 없으면 빈 보조지표를 정상 응답해 기존 화면을
+    막지 않는다.
+    """
+    global _kofia_market_cache
+    now = time.time()
+    cached = _kofia_market_cache.get(days)
+    if cached is not None and now - cached['t'] < _KOFIA_MARKET_TTL:
+        return envelope(cached['data'])
+    try:
+        result = public_data.fetch_kofia_market(days)
+    except public_data.PublicDataUnavailable as exc:
+        result = {
+            'available': False,
+            'source': 'data.go.kr: 금융위원회 금융투자협회 종합통계정보',
+            'message': str(exc),
+            'series': [],
+        }
+    except Exception as exc:
+        logging.getLogger('main').warning('KOFIA public-data fallback failed: %s', exc)
+        result = {
+            'available': False,
+            'source': 'data.go.kr: 금융위원회 금융투자협회 종합통계정보',
+            'message': 'KOFIA 통계를 잠시 불러오지 못했습니다.',
+            'series': [],
+        }
+    _kofia_market_cache[days] = {'t': now, 'data': result}
+    return envelope(result)
 
 
 @app.get('/market-rank')

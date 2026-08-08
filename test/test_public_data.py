@@ -43,6 +43,32 @@ class PublicDataParserTests(unittest.TestCase):
             with self.assertRaises(public_data.PublicDataUnavailable):
                 public_data._service_key('stock')
 
+    def test_kofia_market_normalizes_credit_and_funds_series(self):
+        credit_payload = {
+            'response': {'header': {'resultCode': '00'}, 'body': {'items': {'item': [
+                {'basDt': '20260806', 'crdTrFingWhl': '17400000', 'crdTrFingScrs': '9000000',
+                 'crdTrFingKosdaq': '8400000', 'crdTrLndrWhl': '50000', 'dpsgScrtMogFing': '19000000'},
+                {'basDt': '20260807', 'crdTrFingWhl': '17500000', 'crdTrFingScrs': '9100000',
+                 'crdTrFingKosdaq': '8400000', 'crdTrLndrWhl': '51000', 'dpsgScrtMogFing': '19100000'},
+            ]}}}
+        }
+        funds_payload = {
+            'response': {'header': {'resultCode': '00'}, 'body': {'items': {'item': [
+                {'basDt': '20260806', 'invrDpsgAmt': '52000000000000', 'brkTrdUcolMny': '280000000000',
+                 'brkTrdUcolMnyVsOppsTrdAmt': '29000000000', 'ucolMnyVsOppsTrdRlImpt': '10'},
+                {'basDt': '20260807', 'invrDpsgAmt': '53000000000000', 'brkTrdUcolMny': '281000000000',
+                 'brkTrdUcolMnyVsOppsTrdAmt': '30000000000', 'ucolMnyVsOppsTrdRlImpt': '11'},
+            ]}}}
+        }
+        with mock.patch.dict(os.environ, {'DATA_GO_KR_KOFIA_SERVICE_KEY': 'test-key'}, clear=True):
+            with mock.patch.object(public_data, '_request_json', side_effect=[credit_payload, funds_payload]):
+                result = public_data.fetch_kofia_market(days=7)
+        self.assertTrue(result['available'])
+        self.assertEqual(result['latest_date'], '2026-08-07')
+        self.assertEqual(result['credit']['loan_total'], 17500000)
+        self.assertEqual(result['market_funds']['investor_deposits'], 53000000000000)
+        self.assertEqual(len(result['series']), 2)
+
 
 if __name__ == '__main__':
     unittest.main()

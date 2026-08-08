@@ -622,12 +622,62 @@
       + '</div>';
   }
 
-  function buildBriefingStrategy(grade) {
+  function formatKofiaAmount_(value, unit) {
+    if (typeof value !== 'number' || !isFinite(value)) return '-';
+    if (unit === 'pct') return value.toFixed(1) + '%';
+    var trillion = unit === 'million_krw' ? value / 1000000 : value / 1000000000000;
+    return (trillion >= 100 ? trillion.toFixed(0) : trillion.toFixed(2)) + '조원';
+  }
+
+  function kofiaChange_(series, bucket, field) {
+    var values = (series || []).map(function (item) {
+      return item && item[bucket] && typeof item[bucket][field] === 'number' ? item[bucket][field] : null;
+    }).filter(function (value) { return value !== null; });
+    if (values.length < 2 || values[values.length - 2] === 0) return null;
+    return (values[values.length - 1] - values[values.length - 2]) / Math.abs(values[values.length - 2]) * 100;
+  }
+
+  function buildKofiaMetric_(label, value, unit, change, polarity) {
+    if (typeof value !== 'number') return '';
+    var tone = 'mt-val-zero';
+    if (typeof change === 'number' && Math.abs(change) >= 0.01) {
+      var isGood = polarity === 'goodWhenUp' ? change > 0 : change < 0;
+      tone = isGood ? 'mt-val-pos' : 'mt-val-neg';
+    }
+    var delta = typeof change === 'number'
+      ? '<span class="mt-kofia-delta ' + tone + '">' + (change > 0 ? '+' : '') + change.toFixed(1) + '%</span>'
+      : '';
+    return '<div class="mt-kofia-metric">'
+      + '<span class="mt-kofia-label">' + escapeHtml(label) + '</span>'
+      + '<strong>' + escapeHtml(formatKofiaAmount_(value, unit)) + '</strong>'
+      + delta
+      + '</div>';
+  }
+
+  function buildKofiaContext(data) {
+    var kofia = data && data.kofia;
+    if (!kofia || !kofia.available || (!kofia.credit && !kofia.market_funds)) return '';
+    var credit = kofia.credit || {};
+    var funds = kofia.market_funds || {};
+    var series = kofia.series || [];
+    return '<div class="mt-kofia-context">'
+      + '<div class="mt-kofia-head"><span>공공데이터 보조지표</span><small>금융투자협회 · ' + escapeHtml(kofia.latest_date || '-') + '</small></div>'
+      + '<div class="mt-kofia-grid">'
+      + buildKofiaMetric_('신용융자 잔고', credit.loan_total, 'million_krw', kofiaChange_(series, 'credit', 'loan_total'), 'goodWhenDown')
+      + buildKofiaMetric_('투자자예탁금', funds.investor_deposits, 'krw', kofiaChange_(series, 'market_funds', 'investor_deposits'), 'goodWhenUp')
+      + buildKofiaMetric_('반대매매 비중', funds.forced_sale_ratio_pct, 'pct', null, 'badWhenUp')
+      + '</div>'
+      + '<p class="mt-kofia-note">실시간 시세가 아닌 시장 자금 흐름 참고값입니다. 신용융자 증가는 과열·위험 신호로 해석합니다.</p>'
+      + '</div>';
+  }
+
+  function buildBriefingStrategy(data, grade) {
     return '<div class="mt-section mt-card mt-briefing-strategy-card">'
       + '<div class="mt-briefing-strategy-grid">'
       + buildAiBriefingShell()
       + buildStrategy(grade)
       + '</div>'
+      + buildKofiaContext(data)
       + '</div>';
   }
 
@@ -1149,7 +1199,7 @@
     var sections = [
       buildHeroCard(data),                          // ① 오늘의 온도 | 과거→오늘 흐름 꼬리
       row2col(buildBars(data), buildRadar(data)),   // ② 시장 구성요소(표) | 시장 레이더 (좌우)
-      buildBriefingStrategy(grade),                 // ③ 시장 브리핑 + 오늘의 전략(마지막)
+      buildBriefingStrategy(data, grade),           // ③ 시장 브리핑 + 오늘의 전략(마지막)
     ];
 
     return ''
