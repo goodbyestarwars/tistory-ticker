@@ -39,7 +39,8 @@
     { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
     { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
     { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
-    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' }
+    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
+    { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' }
   ];
   // TODO: /page/stock-search는 실제 페이지 생성 전 placeholder(js/skin-menu.js와 동일 사유) -
   // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
