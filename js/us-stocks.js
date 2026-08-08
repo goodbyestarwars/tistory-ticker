@@ -27,17 +27,19 @@
     { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq 나스닥' }
   ];
 
-  function init() {
-    var container = document.querySelector('#stock-search');
+  function init(targetContainer) {
+    var container = targetContainer || document.querySelector('#stock-search');
     if (!container) return;
     if (state.initialized && state.container === container) return;
     state.container = container;
     state.initialized = true;
     injectStyles();
-    document.title = document.title.replace(/증시검색|실시간 시세/g, '미국주식');
-    document.querySelectorAll('.post-single-title').forEach(function (title) {
-      if (/증시검색|실시간 시세/.test(title.textContent.trim())) title.textContent = '미국주식';
-    });
+    if (!targetContainer) {
+      document.title = document.title.replace(/증시검색|실시간 시세/g, '미국주식');
+      document.querySelectorAll('.post-single-title').forEach(function (title) {
+        if (/증시검색|실시간 시세/.test(title.textContent.trim())) title.textContent = '미국주식';
+      });
+    }
     container.innerHTML = buildShell();
     autoSelect();
     document.addEventListener('visibilitychange', function () {
@@ -58,7 +60,7 @@
   function buildShell() {
     return '<section class="us-stocks-shell">'
       + '<div class="us-stocks-heading"><div><span class="us-stocks-eyebrow">US MARKET</span><h2>미국주식</h2></div>'
-      + '<span class="us-stocks-note">상단 종목검색에서 한국·미국 종목을 함께 찾을 수 있습니다.</span></div>'
+      + '<span class="us-stocks-note">한국·미국 통합 시세</span></div>'
       + '<div id="usStocksDetail" class="us-stocks-detail" hidden></div>'
       + '<p class="us-stocks-disclaimer">키움증권 1차 · 한국투자증권 2차 · 증권사 API 상태와 거래소 시간대에 따라 지연될 수 있습니다.</p>'
       + '</section>';
@@ -362,7 +364,5 @@
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function escapeAttr(value) { return escapeHtml(value); }
 
-  global.UsStocks = { init: init };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  global.UsStocks = { init: init, select: select };
 })(window);

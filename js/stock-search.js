@@ -78,10 +78,6 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
-    if (isUsRoute()) {
-      loadUsStocksModule(container);
-      return;
-    }
     document.title = document.title.replace(/증시검색/g, '실시간 시세');
     document.querySelectorAll('.post-single-title').forEach(function (title) {
       if (title.textContent.trim() === '증시검색') title.textContent = '실시간 시세';
@@ -107,8 +103,11 @@
   }
 
   function loadUsStocksModule(container) {
+    var target = container.querySelector('#ssUsModule');
+    if (!target) return;
+    target.hidden = false;
     if (global.UsStocks && typeof global.UsStocks.init === 'function') {
-      global.UsStocks.init();
+      global.UsStocks.init(target);
       return;
     }
     if (document.querySelector('script[data-us-stocks-module]')) return;
@@ -116,6 +115,13 @@
     script.src = US_STOCKS_SCRIPT;
     script.async = true;
     script.setAttribute('data-us-stocks-module', '1');
+    script.onload = function () {
+      if (global.UsStocks && typeof global.UsStocks.init === 'function') {
+        global.UsStocks.init(target);
+        var pending = target.getAttribute('data-us-symbol');
+        if (pending && typeof global.UsStocks.select === 'function') global.UsStocks.select(pending);
+      }
+    };
     script.onerror = function () {
       container.innerHTML = '<div class="ss-hint ss-error">미국주식 시세 모듈을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
     };
@@ -128,6 +134,10 @@
   function autoSearchFromUrl(container) {
     var params = new URLSearchParams(location.search);
     var code = (params.get('code') || '').trim();
+    if (params.get('market') === 'us' || /^US:/i.test(code)) {
+      loadUsStocksModule(container);
+      return;
+    }
     if (!code) return;
     var name = (params.get('name') || '').trim();
     var input = container.querySelector('#ssInput');
@@ -135,16 +145,33 @@
     runSearch(container, code);
   }
 
+  function openUsSymbol(container, query) {
+    var symbol = String(query || '').replace(/^US:/i, '').trim().toUpperCase();
+    if (!/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(symbol)) return false;
+    var target = container.querySelector('#ssUsModule');
+    if (target) target.setAttribute('data-us-symbol', symbol);
+    try {
+      var url = new URL(location.href);
+      url.searchParams.set('code', 'US:' + symbol);
+      url.searchParams.set('market', 'us');
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+    } catch (err) { /* 구형 브라우저는 주소 갱신 없이 계속 조회한다. */ }
+    loadUsStocksModule(container);
+    if (global.UsStocks && typeof global.UsStocks.select === 'function') global.UsStocks.select(symbol);
+    return true;
+  }
+
   function buildShell() {
     return ''
       + '<div class="ss-search">'
       + '<div class="ss-input-wrap">'
-      + '<input type="text" id="ssInput" class="ss-input" placeholder="종목명 또는 종목코드를 입력하세요 (예: 삼성전자, 005930)" autocomplete="off" />'
+      + '<input type="text" id="ssInput" class="ss-input" placeholder="한국·미국 종목명 또는 코드 (예: 삼성전자, AAPL)" autocomplete="off" />'
       + '<div id="ssSuggest" class="ss-suggest"></div>'
       + '</div>'
       + '<button type="button" id="ssGoBtn" class="ss-go-btn">검색</button>'
       + '</div>'
       + '<div id="ssResults" class="ss-results"></div>'
+      + '<div id="ssUsModule" class="ss-us-module" hidden></div>'
       + '<div id="ssDetail" class="ss-detail" hidden>'
       + '<div id="ssSummary" class="ss-summary"></div>'
       + '<div class="ss-panels">'
@@ -276,6 +303,10 @@
   function runSearch(container, query) {
     var resultsBox = container.querySelector('#ssResults');
     if (!query) { resultsBox.innerHTML = '<div class="ss-hint">종목명 또는 코드를 입력해주세요.</div>'; return; }
+    if (/^US:/i.test(query) || (/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(query) && !/^\d{6}$/.test(query))) {
+      openUsSymbol(container, query);
+      return;
+    }
 
     var map = global.KRX_MAP || {};
     var names;

@@ -23,8 +23,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("label: '종목뉴스'", source)
         self.assertNotIn("label: '실시간 시세'", source)
         self.assertNotIn("{ href: '/page/watchlist', label: 'MY' }", source)
-        self.assertIn("{ href: '/page/stock-search?market=us', label: '미국주식' }", source)
-        self.assertEqual(len(primary_labels), 6)
+        self.assertNotIn("label: '미국주식'", source)
+        self.assertEqual(len(primary_labels), 5)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")
@@ -42,6 +42,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('class="ss-analysis-link"', realtime)
         self.assertIn('/page/foreign-flow?code=', realtime)
         self.assertIn("US_STOCKS_SCRIPT", realtime)
+        self.assertIn("id=\"ssUsModule\"", realtime)
+        self.assertIn("한국·미국 종목명 또는 코드", realtime)
 
     def test_pattern_detail_uses_scan_date_snapshot(self):
         pattern = self.read("js/pattern-scan.js")
