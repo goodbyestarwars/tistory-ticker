@@ -211,7 +211,7 @@ html.dark .de-chart-modal-body { background: #1A1A1A; }
   height: 72px;
   flex: 0 0 30px;
   margin-right: 2px;
-  border: 3px solid #68747a;
+  border: 2px solid #68747a;
   border-radius: 18px 18px 12px 12px;
   background: #f6f8f8;
   box-sizing: border-box;
@@ -235,7 +235,7 @@ html.dark .de-chart-modal-body { background: #1A1A1A; }
   width: 27px;
   height: 27px;
   transform: translateX(-50%);
-  border: 3px solid #68747a;
+  border: 2px solid #68747a;
   border-radius: 50%;
   background: #f6f8f8;
   box-sizing: border-box;
