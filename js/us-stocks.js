@@ -358,8 +358,9 @@
       return;
     }
     mount.innerHTML = items.map(function (item) {
+      var source = item.source || item.provider || '';
       return '<a class="us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener">'
-        + '<b>' + escapeHtml(item.title || '') + '</b><small>' + escapeHtml(item.pubDate || '') + '</small></a>';
+        + '<b>' + escapeHtml(item.title || '') + '</b><small><span class="us-stocks-news-source">' + escapeHtml(source) + '</span>' + escapeHtml(item.pubDate || '') + '</small></a>';
     }).join('');
   }
 

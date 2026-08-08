@@ -31,6 +31,7 @@ import earnings_calendar
 import foreign_flow_compute
 import foreign_futures
 import naver_news
+import news_aggregator
 import news_momentum
 import investor_flow
 import investor_trend
@@ -681,13 +682,27 @@ def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=1
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     query = ((name or '').strip() + ' ' + ticker).strip()
-    items = naver_news.search_news(
+    naver_items = naver_news.search_news(
         query,
         os.environ.get('NAVER_APIHUB_CLIENT_ID'),
         os.environ.get('NAVER_APIHUB_CLIENT_SECRET'),
         display=10,
     )
-    return envelope({'symbol': ticker, 'query': query, 'items': items, 'source': '네이버 뉴스 검색 API'})
+    items = news_aggregator.merge_news(
+        ticker,
+        naver_items=naver_items,
+        alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+        limit=10,
+    )
+    providers = sorted(set(item.get('provider') for item in items if item.get('provider')))
+    return envelope({
+        'symbol': ticker,
+        'query': query,
+        'items': items,
+        'providers': providers,
+        'source': 'Alpha Vantage + Finnhub + Naver' if len(providers) > 1 else (providers[0] if providers else '뉴스 공급자 없음'),
+    })
 
 
 @app.get('/ohlc/{code}')
