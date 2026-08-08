@@ -10,7 +10,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def read(self, relative):
         return (ROOT / relative).read_text(encoding="utf-8")
 
-    def test_primary_navigation_has_six_items(self):
+    def test_primary_navigation_has_seven_items(self):
         source = self.read("js/skin-menu.js")
         primary_labels = re.findall(
             r"^\s{4}(?:\{ href: '[^']+', label: '([^']+)' \}|\{\s*$)",
@@ -23,7 +23,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("label: '종목뉴스'", source)
         self.assertIn("label: '실시간 시세'", source)
         self.assertNotIn("{ href: '/page/watchlist', label: 'MY' }", source)
-        self.assertEqual(len(primary_labels), 6)
+        self.assertIn("{ href: '/page/stock-search?market=us', label: '미국주식' }", source)
+        self.assertEqual(len(primary_labels), 7)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")
@@ -36,8 +37,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         panel = self.read("js/stock-search-panel.js")
         realtime = self.read("js/stock-search.js")
         self.assertIn("var TARGET_PAGE = '/page/stock-search';", panel)
+        self.assertIn("var US_API_BASE = 'https://goodbyestar.cloud';", panel)
+        self.assertIn('function fetchUsSearch(query)', panel)
         self.assertIn('class="ss-analysis-link"', realtime)
         self.assertIn('/page/foreign-flow?code=', realtime)
+        self.assertIn("US_STOCKS_SCRIPT", realtime)
 
     def test_pattern_detail_uses_scan_date_snapshot(self):
         pattern = self.read("js/pattern-scan.js")

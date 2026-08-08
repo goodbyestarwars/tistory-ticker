@@ -23,6 +23,7 @@
         { href: '/page/stock-search', label: '실시간 시세' }
       ]
     },
+    { href: '/page/stock-search?market=us', label: '미국주식' },
     {
       label: '종목검색',
       children: [
@@ -52,7 +53,11 @@
   }
 
   function isActive(item) {
-    return Boolean(item.href && currentPath() === item.href);
+    if (!item.href) return false;
+    var parts = item.href.split('?');
+    if (currentPath() !== parts[0]) return false;
+    if (!parts[1]) return true;
+    return new URLSearchParams(location.search).get('market') === 'us';
   }
 
   function groupIsActive(item) {

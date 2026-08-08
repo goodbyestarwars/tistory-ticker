@@ -43,6 +43,7 @@ import order_book
 import public_data
 import realtime_quotes
 import sector_cards
+import us_stocks
 import watchlist
 from google_auth import GoogleAuthError, GoogleAuthService
 
@@ -618,6 +619,31 @@ def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = H
             )
         raise HTTPException(status_code=502, detail=str(primary_error))
     return envelope(res)
+
+
+@app.get('/us-search')
+def us_search(request: Request, q: str = Query(..., min_length=1, max_length=40),
+              limit: int = Query(8, ge=1, le=20)):
+    """미국주식 티커·회사명 검색 - 공통 종목검색에서 국내 검색과 함께 사용한다."""
+    _check_rate_limit('us_search', request, max_per_window=30)
+    try:
+        return envelope(us_stocks.search(q, limit=limit))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except us_stocks.UsStockUnavailable as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get('/us-quote/{symbol}')
+def us_quote(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
+    """미국 개별주식 현재가·등락·거래량·장 상태 조회."""
+    _check_rate_limit('us_quote', request, max_per_window=60)
+    try:
+        return envelope(us_stocks.quote(symbol))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except us_stocks.UsStockUnavailable as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
 
 @app.get('/ohlc/{code}')

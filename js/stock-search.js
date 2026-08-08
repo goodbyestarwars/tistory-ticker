@@ -45,6 +45,7 @@
   var FETCH_TIMEOUT_MS = 15000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
+  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js';
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
 
   var state = {
@@ -77,6 +78,10 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    if (isUsRoute()) {
+      loadUsStocksModule(container);
+      return;
+    }
     document.title = document.title.replace(/증시검색/g, '실시간 시세');
     document.querySelectorAll('.post-single-title').forEach(function (title) {
       if (title.textContent.trim() === '증시검색') title.textContent = '실시간 시세';
@@ -94,6 +99,27 @@
         startMinuteRefresh(container, state.selectedCode);
       }
     });
+  }
+
+  function isUsRoute() {
+    var params = new URLSearchParams(location.search);
+    return params.get('market') === 'us' || /^US:/i.test(params.get('code') || '');
+  }
+
+  function loadUsStocksModule(container) {
+    if (global.UsStocks && typeof global.UsStocks.init === 'function') {
+      global.UsStocks.init();
+      return;
+    }
+    if (document.querySelector('script[data-us-stocks-module]')) return;
+    var script = document.createElement('script');
+    script.src = US_STOCKS_SCRIPT;
+    script.async = true;
+    script.setAttribute('data-us-stocks-module', '1');
+    script.onerror = function () {
+      container.innerHTML = '<div class="ss-hint ss-error">미국주식 시세 모듈을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+    };
+    document.body.appendChild(script);
   }
 
   // 관심종목(MY) 카드의 "차트 보기" 버튼이 ?code=005930&name=삼성전자로 넘어오면

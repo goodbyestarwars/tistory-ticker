@@ -27,6 +27,7 @@
   // 종목분석은 실시간 시세 상세의 명시적 버튼에서 이어간다.
   var TARGET_PAGE = '/page/stock-search';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var US_API_BASE = 'https://goodbyestar.cloud';
   var RATE_FETCH_TIMEOUT_MS = 8000;
 
   var STORAGE_LAST = 'stock:lastSelected';
@@ -50,6 +51,8 @@
 
   var krxMapPromise = null;
   var activeIndex = -1;
+  var currentMatchRows = [];
+  var currentMatchQuery = '';
   var wired = false;
   var watchlistBooted = false;
 
@@ -232,14 +235,16 @@
     activeIndex = -1;
   }
 
-  function buildRow(code, name, i) {
-    var fav = isFavorite(code);
+  function buildRow(code, name, i, market) {
+    var isUs = market === 'us' || String(code || '').indexOf('US:') === 0;
+    var fav = !isUs && isFavorite(code);
     return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
-      + stockIconHtml(code)
+      + (isUs ? '<span class="nav-search-suggest-market" aria-hidden="true">🇺🇸</span>' : stockIconHtml(code))
       + '<span class="nav-search-suggest-name">' + escapeHtml(name) + '</span>'
+      + (isUs ? '<span class="nav-search-suggest-code">' + escapeHtml(String(code).replace(/^US:/, '')) + '</span>' : '')
       + '<span class="nav-search-rate-badge" data-rate-code="' + escapeAttr(code) + '"></span>'
       + '<span class="nav-search-current-price" data-price-code="' + escapeAttr(code) + '"></span>'
-      + '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>'
+      + (!isUs ? '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>' : '')
       + '</div>';
   }
 
@@ -247,11 +252,13 @@
 
   function fetchRates(codes) {
     if (!codes.length) return Promise.resolve({});
+    var domesticCodes = codes.filter(function (code) { return String(code).indexOf('US:') !== 0; });
+    if (!domesticCodes.length) return Promise.resolve({});
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, RATE_FETCH_TIMEOUT_MS) : null;
 
-    return fetch(GAS_TICKER_URL + '?codes=' + codes.join(','), hasAbort ? { signal: controller.signal } : {})
+    return fetch(GAS_TICKER_URL + '?codes=' + domesticCodes.join(','), hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
         return r.json();
@@ -319,14 +326,42 @@
   }
 
   function renderMatches(box, query) {
-    var matches = suggestNames(query);
-    if (!matches.length) { hideSuggest(box); return; }
-    box.innerHTML = matches.map(function (name, i) {
-      var code = (global.KRX_MAP || {})[name];
-      return buildRow(code, name, i);
-    }).join('');
-    box.classList.add('active');
-    wireRowClicks(box);
+    currentMatchQuery = query;
+    var domesticRows = suggestNames(query).map(function (name) {
+      return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' };
+    });
+    fetchUsSearch(query).then(function (usRows) {
+      if (currentMatchQuery !== query) return;
+      currentMatchRows = domesticRows.concat(usRows).slice(0, MAX_SUGGEST);
+      if (!currentMatchRows.length) { hideSuggest(box); return; }
+      box.innerHTML = currentMatchRows.map(function (row, i) {
+        return buildRow(row.code, row.name, i, row.market);
+      }).join('');
+      box.classList.add('active');
+      wireRowClicks(box);
+    }).catch(function () {
+      if (currentMatchQuery !== query) return;
+      currentMatchRows = domesticRows.slice(0, MAX_SUGGEST);
+      if (!currentMatchRows.length) { hideSuggest(box); return; }
+      box.innerHTML = currentMatchRows.map(function (row, i) {
+        return buildRow(row.code, row.name, i, row.market);
+      }).join('');
+      box.classList.add('active');
+      wireRowClicks(box);
+    });
+  }
+
+  function fetchUsSearch(query) {
+    return fetch(US_API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=' + MAX_SUGGEST)
+      .then(function (response) {
+        if (!response.ok) throw new Error('미국주식 검색 오류: ' + response.status);
+        return response.json();
+      })
+      .then(function (body) {
+        return (body && body.data ? body.data : []).map(function (row) {
+          return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
+        });
+      });
   }
 
   function wireRowClicks(box) {
@@ -353,7 +388,8 @@
 
   function currentRowList(query) {
     if (query) {
-      return suggestNames(query).map(function (name) { return { code: (global.KRX_MAP || {})[name], name: name }; });
+      if (currentMatchQuery === query && currentMatchRows.length) return currentMatchRows;
+      return suggestNames(query).map(function (name) { return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' }; });
     }
     var favorites = getFavorites();
     var favCodes = favorites.map(function (it) { return it.code; });
@@ -374,7 +410,8 @@
     if (!code) return;
     setLast(code);
     addRecent(code, name || code);
-    global.location.href = TARGET_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name || code);
+    var market = String(code).indexOf('US:') === 0 ? '&market=us' : '';
+    global.location.href = TARGET_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name || code) + market;
   }
 
   // ---- 사이드바 검색창에 이벤트 바인딩 ----
@@ -404,6 +441,7 @@
         e.preventDefault();
         var rows = currentRowList(q);
         var row = activeIndex > -1 && rows[activeIndex] ? rows[activeIndex] : (q ? resolveStock(q) : null);
+        if (!row && /^[A-Za-z][A-Za-z0-9.\-^=]{0,11}$/.test(q)) row = { code: 'US:' + q.toUpperCase(), name: q.toUpperCase(), market: 'us' };
         if (row) goToStock(row.code, row.name);
       } else if (e.key === 'Escape') {
         hideSuggest(box);
