@@ -40,6 +40,7 @@ import kiwoom_market
 import market_rank
 import option_flow
 import order_book
+import public_data
 import realtime_quotes
 import sector_cards
 import watchlist
@@ -594,8 +595,26 @@ def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = H
         res = kiwoom_client.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as primary_error:
+        # 키움 장애/일시 제한 시 data.go.kr 일별 주식시세를 2차 경로로 사용한다.
+        try:
+            fallback = public_data.fetch_stock_quote(code)
+            if fallback:
+                return envelope(fallback)
+        except Exception as fallback_error:
+            logging.getLogger('main').warning(
+                'quote 공공데이터 fallback 실패(%s): %s', code, fallback_error,
+            )
+        # ETF/ETN/ELW는 일반 주식시세에 없을 수 있어 증권상품시세도 시도한다.
+        try:
+            fallback = public_data.fetch_product_quote(code)
+            if fallback:
+                return envelope(fallback)
+        except Exception as fallback_error:
+            logging.getLogger('main').warning(
+                'quote 증권상품 fallback 실패(%s): %s', code, fallback_error,
+            )
+        raise HTTPException(status_code=502, detail=str(primary_error))
     return envelope(res)
 
 
@@ -617,8 +636,16 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
         daily = kiwoom_market.fetch_daily_ohlc(token, code, max_days=None)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as primary_error:
+        # 주식시세정보는 일별 OHLC를 제공하므로 실시간/분봉 대체가 아니라
+        # 일봉 차트가 비어 버리는 상황을 막는 보조 경로로만 사용한다.
+        try:
+            daily = public_data.fetch_stock_ohlc(code, max_days=None)
+        except Exception as fallback_error:
+            logging.getLogger('main').warning(
+                'ohlc 공공데이터 fallback 실패(%s): %s', code, fallback_error,
+            )
+            raise HTTPException(status_code=502, detail=str(primary_error))
     if not daily:
         raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
     _live_cache_put(_ohlc_cache, code, daily)
@@ -822,6 +849,15 @@ def foreign_flow_endpoint(request: Request, code: str = Path(..., min_length=6, 
     result = foreign_flow_compute.build_result(code, daily)
     if result is None:
         raise HTTPException(status_code=404, detail='수급 데이터를 찾을 수 없습니다.')
+    # 국민연금 연말 보유 현황은 매매 흐름과 다른 성격의 장기 보조 지표다.
+    # 공공데이터가 없거나 이름이 전달되지 않은 경우에는 기존 응답을 그대로 유지한다.
+    if name:
+        try:
+            official_holding = public_data.fetch_nps_holding(name)
+            if official_holding:
+                result.setdefault('pension', {})['official_holding'] = official_holding
+        except Exception as exc:
+            logging.getLogger('main').info('국민연금 보조정보 생략(%s): %s', code, exc)
     _live_cache_put(_foreign_flow_cache_mem, cache_key, result)
     return envelope(result)
 

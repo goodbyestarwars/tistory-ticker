@@ -21,6 +21,7 @@ import db_schema
 import invest_signal
 import kiwoom_client
 import kiwoom_market
+import public_data
 import pattern_detect as pd
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
@@ -50,13 +51,23 @@ def load_dotenv():
 def load_full_universe():
     """data/krx_map.js(window.KRX_MAP={"종목명":"코드",...})를 fetch해서 [{name, code}] 목록으로 파싱.
     gas의 fetchFullUniverse_()와 동일한 정규식."""
-    req = urllib.request.Request(FULL_UNIVERSE_URL, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req, timeout=20) as res:
-        text = res.read().decode('utf-8')
-    out = []
-    for m in re.finditer(r'"([^"]+)":"([0-9A-Za-z]{6})"', text):
-        out.append({'name': m.group(1), 'code': m.group(2)})
-    return out
+    try:
+        req = urllib.request.Request(FULL_UNIVERSE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=20) as res:
+            text = res.read().decode('utf-8')
+        out = []
+        for m in re.finditer(r'"([^"]+)":"([0-9A-Za-z]{6})"', text):
+            out.append({'name': m.group(1), 'code': m.group(2)})
+        if out:
+            return out
+    except Exception as primary_error:
+        log('GitHub 종목목록 조회 실패, KRX 공공데이터 fallback 시도: %s' % primary_error)
+
+    # 정적 KRX_MAP을 못 읽는 배포/네트워크 장애 때만 KRX상장종목정보를 사용한다.
+    return [
+        {'name': item['name'], 'code': item['code'], 'market': item.get('market', '')}
+        for item in public_data.fetch_krx_universe()
+    ]
 
 
 def load_flow_cache():

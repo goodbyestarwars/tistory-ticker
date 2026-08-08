@@ -2902,6 +2902,8 @@
       + extraMetric('최근 20일 순매수', fmtSignedWon(p.net_20d))
       + extraMetric('최근 60일 순매수', p.net_60d == null ? '-' : fmtSignedWon(p.net_60d))
       + extraMetric('누적(' + (p.cumulative_window_days || 0) + '영업일)', fmtSignedWon(p.net_cumulative))
+      + (p.official_holding ? extraMetric('국민연금 연말 보유', fmtEokWon(p.official_holding.evaluation_amount_eok)
+        + ' · 지분율 ' + fmtPct(p.official_holding.holding_pct)) : '')
       + '</div>'
       + '</div>';
   }
