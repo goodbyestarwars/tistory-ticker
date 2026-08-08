@@ -8,6 +8,7 @@
 
   var API_BASE = 'https://goodbyestar.cloud';
   var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css';
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var REFRESH_MS = 15000;
   var LAST_SYMBOL_KEY = 'us:lastSelected';
   var DEFAULT_SYMBOL = 'AAPL';
@@ -228,7 +229,7 @@
     var card = detail.querySelector('.us-stocks-live-card');
     if (!card || card.getAttribute('data-symbol') !== quote.symbol) {
       detail.innerHTML = '<div class="us-stocks-live-card" data-symbol="' + escapeAttr(quote.symbol) + '">'
-        + '<div class="us-stocks-live-head"><div><span class="us-stocks-market-badge">미국주식</span><h3 data-us-name></h3><p data-us-symbol></p></div>'
+        + '<div class="us-stocks-live-head"><div class="us-stocks-identity">' + stockIconHtml(quote.symbol) + '<div><span class="us-stocks-market-badge">미국주식</span><h3 data-us-name></h3><p data-us-symbol></p></div></div>'
         + '<span class="us-stocks-market-state" data-us-state></span></div>'
         + '<div class="us-stocks-live-price" data-us-price-wrap><span data-us-price></span><span data-us-change></span></div>'
         + '<div class="us-stocks-metrics">'
@@ -395,6 +396,11 @@
     return { pre: '장전', regular: '정규장', post: '장후', closed: '장 마감' }[value] || '시장 상태 확인 중';
   }
   function signClass(value) { return value > 0 ? 'us-up' : value < 0 ? 'us-down' : 'us-flat'; }
+  function stockIconHtml(symbol) {
+    var code = String(symbol || '').replace(/^US:/i, '').toUpperCase();
+    if (!code) return '';
+    return '<img class="us-stocks-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
+  }
   function hideSuggestions() { var box = document.querySelector('#usStocksSuggest'); if (box) { box.innerHTML = ''; box.classList.remove('active'); } }
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function escapeAttr(value) { return escapeHtml(value); }

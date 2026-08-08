@@ -27,3 +27,10 @@ git push -u origin claude/stock-icon-github-upload-5wrv0w
 ```
 https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/{종목코드}.svg
 ```
+
+## 미국 종목 아이콘
+
+주요 미국 종목 아이콘은 Simple Icons 데이터를 Iconify API에서 SVG로 내려받아 티커명으로 저장합니다. 현재 지원 파일은 `AAPL.svg`, `MSFT.svg`, `NVDA.svg`, `AMZN.svg`, `GOOGL.svg`, `TSLA.svg`, `META.svg`, `AVGO.svg`, `AMD.svg`, `NFLX.svg`입니다.
+
+- 원본 아이콘: https://github.com/simple-icons/simple-icons
+- 다운로드 API: https://api.iconify.design/simple-icons/{slug}.svg

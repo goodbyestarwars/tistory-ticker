@@ -1,6 +1,8 @@
 /* 미국주식 1차 시세 화면 */
 .us-stocks-shell { margin: 12px 0; color: #222; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif; }
 .us-stocks-heading, .us-stocks-live-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.us-stocks-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.us-stocks-icon { flex: 0 0 auto; width: 34px; height: 34px; padding: 6px; box-sizing: border-box; border: 1px solid #e5e7eb; border-radius: 50%; background: #fff; object-fit: contain; }
 .us-stocks-eyebrow { color: #2563eb; font-size: 11px; font-weight: 800; letter-spacing: .12em; }
 .us-stocks-heading h2 { margin: 2px 0 0; font-size: 20px; }
 .us-stocks-note, .us-stocks-disclaimer { color: #8b95a1; font-size: 12px; }
@@ -71,6 +73,7 @@ html.dark .us-stocks-result-count, html.dark .us-stocks-metric { background: rgb
 html.dark .us-stocks-result-row { border-top-color: rgba(245,239,224,.12); }
 html.dark .us-stocks-result-name small, html.dark .us-stocks-live-head p, html.dark .us-stocks-note, html.dark .us-stocks-disclaimer, html.dark .us-stocks-metric span, html.dark .us-stocks-live-footer { color: rgba(245,239,224,.6); }
 html.dark .us-stocks-live-card { border-color: rgba(245,239,224,.2); background: rgba(245,239,224,.05); }
+html.dark .us-stocks-icon { border-color: rgba(245,239,224,.2); background: #fff; }
 html.dark .us-stocks-panel { border-color: rgba(245,239,224,.2); background: rgba(245,239,224,.05); }
 html.dark .us-stocks-book-row { border-top-color: rgba(245,239,224,.12); }
 html.dark .us-stocks-news-item { border-top-color: rgba(245,239,224,.12); }

@@ -83,7 +83,8 @@
   };
   function stockIconHtml(code) {
     if (!code) return '';
-    return '<img class="ss-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+    var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
+    return '<img class="ss-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
   }
 
   function init() {
@@ -298,7 +299,7 @@
       box.innerHTML = rows.map(function (row) {
         var isUs = row.market === 'us' || /^US:/i.test(row.code);
         return '<div class="ss-suggest-item" data-name="' + escapeAttr(row.name) + '" data-code="' + escapeAttr(row.code) + '">'
-          + (isUs ? '<span class="ss-suggest-market" aria-hidden="true">🇺🇸</span>' : stockIconHtml(row.code))
+          + stockIconHtml(row.code)
           + escapeHtml(row.name) + (isUs ? '<small class="ss-suggest-code">' + escapeHtml(String(row.code).replace(/^US:/i, '')) + '</small>' : '')
           + '</div>';
       }).join('');
