@@ -3279,10 +3279,13 @@
       var frontWidth = width - 10;
       var sideStart = x + frontWidth;
       var signLabel = band.current ? '현재가' : band.average ? '평균단가' : band.poc ? 'POC' : '';
+      var priceLabelY = signLabel ? y - 29 : y - 12;
+      var volumeLabelY = signLabel ? y - 18 : y - 1;
       var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
         + '<rect x="' + x + '" y="' + y + '" width="' + frontWidth + '" height="' + height + '" rx="2" />'
         + '<path class="ff-apt-building-side" d="M' + sideStart + ' ' + (y + 3) + ' L' + (x + width) + ' ' + (y + 8) + ' V' + (groundY - 8) + ' L' + sideStart + ' ' + (groundY - 8) + ' Z" />'
         + '<path class="ff-apt-building-roof" d="M' + (x + 3) + ' ' + (y - 6) + ' H' + (x + width - 3) + ' L' + (x + width + 2) + ' ' + (y - 1) + ' H' + (x - 2) + ' Z" />'
+        + '<rect class="ff-apt-building-roof-block" x="' + (x + width * .42) + '" y="' + (y - 19) + '" width="' + (width * .16) + '" height="8" rx="1" />'
         + '<path class="ff-apt-building-roof-cap" d="M' + (x + 10) + ' ' + (y - 11) + ' H' + (x + width - 10) + ' M' + (x + width / 2) + ' ' + (y - 11) + ' V' + (y - 17) + '" />'
         + '<path class="ff-apt-building-frame" d="M' + (x + frontWidth / 2) + ' ' + (y + 4) + ' V' + (groundY - 8) + ' M' + (x + 5) + ' ' + (y + 5) + ' V' + (groundY - 8) + '" />';
       var floorH = height / (rows + 1);
@@ -3327,10 +3330,10 @@
       html += '<rect class="ff-apt-building-lobby" x="' + (x + frontWidth * .31) + '" y="' + (groundY - 31) + '" width="' + (frontWidth * .38) + '" height="24" rx="2" />'
         + '<path class="ff-apt-building-lobby-door" d="M' + (x + frontWidth * .5) + ' ' + (groundY - 31) + ' V' + (groundY - 7) + ' M' + (x + frontWidth * .31) + ' ' + (groundY - 31) + ' H' + (x + frontWidth * .69) + '" />';
       if (signLabel) {
-        html += '<g class="ff-apt-building-sign"><rect x="' + (x + 10) + '" y="' + (y - 29) + '" width="' + (width - 20) + '" height="14" rx="5" /><text x="' + (x + width / 2) + '" y="' + (y - 19) + '" text-anchor="middle">' + signLabel + '</text></g>';
+        html += '<g class="ff-apt-building-sign"><rect x="' + (x + 10) + '" y="' + (y - 47) + '" width="' + (width - 20) + '" height="14" rx="5" /><text x="' + (x + width / 2) + '" y="' + (y - 37) + '" text-anchor="middle">' + signLabel + '</text></g>';
       }
-      html += '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 12) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
-        + '<text class="ff-apt-building-volume" x="' + (x + width / 2) + '" y="' + (y - 1) + '" text-anchor="middle">' + Math.round(band.volume).toLocaleString('ko-KR') + '주</text>'
+      html += '<text class="ff-apt-building-price' + (signLabel ? ' labeled' : '') + '" x="' + (x + width / 2) + '" y="' + priceLabelY + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
+        + '<text class="ff-apt-building-volume' + (signLabel ? ' labeled' : '') + '" x="' + (x + width / 2) + '" y="' + volumeLabelY + '" text-anchor="middle">' + Math.round(band.volume).toLocaleString('ko-KR') + '주</text>'
         + '<text class="ff-apt-building-band" x="' + (x + width / 2) + '" y="' + (groundY + 7) + '" text-anchor="middle">' + aptBandLabel(band.start, n) + '</text>'
         + '</g>';
       return html;
