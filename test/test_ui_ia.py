@@ -255,6 +255,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("key: 'creditRisk'", source)
         self.assertIn("unit: 'creditRisk'", source)
         self.assertIn("신용/예탁", source)
+        self.assertIn("loan_total / 1000000", source)
+        self.assertIn("investor_deposits / 1000000000000", source)
 
     def test_stock_search_minute_chart_shows_time_of_day(self):
         # 2026-08-05(3차) 사용자 리포트: 분봉 X축이 날짜만 반복 표시됨 - 분봉일 때만

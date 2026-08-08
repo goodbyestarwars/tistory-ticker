@@ -236,10 +236,13 @@
       if (!comp.available || typeof comp.score !== 'number') return null;
       var riskTone = comp.state === 'stable' ? 'mt-val-pos'
         : comp.state === 'overheated' ? 'mt-val-neg' : 'mt-val-zero';
+      var loanText = typeof comp.loan_total === 'number'
+        ? ' · ' + (comp.loan_total / 1000000).toFixed(2) + '조원'
+        : '';
       var ratioText = typeof comp.loan_to_deposit_pct === 'number'
         ? ' · 신용/예탁 ' + comp.loan_to_deposit_pct.toFixed(1) + '%'
         : '';
-      return { text: (comp.stateLabel || '판단 보류') + ratioText, tone: riskTone };
+      return { text: (comp.stateLabel || '판단 보류') + loanText + ratioText, tone: riskTone };
     }
 
     // unit === 'pct'
@@ -421,7 +424,8 @@
     var band = comp && comp.band ? comp.band : null;
     var tooltip = meta.desc + (band ? ' — 현재 구간: ' + band : '')
       + (comp && comp.criteria ? ' 기준: ' + comp.criteria : '')
-      + (comp && typeof comp.loan_total === 'number' ? ' 현재 신용융자 잔고: ' + (comp.loan_total / 1000000).toFixed(2) + '조원' : '');
+      + (comp && typeof comp.loan_total === 'number' ? ' 현재 신용융자 잔고: ' + (comp.loan_total / 1000000).toFixed(2) + '조원' : '')
+      + (comp && typeof comp.investor_deposits === 'number' ? ' 투자자예탁금: ' + (comp.investor_deposits / 1000000000000).toFixed(2) + '조원' : '');
 
     return ''
       + '<tr class="mt-comp-tr' + (rank < 3 ? ' mt-comp-tr-top' : '') + '">'

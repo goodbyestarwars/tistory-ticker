@@ -1251,6 +1251,7 @@ function scoreKofiaCredit_(kofia) {
     stateLabel: stateLabel,
     band: stateLabel,
     loan_total: loan,
+    investor_deposits: deposits,
     loan_vs_avg_pct: loanVsAvgPct,
     loan_to_deposit_pct: loanToDepositPct,
     forced_sale_ratio_pct: forcedSale,
