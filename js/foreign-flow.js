@@ -3452,18 +3452,7 @@
       ladderRungs += 'M382 ' + ladderY + ' H402 ';
     }
     var helicopter = '<g class="ff-apt-helicopter-lift" transform="translate(0 -28)"><g class="ff-apt-illustration-helicopter" role="img" aria-label="옥상 헬기">'
-      + '<ellipse class="ff-apt-helicopter-rotor-shadow" cx="392" cy="114" rx="28" ry="2" />'
-      + '<path class="ff-apt-helicopter-body" d="M345 128 Q354 118 372 118 H397 Q410 118 421 126 L414 135 H354 Q347 135 345 128 Z" />'
-      + '<path class="ff-apt-helicopter-body-highlight" d="M351 127 Q361 120 375 120 H400 Q408 120 414 126" />'
-      + '<path class="ff-apt-helicopter-cockpit" d="M357 121 H374 L382 128 H350 Q352 124 357 121 Z" />'
-      + '<path class="ff-apt-helicopter-window" d="M377 120 H396 Q403 121 408 126 L382 127 Z" />'
-      + '<path class="ff-apt-helicopter-door" d="M383 128 V134 M398 128 V134" />'
-      + '<path class="ff-apt-helicopter-tail" d="M418 126 L437 116 L443 118 L425 131" />'
-      + '<path class="ff-apt-helicopter-tail-fin" d="M426 122 L430 113 L436 116" />'
-      + '<path class="ff-apt-helicopter-rotor" d="M374 115 H413 M393 115 V120" />'
-      + '<path class="ff-apt-helicopter-rotor-blur" d="M365 113 Q392 108 421 113" />'
-      + '<path class="ff-apt-helicopter-skid" d="M357 138 H411 M367 133 V138 M401 133 V138" />'
-      + '<circle class="ff-apt-helicopter-light" cx="350" cy="128" r="2" />'
+      + '<image class="ff-apt-helicopter-photo" href="https://goodbyestarwars.github.io/tistory-ticker/img/volume-profile-helicopter.png" x="308" y="72" width="172" height="126" preserveAspectRatio="xMidYMid meet" />'
       + '</g></g>';
     var ladder = '<g class="ff-apt-illustration-ladder" role="img" aria-label="헬기에서 옥상으로 이어지는 가격 흐름 사다리">'
       + '<path class="ff-apt-ladder-rail" d="M382 ' + ladderTopY + ' V' + ladderBottomY + ' M402 ' + ladderTopY + ' V' + ladderBottomY + '" />'
