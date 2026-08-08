@@ -233,7 +233,9 @@
     }
 
     if (meta.unit === 'creditRisk') {
-      if (!comp.available || typeof comp.score !== 'number') return null;
+      if (!comp || !comp.available || typeof comp.score !== 'number') {
+        return { text: '데이터 준비 중', tone: 'mt-val-zero' };
+      }
       var riskTone = comp.state === 'stable' ? 'mt-val-pos'
         : comp.state === 'overheated' ? 'mt-val-neg' : 'mt-val-zero';
       var loanText = typeof comp.loan_total === 'number'
@@ -302,6 +304,7 @@
   // 개별 지표 행/TOP5 영향요인 카드가 공유하는 계산식 - GAS getMarketTempBriefing()의
   // AI 프롬프트도 동일한 공식을 쓴다(숫자 불일치 방지).
   function contribution(meta, comp) {
+    if (meta.unit === 'creditRisk' && (!comp || !comp.available || typeof comp.score !== 'number')) return null;
     var score = comp && typeof comp.score === 'number' ? comp.score : meta.max / 2;
     return score - meta.max / 2;
   }
@@ -435,7 +438,7 @@
       + '<span class="mt-info" data-tooltip="' + escapeHtml(tooltip) + '">ⓘ</span>'
       + '</td>'
       + '<td class="mt-comp-td-value' + (raw ? ' ' + raw.tone : '') + '">' + (raw ? escapeHtml(raw.text) : '-') + '</td>'
-      + '<td class="mt-comp-td-contrib ' + contribTone(c) + '">' + fmtContribution(c) + '</td>'
+      + '<td class="mt-comp-td-contrib' + (c == null ? '' : ' ' + contribTone(c)) + '">' + (c == null ? '-' : fmtContribution(c)) + '</td>'
       // 점수 0점은 폭 0%라 바가 통째로 안 보여 "로딩 실패"처럼 오해받기 쉬워서, 이 경우만
       // 최소 4px 폭을 줘서 "0점으로 정상 렌더링됐다"는 걸 눈으로 구분할 수 있게 한다.
       + '<td class="mt-comp-td-bar"><div class="mt-comp-bar-track"><div class="mt-comp-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div></div></td>'
