@@ -389,7 +389,15 @@
   }
 
   function fetchUsSearch(query) {
-    return fetch(US_API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=8')
+    var localRows = LOCAL_US_SYMBOLS.filter(function (row) {
+      return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(String(query || '').toLowerCase()) !== -1;
+    }).slice(0, 8).map(function (row) {
+      return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
+    });
+    var request = typeof global.fetch === 'function'
+      ? global.fetch(US_API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=8')
+      : Promise.reject(new Error('fetch unavailable'));
+    return request
       .then(function (response) {
         if (!response.ok) throw new Error('미국주식 검색 오류: ' + response.status);
         return response.json();
@@ -402,12 +410,7 @@
         return rows;
       })
       .catch(function () {
-        var needle = String(query || '').toLowerCase();
-        return LOCAL_US_SYMBOLS.filter(function (row) {
-          return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(needle) !== -1;
-        }).slice(0, 8).map(function (row) {
-          return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
-        });
+        return localRows;
       });
   }
 
