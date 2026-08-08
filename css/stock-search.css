@@ -69,6 +69,8 @@
 }
 #stock-search .ss-suggest-item:hover,
 #stock-search .ss-suggest-item.active { background: #f2f2f2; }
+#stock-search .ss-suggest-market { width: 22px; display: inline-flex; justify-content: center; font-size: 14px; }
+#stock-search .ss-suggest-code { margin-left: auto; color: #7a8791; font-size: 10px; letter-spacing: .04em; }
 
 /* ---- 아이콘 ---- */
 #stock-search .ss-icon {

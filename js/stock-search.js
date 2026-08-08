@@ -46,6 +46,16 @@
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
   var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js';
+  var US_API_BASE = 'https://goodbyestar.cloud';
+  var LOCAL_US_SYMBOLS = [
+    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
+    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia' },
+    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
+    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
+    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' }
+  ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
 
   var state = {
@@ -64,6 +74,7 @@
   var lwcLoadPromise = null;
   var lwcChart = null;
   var lwcCloudCleanup = null;
+  var suggestionRequestId = 0;
 
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
     if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
@@ -276,24 +287,33 @@
 
   function renderSuggestions(container, box, query) {
     if (!query || !global.KRX_MAP) { hideSuggestions(box); return; }
-    var matches = matchNames(query, 8);
-    if (!matches.length) { hideSuggestions(box); return; }
-
-    box.innerHTML = matches.map(function (name) {
-      return '<div class="ss-suggest-item" data-name="' + escapeAttr(name) + '">' + stockIconHtml(global.KRX_MAP[name]) + escapeHtml(name) + '</div>';
-    }).join('');
-    box.classList.add('active');
-    box.__activeIndex = -1;
-
-    box.querySelectorAll('.ss-suggest-item').forEach(function (el, i) {
-      el.addEventListener('mouseenter', function () {
-        setActiveSuggestion(box, box.querySelectorAll('.ss-suggest-item'), i);
-      });
-      el.addEventListener('click', function () {
-        var name = el.getAttribute('data-name');
-        container.querySelector('#ssInput').value = name;
-        hideSuggestions(box);
-        runSearch(container, name);
+    var requestId = ++suggestionRequestId;
+    var domesticRows = matchNames(query, 6).map(function (name) {
+      return { name: name, code: global.KRX_MAP[name], market: 'kr' };
+    });
+    fetchUsSearch(query).then(function (usRows) {
+      if (requestId !== suggestionRequestId) return;
+      var rows = domesticRows.concat(usRows).slice(0, 8);
+      if (!rows.length) { hideSuggestions(box); return; }
+      box.innerHTML = rows.map(function (row) {
+        var isUs = row.market === 'us' || /^US:/i.test(row.code);
+        return '<div class="ss-suggest-item" data-name="' + escapeAttr(row.name) + '" data-code="' + escapeAttr(row.code) + '">'
+          + (isUs ? '<span class="ss-suggest-market" aria-hidden="true">🇺🇸</span>' : stockIconHtml(row.code))
+          + escapeHtml(row.name) + (isUs ? '<small class="ss-suggest-code">' + escapeHtml(String(row.code).replace(/^US:/i, '')) + '</small>' : '')
+          + '</div>';
+      }).join('');
+      box.classList.add('active');
+      box.__activeIndex = -1;
+      box.querySelectorAll('.ss-suggest-item').forEach(function (el, i) {
+        el.addEventListener('mouseenter', function () {
+          setActiveSuggestion(box, box.querySelectorAll('.ss-suggest-item'), i);
+        });
+        el.addEventListener('click', function () {
+          var name = el.getAttribute('data-name');
+          container.querySelector('#ssInput').value = name;
+          hideSuggestions(box);
+          runSearch(container, el.getAttribute('data-code') || name);
+        });
       });
     });
   }
@@ -307,6 +327,22 @@
       openUsSymbol(container, query);
       return;
     }
+    if (!/^\d{6}$/.test(query)) {
+      resultsBox.innerHTML = '<div class="ss-hint"><div class="ss-spinner"></div>한국·미국 종목을 찾는 중...</div>';
+      fetchUsSearch(query).then(function (rows) {
+        if (rows.length) {
+          openUsSymbol(container, rows[0].code);
+          return;
+        }
+        runDomesticSearch(container, query);
+      }).catch(function () { runDomesticSearch(container, query); });
+      return;
+    }
+    runDomesticSearch(container, query);
+  }
+
+  function runDomesticSearch(container, query) {
+    var resultsBox = container.querySelector('#ssResults');
 
     var map = global.KRX_MAP || {};
     var names;
@@ -346,6 +382,29 @@
       })
       .catch(function () {
         resultsBox.innerHTML = '<div class="ss-hint ss-error">시세를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+      });
+  }
+
+  function fetchUsSearch(query) {
+    return fetch(US_API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=8')
+      .then(function (response) {
+        if (!response.ok) throw new Error('미국주식 검색 오류: ' + response.status);
+        return response.json();
+      })
+      .then(function (body) {
+        var rows = (body && body.data ? body.data : []).map(function (row) {
+          return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
+        });
+        if (!rows.length) throw new Error('미국주식 검색 결과 없음');
+        return rows;
+      })
+      .catch(function () {
+        var needle = String(query || '').toLowerCase();
+        return LOCAL_US_SYMBOLS.filter(function (row) {
+          return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(needle) !== -1;
+        }).slice(0, 8).map(function (row) {
+          return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
+        });
       });
   }
 

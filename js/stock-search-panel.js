@@ -372,9 +372,11 @@
         return response.json();
       })
       .then(function (body) {
-        return (body && body.data ? body.data : []).map(function (row) {
+        var rows = (body && body.data ? body.data : []).map(function (row) {
           return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
         });
+        if (!rows.length) throw new Error('미국주식 검색 결과 없음');
+        return rows;
       })
       .catch(function () {
         var needle = String(query || '').toLowerCase();
