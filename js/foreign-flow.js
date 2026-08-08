@@ -3267,18 +3267,21 @@
     function building(x, width, band, index) {
       // 건물의 세로 위치와 높이는 거래량이 아니라 이 가격 구간의 low/high를 그대로
       // 가격축에 매핑한다. 거래량은 창문 개수·농도로만 표현한다.
-      // 건물의 위치는 가격축에 맞추지 않고, 크기와 창문 밀도로 거래량을 표현한다.
+      // 참고 이미지처럼 층 슬래브·유리 파사드·로비를 넣되, 각 건물은 하나의 가격대다.
       var groundY = 379;
-      var height = 150 + Math.round(band.ratio * 90);
+      var height = 170 + Math.round(band.ratio * 105);
       var y = groundY - height;
-      var rows = Math.max(3, Math.min(7, 3 + Math.round(band.ratio * 4)));
+      var rows = Math.max(4, Math.min(9, 4 + Math.round(band.ratio * 5)));
       var cols = width >= 100 ? 4 : 3;
       var delay = ((Number(index) || 0) * -0.55).toFixed(2);
       var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
         + '<rect x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '" rx="2" />'
-        + '<path class="ff-apt-building-roof" d="M' + (x + 5) + ' ' + (y - 6) + ' H' + (x + width - 5) + '" />';
+        + '<path class="ff-apt-building-roof" d="M' + (x + 5) + ' ' + (y - 6) + ' H' + (x + width - 5) + '" />'
+        + '<path class="ff-apt-building-roof-cap" d="M' + (x + 12) + ' ' + (y - 10) + ' H' + (x + width - 12) + '" />'
+        + '<path class="ff-apt-building-frame" d="M' + (x + width / 2) + ' ' + (y + 4) + ' V' + (groundY - 8) + '" />';
+      var floorH = height / (rows + 1);
       var cellW = Math.max(7, (width - 16) / cols - 4);
-      var cellH = Math.max(8, (height - 24) / rows - 4);
+      var cellH = Math.max(8, Math.min(16, floorH - 7));
       var markerColumns = [];
       function markerRow(index) {
         var span = Math.max(1, band.end - band.start - 1);
@@ -3290,9 +3293,11 @@
       if (band.average) markerColumns.push({ col: Math.min(1, cols - 1), row: markerRow(avgIdx), type: 'average' });
       if (band.poc) markerColumns.push({ col: Math.min(2, cols - 1), row: markerRow(pocIdx), type: 'poc' });
       for (var row = 0; row < rows; row++) {
+        var floorY = y + (row + 1) * floorH;
+        html += '<path class="ff-apt-building-floor" d="M' + x + ' ' + floorY.toFixed(1) + ' H' + (x + width) + '" />';
         for (var col = 0; col < cols; col++) {
           var wx = x + 8 + col * (cellW + 4);
-          var wy = y + 10 + row * (cellH + 4);
+          var wy = floorY - cellH - 3;
           var isAccent = col === (row % cols) || (row + col) % Math.max(2, cols) === 0;
           var windowMarker = markerColumns.filter(function (item) { return item.col === col && row === item.row; })[0];
           var windowClass = isAccent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window';
@@ -3313,8 +3318,11 @@
           }
         }
       }
+      html += '<rect class="ff-apt-building-lobby" x="' + (x + width * .36) + '" y="' + (groundY - 27) + '" width="' + (width * .28) + '" height="20" rx="2" />'
+        + '<path class="ff-apt-building-lobby-door" d="M' + (x + width * .5) + ' ' + (groundY - 27) + ' V' + (groundY - 7) + '" />';
       html += '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 12) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
         + '<text class="ff-apt-building-volume" x="' + (x + width / 2) + '" y="' + (y - 1) + '" text-anchor="middle">' + Math.round(band.volume).toLocaleString('ko-KR') + '주</text>'
+        + '<text class="ff-apt-building-band" x="' + (x + width / 2) + '" y="' + (groundY + 7) + '" text-anchor="middle">' + aptBandLabel(band.start, n) + '</text>'
         + '</g>';
       return html;
     }
@@ -3393,7 +3401,7 @@
     var ladderDockX = 392;
     var ladderDockIndex = Math.max(0, Math.min(bandCount - 1, Math.round((ladderDockX - buildingInitialOffset - buildingStartX - buildingWidth / 2) / buildingStep)));
     var ladderDockBand = bands[ladderDockIndex];
-    var ladderDockHeight = 150 + Math.round((ladderDockBand ? ladderDockBand.ratio : 0) * 90);
+    var ladderDockHeight = 170 + Math.round((ladderDockBand ? ladderDockBand.ratio : 0) * 105);
     var ladderTopY = 110;
     var ladderBottomY = Math.max(ladderTopY + 28, 379 - ladderDockHeight - 6);
     var ladderRungs = '';
