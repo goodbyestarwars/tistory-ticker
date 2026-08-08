@@ -21,6 +21,7 @@
     { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
     { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
     { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
+    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
     { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
     { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd' },
     { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix' },

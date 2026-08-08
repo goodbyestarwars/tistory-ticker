@@ -54,7 +54,8 @@
     { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
     { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
     { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
-    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' }
+    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
+    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
 
