@@ -2581,6 +2581,30 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-illustration-building .ff-apt-building-side { fill: rgba(128,177,183,.38); stroke: #4d8f91; stroke-width: .8; opacity: .95; }
 #foreign-flow .ff-apt-building-glass-sheen { fill: rgba(255,255,255,.18); stroke: none; }
 #foreign-flow .ff-apt-building-reflection { fill: none; stroke: rgba(255,255,255,.72); stroke-width: 1.2; stroke-linecap: round; opacity: .75; }
+#foreign-flow .ff-apt-building-photo { opacity: .94; }
+#foreign-flow .ff-apt-building-photo-frame { fill: none; stroke: #4d8f91; stroke-width: 1; pointer-events: none; }
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-side { opacity: .16; }
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-glass-sheen,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-reflection,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-roof,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-roof-cap,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-roof-rail,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-frame,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-floor,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-slab,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-office-floor,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-ceiling-light,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-side-floor,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-illustration-window,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-window-highlight,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-desk,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-monitor,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-worker,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-worker-body,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-floor-label,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-lobby,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-lobby-door,
+#foreign-flow .ff-apt-illustration-building.photo-building .ff-apt-building-lobby-steps { display: none; }
 #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { fill: none; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-building-roof-cap { fill: none; stroke: #0f766e; stroke-width: 1.2; stroke-linecap: round; }
 #foreign-flow .ff-apt-building-roof-rail { fill: none; stroke: #69737a; stroke-width: .8; stroke-linecap: round; }
@@ -2606,6 +2630,9 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-illustration-building.current-band > rect:first-child { stroke: #0f766e; stroke-width: 2; }
 #foreign-flow .ff-apt-illustration-building.average-band > rect:first-child { stroke: #3b82f6; stroke-width: 1.6; }
 #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-child { stroke: #f08c46; stroke-width: 2; }
+#foreign-flow .ff-apt-illustration-building.current-band .ff-apt-building-photo-frame { stroke: #0f766e; stroke-width: 2; }
+#foreign-flow .ff-apt-illustration-building.average-band .ff-apt-building-photo-frame { stroke: #3b82f6; stroke-width: 1.6; }
+#foreign-flow .ff-apt-illustration-building.poc-band .ff-apt-building-photo-frame { stroke: #f08c46; stroke-width: 2; }
 #foreign-flow .ff-apt-illustration-building.current-band .ff-apt-building-sign rect { fill: #0f766e; stroke: #0f766e; }
 #foreign-flow .ff-apt-illustration-building.current-band .ff-apt-building-sign text { fill: #fff; }
 #foreign-flow .ff-apt-illustration-building.average-band .ff-apt-building-sign rect { fill: #3b82f6; stroke: #3b82f6; }
@@ -2702,6 +2729,8 @@ html.dark #foreign-flow .ff-apt-signal-dot { stroke: #262c2f; }
 html.dark #foreign-flow .ff-apt-signal-label { fill: #e3e7e8; }
 html.dark #foreign-flow .ff-apt-illustration-building rect:first-child { fill: rgba(48,91,94,.62); stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-side { fill: rgba(40,72,76,.72); stroke: #74c9b6; }
+html.dark #foreign-flow .ff-apt-building-photo { opacity: .82; }
+html.dark #foreign-flow .ff-apt-building-photo-frame { stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-glass-sheen { fill: rgba(255,255,255,.08); }
 html.dark #foreign-flow .ff-apt-building-reflection { stroke: rgba(180,236,226,.45); }
 html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { stroke: #9da5aa; }
