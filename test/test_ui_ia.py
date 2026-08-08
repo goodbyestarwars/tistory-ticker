@@ -233,7 +233,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
         for token in (
-            "market_temp_v5",
+            "market_temp_v6",
             "upsertDailyMarketTemp_(temp)",
             "readDailyMarketTempHistory_",
             "computeMarketTempHistory_(temp, dailyHistory)",
@@ -245,6 +245,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("추이 데이터 수집 중 (며칠 후부터 표시됩니다)", source)
         self.assertNotIn("며칠 후부터 표시됩니다", source)
         self.assertIn(".mt-spark-single", style)
+
+    def test_market_temperature_includes_kofia_credit_risk_component(self):
+        gas = self.read("gas/ticker-proxy.gs")
+        source = self.read("js/market-temp.js")
+        self.assertIn("creditRisk: 10", gas)
+        self.assertIn("function scoreKofiaCredit_(kofia)", gas)
+        self.assertIn("예탁금 대비 35% 미만", gas)
+        self.assertIn("key: 'creditRisk'", source)
+        self.assertIn("unit: 'creditRisk'", source)
+        self.assertIn("신용/예탁", source)
 
     def test_stock_search_minute_chart_shows_time_of_day(self):
         # 2026-08-05(3차) 사용자 리포트: 분봉 X축이 날짜만 반복 표시됨 - 분봉일 때만

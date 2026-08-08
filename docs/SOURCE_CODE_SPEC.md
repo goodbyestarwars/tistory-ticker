@@ -145,7 +145,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 
 ### 3.4 CacheService 사용 패턴
 
-공통 prefix `ticker_`(예외: `fundamentals_v1_{code}`). 스키마 변경 시 키 버전을 올리는 관례(`market_temp_v5`, `sub_index_analysis_v7` 등)가 지켜지고 있다. TTL은 항목별 60초(장중 시세)~3시간(AI 요약)까지 다양하며, `getForeignFlow`/`getShortPressure`/`getPensionFund`/`getPatternChart` 등 온디맨드 크롤링류는 서버 캐시가 없고 클라이언트 5분 디바운스에 의존한다.
+공통 prefix `ticker_`(예외: `fundamentals_v1_{code}`). 스키마 변경 시 키 버전을 올리는 관례(`market_temp_v6`, `sub_index_analysis_v7` 등)가 지켜지고 있다. TTL은 항목별 60초(장중 시세)~3시간(AI 요약)까지 다양하며, `getForeignFlow`/`getShortPressure`/`getPensionFund`/`getPatternChart` 등 온디맨드 크롤링류는 서버 캐시가 없고 클라이언트 5분 디바운스에 의존한다.
 
 ---
 

@@ -221,21 +221,6 @@
 }
 #market-temp .mt-ai-text { font-size: 15px; line-height: 1.6; color: #444; margin: 0; }
 #market-temp .mt-ai-empty { color: #aaa; }
-#market-temp .mt-kofia-context {
-  grid-column: 1 / -1;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(107, 114, 128, .14);
-}
-#market-temp .mt-kofia-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-#market-temp .mt-kofia-head span { color: #666; font-size: 12px; font-weight: 700; }
-#market-temp .mt-kofia-head small { color: #aaa; font-size: 10px; }
-#market-temp .mt-kofia-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-#market-temp .mt-kofia-metric { min-width: 0; display: flex; align-items: baseline; gap: 7px; padding: 10px 12px; border-radius: 9px; background: #f8fafc; }
-#market-temp .mt-kofia-label { color: #777; font-size: 11px; white-space: nowrap; }
-#market-temp .mt-kofia-metric strong { color: #374151; font-size: 14px; }
-#market-temp .mt-kofia-delta { font-size: 10px; font-weight: 700; }
-#market-temp .mt-kofia-note { margin: 8px 0 0; color: #aaa; font-size: 10px; line-height: 1.5; }
 
 /* ================= ①-2 온도 게이지 (Hero 카드 안에 병합, .mt-hero-card 참고) ================= */
 #market-temp .mt-gauge { margin: 0; }
@@ -497,7 +482,6 @@
   #market-temp .mt-hero-history { padding-top: 14px; }
   #market-temp .mt-hero-history::before { left: 0; right: 0; top: 0; bottom: auto; border-left: none; border-top: 1px solid rgba(107, 114, 128, .16); }
   #market-temp .mt-briefing-strategy-grid { grid-template-columns: 1fr; gap: 16px; }
-  #market-temp .mt-kofia-grid { grid-template-columns: 1fr; }
   #market-temp .mt-strategy-panel { border-top: 1px solid rgba(107, 114, 128, .16); border-left: none; padding-top: 16px; padding-left: 0; }
 }
 
@@ -564,13 +548,6 @@ html.dark #market-temp .mt-strategy-panel { border-color: rgba(245, 239, 224, 0.
 
 html.dark #market-temp .mt-ai-text { color: rgba(245, 239, 224, 0.8) !important; }
 html.dark #market-temp .mt-ai-empty { color: rgba(245, 239, 224, 0.45) !important; }
-html.dark #market-temp .mt-kofia-context { border-color: rgba(245, 239, 224, 0.16) !important; }
-html.dark #market-temp .mt-kofia-head span { color: rgba(245, 239, 224, 0.65) !important; }
-html.dark #market-temp .mt-kofia-head small,
-html.dark #market-temp .mt-kofia-note { color: rgba(245, 239, 224, 0.45) !important; }
-html.dark #market-temp .mt-kofia-metric { background: rgba(245, 239, 224, 0.08) !important; }
-html.dark #market-temp .mt-kofia-label { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #market-temp .mt-kofia-metric strong { color: #F5EFE0 !important; }
 
 html.dark #market-temp .mt-comp-tr { border-color: rgba(245, 239, 224, 0.14) !important; }
 html.dark #market-temp .mt-comp-tr-top { background: rgba(251, 140, 0, 0.1) !important; }

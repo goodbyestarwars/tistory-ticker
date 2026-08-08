@@ -1171,7 +1171,7 @@ function getSubIndexAnalysis() {
 // 있지만 실제 풀은 238개라 코드는 그 실제 값을 그대로 쓴다(238 하드코딩 아님 - 풀이 늘면
 // 자동 반영).
 // 배점(문서 그대로): VIX20 + 수급(외국인75%+기관25% 통합)20 + 거래대금15 + 평균등락률15 +
-// 상승비율10 + 섹터강도10 + 52주신고저10 + 환율5 + 미국선물5 = 110점. 문서에는 "총점 100점"
+// 상승비율10 + 섹터강도10 + 52주신고저10 + 환율5 + 미국선물5 + 빚투위험도10 = 120점. 문서에는 "총점 100점"
 // 이라 적혀 있지만 항목을 다 더하면 110이라(사용자에게 확인 후 결정) 온도 환산식을
 // "총점 x (40/실제만점)"으로 자기보정하게 만들어서, 만점이 100이든 110이든 105든 항상
 // 만점=40.0℃가 되도록 했다 - 나중에 배점을 또 조정해도 이 식은 안 깨짐.
@@ -1191,8 +1191,72 @@ var MT_DAILY_HISTORY_KEY = 'mt_daily_history_v1'; // 전일 대비/1주일·1개
 var MT_DAILY_HISTORY_MAX = 35; // 1개월(30일) 평균 계산 + 여유분
 var MT_COMPONENT_MAX = { // 지표별 배점(문서 그대로) - 합계가 온도 환산의 실제 만점 기준이 됨
   vix: 20, flow: 20, tradingValue: 15, avgChange: 15,
-  riseRatio: 10, sectorStrength: 10, week52: 10, exchange: 5, usFutures: 5
+  riseRatio: 10, sectorStrength: 10, week52: 10, exchange: 5, usFutures: 5,
+  creditRisk: 10
 };
+
+// 빚투 위험도는 절대 잔고 하나가 아니라 최근 추세·예탁금 대비 비율·반대매매 비중을 함께 본다.
+// 아래 값은 규제 기준이 아니라 시장온도용 운영 기준이다.
+function scoreKofiaCredit_(kofia) {
+  var empty = { available: false, score: null, max: 10 };
+  if (!kofia || !kofia.available) return empty;
+
+  var credit = kofia.credit || {};
+  var funds = kofia.market_funds || {};
+  var loan = typeof credit.loan_total === 'number' ? credit.loan_total : null;
+  var deposits = typeof funds.investor_deposits === 'number' ? funds.investor_deposits : null;
+  var forcedSale = typeof funds.forced_sale_ratio_pct === 'number' ? funds.forced_sale_ratio_pct : null;
+  if (loan == null && deposits == null && forcedSale == null) return empty;
+
+  var series = Array.isArray(kofia.series) ? kofia.series : [];
+  var loanValues = series.map(function (item) {
+    return item && item.credit && typeof item.credit.loan_total === 'number' ? item.credit.loan_total : null;
+  }).filter(function (value) { return value != null; });
+  var priorLoanValues = loanValues.slice(Math.max(0, loanValues.length - 21), Math.max(0, loanValues.length - 1));
+  var priorAvg = priorLoanValues.length
+    ? priorLoanValues.reduce(function (sum, value) { return sum + value; }, 0) / priorLoanValues.length
+    : null;
+  var loanVsAvgPct = loan != null && priorAvg ? (loan / priorAvg - 1) * 100 : null;
+  var loanToDepositPct = loan != null && deposits > 0 ? (loan * 1000000 / deposits) * 100 : null;
+
+  var riskPoints = 0;
+  var maxRiskPoints = 0;
+  var danger = false;
+  var cautionHit = false;
+  function addRisk(value, cautionLevel, dangerLevel, weight) {
+    if (value == null) return;
+    maxRiskPoints += weight;
+    if (value >= dangerLevel) {
+      riskPoints += weight;
+      danger = true;
+    } else if (value >= cautionLevel) {
+      riskPoints += weight * 0.5;
+      cautionHit = true;
+    }
+  }
+  addRisk(loanVsAvgPct, 5, 10, 4);
+  addRisk(loanToDepositPct, 35, 45, 4);
+  addRisk(forcedSale, 10, 15, 2);
+
+  var riskRatio = maxRiskPoints ? riskPoints / maxRiskPoints : 0.5;
+  var score = Math.round((10 - riskRatio * 10) * 10) / 10;
+  var state = danger || riskRatio >= 0.55 ? 'overheated' : cautionHit || riskRatio >= 0.25 ? 'caution' : 'stable';
+  var stateLabel = state === 'overheated' ? '과열' : state === 'caution' ? '주의' : '안정';
+  var criteria = '안정: 예탁금 대비 35% 미만·최근 평균 대비 +5% 미만·반대매매 비중 10% 미만 / 과열: 45% 이상·+10% 이상·15% 이상 중 하나';
+  return {
+    available: true,
+    score: score,
+    max: 10,
+    state: state,
+    stateLabel: stateLabel,
+    band: stateLabel,
+    loan_total: loan,
+    loan_vs_avg_pct: loanVsAvgPct,
+    loan_to_deposit_pct: loanToDepositPct,
+    forced_sale_ratio_pct: forcedSale,
+    criteria: criteria
+  };
+}
 
 function getMarketTemp() {
   var cache = CacheService.getScriptCache();
@@ -1200,7 +1264,7 @@ function getMarketTemp() {
   // 응답에 recentDays/band 필드 추가 - 재배포해도 CacheService는 자동으로 안 비워지므로
   // (실측: 재배포 후에도 30분간 옛 스키마가 그대로 응답됨) 스키마 바뀔 때마다 캐시 키도
   // 같이 올려야 함(이 프로젝트 반복 관례, news_ 캐시 키 이력 참고).
-  var cacheKey = CACHE_PREFIX + 'market_temp_v5';
+  var cacheKey = CACHE_PREFIX + 'market_temp_v6';
   var cached = cache.get(cacheKey);
   if (cached) {
     var parsedCache_ = parseCachedJson_(cached);
@@ -1227,15 +1291,20 @@ function getMarketTemp() {
   var week52 = computeWeek52Score_();
   var fx = computeExchangeScore_();
   var futures = computeUsFuturesScore_();
-  // KOFIA는 실시간 점수에 섞지 않고, 마지막 시장 브리핑의 자금 맥락만 보완한다.
+  // KOFIA는 실시간 시세를 대체하지 않지만, 확인 가능한 경우 빚투 위험도 10점으로 온도에 반영한다.
   var kofia = safeCall(fetchKofiaMarketFromVm_) || null;
+  var creditRisk = scoreKofiaCredit_(kofia);
 
   var maxPossible = 0;
-  Object.keys(MT_COMPONENT_MAX).forEach(function (k) { maxPossible += MT_COMPONENT_MAX[k]; });
+  Object.keys(MT_COMPONENT_MAX).forEach(function (k) {
+    if (k === 'creditRisk' && !creditRisk.available) return;
+    maxPossible += MT_COMPONENT_MAX[k];
+  });
 
   var total = Math.max(0, Math.min(maxPossible,
     vix.score + flow.score + vol.score + avgChange.score + rise.score
-    + sectorStrength.score + week52.score + fx.score + futures.score));
+    + sectorStrength.score + week52.score + fx.score + futures.score
+    + (creditRisk.available ? creditRisk.score : 0)));
   var temp = Math.round(total * (40 / maxPossible) * 10) / 10; // 만점(maxPossible) -> 40.0℃로 항상 정규화
 
   var dailyHistory = upsertDailyMarketTemp_(temp);
@@ -1248,7 +1317,7 @@ function getMarketTemp() {
     components: {
       vix: vix, flow: flow, tradingValue: vol, avgChange: avgChange,
       riseRatio: rise, sectorStrength: sectorStrength, week52: week52,
-      exchange: fx, usFutures: futures
+      exchange: fx, usFutures: futures, creditRisk: creditRisk
     },
     kofia: kofia,
     history: computeMarketTempHistory_(temp, dailyHistory),
@@ -1381,7 +1450,7 @@ function getMarketTempBriefing() {
   var LABELS = {
     vix: 'VIX', flow: '수급(외국인+기관)', tradingValue: '거래대금', avgChange: '평균등락률',
     riseRatio: '상승비율', sectorStrength: '섹터강도', week52: '52주 신고가/신저가',
-    exchange: '환율', usFutures: '미국 선물지수'
+    exchange: '환율', usFutures: '미국 선물지수', creditRisk: '빚투 위험도'
   };
   var contributions = Object.keys(MT_COMPONENT_MAX).map(function (key) {
     var comp = data.components[key];

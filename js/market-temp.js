@@ -1,7 +1,7 @@
 /**
  * 오늘의 증시온도 위젯 (2026-07-18 전면 개편)
- * GAS 프록시 ?marketTemp=1 호출 -> 9개 지표(VIX20+수급20+거래대금15+평균등락률15+상승비율10
- * +섹터강도10+52주신고저10+환율5+미국선물5=110점)를 0~40℃로 환산해 온도 카드로 렌더링하는
+ * GAS 프록시 ?marketTemp=1 호출 -> 기본 지표와 KOFIA 빚투 위험도(10점)를
+ * 실제 만점 기준으로 0~40℃로 환산해 온도 카드로 렌더링하는
  * 구조 자체는 유지. 이번 개편은 "정보는 있는데 3초 안에 안 읽힌다"는 피드백에 따라 CNN
  * Fear&Greed Index 스타일의 대표 콘텐츠로 재구성한 것 - 백엔드 계산은 대부분 그대로 두고
  * (gas/ticker-proxy.gs getMarketTemp), 응답에 recentDays(스파크라인용)와 지표별 band
@@ -33,7 +33,7 @@
   // (사용자 실측 재현: "항상 2번 리플레시 해야 뜸"). foreign-flow.js/pension-fund.js 등
   // 여러 소스를 조합하는 다른 무거운 위젯들도 이미 20000을 쓰고 있어 그 값에 맞춤.
   var FETCH_TIMEOUT_MS = 20000;
-  var GAUGE_MAX_TEMP = 40; // 서버가 실제 만점(현재 110점) 기준으로 이미 0~40℃로 정규화해서 내려줌
+  var GAUGE_MAX_TEMP = 40; // 서버가 실제 만점 기준으로 이미 0~40℃로 정규화해서 내려줌
   var sectorConfigPromise = null;
   var sparklineId = 0;
 
@@ -61,7 +61,9 @@
     { key: 'exchange', label: '환율', max: 5, unit: 'pct', icon: '💵', barClass: 'mt-bar-fx',
       desc: '원/달러 환율 전일 대비 등락률(원화 강세=환율 하락일수록 가점)' },
     { key: 'usFutures', label: '미국 선물지수', max: 5, unit: 'pct', icon: '🌎', barClass: 'mt-bar-fx',
-      desc: 'S&P500 E-mini 선물(ES=F) 등락률, 시간대별 가중치 적용 - 미국장 마감~한국장 개장 사이 선행지표' }
+      desc: 'S&P500 E-mini 선물(ES=F) 등락률, 시간대별 가중치 적용 - 미국장 마감~한국장 개장 사이 선행지표' },
+    { key: 'creditRisk', label: '빚투 위험도', max: 10, unit: 'creditRisk', icon: '💳', barClass: 'mt-bar-vix',
+      desc: '신용융자 추세·예탁금 대비 비율·반대매매 비중을 합산한 시장 레버리지 위험도. 안정/주의/과열은 운영 기준입니다.' }
   ];
   var COMPONENT_BY_KEY = {};
   COMPONENT_META.forEach(function (m) { COMPONENT_BY_KEY[m.key] = m; });
@@ -230,6 +232,16 @@
       return { text: parts.join(' · '), tone: flowTone };
     }
 
+    if (meta.unit === 'creditRisk') {
+      if (!comp.available || typeof comp.score !== 'number') return null;
+      var riskTone = comp.state === 'stable' ? 'mt-val-pos'
+        : comp.state === 'overheated' ? 'mt-val-neg' : 'mt-val-zero';
+      var ratioText = typeof comp.loan_to_deposit_pct === 'number'
+        ? ' · 신용/예탁 ' + comp.loan_to_deposit_pct.toFixed(1) + '%'
+        : '';
+      return { text: (comp.stateLabel || '판단 보류') + ratioText, tone: riskTone };
+    }
+
     // unit === 'pct'
     var v = typeof comp.changeRate === 'number' ? comp.changeRate
       : typeof comp.changePct === 'number' ? comp.changePct
@@ -396,7 +408,7 @@
   }
 
   // ---- ③ 시장 구성 요소 (2026-07-18 5차: "오늘 시장 영향요인 TOP5"와 중복이라는 지적에
-  // 따라 별도 섹션을 없애고 하나로 합침 - 9개 지표를 |기여도| 내림차순으로 정렬한 표
+  // 따라 별도 섹션을 없애고 하나로 합침 - 10개 지표를 |기여도| 내림차순으로 정렬한 표
   // 하나로 통합하면 자연스럽게 "영향 큰 순서"가 되어 TOP5 리스트가 따로 필요 없다.
   // 카드형 대신 표 형태로(사용자 요청) - 상위 3개 행은 은은한 강조 배경으로 표시해
   // "오늘 가장 큰 영향을 준 지표"를 여전히 한눈에 알아볼 수 있게 한다. ----
@@ -407,7 +419,9 @@
     var raw = formatRaw(meta, comp);
     var c = contribution(meta, comp);
     var band = comp && comp.band ? comp.band : null;
-    var tooltip = meta.desc + (band ? ' — 현재 구간: ' + band : '');
+    var tooltip = meta.desc + (band ? ' — 현재 구간: ' + band : '')
+      + (comp && comp.criteria ? ' 기준: ' + comp.criteria : '')
+      + (comp && typeof comp.loan_total === 'number' ? ' 현재 신용융자 잔고: ' + (comp.loan_total / 1000000).toFixed(2) + '조원' : '');
 
     return ''
       + '<tr class="mt-comp-tr' + (rank < 3 ? ' mt-comp-tr-top' : '') + '">'
@@ -622,62 +636,12 @@
       + '</div>';
   }
 
-  function formatKofiaAmount_(value, unit) {
-    if (typeof value !== 'number' || !isFinite(value)) return '-';
-    if (unit === 'pct') return value.toFixed(1) + '%';
-    var trillion = unit === 'million_krw' ? value / 1000000 : value / 1000000000000;
-    return (trillion >= 100 ? trillion.toFixed(0) : trillion.toFixed(2)) + '조원';
-  }
-
-  function kofiaChange_(series, bucket, field) {
-    var values = (series || []).map(function (item) {
-      return item && item[bucket] && typeof item[bucket][field] === 'number' ? item[bucket][field] : null;
-    }).filter(function (value) { return value !== null; });
-    if (values.length < 2 || values[values.length - 2] === 0) return null;
-    return (values[values.length - 1] - values[values.length - 2]) / Math.abs(values[values.length - 2]) * 100;
-  }
-
-  function buildKofiaMetric_(label, value, unit, change, polarity) {
-    if (typeof value !== 'number') return '';
-    var tone = 'mt-val-zero';
-    if (typeof change === 'number' && Math.abs(change) >= 0.01) {
-      var isGood = polarity === 'goodWhenUp' ? change > 0 : change < 0;
-      tone = isGood ? 'mt-val-pos' : 'mt-val-neg';
-    }
-    var delta = typeof change === 'number'
-      ? '<span class="mt-kofia-delta ' + tone + '">' + (change > 0 ? '+' : '') + change.toFixed(1) + '%</span>'
-      : '';
-    return '<div class="mt-kofia-metric">'
-      + '<span class="mt-kofia-label">' + escapeHtml(label) + '</span>'
-      + '<strong>' + escapeHtml(formatKofiaAmount_(value, unit)) + '</strong>'
-      + delta
-      + '</div>';
-  }
-
-  function buildKofiaContext(data) {
-    var kofia = data && data.kofia;
-    if (!kofia || !kofia.available || (!kofia.credit && !kofia.market_funds)) return '';
-    var credit = kofia.credit || {};
-    var funds = kofia.market_funds || {};
-    var series = kofia.series || [];
-    return '<div class="mt-kofia-context">'
-      + '<div class="mt-kofia-head"><span>공공데이터 보조지표</span><small>금융투자협회 · ' + escapeHtml(kofia.latest_date || '-') + '</small></div>'
-      + '<div class="mt-kofia-grid">'
-      + buildKofiaMetric_('신용융자 잔고', credit.loan_total, 'million_krw', kofiaChange_(series, 'credit', 'loan_total'), 'goodWhenDown')
-      + buildKofiaMetric_('투자자예탁금', funds.investor_deposits, 'krw', kofiaChange_(series, 'market_funds', 'investor_deposits'), 'goodWhenUp')
-      + buildKofiaMetric_('반대매매 비중', funds.forced_sale_ratio_pct, 'pct', null, 'badWhenUp')
-      + '</div>'
-      + '<p class="mt-kofia-note">실시간 시세가 아닌 시장 자금 흐름 참고값입니다. 신용융자 증가는 과열·위험 신호로 해석합니다.</p>'
-      + '</div>';
-  }
-
-  function buildBriefingStrategy(data, grade) {
+  function buildBriefingStrategy(grade) {
     return '<div class="mt-section mt-card mt-briefing-strategy-card">'
       + '<div class="mt-briefing-strategy-grid">'
       + buildAiBriefingShell()
       + buildStrategy(grade)
       + '</div>'
-      + buildKofiaContext(data)
       + '</div>';
   }
 
@@ -1199,7 +1163,7 @@
     var sections = [
       buildHeroCard(data),                          // ① 오늘의 온도 | 과거→오늘 흐름 꼬리
       row2col(buildBars(data), buildRadar(data)),   // ② 시장 구성요소(표) | 시장 레이더 (좌우)
-      buildBriefingStrategy(data, grade),           // ③ 시장 브리핑 + 오늘의 전략(마지막)
+      buildBriefingStrategy(grade),                 // ③ 시장 브리핑 + 오늘의 전략(마지막)
     ];
 
     return ''
