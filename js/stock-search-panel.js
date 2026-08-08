@@ -79,7 +79,8 @@
   };
   function stockIconHtml(code) {
     if (!code) return '';
-    return '<img class="nav-search-suggest-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+    var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
+    return '<img class="nav-search-suggest-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
   }
 
   // ---- KRX_MAP 지연 로드 ----
@@ -253,7 +254,7 @@
     var isUs = market === 'us' || String(code || '').indexOf('US:') === 0;
     var fav = !isUs && isFavorite(code);
     return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
-      + (isUs ? '<span class="nav-search-suggest-market" aria-hidden="true">🇺🇸</span>' : stockIconHtml(code))
+      + stockIconHtml(code)
       + '<span class="nav-search-suggest-name">' + escapeHtml(name) + '</span>'
       + (isUs ? '<span class="nav-search-suggest-code">' + escapeHtml(String(code).replace(/^US:/, '')) + '</span>' : '')
       + '<span class="nav-search-rate-badge" data-rate-code="' + escapeAttr(code) + '"></span>'
