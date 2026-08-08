@@ -81,10 +81,11 @@ class UsStockTests(unittest.TestCase):
         ]}
         with mock.patch.dict(os.environ, {'KIWOOM_APPKEY': 'key', 'KIWOOM_SECRETKEY': 'secret'}), \
              mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='token'), \
-             mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response):
+             mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response) as call_tr:
             data = us_stocks.chart('AAPL', 'minute')
         self.assertEqual(len(data['points']), 2)
         self.assertEqual(data['points'][0]['price'], 201.5)
+        self.assertEqual(call_tr.call_args.args[1:3], ('usa06011', '/api/us/chart'))
 
     def test_invalid_symbol_is_rejected(self):
         with self.assertRaises(ValueError):

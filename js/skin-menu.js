@@ -16,13 +16,6 @@
         { href: '/pages/kospi-futures', label: '코스피 선물' }
       ]
     },
-    {
-      label: '종목',
-      children: [
-        { href: '/page/foreign-flow', label: '종목분석' },
-        { href: '/page/stock-search', label: '실시간 시세' }
-      ]
-    },
     { href: '/page/stock-search?market=us', label: '미국주식' },
     {
       label: '종목검색',
@@ -34,6 +27,10 @@
     { href: '/page/stock-calendar', label: '캘린더' },
     { href: '/guestbook', label: '커뮤니티' }
   ];
+
+  // 기존 직접 링크는 유지한다. 상단 메뉴에서는 숨기지만 북마크·검색 결과가
+  // 사용하는 페이지 주소를 바꾸지 않아 기존 진입 경로가 끊기지 않게 한다.
+  var LEGACY_PAGE_URLS = ['/page/foreign-flow', '/page/stock-search'];
 
   var SEARCH_HTML = ''
     + '<div class="nav-search-wrap">'

@@ -319,7 +319,10 @@ def chart(symbol, timeframe='minute'):
         raise UsStockUnavailable('키움증권 인증정보가 없습니다.')
     token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
     api_id = 'usa06011' if timeframe == 'minute' else 'usa06012'
-    start_date = (datetime.now(NY_TZ).date() - timedelta(days=120)).strftime('%Y%m%d')
+    today = datetime.now(NY_TZ).date()
+    # 미국 분봉 API는 장기간을 한 번에 요청하면 정상 코드(0)여도
+    # result_list가 비어 온다. 분봉은 오늘 데이터만, 일봉은 120일 범위를 요청한다.
+    start_date = today.strftime('%Y%m%d') if timeframe == 'minute' else (today - timedelta(days=120)).strftime('%Y%m%d')
     last_error = None
     for exchange in _kiwoom_exchange_candidates(symbol):
         body = {
@@ -329,7 +332,7 @@ def chart(symbol, timeframe='minute'):
         if timeframe == 'minute':
             body['tic_scope'] = '1'
         try:
-            response = kiwoom_client.call_tr(token, api_id, '/api/us/mrkcond', body)
+            response = kiwoom_client.call_tr(token, api_id, '/api/us/chart', body)
             rows = _records(response)
             points = []
             for row in rows:

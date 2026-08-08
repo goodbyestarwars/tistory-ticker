@@ -9,6 +9,8 @@
   var API_BASE = 'https://goodbyestar.cloud';
   var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css';
   var REFRESH_MS = 15000;
+  var LAST_SYMBOL_KEY = 'us:lastSelected';
+  var DEFAULT_SYMBOL = 'AAPL';
   var state = { container: null, symbol: null, refreshTimer: null, initialized: false };
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
@@ -37,7 +39,6 @@
       if (/증시검색|실시간 시세/.test(title.textContent.trim())) title.textContent = '미국주식';
     });
     container.innerHTML = buildShell();
-    wireSearch();
     autoSelect();
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stopRefresh();
@@ -57,12 +58,7 @@
   function buildShell() {
     return '<section class="us-stocks-shell">'
       + '<div class="us-stocks-heading"><div><span class="us-stocks-eyebrow">US MARKET</span><h2>미국주식</h2></div>'
-      + '<span class="us-stocks-note">검색 · 실시간 시세</span></div>'
-      + '<div class="us-stocks-search">'
-      + '<div class="us-stocks-input-wrap"><input id="usStocksInput" type="search" autocomplete="off" placeholder="애플, AAPL, MSFT, NVDA 검색" aria-label="미국주식 검색" />'
-      + '<div id="usStocksSuggest" class="us-stocks-suggest"></div></div>'
-      + '<button id="usStocksSearchBtn" type="button">검색</button></div>'
-      + '<div id="usStocksResults" class="us-stocks-results"><div class="us-stocks-empty">미국 종목명이나 티커를 검색해보세요.</div></div>'
+      + '<span class="us-stocks-note">상단 종목검색에서 한국·미국 종목을 함께 찾을 수 있습니다.</span></div>'
       + '<div id="usStocksDetail" class="us-stocks-detail" hidden></div>'
       + '<p class="us-stocks-disclaimer">키움증권 1차 · 한국투자증권 2차 · 증권사 API 상태와 거래소 시간대에 따라 지연될 수 있습니다.</p>'
       + '</section>';
@@ -86,11 +82,15 @@
   function autoSelect() {
     var params = new URLSearchParams(location.search);
     var code = (params.get('code') || '').trim();
-    if (!/^US:/i.test(code)) return;
-    var symbol = code.slice(3).toUpperCase();
-    var input = document.querySelector('#usStocksInput');
-    if (input) input.value = params.get('name') || symbol;
-    select(symbol);
+    var symbol = /^US:/i.test(code) ? code.slice(3).toUpperCase() : readLastSymbol();
+    select(symbol || DEFAULT_SYMBOL);
+  }
+
+  function readLastSymbol() {
+    try {
+      var value = String(localStorage.getItem(LAST_SYMBOL_KEY) || '').toUpperCase();
+      return /^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(value) ? value : '';
+    } catch (err) { return ''; }
   }
 
   function searchSuggestions(query) {
@@ -178,6 +178,7 @@
   function select(symbol) {
     stopRefresh();
     state.symbol = String(symbol || '').toUpperCase().replace(/^US:/, '');
+    try { localStorage.setItem(LAST_SYMBOL_KEY, state.symbol); } catch (err) { /* 저장소가 막힌 환경도 조회는 계속한다. */ }
     var detail = document.querySelector('#usStocksDetail');
     if (!detail) return;
     detail.hidden = false;
@@ -265,7 +266,14 @@
   function loadChart() {
     if (!state.symbol) return;
     fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(state.symbol) + '?timeframe=minute')
-      .then(renderChart)
+      .then(function (chart) {
+        if (chart && chart.points && chart.points.length >= 2) {
+          renderChart(chart);
+          return null;
+        }
+        return fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(state.symbol) + '?timeframe=daily');
+      })
+      .then(function (chart) { if (chart) renderChart(chart); })
       .catch(function () {
         var mount = document.querySelector('#usStocksChart');
         if (mount) mount.innerHTML = '<div class="us-stocks-empty">차트 데이터를 확인할 수 없습니다.</div>';
@@ -279,7 +287,7 @@
       if (mount) mount.innerHTML = '<div class="us-stocks-empty">차트 데이터가 없습니다.</div>';
       return;
     }
-    var width = 720, height = 250, pad = 18;
+    var width = 720, height = 190, pad = 14;
     var prices = points.map(function (point) { return Number(point.price); });
     var min = Math.min.apply(Math, prices), max = Math.max.apply(Math, prices);
     var range = max - min || 1;

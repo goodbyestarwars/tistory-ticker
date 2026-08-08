@@ -18,13 +18,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
             re.MULTILINE,
         )
         self.assertEqual(source.count("      label: '시장',"), 1)
-        self.assertEqual(source.count("      label: '종목',"), 1)
+        self.assertNotIn("      label: '종목',", source)
         self.assertEqual(source.count("      label: '종목검색',"), 1)
         self.assertNotIn("label: '종목뉴스'", source)
-        self.assertIn("label: '실시간 시세'", source)
+        self.assertNotIn("label: '실시간 시세'", source)
         self.assertNotIn("{ href: '/page/watchlist', label: 'MY' }", source)
         self.assertIn("{ href: '/page/stock-search?market=us', label: '미국주식' }", source)
-        self.assertEqual(len(primary_labels), 7)
+        self.assertEqual(len(primary_labels), 6)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")
