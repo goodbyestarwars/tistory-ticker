@@ -936,15 +936,6 @@ def foreign_flow_endpoint(request: Request, code: str = Path(..., min_length=6, 
     result = foreign_flow_compute.build_result(code, daily)
     if result is None:
         raise HTTPException(status_code=404, detail='수급 데이터를 찾을 수 없습니다.')
-    # 국민연금 연말 보유 현황은 매매 흐름과 다른 성격의 장기 보조 지표다.
-    # 공공데이터가 없거나 이름이 전달되지 않은 경우에는 기존 응답을 그대로 유지한다.
-    if name:
-        try:
-            official_holding = public_data.fetch_nps_holding(name)
-            if official_holding:
-                result.setdefault('pension', {})['official_holding'] = official_holding
-        except Exception as exc:
-            logging.getLogger('main').info('국민연금 보조정보 생략(%s): %s', code, exc)
     _live_cache_put(_foreign_flow_cache_mem, cache_key, result)
     return envelope(result)
 
