@@ -242,8 +242,8 @@
         + '<div class="us-stocks-live-footer"><span>15초 자동 갱신</span><span data-us-updated></span><span data-us-source></span></div>'
         + '</div>'
         + '<div class="us-stocks-market-grid">'
-        + '<section class="us-stocks-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>키움 10호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">호가를 불러오는 중...</div></div></section>'
-        + '<section class="us-stocks-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
+        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>키움 10호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">호가를 불러오는 중...</div></div></section>'
+        + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
         + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">차트를 불러오는 중...</div></div></section>'
         + '</div>'
         + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 헤드라인</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">뉴스를 불러오는 중...</div></div></section>';
