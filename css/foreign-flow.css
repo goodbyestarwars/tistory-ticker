@@ -2577,13 +2577,13 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
   0%, 100% { transform: translateX(-1px) translateY(0); }
   50% { transform: translateX(2px) translateY(-3px); }
 }
-#foreign-flow .ff-apt-illustration-building rect:first-child { fill: rgba(203,232,234,.7); stroke: #4d8f91; stroke-width: 1; }
-#foreign-flow .ff-apt-illustration-building .ff-apt-building-side { fill: rgba(171,207,210,.78); stroke: #4d8f91; stroke-width: .8; opacity: .9; }
+#foreign-flow .ff-apt-illustration-building rect:first-child { fill: #f7f8f8; stroke: #69737a; stroke-width: 1; }
+#foreign-flow .ff-apt-illustration-building .ff-apt-building-side { fill: #e3e7e8; stroke: #69737a; stroke-width: .8; opacity: .9; }
 #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { fill: none; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-building-roof-cap { fill: none; stroke: #0f766e; stroke-width: 1.2; stroke-linecap: round; }
 #foreign-flow .ff-apt-building-frame,
-#foreign-flow .ff-apt-building-floor { fill: none; stroke: #6b9da0; stroke-width: .7; opacity: .82; }
-#foreign-flow .ff-apt-building-frame { stroke: #3f7476; stroke-width: .9; opacity: .72; }
+#foreign-flow .ff-apt-building-floor { fill: none; stroke: #9da5aa; stroke-width: .65; opacity: .8; }
+#foreign-flow .ff-apt-building-frame { stroke: #69737a; stroke-width: .9; opacity: .72; }
 #foreign-flow .ff-apt-building-lobby { fill: rgba(183,217,210,.45); stroke: #0f766e; stroke-width: .8; }
 #foreign-flow .ff-apt-building-lobby-door { fill: none; stroke: #0f766e; stroke-width: .7; }
 #foreign-flow .ff-apt-building-sign rect { fill: #fff; stroke: #69737a; stroke-width: .8; }
@@ -2624,8 +2624,8 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-window-marker-label.current { fill: #0f766e; }
 #foreign-flow .ff-apt-window-marker-label.average { fill: #2563eb; }
 #foreign-flow .ff-apt-window-marker-label.poc { fill: #e8590c; }
-#foreign-flow .ff-apt-illustration-window { fill: rgba(239,251,251,.78); stroke: #6b9da0; stroke-width: .8; }
-#foreign-flow .ff-apt-illustration-window.accent { fill: rgba(123,199,195,.72); stroke: #0f766e; }
+#foreign-flow .ff-apt-illustration-window { fill: #fff; stroke: #9da5aa; stroke-width: .8; }
+#foreign-flow .ff-apt-illustration-window.accent { fill: #b7d9d2; stroke: #0f766e; }
 #foreign-flow .ff-apt-illustration-ground { fill: none; stroke: #737b80; stroke-width: 1.1; }
 #foreign-flow .ff-apt-illustration-ribbon { fill: none; stroke: #0f766e; stroke-width: 1.4; stroke-dasharray: 6 4; }
 #foreign-flow .ff-apt-illustration-node { fill: #f59f00; stroke: #fff; stroke-width: 2; }
@@ -2687,8 +2687,8 @@ html.dark #foreign-flow .ff-apt-illustration-profile-title { fill: #f5efe0; }
 html.dark #foreign-flow .ff-apt-signal-card rect { fill: rgba(38,44,47,.96); }
 html.dark #foreign-flow .ff-apt-signal-dot { stroke: #262c2f; }
 html.dark #foreign-flow .ff-apt-signal-label { fill: #e3e7e8; }
-html.dark #foreign-flow .ff-apt-illustration-building rect:first-child { fill: rgba(46,101,103,.72); stroke: #74c9b6; }
-html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-side { fill: rgba(38,82,85,.84); stroke: #74c9b6; }
+html.dark #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #2c3336; stroke: #9da5aa; }
+html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-side { fill: #343c40; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-building-roof-cap { stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-frame,
@@ -2715,8 +2715,8 @@ html.dark #foreign-flow .ff-apt-helicopter-tail,
 html.dark #foreign-flow .ff-apt-helicopter-rotor,
 html.dark #foreign-flow .ff-apt-helicopter-skid { stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-helicopter-light { stroke: #2c3336; }
-html.dark #foreign-flow .ff-apt-illustration-window { fill: rgba(72,126,128,.72); stroke: #9ddbd0; }
-html.dark #foreign-flow .ff-apt-illustration-window.accent { fill: rgba(72,160,151,.78); stroke: #74c9b6; }
+html.dark #foreign-flow .ff-apt-illustration-window { fill: #343c40; stroke: #9da5aa; }
+html.dark #foreign-flow .ff-apt-illustration-window.accent { fill: #285b55; stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-price { fill: #e3e7e8; }
 html.dark #foreign-flow .ff-apt-building-volume { fill: #b7c0c5; }
 html.dark #foreign-flow .ff-apt-building-average-person .head { fill: #60a5fa; stroke: #bfdbfe; }
