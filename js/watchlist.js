@@ -30,6 +30,16 @@
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var US_SEARCH_URL = API_BASE_URL + '/us-search';
+  var LOCAL_US_SYMBOLS = [
+    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
+    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia' },
+    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
+    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
+    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' }
+  ];
   // TODO: /page/stock-search는 실제 페이지 생성 전 placeholder(js/skin-menu.js와 동일 사유) -
   // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
   var STOCK_SEARCH_PAGE_URL = '/page/stock-search';
@@ -57,7 +67,8 @@
   };
   function stockIconHtml(code) {
     if (!code) return '';
-    return '<img class="wl-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+    var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
+    return '<img class="wl-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
   }
 
   function init() {
@@ -302,10 +313,13 @@
       } else if (e.key === 'Enter') {
         e.preventDefault();
         var idx = getActiveSuggestion(suggestBox);
-        var picked = idx > -1 && items[idx] ? items[idx].getAttribute('data-name') : input.value.trim();
-        if (idx > -1 && items[idx]) input.value = picked;
+        var pickedItem = idx > -1 && items[idx] ? items[idx] : null;
+        var fallbackRow = !pickedItem && suggestBox.__suggestRows ? suggestBox.__suggestRows.filter(function (row) { return row.market === 'us'; })[0] : null;
+        var picked = pickedItem ? (pickedItem.getAttribute('data-code') || pickedItem.getAttribute('data-name')) : (fallbackRow ? fallbackRow.code : input.value.trim());
+        var pickedName = pickedItem ? pickedItem.getAttribute('data-name') : (fallbackRow ? fallbackRow.name : '');
+        if (pickedItem) input.value = pickedName;
         hideSuggestions(suggestBox);
-        addByQuery(container, picked);
+        addByQuery(container, picked, pickedName);
       } else if (e.key === 'Escape') {
         e.preventDefault();
         hideSuggestions(suggestBox);
@@ -332,6 +346,7 @@
     box.innerHTML = '';
     box.classList.remove('active');
     box.__activeIndex = -1;
+    box.__suggestRows = [];
     if (box.__input) {
       box.__input.setAttribute('aria-expanded', 'false');
       box.__input.setAttribute('aria-activedescendant', '');
@@ -368,8 +383,11 @@
   }
 
   function renderSuggestions(container, box, query) {
-    var map = global.KRX_MAP;
-    if (!query || !map) { hideSuggestions(box); return; }
+    var map = global.KRX_MAP || {};
+    if (!query) { hideSuggestions(box); return; }
+
+    var requestId = (box.__suggestRequestId || 0) + 1;
+    box.__suggestRequestId = requestId;
 
     var q = query.toLowerCase();
     // ETF 병합 이후 검색어가 포함된 ETF가 진짜 종목보다 먼저 뜨는 문제가 있었음 - 시작/포함
@@ -387,12 +405,51 @@
         else if (containsStock.length < MAX_SUGGESTIONS) containsStock.push(name);
       }
     }
-    var matches = startsStock.concat(startsEtf, containsStock, containsEtf).slice(0, MAX_SUGGESTIONS);
-    if (!matches.length) { hideSuggestions(box); return; }
+    var domesticRows = startsStock.concat(startsEtf, containsStock, containsEtf).map(function (name) {
+      return { code: map[name], name: name, market: 'kr' };
+    });
 
-    box.innerHTML = matches.map(function (name, index) {
+    renderSuggestionRows(container, box, domesticRows, [], requestId);
+    fetchUsSuggestions(query).then(function (usRows) {
+      if (box.__suggestRequestId !== requestId) return;
+      renderSuggestionRows(container, box, domesticRows, usRows, requestId);
+    });
+  }
+
+  function fetchUsSuggestions(query) {
+    return fetch(US_SEARCH_URL + '?q=' + encodeURIComponent(query) + '&limit=8')
+      .then(function (response) {
+        if (!response.ok) throw new Error('미국주식 검색 오류: ' + response.status);
+        return response.json();
+      })
+      .then(function (body) {
+        var rows = (body && body.data ? body.data : []).map(function (row) {
+          return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
+        });
+        if (!rows.length) throw new Error('미국주식 검색 결과 없음');
+        return rows;
+      })
+      .catch(function () {
+        var needle = String(query || '').toLowerCase();
+        return LOCAL_US_SYMBOLS.filter(function (row) {
+          return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(needle) !== -1;
+        }).slice(0, 8).map(function (row) {
+          return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
+        });
+      });
+  }
+
+  function renderSuggestionRows(container, box, domesticRows, usRows, requestId) {
+    if (box.__suggestRequestId !== requestId) return;
+    var domesticLimit = usRows.length ? Math.max(0, MAX_SUGGESTIONS - Math.min(usRows.length, 2)) : MAX_SUGGESTIONS;
+    var rows = domesticRows.slice(0, domesticLimit).concat(usRows).slice(0, MAX_SUGGESTIONS);
+    box.__suggestRows = rows;
+    if (!rows.length) { hideSuggestions(box); return; }
+
+    box.innerHTML = rows.map(function (row, index) {
+      var label = row.market === 'us' ? '<span class="wl-suggest-market">US</span> ' + escapeHtml(row.name) + ' <small>(' + escapeHtml(String(row.code).replace(/^US:/i, '')) + ')</small>' : escapeHtml(row.name);
       return '<div class="wl-suggest-item" id="wlSuggestOption' + index + '" role="option" aria-selected="false"'
-        + ' data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
+        + ' data-code="' + escapeAttr(row.code) + '" data-name="' + escapeAttr(row.name) + '">' + label + '</div>';
     }).join('');
     box.classList.add('active');
     box.__activeIndex = -1;
@@ -406,10 +463,11 @@
         setActiveSuggestion(box, box.querySelectorAll('.wl-suggest-item'), index);
       });
       el.addEventListener('click', function () {
+        var code = el.getAttribute('data-code') || el.getAttribute('data-name');
         var name = el.getAttribute('data-name');
         container.querySelector('#wlInput').value = name;
         hideSuggestions(box);
-        addByQuery(container, name);
+        addByQuery(container, code, name);
       });
     });
   }
@@ -417,6 +475,10 @@
   // 종목명/코드 -> { code, name }. 정확일치 우선, 부분일치는 1개일 때만.
   function resolveStock(query) {
     if (!query) return null;
+    if (/^US:/i.test(query)) {
+      var usSymbol = query.slice(3).trim().toUpperCase();
+      return /^[A-Z][A-Z0-9.\-]{0,9}$/.test(usSymbol) ? { code: 'US:' + usSymbol, name: usSymbol } : null;
+    }
     var map = global.KRX_MAP || {};
     if (/^[0-9A-Z]{6}$/i.test(query)) {
       for (var nm in map) {
@@ -427,6 +489,12 @@
       return null;
     }
     if (map.hasOwnProperty(query)) return { code: map[query], name: query };
+
+    if (/^[A-Z][A-Z0-9.\-]{0,9}$/i.test(query)) {
+      var directSymbol = query.toUpperCase();
+      var localUs = LOCAL_US_SYMBOLS.filter(function (row) { return row.symbol === directSymbol; })[0];
+      return { code: 'US:' + directSymbol, name: localUs ? localUs.name : directSymbol };
+    }
 
     var q = query.toLowerCase();
     var matches = [];
@@ -466,8 +534,9 @@
     return loadList().some(function (it) { return it.code === code; });
   }
 
-  function addByQuery(container, query) {
+  function addByQuery(container, query, explicitName) {
     var stock = resolveStock(query);
+    if (stock && /^US:/i.test(stock.code) && explicitName) stock.name = explicitName;
     var input = container.querySelector('#wlInput');
     if (!stock) {
       showMsg(container, '종목을 찾을 수 없습니다: "' + query + '"');
@@ -570,7 +639,11 @@
       return;
     }
 
-    priceEl.textContent = formatNumber(quote.price) + '원';
+    var isUs = /^US:/i.test(code);
+    var price = Number(quote.price);
+    priceEl.textContent = isUs && !isNaN(price)
+      ? '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : formatNumber(quote.price) + '원';
     changeEl.textContent = arrowSymbol(quote.change) + Math.abs(quote.changeRate).toFixed(2) + '%';
     changeEl.classList.remove('wl-up', 'wl-down', 'wl-flat');
     changeEl.classList.add(quote.change > 0 ? 'wl-up' : quote.change < 0 ? 'wl-down' : 'wl-flat');
@@ -758,6 +831,19 @@
 
   function fetchQuotes(codes) {
     if (!codes.length) return Promise.resolve({});
+    var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
+    var usCodes = codes.filter(function (code) { return /^US:/i.test(code); });
+
+    return Promise.all([
+      fetchDomesticQuotes(domesticCodes).catch(function () { return {}; }),
+      fetchUsQuotes(usCodes)
+    ]).then(function (parts) {
+      return Object.assign({}, parts[0], parts[1]);
+    });
+  }
+
+  function fetchDomesticQuotes(codes) {
+    if (!codes.length) return Promise.resolve({});
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
@@ -777,6 +863,32 @@
         if (timer) clearTimeout(timer);
         throw err;
       });
+  }
+
+  function fetchUsQuotes(codes) {
+    if (!codes.length) return Promise.resolve({});
+    return Promise.all(codes.map(function (code) {
+      var symbol = String(code).replace(/^US:/i, '').toUpperCase();
+      return fetch(API_BASE_URL + '/us-quote/' + encodeURIComponent(symbol))
+        .then(function (response) {
+          if (!response.ok) throw new Error('미국주식 시세 오류: ' + response.status);
+          return response.json();
+        })
+        .then(function (body) {
+          var data = body && body.data ? body.data : body;
+          return {
+            code: 'US:' + symbol,
+            price: data && data.price,
+            change: data && data.change,
+            changeRate: data && (data.change_rate != null ? data.change_rate : data.changeRate)
+          };
+        })
+        .catch(function () { return null; });
+    })).then(function (rows) {
+      var byCode = {};
+      rows.forEach(function (row) { if (row && row.price != null) byCode[row.code] = row; });
+      return byCode;
+    });
   }
 
   // ---- 유틸 ----

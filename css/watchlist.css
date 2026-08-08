@@ -194,6 +194,8 @@
   font-size: 13px;
   cursor: pointer;
 }
+#watchlist .wl-suggest-item small { color: #6b7280; }
+#watchlist .wl-suggest-market { color: #2563eb; font-size: 11px; font-weight: 700; }
 #watchlist .wl-suggest-item:hover,
 #watchlist .wl-suggest-item.active { background: #f2f2f2; }
 
