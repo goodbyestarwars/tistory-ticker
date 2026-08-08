@@ -247,6 +247,26 @@ def _by_date_from(rows, field):
     return {r['dt']: to_num(r.get(field)) for r in rows if r.get('dt')}
 
 
+def _individual_by_date_from(rows):
+    """KIS 응답에서 개인 수급이 비어 있을 때 사용할 키움 확정 행의 보조 맵.
+
+    to_num()은 일반 API 숫자 필드의 빈 문자열을 0으로 정규화하므로, 개인 필드만은
+    빈 값과 실제 0을 먼저 구분한다. 그래야 KIS의 일부 날짜 누락을 키움 ka10059의
+    확정 개인 수급으로 보완하면서도 미집계 값을 0으로 만들어버리지 않는다.
+    """
+    out = {}
+    for row in rows or []:
+        dt = row.get('dt')
+        raw = row.get('ind_invsr')
+        if not dt or raw is None or str(raw).strip() == '':
+            continue
+        try:
+            out[dt] = float(str(raw).replace(',', '').replace('+', ''))
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
 def _frgn_by_date_from_ka10008(frgn_res):
     """ka10008(외국인 보유주수/비중) 응답을 날짜별 dict로. KIS 전환 후에도 이 TR만은 그대로
     쓴다 - KIS의 종목별투자자매매동향(일별)엔 보유주수/비중 필드가 없음(2026-07-19 확인)."""
@@ -461,6 +481,16 @@ def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, t
             out = None
     if out is None:
         out = _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, target_days)
+
+    # KIS 일별 응답에서 개인 열이 간헐적으로 비어도, 같은 요청에서 이미 받은
+    # 키움 확정 행에 해당 날짜의 개인 수급이 있으면 그 값으로 보완한다. 이 단계는
+    # KIS 실패 시에만 동작하는 것이 아니라 KIS 응답의 부분 누락도 고친다.
+    ind_by_date = _individual_by_date_from(ka10059_rows)
+    for row in out:
+        if row.get('ind_net') is None:
+            fallback_ind = ind_by_date.get(row['date'].replace('-', ''))
+            if fallback_ind is not None:
+                row['ind_net'] = fallback_ind
 
     out.sort(key=lambda r: r['date'], reverse=True)  # 최신일 우선 - gas getForeignFlow와 동일
 

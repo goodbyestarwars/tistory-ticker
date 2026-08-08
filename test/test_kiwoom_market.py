@@ -64,6 +64,20 @@ class LiveInvestorRowFromTests(unittest.TestCase):
         self.assertIsNone(row['ind_net'])
 
 
+class IndividualFallbackTests(unittest.TestCase):
+    def test_keeps_real_zero_but_skips_blank_values(self):
+        rows = [
+            {'dt': '20260807', 'ind_invsr': '-1250'},
+            {'dt': '20260806', 'ind_invsr': '0'},
+            {'dt': '20260805', 'ind_invsr': ''},
+            {'dt': '20260804'},
+        ]
+        self.assertEqual(kiwoom_market._individual_by_date_from(rows), {
+            '20260807': -1250.0,
+            '20260806': 0.0,
+        })
+
+
 class MergeLiveRowTests(unittest.TestCase):
     """2026-08-03(4차) 실측 리포트(비에이치아이): 15:40(KST) 이후 KIS 확정 TR이 열려
     out[0]에 이미 오늘의 확정 개인 순매매가 들어와 있는데도, live_row(ind_net=None
