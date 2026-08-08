@@ -3274,7 +3274,8 @@
       var height = 158 + Math.round(band.ratio * 122);
       var y = groundY - height;
       var rows = Math.max(4, Math.min(10, 4 + Math.round(band.ratio * 6)));
-      var cols = width >= 100 ? 4 : 3;
+      // 작은 건물도 사무실 단면이 읽히도록 창을 많이 나누지 않고 오픈 오피스 두 칸으로 구성한다.
+      var cols = width >= 100 ? 3 : 2;
       var delay = ((Number(index) || 0) * -0.55).toFixed(2);
       var frontWidth = width - 10;
       var sideStart = x + frontWidth;
@@ -3305,7 +3306,10 @@
       for (var row = 0; row < rows; row++) {
         var floorY = y + (row + 1) * floorH;
         html += '<path class="ff-apt-building-slab" d="M' + (x - 3) + ' ' + (floorY - 1).toFixed(1) + ' H' + (x + width + 3) + ' L' + (x + width + 2) + ' ' + (floorY + 1).toFixed(1) + ' H' + (x - 3) + ' Z" />'
-          + '<path class="ff-apt-building-floor" d="M' + (x - 3) + ' ' + floorY.toFixed(1) + ' H' + (x + width + 3) + '" />';
+          + '<path class="ff-apt-building-floor" d="M' + (x - 3) + ' ' + floorY.toFixed(1) + ' H' + (x + width + 3) + '" />'
+          + '<rect class="ff-apt-building-office-floor" x="' + (x + 4) + '" y="' + (floorY - floorH + 3).toFixed(1) + '" width="' + (frontWidth - 8) + '" height="' + Math.max(10, floorH - 6).toFixed(1) + '" rx="1" />'
+          + '<path class="ff-apt-building-ceiling-light" d="M' + (x + 12) + ' ' + (floorY - floorH + 6).toFixed(1) + ' H' + (x + 25) + ' M' + (x + frontWidth - 27) + ' ' + (floorY - floorH + 6).toFixed(1) + ' H' + (x + frontWidth - 14) + '" />'
+          + '<path class="ff-apt-building-side-floor" d="M' + sideStart + ' ' + floorY.toFixed(1) + ' L' + (x + width) + ' ' + (floorY + 5).toFixed(1) + '" />';
         if ((band.current || band.average || band.poc) && row % 2 === 0) {
           html += '<text class="ff-apt-building-floor-label" x="' + (x - 5) + '" y="' + (floorY - 3) + '" text-anchor="end">' + floorNames[Math.min(floorNames.length - 1, Math.floor(row * floorNames.length / rows))] + '</text>';
         }
@@ -3316,16 +3320,18 @@
           var windowMarker = markerColumns.filter(function (item) { return item.col === col && row === item.row; })[0];
           var windowClass = isAccent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window';
           if (windowMarker) windowClass += ' ' + windowMarker.type + '-window';
-          html += '<rect class="' + windowClass + '" style="opacity:' + (0.42 + band.ratio * 0.5).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
+          html += '<rect class="' + windowClass + '" style="opacity:' + (0.34 + band.ratio * 0.42).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
           html += '<path class="ff-apt-building-window-highlight" d="M' + (wx + 1.5) + ' ' + (wy + 2) + ' H' + (wx + cellW - 1.5) + '" />';
           if (!windowMarker && (row + col + index) % 3 === 0) {
             var deskY = wy + cellH * .66;
             html += '<path class="ff-apt-building-desk" d="M' + (wx + cellW * .22) + ' ' + deskY + ' h' + (cellW * .56).toFixed(1) + ' M' + (wx + cellW * .5) + ' ' + deskY + ' v' + (cellH * .2).toFixed(1) + '" />'
-              + '<circle class="ff-apt-building-worker" cx="' + (wx + cellW * .5) + '" cy="' + (wy + cellH * .35) + '" r="' + Math.max(1.1, cellH * .12).toFixed(1) + '" />';
+              + '<rect class="ff-apt-building-monitor" x="' + (wx + cellW * .41).toFixed(1) + '" y="' + (wy + cellH * .42).toFixed(1) + '" width="' + Math.max(3, cellW * .18).toFixed(1) + '" height="' + Math.max(2, cellH * .14).toFixed(1) + '" rx=".5" />'
+              + '<circle class="ff-apt-building-worker" cx="' + (wx + cellW * .5) + '" cy="' + (wy + cellH * .28) + '" r="' + Math.max(1.1, cellH * .11).toFixed(1) + '" />'
+              + '<path class="ff-apt-building-worker-body" d="M' + (wx + cellW * .42).toFixed(1) + ' ' + (wy + cellH * .57).toFixed(1) + ' Q' + (wx + cellW * .5).toFixed(1) + ' ' + (wy + cellH * .43).toFixed(1) + ' ' + (wx + cellW * .58).toFixed(1) + ' ' + (wy + cellH * .57).toFixed(1) + '" />';
           }
           if (windowMarker && windowMarker.type === 'average') {
             var fx = wx + cellW / 2, fy = wy + cellH / 2;
-            html += '<g class="ff-apt-building-average-person" transform="translate(' + fx + ' ' + (fy + 1) + ')"><path class="shoulders" d="M-5 5 Q0 1 5 5 V7 H-5 Z" /><circle class="head" r="4.4" /><path class="hair" d="M-4 -1 Q0 -6 4 -1 Z" /><circle class="eye" cx="-1.5" cy="0" r=".55" /><circle class="eye" cx="1.5" cy="0" r=".55" /></g>';
+            html += '<g class="ff-apt-building-average-person" transform="translate(' + fx + ' ' + (fy + 1) + ')"><g class="crowd-person one"><circle class="head" cx="-4" cy="-2" r="1.8" /><path class="shoulders" d="M-7 5 Q-4 1 -1 5 V7 H-7 Z" /></g><g class="crowd-person two"><circle class="head" cx="1" cy="-4" r="2" /><path class="shoulders" d="M-2 5 Q1 0 4 5 V7 H-2 Z" /></g><g class="crowd-person three"><circle class="head" cx="5" cy="-1" r="1.7" /><path class="shoulders" d="M2 5 Q5 1 8 5 V7 H2 Z" /></g></g>';
           } else if (windowMarker && windowMarker.type === 'current') {
             html += '<circle class="ff-apt-building-current-icon ff-apt-building-current-ring" cx="' + (wx + cellW / 2) + '" cy="' + (wy + cellH / 2) + '" r="4" /><path class="ff-apt-building-current-icon" d="M' + (wx + cellW / 2 - 6) + ' ' + (wy + cellH / 2) + ' h12 M' + (wx + cellW / 2) + ' ' + (wy + cellH / 2 - 6) + ' v12" />';
           } else if (windowMarker && windowMarker.type === 'poc') {
