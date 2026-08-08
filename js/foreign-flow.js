@@ -3269,18 +3269,24 @@
       // 가격축에 매핑한다. 거래량은 창문 개수·농도로만 표현한다.
       // 참고 이미지처럼 층 슬래브·유리 파사드·로비를 넣되, 각 건물은 하나의 가격대다.
       var groundY = 379;
-      var height = 170 + Math.round(band.ratio * 105);
+      // 각 가격 구간을 '회사 빌딩 한 동'으로 읽게 한다. 거래량이 많을수록
+      // 층수가 높아지고, 선택된 구간에는 옥상 사인이 붙어 한눈에 찾을 수 있다.
+      var height = 158 + Math.round(band.ratio * 122);
       var y = groundY - height;
-      var rows = Math.max(4, Math.min(9, 4 + Math.round(band.ratio * 5)));
+      var rows = Math.max(4, Math.min(10, 4 + Math.round(band.ratio * 6)));
       var cols = width >= 100 ? 4 : 3;
       var delay = ((Number(index) || 0) * -0.55).toFixed(2);
+      var frontWidth = width - 10;
+      var sideStart = x + frontWidth;
+      var signLabel = band.current ? '현재가' : band.average ? '평균단가' : band.poc ? 'POC' : '';
       var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
-        + '<rect x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '" rx="2" />'
-        + '<path class="ff-apt-building-roof" d="M' + (x + 5) + ' ' + (y - 6) + ' H' + (x + width - 5) + '" />'
-        + '<path class="ff-apt-building-roof-cap" d="M' + (x + 12) + ' ' + (y - 10) + ' H' + (x + width - 12) + '" />'
-        + '<path class="ff-apt-building-frame" d="M' + (x + width / 2) + ' ' + (y + 4) + ' V' + (groundY - 8) + '" />';
+        + '<rect x="' + x + '" y="' + y + '" width="' + frontWidth + '" height="' + height + '" rx="2" />'
+        + '<path class="ff-apt-building-side" d="M' + sideStart + ' ' + (y + 3) + ' L' + (x + width) + ' ' + (y + 8) + ' V' + (groundY - 8) + ' L' + sideStart + ' ' + (groundY - 8) + ' Z" />'
+        + '<path class="ff-apt-building-roof" d="M' + (x + 3) + ' ' + (y - 6) + ' H' + (x + width - 3) + ' L' + (x + width + 2) + ' ' + (y - 1) + ' H' + (x - 2) + ' Z" />'
+        + '<path class="ff-apt-building-roof-cap" d="M' + (x + 10) + ' ' + (y - 11) + ' H' + (x + width - 10) + ' M' + (x + width / 2) + ' ' + (y - 11) + ' V' + (y - 17) + '" />'
+        + '<path class="ff-apt-building-frame" d="M' + (x + frontWidth / 2) + ' ' + (y + 4) + ' V' + (groundY - 8) + ' M' + (x + 5) + ' ' + (y + 5) + ' V' + (groundY - 8) + '" />';
       var floorH = height / (rows + 1);
-      var cellW = Math.max(7, (width - 16) / cols - 4);
+      var cellW = Math.max(7, (frontWidth - 16) / cols - 4);
       var cellH = Math.max(8, Math.min(16, floorH - 7));
       var markerColumns = [];
       function markerRow(index) {
@@ -3294,7 +3300,7 @@
       if (band.poc) markerColumns.push({ col: Math.min(2, cols - 1), row: markerRow(pocIdx), type: 'poc' });
       for (var row = 0; row < rows; row++) {
         var floorY = y + (row + 1) * floorH;
-        html += '<path class="ff-apt-building-floor" d="M' + x + ' ' + floorY.toFixed(1) + ' H' + (x + width) + '" />';
+        html += '<path class="ff-apt-building-floor" d="M' + (x - 2) + ' ' + floorY.toFixed(1) + ' H' + (x + width + 2) + '" />';
         for (var col = 0; col < cols; col++) {
           var wx = x + 8 + col * (cellW + 4);
           var wy = floorY - cellH - 3;
@@ -3318,8 +3324,11 @@
           }
         }
       }
-      html += '<rect class="ff-apt-building-lobby" x="' + (x + width * .36) + '" y="' + (groundY - 27) + '" width="' + (width * .28) + '" height="20" rx="2" />'
-        + '<path class="ff-apt-building-lobby-door" d="M' + (x + width * .5) + ' ' + (groundY - 27) + ' V' + (groundY - 7) + '" />';
+      html += '<rect class="ff-apt-building-lobby" x="' + (x + frontWidth * .31) + '" y="' + (groundY - 31) + '" width="' + (frontWidth * .38) + '" height="24" rx="2" />'
+        + '<path class="ff-apt-building-lobby-door" d="M' + (x + frontWidth * .5) + ' ' + (groundY - 31) + ' V' + (groundY - 7) + ' M' + (x + frontWidth * .31) + ' ' + (groundY - 31) + ' H' + (x + frontWidth * .69) + '" />';
+      if (signLabel) {
+        html += '<g class="ff-apt-building-sign"><rect x="' + (x + 10) + '" y="' + (y - 29) + '" width="' + (width - 20) + '" height="14" rx="5" /><text x="' + (x + width / 2) + '" y="' + (y - 19) + '" text-anchor="middle">' + signLabel + '</text></g>';
+      }
       html += '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 12) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
         + '<text class="ff-apt-building-volume" x="' + (x + width / 2) + '" y="' + (y - 1) + '" text-anchor="middle">' + Math.round(band.volume).toLocaleString('ko-KR') + '주</text>'
         + '<text class="ff-apt-building-band" x="' + (x + width / 2) + '" y="' + (groundY + 7) + '" text-anchor="middle">' + aptBandLabel(band.start, n) + '</text>'
