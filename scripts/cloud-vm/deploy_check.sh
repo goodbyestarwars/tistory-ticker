@@ -123,11 +123,9 @@ DEPLOY_OCCURRED=0
 if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
   git pull origin master -q
 
-  # 기존 시세 DB는 서비스 재시작 전에 Python sqlite3 backup API로 백업·검증한다.
-  "$PYTHON" "$APP_DIR/scripts/cloud-vm/backup_sqlite.py" \
-    --source "$APP_DIR/ohlc_snapshot.db" \
-    --backup-dir "$APP_DIR/backups" \
-    --keep 7
+  # SQLite 백업은 198MB DB에서 배포를 장시간 붙잡고 VM 자원을 소모하므로 비활성화한다.
+  # 기존 backups 파일은 유지하며, 필요할 때 별도 수동 백업으로 처리한다.
+  echo "SQLite deploy backup disabled"
 
   cp "$APP_DIR"/scripts/cloud-vm/*.py "$APP_DIR"/
 
