@@ -16,6 +16,7 @@
         { href: '/pages/kospi-futures', label: '코스피 선물' }
       ]
     },
+    { href: '/page/stock-search', label: '종목' },
     {
       label: '종목검색',
       children: [
