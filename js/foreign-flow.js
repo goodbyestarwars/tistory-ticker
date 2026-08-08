@@ -3167,7 +3167,6 @@
     var curIdx = aptBinIndex(profile, currentPrice);
     var avgIdx = aptBinIndex(profile, avgPrice);
     var pocIdx = profile.pocIndex >= 0 && profile.pocIndex < n ? profile.pocIndex : -1;
-    var buildingPhotoUrl = 'https://goodbyestarwars.github.io/tistory-ticker/img/volume-profile-office-building.png';
     var left = 94, right = 468, top = 58, bottom = 466;
     var plotHeight = bottom - top;
 
@@ -3242,6 +3241,7 @@
     var curIdx = aptBinIndex(profile, currentPrice);
     var avgIdx = aptBinIndex(profile, avgPrice);
     var pocIdx = profile.pocIndex >= 0 && profile.pocIndex < n ? profile.pocIndex : -1;
+    var buildingPhotoUrl = 'https://goodbyestarwars.github.io/tistory-ticker/img/volume-profile-office-building.png';
     var plotLeft = 720, plotRight = 868, plotTop = 116, plotBottom = 382;
 
     function priceText(value) {
