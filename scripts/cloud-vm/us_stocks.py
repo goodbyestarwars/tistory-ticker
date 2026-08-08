@@ -340,12 +340,20 @@ def chart(symbol, timeframe='minute'):
                 price = _number(_first(row, 'cur_prc', 'price'))
                 if stamp is None or price is None:
                     continue
+                open_price = _number(_first(row, 'open_pric', 'open', 'open_price')) or price
+                high_price = _number(_first(row, 'high_pric', 'high', 'high_price')) or max(open_price, price)
+                low_price = _number(_first(row, 'low_pric', 'low', 'low_price')) or min(open_price, price)
                 points.append({
                     'time': stamp,
+                    'open': open_price,
+                    'high': high_price,
+                    'low': low_price,
+                    'close': price,
                     'price': price,
                     'volume': _number(_first(row, 'trde_qty', 'acc_trde_qty')) or 0,
                 })
             if points:
+                points.sort(key=lambda point: point['time'])
                 return {
                     'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
                     'timeframe': timeframe, 'exchange': exchange,

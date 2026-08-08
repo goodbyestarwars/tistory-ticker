@@ -640,7 +640,7 @@
         renderChartForCode(container, state.selectedCode);
       };
     });
-    var movingAverageToggle = container.querySelector('#ssMovingAverageToggle');
+    var movingAverageToggle = container.querySelector('#ssMovingAverageToggle, [data-chart-ma-toggle]');
     if (movingAverageToggle) {
       movingAverageToggle.checked = state.movingAverageEnabled;
       movingAverageToggle.onchange = function () {
@@ -648,7 +648,7 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
-    var ichimokuToggle = container.querySelector('#ssIchimokuToggle');
+    var ichimokuToggle = container.querySelector('#ssIchimokuToggle, [data-chart-ichimoku-toggle]');
     if (ichimokuToggle) {
       ichimokuToggle.checked = state.ichimokuEnabled;
       ichimokuToggle.onchange = function () {
@@ -890,6 +890,50 @@
     if (!cached) return;
     var bars = barsForTimeframe(cached.data.daily, state.timeframe);
     renderLwChart(container.querySelector('#ssChart'), bars, state.timeframe);
+  }
+
+  // 미국 주식도 국내 종목 화면과 같은 차트 UI/렌더러를 사용한다.
+  // 외부 데이터 공급자는 국내 형식({date, open, high, low, close, volume})으로만 변환해 넘긴다.
+  function mountExternalChart(options) {
+    options = options || {};
+    var container = options.container;
+    var code = String(options.key || options.code || '').trim();
+    if (!container || !code || typeof options.load !== 'function') return Promise.reject(new Error('CHART_OPTIONS'));
+
+    stopMinuteRefresh();
+    state.selectedCode = code;
+    state.timeframe = 'day';
+    container.innerHTML = ''
+      + '<div class="ss-chart-tabs">'
+      + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
+      + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
+      + '<button type="button" class="ss-tf-btn" data-tf="month">월봉</button>'
+      + '<button type="button" class="ss-tf-btn" data-tf="minute">분봉</button>'
+      + '</div>'
+      + '<div class="ss-chart-studies">'
+      + '<label><input type="checkbox" data-chart-ma-toggle checked /> 이동평균선 표시</label>'
+      + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
+      + '</div>'
+      + '<div id="ssChart" class="ss-chart"><div class="ss-hint">차트를 불러오는 중...</div></div>'
+      + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
+
+    var dailyPromise = Promise.resolve().then(function () { return options.load('daily'); }).catch(function () { return []; });
+    var minutePromise = Promise.resolve().then(function () { return options.load('minute'); }).catch(function () { return []; });
+    return Promise.all([dailyPromise, minutePromise]).then(function (result) {
+      var daily = Array.isArray(result[0]) ? result[0] : [];
+      var minute = Array.isArray(result[1]) ? result[1] : [];
+      if (!daily.length && !minute.length) throw new Error('NO_DATA');
+      state.chartCache[code] = { t: Date.now(), data: { daily: daily } };
+      state.minuteCache[code] = { t: Date.now(), bars: minute };
+      if (state.selectedCode !== code) return { daily: daily, minute: minute };
+      wireChartTabs(container);
+      renderChartForCode(container, code);
+      return { daily: daily, minute: minute };
+    }).catch(function (error) {
+      var chartEl = container.querySelector('#ssChart');
+      if (chartEl && state.selectedCode === code) chartEl.innerHTML = '<div class="ss-hint ss-error">차트 데이터를 불러오지 못했습니다.</div>';
+      throw error;
+    });
   }
 
   // 2026-08-05(5차) 사용자 리포트: 분봉 차트가 여러 날짜(8/3~8/5)가 이어붙어 그려지고,
@@ -1173,6 +1217,7 @@
   function escapeAttr(s) { return escapeHtml(s); }
 
   global.StockSearch = { init: init };
+  global.StockSearchChart = { mount: mountExternalChart };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

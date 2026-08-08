@@ -55,16 +55,7 @@
 .us-stocks-book-row { padding: 3px 5px; border-top: 1px solid #f1f5f9; font-size: 10px; }
 .us-stocks-book-row b { text-align: center; font-size: 11px; }
 .us-stocks-book-row span:last-child { text-align: left; }
-.us-chart-tabs { display: flex; gap: 4px; margin: -2px 0 6px; }
-.us-chart-tab { padding: 3px 8px; border: 1px solid #dbe4f0; border-radius: 6px; background: #f8fafc; color: #7a8791; font: inherit; font-size: 11px; cursor: pointer; }
-.us-chart-tab.active { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; font-weight: 700; }
-.us-stocks-chart { min-height: 190px; }
-.us-stocks-chart svg { display: block; width: 100%; height: 190px; overflow: visible; }
-.us-chart-grid { stroke: #e5e7eb; stroke-dasharray: 4 5; }
-.us-chart-line { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.us-chart-line.up { stroke: #d24f45; }
-.us-chart-line.down { stroke: #1261c4; }
-.us-chart-range { display: flex; justify-content: space-between; color: #9ca3af; font-size: 10px; }
+.us-native-chart-mount { min-height: 420px; }
 .us-stocks-news-panel { margin-top: 12px; }
 .us-stocks-news { display: grid; gap: 0; }
 .us-stocks-news-item { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #f1f5f9; color: inherit; text-decoration: none; }
@@ -82,9 +73,6 @@ html.dark .us-stocks-result-name small, html.dark .us-stocks-live-head p, html.d
 html.dark .us-stocks-live-card { border-color: rgba(245,239,224,.2); background: rgba(245,239,224,.05); }
 html.dark .us-stocks-panel { border-color: rgba(245,239,224,.2); background: rgba(245,239,224,.05); }
 html.dark .us-stocks-book-row { border-top-color: rgba(245,239,224,.12); }
-html.dark .us-chart-tab { border-color: rgba(245,239,224,.2); background: rgba(245,239,224,.08); color: rgba(245,239,224,.65); }
-html.dark .us-chart-tab.active { border-color: #8bb5ff; background: rgba(59,130,246,.2); color: #bfdbfe; }
-html.dark .us-chart-grid { stroke: rgba(245,239,224,.2); }
 html.dark .us-stocks-news-item { border-top-color: rgba(245,239,224,.12); }
 
 @media (max-width: 700px) {

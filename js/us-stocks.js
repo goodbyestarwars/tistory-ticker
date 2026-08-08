@@ -11,7 +11,7 @@
   var REFRESH_MS = 15000;
   var LAST_SYMBOL_KEY = 'us:lastSelected';
   var DEFAULT_SYMBOL = 'AAPL';
-  var state = { container: null, symbol: null, refreshTimer: null, initialized: false, renderedSymbol: null, chartTimeframe: 'minute' };
+  var state = { container: null, symbol: null, refreshTimer: null, initialized: false, renderedSymbol: null, nativeChartPromise: null };
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
     { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
@@ -181,7 +181,7 @@
     stopRefresh();
     state.symbol = String(symbol || '').toUpperCase().replace(/^US:/, '');
     state.renderedSymbol = null;
-    state.chartTimeframe = 'minute';
+    state.nativeChartPromise = null;
     try { localStorage.setItem(LAST_SYMBOL_KEY, state.symbol); } catch (err) { /* 저장소가 막힌 환경도 조회는 계속한다. */ }
     var detail = document.querySelector('#usStocksDetail');
     if (!detail) return;
@@ -211,7 +211,7 @@
         state.renderedSymbol = state.symbol;
         loadOrderbook();
         if (firstRender) {
-          loadChart();
+          loadNativeChart();
           loadNews(quote.name || state.symbol);
         }
       })
@@ -242,14 +242,10 @@
         + '</div>'
         + '<div class="us-stocks-market-grid">'
         + '<section class="us-stocks-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>키움 10호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">호가를 불러오는 중...</div></div></section>'
-        + '<section class="us-stocks-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span data-us-chart-label>오늘 1분봉</span></div><div class="us-chart-tabs" role="tablist" aria-label="차트 주기">'
-        + '<button type="button" class="us-chart-tab active" data-us-timeframe="minute">분봉</button>'
-        + '<button type="button" class="us-chart-tab" data-us-timeframe="daily">일봉</button>'
-        + '<button type="button" class="us-chart-tab" data-us-timeframe="weekly">주봉</button>'
-        + '</div><div id="usStocksChart" class="us-stocks-chart"><div class="us-stocks-loading">차트를 불러오는 중...</div></div></section>'
+        + '<section class="us-stocks-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
+        + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">차트를 불러오는 중...</div></div></section>'
         + '</div>'
         + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 헤드라인</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">뉴스를 불러오는 중...</div></div></section>';
-      wireChartTabs(detail);
     }
     updateQuoteFields(quote, detail);
   }
@@ -280,18 +276,6 @@
     card.querySelector('[data-us-source]').textContent = quote.source || '';
   }
 
-  function wireChartTabs(detail) {
-    detail.querySelectorAll('[data-us-timeframe]').forEach(function (button) {
-      button.addEventListener('click', function () {
-        state.chartTimeframe = button.getAttribute('data-us-timeframe') || 'minute';
-        detail.querySelectorAll('[data-us-timeframe]').forEach(function (item) {
-          item.classList.toggle('active', item === button);
-        });
-        loadChart();
-      });
-    });
-  }
-
   function loadOrderbook() {
     if (!state.symbol) return;
     fetchJson(API_BASE + '/us-orderbook/' + encodeURIComponent(state.symbol))
@@ -317,67 +301,42 @@
     mount.innerHTML = html || '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
   }
 
-  function loadChart() {
+  function loadNativeChart() {
     if (!state.symbol) return;
-    var timeframe = state.chartTimeframe || 'minute';
-    var apiTimeframe = timeframe === 'minute' ? 'minute' : 'daily';
-    fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(state.symbol) + '?timeframe=' + apiTimeframe)
-      .then(function (chart) {
-        if (timeframe === 'weekly') chart = { points: aggregateWeekly(chart && chart.points), timeframe: 'weekly' };
-        if (timeframe === 'minute' && (!chart || !chart.points || chart.points.length < 2)) {
-          return fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(state.symbol) + '?timeframe=daily');
-        }
-        return chart;
-      })
-      .then(function (chart) { if (chart) renderChart(chart, timeframe); })
-      .catch(function () {
-        var mount = document.querySelector('#usStocksChart');
-        if (mount) mount.innerHTML = '<div class="us-stocks-empty">차트 데이터를 확인할 수 없습니다.</div>';
-      });
-  }
-
-  function aggregateWeekly(points) {
-    var groups = {};
-    (points || []).forEach(function (point) {
-      var date = typeof point.time === 'string'
-        ? new Date(point.time + 'T00:00:00Z')
-        : new Date(Number(point.time) * 1000);
-      if (isNaN(date.getTime())) return;
-      var day = (date.getUTCDay() + 6) % 7;
-      var weekStart = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day) / 1000;
-      var existing = groups[weekStart];
-      if (!existing || date.getTime() > existing.sourceStamp) {
-        groups[weekStart] = { time: weekStart, price: point.price, volume: point.volume, sourceStamp: date.getTime() };
-      }
-    });
-    return Object.keys(groups).map(function (key) { return groups[key]; })
-      .sort(function (a, b) { return a.time - b.time; });
-  }
-
-  function renderChart(chart, timeframe) {
     var mount = document.querySelector('#usStocksChart');
-    var points = chart && chart.points ? chart.points : [];
-    if (!mount || points.length < 2) {
-      if (mount) mount.innerHTML = '<div class="us-stocks-empty">차트 데이터가 없습니다.</div>';
+    if (!mount) return;
+    if (!global.StockSearchChart || typeof global.StockSearchChart.mount !== 'function') {
+      mount.innerHTML = '<div class="us-stocks-empty">국내 차트 모듈을 불러오지 못했습니다.</div>';
       return;
     }
-    var width = 720, height = 190, pad = 14;
-    var prices = points.map(function (point) { return Number(point.price); });
-    var min = Math.min.apply(Math, prices), max = Math.max.apply(Math, prices);
-    var range = max - min || 1;
-    var coords = points.map(function (point, index) {
-      var x = pad + (width - pad * 2) * index / (points.length - 1);
-      var y = height - pad - (height - pad * 2) * (Number(point.price) - min) / range;
-      return x.toFixed(1) + ',' + y.toFixed(1);
-    }).join(' ');
-    var tone = prices[prices.length - 1] >= prices[0] ? 'up' : 'down';
-    var label = timeframe === 'weekly' ? '주봉' : timeframe === 'daily' ? '일봉' : '오늘 1분봉';
-    var labelNode = document.querySelector('[data-us-chart-label]');
-    if (labelNode) labelNode.textContent = label;
-    mount.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="미국주식 가격 차트">'
-      + '<line class="us-chart-grid" x1="' + pad + '" y1="' + (height / 2) + '" x2="' + (width - pad) + '" y2="' + (height / 2) + '"></line>'
-      + '<polyline class="us-chart-line ' + tone + '" points="' + coords + '"></polyline>'
-      + '</svg><div class="us-chart-range"><span>' + formatPrice(min) + '</span><span>' + formatPrice(max) + '</span></div>';
+    var symbol = state.symbol;
+    state.nativeChartPromise = global.StockSearchChart.mount({
+      container: mount,
+      key: 'US:' + symbol,
+      load: function (timeframe) {
+        return fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(symbol) + '?timeframe=' + timeframe)
+          .then(function (payload) { return normalizeChartBars(payload && payload.points, timeframe); });
+      }
+    }).catch(function () {
+      if (state.symbol !== symbol) return;
+      mount.innerHTML = '<div class="us-stocks-empty">차트 데이터를 불러오지 못했습니다.</div>';
+    });
+  }
+
+  function normalizeChartBars(points, timeframe) {
+    var bars = (points || []).map(function (point) {
+      var close = Number(point.close != null ? point.close : point.price);
+      var open = Number(point.open != null ? point.open : close);
+      var high = Number(point.high != null ? point.high : Math.max(open, close));
+      var low = Number(point.low != null ? point.low : Math.min(open, close));
+      var date = timeframe === 'minute' ? Number(point.time) : String(point.time || '').slice(0, 10);
+      if (!Number.isFinite(close) || !Number.isFinite(open) || !Number.isFinite(high) || !Number.isFinite(low)) return null;
+      if (timeframe === 'minute' ? !Number.isFinite(date) : !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+      return { date: date, open: open, high: high, low: low, close: close, volume: Number(point.volume) || 0 };
+    }).filter(Boolean);
+    return bars.sort(function (a, b) {
+      return timeframe === 'minute' ? a.date - b.date : String(a.date).localeCompare(String(b.date));
+    });
   }
 
   function loadNews(name) {
