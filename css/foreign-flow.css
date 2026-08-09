@@ -2652,7 +2652,6 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-basement-handle { fill: #0f766e; stroke: none; }
 #foreign-flow .ff-apt-basement-label { fill: #1f2937; font-size: 13px; font-weight: 900; letter-spacing: .5px; paint-order: stroke; stroke: #eef0f1; stroke-width: 2.5; }
 #foreign-flow .ff-apt-illustration-helicopter { animation: ff-apt-helicopter-hover 6.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-#foreign-flow .ff-apt-helicopter-photo { display: block; opacity: .96; filter: drop-shadow(1px 3px 1px rgba(35,49,55,.24)); }
 #foreign-flow .ff-apt-helicopter-body { fill: #fff; stroke: #0f766e; stroke-width: 1.2; }
 #foreign-flow .ff-apt-helicopter-body-highlight { fill: none; stroke: rgba(255,255,255,.9); stroke-width: 1; stroke-linecap: round; }
 #foreign-flow .ff-apt-helicopter-cockpit { fill: #86c9c2; stroke: #0f766e; stroke-width: .8; }
