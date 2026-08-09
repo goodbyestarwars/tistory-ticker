@@ -75,7 +75,7 @@
   // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
   var STOCK_SEARCH_PAGE_URL = '/page/stock-search';
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
-  var REALTIME_FALLBACK_MS = 30000;
+  var REALTIME_FALLBACK_MS = 60000;
   var REALTIME_RECONNECT_MS = 5000;
   var realtimeSocket = null;
   var realtimeReconnectTimer = null;
@@ -781,7 +781,6 @@
 
     // 국내 코드는 키움, 미국 코드는 Finnhub 스트림으로 서버가 분리 중계한다.
     var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
-    var usCodes = codes.filter(function (code) { return /^US:/i.test(code); });
     var canUseSocket = domesticCodes.length && ('WebSocket' in global);
 
     var generation = realtimeGeneration;
@@ -820,13 +819,10 @@
       };
     }
 
-    // WebSocket이 일시적으로 끊긴 경우를 위한 안전망이다. 정상 상태에서는
-    // 미국주식도 Finnhub WebSocket 이벤트가 변경된 행만 바로 갱신한다.
+    // WebSocket이 일시적으로 끊기거나 상류가 재접속 중인 경우를 위한 안전망이다.
+    // 이 조회는 전체 목록을 다시 그리지 않고 실제로 바뀐 행만 DOM을 수정한다.
     realtimeFallbackTimer = setInterval(function () {
-      var fallbackCodes = usCodes.slice();
-      if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) {
-        fallbackCodes = domesticCodes.concat(fallbackCodes);
-      }
+      var fallbackCodes = codes.slice();
       if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);
     }, REALTIME_FALLBACK_MS);
 

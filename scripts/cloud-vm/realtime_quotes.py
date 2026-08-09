@@ -72,8 +72,8 @@ def _quote_events(message):
     return events
 
 
-async def relay_quotes(browser_ws, codes):
-    """한 브라우저 연결과 한 키움 실시간 세션을 연결한다."""
+async def _relay_once(browser_ws, codes):
+    """한 번의 키움 실시간 세션을 연결한다."""
     try:
         import websockets
     except ImportError as exc:
@@ -120,3 +120,15 @@ async def relay_quotes(browser_ws, codes):
             if registered:
                 for event in _quote_events(message):
                     await browser_ws.send_json(event)
+
+
+async def relay_quotes(browser_ws, codes):
+    """키움 상류가 끊겨도 브라우저 WebSocket은 유지하고 자동 재접속한다."""
+    while True:
+        try:
+            await _relay_once(browser_ws, codes)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.warning('키움 실시간 상류 연결 종료, %ss 후 재접속: %s', 5, exc)
+            await asyncio.sleep(5)

@@ -220,8 +220,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/watchlist.js")
         for token in (
             "var domesticCodes = codes.filter",
-            "var usCodes = codes.filter",
-            "var fallbackCodes = usCodes.slice();",
+            "var canUseSocket = domesticCodes.length",
+            "var REALTIME_FALLBACK_MS = 60000;",
+            "var fallbackCodes = codes.slice();",
             "if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);",
         ):
             self.assertIn(token, source)
