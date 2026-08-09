@@ -24,6 +24,7 @@ SEARCH_TTL_SEC = 600
 QUOTE_TTL_SEC = 10
 MAX_CACHE_ENTRIES = 100
 NY_TZ = ZoneInfo('America/New_York')
+US_DAILY_LOOKBACK_CALENDAR_DAYS = 730
 
 _cache_lock = threading.Lock()
 _search_cache = {}
@@ -321,8 +322,10 @@ def chart(symbol, timeframe='minute'):
     api_id = 'usa06011' if timeframe == 'minute' else 'usa06012'
     today = datetime.now(NY_TZ).date()
     # 미국 분봉 API는 장기간을 한 번에 요청하면 정상 코드(0)여도
-    # result_list가 비어 온다. 분봉은 오늘 데이터만, 일봉은 120일 범위를 요청한다.
-    start_date = today.strftime('%Y%m%d') if timeframe == 'minute' else (today - timedelta(days=120)).strftime('%Y%m%d')
+    # result_list가 비어 올 수 있습니다. 분봉은 오늘 데이터만, 일봉은 2년 범위를 요청합니다.
+    start_date = today.strftime('%Y%m%d') if timeframe == 'minute' else (
+        today - timedelta(days=US_DAILY_LOOKBACK_CALENDAR_DAYS)
+    ).strftime('%Y%m%d')
     last_error = None
     for exchange in _kiwoom_exchange_candidates(symbol):
         body = {

@@ -87,6 +87,23 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual(data['points'][0]['price'], 201.5)
         self.assertEqual(call_tr.call_args.args[1:3], ('usa06011', '/api/us/chart'))
 
+    def test_daily_chart_requests_two_year_range(self):
+        response = {'result_list': [
+            {'bus_dt': '20260808', 'cur_prc': '201.5', 'trde_qty': '10'},
+        ]}
+        with mock.patch.dict(os.environ, {'KIWOOM_APPKEY': 'key', 'KIWOOM_SECRETKEY': 'secret'}), \
+             mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='token'), \
+             mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response) as call_tr:
+            data = us_stocks.chart('AAPL', 'daily')
+        request_body = call_tr.call_args.args[3]
+        self.assertEqual(call_tr.call_args.args[1:3], ('usa06012', '/api/us/chart'))
+        self.assertEqual(len(data['points']), 1)
+        self.assertEqual(request_body['strt_dt'], (
+            us_stocks.datetime.now(us_stocks.NY_TZ).date()
+            - us_stocks.timedelta(days=us_stocks.US_DAILY_LOOKBACK_CALENDAR_DAYS)
+        ).strftime('%Y%m%d'))
+        self.assertNotIn('tic_scope', request_body)
+
     def test_invalid_symbol_is_rejected(self):
         with self.assertRaises(ValueError):
             us_stocks.normalize_symbol('AAPL/../../etc')
