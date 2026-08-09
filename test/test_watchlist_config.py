@@ -28,6 +28,20 @@ class WatchlistConfigTests(unittest.TestCase):
                 'groups': [],
             })
 
+    def test_accepts_us_ticker_codes(self):
+        result = watchlist.normalize_config({
+            'items': [{'code': 'US:TSLA', 'name': 'Tesla, Inc.'}],
+            'groups': [],
+        })
+        self.assertEqual(result['items'][0]['code'], 'US:TSLA')
+
+    def test_rejects_malformed_us_ticker_codes(self):
+        with self.assertRaises(watchlist.WatchlistConfigError):
+            watchlist.normalize_config({
+                'items': [{'code': 'US:TSLA!', 'name': 'Tesla, Inc.'}],
+                'groups': [],
+            })
+
     def test_rejects_unknown_group(self):
         with self.assertRaises(watchlist.WatchlistConfigError):
             watchlist.normalize_config({

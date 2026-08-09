@@ -4,7 +4,8 @@
 import re
 
 
-CODE_RE = re.compile(r'^[0-9A-Za-z]{6}$')
+DOMESTIC_CODE_RE = re.compile(r'^[0-9A-Za-z]{6}$')
+US_CODE_RE = re.compile(r'^US:[A-Z][A-Z0-9.\-^=]{0,11}$')
 DEFAULT_GROUP_ID = 'default'
 DEFAULT_GROUP_NAME = '기본'
 MAX_ITEMS = 50
@@ -66,8 +67,8 @@ def normalize_config(value):
         code = str(raw_item.get('code', '')).strip().upper()
         name = str(raw_item.get('name', '')).strip()
         group_id = str(raw_item.get('groupId', DEFAULT_GROUP_ID)).strip() or DEFAULT_GROUP_ID
-        if not CODE_RE.fullmatch(code):
-            raise WatchlistConfigError('stock code must be 6 alphanumeric characters')
+        if not (DOMESTIC_CODE_RE.fullmatch(code) or US_CODE_RE.fullmatch(code)):
+            raise WatchlistConfigError('stock code must be a 6-character domestic code or US:ticker')
         if not name or len(name) > 100:
             raise WatchlistConfigError('stock name must be 1-100 characters')
         if code in seen_codes:
