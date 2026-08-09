@@ -3280,7 +3280,6 @@
       var delay = ((Number(index) || 0) * -0.55).toFixed(2);
       var frontWidth = width - 10;
       var sideStart = x + frontWidth;
-      var signLabel = band.current ? '현재가' : band.average ? '평균단가' : band.poc ? 'POC' : '';
       var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
         + '<rect x="' + x + '" y="' + y + '" width="' + frontWidth + '" height="' + height + '" rx="2" />'
         + '<path class="ff-apt-building-side" d="M' + sideStart + ' ' + (y + 3) + ' L' + (x + width) + ' ' + (y + 8) + ' V' + (groundY - 8) + ' L' + sideStart + ' ' + (groundY - 8) + ' Z" />'
@@ -3348,11 +3347,7 @@
       html += '<rect class="ff-apt-building-lobby" x="' + (x + frontWidth * .31) + '" y="' + (groundY - 31) + '" width="' + (frontWidth * .38) + '" height="24" rx="2" />'
         + '<path class="ff-apt-building-lobby-door" d="M' + (x + frontWidth * .5) + ' ' + (groundY - 31) + ' V' + (groundY - 7) + ' M' + (x + frontWidth * .31) + ' ' + (groundY - 31) + ' H' + (x + frontWidth * .69) + '" />'
         + '<path class="ff-apt-building-lobby-steps" d="M' + (x + frontWidth * .38) + ' ' + (groundY - 5) + ' H' + (x + frontWidth * .62) + ' M' + (x + frontWidth * .34) + ' ' + (groundY - 1) + ' H' + (x + frontWidth * .66) + '" />';
-      if (signLabel) {
-        html += '<g class="ff-apt-building-sign"><rect x="' + (x + 10) + '" y="' + (y - 29) + '" width="' + (width - 20) + '" height="14" rx="5" /><text x="' + (x + width / 2) + '" y="' + (y - 19) + '" text-anchor="middle">' + signLabel + '</text></g>';
-      }
       html += '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 12) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
-        + '<text class="ff-apt-building-volume" x="' + (x + width / 2) + '" y="' + (y - 1) + '" text-anchor="middle">' + Math.round(band.volume).toLocaleString('ko-KR') + '주</text>'
         + '<text class="ff-apt-building-band" x="' + (x + width / 2) + '" y="' + (groundY + 7) + '" text-anchor="middle">' + aptBandLabel(band.start, n) + '</text>'
         + '</g>';
       return html;
@@ -3464,16 +3459,6 @@
     var middle = bins[Math.floor((n - 1) / 2)];
     var low = bins[0];
     var pocText = pocIdx >= 0 && bins[pocIdx] ? priceText((bins[pocIdx].low + bins[pocIdx].high) / 2) + '원' : '-';
-    function signalCard(x, width, label, value, color, kind) {
-      return '<g class="ff-apt-signal-card ' + kind + '-signal" style="--ff-signal-color:' + color + '">'
-        + '<circle class="ff-apt-signal-dot" cx="' + (x + 14) + '" cy="28" r="4" />'
-        + '<text class="ff-apt-signal-label" x="' + (x + 24) + '" y="28">' + label + '</text>'
-        + '<text class="ff-apt-signal-value" x="' + (x + 24) + '" y="42">' + value + '</text>'
-        + '</g>';
-    }
-    var signalCards = signalCard(314, 104, '현재가', priceText(currentPrice) + '원', '#0f766e', 'current')
-      + signalCard(428, 104, '평균 단가', priceText(avgPrice) + '원', '#3b82f6', 'average')
-      + signalCard(542, 104, '중심 가격', pocText, '#f08c46', 'poc');
     var grid = '';
     for (var g = 0; g < n; g += Math.max(1, Math.ceil(n / 12))) {
       var gy = yForIndex(g);
@@ -3510,10 +3495,9 @@
       + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
       + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
       + '<path class="ff-apt-illustration-orbit" d="M120 430 C230 172 566 126 924 190" />'
-      + '<g class="ff-apt-illustration-title"><rect x="48" y="48" width="200" height="40" rx="8" /><path d="M68 68 h22 m-11-11 v22" /><text x="104" y="74">가격 지형도</text></g>'
-      + signalCards
-      + '<g class="ff-apt-illustration-tag"><rect x="48" y="118" width="122" height="28" rx="6" /><text x="66" y="137">거래량 지도</text></g>'
-      + '<g class="ff-apt-illustration-tag"><rect x="520" y="72" width="112" height="28" rx="6" /><text x="540" y="91">체결 흐름</text></g>'
+      + '<g class="ff-apt-illustration-title"><rect x="48" y="24" width="200" height="34" rx="8" /><path d="M68 41 h22 m-11-11 v22" /><text x="104" y="47">가격 지형도</text></g>'
+      + '<g class="ff-apt-illustration-tag"><rect x="286" y="27" width="122" height="28" rx="6" /><text x="304" y="46">거래량 지도</text></g>'
+      + '<g class="ff-apt-illustration-tag"><rect x="520" y="27" width="112" height="28" rx="6" /><text x="540" y="46">체결 흐름</text></g>'
       + skylineTrack
       + ladder
       + helicopter
