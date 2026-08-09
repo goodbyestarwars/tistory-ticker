@@ -682,15 +682,14 @@ def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=1
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     query = ((name or '').strip() + ' ' + ticker).strip()
-    naver_items = naver_news.search_news(
-        query,
-        os.environ.get('NAVER_APIHUB_CLIENT_ID'),
-        os.environ.get('NAVER_APIHUB_CLIENT_SECRET'),
-        display=10,
-    )
-    items = news_aggregator.merge_news(
+    items = news_aggregator.get_or_refresh_news(
         ticker,
-        naver_items=naver_items,
+        naver_fetcher=lambda: naver_news.search_news(
+            query,
+            os.environ.get('NAVER_APIHUB_CLIENT_ID'),
+            os.environ.get('NAVER_APIHUB_CLIENT_SECRET'),
+            display=10,
+        ),
         alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
         limit=3,

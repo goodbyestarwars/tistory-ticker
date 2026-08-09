@@ -1,5 +1,6 @@
 import os
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -9,6 +10,37 @@ import news_aggregator
 
 
 class NewsAggregatorTests(unittest.TestCase):
+    def test_persistent_cache_skips_provider_calls_until_expired(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with mock.patch.object(news_aggregator, 'NEWS_CACHE_DB_FILE', os.path.join(temp_dir, 'news.db')):
+                fetcher = mock.Mock(return_value=[{
+                    'title': 'Apple cached headline',
+                    'link': 'https://news.example.test/cached',
+                    'pubDate': 'Fri, 08 Aug 2026 09:00:00 +0000',
+                }])
+                with mock.patch.object(news_aggregator, '_get_xml', return_value=None):
+                    first = news_aggregator.get_or_refresh_news('AAPL', naver_fetcher=fetcher, ttl_sec=3600)
+                self.assertEqual(len(first), 1)
+                self.assertEqual(fetcher.call_count, 1)
+
+                second_fetcher = mock.Mock(side_effect=AssertionError('provider should not be called'))
+                second = news_aggregator.get_or_refresh_news('AAPL', naver_fetcher=second_fetcher, ttl_sec=3600)
+                self.assertEqual(second, first)
+                second_fetcher.assert_not_called()
+
+                with mock.patch.object(news_aggregator, '_get_xml', return_value=None):
+                    refreshed = news_aggregator.get_or_refresh_news(
+                        'AAPL',
+                        naver_fetcher=mock.Mock(return_value=[{
+                            'title': 'Apple refreshed headline',
+                            'link': 'https://news.example.test/refreshed',
+                            'pubDate': 'Fri, 08 Aug 2026 10:00:00 +0000',
+                        }]),
+                        ttl_sec=0,
+                    )
+                self.assertEqual(refreshed[0]['title'], 'Apple refreshed headline')
+                self.assertEqual(news_aggregator.load_cached_news('AAPL', ttl_sec=3600), refreshed)
+
     def test_naver_only_fallback_without_optional_keys(self):
         with mock.patch.object(news_aggregator, '_get_xml', return_value=None):
             items = news_aggregator.merge_news('AAPL', naver_items=[{
