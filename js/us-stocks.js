@@ -161,8 +161,15 @@
   function searchRows(query, limit) {
     return fetchJson(API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=' + limit)
       .then(function (rows) {
-        if (rows && rows.length) return rows;
-        return localSearchRows(query, limit);
+        var localRows = localSearchRows(query, limit);
+        if (!rows || !rows.length) return localRows;
+        var seen = {};
+        return localRows.concat(rows).filter(function (row) {
+          var key = String(row.symbol || '').toUpperCase();
+          if (seen[key]) return false;
+          seen[key] = true;
+          return true;
+        }).slice(0, limit);
       })
       .catch(function () { return localSearchRows(query, limit); });
   }

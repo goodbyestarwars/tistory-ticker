@@ -67,6 +67,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("US_STOCKS_SCRIPT", realtime)
         self.assertIn("id=\"ssUsModule\"", realtime)
         self.assertIn("한국·미국 종목명 또는 코드", realtime)
+        for source in (panel, realtime, self.read("js/us-stocks.js")):
+            self.assertIn("symbol: 'TSLA'", source)
+            self.assertIn("aliases: '테슬라 tesla'", source)
+            self.assertIn("symbol: 'SPCX'", source)
+            self.assertIn("aliases: '스페이스X spacex'", source)
+        self.assertIn("return localRows.concat(rows)", panel)
+        self.assertIn("return localRows.concat(rows)", realtime)
+        self.assertIn("return localRows.concat(rows)", self.read("js/us-stocks.js"))
 
     def test_pattern_detail_uses_scan_date_snapshot(self):
         pattern = self.read("js/pattern-scan.js")

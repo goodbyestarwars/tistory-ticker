@@ -407,7 +407,13 @@
           return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
         });
         if (!rows.length) throw new Error('미국주식 검색 결과 없음');
-        return rows;
+        var seen = {};
+        return localRows.concat(rows).filter(function (row) {
+          var key = String(row.code || '').toUpperCase();
+          if (seen[key]) return false;
+          seen[key] = true;
+          return true;
+        }).slice(0, 8);
       })
       .catch(function () {
         return localRows;
