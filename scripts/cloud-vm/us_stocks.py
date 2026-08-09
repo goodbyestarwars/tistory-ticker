@@ -23,6 +23,11 @@ import kis_client
 logger = logging.getLogger('us_stocks')
 
 SYMBOL_RE = re.compile(r'^[A-Z][A-Z0-9.\-^=]{0,11}$')
+US_SEARCH_ALIASES = {
+    '일라이릴리': 'lilly',
+    '일라이 릴리': 'lilly',
+    '릴리': 'lilly',
+}
 SEARCH_TTL_SEC = 600
 QUOTE_TTL_SEC = 10
 MAX_CACHE_ENTRIES = 100
@@ -162,7 +167,7 @@ def search(query, limit=8):
         return cached
     try:
         rows = _records_from_kiwoom_symbol_list()
-        needle = text.casefold()
+        needle = US_SEARCH_ALIASES.get(text.casefold(), text.casefold())
         ranked = sorted(
             rows,
             key=lambda row: (

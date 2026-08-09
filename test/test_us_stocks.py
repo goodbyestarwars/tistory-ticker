@@ -26,6 +26,14 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual([row['symbol'] for row in rows], ['AAPL'])
         self.assertEqual(rows[0]['code'], 'US:AAPL')
 
+    def test_search_supports_korean_alias_for_e_lilly(self):
+        rows = [
+            {'symbol': 'LLY', 'code': 'US:LLY', 'name': 'Eli Lilly and Company', 'exchange': 'NY'},
+        ]
+        with mock.patch.object(us_stocks, '_records_from_kiwoom_symbol_list', return_value=rows):
+            result = us_stocks.search('일라이릴리')
+        self.assertEqual([row['symbol'] for row in result], ['LLY'])
+
     def test_quote_prefers_kiwoom(self):
         with mock.patch.object(us_stocks, '_kiwoom_quote', return_value={
             'symbol': 'AAPL', 'price': 201.5, 'change': 1.5,

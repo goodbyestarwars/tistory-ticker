@@ -84,6 +84,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("'US:' + symbol", source)
         self.assertIn("US:[A-Z]", source)
         self.assertIn("symbol: 'TSLA'", source)
+        self.assertIn("symbol: 'LLY'", source)
+        self.assertIn("일라이릴리", source)
 
     def test_pattern_detail_uses_scan_date_snapshot(self):
         pattern = self.read("js/pattern-scan.js")

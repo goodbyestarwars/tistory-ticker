@@ -21,7 +21,8 @@
     { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta nasdaq 나스닥' },
     { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd nasdaq 나스닥' },
     { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix nasdaq 나스닥' },
-    { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq nasdaq 나스닥' }
+    { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq nasdaq 나스닥' },
+    { symbol: 'LLY', name: 'Eli Lilly and Company', aliases: '일라이릴리 일라이 릴리 eli lilly lilly nyse' }
   ];
   var krxMap = window.KRX_MAP || {};
   Object.keys(krxMap).forEach(function (name) { names[krxMap[name]] = name; });
@@ -81,6 +82,10 @@
     }).map(function (row) {
       return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
     });
+    if (!localRows.length && /^[a-z][a-z0-9.\-^=]{0,11}$/i.test(query)) {
+      localRows.push({ code: 'US:' + query.toUpperCase(), name: query.toUpperCase(), market: 'us' });
+    }
+    if (localRows.length) return Promise.resolve(localRows.slice(0, 8));
     var request = typeof window.fetch === 'function'
       ? window.fetch(US_API_BASE + '/us-search?q=' + encodeURIComponent(value) + '&limit=8')
       : Promise.reject(new Error('fetch unavailable'));
