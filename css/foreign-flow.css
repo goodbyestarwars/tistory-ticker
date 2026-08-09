@@ -2578,6 +2578,7 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
   50% { transform: translateX(2px) translateY(-3px); }
 }
 #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #f7f8f8; stroke: #69737a; stroke-width: 1; }
+#foreign-flow .ff-apt-illustration-building .ff-apt-building-side { fill: #e3e7e8; stroke: #69737a; stroke-width: .8; opacity: .9; }
 #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { fill: none; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-building-roof-cap { fill: none; stroke: #0f766e; stroke-width: 1.2; stroke-linecap: round; }
 #foreign-flow .ff-apt-building-frame,
@@ -2585,10 +2586,18 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-building-frame { stroke: #69737a; stroke-width: .9; opacity: .72; }
 #foreign-flow .ff-apt-building-lobby { fill: rgba(183,217,210,.45); stroke: #0f766e; stroke-width: .8; }
 #foreign-flow .ff-apt-building-lobby-door { fill: none; stroke: #0f766e; stroke-width: .7; }
+#foreign-flow .ff-apt-building-sign rect { fill: #fff; stroke: #69737a; stroke-width: .8; }
+#foreign-flow .ff-apt-building-sign text { fill: #526171; font-size: 7px; font-weight: 900; letter-spacing: .2px; }
 #foreign-flow .ff-apt-building-band { fill: #68757d; font-size: 7px; font-weight: 800; letter-spacing: .4px; }
 #foreign-flow .ff-apt-illustration-building.current-band > rect:first-child { stroke: #0f766e; stroke-width: 2; }
 #foreign-flow .ff-apt-illustration-building.average-band > rect:first-child { stroke: #3b82f6; stroke-width: 1.6; }
 #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-child { stroke: #f08c46; stroke-width: 2; }
+#foreign-flow .ff-apt-illustration-building.current-band .ff-apt-building-sign rect { fill: #0f766e; stroke: #0f766e; }
+#foreign-flow .ff-apt-illustration-building.current-band .ff-apt-building-sign text { fill: #fff; }
+#foreign-flow .ff-apt-illustration-building.average-band .ff-apt-building-sign rect { fill: #3b82f6; stroke: #3b82f6; }
+#foreign-flow .ff-apt-illustration-building.average-band .ff-apt-building-sign text { fill: #fff; }
+#foreign-flow .ff-apt-illustration-building.poc-band .ff-apt-building-sign rect { fill: #f08c46; stroke: #f08c46; }
+#foreign-flow .ff-apt-illustration-building.poc-band .ff-apt-building-sign text { fill: #fff; }
 #foreign-flow .ff-apt-basement-shell { fill: #e2e6e8; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-basement-ceiling { fill: none; stroke: #69737a; stroke-width: 1.2; }
 #foreign-flow .ff-apt-basement-stair { fill: none; stroke: #69737a; stroke-width: 1; }
@@ -2679,12 +2688,15 @@ html.dark #foreign-flow .ff-apt-signal-card rect { fill: rgba(38,44,47,.96); }
 html.dark #foreign-flow .ff-apt-signal-dot { stroke: #262c2f; }
 html.dark #foreign-flow .ff-apt-signal-label { fill: #e3e7e8; }
 html.dark #foreign-flow .ff-apt-illustration-building rect:first-child { fill: #2c3336; stroke: #9da5aa; }
+html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-side { fill: #343c40; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-building-roof-cap { stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-frame,
 html.dark #foreign-flow .ff-apt-building-floor { stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-building-lobby { fill: rgba(40,91,85,.7); stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-lobby-door { stroke: #74c9b6; }
+html.dark #foreign-flow .ff-apt-building-sign rect { fill: #262c2f; stroke: #9da5aa; }
+html.dark #foreign-flow .ff-apt-building-sign text { fill: #e3e7e8; }
 html.dark #foreign-flow .ff-apt-building-band { fill: #b7c0c5; }
 html.dark #foreign-flow .ff-apt-illustration-building.current-band > rect:first-child { stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-illustration-building.average-band > rect:first-child { stroke: #8bb5ff; }
