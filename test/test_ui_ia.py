@@ -216,6 +216,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('grid-template-areas: "handle name quote remove"', style)
         self.assertIn("@media (max-width: 640px)", style)
 
+    def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
+        source = self.read("js/watchlist.js")
+        for token in (
+            "var domesticCodes = codes.filter",
+            "var usCodes = codes.filter",
+            "var fallbackCodes = usCodes.slice();",
+            "if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);",
+        ):
+            self.assertIn(token, source)
+
     def test_home_my_scrolls_all_quotes_and_rank_keeps_price_line(self):
         widgets = self.read("js/home-widgets.js")
         rank = self.read("js/sidebar-rank.js")

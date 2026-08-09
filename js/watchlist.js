@@ -769,10 +769,16 @@
 
   function startRealtimeQuotes(container, codes) {
     stopRealtimeQuotes();
-    if (!codes.length || document.hidden || !('WebSocket' in global)) return;
+    if (!codes.length || document.hidden) return;
+
+    // VM WebSocket은 키움 국내 6자리 코드만 중계한다. 미국 종목을 함께 보내면
+    // 미국 코드는 조용히 버려져 숫자가 화면을 다시 열 때만 갱신되는 문제가 생긴다.
+    var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
+    var usCodes = codes.filter(function (code) { return /^US:/i.test(code); });
+    var canUseSocket = domesticCodes.length && ('WebSocket' in global);
 
     var generation = realtimeGeneration;
-    var encodedCodes = codes.map(encodeURIComponent).join(',');
+    var encodedCodes = domesticCodes.map(encodeURIComponent).join(',');
 
     function connect() {
       if (generation !== realtimeGeneration || document.hidden) return;
@@ -807,14 +813,17 @@
       };
     }
 
-    // WebSocket 연결이 막히거나 장 종료로 체결 이벤트가 없을 때만 30초 묶음 조회로 보완한다.
+    // 미국 종목은 WebSocket 중계 대상이 아니므로 항상 30초마다 조회한다.
+    // 국내 종목은 WebSocket이 연결되지 않은 경우에만 같은 폴백으로 조회한다.
     realtimeFallbackTimer = setInterval(function () {
+      var fallbackCodes = usCodes.slice();
       if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) {
-        refreshQuotesOnce(container, codes);
+        fallbackCodes = domesticCodes.concat(fallbackCodes);
       }
+      if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);
     }, REALTIME_FALLBACK_MS);
 
-    connect();
+    if (canUseSocket) connect();
   }
 
   function wireCardEvents(container) {
