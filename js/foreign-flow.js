@@ -3288,7 +3288,6 @@
       var floorH = height / (rows + 1);
       var cellW = Math.max(7, (frontWidth - 16) / cols - 4);
       var cellH = Math.max(8, Math.min(16, floorH - 7));
-      var floorNames = ['탑층', '고층', '중층', '저층', '로비'];
       var markerColumns = [];
       function markerRow(index) {
         var span = Math.max(1, band.end - band.start - 1);
@@ -3301,10 +3300,7 @@
       if (band.poc) markerColumns.push({ col: Math.min(2, cols - 1), row: markerRow(pocIdx), type: 'poc' });
       for (var row = 0; row < rows; row++) {
         var floorY = y + (row + 1) * floorH;
-        html += '<path class="ff-apt-building-floor" d="M' + (x - 3) + ' ' + floorY.toFixed(1) + ' H' + (x + width + 3) + '" />';
-        if ((band.current || band.average || band.poc) && row % 2 === 0) {
-          html += '<text class="ff-apt-building-floor-label" x="' + (x - 5) + '" y="' + (floorY - 3) + '" text-anchor="end">' + floorNames[Math.min(floorNames.length - 1, Math.floor(row * floorNames.length / rows))] + '</text>';
-        }
+        html += '<path class="ff-apt-building-floor" d="M' + (x - 2) + ' ' + floorY.toFixed(1) + ' H' + (x + width + 2) + '" />';
         for (var col = 0; col < cols; col++) {
           var wx = x + 8 + col * (cellW + 4);
           var wy = floorY - cellH - 3;
@@ -3313,11 +3309,6 @@
           var windowClass = isAccent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window';
           if (windowMarker) windowClass += ' ' + windowMarker.type + '-window';
           html += '<rect class="' + windowClass + '" style="opacity:' + (0.42 + band.ratio * 0.5).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
-          if (!windowMarker && (row + col + index) % 3 === 0) {
-            var deskY = wy + cellH * .66;
-            html += '<path class="ff-apt-building-desk" d="M' + (wx + cellW * .22) + ' ' + deskY + ' h' + (cellW * .56).toFixed(1) + ' M' + (wx + cellW * .5) + ' ' + deskY + ' v' + (cellH * .2).toFixed(1) + '" />'
-              + '<circle class="ff-apt-building-worker" cx="' + (wx + cellW * .5) + '" cy="' + (wy + cellH * .35) + '" r="' + Math.max(1.1, cellH * .12).toFixed(1) + '" />';
-          }
           if (windowMarker && windowMarker.type === 'average') {
             var fx = wx + cellW / 2, fy = wy + cellH / 2;
             html += '<g class="ff-apt-building-average-person" transform="translate(' + fx + ' ' + (fy + 1) + ')"><path class="shoulders" d="M-5 5 Q0 1 5 5 V7 H-5 Z" /><circle class="head" r="4.4" /><path class="hair" d="M-4 -1 Q0 -6 4 -1 Z" /><circle class="eye" cx="-1.5" cy="0" r=".55" /><circle class="eye" cx="1.5" cy="0" r=".55" /></g>';

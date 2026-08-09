@@ -2584,9 +2584,6 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-building-frame,
 #foreign-flow .ff-apt-building-floor { fill: none; stroke: #9da5aa; stroke-width: .65; opacity: .8; }
 #foreign-flow .ff-apt-building-frame { stroke: #69737a; stroke-width: .9; opacity: .72; }
-#foreign-flow .ff-apt-building-desk { fill: none; stroke: #f08c46; stroke-width: .75; stroke-linecap: round; opacity: .76; }
-#foreign-flow .ff-apt-building-worker { fill: #3b82f6; stroke: #fff; stroke-width: .45; opacity: .82; }
-#foreign-flow .ff-apt-building-floor-label { fill: #526171; font-size: 6px; font-weight: 800; }
 #foreign-flow .ff-apt-building-lobby { fill: rgba(183,217,210,.45); stroke: #0f766e; stroke-width: .8; }
 #foreign-flow .ff-apt-building-lobby-door { fill: none; stroke: #0f766e; stroke-width: .7; }
 #foreign-flow .ff-apt-building-sign rect { fill: #fff; stroke: #69737a; stroke-width: .8; }
@@ -2696,9 +2693,6 @@ html.dark #foreign-flow .ff-apt-illustration-building .ff-apt-building-roof { st
 html.dark #foreign-flow .ff-apt-building-roof-cap { stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-frame,
 html.dark #foreign-flow .ff-apt-building-floor { stroke: #9da5aa; }
-html.dark #foreign-flow .ff-apt-building-desk { stroke: #ffb37a; }
-html.dark #foreign-flow .ff-apt-building-worker { fill: #8bb5ff; stroke: #262c2f; }
-html.dark #foreign-flow .ff-apt-building-floor-label { fill: #b7c0c5; }
 html.dark #foreign-flow .ff-apt-building-lobby { fill: rgba(40,91,85,.7); stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-lobby-door { stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-sign rect { fill: #262c2f; stroke: #9da5aa; }
