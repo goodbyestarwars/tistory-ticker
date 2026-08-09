@@ -2643,11 +2643,13 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-illustration-ribbon { fill: none; stroke: #0f766e; stroke-width: 1.4; stroke-dasharray: 6 4; }
 #foreign-flow .ff-apt-illustration-node { fill: #f59f00; stroke: #fff; stroke-width: 2; }
 #foreign-flow .ff-apt-illustration-profile > rect { fill: rgba(255,255,255,.74); stroke: #aeb4b8; stroke-width: 1; }
+#foreign-flow .ff-apt-illustration-profile > rect { display: none; }
 #foreign-flow .ff-apt-illustration-profile-title { fill: #263238; font-size: 13px; font-weight: 700; }
 #foreign-flow .ff-apt-illustration-axis { stroke: #69737a; stroke-width: 1.1; }
 #foreign-flow .ff-apt-illustration-grid { stroke: #aeb4b8; stroke-width: .8; stroke-dasharray: 2 4; opacity: .65; }
 #foreign-flow .ff-apt-illustration-profile-line { fill: none; stroke: #0f766e; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 #foreign-flow .ff-apt-illustration-marker { stroke-width: 1.1; stroke-dasharray: 4 3; opacity: .82; vector-effect: non-scaling-stroke; }
+#foreign-flow .ff-apt-illustration-marker.average { stroke-dasharray: none; stroke-width: 1.6; opacity: 1; }
 #foreign-flow .ff-apt-illustration-label-bg { fill: #fff; opacity: .9; }
 #foreign-flow .ff-apt-illustration-marker-label { font-size: 10px; font-weight: 700; }
 #foreign-flow .ff-apt-illustration-price,
@@ -2671,7 +2673,8 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-bin-price { order: 2; margin-top: 7px; color: #89949c; font-size: 8px; white-space: nowrap; transform: rotate(-42deg) translate(-7px, 7px); transform-origin: top center; }
 #foreign-flow .ff-apt-bin-bar { order: 1; display: block; width: 15px; min-height: 8px; border-radius: 3px 3px 1px 1px; background: #b7d9d2; border: 1px solid #0f766e; }
 #foreign-flow .ff-apt-bin.has-marker .ff-apt-bin-bar { background: #f08c46; border-color: #e8590c; }
-#foreign-flow .ff-apt-bin-marker { position: absolute; top: -24px; z-index: 1; padding: 3px 5px; border-radius: 4px; color: #fff; font-size: 8px; line-height: 1; white-space: nowrap; }
+#foreign-flow .ff-apt-bin-markers { position: absolute; left: 50%; bottom: calc(100% + 4px); z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; transform: translateX(-50%); }
+#foreign-flow .ff-apt-bin-marker { display: block; padding: 3px 5px; border-radius: 4px; color: #fff; font-size: 8px; line-height: 1; white-space: nowrap; }
 #foreign-flow .ff-apt-bin-marker.current { background: #0f766e; }
 #foreign-flow .ff-apt-bin-marker.average { background: #3b82f6; }
 #foreign-flow .ff-apt-bin-marker.poc { background: #f08c46; }

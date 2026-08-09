@@ -3183,7 +3183,8 @@
     function marker(index, color, label, value) {
       if (index < 0 || index >= n) return '';
       var y = yForIndex(index);
-      return '<line class="ff-apt-line-marker" x1="' + (left - 12) + '" x2="' + right + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
+      var markerKind = color === '#1971c2' ? ' average' : '';
+      return '<line class="ff-apt-line-marker' + markerKind + '" x1="' + (left - 12) + '" x2="' + right + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
         + '<circle class="ff-apt-line-marker-dot" cx="' + (left - 12) + '" cy="' + y + '" r="4" fill="' + color + '" />'
         + '<text class="ff-apt-line-marker-label" x="' + (left + 8) + '" y="' + (y - 7) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
     }
@@ -3360,9 +3361,9 @@
       if (index < 0 || index >= n) return '';
       var y = yForIndex(index);
       var labelOffset = color === '#3b82f6' ? -32 : color === '#0f766e' ? 8 : -14;
-      return '<line class="ff-apt-illustration-marker" x1="' + (plotLeft - 8) + '" x2="' + plotRight + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
+      var markerKind = color === '#3b82f6' ? ' average' : '';
+      return '<line class="ff-apt-illustration-marker' + markerKind + '" x1="' + (plotLeft - 8) + '" x2="' + plotRight + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
         + '<circle cx="' + (plotLeft - 8) + '" cy="' + y + '" r="4" fill="' + color + '" />'
-        + '<rect class="ff-apt-illustration-label-bg" x="' + (plotLeft - 4) + '" y="' + (y + labelOffset) + '" width="140" height="18" rx="9" />'
         + '<text class="ff-apt-illustration-marker-label" x="' + (plotLeft + 6) + '" y="' + (y + labelOffset + 12) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
     }
 
@@ -3465,7 +3466,6 @@
     var pocText = pocIdx >= 0 && bins[pocIdx] ? priceText((bins[pocIdx].low + bins[pocIdx].high) / 2) + '원' : '-';
     function signalCard(x, width, label, value, color, kind) {
       return '<g class="ff-apt-signal-card ' + kind + '-signal" style="--ff-signal-color:' + color + '">'
-        + '<rect x="' + x + '" y="18" width="' + width + '" height="32" rx="10" />'
         + '<circle class="ff-apt-signal-dot" cx="' + (x + 14) + '" cy="28" r="4" />'
         + '<text class="ff-apt-signal-label" x="' + (x + 24) + '" y="28">' + label + '</text>'
         + '<text class="ff-apt-signal-value" x="' + (x + 24) + '" y="42">' + value + '</text>'
@@ -3486,10 +3486,15 @@
       var isCurrent = binIndex === curIdx;
       var isAverage = binIndex === avgIdx;
       var isPoc = binIndex === pocIdx;
+      var markerCount = (isCurrent ? 1 : 0) + (isAverage ? 1 : 0) + (isPoc ? 1 : 0);
+      var binMarkers = '<span class="ff-apt-bin-markers">'
+        + (isCurrent ? '<b class="ff-apt-bin-marker current">\uD604\uC7AC\uAC00</b>' : '')
+        + (isAverage ? '<b class="ff-apt-bin-marker average">\uD3C9\uADE0\uB2E8\uAC00</b>' : '')
+        + (isPoc ? '<b class="ff-apt-bin-marker poc">POC</b>' : '')
+        + '</span>';
       var markerText = isCurrent ? '현재가' : isAverage ? '평균단가' : isPoc ? 'POC' : '';
-      var markers = markerText ? '<b class="ff-apt-bin-marker ' + (isCurrent ? 'current' : isAverage ? 'average' : 'poc') + '">' + markerText + '</b>' : '';
       return '<div class="ff-apt-bin' + (markerText ? ' has-marker' : '') + '" data-bin-index="' + binIndex + '" title="' + priceText(bin.low) + ' ~ ' + priceText(bin.high) + '원 · 거래량 ' + Math.round(Number(bin.volume) || 0).toLocaleString('ko-KR') + '">'
-        + markers
+        + (markerCount ? binMarkers : '')
         + '<span class="ff-apt-bin-price">' + priceText(midpoint) + '</span>'
         + '<span class="ff-apt-bin-bar" style="height:' + Math.max(8, Math.round((Math.max(0, Number(bin.volume) || 0) / binMaxVolume) * 54)) + 'px"></span>'
         + '</div>';
