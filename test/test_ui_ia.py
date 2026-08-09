@@ -10,7 +10,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def read(self, relative):
         return (ROOT / relative).read_text(encoding="utf-8")
 
-    def test_primary_navigation_has_seven_items(self):
+    def test_primary_navigation_has_six_items(self):
         source = self.read("js/skin-menu.js")
         primary_labels = re.findall(
             r"^\s{4}(?:\{ href: '[^']+', label: '([^']+)' \}|\{\s*$)",
@@ -20,12 +20,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertEqual(source.count("      label: '시장',"), 1)
         self.assertNotIn("{ href: '/page/stock-search', label: '종목' }", source)
         self.assertEqual(source.count("      label: '종목',"), 1)
-        self.assertIn("{ href: '/page/stock-search', label: '종목분석' }", source)
+        self.assertIn("{ href: '/page/foreign-flow', label: '종목분석' }", source)
+        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세' }", source)
+        self.assertEqual(source.count("      label: '종목검색',"), 1)
         self.assertNotIn("label: '종목뉴스'", source)
-        self.assertNotIn("label: '실시간 시세'", source)
         self.assertNotIn("{ href: '/page/watchlist', label: 'MY' }", source)
         self.assertNotIn("label: '미국주식'", source)
-        self.assertEqual(len(primary_labels), 5)
+        self.assertEqual(len(primary_labels), 6)
 
     def test_stock_menu_opens_analysis_and_search_submenu(self):
         source = self.read("js/skin-menu.js")
@@ -36,9 +37,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         )
         self.assertIsNotNone(group)
         body = group.group("body")
-        self.assertIn("{ href: '/page/stock-search', label: '종목분석' }", body)
-        self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", body)
-        self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", body)
+        self.assertIn("{ href: '/page/foreign-flow', label: '종목분석' }", body)
+        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세' }", body)
+        search_group = re.search(
+            r"\{\n\s+label: '종목검색',\n\s+children: \[(?P<body>.*?)\n\s+\]\n\s+\},",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(search_group)
+        search_body = search_group.group("body")
+        self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", search_body)
+        self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", search_body)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")

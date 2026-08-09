@@ -19,7 +19,13 @@
     {
       label: '종목',
       children: [
-        { href: '/page/stock-search', label: '종목분석' },
+        { href: '/page/foreign-flow', label: '종목분석' },
+        { href: '/page/stock-search', label: '실시간 시세' }
+      ]
+    },
+    {
+      label: '종목검색',
+      children: [
         { href: '/page/pattern-scan', label: '차트검색' },
         { href: '/page/strategy-search', label: '전략검색' }
       ]
