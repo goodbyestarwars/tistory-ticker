@@ -20,7 +20,7 @@
   'use strict';
 
   var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-  var WATCHLIST_JS = 'https://goodbyestarwars.github.io/tistory-ticker/js/watchlist.js';
+  var WATCHLIST_JS = 'https://goodbyestarwars.github.io/tistory-ticker/js/watchlist.js?v=us-watchlist-20260810';
   var WATCHLIST_CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/watchlist.css';
   var WATCHLIST_OPEN_KEY = 'wl_drawer_open_v1';
   // 상단/사이드바 종목검색은 먼저 실시간 호가와 차트를 확인하는 흐름으로 연결한다.
@@ -38,6 +38,19 @@
     { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
     { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
     { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' },
+    { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'SK하이닉스 하이닉스 sk hynix' },
+    { symbol: 'MRVL', name: 'Marvell Technology', aliases: '마벨 마벨테크놀로지 marvell' },
+    { symbol: 'RGTI', name: 'Rigetti Computing', aliases: '리게티 rigetti' },
+    { symbol: 'RKLB', name: 'Rocket Lab', aliases: '로켓랩 로켓 랩 rocket lab' },
+    { symbol: 'ORCL', name: 'Oracle Corporation', aliases: '오라클 oracle' },
+    { symbol: 'MU', name: 'Micron Technology', aliases: '마이크론 마이크론테크놀로지 micron' },
+    { symbol: 'CBRS', name: 'Cerebras Systems', aliases: '세레브라스 cerebras' },
+    { symbol: 'PLTR', name: 'Palantir Technologies', aliases: '팔란티어 palantir' },
+    { symbol: 'SNDK', name: 'Sandisk', aliases: '샌디스크 sandisk' },
+    { symbol: 'DELL', name: 'Dell Technologies', aliases: '델 델테크놀로지스 dell' },
+    { symbol: 'IONQ', name: 'IonQ', aliases: '아이온큐 ionq' },
+    { symbol: 'LLY', name: 'Eli Lilly and Company', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
+    { symbol: 'ASTS', name: 'AST SpaceMobile', aliases: 'ast asts 스페이스모바일 spacemobile' },
     { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
     { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd' },
     { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix' },

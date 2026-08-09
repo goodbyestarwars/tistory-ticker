@@ -45,7 +45,7 @@
   var FETCH_TIMEOUT_MS = 15000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
-  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js';
+  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=us-watchlist-20260810';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
@@ -56,7 +56,22 @@
     { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
     { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
     { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
-    { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' }
+    { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' },
+    { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'SK하이닉스 하이닉스 sk hynix' },
+    { symbol: 'MRVL', name: 'Marvell Technology', aliases: '마벨 마벨테크놀로지 marvell' },
+    { symbol: 'RGTI', name: 'Rigetti Computing', aliases: '리게티 rigetti' },
+    { symbol: 'RKLB', name: 'Rocket Lab', aliases: '로켓랩 로켓 랩 rocket lab' },
+    { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
+    { symbol: 'ORCL', name: 'Oracle Corporation', aliases: '오라클 oracle' },
+    { symbol: 'MU', name: 'Micron Technology', aliases: '마이크론 마이크론테크놀로지 micron' },
+    { symbol: 'CBRS', name: 'Cerebras Systems', aliases: '세레브라스 cerebras' },
+    { symbol: 'PLTR', name: 'Palantir Technologies', aliases: '팔란티어 palantir' },
+    { symbol: 'SNDK', name: 'Sandisk', aliases: '샌디스크 sandisk' },
+    { symbol: 'DELL', name: 'Dell Technologies', aliases: '델 델테크놀로지스 dell' },
+    { symbol: 'IONQ', name: 'IonQ', aliases: '아이온큐 ionq' },
+    { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd' },
+    { symbol: 'LLY', name: 'Eli Lilly and Company', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
+    { symbol: 'ASTS', name: 'AST SpaceMobile', aliases: 'ast asts 스페이스모바일 spacemobile' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
 

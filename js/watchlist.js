@@ -31,6 +31,34 @@
   var FETCH_TIMEOUT_MS = 8000;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var US_SEARCH_URL = API_BASE_URL + '/us-search';
+  var US_WATCHLIST_GROUP_NAME = '미국주식';
+  var US_WATCHLIST_ETF_SYMBOLS = ['SOXL', 'SOXS', 'KORU'];
+  var US_WATCHLIST_STOCKS = [
+    { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'sk하이닉스 하이닉스 sk hynix' },
+    { symbol: 'SPCX', name: '스페이스X', aliases: '스페이스x spacex' },
+    { symbol: 'MRVL', name: '마벨 테크놀로지', aliases: '마벨 마벨테크놀로지 marvell' },
+    { symbol: 'RGTI', name: '리게티 컴퓨팅', aliases: '리게티 rigetti' },
+    { symbol: 'NVDA', name: '엔비디아', aliases: '엔비디아 nvidia' },
+    { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft' },
+    { symbol: 'GOOGL', name: '알파벳 A', aliases: '구글 알파벳 alphabet google' },
+    { symbol: 'AMZN', name: '아마존', aliases: '아마존 amazon' },
+    { symbol: 'RKLB', name: '로켓 랩', aliases: '로켓랩 로켓 랩 rocket lab' },
+    { symbol: 'TSLA', name: '테슬라', aliases: '테슬라 tesla' },
+    { symbol: 'AVGO', name: '브로드컴', aliases: '브로드컴 broadcom' },
+    { symbol: 'ORCL', name: '오라클', aliases: '오라클 oracle' },
+    { symbol: 'MU', name: '마이크론 테크놀로지', aliases: '마이크론 마이크론테크놀로지 micron' },
+    { symbol: 'AAPL', name: '애플', aliases: '애플 apple' },
+    { symbol: 'INTC', name: '인텔', aliases: '인텔 intel' },
+    { symbol: 'CBRS', name: '세레브라스 시스템즈', aliases: '세레브라스 cerebras' },
+    { symbol: 'PLTR', name: '팔란티어', aliases: '팔란티어 palantir' },
+    { symbol: 'SNDK', name: '샌디스크', aliases: '샌디스크 sandisk' },
+    { symbol: 'DELL', name: '델 테크놀로지스', aliases: '델 델테크놀로지스 dell' },
+    { symbol: 'IONQ', name: '아이온큐', aliases: '아이온큐 ionq' },
+    { symbol: 'META', name: '메타', aliases: '메타 페이스북 meta facebook' },
+    { symbol: 'LLY', name: '일라이 릴리', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
+    { symbol: 'AMD', name: 'AMD', aliases: 'amd' },
+    { symbol: 'ASTS', name: 'AST 스페이스모바일', aliases: 'ast asts 스페이스모바일 spacemobile' }
+  ];
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
     { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
@@ -39,9 +67,10 @@
     { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
     { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
     { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
-    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
-    { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' }
-  ];
+    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' }
+  ].concat(US_WATCHLIST_STOCKS).filter(function (row, index, rows) {
+    return rows.findIndex(function (candidate) { return candidate.symbol === row.symbol; }) === index;
+  });
   // TODO: /page/stock-search는 실제 페이지 생성 전 placeholder(js/skin-menu.js와 동일 사유) -
   // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
   var STOCK_SEARCH_PAGE_URL = '/page/stock-search';
@@ -222,6 +251,52 @@
     });
   }
 
+  // 2026-08-10: 미국주식 기본 목록을 개별주 중심으로 정리한다.
+  // 기존 계정의 "미국주식" 그룹에도 한 번만 적용되도록 현재 저장값과 비교한 뒤 변경 시에만 저장한다.
+  function migrateUsWatchlist(container) {
+    var usGroup = remoteState.groups.filter(function (group) {
+      return group && group.name === US_WATCHLIST_GROUP_NAME;
+    })[0];
+    if (!usGroup) return false;
+
+    var bannedByCode = {};
+    US_WATCHLIST_ETF_SYMBOLS.forEach(function (symbol) { bannedByCode['US:' + symbol] = true; });
+
+    var before = JSON.stringify(remoteState.items);
+    var usedCodes = {};
+    var nextUsItems = [];
+    US_WATCHLIST_STOCKS.forEach(function (stock) {
+      var code = 'US:' + stock.symbol;
+      // 기존 종목이 있으면 이름만 최신 한국어 표시명으로 맞추고, 없으면 새로 넣는다.
+      nextUsItems.push({ code: code, name: stock.name, groupId: usGroup.id });
+      usedCodes[code] = true;
+    });
+
+    var otherItems = [];
+    var extraUsItems = [];
+    remoteState.items.forEach(function (item) {
+      if (!item || !item.code) return;
+      var code = String(item.code).toUpperCase();
+      var groupId = item.groupId || DEFAULT_GROUP_ID;
+      if (usedCodes[code]) return;
+      if (groupId === usGroup.id) {
+        if (!bannedByCode[code]) extraUsItems.push(item);
+        return;
+      }
+      otherItems.push(item);
+    });
+
+    // 미국주식 그룹 안의 기존 사용자 추가 종목은 유지하되, ETF 3종은 제거한다.
+    var capacity = Math.max(0, MAX_ITEMS - otherItems.length - extraUsItems.length);
+    if (nextUsItems.length > capacity) nextUsItems = nextUsItems.slice(0, capacity);
+    remoteState.items = otherItems.concat(nextUsItems, extraUsItems);
+    if (JSON.stringify(remoteState.items) !== before) {
+      persistRemoteState(container);
+      return true;
+    }
+    return false;
+  }
+
   function notifyChanged() {
     changeListeners.slice().forEach(function (listener) { try { listener(remoteState.items.slice()); } catch (err) {} });
     try { global.dispatchEvent(new Event('watchlist:changed')); } catch (err) {}
@@ -276,12 +351,14 @@
       remoteState.groups = Array.isArray(data.groups) && data.groups.length ? data.groups : localGroups;
       remoteState.revision = Number(data.revision || 0);
       remoteReady = true;
+      var migratedLegacy = false;
       if (!remoteState.items.length && localItems.length) {
         remoteState.items = localItems;
         remoteState.groups = localGroups;
-        persistRemoteState(container);
+        migratedLegacy = true;
         try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(GROUP_STORAGE_KEY); } catch (err) {}
       }
+      if (!migrateUsWatchlist(container) && migratedLegacy) persistRemoteState(container);
       renderAuthStatus(container);
       render(container);
       notifyChanged();

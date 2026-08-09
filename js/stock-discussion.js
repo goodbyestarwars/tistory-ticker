@@ -22,7 +22,22 @@
     { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd nasdaq 나스닥' },
     { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix nasdaq 나스닥' },
     { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq nasdaq 나스닥' },
-    { symbol: 'LLY', name: 'Eli Lilly and Company', aliases: '일라이릴리 일라이 릴리 eli lilly lilly nyse' }
+    { symbol: 'LLY', name: 'Eli Lilly and Company', aliases: '일라이릴리 일라이 릴리 eli lilly lilly nyse' },
+    { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'SK하이닉스 하이닉스 sk hynix nasdaq' },
+    { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' },
+    { symbol: 'MRVL', name: 'Marvell Technology', aliases: '마벨 마벨테크놀로지 marvell' },
+    { symbol: 'RGTI', name: 'Rigetti Computing', aliases: '리게티 rigetti' },
+    { symbol: 'RKLB', name: 'Rocket Lab', aliases: '로켓랩 로켓 랩 rocket lab' },
+    { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
+    { symbol: 'ORCL', name: 'Oracle Corporation', aliases: '오라클 oracle' },
+    { symbol: 'MU', name: 'Micron Technology', aliases: '마이크론 마이크론테크놀로지 micron' },
+    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
+    { symbol: 'CBRS', name: 'Cerebras Systems', aliases: '세레브라스 cerebras' },
+    { symbol: 'PLTR', name: 'Palantir Technologies', aliases: '팔란티어 palantir' },
+    { symbol: 'SNDK', name: 'Sandisk', aliases: '샌디스크 sandisk' },
+    { symbol: 'DELL', name: 'Dell Technologies', aliases: '델 델테크놀로지스 dell' },
+    { symbol: 'IONQ', name: 'IonQ', aliases: '아이온큐 ionq' },
+    { symbol: 'ASTS', name: 'AST SpaceMobile', aliases: 'ast asts 스페이스모바일 spacemobile' }
   ];
   var krxMap = window.KRX_MAP || {};
   Object.keys(krxMap).forEach(function (name) { names[krxMap[name]] = name; });
