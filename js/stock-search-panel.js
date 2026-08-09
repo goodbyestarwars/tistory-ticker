@@ -20,7 +20,7 @@
   'use strict';
 
   var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-  var WATCHLIST_JS = 'https://goodbyestarwars.github.io/tistory-ticker/js/watchlist.js?v=us-watchlist-20260810';
+  var WATCHLIST_JS = 'https://goodbyestarwars.github.io/tistory-ticker/js/watchlist.js?v=us-watchlist-refresh-20260810';
   var WATCHLIST_CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/watchlist.css';
   var WATCHLIST_OPEN_KEY = 'wl_drawer_open_v1';
   // 상단/사이드바 종목검색은 먼저 실시간 호가와 차트를 확인하는 흐름으로 연결한다.
