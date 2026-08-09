@@ -159,9 +159,10 @@
   }
 
   function searchRows(query, limit) {
+    var localRows = localSearchRows(query, limit);
+    if (localRows.length) return Promise.resolve(localRows);
     return fetchJson(API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=' + limit)
       .then(function (rows) {
-        var localRows = localSearchRows(query, limit);
         if (!rows || !rows.length) return localRows;
         var seen = {};
         return localRows.concat(rows).filter(function (row) {

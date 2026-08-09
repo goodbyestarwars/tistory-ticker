@@ -394,6 +394,7 @@
     }).slice(0, 8).map(function (row) {
       return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
     });
+    if (localRows.length) return Promise.resolve(localRows);
     var request = typeof global.fetch === 'function'
       ? global.fetch(US_API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=8')
       : Promise.reject(new Error('fetch unavailable'));

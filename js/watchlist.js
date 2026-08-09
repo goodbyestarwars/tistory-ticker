@@ -424,6 +424,7 @@
     }).slice(0, 8).map(function (row) {
       return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
     });
+    if (localRows.length) return Promise.resolve(localRows);
     var request = typeof global.fetch === 'function'
       ? global.fetch(US_SEARCH_URL + '?q=' + encodeURIComponent(query) + '&limit=8')
       : Promise.reject(new Error('fetch unavailable'));
@@ -494,6 +495,14 @@
       return null;
     }
     if (map.hasOwnProperty(query)) return { code: map[query], name: query };
+
+    var localQuery = query.toLowerCase();
+    var localMatches = LOCAL_US_SYMBOLS.filter(function (row) {
+      return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(localQuery) !== -1;
+    });
+    if (localMatches.length === 1) {
+      return { code: 'US:' + localMatches[0].symbol, name: localMatches[0].name };
+    }
 
     if (/^[A-Z][A-Z0-9.\-]{0,9}$/i.test(query)) {
       var directSymbol = query.toUpperCase();
