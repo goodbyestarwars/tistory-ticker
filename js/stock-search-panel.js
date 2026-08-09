@@ -201,6 +201,13 @@
       return null;
     }
     if (map.hasOwnProperty(query)) return { code: map[query], name: query };
+    var localQuery = query.toLowerCase();
+    var localMatches = LOCAL_US_SYMBOLS.filter(function (row) {
+      return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(localQuery) !== -1;
+    });
+    if (localMatches.length === 1) {
+      return { code: 'US:' + localMatches[0].symbol, name: localMatches[0].name };
+    }
     var q = query.toLowerCase();
     var matches = [];
     for (var name in map) {
@@ -349,7 +356,7 @@
     });
     fetchUsSearch(query).then(function (usRows) {
       if (currentMatchQuery !== query) return;
-      currentMatchRows = domesticRows.concat(usRows).slice(0, MAX_SUGGEST);
+      currentMatchRows = usRows.concat(domesticRows).slice(0, MAX_SUGGEST);
       if (!currentMatchRows.length) { hideSuggest(box); return; }
       box.innerHTML = currentMatchRows.map(function (row, i) {
         return buildRow(row.code, row.name, i, row.market);
