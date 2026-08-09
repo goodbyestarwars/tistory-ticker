@@ -3167,7 +3167,6 @@
     var curIdx = aptBinIndex(profile, currentPrice);
     var avgIdx = aptBinIndex(profile, avgPrice);
     var pocIdx = profile.pocIndex >= 0 && profile.pocIndex < n ? profile.pocIndex : -1;
-    var buildingPhotoUrl = 'https://goodbyestarwars.github.io/tistory-ticker/img/volume-profile-office-building.png';
     var left = 94, right = 468, top = 58, bottom = 466;
     var plotHeight = bottom - top;
 
@@ -3281,10 +3280,8 @@
       var frontWidth = width - 10;
       var sideStart = x + frontWidth;
       var signLabel = band.current ? '현재가' : band.average ? '평균단가' : band.poc ? 'POC' : '';
-      var html = '<g class="ff-apt-illustration-building photo-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
+      var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
         + '<rect x="' + x + '" y="' + y + '" width="' + frontWidth + '" height="' + height + '" rx="2" />'
-        + '<image class="ff-apt-building-photo" href="' + buildingPhotoUrl + '" x="' + x + '" y="' + y + '" width="' + frontWidth + '" height="' + height + '" preserveAspectRatio="none" />'
-        + '<rect class="ff-apt-building-photo-frame" x="' + x + '" y="' + y + '" width="' + frontWidth + '" height="' + height + '" rx="2" />'
         + '<path class="ff-apt-building-side" d="M' + sideStart + ' ' + (y + 3) + ' L' + (x + width) + ' ' + (y + 8) + ' V' + (groundY - 8) + ' L' + sideStart + ' ' + (groundY - 8) + ' Z" />'
         + '<path class="ff-apt-building-glass-sheen" d="M' + (x + 8) + ' ' + (y + 4) + ' L' + (x + frontWidth - 4) + ' ' + (y + 4) + ' L' + (x + frontWidth - 22) + ' ' + (groundY - 12) + ' L' + (x + 8) + ' ' + (groundY - 12) + ' Z" />'
         + '<path class="ff-apt-building-reflection" d="M' + (x + 15) + ' ' + (y + 10) + ' L' + (x + 5) + ' ' + (groundY - 20) + ' M' + (x + 29) + ' ' + (y + 10) + ' L' + (x + 19) + ' ' + (groundY - 20) + '" />'
