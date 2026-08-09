@@ -2,7 +2,7 @@
 """미국주식 검색·시세 어댑터.
 
 시세 우선순위는 키움 REST API -> 한국투자증권 Open API다.
-두 증권사 모두 실패하면 공개 중계 시세를 섞지 않고 명확히 실패시킨다.
+차트는 키움 실패 시 Yahoo 공개 차트 데이터로 보완한다.
 """
 
 import logging
@@ -10,6 +10,9 @@ import os
 import re
 import threading
 import time
+import urllib.parse
+import urllib.request
+import json
 from datetime import datetime, timedelta, time as datetime_time
 from zoneinfo import ZoneInfo
 
@@ -25,6 +28,7 @@ QUOTE_TTL_SEC = 10
 MAX_CACHE_ENTRIES = 100
 NY_TZ = ZoneInfo('America/New_York')
 US_DAILY_LOOKBACK_CALENDAR_DAYS = 730
+YAHOO_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/'
 
 _cache_lock = threading.Lock()
 _search_cache = {}
@@ -316,56 +320,110 @@ def chart(symbol, timeframe='minute'):
     symbol = normalize_symbol(symbol)
     if timeframe not in ('minute', 'daily'):
         raise ValueError('timeframe은 minute 또는 daily여야 합니다.')
-    if not _has_kiwoom():
-        raise UsStockUnavailable('키움증권 인증정보가 없습니다.')
-    token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
-    api_id = 'usa06011' if timeframe == 'minute' else 'usa06012'
-    today = datetime.now(NY_TZ).date()
-    # 미국 분봉 API는 장기간을 한 번에 요청하면 정상 코드(0)여도
-    # result_list가 비어 올 수 있습니다. 분봉은 오늘 데이터만, 일봉은 2년 범위를 요청합니다.
-    start_date = today.strftime('%Y%m%d') if timeframe == 'minute' else (
-        today - timedelta(days=US_DAILY_LOOKBACK_CALENDAR_DAYS)
-    ).strftime('%Y%m%d')
     last_error = None
-    for exchange in _kiwoom_exchange_candidates(symbol):
-        body = {
-            'stex_tp': exchange, 'stk_cd': symbol, 'strt_dt': start_date,
-            'upd_stkpc_tp': '1', 'exrt_appl_tp': '0',
-        }
-        if timeframe == 'minute':
-            body['tic_scope'] = '1'
+    if _has_kiwoom():
         try:
-            response = kiwoom_client.call_tr(token, api_id, '/api/us/chart', body)
-            rows = _records(response)
-            points = []
-            for row in rows:
-                stamp = _chart_time(row, timeframe == 'daily')
-                price = _number(_first(row, 'cur_prc', 'price'))
-                if stamp is None or price is None:
-                    continue
-                open_price = _number(_first(row, 'open_pric', 'open', 'open_price')) or price
-                high_price = _number(_first(row, 'high_pric', 'high', 'high_price')) or max(open_price, price)
-                low_price = _number(_first(row, 'low_pric', 'low', 'low_price')) or min(open_price, price)
-                points.append({
-                    'time': stamp,
-                    'open': open_price,
-                    'high': high_price,
-                    'low': low_price,
-                    'close': price,
-                    'price': price,
-                    'volume': _number(_first(row, 'trde_qty', 'acc_trde_qty')) or 0,
-                })
-            if points:
-                points.sort(key=lambda point: point['time'])
-                return {
-                    'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
-                    'timeframe': timeframe, 'exchange': exchange,
-                    'points': points, 'updated_at': int(time.time()),
-                    'source': '키움증권 REST API',
+            token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
+            api_id = 'usa06011' if timeframe == 'minute' else 'usa06012'
+            today = datetime.now(NY_TZ).date()
+            # 미국 분봉 API는 장기간을 한 번에 요청하면 정상 코드(0)여도
+            # result_list가 비어 올 수 있습니다. 분봉은 오늘 데이터만, 일봉은 2년 범위를 요청합니다.
+            start_date = today.strftime('%Y%m%d') if timeframe == 'minute' else (
+                today - timedelta(days=US_DAILY_LOOKBACK_CALENDAR_DAYS)
+            ).strftime('%Y%m%d')
+            for exchange in _kiwoom_exchange_candidates(symbol):
+                body = {
+                    'stex_tp': exchange, 'stk_cd': symbol, 'strt_dt': start_date,
+                    'upd_stkpc_tp': '1', 'exrt_appl_tp': '0',
                 }
+                if timeframe == 'minute':
+                    body['tic_scope'] = '1'
+                response = kiwoom_client.call_tr(token, api_id, '/api/us/chart', body)
+                rows = _records(response)
+                points = []
+                for row in rows:
+                    stamp = _chart_time(row, timeframe == 'daily')
+                    price = _number(_first(row, 'cur_prc', 'price'))
+                    if stamp is None or price is None:
+                        continue
+                    open_price = _number(_first(row, 'open_pric', 'open', 'open_price')) or price
+                    high_price = _number(_first(row, 'high_pric', 'high', 'high_price')) or max(open_price, price)
+                    low_price = _number(_first(row, 'low_pric', 'low', 'low_price')) or min(open_price, price)
+                    points.append({
+                        'time': stamp,
+                        'open': open_price,
+                        'high': high_price,
+                        'low': low_price,
+                        'close': price,
+                        'price': price,
+                        'volume': _number(_first(row, 'trde_qty', 'acc_trde_qty')) or 0,
+                    })
+                if points:
+                    points.sort(key=lambda point: point['time'])
+                    return {
+                        'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
+                        'timeframe': timeframe, 'exchange': exchange,
+                        'points': points, 'updated_at': int(time.time()),
+                        'source': '키움증권 REST API',
+                    }
         except Exception as exc:
             last_error = exc
-    raise UsStockUnavailable('키움 미국주식 차트 조회 실패') from last_error
+    try:
+        return _yahoo_chart(symbol, timeframe)
+    except Exception as exc:
+        if last_error is None:
+            last_error = exc
+    raise UsStockUnavailable('미국주식 차트 조회 실패') from last_error
+
+
+def _yahoo_chart(symbol, timeframe):
+    range_value, interval = ('1d', '5m') if timeframe == 'minute' else ('2y', '1d')
+    query = urllib.parse.urlencode({'range': range_value, 'interval': interval, 'events': 'history'})
+    payload = _get_yahoo_json(YAHOO_CHART_URL + urllib.parse.quote(symbol, safe='') + '?' + query)
+    result = ((payload.get('chart') or {}).get('result') or [None])[0]
+    if not result:
+        raise RuntimeError('Yahoo chart result is empty')
+    timestamps = result.get('timestamp') or []
+    quotes = (((result.get('indicators') or {}).get('quote') or [{}])[0])
+    points = []
+    for index, timestamp in enumerate(timestamps):
+        close = _number(_series_value(quotes.get('close'), index))
+        if close is None:
+            continue
+        open_price = _number(_series_value(quotes.get('open'), index)) or close
+        high_price = _number(_series_value(quotes.get('high'), index)) or max(open_price, close)
+        low_price = _number(_series_value(quotes.get('low'), index)) or min(open_price, close)
+        stamp = int(timestamp)
+        chart_time = stamp if timeframe == 'minute' else datetime.fromtimestamp(stamp, tz=NY_TZ).date().isoformat()
+        points.append({
+            'time': chart_time,
+            'open': open_price,
+            'high': high_price,
+            'low': low_price,
+            'close': close,
+            'price': close,
+            'volume': _number(_series_value(quotes.get('volume'), index)) or 0,
+        })
+    if not points:
+        raise RuntimeError('Yahoo chart points are empty')
+    return {
+        'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
+        'timeframe': timeframe, 'exchange': ((result.get('meta') or {}).get('exchangeName') or 'US'),
+        'points': points, 'updated_at': int(time.time()),
+        'source': 'Yahoo Finance chart fallback',
+    }
+
+
+def _series_value(values, index):
+    if not isinstance(values, list) or index >= len(values):
+        return None
+    return values[index]
+
+
+def _get_yahoo_json(url):
+    request = urllib.request.Request(url, headers={'User-Agent': 'tistory-ticker/1.0'})
+    with urllib.request.urlopen(request, timeout=15) as response:
+        return json.loads(response.read().decode('utf-8'))
 
 
 def _kis_quote(symbol):

@@ -104,6 +104,26 @@ class UsStockTests(unittest.TestCase):
         ).strftime('%Y%m%d'))
         self.assertNotIn('tic_scope', request_body)
 
+    def test_chart_falls_back_to_yahoo_when_kiwoom_fails(self):
+        yahoo_payload = {
+            'chart': {'result': [{
+                'meta': {'exchangeName': 'NMS'},
+                'timestamp': [1786109400],
+                'indicators': {'quote': [{
+                    'open': [313.0], 'high': [314.0], 'low': [312.5],
+                    'close': [313.33], 'volume': [12345],
+                }]},
+            }]}
+        }
+        with mock.patch.dict(os.environ, {'KIWOOM_APPKEY': 'key', 'KIWOOM_SECRETKEY': 'secret'}), \
+             mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='token'), \
+             mock.patch.object(us_stocks.kiwoom_client, 'call_tr', side_effect=RuntimeError('kiwoom chart down')), \
+             mock.patch.object(us_stocks, '_get_yahoo_json', return_value=yahoo_payload) as yahoo:
+            data = us_stocks.chart('AAPL', 'minute')
+        self.assertEqual(data['source'], 'Yahoo Finance chart fallback')
+        self.assertEqual(data['points'][0]['close'], 313.33)
+        yahoo.assert_called_once()
+
     def test_invalid_symbol_is_rejected(self):
         with self.assertRaises(ValueError):
             us_stocks.normalize_symbol('AAPL/../../etc')
