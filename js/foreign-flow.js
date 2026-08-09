@@ -3405,10 +3405,7 @@
       return building(spec.x, spec.width, band, index);
     }).join('');
     var buildingClipId = 'ff-apt-buildings-clip-' + Math.floor(Math.random() * 1000000000);
-    // 클리핑 영역은 고정하고, 내부 트랙만 이동시켜 드래그 중 빈 공간이 생기지 않게 한다.
-    var skylineTrack = '<g class="ff-apt-illustration-building-viewport" clip-path="url(#' + buildingClipId + ')">'
-      + '<g class="ff-apt-illustration-building-track" data-price-map-buildings data-building-offset="' + buildingInitialOffset + '" data-building-min-offset="' + buildingMinOffset + '" data-building-max-offset="0" transform="translate(' + buildingInitialOffset + ' 0)">' + skyline + '</g>'
-      + '</g>';
+    var skylineTrack = '<g class="ff-apt-illustration-building-track" data-price-map-buildings data-building-offset="' + buildingInitialOffset + '" data-building-min-offset="' + buildingMinOffset + '" data-building-max-offset="0" transform="translate(' + buildingInitialOffset + ' 0)" clip-path="url(#' + buildingClipId + ')">' + skyline + '</g>';
     var basement = '<g class="ff-apt-illustration-basement" role="group" aria-label="지하실">'
       + '<path class="ff-apt-basement-shell" d="M190 390 H520 V458 H190 Z" />'
       + '<path class="ff-apt-basement-ceiling" d="M218 390 H486" />'
