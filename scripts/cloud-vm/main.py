@@ -28,6 +28,7 @@ import dart_client
 import db_schema
 import domestic_futures
 import earnings_calendar
+import finnhub_realtime
 import foreign_flow_compute
 import foreign_futures
 import naver_news
@@ -541,15 +542,29 @@ _ws_active_connections = 0
 
 @app.websocket('/ws/quotes')
 async def realtime_quote_socket(websocket: WebSocket):
-    """관심종목용 실시간 체결가 중계. 키움 토큰은 서버 안에서만 사용한다."""
+    """관심종목용 실시간 체결가 중계(국내=키움, 미국=Finnhub). 인증키는 서버 안에서만 사용한다."""
     global _ws_active_connections
     origin = websocket.headers.get('origin')
     if origin != 'https://ghlee.tistory.com':
         await websocket.close(code=1008)
         return
 
-    codes = realtime_quotes.normalize_codes((websocket.query_params.get('codes') or '').split(','))
-    if not codes:
+    raw_codes = (websocket.query_params.get('codes') or '').split(',')
+    domestic_codes = realtime_quotes.normalize_codes(raw_codes)
+    us_codes = []
+    seen_us = set()
+    for raw_code in raw_codes:
+        if not str(raw_code or '').strip().upper().startswith('US:'):
+            continue
+        try:
+            symbol = us_stocks.normalize_symbol(raw_code)
+        except ValueError:
+            continue
+        if symbol not in seen_us:
+            seen_us.add(symbol)
+            us_codes.append(symbol)
+    total_codes = domestic_codes + us_codes
+    if not total_codes:
         await websocket.close(code=1008)
         return
 
@@ -559,16 +574,25 @@ async def realtime_quote_socket(websocket: WebSocket):
 
     await websocket.accept()
     _ws_active_connections += 1
-    relay_task = asyncio.create_task(realtime_quotes.relay_quotes(websocket, codes))
+    relay_task = asyncio.create_task(
+        realtime_quotes.relay_quotes(websocket, domestic_codes)
+    ) if domestic_codes else None
+    finnhub_task = asyncio.create_task(
+        finnhub_realtime.stream_quotes(websocket, us_codes)
+    ) if us_codes else None
     receive_task = asyncio.create_task(websocket.receive_text())
     try:
         while True:
+            tasks = {task for task in (relay_task, finnhub_task, receive_task) if task}
             done, _ = await asyncio.wait(
-                {relay_task, receive_task},
+                tasks,
                 return_when=asyncio.FIRST_COMPLETED,
             )
-            if relay_task in done:
+            if relay_task and relay_task in done:
                 await relay_task
+                return
+            if finnhub_task and finnhub_task in done:
+                await finnhub_task
                 return
             # 반드시 완료된 수신 태스크를 await해서 WebSocketDisconnect를 회수한다.
             # 회수하지 않으면 클라이언트가 닫힌 뒤에도 예외 태스크가 누적되어
@@ -588,7 +612,7 @@ async def realtime_quote_socket(websocket: WebSocket):
             pass
     finally:
         _ws_active_connections -= 1
-        for task in (relay_task, receive_task):
+        for task in (relay_task, finnhub_task, receive_task):
             if not task.done():
                 task.cancel()
         try:

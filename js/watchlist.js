@@ -730,12 +730,19 @@
       return;
     }
 
+    var signature = [quote.price, quote.change, quote.changeRate].join('|');
+    if (card.getAttribute('data-quote-signature') === signature) return;
+    card.setAttribute('data-quote-signature', signature);
+
     var isUs = /^US:/i.test(code);
     var price = Number(quote.price);
     priceEl.textContent = isUs && !isNaN(price)
       ? '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       : formatNumber(quote.price) + '원';
-    changeEl.textContent = arrowSymbol(quote.change) + Math.abs(quote.changeRate).toFixed(2) + '%';
+    var changeRate = Number(quote.changeRate);
+    changeEl.textContent = isNaN(changeRate)
+      ? ''
+      : arrowSymbol(quote.change) + Math.abs(changeRate).toFixed(2) + '%';
     changeEl.classList.remove('wl-up', 'wl-down', 'wl-flat');
     changeEl.classList.add(quote.change > 0 ? 'wl-up' : quote.change < 0 ? 'wl-down' : 'wl-flat');
   }
@@ -761,7 +768,8 @@
     Watchlist.fetchQuotes(codes)
       .then(function (quoteByCode) {
         codes.forEach(function (code) {
-          updateCard(container, code, quoteByCode[code] || null);
+          // 일시적인 429/브로커 오류가 와도 기존 숫자를 지우지 않는다.
+          if (quoteByCode[code]) updateCard(container, code, quoteByCode[code]);
         });
       })
       .catch(function () {});
@@ -771,8 +779,7 @@
     stopRealtimeQuotes();
     if (!codes.length || document.hidden) return;
 
-    // VM WebSocket은 키움 국내 6자리 코드만 중계한다. 미국 종목을 함께 보내면
-    // 미국 코드는 조용히 버려져 숫자가 화면을 다시 열 때만 갱신되는 문제가 생긴다.
+    // 국내 코드는 키움, 미국 코드는 Finnhub 스트림으로 서버가 분리 중계한다.
     var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
     var usCodes = codes.filter(function (code) { return /^US:/i.test(code); });
     var canUseSocket = domesticCodes.length && ('WebSocket' in global);
@@ -813,8 +820,8 @@
       };
     }
 
-    // 미국 종목은 WebSocket 중계 대상이 아니므로 항상 30초마다 조회한다.
-    // 국내 종목은 WebSocket이 연결되지 않은 경우에만 같은 폴백으로 조회한다.
+    // WebSocket이 일시적으로 끊긴 경우를 위한 안전망이다. 정상 상태에서는
+    // 미국주식도 Finnhub WebSocket 이벤트가 변경된 행만 바로 갱신한다.
     realtimeFallbackTimer = setInterval(function () {
       var fallbackCodes = usCodes.slice();
       if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) {
