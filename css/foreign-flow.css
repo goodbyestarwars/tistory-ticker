@@ -2577,7 +2577,6 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
   0%, 100% { transform: translateX(-1px) translateY(0); }
   50% { transform: translateX(2px) translateY(-3px); }
 }
-@keyframes ff-apt-rotor-spin { to { stroke-dashoffset: -14; } }
 #foreign-flow .ff-apt-illustration-building rect:first-child { fill: rgba(186,224,226,.46); stroke: #4d8f91; stroke-width: 1.05; }
 #foreign-flow .ff-apt-illustration-building .ff-apt-building-side { fill: rgba(128,177,183,.38); stroke: #4d8f91; stroke-width: .8; opacity: .95; }
 #foreign-flow .ff-apt-building-glass-sheen { fill: rgba(255,255,255,.18); stroke: none; }
@@ -2641,29 +2640,18 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-illustration-building.poc-band .ff-apt-building-sign rect { fill: #f08c46; stroke: #f08c46; }
 #foreign-flow .ff-apt-illustration-building.poc-band .ff-apt-building-sign text { fill: #fff; }
 #foreign-flow .ff-apt-basement-shell { fill: #e2e6e8; stroke: #69737a; stroke-width: 1; }
-#foreign-flow .ff-apt-basement-inner-wall { fill: rgba(255,255,255,.24); stroke: #aab5b9; stroke-width: .7; }
 #foreign-flow .ff-apt-basement-ceiling { fill: none; stroke: #69737a; stroke-width: 1.2; }
-#foreign-flow .ff-apt-basement-column,
-#foreign-flow .ff-apt-basement-pipe { fill: none; stroke: #879399; stroke-width: .8; stroke-linecap: round; }
 #foreign-flow .ff-apt-basement-stair { fill: none; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-basement-window { fill: #b7d9d2; stroke: #0f766e; stroke-width: .8; }
-#foreign-flow .ff-apt-basement-window-light { fill: none; stroke: rgba(255,255,255,.82); stroke-width: .7; }
 #foreign-flow .ff-apt-basement-door { fill: #f7f8f8; stroke: #69737a; stroke-width: 1; }
 #foreign-flow .ff-apt-basement-handle { fill: #0f766e; stroke: none; }
 #foreign-flow .ff-apt-basement-label { fill: #1f2937; font-size: 13px; font-weight: 900; letter-spacing: .5px; paint-order: stroke; stroke: #eef0f1; stroke-width: 2.5; }
 #foreign-flow .ff-apt-illustration-helicopter { animation: ff-apt-helicopter-hover 6.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 #foreign-flow .ff-apt-helicopter-body { fill: #fff; stroke: #0f766e; stroke-width: 1.2; }
-#foreign-flow .ff-apt-helicopter-body-highlight { fill: none; stroke: rgba(255,255,255,.9); stroke-width: 1; stroke-linecap: round; }
-#foreign-flow .ff-apt-helicopter-cockpit { fill: #86c9c2; stroke: #0f766e; stroke-width: .8; }
 #foreign-flow .ff-apt-helicopter-window { fill: #b7d9d2; stroke: #0f766e; stroke-width: .8; }
-#foreign-flow .ff-apt-helicopter-door { fill: none; stroke: #69737a; stroke-width: .7; }
 #foreign-flow .ff-apt-helicopter-tail,
-#foreign-flow .ff-apt-helicopter-tail-fin,
 #foreign-flow .ff-apt-helicopter-rotor,
 #foreign-flow .ff-apt-helicopter-skid { fill: none; stroke: #69737a; stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
-#foreign-flow .ff-apt-helicopter-tail-fin { stroke-width: .8; }
-#foreign-flow .ff-apt-helicopter-rotor-shadow { fill: rgba(105,115,122,.16); stroke: none; }
-#foreign-flow .ff-apt-helicopter-rotor-blur { fill: none; stroke: rgba(105,115,122,.5); stroke-width: .7; stroke-linecap: round; stroke-dasharray: 4 3; animation: ff-apt-rotor-spin .5s linear infinite; }
 #foreign-flow .ff-apt-helicopter-light { fill: #f59f00; stroke: #fff; stroke-width: .8; }
 #foreign-flow .ff-apt-building-price { fill: #445057; font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; }
 #foreign-flow .ff-apt-building-volume { fill: #8a9499; font-size: 8px; font-variant-numeric: tabular-nums; }
@@ -2773,28 +2761,18 @@ html.dark #foreign-flow .ff-apt-illustration-building.current-band > rect:first-
 html.dark #foreign-flow .ff-apt-illustration-building.average-band > rect:first-child { stroke: #8bb5ff; }
 html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-child { stroke: #ffb37a; }
 html.dark #foreign-flow .ff-apt-basement-shell { fill: #343c40; stroke: #9da5aa; }
-html.dark #foreign-flow .ff-apt-basement-inner-wall { fill: rgba(255,255,255,.06); stroke: #7d8b91; }
 html.dark #foreign-flow .ff-apt-basement-ceiling,
-html.dark #foreign-flow .ff-apt-basement-stair,
-html.dark #foreign-flow .ff-apt-basement-column,
-html.dark #foreign-flow .ff-apt-basement-pipe { stroke: #9da5aa; }
+html.dark #foreign-flow .ff-apt-basement-stair { stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-basement-window { fill: #285b55; stroke: #74c9b6; }
-html.dark #foreign-flow .ff-apt-basement-window-light { stroke: rgba(180,236,226,.55); }
 html.dark #foreign-flow .ff-apt-basement-door { fill: #2c3336; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-basement-handle { fill: #74c9b6; }
 html.dark #foreign-flow .ff-apt-basement-label { fill: #f5efe0; stroke: #2c3336; }
 html.dark #foreign-flow .ff-apt-window-marker-label { stroke: #2c3336; }
 html.dark #foreign-flow .ff-apt-helicopter-body { fill: #2c3336; stroke: #74c9b6; }
-html.dark #foreign-flow .ff-apt-helicopter-body-highlight { stroke: rgba(180,236,226,.6); }
-html.dark #foreign-flow .ff-apt-helicopter-cockpit { fill: #285b55; stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-helicopter-window { fill: #285b55; stroke: #74c9b6; }
-html.dark #foreign-flow .ff-apt-helicopter-door { stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-helicopter-tail,
-html.dark #foreign-flow .ff-apt-helicopter-tail-fin,
 html.dark #foreign-flow .ff-apt-helicopter-rotor,
 html.dark #foreign-flow .ff-apt-helicopter-skid { stroke: #9da5aa; }
-html.dark #foreign-flow .ff-apt-helicopter-rotor-shadow { fill: rgba(180,236,226,.12); }
-html.dark #foreign-flow .ff-apt-helicopter-rotor-blur { stroke: rgba(180,236,226,.4); }
 html.dark #foreign-flow .ff-apt-helicopter-light { stroke: #2c3336; }
 html.dark #foreign-flow .ff-apt-illustration-window { fill: #343c40; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-illustration-window.accent { fill: #285b55; stroke: #74c9b6; }
