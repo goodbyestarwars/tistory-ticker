@@ -693,7 +693,7 @@ def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=1
         naver_items=naver_items,
         alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
-        limit=10,
+        limit=3,
     )
     providers = sorted(set(item.get('provider') for item in items if item.get('provider')))
     return envelope({
@@ -701,7 +701,7 @@ def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=1
         'query': query,
         'items': items,
         'providers': providers,
-        'source': 'Alpha Vantage + Finnhub + Naver' if len(providers) > 1 else (providers[0] if providers else '뉴스 공급자 없음'),
+        'source': ' + '.join(providers) if providers else '뉴스 공급자 없음',
     })
 
 

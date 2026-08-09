@@ -12,6 +12,7 @@ import logging
 import re
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
@@ -19,16 +20,25 @@ logger = logging.getLogger('news_aggregator')
 
 ALPHA_URL = 'https://www.alphavantage.co/query'
 FINNHUB_URL = 'https://finnhub.io/api/v1/company-news'
+GOOGLE_NEWS_RSS_URL = 'https://news.google.com/rss/search'
 HTTP_TIMEOUT = 8
+FOREIGN_NEWS_LIMIT = 2
+LOCAL_NEWS_LIMIT = 1
+TOTAL_NEWS_LIMIT = 3
 
 
-def merge_news(symbol, naver_items=None, alpha_api_key='', finnhub_api_key='', limit=10):
+def merge_news(symbol, naver_items=None, alpha_api_key='', finnhub_api_key='', limit=TOTAL_NEWS_LIMIT):
     """세 공급자의 종목별 뉴스를 중복 제거·최신순으로 합친다."""
     items = []
     if alpha_api_key:
         items.extend(_alpha_news(symbol, alpha_api_key))
     if finnhub_api_key:
         items.extend(_finnhub_news(symbol, finnhub_api_key))
+    # 유료/선택형 키가 없거나 두 공급자가 기사를 못 주는 경우에도
+    # 해외 뉴스 2개가 비지 않도록 영어권 Google News RSS를 보완합니다.
+    foreign_count = sum(1 for item in items if item.get('provider') != 'Naver')
+    if foreign_count < FOREIGN_NEWS_LIMIT:
+        items.extend(_google_news(symbol))
     items.extend(_normalize_naver(item) for item in (naver_items or []))
 
     unique = {}
@@ -41,9 +51,18 @@ def merge_news(symbol, naver_items=None, alpha_api_key='', finnhub_api_key='', l
             unique[key] = item
 
     result = sorted(unique.values(), key=lambda item: item.get('_published_ts', 0), reverse=True)
-    for item in result:
+    max_items = max(1, int(limit))
+    foreign = [item for item in result if item.get('provider') != 'Naver']
+    local = [item for item in result if item.get('provider') == 'Naver']
+    selected = (foreign[:FOREIGN_NEWS_LIMIT] + local[:LOCAL_NEWS_LIMIT])[:max_items]
+    if len(selected) < max_items:
+        selected_keys = {_dedupe_key(item) for item in selected}
+        selected.extend(item for item in result if _dedupe_key(item) not in selected_keys)
+        selected = selected[:max_items]
+    selected = sorted(selected, key=lambda item: item.get('_published_ts', 0), reverse=True)
+    for item in selected:
         item.pop('_published_ts', None)
-    return result[:max(1, int(limit))]
+    return selected
 
 
 def _alpha_news(symbol, api_key):
@@ -110,6 +129,38 @@ def _finnhub_news(symbol, api_key):
     return items[:10]
 
 
+def _google_news(symbol):
+    query = urllib.parse.urlencode({
+        'q': '"' + symbol + '" stock',
+        'hl': 'en-US',
+        'gl': 'US',
+        'ceid': 'US:en',
+    })
+    try:
+        payload = _get_xml(GOOGLE_NEWS_RSS_URL + '?' + query)
+    except Exception:
+        logger.exception('Google News RSS failed for %s', symbol)
+        return []
+
+    items = []
+    for row in payload.findall('.//item') if payload is not None else []:
+        title = _clean_text(_xml_text(row, 'title'))
+        link = _xml_text(row, 'link')
+        pub_date = _xml_text(row, 'pubDate')
+        source = _clean_text(_xml_text(row, 'source')) or 'Google News'
+        if not title or not link:
+            continue
+        items.append({
+            'title': title,
+            'link': link,
+            'pubDate': pub_date,
+            'source': source,
+            'provider': 'Google News (English)',
+            '_published_ts': _parse_date(pub_date),
+        })
+    return items[:10]
+
+
 def _normalize_naver(item):
     item = item or {}
     pub_date = item.get('pubDate') or ''
@@ -127,6 +178,21 @@ def _get_json(url):
     request = urllib.request.Request(url, headers={'User-Agent': 'tistory-ticker/1.0'})
     with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT) as response:
         return json.loads(response.read().decode('utf-8'))
+
+
+def _get_xml(url):
+    request = urllib.request.Request(url, headers={'User-Agent': 'tistory-ticker/1.0'})
+    with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT) as response:
+        return ET.fromstring(response.read())
+
+
+def _xml_text(node, name):
+    if node is None:
+        return ''
+    for child in list(node):
+        if str(child.tag).rsplit('}', 1)[-1] == name:
+            return child.text or ''
+    return ''
 
 
 def _alpha_sentiment(row, symbol):
