@@ -511,8 +511,10 @@
   function setWatchlistDrawerOpen(drawer, open) {
     drawer.classList.toggle('is-open', open);
     var toggle = drawer.querySelector('.global-watchlist-toggle');
+    var icon = drawer.querySelector('.global-watchlist-toggle-icon');
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? '관심종목 닫기' : '관심종목 열기');
+    if (icon) icon.textContent = open ? '<<' : '>>';
     try { localStorage.setItem(WATCHLIST_OPEN_KEY, open ? '1' : '0'); } catch (err) {}
   }
 
@@ -534,7 +536,7 @@
     drawer.className = 'global-watchlist-drawer';
     drawer.setAttribute('aria-label', '관심종목');
     drawer.innerHTML = '<button type="button" class="global-watchlist-toggle" aria-controls="watchlist" aria-expanded="false">'
-      + '<span class="global-watchlist-toggle-icon" aria-hidden="true">‹‹</span><span>관심</span></button>'
+      + '<span class="global-watchlist-toggle-icon" aria-hidden="true">&gt;&gt;</span></button>'
       + '<div class="global-watchlist-panel"></div>';
     var panel = drawer.querySelector('.global-watchlist-panel');
     if (legacyMount) panel.appendChild(legacyMount);
