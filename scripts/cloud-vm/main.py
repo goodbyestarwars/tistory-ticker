@@ -570,6 +570,11 @@ async def realtime_quote_socket(websocket: WebSocket):
             if relay_task in done:
                 await relay_task
                 return
+            # 반드시 완료된 수신 태스크를 await해서 WebSocketDisconnect를 회수한다.
+            # 회수하지 않으면 클라이언트가 닫힌 뒤에도 예외 태스크가 누적되어
+            # "Cannot call receive once a disconnect message has been received"가 반복된다.
+            if receive_task in done:
+                await receive_task
             receive_task = asyncio.create_task(websocket.receive_text())
     except WebSocketDisconnect:
         pass
