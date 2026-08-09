@@ -3242,6 +3242,7 @@
     var avgIdx = aptBinIndex(profile, avgPrice);
     var pocIdx = profile.pocIndex >= 0 && profile.pocIndex < n ? profile.pocIndex : -1;
     var buildingPhotoUrl = 'https://goodbyestarwars.github.io/tistory-ticker/img/volume-profile-office-building.png';
+    var basementPhotoUrl = 'https://goodbyestarwars.github.io/tistory-ticker/img/volume-profile-basement.png';
     var plotLeft = 720, plotRight = 868, plotTop = 116, plotBottom = 382;
 
     function priceText(value) {
@@ -3419,27 +3420,11 @@
       + '<g class="ff-apt-illustration-building-track" data-price-map-buildings data-building-offset="' + buildingInitialOffset + '" data-building-min-offset="' + buildingMinOffset + '" data-building-max-offset="0" transform="translate(' + buildingInitialOffset + ' 0)">' + skyline + '</g>'
       + '</g>';
     var basement = '<g class="ff-apt-illustration-basement" role="group" aria-label="지하실">'
-      + '<path class="ff-apt-basement-shell" d="M190 390 H520 V458 H190 Z" />'
-      + '<path class="ff-apt-basement-inner-wall" d="M202 400 H508 V449 H202 Z" />'
-      + '<path class="ff-apt-basement-ceiling" d="M202 400 H508 M202 407 H508" />'
-      + '<path class="ff-apt-basement-column" d="M214 400 V449 M496 400 V449" />'
-      + '<path class="ff-apt-basement-stair" d="M166 390 l24 68 M176 390 l24 68 M186 390 l24 68 M160 390 H190" />'
-      + '<path class="ff-apt-basement-pipe" d="M230 403 V397 H284 V403 M350 403 V397 H414 V403" />'
+      + '<image class="ff-apt-basement-photo" href="' + basementPhotoUrl + '" x="178" y="389" width="364" height="72" preserveAspectRatio="none" />'
+      + '<path class="ff-apt-basement-photo-edge" d="M178 389 H542 V461 H178 Z" />'
       + '<path class="ff-apt-basement-flow-line" d="M244 360 C244 378 250 386 250 405 M360 360 V405 M476 360 C476 378 470 386 470 405" />'
       + '<path class="ff-apt-basement-flow-arrow" d="M250 399 l-4 7 h8 Z M360 399 l-4 7 h8 Z M470 399 l-4 7 h8 Z" />'
-      + '<rect class="ff-apt-basement-window" x="224" y="411" width="42" height="18" rx="2" />'
-      + '<path class="ff-apt-basement-window-light" d="M230 415 H260 M245 412 V428" />'
-      + '<rect class="ff-apt-basement-window" x="280" y="411" width="42" height="18" rx="2" />'
-      + '<path class="ff-apt-basement-window-light" d="M286 415 H316 M301 412 V428" />'
-      + '<rect class="ff-apt-basement-window" x="336" y="411" width="42" height="18" rx="2" />'
-      + '<path class="ff-apt-basement-window-light" d="M342 415 H372 M357 412 V428" />'
-      + '<rect class="ff-apt-basement-window" x="392" y="411" width="42" height="18" rx="2" />'
-      + '<path class="ff-apt-basement-window-light" d="M398 415 H428 M413 412 V428" />'
-      + '<rect class="ff-apt-basement-door" x="452" y="405" width="42" height="38" rx="2" />'
-      + '<path class="ff-apt-basement-door-light" d="M458 411 V437 H488 V411" />'
-      + '<path class="ff-apt-basement-door-seam" d="M472 407 V441" />'
-      + '<circle class="ff-apt-basement-handle" cx="483" cy="424" r="1.8" />'
-      + '<text class="ff-apt-basement-label" x="360" y="450" text-anchor="middle">지하실 · 미체결 가격대</text>'
+      + '<text class="ff-apt-basement-label" x="360" y="457" text-anchor="middle">지하실 · 미체결 가격대</text>'
       + '</g>';
     var ladderDockX = 392;
     var ladderDockIndex = Math.max(0, Math.min(bandCount - 1, Math.round((ladderDockX - buildingInitialOffset - buildingStartX - buildingWidth / 2) / buildingStep)));

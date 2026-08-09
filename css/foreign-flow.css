@@ -2641,6 +2641,8 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-illustration-building.poc-band .ff-apt-building-sign rect { fill: #f08c46; stroke: #f08c46; }
 #foreign-flow .ff-apt-illustration-building.poc-band .ff-apt-building-sign text { fill: #fff; }
 #foreign-flow .ff-apt-basement-shell { fill: #e2e6e8; stroke: #69737a; stroke-width: 1; }
+#foreign-flow .ff-apt-basement-photo { display: block; opacity: .98; filter: saturate(.86) contrast(1.03) drop-shadow(0 2px 1px rgba(35,49,55,.24)); }
+#foreign-flow .ff-apt-basement-photo-edge { fill: none; stroke: rgba(85,98,105,.72); stroke-width: .8; }
 #foreign-flow .ff-apt-basement-inner-wall { fill: rgba(255,255,255,.24); stroke: #aab5b9; stroke-width: .7; }
 #foreign-flow .ff-apt-basement-ceiling { fill: none; stroke: #69737a; stroke-width: 1.2; }
 #foreign-flow .ff-apt-basement-column,
