@@ -10,6 +10,19 @@
   var entries = Array.prototype.slice.call(root.querySelectorAll('[data-discussion-entry]'));
   var buttons = Array.prototype.slice.call(root.querySelectorAll('[data-discussion-stock]'));
   var names = { '005930': '삼성전자', '000660': 'SK하이닉스', '042660': '한화오션' };
+  var US_API_BASE = 'https://goodbyestar.cloud';
+  var LOCAL_US_SYMBOLS = [
+    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple nasdaq 나스닥' },
+    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft nasdaq 나스닥' },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia nasdaq 나스닥' },
+    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon nasdaq 나스닥' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '알파벳 google nasdaq 나스닥' },
+    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla nasdaq 나스닥' },
+    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta nasdaq 나스닥' },
+    { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd nasdaq 나스닥' },
+    { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix nasdaq 나스닥' },
+    { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq nasdaq 나스닥' }
+  ];
   var krxMap = window.KRX_MAP || {};
   Object.keys(krxMap).forEach(function (name) { names[krxMap[name]] = name; });
   var suggestionBox = document.createElement('ul');
@@ -24,6 +37,7 @@
   }
   inputWrap.appendChild(suggestionBox);
   var suggestionItems = [];
+  var suggestionRequestId = 0;
 
   function normalize(value) {
     return String(value || '').trim().replace(/\s+/g, ' ');
@@ -36,7 +50,7 @@
       return cho[Math.floor((code - 0xAC00) / 588)];
     }).join('');
   }
-  function findSuggestions(value) {
+  function findLocalSuggestions(value) {
     var query = normalize(value).toLowerCase();
     if (!query) return [];
     return Object.keys(names).map(function (code) {
@@ -59,6 +73,34 @@
       if (rankDiff) return rankDiff;
       return a.name.localeCompare(b.name, 'ko');
     }).slice(0, 8);
+  }
+  function findUsSuggestions(value) {
+    var query = normalize(value).toLowerCase();
+    var localRows = LOCAL_US_SYMBOLS.filter(function (row) {
+      return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(query) !== -1;
+    }).map(function (row) {
+      return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
+    });
+    var request = typeof window.fetch === 'function'
+      ? window.fetch(US_API_BASE + '/us-search?q=' + encodeURIComponent(value) + '&limit=8')
+      : Promise.reject(new Error('fetch unavailable'));
+    return request.then(function (response) {
+      if (!response.ok) throw new Error('US stock search failed');
+      return response.json();
+    }).then(function (body) {
+      var remoteRows = (body && body.data ? body.data : []).map(function (row) {
+        var symbol = String(row.symbol || row.code || '').replace(/^US:/i, '').toUpperCase();
+        return { code: 'US:' + symbol, name: row.name || symbol, market: 'us' };
+      }).filter(function (row) { return row.code !== 'US:'; });
+      var seen = {};
+      return localRows.concat(remoteRows).filter(function (row) {
+        if (seen[row.code]) return false;
+        seen[row.code] = true;
+        return true;
+      }).slice(0, 8);
+    }).catch(function () {
+      return localRows.slice(0, 8);
+    });
   }
   function closeSuggestions() {
     suggestionBox.classList.remove('is-open');
@@ -99,10 +141,70 @@
     });
     suggestionBox.classList.toggle('is-open', results.length > 0);
   }
+  function renderSuggestionResults(results) {
+    suggestionBox.innerHTML = '';
+    suggestionItems = results;
+    results.forEach(function (item, index) {
+      var li = document.createElement('li');
+      li.className = 'discussion-stock-suggest-row';
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'discussion-stock-suggest-select';
+      button.setAttribute('role', 'option');
+      button.setAttribute('data-suggestion-index', index);
+      var iconCode = String(item.code).replace(/^US:/i, '');
+      button.innerHTML = '<img class="discussion-stock-suggest-icon" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(iconCode) + '.svg" alt="" onerror="this.style.display=\'none\'">' + '<span class="name">' + item.name + '</span><span class="code">' + iconCode + '</span>';
+      button.addEventListener('click', function () {
+        names[item.code] = item.name;
+        input.value = item.name;
+        applyFilter(item.code, true);
+        closeSuggestions();
+        input.focus();
+      });
+      var favorite = document.createElement('button');
+      favorite.type = 'button';
+      favorite.className = 'discussion-stock-suggest-favorite';
+      favorite.setAttribute('aria-label', item.name + ' 관심종목');
+      favorite.textContent = '♡';
+      favorite.addEventListener('click', function (event) {
+        event.stopPropagation();
+        favorite.classList.toggle('is-active');
+        favorite.textContent = favorite.classList.contains('is-active') ? '♥' : '♡';
+      });
+      li.appendChild(button);
+      li.appendChild(favorite);
+      suggestionBox.appendChild(li);
+    });
+    suggestionBox.classList.toggle('is-open', results.length > 0);
+  }
+
+  showSuggestions = function (value) {
+    var requestId = ++suggestionRequestId;
+    var localResults = findLocalSuggestions(value);
+    renderSuggestionResults(localResults);
+    findUsSuggestions(value).then(function (usResults) {
+      if (requestId !== suggestionRequestId) return;
+      var merged = usResults.concat(localResults);
+      var seen = {};
+      renderSuggestionResults(merged.filter(function (item) {
+        if (seen[item.code]) return false;
+        seen[item.code] = true;
+        return true;
+      }).slice(0, 8));
+    });
+  };
+
   function resolve(value) {
     value = normalize(value);
     if (!value || value === '전체' || value === 'all') return '';
     if (/^\d{6}$/.test(value)) return value;
+    if (/^[A-Z][A-Z0-9.\-^=]{0,11}$/i.test(value)) return 'US:' + value.toUpperCase();
+    for (var i = 0; i < LOCAL_US_SYMBOLS.length; i++) {
+      var us = LOCAL_US_SYMBOLS[i];
+      if (us.name.toLowerCase() === value.toLowerCase() || us.aliases.toLowerCase().split(' ').indexOf(value.toLowerCase()) !== -1) {
+        return 'US:' + us.symbol;
+      }
+    }
     for (var code in names) if (names[code] === value) return code;
     return value;
   }
@@ -121,7 +223,7 @@
       if (match) shown++;
       entry.querySelectorAll('.discussion-item-body').forEach(function (body) {
         if (!body.getAttribute('data-discussion-original')) body.setAttribute('data-discussion-original', body.innerHTML);
-        body.innerHTML = body.getAttribute('data-discussion-original').replace(/\[\d{6}\]\s*/g, '');
+        body.innerHTML = body.getAttribute('data-discussion-original').replace(/\[(?:\d{6}|US:[A-Z][A-Z0-9.\-^=]{0,11})\]\s*/g, '');
       });
     });
     count.textContent = code ? (shown ? shown + '개 의견' : '아직 의견이 없습니다') : (entries.length + '개 의견');
@@ -133,12 +235,16 @@
   }
   buttons.forEach(function (button) { button.addEventListener('click', function () { applyFilter(button.getAttribute('data-discussion-stock'), true); }); });
   root.querySelector('[data-discussion-clear]').addEventListener('click', function () { applyFilter('', true); });
-  input.addEventListener('input', function () { showSuggestions(input.value); });
+  input.addEventListener('input', function () {
+    if (normalize(input.value)) showSuggestions(input.value);
+    else closeSuggestions();
+  });
   input.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') return closeSuggestions();
     if (event.key === 'Enter') {
       event.preventDefault();
       if (suggestionItems.length) {
+        names[suggestionItems[0].code] = suggestionItems[0].name;
         input.value = suggestionItems[0].name;
         applyFilter(suggestionItems[0].code, true);
         closeSuggestions();

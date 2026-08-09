@@ -76,6 +76,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("return localRows.concat(rows)", realtime)
         self.assertIn("return localRows.concat(rows)", self.read("js/us-stocks.js"))
 
+    def test_community_stock_selector_supports_us_search(self):
+        source = self.read("js/stock-discussion.js")
+        self.assertIn("var US_API_BASE = 'https://goodbyestar.cloud';", source)
+        self.assertIn("function findUsSuggestions(value)", source)
+        self.assertIn("/us-search?q=", source)
+        self.assertIn("'US:' + symbol", source)
+        self.assertIn("US:[A-Z]", source)
+        self.assertIn("symbol: 'TSLA'", source)
+
     def test_pattern_detail_uses_scan_date_snapshot(self):
         pattern = self.read("js/pattern-scan.js")
         gas = self.read("gas/ticker-proxy.gs")
