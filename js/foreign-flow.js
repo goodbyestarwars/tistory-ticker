@@ -3347,8 +3347,7 @@
       html += '<rect class="ff-apt-building-lobby" x="' + (x + frontWidth * .31) + '" y="' + (groundY - 31) + '" width="' + (frontWidth * .38) + '" height="24" rx="2" />'
         + '<path class="ff-apt-building-lobby-door" d="M' + (x + frontWidth * .5) + ' ' + (groundY - 31) + ' V' + (groundY - 7) + ' M' + (x + frontWidth * .31) + ' ' + (groundY - 31) + ' H' + (x + frontWidth * .69) + '" />'
         + '<path class="ff-apt-building-lobby-steps" d="M' + (x + frontWidth * .38) + ' ' + (groundY - 5) + ' H' + (x + frontWidth * .62) + ' M' + (x + frontWidth * .34) + ' ' + (groundY - 1) + ' H' + (x + frontWidth * .66) + '" />';
-      html += '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 12) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
-        + '<text class="ff-apt-building-band" x="' + (x + width / 2) + '" y="' + (groundY + 7) + '" text-anchor="middle">' + aptBandLabel(band.start, n) + '</text>'
+      html += '<text class="ff-apt-building-band" x="' + (x + width / 2) + '" y="' + (groundY + 7) + '" text-anchor="middle">' + aptBandLabel(band.start, n) + '</text>'
         + '</g>';
       return html;
     }
@@ -3497,7 +3496,7 @@
       + '<path class="ff-apt-illustration-orbit" d="M120 430 C230 172 566 126 924 190" />'
       + '<g class="ff-apt-illustration-title"><rect x="48" y="24" width="200" height="34" rx="8" /><path d="M68 41 h22 m-11-11 v22" /><text x="104" y="47">가격 지형도</text></g>'
       + '<g class="ff-apt-illustration-tag"><rect x="286" y="27" width="122" height="28" rx="6" /><text x="304" y="46">거래량 지도</text></g>'
-      + '<g class="ff-apt-illustration-tag"><rect x="520" y="27" width="112" height="28" rx="6" /><text x="540" y="46">체결 흐름</text></g>'
+      + '<g class="ff-apt-illustration-tag"><title>체결량: 해당 가격대에서 실제로 거래가 성립한 수량</title><rect x="520" y="27" width="112" height="28" rx="6" /><text x="540" y="46">체결량</text></g>'
       + skylineTrack
       + ladder
       + helicopter
