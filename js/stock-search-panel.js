@@ -534,7 +534,7 @@
     drawer.className = 'global-watchlist-drawer';
     drawer.setAttribute('aria-label', '관심종목');
     drawer.innerHTML = '<button type="button" class="global-watchlist-toggle" aria-controls="watchlist" aria-expanded="false">'
-      + '<span class="global-watchlist-toggle-icon">♥</span><span>관심</span></button>'
+      + '<span class="global-watchlist-toggle-icon" aria-hidden="true">‹‹</span><span>관심</span></button>'
       + '<div class="global-watchlist-panel"></div>';
     var panel = drawer.querySelector('.global-watchlist-panel');
     if (legacyMount) panel.appendChild(legacyMount);

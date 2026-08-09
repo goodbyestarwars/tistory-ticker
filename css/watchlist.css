@@ -37,7 +37,7 @@
   pointer-events: auto;
   transform: translateY(-50%);
 }
-.global-watchlist-toggle-icon { display: block; margin-bottom: 4px; color: #596579; font-size: 18px; }
+.global-watchlist-toggle-icon { display: block; margin-bottom: 4px; color: #596579; font-size: 24px; line-height: 1; letter-spacing: -5px; }
 .global-watchlist-panel {
   height: 100%;
   overflow-y: auto;
