@@ -223,6 +223,7 @@
         loadOrderbook();
         if (firstRender) {
           loadNativeChart();
+          loadAnalysis();
           loadNews(quote.name || state.symbol);
         }
       })
@@ -250,6 +251,13 @@
         + metric('52주 범위', '', 'week52')
         + '</div>'
         + '<div class="us-stocks-live-footer"><span>15초 자동 갱신</span><span data-us-updated></span><span data-us-source></span></div>'
+        + '</div>'
+        + '<div id="usStocksAnalysis" class="us-stocks-analysis-grid">'
+        + analysisCard('기본 재무', '재무지표를 불러오는 중...', 'financials')
+        + analysisCard('재무 흐름', '매출·순이익 지표를 불러오는 중...', 'statements')
+        + analysisCard('실적 일정', '실적 일정을 불러오는 중...', 'earnings')
+        + analysisCard('애널리스트', '전망 데이터를 불러오는 중...', 'recommendation')
+        + analysisCard('내부자 거래', '내부자 거래를 불러오는 중...', 'insider')
         + '</div>'
         + '<div class="us-stocks-market-grid">'
         + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>키움 10호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">호가를 불러오는 중...</div></div></section>'
@@ -360,6 +368,40 @@
       });
   }
 
+  function loadAnalysis() {
+    if (!state.symbol) return;
+    fetchJson(API_BASE + '/us-analysis/' + encodeURIComponent(state.symbol))
+      .then(renderAnalysis)
+      .catch(function () {
+        var mount = document.querySelector('#usStocksAnalysis');
+        if (mount) mount.innerHTML = '<div class="us-stocks-analysis-empty">재무·실적 데이터를 확인할 수 없습니다.</div>';
+      });
+  }
+
+  function renderAnalysis(payload) {
+    var mount = document.querySelector('#usStocksAnalysis');
+    if (!mount) return;
+    var summary = payload && payload.summary || {};
+    var recommendation = summary.recommendation || {};
+    setAnalysisCard(mount, 'financials', formatMetric(summary.pe, 1, ' PER'), 'PBR ' + formatMetric(summary.pb, 1, ' · ') + 'ROE ' + formatMetric(summary.roe, 1, '%'));
+    var revenue = formatCompactUsd(summary.latest_revenue);
+    var netIncome = formatCompactUsd(summary.latest_net_income);
+    setAnalysisCard(mount, 'statements', revenue === '-' ? '매출성장 ' + formatMetric(summary.revenue_growth, 1, '%') : '매출 ' + revenue, netIncome === '-' ? '순이익률 ' + formatMetric(summary.net_margin, 1, '%') : '순이익 ' + netIncome + ' · 성장 ' + formatMetric(summary.revenue_growth, 1, '%'));
+    setAnalysisCard(mount, 'earnings', summary.next_earnings || '예정일 없음', '최근 EPS 서프라이즈 ' + formatMetric(summary.eps_surprise_percent, 1, '%'));
+    setAnalysisCard(mount, 'recommendation', '매수 ' + (Number(recommendation.strongBuy || 0) + Number(recommendation.buy || 0)), '보유 ' + Number(recommendation.hold || 0) + ' · 매도 ' + (Number(recommendation.sell || 0) + Number(recommendation.strongSell || 0)));
+    var insiderTone = Number(summary.insider_net_change) > 0 ? 'us-up' : Number(summary.insider_net_change) < 0 ? 'us-down' : '';
+    setAnalysisCard(mount, 'insider', '<span class="' + insiderTone + '">' + formatVolume(summary.insider_net_change) + '주</span>', '거래 ' + Number(summary.insider_transaction_count || 0) + '건');
+  }
+
+  function setAnalysisCard(mount, key, value, detail) {
+    var card = mount.querySelector('[data-analysis-card="' + key + '"]');
+    if (!card) return;
+    var valueNode = card.querySelector('[data-analysis-value]');
+    var detailNode = card.querySelector('[data-analysis-detail]');
+    if (valueNode) valueNode.innerHTML = value == null || value === '' ? '-' : value;
+    if (detailNode) detailNode.textContent = detail || '';
+  }
+
   function renderNews(items) {
     var mount = document.querySelector('#usStocksNews');
     if (!mount) return;
@@ -370,17 +412,42 @@
     var sortedItems = items.slice().sort(function (a, b) {
       return newsTimestamp(b) - newsTimestamp(a);
     });
-    mount.innerHTML = '<div class="us-stocks-news-timeline" role="list">' + sortedItems.map(function (item, index) {
-      var source = item.source || item.provider || '';
-      var pubDate = item.pubDate || '';
-      return '<a class="us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
-        + '<span class="us-stocks-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
-        + '<span class="us-stocks-news-body">'
-        + '<time class="us-stocks-news-time" datetime="' + escapeAttr(pubDate) + '">' + escapeHtml(formatNewsTime(pubDate)) + '</time>'
-        + '<b>' + escapeHtml(item.title || '') + '</b>'
-        + '<small><span class="us-stocks-news-source">' + escapeHtml(source) + '</span></small>'
-        + '</span></a>';
+    var groups = { morning: [], afternoon: [], night: [] };
+    sortedItems.forEach(function (item) { groups[newsBucket(item.pubDate)].push(item); });
+    var labels = {
+      morning: '오전 <small>08:00–12:00</small>',
+      afternoon: '오후 <small>12:00–18:00</small>',
+      night: '야간 <small>18:00–08:00</small>'
+    };
+    var index = 0;
+    mount.innerHTML = '<div class="us-stocks-news-timetable" role="list">' + ['morning', 'afternoon', 'night'].map(function (bucket) {
+      if (!groups[bucket].length) return '';
+      var html = '<section class="us-stocks-news-group"><h5>' + labels[bucket] + '</h5><div class="us-stocks-news-timeline">';
+      html += groups[bucket].map(function (item) {
+        var source = item.source || item.provider || '';
+        var pubDate = item.pubDate || '';
+        var itemHtml = '<a class="us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
+          + '<span class="us-stocks-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
+          + '<span class="us-stocks-news-body">'
+          + '<time class="us-stocks-news-time" datetime="' + escapeAttr(pubDate) + '">' + escapeHtml(formatNewsTime(pubDate)) + '</time>'
+          + '<b>' + escapeHtml(item.title || '') + '</b>'
+          + '<small><span class="us-stocks-news-source">' + escapeHtml(source) + '</span></small>'
+          + '</span></a>';
+        index += 1;
+        return itemHtml;
+      }).join('');
+      return html + '</div></section>';
     }).join('') + '</div>';
+  }
+
+  function newsBucket(value) {
+    var date = new Date(String(value || ''));
+    if (isNaN(date.getTime())) return 'night';
+    var parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', hour: 'numeric', hour12: false }).formatToParts(date);
+    var hour = Number((parts.find(function (part) { return part.type === 'hour'; }) || {}).value || 0);
+    if (hour >= 8 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 18) return 'afternoon';
+    return 'night';
   }
 
   function newsTimestamp(item) {
@@ -402,6 +469,24 @@
   function metric(label, value) {
     var key = arguments[2] || '';
     return '<div class="us-stocks-metric"><span>' + escapeHtml(label) + '</span><b data-us-metric="' + escapeAttr(key) + '">' + escapeHtml(value) + '</b></div>';
+  }
+
+  function analysisCard(label, value, key) {
+    return '<section class="us-stocks-analysis-card" data-analysis-card="' + escapeAttr(key) + '">'
+      + '<span>' + escapeHtml(label) + '</span><b data-analysis-value>' + escapeHtml(value) + '</b><small data-analysis-detail></small></section>';
+  }
+
+  function formatMetric(value, digits, suffix) {
+    return value == null || isNaN(value) ? '-' : Number(value).toFixed(digits == null ? 1 : digits) + (suffix || '');
+  }
+
+  function formatCompactUsd(value) {
+    if (value == null || isNaN(value)) return '-';
+    var number = Number(value);
+    var absolute = Math.abs(number);
+    var divisor = absolute >= 1e9 ? 1e9 : absolute >= 1e6 ? 1e6 : absolute >= 1e3 ? 1e3 : 1;
+    var suffix = divisor === 1e9 ? 'B' : divisor === 1e6 ? 'M' : divisor === 1e3 ? 'K' : '';
+    return '$' + (number / divisor).toFixed(divisor === 1 ? 0 : 1) + suffix;
   }
 
   function fetchJson(url) {

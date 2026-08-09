@@ -28,7 +28,7 @@ GOOGLE_NEWS_RSS_URL = 'https://news.google.com/rss/search'
 HTTP_TIMEOUT = 8
 FOREIGN_NEWS_LIMIT = 2
 LOCAL_NEWS_LIMIT = 1
-TOTAL_NEWS_LIMIT = 3
+TOTAL_NEWS_LIMIT = 10
 
 # Keep raw article bodies out of the database. This cache stores only the small
 # metadata payload needed by the US news panel and survives API process restarts.
@@ -123,7 +123,7 @@ def load_cached_news(symbol, ttl_sec=None):
 
 
 def save_cached_news(symbol, items):
-    """Replace one symbol's cached rows atomically when a refresh completes."""
+    """Merge new rows into one symbol's cache and keep the latest ten atomically."""
     symbol = str(symbol or '').strip().upper()
     if not symbol:
         return
@@ -132,12 +132,48 @@ def save_cached_news(symbol, items):
     try:
         conn = _cache_connect()
         with conn:
-            conn.execute('DELETE FROM us_news_cache WHERE symbol = ?', (symbol,))
-            for item in items or []:
+            existing_rows = conn.execute('''
+                SELECT title, link, pub_date, source, provider, sentiment_json, published_ts
+                FROM us_news_cache
+                WHERE symbol = ?
+            ''', (symbol,)).fetchall()
+            existing = []
+            for row in existing_rows:
+                old = {
+                    'title': row['title'],
+                    'link': row['link'],
+                    'pubDate': row['pub_date'] or '',
+                    'source': row['source'] or '',
+                    'provider': row['provider'] or '',
+                    '_published_ts': row['published_ts'] or 0,
+                }
+                if row['sentiment_json']:
+                    try:
+                        old['sentiment'] = json.loads(row['sentiment_json'])
+                    except (TypeError, ValueError):
+                        pass
+                existing.append(old)
+
+            merged = {}
+            for item in existing + list(items or []):
                 title = str(item.get('title') or '').strip()
                 link = str(item.get('link') or '').strip()
                 if not title or not link:
                     continue
+                key = _dedupe_key(item)
+                current = merged.get(key)
+                if current is None or _published_timestamp(item) >= _published_timestamp(current):
+                    merged[key] = item
+
+            selected = sorted(
+                merged.values(),
+                key=lambda item: _published_timestamp(item),
+                reverse=True,
+            )[:TOTAL_NEWS_LIMIT]
+            conn.execute('DELETE FROM us_news_cache WHERE symbol = ?', (symbol,))
+            for item in selected:
+                title = str(item.get('title') or '').strip()
+                link = str(item.get('link') or '').strip()
                 sentiment = item.get('sentiment')
                 conn.execute('''
                     INSERT OR REPLACE INTO us_news_cache
@@ -196,10 +232,13 @@ def get_or_refresh_news(symbol, naver_fetcher=None, alpha_api_key='', finnhub_ap
 
 
 def _published_timestamp(item):
-    try:
-        return int(item.get('_published_ts') or 0)
-    except (TypeError, ValueError):
-        return _parse_date(item.get('pubDate'))
+    value = item.get('_published_ts')
+    if value not in (None, '', 0):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            pass
+    return _parse_date(item.get('pubDate'))
 
 
 def merge_news(symbol, naver_items=None, alpha_api_key='', finnhub_api_key='', limit=TOTAL_NEWS_LIMIT):

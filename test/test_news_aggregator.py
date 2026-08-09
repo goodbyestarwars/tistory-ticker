@@ -39,7 +39,28 @@ class NewsAggregatorTests(unittest.TestCase):
                         ttl_sec=0,
                     )
                 self.assertEqual(refreshed[0]['title'], 'Apple refreshed headline')
-                self.assertEqual(news_aggregator.load_cached_news('AAPL', ttl_sec=3600), refreshed)
+                cached = news_aggregator.load_cached_news('AAPL', ttl_sec=3600)
+                self.assertEqual(len(cached), 2)
+                self.assertEqual(cached[0]['title'], 'Apple refreshed headline')
+
+    def test_refresh_merges_new_items_and_caps_cache_at_ten(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with mock.patch.object(news_aggregator, 'NEWS_CACHE_DB_FILE', os.path.join(temp_dir, 'news.db')):
+                with mock.patch.object(news_aggregator, '_get_xml', return_value=None):
+                    for index in range(12):
+                        news_aggregator.get_or_refresh_news(
+                            'AAPL',
+                            naver_fetcher=mock.Mock(return_value=[{
+                                'title': 'Apple headline %02d' % index,
+                                'link': 'https://news.example.test/%02d' % index,
+                                'pubDate': 'Fri, 08 Aug 2026 %02d:00:00 +0000' % (index % 24),
+                            }]),
+                            ttl_sec=0,
+                        )
+                cached = news_aggregator.load_cached_news('AAPL', ttl_sec=3600)
+                self.assertEqual(len(cached), 10)
+                self.assertIn('Apple headline 11', [item['title'] for item in cached])
+                self.assertNotIn('Apple headline 00', [item['title'] for item in cached])
 
     def test_naver_only_fallback_without_optional_keys(self):
         with mock.patch.object(news_aggregator, '_get_xml', return_value=None):

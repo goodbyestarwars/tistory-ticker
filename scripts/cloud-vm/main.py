@@ -44,6 +44,7 @@ import order_book
 import public_data
 import realtime_quotes
 import sector_cards
+import us_analysis
 import us_stocks
 import watchlist
 from google_auth import GoogleAuthError, GoogleAuthService
@@ -692,7 +693,7 @@ def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=1
         ),
         alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
-        limit=3,
+        limit=10,
     )
     providers = sorted(set(item.get('provider') for item in items if item.get('provider')))
     return envelope({
@@ -702,6 +703,20 @@ def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=1
         'providers': providers,
         'source': ' + '.join(providers) if providers else '뉴스 공급자 없음',
     })
+
+
+@app.get('/us-analysis/{symbol}')
+def us_analysis_endpoint(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
+    """미국주식 재무·실적·전망·내부자 데이터를 캐시에서 조회한다."""
+    _check_rate_limit('us_analysis', request, max_per_window=10)
+    try:
+        ticker = us_stocks.normalize_symbol(symbol)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return envelope(us_analysis.get_analysis(
+        ticker,
+        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+    ))
 
 
 @app.get('/ohlc/{code}')
