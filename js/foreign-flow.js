@@ -3282,8 +3282,11 @@
       var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
         + '<rect x="' + x + '" y="' + y + '" width="' + frontWidth + '" height="' + height + '" rx="2" />'
         + '<path class="ff-apt-building-side" d="M' + sideStart + ' ' + (y + 3) + ' L' + (x + width) + ' ' + (y + 8) + ' V' + (groundY - 8) + ' L' + sideStart + ' ' + (groundY - 8) + ' Z" />'
+        + '<path class="ff-apt-building-glass-sheen" d="M' + (x + 8) + ' ' + (y + 4) + ' L' + (x + frontWidth - 4) + ' ' + (y + 4) + ' L' + (x + frontWidth - 22) + ' ' + (groundY - 12) + ' L' + (x + 8) + ' ' + (groundY - 12) + ' Z" />'
+        + '<path class="ff-apt-building-reflection" d="M' + (x + 15) + ' ' + (y + 10) + ' L' + (x + 5) + ' ' + (groundY - 20) + ' M' + (x + 29) + ' ' + (y + 10) + ' L' + (x + 19) + ' ' + (groundY - 20) + '" />'
         + '<path class="ff-apt-building-roof" d="M' + (x + 3) + ' ' + (y - 6) + ' H' + (x + width - 3) + ' L' + (x + width + 2) + ' ' + (y - 1) + ' H' + (x - 2) + ' Z" />'
         + '<path class="ff-apt-building-roof-cap" d="M' + (x + 10) + ' ' + (y - 11) + ' H' + (x + width - 10) + ' M' + (x + width / 2) + ' ' + (y - 11) + ' V' + (y - 17) + '" />'
+        + '<path class="ff-apt-building-roof-rail" d="M' + (x + 16) + ' ' + (y - 12) + ' V' + (y - 20) + ' H' + (x + width - 18) + ' V' + (y - 12) + '" />'
         + '<path class="ff-apt-building-frame" d="M' + (x + frontWidth / 2) + ' ' + (y + 4) + ' V' + (groundY - 8) + ' M' + (x + 5) + ' ' + (y + 5) + ' V' + (groundY - 8) + '" />';
       var floorH = height / (rows + 1);
       var cellW = Math.max(7, (frontWidth - 16) / cols - 4);
@@ -3301,7 +3304,8 @@
       if (band.poc) markerColumns.push({ col: Math.min(2, cols - 1), row: markerRow(pocIdx), type: 'poc' });
       for (var row = 0; row < rows; row++) {
         var floorY = y + (row + 1) * floorH;
-        html += '<path class="ff-apt-building-floor" d="M' + (x - 3) + ' ' + floorY.toFixed(1) + ' H' + (x + width + 3) + '" />';
+        html += '<path class="ff-apt-building-slab" d="M' + (x - 3) + ' ' + (floorY - 1).toFixed(1) + ' H' + (x + width + 3) + ' L' + (x + width + 2) + ' ' + (floorY + 1).toFixed(1) + ' H' + (x - 3) + ' Z" />'
+          + '<path class="ff-apt-building-floor" d="M' + (x - 3) + ' ' + floorY.toFixed(1) + ' H' + (x + width + 3) + '" />';
         if ((band.current || band.average || band.poc) && row % 2 === 0) {
           html += '<text class="ff-apt-building-floor-label" x="' + (x - 5) + '" y="' + (floorY - 3) + '" text-anchor="end">' + floorNames[Math.min(floorNames.length - 1, Math.floor(row * floorNames.length / rows))] + '</text>';
         }
@@ -3313,6 +3317,7 @@
           var windowClass = isAccent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window';
           if (windowMarker) windowClass += ' ' + windowMarker.type + '-window';
           html += '<rect class="' + windowClass + '" style="opacity:' + (0.42 + band.ratio * 0.5).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
+          html += '<path class="ff-apt-building-window-highlight" d="M' + (wx + 1.5) + ' ' + (wy + 2) + ' H' + (wx + cellW - 1.5) + '" />';
           if (!windowMarker && (row + col + index) % 3 === 0) {
             var deskY = wy + cellH * .66;
             html += '<path class="ff-apt-building-desk" d="M' + (wx + cellW * .22) + ' ' + deskY + ' h' + (cellW * .56).toFixed(1) + ' M' + (wx + cellW * .5) + ' ' + deskY + ' v' + (cellH * .2).toFixed(1) + '" />'
@@ -3334,7 +3339,8 @@
         }
       }
       html += '<rect class="ff-apt-building-lobby" x="' + (x + frontWidth * .31) + '" y="' + (groundY - 31) + '" width="' + (frontWidth * .38) + '" height="24" rx="2" />'
-        + '<path class="ff-apt-building-lobby-door" d="M' + (x + frontWidth * .5) + ' ' + (groundY - 31) + ' V' + (groundY - 7) + ' M' + (x + frontWidth * .31) + ' ' + (groundY - 31) + ' H' + (x + frontWidth * .69) + '" />';
+        + '<path class="ff-apt-building-lobby-door" d="M' + (x + frontWidth * .5) + ' ' + (groundY - 31) + ' V' + (groundY - 7) + ' M' + (x + frontWidth * .31) + ' ' + (groundY - 31) + ' H' + (x + frontWidth * .69) + '" />'
+        + '<path class="ff-apt-building-lobby-steps" d="M' + (x + frontWidth * .38) + ' ' + (groundY - 5) + ' H' + (x + frontWidth * .62) + ' M' + (x + frontWidth * .34) + ' ' + (groundY - 1) + ' H' + (x + frontWidth * .66) + '" />';
       if (signLabel) {
         html += '<g class="ff-apt-building-sign"><rect x="' + (x + 10) + '" y="' + (y - 29) + '" width="' + (width - 20) + '" height="14" rx="5" /><text x="' + (x + width / 2) + '" y="' + (y - 19) + '" text-anchor="middle">' + signLabel + '</text></g>';
       }
