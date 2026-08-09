@@ -18,13 +18,27 @@ class UiInformationArchitectureTest(unittest.TestCase):
             re.MULTILINE,
         )
         self.assertEqual(source.count("      label: '시장',"), 1)
-        self.assertIn("{ href: '/page/stock-search', label: '종목' }", source)
-        self.assertEqual(source.count("      label: '종목검색',"), 1)
+        self.assertNotIn("{ href: '/page/stock-search', label: '종목' }", source)
+        self.assertEqual(source.count("      label: '종목',"), 1)
+        self.assertIn("{ href: '/page/stock-search', label: '종목분석' }", source)
         self.assertNotIn("label: '종목뉴스'", source)
         self.assertNotIn("label: '실시간 시세'", source)
         self.assertNotIn("{ href: '/page/watchlist', label: 'MY' }", source)
         self.assertNotIn("label: '미국주식'", source)
-        self.assertEqual(len(primary_labels), 6)
+        self.assertEqual(len(primary_labels), 5)
+
+    def test_stock_menu_opens_analysis_and_search_submenu(self):
+        source = self.read("js/skin-menu.js")
+        group = re.search(
+            r"\{\n\s+label: '종목',\n\s+children: \[(?P<body>.*?)\n\s+\]\n\s+\},",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(group)
+        body = group.group("body")
+        self.assertIn("{ href: '/page/stock-search', label: '종목분석' }", body)
+        self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", body)
+        self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", body)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")

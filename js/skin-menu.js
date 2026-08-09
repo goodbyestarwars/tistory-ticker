@@ -16,10 +16,10 @@
         { href: '/pages/kospi-futures', label: '코스피 선물' }
       ]
     },
-    { href: '/page/stock-search', label: '종목' },
     {
-      label: '종목검색',
+      label: '종목',
       children: [
+        { href: '/page/stock-search', label: '종목분석' },
         { href: '/page/pattern-scan', label: '차트검색' },
         { href: '/page/strategy-search', label: '전략검색' }
       ]
