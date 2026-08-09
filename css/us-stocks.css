@@ -62,12 +62,20 @@
 .us-native-chart-mount { min-height: 420px; }
 .us-native-chart-mount, .us-native-chart-mount .ss-chart { width: 100%; min-width: 0; }
 .us-stocks-news-panel { margin-top: 12px; }
-.us-stocks-news { display: grid; gap: 0; }
-.us-stocks-news-item { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #f1f5f9; color: inherit; text-decoration: none; }
-.us-stocks-news-item:first-child { border-top: 0; }
-.us-stocks-news-item b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.us-stocks-news-item small { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; color: #9ca3af; font-size: 10px; }
-.us-stocks-news-source { color: #2563eb; font-weight: 700; }
+.us-stocks-news { padding: 2px 8px 4px; }
+.us-stocks-news-timeline { display: grid; }
+.us-stocks-news-item { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; min-width: 0; padding: 9px 0 11px; color: inherit; text-decoration: none; }
+.us-stocks-news-rail { position: relative; display: block; width: 24px; min-height: 100%; }
+.us-stocks-news-rail::after { content: ''; position: absolute; top: 12px; bottom: -11px; left: 11px; width: 1px; background: #e5e7eb; }
+.us-stocks-news-item:last-child .us-stocks-news-rail::after { display: none; }
+.us-stocks-news-rail i { position: absolute; z-index: 1; top: 4px; left: 7px; width: 7px; height: 7px; border: 2px solid #cbd5e1; border-radius: 50%; background: #fff; box-sizing: border-box; }
+.us-stocks-news-rail i.is-latest { border-color: #f97316; background: #fb923c; box-shadow: 0 0 0 2px #ffedd5; }
+.us-stocks-news-body { display: block; min-width: 0; }
+.us-stocks-news-time { display: block; margin-bottom: 3px; color: #f97316; font-size: 11px; font-weight: 700; line-height: 1.2; }
+.us-stocks-news-item:not(:first-child) .us-stocks-news-time { color: #8b95a1; font-weight: 500; }
+.us-stocks-news-item b { display: -webkit-box; overflow: hidden; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 13px; line-height: 1.45; }
+.us-stocks-news-item small { display: block; margin-top: 4px; color: #9ca3af; font-size: 10px; line-height: 1.3; }
+.us-stocks-news-source { color: #64748b; font-weight: 600; }
 
 html.dark .us-stocks-shell { color: #f5efe0; }
 html.dark .us-stocks-search input, html.dark .us-stocks-suggest, html.dark .us-stocks-result-row { border-color: rgba(245,239,224,.2); background: #1a1a1a; color: #f5efe0; }
@@ -80,8 +88,10 @@ html.dark .us-stocks-live-card { border-color: rgba(245,239,224,.2); background:
 html.dark .us-stocks-icon { border-color: rgba(245,239,224,.2); background: #fff; }
 html.dark .us-stocks-panel { border-color: rgba(245,239,224,.2); background: rgba(245,239,224,.05); }
 html.dark .us-stocks-book-row { border-top-color: rgba(245,239,224,.12); }
-html.dark .us-stocks-news-item { border-top-color: rgba(245,239,224,.12); }
-html.dark .us-stocks-news-source { color: #93c5fd; }
+html.dark .us-stocks-news-rail::after { background: rgba(245,239,224,.18); }
+html.dark .us-stocks-news-rail i { border-color: rgba(245,239,224,.45); background: #1a1a1a; }
+html.dark .us-stocks-news-rail i.is-latest { border-color: #fb923c; background: #f97316; }
+html.dark .us-stocks-news-source { color: #cbd5e1; }
 
 @media (max-width: 700px) {
   .us-stocks-result-row { grid-template-columns: 1.8fr 1fr 1fr; }
