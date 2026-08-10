@@ -2627,6 +2627,12 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-helicopter-skid { fill: none; stroke: #69737a; stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
 #foreign-flow .ff-apt-helicopter-light { fill: #f59f00; stroke: #fff; stroke-width: .8; }
 #foreign-flow .ff-apt-building-price { fill: #445057; font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: #f7f8f8; stroke-width: 2.5px; }
+#foreign-flow .ff-apt-roof-traveler { pointer-events: none; }
+#foreign-flow .ff-apt-roof-traveler-head { fill: #f2c39b; stroke: #8d5e42; stroke-width: .7; }
+#foreign-flow .ff-apt-roof-traveler-body { fill: none; stroke: #2563eb; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#foreign-flow .ff-apt-roof-traveler-shadow { fill: none; stroke: rgba(38,49,60,.3); stroke-width: 1.2; stroke-linecap: round; }
+#foreign-flow .ff-apt-roof-traveler.is-jumping .ff-apt-roof-traveler-body { stroke: #0f766e; stroke-width: 2.2; }
+#foreign-flow .ff-apt-roof-traveler.is-jumping .ff-apt-roof-traveler-shadow { opacity: .18; }
 #foreign-flow .ff-apt-building-average-person .head { fill: #f2c39b; stroke: #8d5e42; stroke-width: .45; }
 #foreign-flow .ff-apt-building-average-person .shoulders { fill: #3b82f6; stroke: #1d4ed8; stroke-width: .6; }
 #foreign-flow .ff-apt-building-average-person .eye { fill: #fff; stroke: none; }
@@ -2748,6 +2754,8 @@ html.dark #foreign-flow .ff-apt-helicopter-light { stroke: #2c3336; }
 html.dark #foreign-flow .ff-apt-illustration-window { fill: #343c40; stroke: #9da5aa; }
 html.dark #foreign-flow .ff-apt-illustration-window.accent { fill: #285b55; stroke: #74c9b6; }
 html.dark #foreign-flow .ff-apt-building-price { fill: #e3e7e8; }
+html.dark #foreign-flow .ff-apt-roof-traveler-head { fill: #c8946d; stroke: #795238; }
+html.dark #foreign-flow .ff-apt-roof-traveler-body { stroke: #8bb5ff; }
 html.dark #foreign-flow .ff-apt-building-average-person .head { fill: #60a5fa; stroke: #bfdbfe; }
 html.dark #foreign-flow .ff-apt-building-average-person .hair { fill: #2563eb; }
 html.dark #foreign-flow .ff-apt-building-average-person .shoulders { fill: #1e3a8a; stroke: #93c5fd; }

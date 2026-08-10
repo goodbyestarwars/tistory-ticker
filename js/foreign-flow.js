@@ -1381,6 +1381,8 @@
         if (!q) return;
         var header = box.querySelector('.ff-header');
         if (!header) { stopQuotePolling(); return; } // 다른 종목 재검색으로 이 헤더 자체가 사라짐
+        var aptCard = box.querySelector('#ffAptCard');
+        if (aptCard && typeof aptCard.__updateCurrentPrice === 'function') aptCard.__updateCurrentPrice(q.price);
         var priceEl = header.querySelector('.ff-price');
         var asofEl = header.querySelector('.ff-asof');
         if (!priceEl) return; // 최초 조회 때 시세를 아예 못 받아온 드문 경우 - 다음 tick 재시도
@@ -3388,14 +3390,15 @@
         + '</g>';
       return html;
     }
-    function marker(index, color, label, value) {
+    function marker(index, color, label, value, markerType) {
       if (index < 0 || index >= n) return '';
       var y = yForIndex(index);
       var labelOffset = color === '#3b82f6' ? -32 : color === '#0f766e' ? 8 : -14;
       var markerKind = color === '#3b82f6' ? ' average' : '';
-      return '<line class="ff-apt-illustration-marker' + markerKind + '" x1="' + (plotLeft - 8) + '" x2="' + plotRight + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
-        + '<circle cx="' + (plotLeft - 8) + '" cy="' + y + '" r="4" fill="' + color + '" />'
-        + '<text class="ff-apt-illustration-marker-label" x="' + (plotLeft + 6) + '" y="' + (y + labelOffset + 12) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
+      var markerData = markerType ? ' data-apt-marker="' + markerType + '"' : '';
+      return '<line class="ff-apt-illustration-marker' + markerKind + (markerType ? ' ' + markerType : '') + '"' + markerData + ' x1="' + (plotLeft - 8) + '" x2="' + plotRight + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
+        + '<circle class="ff-apt-illustration-marker-dot' + (markerType ? ' ' + markerType : '') + '"' + markerData + ' cx="' + (plotLeft - 8) + '" cy="' + y + '" r="4" fill="' + color + '" />'
+        + '<text class="ff-apt-illustration-marker-label' + (markerType ? ' ' + markerType : '') + '"' + markerData + ' x="' + (plotLeft + 6) + '" y="' + (y + labelOffset + 12) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
     }
 
     // 화면에는 6~7개 안팎의 건물이 보이지만, 전체 가격 구간은 최대 14개 건물로
@@ -3435,6 +3438,17 @@
     var viewportCenter = (buildingViewportLeft + buildingViewportRight) / 2;
     var currentBuildingCenter = buildingStartX + currentBandIndex * buildingStep + buildingWidth / 2;
     var buildingInitialOffset = Math.max(buildingMinOffset, Math.min(0, viewportCenter - currentBuildingCenter));
+    var currentBand = bands[currentBandIndex];
+    var currentBuildingHeight = currentBand ? 158 + Math.round(currentBand.ratio * 122) : 158;
+    var travelerX = buildingStartX + currentBandIndex * buildingStep + buildingWidth / 2;
+    var travelerY = 379 - currentBuildingHeight - 18;
+    var travelerHtml = currentPrice != null && currentBand
+      ? '<g class="ff-apt-roof-traveler" data-apt-roof-traveler transform="translate(' + travelerX + ' ' + travelerY + ')" aria-label="현재가를 따라 이동하는 가격 사람">'
+        + '<circle class="ff-apt-roof-traveler-head" cx="0" cy="-7" r="3.2" />'
+        + '<path class="ff-apt-roof-traveler-body" d="M0 -3 V7 M-5 1 H5 M0 7 L-4 13 M0 7 L4 13" />'
+        + '<path class="ff-apt-roof-traveler-shadow" d="M-8 15 Q0 11 8 15" />'
+        + '</g>'
+      : '';
     var buildingSpecs = bands.map(function (band, index) {
       return { x: buildingStartX + index * buildingStep, width: buildingWidth };
     });
@@ -3445,7 +3459,7 @@
     var buildingClipId = 'ff-apt-buildings-clip-' + Math.floor(Math.random() * 1000000000);
     // 클리핑 영역은 고정하고, 내부 트랙만 이동시켜 드래그 중 빈 공간이 생기지 않게 한다.
     var skylineTrack = '<g class="ff-apt-illustration-building-viewport" clip-path="url(#' + buildingClipId + ')">'
-      + '<g class="ff-apt-illustration-building-track" data-price-map-buildings data-building-offset="' + buildingInitialOffset + '" data-building-min-offset="' + buildingMinOffset + '" data-building-max-offset="0" transform="translate(' + buildingInitialOffset + ' 0)">' + skyline + '</g>'
+      + '<g class="ff-apt-illustration-building-track" data-price-map-buildings data-building-offset="' + buildingInitialOffset + '" data-building-min-offset="' + buildingMinOffset + '" data-building-max-offset="0" transform="translate(' + buildingInitialOffset + ' 0)">' + skyline + travelerHtml + '</g>'
       + '</g>';
     var basement = '<g class="ff-apt-illustration-basement" role="group" aria-label="지하실">'
       + '<path class="ff-apt-basement-shell" d="M190 390 H520 V458 H190 Z" />'
@@ -3523,10 +3537,10 @@
 
     return '<div class="ff-apt-chart-wrap ff-apt-line-art ff-apt-illustration" role="img" aria-label="가격대별 매물대 일러스트">'
       + '<div class="ff-apt-lineart-head"><strong>가격대별 매물대</strong><span>중심 가격 ' + pocText + '</span></div>'
-      + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg ff-apt-price-map-surface" data-price-map-surface viewBox="0 0 900 465" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
+      + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg ff-apt-price-map-surface" data-price-map-surface data-apt-current-band="' + currentBandIndex + '" data-apt-current-x="' + travelerX + '" data-apt-current-y="' + travelerY + '" data-apt-band-count="' + bandCount + '" data-apt-band-heights="' + bands.map(function (band) { return 158 + Math.round(band.ratio * 122); }).join(',') + '" data-apt-price-low="' + priceLow + '" data-apt-price-high="' + priceHigh + '" viewBox="0 0 900 465" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
       + '<title>가격대별 매물대 일러스트</title>'
       + '<desc>건물의 크기와 창문 밀도는 거래량을 나타내며 평균·현재가·중심 가격을 창문 아이콘으로 표시합니다.</desc>'
-      + '<defs><clipPath id="' + buildingClipId + '"><rect x="' + buildingViewportLeft + '" y="90" width="' + (buildingViewportRight - buildingViewportLeft) + '" height="310" /></clipPath></defs>'
+      + '<defs><clipPath id="' + buildingClipId + '"><rect x="' + buildingViewportLeft + '" y="60" width="' + (buildingViewportRight - buildingViewportLeft) + '" height="340" /></clipPath></defs>'
       + '<rect class="ff-apt-illustration-canvas" x="10" y="12" width="880" height="441" rx="22" />'
       + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
       + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
@@ -3550,9 +3564,9 @@
       + '<text class="ff-apt-illustration-price" x="714" y="150">' + priceText(high.high) + '원</text>'
       + '<text class="ff-apt-illustration-price" x="714" y="252">' + priceText((middle.low + middle.high) / 2) + '원</text>'
       + '<text class="ff-apt-illustration-price" x="714" y="386">' + priceText(low.low) + '원</text>'
-      + marker(curIdx, '#0f766e', '현재가', currentPrice)
-      + marker(avgIdx, '#3b82f6', '평균', avgPrice)
-      + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
+      + marker(curIdx, '#0f766e', '현재가', currentPrice, 'current')
+      + marker(avgIdx, '#3b82f6', '평균', avgPrice, 'average')
+      + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2, 'poc') : '')
       + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
       + '</svg>'
       + '<div class="ff-apt-bin-guide"><strong>가격별 매물대</strong><span>건물들을 좌우로 드래그하면 인접 가격대 건물이 나타납니다 · 막대가 높을수록 체결량이 많습니다</span><div class="ff-apt-bin-controls"><button type="button" data-bin-scroll="-1" aria-label="가격대 왼쪽 보기">←</button><button type="button" data-bin-scroll="1" aria-label="가격대 오른쪽 보기">→</button></div></div>'
@@ -3805,6 +3819,89 @@
     var card = box.querySelector('#ffAptCard');
     if (!card) return;
     var stepIndex = APT_BIN_DEFAULT_INDEX;
+    var activeProfile = null;
+
+    function markerY(map, price) {
+      var low = Number(map.getAttribute('data-apt-price-low'));
+      var high = Number(map.getAttribute('data-apt-price-high'));
+      if (!(high > low)) return 382;
+      var ratio = Math.max(0, Math.min(1, (high - Number(price)) / (high - low)));
+      return 116 + ratio * 266;
+    }
+
+    function updateCurrentMarker(map, price) {
+      var y = markerY(map, price);
+      var line = map.querySelector('line[data-apt-marker="current"]');
+      var dot = map.querySelector('circle[data-apt-marker="current"]');
+      var label = map.querySelector('text[data-apt-marker="current"]');
+      if (line) { line.setAttribute('y1', y); line.setAttribute('y2', y); }
+      if (dot) dot.setAttribute('cy', y);
+      if (label) { label.setAttribute('y', y + 20); label.textContent = '현재가 ' + Math.round(price).toLocaleString('ko-KR') + '원'; }
+      var summary = card.querySelector('.ff-apt-summary-current b');
+      if (summary) summary.textContent = Math.round(price).toLocaleString('ko-KR') + '원';
+    }
+
+    function bandIndexForPrice(profile, price, bandCount) {
+      var index = aptBinIndex(profile, price);
+      if (index < 0) return -1;
+      return Math.max(0, Math.min(bandCount - 1, Math.floor(index * bandCount / profile.bins.length)));
+    }
+
+    function animateRoofTraveler(map, nextBand, price) {
+      var traveler = map.querySelector('[data-apt-roof-traveler]');
+      if (!traveler) return;
+      var bandCount = Number(map.getAttribute('data-apt-band-count')) || 1;
+      var heights = String(map.getAttribute('data-apt-band-heights') || '').split(',').map(Number);
+      var startX = Number(map.getAttribute('data-apt-current-x')) || 0;
+      var startY = Number(map.getAttribute('data-apt-current-y')) || 0;
+      var targetX = 38 + nextBand * 96 + 44;
+      var targetY = 379 - (heights[nextBand] || 158) - 18;
+      if (traveler.__raf) cancelAnimationFrame(traveler.__raf);
+      var started = performance.now();
+      var duration = Math.min(1400, Math.max(560, 520 + Math.abs(targetX - startX) * 1.2));
+      traveler.classList.add('is-jumping');
+
+      function frame(now) {
+        var progress = Math.max(0, Math.min(1, (now - started) / duration));
+        var eased = progress < .5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        var arc = Math.sin(Math.PI * progress) * Math.min(42, 18 + Math.abs(targetX - startX) * .14);
+        var x = startX + (targetX - startX) * eased;
+        var y = startY + (targetY - startY) * eased - arc;
+        traveler.setAttribute('transform', 'translate(' + x.toFixed(2) + ' ' + y.toFixed(2) + ')');
+        traveler.__currentX = x;
+        traveler.__currentY = y;
+        if (progress < 1) {
+          traveler.__raf = requestAnimationFrame(frame);
+          return;
+        }
+        traveler.__raf = null;
+        map.setAttribute('data-apt-current-x', targetX);
+        map.setAttribute('data-apt-current-y', targetY);
+        traveler.classList.remove('is-jumping');
+      }
+      traveler.__currentX = startX;
+      traveler.__currentY = startY;
+      traveler.__raf = requestAnimationFrame(frame);
+      map.setAttribute('data-apt-current-band', nextBand);
+      map.querySelectorAll('.ff-apt-illustration-building').forEach(function (building, index) {
+        building.classList.toggle('current-band', index === nextBand);
+      });
+      updateCurrentMarker(map, price);
+    }
+
+    function updateCurrentPrice(nextPrice) {
+      var parsed = Number(nextPrice);
+      if (!isFinite(parsed) || !activeProfile) return;
+      currentPrice = parsed;
+      var map = card.querySelector('[data-price-map-surface]');
+      if (!map) return;
+      updateCurrentMarker(map, parsed);
+      var bandCount = Number(map.getAttribute('data-apt-band-count')) || 1;
+      var nextBand = bandIndexForPrice(activeProfile, parsed, bandCount);
+      var previousBand = Number(map.getAttribute('data-apt-current-band'));
+      if (nextBand >= 0 && nextBand !== previousBand) animateRoofTraveler(map, nextBand, parsed);
+    }
+    card.__updateCurrentPrice = updateCurrentPrice;
 
     function trendUpFromDaily() {
       if (!chartDaily || !chartDaily.length) return true;
@@ -3819,6 +3916,7 @@
         var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
         if (!profile) throw new Error('실제 체결 데이터가 비어 있습니다.');
         profile.source = result.source || 'kis-pbar';
+        activeProfile = profile;
         dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded, result.avgPrice);
         wireZoom();
         wireBinRail();
@@ -3835,6 +3933,7 @@
           return;
         }
         fallbackProfile.source = fallback.source;
+        activeProfile = fallbackProfile;
         dynamic.innerHTML = buildAptDynamicHtml(fallbackProfile, currentPrice, stepIndex, fallback.daysIncluded, fallback.avgPrice);
         wireZoom();
         wireBinRail();
