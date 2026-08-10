@@ -1444,6 +1444,7 @@ def market_board_endpoint(request: Request,
     try:
         if market == 'us':
             data = market_board.fetch_us(
+                token=get_kiwoom_token(),
                 limit=limit,
                 finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
             )

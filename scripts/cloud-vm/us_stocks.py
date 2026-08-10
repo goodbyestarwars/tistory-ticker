@@ -205,7 +205,10 @@ def _market_state():
 
 
 def _normalize_quote(row, symbol, provider, exchange):
-    price = _number(_first(row, 'cur_prc', 'last', 'last_pric', 'last_price', 'price'))
+    # 키움 해외주식 응답의 cur_prc는 하락 종목에 부호가 붙을 수 있다.
+    # 가격 자체는 양수로 노출하고, change/change_rate에만 방향을 보존한다.
+    raw_price = _number(_first(row, 'cur_prc', 'last', 'last_pric', 'last_price', 'price'))
+    price = abs(raw_price) if raw_price is not None else None
     if price is None:
         raise UsStockUnavailable(provider + ' 미국주식 현재가가 비어 있습니다.')
     previous_close = _number(_first(row, 'base_close_pric', 'base', 'base_pric', 'previous_close', 'prev_close'))

@@ -12,10 +12,6 @@ import us_stocks
 
 logger = logging.getLogger('market_board')
 
-US_BOARD_SYMBOLS = (
-    'AAPL', 'TSLA', 'NVDA', 'MSFT', 'AMZN', 'GOOGL', 'META', 'AMD',
-    'AVGO', 'PLTR', 'ORCL', 'MU', 'INTC', 'LLY', 'NFLX', 'RKLB',
-)
 _BASIC_TTL_SEC = 15 * 60
 _basic_cache = {}
 
@@ -155,11 +151,65 @@ def _us_row(symbol, finnhub_api_key):
     }
 
 
-def fetch_us(limit=12, finnhub_api_key=''):
+def _records(payload):
+    if isinstance(payload, list):
+        return [row for row in payload if isinstance(row, dict)]
+    if not isinstance(payload, dict):
+        return []
+    for key in ('result_list', 'output', 'output1', 'data', 'items', 'rows', 'result'):
+        rows = _records(payload.get(key))
+        if rows:
+            return rows
+    return []
+
+
+def _fetch_us_trade_amount_rank(token, limit):
+    """키움 미국주식 전체 거래대금 순위(주식만)를 조회한다."""
+    response = kiwoom_client.call_tr(token, 'usa20540', '/api/us/rkinfo', {
+        'stex_tp': '0',
+        'inds_cd': '000',
+        'stk_tp': '1',
+        'trde_qty_tp': '0',
+        'stk_cnd': '0',
+        'pric_cnd': '0',
+        'trde_prica_cnd': '0',
+    })
+    rows = _records(response)
+    if not rows:
+        raise RuntimeError('usa20540 미국주식 거래대금 순위 응답이 비어 있습니다.')
+    return rows[:max(1, min(int(limit), 20))]
+
+
+def _us_rank_row(rank_row, finnhub_api_key):
+    symbol = str(_first(rank_row, 'stk_cd', 'symbol', 'code') or '').upper()
+    if not symbol:
+        raise ValueError('미국주식 순위 응답에 종목코드가 없습니다.')
+    profile = us_analysis.get_profile(symbol, finnhub_api_key) if finnhub_api_key else {}
+    price = abs(_number(_first(rank_row, 'cur_prc', 'price')) or 0)
+    volume = _number(_first(rank_row, 'acc_trde_qty', 'volume')) or 0
+    trade_amount_thousand_usd = _number(_first(rank_row, 'trde_prica', 'trade_amount')) or 0
+    return {
+        'market': 'us',
+        'code': 'US:' + symbol,
+        'symbol': symbol,
+        'name': profile.get('name') or _first(rank_row, 'stk_enm', 'stk_nm', 'name') or symbol,
+        'price': price,
+        'change': _number(_first(rank_row, 'pred_pre', 'change')),
+        'change_rate': _number(_first(rank_row, 'flu_rt', 'change_rate')) or 0,
+        'trade_volume': volume,
+        'trade_amount': trade_amount_thousand_usd * 1000,
+        'market_cap': profile.get('marketCapitalization'),
+        'industry': profile.get('finnhubIndustry') or profile.get('gsector') or '미분류',
+        'currency': 'USD',
+        'exchange': _first(rank_row, 'stex_tp', 'exchange') or '',
+    }
+
+
+def fetch_us(token, limit=12, finnhub_api_key=''):
     rows = []
-    symbols = US_BOARD_SYMBOLS[:max(1, min(int(limit), len(US_BOARD_SYMBOLS)))]
+    rank_rows = _fetch_us_trade_amount_rank(token, limit)
     with ThreadPoolExecutor(max_workers=6) as pool:
-        futures = [pool.submit(_us_row, symbol, finnhub_api_key) for symbol in symbols]
+        futures = [pool.submit(_us_rank_row, rank_row, finnhub_api_key) for rank_row in rank_rows]
         for future in as_completed(futures):
             try:
                 rows.append(future.result())
@@ -172,5 +222,5 @@ def fetch_us(limit=12, finnhub_api_key=''):
         'rows': sections['tradeAmount'][:limit],
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),
-        'source': 'Kiwoom US quote + Finnhub profile2',
+        'source': 'Kiwoom usa20540 미국주식 거래대금 순위 + Finnhub profile2',
     }
