@@ -224,6 +224,7 @@
       + '<div class="ss-chart-legend">거래량은 캔들 아래 막대로 표시됩니다.</div>'
       + '</div>'
       + '</div>'
+      + '<section class="ss-news-panel"><div class="ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 뉴스·공시</span></div><div id="ssDomesticNews" class="ss-domestic-news"><div class="ss-hint">뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
   }
 
@@ -571,6 +572,7 @@
     }
 
     loadChart(container, item.code);
+    loadDomesticNews(container, item);
     wireChartTabs(container);
   }
 
@@ -620,6 +622,90 @@
   // 어긋나 서로 다른 시점의 값이 잠깐씩 보였다. 소켓은 order-book.js(#order-book 위젯)
   // 하나만 열고, 그 위젯이 이미 갱신에 성공한 값을 콜백(opts.onQuote, selectStock 참고)으로
   // 그대로 받아써서 항상 같은 값을 보여주게 했다.
+  function parseDomesticNewsDate(value) {
+    var raw = String(value || '').trim();
+    if (/^\d{8}$/.test(raw)) {
+      return new Date(Number(raw.slice(0, 4)), Number(raw.slice(4, 6)) - 1, Number(raw.slice(6, 8)));
+    }
+    return new Date(raw);
+  }
+
+  function domesticNewsTimestamp(item) {
+    var date = parseDomesticNewsDate(item && item.pubDate);
+    return isNaN(date.getTime()) ? 0 : date.getTime();
+  }
+
+  function domesticNewsBucket(value) {
+    var date = parseDomesticNewsDate(value);
+    if (isNaN(date.getTime())) return 'night';
+    var hour = Number(new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Seoul', hour: 'numeric', hour12: false
+    }).format(date));
+    if (hour >= 8 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 18) return 'afternoon';
+    return 'night';
+  }
+
+  function domesticNewsTime(value) {
+    var date = parseDomesticNewsDate(value);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleTimeString('en-GB', {
+        timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false
+      });
+    }
+    return '--:--';
+  }
+
+  function loadDomesticNews(container, item) {
+    var mount = container.querySelector('#ssDomesticNews');
+    if (!mount) return;
+    var code = item.code;
+    mount.innerHTML = '<div class="ss-hint">' + escapeHtml(item.name) + ' 뉴스를 불러오는 중...</div>';
+    fetchJson('https://goodbyestar.cloud/domestic-news?code=' + encodeURIComponent(code)
+      + '&name=' + encodeURIComponent(item.name) + '&limit=10')
+      .then(function (payload) {
+        if (state.selectedCode !== code) return;
+        var data = payload && payload.data ? payload.data : payload;
+        renderDomesticNews(mount, (data && data.items) || []);
+      })
+      .catch(function () {
+        if (state.selectedCode === code) mount.innerHTML = '<div class="ss-hint ss-error">뉴스를 불러오지 못했습니다.</div>';
+      });
+  }
+
+  function renderDomesticNews(mount, items) {
+    if (!items.length) {
+      mount.innerHTML = '<div class="ss-hint">최근 뉴스·공시가 없습니다.</div>';
+      return;
+    }
+    var groups = { morning: [], afternoon: [], night: [] };
+    items.slice(0, 10).sort(function (a, b) {
+      return domesticNewsTimestamp(b) - domesticNewsTimestamp(a);
+    }).forEach(function (item) { groups[domesticNewsBucket(item.pubDate)].push(item); });
+    var labels = {
+      morning: '오전 <small>08:00~12:00</small>',
+      afternoon: '오후 <small>12:00~18:00</small>',
+      night: '야간 <small>18:00~08:00</small>'
+    };
+    var index = 0;
+    mount.innerHTML = '<div class="ss-news-timetable" role="list">' + ['morning', 'afternoon', 'night'].map(function (bucket) {
+      if (!groups[bucket].length) return '';
+      var html = '<section class="ss-news-group"><h4>' + labels[bucket] + '</h4><div class="ss-news-timeline">';
+      html += groups[bucket].map(function (item) {
+        var category = item.category || (item.kind === 'disclosure' ? '공시' : '뉴스');
+        var source = item.source || item.provider || '';
+        var pubDate = item.pubDate || '';
+        var row = '<a class="ss-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
+          + '<span class="ss-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
+          + '<span class="ss-news-body"><time datetime="' + escapeAttr(pubDate) + '">' + escapeHtml(domesticNewsTime(pubDate)) + '</time>'
+          + '<b>' + escapeHtml(item.title || '') + '</b><small><em>' + escapeHtml(category) + '</em>' + escapeHtml(source) + '</small></span></a>';
+        index += 1;
+        return row;
+      }).join('');
+      return html + '</div></section>';
+    }).join('') + '</div>';
+  }
+
   function applyRealtimeQuote(container, quote) {
     if (state.selectedCode !== quote.code || typeof quote.price !== 'number') return;
 

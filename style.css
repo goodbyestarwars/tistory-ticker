@@ -875,56 +875,6 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.home-news-card { margin-top: 16px; }
-.home-news-list {
-  display: flex;
-  flex-direction: column;
-  margin-top: 13px;
-}
-.home-news-row {
-  min-height: 49px;
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  align-items: center;
-  gap: 9px;
-  border-bottom: 1px solid #f0f1f2;
-}
-.home-news-row time {
-  color: #6f767e;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.home-news-content {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 7px;
-}
-.home-news-category {
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: #eef4f0;
-  color: #315b43;
-  font-size: 10px;
-  white-space: nowrap;
-}
-.home-news-title {
-  overflow: hidden;
-  color: #171717;
-  font-size: 12.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.home-news-content small {
-  overflow: hidden;
-  max-width: 120px;
-  color: #a0a6ad;
-  font-size: 10px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .home-card-more {
   min-height: 34px;
   margin-top: auto;
@@ -1057,10 +1007,6 @@ html.dark .home-schedule-category {
   background: rgba(245, 239, 224, .08) !important;
   color: rgba(245, 239, 224, .7) !important;
 }
-html.dark .home-news-title { color: #f5efe0 !important; }
-html.dark .home-news-category { background: #22372b; color: #9ed0ad; }
-html.dark .home-news-row time,
-html.dark .home-news-content small { color: rgba(245, 239, 224, .62) !important; }
 html.dark .home-card-more,
 html.dark .home-pattern-new strong { color: #F5EFE0 !important; }
 html.dark .home-pattern-row:hover,
@@ -1084,8 +1030,6 @@ html.dark .home-pattern-stock small { color: rgba(245, 239, 224, .5) !important;
   .home-overview-grid,
   .home-card-grid { grid-template-columns: 1fr; gap: 12px; }
   .home-schedule-card { grid-column: auto; }
-  .home-news-content { grid-template-columns: auto minmax(0, 1fr); }
-  .home-news-content small { display: none; }
   .home-card-grid #sidebar-rank .sr-card,
   .home-mini-card { height: auto; min-height: 340px; }
   .home-market-board { height: auto; min-height: 298px; padding: 16px; }
