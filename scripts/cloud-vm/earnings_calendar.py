@@ -84,6 +84,7 @@ def fetch_month(year, month):
             'start': '%s-%s-%s' % (receipt_date[:4], receipt_date[4:6], receipt_date[6:8]),
             'link': 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=' + receipt_no,
             'source': 'dart',
+            'market': 'domestic',
         })
     _cache[key] = (time.time(), events)
     return events
@@ -162,6 +163,7 @@ def fetch_us_month(year, month):
             'start': event_date,
             'link': 'https://finnhub.io/docs/api/earnings-calendar',
             'source': 'finnhub',
+            'market': 'us',
         })
     events.sort(key=lambda event: (event['start'], event['title']))
     _finnhub_cache[key] = (time.time(), events)
@@ -176,6 +178,28 @@ def safe_fetch_us_month(year, month):
         return []
 
 
+def _market_priority(event):
+    market = str((event or {}).get('market') or '').strip().lower()
+    if market in ('domestic', 'kr', 'korea'):
+        return 0
+    if market in ('us', 'usa', 'foreign'):
+        return 1
+
+    source = str((event or {}).get('source') or (event or {}).get('provider') or '')
+    title = str((event or {}).get('title') or '').strip()
+    source_title = (source + ' ' + title).lower()
+    if 'dart' in source.lower() or any(token in source_title for token in ('국내', '한국', 'kospi', 'kosdaq')):
+        return 0
+    if 'finnhub' in source.lower() or any(token in source_title for token in ('미국', 'nasdaq', 'nyse', 's&p')):
+        return 1
+    return 1 if title.startswith('$') else 0
+
+
+def _event_sort_key(event):
+    start = str((event or {}).get('start') or '')
+    return (start[:10], _market_priority(event), start, str((event or {}).get('title') or ''))
+
+
 def merge_month(year, month):
     """국내 DART 발표일과 미국 Finnhub 예정일을 하나의 목록으로 합친다."""
     events = safe_fetch_month(year, month) + safe_fetch_us_month(year, month)
@@ -187,4 +211,4 @@ def merge_month(year, month):
             continue
         seen.add(key)
         merged.append(event)
-    return sorted(merged, key=lambda event: (str(event.get('start') or ''), str(event.get('title') or '')))
+    return sorted(merged, key=_event_sort_key)

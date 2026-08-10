@@ -40,5 +40,20 @@ class EarningsCalendarTests(unittest.TestCase):
         self.assertEqual([event['start'] for event in events], ['2026-08-15', '2026-08-20'])
 
 
+    def test_merges_domestic_before_us_on_same_date(self):
+        domestic = [{'title': 'Domestic earnings', 'start': '2026-08-15', 'source': 'dart', 'market': 'domestic'}]
+        us = [
+            {'title': 'US earnings', 'start': '2026-08-15', 'source': 'finnhub', 'market': 'us'},
+            {'title': 'US earnings later', 'start': '2026-08-20', 'source': 'finnhub', 'market': 'us'},
+        ]
+        with mock.patch.object(earnings_calendar, 'safe_fetch_month', return_value=domestic):
+            with mock.patch.object(earnings_calendar, 'safe_fetch_us_month', return_value=us):
+                events = earnings_calendar.merge_month(2026, 8)
+
+        self.assertEqual([(event['market'], event['start']) for event in events], [
+            ('domestic', '2026-08-15'), ('us', '2026-08-15'), ('us', '2026-08-20')
+        ])
+
+
 if __name__ == '__main__':
     unittest.main()

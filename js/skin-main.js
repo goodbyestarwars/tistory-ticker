@@ -483,12 +483,32 @@
       return includeDate ? dateLabel + ' ' + timeLabel : timeLabel;
     }
 
+    function calendarMarketPriority(event) {
+      var market = String(event && event.market || '').toLowerCase();
+      if (market === 'domestic' || market === 'kr' || market === 'korea') return 0;
+      if (market === 'us' || market === 'usa' || market === 'foreign') return 1;
+      var source = String(event && (event.source || event.provider || '') || '');
+      var title = String(event && event.title || '').trim();
+      if (/dart|국내|한국|kospi|kosdaq/i.test(source + ' ' + title)) return 0;
+      if (/finnhub|미국|nasdaq|nyse|s&p/i.test(source + ' ' + title)) return 1;
+      if (/^\$/.test(title) || /^\p{Regional_Indicator}{2}/u.test(title)) return 1;
+      return 0;
+    }
+
+    function compareCalendarEvents(a, b) {
+      var dayOrder = String(a && a.start || '').slice(0, 10).localeCompare(String(b && b.start || '').slice(0, 10));
+      if (dayOrder) return dayOrder;
+      var marketOrder = calendarMarketPriority(a) - calendarMarketPriority(b);
+      if (marketOrder) return marketOrder;
+      return eventDate(a) - eventDate(b);
+    }
+
     function nearestEvents(events) {
       var now = new Date();
       var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       var tomorrow = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
       var upcoming = (events || []).filter(function (event) { return eventDate(event) >= todayStart; })
-        .sort(function (a, b) { return eventDate(a) - eventDate(b); });
+        .sort(compareCalendarEvents);
       var todayItems = upcoming.filter(function (event) { return eventDate(event) < tomorrow; });
       if (todayItems.length) return { items: todayItems.slice(0, 4), includeDate: false, label: '오늘 일정' };
       if (!upcoming.length) return { items: [], includeDate: true, label: '오늘 또는 가장 가까운 일정' };

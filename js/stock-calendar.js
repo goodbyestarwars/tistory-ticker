@@ -66,6 +66,30 @@
       .catch(function () { return []; });
   }
 
+  function marketPriority(event) {
+    var market = String(event && event.market || '').toLowerCase();
+    if (market === 'domestic' || market === 'kr' || market === 'korea') return 0;
+    if (market === 'us' || market === 'usa' || market === 'foreign') return 1;
+    var source = String(event && (event.source || event.provider || '') || '');
+    var title = String(event && event.title || '').trim();
+    if (/dart|국내|한국|kospi|kosdaq/i.test(source + ' ' + title)) return 0;
+    if (/finnhub|미국|nasdaq|nyse|s&p/i.test(source + ' ' + title)) return 1;
+    if (/^\$/.test(title) || /^\p{Regional_Indicator}{2}/u.test(title)) return 1;
+    return 0;
+  }
+
+  function compareEvents(a, b) {
+    var startA = String(a && a.start || '');
+    var startB = String(b && b.start || '');
+    var dayOrder = startA.slice(0, 10).localeCompare(startB.slice(0, 10));
+    if (dayOrder) return dayOrder;
+    var marketOrder = marketPriority(a) - marketPriority(b);
+    if (marketOrder) return marketOrder;
+    var timeOrder = startA.localeCompare(startB);
+    if (timeOrder) return timeOrder;
+    return String(a && a.title || '').localeCompare(String(b && b.title || ''));
+  }
+
   function mergeEvents(primary, secondary) {
     var seen = {};
     return (primary || []).concat(secondary || []).filter(function (event) {
@@ -73,9 +97,7 @@
       if (seen[key]) return false;
       seen[key] = true;
       return true;
-    }).sort(function (a, b) {
-      return String(a.start || '').localeCompare(String(b.start || ''));
-    });
+    }).sort(compareEvents);
   }
 
   function fetchEvents(year, month) {
