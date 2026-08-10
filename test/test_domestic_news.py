@@ -45,6 +45,27 @@ class DomesticNewsTests(unittest.TestCase):
                 self.assertEqual(result['source'], 'cache')
                 self.assertEqual(result['items'][0]['title'], '시장 뉴스')
 
+    def test_title_match_is_direct_and_body_match_is_only_fallback(self):
+        title_match = domestic_news.normalize_naver({
+            'title': '<b>삼성전자</b> 신규 투자 발표',
+            'description': '삼성전자 관련 내용입니다.',
+            'link': 'https://example.com/news/title-match',
+        }, '005930', '삼성전자')
+        body_match = domestic_news.normalize_naver({
+            'title': '반도체 업계 투자 확대',
+            'description': '삼성전자가 관련 사업을 확대합니다.',
+            'link': 'https://example.com/news/body-match',
+        }, '005930', '삼성전자')
+
+        self.assertEqual(title_match['relevance'], 'direct')
+        self.assertEqual(body_match['relevance'], 'body')
+        self.assertEqual(body_match['stockCode'], '')
+
+        selected = domestic_news._select_stock_news(
+            [title_match, body_match], '005930', '삼성전자', body_fallback_limit=3,
+        )
+        self.assertEqual([item['relevance'] for item in selected], ['direct', 'body'])
+
     def test_disclosures_are_prioritized_over_newer_news(self):
         items = [
             {

@@ -64,6 +64,16 @@ def _strip(value):
     return re.sub(r'\s+', ' ', html.unescape(str(value or ''))).strip()
 
 
+def _compact(value):
+    return re.sub(r'\s+', '', _strip(value)).lower()
+
+
+def _title_direct_match(title, code, name):
+    title_text = _compact(title)
+    terms = (_compact(code), _compact(name))
+    return bool(title_text) and any(term and term in title_text for term in terms)
+
+
 def _canonical_url(url):
     parsed = urllib.parse.urlsplit(str(url or '').strip())
     if not parsed.scheme or not parsed.netloc:
@@ -114,7 +124,8 @@ def normalize_naver(item, code='', name=''):
     link = _canonical_url(item.get('link')) or str(item.get('link') or '').strip()
     if not title or not link:
         return None
-    direct = _direct_match(title, description, code, name)
+    title_direct = _title_direct_match(title, code, name)
+    body_direct = not title_direct and _direct_match(title, description, code, name)
     return {
         'id': _item_key({'title': title, 'link': link}),
         'title': title,
@@ -125,9 +136,9 @@ def normalize_naver(item, code='', name=''):
         'provider': 'Naver',
         'category': classify(title, description),
         'kind': 'news',
-        'stockCode': str(code or '') if direct else '',
-        'stockName': str(name or '') if direct else '',
-        'relevance': 'direct' if direct else 'market',
+        'stockCode': str(code or '') if title_direct else '',
+        'stockName': str(name or '') if title_direct else '',
+        'relevance': 'direct' if title_direct else 'body' if body_direct else 'market',
     }
 
 
@@ -202,6 +213,12 @@ def _load_cached(query_key, ttl_sec=CACHE_TTL_SEC):
             item.pop('item_key', None)
             item.pop('fetched_at', None)
             item['provider'] = 'DART' if item.get('kind') == 'disclosure' else 'Naver'
+            # 예전 캐시에 본문 일치만으로 direct로 저장된 뉴스가 남아 있어도
+            # 제목에 종목명이 없는 기사는 종목별 피드에서 직접 관련으로 재사용하지 않는다.
+            if (query_key != 'market' and item.get('kind') == 'news'
+                    and item.get('relevance') == 'direct'
+                    and not _title_direct_match(item.get('title'), item.get('stockCode'), item.get('stockName'))):
+                continue
             result.append(item)
         if query_key == 'market':
             return result
@@ -250,6 +267,23 @@ def _merge(items, limit, code=''):
     return result[:max(1, min(int(limit or 10), 50))]
 
 
+def _select_stock_news(items, code='', name='', body_fallback_limit=3):
+    """종목별 네이버 뉴스는 제목 일치 결과를 우선하고 본문 일치는 최소 보조로만 사용한다."""
+    if not code and not name:
+        return items
+    title_items = []
+    body_items = []
+    other_items = []
+    for item in items:
+        if item.get('kind') != 'news':
+            other_items.append(item)
+        elif item.get('relevance') == 'direct':
+            title_items.append(item)
+        elif item.get('relevance') == 'body':
+            body_items.append(item)
+    return other_items + title_items + body_items[:max(0, body_fallback_limit - len(title_items))]
+
+
 def get_news(code='', name='', query='', limit=10):
     code = _strip(code)
     name = _strip(name)
@@ -274,6 +308,7 @@ def get_news(code='', name='', query='', limit=10):
                                      display=min(max(int(limit or 10) * 2, 10), 100))
         fresh.extend(item for item in (normalize_naver(raw_item, code, name) for raw_item in raw) if item)
     fresh.extend(_dart_items(code, name))
+    fresh = _select_stock_news(fresh, code, name)
     _save(fresh)
     # API 장애나 일시적인 빈 응답에도 기존 기사를 화면에서 지우지 않는다.
     merged = _merge(fresh + cached + stale, limit, bool(code))
