@@ -169,6 +169,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, widgets)
         self.assertIn("overflow-x: auto", style)
         self.assertIn("flex-direction: row", style)
+        self.assertIn("scrollbar-color: transparent transparent", style)
+        self.assertIn("home-top-disclosures .home-disclosure-list::-webkit-scrollbar", style)
         self.assertIn("touch-action: pan-y", style)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
