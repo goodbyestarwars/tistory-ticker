@@ -74,6 +74,9 @@
 }
 #foreign-flow .ff-suggest-item:hover,
 #foreign-flow .ff-suggest-item.active { background: #f2f2f2; }
+#foreign-flow .ff-suggest-copy { min-width: 0; display: flex; align-items: baseline; gap: 7px; }
+#foreign-flow .ff-suggest-copy strong { color: #26313c; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#foreign-flow .ff-suggest-copy small { flex: 0 0 auto; color: #98a2ae; font-size: 11px; font-variant-numeric: tabular-nums; }
 
 /* ---- 상태 메시지 ---- */
 #foreign-flow .ff-hint,

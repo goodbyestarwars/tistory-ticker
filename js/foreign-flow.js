@@ -25,6 +25,8 @@
   var MAX_SUGGESTIONS = 8;
   var CLIENT_CACHE_MS = 5 * 60 * 1000;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+  var krxMapPromise = null;
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -145,6 +147,7 @@
     if (!container) return;
     container.innerHTML = buildShell();
     wireEvents(container);
+    ensureKrxMap().catch(function () { /* 입력 시 다시 시도한다. */ });
     loadSignalData(container);
     autoSearchFromUrl(container);
 
@@ -729,7 +732,13 @@
     }
 
     input.addEventListener('input', function () {
-      renderSuggestions(container, suggestBox, input.value.trim());
+      var query = input.value.trim();
+      if (!query) { hideSuggestions(suggestBox); return; }
+      ensureKrxMap().then(function () {
+        renderSuggestions(container, suggestBox, query);
+      }).catch(function () {
+        hideSuggestions(suggestBox);
+      });
     });
     input.addEventListener('keydown', function (e) {
       var items = suggestBox.querySelectorAll('.ff-suggest-item');
@@ -906,6 +915,28 @@
     box.__activeIndex = -1;
   }
 
+  // Tistory 본문에 삽입된 페이지에서는 defer 공통 스크립트보다 foreign-flow가
+  // 먼저 실행될 수 있다. 이때 첫 입력 순간 KRX_MAP이 아직 없으면 기존 코드는
+  // 자동완성을 숨긴 뒤 다시 시도하지 않아 "미리보기 없음"처럼 보였다.
+  function ensureKrxMap() {
+    if (global.KRX_MAP) return Promise.resolve(global.KRX_MAP);
+    if (krxMapPromise) return krxMapPromise;
+    krxMapPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = KRX_MAP_JS + '?v=20260810-preview';
+      script.onload = function () {
+        if (global.KRX_MAP) resolve(global.KRX_MAP);
+        else reject(new Error('KRX_MAP 없음'));
+      };
+      script.onerror = function () {
+        krxMapPromise = null;
+        reject(new Error('KRX_MAP 로드 실패'));
+      };
+      document.head.appendChild(script);
+    });
+    return krxMapPromise;
+  }
+
   // 키보드(위/아래 화살표)로 자동완성 항목 탐색 - box.__activeIndex에 현재 위치 저장
   function getActiveSuggestion(box) {
     return typeof box.__activeIndex === 'number' ? box.__activeIndex : -1;
@@ -957,7 +988,8 @@
     if (!matches.length) { hideSuggestions(box); return; }
 
     box.innerHTML = matches.map(function (name) {
-      return '<div class="ff-suggest-item" data-name="' + escapeAttr(name) + '">' + stockIconHtml(map[name], 'ff-suggest-icon') + escapeHtml(name) + '</div>';
+      return '<div class="ff-suggest-item" data-name="' + escapeAttr(name) + '">' + stockIconHtml(map[name], 'ff-suggest-icon')
+        + '<span class="ff-suggest-copy"><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(map[name]) + '</small></span></div>';
     }).join('');
     box.classList.add('active');
     box.__activeIndex = -1;
