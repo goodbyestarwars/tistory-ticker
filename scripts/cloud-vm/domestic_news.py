@@ -249,7 +249,7 @@ def _save(items):
         conn.close()
 
 
-def _merge(items, limit, code=''):
+def _merge(items, limit, code='', item_kind='all'):
     by_id = {}
     for item in items:
         if not item or not item.get('title'):
@@ -259,6 +259,8 @@ def _merge(items, limit, code=''):
         if existing is None or (item.get('kind') == 'disclosure' and existing.get('kind') != 'disclosure'):
             by_id[key] = item
     result = list(by_id.values())
+    if item_kind == 'news':
+        result = [item for item in result if item.get('kind') != 'disclosure']
     result.sort(key=lambda item: (
         item.get('kind') != 'disclosure',
         bool(code) and item.get('relevance') != 'direct',
@@ -284,7 +286,7 @@ def _select_stock_news(items, code='', name='', body_fallback_limit=3):
     return other_items + title_items + body_items[:max(0, body_fallback_limit - len(title_items))]
 
 
-def get_news(code='', name='', query='', limit=10):
+def get_news(code='', name='', query='', limit=10, item_kind='all'):
     code = _strip(code)
     name = _strip(name)
     query = _strip(query)
@@ -295,7 +297,7 @@ def get_news(code='', name='', query='', limit=10):
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET', '').strip()
     if (cached or stale) and (len(cached) >= min(int(limit or 10), 10) or not (client_id and client_secret)):
         return {
-            'items': _merge(cached + stale, limit, bool(code)),
+            'items': _merge(cached + stale, limit, bool(code), item_kind),
             'configured': bool(client_id and client_secret),
             'source': 'cache',
             'providers': sorted(set(item.get('provider') for item in cached if item.get('provider'))),
@@ -311,7 +313,7 @@ def get_news(code='', name='', query='', limit=10):
     fresh = _select_stock_news(fresh, code, name)
     _save(fresh)
     # API 장애나 일시적인 빈 응답에도 기존 기사를 화면에서 지우지 않는다.
-    merged = _merge(fresh + cached + stale, limit, bool(code))
+    merged = _merge(fresh + cached + stale, limit, bool(code), item_kind)
     return {
         'items': merged,
         'configured': bool(client_id and client_secret),

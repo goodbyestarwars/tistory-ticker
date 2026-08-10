@@ -85,6 +85,16 @@ class DomesticNewsTests(unittest.TestCase):
         self.assertEqual(len(merged), 1)
         self.assertEqual(merged[0]['kind'], 'disclosure')
 
+    def test_news_filter_removes_disclosures_before_limit_is_applied(self):
+        items = [
+            {'id': 'dart-1', 'title': 'disclosure', 'pubDate': '20260810', 'kind': 'disclosure'},
+            {'id': 'news-1', 'title': 'market headline', 'pubDate': 'Mon, 10 Aug 2026 13:16:00 +0900', 'kind': 'news'},
+        ]
+
+        merged = domestic_news._merge(items, limit=1, item_kind='news')
+
+        self.assertEqual([item['id'] for item in merged], ['news-1'])
+
 
 if __name__ == '__main__':
     unittest.main()

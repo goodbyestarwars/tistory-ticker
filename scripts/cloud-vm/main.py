@@ -1275,6 +1275,7 @@ def domestic_news_endpoint(
     code: str = Query('', min_length=0, max_length=6),
     name: str = Query('', max_length=100),
     query: str = Query('', max_length=100),
+    kind: str = Query('all', max_length=10),
     limit: int = Query(10, ge=1, le=50),
 ):
     """국내 전체/종목별 뉴스와 DART 공시를 시간순으로 반환한다.
@@ -1286,7 +1287,8 @@ def domestic_news_endpoint(
     normalized_code = (code or '').strip()
     if normalized_code and (len(normalized_code) != 6 or not normalized_code.isdigit()):
         raise HTTPException(status_code=400, detail='domestic stock code must be 6 digits')
-    result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit)
+    item_kind = 'news' if kind.strip().lower() == 'news' else 'all'
+    result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit, item_kind)
     return envelope(result)
 
 

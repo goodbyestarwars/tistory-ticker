@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var API_URL = 'https://goodbyestar.cloud/domestic-news?limit=50';
+  var API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=20';
   var MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
   var REFRESH_MS = 5 * 60 * 1000;
   var state = { mount: null, timer: null, quoteMap: {} };
