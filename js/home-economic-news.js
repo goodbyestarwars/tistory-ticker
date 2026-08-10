@@ -8,7 +8,7 @@
   var US_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=us&limit=20';
   var REFRESH_MS = 5 * 60 * 1000;
   var SESSION_CHECK_MS = 60 * 1000;
-  var state = { mount: null, timer: null, sessionTimer: null, market: '', quoteMap: {} };
+  var state = { mount: null, timer: null, sessionTimer: null, market: '', quoteMap: {}, items: [], loading: false };
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -109,18 +109,26 @@
   }
 
   function fetchNews() {
+    if (state.loading) return Promise.resolve();
+    state.loading = true;
     var market = currentMarket();
     state.market = market;
     var newsUrl = market === 'us' ? US_API_URL : DOMESTIC_API_URL;
     var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;
-    return Promise.all([fetchJson(newsUrl), fetchJson(marketUrl).catch(function () { return null; })]).then(function (result) {
-      state.quoteMap = quoteMapFrom(result[1]);
-      var json = result[0];
+    var newsRequest = fetchJson(newsUrl).then(function (json) {
       var payload = json.data || json;
-      render(payload.items || [], market);
-    }).catch(function () {
+      state.items = payload.items || [];
+      render(state.items, market);
+    });
+    var marketRequest = fetchJson(marketUrl).then(function (json) {
+      state.quoteMap = quoteMapFrom(json);
+      if (state.market === market) render(state.items, market);
+    }).catch(function () { return null; });
+    return Promise.all([newsRequest, marketRequest]).catch(function () {
       var list = state.mount && state.mount.querySelector('[data-hen-list]');
       if (list && !list.querySelector('.hen-row')) list.innerHTML = '<p class="home-card-state">경제 뉴스를 잠시 불러오지 못했습니다.</p>';
+    }).then(function () {
+      state.loading = false;
     });
   }
 

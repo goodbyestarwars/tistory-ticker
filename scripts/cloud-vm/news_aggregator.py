@@ -17,6 +17,7 @@ import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
@@ -251,10 +252,19 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
         if fetched_at and now - fetched_at < ttl:
             return list(cached_items[:max(1, int(limit))])
         items = []
+        providers = []
         if finnhub_api_key:
-            items.extend(_finnhub_general_news(finnhub_api_key))
+            providers.append(('Finnhub', lambda: _finnhub_general_news(finnhub_api_key)))
         if alpha_api_key:
-            items.extend(_alpha_general_news(alpha_api_key))
+            providers.append(('Alpha Vantage', lambda: _alpha_general_news(alpha_api_key)))
+        if providers:
+            with ThreadPoolExecutor(max_workers=len(providers)) as executor:
+                futures = [(name, executor.submit(fetch)) for name, fetch in providers]
+                for name, future in futures:
+                    try:
+                        items.extend(future.result())
+                    except Exception:
+                        logger.exception('%s general news failed', name)
 
         unique = {}
         for item in items:

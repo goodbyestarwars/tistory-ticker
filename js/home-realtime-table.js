@@ -15,7 +15,7 @@
     ['marketCap', '시가총액'],
     ['industry', '업종']
   ];
-  var state = { mount: null, market: '', active: 'tradeAmount', data: null, socket: null, timer: null };
+  var state = { mount: null, market: '', active: 'tradeAmount', data: null, socket: null, timer: null, loading: false };
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
 
   function escapeHtml(value) {
@@ -221,6 +221,8 @@
   }
 
   function fetchBoard() {
+    if (state.loading) return Promise.resolve();
+    state.loading = true;
     var market = currentMarket();
     if (market !== state.market) {
       state.market = market;
@@ -244,6 +246,8 @@
     }).catch(function () {
       var body = state.mount.querySelector('[data-hrt-body]');
       if (body && !state.data) body.innerHTML = '<tr><td colspan="8" class="hrt-state">종목 데이터를 잠시 불러오지 못했습니다.</td></tr>';
+    }).then(function () {
+      state.loading = false;
     });
   }
 
