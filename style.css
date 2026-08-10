@@ -743,6 +743,43 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
+.home-top-disclosures .home-us-schedule-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-width: 0;
+}
+.home-top-disclosures .home-us-schedule-icon {
+  position: relative;
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #f1f3f5;
+  color: #66727f;
+  font-size: 8px;
+  font-weight: 700;
+}
+.home-top-disclosures .home-us-schedule-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 2px;
+  object-fit: contain;
+}
+.home-top-disclosures .home-us-schedule-icon [data-icon-initials] {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: auto;
+  color: inherit;
+}
+.home-top-disclosures .home-us-schedule-icon [data-icon-initials][hidden] { display: none; }
   .hmb-list {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

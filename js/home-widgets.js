@@ -15,6 +15,7 @@
   var US_SCHEDULE_CACHE_KEY = 'home_us_schedule_v1';
   var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
   var EARNINGS_CALENDAR_URL = 'https://goodbyestar.cloud/earnings-calendar';
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   // 2026-07-31: 홈 MY 카드도 /page/watchlist(js/watchlist.js)와 동일한 VM 실시간 체결가
   // WebSocket 중계에 연결한다 - 페이지 로드 시 1회 GAS 조회 후 갱신이 없던 것을 보완.
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
@@ -647,6 +648,31 @@
     return title || '미국 실적 일정';
   }
 
+  function scheduleSymbol(item) {
+    var explicit = String(item && (item.symbol || item.ticker || item.code) || '')
+      .replace(/^US:/i, '').trim().toUpperCase();
+    var match = String(item && item.title || '').match(/^\$([A-Za-z][A-Za-z0-9.-]*)\b/);
+    return explicit || (match && match[1] ? match[1].toUpperCase() : '');
+  }
+
+  function scheduleIconFallback(image) {
+    if (image.getAttribute('data-icon-fallback') !== '1') {
+      image.setAttribute('data-icon-fallback', '1');
+      image.src = image.src.replace(/\.svg(\?.*)?$/, '.png');
+      return;
+    }
+    image.style.display = 'none';
+    var fallback = image.parentNode && image.parentNode.querySelector('[data-icon-initials]');
+    if (fallback) fallback.hidden = false;
+  }
+
+  function scheduleIconHtml(item) {
+    var symbol = scheduleSymbol(item);
+    if (!symbol) return '';
+    return '<span class="home-us-schedule-icon"><img src="' + STOCK_ICON_BASE + encodeURIComponent(symbol) + '.svg" alt="" loading="lazy" onerror="window.HomeUsScheduleIconFallback(this)">' +
+      '<span data-icon-initials hidden>' + escapeHtml(symbol.slice(0, 2)) + '</span></span>';
+  }
+
   function selectUsSchedule(events) {
     var now = new Date();
     var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -695,7 +721,7 @@
       var link = item.link || 'https://finnhub.io/docs/api/earnings-calendar';
       return '<a class="home-disclosure-row home-us-schedule-row" href="' + escapeHtml(link) + '" target="_blank" rel="noopener" draggable="false">'
         + '<strong>미국</strong>'
-        + '<span>' + escapeHtml(scheduleTitle(item.title)) + '</span>'
+        + '<span class="home-us-schedule-title">' + scheduleIconHtml(item) + '<span>' + escapeHtml(scheduleTitle(item.title)) + '</span></span>'
         + '<time>' + escapeHtml(scheduleTime(item.start)) + '</time></a>';
     }).join('');
     enableScheduleDrag(mount);
@@ -827,4 +853,5 @@
   }
 
   global.HomeDashboardWidgets = { init: init, storageKey: STORAGE_KEY };
+  global.HomeUsScheduleIconFallback = scheduleIconFallback;
 })(window);
