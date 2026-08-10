@@ -1181,6 +1181,14 @@
     };
   }
 
+  function chartPriceText(value, isUsChart) {
+    var parsed = Number(value);
+    if (!Number.isFinite(parsed)) return '';
+    return isUsChart
+      ? '$' + parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : Math.round(parsed).toLocaleString('ko-KR');
+  }
+
   function renderLwChart(container, bars, timeframe) {
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
@@ -1199,14 +1207,16 @@
       }, lwcThemeOptions(LWC, timeframe)));
       lwcChart = chart;
 
+      var isUsChart = /^US:/i.test(String(state.selectedCode || ''));
+      var priceMinMove = isUsChart ? 0.01 : 1;
       var candleSeries = chart.addCandlestickSeries({
         upColor: '#d24f45', downColor: '#1261c4',
         borderUpColor: '#d24f45', borderDownColor: '#1261c4',
         wickUpColor: '#d24f45', wickDownColor: '#1261c4',
         priceFormat: {
           type: 'custom',
-          minMove: 1,
-          formatter: function (v) { return Math.round(v).toLocaleString('ko-KR'); }
+          minMove: priceMinMove,
+          formatter: function (v) { return chartPriceText(v, isUsChart); }
         }
       });
       candleSeries.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.36 } });
@@ -1233,12 +1243,12 @@
             crosshairMarkerVisible: false,
             priceFormat: {
               type: 'custom',
-              minMove: 1,
-              formatter: function (v) { return Math.round(v).toLocaleString('ko-KR'); }
+              minMove: priceMinMove,
+              formatter: function (v) { return chartPriceText(v, isUsChart); }
             }
           });
           series.setData(points);
-          var latest = points.length ? Math.round(points[points.length - 1].value).toLocaleString('ko-KR') : '—';
+          var latest = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
           priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.label + ' <b>' + latest + '</b></span>');
         });
       }
