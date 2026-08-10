@@ -23,14 +23,10 @@
   var myRealtimeGeneration = 0;
   var DEFAULT_ORDER = [
     'market-summary',
-    'schedule',
-    'disclosure',
     'briefing'
   ];
   var LABELS = {
     'market-summary': '오늘의 시장판',
-    schedule: '주요 일정',
-    disclosure: '실시간 공시',
     briefing: '마켓브리핑'
   };
 
@@ -149,20 +145,13 @@
   function buildRegistry(options) {
     var dashboard = options.dashboard;
     var overview = dashboard.querySelector('.home-overview-grid');
-    var cards = dashboard.querySelector('.home-card-grid');
     var market = overview && overview.querySelector('.home-market-board');
-    var schedule = cards && cards.querySelector('.home-schedule-card');
-    if (!market || !schedule || !options.briefing) return false;
-
-    var disclosure = document.createElement('div');
-    disclosure.innerHTML = disclosureCardHtml();
+    if (!market || !options.briefing) return false;
 
     grid = document.createElement('div');
     grid.className = 'home-widget-grid';
     [
       market,
-      schedule,
-      disclosure.firstElementChild,
       options.briefing
     ].forEach(function (node) { grid.appendChild(node); });
 
@@ -170,8 +159,6 @@
     dashboard.appendChild(grid);
 
     decorate(market, 'market-summary', 'summary');
-    decorate(schedule, 'schedule', 'compact');
-    decorate(grid.querySelector('.home-disclosure-card'), 'disclosure', 'compact');
     decorate(options.briefing, 'briefing', 'full');
     return true;
   }
@@ -545,7 +532,8 @@
       result.push({
         corp: parsed.corp,
         title: parsed.title || title,
-        link: extractTag(chunk, 'link') || '#'
+        link: extractTag(chunk, 'link') || '#',
+        pubDate: extractTag(chunk, 'pubDate') || extractTag(chunk, 'dc:date') || extractTag(chunk, 'date')
       });
     }
     return result;
@@ -576,6 +564,25 @@
     return title.length > 28 ? title.slice(0, 28) + '…' : title;
   }
 
+  function disclosureTime(value) {
+    var raw = String(value || '').trim();
+    if (/^\d{8}$/.test(raw)) return raw.slice(4, 6) + '.' + raw.slice(6, 8);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.slice(5, 7) + '.' + raw.slice(8, 10);
+    var date = new Date(raw);
+    if (isNaN(date.getTime())) return '';
+    var parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(date).reduce(function (map, part) {
+      map[part.type] = part.value;
+      return map;
+    }, {});
+    var dateText = parts.month + '.' + parts.day;
+    return parts.hour === '00' && parts.minute === '00'
+      ? dateText
+      : dateText + ' ' + parts.hour + ':' + parts.minute;
+  }
+
   function renderDisclosures(items) {
     var mount = document.getElementById('homeDisclosureList');
     if (!mount) return;
@@ -584,9 +591,11 @@
       return;
     }
     mount.innerHTML = items.map(function (item) {
+      var time = disclosureTime(item.pubDate);
       return '<a class="home-disclosure-row" href="' + escapeHtml(item.link) + '" target="_blank" rel="noopener">'
         + '<strong>' + escapeHtml(item.corp || '시장 공시') + '</strong>'
-        + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span></a>';
+        + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span>'
+        + (time ? '<time>' + escapeHtml(time) + '</time>' : '') + '</a>';
     }).join('');
   }
 

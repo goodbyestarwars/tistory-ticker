@@ -162,6 +162,10 @@
         + '<div class="home-overview-grid">'
         + '<article class="card home-market-board" id="homeMarketBoard">'
         + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live" data-home-market-field="live">실시간</span></div>'
+        + '<section class="home-top-disclosures" aria-label="오늘의 공시">'
+        + '<div class="home-top-disclosures-head"><strong>오늘의 공시</strong><span>최신 5건</span></div>'
+        + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
+        + '</section>'
         + '<div class="home-index-strip" aria-label="대표 시장 지수">'
         + '<article class="home-index-card" data-home-index-slot="primary">'
         + '<div class="home-index-top"><strong data-index-field="label">코스피</strong><span data-index-field="status">· 확인 중</span></div>'
@@ -182,12 +186,7 @@
         + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
         + '</dl>'
         + '</article></div>'
-        + '<div class="home-card-grid">'
-        + '<article class="card home-mini-card home-schedule-card">'
-        + '<div class="home-card-heading"><div><strong>주요 일정</strong><span id="homeScheduleLabel">오늘 또는 가장 가까운 일정</span></div></div>'
-        + '<div class="home-schedule-list" id="homeScheduleList"><p class="home-card-state">일정을 불러오는 중...</p></div>'
-        + '<a class="home-card-more" href="/page/stock-calendar">전체 일정 보기 →</a>'
-        + '</article></div></section>';
+        + '</section>';
     }
 
     var dashboard = document.createElement('div');

@@ -647,6 +647,9 @@
   }
 
   function domesticNewsTime(value) {
+    var raw = String(value || '').trim();
+    if (/^\d{8}$/.test(raw)) return raw.slice(4, 6) + '.' + raw.slice(6, 8);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.slice(5, 7) + '.' + raw.slice(8, 10);
     var date = parseDomesticNewsDate(value);
     if (!isNaN(date.getTime())) {
       return date.toLocaleTimeString('en-GB', {
@@ -678,17 +681,22 @@
       mount.innerHTML = '<div class="ss-hint">최근 뉴스·공시가 없습니다.</div>';
       return;
     }
-    var groups = { morning: [], afternoon: [], night: [] };
+    var groups = { disclosure: [], morning: [], afternoon: [], night: [] };
     items.slice(0, 10).sort(function (a, b) {
+      if (a.kind === 'disclosure' && b.kind !== 'disclosure') return -1;
+      if (a.kind !== 'disclosure' && b.kind === 'disclosure') return 1;
       return domesticNewsTimestamp(b) - domesticNewsTimestamp(a);
-    }).forEach(function (item) { groups[domesticNewsBucket(item.pubDate)].push(item); });
+    }).forEach(function (item) {
+      groups[item.kind === 'disclosure' ? 'disclosure' : domesticNewsBucket(item.pubDate)].push(item);
+    });
     var labels = {
+      disclosure: '공시',
       morning: '오전 <small>08:00~12:00</small>',
       afternoon: '오후 <small>12:00~18:00</small>',
       night: '야간 <small>18:00~08:00</small>'
     };
     var index = 0;
-    mount.innerHTML = '<div class="ss-news-timetable" role="list">' + ['morning', 'afternoon', 'night'].map(function (bucket) {
+    mount.innerHTML = '<div class="ss-news-timetable" role="list">' + ['disclosure', 'morning', 'afternoon', 'night'].map(function (bucket) {
       if (!groups[bucket].length) return '';
       var html = '<section class="ss-news-group"><h4>' + labels[bucket] + '</h4><div class="ss-news-timeline">';
       html += groups[bucket].map(function (item) {

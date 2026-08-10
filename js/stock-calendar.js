@@ -200,7 +200,7 @@
     return weeks.filter(function (w) { return w.items.length > 0; });
   }
 
-  function buildMonthGrid(year, month, evs) {
+  function buildMonthGrid(year, month, evs, selectedDay) {
     var byDay = {};
     evs.forEach(function (ev) { byDay[dayOf(ev)] = true; });
     var firstDay    = new Date(year, month, 1).getDay();
@@ -212,13 +212,15 @@
     for (var d = 1; d <= daysInMonth; d++) {
       var dow = (firstDay + d - 1) % 7;
       var isToday = isThisMonth && d === today.getDate();
-      var cls = 'sc-day' + (isToday ? ' sc-today' : '') + (byDay[d] ? ' sc-has-event' : '');
+      var isSelected = selectedDay === d;
+      var cls = 'sc-day sc-day-clickable' + (isToday ? ' sc-today' : '')
+        + (isSelected ? ' sc-selected' : '') + (byDay[d] ? ' sc-has-event' : '');
       var style = '';
       if (!isToday) {
         if (dow === 0) style = ' style="color:#e11d48;"';
         if (dow === 6) style = ' style="color:#2563eb;"';
       }
-      html += '<div class="' + cls + '"' + style + '><span>' + d + '</span>'
+      html += '<div class="' + cls + '" data-day="' + d + '" role="button" tabindex="0"' + style + '><span>' + d + '</span>'
         + (byDay[d] ? '<div class="sc-dot"></div>' : '') + '</div>';
     }
     return html;
@@ -244,8 +246,11 @@
         });
     }
 
-    function renderPage(year, month, evs) {
-      var weeks = groupByWeek(year, month, evs);
+    function renderPage(year, month, evs, selectedDay) {
+      var visibleEvents = typeof selectedDay === 'number'
+        ? evs.filter(function (event) { return dayOf(event) === selectedDay; })
+        : evs;
+      var weeks = groupByWeek(year, month, visibleEvents);
       var listHtml = weeks.length
         ? weeks.map(function (w) {
             return '<div class="sc-week">'
@@ -263,13 +268,29 @@
         + '<button type="button" class="sc-nav" id="scNext">›</button></div>'
         + '<div class="sc-dow"><span style="color:#e11d48;">일</span><span>월</span><span>화</span>'
         + '<span>수</span><span>목</span><span>금</span><span style="color:#2563eb;">토</span></div>'
-        + '<div class="sc-grid">' + buildMonthGrid(year, month, evs) + '</div>'
+        + '<div class="sc-grid">' + buildMonthGrid(year, month, evs, selectedDay) + '</div>'
         + '</div>'
-        + '<div class="sc-list-col">' + listHtml + '</div>'
+        + '<div class="sc-list-col">'
+        + (typeof selectedDay === 'number'
+          ? '<div class="sc-filter-head"><strong>' + (month + 1) + '월 ' + selectedDay + '일 일정</strong><button type="button" id="scClearDay">전체 일정</button></div>'
+          : '')
+        + listHtml + '</div>'
         + '</div>';
 
       document.getElementById('scPrev').addEventListener('click', function () { load(year, month - 1); });
       document.getElementById('scNext').addEventListener('click', function () { load(year, month + 1); });
+      container.querySelectorAll('.sc-day-clickable').forEach(function (day) {
+        var choose = function () { renderPage(year, month, evs, Number(day.getAttribute('data-day'))); };
+        day.addEventListener('click', choose);
+        day.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            choose();
+          }
+        });
+      });
+      var clearDay = document.getElementById('scClearDay');
+      if (clearDay) clearDay.addEventListener('click', function () { renderPage(year, month, evs); });
     }
 
     var today = new Date();

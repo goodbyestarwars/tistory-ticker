@@ -666,6 +666,57 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   font-weight: 400;
   white-space: nowrap;
 }
+.home-top-disclosures {
+  margin-top: 14px;
+}
+.home-top-disclosures-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.home-top-disclosures-head strong {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 700;
+}
+.home-top-disclosures-head span {
+  color: #a0a7b0;
+  font-size: 10px;
+}
+.home-top-disclosures .home-disclosure-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.home-top-disclosures .home-disclosure-row {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  justify-content: initial;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px solid #edf0f3;
+  border-radius: 9px;
+  background: #fbfcfd;
+}
+.home-top-disclosures .home-disclosure-row strong,
+.home-top-disclosures .home-disclosure-row span,
+.home-top-disclosures .home-disclosure-row time {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-top-disclosures .home-disclosure-row strong { font-size: 11px; }
+.home-top-disclosures .home-disclosure-row span { width: auto; font-size: 11px; }
+.home-top-disclosures .home-disclosure-row time {
+  color: #a0a7b0;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
 .hmb-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1054,6 +1105,13 @@ html.dark .home-index-price-row strong { color: #F5EFE0 !important; }
 html.dark .home-index-top span,
 html.dark .home-index-chart-empty { color: rgba(245, 239, 224, .5) !important; }
 html.dark .home-market-live { color: #e8776d !important; }
+html.dark .home-top-disclosures-head strong { color: #F5EFE0 !important; }
+html.dark .home-top-disclosures-head span,
+html.dark .home-top-disclosures .home-disclosure-row time { color: rgba(245, 239, 224, .5) !important; }
+html.dark .home-top-disclosures .home-disclosure-row {
+  background: rgba(245, 239, 224, .05) !important;
+  border-color: rgba(245, 239, 224, .12) !important;
+}
 html.dark .home-card-heading strong,
 html.dark .home-pattern-row strong,
 html.dark .home-pattern-preview-heading strong,
@@ -1201,9 +1259,10 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   min-width: 0;
 }
 .home-widget--summary.home-market-board {
-  grid-column: span 6;
+  grid-column: 1 / -1;
   width: 100%;
-  height: 298px;
+  height: auto;
+  min-height: 298px;
 }
 .home-widget--compact.home-mini-card {
   width: 100%;
@@ -1475,6 +1534,7 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   .home-widget--summary,
   .home-widget--full { grid-column: 1 / -1; }
   .home-widget--compact { grid-column: span 3; }
+  .home-top-disclosures .home-disclosure-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .home-widget--full .home-briefing-grid {
     grid-template-columns: 1fr;
     min-height: 0;
@@ -1495,6 +1555,7 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   .home-widget--summary { height: 298px; }
   .home-widget--compact,
   .home-widget--compact.home-mini-card { height: 370px; min-height: 0; }
+  .home-top-disclosures .home-disclosure-list { grid-template-columns: minmax(0, 1fr); }
   .home-widget-drag,
   .home-widget-menu-button { opacity: .68; }
   .home-widget-drag { touch-action: none; }

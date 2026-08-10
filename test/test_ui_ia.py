@@ -106,8 +106,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         widgets = self.read("js/home-widgets.js")
         rank = self.read("js/sidebar-rank.js")
         indices = self.read("js/quick-indices.js")
-        for token in ("오늘의 시장판", "주요 일정", "home-overview-grid", "home-card-grid"):
+        for token in ("오늘의 시장판", "home-overview-grid", "home-top-disclosures"):
             self.assertIn(token, main)
+        self.assertNotIn("home-card-grid", main)
         self.assertIn("slice(0, 8)", main)
         self.assertIn("마켓브리핑 전체보기", main)
         self.assertIn("home-briefing-left-more", main)
@@ -116,8 +117,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("patternScan=1", main)
         for token in (
             "market-summary",
-            "schedule",
-            "disclosure",
             "briefing",
             "home_dashboard_layout_v1",
             "dragstart",
@@ -143,25 +142,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, source)
         self.assertNotIn("?market=1", source)
 
-    def test_schedule_compact_layout_after_home_widget_cleanup(self):
+    def test_home_disclosure_strip_after_widget_cleanup(self):
         main = self.read("js/skin-main.js")
         style = self.read("style.css")
         self.assertNotIn("}).slice(0, 4);", main)
         self.assertNotIn("home-pattern-stock-list", main)
-        self.assertIn("overflow-y: auto", style)
-        self.assertIn("scrollbar-color: transparent transparent", style)
-        self.assertIn("scrollbar-width: none", style)
-        self.assertIn("home-schedule-content", main)
-        schedule = re.search(
-            r"function renderSchedule\(result\)(?P<body>.*?)loadHomeScript\(CALENDAR_SCRIPT_URL",
-            main,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(schedule)
-        self.assertLess(
-            schedule.group("body").find("home-schedule-category"),
-            schedule.group("body").find("home-schedule-title"),
-        )
+        self.assertIn("home-top-disclosures", main)
+        self.assertNotIn("home-schedule-card", main)
+        self.assertIn("grid-column: 1 / -1", style)
+        self.assertIn("home-top-disclosures .home-disclosure-list", style)
         self.assertIn("text-overflow: ellipsis", style)
         self.assertIn("white-space: nowrap", style)
 
