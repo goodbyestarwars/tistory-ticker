@@ -57,8 +57,8 @@
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260811-schedule-icons')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260811-schedule-icons';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260811-summary-tooltip')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260811-summary-tooltip';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260810-realtime-reconnect1';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260810-session12h-usnews-speed1';
 
@@ -213,7 +213,12 @@
     function setField(name, text, tone) {
       var element = field(name);
       if (!element) return;
-      element.textContent = text;
+      var fullText = text == null ? '' : String(text);
+      element.textContent = fullText;
+      // 업종명은 카드 폭에 맞춰 말줄임표로 보이지만, hover/focus 시 전체 문구를
+      // 확인할 수 있도록 native tooltip과 접근성 레이블을 함께 유지한다.
+      element.title = fullText;
+      element.setAttribute('aria-label', fullText);
       element.classList.remove('home-positive', 'home-negative', 'home-neutral');
       if (tone) element.classList.add(tone);
     }

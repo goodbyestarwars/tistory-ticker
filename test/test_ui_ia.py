@@ -189,6 +189,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "market-board?market=us&limit=20",
             "function summarizeUsMarket(data)",
             "renderUsMarketSummary",
+            "element.title = fullText",
+            "element.setAttribute('aria-label', fullText)",
         ):
             self.assertIn(token, main)
         for token in (
@@ -212,6 +214,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("touch-action: pan-y", style)
         self.assertIn("-webkit-user-drag: none", style)
         self.assertIn(".home-us-schedule-icon", style)
+        self.assertIn('.hmb-list dd[title] { cursor: help; }', style)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")
