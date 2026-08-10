@@ -3,7 +3,7 @@
  * 다크모드: html.dark #stock-search ... !important (9bolt 스킨 블랑켓 규칙 대응) */
 
 #stock-search {
-  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+  font-family: inherit;
   color: #222;
   line-height: 1.5;
   margin: 16px 0;
