@@ -576,6 +576,12 @@
       event.preventDefault();
       setWatchlistDrawerOpen(drawer, true);
     });
+    document.addEventListener('click', function (event) {
+      if (!drawer.classList.contains('is-open')) return;
+      if (event.target.closest('.global-watchlist-drawer')) return;
+      if (event.target.closest('[data-open-global-watchlist]')) return;
+      setWatchlistDrawerOpen(drawer, false);
+    });
 
     ensureKrxMap().then(loadWatchlistScript).catch(loadWatchlistScript);
   }
