@@ -99,10 +99,10 @@
   // 들어가게 됐다 - 좌우 화살표 페이징 제거, 항상 전체를 그린다(그리드는 CSS
   // grid-auto-flow:column으로 3줄씩 세로로 채우며 오른쪽으로 열이 늘어난다).
 
-  // 페이지 파싱 도중이라도(DOMContentLoaded 전) 즉시 반영해 접힘 상태 깜빡임을 없앤다.
+  // 2026-08-10: 상단 지수 리본은 홈 화면을 단순화하면서 제거한다. 데이터 조회 함수는
+  // 메인 시장 카드가 재사용하므로 모듈은 남기되, 리본 높이는 항상 0으로 둔다.
   (function applyCollapsedHeightEarly() {
-    try { localStorage.removeItem(COLLAPSE_KEY); } catch (err) { /* 무시 */ }
-    document.documentElement.style.setProperty('--qi-height', HEIGHT_EXPANDED);
+    document.documentElement.style.setProperty('--qi-height', '0px');
   })();
 
   var OPTIONS = [
@@ -865,31 +865,9 @@
   }
 
   function init() {
-    if (!isHomePage()) {
-      // style.css의 html.full-width-page { --qi-height:0 } CSS만으로는 홈이 아닌 페이지에서
-      // 여백이 그대로 남는 게 실측됐다 - skin.html에 git 밖의 숨은 CSS가 이 계산을 덮어쓰는
-      // 전례(2026-07-16, 위 style.css 주석 참고)가 있어 JS로 documentElement 인라인 스타일에
-      // 직접 0을 박아 넣어 어떤 스타일시트보다도 확실히 이기게 한다.
-      document.documentElement.style.setProperty('--qi-height', '0px');
-      return;
-    }
-    var container = ensureContainer();
-    moduleContainer = container;
-    wireEvents(container);
-    rebuild(container, loadSelected());
-    if (refreshTimer) clearInterval(refreshTimer);
-    refreshTimer = setInterval(function () {
-      if (document.hidden) return;
-      refresh(container);
-    }, REFRESH_MS);
-
-    if (themeObserver) themeObserver.disconnect();
-    themeObserver = new MutationObserver(function () {
-      Object.keys(chartInstances).forEach(function (key) {
-        chartInstances[key].chart.applyOptions(chartThemeOptions());
-      });
-    });
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    document.documentElement.style.setProperty('--qi-height', '0px');
+    var existing = document.getElementById(CONTAINER_ID);
+    if (existing) existing.remove();
   }
 
   var QuickIndices = { init: init, fetchMarket: fetchMarket, fetchFutures: fetchFutures };

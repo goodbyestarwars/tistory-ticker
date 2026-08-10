@@ -986,17 +986,6 @@
     el.innerHTML = raw.replace(/\n/g, '<br>');
   });
 
-  /* 뉴스 티커 초기 패딩 보정 (RSS 로드 전부터 공간 확보) */
-  (function() {
-    var pw = document.querySelector('.page-wrap');
-    var sl = document.querySelector('.sidebar-left');
-    var sr = document.querySelector('.sidebar-right');
-    if (pw) pw.style.paddingTop = '122px'; /* navbar+disc-ticker 여백(90px) + market-ribbon(32px) */
-    /* 모바일에서는 사이드바가 드로어이므로 top 고정하지 않음 */
-    if (sl && window.innerWidth > 720) sl.style.top = '142px';
-    if (sr && window.innerWidth > 1100) sr.style.top = '142px';
-  })();
-
   /* ── 모바일 드로어 & 검색 오버레이 ── */
   (function() {
     var menuBtn    = document.getElementById('mobileMenuBtn');
