@@ -12,7 +12,9 @@
   var WATCHLIST_KEY = 'wl_codes_v1';
   var WATCHLIST_QUOTES_CACHE_KEY = 'home_watchlist_quotes_v1';
   var DISCLOSURE_CACHE_KEY = 'home_disclosures_v1';
+  var US_SCHEDULE_CACHE_KEY = 'home_us_schedule_v1';
   var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
+  var EARNINGS_CALENDAR_URL = 'https://goodbyestar.cloud/earnings-calendar';
   // 2026-07-31: 홈 MY 카드도 /page/watchlist(js/watchlist.js)와 동일한 VM 실시간 체결가
   // WebSocket 중계에 연결한다 - 페이지 로드 시 1회 GAS 조회 후 갱신이 없던 것을 보완.
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
@@ -21,6 +23,8 @@
   var myRealtimeReconnectTimer = null;
   var myRealtimeKeepaliveTimer = null;
   var myRealtimeGeneration = 0;
+  var disclosureMarket = null;
+  var disclosureMarketTimer = null;
   var DEFAULT_ORDER = [
     'market-summary',
     'economic-news',
@@ -606,8 +610,123 @@
     }).join('');
   }
 
-  function loadDisclosures() {
+  function currentDisclosureMarket() {
+    var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    var hour = kst.getUTCHours();
+    return hour >= 20 || hour < 8 ? 'us' : 'domestic';
+  }
+
+  function setDisclosureHeader(market, meta) {
+    var title = document.querySelector('[data-home-disclosure-field="title"]');
+    var label = document.querySelector('[data-home-disclosure-field="meta"]');
+    var section = document.querySelector('[data-home-disclosure-section]');
+    if (title) title.textContent = market === 'us' ? '미국 주요 일정' : '오늘의 공시';
+    if (label) label.textContent = meta || (market === 'us' ? '실적발표·경제일정' : '최신 5건');
+    if (section) section.setAttribute('aria-label', market === 'us' ? '미국 주요 일정' : '오늘의 공시');
+  }
+
+  function scheduleDate(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return new Date(NaN);
+    return new Date(raw.indexOf('T') === -1 ? raw.slice(0, 10) + 'T00:00:00+09:00' : raw);
+  }
+
+  function isUsScheduleEvent(event) {
+    var market = String(event && event.market || '').toLowerCase();
+    if (market === 'us' || market === 'usa' || market === 'foreign') return true;
+    if (market === 'domestic' || market === 'kr' || market === 'korea') return false;
+    var source = String(event && (event.source || event.provider || '') || '');
+    var title = String(event && event.title || '');
+    return /finnhub|미국|nasdaq|nyse|s\u0026p/i.test(source + ' ' + title)
+      || /^\$[A-Za-z]/.test(title);
+  }
+
+  function scheduleTitle(value) {
+    var title = String(value || '').split('|')[0].trim();
+    title = title.replace(/^\$([A-Za-z][A-Za-z0-9.-]*)\s*/, '$1 ');
+    return title || '미국 실적 일정';
+  }
+
+  function selectUsSchedule(events) {
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    var upcoming = (events || []).filter(function (event) {
+      var date = scheduleDate(event && event.start);
+      return isUsScheduleEvent(event) && !isNaN(date.getTime()) && date >= today;
+    }).sort(function (a, b) {
+      var dateOrder = scheduleDate(a.start) - scheduleDate(b.start);
+      return dateOrder || String(a.title || '').localeCompare(String(b.title || ''));
+    });
+    var todayItems = upcoming.filter(function (event) { return scheduleDate(event.start) < tomorrow; });
+    if (todayItems.length) return { items: todayItems.slice(0, 5), today: true };
+    if (!upcoming.length) return { items: [], today: false };
+    var firstDate = scheduleDate(upcoming[0].start).toDateString();
+    return {
+      items: upcoming.filter(function (event) { return scheduleDate(event.start).toDateString() === firstDate; }).slice(0, 5),
+      today: false
+    };
+  }
+
+  function scheduleTime(value) {
+    var date = scheduleDate(value);
+    if (isNaN(date.getTime())) return '';
+    var allDay = String(value || '').indexOf('T') === -1;
+    var parts = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    }).formatToParts(date).reduce(function (map, part) {
+      map[part.type] = part.value;
+      return map;
+    }, {});
+    if (allDay) return parts.month + '.' + parts.day;
+    return parts.month + '.' + parts.day + ' ' + parts.dayPeriod + ' ' + parts.hour + ':' + parts.minute;
+  }
+
+  function renderUsSchedule(selection) {
+    var mount = document.getElementById('homeDisclosureList');
+    if (!mount) return;
+    setDisclosureHeader('us', selection.today ? '오늘 일정' : '다음 일정');
+    if (!selection.items.length) {
+      mount.innerHTML = '<p class="home-card-state">미국 예정 일정이 없습니다.</p>';
+      return;
+    }
+    mount.innerHTML = selection.items.map(function (item) {
+      var link = item.link || 'https://finnhub.io/docs/api/earnings-calendar';
+      return '<a class="home-disclosure-row home-us-schedule-row" href="' + escapeHtml(link) + '" target="_blank" rel="noopener">'
+        + '<strong>미국</strong>'
+        + '<span>' + escapeHtml(scheduleTitle(item.title)) + '</span>'
+        + '<time>' + escapeHtml(scheduleTime(item.start)) + '</time></a>';
+    }).join('');
+  }
+
+  function loadUsSchedule() {
+    var cached = readTimedCache(US_SCHEDULE_CACHE_KEY, 10 * 60 * 1000);
+    if (cached) renderUsSchedule(selectUsSchedule(cached.data));
+    var now = new Date();
+    var nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    var months = [
+      { year: now.getFullYear(), month: now.getMonth() + 1 },
+      { year: nextMonth.getFullYear(), month: nextMonth.getMonth() + 1 }
+    ];
+    Promise.all(months.map(function (period) {
+      return fetch(EARNINGS_CALENDAR_URL + '?year=' + period.year + '&month=' + period.month)
+        .then(function (response) { if (!response.ok) throw new Error('미국 일정 응답 오류'); return response.json(); })
+        .then(function (payload) { return Array.isArray(payload) ? payload : (payload && payload.data) || []; })
+        .catch(function () { return []; });
+    })).then(function (groups) {
+      var merged = [];
+      groups.forEach(function (group) { merged = merged.concat(group); });
+      writeTimedCache(US_SCHEDULE_CACHE_KEY, merged);
+      renderUsSchedule(selectUsSchedule(merged));
+    }).catch(function () {
+      if (!cached) renderUsSchedule({ items: [], today: false });
+    });
+  }
+
+  function loadDomesticDisclosures() {
     var cached = readTimedCache(DISCLOSURE_CACHE_KEY, 6 * 60 * 60 * 1000);
+    setDisclosureHeader('domestic', '최신 5건');
     if (cached) renderDisclosures(cached.data);
     var controller = 'AbortController' in global ? new AbortController() : null;
     var timer = controller ? setTimeout(function () { controller.abort(); }, 12000) : null;
@@ -626,6 +745,19 @@
         if (timer) clearTimeout(timer);
         if (!cached) renderDisclosures([]);
       });
+  }
+
+  function loadDisclosures() {
+    var market = currentDisclosureMarket();
+    if (disclosureMarket === market) return;
+    disclosureMarket = market;
+    if (market === 'us') loadUsSchedule();
+    else loadDomesticDisclosures();
+    if (!disclosureMarketTimer) {
+      disclosureMarketTimer = setInterval(function () {
+        if (!document.hidden && currentDisclosureMarket() !== disclosureMarket) loadDisclosures();
+      }, 60 * 1000);
+    }
   }
 
   function init(options) {
