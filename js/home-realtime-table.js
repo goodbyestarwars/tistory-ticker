@@ -16,6 +16,7 @@
     ['industry', '업종']
   ];
   var state = { mount: null, market: '', active: 'tradeAmount', data: null, socket: null, timer: null, loading: false };
+  var NAVER_ICON_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var ICONIFY_BASE = 'https://api.iconify.design/';
   var FAVICON_BASE = 'https://icons.duckduckgo.com/ip3/';
@@ -61,9 +62,21 @@
     if (!image) return;
     var code = image.getAttribute('data-icon-code') || '';
     var stage = image.getAttribute('data-icon-stage') || 'svg';
+    var market = image.getAttribute('data-icon-market') || '';
     var brand = BRAND_ICON_MAP[code];
     var domain = BRAND_DOMAIN_MAP[code];
-    if (stage === 'svg') {
+    if (stage === 'naver') {
+      if (market === 'us' && image.getAttribute('data-icon-naver-code') === code + '.O') {
+        image.setAttribute('data-icon-naver-code', code);
+        image.setAttribute('data-icon-stage', 'naver-bare');
+        image.src = NAVER_ICON_BASE + encodeURIComponent(code) + '.svg';
+        return;
+      }
+      image.setAttribute('data-icon-stage', 'svg');
+      image.src = STOCK_ICON_BASE + encodeURIComponent(code) + '.svg';
+      return;
+    }
+    if (stage === 'naver-bare' || stage === 'svg') {
       image.setAttribute('data-icon-stage', 'png');
       image.src = STOCK_ICON_BASE + encodeURIComponent(code) + '.png';
       return;
@@ -99,10 +112,12 @@
 
   function stockIconHtml(item) {
     var code = String(item.code || item.symbol || '').replace(/^US:/i, '').toUpperCase();
+    var market = String(item.market || state.market || currentMarket()).toLowerCase();
+    var naverCode = market === 'us' ? code + '.O' : code;
     var initials = String(item.name || item.symbol || code).replace(/\s+/g, '').slice(0, 2);
     if (!code) return '<span class="hrt-stock-logo hrt-stock-logo--fallback">?</span>';
-    return '<span class="hrt-stock-logo"><img src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" '
-      + 'data-icon-code="' + escapeHtml(code) + '" data-icon-stage="svg" referrerpolicy="no-referrer" '
+    return '<span class="hrt-stock-logo"><img src="' + NAVER_ICON_BASE + encodeURIComponent(naverCode) + '.svg" alt="" loading="lazy" '
+      + 'data-icon-code="' + escapeHtml(code) + '" data-icon-market="' + escapeHtml(market) + '" data-icon-naver-code="' + escapeHtml(naverCode) + '" data-icon-stage="naver" referrerpolicy="no-referrer" '
       + 'onerror="window.HomeRealtimeTableIconFallback(this);" />'
       + '<span class="hrt-stock-logo--fallback" hidden>' + escapeHtml(initials) + '</span></span>';
   }

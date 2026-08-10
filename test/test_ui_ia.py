@@ -132,12 +132,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_home_realtime_table_fills_missing_stock_icons(self):
         source = self.read("js/home-realtime-table.js")
         for token in (
+            "NAVER_ICON_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock'",
             "ICONIFY_BASE = 'https://api.iconify.design/'",
             "FAVICON_BASE = 'https://icons.duckduckgo.com/ip3/'",
             "SPCX: ['simple-icons', 'spacex']",
             "SNDK: ['thesvg-color', 'sandisk']",
             "MRVL: 'marvell.com'",
-            "data-icon-stage=\"svg\"",
+            "data-icon-stage=\"naver\"",
+            "data-icon-naver-code",
             "window.HomeRealtimeTableIconFallback(this)",
             "image.style.display = 'none'",
         ):
