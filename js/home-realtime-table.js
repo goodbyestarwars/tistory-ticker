@@ -4,6 +4,8 @@
 
   var API_URL = 'https://goodbyestar.cloud/market-board';
   var WS_URL = 'wss://goodbyestar.cloud/ws/quotes';
+  var WS_RECONNECT_MIN_MS = 1500;
+  var WS_RECONNECT_MAX_MS = 30000;
   var LIMIT = 20;
   var REFRESH_MS = 30 * 1000;
   var SESSION_CHECK_MS = 60 * 1000;
@@ -15,7 +17,19 @@
     ['marketCap', '시가총액'],
     ['industry', '업종']
   ];
-  var state = { mount: null, market: '', active: 'tradeAmount', data: null, socket: null, timer: null, loading: false };
+  var state = {
+    mount: null,
+    market: '',
+    active: 'tradeAmount',
+    data: null,
+    socket: null,
+    timer: null,
+    loading: false,
+    reconnectTimer: null,
+    reconnectDelay: WS_RECONNECT_MIN_MS,
+    realtimeGeneration: 0,
+    realtimeCodes: []
+  };
   var NAVER_ICON_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var ICONIFY_BASE = 'https://api.iconify.design/';
@@ -213,7 +227,7 @@
 
   function buildShell(mount) {
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
-      + '<small data-hrt-updated>시세 확인 중</small></div>'
+      + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div>'
       + '<div class="hrt-tabs" role="tablist" aria-label="실시간 종목 정렬">'
       + TABS.map(function (tab) {
         return '<button type="button" role="tab" data-hrt-tab="' + tab[0] + '" aria-selected="' + (tab[0] === state.active) + '">' + tab[1] + '</button>';
@@ -244,11 +258,66 @@
   }
 
   function stopRealtime() {
+    state.realtimeGeneration += 1;
+    if (state.reconnectTimer) {
+      clearTimeout(state.reconnectTimer);
+      state.reconnectTimer = null;
+    }
     if (state.socket) {
       state.socket.onclose = null;
       state.socket.close();
       state.socket = null;
     }
+  }
+
+  function setRealtimeStatus(text) {
+    var element = state.mount && state.mount.querySelector('[data-hrt-connection]');
+    if (element) element.textContent = text;
+  }
+
+  function scheduleRealtimeReconnect(generation) {
+    if (generation !== state.realtimeGeneration || document.hidden || !state.realtimeCodes.length) return;
+    if (state.reconnectTimer) return;
+    var delay = state.reconnectDelay;
+    state.reconnectDelay = Math.min(WS_RECONNECT_MAX_MS, Math.round(state.reconnectDelay * 1.8));
+    setRealtimeStatus('재연결 중');
+    state.reconnectTimer = setTimeout(function () {
+      state.reconnectTimer = null;
+      connectRealtime(generation);
+    }, delay);
+  }
+
+  function connectRealtime(generation) {
+    if (generation !== state.realtimeGeneration || document.hidden || !state.realtimeCodes.length) return;
+    var socket;
+    try {
+      socket = new WebSocket(WS_URL + '?codes=' + state.realtimeCodes.map(encodeURIComponent).join(','));
+    } catch (error) {
+      setRealtimeStatus('재연결 중');
+      scheduleRealtimeReconnect(generation);
+      return;
+    }
+    state.socket = socket;
+    setRealtimeStatus('실시간 연결 중');
+    socket.onopen = function () {
+      if (generation !== state.realtimeGeneration || state.socket !== socket) return;
+      state.reconnectDelay = WS_RECONNECT_MIN_MS;
+      setRealtimeStatus('실시간 연결됨');
+    };
+    socket.onmessage = function (event) {
+      try {
+        var quote = JSON.parse(event.data);
+        if (quote.type === 'quote' && quote.code) updateRow(quote.code, quote);
+      } catch (error) {}
+    };
+    socket.onerror = function () {
+      if (generation === state.realtimeGeneration && state.socket === socket) socket.close();
+    };
+    socket.onclose = function () {
+      if (generation !== state.realtimeGeneration || state.socket !== socket) return;
+      state.socket = null;
+      scheduleRealtimeReconnect(generation);
+    };
   }
 
   function startRealtime() {
@@ -261,16 +330,13 @@
         if (item && item.code && !seen[item.code]) { seen[item.code] = true; all.push(item.code); }
       });
     });
-    if (!all.length || !('WebSocket' in global) || document.hidden) return;
-    var socket = new WebSocket(WS_URL + '?codes=' + all.map(encodeURIComponent).join(','));
-    state.socket = socket;
-    socket.onmessage = function (event) {
-      try {
-        var quote = JSON.parse(event.data);
-        if (quote.type === 'quote' && quote.code) updateRow(quote.code, quote);
-      } catch (error) {}
-    };
-    socket.onclose = function () { if (state.socket === socket) state.socket = null; };
+    state.realtimeCodes = all;
+    state.reconnectDelay = WS_RECONNECT_MIN_MS;
+    if (!all.length || !('WebSocket' in global) || document.hidden) {
+      setRealtimeStatus(document.hidden ? '화면 복귀 시 연결' : '실시간 연결 불가');
+      return;
+    }
+    connectRealtime(state.realtimeGeneration);
   }
 
   function updateRow(code, quote) {
@@ -348,6 +414,14 @@
       document.head.appendChild(script);
     });
     loadIndustryMap.then(fetchBoard);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        stopRealtime();
+        setRealtimeStatus('화면 비활성');
+      } else if (state.data) {
+        startRealtime();
+      }
+    });
     state.timer = setInterval(function () {
       if (!document.hidden) fetchBoard();
     }, REFRESH_MS);
