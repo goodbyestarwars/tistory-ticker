@@ -1207,17 +1207,19 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
 
 
 @app.get('/earnings-calendar')
-def earnings_calendar_endpoint(year: int = Query(..., ge=2000, le=2100), month: int = Query(..., ge=1, le=12)):
+def earnings_calendar_endpoint(year: int = Query(..., ge=2000, le=2100), month: int = Query(default=None, ge=1, le=12)):
     """국내 DART 실적공시와 미국 Finnhub 예정 실적을 캘린더 이벤트로 반환한다.
+
+    month가 없으면 해당 연도 1월~12월 전체를 반환해 연간 검색에 사용한다.
 
     각 공급자는 10분 캐시를 사용하며, 키가 없거나 외부 조회가 실패해도 다른
     일정과 기존 Google Calendar 일정은 유지한다.
     """
-    key = '%04d-%02d' % (year, month)
+    key = '%04d-%02d' % (year, month) if month is not None else '%04d-year' % year
     cached = _earnings_calendar_cache.get(key)
     if cached and time.time() - cached['t'] < _EARNINGS_CALENDAR_TTL:
         return {'success': True, 'data': cached['data'], 'source': 'dart+finnhub', 'cached': True}
-    data = earnings_calendar.merge_month(year, month)
+    data = earnings_calendar.merge_month(year, month) if month is not None else earnings_calendar.merge_year(year)
     _earnings_calendar_cache[key] = {'t': time.time(), 'data': data}
     _earnings_calendar_cache.move_to_end(key)
     _evict_lru(_earnings_calendar_cache, _EARNINGS_CALENDAR_MAX_ENTRIES)

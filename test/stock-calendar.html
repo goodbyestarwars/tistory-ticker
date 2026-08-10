@@ -54,6 +54,11 @@
       }
       return Promise.resolve(mockEvents());
     };
+    StockCalendar.fetchYearEvents = function (year) {
+      console.log('[mock] fetchYearEvents', year, window.__mockMode);
+      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
+      return Promise.resolve(window.__mockMode === 'empty' || year !== new Date().getFullYear() ? [] : mockEvents());
+    };
   }
 
   function setMock(mode) {
