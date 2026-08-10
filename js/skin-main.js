@@ -163,15 +163,15 @@
         + '<div class="home-overview-grid">'
         + '<div class="home-investor-slot"></div>'
         + '<article class="card home-market-board" id="homeMarketBoard">'
-        + '<div class="home-card-heading"><div><strong>국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live">실시간</span></div>'
-        + '<div class="home-index-strip" aria-label="코스피와 코스닥 지수">'
-        + '<article class="home-index-card" data-home-index="KOSPI">'
-        + '<div class="home-index-top"><strong>코스피</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live" data-home-market-field="live">실시간</span></div>'
+        + '<div class="home-index-strip" aria-label="대표 시장 지수">'
+        + '<article class="home-index-card" data-home-index-slot="primary">'
+        + '<div class="home-index-top"><strong data-index-field="label">코스피</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
-        + '<article class="home-index-card" data-home-index="KOSDAQ">'
-        + '<div class="home-index-top"><strong>코스닥</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<article class="home-index-card" data-home-index-slot="secondary">'
+        + '<div class="home-index-top"><strong data-index-field="label">코스닥</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
@@ -356,11 +356,11 @@
       setField('cautions', summary.cautions.length ? summary.cautions.map(function (item) { return item.sector; }).join(' · ') : '데이터 확인 중', 'home-negative');
     }
 
-    function homeIndexCard(key) {
-      return dashboardSection.querySelector('[data-home-index="' + key + '"]');
+    function homeIndexCard(slot) {
+      return dashboardSection.querySelector('[data-home-index-slot="' + slot + '"]');
     }
 
-    function renderHomeIndexChart(element, rows, positive) {
+    function renderHomeIndexChart(element, rows, positive, key) {
       if (!element) return;
       var values = (rows || []).map(function (row) { return Number(row && row.close); })
         .filter(function (value) { return isFinite(value); }).slice(-48);
@@ -380,7 +380,7 @@
         return x.toFixed(2) + ',' + y.toFixed(2);
       }).join(' ');
       var color = positive ? '#d24f45' : '#1261c4';
-      var gradientId = 'homeIndexFill' + (positive ? 'Up' : 'Down');
+      var gradientId = 'homeIndexFill' + String(key || 'index').replace(/[^A-Za-z0-9_-]/g, '') + (positive ? 'Up' : 'Down');
       element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">'
         + '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">'
         + '<stop offset="0" stop-color="' + color + '" stop-opacity=".22"></stop>'
@@ -390,11 +390,63 @@
         + '</svg>';
     }
 
+    function homeMarketSession() {
+      var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      var hour = kst.getUTCHours();
+      var isUsSession = hour >= 18 || hour < 8;
+      return isUsSession ? {
+        title: '미국 시장',
+        live: '나스닥 · S&P500',
+        subtitle: '야간 시장 · 시세 확인 중',
+        keys: ['NASDAQ100', 'SP500'],
+        labels: ['나스닥', 'S&P500']
+      } : {
+        title: '국내 시장',
+        live: '실시간',
+        subtitle: '오늘의 시장판 · 시세 확인 중',
+        keys: ['KOSPI', 'KOSDAQ'],
+        labels: ['코스피', '코스닥']
+      };
+    }
+
+    function applyHomeMarketSession(session) {
+      var title = dashboardSection.querySelector('[data-home-market-field="title"]');
+      var live = dashboardSection.querySelector('[data-home-market-field="live"]');
+      var updated = document.getElementById('hmbUpdated');
+      if (title) title.textContent = session.title;
+      if (live) live.textContent = session.live;
+      if (updated && (!updated.dataset || updated.dataset.homeSession !== session.keys.join('|'))) {
+        updated.textContent = session.subtitle;
+        if (updated.dataset) updated.dataset.homeSession = session.keys.join('|');
+      }
+      ['primary', 'secondary'].forEach(function (slot, index) {
+        var card = homeIndexCard(slot);
+        if (!card) return;
+        var key = session.keys[index];
+        var previousKey = card.getAttribute('data-home-index');
+        card.setAttribute('data-home-index', key);
+        var label = card.querySelector('[data-index-field="label"]');
+        var price = card.querySelector('[data-index-field="price"]');
+        var change = card.querySelector('[data-index-field="change"]');
+        var status = card.querySelector('[data-index-field="status"]');
+        var chart = card.querySelector('[data-index-field="chart"]');
+        if (label) label.textContent = session.labels[index];
+        if (previousKey && previousKey !== key) {
+          if (price) price.textContent = '-';
+          if (change) change.textContent = '-';
+          if (status) status.textContent = '· 확인 중';
+          if (chart) chart.innerHTML = '<span class="home-index-chart-empty">시세 전환 중</span>';
+        }
+      });
+    }
+
     function renderHomeIndices(items) {
+      var session = homeMarketSession();
+      applyHomeMarketSession(session);
       var bySymbol = {};
       (items || []).forEach(function (item) { if (item && item.symbol) bySymbol[item.symbol] = item; });
-      ['KOSPI', 'KOSDAQ'].forEach(function (key) {
-        var card = homeIndexCard(key);
+      session.keys.forEach(function (key, index) {
+        var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
         var item = bySymbol[key];
         if (!card) return;
         var price = item && Number(item.price);
@@ -407,19 +459,20 @@
         var chartEl = card.querySelector('[data-index-field="chart"]');
         if (priceEl) { priceEl.textContent = isFinite(price) ? price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-'; priceEl.className = tone; }
         if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
-        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || '장중') : '· 데이터 지연';
-        renderHomeIndexChart(chartEl, item && item.chart, change >= 0);
+        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || (session.keys[0] === 'KOSPI' ? '장중' : '미국 선물')) : '· 데이터 지연';
+        renderHomeIndexChart(chartEl, item && item.chart, change >= 0, key);
       });
     }
 
     function loadHomeIndices() {
+      applyHomeMarketSession(homeMarketSession());
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
         ? window.QuickIndices.fetchFutures()
-        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ', 12000)
+        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ100%2CSP500', 12000)
           .then(function (data) { return data && data.data ? data.data : []; });
       request.then(renderHomeIndices).catch(function () {
-        ['KOSPI', 'KOSDAQ'].forEach(function (key) {
-          var card = homeIndexCard(key);
+        ['primary', 'secondary'].forEach(function (slot) {
+          var card = homeIndexCard(slot);
           if (!card) return;
           var status = card.querySelector('[data-index-field="status"]');
           if (status) status.textContent = '· 시세 지연';
