@@ -2,7 +2,10 @@
 """홈 실시간 종목판용 국내·미국 공통 데이터 모델."""
 
 import logging
+import json
 import time
+import urllib.parse
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import kiwoom_client
@@ -14,6 +17,8 @@ logger = logging.getLogger('market_board')
 
 _BASIC_TTL_SEC = 15 * 60
 _basic_cache = {}
+_FX_TTL_SEC = 15 * 60
+_fx_cache = {}
 
 
 def _number(value):
@@ -33,6 +38,53 @@ def _first(row, *names):
         if value not in (None, ''):
             return value
     return None
+
+
+def _currency_units_per_usd(currency):
+    """Return how many units of a profile currency equal one USD.
+
+    Finnhub profile2 reports marketCapitalization in the profile currency's
+    millions. TSM is returned as 2330.TW/TWD even though the board symbol is
+    the US ADR, so the raw value must be converted before USD formatting.
+    """
+    currency = str(currency or 'USD').strip().upper()
+    if currency in ('USD', 'US$', '$'):
+        return 1.0
+    cached = _fx_cache.get(currency)
+    now = time.time()
+    if cached and now - cached[0] < _FX_TTL_SEC:
+        return cached[1]
+    if len(currency) != 3 or not currency.isalpha():
+        return None
+    try:
+        pair = currency + '=X'
+        query = urllib.parse.urlencode({'range': '1d', 'interval': '1d'})
+        url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + pair + '?' + query
+        request = urllib.request.Request(url, headers={'User-Agent': 'tistory-ticker/1.0'})
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read().decode('utf-8'))
+        result = ((payload.get('chart') or {}).get('result') or [None])[0] or {}
+        meta = result.get('meta') or {}
+        rate = _number(meta.get('regularMarketPrice'))
+        if rate is None or rate <= 0:
+            return None
+        _fx_cache[currency] = (now, rate)
+        return rate
+    except Exception as exc:
+        logger.info('FX lookup failed for %s: %s', currency, exc)
+        return None
+
+
+def _profile_market_cap(profile):
+    raw = _number(profile.get('marketCapitalization'))
+    if raw is None:
+        return None
+    currency = profile.get('currency') or 'USD'
+    units_per_usd = _currency_units_per_usd(currency)
+    if units_per_usd is None:
+        logger.info('market cap currency unavailable: %s', currency)
+        return None
+    return raw / units_per_usd
 
 
 def _basic_info(token, code):
@@ -144,8 +196,8 @@ def _us_row(symbol, finnhub_api_key):
         'change_rate': quote.get('change_rate') or 0,
         'trade_volume': volume,
         'trade_amount': price * volume,
-        # Finnhub profile2 marketCapitalization은 USD million 단위다.
-        'market_cap': profile.get('marketCapitalization'),
+        # Finnhub profile2 may report a foreign primary-listing currency.
+        'market_cap': _profile_market_cap(profile),
         'industry': profile.get('finnhubIndustry') or profile.get('gsector') or '미분류',
         'currency': 'USD',
     }
@@ -198,7 +250,7 @@ def _us_rank_row(rank_row, finnhub_api_key):
         'change_rate': _number(_first(rank_row, 'flu_rt', 'change_rate')) or 0,
         'trade_volume': volume,
         'trade_amount': trade_amount_thousand_usd * 1000,
-        'market_cap': profile.get('marketCapitalization'),
+        'market_cap': _profile_market_cap(profile),
         'industry': profile.get('finnhubIndustry') or profile.get('gsector') or '미분류',
         'currency': 'USD',
         'exchange': _first(rank_row, 'stex_tp', 'exchange') or '',

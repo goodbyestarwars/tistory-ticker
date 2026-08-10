@@ -59,6 +59,21 @@ class MarketBoardTests(unittest.TestCase):
         self.assertEqual(row['industry'], 'Technology')
         self.assertEqual(row['currency'], 'USD')
 
+    def test_us_row_converts_foreign_profile_market_cap_to_usd(self):
+        quote = {'price': 422, 'change': 2, 'change_rate': 0.5, 'volume': 500}
+        profile = {
+            'name': 'Taiwan Semiconductor Manufacturing Co Ltd',
+            'currency': 'TWD',
+            'marketCapitalization': 61_330_053,
+            'finnhubIndustry': 'Semiconductors',
+        }
+        with mock.patch.object(market_board.us_stocks, 'quote', return_value=quote), \
+                mock.patch.object(market_board.us_analysis, 'get_profile', return_value=profile), \
+                mock.patch.object(market_board, '_currency_units_per_usd', return_value=32.257):
+            row = market_board._us_row('TSM', 'finnhub-key')
+
+        self.assertAlmostEqual(row['market_cap'], 1_901_294.4, places=1)
+
     def test_us_board_uses_kiwoom_trade_amount_rank(self):
         response = {
             'output': [
