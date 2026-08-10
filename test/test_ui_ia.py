@@ -195,6 +195,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "todayItems.slice(0, 12)",
             "function enableScheduleDrag(list)",
             "list.scrollLeft = startScroll - delta",
+            "draggable=\"false\"",
+            "list.addEventListener('dragstart'",
             "data-drag-ready",
         ):
             self.assertIn(token, widgets)
@@ -203,6 +205,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("scrollbar-color: transparent transparent", style)
         self.assertIn("home-top-disclosures .home-disclosure-list::-webkit-scrollbar", style)
         self.assertIn("touch-action: pan-y", style)
+        self.assertIn("-webkit-user-drag: none", style)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")
