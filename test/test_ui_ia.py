@@ -149,6 +149,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_home_realtime_table_reconnects_after_websocket_disconnect(self):
         source = self.read("js/home-realtime-table.js")
+        main = self.read("scripts/cloud-vm/main.py")
         for token in (
             "reconnectTimer",
             "WS_RECONNECT_MIN_MS = 1500",
@@ -162,6 +163,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "재연결 중",
         ):
             self.assertIn(token, source)
+        for token in (
+            "RANK_REFRESH_DEBOUNCE_MS = 5000",
+            "function scheduleRankRefresh()",
+            "scheduleRankRefresh();",
+            "fetchBoard(true)",
+            "&fresh=1",
+        ):
+            self.assertIn(token, source)
+        for token in (
+            "_MARKET_BOARD_LIVE_TTL = 5",
+            "fresh: bool = Query(False)",
+            "cache_ttl = _MARKET_BOARD_LIVE_TTL if fresh else _MARKET_BOARD_TTL",
+        ):
+            self.assertIn(token, main)
 
     def test_home_switches_summary_to_us_market_and_supports_schedule_drag(self):
         main = self.read("js/skin-main.js")
