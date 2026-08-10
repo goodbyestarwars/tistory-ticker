@@ -1258,11 +1258,12 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   height: 100%;
   min-width: 0;
 }
-.home-widget--summary.home-market-board {
-  grid-column: 1 / -1;
+.home-widget--summary.home-market-board,
+.home-widget--summary.home-economic-news {
+  grid-column: span 6;
   width: 100%;
   height: auto;
-  min-height: 298px;
+  min-height: 330px;
 }
 .home-widget--compact.home-mini-card {
   width: 100%;
@@ -1522,7 +1523,8 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   .home-widget-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .home-widget--wide { grid-column: span 4; }
   .home-widget--summary { grid-column: span 2; }
-  .home-widget--summary.home-market-board { grid-column: 1 / -1; }
+  .home-widget--summary.home-market-board,
+  .home-widget--summary.home-economic-news { grid-column: 1 / -1; }
   .home-widget--compact { grid-column: span 3; }
   .home-widget--full { grid-column: 1 / -1; }
   .home-widget--full .home-briefing-grid {
@@ -4035,4 +4037,55 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
   .home-realtime-board { padding: 16px 14px 12px; }
   .hrt-head strong { font-size: 17px; }
   .hrt-head small { display: none; }
+}
+
+/* 홈 상단 경제 타임라인 */
+.home-economic-news { padding: 18px 18px 12px; overflow: hidden; }
+.hen-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.hen-head > div { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
+.hen-head strong { color: #18202a; font-size: 18px; letter-spacing: -.4px; }
+.hen-head span, .hen-head small { color: #98a2ae; font-size: 11px; white-space: nowrap; }
+.hen-list { margin-top: 9px; }
+.hen-row { display: grid; grid-template-columns: 17px 42px minmax(0, 1fr); min-height: 36px; align-items: center; border-bottom: 1px solid #edf0f2; color: inherit; text-decoration: none; }
+.hen-row:last-child { border-bottom: 0; }
+.hen-rail { position: relative; align-self: stretch; display: flex; justify-content: center; }
+.hen-rail::after { content: ''; position: absolute; top: 0; bottom: 0; width: 1px; background: #e7ebee; }
+.hen-row:first-child .hen-rail::after { top: 50%; }
+.hen-row:last-child .hen-rail::after { bottom: 50%; }
+.hen-rail i { position: relative; z-index: 1; width: 6px; height: 6px; margin-top: 15px; border-radius: 50%; background: #cfd6dc; }
+.hen-rail i.is-latest, .hen-row.is-disclosure .hen-rail i { width: 8px; height: 8px; margin-top: 14px; background: #f27c52; box-shadow: 0 0 0 4px rgba(242,124,82,.14); }
+.hen-row time { color: #e56e53; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hen-main { min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.hen-main strong { min-width: 0; overflow: hidden; color: #26313c; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.hen-main small { flex: 0 0 auto; max-width: 92px; overflow: hidden; color: #a0a8b2; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.hen-main em { display: inline-block; margin-right: 5px; padding: 2px 5px; border-radius: 4px; background: #f2f4f5; color: #7b858e; font-style: normal; }
+.home-economic-news .home-card-state { min-height: 220px; display: grid; place-items: center; }
+
+/* 토스식 밀도: 종목판은 로고·현재가를 먼저 읽고, 숫자 열은 한 줄로 빠르게 훑는다. */
+.home-realtime-board { padding: 14px 16px 10px; }
+.hrt-head strong { font-size: 17px; }
+.hrt-tabs { gap: 3px; margin-top: 10px; }
+.hrt-tabs button { padding: 6px 10px 7px; font-size: 12px; }
+.hrt-table-wrap th, .hrt-table-wrap td { padding: 7px 7px; font-size: 11px; }
+.hrt-table-wrap th { font-size: 10px; }
+.hrt-table-wrap table { min-width: 790px; }
+.hrt-stock { gap: 6px; }
+.hrt-stock strong { font-size: 12px; }
+.hrt-stock small { margin-top: 1px; font-size: 9px; }
+.hrt-rank { width: 14px; font-size: 10px; }
+.hrt-price { font-size: 12px !important; }
+.hrt-stock-logo { position: relative; display: inline-grid; width: 25px; height: 25px; flex: 0 0 25px; place-items: center; overflow: hidden; border-radius: 7px; background: #f1f3f5; color: #66727f; font-size: 9px; font-weight: 700; }
+.hrt-stock-logo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.hrt-stock-logo--fallback { display: grid; width: 100%; height: 100%; place-items: center; }
+.hrt-stock-logo--fallback[hidden] { display: none; }
+.hrt-foot { padding-top: 7px; font-size: 9px; }
+html.dark .hen-head strong, html.dark .hen-main strong { color: #f5efe0; }
+html.dark .hen-row { border-color: rgba(245,239,224,.1); }
+html.dark .hen-rail::after { background: rgba(245,239,224,.16); }
+html.dark .hen-main em, html.dark .hrt-stock-logo { background: rgba(245,239,224,.1); color: rgba(245,239,224,.62); }
+@media (max-width: 640px) {
+  .home-economic-news { padding: 14px 13px 10px; }
+  .hen-head strong { font-size: 16px; }
+  .hen-main small { display: none; }
+  .home-realtime-board { padding: 12px 10px 9px; }
 }

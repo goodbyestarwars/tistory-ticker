@@ -4,7 +4,7 @@
 
   var API_URL = 'https://goodbyestar.cloud/market-board';
   var WS_URL = 'wss://goodbyestar.cloud/ws/quotes';
-  var LIMIT = 12;
+  var LIMIT = 10;
   var REFRESH_MS = 30 * 1000;
   var SESSION_CHECK_MS = 60 * 1000;
   var TABS = [
@@ -16,6 +16,7 @@
     ['industry', '업종']
   ];
   var state = { mount: null, market: '', active: 'tradeAmount', data: null, socket: null, timer: null };
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -40,6 +41,25 @@
 
   function marketLabel(market) {
     return market === 'us' ? '미국 · 20:00~08:00' : '국내 · 08:00~20:00';
+  }
+
+  function stockIconHtml(item) {
+    var code = String(item.code || item.symbol || '').replace(/^US:/i, '').toUpperCase();
+    var initials = String(item.name || item.symbol || code).replace(/\s+/g, '').slice(0, 2);
+    if (!code) return '<span class="hrt-stock-logo hrt-stock-logo--fallback">?</span>';
+    return '<span class="hrt-stock-logo"><img src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" '
+      + 'onerror="this.style.display=\'none\';this.nextElementSibling.hidden=false;" />'
+      + '<span class="hrt-stock-logo--fallback" hidden>' + escapeHtml(initials) + '</span></span>';
+  }
+
+  function industryFor(item) {
+    var code = String(item.code || item.symbol || '').replace(/^US:/i, '').toUpperCase();
+    var industry = item.industry || '';
+    var mapped = global.WICS_MAP && (global.WICS_MAP[code] || global.WICS_MAP[String(code).padStart(6, '0')]);
+    if ((!industry || industry === '미분류') && mapped) {
+      industry = mapped.industry || mapped.sector || '';
+    }
+    return industry || (item.market === 'us' ? '미국주식' : '기타');
   }
 
   function fmtPrice(value, currency) {
@@ -90,12 +110,12 @@
     var code = item.code || item.symbol;
     var rate = number(item.change_rate);
     var tone = rate > 0 ? 'hrt-up' : rate < 0 ? 'hrt-down' : 'hrt-flat';
-    var industry = item.industry || '';
+    var industry = industryFor(item);
     if ((!industry || industry === '미분류') && global.WICS_MAP && global.WICS_MAP[code]) {
       industry = global.WICS_MAP[code].industry || global.WICS_MAP[code].sector || '';
     }
     return '<tr data-code="' + escapeHtml(code) + '">'
-      + '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span><a href="/page/stock-search?code=' + encodeURIComponent(code)
+      + '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span>' + stockIconHtml(item) + '<a href="/page/stock-search?code=' + encodeURIComponent(code)
       + '&name=' + encodeURIComponent(item.name || code) + '"><strong>' + escapeHtml(item.name || code) + '</strong><small>'
       + escapeHtml(item.symbol || code) + '</small></a></td>'
       + '<td class="hrt-price" data-field="price">' + fmtPrice(item.price, item.currency) + '</td>'
@@ -233,7 +253,14 @@
       state.active = tab.getAttribute('data-hrt-tab') || 'tradeAmount';
       renderRows();
     });
-    fetchBoard();
+    var loadIndustryMap = global.WICS_MAP ? Promise.resolve() : new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js?v=20260810';
+      script.onload = resolve;
+      script.onerror = resolve;
+      document.head.appendChild(script);
+    });
+    loadIndustryMap.then(fetchBoard);
     state.timer = setInterval(function () {
       if (!document.hidden) fetchBoard();
     }, REFRESH_MS);

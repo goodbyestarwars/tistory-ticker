@@ -60,6 +60,7 @@
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260810-market-board')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260810-market-board';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260810';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260810';
 
     function escapeHomeHtml(value) {
       return String(value == null ? '' : value)
@@ -186,6 +187,10 @@
         + '<div><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
         + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
         + '</dl>'
+        + '</article>'
+        + '<article class="card home-economic-news" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
+        + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span>실시간 타임라인</span></div><small data-hen-updated>최신 뉴스 확인 중</small></div>'
+        + '<div class="hen-list" data-hen-list><p class="home-card-state">경제 뉴스를 불러오는 중입니다.</p></div>'
         + '</article></div>'
         + '<article class="card home-realtime-board" id="homeRealtimeBoard" aria-label="실시간 종목판"></article>'
         + '</section>';
@@ -587,6 +592,10 @@
       })
       .then(function (table) {
         if (table && table.init) table.init({ mount: dashboardSection.querySelector('#homeRealtimeBoard') });
+        return loadHomeScript(HOME_ECONOMIC_NEWS_SCRIPT_URL, 'HomeEconomicNews');
+      })
+      .then(function (news) {
+        if (news && news.init) news.init({ mount: dashboardSection.querySelector('#homeEconomicNews') });
       })
       .catch(function () {
         /* 위젯 관리 모듈이 막혀도 기존 고정형 대시보드는 그대로 사용할 수 있게 둔다. */
