@@ -48,9 +48,9 @@
     return global.KRX_MAP[stockName] || global.KRX_MAP[DART_NAME_ALIAS[stockName]] || null;
   }
 
-  function fetchJson(url) {
+  function fetchJson(url, timeoutMs) {
     var controller = 'AbortController' in global ? new AbortController() : null;
-    var timer = controller ? setTimeout(function () { controller.abort(); }, 7000) : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 7000) : null;
     return fetch(url, controller ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('캘린더 API 오류: ' + r.status);
@@ -62,6 +62,12 @@
 
   function fetchEarnings(year, month) {
     return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month + 1))
+      .then(function (data) { return Array.isArray(data) ? data : (data && data.data) || []; })
+      .catch(function () { return []; });
+  }
+
+  function fetchEarningsYear(year) {
+    return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year), 30000)
       .then(function (data) { return Array.isArray(data) ? data : (data && data.data) || []; })
       .catch(function () { return []; });
   }
@@ -100,15 +106,17 @@
     }).sort(compareEvents);
   }
 
-  function fetchEvents(year, month) {
-    var tMin = new Date(year, month, 1).toISOString();
-    var tMax = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+  function fetchGoogleEvents(year, month) {
+    var tMin = new Date(year, month == null ? 0 : month, 1).toISOString();
+    var tMax = month == null
+      ? new Date(year + 1, 0, 1).toISOString()
+      : new Date(year, month + 1, 0, 23, 59, 59).toISOString();
     var url = 'https://www.googleapis.com/calendar/v3/calendars/' + CAL_ID
       + '/events?key=' + API_KEY
       + '&timeMin=' + encodeURIComponent(tMin)
       + '&timeMax=' + encodeURIComponent(tMax)
-      + '&singleEvents=true&orderBy=startTime&maxResults=100';
-    var googleEvents = fetch(url)
+      + '&singleEvents=true&orderBy=startTime&maxResults=' + (month == null ? '2500' : '100');
+    return fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error('Google Calendar API 오류: ' + r.status);
         return r.json();
@@ -122,7 +130,16 @@
         });
       })
       .catch(function () { return []; });
-    return Promise.all([googleEvents, fetchEarnings(year, month)])
+
+  }
+
+  function fetchEvents(year, month) {
+    return Promise.all([fetchGoogleEvents(year, month), fetchEarnings(year, month)])
+      .then(function (results) { return mergeEvents(results[0], results[1]); });
+  }
+
+  function fetchYearEvents(year) {
+    return Promise.all([fetchGoogleEvents(year, null), fetchEarningsYear(year)])
       .then(function (results) { return mergeEvents(results[0], results[1]); });
   }
 
@@ -263,6 +280,19 @@
     return html;
   }
 
+  function groupByYearMonth(events) {
+    var groups = {};
+    (events || []).slice().sort(compareEvents).forEach(function (event) {
+      var key = String(event && event.start || '').slice(0, 7);
+      if (!key) return;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(event);
+    });
+    return Object.keys(groups).sort().map(function (key) {
+      return { label: Number(key.slice(5, 7)) + '월', items: groups[key] };
+    });
+  }
+
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
@@ -270,6 +300,10 @@
     var currentYear;
     var currentMonth;
     var searchQuery = '';
+    var annualEvents = null;
+    var annualSearchLoading = false;
+    var searchRequestId = 0;
+    var searchTimer = null;
 
     function load(year, month) {
       if (month < 0) { month = 11; year -= 1; }
@@ -278,25 +312,72 @@
       currentMonth = month;
       container.innerHTML = '<div class="sc-loading">불러오는 중...</div>';
       StockCalendar.fetchEvents(year, month)
-        .then(function (evs) { renderPage(year, month, evs); })
+        .then(function (evs) {
+          if (searchQuery.trim()) requestYearSearch(year, month, evs);
+          else renderPage(year, month, evs);
+        })
         .catch(function () {
           container.innerHTML = '<div class="sc-error">일정을 불러오지 못했습니다.</div>';
         });
     }
 
-    function renderPage(year, month, evs, selectedDay) {
-      var dayEvents = typeof selectedDay === 'number'
-        ? evs.filter(function (event) { return dayOf(event) === selectedDay; })
-        : evs;
+    function requestYearSearch(year, month, monthEvents, selectedDay) {
+      var requestId = ++searchRequestId;
+      if (!searchQuery.trim()) {
+        annualEvents = null;
+        annualSearchLoading = false;
+        renderPage(year, month, monthEvents, selectedDay);
+        restoreSearchFocus();
+        return;
+      }
+      annualEvents = null;
+      annualSearchLoading = true;
+      renderPage(year, month, monthEvents, undefined, [], true);
+      restoreSearchFocus();
+      StockCalendar.fetchYearEvents(year).then(function (events) {
+        if (requestId !== searchRequestId) return;
+        annualEvents = events;
+        annualSearchLoading = false;
+        renderPage(year, month, monthEvents, undefined, annualEvents, true);
+        restoreSearchFocus();
+      });
+    }
+
+    function restoreSearchFocus() {
+      var input = document.getElementById('scSearch');
+      if (!input) return;
+      input.focus();
+      input.setSelectionRange(searchQuery.length, searchQuery.length);
+    }
+
+    function renderPage(year, month, evs, selectedDay, listEvents, annualMode) {
+      var sourceEvents = annualMode ? (listEvents || []) : evs;
+      var dayEvents = annualMode || typeof selectedDay !== 'number'
+        ? sourceEvents
+        : sourceEvents.filter(function (event) { return dayOf(event) === selectedDay; });
       var visibleEvents = dayEvents.filter(function (event) { return eventMatchesSearch(event, searchQuery); });
-      var weeks = groupByWeek(year, month, visibleEvents);
-      var listTitle = typeof selectedDay === 'number'
-        ? (month + 1) + '월 ' + selectedDay + '일 일정'
-        : (month + 1) + '월 일정';
+      var yearGroups = annualMode ? groupByYearMonth(visibleEvents) : [];
+      var weeks = annualMode ? [] : groupByWeek(year, month, visibleEvents);
+      var listTitle = annualMode
+        ? year + '년 전체 일정'
+        : (typeof selectedDay === 'number'
+          ? (month + 1) + '월 ' + selectedDay + '일 일정'
+          : (month + 1) + '월 일정');
       var resultLabel = searchQuery.trim()
         ? '<small class="sc-search-count">검색 결과 ' + visibleEvents.length + '건</small>'
         : '';
-      var listHtml = weeks.length
+      var listHtml = annualSearchLoading
+        ? '<div class="sc-empty">연간 일정을 불러오는 중...</div>'
+        : annualMode
+        ? (yearGroups.length
+          ? yearGroups.map(function (group) {
+              return '<div class="sc-week">'
+                + '<div class="sc-week-title">' + group.label + '</div>'
+                + '<div class="sc-week-rows">' + group.items.map(renderEventRow).join('') + '</div>'
+                + '</div>';
+            }).join('')
+          : '<div class="sc-empty">검색 결과가 없습니다.</div>')
+        : weeks.length
         ? weeks.map(function (w) {
             return '<div class="sc-week">'
               + '<div class="sc-week-title">' + (month + 1) + '월 ' + w.weekNo + '주차</div>'
@@ -315,19 +396,22 @@
         + '<span>수</span><span>목</span><span>금</span><span style="color:#2563eb;">토</span></div>'
         + '<div class="sc-grid">' + buildMonthGrid(year, month, evs, selectedDay) + '</div>'
         + '</div>'
-        + '<div class="sc-list-col">'
+      + '<div class="sc-list-col">'
         + '<div class="sc-filter-head"><strong>' + listTitle + resultLabel + '</strong>'
         + (typeof selectedDay === 'number'
           ? '<button type="button" id="scClearDay">전체 일정</button>'
           : '') + '</div>'
-        + '<label class="sc-search"><span>일정 검색</span><input id="scSearch" type="search" value="' + escapeHtml(searchQuery) + '" placeholder="종목명·티커·내용 검색" autocomplete="off" /></label>'
+        + '<label class="sc-search"><span>연간 검색</span><input id="scSearch" type="search" value="' + escapeHtml(searchQuery) + '" placeholder="1.1~12.31 종목명·티커·내용 검색" autocomplete="off" /></label>'
         + listHtml + '</div>'
         + '</div>';
 
       document.getElementById('scPrev').addEventListener('click', function () { load(year, month - 1); });
       document.getElementById('scNext').addEventListener('click', function () { load(year, month + 1); });
       container.querySelectorAll('.sc-day-clickable').forEach(function (day) {
-        var choose = function () { renderPage(year, month, evs, Number(day.getAttribute('data-day'))); };
+        var choose = function () {
+          if (searchQuery.trim()) return;
+          renderPage(year, month, evs, Number(day.getAttribute('data-day')));
+        };
         day.addEventListener('click', choose);
         day.addEventListener('keydown', function (event) {
           if (event.key === 'Enter' || event.key === ' ') {
@@ -341,23 +425,21 @@
       var searchInput = document.getElementById('scSearch');
       if (searchInput) {
         var isComposing = false;
-        var rerenderSearch = function () {
+        var scheduleSearch = function () {
           searchQuery = searchInput.value;
-          renderPage(year, month, evs, selectedDay);
-          var refreshedInput = document.getElementById('scSearch');
-          if (refreshedInput) {
-            refreshedInput.focus();
-            refreshedInput.setSelectionRange(searchQuery.length, searchQuery.length);
-          }
+          if (searchTimer) clearTimeout(searchTimer);
+          searchTimer = setTimeout(function () {
+            requestYearSearch(year, month, evs, selectedDay);
+          }, 250);
         };
         searchInput.addEventListener('compositionstart', function () { isComposing = true; });
         searchInput.addEventListener('compositionend', function () {
           isComposing = false;
-          rerenderSearch();
+          scheduleSearch();
         });
         searchInput.addEventListener('input', function () {
           searchQuery = searchInput.value;
-          if (!isComposing) rerenderSearch();
+          if (!isComposing) scheduleSearch();
         });
       }
     }
@@ -371,7 +453,7 @@
     }, 15 * 60 * 1000);
   }
 
-  var StockCalendar = { fetchEvents: fetchEvents, init: init };
+  var StockCalendar = { fetchEvents: fetchEvents, fetchYearEvents: fetchYearEvents, init: init };
   global.StockCalendar = StockCalendar;
   document.addEventListener('DOMContentLoaded', init);
 })(window);

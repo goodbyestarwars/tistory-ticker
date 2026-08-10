@@ -78,6 +78,17 @@ class EarningsCalendarTests(unittest.TestCase):
             ('domestic', '2026-08-15'), ('us', '2026-08-15'), ('us', '2026-08-20')
         ])
 
+    def test_merges_full_year_for_annual_search(self):
+        domestic = [{'title': 'Domestic earnings', 'start': '2026-01-15', 'source': 'dart'}]
+        us = [{'title': 'US earnings', 'start': '2026-12-15', 'source': 'finnhub'}]
+        with mock.patch.object(earnings_calendar, 'safe_fetch_month', return_value=domestic) as fetch_domestic:
+            with mock.patch.object(earnings_calendar, 'safe_fetch_us_month', return_value=us) as fetch_us:
+                events = earnings_calendar.merge_year(2026)
+
+        self.assertEqual(fetch_domestic.call_count, 12)
+        self.assertEqual(fetch_us.call_count, 12)
+        self.assertEqual([event['start'] for event in events], ['2026-01-15', '2026-12-15'])
+
 
 if __name__ == '__main__':
     unittest.main()

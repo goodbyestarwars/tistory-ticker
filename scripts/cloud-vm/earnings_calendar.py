@@ -12,6 +12,7 @@ import os
 import time
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
 BASE_URL = 'https://opendart.fss.or.kr/api/list.json'
@@ -287,9 +288,7 @@ def _event_sort_key(event):
     return (start[:10], _market_priority(event), start, str((event or {}).get('title') or ''))
 
 
-def merge_month(year, month):
-    """국내 DART 발표일과 미국 Finnhub 예정일을 하나의 목록으로 합친다."""
-    events = safe_fetch_month(year, month) + safe_fetch_us_month(year, month)
+def _merge_events(events):
     seen = set()
     merged = []
     for event in events:
@@ -299,3 +298,22 @@ def merge_month(year, month):
         seen.add(key)
         merged.append(event)
     return sorted(merged, key=_event_sort_key)
+
+
+def merge_month(year, month):
+    """국내 DART 발표일과 미국 Finnhub 예정일을 하나의 목록으로 합친다."""
+    return _merge_events(safe_fetch_month(year, month) + safe_fetch_us_month(year, month))
+
+
+def merge_year(year):
+    """해당 연도 1월 1일~12월 31일의 일정을 하나의 목록으로 합친다."""
+    events = []
+    def fetch_month_events(month):
+        return safe_fetch_month(year, month) + safe_fetch_us_month(year, month)
+
+    # 연간 검색은 12개월을 순차 조회하면 첫 검색이 지나치게 느려질 수 있어
+    # 월별 공급자 캐시는 유지하면서 월 조회만 제한적으로 병렬화한다.
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        for month_events in executor.map(fetch_month_events, range(1, 13)):
+            events.extend(month_events)
+    return _merge_events(events)
