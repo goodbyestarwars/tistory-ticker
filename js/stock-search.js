@@ -622,6 +622,37 @@
   // 그대로 받아써서 항상 같은 값을 보여주게 했다.
   function applyRealtimeQuote(container, quote) {
     if (state.selectedCode !== quote.code || typeof quote.price !== 'number') return;
+
+    // 검색 결과는 GAS 조회 시점의 스냅샷이고 상세 상단은 WebSocket 체결가이므로,
+    // 장중에는 같은 종목이 서로 다른 가격으로 남을 수 있다. 선택된 결과 행도
+    // 동일한 체결가로 갱신해 화면 안의 종목 가격 기준을 하나로 맞춘다.
+    var resultIndex = -1;
+    (state.lastResults || []).some(function (item, index) {
+      if (item.code !== quote.code) return false;
+      resultIndex = index;
+      item.price = quote.price;
+      item.change = quote.change;
+      item.changeRate = quote.changeRate;
+      if (item.volume != null) item.tradingValue = item.price * item.volume;
+      return true;
+    });
+    if (resultIndex > -1) {
+      var resultRow = container.querySelector('.ss-result-row[data-idx="' + resultIndex + '"]');
+      if (resultRow) {
+        var resultPrice = resultRow.children[1];
+        var resultRate = resultRow.children[2];
+        var resultClass = signClass(quote.changeRate);
+        if (resultPrice) {
+          resultPrice.textContent = fmtPrice(quote.price);
+          resultPrice.className = resultClass;
+        }
+        if (resultRate) {
+          resultRate.textContent = fmtSignedPct(quote.changeRate);
+          resultRate.className = resultClass;
+        }
+      }
+    }
+
     var box = container.querySelector('#ssSummary');
     if (!box) return;
     var cls = signClass(quote.changeRate);

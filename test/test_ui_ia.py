@@ -227,6 +227,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_stock_search_keeps_result_row_in_sync_with_realtime_summary(self):
+        source = self.read("js/stock-search.js")
+        for token in (
+            "state.lastResults || []",
+            "resultRow = container.querySelector('.ss-result-row[data-idx=\"' + resultIndex + '\"]')",
+            "resultPrice.textContent = fmtPrice(quote.price)",
+            "resultRate.textContent = fmtSignedPct(quote.changeRate)",
+        ):
+            self.assertIn(token, source)
+
     def test_home_my_scrolls_all_quotes_and_rank_keeps_price_line(self):
         widgets = self.read("js/home-widgets.js")
         rank = self.read("js/sidebar-rank.js")
