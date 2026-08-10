@@ -221,7 +221,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (
             "var domesticCodes = codes.filter",
             "var canUseSocket = domesticCodes.length",
-            "var REALTIME_FALLBACK_MS = 60000;",
+            "var REALTIME_FALLBACK_MS = 15000;",
             "var fallbackCodes = codes.slice();",
             "if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);",
         ):

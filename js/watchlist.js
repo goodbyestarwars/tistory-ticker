@@ -75,7 +75,7 @@
   // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
   var STOCK_SEARCH_PAGE_URL = '/page/stock-search';
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
-  var REALTIME_FALLBACK_MS = 60000;
+  var REALTIME_FALLBACK_MS = 15000;
   var REALTIME_RECONNECT_MS = 5000;
   var realtimeSocket = null;
   var realtimeReconnectTimer = null;
