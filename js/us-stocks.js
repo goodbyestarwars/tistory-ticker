@@ -7,7 +7,7 @@
   'use strict';
 
   var API_BASE = 'https://goodbyestar.cloud';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20260811-font-scale';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var REFRESH_MS = 15000;
   var LAST_SYMBOL_KEY = 'us:lastSelected';
