@@ -214,6 +214,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("touch-action: pan-y", style)
         self.assertIn("-webkit-user-drag: none", style)
         self.assertIn(".home-us-schedule-icon", style)
+
+    def test_home_economic_news_keeps_time_visible_on_mobile(self):
+        news = self.read("js/home-economic-news.js")
+        main = self.read("js/skin-main.js")
+        style = self.read("style.css")
+        self.assertIn('class="hen-time"', news)
+        self.assertIn("v=20260811-mobile-time", main)
+        self.assertIn(".home-economic-news .hen-row .hen-time", style)
+        self.assertIn("display: block !important", style)
+        self.assertIn("visibility: visible !important", style)
         self.assertIn('.hmb-list dd[title] { cursor: help; }', style)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):

@@ -4137,7 +4137,7 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hen-row .hen-rail i.is-latest { width: 8px; height: 8px; top: 14px; left: 5px; background: #f27c52; box-shadow: 0 0 0 4px rgba(242,124,82,.14); }
 .hen-row.is-up .hen-rail i { left: 0; background: #ef5350; box-shadow: 0 0 0 3px rgba(239,83,80,.13); }
 .hen-row.is-down .hen-rail i { right: 0; left: auto; background: #3478d4; box-shadow: 0 0 0 3px rgba(52,120,212,.13); }
-.hen-row time { color: #e56e53; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hen-row .hen-time { display: block; min-width: 0; color: #e56e53; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hen-main { min-width: 0; display: flex; align-items: baseline; gap: 8px; padding-left: 6px; }
 .hen-main strong { min-width: 0; overflow: hidden; color: #26313c; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .hen-main small { flex: 0 0 auto; max-width: 92px; overflow: hidden; color: #a0a8b2; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
@@ -4169,6 +4169,13 @@ html.dark .hen-main em, html.dark .hrt-stock-logo { background: rgba(245,239,224
 @media (max-width: 640px) {
   .home-economic-news { padding: 14px 13px 10px; }
   .hen-head strong { font-size: 16px; }
+  .home-economic-news .hen-row { grid-template-columns: 17px 76px minmax(0, 1fr); }
+  .home-economic-news .hen-row .hen-time {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #e56e53 !important;
+  }
   .hen-main small { display: none; }
   .home-realtime-board { padding: 12px 10px 9px; }
 }

@@ -93,7 +93,7 @@
       var tone = quote && quote.rate > 0 ? ' is-up' : quote && quote.rate < 0 ? ' is-down' : '';
       return '<a class="hen-row' + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
         + '<span class="hen-rail"><svg class="hen-zigzag" viewBox="0 0 17 36" preserveAspectRatio="none" aria-hidden="true"><path d="M8.5 0 L2 9 L15 18 L2 27 L8.5 36"></path></svg><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
-        + '<time>' + escapeHtml(timeLabel(item.pubDate)) + '</time>'
+        + '<time class="hen-time">' + escapeHtml(timeLabel(item.pubDate)) + '</time>'
         + '<span class="hen-main"><strong>' + escapeHtml(item.title || '') + '</strong>'
         + '<small><em>' + escapeHtml(kindLabel(item)) + '</em>' + escapeHtml(item.source || item.provider || '') + '</small></span>'
         + '</a>';
