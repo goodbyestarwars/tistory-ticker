@@ -126,6 +126,21 @@
       .then(function (results) { return mergeEvents(results[0], results[1]); });
   }
 
+  function eventMatchesSearch(event, query) {
+    var normalizedQuery = String(query || '').trim().toLocaleLowerCase();
+    if (!normalizedQuery) return true;
+    var searchable = [
+      event && event.title,
+      event && event.symbol,
+      event && event.ticker,
+      event && event.market,
+      event && event.source,
+      event && event.status,
+      event && event.result
+    ].join(' ').replace(/\s+/g, ' ').toLocaleLowerCase();
+    return searchable.indexOf(normalizedQuery) !== -1;
+  }
+
   function parseEvent(rawTitle) {
     var segs = String(rawTitle || '').split('|').map(function (s) { return s.trim(); });
     var head = segs[0] || '';
@@ -254,6 +269,7 @@
 
     var currentYear;
     var currentMonth;
+    var searchQuery = '';
 
     function load(year, month) {
       if (month < 0) { month = 11; year -= 1; }
@@ -269,10 +285,17 @@
     }
 
     function renderPage(year, month, evs, selectedDay) {
-      var visibleEvents = typeof selectedDay === 'number'
+      var dayEvents = typeof selectedDay === 'number'
         ? evs.filter(function (event) { return dayOf(event) === selectedDay; })
         : evs;
+      var visibleEvents = dayEvents.filter(function (event) { return eventMatchesSearch(event, searchQuery); });
       var weeks = groupByWeek(year, month, visibleEvents);
+      var listTitle = typeof selectedDay === 'number'
+        ? (month + 1) + '월 ' + selectedDay + '일 일정'
+        : (month + 1) + '월 일정';
+      var resultLabel = searchQuery.trim()
+        ? '<small class="sc-search-count">검색 결과 ' + visibleEvents.length + '건</small>'
+        : '';
       var listHtml = weeks.length
         ? weeks.map(function (w) {
             return '<div class="sc-week">'
@@ -280,7 +303,7 @@
               + '<div class="sc-week-rows">' + w.items.map(renderEventRow).join('') + '</div>'
               + '</div>';
           }).join('')
-        : '<div class="sc-empty">이번 달 일정이 없습니다.</div>';
+        : '<div class="sc-empty">' + (searchQuery.trim() ? '검색 결과가 없습니다.' : '이번 달 일정이 없습니다.') + '</div>';
 
       container.innerHTML =
         '<div class="sc-layout">'
@@ -293,9 +316,11 @@
         + '<div class="sc-grid">' + buildMonthGrid(year, month, evs, selectedDay) + '</div>'
         + '</div>'
         + '<div class="sc-list-col">'
+        + '<div class="sc-filter-head"><strong>' + listTitle + resultLabel + '</strong>'
         + (typeof selectedDay === 'number'
-          ? '<div class="sc-filter-head"><strong>' + (month + 1) + '월 ' + selectedDay + '일 일정</strong><button type="button" id="scClearDay">전체 일정</button></div>'
-          : '')
+          ? '<button type="button" id="scClearDay">전체 일정</button>'
+          : '') + '</div>'
+        + '<label class="sc-search"><span>일정 검색</span><input id="scSearch" type="search" value="' + escapeHtml(searchQuery) + '" placeholder="종목명·티커·내용 검색" autocomplete="off" /></label>'
         + listHtml + '</div>'
         + '</div>';
 
@@ -313,6 +338,18 @@
       });
       var clearDay = document.getElementById('scClearDay');
       if (clearDay) clearDay.addEventListener('click', function () { renderPage(year, month, evs); });
+      var searchInput = document.getElementById('scSearch');
+      if (searchInput) {
+        searchInput.addEventListener('input', function () {
+          searchQuery = searchInput.value;
+          renderPage(year, month, evs, selectedDay);
+          var refreshedInput = document.getElementById('scSearch');
+          if (refreshedInput) {
+            refreshedInput.focus();
+            refreshedInput.setSelectionRange(searchQuery.length, searchQuery.length);
+          }
+        });
+      }
     }
 
     var today = new Date();

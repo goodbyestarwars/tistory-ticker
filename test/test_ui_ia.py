@@ -568,6 +568,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(url, source)
 
+    def test_stock_calendar_supports_searching_loaded_events(self):
+        source = self.read("js/stock-calendar.js")
+        home = self.read("js/skin-main.js")
+        style = self.read("css/stock-calendar.css")
+        self.assertIn("function eventMatchesSearch(event, query)", source)
+        self.assertIn('id="scSearch"', source)
+        self.assertIn("검색 결과 ' + visibleEvents.length + '건", source)
+        self.assertIn(".sc-search input", style)
+        self.assertIn("stock-calendar.js?v=20260811-calendar-search", home)
+
 
 if __name__ == "__main__":
     unittest.main()
