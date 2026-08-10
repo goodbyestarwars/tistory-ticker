@@ -67,10 +67,26 @@
   border-bottom: 2px solid #eef2ff;
 }
 #stock-calendar .sc-filter-head strong { font-size: 14px; color: #0d1b40; }
+#stock-calendar .sc-search-count {
+  margin-left: 8px; font-size: 11px; font-weight: 500; color: #94a3b8;
+}
 #stock-calendar .sc-filter-head button {
   border: 0; background: transparent; color: #6366f1;
   font: inherit; font-size: 12px; cursor: pointer;
 }
+#stock-calendar .sc-search {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
+  padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 9px;
+  background: #fff;
+}
+#stock-calendar .sc-search span {
+  flex-shrink: 0; color: #64748b; font-size: 12px; font-weight: 700;
+}
+#stock-calendar .sc-search input {
+  width: 100%; min-width: 0; border: 0; outline: 0; background: transparent;
+  color: #334155; font: inherit; font-size: 13px;
+}
+#stock-calendar .sc-search input::placeholder { color: #a8b1bf; }
 #stock-calendar .sc-week { margin-bottom: 22px; }
 #stock-calendar .sc-week:last-child { margin-bottom: 0; }
 #stock-calendar .sc-week-title {
@@ -131,6 +147,10 @@ html.dark #stock-calendar .sc-nav:hover { background: rgba(245, 239, 224, 0.18) 
 html.dark #stock-calendar .sc-day { color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-week-title { border-bottom-color: rgba(245, 239, 224, 0.14) !important; }
 html.dark #stock-calendar .sc-filter-head { border-bottom-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #stock-calendar .sc-search { background: rgba(245, 239, 224, 0.06) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #stock-calendar .sc-search span,
+html.dark #stock-calendar .sc-search input { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-search input::placeholder { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-calendar .sc-ev-item { background: rgba(245, 239, 224, 0.06) !important; }
 html.dark #stock-calendar .sc-ev-item:hover { background: rgba(245, 239, 224, 0.14) !important; }
 html.dark #stock-calendar .sc-ev-date { color: #F5EFE0 !important; }
