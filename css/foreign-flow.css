@@ -516,12 +516,17 @@
   color: #555;
 }
 #foreign-flow .ff-apt-summary-item b { font-size: 14.5px; margin-left: 3px; }
+#foreign-flow .ff-apt-summary-current b { color: #0f766e; }
+#foreign-flow .ff-apt-summary-average b { color: #2563eb; }
+#foreign-flow .ff-apt-summary-poc b { color: #e8590c; }
 #foreign-flow .ff-apt-legend { margin-left: auto; display: flex; gap: 12px; }
 #foreign-flow .ff-apt-legend-item { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #888; }
 #foreign-flow .ff-apt-swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
 #foreign-flow .ff-apt-swatch-sell { background: #4A90E2; }
 #foreign-flow .ff-apt-swatch-buy { background: #FF5B6E; }
 #foreign-flow .ff-apt-swatch-vol { background: #f6ad55; }
+#foreign-flow .ff-apt-swatch-current { background: #0f766e; }
+#foreign-flow .ff-apt-swatch-average { background: #3b82f6; }
 #foreign-flow .ff-apt-swatch-poc { background: #e8590c; }
 
 #foreign-flow .ff-apt-totals {
@@ -2621,7 +2626,7 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-helicopter-rotor,
 #foreign-flow .ff-apt-helicopter-skid { fill: none; stroke: #69737a; stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
 #foreign-flow .ff-apt-helicopter-light { fill: #f59f00; stroke: #fff; stroke-width: .8; }
-#foreign-flow .ff-apt-building-price { fill: #445057; font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#foreign-flow .ff-apt-building-price { fill: #445057; font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: #f7f8f8; stroke-width: 2.5px; }
 #foreign-flow .ff-apt-building-average-person .head { fill: #f2c39b; stroke: #8d5e42; stroke-width: .45; }
 #foreign-flow .ff-apt-building-average-person .shoulders { fill: #3b82f6; stroke: #1d4ed8; stroke-width: .6; }
 #foreign-flow .ff-apt-building-average-person .eye { fill: #fff; stroke: none; }
@@ -2646,7 +2651,7 @@ html.dark #foreign-flow .ff-apt-meaning b { color: #f5efe0; }
 #foreign-flow .ff-apt-illustration-marker.average { stroke-dasharray: none; stroke-width: 1.6; opacity: 1; }
 #foreign-flow .ff-apt-illustration-label-bg { fill: #fff; opacity: .9; }
 #foreign-flow .ff-apt-illustration-marker-label { font-size: 10px; font-weight: 700; }
-#foreign-flow .ff-apt-illustration-price,
+#foreign-flow .ff-apt-illustration-price { display: block; fill: #59666d; font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
 #foreign-flow .ff-apt-illustration-volume { fill: #7b858a; font-size: 9px; font-variant-numeric: tabular-nums; }
 #foreign-flow .ff-apt-visual-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; margin-top: 5px; color: #68757d; font-size: 10px; line-height: 1.5; }
 #foreign-flow .ff-apt-visual-key span { display: inline-flex; align-items: center; gap: 4px; }

@@ -3165,7 +3165,7 @@
     return Math.round(r.low).toLocaleString('ko-KR') + '~' + Math.round(r.high).toLocaleString('ko-KR') + '원';
   }
 
-  function buildAptSummaryHtml(profile, periodLabel, avgPrice) {
+  function buildAptSummaryHtml(profile, periodLabel, avgPrice, currentPrice) {
     if (!profile) {
       return '<div class="ff-apt-summary">이 구간엔 계산할 매물대 데이터가 부족해요.</div>';
     }
@@ -3173,14 +3173,18 @@
     var pocMid = poc ? Math.round((poc.low + poc.high) / 2) : null;
     return '<div class="ff-apt-summary">'
       + '<span class="ff-apt-summary-item">' + (periodLabel || ('최근 ' + profile.days + '거래일')) + '</span>'
+      + (currentPrice != null
+        ? '<span class="ff-apt-summary-item ff-apt-summary-current">현재가 <b>' + Math.round(currentPrice).toLocaleString('ko-KR') + '원</b></span>'
+        : '')
       + (pocMid != null
-        ? '<span class="ff-apt-summary-item">거래량 최다 구간 <b>' + pocMid.toLocaleString('ko-KR') + '원</b></span>'
+        ? '<span class="ff-apt-summary-item ff-apt-summary-poc">POC <b>' + pocMid.toLocaleString('ko-KR') + '원</b></span>'
         : '')
       + (avgPrice != null
-        ? '<span class="ff-apt-summary-item">평균단가 <b>' + Math.round(avgPrice).toLocaleString('ko-KR') + '원</b></span>'
+        ? '<span class="ff-apt-summary-item ff-apt-summary-average">평균단가 <b>' + Math.round(avgPrice).toLocaleString('ko-KR') + '원</b></span>'
         : '')
-      + '<span class="ff-apt-legend"><span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-vol"></i>매물대</span>'
-      + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-poc"></i>거래량 최다</span></span>'
+      + '<span class="ff-apt-legend"><span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-current"></i>현재가</span>'
+      + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-average"></i>평균단가</span>'
+      + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-poc"></i>POC</span></span>'
       + '</div>';
   }
 
@@ -3314,6 +3318,7 @@
       var sideStart = x + frontWidth;
       var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
         + '<rect x="' + x + '" y="' + y + '" width="' + frontWidth + '" height="' + height + '" rx="2" />'
+        + '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 25) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
         + '<path class="ff-apt-building-side" d="M' + sideStart + ' ' + (y + 3) + ' L' + (x + width) + ' ' + (y + 8) + ' V' + (groundY - 8) + ' L' + sideStart + ' ' + (groundY - 8) + ' Z" />'
         + '<path class="ff-apt-building-glass-sheen" d="M' + (x + 8) + ' ' + (y + 4) + ' L' + (x + frontWidth - 4) + ' ' + (y + 4) + ' L' + (x + frontWidth - 22) + ' ' + (groundY - 12) + ' L' + (x + 8) + ' ' + (groundY - 12) + ' Z" />'
         + '<path class="ff-apt-building-reflection" d="M' + (x + 15) + ' ' + (y + 10) + ' L' + (x + 5) + ' ' + (groundY - 20) + ' M' + (x + 29) + ' ' + (y + 10) + ' L' + (x + 19) + ' ' + (groundY - 20) + '" />'
@@ -3698,7 +3703,7 @@
       + (daysIncluded || 1) + '거래일</b>치가 반영돼 있어요(뜸하게 조회된 종목은 며칠치만 있을 수 있음, 최대 ' + APT_LOOKBACK_DAYS + '일).</div>';
     var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
     return buildAptZoomButtons(stepIndex)
-      + buildAptSummaryHtml(profile, periodLabel, avgPrice)
+      + buildAptSummaryHtml(profile, periodLabel, avgPrice, currentPrice)
       + buildAptIllustratedLineArtHtml(profile, currentPrice, avgPrice)
       + '<div class="ff-apt-meaning" role="note">'
       + '<strong>매물대는 이렇게 읽습니다</strong>'
