@@ -147,6 +147,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, source)
         self.assertIn("object-fit: contain", self.read("style.css"))
 
+    def test_home_realtime_table_reconnects_after_websocket_disconnect(self):
+        source = self.read("js/home-realtime-table.js")
+        for token in (
+            "reconnectTimer",
+            "WS_RECONNECT_MIN_MS = 1500",
+            "WS_RECONNECT_MAX_MS = 30000",
+            "function scheduleRealtimeReconnect(generation)",
+            "function connectRealtime(generation)",
+            "socket.onerror",
+            "socket.onopen",
+            "visibilitychange",
+            "data-hrt-connection",
+            "재연결 중",
+        ):
+            self.assertIn(token, source)
+
     def test_home_switches_summary_to_us_market_and_supports_schedule_drag(self):
         main = self.read("js/skin-main.js")
         widgets = self.read("js/home-widgets.js")
