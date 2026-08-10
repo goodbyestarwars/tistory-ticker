@@ -692,9 +692,19 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   overflow-x: auto;
   cursor: grab;
   user-select: none;
-  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-width: none;
   overscroll-behavior-x: contain;
   touch-action: pan-y;
+}
+.home-top-disclosures .home-disclosure-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+.home-top-disclosures .home-disclosure-list::-webkit-scrollbar-track,
+.home-top-disclosures .home-disclosure-list::-webkit-scrollbar-thumb {
+  background: transparent;
 }
 .home-top-disclosures .home-disclosure-list.is-dragging {
   cursor: grabbing;
