@@ -659,11 +659,11 @@
       return dateOrder || String(a.title || '').localeCompare(String(b.title || ''));
     });
     var todayItems = upcoming.filter(function (event) { return scheduleDate(event.start) < tomorrow; });
-    if (todayItems.length) return { items: todayItems.slice(0, 5), today: true };
+    if (todayItems.length) return { items: todayItems.slice(0, 12), today: true };
     if (!upcoming.length) return { items: [], today: false };
     var firstDate = scheduleDate(upcoming[0].start).toDateString();
     return {
-      items: upcoming.filter(function (event) { return scheduleDate(event.start).toDateString() === firstDate; }).slice(0, 5),
+      items: upcoming.filter(function (event) { return scheduleDate(event.start).toDateString() === firstDate; }).slice(0, 12),
       today: false
     };
   }
@@ -698,6 +698,52 @@
         + '<span>' + escapeHtml(scheduleTitle(item.title)) + '</span>'
         + '<time>' + escapeHtml(scheduleTime(item.start)) + '</time></a>';
     }).join('');
+    enableScheduleDrag(mount);
+  }
+
+  function enableScheduleDrag(list) {
+    if (!list || list.getAttribute('data-drag-ready') === '1') return;
+    list.setAttribute('data-drag-ready', '1');
+    var dragging = false;
+    var moved = false;
+    var startX = 0;
+    var startScroll = 0;
+    var suppressClick = false;
+
+    list.addEventListener('pointerdown', function (event) {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      dragging = true;
+      moved = false;
+      startX = event.clientX;
+      startScroll = list.scrollLeft;
+      list.classList.add('is-dragging');
+      if (list.setPointerCapture) list.setPointerCapture(event.pointerId);
+    });
+    list.addEventListener('pointermove', function (event) {
+      if (!dragging) return;
+      var delta = event.clientX - startX;
+      if (Math.abs(delta) > 4) moved = true;
+      if (!moved) return;
+      event.preventDefault();
+      list.scrollLeft = startScroll - delta;
+    }, { passive: false });
+    function finishDrag(event) {
+      if (!dragging) return;
+      dragging = false;
+      list.classList.remove('is-dragging');
+      if (moved) suppressClick = true;
+      if (event && list.releasePointerCapture) {
+        try { list.releasePointerCapture(event.pointerId); } catch (error) {}
+      }
+    }
+    list.addEventListener('pointerup', finishDrag);
+    list.addEventListener('pointercancel', finishDrag);
+    list.addEventListener('click', function (event) {
+      if (!suppressClick) return;
+      event.preventDefault();
+      event.stopPropagation();
+      suppressClick = false;
+    }, true);
   }
 
   function loadUsSchedule() {

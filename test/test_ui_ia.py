@@ -118,7 +118,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (
             "market-summary",
             "briefing",
-            "home_dashboard_layout_v1",
+            "home_dashboard_layout_v2",
             "dragstart",
             "pointerdown",
             "data-widget-action=\"hide\"",
@@ -128,6 +128,44 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("DEFAULT_SELECTED", indices)
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
+
+    def test_home_realtime_table_fills_missing_stock_icons(self):
+        source = self.read("js/home-realtime-table.js")
+        for token in (
+            "ICONIFY_BASE = 'https://api.iconify.design/'",
+            "FAVICON_BASE = 'https://icons.duckduckgo.com/ip3/'",
+            "SPCX: ['simple-icons', 'spacex']",
+            "SNDK: ['thesvg-color', 'sandisk']",
+            "MRVL: 'marvell.com'",
+            "data-icon-stage=\"svg\"",
+            "window.HomeRealtimeTableIconFallback(this)",
+            "image.style.display = 'none'",
+        ):
+            self.assertIn(token, source)
+        self.assertIn("object-fit: contain", self.read("style.css"))
+
+    def test_home_switches_summary_to_us_market_and_supports_schedule_drag(self):
+        main = self.read("js/skin-main.js")
+        widgets = self.read("js/home-widgets.js")
+        style = self.read("style.css")
+        for token in (
+            "data-home-summary-field=\"title\"",
+            "미국 시장 요약",
+            "상승 종목 비율",
+            "market-board?market=us&limit=20",
+            "function summarizeUsMarket(data)",
+            "renderUsMarketSummary",
+        ):
+            self.assertIn(token, main)
+        for token in (
+            "todayItems.slice(0, 12)",
+            "function enableScheduleDrag(list)",
+            "list.scrollLeft = startScroll - delta",
+            "data-drag-ready",
+        ):
+            self.assertIn(token, widgets)
+        self.assertIn("overflow-x: auto", style)
+        self.assertIn("touch-action: pan-y", style)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")
@@ -362,7 +400,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         )
         self.assertIsNotNone(volume_series)
         self.assertIn("priceFormat: { type: 'volume' }", volume_series.group("body"))
-        self.assertIn("priceScaleId: ''", volume_series.group("body"))
+        self.assertIn("priceScaleId: 'volume'", volume_series.group("body"))
         # 2026-08-05 사용자 리포트(거래량 Y축이 가격과 겹쳐 보임): 라이브러리 네이티브
         # 마지막값 배지/점선은 .ss-volume-study-label 커스텀 범례와 같은 값을 중복 표시하며
         # 가격축 배지와 같은 여백에 그려져 겹쳤다 - 다른 보조지표 시리즈와 동일하게 끈다.
