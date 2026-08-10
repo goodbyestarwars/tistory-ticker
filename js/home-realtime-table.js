@@ -158,7 +158,7 @@
     if (!body) return;
     var rows = rowsForActive();
     body.innerHTML = rows.length
-      ? rows.map(rowHtml).join('')
+      ? rows.map(function (item, index) { return rowHtml(item, index + 1); }).join('')
       : '<tr><td colspan="8" class="hrt-state">현재 세션의 종목 데이터가 없습니다.</td></tr>';
     state.mount.querySelectorAll('[data-hrt-tab]').forEach(function (button) {
       var selected = button.getAttribute('data-hrt-tab') === state.active;
