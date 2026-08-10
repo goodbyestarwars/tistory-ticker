@@ -20,9 +20,11 @@
   // WebSocket 중계에 연결한다 - 페이지 로드 시 1회 GAS 조회 후 갱신이 없던 것을 보완.
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
   var REALTIME_RECONNECT_MS = 5000;
+  var REALTIME_FALLBACK_MS = 15000;
   var myRealtimeSocket = null;
   var myRealtimeReconnectTimer = null;
   var myRealtimeKeepaliveTimer = null;
+  var myRealtimeFallbackTimer = null;
   var myRealtimeGeneration = 0;
   var disclosureMarket = null;
   var disclosureMarketTimer = null;
@@ -433,8 +435,10 @@
     myRealtimeGeneration += 1;
     clearTimeout(myRealtimeReconnectTimer);
     clearInterval(myRealtimeKeepaliveTimer);
+    clearInterval(myRealtimeFallbackTimer);
     myRealtimeReconnectTimer = null;
     myRealtimeKeepaliveTimer = null;
+    myRealtimeFallbackTimer = null;
     if (myRealtimeSocket) {
       myRealtimeSocket.onclose = null;
       myRealtimeSocket.close();
@@ -444,10 +448,24 @@
 
   function startMyRealtime(list) {
     stopMyRealtime();
-    if (!list.length || document.hidden || !('WebSocket' in global)) return;
+    if (!list.length || document.hidden) return;
 
     var generation = myRealtimeGeneration;
     var encodedCodes = list.map(function (item) { return encodeURIComponent(item.code); }).join(',');
+
+    // NXT 장 전환 때 upstream websocket이 잠시 조용하거나 중계가 재접속 중이어도
+    // 현재가를 계속 갱신한다. 목록 전체를 다시 그리지 않고 값이 있는 행만 수정한다.
+    myRealtimeFallbackTimer = setInterval(function () {
+      if (generation !== myRealtimeGeneration || document.hidden || !context || !context.fetchJson) return;
+      context.fetchJson(context.gasUrl + '?codes=' + list.map(function (item) {
+        return encodeURIComponent(item.code);
+      }).join(','), 10000).then(function (data) {
+        if (generation !== myRealtimeGeneration) return;
+        (Array.isArray(data) ? data : []).forEach(function (quote) {
+          if (quote && quote.code) updateMyRow(quote.code, quote);
+        });
+      }).catch(function () {});
+    }, REALTIME_FALLBACK_MS);
 
     function connect() {
       if (generation !== myRealtimeGeneration || document.hidden) return;
@@ -482,7 +500,7 @@
       };
     }
 
-    connect();
+    if ('WebSocket' in global) connect();
   }
 
   function loadMyWidget() {

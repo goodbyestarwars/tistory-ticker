@@ -75,6 +75,8 @@
   // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
   var STOCK_SEARCH_PAGE_URL = '/page/stock-search';
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
+  // NXT 장 전환(08:00/15:30)에는 upstream websocket이 잠시 조용할 수 있으므로
+  // 체결 이벤트가 없어도 현재가 폴백은 계속 실행한다.
   var REALTIME_FALLBACK_MS = 15000;
   var REALTIME_RECONNECT_MS = 5000;
   var realtimeSocket = null;

@@ -46,29 +46,60 @@ def _number(value):
 
 
 def _quote_events(message):
-    """키움 REAL 응답에서 0B 체결가(10), 전일대비(11), 등락률(12)을 표준 형태로 변환."""
+    """키움 REAL 응답에서 0B 체결가를 표준 형태로 변환한다.
+
+    NXT 프리마켓/메인마켓 체결도 0B로 오며, 이때 거래소(9081)와 장구분(290)이
+    함께 전달될 수 있다. 키움 응답의 data/type/values가 버전별로 리스트·문자열
+    형태가 조금씩 달라질 수 있어 두 형태를 모두 허용한다.
+    """
     if message.get('trnm') != 'REAL':
         return []
+    rows = message.get('data') or []
+    if isinstance(rows, dict):
+        rows = [rows]
     events = []
-    for row in message.get('data') or []:
-        if row.get('type') != '0B':
+    for row in rows:
+        if not isinstance(row, dict):
             continue
-        values = row.get('values') or {}
-        code = str(row.get('item') or values.get('9001') or '').lstrip('A').upper()
+        row_type = row.get('type')
+        if isinstance(row_type, (list, tuple, set)):
+            is_quote = '0B' in row_type
+        else:
+            is_quote = str(row_type or '').upper() == '0B'
+        if not is_quote:
+            continue
+        values = row.get('values') or row.get('value') or {}
+        if not isinstance(values, dict):
+            continue
+
+        def value(*keys):
+            for key in keys:
+                if key in values and values[key] not in (None, ''):
+                    return values[key]
+            return None
+
+        code = str(row.get('item') or value('9001', 'code') or '').lstrip('A').upper()
         if not _CODE_RE.match(code):
             continue
-        price = _number(values.get('10'))
-        change = _number(values.get('11'))
-        change_rate = _number(values.get('12'))
+        price = _number(value('10', 'price'))
+        change = _number(value('11', 'change'))
+        change_rate = _number(value('12', 'changeRate', 'change_rate'))
         if price is None:
             continue
-        events.append({
+        event = {
             'type': 'quote',
             'code': code,
             'price': abs(price),
             'change': change or 0,
             'changeRate': change_rate or 0,
-        })
+        }
+        exchange = value('9081', 'exchange', 'stex_tp')
+        session = value('290', 'session', 'market_session')
+        if exchange is not None:
+            event['exchange'] = str(exchange).strip()
+        if session is not None:
+            event['marketSession'] = str(session).strip()
+        events.append(event)
     return events
 
 
