@@ -106,29 +106,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         widgets = self.read("js/home-widgets.js")
         rank = self.read("js/sidebar-rank.js")
         indices = self.read("js/quick-indices.js")
-        for token in ("오늘의 시장판", "오늘의 패턴", "주요 일정", "home-overview-grid", "home-card-grid"):
+        for token in ("오늘의 시장판", "주요 일정", "home-overview-grid", "home-card-grid"):
             self.assertIn(token, main)
         self.assertIn("slice(0, 8)", main)
         self.assertIn("마켓브리핑 전체보기", main)
         self.assertIn("home-briefing-left-more", main)
         self.assertIn("selectedCards.slice(4, 8)", main)
+        self.assertNotIn("homePatternList", main)
+        self.assertNotIn("patternScan=1", main)
         for token in (
-            "data-pattern-key",
-            "renderPatternPreview",
-            "home-pattern-preview-back",
-            "종목 · 스크롤",
-            "stock.changeRate",
-        ):
-            self.assertIn(token, main)
-        for token in (
-            "investor-flow",
             "market-summary",
-            "my-watchlist",
+            "schedule",
             "disclosure",
+            "briefing",
             "home_dashboard_layout_v1",
             "dragstart",
             "pointerdown",
-            "홈 화면 초기화",
             "data-widget-action=\"hide\"",
         ):
             self.assertIn(token, widgets)
@@ -150,11 +143,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, source)
         self.assertNotIn("?market=1", source)
 
-    def test_pattern_schedule_and_rank_compact_layout(self):
+    def test_schedule_compact_layout_after_home_widget_cleanup(self):
         main = self.read("js/skin-main.js")
         style = self.read("style.css")
         self.assertNotIn("}).slice(0, 4);", main)
-        self.assertIn("home-pattern-stock-list", main)
+        self.assertNotIn("home-pattern-stock-list", main)
         self.assertIn("overflow-y: auto", style)
         self.assertIn("scrollbar-color: transparent transparent", style)
         self.assertIn("scrollbar-width: none", style)
@@ -448,7 +441,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("GAS_TICKER_URL + '?market=1'", home)
         self.assertIn("home_market_temp_v1", home)
         self.assertIn("home_market_sectors_v1", home)
-        self.assertIn("home_pattern_scan_v1", home)
+        self.assertNotIn("home_pattern_scan_v1", home)
         self.assertIn("readHomeDataCache", home)
         self.assertIn("writeHomeDataCache", home)
         self.assertIn("스크립트 로드 시간 초과", home)

@@ -1,8 +1,8 @@
 /**
  * 홈 대시보드 위젯 관리자.
  *
- * 기존 화면이 만든 투자자 수급/시장판/랭킹/패턴/일정/브리핑 DOM을 위젯 레지스트리로
- * 승격하고, MY·실시간 공시 위젯을 추가한다. 홈은 이 모듈에서 순서와 표시 상태만 관리하며
+ * 기존 화면이 만든 시장판/일정/브리핑 DOM을 위젯 레지스트리로 승격하고,
+ * 실시간 공시 위젯을 추가한다. 홈은 이 모듈에서 순서와 표시 상태만 관리하며
  * 데이터 계산/API 엔드포인트는 기존 구현을 그대로 재사용한다.
  */
 (function (global) {
@@ -22,19 +22,13 @@
   var myRealtimeKeepaliveTimer = null;
   var myRealtimeGeneration = 0;
   var DEFAULT_ORDER = [
-    'investor-flow',
     'market-summary',
-    'ranking',
-    'pattern',
     'schedule',
     'disclosure',
     'briefing'
   ];
   var LABELS = {
-    'investor-flow': '투자자별 매매동향',
     'market-summary': '오늘의 시장판',
-    ranking: '실시간 랭킹',
-    pattern: '오늘의 패턴',
     schedule: '주요 일정',
     disclosure: '실시간 공시',
     briefing: '마켓브리핑'
@@ -156,12 +150,9 @@
     var dashboard = options.dashboard;
     var overview = dashboard.querySelector('.home-overview-grid');
     var cards = dashboard.querySelector('.home-card-grid');
-    var investor = overview && overview.querySelector('.home-investor-slot');
     var market = overview && overview.querySelector('.home-market-board');
-    var ranking = cards && cards.querySelector('.home-rank-slot');
-    var pattern = cards && cards.querySelector('.home-pattern-card');
     var schedule = cards && cards.querySelector('.home-schedule-card');
-    if (!investor || !market || !ranking || !pattern || !schedule || !options.briefing) return false;
+    if (!market || !schedule || !options.briefing) return false;
 
     var disclosure = document.createElement('div');
     disclosure.innerHTML = disclosureCardHtml();
@@ -169,10 +160,7 @@
     grid = document.createElement('div');
     grid.className = 'home-widget-grid';
     [
-      investor,
       market,
-      ranking,
-      pattern,
       schedule,
       disclosure.firstElementChild,
       options.briefing
@@ -181,10 +169,7 @@
     dashboard.innerHTML = '';
     dashboard.appendChild(grid);
 
-    decorate(investor, 'investor-flow', 'wide');
     decorate(market, 'market-summary', 'summary');
-    decorate(ranking, 'ranking', 'compact');
-    decorate(pattern, 'pattern', 'compact');
     decorate(schedule, 'schedule', 'compact');
     decorate(grid.querySelector('.home-disclosure-card'), 'disclosure', 'compact');
     decorate(options.briefing, 'briefing', 'full');

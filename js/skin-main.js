@@ -52,14 +52,13 @@
     var feed = document.querySelector('.feed');
     var investorMount = document.getElementById('investor-trend-widget');
     var rankMount = document.getElementById('sidebar-rank');
-    if (!feed || !investorMount || !rankMount) return;
+    if (!feed) return;
 
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js';
-    var homeState = { foreign: null, institution: null, flowReady: false };
 
     function escapeHomeHtml(value) {
       return String(value == null ? '' : value)
@@ -161,7 +160,6 @@
     function dashboardHtml() {
       return '<section class="home-dashboard" aria-label="오늘의 시장 상황판">'
         + '<div class="home-overview-grid">'
-        + '<div class="home-investor-slot"></div>'
         + '<article class="card home-market-board" id="homeMarketBoard">'
         + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live" data-home-market-field="live">실시간</span></div>'
         + '<div class="home-index-strip" aria-label="대표 시장 지수">'
@@ -179,22 +177,12 @@
         + '<dl class="hmb-list">'
         + '<div><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
         + '<div><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
-        + '<div><dt>외국인</dt><dd data-market-field="foreign">데이터 확인 중</dd></div>'
-        + '<div><dt>기관</dt><dd data-market-field="institution">데이터 확인 중</dd></div>'
         + '<div><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
         + '<div><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
         + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
         + '</dl>'
-        + '<p class="hmb-interpretation" data-market-field="interpretation">수급 데이터 확인 중입니다.</p>'
         + '</article></div>'
         + '<div class="home-card-grid">'
-        + '<div class="home-rank-slot"></div>'
-        + '<article class="card home-mini-card home-pattern-card">'
-        + '<div class="home-card-heading"><div><strong>오늘의 패턴</strong><span id="homePatternUpdated"></span></div></div>'
-        + '<p class="home-pattern-explainer">오늘 신규 발견은 최신 스캔 거래일에 패턴 조건을 만족한 고유 종목 수입니다 · 신규 상장 의미 아님</p>'
-        + '<div class="home-pattern-list" id="homePatternList"><p class="home-card-state">패턴 데이터를 불러오는 중...</p></div>'
-        + '<a class="home-card-more" href="/page/pattern-scan">패턴 종목 보기 →</a>'
-        + '</article>'
         + '<article class="card home-mini-card home-schedule-card">'
         + '<div class="home-card-heading"><div><strong>주요 일정</strong><span id="homeScheduleLabel">오늘 또는 가장 가까운 일정</span></div></div>'
         + '<div class="home-schedule-list" id="homeScheduleList"><p class="home-card-state">일정을 불러오는 중...</p></div>'
@@ -206,8 +194,8 @@
     dashboard.innerHTML = dashboardHtml();
     var dashboardSection = dashboard.firstElementChild;
     feed.insertBefore(dashboardSection, investorMount);
-    dashboardSection.querySelector('.home-investor-slot').appendChild(investorMount);
-    dashboardSection.querySelector('.home-rank-slot').appendChild(rankMount);
+    if (investorMount) investorMount.remove();
+    if (rankMount) rankMount.remove();
     var oldSidebar = document.querySelector('.sidebar-right');
     if (oldSidebar) oldSidebar.hidden = true;
 
@@ -222,64 +210,6 @@
       element.classList.remove('home-positive', 'home-negative', 'home-neutral');
       if (tone) element.classList.add(tone);
     }
-
-    function formatFlow(value) {
-      if (value == null || isNaN(value)) return '데이터 확인 중';
-      if (value === 0) return '0억';
-      var sign = value > 0 ? '+' : '-';
-      var absolute = Math.abs(value);
-      return absolute >= 10000
-        ? sign + (absolute / 10000).toFixed(1) + '조'
-        : sign + Math.round(absolute).toLocaleString('ko-KR') + '억';
-    }
-
-    function renderRuleInterpretation() {
-      if (!homeState.flowReady) {
-        setField('interpretation', '장 마감 후 수급 데이터가 업데이트됩니다.', 'home-neutral');
-        return;
-      }
-      if (homeState.flowStale) {
-        setField('interpretation', '장 마감 후 마지막 정상 확정 수급을 표시하고 있습니다.', 'home-neutral');
-        return;
-      }
-      var foreign = homeState.foreign;
-      var institution = homeState.institution;
-      var sentence;
-      if (foreign > 0 && institution > 0) sentence = '외국인과 기관이 동반 순매수 중입니다.';
-      else if (foreign < 0 && institution > 0) sentence = '외국인 매도 물량을 기관이 일부 받아내고 있습니다.';
-      else if (foreign > 0 && institution < 0) sentence = '기관 매도에도 외국인이 시장을 방어하고 있습니다.';
-      else if (foreign < 0 && institution < 0) sentence = '외국인과 기관이 동반 매도하며 수급 부담이 큽니다.';
-      else sentence = '수급 방향이 뚜렷하지 않아 추가 확인이 필요합니다.';
-      setField('interpretation', sentence, 'home-neutral');
-    }
-
-    window.addEventListener('investor-trend-data', function (event) {
-      var detail = event.detail || {};
-      if (detail.period !== 'day' || detail.market !== 'kospi') return;
-      var rows = detail.result && detail.result.rows;
-      var latestRow = rows && rows.length ? rows[rows.length - 1] : null;
-      var validRows = (rows || []).filter(function (row) {
-        return [row && row.ind, row && row.frgn, row && row.orgn].some(function (value) {
-          return value != null && isFinite(Number(value)) && Number(value) !== 0;
-        });
-      });
-      var latest = validRows.length ? validRows[validRows.length - 1] : null;
-      if (!latest) {
-        setField('foreign', '장 마감 후 업데이트', 'home-neutral');
-        setField('institution', '장 마감 후 업데이트', 'home-neutral');
-        homeState.flowReady = false;
-        homeState.flowStale = false;
-        renderRuleInterpretation();
-        return;
-      }
-      homeState.foreign = Number(latest.frgn);
-      homeState.institution = Number(latest.orgn);
-      homeState.flowReady = !isNaN(homeState.foreign) && !isNaN(homeState.institution);
-      homeState.flowStale = latestRow !== latest;
-      setField('foreign', formatFlow(homeState.foreign), homeState.foreign > 0 ? 'home-positive' : homeState.foreign < 0 ? 'home-negative' : 'home-neutral');
-      setField('institution', formatFlow(homeState.institution), homeState.institution > 0 ? 'home-positive' : homeState.institution < 0 ? 'home-negative' : 'home-neutral');
-      renderRuleInterpretation();
-    });
 
     function sectorSummary(data) {
       var groups = {};
@@ -521,107 +451,6 @@
     };
     if (window.requestIdleCallback) window.requestIdleCallback(loadHomeSectors, { timeout: 2500 });
     else setTimeout(loadHomeSectors, 0);
-
-    function renderPatterns(data) {
-      var list = document.getElementById('homePatternList');
-      if (!list) return;
-      var patterns = (data && data.patterns) || {};
-      var items = [
-        { key: 'risingLows', label: '저점상승형' },
-        { key: 'doubleBottom', label: '쌍바닥' },
-        { key: 'invHeadShoulders', label: '역헤드앤숄더' },
-        { key: 'boxRangeLow', label: '박스권 하단' }
-      ];
-      function patternItems(item) {
-        return Array.isArray(patterns[item.key]) ? patterns[item.key] : [];
-      }
-      function rateText(value) {
-        var rate = Number(value);
-        if (isNaN(rate)) return '';
-        return (rate > 0 ? '+' : '') + rate.toFixed(2) + '%';
-      }
-      function renderPatternOverview() {
-        list.innerHTML = items.map(function (item) {
-          var count = patternItems(item).length;
-          return '<button type="button" class="home-pattern-row" data-pattern-key="' + item.key + '"'
-            + ' aria-expanded="false" aria-controls="homePatternPreview">'
-            + '<span>' + item.label + '</span><strong>' + count.toLocaleString('ko-KR') + '종목'
-            + '<span class="home-pattern-chevron" aria-hidden="true">›</span></strong></button>';
-        }).join('')
-          + '<div class="home-pattern-new" title="최신 스캔 거래일에 패턴 조건을 만족한 고유 종목 수입니다. 신규 상장 종목 수가 아닙니다."><span>오늘 신규 발견</span><strong>'
-          + Object.keys(newCodes).length.toLocaleString('ko-KR') + '종목</strong></div>';
-
-        list.querySelectorAll('.home-pattern-row').forEach(function (button) {
-          button.addEventListener('click', function () {
-            var key = button.getAttribute('data-pattern-key');
-            var item = items.filter(function (candidate) { return candidate.key === key; })[0];
-            if (item) renderPatternPreview(item);
-          });
-        });
-      }
-      function renderPatternPreview(item) {
-        var stocks = patternItems(item).slice().sort(function (a, b) {
-          return Number(b.score || 0) - Number(a.score || 0);
-        });
-        var rows = stocks.length ? stocks.map(function (stock) {
-          var rate = Number(stock.changeRate);
-          var tone = isNaN(rate) || rate === 0 ? 'home-neutral' : rate > 0 ? 'home-positive' : 'home-negative';
-          return '<a class="home-pattern-stock" href="/page/pattern-scan">'
-            + '<span><strong>' + escapeHomeHtml(stock.name || stock.code || '종목명 확인 중') + '</strong>'
-            + (stock.code ? '<small>' + escapeHomeHtml(stock.code) + '</small>' : '') + '</span>'
-            + '<em class="' + tone + '">' + rateText(stock.changeRate) + '</em></a>';
-        }).join('') : '<p class="home-pattern-empty">현재 이 패턴에 해당하는 종목이 없습니다.</p>';
-
-        list.innerHTML = '<div class="home-pattern-preview" id="homePatternPreview">'
-          + '<button type="button" class="home-pattern-preview-back">← 전체 패턴</button>'
-          + '<div class="home-pattern-preview-heading"><strong>' + item.label + '</strong>'
-          + '<span>' + patternItems(item).length.toLocaleString('ko-KR') + '종목 · 스크롤</span></div>'
-          + '<div class="home-pattern-stock-list">' + rows + '</div></div>';
-        var back = list.querySelector('.home-pattern-preview-back');
-        if (back) back.addEventListener('click', renderPatternOverview);
-      }
-      var newCodes = {};
-      // item.date는 마지막 거래일이다. 주말/휴장일에는 브라우저의 오늘 날짜와
-      // 거래일이 달라져 기존 로직이 계속 0건을 보여줬다. 최신 스캔 결과에 포함된
-      // 가장 최근 거래일을 기준일로 사용한다.
-      var scanDate = data && data.scannedAt ? new Date(data.scannedAt) : null;
-      var scanDateKey = scanDate && !isNaN(scanDate.getTime())
-        ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(scanDate)
-        : '';
-      var latestPatternDate = '';
-      Object.keys(patterns).forEach(function (key) {
-        (patterns[key] || []).forEach(function (item) {
-          if (item && item.date && item.date <= (scanDateKey || '9999-12-31') && item.date > latestPatternDate) {
-            latestPatternDate = item.date;
-          }
-        });
-      });
-      var referencePatternDate = latestPatternDate || scanDateKey;
-      Object.keys(patterns).forEach(function (key) {
-        (patterns[key] || []).forEach(function (item) {
-          if (item && item.date === referencePatternDate && item.code) newCodes[item.code] = true;
-        });
-      });
-      renderPatternOverview();
-      var updated = document.getElementById('homePatternUpdated');
-      if (updated && data.scannedAt) {
-        var date = new Date(data.scannedAt);
-        updated.textContent = isNaN(date.getTime()) ? '' : (date.getMonth() + 1) + '.' + date.getDate() + '. 스캔';
-      }
-    }
-
-    var patternCacheKey = 'home_pattern_scan_v1';
-    var cachedPatterns = readHomeDataCache(patternCacheKey, 18 * 60 * 60 * 1000);
-    if (cachedPatterns) renderPatterns(cachedPatterns);
-    fetchHomeJson(GAS_TICKER_URL + '?patternScan=1', 25000)
-      .then(function (data) {
-        writeHomeDataCache(patternCacheKey, data);
-        renderPatterns(data);
-      })
-      .catch(function () {
-        var list = document.getElementById('homePatternList');
-        if (list && !cachedPatterns) list.innerHTML = '<p class="home-card-state">패턴 데이터를 불러오지 못했습니다.</p>';
-      });
 
     function calendarMeta(rawTitle) {
       var segments = String(rawTitle || '').split('|').map(function (item) { return item.trim(); });

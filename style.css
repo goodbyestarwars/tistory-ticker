@@ -1196,6 +1196,7 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   min-width: 0;
 }
 .home-widget--summary.home-market-board {
+  grid-column: span 6;
   width: 100%;
   height: 298px;
 }
@@ -1205,6 +1206,8 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   min-width: 0;
   padding: 18px 16px;
 }
+.home-widget--compact.home-schedule-card,
+.home-widget--compact.home-disclosure-card { height: 298px; }
 .home-widget--compact .home-card-heading { padding-right: 38px; }
 
 .home-widget-actions {
@@ -1455,6 +1458,7 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   .home-widget-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .home-widget--wide { grid-column: span 4; }
   .home-widget--summary { grid-column: span 2; }
+  .home-widget--summary.home-market-board { grid-column: 1 / -1; }
   .home-widget--compact { grid-column: span 3; }
   .home-widget--full { grid-column: 1 / -1; }
   .home-widget--full .home-briefing-grid {
