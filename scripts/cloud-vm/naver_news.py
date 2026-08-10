@@ -12,6 +12,7 @@ Google이 공개하는 넓은 IP 풀에서 매번 다른 IP로 나감 - 화이�
 (NCP API HUB 콘솔에서 Search API 신청 시 발급되는 "Client ID/Secret" - 계정 전체
 IAM 액세스 키(ncp_iam_* 접두사)와는 다른 별개의 키이니 혼동하지 말 것)."""
 
+import html
 import json
 import logging
 import urllib.parse
@@ -54,15 +55,20 @@ def search_news(query, client_id, client_secret, display=10, sort='date', start=
         items.append({
             'title': _strip_html(it.get('title', '')),
             'link': it.get('originallink') or it.get('link', ''),
+            'description': _strip_html(it.get('description', '')),
             'pubDate': it.get('pubDate', ''),
+            'source': _source_from_url(it.get('originallink') or it.get('link', '')),
         })
     return items
 
 
 def _strip_html(s):
-    return (
-        (s or '')
-        .replace('<b>', '').replace('</b>', '')
-        .replace('&quot;', '"').replace('&amp;', '&')
-        .replace('&lt;', '<').replace('&gt;', '>')
-    )
+    return html.unescape((s or '').replace('<b>', '').replace('</b>', '').strip())
+
+
+def _source_from_url(url):
+    try:
+        host = urllib.parse.urlparse(url or '').netloc.lower()
+        return host[4:] if host.startswith('www.') else host
+    except Exception:
+        return ''

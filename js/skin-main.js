@@ -187,7 +187,12 @@
         + '<div class="home-card-heading"><div><strong>주요 일정</strong><span id="homeScheduleLabel">오늘 또는 가장 가까운 일정</span></div></div>'
         + '<div class="home-schedule-list" id="homeScheduleList"><p class="home-card-state">일정을 불러오는 중...</p></div>'
         + '<a class="home-card-more" href="/page/stock-calendar">전체 일정 보기 →</a>'
-        + '</article></div></section>';
+        + '</article></div>'
+        + '<article class="card home-news-card" id="homeNewsCard">'
+        + '<div class="home-card-heading"><div><strong>시장 뉴스·공시</strong><span id="homeNewsUpdated">최신순 · 최대 10건</span></div></div>'
+        + '<div class="home-news-list" id="homeNewsList"><p class="home-card-state">뉴스와 공시를 불러오는 중...</p></div>'
+        + '<a class="home-card-more" href="/page/stock-news">종목별 뉴스 보기 →</a>'
+        + '</article></section>';
     }
 
     var dashboard = document.createElement('div');
@@ -563,6 +568,54 @@
       });
 
     /* 최신 마켓브리핑 8건: 대표 1건 + 오른쪽 3건 + 왼쪽 아래 4건으로 재구성한다. */
+    function homeNewsTime(value) {
+      var date = new Date(value || '');
+      if (isNaN(date.getTime())) {
+        var compact = String(value || '');
+        if (/^\d{8}$/.test(compact)) return compact.slice(4, 6) + '.' + compact.slice(6, 8);
+        return '--:--';
+      }
+      return new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false
+      }).format(date);
+    }
+
+    function renderHomeNews(payload) {
+      var list = document.getElementById('homeNewsList');
+      var updated = document.getElementById('homeNewsUpdated');
+      if (!list) return;
+      var data = payload && payload.data ? payload.data : payload;
+      var items = data && Array.isArray(data.items) ? data.items.slice(0, 10) : [];
+      if (updated && data && data.source === 'cache') updated.textContent = '캐시 · 최신순';
+      if (!items.length) {
+        list.innerHTML = '<p class="home-card-state">뉴스 API 키 설정 후 시장 뉴스와 공시가 표시됩니다.</p>';
+        return;
+      }
+      list.innerHTML = items.map(function (item) {
+        var category = item.category || (item.kind === 'disclosure' ? '공시' : '일반');
+        var source = item.source || item.provider || '';
+        var href = item.link || '#';
+        return '<a class="home-news-row" href="' + escapeHomeHtml(href) + '" target="_blank" rel="noopener">'
+          + '<time>' + escapeHomeHtml(homeNewsTime(item.pubDate)) + '</time>'
+          + '<span class="home-news-content">'
+          + '<span class="home-news-category">' + escapeHomeHtml(category) + '</span>'
+          + '<span class="home-news-title">' + escapeHomeHtml(item.title || '제목 없음') + '</span>'
+          + '<small>' + escapeHomeHtml(source) + '</small></span></a>';
+      }).join('');
+    }
+
+    var homeNewsCacheKey = 'home_domestic_news_v1';
+    var cachedHomeNews = readHomeDataCache(homeNewsCacheKey, 3 * 60 * 1000);
+    if (cachedHomeNews) renderHomeNews(cachedHomeNews);
+    fetchHomeJson('https://goodbyestar.cloud/domestic-news?limit=10', 12000)
+      .then(function (payload) {
+        writeHomeDataCache(homeNewsCacheKey, payload);
+        renderHomeNews(payload);
+      })
+      .catch(function () {
+        if (!cachedHomeNews) renderHomeNews({ data: { items: [] } });
+      });
+
     var allCards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     var marketCards = allCards.filter(function (card) { return card.getAttribute('data-cat') === '마켓 브리핑'; });
     var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 8);

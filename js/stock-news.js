@@ -470,8 +470,17 @@
     var resultBox = container.querySelector('#snResult');
     resultBox.innerHTML = '<div class="sn-loading">' + escapeHtml(stock.name) + ' 관련 뉴스를 불러오는 중...</div>';
 
-    fetchJson(GAS_TICKER_URL + '?news=1&code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name))
-      .then(function (data) { renderNews(resultBox, stock, data); })
+    fetchJson('https://goodbyestar.cloud/domestic-news?code=' + encodeURIComponent(stock.code)
+      + '&name=' + encodeURIComponent(stock.name) + '&limit=10')
+      .then(function (data) {
+        var items = data && data.data && Array.isArray(data.data.items) ? data.data.items : [];
+        if (items.length) {
+          renderNews(resultBox, stock, { items: items.map(normalizeDomesticNewsItem) });
+          return;
+        }
+        return fetchJson(GAS_TICKER_URL + '?news=1&code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name))
+          .then(function (legacy) { renderNews(resultBox, stock, legacy); });
+      })
       .catch(function () {
         resultBox.innerHTML = '<div class="sn-error">뉴스를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
@@ -707,6 +716,29 @@
   function todayYyyymmdd() {
     var d = new Date();
     return '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  }
+
+  function normalizeDomesticNewsItem(item) {
+    var raw = String(item && item.pubDate || '');
+    var date = new Date(raw);
+    var datetime = '';
+    if (!isNaN(date.getTime())) {
+      var parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      }).formatToParts(date).reduce(function (map, part) {
+        map[part.type] = part.value;
+        return map;
+      }, {});
+      datetime = parts.year + parts.month + parts.day + parts.hour + parts.minute;
+    } else if (/^\d{8}$/.test(raw)) {
+      datetime = raw + '0000';
+    }
+    return {
+      title: item.title || '', link: item.link || '',
+      press: (item.category ? '[' + item.category + '] ' : '') + (item.source || item.provider || 'Naver'),
+      datetime: datetime, body: item.description || '', image: ''
+    };
   }
 
   function renderNews(box, stock, data) {

@@ -28,6 +28,7 @@
     'pattern',
     'schedule',
     'disclosure',
+    'news',
     'briefing'
   ];
   var LABELS = {
@@ -37,6 +38,7 @@
     pattern: '오늘의 패턴',
     schedule: '주요 일정',
     disclosure: '실시간 공시',
+    news: '시장 뉴스·공시',
     briefing: '마켓브리핑'
   };
 
@@ -161,7 +163,8 @@
     var ranking = cards && cards.querySelector('.home-rank-slot');
     var pattern = cards && cards.querySelector('.home-pattern-card');
     var schedule = cards && cards.querySelector('.home-schedule-card');
-    if (!investor || !market || !ranking || !pattern || !schedule || !options.briefing) return false;
+    var news = dashboard.querySelector('.home-news-card');
+    if (!investor || !market || !ranking || !pattern || !schedule || !news || !options.briefing) return false;
 
     var disclosure = document.createElement('div');
     disclosure.innerHTML = disclosureCardHtml();
@@ -175,6 +178,7 @@
       pattern,
       schedule,
       disclosure.firstElementChild,
+      news,
       options.briefing
     ].forEach(function (node) { grid.appendChild(node); });
 
@@ -187,6 +191,7 @@
     decorate(pattern, 'pattern', 'compact');
     decorate(schedule, 'schedule', 'compact');
     decorate(grid.querySelector('.home-disclosure-card'), 'disclosure', 'compact');
+    decorate(news, 'news', 'full');
     decorate(options.briefing, 'briefing', 'full');
     return true;
   }

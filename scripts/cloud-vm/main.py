@@ -27,6 +27,7 @@ import btc_futures
 import dart_client
 import db_schema
 import domestic_futures
+import domestic_news
 import earnings_calendar
 import finnhub_realtime
 import foreign_flow_compute
@@ -1263,6 +1264,27 @@ def naver_news_endpoint(query: str = Query(..., min_length=1, max_length=100), x
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET')
     items = naver_news.search_news(query, client_id, client_secret)
     return envelope(items)
+
+
+@app.get('/domestic-news')
+def domestic_news_endpoint(
+    request: Request,
+    code: str = Query('', min_length=0, max_length=6),
+    name: str = Query('', max_length=100),
+    query: str = Query('', max_length=100),
+    limit: int = Query(10, ge=1, le=50),
+):
+    """국내 전체/종목별 뉴스와 DART 공시를 시간순으로 반환한다.
+
+    브라우저가 네이버·DART 키를 알 필요 없도록 서버에서 수집하고,
+    캐시된 결과를 우선 반환한다. 종목 코드는 국내 6자리 숫자만 허용한다.
+    """
+    _check_rate_limit('domestic_news', request, max_per_window=20)
+    normalized_code = (code or '').strip()
+    if normalized_code and (len(normalized_code) != 6 or not normalized_code.isdigit()):
+        raise HTTPException(status_code=400, detail='domestic stock code must be 6 digits')
+    result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit)
+    return envelope(result)
 
 
 @app.get('/news-momentum/{code}')
