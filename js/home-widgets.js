@@ -693,7 +693,7 @@
     }
     mount.innerHTML = selection.items.map(function (item) {
       var link = item.link || 'https://finnhub.io/docs/api/earnings-calendar';
-      return '<a class="home-disclosure-row home-us-schedule-row" href="' + escapeHtml(link) + '" target="_blank" rel="noopener">'
+      return '<a class="home-disclosure-row home-us-schedule-row" href="' + escapeHtml(link) + '" target="_blank" rel="noopener" draggable="false">'
         + '<strong>미국</strong>'
         + '<span>' + escapeHtml(scheduleTitle(item.title)) + '</span>'
         + '<time>' + escapeHtml(scheduleTime(item.start)) + '</time></a>';
@@ -718,6 +718,11 @@
       startScroll = list.scrollLeft;
       list.classList.add('is-dragging');
       if (list.setPointerCapture) list.setPointerCapture(event.pointerId);
+    });
+    // Prevent the browser's native link-drag gesture from taking over the
+    // horizontal scroll gesture on schedule anchors.
+    list.addEventListener('dragstart', function (event) {
+      event.preventDefault();
     });
     list.addEventListener('pointermove', function (event) {
       if (!dragging) return;

@@ -723,6 +723,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   border-radius: 9px;
   background: #fbfcfd;
   scroll-snap-align: start;
+  -webkit-user-drag: none;
 }
 .home-top-disclosures .home-disclosure-row strong,
 .home-top-disclosures .home-disclosure-row span,
