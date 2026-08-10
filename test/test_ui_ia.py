@@ -574,6 +574,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/stock-calendar.css")
         self.assertIn("function eventMatchesSearch(event, query)", source)
         self.assertIn('id="scSearch"', source)
+        self.assertIn("compositionstart", source)
+        self.assertIn("compositionend", source)
         self.assertIn("검색 결과 ' + visibleEvents.length + '건", source)
         self.assertIn(".sc-search input", style)
         self.assertIn("stock-calendar.js?v=20260811-calendar-search", home)

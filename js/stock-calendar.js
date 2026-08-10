@@ -340,7 +340,8 @@
       if (clearDay) clearDay.addEventListener('click', function () { renderPage(year, month, evs); });
       var searchInput = document.getElementById('scSearch');
       if (searchInput) {
-        searchInput.addEventListener('input', function () {
+        var isComposing = false;
+        var rerenderSearch = function () {
           searchQuery = searchInput.value;
           renderPage(year, month, evs, selectedDay);
           var refreshedInput = document.getElementById('scSearch');
@@ -348,6 +349,15 @@
             refreshedInput.focus();
             refreshedInput.setSelectionRange(searchQuery.length, searchQuery.length);
           }
+        };
+        searchInput.addEventListener('compositionstart', function () { isComposing = true; });
+        searchInput.addEventListener('compositionend', function () {
+          isComposing = false;
+          rerenderSearch();
+        });
+        searchInput.addEventListener('input', function () {
+          searchQuery = searchInput.value;
+          if (!isComposing) rerenderSearch();
         });
       }
     }
