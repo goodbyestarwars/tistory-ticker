@@ -33,6 +33,7 @@ QUOTE_TTL_SEC = 10
 MAX_CACHE_ENTRIES = 100
 NY_TZ = ZoneInfo('America/New_York')
 US_DAILY_LOOKBACK_CALENDAR_DAYS = 730
+US_DAILY_MIN_POINTS_FOR_LONG_MA = 224
 YAHOO_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/'
 
 _cache_lock = threading.Lock()
@@ -366,7 +367,15 @@ def chart(symbol, timeframe='minute'):
                         'price': price,
                         'volume': _number(_first(row, 'trde_qty', 'acc_trde_qty')) or 0,
                     })
-                if points:
+                # usa06012 can return a successful response with only its capped
+                # page (currently about 100 rows), even when a two-year start date
+                # was requested. That is not enough to calculate the 224-day MA.
+                # Keep Kiwoom for short/intraday charts, but use the two-year Yahoo
+                # fallback for daily charts whenever the long lookback is incomplete.
+                has_long_daily_history = (
+                    timeframe != 'daily' or len(points) >= US_DAILY_MIN_POINTS_FOR_LONG_MA
+                )
+                if points and has_long_daily_history:
                     points.sort(key=lambda point: point['time'])
                     return {
                         'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
@@ -374,6 +383,11 @@ def chart(symbol, timeframe='minute'):
                         'points': points, 'updated_at': int(time.time()),
                         'source': '키움증권 REST API',
                     }
+                if timeframe == 'daily' and points:
+                    logger.warning(
+                        'Kiwoom daily chart returned only %s points for %s; using Yahoo two-year fallback',
+                        len(points), symbol,
+                    )
         except Exception as exc:
             last_error = exc
     try:
