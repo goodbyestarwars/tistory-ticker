@@ -304,6 +304,7 @@
     var annualSearchLoading = false;
     var searchRequestId = 0;
     var searchTimer = null;
+    var isComposing = false;
 
     function load(year, month) {
       if (month < 0) { month = 11; year -= 1; }
@@ -323,6 +324,7 @@
 
     function requestYearSearch(year, month, monthEvents, selectedDay) {
       var requestId = ++searchRequestId;
+      var queryAtRequest = searchQuery;
       if (!searchQuery.trim()) {
         annualEvents = null;
         annualSearchLoading = false;
@@ -332,10 +334,8 @@
       }
       annualEvents = null;
       annualSearchLoading = true;
-      renderPage(year, month, monthEvents, undefined, [], true);
-      restoreSearchFocus();
       StockCalendar.fetchYearEvents(year).then(function (events) {
-        if (requestId !== searchRequestId) return;
+        if (requestId !== searchRequestId || queryAtRequest !== searchQuery || isComposing) return;
         annualEvents = events;
         annualSearchLoading = false;
         renderPage(year, month, monthEvents, undefined, annualEvents, true);
@@ -424,7 +424,6 @@
       if (clearDay) clearDay.addEventListener('click', function () { renderPage(year, month, evs); });
       var searchInput = document.getElementById('scSearch');
       if (searchInput) {
-        var isComposing = false;
         var scheduleSearch = function () {
           searchQuery = searchInput.value;
           if (searchTimer) clearTimeout(searchTimer);
@@ -435,11 +434,11 @@
         searchInput.addEventListener('compositionstart', function () { isComposing = true; });
         searchInput.addEventListener('compositionend', function () {
           isComposing = false;
-          scheduleSearch();
+          setTimeout(scheduleSearch, 0);
         });
-        searchInput.addEventListener('input', function () {
+        searchInput.addEventListener('input', function (event) {
           searchQuery = searchInput.value;
-          if (!isComposing) scheduleSearch();
+          if (!isComposing && !event.isComposing && event.inputType !== 'insertCompositionText') scheduleSearch();
         });
       }
     }
