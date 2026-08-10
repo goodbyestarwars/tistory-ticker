@@ -686,6 +686,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 }
 .home-top-disclosures .home-disclosure-list {
   display: flex;
+  flex-direction: row;
   gap: 8px;
   margin-top: 8px;
   overflow-x: auto;
