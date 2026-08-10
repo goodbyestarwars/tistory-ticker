@@ -501,6 +501,21 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ss-price-study-label", style)
         self.assertIn(".ss-chart { position: relative; height: 420px; }", style)
 
+    def test_us_stock_detail_uses_site_font_and_consistent_type_scale(self):
+        source = self.read("js/us-stocks.js")
+        search = self.read("js/stock-search.js")
+        style = self.read("css/us-stocks.css")
+        self.assertIn("us-stocks.css?v=20260811-font-scale", source)
+        self.assertIn("us-stocks.js?v=20260811-font-scale", search)
+        self.assertIn("font-family: inherit", style)
+        for token in (
+            ".us-stocks-metric span { color: #8b95a1; font-size: 12px;",
+            ".us-stocks-metric b { margin-top: 4px; font-size: 15px;",
+            ".us-stocks-panel-head h4 { margin: 0; font-size: 16px;",
+            ".us-stocks-news-time { display: block; margin-bottom: 3px; color: #f97316; font-size: 12px;",
+        ):
+            self.assertIn(token, style)
+
     def test_stock_analysis_chart_matches_price_studies_and_replaces_volume_profile_with_volume(self):
         source = self.read("js/foreign-flow.js")
         style = self.read("css/foreign-flow.css")
