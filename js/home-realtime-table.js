@@ -16,7 +16,37 @@
     ['industry', '업종']
   ];
   var state = { mount: null, market: '', active: 'tradeAmount', data: null, socket: null, timer: null, loading: false };
+  var NAVER_ICON_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var ICONIFY_BASE = 'https://api.iconify.design/';
+  var FAVICON_BASE = 'https://icons.duckduckgo.com/ip3/';
+  // 로컬 아이콘이 아직 없는 미국 종목은 Iconify의 공개 브랜드 아이콘을 먼저 시도한다.
+  // 브랜드 아이콘이 없는 경우에도 회사 공식 도메인의 favicon을 한 번 더 시도해
+  // 단순 이니셜 박스로 끝나는 종목을 줄인다.
+  var BRAND_ICON_MAP = {
+    SPCX: ['simple-icons', 'spacex'],
+    SNDK: ['thesvg-color', 'sandisk'],
+    INTC: ['simple-icons', 'intel'],
+    CSCO: ['simple-icons', 'cisco'],
+    WFC: ['simple-icons', 'wellsfargo'],
+    GOOGL: ['simple-icons', 'google'],
+    GOOG: ['simple-icons', 'google'],
+    MCD: ['simple-icons', 'mcdonalds'],
+    AZN: ['thesvg-color', 'astrazeneca']
+  };
+  var BRAND_DOMAIN_MAP = {
+    SPCX: 'spacex.com',
+    SNDK: 'sandisk.com',
+    INTC: 'intel.com',
+    CSCO: 'cisco.com',
+    WFC: 'wellsfargo.com',
+    MRVL: 'marvell.com',
+    MCD: 'mcdonalds.com',
+    AZN: 'astrazeneca.com',
+    CCL: 'carnival.com',
+    HWM: 'howmet.com',
+    NSC: 'norfolksouthern.com'
+  };
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -26,6 +56,49 @@
 
   function cssEscape(value) {
     return String(value).replace(/(["\\])/g, '\\$1');
+  }
+
+  function stockIconFallback(image) {
+    if (!image) return;
+    var code = image.getAttribute('data-icon-code') || '';
+    var stage = image.getAttribute('data-icon-stage') || 'svg';
+    var market = image.getAttribute('data-icon-market') || '';
+    var brand = BRAND_ICON_MAP[code];
+    var domain = BRAND_DOMAIN_MAP[code];
+    if (stage === 'local') {
+      image.setAttribute('data-icon-stage', 'naver');
+      image.setAttribute('data-icon-naver-code', market === 'us' ? code + '.O' : code);
+      image.src = NAVER_ICON_BASE + encodeURIComponent(image.getAttribute('data-icon-naver-code')) + '.svg';
+      return;
+    }
+    if (stage === 'naver') {
+      if (market === 'us' && image.getAttribute('data-icon-naver-code') === code + '.O') {
+        image.setAttribute('data-icon-naver-code', code);
+        image.setAttribute('data-icon-stage', 'naver-bare');
+        image.src = NAVER_ICON_BASE + encodeURIComponent(code) + '.svg';
+        return;
+      }
+      image.setAttribute('data-icon-stage', 'png');
+      image.src = STOCK_ICON_BASE + encodeURIComponent(code) + '.png';
+      return;
+    }
+    if (stage === 'naver-bare' || stage === 'svg') {
+      image.setAttribute('data-icon-stage', 'png');
+      image.src = STOCK_ICON_BASE + encodeURIComponent(code) + '.png';
+      return;
+    }
+    if (stage === 'png' && brand) {
+      image.setAttribute('data-icon-stage', 'iconify');
+      image.src = ICONIFY_BASE + encodeURIComponent(brand[0]) + '/' + encodeURIComponent(brand[1]) + '.svg';
+      return;
+    }
+    if ((stage === 'png' || stage === 'iconify') && domain) {
+      image.setAttribute('data-icon-stage', 'favicon');
+      image.src = FAVICON_BASE + encodeURIComponent(domain) + '.ico';
+      return;
+    }
+    image.style.display = 'none';
+    if (image.nextElementSibling) image.nextElementSibling.hidden = false;
   }
 
   function number(value) {
@@ -45,10 +118,13 @@
 
   function stockIconHtml(item) {
     var code = String(item.code || item.symbol || '').replace(/^US:/i, '').toUpperCase();
+    var market = String(item.market || state.market || currentMarket()).toLowerCase();
+    var naverCode = market === 'us' ? code + '.O' : code;
     var initials = String(item.name || item.symbol || code).replace(/\s+/g, '').slice(0, 2);
     if (!code) return '<span class="hrt-stock-logo hrt-stock-logo--fallback">?</span>';
     return '<span class="hrt-stock-logo"><img src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" '
-      + 'onerror="this.style.display=\'none\';this.nextElementSibling.hidden=false;" />'
+      + 'data-icon-code="' + escapeHtml(code) + '" data-icon-market="' + escapeHtml(market) + '" data-icon-naver-code="' + escapeHtml(naverCode) + '" data-icon-stage="local" referrerpolicy="no-referrer" '
+      + 'onerror="window.HomeRealtimeTableIconFallback(this);" />'
       + '<span class="hrt-stock-logo--fallback" hidden>' + escapeHtml(initials) + '</span></span>';
   }
 
@@ -280,5 +356,6 @@
     }, SESSION_CHECK_MS);
   }
 
+  global.HomeRealtimeTableIconFallback = stockIconFallback;
   global.HomeRealtimeTable = { init: init };
 })(window);

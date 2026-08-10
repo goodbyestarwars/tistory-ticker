@@ -180,6 +180,7 @@
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '</div>'
+        + '<div class="hmb-summary-head"><strong data-home-summary-field="title">국내 시장 요약</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list">'
         + '<div><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
         + '<div><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
@@ -215,6 +216,16 @@
       element.textContent = text;
       element.classList.remove('home-positive', 'home-negative', 'home-neutral');
       if (tone) element.classList.add(tone);
+    }
+
+    function applyHomeSummarySession(session) {
+      var isUs = session && session.keys && session.keys[0] === 'NASDAQ100';
+      var title = dashboardSection.querySelector('[data-home-summary-field="title"]');
+      var meta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
+      var labels = dashboardSection.querySelectorAll('.hmb-list dt');
+      if (title) title.textContent = isUs ? '미국 시장 요약' : '국내 시장 요약';
+      if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
+      if (labels[0]) labels[0].textContent = isUs ? '상승 종목 비율' : '증시온도';
     }
 
     function sectorSummary(data) {
@@ -268,6 +279,15 @@
       return { label: '데이터 확인 중', tone: 'home-neutral' };
     }
 
+    function renderMarketExchange(market) {
+      var exchange = market && market.components && market.components.exchange;
+      if (!exchange || typeof exchange.price !== 'number') return;
+      var exchangeRate = Number(exchange.changeRate);
+      var arrow = exchangeRate > 0 ? ' ▲' : exchangeRate < 0 ? ' ▼' : '';
+      setField('exchange', exchange.price.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '원' + arrow,
+        exchangeRate > 0 ? 'home-positive' : exchangeRate < 0 ? 'home-negative' : 'home-neutral');
+    }
+
     function renderMarketTemperature(market) {
       if (market && typeof market.temp === 'number') {
         var grade = market.grade && market.grade.label ? ' ' + market.grade.label : '';
@@ -284,6 +304,57 @@
         var updated = document.getElementById('hmbUpdated');
         if (updated && market.updatedAt) updated.textContent = formatHomeTimestamp(market.updatedAt) + ' 기준';
       }
+    }
+
+    function summarizeUsMarket(data) {
+      var payload = data && data.data ? data.data : data;
+      var rows = payload && payload.rows ? payload.rows : [];
+      var valid = rows.map(function (row) {
+        return { rate: Number(row && row.change_rate), industry: String(row && row.industry || '').trim() };
+      }).filter(function (row) { return isFinite(row.rate); });
+      if (!valid.length) return null;
+      var rising = valid.filter(function (row) { return row.rate > 0; }).length;
+      var riseRatio = rising / valid.length;
+      var averageRate = valid.reduce(function (sum, row) { return sum + row.rate; }, 0) / valid.length;
+      var groups = {};
+      valid.forEach(function (row) {
+        if (!row.industry) return;
+        if (!groups[row.industry]) groups[row.industry] = { total: 0, count: 0 };
+        groups[row.industry].total += row.rate;
+        groups[row.industry].count += 1;
+      });
+      var industries = Object.keys(groups).map(function (industry) {
+        return { industry: industry, average: groups[industry].total / groups[industry].count };
+      }).sort(function (a, b) { return b.average - a.average; });
+      return {
+        riseRatio: riseRatio,
+        averageRate: averageRate,
+        direction: resolveMarketDirection({ components: {
+          riseRatio: { ratio: riseRatio },
+          avgChange: { avgChangeRate: averageRate }
+        } }),
+        leaders: industries.filter(function (item) { return item.average > 0; }).slice(0, 3),
+        cautions: industries.filter(function (item) { return item.average < 0; }).slice(-3).reverse(),
+        updatedAt: payload && payload.updatedAt
+      };
+    }
+
+    function renderUsMarketSummary(data) {
+      var summary = summarizeUsMarket(data);
+      if (!summary) {
+        setField('temperature', '데이터 확인 중', 'home-neutral');
+        setField('direction', '데이터 확인 중', 'home-neutral');
+        setField('leaders', '데이터 확인 중', 'home-neutral');
+        setField('cautions', '데이터 확인 중', 'home-neutral');
+        return;
+      }
+      var ratio = (summary.riseRatio * 100).toFixed(1) + '%';
+      setField('temperature', ratio, summary.riseRatio >= 0.55 ? 'home-positive' : summary.riseRatio <= 0.45 ? 'home-negative' : 'home-neutral');
+      setField('direction', summary.direction.label, summary.direction.tone);
+      setField('leaders', summary.leaders.length ? summary.leaders.map(function (item) { return item.industry; }).join(' · ') : '데이터 확인 중', 'home-positive');
+      setField('cautions', summary.cautions.length ? summary.cautions.map(function (item) { return item.industry; }).join(' · ') : '데이터 확인 중', 'home-negative');
+      var updated = document.getElementById('hmbUpdated');
+      if (updated && summary.updatedAt) updated.textContent = formatHomeTimestamp(summary.updatedAt) + ' 기준';
     }
 
     function renderMarketSectors(bubble) {
@@ -437,16 +508,30 @@
     var marketSectorCacheKey = 'home_market_sectors_v1';
     var cachedMarketTemp = readHomeDataCache(marketTempCacheKey, 10 * 60 * 1000);
     var cachedMarketSectors = readHomeDataCache(marketSectorCacheKey, 30 * 60 * 1000);
-    if (cachedMarketTemp) renderMarketTemperature(cachedMarketTemp);
-    if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
+    var summarySessionKey = '';
+    var loadHomeUsSummary;
+    var loadHomeDomesticSummary;
+
+    function loadSummaryForSession(session) {
+      var isUs = session && session.keys && session.keys[0] === 'NASDAQ100';
+      var nextKey = (session.keys || []).join('|');
+      summarySessionKey = nextKey;
+      applyHomeSummarySession(session);
+      if (isUs) {
+        loadHomeUsSummary();
+      } else {
+        loadHomeDomesticSummary();
+      }
+    }
 
     fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 12000)
       .then(function (market) {
         writeHomeDataCache(marketTempCacheKey, market);
-        renderMarketTemperature(market);
+        if (homeMarketSession().keys[0] === 'NASDAQ100') renderMarketExchange(market);
+        else renderMarketTemperature(market);
       })
       .catch(function () {
-        if (!cachedMarketTemp) {
+        if (!cachedMarketTemp && homeMarketSession().keys[0] !== 'NASDAQ100') {
           setField('temperature', '일시 지연', 'home-neutral');
           setField('direction', '데이터 확인 중', 'home-neutral');
           setField('exchange', '일시 지연', 'home-neutral');
@@ -467,10 +552,34 @@
             setField('leaders', '일시 지연', 'home-neutral');
             setField('cautions', '일시 지연', 'home-neutral');
           }
+      });
+    };
+
+    loadHomeUsSummary = function () {
+      fetchHomeJson('https://goodbyestar.cloud/market-board?market=us&limit=20', 12000)
+        .then(renderUsMarketSummary)
+        .catch(function () {
+          setField('temperature', '데이터 확인 중', 'home-neutral');
+          setField('direction', '데이터 확인 중', 'home-neutral');
+          setField('leaders', '데이터 확인 중', 'home-neutral');
+          setField('cautions', '데이터 확인 중', 'home-neutral');
         });
     };
-    if (window.requestIdleCallback) window.requestIdleCallback(loadHomeSectors, { timeout: 2500 });
-    else setTimeout(loadHomeSectors, 0);
+
+    loadHomeDomesticSummary = function () {
+      if (cachedMarketTemp) renderMarketTemperature(cachedMarketTemp);
+      if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
+      if (window.requestIdleCallback) window.requestIdleCallback(loadHomeSectors, { timeout: 2500 });
+      else setTimeout(loadHomeSectors, 0);
+    };
+
+    loadSummaryForSession(homeMarketSession());
+    setInterval(function () {
+      if (document.hidden) return;
+      var session = homeMarketSession();
+      var nextKey = (session.keys || []).join('|');
+      if (nextKey !== summarySessionKey) loadSummaryForSession(session);
+    }, 60 * 1000);
 
     function calendarMeta(rawTitle) {
       var segments = String(rawTitle || '').split('|').map(function (item) { return item.trim(); });

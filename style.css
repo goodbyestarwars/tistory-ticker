@@ -685,12 +685,22 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   font-size: 10px;
 }
 .home-top-disclosures .home-disclosure-list {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
   margin-top: 8px;
+  overflow-x: auto;
+  cursor: grab;
+  user-select: none;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+  touch-action: pan-y;
+}
+.home-top-disclosures .home-disclosure-list.is-dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
 }
 .home-top-disclosures .home-disclosure-row {
+  flex: 0 0 clamp(170px, 18vw, 210px);
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -701,6 +711,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   border: 1px solid #edf0f3;
   border-radius: 9px;
   background: #fbfcfd;
+  scroll-snap-align: start;
 }
 .home-top-disclosures .home-disclosure-row strong,
 .home-top-disclosures .home-disclosure-row span,
@@ -710,6 +721,9 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+@media (max-width: 640px) {
+  .home-top-disclosures .home-disclosure-row { flex-basis: 76vw; }
+}
 .home-top-disclosures .home-disclosure-row strong { font-size: 11px; }
 .home-top-disclosures .home-disclosure-row span { width: auto; font-size: 11px; }
 .home-top-disclosures .home-disclosure-row time {
@@ -717,12 +731,28 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
-.hmb-list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 14px 0 0;
-}
+  .hmb-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 14px 0 0;
+  }
+  .hmb-summary-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .hmb-summary-head strong {
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .hmb-summary-head span {
+    color: #a0a7b0;
+    font-size: 10px;
+  }
 .hmb-list > div {
   min-width: 0;
   min-height: 0;
@@ -1119,8 +1149,10 @@ html.dark .home-pattern-stock strong,
 html.dark .home-schedule-title { color: #F5EFE0 !important; }
 html.dark .home-card-heading span,
 html.dark .home-card-state,
-html.dark .hmb-list dt { color: rgba(245, 239, 224, .5) !important; }
-html.dark .hmb-list > div { background: rgba(245, 239, 224, .05) !important; }
+  html.dark .hmb-list dt { color: rgba(245, 239, 224, .5) !important; }
+  html.dark .hmb-list > div { background: rgba(245, 239, 224, .05) !important; }
+  html.dark .hmb-summary-head strong { color: #F5EFE0 !important; }
+  html.dark .hmb-summary-head span { color: rgba(245, 239, 224, .5) !important; }
 html.dark .hmb-list > div,
 html.dark .home-pattern-row,
 html.dark .home-pattern-preview-heading,
@@ -4076,7 +4108,7 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hrt-rank { width: 14px; font-size: 10px; }
 .hrt-price { font-size: 12px !important; }
 .hrt-stock-logo { position: relative; display: inline-grid; width: 25px; height: 25px; flex: 0 0 25px; place-items: center; overflow: hidden; border-radius: 7px; background: #f1f3f5; color: #66727f; font-size: 9px; font-weight: 700; }
-.hrt-stock-logo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.hrt-stock-logo img { display: block; width: 100%; height: 100%; object-fit: contain; padding: 2px; box-sizing: border-box; }
 .hrt-stock-logo--fallback { display: grid; width: 100%; height: 100%; place-items: center; }
 .hrt-stock-logo--fallback[hidden] { display: none; }
 .hrt-foot { padding-top: 7px; font-size: 9px; }
