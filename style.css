@@ -828,6 +828,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   text-align: left;
   white-space: nowrap;
 }
+.hmb-list dd[title] { cursor: help; }
 .home-positive { color: #d24f45 !important; }
 .home-negative { color: #1261c4 !important; }
 .home-neutral { color: #555 !important; }
