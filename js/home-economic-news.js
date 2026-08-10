@@ -2,9 +2,10 @@
 (function (global) {
   'use strict';
 
-  var API_URL = 'https://goodbyestar.cloud/domestic-news?limit=10';
+  var API_URL = 'https://goodbyestar.cloud/domestic-news?limit=50';
+  var MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
   var REFRESH_MS = 5 * 60 * 1000;
-  var state = { mount: null, timer: null };
+  var state = { mount: null, timer: null, quoteMap: {} };
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -32,23 +33,53 @@
   }
 
   function kindLabel(item) {
-    if (item && item.kind === 'disclosure') return '공시';
     return item && item.category && item.category !== '일반' ? item.category : '뉴스';
+  }
+
+  function quoteMapFrom(payload) {
+    var data = payload && (payload.data || payload);
+    var map = {};
+    Object.keys((data && data.sections) || {}).forEach(function (key) {
+      (data.sections[key] || []).forEach(function (row) {
+        if (!row) return;
+        var rate = Number(row.change_rate);
+        var entry = { rate: isFinite(rate) ? rate : 0, name: String(row.name || '').trim() };
+        if (row.code) map[String(row.code).toUpperCase()] = entry;
+        if (entry.name) map['name:' + entry.name.toLowerCase()] = entry;
+      });
+    });
+    return map;
+  }
+
+  function quoteFor(item) {
+    var code = String(item.stockCode || '').trim().toUpperCase();
+    if (code && state.quoteMap[code]) return state.quoteMap[code];
+    var stockName = String(item.stockName || '').trim().toLowerCase();
+    if (stockName && state.quoteMap['name:' + stockName]) return state.quoteMap['name:' + stockName];
+    var title = String(item.title || '').toLowerCase();
+    var found = null;
+    Object.keys(state.quoteMap).some(function (key) {
+      if (key.indexOf('name:') !== 0) return false;
+      var name = key.slice(5);
+      if (name && title.indexOf(name) !== -1) { found = state.quoteMap[key]; return true; }
+      return false;
+    });
+    return found;
   }
 
   function render(items) {
     var list = state.mount.querySelector('[data-hen-list]');
     var updated = state.mount.querySelector('[data-hen-updated]');
-    var rows = (items || []).slice().sort(function (a, b) {
-      var disclosure = Number(b.kind === 'disclosure') - Number(a.kind === 'disclosure');
-      return disclosure || dateValue(b.pubDate) - dateValue(a.pubDate);
+    var rows = (items || []).filter(function (item) { return item && item.kind !== 'disclosure'; }).slice().sort(function (a, b) {
+      return dateValue(b.pubDate) - dateValue(a.pubDate);
     }).slice(0, 8);
     if (!rows.length) {
       list.innerHTML = '<p class="home-card-state">현재 표시할 경제 뉴스가 없습니다.</p>';
       return;
     }
     list.innerHTML = rows.map(function (item, index) {
-      var tone = item.kind === 'disclosure' ? ' is-disclosure' : '';
+      var quote = quoteFor(item);
+      var tone = quote && quote.rate > 0 ? ' is-up' : quote && quote.rate < 0 ? ' is-down' : '';
       return '<a class="hen-row' + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
         + '<span class="hen-rail"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
         + '<time>' + escapeHtml(timeLabel(item.pubDate)) + '</time>'
@@ -59,11 +90,17 @@
     if (updated) updated.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
   }
 
-  function fetchNews() {
-    return fetch(API_URL).then(function (response) {
+  function fetchJson(url) {
+    return fetch(url).then(function (response) {
       if (!response.ok) throw new Error('economic-news ' + response.status);
       return response.json();
-    }).then(function (json) {
+    });
+  }
+
+  function fetchNews() {
+    return Promise.all([fetchJson(API_URL), fetchJson(MARKET_API_URL).catch(function () { return null; })]).then(function (result) {
+      state.quoteMap = quoteMapFrom(result[1]);
+      var json = result[0];
       var payload = json.data || json;
       render(payload.items || []);
     }).catch(function () {

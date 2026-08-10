@@ -4,7 +4,7 @@
 
   var API_URL = 'https://goodbyestar.cloud/market-board';
   var WS_URL = 'wss://goodbyestar.cloud/ws/quotes';
-  var LIMIT = 10;
+  var LIMIT = 20;
   var REFRESH_MS = 30 * 1000;
   var SESSION_CHECK_MS = 60 * 1000;
   var TABS = [
