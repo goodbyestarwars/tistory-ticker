@@ -304,6 +304,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "var domesticCodes = codes.filter",
             "var canUseSocket = domesticCodes.length",
             "var REALTIME_FALLBACK_MS = 15000;",
+            "NXT 장 전환",
             "var fallbackCodes = codes.slice();",
             "if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);",
         ):
@@ -328,6 +329,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in ("home-my-name", "home-my-quote", "현재가 확인 중", "formatPrice(quote.price)"):
             self.assertIn(token, widgets)
         self.assertIn(".home-my-list", style)
+        self.assertIn("myRealtimeFallbackTimer", widgets)
+        self.assertIn("REALTIME_FALLBACK_MS = 15000", widgets)
         self.assertIn("scrollbar-color: transparent transparent", style)
         self.assertIn("scrollbar-width: none", style)
         self.assertIn("sr-details", rank)
