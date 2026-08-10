@@ -40,7 +40,7 @@
   }
 
   function marketLabel(market) {
-    return market === 'us' ? '미국 · 20:00~08:00' : '국내 · 08:00~20:00';
+    return market === 'us' ? '미국 · 오후 08:00~오전 08:00' : '국내 · 오전 08:00~오후 08:00';
   }
 
   function stockIconHtml(item) {
@@ -237,7 +237,7 @@
       var updated = state.mount.querySelector('[data-hrt-updated]');
       var source = state.mount.querySelector('[data-hrt-source]');
       if (session) session.textContent = state.data.session || marketLabel(market);
-      if (updated) updated.textContent = '실시간 · ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      if (updated) updated.textContent = '실시간 · ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
       if (source) source.textContent = state.data.source || '시장 데이터';
       renderRows();
       startRealtime();

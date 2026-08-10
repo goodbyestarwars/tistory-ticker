@@ -125,7 +125,7 @@ def fetch_domestic(token, limit=12, wics_map=None):
     sections = _sections(rows)
     return {
         'market': 'domestic',
-        'session': '국내 · 08:00~20:00',
+        'session': '국내 · 오전 08:00~오후 08:00',
         'rows': sections['tradeAmount'][:limit],
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),
@@ -168,7 +168,7 @@ def fetch_us(limit=12, finnhub_api_key=''):
     sections = _sections(rows)
     return {
         'market': 'us',
-        'session': '미국 · 20:00~08:00',
+        'session': '미국 · 오후 08:00~오전 08:00',
         'rows': sections['tradeAmount'][:limit],
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),

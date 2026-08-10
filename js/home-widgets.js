@@ -577,9 +577,9 @@
     if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.slice(5, 7) + '.' + raw.slice(8, 10);
     var date = new Date(raw);
     if (isNaN(date.getTime())) return '';
-    var parts = new Intl.DateTimeFormat('en-US', {
+    var parts = new Intl.DateTimeFormat('ko-KR', {
       timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', hour12: false
+      hour: '2-digit', minute: '2-digit', hour12: true
     }).formatToParts(date).reduce(function (map, part) {
       map[part.type] = part.value;
       return map;
@@ -587,7 +587,7 @@
     var dateText = parts.month + '.' + parts.day;
     return parts.hour === '00' && parts.minute === '00'
       ? dateText
-      : dateText + ' ' + parts.hour + ':' + parts.minute;
+      : dateText + ' ' + parts.dayPeriod + ' ' + parts.hour + ':' + parts.minute;
   }
 
   function renderDisclosures(items) {

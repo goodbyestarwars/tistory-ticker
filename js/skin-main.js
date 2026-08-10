@@ -57,10 +57,10 @@
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260810-market-board')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260810-market-board';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260810';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260810';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260810-market-board-time12')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260810-market-board-time12';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260810-session12h';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260810-session12h';
 
     function escapeHomeHtml(value) {
       return String(value == null ? '' : value)
@@ -282,7 +282,7 @@
             exchangeRate > 0 ? 'home-positive' : exchangeRate < 0 ? 'home-negative' : 'home-neutral');
         }
         var updated = document.getElementById('hmbUpdated');
-        if (updated && market.updatedAt) updated.textContent = market.updatedAt + ' 기준';
+        if (updated && market.updatedAt) updated.textContent = formatHomeTimestamp(market.updatedAt) + ' 기준';
       }
     }
 
@@ -326,10 +326,24 @@
         + '</svg>';
     }
 
+    function formatHomeTimestamp(value) {
+      var date = new Date(value);
+      if (isNaN(date.getTime())) return String(value || '');
+      var parts = new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+      }).formatToParts(date).reduce(function (map, part) {
+        map[part.type] = part.value;
+        return map;
+      }, {});
+      return parts.year + '-' + parts.month + '-' + parts.day + ' '
+        + parts.dayPeriod + ' ' + parts.hour + ':' + parts.minute + ':' + parts.second;
+    }
+
     function homeMarketSession() {
       var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
       var hour = kst.getUTCHours();
-      var isUsSession = hour >= 18 || hour < 8;
+      var isUsSession = hour >= 20 || hour < 8;
       return isUsSession ? {
         title: '미국 시장',
         live: '나스닥 · S&P500',

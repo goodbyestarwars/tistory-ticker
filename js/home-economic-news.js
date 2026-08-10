@@ -29,7 +29,7 @@
   function timeLabel(value) {
     var parsed = parseDate(value);
     if (isNaN(parsed.getTime())) return '--:--';
-    return parsed.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return parsed.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
   function kindLabel(item) {
@@ -87,7 +87,7 @@
         + '<small><em>' + escapeHtml(kindLabel(item)) + '</em>' + escapeHtml(item.source || item.provider || '') + '</small></span>'
         + '</a>';
     }).join('');
-    if (updated) updated.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    if (updated) updated.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
   function fetchJson(url) {
