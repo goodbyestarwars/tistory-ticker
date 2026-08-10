@@ -55,11 +55,18 @@
   function industryFor(item) {
     var code = String(item.code || item.symbol || '').replace(/^US:/i, '').toUpperCase();
     var industry = item.industry || '';
+    var name = String(item.name || item.symbol || '').trim();
     var mapped = global.WICS_MAP && (global.WICS_MAP[code] || global.WICS_MAP[String(code).padStart(6, '0')]);
     if ((!industry || industry === '미분류') && mapped) {
       industry = mapped.industry || mapped.sector || '';
     }
-    return industry || (item.market === 'us' ? '미국주식' : '기타');
+    if (!industry || industry === '미분류') {
+      if (/ETF|레버리지|인버스|KODEX|TIGER|ACE|SOL|RISE|KOSEF|HANARO|KBSTAR|ARIRANG|PLUS|TIMEFOLIO|FOCUS|1Q/i.test(name)) {
+        return 'ETF';
+      }
+      return item.market === 'us' ? '미국주식' : '기타';
+    }
+    return industry;
   }
 
   function fmtPrice(value, currency) {
