@@ -668,31 +668,32 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 }
 .hmb-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  margin: 9px 0 0;
+  margin: 12px 0 0;
 }
 .hmb-list > div {
-  min-height: 22px;
+  min-height: 28px;
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   border-bottom: 1px solid #f1f2f3;
 }
+.hmb-list > div:last-child { border-bottom: 0; }
 .hmb-list dt {
-  color: #7d828a;
-  font-size: 11.5px;
-  font-weight: 400;
+  color: #69727d;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 .hmb-list dd {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   color: #171717;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   text-align: right;
   white-space: nowrap;
 }
