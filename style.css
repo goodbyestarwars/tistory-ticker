@@ -668,33 +668,34 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 }
 .hmb-list {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0;
-  margin: 12px 0 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 0;
 }
 .hmb-list > div {
-  min-height: 28px;
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid #f1f2f3;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 10px;
+  border: 1px solid #edf0f3;
+  border-radius: 9px;
+  background: #fbfcfd;
 }
-.hmb-list > div:last-child { border-bottom: 0; }
 .hmb-list dt {
   color: #69727d;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 500;
   white-space: nowrap;
 }
 .hmb-list dd {
+  margin: 5px 0 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   color: #171717;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  text-align: right;
+  line-height: 1.25;
+  text-align: left;
   white-space: nowrap;
 }
 .home-positive { color: #d24f45 !important; }
@@ -1061,6 +1062,7 @@ html.dark .home-schedule-title { color: #F5EFE0 !important; }
 html.dark .home-card-heading span,
 html.dark .home-card-state,
 html.dark .hmb-list dt { color: rgba(245, 239, 224, .5) !important; }
+html.dark .hmb-list > div { background: rgba(245, 239, 224, .05) !important; }
 html.dark .hmb-list > div,
 html.dark .home-pattern-row,
 html.dark .home-pattern-preview-heading,
@@ -1092,6 +1094,7 @@ html.dark .home-pattern-stock small { color: rgba(245, 239, 224, .5) !important;
   .home-overview-grid { grid-template-columns: 1fr; }
   .home-market-board,
   .home-investor-slot #investor-trend-widget .itw-card { height: 298px; }
+  .hmb-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .home-briefing-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
@@ -1102,6 +1105,7 @@ html.dark .home-pattern-stock small { color: rgba(245, 239, 224, .5) !important;
   .home-card-grid #sidebar-rank .sr-card,
   .home-mini-card { height: auto; min-height: 340px; }
   .home-market-board { height: auto; min-height: 298px; padding: 16px; }
+  .hmb-list { grid-template-columns: minmax(0, 1fr); }
   .home-card-heading > div { flex-wrap: wrap; }
   .home-briefing-small-stack { grid-template-rows: none; grid-auto-rows: auto; }
   .home-briefing-featured,
