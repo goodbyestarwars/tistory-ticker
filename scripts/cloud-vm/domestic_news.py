@@ -243,6 +243,7 @@ def _merge(items, limit, code=''):
             by_id[key] = item
     result = list(by_id.values())
     result.sort(key=lambda item: (
+        item.get('kind') != 'disclosure',
         bool(code) and item.get('relevance') != 'direct',
         -_parse_pub_date(item.get('pubDate')).timestamp(),
     ))

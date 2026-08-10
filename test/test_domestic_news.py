@@ -45,6 +45,25 @@ class DomesticNewsTests(unittest.TestCase):
                 self.assertEqual(result['source'], 'cache')
                 self.assertEqual(result['items'][0]['title'], '시장 뉴스')
 
+    def test_disclosures_are_prioritized_over_newer_news(self):
+        items = [
+            {
+                'id': 'news-1', 'title': 'latest news',
+                'pubDate': 'Mon, 10 Aug 2026 13:16:00 +0900',
+                'kind': 'news', 'relevance': 'direct',
+            },
+            {
+                'id': 'dart-1', 'title': 'NH investment disclosure',
+                'pubDate': '20260810',
+                'kind': 'disclosure', 'relevance': 'direct',
+            },
+        ]
+
+        merged = domestic_news._merge(items, limit=1, code='005940')
+
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0]['kind'], 'disclosure')
+
 
 if __name__ == '__main__':
     unittest.main()
