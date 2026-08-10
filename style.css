@@ -582,6 +582,67 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   display: flex;
   flex-direction: column;
 }
+.home-market-live {
+  color: #d24f45;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.home-index-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 11px;
+}
+.home-index-card {
+  min-width: 0;
+  padding: 10px 11px 7px;
+  border-radius: 12px;
+  background: #f7f9fb;
+}
+.home-index-top,
+.home-index-price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+}
+.home-index-top strong {
+  color: #4b5563;
+  font-size: 11px;
+  font-weight: 700;
+}
+.home-index-top span {
+  color: #a0a7b0;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.home-index-price-row { margin-top: 4px; }
+.home-index-price-row strong {
+  color: #20252b;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -.5px;
+  line-height: 1;
+}
+.home-index-price-row em {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.home-index-chart {
+  height: 39px;
+  margin-top: 7px;
+}
+.home-index-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.home-index-chart-empty {
+  display: block;
+  padding-top: 14px;
+  color: #b0b6be;
+  font-size: 9px;
+  text-align: center;
+}
 .home-card-heading {
   display: flex;
   align-items: flex-start;
@@ -607,12 +668,13 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 }
 .hmb-list {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px;
   gap: 0;
-  margin: 11px 0 0;
+  margin: 9px 0 0;
 }
 .hmb-list > div {
-  min-height: 25px;
+  min-height: 22px;
   display: grid;
   grid-template-columns: 82px minmax(0, 1fr);
   align-items: center;
@@ -984,6 +1046,12 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 
 html.dark .home-market-board,
 html.dark .home-mini-card { background: #1A1A1A !important; }
+html.dark .home-index-card { background: rgba(245, 239, 224, .08) !important; }
+html.dark .home-index-top strong,
+html.dark .home-index-price-row strong { color: #F5EFE0 !important; }
+html.dark .home-index-top span,
+html.dark .home-index-chart-empty { color: rgba(245, 239, 224, .5) !important; }
+html.dark .home-market-live { color: #e8776d !important; }
 html.dark .home-card-heading strong,
 html.dark .home-pattern-row strong,
 html.dark .home-pattern-preview-heading strong,

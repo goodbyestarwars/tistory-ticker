@@ -163,7 +163,19 @@
         + '<div class="home-overview-grid">'
         + '<div class="home-investor-slot"></div>'
         + '<article class="card home-market-board" id="homeMarketBoard">'
-        + '<div class="home-card-heading"><div><strong>오늘의 시장판</strong><span id="hmbUpdated">기존 시장 데이터 기준</span></div></div>'
+        + '<div class="home-card-heading"><div><strong>국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live">실시간</span></div>'
+        + '<div class="home-index-strip" aria-label="코스피와 코스닥 지수">'
+        + '<article class="home-index-card" data-home-index="KOSPI">'
+        + '<div class="home-index-top"><strong>코스피</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
+        + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
+        + '</article>'
+        + '<article class="home-index-card" data-home-index="KOSDAQ">'
+        + '<div class="home-index-top"><strong>코스닥</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
+        + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
+        + '</article>'
+        + '</div>'
         + '<dl class="hmb-list">'
         + '<div><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
         + '<div><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
@@ -343,6 +355,80 @@
       setField('leaders', summary.leaders.length ? summary.leaders.map(function (item) { return item.sector; }).join(' · ') : '데이터 확인 중', 'home-positive');
       setField('cautions', summary.cautions.length ? summary.cautions.map(function (item) { return item.sector; }).join(' · ') : '데이터 확인 중', 'home-negative');
     }
+
+    function homeIndexCard(key) {
+      return dashboardSection.querySelector('[data-home-index="' + key + '"]');
+    }
+
+    function renderHomeIndexChart(element, rows, positive) {
+      if (!element) return;
+      var values = (rows || []).map(function (row) { return Number(row && row.close); })
+        .filter(function (value) { return isFinite(value); }).slice(-48);
+      if (values.length < 2) {
+        element.innerHTML = '<span class="home-index-chart-empty">추이 데이터 없음</span>';
+        return;
+      }
+      var width = 240;
+      var height = 48;
+      var pad = 2;
+      var min = Math.min.apply(Math, values);
+      var max = Math.max.apply(Math, values);
+      var range = max - min || 1;
+      var points = values.map(function (value, index) {
+        var x = pad + index * (width - pad * 2) / (values.length - 1);
+        var y = height - pad - ((value - min) / range) * (height - pad * 2);
+        return x.toFixed(2) + ',' + y.toFixed(2);
+      }).join(' ');
+      var color = positive ? '#d24f45' : '#1261c4';
+      var gradientId = 'homeIndexFill' + (positive ? 'Up' : 'Down');
+      element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">'
+        + '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">'
+        + '<stop offset="0" stop-color="' + color + '" stop-opacity=".22"></stop>'
+        + '<stop offset="1" stop-color="' + color + '" stop-opacity=".01"></stop></linearGradient></defs>'
+        + '<polygon points="' + pad + ',' + height + ' ' + points + ' ' + (width - pad) + ',' + height + '" fill="url(#' + gradientId + ')"></polygon>'
+        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>'
+        + '</svg>';
+    }
+
+    function renderHomeIndices(items) {
+      var bySymbol = {};
+      (items || []).forEach(function (item) { if (item && item.symbol) bySymbol[item.symbol] = item; });
+      ['KOSPI', 'KOSDAQ'].forEach(function (key) {
+        var card = homeIndexCard(key);
+        var item = bySymbol[key];
+        if (!card) return;
+        var price = item && Number(item.price);
+        var change = item && Number(item.change);
+        var rate = item && Number(item.change_rate);
+        var tone = !isFinite(change) || change === 0 ? 'home-neutral' : change > 0 ? 'home-positive' : 'home-negative';
+        var priceEl = card.querySelector('[data-index-field="price"]');
+        var changeEl = card.querySelector('[data-index-field="change"]');
+        var statusEl = card.querySelector('[data-index-field="status"]');
+        var chartEl = card.querySelector('[data-index-field="chart"]');
+        if (priceEl) { priceEl.textContent = isFinite(price) ? price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-'; priceEl.className = tone; }
+        if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
+        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || '장중') : '· 데이터 지연';
+        renderHomeIndexChart(chartEl, item && item.chart, change >= 0);
+      });
+    }
+
+    function loadHomeIndices() {
+      var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
+        ? window.QuickIndices.fetchFutures()
+        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ', 12000)
+          .then(function (data) { return data && data.data ? data.data : []; });
+      request.then(renderHomeIndices).catch(function () {
+        ['KOSPI', 'KOSDAQ'].forEach(function (key) {
+          var card = homeIndexCard(key);
+          if (!card) return;
+          var status = card.querySelector('[data-index-field="status"]');
+          if (status) status.textContent = '· 시세 지연';
+        });
+      });
+    }
+
+    loadHomeIndices();
+    setInterval(function () { if (!document.hidden) loadHomeIndices(); }, 60 * 1000);
 
     var marketTempCacheKey = 'home_market_temp_v1';
     var marketSectorCacheKey = 'home_market_sectors_v1';
