@@ -117,5 +117,30 @@ class NewsAggregatorTests(unittest.TestCase):
         self.assertEqual({item['provider'] for item in items}, {'Alpha Vantage', 'Finnhub'})
 
 
+    def test_general_news_combines_finnhub_and_alpha(self):
+        def fake_get_json(url):
+            if 'finnhub.io/api/v1/news' in url:
+                return [{
+                    'headline': 'US market headline',
+                    'url': 'https://news.example.test/us-market',
+                    'datetime': 1786147200,
+                    'source': 'US Media',
+                }]
+            return {'feed': [{
+                'title': 'Macro economy headline',
+                'url': 'https://news.example.test/macro',
+                'time_published': '20260808T010000',
+                'source': 'Macro Media',
+            }]}
+
+        with mock.patch.object(news_aggregator, '_general_news_cache', (0, [])), \
+                mock.patch.object(news_aggregator, '_get_json', side_effect=fake_get_json):
+            items = news_aggregator.get_general_news(alpha_api_key='alpha', finnhub_api_key='finnhub', limit=10)
+
+        self.assertEqual(len(items), 2)
+        self.assertEqual({item['provider'] for item in items}, {'Alpha Vantage', 'Finnhub'})
+        self.assertTrue(all(item['market'] == 'us' for item in items))
+
+
 if __name__ == '__main__':
     unittest.main()

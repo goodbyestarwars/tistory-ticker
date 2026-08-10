@@ -60,7 +60,7 @@
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260810-market-board-time12')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260810-market-board-time12';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260810-session12h';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260810-session12h';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260810-session12h-usnews';
 
     function escapeHomeHtml(value) {
       return String(value == null ? '' : value)
@@ -189,7 +189,7 @@
         + '</dl>'
         + '</article>'
         + '<article class="card home-economic-news" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
-        + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span>실시간 타임라인</span></div><small data-hen-updated>최신 뉴스 확인 중</small></div>'
+        + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small data-hen-updated>최신 뉴스 확인 중</small></div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state">경제 뉴스를 불러오는 중입니다.</p></div>'
         + '</article></div>'
         + '<article class="card home-realtime-board" id="homeRealtimeBoard" aria-label="실시간 종목판"></article>'

@@ -1292,6 +1292,22 @@ def domestic_news_endpoint(
     return envelope(result)
 
 
+@app.get('/foreign-news')
+def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=50)):
+    """미국 세션용 일반 시장·거시경제 뉴스를 Finnhub와 Alpha Vantage에서 합친다."""
+    _check_rate_limit('foreign_news', request, max_per_window=20)
+    items = news_aggregator.get_general_news(
+        alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+        limit=limit,
+    )
+    return envelope({
+        'market': 'us',
+        'items': items,
+        'source': 'Finnhub general + Alpha Vantage NEWS_SENTIMENT',
+    })
+
+
 @app.get('/news-momentum/{code}')
 def news_momentum_endpoint(code: str = Path(..., min_length=6, max_length=6)):
     """배치가 미리 계산한 뉴스 반복 이슈·DataLab 검색 관심도를 종목 단위로 반환한다.

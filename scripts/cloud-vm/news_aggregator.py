@@ -35,6 +35,9 @@ TOTAL_NEWS_LIMIT = 10
 NEWS_CACHE_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'us_news_cache.db')
 NEWS_CACHE_TTL_SEC = 30 * 60
 NEWS_CACHE_LOCK = threading.Lock()
+GENERAL_NEWS_CACHE_TTL_SEC = 5 * 60
+GENERAL_NEWS_CACHE_LOCK = threading.Lock()
+_general_news_cache = (0, [])
 
 
 def _cache_db_path():
@@ -231,6 +234,43 @@ def get_or_refresh_news(symbol, naver_fetcher=None, alpha_api_key='', finnhub_ap
         return items
 
 
+def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=None):
+    """Return cached US market and macro news from Finnhub and Alpha Vantage."""
+    global _general_news_cache
+    try:
+        ttl = GENERAL_NEWS_CACHE_TTL_SEC if ttl_sec is None else max(0, int(ttl_sec))
+    except (TypeError, ValueError):
+        ttl = GENERAL_NEWS_CACHE_TTL_SEC
+    now = time.time()
+    fetched_at, cached_items = _general_news_cache
+    if fetched_at and now - fetched_at < ttl:
+        return list(cached_items[:max(1, int(limit))])
+
+    with GENERAL_NEWS_CACHE_LOCK:
+        fetched_at, cached_items = _general_news_cache
+        if fetched_at and now - fetched_at < ttl:
+            return list(cached_items[:max(1, int(limit))])
+        items = []
+        if finnhub_api_key:
+            items.extend(_finnhub_general_news(finnhub_api_key))
+        if alpha_api_key:
+            items.extend(_alpha_general_news(alpha_api_key))
+
+        unique = {}
+        for item in items:
+            if not item.get('title') or not item.get('link'):
+                continue
+            key = _dedupe_key(item)
+            current = unique.get(key)
+            if current is None or item.get('_published_ts', 0) > current.get('_published_ts', 0):
+                unique[key] = item
+        selected = sorted(unique.values(), key=lambda item: item.get('_published_ts', 0), reverse=True)
+        for item in selected:
+            item.pop('_published_ts', None)
+        _general_news_cache = (now, selected)
+        return list(selected[:max(1, int(limit))])
+
+
 def _published_timestamp(item):
     value = item.get('_published_ts')
     if value not in (None, '', 0):
@@ -311,6 +351,40 @@ def _alpha_news(symbol, api_key):
     return items
 
 
+def _alpha_general_news(api_key):
+    query = urllib.parse.urlencode({
+        'function': 'NEWS_SENTIMENT',
+        'topics': 'financial_markets,economy_macro,economy_monetary,earnings',
+        'sort': 'LATEST',
+        'limit': 50,
+        'apikey': api_key,
+    })
+    try:
+        payload = _get_json(ALPHA_URL + '?' + query)
+    except Exception:
+        logger.exception('Alpha Vantage general news failed')
+        return []
+
+    items = []
+    for row in payload.get('feed', []) if isinstance(payload, dict) else []:
+        title = _clean_text(row.get('title'))
+        link = row.get('url') or ''
+        if not title or not link:
+            continue
+        items.append({
+            'title': title,
+            'link': link,
+            'pubDate': _format_alpha_time(row.get('time_published')),
+            'source': _clean_text(row.get('source')) or 'Alpha Vantage',
+            'provider': 'Alpha Vantage',
+            'category': '시장',
+            'kind': 'news',
+            'market': 'us',
+            '_published_ts': _parse_alpha_time(row.get('time_published')),
+        })
+    return items
+
+
 def _finnhub_news(symbol, api_key):
     today = datetime.now(timezone.utc).date()
     params = urllib.parse.urlencode({
@@ -341,6 +415,35 @@ def _finnhub_news(symbol, api_key):
             '_published_ts': published_ts,
         })
     return items[:10]
+
+
+def _finnhub_general_news(api_key):
+    query = urllib.parse.urlencode({'category': 'general', 'token': api_key})
+    try:
+        payload = _get_json('https://finnhub.io/api/v1/news?' + query)
+    except Exception:
+        logger.exception('Finnhub general news failed')
+        return []
+
+    items = []
+    for row in payload if isinstance(payload, list) else []:
+        title = _clean_text(row.get('headline'))
+        link = row.get('url') or ''
+        if not title or not link:
+            continue
+        published_ts = int(row.get('datetime') or 0)
+        items.append({
+            'title': title,
+            'link': link,
+            'pubDate': _format_unix_time(published_ts),
+            'source': _clean_text(row.get('source')) or 'Finnhub',
+            'provider': 'Finnhub',
+            'category': '시장',
+            'kind': 'news',
+            'market': 'us',
+            '_published_ts': published_ts,
+        })
+    return items[:50]
 
 
 def _google_news(symbol):

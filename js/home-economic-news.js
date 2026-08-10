@@ -2,10 +2,13 @@
 (function (global) {
   'use strict';
 
-  var API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=20';
-  var MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
+  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=20';
+  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=20';
+  var DOMESTIC_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
+  var US_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=us&limit=20';
   var REFRESH_MS = 5 * 60 * 1000;
-  var state = { mount: null, timer: null, quoteMap: {} };
+  var SESSION_CHECK_MS = 60 * 1000;
+  var state = { mount: null, timer: null, sessionTimer: null, market: '', quoteMap: {} };
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -24,6 +27,12 @@
   function dateValue(value) {
     var parsed = parseDate(value);
     return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+  }
+
+  function currentMarket() {
+    var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    var hour = kst.getUTCHours();
+    return hour >= 20 || hour < 8 ? 'us' : 'domestic';
   }
 
   function timeLabel(value) {
@@ -67,9 +76,11 @@
     return found;
   }
 
-  function render(items) {
+  function render(items, market) {
     var list = state.mount.querySelector('[data-hen-list]');
     var updated = state.mount.querySelector('[data-hen-updated]');
+    var session = state.mount.querySelector('[data-hen-session]');
+    if (session) session.textContent = market === 'us' ? '미국 · 실시간 타임라인' : '국내 · 실시간 타임라인';
     var rows = (items || []).filter(function (item) { return item && item.kind !== 'disclosure'; }).slice().sort(function (a, b) {
       return dateValue(b.pubDate) - dateValue(a.pubDate);
     }).slice(0, 8);
@@ -98,11 +109,15 @@
   }
 
   function fetchNews() {
-    return Promise.all([fetchJson(API_URL), fetchJson(MARKET_API_URL).catch(function () { return null; })]).then(function (result) {
+    var market = currentMarket();
+    state.market = market;
+    var newsUrl = market === 'us' ? US_API_URL : DOMESTIC_API_URL;
+    var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;
+    return Promise.all([fetchJson(newsUrl), fetchJson(marketUrl).catch(function () { return null; })]).then(function (result) {
       state.quoteMap = quoteMapFrom(result[1]);
       var json = result[0];
       var payload = json.data || json;
-      render(payload.items || []);
+      render(payload.items || [], market);
     }).catch(function () {
       var list = state.mount && state.mount.querySelector('[data-hen-list]');
       if (list && !list.querySelector('.hen-row')) list.innerHTML = '<p class="home-card-state">경제 뉴스를 잠시 불러오지 못했습니다.</p>';
@@ -113,9 +128,13 @@
     var mount = options && options.mount;
     if (!mount || mount.getAttribute('data-hen-ready') === '1') return;
     state.mount = mount;
+    state.market = currentMarket();
     mount.setAttribute('data-hen-ready', '1');
     fetchNews();
     state.timer = setInterval(function () { if (!document.hidden) fetchNews(); }, REFRESH_MS);
+    state.sessionTimer = setInterval(function () {
+      if (!document.hidden && currentMarket() !== state.market) fetchNews();
+    }, SESSION_CHECK_MS);
   }
 
   global.HomeEconomicNews = { init: init };
