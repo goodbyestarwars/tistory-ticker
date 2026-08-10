@@ -4131,12 +4131,9 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hen-row { display: grid; grid-template-columns: 17px 72px minmax(0, 1fr); min-height: 36px; align-items: center; border-bottom: 1px solid #edf0f2; color: inherit; text-decoration: none; }
 .hen-row:last-child { border-bottom: 0; }
 .hen-rail { position: relative; align-self: stretch; display: flex; justify-content: center; }
-.hen-zigzag { position: absolute; inset: 0; width: 17px; height: 100%; overflow: visible; }
-.hen-zigzag path { fill: none; stroke: #d5dce1; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
-.hen-rail i { position: absolute; z-index: 1; top: 15px; left: 6px; width: 6px; height: 6px; border-radius: 50%; background: #cfd6dc; }
-.hen-row .hen-rail i.is-latest { width: 8px; height: 8px; top: 14px; left: 5px; background: #f27c52; box-shadow: 0 0 0 4px rgba(242,124,82,.14); }
-.hen-row.is-up .hen-rail i { left: 0; background: #ef5350; box-shadow: 0 0 0 3px rgba(239,83,80,.13); }
-.hen-row.is-down .hen-rail i { right: 0; left: auto; background: #3478d4; box-shadow: 0 0 0 3px rgba(52,120,212,.13); }
+.hen-rail::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; transform: translateX(-50%); background: #d5dce1; }
+.hen-rail i { position: absolute; z-index: 1; top: 15px; left: 50%; width: 6px; height: 6px; transform: translateX(-50%); border: 2px solid #f8fafb; border-radius: 50%; background: #cfd6dc; box-sizing: content-box; }
+.hen-row .hen-rail i.is-latest { width: 8px; height: 8px; top: 14px; background: #f27c52; box-shadow: 0 0 0 3px rgba(242,124,82,.14); }
 .hen-row .hen-time { display: block; min-width: 0; color: #e56e53; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hen-main { min-width: 0; display: flex; align-items: baseline; gap: 8px; padding-left: 6px; }
 .hen-main strong { min-width: 0; overflow: hidden; color: #26313c; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
@@ -4164,7 +4161,8 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hrt-foot { padding-top: 7px; font-size: 9px; }
 html.dark .hen-head strong, html.dark .hen-main strong { color: #f5efe0; }
 html.dark .hen-row { border-color: rgba(245,239,224,.1); }
-html.dark .hen-zigzag path { stroke: rgba(245,239,224,.38); }
+html.dark .hen-rail::before { background: rgba(245,239,224,.38); }
+html.dark .hen-rail i { border-color: #1c2430; }
 html.dark .hen-main em, html.dark .hrt-stock-logo { background: rgba(245,239,224,.1); color: rgba(245,239,224,.62); }
 @media (max-width: 640px) {
   .home-economic-news { padding: 14px 13px 10px; }
