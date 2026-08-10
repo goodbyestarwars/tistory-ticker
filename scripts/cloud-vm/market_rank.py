@@ -85,6 +85,7 @@ def fetch_volume_top(token, limit=5):
                 'name': r.get('stk_nm'),
                 'price': _clean_price(r.get('cur_prc')),
                 'change_rate': float(r.get('flu_rt') or 0),
+                'trade_amount': float(r.get('trde_prica') or 0),
                 'trade_volume': float(r.get('trde_qty') or 0),  # 주 단위(원시값, 환산 없음)
             })
         except (TypeError, ValueError):
@@ -120,6 +121,7 @@ def fetch_updown(token, updown_tp, limit=5):
                 'name': r.get('stk_nm'),
                 'price': _clean_price(r.get('cur_prc')),
                 'change_rate': float(r.get('flu_rt') or 0),
+                'trade_amount': float(r.get('trde_prica') or 0),
                 'trade_volume': float(r.get('trde_qty') or 0),
             })
         except (TypeError, ValueError):

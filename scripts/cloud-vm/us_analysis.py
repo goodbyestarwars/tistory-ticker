@@ -15,7 +15,9 @@ logger = logging.getLogger('us_analysis')
 FINNHUB_BASE_URL = 'https://finnhub.io/api/v1'
 HTTP_TIMEOUT = 8
 CACHE_TTL_SEC = 6 * 60 * 60
+PROFILE_CACHE_TTL_SEC = 24 * 60 * 60
 CACHE_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'us_analysis_cache.db')
+_profile_cache = {}
 
 
 def _db_path():
@@ -53,6 +55,19 @@ def _call(path, params, api_key):
     except Exception as exc:
         logger.warning('Finnhub %s failed: %s', path, exc)
         return None
+
+
+def get_profile(symbol, finnhub_api_key=''):
+    """종목판에서 재사용하는 업종·시가총액 프로필을 24시간 캐시한다."""
+    symbol = str(symbol or '').strip().upper()
+    if not symbol or not finnhub_api_key:
+        return {}
+    cached = _profile_cache.get(symbol)
+    if cached and time.time() - cached[0] < PROFILE_CACHE_TTL_SEC:
+        return cached[1]
+    profile = _call('/stock/profile2', {'symbol': symbol}, finnhub_api_key) or {}
+    _profile_cache[symbol] = (time.time(), profile)
+    return profile
 
 
 def _number(value):

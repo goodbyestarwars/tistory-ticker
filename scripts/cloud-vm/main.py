@@ -41,6 +41,7 @@ import kis_client
 import kiwoom_client
 import kiwoom_market
 import market_rank
+import market_board
 import option_flow
 import order_book
 import public_data
@@ -163,6 +164,8 @@ _fundamentals_cache_mem = {}
 _MARKET_RANK_TTL = 30
 _MARKET_RANK_MAX_LIMIT = 20  # 사이드바 미리보기(5)보다 큰 값은 "더보기" 모달 전용
 _market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(5는 30초마다 폴링, 20은 모달 열 때만)
+_MARKET_BOARD_TTL = 30
+_market_board_cache = {}
 _KOFIA_MARKET_TTL = 30 * 60
 _kofia_market_cache = {}
 
@@ -1405,6 +1408,34 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     _market_rank_cache[limit] = {'t': now, 'data': data}
+    return envelope(data)
+
+
+@app.get('/market-board')
+def market_board_endpoint(request: Request,
+                          market: str = Query('domestic'),
+                          limit: int = Query(12, ge=6, le=20)):
+    """홈 증권사형 실시간 종목판. 국내·미국 세션별 같은 행 모델을 반환한다."""
+    _check_rate_limit('market_board', request, max_per_window=30)
+    market = 'us' if str(market).lower() == 'us' else 'domestic'
+    key = (market, limit)
+    now = time.time()
+    cached = _market_board_cache.get(key)
+    if cached is not None and now - cached['t'] < _MARKET_BOARD_TTL:
+        return envelope(cached['data'])
+    try:
+        if market == 'us':
+            data = market_board.fetch_us(
+                limit=limit,
+                finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+            )
+        else:
+            data = market_board.fetch_domestic(get_kiwoom_token(), limit=limit)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    _market_board_cache[key] = {'t': now, 'data': data}
     return envelope(data)
 
 

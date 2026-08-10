@@ -3992,3 +3992,47 @@ html.dark .nav-logo-emblem { filter: brightness(0) invert(1); }
   color: #ffffff;
   letter-spacing: -0.5px;
 }
+/* ============ 홈 실시간 종목판 ============ */
+.home-realtime-board {
+  width: 100%;
+  min-width: 0;
+  padding: 20px 22px 14px;
+  overflow: hidden;
+}
+.hrt-head, .hrt-head > div, .hrt-foot { display: flex; align-items: baseline; }
+.hrt-head { justify-content: space-between; gap: 14px; }
+.hrt-head > div { gap: 10px; }
+.hrt-head strong { color: #18202a; font-size: 20px; letter-spacing: -.5px; }
+.hrt-head span, .hrt-head small { color: #98a2ae; font-size: 12px; }
+.hrt-tabs { display: flex; gap: 7px; margin: 17px 0 0; border-bottom: 1px solid #e8ecef; overflow-x: auto; }
+.hrt-tabs button { flex: 0 0 auto; padding: 8px 13px 10px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #8d98a5; font: inherit; font-size: 13px; cursor: pointer; }
+.hrt-tabs button.active { border-bottom-color: #263dce; color: #263dce; font-weight: 700; }
+.hrt-table-wrap { overflow-x: auto; }
+.hrt-table-wrap table { width: 100%; min-width: 850px; border-collapse: collapse; table-layout: fixed; }
+.hrt-table-wrap th, .hrt-table-wrap td { padding: 12px 9px; border-bottom: 1px solid #edf0f2; text-align: right; white-space: nowrap; font-size: 13px; }
+.hrt-table-wrap th { color: #8a94a1; font-size: 11px; font-weight: 600; }
+.hrt-table-wrap th:first-child, .hrt-table-wrap td:first-child { text-align: left; }
+.hrt-table-wrap th:nth-child(1) { width: 22%; }
+.hrt-table-wrap th:nth-child(8) { width: 16%; }
+.hrt-stock { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hrt-stock a { min-width: 0; color: #17202a; text-decoration: none; overflow: hidden; text-overflow: ellipsis; }
+.hrt-stock strong { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+.hrt-stock small { display: block; margin-top: 2px; color: #a0a8b2; font-size: 10px; }
+.hrt-rank { width: 16px; color: #8e98a4; font-size: 12px; text-align: center; }
+.hrt-price { color: #152033; font-weight: 700; }
+.hrt-up { color: #e34d4b; }
+.hrt-down { color: #2674d9; }
+.hrt-flat, .hrt-muted { color: #9da5ad; }
+.hrt-industry { overflow: hidden; text-overflow: ellipsis; color: #586474; }
+.hrt-state { height: 90px; color: #9da5ad !important; text-align: center !important; }
+.hrt-foot { justify-content: space-between; gap: 12px; padding-top: 10px; color: #a1a9b2; font-size: 10px; }
+html.dark .home-realtime-board { background: #1a1a1a !important; }
+html.dark .hrt-head strong, html.dark .hrt-stock a, html.dark .hrt-price { color: #f5efe0; }
+html.dark .hrt-tabs { border-color: rgba(245,239,224,.14); }
+html.dark .hrt-table-wrap th, html.dark .hrt-table-wrap td { border-color: rgba(245,239,224,.1); }
+html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, html.dark .hrt-foot { color: rgba(245,239,224,.55); }
+@media (max-width: 640px) {
+  .home-realtime-board { padding: 16px 14px 12px; }
+  .hrt-head strong { font-size: 17px; }
+  .hrt-head small { display: none; }
+}

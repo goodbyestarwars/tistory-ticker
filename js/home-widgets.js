@@ -23,9 +23,11 @@
   var myRealtimeGeneration = 0;
   var DEFAULT_ORDER = [
     'market-summary',
+    'realtime-board',
     'briefing'
   ];
   var LABELS = {
+    'realtime-board': '실시간 종목판',
     'market-summary': '오늘의 시장판',
     briefing: '마켓브리핑'
   };
@@ -146,19 +148,20 @@
     var dashboard = options.dashboard;
     var overview = dashboard.querySelector('.home-overview-grid');
     var market = overview && overview.querySelector('.home-market-board');
+    var realtime = dashboard.querySelector('.home-realtime-board');
     if (!market || !options.briefing) return false;
 
     grid = document.createElement('div');
     grid.className = 'home-widget-grid';
-    [
-      market,
-      options.briefing
-    ].forEach(function (node) { grid.appendChild(node); });
+    [market, realtime, options.briefing].forEach(function (node) {
+      if (node) grid.appendChild(node);
+    });
 
     dashboard.innerHTML = '';
     dashboard.appendChild(grid);
 
     decorate(market, 'market-summary', 'summary');
+    if (realtime) decorate(realtime, 'realtime-board', 'full');
     decorate(options.briefing, 'briefing', 'full');
     return true;
   }

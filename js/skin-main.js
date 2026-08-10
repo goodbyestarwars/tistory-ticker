@@ -57,8 +57,9 @@
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260810-market-board')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260810-market-board';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260810';
 
     function escapeHomeHtml(value) {
       return String(value == null ? '' : value)
@@ -186,6 +187,7 @@
         + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
         + '</dl>'
         + '</article></div>'
+        + '<article class="card home-realtime-board" id="homeRealtimeBoard" aria-label="실시간 종목판"></article>'
         + '</section>';
     }
 
@@ -581,6 +583,10 @@
           gasUrl: GAS_TICKER_URL,
           fetchJson: fetchHomeJson
         });
+        return loadHomeScript(HOME_REALTIME_TABLE_SCRIPT_URL, 'HomeRealtimeTable');
+      })
+      .then(function (table) {
+        if (table && table.init) table.init({ mount: dashboardSection.querySelector('#homeRealtimeBoard') });
       })
       .catch(function () {
         /* 위젯 관리 모듈이 막혀도 기존 고정형 대시보드는 그대로 사용할 수 있게 둔다. */
