@@ -445,6 +445,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function chartPriceText(value, isUsChart)", source)
         self.assertIn("'$' + parsed.toLocaleString('en-US'", source)
         self.assertIn("var priceMinMove = isUsChart ? 0.01 : 1", source)
+        self.assertIn("fontFamily: fontFamily", source)
+        self.assertIn("font-family: inherit", style)
         self.assertIn("color: '#d24f45'", source)
         self.assertIn("color: '#1261c4'", source)
         self.assertIn("color: '#0ca678'", source)

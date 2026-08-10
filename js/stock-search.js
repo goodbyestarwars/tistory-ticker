@@ -1158,8 +1158,11 @@
 
   function lwcThemeOptions(LWC, timeframe) {
     var dark = document.documentElement.classList.contains('dark');
+    var fontFamily = global.getComputedStyle
+      ? global.getComputedStyle(document.body).fontFamily
+      : "'MaruBuri', Georgia, serif";
     return {
-      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', attributionLogo: false },
+      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', fontFamily: fontFamily, attributionLogo: false },
       grid: {
         vertLines: { color: dark ? '#3a3a3a' : '#eee' },
         horzLines: { color: dark ? '#3a3a3a' : '#eee' }

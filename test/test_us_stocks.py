@@ -61,12 +61,17 @@ class UsStockTests(unittest.TestCase):
     def test_broker_quote_normalizes_fields(self):
         data = us_stocks._normalize_quote({
             'stk_nm': 'Apple Inc.', 'cur_prc': '+201.5000',
-            'base_close_pric': '200.0000', 'high_pric': '203.0000',
-            'low_pric': '198.0000', 'acc_trde_qty': '123456',
+            'base_close_pric': '200.0000', 'high_pric': '-203.0000',
+            'low_pric': '-198.0000', '52wk_hgst_pric': '-250.0000',
+            '52wk_lwst_pric': '-150.0000', 'acc_trde_qty': '123456',
         }, 'AAPL', '키움증권 REST API', 'ND')
         self.assertEqual(data['price'], 201.5)
         self.assertEqual(data['change'], 1.5)
         self.assertEqual(data['change_rate'], 0.75)
+        self.assertEqual(data['day_high'], 203.0)
+        self.assertEqual(data['day_low'], 198.0)
+        self.assertEqual(data['week52_high'], 250.0)
+        self.assertEqual(data['week52_low'], 150.0)
         self.assertEqual(data['source'], '키움증권 REST API')
 
     def test_orderbook_maps_kiwoom_levels(self):
