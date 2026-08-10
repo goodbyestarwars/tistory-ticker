@@ -165,6 +165,9 @@ _MARKET_RANK_TTL = 30
 _MARKET_RANK_MAX_LIMIT = 20  # 사이드바 미리보기(5)보다 큰 값은 "더보기" 모달 전용
 _market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(5는 30초마다 폴링, 20은 모달 열 때만)
 _MARKET_BOARD_TTL = 30
+# WebSocket quote ticks use this opt-in path to refresh rankings quickly while
+# keeping ordinary home summary requests on the 30-second shared cache.
+_MARKET_BOARD_LIVE_TTL = 5
 _market_board_cache = {}
 _KOFIA_MARKET_TTL = 30 * 60
 _kofia_market_cache = {}
@@ -1432,14 +1435,16 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
 @app.get('/market-board')
 def market_board_endpoint(request: Request,
                           market: str = Query('domestic'),
-                          limit: int = Query(12, ge=6, le=20)):
+                          limit: int = Query(12, ge=6, le=20),
+                          fresh: bool = Query(False)):
     """홈 증권사형 실시간 종목판. 국내·미국 세션별 같은 행 모델을 반환한다."""
     _check_rate_limit('market_board', request, max_per_window=30)
     market = 'us' if str(market).lower() == 'us' else 'domestic'
     key = (market, limit)
     now = time.time()
     cached = _market_board_cache.get(key)
-    if cached is not None and now - cached['t'] < _MARKET_BOARD_TTL:
+    cache_ttl = _MARKET_BOARD_LIVE_TTL if fresh else _MARKET_BOARD_TTL
+    if cached is not None and now - cached['t'] < cache_ttl:
         return envelope(cached['data'])
     try:
         if market == 'us':

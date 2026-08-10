@@ -8,6 +8,8 @@
   var WS_RECONNECT_MAX_MS = 30000;
   var LIMIT = 20;
   var REFRESH_MS = 30 * 1000;
+  // Quote ticks stay on WebSocket; this only re-syncs the ranking snapshot.
+  var RANK_REFRESH_DEBOUNCE_MS = 5000;
   var SESSION_CHECK_MS = 60 * 1000;
   var TABS = [
     ['tradeAmount', '거래대금'],
@@ -25,6 +27,7 @@
     socket: null,
     timer: null,
     loading: false,
+    rankRefreshTimer: null,
     reconnectTimer: null,
     reconnectDelay: WS_RECONNECT_MIN_MS,
     realtimeGeneration: 0,
@@ -275,6 +278,14 @@
     if (element) element.textContent = text;
   }
 
+  function scheduleRankRefresh() {
+    if (document.hidden || !state.data || state.rankRefreshTimer) return;
+    state.rankRefreshTimer = setTimeout(function () {
+      state.rankRefreshTimer = null;
+      if (!document.hidden && state.data) fetchBoard(true);
+    }, RANK_REFRESH_DEBOUNCE_MS);
+  }
+
   function scheduleRealtimeReconnect(generation) {
     if (generation !== state.realtimeGeneration || document.hidden || !state.realtimeCodes.length) return;
     if (state.reconnectTimer) return;
@@ -307,7 +318,10 @@
     socket.onmessage = function (event) {
       try {
         var quote = JSON.parse(event.data);
-        if (quote.type === 'quote' && quote.code) updateRow(quote.code, quote);
+        if (quote.type === 'quote' && quote.code) {
+          updateRow(quote.code, quote);
+          scheduleRankRefresh();
+        }
       } catch (error) {}
     };
     socket.onerror = function () {
@@ -321,7 +335,6 @@
   }
 
   function startRealtime() {
-    stopRealtime();
     var data = state.data || {};
     var all = [];
     var seen = {};
@@ -330,6 +343,11 @@
         if (item && item.code && !seen[item.code]) { seen[item.code] = true; all.push(item.code); }
       });
     });
+    var sameCodes = all.length === state.realtimeCodes.length && all.every(function (code, index) {
+      return state.realtimeCodes[index] === code;
+    });
+    if (sameCodes && (state.socket || state.reconnectTimer)) return;
+    if (!sameCodes) stopRealtime();
     state.realtimeCodes = all;
     state.reconnectDelay = WS_RECONNECT_MIN_MS;
     if (!all.length || !('WebSocket' in global) || document.hidden) {
@@ -362,7 +380,7 @@
     if (falling) falling.innerHTML = rateCell(rate, false);
   }
 
-  function fetchBoard() {
+  function fetchBoard(force) {
     if (state.loading) return Promise.resolve();
     state.loading = true;
     var market = currentMarket();
@@ -371,7 +389,7 @@
       state.active = 'tradeAmount';
       stopRealtime();
     }
-    var url = API_URL + '?market=' + market + '&limit=' + LIMIT;
+    var url = API_URL + '?market=' + market + '&limit=' + LIMIT + (force ? '&fresh=1' : '');
     return fetch(url).then(function (response) {
       if (!response.ok) throw new Error('market-board ' + response.status);
       return response.json();
