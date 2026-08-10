@@ -194,6 +194,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (
             "todayItems.slice(0, 12)",
             "function enableScheduleDrag(list)",
+            "function scheduleSymbol(item)",
+            "function scheduleIconHtml(item)",
+            "STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/'",
+            "home-us-schedule-icon",
+            "HomeUsScheduleIconFallback",
             "list.scrollLeft = startScroll - delta",
             "draggable=\"false\"",
             "list.addEventListener('dragstart'",
@@ -206,6 +211,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("home-top-disclosures .home-disclosure-list::-webkit-scrollbar", style)
         self.assertIn("touch-action: pan-y", style)
         self.assertIn("-webkit-user-drag: none", style)
+        self.assertIn(".home-us-schedule-icon", style)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")
