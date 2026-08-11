@@ -135,8 +135,12 @@
       return;
     }
 
-    // 참고 점수 높은 순으로 정렬하되, 저점상승형의 포함 여부는 점수로 제한하지 않는다.
-    var sorted = items.slice().sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+    // 전체 후보 중 점수와 최근성이 좋은 15개만 표시한다. 저점상승형의 포함 여부 자체는 점수로 제한하지 않는다.
+    var sorted = items.slice().sort(function (a, b) {
+      var scoreDiff = (b.score || 0) - (a.score || 0);
+      if (scoreDiff) return scoreDiff;
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    }).slice(0, 15);
 
     list.innerHTML = sorted.map(function (it) {
       var cc = chgClass(it.changeRate);

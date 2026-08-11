@@ -76,6 +76,7 @@ def main():
 
     conn.close()
 
+    pd.finalize_pattern_results(pattern_results)
     existing = {}
     if os.path.exists(OUTPUT_FILE):
         with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
