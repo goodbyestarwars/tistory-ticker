@@ -612,11 +612,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("compositionend", source)
         self.assertIn("var queryAtRequest = searchQuery", source)
         self.assertIn("event.isComposing", source)
+        self.assertIn("eventText = meta.text", source)
+        self.assertIn("실적발표 완료", source)
+        self.assertIn("ev.result", source)
         self.assertNotIn("renderPage(year, month, monthEvents, undefined, [], true);", source)
         self.assertIn("1.1~12.31", source)
         self.assertIn("검색 결과 ' + visibleEvents.length + '건", source)
         self.assertIn(".sc-search input", style)
-        self.assertIn("stock-calendar.js?v=20260811-finnhub-block", home)
+        self.assertIn("stock-calendar.js?v=20260812-dart-result", home)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ DART에는 미래의 '예정일'이 아니라 실제 접수된 실적 공시가 
 import json
 import logging
 import os
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -16,12 +17,15 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
 BASE_URL = 'https://opendart.fss.or.kr/api/list.json'
+FINANCIALS_URL = 'https://opendart.fss.or.kr/api/fnlttSinglAcnt.json'
 FINNHUB_URL = 'https://finnhub.io/api/v1/calendar/earnings'
 CACHE_TTL_SEC = 10 * 60
 FINNHUB_CACHE_TTL_SEC = 10 * 60
 DART_LIST_PAGE_COUNT = 100
 DART_LIST_MAX_PAGES = 10
+DART_RESULT_LOOKUP_MAX = 80
 _cache = {}
+_financials_cache = {}
 _finnhub_cache = {}
 _logger = logging.getLogger('earnings_calendar')
 
@@ -72,6 +76,135 @@ def _fetch(api_key, start_date, end_date):
     return rows
 
 
+def _fetch_financials(api_key, corp_code, bsns_year, reprt_code):
+    """Fetch the major accounts for one formal DART financial report."""
+    key = (str(corp_code), str(bsns_year), str(reprt_code))
+    cached = _financials_cache.get(key)
+    if cached and time.time() - cached[0] < CACHE_TTL_SEC:
+        return cached[1]
+    params = {
+        'crtfc_key': api_key,
+        'corp_code': str(corp_code),
+        'bsns_year': str(bsns_year),
+        'reprt_code': str(reprt_code),
+    }
+    request = urllib.request.Request(
+        FINANCIALS_URL + '?' + urllib.parse.urlencode(params),
+        headers={'User-Agent': '9Pay-stock-calendar/1.0'},
+    )
+    with urllib.request.urlopen(request, timeout=12) as response:
+        data = json.loads(response.read().decode('utf-8'))
+    rows = data.get('list') or [] if data.get('status') == '000' else []
+    _financials_cache[key] = (time.time(), rows)
+    return rows
+
+
+def _report_period(report_name, receipt_date):
+    """Map a formal DART report name to (business year, report code)."""
+    name = str(report_name or '')
+    period_match = re.search(r'(20\d{2})[.\-/](0[1369]|12)', name)
+    month = int(period_match.group(2)) if period_match else None
+    year = int(period_match.group(1)) if period_match else int(str(receipt_date or '')[:4] or 0)
+    if '사업보고서' in name or month == 12:
+        return (year if period_match else year - 1, '11011')
+    if '반기보고서' in name or '반기' in name or month == 6:
+        return (year, '11012')
+    if '3분기보고서' in name or '3분기' in name or month == 9:
+        return (year, '11014')
+    if '1분기보고서' in name or '1분기' in name or month == 3:
+        return (year, '11013')
+    # "영업(잠정)실적" 공시는 보고서명이 아니라 접수월로 분기를 추정한다.
+    # DART가 공식 재무제표를 아직 공개하지 않은 경우에는 결과를 붙이지 않고
+    # 기존의 "실적공시 완료" 항목만 유지한다.
+    receipt_month = int(str(receipt_date or '')[4:6] or 0)
+    if receipt_month <= 3:
+        return (year - 1, '11011')
+    if receipt_month <= 5:
+        return (year, '11013')
+    if receipt_month <= 8:
+        return (year, '11012')
+    if receipt_month <= 11:
+        return (year, '11014')
+    return (year, '11011')
+
+
+def _number(value):
+    if value in (None, '', '-'):
+        return None
+    try:
+        return float(str(value).replace(',', '').strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_krw(value):
+    number = _number(value)
+    if number is None:
+        return None
+    absolute = abs(number)
+    sign = '-' if number < 0 else ''
+    if absolute >= 1_000_000_000_000:
+        return '{}{:.1f}조'.format(sign, absolute / 1_000_000_000_000)
+    if absolute >= 100_000_000:
+        return '{}{:.0f}억'.format(sign, absolute / 100_000_000)
+    if absolute >= 10_000:
+        return '{}{:.0f}만'.format(sign, absolute / 10_000)
+    return '{}{:.0f}'.format(sign, absolute)
+
+
+def _account_value(rows, names):
+    """Select a consolidated account value, falling back to separate data."""
+    candidates = [row for row in rows if str(row.get('account_nm') or '').strip() in names]
+    if not candidates:
+        return None
+    def order(row):
+        try:
+            return int(row.get('ord') or 999)
+        except (TypeError, ValueError):
+            return 999
+    candidates.sort(key=lambda row: (0 if row.get('fs_div') == 'CFS' else 1, order(row)))
+    for row in candidates:
+        value = _number(row.get('thstrm_amount'))
+        if value is not None:
+            return value
+    return None
+
+
+def _reported_dart_result(rows):
+    revenue = _account_value(rows, {'매출액', '영업수익', '매출'})
+    operating_profit = _account_value(rows, {'영업이익', '영업이익(손실)', '영업손익'})
+    net_income = _account_value(rows, {'당기순이익', '당기순이익(손실)', '당기순손익'})
+    parts = []
+    if revenue is not None:
+        parts.append('매출 {}'.format(_format_krw(revenue)))
+    if operating_profit is not None:
+        parts.append('영업이익 {}'.format(_format_krw(operating_profit)))
+    if net_income is not None:
+        parts.append('순이익 {}'.format(_format_krw(net_income)))
+    return {
+        'result': ' · '.join(parts),
+        'revenue_actual': revenue,
+        'operating_profit_actual': operating_profit,
+        'net_income_actual': net_income,
+    } if parts else None
+
+
+def _enrich_dart_event(api_key, event):
+    period = _report_period(event.get('report_name'), event.get('receipt_date'))
+    corp_code = event.get('corp_code')
+    if not api_key or not corp_code or not period:
+        return event
+    try:
+        rows = _fetch_financials(api_key, corp_code, period[0], period[1])
+        result = _reported_dart_result(rows)
+    except Exception:
+        _logger.exception('DART financial result fetch failed for %s', event.get('corp_name'))
+        return event
+    if result:
+        event.update(result)
+    return event
+
+
 def fetch_month(year, month):
     """해당 월에 접수된 잠정실적/실적 관련 거래소 공시를 반환한다."""
     key = '%04d-%02d' % (int(year), int(month))
@@ -94,7 +227,7 @@ def fetch_month(year, month):
     events = []
     for row in rows:
         report_name = (row.get('report_nm') or '').strip()
-        if not any(token in report_name for token in ('영업(잠정)실적', '잠정영업실적', '실적')):
+        if not any(token in report_name for token in ('영업(잠정)실적', '잠정영업실적', '실적', '사업보고서', '반기보고서', '분기보고서')):
             continue
         receipt_date = (row.get('rcept_dt') or '').strip()
         if len(receipt_date) != 8 or receipt_date[:6] != key.replace('-', ''):
@@ -117,13 +250,22 @@ def fetch_month(year, month):
             'market': 'domestic',
             'status': 'reported',
             'corp_name': corp,
+            'corp_code': (row.get('corp_code') or '').strip(),
             'report_name': report_name,
+            'receipt_date': receipt_date,
             'receipt_no': receipt_no,
         }
         stock_code = (row.get('stock_code') or '').strip()
         if stock_code:
             event['symbol'] = stock_code
         events.append(event)
+    lookup_events = [event for event in events if event.get('corp_code')][:DART_RESULT_LOOKUP_MAX]
+    if lookup_events:
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            enriched = list(executor.map(lambda item: _enrich_dart_event(api_key, item), lookup_events))
+        for event in enriched:
+            if event.get('result'):
+                event['title'] = '$%s 실적발표 완료 · %s | 자동(DART)' % (event['corp_name'], event['result'])
     _cache[key] = (time.time(), events)
     return events
 

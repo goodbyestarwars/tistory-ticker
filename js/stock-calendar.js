@@ -227,8 +227,16 @@
       iconClass = 'sc-ev-icon default';
       iconHtml  = '📅';
     }
+    var eventText = meta.text;
+    if (meta.isStock && String(ev.source || '').toLowerCase() === 'dart' && ev.status === 'reported'
+      && eventText.indexOf('완료') === -1) {
+      eventText = '실적발표 완료 · ' + eventText;
+    }
+    if (ev.result && eventText.indexOf(String(ev.result)) === -1) {
+      eventText += (eventText ? ' · ' : '') + String(ev.result);
+    }
     var titleHtml = meta.isStock
-      ? '<strong class="sc-ev-ticker">' + escapeHtml(meta.stockName) + '</strong> ' + escapeHtml(meta.text)
+      ? '<strong class="sc-ev-ticker">' + escapeHtml(meta.stockName) + '</strong> ' + escapeHtml(eventText)
       : escapeHtml(meta.text);
     var tagHtml = meta.tag ? '<span class="sc-ev-tag">' + escapeHtml(meta.tag) + '</span>' : '';
     var blockedExternalLink = isFinnhubLink(ev.link);
