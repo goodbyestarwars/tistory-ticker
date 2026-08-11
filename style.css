@@ -4128,13 +4128,14 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hen-head strong { color: #18202a; font-size: 18px; letter-spacing: -.4px; }
 .hen-head span, .hen-head small { color: #98a2ae; font-size: 11px; white-space: nowrap; }
 .hen-list { margin-top: 9px; overflow: hidden; }
-.hen-periods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.hen-periods { max-height: 340px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; -ms-overflow-style: none; }
+.hen-periods::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
 .hen-period { min-width: 0; }
 .hen-period-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; color: #7c8792; }
 .hen-period-head strong { color: #46515d; font-size: 11px; font-weight: 700; }
 .hen-period-head span { color: #a7afb8; font-size: 10px; }
-.hen-period-list { max-height: 238px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; -ms-overflow-style: none; }
-.hen-period-list::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
+.hen-period + .hen-period { margin-top: 10px; padding-top: 9px; border-top: 1px solid #edf0f2; }
+.hen-period-list { overflow: visible; }
 .hen-row { display: grid; grid-template-columns: 17px 72px minmax(0, 1fr); min-height: 36px; align-items: center; border-bottom: 1px solid #edf0f2; color: inherit; text-decoration: none; }
 .hen-row:last-child { border-bottom: 0; }
 .hen-rail { position: relative; align-self: stretch; display: flex; justify-content: center; }
@@ -4173,11 +4174,11 @@ html.dark .hen-rail i { border-color: #1c2430; }
 html.dark .hen-main em, html.dark .hrt-stock-logo { background: rgba(245,239,224,.1); color: rgba(245,239,224,.62); }
 html.dark .hen-period-head strong { color: rgba(245,239,224,.82); }
 html.dark .hen-period-head span { color: rgba(245,239,224,.5); }
+html.dark .hen-period + .hen-period { border-color: rgba(245,239,224,.12); }
 @media (max-width: 640px) {
   .home-economic-news { padding: 14px 13px 10px; }
   .hen-head strong { font-size: 16px; }
-  .hen-periods { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .hen-period-list { max-height: 190px; }
+  .hen-periods { max-height: 300px; }
   .home-economic-news .hen-row { grid-template-columns: 17px 76px minmax(0, 1fr); }
   .home-economic-news .hen-row .hen-time {
     display: block !important;
