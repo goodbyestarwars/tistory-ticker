@@ -58,6 +58,27 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual(data['provider'], 'kis')
         kis.assert_called_once_with('MSFT')
 
+    def test_quote_falls_back_to_yahoo_when_brokers_fail(self):
+        payload = {
+            'chart': {'result': [{
+                'meta': {
+                    'regularMarketPrice': 201.5,
+                    'previousClose': 200.0,
+                    'exchangeName': 'NMS',
+                    'shortName': 'Apple Inc.',
+                },
+            }]},
+        }
+        with mock.patch.object(us_stocks, '_kiwoom_quote', side_effect=RuntimeError('kiwoom down')), \
+             mock.patch.object(us_stocks, '_kis_quote', side_effect=RuntimeError('kis down')), \
+             mock.patch.object(us_stocks, '_get_yahoo_json', return_value=payload) as yahoo:
+            data = us_stocks.quote('AAPL')
+        self.assertEqual(data['price'], 201.5)
+        self.assertEqual(data['change'], 1.5)
+        self.assertEqual(data['change_rate'], 0.75)
+        self.assertEqual(data['provider'], 'yahoo')
+        yahoo.assert_called_once()
+
     def test_broker_quote_normalizes_fields(self):
         data = us_stocks._normalize_quote({
             'stk_nm': 'Apple Inc.', 'cur_prc': '+201.5000',
