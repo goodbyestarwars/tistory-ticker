@@ -240,7 +240,7 @@ def _normalize_quote(row, symbol, provider, exchange):
         'market_state': _market_state(),
         'updated_at': int(time.time()),
         'source': provider,
-        'provider': 'kiwoom' if provider.startswith('키움') else 'kis',
+        'provider': 'kiwoom' if provider.startswith('키움') else ('kis' if provider.startswith('한국투자') else 'yahoo'),
     }
 
 
@@ -436,6 +436,49 @@ def _yahoo_chart(symbol, timeframe):
     }
 
 
+def _yahoo_quote(symbol):
+    """Yahoo 차트 메타데이터를 이용한 현재가 최종 폴백.
+
+    키움·한국투자 API가 일시적으로 실패하면 기존에는 관심종목 전체가
+    ``조회 실패``로 남았다. Yahoo의 공개 차트 응답에는 장중 현재가와
+    직전 종가가 함께 있어, 증권사 API 장애 시에도 화면을 채울 수 있다.
+    지연될 수 있는 보조 경로이므로 실시간 스트림의 대체가 아니라 REST
+    조회 실패 시에만 사용한다.
+    """
+    query = urllib.parse.urlencode({
+        'range': '1d',
+        'interval': '5m',
+        'includePrePost': 'true',
+        'events': 'history',
+    })
+    payload = _get_yahoo_json(YAHOO_CHART_URL + urllib.parse.quote(symbol, safe='') + '?' + query)
+    result = ((payload.get('chart') or {}).get('result') or [None])[0]
+    if not result:
+        raise UsStockUnavailable('Yahoo 현재가 응답이 비어 있습니다.')
+    meta = result.get('meta') or {}
+    price = _number(meta.get('regularMarketPrice'))
+    if price is None:
+        timestamps = result.get('timestamp') or []
+        quotes = (((result.get('indicators') or {}).get('quote') or [{}])[0])
+        closes = quotes.get('close') or []
+        for index in range(len(timestamps) - 1, -1, -1):
+            price = _number(_series_value(closes, index))
+            if price is not None:
+                break
+    previous_close = _number(meta.get('previousClose') or meta.get('chartPreviousClose'))
+    if price is None:
+        raise UsStockUnavailable('Yahoo 현재가가 비어 있습니다.')
+    change = price - previous_close if previous_close is not None else None
+    change_rate = change / previous_close * 100 if previous_close else None
+    return _normalize_quote({
+        'price': price,
+        'previous_close': previous_close,
+        'change': change,
+        'change_rate': change_rate,
+        'name': meta.get('longName') or meta.get('shortName') or symbol,
+    }, symbol, 'Yahoo Finance 현재가 폴백', meta.get('exchangeName') or 'US')
+
+
 def _series_value(values, index):
     if not isinstance(values, list) or index >= len(values):
         return None
@@ -481,4 +524,11 @@ def quote(symbol):
         except Exception as exc:
             errors.append(str(exc))
             logger.warning('%s quote failed for %s: %s', getattr(fetcher, '__name__', 'broker'), symbol, exc)
+    try:
+        data = _yahoo_quote(symbol)
+        _cache_put(_quote_cache, symbol, data)
+        return data
+    except Exception as exc:
+        errors.append(str(exc))
+        logger.warning('Yahoo quote fallback failed for %s: %s', symbol, exc)
     raise UsStockUnavailable('키움·한국투자증권 미국주식 시세를 모두 조회하지 못했습니다.')
