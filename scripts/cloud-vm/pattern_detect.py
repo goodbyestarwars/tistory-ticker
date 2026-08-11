@@ -7,6 +7,7 @@ import math
 
 PATTERN_SWING = 2
 PATTERN_MAX_MATCHES = 30
+RISING_LOWS_MAX_MATCHES = 200
 
 RISING_LOWS_WINDOW = 20
 DOUBLE_BOTTOM_WINDOW = 90
@@ -789,7 +790,7 @@ def scan_stock(stock, daily, pattern_results, pullback_matches):
     if len(daily) >= RISING_LOWS_WINDOW:
         pattern_scanned = True
         rl = detect_rising_lows(daily)
-        if rl and not rl['breakout'] and len(pattern_results['risingLows']) < PATTERN_MAX_MATCHES:
+        if rl and not rl['breakout'] and len(pattern_results['risingLows']) < RISING_LOWS_MAX_MATCHES:
             pattern_results['risingLows'].append(build_pattern_match(stock, daily, rl))
 
     if len(daily) >= BOX_WINDOW:
