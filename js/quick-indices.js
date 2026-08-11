@@ -118,7 +118,7 @@
     // 원천적으로 사라짐(VM 자신은 30초에 1번만 호출).
     { key: 'btc', label: 'BTC', source: 'futures', sourceKey: 'BTC' },
     { key: 'kospi_night', label: '코스피 야간선물', source: 'futures', sourceKey: 'KOSPI200_NIGHT' },
-    { key: 'nasdaq', label: '나스닥 선물', source: 'futures', sourceKey: 'NASDAQ100' },
+    { key: 'nasdaq', label: '나스닥100 선물', source: 'futures', sourceKey: 'NASDAQ100' },
     { key: 'sp500', label: 'S&P500 선물', source: 'futures', sourceKey: 'SP500' },
     { key: 'dow', label: '다우 선물', source: 'futures', sourceKey: 'DOW' },
     { key: 'sox', label: '필라델피아 반도체', source: 'futures', sourceKey: 'SOX' },

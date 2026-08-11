@@ -224,7 +224,7 @@
     }
 
     function applyHomeSummarySession(session) {
-      var isUs = session && session.keys && session.keys[0] === 'NASDAQ100';
+      var isUs = session && session.keys && session.keys[0] === 'NASDAQ_INDEX';
       var title = dashboardSection.querySelector('[data-home-summary-field="title"]');
       var meta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
       var labels = dashboardSection.querySelectorAll('.hmb-list dt');
@@ -423,8 +423,8 @@
       return isUsSession ? {
         title: '미국 시장',
         live: '나스닥 · S&P500',
-        subtitle: '야간 시장 · 시세 확인 중',
-        keys: ['NASDAQ100', 'SP500'],
+        subtitle: '미국 현물 지수 확인 중',
+        keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
         labels: ['나스닥', 'S&P500']
       } : {
         title: '국내 시장',
@@ -485,7 +485,7 @@
         var chartEl = card.querySelector('[data-index-field="chart"]');
         if (priceEl) { priceEl.textContent = isFinite(price) ? price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-'; priceEl.className = tone; }
         if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
-        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || (session.keys[0] === 'KOSPI' ? '장중' : '미국 선물')) : '· 데이터 지연';
+        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || (session.keys[0] === 'KOSPI' ? '장중' : '미국 현물')) : '· 데이터 지연';
         renderHomeIndexChart(chartEl, item && item.chart, change >= 0, key);
       });
     }
@@ -494,7 +494,7 @@
       applyHomeMarketSession(homeMarketSession());
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
         ? window.QuickIndices.fetchFutures()
-        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ100%2CSP500', 12000)
+        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX', 12000)
           .then(function (data) { return data && data.data ? data.data : []; });
       request.then(renderHomeIndices).catch(function () {
         ['primary', 'secondary'].forEach(function (slot) {
@@ -518,7 +518,7 @@
     var loadHomeDomesticSummary;
 
     function loadSummaryForSession(session) {
-      var isUs = session && session.keys && session.keys[0] === 'NASDAQ100';
+      var isUs = session && session.keys && session.keys[0] === 'NASDAQ_INDEX';
       var nextKey = (session.keys || []).join('|');
       summarySessionKey = nextKey;
       applyHomeSummarySession(session);
@@ -532,11 +532,11 @@
     fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 12000)
       .then(function (market) {
         writeHomeDataCache(marketTempCacheKey, market);
-        if (homeMarketSession().keys[0] === 'NASDAQ100') renderMarketExchange(market);
+        if (homeMarketSession().keys[0] === 'NASDAQ_INDEX') renderMarketExchange(market);
         else renderMarketTemperature(market);
       })
       .catch(function () {
-        if (!cachedMarketTemp && homeMarketSession().keys[0] !== 'NASDAQ100') {
+        if (!cachedMarketTemp && homeMarketSession().keys[0] !== 'NASDAQ_INDEX') {
           setField('temperature', '일시 지연', 'home-neutral');
           setField('direction', '데이터 확인 중', 'home-neutral');
           setField('exchange', '일시 지연', 'home-neutral');
