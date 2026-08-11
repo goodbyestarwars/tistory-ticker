@@ -10,7 +10,44 @@ import earnings_calendar
 
 class EarningsCalendarTests(unittest.TestCase):
     def setUp(self):
+        earnings_calendar._cache.clear()
         earnings_calendar._finnhub_cache.clear()
+
+    def test_fetches_all_dart_pages_and_exposes_report_details(self):
+        pages = [
+            {
+                'status': '000',
+                'total_page': '2',
+                'list': [{
+                    'corp_name': '첫번째회사',
+                    'stock_code': '000001',
+                    'report_nm': '영업(잠정)실적',
+                    'rcept_dt': '20260811',
+                    'rcept_no': '20260811000001',
+                }],
+            },
+            {
+                'status': '000',
+                'total_page': '2',
+                'list': [{
+                    'corp_name': '두번째회사',
+                    'stock_code': '000002',
+                    'report_nm': '연결재무제표 기준 영업(잠정)실적',
+                    'rcept_dt': '20260811',
+                    'rcept_no': '20260811000002',
+                }],
+            },
+        ]
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}):
+            with mock.patch.object(earnings_calendar, '_fetch_page', side_effect=pages) as fetch:
+                events = earnings_calendar.fetch_month(2026, 8)
+
+        self.assertEqual(fetch.call_count, 2)
+        self.assertEqual(len(events), 2)
+        self.assertIn('영업(잠정)실적', events[0]['title'])
+        self.assertEqual(events[0]['report_name'], '영업(잠정)실적')
+        self.assertEqual(events[0]['receipt_no'], '20260811000001')
+        self.assertEqual(events[0]['symbol'], '000001')
 
     def test_fetches_and_caches_us_month(self):
         rows = [

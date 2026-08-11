@@ -19,20 +19,22 @@ BASE_URL = 'https://opendart.fss.or.kr/api/list.json'
 FINNHUB_URL = 'https://finnhub.io/api/v1/calendar/earnings'
 CACHE_TTL_SEC = 10 * 60
 FINNHUB_CACHE_TTL_SEC = 10 * 60
+DART_LIST_PAGE_COUNT = 100
+DART_LIST_MAX_PAGES = 10
 _cache = {}
 _finnhub_cache = {}
 _logger = logging.getLogger('earnings_calendar')
 
 
-def _fetch(api_key, start_date, end_date):
+def _fetch_page(api_key, start_date, end_date, page_no):
     params = {
         'crtfc_key': api_key,
         'bgn_de': start_date,
         'end_de': end_date,
         # 거래소 공시: 영업(잠정)실적, 연결재무제표 기준 잠정실적 등
         'pblntf_ty': 'I',
-        'page_no': '1',
-        'page_count': '100',
+        'page_no': str(page_no),
+        'page_count': str(DART_LIST_PAGE_COUNT),
         'sort': 'date',
         'sort_mth': 'desc',
     }
@@ -43,10 +45,31 @@ def _fetch(api_key, start_date, end_date):
     with urllib.request.urlopen(request, timeout=12) as response:
         data = json.loads(response.read().decode('utf-8'))
     if data.get('status') == '013':
-        return []
+        return {'status': '013', 'list': [], 'total_page': '0'}
     if data.get('status') != '000':
         raise RuntimeError('DART list status %s: %s' % (data.get('status'), data.get('message', '')))
-    return data.get('list') or []
+    return data
+
+
+def _fetch(api_key, start_date, end_date):
+    """DART 거래소 공시를 페이지 끝까지 읽는다.
+
+    실적 시즌에는 일반 공시가 1페이지(100건)를 먼저 채워서 실적공시가
+    뒤로 밀릴 수 있다. 기존에는 첫 페이지만 읽어 당일 실적이 누락됐으므로,
+    DART가 알려준 전체 페이지 수만큼(안전 상한 내에서) 순회한다.
+    """
+    rows = []
+    for page_no in range(1, DART_LIST_MAX_PAGES + 1):
+        data = _fetch_page(api_key, start_date, end_date, page_no)
+        page_rows = data.get('list') or []
+        rows.extend(page_rows)
+        try:
+            total_pages = int(data.get('total_page') or page_no)
+        except (TypeError, ValueError):
+            total_pages = page_no
+        if not page_rows or page_no >= total_pages:
+            break
+    return rows
 
 
 def fetch_month(year, month):
@@ -80,14 +103,27 @@ def fetch_month(year, month):
         receipt_no = (row.get('rcept_no') or '').strip()
         if not corp or not receipt_no:
             continue
-        events.append({
-            'title': '$%s 실적공시 완료 | 자동(DART)' % corp,
+        # list.json은 숫자 재무제표가 아니라 실제 접수된 공시의 메타데이터를
+        # 제공한다. 공시명을 함께 내려야 캘린더에서 어떤 실적 공시인지 확인할
+        # 수 있고, 검색도 일반적인 "실적공시 완료" 문구에 갇히지 않는다.
+        detail = '실적공시 완료'
+        if report_name:
+            detail += ' · ' + report_name
+        event = {
+            'title': '$%s %s | 자동(DART)' % (corp, detail),
             'start': '%s-%s-%s' % (receipt_date[:4], receipt_date[4:6], receipt_date[6:8]),
             'link': 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=' + receipt_no,
             'source': 'dart',
             'market': 'domestic',
             'status': 'reported',
-        })
+            'corp_name': corp,
+            'report_name': report_name,
+            'receipt_no': receipt_no,
+        }
+        stock_code = (row.get('stock_code') or '').strip()
+        if stock_code:
+            event['symbol'] = stock_code
+        events.append(event)
     _cache[key] = (time.time(), events)
     return events
 
