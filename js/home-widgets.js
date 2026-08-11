@@ -627,6 +627,10 @@
         + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span>'
         + (time ? '<time>' + escapeHtml(time) + '</time>' : '') + '</a>';
     }).join('');
+    // 국내 공시도 미국 일정과 같은 가로 카드 스트립이므로 마우스/터치 drag로
+    // 옆 카드까지 넘길 수 있어야 한다. 이전에는 미국 일정 렌더링 경로에만
+    // drag 핸들러가 연결되어 국내 '오늘의 공시'는 trackpad/휠에 의존했다.
+    enableScheduleDrag(mount);
   }
 
   function currentDisclosureMarket() {
