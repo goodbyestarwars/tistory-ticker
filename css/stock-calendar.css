@@ -100,6 +100,7 @@
   background: #f8fafc; transition: background 0.12s;
 }
 #stock-calendar .sc-ev-item:hover { background: #eef2ff; }
+#stock-calendar .sc-ev-item-disabled { cursor: default; }
 #stock-calendar .sc-ev-date {
   flex-shrink: 0; width: 34px; font-size: 12px; font-weight: 700; color: #6366f1;
 }

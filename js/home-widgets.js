@@ -670,6 +670,10 @@
     return title || '미국 실적 일정';
   }
 
+  function isFinnhubLink(link) {
+    return /(?:^|:\/\/)(?:www\.)?finnhub\.io(?:\/|$)/i.test(String(link || ''));
+  }
+
   function scheduleSymbol(item) {
     var explicit = String(item && (item.symbol || item.ticker || item.code) || '')
       .replace(/^US:/i, '').trim().toUpperCase();
@@ -740,11 +744,15 @@
       return;
     }
     mount.innerHTML = selection.items.map(function (item) {
-      var link = item.link || 'https://finnhub.io/docs/api/earnings-calendar';
-      return '<a class="home-disclosure-row home-us-schedule-row" href="' + escapeHtml(link) + '" target="_blank" rel="noopener" draggable="false">'
+      var link = isFinnhubLink(item.link) ? '' : String(item.link || '').trim();
+      var rowStart = link
+        ? '<a class="home-disclosure-row home-us-schedule-row" href="' + escapeHtml(link) + '" target="_blank" rel="noopener" draggable="false">'
+        : '<div class="home-disclosure-row home-us-schedule-row home-us-schedule-row-disabled" aria-disabled="true" data-external-link-blocked="finnhub">';
+      var rowEnd = link ? '</a>' : '</div>';
+      return rowStart
         + '<strong>미국</strong>'
         + '<span class="home-us-schedule-title">' + scheduleIconHtml(item) + '<span>' + escapeHtml(scheduleTitle(item.title)) + '</span></span>'
-        + '<time>' + escapeHtml(scheduleTime(item.start)) + '</time></a>';
+        + '<time>' + escapeHtml(scheduleTime(item.start)) + '</time>' + rowEnd;
     }).join('');
     enableScheduleDrag(mount);
   }

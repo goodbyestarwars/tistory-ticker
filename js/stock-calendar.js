@@ -48,6 +48,15 @@
     return global.KRX_MAP[stockName] || global.KRX_MAP[DART_NAME_ALIAS[stockName]] || null;
   }
 
+  function usTickerFor(stockName) {
+    var value = String(stockName || '').trim();
+    return /^[A-Za-z][A-Za-z0-9.-]*$/.test(value) ? value.toUpperCase() : null;
+  }
+
+  function isFinnhubLink(link) {
+    return /(?:^|:\/\/)(?:www\.)?finnhub\.io(?:\/|$)/i.test(String(link || ''));
+  }
+
   function fetchJson(url, timeoutMs) {
     var controller = 'AbortController' in global ? new AbortController() : null;
     var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 7000) : null;
@@ -209,7 +218,7 @@
       // 실제 로고 이미지를 그 위에 겹쳐 그린다 - 이름이 KRX_MAP과 정확히 안 맞거나
       // (예: 표기 차이) 로고 파일이 없는 종목은 svg->png 3단 폴백 끝에 이미지가 숨겨져도
       // 밑에 깔린 약칭이 그대로 보여 빈 원으로 남지 않는다.
-      var code = krxCodeFor(meta.stockName);
+      var code = krxCodeFor(meta.stockName) || usTickerFor(meta.stockName);
       iconHtml = escapeHtml((meta.stockName || '').slice(0, 2)) + stockIconHtml(code);
     } else if (meta.isForeign) {
       iconClass = 'sc-ev-icon flag';
@@ -222,12 +231,17 @@
       ? '<strong class="sc-ev-ticker">' + escapeHtml(meta.stockName) + '</strong> ' + escapeHtml(meta.text)
       : escapeHtml(meta.text);
     var tagHtml = meta.tag ? '<span class="sc-ev-tag">' + escapeHtml(meta.tag) + '</span>' : '';
-    return '<a href="' + escapeHtml(ev.link || '#') + '" target="_blank" class="sc-ev-item">'
+    var blockedExternalLink = isFinnhubLink(ev.link);
+    var rowStart = blockedExternalLink
+      ? '<div class="sc-ev-item sc-ev-item-disabled" aria-disabled="true" data-external-link-blocked="finnhub">'
+      : '<a href="' + escapeHtml(ev.link || '#') + '" target="_blank" class="sc-ev-item">';
+    var rowEnd = blockedExternalLink ? '</div>' : '</a>';
+    return rowStart
       + '<span class="sc-ev-date">' + dateLabelOf(ev) + '</span>'
       + '<span class="' + iconClass + '">' + iconHtml + '</span>'
       + '<span class="sc-ev-body"><span class="sc-ev-title">' + titleHtml + tagHtml + '</span></span>'
       + '<span class="sc-ev-time">' + timeOf(ev) + '</span>'
-      + '</a>';
+      + rowEnd;
   }
 
   /* 달력 그리드의 각 행(일~토)을 "N주차"로 묶는다 - 이벤트가 있는 주차만 리스트에 노출 */
