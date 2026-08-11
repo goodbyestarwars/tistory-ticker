@@ -791,6 +791,32 @@
     }
     list.addEventListener('pointerup', finishDrag);
     list.addEventListener('pointercancel', finishDrag);
+    // 일부 모바일 WebView에서는 Pointer Events가 스크롤 컨테이너에서
+    // 안정적으로 전달되지 않으므로 Touch Events도 함께 지원한다.
+    list.addEventListener('touchstart', function (event) {
+      if (!event.touches || !event.touches.length) return;
+      var touch = event.touches[0];
+      dragging = true;
+      moved = false;
+      startX = touch.clientX;
+      startScroll = list.scrollLeft;
+      list.classList.add('is-dragging');
+    }, { passive: true });
+    list.addEventListener('touchmove', function (event) {
+      if (!dragging || !event.touches || !event.touches.length) return;
+      var delta = event.touches[0].clientX - startX;
+      if (Math.abs(delta) > 4) moved = true;
+      if (!moved) return;
+      event.preventDefault();
+      list.scrollLeft = startScroll - delta;
+    }, { passive: false });
+    function finishTouch(event) {
+      if (!dragging) return;
+      finishDrag({ pointerId: null });
+      if (event && moved) suppressClick = true;
+    }
+    list.addEventListener('touchend', finishTouch, { passive: true });
+    list.addEventListener('touchcancel', finishTouch, { passive: true });
     list.addEventListener('click', function (event) {
       if (!suppressClick) return;
       event.preventDefault();

@@ -212,7 +212,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("flex-direction: row", style)
         self.assertIn("scrollbar-color: transparent transparent", style)
         self.assertIn("home-top-disclosures .home-disclosure-list::-webkit-scrollbar", style)
-        self.assertIn("touch-action: pan-y", style)
+        self.assertIn("touch-action: pan-x", style)
+        self.assertIn("-webkit-overflow-scrolling: touch", style)
+        self.assertIn("list.addEventListener('touchstart'", widgets)
+        self.assertIn("list.addEventListener('touchmove'", widgets)
+        self.assertIn("list.addEventListener('touchend'", widgets)
         self.assertIn("-webkit-user-drag: none", style)
         self.assertIn(".home-us-schedule-icon", style)
 
