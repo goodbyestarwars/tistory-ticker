@@ -52,6 +52,14 @@
     AZN: ['thesvg-color', 'astrazeneca']
   };
   var BRAND_DOMAIN_MAP = {
+    RGTI: 'rigetti.com',
+    RKLB: 'rocketlabusa.com',
+    ORCL: 'oracle.com',
+    LLY: 'lilly.com',
+    DELL: 'dell.com',
+    IONQ: 'ionq.com',
+    SKHY: 'skhynix.com',
+    ASTS: 'ast-science.com',
     SPCX: 'spacex.com',
     SNDK: 'sandisk.com',
     INTC: 'intel.com',

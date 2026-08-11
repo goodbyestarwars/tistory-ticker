@@ -537,7 +537,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
         self.assertIn("us-stocks.css?v=20260811-font-scale", source)
-        self.assertIn("us-stocks.js?v=20260811-font-scale", search)
+        self.assertIn("us-stocks.js?v=20260811-auto-icon-fallback", search)
         self.assertIn("font-family: inherit", style)
         for token in (
             ".us-stocks-metric span { color: #8b95a1; font-size: 12px;",
@@ -616,7 +616,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("1.1~12.31", source)
         self.assertIn("검색 결과 ' + visibleEvents.length + '건", source)
         self.assertIn(".sc-search input", style)
-        self.assertIn("stock-calendar.js?v=20260811-calendar-search", home)
+        self.assertIn("stock-calendar.js?v=20260811-finnhub-block", home)
 
 
 if __name__ == "__main__":
