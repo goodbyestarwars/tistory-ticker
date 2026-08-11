@@ -129,6 +129,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
 
+    def test_us_home_cards_use_spot_index_products_explicitly(self):
+        main = self.read("js/skin-main.js")
+        indices = self.read("js/quick-indices.js")
+        self.assertIn("keys: ['NASDAQ_INDEX', 'SP500_INDEX']", main)
+        self.assertIn("labels: ['나스닥', 'S&P500']", main)
+        self.assertIn("미국 현물 지수 확인 중", main)
+        self.assertNotIn("live: '나스닥100 선물 · S&P500 선물'", main)
+        self.assertIn("label: '나스닥100 선물'", indices)
+
     def test_home_realtime_table_fills_missing_stock_icons(self):
         source = self.read("js/home-realtime-table.js")
         for token in (
