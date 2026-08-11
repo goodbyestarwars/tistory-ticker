@@ -337,7 +337,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
         source = self.read("js/watchlist.js")
         bootstrap = self.read("js/stock-search-panel.js")
-        self.assertIn("watchlist.js?v=us-realtime-ws-20260811", bootstrap)
+        self.assertIn("watchlist.js?v=market-open-kickoff-20260812", bootstrap)
         for token in (
             "var domesticCodes = codes.filter",
             "var canUseSocket = codes.length",
@@ -346,6 +346,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "NXT 장 전환",
             "var fallbackCodes = codes.slice();",
             "if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);",
+            "var realtimeKickoffTimer = null;",
+            "function scheduleRealtimeKickoff(container, codes, generation)",
+            "[8, 0], [9, 0], [15, 30], [17, 0], [22, 30]",
         ):
             self.assertIn(token, source)
 
