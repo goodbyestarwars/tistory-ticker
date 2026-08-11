@@ -16,15 +16,19 @@ BOX_WINDOW = 40
 WEDGE_MIN_SWINGS = 2
 RECENCY_MAX_GAP = 3
 
-DB_LOW_TOL = 0.03
-DB_MIN_GAP_DAYS = 10
-DB_MAX_GAP_DAYS = 40
-DB_PEAK_MIN_RISE = 0.03
-DB_NECK_PROXIMITY_MIN = -0.05
+DB_LOW_TOL = 0.02
+DB_MIN_GAP_DAYS = 12
+DB_MAX_GAP_DAYS = 35
+DB_PEAK_MIN_RISE = 0.08
+DB_NECK_PROXIMITY_MIN = -0.02
+DB_SECOND_VOLUME_MAX_RATIO = 0.85
 
-IHS_SHOULDER_TOL = 0.05
-IHS_HEAD_MIN_DROP = 0.01
-IHS_NECK_PROXIMITY_MIN = -0.03
+IHS_SHOULDER_TOL = 0.03
+IHS_HEAD_MIN_DROP = 0.03
+IHS_NECK_PROXIMITY_MIN = -0.01
+IHS_NECK_MIN_RISE = 0.05
+IHS_MIN_SHOULDER_GAP = 5
+IHS_MAX_SHOULDER_GAP = 30
 
 BOX_TOL = 0.035
 BOX_MAX_RANGE = 0.15
@@ -39,7 +43,7 @@ BREAKOUT_TOL = 1.02
 # 2026-07-22 개편: 저점상승형 20일선 기울기 / 눌림목 20일선 상승 확인에 공용으로 쓰는
 # "며칠 전과 비교할지" 값(gas/ticker-proxy.gs와 동일하게 5거래일).
 MA_SLOPE_LOOKBACK = 5
-IHS_VOL_SURGE_RATIO = 1.2  # 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.2배 이상
+IHS_VOL_SURGE_RATIO = 1.5  # 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.5배 이상
 
 PULLBACK_WINDOW = 260
 PULLBACK_LOOKBACK = 20
@@ -436,8 +440,9 @@ def detect_double_bottom(daily):
     if len(low_idxs) < 2:
         return None
 
-    for a in range(len(low_idxs) - 1):
-        for b in range(a + 1, len(low_idxs)):
+    # 오래된 조합을 억지로 찾지 않고 가장 최근 두 저점만 쌍바닥 후보로 본다.
+    for a in [len(low_idxs) - 2]:
+        for b in [len(low_idxs) - 1]:
             i1, i2 = low_idxs[a], low_idxs[b]
             gap_days = i2 - i1
             if gap_days < DB_MIN_GAP_DAYS or gap_days > DB_MAX_GAP_DAYS:
@@ -451,7 +456,7 @@ def detect_double_bottom(daily):
                 continue
 
             # 2026-07-22 개편: 두 번째 저점 거래량이 첫 번째 저점 이하
-            if win[i2]['volume'] > win[i1]['volume']:
+            if win[i2]['volume'] > win[i1]['volume'] * DB_SECOND_VOLUME_MAX_RATIO:
                 continue
 
             neck = max_high_between(win, i1, i2)
@@ -461,7 +466,7 @@ def detect_double_bottom(daily):
             if rise_from_low1 < DB_PEAK_MIN_RISE:
                 continue
 
-            if not has_bullish_after(win, i2):
+            if not has_bullish_after(win, i2) or not is_last_candle_bullish(win):
                 continue
 
             last_close = win[-1]['close']
@@ -519,11 +524,18 @@ def detect_inv_head_shoulders(daily):
     # 2026-07-22 개편: 우어깨 형성 이후 거래량 급증(20일 평균 대비 1.2배 이상) 조건 기준선
     avg_vol20 = avg_volume(win, max(0, len(win) - 20), len(win))
 
-    for a in range(len(low_idxs) - 2):
-        for b in range(a + 1, len(low_idxs) - 1):
-            for c in range(b + 1, len(low_idxs)):
+    # 오래된 조합을 억지로 찾지 않고 가장 최근 세 저점만 역헤드앤숄더 후보로 본다.
+    for a in [len(low_idxs) - 3]:
+        for b in [len(low_idxs) - 2]:
+            for c in [len(low_idxs) - 1]:
                 i_l, i_h, i_r = low_idxs[a], low_idxs[b], low_idxs[c]
                 if (len(win) - 1) - i_r > RECENCY_MAX_GAP:
+                    continue
+                left_gap = i_h - i_l
+                right_gap = i_r - i_h
+                if left_gap < IHS_MIN_SHOULDER_GAP or right_gap < IHS_MIN_SHOULDER_GAP:
+                    continue
+                if left_gap > IHS_MAX_SHOULDER_GAP or right_gap > IHS_MAX_SHOULDER_GAP:
                     continue
                 left, head, right = win[i_l]['low'], win[i_h]['low'], win[i_r]['low']
 
@@ -542,12 +554,18 @@ def detect_inv_head_shoulders(daily):
                 peak2 = max_high_between(win, i_h, i_r)
                 if not peak1 or not peak2:
                     continue
+                if (peak1['high'] - head) / head < IHS_NECK_MIN_RISE:
+                    continue
+                if (peak2['high'] - head) / head < IHS_NECK_MIN_RISE:
+                    continue
                 neckline_price = min(peak1['high'], peak2['high'])
                 neckline_point = peak1 if peak1['high'] <= peak2['high'] else peak2
 
                 last_close = win[-1]['close']
                 proximity = (last_close - neckline_price) / neckline_price
                 if proximity < IHS_NECK_PROXIMITY_MIN:
+                    continue
+                if not is_last_candle_bullish(win):
                     continue
 
                 # 2026-07-22 개편: 우어깨 형성 이후 거래량이 20일 평균 대비 1.2배 이상

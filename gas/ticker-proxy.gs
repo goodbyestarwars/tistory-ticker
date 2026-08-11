@@ -2382,15 +2382,19 @@ var WEDGE_MIN_SWINGS = 2;        // ① 지시서: Swing Low 2개 이상
 // 최소값 - 그 최소값 바로 위(3)로 빡빡하게 잡아 "이미 지나간 패턴"을 걸러낸다.
 var RECENCY_MAX_GAP = 3;
 
-var DB_LOW_TOL = 0.03;           // ② 지시서: 저점 가격 차이 ±3%
-var DB_MIN_GAP_DAYS = 10;        // ② 지시서: 간격 10~40거래일
-var DB_MAX_GAP_DAYS = 40;
-var DB_PEAK_MIN_RISE = 0.03;     // 사이 고점(넥라인)이 첫 저점 대비 최소 3% 반등해야 유효
-var DB_NECK_PROXIMITY_MIN = -0.05; // ② 지시서: 현재가 넥라인 아래 5%
+var DB_LOW_TOL = 0.02;
+var DB_MIN_GAP_DAYS = 12;
+var DB_MAX_GAP_DAYS = 35;
+var DB_PEAK_MIN_RISE = 0.08;
+var DB_NECK_PROXIMITY_MIN = -0.02;
+var DB_SECOND_VOLUME_MAX_RATIO = 0.85;
 
-var IHS_SHOULDER_TOL = 0.05;     // ③ 지시서: 양쪽 저점 차이 ±5%
-var IHS_HEAD_MIN_DROP = 0.01;    // 헤드가 양 어깨보다 각각 최소 1% 더 낮아야 함(가운데가 최저라는 조건의 최소 여유)
-var IHS_NECK_PROXIMITY_MIN = -0.03; // ③ 지시서: 현재가 넥라인 아래 3%
+var IHS_SHOULDER_TOL = 0.03;
+var IHS_HEAD_MIN_DROP = 0.03;
+var IHS_NECK_PROXIMITY_MIN = -0.01;
+var IHS_NECK_MIN_RISE = 0.05;
+var IHS_MIN_SHOULDER_GAP = 5;
+var IHS_MAX_SHOULDER_GAP = 30;
 
 var BOX_TOL = 0.035;             // 박스권: 고점끼리/저점끼리 3.5% 이내로 평평해야 함
 var BOX_MAX_RANGE = 0.15;        // ④ 지시서: 고점-저점 차이 15% 이하
@@ -2406,7 +2410,7 @@ var BREAKOUT_TOL = 1.02;         // 저항선/넥라인을 2% 넘게 뚫었으�
 // 20일선 상승 확인에 공용으로 쓰는 "며칠 전과 비교할지" 값. 사용자 스펙에 구체적 일수가
 // 없어 임의로 5거래일을 골랐음 - 너무 짧으면 노이즈, 너무 길면 최근 방향 전환을 못 잡음.
 var MA_SLOPE_LOOKBACK = 5;
-var IHS_VOL_SURGE_RATIO = 1.2;   // 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.2배 이상
+var IHS_VOL_SURGE_RATIO = 1.5;
 
 // 2026-07-13: 차트패턴+눌림목+투자시그널 스캔이 VM의 daily_scan.py(systemd timer,
 // scripts/cloud-vm/setup_dailyscan_timer.sh)로 완전히 이전됨 - GAS UrlFetchApp 할당량을
@@ -2813,21 +2817,20 @@ function detectDoubleBottom_(daily) {
   var win = daily.slice(Math.max(0, daily.length - DOUBLE_BOTTOM_WINDOW));
   var lowIdxs = findSwingIndices_(win, 'low', true);
   if (lowIdxs.length < 2) return null;
-
-  for (var a = 0; a < lowIdxs.length - 1; a++) {
-    for (var b = a + 1; b < lowIdxs.length; b++) {
+  for (var a = lowIdxs.length - 2; a < lowIdxs.length - 1; a++) {
+    for (var b = lowIdxs.length - 1; b < lowIdxs.length; b++) {
       var i1 = lowIdxs[a], i2 = lowIdxs[b];
       var gapDays = i2 - i1;
-      if (gapDays < DB_MIN_GAP_DAYS || gapDays > DB_MAX_GAP_DAYS) continue; // 간격 10~40거래일
+      if (gapDays < DB_MIN_GAP_DAYS || gapDays > DB_MAX_GAP_DAYS) continue; // 간격 12~35거래일
       if ((win.length - 1) - i2 > RECENCY_MAX_GAP) continue; // 두번째 저점이 너무 오래 전이면 스킵
 
       var low1 = win[i1].low, low2 = win[i2].low;
       var diff = Math.abs(low1 - low2) / Math.min(low1, low2);
-      if (diff > DB_LOW_TOL) continue; // 가격 차이 ±3%
+      if (diff > DB_LOW_TOL) continue; // 가격 차이 ±2%
 
       // 2026-07-22 개편: 두 번째 저점 거래량이 첫 번째 저점 이하 - 저점을 다지면서
       // 매도 압력이 줄어드는 정상적인 바닥 형성 신호인지 확인
-      if (win[i2].volume > win[i1].volume) continue;
+      if (win[i2].volume > win[i1].volume * DB_SECOND_VOLUME_MAX_RATIO) continue;
 
       var neck = maxHighBetween_(win, i1, i2);
       if (!neck) continue;
@@ -2835,10 +2838,11 @@ function detectDoubleBottom_(daily) {
       if (riseFromLow1 < DB_PEAK_MIN_RISE) continue;
 
       if (!hasBullishAfter_(win, i2)) continue; // 두번째 저점 이후 양봉(반등 확인)
+      if (!isLastCandleBullish_(win)) continue;
 
       var lastClose = win[win.length - 1].close;
       var proximity = (lastClose - neck.high) / neck.high;
-      if (proximity < DB_NECK_PROXIMITY_MIN) continue; // 넥라인 아래 5% 이내(너무 멀면 스킵)
+      if (proximity < DB_NECK_PROXIMITY_MIN) continue; // 넥라인 아래 2% 이내(너무 멀면 스킵)
 
       var current = { date: win[win.length - 1].date, price: lastClose };
       // 저점1 이전의 고점 - 차트에 W자 왼쪽 팔(하락 구간)까지 그려서 패턴이 한눈에 보이게 하기 위함
@@ -2888,15 +2892,17 @@ function detectInvHeadShoulders_(daily) {
   var lowIdxs = findSwingIndices_(win, 'low', true);
   if (lowIdxs.length < 3) return null;
 
-  // 2026-07-22 개편: 우어깨 형성 이후 거래량 급증(20일 평균 대비 1.2배 이상) 조건에 쓸 기준선
+  // 우어깨 형성 이후 거래량 급증(20일 평균 대비 1.5배 이상) 조건에 쓸 기준선
   var avgVol20 = avgVolume_(win, Math.max(0, win.length - 20), win.length);
-
-  for (var a = 0; a < lowIdxs.length - 2; a++) {
-    for (var b = a + 1; b < lowIdxs.length - 1; b++) {
-      for (var c = b + 1; c < lowIdxs.length; c++) {
+  for (var a = lowIdxs.length - 3; a < lowIdxs.length - 2; a++) {
+    for (var b = lowIdxs.length - 2; b < lowIdxs.length - 1; b++) {
+      for (var c = lowIdxs.length - 1; c < lowIdxs.length; c++) {
         var iL = lowIdxs[a], iH = lowIdxs[b], iR = lowIdxs[c];
         if ((win.length - 1) - iR > RECENCY_MAX_GAP) continue; // 우어깨가 너무 오래 전이면 스킵
         var left = win[iL].low, head = win[iH].low, right = win[iR].low;
+        var leftGap = iH - iL, rightGap = iR - iH;
+        if (leftGap < IHS_MIN_SHOULDER_GAP || rightGap < IHS_MIN_SHOULDER_GAP) continue;
+        if (leftGap > IHS_MAX_SHOULDER_GAP || rightGap > IHS_MAX_SHOULDER_GAP) continue;
 
         if (!(head < left && head < right)) continue;
         if ((left - head) / left < IHS_HEAD_MIN_DROP) continue;
@@ -2908,12 +2914,15 @@ function detectInvHeadShoulders_(daily) {
         var peak1 = maxHighBetween_(win, iL, iH);
         var peak2 = maxHighBetween_(win, iH, iR);
         if (!peak1 || !peak2) continue;
+        if ((peak1.high - head) / head < IHS_NECK_MIN_RISE) continue;
+        if ((peak2.high - head) / head < IHS_NECK_MIN_RISE) continue;
         var necklinePrice = Math.min(peak1.high, peak2.high);
         var necklinePoint = peak1.high <= peak2.high ? peak1 : peak2;
 
         var lastClose = win[win.length - 1].close;
         var proximity = (lastClose - necklinePrice) / necklinePrice;
-        if (proximity < IHS_NECK_PROXIMITY_MIN) continue; // ③ 넥라인 아래 3% 이내(너무 멀면 스킵)
+        if (!isLastCandleBullish_(win)) continue;
+        if (proximity < IHS_NECK_PROXIMITY_MIN) continue; // 넥라인 아래 1% 이내(너무 멀면 스킵)
 
         // 2026-07-22 개편: 우어깨 형성 이후(넥라인 접근/돌파 구간 포함) 거래량이 20일 평균
         // 대비 1.2배 이상 - 반전에 매수세가 실제로 붙었는지 확인(예전엔 거래량 "감소"를
