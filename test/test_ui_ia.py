@@ -342,12 +342,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "var domesticCodes = codes.filter",
             "var canUseSocket = codes.length",
             "var REALTIME_FALLBACK_MS = 60000;",
+            "var REALTIME_DOMESTIC_FALLBACK_MS = 10000;",
             "var encodedCodes = codes.map(encodeURIComponent).join(',');",
             "NXT 장 전환",
-            "var fallbackCodes = codes.slice();",
-            "if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);",
+            "if (usCodes.length) refreshQuotesOnce(container, usCodes);",
             "var realtimeKickoffTimer = null;",
             "function scheduleRealtimeKickoff(container, codes, generation)",
+            "function isDomesticSessionTime(now)",
+            "realtimeDomesticFallbackTimer = setInterval",
             "[8, 0], [9, 0], [15, 30], [17, 0], [22, 30]",
         ):
             self.assertIn(token, source)

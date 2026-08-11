@@ -80,10 +80,12 @@
   // 미국 API의 분당 호출 제한을 넘지 않도록 REST 폴백은 느리게 돌리고,
   // 정상적인 장중 갱신은 아래 WebSocket(Finnhub)으로 처리한다.
   var REALTIME_FALLBACK_MS = 60000;
+  var REALTIME_DOMESTIC_FALLBACK_MS = 10000;
   var REALTIME_RECONNECT_MS = 5000;
   var realtimeSocket = null;
   var realtimeReconnectTimer = null;
   var realtimeFallbackTimer = null;
+  var realtimeDomesticFallbackTimer = null;
   var realtimeKeepaliveTimer = null;
   var realtimeKickoffTimer = null;
   var realtimeGeneration = 0;
@@ -759,10 +761,12 @@
     clearTimeout(realtimeReconnectTimer);
     clearTimeout(realtimeKickoffTimer);
     clearInterval(realtimeFallbackTimer);
+    clearInterval(realtimeDomesticFallbackTimer);
     clearInterval(realtimeKeepaliveTimer);
     realtimeReconnectTimer = null;
     realtimeKickoffTimer = null;
     realtimeFallbackTimer = null;
+    realtimeDomesticFallbackTimer = null;
     realtimeKeepaliveTimer = null;
     if (realtimeSocket) {
       realtimeSocket.onclose = null;
@@ -797,6 +801,13 @@
     return next;
   }
 
+  function isDomesticSessionTime(now) {
+    var day = now.getDay();
+    if (day === 0 || day === 6) return false;
+    var minutes = now.getHours() * 60 + now.getMinutes();
+    return minutes >= 8 * 60 && minutes < 20 * 60;
+  }
+
   function scheduleRealtimeKickoff(container, codes, generation) {
     clearTimeout(realtimeKickoffTimer);
     var now = new Date();
@@ -819,6 +830,7 @@
     // 국내 코드는 키움, 미국 코드는 Finnhub 스트림으로 서버가 분리 중계한다.
     // 서버가 codes에서 시장별로 나눠 처리하므로 두 시장을 모두 구독해야 한다.
     var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
+    var usCodes = codes.filter(function (code) { return /^US:/i.test(code); });
     var canUseSocket = codes.length && ('WebSocket' in global);
 
     var generation = realtimeGeneration;
@@ -859,9 +871,15 @@
 
     // WebSocket이 일시적으로 끊기거나 상류가 재접속 중인 경우를 위한 안전망이다.
     // 이 조회는 전체 목록을 다시 그리지 않고 실제로 바뀐 행만 DOM을 수정한다.
+    // 국내 장 전환 직후에는 키움 WebSocket이 연결돼도 첫 체결 이벤트가 늦을 수 있다.
+    // 국내 GAS 스냅샷만 짧게 폴백해 0.00% 고정 표시를 막고, 미국 API 호출은 기존 주기를 유지한다.
+    realtimeDomesticFallbackTimer = setInterval(function () {
+      if (domesticCodes.length && isDomesticSessionTime(new Date())) {
+        refreshQuotesOnce(container, domesticCodes);
+      }
+    }, REALTIME_DOMESTIC_FALLBACK_MS);
     realtimeFallbackTimer = setInterval(function () {
-      var fallbackCodes = codes.slice();
-      if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);
+      if (usCodes.length) refreshQuotesOnce(container, usCodes);
     }, REALTIME_FALLBACK_MS);
 
     if (canUseSocket) connect();
