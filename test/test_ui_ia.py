@@ -329,6 +329,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("setWatchlistDrawerOpen(drawer, false);", bootstrap)
         self.assertIn(".wl-card.is-dragging", style)
         self.assertIn("display: flex", style)
+        self.assertIn("gap: 10px; min-height: 42px", style)
+        self.assertIn("padding: 4px 2px 4px 6px", style)
         self.assertIn('grid-template-areas: "handle name quote remove"', style)
         self.assertIn("@media (max-width: 640px)", style)
 

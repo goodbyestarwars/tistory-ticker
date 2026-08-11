@@ -253,13 +253,13 @@
 }
 #watchlist .wl-group { border-top: 1px solid #e1e5eb; }
 #watchlist .wl-group:first-child { border-top: 0; }
-#watchlist .wl-group-head { display: flex; align-items: center; min-height: 42px; }
+#watchlist .wl-group-head { display: flex; align-items: center; gap: 10px; min-height: 42px; }
 #watchlist .wl-group-toggle { display: flex; align-items: center; gap: 7px; flex: 1; padding: 10px 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: 14px; font-weight: 700; text-align: left; cursor: pointer; }
 #watchlist .wl-group-count { color: #9aa0aa; font-size: 11px; font-weight: 500; }
 #watchlist .wl-chevron { margin-left: auto; color: #8c939f; transition: transform .15s; }
 #watchlist .wl-group.is-collapsed .wl-chevron { transform: rotate(180deg); }
 #watchlist .wl-group.is-collapsed .wl-group-items { display: none; }
-#watchlist .wl-group-delete { border: 0; background: transparent; color: #999; font-size: 11px; cursor: pointer; }
+#watchlist .wl-group-delete { flex: 0 0 auto; border: 0; background: transparent; color: #999; font-size: 11px; padding: 4px 2px 4px 6px; cursor: pointer; }
 #watchlist .wl-group-empty { margin: 0 0 10px; color: #999; font-size: 12px; }
 #watchlist .wl-card {
   display: grid;
