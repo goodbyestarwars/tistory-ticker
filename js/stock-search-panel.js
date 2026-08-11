@@ -576,12 +576,8 @@
       event.preventDefault();
       setWatchlistDrawerOpen(drawer, true);
     });
-    document.addEventListener('click', function (event) {
-      if (!drawer.classList.contains('is-open')) return;
-      if (event.target.closest('.global-watchlist-drawer')) return;
-      if (event.target.closest('[data-open-global-watchlist]')) return;
-      setWatchlistDrawerOpen(drawer, false);
-    });
+    // 관심종목을 여러 개 연속으로 추가할 수 있도록 바깥 영역 클릭으로
+    // 자동 닫지 않는다. 닫기는 토글 버튼을 눌렀을 때만 수행한다.
 
     ensureKrxMap().then(loadWatchlistScript).catch(loadWatchlistScript);
   }
