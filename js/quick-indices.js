@@ -91,7 +91,9 @@
   // 없어서 폴링 주기 단축으로 근사 - VM은 30초 주기 수집이라 이보다 짧게 줄여도 무의미.
   var REFRESH_MS = 20 * 1000;
   var FETCH_TIMEOUT_MS = 8000;
-  var FUTURES_CACHE_KEY = 'quick_indices_futures_v1';
+  // The home market cards also consume spot-index chart history.
+  // Bump the key so browsers do not reuse the old futures-only payload.
+  var FUTURES_CACHE_KEY = 'quick_indices_futures_v2';
   var FUTURES_CACHE_MAX_AGE_MS = 60 * 1000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 30;
@@ -141,6 +143,7 @@
   var FUTURES_SYMBOLS = OPTIONS
     .filter(function (o) { return o.source === 'futures'; })
     .map(function (o) { return o.sourceKey; })
+    .concat(['NASDAQ_INDEX', 'SP500_INDEX'])
     .join(',');
   var DEFAULT_SELECTED = ['kospi', 'kosdaq', 'usdkrw', 'nasdaq', 'sp500', 'vix', 'btc', 'wti'];
 

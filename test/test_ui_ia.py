@@ -138,6 +138,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("live: '나스닥100 선물 · S&P500 선물'", main)
         self.assertIn("label: '나스닥100 선물'", indices)
 
+        self.assertIn(".concat(['NASDAQ_INDEX', 'SP500_INDEX'])", indices)
+        self.assertIn("quick_indices_futures_v2", indices)
+
     def test_home_realtime_table_fills_missing_stock_icons(self):
         source = self.read("js/home-realtime-table.js")
         for token in (
