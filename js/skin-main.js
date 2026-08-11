@@ -55,7 +55,7 @@
     if (!feed) return;
 
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260811-finnhub-block';
+    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260812-dart-result';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260811-finnhub-block')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260811-finnhub-block';
