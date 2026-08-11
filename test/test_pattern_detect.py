@@ -104,6 +104,23 @@ class RisingLowsDetectionTest(unittest.TestCase):
 
         self.assertEqual([row["code"] for row in results["risingLows"]], ["399720"])
 
+    def test_rising_lows_are_not_truncated_by_other_pattern_limits(self):
+        results = {
+            "risingLows": [{} for _ in range(detector.PATTERN_MAX_MATCHES)],
+            "doubleBottom": [],
+            "invHeadShoulders": [],
+            "boxRangeLow": [],
+        }
+
+        detector.scan_stock(
+            {"code": "399720", "name": "가온칩스"},
+            early_higher_low_daily(),
+            results,
+            [],
+        )
+
+        self.assertEqual(len(results["risingLows"]), detector.PATTERN_MAX_MATCHES + 1)
+
 
 if __name__ == "__main__":
     unittest.main()
