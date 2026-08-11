@@ -17,7 +17,10 @@ WEDGE_MIN_SWINGS = 2
 WEDGE_MIN_LOW_RISE = 0.03
 WEDGE_MIN_GAP_DAYS = 5
 WEDGE_MAX_GAP_DAYS = 20
-WEDGE_MAX_EXTENSION = 0.10
+# 현재가가 최근 저점에서 조금 반등한 뒤에도 Higher Low 후보로 남겨둔다.
+# 10% 상한에서는 가온칩스(최근 저점 39,950원 → 현재가 47,350원)가
+# 저점 상승 조건을 충족하고도 10.6% 반등만으로 제외되는 문제가 생긴다.
+WEDGE_MAX_EXTENSION = 0.12
 RECENCY_MAX_GAP = 3
 
 DB_LOW_TOL = 0.03
