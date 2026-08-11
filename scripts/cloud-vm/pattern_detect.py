@@ -7,7 +7,7 @@ import math
 
 PATTERN_SWING = 2
 PATTERN_MAX_MATCHES = 30
-RISING_LOWS_MAX_MATCHES = 200
+RISING_LOWS_DISPLAY_LIMIT = 15
 
 RISING_LOWS_WINDOW = 20
 DOUBLE_BOTTOM_WINDOW = 90
@@ -790,7 +790,7 @@ def scan_stock(stock, daily, pattern_results, pullback_matches):
     if len(daily) >= RISING_LOWS_WINDOW:
         pattern_scanned = True
         rl = detect_rising_lows(daily)
-        if rl and not rl['breakout'] and len(pattern_results['risingLows']) < RISING_LOWS_MAX_MATCHES:
+        if rl and not rl['breakout']:
             pattern_results['risingLows'].append(build_pattern_match(stock, daily, rl))
 
     if len(daily) >= BOX_WINDOW:
@@ -813,3 +813,17 @@ def scan_stock(stock, daily, pattern_results, pullback_matches):
             pullback_matches.append(build_pattern_match(stock, daily, pullback))
 
     return pattern_scanned, pullback_scanned
+
+
+def finalize_pattern_results(pattern_results):
+    """Keep the strongest and most recent rising-lows candidates for the UI.
+
+    Candidates are collected for the full scan before this function runs so a
+    stock cannot be hidden merely because it appears late in universe order.
+    """
+    rising_lows = pattern_results.get('risingLows') or []
+    rising_lows.sort(key=lambda item: item.get('code') or '')
+    rising_lows.sort(key=lambda item: item.get('date') or '', reverse=True)
+    rising_lows.sort(key=lambda item: item.get('score') or 0, reverse=True)
+    pattern_results['risingLows'] = rising_lows[:RISING_LOWS_DISPLAY_LIMIT]
+    return pattern_results

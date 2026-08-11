@@ -104,7 +104,7 @@ class RisingLowsDetectionTest(unittest.TestCase):
 
         self.assertEqual([row["code"] for row in results["risingLows"]], ["399720"])
 
-    def test_rising_lows_are_not_truncated_by_other_pattern_limits(self):
+    def test_rising_lows_are_collected_after_other_pattern_limits(self):
         results = {
             "risingLows": [{} for _ in range(detector.PATTERN_MAX_MATCHES)],
             "doubleBottom": [],
@@ -120,6 +120,19 @@ class RisingLowsDetectionTest(unittest.TestCase):
         )
 
         self.assertEqual(len(results["risingLows"]), detector.PATTERN_MAX_MATCHES + 1)
+
+    def test_finalize_pattern_results_keeps_only_top_15_candidates(self):
+        results = {
+            "risingLows": [
+                {"code": "%06d" % i, "score": 70, "date": "2026-08-%02d" % ((i % 9) + 1)}
+                for i in range(16)
+            ] + [{"code": "399720", "score": 100, "date": "2026-08-11"}],
+        }
+
+        detector.finalize_pattern_results(results)
+
+        self.assertEqual(len(results["risingLows"]), detector.RISING_LOWS_DISPLAY_LIMIT)
+        self.assertEqual(results["risingLows"][0]["code"], "399720")
 
 
 if __name__ == "__main__":
