@@ -389,21 +389,6 @@ def detect_rising_lows(daily):
     if low_span < WEDGE_MIN_GAP_DAYS or low_span > WEDGE_MAX_GAP_DAYS:
         return None
 
-    # 2026-07-22 개편: Higher High - 고점도 직전 스윙고점보다 높아야 함
-    if len(high_idxs) < 2:
-        return None
-    prev_high = win[high_idxs[-2]]['high']
-    last_high = win[high_idxs[-1]]['high']
-    if last_high <= prev_high:
-        return None
-
-    # 2026-07-22 개편: 20일선 기울기 0 이상(상승 또는 횡보)
-    ma20_series = moving_average(win, 'close', 20)
-    ma20_now = ma20_series[-1]
-    ma20_prev = ma20_series[-1 - MA_SLOPE_LOOKBACK]
-    if ma20_now is None or ma20_prev is None or ma20_now < ma20_prev:
-        return None
-
     if (len(win) - 1) - last_low_idx > RECENCY_MAX_GAP:
         return None
 
@@ -416,34 +401,33 @@ def detect_rising_lows(daily):
     low_swing_points = [{'date': win[i]['date'], 'price': win[i]['low']} for i in low_idxs]
     current = {'date': win[-1]['date'], 'price': last_close}
 
-    # ---- 점수(100점, 2026-07-22 개편): 저점상승폭35 + 고점상승(HH)15(고정) + 저점간격15(고정)
-    # + 20일선기울기10(고정) + 5일선저항15 + 거래량감소5 + 최근양봉5 ----
+    # 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은
+    # 추세 전환 확인 신호이지, 아직 형성 중인 저점상승형을 제외할 필수 조건은 아니다.
+    # 이 구분을 하지 않으면 가온칩스처럼 저점은 높아졌지만 고점/20일선은 아직 낮은
+    # 초기 반등 종목이 검색 결과에서 누락된다.
+    # ---- 점수(100점): 저점상승폭40 + 저점간격20 + 5일선저항20 + 거래량감소10 + 최근양봉10 ----
     rise_score = score_tier(rise_ratio, [
-        {'min': 0.08, 'score': 35}, {'min': 0.05, 'score': 26}, {'min': WEDGE_MIN_LOW_RISE, 'score': 18}
+        {'min': 0.08, 'score': 40}, {'min': 0.05, 'score': 30}, {'min': WEDGE_MIN_LOW_RISE, 'score': 20}
     ])
-    hh_score = 15
-    span_score = 15
-    slope_score = 10
+    span_score = 20
 
     ma5 = moving_average(win, 'close', 5)
     resistance = max((win[i]['high'] for i in high_idxs), default=None)
     resistance_idx = high_idxs[-1] if high_idxs else None
     ma5_at_resistance = ma5[resistance_idx] if resistance_idx is not None else None
     ma5_diff = abs(win[resistance_idx]['high'] - ma5_at_resistance) / ma5_at_resistance if ma5_at_resistance else 1
-    ma5_score = 15 if ma5_diff <= 0.02 else 8 if ma5_diff <= 0.05 else 0
+    ma5_score = 20 if ma5_diff <= 0.02 else 10 if ma5_diff <= 0.05 else 0
 
-    vol_score = 5 if is_volume_declining(win, prev_low_idx, len(win)) else 0
-    bull_score = 5 if is_last_candle_bullish(win) else 0
+    vol_score = 10 if is_volume_declining(win, prev_low_idx, len(win)) else 0
+    bull_score = 10 if is_last_candle_bullish(win) else 0
 
-    score = clamp_score(rise_score + hh_score + span_score + slope_score + ma5_score + vol_score + bull_score)
+    score = clamp_score(rise_score + span_score + ma5_score + vol_score + bull_score)
     reasons = [
-        '저점 %.1f%% 상승(%d/35점)' % (rise_ratio * 100, rise_score),
-        '고점도 직전 고점 대비 상승, Higher High 확인(%d/15점)' % hh_score,
-        '저점 간격 %d거래일(%d/15점)' % (low_span, span_score),
-        '20일선 기울기 상승/횡보(%d/10점)' % slope_score,
-        '5일선 저항 근접도(%d/15점)' % ma5_score,
-        '거래량 %s(%d/5점)' % ('감소' if vol_score else '유지/증가', vol_score),
-        '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
+        '저점 %.1f%% 상승(%d/40점)' % (rise_ratio * 100, rise_score),
+        '저점 간격 %d거래일(%d/20점)' % (low_span, span_score),
+        '5일선 저항 근접도(%d/20점)' % ma5_score,
+        '거래량 %s(%d/10점)' % ('감소' if vol_score else '유지/증가', vol_score),
+        '최근 캔들 %s(%d/10점)' % ('양봉' if bull_score else '음봉', bull_score),
     ]
 
     return {
@@ -455,7 +439,7 @@ def detect_rising_lows(daily):
         'breakout': resistance is not None and last_close > resistance * BREAKOUT_TOL,
         'score': score,
         'reasons': reasons,
-        'interpretation': '저점과 고점이 함께 높아지고(Higher Low+High) 20일선도 상승/횡보 중인 구간으로 추정됩니다(%d점).' % score,
+        'interpretation': '저점이 %.1f%% 높아지며 하락 압력이 약해지는 구간으로 추정됩니다(%d점).' % (rise_ratio * 100, score),
     }
 
 

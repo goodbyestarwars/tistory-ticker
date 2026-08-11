@@ -2767,20 +2767,6 @@ function detectRisingLows_(daily) {
   var lowSpan = lastLowIdx - prevLowIdx;
   if (lowSpan < WEDGE_MIN_GAP_DAYS || lowSpan > WEDGE_MAX_GAP_DAYS) return null;
 
-  // 2026-07-22 개편: Higher High - 고점도 직전 스윙고점보다 높아야 저점상승이 진짜 상승
-  // 추세 전환인지(단순 반등 노이즈가 아닌지) 확인됨
-  if (highIdxs.length < 2) return null;
-  var prevHigh = win[highIdxs[highIdxs.length - 2]].high;
-  var lastHigh = win[highIdxs[highIdxs.length - 1]].high;
-  if (lastHigh <= prevHigh) return null;
-
-  // 2026-07-22 개편: 20일선 기울기가 0 이상(상승 또는 횡보) - 하락 추세 안에서의 일시적
-  // 저점상승(데드캣 바운스)을 걸러냄
-  var ma20Series = movingAverage_(win, 'close', 20);
-  var ma20Now = ma20Series[win.length - 1];
-  var ma20Prev = ma20Series[win.length - 1 - MA_SLOPE_LOOKBACK];
-  if (ma20Now == null || ma20Prev == null || ma20Now < ma20Prev) return null;
-
   // 최근성: 마지막 저점이 최근 RECENCY_MAX_GAP거래일 안이어야 "지금" 진행 중인 패턴
   if ((win.length - 1) - lastLowIdx > RECENCY_MAX_GAP) return null;
 
@@ -2793,14 +2779,13 @@ function detectRisingLows_(daily) {
   var lowSwingPoints = lowIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].low }; });
   var current = { date: win[win.length - 1].date, price: lastClose };
 
-  // ---- 점수(100점, 2026-07-22 개편): 저점상승폭35 + 고점상승(HH)15(필터 통과 시 고정)
-  // + 저점간격15(고정) + 20일선기울기10(필터 통과 시 고정) + 5일선저항15 + 거래량감소5 + 최근양봉5 ----
+  // 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은
+  // 추세 전환 확인 신호이지, 아직 형성 중인 저점상승형을 제외할 필수 조건은 아니다.
+  // ---- 점수(100점): 저점상승폭40 + 저점간격20 + 5일선저항20 + 거래량감소10 + 최근양봉10 ----
   var riseScore = scoreTier_(riseRatio, [
-    { min: 0.08, score: 35 }, { min: 0.05, score: 26 }, { min: WEDGE_MIN_LOW_RISE, score: 18 }
+    { min: 0.08, score: 40 }, { min: 0.05, score: 30 }, { min: WEDGE_MIN_LOW_RISE, score: 20 }
   ]);
-  var hhScore = 15;
-  var spanScore = 15;
-  var slopeScore = 10;
+  var spanScore = 20;
 
   // ⑤ 최근 고점(가장 최근 스윙 고점)이 5일선 ±2% 구간에서 저항받는지
   var ma5 = movingAverage_(win, 'close', 5);
@@ -2808,20 +2793,18 @@ function detectRisingLows_(daily) {
   var resistanceIdx = highIdxs.length ? highIdxs[highIdxs.length - 1] : null;
   var ma5AtResistance = resistanceIdx != null ? ma5[resistanceIdx] : null;
   var ma5Diff = ma5AtResistance ? Math.abs(win[resistanceIdx].high - ma5AtResistance) / ma5AtResistance : 1;
-  var ma5Score = ma5Diff <= 0.02 ? 15 : ma5Diff <= 0.05 ? 8 : 0;
+  var ma5Score = ma5Diff <= 0.02 ? 20 : ma5Diff <= 0.05 ? 10 : 0;
 
-  var volScore = isVolumeDeclining_(win, prevLowIdx, win.length) ? 5 : 0;
-  var bullScore = isLastCandleBullish_(win) ? 5 : 0;
+  var volScore = isVolumeDeclining_(win, prevLowIdx, win.length) ? 10 : 0;
+  var bullScore = isLastCandleBullish_(win) ? 10 : 0;
 
-  var score = clampScore_(riseScore + hhScore + spanScore + slopeScore + ma5Score + volScore + bullScore);
+  var score = clampScore_(riseScore + spanScore + ma5Score + volScore + bullScore);
   var reasons = [
-    '저점 ' + (riseRatio * 100).toFixed(1) + '% 상승(' + riseScore + '/35점)',
-    '고점도 직전 고점 대비 상승, Higher High 확인(' + hhScore + '/15점)',
-    '저점 간격 ' + lowSpan + '거래일(' + spanScore + '/15점)',
-    '20일선 기울기 상승/횡보(' + slopeScore + '/10점)',
-    '5일선 저항 근접도(' + ma5Score + '/15점)',
-    '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/5점)',
-    '최근 캔들 ' + (bullScore ? '양봉' : '음봉') + '(' + bullScore + '/5점)'
+    '저점 ' + (riseRatio * 100).toFixed(1) + '% 상승(' + riseScore + '/40점)',
+    '저점 간격 ' + lowSpan + '거래일(' + spanScore + '/20점)',
+    '5일선 저항 근접도(' + ma5Score + '/20점)',
+    '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/10점)',
+    '최근 캔들 ' + (bullScore ? '양봉' : '음봉') + '(' + bullScore + '/10점)'
   ];
 
   return {
@@ -2835,7 +2818,7 @@ function detectRisingLows_(daily) {
     breakout: resistance != null && lastClose > resistance * BREAKOUT_TOL,
     score: score,
     reasons: reasons,
-    interpretation: '저점과 고점이 함께 높아지고(Higher Low+High) 20일선도 상승/횡보 중인 구간으로 추정됩니다(' + score + '점).'
+    interpretation: '저점이 ' + (riseRatio * 100).toFixed(1) + '% 높아지며 하락 압력이 약해지는 구간으로 추정됩니다(' + score + '점).'
   };
 }
 
