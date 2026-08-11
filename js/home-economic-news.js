@@ -2,8 +2,8 @@
 (function (global) {
   'use strict';
 
-  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=20';
-  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=20';
+  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=50';
+  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=50';
   var DOMESTIC_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
   var US_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=us&limit=20';
   var REFRESH_MS = 5 * 60 * 1000;
@@ -39,6 +39,16 @@
     var parsed = parseDate(value);
     if (isNaN(parsed.getTime())) return '--:--';
     return parsed.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+
+  function periodKey(value) {
+    var parsed = parseDate(value);
+    if (isNaN(parsed.getTime())) return 'pm';
+    var hour = Number(new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Seoul', hour: '2-digit', hour12: false
+    }).format(parsed));
+    if (hour === 24) hour = 0;
+    return hour < 12 ? 'am' : 'pm';
   }
 
   function kindLabel(item) {
@@ -83,21 +93,35 @@
     if (session) session.textContent = market === 'us' ? '미국 · 실시간 타임라인' : '국내 · 실시간 타임라인';
     var rows = (items || []).filter(function (item) { return item && item.kind !== 'disclosure'; }).slice().sort(function (a, b) {
       return dateValue(b.pubDate) - dateValue(a.pubDate);
-    }).slice(0, 8);
+    }).slice(0, 50);
     if (!rows.length) {
       list.innerHTML = '<p class="home-card-state">현재 표시할 경제 뉴스가 없습니다.</p>';
       return;
     }
-    list.innerHTML = rows.map(function (item, index) {
-      var quote = quoteFor(item);
-      var tone = quote && quote.rate > 0 ? ' is-up' : quote && quote.rate < 0 ? ' is-down' : '';
-      return '<a class="hen-row' + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
-        + '<span class="hen-rail"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
-        + '<time class="hen-time">' + escapeHtml(timeLabel(item.pubDate)) + '</time>'
-        + '<span class="hen-main"><strong>' + escapeHtml(item.title || '') + '</strong>'
-        + '<small><em>' + escapeHtml(kindLabel(item)) + '</em>' + escapeHtml(item.source || item.provider || '') + '</small></span>'
-        + '</a>';
-    }).join('');
+    var groups = { am: [], pm: [] };
+    rows.forEach(function (item, index) {
+      groups[periodKey(item.pubDate)].push({ item: item, index: index });
+    });
+    function renderPeriod(key, label) {
+      var group = groups[key];
+      if (!group.length) return '';
+      return '<section class="hen-period hen-period-' + key + '" aria-label="' + label + ' 경제 뉴스">'
+        + '<div class="hen-period-head"><strong>' + label + '</strong><span>' + group.length + '건</span></div>'
+        + '<div class="hen-period-list">'
+        + group.map(function (entry) {
+          var item = entry.item;
+          var quote = quoteFor(item);
+          var tone = quote && quote.rate > 0 ? ' is-up' : quote && quote.rate < 0 ? ' is-down' : '';
+          return '<a class="hen-row' + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
+            + '<span class="hen-rail"><i class="' + (entry.index === 0 ? 'is-latest' : '') + '"></i></span>'
+            + '<time class="hen-time">' + escapeHtml(timeLabel(item.pubDate)) + '</time>'
+            + '<span class="hen-main"><strong>' + escapeHtml(item.title || '') + '</strong>'
+            + '<small><em>' + escapeHtml(kindLabel(item)) + '</em>' + escapeHtml(item.source || item.provider || '') + '</small></span>'
+            + '</a>';
+        }).join('')
+        + '</div></section>';
+    }
+    list.innerHTML = '<div class="hen-periods">' + renderPeriod('pm', '오후') + renderPeriod('am', '오전') + '</div>';
     if (updated) updated.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
