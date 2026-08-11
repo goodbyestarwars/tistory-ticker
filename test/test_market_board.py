@@ -144,6 +144,35 @@ class MarketBoardTests(unittest.TestCase):
 
         self.assertEqual([row['symbol'] for row in result['rows']], ['MSFT'])
 
+    def test_us_board_uses_fallback_quotes_when_rank_tr_fails(self):
+        def fallback_row(symbol, _api_key):
+            return {
+                'market': 'us', 'code': 'US:' + symbol, 'symbol': symbol,
+                'name': symbol, 'price': 100, 'change_rate': 1,
+                'trade_volume': 1000, 'trade_amount': 100000,
+                'market_cap': 1000, 'industry': 'Technology', 'currency': 'USD',
+            }
+
+        with mock.patch.object(market_board, '_fetch_us_trade_amount_rank', side_effect=RuntimeError('rank down')), \
+                mock.patch.object(market_board, '_us_row', side_effect=fallback_row):
+            result = market_board.fetch_us('token', limit=2, finnhub_api_key='finnhub-key')
+
+        self.assertEqual(len(result['rows']), 2)
+        self.assertIn('fallback', result['source'])
+
+    def test_domestic_board_uses_fallback_quotes_when_rank_is_empty(self):
+        fallback = [{
+            'market': 'domestic', 'code': '005930', 'name': 'Samsung',
+            'price': 70000, 'change_rate': 1, 'trade_volume': 1000,
+            'trade_amount': 70000000, 'market_cap': 4000000,
+            'industry': 'Technology', 'currency': 'KRW',
+        }]
+        with mock.patch.object(market_board.market_rank, 'fetch_sidebar_rank', side_effect=RuntimeError('rank down')), \
+                mock.patch.object(market_board, '_fallback_domestic', return_value=fallback):
+            result = market_board.fetch_domestic('token', limit=1)
+
+        self.assertEqual([row['code'] for row in result['rows']], ['005930'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -20,6 +20,18 @@ _basic_cache = {}
 _FX_TTL_SEC = 15 * 60
 _fx_cache = {}
 
+# 순위 TR이 일시적으로 비어도 홈 보드를 비우지 않기 위한 유동성 높은 대표 종목 목록.
+DOMESTIC_FALLBACK_CODES = (
+    '005930', '000660', '373220', '207940', '005380', '000270', '035420',
+    '035720', '068270', '105560', '005490', '012330', '051910', '006400',
+    '055550', '086790', '003670', '009150', '034730', '028260',
+)
+US_FALLBACK_SYMBOLS = (
+    'NVDA', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'AVGO', 'TSLA',
+    'AMD', 'NFLX', 'MU', 'PLTR', 'TSM', 'SMCI', 'MSTR', 'COIN',
+    'QCOM', 'INTC', 'CSCO', 'ORCL',
+)
+
 
 def _number(value):
     if value in (None, ''):
@@ -132,6 +144,39 @@ def _enrich_domestic(token, rows):
     return out
 
 
+def _domestic_fallback_row(token, code):
+    raw = kiwoom_client.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
+    price = abs(_number(_first(raw, 'cur_prc', 'price')) or 0)
+    volume = _number(_first(raw, 'trde_qty', 'trade_volume', 'acc_trde_qty')) or 0
+    amount = _number(_first(raw, 'trde_prica', 'trade_amount'))
+    return {
+        'market': 'domestic',
+        'code': code,
+        'name': _first(raw, 'stk_nm', 'name') or code,
+        'price': price,
+        'change': _number(_first(raw, 'pred_pre', 'change', 'prdy_vrss')),
+        'change_rate': _number(_first(raw, 'flu_rt', 'change_rate', 'prdy_ctrt')) or 0,
+        'trade_volume': volume,
+        'trade_amount': amount if amount is not None else price * volume,
+        'market_cap': _number(_first(raw, 'mac', 'market_cap')),
+        'industry': '기타',
+        'currency': 'KRW',
+    }
+
+
+def _fallback_domestic(token, limit):
+    codes = DOMESTIC_FALLBACK_CODES[:max(12, min(int(limit), 20))]
+    rows = []
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = [pool.submit(_domestic_fallback_row, token, code) for code in codes]
+        for future in as_completed(futures):
+            try:
+                rows.append(future.result())
+            except Exception as exc:
+                logger.info('domestic fallback quote failed: %s', exc)
+    return rows
+
+
 def _sections(rows):
     by_amount = lambda row: row.get('trade_amount') or 0
     by_volume = lambda row: row.get('trade_volume') or 0
@@ -148,7 +193,11 @@ def _sections(rows):
 
 
 def fetch_domestic(token, limit=12, wics_map=None):
-    rank = market_rank.fetch_sidebar_rank(token, limit=max(12, min(int(limit), 20)))
+    try:
+        rank = market_rank.fetch_sidebar_rank(token, limit=max(12, min(int(limit), 20)))
+    except Exception as exc:
+        logger.warning('domestic ranking unavailable; using fallback quotes: %s', exc)
+        rank = {}
     merged = {}
     for section in ('tradeVolume', 'upperLimit', 'lowerLimit'):
         for row in rank.get(section) or []:
@@ -158,6 +207,8 @@ def fetch_domestic(token, limit=12, wics_map=None):
     # 호출한다. 그래야 홈 한 번의 갱신이 종목 기본정보 수십 건을 만들지 않는다.
     volume_codes = {row.get('code') for row in (rank.get('tradeVolume') or [])[:limit]}
     rows = []
+    if not merged:
+        rows = _fallback_domestic(token, limit)
     for row in merged.values():
         if row.get('code') not in volume_codes:
             item = dict(row)
@@ -182,7 +233,11 @@ def fetch_domestic(token, limit=12, wics_map=None):
 
 
 def _us_row(symbol, finnhub_api_key):
-    quote = us_stocks.quote(symbol)
+    try:
+        quote = us_stocks.quote(symbol)
+    except Exception as exc:
+        logger.info('US broker quote failed for %s; using Yahoo daily fallback: %s', symbol, exc)
+        quote = _yahoo_quote(symbol)
     profile = us_analysis.get_profile(symbol, finnhub_api_key) if finnhub_api_key else {}
     price = quote.get('price') or 0
     volume = quote.get('volume') or 0
@@ -200,6 +255,29 @@ def _us_row(symbol, finnhub_api_key):
         'market_cap': _profile_market_cap(profile),
         'industry': profile.get('finnhubIndustry') or profile.get('gsector') or '미분류',
         'currency': 'USD',
+    }
+
+
+def _yahoo_quote(symbol):
+    chart = us_stocks._yahoo_chart(symbol, 'daily')
+    points = chart.get('points') or []
+    if not points:
+        raise RuntimeError('Yahoo quote points are empty')
+    latest = points[-1]
+    previous = points[-2] if len(points) > 1 else None
+    price = latest.get('price') or latest.get('close') or 0
+    change = price - previous.get('close') if previous and previous.get('close') else None
+    change_rate = change / previous['close'] * 100 if change is not None and previous.get('close') else None
+    return {
+        'market': 'us',
+        'symbol': symbol,
+        'code': 'US:' + symbol,
+        'name': symbol,
+        'price': price,
+        'change': change,
+        'change_rate': change_rate,
+        'volume': latest.get('volume') or 0,
+        'source': 'Yahoo Finance chart fallback',
     }
 
 
@@ -259,14 +337,29 @@ def _us_rank_row(rank_row, finnhub_api_key):
 
 def fetch_us(token, limit=12, finnhub_api_key=''):
     rows = []
-    rank_rows = _fetch_us_trade_amount_rank(token, limit)
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        futures = [pool.submit(_us_rank_row, rank_row, finnhub_api_key) for rank_row in rank_rows]
-        for future in as_completed(futures):
-            try:
-                rows.append(future.result())
-            except Exception as exc:
-                logger.info('US board quote failed: %s', exc)
+    source = 'Kiwoom usa20540 미국주식 거래대금 순위 + Finnhub profile2'
+    try:
+        rank_rows = _fetch_us_trade_amount_rank(token, limit)
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            futures = [pool.submit(_us_rank_row, rank_row, finnhub_api_key) for rank_row in rank_rows]
+            for future in as_completed(futures):
+                try:
+                    rows.append(future.result())
+                except Exception as exc:
+                    logger.info('US board quote failed: %s', exc)
+        if not rows:
+            raise RuntimeError('US ranking rows could not be enriched')
+    except Exception as exc:
+        logger.warning('US ranking unavailable; using fallback quotes: %s', exc)
+        source = 'Kiwoom/KIS 개별 시세 + Yahoo Finance fallback'
+        symbols = US_FALLBACK_SYMBOLS[:max(12, min(int(limit), 20))]
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            futures = [pool.submit(_us_row, symbol, finnhub_api_key) for symbol in symbols]
+            for future in as_completed(futures):
+                try:
+                    rows.append(future.result())
+                except Exception as quote_error:
+                    logger.info('US fallback quote failed: %s', quote_error)
     sections = _sections(rows)
     return {
         'market': 'us',
@@ -274,5 +367,5 @@ def fetch_us(token, limit=12, finnhub_api_key=''):
         'rows': sections['tradeAmount'][:limit],
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),
-        'source': 'Kiwoom usa20540 미국주식 거래대금 순위 + Finnhub profile2',
+        'source': source,
     }
