@@ -1500,6 +1500,7 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   justify-content: center;
   gap: 4px;
 }
+.home-disclosure-row-disabled { cursor: default; }
 .home-disclosure-row span {
   width: 100%;
   overflow: hidden;
