@@ -39,7 +39,35 @@ def early_higher_low_daily():
     return daily
 
 
+def compact_higher_low_daily():
+    """20일 안에서 0.4% 상승·4거래일 간격인 두 저점을 만든다."""
+    daily = []
+    for i in range(20):
+        close = 100 + i
+        daily.append({
+            "date": "2026-02-%02d" % (i + 1),
+            "open": close,
+            "high": close + 1,
+            "low": close - 1,
+            "close": close,
+            "volume": 100,
+        })
+    for i, close in ((8, 100), (9, 111), (10, 112), (11, 113), (12, 100.4), (13, 114), (14, 115)):
+        daily[i].update(open=close, high=close + 1, low=close - 1, close=close)
+    return daily
+
+
 class RisingLowsDetectionTest(unittest.TestCase):
+    def test_small_rise_and_short_gap_are_valid(self):
+        detail = detector.detect_rising_lows(compact_higher_low_daily())
+
+        self.assertIsNotNone(detail)
+        self.assertLess(detail["score"], 70)
+
+        results = {"risingLows": [], "doubleBottom": [], "invHeadShoulders": [], "boxRangeLow": []}
+        detector.scan_stock({"code": "000001", "name": "테스트"}, compact_higher_low_daily(), results, [])
+        self.assertEqual([row["code"] for row in results["risingLows"]], ["000001"])
+
     def test_higher_low_does_not_use_a_fixed_rebound_cap(self):
         daily = early_higher_low_daily()
         # 현재가가 마지막 스윙 저점 42,800원보다 16% 이상 높아도
@@ -57,7 +85,7 @@ class RisingLowsDetectionTest(unittest.TestCase):
 
         self.assertIsNotNone(detail)
         self.assertGreaterEqual(detail["score"], 70)
-        self.assertTrue(any("저점 7.1% 상승" in reason for reason in detail["reasons"]))
+        self.assertTrue(any("스윙 저점 순차 상승" in reason for reason in detail["reasons"]))
 
     def test_scan_includes_early_higher_low(self):
         results = {
