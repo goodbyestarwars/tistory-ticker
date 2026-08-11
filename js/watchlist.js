@@ -85,6 +85,7 @@
   var realtimeReconnectTimer = null;
   var realtimeFallbackTimer = null;
   var realtimeKeepaliveTimer = null;
+  var realtimeKickoffTimer = null;
   var realtimeGeneration = 0;
   var draggedCode = null;
   var didDrag = false;
@@ -756,9 +757,11 @@
   function stopRealtimeQuotes() {
     realtimeGeneration += 1;
     clearTimeout(realtimeReconnectTimer);
+    clearTimeout(realtimeKickoffTimer);
     clearInterval(realtimeFallbackTimer);
     clearInterval(realtimeKeepaliveTimer);
     realtimeReconnectTimer = null;
+    realtimeKickoffTimer = null;
     realtimeFallbackTimer = null;
     realtimeKeepaliveTimer = null;
     if (realtimeSocket) {
@@ -777,6 +780,36 @@
         });
       })
       .catch(function () {});
+  }
+
+  function nextRealtimeKickoff(now) {
+    var sessions = [
+      [8, 0], [9, 0], [15, 30], [17, 0], [22, 30]
+    ];
+    var next = null;
+    for (var day = 0; day <= 1; day++) {
+      sessions.forEach(function (session) {
+        var candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day, session[0], session[1], 0, 0);
+        if (candidate.getTime() <= now.getTime() + 1000) return;
+        if (!next || candidate < next) next = candidate;
+      });
+    }
+    return next;
+  }
+
+  function scheduleRealtimeKickoff(container, codes, generation) {
+    clearTimeout(realtimeKickoffTimer);
+    var now = new Date();
+    var next = nextRealtimeKickoff(now);
+    if (!next) return;
+    realtimeKickoffTimer = setTimeout(function () {
+      realtimeKickoffTimer = null;
+      if (generation === realtimeGeneration && !document.hidden) {
+        // WebSocket가 장 전환 직후 아직 첫 체결을 받지 못해도 즉시 최신값을 반영한다.
+        refreshQuotesOnce(container, codes);
+      }
+      if (generation === realtimeGeneration) scheduleRealtimeKickoff(container, codes, generation);
+    }, Math.max(1000, next.getTime() - now.getTime()));
   }
 
   function startRealtimeQuotes(container, codes) {
@@ -832,6 +865,7 @@
     }, REALTIME_FALLBACK_MS);
 
     if (canUseSocket) connect();
+    scheduleRealtimeKickoff(container, codes, generation);
   }
 
   function wireCardEvents(container) {
