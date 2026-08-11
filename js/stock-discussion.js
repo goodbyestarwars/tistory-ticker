@@ -138,7 +138,7 @@
       button.className = 'discussion-stock-suggest-select';
       button.setAttribute('role', 'option');
       button.setAttribute('data-suggestion-index', index);
-      button.innerHTML = '<img class="discussion-stock-suggest-icon" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(item.code) + '.svg" alt="" onerror="this.style.display=\'none\'">' + '<span class="name">' + item.name + '</span><span class="code">' + item.code + '</span>';
+      button.innerHTML = '<img class="discussion-stock-suggest-icon" data-icon-code="' + item.code + '" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(item.code) + '.svg" alt="" onerror="window.StockIconFallback ? window.StockIconFallback(this) : this.style.display=\'none\'">' + '<span class="name">' + item.name + '</span><span class="code">' + item.code + '</span>';
       button.addEventListener('click', function () {
         input.value = item.name;
         applyFilter(item.code, true);
@@ -173,7 +173,7 @@
       button.setAttribute('role', 'option');
       button.setAttribute('data-suggestion-index', index);
       var iconCode = String(item.code).replace(/^US:/i, '');
-      button.innerHTML = '<img class="discussion-stock-suggest-icon" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(iconCode) + '.svg" alt="" onerror="this.style.display=\'none\'">' + '<span class="name">' + item.name + '</span><span class="code">' + iconCode + '</span>';
+      button.innerHTML = '<img class="discussion-stock-suggest-icon" data-icon-code="' + iconCode + '" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(iconCode) + '.svg" alt="" onerror="window.StockIconFallback ? window.StockIconFallback(this) : this.style.display=\'none\'">' + '<span class="name">' + item.name + '</span><span class="code">' + iconCode + '</span>';
       button.addEventListener('click', function () {
         names[item.code] = item.name;
         input.value = item.name;

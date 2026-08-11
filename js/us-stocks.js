@@ -533,7 +533,7 @@
   function stockIconHtml(symbol) {
     var code = String(symbol || '').replace(/^US:/i, '').toUpperCase();
     if (!code) return '';
-    return '<img class="us-stocks-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
+    return '<img class="us-stocks-icon" data-icon-code="' + escapeHtml(code) + '" data-icon-market="us" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.StockIconFallback ? window.StockIconFallback(this) : this.style.display=\'none\'">';
   }
   function hideSuggestions() { var box = document.querySelector('#usStocksSuggest'); if (box) { box.innerHTML = ''; box.classList.remove('active'); } }
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
