@@ -40,11 +40,12 @@ def early_higher_low_daily():
 
 
 class RisingLowsDetectionTest(unittest.TestCase):
-    def test_higher_low_with_roughly_eleven_percent_rebound_is_kept(self):
+    def test_higher_low_does_not_use_a_fixed_rebound_cap(self):
         daily = early_higher_low_daily()
-        # 가온칩스에서 재현된 경계 사례: 마지막 스윙 저점 42,800원 이후
-        # 현재가 47,350원(약 +10.6%)이지만 저점 자체는 39,950원 → 42,800원으로 상승.
-        daily[-1].update(open=45500, high=48100, low=45000, close=47350, volume=450)
+        # 현재가가 마지막 스윙 저점 42,800원보다 16% 이상 높아도
+        # 저점상승형 판정 자체는 유지한다. 완성된 돌파는 scan_stock의
+        # breakout 필터가 검색 결과에서 제외한다.
+        daily[-1].update(open=48000, high=51000, low=47000, close=50000, volume=450)
 
         detail = detector.detect_rising_lows(daily)
 

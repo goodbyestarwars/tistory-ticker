@@ -2382,7 +2382,6 @@ var WEDGE_MIN_GAP_DAYS = 5;      // ① 지시서: 두 저점 간격 5~20거래�
 var WEDGE_MAX_GAP_DAYS = 20;
 // 최근 저점 대비 과도하게 오른 늦은 신호는 제외하되, 저점상승형이 막 형성된
 // 종목의 10% 안팎 반등은 허용한다(가온칩스 사례: 최근 저점 대비 10.6%).
-var WEDGE_MAX_EXTENSION = 0.12;
 // 마지막 스윙이 최근 며칠 안에 있어야 "지금 진행 중"으로 인정. 스윙 판정 자체가
 // 좌우 PATTERN_SWING(2)봉을 확인해야 하는 구조라 이론상 가장 최근이어도 끝에서 2봉 전이
 // 최소값 - 그 최소값 바로 위(3)로 빡빡하게 잡아 "이미 지나간 패턴"을 걸러낸다.
@@ -2748,7 +2747,7 @@ function patternGrade_(score) {
 
 // 저점상승형(Higher Low, 지시서 ①): 최근 60거래일 중 스윙 저점 2개 이상 + 마지막 저점이
 // 그 전 저점보다 3%+ 높고(하락 압력 약화) + 두 저점 간격 5~20거래일 + 최근 고점이 5일선
-// 근처에서 저항받고 + 현재가가 마지막 저점 대비 10% 넘게 오르지 않은(아직 안 늦은) 구간.
+// 근처에서 저항받는 아직 진행 중인 구간.
 function detectRisingLows_(daily) {
   var win = daily.slice(Math.max(0, daily.length - RISING_LOWS_WINDOW));
   if (win.length < RISING_LOWS_WINDOW) return null;
@@ -2775,8 +2774,6 @@ function detectRisingLows_(daily) {
   var lastClose = win[win.length - 1].close;
   // 마지막 저점 이후 그 저점을 다시 깨고 내려갔으면(스윙으로는 아직 안 잡혀도) 무효
   if (lastClose < lastLow * 0.98) return null;
-  // ⑥ 현재가는 최근 저점 대비 10% 이상 상승하지 않을 것(이미 많이 오른 뒤의 늦은 신호 배제)
-  if ((lastClose - lastLow) / lastLow > WEDGE_MAX_EXTENSION) return null;
 
   var lowSwingPoints = lowIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].low }; });
   var current = { date: win[win.length - 1].date, price: lastClose };
