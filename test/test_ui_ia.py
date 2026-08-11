@@ -207,6 +207,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "data-drag-ready",
         ):
             self.assertIn(token, widgets)
+        self.assertGreaterEqual(widgets.count("enableScheduleDrag(mount);"), 2)
         self.assertIn("overflow-x: auto", style)
         self.assertIn("flex-direction: row", style)
         self.assertIn("scrollbar-color: transparent transparent", style)
