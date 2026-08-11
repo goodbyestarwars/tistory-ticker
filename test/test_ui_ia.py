@@ -324,8 +324,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/watchlist.js")
         for token in (
             "var domesticCodes = codes.filter",
-            "var canUseSocket = domesticCodes.length",
-            "var REALTIME_FALLBACK_MS = 15000;",
+            "var canUseSocket = codes.length",
+            "var REALTIME_FALLBACK_MS = 60000;",
+            "var encodedCodes = codes.map(encodeURIComponent).join(',');",
             "NXT 장 전환",
             "var fallbackCodes = codes.slice();",
             "if (fallbackCodes.length) refreshQuotesOnce(container, fallbackCodes);",

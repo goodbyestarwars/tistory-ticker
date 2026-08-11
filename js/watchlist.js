@@ -77,7 +77,9 @@
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
   // NXT 장 전환(08:00/15:30)에는 upstream websocket이 잠시 조용할 수 있으므로
   // 체결 이벤트가 없어도 현재가 폴백은 계속 실행한다.
-  var REALTIME_FALLBACK_MS = 15000;
+  // 미국 API의 분당 호출 제한을 넘지 않도록 REST 폴백은 느리게 돌리고,
+  // 정상적인 장중 갱신은 아래 WebSocket(Finnhub)으로 처리한다.
+  var REALTIME_FALLBACK_MS = 60000;
   var REALTIME_RECONNECT_MS = 5000;
   var realtimeSocket = null;
   var realtimeReconnectTimer = null;
@@ -782,11 +784,12 @@
     if (!codes.length || document.hidden) return;
 
     // 국내 코드는 키움, 미국 코드는 Finnhub 스트림으로 서버가 분리 중계한다.
+    // 서버가 codes에서 시장별로 나눠 처리하므로 두 시장을 모두 구독해야 한다.
     var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
-    var canUseSocket = domesticCodes.length && ('WebSocket' in global);
+    var canUseSocket = codes.length && ('WebSocket' in global);
 
     var generation = realtimeGeneration;
-    var encodedCodes = domesticCodes.map(encodeURIComponent).join(',');
+    var encodedCodes = codes.map(encodeURIComponent).join(',');
 
     function connect() {
       if (generation !== realtimeGeneration || document.hidden) return;
