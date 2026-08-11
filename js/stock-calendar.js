@@ -153,7 +153,10 @@
       event && event.market,
       event && event.source,
       event && event.status,
-      event && event.result
+      event && event.result,
+      event && event.report_name,
+      event && event.corp_name,
+      event && event.symbol
     ].join(' ').replace(/\s+/g, ' ').toLocaleLowerCase();
     return searchable.indexOf(normalizedQuery) !== -1;
   }
