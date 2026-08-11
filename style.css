@@ -695,7 +695,8 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   scrollbar-color: transparent transparent;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
-  touch-action: pan-y;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
 }
 .home-top-disclosures .home-disclosure-list::-webkit-scrollbar {
   width: 0;
