@@ -8,15 +8,12 @@ import math
 PATTERN_SWING = 2
 PATTERN_MAX_MATCHES = 30
 
-RISING_LOWS_WINDOW = 60
+RISING_LOWS_WINDOW = 20
 DOUBLE_BOTTOM_WINDOW = 90
 IHS_WINDOW = 60
 BOX_WINDOW = 40
 
 WEDGE_MIN_SWINGS = 2
-WEDGE_MIN_LOW_RISE = 0.03
-WEDGE_MIN_GAP_DAYS = 5
-WEDGE_MAX_GAP_DAYS = 20
 RECENCY_MAX_GAP = 3
 
 DB_LOW_TOL = 0.03
@@ -380,19 +377,11 @@ def detect_rising_lows(daily):
     last_low_idx = low_idxs[-1]
     prev_low = win[prev_low_idx]['low']
     last_low = win[last_low_idx]['low']
-    rise_ratio = (last_low - prev_low) / prev_low
-    if rise_ratio < WEDGE_MIN_LOW_RISE:
-        return None
-
-    low_span = last_low_idx - prev_low_idx
-    if low_span < WEDGE_MIN_GAP_DAYS or low_span > WEDGE_MAX_GAP_DAYS:
-        return None
-
-    if (len(win) - 1) - last_low_idx > RECENCY_MAX_GAP:
+    if last_low <= prev_low:
         return None
 
     last_close = win[-1]['close']
-    if last_close < last_low * 0.98:
+    if last_close < last_low:
         return None
     low_swing_points = [{'date': win[i]['date'], 'price': win[i]['low']} for i in low_idxs]
     current = {'date': win[-1]['date'], 'price': last_close}
@@ -401,11 +390,9 @@ def detect_rising_lows(daily):
     # 추세 전환 확인 신호이지, 아직 형성 중인 저점상승형을 제외할 필수 조건은 아니다.
     # 이 구분을 하지 않으면 가온칩스처럼 저점은 높아졌지만 고점/20일선은 아직 낮은
     # 초기 반등 종목이 검색 결과에서 누락된다.
-    # ---- 점수(100점): 저점상승폭40 + 저점간격20 + 5일선저항20 + 거래량감소10 + 최근양봉10 ----
-    rise_score = score_tier(rise_ratio, [
-        {'min': 0.08, 'score': 40}, {'min': 0.05, 'score': 30}, {'min': WEDGE_MIN_LOW_RISE, 'score': 20}
-    ])
-    span_score = 20
+    # 점수는 참고용이다. 검색 포함 여부는 위의 Higher Low 조건만으로 결정한다.
+    higher_low_score = 40
+    recent_low_score = 20
 
     ma5 = moving_average(win, 'close', 5)
     resistance = max((win[i]['high'] for i in high_idxs), default=None)
@@ -414,13 +401,13 @@ def detect_rising_lows(daily):
     ma5_diff = abs(win[resistance_idx]['high'] - ma5_at_resistance) / ma5_at_resistance if ma5_at_resistance else 1
     ma5_score = 20 if ma5_diff <= 0.02 else 10 if ma5_diff <= 0.05 else 0
 
-    vol_score = 10 if is_volume_declining(win, prev_low_idx, len(win)) else 0
+    vol_score = 10 if is_volume_declining(win, last_low_idx, len(win)) else 0
     bull_score = 10 if is_last_candle_bullish(win) else 0
 
-    score = clamp_score(rise_score + span_score + ma5_score + vol_score + bull_score)
+    score = clamp_score(higher_low_score + recent_low_score + ma5_score + vol_score + bull_score)
     reasons = [
-        '저점 %.1f%% 상승(%d/40점)' % (rise_ratio * 100, rise_score),
-        '저점 간격 %d거래일(%d/20점)' % (low_span, span_score),
+        '스윙 저점 순차 상승(%d/40점)' % higher_low_score,
+        '최근 저점 상승 확인(%d/20점)' % recent_low_score,
         '5일선 저항 근접도(%d/20점)' % ma5_score,
         '거래량 %s(%d/10점)' % ('감소' if vol_score else '유지/증가', vol_score),
         '최근 캔들 %s(%d/10점)' % ('양봉' if bull_score else '음봉', bull_score),
@@ -435,7 +422,7 @@ def detect_rising_lows(daily):
         'breakout': resistance is not None and last_close > resistance * BREAKOUT_TOL,
         'score': score,
         'reasons': reasons,
-        'interpretation': '저점이 %.1f%% 높아지며 하락 압력이 약해지는 구간으로 추정됩니다(%d점).' % (rise_ratio * 100, score),
+        'interpretation': '최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간으로 추정됩니다(%d점).' % score,
     }
 
 
@@ -781,12 +768,13 @@ def scan_stock(stock, daily, pattern_results, pullback_matches):
     pattern_scanned = False
     pullback_scanned = False
 
-    if len(daily) >= BOX_WINDOW:
+    if len(daily) >= RISING_LOWS_WINDOW:
         pattern_scanned = True
         rl = detect_rising_lows(daily)
-        if rl and not rl['breakout'] and pattern_grade(rl['score']) and len(pattern_results['risingLows']) < PATTERN_MAX_MATCHES:
+        if rl and not rl['breakout'] and len(pattern_results['risingLows']) < PATTERN_MAX_MATCHES:
             pattern_results['risingLows'].append(build_pattern_match(stock, daily, rl))
 
+    if len(daily) >= BOX_WINDOW:
         db = detect_double_bottom(daily)
         if db and not db['breakout'] and pattern_grade(db['score']) and len(pattern_results['doubleBottom']) < PATTERN_MAX_MATCHES:
             pattern_results['doubleBottom'].append(build_pattern_match(stock, daily, db))

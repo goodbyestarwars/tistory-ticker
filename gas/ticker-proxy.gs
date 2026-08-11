@@ -2371,17 +2371,12 @@ var PATTERN_MAX_MATCHES = 30;    // 패턴별 저장 개수 상한 (PropertiesSe
 var PATTERN_PAGES = 10;          // fetchDailyOhlc_ 페이지 수 (10행 x 10 ≈ 100영업일, 90일 window + 여유)
 var PATTERN_CHART_PAGES = 50;    // 클릭 시 상세 차트 전용(10행 x 50 ≈ 500영업일 ≈ 2년) - 스캔 판정용 PATTERN_PAGES와 별개
                                   // (detect*_ 함수들은 daily.slice()로 자기 window만 쓰므로 판정 결과에는 영향 없음)
-var RISING_LOWS_WINDOW = 60;     // ① 저점상승형: 지시서 "최근 60거래일"
+var RISING_LOWS_WINDOW = 20;     // ① 저점상승형: 최근 20거래일
 var DOUBLE_BOTTOM_WINDOW = 90;   // ② 쌍바닥: 지시서 "최근 90거래일"
 var IHS_WINDOW = 60;             // ③ 역헤드앤숄더: 지시서에 window 명시 없어 저점상승형과 동일하게 적용
 var BOX_WINDOW = 40;             // ④ 박스권하단: 지시서 "최근 40거래일"
 
 var WEDGE_MIN_SWINGS = 2;        // ① 지시서: Swing Low 2개 이상
-var WEDGE_MIN_LOW_RISE = 0.03;   // ① 지시서: 최근 저점이 이전 저점보다 최소 3% 이상 높음
-var WEDGE_MIN_GAP_DAYS = 5;      // ① 지시서: 두 저점 간격 5~20거래일
-var WEDGE_MAX_GAP_DAYS = 20;
-// 최근 저점 대비 과도하게 오른 늦은 신호는 제외하되, 저점상승형이 막 형성된
-// 종목의 10% 안팎 반등은 허용한다(가온칩스 사례: 최근 저점 대비 10.6%).
 // 마지막 스윙이 최근 며칠 안에 있어야 "지금 진행 중"으로 인정. 스윙 판정 자체가
 // 좌우 PATTERN_SWING(2)봉을 확인해야 하는 구조라 이론상 가장 최근이어도 끝에서 2봉 전이
 // 최소값 - 그 최소값 바로 위(3)로 빡빡하게 잡아 "이미 지나간 패턴"을 걸러낸다.
@@ -2745,9 +2740,8 @@ function patternGrade_(score) {
   return score >= 70;
 }
 
-// 저점상승형(Higher Low, 지시서 ①): 최근 60거래일 중 스윙 저점 2개 이상 + 마지막 저점이
-// 그 전 저점보다 3%+ 높고(하락 압력 약화) + 두 저점 간격 5~20거래일 + 최근 고점이 5일선
-// 근처에서 저항받는 아직 진행 중인 구간.
+// 저점상승형(Higher Low, 지시서 ①): 최근 20거래일 중 스윙 저점 2개 이상 + 최근 두 저점이
+// 단순히 더 높고 + 현재가가 마지막 저점 위에 있는 아직 진행 중인 구간.
 function detectRisingLows_(daily) {
   var win = daily.slice(Math.max(0, daily.length - RISING_LOWS_WINDOW));
   if (win.length < RISING_LOWS_WINDOW) return null;
@@ -2761,19 +2755,12 @@ function detectRisingLows_(daily) {
   var lastLowIdx = lowIdxs[lowIdxs.length - 1];
   var prevLow = win[prevLowIdx].low;
   var lastLow = win[lastLowIdx].low;
-  var riseRatio = (lastLow - prevLow) / prevLow;
-  if (riseRatio < WEDGE_MIN_LOW_RISE) return null;
-
-  // ④ 두 저점 간격 5~20거래일
-  var lowSpan = lastLowIdx - prevLowIdx;
-  if (lowSpan < WEDGE_MIN_GAP_DAYS || lowSpan > WEDGE_MAX_GAP_DAYS) return null;
+  if (lastLow <= prevLow) return null;
 
   // 최근성: 마지막 저점이 최근 RECENCY_MAX_GAP거래일 안이어야 "지금" 진행 중인 패턴
-  if ((win.length - 1) - lastLowIdx > RECENCY_MAX_GAP) return null;
-
   var lastClose = win[win.length - 1].close;
   // 마지막 저점 이후 그 저점을 다시 깨고 내려갔으면(스윙으로는 아직 안 잡혀도) 무효
-  if (lastClose < lastLow * 0.98) return null;
+  if (lastClose < lastLow) return null;
 
   var lowSwingPoints = lowIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].low }; });
   var current = { date: win[win.length - 1].date, price: lastClose };
@@ -2781,10 +2768,8 @@ function detectRisingLows_(daily) {
   // 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은
   // 추세 전환 확인 신호이지, 아직 형성 중인 저점상승형을 제외할 필수 조건은 아니다.
   // ---- 점수(100점): 저점상승폭40 + 저점간격20 + 5일선저항20 + 거래량감소10 + 최근양봉10 ----
-  var riseScore = scoreTier_(riseRatio, [
-    { min: 0.08, score: 40 }, { min: 0.05, score: 30 }, { min: WEDGE_MIN_LOW_RISE, score: 20 }
-  ]);
-  var spanScore = 20;
+  var higherLowScore = 40;
+  var recentLowScore = 20;
 
   // ⑤ 최근 고점(가장 최근 스윙 고점)이 5일선 ±2% 구간에서 저항받는지
   var ma5 = movingAverage_(win, 'close', 5);
@@ -2794,13 +2779,13 @@ function detectRisingLows_(daily) {
   var ma5Diff = ma5AtResistance ? Math.abs(win[resistanceIdx].high - ma5AtResistance) / ma5AtResistance : 1;
   var ma5Score = ma5Diff <= 0.02 ? 20 : ma5Diff <= 0.05 ? 10 : 0;
 
-  var volScore = isVolumeDeclining_(win, prevLowIdx, win.length) ? 10 : 0;
+  var volScore = isVolumeDeclining_(win, lastLowIdx, win.length) ? 10 : 0;
   var bullScore = isLastCandleBullish_(win) ? 10 : 0;
 
-  var score = clampScore_(riseScore + spanScore + ma5Score + volScore + bullScore);
+  var score = clampScore_(higherLowScore + recentLowScore + ma5Score + volScore + bullScore);
   var reasons = [
-    '저점 ' + (riseRatio * 100).toFixed(1) + '% 상승(' + riseScore + '/40점)',
-    '저점 간격 ' + lowSpan + '거래일(' + spanScore + '/20점)',
+    '스윙 저점 순차 상승(' + higherLowScore + '/40점)',
+    '최근 저점 상승 확인(' + recentLowScore + '/20점)',
     '5일선 저항 근접도(' + ma5Score + '/20점)',
     '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/10점)',
     '최근 캔들 ' + (bullScore ? '양봉' : '음봉') + '(' + bullScore + '/10점)'
@@ -2817,7 +2802,7 @@ function detectRisingLows_(daily) {
     breakout: resistance != null && lastClose > resistance * BREAKOUT_TOL,
     score: score,
     reasons: reasons,
-    interpretation: '저점이 ' + (riseRatio * 100).toFixed(1) + '% 높아지며 하락 압력이 약해지는 구간으로 추정됩니다(' + score + '점).'
+    interpretation: '최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간으로 추정됩니다(' + score + '점).'
   };
 }
 
