@@ -402,6 +402,28 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("hangeul.naver.com/download", license_page)
         self.assertNotIn("Pretendard Variable", license_page)
 
+    def test_mobile_app_bottom_navigation_is_available_without_skin_redeployment(self):
+        menu = self.read("js/skin-menu.js")
+        style = self.read("style.css")
+        for token in (
+            "mobileAppBottomNav",
+            "mobileAppSheet",
+            "mobileBottomActiveKey",
+            "data-bottom-action=\"more\"",
+            "/page/stock-calendar",
+            "/pages/overnight-market",
+            "/pages/kospi-futures",
+        ):
+            self.assertIn(token, menu)
+        for token in (
+            ".mobile-app-bottom-nav",
+            "grid-template-columns: repeat(5, minmax(0, 1fr));",
+            "safe-area-inset-bottom",
+            "body.iframe-mode .mobile-app-bottom-nav",
+            ".page-wrap { padding-bottom:",
+        ):
+            self.assertIn(token, style)
+
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")
         for token in (
