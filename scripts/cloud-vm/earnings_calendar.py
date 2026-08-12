@@ -15,9 +15,12 @@ import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
+from html.parser import HTMLParser
 
 BASE_URL = 'https://opendart.fss.or.kr/api/list.json'
 FINANCIALS_URL = 'https://opendart.fss.or.kr/api/fnlttSinglAcnt.json'
+DART_DISCLOSURE_URL = 'https://dart.fss.or.kr/dsaf001/main.do'
+DART_VIEWER_URL = 'https://dart.fss.or.kr/report/viewer.do'
 FINNHUB_URL = 'https://finnhub.io/api/v1/calendar/earnings'
 CACHE_TTL_SEC = 10 * 60
 FINNHUB_CACHE_TTL_SEC = 10 * 60
@@ -26,6 +29,7 @@ DART_LIST_MAX_PAGES = 10
 DART_RESULT_LOOKUP_MAX = 80
 _cache = {}
 _financials_cache = {}
+_viewer_cache = {}
 _finnhub_cache = {}
 _logger = logging.getLogger('earnings_calendar')
 
@@ -97,6 +101,149 @@ def _fetch_financials(api_key, corp_code, bsns_year, reprt_code):
     rows = data.get('list') or [] if data.get('status') == '000' else []
     _financials_cache[key] = (time.time(), rows)
     return rows
+
+
+class _DartViewerParser(HTMLParser):
+    """Extract table cells from the public DART disclosure viewer HTML."""
+
+    def __init__(self):
+        HTMLParser.__init__(self, convert_charrefs=True)
+        self.rows = []
+        self._row = None
+        self._in_cell = False
+        self._cell_parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'tr':
+            self._row = []
+        elif tag == 'td':
+            self._in_cell = True
+            self._cell_parts = []
+
+    def handle_data(self, data):
+        if self._row is not None and self._in_cell:
+            self._cell_parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == 'td' and self._row is not None:
+            value = re.sub(r'\s+', ' ', ' '.join(self._cell_parts)).strip()
+            self._row.append(value)
+            self._cell_parts = []
+            self._in_cell = False
+        elif tag == 'tr' and self._row is not None:
+            if self._row:
+                self.rows.append(self._row)
+            self._row = None
+
+
+def _fetch_text(url):
+    request = urllib.request.Request(url, headers={'User-Agent': '9Pay-stock-calendar/1.0'})
+    with urllib.request.urlopen(request, timeout=12) as response:
+        charset = response.headers.get_content_charset() or 'utf-8'
+        return response.read().decode(charset, errors='replace')
+
+
+def _viewer_document_url(event):
+    receipt_no = str(event.get('receipt_no') or '').strip()
+    if not receipt_no:
+        return None
+    cache_key = ('url', receipt_no)
+    cached = _viewer_cache.get(cache_key)
+    if cached and time.time() - cached[0] < CACHE_TTL_SEC:
+        return cached[1]
+    main_url = DART_DISCLOSURE_URL + '?' + urllib.parse.urlencode({'rcpNo': receipt_no})
+    html = _fetch_text(main_url)
+    pattern = r'viewDoc\(\s*["\']%s["\']\s*,\s*["\']([^"\']+)["\']\s*,\s*["\']([^"\']*)["\']\s*,\s*["\']([^"\']*)["\']\s*,\s*["\']([^"\']*)["\']\s*,\s*["\']([^"\']+)["\']' % re.escape(receipt_no)
+    match = re.search(pattern, html)
+    if not match:
+        return None
+    params = {
+        'rcpNo': receipt_no,
+        'dcmNo': match.group(1),
+        'eleId': match.group(2),
+        'offset': match.group(3),
+        'length': match.group(4),
+        'dtd': match.group(5),
+    }
+    url = DART_VIEWER_URL + '?' + urllib.parse.urlencode(params)
+    _viewer_cache[cache_key] = (time.time(), url)
+    return url
+
+
+def _viewer_amount(value, multiplier):
+    number = _number(value)
+    if number is None:
+        return None
+    scaled = number * multiplier
+    return int(scaled) if scaled.is_integer() else scaled
+
+
+def _reported_dart_viewer_result(html):
+    """Read actual-period revenue/profit values from a DART disclosure table."""
+    unit_match = re.search(r'단위\s*[:：]\s*(조원|억원|백만원|천원|원)', html)
+    if not unit_match:
+        return None
+    multiplier = {
+        '조원': 1_000_000_000_000,
+        '억원': 100_000_000,
+        '백만원': 1_000_000,
+        '천원': 1_000,
+        '원': 1,
+    }[unit_match.group(1)]
+    parser = _DartViewerParser()
+    parser.feed(html)
+
+    aliases = (
+        ('revenue_actual', ('매출액', '영업수익', '매출')),
+        ('operating_profit_actual', ('영업이익', '영업손익')),
+        ('net_income_actual', ('당기순이익', '당기순손익')),
+    )
+    values = {}
+    for field, names in aliases:
+        for row in parser.rows:
+            normalized = [re.sub(r'\s+', '', cell) for cell in row]
+            if not any(any(name in cell for name in names) for cell in normalized):
+                continue
+            try:
+                actual_index = next(index for index, cell in enumerate(normalized) if cell == '당해실적')
+            except StopIteration:
+                continue
+            for candidate in row[actual_index + 1:]:
+                value = _viewer_amount(candidate, multiplier)
+                if value is not None:
+                    values[field] = value
+                    break
+            if field in values:
+                break
+    if not values:
+        return None
+    parts = []
+    labels = (
+        ('revenue_actual', '매출'),
+        ('operating_profit_actual', '영업이익'),
+        ('net_income_actual', '순이익'),
+    )
+    for field, label in labels:
+        if field in values:
+            parts.append('{} {}'.format(label, _format_krw(values[field])))
+    values['result'] = ' · '.join(parts)
+    return values
+
+
+def _fetch_dart_viewer_result(event):
+    receipt_no = str(event.get('receipt_no') or '').strip()
+    if not receipt_no:
+        return None
+    cache_key = ('result', receipt_no)
+    cached = _viewer_cache.get(cache_key)
+    if cached and time.time() - cached[0] < CACHE_TTL_SEC:
+        return cached[1]
+    viewer_url = _viewer_document_url(event)
+    if not viewer_url:
+        return None
+    result = _reported_dart_viewer_result(_fetch_text(viewer_url))
+    _viewer_cache[cache_key] = (time.time(), result)
+    return result
 
 
 def _report_period(report_name, receipt_date):
@@ -192,14 +339,18 @@ def _reported_dart_result(rows):
 def _enrich_dart_event(api_key, event):
     period = _report_period(event.get('report_name'), event.get('receipt_date'))
     corp_code = event.get('corp_code')
-    if not api_key or not corp_code or not period:
-        return event
-    try:
-        rows = _fetch_financials(api_key, corp_code, period[0], period[1])
-        result = _reported_dart_result(rows)
-    except Exception:
-        _logger.exception('DART financial result fetch failed for %s', event.get('corp_name'))
-        return event
+    result = None
+    if api_key and corp_code and period:
+        try:
+            rows = _fetch_financials(api_key, corp_code, period[0], period[1])
+            result = _reported_dart_result(rows)
+        except Exception:
+            _logger.exception('DART financial result fetch failed for %s', event.get('corp_name'))
+    if not result:
+        try:
+            result = _fetch_dart_viewer_result(event)
+        except Exception:
+            _logger.exception('DART disclosure viewer result fetch failed for %s', event.get('corp_name'))
     if result:
         event.update(result)
     return event

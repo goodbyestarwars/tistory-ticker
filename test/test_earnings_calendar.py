@@ -12,6 +12,7 @@ class EarningsCalendarTests(unittest.TestCase):
     def setUp(self):
         earnings_calendar._cache.clear()
         earnings_calendar._financials_cache.clear()
+        earnings_calendar._viewer_cache.clear()
         earnings_calendar._finnhub_cache.clear()
 
     def test_fetches_all_dart_pages_and_exposes_report_details(self):
@@ -79,6 +80,36 @@ class EarningsCalendarTests(unittest.TestCase):
         self.assertEqual(events[0]['result'], '매출 13.6조 · 영업이익 1.2조 · 순이익 9000억')
         self.assertIn('실적발표 완료', events[0]['title'])
         self.assertIn('매출 13.6조', events[0]['title'])
+
+    def test_parses_domestic_result_from_disclosure_viewer(self):
+        html = '''
+        <span>단위 : 억원, %</span>
+        <table>
+          <tr><td>매출액</td><td>당해실적</td><td>1,236</td><td>1,049</td></tr>
+          <tr><td>영업이익</td><td>당해실적</td><td>120</td><td>100</td></tr>
+          <tr><td>당기순이익(손실)</td><td>당해실적</td><td>-30</td><td>10</td></tr>
+        </table>
+        '''
+        result = earnings_calendar._reported_dart_viewer_result(html)
+        self.assertEqual(result['revenue_actual'], 123600000000)
+        self.assertEqual(result['operating_profit_actual'], 12000000000)
+        self.assertEqual(result['net_income_actual'], -3000000000)
+        self.assertEqual(result['result'], '매출 1236억 · 영업이익 120억 · 순이익 -30억')
+
+    def test_falls_back_to_disclosure_viewer_when_formal_financials_are_empty(self):
+        event = {
+            'corp_name': '테스트전자',
+            'corp_code': '00126380',
+            'receipt_no': '20260811000001',
+            'report_name': '영업(잠정)실적(공정공시)',
+            'receipt_date': '20260811',
+        }
+        viewer_result = {'result': '매출 1236억 · 영업이익 120억', 'revenue_actual': 123600000000}
+        with mock.patch.object(earnings_calendar, '_fetch_financials', return_value=[]):
+            with mock.patch.object(earnings_calendar, '_fetch_dart_viewer_result', return_value=viewer_result):
+                enriched = earnings_calendar._enrich_dart_event('test-key', event)
+        self.assertEqual(enriched['result'], viewer_result['result'])
+        self.assertEqual(enriched['revenue_actual'], 123600000000)
 
     def test_fetches_and_caches_us_month(self):
         rows = [
