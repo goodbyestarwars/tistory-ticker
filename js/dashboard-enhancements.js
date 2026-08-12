@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20260813-chart-fullscreen-shell';
+  var ENHANCEMENT_VERSION = '20260813-chart-fullscreen-layout-v2';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -204,6 +204,14 @@
       stockRoot.id = 'stock-search-original';
       body.appendChild(stockScope);
       stockScope.appendChild(modalTarget);
+      // The modal body is a flex container. Give the temporary stock scope and
+      // its chart panel an explicit full-width flex basis so the chart cannot
+      // keep the old two-column grid's intrinsic width and leave a blank half.
+      stockScope.style.width = '100%';
+      stockScope.style.flex = '1 1 100%';
+      stockScope.style.minWidth = '0';
+      modalTarget.style.width = '100%';
+      modalTarget.style.boxSizing = 'border-box';
     } else if (flowRoot && modalTarget.classList.contains('ff-apt-chart-wrap')) {
       flowScope = document.createElement('div');
       flowScope.className = 'de-foreign-flow-scope';

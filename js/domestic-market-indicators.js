@@ -400,10 +400,10 @@
     var collapsed = loadCollapsed(market);
     return '<section class="dmi-panel' + (collapsed ? ' dmi-collapsed' : '') + '" data-dmi-panel="' + market + '" data-dmi-interval="day">'
       + '<div class="dmi-panel-title"><span>' + escapeHtml(item.name || market) + '</span><div class="dmi-chart-tools">'
-      + '<button type="button" class="dmi-collapse-btn" data-dmi-panel="' + market + '" aria-expanded="' + (collapsed ? 'false' : 'true') + '" aria-label="펼치기/접기">' + (collapsed ? '▸' : '▾') + '</button>'
-      + '<button type="button" class="dmi-draw-toggle" aria-pressed="false" title="두 지점을 차례로 클릭해 추세선을 그립니다.">선 그리기</button>'
-      + '<button type="button" class="dmi-draw-clear" title="그린 선을 모두 지웁니다.">지우기</button></div></div>'
+      + '<button type="button" class="dmi-collapse-btn" data-dmi-panel="' + market + '" aria-expanded="' + (collapsed ? 'false' : 'true') + '" aria-label="펼치기/접기">' + (collapsed ? '▸' : '▾') + '</button></div></div>'
       + '<div class="dmi-tabs" role="tablist">'
+      + '<button type="button" class="dmi-draw-toggle" aria-pressed="false" title="두 지점을 차례로 클릭해 추세선을 그립니다.">선 그리기</button>'
+      + '<button type="button" class="dmi-draw-clear" title="그린 선을 모두 지웁니다.">지우기</button>'
       + ['minute', 'day', 'week'].map(function (interval) {
         var label = { minute: '분봉', day: '일봉', week: '주봉' }[interval];
         return '<button type="button" class="dmi-tab' + (interval === 'day' ? ' is-active' : '') + '" data-interval="' + interval + '">' + label + '</button>';

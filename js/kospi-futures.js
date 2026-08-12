@@ -297,11 +297,12 @@
     }).join('');
 
     var sections = CHARTS.map(function (c) {
-      var toggleHtml = '<div class="kf-interval-toggle" data-chart-key="' + c.key + '">' + c.intervals.map(function (iv) {
-        return '<button type="button" class="kf-interval-btn' + (iv === panelState[c.key].interval ? ' active' : '') + '" data-interval="' + iv + '">' + INTERVAL_LABELS[iv] + '</button>';
-      }).join('')
-        + '<button type="button" class="kf-draw-toggle" aria-pressed="false">선 그리기</button>'
+      var toggleHtml = '<div class="kf-interval-toggle" data-chart-key="' + c.key + '"'
+        + '><button type="button" class="kf-draw-toggle" aria-pressed="false">선 그리기</button>'
         + '<button type="button" class="kf-draw-clear">지우기</button>'
+        + c.intervals.map(function (iv) {
+          return '<button type="button" class="kf-interval-btn' + (iv === panelState[c.key].interval ? ' active' : '') + '" data-interval="' + iv + '">' + INTERVAL_LABELS[iv] + '</button>';
+        }).join('')
         + '</div>';
       var collapsed = loadCollapsed(c.key);
       return '<div class="kf-section' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="' + c.key + '">'
