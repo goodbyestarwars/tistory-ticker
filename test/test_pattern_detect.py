@@ -194,6 +194,24 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertEqual(len(results["risingLows"]), detector.RISING_LOWS_DISPLAY_LIMIT)
         self.assertEqual(results["risingLows"][0]["code"], "399720")
 
+    def test_all_pattern_buckets_rank_before_the_display_cap(self):
+        results = {
+            key: [
+                {"code": "%06d" % i, "score": 70 + (i % 3), "date": "2026-08-01"}
+                for i in range(15)
+            ] + [{"code": "999999", "score": 99, "date": "2026-08-01"}]
+            for key in ("risingLows", "maCloudBreakout", "doubleBottom", "invHeadShoulders", "boxRangeLow")
+        }
+        pullback = list(results["boxRangeLow"])
+
+        detector.finalize_pattern_results(results, pullback)
+
+        for key in results:
+            self.assertEqual(len(results[key]), detector.PATTERN_MAX_MATCHES)
+            self.assertEqual(results[key][0]["code"], "999999")
+        self.assertEqual(len(pullback), detector.PATTERN_MAX_MATCHES)
+        self.assertEqual(pullback[0]["code"], "999999")
+
 
 class MaCloudBreakoutDetectionTest(unittest.TestCase):
     def test_detects_early_ma_cloud_breakout(self):

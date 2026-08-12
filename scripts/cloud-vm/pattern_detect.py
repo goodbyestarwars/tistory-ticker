@@ -7,6 +7,7 @@ import math
 import re
 
 PATTERN_SWING = 2
+# Evaluate the full universe before applying this display limit.
 PATTERN_MAX_MATCHES = 15
 RISING_LOWS_DISPLAY_LIMIT = 15
 PENNY_STOCK_MAX_PRICE = 1000  # 국내 주식 기준: 1,000원 미만은 동전주로 제외
@@ -66,6 +67,13 @@ PULLBACK_MIN_DROP = 0.05
 PULLBACK_MAX_DROP = 0.15
 PULLBACK_MA_TOL = 0.03
 PULLBACK_MIN_DAYS = 240  # 1년선(240거래일) 계산에 필요한 최소 보유 일수
+
+# Conservative score floors filter weak structures before the display cap.
+# Scores combine shape, support, volume, and recent-candle evidence, so the
+# result does not depend on the order in which symbols are scanned.
+IHS_MIN_SCORE = 80
+BOX_MIN_SCORE = 80
+PULLBACK_MIN_SCORE = 80
 
 
 # ---------------------------------------------------------------------------
@@ -179,8 +187,8 @@ def clamp_score(n):
     return max(0, min(100, round(n)))
 
 
-def pattern_grade(score):
-    return score >= 70
+def pattern_grade(score, minimum=70):
+    return score >= minimum
 
 
 def dedupe_levels(levels):
@@ -929,44 +937,48 @@ def scan_stock(stock, daily, pattern_results, pullback_matches):
     if len(daily) >= MA_CLOUD_MIN_DAYS:
         pattern_scanned = True
         ma_cloud = detect_ma_cloud_breakout(daily)
-        if ma_cloud and len(pattern_results['maCloudBreakout']) < PATTERN_MAX_MATCHES:
+        if ma_cloud:
             pattern_results['maCloudBreakout'].append(build_pattern_match(stock, daily, ma_cloud))
 
     if len(daily) >= BOX_WINDOW:
         db = detect_double_bottom(daily)
-        if db and not db['breakout'] and pattern_grade(db['score']) and len(pattern_results['doubleBottom']) < PATTERN_MAX_MATCHES:
+        if db and not db['breakout'] and pattern_grade(db['score']):
             pattern_results['doubleBottom'].append(build_pattern_match(stock, daily, db))
 
         ihs = detect_inv_head_shoulders(daily)
-        if ihs and not ihs['breakout'] and pattern_grade(ihs['score']) and len(pattern_results['invHeadShoulders']) < PATTERN_MAX_MATCHES:
+        if ihs and not ihs['breakout'] and pattern_grade(ihs['score'], IHS_MIN_SCORE):
             pattern_results['invHeadShoulders'].append(build_pattern_match(stock, daily, ihs))
 
         box = detect_box_range_low(daily)
-        if box and pattern_grade(box['score']) and len(pattern_results['boxRangeLow']) < PATTERN_MAX_MATCHES:
+        if box and pattern_grade(box['score'], BOX_MIN_SCORE):
             pattern_results['boxRangeLow'].append(build_pattern_match(stock, daily, box))
 
     if len(daily) >= PULLBACK_MIN_DAYS:
         pullback_scanned = True
         pullback = detect_pullback(daily)
-        if pullback and pattern_grade(pullback['score']) and len(pullback_matches) < PATTERN_MAX_MATCHES:
+        if pullback and pattern_grade(pullback['score'], PULLBACK_MIN_SCORE):
             pullback_matches.append(build_pattern_match(stock, daily, pullback))
 
     return pattern_scanned, pullback_scanned
 
 
-def finalize_pattern_results(pattern_results):
-    """Keep the strongest and most recent rising-lows candidates for the UI.
+def _rank_and_limit(matches):
+    """Rank all candidates deterministically before applying the display cap."""
+    matches = matches or []
+    matches.sort(key=lambda item: item.get('code') or '')
+    matches.sort(key=lambda item: item.get('date') or '', reverse=True)
+    matches.sort(key=lambda item: item.get('score') or 0, reverse=True)
+    return matches[:PATTERN_MAX_MATCHES]
 
-    Candidates are collected for the full scan before this function runs so a
-    stock cannot be hidden merely because it appears late in universe order.
+
+def finalize_pattern_results(pattern_results, pullback_matches=None):
+    """Apply the quality-ranked display cap after the full universe scan.
+
+    No pattern bucket is truncated during scanning. This prevents the first
+    15 symbols in universe order from winning over stronger later candidates.
     """
-    rising_lows = pattern_results.get('risingLows') or []
-    rising_lows.sort(key=lambda item: item.get('code') or '')
-    rising_lows.sort(key=lambda item: item.get('date') or '', reverse=True)
-    rising_lows.sort(key=lambda item: item.get('score') or 0, reverse=True)
-    pattern_results['risingLows'] = rising_lows[:RISING_LOWS_DISPLAY_LIMIT]
-    ma_cloud = pattern_results.get('maCloudBreakout') or []
-    ma_cloud.sort(key=lambda item: item.get('date') or '', reverse=True)
-    ma_cloud.sort(key=lambda item: item.get('score') or 0, reverse=True)
-    pattern_results['maCloudBreakout'] = ma_cloud[:RISING_LOWS_DISPLAY_LIMIT]
+    for key in ('risingLows', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow'):
+        pattern_results[key] = _rank_and_limit(pattern_results.get(key))
+    if pullback_matches is not None:
+        pullback_matches[:] = _rank_and_limit(pullback_matches)
     return pattern_results

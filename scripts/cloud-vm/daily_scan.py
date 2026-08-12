@@ -283,7 +283,7 @@ def main():
     conn.commit()
     conn.close()
 
-    pd.finalize_pattern_results(pattern_results)
+    pd.finalize_pattern_results(pattern_results, pullback_matches)
     now = datetime.now(timezone.utc).isoformat()
     payload = {
         'generatedAt': now,
