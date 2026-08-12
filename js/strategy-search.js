@@ -159,7 +159,9 @@
 
   function rowHtml(it) {
     var cc = chgClass(it.changeRate);
-    var metric = it.strategy === 'dividend'
+    var metric = it.strategy === 'etfReturn'
+      ? (it.etfReturnLabel || 'ETF 수익률') + ' ' + fmtPct(it.returnRatePct)
+      : it.strategy === 'dividend'
       ? '배당수익률 ' + fmtPct(it.dividendYieldPct) + ' · 배당성향 ' + fmtPct(it.payoutRatioPct)
         + ' · 연속배당 ' + (it.dividendStreak || 0) + '년 · 순이익 증가 ' + (it.profitGrowthStreak || 0) + '년'
       : it.gapRatePct != null

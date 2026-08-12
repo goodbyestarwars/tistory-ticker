@@ -107,6 +107,18 @@ DIVIDEND_STREAK_MIN = 3
 DIVIDEND_PROFIT_GROWTH_STREAK_MIN = 3
 DIVIDEND_TOP_N = 15
 
+# ETF return ranking uses the same trading-day convention as the local daily
+# price cache.  Keeping the calculation local also gives the 12-month screen
+# a consistent source even though the referenced Naver screen exposes shorter
+# return filters only.
+ETF_RETURN_PERIODS = (
+    ('1m', 'ETF 1개월 수익률 상위', 21),
+    ('3m', 'ETF 3개월 수익률 상위', 63),
+    ('6m', 'ETF 6개월 수익률 상위', 126),
+    ('12m', 'ETF 12개월 수익률 상위', 252),
+)
+ETF_RETURN_TOP_N = 15
+
 BLUECHIP_METHODOLOGY_NOTE = (
     '펀더멘탈 점수 {min_score}점 이상인 우량주 중 주봉 엔벨로프({period}, ±{percent:.0f}%) 하단을 최근 주봉이 터치하고, '
     '주봉 종가가 하단선 ±{close_tol:.0f}% 안에 있는 종목입니다. 저점 이탈 후 계속 하락하는 종목을 줄이기 위해 '
@@ -183,9 +195,18 @@ def load_full_universe():
     req = urllib.request.Request(FULL_UNIVERSE_URL, headers={'User-Agent': 'Mozilla/5.0'})
     with urllib.request.urlopen(req, timeout=20) as res:
         text = res.read().decode('utf-8')
+    etf_names = set()
+    if 'window.KRX_ETF_NAMES=' in text:
+        etf_text = text.split('window.KRX_ETF_NAMES=', 1)[1]
+        etf_names = set(re.findall(r'"([^"]+)"', etf_text))
+
     out = []
     for m in re.finditer(r'"([^"]+)":"([0-9A-Za-z]{6})"', text):
-        out.append({'name': m.group(1), 'code': m.group(2)})
+        out.append({
+            'name': m.group(1),
+            'code': m.group(2),
+            'is_etf': m.group(1) in etf_names,
+        })
     return out
 
 
@@ -628,6 +649,99 @@ def build_dividend_match(stock, daily, sector, signal, annual):
     return match
 
 
+def etf_return_signal(daily, lookback_bars):
+    """Return a close-to-close ETF return for a trading-day lookback."""
+    if not daily or len(daily) <= lookback_bars:
+        return None
+    current = daily[-1].get('close')
+    baseline = daily[-1 - lookback_bars].get('close')
+    try:
+        current = float(current)
+        baseline = float(baseline)
+    except (TypeError, ValueError):
+        return None
+    if baseline <= 0 or current <= 0:
+        return None
+    return {
+        'returnRatePct': (current / baseline - 1) * 100,
+        'lookbackBars': lookback_bars,
+        'date': daily[-1].get('date'),
+        'price': current,
+    }
+
+
+def is_eligible_etf(stock, daily):
+    """Keep listed ETFs while applying the common product/data hygiene gates."""
+    stock = stock or {}
+    name = str(stock.get('name') or '').strip()
+    if not (bool(stock.get('is_etf')) or pattern_detect.is_etf_name(name)):
+        return False
+
+    # ETN/SPAC/preferred/status products do not belong in the ETF return tab.
+    if pattern_detect.NON_COMMON_STOCK_NAME_TOKENS.search(name):
+        return False
+    if pattern_detect.PREFERRED_STOCK_SUFFIX.search(name):
+        return False
+    if stock.get('is_trading_halted') or stock.get('is_under_liquidation'):
+        return False
+    if not daily:
+        return False
+    try:
+        return float(daily[-1].get('close') or 0) >= MIN_PRICE and float(daily[-1].get('volume') or 0) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def build_etf_return_match(stock, daily, period_key, period_label, signal):
+    previous = daily[-2] if len(daily) > 1 else None
+    previous_close = previous.get('close') if previous else None
+    price = signal['price']
+    change_rate = ((price - previous_close) / previous_close * 100) if previous_close else None
+    return {
+        'code': stock['code'],
+        'name': stock['name'],
+        'price': price,
+        'changeRate': change_rate,
+        'date': signal['date'],
+        'sector': 'ETF',
+        'strategy': 'etfReturn',
+        'etfReturnPeriod': period_key,
+        'etfReturnLabel': period_label,
+        'returnRatePct': round(signal['returnRatePct'], 2),
+        'lookbackBars': signal['lookbackBars'],
+    }
+
+
+def scan_etf_returns(universe, conn):
+    """Rank eligible domestic ETFs independently for each return period."""
+    candidates = {key: [] for key, _, _ in ETF_RETURN_PERIODS}
+    scanned = 0
+    for stock in universe:
+        daily = db_schema.load_daily_prices(conn, stock['code'])
+        if not is_eligible_etf(stock, daily):
+            continue
+        scanned += 1
+        for period_key, period_label, lookback_bars in ETF_RETURN_PERIODS:
+            signal = etf_return_signal(daily, lookback_bars)
+            if signal:
+                candidates[period_key].append(
+                    build_etf_return_match(stock, daily, period_key, period_label, signal)
+                )
+
+    result = {}
+    for period_key, _, _ in ETF_RETURN_PERIODS:
+        matches = candidates[period_key]
+        matches.sort(key=lambda item: (
+            -(item.get('returnRatePct') or 0),
+            -(item.get('price') or 0),
+            item.get('code') or '',
+        ))
+        result[period_key] = {'ETF': matches[:ETF_RETURN_TOP_N]}
+        if not result[period_key]['ETF']:
+            result[period_key] = {}
+    return result, scanned
+
+
 def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
     """Scan domestic common stocks for the conservative dividend strategy."""
     theme_codes = theme_codes or set()
@@ -703,6 +817,7 @@ def main():
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
     dividend_sectors, dividend_scanned = scan_dividend(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
+    etf_return_sectors, etf_scanned = scan_etf_returns(universe, conn)
 
     undervalued_category = {
         'name': '저평가 종목',
@@ -740,6 +855,22 @@ def main():
             },
         },
     }
+
+    for period_key, period_label, lookback_bars in ETF_RETURN_PERIODS:
+        output['categories']['etf_' + period_key] = {
+            'name': period_label,
+            'methodology': (
+                '국내 ETF 중 ETN·스팩·우선주·거래정지·정리매매·동전주를 제외하고, '
+                '최근 %d거래일 종가 대비 현재 종가 수익률이 높은 순서로 최대 %d개를 표시합니다.'
+                % (lookback_bars, ETF_RETURN_TOP_N)
+            ),
+            'sectors': {
+                sector: {'name': sector, 'matches': matches}
+                for sector, matches in etf_return_sectors.get(period_key, {}).items()
+                if matches
+            },
+        }
+    output['etfScanned'] = etf_scanned
 
     tmp_path = OUTPUT_FILE + '.tmp'
     with open(tmp_path, 'w', encoding='utf-8') as f:

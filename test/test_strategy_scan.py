@@ -125,6 +125,51 @@ class DividendTests(unittest.TestCase):
             [{'close': 100}], self._annual(), dividend))
 
 
+class EtfReturnTests(unittest.TestCase):
+    def _daily(self, start=100, end=120, n=253, volume=1000):
+        rows = []
+        for index in range(n):
+            price = start + (end - start) * index / (n - 1)
+            rows.append({
+                'date': '2026-01-%02d' % ((index % 28) + 1),
+                'open': price,
+                'high': price,
+                'low': price,
+                'close': price,
+                'volume': volume,
+            })
+        return rows
+
+    def test_uses_close_to_close_trading_day_return(self):
+        daily = self._daily(start=100, end=120, n=253)
+
+        signal = strategy_scan.etf_return_signal(daily, 252)
+
+        self.assertAlmostEqual(signal['returnRatePct'], 20.0)
+        self.assertEqual(signal['lookbackBars'], 252)
+
+    def test_ranks_etfs_and_excludes_non_etf_products_and_penny_funds(self):
+        daily = self._daily(start=10_000, end=12_000, n=253)
+        universe = [
+            {'code': '100001', 'name': 'KODEX 상승 ETF', 'is_etf': True},
+            {'code': '100002', 'name': 'TIGER ETN', 'is_etf': True},
+            {'code': '100003', 'name': '일반주식', 'is_etf': False},
+            {'code': '100004', 'name': 'KODEX 동전 ETF', 'is_etf': True},
+        ]
+
+        def load_daily(conn, code):
+            if code == '100004':
+                return [dict(row, close=500, open=500, high=500, low=500) for row in daily]
+            return daily
+
+        with patch.object(strategy_scan.db_schema, 'load_daily_prices', side_effect=load_daily):
+            result, scanned = strategy_scan.scan_etf_returns(universe, object())
+
+        self.assertEqual(scanned, 1)
+        self.assertEqual([row['code'] for row in result['12m']['ETF']], ['100001'])
+        self.assertEqual(result['12m']['ETF'][0]['strategy'], 'etfReturn')
+
+
 class OpeningGapTests(unittest.TestCase):
     def _daily(self, open_price=10_500, close_price=11_000, previous_close=10_000, volume=300_000):
         return [
