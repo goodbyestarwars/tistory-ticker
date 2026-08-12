@@ -166,8 +166,12 @@ class EtfReturnTests(unittest.TestCase):
             result, scanned = strategy_scan.scan_etf_returns(universe, object())
 
         self.assertEqual(scanned, 1)
-        self.assertEqual([row['code'] for row in result['12m']['ETF']], ['100001'])
-        self.assertEqual(result['12m']['ETF'][0]['strategy'], 'etfReturn')
+        self.assertEqual([row['code'] for row in result['ETF']], ['100001'])
+        self.assertEqual(result['ETF'][0]['strategy'], 'etfReturn')
+        self.assertAlmostEqual(result['ETF'][0]['returnRate1mPct'], 1.41, places=2)
+        self.assertAlmostEqual(result['ETF'][0]['returnRate3mPct'], 4.35, places=2)
+        self.assertAlmostEqual(result['ETF'][0]['returnRate6mPct'], 9.09, places=2)
+        self.assertAlmostEqual(result['ETF'][0]['returnRate12mPct'], 20.0, places=2)
 
 
 class OpeningGapTests(unittest.TestCase):

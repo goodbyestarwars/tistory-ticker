@@ -267,6 +267,8 @@
 }
 #order-book .ob-summary-item b.ob-up { color: #d24f45; }
 #order-book .ob-summary-item b.ob-down { color: #1261c4; }
+#order-book .ob-summary-item b.ob-summary-high { color: #d24f45; }
+#order-book .ob-summary-item b.ob-summary-low { color: #1261c4; }
 #order-book .ob-summary-volume-change { grid-column: span 2; }
 
 #order-book .ob-table {
@@ -428,6 +430,8 @@ html.dark #order-book .ob-summary-item { background: #1A1A1A !important; border-
 html.dark #order-book .ob-summary-item b { color: #F5EFE0 !important; }
 html.dark #order-book .ob-summary-item b.ob-up { color: #e8776d !important; }
 html.dark #order-book .ob-summary-item b.ob-down { color: #6ea8e8 !important; }
+html.dark #order-book .ob-summary-item b.ob-summary-high { color: #e8776d !important; }
+html.dark #order-book .ob-summary-item b.ob-summary-low { color: #6ea8e8 !important; }
 html.dark #order-book .ob-bar-wrap { background: rgba(245, 239, 224, 0.12) !important; }
 html.dark #order-book .ob-current-row { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #order-book .ob-footer-label { color: rgba(245, 239, 224, 0.55) !important; }

@@ -1167,7 +1167,14 @@
         vertLines: { color: dark ? '#3a3a3a' : '#eee' },
         horzLines: { color: dark ? '#3a3a3a' : '#eee' }
       },
-      rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
+      // Keep the price scale in the candle pane. The volume overlay has its
+      // own hidden scale; without these margins its price labels can extend
+      // into the volume pane and look like a second price axis.
+      rightPriceScale: {
+        borderColor: dark ? '#3a3a3a' : '#ddd',
+        scaleMargins: { top: 0.06, bottom: 0.36 },
+        alignLabels: false
+      },
       // 2026-08-05 사용자 리포트: 분봉 X축이 같은 날짜("5일")만 반복 표시됐음 - 분봉의
       // time은 UNIX 타임스탬프(minuteRowsToBars 참고)인데 timeVisible이 꺼져 있으면
       // 라이브러리가 날짜만 찍는다. 분봉일 때만 시:분(HH:mm)을 보여주고, 일/주/월봉은
@@ -1209,6 +1216,10 @@
         localization: { locale: 'ko-KR' }
       }, lwcThemeOptions(LWC, timeframe)));
       lwcChart = chart;
+      chart.priceScale('right').applyOptions({
+        scaleMargins: { top: 0.06, bottom: 0.36 },
+        alignLabels: false
+      });
 
       var isUsChart = /^US:/i.test(String(state.selectedCode || ''));
       var priceMinMove = isUsChart ? 0.01 : 1;
@@ -1304,7 +1315,13 @@
       });
       // 거래량은 가격과 별도 overlay 축을 쓰고 축 자체는 숨긴다. 기본 overlay 축('')을
       // 공유하면 차트 localization의 가격 formatter가 거래량 눈금에 붙는 경우가 있다.
-      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0.02 }, visible: false, borderVisible: false, drawTicks: false });
+      volumeSeries.priceScale().applyOptions({
+        scaleMargins: { top: 0.72, bottom: 0.02 },
+        visible: false,
+        borderVisible: false,
+        ticksVisible: false,
+        drawTicks: false
+      });
       volumeSeries.setData(bars.map(function (d) {
         return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
       }));

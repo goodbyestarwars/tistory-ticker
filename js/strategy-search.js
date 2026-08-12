@@ -42,7 +42,7 @@
   function loadScan(container) {
     StrategySearch.fetchJson(GAS_TICKER_URL + '?strategyScan=1')
       .then(function (data) {
-        scanData = data;
+        scanData = normalizeScanData(data);
         var keys = Object.keys((data && data.categories) || {});
         if (!keys.length) {
           container.innerHTML = '<div class="ss-error">아직 스캔 결과가 없어요. (VM에서 strategy_scan.py가 한 번 실행돼야 함)</div>';
@@ -56,6 +56,54 @@
       .catch(function () {
         container.innerHTML = '<div class="ss-error">스캔 결과를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
+  }
+
+  // Older VM/GAS caches still contain four separate etf_1m/3m/6m/12m
+  // categories. Merge them on the client so the UI remains correct until the
+  // next strategy scan has written the new combined schema.
+  function normalizeScanData(data) {
+    data = data || {};
+    data.categories = data.categories || {};
+    var periods = ['1m', '3m', '6m', '12m'];
+    if (data.categories.etfReturn) {
+      periods.forEach(function (period) { delete data.categories['etf_' + period]; });
+      return data;
+    }
+
+    var merged = {};
+    periods.forEach(function (period) {
+      var category = data.categories['etf_' + period];
+      if (!category || !category.sectors) return;
+      Object.keys(category.sectors).forEach(function (sector) {
+        var group = category.sectors[sector] || {};
+        (group.matches || []).forEach(function (row) {
+          var key = row.code || row.name;
+          if (!key) return;
+          if (!merged[key]) {
+            merged[key] = {};
+            Object.keys(row).forEach(function (field) { merged[key][field] = row[field]; });
+          }
+          merged[key]['returnRate' + period + 'Pct'] = row.returnRatePct;
+          merged[key]['return' + period.toUpperCase() + 'Label'] = period;
+        });
+      });
+    });
+
+    if (Object.keys(merged).length) {
+      var rows = Object.keys(merged).map(function (key) { return merged[key]; });
+      rows.sort(function (a, b) {
+        var ar = a.returnRate1mPct == null ? -Infinity : Number(a.returnRate1mPct);
+        var br = b.returnRate1mPct == null ? -Infinity : Number(b.returnRate1mPct);
+        return br - ar;
+      });
+      data.categories.etfReturn = {
+        name: 'ETF 수익률 상위',
+        methodology: '1개월 누적수익률 기준 상위 ETF이며, 각 종목의 1개월·3개월·6개월·12개월 누적수익률을 함께 표시합니다.',
+        sectors: { ETF: { name: 'ETF', matches: rows } }
+      };
+      periods.forEach(function (period) { delete data.categories['etf_' + period]; });
+    }
+    return data;
   }
 
   function buildShell() {
@@ -160,7 +208,12 @@
   function rowHtml(it) {
     var cc = chgClass(it.changeRate);
     var metric = it.strategy === 'etfReturn'
-      ? (it.etfReturnLabel || 'ETF 수익률') + ' ' + fmtPct(it.returnRatePct)
+      ? '<span class="ss-etf-return-metric">'
+        + '<span>1개월 <b>' + fmtPct(it.returnRate1mPct) + '</b></span>'
+        + '<span>3개월 <b>' + fmtPct(it.returnRate3mPct) + '</b></span>'
+        + '<span>6개월 <b>' + fmtPct(it.returnRate6mPct) + '</b></span>'
+        + '<span>12개월 <b>' + fmtPct(it.returnRate12mPct) + '</b></span>'
+        + '</span>'
       : it.strategy === 'dividend'
       ? '배당수익률 ' + fmtPct(it.dividendYieldPct) + ' · 배당성향 ' + fmtPct(it.payoutRatioPct)
         + ' · 연속배당 ' + (it.dividendStreak || 0) + '년 · 순이익 증가 ' + (it.profitGrowthStreak || 0) + '년'

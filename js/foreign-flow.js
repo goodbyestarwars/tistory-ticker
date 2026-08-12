@@ -4441,7 +4441,11 @@
       },
       // scaleMargins: 캔들이 세로로 납작해 보인다는 피드백(2026-07-19)으로 기본 여백(대략
       // 위20%/아래10%)보다 좁혀 캔들이 세로 공간을 더 채우도록 함.
-      rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd', scaleMargins: { top: 0.08, bottom: 0.08 } },
+      rightPriceScale: {
+        borderColor: dark ? '#3a3a3a' : '#ddd',
+        scaleMargins: { top: 0.06, bottom: 0.36 },
+        alignLabels: false
+      },
       timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
       // 2026-07-28 사용자 리포트: 다크모드에서 차트 위에 안 어울리는 회색 네모(십자선
       // 가격/시각 라벨의 기본 배경색 #4c525e, 라이브러리 기본값이라 다크 팔레트와 무관하게
@@ -4476,6 +4480,10 @@
         handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true }
       }, lwcThemeOptions(LWC)));
       lwcChart = chart;
+      chart.priceScale('right').applyOptions({
+        scaleMargins: { top: 0.06, bottom: 0.36 },
+        alignLabels: false
+      });
 
       var daily = chartData.daily;
       var candleSeries = chart.addCandlestickSeries({
@@ -4535,7 +4543,13 @@
       });
       // 거래량용 overlay 축은 가격 축과 분리하고 눈금/마지막 값은 감춘다. 그래야
       // 거래량 영역 오른쪽에 가격 formatter가 붙는 현상이 사라진다.
-      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 }, visible: false, borderVisible: false });
+      volumeSeries.priceScale().applyOptions({
+        scaleMargins: { top: 0.72, bottom: 0 },
+        visible: false,
+        borderVisible: false,
+        ticksVisible: false,
+        drawTicks: false
+      });
       volumeSeries.setData(daily.map(function (d) {
         return {
           time: d.date,

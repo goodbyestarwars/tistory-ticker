@@ -84,6 +84,7 @@ def _quote_events(message):
         price = _number(value('10', 'price'))
         change = _number(value('11', 'change'))
         change_rate = _number(value('12', 'changeRate', 'change_rate'))
+        cumulative_volume = _number(value('16', 'acc_trde_qty', 'acml_vol', 'volume'))
         if price is None:
             continue
         event = {
@@ -93,6 +94,8 @@ def _quote_events(message):
             'change': change or 0,
             'changeRate': change_rate or 0,
         }
+        if cumulative_volume is not None:
+            event['volume'] = abs(cumulative_volume)
         exchange = value('9081', 'exchange', 'stex_tp')
         session = value('290', 'session', 'market_session')
         if exchange is not None:

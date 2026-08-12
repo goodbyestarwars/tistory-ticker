@@ -12,6 +12,8 @@ MOMENTUM_SCHEMA_MARKER="$APP_DIR/.news_momentum_batch_schema_version"
 MOMENTUM_SCHEMA_VERSION="3"
 MOMENTUM_LOCK="$APP_DIR/.news_momentum_timer.lock"
 MOMENTUM_DB="$APP_DIR/news_momentum.db"
+SEARCH_SCAN_LOCK="$APP_DIR/.search_scan_refresh.lock"
+SEARCH_SCAN_LOG="$APP_DIR/search-scan-refresh.log"
 # 2026-08-02: _issue_labels() 폴백이 만들던 "장중 하락"·"마감 상승" 같은 순수 가격서술
 # 이슈를 코드 수정 이후에도 이미 저장된 행은 안 지워지므로, 배포 후 1회만 정리한다.
 PRICE_RECAP_CLEANUP_MARKER="$APP_DIR/.news_momentum_price_recap_cleanup_v1_done"
@@ -115,6 +117,27 @@ run_price_recap_cleanup_once() {
   return 0
 }
 
+# Pattern/strategy code changes used to wait for the next daily timer, which
+# made a newly deployed search rule look broken for up to a day. Refresh the
+# DB-only pattern cache and the strategy cache once after a deploy. The lock
+# prevents overlapping refreshes when several commits arrive close together.
+run_search_scan_refresh_after_deploy() {
+  if [ "$(id -un)" != "goodbyestarwars" ]; then
+    echo "검색 스캔 갱신 건너뜀: 실행 사용자가 goodbyestarwars가 아닙니다."
+    return 0
+  fi
+  (
+    flock -n 210 || exit 0
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) search scan refresh started"
+    "$PYTHON" "$APP_DIR/rescan_patterns.py" \
+      || echo "pattern cache refresh failed; daily timer will retry" >&2
+    "$PYTHON" "$APP_DIR/strategy_scan.py" \
+      || echo "strategy cache refresh failed; strategy timer will retry" >&2
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) search scan refresh finished"
+  ) 210>"$SEARCH_SCAN_LOCK" >>"$SEARCH_SCAN_LOG" 2>&1 &
+  disown
+}
+
 LAST_DEPLOYED="$(cat "$DEPLOYED_FILE" 2>/dev/null || echo "")"
 git fetch origin master -q
 REMOTE="$(git rev-parse origin/master)"
@@ -137,6 +160,7 @@ if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
   printf '%s\n' "$REMOTE" > "$DEPLOYED_FILE"
   echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) deployed $REMOTE" >> "$APP_DIR/deploy.log"
   DEPLOY_OCCURRED=1
+  run_search_scan_refresh_after_deploy
 fi
 
 # 실패해도 위 배포 결과와 FastAPI 재시작 성공을 되돌리거나 비정상 종료시키지 않는다.

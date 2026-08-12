@@ -344,8 +344,13 @@
     var currentChange = board.querySelector('[data-field="current-change"]');
     if (currentChange) currentChange.textContent = changeText;
 
-    if (state.summary && Number(quote.volume) > 0) {
-      state.summary.liveVolume = Number(quote.volume);
+    if (state.summary) {
+      var livePrice = Number(quote.price);
+      if (Number.isFinite(livePrice)) {
+        if (state.summary.high == null || livePrice > Number(state.summary.high)) state.summary.high = livePrice;
+        if (state.summary.low == null || livePrice < Number(state.summary.low)) state.summary.low = livePrice;
+      }
+      if (Number(quote.volume) > 0) state.summary.liveVolume = Number(quote.volume);
     }
     updateSummary(board, quote);
 
@@ -769,8 +774,8 @@
   function buildSummaryHtml(summary) {
     return '<div class="ob-summary" aria-label="당일 시세 요약">'
       + summaryItemHtml('시가', summary.open, 'price')
-      + summaryItemHtml('고가', summary.high, 'price')
-      + summaryItemHtml('저가', summary.low, 'price')
+      + summaryItemHtml('고가', summary.high, 'price', 'ob-summary-high')
+      + summaryItemHtml('저가', summary.low, 'price', 'ob-summary-low')
       + summaryItemHtml('거래량', summary.volume, 'quantity')
       + '<div class="ob-summary-item ob-summary-volume-change">'
       + '<span>전일 거래량 대비</span>'
@@ -779,10 +784,10 @@
       + '</div>';
   }
 
-  function summaryItemHtml(label, value, type) {
+  function summaryItemHtml(label, value, type, valueClass) {
     return '<div class="ob-summary-item">'
       + '<span>' + label + '</span>'
-      + '<b data-summary="' + label + '">' + (value == null ? '-' : (type === 'quantity' ? fmtQty(value) : fmtPrice(value))) + '</b>'
+      + '<b data-summary="' + label + '" class="' + (valueClass || '') + '">' + (value == null ? '-' : (type === 'quantity' ? fmtQty(value) : fmtPrice(value))) + '</b>'
       + '</div>';
   }
 
@@ -801,6 +806,8 @@
       if (field) {
         field.textContent = fields[key];
         if (key === 'volume-change') field.className = volumeChangeClass(summary.volumeChangePct);
+        if (key === '고가') field.className = 'ob-summary-high';
+        if (key === '저가') field.className = 'ob-summary-low';
       }
     });
   }

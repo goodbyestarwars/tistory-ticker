@@ -112,12 +112,13 @@ DIVIDEND_TOP_N = 15
 # a consistent source even though the referenced Naver screen exposes shorter
 # return filters only.
 ETF_RETURN_PERIODS = (
-    ('1m', 'ETF 1개월 수익률 상위', 21),
-    ('3m', 'ETF 3개월 수익률 상위', 63),
-    ('6m', 'ETF 6개월 수익률 상위', 126),
-    ('12m', 'ETF 12개월 수익률 상위', 252),
+    ('1m', '1개월', 21),
+    ('3m', '3개월', 63),
+    ('6m', '6개월', 126),
+    ('12m', '12개월', 252),
 )
 ETF_RETURN_TOP_N = 15
+ETF_RETURN_CATEGORY_NAME = 'ETF 수익률 상위'
 
 BLUECHIP_METHODOLOGY_NOTE = (
     '펀더멘탈 점수 {min_score}점 이상인 우량주 중 주봉 엔벨로프({period}, ±{percent:.0f}%) 하단을 최근 주봉이 터치하고, '
@@ -692,54 +693,62 @@ def is_eligible_etf(stock, daily):
         return False
 
 
-def build_etf_return_match(stock, daily, period_key, period_label, signal):
+def build_etf_return_match(stock, daily, signals):
     previous = daily[-2] if len(daily) > 1 else None
     previous_close = previous.get('close') if previous else None
-    price = signal['price']
+    price = signals[next(iter(signals))]['price']
     change_rate = ((price - previous_close) / previous_close * 100) if previous_close else None
-    return {
+    match = {
         'code': stock['code'],
         'name': stock['name'],
         'price': price,
         'changeRate': change_rate,
-        'date': signal['date'],
+        'date': daily[-1].get('date'),
         'sector': 'ETF',
         'strategy': 'etfReturn',
-        'etfReturnPeriod': period_key,
-        'etfReturnLabel': period_label,
-        'returnRatePct': round(signal['returnRatePct'], 2),
-        'lookbackBars': signal['lookbackBars'],
     }
+    for period_key, period_label, _ in ETF_RETURN_PERIODS:
+        signal = signals.get(period_key)
+        match['returnRate' + period_key + 'Pct'] = (
+            round(signal['returnRatePct'], 2) if signal else None
+        )
+        match['return' + period_key.upper() + 'Label'] = period_label
+    return match
 
 
 def scan_etf_returns(universe, conn):
-    """Rank eligible domestic ETFs independently for each return period."""
-    candidates = {key: [] for key, _, _ in ETF_RETURN_PERIODS}
+    """Rank one ETF list while exposing all four cumulative return periods."""
+    candidates = []
     scanned = 0
     for stock in universe:
         daily = db_schema.load_daily_prices(conn, stock['code'])
         if not is_eligible_etf(stock, daily):
             continue
         scanned += 1
-        for period_key, period_label, lookback_bars in ETF_RETURN_PERIODS:
+        signals = {}
+        for period_key, _, lookback_bars in ETF_RETURN_PERIODS:
             signal = etf_return_signal(daily, lookback_bars)
             if signal:
-                candidates[period_key].append(
-                    build_etf_return_match(stock, daily, period_key, period_label, signal)
-                )
+                signals[period_key] = signal
+        if signals:
+            candidates.append(build_etf_return_match(stock, daily, signals))
 
-    result = {}
-    for period_key, _, _ in ETF_RETURN_PERIODS:
-        matches = candidates[period_key]
-        matches.sort(key=lambda item: (
-            -(item.get('returnRatePct') or 0),
-            -(item.get('price') or 0),
-            item.get('code') or '',
-        ))
-        result[period_key] = {'ETF': matches[:ETF_RETURN_TOP_N]}
-        if not result[period_key]['ETF']:
-            result[period_key] = {}
-    return result, scanned
+    # The combined tab is ranked by 1-month cumulative return. When an ETF
+    # has a shorter history, the first available period is used as fallback;
+    # the other columns remain visible as '-' instead of silently dropping it.
+    def ranking_key(item):
+        for period_key, _, _ in ETF_RETURN_PERIODS:
+            value = item.get('returnRate' + period_key + 'Pct')
+            if value is not None:
+                return float(value)
+        return float('-inf')
+
+    candidates.sort(key=lambda item: (
+        -ranking_key(item),
+        -(item.get('price') or 0),
+        item.get('code') or '',
+    ))
+    return {'ETF': candidates[:ETF_RETURN_TOP_N]}, scanned
 
 
 def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
@@ -856,20 +865,20 @@ def main():
         },
     }
 
-    for period_key, period_label, lookback_bars in ETF_RETURN_PERIODS:
-        output['categories']['etf_' + period_key] = {
-            'name': period_label,
-            'methodology': (
-                '국내 ETF 중 ETN·스팩·우선주·거래정지·정리매매·동전주를 제외하고, '
-                '최근 %d거래일 종가 대비 현재 종가 수익률이 높은 순서로 최대 %d개를 표시합니다.'
-                % (lookback_bars, ETF_RETURN_TOP_N)
-            ),
-            'sectors': {
-                sector: {'name': sector, 'matches': matches}
-                for sector, matches in etf_return_sectors.get(period_key, {}).items()
-                if matches
-            },
-        }
+    output['categories']['etfReturn'] = {
+        'name': ETF_RETURN_CATEGORY_NAME,
+        'methodology': (
+            '국내 ETF 중 ETN·스팩·우선주·거래정지·정리매매·동전주를 제외하고, '
+            '1개월 누적수익률을 기준으로 상위 최대 %d개를 표시합니다. '
+            '각 종목의 1개월·3개월·6개월·12개월 누적수익률을 함께 제공합니다.'
+            % ETF_RETURN_TOP_N
+        ),
+        'sectors': {
+            sector: {'name': sector, 'matches': matches}
+            for sector, matches in etf_return_sectors.items()
+            if matches
+        },
+    }
     output['etfScanned'] = etf_scanned
 
     tmp_path = OUTPUT_FILE + '.tmp'

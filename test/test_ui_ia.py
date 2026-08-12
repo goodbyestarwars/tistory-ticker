@@ -550,6 +550,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("전일 대비", source)
         self.assertIn("formatSignedPercent", source)
         self.assertIn("drawTicks: false", source)
+        self.assertIn("chart.priceScale('right').applyOptions", source)
+        self.assertIn("ticksVisible: false", source)
         self.assertIn(".ss-volume-study-label", style)
         self.assertIn("top: 70%", style)
 
@@ -564,6 +566,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("전일 거래량 대비", source)
         self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr))", style)
         self.assertIn("ob-summary-volume-change", style)
+        self.assertIn("ob-summary-high", source)
+        self.assertIn("ob-summary-low", source)
+        self.assertIn("state.summary.high", source)
+        self.assertIn("state.summary.low", source)
+        self.assertIn("ob-summary-high", style)
+        self.assertIn("ob-summary-low", style)
 
     def test_stock_search_renders_requested_price_studies_without_resizing_chart(self):
         source = self.read("js/stock-search.js")
@@ -668,6 +676,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("it.gapRatePct", source)
         self.assertIn("시초갭", source)
         self.assertIn("fmtMillion(it.turnoverMillion)", source)
+
+    def test_strategy_search_combines_etf_return_periods(self):
+        source = self.read("js/strategy-search.js")
+        style = self.read("css/strategy-search.css")
+        self.assertIn("normalizeScanData", source)
+        self.assertIn("data.categories.etfReturn", source)
+        self.assertIn("returnRate1mPct", source)
+        self.assertIn("returnRate3mPct", source)
+        self.assertIn("returnRate6mPct", source)
+        self.assertIn("returnRate12mPct", source)
+        self.assertIn("ss-etf-return-metric", source)
+        self.assertIn("ss-etf-return-metric", style)
 
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")
