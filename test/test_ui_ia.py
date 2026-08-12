@@ -75,6 +75,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var CHART_HEIGHT = 760;", frontend)
         self.assertIn(".dmi-chart-grid { display: grid; grid-template-columns: 1fr;", style)
         self.assertIn(".dmi-chart { height: 760px;", style)
+        self.assertIn(".dmi-subheading h3,", style)
+        self.assertIn(".dmi-funds-provider { color: #000 !important; }", style)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")
