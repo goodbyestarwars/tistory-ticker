@@ -31,6 +31,13 @@
 
   var scanData = null;
   var activeKey = null;
+  var activeEtfPeriod = '1m';
+  var ETF_RETURN_PERIODS = [
+    { key: '1m', label: '1개월' },
+    { key: '3m', label: '3개월' },
+    { key: '6m', label: '6개월' },
+    { key: '12m', label: '12개월' }
+  ];
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -149,6 +156,14 @@
         renderAll(container);
         return;
       }
+      var periodBtn = event.target.closest ? event.target.closest('.ss-return-period-tab') : null;
+      if (periodBtn) {
+        var period = periodBtn.getAttribute('data-return-period');
+        if (!period || period === activeEtfPeriod) return;
+        activeEtfPeriod = period;
+        renderCards(container);
+        return;
+      }
       var row = event.target.closest ? event.target.closest('.ss-row') : null;
       if (!row) return;
       var code = row.getAttribute('data-code');
@@ -194,15 +209,35 @@
       wrap.innerHTML = '<div class="ss-hint">지금은 이 카테고리 조건에 맞는 종목이 없어요.</div>';
       return;
     }
+    var periodTabs = activeKey === 'etfReturn'
+      ? '<div class="ss-return-period-tabs" role="tablist" aria-label="ETF 수익률 기간">'
+        + ETF_RETURN_PERIODS.map(function (period) {
+          return '<button type="button" class="ss-return-period-tab' + (period.key === activeEtfPeriod ? ' active' : '')
+            + '" data-return-period="' + period.key + '" role="tab" aria-selected="' + (period.key === activeEtfPeriod ? 'true' : 'false') + '">'
+            + period.label + '</button>';
+        }).join('')
+        + '</div>'
+      : '';
     var html = sectorNames.map(function (name) {
-      var matches = sectors[name].matches;
+      var matches = sortMatches(sectors[name].matches);
       var rows = matches.map(rowHtml).join('');
       return '<div class="ss-card">'
         + '<div class="ss-card-title">' + escapeHtml(name) + '</div>'
         + '<div class="ss-rows">' + rows + '</div>'
         + '</div>';
     }).join('');
-    wrap.innerHTML = '<div class="ss-cards-grid">' + html + '</div>';
+    wrap.innerHTML = periodTabs + '<div class="ss-cards-grid">' + html + '</div>';
+  }
+
+  function sortMatches(matches) {
+    if (activeKey !== 'etfReturn') return matches;
+    var field = 'returnRate' + activeEtfPeriod + 'Pct';
+    return matches.slice().sort(function (a, b) {
+      var ar = a[field] == null ? -Infinity : Number(a[field]);
+      var br = b[field] == null ? -Infinity : Number(b[field]);
+      if (br !== ar) return br - ar;
+      return String(a.code || '').localeCompare(String(b.code || ''));
+    });
   }
 
   function rowHtml(it) {
