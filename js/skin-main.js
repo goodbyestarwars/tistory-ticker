@@ -529,7 +529,12 @@
       }
     }
 
-    fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 12000)
+    // 2026-08-05: 8000 -> 20000(js/market-temp.js와 동일 값으로 맞춤). GAS getMarketTemp()는
+    // 캐시(30분 TTL)가 만료되면 VIX/수급/거래대금/평균등락률/섹터강도/52주신고저/환율/미국선물
+    // 9개 지표를 순차로 외부 조회해 8~12초를 넘기기 일쑤였다(js/market-temp.js 상단 주석 참고,
+    // 그 파일은 이미 20000으로 올려둔 상태였는데 이 홈 대시보드 쪽만 12000으로 남아있었다) -
+    // 홈에 "일시 지연"/"데이터 확인 중"이 가끔 뜨던 원인이라 여기도 같은 값으로 맞춘다.
+    fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 20000)
       .then(function (market) {
         writeHomeDataCache(marketTempCacheKey, market);
         if (homeMarketSession().keys[0] === 'NASDAQ_INDEX') renderMarketExchange(market);
@@ -547,7 +552,9 @@
     // 첫 페인트와 수급/패턴/랭킹 렌더를 막지 않고, 브라우저가 유휴 상태가 된 뒤
     // 업종 요약만 채운다. 이전 정상 응답은 위에서 즉시 재사용한다.
     var loadHomeSectors = function () {
-      fetchHomeJson(GAS_TICKER_URL + '?bubble=1', 12000)
+      // 2026-08-05: 12000 -> 20000(위 marketTemp 호출과 동일한 이유 - 유휴시간에 실행돼
+      // 첫 페인트를 막지는 않지만, 너무 짧으면 "주도 업종"/"주의 업종"도 같이 일시 지연으로 뜬다).
+      fetchHomeJson(GAS_TICKER_URL + '?bubble=1', 20000)
         .then(function (bubble) {
           writeHomeDataCache(marketSectorCacheKey, bubble);
           renderMarketSectors(bubble);

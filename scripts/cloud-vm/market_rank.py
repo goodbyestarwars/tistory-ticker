@@ -23,12 +23,66 @@ ka10032 때와 같은 전철을 밟지 않으려 mrkt_tp도 방어적으로 같�
 가장 먼저 의심할 파라미터."""
 
 import logging
+import threading
+import time
 
 import kiwoom_client
 
 logger = logging.getLogger('market_rank')
 
 _META_KEYS = {'return_code', 'return_msg'}
+
+# 2026-08-05: /market-rank는 그동안 요청 안에서(main.py의 30초 TTL 캐시가 만료된 순간)
+# 이 모듈을 직접 호출해 키움 REST를 실시간으로 때렸다 - 그 순간 키움이 느리거나 일시
+# 오류를 내면 방문자 브라우저의 8초 fetch 타임아웃에 걸려 "데이터를 불러오지 못했습니다"로
+# 보였다(간헐적 사이드바 랭킹 에러 원인). 이 저장소의 다른 실시간 데이터(해외선물/BTC/
+# 국채금리/옵션수급/투자자동향, option_flow.py 등)는 전부 FastAPI 시작 시 백그라운드
+# 스레드로 상시 수집해 DB/메모리에 미리 채워두고, 요청 핸들러는 그걸 읽기만 하는 패턴이라
+# 이 모듈만 예외였다 - 동일 패턴으로 맞춘다. main.py는 이제 이 모듈의 get_cached()를 먼저
+# 읽고, 백그라운드가 아직 한 번도 못 채운 극초반(서버 기동 직후)에만 기존 온디맨드 경로로
+# 폴백한다(fetch_sidebar_rank는 그대로 남겨둬 그 폴백에서 계속 쓰인다).
+_POLL_INTERVAL_SEC = 30
+_cache_lock = threading.Lock()
+_cache = {'t': 0.0, 'data': None}  # data: fetch_sidebar_rank()의 limit=_POLL_LIMIT 응답 전체
+
+
+def get_cached(limit):
+    """백그라운드 폴러가 채워둔 최신 랭킹을 limit만큼 잘라 반환. 아직 한 번도 못 채웠으면 None
+    (호출부가 기존 온디맨드 경로로 폴백해야 함을 뜻함)."""
+    with _cache_lock:
+        data = _cache['data']
+    if not data:
+        return None
+    return {key: rows[:limit] for key, rows in data.items()}
+
+
+def _refresh(appkey, secretkey, limit):
+    token = kiwoom_client.get_token(appkey, secretkey)
+    data = fetch_sidebar_rank(token, limit=limit)
+    with _cache_lock:
+        _cache['t'] = time.time()
+        _cache['data'] = data
+    logger.info('market rank refreshed: volume=%d rising=%d falling=%d',
+                len(data['tradeVolume']), len(data['upperLimit']), len(data['lowerLimit']))
+
+
+def _poll_loop(appkey, secretkey, limit):
+    while True:
+        try:
+            _refresh(appkey, secretkey, limit)
+        except Exception:
+            logger.exception('market rank refresh failed')
+        time.sleep(_POLL_INTERVAL_SEC)
+
+
+def start_background(appkey, secretkey, limit=20):
+    """limit(기본 20 = "더보기" 모달 상한)까지 미리 받아둬서, 사이드바 미리보기(5)든 모달(20)이든
+    get_cached()로 잘라 쓰면 된다(모달을 열 때만 필요한 20을 30초마다 매번 미리 받는 낭비가
+    있지만, 온디맨드 키움 호출을 완전히 없애는 이득이 더 크다고 판단 - option_flow.py와 동일한
+    "필요 이상을 미리 계산해두고 읽기만 한다" 절충)."""
+    t = threading.Thread(target=_poll_loop, args=(appkey, secretkey, limit), name='market-rank-poll', daemon=True)
+    t.start()
+    return t
 
 
 def _clean_code(stk_cd):

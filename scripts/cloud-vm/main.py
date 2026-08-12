@@ -110,6 +110,15 @@ def _start_futures_collectors():
     else:
         logging.getLogger('main').warning('KIS_APPKEY/APPSECRET 미설정 - 옵션 수급 수집 건너뜀')
 
+    # 2026-08-05: 사이드바 실시간 랭킹도 다른 실시간 수집기와 동일하게 백그라운드 폴링으로
+    # 전환 - /market-rank 요청 경로에서 키움을 직접 호출하지 않게 한다(아래 market_rank_endpoint
+    # 주석 참고). KIWOOM_APPKEY/SECRETKEY는 이 서버의 필수 환경변수(모듈 상단 독스트링)라
+    # 보통 항상 있지만, 다른 수집기들과 동일한 방어 수준으로 미설정 시에는 건너뛴다.
+    if kiwoom_appkey and kiwoom_secretkey:
+        market_rank.start_background(kiwoom_appkey, kiwoom_secretkey)
+    else:
+        logging.getLogger('main').warning('KIWOOM_APPKEY/KIWOOM_SECRETKEY 미설정 - 실시간 랭킹 백그라운드 수집 건너뜀')
+
 # 2026-07-13: GAS->VM 구간이 간헐적으로 통째로 막히는 원인 불명 현상 때문에, /investor-flow는
 # GAS를 거치지 않고 방문자 브라우저(js/foreign-flow.js)가 이 VM을 직접 호출하도록 우회.
 # 브라우저 직접 호출이라 X-API-Key를 넘길 수 없어 이 라우트만 인증 없이 열되(공개 시세
@@ -158,12 +167,13 @@ _foreign_flow_cache_mem = OrderedDict()
 # fundamentals_cache.json 파싱 결과(파일 mtime/크기가 바뀔 때만 재파싱) - /fundamentals/{code}용.
 _fundamentals_cache_mem = {}
 
-# 사이드바 랭킹(거래대금/상한가/하한가) - 작업지시서 요구사항(30초~1분 갱신)에 맞춘 짧은
-# TTL 캐시. 방문자가 여러 명이어도 30초에 한 번만 키움을 실제로 호출하면 되므로 단일
-# 전역값으로 충분(위 _ohlc_cache 같은 종목별 캐시와 달리 키가 하나뿐).
+# 사이드바 랭킹(거래대금/상한가/하한가). 2026-08-05부터 정상 상태에서는 market_rank.py의
+# 백그라운드 폴러(market_rank.get_cached())가 요청을 전부 처리하고, 이 캐시는 서버 기동
+# 직후(백그라운드가 아직 한 번도 못 채운 순간)에만 쓰는 온디맨드 폴백이다 - 그 좁은 창에서도
+# 방문자가 몰리면 키움을 매번 호출하지 않도록 짧은 TTL을 그대로 유지한다.
 _MARKET_RANK_TTL = 30
 _MARKET_RANK_MAX_LIMIT = 20  # 사이드바 미리보기(5)보다 큰 값은 "더보기" 모달 전용
-_market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(5는 30초마다 폴링, 20은 모달 열 때만)
+_market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(기동 직후 폴백 전용)
 _MARKET_BOARD_TTL = 30
 # WebSocket quote ticks use this opt-in path to refresh rankings quickly while
 # keeping ordinary home summary requests on the 30-second shared cache.
@@ -1416,13 +1426,23 @@ def kofia_market_endpoint(days: int = Query(30, ge=7, le=90)):
 def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT)):
     """사이드바 실시간 랭킹(거래대금 TOP/상한가/하한가) - 9bolt 우측 사이드바 리디자인
     (작업지시서 2026-07-20). 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만
-    제한) - /futures, /option-flow와 동일한 패턴. 30초 서버 캐시로 실제 키움 호출 빈도를
-    낮춘다(market_rank.py 참고). limit: 기본 5(사이드바 미리보기), "더보기" 모달은
-    limit=20으로 같은 엔드포인트를 재사용(js/sidebar-rank.js)."""
+    제한) - /futures, /option-flow와 동일한 패턴. limit: 기본 5(사이드바 미리보기), "더보기"
+    모달은 limit=20으로 같은 엔드포인트를 재사용(js/sidebar-rank.js).
+
+    2026-08-05: market_rank.start_background()가 30초마다 미리 채워둔 캐시(get_cached())를
+    우선 읽는다 - 예전엔 이 요청 핸들러 안에서(캐시 만료 순간마다) 키움을 직접 호출했는데,
+    그 순간 키움이 느리면 방문자의 8초 fetch 타임아웃에 걸려 "데이터를 불러오지 못했습니다"가
+    간헐적으로 떴다(원인 조사·수정 이력은 market_rank.py 상단 주석 참고). 백그라운드가 아직
+    한 번도 못 채운 서버 기동 직후에만 기존 온디맨드 경로(_market_rank_cache 30초 TTL +
+    키움 직접 호출)로 폴백해 빈 위젯이 뜨지 않게 한다."""
+    cached = market_rank.get_cached(limit)
+    if cached is not None:
+        return envelope(cached)
+
     now = time.time()
-    cached = _market_rank_cache.get(limit)
-    if cached is not None and now - cached['t'] < _MARKET_RANK_TTL:
-        return envelope(cached['data'])
+    fallback = _market_rank_cache.get(limit)
+    if fallback is not None and now - fallback['t'] < _MARKET_RANK_TTL:
+        return envelope(fallback['data'])
     try:
         token = get_kiwoom_token()
         data = market_rank.fetch_sidebar_rank(token, limit=limit)
