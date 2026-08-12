@@ -23,8 +23,8 @@
   var DISC_REFRESH_MS = 30 * 1000; // 30초
   var stockNewsScriptSrc = document.currentScript && document.currentScript.src;
   var FOREIGN_FLOW_JS_URL = stockNewsScriptSrc
-    ? new URL('foreign-flow.js', stockNewsScriptSrc).href
-    : 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js';
+    ? new URL('foreign-flow.js?v=20260813-lwc5', stockNewsScriptSrc).href
+    : 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260813-lwc5';
   var foreignFlowLoadPromise = null;
 
   var WATCHLIST_NAMES = [

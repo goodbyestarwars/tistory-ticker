@@ -43,7 +43,7 @@
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var MAX_RESULTS = 30;
   var FETCH_TIMEOUT_MS = 15000;
-  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
   var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20260811-auto-icon-fallback';
   var US_API_BASE = 'https://goodbyestar.cloud';
@@ -1263,7 +1263,7 @@
 
       var isUsChart = /^US:/i.test(String(state.selectedCode || ''));
       var priceMinMove = isUsChart ? 0.01 : 1;
-      var candleSeries = chart.addCandlestickSeries({
+      var candleSeries = chart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4',
         borderUpColor: '#d24f45', borderDownColor: '#1261c4',
         wickUpColor: '#d24f45', wickDownColor: '#1261c4',
@@ -1288,7 +1288,7 @@
       if (state.movingAverageEnabled) {
         priceStudies.forEach(function (study) {
           var points = movingAveragePoints(bars, 'close', study.period);
-          var series = chart.addLineSeries({
+          var series = chart.addSeries(LWC.LineSeries, {
             color: study.color,
             lineWidth: study.period === 224 ? 3 : 1,
             priceScaleId: 'right',
@@ -1311,7 +1311,7 @@
       // 분봉 탭에서는 구름대 투영을 건너뛴다(체크돼 있어도 "데이터 부족"으로만 표시됨).
       var cloudPoints = (state.ichimokuEnabled && timeframe !== 'minute') ? ichimokuCloudPoints(bars, timeframe) : [];
       if (state.ichimokuEnabled) {
-        var spanASeries = chart.addLineSeries({
+        var spanASeries = chart.addSeries(LWC.LineSeries, {
           color: 'rgba(210,79,69,0.62)',
           lineWidth: 1,
           priceScaleId: 'right',
@@ -1319,7 +1319,7 @@
           priceLineVisible: false,
           crosshairMarkerVisible: false
         });
-        var spanBSeries = chart.addLineSeries({
+        var spanBSeries = chart.addSeries(LWC.LineSeries, {
           color: 'rgba(18,97,196,0.62)',
           lineWidth: 1,
           priceScaleId: 'right',
@@ -1347,7 +1347,7 @@
       // 배지·점선을 오른쪽 가격축(캔들과 같은 여백)에 그대로 그려서 가격 마지막 값 배지·
       // 눈금 라벨과 겹친다. 같은 값은 이미 아래 .ss-volume-study-label(커스텀 범례)이
       // 텍스트로 보여주고 있어 중복이라, 다른 보조지표 시리즈(MA/일목균형표)와 동일하게 끈다.
-      var volumeSeries = chart.addHistogramSeries({
+      var volumeSeries = chart.addSeries(LWC.HistogramSeries, {
         priceFormat: { type: 'volume' },
         priceScaleId: 'volume',
         lastValueVisible: false,
@@ -1367,7 +1367,7 @@
       }));
 
       var volumeMaPoints = movingAveragePoints(bars, 'volume', 20);
-      var volumeMaSeries = chart.addLineSeries({
+      var volumeMaSeries = chart.addSeries(LWC.LineSeries, {
         color: '#3b82f6',
         lineWidth: 2,
         priceScaleId: 'volume',

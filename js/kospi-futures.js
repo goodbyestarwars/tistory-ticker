@@ -49,7 +49,7 @@
   // 최소 이 간격으로만 재요청한다(재시도 버튼처럼 사용자가 직접 요청하면 즉시 재요청).
   var MINUTE_MIN_REFETCH_MS = 60000;
   var REFRESH_INTERVAL_MS = 30000;
-  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CHART_HEIGHT = 330;
   // Lightweight Charts는 UNIX 타임스탬프의 시:분을 표시할 때 항상 UTC 기준으로 읽는다(라이브러리
   // 문서화된 동작 - js/stock-search.js가 2026-08-05에 분봉 X축에서 먼저 확인·수정한 것과 동일
@@ -558,7 +558,7 @@
   // 그러면 캔들이 지나치게 촘촘해져서 Lightweight Charts가 X축에 날짜 경계("30일", "31일",
   // "8월")만 듬성듬성 찍고 시:분 눈금은 사실상 하나도 안 그린다("X축 시간이 분단위로
   // 안나온다" 리포트 - 앞서 KST_OFFSET_SEC로 고친 시간대 버그와는 별개의 원인이었음, 실측은
-  // scratchpad에서 실제 lightweight-charts 4.2.0 라이브러리로 확인). 분봉은 저장된 구간이
+  // scratchpad에서 실제 lightweight-charts 5.2.0 라이브러리로 확인). 분봉은 저장된 구간이
   // 없을 때 fitContent 대신 "가장 최근 캔들이 속한 하루"로만 기본 구간을 좁힌다 - 나머지
   // 이전 거래일 데이터는 그대로 남아있어 확대 축소/좌로 이동하면 보인다.
   function applySavedRange(chart, chartKey, interval, points) {
@@ -651,7 +651,7 @@
         localization: { priceFormatter: chartPriceFormatter }
       }, chartThemeOptions()));
 
-      var series = chart.addCandlestickSeries({
+      var series = chart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4',
         borderUpColor: '#d24f45', borderDownColor: '#1261c4',
         wickUpColor: '#d24f45', wickDownColor: '#1261c4'
@@ -841,7 +841,7 @@
     }
     if (document.querySelector('script[data-domestic-market-indicators]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260812-domestic-market';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260813-lwc5';
     script.setAttribute('data-domestic-market-indicators', '1');
     script.onload = function () {
       if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();

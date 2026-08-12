@@ -95,7 +95,7 @@
   // Bump the key so browsers do not reuse the old futures-only payload.
   var FUTURES_CACHE_KEY = 'quick_indices_futures_v2';
   var FUTURES_CACHE_MAX_AGE_MS = 60 * 1000;
-  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 30;
   // 2026-07-17(10차): 카드가 왼쪽에 밀집되면서 선택 가능한 지수 전부(11종)가 한 화면에
   // 들어가게 됐다 - 좌우 화살표 페이징 제거, 항상 전체를 그린다(그리드는 CSS
@@ -766,7 +766,7 @@
         crosshair: { vertLine: { visible: false, labelVisible: false }, horzLine: { visible: false, labelVisible: false } }
       }, chartThemeOptions()));
 
-      var series = chart.addAreaSeries({
+      var series = chart.addSeries(LWC.AreaSeries, {
         lineColor: color,
         topColor: hexToRgba(color, 0.2),
         bottomColor: hexToRgba(color, 0.02),
