@@ -4,7 +4,7 @@
   var API_URL = 'https://goodbyestar.cloud/domestic-market-indicators';
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var KST_OFFSET_SEC = 9 * 60 * 60;
-  var CHART_HEIGHT = 600;
+  var CHART_HEIGHT = 330;
   var chartInstances = {};
   var lwcPromise = null;
 
