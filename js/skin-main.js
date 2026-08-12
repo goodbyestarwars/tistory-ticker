@@ -187,6 +187,10 @@
         + '<div><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
         + '<div><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
         + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
+        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="코스피 코스닥 외국인 순매수 추이">'
+        + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><span>외국인 순매수</span></div>'
+        + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
+        + '</div>'
         + '</dl>'
         + '</article>'
         + '<article class="card home-economic-news" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
@@ -228,9 +232,11 @@
       var title = dashboardSection.querySelector('[data-home-summary-field="title"]');
       var meta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
       var labels = dashboardSection.querySelectorAll('.hmb-list dt');
+      var investorTrend = dashboardSection.querySelector('[data-home-investor-trend]');
       if (title) title.textContent = isUs ? '미국 시장 요약' : '국내 시장 요약';
       if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
       if (labels[0]) labels[0].textContent = isUs ? '상승 종목 비율' : '증시온도';
+      if (investorTrend) investorTrend.hidden = isUs;
     }
 
     function sectorSummary(data) {
@@ -516,6 +522,7 @@
     var summarySessionKey = '';
     var loadHomeUsSummary;
     var loadHomeDomesticSummary;
+    var loadHomeInvestorTrend;
 
     function loadSummaryForSession(session) {
       var isUs = session && session.keys && session.keys[0] === 'NASDAQ_INDEX';
@@ -583,6 +590,72 @@
       if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
       if (window.requestIdleCallback) window.requestIdleCallback(loadHomeSectors, { timeout: 2500 });
       else setTimeout(loadHomeSectors, 0);
+      loadHomeInvestorTrend();
+    };
+
+    function investorAmountText(value) {
+      var n = Number(value);
+      if (!isFinite(n)) return '-';
+      if (n === 0) return '0억';
+      var sign = n < 0 ? '-' : '+';
+      var abs = Math.abs(n);
+      if (abs >= 10000) return sign + (abs / 10000).toFixed(1).replace(/\.0$/, '') + '조';
+      return sign + Math.round(abs).toLocaleString('ko-KR') + '억';
+    }
+
+    function investorSparkline(values, positive) {
+      var nums = (values || []).map(Number).filter(function (v) { return isFinite(v); });
+      if (nums.length < 2) return '<span class="hmb-investor-spark-empty">-</span>';
+      var min = Math.min.apply(Math, nums.concat([0]));
+      var max = Math.max.apply(Math, nums.concat([0]));
+      var range = max - min || 1;
+      var points = nums.map(function (value, index) {
+        var x = 2 + index * 96 / Math.max(1, nums.length - 1);
+        var y = 26 - (value - min) / range * 22;
+        return x.toFixed(1) + ',' + y.toFixed(1);
+      }).join(' ');
+      var zeroY = (26 - (0 - min) / range * 22).toFixed(1);
+      var color = positive ? '#d24f45' : '#1261c4';
+      return '<svg class="hmb-investor-spark" viewBox="0 0 100 28" role="img" aria-label="외국인 순매수 추이">'
+        + '<line x1="2" y1="' + zeroY + '" x2="98" y2="' + zeroY + '" class="hmb-investor-zero"></line>'
+        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>'
+        + '</svg>';
+    }
+
+    function renderHomeInvestorTrend(results) {
+      var host = dashboardSection.querySelector('[data-home-investor-trend]');
+      if (!host) return;
+      var body = host.querySelector('.hmb-investor-trend-body');
+      if (!body) return;
+      var markets = [
+        { key: 'kospi', label: '코스피' },
+        { key: 'kosdaq', label: '코스닥' }
+      ];
+      var html = markets.map(function (market, index) {
+        var result = results[index] && results[index].data ? results[index].data : (results[index] || {});
+        var rows = Array.isArray(result.rows) ? result.rows : [];
+        var values = rows.map(function (row) { return Number(row.frgn); }).filter(function (value) { return isFinite(value); });
+        var latest = values.length ? values[values.length - 1] : null;
+        var tone = latest > 0 ? 'home-positive' : latest < 0 ? 'home-negative' : 'home-neutral';
+        return '<div class="hmb-investor-row">'
+          + '<div class="hmb-investor-row-top"><strong>' + market.label + '</strong><b class="' + tone + '">' + investorAmountText(latest) + '</b></div>'
+          + investorSparkline(values.slice(-10), latest != null && latest >= 0)
+          + '</div>';
+      }).join('');
+      body.innerHTML = html || '<span class="hmb-investor-loading">데이터 확인 중</span>';
+    }
+
+    loadHomeInvestorTrend = function () {
+      var host = dashboardSection.querySelector('[data-home-investor-trend]');
+      if (!host || host.hidden) return;
+      var body = host.querySelector('.hmb-investor-trend-body');
+      if (body && !body.querySelector('.hmb-investor-row')) body.innerHTML = '<span class="hmb-investor-loading">데이터 확인 중</span>';
+      Promise.all([
+        fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=day&market=kospi', 12000),
+        fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=day&market=kosdaq', 12000)
+      ]).then(renderHomeInvestorTrend).catch(function () {
+        if (body) body.innerHTML = '<span class="hmb-investor-loading">데이터 확인 중</span>';
+      });
     };
 
     loadSummaryForSession(homeMarketSession());
@@ -591,6 +664,7 @@
       var session = homeMarketSession();
       var nextKey = (session.keys || []).join('|');
       if (nextKey !== summarySessionKey) loadSummaryForSession(session);
+      else if (nextKey !== 'NASDAQ_INDEX|SP500_INDEX') loadHomeInvestorTrend();
     }, 60 * 1000);
 
     function calendarMeta(rawTitle) {
