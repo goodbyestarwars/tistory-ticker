@@ -131,10 +131,21 @@
     return params.get('market') === 'us' || /^US:/i.test(params.get('code') || '');
   }
 
+  // Keep the domestic and US views mutually exclusive. Both modules share this
+  // page, so leaving the previous module visible produces stale or empty charts.
+  function setMarketMode(container, isUs) {
+    var usModule = container.querySelector('#ssUsModule');
+    var results = container.querySelector('#ssResults');
+    var detail = container.querySelector('#ssDetail');
+    if (usModule) usModule.hidden = !isUs;
+    if (results) results.hidden = !!isUs;
+    if (detail && isUs) detail.hidden = true;
+  }
+
   function loadUsStocksModule(container) {
     var target = container.querySelector('#ssUsModule');
     if (!target) return;
-    target.hidden = false;
+    setMarketMode(container, true);
     if (global.UsStocks && typeof global.UsStocks.init === 'function') {
       global.UsStocks.init(target);
       return;
@@ -152,7 +163,7 @@
       }
     };
     script.onerror = function () {
-      container.innerHTML = '<div class="ss-hint ss-error">미국주식 시세 모듈을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+      target.innerHTML = '<div class="ss-hint ss-error">미국주식 시세 모듈을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
     };
     document.body.appendChild(script);
   }
@@ -164,9 +175,11 @@
     var params = new URLSearchParams(location.search);
     var code = (params.get('code') || '').trim();
     if (params.get('market') === 'us' || /^US:/i.test(code)) {
+      setMarketMode(container, true);
       loadUsStocksModule(container);
       return;
     }
+    setMarketMode(container, false);
     if (!code) return;
     var name = (params.get('name') || '').trim();
     var input = container.querySelector('#ssInput');
@@ -177,6 +190,7 @@
   function openUsSymbol(container, query) {
     var symbol = String(query || '').replace(/^US:/i, '').trim().toUpperCase();
     if (!/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(symbol)) return false;
+    setMarketMode(container, true);
     var target = container.querySelector('#ssUsModule');
     if (target) target.setAttribute('data-us-symbol', symbol);
     try {
@@ -550,6 +564,16 @@
   // ---- 선택 종목: 요약 + 호가창(재사용) + 차트 ----
 
   function selectStock(container, item) {
+    setMarketMode(container, false);
+    if (isUsRoute()) {
+      try {
+        var url = new URL(location.href);
+        url.searchParams.delete('market');
+        url.searchParams.set('code', item.code);
+        url.searchParams.set('name', item.name);
+        history.replaceState(null, '', url.pathname + url.search + url.hash);
+      } catch (err) { /* Keep the current page usable when history is unavailable. */ }
+    }
     state.selectedCode = item.code;
     state.selectedName = item.name;
 
