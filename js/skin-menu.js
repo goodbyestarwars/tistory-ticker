@@ -31,7 +31,8 @@
       ]
     },
     { href: '/page/stock-calendar', label: '캘린더' },
-    { href: '/guestbook', label: '커뮤니티' }
+    { href: '/guestbook', label: '커뮤니티' },
+    { href: '/page/watchlist', label: 'MY' },
   ];
 
   // 기존 직접 링크는 유지한다. 상단 메뉴에서는 숨기지만 북마크·검색 결과가
@@ -126,6 +127,7 @@
   function mobileBottomActiveKey() {
     var path = currentPath();
     if (path === '/') return 'home';
+    if (path === '/page/watchlist') return 'my';
     if (['/page/market-temp', '/pages/overnight-market', '/pages/kospi-futures', '/category/마켓 브리핑'].indexOf(path) !== -1) return 'market';
     if (['/page/foreign-flow', '/page/stock-search'].indexOf(path) !== -1) return 'stock';
     if (['/page/pattern-scan', '/page/strategy-search'].indexOf(path) !== -1) return 'search';
@@ -140,7 +142,7 @@
         + '<a class="mobile-app-bottom-item" data-bottom-key="home" href="/">' + mobileBottomIcon('home') + '<span>홈</span></a>'
         + '<a class="mobile-app-bottom-item" data-bottom-key="market" href="/page/market-temp">' + mobileBottomIcon('market') + '<span>시장</span></a>'
         + '<a class="mobile-app-bottom-item" data-bottom-key="stock" href="/page/stock-search">' + mobileBottomIcon('stock') + '<span>종목</span></a>'
-        + '<a class="mobile-app-bottom-item" data-bottom-key="search" href="/page/strategy-search">' + mobileBottomIcon('search') + '<span>검색</span></a>'
+        + '<a class="mobile-app-bottom-item" data-bottom-key="my" href="/page/watchlist">' + mobileBottomIcon('more') + '<span>MY</span></a>'
         + '<button type="button" class="mobile-app-bottom-item" data-bottom-action="more" aria-expanded="false">' + mobileBottomIcon('more') + '<span>더보기</span></button>'
         + '</nav>'
         + '<div class="mobile-app-sheet" id="mobileAppSheet" hidden>'
@@ -151,6 +153,7 @@
         + '<a href="/page/stock-calendar">캘린더<span>실적·경제 일정</span></a>'
         + '<a href="/pages/overnight-market">글로벌 시장지표<span>미국·해외 시장</span></a>'
         + '<a href="/pages/kospi-futures">국내시장지표<span>코스피·코스닥·선물</span></a>'
+        + '<a href="/page/strategy-search">검색<span>차트·전략 검색</span></a>'
         + '<a href="/guestbook">커뮤니티<span>의견과 문의</span></a>'
         + '</div></section></div>');
       nav = document.getElementById('mobileAppBottomNav');

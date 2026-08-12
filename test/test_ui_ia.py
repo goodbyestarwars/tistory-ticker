@@ -10,7 +10,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def read(self, relative):
         return (ROOT / relative).read_text(encoding="utf-8")
 
-    def test_primary_navigation_has_six_items(self):
+    def test_primary_navigation_has_my_item(self):
         source = self.read("js/skin-menu.js")
         primary_labels = re.findall(
             r"^\s{4}(?:\{ href: '[^']+', label: '([^']+)' \}|\{\s*$)",
@@ -24,9 +24,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("{ href: '/page/stock-search', label: '실시간 시세 (US. Include)' }", source)
         self.assertEqual(source.count("      label: '종목검색',"), 1)
         self.assertNotIn("label: '종목뉴스'", source)
-        self.assertNotIn("{ href: '/page/watchlist', label: 'MY' }", source)
+        self.assertIn("{ href: '/page/watchlist', label: 'MY' }", source)
         self.assertNotIn("label: '미국주식'", source)
-        self.assertEqual(len(primary_labels), 6)
+        self.assertEqual(len(primary_labels), 7)
 
     def test_stock_menu_opens_analysis_and_search_submenu(self):
         source = self.read("js/skin-menu.js")
@@ -497,6 +497,25 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("padding: 4px 2px 4px 6px", style)
         self.assertIn('grid-template-areas: "handle name quote remove"', style)
         self.assertIn("@media (max-width: 640px)", style)
+
+    def test_my_page_reuses_watchlist_and_stores_only_holding_metadata(self):
+        menu = self.read("js/skin-menu.js")
+        main = self.read("js/skin-main.js")
+        watchlist = self.read("js/watchlist.js")
+        bootstrap = self.read("js/stock-search-panel.js")
+        my = self.read("js/my-dashboard.js")
+        my_style = self.read("css/my-dashboard.css")
+        for token in ("/page/watchlist", "label: 'MY'", "data-bottom-key=\"my\""):
+            self.assertIn(token, menu)
+        for token in ("loadMyDashboard", "my-dashboard.js", "my-dashboard.css"):
+            self.assertIn(token, main)
+        for token in ("updateHolding", "holding", "quantity", "averagePrice"):
+            self.assertIn(token, watchlist)
+        self.assertIn("/page/watchlist", bootstrap)
+        for token in ("flowAiSummary", "pbar-tratio", "Groq", "물타기 계산기", "차트·매물대", "DB에는 종목·수량·평단만 저장"):
+            self.assertIn(token, my)
+        for token in ("#my-dashboard", ".my-analysis-grid"):
+            self.assertIn(token, my_style)
 
     def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
         source = self.read("js/watchlist.js")

@@ -45,6 +45,26 @@
     document.body.appendChild(script);
   })();
 
+  /* Dedicated MY screen: reuse the existing /page/watchlist Tistory page and
+     append portfolio/holding analysis without changing other pages. */
+  (function loadMyDashboard() {
+    if (!/^\/(?:page|pages)\/watchlist\/?$/.test(location.pathname)) return;
+    var cssHref = 'https://goodbyestarwars.github.io/tistory-ticker/css/my-dashboard.css?v=20260813-my-dashboard';
+    if (!document.querySelector('link[data-my-dashboard-css]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = cssHref;
+      link.setAttribute('data-my-dashboard-css', '1');
+      document.head.appendChild(link);
+    }
+    if (document.querySelector('script[data-my-dashboard]')) return;
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20260813-my-dashboard';
+    script.defer = true;
+    script.setAttribute('data-my-dashboard', '1');
+    document.body.appendChild(script);
+  })();
+
   /* 홈은 기존 위젯/API를 시장 상황판 구조로 재배치한다. 백엔드 계산과 URL은 그대로 두고,
      여기서는 카드 배치·요약 집계·수급 부호 기반 규칙문만 담당한다. */
   (function buildHomeDashboard() {

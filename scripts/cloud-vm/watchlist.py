@@ -2,6 +2,7 @@
 """Google account-owned watchlist configuration validation."""
 
 import re
+import math
 
 
 DOMESTIC_CODE_RE = re.compile(r'^[0-9A-Za-z]{6}$')
@@ -10,6 +11,7 @@ DEFAULT_GROUP_ID = 'default'
 DEFAULT_GROUP_NAME = '기본'
 MAX_ITEMS = 50
 MAX_GROUPS = 50
+MAX_HOLDING_VALUE = 10 ** 15
 
 
 class WatchlistConfigError(ValueError):
@@ -76,6 +78,30 @@ def normalize_config(value):
         if group_id not in seen_group_ids:
             raise WatchlistConfigError('unknown group id: ' + group_id)
         seen_codes.add(code)
-        items.append({'code': code, 'name': name, 'groupId': group_id})
+        holding = raw_item.get('holding') or {}
+        if not isinstance(holding, dict):
+            raise WatchlistConfigError('holding must be an object')
+        quantity = holding.get('quantity', 0)
+        average_price = holding.get('averagePrice', 0)
+        try:
+            quantity = float(quantity or 0)
+            average_price = float(average_price or 0)
+        except (TypeError, ValueError) as exc:
+            raise WatchlistConfigError('holding values must be numbers') from exc
+        if not (math.isfinite(quantity) and math.isfinite(average_price)):
+            raise WatchlistConfigError('holding values must be finite')
+        if quantity < 0 or average_price < 0:
+            raise WatchlistConfigError('holding values must be non-negative')
+        if quantity > MAX_HOLDING_VALUE or average_price > MAX_HOLDING_VALUE:
+            raise WatchlistConfigError('holding values are too large')
+        items.append({
+            'code': code,
+            'name': name,
+            'groupId': group_id,
+            'holding': {
+                'quantity': quantity,
+                'averagePrice': average_price,
+            },
+        })
 
     return {'items': items, 'groups': groups}

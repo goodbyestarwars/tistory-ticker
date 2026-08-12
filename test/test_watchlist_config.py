@@ -35,6 +35,20 @@ class WatchlistConfigTests(unittest.TestCase):
         })
         self.assertEqual(result['items'][0]['code'], 'US:TSLA')
 
+    def test_accepts_small_holding_metadata_without_market_data(self):
+        result = watchlist.normalize_config({
+            'items': [{'code': '005930', 'name': '?쇱꽦?꾩옄', 'holding': {'quantity': 12, 'averagePrice': 70000}}],
+            'groups': [],
+        })
+        self.assertEqual(result['items'][0]['holding'], {'quantity': 12.0, 'averagePrice': 70000.0})
+
+    def test_rejects_invalid_holding_metadata(self):
+        with self.assertRaises(watchlist.WatchlistConfigError):
+            watchlist.normalize_config({
+                'items': [{'code': '005930', 'name': '?쇱꽦?꾩옄', 'holding': {'quantity': -1, 'averagePrice': 70000}}],
+                'groups': [],
+            })
+
     def test_rejects_malformed_us_ticker_codes(self):
         with self.assertRaises(watchlist.WatchlistConfigError):
             watchlist.normalize_config({
