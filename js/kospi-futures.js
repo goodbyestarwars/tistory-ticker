@@ -50,7 +50,7 @@
   var MINUTE_MIN_REFETCH_MS = 60000;
   var REFRESH_INTERVAL_MS = 30000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
-  var CHART_HEIGHT = 420;
+  var CHART_HEIGHT = 330;
   // Lightweight Charts는 UNIX 타임스탬프의 시:분을 표시할 때 항상 UTC 기준으로 읽는다(라이브러리
   // 문서화된 동작 - js/stock-search.js가 2026-08-05에 분봉 X축에서 먼저 확인·수정한 것과 동일
   // 원인). 서버(domestic_futures.py/night_futures_ws.py)의 분봉 ts는 정확히 변환된 진짜 UTC초라서

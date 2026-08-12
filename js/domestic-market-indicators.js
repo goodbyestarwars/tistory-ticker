@@ -148,7 +148,6 @@
       var active = panel.getAttribute('data-dmi-interval') || 'day';
       var chart = panel.querySelector('.dmi-chart');
       var source = item.intervals && item.intervals[active];
-      panel.querySelector('.dmi-provider').textContent = source && source.source ? '출처: ' + source.source : '데이터 준비 중';
       makeChart(market, chart, source && source.rows, active);
       panel.querySelectorAll('.dmi-tab').forEach(function (button) {
         button.classList.toggle('is-active', button.getAttribute('data-interval') === active);
@@ -158,7 +157,7 @@
 
   function chartPanel(market, item) {
     return '<section class="dmi-panel" data-dmi-panel="' + market + '" data-dmi-interval="day">'
-      + '<div class="dmi-panel-title"><span>' + escapeHtml(item.name || market) + '</span><span class="dmi-provider">데이터 준비 중</span></div>'
+      + '<div class="dmi-panel-title"><span>' + escapeHtml(item.name || market) + '</span></div>'
       + '<div class="dmi-tabs" role="tablist">'
       + ['minute', 'day', 'week'].map(function (interval) {
         var label = { minute: '분봉', day: '일봉', week: '주봉' }[interval];
@@ -203,7 +202,7 @@
     installStyle();
     root.innerHTML = '<div class="dmi-shell">'
       + '<div class="dmi-heading"><h2>국내시장지표</h2></div>'
-      + '<div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45)</h3><span class="dmi-muted">분봉 · 일봉 · 주봉</span></div>'
+      + '<div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45)</h3></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3><span class="dmi-muted">개인 · 외국인 · 기관</span></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
