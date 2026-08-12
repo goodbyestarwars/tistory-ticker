@@ -385,14 +385,16 @@ def fetch_index_time_chart(token, appkey, appsecret, iscd, interval='60'):
 
 
 def fetch_market_funds(token, appkey, appsecret, date=''):
-    """KIS market funds aggregate (FHKST649100C0, values in 100m KRW)."""
+    """KIS market funds aggregate (FHKST649100C0, values in 100m KRW).
+
+    This endpoint uses the uppercase FID query-key convention, unlike several
+    other KIS quote endpoints.
+    """
     data = _get_domestic_quote(
         token, appkey, appsecret,
         '/uapi/domestic-stock/v1/quotations/mktfunds',
         'FHKST649100C0',
-        # mktfunds is an exception among these KIS quote APIs: the official
-        # sample uses the lowercase query key exactly as documented.
-        {'fid_input_date_1': date},
+        {'FID_INPUT_DATE_1': date},
     )
     output = data.get('output') or []
     return output if isinstance(output, list) else [output]
