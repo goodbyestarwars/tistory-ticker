@@ -291,7 +291,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260813-dmi-controls';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260813-fund-average';
     document.head.appendChild(link);
   }
 
@@ -308,6 +308,17 @@
     if (amount >= 1000000000000) return (amount / 1000000000000).toFixed(1) + '조원';
     if (amount >= 100000000) return (amount / 100000000).toFixed(1) + '억원';
     return formatNumber(amount) + '원';
+  }
+
+  function fundAverage(funds, field, unit) {
+    var values = (funds.series || []).map(function (row) {
+      var source = field === 'credit' ? row.credit : row.market_funds;
+      if (field === 'credit' && source != null && typeof source !== 'object') return Number(source);
+      return source && Number(source[field === 'credit' ? 'loan_total' : 'investor_deposits']);
+    }).filter(function (value) { return isFinite(value); });
+    if (!values.length) return '-';
+    var average = values.reduce(function (sum, value) { return sum + value; }, 0) / values.length;
+    return formatFunds(average, unit) + ' (' + values.length + '개 평균)';
   }
 
   function signed(value) {
@@ -423,8 +434,8 @@
     var credit = funds.credit || {};
     var deposits = funds.market_funds || {};
     root.querySelector('.dmi-fund-grid').innerHTML = [
-      '<article class="dmi-fund-card"><span class="dmi-fund-label">신용잔고</span><strong class="dmi-fund-value">' + formatFunds(credit.loan_total, funds.credit_unit) + '</strong><span class="dmi-fund-date">' + escapeHtml(credit.date || funds.latest_date || '-') + '</span></article>',
-      '<article class="dmi-fund-card"><span class="dmi-fund-label">고객예탁금</span><strong class="dmi-fund-value">' + formatFunds(deposits.investor_deposits, funds.market_funds_unit) + '</strong><span class="dmi-fund-date">' + escapeHtml(deposits.date || funds.latest_date || '-') + '</span></article>'
+      '<article class="dmi-fund-card"><span class="dmi-fund-label">신용잔고 (빚투)</span><span class="dmi-fund-desc">증권사에서 돈을 빌려 주식을 매수한 잔액입니다.</span><strong class="dmi-fund-value">' + formatFunds(credit.loan_total, funds.credit_unit) + '</strong><span class="dmi-fund-average">최근 평균 ' + fundAverage(funds, 'credit', funds.credit_unit) + '</span><span class="dmi-fund-date">' + escapeHtml(credit.date || funds.latest_date || '-') + '</span></article>',
+      '<article class="dmi-fund-card"><span class="dmi-fund-label">고객예탁금</span><span class="dmi-fund-desc">주식 매매를 위해 증권사에 맡겨둔 대기자금입니다.</span><strong class="dmi-fund-value">' + formatFunds(deposits.investor_deposits, funds.market_funds_unit) + '</strong><span class="dmi-fund-average">최근 평균 ' + fundAverage(funds, 'market_funds', funds.market_funds_unit) + '</span><span class="dmi-fund-date">' + escapeHtml(deposits.date || funds.latest_date || '-') + '</span></article>'
     ].join('');
   }
 
