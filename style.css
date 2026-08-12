@@ -4119,11 +4119,15 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
 }
 .nav-logo-emblem {
   display: flex; align-items: center; justify-content: center;
-  /* .nav-bolt 자체의 filter는 번개 애니메이션이 매 프레임 덮어쓰므로 바깥 wrapper에서
-     테마별 색을 적용한다. 라이트는 검정, 다크는 아래 html.dark 규칙에서 크림색으로 전환. */
-  filter: brightness(0);
 }
-html.dark .nav-logo-emblem { filter: brightness(0) invert(1); }
+.nav-logo-image {
+  display: block;
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 8px;
+}
 .nav-bolt {
   animation: bolt-strike 3.6s ease-in-out infinite;
 }
