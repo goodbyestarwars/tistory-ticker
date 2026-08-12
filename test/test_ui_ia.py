@@ -706,8 +706,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ss-ichimoku-cloud", style)
         self.assertIn(".ss-price-study-label", style)
         self.assertIn(".ss-chart { position: relative; height: 420px; }", style)
-        self.assertIn('class="ss-draw-toggle"', source)
-        self.assertIn('class="ss-draw-clear"', source)
         self.assertIn("function setupStockDrawing", source)
         self.assertIn("stockDrawingStorageKey", source)
         self.assertIn(".ss-drawing-layer.is-active", style)
@@ -716,7 +714,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/us-stocks.js")
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
-        self.assertIn("us-stocks.css?v=20260811-font-scale", source)
+        self.assertIn("us-stocks.css?v=20260813-chart-fit-draw", source)
         self.assertIn("us-stocks.js?v=20260813-news-24h", search)
         self.assertIn("font-family: inherit", style)
         for token in (
@@ -730,6 +728,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("최근 24시간", source)
         self.assertIn("function domesticNewsWithin24Hours(item)", search)
         self.assertIn("최근 24시간", search)
+        self.assertIn('class="ss-draw-toggle"', search)
+        self.assertIn('class="ss-draw-clear"', search)
+        self.assertIn("function setupStockDrawing", search)
+        self.assertIn(".us-stocks-market-grid > *", style)
+        self.assertIn(".us-native-chart-mount .ss-chart-tabs", style)
 
     def test_stock_analysis_chart_matches_price_studies_and_replaces_volume_profile_with_volume(self):
         source = self.read("js/foreign-flow.js")
