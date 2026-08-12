@@ -16,6 +16,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from html.parser import HTMLParser
+from threading import Lock
 
 BASE_URL = 'https://opendart.fss.or.kr/api/list.json'
 FINANCIALS_URL = 'https://opendart.fss.or.kr/api/fnlttSinglAcnt.json'
@@ -31,7 +32,87 @@ _cache = {}
 _financials_cache = {}
 _viewer_cache = {}
 _finnhub_cache = {}
+EARNINGS_STORE_FILE = os.environ.get(
+    'EARNINGS_CALENDAR_STORE_FILE',
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'earnings_calendar_store.json'),
+)
+_persistent_events = {}
+_persistent_events_lock = Lock()
 _logger = logging.getLogger('earnings_calendar')
+
+
+def _load_persistent_events():
+    try:
+        with open(EARNINGS_STORE_FILE, 'r', encoding='utf-8') as handle:
+            payload = json.load(handle)
+        if isinstance(payload, dict):
+            return {str(key): value for key, value in payload.items() if isinstance(value, dict)}
+        if isinstance(payload, list):
+            return {_event_key(event): event for event in payload if isinstance(event, dict)}
+    except (OSError, ValueError, TypeError):
+        pass
+    return {}
+
+
+def _write_persistent_events(events):
+    directory = os.path.dirname(EARNINGS_STORE_FILE) or '.'
+    temporary = EARNINGS_STORE_FILE + '.tmp'
+    try:
+        os.makedirs(directory, exist_ok=True)
+        with open(temporary, 'w', encoding='utf-8') as handle:
+            json.dump(events, handle, ensure_ascii=False, separators=(',', ':'))
+        os.replace(temporary, EARNINGS_STORE_FILE)
+    except OSError:
+        _logger.exception('earnings calendar persistent store write failed')
+        try:
+            if os.path.exists(temporary):
+                os.remove(temporary)
+        except OSError:
+            pass
+
+
+def _event_key(event):
+    source = str(event.get('source') or event.get('provider') or 'unknown').strip().lower()
+    receipt_no = str(event.get('receipt_no') or '').strip()
+    if source == 'dart' and receipt_no:
+        return 'dart:' + receipt_no
+    symbol = str(event.get('symbol') or event.get('ticker') or '').strip().upper()
+    if source == 'finnhub' and symbol:
+        # Finnhub can revise the date/result for the same month's report.
+        return 'finnhub:' + symbol + ':' + str(event.get('start') or '')[:7]
+    return '|'.join((source, str(event.get('start') or ''), str(event.get('title') or '').strip()))
+
+
+def _upsert_persistent_events(events):
+    changed = False
+    with _persistent_events_lock:
+        for event in events or []:
+            if not isinstance(event, dict):
+                continue
+            key = _event_key(event)
+            previous = _persistent_events.get(key)
+            if previous != event:
+                _persistent_events[key] = dict(event)
+                changed = True
+        if changed:
+            _write_persistent_events(_persistent_events)
+
+
+def _stored_events(predicate):
+    with _persistent_events_lock:
+        events = [dict(event) for event in _persistent_events.values() if predicate(event)]
+    return _merge_events(events)
+
+
+def _month_matches(event, year, month):
+    return str(event.get('start') or '')[:7] == '%04d-%02d' % (int(year), int(month))
+
+
+def _year_matches(event, year):
+    return str(event.get('start') or '')[:4] == '%04d' % int(year)
+
+
+_persistent_events.update(_load_persistent_events())
 
 
 def _fetch_page(api_key, start_date, end_date, page_no):
@@ -575,6 +656,7 @@ def fetch_us_month(year, month):
             'link': 'https://finnhub.io/docs/api/earnings-calendar',
             'source': 'finnhub',
             'market': 'us',
+            'symbol': symbol,
             'status': 'scheduled',
         }
         result = _reported_result(row)
@@ -631,7 +713,10 @@ def _merge_events(events):
 
 def merge_month(year, month):
     """국내 DART 발표일과 미국 Finnhub 예정일을 하나의 목록으로 합친다."""
-    return _merge_events(safe_fetch_month(year, month) + safe_fetch_us_month(year, month))
+    incoming = safe_fetch_month(year, month) + safe_fetch_us_month(year, month)
+    _upsert_persistent_events(incoming)
+    # 기존에 확인한 실적은 공급자 장애·VM 재시작에도 삭제하지 않고 계속 반환한다.
+    return _stored_events(lambda event: _month_matches(event, year, month))
 
 
 def merge_year(year):
@@ -645,4 +730,5 @@ def merge_year(year):
     with ThreadPoolExecutor(max_workers=6) as executor:
         for month_events in executor.map(fetch_month_events, range(1, 13)):
             events.extend(month_events)
-    return _merge_events(events)
+    _upsert_persistent_events(events)
+    return _stored_events(lambda event: _year_matches(event, year))

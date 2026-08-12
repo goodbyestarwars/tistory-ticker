@@ -27,6 +27,7 @@
   var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
   var CONTAINER_SELECTOR = '#stock-calendar';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var CALENDAR_STORAGE_KEY = 'tistory-ticker:calendar-events:v2';
 
   // DART 공시의 정식 회사명이 KRX_MAP(data/krx_map.js)의 약칭 키와 다른 경우의 별칭.
   // 예: DART corp_name "현대자동차" vs KRX_MAP 키 "현대차"(005380).
@@ -123,6 +124,51 @@
     }).sort(compareEvents);
   }
 
+  function calendarEventKey(event) {
+    var source = String(event && (event.source || event.provider) || '').toLowerCase();
+    if (event && event.id) return 'google:' + String(event.id);
+    if (source === 'dart' && event.receipt_no) return 'dart:' + String(event.receipt_no);
+    if (source === 'finnhub' && (event.symbol || event.ticker)) {
+      return 'finnhub:' + String(event.symbol || event.ticker).toUpperCase() + ':' + String(event.start || '').slice(0, 7);
+    }
+    return String(event && event.start || '') + '|' + String(event && event.title || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function loadStoredCalendarEvents() {
+    try {
+      var raw = global.localStorage.getItem(CALENDAR_STORAGE_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter(function (event) { return event && event.start; }) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveStoredCalendarEvents(events) {
+    try { global.localStorage.setItem(CALENDAR_STORAGE_KEY, JSON.stringify(events)); } catch (e) { /* 저장 공간이 없으면 현재 응답만 표시 */ }
+  }
+
+  function upsertStoredCalendarEvents(incoming) {
+    var byKey = {};
+    loadStoredCalendarEvents().forEach(function (event) { byKey[calendarEventKey(event)] = event; });
+    (incoming || []).forEach(function (event) {
+      if (event && event.start) byKey[calendarEventKey(event)] = event;
+    });
+    var stored = Object.keys(byKey).map(function (key) { return byKey[key]; });
+    saveStoredCalendarEvents(stored);
+    return stored;
+  }
+
+  function storedMonthEvents(year, month) {
+    var prefix = String(year) + '-' + String(month + 1).padStart(2, '0');
+    return loadStoredCalendarEvents().filter(function (event) { return String(event.start || '').slice(0, 7) === prefix; });
+  }
+
+  function storedYearEvents(year) {
+    var prefix = String(year);
+    return loadStoredCalendarEvents().filter(function (event) { return String(event.start || '').slice(0, 4) === prefix; });
+  }
+
   function fetchGoogleEvents(year, month) {
     var tMin = new Date(year, month == null ? 0 : month, 1).toISOString();
     var tMax = month == null
@@ -143,7 +189,7 @@
           var title = it.summary
             ? it.summary
             : (it.visibility === 'private' ? '🔒 비공개 일정' : '(제목 없음)');
-          return { title: title, start: it.start.dateTime || it.start.date, link: it.htmlLink };
+          return { id: it.id, title: title, start: it.start.dateTime || it.start.date, link: it.htmlLink, source: 'google' };
         });
       })
       .catch(function () { return []; });
@@ -152,12 +198,18 @@
 
   function fetchEvents(year, month) {
     return Promise.all([fetchGoogleEvents(year, month), fetchEarnings(year, month)])
-      .then(function (results) { return mergeEvents(results[0], results[1]); });
+      .then(function (results) {
+        upsertStoredCalendarEvents((results[0] || []).concat(results[1] || []));
+        return mergeEvents(storedMonthEvents(year, month), []);
+      });
   }
 
   function fetchYearEvents(year) {
     return Promise.all([fetchGoogleEvents(year, null), fetchEarningsYear(year)])
-      .then(function (results) { return mergeEvents(results[0], results[1]); });
+      .then(function (results) {
+        upsertStoredCalendarEvents((results[0] || []).concat(results[1] || []));
+        return mergeEvents(storedYearEvents(year), []);
+      });
   }
 
   function eventMatchesSearch(event, query) {
