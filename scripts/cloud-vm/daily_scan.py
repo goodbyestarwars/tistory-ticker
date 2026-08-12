@@ -55,9 +55,13 @@ def load_full_universe():
         req = urllib.request.Request(FULL_UNIVERSE_URL, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=20) as res:
             text = res.read().decode('utf-8')
+        etf_names = set()
+        if 'window.KRX_ETF_NAMES=' in text:
+            etf_text = text.split('window.KRX_ETF_NAMES=', 1)[1]
+            etf_names = set(re.findall(r'"([^"]+)"', etf_text))
         out = []
         for m in re.finditer(r'"([^"]+)":"([0-9A-Za-z]{6})"', text):
-            out.append({'name': m.group(1), 'code': m.group(2)})
+            out.append({'name': m.group(1), 'code': m.group(2), 'is_etf': m.group(1) in etf_names})
         if out:
             return out
     except Exception as primary_error:

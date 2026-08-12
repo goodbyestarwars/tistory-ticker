@@ -4,10 +4,19 @@ detectInvHeadShoulders_/detectBoxRangeLow_/detectPullback_ 및 공용 헬퍼를 
 수치 조건/배점은 원본과 동일해야 두 구현의 판정 결과가 일치한다 - 상수를 바꾸지 말 것."""
 
 import math
+import re
 
 PATTERN_SWING = 2
 PATTERN_MAX_MATCHES = 30
 RISING_LOWS_DISPLAY_LIMIT = 15
+PENNY_STOCK_MAX_PRICE = 1000  # 국내 주식 기준: 1,000원 미만은 동전주로 제외
+
+ETF_NAME_PREFIXES = (
+    '1Q ', 'ACE ', 'ARIRANG ', 'HANARO ', 'KBSTAR ', 'KODEX ', 'KOSEF ',
+    'PLUS ', 'RISE ', 'SOL ', 'TIGER ', 'TIME ', 'TREX ', 'WON ', 'FOCUS ',
+    'UNICORN ', 'TRUSTON ', '마이티 ', '파워 ', '에셋플러스 ',
+)
+ETF_NAME_TOKENS = re.compile(r'(?:ETF|레버리지|인버스|커버드콜|채권혼합|합성|선물)', re.IGNORECASE)
 
 RISING_LOWS_WINDOW = 20
 MA_CLOUD_MIN_DAYS = 250
@@ -62,6 +71,29 @@ PULLBACK_MIN_DAYS = 240  # 1년선(240거래일) 계산에 필요한 최소 보�
 # ---------------------------------------------------------------------------
 # 공용 헬퍼
 # ---------------------------------------------------------------------------
+
+def is_etf_name(name):
+    """Return whether a KRX display name looks like an ETF/security product."""
+    value = str(name or '').strip()
+    if not value:
+        return False
+    if any(value.startswith(prefix) for prefix in ETF_NAME_PREFIXES):
+        return True
+    return bool(ETF_NAME_TOKENS.search(value))
+
+
+def is_excluded_stock(stock, daily):
+    """Exclude penny stocks and ETFs before any chart pattern is evaluated."""
+    if bool((stock or {}).get('is_etf')) or is_etf_name((stock or {}).get('name')):
+        return True
+    if not daily:
+        return False
+    latest_close = daily[-1].get('close')
+    try:
+        return float(latest_close) < PENNY_STOCK_MAX_PRICE
+    except (TypeError, ValueError):
+        return False
+
 
 def find_swing_indices(win, field, is_low):
     idxs = []
@@ -885,6 +917,8 @@ def scan_stock(stock, daily, pattern_results, pullback_matches):
     pattern_scanned = False
     pullback_scanned = False
     pattern_results.setdefault('maCloudBreakout', [])
+    if is_excluded_stock(stock, daily):
+        return pattern_scanned, pullback_scanned
 
     if len(daily) >= RISING_LOWS_WINDOW:
         pattern_scanned = True
