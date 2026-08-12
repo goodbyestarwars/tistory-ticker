@@ -88,7 +88,16 @@
 #kospi-futures .kf-zero { color: #666; }
 
 #kospi-futures .kf-section {
-  margin-bottom: 24px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* 국내 현물 차트(.dmi-chart-grid)와 같은 카드 폭·간격으로 배치한다.
+   모바일에서는 한 열로 돌아가며 전체화면 버튼으로 확대할 수 있다. */
+#kospi-futures .kf-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 #kospi-futures .kf-section[data-section-key="ai"] {
@@ -158,6 +167,10 @@
   padding: 0;
   overflow: hidden;
   background: #fff;
+}
+
+@media (max-width: 760px) {
+  #kospi-futures .kf-chart-grid { grid-template-columns: 1fr; }
 }
 
 #kospi-futures .kf-chart-error {
