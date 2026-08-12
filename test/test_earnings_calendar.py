@@ -14,6 +14,7 @@ class EarningsCalendarTests(unittest.TestCase):
         earnings_calendar._financials_cache.clear()
         earnings_calendar._viewer_cache.clear()
         earnings_calendar._finnhub_cache.clear()
+        earnings_calendar._persistent_events.clear()
 
     def test_fetches_all_dart_pages_and_exposes_report_details(self):
         pages = [
@@ -187,6 +188,25 @@ class EarningsCalendarTests(unittest.TestCase):
         self.assertEqual(fetch_domestic.call_count, 12)
         self.assertEqual(fetch_us.call_count, 12)
         self.assertEqual([event['start'] for event in events], ['2026-01-15', '2026-12-15'])
+
+    def test_persists_earnings_and_updates_without_deleting_previous_records(self):
+        scheduled = {
+            'title': '$AAPL 실적발표 | 미국(Finnhub)',
+            'start': '2026-08-15',
+            'source': 'finnhub',
+            'market': 'us',
+            'symbol': 'AAPL',
+            'status': 'scheduled',
+        }
+        reported = dict(scheduled, title='$AAPL 실적발표 완료 | 미국(Finnhub)', status='reported', result='EPS 1.20')
+        with mock.patch.object(earnings_calendar, 'safe_fetch_month', return_value=[]), \
+                mock.patch.object(earnings_calendar, 'safe_fetch_us_month', side_effect=[[scheduled], [reported]]):
+            first = earnings_calendar.merge_month(2026, 8)
+            second = earnings_calendar.merge_month(2026, 8)
+
+        self.assertEqual(first[0]['status'], 'scheduled')
+        self.assertEqual(second[0]['status'], 'reported')
+        self.assertEqual(len(earnings_calendar._persistent_events), 1)
 
 
 if __name__ == '__main__':
