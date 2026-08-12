@@ -168,10 +168,74 @@ def fetch_latest_quarter(api_key, corp_code, current_year=None):
     return None
 
 
+DIVIDEND_REPRT_CODE = '11011'
+
+
+def find_dividend_row(rows, label):
+    """Find a major dividend row while tolerating DART's label variants."""
+    candidates = [row for row in rows if label in (row.get('se') or '')]
+    if not candidates:
+        return None
+    common = [row for row in candidates if '보통주' in (row.get('stock_knd') or '')]
+    return common[0] if common else candidates[0]
+
+
+def dividend_series(row):
+    if not row:
+        return [None, None, None]
+    return [to_num(row.get(key)) for key in ('thstrm', 'frmtrm', 'lwfr')]
+
+
+def fetch_dividend_history(api_key, corp_code, current_year=None):
+    """Fetch the latest DART annual report's three-year dividend indicators.
+
+    DART's alotMatter response exposes the current, prior and two-years-prior
+    values in one report, so one successful annual request is enough for the
+    three-year continuity test.
+    """
+    latest_fy = (current_year or datetime.now().year) - 1
+    for offset in range(3):
+        year = latest_fy - offset
+        rows = dart_client.call_alot_matter(api_key, corp_code, year, DIVIDEND_REPRT_CODE)
+        if not rows:
+            if offset < 2:
+                time.sleep(THROTTLE_SEC)
+            continue
+
+        yield_row = find_dividend_row(rows, '현금배당수익률')
+        payout_row = find_dividend_row(rows, '현금배당성향')
+        dps_row = find_dividend_row(rows, '주당 현금배당금')
+        if not (yield_row or payout_row or dps_row):
+            if offset < 2:
+                time.sleep(THROTTLE_SEC)
+            continue
+
+        years = [year, year - 1, year - 2]
+        yield_values = dividend_series(yield_row)
+        payout_values = dividend_series(payout_row)
+        dps_values = dividend_series(dps_row)
+        return {
+            'source': 'DART alotMatter',
+            'reportYear': year,
+            'years': [
+                {
+                    'year': item_year,
+                    'dividendYieldPct': yield_values[index],
+                    'payoutRatioPct': payout_values[index],
+                    'cashDividendPerShare': dps_values[index],
+                }
+                for index, item_year in enumerate(years)
+            ],
+        }
+    return None
+
+
 def fetch_stock(api_key, corp_code):
     annual = fetch_annual_series(api_key, corp_code)
     time.sleep(THROTTLE_SEC)
     latest_quarter = fetch_latest_quarter(api_key, corp_code)
+    time.sleep(THROTTLE_SEC)
+    dividend = fetch_dividend_history(api_key, corp_code)
     if annual is None and latest_quarter is None:
         return None
-    return {'annual': annual, 'latest_quarter': latest_quarter}
+    return {'annual': annual, 'latest_quarter': latest_quarter, 'dividend': dividend}

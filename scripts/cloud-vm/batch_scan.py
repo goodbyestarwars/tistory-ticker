@@ -193,7 +193,10 @@ def scan_fundamentals(codes_map):
             break
 
         code, name = items[i]
-        if not is_stale(fetched_at, code):
+        # Dividend screening was added after the original fundamentals cache.
+        # Revisit legacy entries once, then let the normal 90-day freshness
+        # window apply even when DART has no dividend rows for that company.
+        if not is_stale(fetched_at, code) and 'dividend' in (cache.get(code) or {}):
             skipped_count += 1
             i += 1
             continue
