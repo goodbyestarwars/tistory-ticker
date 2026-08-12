@@ -89,6 +89,34 @@ def ma_cloud_breakout_daily():
     return daily
 
 
+def ma_cloud_breakout_daily():
+    """224일선 근처에서 구름 상단을 고가로 시도하며 5일선이 20일선을 넘는 예시."""
+    daily = []
+    start = date(2025, 1, 1)
+    for i in range(300):
+        close = 100.0
+        daily.append({
+            "date": (start + timedelta(days=i)).isoformat(),
+            "open": close,
+            "high": close + 1,
+            "low": close - 1,
+            "close": close,
+            "volume": 1000,
+        })
+    # 최근 52봉의 구름을 100~102 근처로 만들어 현재가가 구름 안에서 상단을 시도하게 한다.
+    for i in range(222, 248):
+        daily[i].update(high=106.0, low=98.0)
+    for i in range(248, 274):
+        daily[i].update(high=101.0, low=99.0)
+    for i, close in enumerate((100.1, 100.2, 100.4, 100.6, 100.8), start=295):
+        daily[i].update(open=close - 0.2, high=102.0 if i == 299 else close + 0.5,
+                        low=close - 0.5, close=close)
+    for row in daily:
+        for field in ("open", "high", "low", "close"):
+            row[field] *= 100
+    return daily
+
+
 class RisingLowsDetectionTest(unittest.TestCase):
     def test_small_rise_and_short_gap_are_valid(self):
         detail = detector.detect_rising_lows(compact_higher_low_daily())
