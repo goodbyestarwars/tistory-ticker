@@ -52,8 +52,7 @@
   function ma224Color() {
     return document.documentElement.classList.contains('dark') ? '#f1f3f5' : '#000000';
   }
-  // 실시간 시세 차트와 동일하게 양운은 상승색(빨강), 음운은 하락색(파랑)으로 통일한다.
-  var ICHIMOKU_COLORS = { senkouA: '#d24f45', senkouB: '#1261c4' };
+  // 일목균형표는 선행스팬 1·2 사이 구간만 파란색 구름으로 표시하고 경계선은 숨긴다.
 
   // TradingView Lightweight Charts(오픈소스, CDN 지연 로드) - 가격 캔들차트 렌더링 엔진.
   // 손으로 그리던 SVG 캔들차트를 대체 - 확대/축소·패닝·크로스헤어를 라이브러리가 제공.
@@ -3012,7 +3011,7 @@
 
   // TradingView 공식 "Bands Indicator" 플러그인 예제와 같은 구조(Series Primitive, v4.1+ 지원 -
   // js/pattern-scan.js 참고). drawBackground()로 캔들/선보다 먼저 그려 구름이 배경에 깔리게 한다.
-  function createIchimokuCloudPrimitive(bandPts, bullColor, bearColor) {
+  function createIchimokuCloudPrimitive(bandPts, cloudColor) {
     return {
       _chart: null,
       _series: null,
@@ -3037,7 +3036,7 @@
                     var yA = series.priceToCoordinate(p.a);
                     var yB = series.priceToCoordinate(p.b);
                     if (x == null || yA == null || yB == null) return null;
-                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio, bull: p.a >= p.b };
+                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio };
                   });
                   ctx.save();
                   for (var k = 0; k < pts.length - 1; k++) {
@@ -3049,7 +3048,7 @@
                     ctx.lineTo(p1.x, p1.yB);
                     ctx.lineTo(p0.x, p0.yB);
                     ctx.closePath();
-                    ctx.fillStyle = p0.bull ? bullColor : bearColor;
+                    ctx.fillStyle = cloudColor;
                     ctx.fill();
                   }
                   ctx.restore();
@@ -3071,7 +3070,8 @@
     [['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB]].forEach(function (pair) {
       var key = pair[0], pts = pair[1];
       if (!pts.length) return;
-      var series = lwcChart.addLineSeries({ color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      // 선행스팬 경계선은 숨기고, 두 선 사이의 구름만 파란색으로 표시한다.
+      var series = lwcChart.addLineSeries({ color: 'rgba(18,97,196,0)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       series.setData(pts);
       ichimokuOverlaySeries.push(series);
       seriesByKey[key] = series;
@@ -3081,11 +3081,11 @@
       try {
         var bandPts = pairIchimokuBand(ichi.senkouA, ichi.senkouB);
         if (bandPts.length > 1) {
-          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(210,79,69,0.13)', 'rgba(18,97,196,0.12)');
+          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(18,97,196,0.16)');
           seriesByKey.senkouA.attachPrimitive(cloudPrimitive);
           ichimokuCloudPrimitive = { series: seriesByKey.senkouA, primitive: cloudPrimitive };
         }
-      } catch (e) { /* primitive 렌더링 실패해도 구름 경계선 2개는 이미 그려져 있음 */ }
+      } catch (e) { /* primitive 렌더링을 지원하지 않는 차트에서는 구름을 생략한다 */ }
     }
   }
 
