@@ -91,6 +91,7 @@
   var lwcLoadPromise = null;
   var lwcChart = null;
   var lwcCloudCleanup = null;
+  var stockDrawingState = null;
   var suggestionRequestId = 0;
 
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -225,6 +226,8 @@
       + '<div class="ss-panel-left"><div id="order-book"></div></div>'
       + '<div class="ss-panel-right">'
       + '<div class="ss-chart-tabs">'
+      + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
+      + '<button type="button" class="ss-draw-clear">지우기</button>'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="month">월봉</button>'
@@ -849,6 +852,25 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
+    var drawButton = container.querySelector('.ss-draw-toggle');
+    var drawClear = container.querySelector('.ss-draw-clear');
+    if (drawButton && drawButton.getAttribute('data-stock-draw-wired') !== '1') {
+      drawButton.setAttribute('data-stock-draw-wired', '1');
+      drawButton.onclick = function () {
+        setStockDrawingMode(!(stockDrawingState && stockDrawingState.enabled));
+      };
+    }
+    if (drawClear && drawClear.getAttribute('data-stock-draw-wired') !== '1') {
+      drawClear.setAttribute('data-stock-draw-wired', '1');
+      drawClear.onclick = function () {
+        if (!stockDrawingState) return;
+        stockDrawingState.lines = [];
+        stockDrawingState.pending = null;
+        stockDrawingState.preview = null;
+        saveStockDrawingLines(stockDrawingState);
+        redrawStockDrawing(stockDrawingState);
+      };
+    }
   }
 
   function loadChart(container, code) {
@@ -1098,6 +1120,8 @@
     state.timeframe = 'day';
     container.innerHTML = ''
       + '<div class="ss-chart-tabs">'
+      + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
+      + '<button type="button" class="ss-draw-clear">지우기</button>'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="month">월봉</button>'
@@ -1239,7 +1263,197 @@
       : Math.round(parsed).toLocaleString('ko-KR');
   }
 
+  function stockDrawingStorageKey(key, timeframe) {
+    return 'tistory-ticker:stock-drawings:' + String(key || '') + ':' + String(timeframe || 'day');
+  }
+
+  function loadStockDrawingLines(key, timeframe) {
+    try {
+      var raw = global.localStorage.getItem(stockDrawingStorageKey(key, timeframe));
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveStockDrawingLines(drawing) {
+    try {
+      global.localStorage.setItem(stockDrawingStorageKey(drawing.key, drawing.timeframe), JSON.stringify(drawing.lines));
+    } catch (e) { /* localStorage를 사용할 수 없는 환경에서도 차트는 계속 동작 */ }
+  }
+
+  function stockDrawingPointFromCoordinate(drawing, x, y) {
+    var time = drawing.chart.timeScale().coordinateToTime(x);
+    var price = drawing.series.coordinateToPrice(y);
+    if (time == null || price == null || !isFinite(Number(price))) return null;
+    return { time: time, price: Number(price) };
+  }
+
+  function stockDrawingCoordinate(drawing, point) {
+    if (!point) return null;
+    var x = drawing.chart.timeScale().timeToCoordinate(point.time);
+    var y = drawing.series.priceToCoordinate(point.price);
+    return x == null || y == null ? null : { x: Number(x), y: Number(y) };
+  }
+
+  function redrawStockDrawing(drawing) {
+    if (!drawing || !drawing.overlay) return;
+    var width = drawing.overlay.clientWidth;
+    var height = drawing.overlay.clientHeight;
+    var ctx = drawing.overlay.getContext('2d');
+    if (!ctx || !width || !height) return;
+    ctx.clearRect(0, 0, width, height);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    drawing.lines.forEach(function (line) {
+      var start = stockDrawingCoordinate(drawing, line.start);
+      var end = stockDrawingCoordinate(drawing, line.end);
+      if (!start || !end) return;
+      ctx.beginPath();
+      ctx.strokeStyle = '#e11d48';
+      ctx.lineWidth = 2;
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+      [start, end].forEach(function (point) {
+        ctx.beginPath();
+        ctx.fillStyle = '#fff';
+        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.strokeStyle = '#e11d48';
+        ctx.lineWidth = 2;
+        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+    });
+    if (drawing.pending) {
+      var pending = stockDrawingCoordinate(drawing, drawing.pending);
+      if (pending) {
+        ctx.beginPath();
+        ctx.fillStyle = '#e11d48';
+        ctx.arc(pending.x, pending.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    if (drawing.preview && drawing.pending) {
+      var previewStart = stockDrawingCoordinate(drawing, drawing.pending);
+      if (previewStart) {
+        ctx.beginPath();
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = 'rgba(225,29,72,.72)';
+        ctx.lineWidth = 1.5;
+        ctx.moveTo(previewStart.x, previewStart.y);
+        ctx.lineTo(drawing.preview.x, drawing.preview.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }
+
+  function resizeStockDrawing(drawing) {
+    if (!drawing || !drawing.overlay) return;
+    var ratio = global.devicePixelRatio || 1;
+    var width = drawing.overlay.clientWidth;
+    var height = drawing.overlay.clientHeight;
+    drawing.overlay.width = Math.max(1, Math.round(width * ratio));
+    drawing.overlay.height = Math.max(1, Math.round(height * ratio));
+    var ctx = drawing.overlay.getContext('2d');
+    if (ctx) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    redrawStockDrawing(drawing);
+  }
+
+  function destroyStockDrawing() {
+    var drawing = stockDrawingState;
+    if (!drawing) return;
+    if (drawing.resizeObserver) drawing.resizeObserver.disconnect();
+    if (drawing.resizeHandler) global.removeEventListener('resize', drawing.resizeHandler);
+    if (drawing.timeRangeHandler && drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
+      drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange(drawing.timeRangeHandler);
+    }
+    if (drawing.button) {
+      drawing.button.classList.remove('is-active');
+      drawing.button.setAttribute('aria-pressed', 'false');
+      drawing.button.textContent = '선 그리기';
+    }
+    if (drawing.overlay) drawing.overlay.remove();
+    stockDrawingState = null;
+  }
+
+  function setStockDrawingMode(enabled) {
+    var drawing = stockDrawingState;
+    if (!drawing) return;
+    drawing.enabled = enabled;
+    drawing.pending = null;
+    drawing.preview = null;
+    drawing.overlay.classList.toggle('is-active', enabled);
+    if (drawing.button) {
+      drawing.button.classList.toggle('is-active', enabled);
+      drawing.button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+      drawing.button.textContent = enabled ? '그리기 종료' : '선 그리기';
+    }
+    drawing.overlay.title = enabled ? '차트의 두 지점을 차례로 클릭해 선을 그립니다.' : '';
+    redrawStockDrawing(drawing);
+  }
+
+  function setupStockDrawing(element, chart, series, timeframe) {
+    destroyStockDrawing();
+    var scope = element.parentElement || element;
+    var drawing = {
+      key: state.selectedCode,
+      timeframe: timeframe,
+      chart: chart,
+      series: series,
+      lines: loadStockDrawingLines(state.selectedCode, timeframe),
+      pending: null,
+      preview: null,
+      enabled: false,
+      button: scope.querySelector('.ss-draw-toggle')
+    };
+    var overlay = document.createElement('canvas');
+    overlay.className = 'ss-drawing-layer';
+    overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
+    element.appendChild(overlay);
+    drawing.overlay = overlay;
+    overlay.addEventListener('click', function (event) {
+      if (!drawing.enabled) return;
+      var rect = overlay.getBoundingClientRect();
+      var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
+      if (!point) return;
+      if (!drawing.pending) drawing.pending = point;
+      else {
+        drawing.lines.push({ start: drawing.pending, end: point });
+        drawing.pending = null;
+        saveStockDrawingLines(drawing);
+      }
+      redrawStockDrawing(drawing);
+    });
+    overlay.addEventListener('mousemove', function (event) {
+      if (!drawing.enabled || !drawing.pending) return;
+      var rect = overlay.getBoundingClientRect();
+      drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      redrawStockDrawing(drawing);
+    });
+    overlay.addEventListener('mouseleave', function () {
+      drawing.preview = null;
+      redrawStockDrawing(drawing);
+    });
+    drawing.timeRangeHandler = function () { redrawStockDrawing(drawing); };
+    if (chart.timeScale().subscribeVisibleTimeRangeChange) chart.timeScale().subscribeVisibleTimeRangeChange(drawing.timeRangeHandler);
+    if (global.ResizeObserver) {
+      drawing.resizeObserver = new global.ResizeObserver(function () { resizeStockDrawing(drawing); });
+      drawing.resizeObserver.observe(element);
+    } else {
+      drawing.resizeHandler = function () { resizeStockDrawing(drawing); };
+      global.addEventListener('resize', drawing.resizeHandler);
+    }
+    stockDrawingState = drawing;
+    resizeStockDrawing(drawing);
+  }
+
   function renderLwChart(container, bars, timeframe) {
+    destroyStockDrawing();
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-ichimoku-cloud').forEach(function (el) { el.remove(); });
@@ -1397,6 +1611,7 @@
 
       chart.timeScale().fitContent();
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
+      setupStockDrawing(container, chart, candleSeries, timeframe);
     }).catch(function () {
       container.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });
