@@ -2,6 +2,17 @@
   margin-top: 28px;
   color: #000;
 }
+/* 국내시장지표의 세 영역은 스킨의 상속 색상과 무관하게 검은색으로 통일한다. */
+.dmi-shell .dmi-heading h2,
+.dmi-shell .dmi-subheading h3,
+.dmi-shell .dmi-muted,
+.dmi-shell .dmi-panel-title,
+.dmi-shell .dmi-flow-title,
+.dmi-shell .dmi-flow-table th,
+.dmi-shell .dmi-flow-table td,
+.dmi-shell .dmi-fund-card,
+.dmi-shell .dmi-fund-card *,
+.dmi-shell .dmi-error { color: #000 !important; }
 .dmi-heading,
 .dmi-subheading {
   display: flex;
@@ -41,8 +52,8 @@
 .dmi-flow-table th:first-child,
 .dmi-flow-table td:first-child { text-align: left; color: #000; }
 .dmi-flow-table th { color: #000; font-weight: 500; }
-.dmi-flow-table td.dmi-positive { color: #e14f4f; }
-.dmi-flow-table td.dmi-negative { color: #1e6bc7; }
+.dmi-flow-table td.dmi-positive,
+.dmi-flow-table td.dmi-negative { color: #000 !important; }
 .dmi-fund-card { min-height: 120px; }
 .dmi-fund-label { color: #000; font-size: 14px; }
 .dmi-fund-value { display: block; margin: 8px 0 4px; color: #000; font-size: 23px; font-weight: 700; }

@@ -72,6 +72,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("naver fallback", backend)
         for token in ("color: #000;", "textColor: '#000'"):
             self.assertIn(token, style if token == "color: #000;" else frontend)
+        self.assertIn(".dmi-flow-table td.dmi-negative { color: #000 !important; }", style)
+        self.assertIn(".dmi-shell .dmi-fund-card *", style)
+        self.assertIn("domestic-market-indicators.css?v=20260813-black-font", frontend)
         self.assertIn("var CHART_HEIGHT = 330;", frontend)
         self.assertIn(".dmi-chart-grid,", style)
         self.assertIn(".dmi-chart { height: 330px;", style)
