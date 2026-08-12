@@ -114,9 +114,13 @@ def _start_futures_collectors():
 # GAS를 거치지 않고 방문자 브라우저(js/foreign-flow.js)가 이 VM을 직접 호출하도록 우회.
 # 브라우저 직접 호출이라 X-API-Key를 넘길 수 없어 이 라우트만 인증 없이 열되(공개 시세
 # 데이터라 민감정보 아님), CORS로 블로그 도메인에서만 정상 호출되게 제한한다.
+ALLOWED_BROWSER_ORIGINS = [
+    'https://ghlee.tistory.com',
+    'https://goodbyestarwars.tistory.com',
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['https://ghlee.tistory.com'],
+    allow_origins=ALLOWED_BROWSER_ORIGINS,
     allow_methods=['GET', 'PUT', 'OPTIONS'],
     allow_headers=['*'],
     allow_credentials=True,
