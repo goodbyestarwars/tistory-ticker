@@ -72,9 +72,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("naver fallback", backend)
         for token in ("color: #000;", "textColor: '#000'"):
             self.assertIn(token, style if token == "color: #000;" else frontend)
-        self.assertIn("var CHART_HEIGHT = 760;", frontend)
+        self.assertIn("var CHART_HEIGHT = 600;", frontend)
         self.assertIn(".dmi-chart-grid { display: grid; grid-template-columns: 1fr;", style)
-        self.assertIn(".dmi-chart { height: 760px;", style)
+        self.assertIn(".dmi-chart { height: 600px;", style)
         self.assertIn(".dmi-subheading h3,", style)
         self.assertIn(".dmi-funds-provider { color: #000 !important; }", style)
 
