@@ -3213,6 +3213,22 @@ html.dark .copyright { color: rgba(245, 239, 224, 0.55); border-left-color: rgba
 html.dark .copyright:hover { color: #F5EFE0; }
 body.iframe-mode .site-footer { display: none !important; }
 
+/* Mobile app-style navigation is hidden on desktop and embedded chart frames. */
+.mobile-app-bottom-nav,
+.mobile-app-sheet { display: none; }
+body.iframe-mode .mobile-app-bottom-nav,
+body.iframe-mode .mobile-app-sheet { display: none !important; }
+
+html.dark .mobile-app-bottom-nav { background: rgba(26, 26, 26, .97); border-top-color: rgba(245, 239, 224, .14); }
+html.dark .mobile-app-bottom-item { color: rgba(245, 239, 224, .55); }
+html.dark .mobile-app-bottom-item.active { color: #F5EFE0; }
+html.dark .mobile-app-bottom-item:active { background: rgba(245, 239, 224, .08); }
+html.dark .mobile-app-sheet-panel { background: #1A1A1A; color: #F5EFE0; }
+html.dark .mobile-app-sheet-head { color: #F5EFE0; }
+html.dark .mobile-app-sheet-head button { background: rgba(245, 239, 224, .1); color: #F5EFE0; }
+html.dark .mobile-app-sheet-links a { border-color: rgba(245, 239, 224, .14); color: #F5EFE0; }
+html.dark .mobile-app-sheet-links a span { color: rgba(245, 239, 224, .5); }
+
 /* ============ DISCLOSURE TICKER ============ */
 /* 2026-07-17(9차): 별도 고정 바였던 공시 티커를 관심지수 바(js/quick-indices.js)의
    "긴급속보" 패널로 흡수 - 관련 스타일은 css/quick-indices.css의 .qi-news* 참고. */
@@ -3439,6 +3455,68 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
   .nav-icon-btn { width: 32px; height: 32px; }
   .nav-icons { gap: 6px; }
   .scroll-top-btn { display: flex; bottom: 20px; right: 14px; width: 38px; height: 38px; }
+
+  /* App-style fixed bottom navigation. Keep content and the scroll-top button above it. */
+  .page-wrap { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .mobile-app-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1200;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: 64px;
+    padding: 7px 5px calc(7px + env(safe-area-inset-bottom));
+    border-top: 1px solid #e5e7eb;
+    background: rgba(255, 255, 255, .97);
+    box-shadow: 0 -5px 18px rgba(15, 23, 42, .08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .mobile-app-bottom-item {
+    display: flex;
+    min-width: 0;
+    min-height: 50px;
+    padding: 4px 2px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: #8b9199;
+    font: inherit;
+    font-size: 11px;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .mobile-app-bottom-item svg { width: 22px; height: 22px; flex: 0 0 auto; }
+  .mobile-app-bottom-item.active { color: #111827; font-weight: 700; }
+  .mobile-app-bottom-item.active svg { stroke-width: 2.3; }
+  .mobile-app-bottom-item:active { background: #f1f5f9; }
+  .mobile-app-sheet[hidden] { display: none !important; }
+  .mobile-app-sheet { position: fixed; inset: 0; z-index: 1300; display: block; }
+  .mobile-app-sheet-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .38); }
+  .mobile-app-sheet-panel {
+    position: absolute;
+    right: 0;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    left: 0;
+    padding: 16px 14px 14px;
+    border-radius: 20px 20px 0 0;
+    background: #fff;
+    box-shadow: 0 -12px 36px rgba(15, 23, 42, .18);
+  }
+  .mobile-app-sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; color: #111827; font-size: 16px; }
+  .mobile-app-sheet-head button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: #f1f5f9; color: #64748b; font-size: 20px; line-height: 1; cursor: pointer; }
+  .mobile-app-sheet-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .mobile-app-sheet-links a { display: flex; min-height: 56px; padding: 11px 12px; flex-direction: column; justify-content: center; border: 1px solid #e5e7eb; border-radius: 12px; color: #111827; font-size: 13px; font-weight: 700; text-decoration: none; }
+  .mobile-app-sheet-links a span { margin-top: 3px; color: #9ca3af; font-size: 10px; font-weight: 400; }
+  html.mobile-app-sheet-open { overflow: hidden; }
+  .scroll-top-btn { bottom: 82px; }
 
   /* ── 페이지 래퍼 ── */
   .main-layout { padding: 10px 10px; }

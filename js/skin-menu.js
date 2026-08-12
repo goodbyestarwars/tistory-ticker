@@ -112,6 +112,84 @@
     syncSecondaryHeight(Boolean(secondary));
   }
 
+  function mobileBottomIcon(type) {
+    var paths = {
+      home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/>',
+      market: '<path d="M4 19V9"/><path d="M9 19V5"/><path d="M14 19v-8"/><path d="M19 19V3"/><path d="M3 21h18"/>',
+      stock: '<path d="M4 19V5h16v14z"/><path d="M8 9h8M8 13h5M8 17h3"/>',
+      search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/><path d="M8.5 11h5M11 8.5v5"/>',
+      more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'
+    };
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + paths[type] + '</svg>';
+  }
+
+  function mobileBottomActiveKey() {
+    var path = currentPath();
+    if (path === '/') return 'home';
+    if (['/page/market-temp', '/pages/overnight-market', '/pages/kospi-futures', '/category/마켓 브리핑'].indexOf(path) !== -1) return 'market';
+    if (['/page/foreign-flow', '/page/stock-search'].indexOf(path) !== -1) return 'stock';
+    if (['/page/pattern-scan', '/page/strategy-search'].indexOf(path) !== -1) return 'search';
+    return 'more';
+  }
+
+  function renderMobileBottomNav() {
+    var nav = document.getElementById('mobileAppBottomNav');
+    if (!nav) {
+      document.body.insertAdjacentHTML('beforeend',
+        '<nav class="mobile-app-bottom-nav" id="mobileAppBottomNav" aria-label="모바일 주요 메뉴">'
+        + '<a class="mobile-app-bottom-item" data-bottom-key="home" href="/">' + mobileBottomIcon('home') + '<span>홈</span></a>'
+        + '<a class="mobile-app-bottom-item" data-bottom-key="market" href="/page/market-temp">' + mobileBottomIcon('market') + '<span>시장</span></a>'
+        + '<a class="mobile-app-bottom-item" data-bottom-key="stock" href="/page/stock-search">' + mobileBottomIcon('stock') + '<span>종목</span></a>'
+        + '<a class="mobile-app-bottom-item" data-bottom-key="search" href="/page/strategy-search">' + mobileBottomIcon('search') + '<span>검색</span></a>'
+        + '<button type="button" class="mobile-app-bottom-item" data-bottom-action="more" aria-expanded="false">' + mobileBottomIcon('more') + '<span>더보기</span></button>'
+        + '</nav>'
+        + '<div class="mobile-app-sheet" id="mobileAppSheet" hidden>'
+        + '<div class="mobile-app-sheet-backdrop" data-bottom-action="close"></div>'
+        + '<section class="mobile-app-sheet-panel" role="dialog" aria-modal="true" aria-label="더보기 메뉴">'
+        + '<div class="mobile-app-sheet-head"><strong>더보기</strong><button type="button" data-bottom-action="close" aria-label="더보기 닫기">×</button></div>'
+        + '<div class="mobile-app-sheet-links">'
+        + '<a href="/page/stock-calendar">캘린더<span>실적·경제 일정</span></a>'
+        + '<a href="/pages/overnight-market">글로벌 시장지표<span>미국·해외 시장</span></a>'
+        + '<a href="/pages/kospi-futures">국내시장지표<span>코스피·코스닥·선물</span></a>'
+        + '<a href="/guestbook">커뮤니티<span>의견과 문의</span></a>'
+        + '</div></section></div>');
+      nav = document.getElementById('mobileAppBottomNav');
+    }
+
+    var activeKey = mobileBottomActiveKey();
+    nav.querySelectorAll('[data-bottom-key]').forEach(function (item) {
+      var active = item.getAttribute('data-bottom-key') === activeKey;
+      item.classList.toggle('active', active);
+      if (active) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
+    });
+    if (nav.getAttribute('data-bottom-wired') === '1') return;
+    nav.setAttribute('data-bottom-wired', '1');
+    var sheet = document.getElementById('mobileAppSheet');
+    var moreButton = nav.querySelector('[data-bottom-action="more"]');
+    function closeSheet() {
+      if (!sheet) return;
+      sheet.hidden = true;
+      moreButton.setAttribute('aria-expanded', 'false');
+      document.documentElement.classList.remove('mobile-app-sheet-open');
+    }
+    function openSheet() {
+      if (!sheet) return;
+      sheet.hidden = false;
+      moreButton.setAttribute('aria-expanded', 'true');
+      document.documentElement.classList.add('mobile-app-sheet-open');
+    }
+    moreButton.addEventListener('click', function () {
+      if (sheet.hidden) openSheet(); else closeSheet();
+    });
+    sheet.addEventListener('click', function (event) {
+      var action = event.target.closest ? event.target.closest('[data-bottom-action]') : null;
+      if (action && action.getAttribute('data-bottom-action') === 'close') closeSheet();
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !sheet.hidden) closeSheet();
+    });
+  }
+
   function wireNavigation(mount) {
     mount.addEventListener('click', function (event) {
       var trigger = event.target.closest ? event.target.closest('.nav-group-trigger') : null;
@@ -156,6 +234,7 @@
       renderMenu(mount);
       wireNavigation(mount);
     }
+    renderMobileBottomNav();
     if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
   }
 
