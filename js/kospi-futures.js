@@ -324,9 +324,13 @@
   // 해석까지 문장에 포함한다(gas/ticker-proxy.gs 참고) - 그래서 이 박스 자체는 "선물"만이
   // 아니라 "선물+옵션" 해설이지만, 페이지 흐름상(참고의견 -> 지수 -> 차트 -> 옵션 원자료)
   // 최상단에 단독 섹션으로 둔다(사용자 요청, 한 차례 옵션 카드와 합쳤다가 다시 분리함).
+  var KF_AI_ICON = '<svg class="kf-ai-icon" width="15" height="15" viewBox="0 0 24 24"'
+    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+    + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+
   function buildAiSection() {
     return '<div class="kf-section" data-section-key="ai">'
-      + '<div class="kf-section-head"><div class="kf-section-title">💬 참고의견</div></div>'
+      + '<div class="kf-section-head"><div class="kf-section-title kf-ai-head">' + KF_AI_ICON + '참고의견</div></div>'
       + '<div class="kf-ai" id="kfAi" hidden></div>'
       + '</div>';
   }
