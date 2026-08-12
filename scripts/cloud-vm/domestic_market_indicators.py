@@ -3,9 +3,9 @@
 
 The public endpoint deliberately keeps provider selection in one place:
 Kiwoom index candles first, KIS index candles second, and Naver as the last
-resort.  Investor flow uses the existing background collector because it
-already maintains the three participant buckets.  Market funds prefer the
-KIS market-funds API and fall back to the public KOFIA/Naver-compatible feed.
+resort. Investor flow uses the existing background collector because it
+already maintains the three participant buckets. Market funds are provided
+only by the KIS market-funds API.
 """
 
 import logging
@@ -16,7 +16,6 @@ import domestic_futures
 import investor_trend
 import kis_client
 import kiwoom_client
-import public_data
 
 logger = logging.getLogger('domestic_market_indicators')
 KST = timezone(timedelta(hours=9))
@@ -202,7 +201,6 @@ def fetch_investor():
             logger.warning('investor trend unavailable for %s: %s', market, exc)
             result = {'asOf': None, 'rows': []}
         data[market] = {
-            'source': 'kiwoom/kis/naver background collector',
             'asOf': result.get('asOf'),
             'rows': _normalise_investor(result),
         }
@@ -255,19 +253,13 @@ def fetch_funds(kis_appkey, kis_appsecret, days=60):
         if data:
             return data
     except Exception:
-        logger.exception('KIS market funds failed; using public fallback')
-    try:
-        data = public_data.fetch_kofia_market(days)
-        data['source'] = 'naver fallback (KOFIA public market-funds feed)'
-        return data
-    except Exception as exc:
-        logger.warning('public market funds fallback unavailable: %s', exc)
-        return {
-            'available': False,
-            'source': 'naver fallback',
-            'message': '증시자금 데이터를 잠시 불러오지 못했습니다.',
-            'series': [],
-        }
+        logger.exception('KIS market funds failed')
+    return {
+        'available': False,
+        'source': 'KIS',
+        'message': 'KIS 증시자금 데이터를 잠시 불러오지 못했습니다.',
+        'series': [],
+    }
 
 
 def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):

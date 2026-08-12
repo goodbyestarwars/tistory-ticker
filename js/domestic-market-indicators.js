@@ -92,7 +92,7 @@
       var chart = LWC.createChart(element, {
         autoSize: true,
         height: 330,
-        layout: { background: { color: 'transparent' }, textColor: '#74839a' },
+        layout: { background: { color: 'transparent' }, textColor: '#000' },
         grid: { vertLines: { color: '#edf1f5' }, horzLines: { color: '#edf1f5' } },
         crosshair: { mode: LWC.CrosshairMode.Normal },
         rightPriceScale: { borderVisible: false },
@@ -152,7 +152,7 @@
           }
           return '<tr><td>' + escapeHtml(row.label || '-') + '</td>' + cell(row.individual) + cell(row.foreign) + cell(row.institution) + '</tr>';
         }).join('') : '<tr><td colspan="4">데이터 준비 중</td></tr>')
-        + '</tbody></table><div class="dmi-source-note">' + escapeHtml(item.source || '') + '</div></section>';
+        + '</tbody></table></section>';
     }).join('');
     root.querySelector('.dmi-flow-grid').innerHTML = html;
   }
@@ -174,8 +174,8 @@
     root.setAttribute('data-dmi-ready', '1');
     installStyle();
     root.innerHTML = '<div class="dmi-shell">'
-      + '<div class="dmi-heading"><h2>국내시장지표</h2><span class="dmi-muted">현물 기준 · 키움 → KIS → 네이버 fallback</span></div>'
-      + '<div class="dmi-subheading"><h3>코스피 · 코스닥</h3><span class="dmi-muted">분봉 · 일봉 · 주봉</span></div>'
+      + '<div class="dmi-heading"><h2>국내시장지표</h2></div>'
+      + '<div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45)</h3><span class="dmi-muted">분봉 · 일봉 · 주봉</span></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3><span class="dmi-muted">개인 · 외국인 · 기관</span></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'

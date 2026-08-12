@@ -60,6 +60,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("/pages/kospi-futures", futures)
         self.assertIn("container.parentNode.insertBefore(mount, container)", futures)
 
+    def test_domestic_market_indicators_labels_and_provider_contract(self):
+        frontend = self.read("js/domestic-market-indicators.js")
+        backend = self.read("scripts/cloud-vm/domestic_market_indicators.py")
+        style = self.read("css/domestic-market-indicators.css")
+        self.assertIn("코스피 · 코스닥 주간현물 (09:00~15:45)", frontend)
+        self.assertNotIn("현물 기준 · 키움 → KIS → 네이버 fallback", frontend)
+        self.assertNotIn("kiwoom/kis/naver background collector", backend)
+        self.assertIn("'source': 'KIS'", backend)
+        self.assertNotIn("public_data.fetch_kofia_market", backend)
+        self.assertNotIn("naver fallback", backend)
+        for token in ("color: #000;", "textColor: '#000'"):
+            self.assertIn(token, style if token == "color: #000;" else frontend)
+
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")
         for token in ("aria-expanded", "aria-current", "nav-secondary-row", "nav-secondary-separator"):
