@@ -77,6 +77,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-chart { height: 600px;", style)
         self.assertIn(".dmi-subheading h3,", style)
         self.assertIn(".dmi-funds-provider { color: #000 !important; }", style)
+        backend = self.read("scripts/cloud-vm/domestic_market_indicators.py")
+        self.assertIn("CHART_LOOKBACK_DAYS = 250", backend)
+        self.assertIn("CHART_MINUTE_MAX_BARS = 1500", backend)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")

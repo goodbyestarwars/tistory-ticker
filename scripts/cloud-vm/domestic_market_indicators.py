@@ -25,6 +25,9 @@ MARKETS = {
     'KOSDAQ': {'name': '코스닥', 'kiwoom_code': '101', 'kis_code': '1001'},
 }
 INTERVALS = ('minute', 'day', 'week')
+# Keep the domestic spot charts on the same lookback as /futures?days=250.
+CHART_LOOKBACK_DAYS = 250
+CHART_MINUTE_MAX_BARS = 1500
 
 
 def _number(value):
@@ -84,11 +87,17 @@ def _candle(row, minute=False):
     return point
 
 
-def _sort_rows(rows, minute=False, limit=600):
+def _chart_cutoff_date():
+    return (datetime.now(KST) - timedelta(days=CHART_LOOKBACK_DAYS)).strftime('%Y-%m-%d')
+
+
+def _sort_rows(rows, minute=False, limit=600, since_date=None):
     unique = {}
     for row in rows or []:
         point = _candle(row, minute=minute)
         if not point:
+            continue
+        if not minute and since_date and point['date'] < since_date:
             continue
         key = point['ts'] if minute else point['date']
         unique[key] = point
@@ -119,7 +128,12 @@ def _fetch_kiwoom(token, market, interval):
         minute = False
     response = kiwoom_client.call_tr(token, api_id, '/api/dostk/chart', body)
     rows = response.get(rows_key) or []
-    points = _sort_rows(rows, minute=minute, limit=900 if minute else 600)
+    points = _sort_rows(
+        rows,
+        minute=minute,
+        limit=CHART_MINUTE_MAX_BARS if minute else 600,
+        since_date=None if minute else _chart_cutoff_date(),
+    )
     if len(points) < 2:
         raise RuntimeError('%s returned too few %s candles' % (api_id, market))
     return points
@@ -129,21 +143,21 @@ def _fetch_kis(token, appkey, appsecret, market, interval):
     code = MARKETS[market]['kis_code']
     if interval == 'minute':
         _, rows = kis_client.fetch_index_time_chart(token, appkey, appsecret, code, '60')
-        return _sort_rows(rows, minute=True, limit=900)
-    start = (datetime.now(KST) - timedelta(days=900)).strftime('%Y%m%d')
+        return _sort_rows(rows, minute=True, limit=CHART_MINUTE_MAX_BARS)
+    start = (datetime.now(KST) - timedelta(days=CHART_LOOKBACK_DAYS)).strftime('%Y%m%d')
     end = datetime.now(KST).strftime('%Y%m%d')
     _, rows = kis_client.fetch_index_period_chart(
         token, appkey, appsecret, code, start, end, 'W' if interval == 'week' else 'D')
-    return _sort_rows(rows, minute=False, limit=600)
+    return _sort_rows(rows, minute=False, limit=600, since_date=_chart_cutoff_date())
 
 
 def _fetch_naver(market, interval):
     symbol = market
     if interval == 'minute':
         rows = domestic_futures.fetch_domestic_index_chart_minute('index', symbol, days=3)
-        return _sort_rows(rows, minute=True, limit=900)
-    rows = domestic_futures.fetch_domestic_index_chart('index', symbol, days=900)
-    points = _sort_rows(rows, minute=False, limit=600)
+        return _sort_rows(rows, minute=True, limit=CHART_MINUTE_MAX_BARS)
+    rows = domestic_futures.fetch_domestic_index_chart('index', symbol, days=CHART_LOOKBACK_DAYS)
+    points = _sort_rows(rows, minute=False, limit=600, since_date=_chart_cutoff_date())
     if interval == 'week':
         # Naver's index endpoint is daily; aggregate it into the same weekly
         # candle shape used by the provider APIs.

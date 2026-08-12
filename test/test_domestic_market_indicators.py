@@ -23,6 +23,13 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertEqual(minute[-1]['ts'], 200)
         self.assertEqual(daily[0]['date'], '2026-08-12')
 
+    def test_chart_rows_can_be_limited_to_futures_lookback(self):
+        rows = dmi._sort_rows([
+            {'dt': '20250101', 'open_pric': '10', 'high_pric': '12', 'low_pric': '9', 'cur_prc': '11'},
+            {'dt': '20260801', 'open_pric': '10', 'high_pric': '12', 'low_pric': '9', 'cur_prc': '11'},
+        ], since_date='2026-01-01')
+        self.assertEqual([row['date'] for row in rows], ['2026-08-01'])
+
     def test_kiwoom_provider_uses_cash_index_chart_ids(self):
         responses = {
             'ka20005': {'inds_min_pole_qry': [
