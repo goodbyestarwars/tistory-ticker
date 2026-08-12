@@ -79,7 +79,7 @@
   }
 
   function fetchEarnings(year, month) {
-    return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month + 1))
+    return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month + 1), 15000)
       .then(function (data) { return Array.isArray(data) ? data : (data && data.data) || []; })
       .catch(function () { return []; });
   }
