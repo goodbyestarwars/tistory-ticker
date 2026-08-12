@@ -357,6 +357,10 @@
 }
 #stock-search .ss-volume-study-label b { color: #4f8df7; font-weight: 600; }
 #stock-search .ss-volume-study-label .ss-volume-ma-value { color: #2563eb; }
+#stock-search .ss-volume-study-label .ss-volume-day-label { margin-left: 3px; color: #8a9099; }
+#stock-search .ss-volume-study-label .ss-volume-day-change.is-up { color: #d24f45; }
+#stock-search .ss-volume-study-label .ss-volume-day-change.is-down { color: #1261c4; }
+#stock-search .ss-volume-study-label .ss-volume-day-change.is-flat { color: #8a9099; }
 #stock-search .ss-chart .ss-hint { height: 100%; justify-content: center; }
 #stock-search .ss-chart-legend {
   margin-top: 8px;

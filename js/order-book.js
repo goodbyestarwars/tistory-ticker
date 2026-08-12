@@ -62,6 +62,8 @@
     realtimeReconnectTimer: null,
     realtimeKeepaliveTimer: null,
     realtimeGeneration: 0,
+    summary: null,
+    summaryGeneration: 0,
     onQuote: null // 2026-08-05: 이 위젯을 임베드하는 상위 페이지(js/stock-search.js)가 자기
                   // 화면의 가격 표시도 같은 틱으로 갱신하고 싶을 때 쓰는 훅. 상위 페이지가
                   // 별도로 wss://.../ws/quotes 소켓을 또 열면(같은 코드에 소켓 2개) 두 소켓의
@@ -227,6 +229,8 @@
     state.trades = [];
     state.startTime = Date.now();
     state.lastBase = null;
+    state.summary = null;
+    state.summaryGeneration += 1;
     state.trackedWall = null;
     state.milestones = [];
     clearTimeout(state.toastTimer);
@@ -243,6 +247,16 @@
     tick(container);
     state.timer = setInterval(function () { tick(container); }, POLL_MS);
     startRealtimeQuote(container, code);
+
+    // OHLC summary is loaded once per selected stock; quote polling remains lightweight.
+    var summaryGeneration = state.summaryGeneration;
+    fetchSummary(code).then(function (summary) {
+      if (state.code !== code || state.summaryGeneration !== summaryGeneration) return;
+      state.summary = summary;
+      updateSummary(container.querySelector('#obBoard'));
+    }).catch(function () {
+      // The order book remains usable when the summary endpoint is temporarily unavailable.
+    });
   }
 
   // ---- 실시간 체결가(WebSocket, watchlist.js와 동일 패턴) ----
@@ -329,6 +343,11 @@
     if (currentPrice) currentPrice.textContent = priceText;
     var currentChange = board.querySelector('[data-field="current-change"]');
     if (currentChange) currentChange.textContent = changeText;
+
+    if (state.summary && Number(quote.volume) > 0) {
+      state.summary.liveVolume = Number(quote.volume);
+    }
+    updateSummary(board, quote);
 
     if (state.onQuote) state.onQuote(quote);
   }
@@ -644,6 +663,36 @@
       });
   }
 
+  function fetchSummary(code) {
+    var hasAbort = 'AbortController' in global;
+    var controller = hasAbort ? new AbortController() : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
+    return fetch(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code), hasAbort ? { signal: controller.signal } : {})
+      .then(function (r) {
+        if (!r.ok) throw new Error('summary API error: ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (timer) clearTimeout(timer);
+        var daily = data && Array.isArray(data.daily) ? data.daily : [];
+        var latest = daily.length ? daily[daily.length - 1] : null;
+        var previous = daily.length > 1 ? daily[daily.length - 2] : null;
+        if (!latest) throw new Error('summary data unavailable');
+        return {
+          open: numericOrNull(latest.open),
+          high: numericOrNull(latest.high),
+          low: numericOrNull(latest.low),
+          volume: numericOrNull(latest.volume),
+          previousVolume: previous ? numericOrNull(previous.volume) : null,
+          liveVolume: null
+        };
+      })
+      .catch(function (err) {
+        if (timer) clearTimeout(timer);
+        throw err;
+      });
+  }
+
   // ---- 렌더링 ----
 
   function renderBoard(container, book, quote) {
@@ -672,6 +721,8 @@
       + '<span class="ob-header-change ' + priceCls + '" data-field="header-change">' + (changeText || '') + '</span>'
       + '</div>';
 
+    var summaryHtml = buildSummaryHtml(buildSummaryView(quote));
+
     var askRows = book.asks.map(function (r) { return rowHtml(r, maxQty, 'ask'); }).join('');
     var bidRows = book.bids.map(function (r) { return rowHtml(r, maxQty, 'bid'); }).join('');
 
@@ -687,6 +738,7 @@
       + '</div>';
 
     board.innerHTML = headerHtml
+      + summaryHtml
       + '<div class="ob-table">' + askRows
       + '<div class="ob-current-row ' + priceCls + '" data-field="current-row">'
       + '<span data-field="current-price">' + priceNum + '</span>'
@@ -694,6 +746,84 @@
       + '</div>' + bidRows + '</div>'
       + footerHtml
       + buildTradesHtml();
+  }
+
+  function buildSummaryView(quote) {
+    var summary = state.summary || {};
+    var liveVolume = quote && Number(quote.volume) > 0
+      ? Number(quote.volume)
+      : (Number(summary.liveVolume) > 0 ? Number(summary.liveVolume) : numericOrNull(summary.volume));
+    var previousVolume = numericOrNull(summary.previousVolume);
+    var volumeChangePct = previousVolume > 0 && liveVolume != null
+      ? (liveVolume - previousVolume) / previousVolume * 100
+      : null;
+    return {
+      open: numericOrNull(summary.open),
+      high: numericOrNull(summary.high),
+      low: numericOrNull(summary.low),
+      volume: liveVolume,
+      volumeChangePct: volumeChangePct
+    };
+  }
+
+  function buildSummaryHtml(summary) {
+    return '<div class="ob-summary" aria-label="당일 시세 요약">'
+      + summaryItemHtml('시가', summary.open, 'price')
+      + summaryItemHtml('고가', summary.high, 'price')
+      + summaryItemHtml('저가', summary.low, 'price')
+      + summaryItemHtml('거래량', summary.volume, 'quantity')
+      + '<div class="ob-summary-item ob-summary-volume-change">'
+      + '<span>전일 거래량 대비</span>'
+      + '<b data-summary="volume-change" class="' + volumeChangeClass(summary.volumeChangePct) + '">' + formatVolumeChange(summary.volumeChangePct) + '</b>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function summaryItemHtml(label, value, type) {
+    return '<div class="ob-summary-item">'
+      + '<span>' + label + '</span>'
+      + '<b data-summary="' + label + '">' + (value == null ? '-' : (type === 'quantity' ? fmtQty(value) : fmtPrice(value))) + '</b>'
+      + '</div>';
+  }
+
+  function updateSummary(board, quote) {
+    if (!board) return;
+    var summary = buildSummaryView(quote);
+    var fields = {
+      '시가': summary.open == null ? '-' : fmtPrice(summary.open),
+      '고가': summary.high == null ? '-' : fmtPrice(summary.high),
+      '저가': summary.low == null ? '-' : fmtPrice(summary.low),
+      '거래량': summary.volume == null ? '-' : fmtQty(summary.volume),
+      'volume-change': formatVolumeChange(summary.volumeChangePct)
+    };
+    Object.keys(fields).forEach(function (key) {
+      var field = board.querySelector('[data-summary="' + key + '"]');
+      if (field) {
+        field.textContent = fields[key];
+        if (key === 'volume-change') field.className = volumeChangeClass(summary.volumeChangePct);
+      }
+    });
+  }
+
+  function numericOrNull(value) {
+    var n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function fmtPrice(value) {
+    return Math.round(Number(value)).toLocaleString('ko-KR') + '원';
+  }
+
+  function formatVolumeChange(value) {
+    if (value == null || !Number.isFinite(Number(value))) return '-';
+    var n = Number(value);
+    return (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
+  }
+
+  function volumeChangeClass(value) {
+    if (value > 0) return 'ob-up';
+    if (value < 0) return 'ob-down';
+    return 'ob-flat';
   }
 
   function fmtTime(tm) {

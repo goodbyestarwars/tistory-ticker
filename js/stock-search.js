@@ -1304,7 +1304,7 @@
       });
       // 거래량은 가격과 별도 overlay 축을 쓰고 축 자체는 숨긴다. 기본 overlay 축('')을
       // 공유하면 차트 localization의 가격 formatter가 거래량 눈금에 붙는 경우가 있다.
-      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 }, visible: false, borderVisible: false });
+      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0.02 }, visible: false, borderVisible: false, drawTicks: false });
       volumeSeries.setData(bars.map(function (d) {
         return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
       }));
@@ -1324,12 +1324,18 @@
       }));
 
       var latestBar = bars[bars.length - 1] || {};
+      var previousBar = bars.length > 1 ? bars[bars.length - 2] : null;
       var latestVolumeMa = volumeMaPoints.length ? volumeMaPoints[volumeMaPoints.length - 1].value : null;
+      var previousVolume = previousBar ? Number(previousBar.volume) || 0 : 0;
+      var latestVolume = Number(latestBar.volume) || 0;
+      var volumeChangePct = previousVolume > 0 ? (latestVolume - previousVolume) / previousVolume * 100 : null;
       var volumeLegend = document.createElement('div');
       volumeLegend.className = 'ss-volume-study-label';
       volumeLegend.innerHTML = '<span>거래량 (20)</span>'
-        + '<b>' + compactVolume(latestBar.volume) + '</b>'
-        + (latestVolumeMa == null ? '' : '<b class="ss-volume-ma-value">' + compactVolume(latestVolumeMa) + '</b>');
+        + '<b>' + compactVolume(latestVolume) + '</b>'
+        + (latestVolumeMa == null ? '' : '<b class="ss-volume-ma-value">20일평균 ' + compactVolume(latestVolumeMa) + '</b>')
+        + '<span class="ss-volume-day-label">전일 대비</span>'
+        + '<b class="ss-volume-day-change ' + (volumeChangePct > 0 ? 'is-up' : (volumeChangePct < 0 ? 'is-down' : 'is-flat')) + '">' + formatSignedPercent(volumeChangePct) + '</b>';
       container.appendChild(volumeLegend);
 
       chart.timeScale().fitContent();
@@ -1337,6 +1343,12 @@
     }).catch(function () {
       container.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });
+  }
+
+  function formatSignedPercent(value) {
+    if (value == null || !Number.isFinite(Number(value))) return '-';
+    var n = Number(value);
+    return (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
   }
 
   function mergeOptions(a, b) {
