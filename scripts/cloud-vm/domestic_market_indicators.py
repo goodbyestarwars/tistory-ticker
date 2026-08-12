@@ -40,6 +40,12 @@ def _number(value):
         return None
 
 
+def _price_number(value):
+    """Parse a Kiwoom chart price, whose sign marks direction rather than price."""
+    number = _number(value)
+    return abs(number) if number is not None else None
+
+
 def _first(row, *keys):
     for key in keys:
         if row.get(key) not in (None, ''):
@@ -68,10 +74,10 @@ def _candle(row, minute=False):
     date_value = _first(row, 'dt', 'stck_bsop_date', 'date', 'localDate')
     time_value = _first(row, 'cntr_tm', 'stck_cntg_hour', 'time', 'localDateTime')
     point = {
-        'open': _number(_first(row, 'open_pric', 'stck_oprc', 'bstp_nmix_oprc', 'openPrice')),
-        'high': _number(_first(row, 'high_pric', 'stck_hgpr', 'bstp_nmix_hgpr', 'highPrice')),
-        'low': _number(_first(row, 'low_pric', 'stck_lwpr', 'bstp_nmix_lwpr', 'lowPrice')),
-        'close': _number(_first(row, 'cur_prc', 'stck_clpr', 'bstp_nmix_prpr', 'closePrice', 'currentPrice')),
+        'open': _price_number(_first(row, 'open_pric', 'stck_oprc', 'bstp_nmix_oprc', 'openPrice')),
+        'high': _price_number(_first(row, 'high_pric', 'stck_hgpr', 'bstp_nmix_hgpr', 'highPrice')),
+        'low': _price_number(_first(row, 'low_pric', 'stck_lwpr', 'bstp_nmix_lwpr', 'lowPrice')),
+        'close': _price_number(_first(row, 'cur_prc', 'stck_clpr', 'bstp_nmix_prpr', 'closePrice', 'currentPrice')),
         'volume': _number(_first(row, 'trde_qty', 'acml_vol', 'acc_trde_qty', 'volume')) or 0,
     }
     if any(point[key] is None for key in ('open', 'high', 'low', 'close')):

@@ -14,13 +14,15 @@ import kis_client
 class DomesticMarketIndicatorsTest(unittest.TestCase):
     def test_normalises_minute_and_daily_candles(self):
         minute = dmi._sort_rows([
-            {'ts': 100, 'openPrice': '10', 'highPrice': '12', 'lowPrice': '9', 'currentPrice': '11'},
+            {'ts': 100, 'openPrice': '-10', 'highPrice': '-12', 'lowPrice': '-9', 'currentPrice': '-11'},
             {'ts': 200, 'openPrice': '11', 'highPrice': '13', 'lowPrice': '10', 'currentPrice': '12'},
         ], minute=True)
         daily = dmi._sort_rows([
             {'dt': '20260812', 'open_pric': '+10', 'high_pric': '+12', 'low_pric': '+9', 'cur_prc': '+11'},
         ])
         self.assertEqual(minute[-1]['ts'], 200)
+        self.assertEqual(minute[0]['open'], 10.0)
+        self.assertEqual(minute[0]['low'], 9.0)
         self.assertEqual(daily[0]['date'], '2026-08-12')
 
     def test_chart_rows_can_be_limited_to_futures_lookback(self):
