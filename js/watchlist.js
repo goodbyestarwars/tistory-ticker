@@ -25,6 +25,8 @@
   var CONTAINER_SELECTOR = '#watchlist';
   var STORAGE_KEY = 'wl_codes_v1';
   var GROUP_STORAGE_KEY = 'wl_groups_v1';
+  var QUOTES_CACHE_KEY = 'watchlist_quotes_v2';
+  var QUOTES_CACHE_MAX_AGE_MS = 3 * 60 * 1000;
   var DEFAULT_GROUP_ID = 'default';
   var MAX_ITEMS = 50;
   var MAX_SUGGESTIONS = 8;
@@ -182,6 +184,23 @@
     try { localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(groups)); } catch (err) {}
   }
 
+  function readQuoteCache(codes) {
+    try {
+      var cached = JSON.parse(localStorage.getItem(QUOTES_CACHE_KEY) || 'null');
+      if (!cached || !cached.savedAt || Date.now() - Number(cached.savedAt) > QUOTES_CACHE_MAX_AGE_MS) return {};
+      var data = cached.data && typeof cached.data === 'object' ? cached.data : {};
+      var byCode = {};
+      codes.forEach(function (code) { if (data[code]) byCode[code] = data[code]; });
+      return byCode;
+    } catch (err) { return {}; }
+  }
+
+  function writeQuoteCache(data) {
+    if (!data || typeof data !== 'object' || !Object.keys(data).length) return;
+    try { localStorage.setItem(QUOTES_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: data })); }
+    catch (err) {}
+  }
+
   function cloneState() {
     return JSON.parse(JSON.stringify({ items: remoteState.items, groups: remoteState.groups }));
   }
@@ -335,7 +354,19 @@
     });
   }
 
+  function fetchRemoteWatchlistState() {
+    return fetch(WATCHLIST_API_URL, { credentials: 'include', cache: 'no-store' })
+      .then(function (response) {
+        return response.json().then(function (body) {
+          if (!response.ok) throw new Error(body.detail || '관심종목을 불러오지 못했습니다.');
+          return body.data || {};
+        });
+      });
+  }
+
   function loadRemoteState(container) {
+    // 인증 확인과 관심종목 조회는 서로 독립적이므로 동시에 시작해 첫 화면을 빠르게 연다.
+    var remoteDataPromise = fetchRemoteWatchlistState().catch(function () { return null; });
     fetchAuthState().then(function (nextAuth) {
       authState = nextAuth;
       renderAuthStatus(container);
@@ -343,13 +374,10 @@
         renderLoginRequired(container, authState.configured ? '관심종목을 저장하려면 Google 계정으로 로그인하세요.' : 'Google 로그인 서버 설정을 확인 중입니다.');
         return null;
       }
-      return fetch(WATCHLIST_API_URL, { credentials: 'include', cache: 'no-store' })
-        .then(function (response) {
-          return response.json().then(function (body) {
-            if (!response.ok) throw new Error(body.detail || '관심종목을 불러오지 못했습니다.');
-            return body.data || {};
-          });
-        });
+      return remoteDataPromise.then(function (data) {
+        if (!data) throw new Error('관심종목을 불러오지 못했습니다.');
+        return data;
+      });
     }).then(function (data) {
       if (!data) return;
       var localItems = loadLocalList();
@@ -691,16 +719,22 @@
     }).join('');
 
     wireCardEvents(container);
-    Watchlist.fetchQuotes(list.map(function (it) { return it.code; }))
+    var codes = list.map(function (it) { return it.code; });
+    var cachedQuotes = readQuoteCache(codes);
+    codes.forEach(function (code) {
+      if (cachedQuotes[code]) updateCard(container, code, cachedQuotes[code]);
+    });
+    Watchlist.fetchQuotes(codes)
       .then(function (quoteByCode) {
+        writeQuoteCache(quoteByCode);
         list.forEach(function (it) {
-          updateCard(container, it.code, quoteByCode[it.code] || null);
+          if (quoteByCode[it.code]) updateCard(container, it.code, quoteByCode[it.code]);
         });
       })
       .catch(function () {
         // 최초 시세 조회 실패 시에도 WebSocket 연결과 저빈도 폴백이 이어서 갱신한다.
       });
-    startRealtimeQuotes(container, list.map(function (it) { return it.code; }));
+    startRealtimeQuotes(container, codes);
   }
 
   function buildGroup(group, items) {
@@ -778,6 +812,7 @@
   function refreshQuotesOnce(container, codes) {
     Watchlist.fetchQuotes(codes)
       .then(function (quoteByCode) {
+        writeQuoteCache(quoteByCode);
         codes.forEach(function (code) {
           // 일시적인 429/브로커 오류가 와도 기존 숫자를 지우지 않는다.
           if (quoteByCode[code]) updateCard(container, code, quoteByCode[code]);

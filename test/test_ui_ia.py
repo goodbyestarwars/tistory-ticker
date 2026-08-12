@@ -337,7 +337,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
         source = self.read("js/watchlist.js")
         bootstrap = self.read("js/stock-search-panel.js")
-        self.assertIn("watchlist.js?v=domestic-fallback-10s-20260812", bootstrap)
+        self.assertIn("watchlist.js?v=fast-first-paint-20260812", bootstrap)
         for token in (
             "var domesticCodes = codes.filter",
             "var canUseSocket = codes.length",
@@ -351,6 +351,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "function isDomesticSessionTime(now)",
             "realtimeDomesticFallbackTimer = setInterval",
             "[8, 0], [9, 0], [15, 30], [17, 0], [22, 30]",
+            "var QUOTES_CACHE_KEY = 'watchlist_quotes_v2';",
+            "function readQuoteCache(codes)",
+            "var remoteDataPromise = fetchRemoteWatchlistState()",
         ):
             self.assertIn(token, source)
 
