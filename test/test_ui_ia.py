@@ -75,8 +75,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-flow-table td.dmi-positive { color: #d24f45 !important; }", style)
         self.assertIn(".dmi-flow-table td.dmi-negative { color: #1261c4 !important; }", style)
         self.assertIn(".dmi-shell .dmi-fund-card *", style)
-        self.assertIn("domestic-market-indicators.css?v=20260813-dmi-size-color", frontend)
+        self.assertIn("domestic-market-indicators.css?v=20260813-dmi-controls", frontend)
         self.assertIn("dmi-draw-toggle", frontend)
+        self.assertIn("dmi-collapse-btn", frontend)
+        self.assertIn("dmi-collapsed", frontend)
         self.assertIn("coordinateToTime", frontend)
         self.assertIn("localStorage.setItem(drawingStorageKey", frontend)
         self.assertIn(".dmi-drawing-layer.is-active", style)
@@ -109,6 +111,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         overnight = self.read("js/overnight-market.js")
         self.assertIn('class="om-ai-icon"', overnight)
         self.assertIn('class="kf-ai-icon"', futures_script)
+        self.assertIn('class="kf-draw-toggle"', futures_script)
+        self.assertIn("function setupKfDrawing", futures_script)
+        self.assertIn(".kf-drawing-layer.is-active", futures_css)
         self.assertNotIn('💬 참고의견', futures_script)
 
     def test_navigation_accessibility_contract(self):
