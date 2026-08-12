@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20260813-chart-fullscreen-position';
+  var ENHANCEMENT_VERSION = '20260813-chart-fullscreen-shell';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -169,9 +169,15 @@
 
   function openChartModal(target, title) {
     if (document.querySelector('.de-chart-overlay')) return;
+    // Stock charts keep their toolbar (drawing/timeframe/studies) beside #ssChart.
+    // Move that whole panel into the modal so returning from fullscreen cannot
+    // strand the drawing controls outside the fullscreen chart.
+    var modalTarget = target && target.id === 'ssChart' ? target.parentElement : target;
+    if (!modalTarget) return;
+    var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart') : null;
     var placeholder = document.createElement('div');
     placeholder.className = 'de-chart-placeholder';
-    target.parentNode.insertBefore(placeholder, target);
+    modalTarget.parentNode.insertBefore(placeholder, modalTarget);
     var overlay = document.createElement('div');
     overlay.className = 'de-chart-overlay';
     overlay.innerHTML = '<div class="de-chart-modal" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '"><div class="de-chart-modal-head"><strong>' + escapeHtml(title) + '</strong><button type="button" class="de-chart-close" aria-label="닫기">✕</button></div><div class="de-chart-modal-body"></div></div>';
@@ -179,38 +185,63 @@
     // 전파되어 화면이 밀리거나 좌우가 잘릴 수 있다. 모달은 문서 최상위에 둔다.
     document.body.appendChild(overlay);
     var body = overlay.querySelector('.de-chart-modal-body');
-    var oldStyle = target.getAttribute('style');
-    var flowRoot = target.closest ? target.closest('#foreign-flow') : null;
+    var oldStyle = modalTarget.getAttribute('style');
+    var oldChartStyle = chartTarget ? chartTarget.getAttribute('style') : null;
+    var flowRoot = modalTarget.closest ? modalTarget.closest('#foreign-flow') : null;
     var flowScope = null;
-    target.classList.add('de-modal-target');
+    var stockRoot = chartTarget && modalTarget.closest ? modalTarget.closest('#stock-search') : null;
+    var stockScope = null;
+    modalTarget.classList.add('de-modal-target');
     // 매물대 차트의 CSS는 원래 #foreign-flow 아래를 기준으로 범위를 좁혀 두었다.
     // 문서 최상위 모달로 옮길 때도 같은 스코프를 유지해야 SVG가 기본 검정색으로
     // 렌더링되지 않고 건물·배경·프로파일 색상을 그대로 사용한다.
-    if (flowRoot && target.classList.contains('ff-apt-chart-wrap')) {
+    if (stockRoot) {
+      // stock-search.css is intentionally scoped to #stock-search. Keep that
+      // scope while the chart panel is temporarily moved to document.body.
+      stockScope = document.createElement('div');
+      stockScope.className = 'de-stock-search-scope';
+      stockScope.id = 'stock-search';
+      stockRoot.id = 'stock-search-original';
+      body.appendChild(stockScope);
+      stockScope.appendChild(modalTarget);
+    } else if (flowRoot && modalTarget.classList.contains('ff-apt-chart-wrap')) {
       flowScope = document.createElement('div');
       flowScope.className = 'de-foreign-flow-scope';
       flowScope.id = 'foreign-flow';
       flowRoot.id = 'foreign-flow-original';
       body.appendChild(flowScope);
-      flowScope.appendChild(target);
+      flowScope.appendChild(modalTarget);
     } else {
-      body.appendChild(target);
+      body.appendChild(modalTarget);
     }
-    if (target.id === 'ffLwChart' || target.id === 'ssChart' || target.classList.contains('kf-chart') || target.classList.contains('dmi-chart')) {
-      target.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
+    if (chartTarget) {
+      chartTarget.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
+    } else if (modalTarget.id === 'ffLwChart' || modalTarget.classList.contains('kf-chart') || modalTarget.classList.contains('dmi-chart')) {
+      modalTarget.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
     }
     function close() {
       if (!overlay.parentNode) return;
-      placeholder.parentNode.insertBefore(target, placeholder);
-      if (oldStyle == null) target.removeAttribute('style'); else target.setAttribute('style', oldStyle);
-      target.classList.remove('de-modal-target');
+      placeholder.parentNode.insertBefore(modalTarget, placeholder);
+      if (oldStyle == null) modalTarget.removeAttribute('style'); else modalTarget.setAttribute('style', oldStyle);
+      if (chartTarget) {
+        if (oldChartStyle == null) chartTarget.removeAttribute('style'); else chartTarget.setAttribute('style', oldChartStyle);
+      }
+      modalTarget.classList.remove('de-modal-target');
       if (flowScope) {
         flowScope.remove();
         flowRoot.id = 'foreign-flow';
       }
+      if (stockScope) {
+        stockScope.remove();
+        stockRoot.id = 'stock-search';
+      }
       placeholder.remove();
       overlay.remove();
       document.removeEventListener('keydown', onKeydown);
+      requestAnimationFrame(function () {
+        global.dispatchEvent(new Event('resize'));
+        if (chartTarget) chartTarget.dispatchEvent(new Event('resize'));
+      });
     }
     function onKeydown(event) { if (event.key === 'Escape') close(); }
     overlay.querySelector('.de-chart-close').addEventListener('click', close);
@@ -219,8 +250,8 @@
     requestAnimationFrame(function () {
       global.dispatchEvent(new Event('resize'));
       // Lightweight Charts가 이동 후 새 컨테이너 폭을 다시 측정하도록 보정한다.
-      if (target.clientWidth && target.clientHeight) {
-        target.dispatchEvent(new Event('resize'));
+      if (modalTarget.clientWidth && modalTarget.clientHeight) {
+        modalTarget.dispatchEvent(new Event('resize'));
       }
     });
   }
