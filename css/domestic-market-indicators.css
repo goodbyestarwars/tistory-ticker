@@ -14,13 +14,11 @@
 .dmi-heading h2,
 .dmi-subheading h3,
 .dmi-muted,
-.dmi-provider,
 .dmi-funds-provider { color: #000 !important; }
 .dmi-heading h2 { font-size: 24px; }
 .dmi-subheading { margin: 28px 0 12px; }
 .dmi-subheading h3 { font-size: 18px; }
 .dmi-muted { color: #000; font-size: 13px; }
-.dmi-provider { color: #000; font-size: 12px; white-space: nowrap; }
 .dmi-chart-grid,
 .dmi-fund-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .dmi-panel,
@@ -35,10 +33,12 @@
 .dmi-chart canvas { touch-action: none; }
 .dmi-chart-message { display: grid; place-items: center; height: 100%; color: #000; font-size: 14px; }
 .dmi-flow-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.dmi-flow-title { font-weight: 700; font-size: 17px; margin-bottom: 10px; }
+.dmi-flow-card { padding: 12px; }
+.dmi-flow-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
 .dmi-flow-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .dmi-flow-table th,
-.dmi-flow-table td { border-bottom: 1px solid #edf1f6; padding: 9px 6px; text-align: right; font-size: 13px; }
+.dmi-flow-table th,
+.dmi-flow-table td { border-bottom: 1px solid #edf1f6; padding: 6px 5px; text-align: right; font-size: 12px; }
 .dmi-flow-table th:first-child,
 .dmi-flow-table td:first-child { text-align: left; color: #000; }
 .dmi-flow-table th { color: #000; font-weight: 500; }

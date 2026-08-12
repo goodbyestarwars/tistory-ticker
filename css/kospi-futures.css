@@ -80,6 +80,12 @@
   margin-bottom: 24px;
 }
 
+#kospi-futures .kf-section[data-section-key="ai"] {
+  margin-top: 32px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
 #kospi-futures .kf-section-head {
   display: flex;
   align-items: center;
