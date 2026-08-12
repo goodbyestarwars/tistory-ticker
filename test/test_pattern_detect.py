@@ -199,7 +199,7 @@ class RisingLowsDetectionTest(unittest.TestCase):
 
         self.assertEqual(len(results["risingLows"]), detector.PATTERN_MAX_MATCHES + 1)
 
-    def test_finalize_pattern_results_keeps_only_top_12_candidates(self):
+    def test_finalize_pattern_results_keeps_all_candidates_under_quality_limit(self):
         results = {
             "risingLows": [
                 {"code": "%06d" % i, "score": 70, "date": "2026-08-%02d" % ((i % 9) + 1)}
@@ -209,8 +209,22 @@ class RisingLowsDetectionTest(unittest.TestCase):
 
         detector.finalize_pattern_results(results)
 
-        self.assertEqual(len(results["risingLows"]), detector.RISING_LOWS_DISPLAY_LIMIT)
+        self.assertEqual(len(results["risingLows"]), 17)
         self.assertEqual(results["risingLows"][0]["code"], "399720")
+
+    def test_finalize_pattern_results_strengthens_large_bucket_without_order_cut(self):
+        results = {
+            "risingLows": [
+                {"code": "%06d" % i, "score": 60 if i < 8 else 80,
+                 "date": "2026-08-01"}
+                for i in range(21)
+            ]
+        }
+
+        detector.finalize_pattern_results(results)
+
+        self.assertEqual(len(results["risingLows"]), 13)
+        self.assertTrue(all(row["score"] >= 80 for row in results["risingLows"]))
 
     def test_all_pattern_buckets_rank_before_the_display_cap(self):
         results = {
@@ -225,9 +239,9 @@ class RisingLowsDetectionTest(unittest.TestCase):
         detector.finalize_pattern_results(results, pullback)
 
         for key in results:
-            self.assertEqual(len(results[key]), detector.PATTERN_MAX_MATCHES)
+            self.assertEqual(len(results[key]), 16)
             self.assertEqual(results[key][0]["code"], "999999")
-        self.assertEqual(len(pullback), detector.PATTERN_MAX_MATCHES)
+        self.assertEqual(len(pullback), 16)
         self.assertEqual(pullback[0]["code"], "999999")
 
 

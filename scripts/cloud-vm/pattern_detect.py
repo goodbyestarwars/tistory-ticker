@@ -7,9 +7,10 @@ import math
 import re
 
 PATTERN_SWING = 2
-# Evaluate the full universe before applying this display limit.
-PATTERN_MAX_MATCHES = 12
-RISING_LOWS_DISPLAY_LIMIT = 12
+# A pattern bucket may contain at most this many candidates after its
+# chart-quality gates are applied. We do not slice by universe order.
+PATTERN_MAX_MATCHES = 20
+RISING_LOWS_DISPLAY_LIMIT = 20
 PENNY_STOCK_MAX_PRICE = 1000  # 국내 주식 기준: 1,000원 미만은 동전주로 제외
 
 ETF_NAME_PREFIXES = (
@@ -514,6 +515,67 @@ def build_pattern_match(stock, daily, detail):
         # 패턴 좌표(저점/고점/넥라인/지지·저항)를 스냅샷에 함께 보관한다.
         'patternDetail': detail,
     }
+
+
+def _quality_gate_matches(matches, pattern_key):
+    """Tighten chart conditions only when a bucket is larger than 20.
+
+    The gates are deliberately score/structure based. A candidate is never
+    removed just because it appeared later in the universe scan.
+    """
+    matches = list(matches or [])
+    if len(matches) <= PATTERN_MAX_MATCHES:
+        return matches
+
+    def score_at_least(item, threshold):
+        try:
+            return float(item.get('score') or 0) >= threshold
+        except (TypeError, ValueError):
+            return False
+
+    def passes_gate(item, stage):
+        detail = item.get('patternDetail') or {}
+        criteria = detail.get('criteria') or {}
+        if pattern_key == 'risingLows':
+            # First remove weak resistance/volume/current-candle confirmations,
+            # then keep only the strongest higher-low structures.
+            return score_at_least(item, 80 if stage == 1 else 90)
+        if pattern_key == 'maCloudBreakout':
+            return score_at_least(item, 90 if stage == 1 else 95)
+        if pattern_key == 'doubleBottom':
+            return score_at_least(item, 80 if stage == 1 else 90)
+        if pattern_key == 'invHeadShoulders':
+            return score_at_least(item, 90 if stage == 1 else 95)
+        if pattern_key == 'boxRangeLow':
+            if stage == 1:
+                return score_at_least(item, 80)
+            if criteria:
+                lower_position = criteria.get('lowerPositionPct')
+                close_range = criteria.get('closeRangePct')
+                if lower_position is not None and close_range is not None:
+                    return lower_position <= 25 and close_range <= 8
+            return score_at_least(item, 90 if stage == 2 else 95)
+        if pattern_key == 'openingGap':
+            if stage == 1:
+                return score_at_least(item, 80)
+            intraday = detail.get('intradayRatePct')
+            gap = detail.get('gapRatePct')
+            if intraday is not None and gap is not None:
+                return intraday >= 4.5 and gap >= 1.0
+            return score_at_least(item, 90 if stage == 2 else 95)
+        if pattern_key == 'pullback':
+            return score_at_least(item, 85 if stage == 1 else 90)
+        return score_at_least(item, 90 if stage == 1 else 95)
+
+    # Each stage is stricter than the previous one. If a stage brings the
+    # bucket to 20 or fewer, retain every survivor and stop.
+    candidates = matches
+    for stage in (1, 2, 3):
+        filtered = [item for item in candidates if passes_gate(item, stage)]
+        if len(filtered) <= PATTERN_MAX_MATCHES:
+            return filtered
+        candidates = filtered
+    return candidates
 
 
 # ---------------------------------------------------------------------------
@@ -1101,24 +1163,26 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
     return pattern_scanned, pullback_scanned
 
 
-def _rank_and_limit(matches):
-    """Rank all candidates deterministically before applying the display cap."""
+def _rank_matches(matches):
+    """Sort survivors for readability without removing any by scan order."""
     matches = matches or []
     matches.sort(key=lambda item: item.get('code') or '')
     matches.sort(key=lambda item: item.get('date') or '', reverse=True)
     matches.sort(key=lambda item: item.get('score') or 0, reverse=True)
-    return matches[:PATTERN_MAX_MATCHES]
+    return matches
 
 
 def finalize_pattern_results(pattern_results, pullback_matches=None):
-    """Apply the quality-ranked display cap after the full universe scan.
+    """Apply staged chart-quality gates after the full universe scan.
 
-    No pattern bucket is truncated during scanning. This prevents the first
-    12 symbols in universe order from winning over stronger later candidates.
+    Buckets with 20 or fewer candidates are kept intact. Larger buckets are
+    tightened using pattern-specific chart evidence until they fit; no bucket
+    is truncated by universe order.
     """
     for key in ('risingLows', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow', 'openingGap'):
         if key in pattern_results:
-            pattern_results[key] = _rank_and_limit(pattern_results.get(key))
+            filtered = _quality_gate_matches(pattern_results.get(key), key)
+            pattern_results[key] = _rank_matches(filtered)
     if pullback_matches is not None:
-        pullback_matches[:] = _rank_and_limit(pullback_matches)
+        pullback_matches[:] = _rank_matches(_quality_gate_matches(pullback_matches, 'pullback'))
     return pattern_results

@@ -94,9 +94,10 @@ FUNDAMENTAL_SCORE_MIN = 60
 DISPARITY_MAX = 90
 
 # 섹터당 후보를 몇 개까지 보여줄지 - "조건 통과자를 무제한으로 다 보여주면 코스피 목록
-# 찍는 것과 다를 바 없다"는 피드백을 그대로 반영해 이격도가 가장 낮은(가장 많이 눌린)
-# 순으로 상위 N개만 남긴다.
+# 찍는 것과 다를 바 없다"는 피드백을 그대로 반영해 결과가 20개를 넘을 때만
+# 우량성 점수와 이격도 조건을 단계적으로 강화한다.
 SECTOR_TOP_N = 5
+STRATEGY_MAX_RESULTS = 20
 
 BLUECHIP_METHODOLOGY_NOTE = (
     '펀더멘탈 점수 {min_score}점 이상인 우량주 중 주봉 엔벨로프({period}, ±{percent:.0f}%) 하단을 최근 주봉이 터치하고, '
@@ -341,6 +342,28 @@ def build_match(stock, daily, disparity, fundamental_score, annual):
     }
 
 
+def apply_strategy_quality_gates(matches):
+    """Tighten fundamental/price quality only when strategy results exceed 20."""
+    matches = list(matches or [])
+    if len(matches) <= STRATEGY_MAX_RESULTS:
+        return matches
+
+    gates = (
+        lambda item: (item.get('fundamentalScore') or 0) >= 70,
+        lambda item: (item.get('fundamentalScore') or 0) >= 80 and (item.get('disparity') or 999) <= 85,
+        lambda item: (item.get('fundamentalScore') or 0) >= 90 and (item.get('disparity') or 999) <= 80,
+        lambda item: (item.get('fundamentalScore') or 0) >= 90 and (item.get('disparity') or 999) <= 75,
+        lambda item: (item.get('fundamentalScore') or 0) >= 100 and (item.get('disparity') or 999) <= 75,
+    )
+    candidates = matches
+    for gate in gates:
+        filtered = [item for item in candidates if gate(item)]
+        if len(filtered) <= STRATEGY_MAX_RESULTS:
+            return filtered
+        candidates = filtered
+    return candidates
+
+
 def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
     theme_codes = theme_codes or set()
     sectors = {}  # sector_name -> [match, ...] (필터 통과자 전부, 정렬/컷은 이후 일괄)
@@ -396,7 +419,15 @@ def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
 
     for sector in sectors:
         sectors[sector].sort(key=lambda m: m['disparity'])  # 가장 많이 눌린(이격도 낮은) 순
-        del sectors[sector][SECTOR_TOP_N:]
+        # Keep every sector candidate until the global quality gates run.
+
+    all_matches = [match for sector_matches in sectors.values() for match in sector_matches]
+    selected_codes = {match['code'] for match in apply_strategy_quality_gates(all_matches)}
+    for sector in list(sectors):
+        sectors[sector] = [match for match in sectors[sector] if match['code'] in selected_codes]
+        sectors[sector].sort(key=lambda m: (-m['fundamentalScore'], m['disparity'], m['code']))
+        if not sectors[sector]:
+            del sectors[sector]
 
     return sectors, scanned, skipped_no_data, skipped_illiquid, skipped_no_sector, skipped_no_fundamentals
 
