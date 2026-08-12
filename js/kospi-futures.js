@@ -1048,7 +1048,7 @@
     }
     if (document.querySelector('script[data-domestic-market-indicators]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260813-dmi-controls';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260813-fund-average';
     script.setAttribute('data-domestic-market-indicators', '1');
     script.onload = function () {
       if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();

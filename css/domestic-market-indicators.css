@@ -64,9 +64,11 @@
 .dmi-flow-table th { color: #000; font-weight: 500; }
 .dmi-flow-table td.dmi-positive { color: #d24f45 !important; }
 .dmi-flow-table td.dmi-negative { color: #1261c4 !important; }
-.dmi-fund-card { min-height: 120px; }
+.dmi-fund-card { min-height: 150px; }
 .dmi-fund-label { color: #000; font-size: 14px; }
+.dmi-fund-desc { display: block; margin-top: 5px; color: #000; font-size: 12px; line-height: 1.45; }
 .dmi-fund-value { display: block; margin: 8px 0 4px; color: #000; font-size: 23px; font-weight: 700; }
+.dmi-fund-average { display: block; color: #000; font-size: 12px; }
 .dmi-fund-date { color: #000; font-size: 12px; }
 .dmi-error { border: 1px solid #f0d4d4; border-radius: 12px; padding: 14px; color: #c14c4c; background: #fff8f8; }
 @media (max-width: 760px) {
