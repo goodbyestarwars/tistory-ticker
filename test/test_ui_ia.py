@@ -21,7 +21,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("{ href: '/page/stock-search', label: '종목' }", source)
         self.assertEqual(source.count("      label: '종목',"), 1)
         self.assertIn("{ href: '/page/foreign-flow', label: '종목분석' }", source)
-        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세' }", source)
+        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세 (US. Include)' }", source)
         self.assertEqual(source.count("      label: '종목검색',"), 1)
         self.assertNotIn("label: '종목뉴스'", source)
         self.assertNotIn("{ href: '/page/watchlist', label: 'MY' }", source)
@@ -38,7 +38,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIsNotNone(group)
         body = group.group("body")
         self.assertIn("{ href: '/page/foreign-flow', label: '종목분석' }", body)
-        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세' }", body)
+        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세 (US. Include)' }", body)
         search_group = re.search(
             r"\{\n\s+label: '종목검색',\n\s+children: \[(?P<body>.*?)\n\s+\]\n\s+\},",
             source,
