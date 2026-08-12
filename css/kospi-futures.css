@@ -161,7 +161,42 @@
   border-color: #222;
 }
 
+#kospi-futures .kf-draw-toggle,
+#kospi-futures .kf-draw-clear {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+#kospi-futures .kf-draw-toggle.is-active {
+  background: #222;
+  color: #fff;
+  border-color: #222;
+}
+
+#kospi-futures .kf-drawing-layer {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  touch-action: none;
+}
+
+#kospi-futures .kf-drawing-layer.is-active {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
 #kospi-futures .kf-chart {
+  position: relative;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   padding: 0;

@@ -88,6 +88,18 @@
     } catch (e) { /* 저장소를 사용할 수 없는 환경에서도 차트는 계속 동작 */ }
   }
 
+  function collapseStorageKey(market) {
+    return 'tistory-ticker:dmi-collapsed:' + market;
+  }
+
+  function loadCollapsed(market) {
+    try { return global.localStorage.getItem(collapseStorageKey(market)) === '1'; } catch (e) { return false; }
+  }
+
+  function saveCollapsed(market, collapsed) {
+    try { global.localStorage.setItem(collapseStorageKey(market), collapsed ? '1' : '0'); } catch (e) { /* 무시 */ }
+  }
+
   function drawingPointFromCoordinate(state, x, y) {
     var time = state.chart.timeScale().coordinateToTime(x);
     var price = state.series.coordinateToPrice(y);
@@ -279,7 +291,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260813-dmi-size-color';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260813-dmi-controls';
     document.head.appendChild(link);
   }
 
@@ -374,8 +386,10 @@
   }
 
   function chartPanel(market, item) {
-    return '<section class="dmi-panel" data-dmi-panel="' + market + '" data-dmi-interval="day">'
+    var collapsed = loadCollapsed(market);
+    return '<section class="dmi-panel' + (collapsed ? ' dmi-collapsed' : '') + '" data-dmi-panel="' + market + '" data-dmi-interval="day">'
       + '<div class="dmi-panel-title"><span>' + escapeHtml(item.name || market) + '</span><div class="dmi-chart-tools">'
+      + '<button type="button" class="dmi-collapse-btn" data-dmi-panel="' + market + '" aria-expanded="' + (collapsed ? 'false' : 'true') + '" aria-label="펼치기/접기">' + (collapsed ? '▸' : '▾') + '</button>'
       + '<button type="button" class="dmi-draw-toggle" aria-pressed="false" title="두 지점을 차례로 클릭해 추세선을 그립니다.">선 그리기</button>'
       + '<button type="button" class="dmi-draw-clear" title="그린 선을 모두 지웁니다.">지우기</button></div></div>'
       + '<div class="dmi-tabs" role="tablist">'
@@ -437,6 +451,26 @@
       root.querySelector('.dmi-shell').insertAdjacentHTML('beforeend', '<div class="dmi-error">국내시장지표 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>');
     });
     root.addEventListener('click', function (event) {
+      var collapseButton = event.target.closest ? event.target.closest('.dmi-collapse-btn') : null;
+      if (collapseButton) {
+        var collapsePanel = collapseButton.closest('[data-dmi-panel]');
+        if (!collapsePanel) return;
+        var isCollapsed = !collapsePanel.classList.contains('dmi-collapsed');
+        var collapseMarket = collapsePanel.getAttribute('data-dmi-panel');
+        collapsePanel.classList.toggle('dmi-collapsed', isCollapsed);
+        collapseButton.textContent = isCollapsed ? '▸' : '▾';
+        collapseButton.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+        saveCollapsed(collapseMarket, isCollapsed);
+        if (!isCollapsed && chartInstances[collapseMarket]) {
+          var collapseChart = collapsePanel.querySelector('.dmi-chart');
+          setTimeout(function () {
+            if (!collapseChart || !chartInstances[collapseMarket]) return;
+            chartInstances[collapseMarket].chart.resize(collapseChart.clientWidth, CHART_HEIGHT);
+            redrawDrawing(drawingStates[collapseMarket]);
+          }, 0);
+        }
+        return;
+      }
       var button = event.target.closest ? event.target.closest('.dmi-tab') : null;
       if (!button) return;
       var panel = button.closest('[data-dmi-panel]');

@@ -97,6 +97,7 @@
 
   var lwcLoadPromise = null;
   var chartInstances = {}; // key -> { chart, series }
+  var drawingStates = {};
   var themeObserver = null;
   var refreshTimer = null;
   // key -> { interval, dayItem(마지막 일봉 fetch 결과), minuteRows(마지막 분봉 fetch 결과) }
@@ -298,7 +299,10 @@
     var sections = CHARTS.map(function (c) {
       var toggleHtml = '<div class="kf-interval-toggle" data-chart-key="' + c.key + '">' + c.intervals.map(function (iv) {
         return '<button type="button" class="kf-interval-btn' + (iv === panelState[c.key].interval ? ' active' : '') + '" data-interval="' + iv + '">' + INTERVAL_LABELS[iv] + '</button>';
-      }).join('') + '</div>';
+      }).join('')
+        + '<button type="button" class="kf-draw-toggle" aria-pressed="false">선 그리기</button>'
+        + '<button type="button" class="kf-draw-clear">지우기</button>'
+        + '</div>';
       var collapsed = loadCollapsed(c.key);
       return '<div class="kf-section' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="' + c.key + '">'
         + '<div class="kf-section-head">'
@@ -499,10 +503,187 @@
     return out;
   }
 
+  function kfDrawingStorageKey(key, interval) {
+    return 'tistory-ticker:kf-drawings:' + key + ':' + interval;
+  }
+
+  function loadKfDrawingLines(key, interval) {
+    try {
+      var raw = global.localStorage.getItem(kfDrawingStorageKey(key, interval));
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+  }
+
+  function saveKfDrawingLines(state) {
+    try { global.localStorage.setItem(kfDrawingStorageKey(state.key, state.interval), JSON.stringify(state.lines)); } catch (e) { /* 무시 */ }
+  }
+
+  function kfDrawingCoordinate(state, point) {
+    if (!point) return null;
+    var x = state.chart.timeScale().timeToCoordinate(point.time);
+    var y = state.series.priceToCoordinate(point.price);
+    return x == null || y == null ? null : { x: Number(x), y: Number(y) };
+  }
+
+  function redrawKfDrawing(state) {
+    if (!state || !state.overlay) return;
+    var width = state.overlay.clientWidth;
+    var height = state.overlay.clientHeight;
+    var ctx = state.overlay.getContext('2d');
+    if (!ctx || !width || !height) return;
+    ctx.clearRect(0, 0, width, height);
+    ctx.lineCap = 'round';
+    state.lines.forEach(function (line) {
+      var start = kfDrawingCoordinate(state, line.start);
+      var end = kfDrawingCoordinate(state, line.end);
+      if (!start || !end) return;
+      ctx.beginPath();
+      ctx.strokeStyle = '#e11d48';
+      ctx.lineWidth = 2;
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+      [start, end].forEach(function (point) {
+        ctx.beginPath();
+        ctx.fillStyle = '#fff';
+        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.strokeStyle = '#e11d48';
+        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+    });
+    if (state.pending) {
+      var pending = kfDrawingCoordinate(state, state.pending);
+      if (pending) {
+        ctx.beginPath();
+        ctx.fillStyle = '#e11d48';
+        ctx.arc(pending.x, pending.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    if (state.preview && state.pending) {
+      var previewStart = kfDrawingCoordinate(state, state.pending);
+      if (previewStart) {
+        ctx.beginPath();
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = 'rgba(225,29,72,.72)';
+        ctx.lineWidth = 1.5;
+        ctx.moveTo(previewStart.x, previewStart.y);
+        ctx.lineTo(state.preview.x, state.preview.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }
+
+  function resizeKfDrawing(state) {
+    if (!state || !state.overlay) return;
+    var ratio = global.devicePixelRatio || 1;
+    var width = state.overlay.clientWidth;
+    var height = state.overlay.clientHeight;
+    state.overlay.width = Math.max(1, Math.round(width * ratio));
+    state.overlay.height = Math.max(1, Math.round(height * ratio));
+    var ctx = state.overlay.getContext('2d');
+    if (ctx) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    redrawKfDrawing(state);
+  }
+
+  function destroyKfDrawing(key) {
+    var state = drawingStates[key];
+    if (!state) return;
+    if (state.resizeObserver) state.resizeObserver.disconnect();
+    if (state.resizeHandler) global.removeEventListener('resize', state.resizeHandler);
+    if (state.timeRangeHandler && state.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
+      state.chart.timeScale().unsubscribeVisibleTimeRangeChange(state.timeRangeHandler);
+    }
+    if (state.button) {
+      state.button.classList.remove('is-active');
+      state.button.setAttribute('aria-pressed', 'false');
+      state.button.textContent = '선 그리기';
+    }
+    if (state.overlay) state.overlay.remove();
+    drawingStates[key] = null;
+  }
+
+  function setKfDrawingMode(key, enabled) {
+    var state = drawingStates[key];
+    if (!state) return;
+    state.enabled = enabled;
+    state.pending = null;
+    state.preview = null;
+    state.overlay.classList.toggle('is-active', enabled);
+    state.button.classList.toggle('is-active', enabled);
+    state.button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    state.button.textContent = enabled ? '그리기 종료' : '선 그리기';
+    redrawKfDrawing(state);
+  }
+
+  function setupKfDrawing(key, element, chart, series, interval) {
+    destroyKfDrawing(key);
+    var section = element.closest('.kf-section');
+    var state = {
+      key: key,
+      interval: interval,
+      chart: chart,
+      series: series,
+      lines: loadKfDrawingLines(key, interval),
+      pending: null,
+      preview: null,
+      enabled: false,
+      button: section && section.querySelector('.kf-draw-toggle')
+    };
+    if (!state.button) return;
+    var overlay = document.createElement('canvas');
+    overlay.className = 'kf-drawing-layer';
+    overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
+    element.appendChild(overlay);
+    state.overlay = overlay;
+    overlay.addEventListener('click', function (event) {
+      if (!state.enabled) return;
+      var rect = overlay.getBoundingClientRect();
+      var time = chart.timeScale().coordinateToTime(event.clientX - rect.left);
+      var price = series.coordinateToPrice(event.clientY - rect.top);
+      if (time == null || price == null || !isFinite(Number(price))) return;
+      var point = { time: time, price: Number(price) };
+      if (!state.pending) state.pending = point;
+      else {
+        state.lines.push({ start: state.pending, end: point });
+        state.pending = null;
+        saveKfDrawingLines(state);
+      }
+      redrawKfDrawing(state);
+    });
+    overlay.addEventListener('mousemove', function (event) {
+      if (!state.enabled || !state.pending) return;
+      var rect = overlay.getBoundingClientRect();
+      state.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      redrawKfDrawing(state);
+    });
+    overlay.addEventListener('mouseleave', function () {
+      state.preview = null;
+      redrawKfDrawing(state);
+    });
+    state.timeRangeHandler = function () { redrawKfDrawing(state); };
+    if (chart.timeScale().subscribeVisibleTimeRangeChange) chart.timeScale().subscribeVisibleTimeRangeChange(state.timeRangeHandler);
+    if (global.ResizeObserver) {
+      state.resizeObserver = new global.ResizeObserver(function () { resizeKfDrawing(state); });
+      state.resizeObserver.observe(element);
+    } else {
+      state.resizeHandler = function () { resizeKfDrawing(state); };
+      global.addEventListener('resize', state.resizeHandler);
+    }
+    drawingStates[key] = state;
+    resizeKfDrawing(state);
+  }
+
   function destroyChart(key) {
     var inst = chartInstances[key];
     if (!inst) return;
     if (inst.rangeSaveTimer) clearTimeout(inst.rangeSaveTimer);
+    destroyKfDrawing(key);
     try { inst.chart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
     delete chartInstances[key];
   }
@@ -635,6 +816,7 @@
     if (live && live.interval === interval && live.container === container && container.querySelector('canvas')) {
       try {
         live.series.setData(points);
+        redrawKfDrawing(drawingStates[key]);
         return;
       } catch (err) { /* 재사용 실패 시 아래에서 새로 만든다 */ }
     }
@@ -663,6 +845,7 @@
       applySavedRange(chart, key, interval, points);
 
       // 사용자가 확대·이동할 때마다 현재 구간을 저장(디바운스) - 페이지를 새로고침해도 복원된다.
+      setupKfDrawing(key, container, chart, series, interval);
       chart.timeScale().subscribeVisibleTimeRangeChange(function () {
         if (inst.rangeSaveTimer) clearTimeout(inst.rangeSaveTimer);
         inst.rangeSaveTimer = setTimeout(function () {
@@ -754,6 +937,30 @@
     if (btn) btn.addEventListener('click', function () { loadMinuteAndRender(cfg, true); });
   }
 
+  function wireDrawingControls(container) {
+    container.querySelectorAll('.kf-draw-toggle').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var section = button.closest('.kf-section');
+        var key = section && section.getAttribute('data-section-key');
+        var state = drawingStates[key];
+        setKfDrawingMode(key, !(state && state.enabled));
+      });
+    });
+    container.querySelectorAll('.kf-draw-clear').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var section = button.closest('.kf-section');
+        var key = section && section.getAttribute('data-section-key');
+        var state = drawingStates[key];
+        if (!state) return;
+        state.lines = [];
+        state.pending = null;
+        state.preview = null;
+        saveKfDrawingLines(state);
+        redrawKfDrawing(state);
+      });
+    });
+  }
+
   function wireIntervalToggles(container) {
     container.querySelectorAll('.kf-interval-toggle').forEach(function (toggle) {
       var key = toggle.getAttribute('data-chart-key');
@@ -841,7 +1048,7 @@
     }
     if (document.querySelector('script[data-domestic-market-indicators]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260813-dmi-size-color';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260813-dmi-controls';
     script.setAttribute('data-domestic-market-indicators', '1');
     script.onload = function () {
       if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();
@@ -879,6 +1086,7 @@
     loadDomesticMarketIndicators(container);
     container.innerHTML = buildShell();
     wireIntervalToggles(container);
+    wireDrawingControls(container);
     wireCollapseToggles(container);
     updateMarketStatusBadges(container); // 가격 fetch를 기다리지 않고 바로 표시
 
