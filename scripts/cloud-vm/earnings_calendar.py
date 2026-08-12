@@ -711,9 +711,17 @@ def _merge_events(events):
     return sorted(merged, key=_event_sort_key)
 
 
+def _fetch_month_sources(year, month):
+    """Fetch domestic and US earnings concurrently so one provider cannot double latency."""
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        dart_future = executor.submit(safe_fetch_month, year, month)
+        us_future = executor.submit(safe_fetch_us_month, year, month)
+        return dart_future.result() + us_future.result()
+
+
 def merge_month(year, month):
     """국내 DART 발표일과 미국 Finnhub 예정일을 하나의 목록으로 합친다."""
-    incoming = safe_fetch_month(year, month) + safe_fetch_us_month(year, month)
+    incoming = _fetch_month_sources(year, month)
     _upsert_persistent_events(incoming)
     # 기존에 확인한 실적은 공급자 장애·VM 재시작에도 삭제하지 않고 계속 반환한다.
     return _stored_events(lambda event: _month_matches(event, year, month))
@@ -723,7 +731,7 @@ def merge_year(year):
     """해당 연도 1월 1일~12월 31일의 일정을 하나의 목록으로 합친다."""
     events = []
     def fetch_month_events(month):
-        return safe_fetch_month(year, month) + safe_fetch_us_month(year, month)
+        return _fetch_month_sources(year, month)
 
     # 연간 검색은 12개월을 순차 조회하면 첫 검색이 지나치게 느려질 수 있어
     # 월별 공급자 캐시는 유지하면서 월 조회만 제한적으로 병렬화한다.
