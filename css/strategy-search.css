@@ -52,6 +52,31 @@
   line-height: 1.5;
 }
 
+#strategy-search .ss-return-period-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+
+#strategy-search .ss-return-period-tab {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+}
+
+#strategy-search .ss-return-period-tab.active {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+
 /* 카드 하나 = WICS 대분류 섹터 하나. js/market-temp.js 카드보기(css/market-temp.css의
    #market-temp .sector-cards-grid/.sector-card/.sector-row)와 동일한 값을 그대로 옮겼다
    (2026-08 UI 피드백 "증시온도 카드보기 그대로 가져다 써") - 이번엔 실제로 여러 카드가
@@ -218,6 +243,16 @@ html.dark #strategy-search .ss-methodology {
   color: rgba(245, 239, 224, 0.6) !important;
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.14) !important;
+}
+html.dark #strategy-search .ss-return-period-tab {
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.2);
+  color: rgba(245, 239, 224, 0.8) !important;
+}
+html.dark #strategy-search .ss-return-period-tab.active {
+  background: rgba(245, 239, 224, 0.22);
+  border-color: rgba(245, 239, 224, 0.4);
+  color: #F5EFE0 !important;
 }
 html.dark #strategy-search .ss-card {
   background: #1A1A1A;

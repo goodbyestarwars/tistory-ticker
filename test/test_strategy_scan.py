@@ -173,6 +173,20 @@ class EtfReturnTests(unittest.TestCase):
         self.assertAlmostEqual(result['ETF'][0]['returnRate6mPct'], 9.09, places=2)
         self.assertAlmostEqual(result['ETF'][0]['returnRate12mPct'], 20.0, places=2)
 
+    def test_returns_all_eligible_etfs_without_top_n_cap(self):
+        daily = self._daily(start=10_000, end=12_000, n=253)
+        universe = [
+            {'code': '200%03d' % index, 'name': 'KODEX ETF %03d' % index, 'is_etf': True}
+            for index in range(20)
+        ]
+
+        with patch.object(strategy_scan.db_schema, 'load_daily_prices', return_value=daily):
+            result, scanned = strategy_scan.scan_etf_returns(universe, object())
+
+        self.assertEqual(scanned, 20)
+        self.assertEqual(len(result['ETF']), 20)
+        self.assertIsNone(strategy_scan.ETF_RETURN_TOP_N)
+
 
 class OpeningGapTests(unittest.TestCase):
     def _daily(self, open_price=10_500, close_price=11_000, previous_close=10_000, volume=300_000):

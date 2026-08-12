@@ -811,6 +811,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("returnRate12mPct", source)
         self.assertIn("ss-etf-return-metric", source)
         self.assertIn("ss-etf-return-metric", style)
+        self.assertIn("ss-return-period-tab", source)
+        self.assertIn("data-return-period", source)
+        self.assertIn("activeEtfPeriod", source)
+        self.assertIn("sortMatches", source)
+        self.assertIn("ss-return-period-tabs", style)
 
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")

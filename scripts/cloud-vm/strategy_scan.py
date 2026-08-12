@@ -117,7 +117,9 @@ ETF_RETURN_PERIODS = (
     ('6m', '6개월', 126),
     ('12m', '12개월', 252),
 )
-ETF_RETURN_TOP_N = 15
+# Keep every eligible ETF in the cache.  The browser re-ranks this complete
+# set when the user selects 1m/3m/6m/12m.
+ETF_RETURN_TOP_N = None
 ETF_RETURN_CATEGORY_NAME = 'ETF 수익률 상위'
 
 BLUECHIP_METHODOLOGY_NOTE = (
@@ -748,7 +750,7 @@ def scan_etf_returns(universe, conn):
         -(item.get('price') or 0),
         item.get('code') or '',
     ))
-    return {'ETF': candidates[:ETF_RETURN_TOP_N]}, scanned
+    return {'ETF': candidates if ETF_RETURN_TOP_N is None else candidates[:ETF_RETURN_TOP_N]}, scanned
 
 
 def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
@@ -869,9 +871,9 @@ def main():
         'name': ETF_RETURN_CATEGORY_NAME,
         'methodology': (
             '국내 ETF 중 ETN·스팩·우선주·거래정지·정리매매·동전주를 제외하고, '
-            '1개월 누적수익률을 기준으로 상위 최대 %d개를 표시합니다. '
+            '유효한 가격 데이터가 있는 전체 ETF를 표시합니다. 기본 정렬은 1개월 누적수익률이며, '
+            '화면에서 1개월·3개월·6개월·12개월을 선택해 해당 기간 순으로 다시 정렬할 수 있습니다. '
             '각 종목의 1개월·3개월·6개월·12개월 누적수익률을 함께 제공합니다.'
-            % ETF_RETURN_TOP_N
         ),
         'sectors': {
             sector: {'name': sector, 'matches': matches}
