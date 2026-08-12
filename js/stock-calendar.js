@@ -48,6 +48,14 @@
     return global.KRX_MAP[stockName] || global.KRX_MAP[DART_NAME_ALIAS[stockName]] || null;
   }
 
+  function stockCodeFor(event, stockName) {
+    // DART가 내려주는 stock_code가 가장 정확하다. 회사명은 DART 정식명칭과
+    // KRX_MAP 약칭이 다를 수 있어 이름만으로 찾으면 국내 공시 아이콘이 빠진다.
+    var symbol = String(event && event.symbol || '').trim();
+    if (/^\d{6}$/.test(symbol)) return symbol;
+    return krxCodeFor(stockName) || usTickerFor(stockName);
+  }
+
   function usTickerFor(stockName) {
     var value = String(stockName || '').trim();
     return /^[A-Za-z][A-Za-z0-9.-]*$/.test(value) ? value.toUpperCase() : null;
@@ -218,7 +226,7 @@
       // 실제 로고 이미지를 그 위에 겹쳐 그린다 - 이름이 KRX_MAP과 정확히 안 맞거나
       // (예: 표기 차이) 로고 파일이 없는 종목은 svg->png 3단 폴백 끝에 이미지가 숨겨져도
       // 밑에 깔린 약칭이 그대로 보여 빈 원으로 남지 않는다.
-      var code = krxCodeFor(meta.stockName) || usTickerFor(meta.stockName);
+      var code = stockCodeFor(ev, meta.stockName);
       iconHtml = escapeHtml((meta.stockName || '').slice(0, 2)) + stockIconHtml(code);
     } else if (meta.isForeign) {
       iconClass = 'sc-ev-icon flag';
