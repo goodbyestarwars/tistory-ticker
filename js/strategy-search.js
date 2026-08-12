@@ -159,7 +159,10 @@
 
   function rowHtml(it) {
     var cc = chgClass(it.changeRate);
-    var metric = it.envelope
+    var metric = it.gapRatePct != null
+      ? '시초갭 ' + fmtPct(it.gapRatePct) + ' · 시가→종가 ' + fmtPct(it.intradayRatePct)
+        + ' · 거래대금 ' + fmtMillion(it.turnoverMillion) + '백만원'
+      : it.envelope
       ? '엔벨로프 하단 ' + fmtPct(it.envelope.closeDistancePct) + ' · ROE ' + fmtPct(it.roe)
       : '이격도 ' + fmtPct(it.disparity) + ' · ROE ' + fmtPct(it.roe);
     return '<div class="ss-row" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" title="눌러서 종목분석 보기">'
@@ -207,6 +210,7 @@
   }
   function fmt(n) { return n == null ? '-' : Math.round(n).toLocaleString('ko-KR'); }
   function fmtPct(n) { return n == null ? '-' : n.toFixed(1) + '%'; }
+  function fmtMillion(n) { return n == null ? '-' : Math.round(n).toLocaleString('ko-KR'); }
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {

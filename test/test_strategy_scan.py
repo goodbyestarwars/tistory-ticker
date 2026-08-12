@@ -85,6 +85,36 @@ class EnvelopeTests(unittest.TestCase):
         self.assertAlmostEqual(signal['upper'], 113.8116666667)
 
 
+class OpeningGapTests(unittest.TestCase):
+    def _daily(self, open_price=10_500, close_price=11_000, previous_close=10_000, volume=300_000):
+        return [
+            {'date': '2026-08-10', 'open': previous_close, 'high': previous_close,
+             'low': previous_close, 'close': previous_close, 'volume': volume},
+            {'date': '2026-08-11', 'open': open_price, 'high': close_price,
+             'low': open_price, 'close': close_price, 'volume': volume},
+        ]
+
+    def test_requires_b_k_g_l_conditions(self):
+        signal = strategy_scan.opening_gap_signal(self._daily())
+
+        self.assertIsNotNone(signal)
+        self.assertAlmostEqual(signal['gapRatePct'], 5.0)
+        self.assertAlmostEqual(signal['intradayRatePct'], 4.7619, places=3)
+        self.assertAlmostEqual(signal['turnoverMillion'], 3300.0)
+
+    def test_rejects_when_opening_gap_direction_is_not_up(self):
+        self.assertIsNone(strategy_scan.opening_gap_signal(self._daily(open_price=9_900)))
+
+    def test_rejects_when_close_is_not_three_percent_above_open(self):
+        self.assertIsNone(strategy_scan.opening_gap_signal(self._daily(close_price=10_700)))
+
+    def test_rejects_open_price_outside_range(self):
+        self.assertIsNone(strategy_scan.opening_gap_signal(self._daily(open_price=900, close_price=1_000)))
+
+    def test_rejects_turnover_outside_range(self):
+        self.assertIsNone(strategy_scan.opening_gap_signal(self._daily(volume=100_000)))
+
+
 class BuildMatchTests(unittest.TestCase):
     def test_fields_reflect_actual_per_stock_values(self):
         """이전 kisyaml 배지가 "항상 100%"였던 문제의 재발 방지 확인 - 종목마다 실제로

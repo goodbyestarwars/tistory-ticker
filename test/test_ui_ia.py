@@ -617,6 +617,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("it.envelope", source)
         self.assertIn("엔벨로프 하단", source)
 
+    def test_strategy_search_renders_opening_gap_metric(self):
+        source = self.read("js/strategy-search.js")
+        self.assertIn("it.gapRatePct", source)
+        self.assertIn("시초갭", source)
+        self.assertIn("fmtMillion(it.turnoverMillion)", source)
+
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")
         widgets = self.read("js/home-widgets.js")

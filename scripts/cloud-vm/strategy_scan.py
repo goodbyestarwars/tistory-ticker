@@ -69,6 +69,14 @@ ENVELOPE_PERCENT = 15.0
 ENVELOPE_TOUCH_TOL = 0.005
 ENVELOPE_CLOSE_TOL = 0.03
 
+# 시초 갭상승 전략 - 사용자가 지정한 B/K/G/L 조건.
+OPENING_GAP_MIN_INTRADAY_PCT = 3.0
+OPENING_GAP_MIN_OPEN = 1_000
+OPENING_GAP_MAX_OPEN = 500_000
+OPENING_GAP_MIN_TURNOVER_MILLION = 3_000
+OPENING_GAP_MAX_TURNOVER_MILLION = 999_999
+OPENING_GAP_TOP_N = 15
+
 # 서비스에서 업종이 아니라 테마로 명시해 쓰는 수작업 분류. 이 중 하나에 포함된 종목은
 # 펀더멘탈 저평가 검색에서 제외해 테마 모멘텀이 가격 눌림으로 오인되지 않게 한다.
 THEME_SECTORS = {
@@ -100,6 +108,19 @@ BLUECHIP_METHODOLOGY_NOTE = (
     percent=ENVELOPE_PERCENT,
     close_tol=ENVELOPE_CLOSE_TOL * 100,
     top_n=BLUECHIP_TOP_N,
+)
+
+OPENING_GAP_METHODOLOGY_NOTE = (
+    'B 전일 종가보다 현재 시가가 높고, K 현재 종가가 시가 대비 {intraday:.0f}% 이상 상승한 종목 중 '
+    'G 시가 {min_open:,}~{max_open:,}원, L 당일 거래대금 {min_turnover:,}~{max_turnover:,}백만원 조건을 '
+    '모두 만족하는 시초 갭상승 후보입니다. 종가의 시가 대비 상승률이 높은 순으로 최대 {top_n}개만 보여줍니다.'
+).format(
+    intraday=OPENING_GAP_MIN_INTRADAY_PCT,
+    min_open=OPENING_GAP_MIN_OPEN,
+    max_open=OPENING_GAP_MAX_OPEN,
+    min_turnover=OPENING_GAP_MIN_TURNOVER_MILLION,
+    max_turnover=OPENING_GAP_MAX_TURNOVER_MILLION,
+    top_n=OPENING_GAP_TOP_N,
 )
 
 METHODOLOGY_NOTE = (
@@ -246,6 +267,62 @@ def envelope_signal(daily, period=ENVELOPE_PERIOD, percent=ENVELOPE_PERCENT):
     }
 
 
+def opening_gap_signal(daily):
+    """Return the latest B/K/G/L opening-gap signal, or None."""
+    if len(daily) < 2:
+        return None
+    previous = daily[-2]
+    current = daily[-1]
+    previous_close = previous.get('close')
+    open_price = current.get('open')
+    close_price = current.get('close')
+    volume = current.get('volume')
+    if not previous_close or not open_price or not close_price or not volume:
+        return None
+
+    # B: 현재 시가가 전일 종가보다 높음. K: 현재 종가가 현재 시가 대비 3% 이상 상승.
+    gap_rate_pct = (open_price / previous_close - 1) * 100
+    intraday_rate_pct = (close_price / open_price - 1) * 100
+    turnover_million = close_price * volume / 1_000_000
+    if not open_price > previous_close:
+        return None
+    if intraday_rate_pct < OPENING_GAP_MIN_INTRADAY_PCT:
+        return None
+    if not OPENING_GAP_MIN_OPEN <= open_price <= OPENING_GAP_MAX_OPEN:
+        return None
+    if not OPENING_GAP_MIN_TURNOVER_MILLION <= turnover_million <= OPENING_GAP_MAX_TURNOVER_MILLION:
+        return None
+
+    return {
+        'date': current.get('date'),
+        'price': close_price,
+        'previousClose': previous_close,
+        'open': open_price,
+        'gapRatePct': gap_rate_pct,
+        'intradayRatePct': intraday_rate_pct,
+        'turnoverMillion': turnover_million,
+    }
+
+
+def build_opening_gap_match(stock, daily, signal, sector):
+    previous_close = signal['previousClose']
+    price = signal['price']
+    change_rate = ((price - previous_close) / previous_close * 100) if previous_close else None
+    return {
+        'code': stock['code'],
+        'name': stock['name'],
+        'price': price,
+        'changeRate': change_rate,
+        'date': signal['date'],
+        'sector': sector,
+        'open': signal['open'],
+        'previousClose': previous_close,
+        'gapRatePct': round(signal['gapRatePct'], 2),
+        'intradayRatePct': round(signal['intradayRatePct'], 2),
+        'turnoverMillion': round(signal['turnoverMillion'], 1),
+    }
+
+
 def build_match(stock, daily, disparity, fundamental_score, annual):
     last = daily[-1]
     prev = daily[-2] if len(daily) > 1 else None
@@ -372,6 +449,34 @@ def scan_bluechip(universe, wics_map, fundamentals_cache, conn, theme_codes=None
     return sectors, scanned
 
 
+def scan_opening_gap(universe, wics_map, conn):
+    """Scan the latest daily bar for the B/K/G/L opening-gap strategy."""
+    matches = []
+    scanned = 0
+    for stock in universe:
+        daily = db_schema.load_daily_prices(conn, stock['code'])
+        if len(daily) < 2:
+            continue
+        scanned += 1
+        signal = opening_gap_signal(daily)
+        if not signal:
+            continue
+        wics = wics_map.get(stock['code']) or {}
+        sector = wics.get('sector') or '기타'
+        matches.append(build_opening_gap_match(stock, daily, signal, sector))
+
+    # 조건 통과 종목이 많아도 결과가 무작위로 잘리지 않도록 우선순위를 명시한다.
+    matches.sort(key=lambda item: (
+        -(item.get('intradayRatePct') or 0),
+        -(item.get('turnoverMillion') or 0),
+        item.get('code') or '',
+    ))
+    sectors = {}
+    for match in matches[:OPENING_GAP_TOP_N]:
+        sectors.setdefault(match['sector'], []).append(match)
+    return sectors, scanned
+
+
 def main():
     load_dotenv()
 
@@ -405,6 +510,7 @@ def main():
 
     bluechip_sectors, bluechip_scanned = scan_bluechip(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
+    opening_gap_sectors, opening_gap_scanned = scan_opening_gap(universe, wics_map, conn)
 
     undervalued_category = {
         'name': '저평가 종목',
@@ -438,6 +544,16 @@ def main():
                 'sectors': {
                     sector: {'name': sector, 'matches': matches}
                     for sector, matches in bluechip_sectors.items()
+                    if matches
+                },
+            },
+            'openingGap': {
+                'name': '시초 갭상승',
+                'methodology': OPENING_GAP_METHODOLOGY_NOTE,
+                'scanned': opening_gap_scanned,
+                'sectors': {
+                    sector: {'name': sector, 'matches': matches}
+                    for sector, matches in opening_gap_sectors.items()
                     if matches
                 },
             },
