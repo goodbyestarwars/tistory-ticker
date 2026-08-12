@@ -457,7 +457,7 @@
       try {
         var bandPts = pairIchimokuBand(ichi.senkouA, ichi.senkouB);
         if (bandPts.length > 1) {
-          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(55,178,77,0.18)', 'rgba(240,140,0,0.18)');
+          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(210,79,69,0.13)', 'rgba(18,97,196,0.12)');
           seriesByKey.senkouA.attachPrimitive(cloudPrimitive);
           psIchimokuCloudPrimitive = { series: seriesByKey.senkouA, primitive: cloudPrimitive };
         }
