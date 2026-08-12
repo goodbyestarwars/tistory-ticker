@@ -43,6 +43,9 @@
   border-radius: 8px; position: relative;
   font-size: 13px; color: #334155;
 }
+#stock-calendar .sc-day-clickable { cursor: pointer; }
+#stock-calendar .sc-day-clickable:hover { background: #eef2ff; }
+#stock-calendar .sc-day.sc-selected { outline: 2px solid #6366f1; outline-offset: -2px; font-weight: 700; }
 #stock-calendar .sc-day.sc-today {
   background: #6366f1; color: #fff !important; font-weight: 700;
 }
@@ -58,6 +61,32 @@
 
 /* ── 우측: 주차별 이벤트 리스트 ── */
 #stock-calendar .sc-list-col { flex: 1 1 380px; min-width: 0; }
+#stock-calendar .sc-filter-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 2px solid #eef2ff;
+}
+#stock-calendar .sc-filter-head strong { font-size: 14px; color: #0d1b40; }
+#stock-calendar .sc-search-count {
+  margin-left: 8px; font-size: 11px; font-weight: 500; color: #94a3b8;
+}
+#stock-calendar .sc-filter-head button {
+  border: 0; background: transparent; color: #6366f1;
+  font: inherit; font-size: 12px; cursor: pointer;
+}
+#stock-calendar .sc-search {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
+  padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 9px;
+  background: #fff;
+}
+#stock-calendar .sc-search span {
+  flex-shrink: 0; color: #64748b; font-size: 12px; font-weight: 700;
+}
+#stock-calendar .sc-search input {
+  width: 100%; min-width: 0; border: 0; outline: 0; background: transparent;
+  color: #334155; font: inherit; font-size: 13px;
+}
+#stock-calendar .sc-search input::placeholder { color: #a8b1bf; }
 #stock-calendar .sc-week { margin-bottom: 22px; }
 #stock-calendar .sc-week:last-child { margin-bottom: 0; }
 #stock-calendar .sc-week-title {
@@ -71,6 +100,7 @@
   background: #f8fafc; transition: background 0.12s;
 }
 #stock-calendar .sc-ev-item:hover { background: #eef2ff; }
+#stock-calendar .sc-ev-item-disabled { cursor: default; }
 #stock-calendar .sc-ev-date {
   flex-shrink: 0; width: 34px; font-size: 12px; font-weight: 700; color: #6366f1;
 }
@@ -111,11 +141,17 @@
    배경 + #F5EFE0 글자로 교체. */
 html.dark #stock-calendar .sc-cal-col { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #stock-calendar .sc-cal-title,
-html.dark #stock-calendar .sc-week-title { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-week-title,
+html.dark #stock-calendar .sc-filter-head strong { color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-nav { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #stock-calendar .sc-nav:hover { background: rgba(245, 239, 224, 0.18) !important; color: #F5EFE0 !important; border-color: rgba(245, 239, 224, 0.4) !important; }
 html.dark #stock-calendar .sc-day { color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-week-title { border-bottom-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #stock-calendar .sc-filter-head { border-bottom-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #stock-calendar .sc-search { background: rgba(245, 239, 224, 0.06) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #stock-calendar .sc-search span,
+html.dark #stock-calendar .sc-search input { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-search input::placeholder { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-calendar .sc-ev-item { background: rgba(245, 239, 224, 0.06) !important; }
 html.dark #stock-calendar .sc-ev-item:hover { background: rgba(245, 239, 224, 0.14) !important; }
 html.dark #stock-calendar .sc-ev-date { color: #F5EFE0 !important; }

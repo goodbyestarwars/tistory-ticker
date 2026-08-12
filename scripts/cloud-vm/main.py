@@ -11,23 +11,29 @@ import hmac
 import json
 import logging
 import os
+import secrets
 import time
+import urllib.parse
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Header, HTTPException, Path, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import RedirectResponse
 
 import bond_yield
 import btc_futures
 import dart_client
 import db_schema
 import domestic_futures
+import domestic_news
 import earnings_calendar
+import finnhub_realtime
 import foreign_flow_compute
 import foreign_futures
 import naver_news
+import news_aggregator
 import news_momentum
 import investor_flow
 import investor_trend
@@ -35,9 +41,16 @@ import kis_client
 import kiwoom_client
 import kiwoom_market
 import market_rank
+import market_board
 import option_flow
 import order_book
+import public_data
 import realtime_quotes
+import sector_cards
+import us_analysis
+import us_stocks
+import watchlist
+from google_auth import GoogleAuthError, GoogleAuthService
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 
@@ -59,6 +72,14 @@ def _start_futures_collectors():
     정상 동작), 로그만 남긴다."""
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
+    if db_schema.load_sector_cards_config(conn) is None:
+        seeded = sector_cards.load_static_sector_map()
+        db_schema.save_sector_cards_config(
+            conn,
+            seeded,
+            datetime.now(timezone.utc).isoformat(),
+        )
+        logging.getLogger('main').info('seeded sector card configuration from data/sectors-v3.js')
     conn.close()
 
     foreign_futures.start_background()
@@ -105,8 +126,9 @@ def _start_futures_collectors():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['https://ghlee.tistory.com'],
-    allow_methods=['GET'],
+    allow_methods=['GET', 'PUT', 'OPTIONS'],
     allow_headers=['*'],
+    allow_credentials=True,
 )
 
 # 2026-07-31: 응답 gzip 압축. 이 서버의 응답은 전부 반복 구조의 JSON(일봉/분봉 배열)이라
@@ -152,6 +174,13 @@ _fundamentals_cache_mem = {}
 _MARKET_RANK_TTL = 30
 _MARKET_RANK_MAX_LIMIT = 20  # 사이드바 미리보기(5)보다 큰 값은 "더보기" 모달 전용
 _market_rank_cache = {}  # limit -> {'t':.., 'data':..} - limit별로 따로 캐시(기동 직후 폴백 전용)
+_MARKET_BOARD_TTL = 30
+# WebSocket quote ticks use this opt-in path to refresh rankings quickly while
+# keeping ordinary home summary requests on the 30-second shared cache.
+_MARKET_BOARD_LIVE_TTL = 5
+_market_board_cache = {}
+_KOFIA_MARKET_TTL = 30 * 60
+_kofia_market_cache = {}
 
 # 캘린더의 Google Calendar 이벤트와 병합하는 자동 실적발표 피드 캐시.
 # 2026-08-03: 다른 메모리 캐시와 달리 상한/정리 로직이 아예 없었다 - year(2000~2100)x
@@ -174,6 +203,7 @@ _order_book_cache = OrderedDict()  # code -> {'t':.., 'data':..}
 # (_market_rank_cache와 동일 패턴).
 _FUTURES_TTL = 10
 _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'data':..}
+_sector_cards_cache = None
 
 
 def _evict_lru(cache, max_entries):
@@ -241,6 +271,8 @@ def load_dotenv():
 
 load_dotenv()
 
+GOOGLE_AUTH = GoogleAuthService()
+
 
 def envelope(data):
     return {
@@ -261,6 +293,67 @@ def require_api_key(x_api_key: str = Header(default=None)):
         raise HTTPException(status_code=401, detail='invalid or missing X-API-Key header')
 
 
+def require_google_admin(request: Request):
+    if not GOOGLE_AUTH.configured:
+        raise HTTPException(status_code=503, detail='Google login is not configured on the server')
+    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    if not session or session.get('email') != GOOGLE_AUTH.admin_email:
+        raise HTTPException(status_code=401, detail='Google admin login is required')
+    return session
+
+
+def require_google_user(request: Request):
+    if not GOOGLE_AUTH.configured:
+        raise HTTPException(status_code=503, detail='Google login is not configured on the server')
+    session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    if not session or not session.get('sub') or not session.get('email'):
+        raise HTTPException(status_code=401, detail='Google login is required')
+    return session
+
+
+def require_sector_cards_editor(request: Request, x_api_key: str):
+    # Keep the legacy token only until Google OAuth is configured. Once the
+    # OAuth client is configured, browser writes must use the owner session.
+    if GOOGLE_AUTH.configured:
+        return require_google_admin(request)
+    require_api_key(x_api_key)
+    return None
+
+
+def _google_auth_error_redirect(reason):
+    separator = '&' if '?' in GOOGLE_AUTH.success_redirect else '?'
+    location = GOOGLE_AUTH.success_redirect + separator + 'google_auth_error=' + urllib.parse.quote(reason, safe='')
+    return RedirectResponse(location=location, status_code=303)
+
+
+def _safe_google_return_url(value):
+    fallback = GOOGLE_AUTH.success_redirect
+    parsed = urllib.parse.urlparse(str(value or ''))
+    if parsed.scheme != 'https' or parsed.netloc != 'ghlee.tistory.com':
+        return fallback
+    return str(value)
+
+
+def _load_sector_cards_cached():
+    global _sector_cards_cache
+    if _sector_cards_cache is not None:
+        return _sector_cards_cache
+    conn = db_schema.get_conn()
+    try:
+        config = db_schema.load_sector_cards_config(conn)
+        if config is None:
+            config = db_schema.save_sector_cards_config(
+                conn,
+                sector_cards.load_static_sector_map(),
+                datetime.now(timezone.utc).isoformat(),
+            )
+        config['sectors'] = sector_cards.normalize_sector_map(config['sectors'])
+        _sector_cards_cache = config
+        return config
+    finally:
+        conn.close()
+
+
 def get_kiwoom_token():
     appkey = os.environ.get('KIWOOM_APPKEY')
     secretkey = os.environ.get('KIWOOM_SECRETKEY')
@@ -277,6 +370,170 @@ def health():
         'momentumSchedulerVersion': 'deploy-timer-flock-v1',
         'momentumAggregationVersion': 3,
     })
+
+
+@app.get('/auth/google/start')
+def google_auth_start(return_to: str = None):
+    if not GOOGLE_AUTH.configured:
+        raise HTTPException(status_code=503, detail='Google login is not configured on the server')
+    state = secrets.token_urlsafe(32)
+    nonce = secrets.token_urlsafe(32)
+    response = RedirectResponse(GOOGLE_AUTH.authorization_url(state, nonce), status_code=302)
+    response.set_cookie(
+        GOOGLE_AUTH.STATE_COOKIE, state, max_age=600, httponly=True,
+        secure=True, samesite='lax', path='/',
+    )
+    response.set_cookie(
+        GOOGLE_AUTH.NONCE_COOKIE, nonce, max_age=600, httponly=True,
+        secure=True, samesite='lax', path='/',
+    )
+    response.set_cookie(
+        GOOGLE_AUTH.RETURN_COOKIE, _safe_google_return_url(return_to), max_age=600,
+        httponly=True, secure=True, samesite='lax', path='/',
+    )
+    return response
+
+
+@app.get('/auth/google/callback')
+def google_auth_callback(request: Request, code: str = None, state: str = None, error: str = None):
+    if error:
+        return _google_auth_error_redirect('google_' + error)
+    saved_state = request.cookies.get(GOOGLE_AUTH.STATE_COOKIE)
+    saved_nonce = request.cookies.get(GOOGLE_AUTH.NONCE_COOKIE)
+    if not state or not saved_state or not hmac.compare_digest(state, saved_state):
+        return _google_auth_error_redirect('invalid_state')
+    if not code or not saved_nonce:
+        return _google_auth_error_redirect('missing_code')
+    try:
+        user = GOOGLE_AUTH.authenticate_code(code, saved_nonce)
+    except GoogleAuthError:
+        logging.getLogger('main').warning('Google OAuth callback verification failed')
+        return _google_auth_error_redirect('login_failed')
+    return_to = _safe_google_return_url(request.cookies.get(GOOGLE_AUTH.RETURN_COOKIE))
+    response = RedirectResponse(return_to, status_code=303)
+    response.set_cookie(
+        GOOGLE_AUTH.SESSION_COOKIE, GOOGLE_AUTH.make_session(user),
+        max_age=7 * 24 * 60 * 60, httponly=True, secure=True,
+        # The Tistory page and goodbyestar.cloud are different sites, so the
+        # authenticated fetch from the editor requires SameSite=None+Secure.
+        samesite='none', path='/',
+    )
+    response.delete_cookie(GOOGLE_AUTH.STATE_COOKIE, path='/')
+    response.delete_cookie(GOOGLE_AUTH.NONCE_COOKIE, path='/')
+    response.delete_cookie(GOOGLE_AUTH.RETURN_COOKIE, path='/')
+    return response
+
+
+@app.get('/auth/google/me')
+def google_auth_me(request: Request):
+    return envelope(GOOGLE_AUTH.status(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)))
+
+
+@app.get('/auth/google/logout')
+def google_auth_logout(return_to: str = None):
+    response = RedirectResponse(_safe_google_return_url(return_to), status_code=303)
+    response.delete_cookie(GOOGLE_AUTH.SESSION_COOKIE, path='/')
+    return response
+
+
+def _load_user_watchlist(request: Request):
+    session = require_google_user(request)
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        config = db_schema.load_watchlist_config(conn, user_id)
+        if config is None:
+            config = watchlist.empty_config()
+            config.update({'revision': 0, 'updatedAt': None})
+        return config
+    finally:
+        conn.close()
+
+
+@app.get('/watchlist')
+def watchlist_endpoint(request: Request):
+    return envelope(_load_user_watchlist(request))
+
+
+@app.put('/watchlist')
+async def update_watchlist(request: Request):
+    session = require_google_user(request)
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail='request body must be an object')
+    try:
+        config = watchlist.normalize_config(body)
+    except watchlist.WatchlistConfigError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        try:
+            saved = db_schema.save_watchlist_config(
+                conn, user_id, config, now, expected_revision=body.get('revision'),
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail='revision must be an integer') from exc
+        except RuntimeError as exc:
+            if str(exc) == 'WATCHLIST_REVISION_CONFLICT':
+                raise HTTPException(status_code=409, detail='watchlist changed; reload and try again') from exc
+            raise
+    finally:
+        conn.close()
+    return envelope(saved)
+
+
+@app.get('/sector-cards')
+def sector_cards_endpoint():
+    """증시온도 카드/히트맵/분석에서 공통으로 사용하는 사용자 설정."""
+    return envelope(_load_sector_cards_cached())
+
+
+@app.put('/sector-cards')
+async def update_sector_cards(request: Request, x_api_key: str = Header(default=None)):
+    """관리자 전용 카드 구성 전체 교체 API."""
+    require_sector_cards_editor(request, x_api_key)
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail='request body must be an object')
+
+    raw_sectors = body.get('sectors', body)
+    try:
+        sectors = sector_cards.normalize_sector_map(raw_sectors)
+    except sector_cards.SectorConfigError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    expected_revision = body.get('revision')
+    conn = db_schema.get_conn()
+    try:
+        try:
+            saved = db_schema.save_sector_cards_config(
+                conn,
+                sectors,
+                datetime.now(timezone.utc).isoformat(),
+                expected_revision=expected_revision,
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail='revision must be an integer') from exc
+        except RuntimeError as exc:
+            if str(exc) == 'SECTOR_CONFIG_REVISION_CONFLICT':
+                raise HTTPException(status_code=409, detail='sector card configuration was changed by another editor') from exc
+            raise
+    finally:
+        conn.close()
+
+    global _sector_cards_cache
+    _sector_cards_cache = saved
+    return envelope(saved)
 
 
 @app.get('/health/latency')
@@ -302,15 +559,29 @@ _ws_active_connections = 0
 
 @app.websocket('/ws/quotes')
 async def realtime_quote_socket(websocket: WebSocket):
-    """관심종목용 실시간 체결가 중계. 키움 토큰은 서버 안에서만 사용한다."""
+    """관심종목용 실시간 체결가 중계(국내=키움, 미국=Finnhub). 인증키는 서버 안에서만 사용한다."""
     global _ws_active_connections
     origin = websocket.headers.get('origin')
     if origin != 'https://ghlee.tistory.com':
         await websocket.close(code=1008)
         return
 
-    codes = realtime_quotes.normalize_codes((websocket.query_params.get('codes') or '').split(','))
-    if not codes:
+    raw_codes = (websocket.query_params.get('codes') or '').split(',')
+    domestic_codes = realtime_quotes.normalize_codes(raw_codes)
+    us_codes = []
+    seen_us = set()
+    for raw_code in raw_codes:
+        if not str(raw_code or '').strip().upper().startswith('US:'):
+            continue
+        try:
+            symbol = us_stocks.normalize_symbol(raw_code)
+        except ValueError:
+            continue
+        if symbol not in seen_us:
+            seen_us.add(symbol)
+            us_codes.append(symbol)
+    total_codes = domestic_codes + us_codes
+    if not total_codes:
         await websocket.close(code=1008)
         return
 
@@ -320,17 +591,31 @@ async def realtime_quote_socket(websocket: WebSocket):
 
     await websocket.accept()
     _ws_active_connections += 1
-    relay_task = asyncio.create_task(realtime_quotes.relay_quotes(websocket, codes))
+    relay_task = asyncio.create_task(
+        realtime_quotes.relay_quotes(websocket, domestic_codes)
+    ) if domestic_codes else None
+    finnhub_task = asyncio.create_task(
+        finnhub_realtime.stream_quotes(websocket, us_codes)
+    ) if us_codes else None
     receive_task = asyncio.create_task(websocket.receive_text())
     try:
         while True:
+            tasks = {task for task in (relay_task, finnhub_task, receive_task) if task}
             done, _ = await asyncio.wait(
-                {relay_task, receive_task},
+                tasks,
                 return_when=asyncio.FIRST_COMPLETED,
             )
-            if relay_task in done:
+            if relay_task and relay_task in done:
                 await relay_task
                 return
+            if finnhub_task and finnhub_task in done:
+                await finnhub_task
+                return
+            # 반드시 완료된 수신 태스크를 await해서 WebSocketDisconnect를 회수한다.
+            # 회수하지 않으면 클라이언트가 닫힌 뒤에도 예외 태스크가 누적되어
+            # "Cannot call receive once a disconnect message has been received"가 반복된다.
+            if receive_task in done:
+                await receive_task
             receive_task = asyncio.create_task(websocket.receive_text())
     except WebSocketDisconnect:
         pass
@@ -344,7 +629,7 @@ async def realtime_quote_socket(websocket: WebSocket):
             pass
     finally:
         _ws_active_connections -= 1
-        for task in (relay_task, receive_task):
+        for task in (relay_task, finnhub_task, receive_task):
             if not task.done():
                 task.cancel()
         try:
@@ -361,9 +646,123 @@ def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = H
         res = kiwoom_client.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as primary_error:
+        # 키움 장애/일시 제한 시 data.go.kr 일별 주식시세를 2차 경로로 사용한다.
+        try:
+            fallback = public_data.fetch_stock_quote(code)
+            if fallback:
+                return envelope(fallback)
+        except Exception as fallback_error:
+            logging.getLogger('main').warning(
+                'quote 공공데이터 fallback 실패(%s): %s', code, fallback_error,
+            )
+        # ETF/ETN/ELW는 일반 주식시세에 없을 수 있어 증권상품시세도 시도한다.
+        try:
+            fallback = public_data.fetch_product_quote(code)
+            if fallback:
+                return envelope(fallback)
+        except Exception as fallback_error:
+            logging.getLogger('main').warning(
+                'quote 증권상품 fallback 실패(%s): %s', code, fallback_error,
+            )
+        raise HTTPException(status_code=502, detail=str(primary_error))
     return envelope(res)
+
+
+@app.get('/us-search')
+def us_search(request: Request, q: str = Query(..., min_length=1, max_length=40),
+              limit: int = Query(8, ge=1, le=20)):
+    """미국주식 티커·회사명 검색 - 공통 종목검색에서 국내 검색과 함께 사용한다."""
+    _check_rate_limit('us_search', request, max_per_window=30)
+    try:
+        return envelope(us_stocks.search(q, limit=limit))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except us_stocks.UsStockUnavailable as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get('/us-quote/{symbol}')
+def us_quote(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
+    """미국 개별주식 현재가·등락·거래량·장 상태 조회."""
+    _check_rate_limit('us_quote', request, max_per_window=60)
+    try:
+        return envelope(us_stocks.quote(symbol))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except us_stocks.UsStockUnavailable as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get('/us-orderbook/{symbol}')
+def us_orderbook(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
+    """미국주식 매도·매수 10호가 조회."""
+    _check_rate_limit('us_orderbook', request, max_per_window=30)
+    try:
+        return envelope(us_stocks._kiwoom_orderbook(symbol))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except us_stocks.UsStockUnavailable as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get('/us-chart/{symbol}')
+def us_chart(request: Request, symbol: str = Path(..., min_length=1, max_length=12),
+             timeframe: str = Query('minute', pattern='^(minute|daily)$')):
+    """미국주식 분봉·일봉 차트 조회."""
+    _check_rate_limit('us_chart', request, max_per_window=30)
+    try:
+        return envelope(us_stocks.chart(symbol, timeframe=timeframe))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except us_stocks.UsStockUnavailable as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get('/us-news/{symbol}')
+def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=12),
+            name: str = Query('', max_length=100)):
+    """미국주식 종목 관련 최신 뉴스."""
+    _check_rate_limit('us_news', request, max_per_window=20)
+    try:
+        ticker = us_stocks.normalize_symbol(symbol)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    query = ((name or '').strip() + ' ' + ticker).strip()
+    items = news_aggregator.get_or_refresh_news(
+        ticker,
+        naver_fetcher=lambda: naver_news.search_news(
+            query,
+            os.environ.get('NAVER_APIHUB_CLIENT_ID'),
+            os.environ.get('NAVER_APIHUB_CLIENT_SECRET'),
+            display=10,
+        ),
+        alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+        limit=10,
+    )
+    providers = sorted(set(item.get('provider') for item in items if item.get('provider')))
+    return envelope({
+        'symbol': ticker,
+        'query': query,
+        'items': items,
+        'providers': providers,
+        'source': ' + '.join(providers) if providers else '뉴스 공급자 없음',
+    })
+
+
+@app.get('/us-analysis/{symbol}')
+def us_analysis_endpoint(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
+    """미국주식 재무·실적·전망·내부자 데이터를 캐시에서 조회한다."""
+    _check_rate_limit('us_analysis', request, max_per_window=10)
+    try:
+        ticker = us_stocks.normalize_symbol(symbol)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return envelope(us_analysis.get_analysis(
+        ticker,
+        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+    ))
 
 
 @app.get('/ohlc/{code}')
@@ -384,8 +783,16 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
         daily = kiwoom_market.fetch_daily_ohlc(token, code, max_days=None)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as primary_error:
+        # 주식시세정보는 일별 OHLC를 제공하므로 실시간/분봉 대체가 아니라
+        # 일봉 차트가 비어 버리는 상황을 막는 보조 경로로만 사용한다.
+        try:
+            daily = public_data.fetch_stock_ohlc(code, max_days=None)
+        except Exception as fallback_error:
+            logging.getLogger('main').warning(
+                'ohlc 공공데이터 fallback 실패(%s): %s', code, fallback_error,
+            )
+            raise HTTPException(status_code=502, detail=str(primary_error))
     if not daily:
         raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
     _live_cache_put(_ohlc_cache, code, daily)
@@ -569,10 +976,23 @@ def foreign_flow_endpoint(request: Request, code: str = Path(..., min_length=6, 
             kis_appkey=os.environ.get('KIS_APPKEY'), kis_appsecret=os.environ.get('KIS_APPSECRET'),
             target_days=days,
         )
+        conn = db_schema.get_conn()
+        try:
+            db_schema.upsert_investor_flow_daily(conn, code, daily)
+        finally:
+            conn.close()
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        # KIS가 장중 제한되거나 일시 실패해도 직전에 저장한 확정 개인 수급을 우선 사용한다.
+        conn = db_schema.get_conn()
+        try:
+            daily = db_schema.load_investor_flow_daily(conn, code)
+        finally:
+            conn.close()
+        if not daily:
+            raise HTTPException(status_code=502, detail=str(e))
+        logging.getLogger('main').warning('foreign-flow DB 확정 데이터 폴백(%s): %s', code, e)
     result = foreign_flow_compute.build_result(code, daily)
     if result is None:
         raise HTTPException(status_code=404, detail='수급 데이터를 찾을 수 없습니다.')
@@ -797,21 +1217,23 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
 
 
 @app.get('/earnings-calendar')
-def earnings_calendar_endpoint(year: int = Query(..., ge=2000, le=2100), month: int = Query(..., ge=1, le=12)):
-    """DART에 실제 접수된 잠정실적/실적 공시를 캘린더 이벤트로 반환한다.
+def earnings_calendar_endpoint(year: int = Query(..., ge=2000, le=2100), month: int = Query(default=None, ge=1, le=12)):
+    """국내 DART 실적공시와 미국 Finnhub 예정 실적을 캘린더 이벤트로 반환한다.
 
-    미래 발표일을 추정하지 않고, DART 접수일만 사용한다. DART 키가 없거나
-    외부 조회가 실패하면 빈 배열을 반환해 기존 Google Calendar 일정은 유지한다.
+    month가 없으면 해당 연도 1월~12월 전체를 반환해 연간 검색에 사용한다.
+
+    각 공급자는 10분 캐시를 사용하며, 키가 없거나 외부 조회가 실패해도 다른
+    일정과 기존 Google Calendar 일정은 유지한다.
     """
-    key = '%04d-%02d' % (year, month)
+    key = '%04d-%02d' % (year, month) if month is not None else '%04d-year' % year
     cached = _earnings_calendar_cache.get(key)
     if cached and time.time() - cached['t'] < _EARNINGS_CALENDAR_TTL:
-        return {'success': True, 'data': cached['data'], 'source': 'dart', 'cached': True}
-    data = earnings_calendar.safe_fetch_month(year, month)
+        return {'success': True, 'data': cached['data'], 'source': 'dart+finnhub', 'cached': True}
+    data = earnings_calendar.merge_month(year, month) if month is not None else earnings_calendar.merge_year(year)
     _earnings_calendar_cache[key] = {'t': time.time(), 'data': data}
     _earnings_calendar_cache.move_to_end(key)
     _evict_lru(_earnings_calendar_cache, _EARNINGS_CALENDAR_MAX_ENTRIES)
-    return {'success': True, 'data': data, 'source': 'dart', 'cached': False}
+    return {'success': True, 'data': data, 'source': 'dart+finnhub', 'cached': False}
 
 
 @app.get('/futures/avg')
@@ -860,6 +1282,45 @@ def naver_news_endpoint(query: str = Query(..., min_length=1, max_length=100), x
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET')
     items = naver_news.search_news(query, client_id, client_secret)
     return envelope(items)
+
+
+@app.get('/domestic-news')
+def domestic_news_endpoint(
+    request: Request,
+    code: str = Query('', min_length=0, max_length=6),
+    name: str = Query('', max_length=100),
+    query: str = Query('', max_length=100),
+    kind: str = Query('all', max_length=10),
+    limit: int = Query(10, ge=1, le=50),
+):
+    """국내 전체/종목별 뉴스와 DART 공시를 시간순으로 반환한다.
+
+    브라우저가 네이버·DART 키를 알 필요 없도록 서버에서 수집하고,
+    캐시된 결과를 우선 반환한다. 종목 코드는 국내 6자리 숫자만 허용한다.
+    """
+    _check_rate_limit('domestic_news', request, max_per_window=20)
+    normalized_code = (code or '').strip()
+    if normalized_code and (len(normalized_code) != 6 or not normalized_code.isdigit()):
+        raise HTTPException(status_code=400, detail='domestic stock code must be 6 digits')
+    item_kind = 'news' if kind.strip().lower() == 'news' else 'all'
+    result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit, item_kind)
+    return envelope(result)
+
+
+@app.get('/foreign-news')
+def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=50)):
+    """미국 세션용 일반 시장·거시경제 뉴스를 Finnhub와 Alpha Vantage에서 합친다."""
+    _check_rate_limit('foreign_news', request, max_per_window=20)
+    items = news_aggregator.get_general_news(
+        alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+        limit=limit,
+    )
+    return envelope({
+        'market': 'us',
+        'items': items,
+        'source': 'Finnhub general + Alpha Vantage NEWS_SENTIMENT',
+    })
 
 
 @app.get('/news-momentum/{code}')
@@ -927,6 +1388,40 @@ def option_flow_endpoint():
     return envelope({r['side']: r for r in rows})
 
 
+@app.get('/kofia-market')
+def kofia_market_endpoint(days: int = Query(30, ge=7, le=90)):
+    """KOFIA 공공데이터 보조지표(신용융자·증시자금) - 30분 캐시.
+
+    키움/KIS의 실시간 시세를 대체하지 않고, 시장 브리핑의 중기 자금 맥락만
+    보완한다. 키가 아직 VM에 없으면 빈 보조지표를 정상 응답해 기존 화면을
+    막지 않는다.
+    """
+    global _kofia_market_cache
+    now = time.time()
+    cached = _kofia_market_cache.get(days)
+    if cached is not None and now - cached['t'] < _KOFIA_MARKET_TTL:
+        return envelope(cached['data'])
+    try:
+        result = public_data.fetch_kofia_market(days)
+    except public_data.PublicDataUnavailable as exc:
+        result = {
+            'available': False,
+            'source': 'data.go.kr: 금융위원회 금융투자협회 종합통계정보',
+            'message': str(exc),
+            'series': [],
+        }
+    except Exception as exc:
+        logging.getLogger('main').warning('KOFIA public-data fallback failed: %s', exc)
+        result = {
+            'available': False,
+            'source': 'data.go.kr: 금융위원회 금융투자협회 종합통계정보',
+            'message': 'KOFIA 통계를 잠시 불러오지 못했습니다.',
+            'series': [],
+        }
+    _kofia_market_cache[days] = {'t': now, 'data': result}
+    return envelope(result)
+
+
 @app.get('/market-rank')
 def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT)):
     """사이드바 실시간 랭킹(거래대금 TOP/상한가/하한가) - 9bolt 우측 사이드바 리디자인
@@ -956,6 +1451,37 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     _market_rank_cache[limit] = {'t': now, 'data': data}
+    return envelope(data)
+
+
+@app.get('/market-board')
+def market_board_endpoint(request: Request,
+                          market: str = Query('domestic'),
+                          limit: int = Query(12, ge=6, le=20),
+                          fresh: bool = Query(False)):
+    """홈 증권사형 실시간 종목판. 국내·미국 세션별 같은 행 모델을 반환한다."""
+    _check_rate_limit('market_board', request, max_per_window=30)
+    market = 'us' if str(market).lower() == 'us' else 'domestic'
+    key = (market, limit)
+    now = time.time()
+    cached = _market_board_cache.get(key)
+    cache_ttl = _MARKET_BOARD_LIVE_TTL if fresh else _MARKET_BOARD_TTL
+    if cached is not None and now - cached['t'] < cache_ttl:
+        return envelope(cached['data'])
+    try:
+        if market == 'us':
+            data = market_board.fetch_us(
+                token=get_kiwoom_token(),
+                limit=limit,
+                finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+            )
+        else:
+            data = market_board.fetch_domestic(get_kiwoom_token(), limit=limit)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    _market_board_cache[key] = {'t': now, 'data': data}
     return envelope(data)
 
 

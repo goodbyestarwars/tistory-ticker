@@ -1,62 +1,113 @@
 # -*- coding: utf-8 -*-
-"""차트 패턴 판정(지시서 5종) - gas/ticker-proxy.gs의 detectRisingLows_/detectDoubleBottom_/
-detectInvHeadShoulders_/detectBoxRangeLow_/detectPullback_ 및 공용 헬퍼를 그대로 포팅.
-수치 조건/배점은 원본과 동일해야 두 구현의 판정 결과가 일치한다 - 상수를 바꾸지 말 것."""
+"""VM 차트 패턴 판정(지시서 6종)과 공용 헬퍼.
+일반 패턴은 GAS 상세 차트와 같은 기준을 사용하지만, 박스권 하단은 VM 일괄 스캔에서
+시가총액까지 조회하는 A/B/C/D/E/G/J 전용 조건을 적용한다."""
 
 import math
+import re
 
 PATTERN_SWING = 2
-PATTERN_MAX_MATCHES = 30
+# Evaluate the full universe before applying this display limit.
+PATTERN_MAX_MATCHES = 15
+RISING_LOWS_DISPLAY_LIMIT = 15
+PENNY_STOCK_MAX_PRICE = 1000  # 국내 주식 기준: 1,000원 미만은 동전주로 제외
 
-RISING_LOWS_WINDOW = 60
+ETF_NAME_PREFIXES = (
+    '1Q ', 'ACE ', 'ARIRANG ', 'HANARO ', 'KBSTAR ', 'KODEX ', 'KOSEF ',
+    'PLUS ', 'RISE ', 'SOL ', 'TIGER ', 'TIME ', 'TREX ', 'WON ', 'FOCUS ',
+    'UNICORN ', 'TRUSTON ', '마이티 ', '파워 ', '에셋플러스 ',
+)
+ETF_NAME_TOKENS = re.compile(r'(?:ETF|레버리지|인버스|커버드콜|채권혼합|합성|선물)', re.IGNORECASE)
+
+RISING_LOWS_WINDOW = 20
+MA_CLOUD_MIN_DAYS = 250
+MA_CLOUD_NEAR_TOL = 0.03       # 현재가와 224일선 사이 최대 3%
+MA_CLOUD_TOP_TOL = 0.03        # 구름 상단을 향한 현재 봉의 고가 근접도 최대 3%
+MA_CLOUD_CROSS_LOOKBACK = 5    # 최근 5봉 안의 5일선-20일선 골든크로스
 DOUBLE_BOTTOM_WINDOW = 90
 IHS_WINDOW = 60
-BOX_WINDOW = 40
+BOX_WINDOW = 21  # 20 bars for the range plus the 20-bars-ago reference bar
 
 WEDGE_MIN_SWINGS = 2
-WEDGE_MIN_LOW_RISE = 0.03
-WEDGE_MIN_GAP_DAYS = 5
-WEDGE_MAX_GAP_DAYS = 20
-WEDGE_MAX_EXTENSION = 0.10
 RECENCY_MAX_GAP = 3
 
-DB_LOW_TOL = 0.03
-DB_MIN_GAP_DAYS = 10
-DB_MAX_GAP_DAYS = 40
-DB_PEAK_MIN_RISE = 0.03
-DB_NECK_PROXIMITY_MIN = -0.05
+DB_LOW_TOL = 0.02
+DB_MIN_GAP_DAYS = 12
+DB_MAX_GAP_DAYS = 35
+DB_PEAK_MIN_RISE = 0.08
+DB_NECK_PROXIMITY_MIN = -0.02
+DB_SECOND_VOLUME_MAX_RATIO = 0.85
 
-IHS_SHOULDER_TOL = 0.05
-IHS_HEAD_MIN_DROP = 0.01
-IHS_NECK_PROXIMITY_MIN = -0.03
+IHS_SHOULDER_TOL = 0.03
+IHS_HEAD_MIN_DROP = 0.03
+IHS_NECK_PROXIMITY_MIN = -0.01
+IHS_NECK_MIN_RISE = 0.05
+IHS_MIN_SHOULDER_GAP = 5
+IHS_MAX_SHOULDER_GAP = 30
 
-BOX_TOL = 0.035
-BOX_MAX_RANGE = 0.15
-BOX_MIN_RANGE = 0.05
-BOX_NEAR_LOW_TOL = 0.03
-BOX_MIN_LOW_TOUCHES = 3   # 2026-07-22 개편: 지지선 터치 3회 이상
-BOX_MIN_HIGH_TOUCHES = 2  # 2026-07-22 개편: 저항선 터치 2회 이상
-BOX_MIN_DURATION = 25     # 2026-07-22 개편: 박스 기간(첫 스윙~오늘) 최소 25거래일
+BOX_CLOSE_RANGE_MAX = 0.10
+BOX_MA_NEAR_TOL = 0.03
+BOX_MA_NEAR_COUNT = 3
+BOX_RSI_PERIOD = 14
+BOX_RSI_MIN = 35.0
+BOX_RSI_MAX = 65.0
+BOX_VOLUME_AVG_PERIOD = 5
+BOX_VOLUME_REFERENCE_OFFSET = 20
+BOX_VOLUME_RATIO_MIN = 0.50
+BOX_VOLUME_RATIO_MAX = 1.20
+BOX_MARKET_CAP_MIN_EOK = 3000.0
+BOX_OPEN_MA_ABOVE_COUNT = 3
+BOX_RETURN_MAX = 0.10
+BOX_LOWER_ZONE_RATIO = 0.35
 
 BREAKOUT_TOL = 1.02
 
 # 2026-07-22 개편: 저점상승형 20일선 기울기 / 눌림목 20일선 상승 확인에 공용으로 쓰는
 # "며칠 전과 비교할지" 값(gas/ticker-proxy.gs와 동일하게 5거래일).
 MA_SLOPE_LOOKBACK = 5
-IHS_VOL_SURGE_RATIO = 1.2  # 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.2배 이상
+IHS_VOL_SURGE_RATIO = 1.5  # 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.5배 이상
 
-PULLBACK_WINDOW = 90
+PULLBACK_WINDOW = 260
 PULLBACK_LOOKBACK = 20
 PULLBACK_MIN_RISE = 0.15
 PULLBACK_MIN_DROP = 0.05
 PULLBACK_MAX_DROP = 0.15
 PULLBACK_MA_TOL = 0.03
-PULLBACK_MIN_DAYS = 65  # detect_pullback을 시도해볼 최소 보유 일수
+PULLBACK_MIN_DAYS = 240  # 1년선(240거래일) 계산에 필요한 최소 보유 일수
+
+# Conservative score floors filter weak structures before the display cap.
+# Scores combine shape, support, volume, and recent-candle evidence, so the
+# result does not depend on the order in which symbols are scanned.
+IHS_MIN_SCORE = 80
+PULLBACK_MIN_SCORE = 80
 
 
 # ---------------------------------------------------------------------------
 # 공용 헬퍼
 # ---------------------------------------------------------------------------
+
+def is_etf_name(name):
+    """Return whether a KRX display name looks like an ETF/security product."""
+    value = str(name or '').strip()
+    if not value:
+        return False
+    if any(value.startswith(prefix) for prefix in ETF_NAME_PREFIXES):
+        return True
+    return bool(ETF_NAME_TOKENS.search(value))
+
+
+def is_excluded_stock(stock, daily):
+    """Exclude penny stocks and ETFs before any chart pattern is evaluated."""
+    if bool((stock or {}).get('is_etf')) or is_etf_name((stock or {}).get('name')):
+        return True
+    if not daily:
+        return False
+    latest_close = daily[-1].get('close')
+    try:
+        return float(latest_close) < PENNY_STOCK_MAX_PRICE
+    except (TypeError, ValueError):
+        return False
+
 
 def find_swing_indices(win, field, is_low):
     idxs = []
@@ -93,6 +144,26 @@ def moving_average(win, field, period):
         if i >= period - 1:
             ma[i] = s / period
     return ma
+
+
+def rsi_last(win, period=14, field='close'):
+    """Return Wilder RSI for the latest bar, or None when history is short."""
+    if len(win) <= period:
+        return None
+    gains = []
+    losses = []
+    for i in range(1, len(win)):
+        change = win[i][field] - win[i - 1][field]
+        gains.append(max(change, 0.0))
+        losses.append(max(-change, 0.0))
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    for i in range(period, len(gains)):
+        avg_gain = ((avg_gain * (period - 1)) + gains[i]) / period
+        avg_loss = ((avg_loss * (period - 1)) + losses[i]) / period
+    if avg_loss == 0:
+        return 100.0
+    return 100.0 - (100.0 / (1.0 + (avg_gain / avg_loss)))
 
 
 def avg_volume(win, from_idx, to_idx):
@@ -142,8 +213,8 @@ def clamp_score(n):
     return max(0, min(100, round(n)))
 
 
-def pattern_grade(score):
-    return score >= 70
+def pattern_grade(score, minimum=70):
+    return score >= minimum
 
 
 def dedupe_levels(levels):
@@ -238,6 +309,25 @@ def compute_ichimoku_score(daily):
             color_score = 5
 
     return {'score': cloud_score + cross_score + color_score}
+
+
+def ichimoku_cloud_at(daily, index):
+    """해당 봉에 표시되는 현재 구름(26봉 선행)의 상·하단을 반환한다."""
+    source_index = index - ICHIMOKU_DISPLACEMENT
+    if source_index < 0:
+        return None
+    span_a_base = ichimoku_period_mid(daily, source_index, ICHIMOKU_TENKAN_PERIOD)
+    span_a_kijun = ichimoku_period_mid(daily, source_index, ICHIMOKU_KIJUN_PERIOD)
+    span_b = ichimoku_period_mid(daily, source_index, ICHIMOKU_SENKOU_B_PERIOD)
+    if span_a_base is None or span_a_kijun is None or span_b is None:
+        return None
+    span_a = (span_a_base + span_a_kijun) / 2
+    return {
+        'spanA': span_a,
+        'spanB': span_b,
+        'top': max(span_a, span_b),
+        'bottom': min(span_a, span_b),
+    }
 
 
 # 오늘 거래대금(종가x거래량) / 최근 20일(오늘 제외) 평균 거래대금.
@@ -357,6 +447,9 @@ def build_pattern_match(stock, daily, detail):
         'score': detail['score'],
         'reasons': detail['reasons'],
         'interpretation': detail['interpretation'],
+        # 상세 클릭 시 장중 봉으로 재판정하지 않아도 전날 스캔 근거선을 그대로 그릴 수 있게
+        # 패턴 좌표(저점/고점/넥라인/지지·저항)를 스냅샷에 함께 보관한다.
+        'patternDetail': detail,
     }
 
 
@@ -378,69 +471,40 @@ def detect_rising_lows(daily):
     last_low_idx = low_idxs[-1]
     prev_low = win[prev_low_idx]['low']
     last_low = win[last_low_idx]['low']
-    rise_ratio = (last_low - prev_low) / prev_low
-    if rise_ratio < WEDGE_MIN_LOW_RISE:
-        return None
-
-    low_span = last_low_idx - prev_low_idx
-    if low_span < WEDGE_MIN_GAP_DAYS or low_span > WEDGE_MAX_GAP_DAYS:
-        return None
-
-    # 2026-07-22 개편: Higher High - 고점도 직전 스윙고점보다 높아야 함
-    if len(high_idxs) < 2:
-        return None
-    prev_high = win[high_idxs[-2]]['high']
-    last_high = win[high_idxs[-1]]['high']
-    if last_high <= prev_high:
-        return None
-
-    # 2026-07-22 개편: 20일선 기울기 0 이상(상승 또는 횡보)
-    ma20_series = moving_average(win, 'close', 20)
-    ma20_now = ma20_series[-1]
-    ma20_prev = ma20_series[-1 - MA_SLOPE_LOOKBACK]
-    if ma20_now is None or ma20_prev is None or ma20_now < ma20_prev:
-        return None
-
-    if (len(win) - 1) - last_low_idx > RECENCY_MAX_GAP:
+    if last_low <= prev_low:
         return None
 
     last_close = win[-1]['close']
-    if last_close < last_low * 0.98:
+    if last_close < last_low:
         return None
-    if (last_close - last_low) / last_low > WEDGE_MAX_EXTENSION:
-        return None
-
     low_swing_points = [{'date': win[i]['date'], 'price': win[i]['low']} for i in low_idxs]
     current = {'date': win[-1]['date'], 'price': last_close}
 
-    # ---- 점수(100점, 2026-07-22 개편): 저점상승폭35 + 고점상승(HH)15(고정) + 저점간격15(고정)
-    # + 20일선기울기10(고정) + 5일선저항15 + 거래량감소5 + 최근양봉5 ----
-    rise_score = score_tier(rise_ratio, [
-        {'min': 0.08, 'score': 35}, {'min': 0.05, 'score': 26}, {'min': WEDGE_MIN_LOW_RISE, 'score': 18}
-    ])
-    hh_score = 15
-    span_score = 15
-    slope_score = 10
+    # 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은
+    # 추세 전환 확인 신호이지, 아직 형성 중인 저점상승형을 제외할 필수 조건은 아니다.
+    # 이 구분을 하지 않으면 가온칩스처럼 저점은 높아졌지만 고점/20일선은 아직 낮은
+    # 초기 반등 종목이 검색 결과에서 누락된다.
+    # 점수는 참고용이다. 검색 포함 여부는 위의 Higher Low 조건만으로 결정한다.
+    higher_low_score = 40
+    recent_low_score = 20
 
     ma5 = moving_average(win, 'close', 5)
     resistance = max((win[i]['high'] for i in high_idxs), default=None)
     resistance_idx = high_idxs[-1] if high_idxs else None
     ma5_at_resistance = ma5[resistance_idx] if resistance_idx is not None else None
     ma5_diff = abs(win[resistance_idx]['high'] - ma5_at_resistance) / ma5_at_resistance if ma5_at_resistance else 1
-    ma5_score = 15 if ma5_diff <= 0.02 else 8 if ma5_diff <= 0.05 else 0
+    ma5_score = 20 if ma5_diff <= 0.02 else 10 if ma5_diff <= 0.05 else 0
 
-    vol_score = 5 if is_volume_declining(win, prev_low_idx, len(win)) else 0
-    bull_score = 5 if is_last_candle_bullish(win) else 0
+    vol_score = 10 if is_volume_declining(win, last_low_idx, len(win)) else 0
+    bull_score = 10 if is_last_candle_bullish(win) else 0
 
-    score = clamp_score(rise_score + hh_score + span_score + slope_score + ma5_score + vol_score + bull_score)
+    score = clamp_score(higher_low_score + recent_low_score + ma5_score + vol_score + bull_score)
     reasons = [
-        '저점 %.1f%% 상승(%d/35점)' % (rise_ratio * 100, rise_score),
-        '고점도 직전 고점 대비 상승, Higher High 확인(%d/15점)' % hh_score,
-        '저점 간격 %d거래일(%d/15점)' % (low_span, span_score),
-        '20일선 기울기 상승/횡보(%d/10점)' % slope_score,
-        '5일선 저항 근접도(%d/15점)' % ma5_score,
-        '거래량 %s(%d/5점)' % ('감소' if vol_score else '유지/증가', vol_score),
-        '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
+        '스윙 저점 순차 상승(%d/40점)' % higher_low_score,
+        '최근 저점 상승 확인(%d/20점)' % recent_low_score,
+        '5일선 저항 근접도(%d/20점)' % ma5_score,
+        '거래량 %s(%d/10점)' % ('감소' if vol_score else '유지/증가', vol_score),
+        '최근 캔들 %s(%d/10점)' % ('양봉' if bull_score else '음봉', bull_score),
     ]
 
     return {
@@ -452,12 +516,87 @@ def detect_rising_lows(daily):
         'breakout': resistance is not None and last_close > resistance * BREAKOUT_TOL,
         'score': score,
         'reasons': reasons,
-        'interpretation': '저점과 고점이 함께 높아지고(Higher Low+High) 20일선도 상승/횡보 중인 구간으로 추정됩니다(%d점).' % score,
+        'interpretation': '최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간으로 추정됩니다(%d점).' % score,
     }
 
 
 # ---------------------------------------------------------------------------
-# ② 쌍바닥(Double Bottom)
+# ② 이평 상승 초입형(224일선 + 구름대 + 5일선 골든크로스)
+# ---------------------------------------------------------------------------
+
+def detect_ma_cloud_breakout(daily):
+    """장기 추세선 근처에서 구름 상단을 시도하는 초기 골든크로스를 찾는다.
+
+    모든 조건은 최신 봉을 기준으로 한다. 현재 종가가 이미 구름 상단을 넘은
+    종목은 '뚫으려고 하는 중'이 아니라 돌파가 끝난 것으로 보고 제외한다.
+    """
+    if len(daily) < MA_CLOUD_MIN_DAYS:
+        return None
+
+    ma5 = moving_average(daily, 'close', 5)
+    ma20 = moving_average(daily, 'close', 20)
+    ma224 = moving_average(daily, 'close', 224)
+    last_index = len(daily) - 1
+    close = daily[last_index]['close']
+    ma224_now = ma224[last_index]
+    if ma224_now is None or not ma224_now:
+        return None
+
+    ma224_gap = abs(close - ma224_now) / ma224_now
+    if ma224_gap > MA_CLOUD_NEAR_TOL:
+        return None
+
+    cloud = ichimoku_cloud_at(daily, last_index)
+    if not cloud or cloud['top'] <= 0:
+        return None
+    # 종가는 아직 구름 안에 있어야 하며, 고가는 상단에 닿거나 상단 3% 이내여야 한다.
+    if close < cloud['bottom'] or close > cloud['top']:
+        return None
+    if daily[last_index]['high'] < cloud['top'] * (1 - MA_CLOUD_TOP_TOL):
+        return None
+
+    cross_index = None
+    first_cross_index = max(1, last_index - MA_CLOUD_CROSS_LOOKBACK + 1)
+    for i in range(first_cross_index, last_index + 1):
+        if ma5[i - 1] is None or ma20[i - 1] is None or ma5[i] is None or ma20[i] is None:
+            continue
+        if ma5[i - 1] <= ma20[i - 1] and ma5[i] > ma20[i]:
+            cross_index = i
+    if cross_index is None:
+        return None
+
+    ma5_now, ma20_now = ma5[last_index], ma20[last_index]
+    if ma5_now is None or ma20_now is None:
+        return None
+
+    cloud_gap = (cloud['top'] - close) / cloud['top']
+    score = clamp_score(
+        (35 if ma224_gap <= 0.015 else 25)
+        + (35 if cloud_gap <= 0.01 else 25)
+        + 30
+    )
+    signal = {'date': daily[last_index]['date'], 'price': close}
+    reasons = [
+        '224일선 근접도 %.1f%%(%d/35점)' % (ma224_gap * 100, 35 if ma224_gap <= 0.015 else 25),
+        '현재가 구름 안·상단 시도(%d/35점)' % (35 if cloud_gap <= 0.01 else 25),
+        '최근 %d봉 안 5일선이 20일선 상향돌파(30/30점)' % MA_CLOUD_CROSS_LOOKBACK,
+    ]
+    return {
+        'ma5': ma5_now,
+        'ma20': ma20_now,
+        'ma224': ma224_now,
+        'cloud': cloud,
+        'cross': {'date': daily[cross_index]['date'], 'price': daily[cross_index]['close']},
+        'signal': signal,
+        'breakout': False,
+        'score': score,
+        'reasons': reasons,
+        'interpretation': '주가가 224일선 근처에서 일목 구름 안에 머물며 상단 돌파를 시도하고, 최근 %d봉 안에 5일선이 20일선을 상향돌파한 상승 초입으로 추정됩니다(%d점).' % (MA_CLOUD_CROSS_LOOKBACK, score),
+    }
+
+
+# ---------------------------------------------------------------------------
+# ③ 쌍바닥(Double Bottom)
 # ---------------------------------------------------------------------------
 
 def detect_double_bottom(daily):
@@ -466,8 +605,9 @@ def detect_double_bottom(daily):
     if len(low_idxs) < 2:
         return None
 
-    for a in range(len(low_idxs) - 1):
-        for b in range(a + 1, len(low_idxs)):
+    # 오래된 조합을 억지로 찾지 않고 가장 최근 두 저점만 쌍바닥 후보로 본다.
+    for a in [len(low_idxs) - 2]:
+        for b in [len(low_idxs) - 1]:
             i1, i2 = low_idxs[a], low_idxs[b]
             gap_days = i2 - i1
             if gap_days < DB_MIN_GAP_DAYS or gap_days > DB_MAX_GAP_DAYS:
@@ -481,7 +621,7 @@ def detect_double_bottom(daily):
                 continue
 
             # 2026-07-22 개편: 두 번째 저점 거래량이 첫 번째 저점 이하
-            if win[i2]['volume'] > win[i1]['volume']:
+            if win[i2]['volume'] > win[i1]['volume'] * DB_SECOND_VOLUME_MAX_RATIO:
                 continue
 
             neck = max_high_between(win, i1, i2)
@@ -491,7 +631,7 @@ def detect_double_bottom(daily):
             if rise_from_low1 < DB_PEAK_MIN_RISE:
                 continue
 
-            if not has_bullish_after(win, i2):
+            if not has_bullish_after(win, i2) or not is_last_candle_bullish(win):
                 continue
 
             last_close = win[-1]['close']
@@ -549,11 +689,18 @@ def detect_inv_head_shoulders(daily):
     # 2026-07-22 개편: 우어깨 형성 이후 거래량 급증(20일 평균 대비 1.2배 이상) 조건 기준선
     avg_vol20 = avg_volume(win, max(0, len(win) - 20), len(win))
 
-    for a in range(len(low_idxs) - 2):
-        for b in range(a + 1, len(low_idxs) - 1):
-            for c in range(b + 1, len(low_idxs)):
+    # 오래된 조합을 억지로 찾지 않고 가장 최근 세 저점만 역헤드앤숄더 후보로 본다.
+    for a in [len(low_idxs) - 3]:
+        for b in [len(low_idxs) - 2]:
+            for c in [len(low_idxs) - 1]:
                 i_l, i_h, i_r = low_idxs[a], low_idxs[b], low_idxs[c]
                 if (len(win) - 1) - i_r > RECENCY_MAX_GAP:
+                    continue
+                left_gap = i_h - i_l
+                right_gap = i_r - i_h
+                if left_gap < IHS_MIN_SHOULDER_GAP or right_gap < IHS_MIN_SHOULDER_GAP:
+                    continue
+                if left_gap > IHS_MAX_SHOULDER_GAP or right_gap > IHS_MAX_SHOULDER_GAP:
                     continue
                 left, head, right = win[i_l]['low'], win[i_h]['low'], win[i_r]['low']
 
@@ -572,12 +719,18 @@ def detect_inv_head_shoulders(daily):
                 peak2 = max_high_between(win, i_h, i_r)
                 if not peak1 or not peak2:
                     continue
+                if (peak1['high'] - head) / head < IHS_NECK_MIN_RISE:
+                    continue
+                if (peak2['high'] - head) / head < IHS_NECK_MIN_RISE:
+                    continue
                 neckline_price = min(peak1['high'], peak2['high'])
                 neckline_point = peak1 if peak1['high'] <= peak2['high'] else peak2
 
                 last_close = win[-1]['close']
                 proximity = (last_close - neckline_price) / neckline_price
                 if proximity < IHS_NECK_PROXIMITY_MIN:
+                    continue
+                if not is_last_candle_bullish(win):
                     continue
 
                 # 2026-07-22 개편: 우어깨 형성 이후 거래량이 20일 평균 대비 1.2배 이상
@@ -626,75 +779,111 @@ def detect_inv_head_shoulders(daily):
 # ④ 박스권 하단(Box Range Low)
 # ---------------------------------------------------------------------------
 
-def detect_box_range_low(daily):
-    win = daily[max(0, len(daily) - BOX_WINDOW):]
-    low_idxs = find_swing_indices(win, 'low', True)
-    high_idxs = find_swing_indices(win, 'high', False)
-    # 2026-07-22 개편: 지지선 터치 3회 이상 + 저항선 터치 2회 이상
-    if len(low_idxs) < BOX_MIN_LOW_TOUCHES or len(high_idxs) < BOX_MIN_HIGH_TOUCHES:
+def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
+    """Detect the A/B/C/D/E/G/J box-range lower-zone formula.
+
+    Market cap is fetched lazily by the live scanner only after the technical
+    A/B/C/D/G/J pre-filter passes. ``require_market_cap=False`` is used for
+    that pre-filter and by unit tests; production results always require E.
+    """
+    win = daily[-BOX_WINDOW:]
+    if len(win) < BOX_WINDOW:
         return None
 
-    # 2026-07-22 개편: 박스 기간(첫 스윙~오늘)이 최소 25거래일
-    first_swing_idx = min(low_idxs[0], high_idxs[0])
-    if (len(win) - 1) - first_swing_idx < BOX_MIN_DURATION:
+    range_win = win[-20:]
+    closes = [row['close'] for row in range_win]
+    lows = [row['low'] for row in range_win]
+    highs = [row['high'] for row in range_win]
+    last_close = closes[-1]
+    close_min = min(closes)
+    close_max = max(closes)
+    close_range = (close_max - close_min) / close_min if close_min else math.inf
+    if close_range > BOX_CLOSE_RANGE_MAX:
         return None
 
-    low_prices = [win[i]['low'] for i in low_idxs]
-    high_prices = [win[i]['high'] for i in high_idxs]
-
-    low_min, low_max = min(low_prices), max(low_prices)
-    high_min, high_max = min(high_prices), max(high_prices)
-
-    if (low_max - low_min) / low_min > BOX_TOL:
-        return None
-    if (high_max - high_min) / high_min > BOX_TOL:
+    close_ma5 = moving_average(daily, 'close', 5)[-20:]
+    close_ma20 = moving_average(daily, 'close', 20)[-20:]
+    close_near_count = sum(
+        1 for fast, slow in zip(close_ma5, close_ma20)
+        if fast is not None and slow and abs(fast / slow - 1) <= BOX_MA_NEAR_TOL
+    )
+    if close_near_count < BOX_MA_NEAR_COUNT:
         return None
 
-    support = sum(low_prices) / len(low_prices)
-    resistance = sum(high_prices) / len(high_prices)
-    if resistance <= support:
-        return None
-    if (resistance - support) / support < BOX_MIN_RANGE:
-        return None
-    if (resistance - support) / support > BOX_MAX_RANGE:
+    rsi = rsi_last(daily, BOX_RSI_PERIOD)
+    if rsi is None or not (BOX_RSI_MIN <= rsi <= BOX_RSI_MAX):
         return None
 
-    last_close = win[-1]['close']
-    if last_close < support * (1 - 0.01):
-        return None
-    if (last_close - support) / support > BOX_NEAR_LOW_TOL:
+    avg_volume_before = sum(row['volume'] for row in win[-6:-1]) / BOX_VOLUME_AVG_PERIOD
+    volume_20_ago = win[0]['volume']
+    volume_ratio = volume_20_ago / avg_volume_before if avg_volume_before else math.inf
+    if not (BOX_VOLUME_RATIO_MIN <= volume_ratio <= BOX_VOLUME_RATIO_MAX):
         return None
 
-    # ---- 점수(100점, 2026-07-22 개편): 박스유지25 + 지지선근접35 + 터치횟수20
-    # + 거래량감소15 + 최근양봉5 ----
-    flatness = max((low_max - low_min) / low_min, (high_max - high_min) / high_min)
-    box_score = 25 if flatness <= 0.015 else 15
-    near_ratio = (last_close - support) / support
-    support_score = 35 if near_ratio <= 0.01 else 22
-    extra_touches = (len(low_idxs) - BOX_MIN_LOW_TOUCHES) + (len(high_idxs) - BOX_MIN_HIGH_TOUCHES)
-    touch_score = 20 if extra_touches >= 3 else 14 if extra_touches >= 1 else 8
-    vol_score = 15 if is_volume_declining(win, low_idxs[0], len(win)) else 0
-    bull_score = 5 if is_last_candle_bullish(win) else 0
+    open_ma5 = moving_average(daily, 'open', 5)[-20:]
+    open_ma20 = moving_average(daily, 'open', 20)[-20:]
+    open_ma_above_count = sum(
+        1 for fast, slow in zip(open_ma5, open_ma20)
+        if fast is not None and slow is not None and fast >= slow
+    )
+    if open_ma_above_count < BOX_OPEN_MA_ABOVE_COUNT:
+        return None
 
-    score = clamp_score(box_score + support_score + touch_score + vol_score + bull_score)
+    return_20 = last_close / win[0]['close'] - 1
+    if abs(return_20) > BOX_RETURN_MAX:
+        return None
+
+    support = min(lows)
+    resistance = max(highs)
+    box_range = resistance - support
+    if box_range <= 0:
+        return None
+    lower_position = (last_close - support) / box_range
+    if lower_position < -0.02 or lower_position > BOX_LOWER_ZONE_RATIO:
+        return None
+
+    if market_cap_eok is None:
+        if require_market_cap:
+            return None
+    elif market_cap_eok < BOX_MARKET_CAP_MIN_EOK:
+        return None
+
+    # All A/B/C/D/G/J gates are hard filters. The score only ranks survivors.
+    range_score = max(0, 20 - round(close_range / BOX_CLOSE_RANGE_MAX * 20))
+    ma_score = min(20, close_near_count * 4)
+    rsi_score = 15 - round(abs(rsi - 50) / 15 * 15)
+    volume_score = 15 - round(abs(volume_ratio - 0.85) / 0.35 * 15)
+    cap_score = 10 if market_cap_eok is not None else 0
+    open_ma_score = min(10, open_ma_above_count * 2)
+    return_score = max(0, 10 - round(abs(return_20) / BOX_RETURN_MAX * 10))
+    score = clamp_score(range_score + ma_score + rsi_score + volume_score + cap_score + open_ma_score + return_score)
     reasons = [
-        '박스 상/하단 평평도(%d/25점)' % box_score,
-        '지지선 근접도 %.1f%%(%d/35점)' % (near_ratio * 100, support_score),
-        '지지선 %d회·저항선 %d회 터치(%d/20점)' % (len(low_idxs), len(high_idxs), touch_score),
-        '거래량 %s(%d/15점)' % ('감소' if vol_score else '유지/증가', vol_score),
-        '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
+        'A 최근 20봉 종가 변동폭 %.1f%% (10%% 이하)' % (close_range * 100),
+        'B 종가 5·20일선 3%% 이내 근접 %d회' % close_near_count,
+        'C RSI(14) %.1f (35~65)' % rsi,
+        'D 20봉전 거래량/직전 5봉 평균 %.1f%% (50~120%%)' % (volume_ratio * 100),
+        'E 시가총액 %.0f억원 (3000억원 이상)' % market_cap_eok if market_cap_eok is not None else 'E 시가총액 확인 대기',
+        'G 시가 5·20일선 관계 충족 %d회' % open_ma_above_count,
+        'J 20봉 수익률 %.1f%% (±10%% 이내)' % (return_20 * 100),
     ]
-
     return {
         'support': support,
         'resistance': resistance,
-        'low_swings': [{'date': win[i]['date'], 'price': win[i]['low']} for i in low_idxs],
-        'high_swings': [{'date': win[i]['date'], 'price': win[i]['high']} for i in high_idxs],
         'signal': {'date': win[-1]['date'], 'price': last_close},
         'breakout': False,
         'score': score,
         'reasons': reasons,
-        'interpretation': '박스권 하단 지지선 부근(지지선 대비 +%.1f%%)에서 반등을 시도하는 구간으로 추정됩니다(%d점).' % (near_ratio * 100, score),
+        'interpretation': 'A/B/C/D/E/G/J box-range lower-zone candidate (lower position %.1f%%, score %d).' % (lower_position * 100, score),
+        'criteria': {
+            'closeRangePct': close_range * 100,
+            'closeMaNearCount': close_near_count,
+            'rsi14': rsi,
+            'volumeRatioPct': volume_ratio * 100,
+            'marketCapEok': market_cap_eok,
+            'openMaAboveCount': open_ma_above_count,
+            'return20Pct': return_20 * 100,
+            'lowerPositionPct': lower_position * 100,
+        },
     }
 
 
@@ -705,11 +894,11 @@ def detect_box_range_low(daily):
 def detect_pullback(daily):
     win = daily[max(0, len(daily) - PULLBACK_WINDOW):]
     n = len(win)
-    if n < 65:
+    if n < 240:
         return None
 
     ma20 = moving_average(win, 'close', 20)
-    ma60 = moving_average(win, 'close', 60)
+    ma240 = moving_average(win, 'close', 240)
 
     recent_start = max(0, n - PULLBACK_LOOKBACK - 5)
     peak_idx = recent_start
@@ -738,10 +927,10 @@ def detect_pullback(daily):
         return None
 
     ma20_now = ma20[n - 1]
-    ma60_now = ma60[n - 1]
+    ma240_now = ma240[n - 1]
     diff20 = abs(last_close - ma20_now) / ma20_now if ma20_now else math.inf
-    diff60 = abs(last_close - ma60_now) / ma60_now if ma60_now else math.inf
-    if diff20 > PULLBACK_MA_TOL and diff60 > PULLBACK_MA_TOL:
+    diff240 = abs(last_close - ma240_now) / ma240_now if ma240_now else math.inf
+    if diff20 > PULLBACK_MA_TOL and diff240 > PULLBACK_MA_TOL:
         return None
 
     # 2026-07-22 개편: 20일선이 상승 중이어야 함
@@ -759,13 +948,13 @@ def detect_pullback(daily):
     # + 거래량패턴15(고정) + 최근양봉10 ----
     rise_score = 30 if rise_ratio >= 0.25 else 22 if rise_ratio >= 0.20 else 15
     drop_score = 25 if (0.07 <= drop_ratio <= 0.12) else 15
-    ma_score = 20 if (diff20 <= PULLBACK_MA_TOL and diff60 <= PULLBACK_MA_TOL) \
-        else 12 if min(diff20, diff60) <= PULLBACK_MA_TOL else 0
+    ma_score = 20 if (diff20 <= PULLBACK_MA_TOL and diff240 <= PULLBACK_MA_TOL) \
+        else 12 if min(diff20, diff240) <= PULLBACK_MA_TOL else 0
     vol_score = 15
     bull_score = 10 if is_last_candle_bullish(win) else 0
 
     score = clamp_score(rise_score + drop_score + ma_score + vol_score + bull_score)
-    ma_label = '20일선' if diff20 <= diff60 else '60일선'
+    ma_label = '20일선' if diff20 <= diff240 else '1년선(240일선)'
     reasons = [
         '상승폭 %.1f%%(%d/30점)' % (rise_ratio * 100, rise_score),
         '조정폭 %.1f%%(%d/25점)' % (drop_ratio * 100, drop_score),
@@ -780,7 +969,7 @@ def detect_pullback(daily):
         'current': {'date': win[n - 1]['date'], 'price': last_close},
         'signal': {'date': win[n - 1]['date'], 'price': last_close},
         'ma20': ma20_now,
-        'ma60': ma60_now,
+        'ma240': ma240_now,
         'breakout': False,
         'score': score,
         'reasons': reasons,
@@ -789,37 +978,76 @@ def detect_pullback(daily):
     }
 
 
-def scan_stock(stock, daily, pattern_results, pullback_matches):
-    """단일 종목의 daily(OHLC)로 5종 패턴을 판정해 pattern_results/pullback_matches에
+def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_getter=None):
+    """단일 종목의 daily(OHLC)로 6종 패턴을 판정해 pattern_results/pullback_matches에
     append(둘 다 호출부가 미리 만들어서 넘긴 딕셔너리/리스트를 in-place로 채움).
     daily_scan.py(키움 API 기반)와 rescan_patterns.py(SQLite 기반)가 이 함수를 공유해서
     판정 로직이 두 곳에서 따로 관리되다 어긋나는 걸 방지한다.
     반환값: (패턴 스캔 대상이었는지, 눌림목 스캔 대상이었는지)."""
     pattern_scanned = False
     pullback_scanned = False
+    pattern_results.setdefault('maCloudBreakout', [])
+    if is_excluded_stock(stock, daily):
+        return pattern_scanned, pullback_scanned
 
-    if len(daily) >= BOX_WINDOW:
+    if len(daily) >= RISING_LOWS_WINDOW:
         pattern_scanned = True
         rl = detect_rising_lows(daily)
-        if rl and not rl['breakout'] and pattern_grade(rl['score']) and len(pattern_results['risingLows']) < PATTERN_MAX_MATCHES:
+        if rl and not rl['breakout']:
             pattern_results['risingLows'].append(build_pattern_match(stock, daily, rl))
 
+    if len(daily) >= MA_CLOUD_MIN_DAYS:
+        pattern_scanned = True
+        ma_cloud = detect_ma_cloud_breakout(daily)
+        if ma_cloud:
+            pattern_results['maCloudBreakout'].append(build_pattern_match(stock, daily, ma_cloud))
+
+    if len(daily) >= BOX_WINDOW:
         db = detect_double_bottom(daily)
-        if db and not db['breakout'] and pattern_grade(db['score']) and len(pattern_results['doubleBottom']) < PATTERN_MAX_MATCHES:
+        if db and not db['breakout'] and pattern_grade(db['score']):
             pattern_results['doubleBottom'].append(build_pattern_match(stock, daily, db))
 
         ihs = detect_inv_head_shoulders(daily)
-        if ihs and not ihs['breakout'] and pattern_grade(ihs['score']) and len(pattern_results['invHeadShoulders']) < PATTERN_MAX_MATCHES:
+        if ihs and not ihs['breakout'] and pattern_grade(ihs['score'], IHS_MIN_SCORE):
             pattern_results['invHeadShoulders'].append(build_pattern_match(stock, daily, ihs))
 
-        box = detect_box_range_low(daily)
-        if box and pattern_grade(box['score']) and len(pattern_results['boxRangeLow']) < PATTERN_MAX_MATCHES:
+        box = detect_box_range_low(
+            daily,
+            market_cap_eok=stock.get('market_cap_eok'),
+            require_market_cap=market_cap_getter is None,
+        )
+        if box and box.get('criteria', {}).get('marketCapEok') is None and market_cap_getter:
+            market_cap_eok = market_cap_getter(stock['code'])
+            box = detect_box_range_low(daily, market_cap_eok=market_cap_eok, require_market_cap=True)
+        if box:
             pattern_results['boxRangeLow'].append(build_pattern_match(stock, daily, box))
 
     if len(daily) >= PULLBACK_MIN_DAYS:
         pullback_scanned = True
         pullback = detect_pullback(daily)
-        if pullback and pattern_grade(pullback['score']) and len(pullback_matches) < PATTERN_MAX_MATCHES:
+        if pullback and pattern_grade(pullback['score'], PULLBACK_MIN_SCORE):
             pullback_matches.append(build_pattern_match(stock, daily, pullback))
 
     return pattern_scanned, pullback_scanned
+
+
+def _rank_and_limit(matches):
+    """Rank all candidates deterministically before applying the display cap."""
+    matches = matches or []
+    matches.sort(key=lambda item: item.get('code') or '')
+    matches.sort(key=lambda item: item.get('date') or '', reverse=True)
+    matches.sort(key=lambda item: item.get('score') or 0, reverse=True)
+    return matches[:PATTERN_MAX_MATCHES]
+
+
+def finalize_pattern_results(pattern_results, pullback_matches=None):
+    """Apply the quality-ranked display cap after the full universe scan.
+
+    No pattern bucket is truncated during scanning. This prevents the first
+    15 symbols in universe order from winning over stronger later candidates.
+    """
+    for key in ('risingLows', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow'):
+        pattern_results[key] = _rank_and_limit(pattern_results.get(key))
+    if pullback_matches is not None:
+        pullback_matches[:] = _rank_and_limit(pullback_matches)
+    return pattern_results

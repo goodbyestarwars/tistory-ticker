@@ -3,8 +3,8 @@
  * 로그인 없이 localStorage에 저장(코드+이름, 최대 50개, 순서 보존 배열).
  * 종목명 검색(KRX_MAP 자동완성, foreign-flow.js와 동일 패턴)으로 추가하고,
  * 기존 GAS 시세 프록시(?codes=)를 그대로 재사용해 카드에 현재가/등락률을 채운다.
- * 카드 클릭 시 네이버 금융 종목 페이지로 이동(ticker-tooltip-v5.js의 NAVER_ITEM_URL과 동일 목적지),
- * "차트 이동" 버튼은 우리 사이트 증시검색 페이지로 이동(js/stock-search.js).
+ * 종목 행 클릭 시 우리 사이트 실시간 시세 페이지로 이동(js/stock-search.js).
+ * 관심종목은 사용자가 만든 그룹으로 분류하고 블록 드래그앤드롭으로 순서와 그룹을 바꿀 수 있다.
  *
  * window.KRX_MAP(종목명->코드)이 이 스크립트보다 먼저 로드되어야 함.
  * data-code 속성을 순서대로 유지해두어 향후 Drag & Drop으로 순서 변경을 붙이기 쉽게 해둔다.
@@ -17,23 +17,87 @@
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var API_BASE_URL = 'https://goodbyestar.cloud';
+  var WATCHLIST_API_URL = API_BASE_URL + '/watchlist';
+  var GOOGLE_AUTH_ME_URL = API_BASE_URL + '/auth/google/me';
+  var GOOGLE_AUTH_START_URL = API_BASE_URL + '/auth/google/start';
+  var GOOGLE_AUTH_LOGOUT_URL = API_BASE_URL + '/auth/google/logout';
   var CONTAINER_SELECTOR = '#watchlist';
   var STORAGE_KEY = 'wl_codes_v1';
+  var GROUP_STORAGE_KEY = 'wl_groups_v1';
+  var QUOTES_CACHE_KEY = 'watchlist_quotes_v2';
+  var QUOTES_CACHE_MAX_AGE_MS = 3 * 60 * 1000;
+  var DEFAULT_GROUP_ID = 'default';
   var MAX_ITEMS = 50;
   var MAX_SUGGESTIONS = 8;
   var FETCH_TIMEOUT_MS = 8000;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var US_SEARCH_URL = API_BASE_URL + '/us-search';
+  var US_WATCHLIST_GROUP_NAME = '미국주식';
+  var US_WATCHLIST_ETF_SYMBOLS = ['SOXL', 'SOXS', 'KORU'];
+  var US_WATCHLIST_STOCKS = [
+    { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'sk하이닉스 하이닉스 sk hynix' },
+    { symbol: 'SPCX', name: '스페이스X', aliases: '스페이스x spacex' },
+    { symbol: 'MRVL', name: '마벨 테크놀로지', aliases: '마벨 마벨테크놀로지 marvell' },
+    { symbol: 'RGTI', name: '리게티 컴퓨팅', aliases: '리게티 rigetti' },
+    { symbol: 'NVDA', name: '엔비디아', aliases: '엔비디아 nvidia' },
+    { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft' },
+    { symbol: 'GOOGL', name: '알파벳 A', aliases: '구글 알파벳 alphabet google' },
+    { symbol: 'AMZN', name: '아마존', aliases: '아마존 amazon' },
+    { symbol: 'RKLB', name: '로켓 랩', aliases: '로켓랩 로켓 랩 rocket lab' },
+    { symbol: 'TSLA', name: '테슬라', aliases: '테슬라 tesla' },
+    { symbol: 'AVGO', name: '브로드컴', aliases: '브로드컴 broadcom' },
+    { symbol: 'ORCL', name: '오라클', aliases: '오라클 oracle' },
+    { symbol: 'MU', name: '마이크론 테크놀로지', aliases: '마이크론 마이크론테크놀로지 micron' },
+    { symbol: 'AAPL', name: '애플', aliases: '애플 apple' },
+    { symbol: 'INTC', name: '인텔', aliases: '인텔 intel' },
+    { symbol: 'CBRS', name: '세레브라스 시스템즈', aliases: '세레브라스 cerebras' },
+    { symbol: 'PLTR', name: '팔란티어', aliases: '팔란티어 palantir' },
+    { symbol: 'SNDK', name: '샌디스크', aliases: '샌디스크 sandisk' },
+    { symbol: 'DELL', name: '델 테크놀로지스', aliases: '델 델테크놀로지스 dell' },
+    { symbol: 'IONQ', name: '아이온큐', aliases: '아이온큐 ionq' },
+    { symbol: 'META', name: '메타', aliases: '메타 페이스북 meta facebook' },
+    { symbol: 'LLY', name: '일라이 릴리', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
+    { symbol: 'AMD', name: 'AMD', aliases: 'amd' },
+    { symbol: 'ASTS', name: 'AST 스페이스모바일', aliases: 'ast asts 스페이스모바일 spacemobile' }
+  ];
+  var LOCAL_US_SYMBOLS = [
+    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
+    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia' },
+    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
+    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
+    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
+    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' }
+  ].concat(US_WATCHLIST_STOCKS).filter(function (row, index, rows) {
+    return rows.findIndex(function (candidate) { return candidate.symbol === row.symbol; }) === index;
+  });
   // TODO: /page/stock-search는 실제 페이지 생성 전 placeholder(js/skin-menu.js와 동일 사유) -
   // 실제 URL이 정해지면 이 상수만 바꾸면 됨(watchlist.js 전체에서 이 한 곳만 참조).
   var STOCK_SEARCH_PAGE_URL = '/page/stock-search';
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
-  var REALTIME_FALLBACK_MS = 30000;
+  // NXT 장 전환(08:00/15:30)에는 upstream websocket이 잠시 조용할 수 있으므로
+  // 체결 이벤트가 없어도 현재가 폴백은 계속 실행한다.
+  // 미국 API의 분당 호출 제한을 넘지 않도록 REST 폴백은 느리게 돌리고,
+  // 정상적인 장중 갱신은 아래 WebSocket(Finnhub)으로 처리한다.
+  var REALTIME_FALLBACK_MS = 60000;
+  var REALTIME_DOMESTIC_FALLBACK_MS = 10000;
   var REALTIME_RECONNECT_MS = 5000;
   var realtimeSocket = null;
   var realtimeReconnectTimer = null;
   var realtimeFallbackTimer = null;
+  var realtimeDomesticFallbackTimer = null;
   var realtimeKeepaliveTimer = null;
+  var realtimeKickoffTimer = null;
   var realtimeGeneration = 0;
+  var draggedCode = null;
+  var didDrag = false;
+  var remoteState = { items: [], groups: [], revision: 0 };
+  var remoteReady = false;
+  var authState = { configured: false, authenticated: false, isAdmin: false, email: null };
+  var saveQueue = Promise.resolve();
+  var changeListeners = [];
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -43,25 +107,30 @@
   };
   function stockIconHtml(code) {
     if (!code) return '';
-    return '<img class="wl-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+    var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
+    return '<img class="wl-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
   }
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    if (container.getAttribute('data-watchlist-ready') === '1') return;
+    container.setAttribute('data-watchlist-ready', '1');
     container.innerHTML = buildShell();
     wireEvents(container);
-    render(container);
+    loadRemoteState(container);
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stopRealtimeQuotes();
-      else render(container);
+      else if (remoteReady && authState.authenticated) render(container);
+      else loadRemoteState(container);
     });
   }
 
   function buildShell() {
     return ''
       + '<div class="wl-header">'
-      + '<div class="wl-title">⭐ 관심종목 <span id="wlCount" class="wl-count"></span></div>'
+      + '<div class="wl-title">관심종목 <span id="wlCount" class="wl-count"></span></div>'
+      + '<button type="button" id="wlGroupAddBtn" class="wl-group-add">+ 그룹 만들기</button>'
       + '<div class="wl-add">'
       + '<div class="wl-input-wrap">'
       + '<input type="text" id="wlInput" class="wl-input" placeholder="종목명을 입력하세요 (예: 삼성전자)"'
@@ -79,7 +148,7 @@
 
   // ---- localStorage ----
 
-  function loadList() {
+  function loadLocalList() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       var list = raw ? JSON.parse(raw) : [];
@@ -89,12 +158,248 @@
     }
   }
 
-  function saveList(list) {
+  function saveLocalList(list) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     } catch (err) {
       // localStorage 불가 환경(프라이빗 모드 등) - 조용히 무시, 이번 세션 내 메모리에는 반영됨
     }
+  }
+
+  function loadLocalGroups() {
+    try {
+      var raw = localStorage.getItem(GROUP_STORAGE_KEY);
+      var groups = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(groups)) groups = [];
+      if (!groups.some(function (group) { return group.id === DEFAULT_GROUP_ID; })) {
+        groups.unshift({ id: DEFAULT_GROUP_ID, name: '기본', collapsed: false });
+      }
+      return groups;
+    } catch (err) {
+      return [{ id: DEFAULT_GROUP_ID, name: '기본', collapsed: false }];
+    }
+  }
+
+  function saveLocalGroups(groups) {
+    try { localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(groups)); } catch (err) {}
+  }
+
+  function readQuoteCache(codes) {
+    try {
+      var cached = JSON.parse(localStorage.getItem(QUOTES_CACHE_KEY) || 'null');
+      if (!cached || !cached.savedAt || Date.now() - Number(cached.savedAt) > QUOTES_CACHE_MAX_AGE_MS) return {};
+      var data = cached.data && typeof cached.data === 'object' ? cached.data : {};
+      var byCode = {};
+      codes.forEach(function (code) { if (data[code]) byCode[code] = data[code]; });
+      return byCode;
+    } catch (err) { return {}; }
+  }
+
+  function writeQuoteCache(data) {
+    if (!data || typeof data !== 'object' || !Object.keys(data).length) return;
+    try { localStorage.setItem(QUOTES_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: data })); }
+    catch (err) {}
+  }
+
+  function cloneState() {
+    return JSON.parse(JSON.stringify({ items: remoteState.items, groups: remoteState.groups }));
+  }
+
+  function loadList() {
+    return remoteState.items.slice();
+  }
+
+  function saveList(list, container) {
+    remoteState.items = list.slice();
+    persistRemoteState(container);
+  }
+
+  function loadGroups() {
+    return remoteState.groups.slice();
+  }
+
+  function saveGroups(groups, container) {
+    remoteState.groups = groups.slice();
+    persistRemoteState(container);
+  }
+
+  function fetchAuthState() {
+    return fetch(GOOGLE_AUTH_ME_URL, { credentials: 'include', cache: 'no-store' })
+      .then(function (response) { if (!response.ok) throw new Error('auth status HTTP ' + response.status); return response.json(); })
+      .then(function (body) { return body && body.data ? body.data : { configured: false, authenticated: false }; })
+      .catch(function () { return { configured: false, authenticated: false, isAdmin: false, email: null }; });
+  }
+
+  function renderLoginRequired(container, message) {
+    var input = container.querySelector('#wlInput');
+    var add = container.querySelector('#wlAddBtn');
+    var groupAdd = container.querySelector('#wlGroupAddBtn');
+    if (input) input.disabled = true;
+    if (add) add.disabled = true;
+    if (groupAdd) groupAdd.disabled = true;
+    var grid = container.querySelector('#wlGrid');
+    if (grid) {
+      grid.innerHTML = '<div class="wl-login-gate"><strong>Google 로그인이 필요합니다.</strong><p>' +
+        escapeHtml(message || '관심종목은 Google 계정별로 안전하게 저장됩니다.') +
+        '</p><button type="button" class="wl-login-btn">Google로 로그인</button></div>';
+      var button = grid.querySelector('.wl-login-btn');
+      if (button) button.addEventListener('click', function () {
+        var returnTo = encodeURIComponent(global.location.href);
+        global.location.href = GOOGLE_AUTH_START_URL + '?return_to=' + returnTo;
+      });
+    }
+    var empty = container.querySelector('#wlEmpty');
+    if (empty) empty.hidden = true;
+  }
+
+  function renderAuthStatus(container) {
+    var input = container.querySelector('#wlInput');
+    var add = container.querySelector('#wlAddBtn');
+    var groupAdd = container.querySelector('#wlGroupAddBtn');
+    var authenticated = !!(authState.authenticated && authState.email);
+    if (input) input.disabled = !authenticated;
+    if (add) add.disabled = !authenticated;
+    if (groupAdd) groupAdd.disabled = !authenticated;
+    var header = container.querySelector('.wl-header');
+    if (!header) return;
+    var status = header.querySelector('.wl-auth');
+    if (!status) {
+      status = document.createElement('div');
+      status.className = 'wl-auth';
+      header.insertBefore(status, header.firstChild);
+    }
+    status.innerHTML = authenticated
+      ? '<span>Google: ' + escapeHtml(authState.email) + '</span><button type="button" class="wl-logout-btn">로그아웃</button>'
+      : '<span>로그인 필요</span>';
+    var logout = status.querySelector('.wl-logout-btn');
+    if (logout) logout.addEventListener('click', function () {
+      global.location.href = GOOGLE_AUTH_LOGOUT_URL + '?return_to=' + encodeURIComponent(global.location.href);
+    });
+  }
+
+  // 2026-08-10: 미국주식 기본 목록을 개별주 중심으로 정리한다.
+  // 기존 계정의 "미국주식" 그룹에도 한 번만 적용되도록 현재 저장값과 비교한 뒤 변경 시에만 저장한다.
+  function migrateUsWatchlist(container) {
+    var usGroup = remoteState.groups.filter(function (group) {
+      return group && group.name === US_WATCHLIST_GROUP_NAME;
+    })[0];
+    if (!usGroup) return false;
+
+    var bannedByCode = {};
+    US_WATCHLIST_ETF_SYMBOLS.forEach(function (symbol) { bannedByCode['US:' + symbol] = true; });
+
+    var before = JSON.stringify(remoteState.items);
+    var usedCodes = {};
+    var nextUsItems = [];
+    US_WATCHLIST_STOCKS.forEach(function (stock) {
+      var code = 'US:' + stock.symbol;
+      // 기존 종목이 있으면 이름만 최신 한국어 표시명으로 맞추고, 없으면 새로 넣는다.
+      nextUsItems.push({ code: code, name: stock.name, groupId: usGroup.id });
+      usedCodes[code] = true;
+    });
+
+    var otherItems = [];
+    var extraUsItems = [];
+    remoteState.items.forEach(function (item) {
+      if (!item || !item.code) return;
+      var code = String(item.code).toUpperCase();
+      var groupId = item.groupId || DEFAULT_GROUP_ID;
+      if (usedCodes[code]) return;
+      if (groupId === usGroup.id) {
+        if (!bannedByCode[code]) extraUsItems.push(item);
+        return;
+      }
+      otherItems.push(item);
+    });
+
+    // 미국주식 그룹 안의 기존 사용자 추가 종목은 유지하되, ETF 3종은 제거한다.
+    var capacity = Math.max(0, MAX_ITEMS - otherItems.length - extraUsItems.length);
+    if (nextUsItems.length > capacity) nextUsItems = nextUsItems.slice(0, capacity);
+    remoteState.items = otherItems.concat(nextUsItems, extraUsItems);
+    if (JSON.stringify(remoteState.items) !== before) {
+      persistRemoteState(container);
+      return true;
+    }
+    return false;
+  }
+
+  function notifyChanged() {
+    changeListeners.slice().forEach(function (listener) { try { listener(remoteState.items.slice()); } catch (err) {} });
+    try { global.dispatchEvent(new Event('watchlist:changed')); } catch (err) {}
+  }
+
+  function persistRemoteState(container) {
+    if (!remoteReady || !authState.authenticated) return;
+    saveQueue = saveQueue.catch(function () {}).then(function () {
+      var payload = cloneState();
+      payload.revision = remoteState.revision;
+      return fetch(WATCHLIST_API_URL, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (response) {
+        return response.json().then(function (body) {
+          if (!response.ok) throw new Error(body.detail || '관심종목 저장에 실패했습니다.');
+          return body;
+        });
+      }).then(function (body) {
+        var saved = body.data || {};
+        remoteState.revision = Number(saved.revision || remoteState.revision);
+        notifyChanged();
+      }).catch(function (error) {
+        var msg = container && container.querySelector('#wlMsg');
+        if (msg) { msg.textContent = error.message; msg.hidden = false; }
+      });
+    });
+  }
+
+  function fetchRemoteWatchlistState() {
+    return fetch(WATCHLIST_API_URL, { credentials: 'include', cache: 'no-store' })
+      .then(function (response) {
+        return response.json().then(function (body) {
+          if (!response.ok) throw new Error(body.detail || '관심종목을 불러오지 못했습니다.');
+          return body.data || {};
+        });
+      });
+  }
+
+  function loadRemoteState(container) {
+    // 인증 확인과 관심종목 조회는 서로 독립적이므로 동시에 시작해 첫 화면을 빠르게 연다.
+    var remoteDataPromise = fetchRemoteWatchlistState().catch(function () { return null; });
+    fetchAuthState().then(function (nextAuth) {
+      authState = nextAuth;
+      renderAuthStatus(container);
+      if (!authState.configured || !authState.authenticated) {
+        renderLoginRequired(container, authState.configured ? '관심종목을 저장하려면 Google 계정으로 로그인하세요.' : 'Google 로그인 서버 설정을 확인 중입니다.');
+        return null;
+      }
+      return remoteDataPromise.then(function (data) {
+        if (!data) throw new Error('관심종목을 불러오지 못했습니다.');
+        return data;
+      });
+    }).then(function (data) {
+      if (!data) return;
+      var localItems = loadLocalList();
+      var localGroups = loadLocalGroups();
+      remoteState.items = Array.isArray(data.items) ? data.items : [];
+      remoteState.groups = Array.isArray(data.groups) && data.groups.length ? data.groups : localGroups;
+      remoteState.revision = Number(data.revision || 0);
+      remoteReady = true;
+      var migratedLegacy = false;
+      if (!remoteState.items.length && localItems.length) {
+        remoteState.items = localItems;
+        remoteState.groups = localGroups;
+        migratedLegacy = true;
+        try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(GROUP_STORAGE_KEY); } catch (err) {}
+      }
+      if (!migrateUsWatchlist(container) && migratedLegacy) persistRemoteState(container);
+      renderAuthStatus(container);
+      render(container);
+      notifyChanged();
+    }).catch(function (error) {
+      renderLoginRequired(container, error.message || '관심종목을 불러오지 못했습니다.');
+    });
   }
 
   // ---- 검색/자동완성 (foreign-flow.js와 동일 패턴) ----
@@ -103,6 +408,7 @@
     var input = container.querySelector('#wlInput');
     var suggestBox = container.querySelector('#wlSuggest');
     var addBtn = container.querySelector('#wlAddBtn');
+    var groupAddBtn = container.querySelector('#wlGroupAddBtn');
     suggestBox.__input = input;
 
     input.addEventListener('input', function () {
@@ -121,10 +427,13 @@
       } else if (e.key === 'Enter') {
         e.preventDefault();
         var idx = getActiveSuggestion(suggestBox);
-        var picked = idx > -1 && items[idx] ? items[idx].getAttribute('data-name') : input.value.trim();
-        if (idx > -1 && items[idx]) input.value = picked;
+        var pickedItem = idx > -1 && items[idx] ? items[idx] : null;
+        var fallbackRow = !pickedItem && suggestBox.__suggestRows ? suggestBox.__suggestRows.filter(function (row) { return row.market === 'us'; })[0] : null;
+        var picked = pickedItem ? (pickedItem.getAttribute('data-code') || pickedItem.getAttribute('data-name')) : (fallbackRow ? fallbackRow.code : input.value.trim());
+        var pickedName = pickedItem ? pickedItem.getAttribute('data-name') : (fallbackRow ? fallbackRow.name : '');
+        if (pickedItem) input.value = pickedName;
         hideSuggestions(suggestBox);
-        addByQuery(container, picked);
+        addByQuery(container, picked, pickedName);
       } else if (e.key === 'Escape') {
         e.preventDefault();
         hideSuggestions(suggestBox);
@@ -133,6 +442,14 @@
     addBtn.addEventListener('click', function () {
       hideSuggestions(suggestBox);
       addByQuery(container, input.value.trim());
+    });
+    groupAddBtn.addEventListener('click', function () {
+      var name = global.prompt('새 그룹 이름을 입력하세요.');
+      if (!name || !name.trim()) return;
+      var groups = loadGroups();
+      groups.push({ id: 'group-' + Date.now(), name: name.trim().slice(0, 20), collapsed: false });
+      saveGroups(groups, container);
+      render(container);
     });
     document.addEventListener('click', function (e) {
       if (!container.contains(e.target)) hideSuggestions(suggestBox);
@@ -143,6 +460,7 @@
     box.innerHTML = '';
     box.classList.remove('active');
     box.__activeIndex = -1;
+    box.__suggestRows = [];
     if (box.__input) {
       box.__input.setAttribute('aria-expanded', 'false');
       box.__input.setAttribute('aria-activedescendant', '');
@@ -179,8 +497,11 @@
   }
 
   function renderSuggestions(container, box, query) {
-    var map = global.KRX_MAP;
-    if (!query || !map) { hideSuggestions(box); return; }
+    var map = global.KRX_MAP || {};
+    if (!query) { hideSuggestions(box); return; }
+
+    var requestId = (box.__suggestRequestId || 0) + 1;
+    box.__suggestRequestId = requestId;
 
     var q = query.toLowerCase();
     // ETF 병합 이후 검색어가 포함된 ETF가 진짜 종목보다 먼저 뜨는 문제가 있었음 - 시작/포함
@@ -198,12 +519,55 @@
         else if (containsStock.length < MAX_SUGGESTIONS) containsStock.push(name);
       }
     }
-    var matches = startsStock.concat(startsEtf, containsStock, containsEtf).slice(0, MAX_SUGGESTIONS);
-    if (!matches.length) { hideSuggestions(box); return; }
+    var domesticRows = startsStock.concat(startsEtf, containsStock, containsEtf).map(function (name) {
+      return { code: map[name], name: name, market: 'kr' };
+    });
 
-    box.innerHTML = matches.map(function (name, index) {
+    renderSuggestionRows(container, box, domesticRows, [], requestId);
+    fetchUsSuggestions(query).then(function (usRows) {
+      if (box.__suggestRequestId !== requestId) return;
+      renderSuggestionRows(container, box, domesticRows, usRows, requestId);
+    });
+  }
+
+  function fetchUsSuggestions(query) {
+    var localRows = LOCAL_US_SYMBOLS.filter(function (row) {
+      return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(String(query || '').toLowerCase()) !== -1;
+    }).slice(0, 8).map(function (row) {
+      return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
+    });
+    if (localRows.length) return Promise.resolve(localRows);
+    var request = typeof global.fetch === 'function'
+      ? global.fetch(US_SEARCH_URL + '?q=' + encodeURIComponent(query) + '&limit=8')
+      : Promise.reject(new Error('fetch unavailable'));
+    return request
+      .then(function (response) {
+        if (!response.ok) throw new Error('미국주식 검색 오류: ' + response.status);
+        return response.json();
+      })
+      .then(function (body) {
+        var rows = (body && body.data ? body.data : []).map(function (row) {
+          return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
+        });
+        if (!rows.length) throw new Error('미국주식 검색 결과 없음');
+        return rows;
+      })
+      .catch(function () {
+        return localRows;
+      });
+  }
+
+  function renderSuggestionRows(container, box, domesticRows, usRows, requestId) {
+    if (box.__suggestRequestId !== requestId) return;
+    var domesticLimit = usRows.length ? Math.max(0, MAX_SUGGESTIONS - Math.min(usRows.length, 2)) : MAX_SUGGESTIONS;
+    var rows = domesticRows.slice(0, domesticLimit).concat(usRows).slice(0, MAX_SUGGESTIONS);
+    box.__suggestRows = rows;
+    if (!rows.length) { hideSuggestions(box); return; }
+
+    box.innerHTML = rows.map(function (row, index) {
+      var label = row.market === 'us' ? '<span class="wl-suggest-market">US</span> ' + escapeHtml(row.name) + ' <small>(' + escapeHtml(String(row.code).replace(/^US:/i, '')) + ')</small>' : escapeHtml(row.name);
       return '<div class="wl-suggest-item" id="wlSuggestOption' + index + '" role="option" aria-selected="false"'
-        + ' data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
+        + ' data-code="' + escapeAttr(row.code) + '" data-name="' + escapeAttr(row.name) + '">' + label + '</div>';
     }).join('');
     box.classList.add('active');
     box.__activeIndex = -1;
@@ -217,10 +581,11 @@
         setActiveSuggestion(box, box.querySelectorAll('.wl-suggest-item'), index);
       });
       el.addEventListener('click', function () {
+        var code = el.getAttribute('data-code') || el.getAttribute('data-name');
         var name = el.getAttribute('data-name');
         container.querySelector('#wlInput').value = name;
         hideSuggestions(box);
-        addByQuery(container, name);
+        addByQuery(container, code, name);
       });
     });
   }
@@ -228,6 +593,10 @@
   // 종목명/코드 -> { code, name }. 정확일치 우선, 부분일치는 1개일 때만.
   function resolveStock(query) {
     if (!query) return null;
+    if (/^US:/i.test(query)) {
+      var usSymbol = query.slice(3).trim().toUpperCase();
+      return /^[A-Z][A-Z0-9.\-]{0,9}$/.test(usSymbol) ? { code: 'US:' + usSymbol, name: usSymbol } : null;
+    }
     var map = global.KRX_MAP || {};
     if (/^[0-9A-Z]{6}$/i.test(query)) {
       for (var nm in map) {
@@ -238,6 +607,20 @@
       return null;
     }
     if (map.hasOwnProperty(query)) return { code: map[query], name: query };
+
+    var localQuery = query.toLowerCase();
+    var localMatches = LOCAL_US_SYMBOLS.filter(function (row) {
+      return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(localQuery) !== -1;
+    });
+    if (localMatches.length === 1) {
+      return { code: 'US:' + localMatches[0].symbol, name: localMatches[0].name };
+    }
+
+    if (/^[A-Z][A-Z0-9.\-]{0,9}$/i.test(query)) {
+      var directSymbol = query.toUpperCase();
+      var localUs = LOCAL_US_SYMBOLS.filter(function (row) { return row.symbol === directSymbol; })[0];
+      return { code: 'US:' + directSymbol, name: localUs ? localUs.name : directSymbol };
+    }
 
     var q = query.toLowerCase();
     var matches = [];
@@ -254,21 +637,22 @@
   // 있을 때만 한다.
   function addStock(code, name) {
     if (!code) return { ok: false, reason: 'invalid' };
+    if (!remoteReady || !authState.authenticated) return { ok: false, reason: 'login' };
     var list = loadList();
     if (list.some(function (it) { return it.code === code; })) return { ok: false, reason: 'exists' };
     if (list.length >= MAX_ITEMS) return { ok: false, reason: 'full' };
 
-    list.push({ code: code, name: name || code });
-    saveList(list);
+    list.push({ code: code, name: name || code, groupId: DEFAULT_GROUP_ID });
     var container = document.querySelector(CONTAINER_SELECTOR);
+    saveList(list, container);
     if (container) render(container);
     return { ok: true };
   }
 
   function removeStock(code) {
     var list = loadList().filter(function (it) { return it.code !== code; });
-    saveList(list);
     var container = document.querySelector(CONTAINER_SELECTOR);
+    saveList(list, container);
     if (container) render(container);
   }
 
@@ -276,8 +660,9 @@
     return loadList().some(function (it) { return it.code === code; });
   }
 
-  function addByQuery(container, query) {
+  function addByQuery(container, query, explicitName) {
     var stock = resolveStock(query);
+    if (stock && /^US:/i.test(stock.code) && explicitName) stock.name = explicitName;
     var input = container.querySelector('#wlInput');
     if (!stock) {
       showMsg(container, '종목을 찾을 수 없습니다: "' + query + '"');
@@ -286,6 +671,7 @@
 
     var result = addStock(stock.code, stock.name);
     if (!result.ok) {
+      if (result.reason === 'login') showMsg(container, 'Google 로그인 후 관심종목을 저장할 수 있습니다.');
       if (result.reason === 'exists') showMsg(container, stock.name + '은(는) 이미 관심종목에 있습니다.');
       else if (result.reason === 'full') showMsg(container, '관심종목은 최대 ' + MAX_ITEMS + '개까지 담을 수 있습니다.');
       input.value = '';
@@ -314,6 +700,7 @@
 
   function render(container) {
     var list = loadList();
+    var groups = loadGroups();
     var grid = container.querySelector('#wlGrid');
     var empty = container.querySelector('#wlEmpty');
     var count = container.querySelector('#wlCount');
@@ -321,37 +708,54 @@
     count.textContent = '(' + list.length + '/' + MAX_ITEMS + ')';
 
     if (!list.length) {
-      grid.innerHTML = '';
       empty.hidden = false;
-      return;
+    } else {
+      empty.hidden = true;
     }
-    empty.hidden = true;
 
-    grid.innerHTML = list.map(function (it) {
-      return buildCard(it.code, it.name, null);
+    grid.innerHTML = groups.map(function (group) {
+      var items = list.filter(function (it) { return (it.groupId || DEFAULT_GROUP_ID) === group.id; });
+      return buildGroup(group, items);
     }).join('');
 
     wireCardEvents(container);
-    Watchlist.fetchQuotes(list.map(function (it) { return it.code; }))
+    var codes = list.map(function (it) { return it.code; });
+    var cachedQuotes = readQuoteCache(codes);
+    codes.forEach(function (code) {
+      if (cachedQuotes[code]) updateCard(container, code, cachedQuotes[code]);
+    });
+    Watchlist.fetchQuotes(codes)
       .then(function (quoteByCode) {
+        writeQuoteCache(quoteByCode);
         list.forEach(function (it) {
-          updateCard(container, it.code, quoteByCode[it.code] || null);
+          if (quoteByCode[it.code]) updateCard(container, it.code, quoteByCode[it.code]);
         });
       })
       .catch(function () {
         // 최초 시세 조회 실패 시에도 WebSocket 연결과 저빈도 폴백이 이어서 갱신한다.
       });
-    startRealtimeQuotes(container, list.map(function (it) { return it.code; }));
+    startRealtimeQuotes(container, codes);
+  }
+
+  function buildGroup(group, items) {
+    return '<section class="wl-group' + (group.collapsed ? ' is-collapsed' : '') + '" data-group-id="' + escapeAttr(group.id) + '">'
+      + '<div class="wl-group-head">'
+      + '<button type="button" class="wl-group-toggle" aria-expanded="' + (!group.collapsed) + '">'
+      + '<span>' + escapeHtml(group.name) + '</span><span class="wl-group-count">' + items.length + '</span><span class="wl-chevron">⌃</span>'
+      + '</button>'
+      + (group.id === DEFAULT_GROUP_ID ? '' : '<button type="button" class="wl-group-delete" aria-label="그룹 삭제">삭제</button>')
+      + '</div><div class="wl-group-items" data-group-id="' + escapeAttr(group.id) + '">'
+      + (items.length ? items.map(function (it) { return buildCard(it.code, it.name); }).join('') : '<p class="wl-group-empty">이 그룹에 종목이 없습니다.</p>')
+      + '</div></section>';
   }
 
   function buildCard(code, name) {
     return ''
-      + '<div class="wl-card" data-code="' + escapeAttr(code) + '">'
+      + '<div class="wl-card" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" tabindex="0" role="link" draggable="true">'
+      + '<span class="wl-drag-handle" aria-hidden="true">⋮⋮</span>'
       + '<button type="button" class="wl-remove" data-code="' + escapeAttr(code) + '" aria-label="관심종목 삭제">★</button>'
       + '<div class="wl-name">' + stockIconHtml(code) + '<span class="wl-name-text">' + escapeHtml(name) + '</span></div>'
-      + '<div class="wl-price" data-field="price">-</div>'
-      + '<div class="wl-change" data-field="change">-</div>'
-      + '<button type="button" class="wl-chart-btn" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">차트 보기 →</button>'
+      + '<div class="wl-quote"><div class="wl-change" data-field="change">-</div><div class="wl-price" data-field="price">-</div></div>'
       + '</div>';
   }
 
@@ -367,8 +771,19 @@
       return;
     }
 
-    priceEl.textContent = formatNumber(quote.price) + '원';
-    changeEl.textContent = arrowSymbol(quote.change) + Math.abs(quote.changeRate).toFixed(2) + '%';
+    var signature = [quote.price, quote.change, quote.changeRate].join('|');
+    if (card.getAttribute('data-quote-signature') === signature) return;
+    card.setAttribute('data-quote-signature', signature);
+
+    var isUs = /^US:/i.test(code);
+    var price = Number(quote.price);
+    priceEl.textContent = isUs && !isNaN(price)
+      ? '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : formatNumber(quote.price) + '원';
+    var changeRate = Number(quote.changeRate);
+    changeEl.textContent = isNaN(changeRate)
+      ? ''
+      : arrowSymbol(quote.change) + Math.abs(changeRate).toFixed(2) + '%';
     changeEl.classList.remove('wl-up', 'wl-down', 'wl-flat');
     changeEl.classList.add(quote.change > 0 ? 'wl-up' : quote.change < 0 ? 'wl-down' : 'wl-flat');
   }
@@ -378,10 +793,14 @@
   function stopRealtimeQuotes() {
     realtimeGeneration += 1;
     clearTimeout(realtimeReconnectTimer);
+    clearTimeout(realtimeKickoffTimer);
     clearInterval(realtimeFallbackTimer);
+    clearInterval(realtimeDomesticFallbackTimer);
     clearInterval(realtimeKeepaliveTimer);
     realtimeReconnectTimer = null;
+    realtimeKickoffTimer = null;
     realtimeFallbackTimer = null;
+    realtimeDomesticFallbackTimer = null;
     realtimeKeepaliveTimer = null;
     if (realtimeSocket) {
       realtimeSocket.onclose = null;
@@ -393,16 +812,61 @@
   function refreshQuotesOnce(container, codes) {
     Watchlist.fetchQuotes(codes)
       .then(function (quoteByCode) {
+        writeQuoteCache(quoteByCode);
         codes.forEach(function (code) {
-          updateCard(container, code, quoteByCode[code] || null);
+          // 일시적인 429/브로커 오류가 와도 기존 숫자를 지우지 않는다.
+          if (quoteByCode[code]) updateCard(container, code, quoteByCode[code]);
         });
       })
       .catch(function () {});
   }
 
+  function nextRealtimeKickoff(now) {
+    var sessions = [
+      [8, 0], [9, 0], [15, 30], [17, 0], [22, 30]
+    ];
+    var next = null;
+    for (var day = 0; day <= 1; day++) {
+      sessions.forEach(function (session) {
+        var candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day, session[0], session[1], 0, 0);
+        if (candidate.getTime() <= now.getTime() + 1000) return;
+        if (!next || candidate < next) next = candidate;
+      });
+    }
+    return next;
+  }
+
+  function isDomesticSessionTime(now) {
+    var day = now.getDay();
+    if (day === 0 || day === 6) return false;
+    var minutes = now.getHours() * 60 + now.getMinutes();
+    return minutes >= 8 * 60 && minutes < 20 * 60;
+  }
+
+  function scheduleRealtimeKickoff(container, codes, generation) {
+    clearTimeout(realtimeKickoffTimer);
+    var now = new Date();
+    var next = nextRealtimeKickoff(now);
+    if (!next) return;
+    realtimeKickoffTimer = setTimeout(function () {
+      realtimeKickoffTimer = null;
+      if (generation === realtimeGeneration && !document.hidden) {
+        // WebSocket가 장 전환 직후 아직 첫 체결을 받지 못해도 즉시 최신값을 반영한다.
+        refreshQuotesOnce(container, codes);
+      }
+      if (generation === realtimeGeneration) scheduleRealtimeKickoff(container, codes, generation);
+    }, Math.max(1000, next.getTime() - now.getTime()));
+  }
+
   function startRealtimeQuotes(container, codes) {
     stopRealtimeQuotes();
-    if (!codes.length || document.hidden || !('WebSocket' in global)) return;
+    if (!codes.length || document.hidden) return;
+
+    // 국내 코드는 키움, 미국 코드는 Finnhub 스트림으로 서버가 분리 중계한다.
+    // 서버가 codes에서 시장별로 나눠 처리하므로 두 시장을 모두 구독해야 한다.
+    var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
+    var usCodes = codes.filter(function (code) { return /^US:/i.test(code); });
+    var canUseSocket = codes.length && ('WebSocket' in global);
 
     var generation = realtimeGeneration;
     var encodedCodes = codes.map(encodeURIComponent).join(',');
@@ -440,14 +904,21 @@
       };
     }
 
-    // WebSocket 연결이 막히거나 장 종료로 체결 이벤트가 없을 때만 30초 묶음 조회로 보완한다.
-    realtimeFallbackTimer = setInterval(function () {
-      if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) {
-        refreshQuotesOnce(container, codes);
+    // WebSocket이 일시적으로 끊기거나 상류가 재접속 중인 경우를 위한 안전망이다.
+    // 이 조회는 전체 목록을 다시 그리지 않고 실제로 바뀐 행만 DOM을 수정한다.
+    // 국내 장 전환 직후에는 키움 WebSocket이 연결돼도 첫 체결 이벤트가 늦을 수 있다.
+    // 국내 GAS 스냅샷만 짧게 폴백해 0.00% 고정 표시를 막고, 미국 API 호출은 기존 주기를 유지한다.
+    realtimeDomesticFallbackTimer = setInterval(function () {
+      if (domesticCodes.length && isDomesticSessionTime(new Date())) {
+        refreshQuotesOnce(container, domesticCodes);
       }
+    }, REALTIME_DOMESTIC_FALLBACK_MS);
+    realtimeFallbackTimer = setInterval(function () {
+      if (usCodes.length) refreshQuotesOnce(container, usCodes);
     }, REALTIME_FALLBACK_MS);
 
-    connect();
+    if (canUseSocket) connect();
+    scheduleRealtimeKickoff(container, codes, generation);
   }
 
   function wireCardEvents(container) {
@@ -457,19 +928,116 @@
         removeCode(container, btn.getAttribute('data-code'));
       });
     });
-    container.querySelectorAll('.wl-chart-btn').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var code = btn.getAttribute('data-code');
-        var name = btn.getAttribute('data-name');
-        location.href = STOCK_SEARCH_PAGE_URL + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
+    container.querySelectorAll('.wl-card').forEach(function (card) {
+      function goToRealtime() {
+        location.href = STOCK_SEARCH_PAGE_URL + '?code=' + encodeURIComponent(card.getAttribute('data-code'))
+          + '&name=' + encodeURIComponent(card.getAttribute('data-name'));
+      }
+      card.addEventListener('click', function (e) {
+        if (didDrag) { didDrag = false; return; }
+        if (!e.target.closest('button, select')) goToRealtime();
+      });
+      card.addEventListener('keydown', function (e) { if (e.key === 'Enter') goToRealtime(); });
+      card.addEventListener('dragstart', function (e) {
+        draggedCode = card.getAttribute('data-code');
+        didDrag = true;
+        card.classList.add('is-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedCode);
+      });
+      card.addEventListener('dragend', function () {
+        card.classList.remove('is-dragging');
+        container.querySelectorAll('.wl-group-items').forEach(function (items) { items.classList.remove('is-drag-over'); });
+        persistDraggedOrder(container);
+        draggedCode = null;
+        setTimeout(function () { didDrag = false; }, 0);
       });
     });
+    container.querySelectorAll('.wl-group-items').forEach(function (items) {
+      items.addEventListener('dragover', function (e) {
+        if (!draggedCode) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        items.classList.add('is-drag-over');
+        var dragging = container.querySelector('.wl-card[data-code="' + cssEscape(draggedCode) + '"]');
+        var before = getDragBeforeElement(items, e.clientY);
+        if (dragging) items.insertBefore(dragging, before);
+      });
+      items.addEventListener('dragleave', function (e) {
+        if (!items.contains(e.relatedTarget)) items.classList.remove('is-drag-over');
+      });
+      items.addEventListener('drop', function (e) { e.preventDefault(); items.classList.remove('is-drag-over'); });
+    });
+    container.querySelectorAll('.wl-group-toggle').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.closest('.wl-group').getAttribute('data-group-id');
+        var groups = loadGroups();
+        groups.forEach(function (group) { if (group.id === id) group.collapsed = !group.collapsed; });
+        saveGroups(groups, container);
+        render(container);
+      });
+    });
+    container.querySelectorAll('.wl-group-delete').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.closest('.wl-group').getAttribute('data-group-id');
+        var groups = loadGroups().filter(function (group) { return group.id !== id; });
+        var list = loadList();
+        list.forEach(function (item) { if ((item.groupId || DEFAULT_GROUP_ID) === id) item.groupId = DEFAULT_GROUP_ID; });
+        saveGroups(groups, container);
+        saveList(list, container);
+        render(container);
+      });
+    });
+  }
+
+  function getDragBeforeElement(items, pointerY) {
+    var cards = Array.prototype.slice.call(items.querySelectorAll('.wl-card:not(.is-dragging)'));
+    var closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+    cards.forEach(function (card) {
+      var rect = card.getBoundingClientRect();
+      var offset = pointerY - rect.top - rect.height / 2;
+      if (offset < 0 && offset > closest.offset) closest = { offset: offset, element: card };
+    });
+    return closest.element;
+  }
+
+  function persistDraggedOrder(container) {
+    if (!draggedCode) return;
+    var current = loadList();
+    var byCode = {};
+    current.forEach(function (item) { byCode[item.code] = item; });
+    var next = [];
+    container.querySelectorAll('.wl-group-items').forEach(function (items) {
+      var groupId = items.getAttribute('data-group-id') || DEFAULT_GROUP_ID;
+      items.querySelectorAll('.wl-card').forEach(function (card) {
+        var item = byCode[card.getAttribute('data-code')];
+        if (!item) return;
+        item.groupId = groupId;
+        next.push(item);
+      });
+    });
+    if (next.length === current.length) {
+      saveList(next, container);
+      render(container);
+    }
   }
 
   // ---- 시세 조회 (기존 티커 프록시 재사용, 신규 GAS 엔드포인트 불필요) ----
 
   function fetchQuotes(codes) {
+    if (!codes.length) return Promise.resolve({});
+    var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
+    var usCodes = codes.filter(function (code) { return /^US:/i.test(code); });
+
+    return Promise.all([
+      fetchDomesticQuotes(domesticCodes).catch(function () { return {}; }),
+      fetchUsQuotes(usCodes)
+    ]).then(function (parts) {
+      return Object.assign({}, parts[0], parts[1]);
+    });
+  }
+
+  function fetchDomesticQuotes(codes) {
     if (!codes.length) return Promise.resolve({});
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
@@ -490,6 +1058,32 @@
         if (timer) clearTimeout(timer);
         throw err;
       });
+  }
+
+  function fetchUsQuotes(codes) {
+    if (!codes.length) return Promise.resolve({});
+    return Promise.all(codes.map(function (code) {
+      var symbol = String(code).replace(/^US:/i, '').toUpperCase();
+      return fetch(API_BASE_URL + '/us-quote/' + encodeURIComponent(symbol))
+        .then(function (response) {
+          if (!response.ok) throw new Error('미국주식 시세 오류: ' + response.status);
+          return response.json();
+        })
+        .then(function (body) {
+          var data = body && body.data ? body.data : body;
+          return {
+            code: 'US:' + symbol,
+            price: data && data.price,
+            change: data && data.change,
+            changeRate: data && (data.change_rate != null ? data.change_rate : data.changeRate)
+          };
+        })
+        .catch(function () { return null; });
+    })).then(function (rows) {
+      var byCode = {};
+      rows.forEach(function (row) { if (row && row.price != null) byCode[row.code] = row; });
+      return byCode;
+    });
   }
 
   // ---- 유틸 ----
@@ -522,6 +1116,10 @@
     add: addStock,
     remove: removeStock,
     has: hasStock,
+    getList: function () { return loadList(); },
+    getGroups: function () { return loadGroups(); },
+    onChange: function (listener) { if (typeof listener === 'function') changeListeners.push(listener); },
+    isReady: function () { return remoteReady && authState.authenticated; },
     MAX_ITEMS: MAX_ITEMS
   };
   global.Watchlist = Watchlist;

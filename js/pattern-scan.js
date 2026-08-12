@@ -1,11 +1,11 @@
 /**
  * 차트 패턴 스캔 위젯
- * 저점상승형 / 쌍바닥 / 역헤드앤숄더 / 박스권하단 / 눌림목 5개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
+ * 저점상승형 / 이평 상승 초입형 / 쌍바닥 / 역헤드앤숄더 / 박스권하단 / 눌림목 6개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
  *
  * 리스트는 GAS가 하루 1회 미리 스캔해둔 결과(?patternScan=1)를 그대로 보여준다(가벼움).
  * 클릭한 종목의 차트는 그 종목만 온디맨드로 다시 크롤링(?patternChart=1&code=&pattern=).
  *
- * 모든 패턴은 0~100점 스코어링(GAS에서 계산, 70점 이상만 결과에 포함)이며,
+ * 패턴별 참고 점수는 GAS에서 계산하며, 저점상승형은 구조 조건을 만족하면 점수와 무관하게 포함한다.
  * AI가 패턴을 임의로 판단하지 않고 수치 조건으로만 점수를 매긴다 - 리스트/상세 모두
  * 점수 + 원인(부분점수 breakdown) + 한 줄 해석을 그대로 보여준다.
  *
@@ -25,8 +25,11 @@
   var SUPPORT_COLOR = '#d24f45';
   var RESIST_COLOR = '#1261c4';
   var SIGNAL_COLOR = '#ec4899';
+  var MA5_EARLY_COLOR = '#d24f45';
+  var MA20_EARLY_COLOR = '#1261c4';
+  var MA224_EARLY_COLOR = '#000000';
   var MA20_COLOR = '#f59e0b';
-  var MA60_COLOR = '#8b5cf6';
+  var MA240_COLOR = '#8b5cf6';
 
   // js/foreign-flow.js와 동일한 주기·색상(사이트 전체 일관성) - 일목균형표 토글 전용.
   // 선행스팬1·2는 둘 다 하늘색으로 통일(2026-07-22 사용자 요청).
@@ -34,20 +37,22 @@
   var ICHIMOKU_COLORS = { senkouA: '#4dabf7', senkouB: '#4dabf7' };
 
   // desc는 각 detect*_ 함수(gas/ticker-proxy.gs)의 판정 조건을 일반 투자자가 읽을 수 있는
-  // 말로 옮긴 것 - 목록이 비어 있을 때도(70점 미만이라 노출 종목이 없을 때) 이 패턴이
+  // 말로 옮긴 것 - 목록이 비어 있을 때도 이 패턴이
   // 뭘 찾는 건지는 항상 보이게 하기 위함.
   var TABS = [
-    { key: 'risingLows', label: '저점상승형', desc: '저점이 이전 저점보다 3% 이상 높아지며 하락 압력이 약해지는 구간. 아직 크게 오르지 않아 조기 진입을 노리는 패턴입니다.' },
+    { key: 'risingLows', label: '저점상승형', desc: '최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간입니다.' },
+    { key: 'maCloudBreakout', label: '이평 상승 초입형', desc: '주가가 224일선에서 3% 이내이고 일목 구름 안에서 상단을 시도하며, 최근 5봉 안에 5일선이 20일선을 상향돌파한 구간입니다.' },
     { key: 'doubleBottom', label: '쌍바닥', desc: '비슷한 높이의 저점을 두 번 찍고 그 사이 반등한 고점(넥라인)이 있는 W자 모양. 바닥을 두 번 확인했다는 신호입니다.' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '저점 3개가 어깨-머리-어깨 모양(가운데가 가장 낮음)을 이루는 패턴. 하락 추세가 상승으로 반전될 때 자주 나타납니다.' },
-    { key: 'boxRangeLow', label: '박스권 하단', desc: '일정 가격대(박스권)에서 등락을 반복하다 그 박스 하단(지지선) 근처까지 내려온 구간. 지지가 버텨주는지 확인하는 자리입니다.' },
-    { key: 'pullback', label: '눌림목', desc: '단기간 15% 이상 오른 뒤 5~15% 정도 되돌림(조정)이 나와 20일선·60일선 부근까지 내려온 구간. 상승 추세 중 쉬어가는 자리입니다.' }
+    { key: 'boxRangeLow', label: '박스권 하단', desc: '최근 20봉 종가 변동폭 10% 이하, 종가 5·20일선 3% 이내 근접 3회 이상, RSI(14) 35~65, 거래량비율 50~120%, 시가총액 3,000억원 이상, 시가 5·20일선 관계 3회 이상, 20봉 수익률 ±10% 이내를 모두 만족하면서 박스 하단에 있는 후보입니다.' },
+    { key: 'pullback', label: '눌림목', desc: '단기간 15% 이상 오른 뒤 5~15% 정도 되돌림(조정)이 나와 20일선 또는 1년선(240일선) 부근까지 내려온 구간. 상승 추세 중 쉬어가는 자리입니다.' }
   ];
 
   // 리스트 항목용 미니 패턴 아이콘 - 실제 캔들을 축소한 게 아니라 O(고점/저점)와 선으로
   // 패턴의 핵심 구조만 단순화한 것.
   var PATTERN_ICONS = {
     risingLows: '<path d="M2,15 L9,15 L20,6 L30,3"/><circle cx="9" cy="15" r="2"/><circle cx="20" cy="6" r="2"/>',
+    maCloudBreakout: '<path d="M2,13 L10,12 L18,10 L25,8 L31,4"/><path d="M3,9 L10,10 L18,8 L25,6 L31,3"/>',
     doubleBottom: '<path d="M2,4 L8,14 L16,7 L24,14 L30,4"/><circle cx="8" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
     invHeadShoulders: '<path d="M2,6 L7,10 L12,6 L17,15 L22,6 L27,10 L32,3"/><circle cx="7" cy="10" r="2"/><circle cx="17" cy="15" r="2"/><circle cx="27" cy="10" r="2"/>',
     boxRangeLow: '<rect x="3" y="2" width="24" height="12" rx="1"/><circle cx="6" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
@@ -135,8 +140,12 @@
       return;
     }
 
-    // 점수 높은 순으로 정렬 - 지시서 "70점 이상만 노출" 중에서도 가장 근거가 탄탄한 종목이 위로
-    var sorted = items.slice().sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+    // 전체 후보 중 점수와 최근성이 좋은 15개만 표시한다. 저점상승형의 포함 여부 자체는 점수로 제한하지 않는다.
+    var sorted = items.slice().sort(function (a, b) {
+      var scoreDiff = (b.score || 0) - (a.score || 0);
+      if (scoreDiff) return scoreDiff;
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    }).slice(0, 15);
 
     list.innerHTML = sorted.map(function (it) {
       var cc = chgClass(it.changeRate);
@@ -164,60 +173,42 @@
   function openDetail(container, item) {
     var detail = container.querySelector('#psDetail');
     if (!detail || !item) return;
+    // 이 패턴은 구름 안·상단 시도가 핵심이므로 상세 차트에서 구름을 기본으로 켠다.
+    psIchimokuEnabled = activeTab === 'maCloudBreakout';
     detail.hidden = false;
     detail.innerHTML = '<div class="ps-loading"><div class="ps-spinner"></div><div>' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div></div>';
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    PatternScan.fetchJson(GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code) + '&pattern=' + encodeURIComponent(activeTab))
+    PatternScan.fetchJson(GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code)
+      + '&pattern=' + encodeURIComponent(activeTab) + '&scanDate=' + encodeURIComponent(item.date || ''))
       .then(function (data) {
         if (data.error || !data.daily || !data.daily.length) {
           detail.innerHTML = '<div class="ps-error">' + escapeHtml((data && data.message) || '차트를 불러오지 못했어요.') + '</div>';
           return;
         }
+        // Box-range scans include market cap in the VM snapshot; GAS cannot
+        // reproduce that E condition during an on-demand chart request.
+        if (activeTab === 'boxRangeLow' && item.patternDetail) {
+          data.detail = item.patternDetail;
+        }
         // 리스트는 하루 1회 스캔 캐시라서, 클릭 시 실시간 재검증에서 패턴이 더 이상
         // 안 잡힐 수 있음(그 사이 가격이 움직여서) - 이 경우 깨진 결과를 보여주는 대신
         // 목록에서 바로 빼서 다음에 같은 종목을 다시 클릭하지 않게 한다.
         if (!data.detail) {
-          closeDetail(container);
-          removeStaleItem(container, item);
-          return;
+          // GAS 새 버전 배포 전이거나 일시적으로 재현이 실패해도, 전날 스캔 목록에 저장된
+          // 점수/근거를 사용해 최신 차트는 계속 보여준다. 목록 삭제나 경고 토스트는 하지 않는다.
+          data.detail = item.patternDetail || {
+            score: item.score,
+            reasons: item.reasons || [],
+            interpretation: item.interpretation || '',
+            snapshotFallback: true
+          };
         }
         renderDetail(detail, item, data);
       })
       .catch(function () {
         detail.innerHTML = '<div class="ps-error">차트를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
-  }
-
-  // 재검증 결과 조건을 더 이상 만족하지 않는 종목을 현재 탭 목록에서 제거하고
-  // 왜 사라졌는지 잠깐 안내한다. GAS의 하루 1회 스캔 캐시 자체는 건드리지 않으므로
-  // 페이지를 새로고침하면 다음 재스캔 전까지는 다시 나타날 수 있다.
-  function removeStaleItem(container, item) {
-    if (scanData && scanData.patterns && scanData.patterns[activeTab]) {
-      scanData.patterns[activeTab] = scanData.patterns[activeTab].filter(function (x) {
-        return x.code !== item.code;
-      });
-    }
-    renderList(container);
-    showToast(container, '⚠️ ' + escapeHtml(item.name) + eunNeun(item.name) + ' 스캔 이후 가격이 움직여서 더 이상 패턴 조건을 만족하지 않아 목록에서 제외했어요.');
-  }
-
-  // 종목명 마지막 글자에 받침이 있으면 "은", 없으면 "는" (한글 완성형 유니코드 오프셋 기준).
-  function eunNeun(name) {
-    var ch = String(name || '').trim().slice(-1);
-    var code = ch.charCodeAt(0) - 0xac00;
-    if (code < 0 || code > 11171) return '는';
-    return code % 28 === 0 ? '는' : '은';
-  }
-
-  function showToast(container, html) {
-    var list = container.querySelector('#psList');
-    if (!list) return;
-    var toast = document.createElement('div');
-    toast.className = 'ps-toast';
-    toast.innerHTML = html;
-    list.parentNode.insertBefore(toast, list);
-    setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 5000);
   }
 
   function closeDetail(container) {
@@ -227,12 +218,17 @@
 
   function renderDetail(box, item, data) {
     var html = '<div class="ps-detail-head">'
-      + '<span class="ps-detail-name">' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span></span>'
+      + '<span class="ps-detail-name">' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span>'
+      + '<span class="ps-timeframe-badge">2년 일봉 · 1D</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
     html += buildScoreBox(data.detail);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
     html += buildIchimokuLegend();
+    html += '<div class="ps-pattern-legend">'
+      + '<span><i class="ps-pattern-line ps-pattern-line-shape"></i>패턴 형성 근거</span>'
+      + '<span><i class="ps-pattern-line ps-pattern-line-level"></i>넥라인 · 지지/저항</span>'
+      + '</div>';
     html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
     html += '<div class="ps-footnote">※ 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;
@@ -529,17 +525,26 @@
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
 
-      // 눌림목: 20일선/60일선 중 어디 근처에서 지지받는지 눈으로 보여주기 위해 둘 다 그림(선 색 구분)
+      // 눌림목: 단기 20일선과 장기 1년선(240거래일) 중 어디에서 지지받는지 함께 표시한다.
       if (pattern === 'pullback') {
         addMaLine(chart, daily, 20, MA20_COLOR);
-        addMaLine(chart, daily, 60, MA60_COLOR);
+        addMaLine(chart, daily, 240, MA240_COLOR);
+      } else if (pattern === 'maCloudBreakout') {
+        addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
+        addMaLine(chart, daily, 20, MA20_EARLY_COLOR);
+        addMaLine(chart, daily, 224, MA224_EARLY_COLOR);
       }
 
       addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
 
       if (psIchimokuEnabled) addIchimokuOverlay(daily);
 
-      chart.timeScale().fitContent();
+      // 약 2년(500거래일) 일봉을 기본 표시한다. 서버가 보유한 일봉이 더 적으면 전체를 쓴다.
+      var visibleBars = Math.min(500, daily.length);
+      chart.timeScale().setVisibleLogicalRange({
+        from: Math.max(0, daily.length - visibleBars),
+        to: daily.length - 1 + 3
+      });
 
       psLwcThemeObserver = new MutationObserver(function () {
         chart.applyOptions(psThemeOptions());
@@ -574,7 +579,7 @@
       return -1;
     }
     // 여러 점을 순서대로 잇는 선(쌍바닥/역헤드앤숄더의 실제 굴곡을 그대로 표현하기 위함).
-    // opts.bold를 주면 굵은 실선으로 그려서 패턴 모양(W자 등)이 한눈에 보이게 강조한다.
+    // 근거선은 캔들 위에서도 즉시 읽히도록 전부 최대 굵기(4px) 실선으로 표시한다.
     function addLine(points, color, opts) {
       var data = (points || []).filter(function (p) { return p && idxByDate(p.date) >= 0; })
         .map(function (p) { return { time: p.date, value: p.price }; });
@@ -582,8 +587,8 @@
       var o = opts || {};
       chart.addLineSeries({
         color: color,
-        lineWidth: o.bold ? 3 : 2,
-        lineStyle: o.bold ? LWC.LineStyle.Solid : LWC.LineStyle.Dashed,
+        lineWidth: 4,
+        lineStyle: LWC.LineStyle.Solid,
         priceLineVisible: false, lastValueVisible: false
       }).setData(data);
     }
@@ -609,8 +614,8 @@
       // 패턴이 이미 끝난 게 아니라 지금도 진행 중임을 보여주기 위함
       var lows = detail.low_swings_display || detail.low_swings || [];
       var highs = detail.high_swings || [];
-      addLine(lows, SUPPORT_COLOR);
-      addLine(highs, RESIST_COLOR);
+      addLine(lows, SUPPORT_COLOR, { bold: true });
+      addLine(highs, RESIST_COLOR, { bold: true });
       (detail.low_swings || []).forEach(function (p) { addDot(p, SUPPORT_COLOR, 'belowBar'); });
       highs.forEach(function (p) { addDot(p, RESIST_COLOR, 'aboveBar'); });
       if (detail.signal) addSignal(detail.signal); // 오늘(현재가) - 항상 최근 봉 기준
@@ -635,7 +640,7 @@
       var seq = [detail.left_shoulder, detail.left_peak, detail.head, detail.right_peak, detail.right_shoulder];
       if (seq.every(function (p) { return !!p; })) {
         if (detail.current) seq.push(detail.current);
-        addLine(seq, SUPPORT_COLOR);
+        addLine(seq, SUPPORT_COLOR, { bold: true });
         addHLine(detail.neckline.price, detail.left_shoulder.date, RESIST_COLOR);
         ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) { addDot(detail[k], SUPPORT_COLOR, 'belowBar'); });
         addDot(detail.neckline, RESIST_COLOR, 'aboveBar');
@@ -649,11 +654,13 @@
       boxLows.forEach(function (p) { addDot(p, SUPPORT_COLOR, 'belowBar'); });
       boxHighs.forEach(function (p) { addDot(p, RESIST_COLOR, 'aboveBar'); });
       if (detail.signal) addSignal(detail.signal); // 현재가(박스 하단 근접 지점)
+    } else if (pattern === 'maCloudBreakout') {
+      if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'pullback') {
       // 상승 시작(저점) -> 고점 -> 현재가(조정 중) 순서로 이어 "얼마나 올랐다가 얼마나
       // 눌렸는지"를 한눈에 보여준다. 이평선은 addMaLine으로 배경에 이미 그림.
       if (detail.rise_start && detail.peak && detail.current) {
-        addLine([detail.rise_start, detail.peak, detail.current], SUPPORT_COLOR);
+        addLine([detail.rise_start, detail.peak, detail.current], SUPPORT_COLOR, { bold: true });
         addDot(detail.rise_start, SUPPORT_COLOR, 'belowBar');
         addDot(detail.peak, RESIST_COLOR, 'aboveBar');
         addSignal(detail.current);

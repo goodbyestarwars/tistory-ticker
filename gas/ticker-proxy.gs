@@ -111,7 +111,11 @@ function doGet(e) {
   }
 
   if (params.patternChart === '1') {
-    return jsonResponse(getPatternChart((params.code || '').trim(), (params.pattern || '').trim()));
+    return jsonResponse(getPatternChart(
+      (params.code || '').trim(),
+      (params.pattern || '').trim(),
+      (params.scanDate || '').trim()
+    ));
   }
 
   if (params.investSignal === '1') {
@@ -1167,7 +1171,7 @@ function getSubIndexAnalysis() {
 // 있지만 실제 풀은 238개라 코드는 그 실제 값을 그대로 쓴다(238 하드코딩 아님 - 풀이 늘면
 // 자동 반영).
 // 배점(문서 그대로): VIX20 + 수급(외국인75%+기관25% 통합)20 + 거래대금15 + 평균등락률15 +
-// 상승비율10 + 섹터강도10 + 52주신고저10 + 환율5 + 미국선물5 = 110점. 문서에는 "총점 100점"
+// 상승비율10 + 섹터강도10 + 52주신고저10 + 환율5 + 미국선물5 + 빚투위험도10 = 120점. 문서에는 "총점 100점"
 // 이라 적혀 있지만 항목을 다 더하면 110이라(사용자에게 확인 후 결정) 온도 환산식을
 // "총점 x (40/실제만점)"으로 자기보정하게 만들어서, 만점이 100이든 110이든 105든 항상
 // 만점=40.0℃가 되도록 했다 - 나중에 배점을 또 조정해도 이 식은 안 깨짐.
@@ -1187,8 +1191,73 @@ var MT_DAILY_HISTORY_KEY = 'mt_daily_history_v1'; // 전일 대비/1주일·1개
 var MT_DAILY_HISTORY_MAX = 35; // 1개월(30일) 평균 계산 + 여유분
 var MT_COMPONENT_MAX = { // 지표별 배점(문서 그대로) - 합계가 온도 환산의 실제 만점 기준이 됨
   vix: 20, flow: 20, tradingValue: 15, avgChange: 15,
-  riseRatio: 10, sectorStrength: 10, week52: 10, exchange: 5, usFutures: 5
+  riseRatio: 10, sectorStrength: 10, week52: 10, exchange: 5, usFutures: 5,
+  creditRisk: 10
 };
+
+// 빚투 위험도는 절대 잔고 하나가 아니라 최근 추세·예탁금 대비 비율·반대매매 비중을 함께 본다.
+// 아래 값은 규제 기준이 아니라 시장온도용 운영 기준이다.
+function scoreKofiaCredit_(kofia) {
+  var empty = { available: false, score: null, max: 10 };
+  if (!kofia || !kofia.available) return empty;
+
+  var credit = kofia.credit || {};
+  var funds = kofia.market_funds || {};
+  var loan = typeof credit.loan_total === 'number' ? credit.loan_total : null;
+  var deposits = typeof funds.investor_deposits === 'number' ? funds.investor_deposits : null;
+  var forcedSale = typeof funds.forced_sale_ratio_pct === 'number' ? funds.forced_sale_ratio_pct : null;
+  if (loan == null && deposits == null && forcedSale == null) return empty;
+
+  var series = Array.isArray(kofia.series) ? kofia.series : [];
+  var loanValues = series.map(function (item) {
+    return item && item.credit && typeof item.credit.loan_total === 'number' ? item.credit.loan_total : null;
+  }).filter(function (value) { return value != null; });
+  var priorLoanValues = loanValues.slice(Math.max(0, loanValues.length - 21), Math.max(0, loanValues.length - 1));
+  var priorAvg = priorLoanValues.length
+    ? priorLoanValues.reduce(function (sum, value) { return sum + value; }, 0) / priorLoanValues.length
+    : null;
+  var loanVsAvgPct = loan != null && priorAvg ? (loan / priorAvg - 1) * 100 : null;
+  var loanToDepositPct = loan != null && deposits > 0 ? (loan * 1000000 / deposits) * 100 : null;
+
+  var riskPoints = 0;
+  var maxRiskPoints = 0;
+  var danger = false;
+  var cautionHit = false;
+  function addRisk(value, cautionLevel, dangerLevel, weight) {
+    if (value == null) return;
+    maxRiskPoints += weight;
+    if (value >= dangerLevel) {
+      riskPoints += weight;
+      danger = true;
+    } else if (value >= cautionLevel) {
+      riskPoints += weight * 0.5;
+      cautionHit = true;
+    }
+  }
+  addRisk(loanVsAvgPct, 5, 10, 4);
+  addRisk(loanToDepositPct, 35, 45, 4);
+  addRisk(forcedSale, 10, 15, 2);
+
+  var riskRatio = maxRiskPoints ? riskPoints / maxRiskPoints : 0.5;
+  var score = Math.round((10 - riskRatio * 10) * 10) / 10;
+  var state = danger || riskRatio >= 0.55 ? 'overheated' : cautionHit || riskRatio >= 0.25 ? 'caution' : 'stable';
+  var stateLabel = state === 'overheated' ? '과열' : state === 'caution' ? '주의' : '안정';
+  var criteria = '안정: 예탁금 대비 35% 미만·최근 평균 대비 +5% 미만·반대매매 비중 10% 미만 / 과열: 45% 이상·+10% 이상·15% 이상 중 하나';
+  return {
+    available: true,
+    score: score,
+    max: 10,
+    state: state,
+    stateLabel: stateLabel,
+    band: stateLabel,
+    loan_total: loan,
+    investor_deposits: deposits,
+    loan_vs_avg_pct: loanVsAvgPct,
+    loan_to_deposit_pct: loanToDepositPct,
+    forced_sale_ratio_pct: forcedSale,
+    criteria: criteria
+  };
+}
 
 function getMarketTemp() {
   var cache = CacheService.getScriptCache();
@@ -1196,7 +1265,7 @@ function getMarketTemp() {
   // 응답에 recentDays/band 필드 추가 - 재배포해도 CacheService는 자동으로 안 비워지므로
   // (실측: 재배포 후에도 30분간 옛 스키마가 그대로 응답됨) 스키마 바뀔 때마다 캐시 키도
   // 같이 올려야 함(이 프로젝트 반복 관례, news_ 캐시 키 이력 참고).
-  var cacheKey = CACHE_PREFIX + 'market_temp_v5';
+  var cacheKey = CACHE_PREFIX + 'market_temp_v6';
   var cached = cache.get(cacheKey);
   if (cached) {
     var parsedCache_ = parseCachedJson_(cached);
@@ -1223,13 +1292,20 @@ function getMarketTemp() {
   var week52 = computeWeek52Score_();
   var fx = computeExchangeScore_();
   var futures = computeUsFuturesScore_();
+  // KOFIA는 실시간 시세를 대체하지 않지만, 확인 가능한 경우 빚투 위험도 10점으로 온도에 반영한다.
+  var kofia = safeCall(fetchKofiaMarketFromVm_) || null;
+  var creditRisk = scoreKofiaCredit_(kofia);
 
   var maxPossible = 0;
-  Object.keys(MT_COMPONENT_MAX).forEach(function (k) { maxPossible += MT_COMPONENT_MAX[k]; });
+  Object.keys(MT_COMPONENT_MAX).forEach(function (k) {
+    if (k === 'creditRisk' && !creditRisk.available) return;
+    maxPossible += MT_COMPONENT_MAX[k];
+  });
 
   var total = Math.max(0, Math.min(maxPossible,
     vix.score + flow.score + vol.score + avgChange.score + rise.score
-    + sectorStrength.score + week52.score + fx.score + futures.score));
+    + sectorStrength.score + week52.score + fx.score + futures.score
+    + (creditRisk.available ? creditRisk.score : 0)));
   var temp = Math.round(total * (40 / maxPossible) * 10) / 10; // 만점(maxPossible) -> 40.0℃로 항상 정규화
 
   var dailyHistory = upsertDailyMarketTemp_(temp);
@@ -1242,8 +1318,9 @@ function getMarketTemp() {
     components: {
       vix: vix, flow: flow, tradingValue: vol, avgChange: avgChange,
       riseRatio: rise, sectorStrength: sectorStrength, week52: week52,
-      exchange: fx, usFutures: futures
+      exchange: fx, usFutures: futures, creditRisk: creditRisk
     },
+    kofia: kofia,
     history: computeMarketTempHistory_(temp, dailyHistory),
     recentDays: computeMarketTempSparkline_(temp, dailyHistory),
     updatedAt: formatKstTime(Date.now())
@@ -1374,7 +1451,7 @@ function getMarketTempBriefing() {
   var LABELS = {
     vix: 'VIX', flow: '수급(외국인+기관)', tradingValue: '거래대금', avgChange: '평균등락률',
     riseRatio: '상승비율', sectorStrength: '섹터강도', week52: '52주 신고가/신저가',
-    exchange: '환율', usFutures: '미국 선물지수'
+    exchange: '환율', usFutures: '미국 선물지수', creditRisk: '빚투 위험도'
   };
   var contributions = Object.keys(MT_COMPONENT_MAX).map(function (key) {
     var comp = data.components[key];
@@ -2294,30 +2371,30 @@ var PATTERN_MAX_MATCHES = 30;    // 패턴별 저장 개수 상한 (PropertiesSe
 var PATTERN_PAGES = 10;          // fetchDailyOhlc_ 페이지 수 (10행 x 10 ≈ 100영업일, 90일 window + 여유)
 var PATTERN_CHART_PAGES = 50;    // 클릭 시 상세 차트 전용(10행 x 50 ≈ 500영업일 ≈ 2년) - 스캔 판정용 PATTERN_PAGES와 별개
                                   // (detect*_ 함수들은 daily.slice()로 자기 window만 쓰므로 판정 결과에는 영향 없음)
-var RISING_LOWS_WINDOW = 60;     // ① 저점상승형: 지시서 "최근 60거래일"
+var RISING_LOWS_WINDOW = 20;     // ① 저점상승형: 최근 20거래일
 var DOUBLE_BOTTOM_WINDOW = 90;   // ② 쌍바닥: 지시서 "최근 90거래일"
 var IHS_WINDOW = 60;             // ③ 역헤드앤숄더: 지시서에 window 명시 없어 저점상승형과 동일하게 적용
 var BOX_WINDOW = 40;             // ④ 박스권하단: 지시서 "최근 40거래일"
 
 var WEDGE_MIN_SWINGS = 2;        // ① 지시서: Swing Low 2개 이상
-var WEDGE_MIN_LOW_RISE = 0.03;   // ① 지시서: 최근 저점이 이전 저점보다 최소 3% 이상 높음
-var WEDGE_MIN_GAP_DAYS = 5;      // ① 지시서: 두 저점 간격 5~20거래일
-var WEDGE_MAX_GAP_DAYS = 20;
-var WEDGE_MAX_EXTENSION = 0.10;  // ① 지시서: 현재가는 최근 저점 대비 10% 이상 상승하지 않을 것
 // 마지막 스윙이 최근 며칠 안에 있어야 "지금 진행 중"으로 인정. 스윙 판정 자체가
 // 좌우 PATTERN_SWING(2)봉을 확인해야 하는 구조라 이론상 가장 최근이어도 끝에서 2봉 전이
 // 최소값 - 그 최소값 바로 위(3)로 빡빡하게 잡아 "이미 지나간 패턴"을 걸러낸다.
 var RECENCY_MAX_GAP = 3;
 
-var DB_LOW_TOL = 0.03;           // ② 지시서: 저점 가격 차이 ±3%
-var DB_MIN_GAP_DAYS = 10;        // ② 지시서: 간격 10~40거래일
-var DB_MAX_GAP_DAYS = 40;
-var DB_PEAK_MIN_RISE = 0.03;     // 사이 고점(넥라인)이 첫 저점 대비 최소 3% 반등해야 유효
-var DB_NECK_PROXIMITY_MIN = -0.05; // ② 지시서: 현재가 넥라인 아래 5%
+var DB_LOW_TOL = 0.02;
+var DB_MIN_GAP_DAYS = 12;
+var DB_MAX_GAP_DAYS = 35;
+var DB_PEAK_MIN_RISE = 0.08;
+var DB_NECK_PROXIMITY_MIN = -0.02;
+var DB_SECOND_VOLUME_MAX_RATIO = 0.85;
 
-var IHS_SHOULDER_TOL = 0.05;     // ③ 지시서: 양쪽 저점 차이 ±5%
-var IHS_HEAD_MIN_DROP = 0.01;    // 헤드가 양 어깨보다 각각 최소 1% 더 낮아야 함(가운데가 최저라는 조건의 최소 여유)
-var IHS_NECK_PROXIMITY_MIN = -0.03; // ③ 지시서: 현재가 넥라인 아래 3%
+var IHS_SHOULDER_TOL = 0.03;
+var IHS_HEAD_MIN_DROP = 0.03;
+var IHS_NECK_PROXIMITY_MIN = -0.01;
+var IHS_NECK_MIN_RISE = 0.05;
+var IHS_MIN_SHOULDER_GAP = 5;
+var IHS_MAX_SHOULDER_GAP = 30;
 
 var BOX_TOL = 0.035;             // 박스권: 고점끼리/저점끼리 3.5% 이내로 평평해야 함
 var BOX_MAX_RANGE = 0.15;        // ④ 지시서: 고점-저점 차이 15% 이하
@@ -2333,7 +2410,7 @@ var BREAKOUT_TOL = 1.02;         // 저항선/넥라인을 2% 넘게 뚫었으�
 // 20일선 상승 확인에 공용으로 쓰는 "며칠 전과 비교할지" 값. 사용자 스펙에 구체적 일수가
 // 없어 임의로 5거래일을 골랐음 - 너무 짧으면 노이즈, 너무 길면 최근 방향 전환을 못 잡음.
 var MA_SLOPE_LOOKBACK = 5;
-var IHS_VOL_SURGE_RATIO = 1.2;   // 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.2배 이상
+var IHS_VOL_SURGE_RATIO = 1.5;
 
 // 2026-07-13: 차트패턴+눌림목+투자시그널 스캔이 VM의 daily_scan.py(systemd timer,
 // scripts/cloud-vm/setup_dailyscan_timer.sh)로 완전히 이전됨 - GAS UrlFetchApp 할당량을
@@ -2369,6 +2446,7 @@ function getPatternScanResult() {
     pullbackScanned: pullbackScan.scanned || 0,
     patterns: {
       risingLows: (patternScan.patterns && patternScan.patterns.risingLows) || [],
+      maCloudBreakout: (patternScan.patterns && patternScan.patterns.maCloudBreakout) || [],
       doubleBottom: (patternScan.patterns && patternScan.patterns.doubleBottom) || [],
       invHeadShoulders: (patternScan.patterns && patternScan.patterns.invHeadShoulders) || [],
       boxRangeLow: (patternScan.patterns && patternScan.patterns.boxRangeLow) || [],
@@ -2408,7 +2486,7 @@ function getStrategyScanResult() {
 // (스캔 결과에는 캔들 전체를 저장하지 않음 - PropertiesService 9KB/속성 제한 때문)
 // 화면 표시는 PATTERN_CHART_PAGES(2년치)로 넉넉히 가져오고, 패턴 판정(detect*_)은 각 함수가
 // daily.slice()로 자기 window(60/90/40일 등)만 잘라 쓰므로 스캔 리스트와 결과가 동일하게 유지된다.
-function getPatternChart(code, patternType) {
+function getPatternChart(code, patternType, scanDate) {
   if (!/^[0-9A-Za-z]{6}$/i.test(code)) {
     return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
   }
@@ -2418,14 +2496,23 @@ function getPatternChart(code, patternType) {
     return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
   }
 
-  var detail = null;
-  if (patternType === 'risingLows') detail = detectRisingLows_(daily);
-  else if (patternType === 'doubleBottom') detail = detectDoubleBottom_(daily);
-  else if (patternType === 'invHeadShoulders') detail = detectInvHeadShoulders_(daily);
-  else if (patternType === 'boxRangeLow') detail = detectBoxRangeLow_(daily);
-  else if (patternType === 'pullback') detail = detectPullback_(daily);
+  // 목록은 전날 배치 스캔의 스냅샷이다. 장중에는 오늘 봉이 계속 움직이므로 최신 daily 전체로
+  // 재판정하면 전날 발견 종목이 상세 클릭 순간 사라진다. 차트 데이터는 최신 상태를 유지하되,
+  // 판정 입력만 목록에 기록된 스캔 거래일까지 잘라 동일한 결과를 재현한다.
+  var evaluationDaily = daily;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(scanDate)) {
+    var asOf = daily.filter(function (row) { return row.date <= scanDate; });
+    if (asOf.length >= BOX_WINDOW) evaluationDaily = asOf;
+  }
 
-  return { code: code.toUpperCase(), daily: daily, pattern: patternType, detail: detail };
+  var detail = null;
+  if (patternType === 'risingLows') detail = detectRisingLows_(evaluationDaily);
+  else if (patternType === 'doubleBottom') detail = detectDoubleBottom_(evaluationDaily);
+  else if (patternType === 'invHeadShoulders') detail = detectInvHeadShoulders_(evaluationDaily);
+  else if (patternType === 'boxRangeLow') detail = detectBoxRangeLow_(evaluationDaily);
+  else if (patternType === 'pullback') detail = detectPullback_(evaluationDaily);
+
+  return { code: code.toUpperCase(), daily: daily, pattern: patternType, detail: detail, evaluatedAsOf: scanDate || null };
 }
 
 // detail: 각 detect*_ 함수의 반환값(score/reasons/interpretation 포함) - 스캔 리스트에도
@@ -2449,20 +2536,22 @@ function buildPatternMatch_(stock, daily, detail) {
 // data/sectors-v3.js(GitHub Pages)를 fetch해서 { name, code } 유니크 목록으로 파싱.
 // 섹터 데이터가 바뀌어도 GAS 쪽 코드를 따로 수정할 필요 없게 하기 위한 설계.
 function fetchSectorUniverse_() {
-  var url = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js';
+  var url = 'https://goodbyestar.cloud/sector-cards';
   var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) return [];
-
-  var text = res.getContentText('UTF-8');
+  var body;
+  try { body = JSON.parse(res.getContentText('UTF-8')); } catch (err) { return []; }
+  var sectors = body && body.data && body.data.sectors;
+  if (!sectors || typeof sectors !== 'object') return [];
   var out = [];
   var seen = {};
-  var re = /name:\s*"([^"]+)",\s*code:\s*"([0-9A-Za-z]{6})",\s*market:\s*"(KOSPI|KOSDAQ)"/g;
-  var m;
-  while ((m = re.exec(text)) !== null) {
-    if (seen[m[2]]) continue;
-    seen[m[2]] = true;
-    out.push({ name: m[1], code: m[2], market: m[3] });
-  }
+  Object.keys(sectors).forEach(function (sector) {
+    (sectors[sector] || []).forEach(function (item) {
+      if (!item || !item.code || seen[item.code]) return;
+      seen[item.code] = true;
+      out.push({ name: item.name, code: item.code, market: item.market });
+    });
+  });
   return out;
 }
 
@@ -2473,28 +2562,21 @@ function fetchSectorUniverse_() {
 // 쪼갠 뒤(entries에 대괄호가 없어 non-greedy ]까지가 정확히 한 섹터 블록) 그 안에서
 // 종목 객체를 뽑는 2단 정규식 파싱을 쓴다.
 function fetchSectorUniverseWithSectors_() {
-  var url = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js';
+  var url = 'https://goodbyestar.cloud/sector-cards';
   var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) return [];
-
-  var text = res.getContentText('UTF-8');
+  var body;
+  try { body = JSON.parse(res.getContentText('UTF-8')); } catch (err) { return []; }
+  var sectors = body && body.data && body.data.sectors;
+  if (!sectors || typeof sectors !== 'object') return [];
   var byCode = {};
-  var sectorRe = /"([^"]+)":\s*\[([\s\S]*?)\]/g;
-  var itemRe = /name:\s*"([^"]+)",\s*code:\s*"([0-9A-Za-z]{6})",\s*market:\s*"([^"]+)"/g;
-
-  var sm;
-  while ((sm = sectorRe.exec(text)) !== null) {
-    var sectorName = sm[1];
-    var block = sm[2];
-    var im;
-    itemRe.lastIndex = 0;
-    while ((im = itemRe.exec(block)) !== null) {
-      var code = im[2];
-      if (!byCode[code]) byCode[code] = { code: code, name: im[1], market: im[3], sectors: [] };
-      if (byCode[code].sectors.indexOf(sectorName) === -1) byCode[code].sectors.push(sectorName);
-    }
-  }
-
+  Object.keys(sectors).forEach(function (sectorName) {
+    (sectors[sectorName] || []).forEach(function (item) {
+      if (!item || !item.code) return;
+      if (!byCode[item.code]) byCode[item.code] = { code: item.code, name: item.name, market: item.market, sectors: [] };
+      if (byCode[item.code].sectors.indexOf(sectorName) === -1) byCode[item.code].sectors.push(sectorName);
+    });
+  });
   return Object.keys(byCode).map(function (c) { return byCode[c]; });
 }
 
@@ -2663,9 +2745,8 @@ function patternGrade_(score) {
   return score >= 70;
 }
 
-// 저점상승형(Higher Low, 지시서 ①): 최근 60거래일 중 스윙 저점 2개 이상 + 마지막 저점이
-// 그 전 저점보다 3%+ 높고(하락 압력 약화) + 두 저점 간격 5~20거래일 + 최근 고점이 5일선
-// 근처에서 저항받고 + 현재가가 마지막 저점 대비 10% 넘게 오르지 않은(아직 안 늦은) 구간.
+// 저점상승형(Higher Low, 지시서 ①): 최근 20거래일 중 스윙 저점 2개 이상 + 최근 두 저점이
+// 단순히 더 높고 + 현재가가 마지막 저점 위에 있는 아직 진행 중인 구간.
 function detectRisingLows_(daily) {
   var win = daily.slice(Math.max(0, daily.length - RISING_LOWS_WINDOW));
   if (win.length < RISING_LOWS_WINDOW) return null;
@@ -2679,47 +2760,21 @@ function detectRisingLows_(daily) {
   var lastLowIdx = lowIdxs[lowIdxs.length - 1];
   var prevLow = win[prevLowIdx].low;
   var lastLow = win[lastLowIdx].low;
-  var riseRatio = (lastLow - prevLow) / prevLow;
-  if (riseRatio < WEDGE_MIN_LOW_RISE) return null;
-
-  // ④ 두 저점 간격 5~20거래일
-  var lowSpan = lastLowIdx - prevLowIdx;
-  if (lowSpan < WEDGE_MIN_GAP_DAYS || lowSpan > WEDGE_MAX_GAP_DAYS) return null;
-
-  // 2026-07-22 개편: Higher High - 고점도 직전 스윙고점보다 높아야 저점상승이 진짜 상승
-  // 추세 전환인지(단순 반등 노이즈가 아닌지) 확인됨
-  if (highIdxs.length < 2) return null;
-  var prevHigh = win[highIdxs[highIdxs.length - 2]].high;
-  var lastHigh = win[highIdxs[highIdxs.length - 1]].high;
-  if (lastHigh <= prevHigh) return null;
-
-  // 2026-07-22 개편: 20일선 기울기가 0 이상(상승 또는 횡보) - 하락 추세 안에서의 일시적
-  // 저점상승(데드캣 바운스)을 걸러냄
-  var ma20Series = movingAverage_(win, 'close', 20);
-  var ma20Now = ma20Series[win.length - 1];
-  var ma20Prev = ma20Series[win.length - 1 - MA_SLOPE_LOOKBACK];
-  if (ma20Now == null || ma20Prev == null || ma20Now < ma20Prev) return null;
+  if (lastLow <= prevLow) return null;
 
   // 최근성: 마지막 저점이 최근 RECENCY_MAX_GAP거래일 안이어야 "지금" 진행 중인 패턴
-  if ((win.length - 1) - lastLowIdx > RECENCY_MAX_GAP) return null;
-
   var lastClose = win[win.length - 1].close;
   // 마지막 저점 이후 그 저점을 다시 깨고 내려갔으면(스윙으로는 아직 안 잡혀도) 무효
-  if (lastClose < lastLow * 0.98) return null;
-  // ⑥ 현재가는 최근 저점 대비 10% 이상 상승하지 않을 것(이미 많이 오른 뒤의 늦은 신호 배제)
-  if ((lastClose - lastLow) / lastLow > WEDGE_MAX_EXTENSION) return null;
+  if (lastClose < lastLow) return null;
 
   var lowSwingPoints = lowIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].low }; });
   var current = { date: win[win.length - 1].date, price: lastClose };
 
-  // ---- 점수(100점, 2026-07-22 개편): 저점상승폭35 + 고점상승(HH)15(필터 통과 시 고정)
-  // + 저점간격15(고정) + 20일선기울기10(필터 통과 시 고정) + 5일선저항15 + 거래량감소5 + 최근양봉5 ----
-  var riseScore = scoreTier_(riseRatio, [
-    { min: 0.08, score: 35 }, { min: 0.05, score: 26 }, { min: WEDGE_MIN_LOW_RISE, score: 18 }
-  ]);
-  var hhScore = 15;
-  var spanScore = 15;
-  var slopeScore = 10;
+  // 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은
+  // 추세 전환 확인 신호이지, 아직 형성 중인 저점상승형을 제외할 필수 조건은 아니다.
+  // ---- 점수(100점): 저점상승폭40 + 저점간격20 + 5일선저항20 + 거래량감소10 + 최근양봉10 ----
+  var higherLowScore = 40;
+  var recentLowScore = 20;
 
   // ⑤ 최근 고점(가장 최근 스윙 고점)이 5일선 ±2% 구간에서 저항받는지
   var ma5 = movingAverage_(win, 'close', 5);
@@ -2727,20 +2782,18 @@ function detectRisingLows_(daily) {
   var resistanceIdx = highIdxs.length ? highIdxs[highIdxs.length - 1] : null;
   var ma5AtResistance = resistanceIdx != null ? ma5[resistanceIdx] : null;
   var ma5Diff = ma5AtResistance ? Math.abs(win[resistanceIdx].high - ma5AtResistance) / ma5AtResistance : 1;
-  var ma5Score = ma5Diff <= 0.02 ? 15 : ma5Diff <= 0.05 ? 8 : 0;
+  var ma5Score = ma5Diff <= 0.02 ? 20 : ma5Diff <= 0.05 ? 10 : 0;
 
-  var volScore = isVolumeDeclining_(win, prevLowIdx, win.length) ? 5 : 0;
-  var bullScore = isLastCandleBullish_(win) ? 5 : 0;
+  var volScore = isVolumeDeclining_(win, lastLowIdx, win.length) ? 10 : 0;
+  var bullScore = isLastCandleBullish_(win) ? 10 : 0;
 
-  var score = clampScore_(riseScore + hhScore + spanScore + slopeScore + ma5Score + volScore + bullScore);
+  var score = clampScore_(higherLowScore + recentLowScore + ma5Score + volScore + bullScore);
   var reasons = [
-    '저점 ' + (riseRatio * 100).toFixed(1) + '% 상승(' + riseScore + '/35점)',
-    '고점도 직전 고점 대비 상승, Higher High 확인(' + hhScore + '/15점)',
-    '저점 간격 ' + lowSpan + '거래일(' + spanScore + '/15점)',
-    '20일선 기울기 상승/횡보(' + slopeScore + '/10점)',
-    '5일선 저항 근접도(' + ma5Score + '/15점)',
-    '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/5점)',
-    '최근 캔들 ' + (bullScore ? '양봉' : '음봉') + '(' + bullScore + '/5점)'
+    '스윙 저점 순차 상승(' + higherLowScore + '/40점)',
+    '최근 저점 상승 확인(' + recentLowScore + '/20점)',
+    '5일선 저항 근접도(' + ma5Score + '/20점)',
+    '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/10점)',
+    '최근 캔들 ' + (bullScore ? '양봉' : '음봉') + '(' + bullScore + '/10점)'
   ];
 
   return {
@@ -2754,7 +2807,7 @@ function detectRisingLows_(daily) {
     breakout: resistance != null && lastClose > resistance * BREAKOUT_TOL,
     score: score,
     reasons: reasons,
-    interpretation: '저점과 고점이 함께 높아지고(Higher Low+High) 20일선도 상승/횡보 중인 구간으로 추정됩니다(' + score + '점).'
+    interpretation: '최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간으로 추정됩니다(' + score + '점).'
   };
 }
 
@@ -2765,21 +2818,20 @@ function detectDoubleBottom_(daily) {
   var win = daily.slice(Math.max(0, daily.length - DOUBLE_BOTTOM_WINDOW));
   var lowIdxs = findSwingIndices_(win, 'low', true);
   if (lowIdxs.length < 2) return null;
-
-  for (var a = 0; a < lowIdxs.length - 1; a++) {
-    for (var b = a + 1; b < lowIdxs.length; b++) {
+  for (var a = lowIdxs.length - 2; a < lowIdxs.length - 1; a++) {
+    for (var b = lowIdxs.length - 1; b < lowIdxs.length; b++) {
       var i1 = lowIdxs[a], i2 = lowIdxs[b];
       var gapDays = i2 - i1;
-      if (gapDays < DB_MIN_GAP_DAYS || gapDays > DB_MAX_GAP_DAYS) continue; // 간격 10~40거래일
+      if (gapDays < DB_MIN_GAP_DAYS || gapDays > DB_MAX_GAP_DAYS) continue; // 간격 12~35거래일
       if ((win.length - 1) - i2 > RECENCY_MAX_GAP) continue; // 두번째 저점이 너무 오래 전이면 스킵
 
       var low1 = win[i1].low, low2 = win[i2].low;
       var diff = Math.abs(low1 - low2) / Math.min(low1, low2);
-      if (diff > DB_LOW_TOL) continue; // 가격 차이 ±3%
+      if (diff > DB_LOW_TOL) continue; // 가격 차이 ±2%
 
       // 2026-07-22 개편: 두 번째 저점 거래량이 첫 번째 저점 이하 - 저점을 다지면서
       // 매도 압력이 줄어드는 정상적인 바닥 형성 신호인지 확인
-      if (win[i2].volume > win[i1].volume) continue;
+      if (win[i2].volume > win[i1].volume * DB_SECOND_VOLUME_MAX_RATIO) continue;
 
       var neck = maxHighBetween_(win, i1, i2);
       if (!neck) continue;
@@ -2787,10 +2839,11 @@ function detectDoubleBottom_(daily) {
       if (riseFromLow1 < DB_PEAK_MIN_RISE) continue;
 
       if (!hasBullishAfter_(win, i2)) continue; // 두번째 저점 이후 양봉(반등 확인)
+      if (!isLastCandleBullish_(win)) continue;
 
       var lastClose = win[win.length - 1].close;
       var proximity = (lastClose - neck.high) / neck.high;
-      if (proximity < DB_NECK_PROXIMITY_MIN) continue; // 넥라인 아래 5% 이내(너무 멀면 스킵)
+      if (proximity < DB_NECK_PROXIMITY_MIN) continue; // 넥라인 아래 2% 이내(너무 멀면 스킵)
 
       var current = { date: win[win.length - 1].date, price: lastClose };
       // 저점1 이전의 고점 - 차트에 W자 왼쪽 팔(하락 구간)까지 그려서 패턴이 한눈에 보이게 하기 위함
@@ -2840,15 +2893,17 @@ function detectInvHeadShoulders_(daily) {
   var lowIdxs = findSwingIndices_(win, 'low', true);
   if (lowIdxs.length < 3) return null;
 
-  // 2026-07-22 개편: 우어깨 형성 이후 거래량 급증(20일 평균 대비 1.2배 이상) 조건에 쓸 기준선
+  // 우어깨 형성 이후 거래량 급증(20일 평균 대비 1.5배 이상) 조건에 쓸 기준선
   var avgVol20 = avgVolume_(win, Math.max(0, win.length - 20), win.length);
-
-  for (var a = 0; a < lowIdxs.length - 2; a++) {
-    for (var b = a + 1; b < lowIdxs.length - 1; b++) {
-      for (var c = b + 1; c < lowIdxs.length; c++) {
+  for (var a = lowIdxs.length - 3; a < lowIdxs.length - 2; a++) {
+    for (var b = lowIdxs.length - 2; b < lowIdxs.length - 1; b++) {
+      for (var c = lowIdxs.length - 1; c < lowIdxs.length; c++) {
         var iL = lowIdxs[a], iH = lowIdxs[b], iR = lowIdxs[c];
         if ((win.length - 1) - iR > RECENCY_MAX_GAP) continue; // 우어깨가 너무 오래 전이면 스킵
         var left = win[iL].low, head = win[iH].low, right = win[iR].low;
+        var leftGap = iH - iL, rightGap = iR - iH;
+        if (leftGap < IHS_MIN_SHOULDER_GAP || rightGap < IHS_MIN_SHOULDER_GAP) continue;
+        if (leftGap > IHS_MAX_SHOULDER_GAP || rightGap > IHS_MAX_SHOULDER_GAP) continue;
 
         if (!(head < left && head < right)) continue;
         if ((left - head) / left < IHS_HEAD_MIN_DROP) continue;
@@ -2860,12 +2915,15 @@ function detectInvHeadShoulders_(daily) {
         var peak1 = maxHighBetween_(win, iL, iH);
         var peak2 = maxHighBetween_(win, iH, iR);
         if (!peak1 || !peak2) continue;
+        if ((peak1.high - head) / head < IHS_NECK_MIN_RISE) continue;
+        if ((peak2.high - head) / head < IHS_NECK_MIN_RISE) continue;
         var necklinePrice = Math.min(peak1.high, peak2.high);
         var necklinePoint = peak1.high <= peak2.high ? peak1 : peak2;
 
         var lastClose = win[win.length - 1].close;
         var proximity = (lastClose - necklinePrice) / necklinePrice;
-        if (proximity < IHS_NECK_PROXIMITY_MIN) continue; // ③ 넥라인 아래 3% 이내(너무 멀면 스킵)
+        if (!isLastCandleBullish_(win)) continue;
+        if (proximity < IHS_NECK_PROXIMITY_MIN) continue; // 넥라인 아래 1% 이내(너무 멀면 스킵)
 
         // 2026-07-22 개편: 우어깨 형성 이후(넥라인 접근/돌파 구간 포함) 거래량이 20일 평균
         // 대비 1.2배 이상 - 반전에 매수세가 실제로 붙었는지 확인(예전엔 거래량 "감소"를
@@ -2980,23 +3038,22 @@ function detectBoxRangeLow_(daily) {
 }
 
 // 눌림목(지시서 ⑤): 최근 20거래일 중 15% 이상 상승한 뒤, 고점 대비 5~15% 조정을 받고
-// 20일선 또는 60일선 ±3% 부근까지 내려온 구간. MA60이 필요해 다른 4개 패턴보다 긴
-// 윈도(PULLBACK_WINDOW≈90영업일)를 쓴다 - getPatternChart()가 PATTERN_CHART_PAGES(50페이지,
-// ≥90영업일)로 크롤링한 daily를 그대로 슬라이스해서 쓰므로 이 함수 자체엔 크롤링이 없다.
-var PULLBACK_WINDOW = 90;
+// 20일선 또는 1년선(240일선) ±3% 부근까지 내려온 구간. 1년선을 안정적으로 계산하도록
+// 260거래일 창을 쓴다. getPatternChart()의 약 2년 일봉에서 이 구간만 판정에 사용한다.
+var PULLBACK_WINDOW = 260;
 var PULLBACK_LOOKBACK = 20;     // "최근 20거래일" 안에서 고점을 찾음
 var PULLBACK_MIN_RISE = 0.15;   // 저점->고점 15% 이상 상승
 var PULLBACK_MIN_DROP = 0.05;   // 고점 대비 조정폭 하한 5%
 var PULLBACK_MAX_DROP = 0.15;   // 조정폭 상한 15%
-var PULLBACK_MA_TOL = 0.03;     // 20일선/60일선 ±3%
+var PULLBACK_MA_TOL = 0.03;     // 20일선/240일선 ±3%
 
 function detectPullback_(daily) {
   var win = daily.slice(Math.max(0, daily.length - PULLBACK_WINDOW));
   var n = win.length;
-  if (n < 65) return null; // MA60 계산 + 상승 관찰 여유
+  if (n < 240) return null; // 1년선(240거래일) 계산
 
   var ma20 = movingAverage_(win, 'close', 20);
-  var ma60 = movingAverage_(win, 'close', 60);
+  var ma240 = movingAverage_(win, 'close', 240);
 
   var recentStart = Math.max(0, n - PULLBACK_LOOKBACK - 5); // 고점 탐색을 조금 넉넉하게
   var peakIdx = recentStart;
@@ -3021,10 +3078,10 @@ function detectPullback_(daily) {
   if (dropRatio < PULLBACK_MIN_DROP || dropRatio > PULLBACK_MAX_DROP) return null;
 
   var ma20Now = ma20[n - 1];
-  var ma60Now = ma60[n - 1];
+  var ma240Now = ma240[n - 1];
   var diff20 = ma20Now ? Math.abs(lastClose - ma20Now) / ma20Now : Infinity;
-  var diff60 = ma60Now ? Math.abs(lastClose - ma60Now) / ma60Now : Infinity;
-  if (diff20 > PULLBACK_MA_TOL && diff60 > PULLBACK_MA_TOL) return null;
+  var diff240 = ma240Now ? Math.abs(lastClose - ma240Now) / ma240Now : Infinity;
+  if (diff20 > PULLBACK_MA_TOL && diff240 > PULLBACK_MA_TOL) return null;
 
   // 2026-07-22 개편: 20일선이 상승 중이어야 함 - 조정이 추세 이탈이 아니라 일시적으로
   // 쉬어가는 자리임을 확인
@@ -3041,13 +3098,13 @@ function detectPullback_(daily) {
   // + 거래량패턴15(필터 통과 시 고정) + 최근양봉10 ----
   var riseScore = riseRatio >= 0.25 ? 30 : riseRatio >= 0.20 ? 22 : 15;
   var dropScore = (dropRatio >= 0.07 && dropRatio <= 0.12) ? 25 : 15;
-  var maScore = (diff20 <= PULLBACK_MA_TOL && diff60 <= PULLBACK_MA_TOL) ? 20
-    : (Math.min(diff20, diff60) <= PULLBACK_MA_TOL) ? 12 : 0;
+  var maScore = (diff20 <= PULLBACK_MA_TOL && diff240 <= PULLBACK_MA_TOL) ? 20
+    : (Math.min(diff20, diff240) <= PULLBACK_MA_TOL) ? 12 : 0;
   var volScore = 15;
   var bullScore = isLastCandleBullish_(win) ? 10 : 0;
 
   var score = clampScore_(riseScore + dropScore + maScore + volScore + bullScore);
-  var maLabel = diff20 <= diff60 ? '20일선' : '60일선';
+  var maLabel = diff20 <= diff240 ? '20일선' : '1년선(240일선)';
   var reasons = [
     '상승폭 ' + (riseRatio * 100).toFixed(1) + '%(' + riseScore + '/30점)',
     '조정폭 ' + (dropRatio * 100).toFixed(1) + '%(' + dropScore + '/25점)',
@@ -3062,7 +3119,7 @@ function detectPullback_(daily) {
     current: { date: win[n - 1].date, price: lastClose },
     signal: { date: win[n - 1].date, price: lastClose },
     ma20: ma20Now,
-    ma60: ma60Now,
+    ma240: ma240Now,
     breakout: false,
     score: score,
     reasons: reasons,
@@ -3209,6 +3266,10 @@ function kiwoomVmFetch_(path) {
     }
   }
   return null;
+}
+
+function fetchKofiaMarketFromVm_() {
+  return kiwoomVmFetch_('/kofia-market?days=30');
 }
 
 // 종목분석 펀더멘탈 탭 (?action=fundamentals&code=). 밸류에이션 스냅샷(키움 ka10001, VM

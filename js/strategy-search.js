@@ -159,13 +159,16 @@
 
   function rowHtml(it) {
     var cc = chgClass(it.changeRate);
+    var metric = it.envelope
+      ? '엔벨로프 하단 ' + fmtPct(it.envelope.closeDistancePct) + ' · ROE ' + fmtPct(it.roe)
+      : '이격도 ' + fmtPct(it.disparity) + ' · ROE ' + fmtPct(it.roe);
     return '<div class="ss-row" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" title="눌러서 종목분석 보기">'
       + '<div class="ss-row-top">'
       + '<span class="ss-row-name">' + escapeHtml(it.name) + '<span class="ss-row-code">(' + escapeHtml(it.code) + ')</span></span>'
       + '<span><span class="ss-row-price">' + fmt(it.price) + '</span>'
       + '<span class="ss-row-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
       + '</div>'
-      + '<div class="ss-row-metric">이격도 ' + fmtPct(it.disparity) + ' · ROE ' + fmtPct(it.roe) + '</div>'
+      + '<div class="ss-row-metric">' + metric + '</div>'
       + '</div>';
   }
 

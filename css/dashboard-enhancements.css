@@ -1,0 +1,357 @@
+/* Shared enhancements loaded by js/dashboard-enhancements.js. */
+
+@import url('https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css');
+@import url('https://cdn.jsdelivr.net/gh/fonts-archive/NanumGothic/NanumGothic.css');
+
+#watchlist,
+#watchlist *,
+.home-my-card,
+.home-my-card * {
+  font-family: 'Maru Buri', 'MaruBuri', 'Nanum Gothic', '나눔고딕', system-ui, sans-serif;
+}
+
+#market-temp .mt-guide-card {
+  position: relative;
+  overflow: hidden;
+  border-width: 1px;
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(247,249,252,.92));
+  box-shadow: 0 8px 18px rgba(26, 35, 48, .08), inset 0 1px rgba(255,255,255,.9);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+#market-temp .mt-guide-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, currentColor, transparent);
+  opacity: .75;
+}
+#market-temp .mt-guide-card:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 14px 28px rgba(26, 35, 48, .16), 0 0 0 1px rgba(255,255,255,.8) inset;
+  filter: saturate(1.12);
+}
+#market-temp .mt-section:has(.mt-guide-grid-cards) .mt-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  margin: -14px -16px 14px;
+  color: #fff;
+  background: linear-gradient(115deg, #315b43, #4f8c6a 48%, #d08a3f);
+  box-shadow: 0 6px 14px rgba(49,91,67,.22);
+}
+
+/* Keep the temperature guide calm: preserve the five bands without the neon palette. */
+#market-temp .mt-section:has(.mt-guide-grid-cards) .mt-card-title {
+  color: #315b43;
+  background: #f1f5f2;
+  border-bottom: 1px solid #dfe8e1;
+  box-shadow: none;
+}
+#market-temp .mt-guide-card {
+  border-color: #dfe5e8 !important;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(31,41,55,.05);
+}
+#market-temp .mt-guide-card::before {
+  height: 3px;
+  background: #9aa7a0;
+  opacity: .45;
+}
+#market-temp .mt-guide-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(31,41,55,.08);
+  filter: none;
+}
+#market-temp .mt-guide-card-extreme-fear .mt-guide-season,
+#market-temp .mt-guide-card-extreme-fear .mt-guide-card-range,
+#market-temp .mt-guide-card-extreme-fear .mt-guide-card-stars { color: #55728f !important; }
+#market-temp .mt-guide-card-fear .mt-guide-season,
+#market-temp .mt-guide-card-fear .mt-guide-card-range,
+#market-temp .mt-guide-card-fear .mt-guide-card-stars { color: #6f9bb7 !important; }
+#market-temp .mt-guide-card-neutral .mt-guide-season,
+#market-temp .mt-guide-card-neutral .mt-guide-card-range,
+#market-temp .mt-guide-card-neutral .mt-guide-card-stars { color: #a28d58 !important; }
+#market-temp .mt-guide-card-greed .mt-guide-season,
+#market-temp .mt-guide-card-greed .mt-guide-card-range,
+#market-temp .mt-guide-card-greed .mt-guide-card-stars { color: #b27d58 !important; }
+#market-temp .mt-guide-card-extreme-greed .mt-guide-season,
+#market-temp .mt-guide-card-extreme-greed .mt-guide-card-range,
+#market-temp .mt-guide-card-extreme-greed .mt-guide-card-stars { color: #a66b6b !important; }
+#market-temp .mt-guide-stars-empty { color: #e1e5e8 !important; }
+
+/* Guide redesign: a quiet, readable five-step scale instead of decorative color blocks. */
+#market-temp .mt-section:has(.mt-guide-grid-cards) {
+  padding-top: 14px;
+}
+#market-temp .mt-section:has(.mt-guide-grid-cards) .mt-card-title {
+  margin: -14px -16px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8e4;
+  background: #f7f9f8;
+  color: #263b31;
+  font-size: 15px;
+  letter-spacing: -.2px;
+}
+#market-temp .mt-guide-grid-cards {
+  gap: 10px;
+}
+#market-temp .mt-guide-card {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid #e1e7e4 !important;
+  border-radius: 12px;
+  padding: 12px 13px 11px;
+  background: #fff;
+  box-shadow: none;
+}
+#market-temp .mt-guide-card::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 12px 0 0 12px;
+  background: var(--mt-guide-color);
+  opacity: .38;
+}
+#market-temp .mt-guide-season {
+  justify-content: flex-start;
+  margin-bottom: 8px;
+  color: #33463c !important;
+  font-size: 12px;
+}
+#market-temp .mt-guide-season-emoji {
+  width: 20px;
+  filter: grayscale(1);
+  opacity: .62;
+}
+#market-temp .mt-guide-card-label {
+  margin-bottom: 8px;
+  color: #65716b;
+  font-size: 12px;
+  text-align: left;
+}
+#market-temp .mt-guide-card-meta {
+  justify-content: space-between;
+  gap: 6px;
+  border-top: 1px solid #edf0ef;
+  padding-top: 8px;
+}
+#market-temp .mt-guide-card-range,
+#market-temp .mt-guide-card-stars {
+  color: #52665b !important;
+  font-size: 11px;
+}
+#market-temp .mt-guide-card-stars {
+  letter-spacing: 2px;
+}
+#market-temp .mt-guide-card:hover {
+  border-color: #cbd8d0 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(40,58,49,.08);
+}
+
+.de-custom-card-tools { margin: 0 0 14px; }
+.de-custom-card-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #e3e8ef; border-radius: 10px; background: linear-gradient(110deg, #f8fbf9, #f8fafc); }
+.de-custom-card-toolbar strong { display: block; color: #315b43; font-size: 13px; }
+.de-custom-card-toolbar span { display: block; margin-top: 2px; color: #8b95a3; font-size: 11px; }
+.de-custom-add, .de-custom-editor-actions button, .de-custom-edit, .de-custom-delete { border: 1px solid #dce3eb; border-radius: 999px; background: #fff; color: #5f6b78; cursor: pointer; font: inherit; font-size: 11px; padding: 5px 9px; }
+.de-custom-add { border-color: #315b43; color: #315b43; font-weight: 700; white-space: nowrap; }
+.de-custom-editor { display: grid; gap: 8px; margin-top: 8px; padding: 12px; border: 1px solid #d8e4db; border-radius: 10px; background: #fbfefc; }
+.de-custom-editor[hidden] { display: none; }
+.de-custom-editor-title { color: #315b43; font-size: 12px; font-weight: 700; }
+.de-custom-input { width: 100%; box-sizing: border-box; border: 1px solid #dce3eb; border-radius: 7px; padding: 8px 9px; background: #fff; color: #25303b; font: inherit; font-size: 12px; }
+.de-custom-textarea { min-height: 82px; resize: vertical; }
+.de-custom-editor-row { display: flex; gap: 10px; flex-wrap: wrap; color: #6c7784; font-size: 11px; }
+.de-custom-editor-row label { display: flex; align-items: center; gap: 5px; }
+.de-custom-emoji { width: 38px; border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; font: inherit; text-align: center; }
+.de-custom-color { border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; color: #5f6b78; font: inherit; }
+.de-custom-editor-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.de-custom-editor-actions .primary { border-color: #315b43; background: #315b43; color: #fff; font-weight: 700; }
+.de-custom-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 8px; }
+.de-custom-card { min-height: 96px; border: 1px solid #e1e6ec; border-left: 4px solid var(--de-card-accent); border-radius: 9px; padding: 10px 11px; background: #fff; box-shadow: 0 3px 10px rgba(28,39,51,.06); }
+.de-custom-card-heading { display: flex; align-items: center; gap: 5px; color: #25303b; font-size: 12px; }
+.de-custom-card-heading strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.de-custom-card p { margin: 8px 0 0; color: #657181; font-size: 12px; line-height: 1.55; word-break: break-word; }
+.de-custom-delete { color: #a35d5d; }
+.de-custom-empty { grid-column: 1 / -1; padding: 10px; color: #9aa5b1; font-size: 12px; text-align: center; }
+
+.de-expand-button { position: relative; z-index: 7; float: right; margin-left: 8px; border: 1px solid #cfd9e5; border-radius: 999px; padding: 6px 11px; background: rgba(255,255,255,.96); color: #405266; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 8px rgba(30,48,67,.08); }
+.de-expand-button:hover { border-color: #315b43; color: #315b43; }
+#foreign-flow .ff-apt-chart-wrap > .de-expand-button { position: absolute; top: 10px; right: 10px; z-index: 8; }
+#foreign-flow .ff-apt-chart-wrap { padding-top: 30px; }
+#foreign-flow .ff-chart-candle { height: 760px !important; }
+#stock-search .ss-chart { height: 760px; }
+#kospi-futures .kf-chart { height: 760px !important; }
+.de-chart-overlay { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(8, 13, 20, .72); }
+.de-chart-modal { display: flex; flex-direction: column; width: min(1480px, 100%); height: min(94vh, 100%); max-height: calc(100vh - 36px); overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.35); }
+.de-chart-modal-head { position: relative; z-index: 2; display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #e5e9ef; color: #25303b; font-size: 14px; }
+.de-chart-close { border: 0; background: transparent; color: #7e8995; cursor: pointer; font-size: 16px; }
+.de-chart-modal-body { display: flex; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; padding: 22px 18px 26px; }
+.de-chart-modal-body > #ffLwChart, .de-chart-modal-body > #ssChart, .de-chart-modal-body > .kf-chart { width: 100%; }
+.de-chart-modal-body > .ff-apt-chart-wrap { width: 100%; min-width: 0; }
+.de-chart-modal-body > .de-foreign-flow-scope { width: 100%; min-width: 0; }
+.de-chart-placeholder { display: none; }
+html.dark .de-custom-card-toolbar, html.dark .de-custom-editor, html.dark .de-custom-card, html.dark .de-chart-modal { background: #1A1A1A; border-color: rgba(245,239,224,.2); }
+html.dark .de-custom-card-toolbar strong, html.dark .de-custom-editor-title, html.dark .de-custom-card-heading, html.dark .de-chart-modal-head { color: #F5EFE0; }
+html.dark .de-custom-card-toolbar span, html.dark .de-custom-card p, html.dark .de-custom-empty { color: rgba(245,239,224,.55); }
+html.dark .de-custom-input, html.dark .de-custom-emoji, html.dark .de-custom-color, html.dark .de-expand-button { background: #242424; border-color: rgba(245,239,224,.24); color: #F5EFE0; }
+html.dark .de-custom-add { background: #1A1A1A; color: #9bd4ad; border-color: #9bd4ad; }
+html.dark .de-chart-modal-body { background: #1A1A1A; }
+
+/* A small illustrated thermometer for the market-temperature hero. */
+#market-temp .mt-hero-main { align-items: center; }
+#market-temp .mt-thermometer-art {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 72px;
+  flex: 0 0 30px;
+  margin-right: 2px;
+  border: 2px solid #68747a;
+  border-radius: 18px 18px 12px 12px;
+  background: #f6f8f8;
+  box-sizing: border-box;
+}
+#market-temp .mt-thermometer-art::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  width: 8px;
+  height: 43px;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  background: #e5e9e8;
+}
+#market-temp .mt-thermometer-art::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 27px;
+  height: 27px;
+  transform: translateX(-50%);
+  border: 2px solid #68747a;
+  border-radius: 50%;
+  background: #f6f8f8;
+  box-sizing: border-box;
+}
+#market-temp .mt-thermometer-mercury {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 8px;
+  width: 8px;
+  height: 31px;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  background: #7f9baa;
+}
+#market-temp .mt-thermometer-mercury::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -13px;
+  width: 19px;
+  height: 19px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: inherit;
+}
+#market-temp .mt-wrap.mt-tone-extreme-fear .mt-thermometer-mercury { background: #1565C0; }
+#market-temp .mt-wrap.mt-tone-fear .mt-thermometer-mercury { background: #42A5F5; }
+#market-temp .mt-wrap.mt-tone-neutral .mt-thermometer-mercury { background: #FFD54F; }
+#market-temp .mt-wrap.mt-tone-greed .mt-thermometer-mercury { background: #FB8C00; }
+#market-temp .mt-wrap.mt-tone-extreme-greed .mt-thermometer-mercury { background: #E53935; }
+
+/* Hero alignment: the gauge follows the main reading, while the signal stays centered. */
+#market-temp .mt-wrap.mt-tone-neutral .mt-grade-pill { display: none; }
+#market-temp .mt-hero-row { display: flex; flex-direction: column; align-items: stretch; gap: 18px; }
+#market-temp .mt-hero { width: 100%; flex-basis: auto; }
+#market-temp .mt-gauge-side {
+  flex: 0 0 auto !important;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  height: auto !important;
+  padding-top: 14px;
+  border-top: 1px solid #edf0ef;
+}
+#market-temp .mt-gauge-side .mt-gauge-title { margin: 0 0 8px; color: #53645b; text-align: center; }
+#market-temp .mt-gauge-side .mt-gauge { max-width: 760px; margin: 0 auto; }
+#market-temp .mt-hero-right {
+  flex: 0 0 220px !important;
+  width: 220px;
+  align-items: center;
+  justify-content: center;
+  padding-left: 0;
+  border-left: 0;
+  border-top: 1px solid #edf0ef;
+  padding-top: 14px;
+  text-align: center;
+}
+#market-temp .mt-hero {
+  display: grid !important;
+  flex: 0 0 auto !important;
+  width: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  align-items: center;
+}
+#market-temp .mt-hero-left { min-height: 0; }
+@media (max-width: 640px) {
+  #market-temp .mt-hero { grid-template-columns: 1fr; }
+  #market-temp .mt-hero-right { width: 100%; flex-basis: auto; }
+}
+
+/* Simplify the hero: no separate gauge or investment-signal panel. */
+#market-temp .mt-gauge-side,
+#market-temp .mt-hero-right { display: none !important; }
+#market-temp .mt-hero-card > .mt-card {
+  margin-top: 18px;
+  border-top: 1px solid #edf0ef;
+  padding-top: 14px;
+}
+#market-temp .mt-row-2col:has(.mt-spark) > .mt-card:first-child { display: none; }
+#market-temp .mt-strategy-action {
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,.75);
+  box-shadow: 0 3px 10px rgba(47,62,54,.08);
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* Short explanations keep each block interpretable without adding visual noise. */
+#market-temp .mt-hero-card::after,
+#market-temp .mt-briefing-strategy-card::after,
+#market-temp .mt-row-2col > .mt-card:first-child::after,
+#market-temp .mt-row-2col > .mt-card:last-child::after,
+#market-temp .mt-strategy-card::after {
+  display: block;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #edf0ef;
+  color: #7b8780;
+  font-size: 11px;
+  line-height: 1.55;
+}
+#market-temp .mt-hero-card::after { content: '현재 시장의 과열·침체 정도와 최근 7일 흐름을 함께 보여줍니다.'; }
+#market-temp .mt-briefing-strategy-card::after { content: '오늘 시장 흐름을 요약하고 현재 온도에 맞는 참고용 대응 방향을 함께 보여줍니다.'; }
+#market-temp .mt-row-2col > .mt-card:first-child::after { content: '증시온도에 영향을 준 지표를 기여도 순으로 보여줍니다.'; }
+#market-temp .mt-row-2col > .mt-card:last-child::after { content: '시장 흐름을 여러 축으로 나누어 상대적인 강도를 보여줍니다.'; }
+#market-temp .mt-strategy-card::after { content: '현재 온도와 시장 흐름을 바탕으로 한 참고용 대응 방향입니다.'; }
+
+@media (max-width: 720px) {
+  #foreign-flow .ff-chart-candle, #stock-search .ss-chart, #kospi-futures .kf-chart { height: 600px !important; }
+  .de-chart-overlay { padding: 8px; }
+  .de-chart-modal { height: calc(100vh - 16px); max-height: calc(100vh - 16px); border-radius: 12px; }
+  .de-custom-card-toolbar { align-items: flex-start; flex-direction: column; }
+}

@@ -67,4 +67,122 @@
     var mount = document.getElementById('shell-' + key);
     if (mount) mount.outerHTML = SHELL[key];
   });
+
+  /*
+   * Tistory's manager link and this site's Google account are different
+   * authentication realms. Keep the original manager URL, but let the gear
+   * button choose between Tistory/Kakao administration and Google services.
+   */
+  function initAccountLoginChooser() {
+    var manageLink = document.querySelector('.nav-manage-btn');
+    if (!manageLink || manageLink.getAttribute('data-account-login-ready') === '1') return;
+    manageLink.setAttribute('data-account-login-ready', '1');
+
+    var managerUrl = manageLink.href;
+    var googleStartUrl = 'https://goodbyestar.cloud/auth/google/start';
+    var googleMeUrl = 'https://goodbyestar.cloud/auth/google/me';
+    var modal = document.createElement('div');
+    modal.className = 'account-login-modal';
+    modal.hidden = true;
+    modal.innerHTML =
+      '<div class="account-login-backdrop" data-account-action="close">' +
+        '<section class="account-login-dialog" role="dialog" aria-modal="true" aria-labelledby="accountLoginTitle" aria-describedby="accountLoginDescription">' +
+          '<button type="button" class="account-login-close" data-account-action="close" aria-label="로그인 선택 닫기">×</button>' +
+          '<div class="account-login-heading">' +
+            '<span class="account-login-eyebrow">ACCOUNT</span>' +
+            '<h2 id="accountLoginTitle">어디에 로그인할까요?</h2>' +
+            '<p id="accountLoginDescription">블로그 관리와 서비스 이용은 서로 다른 계정으로 안전하게 운영됩니다.</p>' +
+          '</div>' +
+          '<div class="account-login-options">' +
+            '<a class="account-login-option account-login-tistory" data-account-action="tistory" href="#">' +
+              '<span class="account-login-option-icon account-login-kakao-icon" aria-hidden="true">●</span>' +
+              '<span class="account-login-option-copy"><strong>블로그 관리</strong><small>카카오 · Tistory 관리자</small></span>' +
+              '<span class="account-login-option-arrow" aria-hidden="true">→</span>' +
+            '</a>' +
+            '<button type="button" class="account-login-option account-login-google" data-account-action="google">' +
+              '<span class="account-login-option-icon account-login-google-icon" aria-hidden="true">G</span>' +
+              '<span class="account-login-option-copy"><strong>서비스 이용</strong><small>Google · 관심종목과 분석</small></span>' +
+              '<span class="account-login-option-arrow" aria-hidden="true">→</span>' +
+            '</button>' +
+          '</div>' +
+          '<div class="account-login-google-status" aria-live="polite">Google 계정 상태를 확인하고 있습니다.</div>' +
+          '<div class="account-login-footer"><span>두 로그인은 동시에 유지되며 서로의 권한에 영향을 주지 않습니다.</span></div>' +
+        '</section>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    var googleStatus = modal.querySelector('.account-login-google-status');
+    var googleOption = modal.querySelector('.account-login-google');
+    var tistoryOption = modal.querySelector('.account-login-tistory');
+
+    tistoryOption.href = managerUrl;
+
+    function updateGoogleStatus() {
+      return fetch(googleMeUrl, { credentials: 'include', cache: 'no-store' })
+        .then(function (response) {
+          if (!response.ok) throw new Error('Google auth status ' + response.status);
+          return response.json();
+        })
+        .then(function (body) {
+          var data = body && body.data ? body.data : {};
+          if (data.authenticated) {
+            googleStatus.textContent = '현재 Google 로그인: ' + (data.email || '로그인된 계정');
+            googleOption.querySelector('strong').textContent = 'Google 계정으로 계속하기';
+          } else {
+            googleStatus.textContent = 'Google로 로그인하면 관심종목과 서비스 설정이 계정별로 저장됩니다.';
+            googleOption.querySelector('strong').textContent = 'Google로 로그인';
+          }
+          return data;
+        })
+        .catch(function () {
+          googleStatus.textContent = 'Google 로그인 서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요.';
+          googleOption.querySelector('strong').textContent = 'Google로 로그인';
+          return null;
+        });
+    }
+
+    function openModal() {
+      modal.hidden = false;
+      document.body.classList.add('account-login-open');
+      updateGoogleStatus();
+      window.setTimeout(function () {
+        var closeButton = modal.querySelector('.account-login-close');
+        if (closeButton) closeButton.focus();
+      }, 0);
+    }
+
+    function closeModal() {
+      modal.hidden = true;
+      document.body.classList.remove('account-login-open');
+      manageLink.focus();
+    }
+
+    manageLink.addEventListener('click', function (event) {
+      event.preventDefault();
+      openModal();
+    });
+
+    modal.addEventListener('click', function (event) {
+      var actionEl = event.target.closest('[data-account-action]');
+      if (!actionEl) return;
+      var action = actionEl.getAttribute('data-account-action');
+      if (action === 'close') {
+        event.preventDefault();
+        closeModal();
+      } else if (action === 'google') {
+        event.preventDefault();
+        window.location.href = googleStartUrl + '?return_to=' + encodeURIComponent(window.location.href);
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !modal.hidden) closeModal();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAccountLoginChooser);
+  } else {
+    initAccountLoginChooser();
+  }
 })();

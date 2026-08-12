@@ -25,6 +25,8 @@
   var MAX_SUGGESTIONS = 8;
   var CLIENT_CACHE_MS = 5 * 60 * 1000;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+  var krxMapPromise = null;
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -50,8 +52,7 @@
   function ma224Color() {
     return document.documentElement.classList.contains('dark') ? '#f1f3f5' : '#000000';
   }
-  // 실시간 시세 차트와 동일하게 양운은 상승색(빨강), 음운은 하락색(파랑)으로 통일한다.
-  var ICHIMOKU_COLORS = { senkouA: '#d24f45', senkouB: '#1261c4' };
+  // 일목균형표는 선행스팬 1·2 사이 구간만 파란색 구름으로 표시하고 경계선은 숨긴다.
 
   // TradingView Lightweight Charts(오픈소스, CDN 지연 로드) - 가격 캔들차트 렌더링 엔진.
   // 손으로 그리던 SVG 캔들차트를 대체 - 확대/축소·패닝·크로스헤어를 라이브러리가 제공.
@@ -145,6 +146,7 @@
     if (!container) return;
     container.innerHTML = buildShell();
     wireEvents(container);
+    ensureKrxMap().catch(function () { /* 입력 시 다시 시도한다. */ });
     loadSignalData(container);
     autoSearchFromUrl(container);
 
@@ -729,7 +731,13 @@
     }
 
     input.addEventListener('input', function () {
-      renderSuggestions(container, suggestBox, input.value.trim());
+      var query = input.value.trim();
+      if (!query) { hideSuggestions(suggestBox); return; }
+      ensureKrxMap().then(function () {
+        renderSuggestions(container, suggestBox, query);
+      }).catch(function () {
+        hideSuggestions(suggestBox);
+      });
     });
     input.addEventListener('keydown', function (e) {
       var items = suggestBox.querySelectorAll('.ff-suggest-item');
@@ -906,6 +914,28 @@
     box.__activeIndex = -1;
   }
 
+  // Tistory 본문에 삽입된 페이지에서는 defer 공통 스크립트보다 foreign-flow가
+  // 먼저 실행될 수 있다. 이때 첫 입력 순간 KRX_MAP이 아직 없으면 기존 코드는
+  // 자동완성을 숨긴 뒤 다시 시도하지 않아 "미리보기 없음"처럼 보였다.
+  function ensureKrxMap() {
+    if (global.KRX_MAP) return Promise.resolve(global.KRX_MAP);
+    if (krxMapPromise) return krxMapPromise;
+    krxMapPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = KRX_MAP_JS + '?v=20260810-preview';
+      script.onload = function () {
+        if (global.KRX_MAP) resolve(global.KRX_MAP);
+        else reject(new Error('KRX_MAP 없음'));
+      };
+      script.onerror = function () {
+        krxMapPromise = null;
+        reject(new Error('KRX_MAP 로드 실패'));
+      };
+      document.head.appendChild(script);
+    });
+    return krxMapPromise;
+  }
+
   // 키보드(위/아래 화살표)로 자동완성 항목 탐색 - box.__activeIndex에 현재 위치 저장
   function getActiveSuggestion(box) {
     return typeof box.__activeIndex === 'number' ? box.__activeIndex : -1;
@@ -957,7 +987,8 @@
     if (!matches.length) { hideSuggestions(box); return; }
 
     box.innerHTML = matches.map(function (name) {
-      return '<div class="ff-suggest-item" data-name="' + escapeAttr(name) + '">' + stockIconHtml(map[name], 'ff-suggest-icon') + escapeHtml(name) + '</div>';
+      return '<div class="ff-suggest-item" data-name="' + escapeAttr(name) + '">' + stockIconHtml(map[name], 'ff-suggest-icon')
+        + '<span class="ff-suggest-copy"><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(map[name]) + '</small></span></div>';
     }).join('');
     box.classList.add('active');
     box.__activeIndex = -1;
@@ -1079,7 +1110,7 @@
 
     var vmUrl = KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code) + '?days=' + days;
     function fetchFromVm() {
-      return fetchJson(vmUrl).then(function (envelope) {
+      return fetchJson(vmUrl, 60000).then(function (envelope) {
         var data = envelope && envelope.data;
         if (!data || data.error) throw new Error('VM 수급 데이터 없음');
         return data;
@@ -1244,10 +1275,11 @@
     return p;
   }
 
-  function fetchJson(url) {
+  function fetchJson(url, timeoutMs) {
+    timeoutMs = timeoutMs || FETCH_TIMEOUT_MS;
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
 
     return fetch(url, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
@@ -1348,6 +1380,8 @@
         if (!q) return;
         var header = box.querySelector('.ff-header');
         if (!header) { stopQuotePolling(); return; } // 다른 종목 재검색으로 이 헤더 자체가 사라짐
+        var aptCard = box.querySelector('#ffAptCard');
+        if (aptCard && typeof aptCard.__updateCurrentPrice === 'function') aptCard.__updateCurrentPrice(q.price);
         var priceEl = header.querySelector('.ff-price');
         var asofEl = header.querySelector('.ff-asof');
         if (!priceEl) return; // 최초 조회 때 시세를 아예 못 받아온 드문 경우 - 다음 tick 재시도
@@ -2901,6 +2935,8 @@
       + extraMetric('최근 20일 순매수', fmtSignedWon(p.net_20d))
       + extraMetric('최근 60일 순매수', p.net_60d == null ? '-' : fmtSignedWon(p.net_60d))
       + extraMetric('누적(' + (p.cumulative_window_days || 0) + '영업일)', fmtSignedWon(p.net_cumulative))
+      + (p.official_holding ? extraMetric('국민연금 연말 보유', fmtEokWon(p.official_holding.evaluation_amount_eok)
+        + ' · 지분율 ' + fmtPct(p.official_holding.holding_pct)) : '')
       + '</div>'
       + '</div>';
   }
@@ -2975,7 +3011,7 @@
 
   // TradingView 공식 "Bands Indicator" 플러그인 예제와 같은 구조(Series Primitive, v4.1+ 지원 -
   // js/pattern-scan.js 참고). drawBackground()로 캔들/선보다 먼저 그려 구름이 배경에 깔리게 한다.
-  function createIchimokuCloudPrimitive(bandPts, bullColor, bearColor) {
+  function createIchimokuCloudPrimitive(bandPts, cloudColor) {
     return {
       _chart: null,
       _series: null,
@@ -3000,7 +3036,7 @@
                     var yA = series.priceToCoordinate(p.a);
                     var yB = series.priceToCoordinate(p.b);
                     if (x == null || yA == null || yB == null) return null;
-                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio, bull: p.a >= p.b };
+                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio };
                   });
                   ctx.save();
                   for (var k = 0; k < pts.length - 1; k++) {
@@ -3012,7 +3048,7 @@
                     ctx.lineTo(p1.x, p1.yB);
                     ctx.lineTo(p0.x, p0.yB);
                     ctx.closePath();
-                    ctx.fillStyle = p0.bull ? bullColor : bearColor;
+                    ctx.fillStyle = cloudColor;
                     ctx.fill();
                   }
                   ctx.restore();
@@ -3034,7 +3070,8 @@
     [['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB]].forEach(function (pair) {
       var key = pair[0], pts = pair[1];
       if (!pts.length) return;
-      var series = lwcChart.addLineSeries({ color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      // 선행스팬 경계선은 숨기고, 두 선 사이의 구름만 파란색으로 표시한다.
+      var series = lwcChart.addLineSeries({ color: 'rgba(18,97,196,0)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       series.setData(pts);
       ichimokuOverlaySeries.push(series);
       seriesByKey[key] = series;
@@ -3044,11 +3081,11 @@
       try {
         var bandPts = pairIchimokuBand(ichi.senkouA, ichi.senkouB);
         if (bandPts.length > 1) {
-          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(210,79,69,0.13)', 'rgba(18,97,196,0.12)');
+          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(18,97,196,0.16)');
           seriesByKey.senkouA.attachPrimitive(cloudPrimitive);
           ichimokuCloudPrimitive = { series: seriesByKey.senkouA, primitive: cloudPrimitive };
         }
-      } catch (e) { /* primitive 렌더링 실패해도 구름 경계선 2개는 이미 그려져 있음 */ }
+      } catch (e) { /* primitive 렌더링을 지원하지 않는 차트에서는 구름을 생략한다 */ }
     }
   }
 
@@ -3130,7 +3167,7 @@
     return Math.round(r.low).toLocaleString('ko-KR') + '~' + Math.round(r.high).toLocaleString('ko-KR') + '원';
   }
 
-  function buildAptSummaryHtml(profile, periodLabel, avgPrice) {
+  function buildAptSummaryHtml(profile, periodLabel, avgPrice, currentPrice) {
     if (!profile) {
       return '<div class="ff-apt-summary">이 구간엔 계산할 매물대 데이터가 부족해요.</div>';
     }
@@ -3138,26 +3175,412 @@
     var pocMid = poc ? Math.round((poc.low + poc.high) / 2) : null;
     return '<div class="ff-apt-summary">'
       + '<span class="ff-apt-summary-item">' + (periodLabel || ('최근 ' + profile.days + '거래일')) + '</span>'
+      + (currentPrice != null
+        ? '<span class="ff-apt-summary-item ff-apt-summary-current">현재가 <b>' + Math.round(currentPrice).toLocaleString('ko-KR') + '원</b></span>'
+        : '')
       + (pocMid != null
-        ? '<span class="ff-apt-summary-item">거래량 최다(POC) <b>' + pocMid.toLocaleString('ko-KR') + '원</b></span>'
+        ? '<span class="ff-apt-summary-item ff-apt-summary-poc">POC <b>' + pocMid.toLocaleString('ko-KR') + '원</b></span>'
         : '')
       + (avgPrice != null
-        ? '<span class="ff-apt-summary-item">평균단가 <b>' + Math.round(avgPrice).toLocaleString('ko-KR') + '원</b></span>'
+        ? '<span class="ff-apt-summary-item ff-apt-summary-average">평균단가 <b>' + Math.round(avgPrice).toLocaleString('ko-KR') + '원</b></span>'
         : '')
-      + '<span class="ff-apt-legend"><span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-vol"></i>매물대</span>'
+      + '<span class="ff-apt-legend"><span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-current"></i>현재가</span>'
+      + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-average"></i>평균단가</span>'
       + '<span class="ff-apt-legend-item"><i class="ff-apt-swatch ff-apt-swatch-poc"></i>POC</span></span>'
       + '</div>';
   }
 
-  // .ff-apt-row 실제 높이(px)와 반드시 일치시킬 것 - 아래 사다리(ladder) 세로 위치/길이를
+  // .ff-apt-row 실제 높이(px)와 반드시 일치시킬 것 - 엘리베이터 세로 위치/길이를
   // JS에서 픽셀로 직접 계산하는 유일한 기준값이다(CSS를 바꾸면 이 값도 같이 바꿀 것).
   var APT_ROW_HEIGHT = 20;
+
+  // 이전 프로파일 라인 렌더러는 데이터 호환용으로 남겨 둔다.
+  function buildAptLineArtHtmlLegacy(profile, currentPrice, avgPrice) {
+    if (!profile || !profile.bins || !profile.bins.length) {
+      return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
+    }
+    var bins = profile.bins;
+    var n = bins.length;
+    var maxVolume = Number(profile.maxVolume) || 0;
+    var curIdx = aptBinIndex(profile, currentPrice);
+    var avgIdx = aptBinIndex(profile, avgPrice);
+    var pocIdx = profile.pocIndex >= 0 && profile.pocIndex < n ? profile.pocIndex : -1;
+    var left = 94, right = 468, top = 58, bottom = 466;
+    var plotHeight = bottom - top;
+
+    function yForIndex(index) {
+      return top + ((n - 1 - index) / Math.max(1, n - 1)) * plotHeight;
+    }
+    function xForVolume(volume) {
+      var ratio = maxVolume > 0 ? Math.max(0, Math.min(1, Number(volume) / maxVolume)) : 0;
+      return left + ratio * (right - left);
+    }
+    function priceText(value) {
+      return value == null || isNaN(value) ? '-' : Math.round(value).toLocaleString('ko-KR');
+    }
+    function marker(index, color, label, value) {
+      if (index < 0 || index >= n) return '';
+      var y = yForIndex(index);
+      var markerKind = color === '#1971c2' ? ' average' : '';
+      return '<line class="ff-apt-line-marker' + markerKind + '" x1="' + (left - 12) + '" x2="' + right + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
+        + '<circle class="ff-apt-line-marker-dot" cx="' + (left - 12) + '" cy="' + y + '" r="4" fill="' + color + '" />'
+        + '<text class="ff-apt-line-marker-label" x="' + (left + 8) + '" y="' + (y - 7) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
+    }
+
+    var gridHtml = '';
+    for (var i = 0; i < n; i++) {
+      var gy = yForIndex(i);
+      gridHtml += '<line class="ff-apt-line-grid" x1="' + left + '" x2="' + right + '" y1="' + gy + '" y2="' + gy + '" />';
+    }
+
+    var points = [];
+    for (var j = n - 1; j >= 0; j--) {
+      var bin = bins[j];
+      points.push(Math.round(xForVolume(bin.volume) * 10) / 10 + ',' + Math.round(yForIndex(j) * 10) / 10);
+    }
+    var profilePath = points.length ? 'M' + points.join(' L') : '';
+    var fillPath = profilePath ? profilePath + ' L' + left + ',' + bottom + ' L' + left + ',' + top + ' Z' : '';
+    var high = bins[n - 1];
+    var middle = bins[Math.floor((n - 1) / 2)];
+    var low = bins[0];
+    var labelHtml = ''
+      + '<text class="ff-apt-line-axis-label" x="12" y="' + (top + 4) + '">' + priceText(high.high) + '원</text>'
+      + '<text class="ff-apt-line-axis-label" x="12" y="' + (yForIndex(Math.floor((n - 1) / 2)) + 4) + '">' + priceText((middle.low + middle.high) / 2) + '원</text>'
+      + '<text class="ff-apt-line-axis-label" x="12" y="' + (bottom + 4) + '">' + priceText(low.low) + '원</text>';
+    var pocText = pocIdx >= 0 && bins[pocIdx] ? priceText((bins[pocIdx].low + bins[pocIdx].high) / 2) + '원' : '-';
+
+    return '<div class="ff-apt-chart-wrap ff-apt-line-art" role="img" aria-label="가격대별 거래량 매물대 라인아트">'
+      + '<div class="ff-apt-lineart-head"><strong>가격대별 거래량 라인</strong><span>중심 가격 ' + pocText + '</span></div>'
+      + '<svg class="ff-apt-lineart-svg" viewBox="0 0 520 520" preserveAspectRatio="none" aria-hidden="true">'
+      + '<title>가격대별 거래량 매물대 라인아트</title>'
+      + '<desc>가격이 높아질수록 위로 표시되며 선의 오른쪽 끝이 해당 가격대 거래량입니다.</desc>'
+      + '<line class="ff-apt-line-axis" x1="' + left + '" x2="' + left + '" y1="' + top + '" y2="' + bottom + '" />'
+      + gridHtml
+      + labelHtml
+      + '<path class="ff-apt-line-fill" d="' + fillPath + '" />'
+      + '<path class="ff-apt-line-profile" d="' + profilePath + '" />'
+      + marker(curIdx, '#d24f45', '현재가', currentPrice)
+      + marker(avgIdx, '#1971c2', '평균', avgPrice)
+      + (pocIdx >= 0 ? marker(pocIdx, '#e8590c', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2) : '')
+      + '<text class="ff-apt-line-volume-label" x="' + right + '" y="' + (bottom + 30) + '" text-anchor="end">거래량 →</text>'
+      + '</svg>'
+      + '<div class="ff-apt-lineart-note">선의 길이 = 가격대별 체결거래량 · 점선 = 가격 구간</div>'
+      + '</div>';
+  }
+
+  // 참고 이미지의 정보 전달 방식만 차용한 독자적인 매물대 일러스트. 도시는 장식이지만 오른쪽
+  // 프로파일 선은 실제 bins의 거래량을 그대로 사용해 데이터 의미를 유지한다.
+  function buildAptIllustratedLineArtHtml(profile, currentPrice, avgPrice) {
+    if (!profile || !profile.bins || !profile.bins.length) {
+      return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
+    }
+    var bins = profile.bins;
+    var n = bins.length;
+    var maxVolume = Number(profile.maxVolume) || 0;
+    var curIdx = aptBinIndex(profile, currentPrice);
+    var avgIdx = aptBinIndex(profile, avgPrice);
+    var pocIdx = profile.pocIndex >= 0 && profile.pocIndex < n ? profile.pocIndex : -1;
+    var plotLeft = 720, plotRight = 868, plotTop = 116, plotBottom = 382;
+
+    function priceText(value) {
+      return value == null || isNaN(value) ? '-' : Math.round(value).toLocaleString('ko-KR');
+    }
+    var priceLow = Number(profile.minLow);
+    var priceHigh = Number(profile.maxHigh);
+    if (!isFinite(priceLow)) priceLow = Number(bins[0].low);
+    if (!isFinite(priceHigh)) priceHigh = Number(bins[n - 1].high);
+    function yForPrice(price) {
+      if (!(priceHigh > priceLow)) return plotBottom;
+      var ratio = Math.max(0, Math.min(1, (priceHigh - Number(price)) / (priceHigh - priceLow)));
+      return plotTop + ratio * (plotBottom - plotTop);
+    }
+    function yForIndex(index) {
+      var safeIndex = Math.max(0, Math.min(n - 1, index));
+      var bin = bins[safeIndex];
+      return yForPrice((Number(bin.low) + Number(bin.high)) / 2);
+    }
+    function xForVolume(volume) {
+      var ratio = maxVolume > 0 ? Math.max(0, Math.min(1, Number(volume) / maxVolume)) : 0;
+      return plotLeft + ratio * (plotRight - plotLeft);
+    }
+    function building(x, width, band, index) {
+      // 건물의 세로 위치와 높이는 거래량이 아니라 이 가격 구간의 low/high를 그대로
+      // 가격축에 매핑한다. 거래량은 창문 개수·농도로만 표현한다.
+      // 참고 이미지처럼 층 슬래브·유리 파사드·로비를 넣되, 각 건물은 하나의 가격대다.
+      var groundY = 379;
+      // 각 가격 구간을 '회사 빌딩 한 동'으로 읽게 한다. 거래량이 많을수록
+      // 층수가 높아지고, 선택된 구간에는 옥상 사인이 붙어 한눈에 찾을 수 있다.
+      var height = 158 + Math.round(band.ratio * 122);
+      var y = groundY - height;
+      var rows = Math.max(4, Math.min(10, 4 + Math.round(band.ratio * 6)));
+      // 작은 건물도 사무실 단면이 읽히도록 창을 많이 나누지 않고 오픈 오피스 두 칸으로 구성한다.
+      var cols = width >= 100 ? 3 : 2;
+      var delay = ((Number(index) || 0) * -0.55).toFixed(2);
+      var frontWidth = width - 10;
+      var sideStart = x + frontWidth;
+      var html = '<g class="ff-apt-illustration-building ' + (band.poc ? 'poc-band ' : '') + (band.current ? 'current-band ' : '') + (band.average ? 'average-band' : '') + '" style="--ff-building-delay:' + delay + 's">'
+        + '<rect x="' + x + '" y="' + y + '" width="' + frontWidth + '" height="' + height + '" rx="2" />'
+        + '<text class="ff-apt-building-price" x="' + (x + width / 2) + '" y="' + (y - 25) + '" text-anchor="middle">' + priceText(band.mid) + '원</text>'
+        + '<path class="ff-apt-building-side" d="M' + sideStart + ' ' + (y + 3) + ' L' + (x + width) + ' ' + (y + 8) + ' V' + (groundY - 8) + ' L' + sideStart + ' ' + (groundY - 8) + ' Z" />'
+        + '<path class="ff-apt-building-glass-sheen" d="M' + (x + 8) + ' ' + (y + 4) + ' L' + (x + frontWidth - 4) + ' ' + (y + 4) + ' L' + (x + frontWidth - 22) + ' ' + (groundY - 12) + ' L' + (x + 8) + ' ' + (groundY - 12) + ' Z" />'
+        + '<path class="ff-apt-building-reflection" d="M' + (x + 15) + ' ' + (y + 10) + ' L' + (x + 5) + ' ' + (groundY - 20) + ' M' + (x + 29) + ' ' + (y + 10) + ' L' + (x + 19) + ' ' + (groundY - 20) + '" />'
+        + '<path class="ff-apt-building-roof" d="M' + (x + 3) + ' ' + (y - 6) + ' H' + (x + width - 3) + ' L' + (x + width + 2) + ' ' + (y - 1) + ' H' + (x - 2) + ' Z" />'
+        + '<path class="ff-apt-building-roof-cap" d="M' + (x + 10) + ' ' + (y - 11) + ' H' + (x + width - 10) + ' M' + (x + width / 2) + ' ' + (y - 11) + ' V' + (y - 17) + '" />'
+        + '<path class="ff-apt-building-roof-rail" d="M' + (x + 16) + ' ' + (y - 12) + ' V' + (y - 20) + ' H' + (x + width - 18) + ' V' + (y - 12) + '" />'
+        + '<path class="ff-apt-building-frame" d="M' + (x + frontWidth / 2) + ' ' + (y + 4) + ' V' + (groundY - 8) + ' M' + (x + 5) + ' ' + (y + 5) + ' V' + (groundY - 8) + '" />';
+      var floorH = height / (rows + 1);
+      var cellW = Math.max(7, (frontWidth - 16) / cols - 4);
+      var cellH = Math.max(8, Math.min(16, floorH - 7));
+      var floorNames = ['탑층', '고층', '중층', '저층', '로비'];
+      var markerColumns = [];
+      function markerRow(index) {
+        var span = Math.max(1, band.end - band.start - 1);
+        var relative = Math.max(0, Math.min(1, (index - band.start) / span));
+        // SVG의 0행은 고가 쪽이므로 저가 bin일수록 아래 행에 놓는다.
+        return Math.max(0, Math.min(rows - 1, Math.round((1 - relative) * (rows - 1))));
+      }
+      if (band.current) markerColumns.push({ col: 0, row: markerRow(curIdx), type: 'current' });
+      if (band.average) markerColumns.push({ col: Math.min(1, cols - 1), row: markerRow(avgIdx), type: 'average' });
+      if (band.poc) markerColumns.push({ col: Math.min(2, cols - 1), row: markerRow(pocIdx), type: 'poc' });
+      for (var row = 0; row < rows; row++) {
+        var floorY = y + (row + 1) * floorH;
+        html += '<path class="ff-apt-building-slab" d="M' + (x - 3) + ' ' + (floorY - 1).toFixed(1) + ' H' + (x + width + 3) + ' L' + (x + width + 2) + ' ' + (floorY + 1).toFixed(1) + ' H' + (x - 3) + ' Z" />'
+          + '<path class="ff-apt-building-floor" d="M' + (x - 3) + ' ' + floorY.toFixed(1) + ' H' + (x + width + 3) + '" />'
+          + '<rect class="ff-apt-building-office-floor" x="' + (x + 4) + '" y="' + (floorY - floorH + 3).toFixed(1) + '" width="' + (frontWidth - 8) + '" height="' + Math.max(10, floorH - 6).toFixed(1) + '" rx="1" />'
+          + '<path class="ff-apt-building-ceiling-light" d="M' + (x + 12) + ' ' + (floorY - floorH + 6).toFixed(1) + ' H' + (x + 25) + ' M' + (x + frontWidth - 27) + ' ' + (floorY - floorH + 6).toFixed(1) + ' H' + (x + frontWidth - 14) + '" />'
+          + '<path class="ff-apt-building-side-floor" d="M' + sideStart + ' ' + floorY.toFixed(1) + ' L' + (x + width) + ' ' + (floorY + 5).toFixed(1) + '" />';
+        if ((band.current || band.average || band.poc) && row % 2 === 0) {
+          html += '<text class="ff-apt-building-floor-label" x="' + (x - 5) + '" y="' + (floorY - 3) + '" text-anchor="end">' + floorNames[Math.min(floorNames.length - 1, Math.floor(row * floorNames.length / rows))] + '</text>';
+        }
+        for (var col = 0; col < cols; col++) {
+          var wx = x + 8 + col * (cellW + 4);
+          var wy = floorY - cellH - 3;
+          var isAccent = col === (row % cols) || (row + col) % Math.max(2, cols) === 0;
+          var windowMarker = markerColumns.filter(function (item) { return item.col === col && row === item.row; })[0];
+          var windowClass = isAccent ? 'ff-apt-illustration-window accent' : 'ff-apt-illustration-window';
+          if (windowMarker) windowClass += ' ' + windowMarker.type + '-window';
+          html += '<rect class="' + windowClass + '" style="opacity:' + (0.34 + band.ratio * 0.42).toFixed(2) + '" x="' + wx + '" y="' + wy + '" width="' + cellW + '" height="' + cellH + '" rx="1" />';
+          html += '<path class="ff-apt-building-window-highlight" d="M' + (wx + 1.5) + ' ' + (wy + 2) + ' H' + (wx + cellW - 1.5) + '" />';
+          if (!windowMarker && (row + col + index) % 3 === 0) {
+            var deskY = wy + cellH * .66;
+            html += '<path class="ff-apt-building-desk" d="M' + (wx + cellW * .22) + ' ' + deskY + ' h' + (cellW * .56).toFixed(1) + ' M' + (wx + cellW * .5) + ' ' + deskY + ' v' + (cellH * .2).toFixed(1) + '" />'
+              + '<rect class="ff-apt-building-monitor" x="' + (wx + cellW * .41).toFixed(1) + '" y="' + (wy + cellH * .42).toFixed(1) + '" width="' + Math.max(3, cellW * .18).toFixed(1) + '" height="' + Math.max(2, cellH * .14).toFixed(1) + '" rx=".5" />'
+              + '<circle class="ff-apt-building-worker" cx="' + (wx + cellW * .5) + '" cy="' + (wy + cellH * .28) + '" r="' + Math.max(1.1, cellH * .11).toFixed(1) + '" />'
+              + '<path class="ff-apt-building-worker-body" d="M' + (wx + cellW * .42).toFixed(1) + ' ' + (wy + cellH * .57).toFixed(1) + ' Q' + (wx + cellW * .5).toFixed(1) + ' ' + (wy + cellH * .43).toFixed(1) + ' ' + (wx + cellW * .58).toFixed(1) + ' ' + (wy + cellH * .57).toFixed(1) + '" />';
+          }
+          if (windowMarker && windowMarker.type === 'average') {
+            var fx = wx + cellW / 2, fy = wy + cellH / 2;
+            html += '<g class="ff-apt-building-average-person" transform="translate(' + fx + ' ' + (fy + 1) + ')"><g class="crowd-person one"><circle class="head" cx="-4" cy="-2" r="1.8" /><path class="shoulders" d="M-7 5 Q-4 1 -1 5 V7 H-7 Z" /></g><g class="crowd-person two"><circle class="head" cx="1" cy="-4" r="2" /><path class="shoulders" d="M-2 5 Q1 0 4 5 V7 H-2 Z" /></g><g class="crowd-person three"><circle class="head" cx="5" cy="-1" r="1.7" /><path class="shoulders" d="M2 5 Q5 1 8 5 V7 H2 Z" /></g></g>';
+          } else if (windowMarker && windowMarker.type === 'current') {
+            html += '<circle class="ff-apt-building-current-icon ff-apt-building-current-ring" cx="' + (wx + cellW / 2) + '" cy="' + (wy + cellH / 2) + '" r="4" /><path class="ff-apt-building-current-icon" d="M' + (wx + cellW / 2 - 6) + ' ' + (wy + cellH / 2) + ' h12 M' + (wx + cellW / 2) + ' ' + (wy + cellH / 2 - 6) + ' v12" />';
+          } else if (windowMarker && windowMarker.type === 'poc') {
+            var px = wx + cellW / 2, py = wy + cellH / 2;
+            html += '<path class="ff-apt-building-poc-icon" d="M' + (px - 5) + ' ' + (py - 2) + ' l2 3 3-5 3 5 2-3-1 6 H' + (px - 4) + ' Z" />';
+          }
+          if (windowMarker) {
+            html += '<text class="ff-apt-window-marker-label ' + windowMarker.type + '" x="' + (wx + cellW / 2) + '" y="' + (wy - 3) + '" text-anchor="middle">'
+              + (windowMarker.type === 'average' ? '평균' : windowMarker.type === 'current' ? '현재' : 'POC') + '</text>';
+          }
+        }
+      }
+      html += '<rect class="ff-apt-building-lobby" x="' + (x + frontWidth * .31) + '" y="' + (groundY - 31) + '" width="' + (frontWidth * .38) + '" height="24" rx="2" />'
+        + '<path class="ff-apt-building-lobby-door" d="M' + (x + frontWidth * .5) + ' ' + (groundY - 31) + ' V' + (groundY - 7) + ' M' + (x + frontWidth * .31) + ' ' + (groundY - 31) + ' H' + (x + frontWidth * .69) + '" />'
+        + '<path class="ff-apt-building-lobby-steps" d="M' + (x + frontWidth * .38) + ' ' + (groundY - 5) + ' H' + (x + frontWidth * .62) + ' M' + (x + frontWidth * .34) + ' ' + (groundY - 1) + ' H' + (x + frontWidth * .66) + '" />';
+      html += '<text class="ff-apt-building-band" x="' + (x + width / 2) + '" y="' + (groundY + 7) + '" text-anchor="middle">' + aptBandLabel(band.start, n) + '</text>'
+        + '</g>';
+      return html;
+    }
+    function marker(index, color, label, value, markerType) {
+      if (index < 0 || index >= n) return '';
+      var y = yForIndex(index);
+      var labelOffset = color === '#3b82f6' ? -32 : color === '#0f766e' ? 8 : -14;
+      var markerKind = color === '#3b82f6' ? ' average' : '';
+      var markerData = markerType ? ' data-apt-marker="' + markerType + '"' : '';
+      return '<line class="ff-apt-illustration-marker' + markerKind + (markerType ? ' ' + markerType : '') + '"' + markerData + ' x1="' + (plotLeft - 8) + '" x2="' + plotRight + '" y1="' + y + '" y2="' + y + '" stroke="' + color + '" />'
+        + '<circle class="ff-apt-illustration-marker-dot' + (markerType ? ' ' + markerType : '') + '"' + markerData + ' cx="' + (plotLeft - 8) + '" cy="' + y + '" r="4" fill="' + color + '" />'
+        + '<text class="ff-apt-illustration-marker-label' + (markerType ? ' ' + markerType : '') + '"' + markerData + ' x="' + (plotLeft + 6) + '" y="' + (y + labelOffset + 12) + '" fill="' + color + '">' + label + ' ' + priceText(value) + '원</text>';
+    }
+
+    // 화면에는 6~7개 안팎의 건물이 보이지만, 전체 가격 구간은 최대 14개 건물로
+    // 이어서 만든다. 그래서 지도 자체를 드래그하면 양옆의 인접 가격대가
+    // 실제 건물처럼 화면 안으로 들어온다.
+    var bandCount = Math.min(14, n);
+    var bands = [];
+    for (var bandIndex = 0; bandIndex < bandCount; bandIndex++) {
+      var bandStart = Math.floor(bandIndex * n / bandCount);
+      var bandEnd = Math.max(bandStart + 1, Math.floor((bandIndex + 1) * n / bandCount));
+      bandEnd = Math.min(n, bandEnd);
+      var bandVolume = 0;
+      for (var bandRow = bandStart; bandRow < bandEnd; bandRow++) bandVolume += Math.max(0, Number(bins[bandRow].volume) || 0);
+      bands.push({
+        low: bins[bandStart].low,
+        high: bins[bandEnd - 1].high,
+        mid: (bins[bandStart].low + bins[bandEnd - 1].high) / 2,
+        volume: bandVolume,
+        start: bandStart,
+        end: bandEnd,
+        current: curIdx >= bandStart && curIdx < bandEnd,
+        average: avgIdx >= bandStart && avgIdx < bandEnd,
+        poc: pocIdx >= bandStart && pocIdx < bandEnd
+      });
+    }
+    var maxBandVolume = Math.max.apply(null, bands.map(function (band) { return band.volume; })) || 1;
+    bands.forEach(function (band) { band.ratio = Math.max(0, Math.min(1, band.volume / maxBandVolume)); });
+    var buildingViewportLeft = 28;
+    var buildingViewportRight = 680;
+    var buildingStartX = 38;
+    var buildingWidth = 88;
+    var buildingGap = 8;
+    var buildingStep = buildingWidth + buildingGap;
+    var buildingTrackRight = buildingStartX + (bandCount - 1) * buildingStep + buildingWidth;
+    var buildingMinOffset = Math.min(0, buildingViewportRight - buildingTrackRight);
+    var currentBandIndex = Math.max(0, Math.min(bandCount - 1, Math.floor(curIdx * bandCount / n)));
+    var viewportCenter = (buildingViewportLeft + buildingViewportRight) / 2;
+    var currentBuildingCenter = buildingStartX + currentBandIndex * buildingStep + buildingWidth / 2;
+    var buildingInitialOffset = Math.max(buildingMinOffset, Math.min(0, viewportCenter - currentBuildingCenter));
+    var currentBand = bands[currentBandIndex];
+    var currentBuildingHeight = currentBand ? 158 + Math.round(currentBand.ratio * 122) : 158;
+    var travelerX = buildingStartX + currentBandIndex * buildingStep + buildingWidth / 2;
+    var travelerY = 379 - currentBuildingHeight - 18;
+    var travelerHtml = currentPrice != null && currentBand
+      ? '<g class="ff-apt-roof-traveler" data-apt-roof-traveler transform="translate(' + travelerX + ' ' + travelerY + ')" aria-label="현재가를 따라 이동하는 가격 사람">'
+        + '<circle class="ff-apt-roof-traveler-head" cx="0" cy="-7" r="3.2" />'
+        + '<path class="ff-apt-roof-traveler-body" d="M0 -3 V7 M-5 1 H5 M0 7 L-4 13 M0 7 L4 13" />'
+        + '<path class="ff-apt-roof-traveler-shadow" d="M-8 15 Q0 11 8 15" />'
+        + '</g>'
+      : '';
+    var buildingSpecs = bands.map(function (band, index) {
+      return { x: buildingStartX + index * buildingStep, width: buildingWidth };
+    });
+    var skyline = bands.map(function (band, index) {
+      var spec = buildingSpecs[index];
+      return building(spec.x, spec.width, band, index);
+    }).join('');
+    var buildingClipId = 'ff-apt-buildings-clip-' + Math.floor(Math.random() * 1000000000);
+    // 클리핑 영역은 고정하고, 내부 트랙만 이동시켜 드래그 중 빈 공간이 생기지 않게 한다.
+    var skylineTrack = '<g class="ff-apt-illustration-building-viewport" clip-path="url(#' + buildingClipId + ')">'
+      + '<g class="ff-apt-illustration-building-track" data-price-map-buildings data-building-offset="' + buildingInitialOffset + '" data-building-min-offset="' + buildingMinOffset + '" data-building-max-offset="0" transform="translate(' + buildingInitialOffset + ' 0)">' + skyline + travelerHtml + '</g>'
+      + '</g>';
+    var basement = '<g class="ff-apt-illustration-basement" role="group" aria-label="지하실">'
+      + '<path class="ff-apt-basement-shell" d="M190 390 H520 V458 H190 Z" />'
+      + '<path class="ff-apt-basement-ceiling" d="M218 390 H486" />'
+      + '<path class="ff-apt-basement-stair" d="M166 390 l24 68 M176 390 l24 68 M186 390 l24 68" />'
+      + '<path class="ff-apt-basement-flow-line" d="M244 360 C244 378 250 386 250 405 M360 360 V405 M476 360 C476 378 470 386 470 405" />'
+      + '<path class="ff-apt-basement-flow-arrow" d="M250 399 l-4 7 h8 Z M360 399 l-4 7 h8 Z M470 399 l-4 7 h8 Z" />'
+      + '<rect class="ff-apt-basement-window" x="224" y="411" width="42" height="18" rx="2" />'
+      + '<rect class="ff-apt-basement-window" x="280" y="411" width="42" height="18" rx="2" />'
+      + '<rect class="ff-apt-basement-window" x="336" y="411" width="42" height="18" rx="2" />'
+      + '<rect class="ff-apt-basement-window" x="392" y="411" width="42" height="18" rx="2" />'
+      + '<rect class="ff-apt-basement-door" x="452" y="405" width="42" height="38" rx="2" />'
+      + '<path class="ff-apt-basement-door-light" d="M458 411 V437 H488 V411" />'
+      + '<path class="ff-apt-basement-door-seam" d="M472 407 V441" />'
+      + '<circle class="ff-apt-basement-handle" cx="483" cy="424" r="1.8" />'
+      + '<text class="ff-apt-basement-label" x="360" y="450" text-anchor="middle">지하실 · 미체결 가격대</text>'
+      + '</g>';
+    var ladderDockX = 392;
+    var ladderDockIndex = Math.max(0, Math.min(bandCount - 1, Math.round((ladderDockX - buildingInitialOffset - buildingStartX - buildingWidth / 2) / buildingStep)));
+    var ladderDockBand = bands[ladderDockIndex];
+    var ladderDockHeight = 170 + Math.round((ladderDockBand ? ladderDockBand.ratio : 0) * 105);
+    var ladderTopY = 110;
+    var ladderBottomY = Math.max(ladderTopY + 28, 379 - ladderDockHeight - 6);
+    var ladderRungs = '';
+    for (var ladderY = ladderTopY + 12; ladderY < ladderBottomY - 4; ladderY += 14) {
+      ladderRungs += 'M382 ' + ladderY + ' H402 ';
+    }
+    var helicopter = '<g class="ff-apt-helicopter-lift" transform="translate(0 -28)"><g class="ff-apt-illustration-helicopter" role="img" aria-label="옥상 헬기">'
+      + '<path class="ff-apt-helicopter-body" d="M345 128 Q354 119 372 119 H397 Q410 119 420 127 L413 134 H354 Z" />'
+      + '<path class="ff-apt-helicopter-window" d="M360 121 H376 L382 128 H355 Z" />'
+      + '<path class="ff-apt-helicopter-tail" d="M418 126 L434 118 L440 120 L425 130" />'
+      + '<path class="ff-apt-helicopter-rotor" d="M374 115 H413 M393 115 V120" />'
+      + '<path class="ff-apt-helicopter-skid" d="M357 137 H411 M367 133 V137 M401 133 V137" />'
+      + '<circle class="ff-apt-helicopter-light" cx="350" cy="128" r="2" />'
+      + '</g></g>';
+    var ladder = '<g class="ff-apt-illustration-ladder" role="img" aria-label="헬기에서 옥상으로 이어지는 가격 흐름 사다리">'
+      + '<path class="ff-apt-ladder-rail" d="M382 ' + ladderTopY + ' V' + ladderBottomY + ' M402 ' + ladderTopY + ' V' + ladderBottomY + '" />'
+      + '<path class="ff-apt-ladder-rungs" d="' + ladderRungs + '" />'
+      + '<circle class="ff-apt-ladder-beacon" cx="392" cy="' + (ladderTopY + 7) + '" r="3" />'
+      + '</g>';
+    var profilePoints = [];
+    for (var i = n - 1; i >= 0; i--) {
+      profilePoints.push(Math.round(xForVolume(bins[i].volume) * 10) / 10 + ',' + Math.round(yForIndex(i) * 10) / 10);
+    }
+    var profilePath = profilePoints.length ? 'M' + profilePoints.join(' L') : '';
+    var high = bins[n - 1];
+    var middle = bins[Math.floor((n - 1) / 2)];
+    var low = bins[0];
+    var pocText = pocIdx >= 0 && bins[pocIdx] ? priceText((bins[pocIdx].low + bins[pocIdx].high) / 2) + '원' : '-';
+    var grid = '';
+    for (var g = 0; g < n; g += Math.max(1, Math.ceil(n / 12))) {
+      var gy = yForIndex(g);
+      grid += '<line class="ff-apt-illustration-grid" x1="' + plotLeft + '" x2="' + plotRight + '" y1="' + gy + '" y2="' + gy + '" />';
+    }
+
+    var binMaxVolume = Math.max.apply(null, bins.map(function (bin) { return Math.max(0, Number(bin.volume) || 0); })) || 1;
+    var binRail = bins.map(function (bin, binIndex) {
+      var midpoint = (Number(bin.low) + Number(bin.high)) / 2;
+      var isCurrent = binIndex === curIdx;
+      var isAverage = binIndex === avgIdx;
+      var isPoc = binIndex === pocIdx;
+      var markerCount = (isCurrent ? 1 : 0) + (isAverage ? 1 : 0) + (isPoc ? 1 : 0);
+      var binMarkers = '<span class="ff-apt-bin-markers">'
+        + (isCurrent ? '<b class="ff-apt-bin-marker current">\uD604\uC7AC\uAC00</b>' : '')
+        + (isAverage ? '<b class="ff-apt-bin-marker average">\uD3C9\uADE0\uB2E8\uAC00</b>' : '')
+        + (isPoc ? '<b class="ff-apt-bin-marker poc">POC</b>' : '')
+        + '</span>';
+      var markerText = isCurrent ? '현재가' : isAverage ? '평균단가' : isPoc ? 'POC' : '';
+      return '<div class="ff-apt-bin' + (markerText ? ' has-marker' : '') + '" data-bin-index="' + binIndex + '" title="' + priceText(bin.low) + ' ~ ' + priceText(bin.high) + '원 · 거래량 ' + Math.round(Number(bin.volume) || 0).toLocaleString('ko-KR') + '">'
+        + (markerCount ? binMarkers : '')
+        + '<span class="ff-apt-bin-price">' + priceText(midpoint) + '</span>'
+        + '<span class="ff-apt-bin-bar" style="height:' + Math.max(8, Math.round((Math.max(0, Number(bin.volume) || 0) / binMaxVolume) * 54)) + 'px"></span>'
+        + '</div>';
+    }).join('');
+
+    return '<div class="ff-apt-chart-wrap ff-apt-line-art ff-apt-illustration" role="img" aria-label="가격대별 매물대 일러스트">'
+      + '<div class="ff-apt-lineart-head"><strong>가격대별 매물대</strong><span>중심 가격 ' + pocText + '</span></div>'
+      + '<svg class="ff-apt-lineart-svg ff-apt-illustration-svg ff-apt-price-map-surface" data-price-map-surface data-apt-current-band="' + currentBandIndex + '" data-apt-current-x="' + travelerX + '" data-apt-current-y="' + travelerY + '" data-apt-band-count="' + bandCount + '" data-apt-band-heights="' + bands.map(function (band) { return 158 + Math.round(band.ratio * 122); }).join(',') + '" data-apt-price-low="' + priceLow + '" data-apt-price-high="' + priceHigh + '" viewBox="0 0 900 465" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
+      + '<title>가격대별 매물대 일러스트</title>'
+      + '<desc>건물의 크기와 창문 밀도는 거래량을 나타내며 평균·현재가·중심 가격을 창문 아이콘으로 표시합니다.</desc>'
+      + '<defs><clipPath id="' + buildingClipId + '"><rect x="' + buildingViewportLeft + '" y="60" width="' + (buildingViewportRight - buildingViewportLeft) + '" height="340" /></clipPath></defs>'
+      + '<rect class="ff-apt-illustration-canvas" x="10" y="12" width="880" height="441" rx="22" />'
+      + '<path class="ff-apt-illustration-orbit" d="M-20 312 C130 60 430 24 690 132" />'
+      + '<path class="ff-apt-illustration-orbit" d="M-60 382 C120 90 500 70 750 24" />'
+      + '<path class="ff-apt-illustration-orbit" d="M120 430 C230 172 566 126 924 190" />'
+      + '<g class="ff-apt-illustration-title"><rect x="48" y="24" width="200" height="34" rx="8" /><path d="M68 41 h22 m-11-11 v22" /><text x="104" y="47">가격 지형도</text></g>'
+      + '<g class="ff-apt-illustration-tag"><rect x="286" y="27" width="122" height="28" rx="6" /><text x="304" y="46">거래량 지도</text></g>'
+      + '<g class="ff-apt-illustration-tag"><title>체결량: 해당 가격대에서 실제로 거래가 성립한 수량</title><rect x="520" y="27" width="112" height="28" rx="6" /><text x="540" y="46">체결량</text></g>'
+      + skylineTrack
+      + ladder
+      + helicopter
+      + basement
+      + '<path class="ff-apt-illustration-ground" d="M28 380 H680" />'
+      + '<path class="ff-apt-illustration-ground" d="M28 390 H680" />'
+      + '<path class="ff-apt-illustration-ribbon" d="M62 174 C136 154 202 194 274 174 S416 154 492 178 S586 198 654 170" />'
+      + '<circle class="ff-apt-illustration-node" cx="274" cy="174" r="5" />'
+      + '<circle class="ff-apt-illustration-node" cx="492" cy="178" r="5" />'
+      + '<g class="ff-apt-illustration-profile"><rect x="696" y="100" width="178" height="300" rx="12" /><text class="ff-apt-illustration-profile-title" x="714" y="126">거래량 프로파일</text>'
+      + '<line class="ff-apt-illustration-axis" x1="' + plotLeft + '" x2="' + plotLeft + '" y1="' + plotTop + '" y2="' + plotBottom + '" />'
+      + grid
+      + '<path class="ff-apt-illustration-profile-line" d="' + profilePath + '" />'
+      + '<text class="ff-apt-illustration-price" x="714" y="150">' + priceText(high.high) + '원</text>'
+      + '<text class="ff-apt-illustration-price" x="714" y="252">' + priceText((middle.low + middle.high) / 2) + '원</text>'
+      + '<text class="ff-apt-illustration-price" x="714" y="386">' + priceText(low.low) + '원</text>'
+      + marker(curIdx, '#0f766e', '현재가', currentPrice, 'current')
+      + marker(avgIdx, '#3b82f6', '평균', avgPrice, 'average')
+      + (pocIdx >= 0 ? marker(pocIdx, '#f08c46', '거래량 최다', (bins[pocIdx].low + bins[pocIdx].high) / 2, 'poc') : '')
+      + '<text class="ff-apt-illustration-volume" x="858" y="392" text-anchor="end">거래량 →</text></g>'
+      + '</svg>'
+      + '<div class="ff-apt-bin-guide"><strong>가격별 매물대</strong><span>건물들을 좌우로 드래그하면 인접 가격대 건물이 나타납니다 · 막대가 높을수록 체결량이 많습니다</span><div class="ff-apt-bin-controls"><button type="button" data-bin-scroll="-1" aria-label="가격대 왼쪽 보기">←</button><button type="button" data-bin-scroll="1" aria-label="가격대 오른쪽 보기">→</button></div></div>'
+      + '<div class="ff-apt-bin-rail" data-price-bin-rail tabindex="0" aria-label="가격별 매물대 좌우 탐색">' + binRail + '</div>'
+      + '<div class="ff-apt-visual-key"><span><i class="current"></i>십자 현재가</span><span><i class="average"></i>파란 사람 평균단가</span><span><i class="poc"></i>왕관 POC</span><span><i class="window"></i>창문 밀도 거래량</span></div>'
+      + '<div class="ff-apt-lineart-note">건물 지도를 좌우로 드래그하면 화면 밖의 인접 가격대 건물이 들어옵니다. 건물의 창문 밀도는 체결량을, 현재가·평균단가·POC는 아이콘을 나타냅니다.</div>'
+      + '</div>';
+  }
 
   // "주가가 사는 아파트"라는 컨셉(옥상 헬리패드+헬기, 층마다 가격 옆 미니 창문 아이콘, 구간
   // 안내판에 가격범위 부기, 현재가 말풍선+좌우 강조선, 현재층→지하실로 이어지는 사다리, 로비/
   // 지하실 장식)은 그대로 유지하고, 각 층의 막대만 매수/매도 듀얼 바에서 거래량 단일 바로
   // 바꿨다(2026-08-02, 위 헤더 주석 참고) - POC(거래량 최다 구간)만 강조색으로 표시한다.
-  function buildAptChartHtml(profile, currentPrice, avgPrice) {
+  function buildAptChartHtmlLegacy(profile, currentPrice, avgPrice) {
     if (!profile) {
       return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
     }
@@ -3205,22 +3628,23 @@
       + '<div class="ff-apt-clouds" aria-hidden="true">'
       + '<span class="ff-apt-cloud ff-apt-cloud-left"></span>'
       + '<span class="ff-apt-cloud ff-apt-cloud-right"></span>'
+      + '<span class="ff-apt-cloud ff-apt-cloud-high"></span>'
+      + '<span class="ff-apt-cloud ff-apt-cloud-rain"><i></i><i></i><i></i></span>'
       + '</div>'
       + '<div class="ff-apt-nameplate">매물대 타워</div>'
       + '<div class="ff-apt-helipad"><span class="ff-apt-helipad-h">H</span></div>'
       + '<div class="ff-apt-heli"><span class="ff-apt-heli-rotor"></span><span class="ff-apt-heli-body">🚁</span></div>'
       + '</div>';
 
-    // 사다리: 현재가 행에서 지하실 쪽으로 이어지는 장식(데이터 아님) - 세로 위치/길이는
-    // curIdx와 APT_ROW_HEIGHT로 픽셀 계산한다(위 상수 설명 참고). 방향(상승/하락)은
-    // profile.trendUp(최근일 등락 방향)을 그대로 반영.
-    var ladderHtml = '';
+    // 유리 엘리베이터: 현재가 층과 지하 로비 사이를 왕복하는 장식(데이터 아님).
+    // 위치와 높이만 현재가 bin에서 계산하고, 운행 방향은 최근일 등락 방향을 반영한다.
+    var elevatorHtml = '';
     if (curIdx >= 0) {
-      var ladderTop = (n - 1 - curIdx) * APT_ROW_HEIGHT + APT_ROW_HEIGHT / 2;
-      var ladderHeight = curIdx * APT_ROW_HEIGHT + 12;
-      ladderHtml = '<div class="ff-apt-ladder" style="top:' + ladderTop + 'px;height:' + ladderHeight + 'px">'
-        + '<span class="ff-apt-ladder-rail"></span>'
-        + '<span class="ff-apt-ladder-person ff-apt-ladder-person-' + (profile.trendUp ? 'up' : 'down') + '">🧍</span>'
+      var elevatorTop = (n - 1 - curIdx) * APT_ROW_HEIGHT + APT_ROW_HEIGHT / 2;
+      var elevatorHeight = curIdx * APT_ROW_HEIGHT + 12;
+      elevatorHtml = '<div class="ff-apt-elevator" style="top:' + elevatorTop + 'px;height:' + elevatorHeight + 'px">'
+        + '<span class="ff-apt-elevator-shaft"></span>'
+        + '<span class="ff-apt-elevator-car ff-apt-elevator-car-' + (profile.trendUp ? 'up' : 'down') + '"><i></i><b>↕</b></span>'
         + '</div>';
     }
 
@@ -3231,7 +3655,7 @@
     var lobbyHtml = '<div class="ff-apt-ground">'
       + '<span class="ff-apt-ground-label">최저가 · 지상 1층</span>'
       + '<span class="ff-apt-basement-entry" aria-hidden="true">'
-      + '<span class="ff-apt-entry-door">🚪</span>'
+      + '<span class="ff-apt-entry-door"><i></i><i></i></span>'
       + '<span class="ff-apt-entry-stairs"><i></i><i></i><i></i><b>↓ B1</b></span>'
       + '</span></div>';
     // 지하실은 실제 데이터가 존재하는 가격구간이 아니라 "아직 매집되지 않은 가격 / 추가
@@ -3259,9 +3683,16 @@
       + '<span class="ff-apt-magma-glow"></span>'
       + '</div>';
 
+    var coreHtml = '<div class="ff-apt-core" aria-label="B3 지구 핵 · 장기 하락 위험 구간">'
+      + '<span class="ff-apt-core-glow"></span>'
+      + '<div class="ff-apt-core-label"><strong>B3 지구 핵</strong><span>최저가보다 더 아래 · 장기 하락 위험 구간</span></div>'
+      + '<span class="ff-apt-core-bubble ff-apt-core-bubble-1"></span>'
+      + '<span class="ff-apt-core-bubble ff-apt-core-bubble-2"></span>'
+      + '</div>';
+
     return '<div class="ff-apt-chart-wrap">' + roofHtml
-      + '<div class="ff-apt-floors">' + rows + ladderHtml + '</div>'
-      + lobbyHtml + basementHtml + magmaHtml + '</div>';
+      + '<div class="ff-apt-floors">' + rows + elevatorHtml + '</div>'
+      + lobbyHtml + basementHtml + magmaHtml + coreHtml + '</div>';
   }
 
   function buildAptZoomButtons(stepIndex) {
@@ -3279,12 +3710,20 @@
   // 이 실제 체결가 뷰 하나로 통일했다(computeVolumeProfile 자체는 차트 탭 매물대
   // 오버레이(addVolumeProfileOverlay)가 여전히 써서 남겨둠).
   function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice) {
-    var footnote = '<div class="ff-footnote">※ 한국투자 API(실제 체결가·체결거래량)로 만든 매물대입니다. 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>'
+    var sourceText = profile.source === 'ohlc-estimate'
+      ? '※ 실제 체결가 API가 응답하지 않아 일봉 고가·저가·거래량 기반의 근사 매물대를 표시합니다.'
+      : '※ 한국투자 API(실제 체결가·체결거래량)로 만든 매물대입니다.';
+    var footnote = '<div class="ff-footnote">' + sourceText + ' 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>'
       + (daysIncluded || 1) + '거래일</b>치가 반영돼 있어요(뜸하게 조회된 종목은 며칠치만 있을 수 있음, 최대 ' + APT_LOOKBACK_DAYS + '일).</div>';
     var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
     return buildAptZoomButtons(stepIndex)
-      + buildAptSummaryHtml(profile, periodLabel, avgPrice)
-      + buildAptChartHtml(profile, currentPrice, avgPrice)
+      + buildAptSummaryHtml(profile, periodLabel, avgPrice, currentPrice)
+      + buildAptIllustratedLineArtHtml(profile, currentPrice, avgPrice)
+      + '<div class="ff-apt-meaning" role="note">'
+      + '<strong>매물대는 이렇게 읽습니다</strong>'
+      + '<p>가격별로 실제 체결 거래량이 얼마나 쌓였는지를 보여주는 지도입니다. 건물의 높이와 창문 밀도가 클수록 해당 가격에서 거래가 많이 일어났다는 뜻입니다.</p>'
+      + '<p><b>현재가</b>는 지금 가격, <b>평균단가</b>는 조회 기간의 거래량 가중 평균 가격, <b>중심 가격(POC)</b>은 거래량이 가장 많이 몰린 가격입니다. 현재가가 두꺼운 매물대 위에 있으면 지지, 아래에 있으면 저항으로 해석할 수 있지만 단독 매매 신호는 아닙니다.</p>'
+      + '</div>'
       + footnote;
   }
 
@@ -3321,6 +3760,26 @@
         realAptCache[code] = { t: Date.now(), bins: result.bins, daysIncluded: result.daysIncluded, avgPrice: result.avgPrice };
         return result;
       });
+  }
+
+  // KIS 가격대 API가 휴장일·장 시작 전·일시적인 호출 제한으로 실패해도
+  // OHLC에 거래량이 있으면 근사 매물대를 표시한다. 실제 체결가와 섞지 않고
+  // 결과에 출처를 남겨 화면에서 구분한다.
+  function buildApproxVolumeProfile(daily, binCount) {
+    var profile = computeVolumeProfile(daily, APT_LOOKBACK_DAYS, binCount);
+    if (!profile) return null;
+    var total = profile.bins.reduce(function (sum, bin) { return sum + Math.max(0, Number(bin.volume) || 0); }, 0);
+    var avg = total > 0 ? profile.bins.reduce(function (sum, bin) {
+      return sum + ((Number(bin.low) + Number(bin.high)) / 2) * (Math.max(0, Number(bin.volume) || 0));
+    }, 0) / total : null;
+    return {
+      bins: profile.bins.map(function (bin) {
+        return { price: (Number(bin.low) + Number(bin.high)) / 2, volume: Number(bin.volume) || 0 };
+      }),
+      daysIncluded: profile.days,
+      avgPrice: avg,
+      source: 'ohlc-estimate'
+    };
   }
 
   // 실제 체결가 매물대는 이미 실제 가격×체결거래량 쌍(pbar-tratio, 실제 호가단위로 옴)이다.
@@ -3360,6 +3819,89 @@
     var card = box.querySelector('#ffAptCard');
     if (!card) return;
     var stepIndex = APT_BIN_DEFAULT_INDEX;
+    var activeProfile = null;
+
+    function markerY(map, price) {
+      var low = Number(map.getAttribute('data-apt-price-low'));
+      var high = Number(map.getAttribute('data-apt-price-high'));
+      if (!(high > low)) return 382;
+      var ratio = Math.max(0, Math.min(1, (high - Number(price)) / (high - low)));
+      return 116 + ratio * 266;
+    }
+
+    function updateCurrentMarker(map, price) {
+      var y = markerY(map, price);
+      var line = map.querySelector('line[data-apt-marker="current"]');
+      var dot = map.querySelector('circle[data-apt-marker="current"]');
+      var label = map.querySelector('text[data-apt-marker="current"]');
+      if (line) { line.setAttribute('y1', y); line.setAttribute('y2', y); }
+      if (dot) dot.setAttribute('cy', y);
+      if (label) { label.setAttribute('y', y + 20); label.textContent = '현재가 ' + Math.round(price).toLocaleString('ko-KR') + '원'; }
+      var summary = card.querySelector('.ff-apt-summary-current b');
+      if (summary) summary.textContent = Math.round(price).toLocaleString('ko-KR') + '원';
+    }
+
+    function bandIndexForPrice(profile, price, bandCount) {
+      var index = aptBinIndex(profile, price);
+      if (index < 0) return -1;
+      return Math.max(0, Math.min(bandCount - 1, Math.floor(index * bandCount / profile.bins.length)));
+    }
+
+    function animateRoofTraveler(map, nextBand, price) {
+      var traveler = map.querySelector('[data-apt-roof-traveler]');
+      if (!traveler) return;
+      var bandCount = Number(map.getAttribute('data-apt-band-count')) || 1;
+      var heights = String(map.getAttribute('data-apt-band-heights') || '').split(',').map(Number);
+      var startX = Number(map.getAttribute('data-apt-current-x')) || 0;
+      var startY = Number(map.getAttribute('data-apt-current-y')) || 0;
+      var targetX = 38 + nextBand * 96 + 44;
+      var targetY = 379 - (heights[nextBand] || 158) - 18;
+      if (traveler.__raf) cancelAnimationFrame(traveler.__raf);
+      var started = performance.now();
+      var duration = Math.min(1400, Math.max(560, 520 + Math.abs(targetX - startX) * 1.2));
+      traveler.classList.add('is-jumping');
+
+      function frame(now) {
+        var progress = Math.max(0, Math.min(1, (now - started) / duration));
+        var eased = progress < .5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        var arc = Math.sin(Math.PI * progress) * Math.min(42, 18 + Math.abs(targetX - startX) * .14);
+        var x = startX + (targetX - startX) * eased;
+        var y = startY + (targetY - startY) * eased - arc;
+        traveler.setAttribute('transform', 'translate(' + x.toFixed(2) + ' ' + y.toFixed(2) + ')');
+        traveler.__currentX = x;
+        traveler.__currentY = y;
+        if (progress < 1) {
+          traveler.__raf = requestAnimationFrame(frame);
+          return;
+        }
+        traveler.__raf = null;
+        map.setAttribute('data-apt-current-x', targetX);
+        map.setAttribute('data-apt-current-y', targetY);
+        traveler.classList.remove('is-jumping');
+      }
+      traveler.__currentX = startX;
+      traveler.__currentY = startY;
+      traveler.__raf = requestAnimationFrame(frame);
+      map.setAttribute('data-apt-current-band', nextBand);
+      map.querySelectorAll('.ff-apt-illustration-building').forEach(function (building, index) {
+        building.classList.toggle('current-band', index === nextBand);
+      });
+      updateCurrentMarker(map, price);
+    }
+
+    function updateCurrentPrice(nextPrice) {
+      var parsed = Number(nextPrice);
+      if (!isFinite(parsed) || !activeProfile) return;
+      currentPrice = parsed;
+      var map = card.querySelector('[data-price-map-surface]');
+      if (!map) return;
+      updateCurrentMarker(map, parsed);
+      var bandCount = Number(map.getAttribute('data-apt-band-count')) || 1;
+      var nextBand = bandIndexForPrice(activeProfile, parsed, bandCount);
+      var previousBand = Number(map.getAttribute('data-apt-current-band'));
+      if (nextBand >= 0 && nextBand !== previousBand) animateRoofTraveler(map, nextBand, parsed);
+    }
+    card.__updateCurrentPrice = updateCurrentPrice;
 
     function trendUpFromDaily() {
       if (!chartDaily || !chartDaily.length) return true;
@@ -3372,11 +3914,30 @@
       if (!dynamic) return;
       fetchRealVolumeProfile(code, APT_LOOKBACK_DAYS).then(function (result) {
         var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
+        if (!profile) throw new Error('실제 체결 데이터가 비어 있습니다.');
+        profile.source = result.source || 'kis-pbar';
+        activeProfile = profile;
         dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded, result.avgPrice);
         wireZoom();
+        wireBinRail();
         playAptEntrance(card);
       }).catch(function () {
-        dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 불러오지 못했어요.</div>';
+        var fallback = buildApproxVolumeProfile(chartDaily, APT_BIN_STEPS[stepIndex]);
+        if (!fallback) {
+          dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 불러오지 못했어요. 거래량 데이터가 없습니다.</div>';
+          return;
+        }
+        var fallbackProfile = computeRealVolumeProfile(fallback.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
+        if (!fallbackProfile) {
+          dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 계산할 거래량 데이터가 없습니다.</div>';
+          return;
+        }
+        fallbackProfile.source = fallback.source;
+        activeProfile = fallbackProfile;
+        dynamic.innerHTML = buildAptDynamicHtml(fallbackProfile, currentPrice, stepIndex, fallback.daysIncluded, fallback.avgPrice);
+        wireZoom();
+        wireBinRail();
+        playAptEntrance(card);
       });
     }
 
@@ -3390,6 +3951,79 @@
           if (nextIndex < 0 || nextIndex >= APT_BIN_STEPS.length) return;
           stepIndex = nextIndex;
           render();
+        });
+      });
+    }
+
+    function wireBinRail() {
+      var rail = card.querySelector('[data-price-bin-rail]');
+      if (!rail || rail.getAttribute('data-drag-ready') === '1') return;
+      rail.setAttribute('data-drag-ready', '1');
+      var dragging = false, startX = 0, startScroll = 0;
+      rail.addEventListener('pointerdown', function (event) {
+        dragging = true;
+        startX = event.clientX;
+        startScroll = rail.scrollLeft;
+        rail.classList.add('is-dragging');
+        try { rail.setPointerCapture(event.pointerId); } catch (ignore) {}
+      });
+      rail.addEventListener('pointermove', function (event) {
+        if (!dragging) return;
+        rail.scrollLeft = startScroll - (event.clientX - startX);
+      });
+      function stopDragging() {
+        dragging = false;
+        rail.classList.remove('is-dragging');
+      }
+      rail.addEventListener('pointerup', stopDragging);
+      rail.addEventListener('pointercancel', stopDragging);
+      rail.addEventListener('lostpointercapture', stopDragging);
+      rail.addEventListener('wheel', function (event) {
+        if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+          rail.scrollLeft += event.deltaY;
+          event.preventDefault();
+        }
+      }, { passive: false });
+
+      var map = card.querySelector('[data-price-map-surface]');
+      if (map && map.getAttribute('data-drag-ready') !== '1') {
+        var buildingTrack = map.querySelector('[data-price-map-buildings]');
+        var mapDragging = false, mapStartX = 0, mapStartScroll = 0, mapStartOffset = 0;
+        map.setAttribute('data-drag-ready', '1');
+        map.addEventListener('pointerdown', function (event) {
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          mapDragging = true;
+          mapStartX = event.clientX;
+          mapStartScroll = rail.scrollLeft;
+          mapStartOffset = buildingTrack ? Number(buildingTrack.getAttribute('data-building-offset')) || 0 : 0;
+          map.classList.add('is-dragging');
+          try { map.setPointerCapture(event.pointerId); } catch (ignore) {}
+          event.preventDefault();
+        });
+        map.addEventListener('pointermove', function (event) {
+          if (!mapDragging) return;
+          var deltaX = event.clientX - mapStartX;
+          if (buildingTrack) {
+            var minOffset = Number(buildingTrack.getAttribute('data-building-min-offset')) || 0;
+            var maxOffset = Number(buildingTrack.getAttribute('data-building-max-offset')) || 0;
+            var nextOffset = Math.max(minOffset, Math.min(maxOffset, mapStartOffset + deltaX));
+            buildingTrack.setAttribute('data-building-offset', nextOffset);
+            buildingTrack.setAttribute('transform', 'translate(' + nextOffset + ' 0)');
+          }
+          rail.scrollLeft = mapStartScroll - deltaX;
+          event.preventDefault();
+        });
+        function stopMapDragging() {
+          mapDragging = false;
+          map.classList.remove('is-dragging');
+        }
+        map.addEventListener('pointerup', stopMapDragging);
+        map.addEventListener('pointercancel', stopMapDragging);
+        map.addEventListener('lostpointercapture', stopMapDragging);
+      }
+      card.querySelectorAll('[data-bin-scroll]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          rail.scrollBy({ left: Number(button.getAttribute('data-bin-scroll')) * Math.max(180, rail.clientWidth * 0.72), behavior: 'smooth' });
         });
       });
     }
@@ -3463,7 +4097,7 @@
   function buildVpLegend() {
     return '<div class="ff-vp-legend"' + (vpEnabled ? '' : ' hidden') + '>'
       + '<span>※ 매물대(근사): 최근 ' + VP_LOOKBACK_DAYS + '거래일 일봉 고가~저가 구간에 거래량을 분산해 합산한 근사치입니다(체결가 기준 아님).</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#e8590c"></i>거래량 최다 구간(POC)</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#e8590c"></i>거래량 최다 구간</span>'
       + '</div>';
   }
 
@@ -3895,15 +4529,17 @@
       // 않고 시리즈별 포맷을 적용해야 우측 값이 가격처럼 보이지 않고 K/M/B로 축약된다.
       var volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' },
-        priceScaleId: '',
-        lastValueVisible: true,
-        priceLineVisible: true
+        priceScaleId: 'volume',
+        lastValueVisible: false,
+        priceLineVisible: false
       });
-      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 } });
+      // 거래량용 overlay 축은 가격 축과 분리하고 눈금/마지막 값은 감춘다. 그래야
+      // 거래량 영역 오른쪽에 가격 formatter가 붙는 현상이 사라진다.
+      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.72, bottom: 0 }, visible: false, borderVisible: false });
       volumeSeries.setData(daily.map(function (d) {
         return {
           time: d.date,
-          value: d.volume || 0,
+          value: Math.max(0, Number(d.volume) || 0),
           color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)'
         };
       }));
@@ -3912,13 +4548,15 @@
       var volumeMaSeries = chart.addLineSeries({
         color: '#3b82f6',
         lineWidth: 2,
-        priceScaleId: '',
+        priceScaleId: 'volume',
         priceFormat: { type: 'volume' },
         lastValueVisible: false,
         priceLineVisible: false,
         crosshairMarkerVisible: false
       });
-      volumeMaSeries.setData(volumeMaPoints);
+      volumeMaSeries.setData(volumeMaPoints.map(function (point) {
+        return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
+      }));
 
       var latest = daily[daily.length - 1] || {};
       var latestVolumeMa = volumeMaPoints.length ? volumeMaPoints[volumeMaPoints.length - 1].value : null;

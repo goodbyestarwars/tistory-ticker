@@ -1,15 +1,14 @@
 /**
  * 오늘의 증시온도 위젯 (2026-07-18 전면 개편)
- * GAS 프록시 ?marketTemp=1 호출 -> 9개 지표(VIX20+수급20+거래대금15+평균등락률15+상승비율10
- * +섹터강도10+52주신고저10+환율5+미국선물5=110점)를 0~40℃로 환산해 온도 카드로 렌더링하는
+ * GAS 프록시 ?marketTemp=1 호출 -> 기본 지표와 KOFIA 빚투 위험도(10점)를
+ * 실제 만점 기준으로 0~40℃로 환산해 온도 카드로 렌더링하는
  * 구조 자체는 유지. 이번 개편은 "정보는 있는데 3초 안에 안 읽힌다"는 피드백에 따라 CNN
  * Fear&Greed Index 스타일의 대표 콘텐츠로 재구성한 것 - 백엔드 계산은 대부분 그대로 두고
  * (gas/ticker-proxy.gs getMarketTemp), 응답에 recentDays(스파크라인용)와 지표별 band
  * (계산식 투명성용) 필드만 추가했다.
  *
- * 섹션 순서(2026-07-18 5차 기준): Hero+게이지(좌우 병합) -> AI 시장 브리핑(단독) -> 시장
- * 구성요소(표, 영향 큰 순 정렬) | 시장 레이더(좌우) -> 최근 7일 스파크라인 | 오늘 투자전략
- * (좌우) -> 온도 기준표(카드형) -> (기존 유지) 카드보기/히트맵보기/시총비례 탐색.
+ * 섹션 순서: Hero+최근 흐름 꼬리 -> 시장 구성요소(표) | 시장 레이더 -> 온도 기준표
+ * -> 시장 브리핑+오늘의 전략(마지막) -> (기존 유지) 카드보기/히트맵보기/시총비례 탐색.
  * "오늘 시장 영향요인 TOP5"는 시장 구성요소와 내용이 중복이라는 지적(5차)에 따라 별도
  * 섹션을 없애고 구성요소 표를 |기여도| 내림차순 정렬하는 것으로 흡수 통합함.
  *
@@ -22,6 +21,10 @@
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var SECTOR_CARDS_API_URL = 'https://goodbyestar.cloud/sector-cards';
+  var GOOGLE_AUTH_START_URL = 'https://goodbyestar.cloud/auth/google/start';
+  var GOOGLE_AUTH_ME_URL = 'https://goodbyestar.cloud/auth/google/me';
+  var GOOGLE_AUTH_LOGOUT_URL = 'https://goodbyestar.cloud/auth/google/logout';
   var CONTAINER_SELECTOR = '#market-temp';
   // 2026-07-22: 8000 -> 20000. 캐시 미스 시 GAS가 VIX/미국선물/환율/52주신고저(VM)/전종목
   // 시세 등 9개 지표를 순차로 조회해 8초를 넘기기 일쑤였다 - 이때 클라이언트 fetch는
@@ -30,7 +33,9 @@
   // (사용자 실측 재현: "항상 2번 리플레시 해야 뜸"). foreign-flow.js/pension-fund.js 등
   // 여러 소스를 조합하는 다른 무거운 위젯들도 이미 20000을 쓰고 있어 그 값에 맞춤.
   var FETCH_TIMEOUT_MS = 20000;
-  var GAUGE_MAX_TEMP = 40; // 서버가 실제 만점(현재 110점) 기준으로 이미 0~40℃로 정규화해서 내려줌
+  var GAUGE_MAX_TEMP = 40; // 서버가 실제 만점 기준으로 이미 0~40℃로 정규화해서 내려줌
+  var sectorConfigPromise = null;
+  var sparklineId = 0;
 
   // unit: 'index'(그대로 표기) / 'pct'(부호 있는 % - 붉은/파란색) / 'pctDirect'(comp에 이미 %
   // 단위로 들어있는 값) / 'ratio'(상승·하락 종목수) / 'sectorCount'(섹터 강도) /
@@ -56,7 +61,9 @@
     { key: 'exchange', label: '환율', max: 5, unit: 'pct', icon: '💵', barClass: 'mt-bar-fx',
       desc: '원/달러 환율 전일 대비 등락률(원화 강세=환율 하락일수록 가점)' },
     { key: 'usFutures', label: '미국 선물지수', max: 5, unit: 'pct', icon: '🌎', barClass: 'mt-bar-fx',
-      desc: 'S&P500 E-mini 선물(ES=F) 등락률, 시간대별 가중치 적용 - 미국장 마감~한국장 개장 사이 선행지표' }
+      desc: 'S&P500 E-mini 선물(ES=F) 등락률, 시간대별 가중치 적용 - 미국장 마감~한국장 개장 사이 선행지표' },
+    { key: 'creditRisk', label: '빚투 위험도', max: 10, unit: 'creditRisk', icon: '💳', barClass: 'mt-bar-vix',
+      desc: '신용융자 추세·예탁금 대비 비율·반대매매 비중을 합산한 시장 레버리지 위험도. 안정/주의/과열은 운영 기준입니다.' }
   ];
   var COMPONENT_BY_KEY = {};
   COMPONENT_META.forEach(function (m) { COMPONENT_BY_KEY[m.key] = m; });
@@ -67,11 +74,11 @@
   // 사용자 지정 온도(℃) 구간 - tone은 css/market-temp.css의 카드 배경색 클래스와 매칭.
   // color: 2026-07-18 스펙 지정 5색(등급 필/게이지/기준표/레이더 강조색에 일괄 적용).
   var GRADE_BANDS = [
-    { range: '0~10℃', emoji: '🧊', label: '극단적 공포', tone: 'extreme-fear', color: '#1565C0' },
-    { range: '10~20℃', emoji: '🔵', label: '공포', tone: 'fear', color: '#42A5F5' },
-    { range: '20~28℃', emoji: '🟡', label: '중립', tone: 'neutral', color: '#FFD54F' },
-    { range: '28~35℃', emoji: '🟠', label: '탐욕', tone: 'greed', color: '#FB8C00' },
-    { range: '35~40℃', emoji: '🔥', label: '극단적 탐욕', tone: 'extreme-greed', color: '#E53935' }
+    { range: '0~10℃', emoji: '🧊', label: '극단적 공포', season: '한겨울', seasonEmoji: '❄️', tone: 'extreme-fear', color: '#1565C0' },
+    { range: '10~20℃', emoji: '🔵', label: '공포', season: '초봄', seasonEmoji: '🌱', tone: 'fear', color: '#42A5F5' },
+    { range: '20~28℃', emoji: '🟡', label: '중립', season: '포근한 봄', seasonEmoji: '🌼', tone: 'neutral', color: '#FFD54F' },
+    { range: '28~35℃', emoji: '🟠', label: '탐욕', season: '한여름', seasonEmoji: '☀️', tone: 'greed', color: '#FB8C00' },
+    { range: '35~40℃', emoji: '🔥', label: '극단적 탐욕', season: '폭염', seasonEmoji: '🔥', tone: 'extreme-greed', color: '#E53935' }
   ];
   var GRADE_BY_TONE = {};
   GRADE_BANDS.forEach(function (b) { GRADE_BY_TONE[b.tone] = b; });
@@ -225,6 +232,21 @@
       return { text: parts.join(' · '), tone: flowTone };
     }
 
+    if (meta.unit === 'creditRisk') {
+      if (!comp || !comp.available || typeof comp.score !== 'number') {
+        return { text: '데이터 준비 중', tone: 'mt-val-zero' };
+      }
+      var riskTone = comp.state === 'stable' ? 'mt-val-pos'
+        : comp.state === 'overheated' ? 'mt-val-neg' : 'mt-val-zero';
+      var loanText = typeof comp.loan_total === 'number'
+        ? ' · ' + (comp.loan_total / 1000000).toFixed(2) + '조원'
+        : '';
+      var ratioText = typeof comp.loan_to_deposit_pct === 'number'
+        ? ' · 신용/예탁 ' + comp.loan_to_deposit_pct.toFixed(1) + '%'
+        : '';
+      return { text: (comp.stateLabel || '판단 보류') + loanText + ratioText, tone: riskTone };
+    }
+
     // unit === 'pct'
     var v = typeof comp.changeRate === 'number' ? comp.changeRate
       : typeof comp.changePct === 'number' ? comp.changePct
@@ -282,6 +304,7 @@
   // 개별 지표 행/TOP5 영향요인 카드가 공유하는 계산식 - GAS getMarketTempBriefing()의
   // AI 프롬프트도 동일한 공식을 쓴다(숫자 불일치 방지).
   function contribution(meta, comp) {
+    if (meta.unit === 'creditRisk' && (!comp || !comp.available || typeof comp.score !== 'number')) return null;
     var score = comp && typeof comp.score === 'number' ? comp.score : meta.max / 2;
     return score - meta.max / 2;
   }
@@ -326,11 +349,12 @@
       + '<div class="mt-hero-left">'
       + '<div class="mt-hero-title">🌡 오늘의 증시온도 <span class="mt-info" data-tooltip="시장이 과열되거나 침체된 정도를 온도로 보여드립니다.">ⓘ</span></div>'
       + '<div class="mt-hero-main">'
+      + '<span class="mt-thermometer-art" aria-hidden="true"><span class="mt-thermometer-mercury"></span></span>'
       // 2026-07-18: 초기 렌더 값을 "0.0"(애니메이션 시작점) 대신 이미 정답 온도로 그린다 -
       // requestAnimationFrame이 안 도는 환경(백그라운드 탭에서 페이지가 로드되는 경우 등
       // 실제로 존재함, 로컬 테스트에서 rAF가 전혀 안 도는 것을 실측 확인)에서도 항상 올바른
       // 값이 보이게 하기 위함(count-up은 순수 시각효과, 실패해도 데이터는 정확해야 함).
-      + '<span class="mt-score" data-count-target="' + data.temp.toFixed(1) + '">' + data.temp.toFixed(1) + '<span class="mt-score-unit">℃</span></span>'
+      + '<span class="mt-score" style="--mt-score-color:' + grade.color + ';color:var(--mt-score-color)" data-count-target="' + data.temp.toFixed(1) + '">' + data.temp.toFixed(1) + '<span class="mt-score-unit">℃</span></span>'
       + '<span class="mt-grade-pill" style="background:' + grade.color + '22;color:' + grade.color + '">' + escapeHtml(grade.emoji) + ' ' + escapeHtml(grade.label) + '</span>'
       + '</div>'
       + '<div class="mt-hero-deltas">' + deltasHtml + '</div>'
@@ -347,8 +371,8 @@
 
   function buildAiBriefingShell() {
     return ''
-      + '<div class="mt-card mt-ai-card">'
-      + '<div class="mt-card-title">📰 시장 브리핑</div>'
+      + '<div class="mt-briefing-panel">'
+      + '<div class="mt-briefing-panel-title">📰 시장 브리핑</div>'
       + '<div id="mtAiBriefing"><div class="mt-hint mt-hint-inline">브리핑 생성 중...</div></div>'
       + '</div>';
   }
@@ -378,20 +402,19 @@
       + '</div>';
   }
 
-  // 2026-07-18(3차): 게이지를 Hero 아래(세로)가 아니라 옆(가로)에 배치(사용자 요청 -
-  // "온도를 본 직후 바로 옆에서 위치 확인", 크기는 축소 가능) - .mt-hero-row가 좌우로
-  // 나란히 놓고, 게이지 쪽은 .mt-gauge-side로 감싸 CSS에서 폭을 줄이고 글자도 작게 조정.
+  // 오늘의 온도를 먼저 읽고 과거 추이가 오른쪽으로 이어지는 "꼬리" 구조.
+  // 현재 값과 스파크라인을 같은 카드 안에서 현재 값 | 최근 흐름으로 묶는다.
   function buildHeroCard(data) {
     return '<div class="mt-section mt-card mt-hero-card">'
-      + '<div class="mt-hero-row">'
-      + buildHero(data)
-      + '<div class="mt-gauge-side">' + buildGauge(data.temp) + '</div>'
+      + '<div class="mt-hero-history-layout">'
+      + '<div class="mt-hero-current">' + buildHero(data) + '</div>'
+      + '<div class="mt-hero-history">' + buildSparkline(data, true) + '</div>'
       + '</div>'
       + '</div>';
   }
 
   // ---- ③ 시장 구성 요소 (2026-07-18 5차: "오늘 시장 영향요인 TOP5"와 중복이라는 지적에
-  // 따라 별도 섹션을 없애고 하나로 합침 - 9개 지표를 |기여도| 내림차순으로 정렬한 표
+  // 따라 별도 섹션을 없애고 하나로 합침 - 10개 지표를 |기여도| 내림차순으로 정렬한 표
   // 하나로 통합하면 자연스럽게 "영향 큰 순서"가 되어 TOP5 리스트가 따로 필요 없다.
   // 카드형 대신 표 형태로(사용자 요청) - 상위 3개 행은 은은한 강조 배경으로 표시해
   // "오늘 가장 큰 영향을 준 지표"를 여전히 한눈에 알아볼 수 있게 한다. ----
@@ -402,7 +425,10 @@
     var raw = formatRaw(meta, comp);
     var c = contribution(meta, comp);
     var band = comp && comp.band ? comp.band : null;
-    var tooltip = meta.desc + (band ? ' — 현재 구간: ' + band : '');
+    var tooltip = meta.desc + (band ? ' — 현재 구간: ' + band : '')
+      + (comp && comp.criteria ? ' 기준: ' + comp.criteria : '')
+      + (comp && typeof comp.loan_total === 'number' ? ' 현재 신용융자 잔고: ' + (comp.loan_total / 1000000).toFixed(2) + '조원' : '')
+      + (comp && typeof comp.investor_deposits === 'number' ? ' 투자자예탁금: ' + (comp.investor_deposits / 1000000000000).toFixed(2) + '조원' : '');
 
     return ''
       + '<tr class="mt-comp-tr' + (rank < 3 ? ' mt-comp-tr-top' : '') + '">'
@@ -412,7 +438,7 @@
       + '<span class="mt-info" data-tooltip="' + escapeHtml(tooltip) + '">ⓘ</span>'
       + '</td>'
       + '<td class="mt-comp-td-value' + (raw ? ' ' + raw.tone : '') + '">' + (raw ? escapeHtml(raw.text) : '-') + '</td>'
-      + '<td class="mt-comp-td-contrib ' + contribTone(c) + '">' + fmtContribution(c) + '</td>'
+      + '<td class="mt-comp-td-contrib' + (c == null ? '' : ' ' + contribTone(c)) + '">' + (c == null ? '-' : fmtContribution(c)) + '</td>'
       // 점수 0점은 폭 0%라 바가 통째로 안 보여 "로딩 실패"처럼 오해받기 쉬워서, 이 경우만
       // 최소 4px 폭을 줘서 "0점으로 정상 렌더링됐다"는 걸 눈으로 구분할 수 있게 한다.
       + '<td class="mt-comp-td-bar"><div class="mt-comp-bar-track"><div class="mt-comp-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div></div></td>'
@@ -433,14 +459,20 @@
       + '</div>';
   }
 
-  // ---- ⑥ 최근 7일 스파크라인 ----
+  // ---- ⑥ 최근 7일 흐름 ----
 
-  function buildSparkline(data) {
+  function buildSparkline(data, compact) {
     var days = data.recentDays || [];
+    var frameClass = compact ? 'mt-history-tail' : 'mt-card';
+    function titleHtml(label) {
+      return compact
+        ? '<div class="mt-history-tail-head"><div class="mt-card-title">' + label + '</div><span class="mt-history-tail-direction">과거 → 오늘</span></div>'
+        : '<div class="mt-card-title">' + label + '</div>';
+    }
     if (!days.length) {
       return ''
-        + '<div class="mt-card">'
-        + '<div class="mt-card-title">📈 최근 7일 증시온도</div>'
+        + '<div class="' + frameClass + '">'
+        + titleHtml('📈 최근 7일 흐름')
         + '<div class="mt-stats-empty">증시온도 기록을 확인할 수 없습니다.</div>'
         + '</div>';
     }
@@ -449,8 +481,8 @@
       var onlyGrade = gradeForTempClient_(onlyDay.temp);
       var onlyColor = (GRADE_BY_TONE[onlyGrade.tone] || {}).color || '#888';
       return ''
-        + '<div class="mt-card">'
-        + '<div class="mt-card-title">📈 최근 1일 증시온도</div>'
+        + '<div class="' + frameClass + '">'
+        + titleHtml('📈 최근 1일 흐름')
         + '<div class="mt-spark-single">'
         + '<strong style="color:' + onlyColor + '">' + onlyDay.temp.toFixed(1) + '℃</strong>'
         + '<span>' + escapeHtml(onlyDay.date) + '</span>'
@@ -468,26 +500,61 @@
       var y = H - PAD - ((d.temp - min) / range) * (H - PAD * 2);
       return { x: x, y: y, temp: d.temp, date: d.date };
     });
+    var pointGrades = points.map(function (p) { return gradeForTempClient_(p.temp); });
+    var averageTemp = temps.reduce(function (sum, value) { return sum + value; }, 0) / temps.length;
+    var averageGrade = gradeForTempClient_(averageTemp);
+    var averageColor = averageGrade.color || '#888';
+    var firstTemp = temps[0];
+    var currentTemp = temps[temps.length - 1];
+    var trendDelta = Math.round((currentTemp - firstTemp) * 10) / 10;
+    var trendTone = trendDelta > 0 ? 'mt-val-pos' : trendDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
+    var trendArrow = trendDelta > 0 ? '▲' : trendDelta < 0 ? '▼' : '—';
     var pathD = points.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
-    var lastColor = (GRADE_BY_TONE[gradeForTempClient_(temps[temps.length - 1]).tone] || {}).color || '#888';
+    var areaD = pathD + ' L' + points[points.length - 1].x.toFixed(1) + ',' + (H - PAD) + ' L' + points[0].x.toFixed(1) + ',' + (H - PAD) + ' Z';
+    var gradientId = 'mt-spark-area-' + (++sparklineId);
+    var gridLines = [0.25, 0.5, 0.75].map(function (ratio) {
+      var y = (PAD + (H - PAD * 2) * ratio).toFixed(1);
+      return '<line class="mt-spark-grid-line" x1="' + PAD + '" y1="' + y + '" x2="' + (W - PAD) + '" y2="' + y + '"></line>';
+    }).join('');
+    var segmentPaths = points.slice(1).map(function (p, i) {
+      var previous = points[i];
+      var segmentTemp = (previous.temp + p.temp) / 2;
+      var segmentColor = gradeForTempClient_(segmentTemp).color || '#888';
+      return '<path class="mt-spark-segment mt-spark-draw" d="M' + previous.x.toFixed(1) + ',' + previous.y.toFixed(1) + ' L' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + '" stroke="' + segmentColor + '"></path>';
+    }).join('');
     var dots = points.map(function (p, i) {
       var isLast = i === points.length - 1;
-      return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isLast ? 4 : 2.5) + '" fill="' + lastColor + '"'
-        + (isLast ? '' : ' opacity="0.5"') + '><title>' + escapeHtml(p.date) + ' ' + p.temp.toFixed(1) + '℃</title></circle>';
+      var pointColor = pointGrades[i].color || '#888';
+      return '<circle class="' + (isLast ? 'mt-spark-current-dot' : 'mt-spark-dot') + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isLast ? 5 : 3.5) + '" fill="' + pointColor + '"'
+        + '><title>' + escapeHtml(p.date) + ' ' + p.temp.toFixed(1) + '℃</title></circle>';
     }).join('');
-    var recentLabels = points.slice(-3).reverse().map(function (p, i) {
-      var lbl = i === 0 ? '오늘' : i === 1 ? '어제' : '1주전';
-      return '<span>' + lbl + ' <b>' + p.temp.toFixed(1) + '</b></span>';
+    var summaryPoints = [];
+    if (points.length > 2) summaryPoints.push({ label: points.length >= 7 ? '1주 전' : '시작일', point: points[0] });
+    if (points.length > 1) summaryPoints.push({ label: '어제', point: points[points.length - 2] });
+    summaryPoints.push({ label: '오늘', point: points[points.length - 1], current: true });
+    var recentLabels = summaryPoints.map(function (item) {
+      var itemColor = gradeForTempClient_(item.point.temp).color || '#888';
+      return '<span' + (item.current ? ' class="is-current"' : '') + '><i style="background:' + itemColor + '"></i>' + item.label + ' <b style="color:' + itemColor + '">' + item.point.temp.toFixed(1) + '</b></span>';
     }).join('');
+    var metricsHtml = '<div class="mt-history-metrics">'
+      + '<span><small>7일 평균</small><b style="color:' + averageColor + '">' + averageTemp.toFixed(1) + '℃</b></span>'
+      + '<span><small>최저</small><b style="color:' + (gradeForTempClient_(min).color || '#888') + '">' + min.toFixed(1) + '℃</b></span>'
+      + '<span><small>최고</small><b style="color:' + (gradeForTempClient_(max).color || '#888') + '">' + max.toFixed(1) + '℃</b></span>'
+      + '<span><small>시작 대비</small><b class="' + trendTone + '">' + trendArrow + ' ' + Math.abs(trendDelta).toFixed(1) + '℃</b></span>'
+      + '</div>';
 
     return ''
-      + '<div class="mt-card">'
-      + '<div class="mt-card-title">📈 최근 ' + days.length + '일 증시온도</div>'
+      + '<div class="' + frameClass + '">'
+      + '<div class="mt-history-tail-head"><div class="mt-card-title">📈 최근 ' + days.length + '일 흐름</div><span class="mt-history-tail-summary" style="color:' + averageColor + '">평균 ' + averageTemp.toFixed(1) + '℃</span></div>'
       + '<svg class="mt-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">'
-      + '<path class="mt-spark-path mt-spark-draw" d="' + pathD + '" fill="none" stroke="' + lastColor + '" stroke-width="2.5"></path>'
+      + '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + averageColor + '" stop-opacity=".22"></stop><stop offset="100%" stop-color="' + averageColor + '" stop-opacity="0"></stop></linearGradient></defs>'
+      + gridLines
+      + '<path class="mt-spark-area" d="' + areaD + '" fill="url(#' + gradientId + ')"></path>'
+      + segmentPaths
       + dots
       + '</svg>'
       + '<div class="mt-spark-labels">' + recentLabels + '</div>'
+      + metricsHtml
       + '</div>';
   }
 
@@ -565,16 +632,23 @@
   function buildStrategy(grade) {
     var s = STRATEGY_BY_TONE[grade.tone] || STRATEGY_BY_TONE.neutral;
     return ''
-      // 2026-07-18(4차): 등급색 왼쪽 강조선 제거(사용자 피드백 - AI브리핑 카드와 같은
-      // "AI가 만든 티" 나는 요소라 앞서 그쪽도 뺐었는데 여기 남아있던 걸 마저 제거).
-      + '<div class="mt-card mt-strategy-card">'
-      + '<div class="mt-card-title">🎯 오늘의 전략</div>'
+      + '<div class="mt-strategy-panel">'
+      + '<div class="mt-strategy-panel-title">🎯 오늘의 전략</div>'
       + '<div class="mt-strategy-action ' + s.actionTone + '">' + escapeHtml(s.action) + '</div>'
       + '<div class="mt-strategy-bars">'
       + '<div class="mt-strategy-bar-row"><span>주식비중</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill" style="width:' + s.stock + '%;background:' + grade.color + '"></div></div><b>' + s.stock + '%</b></div>'
       + '<div class="mt-strategy-bar-row"><span>현금</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill mt-strategy-bar-cash" style="width:' + s.cash + '%"></div></div><b>' + s.cash + '%</b></div>'
       + '</div>'
       + '<div class="mt-strategy-note">⚠ ' + escapeHtml(s.note) + '</div>'
+      + '</div>';
+  }
+
+  function buildBriefingStrategy(grade) {
+    return '<div class="mt-section mt-card mt-briefing-strategy-card">'
+      + '<div class="mt-briefing-strategy-grid">'
+      + buildAiBriefingShell()
+      + buildStrategy(grade)
+      + '</div>'
       + '</div>';
   }
 
@@ -585,7 +659,8 @@
     // 피드백 - 설명을 1번째 줄, 온도+별점을 한 줄로 묶어 2번째 줄로 통일(3줄->2줄).
     var cards = GRADE_BANDS.map(function (b, i) {
       var stars = '★'.repeat(5 - i) + '<span class="mt-guide-stars-empty">' + '★'.repeat(i) + '</span>';
-      return '<div class="mt-guide-card" style="border-color:' + b.color + '55">'
+      return '<div class="mt-guide-card mt-guide-card-' + escapeHtml(b.tone) + '" style="--mt-guide-color:' + b.color + ';border-color:' + b.color + '55">'
+        + '<div class="mt-guide-season"><span class="mt-guide-season-emoji">' + escapeHtml(b.seasonEmoji) + '</span><span>' + escapeHtml(b.season) + '</span></div>'
         + '<div class="mt-guide-card-label">' + escapeHtml(b.emoji) + ' ' + escapeHtml(b.label) + '</div>'
         + '<div class="mt-guide-card-meta">'
         + '<span class="mt-guide-card-range" style="color:' + b.color + '">' + b.range + '</span>'
@@ -595,7 +670,6 @@
     }).join('');
     return ''
       + '<div class="mt-section mt-card">'
-      + '<div class="mt-card-title">📖 증시온도 기준표</div>'
       + '<div class="mt-guide-grid-cards">' + cards + '</div>'
       + '</div>';
   }
@@ -630,6 +704,303 @@
 
   // 섹터 풀(SECTOR_MAP) 전체 종목 코드를 모아 시세를 한 번에 조회 - 카드 보기/히트맵 보기가
   // 공유하는 헬퍼(SD.renderCardsHtml/renderHeatmapHtml 둘 다 이 codes 목록이 필요).
+  function fetchSectorConfig_() {
+    if (sectorConfigPromise) return sectorConfigPromise;
+    sectorConfigPromise = fetch(SECTOR_CARDS_API_URL, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('sector config HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (body) {
+        if (!body || !body.data || !body.data.sectors) throw new Error('invalid sector config');
+        return body.data;
+      })
+      .catch(function (err) {
+        sectorConfigPromise = null;
+        // The static sector file remains a safe read-only fallback while the VM
+        // deploys the new /sector-cards endpoint or during a transient outage.
+        if (global.SECTOR_MAP && typeof global.SECTOR_MAP === 'object') {
+          return {
+            sectors: global.SECTOR_MAP,
+            revision: 0,
+            editable: false
+          };
+        }
+        throw err;
+      });
+    return sectorConfigPromise;
+  }
+
+  function invalidateSectorConfig_() {
+    sectorConfigPromise = null;
+  }
+
+  function cloneSectorMap_(sectorMap) {
+    return JSON.parse(JSON.stringify(sectorMap || {}));
+  }
+
+  function stockOptionsHtml_() {
+    var map = global.KRX_MAP || {};
+    return Object.keys(map).map(function (name) {
+      return '<option value="' + escapeHtml(name) + '"></option>';
+    }).join('');
+  }
+
+  function fetchGoogleAuth_() {
+    return fetch(GOOGLE_AUTH_ME_URL, { credentials: 'include', cache: 'no-store' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('auth status HTTP ' + response.status);
+        return response.json();
+      })
+      .then(function (body) {
+        return body && body.data ? body.data : { configured: false, authenticated: false, isAdmin: false };
+      })
+      .catch(function () {
+        // Keep the legacy token UI available until the VM OAuth settings are deployed.
+        return { configured: false, authenticated: false, isAdmin: false };
+      });
+  }
+
+  function buildSectorEditorHtml_(sectorMap, authState) {
+    var googleAuthConfigured = !!(authState && authState.configured);
+    var authControls = googleAuthConfigured
+      ? '<div class="mt-sector-editor-auth"><span>' +
+        (authState.authenticated && authState.isAdmin
+          ? 'Google 로그인됨: ' + escapeHtml(authState.email || '')
+          : '관리자 Google 로그인이 필요합니다.') +
+        '</span>' +
+        (authState.authenticated && authState.isAdmin
+          ? '<button type="button" data-editor-action="google-logout">로그아웃</button>'
+          : '<button type="button" data-editor-action="google-login">Google로 로그인</button>') +
+        '</div>'
+      : '<input type="password" data-editor-role="admin-token" aria-label="저장용 관리자 토큰" placeholder="저장용 관리자 토큰" autocomplete="current-password">';
+    var categories = Object.keys(sectorMap);
+    var rows = categories.map(function (category, categoryIndex) {
+      var stocks = Array.isArray(sectorMap[category]) ? sectorMap[category] : [];
+      var stockRows = stocks.map(function (stock, stockIndex) {
+        return '<div class="mt-sector-editor-stock" data-stock-index="' + stockIndex + '">' +
+          '<input data-editor-role="stock-name" list="mt-sector-stock-names" value="' + escapeHtml(stock.name || '') + '" placeholder="종목명">' +
+          '<input data-editor-role="stock-code" value="' + escapeHtml(stock.code || '') + '" placeholder="종목코드" maxlength="6">' +
+          '<select data-editor-role="stock-market">' +
+            '<option value="KOSPI"' + (stock.market === 'KOSPI' ? ' selected' : '') + '>KOSPI</option>' +
+            '<option value="KOSDAQ"' + (stock.market === 'KOSDAQ' ? ' selected' : '') + '>KOSDAQ</option>' +
+          '</select>' +
+          '<button type="button" data-editor-action="delete-stock">삭제</button>' +
+        '</div>';
+      }).join('');
+      return '<section class="mt-sector-editor-category" data-category-index="' + categoryIndex + '">' +
+        '<div class="mt-sector-editor-category-head">' +
+          '<input data-editor-role="category-name" value="' + escapeHtml(category) + '" aria-label="카테고리명">' +
+          '<span class="mt-sector-editor-category-count">' + stocks.length + '종목</span>' +
+          '<button type="button" class="mt-sector-editor-toggle" data-editor-action="toggle-category" aria-expanded="true">접기</button>' +
+          '<button type="button" data-editor-action="delete-category">카테고리 삭제</button>' +
+        '</div>' +
+        '<div class="mt-sector-editor-stock-labels" aria-hidden="true"><span>종목명</span><span>종목코드</span><span>시장</span><span></span></div>' +
+        '<div class="mt-sector-editor-stocks">' + stockRows + '</div>' +
+        '<button type="button" class="mt-sector-editor-add-stock" data-editor-action="add-stock">+ 종목 추가</button>' +
+      '</section>';
+    }).join('');
+
+    return '<div class="mt-sector-editor">' +
+      '<div class="mt-sector-editor-head"><div><strong>카테고리·종목 편집</strong><span>저장하면 모든 사용자에게 반영됩니다.</span></div>' +
+        '<div class="mt-sector-editor-head-actions"><button type="button" data-editor-action="collapse-all">전체 접기</button><button type="button" data-editor-action="expand-all">전체 펼치기</button></div></div>' +
+      '<datalist id="mt-sector-stock-names">' + stockOptionsHtml_() + '</datalist>' +
+      '<div class="mt-sector-editor-categories">' + rows + '</div>' +
+      '<div class="mt-sector-editor-actions">' +
+        '<button type="button" data-editor-action="add-category">+ 카테고리 추가</button>' +
+        authControls +
+        '<button type="button" class="primary" data-editor-action="save">저장</button>' +
+        '<button type="button" data-editor-action="cancel">취소</button>' +
+      '</div>' +
+      '<div class="mt-sector-editor-message" data-editor-role="message"></div>' +
+    '</div>';
+  }
+
+  function buildSectorEditorAuthGateHtml_(authState) {
+    var configured = !!(authState && authState.configured);
+    var authenticated = !!(authState && authState.authenticated);
+    var isAdmin = !!(authState && authState.isAdmin);
+    var message = configured && authenticated && !isAdmin
+      ? '현재 Google 계정에는 증시온도 카드 관리자 권한이 없습니다.'
+      : configured
+        ? '카테고리와 종목을 편집하려면 관리자 Google 계정으로 로그인하세요.'
+      : '관리자 인증 설정을 확인하는 중입니다. 잠시 후 다시 시도하세요.';
+    var loginButton = configured && !authenticated
+      ? '<button type="button" class="primary" data-editor-action="google-login">Google로 로그인</button>'
+      : '';
+    var logoutButton = authenticated
+      ? '<button type="button" data-editor-action="google-logout">다른 계정으로 로그인</button>'
+      : '';
+    return '<div class="mt-sector-auth-gate">' +
+      '<strong>관리자 로그인 필요</strong>' +
+      '<p>' + message + '</p>' +
+      loginButton +
+      logoutButton +
+      '<button type="button" data-editor-action="cancel">취소</button>' +
+      '</div>';
+  }
+
+  function collectSectorMapFromEditor_(root, allowIncomplete) {
+    var result = {};
+    root.querySelectorAll('.mt-sector-editor-category').forEach(function (categoryEl) {
+      var nameEl = categoryEl.querySelector('[data-editor-role="category-name"]');
+      var name = (nameEl && nameEl.value || '').trim();
+      if (!name) throw new Error('카테고리명을 입력하세요.');
+      if (result[name]) throw new Error('카테고리명이 중복됩니다: ' + name);
+      var stocks = [];
+      categoryEl.querySelectorAll('.mt-sector-editor-stock').forEach(function (stockEl) {
+        var stockName = (stockEl.querySelector('[data-editor-role="stock-name"]').value || '').trim();
+        var code = (stockEl.querySelector('[data-editor-role="stock-code"]').value || '').trim().toUpperCase();
+        var market = stockEl.querySelector('[data-editor-role="stock-market"]').value;
+        if (!stockName || !/^[0-9A-Z]{6}$/.test(code)) {
+          if (allowIncomplete) {
+            stocks.push({ name: stockName, code: code, market: market });
+            return;
+          }
+          throw new Error('종목명과 6자리 종목코드를 확인하세요.');
+        }
+        if (code && stocks.some(function (stock) { return stock.code === code; })) {
+          throw new Error(name + ' 카테고리에 같은 종목이 중복됩니다: ' + code);
+        }
+        stocks.push({ name: stockName, code: code, market: market });
+      });
+      result[name] = stocks;
+    });
+    if (!allowIncomplete && !Object.keys(result).length) throw new Error('카테고리를 하나 이상 남겨두세요.');
+    return result;
+  }
+
+  function renderSectorEditor_(panel, sectorMap, revision, onSaved) {
+    var model = cloneSectorMap_(sectorMap);
+    var tokenKey = 'sector-card-admin-token';
+    var authState = { configured: false, authenticated: false, isAdmin: false };
+    var authReady = false;
+    var rerender = function () {
+      var canEdit = !authState.configured || (authState.authenticated && authState.isAdmin);
+      panel.innerHTML = authReady && canEdit
+        ? buildSectorEditorHtml_(model, authState)
+        : buildSectorEditorAuthGateHtml_(authState);
+      var savedToken = '';
+      try { savedToken = sessionStorage.getItem(tokenKey) || ''; } catch (err) { /* ignore */ }
+      var tokenEl = panel.querySelector('[data-editor-role="admin-token"]');
+      if (tokenEl) tokenEl.value = savedToken;
+    };
+    var setMessage = function (text, isError) {
+      var message = panel.querySelector('[data-editor-role="message"]');
+      if (message) { message.textContent = text; message.className = 'mt-sector-editor-message' + (isError ? ' error' : ''); }
+    };
+
+    fetchGoogleAuth_().then(function (nextAuthState) {
+      authState = nextAuthState;
+      authReady = true;
+      rerender();
+    });
+    var setCategoryCollapsed = function (categoryEl, collapsed) {
+      categoryEl.classList.toggle('is-collapsed', collapsed);
+      var toggle = categoryEl.querySelector('[data-editor-action="toggle-category"]');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        toggle.textContent = collapsed ? '펼치기' : '접기';
+      }
+    };
+    panel.onclick = function (event) {
+      var actionEl = event.target.closest('[data-editor-action]');
+      if (!actionEl) return;
+      var action = actionEl.getAttribute('data-editor-action');
+      try {
+        if (action === 'google-login') {
+          window.location.href = GOOGLE_AUTH_START_URL;
+        } else if (action === 'google-logout') {
+          window.location.href = GOOGLE_AUTH_LOGOUT_URL;
+        } else if (action === 'toggle-category') {
+          var categoryEl = actionEl.closest('.mt-sector-editor-category');
+          setCategoryCollapsed(categoryEl, !categoryEl.classList.contains('is-collapsed'));
+        } else if (action === 'collapse-all' || action === 'expand-all') {
+          var shouldCollapse = action === 'collapse-all';
+          panel.querySelectorAll('.mt-sector-editor-category').forEach(function (categoryEl) {
+            setCategoryCollapsed(categoryEl, shouldCollapse);
+          });
+        } else if (action === 'add-category') {
+          model = collectSectorMapFromEditor_(panel, true);
+          var base = '새 카테고리';
+          var name = base;
+          var count = 2;
+          while (model[name]) name = base + ' ' + count++;
+          model[name] = [];
+          rerender();
+        } else if (action === 'delete-category') {
+          model = collectSectorMapFromEditor_(panel, true);
+          var categoryEl = actionEl.closest('.mt-sector-editor-category');
+          var categoryIndex = Number(categoryEl.getAttribute('data-category-index'));
+          var categoryName = Object.keys(model)[categoryIndex];
+          delete model[categoryName];
+          rerender();
+        } else if (action === 'add-stock') {
+          model = collectSectorMapFromEditor_(panel, true);
+          var targetEl = actionEl.closest('.mt-sector-editor-category');
+          var targetIndex = Number(targetEl.getAttribute('data-category-index'));
+          var targetName = Object.keys(model)[targetIndex];
+          model[targetName].push({ name: '', code: '', market: 'KOSPI' });
+          rerender();
+        } else if (action === 'delete-stock') {
+          model = collectSectorMapFromEditor_(panel, true);
+          var stockCategoryEl = actionEl.closest('.mt-sector-editor-category');
+          var stockEl = actionEl.closest('.mt-sector-editor-stock');
+          var stockCategoryIndex = Number(stockCategoryEl.getAttribute('data-category-index'));
+          var stockIndex = Number(stockEl.getAttribute('data-stock-index'));
+          var stockCategoryName = Object.keys(model)[stockCategoryIndex];
+          model[stockCategoryName].splice(stockIndex, 1);
+          rerender();
+        } else if (action === 'cancel') {
+          if (onSaved && onSaved.cancel) onSaved.cancel();
+        } else if (action === 'save') {
+          var sectors = collectSectorMapFromEditor_(panel);
+          var requestOptions = {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sectors: sectors, revision: revision })
+          };
+          if (authState.configured) {
+            if (!authState.authenticated || !authState.isAdmin) throw new Error('Google 관리자 로그인을 먼저 하세요.');
+            requestOptions.credentials = 'include';
+          } else {
+            var tokenEl = panel.querySelector('[data-editor-role="admin-token"]');
+            var token = tokenEl ? (tokenEl.value || '').trim() : '';
+            if (!token) throw new Error('관리자 토큰을 입력하세요.');
+            requestOptions.headers['X-API-Key'] = token;
+          }
+          setMessage('저장 중...', false);
+          fetch(SECTOR_CARDS_API_URL, requestOptions).then(function (response) {
+            return response.json().then(function (body) {
+              if (!response.ok) throw new Error(body.detail || '저장에 실패했습니다.');
+              return body;
+            });
+          }).then(function (body) {
+            if (!authState.configured) {
+              var savedToken = panel.querySelector('[data-editor-role="admin-token"]');
+              try { sessionStorage.setItem(tokenKey, savedToken ? savedToken.value : ''); } catch (err) { /* ignore */ }
+            }
+            invalidateSectorConfig_();
+            if (typeof onSaved === 'function') onSaved(body.data);
+            else if (onSaved && onSaved.saved) onSaved.saved(body.data);
+          }).catch(function (error) {
+            setMessage(error.message || '저장에 실패했습니다.', true);
+          });
+        }
+      } catch (error) {
+        setMessage(error.message || '입력값을 확인하세요.', true);
+      }
+    };
+    panel.onchange = function (event) {
+      if (!event.target.matches('[data-editor-role="stock-name"]')) return;
+      var code = (global.KRX_MAP || {})[event.target.value.trim()];
+      if (code) {
+        var row = event.target.closest('.mt-sector-editor-stock');
+        row.querySelector('[data-editor-role="stock-code"]').value = code;
+      }
+    };
+  }
+
   function sectorPoolCodes(sectorMap, krxMap) {
     var codes = [];
     Object.keys(sectorMap).forEach(function (sector) {
@@ -641,10 +1012,53 @@
     return codes;
   }
 
+  function renderCardsPanelFromConfig_(panel, SD, config) {
+    var sectorMap = config.sectors;
+    var krxMap = global.KRX_MAP || {};
+    var codes = sectorPoolCodes(sectorMap, krxMap);
+    if (!codes.length) throw new Error('empty sector config');
+    return SD.fetchTickerData(codes).then(function (list) {
+      var byCode = {};
+      (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
+      if (SD.injectBadgeStyles) SD.injectBadgeStyles();
+      var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
+      var toolbar = '<div class="mt-sector-toolbar"><span>카테고리와 종목을 직접 관리할 수 있습니다.</span>' +
+        '<button type="button" data-sector-editor-open>카테고리·종목 편집</button></div>';
+      panel.innerHTML = toolbar + (html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>');
+      var editButton = panel.querySelector('[data-sector-editor-open]');
+      if (editButton) editButton.addEventListener('click', function () {
+        renderSectorEditor_(panel, sectorMap, config.revision, {
+          cancel: function () { panel.__mtLoaded = false; loadCardsPanel(panel); },
+          saved: function () { panel.__mtLoaded = false; loadCardsPanel(panel); }
+        });
+      });
+    });
+  }
+
+  function renderHeatmapPanelFromConfig_(panel, SD, config) {
+    var sectorMap = config.sectors;
+    var krxMap = global.KRX_MAP || {};
+    var codes = sectorPoolCodes(sectorMap, krxMap);
+    if (!codes.length) throw new Error('empty sector config');
+    return SD.fetchTickerData(codes).then(function (list) {
+      var byCode = {};
+      (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
+      var html = SD.renderHeatmapHtml(sectorMap, krxMap, byCode);
+      panel.innerHTML = html ? '<div class="heatmap-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>';
+    });
+  }
+
   function loadCardsPanel(panel) {
     if (panel.__mtLoaded) return;
     panel.__mtLoaded = true;
     var SD = global.SectorDashboard;
+    if (SD) {
+      panel.innerHTML = '<div class="mt-hint">종목 카드 불러오는 중...</div>';
+      fetchSectorConfig_()
+        .then(function (config) { return renderCardsPanelFromConfig_(panel, SD, config); })
+        .catch(function () { panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>'; });
+      return;
+    }
     var sectorMap = global.SECTOR_MAP;
     if (!SD || !sectorMap) {
       panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>';
@@ -670,6 +1084,13 @@
     if (panel.__mtLoaded) return;
     panel.__mtLoaded = true;
     var SD = global.SectorDashboard;
+    if (SD) {
+      panel.innerHTML = '<div class="mt-hint">히트맵 불러오는 중...</div>';
+      fetchSectorConfig_()
+        .then(function (config) { return renderHeatmapPanelFromConfig_(panel, SD, config); })
+        .catch(function () { panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>'; });
+      return;
+    }
     var sectorMap = global.SECTOR_MAP;
     if (!SD || !sectorMap) {
       panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>';
@@ -747,11 +1168,9 @@
     function row2col(a, b) { return '<div class="mt-section mt-row-2col">' + a + b + '</div>'; }
 
     var sections = [
-      buildHeroCard(data),                          // ① Hero(온도+투자시그널) | 게이지 (좌우)
-      '<div class="mt-section">' + buildAiBriefingShell() + '</div>', // ② AI 시장 브리핑(5차: TOP5 병합으로 단독 배치, 폭 넓어져 가독성 개선)
-      row2col(buildBars(data), buildRadar(data)),   // ③ 시장 구성요소(표) | 시장 레이더 (좌우)
-      row2col(buildSparkline(data), buildStrategy(grade)), // ④ 최근7일 | 오늘의 전략
-      buildGuide()                                   // ⑤ 온도 기준표
+      buildHeroCard(data),                          // ① 오늘의 온도 | 과거→오늘 흐름 꼬리
+      row2col(buildBars(data), buildRadar(data)),   // ② 시장 구성요소(표) | 시장 레이더 (좌우)
+      buildBriefingStrategy(grade),                 // ③ 시장 브리핑 + 오늘의 전략(마지막)
     ];
 
     return ''
@@ -818,13 +1237,20 @@
     // 스파크라인 draw-on-load(stroke-dasharray 트릭). rAF가 안 도는 환경(백그라운드 탭 등)
     // 에서 선이 영원히 안 그려진 채로 남는 걸 막기 위해 setTimeout 안전장치를 같이 건다
     // (countUp과 동일한 이유 - 위 주석 참고).
-    var sparkPath = container.querySelector('.mt-spark-draw');
-    if (sparkPath && sparkPath.getTotalLength) {
-      var len = sparkPath.getTotalLength();
+    var sparkPaths = container.querySelectorAll('.mt-spark-draw');
+    if (sparkPaths.length) {
       var revealed = false;
-      function reveal() { if (revealed) return; revealed = true; sparkPath.style.strokeDashoffset = '0'; }
-      sparkPath.style.strokeDasharray = len;
-      sparkPath.style.strokeDashoffset = len;
+      function reveal() {
+        if (revealed) return;
+        revealed = true;
+        sparkPaths.forEach(function (path) { path.style.strokeDashoffset = '0'; });
+      }
+      sparkPaths.forEach(function (path) {
+        if (!path.getTotalLength) return;
+        var len = path.getTotalLength();
+        path.style.strokeDasharray = len;
+        path.style.strokeDashoffset = len;
+      });
       requestAnimationFrame(function () { requestAnimationFrame(reveal); });
       setTimeout(reveal, 1000);
     }

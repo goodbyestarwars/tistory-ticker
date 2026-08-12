@@ -34,6 +34,17 @@
     });
   })();
 
+  /* 시세·증시온도 페이지의 공통 시각 개선은 페이지별 위젯이 비동기로 DOM을
+     만든 뒤에도 연결되어야 하므로 별도 모듈로 지연 로드한다. */
+  (function loadDashboardEnhancements() {
+    if (document.querySelector('script[data-dashboard-enhancements]')) return;
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/dashboard-enhancements.js?v=20260808-4';
+    script.defer = true;
+    script.setAttribute('data-dashboard-enhancements', '1');
+    document.body.appendChild(script);
+  })();
+
   /* 홈은 기존 위젯/API를 시장 상황판 구조로 재배치한다. 백엔드 계산과 URL은 그대로 두고,
      여기서는 카드 배치·요약 집계·수급 부호 기반 규칙문만 담당한다. */
   (function buildHomeDashboard() {
@@ -41,14 +52,15 @@
     var feed = document.querySelector('.feed');
     var investorMount = document.getElementById('investor-trend-widget');
     var rankMount = document.getElementById('sidebar-rank');
-    if (!feed || !investorMount || !rankMount) return;
+    if (!feed) return;
 
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js';
+    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260812-dart-result';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js';
-    var homeState = { foreign: null, institution: null, flowReady: false };
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260811-finnhub-block')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260811-finnhub-block';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260811-auto-icon-fallback';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260811-am-pm-scroll';
 
     function escapeHomeHtml(value) {
       return String(value == null ? '' : value)
@@ -150,41 +162,47 @@
     function dashboardHtml() {
       return '<section class="home-dashboard" aria-label="오늘의 시장 상황판">'
         + '<div class="home-overview-grid">'
-        + '<div class="home-investor-slot"></div>'
         + '<article class="card home-market-board" id="homeMarketBoard">'
-        + '<div class="home-card-heading"><div><strong>오늘의 시장판</strong><span id="hmbUpdated">기존 시장 데이터 기준</span></div></div>'
+        + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live" data-home-market-field="live">실시간</span></div>'
+        + '<section class="home-top-disclosures" aria-label="오늘의 공시" data-home-disclosure-section>'
+        + '<div class="home-top-disclosures-head"><strong data-home-disclosure-field="title">오늘의 공시</strong><span data-home-disclosure-field="meta">최신 5건</span></div>'
+        + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
+        + '</section>'
+        + '<div class="home-index-strip" aria-label="대표 시장 지수">'
+        + '<article class="home-index-card" data-home-index-slot="primary">'
+        + '<div class="home-index-top"><strong data-index-field="label">코스피</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
+        + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
+        + '</article>'
+        + '<article class="home-index-card" data-home-index-slot="secondary">'
+        + '<div class="home-index-top"><strong data-index-field="label">코스닥</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
+        + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
+        + '</article>'
+        + '</div>'
+        + '<div class="hmb-summary-head"><strong data-home-summary-field="title">국내 시장 요약</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list">'
         + '<div><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
         + '<div><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
-        + '<div><dt>외국인</dt><dd data-market-field="foreign">데이터 확인 중</dd></div>'
-        + '<div><dt>기관</dt><dd data-market-field="institution">데이터 확인 중</dd></div>'
         + '<div><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
         + '<div><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
         + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
         + '</dl>'
-        + '<p class="hmb-interpretation" data-market-field="interpretation">수급 데이터 확인 중입니다.</p>'
-        + '</article></div>'
-        + '<div class="home-card-grid">'
-        + '<div class="home-rank-slot"></div>'
-        + '<article class="card home-mini-card home-pattern-card">'
-        + '<div class="home-card-heading"><div><strong>오늘의 패턴</strong><span id="homePatternUpdated"></span></div></div>'
-        + '<p class="home-pattern-explainer">오늘 신규 발견은 최신 스캔 거래일에 패턴 조건을 만족한 고유 종목 수입니다 · 신규 상장 의미 아님</p>'
-        + '<div class="home-pattern-list" id="homePatternList"><p class="home-card-state">패턴 데이터를 불러오는 중...</p></div>'
-        + '<a class="home-card-more" href="/page/pattern-scan">패턴 종목 보기 →</a>'
         + '</article>'
-        + '<article class="card home-mini-card home-schedule-card">'
-        + '<div class="home-card-heading"><div><strong>주요 일정</strong><span id="homeScheduleLabel">오늘 또는 가장 가까운 일정</span></div></div>'
-        + '<div class="home-schedule-list" id="homeScheduleList"><p class="home-card-state">일정을 불러오는 중...</p></div>'
-        + '<a class="home-card-more" href="/page/stock-calendar">전체 일정 보기 →</a>'
-        + '</article></div></section>';
+        + '<article class="card home-economic-news" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
+        + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small data-hen-updated>최신 뉴스 확인 중</small></div>'
+        + '<div class="hen-list" data-hen-list><p class="home-card-state">경제 뉴스를 불러오는 중입니다.</p></div>'
+        + '</article></div>'
+        + '<article class="card home-realtime-board" id="homeRealtimeBoard" aria-label="실시간 종목판"></article>'
+        + '</section>';
     }
 
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
     var dashboardSection = dashboard.firstElementChild;
     feed.insertBefore(dashboardSection, investorMount);
-    dashboardSection.querySelector('.home-investor-slot').appendChild(investorMount);
-    dashboardSection.querySelector('.home-rank-slot').appendChild(rankMount);
+    if (investorMount) investorMount.remove();
+    if (rankMount) rankMount.remove();
     var oldSidebar = document.querySelector('.sidebar-right');
     if (oldSidebar) oldSidebar.hidden = true;
 
@@ -195,56 +213,25 @@
     function setField(name, text, tone) {
       var element = field(name);
       if (!element) return;
-      element.textContent = text;
+      var fullText = text == null ? '' : String(text);
+      element.textContent = fullText;
+      // 업종명은 카드 폭에 맞춰 말줄임표로 보이지만, hover/focus 시 전체 문구를
+      // 확인할 수 있도록 native tooltip과 접근성 레이블을 함께 유지한다.
+      element.title = fullText;
+      element.setAttribute('aria-label', fullText);
       element.classList.remove('home-positive', 'home-negative', 'home-neutral');
       if (tone) element.classList.add(tone);
     }
 
-    function formatFlow(value) {
-      if (value == null || isNaN(value)) return '데이터 확인 중';
-      if (value === 0) return '0억';
-      var sign = value > 0 ? '+' : '-';
-      var absolute = Math.abs(value);
-      return absolute >= 10000
-        ? sign + (absolute / 10000).toFixed(1) + '조'
-        : sign + Math.round(absolute).toLocaleString('ko-KR') + '억';
+    function applyHomeSummarySession(session) {
+      var isUs = session && session.keys && session.keys[0] === 'NASDAQ_INDEX';
+      var title = dashboardSection.querySelector('[data-home-summary-field="title"]');
+      var meta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
+      var labels = dashboardSection.querySelectorAll('.hmb-list dt');
+      if (title) title.textContent = isUs ? '미국 시장 요약' : '국내 시장 요약';
+      if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
+      if (labels[0]) labels[0].textContent = isUs ? '상승 종목 비율' : '증시온도';
     }
-
-    function renderRuleInterpretation() {
-      if (!homeState.flowReady) {
-        setField('interpretation', '장 마감 후 수급 데이터가 업데이트됩니다.', 'home-neutral');
-        return;
-      }
-      var foreign = homeState.foreign;
-      var institution = homeState.institution;
-      var sentence;
-      if (foreign > 0 && institution > 0) sentence = '외국인과 기관이 동반 순매수 중입니다.';
-      else if (foreign < 0 && institution > 0) sentence = '외국인 매도 물량을 기관이 일부 받아내고 있습니다.';
-      else if (foreign > 0 && institution < 0) sentence = '기관 매도에도 외국인이 시장을 방어하고 있습니다.';
-      else if (foreign < 0 && institution < 0) sentence = '외국인과 기관이 동반 매도하며 수급 부담이 큽니다.';
-      else sentence = '수급 방향이 뚜렷하지 않아 추가 확인이 필요합니다.';
-      setField('interpretation', sentence, 'home-neutral');
-    }
-
-    window.addEventListener('investor-trend-data', function (event) {
-      var detail = event.detail || {};
-      if (detail.period !== 'day' || detail.market !== 'kospi') return;
-      var rows = detail.result && detail.result.rows;
-      var latest = rows && rows.length ? rows[rows.length - 1] : null;
-      if (!latest || (Number(latest.ind) === 0 && Number(latest.frgn) === 0 && Number(latest.orgn) === 0)) {
-        setField('foreign', '장 마감 후 업데이트', 'home-neutral');
-        setField('institution', '장 마감 후 업데이트', 'home-neutral');
-        homeState.flowReady = false;
-        renderRuleInterpretation();
-        return;
-      }
-      homeState.foreign = Number(latest.frgn);
-      homeState.institution = Number(latest.orgn);
-      homeState.flowReady = !isNaN(homeState.foreign) && !isNaN(homeState.institution);
-      setField('foreign', formatFlow(homeState.foreign), homeState.foreign > 0 ? 'home-positive' : homeState.foreign < 0 ? 'home-negative' : 'home-neutral');
-      setField('institution', formatFlow(homeState.institution), homeState.institution > 0 ? 'home-positive' : homeState.institution < 0 ? 'home-negative' : 'home-neutral');
-      renderRuleInterpretation();
-    });
 
     function sectorSummary(data) {
       var groups = {};
@@ -297,6 +284,15 @@
       return { label: '데이터 확인 중', tone: 'home-neutral' };
     }
 
+    function renderMarketExchange(market) {
+      var exchange = market && market.components && market.components.exchange;
+      if (!exchange || typeof exchange.price !== 'number') return;
+      var exchangeRate = Number(exchange.changeRate);
+      var arrow = exchangeRate > 0 ? ' ▲' : exchangeRate < 0 ? ' ▼' : '';
+      setField('exchange', exchange.price.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '원' + arrow,
+        exchangeRate > 0 ? 'home-positive' : exchangeRate < 0 ? 'home-negative' : 'home-neutral');
+    }
+
     function renderMarketTemperature(market) {
       if (market && typeof market.temp === 'number') {
         var grade = market.grade && market.grade.label ? ' ' + market.grade.label : '';
@@ -311,8 +307,59 @@
             exchangeRate > 0 ? 'home-positive' : exchangeRate < 0 ? 'home-negative' : 'home-neutral');
         }
         var updated = document.getElementById('hmbUpdated');
-        if (updated && market.updatedAt) updated.textContent = market.updatedAt + ' 기준';
+        if (updated && market.updatedAt) updated.textContent = formatHomeTimestamp(market.updatedAt) + ' 기준';
       }
+    }
+
+    function summarizeUsMarket(data) {
+      var payload = data && data.data ? data.data : data;
+      var rows = payload && payload.rows ? payload.rows : [];
+      var valid = rows.map(function (row) {
+        return { rate: Number(row && row.change_rate), industry: String(row && row.industry || '').trim() };
+      }).filter(function (row) { return isFinite(row.rate); });
+      if (!valid.length) return null;
+      var rising = valid.filter(function (row) { return row.rate > 0; }).length;
+      var riseRatio = rising / valid.length;
+      var averageRate = valid.reduce(function (sum, row) { return sum + row.rate; }, 0) / valid.length;
+      var groups = {};
+      valid.forEach(function (row) {
+        if (!row.industry) return;
+        if (!groups[row.industry]) groups[row.industry] = { total: 0, count: 0 };
+        groups[row.industry].total += row.rate;
+        groups[row.industry].count += 1;
+      });
+      var industries = Object.keys(groups).map(function (industry) {
+        return { industry: industry, average: groups[industry].total / groups[industry].count };
+      }).sort(function (a, b) { return b.average - a.average; });
+      return {
+        riseRatio: riseRatio,
+        averageRate: averageRate,
+        direction: resolveMarketDirection({ components: {
+          riseRatio: { ratio: riseRatio },
+          avgChange: { avgChangeRate: averageRate }
+        } }),
+        leaders: industries.filter(function (item) { return item.average > 0; }).slice(0, 3),
+        cautions: industries.filter(function (item) { return item.average < 0; }).slice(-3).reverse(),
+        updatedAt: payload && payload.updatedAt
+      };
+    }
+
+    function renderUsMarketSummary(data) {
+      var summary = summarizeUsMarket(data);
+      if (!summary) {
+        setField('temperature', '데이터 확인 중', 'home-neutral');
+        setField('direction', '데이터 확인 중', 'home-neutral');
+        setField('leaders', '데이터 확인 중', 'home-neutral');
+        setField('cautions', '데이터 확인 중', 'home-neutral');
+        return;
+      }
+      var ratio = (summary.riseRatio * 100).toFixed(1) + '%';
+      setField('temperature', ratio, summary.riseRatio >= 0.55 ? 'home-positive' : summary.riseRatio <= 0.45 ? 'home-negative' : 'home-neutral');
+      setField('direction', summary.direction.label, summary.direction.tone);
+      setField('leaders', summary.leaders.length ? summary.leaders.map(function (item) { return item.industry; }).join(' · ') : '데이터 확인 중', 'home-positive');
+      setField('cautions', summary.cautions.length ? summary.cautions.map(function (item) { return item.industry; }).join(' · ') : '데이터 확인 중', 'home-negative');
+      var updated = document.getElementById('hmbUpdated');
+      if (updated && summary.updatedAt) updated.textContent = formatHomeTimestamp(summary.updatedAt) + ' 기준';
     }
 
     function renderMarketSectors(bubble) {
@@ -321,12 +368,166 @@
       setField('cautions', summary.cautions.length ? summary.cautions.map(function (item) { return item.sector; }).join(' · ') : '데이터 확인 중', 'home-negative');
     }
 
+    function homeIndexCard(slot) {
+      return dashboardSection.querySelector('[data-home-index-slot="' + slot + '"]');
+    }
+
+    function renderHomeIndexChart(element, rows, positive, key) {
+      if (!element) return;
+      var values = (rows || []).map(function (row) { return Number(row && row.close); })
+        .filter(function (value) { return isFinite(value); }).slice(-48);
+      if (values.length < 2) {
+        element.innerHTML = '<span class="home-index-chart-empty">추이 데이터 없음</span>';
+        return;
+      }
+      var width = 240;
+      var height = 48;
+      var pad = 2;
+      var min = Math.min.apply(Math, values);
+      var max = Math.max.apply(Math, values);
+      var range = max - min || 1;
+      var points = values.map(function (value, index) {
+        var x = pad + index * (width - pad * 2) / (values.length - 1);
+        var y = height - pad - ((value - min) / range) * (height - pad * 2);
+        return x.toFixed(2) + ',' + y.toFixed(2);
+      }).join(' ');
+      var color = positive ? '#d24f45' : '#1261c4';
+      var gradientId = 'homeIndexFill' + String(key || 'index').replace(/[^A-Za-z0-9_-]/g, '') + (positive ? 'Up' : 'Down');
+      element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">'
+        + '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">'
+        + '<stop offset="0" stop-color="' + color + '" stop-opacity=".22"></stop>'
+        + '<stop offset="1" stop-color="' + color + '" stop-opacity=".01"></stop></linearGradient></defs>'
+        + '<polygon points="' + pad + ',' + height + ' ' + points + ' ' + (width - pad) + ',' + height + '" fill="url(#' + gradientId + ')"></polygon>'
+        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>'
+        + '</svg>';
+    }
+
+    function formatHomeTimestamp(value) {
+      var date = new Date(value);
+      if (isNaN(date.getTime())) return String(value || '');
+      var parts = new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+      }).formatToParts(date).reduce(function (map, part) {
+        map[part.type] = part.value;
+        return map;
+      }, {});
+      return parts.year + '-' + parts.month + '-' + parts.day + ' '
+        + parts.dayPeriod + ' ' + parts.hour + ':' + parts.minute + ':' + parts.second;
+    }
+
+    function homeMarketSession() {
+      var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      var hour = kst.getUTCHours();
+      var isUsSession = hour >= 20 || hour < 8;
+      return isUsSession ? {
+        title: '미국 시장',
+        live: '나스닥 · S&P500',
+        subtitle: '미국 현물 지수 확인 중',
+        keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
+        labels: ['나스닥', 'S&P500']
+      } : {
+        title: '국내 시장',
+        live: '실시간',
+        subtitle: '오늘의 시장판 · 시세 확인 중',
+        keys: ['KOSPI', 'KOSDAQ'],
+        labels: ['코스피', '코스닥']
+      };
+    }
+
+    function applyHomeMarketSession(session) {
+      var title = dashboardSection.querySelector('[data-home-market-field="title"]');
+      var live = dashboardSection.querySelector('[data-home-market-field="live"]');
+      var updated = document.getElementById('hmbUpdated');
+      if (title) title.textContent = session.title;
+      if (live) live.textContent = session.live;
+      if (updated && (!updated.dataset || updated.dataset.homeSession !== session.keys.join('|'))) {
+        updated.textContent = session.subtitle;
+        if (updated.dataset) updated.dataset.homeSession = session.keys.join('|');
+      }
+      ['primary', 'secondary'].forEach(function (slot, index) {
+        var card = homeIndexCard(slot);
+        if (!card) return;
+        var key = session.keys[index];
+        var previousKey = card.getAttribute('data-home-index');
+        card.setAttribute('data-home-index', key);
+        var label = card.querySelector('[data-index-field="label"]');
+        var price = card.querySelector('[data-index-field="price"]');
+        var change = card.querySelector('[data-index-field="change"]');
+        var status = card.querySelector('[data-index-field="status"]');
+        var chart = card.querySelector('[data-index-field="chart"]');
+        if (label) label.textContent = session.labels[index];
+        if (previousKey && previousKey !== key) {
+          if (price) price.textContent = '-';
+          if (change) change.textContent = '-';
+          if (status) status.textContent = '· 확인 중';
+          if (chart) chart.innerHTML = '<span class="home-index-chart-empty">시세 전환 중</span>';
+        }
+      });
+    }
+
+    function renderHomeIndices(items) {
+      var session = homeMarketSession();
+      applyHomeMarketSession(session);
+      var bySymbol = {};
+      (items || []).forEach(function (item) { if (item && item.symbol) bySymbol[item.symbol] = item; });
+      session.keys.forEach(function (key, index) {
+        var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
+        var item = bySymbol[key];
+        if (!card) return;
+        var price = item && Number(item.price);
+        var change = item && Number(item.change);
+        var rate = item && Number(item.change_rate);
+        var tone = !isFinite(change) || change === 0 ? 'home-neutral' : change > 0 ? 'home-positive' : 'home-negative';
+        var priceEl = card.querySelector('[data-index-field="price"]');
+        var changeEl = card.querySelector('[data-index-field="change"]');
+        var statusEl = card.querySelector('[data-index-field="status"]');
+        var chartEl = card.querySelector('[data-index-field="chart"]');
+        if (priceEl) { priceEl.textContent = isFinite(price) ? price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-'; priceEl.className = tone; }
+        if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
+        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || (session.keys[0] === 'KOSPI' ? '장중' : '미국 현물')) : '· 데이터 지연';
+        renderHomeIndexChart(chartEl, item && item.chart, change >= 0, key);
+      });
+    }
+
+    function loadHomeIndices() {
+      applyHomeMarketSession(homeMarketSession());
+      var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
+        ? window.QuickIndices.fetchFutures()
+        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX', 12000)
+          .then(function (data) { return data && data.data ? data.data : []; });
+      request.then(renderHomeIndices).catch(function () {
+        ['primary', 'secondary'].forEach(function (slot) {
+          var card = homeIndexCard(slot);
+          if (!card) return;
+          var status = card.querySelector('[data-index-field="status"]');
+          if (status) status.textContent = '· 시세 지연';
+        });
+      });
+    }
+
+    loadHomeIndices();
+    setInterval(function () { if (!document.hidden) loadHomeIndices(); }, 60 * 1000);
+
     var marketTempCacheKey = 'home_market_temp_v1';
     var marketSectorCacheKey = 'home_market_sectors_v1';
     var cachedMarketTemp = readHomeDataCache(marketTempCacheKey, 10 * 60 * 1000);
     var cachedMarketSectors = readHomeDataCache(marketSectorCacheKey, 30 * 60 * 1000);
-    if (cachedMarketTemp) renderMarketTemperature(cachedMarketTemp);
-    if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
+    var summarySessionKey = '';
+    var loadHomeUsSummary;
+    var loadHomeDomesticSummary;
+
+    function loadSummaryForSession(session) {
+      var isUs = session && session.keys && session.keys[0] === 'NASDAQ_INDEX';
+      var nextKey = (session.keys || []).join('|');
+      summarySessionKey = nextKey;
+      applyHomeSummarySession(session);
+      if (isUs) {
+        loadHomeUsSummary();
+      } else {
+        loadHomeDomesticSummary();
+      }
+    }
 
     // 2026-08-05: 8000 -> 20000(js/market-temp.js와 동일 값으로 맞춤). GAS getMarketTemp()는
     // 캐시(30분 TTL)가 만료되면 VIX/수급/거래대금/평균등락률/섹터강도/52주신고저/환율/미국선물
@@ -336,10 +537,11 @@
     fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 20000)
       .then(function (market) {
         writeHomeDataCache(marketTempCacheKey, market);
-        renderMarketTemperature(market);
+        if (homeMarketSession().keys[0] === 'NASDAQ_INDEX') renderMarketExchange(market);
+        else renderMarketTemperature(market);
       })
       .catch(function () {
-        if (!cachedMarketTemp) {
+        if (!cachedMarketTemp && homeMarketSession().keys[0] !== 'NASDAQ_INDEX') {
           setField('temperature', '일시 지연', 'home-neutral');
           setField('direction', '데이터 확인 중', 'home-neutral');
           setField('exchange', '일시 지연', 'home-neutral');
@@ -362,111 +564,34 @@
             setField('leaders', '일시 지연', 'home-neutral');
             setField('cautions', '일시 지연', 'home-neutral');
           }
+      });
+    };
+
+    loadHomeUsSummary = function () {
+      fetchHomeJson('https://goodbyestar.cloud/market-board?market=us&limit=20', 12000)
+        .then(renderUsMarketSummary)
+        .catch(function () {
+          setField('temperature', '데이터 확인 중', 'home-neutral');
+          setField('direction', '데이터 확인 중', 'home-neutral');
+          setField('leaders', '데이터 확인 중', 'home-neutral');
+          setField('cautions', '데이터 확인 중', 'home-neutral');
         });
     };
-    if (window.requestIdleCallback) window.requestIdleCallback(loadHomeSectors, { timeout: 2500 });
-    else setTimeout(loadHomeSectors, 0);
 
-    function renderPatterns(data) {
-      var list = document.getElementById('homePatternList');
-      if (!list) return;
-      var patterns = (data && data.patterns) || {};
-      var items = [
-        { key: 'risingLows', label: '저점상승형' },
-        { key: 'doubleBottom', label: '쌍바닥' },
-        { key: 'invHeadShoulders', label: '역헤드앤숄더' },
-        { key: 'boxRangeLow', label: '박스권 하단' }
-      ];
-      function patternItems(item) {
-        return Array.isArray(patterns[item.key]) ? patterns[item.key] : [];
-      }
-      function rateText(value) {
-        var rate = Number(value);
-        if (isNaN(rate)) return '';
-        return (rate > 0 ? '+' : '') + rate.toFixed(2) + '%';
-      }
-      function renderPatternOverview() {
-        list.innerHTML = items.map(function (item) {
-          var count = patternItems(item).length;
-          return '<button type="button" class="home-pattern-row" data-pattern-key="' + item.key + '"'
-            + ' aria-expanded="false" aria-controls="homePatternPreview">'
-            + '<span>' + item.label + '</span><strong>' + count.toLocaleString('ko-KR') + '종목'
-            + '<span class="home-pattern-chevron" aria-hidden="true">›</span></strong></button>';
-        }).join('')
-          + '<div class="home-pattern-new" title="최신 스캔 거래일에 패턴 조건을 만족한 고유 종목 수입니다. 신규 상장 종목 수가 아닙니다."><span>오늘 신규 발견</span><strong>'
-          + Object.keys(newCodes).length.toLocaleString('ko-KR') + '종목</strong></div>';
+    loadHomeDomesticSummary = function () {
+      if (cachedMarketTemp) renderMarketTemperature(cachedMarketTemp);
+      if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
+      if (window.requestIdleCallback) window.requestIdleCallback(loadHomeSectors, { timeout: 2500 });
+      else setTimeout(loadHomeSectors, 0);
+    };
 
-        list.querySelectorAll('.home-pattern-row').forEach(function (button) {
-          button.addEventListener('click', function () {
-            var key = button.getAttribute('data-pattern-key');
-            var item = items.filter(function (candidate) { return candidate.key === key; })[0];
-            if (item) renderPatternPreview(item);
-          });
-        });
-      }
-      function renderPatternPreview(item) {
-        var stocks = patternItems(item).slice().sort(function (a, b) {
-          return Number(b.score || 0) - Number(a.score || 0);
-        });
-        var rows = stocks.length ? stocks.map(function (stock) {
-          var rate = Number(stock.changeRate);
-          var tone = isNaN(rate) || rate === 0 ? 'home-neutral' : rate > 0 ? 'home-positive' : 'home-negative';
-          return '<a class="home-pattern-stock" href="/page/pattern-scan">'
-            + '<span><strong>' + escapeHomeHtml(stock.name || stock.code || '종목명 확인 중') + '</strong>'
-            + (stock.code ? '<small>' + escapeHomeHtml(stock.code) + '</small>' : '') + '</span>'
-            + '<em class="' + tone + '">' + rateText(stock.changeRate) + '</em></a>';
-        }).join('') : '<p class="home-pattern-empty">현재 이 패턴에 해당하는 종목이 없습니다.</p>';
-
-        list.innerHTML = '<div class="home-pattern-preview" id="homePatternPreview">'
-          + '<button type="button" class="home-pattern-preview-back">← 전체 패턴</button>'
-          + '<div class="home-pattern-preview-heading"><strong>' + item.label + '</strong>'
-          + '<span>' + patternItems(item).length.toLocaleString('ko-KR') + '종목 · 스크롤</span></div>'
-          + '<div class="home-pattern-stock-list">' + rows + '</div></div>';
-        var back = list.querySelector('.home-pattern-preview-back');
-        if (back) back.addEventListener('click', renderPatternOverview);
-      }
-      var newCodes = {};
-      // item.date는 마지막 거래일이다. 주말/휴장일에는 브라우저의 오늘 날짜와
-      // 거래일이 달라져 기존 로직이 계속 0건을 보여줬다. 최신 스캔 결과에 포함된
-      // 가장 최근 거래일을 기준일로 사용한다.
-      var scanDate = data && data.scannedAt ? new Date(data.scannedAt) : null;
-      var scanDateKey = scanDate && !isNaN(scanDate.getTime())
-        ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(scanDate)
-        : '';
-      var latestPatternDate = '';
-      Object.keys(patterns).forEach(function (key) {
-        (patterns[key] || []).forEach(function (item) {
-          if (item && item.date && item.date <= (scanDateKey || '9999-12-31') && item.date > latestPatternDate) {
-            latestPatternDate = item.date;
-          }
-        });
-      });
-      var referencePatternDate = latestPatternDate || scanDateKey;
-      Object.keys(patterns).forEach(function (key) {
-        (patterns[key] || []).forEach(function (item) {
-          if (item && item.date === referencePatternDate && item.code) newCodes[item.code] = true;
-        });
-      });
-      renderPatternOverview();
-      var updated = document.getElementById('homePatternUpdated');
-      if (updated && data.scannedAt) {
-        var date = new Date(data.scannedAt);
-        updated.textContent = isNaN(date.getTime()) ? '' : (date.getMonth() + 1) + '.' + date.getDate() + '. 스캔';
-      }
-    }
-
-    var patternCacheKey = 'home_pattern_scan_v1';
-    var cachedPatterns = readHomeDataCache(patternCacheKey, 18 * 60 * 60 * 1000);
-    if (cachedPatterns) renderPatterns(cachedPatterns);
-    fetchHomeJson(GAS_TICKER_URL + '?patternScan=1', 25000)
-      .then(function (data) {
-        writeHomeDataCache(patternCacheKey, data);
-        renderPatterns(data);
-      })
-      .catch(function () {
-        var list = document.getElementById('homePatternList');
-        if (list && !cachedPatterns) list.innerHTML = '<p class="home-card-state">패턴 데이터를 불러오지 못했습니다.</p>';
-      });
+    loadSummaryForSession(homeMarketSession());
+    setInterval(function () {
+      if (document.hidden) return;
+      var session = homeMarketSession();
+      var nextKey = (session.keys || []).join('|');
+      if (nextKey !== summarySessionKey) loadSummaryForSession(session);
+    }, 60 * 1000);
 
     function calendarMeta(rawTitle) {
       var segments = String(rawTitle || '').split('|').map(function (item) { return item.trim(); });
@@ -493,12 +618,32 @@
       return includeDate ? dateLabel + ' ' + timeLabel : timeLabel;
     }
 
+    function calendarMarketPriority(event) {
+      var market = String(event && event.market || '').toLowerCase();
+      if (market === 'domestic' || market === 'kr' || market === 'korea') return 0;
+      if (market === 'us' || market === 'usa' || market === 'foreign') return 1;
+      var source = String(event && (event.source || event.provider || '') || '');
+      var title = String(event && event.title || '').trim();
+      if (/dart|국내|한국|kospi|kosdaq/i.test(source + ' ' + title)) return 0;
+      if (/finnhub|미국|nasdaq|nyse|s&p/i.test(source + ' ' + title)) return 1;
+      if (/^\$/.test(title) || /^\p{Regional_Indicator}{2}/u.test(title)) return 1;
+      return 0;
+    }
+
+    function compareCalendarEvents(a, b) {
+      var dayOrder = String(a && a.start || '').slice(0, 10).localeCompare(String(b && b.start || '').slice(0, 10));
+      if (dayOrder) return dayOrder;
+      var marketOrder = calendarMarketPriority(a) - calendarMarketPriority(b);
+      if (marketOrder) return marketOrder;
+      return eventDate(a) - eventDate(b);
+    }
+
     function nearestEvents(events) {
       var now = new Date();
       var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       var tomorrow = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
       var upcoming = (events || []).filter(function (event) { return eventDate(event) >= todayStart; })
-        .sort(function (a, b) { return eventDate(a) - eventDate(b); });
+        .sort(compareCalendarEvents);
       var todayItems = upcoming.filter(function (event) { return eventDate(event) < tomorrow; });
       if (todayItems.length) return { items: todayItems.slice(0, 4), includeDate: false, label: '오늘 일정' };
       if (!upcoming.length) return { items: [], includeDate: true, label: '오늘 또는 가장 가까운 일정' };
@@ -598,6 +743,16 @@
           gasUrl: GAS_TICKER_URL,
           fetchJson: fetchHomeJson
         });
+        return Promise.all([
+          loadHomeScript(HOME_REALTIME_TABLE_SCRIPT_URL, 'HomeRealtimeTable'),
+          loadHomeScript(HOME_ECONOMIC_NEWS_SCRIPT_URL, 'HomeEconomicNews')
+        ]);
+      })
+      .then(function (modules) {
+        var table = modules && modules[0];
+        var news = modules && modules[1];
+        if (table && table.init) table.init({ mount: dashboardSection.querySelector('#homeRealtimeBoard') });
+        if (news && news.init) news.init({ mount: dashboardSection.querySelector('#homeEconomicNews') });
       })
       .catch(function () {
         /* 위젯 관리 모듈이 막혀도 기존 고정형 대시보드는 그대로 사용할 수 있게 둔다. */
@@ -1001,17 +1156,6 @@
     /* ⑩ 최종 출력 (3줄 클램프는 style.css .post-excerpt 규칙이 담당) */
     el.innerHTML = raw.replace(/\n/g, '<br>');
   });
-
-  /* 뉴스 티커 초기 패딩 보정 (RSS 로드 전부터 공간 확보) */
-  (function() {
-    var pw = document.querySelector('.page-wrap');
-    var sl = document.querySelector('.sidebar-left');
-    var sr = document.querySelector('.sidebar-right');
-    if (pw) pw.style.paddingTop = '122px'; /* navbar+disc-ticker 여백(90px) + market-ribbon(32px) */
-    /* 모바일에서는 사이드바가 드로어이므로 top 고정하지 않음 */
-    if (sl && window.innerWidth > 720) sl.style.top = '142px';
-    if (sr && window.innerWidth > 1100) sr.style.top = '142px';
-  })();
 
   /* ── 모바일 드로어 & 검색 오버레이 ── */
   (function() {

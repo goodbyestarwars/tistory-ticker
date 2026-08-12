@@ -1,44 +1,43 @@
 /**
  * 홈 대시보드 위젯 관리자.
  *
- * 기존 화면이 만든 투자자 수급/시장판/랭킹/패턴/일정/브리핑 DOM을 위젯 레지스트리로
- * 승격하고, MY·실시간 공시 위젯을 추가한다. 홈은 이 모듈에서 순서와 표시 상태만 관리하며
+ * 기존 화면이 만든 시장판/일정/브리핑 DOM을 위젯 레지스트리로 승격하고,
+ * 실시간 공시 위젯을 추가한다. 홈은 이 모듈에서 순서와 표시 상태만 관리하며
  * 데이터 계산/API 엔드포인트는 기존 구현을 그대로 재사용한다.
  */
 (function (global) {
   'use strict';
 
-  var STORAGE_KEY = 'home_dashboard_layout_v1';
+  var STORAGE_KEY = 'home_dashboard_layout_v2';
   var WATCHLIST_KEY = 'wl_codes_v1';
   var WATCHLIST_QUOTES_CACHE_KEY = 'home_watchlist_quotes_v1';
   var DISCLOSURE_CACHE_KEY = 'home_disclosures_v1';
+  var US_SCHEDULE_CACHE_KEY = 'home_us_schedule_v1';
   var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
+  var EARNINGS_CALENDAR_URL = 'https://goodbyestar.cloud/earnings-calendar';
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   // 2026-07-31: 홈 MY 카드도 /page/watchlist(js/watchlist.js)와 동일한 VM 실시간 체결가
   // WebSocket 중계에 연결한다 - 페이지 로드 시 1회 GAS 조회 후 갱신이 없던 것을 보완.
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
   var REALTIME_RECONNECT_MS = 5000;
+  var REALTIME_FALLBACK_MS = 15000;
   var myRealtimeSocket = null;
   var myRealtimeReconnectTimer = null;
   var myRealtimeKeepaliveTimer = null;
+  var myRealtimeFallbackTimer = null;
   var myRealtimeGeneration = 0;
+  var disclosureMarket = null;
+  var disclosureMarketTimer = null;
   var DEFAULT_ORDER = [
-    'investor-flow',
     'market-summary',
-    'ranking',
-    'pattern',
-    'my-watchlist',
-    'schedule',
-    'disclosure',
+    'economic-news',
+    'realtime-board',
     'briefing'
   ];
   var LABELS = {
-    'investor-flow': '투자자별 매매동향',
+    'economic-news': '경제 종합뉴스',
+    'realtime-board': '실시간 종목판',
     'market-summary': '오늘의 시장판',
-    ranking: '실시간 랭킹',
-    pattern: '오늘의 패턴',
-    'my-watchlist': 'MY',
-    schedule: '주요 일정',
-    disclosure: '실시간 공시',
     briefing: '마켓브리핑'
   };
 
@@ -138,7 +137,7 @@
     return '<article class="card home-mini-card home-my-card">'
       + '<div class="home-card-heading"><div><strong>MY</strong><span>관심종목</span></div></div>'
       + '<div class="home-my-list" id="homeMyList"><p class="home-card-state">관심종목을 확인하는 중...</p></div>'
-      + '<a class="home-card-more" href="/page/watchlist">더보기 →</a>'
+      + '<button type="button" class="home-card-more" data-open-global-watchlist>관심종목 열기 →</button>'
       + '</article>';
   }
 
@@ -151,59 +150,29 @@
   }
 
   function buildToolbar() {
-    var toolbar = document.createElement('div');
-    toolbar.className = 'home-dashboard-toolbar';
-    toolbar.innerHTML = '<span>카드의 ⋮⋮ 핸들을 드래그해 홈을 재배치할 수 있습니다.</span>'
-      + '<div class="home-dashboard-settings">'
-      + '<button type="button" class="home-settings-button" aria-expanded="false">홈 설정</button>'
-      + '<div class="home-settings-panel" hidden>'
-      + '<strong>숨긴 카드</strong><div class="home-hidden-widgets"></div>'
-      + '<button type="button" class="home-reset-button">홈 화면 초기화</button>'
-      + '</div></div>';
-    settingsPanel = toolbar.querySelector('.home-settings-panel');
-    return toolbar;
+    return null;
   }
 
   function buildRegistry(options) {
     var dashboard = options.dashboard;
     var overview = dashboard.querySelector('.home-overview-grid');
-    var cards = dashboard.querySelector('.home-card-grid');
-    var investor = overview && overview.querySelector('.home-investor-slot');
     var market = overview && overview.querySelector('.home-market-board');
-    var ranking = cards && cards.querySelector('.home-rank-slot');
-    var pattern = cards && cards.querySelector('.home-pattern-card');
-    var schedule = cards && cards.querySelector('.home-schedule-card');
-    if (!investor || !market || !ranking || !pattern || !schedule || !options.briefing) return false;
-
-    var my = document.createElement('div');
-    my.innerHTML = myCardHtml();
-    var disclosure = document.createElement('div');
-    disclosure.innerHTML = disclosureCardHtml();
+    var economic = overview && overview.querySelector('.home-economic-news');
+    var realtime = dashboard.querySelector('.home-realtime-board');
+    if (!market || !options.briefing) return false;
 
     grid = document.createElement('div');
     grid.className = 'home-widget-grid';
-    [
-      investor,
-      market,
-      ranking,
-      pattern,
-      my.firstElementChild,
-      schedule,
-      disclosure.firstElementChild,
-      options.briefing
-    ].forEach(function (node) { grid.appendChild(node); });
+    [market, economic, realtime, options.briefing].forEach(function (node) {
+      if (node) grid.appendChild(node);
+    });
 
     dashboard.innerHTML = '';
-    dashboard.appendChild(buildToolbar());
     dashboard.appendChild(grid);
 
-    decorate(investor, 'investor-flow', 'wide');
     decorate(market, 'market-summary', 'summary');
-    decorate(ranking, 'ranking', 'compact');
-    decorate(pattern, 'pattern', 'compact');
-    decorate(grid.querySelector('.home-my-card'), 'my-watchlist', 'compact');
-    decorate(schedule, 'schedule', 'compact');
-    decorate(grid.querySelector('.home-disclosure-card'), 'disclosure', 'compact');
+    if (economic) decorate(economic, 'economic-news', 'summary');
+    if (realtime) decorate(realtime, 'realtime-board', 'full');
     decorate(options.briefing, 'briefing', 'full');
     return true;
   }
@@ -311,34 +280,8 @@
       closeWidgetMenus();
     });
 
-    var settingsButton = toolbar.querySelector('.home-settings-button');
-    settingsButton.addEventListener('click', function () {
-      var open = settingsPanel.hidden;
-      settingsPanel.hidden = !open;
-      settingsButton.setAttribute('aria-expanded', String(open));
-      refreshSettings();
-    });
-    settingsPanel.addEventListener('click', function (event) {
-      var restore = event.target.closest ? event.target.closest('[data-restore-widget]') : null;
-      if (restore) {
-        var id = restore.getAttribute('data-restore-widget');
-        if (registry[id]) registry[id].hidden = false;
-        saveState();
-        refreshSettings();
-        return;
-      }
-      if (!event.target.closest('.home-reset-button')) return;
-      layoutStorage.set(JSON.stringify({ order: DEFAULT_ORDER, hidden: [] }));
-      applyState({ order: DEFAULT_ORDER, hidden: [] });
-      settingsPanel.hidden = true;
-      settingsButton.setAttribute('aria-expanded', 'false');
-    });
     document.addEventListener('click', function (event) {
       if (!event.target.closest('.home-widget-actions')) closeWidgetMenus();
-      if (!event.target.closest('.home-dashboard-settings')) {
-        settingsPanel.hidden = true;
-        settingsButton.setAttribute('aria-expanded', 'false');
-      }
     });
   }
 
@@ -424,11 +367,18 @@
   }
 
   function readWatchlist() {
+    if (global.Watchlist && typeof global.Watchlist.getList === 'function') {
+      return global.Watchlist.getList();
+    }
+    return [];
+    /* Legacy localStorage watchlists are no longer read. */
+    //
     var list = [];
     try { list = JSON.parse(safeStorageGet(WATCHLIST_KEY) || '[]'); } catch (err) { list = []; }
     return Array.isArray(list) ? list.filter(function (item) {
       return item && item.code && item.name;
     }) : [];
+    //
   }
 
   function formatPrice(value) {
@@ -485,8 +435,10 @@
     myRealtimeGeneration += 1;
     clearTimeout(myRealtimeReconnectTimer);
     clearInterval(myRealtimeKeepaliveTimer);
+    clearInterval(myRealtimeFallbackTimer);
     myRealtimeReconnectTimer = null;
     myRealtimeKeepaliveTimer = null;
+    myRealtimeFallbackTimer = null;
     if (myRealtimeSocket) {
       myRealtimeSocket.onclose = null;
       myRealtimeSocket.close();
@@ -496,10 +448,24 @@
 
   function startMyRealtime(list) {
     stopMyRealtime();
-    if (!list.length || document.hidden || !('WebSocket' in global)) return;
+    if (!list.length || document.hidden) return;
 
     var generation = myRealtimeGeneration;
     var encodedCodes = list.map(function (item) { return encodeURIComponent(item.code); }).join(',');
+
+    // NXT 장 전환 때 upstream websocket이 잠시 조용하거나 중계가 재접속 중이어도
+    // 현재가를 계속 갱신한다. 목록 전체를 다시 그리지 않고 값이 있는 행만 수정한다.
+    myRealtimeFallbackTimer = setInterval(function () {
+      if (generation !== myRealtimeGeneration || document.hidden || !context || !context.fetchJson) return;
+      context.fetchJson(context.gasUrl + '?codes=' + list.map(function (item) {
+        return encodeURIComponent(item.code);
+      }).join(','), 10000).then(function (data) {
+        if (generation !== myRealtimeGeneration) return;
+        (Array.isArray(data) ? data : []).forEach(function (quote) {
+          if (quote && quote.code) updateMyRow(quote.code, quote);
+        });
+      }).catch(function () {});
+    }, REALTIME_FALLBACK_MS);
 
     function connect() {
       if (generation !== myRealtimeGeneration || document.hidden) return;
@@ -534,7 +500,7 @@
       };
     }
 
-    connect();
+    if ('WebSocket' in global) connect();
   }
 
   function loadMyWidget() {
@@ -596,7 +562,8 @@
       result.push({
         corp: parsed.corp,
         title: parsed.title || title,
-        link: extractTag(chunk, 'link') || '#'
+        link: extractTag(chunk, 'link') || '#',
+        pubDate: extractTag(chunk, 'pubDate') || extractTag(chunk, 'dc:date') || extractTag(chunk, 'date')
       });
     }
     return result;
@@ -627,6 +594,25 @@
     return title.length > 28 ? title.slice(0, 28) + '…' : title;
   }
 
+  function disclosureTime(value) {
+    var raw = String(value || '').trim();
+    if (/^\d{8}$/.test(raw)) return raw.slice(4, 6) + '.' + raw.slice(6, 8);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.slice(5, 7) + '.' + raw.slice(8, 10);
+    var date = new Date(raw);
+    if (isNaN(date.getTime())) return '';
+    var parts = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    }).formatToParts(date).reduce(function (map, part) {
+      map[part.type] = part.value;
+      return map;
+    }, {});
+    var dateText = parts.month + '.' + parts.day;
+    return parts.hour === '00' && parts.minute === '00'
+      ? dateText
+      : dateText + ' ' + parts.dayPeriod + ' ' + parts.hour + ':' + parts.minute;
+  }
+
   function renderDisclosures(items) {
     var mount = document.getElementById('homeDisclosureList');
     if (!mount) return;
@@ -635,14 +621,245 @@
       return;
     }
     mount.innerHTML = items.map(function (item) {
+      var time = disclosureTime(item.pubDate);
       return '<a class="home-disclosure-row" href="' + escapeHtml(item.link) + '" target="_blank" rel="noopener">'
         + '<strong>' + escapeHtml(item.corp || '시장 공시') + '</strong>'
-        + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span></a>';
+        + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span>'
+        + (time ? '<time>' + escapeHtml(time) + '</time>' : '') + '</a>';
     }).join('');
+    // 국내 공시도 미국 일정과 같은 가로 카드 스트립이므로 마우스/터치 drag로
+    // 옆 카드까지 넘길 수 있어야 한다. 이전에는 미국 일정 렌더링 경로에만
+    // drag 핸들러가 연결되어 국내 '오늘의 공시'는 trackpad/휠에 의존했다.
+    enableScheduleDrag(mount);
   }
 
-  function loadDisclosures() {
+  function currentDisclosureMarket() {
+    var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    var hour = kst.getUTCHours();
+    return hour >= 20 || hour < 8 ? 'us' : 'domestic';
+  }
+
+  function setDisclosureHeader(market, meta) {
+    var title = document.querySelector('[data-home-disclosure-field="title"]');
+    var label = document.querySelector('[data-home-disclosure-field="meta"]');
+    var section = document.querySelector('[data-home-disclosure-section]');
+    if (title) title.textContent = market === 'us' ? '미국 주요 일정' : '오늘의 공시';
+    if (label) label.textContent = meta || (market === 'us' ? '실적발표·경제일정' : '최신 5건');
+    if (section) section.setAttribute('aria-label', market === 'us' ? '미국 주요 일정' : '오늘의 공시');
+  }
+
+  function scheduleDate(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return new Date(NaN);
+    return new Date(raw.indexOf('T') === -1 ? raw.slice(0, 10) + 'T00:00:00+09:00' : raw);
+  }
+
+  function isUsScheduleEvent(event) {
+    var market = String(event && event.market || '').toLowerCase();
+    if (market === 'us' || market === 'usa' || market === 'foreign') return true;
+    if (market === 'domestic' || market === 'kr' || market === 'korea') return false;
+    var source = String(event && (event.source || event.provider || '') || '');
+    var title = String(event && event.title || '');
+    return /finnhub|미국|nasdaq|nyse|s\u0026p/i.test(source + ' ' + title)
+      || /^\$[A-Za-z]/.test(title);
+  }
+
+  function scheduleTitle(value) {
+    var title = String(value || '').split('|')[0].trim();
+    title = title.replace(/^\$([A-Za-z][A-Za-z0-9.-]*)\s*/, '$1 ');
+    return title || '미국 실적 일정';
+  }
+
+  function isFinnhubLink(link) {
+    return /(?:^|:\/\/)(?:www\.)?finnhub\.io(?:\/|$)/i.test(String(link || ''));
+  }
+
+  function scheduleSymbol(item) {
+    var explicit = String(item && (item.symbol || item.ticker || item.code) || '')
+      .replace(/^US:/i, '').trim().toUpperCase();
+    var match = String(item && item.title || '').match(/^\$([A-Za-z][A-Za-z0-9.-]*)\b/);
+    return explicit || (match && match[1] ? match[1].toUpperCase() : '');
+  }
+
+  function scheduleIconFallback(image) {
+    if (image.getAttribute('data-icon-fallback') !== '1') {
+      image.setAttribute('data-icon-fallback', '1');
+      image.src = image.src.replace(/\.svg(\?.*)?$/, '.png');
+      return;
+    }
+    image.style.display = 'none';
+    var fallback = image.parentNode && image.parentNode.querySelector('[data-icon-initials]');
+    if (fallback) fallback.hidden = false;
+  }
+
+  function scheduleIconHtml(item) {
+    var symbol = scheduleSymbol(item);
+    if (!symbol) return '';
+    return '<span class="home-us-schedule-icon"><img src="' + STOCK_ICON_BASE + encodeURIComponent(symbol) + '.svg" alt="" loading="lazy" onerror="window.HomeUsScheduleIconFallback(this)">' +
+      '<span data-icon-initials hidden>' + escapeHtml(symbol.slice(0, 2)) + '</span></span>';
+  }
+
+  function selectUsSchedule(events) {
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    var upcoming = (events || []).filter(function (event) {
+      var date = scheduleDate(event && event.start);
+      return isUsScheduleEvent(event) && !isNaN(date.getTime()) && date >= today;
+    }).sort(function (a, b) {
+      var dateOrder = scheduleDate(a.start) - scheduleDate(b.start);
+      return dateOrder || String(a.title || '').localeCompare(String(b.title || ''));
+    });
+    var todayItems = upcoming.filter(function (event) { return scheduleDate(event.start) < tomorrow; });
+    if (todayItems.length) return { items: todayItems.slice(0, 12), today: true };
+    if (!upcoming.length) return { items: [], today: false };
+    var firstDate = scheduleDate(upcoming[0].start).toDateString();
+    return {
+      items: upcoming.filter(function (event) { return scheduleDate(event.start).toDateString() === firstDate; }).slice(0, 12),
+      today: false
+    };
+  }
+
+  function scheduleTime(value) {
+    var date = scheduleDate(value);
+    if (isNaN(date.getTime())) return '';
+    var allDay = String(value || '').indexOf('T') === -1;
+    var parts = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    }).formatToParts(date).reduce(function (map, part) {
+      map[part.type] = part.value;
+      return map;
+    }, {});
+    if (allDay) return parts.month + '.' + parts.day;
+    return parts.month + '.' + parts.day + ' ' + parts.dayPeriod + ' ' + parts.hour + ':' + parts.minute;
+  }
+
+  function renderUsSchedule(selection) {
+    var mount = document.getElementById('homeDisclosureList');
+    if (!mount) return;
+    setDisclosureHeader('us', selection.today ? '오늘 일정' : '다음 일정');
+    if (!selection.items.length) {
+      mount.innerHTML = '<p class="home-card-state">미국 예정 일정이 없습니다.</p>';
+      return;
+    }
+    mount.innerHTML = selection.items.map(function (item) {
+      var link = isFinnhubLink(item.link) ? '' : String(item.link || '').trim();
+      var rowStart = link
+        ? '<a class="home-disclosure-row home-us-schedule-row" href="' + escapeHtml(link) + '" target="_blank" rel="noopener" draggable="false">'
+        : '<div class="home-disclosure-row home-us-schedule-row home-us-schedule-row-disabled" aria-disabled="true" data-external-link-blocked="finnhub">';
+      var rowEnd = link ? '</a>' : '</div>';
+      return rowStart
+        + '<strong>미국</strong>'
+        + '<span class="home-us-schedule-title">' + scheduleIconHtml(item) + '<span>' + escapeHtml(scheduleTitle(item.title)) + '</span></span>'
+        + '<time>' + escapeHtml(scheduleTime(item.start)) + '</time>' + rowEnd;
+    }).join('');
+    enableScheduleDrag(mount);
+  }
+
+  function enableScheduleDrag(list) {
+    if (!list || list.getAttribute('data-drag-ready') === '1') return;
+    list.setAttribute('data-drag-ready', '1');
+    var dragging = false;
+    var moved = false;
+    var startX = 0;
+    var startScroll = 0;
+    var suppressClick = false;
+
+    list.addEventListener('pointerdown', function (event) {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      dragging = true;
+      moved = false;
+      startX = event.clientX;
+      startScroll = list.scrollLeft;
+      list.classList.add('is-dragging');
+      if (list.setPointerCapture) list.setPointerCapture(event.pointerId);
+    });
+    // Prevent the browser's native link-drag gesture from taking over the
+    // horizontal scroll gesture on schedule anchors.
+    list.addEventListener('dragstart', function (event) {
+      event.preventDefault();
+    });
+    list.addEventListener('pointermove', function (event) {
+      if (!dragging) return;
+      var delta = event.clientX - startX;
+      if (Math.abs(delta) > 4) moved = true;
+      if (!moved) return;
+      event.preventDefault();
+      list.scrollLeft = startScroll - delta;
+    }, { passive: false });
+    function finishDrag(event) {
+      if (!dragging) return;
+      dragging = false;
+      list.classList.remove('is-dragging');
+      if (moved) suppressClick = true;
+      if (event && list.releasePointerCapture) {
+        try { list.releasePointerCapture(event.pointerId); } catch (error) {}
+      }
+    }
+    list.addEventListener('pointerup', finishDrag);
+    list.addEventListener('pointercancel', finishDrag);
+    // 일부 모바일 WebView에서는 Pointer Events가 스크롤 컨테이너에서
+    // 안정적으로 전달되지 않으므로 Touch Events도 함께 지원한다.
+    list.addEventListener('touchstart', function (event) {
+      if (!event.touches || !event.touches.length) return;
+      var touch = event.touches[0];
+      dragging = true;
+      moved = false;
+      startX = touch.clientX;
+      startScroll = list.scrollLeft;
+      list.classList.add('is-dragging');
+    }, { passive: true });
+    list.addEventListener('touchmove', function (event) {
+      if (!dragging || !event.touches || !event.touches.length) return;
+      var delta = event.touches[0].clientX - startX;
+      if (Math.abs(delta) > 4) moved = true;
+      if (!moved) return;
+      event.preventDefault();
+      list.scrollLeft = startScroll - delta;
+    }, { passive: false });
+    function finishTouch(event) {
+      if (!dragging) return;
+      finishDrag({ pointerId: null });
+      if (event && moved) suppressClick = true;
+    }
+    list.addEventListener('touchend', finishTouch, { passive: true });
+    list.addEventListener('touchcancel', finishTouch, { passive: true });
+    list.addEventListener('click', function (event) {
+      if (!suppressClick) return;
+      event.preventDefault();
+      event.stopPropagation();
+      suppressClick = false;
+    }, true);
+  }
+
+  function loadUsSchedule() {
+    var cached = readTimedCache(US_SCHEDULE_CACHE_KEY, 10 * 60 * 1000);
+    if (cached) renderUsSchedule(selectUsSchedule(cached.data));
+    var now = new Date();
+    var nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    var months = [
+      { year: now.getFullYear(), month: now.getMonth() + 1 },
+      { year: nextMonth.getFullYear(), month: nextMonth.getMonth() + 1 }
+    ];
+    Promise.all(months.map(function (period) {
+      return fetch(EARNINGS_CALENDAR_URL + '?year=' + period.year + '&month=' + period.month)
+        .then(function (response) { if (!response.ok) throw new Error('미국 일정 응답 오류'); return response.json(); })
+        .then(function (payload) { return Array.isArray(payload) ? payload : (payload && payload.data) || []; })
+        .catch(function () { return []; });
+    })).then(function (groups) {
+      var merged = [];
+      groups.forEach(function (group) { merged = merged.concat(group); });
+      writeTimedCache(US_SCHEDULE_CACHE_KEY, merged);
+      renderUsSchedule(selectUsSchedule(merged));
+    }).catch(function () {
+      if (!cached) renderUsSchedule({ items: [], today: false });
+    });
+  }
+
+  function loadDomesticDisclosures() {
     var cached = readTimedCache(DISCLOSURE_CACHE_KEY, 6 * 60 * 60 * 1000);
+    setDisclosureHeader('domestic', '최신 5건');
     if (cached) renderDisclosures(cached.data);
     var controller = 'AbortController' in global ? new AbortController() : null;
     var timer = controller ? setTimeout(function () { controller.abort(); }, 12000) : null;
@@ -663,6 +880,19 @@
       });
   }
 
+  function loadDisclosures() {
+    var market = currentDisclosureMarket();
+    if (disclosureMarket === market) return;
+    disclosureMarket = market;
+    if (market === 'us') loadUsSchedule();
+    else loadDomesticDisclosures();
+    if (!disclosureMarketTimer) {
+      disclosureMarketTimer = setInterval(function () {
+        if (!document.hidden && currentDisclosureMarket() !== disclosureMarket) loadDisclosures();
+      }, 60 * 1000);
+    }
+  }
+
   function init(options) {
     if (!options || !options.dashboard || options.dashboard.getAttribute('data-widgets-ready') === '1') return;
     context = options;
@@ -673,19 +903,11 @@
     if (!buildRegistry(options)) return;
     options.dashboard.setAttribute('data-widgets-ready', '1');
     applyState(loadState());
-    var toolbar = options.dashboard.querySelector('.home-dashboard-toolbar');
-    wireMenus(toolbar);
+    wireMenus(null);
     wireDrag();
-    loadMyWidget();
     loadDisclosures();
-    global.addEventListener('storage', function (event) {
-      if (event.key === WATCHLIST_KEY) loadMyWidget();
-    });
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) stopMyRealtime();
-      else startMyRealtime(readWatchlist());
-    });
   }
 
   global.HomeDashboardWidgets = { init: init, storageKey: STORAGE_KEY };
+  global.HomeUsScheduleIconFallback = scheduleIconFallback;
 })(window);

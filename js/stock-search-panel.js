@@ -20,8 +20,43 @@
   'use strict';
 
   var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-  var TARGET_PAGE = '/page/foreign-flow';
+  var WATCHLIST_JS = 'https://goodbyestarwars.github.io/tistory-ticker/js/watchlist.js?v=fast-first-paint-20260812';
+  var WATCHLIST_CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/watchlist.css';
+  var WATCHLIST_OPEN_KEY = 'wl_drawer_open_v1';
+  // 상단/사이드바 종목검색은 먼저 실시간 호가와 차트를 확인하는 흐름으로 연결한다.
+  // 종목분석은 실시간 시세 상세의 명시적 버튼에서 이어간다.
+  var TARGET_PAGE = '/page/stock-search';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var US_API_BASE = 'https://goodbyestar.cloud';
+  var LOCAL_US_SYMBOLS = [
+    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
+    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia' },
+    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
+    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
+    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
+    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
+    { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' },
+    { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'SK하이닉스 하이닉스 sk hynix' },
+    { symbol: 'MRVL', name: 'Marvell Technology', aliases: '마벨 마벨테크놀로지 marvell' },
+    { symbol: 'RGTI', name: 'Rigetti Computing', aliases: '리게티 rigetti' },
+    { symbol: 'RKLB', name: 'Rocket Lab', aliases: '로켓랩 로켓 랩 rocket lab' },
+    { symbol: 'ORCL', name: 'Oracle Corporation', aliases: '오라클 oracle' },
+    { symbol: 'MU', name: 'Micron Technology', aliases: '마이크론 마이크론테크놀로지 micron' },
+    { symbol: 'CBRS', name: 'Cerebras Systems', aliases: '세레브라스 cerebras' },
+    { symbol: 'PLTR', name: 'Palantir Technologies', aliases: '팔란티어 palantir' },
+    { symbol: 'SNDK', name: 'Sandisk', aliases: '샌디스크 sandisk' },
+    { symbol: 'DELL', name: 'Dell Technologies', aliases: '델 델테크놀로지스 dell' },
+    { symbol: 'IONQ', name: 'IonQ', aliases: '아이온큐 ionq' },
+    { symbol: 'LLY', name: 'Eli Lilly and Company', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
+    { symbol: 'ASTS', name: 'AST SpaceMobile', aliases: 'ast asts 스페이스모바일 spacemobile' },
+    { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
+    { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd' },
+    { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix' },
+    { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', aliases: 'spy s&p500' },
+    { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq 나스닥' }
+  ];
   var RATE_FETCH_TIMEOUT_MS = 8000;
 
   var STORAGE_LAST = 'stock:lastSelected';
@@ -45,7 +80,10 @@
 
   var krxMapPromise = null;
   var activeIndex = -1;
+  var currentMatchRows = [];
+  var currentMatchQuery = '';
   var wired = false;
+  var watchlistBooted = false;
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md
   // 규칙, 다른 위젯들과 동일 패턴). 2026-07-28 사용자 요청 - 자동완성 목록에 종목 아이콘 추가.
@@ -56,7 +94,8 @@
   };
   function stockIconHtml(code) {
     if (!code) return '';
-    return '<img class="nav-search-suggest-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+    var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
+    return '<img class="nav-search-suggest-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
   }
 
   // ---- KRX_MAP 지연 로드 ----
@@ -93,6 +132,12 @@
   }
 
   function getFavorites() {
+    if (global.Watchlist && typeof global.Watchlist.getList === 'function') {
+      return global.Watchlist.getList();
+    }
+    return [];
+    /* Legacy browser favorites are intentionally no longer used. */
+    //
     var raw = null;
     try { raw = localStorage.getItem(STORAGE_FAVORITES); } catch (err) { /* 무시 */ }
     if (raw == null) return getDefaultFavorites(); // 한 번도 저장 안 됨(첫 방문) - 기본 관심종목
@@ -102,6 +147,7 @@
     } catch (err) {
       return getDefaultFavorites();
     }
+    //
   }
   function getDefaultFavorites() {
     var map = global.KRX_MAP || {};
@@ -111,9 +157,8 @@
   }
   // 2026-07-28: 이 검색창의 즐겨찾기(stock:favorites)는 원래 "MY" 페이지(js/watchlist.js,
   // wl_codes_v1)와 별개 저장소였음 - 여기서 별표를 눌러도 MY에 안 나타난다는 리포트로 동기화한다.
-  // watchlist.js는 /page/watchlist(MY)에만 임베드돼있고 다른 모든 페이지엔 없어서
-  // window.Watchlist가 대부분 undefined - 있으면 그 공개 API를 쓰고, 없으면 같은 저장 형식으로
-  // wl_codes_v1을 직접 읽고 쓴다(watchlist.js의 loadList/saveList와 동일 스키마).
+  // 전역 드로어가 로드되기 전에도 검색 별표가 즉시 동작하도록 window.Watchlist가 있으면 공개
+  // API를 쓰고, 아직 없으면 같은 저장 형식으로 wl_codes_v1을 직접 읽고 쓴다.
   var WATCHLIST_STORAGE_KEY = 'wl_codes_v1';
   var WATCHLIST_MAX_ITEMS = 50;
   function loadWatchlistRaw() {
@@ -125,20 +170,15 @@
   }
   function isInWatchlist(code) {
     if (global.Watchlist && typeof global.Watchlist.has === 'function') return global.Watchlist.has(code);
-    return loadWatchlistRaw().some(function (it) { return it.code === code; });
+    return false;
   }
   function addToWatchlist(code, name) {
-    if (global.Watchlist && typeof global.Watchlist.add === 'function') { global.Watchlist.add(code, name); return; }
-    var list = loadWatchlistRaw();
-    if (list.some(function (it) { return it.code === code; })) return;
-    if (list.length >= WATCHLIST_MAX_ITEMS) return;
-    list.push({ code: code, name: name || code });
-    try { localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(list)); } catch (err) { /* 무시 */ }
+    if (global.Watchlist && typeof global.Watchlist.add === 'function') return global.Watchlist.add(code, name);
+    return { ok: false, reason: 'login' };
   }
   function removeFromWatchlist(code) {
-    if (global.Watchlist && typeof global.Watchlist.remove === 'function') { global.Watchlist.remove(code); return; }
-    var list = loadWatchlistRaw().filter(function (it) { return it.code !== code; });
-    try { localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(list)); } catch (err) { /* 무시 */ }
+    if (global.Watchlist && typeof global.Watchlist.remove === 'function') return global.Watchlist.remove(code);
+    return { ok: false, reason: 'login' };
   }
 
   function isFavorite(code) {
@@ -146,20 +186,12 @@
   }
   function toggleFavorite(code, name) {
     var wasFavorite = isFavorite(code);
-    var list = getFavorites();
-    var idx = list.findIndex(function (it) { return it.code === code; });
-    if (idx > -1) list.splice(idx, 1);
-    var added;
     if (wasFavorite) {
-      added = false;
-    } else {
-      list.unshift({ code: code, name: name });
-      added = true;
+      removeFromWatchlist(code);
+      return false;
     }
-    writeJson(STORAGE_FAVORITES, list);
-    if (added) addToWatchlist(code, name);
-    else removeFromWatchlist(code);
-    return added;
+    var result = addToWatchlist(code, name);
+    return !!(result && result.ok);
   }
 
   function getRecent() { return readJson(STORAGE_RECENT, []); }
@@ -182,6 +214,13 @@
       return null;
     }
     if (map.hasOwnProperty(query)) return { code: map[query], name: query };
+    var localQuery = query.toLowerCase();
+    var localMatches = LOCAL_US_SYMBOLS.filter(function (row) {
+      return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(localQuery) !== -1;
+    });
+    if (localMatches.length === 1) {
+      return { code: 'US:' + localMatches[0].symbol, name: localMatches[0].name };
+    }
     var q = query.toLowerCase();
     var matches = [];
     for (var name in map) {
@@ -233,14 +272,16 @@
     activeIndex = -1;
   }
 
-  function buildRow(code, name, i) {
-    var fav = isFavorite(code);
+  function buildRow(code, name, i, market) {
+    var isUs = market === 'us' || String(code || '').indexOf('US:') === 0;
+    var fav = !isUs && isFavorite(code);
     return '<div class="nav-search-suggest-item' + (i === activeIndex ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '">'
       + stockIconHtml(code)
       + '<span class="nav-search-suggest-name">' + escapeHtml(name) + '</span>'
+      + (isUs ? '<span class="nav-search-suggest-code">' + escapeHtml(String(code).replace(/^US:/, '')) + '</span>' : '')
       + '<span class="nav-search-rate-badge" data-rate-code="' + escapeAttr(code) + '"></span>'
       + '<span class="nav-search-current-price" data-price-code="' + escapeAttr(code) + '"></span>'
-      + '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>'
+      + (!isUs ? '<button type="button" class="nav-search-fav-btn' + (fav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(name) + '" aria-label="즐겨찾기 토글">' + (fav ? '★' : '☆') + '</button>' : '')
       + '</div>';
   }
 
@@ -248,11 +289,13 @@
 
   function fetchRates(codes) {
     if (!codes.length) return Promise.resolve({});
+    var domesticCodes = codes.filter(function (code) { return String(code).indexOf('US:') !== 0; });
+    if (!domesticCodes.length) return Promise.resolve({});
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, RATE_FETCH_TIMEOUT_MS) : null;
 
-    return fetch(GAS_TICKER_URL + '?codes=' + codes.join(','), hasAbort ? { signal: controller.signal } : {})
+    return fetch(GAS_TICKER_URL + '?codes=' + domesticCodes.join(','), hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
         return r.json();
@@ -320,14 +363,66 @@
   }
 
   function renderMatches(box, query) {
-    var matches = suggestNames(query);
-    if (!matches.length) { hideSuggest(box); return; }
-    box.innerHTML = matches.map(function (name, i) {
-      var code = (global.KRX_MAP || {})[name];
-      return buildRow(code, name, i);
-    }).join('');
-    box.classList.add('active');
-    wireRowClicks(box);
+    currentMatchQuery = query;
+    var domesticRows = suggestNames(query).map(function (name) {
+      return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' };
+    });
+    fetchUsSearch(query).then(function (usRows) {
+      if (currentMatchQuery !== query) return;
+      currentMatchRows = usRows.concat(domesticRows).slice(0, MAX_SUGGEST);
+      if (!currentMatchRows.length) { hideSuggest(box); return; }
+      box.innerHTML = currentMatchRows.map(function (row, i) {
+        return buildRow(row.code, row.name, i, row.market);
+      }).join('');
+      box.classList.add('active');
+      wireRowClicks(box);
+    }).catch(function () {
+      if (currentMatchQuery !== query) return;
+      currentMatchRows = domesticRows.slice(0, MAX_SUGGEST);
+      if (!currentMatchRows.length) { hideSuggest(box); return; }
+      box.innerHTML = currentMatchRows.map(function (row, i) {
+        return buildRow(row.code, row.name, i, row.market);
+      }).join('');
+      box.classList.add('active');
+      wireRowClicks(box);
+    });
+  }
+
+  function fetchUsSearch(query) {
+    var localRows = LOCAL_US_SYMBOLS.filter(function (row) {
+      return (row.symbol + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(String(query || '').toLowerCase()) !== -1;
+    }).slice(0, MAX_SUGGEST).map(function (row) {
+      return { code: 'US:' + row.symbol, name: row.name, market: 'us' };
+    });
+    if (localRows.length) return Promise.resolve(localRows);
+    var request = typeof global.fetch === 'function'
+      ? global.fetch(US_API_BASE + '/us-search?q=' + encodeURIComponent(query) + '&limit=' + MAX_SUGGEST)
+      : Promise.reject(new Error('fetch unavailable'));
+    return request
+      .then(function (response) {
+        if (!response.ok) throw new Error('미국주식 검색 오류: ' + response.status);
+        return response.json();
+      })
+      .then(function (body) {
+        var rows = (body && body.data ? body.data : []).map(function (row) {
+          return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
+        });
+        if (!rows.length) throw new Error('미국주식 검색 결과 없음');
+        var seen = {};
+        return localRows.concat(rows).filter(function (row) {
+          var key = String(row.code || '').toUpperCase();
+          if (seen[key]) return false;
+          seen[key] = true;
+          return true;
+        }).slice(0, MAX_SUGGEST);
+      })
+      .catch(function () {
+        var rows = localRows;
+        if (!rows.length && /^[a-z][a-z0-9.\-^=]{0,11}$/i.test(query)) {
+          rows.push({ code: 'US:' + String(query).toUpperCase(), name: String(query).toUpperCase(), market: 'us' });
+        }
+        return rows;
+      });
   }
 
   function wireRowClicks(box) {
@@ -340,6 +435,9 @@
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
         var added = toggleFavorite(btn.getAttribute('data-code'), btn.getAttribute('data-name'));
+        if (!added && global.Watchlist && typeof global.Watchlist.isReady === 'function' && !global.Watchlist.isReady()) {
+          alert('Google 로그인 후 관심종목을 저장할 수 있습니다.');
+        }
         btn.textContent = added ? '★' : '☆';
         btn.classList.toggle('active', added);
         // 즐겨찾기 목록 자체가 바뀌었으니(순서/섹션 이동) 비어있는 상태의 드롭다운은 다시 그린다
@@ -351,7 +449,8 @@
 
   function currentRowList(query) {
     if (query) {
-      return suggestNames(query).map(function (name) { return { code: (global.KRX_MAP || {})[name], name: name }; });
+      if (currentMatchQuery === query && currentMatchRows.length) return currentMatchRows;
+      return suggestNames(query).map(function (name) { return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' }; });
     }
     var favorites = getFavorites();
     var favCodes = favorites.map(function (it) { return it.code; });
@@ -372,7 +471,8 @@
     if (!code) return;
     setLast(code);
     addRecent(code, name || code);
-    global.location.href = TARGET_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name || code);
+    var market = String(code).indexOf('US:') === 0 ? '&market=us' : '';
+    global.location.href = TARGET_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name || code) + market;
   }
 
   // ---- 사이드바 검색창에 이벤트 바인딩 ----
@@ -402,6 +502,7 @@
         e.preventDefault();
         var rows = currentRowList(q);
         var row = activeIndex > -1 && rows[activeIndex] ? rows[activeIndex] : (q ? resolveStock(q) : null);
+        if (!row && /^[A-Za-z][A-Za-z0-9.\-^=]{0,11}$/.test(q)) row = { code: 'US:' + q.toUpperCase(), name: q.toUpperCase(), market: 'us' };
         if (row) goToStock(row.code, row.name);
       } else if (e.key === 'Escape') {
         hideSuggest(box);
@@ -412,6 +513,73 @@
       var wrap = document.querySelector('.nav-search-wrap');
       if (wrap && !wrap.contains(e.target)) hideSuggest(box);
     });
+  }
+
+  // ---- 모든 페이지 공통 관심종목 우측 드로어 ----
+
+  function ensureStylesheet(href) {
+    if (document.querySelector('link[href*="/css/watchlist.css"]')) return;
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
+  function isWatchlistDrawerOpen() {
+    try { return localStorage.getItem(WATCHLIST_OPEN_KEY) === '1'; } catch (err) { return false; }
+  }
+
+  function setWatchlistDrawerOpen(drawer, open) {
+    drawer.classList.toggle('is-open', open);
+    var toggle = drawer.querySelector('.global-watchlist-toggle');
+    var icon = drawer.querySelector('.global-watchlist-toggle-icon');
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? '관심종목 닫기' : '관심종목 열기');
+    if (icon) icon.textContent = open ? '<<' : '>>';
+    try { localStorage.setItem(WATCHLIST_OPEN_KEY, open ? '1' : '0'); } catch (err) {}
+  }
+
+  function loadWatchlistScript() {
+    if (global.Watchlist) { global.Watchlist.init(); return; }
+    if (document.querySelector('script[src*="/js/watchlist.js"]')) return;
+    var script = document.createElement('script');
+    script.src = WATCHLIST_JS;
+    document.body.appendChild(script);
+  }
+
+  function bootGlobalWatchlist() {
+    if (watchlistBooted || document.querySelector('.global-watchlist-drawer')) return;
+    watchlistBooted = true;
+    ensureStylesheet(WATCHLIST_CSS);
+
+    var legacyMount = document.getElementById('watchlist');
+    var drawer = document.createElement('aside');
+    drawer.className = 'global-watchlist-drawer';
+    drawer.setAttribute('aria-label', '관심종목');
+    drawer.innerHTML = '<button type="button" class="global-watchlist-toggle" aria-controls="watchlist" aria-expanded="false">'
+      + '<span class="global-watchlist-toggle-icon" aria-hidden="true">&gt;&gt;</span></button>'
+      + '<div class="global-watchlist-panel"></div>';
+    var panel = drawer.querySelector('.global-watchlist-panel');
+    if (legacyMount) panel.appendChild(legacyMount);
+    else {
+      legacyMount = document.createElement('div');
+      legacyMount.id = 'watchlist';
+      panel.appendChild(legacyMount);
+    }
+    document.body.appendChild(drawer);
+    setWatchlistDrawerOpen(drawer, isWatchlistDrawerOpen());
+    drawer.querySelector('.global-watchlist-toggle').addEventListener('click', function () {
+      setWatchlistDrawerOpen(drawer, !drawer.classList.contains('is-open'));
+    });
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest('[data-open-global-watchlist]')) return;
+      event.preventDefault();
+      setWatchlistDrawerOpen(drawer, true);
+    });
+    // 관심종목을 여러 개 연속으로 추가할 수 있도록 바깥 영역 클릭으로
+    // 자동 닫지 않는다. 닫기는 토글 버튼을 눌렀을 때만 수행한다.
+
+    ensureKrxMap().then(loadWatchlistScript).catch(loadWatchlistScript);
   }
 
   // ---- 포맷 유틸 ----
@@ -426,6 +594,7 @@
   // ---- 초기화: skin-menu.js가 먼저 로드됐으면 바로, 아니면 짧게 재시도 ----
 
   function init() {
+    bootGlobalWatchlist();
     var tries = 0;
     (function attempt() {
       wireSidebarSearch();
@@ -435,7 +604,7 @@
     })();
   }
 
-  var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock };
+  var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist };
   global.StockSearchPanel = StockSearchPanel;
 
   if (document.readyState === 'loading') {

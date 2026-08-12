@@ -2,14 +2,14 @@
 """OHLC 스냅샷 + 펀더멘탈 + 수급 공유 SQLite DB 스키마.
 daily_prices: 종목별 일봉 260일 - daily_scan.py가 INSERT.
 fundamentals: DART 재무제표 요약 - migrate_fundamentals.py가 fundamentals_cache.json에서 이관.
-investor_flow_daily: 외국인/기관 일별 순매매(ka10045) - daily_scan.py가 INSERT(투자시그널 계산에
-쓰고 버리던 걸 이제 같이 저장).
+investor_flow_daily: 개인/외국인/기관 일별 순매매 - daily_scan.py와 /foreign-flow가 INSERT.
 investor_summary: 공매도/대차거래/연기금 요약(ka10014/ka20068/ka10059) - migrate_investor_summary.py가
 batch_scan.py의 investor_flow_cache.json에서 이관.
 종목 하나씩 SELECT ... WHERE code=?로 커서 순회하면 전체 종목 수와 무관하게 메모리에
 종목 1개분만 올라가는 게 SQLite를 고른 핵심 이유(JSON 전체 로드 시 메모리 4배 증폭 실측됨)."""
 
 import os
+import json
 import sqlite3
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ohlc_snapshot.db')
@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS investor_flow_daily (
     date TEXT NOT NULL,
     close REAL,
     change_pct REAL,
+    ind_net REAL,
     foreign_net REAL,
     inst_net REAL,
     PRIMARY KEY (code, date)
@@ -142,6 +143,32 @@ CREATE TABLE IF NOT EXISTS volume_profile_daily (
     PRIMARY KEY (code, trade_date, price)
 );
 CREATE INDEX IF NOT EXISTS idx_volume_profile_daily_code ON volume_profile_daily(code);
+
+-- User-managed 증시온도 카드 구성. 실제 시세/분석 테이블과 분리하고,
+-- 작은 설정 JSON을 한 행으로 원자적으로 교체해 읽기 비용과 마이그레이션 복잡도를 낮춘다.
+CREATE TABLE IF NOT EXISTS sector_cards_config (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    config_json TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS app_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    google_sub TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS watchlist_configs (
+    user_id INTEGER PRIMARY KEY,
+    config_json TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
+);
 '''
 
 
@@ -193,10 +220,116 @@ def _migrate_investor_trend_market(conn):
 
 def create_schema(conn):
     conn.executescript(SCHEMA)
+    _ensure_column(conn, 'investor_flow_daily', 'ind_net', 'REAL')
     _ensure_column(conn, 'future_prices', 'oi', 'INTEGER')
     _ensure_column(conn, 'future_prices', 'oi_change', 'INTEGER')
     _migrate_investor_trend_market(conn)
     conn.commit()
+
+
+def load_sector_cards_config(conn):
+    row = conn.execute(
+        'SELECT config_json, revision, updated_at FROM sector_cards_config WHERE id=1'
+    ).fetchone()
+    if not row:
+        return None
+    try:
+        sectors = json.loads(row[0])
+    except (TypeError, ValueError) as exc:
+        raise ValueError('sector_cards_config contains invalid JSON') from exc
+    return {'sectors': sectors, 'revision': row[1], 'updatedAt': row[2]}
+
+
+def save_sector_cards_config(conn, sectors, updated_at, expected_revision=None):
+    """Atomically replace the card map and enforce optimistic concurrency."""
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        current = conn.execute(
+            'SELECT revision FROM sector_cards_config WHERE id=1'
+        ).fetchone()
+        current_revision = current[0] if current else 0
+        if expected_revision is not None and int(expected_revision) != current_revision:
+            raise RuntimeError('SECTOR_CONFIG_REVISION_CONFLICT')
+
+        next_revision = current_revision + 1 if current else 1
+        payload = json.dumps(sectors, ensure_ascii=False, separators=(',', ':'))
+        conn.execute(
+            'INSERT INTO sector_cards_config (id, config_json, revision, updated_at) '
+            'VALUES (1, ?, ?, ?) '
+            'ON CONFLICT(id) DO UPDATE SET config_json=excluded.config_json, '
+            'revision=excluded.revision, updated_at=excluded.updated_at',
+            (payload, next_revision, updated_at),
+        )
+        conn.commit()
+        return {'sectors': sectors, 'revision': next_revision, 'updatedAt': updated_at}
+    except Exception:
+        conn.rollback()
+        raise
+
+
+def upsert_google_user(conn, user, updated_at):
+    google_sub = str(user.get('sub', '')).strip()
+    email = str(user.get('email', '')).strip().lower()
+    name = str(user.get('name', '')).strip()
+    if not google_sub or not email:
+        raise ValueError('Google user identity is incomplete')
+    conn.execute(
+        'INSERT INTO app_users (google_sub, email, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?) '
+        'ON CONFLICT(google_sub) DO UPDATE SET email=excluded.email, name=excluded.name, updated_at=excluded.updated_at',
+        (google_sub, email, name, updated_at, updated_at),
+    )
+    row = conn.execute('SELECT id FROM app_users WHERE google_sub=?', (google_sub,)).fetchone()
+    conn.commit()
+    return row[0]
+
+
+def load_watchlist_config(conn, user_id):
+    row = conn.execute(
+        'SELECT config_json, revision, updated_at FROM watchlist_configs WHERE user_id=?',
+        (user_id,),
+    ).fetchone()
+    if not row:
+        return None
+    try:
+        config = json.loads(row[0])
+    except (TypeError, ValueError) as exc:
+        raise ValueError('watchlist_configs contains invalid JSON') from exc
+    return {
+        'items': config.get('items', []),
+        'groups': config.get('groups', []),
+        'revision': row[1],
+        'updatedAt': row[2],
+    }
+
+
+def save_watchlist_config(conn, user_id, config, updated_at, expected_revision=None):
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        current = conn.execute(
+            'SELECT revision FROM watchlist_configs WHERE user_id=?',
+            (user_id,),
+        ).fetchone()
+        current_revision = current[0] if current else 0
+        if expected_revision is not None and int(expected_revision) != current_revision:
+            raise RuntimeError('WATCHLIST_REVISION_CONFLICT')
+        next_revision = current_revision + 1 if current else 1
+        payload = json.dumps(config, ensure_ascii=False, separators=(',', ':'))
+        conn.execute(
+            'INSERT INTO watchlist_configs (user_id, config_json, revision, updated_at) VALUES (?, ?, ?, ?) '
+            'ON CONFLICT(user_id) DO UPDATE SET config_json=excluded.config_json, '
+            'revision=excluded.revision, updated_at=excluded.updated_at',
+            (user_id, payload, next_revision, updated_at),
+        )
+        conn.commit()
+        return {
+            'items': config['items'],
+            'groups': config['groups'],
+            'revision': next_revision,
+            'updatedAt': updated_at,
+        }
+    except Exception:
+        conn.rollback()
+        raise
 
 
 def load_daily_prices(conn, code):
@@ -225,16 +358,32 @@ def latest_date(conn, table, code):
 def load_investor_flow_daily(conn, code):
     """investor_flow_daily에서 종목의 내림차순(최신일 우선) 행을
     kiwoom_market.fetch_foreign_inst_daily()와 동일한 형식({date, close, change_pct,
-    foreign_net, inst_net})으로 반환."""
+    ind_net, foreign_net, inst_net})으로 반환."""
     rows = conn.execute(
-        'SELECT date, close, change_pct, foreign_net, inst_net FROM investor_flow_daily '
+        'SELECT date, close, change_pct, ind_net, foreign_net, inst_net FROM investor_flow_daily '
         'WHERE code=? ORDER BY date DESC',
         (code,),
     ).fetchall()
     return [
-        {'date': r[0], 'close': r[1], 'change_pct': r[2], 'foreign_net': r[3], 'inst_net': r[4]}
+        {'date': r[0], 'close': r[1], 'change_pct': r[2], 'ind_net': r[3], 'foreign_net': r[4], 'inst_net': r[5]}
         for r in rows
     ]
+
+
+def upsert_investor_flow_daily(conn, code, flow_rows):
+    """KIS 확정 개인 수급을 포함한 종목별 일별 수급을 영속 저장한다.
+    개인 데이터가 아직 잠정치로 None이면 기존에 저장된 확정치를 덮어쓰지 않는다."""
+    if not flow_rows:
+        return
+    conn.executemany(
+        'INSERT INTO investor_flow_daily (code, date, close, change_pct, ind_net, foreign_net, inst_net) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?) '
+        'ON CONFLICT(code, date) DO UPDATE SET close=excluded.close, change_pct=excluded.change_pct, '
+        'ind_net=COALESCE(excluded.ind_net, investor_flow_daily.ind_net), '
+        'foreign_net=excluded.foreign_net, inst_net=excluded.inst_net',
+        [(code, r['date'], r['close'], r['change_pct'], r.get('ind_net'), r['foreign_net'], r['inst_net'])
+         for r in flow_rows],
+    )
 
 
 def upsert_future_price(conn, symbol, name, price, change, change_rate, high, low, updated_at, oi=None, oi_change=None):

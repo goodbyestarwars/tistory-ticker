@@ -4,9 +4,8 @@
  * 사용자 요청으로 별도 Tistory Page(#stock-calendar 마운트)로 전환 - 필터 없이
  * 월 달력 + 주차별 이벤트 리스트만 항상 펼쳐서 보여준다.
  *
- * 데이터 소스는 이전과 동일한 구글 캘린더 이벤트(제목+날짜/시간)뿐 - 예측치/이전치 같은
- * 경제지표 수치는 소스가 없어 표시하지 않는다. 2026-08-01부터는 DART에 실제 접수된
- * 잠정실적/실적 공시도 자동으로 병합한다(미래 발표일을 임의로 추정하지 않음).
+ * 데이터 소스는 구글 캘린더 이벤트(제목+날짜/시간)와 DART 국내 실적공시, Finnhub
+ * 미국 예정 실적일정이다. 예측치/이전치 같은 경제지표 수치는 소스가 없어 표시하지 않는다.
  *
  * 이벤트 제목 규칙(사람이 구글 캘린더에 입력할 때 지켜야 함):
  *   "$종목명 텍스트 | 태그"
@@ -49,9 +48,26 @@
     return global.KRX_MAP[stockName] || global.KRX_MAP[DART_NAME_ALIAS[stockName]] || null;
   }
 
-  function fetchJson(url) {
+  function stockCodeFor(event, stockName) {
+    // DART가 내려주는 stock_code가 가장 정확하다. 회사명은 DART 정식명칭과
+    // KRX_MAP 약칭이 다를 수 있어 이름만으로 찾으면 국내 공시 아이콘이 빠진다.
+    var symbol = String(event && event.symbol || '').trim();
+    if (/^\d{6}$/.test(symbol)) return symbol;
+    return krxCodeFor(stockName) || usTickerFor(stockName);
+  }
+
+  function usTickerFor(stockName) {
+    var value = String(stockName || '').trim();
+    return /^[A-Za-z][A-Za-z0-9.-]*$/.test(value) ? value.toUpperCase() : null;
+  }
+
+  function isFinnhubLink(link) {
+    return /(?:^|:\/\/)(?:www\.)?finnhub\.io(?:\/|$)/i.test(String(link || ''));
+  }
+
+  function fetchJson(url, timeoutMs) {
     var controller = 'AbortController' in global ? new AbortController() : null;
-    var timer = controller ? setTimeout(function () { controller.abort(); }, 7000) : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 7000) : null;
     return fetch(url, controller ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('캘린더 API 오류: ' + r.status);
@@ -67,6 +83,36 @@
       .catch(function () { return []; });
   }
 
+  function fetchEarningsYear(year) {
+    return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year), 30000)
+      .then(function (data) { return Array.isArray(data) ? data : (data && data.data) || []; })
+      .catch(function () { return []; });
+  }
+
+  function marketPriority(event) {
+    var market = String(event && event.market || '').toLowerCase();
+    if (market === 'domestic' || market === 'kr' || market === 'korea') return 0;
+    if (market === 'us' || market === 'usa' || market === 'foreign') return 1;
+    var source = String(event && (event.source || event.provider || '') || '');
+    var title = String(event && event.title || '').trim();
+    if (/dart|국내|한국|kospi|kosdaq/i.test(source + ' ' + title)) return 0;
+    if (/finnhub|미국|nasdaq|nyse|s&p/i.test(source + ' ' + title)) return 1;
+    if (/^\$/.test(title) || /^\p{Regional_Indicator}{2}/u.test(title)) return 1;
+    return 0;
+  }
+
+  function compareEvents(a, b) {
+    var startA = String(a && a.start || '');
+    var startB = String(b && b.start || '');
+    var dayOrder = startA.slice(0, 10).localeCompare(startB.slice(0, 10));
+    if (dayOrder) return dayOrder;
+    var marketOrder = marketPriority(a) - marketPriority(b);
+    if (marketOrder) return marketOrder;
+    var timeOrder = startA.localeCompare(startB);
+    if (timeOrder) return timeOrder;
+    return String(a && a.title || '').localeCompare(String(b && b.title || ''));
+  }
+
   function mergeEvents(primary, secondary) {
     var seen = {};
     return (primary || []).concat(secondary || []).filter(function (event) {
@@ -74,20 +120,20 @@
       if (seen[key]) return false;
       seen[key] = true;
       return true;
-    }).sort(function (a, b) {
-      return String(a.start || '').localeCompare(String(b.start || ''));
-    });
+    }).sort(compareEvents);
   }
 
-  function fetchEvents(year, month) {
-    var tMin = new Date(year, month, 1).toISOString();
-    var tMax = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+  function fetchGoogleEvents(year, month) {
+    var tMin = new Date(year, month == null ? 0 : month, 1).toISOString();
+    var tMax = month == null
+      ? new Date(year + 1, 0, 1).toISOString()
+      : new Date(year, month + 1, 0, 23, 59, 59).toISOString();
     var url = 'https://www.googleapis.com/calendar/v3/calendars/' + CAL_ID
       + '/events?key=' + API_KEY
       + '&timeMin=' + encodeURIComponent(tMin)
       + '&timeMax=' + encodeURIComponent(tMax)
-      + '&singleEvents=true&orderBy=startTime&maxResults=100';
-    var googleEvents = fetch(url)
+      + '&singleEvents=true&orderBy=startTime&maxResults=' + (month == null ? '2500' : '100');
+    return fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error('Google Calendar API 오류: ' + r.status);
         return r.json();
@@ -101,8 +147,35 @@
         });
       })
       .catch(function () { return []; });
-    return Promise.all([googleEvents, fetchEarnings(year, month)])
+
+  }
+
+  function fetchEvents(year, month) {
+    return Promise.all([fetchGoogleEvents(year, month), fetchEarnings(year, month)])
       .then(function (results) { return mergeEvents(results[0], results[1]); });
+  }
+
+  function fetchYearEvents(year) {
+    return Promise.all([fetchGoogleEvents(year, null), fetchEarningsYear(year)])
+      .then(function (results) { return mergeEvents(results[0], results[1]); });
+  }
+
+  function eventMatchesSearch(event, query) {
+    var normalizedQuery = String(query || '').trim().toLocaleLowerCase();
+    if (!normalizedQuery) return true;
+    var searchable = [
+      event && event.title,
+      event && event.symbol,
+      event && event.ticker,
+      event && event.market,
+      event && event.source,
+      event && event.status,
+      event && event.result,
+      event && event.report_name,
+      event && event.corp_name,
+      event && event.symbol
+    ].join(' ').replace(/\s+/g, ' ').toLocaleLowerCase();
+    return searchable.indexOf(normalizedQuery) !== -1;
   }
 
   function parseEvent(rawTitle) {
@@ -153,7 +226,7 @@
       // 실제 로고 이미지를 그 위에 겹쳐 그린다 - 이름이 KRX_MAP과 정확히 안 맞거나
       // (예: 표기 차이) 로고 파일이 없는 종목은 svg->png 3단 폴백 끝에 이미지가 숨겨져도
       // 밑에 깔린 약칭이 그대로 보여 빈 원으로 남지 않는다.
-      var code = krxCodeFor(meta.stockName);
+      var code = stockCodeFor(ev, meta.stockName);
       iconHtml = escapeHtml((meta.stockName || '').slice(0, 2)) + stockIconHtml(code);
     } else if (meta.isForeign) {
       iconClass = 'sc-ev-icon flag';
@@ -162,16 +235,29 @@
       iconClass = 'sc-ev-icon default';
       iconHtml  = '📅';
     }
+    var eventText = meta.text;
+    if (meta.isStock && String(ev.source || '').toLowerCase() === 'dart' && ev.status === 'reported'
+      && eventText.indexOf('완료') === -1) {
+      eventText = '실적발표 완료 · ' + eventText;
+    }
+    if (ev.result && eventText.indexOf(String(ev.result)) === -1) {
+      eventText += (eventText ? ' · ' : '') + String(ev.result);
+    }
     var titleHtml = meta.isStock
-      ? '<strong class="sc-ev-ticker">' + escapeHtml(meta.stockName) + '</strong> ' + escapeHtml(meta.text)
+      ? '<strong class="sc-ev-ticker">' + escapeHtml(meta.stockName) + '</strong> ' + escapeHtml(eventText)
       : escapeHtml(meta.text);
     var tagHtml = meta.tag ? '<span class="sc-ev-tag">' + escapeHtml(meta.tag) + '</span>' : '';
-    return '<a href="' + escapeHtml(ev.link || '#') + '" target="_blank" class="sc-ev-item">'
+    var blockedExternalLink = isFinnhubLink(ev.link);
+    var rowStart = blockedExternalLink
+      ? '<div class="sc-ev-item sc-ev-item-disabled" aria-disabled="true" data-external-link-blocked="finnhub">'
+      : '<a href="' + escapeHtml(ev.link || '#') + '" target="_blank" class="sc-ev-item">';
+    var rowEnd = blockedExternalLink ? '</div>' : '</a>';
+    return rowStart
       + '<span class="sc-ev-date">' + dateLabelOf(ev) + '</span>'
       + '<span class="' + iconClass + '">' + iconHtml + '</span>'
       + '<span class="sc-ev-body"><span class="sc-ev-title">' + titleHtml + tagHtml + '</span></span>'
       + '<span class="sc-ev-time">' + timeOf(ev) + '</span>'
-      + '</a>';
+      + rowEnd;
   }
 
   /* 달력 그리드의 각 행(일~토)을 "N주차"로 묶는다 - 이벤트가 있는 주차만 리스트에 노출 */
@@ -201,7 +287,7 @@
     return weeks.filter(function (w) { return w.items.length > 0; });
   }
 
-  function buildMonthGrid(year, month, evs) {
+  function buildMonthGrid(year, month, evs, selectedDay) {
     var byDay = {};
     evs.forEach(function (ev) { byDay[dayOf(ev)] = true; });
     var firstDay    = new Date(year, month, 1).getDay();
@@ -213,16 +299,31 @@
     for (var d = 1; d <= daysInMonth; d++) {
       var dow = (firstDay + d - 1) % 7;
       var isToday = isThisMonth && d === today.getDate();
-      var cls = 'sc-day' + (isToday ? ' sc-today' : '') + (byDay[d] ? ' sc-has-event' : '');
+      var isSelected = selectedDay === d;
+      var cls = 'sc-day sc-day-clickable' + (isToday ? ' sc-today' : '')
+        + (isSelected ? ' sc-selected' : '') + (byDay[d] ? ' sc-has-event' : '');
       var style = '';
       if (!isToday) {
         if (dow === 0) style = ' style="color:#e11d48;"';
         if (dow === 6) style = ' style="color:#2563eb;"';
       }
-      html += '<div class="' + cls + '"' + style + '><span>' + d + '</span>'
+      html += '<div class="' + cls + '" data-day="' + d + '" role="button" tabindex="0"' + style + '><span>' + d + '</span>'
         + (byDay[d] ? '<div class="sc-dot"></div>' : '') + '</div>';
     }
     return html;
+  }
+
+  function groupByYearMonth(events) {
+    var groups = {};
+    (events || []).slice().sort(compareEvents).forEach(function (event) {
+      var key = String(event && event.start || '').slice(0, 7);
+      if (!key) return;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(event);
+    });
+    return Object.keys(groups).sort().map(function (key) {
+      return { label: Number(key.slice(5, 7)) + '월', items: groups[key] };
+    });
   }
 
   function init() {
@@ -231,6 +332,12 @@
 
     var currentYear;
     var currentMonth;
+    var searchQuery = '';
+    var annualEvents = null;
+    var annualSearchLoading = false;
+    var searchRequestId = 0;
+    var searchTimer = null;
+    var isComposing = false;
 
     function load(year, month) {
       if (month < 0) { month = 11; year -= 1; }
@@ -239,22 +346,78 @@
       currentMonth = month;
       container.innerHTML = '<div class="sc-loading">불러오는 중...</div>';
       StockCalendar.fetchEvents(year, month)
-        .then(function (evs) { renderPage(year, month, evs); })
+        .then(function (evs) {
+          if (searchQuery.trim()) requestYearSearch(year, month, evs);
+          else renderPage(year, month, evs);
+        })
         .catch(function () {
           container.innerHTML = '<div class="sc-error">일정을 불러오지 못했습니다.</div>';
         });
     }
 
-    function renderPage(year, month, evs) {
-      var weeks = groupByWeek(year, month, evs);
-      var listHtml = weeks.length
+    function requestYearSearch(year, month, monthEvents, selectedDay) {
+      var requestId = ++searchRequestId;
+      var queryAtRequest = searchQuery;
+      if (!searchQuery.trim()) {
+        annualEvents = null;
+        annualSearchLoading = false;
+        renderPage(year, month, monthEvents, selectedDay);
+        restoreSearchFocus();
+        return;
+      }
+      annualEvents = null;
+      annualSearchLoading = true;
+      StockCalendar.fetchYearEvents(year).then(function (events) {
+        if (requestId !== searchRequestId || queryAtRequest !== searchQuery || isComposing) return;
+        annualEvents = events;
+        annualSearchLoading = false;
+        renderPage(year, month, monthEvents, undefined, annualEvents, true);
+        restoreSearchFocus();
+      });
+    }
+
+    function restoreSearchFocus() {
+      var input = document.getElementById('scSearch');
+      if (!input) return;
+      input.focus();
+      input.setSelectionRange(searchQuery.length, searchQuery.length);
+    }
+
+    function renderPage(year, month, evs, selectedDay, listEvents, annualMode) {
+      var sourceEvents = annualMode ? (listEvents || []) : evs;
+      var dayEvents = annualMode || typeof selectedDay !== 'number'
+        ? sourceEvents
+        : sourceEvents.filter(function (event) { return dayOf(event) === selectedDay; });
+      var visibleEvents = dayEvents.filter(function (event) { return eventMatchesSearch(event, searchQuery); });
+      var yearGroups = annualMode ? groupByYearMonth(visibleEvents) : [];
+      var weeks = annualMode ? [] : groupByWeek(year, month, visibleEvents);
+      var listTitle = annualMode
+        ? year + '년 전체 일정'
+        : (typeof selectedDay === 'number'
+          ? (month + 1) + '월 ' + selectedDay + '일 일정'
+          : (month + 1) + '월 일정');
+      var resultLabel = searchQuery.trim()
+        ? '<small class="sc-search-count">검색 결과 ' + visibleEvents.length + '건</small>'
+        : '';
+      var listHtml = annualSearchLoading
+        ? '<div class="sc-empty">연간 일정을 불러오는 중...</div>'
+        : annualMode
+        ? (yearGroups.length
+          ? yearGroups.map(function (group) {
+              return '<div class="sc-week">'
+                + '<div class="sc-week-title">' + group.label + '</div>'
+                + '<div class="sc-week-rows">' + group.items.map(renderEventRow).join('') + '</div>'
+                + '</div>';
+            }).join('')
+          : '<div class="sc-empty">검색 결과가 없습니다.</div>')
+        : weeks.length
         ? weeks.map(function (w) {
             return '<div class="sc-week">'
               + '<div class="sc-week-title">' + (month + 1) + '월 ' + w.weekNo + '주차</div>'
               + '<div class="sc-week-rows">' + w.items.map(renderEventRow).join('') + '</div>'
               + '</div>';
           }).join('')
-        : '<div class="sc-empty">이번 달 일정이 없습니다.</div>';
+        : '<div class="sc-empty">' + (searchQuery.trim() ? '검색 결과가 없습니다.' : '이번 달 일정이 없습니다.') + '</div>';
 
       container.innerHTML =
         '<div class="sc-layout">'
@@ -264,13 +427,53 @@
         + '<button type="button" class="sc-nav" id="scNext">›</button></div>'
         + '<div class="sc-dow"><span style="color:#e11d48;">일</span><span>월</span><span>화</span>'
         + '<span>수</span><span>목</span><span>금</span><span style="color:#2563eb;">토</span></div>'
-        + '<div class="sc-grid">' + buildMonthGrid(year, month, evs) + '</div>'
+        + '<div class="sc-grid">' + buildMonthGrid(year, month, evs, selectedDay) + '</div>'
         + '</div>'
-        + '<div class="sc-list-col">' + listHtml + '</div>'
+      + '<div class="sc-list-col">'
+        + '<div class="sc-filter-head"><strong>' + listTitle + resultLabel + '</strong>'
+        + (typeof selectedDay === 'number'
+          ? '<button type="button" id="scClearDay">전체 일정</button>'
+          : '') + '</div>'
+        + '<label class="sc-search"><span>연간 검색</span><input id="scSearch" type="search" value="' + escapeHtml(searchQuery) + '" placeholder="1.1~12.31 종목명·티커·내용 검색" autocomplete="off" /></label>'
+        + listHtml + '</div>'
         + '</div>';
 
       document.getElementById('scPrev').addEventListener('click', function () { load(year, month - 1); });
       document.getElementById('scNext').addEventListener('click', function () { load(year, month + 1); });
+      container.querySelectorAll('.sc-day-clickable').forEach(function (day) {
+        var choose = function () {
+          if (searchQuery.trim()) return;
+          renderPage(year, month, evs, Number(day.getAttribute('data-day')));
+        };
+        day.addEventListener('click', choose);
+        day.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            choose();
+          }
+        });
+      });
+      var clearDay = document.getElementById('scClearDay');
+      if (clearDay) clearDay.addEventListener('click', function () { renderPage(year, month, evs); });
+      var searchInput = document.getElementById('scSearch');
+      if (searchInput) {
+        var scheduleSearch = function () {
+          searchQuery = searchInput.value;
+          if (searchTimer) clearTimeout(searchTimer);
+          searchTimer = setTimeout(function () {
+            requestYearSearch(year, month, evs, selectedDay);
+          }, 250);
+        };
+        searchInput.addEventListener('compositionstart', function () { isComposing = true; });
+        searchInput.addEventListener('compositionend', function () {
+          isComposing = false;
+          setTimeout(scheduleSearch, 0);
+        });
+        searchInput.addEventListener('input', function (event) {
+          searchQuery = searchInput.value;
+          if (!isComposing && !event.isComposing && event.inputType !== 'insertCompositionText') scheduleSearch();
+        });
+      }
     }
 
     var today = new Date();
@@ -282,7 +485,7 @@
     }, 15 * 60 * 1000);
   }
 
-  var StockCalendar = { fetchEvents: fetchEvents, init: init };
+  var StockCalendar = { fetchEvents: fetchEvents, fetchYearEvents: fetchYearEvents, init: init };
   global.StockCalendar = StockCalendar;
   document.addEventListener('DOMContentLoaded', init);
 })(window);

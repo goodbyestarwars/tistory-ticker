@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""차트패턴(4종)+눌림목+투자시그널을 전종목(data/krx_map.js, ~2,691개) 대상으로 하루 1회 스캔.
+"""차트패턴(5종)+눌림목+투자시그널을 전종목(data/krx_map.js, ~2,691개) 대상으로 하루 1회 스캔.
 기존에 gas/ticker-proxy.gs가 이어달리기(relay) 방식으로 GAS UrlFetchApp 할당량(20,000/일)을
 넘기며 돌리던 걸(패턴+눌림목+투자시그널 합쳐 종목당 29페이지 네이버 크롤링) 여기로 이전한다.
 네이버 스크래핑 대신 키움 공식 REST API(ka10081 일봉)+KIS 종목별투자자매매동향(일별, 외국인/
@@ -21,12 +21,14 @@ import db_schema
 import invest_signal
 import kiwoom_client
 import kiwoom_market
+import public_data
 import pattern_detect as pd
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 INVESTOR_FLOW_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
 FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
+MARKET_CAP_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'market_cap_cache.json')
 THROTTLE_SEC = 0.25
 
 
@@ -50,13 +52,27 @@ def load_dotenv():
 def load_full_universe():
     """data/krx_map.js(window.KRX_MAP={"종목명":"코드",...})를 fetch해서 [{name, code}] 목록으로 파싱.
     gas의 fetchFullUniverse_()와 동일한 정규식."""
-    req = urllib.request.Request(FULL_UNIVERSE_URL, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req, timeout=20) as res:
-        text = res.read().decode('utf-8')
-    out = []
-    for m in re.finditer(r'"([^"]+)":"([0-9A-Za-z]{6})"', text):
-        out.append({'name': m.group(1), 'code': m.group(2)})
-    return out
+    try:
+        req = urllib.request.Request(FULL_UNIVERSE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=20) as res:
+            text = res.read().decode('utf-8')
+        etf_names = set()
+        if 'window.KRX_ETF_NAMES=' in text:
+            etf_text = text.split('window.KRX_ETF_NAMES=', 1)[1]
+            etf_names = set(re.findall(r'"([^"]+)"', etf_text))
+        out = []
+        for m in re.finditer(r'"([^"]+)":"([0-9A-Za-z]{6})"', text):
+            out.append({'name': m.group(1), 'code': m.group(2), 'is_etf': m.group(1) in etf_names})
+        if out:
+            return out
+    except Exception as primary_error:
+        log('GitHub 종목목록 조회 실패, KRX 공공데이터 fallback 시도: %s' % primary_error)
+
+    # 정적 KRX_MAP을 못 읽는 배포/네트워크 장애 때만 KRX상장종목정보를 사용한다.
+    return [
+        {'name': item['name'], 'code': item['code'], 'market': item.get('market', '')}
+        for item in public_data.fetch_krx_universe()
+    ]
 
 
 def load_flow_cache():
@@ -78,6 +94,43 @@ def load_fundamentals_cache():
     with open(FUNDAMENTALS_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return cached.get('data') or {}
+
+
+def load_market_cap_cache():
+    if not os.path.exists(MARKET_CAP_CACHE_FILE):
+        return {}
+    try:
+        with open(MARKET_CAP_CACHE_FILE, 'r', encoding='utf-8') as f:
+            payload = json.load(f)
+        return payload.get('data') or {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_market_cap_cache(cache):
+    tmp_path = MARKET_CAP_CACHE_FILE + '.tmp'
+    with open(tmp_path, 'w', encoding='utf-8') as f:
+        json.dump({'updatedAt': datetime.now(timezone.utc).isoformat(), 'data': cache}, f, ensure_ascii=False)
+    os.replace(tmp_path, MARKET_CAP_CACHE_FILE)
+
+
+def market_cap_getter(token, cache):
+    """Return a per-run Kiwoom ka10001 market cap callback for box scanning."""
+    def get(code):
+        if code in cache:
+            return cache[code]
+        try:
+            raw = kiwoom_client.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
+            value = raw.get('mac')
+            if isinstance(value, str):
+                value = value.replace(',', '').strip()
+            value = float(value) if value not in (None, '') else None
+        except (TypeError, ValueError, RuntimeError, OSError):
+            value = None
+        if value is not None:
+            cache[code] = value
+        return value
+    return get
 
 
 def fresh_signal_state():
@@ -106,17 +159,9 @@ def save_ohlc_snapshot(conn, code, daily):
 
 
 def save_investor_flow(conn, code, flow_rows):
-    """flow_rows(fetch_foreign_inst_daily 결과, 외국인/기관 일별 순매매)를 investor_flow_daily에
+    """flow_rows(fetch_foreign_inst_daily 결과, 개인/외국인/기관 일별 순매매)를 investor_flow_daily에
     UPSERT. 지금까지는 투자시그널 계산에만 쓰고 버렸던 데이터 - OHLC와 동일한 이유로 저장."""
-    if not flow_rows:
-        return
-    conn.executemany(
-        'INSERT INTO investor_flow_daily (code, date, close, change_pct, foreign_net, inst_net) '
-        'VALUES (?, ?, ?, ?, ?, ?) '
-        'ON CONFLICT(code, date) DO UPDATE SET close=excluded.close, change_pct=excluded.change_pct, '
-        'foreign_net=excluded.foreign_net, inst_net=excluded.inst_net',
-        [(code, r['date'], r['close'], r['change_pct'], r['foreign_net'], r['inst_net']) for r in flow_rows],
-    )
+    db_schema.upsert_investor_flow_daily(conn, code, flow_rows)
 
 
 def main():
@@ -148,14 +193,17 @@ def main():
 
     flow_cache = load_flow_cache()
     fundamentals_cache = load_fundamentals_cache()
+    market_cap_cache = load_market_cap_cache()
+    market_cap_run_cache = {}
     token = kiwoom_client.get_token(appkey, secretkey)
+    get_market_cap = market_cap_getter(token, market_cap_run_cache)
 
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
 
     today_str = datetime.now().strftime('%Y-%m-%d')  # VM 서버 로컬 날짜 - kiwoom_market의 base_dt 계산과 동일 기준
 
-    pattern_results = {'risingLows': [], 'doubleBottom': [], 'invHeadShoulders': [], 'boxRangeLow': []}
+    pattern_results = {'risingLows': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [], 'boxRangeLow': []}
     pattern_scanned = 0
     pullback_matches = []
     pullback_scanned = 0
@@ -175,14 +223,16 @@ def main():
                 conn.commit()
                 time.sleep(THROTTLE_SEC)
 
-            scanned_p, scanned_pb = pd.scan_stock(stock, daily, pattern_results, pullback_matches)
+            scanned_p, scanned_pb = pd.scan_stock(
+                stock, daily, pattern_results, pullback_matches, market_cap_getter=get_market_cap)
             if scanned_p:
                 pattern_scanned += 1
             if scanned_pb:
                 pullback_scanned += 1
 
-            if db_schema.latest_date(conn, 'investor_flow_daily', code) == today_str:
-                flow_rows = db_schema.load_investor_flow_daily(conn, code)
+            flow_rows = db_schema.load_investor_flow_daily(conn, code)
+            has_confirmed_individual = bool(flow_rows and flow_rows[0].get('ind_net') is not None)
+            if flow_rows and flow_rows[0].get('date') == today_str and has_confirmed_individual:
                 flow_skipped += 1
             else:
                 # target_days=25: rolling 20일 합산에 여유분만 더한 최소치(fetch_institution_trend가
@@ -275,6 +325,9 @@ def main():
     conn.commit()
     conn.close()
 
+    market_cap_cache.update(market_cap_run_cache)
+    save_market_cap_cache(market_cap_cache)
+    pd.finalize_pattern_results(pattern_results, pullback_matches)
     now = datetime.now(timezone.utc).isoformat()
     payload = {
         'generatedAt': now,

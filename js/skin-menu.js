@@ -31,9 +31,12 @@
       ]
     },
     { href: '/page/stock-calendar', label: '캘린더' },
-    { href: '/guestbook', label: '커뮤니티' },
-    { href: '/page/watchlist', label: 'MY' }
+    { href: '/guestbook', label: '커뮤니티' }
   ];
+
+  // 기존 직접 링크는 유지한다. 상단 메뉴에서는 숨기지만 북마크·검색 결과가
+  // 사용하는 페이지 주소를 바꾸지 않아 기존 진입 경로가 끊기지 않게 한다.
+  var LEGACY_PAGE_URLS = ['/page/foreign-flow', '/page/stock-search'];
 
   var SEARCH_HTML = ''
     + '<div class="nav-search-wrap">'
@@ -53,7 +56,11 @@
   }
 
   function isActive(item) {
-    return Boolean(item.href && currentPath() === item.href);
+    if (!item.href) return false;
+    var parts = item.href.split('?');
+    if (currentPath() !== parts[0]) return false;
+    if (!parts[1]) return true;
+    return new URLSearchParams(location.search).get('market') === 'us';
   }
 
   function groupIsActive(item) {
@@ -124,8 +131,8 @@
     var mount = document.getElementById('nav-menu-mount');
     if (searchMount) searchMount.innerHTML = SEARCH_HTML;
 
-    // MY는 아이콘 보조 기능이 아니라 1차 텍스트 메뉴로만 제공한다. 운영 스킨에 남아 있는
-    // 이전 아이콘도 정적 자산 배포만으로 즉시 제거되도록 런타임에서 함께 정리한다.
+    // 관심종목은 모든 페이지의 우측 고정 드로어로 제공한다. 운영 스킨에 남아 있는
+    // 이전 MY 아이콘도 정적 자산 배포만으로 즉시 제거되도록 런타임에서 함께 정리한다.
     document.querySelectorAll('.nav-my-btn').forEach(function (item) { item.remove(); });
 
     // 2026-07-31: 로고 텍스트 변경(사용자 요청) - skin.html은 티스토리 관리자 수동 반영

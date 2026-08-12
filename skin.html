@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://goodbyestarwars.github.io" crossorigin />
   <link rel="preconnect" href="https://script.google.com" />
   <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
-  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css" />
+    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260811-finnhub-block" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/market-ribbon.css" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/sidebar-rank.css" />
@@ -28,8 +28,8 @@
        웹폰트를 실제로 로드하는 <link>가 없어서(이 파일에 없었음) 방문자 OS에 그 폰트가
        깔려있지 않으면 그냥 Georgia/serif 폴백으로 보이던 상태였다 - 이걸로 실제 로드됨. -->
   <link href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" rel="stylesheet">
-  <!-- 고딕 모드용 Pretendard (동적 서브셋: 고딕 모드를 안 쓰면 폰트 파일은 다운로드 안 됨) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <!-- 고딕 모드용 나눔고딕 -->
+  <link href="https://hangeul.pstatic.net/hangeul_static/css/nanum-gothic.css" rel="stylesheet" />
   <script>
     /* 오른쪽 사이드바(인기글/해시태그)는 전체글(홈, "/") 화면에서만 보이고,
        마켓 브리핑 등 카테고리·커스텀 페이지·개별 글 등 그 외 모든 화면에서는 숨긴다.
@@ -109,7 +109,8 @@
 <!-- KRX 공시 티커: git js/skin-shell.js가 껍데기 주입, 내용은 skin-main.js가 GAS에서 받아와 채움 -->
 <div id="shell-discTicker"></div>
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/stock-search-panel.css">
-<script src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-search-panel.js"></script>
+<script src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-icon.js?v=20260811-auto-fallback"></script>
+<script src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-search-panel.js?v=fast-first-paint-20260812"></script>
 <!-- ============ PAGE ============ -->
 <div class="page-wrap">
   <div class="main-layout">
@@ -248,9 +249,92 @@
 
       <!-- 방명록 -->
       <s_guest>
-        <div class="card guest-section">
-          <div class="guest-title">💬 방명록</div>
-          [##_guestbook_group_##]
+        <div class="card guest-section market-discussion" data-market-discussion>
+          <div class="discussion-heading">
+            <div>
+              <div class="guest-title">종목 토론방</div>
+              <p class="discussion-subtitle">티스토리 방명록에 안전하게 저장되는 종목별 의견 공간입니다.</p>
+            </div>
+            <span class="discussion-storage-badge">티스토리 저장</span>
+          </div>
+
+          <div class="discussion-stockbar">
+            <label for="discussionStockInput">종목 선택</label>
+            <div class="discussion-stock-input-wrap">
+              <input id="discussionStockInput" type="text" inputmode="search" placeholder="초성·첫 글자·종목코드로 검색" autocomplete="off" />
+            </div>
+            <button type="button" class="discussion-stock-btn" data-discussion-stock="all">전체 글</button>
+            <button type="button" class="discussion-stock-btn" data-discussion-stock="005930">삼성전자</button>
+            <button type="button" class="discussion-stock-btn" data-discussion-stock="000660">SK하이닉스</button>
+            <button type="button" class="discussion-stock-btn" data-discussion-stock="042660">한화오션</button>
+          </div>
+
+          <div class="discussion-current" aria-live="polite">
+            <span class="discussion-current-label">현재 보고 있는 방</span>
+            <strong data-discussion-current>전체 종목</strong>
+            <button type="button" data-discussion-clear>필터 해제</button>
+          </div>
+
+          <div class="discussion-native-guestbook">
+            <s_guest_input_form>
+              <div class="guestWrite discussion-write">
+                <div class="discussion-write-title">의견 남기기</div>
+                <p class="discussion-write-help">선택한 종목에 의견이 저장됩니다. 작성자 이름과 비밀번호는 티스토리 정책을 따릅니다.</p>
+                <s_guest_member>
+                  <s_guest_form>
+                    <div class="discussion-guest-fields">
+                      <input type="text" name="[##_guest_input_name_##]" value="[##_guest_name_##]" placeholder="이름" aria-label="이름" />
+                      <input type="password" maxlength="8" name="[##_guest_input_password_##]" value="[##_guest_password_##]" placeholder="비밀번호" aria-label="비밀번호" />
+                      <input type="text" name="[##_guest_input_homepage_##]" value="[##_guest_homepage_##]" placeholder="홈페이지 (선택)" aria-label="홈페이지" />
+                    </div>
+                  </s_guest_form>
+                </s_guest_member>
+                <textarea name="[##_guest_textarea_body_##]" cols="50" rows="5" placeholder="종목에 대한 의견을 남겨주세요."></textarea>
+                <div class="discussion-write-actions">
+                  <span class="discussion-write-note">등록하면 티스토리 방명록에 저장됩니다.</span>
+                  <input type="submit" value="의견 등록" onclick="[##_guest_onclick_submit_##]" />
+                </div>
+              </div>
+            </s_guest_input_form>
+          </div>
+
+          <div class="discussion-list-heading">
+            <strong>최근 토론</strong>
+            <span data-discussion-count>전체 의견</span>
+          </div>
+          <s_guest_container>
+            <div class="guestList discussion-list">
+              <ol>
+                <s_guest_rep>
+                  <li id="[##_guest_rep_id_##]" class="discussion-item [##_guest_rep_class_##]" data-discussion-entry>
+                    <div class="discussion-item-head">
+                      <span class="name">[##_guest_rep_name_##]</span>
+                      <span class="date">[##_guest_rep_date_##]</span>
+                      <span class="control">
+                        <a href="#" onclick="[##_guest_rep_onclick_delete_##]">삭제</a>
+                        <a href="#" onclick="[##_guest_rep_onclick_reply_##]">답글</a>
+                      </span>
+                    </div>
+                    <p class="discussion-item-body">[##_guest_rep_desc_##]</p>
+                    <s_guest_reply_container>
+                      <ul class="discussion-replies">
+                        <s_guest_reply_rep>
+                          <li class="discussion-reply">
+                            <div class="discussion-item-head">
+                              <span class="name">[##_guest_rep_name_##]</span>
+                              <span class="date">[##_guest_rep_date_##]</span>
+                              <span class="control"><a href="#" onclick="[##_guest_rep_onclick_delete_##]">삭제</a></span>
+                            </div>
+                            <p class="discussion-item-body">[##_guest_rep_desc_##]</p>
+                          </li>
+                        </s_guest_reply_rep>
+                      </ul>
+                    </s_guest_reply_container>
+                  </li>
+                </s_guest_rep>
+              </ol>
+            </div>
+          </s_guest_container>
         </div>
       </s_guest>
 
@@ -300,13 +384,16 @@
      (defer는 선언 순서 실행을 보장하므로 shell→menu→main, krx_map→tooltip 순서 유지됨) -->
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-shell.js"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260811-auto-icon-fallback"></script>
 
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/market-ribbon.js"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/sidebar-rank.js"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/investor-trend-widget.js"></script>
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/stock-discussion.css?v=discussion-16px">
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-discussion.js?v=20260811-auto-icon-fallback"></script>
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/quick-indices.css">
 <script src="https://goodbyestarwars.github.io/tistory-ticker/js/quick-indices.js"></script>
 </s_t3>
