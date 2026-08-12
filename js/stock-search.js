@@ -45,7 +45,7 @@
   var FETCH_TIMEOUT_MS = 15000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
-  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20260811-auto-icon-fallback';
+  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20260813-news-24h';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
@@ -241,7 +241,7 @@
       + '<div class="ss-chart-legend">거래량은 캔들 아래 막대로 표시됩니다.</div>'
       + '</div>'
       + '</div>'
-      + '<section class="ss-news-panel"><div class="ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 뉴스·공시</span></div><div id="ssDomesticNews" class="ss-domestic-news"><div class="ss-hint">뉴스를 불러오는 중...</div></div></section>'
+      + '<section class="ss-news-panel"><div class="ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="ssDomesticNews" class="ss-domestic-news"><div class="ss-hint">뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
   }
 
@@ -679,6 +679,27 @@
     return isNaN(date.getTime()) ? 0 : date.getTime();
   }
 
+  function domesticNewsWithin24Hours(item) {
+    var raw = String(item && item.pubDate || '').trim();
+    var now = new Date();
+    if (/^\d{8}$/.test(raw)) {
+      // DART provides a date without a time, so retain today and the previous
+      // KST calendar date rather than dropping a valid overnight disclosure.
+      var currentDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(now);
+      var publishedDate = raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6, 8);
+      var previousDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      var previousKey = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(previousDate);
+      return publishedDate === currentDate || publishedDate === previousKey;
+    }
+    var timestamp = domesticNewsTimestamp(item);
+    return timestamp > 0 && timestamp <= now.getTime() + 5 * 60 * 1000
+      && now.getTime() - timestamp <= 24 * 60 * 60 * 1000;
+  }
+
   function domesticNewsBucket(value) {
     var date = parseDomesticNewsDate(value);
     if (isNaN(date.getTime())) return 'night';
@@ -721,12 +742,13 @@
   }
 
   function renderDomesticNews(mount, items) {
-    if (!items.length) {
-      mount.innerHTML = '<div class="ss-hint">최근 뉴스·공시가 없습니다.</div>';
+    var recentItems = items.filter(domesticNewsWithin24Hours);
+    if (!recentItems.length) {
+      mount.innerHTML = '<div class="ss-hint">최근 24시간 관련 뉴스·공시가 없습니다.</div>';
       return;
     }
     var groups = { disclosure: [], morning: [], afternoon: [], night: [] };
-    items.slice(0, 10).sort(function (a, b) {
+    recentItems.slice(0, 10).sort(function (a, b) {
       if (a.kind === 'disclosure' && b.kind !== 'disclosure') return -1;
       if (a.kind !== 'disclosure' && b.kind === 'disclosure') return 1;
       return domesticNewsTimestamp(b) - domesticNewsTimestamp(a);

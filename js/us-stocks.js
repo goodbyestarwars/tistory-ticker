@@ -277,7 +277,7 @@
         + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
         + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">차트를 불러오는 중...</div></div></section>'
         + '</div>'
-        + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 헤드라인</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">뉴스를 불러오는 중...</div></div></section>';
+        + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">뉴스를 불러오는 중...</div></div></section>';
     }
     updateQuoteFields(quote, detail);
   }
@@ -417,11 +417,12 @@
   function renderNews(items) {
     var mount = document.querySelector('#usStocksNews');
     if (!mount) return;
-    if (!items.length) {
-      mount.innerHTML = '<div class="us-stocks-empty">관련 최신 뉴스가 없습니다.</div>';
+    var recentItems = items.filter(isRecentNews);
+    if (!recentItems.length) {
+      mount.innerHTML = '<div class="us-stocks-empty">최근 24시간 관련 뉴스가 없습니다.</div>';
       return;
     }
-    var sortedItems = items.slice().sort(function (a, b) {
+    var sortedItems = recentItems.slice().sort(function (a, b) {
       return newsTimestamp(b) - newsTimestamp(a);
     });
     var groups = { morning: [], afternoon: [], night: [] };
@@ -463,6 +464,13 @@
   function newsTimestamp(item) {
     var stamp = Date.parse(String(item && item.pubDate || ''));
     return isNaN(stamp) ? 0 : stamp;
+  }
+
+  function isRecentNews(item) {
+    var timestamp = newsTimestamp(item);
+    var now = Date.now();
+    return timestamp > 0 && timestamp <= now + 5 * 60 * 1000
+      && now - timestamp <= 24 * 60 * 60 * 1000;
   }
 
   function formatNewsTime(value) {

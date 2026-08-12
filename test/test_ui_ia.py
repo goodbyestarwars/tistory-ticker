@@ -713,7 +713,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
         self.assertIn("us-stocks.css?v=20260811-font-scale", source)
-        self.assertIn("us-stocks.js?v=20260811-auto-icon-fallback", search)
+        self.assertIn("us-stocks.js?v=20260813-news-24h", search)
         self.assertIn("font-family: inherit", style)
         for token in (
             ".us-stocks-metric span { color: #8b95a1; font-size: 12px;",
@@ -722,6 +722,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
             ".us-stocks-news-time { display: block; margin-bottom: 3px; color: #f97316; font-size: 12px;",
         ):
             self.assertIn(token, style)
+        self.assertIn("function isRecentNews(item)", source)
+        self.assertIn("최근 24시간", source)
+        self.assertIn("function domesticNewsWithin24Hours(item)", search)
+        self.assertIn("최근 24시간", search)
 
     def test_stock_analysis_chart_matches_price_studies_and_replaces_volume_profile_with_volume(self):
         source = self.read("js/foreign-flow.js")
