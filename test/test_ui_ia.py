@@ -597,6 +597,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ff-volume-study-label", style)
         self.assertIn(".ff-chart-candle::after", style)
 
+    def test_pattern_scan_includes_ma_cloud_breakout_search(self):
+        source = self.read("js/pattern-scan.js")
+        self.assertIn("key: 'maCloudBreakout'", source)
+        self.assertIn("label: '이평 상승 초입형'", source)
+        self.assertIn("최근 5봉 안에 5일선이 20일선을 상향돌파", source)
+        self.assertIn("addMaLine(chart, daily, 224, MA224_EARLY_COLOR)", source)
+        self.assertIn("psIchimokuEnabled = activeTab === 'maCloudBreakout'", source)
+
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")
         widgets = self.read("js/home-widgets.js")

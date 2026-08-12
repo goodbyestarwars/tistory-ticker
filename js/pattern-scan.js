@@ -1,6 +1,6 @@
 /**
  * 차트 패턴 스캔 위젯
- * 저점상승형 / 쌍바닥 / 역헤드앤숄더 / 박스권하단 / 눌림목 5개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
+ * 저점상승형 / 이평 상승 초입형 / 쌍바닥 / 역헤드앤숄더 / 박스권하단 / 눌림목 6개 탭 -> 종목 리스트 -> 클릭 시 캔들차트 + 패턴선.
  *
  * 리스트는 GAS가 하루 1회 미리 스캔해둔 결과(?patternScan=1)를 그대로 보여준다(가벼움).
  * 클릭한 종목의 차트는 그 종목만 온디맨드로 다시 크롤링(?patternChart=1&code=&pattern=).
@@ -25,6 +25,9 @@
   var SUPPORT_COLOR = '#d24f45';
   var RESIST_COLOR = '#1261c4';
   var SIGNAL_COLOR = '#ec4899';
+  var MA5_EARLY_COLOR = '#d24f45';
+  var MA20_EARLY_COLOR = '#1261c4';
+  var MA224_EARLY_COLOR = '#000000';
   var MA20_COLOR = '#f59e0b';
   var MA240_COLOR = '#8b5cf6';
 
@@ -38,6 +41,7 @@
   // 뭘 찾는 건지는 항상 보이게 하기 위함.
   var TABS = [
     { key: 'risingLows', label: '저점상승형', desc: '최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간입니다.' },
+    { key: 'maCloudBreakout', label: '이평 상승 초입형', desc: '주가가 224일선에서 3% 이내이고 일목 구름 안에서 상단을 시도하며, 최근 5봉 안에 5일선이 20일선을 상향돌파한 구간입니다.' },
     { key: 'doubleBottom', label: '쌍바닥', desc: '비슷한 높이의 저점을 두 번 찍고 그 사이 반등한 고점(넥라인)이 있는 W자 모양. 바닥을 두 번 확인했다는 신호입니다.' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '저점 3개가 어깨-머리-어깨 모양(가운데가 가장 낮음)을 이루는 패턴. 하락 추세가 상승으로 반전될 때 자주 나타납니다.' },
     { key: 'boxRangeLow', label: '박스권 하단', desc: '일정 가격대(박스권)에서 등락을 반복하다 그 박스 하단(지지선) 근처까지 내려온 구간. 지지가 버텨주는지 확인하는 자리입니다.' },
@@ -48,6 +52,7 @@
   // 패턴의 핵심 구조만 단순화한 것.
   var PATTERN_ICONS = {
     risingLows: '<path d="M2,15 L9,15 L20,6 L30,3"/><circle cx="9" cy="15" r="2"/><circle cx="20" cy="6" r="2"/>',
+    maCloudBreakout: '<path d="M2,13 L10,12 L18,10 L25,8 L31,4"/><path d="M3,9 L10,10 L18,8 L25,6 L31,3"/>',
     doubleBottom: '<path d="M2,4 L8,14 L16,7 L24,14 L30,4"/><circle cx="8" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
     invHeadShoulders: '<path d="M2,6 L7,10 L12,6 L17,15 L22,6 L27,10 L32,3"/><circle cx="7" cy="10" r="2"/><circle cx="17" cy="15" r="2"/><circle cx="27" cy="10" r="2"/>',
     boxRangeLow: '<rect x="3" y="2" width="24" height="12" rx="1"/><circle cx="6" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
@@ -168,6 +173,8 @@
   function openDetail(container, item) {
     var detail = container.querySelector('#psDetail');
     if (!detail || !item) return;
+    // 이 패턴은 구름 안·상단 시도가 핵심이므로 상세 차트에서 구름을 기본으로 켠다.
+    psIchimokuEnabled = activeTab === 'maCloudBreakout';
     detail.hidden = false;
     detail.innerHTML = '<div class="ps-loading"><div class="ps-spinner"></div><div>' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div></div>';
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -517,6 +524,10 @@
       if (pattern === 'pullback') {
         addMaLine(chart, daily, 20, MA20_COLOR);
         addMaLine(chart, daily, 240, MA240_COLOR);
+      } else if (pattern === 'maCloudBreakout') {
+        addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
+        addMaLine(chart, daily, 20, MA20_EARLY_COLOR);
+        addMaLine(chart, daily, 224, MA224_EARLY_COLOR);
       }
 
       addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
@@ -638,6 +649,8 @@
       boxLows.forEach(function (p) { addDot(p, SUPPORT_COLOR, 'belowBar'); });
       boxHighs.forEach(function (p) { addDot(p, RESIST_COLOR, 'aboveBar'); });
       if (detail.signal) addSignal(detail.signal); // 현재가(박스 하단 근접 지점)
+    } else if (pattern === 'maCloudBreakout') {
+      if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'pullback') {
       // 상승 시작(저점) -> 고점 -> 현재가(조정 중) 순서로 이어 "얼마나 올랐다가 얼마나
       // 눌렸는지"를 한눈에 보여준다. 이평선은 addMaLine으로 배경에 이미 그림.

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""차트패턴(4종)+눌림목+투자시그널을 전종목(data/krx_map.js, ~2,691개) 대상으로 하루 1회 스캔.
+"""차트패턴(5종)+눌림목+투자시그널을 전종목(data/krx_map.js, ~2,691개) 대상으로 하루 1회 스캔.
 기존에 gas/ticker-proxy.gs가 이어달리기(relay) 방식으로 GAS UrlFetchApp 할당량(20,000/일)을
 넘기며 돌리던 걸(패턴+눌림목+투자시그널 합쳐 종목당 29페이지 네이버 크롤링) 여기로 이전한다.
 네이버 스크래핑 대신 키움 공식 REST API(ka10081 일봉)+KIS 종목별투자자매매동향(일별, 외국인/
@@ -158,7 +158,7 @@ def main():
 
     today_str = datetime.now().strftime('%Y-%m-%d')  # VM 서버 로컬 날짜 - kiwoom_market의 base_dt 계산과 동일 기준
 
-    pattern_results = {'risingLows': [], 'doubleBottom': [], 'invHeadShoulders': [], 'boxRangeLow': []}
+    pattern_results = {'risingLows': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [], 'boxRangeLow': []}
     pattern_scanned = 0
     pullback_matches = []
     pullback_scanned = 0
