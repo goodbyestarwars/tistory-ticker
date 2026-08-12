@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""차트 패턴 판정(지시서 5종) - gas/ticker-proxy.gs의 detectRisingLows_/detectDoubleBottom_/
+"""차트 패턴 판정(지시서 6종) - gas/ticker-proxy.gs의 detectRisingLows_/detectDoubleBottom_/
 detectInvHeadShoulders_/detectBoxRangeLow_/detectPullback_ 및 공용 헬퍼를 그대로 포팅.
 수치 조건/배점은 원본과 동일해야 두 구현의 판정 결과가 일치한다 - 상수를 바꾸지 말 것."""
 
@@ -10,6 +10,10 @@ PATTERN_MAX_MATCHES = 30
 RISING_LOWS_DISPLAY_LIMIT = 15
 
 RISING_LOWS_WINDOW = 20
+MA_CLOUD_MIN_DAYS = 250
+MA_CLOUD_NEAR_TOL = 0.03       # 현재가와 224일선 사이 최대 3%
+MA_CLOUD_TOP_TOL = 0.03        # 구름 상단을 향한 현재 봉의 고가 근접도 최대 3%
+MA_CLOUD_CROSS_LOOKBACK = 5    # 최근 5봉 안의 5일선-20일선 골든크로스
 DOUBLE_BOTTOM_WINDOW = 90
 IHS_WINDOW = 60
 BOX_WINDOW = 40
@@ -241,6 +245,25 @@ def compute_ichimoku_score(daily):
     return {'score': cloud_score + cross_score + color_score}
 
 
+def ichimoku_cloud_at(daily, index):
+    """해당 봉에 표시되는 현재 구름(26봉 선행)의 상·하단을 반환한다."""
+    source_index = index - ICHIMOKU_DISPLACEMENT
+    if source_index < 0:
+        return None
+    span_a_base = ichimoku_period_mid(daily, source_index, ICHIMOKU_TENKAN_PERIOD)
+    span_a_kijun = ichimoku_period_mid(daily, source_index, ICHIMOKU_KIJUN_PERIOD)
+    span_b = ichimoku_period_mid(daily, source_index, ICHIMOKU_SENKOU_B_PERIOD)
+    if span_a_base is None or span_a_kijun is None or span_b is None:
+        return None
+    span_a = (span_a_base + span_a_kijun) / 2
+    return {
+        'spanA': span_a,
+        'spanB': span_b,
+        'top': max(span_a, span_b),
+        'bottom': min(span_a, span_b),
+    }
+
+
 # 오늘 거래대금(종가x거래량) / 최근 20일(오늘 제외) 평균 거래대금.
 # js/foreign-flow.js의 computeVolumeMultiple과 동일 공식.
 def compute_volume_multiple(daily):
@@ -432,7 +455,82 @@ def detect_rising_lows(daily):
 
 
 # ---------------------------------------------------------------------------
-# ② 쌍바닥(Double Bottom)
+# ② 이평 상승 초입형(224일선 + 구름대 + 5일선 골든크로스)
+# ---------------------------------------------------------------------------
+
+def detect_ma_cloud_breakout(daily):
+    """장기 추세선 근처에서 구름 상단을 시도하는 초기 골든크로스를 찾는다.
+
+    모든 조건은 최신 봉을 기준으로 한다. 현재 종가가 이미 구름 상단을 넘은
+    종목은 '뚫으려고 하는 중'이 아니라 돌파가 끝난 것으로 보고 제외한다.
+    """
+    if len(daily) < MA_CLOUD_MIN_DAYS:
+        return None
+
+    ma5 = moving_average(daily, 'close', 5)
+    ma20 = moving_average(daily, 'close', 20)
+    ma224 = moving_average(daily, 'close', 224)
+    last_index = len(daily) - 1
+    close = daily[last_index]['close']
+    ma224_now = ma224[last_index]
+    if ma224_now is None or not ma224_now:
+        return None
+
+    ma224_gap = abs(close - ma224_now) / ma224_now
+    if ma224_gap > MA_CLOUD_NEAR_TOL:
+        return None
+
+    cloud = ichimoku_cloud_at(daily, last_index)
+    if not cloud or cloud['top'] <= 0:
+        return None
+    # 종가는 아직 구름 안에 있어야 하며, 고가는 상단에 닿거나 상단 3% 이내여야 한다.
+    if close < cloud['bottom'] or close > cloud['top']:
+        return None
+    if daily[last_index]['high'] < cloud['top'] * (1 - MA_CLOUD_TOP_TOL):
+        return None
+
+    cross_index = None
+    first_cross_index = max(1, last_index - MA_CLOUD_CROSS_LOOKBACK + 1)
+    for i in range(first_cross_index, last_index + 1):
+        if ma5[i - 1] is None or ma20[i - 1] is None or ma5[i] is None or ma20[i] is None:
+            continue
+        if ma5[i - 1] <= ma20[i - 1] and ma5[i] > ma20[i]:
+            cross_index = i
+    if cross_index is None:
+        return None
+
+    ma5_now, ma20_now = ma5[last_index], ma20[last_index]
+    if ma5_now is None or ma20_now is None:
+        return None
+
+    cloud_gap = (cloud['top'] - close) / cloud['top']
+    score = clamp_score(
+        (35 if ma224_gap <= 0.015 else 25)
+        + (35 if cloud_gap <= 0.01 else 25)
+        + 30
+    )
+    signal = {'date': daily[last_index]['date'], 'price': close}
+    reasons = [
+        '224일선 근접도 %.1f%%(%d/35점)' % (ma224_gap * 100, 35 if ma224_gap <= 0.015 else 25),
+        '현재가 구름 안·상단 시도(%d/35점)' % (35 if cloud_gap <= 0.01 else 25),
+        '최근 %d봉 안 5일선이 20일선 상향돌파(30/30점)' % MA_CLOUD_CROSS_LOOKBACK,
+    ]
+    return {
+        'ma5': ma5_now,
+        'ma20': ma20_now,
+        'ma224': ma224_now,
+        'cloud': cloud,
+        'cross': {'date': daily[cross_index]['date'], 'price': daily[cross_index]['close']},
+        'signal': signal,
+        'breakout': False,
+        'score': score,
+        'reasons': reasons,
+        'interpretation': '주가가 224일선 근처에서 일목 구름 안에 머물며 상단 돌파를 시도하고, 최근 %d봉 안에 5일선이 20일선을 상향돌파한 상승 초입으로 추정됩니다(%d점).' % (MA_CLOUD_CROSS_LOOKBACK, score),
+    }
+
+
+# ---------------------------------------------------------------------------
+# ③ 쌍바닥(Double Bottom)
 # ---------------------------------------------------------------------------
 
 def detect_double_bottom(daily):
@@ -779,19 +877,26 @@ def detect_pullback(daily):
 
 
 def scan_stock(stock, daily, pattern_results, pullback_matches):
-    """단일 종목의 daily(OHLC)로 5종 패턴을 판정해 pattern_results/pullback_matches에
+    """단일 종목의 daily(OHLC)로 6종 패턴을 판정해 pattern_results/pullback_matches에
     append(둘 다 호출부가 미리 만들어서 넘긴 딕셔너리/리스트를 in-place로 채움).
     daily_scan.py(키움 API 기반)와 rescan_patterns.py(SQLite 기반)가 이 함수를 공유해서
     판정 로직이 두 곳에서 따로 관리되다 어긋나는 걸 방지한다.
     반환값: (패턴 스캔 대상이었는지, 눌림목 스캔 대상이었는지)."""
     pattern_scanned = False
     pullback_scanned = False
+    pattern_results.setdefault('maCloudBreakout', [])
 
     if len(daily) >= RISING_LOWS_WINDOW:
         pattern_scanned = True
         rl = detect_rising_lows(daily)
         if rl and not rl['breakout']:
             pattern_results['risingLows'].append(build_pattern_match(stock, daily, rl))
+
+    if len(daily) >= MA_CLOUD_MIN_DAYS:
+        pattern_scanned = True
+        ma_cloud = detect_ma_cloud_breakout(daily)
+        if ma_cloud and len(pattern_results['maCloudBreakout']) < PATTERN_MAX_MATCHES:
+            pattern_results['maCloudBreakout'].append(build_pattern_match(stock, daily, ma_cloud))
 
     if len(daily) >= BOX_WINDOW:
         db = detect_double_bottom(daily)
@@ -826,4 +931,8 @@ def finalize_pattern_results(pattern_results):
     rising_lows.sort(key=lambda item: item.get('date') or '', reverse=True)
     rising_lows.sort(key=lambda item: item.get('score') or 0, reverse=True)
     pattern_results['risingLows'] = rising_lows[:RISING_LOWS_DISPLAY_LIMIT]
+    ma_cloud = pattern_results.get('maCloudBreakout') or []
+    ma_cloud.sort(key=lambda item: item.get('date') or '', reverse=True)
+    ma_cloud.sort(key=lambda item: item.get('score') or 0, reverse=True)
+    pattern_results['maCloudBreakout'] = ma_cloud[:RISING_LOWS_DISPLAY_LIMIT]
     return pattern_results
