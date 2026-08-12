@@ -16,7 +16,7 @@
 .dmi-subheading h3 { font-size: 18px; }
 .dmi-muted { color: #000; font-size: 13px; }
 .dmi-provider { color: #000; font-size: 12px; white-space: nowrap; }
-.dmi-chart-grid,
+.dmi-chart-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
 .dmi-fund-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .dmi-panel,
 .dmi-fund-card,
@@ -26,7 +26,7 @@
 .dmi-tabs { display: flex; gap: 6px; margin: 10px 14px; }
 .dmi-tab { border: 1px solid #e2e8f0; border-radius: 999px; background: #f8fafc; color: #000; padding: 4px 12px; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
 .dmi-tab.is-active { background: #222; border-color: #222; color: #fff; }
-.dmi-chart { height: 420px; min-height: 250px; }
+.dmi-chart { height: 760px; min-height: 250px; }
 .dmi-chart canvas { touch-action: none; }
 .dmi-chart-message { display: grid; place-items: center; height: 100%; color: #000; font-size: 14px; }
 .dmi-flow-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -45,10 +45,9 @@
 .dmi-fund-date { color: #000; font-size: 12px; }
 .dmi-error { border: 1px solid #f0d4d4; border-radius: 12px; padding: 14px; color: #c14c4c; background: #fff8f8; }
 @media (max-width: 760px) {
-  .dmi-chart-grid,
   .dmi-flow-grid,
   .dmi-fund-grid { grid-template-columns: 1fr; }
-  .dmi-chart { height: 280px; }
+  .dmi-chart { height: 600px; }
   .dmi-heading h2 { font-size: 21px; }
   .dmi-panel, .dmi-fund-card, .dmi-flow-card { border-radius: 13px; padding: 12px; }
 }
