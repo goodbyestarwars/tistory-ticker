@@ -49,6 +49,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", search_body)
         self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", search_body)
 
+    def test_domestic_market_indicators_is_separate_from_temperature_and_combined_with_futures(self):
+        menu = self.read("js/skin-menu.js")
+        market_temp = self.read("js/market-temp.js")
+        futures = self.read("js/kospi-futures.js")
+        self.assertIn("{ href: '/page/market-temp', label: '증시온도' }", menu)
+        self.assertIn("{ href: '/pages/kospi-futures', label: '국내시장지표' }", menu)
+        self.assertNotIn("domestic-market-indicators", market_temp)
+        self.assertIn("function loadDomesticMarketIndicators(container)", futures)
+        self.assertIn("/pages/kospi-futures", futures)
+        self.assertIn("container.parentNode.insertBefore(mount, container)", futures)
+
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")
         for token in ("aria-expanded", "aria-current", "nav-secondary-row", "nav-secondary-separator"):
