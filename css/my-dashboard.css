@@ -1,0 +1,106 @@
+/* MY portfolio analysis screen. Market data is intentionally not persisted here. */
+#my-dashboard {
+  margin: 28px 0 18px;
+  color: #111827;
+}
+#my-dashboard * { box-sizing: border-box; }
+.my-dashboard-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 0 18px;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+.my-dashboard-eyebrow { display: block; color: #2563eb; font: 800 10px/1 Arial, sans-serif; letter-spacing: .14em; }
+.my-dashboard-head h2 { margin: 8px 0 6px; font-size: 26px; letter-spacing: -.04em; }
+.my-dashboard-head p { margin: 0; color: #64748b; font-size: 12px; }
+.my-dashboard-storage { flex: 0 0 auto; padding: 8px 11px; border: 1px solid #dbe5f2; border-radius: 999px; color: #64748b; font-size: 11px; }
+.my-dashboard-status { min-height: 20px; padding: 12px 0; color: #64748b; font-size: 12px; }
+.my-dashboard-status a { color: #2563eb; font-weight: 700; }
+.my-dashboard-grid { display: grid; grid-template-columns: minmax(210px, .34fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.my-dashboard-list, .my-dashboard-detail { min-width: 0; }
+.my-dashboard-list { overflow: hidden; border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; }
+.my-dashboard-list-head { display: flex; justify-content: space-between; padding: 14px 15px 10px; border-bottom: 1px solid #eef1f4; font-size: 13px; }
+.my-dashboard-list-head span { color: #9ca3af; font-size: 11px; }
+.my-stock-row { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 13px 14px; border: 0; border-bottom: 1px solid #f0f2f5; background: #fff; color: #111827; text-align: left; cursor: pointer; font: inherit; }
+.my-stock-row:last-child { border-bottom: 0; }
+.my-stock-row:hover, .my-stock-row.is-selected { background: #f7faff; }
+.my-stock-row.is-selected { box-shadow: inset 3px 0 #2563eb; }
+.my-stock-row-name { min-width: 0; grid-row: span 2; display: flex; flex-direction: column; justify-content: center; }
+.my-stock-row-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.my-stock-row-name small, .my-stock-row-price small, .my-stock-row-pnl { color: #9ca3af; font-size: 10px; }
+.my-stock-row-price { text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+.my-stock-row-price small { display: block; margin-top: 2px; }
+.my-stock-row-pnl { text-align: right; font-variant-numeric: tabular-nums; }
+.my-stock-row-pnl.is-up, .my-metric-grid .is-up, .my-flow-row .is-up { color: #d24f45; }
+.my-stock-row-pnl.is-down, .my-metric-grid .is-down, .my-flow-row .is-down { color: #1261c4; }
+.my-dashboard-detail { min-height: 300px; }
+.my-detail-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+.my-detail-head h3 { margin: 7px 0 0; font-size: 22px; letter-spacing: -.04em; }
+.my-detail-head h3 small { color: #9ca3af; font-size: 11px; font-weight: 400; letter-spacing: 0; }
+.my-detail-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.my-detail-actions a { padding: 8px 10px; border: 1px solid #dbe5f2; border-radius: 9px; color: #334155; font-size: 11px; text-decoration: none; }
+.my-detail-actions a:hover { border-color: #2563eb; color: #2563eb; }
+.my-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.my-metric-grid > div { min-width: 0; padding: 13px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
+.my-metric-grid span, .my-metric-grid small { display: block; color: #94a3b8; font-size: 10px; }
+.my-metric-grid strong { display: block; margin: 5px 0 3px; font-size: 17px; font-variant-numeric: tabular-nums; }
+.my-metric-grid .is-up, .my-metric-grid .is-down { color: inherit; }
+.my-holding-card, .my-analysis-card { margin-top: 10px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; }
+.my-card-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
+.my-card-title strong { font-size: 14px; }
+.my-card-title span { color: #94a3b8; font-size: 10px; }
+.my-holding-fields, .my-calc-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 8px; align-items: end; }
+.my-holding-fields label, .my-calc-fields label { display: flex; flex-direction: column; gap: 5px; color: #64748b; font-size: 10px; }
+.my-holding-fields input, .my-calc-fields input { width: 100%; min-height: 36px; padding: 7px 9px; border: 1px solid #dbe5f2; border-radius: 8px; color: #111827; background: #fff; font: inherit; font-size: 13px; }
+.my-save-holding { min-height: 36px; padding: 0 13px; border: 0; border-radius: 8px; background: #111827; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+.my-holding-note, .my-analysis-footnote, .my-muted { margin: 9px 0 0; color: #94a3b8; font-size: 10px; line-height: 1.5; }
+.my-analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.my-analysis-grid .my-analysis-card { min-width: 0; }
+.my-flow-grid { display: grid; gap: 7px; }
+.my-flow-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: baseline; padding-bottom: 7px; border-bottom: 1px solid #f0f2f5; font-size: 12px; }
+.my-flow-row:last-child { padding-bottom: 0; border-bottom: 0; }
+.my-flow-row b { font-variant-numeric: tabular-nums; }
+.my-flow-row small { color: #94a3b8; font-size: 10px; }
+.my-volume-highlight { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 10px; background: #f7faff; color: #64748b; font-size: 11px; }
+.my-volume-highlight strong { color: #2563eb; font-size: 18px; }
+.my-ai-card { background: linear-gradient(135deg, #f7faff, #fff); }
+.my-ai-card p { margin: 0; color: #334155; font-size: 12px; line-height: 1.7; white-space: pre-line; }
+.my-calculator { background: #fcfcfd; }
+.my-calc-result { margin-top: 10px; padding: 10px; border-radius: 9px; background: #f1f5f9; color: #64748b; font-size: 11px; }
+.my-calc-result strong { color: #111827; font-size: 15px; }
+.my-detail-loading, .my-dashboard-empty { padding: 34px 20px; border: 1px dashed #dbe5f2; border-radius: 14px; background: #fff; color: #64748b; text-align: center; }
+.my-detail-loading strong, .my-dashboard-empty strong { display: block; color: #111827; font-size: 15px; }
+.my-detail-loading p, .my-dashboard-empty p { margin: 8px 0 0; font-size: 11px; line-height: 1.6; }
+.my-detail-frame { margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; overflow: hidden; }
+.my-detail-frame summary { padding: 13px 15px; color: #334155; cursor: pointer; font-size: 12px; }
+.my-detail-frame iframe { display: block; width: 100%; height: 900px; border: 0; }
+
+html.dark #my-dashboard { color: #f5efe0; }
+html.dark .my-dashboard-head, html.dark .my-dashboard-list, html.dark .my-metric-grid > div, html.dark .my-holding-card, html.dark .my-analysis-card, html.dark .my-detail-frame, html.dark .my-detail-loading, html.dark .my-dashboard-empty { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
+html.dark .my-dashboard-head p, html.dark .my-dashboard-status, html.dark .my-dashboard-storage, html.dark .my-stock-row-name small, html.dark .my-stock-row-price small, html.dark .my-stock-row-pnl, html.dark .my-card-title span, html.dark .my-holding-note, html.dark .my-analysis-footnote, html.dark .my-muted { color: rgba(245,239,224,.55); }
+html.dark .my-stock-row { border-bottom-color: rgba(245,239,224,.1); background: #1a1a1a; color: #f5efe0; }
+html.dark .my-stock-row:hover, html.dark .my-stock-row.is-selected { background: #242424; }
+html.dark .my-detail-actions a, html.dark .my-holding-fields input, html.dark .my-calc-fields input { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
+html.dark .my-volume-highlight, html.dark .my-calc-result { background: #242424; color: rgba(245,239,224,.65); }
+html.dark .my-ai-card { background: linear-gradient(135deg, #202b3a, #1a1a1a); }
+html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,239,224,.8); }
+
+@media (max-width: 720px) {
+  #my-dashboard { margin-top: 18px; }
+  .my-dashboard-head { display: block; padding: 18px 0 14px; }
+  .my-dashboard-head h2 { font-size: 22px; }
+  .my-dashboard-storage { display: inline-block; margin-top: 12px; }
+  .my-dashboard-grid, .my-analysis-grid { grid-template-columns: 1fr; }
+  .my-dashboard-list { order: 0; }
+  .my-dashboard-detail { order: 1; }
+  .my-detail-head { display: block; }
+  .my-detail-actions { margin-top: 10px; }
+  .my-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .my-metric-grid > div:last-child { grid-column: 1 / -1; }
+  .my-holding-fields, .my-calc-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .my-save-holding { grid-column: 1 / -1; }
+  .my-detail-frame iframe { height: 760px; }
+}

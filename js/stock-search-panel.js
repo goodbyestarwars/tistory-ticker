@@ -552,6 +552,14 @@
     watchlistBooted = true;
     ensureStylesheet(WATCHLIST_CSS);
 
+    // /page/watchlist is the dedicated MY screen. Keep its existing in-page
+    // mount instead of moving it into the global drawer; other pages retain
+    // the global drawer behavior unchanged.
+    if (/^\/(?:page|pages)\/watchlist\/?$/.test(location.pathname)) {
+      ensureKrxMap().then(loadWatchlistScript).catch(loadWatchlistScript);
+      return;
+    }
+
     var legacyMount = document.getElementById('watchlist');
     var drawer = document.createElement('aside');
     drawer.className = 'global-watchlist-drawer';

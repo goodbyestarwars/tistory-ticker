@@ -214,6 +214,22 @@
     persistRemoteState(container);
   }
 
+  // MY 분석 화면에서만 사용하는 보유정보. 시세/차트 원자료는 저장하지 않고
+  // 사용자별 수량·평단 두 값만 기존 관심종목 JSON에 함께 저장한다.
+  function updateHolding(code, holding) {
+    var list = loadList();
+    var item = list.filter(function (candidate) { return candidate.code === code; })[0];
+    if (!item) return { ok: false, reason: 'not-found' };
+    var quantity = Number(holding && holding.quantity);
+    var averagePrice = Number(holding && holding.averagePrice);
+    if (!isFinite(quantity) || quantity < 0 || !isFinite(averagePrice) || averagePrice < 0) {
+      return { ok: false, reason: 'invalid' };
+    }
+    item.holding = { quantity: quantity, averagePrice: averagePrice };
+    saveList(list, document.querySelector(CONTAINER_SELECTOR));
+    return { ok: true };
+  }
+
   function loadGroups() {
     return remoteState.groups.slice();
   }
@@ -294,7 +310,8 @@
     US_WATCHLIST_STOCKS.forEach(function (stock) {
       var code = 'US:' + stock.symbol;
       // 기존 종목이 있으면 이름만 최신 한국어 표시명으로 맞추고, 없으면 새로 넣는다.
-      nextUsItems.push({ code: code, name: stock.name, groupId: usGroup.id });
+      var existing = remoteState.items.filter(function (item) { return item && String(item.code).toUpperCase() === code; })[0];
+      nextUsItems.push({ code: code, name: stock.name, groupId: usGroup.id, holding: existing && existing.holding || { quantity: 0, averagePrice: 0 } });
       usedCodes[code] = true;
     });
 
@@ -1116,6 +1133,7 @@
     add: addStock,
     remove: removeStock,
     has: hasStock,
+    updateHolding: updateHolding,
     getList: function () { return loadList(); },
     getGroups: function () { return loadGroups(); },
     onChange: function (listener) { if (typeof listener === 'function') changeListeners.push(listener); },
