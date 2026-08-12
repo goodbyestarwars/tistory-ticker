@@ -27,6 +27,7 @@ import btc_futures
 import dart_client
 import db_schema
 import domestic_futures
+import domestic_market_indicators
 import domestic_news
 import earnings_calendar
 import finnhub_realtime
@@ -175,6 +176,8 @@ _MARKET_BOARD_LIVE_TTL = 5
 _market_board_cache = {}
 _KOFIA_MARKET_TTL = 30 * 60
 _kofia_market_cache = {}
+_DOMESTIC_MARKET_INDICATORS_TTL = 60
+_domestic_market_indicators_cache = None
 
 # 캘린더의 Google Calendar 이벤트와 병합하는 자동 실적발표 피드 캐시.
 # 2026-08-03: 다른 메모리 캐시와 달리 상한/정리 로직이 아예 없었다 - year(2000~2100)x
@@ -1414,6 +1417,39 @@ def kofia_market_endpoint(days: int = Query(30, ge=7, le=90)):
         }
     _kofia_market_cache[days] = {'t': now, 'data': result}
     return envelope(result)
+
+
+@app.get('/domestic-market-indicators')
+def domestic_market_indicators_endpoint(fresh: bool = Query(False)):
+    """국내시장지표: 현물 코스피/코스닥 차트, 투자자별 수급, 증시자금.
+
+    The provider order is kept in domestic_market_indicators.py so the page
+    never accidentally falls back to futures when the cash index API is down.
+    """
+    global _domestic_market_indicators_cache
+    now = time.time()
+    if (not fresh and _domestic_market_indicators_cache and
+            now - _domestic_market_indicators_cache['t'] < _DOMESTIC_MARKET_INDICATORS_TTL):
+        return envelope(_domestic_market_indicators_cache['data'])
+    kiwoom_token = None
+    kiwoom_appkey = os.environ.get('KIWOOM_APPKEY')
+    kiwoom_secretkey = os.environ.get('KIWOOM_SECRETKEY')
+    if kiwoom_appkey and kiwoom_secretkey:
+        try:
+            kiwoom_token = kiwoom_client.get_token(kiwoom_appkey, kiwoom_secretkey)
+        except Exception:
+            logging.getLogger('main').warning('domestic market indicators: Kiwoom token unavailable', exc_info=True)
+    try:
+        data = domestic_market_indicators.build_dashboard(
+            kiwoom_token=kiwoom_token,
+            kis_appkey=os.environ.get('KIS_APPKEY'),
+            kis_appsecret=os.environ.get('KIS_APPSECRET'),
+        )
+    except Exception as exc:
+        logging.getLogger('main').warning('domestic market indicators failed: %s', exc, exc_info=True)
+        raise HTTPException(status_code=502, detail='국내시장지표 데이터를 불러오지 못했습니다.')
+    _domestic_market_indicators_cache = {'t': now, 'data': data}
+    return envelope(data)
 
 
 @app.get('/market-rank')

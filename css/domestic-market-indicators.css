@@ -1,0 +1,54 @@
+.dmi-shell {
+  margin-top: 28px;
+  color: #14213d;
+}
+.dmi-heading,
+.dmi-subheading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dmi-heading h2,
+.dmi-subheading h3 { margin: 0; }
+.dmi-heading h2 { font-size: 24px; }
+.dmi-subheading { margin: 28px 0 12px; }
+.dmi-subheading h3 { font-size: 18px; }
+.dmi-muted { color: #8da0bd; font-size: 13px; }
+.dmi-provider { color: #8da0bd; font-size: 12px; white-space: nowrap; }
+.dmi-chart-grid,
+.dmi-fund-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.dmi-panel,
+.dmi-fund-card,
+.dmi-flow-card { border: 1px solid #e4eaf2; border-radius: 16px; background: #fff; padding: 16px; box-sizing: border-box; }
+.dmi-panel-title { display: flex; justify-content: space-between; align-items: center; font-size: 19px; font-weight: 700; }
+.dmi-tabs { display: flex; gap: 6px; margin: 14px 0 8px; }
+.dmi-tab { border: 1px solid #d8e0eb; border-radius: 999px; background: #fff; color: #657893; padding: 7px 13px; cursor: pointer; font: inherit; }
+.dmi-tab.is-active { background: #25344d; border-color: #25344d; color: #fff; }
+.dmi-chart { height: 330px; min-height: 250px; }
+.dmi-chart canvas { touch-action: none; }
+.dmi-chart-message { display: grid; place-items: center; height: 100%; color: #9aa9bd; font-size: 14px; }
+.dmi-flow-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.dmi-flow-title { font-weight: 700; font-size: 17px; margin-bottom: 10px; }
+.dmi-flow-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.dmi-flow-table th,
+.dmi-flow-table td { border-bottom: 1px solid #edf1f6; padding: 9px 6px; text-align: right; font-size: 13px; }
+.dmi-flow-table th:first-child,
+.dmi-flow-table td:first-child { text-align: left; color: #8da0bd; }
+.dmi-flow-table th { color: #7385a0; font-weight: 500; }
+.dmi-flow-table td.dmi-positive { color: #e14f4f; }
+.dmi-flow-table td.dmi-negative { color: #1e6bc7; }
+.dmi-fund-card { min-height: 120px; }
+.dmi-fund-label { color: #7c8ea9; font-size: 14px; }
+.dmi-fund-value { display: block; margin: 8px 0 4px; color: #172641; font-size: 23px; font-weight: 700; }
+.dmi-fund-date { color: #9aa9bd; font-size: 12px; }
+.dmi-source-note { margin-top: 16px; color: #91a0b5; font-size: 12px; }
+.dmi-error { border: 1px solid #f0d4d4; border-radius: 12px; padding: 14px; color: #c14c4c; background: #fff8f8; }
+@media (max-width: 760px) {
+  .dmi-chart-grid,
+  .dmi-flow-grid,
+  .dmi-fund-grid { grid-template-columns: 1fr; }
+  .dmi-chart { height: 280px; }
+  .dmi-heading h2 { font-size: 21px; }
+  .dmi-panel, .dmi-fund-card, .dmi-flow-card { border-radius: 13px; padding: 12px; }
+}

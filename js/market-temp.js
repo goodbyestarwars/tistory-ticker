@@ -123,14 +123,28 @@
           container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
           return;
         }
-        container.innerHTML = buildCard(data) + (gaugeOnly ? '' : buildExploreCard());
+        container.innerHTML = buildCard(data) + (gaugeOnly ? '' : buildExploreCard() + '<div id="domestic-market-indicators"></div>');
         wireAnimations(container, data);
         loadAiBriefing(container);
         if (!gaugeOnly) wireViewTabs(container);
+        if (!gaugeOnly) loadDomesticMarketIndicators();
       })
       .catch(function () {
         container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
       });
+  }
+
+  function loadDomesticMarketIndicators() {
+    if (global.DomesticMarketIndicators) {
+      global.DomesticMarketIndicators.init();
+      return;
+    }
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260812-domestic-market';
+    script.onload = function () {
+      if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();
+    };
+    document.head.appendChild(script);
   }
 
   function fetchJson_(url) {
