@@ -353,9 +353,26 @@
 
   // ---- 검색 결과 리스트 ----
 
+  function resolveDomesticName(query) {
+    var map = global.KRX_MAP || {};
+    var needle = String(query || '').trim().toLowerCase();
+    if (!needle) return null;
+    for (var name in map) {
+      if (map.hasOwnProperty(name) && String(name).toLowerCase() === needle) {
+        return { name: name, code: map[name] };
+      }
+    }
+    return null;
+  }
+
   function runSearch(container, query) {
     var resultsBox = container.querySelector('#ssResults');
     if (!query) { resultsBox.innerHTML = '<div class="ss-hint">종목명 또는 코드를 입력해주세요.</div>'; return; }
+    var domesticMatch = resolveDomesticName(query);
+    if (domesticMatch) {
+      runDomesticSearch(container, domesticMatch.name);
+      return;
+    }
     if (/^US:/i.test(query) || (/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(query) && !/^\d{6}$/.test(query))) {
       openUsSymbol(container, query);
       return;

@@ -128,6 +128,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("return localRows.concat(rows)", realtime)
         self.assertIn("return localRows.concat(rows)", self.read("js/us-stocks.js"))
 
+    def test_domestic_name_search_wins_over_us_ticker_detection(self):
+        source = self.read("js/stock-search.js")
+        self.assertIn("function resolveDomesticName(query)", source)
+        self.assertIn("var domesticMatch = resolveDomesticName(query);", source)
+        self.assertIn("if (domesticMatch) {", source)
+        self.assertIn("runDomesticSearch(container, domesticMatch.name);", source)
+
     def test_community_stock_selector_supports_us_search(self):
         source = self.read("js/stock-discussion.js")
         self.assertIn("var US_API_BASE = 'https://goodbyestar.cloud';", source)
