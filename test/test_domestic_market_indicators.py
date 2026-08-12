@@ -88,12 +88,17 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
             'bsop_date': '20260812',
             'crdt_loan_rmnd': '12345',
             'cust_dpmn_amt': '67890',
+        }, {
+            'bsop_date': '20260811',
+            'crdt_loan_rmnd': '12000',
+            'cust_dpmn_amt': '67000',
         }])
-        self.assertEqual(rows, [{
+        self.assertEqual(rows[-1], {
             'date': '2026-08-12',
             'credit': 12345.0,
             'market_funds': {'date': '2026-08-12', 'investor_deposits': 67890.0},
-        }])
+        })
+        self.assertEqual([row['date'] for row in rows], ['2026-08-11', '2026-08-12'])
 
 
 if __name__ == '__main__':
