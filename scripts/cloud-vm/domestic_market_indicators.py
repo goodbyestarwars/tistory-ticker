@@ -247,7 +247,9 @@ def _normalise_kis_funds(rows):
         deposits = _number_from_candidates(row, ('cust_dpmn_amt', 'invr_dpsg_amt', 'invr_dpsg', 'customer_deposit', 'cus_dpsg_amt'))
         if date_value and (credit is not None or deposits is not None):
             result.append({'date': date_value, 'credit': credit, 'market_funds': {'date': date_value, 'investor_deposits': deposits}})
-    return result
+    # KIS commonly returns market-funds rows newest-first. Keep the public
+    # series chronological so the last row is always the latest observation.
+    return sorted(result, key=lambda item: item['date'])
 
 
 def _fetch_kis_funds(kis_appkey, kis_appsecret):
