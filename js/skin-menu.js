@@ -142,6 +142,14 @@
     document.querySelectorAll('.nav-logo-name').forEach(function (item) {
       item.textContent = 'ㄱㅖ조 ㅏ심폐소생술';
     });
+    // skin.html을 티스토리 관리자에서 아직 갱신하지 않은 경우에도 새 로고를 즉시 반영한다.
+    document.querySelectorAll('.nav-logo-emblem img').forEach(function (item) {
+      item.className = 'nav-logo-image';
+      item.src = 'https://goodbyestarwars.github.io/tistory-ticker/img/account-cpr-logo.png';
+      item.alt = '계좌 심폐소생술 로고';
+      item.width = 34;
+      item.height = 34;
+    });
 
     if (mount) {
       selectedGroupIndex = activeGroupIndex();
