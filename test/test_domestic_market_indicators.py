@@ -8,6 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, 'scripts', 'cloud-vm'))
 
 import domestic_market_indicators as dmi
+import kis_client
 
 
 class DomesticMarketIndicatorsTest(unittest.TestCase):
@@ -55,6 +56,12 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
             {'label': '08.12', 'ind': 1, 'frgn': -2, 'orgn': 3},
         ]})
         self.assertEqual(rows[0], {'label': '08.12', 'individual': 1.0, 'foreign': -2.0, 'institution': 3.0})
+
+    def test_kis_funds_uses_documented_query_key(self):
+        with patch.object(kis_client, '_get_domestic_quote', return_value={'output': [{'stck_bsop_date': '20260812'}]}) as request:
+            rows = kis_client.fetch_market_funds('token', 'appkey', 'secret')
+        self.assertEqual(rows, [{'stck_bsop_date': '20260812'}])
+        self.assertEqual(request.call_args.args[5], {'fid_input_date_1': ''})
 
 
 if __name__ == '__main__':

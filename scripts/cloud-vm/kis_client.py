@@ -390,7 +390,9 @@ def fetch_market_funds(token, appkey, appsecret, date=''):
         token, appkey, appsecret,
         '/uapi/domestic-stock/v1/quotations/mktfunds',
         'FHKST649100C0',
-        {'FID_INPUT_DATE_1': date},
+        # mktfunds is an exception among these KIS quote APIs: the official
+        # sample uses the lowercase query key exactly as documented.
+        {'fid_input_date_1': date},
     )
     output = data.get('output') or []
     return output if isinstance(output, list) else [output]

@@ -4,6 +4,7 @@
   var API_URL = 'https://goodbyestar.cloud/domestic-market-indicators';
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
   var KST_OFFSET_SEC = 9 * 60 * 60;
+  var CHART_HEIGHT = 420;
   var chartInstances = {};
   var lwcPromise = null;
 
@@ -34,6 +35,35 @@
       document.head.appendChild(script);
     });
     return lwcPromise;
+  }
+
+  function isDark() {
+    return document.documentElement.classList.contains('dark');
+  }
+
+  function chartThemeOptions() {
+    var dark = isDark();
+    return {
+      // Keep the attribution/logo behavior identical to the KOSPI200 futures chart.
+      layout: { background: { color: 'transparent' }, textColor: '#000', attributionLogo: false },
+      grid: {
+        vertLines: { color: dark ? '#3a3a3a' : '#eee' },
+        horzLines: { color: dark ? '#3a3a3a' : '#eee' }
+      },
+      rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
+      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' }
+    };
+  }
+
+  function chartPriceFormatter(value) {
+    return value == null || isNaN(value) ? '' : value.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function mergeOptions(base, extra) {
+    var merged = {};
+    Object.keys(base).forEach(function (key) { merged[key] = base[key]; });
+    Object.keys(extra).forEach(function (key) { merged[key] = extra[key]; });
+    return merged;
   }
 
   function installStyle() {
@@ -89,19 +119,17 @@
       }
       if (current) current.chart.remove();
       element.innerHTML = '';
-      var chart = LWC.createChart(element, {
+      var chart = LWC.createChart(element, mergeOptions({
         autoSize: true,
-        height: 330,
-        layout: { background: { color: 'transparent' }, textColor: '#000' },
-        grid: { vertLines: { color: '#edf1f5' }, horzLines: { color: '#edf1f5' } },
+        height: CHART_HEIGHT,
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        rightPriceScale: { borderVisible: false },
-        timeScale: { borderVisible: false, timeVisible: interval === 'minute', secondsVisible: false },
-      });
+        timeScale: { timeVisible: interval === 'minute', secondsVisible: false },
+        localization: { priceFormatter: chartPriceFormatter }
+      }, chartThemeOptions()));
       var series = chart.addCandlestickSeries({
-        upColor: '#d84f48', downColor: '#1767c7',
-        borderUpColor: '#d84f48', borderDownColor: '#1767c7',
-        wickUpColor: '#d84f48', wickDownColor: '#1767c7'
+        upColor: '#d24f45', downColor: '#1261c4',
+        borderUpColor: '#d24f45', borderDownColor: '#1261c4',
+        wickUpColor: '#d24f45', wickDownColor: '#1261c4'
       });
       series.setData(points);
       chart.timeScale().fitContent();
