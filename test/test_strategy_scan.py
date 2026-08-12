@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from datetime import date, timedelta
+from unittest.mock import patch
 
 CLOUD_VM_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts', 'cloud-vm'))
 if CLOUD_VM_DIR not in sys.path:
@@ -113,6 +114,21 @@ class OpeningGapTests(unittest.TestCase):
 
     def test_rejects_turnover_outside_range(self):
         self.assertIsNone(strategy_scan.opening_gap_signal(self._daily(volume=100_000)))
+
+    def test_scan_excludes_non_common_stock_categories(self):
+        daily = self._daily()
+        universe = [
+            {'code': '000001', 'name': '일반 종목'},
+            {'code': '000002', 'name': 'KODEX 코스닥150', 'is_etf': True},
+            {'code': '000003', 'name': '테스트우'},
+            {'code': '000004', 'name': '테스트스팩'},
+            {'code': '000005', 'name': '테스트 ETN'},
+        ]
+        with patch.object(strategy_scan.db_schema, 'load_daily_prices', return_value=daily):
+            sectors, scanned = strategy_scan.scan_opening_gap(universe, {}, object())
+
+        self.assertEqual(scanned, 1)
+        self.assertEqual([row['code'] for rows in sectors.values() for row in rows], ['000001'])
 
 
 class BuildMatchTests(unittest.TestCase):

@@ -462,6 +462,8 @@ def scan_opening_gap(universe, wics_map, conn):
         daily = db_schema.load_daily_prices(conn, stock['code'])
         if len(daily) < 2:
             continue
+        if pattern_detect.is_excluded_stock(stock, daily):
+            continue
         scanned += 1
         signal = opening_gap_signal(daily)
         if not signal:
