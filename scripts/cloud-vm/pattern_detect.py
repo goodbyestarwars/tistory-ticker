@@ -33,26 +33,28 @@ MA_CLOUD_MIN_DAYS = 250
 MA_CLOUD_NEAR_TOL = 0.03       # 현재가와 224일선 사이 최대 3%
 MA_CLOUD_TOP_TOL = 0.03        # 구름 상단을 향한 현재 봉의 고가 근접도 최대 3%
 MA_CLOUD_CROSS_LOOKBACK = 5    # 최근 5봉 안의 5일선-20일선 골든크로스
-DOUBLE_BOTTOM_WINDOW = 90
-IHS_WINDOW = 60
+DOUBLE_BOTTOM_WINDOW = 120
+IHS_WINDOW = 90
 BOX_WINDOW = 21  # 20 bars for the range plus the 20-bars-ago reference bar
 
 WEDGE_MIN_SWINGS = 2
 RECENCY_MAX_GAP = 3
 
-DB_LOW_TOL = 0.02
-DB_MIN_GAP_DAYS = 12
-DB_MAX_GAP_DAYS = 35
+DB_LOW_TOL = 0.03
+DB_MIN_GAP_DAYS = 10
+DB_MAX_GAP_DAYS = 45
 DB_PEAK_MIN_RISE = 0.08
 DB_NECK_PROXIMITY_MIN = -0.02
-DB_SECOND_VOLUME_MAX_RATIO = 0.85
+DB_SECOND_VOLUME_MAX_RATIO = 1.00
 
-IHS_SHOULDER_TOL = 0.03
-IHS_HEAD_MIN_DROP = 0.03
+IHS_SHOULDER_TOL = 0.04
+IHS_HEAD_MIN_DROP = 0.02
 IHS_NECK_PROXIMITY_MIN = -0.01
-IHS_NECK_MIN_RISE = 0.05
-IHS_MIN_SHOULDER_GAP = 5
-IHS_MAX_SHOULDER_GAP = 30
+IHS_NECK_MIN_RISE = 0.03
+IHS_MIN_SHOULDER_GAP = 4
+IHS_MAX_SHOULDER_GAP = 40
+DB_RECENCY_MAX_GAP = 5
+IHS_RECENCY_MAX_GAP = 5
 
 BOX_CLOSE_RANGE_MAX = 0.10
 BOX_MA_NEAR_TOL = 0.03
@@ -74,7 +76,7 @@ BREAKOUT_TOL = 1.02
 # 2026-07-22 개편: 저점상승형 20일선 기울기 / 눌림목 20일선 상승 확인에 공용으로 쓰는
 # "며칠 전과 비교할지" 값(gas/ticker-proxy.gs와 동일하게 5거래일).
 MA_SLOPE_LOOKBACK = 5
-IHS_VOL_SURGE_RATIO = 1.5  # 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.5배 이상
+IHS_VOL_SURGE_RATIO = 1.20  # 역헤드앤숄더: 우어깨 이후 거래량이 20일 평균 대비 1.2배 이상
 
 PULLBACK_WINDOW = 260
 PULLBACK_LOOKBACK = 20
@@ -87,7 +89,7 @@ PULLBACK_MIN_DAYS = 240  # 1년선(240거래일) 계산에 필요한 최소 보�
 # Conservative score floors filter weak structures before the display cap.
 # Scores combine shape, support, volume, and recent-candle evidence, so the
 # result does not depend on the order in which symbols are scanned.
-IHS_MIN_SCORE = 80
+IHS_MIN_SCORE = 70
 PULLBACK_MIN_SCORE = 80
 
 
@@ -730,14 +732,14 @@ def detect_double_bottom(daily):
     if len(low_idxs) < 2:
         return None
 
-    # 오래된 조합을 억지로 찾지 않고 가장 최근 두 저점만 쌍바닥 후보로 본다.
-    for a in [len(low_idxs) - 2]:
-        for b in [len(low_idxs) - 1]:
+    # 가장 최근 저점부터 여러 조합을 확인해 중간 잡음 저점 때문에 패턴을 놓치지 않는다.
+    for b in range(len(low_idxs) - 1, 0, -1):
+        for a in range(b - 1, -1, -1):
             i1, i2 = low_idxs[a], low_idxs[b]
             gap_days = i2 - i1
             if gap_days < DB_MIN_GAP_DAYS or gap_days > DB_MAX_GAP_DAYS:
                 continue
-            if (len(win) - 1) - i2 > RECENCY_MAX_GAP:
+            if (len(win) - 1) - i2 > DB_RECENCY_MAX_GAP:
                 continue
 
             low1, low2 = win[i1]['low'], win[i2]['low']
@@ -814,12 +816,12 @@ def detect_inv_head_shoulders(daily):
     # 2026-07-22 개편: 우어깨 형성 이후 거래량 급증(20일 평균 대비 1.2배 이상) 조건 기준선
     avg_vol20 = avg_volume(win, max(0, len(win) - 20), len(win))
 
-    # 오래된 조합을 억지로 찾지 않고 가장 최근 세 저점만 역헤드앤숄더 후보로 본다.
-    for a in [len(low_idxs) - 3]:
-        for b in [len(low_idxs) - 2]:
-            for c in [len(low_idxs) - 1]:
+    # 가장 최근 저점부터 여러 조합을 확인해 중간 잡음 저점 때문에 패턴을 놓치지 않는다.
+    for c in range(len(low_idxs) - 1, 1, -1):
+        for b in range(c - 1, 0, -1):
+            for a in range(b - 1, -1, -1):
                 i_l, i_h, i_r = low_idxs[a], low_idxs[b], low_idxs[c]
-                if (len(win) - 1) - i_r > RECENCY_MAX_GAP:
+                if (len(win) - 1) - i_r > IHS_RECENCY_MAX_GAP:
                     continue
                 left_gap = i_h - i_l
                 right_gap = i_r - i_h
