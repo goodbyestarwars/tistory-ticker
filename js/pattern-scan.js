@@ -142,12 +142,12 @@
       return;
     }
 
-    // 전체 후보 중 점수와 최근성이 좋은 12개만 표시한다. 저점상승형의 포함 여부 자체는 점수로 제한하지 않는다.
+    // 20개를 넘는 후보에만 차트 품질 게이트를 적용한 뒤, 통과한 후보는 모두 표시한다.
     var sorted = items.slice().sort(function (a, b) {
       var scoreDiff = (b.score || 0) - (a.score || 0);
       if (scoreDiff) return scoreDiff;
       return String(b.date || '').localeCompare(String(a.date || ''));
-    }).slice(0, 12);
+    });
 
     list.innerHTML = sorted.map(function (it) {
       var cc = chgClass(it.changeRate);

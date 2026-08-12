@@ -610,7 +610,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("최근 20봉 종가 변동폭 10% 이하", source)
         self.assertIn("시가총액 3,000억원 이상", source)
         self.assertIn("activeTab === 'boxRangeLow' || activeTab === 'openingGap'", source)
-        self.assertIn("}).slice(0, 12)", source)
+        self.assertNotIn("slice(0, 12)", source)
         self.assertIn("data.detail = item.patternDetail", source)
 
     def test_chart_search_includes_opening_gap_tab(self):

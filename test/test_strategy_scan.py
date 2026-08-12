@@ -160,6 +160,19 @@ class BuildMatchTests(unittest.TestCase):
         self.assertIsNone(match['changeRate'])
 
 
+    def test_strategy_quality_gates_reduce_large_results_without_order_cut(self):
+        matches = [
+            {'code': '%06d' % i, 'fundamentalScore': 60 if i < 8 else 80,
+             'disparity': 60 + i}
+            for i in range(21)
+        ]
+
+        filtered = strategy_scan.apply_strategy_quality_gates(matches)
+
+        self.assertEqual(len(filtered), 13)
+        self.assertTrue(all(item['fundamentalScore'] >= 70 for item in filtered))
+
+
 class ScanTests(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
@@ -295,7 +308,7 @@ class ScanTests(unittest.TestCase):
         codes = [m['code'] for m in sectors['IT']]
         self.assertEqual(codes, ['000006'])
 
-    def test_caps_and_sorts_top_n_per_sector(self):
+    def test_keeps_all_small_sector_results_and_sorts_by_quality(self):
         # SECTOR_TOP_N(5)보다 많은 6종목을 같은 섹터에 넣고, 이격도가 제일 낮은(가장 많이
         # 눌린) 5개만, 낮은 순으로 남는지 확인. 전부 90(DISPARITY_MAX)에 여유 있게 못 미치는
         # 값으로 잡아 게이트가 아니라 컷(SECTOR_TOP_N)이 걸러내는 상황을 테스트한다 - sma_last가
@@ -314,11 +327,11 @@ class ScanTests(unittest.TestCase):
 
         sectors, *_ = strategy_scan.scan(universe, wics_map, fundamentals_cache, self.conn)
 
-        self.assertEqual(len(sectors['IT']), strategy_scan.SECTOR_TOP_N)
+        self.assertEqual(len(sectors['IT']), 6)
         disparities = [m['disparity'] for m in sectors['IT']]
         self.assertEqual(disparities, sorted(disparities))  # 이격도 오름차순(가장 눌린 것부터)
         codes = [m['code'] for m in sectors['IT']]
-        self.assertNotIn('000100', codes)  # last_price=8800(가장 안 눌림, 이격도 최고)은 컷됨
+        self.assertIn('000100', codes)
 
     def test_separates_sectors(self):
         _insert_flat_then_drop(self.conn, '000020', last_price=8000)
