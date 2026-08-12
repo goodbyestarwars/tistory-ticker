@@ -563,6 +563,97 @@ _WS_MAX_CONNECTIONS = 200  # 2026-08-03: 동시 연결 수 상한 - Origin 헤�
 # 이 상한으로 키움 실시간 세션/서버 스레드 자원 고갈을 막는다.
 _ws_active_connections = 0
 
+# 경제 종합뉴스는 브라우저마다 5분 REST 요청을 반복하지 않고, 한 번 수집한
+# 결과를 연결된 브라우저에 fan-out한다. 뉴스 원천의 캐시 TTL과 맞춰 저빈도로
+# 갱신하므로 WebSocket 연결 수가 늘어도 뉴스 제공자 호출 수는 늘지 않는다.
+_ECONOMIC_NEWS_WS_INTERVAL_SEC = 5 * 60
+_ECONOMIC_NEWS_WS_CACHE_TTL_SEC = 4 * 60
+_economic_news_ws_clients = set()
+_economic_news_ws_task = None
+_economic_news_ws_cache = {}
+
+
+def _economic_news_market():
+    now = datetime.now(timezone(timedelta(hours=9)))
+    return 'us' if now.hour >= 20 or now.hour < 8 else 'domestic'
+
+
+def _fetch_economic_news_snapshot(market):
+    if market == 'us':
+        items = news_aggregator.get_general_news(
+            alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+            finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+            limit=50,
+        )
+    else:
+        result = domestic_news.get_news(limit=50, item_kind='news')
+        items = result.get('items', []) if isinstance(result, dict) else []
+    return {'market': market, 'items': items}
+
+
+async def _economic_news_snapshot(market):
+    cached = _economic_news_ws_cache.get(market)
+    if cached and time.time() - cached['t'] < _ECONOMIC_NEWS_WS_CACHE_TTL_SEC:
+        return cached['data']
+    data = await asyncio.to_thread(_fetch_economic_news_snapshot, market)
+    _economic_news_ws_cache[market] = {'t': time.time(), 'data': data}
+    return data
+
+
+async def _economic_news_broadcast_loop():
+    global _economic_news_ws_task
+    try:
+        while _economic_news_ws_clients:
+            await asyncio.sleep(_ECONOMIC_NEWS_WS_INTERVAL_SEC)
+            if not _economic_news_ws_clients:
+                break
+            try:
+                payload = await _economic_news_snapshot(_economic_news_market())
+            except Exception as exc:
+                logging.getLogger('main').warning('경제 종합뉴스 WebSocket 수집 실패: %s', type(exc).__name__)
+                continue
+            stale = []
+            for client in tuple(_economic_news_ws_clients):
+                try:
+                    await client.send_json({'type': 'economic-news', 'data': payload})
+                except Exception:
+                    stale.append(client)
+            for client in stale:
+                _economic_news_ws_clients.discard(client)
+    except asyncio.CancelledError:
+        raise
+    finally:
+        _economic_news_ws_task = None
+
+
+@app.websocket('/ws/economic-news')
+async def economic_news_socket(websocket: WebSocket):
+    """경제 종합뉴스를 공용 캐시에서 브라우저로 push한다."""
+    global _economic_news_ws_task
+    origin = websocket.headers.get('origin')
+    if origin not in ALLOWED_BROWSER_ORIGINS:
+        await websocket.close(code=1008)
+        return
+    if len(_economic_news_ws_clients) >= _WS_MAX_CONNECTIONS:
+        await websocket.close(code=1013)
+        return
+
+    await websocket.accept()
+    _economic_news_ws_clients.add(websocket)
+    try:
+        payload = await _economic_news_snapshot(_economic_news_market())
+        await websocket.send_json({'type': 'economic-news', 'data': payload})
+        if _economic_news_ws_task is None or _economic_news_ws_task.done():
+            _economic_news_ws_task = asyncio.create_task(_economic_news_broadcast_loop())
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        logging.getLogger('main').warning('경제 종합뉴스 WebSocket 종료: %s', type(exc).__name__)
+    finally:
+        _economic_news_ws_clients.discard(websocket)
+
 
 @app.websocket('/ws/quotes')
 async def realtime_quote_socket(websocket: WebSocket):
