@@ -682,6 +682,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".sc-search input", style)
         self.assertIn("stock-calendar.js?v=20260812-dart-result", home)
 
+    def test_earnings_calendar_allows_supported_tistory_origins(self):
+        source = self.read("scripts/cloud-vm/main.py")
+        self.assertIn("ALLOWED_BROWSER_ORIGINS = [", source)
+        self.assertIn("'https://ghlee.tistory.com'", source)
+        self.assertIn("'https://goodbyestarwars.tistory.com'", source)
+        self.assertIn("allow_origins=ALLOWED_BROWSER_ORIGINS", source)
+
 
 if __name__ == "__main__":
     unittest.main()
