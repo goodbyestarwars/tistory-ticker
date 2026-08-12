@@ -609,8 +609,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/pattern-scan.js")
         self.assertIn("최근 20봉 종가 변동폭 10% 이하", source)
         self.assertIn("시가총액 3,000억원 이상", source)
-        self.assertIn("activeTab === 'boxRangeLow' && item.patternDetail", source)
+        self.assertIn("activeTab === 'boxRangeLow' || activeTab === 'openingGap'", source)
+        self.assertIn("}).slice(0, 12)", source)
         self.assertIn("data.detail = item.patternDetail", source)
+
+    def test_chart_search_includes_opening_gap_tab(self):
+        source = self.read("js/pattern-scan.js")
+        self.assertIn("key: 'openingGap'", source)
+        self.assertIn("label: '시초 갭상승'", source)
 
     def test_strategy_search_renders_weekly_envelope_metric(self):
         source = self.read("js/strategy-search.js")

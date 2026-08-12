@@ -83,7 +83,10 @@ def main():
     log('대상 종목 수: %d' % len(codes))
     market_cap_cache = load_market_cap_cache()
 
-    pattern_results = {'risingLows': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [], 'boxRangeLow': []}
+    pattern_results = {
+        'risingLows': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [],
+        'boxRangeLow': [], 'openingGap': [],
+    }
     pattern_scanned = 0
     pullback_matches = []
     pullback_scanned = 0

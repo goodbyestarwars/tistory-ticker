@@ -2363,7 +2363,7 @@ function pensionInterpretation_(streak, foreignNet5d) {
 // ---------------------------------------------------------------------------
 
 var PATTERN_SWING = 2;           // 스윙 판정 시 좌우로 비교할 봉 수(지시서: 좌우 2개씩 = 5개 캔들 중 극값)
-var PATTERN_MAX_MATCHES = 30;    // 패턴별 저장 개수 상한 (PropertiesService 9KB/속성 제한 대비)
+var PATTERN_MAX_MATCHES = 12;    // 패턴별 표시 개수 상한
 
 // 4개 패턴(저점상승형/쌍바닥/역헤드앤숄더/박스권하단)이 종목당 필요한 표시 구간이 서로 달라서
 // (60/90/60/40일) 크롤링은 그중 가장 긴 쌍바닥 기준(90일 + 스윙 판정 여유)으로 한 번만 하고,
@@ -2450,6 +2450,7 @@ function getPatternScanResult() {
       doubleBottom: (patternScan.patterns && patternScan.patterns.doubleBottom) || [],
       invHeadShoulders: (patternScan.patterns && patternScan.patterns.invHeadShoulders) || [],
       boxRangeLow: (patternScan.patterns && patternScan.patterns.boxRangeLow) || [],
+      openingGap: (patternScan.patterns && patternScan.patterns.openingGap) || [],
       pullback: pullbackScan.matches || []
     }
   };

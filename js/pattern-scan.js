@@ -45,7 +45,8 @@
     { key: 'doubleBottom', label: '쌍바닥', desc: '비슷한 높이의 저점을 두 번 찍고 그 사이 반등한 고점(넥라인)이 있는 W자 모양. 바닥을 두 번 확인했다는 신호입니다.' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '저점 3개가 어깨-머리-어깨 모양(가운데가 가장 낮음)을 이루는 패턴. 하락 추세가 상승으로 반전될 때 자주 나타납니다.' },
     { key: 'boxRangeLow', label: '박스권 하단', desc: '최근 20봉 종가 변동폭 10% 이하, 종가 5·20일선 3% 이내 근접 3회 이상, RSI(14) 35~65, 거래량비율 50~120%, 시가총액 3,000억원 이상, 시가 5·20일선 관계 3회 이상, 20봉 수익률 ±10% 이내를 모두 만족하면서 박스 하단에 있는 후보입니다.' },
-    { key: 'pullback', label: '눌림목', desc: '단기간 15% 이상 오른 뒤 5~15% 정도 되돌림(조정)이 나와 20일선 또는 1년선(240일선) 부근까지 내려온 구간. 상승 추세 중 쉬어가는 자리입니다.' }
+    { key: 'pullback', label: '눌림목', desc: '단기간 15% 이상 오른 뒤 5~15% 정도 되돌림(조정)이 나와 20일선 또는 1년선(240일선) 부근까지 내려온 구간. 상승 추세 중 쉬어가는 자리입니다.' },
+    { key: 'openingGap', label: '시초 갭상승', desc: '시가가 전일 종가보다 높고, 종가가 시가 대비 3% 이상 상승하며 시가 1,000~500,000원·거래대금 3,000~999,999백만원 조건을 모두 만족하는 종목입니다.' }
   ];
 
   // 리스트 항목용 미니 패턴 아이콘 - 실제 캔들을 축소한 게 아니라 O(고점/저점)와 선으로
@@ -56,7 +57,8 @@
     doubleBottom: '<path d="M2,4 L8,14 L16,7 L24,14 L30,4"/><circle cx="8" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
     invHeadShoulders: '<path d="M2,6 L7,10 L12,6 L17,15 L22,6 L27,10 L32,3"/><circle cx="7" cy="10" r="2"/><circle cx="17" cy="15" r="2"/><circle cx="27" cy="10" r="2"/>',
     boxRangeLow: '<rect x="3" y="2" width="24" height="12" rx="1"/><circle cx="6" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
-    pullback: '<path d="M2,15 L10,4 L16,10 L24,2"/><circle cx="10" cy="4" r="2"/><circle cx="16" cy="10" r="2"/>'
+    pullback: '<path d="M2,15 L10,4 L16,10 L24,2"/><circle cx="10" cy="4" r="2"/><circle cx="16" cy="10" r="2"/>',
+    openingGap: '<path d="M3,14 L10,13 L10,7 L18,8 L25,3 L31,2"/><path d="M10,7 L10,3"/>'
   };
 
   function patternIcon(key) {
@@ -140,12 +142,12 @@
       return;
     }
 
-    // 전체 후보 중 점수와 최근성이 좋은 15개만 표시한다. 저점상승형의 포함 여부 자체는 점수로 제한하지 않는다.
+    // 전체 후보 중 점수와 최근성이 좋은 12개만 표시한다. 저점상승형의 포함 여부 자체는 점수로 제한하지 않는다.
     var sorted = items.slice().sort(function (a, b) {
       var scoreDiff = (b.score || 0) - (a.score || 0);
       if (scoreDiff) return scoreDiff;
       return String(b.date || '').localeCompare(String(a.date || ''));
-    }).slice(0, 15);
+    }).slice(0, 12);
 
     list.innerHTML = sorted.map(function (it) {
       var cc = chgClass(it.changeRate);
@@ -188,7 +190,7 @@
         }
         // Box-range scans include market cap in the VM snapshot; GAS cannot
         // reproduce that E condition during an on-demand chart request.
-        if (activeTab === 'boxRangeLow' && item.patternDetail) {
+        if ((activeTab === 'boxRangeLow' || activeTab === 'openingGap') && item.patternDetail) {
           data.detail = item.patternDetail;
         }
         // 리스트는 하루 1회 스캔 캐시라서, 클릭 시 실시간 재검증에서 패턴이 더 이상
@@ -665,6 +667,8 @@
         addDot(detail.peak, RESIST_COLOR, 'aboveBar');
         addSignal(detail.current);
       }
+    } else if (pattern === 'openingGap') {
+      if (detail.signal) addSignal(detail.signal);
     }
 
     if (markers.length) candleSeries.setMarkers(markers);

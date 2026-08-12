@@ -199,7 +199,7 @@ class RisingLowsDetectionTest(unittest.TestCase):
 
         self.assertEqual(len(results["risingLows"]), detector.PATTERN_MAX_MATCHES + 1)
 
-    def test_finalize_pattern_results_keeps_only_top_15_candidates(self):
+    def test_finalize_pattern_results_keeps_only_top_12_candidates(self):
         results = {
             "risingLows": [
                 {"code": "%06d" % i, "score": 70, "date": "2026-08-%02d" % ((i % 9) + 1)}
@@ -229,6 +229,49 @@ class RisingLowsDetectionTest(unittest.TestCase):
             self.assertEqual(results[key][0]["code"], "999999")
         self.assertEqual(len(pullback), detector.PATTERN_MAX_MATCHES)
         self.assertEqual(pullback[0]["code"], "999999")
+
+
+class ChartScanFilterTest(unittest.TestCase):
+    def daily(self, volume=100):
+        return [{
+            "date": "2026-08-11", "open": 1000, "high": 1100,
+            "low": 990, "close": 1050, "volume": volume,
+        }]
+
+    def test_excludes_products_and_non_common_stock_statuses(self):
+        self.assertTrue(detector.is_excluded_stock({"name": "KODEX 200"}, self.daily()))
+        self.assertTrue(detector.is_excluded_stock({"name": "삼성전자우"}, self.daily()))
+        self.assertTrue(detector.is_excluded_stock({"name": "OO스팩"}, self.daily()))
+        self.assertTrue(detector.is_excluded_stock({"name": "OO ETN"}, self.daily()))
+        self.assertTrue(detector.is_excluded_stock({"name": "일반주", "is_trading_halted": True}, self.daily()))
+        self.assertTrue(detector.is_excluded_stock({"name": "일반주"}, self.daily(volume=0)))
+        self.assertFalse(detector.is_excluded_stock({"name": "삼성전자"}, self.daily()))
+
+
+class OpeningGapDetectionTest(unittest.TestCase):
+    def daily(self, open_price=10500, close_price=11000, volume=300000):
+        return [
+            {"date": "2026-08-10", "open": 10000, "high": 10000, "low": 10000,
+             "close": 10000, "volume": volume},
+            {"date": "2026-08-11", "open": open_price, "high": close_price,
+             "low": open_price, "close": close_price, "volume": volume},
+        ]
+
+    def test_detects_b_k_g_l_conditions(self):
+        detail = detector.detect_opening_gap(self.daily())
+
+        self.assertIsNotNone(detail)
+        self.assertAlmostEqual(detail["gapRatePct"], 5.0)
+        self.assertAlmostEqual(detail["intradayRatePct"], 4.7619, places=3)
+        self.assertAlmostEqual(detail["turnoverMillion"], 3300.0)
+
+    def test_scan_exposes_opening_gap_bucket(self):
+        results = {"risingLows": [], "maCloudBreakout": [], "doubleBottom": [],
+                   "invHeadShoulders": [], "boxRangeLow": [], "openingGap": []}
+
+        detector.scan_stock({"code": "000001", "name": "테스트"}, self.daily(), results, [])
+
+        self.assertEqual([row["code"] for row in results["openingGap"]], ["000001"])
 
 
 class BoxRangeLowerFilterTest(unittest.TestCase):

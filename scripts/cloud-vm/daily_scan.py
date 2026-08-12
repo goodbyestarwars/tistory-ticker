@@ -203,7 +203,10 @@ def main():
 
     today_str = datetime.now().strftime('%Y-%m-%d')  # VM 서버 로컬 날짜 - kiwoom_market의 base_dt 계산과 동일 기준
 
-    pattern_results = {'risingLows': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [], 'boxRangeLow': []}
+    pattern_results = {
+        'risingLows': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [],
+        'boxRangeLow': [], 'openingGap': [],
+    }
     pattern_scanned = 0
     pullback_matches = []
     pullback_scanned = 0
