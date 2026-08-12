@@ -390,7 +390,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertNotIn(token, combined)
         terms = self.read("legal/terms.html")
-        for provider in ("키움증권", "한국투자증권(KIS)", "Finnhub", "Alpha Vantage", "Yahoo Finance", "DART"):
+        for provider in (
+            "키움증권", "한국투자증권(KIS)", "Finnhub", "Alpha Vantage", "Yahoo Finance", "DART",
+            "NAVER API HUB", "네이버 모바일 증권 뉴스", "Google News RSS", "뉴스 출처 및 원문 권리",
+        ):
             self.assertIn(provider, terms)
 
     def test_open_source_license_matches_the_gothic_font(self):
