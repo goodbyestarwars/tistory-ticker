@@ -45,6 +45,7 @@
     var dark = isDark();
     return {
       // Keep the attribution/logo behavior identical to the KOSPI200 futures chart.
+      // 코스피·코스닥 주간현물 차트 축/시간축 폰트도 검은색으로 고정한다.
       layout: { background: { color: 'transparent' }, textColor: '#000', attributionLogo: false },
       grid: {
         vertLines: { color: dark ? '#3a3a3a' : '#eee' },
@@ -71,7 +72,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260813-black-font';
     document.head.appendChild(link);
   }
 
