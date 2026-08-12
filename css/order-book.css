@@ -236,6 +236,39 @@
 #order-book .ob-header-price { margin-left: auto; font-size: 16px; font-weight: 700; }
 #order-book .ob-header-change { font-size: 12px; }
 
+#order-book .ob-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid #eee;
+  background: #fcfcfd;
+}
+#order-book .ob-summary-item {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 9px;
+  border: 1px solid #eceef1;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 11px;
+  color: #8a9099;
+}
+#order-book .ob-summary-item b {
+  overflow: hidden;
+  color: #333;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#order-book .ob-summary-item b.ob-up { color: #d24f45; }
+#order-book .ob-summary-item b.ob-down { color: #1261c4; }
+#order-book .ob-summary-volume-change { grid-column: span 2; }
+
 #order-book .ob-table {
   display: flex;
   flex-direction: column;
@@ -390,6 +423,11 @@ html.dark #order-book .ob-spinner {
 html.dark #order-book .ob-board { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #order-book .ob-header { border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #order-book .ob-header-code { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #order-book .ob-summary { background: #202020 !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #order-book .ob-summary-item { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.16) !important; color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #order-book .ob-summary-item b { color: #F5EFE0 !important; }
+html.dark #order-book .ob-summary-item b.ob-up { color: #e8776d !important; }
+html.dark #order-book .ob-summary-item b.ob-down { color: #6ea8e8 !important; }
 html.dark #order-book .ob-bar-wrap { background: rgba(245, 239, 224, 0.12) !important; }
 html.dark #order-book .ob-current-row { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #order-book .ob-footer-label { color: rgba(245, 239, 224, 0.55) !important; }

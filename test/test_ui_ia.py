@@ -522,8 +522,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("movingAveragePoints(bars, 'volume', 20)", source)
         self.assertIn("querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-ichimoku-cloud')", source)
         self.assertIn("ss-volume-study-label", source)
+        self.assertIn("전일 대비", source)
+        self.assertIn("formatSignedPercent", source)
+        self.assertIn("drawTicks: false", source)
         self.assertIn(".ss-volume-study-label", style)
         self.assertIn("top: 70%", style)
+
+    def test_order_book_renders_quote_summary_and_volume_comparison(self):
+        source = self.read("js/order-book.js")
+        style = self.read("css/order-book.css")
+        self.assertIn("fetchSummary(code)", source)
+        self.assertIn("?action=flowChart&code=", source)
+        self.assertIn("summaryItemHtml('시가'", source)
+        self.assertIn("summaryItemHtml('고가'", source)
+        self.assertIn("summaryItemHtml('저가'", source)
+        self.assertIn("전일 거래량 대비", source)
+        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr))", style)
+        self.assertIn("ob-summary-volume-change", style)
 
     def test_stock_search_renders_requested_price_studies_without_resizing_chart(self):
         source = self.read("js/stock-search.js")
