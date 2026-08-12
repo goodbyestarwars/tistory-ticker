@@ -2446,6 +2446,7 @@ function getPatternScanResult() {
     pullbackScanned: pullbackScan.scanned || 0,
     patterns: {
       risingLows: (patternScan.patterns && patternScan.patterns.risingLows) || [],
+      maCloudBreakout: (patternScan.patterns && patternScan.patterns.maCloudBreakout) || [],
       doubleBottom: (patternScan.patterns && patternScan.patterns.doubleBottom) || [],
       invHeadShoulders: (patternScan.patterns && patternScan.patterns.invHeadShoulders) || [],
       boxRangeLow: (patternScan.patterns && patternScan.patterns.boxRangeLow) || [],

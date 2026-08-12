@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 import unittest
+from datetime import date, timedelta
 
 CLOUD_VM_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts', 'cloud-vm'))
 if CLOUD_VM_DIR not in sys.path:
@@ -41,6 +42,47 @@ class SmaLastTests(unittest.TestCase):
     def test_averages_last_n_bars(self):
         daily = [{'close': v} for v in [1, 2, 3, 4, 5]]
         self.assertAlmostEqual(strategy_scan.sma_last(daily, 3), (3 + 4 + 5) / 3)
+
+
+class EnvelopeTests(unittest.TestCase):
+    def test_weekly_bars_aggregates_ohlc(self):
+        daily = [
+            {'date': '2026-01-05', 'open': 100, 'high': 105, 'low': 99, 'close': 104, 'volume': 10},
+            {'date': '2026-01-06', 'open': 104, 'high': 106, 'low': 98, 'close': 101, 'volume': 20},
+            {'date': '2026-01-12', 'open': 101, 'high': 103, 'low': 100, 'close': 102, 'volume': 30},
+        ]
+
+        bars = strategy_scan.weekly_bars(daily)
+
+        self.assertEqual(len(bars), 2)
+        self.assertEqual(bars[0]['open'], 100)
+        self.assertEqual(bars[0]['high'], 106)
+        self.assertEqual(bars[0]['low'], 98)
+        self.assertEqual(bars[0]['close'], 101)
+        self.assertEqual(bars[0]['volume'], 30)
+
+    def test_envelope_signal_requires_lower_touch_and_close_near_lower(self):
+        daily = []
+        start = date(2026, 1, 2)
+        for i in range(15):
+            day = start + timedelta(days=i * 7)
+            daily.append({
+                'date': day.isoformat(), 'open': 100, 'high': 100,
+                'low': 100, 'close': 100, 'volume': 100,
+            })
+        day = start + timedelta(days=15 * 7)
+        daily.append({
+            'date': day.isoformat(), 'open': 90, 'high': 101,
+            'low': 84.1, 'close': 84.5, 'volume': 100,
+        })
+
+        signal = strategy_scan.envelope_signal(daily)
+
+        self.assertIsNotNone(signal)
+        self.assertEqual(signal['period'], 15)
+        self.assertEqual(signal['percent'], 15.0)
+        self.assertAlmostEqual(signal['lower'], 84.1216666667)
+        self.assertAlmostEqual(signal['upper'], 113.8116666667)
 
 
 class BuildMatchTests(unittest.TestCase):

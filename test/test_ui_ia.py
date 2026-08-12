@@ -605,6 +605,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("addMaLine(chart, daily, 224, MA224_EARLY_COLOR)", source)
         self.assertIn("psIchimokuEnabled = activeTab === 'maCloudBreakout'", source)
 
+    def test_strategy_search_renders_weekly_envelope_metric(self):
+        source = self.read("js/strategy-search.js")
+        self.assertIn("it.envelope", source)
+        self.assertIn("엔벨로프 하단", source)
+
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")
         widgets = self.read("js/home-widgets.js")
