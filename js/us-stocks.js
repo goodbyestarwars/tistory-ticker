@@ -78,7 +78,7 @@
       + '<div class="us-stocks-heading"><div><span class="us-stocks-eyebrow">US MARKET</span><h2>미국주식</h2></div>'
       + '<span class="us-stocks-note">한국·미국 통합 시세</span></div>'
       + '<div id="usStocksDetail" class="us-stocks-detail" hidden></div>'
-      + '<p class="us-stocks-disclaimer">키움증권 1차 · 한국투자증권 2차 · 증권사 API 상태와 거래소 시간대에 따라 지연될 수 있습니다.</p>'
+      + '<p class="us-stocks-disclaimer">증권사 API 상태와 거래소 시간대에 따라 지연될 수 있습니다.</p>'
       + '</section>';
   }
 
@@ -263,7 +263,7 @@
         + metric('거래량', '', 'volume')
         + metric('52주 범위', '', 'week52')
         + '</div>'
-        + '<div class="us-stocks-live-footer"><span>15초 자동 갱신</span><span data-us-updated></span><span data-us-source></span></div>'
+        + '<div class="us-stocks-live-footer"><span>15초 자동 갱신</span><span data-us-updated></span></div>'
         + '</div>'
         + '<div id="usStocksAnalysis" class="us-stocks-analysis-grid">'
         + analysisCard('기본 재무', '재무지표를 불러오는 중...', 'financials')
@@ -273,7 +273,7 @@
         + analysisCard('내부자 거래', '내부자 거래를 불러오는 중...', 'insider')
         + '</div>'
         + '<div class="us-stocks-market-grid">'
-        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>키움 10호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">호가를 불러오는 중...</div></div></section>'
+        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>10단계 호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">호가를 불러오는 중...</div></div></section>'
         + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
         + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">차트를 불러오는 중...</div></div></section>'
         + '</div>'
@@ -305,7 +305,6 @@
       if (node) node.textContent = values[key];
     });
     card.querySelector('[data-us-updated]').textContent = formatUpdated(quote.updated_at);
-    card.querySelector('[data-us-source]').textContent = quote.source || '';
   }
 
   function loadOrderbook() {
@@ -437,14 +436,12 @@
       if (!groups[bucket].length) return '';
       var html = '<section class="us-stocks-news-group"><h5>' + labels[bucket] + '</h5><div class="us-stocks-news-timeline">';
       html += groups[bucket].map(function (item) {
-        var source = item.source || item.provider || '';
         var pubDate = item.pubDate || '';
         var itemHtml = '<a class="us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
           + '<span class="us-stocks-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
           + '<span class="us-stocks-news-body">'
           + '<time class="us-stocks-news-time" datetime="' + escapeAttr(pubDate) + '">' + escapeHtml(formatNewsTime(pubDate)) + '</time>'
           + '<b>' + escapeHtml(item.title || '') + '</b>'
-          + '<small><span class="us-stocks-news-source">' + escapeHtml(source) + '</span></small>'
           + '</span></a>';
         index += 1;
         return itemHtml;

@@ -76,7 +76,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-chart-grid,", style)
         self.assertIn(".dmi-chart { height: 330px;", style)
         self.assertIn(".dmi-subheading h3,", style)
-        self.assertIn(".dmi-funds-provider { color: #000 !important; }", style)
+        self.assertNotIn("dmi-funds-provider", frontend)
+        self.assertNotIn("dmi-funds-provider", style)
         self.assertNotIn('class="dmi-provider"', frontend)
         self.assertNotIn("분봉 · 일봉 · 주봉", frontend)
         backend = self.read("scripts/cloud-vm/domestic_market_indicators.py")
@@ -331,6 +332,27 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("display: block !important", style)
         self.assertIn("visibility: visible !important", style)
         self.assertIn('.hmb-list dd[title] { cursor: help; }', style)
+
+    def test_visible_provider_labels_are_removed_from_content_pages(self):
+        sources = (
+            self.read("js/domestic-market-indicators.js"),
+            self.read("js/home-economic-news.js"),
+            self.read("js/home-realtime-table.js"),
+            self.read("js/stock-news.js"),
+            self.read("js/stock-search.js"),
+            self.read("js/us-stocks.js"),
+            self.read("js/ticker-tooltip-v5.js"),
+        )
+        combined = "\n".join(sources)
+        for token in (
+            "출처:", "자료: 네이버 금융", "data-hrt-source", "data-us-source",
+            "sn-news-press", "us-stocks-news-source", "네이버 뉴스에서 원문 보기",
+            "네이버 금융에서 보기", "키움 10호가",
+        ):
+            self.assertNotIn(token, combined)
+        terms = self.read("legal/terms.html")
+        for provider in ("키움증권", "한국투자증권(KIS)", "Finnhub", "Alpha Vantage", "Yahoo Finance", "DART"):
+            self.assertIn(provider, terms)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")

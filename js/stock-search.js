@@ -725,12 +725,11 @@
       var html = '<section class="ss-news-group"><h4>' + labels[bucket] + '</h4><div class="ss-news-timeline">';
       html += groups[bucket].map(function (item) {
         var category = item.category || (item.kind === 'disclosure' ? '공시' : '뉴스');
-        var source = item.source || item.provider || '';
         var pubDate = item.pubDate || '';
         var row = '<a class="ss-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
           + '<span class="ss-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
           + '<span class="ss-news-body"><time datetime="' + escapeAttr(pubDate) + '">' + escapeHtml(domesticNewsTime(pubDate)) + '</time>'
-          + '<b>' + escapeHtml(item.title || '') + '</b><small><em>' + escapeHtml(category) + '</em>' + escapeHtml(source) + '</small></span></a>';
+          + '<b>' + escapeHtml(item.title || '') + '</b><small><em>' + escapeHtml(category) + '</em></small></span></a>';
         index += 1;
         return row;
       }).join('');

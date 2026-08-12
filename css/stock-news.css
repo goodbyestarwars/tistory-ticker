@@ -657,10 +657,6 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   gap: 8px;
 }
 
-.sn-news-press {
-  font-weight: 600;
-}
-
 .sn-news-headlines {
   display: flex;
   flex-direction: column;

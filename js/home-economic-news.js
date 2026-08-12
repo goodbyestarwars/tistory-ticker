@@ -124,7 +124,7 @@
             + '<span class="hen-rail"><i class="' + (entry.index === 0 ? 'is-latest' : '') + '"></i></span>'
             + '<time class="hen-time">' + escapeHtml(timeLabel(item.pubDate)) + '</time>'
             + '<span class="hen-main"><strong>' + escapeHtml(item.title || '') + '</strong>'
-            + '<small><em>' + escapeHtml(kindLabel(item)) + '</em>' + escapeHtml(item.source || item.provider || '') + '</small></span>'
+            + '<small><em>' + escapeHtml(kindLabel(item)) + '</em></small></span>'
             + '</a>';
         }).join('')
         + '</div></section>';

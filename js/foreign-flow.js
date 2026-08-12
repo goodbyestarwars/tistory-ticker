@@ -1547,7 +1547,7 @@
         + escapeHtml(coverage.actualEndDate || '-') + ')'
       : '데이터 기준일 준비 중 · 최근 90일 뉴스 백필 여부 확인 중';
     var intro = '<div class="ff-momentum-intro"><b>이슈·재료 지속성 분석</b>'
-      + '<span>가격 변동이 아니라 뉴스 반복성·최근성·네이버 통합검색 관심도를 배치 집계한 결과입니다.</span>'
+      + '<span>가격 변동이 아니라 뉴스 반복성·최근성·통합검색 관심도를 배치 집계한 결과입니다.</span>'
       + '<span class="ff-momentum-coverage">' + coverageText + '</span></div>';
     if (!topics.length) {
       // 2026-08-02: 예전에는 "수집 대상이 아직 아님"과 "수집했지만 반복 이슈가 없음"이
@@ -1745,7 +1745,7 @@
 
     var valuationHint = valuation
       ? ''
-      : '<div class="ff-hint">실시간 밸류에이션(PER·PBR·EPS)은 현재 원천 시세 응답이 없어 표시하지 않습니다. 아래 DART 연간 실적은 별도로 표시됩니다.</div>';
+      : '<div class="ff-hint">실시간 밸류에이션(PER·PBR·EPS)은 현재 시세 응답이 없어 표시하지 않습니다. 아래 연간 실적은 별도로 표시됩니다.</div>';
 
     // 2026-07-20: 제목이 "기업 개요 · 업종"이었는데 실제로 보여주는 건 시가총액/발행주식수
     // 등 밸류에이션 숫자뿐이라 사용자가 "이게 왜 업종이야, 시가총액이잖아"라고 지적함(사업을
@@ -1764,7 +1764,7 @@
     var hasAnnualYears = !!(annual && annual.years && annual.years.length);
     html += '<div class="ff-fund-section">'
       + '<div class="ff-fund-title">재무 (최근 5년)</div>'
-      + (hasAnnualYears ? buildAnnualTable(annual) + buildAnnualCharts(annual) : '<div class="ff-hint">' + escapeHtml(name || '') + '은(는) 재무 데이터가 없는 종목입니다(DART 미제출 또는 아직 배치 스캔 전).</div>')
+      + (hasAnnualYears ? buildAnnualTable(annual) + buildAnnualCharts(annual) : '<div class="ff-hint">' + escapeHtml(name || '') + '은(는) 재무 데이터가 없는 종목입니다(공시 미제출 또는 아직 배치 스캔 전).</div>')
       + '</div>';
 
     html += '<div class="ff-fund-section">'
@@ -1782,7 +1782,7 @@
       + (valuation ? buildValuationGrid(valuation) : '<div class="ff-hint">실시간 PER·PBR·EPS 데이터가 없습니다. 재무 실적 기준 지표는 위 연간 실적을 확인해주세요.</div>')
       + '</div>';
 
-    html += '<div class="ff-footnote">재무 데이터는 DART(금융감독원 전자공시) 기준, 밸류에이션은 키움 API 실시간 기준입니다. 투자판단 및 그에 따른 책임은 본인에게 있습니다.</div>';
+    html += '<div class="ff-footnote">재무 데이터와 밸류에이션은 참고용이며, 투자판단 및 그에 따른 책임은 본인에게 있습니다.</div>';
 
     return html;
   }
@@ -2454,7 +2454,7 @@
 
   function fundamentalInterpText(fundamentals) {
     var annual = fundamentals && fundamentals.fundamentals && fundamentals.fundamentals.annual;
-    if (!annual) return '재무 데이터가 없는 종목입니다(DART 미제출 또는 아직 배치 스캔 전).';
+    if (!annual) return '재무 데이터가 없는 종목입니다(공시 미제출 또는 아직 배치 스캔 전).';
     var parts = [];
     if (annual.latest_roe_pct != null) parts.push('ROE ' + fmtPct(annual.latest_roe_pct));
     if (annual.latest_debt_ratio_pct != null) parts.push('부채비율 ' + fmtPct(annual.latest_debt_ratio_pct));
@@ -2748,7 +2748,7 @@
       + buildRollingTable(data)
       + buildFlowPeriodButtons(data.daily.length)
       + buildFlowChartsWrap(data.daily)
-      + '<div class="ff-footnote">※ 추정대금은 순매매량 × 당일 종가로 계산한 <b>추정치</b>이며 실제 거래대금과 다를 수 있습니다. 자료: 네이버 금융</div>'
+      + '<div class="ff-footnote">※ 추정대금은 순매매량 × 당일 종가로 계산한 <b>추정치</b>이며 실제 거래대금과 다를 수 있습니다.</div>'
       + '</div>';
   }
 
@@ -2794,7 +2794,7 @@
     html += buildCreditCard(entry.credit);
     html += buildPensionCard(entry.pension, entry.name);
     html += '<div class="ff-extra-note">공매도 압박 점수는 항상 <b>가능성·추정치</b>이며, 공매도가 주가를 누른다고 단정하지 않습니다. '
-      + escapeHtml(entry.as_of) + ' 기준 · 키움증권 API</div>';
+      + escapeHtml(entry.as_of) + ' 기준</div>';
     html += '</div>';
     return html;
   }
@@ -3711,8 +3711,8 @@
   // 오버레이(addVolumeProfileOverlay)가 여전히 써서 남겨둠).
   function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice) {
     var sourceText = profile.source === 'ohlc-estimate'
-      ? '※ 실제 체결가 API가 응답하지 않아 일봉 고가·저가·거래량 기반의 근사 매물대를 표시합니다.'
-      : '※ 한국투자 API(실제 체결가·체결거래량)로 만든 매물대입니다.';
+      ? '※ 실제 체결가가 없어 일봉 고가·저가·거래량 기반의 근사 매물대를 표시합니다.'
+      : '※ 실제 체결가·체결거래량 기반의 매물대입니다.';
     var footnote = '<div class="ff-footnote">' + sourceText + ' 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>'
       + (daysIncluded || 1) + '거래일</b>치가 반영돼 있어요(뜸하게 조회된 종목은 며칠치만 있을 수 있음, 최대 ' + APT_LOOKBACK_DAYS + '일).</div>';
     var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
