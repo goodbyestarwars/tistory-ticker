@@ -113,6 +113,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('/page/foreign-flow?code=', realtime)
         self.assertIn("US_STOCKS_SCRIPT", realtime)
         self.assertIn("id=\"ssUsModule\"", realtime)
+        self.assertIn("function setMarketMode(container, isUs)", realtime)
+        self.assertIn("if (results) results.hidden = !!isUs;", realtime)
+        self.assertIn("if (detail && isUs) detail.hidden = true;", realtime)
+        self.assertIn("target.innerHTML = '<div class=\"ss-hint ss-error\">미국주식 시세 모듈을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';", realtime)
         self.assertIn("한국·미국 종목명 또는 코드", realtime)
         for source in (panel, realtime, self.read("js/us-stocks.js")):
             self.assertIn("symbol: 'TSLA'", source)
