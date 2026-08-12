@@ -8,6 +8,7 @@ import logging
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 logger = logging.getLogger(__name__)
@@ -325,6 +326,74 @@ def fetch_overseas_price(token, appkey, appsecret, excd, symb):
     if data.get('rt_cd') not in (None, '0', 0):
         raise RuntimeError('HHDFS00000300 실패: ' + json.dumps(data, ensure_ascii=False))
     return data.get('output') or data.get('output1') or {}
+
+
+def _get_domestic_quote(token, appkey, appsecret, path, tr_id, params):
+    query = urllib.parse.urlencode(params)
+    req = urllib.request.Request(
+        BASE_URL + path + '?' + query,
+        headers={
+            'Content-Type': 'application/json; charset=utf-8',
+            'authorization': 'Bearer ' + token,
+            'appkey': appkey,
+            'appsecret': appsecret,
+            'tr_id': tr_id,
+            'custtype': 'P',
+        },
+        method='GET',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('%s HTTP %s: %s' % (tr_id, e.code, e.read().decode('utf-8', 'ignore')))
+    if data.get('rt_cd') != '0':
+        raise RuntimeError('%s 실패: %s' % (tr_id, json.dumps(data, ensure_ascii=False)))
+    return data
+
+
+def fetch_index_period_chart(token, appkey, appsecret, iscd, date1, date2, period='D'):
+    """KIS domestic index daily/weekly candles (FHKUP03500100)."""
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice',
+        'FHKUP03500100',
+        {
+            'FID_COND_MRKT_DIV_CODE': 'U',
+            'FID_INPUT_ISCD': iscd,
+            'FID_INPUT_DATE_1': date1,
+            'FID_INPUT_DATE_2': date2,
+            'FID_PERIOD_DIV_CODE': period,
+        },
+    )
+    return data.get('output1') or {}, data.get('output2') or []
+
+
+def fetch_index_time_chart(token, appkey, appsecret, iscd, interval='60'):
+    """KIS domestic index minute candles (FHPUP02110200)."""
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/inquire-index-timeprice',
+        'FHPUP02110200',
+        {
+            'FID_INPUT_HOUR_1': interval,
+            'FID_INPUT_ISCD': iscd,
+            'FID_COND_MRKT_DIV_CODE': 'U',
+        },
+    )
+    return {}, data.get('output') or []
+
+
+def fetch_market_funds(token, appkey, appsecret, date=''):
+    """KIS market funds aggregate (FHKST649100C0, values in 100m KRW)."""
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/mktfunds',
+        'FHKST649100C0',
+        {'FID_INPUT_DATE_1': date},
+    )
+    output = data.get('output') or []
+    return output if isinstance(output, list) else [output]
 
 
 def _avg_delta(rows):
