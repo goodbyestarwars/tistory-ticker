@@ -6,6 +6,7 @@
   var KST_OFFSET_SEC = 9 * 60 * 60;
   var CHART_HEIGHT = 330;
   var chartInstances = {};
+  var drawingStates = {};
   var lwcPromise = null;
 
   function escapeHtml(value) {
@@ -67,12 +68,218 @@
     return merged;
   }
 
+  function drawingStorageKey(key, interval) {
+    return 'tistory-ticker:dmi-drawings:' + key + ':' + interval;
+  }
+
+  function loadDrawingLines(key, interval) {
+    try {
+      var raw = global.localStorage.getItem(drawingStorageKey(key, interval));
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveDrawingLines(state) {
+    try {
+      global.localStorage.setItem(drawingStorageKey(state.key, state.interval), JSON.stringify(state.lines));
+    } catch (e) { /* 저장소를 사용할 수 없는 환경에서도 차트는 계속 동작 */ }
+  }
+
+  function drawingPointFromCoordinate(state, x, y) {
+    var time = state.chart.timeScale().coordinateToTime(x);
+    var price = state.series.coordinateToPrice(y);
+    if (time == null || price == null || !isFinite(Number(price))) return null;
+    return { time: time, price: Number(price) };
+  }
+
+  function drawingCoordinate(state, point) {
+    if (!point) return null;
+    var x = state.chart.timeScale().timeToCoordinate(point.time);
+    var y = state.series.priceToCoordinate(point.price);
+    return x == null || y == null ? null : { x: Number(x), y: Number(y) };
+  }
+
+  function redrawDrawing(state) {
+    if (!state || !state.overlay) return;
+    var width = state.overlay.clientWidth;
+    var height = state.overlay.clientHeight;
+    var ctx = state.overlay.getContext('2d');
+    if (!ctx || !width || !height) return;
+    ctx.clearRect(0, 0, width, height);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    state.lines.forEach(function (line) {
+      var start = drawingCoordinate(state, line.start);
+      var end = drawingCoordinate(state, line.end);
+      if (!start || !end) return;
+      ctx.beginPath();
+      ctx.strokeStyle = '#e11d48';
+      ctx.lineWidth = 2;
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+      [start, end].forEach(function (point) {
+        ctx.beginPath();
+        ctx.fillStyle = '#fff';
+        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.strokeStyle = '#e11d48';
+        ctx.lineWidth = 2;
+        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+    });
+    if (state.pending) {
+      var pending = drawingCoordinate(state, state.pending);
+      if (pending) {
+        ctx.beginPath();
+        ctx.fillStyle = '#e11d48';
+        ctx.arc(pending.x, pending.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    if (state.preview && state.pending) {
+      var previewStart = drawingCoordinate(state, state.pending);
+      if (previewStart) {
+        ctx.beginPath();
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = 'rgba(225,29,72,.72)';
+        ctx.lineWidth = 1.5;
+        ctx.moveTo(previewStart.x, previewStart.y);
+        ctx.lineTo(state.preview.x, state.preview.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }
+
+  function resizeDrawingCanvas(state) {
+    if (!state || !state.overlay) return;
+    var ratio = global.devicePixelRatio || 1;
+    var width = state.overlay.clientWidth;
+    var height = state.overlay.clientHeight;
+    state.overlay.width = Math.max(1, Math.round(width * ratio));
+    state.overlay.height = Math.max(1, Math.round(height * ratio));
+    var ctx = state.overlay.getContext('2d');
+    if (ctx) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    redrawDrawing(state);
+  }
+
+  function destroyDrawing(key) {
+    var state = drawingStates[key];
+    if (!state) return;
+    if (state.resizeObserver) state.resizeObserver.disconnect();
+    if (state.resizeHandler) global.removeEventListener('resize', state.resizeHandler);
+    if (state.timeRangeHandler && state.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
+      state.chart.timeScale().unsubscribeVisibleTimeRangeChange(state.timeRangeHandler);
+    }
+    if (state.overlay) state.overlay.remove();
+    drawingStates[key] = null;
+  }
+
+  function setDrawingMode(key, enabled) {
+    var state = drawingStates[key];
+    if (!state) return;
+    state.enabled = enabled;
+    state.pending = null;
+    state.preview = null;
+    state.overlay.classList.toggle('is-active', enabled);
+    state.button.classList.toggle('is-active', enabled);
+    state.button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    state.button.textContent = enabled ? '그리기 종료' : '선 그리기';
+    state.overlay.title = enabled ? '두 지점을 차례로 클릭해 추세선을 그립니다.' : '';
+    redrawDrawing(state);
+  }
+
+  function bindDrawingControls(key, element) {
+    var panel = element.closest ? element.closest('.dmi-panel') : null;
+    if (!panel) return;
+    var button = panel.querySelector('.dmi-draw-toggle');
+    var clear = panel.querySelector('.dmi-draw-clear');
+    if (!button || button.getAttribute('data-dmi-draw-wired') === '1') return;
+    button.setAttribute('data-dmi-draw-wired', '1');
+    button.addEventListener('click', function () {
+      var state = drawingStates[key];
+      setDrawingMode(key, !(state && state.enabled));
+    });
+    if (clear) {
+      clear.addEventListener('click', function () {
+        var state = drawingStates[key];
+        if (!state) return;
+        state.lines = [];
+        state.pending = null;
+        state.preview = null;
+        saveDrawingLines(state);
+        redrawDrawing(state);
+      });
+    }
+  }
+
+  function setupDrawing(key, element, chart, series, interval) {
+    destroyDrawing(key);
+    var state = {
+      key: key,
+      interval: interval,
+      chart: chart,
+      series: series,
+      lines: loadDrawingLines(key, interval),
+      pending: null,
+      preview: null,
+      enabled: false
+    };
+    var overlay = document.createElement('canvas');
+    overlay.className = 'dmi-drawing-layer';
+    overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
+    element.appendChild(overlay);
+    state.overlay = overlay;
+    state.button = element.closest('.dmi-panel').querySelector('.dmi-draw-toggle');
+    overlay.addEventListener('click', function (event) {
+      if (!state.enabled) return;
+      var rect = overlay.getBoundingClientRect();
+      var point = drawingPointFromCoordinate(state, event.clientX - rect.left, event.clientY - rect.top);
+      if (!point) return;
+      if (!state.pending) state.pending = point;
+      else {
+        state.lines.push({ start: state.pending, end: point });
+        state.pending = null;
+        saveDrawingLines(state);
+      }
+      redrawDrawing(state);
+    });
+    overlay.addEventListener('mousemove', function (event) {
+      if (!state.enabled || !state.pending) return;
+      var rect = overlay.getBoundingClientRect();
+      state.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      redrawDrawing(state);
+    });
+    overlay.addEventListener('mouseleave', function () {
+      state.preview = null;
+      redrawDrawing(state);
+    });
+    state.timeRangeHandler = function () { redrawDrawing(state); };
+    if (chart.timeScale().subscribeVisibleTimeRangeChange) chart.timeScale().subscribeVisibleTimeRangeChange(state.timeRangeHandler);
+    if (global.ResizeObserver) {
+      state.resizeObserver = new global.ResizeObserver(function () { resizeDrawingCanvas(state); });
+      state.resizeObserver.observe(element);
+    } else {
+      state.resizeHandler = function () { resizeDrawingCanvas(state); };
+      global.addEventListener('resize', state.resizeHandler);
+    }
+    drawingStates[key] = state;
+    bindDrawingControls(key, element);
+    resizeDrawingCanvas(state);
+  }
+
   function installStyle() {
     if (document.getElementById('dmi-style')) return;
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260813-black-font';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260813-draw-lines';
     document.head.appendChild(link);
   }
 
@@ -108,6 +315,11 @@
   function makeChart(key, element, rows, interval) {
     var points = (rows || []).map(function (row) { return pointFor(row, interval); }).filter(Boolean);
     if (points.length < 2) {
+      if (chartInstances[key]) {
+        destroyDrawing(key);
+        chartInstances[key].chart.remove();
+        chartInstances[key] = null;
+      }
       element.innerHTML = '<div class="dmi-chart-message">추이 데이터 없음</div>';
       return;
     }
@@ -116,9 +328,13 @@
       var current = chartInstances[key];
       if (current && current.interval === interval) {
         current.series.setData(points);
+        redrawDrawing(drawingStates[key]);
         return;
       }
-      if (current) current.chart.remove();
+      if (current) {
+        destroyDrawing(key);
+        current.chart.remove();
+      }
       element.innerHTML = '';
       var chart = LWC.createChart(element, mergeOptions({
         autoSize: true,
@@ -135,6 +351,7 @@
       series.setData(points);
       chart.timeScale().fitContent();
       chartInstances[key] = { chart: chart, series: series, interval: interval };
+      setupDrawing(key, element, chart, series, interval);
     }).catch(function () {
       element.innerHTML = '<div class="dmi-chart-message">차트 라이브러리를 불러오지 못했습니다.</div>';
     });
@@ -158,7 +375,9 @@
 
   function chartPanel(market, item) {
     return '<section class="dmi-panel" data-dmi-panel="' + market + '" data-dmi-interval="day">'
-      + '<div class="dmi-panel-title"><span>' + escapeHtml(item.name || market) + '</span></div>'
+      + '<div class="dmi-panel-title"><span>' + escapeHtml(item.name || market) + '</span><div class="dmi-chart-tools">'
+      + '<button type="button" class="dmi-draw-toggle" aria-pressed="false" title="두 지점을 차례로 클릭해 추세선을 그립니다.">선 그리기</button>'
+      + '<button type="button" class="dmi-draw-clear" title="그린 선을 모두 지웁니다.">지우기</button></div></div>'
       + '<div class="dmi-tabs" role="tablist">'
       + ['minute', 'day', 'week'].map(function (interval) {
         var label = { minute: '분봉', day: '일봉', week: '주봉' }[interval];
