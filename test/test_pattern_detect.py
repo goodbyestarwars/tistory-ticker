@@ -55,6 +55,9 @@ def compact_higher_low_daily():
         })
     for i, close in ((8, 100), (9, 111), (10, 112), (11, 113), (12, 100.4), (13, 114), (14, 115)):
         daily[i].update(open=close, high=close + 1, low=close - 1, close=close)
+    for row in daily:
+        for field in ("open", "high", "low", "close"):
+            row[field] *= 100
     return daily
 
 
@@ -80,6 +83,37 @@ def ma_cloud_breakout_daily():
     for i, close in enumerate((100.1, 100.2, 100.4, 100.6, 100.8), start=295):
         daily[i].update(open=close - 0.2, high=102.0 if i == 299 else close + 0.5,
                         low=close - 0.5, close=close)
+    for row in daily:
+        for field in ("open", "high", "low", "close"):
+            row[field] *= 100
+    return daily
+
+
+def ma_cloud_breakout_daily():
+    """224일선 근처에서 구름 상단을 고가로 시도하며 5일선이 20일선을 넘는 예시."""
+    daily = []
+    start = date(2025, 1, 1)
+    for i in range(300):
+        close = 100.0
+        daily.append({
+            "date": (start + timedelta(days=i)).isoformat(),
+            "open": close,
+            "high": close + 1,
+            "low": close - 1,
+            "close": close,
+            "volume": 1000,
+        })
+    # 최근 52봉의 구름을 100~102 근처로 만들어 현재가가 구름 안에서 상단을 시도하게 한다.
+    for i in range(222, 248):
+        daily[i].update(high=106.0, low=98.0)
+    for i in range(248, 274):
+        daily[i].update(high=101.0, low=99.0)
+    for i, close in enumerate((100.1, 100.2, 100.4, 100.6, 100.8), start=295):
+        daily[i].update(open=close - 0.2, high=102.0 if i == 299 else close + 0.5,
+                        low=close - 0.5, close=close)
+    for row in daily:
+        for field in ("open", "high", "low", "close"):
+            row[field] *= 100
     return daily
 
 
@@ -166,7 +200,7 @@ class MaCloudBreakoutDetectionTest(unittest.TestCase):
         detail = detector.detect_ma_cloud_breakout(ma_cloud_breakout_daily())
 
         self.assertIsNotNone(detail)
-        self.assertLessEqual(abs(detail["ma224"] - 100.0) / 100.0, detector.MA_CLOUD_NEAR_TOL)
+        self.assertLessEqual(abs(detail["ma224"] - 10000.0) / 10000.0, detector.MA_CLOUD_NEAR_TOL)
         self.assertIn("5일선이 20일선 상향돌파", detail["reasons"][2])
 
     def test_scan_exposes_ma_cloud_breakout_bucket(self):
@@ -175,6 +209,25 @@ class MaCloudBreakoutDetectionTest(unittest.TestCase):
         detector.scan_stock({"code": "000001", "name": "테스트"}, ma_cloud_breakout_daily(), results, [])
 
         self.assertEqual([row["code"] for row in results["maCloudBreakout"]], ["000001"])
+
+    def test_scan_excludes_penny_stocks(self):
+        results = {"risingLows": [], "doubleBottom": [], "invHeadShoulders": [], "boxRangeLow": []}
+        daily = ma_cloud_breakout_daily()
+        for row in daily:
+            for field in ("open", "high", "low", "close"):
+                row[field] *= 0.05
+
+        detector.scan_stock({"code": "000002", "name": "일반 종목"}, daily, results, [])
+
+        self.assertEqual(results["maCloudBreakout"], [])
+
+    def test_scan_excludes_etfs_even_when_price_is_large(self):
+        results = {"risingLows": [], "doubleBottom": [], "invHeadShoulders": [], "boxRangeLow": []}
+
+        detector.scan_stock({"code": "000003", "name": "KODEX 코스닥150", "is_etf": True},
+                            ma_cloud_breakout_daily(), results, [])
+
+        self.assertEqual(results["maCloudBreakout"], [])
 
 
 if __name__ == "__main__":

@@ -38,8 +38,23 @@ def load_code_name_map():
     return out
 
 
+def load_universe_metadata():
+    """Return the code/name map and exact ETF-name list from the shared KRX map."""
+    req = urllib.request.Request(FULL_UNIVERSE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+    with urllib.request.urlopen(req, timeout=20) as res:
+        text = res.read().decode('utf-8')
+    names = {}
+    for m in re.finditer(r'"([^"]+)":"([0-9A-Za-z]{6})"', text):
+        names[m.group(2)] = m.group(1)
+    etf_names = set()
+    if 'window.KRX_ETF_NAMES=' in text:
+        etf_text = text.split('window.KRX_ETF_NAMES=', 1)[1]
+        etf_names = set(re.findall(r'"([^"]+)"', etf_text))
+    return names, etf_names
+
+
 def main():
-    name_map = load_code_name_map()
+    name_map, etf_names = load_universe_metadata()
     if not name_map:
         log('전종목 이름 매핑을 못 불러왔습니다.')
         sys.exit(1)
@@ -62,7 +77,8 @@ def main():
     pullback_scanned = 0
 
     for i, code in enumerate(codes):
-        stock = {'name': name_map.get(code, code), 'code': code}
+        stock_name = name_map.get(code, code)
+        stock = {'name': stock_name, 'code': code, 'is_etf': stock_name in etf_names}
         daily = db_schema.load_daily_prices(conn, code)
 
         scanned_p, scanned_pb = pd.scan_stock(stock, daily, pattern_results, pullback_matches)
