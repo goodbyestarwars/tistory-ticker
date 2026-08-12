@@ -8,8 +8,8 @@ import re
 
 PATTERN_SWING = 2
 # Evaluate the full universe before applying this display limit.
-PATTERN_MAX_MATCHES = 15
-RISING_LOWS_DISPLAY_LIMIT = 15
+PATTERN_MAX_MATCHES = 12
+RISING_LOWS_DISPLAY_LIMIT = 12
 PENNY_STOCK_MAX_PRICE = 1000  # 국내 주식 기준: 1,000원 미만은 동전주로 제외
 
 ETF_NAME_PREFIXES = (
@@ -18,6 +18,14 @@ ETF_NAME_PREFIXES = (
     'UNICORN ', 'TRUSTON ', '마이티 ', '파워 ', '에셋플러스 ',
 )
 ETF_NAME_TOKENS = re.compile(r'(?:ETF|레버리지|인버스|커버드콜|채권혼합|합성|선물)', re.IGNORECASE)
+NON_COMMON_STOCK_NAME_TOKENS = re.compile(r'(?:ETN|스팩|SPAC|우선주|거래정지|정리매매|관리종목)', re.IGNORECASE)
+PREFERRED_STOCK_SUFFIX = re.compile(r'(?:\d+)?우(?:[A-Z])?(?:\(전환\))?$')
+
+OPENING_GAP_MIN_INTRADAY_PCT = 3.0
+OPENING_GAP_MIN_OPEN = 1_000
+OPENING_GAP_MAX_OPEN = 500_000
+OPENING_GAP_MIN_TURNOVER_MILLION = 3_000
+OPENING_GAP_MAX_TURNOVER_MILLION = 999_999
 
 RISING_LOWS_WINDOW = 20
 MA_CLOUD_MIN_DAYS = 250
@@ -97,14 +105,23 @@ def is_etf_name(name):
 
 
 def is_excluded_stock(stock, daily):
-    """Exclude penny stocks and ETFs before any chart pattern is evaluated."""
-    if bool((stock or {}).get('is_etf')) or is_etf_name((stock or {}).get('name')):
+    """Exclude the non-common-stock/status categories from chart scans."""
+    stock = stock or {}
+    name = str(stock.get('name') or '').strip()
+    if bool(stock.get('is_etf')) or is_etf_name(name):
+        return True
+    if NON_COMMON_STOCK_NAME_TOKENS.search(name) or PREFERRED_STOCK_SUFFIX.search(name):
+        return True
+    if stock.get('is_trading_halted') or stock.get('is_under_liquidation') or stock.get('is_loan_available'):
         return True
     if not daily:
         return False
     latest_close = daily[-1].get('close')
+    latest_volume = daily[-1].get('volume')
     try:
-        return float(latest_close) < PENNY_STOCK_MAX_PRICE
+        # No volume on the latest bar is the reliable local-data proxy for a
+        # trading halt; status flags above are used when the upstream provides them.
+        return float(latest_close) < PENNY_STOCK_MAX_PRICE or float(latest_volume or 0) <= 0
     except (TypeError, ValueError):
         return False
 
@@ -327,6 +344,52 @@ def ichimoku_cloud_at(daily, index):
         'spanB': span_b,
         'top': max(span_a, span_b),
         'bottom': min(span_a, span_b),
+    }
+
+
+# 시초 갭상승 조건검색(B/K/G/L).
+def detect_opening_gap(daily):
+    if len(daily) < 2:
+        return None
+    previous = daily[-2]
+    current = daily[-1]
+    previous_close = previous.get('close')
+    open_price = current.get('open')
+    close_price = current.get('close')
+    volume = current.get('volume')
+    if not previous_close or not open_price or not close_price or not volume:
+        return None
+
+    gap_rate_pct = (open_price / previous_close - 1) * 100
+    intraday_rate_pct = (close_price / open_price - 1) * 100
+    turnover_million = close_price * volume / 1_000_000
+    if not open_price > previous_close:  # B
+        return None
+    if intraday_rate_pct < OPENING_GAP_MIN_INTRADAY_PCT:  # K
+        return None
+    if not OPENING_GAP_MIN_OPEN <= open_price <= OPENING_GAP_MAX_OPEN:  # G
+        return None
+    if not OPENING_GAP_MIN_TURNOVER_MILLION <= turnover_million <= OPENING_GAP_MAX_TURNOVER_MILLION:  # L
+        return None
+
+    score = clamp_score(round(70 + min(20, intraday_rate_pct * 2) + min(10, gap_rate_pct)))
+    return {
+        'signal': {'date': current.get('date'), 'price': close_price},
+        'breakout': False,
+        'score': score,
+        'reasons': [
+            'B 시가가 전일 종가보다 %.1f%% 높음' % gap_rate_pct,
+            'K 종가가 시가 대비 %.1f%% 상승' % intraday_rate_pct,
+            'G 시가 %s원' % format(open_price, ','),
+            'L 거래대금 %.1f백만원' % turnover_million,
+        ],
+        'interpretation': '전일 종가보다 높게 시작한 뒤 시가 대비 %.1f%% 추가 상승한 갭상승 후보입니다(%d점).'
+                           % (intraday_rate_pct, score),
+        'previousClose': previous_close,
+        'open': open_price,
+        'gapRatePct': gap_rate_pct,
+        'intradayRatePct': intraday_rate_pct,
+        'turnoverMillion': turnover_million,
     }
 
 
@@ -987,8 +1050,15 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
     pattern_scanned = False
     pullback_scanned = False
     pattern_results.setdefault('maCloudBreakout', [])
+    pattern_results.setdefault('openingGap', [])
     if is_excluded_stock(stock, daily):
         return pattern_scanned, pullback_scanned
+
+    if len(daily) >= 2:
+        pattern_scanned = True
+        opening_gap = detect_opening_gap(daily)
+        if opening_gap:
+            pattern_results['openingGap'].append(build_pattern_match(stock, daily, opening_gap))
 
     if len(daily) >= RISING_LOWS_WINDOW:
         pattern_scanned = True
@@ -1044,10 +1114,11 @@ def finalize_pattern_results(pattern_results, pullback_matches=None):
     """Apply the quality-ranked display cap after the full universe scan.
 
     No pattern bucket is truncated during scanning. This prevents the first
-    15 symbols in universe order from winning over stronger later candidates.
+    12 symbols in universe order from winning over stronger later candidates.
     """
-    for key in ('risingLows', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow'):
-        pattern_results[key] = _rank_and_limit(pattern_results.get(key))
+    for key in ('risingLows', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow', 'openingGap'):
+        if key in pattern_results:
+            pattern_results[key] = _rank_and_limit(pattern_results.get(key))
     if pullback_matches is not None:
         pullback_matches[:] = _rank_and_limit(pullback_matches)
     return pattern_results

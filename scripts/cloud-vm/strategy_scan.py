@@ -357,6 +357,9 @@ def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
             skipped_no_data += 1
             continue
 
+        if pattern_detect.is_excluded_stock(stock, daily):
+            skipped_illiquid += 1
+            continue
         if daily[-1]['close'] < MIN_PRICE or code in theme_codes:
             skipped_illiquid += 1
             continue
@@ -407,6 +410,8 @@ def scan_bluechip(universe, wics_map, fundamentals_cache, conn, theme_codes=None
         code = stock['code']
         daily = db_schema.load_daily_prices(conn, code)
         if len(daily) < MIN_BARS:
+            continue
+        if pattern_detect.is_excluded_stock(stock, daily):
             continue
         if daily[-1]['close'] < MIN_PRICE or code in theme_codes:
             continue
@@ -508,10 +513,6 @@ def main():
      skipped_no_sector, skipped_no_fundamentals) = scan(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
 
-    bluechip_sectors, bluechip_scanned = scan_bluechip(
-        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
-    opening_gap_sectors, opening_gap_scanned = scan_opening_gap(universe, wics_map, conn)
-
     undervalued_category = {
         'name': '저평가 종목',
         'methodology': METHODOLOGY_NOTE,
@@ -537,26 +538,6 @@ def main():
         # 밑에 넣는다 - 다음 카테고리를 추가할 때 이 딕셔너리에 키 하나만 더 넣으면 된다.
         'categories': {
             'undervalued': undervalued_category,
-            'bluechip': {
-                'name': '우량주',
-                'methodology': BLUECHIP_METHODOLOGY_NOTE,
-                'scanned': bluechip_scanned,
-                'sectors': {
-                    sector: {'name': sector, 'matches': matches}
-                    for sector, matches in bluechip_sectors.items()
-                    if matches
-                },
-            },
-            'openingGap': {
-                'name': '시초 갭상승',
-                'methodology': OPENING_GAP_METHODOLOGY_NOTE,
-                'scanned': opening_gap_scanned,
-                'sectors': {
-                    sector: {'name': sector, 'matches': matches}
-                    for sector, matches in opening_gap_sectors.items()
-                    if matches
-                },
-            },
         },
     }
 
