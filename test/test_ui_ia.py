@@ -605,6 +605,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("addMaLine(chart, daily, 224, MA224_EARLY_COLOR)", source)
         self.assertIn("psIchimokuEnabled = activeTab === 'maCloudBreakout'", source)
 
+    def test_box_range_detail_prefers_vm_snapshot_with_market_cap_filter(self):
+        source = self.read("js/pattern-scan.js")
+        self.assertIn("최근 20봉 종가 변동폭 10% 이하", source)
+        self.assertIn("시가총액 3,000억원 이상", source)
+        self.assertIn("activeTab === 'boxRangeLow' && item.patternDetail", source)
+        self.assertIn("data.detail = item.patternDetail", source)
+
     def test_strategy_search_renders_weekly_envelope_metric(self):
         source = self.read("js/strategy-search.js")
         self.assertIn("it.envelope", source)

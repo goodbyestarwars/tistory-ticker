@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""차트 패턴 판정(지시서 6종) - gas/ticker-proxy.gs의 detectRisingLows_/detectDoubleBottom_/
-detectInvHeadShoulders_/detectBoxRangeLow_/detectPullback_ 및 공용 헬퍼를 그대로 포팅.
-수치 조건/배점은 원본과 동일해야 두 구현의 판정 결과가 일치한다 - 상수를 바꾸지 말 것."""
+"""VM 차트 패턴 판정(지시서 6종)과 공용 헬퍼.
+일반 패턴은 GAS 상세 차트와 같은 기준을 사용하지만, 박스권 하단은 VM 일괄 스캔에서
+시가총액까지 조회하는 A/B/C/D/E/G/J 전용 조건을 적용한다."""
 
 import math
 import re
@@ -26,7 +26,7 @@ MA_CLOUD_TOP_TOL = 0.03        # 구름 상단을 향한 현재 봉의 고가 �
 MA_CLOUD_CROSS_LOOKBACK = 5    # 최근 5봉 안의 5일선-20일선 골든크로스
 DOUBLE_BOTTOM_WINDOW = 90
 IHS_WINDOW = 60
-BOX_WINDOW = 40
+BOX_WINDOW = 21  # 20 bars for the range plus the 20-bars-ago reference bar
 
 WEDGE_MIN_SWINGS = 2
 RECENCY_MAX_GAP = 3
@@ -45,13 +45,20 @@ IHS_NECK_MIN_RISE = 0.05
 IHS_MIN_SHOULDER_GAP = 5
 IHS_MAX_SHOULDER_GAP = 30
 
-BOX_TOL = 0.035
-BOX_MAX_RANGE = 0.15
-BOX_MIN_RANGE = 0.05
-BOX_NEAR_LOW_TOL = 0.03
-BOX_MIN_LOW_TOUCHES = 3   # 2026-07-22 개편: 지지선 터치 3회 이상
-BOX_MIN_HIGH_TOUCHES = 2  # 2026-07-22 개편: 저항선 터치 2회 이상
-BOX_MIN_DURATION = 25     # 2026-07-22 개편: 박스 기간(첫 스윙~오늘) 최소 25거래일
+BOX_CLOSE_RANGE_MAX = 0.10
+BOX_MA_NEAR_TOL = 0.03
+BOX_MA_NEAR_COUNT = 3
+BOX_RSI_PERIOD = 14
+BOX_RSI_MIN = 35.0
+BOX_RSI_MAX = 65.0
+BOX_VOLUME_AVG_PERIOD = 5
+BOX_VOLUME_REFERENCE_OFFSET = 20
+BOX_VOLUME_RATIO_MIN = 0.50
+BOX_VOLUME_RATIO_MAX = 1.20
+BOX_MARKET_CAP_MIN_EOK = 3000.0
+BOX_OPEN_MA_ABOVE_COUNT = 3
+BOX_RETURN_MAX = 0.10
+BOX_LOWER_ZONE_RATIO = 0.35
 
 BREAKOUT_TOL = 1.02
 
@@ -72,7 +79,6 @@ PULLBACK_MIN_DAYS = 240  # 1년선(240거래일) 계산에 필요한 최소 보�
 # Scores combine shape, support, volume, and recent-candle evidence, so the
 # result does not depend on the order in which symbols are scanned.
 IHS_MIN_SCORE = 80
-BOX_MIN_SCORE = 80
 PULLBACK_MIN_SCORE = 80
 
 
@@ -138,6 +144,26 @@ def moving_average(win, field, period):
         if i >= period - 1:
             ma[i] = s / period
     return ma
+
+
+def rsi_last(win, period=14, field='close'):
+    """Return Wilder RSI for the latest bar, or None when history is short."""
+    if len(win) <= period:
+        return None
+    gains = []
+    losses = []
+    for i in range(1, len(win)):
+        change = win[i][field] - win[i - 1][field]
+        gains.append(max(change, 0.0))
+        losses.append(max(-change, 0.0))
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    for i in range(period, len(gains)):
+        avg_gain = ((avg_gain * (period - 1)) + gains[i]) / period
+        avg_loss = ((avg_loss * (period - 1)) + losses[i]) / period
+    if avg_loss == 0:
+        return 100.0
+    return 100.0 - (100.0 / (1.0 + (avg_gain / avg_loss)))
 
 
 def avg_volume(win, from_idx, to_idx):
@@ -753,75 +779,111 @@ def detect_inv_head_shoulders(daily):
 # ④ 박스권 하단(Box Range Low)
 # ---------------------------------------------------------------------------
 
-def detect_box_range_low(daily):
-    win = daily[max(0, len(daily) - BOX_WINDOW):]
-    low_idxs = find_swing_indices(win, 'low', True)
-    high_idxs = find_swing_indices(win, 'high', False)
-    # 2026-07-22 개편: 지지선 터치 3회 이상 + 저항선 터치 2회 이상
-    if len(low_idxs) < BOX_MIN_LOW_TOUCHES or len(high_idxs) < BOX_MIN_HIGH_TOUCHES:
+def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
+    """Detect the A/B/C/D/E/G/J box-range lower-zone formula.
+
+    Market cap is fetched lazily by the live scanner only after the technical
+    A/B/C/D/G/J pre-filter passes. ``require_market_cap=False`` is used for
+    that pre-filter and by unit tests; production results always require E.
+    """
+    win = daily[-BOX_WINDOW:]
+    if len(win) < BOX_WINDOW:
         return None
 
-    # 2026-07-22 개편: 박스 기간(첫 스윙~오늘)이 최소 25거래일
-    first_swing_idx = min(low_idxs[0], high_idxs[0])
-    if (len(win) - 1) - first_swing_idx < BOX_MIN_DURATION:
+    range_win = win[-20:]
+    closes = [row['close'] for row in range_win]
+    lows = [row['low'] for row in range_win]
+    highs = [row['high'] for row in range_win]
+    last_close = closes[-1]
+    close_min = min(closes)
+    close_max = max(closes)
+    close_range = (close_max - close_min) / close_min if close_min else math.inf
+    if close_range > BOX_CLOSE_RANGE_MAX:
         return None
 
-    low_prices = [win[i]['low'] for i in low_idxs]
-    high_prices = [win[i]['high'] for i in high_idxs]
-
-    low_min, low_max = min(low_prices), max(low_prices)
-    high_min, high_max = min(high_prices), max(high_prices)
-
-    if (low_max - low_min) / low_min > BOX_TOL:
-        return None
-    if (high_max - high_min) / high_min > BOX_TOL:
+    close_ma5 = moving_average(daily, 'close', 5)[-20:]
+    close_ma20 = moving_average(daily, 'close', 20)[-20:]
+    close_near_count = sum(
+        1 for fast, slow in zip(close_ma5, close_ma20)
+        if fast is not None and slow and abs(fast / slow - 1) <= BOX_MA_NEAR_TOL
+    )
+    if close_near_count < BOX_MA_NEAR_COUNT:
         return None
 
-    support = sum(low_prices) / len(low_prices)
-    resistance = sum(high_prices) / len(high_prices)
-    if resistance <= support:
-        return None
-    if (resistance - support) / support < BOX_MIN_RANGE:
-        return None
-    if (resistance - support) / support > BOX_MAX_RANGE:
+    rsi = rsi_last(daily, BOX_RSI_PERIOD)
+    if rsi is None or not (BOX_RSI_MIN <= rsi <= BOX_RSI_MAX):
         return None
 
-    last_close = win[-1]['close']
-    if last_close < support * (1 - 0.01):
-        return None
-    if (last_close - support) / support > BOX_NEAR_LOW_TOL:
+    avg_volume_before = sum(row['volume'] for row in win[-6:-1]) / BOX_VOLUME_AVG_PERIOD
+    volume_20_ago = win[0]['volume']
+    volume_ratio = volume_20_ago / avg_volume_before if avg_volume_before else math.inf
+    if not (BOX_VOLUME_RATIO_MIN <= volume_ratio <= BOX_VOLUME_RATIO_MAX):
         return None
 
-    # ---- 점수(100점, 2026-07-22 개편): 박스유지25 + 지지선근접35 + 터치횟수20
-    # + 거래량감소15 + 최근양봉5 ----
-    flatness = max((low_max - low_min) / low_min, (high_max - high_min) / high_min)
-    box_score = 25 if flatness <= 0.015 else 15
-    near_ratio = (last_close - support) / support
-    support_score = 35 if near_ratio <= 0.01 else 22
-    extra_touches = (len(low_idxs) - BOX_MIN_LOW_TOUCHES) + (len(high_idxs) - BOX_MIN_HIGH_TOUCHES)
-    touch_score = 20 if extra_touches >= 3 else 14 if extra_touches >= 1 else 8
-    vol_score = 15 if is_volume_declining(win, low_idxs[0], len(win)) else 0
-    bull_score = 5 if is_last_candle_bullish(win) else 0
+    open_ma5 = moving_average(daily, 'open', 5)[-20:]
+    open_ma20 = moving_average(daily, 'open', 20)[-20:]
+    open_ma_above_count = sum(
+        1 for fast, slow in zip(open_ma5, open_ma20)
+        if fast is not None and slow is not None and fast >= slow
+    )
+    if open_ma_above_count < BOX_OPEN_MA_ABOVE_COUNT:
+        return None
 
-    score = clamp_score(box_score + support_score + touch_score + vol_score + bull_score)
+    return_20 = last_close / win[0]['close'] - 1
+    if abs(return_20) > BOX_RETURN_MAX:
+        return None
+
+    support = min(lows)
+    resistance = max(highs)
+    box_range = resistance - support
+    if box_range <= 0:
+        return None
+    lower_position = (last_close - support) / box_range
+    if lower_position < -0.02 or lower_position > BOX_LOWER_ZONE_RATIO:
+        return None
+
+    if market_cap_eok is None:
+        if require_market_cap:
+            return None
+    elif market_cap_eok < BOX_MARKET_CAP_MIN_EOK:
+        return None
+
+    # All A/B/C/D/G/J gates are hard filters. The score only ranks survivors.
+    range_score = max(0, 20 - round(close_range / BOX_CLOSE_RANGE_MAX * 20))
+    ma_score = min(20, close_near_count * 4)
+    rsi_score = 15 - round(abs(rsi - 50) / 15 * 15)
+    volume_score = 15 - round(abs(volume_ratio - 0.85) / 0.35 * 15)
+    cap_score = 10 if market_cap_eok is not None else 0
+    open_ma_score = min(10, open_ma_above_count * 2)
+    return_score = max(0, 10 - round(abs(return_20) / BOX_RETURN_MAX * 10))
+    score = clamp_score(range_score + ma_score + rsi_score + volume_score + cap_score + open_ma_score + return_score)
     reasons = [
-        '박스 상/하단 평평도(%d/25점)' % box_score,
-        '지지선 근접도 %.1f%%(%d/35점)' % (near_ratio * 100, support_score),
-        '지지선 %d회·저항선 %d회 터치(%d/20점)' % (len(low_idxs), len(high_idxs), touch_score),
-        '거래량 %s(%d/15점)' % ('감소' if vol_score else '유지/증가', vol_score),
-        '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
+        'A 최근 20봉 종가 변동폭 %.1f%% (10%% 이하)' % (close_range * 100),
+        'B 종가 5·20일선 3%% 이내 근접 %d회' % close_near_count,
+        'C RSI(14) %.1f (35~65)' % rsi,
+        'D 20봉전 거래량/직전 5봉 평균 %.1f%% (50~120%%)' % (volume_ratio * 100),
+        'E 시가총액 %.0f억원 (3000억원 이상)' % market_cap_eok if market_cap_eok is not None else 'E 시가총액 확인 대기',
+        'G 시가 5·20일선 관계 충족 %d회' % open_ma_above_count,
+        'J 20봉 수익률 %.1f%% (±10%% 이내)' % (return_20 * 100),
     ]
-
     return {
         'support': support,
         'resistance': resistance,
-        'low_swings': [{'date': win[i]['date'], 'price': win[i]['low']} for i in low_idxs],
-        'high_swings': [{'date': win[i]['date'], 'price': win[i]['high']} for i in high_idxs],
         'signal': {'date': win[-1]['date'], 'price': last_close},
         'breakout': False,
         'score': score,
         'reasons': reasons,
-        'interpretation': '박스권 하단 지지선 부근(지지선 대비 +%.1f%%)에서 반등을 시도하는 구간으로 추정됩니다(%d점).' % (near_ratio * 100, score),
+        'interpretation': 'A/B/C/D/E/G/J box-range lower-zone candidate (lower position %.1f%%, score %d).' % (lower_position * 100, score),
+        'criteria': {
+            'closeRangePct': close_range * 100,
+            'closeMaNearCount': close_near_count,
+            'rsi14': rsi,
+            'volumeRatioPct': volume_ratio * 100,
+            'marketCapEok': market_cap_eok,
+            'openMaAboveCount': open_ma_above_count,
+            'return20Pct': return_20 * 100,
+            'lowerPositionPct': lower_position * 100,
+        },
     }
 
 
@@ -916,7 +978,7 @@ def detect_pullback(daily):
     }
 
 
-def scan_stock(stock, daily, pattern_results, pullback_matches):
+def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_getter=None):
     """단일 종목의 daily(OHLC)로 6종 패턴을 판정해 pattern_results/pullback_matches에
     append(둘 다 호출부가 미리 만들어서 넘긴 딕셔너리/리스트를 in-place로 채움).
     daily_scan.py(키움 API 기반)와 rescan_patterns.py(SQLite 기반)가 이 함수를 공유해서
@@ -949,8 +1011,15 @@ def scan_stock(stock, daily, pattern_results, pullback_matches):
         if ihs and not ihs['breakout'] and pattern_grade(ihs['score'], IHS_MIN_SCORE):
             pattern_results['invHeadShoulders'].append(build_pattern_match(stock, daily, ihs))
 
-        box = detect_box_range_low(daily)
-        if box and pattern_grade(box['score'], BOX_MIN_SCORE):
+        box = detect_box_range_low(
+            daily,
+            market_cap_eok=stock.get('market_cap_eok'),
+            require_market_cap=market_cap_getter is None,
+        )
+        if box and box.get('criteria', {}).get('marketCapEok') is None and market_cap_getter:
+            market_cap_eok = market_cap_getter(stock['code'])
+            box = detect_box_range_low(daily, market_cap_eok=market_cap_eok, require_market_cap=True)
+        if box:
             pattern_results['boxRangeLow'].append(build_pattern_match(stock, daily, box))
 
     if len(daily) >= PULLBACK_MIN_DAYS:

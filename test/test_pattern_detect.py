@@ -117,6 +117,24 @@ def ma_cloud_breakout_daily():
     return daily
 
 
+def box_range_daily():
+    daily = []
+    start = date(2025, 1, 1)
+    values = [100, 102, 98, 101, 99] * 8
+    for i, close in enumerate(values):
+        open_price = 100 if i < 35 else 101
+        daily.append({
+            "date": (start + timedelta(days=i)).isoformat(),
+            "open": open_price * 1000,
+            "high": (close + 1) * 1000,
+            "low": (close - 1) * 1000,
+            "close": close * 1000,
+            "volume": 100,
+        })
+    daily[-1].update(open=101000, high=99000, low=97000, close=98000)
+    return daily
+
+
 class RisingLowsDetectionTest(unittest.TestCase):
     def test_small_rise_and_short_gap_are_valid(self):
         detail = detector.detect_rising_lows(compact_higher_low_daily())
@@ -211,6 +229,39 @@ class RisingLowsDetectionTest(unittest.TestCase):
             self.assertEqual(results[key][0]["code"], "999999")
         self.assertEqual(len(pullback), detector.PATTERN_MAX_MATCHES)
         self.assertEqual(pullback[0]["code"], "999999")
+
+
+class BoxRangeLowerFilterTest(unittest.TestCase):
+    def test_box_range_requires_all_screener_conditions_and_market_cap(self):
+        detail = detector.detect_box_range_low(
+            box_range_daily(), market_cap_eok=3000, require_market_cap=True)
+
+        self.assertIsNotNone(detail)
+        self.assertEqual(detail["criteria"]["closeMaNearCount"], 20)
+        self.assertEqual(detail["criteria"]["openMaAboveCount"], 20)
+        self.assertGreaterEqual(detail["criteria"]["rsi14"], 35)
+        self.assertLessEqual(detail["criteria"]["rsi14"], 65)
+        self.assertLessEqual(detail["criteria"]["closeRangePct"], 10)
+        self.assertEqual(detail["criteria"]["marketCapEok"], 3000)
+
+    def test_box_range_rejects_below_300_billion_market_cap(self):
+        detail = detector.detect_box_range_low(
+            box_range_daily(), market_cap_eok=2999.99, require_market_cap=True)
+
+        self.assertIsNone(detail)
+
+    def test_scan_fetches_market_cap_only_after_technical_prefilter(self):
+        results = {"risingLows": [], "maCloudBreakout": [], "doubleBottom": [],
+                   "invHeadShoulders": [], "boxRangeLow": []}
+        calls = []
+
+        detector.scan_stock(
+            {"code": "000001", "name": "테스트"}, box_range_daily(), results, [],
+            market_cap_getter=lambda code: calls.append(code) or 3000,
+        )
+
+        self.assertEqual(calls, ["000001"])
+        self.assertEqual([row["code"] for row in results["boxRangeLow"]], ["000001"])
 
 
 class MaCloudBreakoutDetectionTest(unittest.TestCase):

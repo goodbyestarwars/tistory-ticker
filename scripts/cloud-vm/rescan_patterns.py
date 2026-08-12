@@ -19,6 +19,7 @@ import pattern_detect as pd
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
+MARKET_CAP_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'market_cap_cache.json')
 
 
 def log(msg):
@@ -53,6 +54,16 @@ def load_universe_metadata():
     return names, etf_names
 
 
+def load_market_cap_cache():
+    if not os.path.exists(MARKET_CAP_CACHE_FILE):
+        return {}
+    try:
+        with open(MARKET_CAP_CACHE_FILE, 'r', encoding='utf-8') as f:
+            return (json.load(f).get('data') or {})
+    except (OSError, ValueError):
+        return {}
+
+
 def main():
     name_map, etf_names = load_universe_metadata()
     if not name_map:
@@ -70,6 +81,7 @@ def main():
         codes = codes[:3]
         log('--test 모드: %d종목만 스모크 테스트' % len(codes))
     log('대상 종목 수: %d' % len(codes))
+    market_cap_cache = load_market_cap_cache()
 
     pattern_results = {'risingLows': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [], 'boxRangeLow': []}
     pattern_scanned = 0
@@ -78,7 +90,12 @@ def main():
 
     for i, code in enumerate(codes):
         stock_name = name_map.get(code, code)
-        stock = {'name': stock_name, 'code': code, 'is_etf': stock_name in etf_names}
+        stock = {
+            'name': stock_name,
+            'code': code,
+            'is_etf': stock_name in etf_names,
+            'market_cap_eok': market_cap_cache.get(code),
+        }
         daily = db_schema.load_daily_prices(conn, code)
 
         scanned_p, scanned_pb = pd.scan_stock(stock, daily, pattern_results, pullback_matches)
