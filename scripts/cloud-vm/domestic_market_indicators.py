@@ -196,7 +196,11 @@ def _normalise_investor(result):
 def fetch_investor():
     data = {}
     for market in MARKETS:
-        result = investor_trend.get_result('day', market.lower())
+        try:
+            result = investor_trend.get_result('day', market.lower())
+        except Exception as exc:
+            logger.warning('investor trend unavailable for %s: %s', market, exc)
+            result = {'asOf': None, 'rows': []}
         data[market] = {
             'source': 'kiwoom/kis/naver background collector',
             'asOf': result.get('asOf'),
@@ -252,9 +256,18 @@ def fetch_funds(kis_appkey, kis_appsecret, days=60):
             return data
     except Exception:
         logger.exception('KIS market funds failed; using public fallback')
-    data = public_data.fetch_kofia_market(days)
-    data['source'] = 'naver fallback (KOFIA public market-funds feed)'
-    return data
+    try:
+        data = public_data.fetch_kofia_market(days)
+        data['source'] = 'naver fallback (KOFIA public market-funds feed)'
+        return data
+    except Exception as exc:
+        logger.warning('public market funds fallback unavailable: %s', exc)
+        return {
+            'available': False,
+            'source': 'naver fallback',
+            'message': '증시자금 데이터를 잠시 불러오지 못했습니다.',
+            'series': [],
+        }
 
 
 def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
