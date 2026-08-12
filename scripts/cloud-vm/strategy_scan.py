@@ -37,7 +37,7 @@ import os
 import re
 import sys
 import urllib.request
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import db_schema
 import invest_signal
@@ -61,6 +61,14 @@ MIN_AVG_TURNOVER = 1_000_000_000  # 10억원
 # 초저가주는 호가 한두 틱의 왜곡과 작전성 변동이 커 저평가 후보에서 제외한다.
 MIN_PRICE = 1_000
 
+# 우량주 전략: 펀더멘탈 점수와 주봉 엔벨로프 하단 터치를 함께 확인한다.
+BLUECHIP_FUNDAMENTAL_SCORE_MIN = 70
+BLUECHIP_TOP_N = 15
+ENVELOPE_PERIOD = 15
+ENVELOPE_PERCENT = 15.0
+ENVELOPE_TOUCH_TOL = 0.005
+ENVELOPE_CLOSE_TOL = 0.03
+
 # 서비스에서 업종이 아니라 테마로 명시해 쓰는 수작업 분류. 이 중 하나에 포함된 종목은
 # 펀더멘탈 저평가 검색에서 제외해 테마 모멘텀이 가격 눌림으로 오인되지 않게 한다.
 THEME_SECTORS = {
@@ -81,6 +89,18 @@ DISPARITY_MAX = 90
 # 찍는 것과 다를 바 없다"는 피드백을 그대로 반영해 이격도가 가장 낮은(가장 많이 눌린)
 # 순으로 상위 N개만 남긴다.
 SECTOR_TOP_N = 5
+
+BLUECHIP_METHODOLOGY_NOTE = (
+    '펀더멘탈 점수 {min_score}점 이상인 우량주 중 주봉 엔벨로프({period}, ±{percent:.0f}%) 하단을 최근 주봉이 터치하고, '
+    '주봉 종가가 하단선 ±{close_tol:.0f}% 안에 있는 종목입니다. 저점 이탈 후 계속 하락하는 종목을 줄이기 위해 '
+    '하단선 아래 {close_tol:.0f}% 초과 종가는 제외하며, 전체 후보는 하단선에 가까운 순서로 최대 {top_n}개만 보여줍니다.'
+).format(
+    min_score=BLUECHIP_FUNDAMENTAL_SCORE_MIN,
+    period=ENVELOPE_PERIOD,
+    percent=ENVELOPE_PERCENT,
+    close_tol=ENVELOPE_CLOSE_TOL * 100,
+    top_n=BLUECHIP_TOP_N,
+)
 
 METHODOLOGY_NOTE = (
     '펀더멘탈 점수(DART ROE·부채비율 기준) {min_score}점 이상 + 120일 이동평균 대비 '
@@ -173,6 +193,59 @@ def sma_last(daily, period, field='close'):
     return sum(row[field] for row in window) / period
 
 
+def weekly_bars(daily):
+    """Aggregate ascending daily OHLC rows into ISO-week OHLC rows."""
+    buckets = {}
+    for row in daily:
+        try:
+            raw_date = str(row.get('date') or '')[:10]
+            day = date.fromisoformat(raw_date)
+        except (TypeError, ValueError):
+            continue
+        key = day.isocalendar()[:2]
+        buckets.setdefault(key, []).append(row)
+
+    bars = []
+    for rows in buckets.values():
+        bars.append({
+            'date': rows[-1].get('date'),
+            'open': rows[0]['open'],
+            'high': max(row['high'] for row in rows),
+            'low': min(row['low'] for row in rows),
+            'close': rows[-1]['close'],
+            'volume': sum(row.get('volume') or 0 for row in rows),
+        })
+    return bars
+
+
+def envelope_signal(daily, period=ENVELOPE_PERIOD, percent=ENVELOPE_PERCENT):
+    """Return a weekly Envelope lower-band touch, or None when it is not active."""
+    weekly = weekly_bars(daily)
+    if len(weekly) < period:
+        return None
+    recent = weekly[-period:]
+    middle = sum(row['close'] for row in recent) / period
+    multiplier = percent / 100.0
+    upper = middle * (1 + multiplier)
+    lower = middle * (1 - multiplier)
+    current = weekly[-1]
+    close_distance = current['close'] / lower - 1 if lower else None
+    touched = current['low'] <= lower * (1 + ENVELOPE_TOUCH_TOL)
+    close_near = close_distance is not None and abs(close_distance) <= ENVELOPE_CLOSE_TOL
+    if not touched or not close_near:
+        return None
+    return {
+        'date': current['date'],
+        'period': period,
+        'percent': percent,
+        'middle': middle,
+        'upper': upper,
+        'lower': lower,
+        'closeDistancePct': close_distance * 100,
+        'touched': True,
+    }
+
+
 def build_match(stock, daily, disparity, fundamental_score, annual):
     last = daily[-1]
     prev = daily[-2] if len(daily) > 1 else None
@@ -248,6 +321,57 @@ def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
     return sectors, scanned, skipped_no_data, skipped_illiquid, skipped_no_sector, skipped_no_fundamentals
 
 
+def scan_bluechip(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
+    """Scan quality stocks whose current weekly Envelope lower band was touched."""
+    theme_codes = theme_codes or set()
+    matches = []
+    scanned = 0
+    for stock in universe:
+        code = stock['code']
+        daily = db_schema.load_daily_prices(conn, code)
+        if len(daily) < MIN_BARS:
+            continue
+        if daily[-1]['close'] < MIN_PRICE or code in theme_codes:
+            continue
+        if pattern_detect.is_etf_name(stock.get('name')):
+            continue
+        vol_multiple = pattern_detect.compute_volume_multiple(daily)
+        if not vol_multiple or vol_multiple['avg20'] < MIN_AVG_TURNOVER:
+            continue
+        wics = wics_map.get(code)
+        if not wics or not wics.get('sector'):
+            continue
+        annual = ((fundamentals_cache.get(code) or {}).get('annual'))
+        fundamental_score = invest_signal.compute_fundamental_score(annual)
+        if fundamental_score is None or fundamental_score < BLUECHIP_FUNDAMENTAL_SCORE_MIN:
+            continue
+        scanned += 1
+        signal = envelope_signal(daily)
+        if not signal:
+            continue
+        match = build_match(
+            stock,
+            daily,
+            disparity=signal['closeDistancePct'],
+            fundamental_score=fundamental_score,
+            annual=annual,
+        )
+        match['strategy'] = 'weeklyEnvelope'
+        match['envelope'] = signal
+        match['sector'] = wics['sector']
+        matches.append(match)
+
+    matches.sort(key=lambda item: (
+        abs(item.get('envelope', {}).get('closeDistancePct') or 0),
+        -(item.get('fundamentalScore') or 0),
+    ))
+    sectors = {}
+    for match in matches[:BLUECHIP_TOP_N]:
+        sector = match['sector']
+        sectors.setdefault(sector, []).append(match)
+    return sectors, scanned
+
+
 def main():
     load_dotenv()
 
@@ -279,6 +403,9 @@ def main():
      skipped_no_sector, skipped_no_fundamentals) = scan(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
 
+    bluechip_sectors, bluechip_scanned = scan_bluechip(
+        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
+
     undervalued_category = {
         'name': '저평가 종목',
         'methodology': METHODOLOGY_NOTE,
@@ -304,6 +431,16 @@ def main():
         # 밑에 넣는다 - 다음 카테고리를 추가할 때 이 딕셔너리에 키 하나만 더 넣으면 된다.
         'categories': {
             'undervalued': undervalued_category,
+            'bluechip': {
+                'name': '우량주',
+                'methodology': BLUECHIP_METHODOLOGY_NOTE,
+                'scanned': bluechip_scanned,
+                'sectors': {
+                    sector: {'name': sector, 'matches': matches}
+                    for sector, matches in bluechip_sectors.items()
+                    if matches
+                },
+            },
         },
     }
 
