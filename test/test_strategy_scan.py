@@ -86,6 +86,45 @@ class EnvelopeTests(unittest.TestCase):
         self.assertAlmostEqual(signal['upper'], 113.8116666667)
 
 
+class DividendTests(unittest.TestCase):
+    def _annual(self):
+        return {
+            'years': [
+                {'year': 2022, 'net_income': 100},
+                {'year': 2023, 'net_income': 110},
+                {'year': 2024, 'net_income': 121},
+                {'year': 2025, 'net_income': 133},
+            ]
+        }
+
+    def _dividend(self):
+        return {
+            'reportYear': 2025,
+            'years': [
+                {'year': 2023, 'cashDividendPerShare': 5, 'dividendYieldPct': 5.0, 'payoutRatioPct': 35},
+                {'year': 2024, 'cashDividendPerShare': 5, 'dividendYieldPct': 5.0, 'payoutRatioPct': 36},
+                {'year': 2025, 'cashDividendPerShare': 6, 'dividendYieldPct': 5.5, 'payoutRatioPct': 40},
+            ],
+        }
+
+    def test_requires_all_conservative_conditions(self):
+        daily = [{'close': 100}, {'close': 100}]
+        signal = strategy_scan.dividend_signal(daily, self._annual(), self._dividend())
+
+        self.assertIsNotNone(signal)
+        self.assertEqual(signal['dividendStreak'], 3)
+        self.assertEqual(signal['profitGrowthStreak'], 3)
+        self.assertEqual(signal['payoutRatioPct'], 40)
+        self.assertEqual(signal['dividendYieldPct'], 6.0)
+
+    def test_rejects_a_broken_dividend_streak(self):
+        dividend = self._dividend()
+        dividend['years'][1]['cashDividendPerShare'] = 0
+
+        self.assertIsNone(strategy_scan.dividend_signal(
+            [{'close': 100}], self._annual(), dividend))
+
+
 class OpeningGapTests(unittest.TestCase):
     def _daily(self, open_price=10_500, close_price=11_000, previous_close=10_000, volume=300_000):
         return [

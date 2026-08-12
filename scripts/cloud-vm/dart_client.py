@@ -109,3 +109,24 @@ def call_fnltt(api_key, corp_code, bsns_year, reprt_code, fs_div='CFS'):
             raise DartRateLimitError('DART fnlttSinglAcntAll status %s: %s' % (status, message))
         raise RuntimeError('DART fnlttSinglAcntAll status %s: %s' % (status, message))
     return data.get('list') or []
+
+
+def call_alot_matter(api_key, corp_code, bsns_year, reprt_code='11011'):
+    """Return DART's annual dividend indicators (alotMatter)."""
+    params = {
+        'crtfc_key': api_key,
+        'corp_code': corp_code,
+        'bsns_year': str(bsns_year),
+        'reprt_code': reprt_code,
+    }
+    url = BASE_URL + '/alotMatter.json?' + urllib.parse.urlencode(params)
+    data = json.loads(_fetch(url).decode('utf-8'))
+    status = data.get('status')
+    if status == '013':
+        return []
+    if status != '000':
+        message = data.get('message') or ''
+        if '시도' in message or '제한' in message:
+            raise DartRateLimitError('DART alotMatter status %s: %s' % (status, message))
+        raise RuntimeError('DART alotMatter status %s: %s' % (status, message))
+    return data.get('list') or []

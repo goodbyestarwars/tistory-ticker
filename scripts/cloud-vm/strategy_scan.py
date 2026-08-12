@@ -99,6 +99,14 @@ DISPARITY_MAX = 90
 SECTOR_TOP_N = 5
 STRATEGY_MAX_RESULTS = 20
 
+# Dividend strategy: strict enough to keep the result set useful, while using
+# only values disclosed in DART's annual report and the current daily close.
+DIVIDEND_YIELD_MIN = 5.0
+DIVIDEND_PAYOUT_MIN = 30.0
+DIVIDEND_STREAK_MIN = 3
+DIVIDEND_PROFIT_GROWTH_STREAK_MIN = 3
+DIVIDEND_TOP_N = 15
+
 BLUECHIP_METHODOLOGY_NOTE = (
     '펀더멘탈 점수 {min_score}점 이상인 우량주 중 주봉 엔벨로프({period}, ±{percent:.0f}%) 하단을 최근 주봉이 터치하고, '
     '주봉 종가가 하단선 ±{close_tol:.0f}% 안에 있는 종목입니다. 저점 이탈 후 계속 하락하는 종목을 줄이기 위해 '
@@ -134,6 +142,21 @@ METHODOLOGY_NOTE = (
 METHODOLOGY_NOTE += (
     ' 또한 최근 20일 평균 거래대금 10억원 미만, 주가 1,000원 미만, '
     '서비스 테마 분류 종목은 후보에서 제외합니다.'
+)
+
+DIVIDEND_METHODOLOGY_NOTE = (
+    'DART 사업보고서 기준 현금배당수익률 {yield_min:.0f}% 이상, 현금배당성향 {payout_min:.0f}% 이상, '
+    '최근 {streak}년 연속 현금배당, 최근 {profit_streak}년 연속 순이익 증가를 모두 충족하는 국내 보통주입니다. '
+    'ETF·ETN·스팩·우선주·거래정지·정리매매·동전주와 평균 거래대금 {turnover:,}원 미만 종목은 제외합니다. '
+    '결과는 섹터별로 나누되, 조건을 통과한 종목 중 배당수익률·배당성향·연속성 순으로 상위 {top_n}개만 표시합니다. '
+    '배당 데이터가 아직 DART 캐시에 없는 종목은 임의 추정하지 않고 다음 배치 수집 후 반영합니다.'
+).format(
+    yield_min=DIVIDEND_YIELD_MIN,
+    payout_min=DIVIDEND_PAYOUT_MIN,
+    streak=DIVIDEND_STREAK_MIN,
+    profit_streak=DIVIDEND_PROFIT_GROWTH_STREAK_MIN,
+    turnover=MIN_AVG_TURNOVER,
+    top_n=DIVIDEND_TOP_N,
 )
 
 
@@ -515,6 +538,139 @@ def scan_opening_gap(universe, wics_map, conn):
     return sectors, scanned
 
 
+def _positive_streak(values):
+    """Count consecutive positive values from the newest value backwards."""
+    streak = 0
+    for value in reversed(values):
+        if value is None or value <= 0:
+            break
+        streak += 1
+    return streak
+
+
+def _growth_streak(annual):
+    """Count consecutive year-over-year net-income increases at the end."""
+    rows = sorted((annual or {}).get('years') or [], key=lambda row: row.get('year') or 0)
+    values = [row.get('net_income') for row in rows]
+    streak = 0
+    for index in range(len(values) - 1, 0, -1):
+        current = values[index]
+        prior = values[index - 1]
+        if current is None or prior is None or current <= prior:
+            break
+        streak += 1
+    return streak
+
+
+def dividend_signal(daily, annual, dividend):
+    """Return a strict dividend signal or None.
+
+    Current yield is calculated from the latest disclosed cash DPS and today's
+    close, avoiding a stale report-date yield. Payout ratio remains the latest
+    DART-disclosed value because it is not derivable from price data alone.
+    """
+    if not daily or not dividend:
+        return None
+    years = sorted(dividend.get('years') or [], key=lambda row: row.get('year') or 0)
+    if len(years) < DIVIDEND_STREAK_MIN:
+        return None
+    dps_values = [row.get('cashDividendPerShare') for row in years]
+    dividend_streak = _positive_streak(dps_values)
+    profit_growth_streak = _growth_streak(annual)
+    latest = years[-1]
+    price = daily[-1].get('close')
+    dps = latest.get('cashDividendPerShare')
+    reported_yield = latest.get('dividendYieldPct')
+    current_yield = (dps / price * 100) if dps and price else reported_yield
+    payout_ratio = latest.get('payoutRatioPct')
+    if current_yield is None or current_yield < DIVIDEND_YIELD_MIN:
+        return None
+    if payout_ratio is None or payout_ratio < DIVIDEND_PAYOUT_MIN:
+        return None
+    if dividend_streak < DIVIDEND_STREAK_MIN:
+        return None
+    if profit_growth_streak < DIVIDEND_PROFIT_GROWTH_STREAK_MIN:
+        return None
+    return {
+        'reportYear': dividend.get('reportYear'),
+        'dividendYieldPct': current_yield,
+        'reportedDividendYieldPct': reported_yield,
+        'payoutRatioPct': payout_ratio,
+        'cashDividendPerShare': dps,
+        'dividendStreak': dividend_streak,
+        'profitGrowthStreak': profit_growth_streak,
+    }
+
+
+def build_dividend_match(stock, daily, sector, signal, annual):
+    last = daily[-1]
+    prev = daily[-2] if len(daily) > 1 else None
+    previous_close = prev.get('close') if prev else None
+    change_rate = ((last['close'] - previous_close) / previous_close * 100) if previous_close else None
+    match = {
+        'code': stock['code'],
+        'name': stock['name'],
+        'price': last['close'],
+        'changeRate': change_rate,
+        'date': last.get('date'),
+        'sector': sector,
+        'strategy': 'dividend',
+        'dividendYieldPct': round(signal['dividendYieldPct'], 2),
+        'reportedDividendYieldPct': signal.get('reportedDividendYieldPct'),
+        'payoutRatioPct': round(signal['payoutRatioPct'], 2),
+        'cashDividendPerShare': signal.get('cashDividendPerShare'),
+        'dividendStreak': signal['dividendStreak'],
+        'profitGrowthStreak': signal['profitGrowthStreak'],
+    }
+    fundamental_score = invest_signal.compute_fundamental_score(annual)
+    if fundamental_score is not None:
+        match['fundamentalScore'] = fundamental_score
+    return match
+
+
+def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
+    """Scan domestic common stocks for the conservative dividend strategy."""
+    theme_codes = theme_codes or set()
+    matches = []
+    scanned = 0
+    for stock in universe:
+        code = stock['code']
+        daily = db_schema.load_daily_prices(conn, code)
+        if len(daily) < MIN_BARS:
+            continue
+        if pattern_detect.is_excluded_stock(stock, daily):
+            continue
+        if daily[-1]['close'] < MIN_PRICE or code in theme_codes:
+            continue
+        if pattern_detect.is_etf_name(stock.get('name')):
+            continue
+        vol_multiple = pattern_detect.compute_volume_multiple(daily)
+        if not vol_multiple or vol_multiple['avg20'] < MIN_AVG_TURNOVER:
+            continue
+        wics = wics_map.get(code)
+        if not wics or not wics.get('sector'):
+            continue
+        entry = fundamentals_cache.get(code) or {}
+        annual = entry.get('annual')
+        signal = dividend_signal(daily, annual, entry.get('dividend'))
+        scanned += 1
+        if not signal:
+            continue
+        matches.append(build_dividend_match(stock, daily, wics['sector'], signal, annual))
+
+    matches.sort(key=lambda item: (
+        -(item.get('dividendYieldPct') or 0),
+        -(item.get('payoutRatioPct') or 0),
+        -(item.get('dividendStreak') or 0),
+        -(item.get('profitGrowthStreak') or 0),
+        item.get('code') or '',
+    ))
+    sectors = {}
+    for match in matches[:DIVIDEND_TOP_N]:
+        sectors.setdefault(match['sector'], []).append(match)
+    return sectors, scanned
+
+
 def main():
     load_dotenv()
 
@@ -545,6 +701,8 @@ def main():
     (sectors, scanned, skipped_no_data, skipped_illiquid,
      skipped_no_sector, skipped_no_fundamentals) = scan(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
+    dividend_sectors, dividend_scanned = scan_dividend(
+        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
 
     undervalued_category = {
         'name': '저평가 종목',
@@ -571,6 +729,15 @@ def main():
         # 밑에 넣는다 - 다음 카테고리를 추가할 때 이 딕셔너리에 키 하나만 더 넣으면 된다.
         'categories': {
             'undervalued': undervalued_category,
+            'dividend': {
+                'name': '배당주',
+                'methodology': DIVIDEND_METHODOLOGY_NOTE,
+                'sectors': {
+                    sector: {'name': sector, 'matches': matches}
+                    for sector, matches in dividend_sectors.items()
+                    if matches
+                },
+            },
         },
     }
 

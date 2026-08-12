@@ -159,7 +159,10 @@
 
   function rowHtml(it) {
     var cc = chgClass(it.changeRate);
-    var metric = it.gapRatePct != null
+    var metric = it.strategy === 'dividend'
+      ? '배당수익률 ' + fmtPct(it.dividendYieldPct) + ' · 배당성향 ' + fmtPct(it.payoutRatioPct)
+        + ' · 연속배당 ' + (it.dividendStreak || 0) + '년 · 순이익 증가 ' + (it.profitGrowthStreak || 0) + '년'
+      : it.gapRatePct != null
       ? '시초갭 ' + fmtPct(it.gapRatePct) + ' · 시가→종가 ' + fmtPct(it.intradayRatePct)
         + ' · 거래대금 ' + fmtMillion(it.turnoverMillion) + '백만원'
       : it.envelope
