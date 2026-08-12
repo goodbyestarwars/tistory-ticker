@@ -1,5 +1,5 @@
 /**
- * 코스피 선물(주간·야간) 페이지 - 코스피200 주간선물/야간선물을 큰 차트 2개로 보여준 뒤,
+ * 국내시장지표 페이지 - 코스피/코스닥 현물지표와 코스피200 주간선물/야간선물을 함께 보여준 뒤,
  * AI가 "선물 간 관계와 현물지수와의 연관성, 특히 야간선물이 다음 거래일 한국 증시에
  * 미치는 영향" 관점으로 해설한다.
  *
@@ -818,6 +818,33 @@
       .catch(function () { box.hidden = true; });
   }
 
+  // 국내시장지표는 증시온도에 포함하지 않고, 코스피 선물 화면과 하나의 시장 지표 메뉴로
+  // 제공한다. 운영 티스토리 페이지에는 기존 #kospi-futures mount만 있을 수 있으므로,
+  // 여기서 국내시장지표 mount를 앞에 만들고 정적 스크립트를 지연 로드한다.
+  function loadDomesticMarketIndicators(container) {
+    if (!container || !container.parentNode) return;
+    // 로컬 단위 테스트나 다른 화면에 같은 mount가 있어도 국내시장지표를 끼워 넣지 않는다.
+    if (location.pathname.replace(/\/$/, '') !== '/pages/kospi-futures') return;
+    var mount = document.getElementById('domestic-market-indicators');
+    if (!mount) {
+      mount = document.createElement('div');
+      mount.id = 'domestic-market-indicators';
+      container.parentNode.insertBefore(mount, container);
+    }
+    if (global.DomesticMarketIndicators) {
+      global.DomesticMarketIndicators.init();
+      return;
+    }
+    if (document.querySelector('script[data-domestic-market-indicators]')) return;
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260812-domestic-market';
+    script.setAttribute('data-domestic-market-indicators', '1');
+    script.onload = function () {
+      if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();
+    };
+    document.head.appendChild(script);
+  }
+
   // 접힌 상태에서는 차트 컨테이너가 display:none이라 LWC의 autoSize(ResizeObserver)가
   // 정상적으로 크기를 못 잡을 수 있어, 펼칠 때마다 기존 인스턴스를 버리고 다시 만든다
   // (이미 받아온 데이터를 그대로 쓰므로 재요청 없음 - renderChartPanel 참고. 확대해 둔
@@ -845,6 +872,7 @@
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
 
+    loadDomesticMarketIndicators(container);
     container.innerHTML = buildShell();
     wireIntervalToggles(container);
     wireCollapseToggles(container);

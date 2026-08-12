@@ -13,7 +13,7 @@
         { href: '/category/마켓 브리핑', label: '마켓브리핑' },
         { href: '/page/market-temp', label: '국내시장지표' },
         { href: '/pages/overnight-market', label: '글로벌 시장지표' },
-        { href: '/pages/kospi-futures', label: '코스피 선물' }
+        { href: '/pages/kospi-futures', label: '국내시장지표' }
       ]
     },
     {
