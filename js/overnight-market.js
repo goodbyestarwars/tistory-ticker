@@ -127,7 +127,7 @@
   var FUTURES_CACHE_KEY = 'overnight_market_futures_v1';
   var FUTURES_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
   var REFRESH_INTERVAL_MS = 30000;
-  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 64;
 
   var LABELS = {
@@ -449,7 +449,7 @@
       }, chartThemeOptions()));
 
       var color = positive ? '#d24f45' : '#1261c4';
-      var series = chart.addAreaSeries({
+      var series = chart.addSeries(LWC.AreaSeries, {
         lineColor: color,
         topColor: hexToRgba(color, 0.2),
         bottomColor: hexToRgba(color, 0.02),

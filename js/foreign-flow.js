@@ -56,7 +56,7 @@
 
   // TradingView Lightweight Charts(오픈소스, CDN 지연 로드) - 가격 캔들차트 렌더링 엔진.
   // 손으로 그리던 SVG 캔들차트를 대체 - 확대/축소·패닝·크로스헤어를 라이브러리가 제공.
-  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var lwcLoadPromise = null;
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
@@ -3009,7 +3009,7 @@
     return out;
   }
 
-  // TradingView 공식 "Bands Indicator" 플러그인 예제와 같은 구조(Series Primitive, v4.1+ 지원 -
+  // TradingView 공식 "Bands Indicator" 플러그인 예제와 같은 구조(Series Primitive, v5 지원 -
   // js/pattern-scan.js 참고). drawBackground()로 캔들/선보다 먼저 그려 구름이 배경에 깔리게 한다.
   function createIchimokuCloudPrimitive(bandPts, cloudColor) {
     return {
@@ -3071,7 +3071,7 @@
       var key = pair[0], pts = pair[1];
       if (!pts.length) return;
       // 선행스팬 경계선은 숨기고, 두 선 사이의 구름만 파란색으로 표시한다.
-      var series = lwcChart.addLineSeries({ color: 'rgba(18,97,196,0)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      var series = lwcChart.addSeries(global.LightweightCharts.LineSeries, { color: 'rgba(18,97,196,0)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       series.setData(pts);
       ichimokuOverlaySeries.push(series);
       seriesByKey[key] = series;
@@ -4101,7 +4101,7 @@
       + '</div>';
   }
 
-  // 일목균형표 구름과 동일한 Series Primitive 패턴(v4.1+ 지원) - drawBackground()로 캔들보다
+  // 일목균형표 구름과 동일한 Series Primitive 패턴(v5 지원) - drawBackground()로 캔들보다
   // 먼저 그려 막대가 캔들 뒤에 깔리게 한다. 패널 오른쪽 끝에서 왼쪽으로 뻗는 가로 막대이고
   // 길이는 그 가격구간 거래량/최댓값 비율. 시간축과 무관해(항상 오른쪽 고정) time-based
   // 좌표변환은 필요 없고 series.priceToCoordinate()만 쓴다.
@@ -4486,7 +4486,7 @@
       });
 
       var daily = chartData.daily;
-      var candleSeries = chart.addCandlestickSeries({
+      var candleSeries = chart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4',
         borderUpColor: '#d24f45', borderDownColor: '#1261c4',
         wickUpColor: '#d24f45', wickDownColor: '#1261c4',
@@ -4514,7 +4514,7 @@
         var series = (chartData.ma && chartData.ma[key]) || [];
         if (!series.length) return;
         var color = key === 'ma224' ? ma224Color() : MA_COLORS[key];
-        var lineSeries = chart.addLineSeries({
+        var lineSeries = chart.addSeries(LWC.LineSeries, {
           color: color,
           lineWidth: MA_WIDTHS[key],
           priceLineVisible: false,
@@ -4535,7 +4535,7 @@
 
       // 실시간 시세와 같은 하단 30% 거래량 영역. 전체 localization formatter를 쓰지
       // 않고 시리즈별 포맷을 적용해야 우측 값이 가격처럼 보이지 않고 K/M/B로 축약된다.
-      var volumeSeries = chart.addHistogramSeries({
+      var volumeSeries = chart.addSeries(LWC.HistogramSeries, {
         priceFormat: { type: 'volume' },
         priceScaleId: 'volume',
         lastValueVisible: false,
@@ -4559,7 +4559,7 @@
       }));
 
       var volumeMaPoints = movingAverageChartPoints(daily, 'volume', 20);
-      var volumeMaSeries = chart.addLineSeries({
+      var volumeMaSeries = chart.addSeries(LWC.LineSeries, {
         color: '#3b82f6',
         lineWidth: 2,
         priceScaleId: 'volume',

@@ -282,7 +282,7 @@
 
   // ---- 캔들차트 (TradingView Lightweight Charts, CDN 지연 로드) ----
 
-  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var lwcLoadPromise = null;
   var psLwcChart = null;         // 현재 렌더된 차트 인스턴스(재조회/닫기 시 정리용)
   var psLwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
@@ -313,13 +313,9 @@
   // ---- 일목균형표(구름) ----
   // js/foreign-flow.js의 computeIchimoku와 완전히 동일한 계산(전환선9/기준선26/선행스팬B52/
   // 26영업일 이동) - 두 페이지가 같은 종목에서 다른 구름을 보여주면 안 되므로 로직을 그대로 옮김.
-  // 2026-07-22: 예전 TODO(v5 업그레이드가 필요하다는 메모, js/foreign-flow.js에도 동일하게
-  // 있었음)는 확인해보니 틀린 전제였음 - 두 시리즈 사이를 채우는 Series Primitives 플러그인
-  // API는 Lightweight Charts v4.1부터 이미 지원되고, 이 사이트가 쓰는 CDN 버전(4.2.0)도
-  // 이미 그 이후 버전임. 그래서 v5 업그레이드(사이트 전체 5개 위젯 공유 CDN이라 회귀테스트
-  // 범위가 큼) 없이 지금 버전에서 공식 "Bands Indicator" 플러그인 패턴(useBitmapCoordinateSpace
-  // + timeToCoordinate/priceToCoordinate로 폴리곤을 직접 캔버스에 그리는 방식)만 추가해
-  // 구름을 채운다.
+  // Lightweight Charts v5 migration: Series Primitives remain supported, while series
+  // creation and markers use the v5 APIs below. The official Bands Indicator pattern
+  // (useBitmapCoordinateSpace + timeToCoordinate/priceToCoordinate) is used for the cloud.
   function ichimokuPeriodMid(daily, i, period) {
     var start = i - period + 1;
     if (start < 0) return null;
@@ -449,7 +445,7 @@
     [['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB]].forEach(function (pair) {
       var key = pair[0], pts = pair[1];
       if (!pts.length) return;
-      var series = psLwcChart.addLineSeries({ color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      var series = psLwcChart.addSeries(global.LightweightCharts.LineSeries, { color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       series.setData(pts);
       psIchimokuSeries.push(series);
       seriesByKey[key] = series;
@@ -518,7 +514,7 @@
       }, psThemeOptions()));
       psLwcChart = chart;
 
-      var candleSeries = chart.addCandlestickSeries({
+      var candleSeries = chart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4',
         borderUpColor: '#d24f45', borderDownColor: '#1261c4',
         wickUpColor: '#d24f45', wickDownColor: '#1261c4'
@@ -567,7 +563,7 @@
       if (i >= period - 1) pts.push({ time: daily[i].date, value: sum / period });
     }
     if (pts.length < 2) return;
-    chart.addLineSeries({ color: color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false }).setData(pts);
+    chart.addSeries(global.LightweightCharts.LineSeries, { color: color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false }).setData(pts);
   }
 
   // 패턴별 지지/저항선 + 스윙 포인트 dot + 확인(signal) 지점을 라인 시리즈/마커로 오버레이.
@@ -587,7 +583,7 @@
         .map(function (p) { return { time: p.date, value: p.price }; });
       if (data.length < 2) return;
       var o = opts || {};
-      chart.addLineSeries({
+      chart.addSeries(LWC.LineSeries, {
         color: color,
         lineWidth: 4,
         lineStyle: LWC.LineStyle.Solid,
@@ -671,7 +667,7 @@
       if (detail.signal) addSignal(detail.signal);
     }
 
-    if (markers.length) candleSeries.setMarkers(markers);
+    if (markers.length) LWC.createSeriesMarkers(candleSeries, markers);
   }
 
   // ---- 유틸 ----

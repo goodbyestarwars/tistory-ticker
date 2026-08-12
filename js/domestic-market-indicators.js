@@ -2,7 +2,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/domestic-market-indicators';
-  var LWC_CDN = 'https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js';
+  var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var KST_OFFSET_SEC = 9 * 60 * 60;
   var CHART_HEIGHT = 330;
   var chartInstances = {};
@@ -126,7 +126,7 @@
         timeScale: { timeVisible: interval === 'minute', secondsVisible: false },
         localization: { priceFormatter: chartPriceFormatter }
       }, chartThemeOptions()));
-      var series = chart.addCandlestickSeries({
+      var series = chart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4',
         borderUpColor: '#d24f45', borderDownColor: '#1261c4',
         wickUpColor: '#d24f45', wickDownColor: '#1261c4'

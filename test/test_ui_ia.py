@@ -613,7 +613,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/stock-search.js")
         style = self.read("css/stock-search.css")
         volume_series = re.search(
-            r"var volumeSeries = chart\.addHistogramSeries\(\{(?P<body>.*?)\}\);",
+            r"var volumeSeries = chart\.addSeries\(LWC\.HistogramSeries, \{(?P<body>.*?)\}\);",
             source,
             re.DOTALL,
         )
@@ -721,7 +721,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("ctx.fillStyle = cloudColor", source)
         self.assertIn("color: 'rgba(18,97,196,0)'", source)
         self.assertIn("createIchimokuCloudPrimitive(bandPts, 'rgba(18,97,196,0.16)')", source)
-        self.assertIn("var volumeSeries = chart.addHistogramSeries", source)
+        self.assertIn("var volumeSeries = chart.addSeries(LWC.HistogramSeries", source)
         self.assertIn("priceFormat: { type: 'volume' }", source)
         self.assertIn("movingAverageChartPoints(daily, 'volume', 20)", source)
         self.assertIn(".ff-volume-study-label", style)
@@ -823,6 +823,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("검색 결과 ' + visibleEvents.length + '건", source)
         self.assertIn(".sc-search input", style)
         self.assertIn("stock-calendar.js?v=20260813-year-search", home)
+
+    def test_lightweight_charts_uses_v5_api_across_chart_modules(self):
+        files = (
+            "js/domestic-market-indicators.js",
+            "js/foreign-flow.js",
+            "js/kospi-futures.js",
+            "js/overnight-market.js",
+            "js/pattern-scan.js",
+            "js/quick-indices.js",
+            "js/stock-search.js",
+        )
+        for filename in files:
+            source = self.read(filename)
+            self.assertIn("lightweight-charts@5.2.0", source, filename)
+            self.assertNotRegex(source, r"add(?:Line|Area|Candlestick|Histogram)Series\(")
+        self.assertIn("createSeriesMarkers(candleSeries, markers)", self.read("js/pattern-scan.js"))
 
     def test_earnings_calendar_allows_supported_tistory_origins(self):
         source = self.read("scripts/cloud-vm/main.py")
