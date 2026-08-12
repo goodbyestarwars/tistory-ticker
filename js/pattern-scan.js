@@ -44,7 +44,7 @@
     { key: 'maCloudBreakout', label: '이평 상승 초입형', desc: '주가가 224일선에서 3% 이내이고 일목 구름 안에서 상단을 시도하며, 최근 5봉 안에 5일선이 20일선을 상향돌파한 구간입니다.' },
     { key: 'doubleBottom', label: '쌍바닥', desc: '비슷한 높이의 저점을 두 번 찍고 그 사이 반등한 고점(넥라인)이 있는 W자 모양. 바닥을 두 번 확인했다는 신호입니다.' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '저점 3개가 어깨-머리-어깨 모양(가운데가 가장 낮음)을 이루는 패턴. 하락 추세가 상승으로 반전될 때 자주 나타납니다.' },
-    { key: 'boxRangeLow', label: '박스권 하단', desc: '일정 가격대(박스권)에서 등락을 반복하다 그 박스 하단(지지선) 근처까지 내려온 구간. 지지가 버텨주는지 확인하는 자리입니다.' },
+    { key: 'boxRangeLow', label: '박스권 하단', desc: '최근 20봉 종가 변동폭 10% 이하, 종가 5·20일선 3% 이내 근접 3회 이상, RSI(14) 35~65, 거래량비율 50~120%, 시가총액 3,000억원 이상, 시가 5·20일선 관계 3회 이상, 20봉 수익률 ±10% 이내를 모두 만족하면서 박스 하단에 있는 후보입니다.' },
     { key: 'pullback', label: '눌림목', desc: '단기간 15% 이상 오른 뒤 5~15% 정도 되돌림(조정)이 나와 20일선 또는 1년선(240일선) 부근까지 내려온 구간. 상승 추세 중 쉬어가는 자리입니다.' }
   ];
 
@@ -185,6 +185,11 @@
         if (data.error || !data.daily || !data.daily.length) {
           detail.innerHTML = '<div class="ps-error">' + escapeHtml((data && data.message) || '차트를 불러오지 못했어요.') + '</div>';
           return;
+        }
+        // Box-range scans include market cap in the VM snapshot; GAS cannot
+        // reproduce that E condition during an on-demand chart request.
+        if (activeTab === 'boxRangeLow' && item.patternDetail) {
+          data.detail = item.patternDetail;
         }
         // 리스트는 하루 1회 스캔 캐시라서, 클릭 시 실시간 재검증에서 패턴이 더 이상
         // 안 잡힐 수 있음(그 사이 가격이 움직여서) - 이 경우 깨진 결과를 보여주는 대신

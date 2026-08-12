@@ -28,6 +28,7 @@ FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_m
 INVESTOR_FLOW_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
 FUNDAMENTALS_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
+MARKET_CAP_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'market_cap_cache.json')
 THROTTLE_SEC = 0.25
 
 
@@ -95,6 +96,43 @@ def load_fundamentals_cache():
     return cached.get('data') or {}
 
 
+def load_market_cap_cache():
+    if not os.path.exists(MARKET_CAP_CACHE_FILE):
+        return {}
+    try:
+        with open(MARKET_CAP_CACHE_FILE, 'r', encoding='utf-8') as f:
+            payload = json.load(f)
+        return payload.get('data') or {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_market_cap_cache(cache):
+    tmp_path = MARKET_CAP_CACHE_FILE + '.tmp'
+    with open(tmp_path, 'w', encoding='utf-8') as f:
+        json.dump({'updatedAt': datetime.now(timezone.utc).isoformat(), 'data': cache}, f, ensure_ascii=False)
+    os.replace(tmp_path, MARKET_CAP_CACHE_FILE)
+
+
+def market_cap_getter(token, cache):
+    """Return a per-run Kiwoom ka10001 market cap callback for box scanning."""
+    def get(code):
+        if code in cache:
+            return cache[code]
+        try:
+            raw = kiwoom_client.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
+            value = raw.get('mac')
+            if isinstance(value, str):
+                value = value.replace(',', '').strip()
+            value = float(value) if value not in (None, '') else None
+        except (TypeError, ValueError, RuntimeError, OSError):
+            value = None
+        if value is not None:
+            cache[code] = value
+        return value
+    return get
+
+
 def fresh_signal_state():
     return {
         'scanned': 0,
@@ -155,7 +193,10 @@ def main():
 
     flow_cache = load_flow_cache()
     fundamentals_cache = load_fundamentals_cache()
+    market_cap_cache = load_market_cap_cache()
+    market_cap_run_cache = {}
     token = kiwoom_client.get_token(appkey, secretkey)
+    get_market_cap = market_cap_getter(token, market_cap_run_cache)
 
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
@@ -182,7 +223,8 @@ def main():
                 conn.commit()
                 time.sleep(THROTTLE_SEC)
 
-            scanned_p, scanned_pb = pd.scan_stock(stock, daily, pattern_results, pullback_matches)
+            scanned_p, scanned_pb = pd.scan_stock(
+                stock, daily, pattern_results, pullback_matches, market_cap_getter=get_market_cap)
             if scanned_p:
                 pattern_scanned += 1
             if scanned_pb:
@@ -283,7 +325,9 @@ def main():
     conn.commit()
     conn.close()
 
-    pd.finalize_pattern_results(pattern_results)
+    market_cap_cache.update(market_cap_run_cache)
+    save_market_cap_cache(market_cap_cache)
+    pd.finalize_pattern_results(pattern_results, pullback_matches)
     now = datetime.now(timezone.utc).isoformat()
     payload = {
         'generatedAt': now,
