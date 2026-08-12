@@ -6,9 +6,17 @@
   var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=50';
   var DOMESTIC_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
   var US_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=us&limit=20';
+  var ECONOMIC_NEWS_WS_URL = 'wss://goodbyestar.cloud/ws/economic-news';
   var REFRESH_MS = 5 * 60 * 1000;
   var SESSION_CHECK_MS = 60 * 1000;
-  var state = { mount: null, timer: null, sessionTimer: null, market: '', quoteMap: {}, items: [], loading: false };
+  var WS_RECONNECT_MS = 10 * 1000;
+  var WS_FALLBACK_MS = 6 * 1000;
+  var WS_KEEPALIVE_MS = 25 * 1000;
+  var state = {
+    mount: null, timer: null, sessionTimer: null, socket: null, socketGeneration: 0,
+    socketOpened: false, socketReconnectTimer: null, socketFallbackTimer: null, socketKeepaliveTimer: null,
+    market: '', quoteMap: {}, items: [], loading: false
+  };
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -132,6 +140,101 @@
     });
   }
 
+  function applyNewsPayload(payload) {
+    var data = payload && (payload.data || payload);
+    if (!data || !Array.isArray(data.items)) return false;
+    var market = data.market === 'us' ? 'us' : 'domestic';
+    state.market = market;
+    state.items = data.items;
+    render(state.items, market);
+    state.loading = false;
+    return true;
+  }
+
+  function loadMarketBoard(market) {
+    var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;
+    state.market = market;
+    return fetchJson(marketUrl).then(function (json) {
+      state.quoteMap = quoteMapFrom(json);
+      if (state.market === market) render(state.items, market);
+    }).catch(function () { return null; });
+  }
+
+  function clearNewsSocketTimers() {
+    if (state.socketReconnectTimer) clearTimeout(state.socketReconnectTimer);
+    if (state.socketFallbackTimer) clearTimeout(state.socketFallbackTimer);
+    if (state.socketKeepaliveTimer) clearInterval(state.socketKeepaliveTimer);
+    state.socketReconnectTimer = null;
+    state.socketFallbackTimer = null;
+    state.socketKeepaliveTimer = null;
+  }
+
+  function closeNewsSocket(reconnect) {
+    clearNewsSocketTimers();
+    state.socketGeneration += 1;
+    var socket = state.socket;
+    state.socket = null;
+    state.socketOpened = false;
+    if (socket) {
+      try { socket.close(); } catch (err) { /* already closed */ }
+    }
+    if (reconnect) scheduleNewsSocketReconnect();
+  }
+
+  function scheduleNewsSocketReconnect() {
+    if (state.socketReconnectTimer || document.hidden || !('WebSocket' in global)) return;
+    state.socketReconnectTimer = setTimeout(function () {
+      state.socketReconnectTimer = null;
+      connectNewsSocket();
+    }, WS_RECONNECT_MS);
+  }
+
+  function connectNewsSocket() {
+    if (document.hidden || !('WebSocket' in global) || state.socket) return;
+    clearNewsSocketTimers();
+    var generation = ++state.socketGeneration;
+    var socket;
+    try {
+      socket = new WebSocket(ECONOMIC_NEWS_WS_URL);
+    } catch (err) {
+      fetchNews();
+      scheduleNewsSocketReconnect();
+      return;
+    }
+    state.socket = socket;
+    state.socketOpened = false;
+    state.socketFallbackTimer = setTimeout(function () {
+      if (state.socket === socket && !state.socketOpened) fetchNews();
+    }, WS_FALLBACK_MS);
+    socket.onopen = function () {
+      if (state.socket !== socket || generation !== state.socketGeneration) return;
+      state.socketOpened = true;
+      if (state.socketFallbackTimer) clearTimeout(state.socketFallbackTimer);
+      state.socketFallbackTimer = null;
+      state.socketKeepaliveTimer = setInterval(function () {
+        if (state.socket === socket && socket.readyState === WebSocket.OPEN) socket.send('ping');
+      }, WS_KEEPALIVE_MS);
+      loadMarketBoard(currentMarket());
+    };
+    socket.onmessage = function (event) {
+      if (state.socket !== socket || generation !== state.socketGeneration) return;
+      var packet;
+      try { packet = JSON.parse(event.data); } catch (err) { return; }
+      if (packet && packet.type === 'economic-news') applyNewsPayload(packet.data || packet);
+    };
+    socket.onerror = function () {
+      // onclose performs the reconnect and REST fallback so that one failure
+      // cannot trigger duplicate requests.
+    };
+    socket.onclose = function () {
+      if (state.socket !== socket || generation !== state.socketGeneration) return;
+      state.socket = null;
+      state.socketOpened = false;
+      if (!state.mount.querySelector('.hen-row')) fetchNews();
+      scheduleNewsSocketReconnect();
+    };
+  }
+
   function fetchNews() {
     if (state.loading) return Promise.resolve();
     state.loading = true;
@@ -162,11 +265,26 @@
     state.mount = mount;
     state.market = currentMarket();
     mount.setAttribute('data-hen-ready', '1');
-    fetchNews();
-    state.timer = setInterval(function () { if (!document.hidden) fetchNews(); }, REFRESH_MS);
+    loadMarketBoard(state.market);
+    connectNewsSocket();
+    state.timer = setInterval(function () {
+      if (!document.hidden && !state.socketOpened) fetchNews();
+    }, REFRESH_MS);
     state.sessionTimer = setInterval(function () {
-      if (!document.hidden && currentMarket() !== state.market) fetchNews();
+      if (!document.hidden && currentMarket() !== state.market) {
+        closeNewsSocket(true);
+        loadMarketBoard(currentMarket());
+        if (!state.socket) connectNewsSocket();
+        if (!state.socketOpened) fetchNews();
+      }
     }, SESSION_CHECK_MS);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) closeNewsSocket(false);
+      else {
+        loadMarketBoard(currentMarket());
+        connectNewsSocket();
+      }
+    });
   }
 
   global.HomeEconomicNews = { init: init };
