@@ -232,9 +232,13 @@ def _number_from_candidates(row, keys):
 def _normalise_kis_funds(rows):
     result = []
     for row in rows or []:
-        date_value = _date(_first(row, 'stck_bsop_date', 'bas_dt', 'date', 'data_dt'))
-        credit = _number_from_candidates(row, ('crd_tr_fing_whl', 'crdtr_fing_whl', 'crd_tr_fing', 'loan_total', 'crdt_fing_amt'))
-        deposits = _number_from_candidates(row, ('invr_dpsg_amt', 'invr_dpsg', 'customer_deposit', 'cus_dpsg_amt'))
+        # FHKST649100C0 is a KOFIA aggregate response. Its documented fields
+        # are bsop_date, crdt_loan_rmnd (credit balance), and cust_dpmn_amt
+        # (customer deposits), all expressed in 100m KRW. Keep the previous
+        # aliases as a compatibility guard for older test fixtures/proxies.
+        date_value = _date(_first(row, 'bsop_date', 'stck_bsop_date', 'bas_dt', 'date', 'data_dt'))
+        credit = _number_from_candidates(row, ('crdt_loan_rmnd', 'crd_tr_fing_whl', 'crdtr_fing_whl', 'crd_tr_fing', 'loan_total', 'crdt_fing_amt'))
+        deposits = _number_from_candidates(row, ('cust_dpmn_amt', 'invr_dpsg_amt', 'invr_dpsg', 'customer_deposit', 'cus_dpsg_amt'))
         if date_value and (credit is not None or deposits is not None):
             result.append({'date': date_value, 'credit': credit, 'market_funds': {'date': date_value, 'investor_deposits': deposits}})
     return result

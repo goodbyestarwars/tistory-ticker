@@ -65,10 +65,22 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertEqual(rows[0], {'label': '08.12', 'individual': 1.0, 'foreign': -2.0, 'institution': 3.0})
 
     def test_kis_funds_uses_documented_query_key(self):
-        with patch.object(kis_client, '_get_domestic_quote', return_value={'output': [{'stck_bsop_date': '20260812'}]}) as request:
+        with patch.object(kis_client, '_get_domestic_quote', return_value={'output': [{'bsop_date': '20260812'}]}) as request:
             rows = kis_client.fetch_market_funds('token', 'appkey', 'secret')
-        self.assertEqual(rows, [{'stck_bsop_date': '20260812'}])
-        self.assertEqual(request.call_args.args[5], {'fid_input_date_1': ''})
+        self.assertEqual(rows, [{'bsop_date': '20260812'}])
+        self.assertEqual(request.call_args.args[5], {'FID_INPUT_DATE_1': ''})
+
+    def test_normalises_documented_kis_market_funds_fields(self):
+        rows = dmi._normalise_kis_funds([{
+            'bsop_date': '20260812',
+            'crdt_loan_rmnd': '12345',
+            'cust_dpmn_amt': '67890',
+        }])
+        self.assertEqual(rows, [{
+            'date': '2026-08-12',
+            'credit': 12345.0,
+            'market_funds': {'date': '2026-08-12', 'investor_deposits': 67890.0},
+        }])
 
 
 if __name__ == '__main__':
