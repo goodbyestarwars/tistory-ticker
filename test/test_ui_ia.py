@@ -697,6 +697,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ss-ichimoku-cloud", style)
         self.assertIn(".ss-price-study-label", style)
         self.assertIn(".ss-chart { position: relative; height: 420px; }", style)
+        self.assertIn('class="ss-draw-toggle"', source)
+        self.assertIn('class="ss-draw-clear"', source)
+        self.assertIn("function setupStockDrawing", source)
+        self.assertIn("stockDrawingStorageKey", source)
+        self.assertIn(".ss-drawing-layer.is-active", style)
 
     def test_us_stock_detail_uses_site_font_and_consistent_type_scale(self):
         source = self.read("js/us-stocks.js")

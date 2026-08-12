@@ -286,6 +286,28 @@
 }
 #stock-search .ss-tf-btn.active { border-color: #333; background: #333; color: #fff; font-weight: 700; }
 #stock-search .ss-tf-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+#stock-search .ss-draw-toggle,
+#stock-search .ss-draw-clear {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-family: inherit;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+}
+#stock-search .ss-draw-toggle.is-active { border-color: #333; background: #333; color: #fff; font-weight: 700; }
+#stock-search .ss-drawing-layer {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  touch-action: none;
+}
+#stock-search .ss-drawing-layer.is-active { pointer-events: auto; cursor: crosshair; }
 #stock-search .ss-chart-studies {
   display: flex;
   flex-wrap: wrap;
