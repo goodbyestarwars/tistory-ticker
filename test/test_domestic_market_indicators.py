@@ -68,9 +68,20 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
 
     def test_kis_funds_uses_documented_query_key(self):
         with patch.object(kis_client, '_get_domestic_quote', return_value={'output': [{'bsop_date': '20260812'}]}) as request:
-            rows = kis_client.fetch_market_funds('token', 'appkey', 'secret')
+            rows = kis_client.fetch_market_funds('token', 'appkey', 'secret', date='20260812')
         self.assertEqual(rows, [{'bsop_date': '20260812'}])
-        self.assertEqual(request.call_args.args[5], {'FID_INPUT_DATE_1': ''})
+        self.assertEqual(request.call_args.args[5], {'FID_INPUT_DATE_1': '20260812'})
+
+    def test_kis_funds_uses_kst_query_date(self):
+        with patch.object(dmi.kis_client, 'get_token', return_value='token') as token:
+            with patch.object(dmi.kis_client, 'fetch_market_funds', return_value=[{
+                'bsop_date': '20260812',
+                'cust_dpmn_amt': '1',
+            }]) as request:
+                result = dmi._fetch_kis_funds('appkey', 'secret')
+        self.assertTrue(result['available'])
+        self.assertRegex(request.call_args.kwargs['date'], r'^\d{8}$')
+        token.assert_called_once_with('appkey', 'secret')
 
     def test_normalises_documented_kis_market_funds_fields(self):
         rows = dmi._normalise_kis_funds([{

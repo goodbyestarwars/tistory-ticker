@@ -254,7 +254,10 @@ def _fetch_kis_funds(kis_appkey, kis_appsecret):
     if not kis_appkey or not kis_appsecret:
         return None
     token = kis_client.get_token(kis_appkey, kis_appsecret)
-    rows = kis_client.fetch_market_funds(token, kis_appkey, kis_appsecret)
+    # KIS marks FID_INPUT_DATE_1 as required for this endpoint. Use the
+    # server's KST business date instead of sending an empty query value.
+    query_date = datetime.now(KST).strftime('%Y%m%d')
+    rows = kis_client.fetch_market_funds(token, kis_appkey, kis_appsecret, date=query_date)
     normalised = _normalise_kis_funds(rows)
     if not normalised:
         return None
