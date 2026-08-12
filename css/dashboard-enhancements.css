@@ -180,8 +180,9 @@
 .de-custom-empty { grid-column: 1 / -1; padding: 10px; color: #9aa5b1; font-size: 12px; text-align: center; }
 
 .de-expand-button { position: relative; z-index: 7; float: right; margin-left: 8px; border: 1px solid #cfd9e5; border-radius: 999px; padding: 6px 11px; background: rgba(255,255,255,.96); color: #405266; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 8px rgba(30,48,67,.08); }
+.de-chart-control-row { display: flex !important; align-items: center; gap: 6px; }
+.de-chart-control-row .de-expand-button.de-expand-inline { float: none; margin-left: auto; flex: 0 0 auto; }
 .de-expand-button:hover { border-color: #315b43; color: #315b43; }
-#foreign-flow .ff-apt-chart-wrap > .de-expand-button { position: absolute; top: 10px; right: 10px; z-index: 8; }
 #foreign-flow .ff-apt-chart-wrap { padding-top: 30px; }
 #foreign-flow .ff-chart-candle { height: 760px !important; }
 #stock-search .ss-chart { height: 760px; }
