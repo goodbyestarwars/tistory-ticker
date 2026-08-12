@@ -830,6 +830,61 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   white-space: nowrap;
 }
 .hmb-list dd[title] { cursor: help; }
+.hmb-investor-trend[hidden] { display: none; }
+.hmb-investor-trend-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.hmb-investor-trend-head dt { min-width: 0; }
+.hmb-investor-trend-head span {
+  overflow: hidden;
+  color: #a0a7b0;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hmb-investor-trend-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 5px;
+}
+.hmb-investor-row { min-width: 0; }
+.hmb-investor-row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+}
+.hmb-investor-row-top strong {
+  color: #69727d;
+  font-size: 10px;
+  font-weight: 600;
+}
+.hmb-investor-row-top b {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.hmb-investor-spark {
+  display: block;
+  width: 100%;
+  height: 24px;
+  margin-top: 2px;
+  overflow: visible;
+}
+.hmb-investor-zero {
+  stroke: #e8eaed;
+  stroke-dasharray: 2 2;
+  stroke-width: .8;
+}
+.hmb-investor-loading,
+.hmb-investor-spark-empty {
+  color: #a0a7b0;
+  font-size: 10px;
+}
 .home-positive { color: #d24f45 !important; }
 .home-negative { color: #1261c4 !important; }
 .home-neutral { color: #555 !important; }
@@ -1213,6 +1268,11 @@ html.dark .home-card-more { border-color: rgba(245, 239, 224, .12) !important; }
 html.dark .hmb-list dd,
 html.dark .home-pattern-row,
 html.dark .home-schedule-row time { color: rgba(245, 239, 224, .82) !important; }
+html.dark .hmb-investor-trend-head span,
+html.dark .hmb-investor-loading,
+html.dark .hmb-investor-spark-empty { color: rgba(245, 239, 224, .5) !important; }
+html.dark .hmb-investor-row-top strong { color: rgba(245, 239, 224, .62) !important; }
+html.dark .hmb-investor-zero { stroke: rgba(245, 239, 224, .18); }
 html.dark .hmb-interpretation,
 html.dark .home-pattern-new,
 html.dark .home-schedule-category {

@@ -129,6 +129,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
 
+    def test_home_domestic_summary_includes_foreign_investor_trend(self):
+        main = self.read("js/skin-main.js")
+        style = self.read("style.css")
+        for token in (
+            "data-home-investor-trend",
+            "investor-trend?period=day&market=kospi",
+            "investor-trend?period=day&market=kosdaq",
+            "외국인 순매수 추이",
+            "function investorSparkline",
+        ):
+            self.assertIn(token, main)
+        for token in (".hmb-investor-trend", ".hmb-investor-spark", ".hmb-investor-zero"):
+            self.assertIn(token, style)
+
     def test_us_home_cards_use_spot_index_products_explicitly(self):
         main = self.read("js/skin-main.js")
         indices = self.read("js/quick-indices.js")
