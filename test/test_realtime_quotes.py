@@ -14,7 +14,7 @@ class RealtimeQuotesTests(unittest.TestCase):
             'data': [{
                 'item': 'A005930',
                 'type': ['0B'],
-                'values': {'10': '+226500', '11': '-3500', '12': '-1.52', '9081': '2', '290': '1'},
+                'values': {'10': '+226500', '11': '-3500', '12': '-1.52', '16': '1234567', '9081': '2', '290': '1'},
             }],
         })
 
@@ -24,6 +24,7 @@ class RealtimeQuotesTests(unittest.TestCase):
             'price': 226500.0,
             'change': -3500.0,
             'changeRate': -1.52,
+            'volume': 1234567.0,
             'exchange': '2',
             'marketSession': '1',
         }])

@@ -152,6 +152,21 @@
   margin-top: 2px;
 }
 
+#strategy-search .ss-etf-return-metric {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+#strategy-search .ss-etf-return-metric span {
+  white-space: nowrap;
+}
+
+#strategy-search .ss-etf-return-metric b {
+  color: #2563eb;
+  font-weight: 700;
+}
+
 #strategy-search .ss-up { color: #d24f45; }
 #strategy-search .ss-down { color: #1261c4; }
 #strategy-search .ss-flat { color: #9ca3af; }
@@ -229,6 +244,9 @@ html.dark #strategy-search .ss-row-price {
 }
 html.dark #strategy-search .ss-row-metric {
   color: rgba(245, 239, 224, 0.45) !important;
+}
+html.dark #strategy-search .ss-etf-return-metric b {
+  color: #6ea8e8 !important;
 }
 html.dark #strategy-search .ss-up { color: #ff6b6b !important; }
 html.dark #strategy-search .ss-down { color: #4dabf7 !important; }
