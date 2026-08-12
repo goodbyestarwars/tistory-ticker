@@ -822,7 +822,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("1.1~12.31", source)
         self.assertIn("검색 결과 ' + visibleEvents.length + '건", source)
         self.assertIn(".sc-search input", style)
-        self.assertIn("stock-calendar.js?v=20260812-dart-result", home)
+        self.assertIn("stock-calendar.js?v=20260813-year-search", home)
 
     def test_earnings_calendar_allows_supported_tistory_origins(self):
         source = self.read("scripts/cloud-vm/main.py")
