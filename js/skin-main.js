@@ -39,7 +39,7 @@
   (function loadDashboardEnhancements() {
     if (document.querySelector('script[data-dashboard-enhancements]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/dashboard-enhancements.js?v=20260813-chart-fullscreen-shell';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/dashboard-enhancements.js?v=20260813-chart-fullscreen-layout-v2';
     script.defer = true;
     script.setAttribute('data-dashboard-enhancements', '1');
     document.body.appendChild(script);

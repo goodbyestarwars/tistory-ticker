@@ -40,6 +40,11 @@
 .dmi-chart-tools button { border: 1px solid #d7dee8; border-radius: 999px; background: #fff; color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .dmi-chart-tools button:hover,
 .dmi-chart-tools button.is-active { border-color: #e11d48; color: #e11d48; }
+.dmi-tabs .dmi-draw-toggle,
+.dmi-tabs .dmi-draw-clear { border: 1px solid #d7dee8; border-radius: 999px; background: #fff; color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.dmi-tabs .dmi-draw-toggle:hover,
+.dmi-tabs .dmi-draw-toggle.is-active,
+.dmi-tabs .dmi-draw-clear:hover { border-color: #e11d48; color: #e11d48; }
 .dmi-chart-tools .dmi-collapse-btn { width: 26px; height: 26px; padding: 0; border-radius: 6px; border-color: #e2e8f0; background: #f8fafc; color: #6b7280; font-size: 13px; line-height: 1; }
 .dmi-chart-tools .dmi-collapse-btn:hover { border-color: #cbd5e1; color: #374151; }
 .dmi-panel.dmi-collapsed .dmi-tabs,
