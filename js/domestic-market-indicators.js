@@ -192,7 +192,6 @@
       '<article class="dmi-fund-card"><span class="dmi-fund-label">신용잔고</span><strong class="dmi-fund-value">' + formatFunds(credit.loan_total, funds.credit_unit) + '</strong><span class="dmi-fund-date">' + escapeHtml(credit.date || funds.latest_date || '-') + '</span></article>',
       '<article class="dmi-fund-card"><span class="dmi-fund-label">고객예탁금</span><strong class="dmi-fund-value">' + formatFunds(deposits.investor_deposits, funds.market_funds_unit) + '</strong><span class="dmi-fund-date">' + escapeHtml(deposits.date || funds.latest_date || '-') + '</span></article>'
     ].join('');
-    root.querySelector('.dmi-funds-provider').textContent = funds.source ? '출처: ' + funds.source : '데이터 준비 중';
   }
 
   function init() {
@@ -206,7 +205,7 @@
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3><span class="dmi-muted">개인 · 외국인 · 기관</span></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
-      + '<div class="dmi-subheading"><h3>증시자금</h3><span class="dmi-funds-provider dmi-muted">데이터 준비 중</span></div>'
+      + '<div class="dmi-subheading"><h3>증시자금</h3></div>'
       + '<div class="dmi-fund-grid"><div class="dmi-fund-card">데이터 준비 중</div><div class="dmi-fund-card">데이터 준비 중</div></div>'
       + '</div>';
     fetchJson().then(function (data) {

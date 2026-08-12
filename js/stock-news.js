@@ -736,7 +736,7 @@
     }
     return {
       title: item.title || '', link: item.link || '',
-      press: (item.category ? '[' + item.category + '] ' : '') + (item.source || item.provider || 'Naver'),
+      press: item.category ? '[' + item.category + ']' : '',
       datetime: datetime, body: item.description || '', image: ''
     };
   }
@@ -811,8 +811,7 @@
         : '')
       + '<div class="sn-news-featured-body">'
       + '<div class="sn-news-featured-title">' + escapeHtml(item.title) + '</div>'
-      + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
-      + '<span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
+      + '<div class="sn-news-meta"><span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
       + '</div>'
       + '</div>';
   }
@@ -824,8 +823,7 @@
         : '')
       + '<div class="sn-news-headline-body">'
       + '<div class="sn-news-headline-title">' + escapeHtml(item.title) + '</div>'
-      + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
-      + '<span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
+      + '<div class="sn-news-meta"><span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
       + '</div>'
       + '</div>';
   }
@@ -836,8 +834,7 @@
         ? '<img class="sn-news-grid-thumb" src="' + escapeAttr(item.image) + '" alt="" loading="lazy" />'
         : '')
       + '<div class="sn-news-grid-title">' + escapeHtml(item.title) + '</div>'
-      + '<div class="sn-news-meta"><span class="sn-news-press">' + escapeHtml(item.press) + '</span>'
-      + '<span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
+      + '<div class="sn-news-meta"><span class="sn-news-time">' + formatDatetime(item.datetime) + '</span></div>'
       + '</div>';
   }
 
@@ -881,10 +878,10 @@
       + '<span class="sn-modal-title">' + escapeHtml(item.title) + '</span>'
       + '<button type="button" class="sn-modal-close" id="snModalClose">✕</button>'
       + '</div>'
-      + '<div class="sn-modal-meta">' + escapeHtml(item.press) + ' · ' + formatDatetime(item.datetime) + '</div>'
+      + '<div class="sn-modal-meta">' + formatDatetime(item.datetime) + '</div>'
       + (item.image ? '<img class="sn-modal-img" src="' + escapeAttr(item.image) + '" alt="" />' : '')
       + '<div class="sn-modal-body">' + escapeHtml(item.body) + '</div>'
-      + '<a class="sn-modal-link" href="' + escapeAttr(item.link) + '" target="_blank" rel="noopener">네이버 뉴스에서 원문 보기 ↗</a>'
+      + '<a class="sn-modal-link" href="' + escapeAttr(item.link) + '" target="_blank" rel="noopener">원문 보기 ↗</a>'
       + '</div>';
 
     document.body.appendChild(m);

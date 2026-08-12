@@ -301,7 +301,7 @@
           'src="' + chartImgSrc('area/day', data.code) + '" />' +
       '</div>' +
       '<a class="ticker-tooltip-link" href="' + NAVER_ITEM_URL + encodeURIComponent(data.code) + '" ' +
-        'target="_blank" rel="noopener noreferrer">네이버 금융에서 보기 ↗</a>';
+        'target="_blank" rel="noopener noreferrer">종목 페이지에서 보기 ↗</a>';
 
     // 일/주/월 탭 전환 (탭 클릭은 툴팁 내부라 document의 바깥클릭 닫기에 안 걸림)
     var img = box.querySelector('.ticker-chart-img');

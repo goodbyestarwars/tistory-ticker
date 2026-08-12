@@ -245,7 +245,7 @@
       }).join('') + '</div>'
       + '<div class="hrt-table-wrap"><table><thead><tr><th>종목</th><th>현재가</th><th>거래대금</th><th>거래량</th><th>상승률</th><th>하락률</th><th>시가총액</th><th>업종</th></tr></thead>'
       + '<tbody data-hrt-body><tr><td colspan="8" class="hrt-state">실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
-      + '<div class="hrt-foot"><span data-hrt-source>초기 목록 로딩 중</span><span>체결 발생 행만 갱신</span></div>';
+      + '<div class="hrt-foot"><span>체결 발생 행만 갱신</span></div>';
   }
 
   function rowsForActive() {
@@ -405,10 +405,8 @@
       state.data = json.data || json;
       var session = state.mount.querySelector('[data-hrt-session]');
       var updated = state.mount.querySelector('[data-hrt-updated]');
-      var source = state.mount.querySelector('[data-hrt-source]');
       if (session) session.textContent = state.data.session || marketLabel(market);
       if (updated) updated.textContent = '실시간 · ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
-      if (source) source.textContent = state.data.source || '시장 데이터';
       renderRows();
       startRealtime();
     }).catch(function () {
