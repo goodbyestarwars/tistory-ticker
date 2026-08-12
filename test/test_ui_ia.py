@@ -354,6 +354,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for provider in ("키움증권", "한국투자증권(KIS)", "Finnhub", "Alpha Vantage", "Yahoo Finance", "DART"):
             self.assertIn(provider, terms)
 
+    def test_open_source_license_matches_the_gothic_font(self):
+        license_page = self.read("legal/opensource-license.html")
+        self.assertIn("나눔고딕 (Nanum Gothic)", license_page)
+        self.assertIn("hangeul.naver.com/download", license_page)
+        self.assertNotIn("Pretendard Variable", license_page)
+
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")
         for token in (
