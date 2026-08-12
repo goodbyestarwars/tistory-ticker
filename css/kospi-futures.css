@@ -18,6 +18,17 @@
   color: #444;
 }
 
+#kospi-futures .kf-ai-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#kospi-futures .kf-ai-icon {
+  flex: 0 0 auto;
+  color: #4a7fd6;
+}
+
 #kospi-futures .kf-panel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -235,6 +246,7 @@
    배경 + #F5EFE0 글자로 교체. */
 html.dark #kospi-futures .kf-ai { background: rgba(245, 239, 224, 0.06) !important; }
 html.dark #kospi-futures .kf-ai p { color: #F5EFE0 !important; }
+html.dark #kospi-futures .kf-ai-icon { color: #F5EFE0 !important; }
 html.dark #kospi-futures .kf-stat-card {
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.2) !important;

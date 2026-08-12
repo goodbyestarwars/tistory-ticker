@@ -91,6 +91,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("#kospi-futures .kf-chart { height: 330px !important; }", futures_style)
         self.assertIn("var CHART_HEIGHT = 330;", futures_script)
         self.assertIn('data-section-key="ai"]', futures_css)
+        overnight = self.read("js/overnight-market.js")
+        self.assertIn('class="om-ai-icon"', overnight)
+        self.assertIn('class="kf-ai-icon"', futures_script)
+        self.assertNotIn('💬 참고의견', futures_script)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")
