@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20260808-4';
+  var ENHANCEMENT_VERSION = '20260812-5';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -182,7 +182,7 @@
     } else {
       body.appendChild(target);
     }
-    if (target.id === 'ffLwChart' || target.id === 'ssChart' || target.classList.contains('kf-chart')) {
+    if (target.id === 'ffLwChart' || target.id === 'ssChart' || target.classList.contains('kf-chart') || target.classList.contains('dmi-chart')) {
       target.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
     }
     function close() {
@@ -216,6 +216,11 @@
     document.querySelectorAll('#foreign-flow .ff-apt-chart-wrap').forEach(function (el) { addExpandButton(el, '종목분석 매물대'); });
     document.querySelectorAll('#stock-search .ss-chart').forEach(function (el) { addExpandButton(el, '실시간 시세 차트'); });
     document.querySelectorAll('#kospi-futures .kf-chart').forEach(function (el) { addExpandButton(el, el.closest('.kf-section') ? el.closest('.kf-section').querySelector('.kf-section-title').textContent : '선물 차트'); });
+    document.querySelectorAll('#domestic-market-indicators .dmi-chart').forEach(function (el) {
+      var panel = el.closest('.dmi-panel');
+      var title = panel && panel.querySelector('.dmi-panel-title span') ? panel.querySelector('.dmi-panel-title span').textContent : '국내시장지표 차트';
+      addExpandButton(el, title);
+    });
   }
 
   function scan() {

@@ -72,14 +72,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("naver fallback", backend)
         for token in ("color: #000;", "textColor: '#000'"):
             self.assertIn(token, style if token == "color: #000;" else frontend)
-        self.assertIn("var CHART_HEIGHT = 600;", frontend)
-        self.assertIn(".dmi-chart-grid { display: grid; grid-template-columns: 1fr;", style)
-        self.assertIn(".dmi-chart { height: 600px;", style)
+        self.assertIn("var CHART_HEIGHT = 330;", frontend)
+        self.assertIn(".dmi-chart-grid,", style)
+        self.assertIn(".dmi-chart { height: 330px;", style)
         self.assertIn(".dmi-subheading h3,", style)
         self.assertIn(".dmi-funds-provider { color: #000 !important; }", style)
         backend = self.read("scripts/cloud-vm/domestic_market_indicators.py")
         self.assertIn("CHART_LOOKBACK_DAYS = 250", backend)
         self.assertIn("CHART_MINUTE_MAX_BARS = 1500", backend)
+        enhancements = self.read("js/dashboard-enhancements.js")
+        self.assertIn("target.classList.contains('dmi-chart')", enhancements)
+        self.assertIn("#domestic-market-indicators .dmi-chart", enhancements)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")

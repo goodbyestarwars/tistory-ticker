@@ -191,7 +191,7 @@
 .de-chart-modal-head { position: relative; z-index: 2; display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #e5e9ef; color: #25303b; font-size: 14px; }
 .de-chart-close { border: 0; background: transparent; color: #7e8995; cursor: pointer; font-size: 16px; }
 .de-chart-modal-body { display: flex; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; padding: 22px 18px 26px; }
-.de-chart-modal-body > #ffLwChart, .de-chart-modal-body > #ssChart, .de-chart-modal-body > .kf-chart { width: 100%; }
+.de-chart-modal-body > #ffLwChart, .de-chart-modal-body > #ssChart, .de-chart-modal-body > .kf-chart, .de-chart-modal-body > .dmi-chart { width: 100%; }
 .de-chart-modal-body > .ff-apt-chart-wrap { width: 100%; min-width: 0; }
 .de-chart-modal-body > .de-foreign-flow-scope { width: 100%; min-width: 0; }
 .de-chart-placeholder { display: none; }
