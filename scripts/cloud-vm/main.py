@@ -579,7 +579,8 @@ _FLASH_MACRO_RULES = (
     ('고용 지표', ('비농업', '고용보고서', '고용 지표', '고용지표', '실업률', 'nonfarm payrolls'), 90),
     ('물가·성장', ('pce', 'gdp', '소매판매', '생산자물가'), 85),
 )
-_FLASH_INDEX_TERMS = ('코스피', '코스닥', '나스닥', 's&p 500', 's&p500', '다우지수', '다우존스', '지수 급등', '지수 급락')
+_FLASH_DOMESTIC_INDEX_TERMS = ('코스피', '코스닥', '코스피200', '지수 급등', '지수 급락')
+_FLASH_US_INDEX_TERMS = ('나스닥', 's&p 500', 's&p500', '다우지수', '다우존스', '지수 급등', '지수 급락')
 
 
 def _economic_news_market():
@@ -597,20 +598,11 @@ def _fetch_economic_news_snapshot(market):
     else:
         result = domestic_news.get_news(limit=50, item_kind='news')
         items = result.get('items', []) if isinstance(result, dict) else []
-    flash_news = list(items or [])
-    if market != 'us':
-        # 국내 장중에도 CPI·FOMC·미국 금리 일정은 속보로 놓치지 않도록
-        # 미국 뉴스 원천을 속보 분류용으로만 함께 확인한다.
-        flash_news.extend(news_aggregator.get_general_news(
-            alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
-            finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
-            limit=30,
-        ))
     disclosures = domestic_news.get_disclosures(limit=100)
-    return {'market': market, 'items': items, 'flash': _build_flash_items(flash_news, disclosures)}
+    return {'market': market, 'items': items, 'flash': _build_flash_items(items, disclosures, market)}
 
 
-def _build_flash_items(news_items, disclosures):
+def _build_flash_items(news_items, disclosures, market='domestic'):
     """속보 레일에 필요한 실적·공시·지수·미국 거시 이벤트를 정규화한다."""
     candidates = []
     for item in disclosures or []:
@@ -628,10 +620,11 @@ def _build_flash_items(news_items, disclosures):
         text = title.lower()
         if not title:
             continue
-        macro = next(((label, weight) for label, terms, weight in _FLASH_MACRO_RULES if any(term in text for term in terms)), None)
+        macro = next(((label, weight) for label, terms, weight in _FLASH_MACRO_RULES if any(term in text for term in terms)), None) if market == 'us' else None
+        index_terms = _FLASH_US_INDEX_TERMS if market == 'us' else _FLASH_DOMESTIC_INDEX_TERMS
         if macro:
             candidates.append(dict(item, flashType=macro[0], importance=macro[1]))
-        elif any(term in text for term in _FLASH_INDEX_TERMS):
+        elif any(term in text for term in index_terms):
             candidates.append(dict(item, flashType='지수', importance=75))
 
     unique = {}
