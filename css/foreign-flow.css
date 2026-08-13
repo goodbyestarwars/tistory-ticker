@@ -1506,6 +1506,64 @@
 }
 #foreign-flow .ff-hint { font-size: 13px; color: #999; }
 
+/* ---- 과거 시뮬레이션 탭 ---- */
+
+#foreign-flow .ff-sim-desc { font-size: 12.5px; color: #666; margin: 0 0 10px; line-height: 1.5; }
+#foreign-flow .ff-sim-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+#foreign-flow .ff-sim-amount-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+}
+#foreign-flow .ff-sim-amount-label input {
+  width: 120px;
+  padding: 6px 8px;
+  border: 1px solid #d2dce7;
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: inherit;
+}
+#foreign-flow .ff-sim-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border: 1px solid #d2dce7;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+}
+#foreign-flow .ff-sim-btn:hover:not(:disabled) { border-color: #0f766e; color: #0f766e; }
+#foreign-flow .ff-sim-btn:disabled { opacity: .45; cursor: not-allowed; }
+#foreign-flow .ff-sim-btn-play { background: #111827; border-color: #111827; color: #fff; }
+#foreign-flow .ff-sim-btn-play:hover:not(:disabled) { border-color: #111827; color: #fff; opacity: .9; }
+#foreign-flow .ff-sim-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #f7f7f8;
+  border-radius: 8px;
+}
+#foreign-flow .ff-sim-stat { display: flex; flex-direction: column; gap: 2px; }
+#foreign-flow .ff-sim-stat span { font-size: 11px; color: #888; }
+#foreign-flow .ff-sim-stat b { font-size: 15px; font-weight: 800; }
+#foreign-flow .ff-sim-line { fill: none; stroke: #888; stroke-width: 2.4; stroke-linejoin: round; }
+#foreign-flow .ff-sim-line.ff-buy { stroke: #d24f45; }
+#foreign-flow .ff-sim-line.ff-sell { stroke: #1261c4; }
+#foreign-flow .ff-sim-dot { fill: #111827; stroke: #fff; stroke-width: 1.5; }
+#foreign-flow .ff-sim-result { font-size: 13.5px; margin: 8px 0 6px; line-height: 1.6; }
+
 #foreign-flow .ff-fund-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -1797,6 +1855,23 @@ html.dark #foreign-flow .ff-view-tab.active {
   border-color: #F5EFE0 !important;
   color: #1A1A1A !important;
 }
+html.dark #foreign-flow .ff-sim-desc { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark #foreign-flow .ff-sim-amount-label { color: rgba(245, 239, 224, 0.8) !important; }
+html.dark #foreign-flow .ff-sim-amount-label input {
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
+  color: #F5EFE0 !important;
+}
+html.dark #foreign-flow .ff-sim-btn {
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.25) !important;
+  color: rgba(245, 239, 224, 0.8) !important;
+}
+html.dark #foreign-flow .ff-sim-btn-play { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #foreign-flow .ff-sim-stats { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #foreign-flow .ff-sim-stat span { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-sim-stat b { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-sim-dot { fill: #F5EFE0 !important; stroke: #1A1A1A !important; }
 html.dark #foreign-flow .ff-fund-title { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-fund-cell { background: #1A1A1A !important; }
 html.dark #foreign-flow .ff-fund-label { color: rgba(245, 239, 224, 0.6) !important; }

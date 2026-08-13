@@ -1354,6 +1354,7 @@
     html += '</div>';
     html += '<div class="ff-view" id="ffViewFundamentals" hidden></div>';
     html += '<div class="ff-view" id="ffViewMomentum" hidden></div>';
+    html += '<div class="ff-view" id="ffViewSim" hidden></div>';
 
     box.innerHTML = html;
 
@@ -1413,6 +1414,7 @@
       + '<button type="button" class="ff-view-tab" data-view="chart">차트</button>'
       + '<button type="button" class="ff-view-tab" data-view="fundamentals">펀더멘탈</button>'
       + '<button type="button" class="ff-view-tab" data-view="momentum">모멘텀</button>'
+      + '<button type="button" class="ff-view-tab" data-view="sim">과거 시뮬레이션</button>'
       + '</div>';
   }
 
@@ -1423,6 +1425,7 @@
     var chartBox = box.querySelector('#ffViewChart');
     var fundBox = box.querySelector('#ffViewFundamentals');
     var momentumBox = box.querySelector('#ffViewMomentum');
+    var simBox = box.querySelector('#ffViewSim');
     tabs.forEach(function (btn) {
       btn.addEventListener('click', function () {
         var view = btn.getAttribute('data-view');
@@ -1434,6 +1437,7 @@
         if (chartBox) chartBox.hidden = view !== 'chart';
         if (fundBox) fundBox.hidden = view !== 'fundamentals';
         if (momentumBox) momentumBox.hidden = view !== 'momentum';
+        if (simBox) simBox.hidden = view !== 'sim';
         if (view === 'fundamentals' && fundBox) loadFundamentals(fundBox, code, name);
         if (view === 'momentum' && momentumBox && !momentumBox.dataset.loaded) {
           momentumBox.dataset.loaded = '1';
@@ -1450,6 +1454,12 @@
           chartBox.dataset.rendered = '1';
           var lwContainer = chartBox.querySelector('#ffLwChart');
           if (lwContainer) renderLwChart(lwContainer, chartData, chartEvents);
+        }
+        // 과거 시뮬레이션 탭도 처음 열릴 때만 만든다(수급/펀더멘탈처럼 항상 켜둘 필요는 없음).
+        if (view === 'sim' && simBox && !simBox.dataset.loaded) {
+          simBox.dataset.loaded = '1';
+          simBox.innerHTML = buildSimulationCard(chartData);
+          wireSimulation(simBox, chartData);
         }
       });
     });
@@ -2839,6 +2849,195 @@
 
   function buildChartSection(chartData, techScore) {
     return '<div class="ff-extra">' + buildFlowChartCard(chartData, techScore) + '</div>';
+  }
+
+  // ---- 과거 시뮬레이션(백테스트 재생) ----
+  // "차트" 탭이 이미 불러온 chartData.daily(?action=flowChart, 최대 500거래일·약 2년치
+  // 종가)를 그대로 재사용한다 - 별도 API 호출 없음. 투자금을 넣고 "재생"을 누르면 과거일부터
+  // 오늘까지 종가 비율(daily[i].close / daily[0].close)로 환산한 평가금액을 애니메이션으로
+  // 순서대로 그려준다. 실제 매매수수료·세금·배당(분배락)은 반영하지 않은 단순 종가 계산이다.
+  var SIM_H = 220;
+
+  function simGeometry(daily) {
+    var n = daily.length;
+    var base = daily[0].close;
+    var ratios = daily.map(function (d) { return d.close / base; });
+    var max = Math.max.apply(null, ratios);
+    var min = Math.min.apply(null, ratios);
+    var span = (max - min) || 0.1;
+    var domMax = max + span * 0.12;
+    var domMin = min - span * 0.12;
+    var iw = CHART_W - PAD.l - PAD.r;
+    var ih = SIM_H - PAD.t - PAD.b;
+    function x(i) { return PAD.l + (n <= 1 ? 0 : (i / (n - 1)) * iw); }
+    function y(ratio) { return PAD.t + (1 - (ratio - domMin) / (domMax - domMin)) * ih; }
+    return { n: n, ratios: ratios, x: x, y: y, domMax: domMax, domMin: domMin };
+  }
+
+  function buildSimChartSvg(daily) {
+    var geo = simGeometry(daily);
+    var baseline = geo.y(1);
+    var svg = '<svg class="ff-svg" id="ffSimSvg" viewBox="0 0 ' + CHART_W + ' ' + SIM_H + '" role="img" aria-label="과거 시뮬레이션 평가금액 추이">';
+    svg += '<line class="ff-grid" x1="' + PAD.l + '" y1="' + geo.y(geo.domMax).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + geo.y(geo.domMax).toFixed(1) + '"/>';
+    svg += '<line class="ff-grid" x1="' + PAD.l + '" y1="' + geo.y(geo.domMin).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + geo.y(geo.domMin).toFixed(1) + '"/>';
+    svg += '<line class="ff-zero" x1="' + PAD.l + '" y1="' + baseline.toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + baseline.toFixed(1) + '"/>';
+    svg += '<text class="ff-axis" id="ffSimAxisMax" x="' + (PAD.l - 6) + '" y="' + (geo.y(geo.domMax) + 4).toFixed(1) + '" text-anchor="end"></text>';
+    svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (baseline + 4).toFixed(1) + '" text-anchor="end">원금</text>';
+    svg += '<text class="ff-axis" id="ffSimAxisMin" x="' + (PAD.l - 6) + '" y="' + (geo.y(geo.domMin) + 4).toFixed(1) + '" text-anchor="end"></text>';
+    svg += rsiAxisLabels(daily, geo.x, SIM_H - 8);
+    svg += '<polyline class="ff-sim-line" id="ffSimLine" points=""/>';
+    svg += '<circle class="ff-sim-dot" id="ffSimDot" r="4" visibility="hidden"/>';
+    svg += '</svg>';
+    return svg;
+  }
+
+  function simResultText(daily, amount) {
+    var start = daily[0], end = daily[daily.length - 1];
+    var ratio = end.close / start.close;
+    var finalValue = Math.round(amount * ratio);
+    var rate = (ratio - 1) * 100;
+    var cls = signClass(rate);
+    return escapeHtml(start.date) + '에 <b>' + fmtWon(amount) + '</b> 투자했다면, ' + escapeHtml(end.date) + ' 기준 <b class="' + cls + '">'
+      + fmtWon(finalValue) + '</b>(<span class="' + cls + '">' + fmtSignedPct(rate) + '</span>)이 됩니다.';
+  }
+
+  function buildSimulationCard(chartData) {
+    var daily = chartData && chartData.daily;
+    if (!daily || daily.length < 2) {
+      return '<div class="ff-extra-card"><div class="ff-extra-card-title">🎬 과거 시뮬레이션</div>'
+        + '<div class="ff-error">시뮬레이션할 차트 데이터가 부족해요.</div></div>';
+    }
+    var years = (daily.length / 245).toFixed(1); // KRX 연간 거래일수(약 245일) 기준 환산
+    var defaultAmount = 1000000;
+    return '<div class="ff-extra-card ff-sim-card">'
+      + '<div class="ff-extra-card-title">🎬 과거 시뮬레이션</div>'
+      + '<p class="ff-sim-desc">최근 ' + daily.length.toLocaleString('ko-KR') + '거래일(약 ' + years + '년, '
+      + escapeHtml(daily[0].date) + ' ~ ' + escapeHtml(daily[daily.length - 1].date)
+      + ') 종가를 그대로 재생합니다. 투자금을 넣고 재생을 눌러보세요.</p>'
+      + '<div class="ff-sim-controls">'
+      + '<label class="ff-sim-amount-label">투자금 <input type="number" id="ffSimAmount" min="10000" step="10000" value="' + defaultAmount + '">원</label>'
+      + '<button type="button" id="ffSimPlay" class="ff-sim-btn ff-sim-btn-play">▶ 재생</button>'
+      + '<button type="button" id="ffSimReset" class="ff-sim-btn ff-sim-btn-reset" disabled>↺ 처음부터</button>'
+      + '</div>'
+      + '<div class="ff-sim-stats">'
+      + '<div class="ff-sim-stat"><span>기준일</span><b id="ffSimDate">' + escapeHtml(daily[0].date) + '</b></div>'
+      + '<div class="ff-sim-stat"><span>평가금액</span><b id="ffSimValue">' + fmtWon(defaultAmount) + '</b></div>'
+      + '<div class="ff-sim-stat"><span>수익률</span><b id="ffSimRate" class="ff-flat">0.0%</b></div>'
+      + '</div>'
+      + '<div class="ff-chart ff-chart-sim">' + buildSimChartSvg(daily) + '</div>'
+      + '<div class="ff-sim-result" id="ffSimResult">' + simResultText(daily, defaultAmount) + '</div>'
+      + '<div class="ff-hint">매매수수료·세금·배당은 반영하지 않은 종가 기준 단순 계산이며, 투자 조언이 아닙니다.</div>'
+      + '</div>';
+  }
+
+  function wireSimulation(box, chartData) {
+    var daily = chartData && chartData.daily;
+    if (!daily || daily.length < 2) return;
+    var geo = simGeometry(daily);
+    var amountInput = box.querySelector('#ffSimAmount');
+    var playBtn = box.querySelector('#ffSimPlay');
+    var resetBtn = box.querySelector('#ffSimReset');
+    var dateEl = box.querySelector('#ffSimDate');
+    var valueEl = box.querySelector('#ffSimValue');
+    var rateEl = box.querySelector('#ffSimRate');
+    var resultEl = box.querySelector('#ffSimResult');
+    var lineEl = box.querySelector('#ffSimLine');
+    var dotEl = box.querySelector('#ffSimDot');
+    var axisMaxEl = box.querySelector('#ffSimAxisMax');
+    var axisMinEl = box.querySelector('#ffSimAxisMin');
+    if (!amountInput || !playBtn || !resetBtn || !lineEl) return;
+
+    var timer = null;
+    var idx = 0;
+
+    function currentAmount() {
+      var n = Number(amountInput.value);
+      return (isFinite(n) && n > 0) ? n : 1000000;
+    }
+
+    function updateAxis() {
+      var amount = currentAmount();
+      if (axisMaxEl) axisMaxEl.textContent = fmtWon(Math.round(amount * geo.domMax));
+      if (axisMinEl) axisMinEl.textContent = fmtWon(Math.round(amount * geo.domMin));
+    }
+
+    function pointsUpTo(i) {
+      var pts = [];
+      for (var k = 0; k <= i; k++) pts.push(geo.x(k).toFixed(1) + ',' + geo.y(geo.ratios[k]).toFixed(1));
+      return pts.join(' ');
+    }
+
+    function renderFrame(i) {
+      var amount = currentAmount();
+      var d = daily[i];
+      var value = amount * geo.ratios[i];
+      var rate = (geo.ratios[i] - 1) * 100;
+      lineEl.setAttribute('points', pointsUpTo(i));
+      lineEl.setAttribute('class', 'ff-sim-line ' + (geo.ratios[i] >= 1 ? 'ff-buy' : 'ff-sell'));
+      if (dotEl) {
+        dotEl.setAttribute('cx', geo.x(i).toFixed(1));
+        dotEl.setAttribute('cy', geo.y(geo.ratios[i]).toFixed(1));
+        dotEl.setAttribute('visibility', 'visible');
+      }
+      if (dateEl) dateEl.textContent = d.date;
+      if (valueEl) valueEl.textContent = fmtWon(Math.round(value));
+      if (rateEl) {
+        rateEl.textContent = fmtSignedPct(rate);
+        rateEl.className = signClass(rate);
+      }
+    }
+
+    function reset() {
+      if (timer) { clearInterval(timer); timer = null; }
+      idx = 0;
+      updateAxis();
+      lineEl.setAttribute('points', '');
+      lineEl.setAttribute('class', 'ff-sim-line');
+      if (dotEl) dotEl.setAttribute('visibility', 'hidden');
+      var amount = currentAmount();
+      if (dateEl) dateEl.textContent = daily[0].date;
+      if (valueEl) valueEl.textContent = fmtWon(amount);
+      if (rateEl) { rateEl.textContent = '0.0%'; rateEl.className = 'ff-flat'; }
+      if (resultEl) resultEl.innerHTML = simResultText(daily, amount);
+      playBtn.disabled = false;
+      playBtn.textContent = '▶ 재생';
+      resetBtn.disabled = true;
+    }
+
+    function play() {
+      if (timer) return;
+      updateAxis();
+      playBtn.disabled = true;
+      resetBtn.disabled = false;
+      var n = daily.length;
+      var perTick = Math.max(1, Math.ceil(n / 220)); // 약 5초 안팎으로 재생되도록 프레임 보정
+      timer = setInterval(function () {
+        idx = Math.min(idx + perTick, n - 1);
+        renderFrame(idx);
+        if (idx >= n - 1) {
+          clearInterval(timer);
+          timer = null;
+          playBtn.textContent = '▶ 다시 재생';
+          playBtn.disabled = false;
+        }
+      }, 24);
+    }
+
+    playBtn.addEventListener('click', function () {
+      if (idx >= daily.length - 1 && !timer) reset();
+      play();
+    });
+    resetBtn.addEventListener('click', reset);
+    amountInput.addEventListener('change', reset);
+    amountInput.addEventListener('input', function () {
+      if (timer) return; // 재생 중에는 입력해도 즉시 반영하지 않음(change에서 재생 재시작)
+      updateAxis();
+      var amount = currentAmount();
+      if (idx === 0 && valueEl) valueEl.textContent = fmtWon(amount);
+      if (resultEl) resultEl.innerHTML = simResultText(daily, amount);
+    });
+
+    reset();
   }
 
   function extraMetric(label, valueHtml) {
