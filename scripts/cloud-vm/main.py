@@ -496,6 +496,54 @@ async def update_watchlist(request: Request):
     return envelope(saved)
 
 
+@app.get('/economic-flash')
+def economic_flash_endpoint():
+    """관리자가 입력한 24시간 속보를 공개 화면에 제공한다."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        alerts = db_schema.load_economic_flash_alerts(conn, now, limit=30)
+    finally:
+        conn.close()
+    return envelope({'items': alerts})
+
+
+@app.post('/economic-flash')
+async def create_economic_flash(request: Request):
+    """Google 관리자 전용 수동 속보 입력. 기본 보존시간은 24시간이다."""
+    require_google_admin(request)
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail='request body must be an object')
+    title = str(body.get('title') or '').strip()
+    category = str(body.get('category') or '속보').strip()
+    market = str(body.get('market') or 'all').strip().lower()
+    link = str(body.get('link') or '').strip()
+    if not title or len(title) > 240:
+        raise HTTPException(status_code=422, detail='title is required and must be 240 characters or fewer')
+    if category not in ('속보', '미국 금리', 'CPI', 'FOMC', 'M7 실적', '실적', '공시', '지수'):
+        raise HTTPException(status_code=422, detail='unsupported flash category')
+    if market not in ('all', 'domestic', 'us'):
+        raise HTTPException(status_code=422, detail='market must be all, domestic, or us')
+    if link and not link.startswith(('https://', 'http://')):
+        raise HTTPException(status_code=422, detail='link must be an http(s) URL')
+    created_at = datetime.now(timezone.utc)
+    expires_at = created_at + timedelta(hours=24)
+    conn = db_schema.get_conn()
+    try:
+        saved = db_schema.save_economic_flash_alert(
+            conn, title, category, market, link,
+            created_at.isoformat(), expires_at.isoformat(),
+        )
+    finally:
+        conn.close()
+    _economic_news_ws_cache.clear()
+    return envelope(saved)
+
+
 @app.get('/sector-cards')
 def sector_cards_endpoint():
     """증시온도 카드/히트맵/분석에서 공통으로 사용하는 사용자 설정."""
@@ -578,6 +626,7 @@ _FLASH_MACRO_RULES = (
     ('미국 금리', ('미국 금리', '기준금리', '금리 결정', '금리결정', '파월', '연준', 'fed rate'), 95),
     ('고용 지표', ('비농업', '고용보고서', '고용 지표', '고용지표', '실업률', 'nonfarm payrolls'), 90),
     ('물가·성장', ('pce', 'gdp', '소매판매', '생산자물가'), 85),
+    ('M7 실적', ('m7 실적', 'm7 earnings', 'apple earnings', 'microsoft earnings', 'nvidia earnings', 'amazon earnings', 'alphabet earnings', 'meta earnings', 'tesla earnings', '애플 실적', '마이크로소프트 실적', '엔비디아 실적', '아마존 실적', '알파벳 실적', '메타 실적', '테슬라 실적'), 98),
 )
 _FLASH_DOMESTIC_INDEX_TERMS = ('코스피', '코스닥', '코스피200', '지수 급등', '지수 급락')
 _FLASH_US_INDEX_TERMS = ('나스닥', 's&p 500', 's&p500', '다우지수', '다우존스', '지수 급등', '지수 급락')
@@ -598,13 +647,29 @@ def _fetch_economic_news_snapshot(market):
     else:
         result = domestic_news.get_news(limit=50, item_kind='news')
         items = result.get('items', []) if isinstance(result, dict) else []
+    flash_news = list(items or [])
+    if market == 'domestic':
+        # 국내시장 카드에서도 국내 일반뉴스와 섞지 않고, 미국 금리·CPI·M7
+        # 같은 전 세계 시장 공통 충격 요인만 상단 속보로 유지한다.
+        flash_news.extend(news_aggregator.get_general_news(
+            alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+            finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+            limit=30,
+        ))
     disclosures = domestic_news.get_disclosures(limit=100)
-    return {'market': market, 'items': items, 'flash': _build_flash_items(items, disclosures, market)}
+    conn = db_schema.get_conn()
+    try:
+        manual_alerts = db_schema.load_economic_flash_alerts(
+            conn, datetime.now(timezone.utc).isoformat(), limit=30,
+        )
+    finally:
+        conn.close()
+    return {'market': market, 'items': items, 'flash': _build_flash_items(flash_news, disclosures, market, manual_alerts)}
 
 
-def _build_flash_items(news_items, disclosures, market='domestic'):
+def _build_flash_items(news_items, disclosures, market='domestic', manual_alerts=None):
     """속보 레일에 필요한 실적·공시·지수·미국 거시 이벤트를 정규화한다."""
-    candidates = []
+    candidates = [item for item in (manual_alerts or []) if item.get('market') in ('all', market)]
     for item in disclosures or []:
         title = str(item.get('title') or '').strip()
         text = title.lower()
@@ -620,7 +685,7 @@ def _build_flash_items(news_items, disclosures, market='domestic'):
         text = title.lower()
         if not title:
             continue
-        macro = next(((label, weight) for label, terms, weight in _FLASH_MACRO_RULES if any(term in text for term in terms)), None) if market == 'us' else None
+        macro = next(((label, weight) for label, terms, weight in _FLASH_MACRO_RULES if any(term in text for term in terms)), None)
         index_terms = _FLASH_US_INDEX_TERMS if market == 'us' else _FLASH_DOMESTIC_INDEX_TERMS
         if macro:
             candidates.append(dict(item, flashType=macro[0], importance=macro[1]))
