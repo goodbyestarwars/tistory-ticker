@@ -834,6 +834,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   white-space: nowrap;
 }
 .hmb-list dd[title] { cursor: help; }
+.hmb-list dd[data-market-field="nightFutures"] { text-align: right; }
 .hmb-investor-trend[hidden] { display: none; }
 .hmb-investor-trend-head {
   display: flex;
