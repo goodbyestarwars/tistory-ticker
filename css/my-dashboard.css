@@ -68,9 +68,17 @@
 .my-volume-highlight strong { color: #2563eb; font-size: 18px; }
 .my-ai-card { background: linear-gradient(135deg, #f7faff, #fff); }
 .my-ai-card p { margin: 0; color: #334155; font-size: 12px; line-height: 1.7; white-space: pre-line; }
+.my-ai-card .my-ai-evidence { margin-top: 9px; padding-top: 9px; border-top: 1px solid #e3eaf3; color: #64748b; font-size: 11px; }
+.my-ai-card .my-ai-evidence b { color: #334155; }
+.my-position-advice { background: #fff; }
+.my-position-badge { display: inline-block; margin-bottom: 8px; padding: 7px 11px; border-radius: 999px; background: #eef2f7; color: #334155; font-size: 13px; font-weight: 800; }
+.my-position-advice.up .my-position-badge { background: #fff0ed; color: #c24136; }
+.my-position-advice.down .my-position-badge { background: #eaf2ff; color: #1261c4; }
+.my-position-note { margin: 0; color: #334155; font-size: 12px; line-height: 1.65; }
 .my-calculator { background: #fcfcfd; }
 .my-calc-result { margin-top: 10px; padding: 10px; border-radius: 9px; background: #f1f5f9; color: #64748b; font-size: 11px; }
 .my-calc-result strong { color: #111827; font-size: 15px; }
+.my-calc-result small { color: #94a3b8; font-size: 10px; line-height: 1.5; }
 .my-detail-loading, .my-dashboard-empty { padding: 34px 20px; border: 1px dashed #dbe5f2; border-radius: 14px; background: #fff; color: #64748b; text-align: center; }
 .my-detail-loading strong, .my-dashboard-empty strong { display: block; color: #111827; font-size: 15px; }
 .my-detail-loading p, .my-dashboard-empty p { margin: 8px 0 0; font-size: 11px; line-height: 1.6; }
@@ -86,6 +94,10 @@ html.dark .my-stock-row:hover, html.dark .my-stock-row.is-selected { background:
 html.dark .my-detail-actions a, html.dark .my-holding-fields input, html.dark .my-calc-fields input { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
 html.dark .my-volume-highlight, html.dark .my-calc-result { background: #242424; color: rgba(245,239,224,.65); }
 html.dark .my-ai-card { background: linear-gradient(135deg, #202b3a, #1a1a1a); }
+html.dark .my-position-advice { background: #1a1a1a; }
+html.dark .my-position-note { color: rgba(245,239,224,.8); }
+html.dark .my-ai-card .my-ai-evidence { border-top-color: rgba(245,239,224,.16); color: rgba(245,239,224,.65); }
+html.dark .my-ai-card .my-ai-evidence b { color: #f5efe0; }
 html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,239,224,.8); }
 
 @media (max-width: 720px) {

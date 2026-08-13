@@ -707,6 +707,9 @@ function getFlowAiSummary(params) {
   var techNote = sanitizeAiNote_(params.techNote, 200) || '데이터 없음';
   var volNote = sanitizeAiNote_(params.volNote, 200) || '데이터 없음';
   var rsiNote = sanitizeAiNote_(params.rsiNote, 200) || '데이터 없음';
+  var chartNote = sanitizeAiNote_(params.chartNote, 240) || '데이터 없음';
+  var positionNote = sanitizeAiNote_(params.positionNote, 240) || '데이터 없음';
+  var holdingNote = sanitizeAiNote_(params.holdingNote, 160) || '데이터 없음';
   var verdictLabel = sanitizeAiNote_(params.verdictLabel, 40);
   var verdictScore = sanitizeAiNote_(params.verdictScore, 10);
 
@@ -714,7 +717,7 @@ function getFlowAiSummary(params) {
   var todayKey = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
   var inputDigest = Utilities.computeDigest(
     Utilities.DigestAlgorithm.MD5,
-    [name, flowNote, foreignInstNote, shortNote, pensionNote, techNote, volNote, rsiNote, verdictLabel, verdictScore].join('|')
+    [name, flowNote, foreignInstNote, shortNote, pensionNote, techNote, volNote, rsiNote, chartNote, positionNote, holdingNote, verdictLabel, verdictScore].join('|')
   ).map(function (b) { return ((b < 0 ? b + 256 : b).toString(16)).padStart(2, '0'); }).join('');
   var cacheKey = CACHE_PREFIX + 'flow_ai_' + code + '_' + todayKey + '_' + inputDigest;
   var cached = cache.get(cacheKey);
@@ -727,7 +730,10 @@ function getFlowAiSummary(params) {
     '연기금 점수 ' + (params.pensionScore || '-') + '점 - ' + pensionNote,
     '기술적 점수(이평선·지지·저항) ' + (params.techScore || '-') + '점 - ' + techNote,
     '거래대금(20일 평균 대비) - ' + volNote,
-    'RSI(14) - ' + rsiNote
+    'RSI(14) - ' + rsiNote,
+    '차트 모양 - ' + chartNote,
+    '보유·손익 - ' + holdingNote,
+    '물타기·손절 참고 - ' + positionNote
   ];
   // 별점 판정(가중합)이 이미 확정한 결론을 AI가 다시 판단하지 않도록, 결론을 프롬프트에
   // 못박고 근거 문장만 요청한다 - 화면에서 별점 배지와 AI 한줄평이 서로 다른 의견을

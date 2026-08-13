@@ -514,7 +514,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in ("updateHolding", "holding", "quantity", "averagePrice"):
             self.assertIn(token, watchlist)
         self.assertIn("/page/watchlist", bootstrap)
-        for token in ("flowAiSummary", "pbar-tratio", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "my-volume-chart", "차트 모양 분석", "물타기 계산기"):
+        for token in ("flowAiSummary", "pbar-tratio", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "my-volume-chart", "차트 모양 분석", "물타기 계산기", "my-position-advice", "data-my-calc-recovery", "chartNote", "arrangeAnalysisSections"):
             self.assertIn(token, my)
         self.assertNotIn("Google 계정에 저장", my)
         self.assertNotIn("Groq ·", my)
