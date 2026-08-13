@@ -4315,7 +4315,8 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hen-main em { display: inline-block; margin-right: 5px; padding: 2px 5px; border-radius: 4px; background: #f2f4f5; color: #7b858e; font-style: normal; }
 .home-economic-news .home-card-state { min-height: 220px; display: grid; place-items: center; }
 .home-economic-news { display: flex; flex-direction: column; }
-.home-economic-news .hen-breaking-list { max-height: 93px; }
+.home-economic-news { box-sizing: border-box; }
+.home-economic-news .hen-breaking-list { max-height: 62px; }
 .home-economic-news .hen-list { min-height: 0; flex: 1 1 auto; overflow-y: auto; }
 .home-economic-news .hen-periods { height: 100%; max-height: none; }
 .home-widget--summary.home-market-board,
