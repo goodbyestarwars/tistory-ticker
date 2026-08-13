@@ -158,7 +158,7 @@ function doGet(e) {
     return jsonResponse([]);
   }
 
-  var ttl = isAnyTradingSessionOpen_() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED;
+  var ttl = capTtlToSessionBoundary_(isAnyTradingSessionOpen_() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED);
   cache.put(cacheKey, JSON.stringify(result), ttl);
 
   return jsonResponse(result);
@@ -427,7 +427,7 @@ function getMarketcapBubble() {
     }
   };
 
-  var ttl = isAnyTradingSessionOpen_() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED;
+  var ttl = capTtlToSessionBoundary_(isAnyTradingSessionOpen_() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED);
   cache.put(cacheKey, JSON.stringify(result), ttl);
   return result;
 }
@@ -3154,6 +3154,26 @@ function isAnyTradingSessionOpen_() {
   if (dow >= 6) return false;
   var hm = Number(Utilities.formatDate(now, 'Asia/Seoul', 'HHmm'));
   return hm >= 800 && hm <= 2000;
+}
+
+// 2026-08-14 사용자 리포트: 08:00 직후 관심종목 시세가 최대 1분 가까이 "0.00%"로 안 바뀜.
+// isAnyTradingSessionOpen_()의 08:00/20:00 경계를 캐시 TTL이 모른 채로 넘어가서 생기는
+// 문제였다 - 07:59에 쓰인 캐시는 "장외" 판정(CACHE_TTL_CLOSED=1800초)을 받아 저장되는데,
+// CacheService 항목은 저장 시점 TTL을 그대로 유지하므로 08:00가 지나 실제로 장이 열려도
+// 최악의 경우 08:29까지 직전 장외 스냅샷이 그대로 나간다. 다음 08:00/20:00까지 남은 초로
+// ttl을 캡핑해, 경계 직전에 쓴 캐시가 경계 시점 근처에서 자연 만료되도록 한다.
+function capTtlToSessionBoundary_(ttl) {
+  var now = new Date();
+  var hh = Number(Utilities.formatDate(now, 'Asia/Seoul', 'HH'));
+  var mm = Number(Utilities.formatDate(now, 'Asia/Seoul', 'mm'));
+  var ss = Number(Utilities.formatDate(now, 'Asia/Seoul', 'ss'));
+  var secondsNow = hh * 3600 + mm * 60 + ss;
+  var boundariesSec = [8 * 3600, 20 * 3600, 32 * 3600]; // 08:00, 20:00, 다음날 08:00(24+8시)
+  var secondsToNext = boundariesSec.reduce(function (min, b) {
+    var diff = b - secondsNow;
+    return (diff > 0 && diff < min) ? diff : min;
+  }, Infinity);
+  return Math.max(1, Math.min(ttl, secondsToNext));
 }
 
 function formatKstTime(epochMs) {
