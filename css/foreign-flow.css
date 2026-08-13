@@ -1384,29 +1384,34 @@
   color: #666;
 }
 #foreign-flow .ff-chart-candle::after {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  top: 70%;
-  left: 8px;
-  right: 8px;
-  border-top: 1px solid #e8eaed;
-  pointer-events: none;
+  display: none;
 }
 #foreign-flow .ff-volume-study-label {
+  display: none;
+}
+#foreign-flow .ff-lwc-pane-labels {
   position: absolute;
   z-index: 3;
-  top: calc(70% + 7px);
-  left: 16px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 10.5px;
-  color: #8a9099;
+  inset: 0;
   pointer-events: none;
+  color: #8a9099;
+  font-size: 10px;
 }
+#foreign-flow .ff-lwc-pane-labels span {
+  position: absolute;
+  left: 16px;
+  padding: 2px 4px;
+  background: rgba(255,255,255,.72);
+  border-radius: 3px;
+}
+#foreign-flow .ff-lwc-pane-labels span:nth-child(1) { top: 55%; }
+#foreign-flow .ff-lwc-pane-labels span:nth-child(2) { top: 66%; }
+#foreign-flow .ff-lwc-pane-labels span:nth-child(3) { top: 77%; }
+#foreign-flow .ff-lwc-pane-labels span:nth-child(4) { top: 88%; }
+#foreign-flow .ff-chart-candle { height: 760px !important; }
 #foreign-flow .ff-volume-study-label b { color: #4f8df7; font-weight: 600; }
 #foreign-flow .ff-volume-study-label .ff-volume-ma-value { color: #2563eb; }
+#foreign-flow .ff-lwc-pane-labels + .ff-volume-study-label { display: none; }
 #foreign-flow .ff-legend-item { display: inline-flex; align-items: center; gap: 5px; }
 #foreign-flow .ff-dot {
   display: inline-block;
@@ -1756,6 +1761,8 @@ html.dark #foreign-flow .ff-extra-missing { background: #1A1A1A !important; colo
 html.dark #foreign-flow .ff-chart-empty { background: #1A1A1A !important; color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-chart-candle::after { border-top-color: rgba(245, 239, 224, 0.16) !important; }
 html.dark #foreign-flow .ff-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #foreign-flow .ff-lwc-pane-labels { color: rgba(245,239,224,.6); }
+html.dark #foreign-flow .ff-lwc-pane-labels span { background: rgba(26,26,26,.72); }
 html.dark #foreign-flow .ff-extra-card { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-extra-card-title { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-extra-grade { color: rgba(245, 239, 224, 0.6) !important; }

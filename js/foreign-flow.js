@@ -60,6 +60,7 @@
   var lwcLoadPromise = null;
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
+  var lwcMarkers = null;       // v5 Series Markers 플러그인
 
   var cacheByCode = {};   // code -> { t, data }
   var inflightByCode = {}; // code -> Promise
@@ -73,6 +74,8 @@
   var fundamentalsInflight = {}; // code -> Promise
   var newsMomentumCache = {};    // code -> VM news_momentum.db 조회 결과
   var newsMomentumInflight = {}; // code -> Promise
+  var chartEventsCache = {};     // code -> { t, data } (뉴스·공시·실적 마커 원자료)
+  var chartEventsInflight = {};  // code -> Promise
   var activeView = 'flow';       // 'flow' | 'apt' | 'chart' | 'fundamentals' | 'momentum'
 
   // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
@@ -1071,21 +1074,24 @@
     // fundamentalsCache에 저장해두므로 이후 탭 클릭 시 재요청 없음(loadFundamentals 재사용).
     var fundamentalsPromise = fetchFundamentals(resolved.code, resolved.name)
       .catch(function () { return null; });
+    var chartEventsPromise = fetchChartEvents(resolved.code, resolved.name)
+      .catch(function () { return { news: [], momentum: null }; });
 
-    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
+    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise, chartEventsPromise])
       .then(function (results) {
         var data = results[0];
         var chartData = results[1];
         var flowEntry = results[2];
         var quote = results[3];
         var fundamentals = results[4];
+        var chartEvents = results[5];
         if (!data || data.error || !data.daily || !data.daily.length) {
           resultBox.innerHTML = '<div class="ff-error">'
             + escapeHtml((data && data.message) || '수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
             + '</div>';
           return;
         }
-        renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals);
+        renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals, chartEvents);
       })
       .catch(function () {
         resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
@@ -1298,10 +1304,13 @@
 
   // ---- 렌더링 ----
 
-  function renderResult(box, data, chartData, entry, quote, fundamentals) {
+  function renderResult(box, data, chartData, entry, quote, fundamentals, chartEvents) {
     if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 2) {
       chartData = buildFlowChartFallback(data);
     }
+    // 수급 API는 최신일 우선, 가격 차트는 과거일 우선이므로 차트 쪽에서 날짜로
+    // 병합할 수 있도록 원자료를 별도 필드로 전달한다.
+    chartData.flow = data.daily || [];
     var techScore = computeTechnicalScore(chartData);
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
@@ -1355,7 +1364,7 @@
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
     wireFlowPeriod(box, data.code, data.name);
     loadAiSummary(box, data, entry, techScore, chartData, fundamentals);
-    wireViewTabs(box, data.code, data.name, chartData);
+    wireViewTabs(box, data.code, data.name, chartData, chartEvents);
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
     wireAptTabs(box, chartData && chartData.daily, aptCurrentPrice, data.code);
@@ -1407,7 +1416,7 @@
       + '</div>';
   }
 
-  function wireViewTabs(box, code, name, chartData) {
+  function wireViewTabs(box, code, name, chartData, chartEvents) {
     var tabs = box.querySelectorAll('.ff-view-tab');
     var flowBox = box.querySelector('#ffViewFlow');
     var aptBox = box.querySelector('#ffViewApt');
@@ -1440,7 +1449,7 @@
         if (view === 'chart' && chartBox && !chartBox.dataset.rendered) {
           chartBox.dataset.rendered = '1';
           var lwContainer = chartBox.querySelector('#ffLwChart');
-          if (lwContainer) renderLwChart(lwContainer, chartData);
+          if (lwContainer) renderLwChart(lwContainer, chartData, chartEvents);
         }
       });
     });
@@ -1482,6 +1491,33 @@
         throw err;
       });
     newsMomentumInflight[code] = p;
+    return p;
+  }
+
+  // 차트 마커는 본문 뉴스 목록을 다시 크롤링하지 않고 VM의 캐시된 종목 뉴스와
+  // 뉴스 모멘텀 일별 집계를 함께 사용한다. 데이터가 없어도 가격 차트는 정상 표시한다.
+  function fetchChartEvents(code, name) {
+    var hit = chartEventsCache[code];
+    if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
+    if (chartEventsInflight[code]) return chartEventsInflight[code];
+    var newsUrl = KIWOOM_VM_URL + '/domestic-news?code=' + encodeURIComponent(code)
+      + '&name=' + encodeURIComponent(name || '') + '&limit=25';
+    var p = Promise.all([
+      fetchJson(newsUrl).then(function (res) {
+        var data = res && res.data ? res.data : res;
+        return data && data.items ? data.items : [];
+      }).catch(function () { return []; }),
+      fetchNewsMomentum(code).catch(function () { return null; })
+    ]).then(function (parts) {
+      delete chartEventsInflight[code];
+      var data = { news: parts[0], momentum: parts[1] };
+      chartEventsCache[code] = { t: Date.now(), data: data };
+      return data;
+    }).catch(function (err) {
+      delete chartEventsInflight[code];
+      throw err;
+    });
+    chartEventsInflight[code] = p;
     return p;
   }
 
@@ -2974,6 +3010,10 @@
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ma224Color() + '"></i>224일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#0ea5e9"></i>뉴스</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#f59e0b"></i>공시</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#8b5cf6"></i>실적</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#f97316"></i>패턴·거래</span>'
       + '</div>';
   }
 
@@ -4420,6 +4460,7 @@
       try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
       lwcChart = null;
     }
+    lwcMarkers = null;
     movingAverageOverlaySeries = [];
     ichimokuOverlaySeries = []; // chart.remove()가 시리즈까지 다 정리하므로 참조만 비움
     ichimokuCloudPrimitive = null;
@@ -4434,7 +4475,12 @@
     return {
       // TODO: attributionLogo:false는 Apache 2.0 라이선스상 NOTICE 고지+tradingview.com
       // 링크를 사이트 어딘가에 별도로 넣어야 함(사용자가 나중에 문서 만들 예정, 아직 미작성).
-      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', attributionLogo: false },
+      layout: {
+        background: { color: 'transparent' },
+        textColor: dark ? '#aaa' : '#555',
+        attributionLogo: false,
+        panes: { enableResize: true, separatorColor: dark ? '#3a3a3a' : '#e5e7eb', separatorHoverColor: dark ? '#666' : '#cbd5e1' }
+      },
       grid: {
         vertLines: { color: dark ? '#3a3a3a' : '#eee' },
         horzLines: { color: dark ? '#3a3a3a' : '#eee' }
@@ -4446,7 +4492,7 @@
         scaleMargins: { top: 0.06, bottom: 0.36 },
         alignLabels: false
       },
-      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
+      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd', rightOffset: 6, minBarSpacing: 2, timeVisible: false, secondsVisible: false },
       // 2026-07-28 사용자 리포트: 다크모드에서 차트 위에 안 어울리는 회색 네모(십자선
       // 가격/시각 라벨의 기본 배경색 #4c525e, 라이브러리 기본값이라 다크 팔레트와 무관하게
       // 고정)가 떴음 - 라벨 배경색을 명시적으로 테마에 맞게 지정해서 해결.
@@ -4458,9 +4504,124 @@
     };
   }
 
-  // 실제 트레이딩뷰 엔진(TradingView Lightweight Charts)으로 캔들/이평선/지지저항을 렌더링.
-  // GAS ?action=flowChart 응답(daily 오름차순 + ma5/20/60/224 + levels)을 그대로 먹인다.
-  function renderLwChart(container, chartData) {
+  function emaValues(values, period) {
+    var result = values.map(function () { return null; });
+    if (values.length < period) return result;
+    var sum = 0;
+    for (var i = 0; i < period; i++) sum += Number(values[i]) || 0;
+    var prev = sum / period;
+    result[period - 1] = prev;
+    var alpha = 2 / (period + 1);
+    for (var j = period; j < values.length; j++) {
+      prev = (Number(values[j]) || 0) * alpha + prev * (1 - alpha);
+      result[j] = prev;
+    }
+    return result;
+  }
+
+  function computeRsiMacd(daily) {
+    var closes = daily.map(function (d) { return Number(d.close) || 0; });
+    var rsi = [], gains = 0, losses = 0, period = 14;
+    for (var i = 0; i < closes.length; i++) {
+      if (i === 0) { rsi.push(null); continue; }
+      var diff = closes[i] - closes[i - 1];
+      if (i <= period) { gains += Math.max(diff, 0); losses += Math.max(-diff, 0); }
+      if (i === period) {
+        gains /= period; losses /= period;
+      } else if (i > period) {
+        gains = (gains * (period - 1) + Math.max(diff, 0)) / period;
+        losses = (losses * (period - 1) + Math.max(-diff, 0)) / period;
+      }
+      if (i >= period) rsi.push(losses === 0 ? 100 : 100 - 100 / (1 + gains / losses));
+      else rsi.push(null);
+    }
+    var fast = emaValues(closes, 12), slow = emaValues(closes, 26), macd = closes.map(function (_, index) {
+      return fast[index] == null || slow[index] == null ? null : fast[index] - slow[index];
+    });
+    var macdValues = macd.filter(function (value) { return value != null; });
+    var signalValues = emaValues(macdValues, 9);
+    var signal = macd.map(function (value, index) {
+      if (value == null) return null;
+      var macdIndex = macd.slice(0, index + 1).filter(function (item) { return item != null; }).length - 1;
+      return signalValues[macdIndex] == null ? null : signalValues[macdIndex];
+    });
+    return { rsi: rsi, macd: macd, signal: signal };
+  }
+
+  function chartDate(value) {
+    var raw = String(value || '');
+    if (/^\d{8}$/.test(raw)) return raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6, 8);
+    var match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+    return match ? match[1] : '';
+  }
+
+  function nearestChartDate(value, dates) {
+    var target = chartDate(value);
+    if (!target) return null;
+    if (dates.indexOf(target) !== -1) return target;
+    var targetTime = new Date(target + 'T00:00:00').getTime();
+    var best = null, bestDistance = Infinity;
+    dates.forEach(function (date) {
+      var distance = Math.abs(new Date(date + 'T00:00:00').getTime() - targetTime);
+      if (distance < bestDistance && distance <= 3 * 86400000) { best = date; bestDistance = distance; }
+    });
+    return best;
+  }
+
+  function buildChartMarkers(daily, chartData, chartEvents) {
+    var dates = daily.map(function (d) { return chartDate(d.date); });
+    var markerByKey = {};
+    function add(value, type, text, color, position, shape) {
+      var date = nearestChartDate(value, dates);
+      if (!date) return;
+      var key = date + ':' + type;
+      if (markerByKey[key]) return;
+      markerByKey[key] = { time: date, position: position || 'aboveBar', color: color, shape: shape || 'circle', text: text };
+    }
+    var news = chartEvents && chartEvents.news || [];
+    news.forEach(function (item) {
+      var title = String(item.title || '');
+      var isEarnings = /실적|영업이익|순이익|매출액|잠정/.test(title) || item.category === '실적';
+      var isDisclosure = item.kind === 'disclosure';
+      add(item.pubDate, isEarnings ? 'earnings' : isDisclosure ? 'disclosure' : 'news',
+        isEarnings ? '실적' : isDisclosure ? '공시' : '뉴스',
+        isEarnings ? '#8b5cf6' : isDisclosure ? '#f59e0b' : '#0ea5e9',
+        'aboveBar', isEarnings ? 'arrowUp' : isDisclosure ? 'square' : 'circle');
+    });
+    var topics = chartEvents && chartEvents.momentum && chartEvents.momentum.topics || [];
+    topics.forEach(function (topic) {
+      (topic.daily || []).forEach(function (point) {
+        if (Number(point.news_count) > 0) add(point.date, 'momentum', '뉴스', '#0ea5e9', 'aboveBar', 'circle');
+      });
+    });
+    var ma5 = chartData.ma && chartData.ma.ma5 || [];
+    var ma20 = chartData.ma && chartData.ma.ma20 || [];
+    for (var i = 1; i < daily.length; i++) {
+      if (ma5[i - 1] != null && ma20[i - 1] != null && ma5[i] != null && ma20[i] != null) {
+        if (ma5[i - 1] <= ma20[i - 1] && ma5[i] > ma20[i]) add(daily[i].date, 'pattern-up', '골든', '#16a34a', 'belowBar', 'arrowUp');
+        if (ma5[i - 1] >= ma20[i - 1] && ma5[i] < ma20[i]) add(daily[i].date, 'pattern-down', '데드', '#dc2626', 'aboveBar', 'arrowDown');
+      }
+      var volume = Number(daily[i].volume) || 0;
+      var average = 0, from = Math.max(0, i - 20);
+      for (var j = from; j < i; j++) average += Number(daily[j].volume) || 0;
+      average /= Math.max(1, i - from);
+      if (average > 0 && volume >= average * 2) add(daily[i].date, 'pattern-volume', '거래', '#f97316', 'aboveBar', 'circle');
+    }
+    var flowMap = {};
+    (chartData.flow || []).forEach(function (row) { flowMap[chartDate(row.date)] = row; });
+    for (var k = Math.max(0, daily.length - 60); k < daily.length; k++) {
+      var flow = flowMap[chartDate(daily[k].date)];
+      if (!flow) continue;
+      var net = Math.abs(Number(flow.foreign_net) || 0) + Math.abs(Number(flow.inst_net) || 0);
+      if (net > 0 && net >= 200000) add(daily[k].date, 'flow', '수급', '#d946ef', 'belowBar', 'square');
+    }
+    return Object.keys(markerByKey).map(function (key) { return markerByKey[key]; })
+      .sort(function (a, b) { return String(a.time).localeCompare(String(b.time)); });
+  }
+
+  // TradingView Lightweight Charts v5 멀티 패널 차트.
+  // 0=가격, 1=거래량, 2=RSI, 3=MACD, 4=외국인·기관 순매수.
+  function renderLwChart(container, chartData, chartEvents) {
     destroyLwChart();
     container.querySelectorAll('.ff-volume-study-label').forEach(function (el) { el.remove(); });
     loadLightweightCharts().then(function (LWC) {
@@ -4471,8 +4632,9 @@
         height: FCHART_H,
         // crosshair는 lwcThemeOptions()에 있음(mergeOptions가 얕은 병합이라 두 곳에 나눠
         // 쓰면 뒤에 오는 쪽이 통째로 덮어씀 - rightPriceScale과 동일한 이유).
-        timeScale: { timeVisible: false, secondsVisible: false },
+        timeScale: { timeVisible: false, secondsVisible: false, rightOffset: 6, minBarSpacing: 2 },
         localization: { locale: 'ko-KR' },
+        layout: { panes: { enableResize: true, separatorColor: '#e5e7eb', separatorHoverColor: '#cbd5e1' } },
         // 2026-07-19: 캔들이 세로로 너무 납작해 보인다는 피드백 - 가격축(오른쪽) 드래그로
         // 직접 세로 확대가 가능하게 함(마우스 휠은 기존처럼 가로/시간축 확대). 위아래 여백은
         // lwcThemeOptions()의 rightPriceScale에 같이 설정(mergeOptions가 얕은 병합이라
@@ -4537,19 +4699,9 @@
       // 않고 시리즈별 포맷을 적용해야 우측 값이 가격처럼 보이지 않고 K/M/B로 축약된다.
       var volumeSeries = chart.addSeries(LWC.HistogramSeries, {
         priceFormat: { type: 'volume' },
-        priceScaleId: 'volume',
         lastValueVisible: false,
         priceLineVisible: false
-      });
-      // 거래량용 overlay 축은 가격 축과 분리하고 눈금/마지막 값은 감춘다. 그래야
-      // 거래량 영역 오른쪽에 가격 formatter가 붙는 현상이 사라진다.
-      volumeSeries.priceScale().applyOptions({
-        scaleMargins: { top: 0.72, bottom: 0 },
-        visible: false,
-        borderVisible: false,
-        ticksVisible: false,
-        drawTicks: false
-      });
+      }, 1);
       volumeSeries.setData(daily.map(function (d) {
         return {
           time: d.date,
@@ -4562,15 +4714,62 @@
       var volumeMaSeries = chart.addSeries(LWC.LineSeries, {
         color: '#3b82f6',
         lineWidth: 2,
-        priceScaleId: 'volume',
         priceFormat: { type: 'volume' },
         lastValueVisible: false,
         priceLineVisible: false,
         crosshairMarkerVisible: false
-      });
+      }, 1);
       volumeMaSeries.setData(volumeMaPoints.map(function (point) {
         return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
       }));
+
+      var studies = computeRsiMacd(daily);
+      var rsiSeries = chart.addSeries(LWC.LineSeries, {
+        color: '#8b5cf6', lineWidth: 2, lastValueVisible: true, priceLineVisible: false,
+        title: 'RSI(14)', priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
+      }, 2);
+      rsiSeries.setData(daily.map(function (d, i) { return studies.rsi[i] == null ? null : { time: d.date, value: studies.rsi[i] }; }).filter(Boolean));
+      rsiSeries.createPriceLine({ price: 70, color: '#d24f45', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
+      rsiSeries.createPriceLine({ price: 30, color: '#1261c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
+
+      var macdHistogram = chart.addSeries(LWC.HistogramSeries, {
+        priceFormat: { type: 'custom', minMove: 0.01, formatter: function (v) { return Number(v).toFixed(2); } },
+        lastValueVisible: false, priceLineVisible: false, title: 'MACD 히스토그램'
+      }, 3);
+      macdHistogram.setData(daily.map(function (d, i) {
+        if (studies.macd[i] == null || studies.signal[i] == null) return null;
+        var value = studies.macd[i] - studies.signal[i];
+        return { time: d.date, value: value, color: value >= 0 ? 'rgba(210,79,69,.65)' : 'rgba(18,97,196,.65)' };
+      }).filter(Boolean));
+      var macdSeries = chart.addSeries(LWC.LineSeries, { color: '#1261c4', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: 'MACD' }, 3);
+      macdSeries.setData(daily.map(function (d, i) { return studies.macd[i] == null ? null : { time: d.date, value: studies.macd[i] }; }).filter(Boolean));
+      var signalSeries = chart.addSeries(LWC.LineSeries, { color: '#d24f45', lineWidth: 1, lastValueVisible: true, priceLineVisible: false, title: 'Signal' }, 3);
+      signalSeries.setData(daily.map(function (d, i) { return studies.signal[i] == null ? null : { time: d.date, value: studies.signal[i] }; }).filter(Boolean));
+
+      var flowMap = {};
+      (chartData.flow || []).forEach(function (row) { flowMap[chartDate(row.date)] = row; });
+      var foreignSeries = chart.addSeries(LWC.LineSeries, { color: '#8b5cf6', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: '외국인' }, 4);
+      var institutionSeries = chart.addSeries(LWC.LineSeries, { color: '#0ca678', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: '기관' }, 4);
+      foreignSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.foreign_net != null ? { time: d.date, value: Number(r.foreign_net) } : null; }).filter(Boolean));
+      institutionSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.inst_net != null ? { time: d.date, value: Number(r.inst_net) } : null; }).filter(Boolean));
+
+      var markers = buildChartMarkers(daily, chartData, chartEvents);
+      if (markers.length && typeof LWC.createSeriesMarkers === 'function') {
+        lwcMarkers = LWC.createSeriesMarkers(candleSeries, markers);
+      }
+
+      var paneLabels = document.createElement('div');
+      paneLabels.className = 'ff-lwc-pane-labels';
+      paneLabels.innerHTML = '<span>거래량</span><span>RSI(14)</span><span>MACD(12,26,9)</span><span>외국인·기관 순매수</span>';
+      container.appendChild(paneLabels);
+
+      // 각 패널을 초기 비율로 나누되 layout.panes.enableResize=true로 사용자가 구분선을 드래그할 수 있다.
+      var panes = chart.panes();
+      var totalHeight = container.clientHeight || FCHART_H;
+      var subHeight = Math.max(48, Math.round(totalHeight * 0.105));
+      var priceHeight = Math.max(220, totalHeight - subHeight * (panes.length - 1));
+      if (panes[0] && panes[0].setHeight) panes[0].setHeight(priceHeight);
+      panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
 
       var latest = daily[daily.length - 1] || {};
       var latestVolumeMa = volumeMaPoints.length ? volumeMaPoints[volumeMaPoints.length - 1].value : null;

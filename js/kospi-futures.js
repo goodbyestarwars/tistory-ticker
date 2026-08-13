@@ -359,6 +359,10 @@
     return '<div class="kf-section" data-section-key="option">'
       + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급</div></div>'
       + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
+      + '<div class="kf-option-profile" id="kfOptionProfile">'
+      + '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
+      + '<div class="kf-option-profile-loading">행사가별 데이터를 불러오는 중...</div>'
+      + '</div>'
       + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
       + '콜/풋 전체 미결제약정(OI) 증감으로 포지션 방향을 추정해서 보여드립니다. 콜옵션은 상승 포지션, 풋옵션은 '
       + '하락 포지션으로 보고, OI가 늘면 신규 진입(포지션 확대), 줄면 청산(포지션 정리)으로 표시합니다 - '
@@ -439,6 +443,7 @@
         if (!card) return;
         card.querySelector('.kf-opt-body').outerHTML = buildOptCardBody(bySide[s.key], s.key);
       });
+      renderOptionProfile(container.querySelector('#kfOptionProfile'), bySide.strikes || []);
     }).catch(function () {
       container.querySelectorAll('.kf-opt-card').forEach(function (card) {
         var body = card.querySelector('.kf-opt-body');
@@ -446,7 +451,63 @@
           body.outerHTML = '<div class="kf-opt-body kf-error">옵션 수급을 불러오지 못했어요.</div>';
         }
       });
+      var profile = container.querySelector('#kfOptionProfile');
+      if (profile) profile.innerHTML = '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b></div>'
+        + '<div class="kf-option-profile-empty">행사가별 옵션 데이터를 불러오지 못했어요.</div>';
     });
+  }
+
+  function fmtOptionNumber(value) {
+    var n = Number(value);
+    if (!isFinite(n)) return '-';
+    return Math.round(n).toLocaleString('ko-KR');
+  }
+
+  function optionBar(value, max, tone, label) {
+    var ratio = max > 0 ? Math.max(0, Math.min(100, Number(value || 0) / max * 100)) : 0;
+    return '<div class="kf-option-bar-wrap">'
+      + '<span class="kf-option-bar ' + tone + '" style="width:' + ratio.toFixed(2) + '%"></span>'
+      + '<small>' + label + ' ' + fmtOptionNumber(value) + '</small>'
+      + '</div>';
+  }
+
+  function renderOptionProfile(mount, rows) {
+    if (!mount) return;
+    var usable = (rows || []).filter(function (row) {
+      return row && row.strike != null && (Number(row.oi) || Number(row.volume));
+    });
+    if (!usable.length) {
+      mount.innerHTML = '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
+        + '<div class="kf-option-profile-empty">행사가별 원자료가 아직 없습니다. 옵션 수급 수집이 한 번 실행되면 표시됩니다.</div>';
+      return;
+    }
+    var byStrike = {};
+    usable.forEach(function (row) {
+      var key = String(Number(row.strike));
+      if (!byStrike[key]) byStrike[key] = { strike: Number(row.strike), CALL: null, PUT: null };
+      byStrike[key][row.side] = row;
+    });
+    var points = Object.keys(byStrike).map(function (key) { return byStrike[key]; })
+      .sort(function (a, b) { return b.strike - a.strike; });
+    var maxOi = Math.max.apply(null, usable.map(function (r) { return Number(r.oi) || 0; })) || 1;
+    var maxVol = Math.max.apply(null, usable.map(function (r) { return Number(r.volume) || 0; })) || 1;
+    var body = points.map(function (point) {
+      var call = point.CALL || {};
+      var put = point.PUT || {};
+      return '<div class="kf-option-profile-row">'
+        + '<div class="kf-option-profile-side call">'
+        + optionBar(call.oi, maxOi, 'oi', 'OI') + optionBar(call.volume, maxVol, 'volume', '거래')
+        + '</div>'
+        + '<b class="kf-option-strike">' + fmtOptionNumber(point.strike) + '</b>'
+        + '<div class="kf-option-profile-side put">'
+        + optionBar(put.oi, maxOi, 'oi', 'OI') + optionBar(put.volume, maxVol, 'volume', '거래')
+        + '</div>'
+        + '</div>';
+    }).join('');
+    mount.innerHTML = '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b>'
+      + '<span><i class="call-dot"></i>콜&nbsp;&nbsp; <i class="put-dot"></i>풋 · 진한 막대 OI / 연한 막대 거래량</span></div>'
+      + '<div class="kf-option-profile-labels"><span>콜옵션</span><b>행사가</b><span>풋옵션</span></div>'
+      + '<div class="kf-option-profile-scroll">' + body + '</div>';
   }
 
   // 미결제약정(OI)은 야간선물(KIS 소스)만 값이 있음 - 주간선물(네이버)은 원래 OI를 안 줘서

@@ -359,7 +359,9 @@ html.dark .de-chart-modal-body { background: #1A1A1A; }
 #market-temp .mt-strategy-card::after { content: '현재 온도와 시장 흐름을 바탕으로 한 참고용 대응 방향입니다.'; }
 
 @media (max-width: 720px) {
-  #foreign-flow .ff-chart-candle, #stock-search .ss-chart, #kospi-futures .kf-chart { height: 280px !important; }
+  #foreign-flow .ff-chart-candle { height: 540px !important; }
+  #stock-search .ss-chart { height: 520px !important; }
+  #kospi-futures .kf-chart { height: 280px !important; }
   .de-chart-overlay { padding: 8px; }
   .de-chart-modal { height: calc(100vh - 16px); max-height: calc(100vh - 16px); border-radius: 12px; }
   .de-custom-card-toolbar { align-items: flex-start; flex-direction: column; }
