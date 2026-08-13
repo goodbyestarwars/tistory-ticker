@@ -359,6 +359,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("data-hen-breaking-form", main)
         self.assertNotIn("ECONOMIC_FLASH_API_URL", news)
         self.assertIn("syncEconomicHeight", self.read("js/home-widgets.js"))
+        self.assertIn(".home-widget--summary.home-economic-news { align-self: start; }", style)
         self.assertIn('data-hen-breaking-list', main)
         self.assertIn('function renderFlash(items)', news)
         self.assertIn('isWatchlistDisclosure(item)', news)

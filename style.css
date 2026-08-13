@@ -4313,7 +4313,8 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .home-economic-news .hen-periods { height: 100%; max-height: none; }
 .home-widget--summary.home-market-board,
 .home-widget--summary.home-economic-news { height: auto; min-height: 0; }
-.home-widget--summary.home-economic-news { align-self: stretch; }
+.home-widget--summary.home-market-board,
+.home-widget--summary.home-economic-news { align-self: start; }
 
 /* 토스식 밀도: 종목판은 로고·현재가를 먼저 읽고, 숫자 열은 한 줄로 빠르게 훑는다. */
 .home-realtime-board { padding: 14px 16px 10px; }
