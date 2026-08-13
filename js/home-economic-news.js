@@ -15,7 +15,7 @@
   var state = {
     mount: null, timer: null, sessionTimer: null, socket: null, socketGeneration: 0,
     socketOpened: false, socketReconnectTimer: null, socketFallbackTimer: null, socketKeepaliveTimer: null,
-    market: '', quoteMap: {}, items: [], loading: false
+    market: '', quoteMap: {}, items: [], flash: [], loading: false
   };
 
   function escapeHtml(value) {
@@ -94,11 +94,64 @@
     return found;
   }
 
-  function render(items, market) {
+  function watchlistItems() {
+    try {
+      return global.Watchlist && typeof global.Watchlist.getList === 'function'
+        ? (global.Watchlist.getList() || []) : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function isWatchlistDisclosure(item) {
+    var code = String(item && (item.stockCode || item.code) || '').trim().toUpperCase();
+    var name = String(item && (item.stockName || item.name) || '').trim().toLowerCase();
+    return watchlistItems().some(function (stock) {
+      var stockCode = String(stock && (stock.code || stock.stockCode) || '').trim().toUpperCase();
+      var stockName = String(stock && (stock.name || stock.stockName) || '').trim().toLowerCase();
+      return (code && stockCode && code === stockCode) || (name && stockName && name === stockName);
+    });
+  }
+
+  function flashTimeLabel(value) {
+    var text = String(value || '').trim();
+    if (/^\d{8}$/.test(text)) return text.slice(4, 6) + '/' + text.slice(6, 8);
+    var parsed = parseDate(value);
+    if (isNaN(parsed.getTime())) return '--:--';
+    return parsed.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  function renderFlash(items) {
+    var list = state.mount && state.mount.querySelector('[data-hen-breaking-list]');
+    if (!list) return;
+    var rows = (items || []).filter(function (item) {
+      if (!item || !item.title) return false;
+      return item.kind !== 'disclosure' || isWatchlistDisclosure(item);
+    }).slice().sort(function (a, b) {
+      var importance = Number(b.importance || 0) - Number(a.importance || 0);
+      return importance || dateValue(b.pubDate) - dateValue(a.pubDate);
+    }).slice(0, 8);
+    if (!rows.length) {
+      list.innerHTML = '<p class="hen-breaking-empty">중요 속보가 없습니다.</p>';
+      return;
+    }
+    list.innerHTML = rows.map(function (item) {
+      var label = item.flashType || (item.kind === 'disclosure' ? '공시' : '속보');
+      var href = item.link || '#';
+      return '<a class="hen-breaking-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">'
+        + '<time>' + escapeHtml(flashTimeLabel(item.pubDate)) + '</time>'
+        + '<b class="hen-breaking-badge hen-breaking-badge--' + escapeHtml(String(label).toLowerCase()) + '">' + escapeHtml(label) + '</b>'
+        + '<strong>' + escapeHtml(item.title) + '</strong>'
+        + '</a>';
+    }).join('');
+  }
+
+  function render(items, market, flash) {
     var list = state.mount.querySelector('[data-hen-list]');
     var updated = state.mount.querySelector('[data-hen-updated]');
     var session = state.mount.querySelector('[data-hen-session]');
     if (session) session.textContent = market === 'us' ? '미국 · 실시간 타임라인' : '국내 · 실시간 타임라인';
+    renderFlash(flash || state.flash);
     var rows = (items || []).filter(function (item) { return item && item.kind !== 'disclosure'; }).slice().sort(function (a, b) {
       return dateValue(b.pubDate) - dateValue(a.pubDate);
     }).slice(0, 50);
@@ -146,7 +199,8 @@
     var market = data.market === 'us' ? 'us' : 'domestic';
     state.market = market;
     state.items = data.items;
-    render(state.items, market);
+    state.flash = Array.isArray(data.flash) ? data.flash : [];
+    render(state.items, market, state.flash);
     state.loading = false;
     return true;
   }
@@ -156,7 +210,7 @@
     state.market = market;
     return fetchJson(marketUrl).then(function (json) {
       state.quoteMap = quoteMapFrom(json);
-      if (state.market === market) render(state.items, market);
+      if (state.market === market) render(state.items, market, state.flash);
     }).catch(function () { return null; });
   }
 
@@ -245,11 +299,12 @@
     var newsRequest = fetchJson(newsUrl).then(function (json) {
       var payload = json.data || json;
       state.items = payload.items || [];
-      render(state.items, market);
+      state.flash = Array.isArray(payload.flash) ? payload.flash : state.flash;
+      render(state.items, market, state.flash);
     });
     var marketRequest = fetchJson(marketUrl).then(function (json) {
       state.quoteMap = quoteMapFrom(json);
-      if (state.market === market) render(state.items, market);
+      if (state.market === market) render(state.items, market, state.flash);
     }).catch(function () { return null; });
     return Promise.all([newsRequest, marketRequest]).catch(function () {
       var list = state.mount && state.mount.querySelector('[data-hen-list]');
@@ -265,6 +320,9 @@
     state.mount = mount;
     state.market = currentMarket();
     mount.setAttribute('data-hen-ready', '1');
+    global.addEventListener('watchlist:changed', function () {
+      render(state.items, state.market, state.flash);
+    });
     loadMarketBoard(state.market);
     connectNewsSocket();
     state.timer = setInterval(function () {

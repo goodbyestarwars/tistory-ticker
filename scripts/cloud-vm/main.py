@@ -572,6 +572,15 @@ _economic_news_ws_clients = set()
 _economic_news_ws_task = None
 _economic_news_ws_cache = {}
 
+_FLASH_MACRO_RULES = (
+    ('CPI', ('cpi', '소비자물가', '물가 지표', '물가지표'), 100),
+    ('FOMC', ('fomc', '연방공개시장위원회', '연준 회의', '연준회의'), 100),
+    ('미국 금리', ('미국 금리', '기준금리', '금리 결정', '금리결정', '파월', '연준', 'fed rate'), 95),
+    ('고용 지표', ('비농업', '고용보고서', '고용 지표', '고용지표', '실업률', 'nonfarm payrolls'), 90),
+    ('물가·성장', ('pce', 'gdp', '소매판매', '생산자물가'), 85),
+)
+_FLASH_INDEX_TERMS = ('코스피', '코스닥', '나스닥', 's&p 500', 's&p500', '다우지수', '다우존스', '지수 급등', '지수 급락')
+
 
 def _economic_news_market():
     now = datetime.now(timezone(timedelta(hours=9)))
@@ -588,7 +597,52 @@ def _fetch_economic_news_snapshot(market):
     else:
         result = domestic_news.get_news(limit=50, item_kind='news')
         items = result.get('items', []) if isinstance(result, dict) else []
-    return {'market': market, 'items': items}
+    flash_news = list(items or [])
+    if market != 'us':
+        # 국내 장중에도 CPI·FOMC·미국 금리 일정은 속보로 놓치지 않도록
+        # 미국 뉴스 원천을 속보 분류용으로만 함께 확인한다.
+        flash_news.extend(news_aggregator.get_general_news(
+            alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+            finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+            limit=30,
+        ))
+    disclosures = domestic_news.get_disclosures(limit=100)
+    return {'market': market, 'items': items, 'flash': _build_flash_items(flash_news, disclosures)}
+
+
+def _build_flash_items(news_items, disclosures):
+    """속보 레일에 필요한 실적·공시·지수·미국 거시 이벤트를 정규화한다."""
+    candidates = []
+    for item in disclosures or []:
+        title = str(item.get('title') or '').strip()
+        text = title.lower()
+        if not title:
+            continue
+        category = '실적' if item.get('category') == '실적' or any(token in text for token in ('실적', '영업이익', '순이익', '매출액', '잠정')) else '공시'
+        candidates.append(dict(item, flashType=category, importance=100 if category == '실적' else 80))
+
+    for item in news_items or []:
+        if not item or item.get('kind') == 'disclosure':
+            continue
+        title = str(item.get('title') or '').strip()
+        text = title.lower()
+        if not title:
+            continue
+        macro = next(((label, weight) for label, terms, weight in _FLASH_MACRO_RULES if any(term in text for term in terms)), None)
+        if macro:
+            candidates.append(dict(item, flashType=macro[0], importance=macro[1]))
+        elif any(term in text for term in _FLASH_INDEX_TERMS):
+            candidates.append(dict(item, flashType='지수', importance=75))
+
+    unique = {}
+    for item in candidates:
+        key = item.get('id') or item.get('link') or item.get('title')
+        if key not in unique or item.get('importance', 0) > unique[key].get('importance', 0):
+            unique[key] = item
+    result = list(unique.values())
+    result.sort(key=lambda item: item.get('pubDate') or '', reverse=True)
+    result.sort(key=lambda item: int(item.get('importance') or 0), reverse=True)
+    return result[:30]
 
 
 async def _economic_news_snapshot(market):

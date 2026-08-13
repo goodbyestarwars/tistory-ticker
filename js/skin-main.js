@@ -80,7 +80,7 @@
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260811-finnhub-block')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260811-finnhub-block';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260811-auto-icon-fallback';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260811-am-pm-scroll';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260813-breaking-flash-v1';
 
     function escapeHomeHtml(value) {
       return String(value == null ? '' : value)
@@ -215,6 +215,10 @@
         + '</article>'
         + '<article class="card home-economic-news" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
         + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small data-hen-updated>최신 뉴스 확인 중</small></div>'
+        + '<div class="hen-breaking" data-hen-breaking aria-label="중요 경제 속보">'
+        + '<div class="hen-breaking-head"><strong>속보</strong><span>실적 · 지수 · 금리</span></div>'
+        + '<div class="hen-breaking-list" data-hen-breaking-list><p class="hen-breaking-empty">중요 소식을 확인하는 중입니다.</p></div>'
+        + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state">경제 뉴스를 불러오는 중입니다.</p></div>'
         + '</article></div>'
         + '<article class="card home-realtime-board" id="homeRealtimeBoard" aria-label="실시간 종목판"></article>'
