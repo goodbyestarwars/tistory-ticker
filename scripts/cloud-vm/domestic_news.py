@@ -320,3 +320,15 @@ def get_news(code='', name='', query='', limit=10, item_kind='all'):
         'source': 'live' if fresh else 'cache',
         'providers': sorted(set(item.get('provider') for item in merged if item.get('provider'))),
     }
+
+
+def get_disclosures(limit=100):
+    """최근 DART 공시를 속보용으로 반환한다.
+
+    일반 종합뉴스는 성능을 위해 공시를 제외하지만, 속보 레일은 실적과
+    관심종목 공시를 즉시 구분해야 하므로 DART 원문 메타데이터만 별도로 읽는다.
+    호출 주기는 상위 WebSocket 캐시가 제한한다.
+    """
+    items = _dart_items()
+    items.sort(key=lambda item: _parse_pub_date(item.get('pubDate')).timestamp(), reverse=True)
+    return items[:max(1, min(int(limit or 100), 100))]

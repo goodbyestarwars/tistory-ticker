@@ -4271,6 +4271,20 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hen-head > div { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
 .hen-head strong { color: #18202a; font-size: 18px; letter-spacing: -.4px; }
 .hen-head span, .hen-head small { color: #98a2ae; font-size: 11px; white-space: nowrap; }
+.hen-breaking { margin-top: 11px; border: 1px solid #ffd8cf; border-radius: 10px; background: #fff9f7; overflow: hidden; }
+.hen-breaking-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 11px 7px; border-bottom: 1px solid #ffe9e3; }
+.hen-breaking-head strong { color: #df4f3f; font-size: 12px; }
+.hen-breaking-head span { color: #a36b62; font-size: 10px; }
+.hen-breaking-list { max-height: 196px; overflow-y: auto; scrollbar-width: none; }
+.hen-breaking-list::-webkit-scrollbar { width: 0; height: 0; }
+.hen-breaking-row { display: grid; grid-template-columns: 43px 54px minmax(0, 1fr); align-items: center; gap: 7px; min-height: 31px; padding: 0 11px; border-bottom: 1px solid #ffebe7; color: inherit; text-decoration: none; }
+.hen-breaking-row:last-child { border-bottom: 0; }
+.hen-breaking-row time { color: #df6554; font-size: 10px; font-variant-numeric: tabular-nums; }
+.hen-breaking-row strong { min-width: 0; overflow: hidden; color: #2a3138; font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.hen-breaking-badge { justify-self: start; padding: 2px 5px; border-radius: 4px; background: #ffe4de; color: #d94e3e; font-size: 9px; font-weight: 700; white-space: nowrap; }
+.hen-breaking-badge--cpi, .hen-breaking-badge--fomc, .hen-breaking-badge--미국 { background: #ffe0da; color: #c4382c; }
+.hen-breaking-badge--지수 { background: #e9f1ff; color: #2864b7; }
+.hen-breaking-empty { margin: 0; padding: 12px 11px; color: #a36b62; font-size: 11px; }
 .hen-list { margin-top: 9px; overflow: hidden; }
 .hen-periods { max-height: 340px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; -ms-overflow-style: none; }
 .hen-periods::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
@@ -4312,6 +4326,11 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hrt-stock-logo--fallback[hidden] { display: none; }
 .hrt-foot { padding-top: 7px; font-size: 9px; }
 html.dark .hen-head strong, html.dark .hen-main strong { color: #f5efe0; }
+html.dark .hen-breaking { border-color: rgba(255,216,207,.3); background: rgba(122,43,32,.2); }
+html.dark .hen-breaking-head { border-color: rgba(255,233,227,.15); }
+html.dark .hen-breaking-head span, html.dark .hen-breaking-empty { color: rgba(255,216,207,.72); }
+html.dark .hen-breaking-row { border-color: rgba(255,233,227,.12); }
+html.dark .hen-breaking-row strong { color: #f5efe0; }
 html.dark .hen-row { border-color: rgba(245,239,224,.1); }
 html.dark .hen-rail::before { background: rgba(245,239,224,.38); }
 html.dark .hen-rail i { border-color: #1c2430; }
@@ -4322,6 +4341,7 @@ html.dark .hen-period + .hen-period { border-color: rgba(245,239,224,.12); }
 @media (max-width: 640px) {
   .home-economic-news { padding: 14px 13px 10px; }
   .hen-head strong { font-size: 16px; }
+  .hen-breaking-row { grid-template-columns: 40px 49px minmax(0, 1fr); padding: 0 9px; }
   .hen-periods { max-height: 300px; }
   .home-economic-news .hen-row { grid-template-columns: 17px 76px minmax(0, 1fr); }
   .home-economic-news .hen-row .hen-time {
