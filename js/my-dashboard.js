@@ -186,8 +186,26 @@
         return '<div class="my-flow-row"><span>' + row[0] + '</span><b class="' + signClass(row[1]) + '">' + formatSigned(row[1], 0) + '</b><small>5일 ' + formatSigned(row[2], 0) + '</small></div>';
       }).join('') + '</div><p class="my-analysis-footnote">+는 순매수, -는 순매도입니다. 수급은 투자 참고용으로만 확인하세요.</p></section>';
   }
-  function buildVolumeCard(volume) {
-    if (!volume || !volume.bins || !volume.bins.length) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">실제 체결가 매물대 데이터를 불러오지 못했습니다.</p></section>';
+  function approximateVolumeFromChart(chart, code) {
+    if (!chart || !chart.daily || chart.daily.length < 2) return null;
+    var points = chart.daily.filter(function (row) { return number(row.close, null) > 0; });
+    if (points.length < 2) return null;
+    var prices = points.map(function (row) { return number(row.close, 0); });
+    var min = Math.min.apply(null, prices), max = Math.max.apply(null, prices);
+    var range = max - min || Math.max(1, max * 0.01);
+    var count = 8, bins = [];
+    for (var i = 0; i < count; i++) bins.push({ low: min + range * i / count, high: min + range * (i + 1) / count, volume: 0 });
+    points.forEach(function (row) {
+      var close = number(row.close, 0), index = Math.min(count - 1, Math.max(0, Math.floor((close - min) / range * count)));
+      bins[index].volume += Math.max(0, number(row.volume, 0));
+    });
+    return { code: code, currentPrice: number(points[points.length - 1].close, null), daysIncluded: points.length, approximate: true, bins: bins.map(function (bin) {
+      return { price: (bin.low + bin.high) / 2, low: bin.low, high: bin.high, volume: bin.volume };
+    }) };
+  }
+  function buildVolumeCard(volume, chart, code) {
+    if (!volume || !volume.bins || !volume.bins.length) volume = approximateVolumeFromChart(chart, code);
+    if (!volume || !volume.bins || !volume.bins.length) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">가격·거래량 데이터가 부족해 그래프를 표시할 수 없습니다.</p></section>';
     var bins = volume.bins.map(function (bin) {
       return { price: number(bin.price || ((number(bin.low) + number(bin.high)) / 2), 0), volume: Math.max(0, number(bin.volume || bin.vol, 0)) };
     }).filter(function (bin) { return bin.price > 0; });
@@ -209,11 +227,11 @@
       var isCurrent = current != null && current >= bin.price && current <= bin.high;
       return '<div class="my-volume-row' + (isPoc ? ' is-poc' : '') + (isCurrent ? ' is-current' : '') + '"><span>' + formatPrice(mid, volume.code || '') + '</span><i><b style="width:' + width + '%"></b></i><small>' + formatNumber(bin.volume, 0) + '</small></div>';
     }).join('');
-    return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong><span>실제 체결가 기반</span></div>'
+    return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong><span>' + (volume.approximate ? '차트 거래량 추정' : '실제 체결가 기반') + '</span></div>'
       + '<div class="my-volume-highlight"><span>거래가 가장 몰린 구간</span><strong>' + formatPrice(poc, volume.code || '') + '</strong></div>'
       + '<div class="my-volume-chart" aria-label="가격대별 매물대 간략 그래프">' + rows + '</div>'
       + '<div class="my-volume-legend"><span><i class="is-poc"></i>거래량 최다</span><span><i class="is-current"></i>현재가</span></div>'
-      + '<p class="my-analysis-footnote">현재가가 두꺼운 매물대 위에 있으면 지지, 아래에 있으면 저항으로 해석할 수 있습니다. 상세 차트에서 전체 구간을 확인하세요.</p></section>';
+      + '<p class="my-analysis-footnote">현재가가 두꺼운 매물대 위에 있으면 지지, 아래에 있으면 저항으로 해석할 수 있습니다. ' + (volume.approximate ? '실제 체결가 API가 없을 때 차트 거래량으로 간략 추정했습니다.' : '상세 차트에서 전체 구간을 확인하세요.') + '</p></section>';
   }
   function buildChartShapeCard(chart, summary) {
     var notes = summaryNotes(summary);
@@ -305,7 +323,7 @@
     detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3>' + escapeHtml(item.name) + ' <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
       + '<div class="my-metric-grid"><div><span>현재가</span><strong>' + formatPrice(metrics.price, item.code) + '</strong><small class="' + signClass(quote.changeRate) + '">' + formatSigned(quote.changeRate, 2) + '%</small></div><div><span>평가금액</span><strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatSigned(metrics.pnl, 0) + '원') + '</strong><small>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
       + buildHoldingForm(item, metrics)
-      + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume) + '</div>'
+      + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code) + '</div>'
       + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
       + '<section class="my-analysis-card my-ai-card"><div class="my-card-title"><strong>AI 종합 분석</strong><span>수급·기술·매물대</span></div><p>' + escapeHtml(analysis && analysis.ai || 'AI 분석 결과를 준비 중입니다.') + '</p></section>'
       + buildAveragingCalculator(metrics, item.code)
