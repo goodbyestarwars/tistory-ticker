@@ -56,6 +56,37 @@ def _aggregate(rows):
     return volume, oi, oi_change
 
 
+def _number(row, *keys):
+    for key in keys:
+        value = row.get(key)
+        if value is None or value == '':
+            continue
+        try:
+            return float(str(value).replace(',', ''))
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _strike_rows(side, rows, updated_at):
+    """KIS 옵션 전광판 응답을 화면용 최소 필드로 정규화한다.
+
+    TR 응답 버전에 따라 기준 행사가 키 이름이 다를 수 있어 공식/실측 명칭을
+    순서대로 허용한다. 행사가가 없는 행은 합계에는 포함하되 프로파일에서는
+    제외한다.
+    """
+    result = []
+    for row in rows:
+        strike = _number(row, 'stnd_prc', 'optn_stnd_prc', 'optn_prc', 'strike_prc', 'xprc')
+        if strike is None:
+            continue
+        volume = _number(row, 'acml_vol', 'acc_trde_qty', 'trde_qty', 'volume') or 0
+        oi = _number(row, 'hts_otst_stpl_qty', 'oi', 'open_interest') or 0
+        oi_change = _number(row, 'otst_stpl_qty_icdc', 'oi_change') or 0
+        result.append((side, strike, int(volume), int(oi), int(oi_change), updated_at))
+    return result
+
+
 def refresh_option_flow(appkey, appsecret):
     token = kis_client.get_token(appkey, appsecret)
     mtrt = nearest_option_maturity_yyyymm()
@@ -67,6 +98,10 @@ def refresh_option_flow(appkey, appsecret):
     try:
         db_schema.upsert_option_flow(conn, 'CALL', call_v, call_oi, call_oic, now_iso)
         db_schema.upsert_option_flow(conn, 'PUT', put_v, put_oi, put_oic, now_iso)
+        db_schema.replace_option_flow_strikes(
+            conn,
+            _strike_rows('CALL', calls, now_iso) + _strike_rows('PUT', puts, now_iso),
+        )
     finally:
         conn.close()
     logger.info('option flow refreshed (mtrt=%s): call vol=%d oi=%d(%+d), put vol=%d oi=%d(%+d)',

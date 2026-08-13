@@ -69,13 +69,26 @@ CREATE TABLE IF NOT EXISTS future_prices (
 
 -- 콜/풋 옵션 수급 요약(전체 만기 합산이 아니라 최근월물 기준 1행씩) - 종목별이 아니라
 -- side(CALL/PUT) 단위 집계만 저장. 상세 행사가별 데이터는 저장하지 않는다(온디맨드 집계만 필요).
-CREATE TABLE IF NOT EXISTS option_flow (
-    side TEXT PRIMARY KEY,
-    volume INTEGER,
-    oi INTEGER,
-    oi_change INTEGER,
-    updated_at TEXT
-);
+  CREATE TABLE IF NOT EXISTS option_flow (
+      side TEXT PRIMARY KEY,
+      volume INTEGER,
+      oi INTEGER,
+      oi_change INTEGER,
+      updated_at TEXT
+  );
+
+  -- 코스피200 옵션 최근월물의 행사가별 원자료. 합계 카드와 별도로 보관해
+  -- 브라우저에서 콜/풋 OI·거래량 프로파일을 그릴 수 있게 한다.
+  CREATE TABLE IF NOT EXISTS option_flow_strike (
+      side TEXT NOT NULL,
+      strike REAL NOT NULL,
+      volume INTEGER,
+      oi INTEGER,
+      oi_change INTEGER,
+      updated_at TEXT,
+      PRIMARY KEY (side, strike)
+  );
+  CREATE INDEX IF NOT EXISTS idx_option_flow_strike_side ON option_flow_strike(side);
 
 CREATE TABLE IF NOT EXISTS future_chart (
     symbol TEXT NOT NULL,
@@ -479,6 +492,34 @@ def load_option_flow(conn):
     rows = conn.execute('SELECT side, volume, oi, oi_change, updated_at FROM option_flow').fetchall()
     return [
         {'side': r[0], 'volume': r[1], 'oi': r[2], 'oi_change': r[3], 'updated_at': r[4]}
+        for r in rows
+    ]
+
+
+def replace_option_flow_strikes(conn, rows):
+    """최근월물 행사가별 옵션 수급 스냅샷을 교체한다.
+
+    API가 최근월물 전체를 매번 내려주므로 이전 만기 행사가가 섞이지 않도록
+    기존 상세 행을 한 번에 지운 뒤 새 스냅샷을 넣는다. 합계 option_flow 행은
+    별도로 유지해 기존 카드·AI 해설과의 호환성을 보장한다.
+    """
+    conn.execute('DELETE FROM option_flow_strike')
+    if rows:
+        conn.executemany(
+            'INSERT INTO option_flow_strike (side, strike, volume, oi, oi_change, updated_at) '
+            'VALUES (?, ?, ?, ?, ?, ?)',
+            rows,
+        )
+    conn.commit()
+
+
+def load_option_flow_strikes(conn):
+    rows = conn.execute(
+        'SELECT side, strike, volume, oi, oi_change, updated_at '
+        'FROM option_flow_strike ORDER BY strike'
+    ).fetchall()
+    return [
+        {'side': r[0], 'strike': r[1], 'volume': r[2], 'oi': r[3], 'oi_change': r[4], 'updated_at': r[5]}
         for r in rows
     ]
 

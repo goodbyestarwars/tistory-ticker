@@ -1532,15 +1532,20 @@ def news_momentum_endpoint(code: str = Path(..., min_length=6, max_length=6)):
 
 @app.get('/option-flow')
 def option_flow_endpoint():
-    """코스피200 옵션(콜/풋) 수급 요약 - option_flow.py가 5분마다 미리 집계해둔 걸 그대로
-    반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /futures와
-    동일한 패턴. KIS_APPKEY/APPSECRET 미설정이면 데이터가 비어 있을 수 있음(정상)."""
+    """코스피200 옵션(콜/풋) 합계와 최근월물 행사가별 프로파일을 반환한다.
+
+    방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한)하며,
+    KIS_APPKEY/APPSECRET 미설정이면 합계·상세가 비어 있을 수 있다(정상).
+    """
     conn = db_schema.get_conn()
     try:
         rows = db_schema.load_option_flow(conn)
+        strikes = db_schema.load_option_flow_strikes(conn)
     finally:
         conn.close()
-    return envelope({r['side']: r for r in rows})
+    data = {r['side']: r for r in rows}
+    data['strikes'] = strikes
+    return envelope(data)
 
 
 @app.get('/kofia-market')

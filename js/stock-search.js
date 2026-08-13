@@ -966,6 +966,47 @@
     return points;
   }
 
+  function stockEma(values, period) {
+    var out = values.map(function () { return null; });
+    if (values.length < period) return out;
+    var sum = 0;
+    for (var i = 0; i < period; i++) sum += Number(values[i]) || 0;
+    var previous = sum / period;
+    out[period - 1] = previous;
+    var alpha = 2 / (period + 1);
+    for (var j = period; j < values.length; j++) {
+      previous = (Number(values[j]) || 0) * alpha + previous * (1 - alpha);
+      out[j] = previous;
+    }
+    return out;
+  }
+
+  function stockRsiMacd(bars) {
+    var close = bars.map(function (bar) { return Number(bar.close) || 0; });
+    var rsi = [], gain = 0, loss = 0, period = 14;
+    for (var i = 0; i < close.length; i++) {
+      if (i === 0) { rsi.push(null); continue; }
+      var diff = close[i] - close[i - 1];
+      if (i <= period) { gain += Math.max(diff, 0); loss += Math.max(-diff, 0); }
+      if (i === period) { gain /= period; loss /= period; }
+      else if (i > period) {
+        gain = (gain * (period - 1) + Math.max(diff, 0)) / period;
+        loss = (loss * (period - 1) + Math.max(-diff, 0)) / period;
+      }
+      rsi.push(i < period ? null : (loss === 0 ? 100 : 100 - 100 / (1 + gain / loss)));
+    }
+    var fast = stockEma(close, 12), slow = stockEma(close, 26);
+    var macd = close.map(function (_, index) { return fast[index] == null || slow[index] == null ? null : fast[index] - slow[index]; });
+    var compact = macd.filter(function (value) { return value != null; });
+    var signalCompact = stockEma(compact, 9);
+    var signal = macd.map(function (value, index) {
+      if (value == null) return null;
+      var compactIndex = macd.slice(0, index + 1).filter(function (item) { return item != null; }).length - 1;
+      return signalCompact[compactIndex] == null ? null : signalCompact[compactIndex];
+    });
+    return { rsi: rsi, macd: macd, signal: signal };
+  }
+
   function rollingMidpointValues(bars, period) {
     return bars.map(function (_, i) {
       if (i < period - 1) return null;
@@ -1248,14 +1289,15 @@
       ? global.getComputedStyle(document.body).fontFamily
       : "'MaruBuri', Georgia, serif";
     return {
-      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', fontFamily: fontFamily, attributionLogo: false },
+      layout: {
+        background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', fontFamily: fontFamily, attributionLogo: false,
+        panes: { enableResize: true, separatorColor: dark ? '#3a3a3a' : '#e5e7eb', separatorHoverColor: dark ? '#666' : '#cbd5e1' }
+      },
       grid: {
         vertLines: { color: dark ? '#3a3a3a' : '#eee' },
         horzLines: { color: dark ? '#3a3a3a' : '#eee' }
       },
-      // Keep the price scale in the candle pane. The volume overlay has its
-      // own hidden scale; without these margins its price labels can extend
-      // into the volume pane and look like a second price axis.
+      // Keep the price scale in the candle pane. Volume/RSI/MACD are independent v5 panes.
       rightPriceScale: {
         borderColor: dark ? '#3a3a3a' : '#ddd',
         scaleMargins: { top: 0.06, bottom: 0.36 },
@@ -1265,7 +1307,7 @@
       // time은 UNIX 타임스탬프(minuteRowsToBars 참고)인데 timeVisible이 꺼져 있으면
       // 라이브러리가 날짜만 찍는다. 분봉일 때만 시:분(HH:mm)을 보여주고, 일/주/월봉은
       // (time이 날짜 문자열이라 시간 개념이 없어) 그대로 둔다.
-      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd', timeVisible: timeframe === 'minute', secondsVisible: false },
+      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd', timeVisible: timeframe === 'minute', secondsVisible: false, rightOffset: 6, minBarSpacing: 2 },
       // 2026-07-28 사용자 리포트: 다크모드에서 차트 위에 안 어울리는 회색 네모(십자선
       // 가격/시각 라벨의 기본 배경색, 라이브러리 기본값이라 다크 팔레트와 무관하게 고정)가
       // 떴음 - 라벨 배경색을 테마에 맞게 명시(js/foreign-flow.js와 동일 수정).
@@ -1575,9 +1617,9 @@
         container.appendChild(priceLegend);
       }
 
-      // TradingView 방식처럼 거래량을 하단 30% overlay 영역에 배치한다. 차트 전체의
-      // localization.priceFormatter를 없애고 시리즈별 포맷을 사용해야 거래량 값이
-      // 2,539,179 같은 주가형 숫자가 아니라 2.54M처럼 축약 표시된다.
+      // TradingView v5의 독립 패널: 거래량(1) · RSI(2) · MACD(3).
+      // 차트 전체의 localization.priceFormatter를 없애고 시리즈별 포맷을 사용해야
+      // 거래량 값이 2,539,179 같은 주가형 숫자가 아니라 2.54M처럼 축약 표시된다.
       // 2026-08-05 사용자 리포트: 거래량 Y축에 가격 데이터와 거래량 데이터가 겹쳐 보였음 -
       // lastValueVisible/priceLineVisible을 켜두면 라이브러리가 거래량 시리즈의 마지막 값
       // 배지·점선을 오른쪽 가격축(캔들과 같은 여백)에 그대로 그려서 가격 마지막 값 배지·
@@ -1585,19 +1627,9 @@
       // 텍스트로 보여주고 있어 중복이라, 다른 보조지표 시리즈(MA/일목균형표)와 동일하게 끈다.
       var volumeSeries = chart.addSeries(LWC.HistogramSeries, {
         priceFormat: { type: 'volume' },
-        priceScaleId: 'volume',
         lastValueVisible: false,
         priceLineVisible: false
-      });
-      // 거래량은 가격과 별도 overlay 축을 쓰고 축 자체는 숨긴다. 기본 overlay 축('')을
-      // 공유하면 차트 localization의 가격 formatter가 거래량 눈금에 붙는 경우가 있다.
-      volumeSeries.priceScale().applyOptions({
-        scaleMargins: { top: 0.72, bottom: 0.02 },
-        visible: false,
-        borderVisible: false,
-        ticksVisible: false,
-        drawTicks: false
-      });
+      }, 1);
       volumeSeries.setData(bars.map(function (d) {
         return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
       }));
@@ -1606,15 +1638,41 @@
       var volumeMaSeries = chart.addSeries(LWC.LineSeries, {
         color: '#3b82f6',
         lineWidth: 2,
-        priceScaleId: 'volume',
         priceFormat: { type: 'volume' },
         lastValueVisible: false,
         priceLineVisible: false,
         crosshairMarkerVisible: false
-      });
+      }, 1);
       volumeMaSeries.setData(volumeMaPoints.map(function (point) {
         return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
       }));
+
+      var studies = stockRsiMacd(bars);
+      var rsiSeries = chart.addSeries(LWC.LineSeries, {
+        color: '#8b5cf6', lineWidth: 2, lastValueVisible: true, priceLineVisible: false,
+        title: 'RSI(14)', priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
+      }, 2);
+      rsiSeries.setData(bars.map(function (bar, index) { return studies.rsi[index] == null ? null : { time: bar.date, value: studies.rsi[index] }; }).filter(Boolean));
+      rsiSeries.createPriceLine({ price: 70, color: '#d24f45', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
+      rsiSeries.createPriceLine({ price: 30, color: '#1261c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
+      var macdHistogram = chart.addSeries(LWC.HistogramSeries, {
+        priceFormat: { type: 'custom', minMove: 0.01, formatter: function (v) { return Number(v).toFixed(2); } },
+        lastValueVisible: false, priceLineVisible: false, title: 'MACD 히스토그램'
+      }, 3);
+      macdHistogram.setData(bars.map(function (bar, index) {
+        if (studies.macd[index] == null || studies.signal[index] == null) return null;
+        var value = studies.macd[index] - studies.signal[index];
+        return { time: bar.date, value: value, color: value >= 0 ? 'rgba(210,79,69,.65)' : 'rgba(18,97,196,.65)' };
+      }).filter(Boolean));
+      var macdSeries = chart.addSeries(LWC.LineSeries, { color: '#1261c4', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: 'MACD' }, 3);
+      macdSeries.setData(bars.map(function (bar, index) { return studies.macd[index] == null ? null : { time: bar.date, value: studies.macd[index] }; }).filter(Boolean));
+      var signalSeries = chart.addSeries(LWC.LineSeries, { color: '#d24f45', lineWidth: 1, lastValueVisible: true, priceLineVisible: false, title: 'Signal' }, 3);
+      signalSeries.setData(bars.map(function (bar, index) { return studies.signal[index] == null ? null : { time: bar.date, value: studies.signal[index] }; }).filter(Boolean));
+
+      var paneLabels = document.createElement('div');
+      paneLabels.className = 'ss-lwc-pane-labels';
+      paneLabels.innerHTML = '<span>거래량</span><span>RSI(14)</span><span>MACD(12,26,9)</span>';
+      container.appendChild(paneLabels);
 
       var latestBar = bars[bars.length - 1] || {};
       var previousBar = bars.length > 1 ? bars[bars.length - 2] : null;
@@ -1632,6 +1690,11 @@
       container.appendChild(volumeLegend);
 
       chart.timeScale().fitContent();
+      var panes = chart.panes();
+      var totalHeight = container.clientHeight || 420;
+      var subHeight = Math.max(48, Math.round(totalHeight * 0.14));
+      if (panes[0] && panes[0].setHeight) panes[0].setHeight(Math.max(220, totalHeight - subHeight * (panes.length - 1)));
+      panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
       setupStockDrawing(container, chart, candleSeries, timeframe);
     }).catch(function () {

@@ -290,6 +290,63 @@
   margin-top: 8px;
 }
 
+/* ---- 행사가별 콜·풋 OI/거래량 프로파일 ---- */
+#kospi-futures .kf-option-profile {
+  margin-top: 16px;
+  border: 1px solid #e8edf3;
+  border-radius: 10px;
+  padding: 14px;
+  background: rgba(255,255,255,.72);
+}
+#kospi-futures .kf-option-profile-head,
+#kospi-futures .kf-option-profile-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+#kospi-futures .kf-option-profile-head { color: #333; font-size: 13px; }
+#kospi-futures .kf-option-profile-head span { color: #8993a1; font-size: 11px; font-weight: 400; }
+#kospi-futures .kf-option-profile-head .call-dot,
+#kospi-futures .kf-option-profile-head .put-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%; vertical-align: 1px;
+}
+#kospi-futures .kf-option-profile-head .call-dot { background: #d24f45; }
+#kospi-futures .kf-option-profile-head .put-dot { background: #1261c4; }
+#kospi-futures .kf-option-profile-labels { margin: 12px 0 4px; color: #8792a2; font-size: 11px; }
+#kospi-futures .kf-option-profile-labels span { width: calc(50% - 34px); }
+#kospi-futures .kf-option-profile-labels span:first-child { text-align: right; }
+#kospi-futures .kf-option-profile-labels span:last-child { text-align: left; }
+#kospi-futures .kf-option-profile-labels b { width: 68px; text-align: center; color: #5c6572; }
+#kospi-futures .kf-option-profile-scroll { max-height: 390px; overflow-y: auto; padding-right: 4px; }
+#kospi-futures .kf-option-profile-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 45px;
+  border-top: 1px solid #f0f2f5;
+}
+#kospi-futures .kf-option-profile-side { display: grid; gap: 3px; }
+#kospi-futures .kf-option-profile-side.call { text-align: right; }
+#kospi-futures .kf-option-profile-side.put { text-align: left; }
+#kospi-futures .kf-option-bar-wrap { position: relative; height: 12px; background: #f1f3f6; border-radius: 3px; overflow: hidden; }
+#kospi-futures .kf-option-profile-side.call .kf-option-bar-wrap { direction: rtl; }
+#kospi-futures .kf-option-bar { display: block; height: 100%; min-width: 1px; border-radius: 3px; }
+#kospi-futures .kf-option-bar.oi { background: rgba(210,79,69,.82); }
+#kospi-futures .kf-option-bar.volume { background: rgba(210,79,69,.28); }
+#kospi-futures .kf-option-profile-side.put .kf-option-bar.oi { background: rgba(18,97,196,.82); }
+#kospi-futures .kf-option-profile-side.put .kf-option-bar.volume { background: rgba(18,97,196,.28); }
+#kospi-futures .kf-option-bar-wrap small {
+  position: absolute; top: -1px; left: 4px; right: 4px; z-index: 1;
+  color: #697586; font-size: 9px; line-height: 13px; white-space: nowrap;
+}
+#kospi-futures .kf-option-profile-side.call .kf-option-bar-wrap small { text-align: left; }
+#kospi-futures .kf-option-profile-side.put .kf-option-bar-wrap small { text-align: right; }
+#kospi-futures .kf-option-strike { color: #333; font-size: 12px; text-align: center; }
+#kospi-futures .kf-option-profile-empty,
+#kospi-futures .kf-option-profile-loading { padding: 24px 8px; color: #8b95a3; font-size: 12px; text-align: center; }
+
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. */
 html.dark #kospi-futures .kf-ai { background: rgba(245, 239, 224, 0.06) !important; }
@@ -335,3 +392,12 @@ html.dark #kospi-futures .kf-opt-card {
 html.dark #kospi-futures .kf-opt-tendency { background: rgba(245, 239, 224, 0.08) !important; }
 html.dark #kospi-futures .kf-opt-row { border-bottom-color: rgba(245, 239, 224, 0.12) !important; }
 html.dark #kospi-futures .kf-opt-updated { color: rgba(245, 239, 224, 0.4) !important; }
+html.dark #kospi-futures .kf-option-profile { border-color: rgba(245, 239, 224, 0.16); background: rgba(245,239,224,.03); }
+html.dark #kospi-futures .kf-option-profile-head,
+html.dark #kospi-futures .kf-option-strike { color: #F5EFE0; }
+html.dark #kospi-futures .kf-option-profile-head span,
+html.dark #kospi-futures .kf-option-profile-labels,
+html.dark #kospi-futures .kf-option-profile-empty,
+html.dark #kospi-futures .kf-option-profile-loading { color: rgba(245, 239, 224, 0.55); }
+html.dark #kospi-futures .kf-option-profile-row { border-top-color: rgba(245,239,224,.1); }
+html.dark #kospi-futures .kf-option-bar-wrap { background: rgba(245,239,224,.09); }
