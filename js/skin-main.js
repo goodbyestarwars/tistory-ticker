@@ -207,6 +207,7 @@
         + '<div><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
         + '<div><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
         + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
+        + '<div data-home-night-futures hidden><dt>코스피 야간선물</dt><dd data-market-field="nightFutures">데이터 확인 중</dd></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="코스피 코스닥 외국인 순매수 추이">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><span>외국인 순매수</span></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
@@ -257,10 +258,15 @@
       var meta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
       var labels = dashboardSection.querySelectorAll('.hmb-list dt');
       var investorTrend = dashboardSection.querySelector('[data-home-investor-trend]');
+      // 미국 시장 요약 카드는 항목이 5개뿐이라 3열 그리드 마지막 칸이 빈 채로 남는다 -
+      // 국내 장이 열려 있을 시간대라 다음날 코스피 방향을 가늠할 수 있는 코스피 야간선물을
+      // 그 빈 칸에 채운다(국내 시장 요약에서는 이미 투자자 동향이 있어 굳이 안 보여줌).
+      var nightFutures = dashboardSection.querySelector('[data-home-night-futures]');
       if (title) title.textContent = isUs ? '미국 시장 요약' : '국내 시장 요약';
       if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
       if (labels[0]) labels[0].textContent = isUs ? '상승 종목 비율' : '증시온도';
       if (investorTrend) investorTrend.hidden = isUs;
+      if (nightFutures) nightFutures.hidden = !isUs;
     }
 
     function sectorSummary(data) {
@@ -501,6 +507,18 @@
       applyHomeMarketSession(session);
       var bySymbol = {};
       (items || []).forEach(function (item) { if (item && item.symbol) bySymbol[item.symbol] = item; });
+      // 미국 시장 요약 카드의 "코스피 야간선물" 칸 - hidden 상태여도 값은 항상 채워둬서
+      // 세션이 전환되는 순간(applyHomeSummarySession) 바로 최신값이 보이게 한다.
+      var nightItem = bySymbol.KOSPI200_NIGHT;
+      if (nightItem) {
+        var nPrice = Number(nightItem.price);
+        var nChange = Number(nightItem.change);
+        var nRate = Number(nightItem.change_rate);
+        var nTone = !isFinite(nChange) || nChange === 0 ? 'home-neutral' : nChange > 0 ? 'home-positive' : 'home-negative';
+        var nText = (isFinite(nPrice) ? nPrice.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-')
+          + (isFinite(nRate) ? ' ' + (nChange > 0 ? '▲' : nChange < 0 ? '▼' : '') + Math.abs(nRate).toFixed(2) + '%' : '');
+        setField('nightFutures', nText, nTone);
+      }
       session.keys.forEach(function (key, index) {
         var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
         var item = bySymbol[key];
@@ -524,7 +542,7 @@
       applyHomeMarketSession(homeMarketSession());
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
         ? window.QuickIndices.fetchFutures()
-        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX', 12000)
+        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CKOSPI200_NIGHT', 12000)
           .then(function (data) { return data && data.data ? data.data : []; });
       request.then(renderHomeIndices).catch(function () {
         ['primary', 'secondary'].forEach(function (slot) {
