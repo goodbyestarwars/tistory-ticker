@@ -104,3 +104,81 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
   .my-save-holding { grid-column: 1 / -1; }
   .my-detail-frame iframe { height: 760px; }
 }
+
+/* MY는 관심종목을 나열하는 화면이 아니라 입력형 분석 화면으로 사용한다. */
+#watchlist.my-source-watchlist { display: none !important; }
+#my-dashboard { margin-top: 34px; }
+.my-dashboard-head { padding: 28px 0 20px; }
+.my-dashboard-head h2 { font-size: 31px; }
+.my-dashboard-head p { font-size: 15px; }
+.my-dashboard-eyebrow { font-size: 12px; }
+.my-search-panel {
+  margin: 18px 0;
+  padding: 20px;
+  border: 2px solid #dbe5f2;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+.my-search-panel label { display: block; margin-bottom: 9px; color: #172033; font-size: 17px; font-weight: 800; }
+.my-search-row { display: flex; gap: 10px; }
+.my-search-row input { flex: 1; min-width: 0; min-height: 48px; padding: 10px 14px; border: 1px solid #b9c9dc; border-radius: 10px; background: #fff; color: #111827; font: inherit; font-size: 16px; }
+.my-search-row button { min-height: 48px; padding: 0 18px; border: 0; border-radius: 10px; background: #111827; color: #fff; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+.my-search-panel p { margin: 9px 0 0; color: #64748b; font-size: 13px; }
+.my-dashboard-status { min-height: 26px; padding: 10px 2px; font-size: 14px; }
+.my-dashboard-detail { padding: 20px; border: 2px solid #e3eaf3; border-radius: 18px; background: #fbfdff; }
+.my-detail-head h3 { font-size: 27px; }
+.my-metric-grid { gap: 12px; }
+.my-metric-grid > div, .my-holding-card, .my-analysis-card, .my-detail-frame { border-width: 2px; border-color: #dce6f1; border-radius: 15px; }
+.my-metric-grid > div { padding: 17px; }
+.my-metric-grid strong { font-size: 22px; }
+.my-metric-grid span, .my-metric-grid small { font-size: 13px; }
+.my-card-title strong { font-size: 17px; }
+.my-card-title span, .my-holding-note, .my-analysis-footnote, .my-muted { font-size: 12px; }
+.my-flow-row { font-size: 15px; }
+.my-flow-row small { font-size: 12px; }
+.my-flow-row b { font-size: 16px; }
+.my-volume-highlight { border: 1px solid #dbe5f2; font-size: 14px; }
+.my-volume-highlight strong { font-size: 22px; }
+.my-volume-chart { display: grid; gap: 6px; margin-top: 14px; }
+.my-volume-row { display: grid; grid-template-columns: 92px minmax(0, 1fr) 72px; gap: 8px; align-items: center; min-height: 22px; color: #64748b; font-size: 11px; font-variant-numeric: tabular-nums; }
+.my-volume-row > span { text-align: right; }
+.my-volume-row > i { display: block; height: 12px; border-radius: 99px; background: #edf2f7; overflow: hidden; }
+.my-volume-row > i > b { display: block; height: 100%; border-radius: inherit; background: #9db9e1; }
+.my-volume-row.is-poc > i > b { background: #e36a5b; }
+.my-volume-row.is-current > i { outline: 2px solid #2563eb; outline-offset: 1px; }
+.my-volume-row > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.my-volume-legend { display: flex; gap: 15px; margin-top: 11px; color: #64748b; font-size: 11px; }
+.my-volume-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 4px; border-radius: 50%; background: #9db9e1; }
+.my-volume-legend i.is-poc { background: #e36a5b; }
+.my-volume-legend i.is-current { background: #2563eb; }
+.my-chart-shape { background: #fff; }
+.my-shape-badge { display: inline-block; margin-bottom: 13px; padding: 8px 12px; border-radius: 999px; background: #eaf2ff; color: #1d4ed8; font-size: 16px; font-weight: 800; }
+.my-shape-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.my-shape-grid > div { padding: 11px; border: 1px solid #e3eaf3; border-radius: 10px; }
+.my-shape-grid span { display: block; color: #64748b; font-size: 12px; }
+.my-shape-grid strong { display: block; margin-top: 5px; font-size: 19px; }
+.my-shape-note { margin: 12px 0 0; color: #334155; font-size: 14px; line-height: 1.6; }
+.my-shape-note b { color: #111827; }
+.my-range-label { display: block; color: #334155; font-size: 14px; font-weight: 700; }
+.my-range-label output { float: right; color: #2563eb; font-size: 16px; font-variant-numeric: tabular-nums; }
+.my-range-label input[type="range"] { display: block; width: 100%; height: 9px; margin: 18px 0 12px; accent-color: #2563eb; cursor: ew-resize; }
+.my-calc-auto { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.my-calc-auto span { padding: 11px; border: 1px solid #e3eaf3; border-radius: 10px; color: #64748b; font-size: 12px; }
+.my-calc-auto strong { display: block; margin-top: 5px; color: #111827; font-size: 17px; }
+.my-calc-result { font-size: 13px; }
+.my-calc-result strong { font-size: 19px; }
+html.dark .my-search-panel, html.dark .my-dashboard-detail { border-color: rgba(245,239,224,.2); background: #181818; }
+html.dark .my-search-panel label, html.dark .my-shape-note b { color: #f5efe0; }
+html.dark .my-search-panel p, html.dark .my-shape-note, html.dark .my-range-label { color: rgba(245,239,224,.7); }
+html.dark .my-search-row input, html.dark .my-shape-grid > div, html.dark .my-calc-auto span { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
+html.dark .my-volume-row > i { background: #303030; }
+html.dark .my-shape-badge { background: #1d3158; color: #bfdbfe; }
+html.dark .my-shape-grid span, html.dark .my-calc-auto span { color: rgba(245,239,224,.65); }
+html.dark .my-calc-auto strong { color: #f5efe0; }
+
+@media (max-width: 720px) {
+  .my-dashboard-head h2 { font-size: 26px; }
+  .my-search-row { display: grid; grid-template-columns: 1fr; }
+  .my-dashboard-detail { padding: 12px; }
+  .my-volume-row { grid-template-columns: 82px minmax(0, 1fr) 58px; }
+}
