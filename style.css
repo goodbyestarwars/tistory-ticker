@@ -647,6 +647,52 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
    칸이라 코스피/코스닥 카드용 기본 39px보다 낮게 줄인다(2026-08-13). */
 .home-night-futures-chart { height: 22px; margin-top: 5px; }
 .home-night-futures-chart .home-index-chart-empty { padding-top: 4px; }
+
+/* 코스피↔나스닥 전환(08:00/20:00 KST) 3분 전부터만 뜨는 라인아트 카운트다운 배지
+   (2026-08-13 요청). 정확한 여백 폭을 알 수 없어 화면 아무 위치에서나 안전한
+   좌하단 고정 배지로 뒀다 - 자리가 안 맞으면 알려주면 옮긴다. */
+.home-switch-countdown {
+  position: fixed;
+  left: 20px;
+  bottom: 22px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .92);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(20, 24, 30, .12);
+  border: 1px solid rgba(32, 37, 43, .08);
+  animation: hscFadeIn .4s ease;
+}
+.home-switch-countdown[hidden] { display: none; }
+@keyframes hscFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hsc-ring { width: 38px; height: 38px; flex: none; transform: rotate(-90deg); }
+.hsc-ring-track { fill: none; stroke: rgba(32, 37, 43, .12); stroke-width: 2.4; }
+.hsc-ring-progress {
+  fill: none;
+  stroke: #20252b;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+.home-switch-countdown.hsc-to-us .hsc-ring-progress { stroke: #d24f45; }
+.home-switch-countdown.hsc-to-kr .hsc-ring-progress { stroke: #1261c4; }
+.hsc-body { display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+.hsc-label { font-size: 10px; color: #8a9099; white-space: nowrap; }
+.hsc-time {
+  font-size: 16px;
+  font-weight: 700;
+  color: #20252b;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .3px;
+}
 .home-card-heading {
   display: flex;
   align-items: flex-start;
@@ -1245,6 +1291,17 @@ html.dark .home-index-top strong,
 html.dark .home-index-price-row strong { color: #F5EFE0 !important; }
 html.dark .home-index-top span,
 html.dark .home-index-chart-empty { color: rgba(245, 239, 224, .5) !important; }
+html.dark .home-switch-countdown {
+  background: rgba(26, 26, 26, .92) !important;
+  border-color: rgba(245, 239, 224, .16) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .4) !important;
+}
+html.dark .hsc-ring-track { stroke: rgba(245, 239, 224, .18) !important; }
+html.dark .hsc-ring-progress { stroke: #F5EFE0 !important; }
+html.dark .home-switch-countdown.hsc-to-us .hsc-ring-progress { stroke: #d24f45 !important; }
+html.dark .home-switch-countdown.hsc-to-kr .hsc-ring-progress { stroke: #1261c4 !important; }
+html.dark .hsc-label { color: rgba(245, 239, 224, .5) !important; }
+html.dark .hsc-time { color: #F5EFE0 !important; }
 html.dark .home-market-live { color: #e8776d !important; }
 html.dark .home-top-disclosures-head strong { color: #F5EFE0 !important; }
 html.dark .home-top-disclosures-head span,
@@ -3498,6 +3555,8 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
     text-decoration: none;
     cursor: pointer;
   }
+  /* 앱 하단 탭바(64px)에 가려지지 않도록 카운트다운 배지를 그 위로 띄운다. */
+  .home-switch-countdown { bottom: calc(78px + env(safe-area-inset-bottom)); left: 12px; }
   .mobile-app-bottom-item svg { width: 22px; height: 22px; flex: 0 0 auto; }
   .mobile-app-bottom-item.active { color: #111827; font-weight: 700; }
   .mobile-app-bottom-item.active svg { stroke-width: 2.3; }

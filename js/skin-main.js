@@ -564,6 +564,77 @@
     loadHomeIndices();
     setInterval(function () { if (!document.hidden) loadHomeIndices(); }, 60 * 1000);
 
+    // ---- 코스피↔나스닥 전환 카운트다운 (2026-08-13 요청) ----
+    // homeMarketSession()이 국내/미국 장을 나누는 기준(08:00·20:00 KST)과 정확히 같은
+    // 시각 3분 전부터만 뜨는 라인아트 링 배지. 위치를 정확히 어디에 둬야 할지 몰라
+    // 화면 좌하단 고정으로 두었다(style.css .home-switch-countdown 주석 참고).
+    (function setupHomeSwitchCountdown() {
+      var SWITCH_HOURS = [8, 20]; // KST, homeMarketSession()과 동일 기준
+      var WARN_SECONDS = 180; // 3분 전부터 노출
+      var RING_R = 16;
+      var RING_C = 2 * Math.PI * RING_R;
+      var el = null, ringProgress = null, labelEl = null, timeEl = null;
+      var wasVisible = false;
+
+      function mount() {
+        if (el) return;
+        el = document.createElement('div');
+        el.className = 'home-switch-countdown';
+        el.hidden = true;
+        el.innerHTML = '<svg class="hsc-ring" viewBox="0 0 36 36" aria-hidden="true">'
+          + '<circle class="hsc-ring-track" cx="18" cy="18" r="' + RING_R + '"></circle>'
+          + '<circle class="hsc-ring-progress" cx="18" cy="18" r="' + RING_R + '" style="stroke-dasharray:' + RING_C.toFixed(2) + '"></circle>'
+          + '</svg>'
+          + '<div class="hsc-body"><span class="hsc-label"></span><strong class="hsc-time"></strong></div>';
+        document.body.appendChild(el);
+        ringProgress = el.querySelector('.hsc-ring-progress');
+        labelEl = el.querySelector('.hsc-label');
+        timeEl = el.querySelector('.hsc-time');
+      }
+
+      // 다음 전환(08:00 또는 20:00)까지 남은 초와, 그 전환이 미국장으로 가는 건지 반환.
+      function nextSwitch(kstNowSec) {
+        var best = null;
+        SWITCH_HOURS.forEach(function (hour) {
+          var targetSec = hour * 3600;
+          var diff = targetSec - kstNowSec;
+          if (diff <= 0) diff += 86400;
+          if (!best || diff < best.secondsLeft) best = { hour: hour, secondsLeft: diff };
+        });
+        return best;
+      }
+
+      function tick() {
+        var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        var nowSec = kst.getUTCHours() * 3600 + kst.getUTCMinutes() * 60 + kst.getUTCSeconds();
+        var next = nextSwitch(nowSec);
+        var visible = next.secondsLeft <= WARN_SECONDS;
+        if (!visible) {
+          if (el) el.hidden = true;
+          wasVisible = false;
+          return;
+        }
+        mount();
+        var toUs = next.hour === 20;
+        if (!wasVisible) {
+          // 새로 나타날 때만 innerHTML을 건드려 애니메이션(hscFadeIn)이 다시 재생되게 한다.
+          el.hidden = false;
+          el.classList.toggle('hsc-to-us', toUs);
+          el.classList.toggle('hsc-to-kr', !toUs);
+          labelEl.textContent = toUs ? '나스닥 개장까지' : '코스피 개장까지';
+          wasVisible = true;
+        }
+        var minutes = Math.floor(next.secondsLeft / 60);
+        var seconds = next.secondsLeft % 60;
+        timeEl.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+        var ratio = next.secondsLeft / WARN_SECONDS; // 1(방금 시작) -> 0(전환 직전)
+        ringProgress.style.strokeDashoffset = (RING_C * (1 - ratio)).toFixed(2);
+      }
+
+      tick();
+      setInterval(tick, 1000);
+    })();
+
     var marketTempCacheKey = 'home_market_temp_v1';
     var marketSectorCacheKey = 'home_market_sectors_v1';
     var cachedMarketTemp = readHomeDataCache(marketTempCacheKey, 10 * 60 * 1000);
