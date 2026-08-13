@@ -1567,6 +1567,8 @@
 #foreign-flow .ff-sim-mark-trough { fill: #1261c4; }
 #foreign-flow .ff-sim-mark-label { font-weight: 800; font-size: 10.5px; }
 #foreign-flow .ff-sim-axis-label { font-weight: 700; fill: #666; }
+/* 축 최고/최저 금액·원금·날짜 라벨만 1px 축소(최고/최저 마커 글자는 제외) - 2026-08-13 요청 */
+#foreign-flow .ff-chart-sim .ff-axis:not(.ff-sim-mark-label) { font-size: 10px; }
 #foreign-flow .ff-sim-extremes {
   display: flex;
   flex-wrap: wrap;
