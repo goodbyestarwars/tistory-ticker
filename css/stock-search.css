@@ -368,16 +368,40 @@
 }
 #stock-search .ss-price-study-label b { font-weight: 600; }
 #stock-search .ss-price-study-label .ss-ichimoku-label { color: #8a9099; }
+/* 2026-08-13 사용자 리포트로 position:absolute 등 배치 속성이 아예 빠져 있던 걸 발견
+   (display:none만 있어 사실상 항상 숨겨진 상태) - ss-price-study-label과 같은 구조로
+   채우고 표시한다. top은 기본값(패널 높이 비례 추정치)이며 실제 위치는 차트 렌더링 시
+   JS가 계산한 패널 높이로 인라인 스타일을 덮어쓴다(js/stock-search.js). */
 #stock-search .ss-volume-study-label {
-  display: none;
+  position: absolute;
+  z-index: 5;
+  left: 8px;
   top: 70%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  align-items: center;
+  font-size: 10.5px;
+  line-height: 1.35;
+  pointer-events: none;
 }
 #stock-search .ss-volume-study-label b { color: #4f8df7; font-weight: 600; }
+#stock-search .ss-volume-study-label .ss-volume-ma5-value { color: #b45309; }
 #stock-search .ss-volume-study-label .ss-volume-ma-value { color: #2563eb; }
 #stock-search .ss-volume-study-label .ss-volume-day-label { margin-left: 3px; color: #8a9099; }
 #stock-search .ss-volume-study-label .ss-volume-day-change.is-up { color: #d24f45; }
 #stock-search .ss-volume-study-label .ss-volume-day-change.is-down { color: #1261c4; }
 #stock-search .ss-volume-study-label .ss-volume-day-change.is-flat { color: #8a9099; }
+#stock-search .ss-volume-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 2px;
+  vertical-align: middle;
+}
+#stock-search .ss-volume-dot-5 { background: #f59e0b; }
+#stock-search .ss-volume-dot-20 { background: #3b82f6; }
 #stock-search .ss-lwc-pane-labels {
   position: absolute;
   z-index: 5;
@@ -386,6 +410,8 @@
   color: #8a9099;
   font-size: 10px;
 }
+/* top은 js/stock-search.js가 실제 패널 높이로 인라인 스타일을 넣어준다(고정 %는
+   컨테이너 높이가 달라지면 패널 경계와 어긋나서 제거 - 2026-08-13 사용자 리포트). */
 #stock-search .ss-lwc-pane-labels span {
   position: absolute;
   left: 8px;
@@ -393,9 +419,6 @@
   border-radius: 3px;
   background: rgba(255,255,255,.72);
 }
-#stock-search .ss-lwc-pane-labels span:nth-child(1) { top: 58%; }
-#stock-search .ss-lwc-pane-labels span:nth-child(2) { top: 72%; }
-#stock-search .ss-lwc-pane-labels span:nth-child(3) { top: 86%; }
 #stock-search .ss-chart .ss-hint { height: 100%; justify-content: center; }
 #stock-search .ss-chart-legend {
   margin-top: 8px;
@@ -524,6 +547,7 @@ html.dark #stock-search .ss-chart-studies label { color: rgba(245, 239, 224, 0.7
 html.dark #stock-search .ss-chart::after { border-top-color: rgba(245, 239, 224, 0.16) !important; }
 html.dark #stock-search .ss-price-study-label .ss-ichimoku-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-search .ss-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #stock-search .ss-volume-study-label .ss-volume-ma5-value { color: #fbbf24 !important; }
 html.dark #stock-search .ss-lwc-pane-labels { color: rgba(245,239,224,.6); }
 html.dark #stock-search .ss-lwc-pane-labels span { background: rgba(26,26,26,.72); }
 html.dark #stock-search .ss-fav-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.35) !important; }

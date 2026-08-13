@@ -1674,14 +1674,47 @@
         return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
       }));
 
+      // 2026-08-13 사용자 리포트: 거래량 패널에 파란 선(20일 평균) 하나만 있고 무슨 선인지
+      // 설명이 없었음(범례가 CSS display:none으로 숨어 있던 버그) - 5일 평균을 추가하고
+      // 아래 ss-volume-study-label 범례를 살려서 색점으로 구분한다.
+      var volumeMa5Points = movingAveragePoints(bars, 'volume', 5);
+      var volumeMa5Series = chart.addSeries(LWC.LineSeries, {
+        color: '#f59e0b',
+        lineWidth: 1.6,
+        priceFormat: { type: 'volume' },
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false
+      }, 1);
+      volumeMa5Series.setData(volumeMa5Points.map(function (point) {
+        return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
+      }));
+
       var studies = stockRsiMacd(bars);
-      var rsiSeries = chart.addSeries(LWC.LineSeries, {
-        color: '#8b5cf6', lineWidth: 2, lastValueVisible: true, priceLineVisible: false,
+      // RSI(14)를 50 기준으로 위(매수 우위)는 빨강, 아래(매도 우위)는 파랑 두 색으로 나눠
+      // 그린다(2026-08-13 요청 - 사이트 공통 상승=빨강/하락=파랑 규칙을 RSI에도 적용).
+      // Lightweight Charts의 LineSeries는 값별로 색을 못 바꿔서, 반대 구간은 null로 비운
+      // 시리즈 두 개로 나눈다(경계를 넘나드는 봉 근처에서만 살짝 끊겨 보일 수 있음, 감수).
+      var lastRsiIndex = -1;
+      for (var ri = studies.rsi.length - 1; ri >= 0; ri--) { if (studies.rsi[ri] != null) { lastRsiIndex = ri; break; } }
+      var lastRsiAbove = lastRsiIndex !== -1 && studies.rsi[lastRsiIndex] >= 50;
+      var rsiAboveSeries = chart.addSeries(LWC.LineSeries, {
+        color: '#d24f45', lineWidth: 2, lastValueVisible: lastRsiAbove, priceLineVisible: false,
         title: 'RSI(14)', priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
       }, 2);
-      rsiSeries.setData(bars.map(function (bar, index) { return studies.rsi[index] == null ? null : { time: bar.date, value: studies.rsi[index] }; }).filter(Boolean));
-      rsiSeries.createPriceLine({ price: 70, color: '#d24f45', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
-      rsiSeries.createPriceLine({ price: 30, color: '#1261c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
+      rsiAboveSeries.setData(bars.map(function (bar, index) {
+        return studies.rsi[index] == null || studies.rsi[index] < 50 ? null : { time: bar.date, value: studies.rsi[index] };
+      }).filter(Boolean));
+      var rsiBelowSeries = chart.addSeries(LWC.LineSeries, {
+        color: '#1261c4', lineWidth: 2, lastValueVisible: !lastRsiAbove, priceLineVisible: false,
+        title: 'RSI(14)', priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
+      }, 2);
+      rsiBelowSeries.setData(bars.map(function (bar, index) {
+        return studies.rsi[index] == null || studies.rsi[index] >= 50 ? null : { time: bar.date, value: studies.rsi[index] };
+      }).filter(Boolean));
+      rsiAboveSeries.createPriceLine({ price: 70, color: '#d24f45', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
+      rsiAboveSeries.createPriceLine({ price: 50, color: '#9ca3af', lineWidth: 1, lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: false, title: '50' });
+      rsiAboveSeries.createPriceLine({ price: 30, color: '#1261c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
       var macdHistogram = chart.addSeries(LWC.HistogramSeries, {
         priceFormat: { type: 'custom', minMove: 0.01, formatter: function (v) { return Number(v).toFixed(2); } },
         lastValueVisible: false, priceLineVisible: false, title: 'MACD 히스토그램'
@@ -1703,15 +1736,17 @@
 
       var latestBar = bars[bars.length - 1] || {};
       var previousBar = bars.length > 1 ? bars[bars.length - 2] : null;
+      var latestVolumeMa5 = volumeMa5Points.length ? volumeMa5Points[volumeMa5Points.length - 1].value : null;
       var latestVolumeMa = volumeMaPoints.length ? volumeMaPoints[volumeMaPoints.length - 1].value : null;
       var previousVolume = previousBar ? Number(previousBar.volume) || 0 : 0;
       var latestVolume = Number(latestBar.volume) || 0;
       var volumeChangePct = previousVolume > 0 ? (latestVolume - previousVolume) / previousVolume * 100 : null;
       var volumeLegend = document.createElement('div');
       volumeLegend.className = 'ss-volume-study-label';
-      volumeLegend.innerHTML = '<span>거래량 (20)</span>'
+      volumeLegend.innerHTML = '<span>거래량</span>'
         + '<b>' + compactVolume(latestVolume) + '</b>'
-        + (latestVolumeMa == null ? '' : '<b class="ss-volume-ma-value">20일평균 ' + compactVolume(latestVolumeMa) + '</b>')
+        + (latestVolumeMa5 == null ? '' : '<b class="ss-volume-ma5-value"><i class="ss-volume-dot ss-volume-dot-5"></i>5일평균 ' + compactVolume(latestVolumeMa5) + '</b>')
+        + (latestVolumeMa == null ? '' : '<b class="ss-volume-ma-value"><i class="ss-volume-dot ss-volume-dot-20"></i>20일평균 ' + compactVolume(latestVolumeMa) + '</b>')
         + '<span class="ss-volume-day-label">전일 대비</span>'
         + '<b class="ss-volume-day-change ' + (volumeChangePct > 0 ? 'is-up' : (volumeChangePct < 0 ? 'is-down' : 'is-flat')) + '">' + formatSignedPercent(volumeChangePct) + '</b>';
       container.appendChild(volumeLegend);
@@ -1720,8 +1755,17 @@
       var panes = chart.panes();
       var totalHeight = container.clientHeight || 420;
       var subHeight = Math.max(48, Math.round(totalHeight * 0.14));
-      if (panes[0] && panes[0].setHeight) panes[0].setHeight(Math.max(220, totalHeight - subHeight * (panes.length - 1)));
+      var mainHeight = Math.max(220, totalHeight - subHeight * (panes.length - 1));
+      if (panes[0] && panes[0].setHeight) panes[0].setHeight(mainHeight);
       panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
+      // 패널 제목·거래량 범례 위치를 CSS 고정 %(58/72/86%) 대신 실제로 적용한 패널 높이
+      // 그대로 계산해서 맞춘다 - 컨테이너 높이가 달라지면 고정 %는 패널 경계와 어긋난다
+      // (2026-08-13 사용자 스크린샷 제보: "거래량" 제목이 실제 거래량 패널과 안 맞음).
+      var paneLabelSpans = paneLabels.querySelectorAll('span');
+      [mainHeight, mainHeight + subHeight, mainHeight + subHeight * 2].forEach(function (top, i) {
+        if (paneLabelSpans[i]) paneLabelSpans[i].style.top = top + 'px';
+      });
+      volumeLegend.style.top = mainHeight + 'px';
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
       setupStockDrawing(container, chart, candleSeries, timeframe);
     }).catch(function () {
