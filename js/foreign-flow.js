@@ -2888,7 +2888,9 @@
     var min = Math.min.apply(null, ratios);
     var span = (max - min) || 0.1;
     var domMax = max + span * 0.12;
-    var domMin = min - span * 0.12;
+    // 평가금액은 원금을 다 잃어도 0원 아래로는 안 내려가므로 축 바닥을 0 밑으로 두지 않는다
+    // (패딩만 적용하면 음수가 나올 수 있었음 - 축 라벨에 음수 표기가 남던 문제 수정).
+    var domMin = Math.max(0, min - span * 0.12);
     var iw = CHART_W - PAD.l - PAD.r;
     var ih = SIM_H - PAD.t - PAD.b;
     function x(i) { return PAD.l + (n <= 1 ? 0 : (i / (n - 1)) * iw); }
@@ -2979,8 +2981,8 @@
 
     function updateAxis() {
       var amount = currentAmount();
-      if (axisMaxEl) axisMaxEl.textContent = fmtWon(Math.round(amount * geo.domMax));
-      if (axisMinEl) axisMinEl.textContent = fmtWon(Math.round(amount * geo.domMin));
+      if (axisMaxEl) axisMaxEl.textContent = fmtCompactWon(amount * geo.domMax);
+      if (axisMinEl) axisMinEl.textContent = fmtCompactWon(amount * geo.domMin);
     }
 
     function pointsUpTo(i) {
@@ -5040,6 +5042,16 @@
 
   function fmtAbsShares(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '주'; }
   function fmtWon(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '원'; }
+  // 시뮬레이션 차트 Y축처럼 좁은 여백(PAD.l)에 넣는 금액용 - fmtWon은 전체 자릿수라
+  // 억대 투자금에서 글자가 축 여백을 넘어 차트 밖으로 삐져나온다(2026-08-13 스크린샷 제보).
+  function fmtCompactWon(v) {
+    if (v == null || isNaN(v)) return '-';
+    var n = Math.round(v);
+    var abs = Math.abs(n);
+    if (abs >= 1e8) return (n / 1e8).toFixed(1) + '억원';
+    if (abs >= 1e4) return Math.round(n / 1e4).toLocaleString('ko-KR') + '만원';
+    return n.toLocaleString('ko-KR') + '원';
+  }
   // 캔들차트 축·지지/저항선·크로스헤어에 표시되는 가격에 천단위 콤마(원화는 소수점 없음)
   function chartPriceFormatter(v) { return v == null || isNaN(v) ? '' : Math.round(v).toLocaleString(); }
   function movingAverageChartPoints(bars, field, period) {
