@@ -207,7 +207,8 @@
         + '<div><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
         + '<div><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
         + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
-        + '<div data-home-night-futures hidden><dt>코스피 야간선물</dt><dd data-market-field="nightFutures">데이터 확인 중</dd></div>'
+        + '<div data-home-night-futures hidden><dt>코스피 야간선물</dt><dd data-market-field="nightFutures">데이터 확인 중</dd>'
+        + '<div class="home-index-chart home-night-futures-chart" data-night-futures-chart aria-hidden="true"></div></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="코스피 코스닥 외국인 순매수 추이">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><span>외국인 순매수</span></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
@@ -518,6 +519,12 @@
         var nText = (isFinite(nPrice) ? nPrice.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-')
           + (isFinite(nRate) ? ' ' + (nChange > 0 ? '▲' : nChange < 0 ? '▼' : '') + Math.abs(nRate).toFixed(2) + '%' : '');
         setField('nightFutures', nText, nTone);
+        // 주간(국내 시장) 쪽 코스피/코스닥 카드처럼 추이 그래프도 같이 보여준다(2026-08-13
+        // 사용자 리포트 - 텍스트만 있고 그래프가 빠져 있었음). renderHomeIndexChart는 SVG를
+        // preserveAspectRatio="none"으로 채우므로 컨테이너 CSS 크기만 다르면(style.css의
+        // .home-night-futures-chart) 그대로 재사용된다.
+        var nightChartEl = dashboardSection.querySelector('[data-night-futures-chart]');
+        if (nightChartEl) renderHomeIndexChart(nightChartEl, nightItem.chart, nChange >= 0, 'kospiNight');
       }
       session.keys.forEach(function (key, index) {
         var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');

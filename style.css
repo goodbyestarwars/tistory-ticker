@@ -643,6 +643,10 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   font-size: 9px;
   text-align: center;
 }
+/* 미국 시장 요약 카드의 "코스피 야간선물" 칸은 .hmb-list 통계 셀 안에 들어가는 작은
+   칸이라 코스피/코스닥 카드용 기본 39px보다 낮게 줄인다(2026-08-13). */
+.home-night-futures-chart { height: 22px; margin-top: 5px; }
+.home-night-futures-chart .home-index-chart-empty { padding-top: 4px; }
 .home-card-heading {
   display: flex;
   align-items: flex-start;
