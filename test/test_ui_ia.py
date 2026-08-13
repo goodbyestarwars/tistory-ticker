@@ -109,6 +109,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (chartTarget) chartTarget.dispatchEvent(new Event('resize'))", enhancements)
         self.assertIn("dmiPanel.querySelector('.dmi-tabs')", enhancements)
         self.assertIn("futuresSection.querySelector('.kf-interval-toggle')", enhancements)
+        self.assertIn("moveDrawingControlsBelowFullscreen", enhancements)
+        self.assertIn("className = 'de-draw-controls'", enhancements)
         futures_style = self.read("css/dashboard-enhancements.css")
         futures_script = self.read("js/kospi-futures.js")
         futures_css = self.read("css/kospi-futures.css")
@@ -786,6 +788,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('class="ss-draw-toggle"', search)
         self.assertIn('class="ss-draw-clear"', search)
         self.assertIn("function setupStockDrawing", search)
+        self.assertIn("if (!drawing.pending)", search)
+        self.assertIn("drawing.lines.push({ start: drawing.pending, end: point })", search)
         self.assertIn(".us-stocks-market-grid > *", style)
         self.assertIn(".us-native-chart-mount .ss-chart-tabs", style)
 

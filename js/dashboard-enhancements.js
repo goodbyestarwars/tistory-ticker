@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20260813-chart-fullscreen-layout-v2';
+  var ENHANCEMENT_VERSION = '20260813-chart-fullscreen-layout-v3';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -39,6 +39,28 @@
     link.href = STYLE_HREF;
     link.setAttribute('data-dashboard-enhancements-style', '1');
     document.head.appendChild(link);
+  }
+
+  function moveDrawingControlsBelowFullscreen(controlRow) {
+    if (!controlRow || controlRow.getAttribute('data-de-draw-layout') === '1') return;
+    var buttonSelectors = [
+      '.ss-draw-toggle', '.ss-draw-clear',
+      '.dmi-draw-toggle', '.dmi-draw-clear',
+      '.kf-draw-toggle', '.kf-draw-clear'
+    ];
+    var buttons = [];
+    buttonSelectors.forEach(function (selector) {
+      var button = controlRow.querySelector(selector);
+      if (button) buttons.push(button);
+    });
+    if (!buttons.length || !controlRow.parentNode) return;
+    controlRow.setAttribute('data-de-draw-layout', '1');
+    var drawRow = document.createElement('div');
+    drawRow.className = 'de-draw-controls';
+    drawRow.setAttribute('role', 'group');
+    drawRow.setAttribute('aria-label', '차트 그리기 도구');
+    controlRow.parentNode.insertBefore(drawRow, controlRow.nextSibling);
+    buttons.forEach(function (button) { drawRow.appendChild(button); });
   }
 
   function customCardHtml(card) {
@@ -162,6 +184,7 @@
       controlRow.classList.add('de-chart-control-row');
       button.classList.add('de-expand-inline');
       controlRow.appendChild(button);
+      moveDrawingControlsBelowFullscreen(controlRow);
     } else if (anchor) {
       anchor.insertBefore(button, target);
     }
