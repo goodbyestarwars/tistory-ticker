@@ -1,5 +1,7 @@
 # 9Pay 주요 작업이력
 
+**2026-08-14 GAS 자동 배포 파이프라인(GitHub Actions+clasp) 추가**: 지금까지 `gas/ticker-proxy.gs`는 git push만으로 배포되지 않고 script.google.com에서 매번 수동으로 "새 버전 배포"를 눌러야 했다(사용자가 로컬 소스 보관 없이 배포까지 자동화하길 원함). `.github/workflows/deploy-gas.yml`을 추가해 `gas/ticker-proxy.gs`·`gas/.clasp.json`이 master에 push되면 GitHub의 클라우드 러너에서 `clasp push`+`clasp deploy`를 실행해 기존 배포(운영 웹앱 URL)에 자동 반영하도록 했다. `gas/.clasp.json`(스크립트ID, rootDir)도 저장소에 추가했다(민감정보 아님). 실제 동작하려면 저장소 Secrets에 `CLASP_CREDENTIALS`(clasp login 결과)·`CLASP_DEPLOYMENT_ID`(기존 배포ID)를 1회 등록해야 한다 - 절차는 `docs/GAS_AUTO_DEPLOY.md` 참고. **이 설정 전까지는 여전히 기존처럼 수동 배포가 필요하다.**
+
 **2026-08-14 GAS 시세 캐시가 08:00/20:00 경계를 넘겨 최대 30분 유지되던 버그 수정**: `gas/ticker-proxy.gs`의 관심종목 시세 배치(`?codes=`)와 시총버블(`getMarketcapBubble`) 캐시가 `isAnyTradingSessionOpen_()`(08:00~20:00 KST)의 열림/닫힘 여부로만 TTL(60초/1800초)을 정해서, 예를 들어 07:59에 쓰인 캐시는 "장외" 판정으로 1800초 TTL을 그대로 받아 08:00가 지나 장이 열려도 최악의 경우 08:29까지 직전 장외 스냅샷("0.00%")이 그대로 나갔다(사용자 리포트: 08:01에 관심종목 시세가 갱신 안 됨). 새 헬퍼 `capTtlToSessionBoundary_`로 TTL을 다음 08:00/20:00 경계까지 남은 초로 캡핑해 경계 시점 근처에서 캐시가 자연 만료되도록 했다. **GAS는 git push만으로 배포되지 않으므로 script.google.com에서 새 버전으로 수동 배포해야 실제 반영된다.**
 
 **2026-08-13 홈 국내/미국 장 전환 카운트다운 배지 추가**: `homeMarketSession()`이 국내(코스피/코스닥)·미국(나스닥/S&P500) 요약을 08:00·20:00(KST) 기준으로 바꾸는 것에 맞춰, 전환 3분 전부터만 나타나는 라인아트 링 카운트다운 배지를 추가했다(`js/skin-main.js` setupHomeSwitchCountdown, `style.css` `.home-switch-countdown`). 화면 좌하단에 고정 배치했고(정확한 여백 폭을 확인할 방법이 없어 임시로 안전한 위치 선택, 필요 시 재배치 예정), 남은 초에 따라 SVG 링이 비워지며 08:00 전환은 파란색, 20:00 전환은 빨간색으로 구분했다. 모바일 하단 탭바와 겹치지 않도록 720px 이하에서 위치를 올렸다.
