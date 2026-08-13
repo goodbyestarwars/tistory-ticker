@@ -1,5 +1,11 @@
 /* ============ 저평가 종목 ============ */
 
+/* 저평가 종목·배당주·ETF 수익률 상위 카드 전체를 사이트 마루부리/나눔고딕 토글 대신
+   시스템 고딕으로 고정한다(js/foreign-flow.js와 동일한 폰트 스택 - 2026-08-13 요청). */
+#strategy-search {
+  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+}
+
 #strategy-search .ss-head {
   display: flex;
   align-items: center;
