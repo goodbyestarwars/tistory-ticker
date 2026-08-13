@@ -104,7 +104,7 @@
   function renderShell() {
     mount.innerHTML = '<header class="my-dashboard-head">'
       + '<div><span class="my-dashboard-eyebrow">MY PORTFOLIO</span><h2>내 종목 분석</h2><p>종목을 입력하면 시세·차트·수급·매물대를 바로 분석합니다.</p></div></header>'
-      + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist><button type="button" data-my-load>분석 불러오기</button></div><p>저장된 MY 종목은 입력창에서 선택할 수 있고, 새 종목도 먼저 분석할 수 있습니다.</p></div>'
+      + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist><button type="button" data-my-load aria-label="입력한 종목 불러오기"><svg class="my-load-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 7.2 4.5M12 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>불러오기</span></button></div><p>저장된 MY 종목은 입력창에서 선택할 수 있고, 새 종목도 먼저 분석할 수 있습니다.</p></div>'
       + '<div id="myDashboardStatus" class="my-dashboard-status">분석할 종목을 입력하세요.</div>'
       + '<main class="my-dashboard-detail" id="myDashboardDetail"></main>';
   }
@@ -278,22 +278,90 @@
     if (!data) return '차트 모양 데이터 없음';
     return data.shape + ', 5일 ' + formatSigned(data.ret5, 2) + '%, 20일 ' + formatSigned(data.ret20, 2) + '%; ' + (data.tech || data.momentum || '이동평균 데이터 없음');
   }
-  function positionAdvice(metrics, chart, summary, volume) {
-    var data = chartShapeData(chart, summary);
-    if (!metrics || !metrics.holding.quantity || !metrics.holding.averagePrice || metrics.price == null) return { label: '보유 수량·평단 입력 필요', tone: 'neutral', reason: '물타기와 손절 판단을 하려면 현재 보유 수량과 평균단가가 필요합니다.' };
-    if (metrics.rate >= 0) return { label: '물타기보다 보유 전략 점검', tone: 'neutral', reason: '현재 손실 구간이 아니므로 추가 매수보다 목표가·비중을 먼저 점검하세요.' };
-    var notes = summaryNotes(summary), flowScore = number(notes.flow && notes.flow.score, null);
-    var poc = volume && number(volume.poc || volume.pocPrice, null);
-    var belowPoc = poc != null && data && data.close < poc;
-    var weak = data && data.ret20 <= -8 && (data.ma20 == null || data.close < data.ma20) || belowPoc && data && data.ret5 <= 0;
-    var improving = data && data.ret5 > 0 && (data.ma5 == null || data.close >= data.ma5) && !belowPoc;
-    if (metrics.rate <= -15 || (weak && flowScore != null && flowScore < 45)) return { label: '물타기보다 손절 기준 검토', tone: 'down', reason: '손실률이 크거나 중기 하락 추세가 확인됩니다. 추가 매수 전 손실 제한선과 비중 축소 기준을 먼저 정하세요.' };
-    if (improving && !weak && (flowScore == null || flowScore >= 45)) return { label: '조건부 분할 물타기 검토', tone: 'up', reason: '단기 반등과 추세 개선 신호가 있어도 한 번에 매수하지 말고 예산을 나눠 접근하세요.' };
-    return { label: '물타기 보류 · 추세 확인', tone: 'neutral', reason: '반등 신호가 충분하지 않습니다. 현재가가 이동평균과 매물대 위로 회복되는지 확인한 뒤 결정하세요.' };
+  function clampScore(value) {
+    return Math.max(0, Math.min(100, number(value, 50)));
   }
-  function buildPositionAdviceCard(metrics, chart, summary, volume) {
-    var advice = positionAdvice(metrics, chart, summary, volume);
-    return '<section class="my-analysis-card my-position-advice ' + advice.tone + '"><div class="my-card-title"><strong>물타기·손절 판단</strong><span>자동 참고 신호</span></div><div class="my-position-badge">' + escapeHtml(advice.label) + '</div><p class="my-position-note">' + escapeHtml(advice.reason) + '</p><p class="my-analysis-footnote">투자 참고용 · 수급·차트 기반 참고 신호이며 투자 권유나 손실 회복을 보장하지 않습니다.</p></section>';
+  function averageAvailableScores(scores) {
+    var available = scores.map(function (value) { return number(value, null); }).filter(function (value) { return value != null; });
+    if (!available.length) return null;
+    return available.reduce(function (sum, value) { return sum + value; }, 0) / available.length;
+  }
+  function scoreWord(score) {
+    if (score == null) return '데이터 부족';
+    if (score >= 65) return '우호';
+    if (score >= 45) return '중립';
+    return '주의';
+  }
+  function positionDecision(metrics, chart, summary, volume) {
+    var data = chartShapeData(chart, summary);
+    var notes = summaryNotes(summary);
+    var flowScore = averageAvailableScores([
+      notes.flow && notes.flow.score,
+      notes.foreignInst && notes.foreignInst.score,
+      notes.pension && notes.pension.score,
+      notes.short && notes.short.score
+    ]);
+    var chartScore = number(notes.tech && notes.tech.score, null);
+    if (chartScore == null) chartScore = number(notes.momentum && notes.momentum.score, null);
+    if (chartScore == null && data) chartScore = 50 + (number(data.ret5, 0) * 1.8) + (number(data.ret20, 0) * 0.35);
+    chartScore = chartScore == null ? null : clampScore(chartScore);
+    var effectiveVolume = volume || approximateVolumeFromChart(chart, metrics && metrics.code);
+    var poc = effectiveVolume && number(effectiveVolume.poc || effectiveVolume.pocPrice, null);
+    var belowPoc = !!(poc != null && data && data.close < poc);
+    var hasHolding = !!(metrics && metrics.holding && metrics.holding.quantity && metrics.holding.averagePrice && metrics.price != null);
+    var lossRate = hasHolding ? number(metrics.rate, null) : null;
+    var flowWeak = flowScore != null && flowScore < 40;
+    var chartWeak = chartScore != null && chartScore < 40;
+    var flowHealthy = flowScore != null && flowScore >= 55;
+    var chartHealthy = chartScore != null && chartScore >= 55;
+    var improving = !!(data && data.ret5 > 0 && (data.ma5 == null || data.close >= data.ma5));
+    var deterioration = !!(data && data.ret20 <= -12 && data.ret5 <= 0 && belowPoc);
+    var synchronizedWeakness = flowWeak && chartWeak && deterioration;
+    var repairable = flowHealthy && chartHealthy && (improving || !belowPoc);
+    var advice;
+    if (!hasHolding) {
+      advice = { label: '보유 수량·평단 입력 필요', tone: 'neutral', reason: '수급과 차트는 확인했지만 물타기·손절 판단은 보유 수량과 평단을 입력한 뒤 계산합니다.' };
+    } else if (lossRate >= 0) {
+      advice = { label: '수익 구간 · 보유·분할익절 기준 점검', tone: 'up', reason: '손실률만으로 물타기나 손절을 판단할 구간이 아닙니다. 수급과 차트가 유지되는지 확인하면서 목표가와 비중을 관리하세요.' };
+    } else if (repairable) {
+      advice = { label: '조건부 분할 물타기 검토', tone: 'up', reason: '손실률이 있어도 수급과 차트가 함께 회복 신호를 보여 전량 물타기보다 예산을 나눠 평균단가를 낮추는 시나리오를 검토할 수 있습니다.' };
+    } else if (synchronizedWeakness && lossRate <= -20) {
+      advice = { label: '손절 기준 검토 · 물타기 보류', tone: 'down', reason: '손실률 하나가 아니라 수급 약화와 중기 하락, 매물대 아래 체류가 동시에 확인됩니다. 추가 매수보다 사전에 정한 손실 제한선과 비중 축소 기준을 먼저 점검하세요.' };
+    } else if (flowWeak && chartWeak) {
+      advice = { label: '물타기 보류 · 반등 확인', tone: 'neutral', reason: '수급과 차트가 모두 약하지만 아직 손절을 단정할 단계는 아닙니다. 매물대 회복과 외국인·기관 수급 전환을 확인한 뒤 대응하세요.' };
+    } else {
+      advice = { label: '시장 조정·혼조 구간 · 관찰', tone: 'neutral', reason: '손실률만으로 손절하지 않습니다. 현재 신호가 엇갈리므로 물타기는 보류하고 수급·차트 중 한 축이라도 회복되는지 확인하세요.' };
+    }
+    return {
+      advice: advice,
+      flowScore: flowScore,
+      chartScore: chartScore,
+      flowLabel: scoreWord(flowScore),
+      chartLabel: scoreWord(chartScore),
+      flowNote: notes.flow && notes.flow.desc || notes.foreignInst && notes.foreignInst.desc || '수급 데이터가 부족합니다.',
+      chartNote: data ? chartShapeNote(chart, summary) : '차트 데이터가 부족합니다.',
+      lossRate: lossRate,
+      belowPoc: belowPoc
+    };
+  }
+  function positionAdvice(metrics, chart, summary, volume) {
+    return positionDecision(metrics, chart, summary, volume).advice;
+  }
+  function buildCompositeOpinionCard(metrics, chart, summary, volume, ai) {
+    var model = positionDecision(metrics, chart, summary, volume);
+    var advice = model.advice;
+    var lossText = model.lossRate == null ? '평단 입력 필요' : '손익률 ' + formatSigned(model.lossRate, 2) + '%';
+    function axis(label, score, state, note) {
+      return '<div class="my-opinion-axis"><div class="my-opinion-axis-head"><strong>' + label + '</strong><span class="' + (score >= 65 ? 'is-up' : score != null && score < 45 ? 'is-down' : 'is-flat') + '">' + (score == null ? '데이터 부족' : Math.round(score) + '점 · ' + state) + '</span></div><p>' + escapeHtml(note) + '</p></div>';
+    }
+    return '<section class="my-analysis-card my-composite-card my-ai-card my-position-advice"><div class="my-card-title"><strong>종합의견</strong><span>수급 · 차트 · 물타기</span></div>'
+      + '<div class="my-opinion-grid">'
+      + axis('수급', model.flowScore, model.flowLabel, model.flowNote)
+      + axis('차트', model.chartScore, model.chartLabel, model.chartNote)
+      + axis('물타기', null, advice.label, advice.reason)
+      + '</div><div class="my-opinion-verdict ' + advice.tone + '"><span>현재 판단</span><strong>' + escapeHtml(advice.label) + '</strong><p>' + escapeHtml(advice.reason) + '</p><small>' + escapeHtml(lossText) + ' · 손실률만으로 판단하지 않음</small></div>'
+      + (ai ? '<div class="my-ai-evidence"><b>AI 보조 코멘트</b> ' + escapeHtml(ai) + '</div>' : '')
+      + '<p class="my-analysis-footnote">투자 참고용 · 수급·차트·보유정보를 함께 계산한 참고 신호이며 투자 권유나 손실 회복을 보장하지 않습니다.</p></section>';
   }
   function estimateRecovery(chart, currentPrice, targetPrice) {
     if (!(currentPrice > 0) || !(targetPrice > currentPrice) || !chart || !chart.daily || chart.daily.length < 3) return targetPrice <= currentPrice ? '현재가 수준' : '산정 불가';
@@ -324,7 +392,7 @@
   function arrangeAnalysisSections(root) {
     var holding = root.querySelector('.my-holding-card');
     if (!holding) return;
-    var nodes = ['.my-ai-card', '.my-position-advice', '.my-analysis-grid', '.my-chart-shape', '.my-calculator'].map(function (selector) { return root.querySelector(selector); }).filter(Boolean);
+    var nodes = ['.my-composite-card', '.my-analysis-grid', '.my-chart-shape', '.my-calculator'].map(function (selector) { return root.querySelector(selector); }).filter(Boolean);
     var cursor = holding;
     nodes.forEach(function (node) { cursor.insertAdjacentElement('afterend', node); cursor = node; });
   }
@@ -405,12 +473,10 @@
       + buildHoldingForm(item, metrics)
       + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code) + '</div>'
       + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
-      + buildPositionAdviceCard(metrics, analysis && analysis.chart, analysis && analysis.summary, analysis && analysis.volume)
-      + '<section class="my-analysis-card my-ai-card"><div class="my-card-title"><strong>AI 종합 분석</strong><span>수급·기술·매물대</span></div><p>' + escapeHtml(analysis && analysis.ai || 'AI 분석 결과를 준비 중입니다.') + '</p></section>'
+      + buildCompositeOpinionCard(metrics, analysis && analysis.chart, analysis && analysis.summary, analysis && analysis.volume, analysis && analysis.ai || '')
       + buildAveragingCalculatorWithRecovery(metrics, item.code, analysis && analysis.chart)
       + '<details class="my-detail-frame"><summary>기존 차트·매물대 도구를 이 화면에서 펼치기</summary><iframe title="' + escapeAttr(item.name) + ' 종목분석" loading="lazy" src="' + frameUrl + '"></iframe></details>';
     arrangeAnalysisSections(detail);
-    appendAiChartInsight(detail, analysis && analysis.chart, analysis && analysis.summary);
     updateCalculatorWithRecovery(detail, metrics, analysis && analysis.chart);
   }
   function updateCalculator(root, metrics) {

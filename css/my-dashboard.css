@@ -47,7 +47,8 @@
 .my-metric-grid > div { min-width: 0; padding: 13px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
 .my-metric-grid span, .my-metric-grid small { display: block; color: #94a3b8; font-size: 10px; }
 .my-metric-grid strong { display: block; margin: 5px 0 3px; font-size: 17px; font-variant-numeric: tabular-nums; }
-.my-metric-grid .is-up, .my-metric-grid .is-down { color: inherit; }
+.my-metric-grid .is-up { color: #d24f45; }
+.my-metric-grid .is-down { color: #1261c4; }
 .my-holding-card, .my-analysis-card { margin-top: 10px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; }
 .my-card-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
 .my-card-title strong { font-size: 14px; }
@@ -70,7 +71,23 @@
 .my-ai-card p { margin: 0; color: #334155; font-size: 12px; line-height: 1.7; white-space: pre-line; }
 .my-ai-card .my-ai-evidence { margin-top: 9px; padding-top: 9px; border-top: 1px solid #e3eaf3; color: #64748b; font-size: 11px; }
 .my-ai-card .my-ai-evidence b { color: #334155; }
-.my-position-advice { background: #fff; }
+.my-composite-card { background: linear-gradient(135deg, #fff8f6, #fff); }
+.my-opinion-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.my-opinion-axis { min-width: 0; padding: 12px; border: 1px solid #e3eaf3; border-radius: 11px; background: rgba(255,255,255,.86); }
+.my-opinion-axis-head { display: flex; align-items: baseline; justify-content: space-between; gap: 7px; }
+.my-opinion-axis-head strong { font-size: 13px; }
+.my-opinion-axis-head span { color: #64748b; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.my-opinion-axis-head .is-up { color: #d24f45; }
+.my-opinion-axis-head .is-down { color: #1261c4; }
+.my-opinion-axis p { margin: 8px 0 0; color: #475569; font-size: 11px; line-height: 1.55; }
+.my-opinion-verdict { margin-top: 10px; padding: 13px; border: 1px solid #e5e7eb; border-radius: 11px; background: #fff; }
+.my-opinion-verdict > span { display: block; color: #64748b; font-size: 11px; }
+.my-opinion-verdict strong { display: block; margin-top: 4px; font-size: 17px; }
+.my-opinion-verdict p { margin: 7px 0 0; color: #334155; font-size: 12px; line-height: 1.6; }
+.my-opinion-verdict small { display: block; margin-top: 8px; color: #94a3b8; font-size: 10px; }
+.my-opinion-verdict.up strong { color: #d24f45; }
+.my-opinion-verdict.down strong { color: #1261c4; }
+.my-position-advice:not(.my-composite-card) { background: #fff; }
 .my-position-badge { display: inline-block; margin-bottom: 8px; padding: 7px 11px; border-radius: 999px; background: #eef2f7; color: #334155; font-size: 13px; font-weight: 800; }
 .my-position-advice.up .my-position-badge { background: #fff0ed; color: #c24136; }
 .my-position-advice.down .my-position-badge { background: #eaf2ff; color: #1261c4; }
@@ -94,7 +111,7 @@ html.dark .my-stock-row:hover, html.dark .my-stock-row.is-selected { background:
 html.dark .my-detail-actions a, html.dark .my-holding-fields input, html.dark .my-calc-fields input { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
 html.dark .my-volume-highlight, html.dark .my-calc-result { background: #242424; color: rgba(245,239,224,.65); }
 html.dark .my-ai-card { background: linear-gradient(135deg, #202b3a, #1a1a1a); }
-html.dark .my-position-advice { background: #1a1a1a; }
+html.dark .my-position-advice:not(.my-composite-card) { background: #1a1a1a; }
 html.dark .my-position-note { color: rgba(245,239,224,.8); }
 html.dark .my-ai-card .my-ai-evidence { border-top-color: rgba(245,239,224,.16); color: rgba(245,239,224,.65); }
 html.dark .my-ai-card .my-ai-evidence b { color: #f5efe0; }
@@ -135,6 +152,9 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 .my-search-row { display: flex; gap: 10px; }
 .my-search-row input { flex: 1; min-width: 0; min-height: 48px; padding: 10px 14px; border: 1px solid #b9c9dc; border-radius: 10px; background: #fff; color: #111827; font: inherit; font-size: 16px; }
 .my-search-row button { min-height: 48px; padding: 0 18px; border: 0; border-radius: 10px; background: #111827; color: #fff; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+.my-search-row button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
+.my-search-row button:hover { background: #263448; }
+.my-load-icon { width: 18px; height: 18px; flex: 0 0 auto; }
 .my-search-panel p { margin: 9px 0 0; color: #64748b; font-size: 13px; }
 .my-dashboard-status { min-height: 26px; padding: 10px 2px; font-size: 14px; }
 .my-dashboard-detail { padding: 20px; border: 2px solid #e3eaf3; border-radius: 18px; background: #fbfdff; }
@@ -149,6 +169,13 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 .my-flow-row { font-size: 15px; }
 .my-flow-row small { font-size: 12px; }
 .my-flow-row b { font-size: 16px; }
+.my-opinion-grid { gap: 10px; }
+.my-opinion-axis { padding: 14px; }
+.my-opinion-axis-head strong { font-size: 15px; }
+.my-opinion-axis-head span { font-size: 12px; }
+.my-opinion-axis p { font-size: 12px; }
+.my-opinion-verdict strong { font-size: 20px; }
+.my-opinion-verdict p { font-size: 14px; }
 .my-volume-highlight { border: 1px solid #dbe5f2; font-size: 14px; }
 .my-volume-highlight strong { font-size: 22px; }
 .my-volume-chart { display: grid; gap: 6px; margin-top: 14px; }
@@ -187,10 +214,15 @@ html.dark .my-volume-row > i { background: #303030; }
 html.dark .my-shape-badge { background: #1d3158; color: #bfdbfe; }
 html.dark .my-shape-grid span, html.dark .my-calc-auto span { color: rgba(245,239,224,.65); }
 html.dark .my-calc-auto strong { color: #f5efe0; }
+html.dark .my-composite-card { background: linear-gradient(135deg, #302522, #1a1a1a); }
+html.dark .my-opinion-axis, html.dark .my-opinion-verdict { border-color: rgba(245,239,224,.16); background: #242424; }
+html.dark .my-opinion-axis p, html.dark .my-opinion-verdict p { color: rgba(245,239,224,.78); }
+html.dark .my-opinion-verdict > span, html.dark .my-opinion-verdict small { color: rgba(245,239,224,.55); }
 
 @media (max-width: 720px) {
   .my-dashboard-head h2 { font-size: 26px; }
   .my-search-row { display: grid; grid-template-columns: 1fr; }
   .my-dashboard-detail { padding: 12px; }
   .my-volume-row { grid-template-columns: 82px minmax(0, 1fr) 58px; }
+  .my-opinion-grid { grid-template-columns: 1fr; }
 }
