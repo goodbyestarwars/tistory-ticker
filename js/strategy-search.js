@@ -39,6 +39,23 @@
     { key: '6m', label: '6개월' },
     { key: '12m', label: '12개월' }
   ];
+  // ETF 상품명 앞의 브랜드를 운용사별 대표 라벨로 사용한다. 화면 순서는
+  // 국내 ETF 검색에서 자주 쓰는 브랜드를 먼저 고정하고, 나머지는 뒤에 붙인다.
+  var ETF_ISSUER_GROUPS = [
+    { key: 'TIGER', label: 'TIGER' },
+    { key: 'KODEX', label: 'KODEX' },
+    { key: 'PLUS', label: 'PLUS' },
+    { key: 'ACE', label: 'ACE' },
+    { key: 'HANARO', label: 'HANARO' },
+    { key: 'SOL', label: 'SOL' },
+    { key: 'RISE', label: 'RISE' },
+    { key: 'KBSTAR', label: 'KBSTAR' },
+    { key: 'KOSEF', label: 'KOSEF' },
+    { key: 'ARIRANG', label: 'ARIRANG' },
+    { key: 'TIMEFOLIO', label: 'TIMEFOLIO' },
+    { key: '1Q', label: '1Q' },
+    { key: 'FOCUS', label: 'FOCUS' }
+  ];
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -233,15 +250,45 @@
         + '<button type="button" class="ss-dividend-sort-btn' + (activeDividendSort === 'dps' ? ' active' : '') + '" data-dividend-sort="dps">배당금순</button>'
         + '</div>'
       : '';
-    var html = sectorNames.map(function (name) {
-      var matches = sortMatches(sectors[name].matches);
+    var cardGroups = [];
+    if (activeKey === 'etfReturn') {
+      var allEtfMatches = [];
+      sectorNames.forEach(function (name) {
+        allEtfMatches = allEtfMatches.concat(sectors[name].matches || []);
+      });
+      cardGroups = groupEtfMatches(allEtfMatches);
+    } else {
+      cardGroups = sectorNames.map(function (name) {
+        return { name: name, matches: sectors[name].matches };
+      });
+    }
+    var html = cardGroups.map(function (group) {
+      var matches = sortMatches(group.matches);
       var rows = matches.map(rowHtml).join('');
       return '<div class="ss-card">'
-        + '<div class="ss-card-title">' + escapeHtml(name) + '</div>'
+        + '<div class="ss-card-title">' + escapeHtml(group.name) + '</div>'
         + '<div class="ss-rows">' + rows + '</div>'
         + '</div>';
     }).join('');
     wrap.innerHTML = periodTabs + dividendTabs + '<div class="ss-cards-grid">' + html + '</div>';
+  }
+
+  function groupEtfMatches(matches) {
+    var grouped = {};
+    ETF_ISSUER_GROUPS.forEach(function (group) { grouped[group.key] = []; });
+    grouped.other = [];
+    (matches || []).forEach(function (item) {
+      var name = String(item && item.name || '').trim().toUpperCase();
+      var group = ETF_ISSUER_GROUPS.find(function (candidate) {
+        return name.indexOf(candidate.key) === 0;
+      });
+      (group ? grouped[group.key] : grouped.other).push(item);
+    });
+    return ETF_ISSUER_GROUPS.map(function (group) {
+      return { name: group.label, matches: grouped[group.key] };
+    }).filter(function (group) {
+      return group.matches.length;
+    }).concat(grouped.other.length ? [{ name: '기타 ETF', matches: grouped.other }] : []);
   }
 
   function sortMatches(matches) {
