@@ -77,10 +77,10 @@
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260813-persistent-upsert-v2';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260811-finnhub-block')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260811-finnhub-block';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260813-econ-height-v1')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260813-econ-height-v1';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260811-auto-icon-fallback';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260813-breaking-flash-v2';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260813-breaking-flash-v3';
 
     function escapeHomeHtml(value) {
       return String(value == null ? '' : value)
@@ -218,6 +218,15 @@
         + '<div class="hen-breaking" data-hen-breaking aria-label="중요 경제 속보">'
         + '<div class="hen-breaking-head"><strong>속보</strong><span>실적 · 지수 · 금리</span></div>'
         + '<div class="hen-breaking-list" data-hen-breaking-list><p class="hen-breaking-empty">중요 소식을 확인하는 중입니다.</p></div>'
+        + '<div class="hen-breaking-admin" data-hen-breaking-admin hidden>'
+        + '<button type="button" data-hen-breaking-action="toggle">속보 입력</button>'
+        + '<form data-hen-breaking-form hidden>'
+        + '<div class="hen-breaking-form-row"><select name="category" aria-label="속보 분류"><option>속보</option><option>미국 금리</option><option>CPI</option><option>FOMC</option><option>M7 실적</option><option>실적</option><option>공시</option><option>지수</option></select><select name="market" aria-label="시장"><option value="all">전체</option><option value="domestic">국내</option><option value="us">미국</option></select></div>'
+        + '<input name="title" maxlength="240" required placeholder="24시간 표시할 속보 내용을 입력하세요">'
+        + '<input name="link" type="url" placeholder="관련 링크(선택)">'
+        + '<div class="hen-breaking-form-actions"><button type="submit">등록</button><span data-hen-breaking-message aria-live="polite"></span></div>'
+        + '</form>'
+        + '</div>'
         + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state">경제 뉴스를 불러오는 중입니다.</p></div>'
         + '</article></div>'

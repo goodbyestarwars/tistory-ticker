@@ -177,6 +177,17 @@
     return true;
   }
 
+  function syncEconomicHeight() {
+    var market = registry['market-summary'];
+    var economic = registry['economic-news'];
+    if (!market || !economic) return;
+    if (window.matchMedia && window.matchMedia('(max-width: 1100px)').matches) {
+      economic.style.height = '';
+      return;
+    }
+    economic.style.height = Math.ceil(market.getBoundingClientRect().height) + 'px';
+  }
+
   function applyState(state) {
     state.order.forEach(function (id) {
       if (registry[id]) grid.appendChild(registry[id]);
@@ -903,6 +914,12 @@
     if (!buildRegistry(options)) return;
     options.dashboard.setAttribute('data-widgets-ready', '1');
     applyState(loadState());
+    syncEconomicHeight();
+    if (typeof ResizeObserver === 'function' && registry['market-summary']) {
+      var observer = new ResizeObserver(syncEconomicHeight);
+      observer.observe(registry['market-summary']);
+    }
+    window.addEventListener('resize', syncEconomicHeight);
     wireMenus(null);
     wireDrag();
     loadDisclosures();
