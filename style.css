@@ -4271,7 +4271,7 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hen-head > div { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
 .hen-head strong { color: #18202a; font-size: 18px; letter-spacing: -.4px; }
 .hen-head span, .hen-head small { color: #98a2ae; font-size: 11px; white-space: nowrap; }
-.hen-breaking { margin-top: 11px; border: 1px solid #ffd8cf; border-radius: 10px; background: #fff9f7; overflow: hidden; }
+.hen-breaking { flex: 0 0 auto; margin-top: 11px; border: 1px solid #ffd8cf; border-radius: 10px; background: #fff9f7; overflow: hidden; }
 .hen-breaking-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 11px 7px; border-bottom: 1px solid #ffe9e3; }
 .hen-breaking-head strong { color: #df4f3f; font-size: 12px; }
 .hen-breaking-head span { color: #a36b62; font-size: 10px; }
@@ -4308,7 +4308,7 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .home-economic-news .home-card-state { min-height: 220px; display: grid; place-items: center; }
 .home-economic-news { display: flex; flex-direction: column; }
 .home-economic-news { box-sizing: border-box; }
-.home-economic-news .hen-breaking-list { max-height: 62px; }
+.home-economic-news .hen-breaking-list { height: 62px; max-height: 62px; }
 .home-economic-news .hen-list { min-height: 0; flex: 1 1 auto; overflow-y: auto; }
 .home-economic-news .hen-periods { height: 100%; max-height: none; }
 .home-widget--summary.home-market-board,
