@@ -256,13 +256,89 @@
       + '<div class="my-shape-grid"><div><span>5일 변화</span><strong class="' + signClass(ret5) + '">' + formatSigned(ret5, 2) + '%</strong></div><div><span>20일 변화</span><strong class="' + signClass(ret20) + '">' + formatSigned(ret20, 2) + '%</strong></div></div>'
       + '<p class="my-shape-note"><b>이평선</b> ' + escapeHtml(maLabel) + '</p><p class="my-shape-note"><b>추세</b> ' + escapeHtml(momentumLabel) + '</p></section>';
   }
+  function chartShapeData(chart, summary) {
+    if (!chart || !chart.daily || chart.daily.length < 2) return null;
+    var daily = chart.daily, last = daily[daily.length - 1], close = number(last.close, 0);
+    function returnPct(days) { var prev = daily[Math.max(0, daily.length - 1 - days)]; return prev && prev.close ? (close - prev.close) / prev.close * 100 : null; }
+    var ret5 = returnPct(5), ret20 = returnPct(20);
+    var ma5 = chart.ma && chart.ma.ma5 && chart.ma.ma5[chart.ma.ma5.length - 1];
+    var ma20 = chart.ma && chart.ma.ma20 && chart.ma.ma20[chart.ma.ma20.length - 1];
+    var notes = summaryNotes(summary);
+    var shape = '중립·박스권';
+    if (ret20 != null && ret5 != null) {
+      if (ret20 >= 8 && ret5 < 0) shape = '상승 추세 · 단기 조정';
+      else if (ret20 <= -8 && ret5 > 0) shape = '하락 추세 · 단기 반등';
+      else if (ret20 >= 8) shape = '상승 추세';
+      else if (ret20 <= -8) shape = '하락 추세';
+    }
+    return { close: close, ret5: ret5, ret20: ret20, ma5: number(ma5, null), ma20: number(ma20, null), shape: shape, tech: notes.tech && notes.tech.desc || '', momentum: notes.momentum && notes.momentum.desc || '' };
+  }
+  function chartShapeNote(chart, summary) {
+    var data = chartShapeData(chart, summary);
+    if (!data) return '차트 모양 데이터 없음';
+    return data.shape + ', 5일 ' + formatSigned(data.ret5, 2) + '%, 20일 ' + formatSigned(data.ret20, 2) + '%; ' + (data.tech || data.momentum || '이동평균 데이터 없음');
+  }
+  function positionAdvice(metrics, chart, summary, volume) {
+    var data = chartShapeData(chart, summary);
+    if (!metrics || !metrics.holding.quantity || !metrics.holding.averagePrice || metrics.price == null) return { label: '보유 수량·평단 입력 필요', tone: 'neutral', reason: '물타기와 손절 판단을 하려면 현재 보유 수량과 평균단가가 필요합니다.' };
+    if (metrics.rate >= 0) return { label: '물타기보다 보유 전략 점검', tone: 'neutral', reason: '현재 손실 구간이 아니므로 추가 매수보다 목표가·비중을 먼저 점검하세요.' };
+    var notes = summaryNotes(summary), flowScore = number(notes.flow && notes.flow.score, null);
+    var poc = volume && number(volume.poc || volume.pocPrice, null);
+    var belowPoc = poc != null && data && data.close < poc;
+    var weak = data && data.ret20 <= -8 && (data.ma20 == null || data.close < data.ma20) || belowPoc && data && data.ret5 <= 0;
+    var improving = data && data.ret5 > 0 && (data.ma5 == null || data.close >= data.ma5) && !belowPoc;
+    if (metrics.rate <= -15 || (weak && flowScore != null && flowScore < 45)) return { label: '물타기보다 손절 기준 검토', tone: 'down', reason: '손실률이 크거나 중기 하락 추세가 확인됩니다. 추가 매수 전 손실 제한선과 비중 축소 기준을 먼저 정하세요.' };
+    if (improving && !weak && (flowScore == null || flowScore >= 45)) return { label: '조건부 분할 물타기 검토', tone: 'up', reason: '단기 반등과 추세 개선 신호가 있어도 한 번에 매수하지 말고 예산을 나눠 접근하세요.' };
+    return { label: '물타기 보류 · 추세 확인', tone: 'neutral', reason: '반등 신호가 충분하지 않습니다. 현재가가 이동평균과 매물대 위로 회복되는지 확인한 뒤 결정하세요.' };
+  }
+  function buildPositionAdviceCard(metrics, chart, summary, volume) {
+    var advice = positionAdvice(metrics, chart, summary, volume);
+    return '<section class="my-analysis-card my-position-advice ' + advice.tone + '"><div class="my-card-title"><strong>물타기·손절 판단</strong><span>자동 참고 신호</span></div><div class="my-position-badge">' + escapeHtml(advice.label) + '</div><p class="my-position-note">' + escapeHtml(advice.reason) + '</p><p class="my-analysis-footnote">수급·차트 기반 참고용이며 투자 권유나 손실 회복을 보장하지 않습니다.</p></section>';
+  }
+  function estimateRecovery(chart, currentPrice, targetPrice) {
+    if (!(currentPrice > 0) || !(targetPrice > currentPrice) || !chart || !chart.daily || chart.daily.length < 3) return targetPrice <= currentPrice ? '현재가 수준' : '산정 불가';
+    var closes = chart.daily.map(function (row) { return number(row.close, null); }).filter(function (value) { return value > 0; }).slice(-61);
+    if (closes.length < 3) return '산정 불가';
+    var recent = closes.slice(-21), start = recent[0], end = recent[recent.length - 1];
+    var dailyRate = start > 0 && end > 0 ? Math.pow(end / start, 1 / Math.max(1, recent.length - 1)) - 1 : 0;
+    if (!(dailyRate > 0.0005)) return '산정 불가(상승 추세 필요)';
+    var days = Math.ceil(Math.log(targetPrice / currentPrice) / Math.log(1 + dailyRate));
+    if (!isFinite(days) || days > 2520) return '5년 초과';
+    return days + '거래일(약 ' + Math.max(1, Math.ceil(days / 21)) + '개월)';
+  }
   function summaryNotes(summary) {
     var result = {};
     (summary && summary.items || []).forEach(function (item) { result[item.key] = item; });
     return result;
   }
-  function fetchAi(item, summary, volume, metrics) {
-    if (/^US:/i.test(item.code)) return Promise.resolve('미국 종목은 현재 시세와 상세 분석 화면을 연결해 두었습니다. 미국 수급 전용 AI 분석은 다음 단계에서 연결합니다.');
+  function buildAveragingCalculatorWithRecovery(metrics, code, chart) {
+    var invested = metrics.invested || 0;
+    var maxBudget = Math.max(invested * 2, metrics.price || metrics.holding.averagePrice || 1000000);
+    var defaultBudget = invested ? Math.round(invested * 0.5) : 0;
+    var step = Math.max(1, Math.round(maxBudget / 100));
+    return '<section class="my-analysis-card my-calculator"><div class="my-card-title"><strong>물타기 계산기</strong><span>슬라이더로 추가 매수금액 조절</span></div>'
+      + '<label class="my-range-label">추가 투입금액 <output data-my-calc-output>' + formatPrice(defaultBudget, code) + '</output><input type="range" min="0" max="' + escapeAttr(maxBudget) + '" step="' + escapeAttr(step) + '" value="' + escapeAttr(defaultBudget) + '" data-my-calc="budget"></label>'
+      + '<div class="my-calc-auto"><span>추가 매수가<strong data-my-calc-price>' + formatPrice(metrics.price, code) + '</strong></span><span>자동 매수 수량<strong data-my-calc-quantity>-</strong></span><span>새 평균단가<strong data-my-calc-target>-</strong></span><span>원금 회복 예상시간<strong data-my-calc-recovery>-</strong></span></div>'
+      + '<div class="my-calc-result" data-my-calc-result>현재 수량과 평단을 입력하면 예상 평균단가와 회복 시간을 계산합니다.</div></section>';
+  }
+  function arrangeAnalysisSections(root) {
+    var holding = root.querySelector('.my-holding-card');
+    if (!holding) return;
+    var nodes = ['.my-ai-card', '.my-position-advice', '.my-analysis-grid', '.my-chart-shape', '.my-calculator'].map(function (selector) { return root.querySelector(selector); }).filter(Boolean);
+    var cursor = holding;
+    nodes.forEach(function (node) { cursor.insertAdjacentElement('afterend', node); cursor = node; });
+  }
+  function appendAiChartInsight(root, chart, summary) {
+    var card = root.querySelector('.my-ai-card');
+    var text = card && card.querySelector('p');
+    if (!text) return;
+    var insight = document.createElement('p');
+    insight.className = 'my-ai-evidence';
+    insight.innerHTML = '<b>차트 모양 근거</b> ' + escapeHtml(chartShapeNote(chart, summary));
+    text.insertAdjacentElement('afterend', insight);
+  }
+  function fetchAi(item, summary, volume, metrics, chart) {
+    if (/^US:/i.test(item.code)) return Promise.resolve('미국 종목은 수급 원천 데이터 제한으로 수급 점수 대신 가격·차트 모양을 중심으로 분석합니다. ' + chartShapeNote(chart, summary));
     var notes = summaryNotes(summary);
     var params = new URLSearchParams();
     params.set('action', 'flowAiSummary');
@@ -280,6 +356,10 @@
     params.set('pensionNote', notes.pension && notes.pension.desc || '');
     params.set('volNote', '현재가 ' + formatPrice(metrics.price, item.code) + ', 평단 ' + formatPrice(metrics.holding.averagePrice, item.code) + ', 매물대 중심 ' + (volume && (volume.poc || volume.pocPrice) || '데이터 없음'));
     params.set('rsiNote', notes.momentum && notes.momentum.desc || '');
+    params.set('chartNote', chartShapeNote(chart, summary));
+    var advice = positionAdvice(metrics, chart, summary, volume);
+    params.set('positionNote', advice.label + ' / ' + advice.reason);
+    params.set('holdingNote', '보유수량 ' + formatNumber(metrics.holding.quantity, 2) + ', 평단 ' + formatPrice(metrics.holding.averagePrice, item.code) + ', 손익률 ' + formatSigned(metrics.rate, 2) + '%');
     return fetchJson(GAS_URL + '?' + params.toString()).then(function (body) { return body && body.data && body.data.summary || body.summary || null; });
   }
   function fetchVolume(item) {
@@ -301,7 +381,7 @@
     Promise.all([quotePromise, flowPromise, summaryPromise, volumePromise, chartPromise]).then(function (results) {
       if (id !== state.requestId || !itemByCode(item.code)) return;
       var metrics = itemMetrics(item, results[0]);
-      fetchAi(item, results[2], results[3], metrics).catch(function () { return null; }).then(function (ai) {
+      fetchAi(item, results[2], results[3], metrics, results[4]).catch(function () { return null; }).then(function (ai) {
         if (id !== state.requestId) return;
         state.analyses[item.code] = { quote: results[0], flow: results[1], summary: results[2], volume: results[3], chart: results[4], ai: ai };
         render();
@@ -325,10 +405,13 @@
       + buildHoldingForm(item, metrics)
       + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code) + '</div>'
       + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
+      + buildPositionAdviceCard(metrics, analysis && analysis.chart, analysis && analysis.summary, analysis && analysis.volume)
       + '<section class="my-analysis-card my-ai-card"><div class="my-card-title"><strong>AI 종합 분석</strong><span>수급·기술·매물대</span></div><p>' + escapeHtml(analysis && analysis.ai || 'AI 분석 결과를 준비 중입니다.') + '</p></section>'
-      + buildAveragingCalculator(metrics, item.code)
+      + buildAveragingCalculatorWithRecovery(metrics, item.code, analysis && analysis.chart)
       + '<details class="my-detail-frame"><summary>기존 차트·매물대 도구를 이 화면에서 펼치기</summary><iframe title="' + escapeAttr(item.name) + ' 종목분석" loading="lazy" src="' + frameUrl + '"></iframe></details>';
-    updateCalculator(detail, metrics);
+    arrangeAnalysisSections(detail);
+    appendAiChartInsight(detail, analysis && analysis.chart, analysis && analysis.summary);
+    updateCalculatorWithRecovery(detail, metrics, analysis && analysis.chart);
   }
   function updateCalculator(root, metrics) {
     var budgetInput = root.querySelector('[data-my-calc="budget"]');
@@ -350,6 +433,34 @@
     }
     var nextAverage = (metrics.holding.quantity * metrics.holding.averagePrice + addQuantity * addPrice) / totalQuantity;
     output.innerHTML = '추가 후 예상 평단가 <strong>' + formatPrice(nextAverage, state.selectedCode) + '</strong> · 총 수량 ' + formatNumber(totalQuantity, 2) + '주';
+  }
+  function updateCalculatorWithRecovery(root, metrics, chart) {
+    var budgetInput = root.querySelector('[data-my-calc="budget"]');
+    var budgetOutput = root.querySelector('[data-my-calc-output]');
+    var priceOutput = root.querySelector('[data-my-calc-price]');
+    var quantityOutput = root.querySelector('[data-my-calc-quantity]');
+    var targetOutput = root.querySelector('[data-my-calc-target]');
+    var recoveryOutput = root.querySelector('[data-my-calc-recovery]');
+    var output = root.querySelector('[data-my-calc-result]');
+    if (!budgetInput || !output) return;
+    var addBudget = number(budgetInput.value, 0);
+    var addPrice = metrics.price || metrics.holding.averagePrice || 0;
+    var addQuantity = addPrice > 0 ? addBudget / addPrice : 0;
+    if (budgetOutput) budgetOutput.textContent = formatPrice(addBudget, state.selectedCode);
+    if (priceOutput) priceOutput.textContent = formatPrice(addPrice, state.selectedCode);
+    if (quantityOutput) quantityOutput.textContent = addQuantity ? formatNumber(addQuantity, 2) + '주' : '-';
+    var totalQuantity = metrics.holding.quantity + addQuantity;
+    if (!metrics.holding.quantity || !metrics.holding.averagePrice || !addPrice || !addQuantity || !totalQuantity) {
+      if (targetOutput) targetOutput.textContent = '-';
+      if (recoveryOutput) recoveryOutput.textContent = '-';
+      output.textContent = '현재 수량과 평단을 입력하면 예상 평균단가와 회복 시간을 계산합니다.';
+      return;
+    }
+    var nextAverage = (metrics.holding.quantity * metrics.holding.averagePrice + addQuantity * addPrice) / totalQuantity;
+    var recovery = estimateRecovery(chart, addPrice, nextAverage);
+    if (targetOutput) targetOutput.textContent = formatPrice(nextAverage, state.selectedCode);
+    if (recoveryOutput) recoveryOutput.textContent = recovery;
+    output.innerHTML = '추가 후 예상 평단가 <strong>' + formatPrice(nextAverage, state.selectedCode) + '</strong> · 총 수량 ' + formatNumber(totalQuantity, 2) + '주 · 원금 회복 예상 <strong>' + escapeHtml(recovery) + '</strong><br><small>최근 20거래일 상승률을 단순 연장한 참고치이며 실제 회복을 보장하지 않습니다.</small>';
   }
   function render() {
     if (!mount || !global.Watchlist) return;
@@ -383,7 +494,7 @@
     mount.addEventListener('input', function (event) {
       if (event.target.matches('[data-my-calc]')) {
         var item = itemByCode(state.selectedCode);
-        if (item) updateCalculator(mount, itemMetrics(item, state.quotes[item.code] || {}));
+        if (item) updateCalculatorWithRecovery(mount, itemMetrics(item, state.quotes[item.code] || {}), state.analyses[item.code] && state.analyses[item.code].chart);
       }
     });
     mount.addEventListener('keydown', function (event) {
