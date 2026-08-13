@@ -293,7 +293,7 @@
   }
   function buildPositionAdviceCard(metrics, chart, summary, volume) {
     var advice = positionAdvice(metrics, chart, summary, volume);
-    return '<section class="my-analysis-card my-position-advice ' + advice.tone + '"><div class="my-card-title"><strong>물타기·손절 판단</strong><span>자동 참고 신호</span></div><div class="my-position-badge">' + escapeHtml(advice.label) + '</div><p class="my-position-note">' + escapeHtml(advice.reason) + '</p><p class="my-analysis-footnote">수급·차트 기반 참고용이며 투자 권유나 손실 회복을 보장하지 않습니다.</p></section>';
+    return '<section class="my-analysis-card my-position-advice ' + advice.tone + '"><div class="my-card-title"><strong>물타기·손절 판단</strong><span>자동 참고 신호</span></div><div class="my-position-badge">' + escapeHtml(advice.label) + '</div><p class="my-position-note">' + escapeHtml(advice.reason) + '</p><p class="my-analysis-footnote">투자 참고용 · 수급·차트 기반 참고 신호이며 투자 권유나 손실 회복을 보장하지 않습니다.</p></section>';
   }
   function estimateRecovery(chart, currentPrice, targetPrice) {
     if (!(currentPrice > 0) || !(targetPrice > currentPrice) || !chart || !chart.daily || chart.daily.length < 3) return targetPrice <= currentPrice ? '현재가 수준' : '산정 불가';
