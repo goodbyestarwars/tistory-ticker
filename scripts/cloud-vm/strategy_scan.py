@@ -99,13 +99,15 @@ DISPARITY_MAX = 90
 SECTOR_TOP_N = 5
 STRATEGY_MAX_RESULTS = 20
 
-# Dividend strategy: strict enough to keep the result set useful, while using
-# only values disclosed in DART's annual report and the current daily close.
-DIVIDEND_YIELD_MIN = 5.0
-DIVIDEND_PAYOUT_MIN = 30.0
-DIVIDEND_STREAK_MIN = 3
-DIVIDEND_PROFIT_GROWTH_STREAK_MIN = 3
-DIVIDEND_TOP_N = 15
+# Dividend ranking follows the broad Naver-style screen: keep common stocks
+# with a positive DART-disclosed cash dividend, then rank by yield or DPS.
+# Do not impose a high-yield/payout/profit-growth quality gate here; those
+# filters made the result set empty and are not part of a simple ranking view.
+DIVIDEND_YIELD_MIN = 0.0
+DIVIDEND_PAYOUT_MIN = 0.0
+DIVIDEND_STREAK_MIN = 1
+DIVIDEND_PROFIT_GROWTH_STREAK_MIN = 0
+DIVIDEND_TOP_N = None
 
 # ETF return ranking uses the same trading-day convention as the local daily
 # price cache.  Keeping the calculation local also gives the 12-month screen
@@ -160,18 +162,12 @@ METHODOLOGY_NOTE += (
 )
 
 DIVIDEND_METHODOLOGY_NOTE = (
-    'DART 사업보고서 기준 현금배당수익률 {yield_min:.0f}% 이상, 현금배당성향 {payout_min:.0f}% 이상, '
-    '최근 {streak}년 연속 현금배당, 최근 {profit_streak}년 연속 순이익 증가를 모두 충족하는 국내 보통주입니다. '
+    '네이버식 배당 랭킹에 맞춰 DART 사업보고서에 현금배당금이 공개된 국내 보통주를 넓게 표시합니다. '
+    '배당수익률과 주당 현금배당금 기준으로 정렬할 수 있으며, 3년 순이익 증가·고배당률·최소 배당성향 조건은 적용하지 않습니다. '
     'ETF·ETN·스팩·우선주·거래정지·정리매매·동전주와 평균 거래대금 {turnover:,}원 미만 종목은 제외합니다. '
-    '결과는 섹터별로 나누되, 조건을 통과한 종목 중 배당수익률·배당성향·연속성 순으로 상위 {top_n}개만 표시합니다. '
     '배당 데이터가 아직 DART 캐시에 없는 종목은 임의 추정하지 않고 다음 배치 수집 후 반영합니다.'
 ).format(
-    yield_min=DIVIDEND_YIELD_MIN,
-    payout_min=DIVIDEND_PAYOUT_MIN,
-    streak=DIVIDEND_STREAK_MIN,
-    profit_streak=DIVIDEND_PROFIT_GROWTH_STREAK_MIN,
     turnover=MIN_AVG_TURNOVER,
-    top_n=DIVIDEND_TOP_N,
 )
 
 
@@ -607,13 +603,9 @@ def dividend_signal(daily, annual, dividend):
     reported_yield = latest.get('dividendYieldPct')
     current_yield = (dps / price * 100) if dps and price else reported_yield
     payout_ratio = latest.get('payoutRatioPct')
-    if current_yield is None or current_yield < DIVIDEND_YIELD_MIN:
-        return None
-    if payout_ratio is None or payout_ratio < DIVIDEND_PAYOUT_MIN:
+    if dps is None or dps <= 0 or current_yield is None or current_yield < DIVIDEND_YIELD_MIN:
         return None
     if dividend_streak < DIVIDEND_STREAK_MIN:
-        return None
-    if profit_growth_streak < DIVIDEND_PROFIT_GROWTH_STREAK_MIN:
         return None
     return {
         'reportYear': dividend.get('reportYear'),
@@ -641,7 +633,7 @@ def build_dividend_match(stock, daily, sector, signal, annual):
         'strategy': 'dividend',
         'dividendYieldPct': round(signal['dividendYieldPct'], 2),
         'reportedDividendYieldPct': signal.get('reportedDividendYieldPct'),
-        'payoutRatioPct': round(signal['payoutRatioPct'], 2),
+        'payoutRatioPct': round(signal['payoutRatioPct'], 2) if signal.get('payoutRatioPct') is not None else None,
         'cashDividendPerShare': signal.get('cashDividendPerShare'),
         'dividendStreak': signal['dividendStreak'],
         'profitGrowthStreak': signal['profitGrowthStreak'],
@@ -791,7 +783,8 @@ def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None
         item.get('code') or '',
     ))
     sectors = {}
-    for match in matches[:DIVIDEND_TOP_N]:
+    dividend_matches = matches if DIVIDEND_TOP_N is None else matches[:DIVIDEND_TOP_N]
+    for match in dividend_matches:
         sectors.setdefault(match['sector'], []).append(match)
     return sectors, scanned
 

@@ -870,6 +870,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("activeEtfPeriod", source)
         self.assertIn("sortMatches", source)
         self.assertIn("ss-return-period-tabs", style)
+        self.assertIn("ss-dividend-sort-btn", source)
+        self.assertIn("data-dividend-sort", source)
 
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")

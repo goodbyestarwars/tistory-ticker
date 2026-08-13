@@ -59,6 +59,10 @@
   margin: 0 0 12px;
 }
 
+#strategy-search .ss-dividend-sort-tabs { display: flex; gap: 6px; margin: 0 0 10px; }
+#strategy-search .ss-dividend-sort-btn { padding: 6px 14px; border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; color: #64748b; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
+#strategy-search .ss-dividend-sort-btn.active { border-color: #222; background: #222; color: #fff; }
+
 #strategy-search .ss-return-period-tab {
   font-family: inherit;
   font-size: 12px;

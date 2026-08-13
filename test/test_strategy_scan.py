@@ -107,19 +107,25 @@ class DividendTests(unittest.TestCase):
             ],
         }
 
-    def test_requires_all_conservative_conditions(self):
+    def test_accepts_dart_dividend_without_profit_growth_gate(self):
         daily = [{'close': 100}, {'close': 100}]
-        signal = strategy_scan.dividend_signal(daily, self._annual(), self._dividend())
+        annual = {'years': [
+            {'year': 2022, 'net_income': 100},
+            {'year': 2023, 'net_income': 90},
+            {'year': 2024, 'net_income': 80},
+            {'year': 2025, 'net_income': 70},
+        ]}
+        signal = strategy_scan.dividend_signal(daily, annual, self._dividend())
 
         self.assertIsNotNone(signal)
         self.assertEqual(signal['dividendStreak'], 3)
-        self.assertEqual(signal['profitGrowthStreak'], 3)
+        self.assertEqual(signal['profitGrowthStreak'], 0)
         self.assertEqual(signal['payoutRatioPct'], 40)
         self.assertEqual(signal['dividendYieldPct'], 6.0)
 
-    def test_rejects_a_broken_dividend_streak(self):
+    def test_rejects_missing_current_cash_dividend(self):
         dividend = self._dividend()
-        dividend['years'][1]['cashDividendPerShare'] = 0
+        dividend['years'][-1]['cashDividendPerShare'] = 0
 
         self.assertIsNone(strategy_scan.dividend_signal(
             [{'close': 100}], self._annual(), dividend))
