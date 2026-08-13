@@ -39,23 +39,29 @@
     { key: '6m', label: '6개월' },
     { key: '12m', label: '12개월' }
   ];
-  // ETF 상품명 앞의 브랜드를 운용사별 대표 라벨로 사용한다. 화면 순서는
-  // 국내 ETF 검색에서 자주 쓰는 브랜드를 먼저 고정하고, 나머지는 뒤에 붙인다.
+  // ETF 상품명 앞의 브랜드를 운용사별 대표 라벨로 사용한다. 화면 순서는 KODEX(삼성자산운용)를
+  // 시작으로 국내 ETF 시장에서 통상 알려진 운용사 순자산 규모 순서를 따른다(2026-08-13 사용자
+  // 요청 - "보통 KODEX부터 하지 않아? 운용사 순위로"). 이 저장소가 실시간 AUM 데이터를 갖고
+  // 있지 않아 매체에 흔히 인용되는 통념상 순위이며, 매 순간의 실제 순자산 순위와는 다를 수
+  // 있다(자동 갱신 아님, 필요 시 사람이 다시 정렬). RISE/KBSTAR, PLUS/ARIRANG은 같은
+  // 운용사(각각 KB자산운용, 한화자산운용)의 리브랜딩 전후 이름이라 순위상 나란히 둔다.
   var ETF_ISSUER_GROUPS = [
-    { key: 'TIGER', label: 'TIGER' },
-    { key: 'KODEX', label: 'KODEX' },
-    { key: 'PLUS', label: 'PLUS' },
-    { key: 'ACE', label: 'ACE' },
-    { key: 'HANARO', label: 'HANARO' },
-    { key: 'SOL', label: 'SOL' },
-    { key: 'RISE', label: 'RISE' },
+    { key: 'KODEX', label: 'KODEX' },       // 삼성자산운용
+    { key: 'TIGER', label: 'TIGER' },       // 미래에셋자산운용
+    { key: 'RISE', label: 'RISE' },         // KB자산운용(구 KBSTAR)
     { key: 'KBSTAR', label: 'KBSTAR' },
-    { key: 'KOSEF', label: 'KOSEF' },
+    { key: 'ACE', label: 'ACE' },           // 한국투자신탁운용
+    { key: 'PLUS', label: 'PLUS' },         // 한화자산운용(구 ARIRANG)
     { key: 'ARIRANG', label: 'ARIRANG' },
+    { key: 'SOL', label: 'SOL' },           // 신한자산운용
+    { key: 'HANARO', label: 'HANARO' },     // NH-Amundi자산운용
+    { key: 'KOSEF', label: 'KOSEF' },       // 키움투자자산운용
     { key: 'TIMEFOLIO', label: 'TIMEFOLIO' },
     { key: '1Q', label: '1Q' },
     { key: 'FOCUS', label: 'FOCUS' }
   ];
+  var ETF_LIST_PAGE_SIZE = 10;
+  var expandedEtfGroups = {}; // 운용사 카드명 -> true(더보기로 전체 펼친 상태)
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -190,6 +196,14 @@
         renderCards(container);
         return;
       }
+      var moreBtn = event.target.closest ? event.target.closest('.ss-card-more') : null;
+      if (moreBtn) {
+        var groupName = moreBtn.getAttribute('data-more-group');
+        if (!groupName) return;
+        expandedEtfGroups[groupName] = !expandedEtfGroups[groupName];
+        renderCards(container);
+        return;
+      }
       var row = event.target.closest ? event.target.closest('.ss-row') : null;
       if (!row) return;
       var code = row.getAttribute('data-code');
@@ -264,10 +278,21 @@
     }
     var html = cardGroups.map(function (group) {
       var matches = sortMatches(group.matches);
-      var rows = matches.map(rowHtml).join('');
+      // ETF 수익률 상위는 운용사별 카드가 많으면 한 카드에 종목이 수십 개까지 쌓여
+      // 화면이 길어지므로, 상위 10개만 먼저 보여주고 "더보기"로 전체를 펼친다
+      // (2026-08-13 사용자 요청). 다른 전략 카테고리는 기존처럼 전체를 그대로 보여준다.
+      var isEtf = activeKey === 'etfReturn';
+      var expanded = !isEtf || !!expandedEtfGroups[group.name];
+      var visible = expanded ? matches : matches.slice(0, ETF_LIST_PAGE_SIZE);
+      var rows = visible.map(rowHtml).join('');
+      var moreBtn = (isEtf && matches.length > ETF_LIST_PAGE_SIZE)
+        ? '<button type="button" class="ss-card-more" data-more-group="' + escapeAttr(group.name) + '">'
+          + (expanded ? '접기 ▲' : '더보기 · 전체 ' + matches.length + '개 ▼') + '</button>'
+        : '';
       return '<div class="ss-card">'
         + '<div class="ss-card-title">' + escapeHtml(group.name) + '</div>'
         + '<div class="ss-rows">' + rows + '</div>'
+        + moreBtn
         + '</div>';
     }).join('');
     wrap.innerHTML = periodTabs + dividendTabs + '<div class="ss-cards-grid">' + html + '</div>';
