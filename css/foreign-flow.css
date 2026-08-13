@@ -1566,6 +1566,7 @@
 #foreign-flow .ff-sim-mark-peak { fill: #d24f45; }
 #foreign-flow .ff-sim-mark-trough { fill: #1261c4; }
 #foreign-flow .ff-sim-mark-label { font-weight: 800; font-size: 10.5px; }
+#foreign-flow .ff-sim-axis-label { font-weight: 700; fill: #666; }
 #foreign-flow .ff-sim-extremes {
   display: flex;
   flex-wrap: wrap;
@@ -1575,6 +1576,17 @@
   margin: 8px 0 2px;
 }
 #foreign-flow .ff-sim-extreme b { font-weight: 800; margin-right: 2px; }
+#foreign-flow .ff-sim-patience {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: #444;
+  margin: 6px 0 2px;
+}
+#foreign-flow .ff-sim-patience-item b { font-weight: 800; margin: 0 2px; }
+#foreign-flow .ff-sim-patience-good { color: #d24f45; font-weight: 700; }
+#foreign-flow .ff-sim-patience-sub { color: #999; font-size: 11.5px; }
 #foreign-flow .ff-sim-result { font-size: 13.5px; margin: 8px 0 6px; line-height: 1.6; }
 
 #foreign-flow .ff-fund-grid {
@@ -1812,6 +1824,7 @@ html.dark #foreign-flow .ff-chart {
 html.dark #foreign-flow .ff-grid { stroke: rgba(245, 239, 224, 0.2); }
 html.dark #foreign-flow .ff-zero { stroke: rgba(245, 239, 224, 0.4); }
 html.dark #foreign-flow .ff-axis { fill: rgba(245, 239, 224, 0.5); }
+html.dark #foreign-flow .ff-sim-axis-label { fill: rgba(245, 239, 224, 0.75) !important; }
 html.dark #foreign-flow .ff-line-rsi { stroke: #F5EFE0; }
 html.dark #foreign-flow .ff-legend { color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #foreign-flow .ff-ichimoku-toggle,
@@ -1887,6 +1900,8 @@ html.dark #foreign-flow .ff-sim-stat b { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-sim-dot { fill: #F5EFE0 !important; stroke: #1A1A1A !important; }
 html.dark #foreign-flow .ff-sim-mark { stroke: #1A1A1A !important; }
 html.dark #foreign-flow .ff-sim-extremes { color: rgba(245, 239, 224, 0.75) !important; }
+html.dark #foreign-flow .ff-sim-patience { color: rgba(245, 239, 224, 0.75) !important; }
+html.dark #foreign-flow .ff-sim-patience-sub { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #foreign-flow .ff-fund-title { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-fund-cell { background: #1A1A1A !important; }
 html.dark #foreign-flow .ff-fund-label { color: rgba(245, 239, 224, 0.6) !important; }

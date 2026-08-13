@@ -2918,13 +2918,23 @@
   function buildSimChartSvg(daily) {
     var geo = simGeometry(daily);
     var baseline = geo.y(1);
+    var baselineLabelY = baseline + 4;
+    var maxLabelY = geo.y(geo.domMax) + 4;
+    var minLabelY = geo.y(geo.domMin) + 4;
+    // 수익률 폭이 아주 크면(예: +1000%대) 축 상/하단이 원금(비율 1) 쪽으로 눌리면서 "원금"
+    // 라벨과 축 최고/최저 금액 라벨의 y좌표가 거의 같아져 두 줄이 겹쳐 보인다(2026-08-13
+    // 사용자 스크린샷 제보 - "왜 줄을 바꾸지?"). domMax>=1>=domMin이 항상 성립해
+    // maxLabelY<=baselineLabelY<=minLabelY 순서는 유지되므로, 최소 간격만 강제로 벌린다.
+    var MIN_LABEL_GAP = 13;
+    if (baselineLabelY - maxLabelY < MIN_LABEL_GAP) maxLabelY = baselineLabelY - MIN_LABEL_GAP;
+    if (minLabelY - baselineLabelY < MIN_LABEL_GAP) minLabelY = baselineLabelY + MIN_LABEL_GAP;
     var svg = '<svg class="ff-svg" id="ffSimSvg" viewBox="0 0 ' + CHART_W + ' ' + SIM_H + '" role="img" aria-label="과거 시뮬레이션 평가금액 추이">';
     svg += '<line class="ff-grid" x1="' + PAD.l + '" y1="' + geo.y(geo.domMax).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + geo.y(geo.domMax).toFixed(1) + '"/>';
     svg += '<line class="ff-grid" x1="' + PAD.l + '" y1="' + geo.y(geo.domMin).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + geo.y(geo.domMin).toFixed(1) + '"/>';
     svg += '<line class="ff-zero" x1="' + PAD.l + '" y1="' + baseline.toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + baseline.toFixed(1) + '"/>';
-    svg += '<text class="ff-axis" id="ffSimAxisMax" x="' + (PAD.l - 6) + '" y="' + (geo.y(geo.domMax) + 4).toFixed(1) + '" text-anchor="end"></text>';
-    svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (baseline + 4).toFixed(1) + '" text-anchor="end">원금</text>';
-    svg += '<text class="ff-axis" id="ffSimAxisMin" x="' + (PAD.l - 6) + '" y="' + (geo.y(geo.domMin) + 4).toFixed(1) + '" text-anchor="end"></text>';
+    svg += '<text class="ff-axis ff-sim-axis-label" id="ffSimAxisMax" x="' + (PAD.l - 6) + '" y="' + maxLabelY.toFixed(1) + '" text-anchor="end"></text>';
+    svg += '<text class="ff-axis ff-sim-axis-label" x="' + (PAD.l - 6) + '" y="' + baselineLabelY.toFixed(1) + '" text-anchor="end">원금</text>';
+    svg += '<text class="ff-axis ff-sim-axis-label" id="ffSimAxisMin" x="' + (PAD.l - 6) + '" y="' + minLabelY.toFixed(1) + '" text-anchor="end"></text>';
     svg += rsiAxisLabels(daily, geo.x, SIM_H - 8);
     svg += '<polyline class="ff-sim-line" id="ffSimLine" points=""/>';
     svg += simExtremeMark(geo, 'peak', geo.peakIdx);
@@ -2943,6 +2953,57 @@
     var troughRate = (geo.ratios[troughIdx] - 1) * 100;
     return '<span class="ff-sim-extreme"><b class="ff-buy">▲ 최고점</b> ' + escapeHtml(daily[peakIdx].date) + ' ' + fmtWon(peakValue) + ' (' + fmtSignedPct(peakRate) + ')</span>'
       + '<span class="ff-sim-extreme"><b class="ff-sell">▼ 최저점</b> ' + escapeHtml(daily[troughIdx].date) + ' ' + fmtWon(troughValue) + ' (' + fmtSignedPct(troughRate) + ')</span>';
+  }
+
+  function daysBetweenIso(a, b) {
+    return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+  }
+
+  function fmtDuration(days) {
+    if (days <= 0) return '0일';
+    if (days < 30) return days + '일';
+    var months = Math.round(days / 30.44);
+    if (months < 12) return months + '개월';
+    var years = Math.floor(months / 12);
+    var remMonths = months - years * 12;
+    return years + '년' + (remMonths ? ' ' + remMonths + '개월' : '');
+  }
+
+  // "기다림의 시간"(가장 최근 원금 이탈~회복 기간)과 "수익구간"(그 회복 이후 지금까지 유지
+  // 기간). 비율·날짜만으로 계산되는 값이라 투자금과 무관 - amount가 바뀌어도 다시 계산할
+  // 필요 없다(wireSimulation에서 갱신 안 함). 한 번도 원금 밑으로 안 내려갔으면 기다림 없이
+  // 축하 메시지만, 지금도 원금 밑이면(회복 전) 진행 중이라고 표시한다.
+  function simPatienceHtml(daily, ratios) {
+    var n = ratios.length;
+    var lastDipStartIdx = null;
+    var lastRecoverIdx = null;
+    var below = false;
+    for (var i = 1; i < n; i++) {
+      if (ratios[i] < 1 && !below) {
+        below = true;
+        lastDipStartIdx = i;
+        lastRecoverIdx = null;
+      } else if (ratios[i] >= 1 && below) {
+        below = false;
+        lastRecoverIdx = i;
+      }
+    }
+
+    if (lastDipStartIdx == null) {
+      return '<div class="ff-sim-patience-item ff-sim-patience-good">🎉 축하축하! 산 이후로 한 번도 원금 밑으로 내려간 적이 없어요 — 기다림 없이 쭉 수익구간이었습니다.</div>';
+    }
+
+    if (below) {
+      var openDays = daysBetweenIso(daily[lastDipStartIdx].date, daily[n - 1].date);
+      return '<div class="ff-sim-patience-item ff-sim-patience-wait">⏳ <b>' + escapeHtml(daily[lastDipStartIdx].date) + '</b>부터 아직 원금 회복 전이에요 <span class="ff-sim-patience-sub">(' + fmtDuration(openDays) + '째 대기 중)</span></div>';
+    }
+
+    var waitDays = daysBetweenIso(daily[lastDipStartIdx].date, daily[lastRecoverIdx].date);
+    var profitDays = daysBetweenIso(daily[lastRecoverIdx].date, daily[n - 1].date);
+    return '<div class="ff-sim-patience-item ff-sim-patience-wait">⏳ 기다림의 시간(원금 회복 기간) <b class="ff-sell">' + fmtDuration(waitDays) + '</b>'
+      + ' <span class="ff-sim-patience-sub">(' + escapeHtml(daily[lastDipStartIdx].date) + ' 원금 이탈 → ' + escapeHtml(daily[lastRecoverIdx].date) + ' 회복)</span></div>'
+      + '<div class="ff-sim-patience-item ff-sim-patience-profit">📈 수익구간 <b class="ff-buy">' + fmtDuration(profitDays) + '</b>'
+      + ' <span class="ff-sim-patience-sub">(' + escapeHtml(daily[lastRecoverIdx].date) + ' ~ ' + escapeHtml(daily[n - 1].date) + ')</span></div>';
   }
 
   function simResultText(daily, amount) {
@@ -2981,6 +3042,7 @@
       + '</div>'
       + '<div class="ff-chart ff-chart-sim">' + buildSimChartSvg(daily) + '</div>'
       + '<div class="ff-sim-extremes" id="ffSimExtremes">' + simExtremesText(daily, geo, defaultAmount) + '</div>'
+      + '<div class="ff-sim-patience">' + simPatienceHtml(daily, geo.ratios) + '</div>'
       + '<div class="ff-sim-result" id="ffSimResult">' + simResultText(daily, defaultAmount) + '</div>'
       + '<div class="ff-hint">매매수수료·세금·배당은 반영하지 않은 종가 기준 단순 계산이며, 투자 조언이 아닙니다.</div>'
       + '</div>';
