@@ -51,5 +51,5 @@
 
 - `js/`, `css/`, `data/`: `master` 반영 후 GitHub Pages 자동 배포
 - `scripts/cloud-vm/`: `master` 반영 후 VM 자동 배포
-- `gas/ticker-proxy.gs`: GAS에서 새 버전 수동 배포
+- `gas/ticker-proxy.gs`: `master` 반영 후 GitHub Actions(clasp)가 자동 배포(2026-08-14부터). 저장소 Secrets(`CLASP_CREDENTIALS`/`CLASP_DEPLOYMENT_ID`) 없으면 예전처럼 GAS에서 수동 배포
 - `skin.html`: Tistory 관리자에서 수동 반영

@@ -40,7 +40,7 @@
 | 컴포넌트 | 저장 위치 | 배포 트리거 | 반영까지 |
 |---|---|---|---|
 | `js/*.js`, `css/*.css`, `data/*.js` | 이 GitHub 저장소 | `master`에 push | 1~10분 (GitHub Pages, 캐시 max-age=600) |
-| `gas/ticker-proxy.gs` | 이 저장소 + Google Apps Script 프로젝트(별도) | **script.google.com에서 수동 "새 배포"** | git push만으론 반영 안 됨 |
+| `gas/ticker-proxy.gs` | 이 저장소 + Google Apps Script 프로젝트(별도) | `master`에 push(`gas/*` 경로) → GitHub Actions(`deploy-gas.yml`)가 clasp로 자동 배포(2026-08-14부터) | 1분 내외 |
 | `scripts/cloud-vm/*.py` (FastAPI) | 이 저장소 + VM(`goodbyestar.cloud`) | git push 후 VM이 자동 배포(약 5분) | 5분 |
 | `skin.html` | 이 저장소(히스토리/리뷰용) + 티스토리 스킨 편집기 | **티스토리 관리자 → 꾸미기 → 스킨 편집 → HTML 편집에 수동 붙여넣기** | git push는 배포 경로가 아님 |
 | `scripts/fetch_investor_flow.py` | 이 저장소, 실행은 사용자 PC 로컬 | 사용자가 PC에서 하루 1회 수동 실행 → 결과를 git push | 실행 즉시 (수동) |
@@ -69,8 +69,12 @@
   스크립트 속성)에 저장: `GROQ_API_KEY`, `KIWOOM_VM_URL`, `KIWOOM_VM_TOKEN` 등
 - `CacheService`로 응답 캐싱(항목마다 TTL 다름, 보통 몇 분~30분)
 - 여기서 VM을 호출할 때는 `X-API-Key` 헤더(`KIWOOM_VM_TOKEN`)로 인증
-- **코드를 고쳐도 script.google.com에서 수동으로 "배포 → 배포 관리 → 새 버전"을 눌러야
-  실제 반영됨** — 이 저장소에 push만 해두는 건 히스토리 보관일 뿐
+- **2026-08-14부터 자동 배포**: `gas/ticker-proxy.gs`·`gas/appsscript.json`·`gas/.clasp.json`이
+  `master`에 push되면 `.github/workflows/deploy-gas.yml`이 GitHub 클라우드 러너에서
+  `clasp push`+`clasp deploy`를 실행해 기존 배포(운영 웹앱 URL)에 그대로 반영한다.
+  저장소 Secrets(`CLASP_CREDENTIALS`, `CLASP_DEPLOYMENT_ID`)가 없으면 이 워크플로가
+  실패하니, 그럴 땐 예전처럼 script.google.com에서 수동 "배포 → 배포 관리 → 새 버전"으로
+  대체한다. 설정·문제 해결은 `docs/GAS_AUTO_DEPLOY.md` 참고
 
 ### 3. 클라우드 VM (`scripts/cloud-vm/`, FastAPI, `goodbyestar.cloud`)
 - 엔트리포인트 `main.py` (`uvicorn main:app`), systemd 서비스로 상시 구동
