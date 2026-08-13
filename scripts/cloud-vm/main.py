@@ -496,54 +496,6 @@ async def update_watchlist(request: Request):
     return envelope(saved)
 
 
-@app.get('/economic-flash')
-def economic_flash_endpoint():
-    """관리자가 입력한 24시간 속보를 공개 화면에 제공한다."""
-    now = datetime.now(timezone.utc).isoformat()
-    conn = db_schema.get_conn()
-    try:
-        alerts = db_schema.load_economic_flash_alerts(conn, now, limit=30)
-    finally:
-        conn.close()
-    return envelope({'items': alerts})
-
-
-@app.post('/economic-flash')
-async def create_economic_flash(request: Request):
-    """Google 관리자 전용 수동 속보 입력. 기본 보존시간은 24시간이다."""
-    require_google_admin(request)
-    try:
-        body = await request.json()
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
-    if not isinstance(body, dict):
-        raise HTTPException(status_code=400, detail='request body must be an object')
-    title = str(body.get('title') or '').strip()
-    category = str(body.get('category') or '속보').strip()
-    market = str(body.get('market') or 'all').strip().lower()
-    link = str(body.get('link') or '').strip()
-    if not title or len(title) > 240:
-        raise HTTPException(status_code=422, detail='title is required and must be 240 characters or fewer')
-    if category not in ('속보', '미국 금리', 'CPI', 'FOMC', 'M7 실적', '실적', '공시', '지수'):
-        raise HTTPException(status_code=422, detail='unsupported flash category')
-    if market not in ('all', 'domestic', 'us'):
-        raise HTTPException(status_code=422, detail='market must be all, domestic, or us')
-    if link and not link.startswith(('https://', 'http://')):
-        raise HTTPException(status_code=422, detail='link must be an http(s) URL')
-    created_at = datetime.now(timezone.utc)
-    expires_at = created_at + timedelta(hours=24)
-    conn = db_schema.get_conn()
-    try:
-        saved = db_schema.save_economic_flash_alert(
-            conn, title, category, market, link,
-            created_at.isoformat(), expires_at.isoformat(),
-        )
-    finally:
-        conn.close()
-    _economic_news_ws_cache.clear()
-    return envelope(saved)
-
-
 @app.get('/sector-cards')
 def sector_cards_endpoint():
     """증시온도 카드/히트맵/분석에서 공통으로 사용하는 사용자 설정."""
@@ -657,19 +609,12 @@ def _fetch_economic_news_snapshot(market):
             limit=30,
         ))
     disclosures = domestic_news.get_disclosures(limit=100)
-    conn = db_schema.get_conn()
-    try:
-        manual_alerts = db_schema.load_economic_flash_alerts(
-            conn, datetime.now(timezone.utc).isoformat(), limit=30,
-        )
-    finally:
-        conn.close()
-    return {'market': market, 'items': items, 'flash': _build_flash_items(flash_news, disclosures, market, manual_alerts)}
+    return {'market': market, 'items': items, 'flash': _build_flash_items(flash_news, disclosures, market)}
 
 
-def _build_flash_items(news_items, disclosures, market='domestic', manual_alerts=None):
+def _build_flash_items(news_items, disclosures, market='domestic'):
     """속보 레일에 필요한 실적·공시·지수·미국 거시 이벤트를 정규화한다."""
-    candidates = [item for item in (manual_alerts or []) if item.get('market') in ('all', market)]
+    candidates = []
     for item in disclosures or []:
         title = str(item.get('title') or '').strip()
         text = title.lower()

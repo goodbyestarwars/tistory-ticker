@@ -4285,14 +4285,6 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hen-breaking-badge--cpi, .hen-breaking-badge--fomc, .hen-breaking-badge--미국 { background: #ffe0da; color: #c4382c; }
 .hen-breaking-badge--지수 { background: #e9f1ff; color: #2864b7; }
 .hen-breaking-empty { margin: 0; padding: 12px 11px; color: #a36b62; font-size: 11px; }
-.hen-breaking-admin { padding: 6px 9px 8px; border-top: 1px solid #ffe9e3; }
-.hen-breaking-admin > button { padding: 3px 7px; border: 1px solid #f2b8ad; border-radius: 5px; background: #fff; color: #c94c3e; font: inherit; font-size: 10px; cursor: pointer; }
-.hen-breaking-admin form { display: grid; gap: 5px; margin-top: 6px; }
-.hen-breaking-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-.hen-breaking-admin input, .hen-breaking-admin select { width: 100%; min-width: 0; box-sizing: border-box; padding: 5px 6px; border: 1px solid #f1d5cf; border-radius: 5px; background: #fff; color: #3b3030; font: inherit; font-size: 10px; }
-.hen-breaking-form-actions { display: flex; align-items: center; gap: 7px; }
-.hen-breaking-form-actions button { padding: 4px 9px; border: 0; border-radius: 5px; background: #df5a49; color: #fff; font: inherit; font-size: 10px; cursor: pointer; }
-.hen-breaking-form-actions span { color: #c94c3e; font-size: 9px; }
 .hen-list { margin-top: 9px; overflow: hidden; }
 .hen-periods { max-height: 340px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; -ms-overflow-style: none; }
 .hen-periods::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
@@ -4347,8 +4339,6 @@ html.dark .hen-breaking-head { border-color: rgba(255,233,227,.15); }
 html.dark .hen-breaking-head span, html.dark .hen-breaking-empty { color: rgba(255,216,207,.72); }
 html.dark .hen-breaking-row { border-color: rgba(255,233,227,.12); }
 html.dark .hen-breaking-row strong { color: #f5efe0; }
-html.dark .hen-breaking-admin { border-color: rgba(255,233,227,.15); }
-html.dark .hen-breaking-admin input, html.dark .hen-breaking-admin select { border-color: rgba(255,216,207,.3); background: rgba(0,0,0,.16); color: #f5efe0; }
 html.dark .hen-row { border-color: rgba(245,239,224,.1); }
 html.dark .hen-rail::before { background: rgba(245,239,224,.38); }
 html.dark .hen-rail i { border-color: #1c2430; }
