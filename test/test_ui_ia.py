@@ -353,7 +353,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("renderPeriod('am', '오전')", news)
         self.assertIn("is-latest", news)
         self.assertNotIn("hen-zigzag", news)
-        self.assertIn("v=20260813-breaking-flash-v1", main)
+        self.assertIn("v=20260813-breaking-flash-v2", main)
         self.assertIn('data-hen-breaking-list', main)
         self.assertIn('function renderFlash(items)', news)
         self.assertIn('isWatchlistDisclosure(item)', news)
