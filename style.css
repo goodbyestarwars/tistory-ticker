@@ -4309,8 +4309,8 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .home-economic-news { display: flex; flex-direction: column; }
 .home-economic-news { box-sizing: border-box; }
 .home-economic-news .hen-breaking-list { height: 62px; max-height: 62px; }
-.home-economic-news .hen-list { min-height: 0; flex: 1 1 auto; overflow-y: auto; }
-.home-economic-news .hen-periods { height: 100%; max-height: none; }
+.home-economic-news .hen-list { min-height: 0; flex: 1 1 0; display: flex; flex-direction: column; overflow: hidden; }
+.home-economic-news .hen-periods { min-height: 0; height: auto; flex: 1 1 auto; max-height: none; overflow-y: auto; }
 .home-widget--summary.home-market-board,
 .home-widget--summary.home-economic-news { height: auto; min-height: 0; }
 .home-widget--summary.home-market-board,
