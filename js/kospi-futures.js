@@ -100,6 +100,21 @@
   var drawingStates = {};
   var themeObserver = null;
   var refreshTimer = null;
+
+  function resizeKfCharts() {
+    global.requestAnimationFrame(function () {
+      Object.keys(chartInstances).forEach(function (key) {
+        var inst = chartInstances[key];
+        if (!inst || !inst.chart || !inst.container || !inst.chart.resize) return;
+        var width = inst.container.clientWidth;
+        var height = inst.container.clientHeight;
+        if (width > 0 && height > 0) {
+          try { inst.chart.resize(width, height); } catch (e) { /* 레이아웃 정리 후 다음 요청에서 재시도 */ }
+        }
+      });
+    });
+  }
+  global.addEventListener('tistory-chart-resize', resizeKfCharts);
   // key -> { interval, dayItem(마지막 일봉 fetch 결과), minuteRows(마지막 분봉 fetch 결과) }
   var panelState = {};
   CHARTS.forEach(function (c) { panelState[c.key] = { interval: c.intervals[0] === 'minute' ? 'day' : c.intervals[0], dayItem: null, minuteRows: null }; });

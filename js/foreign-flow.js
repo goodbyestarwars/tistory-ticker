@@ -59,8 +59,30 @@
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var lwcLoadPromise = null;
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
+  var lwcChartContainer = null;
   var lwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
   var lwcMarkers = null;       // v5 Series Markers 플러그인
+
+  function resizeForeignFlowChart() {
+    if (!lwcChart || !lwcChartContainer || !lwcChart.resize) return;
+    global.requestAnimationFrame(function () {
+      if (!lwcChart || !lwcChartContainer) return;
+      var width = lwcChartContainer.clientWidth;
+      var height = lwcChartContainer.clientHeight;
+      if (width > 0 && height > 0) {
+        try {
+          lwcChart.resize(width, height);
+          var panes = lwcChart.panes ? lwcChart.panes() : [];
+          if (panes.length > 1) {
+            var subHeight = Math.max(42, Math.round(height * 0.14));
+            if (panes[0].setHeight) panes[0].setHeight(Math.max(220, height - subHeight * (panes.length - 1)));
+            panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
+          }
+        } catch (e) { /* 레이아웃 정리 후 다음 요청에서 재시도 */ }
+      }
+    });
+  }
+  global.addEventListener('tistory-chart-resize', resizeForeignFlowChart);
 
   var cacheByCode = {};   // code -> { t, data }
   var inflightByCode = {}; // code -> Promise
@@ -4459,6 +4481,7 @@
     if (lwcChart) {
       try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
       lwcChart = null;
+      lwcChartContainer = null;
     }
     lwcMarkers = null;
     movingAverageOverlaySeries = [];
@@ -4642,6 +4665,7 @@
         handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true }
       }, lwcThemeOptions(LWC)));
       lwcChart = chart;
+      lwcChartContainer = container;
       chart.priceScale('right').applyOptions({
         scaleMargins: { top: 0.06, bottom: 0.36 },
         alignLabels: false

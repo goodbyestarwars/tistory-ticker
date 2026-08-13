@@ -190,6 +190,17 @@
 .de-draw-controls .dmi-draw-clear:hover { border-color: #e11d48; color: #e11d48; }
 .de-expand-button:hover { border-color: #315b43; color: #315b43; }
 #foreign-flow .ff-apt-chart-wrap { padding-top: 30px; }
+#foreign-flow .ff-flow-chart-card,
+#foreign-flow .ff-apt-chart-wrap,
+#foreign-flow #ffLwChart,
+#kospi-futures .kf-chart,
+#domestic-market-indicators .dmi-chart {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
 #foreign-flow .ff-chart-candle { height: 760px !important; }
 #stock-search .ss-chart { height: 760px; }
 #kospi-futures .kf-chart { height: 330px !important; }
@@ -200,7 +211,7 @@
 .de-chart-modal-body { display: flex; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; padding: 22px 18px 26px; }
 .de-chart-modal-body > #ffLwChart, .de-chart-modal-body > #ssChart, .de-chart-modal-body > .kf-chart, .de-chart-modal-body > .dmi-chart { width: 100%; }
 .de-chart-modal-body > .de-stock-search-scope { display: block; flex: 1 1 100%; width: 100%; min-width: 0; }
-.de-chart-modal-body > .de-stock-search-scope > .ss-panel-right { width: 100%; max-width: none; box-sizing: border-box; }
+.de-chart-modal-body > .de-stock-search-scope > .ss-panel-right { width: 100%; max-width: none; min-width: 0; box-sizing: border-box; overflow: hidden; }
 .de-chart-modal-body > .ff-apt-chart-wrap { width: 100%; min-width: 0; }
 .de-chart-modal-body > .de-foreign-flow-scope { width: 100%; min-width: 0; }
 .de-chart-placeholder { display: none; }

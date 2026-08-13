@@ -272,6 +272,12 @@
       requestAnimationFrame(function () {
         global.dispatchEvent(new Event('resize'));
         if (chartTarget) chartTarget.dispatchEvent(new Event('resize'));
+        // Re-measure the chart after it has returned from the fullscreen modal.
+        global.dispatchEvent(new Event('tistory-chart-resize'));
+        requestAnimationFrame(function () {
+          global.dispatchEvent(new Event('resize'));
+          global.dispatchEvent(new Event('tistory-chart-resize'));
+        });
       });
     }
     function onKeydown(event) { if (event.key === 'Escape') close(); }
@@ -284,6 +290,7 @@
       if (modalTarget.clientWidth && modalTarget.clientHeight) {
         modalTarget.dispatchEvent(new Event('resize'));
       }
+      global.dispatchEvent(new Event('tistory-chart-resize'));
     });
   }
 
