@@ -2886,6 +2886,8 @@
     var ratios = daily.map(function (d) { return d.close / base; });
     var max = Math.max.apply(null, ratios);
     var min = Math.min.apply(null, ratios);
+    var peakIdx = ratios.indexOf(max);
+    var troughIdx = ratios.indexOf(min);
     var span = (max - min) || 0.1;
     var domMax = max + span * 0.12;
     // 평가금액은 원금을 다 잃어도 0원 아래로는 안 내려가므로 축 바닥을 0 밑으로 두지 않는다
@@ -2895,7 +2897,22 @@
     var ih = SIM_H - PAD.t - PAD.b;
     function x(i) { return PAD.l + (n <= 1 ? 0 : (i / (n - 1)) * iw); }
     function y(ratio) { return PAD.t + (1 - (ratio - domMin) / (domMax - domMin)) * ih; }
-    return { n: n, ratios: ratios, x: x, y: y, domMax: domMax, domMin: domMin };
+    return { n: n, ratios: ratios, x: x, y: y, domMax: domMax, domMin: domMin, peakIdx: peakIdx, troughIdx: troughIdx };
+  }
+
+  // 최고/최저점 마커: 원 안쪽에 "최고"/"최저" 라벨만 짧게 붙인다(2026-08-13 축 라벨
+  // 오버플로 사고 직후라, 날짜·금액까지 SVG 안에 욱여넣지 않고 라벨 x좌표를 차트 안쪽으로
+  // clamp해서 끝단(최근일 근처)에서도 절대 밖으로 안 나가게 한다). 정확한 날짜·금액은
+  // 차트 아래 ff-sim-extremes 텍스트 줄에서 보여준다.
+  function simExtremeMark(geo, kind, idx) {
+    var cx = geo.x(idx);
+    var cy = geo.y(geo.ratios[idx]);
+    var labelX = Math.min(CHART_W - PAD.r - 14, Math.max(PAD.l + 14, cx));
+    var labelY = kind === 'peak' ? cy - 9 : cy + 15;
+    var cls = kind === 'peak' ? 'ff-sim-mark-peak' : 'ff-sim-mark-trough';
+    var label = kind === 'peak' ? '최고' : '최저';
+    return '<circle class="ff-sim-mark ' + cls + '" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="3.5"/>'
+      + '<text class="ff-axis ff-sim-mark-label ' + cls + '" x="' + labelX.toFixed(1) + '" y="' + labelY.toFixed(1) + '" text-anchor="middle">' + label + '</text>';
   }
 
   function buildSimChartSvg(daily) {
@@ -2910,9 +2927,22 @@
     svg += '<text class="ff-axis" id="ffSimAxisMin" x="' + (PAD.l - 6) + '" y="' + (geo.y(geo.domMin) + 4).toFixed(1) + '" text-anchor="end"></text>';
     svg += rsiAxisLabels(daily, geo.x, SIM_H - 8);
     svg += '<polyline class="ff-sim-line" id="ffSimLine" points=""/>';
+    svg += simExtremeMark(geo, 'peak', geo.peakIdx);
+    svg += simExtremeMark(geo, 'trough', geo.troughIdx);
     svg += '<circle class="ff-sim-dot" id="ffSimDot" r="4" visibility="hidden"/>';
     svg += '</svg>';
     return svg;
+  }
+
+  // 차트 안 마커는 "최고"/"최저" 두 글자뿐이라, 정확한 날짜·금액은 이 텍스트 줄로 보여준다.
+  function simExtremesText(daily, geo, amount) {
+    var peakIdx = geo.peakIdx, troughIdx = geo.troughIdx;
+    var peakValue = Math.round(amount * geo.ratios[peakIdx]);
+    var troughValue = Math.round(amount * geo.ratios[troughIdx]);
+    var peakRate = (geo.ratios[peakIdx] - 1) * 100;
+    var troughRate = (geo.ratios[troughIdx] - 1) * 100;
+    return '<span class="ff-sim-extreme"><b class="ff-buy">▲ 최고점</b> ' + escapeHtml(daily[peakIdx].date) + ' ' + fmtWon(peakValue) + ' (' + fmtSignedPct(peakRate) + ')</span>'
+      + '<span class="ff-sim-extreme"><b class="ff-sell">▼ 최저점</b> ' + escapeHtml(daily[troughIdx].date) + ' ' + fmtWon(troughValue) + ' (' + fmtSignedPct(troughRate) + ')</span>';
   }
 
   function simResultText(daily, amount) {
@@ -2933,6 +2963,7 @@
     }
     var years = (daily.length / 245).toFixed(1); // KRX 연간 거래일수(약 245일) 기준 환산
     var defaultAmount = 1000000;
+    var geo = simGeometry(daily);
     return '<div class="ff-extra-card ff-sim-card">'
       + '<div class="ff-extra-card-title">🎬 과거 시뮬레이션</div>'
       + '<p class="ff-sim-desc">최근 ' + daily.length.toLocaleString('ko-KR') + '거래일(약 ' + years + '년, '
@@ -2949,6 +2980,7 @@
       + '<div class="ff-sim-stat"><span>수익률</span><b id="ffSimRate" class="ff-flat">0.0%</b></div>'
       + '</div>'
       + '<div class="ff-chart ff-chart-sim">' + buildSimChartSvg(daily) + '</div>'
+      + '<div class="ff-sim-extremes" id="ffSimExtremes">' + simExtremesText(daily, geo, defaultAmount) + '</div>'
       + '<div class="ff-sim-result" id="ffSimResult">' + simResultText(daily, defaultAmount) + '</div>'
       + '<div class="ff-hint">매매수수료·세금·배당은 반영하지 않은 종가 기준 단순 계산이며, 투자 조언이 아닙니다.</div>'
       + '</div>';
@@ -2965,6 +2997,7 @@
     var valueEl = box.querySelector('#ffSimValue');
     var rateEl = box.querySelector('#ffSimRate');
     var resultEl = box.querySelector('#ffSimResult');
+    var extremesEl = box.querySelector('#ffSimExtremes');
     var lineEl = box.querySelector('#ffSimLine');
     var dotEl = box.querySelector('#ffSimDot');
     var axisMaxEl = box.querySelector('#ffSimAxisMax');
@@ -2983,6 +3016,7 @@
       var amount = currentAmount();
       if (axisMaxEl) axisMaxEl.textContent = fmtCompactWon(amount * geo.domMax);
       if (axisMinEl) axisMinEl.textContent = fmtCompactWon(amount * geo.domMin);
+      if (extremesEl) extremesEl.innerHTML = simExtremesText(daily, geo, amount);
     }
 
     function pointsUpTo(i) {
