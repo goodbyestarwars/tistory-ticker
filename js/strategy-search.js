@@ -32,6 +32,7 @@
   var scanData = null;
   var activeKey = null;
   var activeEtfPeriod = '1m';
+  var activeDividendSort = 'yield';
   var ETF_RETURN_PERIODS = [
     { key: '1m', label: '1개월' },
     { key: '3m', label: '3개월' },
@@ -164,6 +165,14 @@
         renderCards(container);
         return;
       }
+      var dividendSortBtn = event.target.closest ? event.target.closest('.ss-dividend-sort-btn') : null;
+      if (dividendSortBtn) {
+        var sort = dividendSortBtn.getAttribute('data-dividend-sort');
+        if (!sort || sort === activeDividendSort) return;
+        activeDividendSort = sort;
+        renderCards(container);
+        return;
+      }
       var row = event.target.closest ? event.target.closest('.ss-row') : null;
       if (!row) return;
       var code = row.getAttribute('data-code');
@@ -218,6 +227,12 @@
         }).join('')
         + '</div>'
       : '';
+    var dividendTabs = activeKey === 'dividend'
+      ? '<div class="ss-dividend-sort-tabs" role="tablist" aria-label="배당주 정렬">'
+        + '<button type="button" class="ss-dividend-sort-btn' + (activeDividendSort === 'yield' ? ' active' : '') + '" data-dividend-sort="yield">수익률순</button>'
+        + '<button type="button" class="ss-dividend-sort-btn' + (activeDividendSort === 'dps' ? ' active' : '') + '" data-dividend-sort="dps">배당금순</button>'
+        + '</div>'
+      : '';
     var html = sectorNames.map(function (name) {
       var matches = sortMatches(sectors[name].matches);
       var rows = matches.map(rowHtml).join('');
@@ -226,10 +241,19 @@
         + '<div class="ss-rows">' + rows + '</div>'
         + '</div>';
     }).join('');
-    wrap.innerHTML = periodTabs + '<div class="ss-cards-grid">' + html + '</div>';
+    wrap.innerHTML = periodTabs + dividendTabs + '<div class="ss-cards-grid">' + html + '</div>';
   }
 
   function sortMatches(matches) {
+    if (activeKey === 'dividend') {
+      var dividendField = activeDividendSort === 'dps' ? 'cashDividendPerShare' : 'dividendYieldPct';
+      return matches.slice().sort(function (a, b) {
+        var ar = a[dividendField] == null ? -Infinity : Number(a[dividendField]);
+        var br = b[dividendField] == null ? -Infinity : Number(b[dividendField]);
+        if (br !== ar) return br - ar;
+        return String(a.code || '').localeCompare(String(b.code || ''));
+      });
+    }
     if (activeKey !== 'etfReturn') return matches;
     var field = 'returnRate' + activeEtfPeriod + 'Pct';
     return matches.slice().sort(function (a, b) {
@@ -250,8 +274,8 @@
         + '<span>12개월 <b>' + fmtPct(it.returnRate12mPct) + '</b></span>'
         + '</span>'
       : it.strategy === 'dividend'
-      ? '배당수익률 ' + fmtPct(it.dividendYieldPct) + ' · 배당성향 ' + fmtPct(it.payoutRatioPct)
-        + ' · 연속배당 ' + (it.dividendStreak || 0) + '년 · 순이익 증가 ' + (it.profitGrowthStreak || 0) + '년'
+      ? '배당금 ' + fmt(it.cashDividendPerShare) + '원 · 배당수익률 ' + fmtPct(it.dividendYieldPct)
+        + ' · 배당성향 ' + fmtPct(it.payoutRatioPct)
       : it.gapRatePct != null
       ? '시초갭 ' + fmtPct(it.gapRatePct) + ' · 시가→종가 ' + fmtPct(it.intradayRatePct)
         + ' · 거래대금 ' + fmtMillion(it.turnoverMillion) + '백만원'
