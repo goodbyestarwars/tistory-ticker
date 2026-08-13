@@ -1,10 +1,9 @@
 name: Deploy GAS ticker-proxy
 
-# gas/ticker-proxy.gs 또는 gas/.clasp.json이 master에 push되면
-# GitHub Actions(클라우드 러너)에서 clasp로 자동 배포한다.
-# 로컬 PC에 저장소를 clone/보관할 필요가 없다 - clasp 인증 토큰(CLASP_CREDENTIALS)과
-# 기존 배포 ID(CLASP_DEPLOYMENT_ID)만 저장소 Secrets에 한 번 등록하면 된다.
-# 설정 방법은 docs/GAS_AUTO_DEPLOY.md 참고.
+# gas/ 안의 소스·설정 파일이 master에 push되면 GitHub Actions(클라우드 러너)에서
+# clasp로 자동 배포한다. 로컬 PC에 저장소를 clone/보관할 필요가 없다 - clasp 인증
+# 토큰(CLASP_CREDENTIALS)과 기존 배포 ID(CLASP_DEPLOYMENT_ID)만 저장소 Secrets에
+# 한 번 등록하면 된다. 설정 방법은 docs/GAS_AUTO_DEPLOY.md 참고.
 
 on:
   push:
@@ -12,6 +11,7 @@ on:
     paths:
       - 'gas/ticker-proxy.gs'
       - 'gas/.clasp.json'
+      - 'gas/appsscript.json'
   workflow_dispatch: {}
 
 jobs:
