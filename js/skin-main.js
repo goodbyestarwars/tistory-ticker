@@ -49,7 +49,7 @@
      append portfolio/holding analysis without changing other pages. */
   (function loadMyDashboard() {
     if (!/^\/(?:page|pages)\/watchlist\/?$/.test(location.pathname)) return;
-    var cssHref = 'https://goodbyestarwars.github.io/tistory-ticker/css/my-dashboard.css?v=20260813-my-dashboard';
+    var cssHref = 'https://goodbyestarwars.github.io/tistory-ticker/css/my-dashboard.css?v=20260813-my-dashboard-v2';
     if (!document.querySelector('link[data-my-dashboard-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -59,7 +59,7 @@
     }
     if (document.querySelector('script[data-my-dashboard]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20260813-my-dashboard';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20260813-my-dashboard-v2';
     script.defer = true;
     script.setAttribute('data-my-dashboard', '1');
     document.body.appendChild(script);

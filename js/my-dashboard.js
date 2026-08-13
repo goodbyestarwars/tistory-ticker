@@ -12,7 +12,7 @@
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var VM_URL = API_BASE;
   var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260813-my-dashboard';
-  var state = { selectedCode: null, quotes: {}, analyses: {}, requestId: 0 };
+  var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0 };
   var mount = null;
 
   function escapeHtml(value) {
@@ -47,7 +47,8 @@
     return { quantity: Math.max(0, number(h.quantity)), averagePrice: Math.max(0, number(h.averagePrice)) };
   }
   function itemByCode(code) {
-    return global.Watchlist.getList().filter(function (item) { return item.code === code; })[0] || null;
+    var saved = global.Watchlist.getList().filter(function (item) { return item.code === code; })[0];
+    return saved || (state.selectedItem && state.selectedItem.code === code ? state.selectedItem : null);
   }
   function fetchJson(url, options) {
     return fetch(url, options || {}).then(function (response) {
@@ -90,6 +91,7 @@
   function mountPage() {
     var watchlistMount = document.getElementById('watchlist');
     if (!watchlistMount) return null;
+    watchlistMount.classList.add('my-source-watchlist');
     var current = document.getElementById('my-dashboard');
     if (!current) {
       current = document.createElement('section');
@@ -101,28 +103,48 @@
   }
   function renderShell() {
     mount.innerHTML = '<header class="my-dashboard-head">'
-      + '<div><span class="my-dashboard-eyebrow">MY PORTFOLIO</span><h2>내 종목 분석</h2><p>보유정보만 저장하고, 시세·차트·수급·매물대는 필요할 때 불러옵니다.</p></div>'
-      + '<span class="my-dashboard-storage">DB에는 종목·수량·평단만 저장</span></header>'
-      + '<div id="myDashboardStatus" class="my-dashboard-status">내 종목을 불러오는 중...</div>'
-      + '<div class="my-dashboard-grid"><aside class="my-dashboard-list" id="myDashboardList"></aside><main class="my-dashboard-detail" id="myDashboardDetail"></main></div>';
+      + '<div><span class="my-dashboard-eyebrow">MY PORTFOLIO</span><h2>내 종목 분석</h2><p>종목을 입력하면 시세·차트·수급·매물대를 바로 분석합니다.</p></div></header>'
+      + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist><button type="button" data-my-load>분석 불러오기</button></div><p>저장된 MY 종목은 입력창에서 선택할 수 있고, 새 종목도 먼저 분석할 수 있습니다.</p></div>'
+      + '<div id="myDashboardStatus" class="my-dashboard-status">분석할 종목을 입력하세요.</div>'
+      + '<main class="my-dashboard-detail" id="myDashboardDetail"></main>';
   }
-  function renderList(items) {
-    var list = document.getElementById('myDashboardList');
-    if (!list) return;
-    if (!items.length) {
-      list.innerHTML = '<div class="my-dashboard-empty"><strong>내 종목이 없습니다.</strong><p>위 관심종목 영역에서 종목을 추가하면 이곳에서 평단·수익·수급을 함께 분석할 수 있습니다.</p></div>';
+  function populateSearchOptions() {
+    var options = document.getElementById('myStockOptions');
+    if (!options || !global.Watchlist) return;
+    options.innerHTML = global.Watchlist.getList().map(function (item) {
+      return '<option value="' + escapeAttr(item.name) + '">' + escapeHtml(item.code) + '</option>';
+    }).join('');
+  }
+  function resolveInput(query) {
+    var q = String(query || '').trim();
+    if (!q) return null;
+    var saved = global.Watchlist.getList();
+    var exactSaved = saved.filter(function (item) { return item.code.toLowerCase() === q.toLowerCase() || item.name.toLowerCase() === q.toLowerCase(); })[0];
+    if (exactSaved) return exactSaved;
+    if (/^US:/i.test(q)) return { code: 'US:' + q.slice(3).trim().toUpperCase(), name: q.slice(3).trim().toUpperCase(), temporary: true, holding: { quantity: 0, averagePrice: 0 } };
+    var map = global.KRX_MAP || {};
+    if (/^[0-9A-Z]{6}$/i.test(q)) {
+      for (var name in map) if (Object.prototype.hasOwnProperty.call(map, name) && String(map[name]).toUpperCase() === q.toUpperCase()) return { code: map[name], name: name, temporary: true, holding: { quantity: 0, averagePrice: 0 } };
+    }
+    if (Object.prototype.hasOwnProperty.call(map, q)) return { code: map[q], name: q, temporary: true, holding: { quantity: 0, averagePrice: 0 } };
+    var matches = Object.keys(map).filter(function (name) { return name.toLowerCase().indexOf(q.toLowerCase()) !== -1; });
+    if (matches.length === 1) return { code: map[matches[0]], name: matches[0], temporary: true, holding: { quantity: 0, averagePrice: 0 } };
+    if (/^[A-Z][A-Z0-9.\-]{0,9}$/i.test(q)) return { code: 'US:' + q.toUpperCase(), name: q.toUpperCase(), temporary: true, holding: { quantity: 0, averagePrice: 0 } };
+    return null;
+  }
+  function selectedFromInput() {
+    var input = document.getElementById('myStockInput');
+    var item = resolveInput(input && input.value);
+    if (!item) {
+      var status = document.getElementById('myDashboardStatus');
+      if (status) status.textContent = '종목명·6자리 코드·미국 티커를 정확히 입력해 주세요.';
       return;
     }
-    list.innerHTML = '<div class="my-dashboard-list-head"><strong>내 종목</strong><span>' + items.length + '개</span></div>'
-      + items.map(function (item) {
-        var quote = state.quotes[item.code] || {};
-        var holding = holdingOf(item);
-        var pnl = holding.averagePrice && holding.quantity ? (number(quote.price) - holding.averagePrice) * holding.quantity : null;
-        return '<button type="button" class="my-stock-row' + (item.code === state.selectedCode ? ' is-selected' : '') + '" data-my-select="' + escapeAttr(item.code) + '">'
-          + '<span class="my-stock-row-name"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.code) + '</small></span>'
-          + '<span class="my-stock-row-price">' + formatPrice(quote.price, item.code) + '<small class="' + signClass(quote.changeRate) + '">' + formatSigned(quote.changeRate, 2) + '%</small></span>'
-          + '<span class="my-stock-row-pnl ' + signClass(pnl) + '">' + (pnl == null ? '평단 미입력' : formatSigned(pnl, 0) + '원') + '</span></button>';
-      }).join('');
+    state.selectedCode = item.code;
+    state.selectedItem = item;
+    if (input) input.value = item.name;
+    delete state.analyses[item.code];
+    render();
   }
   function itemMetrics(item, quote) {
     var holding = holdingOf(item);
@@ -134,17 +156,21 @@
     return { holding: holding, price: price, invested: invested, value: value, pnl: pnl, rate: rate };
   }
   function buildHoldingForm(item, metrics) {
-    return '<div class="my-holding-card"><div class="my-card-title"><strong>내 보유정보</strong><span>Google 계정에 저장</span></div>'
+    var isTemporary = !!item.temporary;
+    return '<div class="my-holding-card"><div class="my-card-title"><strong>내 보유정보</strong><span>' + (isTemporary ? '저장하려면 로그인 필요' : '입력값 저장') + '</span></div>'
       + '<div class="my-holding-fields"><label>수량<input type="number" min="0" step="any" data-my-field="quantity" value="' + escapeAttr(metrics.holding.quantity || '') + '"></label>'
       + '<label>평단가<input type="number" min="0" step="any" data-my-field="averagePrice" value="' + escapeAttr(metrics.holding.averagePrice || '') + '"></label>'
-      + '<button type="button" class="my-save-holding" data-my-save="' + escapeAttr(item.code) + '">저장</button></div>'
+      + '<button type="button" class="my-save-holding" data-my-save="' + escapeAttr(item.code) + '">' + (isTemporary ? 'MY에 저장' : '저장') + '</button></div>'
       + '<div class="my-holding-note">입력하지 않으면 시세·수급 분석만 표시됩니다.</div></div>';
   }
   function buildAveragingCalculator(metrics, code) {
-    var basePrice = metrics.price == null ? metrics.holding.averagePrice : metrics.price;
-    return '<section class="my-analysis-card my-calculator"><div class="my-card-title"><strong>물타기 계산기</strong><span>계산 결과는 저장하지 않음</span></div>'
-      + '<div class="my-calc-fields"><label>추가 매수가<input type="number" min="0" step="any" data-my-calc="price" value="' + escapeAttr(basePrice || '') + '"></label>'
-      + '<label>추가 수량<input type="number" min="0" step="any" data-my-calc="quantity" value=""></label></div>'
+    var invested = metrics.invested || 0;
+    var maxBudget = Math.max(invested * 2, metrics.price || metrics.holding.averagePrice || 1000000);
+    var defaultBudget = invested ? Math.round(invested * 0.5) : 0;
+    var step = Math.max(1, Math.round(maxBudget / 100));
+    return '<section class="my-analysis-card my-calculator"><div class="my-card-title"><strong>물타기 계산기</strong><span>슬라이더로 추가 매수금액 조절</span></div>'
+      + '<label class="my-range-label">추가 투입금액 <output data-my-calc-output>' + formatPrice(defaultBudget, code) + '</output><input type="range" min="0" max="' + escapeAttr(maxBudget) + '" step="' + escapeAttr(step) + '" value="' + escapeAttr(defaultBudget) + '" data-my-calc="budget"></label>'
+      + '<div class="my-calc-auto"><span>추가 매수가<strong data-my-calc-price>' + formatPrice(metrics.price, code) + '</strong></span><span>자동 매수 수량<strong data-my-calc-quantity>-</strong></span></div>'
       + '<div class="my-calc-result" data-my-calc-result>현재 수량과 평단을 입력하면 예상 평단가를 계산합니다.</div></section>';
   }
   function buildFlowCard(flow) {
@@ -162,11 +188,55 @@
   }
   function buildVolumeCard(volume) {
     if (!volume || !volume.bins || !volume.bins.length) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">실제 체결가 매물대 데이터를 불러오지 못했습니다.</p></section>';
-    var max = volume.bins.reduce(function (best, bin) { return number(bin.volume || bin.vol) > number(best.volume || best.vol) ? bin : best; }, volume.bins[0]);
-    var poc = volume.poc || volume.pocPrice || max.price || ((number(max.low) + number(max.high)) / 2);
+    var bins = volume.bins.map(function (bin) {
+      return { price: number(bin.price || ((number(bin.low) + number(bin.high)) / 2), 0), volume: Math.max(0, number(bin.volume || bin.vol, 0)) };
+    }).filter(function (bin) { return bin.price > 0; });
+    if (!bins.length) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">가격대별 거래량이 없습니다.</p></section>';
+    var max = bins.reduce(function (best, bin) { return bin.volume > best.volume ? bin : best; }, bins[0]);
+    var poc = volume.poc || volume.pocPrice || max.price;
+    var maxVolume = max.volume || 1;
+    var bucketSize = Math.max(1, Math.ceil(bins.length / 12));
+    var compact = [];
+    for (var i = 0; i < bins.length; i += bucketSize) {
+      var part = bins.slice(i, i + bucketSize);
+      compact.push({ price: part[0].price, high: part[part.length - 1].price, volume: part.reduce(function (sum, bin) { return sum + bin.volume; }, 0) });
+    }
+    var current = number(volume.currentPrice, null);
+    var rows = compact.map(function (bin) {
+      var mid = (bin.price + bin.high) / 2;
+      var width = Math.max(4, Math.round(bin.volume / maxVolume * 100));
+      var isPoc = poc >= bin.price && poc <= bin.high;
+      var isCurrent = current != null && current >= bin.price && current <= bin.high;
+      return '<div class="my-volume-row' + (isPoc ? ' is-poc' : '') + (isCurrent ? ' is-current' : '') + '"><span>' + formatPrice(mid, volume.code || '') + '</span><i><b style="width:' + width + '%"></b></i><small>' + formatNumber(bin.volume, 0) + '</small></div>';
+    }).join('');
     return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong><span>실제 체결가 기반</span></div>'
       + '<div class="my-volume-highlight"><span>거래가 가장 몰린 구간</span><strong>' + formatPrice(poc, volume.code || '') + '</strong></div>'
+      + '<div class="my-volume-chart" aria-label="가격대별 매물대 간략 그래프">' + rows + '</div>'
+      + '<div class="my-volume-legend"><span><i class="is-poc"></i>거래량 최다</span><span><i class="is-current"></i>현재가</span></div>'
       + '<p class="my-analysis-footnote">현재가가 두꺼운 매물대 위에 있으면 지지, 아래에 있으면 저항으로 해석할 수 있습니다. 상세 차트에서 전체 구간을 확인하세요.</p></section>';
+  }
+  function buildChartShapeCard(chart, summary) {
+    var notes = summaryNotes(summary);
+    if (!chart || !chart.daily || chart.daily.length < 2) return '<section class="my-analysis-card my-chart-shape"><div class="my-card-title"><strong>차트 모양 분석</strong></div><p class="my-muted">차트 데이터를 불러오지 못했습니다.</p></section>';
+    var daily = chart.daily, last = daily[daily.length - 1], close = number(last.close, 0);
+    function returnPct(days) { var prev = daily[Math.max(0, daily.length - 1 - days)]; return prev && prev.close ? (close - prev.close) / prev.close * 100 : null; }
+    var ret5 = returnPct(5), ret20 = returnPct(20);
+    var ma5 = chart.ma && chart.ma.ma5 && chart.ma.ma5[chart.ma.ma5.length - 1];
+    var ma20 = chart.ma && chart.ma.ma20 && chart.ma.ma20[chart.ma.ma20.length - 1];
+    var shape = '횡보·방향 탐색';
+    if (ret20 != null && ret5 != null) {
+      if (ret20 >= 8 && ret5 < 0) shape = '상승 추세 속 단기 눌림';
+      else if (ret20 <= -8 && ret5 > 0) shape = '하락 추세 속 단기 반등';
+      else if (ret20 >= 8) shape = '상승 추세';
+      else if (ret20 <= -8) shape = '하락 추세';
+      else if (Math.abs(ret20) < 5) shape = '박스권·횡보';
+    }
+    var maLabel = notes.tech && notes.tech.desc ? notes.tech.desc : (ma5 != null && ma20 != null ? (ma5 >= ma20 ? '단기 이평선이 중기 이평선 위' : '단기 이평선이 중기 이평선 아래') : '이평선 데이터 부족');
+    var momentumLabel = notes.momentum && notes.momentum.desc ? notes.momentum.desc : '최근 가격 추세 데이터 부족';
+    return '<section class="my-analysis-card my-chart-shape"><div class="my-card-title"><strong>차트 모양 분석</strong><span>최근 가격 흐름 기준</span></div>'
+      + '<div class="my-shape-badge">' + escapeHtml(shape) + '</div>'
+      + '<div class="my-shape-grid"><div><span>5일 변화</span><strong class="' + signClass(ret5) + '">' + formatSigned(ret5, 2) + '%</strong></div><div><span>20일 변화</span><strong class="' + signClass(ret20) + '">' + formatSigned(ret20, 2) + '%</strong></div></div>'
+      + '<p class="my-shape-note"><b>이평선</b> ' + escapeHtml(maLabel) + '</p><p class="my-shape-note"><b>추세</b> ' + escapeHtml(momentumLabel) + '</p></section>';
   }
   function summaryNotes(summary) {
     var result = {};
@@ -208,13 +278,14 @@
     var quotePromise = global.Watchlist.fetchQuotes([item.code]).then(function (quotes) { state.quotes[item.code] = quotes[item.code] || {}; return quotes[item.code] || {}; }).catch(function () { return state.quotes[item.code] || {}; });
     var flowPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchFlow(item.code, item.name, 63); }).catch(function () { return null; });
     var summaryPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchAnalysisSummary(item.code, item.name); }).catch(function () { return null; });
+    var chartPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchJson(GAS_URL + '?action=flowChart&code=' + encodeURIComponent(item.code)); }).catch(function () { return null; });
     var volumePromise = fetchVolume(item);
-    Promise.all([quotePromise, flowPromise, summaryPromise, volumePromise]).then(function (results) {
+    Promise.all([quotePromise, flowPromise, summaryPromise, volumePromise, chartPromise]).then(function (results) {
       if (id !== state.requestId || !itemByCode(item.code)) return;
       var metrics = itemMetrics(item, results[0]);
       fetchAi(item, results[2], results[3], metrics).catch(function () { return null; }).then(function (ai) {
         if (id !== state.requestId) return;
-        state.analyses[item.code] = { quote: results[0], flow: results[1], summary: results[2], volume: results[3], ai: ai };
+        state.analyses[item.code] = { quote: results[0], flow: results[1], summary: results[2], volume: results[3], chart: results[4], ai: ai };
         render();
       });
     });
@@ -223,7 +294,7 @@
   function renderDetail(item, analysis) {
     var detail = document.getElementById('myDashboardDetail');
     if (!detail) return;
-    if (!item) { detail.innerHTML = '<div class="my-dashboard-empty"><strong>분석할 종목을 선택하세요.</strong><p>왼쪽 내 종목 목록에서 종목을 선택하면 수급·매물대·보유손익을 계산합니다.</p></div>'; return; }
+    if (!item) { detail.innerHTML = '<div class="my-dashboard-empty"><strong>분석할 종목을 입력하세요.</strong><p>위 입력창에 종목명, 6자리 코드 또는 미국 티커를 입력하면 수급·매물대·차트 모양을 계산합니다.</p></div>'; return; }
     var quote = analysis && analysis.quote || state.quotes[item.code] || {};
     var metrics = itemMetrics(item, quote);
     if (analysis && analysis.loading) {
@@ -235,34 +306,41 @@
       + '<div class="my-metric-grid"><div><span>현재가</span><strong>' + formatPrice(metrics.price, item.code) + '</strong><small class="' + signClass(quote.changeRate) + '">' + formatSigned(quote.changeRate, 2) + '%</small></div><div><span>평가금액</span><strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatSigned(metrics.pnl, 0) + '원') + '</strong><small>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
       + buildHoldingForm(item, metrics)
       + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume) + '</div>'
-      + '<section class="my-analysis-card my-ai-card"><div class="my-card-title"><strong>AI 종합 분석</strong><span>Groq · 수급·기술·매물대</span></div><p>' + escapeHtml(analysis && analysis.ai || 'AI 분석 결과를 준비 중입니다.') + '</p></section>'
+      + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
+      + '<section class="my-analysis-card my-ai-card"><div class="my-card-title"><strong>AI 종합 분석</strong><span>수급·기술·매물대</span></div><p>' + escapeHtml(analysis && analysis.ai || 'AI 분석 결과를 준비 중입니다.') + '</p></section>'
       + buildAveragingCalculator(metrics, item.code)
       + '<details class="my-detail-frame"><summary>기존 차트·매물대 도구를 이 화면에서 펼치기</summary><iframe title="' + escapeAttr(item.name) + ' 종목분석" loading="lazy" src="' + frameUrl + '"></iframe></details>';
     updateCalculator(detail, metrics);
   }
   function updateCalculator(root, metrics) {
-    var priceInput = root.querySelector('[data-my-calc="price"]');
-    var quantityInput = root.querySelector('[data-my-calc="quantity"]');
+    var budgetInput = root.querySelector('[data-my-calc="budget"]');
+    var budgetOutput = root.querySelector('[data-my-calc-output]');
+    var priceOutput = root.querySelector('[data-my-calc-price]');
+    var quantityOutput = root.querySelector('[data-my-calc-quantity]');
     var output = root.querySelector('[data-my-calc-result]');
-    if (!priceInput || !quantityInput || !output) return;
-    var addPrice = number(priceInput.value, 0);
-    var addQuantity = number(quantityInput.value, 0);
+    if (!budgetInput || !output) return;
+    var addBudget = number(budgetInput.value, 0);
+    var addPrice = metrics.price || metrics.holding.averagePrice || 0;
+    var addQuantity = addPrice > 0 ? addBudget / addPrice : 0;
+    if (budgetOutput) budgetOutput.textContent = formatPrice(addBudget, state.selectedCode);
+    if (priceOutput) priceOutput.textContent = formatPrice(addPrice, state.selectedCode);
+    if (quantityOutput) quantityOutput.textContent = addQuantity ? formatNumber(addQuantity, 2) + '주' : '-';
     var totalQuantity = metrics.holding.quantity + addQuantity;
     if (!metrics.holding.quantity || !metrics.holding.averagePrice || !addPrice || !addQuantity || !totalQuantity) {
-      output.textContent = '현재 수량·평단과 추가 매수가·수량을 입력하면 예상 평단가를 계산합니다.';
+      output.textContent = '현재 수량과 평단을 입력하면 슬라이더로 예상 평단가를 계산합니다.';
       return;
     }
     var nextAverage = (metrics.holding.quantity * metrics.holding.averagePrice + addQuantity * addPrice) / totalQuantity;
-    output.innerHTML = '추가 후 예상 평단가 <strong>' + formatPrice(nextAverage) + '</strong> · 총 수량 ' + formatNumber(totalQuantity, 2) + '주';
+    output.innerHTML = '추가 후 예상 평단가 <strong>' + formatPrice(nextAverage, state.selectedCode) + '</strong> · 총 수량 ' + formatNumber(totalQuantity, 2) + '주';
   }
   function render() {
     if (!mount || !global.Watchlist) return;
     var items = global.Watchlist.getList();
-    if (state.selectedCode && !items.some(function (item) { return item.code === state.selectedCode; })) state.selectedCode = null;
-    if (!state.selectedCode && items.length) state.selectedCode = items[0].code;
+    if (state.selectedCode && !items.some(function (item) { return item.code === state.selectedCode; }) && !(state.selectedItem && state.selectedItem.code === state.selectedCode)) state.selectedCode = null;
+    if (state.selectedCode && items.some(function (item) { return item.code === state.selectedCode; })) state.selectedItem = items.filter(function (item) { return item.code === state.selectedCode; })[0];
+    populateSearchOptions();
     var status = document.getElementById('myDashboardStatus');
-    if (status) status.textContent = global.Watchlist.isReady() ? 'Google 계정별 내 종목 분석' : 'Google 로그인 상태를 확인하는 중...';
-    renderList(items);
+    if (status && !state.selectedCode) status.textContent = global.Watchlist.isReady() ? '분석할 종목을 입력하세요.' : '로그인 상태를 확인하는 중입니다. 분석은 먼저 이용할 수 있습니다.';
     var item = itemByCode(state.selectedCode);
     var cached = item && state.analyses[item.code];
     renderDetail(item, cached || { loading: true, quote: item && state.quotes[item.code] || {} });
@@ -270,19 +348,18 @@
   }
   function wire() {
     mount.addEventListener('click', function (event) {
-      var select = event.target.closest('[data-my-select]');
-      if (select) { state.selectedCode = select.getAttribute('data-my-select'); render(); return; }
+      var load = event.target.closest('[data-my-load]');
+      if (load) { selectedFromInput(); return; }
       var save = event.target.closest('[data-my-save]');
       if (save) {
         var item = itemByCode(save.getAttribute('data-my-save'));
         var root = save.closest('.my-dashboard-detail');
-        var result = global.Watchlist.updateHolding(item.code, {
-          quantity: number(root.querySelector('[data-my-field="quantity"]').value),
-          averagePrice: number(root.querySelector('[data-my-field="averagePrice"]').value)
-        });
-        save.textContent = result.ok ? '저장됨' : '저장 실패';
-        setTimeout(function () { save.textContent = '저장'; }, 1500);
-        if (result.ok) { delete state.analyses[item.code]; render(); }
+        var holding = { quantity: number(root.querySelector('[data-my-field="quantity"]').value), averagePrice: number(root.querySelector('[data-my-field="averagePrice"]').value) };
+        var added = item && item.temporary ? global.Watchlist.add(item.code, item.name) : { ok: true };
+        var result = added.ok ? global.Watchlist.updateHolding(item.code, holding) : added;
+        save.textContent = result.ok ? '저장됨' : (result.reason === 'login' ? '로그인 필요' : '저장 실패');
+        setTimeout(function () { save.textContent = item && item.temporary ? 'MY에 저장' : '저장'; }, 1500);
+        if (result.ok) { state.selectedItem = itemByCode(item.code) || Object.assign(item, { temporary: false, holding: holding }); delete state.analyses[item.code]; render(); }
       }
     });
     mount.addEventListener('input', function (event) {
@@ -290,6 +367,9 @@
         var item = itemByCode(state.selectedCode);
         if (item) updateCalculator(mount, itemMetrics(item, state.quotes[item.code] || {}));
       }
+    });
+    mount.addEventListener('keydown', function (event) {
+      if (event.target.id === 'myStockInput' && event.key === 'Enter') { event.preventDefault(); selectedFromInput(); }
     });
     global.addEventListener('watchlist:changed', function () { render(); });
   }
@@ -303,9 +383,9 @@
       if (status) status.innerHTML = 'Google 로그인 후 내 종목 분석을 사용할 수 있습니다. <a href="' + API_BASE + '/auth/google/start?return_to=' + encodeURIComponent(global.location.href) + '">Google로 로그인</a>';
     });
     setInterval(function () {
-      var codes = global.Watchlist && global.Watchlist.getList().map(function (item) { return item.code; }) || [];
+      var codes = state.selectedCode ? [state.selectedCode] : [];
       if (!codes.length || !global.Watchlist) return;
-      global.Watchlist.fetchQuotes(codes).then(function (quotes) { state.quotes = Object.assign(state.quotes, quotes || {}); renderList(global.Watchlist.getList()); var item = itemByCode(state.selectedCode); if (item && state.analyses[item.code]) renderDetail(item, state.analyses[item.code]); });
+      global.Watchlist.fetchQuotes(codes).then(function (quotes) { state.quotes = Object.assign(state.quotes, quotes || {}); var item = itemByCode(state.selectedCode); if (item && state.analyses[item.code]) renderDetail(item, state.analyses[item.code]); });
     }, 60000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
