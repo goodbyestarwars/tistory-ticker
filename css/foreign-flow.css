@@ -1565,7 +1565,7 @@
 #foreign-flow .ff-sim-mark { stroke: #fff; stroke-width: 1.2; }
 #foreign-flow .ff-sim-mark-peak { fill: #d24f45; }
 #foreign-flow .ff-sim-mark-trough { fill: #1261c4; }
-#foreign-flow .ff-sim-mark-label { font-weight: 700; font-size: 10.5px; }
+#foreign-flow .ff-sim-mark-label { font-weight: 800; font-size: 10.5px; }
 #foreign-flow .ff-sim-extremes {
   display: flex;
   flex-wrap: wrap;
@@ -1574,7 +1574,7 @@
   color: #444;
   margin: 8px 0 2px;
 }
-#foreign-flow .ff-sim-extreme b { font-weight: 700; margin-right: 2px; }
+#foreign-flow .ff-sim-extreme b { font-weight: 800; margin-right: 2px; }
 #foreign-flow .ff-sim-result { font-size: 13.5px; margin: 8px 0 6px; line-height: 1.6; }
 
 #foreign-flow .ff-fund-grid {
