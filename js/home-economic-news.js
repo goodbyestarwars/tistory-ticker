@@ -130,7 +130,7 @@
     }).slice().sort(function (a, b) {
       var importance = Number(b.importance || 0) - Number(a.importance || 0);
       return importance || dateValue(b.pubDate) - dateValue(a.pubDate);
-    }).slice(0, 8);
+    }).slice(0, 6);
     if (!rows.length) {
       list.innerHTML = '<p class="hen-breaking-empty">중요 속보가 없습니다.</p>';
       return;

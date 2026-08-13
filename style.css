@@ -4306,6 +4306,12 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hen-main small { flex: 0 0 auto; max-width: 92px; overflow: hidden; color: #a0a8b2; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .hen-main em { display: inline-block; margin-right: 5px; padding: 2px 5px; border-radius: 4px; background: #f2f4f5; color: #7b858e; font-style: normal; }
 .home-economic-news .home-card-state { min-height: 220px; display: grid; place-items: center; }
+.home-widget--summary.home-market-board,
+.home-widget--summary.home-economic-news { height: 330px; min-height: 330px; box-sizing: border-box; }
+.home-economic-news { display: flex; flex-direction: column; }
+.home-economic-news .hen-breaking-list { max-height: 93px; }
+.home-economic-news .hen-list { min-height: 0; flex: 1 1 auto; }
+.home-economic-news .hen-periods { height: 100%; max-height: none; }
 
 /* 토스식 밀도: 종목판은 로고·현재가를 먼저 읽고, 숫자 열은 한 줄로 빠르게 훑는다. */
 .home-realtime-board { padding: 14px 16px 10px; }
