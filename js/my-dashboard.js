@@ -45,6 +45,10 @@
     if (n == null) return '-';
     return (n > 0 ? '+' : '') + formatNumber(n, digits);
   }
+  function formatSignedShares(value) {
+    var n = number(value, null);
+    return n == null ? '-' : formatSigned(n, 0) + '주';
+  }
   function formatPrice(value, code) {
     var n = number(value, null);
     if (n == null) return '-';
@@ -206,9 +210,9 @@
       ['기관', daily.inst_net, rolling.inst],
       ['개인', daily.ind_net, rolling.ind]
     ];
-    return '<section class="my-analysis-card"><div class="my-card-title"><strong>수요·공급 흐름</strong><span>' + escapeHtml(daily.date || '최근 데이터') + '</span></div>'
+    return '<section class="my-analysis-card"><div class="my-card-title"><strong>수요·공급 흐름</strong><span>단위: 주 · ' + escapeHtml(daily.date || '최근 데이터') + '</span></div>'
       + '<div class="my-flow-grid">' + rows.map(function (row) {
-        return '<div class="my-flow-row"><span>' + row[0] + '</span><b class="' + signClass(row[1]) + '">' + formatSigned(row[1], 0) + '</b><small>5일 ' + formatSigned(row[2], 0) + '</small></div>';
+        return '<div class="my-flow-row"><span>' + row[0] + '</span><b class="' + signClass(row[1]) + '">' + formatSignedShares(row[1]) + '</b><small>5일 ' + formatSignedShares(row[2]) + '</small></div>';
       }).join('') + '</div><p class="my-analysis-footnote">+는 순매수, -는 순매도입니다. 수급은 투자 참고용으로만 확인하세요.</p></section>';
   }
   function approximateVolumeFromChart(chart, code) {
