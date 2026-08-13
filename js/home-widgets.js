@@ -181,11 +181,13 @@
     var market = registry['market-summary'];
     var economic = registry['economic-news'];
     if (!market || !economic) return;
-    if (window.matchMedia && window.matchMedia('(max-width: 1100px)').matches) {
-      economic.style.height = '';
-      return;
-    }
-    economic.style.height = Math.ceil(market.getBoundingClientRect().height) + 'px';
+    economic.style.height = '';
+    var marketRect = market.getBoundingClientRect();
+    var economicRect = economic.getBoundingClientRect();
+    // Browser zoom changes the CSS viewport width. Only equalize cards while
+    // they are actually sharing the same grid row; stacked layouts stay fluid.
+    if (Math.abs(marketRect.top - economicRect.top) > 2) return;
+    economic.style.height = Math.ceil(marketRect.height) + 'px';
   }
 
   function applyState(state) {
