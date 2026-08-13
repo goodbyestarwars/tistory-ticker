@@ -1,5 +1,7 @@
 # 9Pay 주요 작업이력
 
+**2026-08-14 관심종목 탭 재방문 시 시세 초기화(깜빡임) 수정**: 다른 탭을 보고 관심종목 드로어로 돌아오면 시세가 "-"로 초기화됐다가 다시 채워지는 것처럼 보였다. 원인은 `visibilitychange`에서 탭이 다시 보일 때 `render(container)`를 호출했는데, 이 함수가 카드 그리드 전체를 `innerHTML`로 갈아엎어 빈 카드부터 다시 그린 뒤 시세를 채우는 구조였기 때문(자리 비운 지 3분(`QUOTES_CACHE_MAX_AGE_MS`)이 넘으면 시세 캐시도 비어 fetch가 끝날 때까지 빈 값이 그대로 보임). 목록 구성(종목/그룹)은 그대로고 시세만 새로 받으면 되는 이 경로 전용으로 `resumeQuotesInPlace()`를 추가해, DOM을 갈아엎지 않고 기존 카드 값만 갱신하도록 했다. 종목 추가/삭제·그룹 변경처럼 목록 자체가 바뀌는 경로는 계속 `render()`를 그대로 쓴다.
+
 **2026-08-14 GAS 자동 배포 파이프라인(GitHub Actions+clasp) 추가**: 지금까지 `gas/ticker-proxy.gs`는 git push만으로 배포되지 않고 script.google.com에서 매번 수동으로 "새 버전 배포"를 눌러야 했다(사용자가 로컬 소스 보관 없이 배포까지 자동화하길 원함). `.github/workflows/deploy-gas.yml`을 추가해 `gas/ticker-proxy.gs`·`gas/.clasp.json`이 master에 push되면 GitHub의 클라우드 러너에서 `clasp push`+`clasp deploy`를 실행해 기존 배포(운영 웹앱 URL)에 자동 반영하도록 했다. `gas/.clasp.json`(스크립트ID, rootDir)도 저장소에 추가했다(민감정보 아님). 실제 동작하려면 저장소 Secrets에 `CLASP_CREDENTIALS`(clasp login 결과)·`CLASP_DEPLOYMENT_ID`(기존 배포ID)를 1회 등록해야 한다 - 절차는 `docs/GAS_AUTO_DEPLOY.md` 참고. clasp push가 "appsscript.json 매니페스트 필요" 오류로 실패해 `gas/appsscript.json`(기존 배포 설정값 그대로: Asia/Seoul, V8, webapp 실행권한)도 추가했다. 같은 날 시크릿 등록 후 실제 push로 자동 배포 성공까지 확인 완료(더 이상 수동 배포 불필요, `ARCHITECTURE.md`/`CLAUDE.md` 갱신).
 **참고**: 이 이전(2026-08-14 이전) 세션들이 설명하던 "gas 수정 → push → Apps Script 편집기에 수동 반영 → 수동 새 버전 배포" 절차는 이 항목 이후로 더 이상 유효하지 않다. 다른 AI 세션이 그 옛 절차를 사실처럼 설명하면(예: 로컬 컨텍스트가 오래됐거나 이 저장소 최신 상태를 못 본 경우) 이 항목과 `ARCHITECTURE.md`/`CLAUDE.md`의 "배포 주의" 최신 내용을 기준으로 정정한다.
 

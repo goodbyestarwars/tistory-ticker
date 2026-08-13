@@ -121,7 +121,13 @@
     loadRemoteState(container);
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stopRealtimeQuotes();
-      else if (remoteReady && authState.authenticated) render(container);
+      // 2026-08-14 사용자 리포트: 다른 탭 보고 돌아오면 시세가 "초기화된 것처럼" 보임 -
+      // 원인은 render(container)가 카드 그리드 전체를 innerHTML로 갈아엎어 "-"부터 다시
+      // 그린 뒤 시세를 채우는 구조였음(자리 비운 지 3분(QUOTES_CACHE_MAX_AGE_MS) 넘으면
+      // 캐시도 비어 fetch 끝날 때까지 빈 값이 보임). 목록 구성은 그대로고 시세만 새로
+      // 받으면 되니, DOM을 갈아엎지 않고 기존 카드 값만 갱신하는 resumeQuotesInPlace로
+      // 바꿔 끊김없이 이어지게 한다(render()는 목록 자체가 바뀌는 경로에서만 계속 씀).
+      else if (remoteReady && authState.authenticated) resumeQuotesInPlace(container);
       else loadRemoteState(container);
     });
   }
@@ -750,6 +756,32 @@
       })
       .catch(function () {
         // 최초 시세 조회 실패 시에도 WebSocket 연결과 저빈도 폴백이 이어서 갱신한다.
+      });
+    startRealtimeQuotes(container, codes);
+  }
+
+  // 목록 구성(종목 추가/삭제/그룹)은 그대로고 실시간 연결만 재개하면 되는 경로(탭 재방문)
+  // 전용 - render()와 달리 grid.innerHTML을 건드리지 않아 카드가 "-"로 초기화되는
+  // 깜빡임 없이 값만 갈아끼운다. 목록 자체가 바뀌었을 수 있는 경로(종목 추가/삭제,
+  // 그룹 변경, 최초 로딩)는 계속 render()를 쓴다.
+  function resumeQuotesInPlace(container) {
+    var list = loadList();
+    var codes = list.map(function (it) { return it.code; });
+    if (!codes.length) return;
+    var cachedQuotes = readQuoteCache(codes);
+    codes.forEach(function (code) {
+      if (cachedQuotes[code]) updateCard(container, code, cachedQuotes[code]);
+    });
+    Watchlist.fetchQuotes(codes)
+      .then(function (quoteByCode) {
+        writeQuoteCache(quoteByCode);
+        list.forEach(function (it) {
+          if (quoteByCode[it.code]) updateCard(container, it.code, quoteByCode[it.code]);
+        });
+      })
+      .catch(function () {
+        // 실패해도 아래 웹소켓/폴백이 이어서 갱신하고, 화면엔 직전 값이 그대로 남는다
+        // (render()처럼 "-"로 되돌리지 않음 - 이게 이 함수를 만든 이유).
       });
     startRealtimeQuotes(container, codes);
   }
