@@ -307,6 +307,40 @@
     if (!data) return '차트 모양 데이터 없음';
     return data.shape + ', 5일 ' + formatSigned(data.ret5, 2) + '%, 20일 ' + formatSigned(data.ret20, 2) + '%; ' + (data.tech || data.momentum || '이동평균 데이터 없음');
   }
+  function profitTakingSignal(chart, data) {
+    var ma5 = chart && chart.ma && chart.ma.ma5 || [];
+    var ma20 = chart && chart.ma && chart.ma.ma20 || [];
+    var last = Math.min(ma5.length, ma20.length) - 1;
+    var currentMa5 = last >= 0 ? number(ma5[last], null) : number(data && data.ma5, null);
+    var currentMa20 = last >= 0 ? number(ma20[last], null) : number(data && data.ma20, null);
+    var close = number(data && data.close, null);
+    var bearishCross = false;
+    var crossDays = null;
+    var start = Math.max(1, last - 4);
+    for (var i = start; i <= last; i++) {
+      var prev5 = number(ma5[i - 1], null), prev20 = number(ma20[i - 1], null);
+      var now5 = number(ma5[i], null), now20 = number(ma20[i], null);
+      if (prev5 != null && prev20 != null && now5 != null && now20 != null && prev5 >= prev20 && now5 < now20) {
+        bearishCross = true;
+        crossDays = last - i;
+        break;
+      }
+    }
+    var belowMa5 = close != null && currentMa5 != null && close < currentMa5;
+    var belowMa20 = close != null && currentMa20 != null && close < currentMa20;
+    var ma5BelowMa20 = currentMa5 != null && currentMa20 != null && currentMa5 < currentMa20;
+    var fallingShortMa = ma5.length >= 4 && number(ma5[last], null) != null && number(ma5[last - 3], null) != null && ma5[last] < ma5[last - 3];
+    if (bearishCross && belowMa5) {
+      return { level: 3, note: '최근 ' + (crossDays === 0 ? '현재' : crossDays + '거래일 전') + ' 5일선이 20일선을 하향 이탈했고 현재가도 5일선 아래라 단기 추세가 약해졌습니다. 수익 중이면 전량 매도보다 분할 익절을 우선 검토하세요.' };
+    }
+    if (belowMa5 && belowMa20 && ma5BelowMa20) {
+      return { level: 2, note: '현재가가 5일선과 20일선을 모두 이탈하고 5일선이 20일선 아래에 있습니다. 수익 중이면 보유 비중 일부를 익절하고 나머지는 반등 여부를 확인하세요.' };
+    }
+    if (belowMa5 && (fallingShortMa || (data && data.ret5 < 0))) {
+      return { level: 1, note: '현재가가 5일선 아래로 밀리고 단기 모멘텀이 약해졌습니다. 수익 중이면 5일선 재돌파 실패 여부를 보며 분할 익절 구간을 관리하세요.' };
+    }
+    return { level: 0, note: '' };
+  }
   function clampScore(value) {
     return Math.max(0, Math.min(100, number(value, 50)));
   }
@@ -347,9 +381,12 @@
     var deterioration = !!(data && data.ret20 <= -12 && data.ret5 <= 0 && belowPoc);
     var synchronizedWeakness = flowWeak && chartWeak && deterioration;
     var repairable = flowHealthy && chartHealthy && (improving || !belowPoc);
+    var exitSignal = profitTakingSignal(chart, data);
     var advice;
     if (!hasHolding) {
       advice = { label: '보유 수량·평단 입력 필요', tone: 'neutral', reason: '수급과 차트는 확인했지만 물타기·손절 판단은 보유 수량과 평단을 입력한 뒤 계산합니다.' };
+    } else if (lossRate >= 0 && exitSignal.level >= 2) {
+      advice = { label: '분할 익절 검토', tone: 'up', reason: exitSignal.note };
     } else if (lossRate >= 0) {
       advice = { label: '수익 구간 · 보유·분할익절 기준 점검', tone: 'up', reason: '손실률만으로 물타기나 손절을 판단할 구간이 아닙니다. 수급과 차트가 유지되는지 확인하면서 목표가와 비중을 관리하세요.' };
     } else if (repairable) {
@@ -368,9 +405,10 @@
       flowLabel: scoreWord(flowScore),
       chartLabel: scoreWord(chartScore),
       flowNote: notes.flow && notes.flow.desc || notes.foreignInst && notes.foreignInst.desc || '수급 데이터가 부족합니다.',
-      chartNote: data ? chartShapeNote(chart, summary) : '차트 데이터가 부족합니다.',
+      chartNote: data ? chartShapeNote(chart, summary) + (exitSignal.note ? ' ' + exitSignal.note : '') : '차트 데이터가 부족합니다.',
       lossRate: lossRate,
-      belowPoc: belowPoc
+      belowPoc: belowPoc,
+      exitSignal: exitSignal
     };
   }
   function positionAdvice(metrics, chart, summary, volume) {
