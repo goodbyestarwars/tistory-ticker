@@ -169,17 +169,6 @@ CREATE TABLE IF NOT EXISTS watchlist_configs (
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
-
-CREATE TABLE IF NOT EXISTS economic_flash_alerts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    category TEXT NOT NULL DEFAULT '속보',
-    market TEXT NOT NULL DEFAULT 'all',
-    link TEXT NOT NULL DEFAULT '',
-    created_at TEXT NOT NULL,
-    expires_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_economic_flash_alerts_expiry ON economic_flash_alerts(expires_at);
 '''
 
 
@@ -341,38 +330,6 @@ def save_watchlist_config(conn, user_id, config, updated_at, expected_revision=N
     except Exception:
         conn.rollback()
         raise
-
-
-def load_economic_flash_alerts(conn, now_iso, limit=30):
-    conn.execute('DELETE FROM economic_flash_alerts WHERE expires_at <= ?', (now_iso,))
-    rows = conn.execute(
-        'SELECT id, title, category, market, link, created_at, expires_at '
-        'FROM economic_flash_alerts WHERE expires_at > ? ORDER BY created_at DESC LIMIT ?',
-        (now_iso, max(1, min(int(limit or 30), 100))),
-    ).fetchall()
-    conn.commit()
-    return [
-        {
-            'id': row[0], 'title': row[1], 'flashType': row[2], 'market': row[3],
-            'link': row[4], 'pubDate': row[5], 'createdAt': row[5], 'expiresAt': row[6],
-            'kind': 'manual', 'importance': 120,
-        }
-        for row in rows
-    ]
-
-
-def save_economic_flash_alert(conn, title, category, market, link, created_at, expires_at):
-    cursor = conn.execute(
-        'INSERT INTO economic_flash_alerts '
-        '(title, category, market, link, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
-        (title, category, market, link, created_at, expires_at),
-    )
-    conn.commit()
-    return {
-        'id': cursor.lastrowid, 'title': title, 'flashType': category, 'market': market,
-        'link': link, 'pubDate': created_at, 'createdAt': created_at, 'expiresAt': expires_at,
-        'kind': 'manual', 'importance': 120,
-    }
 
 
 def load_daily_prices(conn, code):

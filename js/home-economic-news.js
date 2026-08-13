@@ -7,8 +7,6 @@
   var DOMESTIC_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
   var US_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=us&limit=20';
   var ECONOMIC_NEWS_WS_URL = 'wss://goodbyestar.cloud/ws/economic-news';
-  var ECONOMIC_FLASH_API_URL = 'https://goodbyestar.cloud/economic-flash';
-  var GOOGLE_AUTH_ME_URL = 'https://goodbyestar.cloud/auth/google/me';
   var REFRESH_MS = 5 * 60 * 1000;
   var SESSION_CHECK_MS = 60 * 1000;
   var WS_RECONNECT_MS = 10 * 1000;
@@ -17,7 +15,7 @@
   var state = {
     mount: null, timer: null, sessionTimer: null, socket: null, socketGeneration: 0,
     socketOpened: false, socketReconnectTimer: null, socketFallbackTimer: null, socketKeepaliveTimer: null,
-    market: '', quoteMap: {}, items: [], flash: [], manualFlash: [], loading: false
+    market: '', quoteMap: {}, items: [], flash: [], loading: false
   };
 
   function escapeHtml(value) {
@@ -127,14 +125,13 @@
   function renderFlash(items) {
     var list = state.mount && state.mount.querySelector('[data-hen-breaking-list]');
     if (!list) return;
-    var rows = (items || []).concat(state.manualFlash || []).filter(function (item) {
+    var rows = (items || []).filter(function (item) {
       if (!item || !item.title) return false;
-      if (item.kind === 'manual' && item.market && item.market !== 'all' && item.market !== state.market) return false;
       return item.kind !== 'disclosure' || isWatchlistDisclosure(item);
     }).slice().sort(function (a, b) {
       var importance = Number(b.importance || 0) - Number(a.importance || 0);
       return importance || dateValue(b.pubDate) - dateValue(a.pubDate);
-    }).slice(0, 6);
+    }).slice(0, 8);
     if (!rows.length) {
       list.innerHTML = '<p class="hen-breaking-empty">중요 속보가 없습니다.</p>';
       return;
@@ -195,57 +192,6 @@
       if (!response.ok) throw new Error('economic-news ' + response.status);
       return response.json();
     });
-  }
-
-  function loadManualFlash() {
-    return fetchJson(ECONOMIC_FLASH_API_URL).then(function (json) {
-      var data = json && (json.data || json);
-      state.manualFlash = data && Array.isArray(data.items) ? data.items : [];
-      render(state.items, state.market, state.flash);
-    }).catch(function () { return null; });
-  }
-
-  function initFlashAdmin() {
-    var admin = state.mount && state.mount.querySelector('[data-hen-breaking-admin]');
-    var form = state.mount && state.mount.querySelector('[data-hen-breaking-form]');
-    var toggle = state.mount && state.mount.querySelector('[data-hen-breaking-action="toggle"]');
-    if (!admin || !form || !toggle) return;
-    fetch(GOOGLE_AUTH_ME_URL, { credentials: 'include', cache: 'no-store' }).then(function (response) {
-      if (!response.ok) throw new Error('auth status');
-      return response.json();
-    }).then(function (body) {
-      var auth = body && body.data ? body.data : {};
-      if (!auth.isAdmin) return;
-      admin.hidden = false;
-      toggle.addEventListener('click', function () { form.hidden = !form.hidden; });
-      form.addEventListener('submit', function (event) {
-        event.preventDefault();
-        var message = form.querySelector('[data-hen-breaking-message]');
-        var formData = new FormData(form);
-        var payload = {
-          category: formData.get('category'), market: formData.get('market'),
-          title: String(formData.get('title') || '').trim(), link: String(formData.get('link') || '').trim()
-        };
-        if (message) message.textContent = '등록 중…';
-        fetch(ECONOMIC_FLASH_API_URL, {
-          method: 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-        }).then(function (response) {
-          return response.json().then(function (body) {
-            if (!response.ok) throw new Error(body.detail || '속보 등록에 실패했습니다.');
-            return body;
-          });
-        }).then(function (body) {
-          var saved = body && body.data;
-          if (saved) state.manualFlash.unshift(saved);
-          render(state.items, state.market, state.flash);
-          form.reset();
-          form.hidden = true;
-        }).catch(function (error) {
-          if (message) message.textContent = error.message || '속보 등록에 실패했습니다.';
-        });
-      });
-    }).catch(function () { /* 일반 방문자에게 관리자 입력 UI를 노출하지 않는다. */ });
   }
 
   function applyNewsPayload(payload) {
@@ -375,8 +321,6 @@
     state.mount = mount;
     state.market = currentMarket();
     mount.setAttribute('data-hen-ready', '1');
-    loadManualFlash();
-    initFlashAdmin();
     global.addEventListener('watchlist:changed', function () {
       render(state.items, state.market, state.flash);
     });
