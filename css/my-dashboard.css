@@ -39,6 +39,7 @@
 .my-dashboard-detail { min-height: 300px; }
 .my-detail-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
 .my-detail-head h3 { margin: 7px 0 0; font-size: 22px; letter-spacing: -.04em; }
+.my-selected-title.is-profit .my-selected-name { color: #d24f45; }
 .my-detail-head h3 small { color: #9ca3af; font-size: 11px; font-weight: 400; letter-spacing: 0; }
 .my-detail-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .my-detail-actions a { padding: 8px 10px; border: 1px solid #dbe5f2; border-radius: 9px; color: #334155; font-size: 11px; text-decoration: none; }
@@ -150,7 +151,11 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 }
 .my-search-panel label { display: block; margin-bottom: 9px; color: #172033; font-size: 17px; font-weight: 800; }
 .my-search-row { display: flex; gap: 10px; }
-.my-search-row input { flex: 1; min-width: 0; min-height: 48px; padding: 10px 14px; border: 1px solid #b9c9dc; border-radius: 10px; background: #fff; color: #111827; font: inherit; font-size: 16px; }
+.my-input-wrap { position: relative; flex: 1; min-width: 0; }
+.my-search-row input { width: 100%; min-width: 0; min-height: 48px; padding: 10px 14px 10px 52px; border: 1px solid #b9c9dc; border-radius: 10px; background: #fff; color: #111827; font: inherit; font-size: 16px; }
+.my-input-logo { position: absolute; z-index: 1; top: 50%; left: 13px; display: grid; width: 28px; height: 28px; transform: translateY(-50%); place-items: center; overflow: hidden; border-radius: 8px; background: #eef2f7; color: #64748b; font-size: 9px; font-weight: 800; }
+.my-input-logo img { display: block; width: 100%; height: 100%; padding: 3px; object-fit: contain; }
+.my-input-logo img[hidden], .my-input-logo span[hidden] { display: none; }
 .my-search-row button { min-height: 48px; padding: 0 18px; border: 0; border-radius: 10px; background: #111827; color: #fff; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
 .my-search-row button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
 .my-search-row button:hover { background: #263448; }
@@ -210,6 +215,7 @@ html.dark .my-search-panel, html.dark .my-dashboard-detail { border-color: rgba(
 html.dark .my-search-panel label, html.dark .my-shape-note b { color: #f5efe0; }
 html.dark .my-search-panel p, html.dark .my-shape-note, html.dark .my-range-label { color: rgba(245,239,224,.7); }
 html.dark .my-search-row input, html.dark .my-shape-grid > div, html.dark .my-calc-auto span { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
+html.dark .my-input-logo { background: rgba(245,239,224,.1); color: rgba(245,239,224,.7); }
 html.dark .my-volume-row > i { background: #303030; }
 html.dark .my-shape-badge { background: #1d3158; color: #bfdbfe; }
 html.dark .my-shape-grid span, html.dark .my-calc-auto span { color: rgba(245,239,224,.65); }

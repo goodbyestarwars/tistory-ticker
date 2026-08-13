@@ -12,6 +12,7 @@
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var VM_URL = API_BASE;
   var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260813-my-dashboard';
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0 };
   var mount = null;
 
@@ -21,6 +22,14 @@
     });
   }
   function escapeAttr(value) { return escapeHtml(value); }
+  function stockIconUrl(code) {
+    var iconCode = String(code || '').replace(/^US:/i, '').toUpperCase();
+    return iconCode ? STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg' : '';
+  }
+  function stockInitials(item) {
+    var value = String(item && (item.name || item.code) || '?').replace(/^US:/i, '').trim();
+    return escapeHtml(value.slice(0, 2).toUpperCase());
+  }
   function number(value, fallback) {
     if (value == null || value === '') return fallback == null ? null : fallback;
     var n = Number(value);
@@ -104,7 +113,7 @@
   function renderShell() {
     mount.innerHTML = '<header class="my-dashboard-head">'
       + '<div><span class="my-dashboard-eyebrow">MY PORTFOLIO</span><h2>내 종목 분석</h2><p>종목을 입력하면 시세·차트·수급·매물대를 바로 분석합니다.</p></div></header>'
-      + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist><button type="button" data-my-load aria-label="입력한 종목 불러오기"><svg class="my-load-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 7.2 4.5M12 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>불러오기</span></button></div><p>저장된 MY 종목은 입력창에서 선택할 수 있고, 새 종목도 먼저 분석할 수 있습니다.</p></div>'
+      + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><div class="my-input-wrap"><span class="my-input-logo" data-my-input-logo aria-hidden="true"><span data-my-input-initials>종목</span><img data-my-input-image alt="" hidden></span><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist></div><button type="button" data-my-load aria-label="입력한 종목 불러오기"><svg class="my-load-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 7.2 4.5M12 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>불러오기</span></button></div><p>저장된 MY 종목은 입력창에서 선택할 수 있고, 새 종목도 먼저 분석할 수 있습니다.</p></div>'
       + '<div id="myDashboardStatus" class="my-dashboard-status">분석할 종목을 입력하세요.</div>'
       + '<main class="my-dashboard-detail" id="myDashboardDetail"></main>';
   }
@@ -114,6 +123,21 @@
     options.innerHTML = global.Watchlist.getList().map(function (item) {
       return '<option value="' + escapeAttr(item.name) + '">' + escapeHtml(item.code) + '</option>';
     }).join('');
+  }
+  function updateInputLogo(item) {
+    var logo = document.querySelector('[data-my-input-logo]');
+    var image = logo && logo.querySelector('[data-my-input-image]');
+    var initials = logo && logo.querySelector('[data-my-input-initials]');
+    if (!logo || !image || !initials) return;
+    var value = item || { name: (document.getElementById('myStockInput') || {}).value || '종목' };
+    initials.textContent = String(value.name || value.code || '종목').replace(/^US:/i, '').slice(0, 2).toUpperCase();
+    image.hidden = true;
+    initials.hidden = false;
+    if (value.code) {
+      image.src = stockIconUrl(value.code);
+      image.onload = function () { image.hidden = false; initials.hidden = true; };
+      image.onerror = function () { image.hidden = true; initials.hidden = false; };
+    }
   }
   function resolveInput(query) {
     var q = String(query || '').trim();
@@ -143,6 +167,7 @@
     state.selectedCode = item.code;
     state.selectedItem = item;
     if (input) input.value = item.name;
+    updateInputLogo(item);
     delete state.analyses[item.code];
     render();
   }
@@ -360,7 +385,7 @@
       + axis('차트', model.chartScore, model.chartLabel, model.chartNote)
       + axis('물타기', null, advice.label, advice.reason)
       + '</div><div class="my-opinion-verdict ' + advice.tone + '"><span>현재 판단</span><strong>' + escapeHtml(advice.label) + '</strong><p>' + escapeHtml(advice.reason) + '</p><small>' + escapeHtml(lossText) + ' · 손실률만으로 판단하지 않음</small></div>'
-      + (ai ? '<div class="my-ai-evidence"><b>AI 보조 코멘트</b> ' + escapeHtml(ai) + '</div>' : '')
+      + (ai ? '<div class="my-ai-evidence"><b>보조 코멘트</b> ' + escapeHtml(ai) + '</div>' : '')
       + '<p class="my-analysis-footnote">투자 참고용 · 수급·차트·보유정보를 함께 계산한 참고 신호이며 투자 권유나 손실 회복을 보장하지 않습니다.</p></section>';
   }
   function estimateRecovery(chart, currentPrice, targetPrice) {
@@ -468,7 +493,7 @@
       return;
     }
     var frameUrl = '/page/foreign-flow?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(item.name);
-    detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3>' + escapeHtml(item.name) + ' <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
+    detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3 class="my-selected-title' + (metrics.rate > 0 ? ' is-profit' : '') + '"><span class="my-selected-name">' + escapeHtml(item.name) + '</span> <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
       + '<div class="my-metric-grid"><div><span>현재가</span><strong>' + formatPrice(metrics.price, item.code) + '</strong><small class="' + signClass(quote.changeRate) + '">' + formatSigned(quote.changeRate, 2) + '%</small></div><div><span>평가금액</span><strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatSigned(metrics.pnl, 0) + '원') + '</strong><small>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
       + buildHoldingForm(item, metrics)
       + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code) + '</div>'
@@ -558,6 +583,7 @@
       }
     });
     mount.addEventListener('input', function (event) {
+      if (event.target.id === 'myStockInput') updateInputLogo(resolveInput(event.target.value));
       if (event.target.matches('[data-my-calc]')) {
         var item = itemByCode(state.selectedCode);
         if (item) updateCalculatorWithRecovery(mount, itemMetrics(item, state.quotes[item.code] || {}), state.analyses[item.code] && state.analyses[item.code].chart);
