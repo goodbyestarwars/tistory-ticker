@@ -260,13 +260,19 @@
   grid-template-columns: 340px 1fr;
   gap: 14px;
   align-items: start;
+  min-width: 0;
 }
 #stock-search .ss-panel-left,
 #stock-search .ss-panel-right {
   border: 1px solid #e5e5e5;
   border-radius: 12px;
   padding: 14px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
+#stock-search .ss-panel-right { overflow: hidden; }
 
 /* ---- 차트 탭 ---- */
 #stock-search .ss-chart-tabs {
@@ -324,6 +330,13 @@
   cursor: pointer;
 }
 #stock-search .ss-chart { position: relative; height: 420px; }
+#stock-search .ss-chart {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
 #stock-search .ss-chart::after {
   display: none;
 }
@@ -357,6 +370,7 @@
 #stock-search .ss-price-study-label .ss-ichimoku-label { color: #8a9099; }
 #stock-search .ss-volume-study-label {
   display: none;
+  top: 70%;
 }
 #stock-search .ss-volume-study-label b { color: #4f8df7; font-weight: 600; }
 #stock-search .ss-volume-study-label .ss-volume-ma-value { color: #2563eb; }

@@ -90,9 +90,32 @@
   };
   var lwcLoadPromise = null;
   var lwcChart = null;
+  var lwcChartContainer = null;
   var lwcCloudCleanup = null;
   var stockDrawingState = null;
   var suggestionRequestId = 0;
+
+  function resizeStockChart() {
+    if (!lwcChart || !lwcChartContainer || !lwcChart.resize) return;
+    global.requestAnimationFrame(function () {
+      if (!lwcChart || !lwcChartContainer) return;
+      var width = lwcChartContainer.clientWidth;
+      var height = lwcChartContainer.clientHeight;
+      if (width > 0 && height > 0) {
+        try {
+          lwcChart.resize(width, height);
+          var panes = lwcChart.panes ? lwcChart.panes() : [];
+          if (panes.length > 1) {
+            var subHeight = Math.max(42, Math.round(height * 0.14));
+            if (panes[0].setHeight) panes[0].setHeight(Math.max(220, height - subHeight * (panes.length - 1)));
+            panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
+          }
+        } catch (e) { /* 레이아웃 정리 후 다음 요청에서 재시도 */ }
+      }
+      if (stockDrawingState) resizeStockDrawing(stockDrawingState);
+    });
+  }
+  global.addEventListener('tistory-chart-resize', resizeStockChart);
 
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
     if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
@@ -1520,6 +1543,7 @@
     destroyStockDrawing();
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
+    lwcChartContainer = null;
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-ichimoku-cloud').forEach(function (el) { el.remove(); });
 
     loadLightweightCharts().then(function (LWC) {
@@ -1534,6 +1558,7 @@
         localization: { locale: 'ko-KR' }
       }, lwcThemeOptions(LWC, timeframe)));
       lwcChart = chart;
+      lwcChartContainer = container;
       chart.priceScale('right').applyOptions({
         scaleMargins: { top: 0.06, bottom: 0.36 },
         alignLabels: false
@@ -1627,9 +1652,11 @@
       // 텍스트로 보여주고 있어 중복이라, 다른 보조지표 시리즈(MA/일목균형표)와 동일하게 끈다.
       var volumeSeries = chart.addSeries(LWC.HistogramSeries, {
         priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
         lastValueVisible: false,
         priceLineVisible: false
       }, 1);
+      chart.priceScale('volume').applyOptions({ drawTicks: false, ticksVisible: false, borderVisible: false });
       volumeSeries.setData(bars.map(function (d) {
         return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
       }));

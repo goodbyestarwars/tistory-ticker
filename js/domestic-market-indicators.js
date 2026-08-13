@@ -9,6 +9,21 @@
   var drawingStates = {};
   var lwcPromise = null;
 
+  function resizeDmiCharts() {
+    global.requestAnimationFrame(function () {
+      Object.keys(chartInstances).forEach(function (key) {
+        var inst = chartInstances[key];
+        if (!inst || !inst.chart || !inst.element || !inst.chart.resize) return;
+        var width = inst.element.clientWidth;
+        var height = inst.element.clientHeight;
+        if (width > 0 && height > 0) {
+          try { inst.chart.resize(width, height); } catch (e) { /* 레이아웃 정리 후 다음 요청에서 재시도 */ }
+        }
+      });
+    });
+  }
+  global.addEventListener('tistory-chart-resize', resizeDmiCharts);
+
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -373,7 +388,7 @@
       });
       series.setData(points);
       chart.timeScale().fitContent();
-      chartInstances[key] = { chart: chart, series: series, interval: interval };
+      chartInstances[key] = { chart: chart, series: series, interval: interval, element: element };
       setupDrawing(key, element, chart, series, interval);
     }).catch(function () {
       element.innerHTML = '<div class="dmi-chart-message">차트 라이브러리를 불러오지 못했습니다.</div>';
