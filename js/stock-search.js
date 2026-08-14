@@ -117,11 +117,12 @@
       var rsiLabel = paneLabels.querySelector('span');
       if (rsiLabel) rsiLabel.style.top = (mainHeight + subHeight) + 'px';
     }
-    // 거래량 막대는 자체 패널 안에서도 기준선(0)에 붙어 아래쪽에 그려지는데, 범례를
-    // 패널 맨 위(mainHeight)에 두면 막대와 멀리 떨어져 보인다(2026-08-14 사용자 리포트 -
-    // "거래량은 아래로 내려와야지, 기준선 밑에 있어야 해") - 패널 하단(RSI 패널 시작
-    // 바로 위)에 붙인다.
-    if (volumeLegend) volumeLegend.style.top = (mainHeight + subHeight - 22) + 'px';
+    // 거래량 막대는 이제 항상 패널 하단(기준선 0)에 붙고 위쪽 15%만 비워두도록 고정했다
+    // (chart.priceScale('volume') scaleMargins) - 범례를 패널 맨 위에 두면 데이터 값과
+    // 무관하게 항상 막대 바로 위 여백에 온다(2026-08-14 사용자 리포트로 "패널 하단에
+    // 붙이기"를 먼저 시도했지만 막대 시작 위치를 못 미리 알아 자리가 계속 안 맞았음 -
+    // 막대 위치 자체를 고정하는 쪽으로 대신 해결).
+    if (volumeLegend) volumeLegend.style.top = mainHeight + 'px';
   }
 
   function resizeStockChart() {
@@ -1692,7 +1693,15 @@
         lastValueVisible: false,
         priceLineVisible: false
       }, 1);
-      chart.priceScale('volume').applyOptions({ drawTicks: false, ticksVisible: false, borderVisible: false });
+      // scaleMargins를 명시하지 않으면 라이브러리가 알아서 범위를 잡아서, 막대가 패널의
+      // 어느 높이에서 시작/끝나는지 예측할 수 없었다(거래량 범례를 막대 옆 어디에 둬도
+      // 계속 자리가 안 맞는다는 반복 리포트의 근본 원인 - 2026-08-14). 막대를 항상
+      // 패널 하단(기준선 0)에 붙이고 위쪽 15%만 비워서, 범례를 패널 맨 위에 고정하면
+      // 데이터 값과 무관하게 항상 막대 바로 위에 오도록 만든다.
+      chart.priceScale('volume').applyOptions({
+        drawTicks: false, ticksVisible: false, borderVisible: false,
+        scaleMargins: { top: 0.15, bottom: 0 }
+      });
       volumeSeries.setData(bars.map(function (d) {
         return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
       }));
