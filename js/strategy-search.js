@@ -173,11 +173,9 @@
   // 매번 innerHTML을 새로 그려도 이 리스너는 컨테이너 자체에 붙어있어 재등록할 필요가 없다.
   function wireContainer(container) {
     // ETF 검색창은 renderCards()가 매 입력마다 innerHTML을 통째로 다시 그려서, 그냥
-    // 두면 입력창 자체가 새 DOM으로 교체돼 포커스·커서 위치·IME 조합 중인 글자가
-    // 날아간다 - 입력 직후 커서 위치를 기억해뒀다가 재렌더링 후 같은 자리에 되돌려준다.
-    container.addEventListener('input', function (event) {
-      var searchInput = event.target.closest ? event.target.closest('.ss-etf-search-input') : null;
-      if (!searchInput) return;
+    // 두면 입력창 자체가 새 DOM으로 교체돼 포커스·커서 위치가 날아간다 - 입력 직후
+    // 커서 위치를 기억해뒀다가 재렌더링 후 같은 자리에 되돌려준다.
+    function applyEtfSearch(searchInput) {
       etfSearchQuery = searchInput.value;
       var cursor = searchInput.selectionStart;
       renderCards(container);
@@ -186,6 +184,20 @@
         nextInput.focus();
         try { nextInput.setSelectionRange(cursor, cursor); } catch (e) { /* 일부 입력 타입은 미지원 */ }
       }
+    }
+    // 한글 등 조합형 입력(IME)은 자모를 하나씩 합쳐 완성되는데, 조합이 끝나기 전
+    // (compositionend 전)에 DOM을 다시 그리면 브라우저가 조합 중이던 글자를 잃어버려
+    // "헬스케어"가 "헤ㄹㅋ케ㅇㅓ"처럼 자모가 낱개로 흩어져 버린다(2026-08-14 사용자
+    // 스크린샷 제보). 조합 중에는 재렌더링을 미루고, 조합이 끝난 뒤 한 번만 반영한다.
+    container.addEventListener('compositionend', function (event) {
+      var searchInput = event.target.closest ? event.target.closest('.ss-etf-search-input') : null;
+      if (!searchInput) return;
+      applyEtfSearch(searchInput);
+    });
+    container.addEventListener('input', function (event) {
+      var searchInput = event.target.closest ? event.target.closest('.ss-etf-search-input') : null;
+      if (!searchInput || event.isComposing) return;
+      applyEtfSearch(searchInput);
     });
     container.addEventListener('click', function (event) {
       var tabBtn = event.target.closest ? event.target.closest('.ss-tab') : null;
