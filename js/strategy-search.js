@@ -188,12 +188,13 @@
     // 한글 등 조합형 입력(IME)은 자모를 하나씩 합쳐 완성되는데, 조합이 끝나기 전
     // (compositionend 전)에 DOM을 다시 그리면 브라우저가 조합 중이던 글자를 잃어버려
     // "헬스케어"가 "헤ㄹㅋ케ㅇㅓ"처럼 자모가 낱개로 흩어져 버린다(2026-08-14 사용자
-    // 스크린샷 제보). 조합 중에는 재렌더링을 미루고, 조합이 끝난 뒤 한 번만 반영한다.
-    container.addEventListener('compositionend', function (event) {
-      var searchInput = event.target.closest ? event.target.closest('.ss-etf-search-input') : null;
-      if (!searchInput) return;
-      applyEtfSearch(searchInput);
-    });
+    // 스크린샷 제보). input 이벤트의 isComposing으로 조합 중 여부를 확인해 조합이 끝난
+    // 뒤에만 반영한다 - compositionend는 별도로 처리하지 않는다. compositionend
+    // 직후 브라우저가 isComposing=false인 input 이벤트를 자동으로 한 번 더 보내주는데,
+    // 처음에는 이걸 몰라서 compositionend에서도 한 번 더 반영했다가 글자 하나가
+    // 완성될 때마다 재렌더링이 두 번 겹쳐 일어났고, 그 사이에 다음 키 입력이 오면
+    // 글자가 씹히는 문제가 있었다(2026-08-14 사용자 재제보 - "한글 조합은 되는데
+    // 중간에 글자를 먹네").
     container.addEventListener('input', function (event) {
       var searchInput = event.target.closest ? event.target.closest('.ss-etf-search-input') : null;
       if (!searchInput || event.isComposing) return;
