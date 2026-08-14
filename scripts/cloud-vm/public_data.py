@@ -302,7 +302,11 @@ def fetch_kofia_market(days=30):
     million KRW, while market-funds amounts are in KRW. Keeping the units
     explicit prevents the UI from presenting a misleading comparison.
     """
-    window = max(7, min(int(days or 30), 90))
+    # 2026-08-14: 증시자금 신용대주잔고/예탁증권담보융자 카드가 "1년 평균"(252영업일)을
+    # 계산하려면 90일 상한으로는 부족해서 400으로 올린다 - /kofia-market 엔드포인트는
+    # main.py의 Query(le=90)로 여전히 90일까지만 받으므로 기존 호출자에는 영향이 없다.
+    # numOfRows=1000(_fetch_kofia_rows)이라 하루 1행 기준 400일도 한 번의 호출로 충분.
+    window = max(7, min(int(days or 30), 400))
     cache_key = 'kofia-market:%s' % window
     cached = _CACHE.get(cache_key)
     if cached and time.time() - cached[0] < _KOFIA_CACHE_TTL:

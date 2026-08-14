@@ -176,6 +176,36 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertNotIn('20260815', queried_dates)  # 토요일은 아예 호출하지 않는다
         self.assertEqual(queried_dates, ['20260814'])
 
+    def test_leverage_detail_extracts_lending_and_collateral_from_kofia(self):
+        # 2026-08-14 요청: 신용대주잔고·예탁증권담보융자 - KOFIA credit 시리즈 중 이 두
+        # 필드만 뽑아 fundCard가 바로 쓸 수 있는 series 모양으로 내려주는지 확인.
+        fake_result = {'series': [
+            {'date': '2026-08-13', 'credit': {'loan_total': 100, 'lending_total': 5, 'collateral_loan': 40}},
+            {'date': '2026-08-14', 'credit': {'loan_total': 101, 'lending_total': 6, 'collateral_loan': 41}},
+            {'date': '2026-08-15', 'credit': None},  # 주말 등 데이터 없는 날
+        ]}
+        with patch.object(dmi.public_data, 'fetch_kofia_market', return_value=fake_result) as fetch:
+            result = dmi.fetch_leverage_detail()
+        fetch.assert_called_once_with(days=dmi._LEVERAGE_DETAIL_LOOKBACK_DAYS)
+        self.assertTrue(result['available'])
+        self.assertEqual(result['latest_date'], '2026-08-14')
+        self.assertEqual(result['lending'], {'date': '2026-08-14', 'balance': 6})
+        self.assertEqual(result['collateral'], {'date': '2026-08-14', 'balance': 41})
+        self.assertEqual(result['series'], [
+            {'date': '2026-08-13', 'lending': 5, 'collateral': 40},
+            {'date': '2026-08-14', 'lending': 6, 'collateral': 41},
+        ])
+
+    def test_leverage_detail_unavailable_when_kofia_fails(self):
+        with patch.object(dmi.public_data, 'fetch_kofia_market', side_effect=RuntimeError('boom')):
+            result = dmi.fetch_leverage_detail()
+        self.assertFalse(result['available'])
+
+    def test_leverage_detail_unavailable_when_series_has_no_credit_rows(self):
+        with patch.object(dmi.public_data, 'fetch_kofia_market', return_value={'series': [{'date': '2026-08-14', 'credit': None}]}):
+            result = dmi.fetch_leverage_detail()
+        self.assertFalse(result['available'])
+
 
 if __name__ == '__main__':
     unittest.main()

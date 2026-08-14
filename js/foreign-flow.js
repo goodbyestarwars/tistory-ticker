@@ -3193,6 +3193,9 @@
     }
 
     var grid = '';
+    // 대차잔고는 종목별 실제 체결가가 없어 현재가로 근사(추정)한다 - s 유무와 무관하게
+    // 항상 같은 값이어야 해서 s 블록 밖에 둔다.
+    var loanAmount = (l && l.balance_qty != null && currentClose) ? l.balance_qty * currentClose : null;
     if (s) {
       // "악성" 신호는 붉게 강조: 공매도 평균가격이 현재가와 20% 이상 괴리, 당일 거래비중 10%↑
       // (거래비중 임계값은 scripts/fetch_investor_flow.py의 압박점수 밴드(>=10=강한 구간)와 통일)
@@ -3201,18 +3204,24 @@
       var ratioWarn = s.today_ratio_pct != null && s.today_ratio_pct >= 10;
       var sg = squeezeGrade(s.short_squeeze_index);
 
-      // 2026-07-19: 절대수치라 그 자체로는 해석이 안 되는 항목(공매도 누적잔고/일평균
-      // 거래량(20일)/대차잔고 절대량)은 카드에서 제거 - Days to Cover에 이미 20일 평균
-      // 거래량 의미가 녹아있고, 잔고는 "증감률"로 방향성을 보여주는 편이 실제 판단에 쓰임.
+      // 2026-07-19: 절대수치는 그 자체로는 해석이 안 돼서(방향성은 "증감률"이 더 잘
+      // 보여줌) 한 번 뺐었는데, 2026-08-14 "공매도가 얼마치라는건지, 몇 주라는건지" 재요청을
+      // 받아 공매도 잔고(수량+추정 금액)를 다시 넣는다 - 증감률이 방향을, 이 절대수치가
+      // 규모를 보여주는 역할 분담으로 둘 다 필요하다는 피드백.
+      var shortAmount = (s.balance_qty != null && s.avg_price != null) ? s.balance_qty * s.avg_price : null;
       grid += extraMetric('공매도 평균가격(추정)', '<span class="' + (gapWarn ? 'ff-warn' : '') + '">' + fmtWon(s.avg_price) + '</span>'
           + (gapPct != null ? '<div class="ff-extra-metric-sub">현재가 대비 ' + fmtSignedPct(gapPct) + '</div>' : ''))
+        + extraMetric('공매도 잔고', fmtAbsShares(s.balance_qty)
+          + (shortAmount != null ? '<div class="ff-extra-metric-sub">약 ' + fmtCompactWon(shortAmount) + '</div>' : ''))
         + extraMetric('당일 거래비중', '<span class="' + (ratioWarn ? 'ff-warn' : '') + '">' + fmtPct(s.today_ratio_pct) + '</span>')
         + extraMetric('Days to Cover', s.days_to_cover == null ? '-' : s.days_to_cover.toFixed(2) + '일')
         + extraMetric('숏 압박 지수', (s.short_squeeze_index == null ? '-' : s.short_squeeze_index.toFixed(1))
           + (sg ? ' <span class="ff-squeeze-grade ' + sg.cls + '">' + sg.label + '</span>' : ''));
     }
     if (l) {
-      grid += extraMetric('대차잔고 증감률', '<span class="' + signClass(l.balance_change_pct) + '">' + fmtSignedPct(l.balance_change_pct) + '</span>');
+      grid += extraMetric('대차잔고 증감률', '<span class="' + signClass(l.balance_change_pct) + '">' + fmtSignedPct(l.balance_change_pct) + '</span>')
+        + extraMetric('대차잔고', fmtAbsShares(l.balance_qty)
+          + (loanAmount != null ? '<div class="ff-extra-metric-sub">약 ' + fmtCompactWon(loanAmount) + '(현재가 기준 추정)</div>' : ''));
     }
 
     var tone = SHORT_GRADE_TONE[p.grade.label] || 'neutral';

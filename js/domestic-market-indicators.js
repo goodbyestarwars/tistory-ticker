@@ -352,6 +352,13 @@
     }).filter(function (value) { return isFinite(value); });
   }
 
+  // 신용대주잔고/예탁증권담보융자(KOFIA) - fundSeriesValues와 같은 역할이지만 series
+  // 모양이 { date, lending, collateral }로 더 단순해서 별도 헬퍼로 뺐다.
+  function leverageSeriesValues(detail, field) {
+    return (detail.series || []).map(function (row) { return row[field]; })
+      .filter(function (value) { return typeof value === 'number' && isFinite(value); });
+  }
+
   function averageOf(values, limit) {
     var slice = limit ? values.slice(-limit) : values;
     if (!slice.length) return null;
@@ -535,9 +542,10 @@
       + '<span class="dmi-fund-date">' + escapeHtml(dateText || '-') + '</span></article>';
   }
 
-  function renderFunds(root, funds, programTrading) {
+  function renderFunds(root, funds, programTrading, leverageDetail) {
     funds = funds || {};
     programTrading = programTrading || {};
+    leverageDetail = leverageDetail || {};
     var credit = funds.credit || {};
     var deposits = funds.market_funds || {};
     var cards = [
@@ -549,6 +557,14 @@
     if (programTrading.available) {
       cards.push(programTradingCard('차익거래', '선물 가격과 현재 주가의 차이를 이용해 컴퓨터가 자동으로 사고파는 금액이에요.', 'arbitrage', programTrading));
       cards.push(programTradingCard('비차익거래', '여러 종목을 한 번에 묶어서 컴퓨터가 자동으로 사고파는 금액이에요. 인덱스펀드·ETF의 비중 조정 때 주로 생겨요.', 'nonArbitrage', programTrading));
+    }
+    if (leverageDetail.available) {
+      var lending = leverageDetail.lending || {};
+      var collateral = leverageDetail.collateral || {};
+      cards.push(fundCard('신용대주잔고', '투자자가 공매도를 하려고 증권사에서 주식 자체를 빌린 잔액이에요. 위 "신용잔고(빚투)"는 돈을 빌린 것이고, 이건 반대로 주식을 빌린 거예요.',
+        lending.balance, leverageDetail.unit, lending.date || leverageDetail.latest_date, leverageSeriesValues(leverageDetail, 'lending')));
+      cards.push(fundCard('예탁증권담보융자', '갖고 있는 주식을 담보로 맡기고 증권사에서 받은 대출금이에요.',
+        collateral.balance, leverageDetail.unit, collateral.date || leverageDetail.latest_date, leverageSeriesValues(leverageDetail, 'collateral')));
     }
     root.querySelector('.dmi-fund-grid').innerHTML = cards.join('');
   }
@@ -571,7 +587,7 @@
       root._dmiData = data;
       renderCharts(root, data.indices || {});
       renderInvestor(root, data.investor || {});
-      renderFunds(root, data.funds || {}, data.programTrading || {});
+      renderFunds(root, data.funds || {}, data.programTrading || {}, data.leverageDetail || {});
     }).catch(function () {
       root.querySelector('.dmi-shell').insertAdjacentHTML('beforeend', '<div class="dmi-error">국내시장지표 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>');
     });

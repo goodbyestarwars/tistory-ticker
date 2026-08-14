@@ -68,7 +68,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("현물 기준 · 키움 → KIS → 네이버 fallback", frontend)
         self.assertNotIn("kiwoom/kis/naver background collector", backend)
         self.assertIn("'source': 'KIS'", backend)
-        self.assertNotIn("public_data.fetch_kofia_market", backend)
+        # 2026-08-12: 신용잔고/고객예탁금(_fetch_kis_funds)은 KIS 전용으로 고정하고 KOFIA
+        # fallback을 제거했다 - 이 함수 본문에는 KOFIA 호출이 없어야 한다.
+        kis_funds_fn = re.search(r"def _fetch_kis_funds\(.*?\n(?=def )", backend, re.DOTALL)
+        self.assertIsNotNone(kis_funds_fn)
+        self.assertNotIn("public_data.fetch_kofia_market", kis_funds_fn.group(0))
+        # 2026-08-14: 신용대주잔고/예탁증권담보융자는 KIS에 없는 필드라 별도로 KOFIA를
+        # 쓴다 - 위 KIS 전용 방침은 credit/deposits 한정이지 전체 파일 금지가 아니다.
+        self.assertIn("def fetch_leverage_detail():", backend)
+        self.assertIn("public_data.fetch_kofia_market", backend)
         self.assertNotIn("naver fallback", backend)
         for token in ("color: #000;", "textColor: '#000'"):
             self.assertIn(token, style if token == "color: #000;" else frontend)
@@ -79,6 +87,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
         self.assertIn("function miniAverageChart(values, average)", frontend)
         self.assertIn("신용잔고 (빚투)", frontend)
+        self.assertIn("신용대주잔고", frontend)
+        self.assertIn("예탁증권담보융자", frontend)
         self.assertIn("최근 평균", frontend)
         self.assertIn("1년 평균", frontend)
         self.assertIn("투자자가 증권사에서 돈을 빌려 주식을 산 금액이에요.", frontend)

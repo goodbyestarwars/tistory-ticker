@@ -4,8 +4,10 @@
 The public endpoint deliberately keeps provider selection in one place:
 Kiwoom index candles first, KIS index candles second, and Naver as the last
 resort. Investor flow uses the existing background collector because it
-already maintains the three participant buckets. Market funds are provided
-only by the KIS market-funds API.
+already maintains the three participant buckets. 신용잔고/고객예탁금(fetch_funds)은
+KIS market-funds API 전용이다(2026-08-12에 KOFIA fallback 제거). 신용대주잔고/
+예탁증권담보융자(fetch_leverage_detail)는 KIS에 없는 필드라 KOFIA 공공데이터를
+쓰는 별도 provider - fetch_funds의 fallback이 아니라 독립된 추가 카드다.
 """
 
 import concurrent.futures
@@ -19,6 +21,7 @@ import investor_trend
 import kis_client
 import kiwoom_client
 import program_trading_history
+import public_data
 
 logger = logging.getLogger('domestic_market_indicators')
 KST = timezone(timedelta(hours=9))
@@ -402,6 +405,55 @@ def fetch_program_trading(kiwoom_token):
     }
 
 
+_LEVERAGE_DETAIL_LOOKBACK_DAYS = 400  # 1년 평균(252영업일)에 여유를 더한 상한
+
+
+def fetch_leverage_detail():
+    """신용대주잔고(공매도용으로 주식 자체를 빌린 잔고)·예탁증권담보융자.
+
+    2026-08-14 요청: "신용잔고(빚투)"는 돈을 빌려 산 잔고인데, 반대로 주식 자체를
+    빌린 잔고(신용대주)와 보유 주식을 담보로 받은 대출(예탁증권담보융자)도 보고 싶다는
+    요청. KIS mktfunds(FHKST649100C0)에는 이 두 필드가 없어서, 증시온도 위젯이 이미
+    쓰고 있는 KOFIA 공공데이터(public_data.fetch_kofia_market)의 신용공여잔고추이에서
+    lending_total(신용대주 전체)·collateral_loan(예탁증권담보융자)만 뽑아 쓴다.
+
+    2026-08-12에 "증시자금은 KIS 전용으로 고정하고 KOFIA fallback을 제거"한 것과는
+    성격이 다르다 - 그건 신용잔고/고객예탁금(_fetch_kis_funds)의 대체 공급자였고
+    (같은 값을 어디서 받아오느냐의 문제), 이건 KIS가 애초에 안 주는 새 필드를
+    보충하는 것이라 _fetch_kis_funds/신용잔고·고객예탁금 카드는 그대로 KIS 전용이다.
+    KOFIA가 실패해도 이 카드만 안 뜰 뿐 나머지 증시자금 카드에는 영향이 없다.
+    """
+    try:
+        result = public_data.fetch_kofia_market(days=_LEVERAGE_DETAIL_LOOKBACK_DAYS)
+    except Exception:
+        logger.exception('KOFIA leverage detail failed')
+        return {
+            'available': False,
+            'source': 'kofia',
+            'message': '신용대주잔고·예탁증권담보융자 데이터를 잠시 불러오지 못했습니다.',
+        }
+    rows = [(row['date'], row['credit']) for row in (result.get('series') or []) if row.get('credit')]
+    if not rows:
+        return {
+            'available': False,
+            'source': 'kofia',
+            'message': '신용대주잔고·예탁증권담보융자 데이터가 비어 있습니다.',
+        }
+    latest_date, latest = rows[-1]
+    return {
+        'available': True,
+        'source': 'kofia',
+        'unit': 'million_krw',
+        'latest_date': latest_date,
+        'lending': {'date': latest_date, 'balance': latest.get('lending_total')},
+        'collateral': {'date': latest_date, 'balance': latest.get('collateral_loan')},
+        'series': [
+            {'date': date, 'lending': credit.get('lending_total'), 'collateral': credit.get('collateral_loan')}
+            for date, credit in rows[-_LEVERAGE_DETAIL_LOOKBACK_DAYS:]
+        ],
+    }
+
+
 def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
     """코스피/코스닥 현물 차트 6개(2시장 x 분/일/주) + 투자자 수급 + 증시자금을 모은다.
 
@@ -415,7 +467,7 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
     필요는 없다).
     """
     chart_keys = [(market, interval) for market in MARKETS for interval in INTERVALS]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(chart_keys) + 2) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(chart_keys) + 4) as pool:
         chart_futures = {
             key: pool.submit(fetch_chart, kiwoom_token, kis_appkey, kis_appsecret, key[0], key[1])
             for key in chart_keys
@@ -423,6 +475,7 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
         investor_future = pool.submit(fetch_investor)
         funds_future = pool.submit(fetch_funds, kis_appkey, kis_appsecret)
         program_trading_future = pool.submit(fetch_program_trading, kiwoom_token)
+        leverage_detail_future = pool.submit(fetch_leverage_detail)
 
         indices = {}
         for market, cfg in MARKETS.items():
@@ -437,4 +490,5 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
             'investor': investor_future.result(),
             'funds': funds_future.result(),
             'programTrading': program_trading_future.result(),
+            'leverageDetail': leverage_detail_future.result(),
         }
