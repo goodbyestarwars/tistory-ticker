@@ -117,7 +117,11 @@
       var rsiLabel = paneLabels.querySelector('span');
       if (rsiLabel) rsiLabel.style.top = (mainHeight + subHeight) + 'px';
     }
-    if (volumeLegend) volumeLegend.style.top = mainHeight + 'px';
+    // 거래량 막대는 자체 패널 안에서도 기준선(0)에 붙어 아래쪽에 그려지는데, 범례를
+    // 패널 맨 위(mainHeight)에 두면 막대와 멀리 떨어져 보인다(2026-08-14 사용자 리포트 -
+    // "거래량은 아래로 내려와야지, 기준선 밑에 있어야 해") - 패널 하단(RSI 패널 시작
+    // 바로 위)에 붙인다.
+    if (volumeLegend) volumeLegend.style.top = (mainHeight + subHeight - 22) + 'px';
   }
 
   function resizeStockChart() {
@@ -1347,10 +1351,15 @@
         vertLines: { color: dark ? '#3a3a3a' : '#eee' },
         horzLines: { color: dark ? '#3a3a3a' : '#eee' }
       },
-      // Keep the price scale in the candle pane. Volume/RSI/MACD are independent v5 panes.
+      // Keep the price scale in the candle pane. Volume/RSI are independent v5 panes.
+      // bottom margin은 예전에 거래량을 같은 패널에 겹쳐 그리던 시절 값(0.36)이 거래량이
+      // 별도 패널로 분리된 뒤에도 안 줄어 있었다 - 캔들 패널 아래에 불필요하게 큰 빈
+      // 공간과 그 안에서 자동 생성되는 음수 유령 눈금(가격 데이터가 없는데도 축 범위가
+      // 여백만큼 아래로 늘어나 생기는 "-50,000"류 라벨)이 생겼다(2026-08-14 사용자
+      // 스크린샷 제보). 캔들만 있는 패널이니 작은 여백이면 충분하다.
       rightPriceScale: {
         borderColor: dark ? '#3a3a3a' : '#ddd',
-        scaleMargins: { top: 0.06, bottom: 0.36 },
+        scaleMargins: { top: 0.06, bottom: 0.08 },
         alignLabels: false
       },
       // 2026-08-05 사용자 리포트: 분봉 X축이 같은 날짜("5일")만 반복 표시됐음 - 분봉의
@@ -1587,7 +1596,7 @@
       lwcChart = chart;
       lwcChartContainer = container;
       chart.priceScale('right').applyOptions({
-        scaleMargins: { top: 0.06, bottom: 0.36 },
+        scaleMargins: { top: 0.06, bottom: 0.08 },
         alignLabels: false
       });
 
@@ -1603,7 +1612,7 @@
           formatter: function (v) { return chartPriceText(v, isUsChart); }
         }
       });
-      candleSeries.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.36 } });
+      candleSeries.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.08 } });
       candleSeries.setData(bars.map(function (d) {
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
