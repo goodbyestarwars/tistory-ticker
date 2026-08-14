@@ -2,6 +2,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/domestic-market-indicators';
+  var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var KST_OFFSET_SEC = 9 * 60 * 60;
   var CHART_HEIGHT = 330;
@@ -37,6 +38,19 @@
     }).then(function (payload) {
       if (!payload || payload.success === false) throw new Error('invalid response');
       return payload.data || payload;
+    });
+  }
+
+  // 2026-08-14 요청: 증시자금 카드 위 "종합 요약" - js/kospi-futures.js의 참고의견(AI 해설)과
+  // 동일한 패턴으로 GAS(gas/ticker-proxy.gs의 getDomesticFundsAnalysis, ?action=
+  // domesticFundsAnalysis)가 Groq로 생성한 문장을 그대로 받아온다. GAS가 이 화면과 같은
+  // VM 응답을 유일한 소스로 프롬프트를 만들어서 화면 숫자와 AI 문장이 어긋나지 않는다.
+  function fetchFundsAnalysis() {
+    return fetch(GAS_TICKER_URL + '?action=domesticFundsAnalysis').then(function (r) {
+      if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
+      return r.json();
+    }).then(function (data) {
+      return data && data.analysis;
     });
   }
 
@@ -306,7 +320,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-fund-desc';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-funds-ai';
     document.head.appendChild(link);
   }
 
@@ -587,6 +601,7 @@
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3><span class="dmi-muted">개인 · 외국인 · 기관</span></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
       + '<div class="dmi-subheading"><h3>증시자금</h3></div>'
+      + '<div class="dmi-ai" id="dmiFundsAi" hidden></div>'
       + '<div class="dmi-fund-grid"><div class="dmi-fund-card">데이터 준비 중</div><div class="dmi-fund-card">데이터 준비 중</div></div>'
       + '</div>';
     fetchJson().then(function (data) {
@@ -597,6 +612,12 @@
     }).catch(function () {
       root.querySelector('.dmi-shell').insertAdjacentHTML('beforeend', '<div class="dmi-error">국내시장지표 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>');
     });
+    var fundsAiBox = root.querySelector('#dmiFundsAi');
+    fetchFundsAnalysis().then(function (text) {
+      if (!text || !fundsAiBox) return;
+      fundsAiBox.hidden = false;
+      fundsAiBox.innerHTML = '<div class="dmi-ai-title">종합 요약</div><p>' + escapeHtml(text) + '</p>';
+    }).catch(function () { /* AI 요약 실패는 조용히 무시 - 카드 자체는 정상 표시 */ });
     root.addEventListener('click', function (event) {
       var collapseButton = event.target.closest ? event.target.closest('.dmi-collapse-btn') : null;
       if (collapseButton) {

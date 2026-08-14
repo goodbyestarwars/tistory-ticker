@@ -38,6 +38,10 @@ function doGet(e) {
     return jsonResponse(getSubIndexAnalysis());
   }
 
+  if (params.action === 'domesticFundsAnalysis') {
+    return jsonResponse(getDomesticFundsAnalysis());
+  }
+
   if (params.marketTemp === '1') {
     return jsonResponse(getMarketTemp());
   }
@@ -948,8 +952,11 @@ function getMarketAnalysis() {
 // 유일한 소스로 삼는다 - GAS 자체 fetchIndex 등으로 별도 재조회하지 않는다.
 var FUTURES_API_URL = 'https://goodbyestar.cloud/futures';
 var OPTION_FLOW_API_URL = 'https://goodbyestar.cloud/option-flow';
+var DOMESTIC_MARKET_INDICATORS_API_URL = 'https://goodbyestar.cloud/domestic-market-indicators';
 var KOSPI_FUTURES_ANALYSIS_CACHE_TTL = 1800; // 30분
 var KOSPI_FUTURES_ANALYSIS_FAIL_TTL = 120;   // 2분
+var DOMESTIC_FUNDS_ANALYSIS_CACHE_TTL = 1800; // 30분
+var DOMESTIC_FUNDS_ANALYSIS_FAIL_TTL = 120;   // 2분
 var SUB_INDEX_ANALYSIS_CACHE_TTL = 1800;
 var SUB_INDEX_ANALYSIS_FAIL_TTL = 120;
 
@@ -1039,6 +1046,116 @@ function getKospiFuturesAnalysis() {
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? KOSPI_FUTURES_ANALYSIS_CACHE_TTL : KOSPI_FUTURES_ANALYSIS_FAIL_TTL);
+  return { analysis: analysis };
+}
+
+// 2026-08-14 요청: 증시자금(신용잔고·고객예탁금·차익/비차익거래·신용대주잔고·예탁증권담보융자)
+// 6개 카드 위에 "종합 요약" AI 해설을 추가. 화면에 보이는 숫자와 어긋나면 안 되므로(219~221줄
+// 주석 참고) VM의 /domestic-market-indicators 응답을 유일한 소스로 쓰고, 프론트(js/domestic-
+// market-indicators.js)와 동일한 "최근 20일 평균/1년(252일) 평균" 창을 그대로 재현한다 -
+// 차익/비차익거래는 VM이 이미 계산해서 내려주지만(recentAverage/yearAverage), 신용잔고/
+// 고객예탁금/신용대주잔고/예탁증권담보융자는 series 원자료만 오므로 여기서 같은 창으로 직접
+// 평균을 낸다.
+var DOMESTIC_FUNDS_RECENT_DAYS_ = 20;
+var DOMESTIC_FUNDS_YEAR_DAYS_ = 252;
+
+function fetchDomesticMarketIndicatorsFromVm_() {
+  var res = UrlFetchApp.fetch(DOMESTIC_MARKET_INDICATORS_API_URL, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return null;
+  var body = JSON.parse(res.getContentText('UTF-8'));
+  return (body && body.data) || null;
+}
+
+function avgOfNumbers_(nums, limit) {
+  var valid = nums.filter(function (n) { return typeof n === 'number' && !isNaN(n); });
+  var slice = limit ? valid.slice(-limit) : valid;
+  if (!slice.length) return null;
+  return slice.reduce(function (a, b) { return a + b; }, 0) / slice.length;
+}
+
+// js/domestic-market-indicators.js의 formatFunds()와 동일한 단위 배율·조/억 경계값을 써서
+// AI 프롬프트에 넣는 숫자가 화면 표기와 어긋나지 않게 한다.
+function fmtWonAmount_(value, unit) {
+  if (typeof value !== 'number' || isNaN(value)) return null;
+  var amount = value;
+  if (unit === 'million_krw') amount *= 1000000;
+  if (unit === 'hundred_million_krw') amount *= 100000000;
+  var sign = amount < 0 ? '-' : '';
+  var abs = Math.abs(amount);
+  if (abs >= 1000000000000) return sign + (abs / 1000000000000).toFixed(1) + '조원';
+  if (abs >= 100000000) return sign + (abs / 100000000).toFixed(1) + '억원';
+  return sign + Math.round(abs).toLocaleString('ko-KR') + '원';
+}
+
+function fundsLine_(label, value, recentAvg, yearAvg, unit) {
+  var current = fmtWonAmount_(value, unit);
+  if (current == null) return null;
+  var parts = [label + ' ' + current];
+  var recentText = fmtWonAmount_(recentAvg, unit);
+  var yearText = fmtWonAmount_(yearAvg, unit);
+  if (recentText != null || yearText != null) {
+    parts.push('(' + [recentText != null ? '최근 평균 ' + recentText : null,
+      yearText != null ? '1년 평균 ' + yearText : null].filter(Boolean).join(', ') + ')');
+  }
+  return parts.join(' ');
+}
+
+function getDomesticFundsAnalysis() {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'domestic_funds_analysis_v1';
+  var cached = cache.get(cacheKey);
+  if (cached !== null) return { analysis: cached || null };
+
+  var data = safeCall(fetchDomesticMarketIndicatorsFromVm_);
+  var lines = [];
+
+  var funds = data && data.funds;
+  if (funds && funds.available) {
+    var creditSeries = (funds.series || []).map(function (r) { return typeof r.credit === 'number' ? r.credit : null; });
+    var depositSeries = (funds.series || []).map(function (r) { return r.market_funds && typeof r.market_funds.investor_deposits === 'number' ? r.market_funds.investor_deposits : null; });
+    var creditLine = fundsLine_('신용잔고(빚투)', funds.credit && funds.credit.loan_total,
+      avgOfNumbers_(creditSeries, DOMESTIC_FUNDS_RECENT_DAYS_), avgOfNumbers_(creditSeries, DOMESTIC_FUNDS_YEAR_DAYS_), funds.credit_unit);
+    var depositLine = fundsLine_('고객예탁금', funds.market_funds && funds.market_funds.investor_deposits,
+      avgOfNumbers_(depositSeries, DOMESTIC_FUNDS_RECENT_DAYS_), avgOfNumbers_(depositSeries, DOMESTIC_FUNDS_YEAR_DAYS_), funds.market_funds_unit);
+    if (creditLine) lines.push(creditLine);
+    if (depositLine) lines.push(depositLine);
+  }
+
+  var pt = data && data.programTrading;
+  if (pt && pt.available) {
+    var arbLine = fundsLine_('차익거래(순매수)', pt.arbitrage,
+      pt.recentAverage && pt.recentAverage.arbitrage, pt.yearAverage && pt.yearAverage.arbitrage, pt.unit);
+    var nonArbLine = fundsLine_('비차익거래(순매수)', pt.nonArbitrage,
+      pt.recentAverage && pt.recentAverage.nonArbitrage, pt.yearAverage && pt.yearAverage.nonArbitrage, pt.unit);
+    if (arbLine) lines.push(arbLine);
+    if (nonArbLine) lines.push(nonArbLine);
+  }
+
+  var lev = data && data.leverageDetail;
+  if (lev && lev.available) {
+    var lendingSeries = (lev.series || []).map(function (r) { return typeof r.lending === 'number' ? r.lending : null; });
+    var collateralSeries = (lev.series || []).map(function (r) { return typeof r.collateral === 'number' ? r.collateral : null; });
+    var lendingLine = fundsLine_('신용대주잔고', lev.lending && lev.lending.balance,
+      avgOfNumbers_(lendingSeries, DOMESTIC_FUNDS_RECENT_DAYS_), avgOfNumbers_(lendingSeries, DOMESTIC_FUNDS_YEAR_DAYS_), lev.unit);
+    var collateralLine = fundsLine_('예탁증권담보융자', lev.collateral && lev.collateral.balance,
+      avgOfNumbers_(collateralSeries, DOMESTIC_FUNDS_RECENT_DAYS_), avgOfNumbers_(collateralSeries, DOMESTIC_FUNDS_YEAR_DAYS_), lev.unit);
+    if (lendingLine) lines.push(lendingLine);
+    if (collateralLine) lines.push(collateralLine);
+  }
+
+  if (!lines.length) {
+    cache.put(cacheKey, '', DOMESTIC_FUNDS_ANALYSIS_FAIL_TTL);
+    return { analysis: null };
+  }
+
+  var prompt = '오늘 한국 증시자금 지표야(괄호 안은 비교 기준 평균): ' + lines.join('. ') + '. ' +
+    '각 지표를 최근 20일 평균·1년 평균과 비교해서 지금이 평소보다 높은지 낮은지를 반드시 근거로 들어가며, ' +
+    '개인투자자의 빚투(레버리지) 심리와 매수 여력이 지금 뜨거운지 차분한지, 프로그램매매(차익·비차익거래) ' +
+    '동향이 시사하는 바를 종합해서 한국어 4~5문장으로 정리해줘. 데이터가 없는 지표는 언급하지 마. ' +
+    '문장 외 다른 말은 붙이지 마.';
+
+  var analysis = safeCall(function () { return callGroq(prompt); });
+  cache.put(cacheKey, analysis || '', analysis ? DOMESTIC_FUNDS_ANALYSIS_CACHE_TTL : DOMESTIC_FUNDS_ANALYSIS_FAIL_TTL);
   return { analysis: analysis };
 }
 
