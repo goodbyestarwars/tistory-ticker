@@ -430,14 +430,17 @@
       state.active = tab.getAttribute('data-hrt-tab') || 'tradeAmount';
       renderRows();
     });
-    var loadIndustryMap = global.WICS_MAP ? Promise.resolve() : new Promise(function (resolve) {
+    // wics-map.js(약 220KB)는 업종 라벨 보강용 폴백일 뿐 기본 렌더링에 필수는 아니라서,
+    // 첫 로딩 때 이 파일을 다 받을 때까지 종목 데이터 요청을 미루지 않는다(2026-08-14 속도
+    // 점검 - 직렬 대기가 최초 표시를 불필요하게 늦추고 있었음). 병렬로 요청하고, 늦게
+    // 도착하면 이미 그려진 행을 업종 라벨만 다시 채우도록 재렌더링한다.
+    fetchBoard();
+    if (!global.WICS_MAP) {
       var script = document.createElement('script');
       script.src = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js?v=20260810';
-      script.onload = resolve;
-      script.onerror = resolve;
+      script.onload = function () { if (state.data) renderRows(); };
       document.head.appendChild(script);
-    });
-    loadIndustryMap.then(fetchBoard);
+    }
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) {
         stopRealtime();
