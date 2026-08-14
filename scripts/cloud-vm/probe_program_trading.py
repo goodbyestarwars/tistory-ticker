@@ -19,8 +19,11 @@ domestic_market_indicators.py에 정식으로 반영한다. 정식 반영 전까
 import json
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 
 import kiwoom_client
+
+KST = timezone(timedelta(hours=9))
 
 
 def load_dotenv():
@@ -45,9 +48,12 @@ def main():
         sys.exit(1)
 
     mrkt_tp = sys.argv[1] if len(sys.argv) > 1 else '0'  # 0:코스피, 1:코스닥(투자자별 TR 관례 기준 추정)
+    # 1차 시도(date 없이)가 "필수입력 파라미터=date" 오류(return_code=2)를 반환해서 추가함
+    # (2026-08-14 VM 실측) - 스킬 문서의 필수 파라미터 목록에는 없었던 값.
+    today = datetime.now(KST).strftime('%Y%m%d')
 
     token = kiwoom_client.get_token(appkey, secretkey)
-    body = {'amt_qty_tp': '1', 'mrkt_tp': mrkt_tp, 'stex_tp': '3'}
+    body = {'amt_qty_tp': '1', 'mrkt_tp': mrkt_tp, 'stex_tp': '3', 'date': today}
     print('요청 body:', json.dumps(body, ensure_ascii=False))
     res = kiwoom_client.call_tr(token, 'ka90007', '/api/dostk/mrkcond', body)
     print(json.dumps(res, ensure_ascii=False, indent=2))
