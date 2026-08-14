@@ -143,6 +143,39 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         result = dmi.fetch_program_trading(None)
         self.assertFalse(result['available'])
 
+    def test_program_trading_retries_previous_business_day_when_today_is_empty(self):
+        # 2026-08-14 밤 실사용 중 발견: date에 "오늘"(KST)을 그대로 넣다 보니 자정을
+        # 넘긴 새벽·주말에는 그날 거래가 없어 빈 배열이 와서 카드가 통째로 안 떴다.
+        # 여기서는 "오늘"을 토요일(2026-08-15)로 고정해두고, 토요일은 API를 부르지도
+        # 않고 건너뛴 뒤 직전 영업일(금요일)에서 값을 찾아오는지 확인한다.
+        import datetime as datetime_module
+
+        class FixedDatetime(datetime_module.datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime_module.datetime(2026, 8, 15, 3, 0, tzinfo=tz)
+
+        responses = {
+            '20260814': {'prm_trde_acc_trnsn': [{
+                'dt': '20260814', 'dfrt_trde_tdy': '-100', 'ndiffpro_trde_tdy': '+40', 'all_tdy': '-60',
+            }]},
+        }
+
+        def call(token, api_id, path, body):
+            return responses.get(body['date'], {'prm_trde_acc_trnsn': []})
+
+        with patch.object(dmi, 'datetime', FixedDatetime), \
+             patch.object(dmi.kiwoom_client, 'call_tr', side_effect=call) as call_tr, \
+             patch.object(dmi.program_trading_history, 'record'), \
+             patch.object(dmi.program_trading_history, 'load', return_value={}):
+            result = dmi.fetch_program_trading('token')
+
+        self.assertTrue(result['available'])
+        self.assertEqual(result['date'], '2026-08-14')
+        queried_dates = [c.args[3]['date'] for c in call_tr.call_args_list]
+        self.assertNotIn('20260815', queried_dates)  # 토요일은 아예 호출하지 않는다
+        self.assertEqual(queried_dates, ['20260814'])
+
 
 if __name__ == '__main__':
     unittest.main()
