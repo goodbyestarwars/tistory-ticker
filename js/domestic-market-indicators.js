@@ -306,7 +306,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-avg-chart';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-fund-desc';
     document.head.appendChild(link);
   }
 
@@ -541,14 +541,14 @@
     var credit = funds.credit || {};
     var deposits = funds.market_funds || {};
     var cards = [
-      fundCard('신용잔고 (빚투)', '증권사에서 돈을 빌려 주식을 매수한 잔액입니다.',
+      fundCard('신용잔고 (빚투)', '투자자가 증권사에서 돈을 빌려 주식을 산 금액이에요. 늘어날수록 빚내서 투자하는 사람이 많다는 뜻입니다.',
         credit.loan_total, funds.credit_unit, credit.date || funds.latest_date, fundSeriesValues(funds, 'credit')),
-      fundCard('고객예탁금', '주식 매매를 위해 증권사에 맡겨둔 대기자금입니다.',
+      fundCard('고객예탁금', '투자자가 주식을 사려고 증권사 계좌에 미리 넣어둔 대기 자금이에요. 늘어나면 살 준비가 된 돈이 많다는 뜻입니다.',
         deposits.investor_deposits, funds.market_funds_unit, deposits.date || funds.latest_date, fundSeriesValues(funds, 'market_funds'))
     ];
     if (programTrading.available) {
-      cards.push(programTradingCard('차익거래', '선물·현물 가격차를 이용한 프로그램매매 순매수 금액입니다.', 'arbitrage', programTrading));
-      cards.push(programTradingCard('비차익거래', '여러 종목을 한 번에 묶어서 컴퓨터가 자동으로 사고파는 금액입니다(인덱스펀드·ETF 재조정 등).', 'nonArbitrage', programTrading));
+      cards.push(programTradingCard('차익거래', '선물 가격과 현재 주가의 차이를 이용해 컴퓨터가 자동으로 사고파는 금액이에요.', 'arbitrage', programTrading));
+      cards.push(programTradingCard('비차익거래', '여러 종목을 한 번에 묶어서 컴퓨터가 자동으로 사고파는 금액이에요. 인덱스펀드·ETF의 비중 조정 때 주로 생겨요.', 'nonArbitrage', programTrading));
     }
     root.querySelector('.dmi-fund-grid').innerHTML = cards.join('');
   }
