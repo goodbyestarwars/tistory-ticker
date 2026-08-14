@@ -1129,7 +1129,7 @@
     // domestic-market-indicators.js를 다시 안 받아온다 - 그 파일을 고칠 때마다 같이 올려야
     // 한다(오늘 여러 번 고쳤는데 이 값을 안 올려서 캐시된 사용자가 최신 코드를 못 받는
     // 문제를 뒤늦게 발견함).
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260814-collapse-fix';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260814-collapse-fix2';
     script.setAttribute('data-domestic-market-indicators', '1');
     script.onload = function () {
       if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();

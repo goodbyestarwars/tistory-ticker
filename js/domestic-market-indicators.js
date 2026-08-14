@@ -600,7 +600,13 @@
     root.addEventListener('click', function (event) {
       var collapseButton = event.target.closest ? event.target.closest('.dmi-collapse-btn') : null;
       if (collapseButton) {
-        var collapsePanel = collapseButton.closest('[data-dmi-panel]');
+        // 2026-08-14 발견: 버튼 자신도 data-dmi-panel 속성을 갖고 있어서
+        // closest('[data-dmi-panel]')가 (자기 자신부터 검사하는 특성상) 바깥 패널이
+        // 아니라 버튼 자기 자신에게 걸려버렸다 - 그래서 dmi-collapsed 클래스가 CSS가
+        // 보는 <section class="dmi-panel">이 아니라 버튼에 붙어 아무 효과가 없었다
+        // (리포트: "접기 버튼 동작 안 함"). 버튼엔 없고 패널에만 있는 .dmi-panel 클래스로
+        // 찾도록 고친다.
+        var collapsePanel = collapseButton.closest('.dmi-panel');
         if (!collapsePanel) return;
         var isCollapsed = !collapsePanel.classList.contains('dmi-collapsed');
         var collapseMarket = collapsePanel.getAttribute('data-dmi-panel');
