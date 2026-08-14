@@ -11,6 +11,7 @@ only by the KIS market-funds API.
 import concurrent.futures
 import logging
 import math
+import re
 from datetime import datetime, timedelta, timezone
 
 import domestic_futures
@@ -35,7 +36,12 @@ def _number(value):
     if value is None or value == '':
         return None
     try:
-        value = float(str(value).replace(',', '').replace('+', ''))
+        text = str(value).replace(',', '').replace('+', '')
+        # ka90007(프로그램매매누적추이) 실측(2026-08-14)에서 순매도 값이 "--239707"처럼
+        # 부호가 두 번 겹쳐 내려왔다 - 다른 TR에서는 본 적 없는 이 응답만의 표기라 여기서
+        # 흡수한다(선행 "-" 연속을 하나로 접기, 정상적인 단일 부호는 그대로 둠).
+        text = re.sub(r'^-{2,}', '-', text)
+        value = float(text)
         return value if math.isfinite(value) else None
     except (TypeError, ValueError):
         return None
@@ -292,6 +298,57 @@ def fetch_funds(kis_appkey, kis_appsecret, days=60):
     }
 
 
+def _fetch_kiwoom_program_trading(token):
+    """ka90007(프로그램매매누적추이요청)의 코스피 전체 시장 차익/비차익거래 순매수(당일).
+
+    2026-08-14 VM 실측(probe_program_trading.py)으로 확인한 내용:
+    - 필수 파라미터에 date(YYYYMMDD, 스킬 레퍼런스 문서에는 없던 값)가 빠지면
+      return_code=2 오류가 난다.
+    - 응답 컨테이너 키는 prm_trde_acc_trnsn(배열, date 지정 시 1행만 옴).
+    - 부호가 "--239707"처럼 두 번 겹쳐 내려온다(_number()에서 흡수).
+    - 금액 단위는 공식 문서가 없다 - all_tdy가 dfrt_trde_tdy+ndiffpro_trde_tdy와
+      정확히 일치해 파싱 자체는 맞고, 코스피 전체 시장 하루 프로그램매매 규모로 볼 때
+      백만원 단위로 추정된다(investor_flow.py가 같은 amt_qty_tp='1' 관례로 확인한
+      것과 동일한 추정치 - 다른 TR들처럼 100% 공식 확정은 아님).
+    """
+    if not token:
+        return None
+    today = datetime.now(KST).strftime('%Y%m%d')
+    res = kiwoom_client.call_tr(token, 'ka90007', '/api/dostk/mrkcond', {
+        'amt_qty_tp': '1', 'mrkt_tp': '0', 'stex_tp': '3', 'date': today,
+    })
+    rows = res.get('prm_trde_acc_trnsn') or []
+    if not rows:
+        return None
+    latest = rows[-1]
+    arbitrage = _number(latest.get('dfrt_trde_tdy'))
+    non_arbitrage = _number(latest.get('ndiffpro_trde_tdy'))
+    if arbitrage is None and non_arbitrage is None:
+        return None
+    return {
+        'date': _date(latest.get('dt')) or today,
+        'arbitrage': arbitrage,
+        'nonArbitrage': non_arbitrage,
+        'total': _number(latest.get('all_tdy')),
+        'unit': 'million_krw',
+    }
+
+
+def fetch_program_trading(kiwoom_token):
+    try:
+        data = _fetch_kiwoom_program_trading(kiwoom_token)
+        if data:
+            data.update({'available': True, 'source': 'kiwoom'})
+            return data
+    except Exception:
+        logger.exception('Kiwoom program trading failed')
+    return {
+        'available': False,
+        'source': 'kiwoom',
+        'message': '프로그램매매(차익/비차익) 데이터를 잠시 불러오지 못했습니다.',
+    }
+
+
 def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
     """코스피/코스닥 현물 차트 6개(2시장 x 분/일/주) + 투자자 수급 + 증시자금을 모은다.
 
@@ -312,6 +369,7 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
         }
         investor_future = pool.submit(fetch_investor)
         funds_future = pool.submit(fetch_funds, kis_appkey, kis_appsecret)
+        program_trading_future = pool.submit(fetch_program_trading, kiwoom_token)
 
         indices = {}
         for market, cfg in MARKETS.items():
@@ -325,4 +383,5 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
             'indices': indices,
             'investor': investor_future.result(),
             'funds': funds_future.result(),
+            'programTrading': program_trading_future.result(),
         }

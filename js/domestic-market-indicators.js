@@ -325,6 +325,18 @@
     return formatNumber(amount) + '원';
   }
 
+  // formatFunds()는 항상 양수라고 가정하고 만/억/조 단위 분기를 ">=" 비교로 판단해서,
+  // 순매수/순매도처럼 음수가 나올 수 있는 값을 그대로 넘기면 억/조 단위로 못 줄이고
+  // "-239,707,000,000원"처럼 원 단위 그대로 나온다 - 기존 신용잔고/고객예탁금은 항상
+  // 양수라 이 문제가 안 드러났을 뿐이라 formatFunds() 자체는 그대로 두고, 부호를 떼어
+  // 절대값으로 단위를 맞춘 뒤 부호를 다시 붙인다.
+  function formatSignedFunds(value, unit) {
+    if (value == null || isNaN(Number(value))) return '-';
+    var amount = Number(value);
+    var sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
+    return sign + formatFunds(Math.abs(amount), unit);
+  }
+
   function fundAverage(funds, field, unit) {
     var values = (funds.series || []).map(function (row) {
       var source = field === 'credit' ? row.credit : row.market_funds;
@@ -444,14 +456,32 @@
     root.querySelector('.dmi-flow-grid').innerHTML = html;
   }
 
-  function renderFunds(root, funds) {
+  // 프로그램매매 순매수는 부호에 따라 사이트 공통 규칙(상승=빨강/하락=파랑)으로 색을
+  // 입힌다. 값은 코스피 시장 전체 기준이고 단위(백만원 추정)는 미검증 - 2026-08-14
+  // VM 실측(ka90007)에 근거한 최선의 추정치라는 점을 카드 설명에도 남긴다.
+  function programTradingCard(label, desc, value, unit, dateText) {
+    var cls = value > 0 ? 'dmi-positive' : value < 0 ? 'dmi-negative' : '';
+    return '<article class="dmi-fund-card"><span class="dmi-fund-label">' + escapeHtml(label) + '</span>'
+      + '<span class="dmi-fund-desc">' + escapeHtml(desc) + '</span>'
+      + '<strong class="dmi-fund-value ' + cls + '">' + formatSignedFunds(value, unit) + '</strong>'
+      + '<span class="dmi-fund-average">코스피 전체, 순매수(+)/순매도(-)</span>'
+      + '<span class="dmi-fund-date">' + escapeHtml(dateText || '-') + '</span></article>';
+  }
+
+  function renderFunds(root, funds, programTrading) {
     funds = funds || {};
+    programTrading = programTrading || {};
     var credit = funds.credit || {};
     var deposits = funds.market_funds || {};
-    root.querySelector('.dmi-fund-grid').innerHTML = [
+    var cards = [
       '<article class="dmi-fund-card"><span class="dmi-fund-label">신용잔고 (빚투)</span><span class="dmi-fund-desc">증권사에서 돈을 빌려 주식을 매수한 잔액입니다.</span><strong class="dmi-fund-value">' + formatFunds(credit.loan_total, funds.credit_unit) + '</strong><span class="dmi-fund-average">최근 평균 ' + fundAverage(funds, 'credit', funds.credit_unit) + '</span><span class="dmi-fund-date">' + escapeHtml(credit.date || funds.latest_date || '-') + '</span></article>',
       '<article class="dmi-fund-card"><span class="dmi-fund-label">고객예탁금</span><span class="dmi-fund-desc">주식 매매를 위해 증권사에 맡겨둔 대기자금입니다.</span><strong class="dmi-fund-value">' + formatFunds(deposits.investor_deposits, funds.market_funds_unit) + '</strong><span class="dmi-fund-average">최근 평균 ' + fundAverage(funds, 'market_funds', funds.market_funds_unit) + '</span><span class="dmi-fund-date">' + escapeHtml(deposits.date || funds.latest_date || '-') + '</span></article>'
-    ].join('');
+    ];
+    if (programTrading.available) {
+      cards.push(programTradingCard('차익거래', '선물·현물 가격차를 이용한 프로그램매매 순매수 금액입니다.', programTrading.arbitrage, programTrading.unit, programTrading.date));
+      cards.push(programTradingCard('비차익거래', '바스켓 매매 등 차익거래가 아닌 프로그램매매 순매수 금액입니다.', programTrading.nonArbitrage, programTrading.unit, programTrading.date));
+    }
+    root.querySelector('.dmi-fund-grid').innerHTML = cards.join('');
   }
 
   function init() {
@@ -472,7 +502,7 @@
       root._dmiData = data;
       renderCharts(root, data.indices || {});
       renderInvestor(root, data.investor || {});
-      renderFunds(root, data.funds || {});
+      renderFunds(root, data.funds || {}, data.programTrading || {});
     }).catch(function () {
       root.querySelector('.dmi-shell').insertAdjacentHTML('beforeend', '<div class="dmi-error">국내시장지표 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>');
     });

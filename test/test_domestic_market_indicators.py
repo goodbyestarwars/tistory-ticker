@@ -100,6 +100,36 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         })
         self.assertEqual([row['date'] for row in rows], ['2026-08-11', '2026-08-12'])
 
+    def test_number_collapses_doubled_leading_minus(self):
+        # ka90007 실측(2026-08-14)에서 순매도 값이 "--239707"처럼 부호가 겹쳐 내려왔다.
+        self.assertEqual(dmi._number('--239707'), -239707.0)
+        self.assertEqual(dmi._number('+50602'), 50602.0)
+        self.assertEqual(dmi._number('-1'), -1.0)
+
+    def test_program_trading_parses_real_kiwoom_response_shape(self):
+        # 2026-08-14 VM 실측 원본 응답(코스피, mrkt_tp='0') 그대로.
+        with patch.object(dmi.kiwoom_client, 'call_tr', return_value={
+            'prm_trde_acc_trnsn': [{
+                'dt': '20260814', 'kospi200': '+1084.97', 'basis': '1.53',
+                'dfrt_trde_tdy': '--239707', 'dfrt_trde_acc': '--239707',
+                'ndiffpro_trde_tdy': '+50602', 'ndiffpro_trde_acc': '+50602',
+                'all_tdy': '--189105', 'all_acc': '--189105',
+            }],
+            'return_code': 0, 'return_msg': '정상적으로 처리되었습니다',
+        }) as call_tr:
+            result = dmi.fetch_program_trading('token')
+        self.assertTrue(result['available'])
+        self.assertEqual(result['arbitrage'], -239707.0)
+        self.assertEqual(result['nonArbitrage'], 50602.0)
+        self.assertEqual(result['total'], -189105.0)
+        self.assertEqual(result['arbitrage'] + result['nonArbitrage'], result['total'])
+        self.assertEqual(call_tr.call_args.args[1], 'ka90007')
+        self.assertIn('date', call_tr.call_args.args[3])
+
+    def test_program_trading_unavailable_without_token(self):
+        result = dmi.fetch_program_trading(None)
+        self.assertFalse(result['available'])
+
 
 if __name__ == '__main__':
     unittest.main()
