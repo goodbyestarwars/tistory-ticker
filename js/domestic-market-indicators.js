@@ -461,12 +461,18 @@
       var panel = root.querySelector('[data-dmi-panel="' + market + '"]');
       if (!panel) return;
       var active = panel.getAttribute('data-dmi-interval') || 'day';
-      var chart = panel.querySelector('.dmi-chart');
-      var source = item.intervals && item.intervals[active];
-      makeChart(market, chart, source && source.rows, active);
       panel.querySelectorAll('.dmi-tab').forEach(function (button) {
         button.classList.toggle('is-active', button.getAttribute('data-interval') === active);
       });
+      // 2026-08-14: 접힌 패널은 .dmi-chart가 display:none(0×0)이라 이 상태에서 차트를
+      // 만들면 autoSize가 0으로 굳어버려서 나중에 펼쳐도 완전히 안 보이는 버그였다
+      // (리포트: "숨기기 버튼 안된다" -> 실제로는 접기는 되는데 다시 펼치면 빈 화면).
+      // 접혀 있는 동안은 만들지 않고, 펼칠 때(아래 collapse-btn 클릭 핸들러)가 그
+      // 시점에 새로 만든다.
+      if (panel.classList.contains('dmi-collapsed')) return;
+      var chart = panel.querySelector('.dmi-chart');
+      var source = item.intervals && item.intervals[active];
+      makeChart(market, chart, source && source.rows, active);
     });
   }
 
@@ -602,12 +608,25 @@
         collapseButton.textContent = isCollapsed ? '▸' : '▾';
         collapseButton.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
         saveCollapsed(collapseMarket, isCollapsed);
-        if (!isCollapsed && chartInstances[collapseMarket]) {
+        if (!isCollapsed) {
+          // 접혀 있던 동안(또는 접힌 채로 처음 로드됐던 동안) 만들어진 차트가 있으면
+          // 0×0 상태로 굳어있을 수 있어 resize만으론 안 살아난다 - 버리고 다시 만든다
+          // (kospi-futures.js의 wireCollapseToggles와 동일한 대응).
           var collapseChart = collapsePanel.querySelector('.dmi-chart');
+          var dmiData = root._dmiData;
           setTimeout(function () {
-            if (!collapseChart || !chartInstances[collapseMarket]) return;
-            chartInstances[collapseMarket].chart.resize(collapseChart.clientWidth, CHART_HEIGHT);
-            redrawDrawing(drawingStates[collapseMarket]);
+            if (!collapseChart) return;
+            var existing = chartInstances[collapseMarket];
+            if (existing) {
+              destroyDrawing(collapseMarket);
+              existing.chart.remove();
+              chartInstances[collapseMarket] = null;
+            }
+            if (!dmiData) return;
+            var activeInterval = collapsePanel.getAttribute('data-dmi-interval') || 'day';
+            var source = dmiData.indices && dmiData.indices[collapseMarket]
+              && dmiData.indices[collapseMarket].intervals && dmiData.indices[collapseMarket].intervals[activeInterval];
+            makeChart(collapseMarket, collapseChart, source && source.rows, activeInterval);
           }, 0);
         }
         return;
