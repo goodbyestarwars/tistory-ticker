@@ -8,6 +8,7 @@ already maintains the three participant buckets. Market funds are provided
 only by the KIS market-funds API.
 """
 
+import concurrent.futures
 import logging
 import math
 from datetime import datetime, timedelta, timezone
@@ -292,15 +293,36 @@ def fetch_funds(kis_appkey, kis_appsecret, days=60):
 
 
 def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
-    indices = {}
-    for market, cfg in MARKETS.items():
-        intervals = {}
-        for interval in INTERVALS:
-            intervals[interval] = fetch_chart(kiwoom_token, kis_appkey, kis_appsecret, market, interval)
-        indices[market] = {'name': cfg['name'], 'intervals': intervals}
-    return {
-        'sourcePriority': ['kiwoom', 'kis', 'naver'],
-        'indices': indices,
-        'investor': fetch_investor(),
-        'funds': fetch_funds(kis_appkey, kis_appsecret),
-    }
+    """코스피/코스닥 현물 차트 6개(2시장 x 분/일/주) + 투자자 수급 + 증시자금을 모은다.
+
+    각 fetch_*는 서로 다른 종목/엔드포인트를 조회하는 독립적인 I/O라 순서를 지킬
+    이유가 없는데, 예전에는 전부 한 요청 안에서 순차 호출해서(2026-08-14 사용자
+    리포트: 같은 페이지의 코스피200 선물 위젯보다 훨씬 느리게 뜬다) 느린 API 하나가
+    전체 응답 시간을 그대로 늘렸다. kiwoom_client/kis_client의 토큰 캐시가 이미
+    threading.Lock으로 동시 호출에 안전해서, 스레드풀로 병렬 실행해 전체 응답
+    시간을 가장 느린 호출 1개 수준으로 줄인다(각 fetch_*는 실패해도 내부에서
+    예외를 잡아 안내 문구가 담긴 결과를 돌려주므로 여기서 추가로 try/except할
+    필요는 없다).
+    """
+    chart_keys = [(market, interval) for market in MARKETS for interval in INTERVALS]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(chart_keys) + 2) as pool:
+        chart_futures = {
+            key: pool.submit(fetch_chart, kiwoom_token, kis_appkey, kis_appsecret, key[0], key[1])
+            for key in chart_keys
+        }
+        investor_future = pool.submit(fetch_investor)
+        funds_future = pool.submit(fetch_funds, kis_appkey, kis_appsecret)
+
+        indices = {}
+        for market, cfg in MARKETS.items():
+            intervals = {}
+            for interval in INTERVALS:
+                intervals[interval] = chart_futures[(market, interval)].result()
+            indices[market] = {'name': cfg['name'], 'intervals': intervals}
+
+        return {
+            'sourcePriority': ['kiwoom', 'kis', 'naver'],
+            'indices': indices,
+            'investor': investor_future.result(),
+            'funds': funds_future.result(),
+        }
