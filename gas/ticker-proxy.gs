@@ -577,7 +577,8 @@ function summarizeStockNews(name, items) {
     return (i + 1) + '. ' + it.title + (it.body ? ' - ' + it.body : '');
   });
   var prompt = '다음은 "' + name + '" 종목 관련 최근 뉴스야:\n' + lines.join('\n') + '\n\n' +
-    '이 뉴스들을 종합해서 단기 주가 흐름에 미칠 영향과 투자자 입장에서 참고할 만한 의견까지 포함해 3문장으로 한국어로 요약해줘. 문장 외 다른 말은 붙이지 마.';
+    '이 뉴스들을 종합해서 단기 주가 흐름에 미칠 영향과 투자자 입장에서 참고할 만한 의견·주의할 점까지 ' +
+    '포함해 3~4문장으로 한국어로 요약해줘. ' + GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
   return callGroq(prompt);
 }
 
@@ -636,6 +637,15 @@ function summarizePriceMoveReason(name, changeRate, items) {
 // 무료 티어: llama-3.3-70b-versatile 기준 분당 30건/하루 14,400건 - Gemini(하루 20건)와
 // 비교가 안 되게 널널해서 종목뉴스 요약 + 시황분석을 둘 다 감당 가능.
 var GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+// 2026-08-14 요청: "주의할 점/참고 포인트까지 짚어달라"는 요청으로 여러 AI 해설 프롬프트에
+// "actionable"한 문장(시사점·주의점)을 추가했다 - 다만 자본시장법상 무인가로 특정 투자
+// 행위를 권유하면 투자자문업 규제에 걸릴 수 있어(공매도 압박 해설이 "단정하지 않는다" 원칙을
+// 지키는 것과 같은 이유, 2210번째 줄 부근 주석 참고), 해석·주의점까지만 가고 "사라/팔아라"
+// 같은 직접 권유는 못 하게 막는 공통 문구. 이 문구를 넣은 프롬프트에서만 사용(전부는 아님 -
+// getFlowAiSummary처럼 이미 확정된 결론의 근거만 인용하는 프롬프트나, 50자 단문형 사유
+// 설명(summarizePriceMoveReason)처럼 성격이 다른 프롬프트는 대상이 아니다).
+var GROQ_NO_ADVICE_GUARD_ = '다만 특정 종목·업종·상품을 지금 매수하거나 매도하라고 직접 권유하는 표현은 쓰지 말고, 해석과 참고 포인트까지만 이야기해줘.';
 
 // Groq chat completions 공용 호출. 429(레이트리밋)면 1.5초 쉬고 1번 더 시도
 // (실패 캐시 TTL이 짧아서 그래도 안 되면 곧 자동 재시도됨 - Gemini 때와 동일 패턴).
@@ -913,7 +923,7 @@ var MARKET_ANALYSIS_FAIL_TTL = 120;        // 2분
 
 function getMarketAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'market_analysis_v2';
+  var cacheKey = CACHE_PREFIX + 'market_analysis_v3';
   // 2026-08-03: CacheService.get()은 캐시가 없으면 null, 실패-캐시로 저장해둔 빈 문자열이면
   // ''을 반환한다. 예전엔 `if (cached)`로 검사해 ''도 "캐시 없음"과 똑같이 falsy 취급되는
   // 바람에 실패 캐시(120초 백오프 의도)가 실제로는 매 요청 재시도로 무력화되고 있었다.
@@ -937,7 +947,8 @@ function getMarketAnalysis() {
   if (kosdaq) lines.push('코스닥 ' + fmtCommaNum_(kosdaq.price) + ' (' + (kosdaq.changeRate >= 0 ? '+' : '') + kosdaq.changeRate.toFixed(2) + '%)');
 
   var prompt = '오늘 국내 증시 상황이야: ' + lines.join(', ') + '. ' +
-    '증시/투자자 관점에서 오늘 시장 분위기를 분석하고, 투자자 입장에서 참고할 만한 의견까지 포함해서 3문장으로 한국어로 정리해줘.';
+    '증시/투자자 관점에서 오늘 시장 분위기를 분석하고, 투자자 입장에서 참고할 만한 의견과 주의할 점까지 ' +
+    '포함해서 3~4문장으로 한국어로 정리해줘. ' + GROQ_NO_ADVICE_GUARD_;
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? MARKET_ANALYSIS_CACHE_TTL : MARKET_ANALYSIS_FAIL_TTL);
@@ -1010,7 +1021,7 @@ function futuresLine_(item, label) {
 // 생성된 캐시가 즉시 무효화되게 했다.
 function getKospiFuturesAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v3';
+  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v4';
   // 2026-08-03: 실패-캐시로 저장된 ''을 `if (cached)`가 falsy로 오판해 백오프가 무력화되던
   // 버그 수정(getMarketAnalysis와 동일 원인, null 여부로 정확히 구분).
   var cached = cache.get(cacheKey);
@@ -1042,7 +1053,8 @@ function getKospiFuturesAnalysis() {
     '콜(상승 포지션)과 풋(하락 포지션) 중 어느 쪽이 확대(신규 진입)되거나 축소(청산)되고 있는지, ' +
     '그게 시장 심리에 어떤 신호로 해석되는지 분석해줘 - 옵션 데이터가 "데이터 미제공"이면 그 옵션은 ' +
     '언급하지 마. 투자자 유형(외국인·기관·개인)별 매수·매도 데이터는 없으니 그걸 안다고 지어내지 마. ' +
-    '투자자 관점에서 5~6문장으로 한국어로 정리해줘. 문장 외 다른 말은 붙이지 마.';
+    '마지막 한 문장은 이 지표들을 볼 때 주의할 점이나 함께 확인하면 좋은 지표를 알려줘. ' +
+    '투자자 관점에서 6~7문장으로 한국어로 정리해줘. ' + GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? KOSPI_FUTURES_ANALYSIS_CACHE_TTL : KOSPI_FUTURES_ANALYSIS_FAIL_TTL);
@@ -1102,7 +1114,7 @@ function fundsLine_(label, value, recentAvg, yearAvg, unit) {
 
 function getDomesticFundsAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'domestic_funds_analysis_v1';
+  var cacheKey = CACHE_PREFIX + 'domestic_funds_analysis_v2';
   var cached = cache.get(cacheKey);
   if (cached !== null) return { analysis: cached || null };
 
@@ -1151,8 +1163,9 @@ function getDomesticFundsAnalysis() {
   var prompt = '오늘 한국 증시자금 지표야(괄호 안은 비교 기준 평균): ' + lines.join('. ') + '. ' +
     '각 지표를 최근 20일 평균·1년 평균과 비교해서 지금이 평소보다 높은지 낮은지를 반드시 근거로 들어가며, ' +
     '개인투자자의 빚투(레버리지) 심리와 매수 여력이 지금 뜨거운지 차분한지, 프로그램매매(차익·비차익거래) ' +
-    '동향이 시사하는 바를 종합해서 한국어 4~5문장으로 정리해줘. 데이터가 없는 지표는 언급하지 마. ' +
-    '문장 외 다른 말은 붙이지 마.';
+    '동향이 시사하는 바를 종합해줘. 마지막 한 문장은 이 조합을 볼 때 지금 주의해야 할 점이나 함께 ' +
+    '확인하면 좋은 지표를 알려줘. 한국어 5~6문장으로 정리하고, 데이터가 없는 지표는 언급하지 마. ' +
+    GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? DOMESTIC_FUNDS_ANALYSIS_CACHE_TTL : DOMESTIC_FUNDS_ANALYSIS_FAIL_TTL);
@@ -1220,7 +1233,7 @@ function isSubIndexAnalysisValid_(text) {
 
 function getSubIndexAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v7';
+  var cacheKey = CACHE_PREFIX + 'sub_index_analysis_v8';
   // 2026-08-03: 실패-캐시(''): null 여부로 정확히 구분(다른 AI 해설 엔드포인트와 동일 수정).
   var cached = cache.get(cacheKey);
   if (cached !== null) return { analysis: cached || null };
@@ -1254,7 +1267,7 @@ function getSubIndexAnalysis() {
     return { analysis: null };
   }
 
-  var prompt = '너는 국내 투자자를 위한 시황 브리핑을 쓰는 애널리스트야. 오늘 보조지수 데이터를 보고 한국어 평문 정확히 3문장으로 분석해줘.\n'
+  var prompt = '너는 국내 투자자를 위한 시황 브리핑을 쓰는 애널리스트야. 오늘 보조지수 데이터를 보고 한국어 평문 정확히 4문장으로 분석해줘.\n'
     + '[데이터]\n'
     + '① 미국 3대 지수(현물+선물)/반도체지수: ' + (usIndexLines.join(', ') || '데이터 없음') + '\n'
     + '② 원자재·환율·비트코인: ' + (commodityFxLines.join(', ') || '데이터 없음') + '\n'
@@ -1275,8 +1288,10 @@ function getSubIndexAnalysis() {
     + '오르면(원화 약세) 외국인 자금 이탈 우려로 악재야 - 이 셋은 숫자가 올랐다고 무조건 좋게 쓰지 마.\n'
     + '5. 순서와 문장 수(정확히 지켜라): ①번 미국 지수·반도체 동향을 데이터를 쪼개지 말고 자연스럽게 엮어서 '
     + '정확히 한 문장으로 -> ②번 원자재·환율·VIX·BTC 동향(해석 원칙 반영)을 마찬가지로 정확히 한 문장으로 '
-    + '-> 이를 종합했을 때 오늘 한국 증시(코스피/코스닥)에 미칠 영향을 정확히 한 문장으로. 총 3문장.\n'
-    + '소제목·번호·줄바꿈 없이 문장만 이어서 써줘. 문장 외 다른 말은 붙이지 마.';
+    + '-> 이를 종합했을 때 오늘 한국 증시(코스피/코스닥)에 미칠 영향을 정확히 한 문장으로 -> 마지막으로 '
+    + '이 조합을 볼 때 국내 투자자가 주의할 점이나 함께 확인하면 좋은 지표를 정확히 한 문장으로(이 4번째 '
+    + '문장은 새 등락률 숫자를 넣지 말고 시사점만). 총 4문장.\n'
+    + '소제목·번호·줄바꿈 없이 문장만 이어서 써줘. ' + GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
 
   // temperature를 기본값(0.5)보다 낮춰(0.2) 창작성보다 데이터 인용 정확도를 우선한다 - 숫자를
   // 그대로 베끼는 게 중요한 이 프롬프트에서 창작적 표현이 오히려 소수점 누락 등 왜곡을 유발했음.
@@ -1563,7 +1578,7 @@ function computeMarketTempSparkline_(currentTemp, storedHistory) {
 // 소스로 프롬프트에 박음). getMarketTemp()와 같은 30분 캐시 주기.
 function getMarketTempBriefing() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'market_temp_briefing_v1';
+  var cacheKey = CACHE_PREFIX + 'market_temp_briefing_v2';
   // 2026-08-03: 실패-캐시(''): null 여부로 정확히 구분(다른 AI 해설 엔드포인트와 동일 수정).
   var cached = cache.get(cacheKey);
   if (cached !== null) return { analysis: cached || null };
@@ -1589,8 +1604,9 @@ function getMarketTempBriefing() {
   var prompt = '오늘 국내 증시 "온도"는 ' + data.temp.toFixed(1) + '℃(' + data.grade.label + ') 입니다' +
     '(0~40 스케일, 낮을수록 공포·높을수록 탐욕). 오늘 온도에 가장 큰 영향을 준 요인 TOP5' +
     '(점수는 중립 대비 기여도, 양수=탐욕 방향/음수=공포 방향)는 다음과 같습니다: ' + lines.join(', ') + '. ' +
-    '이 수치만 근거로, 왜 오늘 시장이 이런 상태인지 한국어 평문 3~5문장으로 설명해줘(제공되지 않은 ' +
-    '다른 수치나 종목명을 지어내지 말고, 위 수치만 언급). 문장 외 다른 말은 붙이지 마.';
+    '이 수치만 근거로, 왜 오늘 시장이 이런 상태인지 설명해줘. 마지막 한 문장은 이 온도 상태에서 ' +
+    '투자자가 주의할 점을 알려줘. 한국어 평문 4~6문장으로 쓰고(제공되지 않은 다른 수치나 종목명을 ' +
+    '지어내지 말고, 위 수치만 언급), ' + GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? MARKET_TEMP_CACHE_TTL : 120);
