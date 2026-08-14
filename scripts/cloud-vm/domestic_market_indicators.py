@@ -18,6 +18,7 @@ import domestic_futures
 import investor_trend
 import kis_client
 import kiwoom_client
+import program_trading_history
 
 logger = logging.getLogger('domestic_market_indicators')
 KST = timezone(timedelta(hours=9))
@@ -279,7 +280,11 @@ def _fetch_kis_funds(kis_appkey, kis_appsecret):
         'latest_date': latest['date'],
         'credit': {'date': latest['date'], 'loan_total': latest.get('credit')},
         'market_funds': latest.get('market_funds'),
-        'series': normalised[-90:],
+        # 2026-08-14 요청: "1년 평균"도 보여달라고 해서 상한을 90 -> 400으로 올린다.
+        # mktfunds(FHKST649100C0)가 한 번 호출로 실제 며칠치를 주는지는 검증 안 됐지만
+        # (기존 90은 그때그때 응답 길이보다 넉넉했을 수도, 부족했을 수도 있음), 상한만
+        # 늘리는 거라 실제 응답이 90개보다 적으면 그대로 적은 만큼만 온다 - 안전한 변경.
+        'series': normalised[-400:],
     }
 
 
@@ -334,11 +339,39 @@ def _fetch_kiwoom_program_trading(token):
     }
 
 
+_PROGRAM_TRADING_RECENT_DAYS = 20   # "최근 평균" - 대략 한 달 영업일
+_PROGRAM_TRADING_YEAR_DAYS = 252    # "1년 평균" - 연간 영업일 근사치
+_PROGRAM_TRADING_CHART_DAYS = 260   # 화면에 넘겨줄 추이(스파크라인) 최대 길이
+
+
 def fetch_program_trading(kiwoom_token):
     try:
         data = _fetch_kiwoom_program_trading(kiwoom_token)
         if data:
             data.update({'available': True, 'source': 'kiwoom'})
+            # ka90007은 "오늘" 하루 값만 주고 과거 여러 날을 한 번에 안 줘서(위 함수 설명
+            # 참고), 조회할 때마다 로컬에 하루치씩 쌓아 1년 평균·추이 차트를 만든다
+            # (2026-08-14 요청 - program_trading_history.py 참고).
+            try:
+                program_trading_history.record(data['date'], data['arbitrage'], data['nonArbitrage'], data['total'])
+            except Exception:
+                logger.exception('Program trading history record failed')
+            history = program_trading_history.load()
+            data['recentAverage'] = {
+                'arbitrage': program_trading_history.average(history, 'arbitrage', _PROGRAM_TRADING_RECENT_DAYS),
+                'nonArbitrage': program_trading_history.average(history, 'nonArbitrage', _PROGRAM_TRADING_RECENT_DAYS),
+            }
+            data['yearAverage'] = {
+                'arbitrage': program_trading_history.average(history, 'arbitrage', _PROGRAM_TRADING_YEAR_DAYS),
+                'nonArbitrage': program_trading_history.average(history, 'nonArbitrage', _PROGRAM_TRADING_YEAR_DAYS),
+            }
+            arbitrage_series = program_trading_history.series(history, 'arbitrage', _PROGRAM_TRADING_CHART_DAYS)
+            non_arbitrage_series = program_trading_history.series(history, 'nonArbitrage', _PROGRAM_TRADING_CHART_DAYS)
+            non_arbitrage_by_date = dict(non_arbitrage_series)
+            data['history'] = [
+                {'date': date, 'arbitrage': value, 'nonArbitrage': non_arbitrage_by_date.get(date)}
+                for date, value in arbitrage_series
+            ]
             return data
     except Exception:
         logger.exception('Kiwoom program trading failed')

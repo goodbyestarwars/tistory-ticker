@@ -76,7 +76,16 @@
 .dmi-fund-value.dmi-positive { color: #d24f45; }
 .dmi-fund-value.dmi-negative { color: #1261c4; }
 .dmi-fund-average { display: block; color: #000; font-size: 12px; }
-.dmi-fund-date { color: #000; font-size: 12px; }
+.dmi-fund-date { display: block; margin-top: 6px; color: #000; font-size: 12px; }
+
+/* 2026-08-14 요청: 평균선을 그은 미니 그래프 - 값이 평균보다 위/아래인지 색으로
+   구분한다(상승=빨강/하락=파랑, 사이트 공통 규칙을 "평균 대비"로 적용). */
+.dmi-mini-chart { display: block; width: 100%; height: 40px; margin: 8px 0 2px; }
+.dmi-mini-chart-avg { stroke: #9ca3af; stroke-width: 1; stroke-dasharray: 3 3; }
+.dmi-mini-chart-line { fill: none; stroke-width: 1.6; }
+.dmi-mini-chart.dmi-positive .dmi-mini-chart-line { stroke: #d24f45; }
+.dmi-mini-chart.dmi-negative .dmi-mini-chart-line { stroke: #1261c4; }
+.dmi-mini-chart.dmi-flat .dmi-mini-chart-line { stroke: #9ca3af; }
 .dmi-error { border: 1px solid #f0d4d4; border-radius: 12px; padding: 14px; color: #c14c4c; background: #fff8f8; }
 @media (max-width: 760px) {
   .dmi-flow-grid,

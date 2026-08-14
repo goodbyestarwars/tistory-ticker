@@ -21,6 +21,7 @@ __pycache__/
 scripts/cloud-vm/*_cache.json
 scripts/cloud-vm/earnings_calendar_store.json
 scripts/cloud-vm/dart_corp_code_map.json
+scripts/cloud-vm/program_trading_history.json
 
 # VM SQLite 데이터와 sqlite3 backup API로 만든 운영 백업은 소스가 아니다.
 scripts/cloud-vm/*.db

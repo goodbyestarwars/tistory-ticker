@@ -306,7 +306,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-program-trading';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-avg-chart';
     document.head.appendChild(link);
   }
 
@@ -337,15 +337,55 @@
     return sign + formatFunds(Math.abs(amount), unit);
   }
 
-  function fundAverage(funds, field, unit) {
-    var values = (funds.series || []).map(function (row) {
+  // 2026-08-14 요청: "최근 평균"(대략 한 달 영업일) 옆에 "1년 평균"(연간 영업일 근사치)도
+  // 같이 보여주고, 평균선을 그은 미니 그래프에서 지금 값이 평균보다 위/아래인지 색으로
+  // 구분한다. RECENT/YEAR 상수는 scripts/cloud-vm/domestic_market_indicators.py의
+  // _PROGRAM_TRADING_RECENT_DAYS/_PROGRAM_TRADING_YEAR_DAYS와 맞춘다.
+  var RECENT_AVERAGE_DAYS = 20;
+  var YEAR_AVERAGE_DAYS = 252;
+
+  function fundSeriesValues(funds, field) {
+    return (funds.series || []).map(function (row) {
       var source = field === 'credit' ? row.credit : row.market_funds;
       if (field === 'credit' && source != null && typeof source !== 'object') return Number(source);
       return source && Number(source[field === 'credit' ? 'loan_total' : 'investor_deposits']);
     }).filter(function (value) { return isFinite(value); });
-    if (!values.length) return '-';
-    var average = values.reduce(function (sum, value) { return sum + value; }, 0) / values.length;
-    return formatFunds(average, unit) + ' (' + values.length + '개 평균)';
+  }
+
+  function averageOf(values, limit) {
+    var slice = limit ? values.slice(-limit) : values;
+    if (!slice.length) return null;
+    return slice.reduce(function (sum, value) { return sum + value; }, 0) / slice.length;
+  }
+
+  function averageText(values, unit, limit) {
+    var avg = averageOf(values, limit);
+    if (avg == null) return '-';
+    var count = limit ? Math.min(limit, values.length) : values.length;
+    return formatFunds(avg, unit) + ' (' + count + '개 평균)';
+  }
+
+  // 값 배열 + 평균선을 그리는 미니 그래프. 외부 차트 라이브러리 없이 SVG를 직접 그리는
+  // js/foreign-flow.js와 같은 방식이다. 지금 값(마지막 값)이 평균보다 높으면 빨강,
+  // 낮으면 파랑으로 선 색을 바꾼다(사이트 공통 상승=빨강/하락=파랑 규칙을 "평균 대비"
+  // 기준으로 적용 - 전일 대비 등락과는 다른 규칙이라 별도 클래스명을 쓴다).
+  function miniAverageChart(values, average) {
+    if (!values || values.length < 2 || average == null) return '';
+    var w = 260, h = 46, pad = 3;
+    var withAvg = values.concat([average]);
+    var min = Math.min.apply(null, withAvg);
+    var max = Math.max.apply(null, withAvg);
+    var range = (max - min) || 1;
+    function x(i) { return pad + (i / (values.length - 1)) * (w - pad * 2); }
+    function y(v) { return h - pad - ((v - min) / range) * (h - pad * 2); }
+    var path = values.map(function (v, i) { return (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1); }).join(' ');
+    var last = values[values.length - 1];
+    var cls = last > average ? 'dmi-positive' : (last < average ? 'dmi-negative' : 'dmi-flat');
+    var avgY = y(average).toFixed(1);
+    return '<svg class="dmi-mini-chart ' + cls + '" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">'
+      + '<line x1="0" y1="' + avgY + '" x2="' + w + '" y2="' + avgY + '" class="dmi-mini-chart-avg"></line>'
+      + '<path d="' + path + '" class="dmi-mini-chart-line"></path>'
+      + '</svg>';
   }
 
   function signed(value) {
@@ -459,12 +499,39 @@
   // 프로그램매매 순매수는 부호에 따라 사이트 공통 규칙(상승=빨강/하락=파랑)으로 색을
   // 입힌다. 값은 코스피 시장 전체 기준이고 단위(백만원 추정)는 미검증 - 2026-08-14
   // VM 실측(ka90007)에 근거한 최선의 추정치라는 점을 카드 설명에도 남긴다.
-  function programTradingCard(label, desc, value, unit, dateText) {
+  // 1년 평균·그래프는 scripts/cloud-vm/program_trading_history.py가 매일 하루치씩
+  // 쌓은 로컬 이력(programTrading.history)을 그대로 쓴다 - 배포 직후에는 며칠 치밖에
+  // 없어 그래프가 짧게 시작해서 매일 자동으로 길어진다(백필 스크립트로 미리 채울 수도
+  // 있음).
+  function programTradingCard(label, desc, field, programTrading) {
+    var value = programTrading[field];
+    var unit = programTrading.unit;
     var cls = value > 0 ? 'dmi-positive' : value < 0 ? 'dmi-negative' : '';
+    var history = (programTrading.history || []).map(function (row) { return row[field]; })
+      .filter(function (v) { return typeof v === 'number' && isFinite(v); });
+    var yearAvg = programTrading.yearAverage && programTrading.yearAverage[field];
+    var recentAvg = programTrading.recentAverage && programTrading.recentAverage[field];
+    var recentCount = Math.min(RECENT_AVERAGE_DAYS, history.length);
+    var yearCount = Math.min(YEAR_AVERAGE_DAYS, history.length);
     return '<article class="dmi-fund-card"><span class="dmi-fund-label">' + escapeHtml(label) + '</span>'
       + '<span class="dmi-fund-desc">' + escapeHtml(desc) + '</span>'
       + '<strong class="dmi-fund-value ' + cls + '">' + formatSignedFunds(value, unit) + '</strong>'
+      + (recentAvg != null ? '<span class="dmi-fund-average">최근 평균 ' + formatSignedFunds(recentAvg, unit) + ' (' + recentCount + '일 평균)</span>' : '')
+      + (yearAvg != null ? '<span class="dmi-fund-average">1년 평균 ' + formatSignedFunds(yearAvg, unit) + ' (' + yearCount + '일 평균)</span>' : '')
+      + miniAverageChart(history, yearAvg)
       + '<span class="dmi-fund-average">코스피 전체, 순매수(+)/순매도(-)</span>'
+      + '<span class="dmi-fund-date">' + escapeHtml(programTrading.date || '-') + '</span></article>';
+  }
+
+  function fundCard(label, desc, value, unit, dateText, seriesValues) {
+    var recentAvg = averageOf(seriesValues, RECENT_AVERAGE_DAYS);
+    var yearAvg = averageOf(seriesValues, YEAR_AVERAGE_DAYS);
+    return '<article class="dmi-fund-card"><span class="dmi-fund-label">' + escapeHtml(label) + '</span>'
+      + '<span class="dmi-fund-desc">' + escapeHtml(desc) + '</span>'
+      + '<strong class="dmi-fund-value">' + formatFunds(value, unit) + '</strong>'
+      + (recentAvg != null ? '<span class="dmi-fund-average">최근 평균 ' + averageText(seriesValues, unit, RECENT_AVERAGE_DAYS) + '</span>' : '')
+      + (yearAvg != null ? '<span class="dmi-fund-average">1년 평균 ' + averageText(seriesValues, unit, YEAR_AVERAGE_DAYS) + '</span>' : '')
+      + miniAverageChart(seriesValues.slice(-YEAR_AVERAGE_DAYS), yearAvg)
       + '<span class="dmi-fund-date">' + escapeHtml(dateText || '-') + '</span></article>';
   }
 
@@ -474,12 +541,14 @@
     var credit = funds.credit || {};
     var deposits = funds.market_funds || {};
     var cards = [
-      '<article class="dmi-fund-card"><span class="dmi-fund-label">신용잔고 (빚투)</span><span class="dmi-fund-desc">증권사에서 돈을 빌려 주식을 매수한 잔액입니다.</span><strong class="dmi-fund-value">' + formatFunds(credit.loan_total, funds.credit_unit) + '</strong><span class="dmi-fund-average">최근 평균 ' + fundAverage(funds, 'credit', funds.credit_unit) + '</span><span class="dmi-fund-date">' + escapeHtml(credit.date || funds.latest_date || '-') + '</span></article>',
-      '<article class="dmi-fund-card"><span class="dmi-fund-label">고객예탁금</span><span class="dmi-fund-desc">주식 매매를 위해 증권사에 맡겨둔 대기자금입니다.</span><strong class="dmi-fund-value">' + formatFunds(deposits.investor_deposits, funds.market_funds_unit) + '</strong><span class="dmi-fund-average">최근 평균 ' + fundAverage(funds, 'market_funds', funds.market_funds_unit) + '</span><span class="dmi-fund-date">' + escapeHtml(deposits.date || funds.latest_date || '-') + '</span></article>'
+      fundCard('신용잔고 (빚투)', '증권사에서 돈을 빌려 주식을 매수한 잔액입니다.',
+        credit.loan_total, funds.credit_unit, credit.date || funds.latest_date, fundSeriesValues(funds, 'credit')),
+      fundCard('고객예탁금', '주식 매매를 위해 증권사에 맡겨둔 대기자금입니다.',
+        deposits.investor_deposits, funds.market_funds_unit, deposits.date || funds.latest_date, fundSeriesValues(funds, 'market_funds'))
     ];
     if (programTrading.available) {
-      cards.push(programTradingCard('차익거래', '선물·현물 가격차를 이용한 프로그램매매 순매수 금액입니다.', programTrading.arbitrage, programTrading.unit, programTrading.date));
-      cards.push(programTradingCard('비차익거래', '바스켓 매매 등 차익거래가 아닌 프로그램매매 순매수 금액입니다.', programTrading.nonArbitrage, programTrading.unit, programTrading.date));
+      cards.push(programTradingCard('차익거래', '선물·현물 가격차를 이용한 프로그램매매 순매수 금액입니다.', 'arbitrage', programTrading));
+      cards.push(programTradingCard('비차익거래', '여러 종목을 한 번에 묶어서 컴퓨터가 자동으로 사고파는 금액입니다(인덱스펀드·ETF 재조정 등).', 'nonArbitrage', programTrading));
     }
     root.querySelector('.dmi-fund-grid').innerHTML = cards.join('');
   }

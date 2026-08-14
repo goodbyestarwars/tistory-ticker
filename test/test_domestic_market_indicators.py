@@ -108,6 +108,11 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
 
     def test_program_trading_parses_real_kiwoom_response_shape(self):
         # 2026-08-14 VM 실측 원본 응답(코스피, mrkt_tp='0') 그대로.
+        # program_trading_history는 실제 파일을 건드리므로(program_trading_history.json)
+        # 단위 테스트에서는 패치해서 디스크에 아무것도 남기지 않는다.
+        fake_history = {
+            '2026-08-13': {'arbitrage': -100.0, 'nonArbitrage': 40.0, 'total': -60.0},
+        }
         with patch.object(dmi.kiwoom_client, 'call_tr', return_value={
             'prm_trde_acc_trnsn': [{
                 'dt': '20260814', 'kospi200': '+1084.97', 'basis': '1.53',
@@ -116,7 +121,9 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
                 'all_tdy': '--189105', 'all_acc': '--189105',
             }],
             'return_code': 0, 'return_msg': '정상적으로 처리되었습니다',
-        }) as call_tr:
+        }) as call_tr, \
+             patch.object(dmi.program_trading_history, 'record') as record, \
+             patch.object(dmi.program_trading_history, 'load', return_value=fake_history):
             result = dmi.fetch_program_trading('token')
         self.assertTrue(result['available'])
         self.assertEqual(result['arbitrage'], -239707.0)
@@ -125,6 +132,12 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertEqual(result['arbitrage'] + result['nonArbitrage'], result['total'])
         self.assertEqual(call_tr.call_args.args[1], 'ka90007')
         self.assertIn('date', call_tr.call_args.args[3])
+        record.assert_called_once_with('2026-08-14', -239707.0, 50602.0, -189105.0)
+        # load()를 고정된 fake_history로 패치해뒀으므로(record()는 no-op) 평균은
+        # 그 안의 값(2026-08-13 하루치)만 반영한다 - 오늘 방금 기록한 값은 이 목(mock)
+        # 구성상 반영되지 않는다(실제로는 record 후 load가 갱신된 파일을 읽는다).
+        self.assertEqual(result['recentAverage']['arbitrage'], -100.0)
+        self.assertIn('history', result)
 
     def test_program_trading_unavailable_without_token(self):
         result = dmi.fetch_program_trading(None)
