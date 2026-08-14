@@ -209,6 +209,13 @@
       var code = row.getAttribute('data-code');
       if (!code) return;
       var name = row.getAttribute('data-name') || code;
+      // 2026-08-14 요청: ETF 수익률 상위에서 종목(=ETF)을 클릭하면 개별주식 종목분석
+      // 대신 ETF가 실제로 어떤 종목을 얼마나 담고 있는지(구성종목·비중)를 보여준다.
+      // 다른 카테고리(저평가 종목·배당주)는 기존처럼 종목분석으로 이동.
+      if (activeKey === 'etfReturn') {
+        openEtfComponentsModal(code, name);
+        return;
+      }
       global.location.href = STOCK_DETAIL_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
     });
   }
@@ -407,6 +414,85 @@
     });
   }
   function escapeAttr(s) { return escapeHtml(s); }
+
+  // ---- ETF 구성종목 모달 ----
+  // scripts/cloud-vm/main.py의 /etf-components/{code}(KIS ETF구성종목시세)를 직접 호출한다
+  // (다른 온디맨드 종목 데이터 - /domestic-news, /investor-flow 등 - 와 동일하게 GAS를
+  // 거치지 않고 브라우저가 goodbyestar.cloud를 직접 호출).
+  var ETF_COMPONENTS_URL = 'https://goodbyestar.cloud/etf-components/';
+  var etfModalOverlay = null;
+  var etfModalRequestId = 0;
+
+  function closeEtfComponentsModal() {
+    if (!etfModalOverlay) return;
+    etfModalOverlay.remove();
+    etfModalOverlay = null;
+    document.removeEventListener('keydown', onEtfModalKeydown);
+  }
+
+  function onEtfModalKeydown(event) {
+    if (event.key === 'Escape') closeEtfComponentsModal();
+  }
+
+  function etfComponentRowHtml(item) {
+    var cls = chgClass(item.changeRatePct);
+    return '<tr>'
+      + '<td class="ss-etf-comp-name">' + escapeHtml(item.name || item.code || '-') + '</td>'
+      + '<td class="ss-etf-comp-weight">' + fmtPct(item.weightPct) + '</td>'
+      + '<td>' + fmt(item.price) + '원</td>'
+      + '<td class="' + cls + '">' + chgSign(item.changeRatePct) + '</td>'
+      + '</tr>';
+  }
+
+  function renderEtfComponentsBody(body, data) {
+    var components = (data && data.components) || [];
+    if (!components.length) {
+      body.innerHTML = '<p class="ss-etf-empty">이 ETF는 구성종목 정보를 제공하지 않습니다. '
+        + '해외 지수를 추종하는 ETF는 KIS 구성종목 조회 대상이 아닙니다.</p>';
+      return;
+    }
+    var summaryCls = chgClass(data.changeRatePct);
+    body.innerHTML = '<div class="ss-etf-summary">'
+      + '<span>현재가 <b class="' + summaryCls + '">' + fmt(data.price) + '원 ' + chgSign(data.changeRatePct) + '</b></span>'
+      + (data.nav != null ? '<span>NAV <b>' + fmt(data.nav) + '</b></span>' : '')
+      + (data.componentCount != null ? '<span>구성종목 수 <b>' + data.componentCount + '개</b></span>' : '')
+      + '</div>'
+      + '<div class="ss-etf-table-wrap"><table class="ss-etf-table">'
+      + '<thead><tr><th>종목명</th><th>비중</th><th>현재가</th><th>등락률</th></tr></thead>'
+      + '<tbody>' + components.map(etfComponentRowHtml).join('') + '</tbody>'
+      + '</table></div>';
+  }
+
+  function openEtfComponentsModal(code, name) {
+    closeEtfComponentsModal();
+    var requestId = ++etfModalRequestId;
+    var overlay = document.createElement('div');
+    overlay.className = 'ss-etf-modal-overlay';
+    overlay.innerHTML = '<div class="ss-etf-modal" role="dialog" aria-modal="true" aria-label="'
+      + escapeAttr(name) + ' 구성종목">'
+      + '<div class="ss-etf-modal-head"><strong>' + escapeHtml(name) + ' 구성종목</strong>'
+      + '<button type="button" class="ss-etf-modal-close" aria-label="닫기">✕</button></div>'
+      + '<div class="ss-etf-modal-body"><p class="ss-etf-loading">불러오는 중...</p></div>'
+      + '</div>';
+    document.body.appendChild(overlay);
+    etfModalOverlay = overlay;
+    overlay.addEventListener('click', function (event) {
+      if (event.target === overlay) closeEtfComponentsModal();
+    });
+    overlay.querySelector('.ss-etf-modal-close').addEventListener('click', closeEtfComponentsModal);
+    document.addEventListener('keydown', onEtfModalKeydown);
+
+    var body = overlay.querySelector('.ss-etf-modal-body');
+    fetchJson(ETF_COMPONENTS_URL + encodeURIComponent(code))
+      .then(function (payload) {
+        if (requestId !== etfModalRequestId) return; // 그 사이 닫혔거나 다른 ETF를 다시 열었으면 무시
+        renderEtfComponentsBody(body, (payload && payload.data) || payload);
+      })
+      .catch(function () {
+        if (requestId !== etfModalRequestId) return;
+        body.innerHTML = '<p class="ss-etf-empty ss-etf-error">구성종목을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>';
+      });
+  }
 
   global.StrategySearch = { init: init, fetchJson: fetchJson };
 

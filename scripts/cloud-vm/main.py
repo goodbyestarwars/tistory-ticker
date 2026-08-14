@@ -167,6 +167,9 @@ _OHLC_MINUTE_CACHE_TTL = 60
 _ohlc_cache = OrderedDict()
 _ohlc_minute_cache = OrderedDict()  # (code, tic_scope) -> (t, data)
 _pbar_tratio_cache = OrderedDict()  # code -> (t, data)
+# ETF 구성종목(편입 비중)은 하루 중 자주 안 바뀌어서 다른 실시간성 캐시보다 길게 둔다.
+_ETF_COMPONENTS_TTL = 10 * 60
+_etf_components_cache = OrderedDict()  # code -> (t, data)
 _investor_flow_cache_mem = OrderedDict()
 _foreign_flow_cache_mem = OrderedDict()
 # fundamentals_cache.json 파싱 결과(파일 mtime/크기가 바뀔 때만 재파싱) - /fundamentals/{code}용.
@@ -1071,6 +1074,64 @@ def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length
         'bins': bins,
     }
     _live_cache_put(_pbar_tratio_cache, cache_key, result)
+    return envelope(result)
+
+
+@app.get('/etf-components/{code}')
+def etf_components_endpoint(request: Request, code: str = Path(..., min_length=6, max_length=6)):
+    """ETF 구성종목(KIS FHKST121600C0, [국내주식-073] ETF구성종목시세) 온디맨드 조회.
+
+    전략검색 > ETF 수익률 상위에서 ETF를 클릭하면 종목분석 대신 편입 종목·비중을
+    보여준다(2026-08-14 요청). 파라미터(FID_COND_MRKT_DIV_CODE=J,
+    FID_COND_SCR_DIV_CODE=11216)는 이 저장소에서 처음 쓰는 TR이라 공식 문서로
+    확인 못 했지만, VM 실측(probe_etf_components.py, KODEX 200/069500)으로
+    정상 응답(rt_cd=0)을 직접 확인했다. 국내주식으로만 구성된 ETF만 지원 -
+    해외지수 추종 ETF는 이 TR에서 구성종목이 안 나올 수 있다(KIS 공식 안내,
+    이 경우 components가 빈 배열로 온다 - 프론트에서 안내 문구로 처리).
+    모의투자 미지원(KIS 공식 안내) - 반드시 실전 앱키로 호출해야 한다."""
+    _check_rate_limit('etf_components', request)
+    cached = _live_cache_get(_etf_components_cache, code, ttl=_ETF_COMPONENTS_TTL)
+    if cached is not None:
+        return envelope(cached)
+    kis_appkey = os.environ.get('KIS_APPKEY')
+    kis_appsecret = os.environ.get('KIS_APPSECRET')
+    if not kis_appkey or not kis_appsecret:
+        raise HTTPException(status_code=503, detail='서버에 KIS_APPKEY/KIS_APPSECRET가 설정되지 않았습니다.')
+    try:
+        kis_token = kis_client.get_token(kis_appkey, kis_appsecret)
+        data = kis_client._get_domestic_quote(
+            kis_token, kis_appkey, kis_appsecret,
+            '/uapi/etfetn/v1/quotations/inquire-component-stock-price',
+            'FHKST121600C0',
+            {'FID_COND_MRKT_DIV_CODE': 'J', 'FID_INPUT_ISCD': code, 'FID_COND_SCR_DIV_CODE': '11216'},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    summary = data.get('output1') or {}
+    components = []
+    for row in data.get('output2') or []:
+        # prdy_ctrt(등락률)는 KIS 응답에 이미 부호가 붙어 온다(실측 확인 - 하락 종목은
+        # "-2.11"처럼 마이너스가 포함됨) - 별도로 prdy_vrss_sign을 조합할 필요 없다.
+        components.append({
+            'code': row.get('stck_shrn_iscd'),
+            'name': row.get('hts_kor_isnm'),
+            'price': kiwoom_market.to_num(row.get('stck_prpr')) or None,
+            'changeRatePct': kiwoom_market.to_num(row.get('prdy_ctrt')),
+            'weightPct': kiwoom_market.to_num(row.get('etf_cnfg_issu_rlim')),
+        })
+    components.sort(key=lambda item: -(item['weightPct'] or 0))
+    result = {
+        'code': code,
+        'price': kiwoom_market.to_num(summary.get('stck_prpr')) or None,
+        'changeRatePct': kiwoom_market.to_num(summary.get('prdy_ctrt')),
+        'nav': kiwoom_market.to_num(summary.get('nav')) or None,
+        'navChangeRatePct': kiwoom_market.to_num(summary.get('nav_prdy_ctrt')),
+        'componentCount': int(kiwoom_market.to_num(summary.get('etf_cnfg_issu_cnt')) or 0) or None,
+        'components': components,
+    }
+    _live_cache_put(_etf_components_cache, code, result)
     return envelope(result)
 
 
