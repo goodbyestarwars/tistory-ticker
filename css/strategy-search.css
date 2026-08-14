@@ -61,9 +61,28 @@
 
 #strategy-search .ss-return-period-tabs {
   display: flex;
+  align-items: center;
   gap: 6px;
   flex-wrap: wrap;
   margin: 0 0 12px;
+}
+
+/* 2026-08-14 요청: ETF명·코드로 바로 찾을 수 있는 검색창. 기간 탭 오른쪽에 붙인다. */
+#strategy-search .ss-etf-search-input {
+  margin-left: auto;
+  min-width: 200px;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 7px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+}
+#strategy-search .ss-etf-search-input::placeholder { color: #9ca3af; }
+#strategy-search .ss-etf-search-input:focus {
+  outline: none;
+  border-color: #111827;
 }
 
 #strategy-search .ss-dividend-sort-tabs { display: flex; gap: 6px; margin: 0 0 10px; }
@@ -239,6 +258,11 @@
   #strategy-search .ss-cards-grid {
     columns: 1 100%;
   }
+  #strategy-search .ss-etf-search-input {
+    margin-left: 0;
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 @media (max-width: 480px) {
   #strategy-search .ss-tab {
@@ -281,6 +305,13 @@ html.dark #strategy-search .ss-return-period-tab.active {
   border-color: rgba(245, 239, 224, 0.4);
   color: #F5EFE0 !important;
 }
+html.dark #strategy-search .ss-etf-search-input {
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, 0.2);
+  color: #F5EFE0 !important;
+}
+html.dark #strategy-search .ss-etf-search-input::placeholder { color: rgba(245, 239, 224, 0.4); }
+html.dark #strategy-search .ss-etf-search-input:focus { border-color: rgba(245, 239, 224, 0.6); }
 html.dark #strategy-search .ss-card {
   background: #1A1A1A;
   border-color: rgba(245, 239, 224, 0.14);

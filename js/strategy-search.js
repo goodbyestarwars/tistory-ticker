@@ -33,6 +33,7 @@
   var activeKey = null;
   var activeEtfPeriod = '1m';
   var activeDividendSort = 'yield';
+  var etfSearchQuery = '';
   var ETF_RETURN_PERIODS = [
     { key: '1m', label: '1개월' },
     { key: '3m', label: '3개월' },
@@ -171,6 +172,21 @@
   // 탭 전환 클릭과 종목 행 클릭(종목분석 이동)을 컨테이너 하나에 위임한다 - renderCards()가
   // 매번 innerHTML을 새로 그려도 이 리스너는 컨테이너 자체에 붙어있어 재등록할 필요가 없다.
   function wireContainer(container) {
+    // ETF 검색창은 renderCards()가 매 입력마다 innerHTML을 통째로 다시 그려서, 그냥
+    // 두면 입력창 자체가 새 DOM으로 교체돼 포커스·커서 위치·IME 조합 중인 글자가
+    // 날아간다 - 입력 직후 커서 위치를 기억해뒀다가 재렌더링 후 같은 자리에 되돌려준다.
+    container.addEventListener('input', function (event) {
+      var searchInput = event.target.closest ? event.target.closest('.ss-etf-search-input') : null;
+      if (!searchInput) return;
+      etfSearchQuery = searchInput.value;
+      var cursor = searchInput.selectionStart;
+      renderCards(container);
+      var nextInput = container.querySelector('.ss-etf-search-input');
+      if (nextInput) {
+        nextInput.focus();
+        try { nextInput.setSelectionRange(cursor, cursor); } catch (e) { /* 일부 입력 타입은 미지원 */ }
+      }
+    });
     container.addEventListener('click', function (event) {
       var tabBtn = event.target.closest ? event.target.closest('.ss-tab') : null;
       if (tabBtn) {
@@ -263,6 +279,8 @@
             + '" data-return-period="' + period.key + '" role="tab" aria-selected="' + (period.key === activeEtfPeriod ? 'true' : 'false') + '">'
             + period.label + '</button>';
         }).join('')
+        + '<input type="search" class="ss-etf-search-input" placeholder="ETF명 또는 코드 검색" '
+        + 'value="' + escapeAttr(etfSearchQuery) + '" aria-label="ETF 검색">'
         + '</div>'
       : '';
     var dividendTabs = activeKey === 'dividend'
@@ -272,16 +290,28 @@
         + '</div>'
       : '';
     var cardGroups = [];
+    var etfQuery = activeKey === 'etfReturn' ? etfSearchQuery.trim().toUpperCase() : '';
     if (activeKey === 'etfReturn') {
       var allEtfMatches = [];
       sectorNames.forEach(function (name) {
         allEtfMatches = allEtfMatches.concat(sectors[name].matches || []);
       });
+      if (etfQuery) {
+        allEtfMatches = allEtfMatches.filter(function (item) {
+          var name = String(item.name || '').toUpperCase();
+          var code = String(item.code || '').toUpperCase();
+          return name.indexOf(etfQuery) !== -1 || code.indexOf(etfQuery) !== -1;
+        });
+      }
       cardGroups = groupEtfMatches(allEtfMatches);
     } else {
       cardGroups = sectorNames.map(function (name) {
         return { name: name, matches: sectors[name].matches };
       });
+    }
+    if (etfQuery && !cardGroups.length) {
+      wrap.innerHTML = periodTabs + dividendTabs + '<div class="ss-hint">"' + escapeHtml(etfSearchQuery.trim()) + '"에 맞는 ETF가 없어요.</div>';
+      return;
     }
     var html = cardGroups.map(function (group) {
       var matches = sortMatches(group.matches);
