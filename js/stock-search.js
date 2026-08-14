@@ -95,6 +95,23 @@
   var stockDrawingState = null;
   var suggestionRequestId = 0;
 
+  // 패널 제목(거래량/RSI/MACD)·거래량 범례의 top 위치를 실제 적용된 패널 높이에 맞춰
+  // 다시 계산한다. renderLwChart()의 최초 렌더링과 resizeStockChart()의 리사이즈(전체화면
+  // 전환·창 크기 변경) 양쪽에서 같이 써야 한다 - 리사이즈 쪽에서 패널 높이만 다시 잡고
+  // 라벨 위치는 그대로 둬서, 전체화면으로 열면 라벨들이 예전(작은 컨테이너 기준) 위치에
+  // 뭉쳐 거래량·RSI·MACD 글자가 서로 겹쳐 보이던 문제(2026-08-14 사용자 스크린샷 제보).
+  function positionLwcPaneLabels(container, mainHeight, subHeight) {
+    var paneLabels = container.querySelector('.ss-lwc-pane-labels');
+    var volumeLegend = container.querySelector('.ss-volume-study-label');
+    if (paneLabels) {
+      var spans = paneLabels.querySelectorAll('span');
+      [mainHeight, mainHeight + subHeight, mainHeight + subHeight * 2].forEach(function (top, i) {
+        if (spans[i]) spans[i].style.top = top + 'px';
+      });
+    }
+    if (volumeLegend) volumeLegend.style.top = mainHeight + 'px';
+  }
+
   function resizeStockChart() {
     if (!lwcChart || !lwcChartContainer || !lwcChart.resize) return;
     global.requestAnimationFrame(function () {
@@ -107,8 +124,10 @@
           var panes = lwcChart.panes ? lwcChart.panes() : [];
           if (panes.length > 1) {
             var subHeight = Math.max(42, Math.round(height * 0.14));
-            if (panes[0].setHeight) panes[0].setHeight(Math.max(220, height - subHeight * (panes.length - 1)));
+            var mainHeight = Math.max(220, height - subHeight * (panes.length - 1));
+            if (panes[0].setHeight) panes[0].setHeight(mainHeight);
             panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
+            positionLwcPaneLabels(lwcChartContainer, mainHeight, subHeight);
           }
         } catch (e) { /* 레이아웃 정리 후 다음 요청에서 재시도 */ }
       }
@@ -1761,11 +1780,9 @@
       // 패널 제목·거래량 범례 위치를 CSS 고정 %(58/72/86%) 대신 실제로 적용한 패널 높이
       // 그대로 계산해서 맞춘다 - 컨테이너 높이가 달라지면 고정 %는 패널 경계와 어긋난다
       // (2026-08-13 사용자 스크린샷 제보: "거래량" 제목이 실제 거래량 패널과 안 맞음).
-      var paneLabelSpans = paneLabels.querySelectorAll('span');
-      [mainHeight, mainHeight + subHeight, mainHeight + subHeight * 2].forEach(function (top, i) {
-        if (paneLabelSpans[i]) paneLabelSpans[i].style.top = top + 'px';
-      });
-      volumeLegend.style.top = mainHeight + 'px';
+      // 전체화면으로 열고 닫을 때도 동일하게 다시 맞춰야 해서 resizeStockChart()와
+      // positionLwcPaneLabels() 함수를 공유한다.
+      positionLwcPaneLabels(container, mainHeight, subHeight);
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
       setupStockDrawing(container, chart, candleSeries, timeframe);
     }).catch(function () {
