@@ -94,6 +94,11 @@
   var lwcCloudCleanup = null;
   var stockDrawingState = null;
   var suggestionRequestId = 0;
+  // RSI/MACD 패널이 너무 낮으면 값이 서로 가까운 MACD·Signal 라인의 라이브러리 자체
+  // 마지막값 배지가 붙어서 겹쳐 보인다(2026-08-14 사용자 스크린샷 제보) - 최소 높이·비율을
+  // 조금 올려 배지끼리 부딪힐 여유를 준다.
+  var SUB_PANE_MIN_HEIGHT = 58;
+  var SUB_PANE_RATIO = 0.16;
 
   // 패널 제목(거래량/RSI/MACD)·거래량 범례의 top 위치를 실제 적용된 패널 높이에 맞춰
   // 다시 계산한다. renderLwChart()의 최초 렌더링과 resizeStockChart()의 리사이즈(전체화면
@@ -101,11 +106,15 @@
   // 라벨 위치는 그대로 둬서, 전체화면으로 열면 라벨들이 예전(작은 컨테이너 기준) 위치에
   // 뭉쳐 거래량·RSI·MACD 글자가 서로 겹쳐 보이던 문제(2026-08-14 사용자 스크린샷 제보).
   function positionLwcPaneLabels(container, mainHeight, subHeight) {
+    // 거래량 패널은 ss-volume-study-label(실제 수치가 있는 범례)이 이미 "거래량" 문구를
+    // 포함하고 있어서, paneLabels의 첫 span("거래량" 제목만 있는 라벨)을 같은 top에
+    // 겹쳐 놓으면 두 텍스트가 같은 자리에 찍혀 "거래량"이 겹쳐 보인다(2026-08-14 사용자
+    // 스크린샷 제보) - paneLabels에는 RSI·MACD 라벨만 남기고 거래량은 범례에만 맡긴다.
     var paneLabels = container.querySelector('.ss-lwc-pane-labels');
     var volumeLegend = container.querySelector('.ss-volume-study-label');
     if (paneLabels) {
       var spans = paneLabels.querySelectorAll('span');
-      [mainHeight, mainHeight + subHeight, mainHeight + subHeight * 2].forEach(function (top, i) {
+      [mainHeight + subHeight, mainHeight + subHeight * 2].forEach(function (top, i) {
         if (spans[i]) spans[i].style.top = top + 'px';
       });
     }
@@ -123,7 +132,7 @@
           lwcChart.resize(width, height);
           var panes = lwcChart.panes ? lwcChart.panes() : [];
           if (panes.length > 1) {
-            var subHeight = Math.max(42, Math.round(height * 0.14));
+            var subHeight = Math.max(SUB_PANE_MIN_HEIGHT, Math.round(height * SUB_PANE_RATIO));
             var mainHeight = Math.max(220, height - subHeight * (panes.length - 1));
             if (panes[0].setHeight) panes[0].setHeight(mainHeight);
             panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
@@ -1750,7 +1759,7 @@
 
       var paneLabels = document.createElement('div');
       paneLabels.className = 'ss-lwc-pane-labels';
-      paneLabels.innerHTML = '<span>거래량</span><span>RSI(14)</span><span>MACD(12,26,9)</span>';
+      paneLabels.innerHTML = '<span>RSI(14)</span><span>MACD(12,26,9)</span>';
       container.appendChild(paneLabels);
 
       var latestBar = bars[bars.length - 1] || {};
@@ -1773,7 +1782,7 @@
       chart.timeScale().fitContent();
       var panes = chart.panes();
       var totalHeight = container.clientHeight || 420;
-      var subHeight = Math.max(48, Math.round(totalHeight * 0.14));
+      var subHeight = Math.max(SUB_PANE_MIN_HEIGHT, Math.round(totalHeight * SUB_PANE_RATIO));
       var mainHeight = Math.max(220, totalHeight - subHeight * (panes.length - 1));
       if (panes[0] && panes[0].setHeight) panes[0].setHeight(mainHeight);
       panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
