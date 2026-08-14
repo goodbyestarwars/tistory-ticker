@@ -75,7 +75,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-flow-table td.dmi-positive { color: #d24f45 !important; }", style)
         self.assertIn(".dmi-flow-table td.dmi-negative { color: #1261c4 !important; }", style)
         self.assertIn(".dmi-shell .dmi-fund-card *", style)
-        self.assertIn("domestic-market-indicators.css?v=20260813-fund-average", frontend)
+        self.assertIn("domestic-market-indicators.css?v=20260814-program-trading", frontend)
         self.assertIn("function fundAverage(funds, field, unit)", frontend)
         self.assertIn("신용잔고 (빚투)", frontend)
         self.assertIn("최근 평균", frontend)
