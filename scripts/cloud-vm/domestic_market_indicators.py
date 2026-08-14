@@ -422,6 +422,17 @@ def fetch_leverage_detail():
     (같은 값을 어디서 받아오느냐의 문제), 이건 KIS가 애초에 안 주는 새 필드를
     보충하는 것이라 _fetch_kis_funds/신용잔고·고객예탁금 카드는 그대로 KIS 전용이다.
     KOFIA가 실패해도 이 카드만 안 뜰 뿐 나머지 증시자금 카드에는 영향이 없다.
+
+    2026-08-14 단위 버그 수정: public_data.py 모듈 주석은 "credit-balance amounts
+    are in million KRW"라고 credit_by_date 전체를 뭉뚱그려 설명하는데, 실측해보니
+    같은 딕셔너리 안에서도 필드마다 단위가 달랐다 - loan_total(신용융자, 이미
+    js/market-temp.js가 /1,000,000로 조원 환산해서 쓰고 있음. 예: 17,400,000 ->
+    17.4조원)은 실제로 백만원 단위가 맞지만, lending_total(신용대주)·collateral_loan
+    (예탁증권담보융자)을 똑같이 백만원으로 놓고 계산하니 "24,715,600.8조원"처럼
+    현실적으로 불가능한 값이 나왔다(사용자 스크린샷 제보로 발견) - 두 필드는 이미
+    원(KRW) 단위로 보는 게 맞다(원 단위로 보면 각각 273억원·24.7조원 수준으로 예탁
+    증권담보융자·신용융자와 규모가 비슷해 타당함). 공식 문서가 없어 이 결론도
+    100% 확정은 아니지만, 그 반대(백만원)는 물리적으로 불가능한 값이 나와 배제했다.
     """
     try:
         result = public_data.fetch_kofia_market(days=_LEVERAGE_DETAIL_LOOKBACK_DAYS)
@@ -443,7 +454,7 @@ def fetch_leverage_detail():
     return {
         'available': True,
         'source': 'kofia',
-        'unit': 'million_krw',
+        'unit': 'krw',
         'latest_date': latest_date,
         'lending': {'date': latest_date, 'balance': latest.get('lending_total')},
         'collateral': {'date': latest_date, 'balance': latest.get('collateral_loan')},

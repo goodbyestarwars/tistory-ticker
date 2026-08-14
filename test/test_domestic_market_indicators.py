@@ -188,6 +188,10 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
             result = dmi.fetch_leverage_detail()
         fetch.assert_called_once_with(days=dmi._LEVERAGE_DETAIL_LOOKBACK_DAYS)
         self.assertTrue(result['available'])
+        # 2026-08-14 단위 버그: lending_total/collateral_loan을 million_krw로 잘못
+        # 취급해서 "24,715,600.8조원" 같은 불가능한 값이 나온 적이 있다 - 이 두 필드는
+        # 이미 원(KRW) 단위라 그대로 써야 한다(회귀 방지).
+        self.assertEqual(result['unit'], 'krw')
         self.assertEqual(result['latest_date'], '2026-08-14')
         self.assertEqual(result['lending'], {'date': '2026-08-14', 'balance': 6})
         self.assertEqual(result['collateral'], {'date': '2026-08-14', 'balance': 41})
