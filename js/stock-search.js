@@ -94,29 +94,28 @@
   var lwcCloudCleanup = null;
   var stockDrawingState = null;
   var suggestionRequestId = 0;
-  // RSI/MACD 패널이 너무 낮으면 값이 서로 가까운 MACD·Signal 라인의 라이브러리 자체
-  // 마지막값 배지가 붙어서 겹쳐 보인다(2026-08-14 사용자 스크린샷 제보) - 최소 높이·비율을
-  // 조금 올려 배지끼리 부딪힐 여유를 준다.
+  // 거래량/RSI 서브패널이 너무 낮으면 라벨·배지가 부딪혀 겹쳐 보인다(2026-08-14 사용자
+  // 스크린샷 제보) - 최소 높이·비율을 넉넉히 준다.
   var SUB_PANE_MIN_HEIGHT = 58;
   var SUB_PANE_RATIO = 0.16;
 
-  // 패널 제목(거래량/RSI/MACD)·거래량 범례의 top 위치를 실제 적용된 패널 높이에 맞춰
-  // 다시 계산한다. renderLwChart()의 최초 렌더링과 resizeStockChart()의 리사이즈(전체화면
-  // 전환·창 크기 변경) 양쪽에서 같이 써야 한다 - 리사이즈 쪽에서 패널 높이만 다시 잡고
-  // 라벨 위치는 그대로 둬서, 전체화면으로 열면 라벨들이 예전(작은 컨테이너 기준) 위치에
-  // 뭉쳐 거래량·RSI·MACD 글자가 서로 겹쳐 보이던 문제(2026-08-14 사용자 스크린샷 제보).
+  // 패널 제목(RSI)·거래량 범례의 top 위치를 실제 적용된 패널 높이에 맞춰 다시 계산한다.
+  // renderLwChart()의 최초 렌더링과 resizeStockChart()의 리사이즈(전체화면 전환·창 크기
+  // 변경) 양쪽에서 같이 써야 한다 - 리사이즈 쪽에서 패널 높이만 다시 잡고 라벨 위치는
+  // 그대로 두면, 전체화면으로 열었을 때 라벨이 예전(작은 컨테이너 기준) 위치에 남아
+  // 실제 패널과 어긋나 보인다(2026-08-14 사용자 스크린샷 제보). MACD 패널은 같은 날
+  // 아예 없앴다(거래량/RSI/MACD 3패널 좁은 공간에서 라벨·배지가 계속 겹쳐 보인다는
+  // 리포트가 반복돼, 패널 자체를 줄이는 쪽으로 정리).
   function positionLwcPaneLabels(container, mainHeight, subHeight) {
     // 거래량 패널은 ss-volume-study-label(실제 수치가 있는 범례)이 이미 "거래량" 문구를
-    // 포함하고 있어서, paneLabels의 첫 span("거래량" 제목만 있는 라벨)을 같은 top에
-    // 겹쳐 놓으면 두 텍스트가 같은 자리에 찍혀 "거래량"이 겹쳐 보인다(2026-08-14 사용자
-    // 스크린샷 제보) - paneLabels에는 RSI·MACD 라벨만 남기고 거래량은 범례에만 맡긴다.
+    // 포함하고 있어서, paneLabels의 span("RSI(14)" 제목만 있는 라벨)을 같은 top에
+    // 겹쳐 놓으면 두 텍스트가 같은 자리에 찍혀 보인다 - paneLabels에는 RSI 라벨만 남기고
+    // 거래량은 범례에만 맡긴다.
     var paneLabels = container.querySelector('.ss-lwc-pane-labels');
     var volumeLegend = container.querySelector('.ss-volume-study-label');
     if (paneLabels) {
-      var spans = paneLabels.querySelectorAll('span');
-      [mainHeight + subHeight, mainHeight + subHeight * 2].forEach(function (top, i) {
-        if (spans[i]) spans[i].style.top = top + 'px';
-      });
+      var rsiLabel = paneLabels.querySelector('span');
+      if (rsiLabel) rsiLabel.style.top = (mainHeight + subHeight) + 'px';
     }
     if (volumeLegend) volumeLegend.style.top = mainHeight + 'px';
   }
@@ -1670,7 +1669,7 @@
         container.appendChild(priceLegend);
       }
 
-      // TradingView v5의 독립 패널: 거래량(1) · RSI(2) · MACD(3).
+      // TradingView v5의 독립 패널: 거래량(1) · RSI(2).
       // 차트 전체의 localization.priceFormatter를 없애고 시리즈별 포맷을 사용해야
       // 거래량 값이 2,539,179 같은 주가형 숫자가 아니라 2.54M처럼 축약 표시된다.
       // 2026-08-05 사용자 리포트: 거래량 Y축에 가격 데이터와 거래량 데이터가 겹쳐 보였음 -
@@ -1743,23 +1742,13 @@
       rsiAboveSeries.createPriceLine({ price: 70, color: '#d24f45', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
       rsiAboveSeries.createPriceLine({ price: 50, color: '#9ca3af', lineWidth: 1, lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: false, title: '50' });
       rsiAboveSeries.createPriceLine({ price: 30, color: '#1261c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
-      var macdHistogram = chart.addSeries(LWC.HistogramSeries, {
-        priceFormat: { type: 'custom', minMove: 0.01, formatter: function (v) { return Number(v).toFixed(2); } },
-        lastValueVisible: false, priceLineVisible: false, title: 'MACD 히스토그램'
-      }, 3);
-      macdHistogram.setData(bars.map(function (bar, index) {
-        if (studies.macd[index] == null || studies.signal[index] == null) return null;
-        var value = studies.macd[index] - studies.signal[index];
-        return { time: bar.date, value: value, color: value >= 0 ? 'rgba(210,79,69,.65)' : 'rgba(18,97,196,.65)' };
-      }).filter(Boolean));
-      var macdSeries = chart.addSeries(LWC.LineSeries, { color: '#1261c4', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: 'MACD' }, 3);
-      macdSeries.setData(bars.map(function (bar, index) { return studies.macd[index] == null ? null : { time: bar.date, value: studies.macd[index] }; }).filter(Boolean));
-      var signalSeries = chart.addSeries(LWC.LineSeries, { color: '#d24f45', lineWidth: 1, lastValueVisible: true, priceLineVisible: false, title: 'Signal' }, 3);
-      signalSeries.setData(bars.map(function (bar, index) { return studies.signal[index] == null ? null : { time: bar.date, value: studies.signal[index] }; }).filter(Boolean));
+      // 2026-08-14 요청: 거래량/RSI/MACD 3개 서브패널이 좁은 공간에서 라벨·배지가 계속
+      // 겹쳐 보인다는 리포트가 반복돼(패널 위치 계산을 두 차례 고쳐도 재현) MACD 패널
+      // 자체를 없애고 거래량·RSI 2개만 남긴다.
 
       var paneLabels = document.createElement('div');
       paneLabels.className = 'ss-lwc-pane-labels';
-      paneLabels.innerHTML = '<span>RSI(14)</span><span>MACD(12,26,9)</span>';
+      paneLabels.innerHTML = '<span>RSI(14)</span>';
       container.appendChild(paneLabels);
 
       var latestBar = bars[bars.length - 1] || {};
