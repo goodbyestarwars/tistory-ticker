@@ -400,6 +400,9 @@
   background: #f7f7f8;
   border-radius: 8px;
 }
+/* 공매도 지표와 대차잔고 지표 사이 얇은 구분선 - auto-fill 그리드 전체 폭을 가로지르게
+   grid-column을 1/-1로 강제한다(열 개수가 화면 폭에 따라 바뀌어도 항상 한 줄 전체). */
+#foreign-flow .ff-extra-divider { grid-column: 1 / -1; height: 1px; background: #e5e5e5; margin: 2px 0; }
 #foreign-flow .ff-extra-metric-label { font-size: 11px; color: #888; margin-bottom: 2px; }
 #foreign-flow .ff-extra-metric-value { font-size: 13.5px; font-weight: 700; }
 #foreign-flow .ff-extra-metric-sub { font-size: 10.5px; font-weight: 400; color: #999; margin-top: 1px; }
@@ -1853,6 +1856,7 @@ html.dark #foreign-flow .ff-extra-card { background: #1A1A1A !important; border-
 html.dark #foreign-flow .ff-extra-card-title { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-extra-grade { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-extra-grid { background: rgba(245, 239, 224, 0.06) !important; }
+html.dark #foreign-flow .ff-extra-divider { background: rgba(245, 239, 224, 0.16) !important; }
 html.dark #foreign-flow .ff-extra-metric-label { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-extra-metric-value { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-extra-metric-sub { color: rgba(245, 239, 224, 0.5) !important; }

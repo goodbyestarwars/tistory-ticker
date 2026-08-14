@@ -3219,6 +3219,9 @@
           + (sg ? ' <span class="ff-squeeze-grade ' + sg.cls + '">' + sg.label + '</span>' : ''));
     }
     if (l) {
+      // 공매도 지표(위 5개)와 대차잔고 지표(아래 2개)는 grid가 flow 레이아웃이라 경계가
+      // 안 보인다는 피드백(2026-08-14) - 두 그룹이 다 있을 때만 얇은 구분선을 넣는다.
+      if (s) grid += '<div class="ff-extra-divider"></div>';
       grid += extraMetric('대차잔고 증감률', '<span class="' + signClass(l.balance_change_pct) + '">' + fmtSignedPct(l.balance_change_pct) + '</span>')
         + extraMetric('대차잔고', fmtAbsShares(l.balance_qty)
           + (loanAmount != null ? '<div class="ff-extra-metric-sub">약 ' + fmtCompactWon(loanAmount) + '(현재가 기준 추정)</div>' : ''));
