@@ -352,6 +352,14 @@
   height: 100%;
   pointer-events: none;
 }
+#stock-search .ss-rsi-zones {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
 #stock-search .ss-price-study-label {
   position: absolute;
   z-index: 5;

@@ -92,6 +92,7 @@
   var lwcChart = null;
   var lwcChartContainer = null;
   var lwcCloudCleanup = null;
+  var lwcRsiZonesCleanup = null;
   var stockDrawingState = null;
   var suggestionRequestId = 0;
   // 거래량/RSI 서브패널이 너무 낮으면 라벨·배지가 부딪혀 겹쳐 보인다(2026-08-14 사용자
@@ -1197,6 +1198,70 @@
     };
   }
 
+  // RSI 패널의 70 이상(과매수)·30 이하(과매도) 영역을 패널 배경처럼 칠한다.
+  // Lightweight Charts v5에는 개별 pane의 배경 밴드 옵션이 없으므로, RSI 시리즈의
+  // priceToCoordinate()와 실제 pane 높이를 이용해 차트 아래에 캔버스를 깐다.
+  function installRsiZoneCanvas(container, chart, rsiSeries, panes) {
+    if (!rsiSeries || !panes || panes.length < 3) return function () {};
+    var chartRoot = container.querySelector('.ss-lw-chart-root') || container.querySelector('div');
+    var canvas = document.createElement('canvas');
+    canvas.className = 'ss-rsi-zones';
+    canvas.setAttribute('aria-hidden', 'true');
+    container.insertBefore(canvas, chartRoot || container.firstChild);
+
+    var frameId = 0;
+    var resizeObserver = null;
+    function paneHeight(pane, fallback) {
+      var value = pane && pane.getHeight ? pane.getHeight() : fallback;
+      return Number.isFinite(value) && value > 0 ? value : fallback;
+    }
+    function draw() {
+      frameId = 0;
+      if (!document.body.contains(container)) return;
+      var width = container.clientWidth;
+      var height = container.clientHeight;
+      if (!width || !height) return;
+      var mainHeight = paneHeight(panes[0], Math.max(220, height * 0.68));
+      var volumeHeight = paneHeight(panes[1], Math.max(SUB_PANE_MIN_HEIGHT, height * SUB_PANE_RATIO));
+      var rsiHeight = paneHeight(panes[2], Math.max(SUB_PANE_MIN_HEIGHT, height * SUB_PANE_RATIO));
+      var rsiTop = mainHeight + volumeHeight;
+      var y70 = rsiSeries.priceToCoordinate(70);
+      var y30 = rsiSeries.priceToCoordinate(30);
+      if (!Number.isFinite(y70) || !Number.isFinite(y30)) return;
+
+      var ratio = Math.max(1, global.devicePixelRatio || 1);
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      var ctx = canvas.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      var dark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = dark ? 'rgba(210,79,69,0.16)' : 'rgba(210,79,69,0.09)';
+      ctx.fillRect(0, rsiTop, width, Math.max(0, y70));
+      ctx.fillStyle = dark ? 'rgba(18,97,196,0.17)' : 'rgba(18,97,196,0.08)';
+      ctx.fillRect(0, rsiTop + y30, width, Math.max(0, rsiHeight - y30));
+    }
+    function scheduleDraw() {
+      if (frameId) global.cancelAnimationFrame(frameId);
+      frameId = global.requestAnimationFrame(draw);
+    }
+
+    if ('ResizeObserver' in global) {
+      resizeObserver = new ResizeObserver(scheduleDraw);
+      resizeObserver.observe(container);
+    } else {
+      global.addEventListener('resize', scheduleDraw);
+    }
+    scheduleDraw();
+
+    return function () {
+      if (frameId) global.cancelAnimationFrame(frameId);
+      if (resizeObserver) resizeObserver.disconnect();
+      else global.removeEventListener('resize', scheduleDraw);
+      canvas.remove();
+    };
+  }
+
   function compactVolume(value) {
     var n = Number(value) || 0;
     function scaled(divisor, suffix) {
@@ -1583,6 +1648,7 @@
   function renderLwChart(container, bars, timeframe) {
     destroyStockDrawing();
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
+    if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-ichimoku-cloud').forEach(function (el) { el.remove(); });
@@ -1804,6 +1870,7 @@
       // positionLwcPaneLabels() 함수를 공유한다.
       positionLwcPaneLabels(container, panes, mainHeight, subHeight);
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
+      lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiAboveSeries, panes);
       setupStockDrawing(container, chart, candleSeries, timeframe);
     }).catch(function () {
       container.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';

@@ -769,6 +769,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("panes[1].getHeight", source)
         self.assertIn("actualMainHeight + actualVolumeHeight + 6", source)
         self.assertIn("actualMainHeight + 6", source)
+        self.assertIn("function installRsiZoneCanvas", source)
+        self.assertIn("rsiSeries.priceToCoordinate(70)", source)
+        self.assertIn("rsiSeries.priceToCoordinate(30)", source)
+        self.assertIn("lwcRsiZonesCleanup = installRsiZoneCanvas", source)
+        self.assertIn(".ss-rsi-zones", style)
 
     def test_order_book_renders_quote_summary_and_volume_comparison(self):
         source = self.read("js/order-book.js")
