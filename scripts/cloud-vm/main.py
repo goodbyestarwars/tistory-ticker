@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""키움 조회 전용 REST API 서버.
+"""KIS/키움 조회 전용 REST API 서버.
 실행: uvicorn main:app --host 0.0.0.0 --port 8080
-필수 환경변수: KIWOOM_APPKEY, KIWOOM_SECRETKEY, API_TOKEN(이 서버 자체 인증용, 아무 문자열이나 직접 정해서 사용)
-선택 환경변수: KIS_APPKEY, KIS_APPSECRET(코스피200 야간선물 - 없으면 /futures에서 이 항목만 빠짐,
-서버 전체는 정상 동작). 야간선물 웹소켓 사용하려면 `pip install websockets` 필요.
+필수 환경변수: API_TOKEN(이 서버 자체 인증용, 아무 문자열이나 직접 정해서 사용)
+종목판 기본 소스: KIS_APPKEY, KIS_APPSECRET. MARKET_BOARD_SOURCE=kiwoom으로 기존 경로 롤백 가능.
+야간선물 웹소켓 사용하려면 `pip install websockets` 필요.
 """
 
 import asyncio
@@ -111,14 +111,19 @@ def _start_futures_collectors():
     else:
         logging.getLogger('main').warning('KIS_APPKEY/APPSECRET 미설정 - 옵션 수급 수집 건너뜀')
 
-    # 2026-08-05: 사이드바 실시간 랭킹도 다른 실시간 수집기와 동일하게 백그라운드 폴링으로
-    # 전환 - /market-rank 요청 경로에서 키움을 직접 호출하지 않게 한다(아래 market_rank_endpoint
-    # 주석 참고). KIWOOM_APPKEY/SECRETKEY는 이 서버의 필수 환경변수(모듈 상단 독스트링)라
-    # 보통 항상 있지만, 다른 수집기들과 동일한 방어 수준으로 미설정 시에는 건너뛴다.
-    if kiwoom_appkey and kiwoom_secretkey:
-        market_rank.start_background(kiwoom_appkey, kiwoom_secretkey)
+    # 종목판 기본 소스는 KIS로 통일한다. MARKET_BOARD_SOURCE=kiwoom일 때만
+    # 기존 키움 백그라운드 랭킹을 다시 활성화해 즉시 롤백할 수 있다.
+    if _market_board_source() == 'kiwoom':
+        if kiwoom_appkey and kiwoom_secretkey:
+            market_rank.start_background(kiwoom_appkey, kiwoom_secretkey)
+        else:
+            logging.getLogger('main').warning(
+                'MARKET_BOARD_SOURCE=kiwoom인데 KIWOOM_APPKEY/KIWOOM_SECRETKEY가 없습니다.')
+    elif not (kis_appkey and kis_appsecret):
+        logging.getLogger('main').warning(
+            'KIS_APPKEY/KIS_APPSECRET 미설정 - 종목판은 키움 폴백을 시도합니다.')
     else:
-        logging.getLogger('main').warning('KIWOOM_APPKEY/KIWOOM_SECRETKEY 미설정 - 실시간 랭킹 백그라운드 수집 건너뜀')
+        logging.getLogger('main').info('실시간 종목판 기본 소스: KIS')
 
 # 2026-07-13: GAS->VM 구간이 간헐적으로 통째로 막히는 원인 불명 현상 때문에, /investor-flow는
 # GAS를 거치지 않고 방문자 브라우저(js/foreign-flow.js)가 이 VM을 직접 호출하도록 우회.
@@ -214,6 +219,12 @@ _order_book_cache = OrderedDict()  # code -> {'t':.., 'data':..}
 _FUTURES_TTL = 10
 _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'data':..}
 _sector_cards_cache = None
+
+
+def _market_board_source():
+    """종목판 데이터 소스. 기본은 KIS이며 장애 시 호출부가 키움으로 폴백한다."""
+    source = os.environ.get('MARKET_BOARD_SOURCE', 'kis').strip().lower()
+    return 'kiwoom' if source == 'kiwoom' else 'kis'
 
 
 def _evict_lru(cache, max_entries):
@@ -723,7 +734,12 @@ async def economic_news_socket(websocket: WebSocket):
 
 @app.websocket('/ws/quotes')
 async def realtime_quote_socket(websocket: WebSocket):
-    """관심종목용 실시간 체결가 중계(국내=키움, 미국=Finnhub). 인증키는 서버 안에서만 사용한다."""
+    """관심종목용 실시간 체결가 중계.
+
+    기본은 KIS 국내·미국 WebSocket이며, MARKET_BOARD_SOURCE=kiwoom 또는 KIS
+    인증 미설정 시 기존 키움/Finnhub 중계로 폴백한다. 인증키는 서버 밖으로
+    전달하지 않는다.
+    """
     global _ws_active_connections
     origin = websocket.headers.get('origin')
     if origin != 'https://ghlee.tistory.com':
@@ -755,12 +771,23 @@ async def realtime_quote_socket(websocket: WebSocket):
 
     await websocket.accept()
     _ws_active_connections += 1
-    relay_task = asyncio.create_task(
-        realtime_quotes.relay_quotes(websocket, domestic_codes)
-    ) if domestic_codes else None
-    finnhub_task = asyncio.create_task(
-        finnhub_realtime.stream_quotes(websocket, us_codes)
-    ) if us_codes else None
+    use_kis = (
+        _market_board_source() == 'kis'
+        and os.environ.get('KIS_APPKEY')
+        and os.environ.get('KIS_APPSECRET')
+    )
+    if use_kis:
+        relay_task = asyncio.create_task(
+            realtime_quotes.relay_quotes(websocket, domestic_codes, us_codes)
+        )
+        finnhub_task = None
+    else:
+        relay_task = asyncio.create_task(
+            realtime_quotes.relay_quotes(websocket, domestic_codes)
+        ) if domestic_codes else None
+        finnhub_task = asyncio.create_task(
+            finnhub_realtime.stream_quotes(websocket, us_codes)
+        ) if us_codes else None
     receive_task = asyncio.create_task(websocket.receive_text())
     try:
         while True:
@@ -1693,28 +1720,39 @@ def market_rank_endpoint(request: Request, limit: int = Query(5, ge=1, le=_MARKE
     제한) - /futures, /option-flow와 동일한 패턴. limit: 기본 5(사이드바 미리보기), "더보기"
     모달은 limit=20으로 같은 엔드포인트를 재사용(js/sidebar-rank.js).
 
-    2026-08-05: market_rank.start_background()가 30초마다 미리 채워둔 캐시(get_cached())를
-    우선 읽는다 - 예전엔 이 요청 핸들러 안에서(캐시 만료 순간마다) 키움을 직접 호출했는데,
-    그 순간 키움이 느리면 방문자의 8초 fetch 타임아웃에 걸려 "데이터를 불러오지 못했습니다"가
-    간헐적으로 떴다(원인 조사·수정 이력은 market_rank.py 상단 주석 참고). 백그라운드가 아직
-    한 번도 못 채운 서버 기동 직후에만 기존 온디맨드 경로(_market_rank_cache 30초 TTL +
-    키움 직접 호출)로 폴백해 빈 위젯이 뜨지 않게 한다."""
+    KIS가 기본 소스이며, KIS 장애·미설정 시 기존 키움 경로로 폴백한다.
+    MARKET_BOARD_SOURCE=kiwoom이면 키움 백그라운드 캐시만 사용한다."""
     _check_rate_limit('market_rank', request, max_per_window=30)
-    cached = market_rank.get_cached(limit)
-    if cached is not None:
-        return envelope(cached)
+    source = _market_board_source()
+    if source == 'kiwoom':
+        cached = market_rank.get_cached(limit)
+        if cached is not None:
+            return envelope(cached)
 
     now = time.time()
     fallback = _market_rank_cache.get(limit)
     if fallback is not None and now - fallback['t'] < _MARKET_RANK_TTL:
         return envelope(fallback['data'])
     try:
-        token = get_kiwoom_token()
-        data = market_rank.fetch_sidebar_rank(token, limit=limit)
+        if source == 'kis':
+            data = market_board.fetch_sidebar_rank_kis(
+                os.environ.get('KIS_APPKEY', '').strip(),
+                os.environ.get('KIS_APPSECRET', '').strip(),
+                limit=limit,
+            )
+        else:
+            data = market_rank.fetch_sidebar_rank(get_kiwoom_token(), limit=limit)
     except HTTPException:
         raise
     except Exception as e:
-        raise _upstream_http_exception('사이드바 랭킹을 불러오지 못했습니다.', e) from e
+        if source == 'kis':
+            try:
+                logging.getLogger('main').warning('KIS 사이드바 랭킹 실패, 키움 폴백: %s', e)
+                data = market_rank.fetch_sidebar_rank(get_kiwoom_token(), limit=limit)
+            except Exception as fallback_error:
+                raise _upstream_http_exception('사이드바 랭킹을 불러오지 못했습니다.', fallback_error) from fallback_error
+        else:
+            raise _upstream_http_exception('사이드바 랭킹을 불러오지 못했습니다.', e) from e
     _market_rank_cache[limit] = {'t': now, 'data': data}
     return envelope(data)
 
@@ -1734,7 +1772,14 @@ def market_board_endpoint(request: Request,
     if cached is not None and now - cached['t'] < cache_ttl:
         return envelope(cached['data'])
     try:
-        if market == 'us':
+        if _market_board_source() == 'kis':
+            kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
+            kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+            if market == 'us':
+                data = market_board.fetch_us_kis(kis_appkey, kis_appsecret, limit=limit)
+            else:
+                data = market_board.fetch_domestic_kis(kis_appkey, kis_appsecret, limit=limit)
+        elif market == 'us':
             data = market_board.fetch_us(
                 token=get_kiwoom_token(),
                 limit=limit,
@@ -1745,7 +1790,21 @@ def market_board_endpoint(request: Request,
     except HTTPException:
         raise
     except Exception as exc:
-        raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', exc) from exc
+        if _market_board_source() == 'kis':
+            try:
+                logging.getLogger('main').warning('KIS 시장 종목판 실패, 키움 폴백: %s', exc)
+                if market == 'us':
+                    data = market_board.fetch_us(
+                        token=get_kiwoom_token(),
+                        limit=limit,
+                        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+                    )
+                else:
+                    data = market_board.fetch_domestic(get_kiwoom_token(), limit=limit)
+            except Exception as fallback_error:
+                raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', fallback_error) from fallback_error
+        else:
+            raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', exc) from exc
     _market_board_cache[key] = {'t': now, 'data': data}
     return envelope(data)
 

@@ -43,6 +43,25 @@ class RealtimeQuotesTests(unittest.TestCase):
         self.assertEqual(events[0]['price'], 226500.0)
         self.assertEqual(events[0]['changeRate'], -1.52)
 
+    def test_parses_kis_domestic_trade_message(self):
+        row = ['005930', '123000', '70000', '2', '700', '1.00'] + [''] * 6 + ['100', '2000', '3000000']
+        events = realtime_quotes._kis_quote_events('0|H0STCNT0|1|' + '^'.join(row))
+
+        self.assertEqual(events[0]['code'], '005930')
+        self.assertEqual(events[0]['price'], 70000.0)
+        self.assertEqual(events[0]['changeRate'], 1.0)
+        self.assertEqual(events[0]['volume'], 2000.0)
+        self.assertEqual(events[0]['source'], 'KIS WebSocket')
+
+    def test_parses_kis_us_trade_message(self):
+        row = ['DNASAAPL', 'AAPL'] + [''] * 9 + ['200', '', '2', '1.0'] + [''] * 5 + ['1000']
+        events = realtime_quotes._kis_quote_events('0|HDFSCNT0|1|' + '^'.join(row))
+
+        self.assertEqual(events[0]['code'], 'US:AAPL')
+        self.assertEqual(events[0]['price'], 200.0)
+        self.assertEqual(events[0]['changeRate'], 1.0)
+        self.assertEqual(events[0]['volume'], 1000.0)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -408,3 +408,137 @@ def _avg_delta(rows):
         except (TypeError, ValueError):
             continue
     return sum(vals) / len(vals) if vals else 0.0
+
+
+# ---------------------------------------------------------------------------
+# 실시간 종목판용 순위 조회
+# ---------------------------------------------------------------------------
+
+def _get_overseas_rank(token, appkey, appsecret, path, tr_id, params):
+    """KIS 해외주식 순위 REST 공통 호출기."""
+    query = urllib.parse.urlencode(params)
+    req = urllib.request.Request(
+        BASE_URL + path + '?' + query,
+        headers={
+            'Content-Type': 'application/json; charset=utf-8',
+            'authorization': 'Bearer ' + token,
+            'appkey': appkey,
+            'appsecret': appsecret,
+            'tr_id': tr_id,
+            'custtype': 'P',
+        },
+        method='GET',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('%s HTTP %s: %s' % (tr_id, e.code, e.read().decode('utf-8', 'ignore')))
+    if data.get('rt_cd') not in (None, '0', 0):
+        raise RuntimeError('%s 실패: %s' % (tr_id, json.dumps(data, ensure_ascii=False)))
+    return data
+
+
+def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20):
+    """국내주식 순위분석[v1_국내주식-047].
+
+    sort_code: 0 평균거래량, 1 거래증가율, 2 평균거래회전율,
+               3 거래금액순, 4 평균거래금액회전율.
+    """
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/volume-rank',
+        'FHPST01710000',
+        {
+            'FID_COND_MRKT_DIV_CODE': 'UN',
+            'FID_COND_SCR_DIV_CODE': '20171',
+            'FID_INPUT_ISCD': '0000',
+            'FID_DIV_CLS_CODE': '0',
+            'FID_BLNG_CLS_CODE': sort_code,
+            'FID_TRGT_CLS_CODE': '0',
+            'FID_TRGT_EXLS_CLS_CODE': '0',
+            'FID_INPUT_PRICE_1': '',
+            'FID_INPUT_PRICE_2': '',
+            'FID_VOL_CNT': '',
+            'FID_INPUT_DATE_1': '',
+        },
+    )
+    rows = data.get('output') or []
+    if not isinstance(rows, list):
+        rows = [rows] if isinstance(rows, dict) else []
+    return rows[:max(1, min(int(limit), 100))]
+
+
+def fetch_domestic_fluctuation_rank(token, appkey, appsecret, limit=20):
+    """국내주식 등락률 순위[v1_국내주식-088]."""
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/ranking/fluctuation',
+        'FHPST01700000',
+        {
+            'FID_RSFL_RATE2': '',
+            'FID_COND_MRKT_DIV_CODE': 'J',
+            'FID_COND_SCR_DIV_CODE': '20170',
+            'FID_INPUT_ISCD': '0000',
+            'FID_RANK_SORT_CLS_CODE': '0',
+            'FID_INPUT_CNT_1': str(max(1, min(int(limit), 100))),
+            'FID_PRC_CLS_CODE': '0',
+            'FID_INPUT_PRICE_1': '',
+            'FID_INPUT_PRICE_2': '',
+            'FID_VOL_CNT': '',
+            'FID_TRGT_CLS_CODE': '0',
+            'FID_TRGT_EXLS_CLS_CODE': '0',
+            'FID_DIV_CLS_CODE': '0',
+            'FID_RSFL_RATE1': '',
+        },
+    )
+    rows = data.get('output') or []
+    if not isinstance(rows, list):
+        rows = [rows] if isinstance(rows, dict) else []
+    return rows[:max(1, min(int(limit), 100))]
+
+
+def fetch_domestic_market_cap_rank(token, appkey, appsecret, limit=20):
+    """국내주식 시가총액 상위[v1_국내주식-091]."""
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/ranking/market-cap',
+        'FHPST01740000',
+        {
+            'FID_INPUT_PRICE_2': '',
+            'FID_COND_MRKT_DIV_CODE': 'J',
+            'FID_COND_SCR_DIV_CODE': '20174',
+            'FID_DIV_CLS_CODE': '0',
+            'FID_INPUT_ISCD': '0000',
+            'FID_TRGT_CLS_CODE': '0',
+            'FID_TRGT_EXLS_CLS_CODE': '0',
+            'FID_INPUT_PRICE_1': '',
+            'FID_VOL_CNT': '',
+        },
+    )
+    rows = data.get('output') or []
+    if not isinstance(rows, list):
+        rows = [rows] if isinstance(rows, dict) else []
+    return rows[:max(1, min(int(limit), 100))]
+
+
+def fetch_us_trade_amount_rank(token, appkey, appsecret, exchange, limit=20):
+    """해외주식 거래대금순위[해외주식-044]의 거래소별 결과."""
+    data = _get_overseas_rank(
+        token, appkey, appsecret,
+        '/uapi/overseas-stock/v1/ranking/trade-pbmn',
+        'HHDFS76320010',
+        {
+            'EXCD': exchange,
+            'NDAY': '0',
+            'VOL_RANG': '0',
+            'AUTH': '',
+            'KEYB': '',
+            'PRC1': '',
+            'PRC2': '',
+        },
+    )
+    rows = data.get('output2') or data.get('output') or []
+    if not isinstance(rows, list):
+        rows = [rows] if isinstance(rows, dict) else []
+    return rows[:max(1, min(int(limit), 100))]

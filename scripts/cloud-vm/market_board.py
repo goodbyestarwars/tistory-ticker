@@ -9,6 +9,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import kiwoom_client
+import kis_client
 import market_rank
 import us_analysis
 import us_stocks
@@ -232,6 +233,138 @@ def fetch_domestic(token, limit=12, wics_map=None):
     }
 
 
+def _kis_value(row, *names):
+    """KIS 응답의 소문자/대문자 필드명을 안전하게 읽는다."""
+    if not isinstance(row, dict):
+        return None
+    lowered = {str(key).lower(): value for key, value in row.items()}
+    for name in names:
+        value = lowered.get(str(name).lower())
+        if value not in (None, ''):
+            return value
+    return None
+
+
+def _kis_domestic_row(row):
+    code = str(_kis_value(row, 'mksc_shrn_iscd', 'stck_shrn_iscd', 'sht_cd', 'code') or '').strip()
+    if not code:
+        return None
+    price = abs(_number(_kis_value(row, 'stck_prpr', 'cur_prc', 'price')) or 0)
+    volume = _number(_kis_value(row, 'acml_vol', 'cntg_vol', 'trde_qty', 'trade_volume')) or 0
+    amount = _number(_kis_value(row, 'acml_tr_pbmn', 'trde_prica', 'trade_amount'))
+    return {
+        'market': 'domestic',
+        'code': code,
+        'name': _kis_value(row, 'hts_kor_isnm', 'stck_kor_isnm', 'stck_nm', 'name') or code,
+        'price': price,
+        'change': _number(_kis_value(row, 'prdy_vrss', 'pred_pre', 'change')),
+        'change_rate': _number(_kis_value(row, 'prdy_ctrt', 'flu_rt', 'change_rate')) or 0,
+        'trade_volume': volume,
+        'trade_amount': amount if amount is not None else price * volume,
+        'market_cap': _number(_kis_value(row, 'stck_avls', 'market_cap', 'mktcap')) or 0,
+        'industry': '미분류',
+        'currency': 'KRW',
+    }
+
+
+def fetch_domestic_kis(appkey, appsecret, limit=12, wics_map=None):
+    """KIS 기반 국내 실시간 종목판.
+
+    거래금액·거래량·등락률·시가총액 순위를 각각 KIS REST로 조회하고,
+    동일한 공통 행 모델로 합친다. 기존 fetch_domestic()는 키움 롤백 경로로
+    유지한다.
+    """
+    if not appkey or not appsecret:
+        raise RuntimeError('KIS_APPKEY/KIS_APPSECRET가 없습니다.')
+    kis_token = kis_client.get_token(appkey, appsecret)
+    query_limit = max(12, min(int(limit), 20))
+    tasks = {
+        'amount': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='3', limit=query_limit),
+        'volume': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='0', limit=query_limit),
+        'rate': lambda: kis_client.fetch_domestic_fluctuation_rank(
+            kis_token, appkey, appsecret, limit=query_limit),
+        'cap': lambda: kis_client.fetch_domestic_market_cap_rank(
+            kis_token, appkey, appsecret, limit=query_limit),
+    }
+    rank_rows = {}
+    errors = []
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {name: pool.submit(fn) for name, fn in tasks.items()}
+        for name, future in futures.items():
+            try:
+                rank_rows[name] = future.result()
+            except Exception as exc:
+                errors.append('%s: %s' % (name, exc))
+                rank_rows[name] = []
+    if not any(rank_rows.values()):
+        raise RuntimeError('KIS 국내 순위 응답이 모두 비어 있습니다: ' + '; '.join(errors))
+
+    merged = {}
+    for rows in rank_rows.values():
+        for raw in rows:
+            item = _kis_domestic_row(raw)
+            if item:
+                current = merged.setdefault(item['code'], {})
+                for key, value in item.items():
+                    # 시가총액·등락률 순위 응답에는 거래량/가격 필드가 없을 수
+                    # 있어, 기본값 0이 먼저 수집한 실데이터를 덮지 않게 한다.
+                    if value is None:
+                        continue
+                    if key in ('price', 'trade_volume', 'trade_amount', 'market_cap', 'change_rate') \
+                            and value == 0 and current.get(key) not in (None, 0):
+                        continue
+                    current[key] = value
+    wics_map = wics_map or {}
+    for row in merged.values():
+        info = wics_map.get(row['code']) or {}
+        row['industry'] = info.get('industry') or info.get('sector') or '미분류'
+    sections = _sections(list(merged.values()))
+    return {
+        'market': 'domestic',
+        'session': '국내 · 오전 08:00~오후 08:00',
+        'rows': sections['tradeAmount'][:limit],
+        'sections': {key: value[:limit] for key, value in sections.items()},
+        'updated_at': int(time.time()),
+        'source': 'KIS 국내 순위(거래금액·거래량·등락률·시가총액)',
+    }
+
+
+def fetch_sidebar_rank_kis(appkey, appsecret, limit=5):
+    """KIS 기반 사이드바 거래량·상승·하락 순위."""
+    if not appkey or not appsecret:
+        raise RuntimeError('KIS_APPKEY/KIS_APPSECRET가 없습니다.')
+    kis_token = kis_client.get_token(appkey, appsecret)
+    query_limit = max(12, min(int(limit), 20))
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        volume_future = pool.submit(
+            kis_client.fetch_domestic_volume_rank,
+            kis_token, appkey, appsecret, '0', query_limit,
+        )
+        rate_future = pool.submit(
+            kis_client.fetch_domestic_fluctuation_rank,
+            kis_token, appkey, appsecret, query_limit,
+        )
+        volume_rows = volume_future.result()
+        rate_rows = rate_future.result()
+    volume = [item for item in (_kis_domestic_row(row) for row in volume_rows) if item]
+    rates = [item for item in (_kis_domestic_row(row) for row in rate_rows) if item]
+    return {
+        'tradeVolume': sorted(volume, key=lambda row: row.get('trade_volume') or 0, reverse=True)[:limit],
+        'upperLimit': sorted(
+            [row for row in rates if (row.get('change_rate') or 0) > 0],
+            key=lambda row: row.get('change_rate') or 0,
+            reverse=True,
+        )[:limit],
+        'lowerLimit': sorted(
+            [row for row in rates if (row.get('change_rate') or 0) < 0],
+            key=lambda row: row.get('change_rate') or 0,
+        )[:limit],
+        'source': 'KIS 국내 순위(거래량·등락률)',
+    }
+
+
 def _us_row(symbol, finnhub_api_key):
     try:
         quote = us_stocks.quote(symbol)
@@ -368,4 +501,74 @@ def fetch_us(token, limit=12, finnhub_api_key=''):
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),
         'source': source,
+    }
+
+
+def _kis_us_row(row):
+    symbol = str(_kis_value(row, 'symb', 'symbol', 'rsym', 'code') or '').strip().upper()
+    if symbol.startswith('D') and len(symbol) > 1 and symbol[1:].isalpha():
+        symbol = symbol[1:]
+    if not symbol:
+        return None
+    price = abs(_number(_kis_value(row, 'last', 'cur_prc', 'price')) or 0)
+    volume = _number(_kis_value(row, 'tvol', 'acml_vol', 'volume')) or 0
+    amount = _number(_kis_value(row, 'tamt', 'trde_prica', 'trade_amount'))
+    return {
+        'market': 'us',
+        'code': 'US:' + symbol,
+        'symbol': symbol,
+        'name': _kis_value(row, 'hts_kor_isnm', 'en_name', 'name', 'natn_name') or symbol,
+        'price': price,
+        'change': _number(_kis_value(row, 'diff', 'pred_pre', 'change')),
+        'change_rate': _number(_kis_value(row, 'rate', 'flu_rt', 'change_rate')) or 0,
+        'trade_volume': volume,
+        'trade_amount': amount if amount is not None else price * volume,
+        'market_cap': _number(_kis_value(row, 'mktcap', 'market_cap', 'stck_avls')) or 0,
+        'industry': '미분류',
+        'currency': 'USD',
+        'exchange': _kis_value(row, 'excd', 'exchange') or '',
+    }
+
+
+def fetch_us_kis(appkey, appsecret, limit=12):
+    """KIS 기반 미국 실시간 종목판.
+
+    KIS 해외 순위 API는 거래소별 조회이므로 NYSE/NASDAQ/AMEX를 병렬 조회한 뒤
+    거래대금 기준으로 합친다. 기존 fetch_us()는 키움/Finnhub 롤백 경로로 유지한다.
+    """
+    if not appkey or not appsecret:
+        raise RuntimeError('KIS_APPKEY/KIS_APPSECRET가 없습니다.')
+    kis_token = kis_client.get_token(appkey, appsecret)
+    query_limit = max(12, min(int(limit), 20))
+    rows = []
+    errors = []
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = {
+            exchange: pool.submit(
+                kis_client.fetch_us_trade_amount_rank,
+                kis_token, appkey, appsecret, exchange, query_limit,
+            )
+            for exchange in ('NYS', 'NAS', 'AMS')
+        }
+        for exchange, future in futures.items():
+            try:
+                rows.extend(future.result())
+            except Exception as exc:
+                errors.append('%s: %s' % (exchange, exc))
+    normalized = {}
+    for raw in rows:
+        item = _kis_us_row(raw)
+        if item:
+            normalized[item['symbol']] = item
+    if not normalized:
+        raise RuntimeError('KIS 미국 거래대금 순위 응답이 비어 있습니다: ' + '; '.join(errors))
+    ordered = sorted(normalized.values(), key=lambda row: row.get('trade_amount') or 0, reverse=True)
+    sections = _sections(ordered)
+    return {
+        'market': 'us',
+        'session': '미국 · 오후 08:00~오전 08:00',
+        'rows': ordered[:limit],
+        'sections': {key: value[:limit] for key, value in sections.items()},
+        'updated_at': int(time.time()),
+        'source': 'KIS 미국 거래대금 순위(HHDFS76320010)',
     }

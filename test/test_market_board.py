@@ -173,6 +173,49 @@ class MarketBoardTests(unittest.TestCase):
 
         self.assertEqual([row['code'] for row in result['rows']], ['005930'])
 
+    def test_domestic_kis_board_normalizes_rank_sources(self):
+        def volume_rank(_token, _appkey, _secret, sort_code='3', limit=20):
+            if sort_code == '3':
+                return [{'mksc_shrn_iscd': '005930', 'hts_kor_isnm': '삼성전자',
+                         'stck_prpr': '70000', 'acml_vol': '1000',
+                         'acml_tr_pbmn': '9000000000'}]
+            return [{'mksc_shrn_iscd': '000660', 'hts_kor_isnm': 'SK하이닉스',
+                     'stck_prpr': '100000', 'acml_vol': '5000',
+                     'acml_tr_pbmn': '5000000000'}]
+
+        with mock.patch.object(market_board.kis_client, 'get_token', return_value='kis-token'), \
+                mock.patch.object(market_board.kis_client, 'fetch_domestic_volume_rank', side_effect=volume_rank), \
+                mock.patch.object(market_board.kis_client, 'fetch_domestic_fluctuation_rank', return_value=[
+                    {'mksc_shrn_iscd': '005930', 'stck_prpr': '70000', 'prdy_vrss': '700', 'prdy_ctrt': '1.0'},
+                ]), \
+                mock.patch.object(market_board.kis_client, 'fetch_domestic_market_cap_rank', return_value=[
+                    {'mksc_shrn_iscd': '005930', 'stck_avls': '5000000'},
+                ]):
+            result = market_board.fetch_domestic_kis('appkey', 'secret', limit=1)
+
+        self.assertEqual(result['source'], 'KIS 국내 순위(거래금액·거래량·등락률·시가총액)')
+        self.assertEqual(result['rows'][0]['code'], '005930')
+        self.assertEqual(result['rows'][0]['trade_amount'], 9_000_000_000)
+        self.assertEqual(result['rows'][0]['market_cap'], 5_000_000)
+
+    def test_us_kis_board_merges_exchange_rankings(self):
+        def trade_amount(_token, _appkey, _secret, exchange, limit=20):
+            return [{
+                'symb': 'AAPL' if exchange == 'NAS' else 'IBM',
+                'hts_kor_isnm': '애플' if exchange == 'NAS' else 'IBM',
+                'last': '200', 'diff': '2', 'rate': '1.0',
+                'tvol': '1000', 'tamt': '300000' if exchange == 'NAS' else '100000',
+                'excd': exchange,
+            }]
+
+        with mock.patch.object(market_board.kis_client, 'get_token', return_value='kis-token'), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_trade_amount_rank', side_effect=trade_amount):
+            result = market_board.fetch_us_kis('appkey', 'secret', limit=2)
+
+        self.assertEqual(result['source'], 'KIS 미국 거래대금 순위(HHDFS76320010)')
+        self.assertEqual([row['symbol'] for row in result['rows']], ['AAPL', 'IBM'])
+        self.assertEqual(result['rows'][0]['trade_amount'], 300000)
+
 
 if __name__ == '__main__':
     unittest.main()
