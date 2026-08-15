@@ -119,7 +119,12 @@ def _kis_number(value):
 
 
 def _kis_quote_events(raw):
-    """KIS 국내 H0STCNT0/미국 HDFSCNT0 체결을 공통 이벤트로 변환한다."""
+    """KIS 국내 체결·통합호가/미국 체결을 공통 이벤트로 변환한다.
+
+    국내주식은 KRX/NXT를 따로 합치는 대신 KIS 통합 TR(H0UNCNT0/H0UNASP0)을
+    사용한다. 통합 호가는 10단계 가격·잔량을 브라우저가 바로 사용할 수 있는
+    asks/bids 배열로 내보낸다.
+    """
     if isinstance(raw, bytes):
         raw = raw.decode('utf-8', 'ignore')
     if not isinstance(raw, str) or not raw.startswith('0|'):
@@ -139,7 +144,7 @@ def _kis_quote_events(raw):
     events = []
     for index in range(count):
         row = fields[index * width:(index + 1) * width]
-        if tr_id in ('H0STCNT0', 'H0NXCNT0'):
+        if tr_id in ('H0STCNT0', 'H0NXCNT0', 'H0UNCNT0'):
             if len(row) < 15:
                 continue
             code = str(row[0]).strip().lstrip('A').upper()
@@ -152,6 +157,30 @@ def _kis_quote_events(raw):
                 'change': change or 0, 'changeRate': change_rate or 0,
                 'source': 'KIS WebSocket',
             }
+        elif tr_id == 'H0UNASP0':
+            if len(row) < 43:
+                continue
+            code = str(row[0]).strip().lstrip('A').upper()
+            if not _CODE_RE.match(code):
+                continue
+
+            def levels(start):
+                result = []
+                for offset in range(10):
+                    price = _kis_number(row[start + offset])
+                    qty = _kis_number(row[start + 20 + offset])
+                    if price is not None or qty is not None:
+                        result.append({'price': price, 'qty': qty})
+                return result
+
+            events.append({
+                'type': 'orderbook',
+                'code': code,
+                'asks': levels(3),
+                'bids': levels(13),
+                'source': 'KIS WebSocket',
+            })
+            continue
         elif tr_id == 'HDFSCNT0':
             if len(row) < 21:
                 continue
@@ -252,7 +281,9 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
     approval_key = await asyncio.to_thread(kis_client.get_approval_key, appkey, appsecret)
     registrations = []
     for code in domestic_codes:
-        registrations.extend((tr_id, code) for tr_id in ('H0STCNT0', 'H0NXCNT0'))
+        # KIS 통합 TR 하나로 KRX와 NXT를 함께 받는다. 같은 종목을 KRX/NXT
+        # 두 스트림에 중복 등록하면 브라우저에 중복 체결이 전달된다.
+        registrations.extend((tr_id, code) for tr_id in ('H0UNCNT0', 'H0UNASP0'))
     registrations.extend(_kis_us_keys(us_symbols)[:max(0, _MAX_CODES - len(registrations))])
     if not registrations:
         raise RuntimeError('KIS 실시간 구독 종목이 없습니다.')

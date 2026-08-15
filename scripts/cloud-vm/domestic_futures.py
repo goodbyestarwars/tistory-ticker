@@ -34,6 +34,7 @@ market 소스 키와 겹치지 않게 KOSPI_CASH로 구분했었는데, 이제 �
 
 import json
 import logging
+import os
 import threading
 import time
 import urllib.request
@@ -254,12 +255,32 @@ def refresh_minute_all():
         conn.close()
 
 
-def _poll_loop():
+def _poll_loop(use_kis_realtime=False):
     last_history_refresh = 0
     last_minute_refresh = 0
     while True:
         try:
-            refresh_realtime_all()
+            # KIS WebSocket가 정상 구성된 경우 주간선물 현재가·호가는 KIS가
+            # 단일 실시간 소스가 된다. KOSPI/KOSDAQ/환율은 기존 Naver 수집을
+            # 유지하되, FUT만 중복 폴링하지 않는다.
+            if not use_kis_realtime:
+                refresh_realtime_all()
+            else:
+                for symbol, (name, code) in REALTIME_SYMBOLS.items():
+                    if symbol != 'KOSPI200_DAY':
+                        try:
+                            q = fetch_index_realtime(code)
+                            if q:
+                                conn = db_schema.get_conn()
+                                try:
+                                    db_schema.upsert_future_price(
+                                        conn, symbol, name, q['price'], q['change'], q['change_rate'],
+                                        q['high'], q['low'], datetime.now(timezone.utc).isoformat(),
+                                    )
+                                finally:
+                                    conn.close()
+                        except Exception:
+                            logger.exception('domestic index realtime fetch failed: %s', symbol)
         except Exception:
             logger.exception('refresh_realtime_all failed')
         now = time.time()
@@ -279,6 +300,26 @@ def _poll_loop():
 
 
 def start_background():
-    t = threading.Thread(target=_poll_loop, name='domestic-futures-poll', daemon=True)
+    kis_appkey = os.environ.get('KIS_APPKEY')
+    kis_appsecret = os.environ.get('KIS_APPSECRET')
+    use_kis_realtime = bool(kis_appkey and kis_appsecret)
+    if use_kis_realtime:
+        try:
+            import websockets  # noqa: F401
+            import domestic_futures_ws
+            domestic_futures_ws.start_background(kis_appkey, kis_appsecret)
+            logger.info('KIS WebSocket enabled for KOSPI200 daytime futures')
+        except ImportError:
+            use_kis_realtime = False
+            logger.warning('websockets 미설치 - 주간선물은 기존 polling으로 동작합니다')
+        except Exception:
+            use_kis_realtime = False
+            logger.exception('KIS daytime futures WebSocket startup failed; using polling')
+    t = threading.Thread(
+        target=_poll_loop,
+        args=(use_kis_realtime,),
+        name='domestic-futures-poll',
+        daemon=True,
+    )
     t.start()
     return t

@@ -236,6 +236,10 @@ def create_schema(conn):
     _ensure_column(conn, 'investor_flow_daily', 'ind_net', 'REAL')
     _ensure_column(conn, 'future_prices', 'oi', 'INTEGER')
     _ensure_column(conn, 'future_prices', 'oi_change', 'INTEGER')
+    _ensure_column(conn, 'future_prices', 'ask_price', 'REAL')
+    _ensure_column(conn, 'future_prices', 'bid_price', 'REAL')
+    _ensure_column(conn, 'future_prices', 'ask_qty', 'REAL')
+    _ensure_column(conn, 'future_prices', 'bid_qty', 'REAL')
     _migrate_investor_trend_market(conn)
     conn.commit()
 
@@ -413,6 +417,26 @@ def upsert_future_price(conn, symbol, name, price, change, change_rate, high, lo
     conn.commit()
 
 
+def upsert_future_orderbook(conn, symbol, ask_price, bid_price, ask_qty, bid_qty, updated_at):
+    """KIS WebSocket 선물/옵션 1단계 호가를 저장한다.
+
+    가격 틱과 호가 틱은 서로 다른 TR로 도착하므로, 호가만 갱신할 때 가격·등락
+    데이터가 지워지지 않도록 별도 UPDATE를 사용한다.
+    """
+    cursor = conn.execute(
+        'UPDATE future_prices SET ask_price=?, bid_price=?, ask_qty=?, bid_qty=?, updated_at=? WHERE symbol=?',
+        (ask_price, bid_price, ask_qty, bid_qty, updated_at, symbol),
+    )
+    if cursor.rowcount == 0:
+        conn.execute(
+            'INSERT INTO future_prices '
+            '(symbol, name, ask_price, bid_price, ask_qty, bid_qty, updated_at) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (symbol, symbol, ask_price, bid_price, ask_qty, bid_qty, updated_at),
+        )
+    conn.commit()
+
+
 def upsert_future_chart_rows(conn, symbol, rows):
     """rows: [{date, open, high, low, close}, ...]. 중복 INSERT는 PRIMARY KEY(symbol,date) UPSERT로 방지."""
     conn.executemany(
@@ -469,11 +493,13 @@ def load_future_chart_minute(conn, symbol, limit_bars=1500):
 
 def load_all_future_prices(conn):
     rows = conn.execute(
-        'SELECT symbol, name, price, change, change_rate, high, low, updated_at, oi, oi_change FROM future_prices'
+        'SELECT symbol, name, price, change, change_rate, high, low, updated_at, oi, oi_change, '
+        'ask_price, bid_price, ask_qty, bid_qty FROM future_prices'
     ).fetchall()
     return [
         {'symbol': r[0], 'name': r[1], 'price': r[2], 'change': r[3], 'change_rate': r[4],
-         'high': r[5], 'low': r[6], 'updated_at': r[7], 'oi': r[8], 'oi_change': r[9]}
+         'high': r[5], 'low': r[6], 'updated_at': r[7], 'oi': r[8], 'oi_change': r[9],
+         'ask_price': r[10], 'bid_price': r[11], 'ask_qty': r[12], 'bid_qty': r[13]}
         for r in rows
     ]
 
