@@ -14,6 +14,8 @@ MOMENTUM_LOCK="$APP_DIR/.news_momentum_timer.lock"
 MOMENTUM_DB="$APP_DIR/news_momentum.db"
 SEARCH_SCAN_LOCK="$APP_DIR/.search_scan_refresh.lock"
 SEARCH_SCAN_LOG="$APP_DIR/search-scan-refresh.log"
+MAINTENANCE_TRIGGER_LOCK="$APP_DIR/.off_hours_maintenance_trigger.lock"
+MAINTENANCE_MARKER="$APP_DIR/.off_hours_maintenance_last_run_date"
 # 2026-08-02: _issue_labels() 폴백이 만들던 "장중 하락"·"마감 상승" 같은 순수 가격서술
 # 이슈를 코드 수정 이후에도 이미 저장된 행은 안 지워지므로, 배포 후 1회만 정리한다.
 PRICE_RECAP_CLEANUP_MARKER="$APP_DIR/.news_momentum_price_recap_cleanup_v1_done"
@@ -138,6 +140,32 @@ run_search_scan_refresh_after_deploy() {
   disown
 }
 
+run_off_hours_maintenance_if_due() {
+  local hour
+  local today_kst
+  local last_run
+  hour="$(TZ=Asia/Seoul date +%H)"
+  today_kst="$(TZ=Asia/Seoul date +%F)"
+  last_run="$(cat "$MAINTENANCE_MARKER" 2>/dev/null || echo "")"
+
+  # 새벽 03:00~05:00 KST에만 하루 한 번 실행한다. 별도 flock으로 감싸
+  # 유지보수가 길어져도 다음 배포 회차가 서로 막히지 않게 한다.
+  if [ "$hour" -lt 3 ] || [ "$hour" -ge 5 ] || [ "$last_run" = "$today_kst" ]; then
+    return 0
+  fi
+  (
+    flock -n 211 || exit 0
+    if "$PYTHON" "$APP_DIR/maintenance.py"; then
+      printf '%s\n' "$today_kst" > "$MAINTENANCE_MARKER.tmp"
+      mv "$MAINTENANCE_MARKER.tmp" "$MAINTENANCE_MARKER"
+      echo "장외 VM 유지보수 완료: $today_kst"
+    else
+      echo "장외 VM 유지보수 실패: 다음 5분 회차에서 재시도" >&2
+    fi
+  ) 211>"$MAINTENANCE_TRIGGER_LOCK" >>"$APP_DIR/maintenance.log" 2>&1 &
+  disown
+}
+
 LAST_DEPLOYED="$(cat "$DEPLOYED_FILE" 2>/dev/null || echo "")"
 git fetch origin master -q
 REMOTE="$(git rev-parse origin/master)"
@@ -166,6 +194,7 @@ fi
 # 실패해도 위 배포 결과와 FastAPI 재시작 성공을 되돌리거나 비정상 종료시키지 않는다.
 run_news_momentum_if_due "$DEPLOY_OCCURRED" || true
 run_price_recap_cleanup_once || true
+run_off_hours_maintenance_if_due || true
 
 # 2026-08-03: 주요 엔드포인트 로컬 응답시간을 5분마다 기록(GET /health/latency로 노출) -
 # VM 장애 진단 때 "느려진 것 같다"를 매번 SSH로 curl -w 재던 걸 자동화한 것. 엔드포인트가

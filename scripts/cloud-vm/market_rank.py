@@ -27,6 +27,7 @@ import threading
 import time
 
 import kiwoom_client
+import polling
 
 logger = logging.getLogger('market_rank')
 
@@ -67,12 +68,12 @@ def _refresh(appkey, secretkey, limit):
 
 
 def _poll_loop(appkey, secretkey, limit):
-    while True:
-        try:
-            _refresh(appkey, secretkey, limit)
-        except Exception:
-            logger.exception('market rank refresh failed')
-        time.sleep(_POLL_INTERVAL_SEC)
+    polling.run_forever(
+        lambda: _refresh(appkey, secretkey, limit),
+        _POLL_INTERVAL_SEC,
+        logger,
+        'market rank refresh failed',
+    )
 
 
 def start_background(appkey, secretkey, limit=20):

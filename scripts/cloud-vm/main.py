@@ -372,6 +372,12 @@ def get_kiwoom_token():
     return kiwoom_client.get_token(appkey, secretkey)
 
 
+def _upstream_http_exception(message, exc):
+    """외부 공급자 오류는 서버 로그에만 남기고 안전한 메시지로 변환한다."""
+    logging.getLogger('main').warning('%s: %s', message, type(exc).__name__)
+    return HTTPException(status_code=502, detail=message)
+
+
 @app.get('/health')
 def health():
     return envelope({
@@ -812,7 +818,7 @@ def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = H
                 return envelope(fallback)
         except Exception as fallback_error:
             logging.getLogger('main').warning(
-                'quote 공공데이터 fallback 실패(%s): %s', code, fallback_error,
+                'quote 공공데이터 fallback 실패(%s): %s', code, type(fallback_error).__name__,
             )
         # ETF/ETN/ELW는 일반 주식시세에 없을 수 있어 증권상품시세도 시도한다.
         try:
@@ -821,9 +827,9 @@ def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = H
                 return envelope(fallback)
         except Exception as fallback_error:
             logging.getLogger('main').warning(
-                'quote 증권상품 fallback 실패(%s): %s', code, fallback_error,
+                'quote 증권상품 fallback 실패(%s): %s', code, type(fallback_error).__name__,
             )
-        raise HTTPException(status_code=502, detail=str(primary_error))
+        raise _upstream_http_exception('주식 시세를 불러오지 못했습니다.', primary_error) from primary_error
     return envelope(res)
 
 
@@ -837,7 +843,7 @@ def us_search(request: Request, q: str = Query(..., min_length=1, max_length=40)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except us_stocks.UsStockUnavailable as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise _upstream_http_exception('미국주식 검색을 처리하지 못했습니다.', exc) from exc
 
 
 @app.get('/us-quote/{symbol}')
@@ -849,7 +855,7 @@ def us_quote(request: Request, symbol: str = Path(..., min_length=1, max_length=
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except us_stocks.UsStockUnavailable as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise _upstream_http_exception('미국주식 시세를 불러오지 못했습니다.', exc) from exc
 
 
 @app.get('/us-orderbook/{symbol}')
@@ -861,7 +867,7 @@ def us_orderbook(request: Request, symbol: str = Path(..., min_length=1, max_len
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except us_stocks.UsStockUnavailable as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise _upstream_http_exception('미국주식 호가를 불러오지 못했습니다.', exc) from exc
 
 
 @app.get('/us-chart/{symbol}')
@@ -874,7 +880,7 @@ def us_chart(request: Request, symbol: str = Path(..., min_length=1, max_length=
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except us_stocks.UsStockUnavailable as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise _upstream_http_exception('미국주식 차트를 불러오지 못했습니다.', exc) from exc
 
 
 @app.get('/us-news/{symbol}')
@@ -948,9 +954,9 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
             daily = public_data.fetch_stock_ohlc(code, max_days=None)
         except Exception as fallback_error:
             logging.getLogger('main').warning(
-                'ohlc 공공데이터 fallback 실패(%s): %s', code, fallback_error,
+                'ohlc 공공데이터 fallback 실패(%s): %s', code, type(fallback_error).__name__,
             )
-            raise HTTPException(status_code=502, detail=str(primary_error))
+            raise _upstream_http_exception('일봉 데이터를 불러오지 못했습니다.', primary_error) from primary_error
     if not daily:
         raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
     _live_cache_put(_ohlc_cache, code, daily)
@@ -977,7 +983,7 @@ def ohlc_minute(request: Request, code: str = Path(..., min_length=6, max_length
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise _upstream_http_exception('분봉 데이터를 불러오지 못했습니다.', e) from e
     if not minute:
         raise HTTPException(status_code=404, detail='분봉 데이터를 찾을 수 없습니다.')
     _live_cache_put(_ohlc_minute_cache, cache_key, minute)
@@ -1033,7 +1039,7 @@ def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise _upstream_http_exception('매물대 데이터를 불러오지 못했습니다.', e) from e
     today_bins = {}
     for r in rows:
         price = kiwoom_market.to_num(r.get('stck_prpr'))
@@ -1108,7 +1114,7 @@ def etf_components_endpoint(request: Request, code: str = Path(..., min_length=6
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise _upstream_http_exception('ETF 구성종목을 불러오지 못했습니다.', e) from e
     summary = data.get('output1') or {}
     components = []
     for row in data.get('output2') or []:
@@ -1155,7 +1161,7 @@ def investor_flow_endpoint(request: Request, code: str = Path(..., min_length=6,
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise _upstream_http_exception('투자자 수급 데이터를 불러오지 못했습니다.', e) from e
     if result is None:
         raise HTTPException(status_code=404, detail='해당 종목의 공매도/대차/수급 데이터를 찾을 수 없습니다.')
     _live_cache_put(_investor_flow_cache_mem, code, result)
@@ -1207,8 +1213,8 @@ def foreign_flow_endpoint(request: Request, code: str = Path(..., min_length=6, 
         finally:
             conn.close()
         if not daily:
-            raise HTTPException(status_code=502, detail=str(e))
-        logging.getLogger('main').warning('foreign-flow DB 확정 데이터 폴백(%s): %s', code, e)
+            raise _upstream_http_exception('외국인·기관 수급 데이터를 불러오지 못했습니다.', e) from e
+        logging.getLogger('main').warning('foreign-flow DB 확정 데이터 폴백(%s): %s', code, type(e).__name__)
     result = foreign_flow_compute.build_result(code, daily)
     if result is None:
         raise HTTPException(status_code=404, detail='수급 데이터를 찾을 수 없습니다.')
@@ -1266,7 +1272,7 @@ def stock_totqy_diag(request: Request, code: str = Path(..., min_length=6, max_l
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise _upstream_http_exception('진단용 종목 데이터를 불러오지 못했습니다.', e) from e
     return envelope({'code': code, 'corp_code': corp_code, 'year': year, 'business_report': annual, 'half_report': half})
 
 
@@ -1345,7 +1351,7 @@ _MINUTE_CHART_READ_SYMBOLS = domestic_futures.MINUTE_SYMBOLS | {'KOSPI200_NIGHT'
 
 
 @app.get('/futures')
-def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
+def futures(request: Request, interval: str = 'day', days: int = 90, symbols: str = ''):
     """보조지수/코스피 선물 페이지 전용 - 미국 현물지수 3종+선물 3종/SOX/VIX/WTI(네이버) +
     코스피200 주간/야간선물(네이버+KIS) + 원/달러 환율(네이버) 현재가+최근 일봉을 하나로 묶어
     반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /investor-flow와
@@ -1377,6 +1383,7 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
     서로 덮어쓰는 버그가 있었음)만 좁힌 것이었는데, 아래 분봉 판정이 같은 집합을 "분봉이
     존재할 수 있는 심볼"(읽기 범위) 게이트로도 재사용하고 있어 KOSPI200_NIGHT 분봉까지 통째로
     빠지는 부작용이 있었다. 이제 _MINUTE_CHART_READ_SYMBOLS(아래)로 분리한다."""
+    _check_rate_limit('futures', request, max_per_window=30)
     days = max(1, min(days, 500))
     started = time.time()
     cache_key = (interval, days, symbols)
@@ -1433,7 +1440,7 @@ def futures(interval: str = 'day', days: int = 90, symbols: str = ''):
 
 
 @app.get('/earnings-calendar')
-def earnings_calendar_endpoint(year: int = Query(..., ge=2000, le=2100), month: int = Query(default=None, ge=1, le=12)):
+def earnings_calendar_endpoint(request: Request, year: int = Query(..., ge=2000, le=2100), month: int = Query(default=None, ge=1, le=12)):
     """국내 DART 실적공시와 미국 Finnhub 예정 실적을 캘린더 이벤트로 반환한다.
 
     month가 없으면 해당 연도 1월~12월 전체를 반환해 연간 검색에 사용한다.
@@ -1441,6 +1448,7 @@ def earnings_calendar_endpoint(year: int = Query(..., ge=2000, le=2100), month: 
     각 공급자는 10분 캐시를 사용하며, 키가 없거나 외부 조회가 실패해도 다른
     일정과 기존 Google Calendar 일정은 유지한다.
     """
+    _check_rate_limit('earnings_calendar', request, max_per_window=30)
     key = '%04d-%02d' % (year, month) if month is not None else '%04d-year' % year
     cached = _earnings_calendar_cache.get(key)
     if cached and time.time() - cached['t'] < _EARNINGS_CALENDAR_TTL:
@@ -1610,13 +1618,14 @@ def option_flow_endpoint():
 
 
 @app.get('/kofia-market')
-def kofia_market_endpoint(days: int = Query(30, ge=7, le=90)):
+def kofia_market_endpoint(request: Request, days: int = Query(30, ge=7, le=90)):
     """KOFIA 공공데이터 보조지표(신용융자·증시자금) - 30분 캐시.
 
     키움/KIS의 실시간 시세를 대체하지 않고, 시장 브리핑의 중기 자금 맥락만
     보완한다. 키가 아직 VM에 없으면 빈 보조지표를 정상 응답해 기존 화면을
     막지 않는다.
     """
+    _check_rate_limit('kofia_market', request, max_per_window=10)
     global _kofia_market_cache
     now = time.time()
     cached = _kofia_market_cache.get(days)
@@ -1632,7 +1641,7 @@ def kofia_market_endpoint(days: int = Query(30, ge=7, le=90)):
             'series': [],
         }
     except Exception as exc:
-        logging.getLogger('main').warning('KOFIA public-data fallback failed: %s', exc)
+        logging.getLogger('main').warning('KOFIA public-data fallback failed: %s', type(exc).__name__)
         result = {
             'available': False,
             'source': 'data.go.kr: 금융위원회 금융투자협회 종합통계정보',
@@ -1644,12 +1653,13 @@ def kofia_market_endpoint(days: int = Query(30, ge=7, le=90)):
 
 
 @app.get('/domestic-market-indicators')
-def domestic_market_indicators_endpoint(fresh: bool = Query(False)):
+def domestic_market_indicators_endpoint(request: Request, fresh: bool = Query(False)):
     """국내시장지표: 현물 코스피/코스닥 차트, 투자자별 수급, 증시자금.
 
     The provider order is kept in domestic_market_indicators.py so the page
     never accidentally falls back to futures when the cash index API is down.
     """
+    _check_rate_limit('domestic_market_indicators', request, max_per_window=20)
     global _domestic_market_indicators_cache
     now = time.time()
     if (not fresh and _domestic_market_indicators_cache and
@@ -1677,7 +1687,7 @@ def domestic_market_indicators_endpoint(fresh: bool = Query(False)):
 
 
 @app.get('/market-rank')
-def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT)):
+def market_rank_endpoint(request: Request, limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT)):
     """사이드바 실시간 랭킹(거래대금 TOP/상한가/하한가) - 9bolt 우측 사이드바 리디자인
     (작업지시서 2026-07-20). 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만
     제한) - /futures, /option-flow와 동일한 패턴. limit: 기본 5(사이드바 미리보기), "더보기"
@@ -1689,6 +1699,7 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
     간헐적으로 떴다(원인 조사·수정 이력은 market_rank.py 상단 주석 참고). 백그라운드가 아직
     한 번도 못 채운 서버 기동 직후에만 기존 온디맨드 경로(_market_rank_cache 30초 TTL +
     키움 직접 호출)로 폴백해 빈 위젯이 뜨지 않게 한다."""
+    _check_rate_limit('market_rank', request, max_per_window=30)
     cached = market_rank.get_cached(limit)
     if cached is not None:
         return envelope(cached)
@@ -1703,7 +1714,7 @@ def market_rank_endpoint(limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT))
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise _upstream_http_exception('사이드바 랭킹을 불러오지 못했습니다.', e) from e
     _market_rank_cache[limit] = {'t': now, 'data': data}
     return envelope(data)
 
@@ -1734,7 +1745,7 @@ def market_board_endpoint(request: Request,
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', exc) from exc
     _market_board_cache[key] = {'t': now, 'data': data}
     return envelope(data)
 
@@ -1757,7 +1768,7 @@ def order_book_endpoint(request: Request, code: str = Path(..., min_length=6, ma
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise _upstream_http_exception('호가 정보를 불러오지 못했습니다.', e) from e
     _order_book_cache[code] = {'t': now, 'data': data}
     _order_book_cache.move_to_end(code)
     _evict_lru(_order_book_cache, 200)  # 2026-08-03: 전량비움 대신 LRU 1건씩 제거
@@ -1777,7 +1788,7 @@ def investor_trend_endpoint(period: str = Query('week'), market: str = Query('ko
     try:
         result = investor_trend.get_result(period, market)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise _upstream_http_exception('투자자 동향을 불러오지 못했습니다.', e) from e
     return envelope(result)
 
 

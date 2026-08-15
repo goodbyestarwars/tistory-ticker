@@ -43,3 +43,9 @@ scripts/cloud-vm/backups/
 /.news_momentum_batch_schema_version
 /.news_momentum_timer.lock
 /.news_momentum_python.lock
+/.off_hours_maintenance_last_run_date
+/.off_hours_maintenance.lock
+/.off_hours_maintenance_trigger.lock
+/deploy.log
+/search-scan-refresh.log
+/maintenance.log

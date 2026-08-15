@@ -45,14 +45,14 @@ flowchart LR
 - 시크릿 3종(`GROQ_API_KEY`, `KIWOOM_VM_URL`, `KIWOOM_VM_TOKEN`)은 스크립트 속성(PropertiesService)에서만 로드 — 코드 하드코딩 없음(확인됨). 2026-08-03에 `DEBUG_ACCESS_KEY`(선택, 미설정 시 `?debugShortNaver=1` 디버그 라우트 전체 비활성화)가 추가되었다. Google Calendar API 키는 GAS로 이관하는 방안을 검토했으나, 사용자가 GCP 콘솔에 리퍼러 제한을 이미 걸어둔 상태라 원복했다(§5, §7 참고).
 - `CacheService`로 응답 캐싱, TTL은 항목별 60초(장중 시세)~3시간(AI요약).
 - VM 호출 시 `X-API-Key: {KIWOOM_VM_TOKEN}` 헤더로 인증.
-- **git push만으로는 반영되지 않는다** — script.google.com에서 "배포 → 새 버전"을 수동으로 눌러야 한다.
+- `master` push 시 GitHub Actions(`.github/workflows/deploy-gas.yml`)가 `clasp push`와 기존 배포 ID 대상 `clasp deploy`를 실행한다. 저장소 Secrets가 없거나 워크플로가 실패한 경우에만 script.google.com에서 수동 배포한다.
 - 실행시간 6분 제한(Apps Script 정책). `getMarketTemp()`처럼 외부 호출 15회+가 직렬로 이어지는 경로가 있어(§4.2) 한도에 여유는 있으나 외부 API 지연이 겹치면 위험이 커질 수 있다.
 
 ### 2.3 클라우드 VM (`scripts/cloud-vm/`, FastAPI, `goodbyestar.cloud`)
 
 - 엔트리포인트 `main.py`(`uvicorn main:app`), systemd 상시 구동.
 - git push 후 VM이 약 5분 내 자동 재배포(구체 CI/CD는 저장소 밖 VM 설정).
-- 배포 직전 `backup_sqlite.py`가 `ohlc_snapshot.db`를 `sqlite3.Connection.backup()`으로 백업하고 무결성 검사 후 최근 7개만 보관, 배포 후 `/health`·`/news-momentum/000660`·인증 `/ohlc/005930`을 점검한다(`deploy_check.sh`).
+- 대용량 `ohlc_snapshot.db`의 배포 직전 백업은 I/O 병목 이력으로 비활성화되어 있다. 대신 `deploy_check.sh`가 장외 시간에 `maintenance.py`를 실행해 뉴스 DB 삭제 전 `backup_sqlite.py` 백업, 로그 상한, 뉴스·매물대 보존 정리, SQLite WAL 체크포인트·`PRAGMA optimize`를 수행한다. 배포 후 `/health`·`/news-momentum/000660`·인증 `/ohlc/005930`을 점검한다.
 - `deploy_check.sh`는 전체를 `flock`으로 감싸 5분 타이머 중첩 실행을 방지하고, Asia/Seoul 날짜 마커로 뉴스모멘텀 8종목 배치를 하루 1회만 실행한다.
 
 #### 2.3.1 인증 모델 (두 그룹)
@@ -98,7 +98,7 @@ CORS는 서버-서버 호출(브라우저가 아닌 curl/스크립트)에는 적
 | 컴포넌트 | 저장 위치 | 배포 트리거 | 반영까지 |
 |---|---|---|---|
 | `js/*.js`, `css/*.css`, `data/*.js`, `style.css` | 이 저장소 | `master` push | 1~10분(GitHub Pages, 캐시 max-age=600) |
-| `gas/ticker-proxy.gs` | 이 저장소 + GAS 프로젝트(별도) | **script.google.com 수동 배포** | git push만으론 반영 안 됨 |
+| `gas/ticker-proxy.gs` | 이 저장소 + GAS 프로젝트(별도) | **GitHub Actions 자동 배포** | Secrets/워크플로 실패 시 수동 대체 |
 | `scripts/cloud-vm/*.py` | 이 저장소 + VM | git push 후 VM 자동 배포 | 약 5분 |
 | `skin.html` | 이 저장소(히스토리) + Tistory 스킨 편집기 | **Tistory 관리자 수동 붙여넣기** | git push는 배포 경로 아님 |
 | `data/investor-flow-cache.js` | 이 저장소 | 사용자 PC 로컬 1일 1회 수동 실행 → push | 즉시(수동) |

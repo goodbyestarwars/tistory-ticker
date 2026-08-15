@@ -116,9 +116,11 @@
   전종목 전환 전까지 `--full`을 붙이지 않는다.
   배치는 OS 파일 잠금으로 중복 실행을 건너뛰고, 최근 90일 백필의 요청 시작일·실제 시작일·
   기준일·완료 여부를 `news_stock_coverage`에 기록한다.
-- 자동 배포는 서비스 재시작 전에 `backup_sqlite.py`의 Python `sqlite3.Connection.backup()`으로
-  `ohlc_snapshot.db`를 `backups/`에 백업하고 무결성 검사 후 최근 7개만 보관한다. 배포 뒤
-  `/health`, `/news-momentum/000660`, 인증 `/ohlc/005930`을 점검한다. 실패 시
+- 배포 직전의 대용량 `ohlc_snapshot.db` 백업은 I/O 병목을 피하려고 비활성화되어 있다.
+  대신 `deploy_check.sh`가 새벽 장외 시간에 `maintenance.py`를 하루 한 번 실행해
+  뉴스 DB를 삭제 전에 `backup_sqlite.py`로 백업하고 최근 7개만 보관한다. 유지보수는
+  로그 상한, 뉴스 90일·매물대 200일 보존, SQLite WAL 체크포인트·`PRAGMA optimize`를
+  수행한다. 배포 뒤 `/health`, `/news-momentum/000660`, 인증 `/ohlc/005930`을 점검한다. 실패 시
   기존 API 배포 회귀검사는 모멘텀 배치와 분리한다. 모멘텀 실패 시 기존 배포를 롤백하거나
   FastAPI를 다시 시작하지 않고 날짜 마커를 남기지 않는 방식으로만 재시도를 예약한다.
 - 필수 환경변수: `KIWOOM_APPKEY`/`KIWOOM_SECRETKEY`(키움 REST), `API_TOKEN`(GAS→VM 인증용

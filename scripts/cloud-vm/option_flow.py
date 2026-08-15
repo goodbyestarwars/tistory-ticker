@@ -15,11 +15,11 @@
 
 import logging
 import threading
-import time
 from datetime import datetime, timedelta, timezone
 
 import db_schema
 import kis_client
+import polling
 
 logger = logging.getLogger('option_flow')
 
@@ -109,12 +109,12 @@ def refresh_option_flow(appkey, appsecret):
 
 
 def _poll_loop(appkey, appsecret):
-    while True:
-        try:
-            refresh_option_flow(appkey, appsecret)
-        except Exception:
-            logger.exception('refresh_option_flow failed')
-        time.sleep(_POLL_INTERVAL_SEC)
+    polling.run_forever(
+        lambda: refresh_option_flow(appkey, appsecret),
+        _POLL_INTERVAL_SEC,
+        logger,
+        'refresh_option_flow failed',
+    )
 
 
 def start_background(appkey, appsecret):

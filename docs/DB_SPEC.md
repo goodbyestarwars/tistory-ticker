@@ -372,8 +372,9 @@ erDiagram
 
 ## 6. 백업/보존 정책
 
-- `backup_sqlite.py`: 배포(재시작) 직전 `sqlite3.Connection.backup()`으로 `ohlc_snapshot.db`를 `backups/`에 원자적 백업, 무결성 검사 후 **최근 7개만 보관**(그 이전은 삭제).
-- `news_momentum.db`는 `RETENTION_DAYS = 90`(`news_momentum.py:20`)이 코드 상수로 존재하나, 실제 90일 초과 데이터 삭제/정리를 수행하는 배치 호출부는 이번 리뷰 범위에서 별도로 추적하지 않았다(**미검증** — 보존 정책이 상수로 정의만 되어 있는지, 실제 주기적 삭제 job이 있는지는 `news_momentum.py` 내 삭제 SQL 실행부를 별도로 확인 필요).
+- `backup_sqlite.py`: 장외 유지보수에서 삭제 전 `news_momentum.db`를 `backups/`에 원자적 백업하고 무결성 검사 후 **최근 7개만 보관**한다. 대용량 `ohlc_snapshot.db`의 배포 직전 백업은 I/O 병목 이력 때문에 비활성화되어 있다.
+- `news_momentum.db`는 `RETENTION_DAYS = 90`(`news_momentum.py:20`) 기준으로 `maintenance.py`가 장외 시간에 `news_topic_daily`와 종료된 이슈의 오래된 DataLab 원본을 삭제한다.
+- `volume_profile_daily`는 `maintenance.py`와 API 요청 경로가 200일 이전 행을 삭제한다. 두 DB 모두 장외 유지보수 때 WAL 체크포인트와 `PRAGMA optimize`를 실행한다.
 - `verify_news_momentum_db.py`가 배포 검증 단계에서 `news_momentum.db`의 무결성/커버리지를 점검한다.
 - GAS `CacheService`는 자체 만료(TTL) 외 별도 백업이 없다 — 애초에 재생성 가능한 캐시이므로 보존 대상이 아니다.
 
@@ -392,4 +393,4 @@ erDiagram
 
 - **동시 쓰기 스레드 다수 vs 단일 SQLite 파일**: `ohlc_snapshot.db`에 최대 7개 백그라운드 폴러 + 요청 핸들러가 동시에 쓴다. WAL/busy_timeout으로 파일 잠금 충돌은 해소되지만, `future_chart_minute`의 `KOSPI200_NIGHT` 심볼처럼 **서로 다른 두 폴러가 같은 키를 다른 값으로 upsert**하는 논리적 충돌은 스키마·동시성 설정만으로 막을 수 없다(`ARCHITECTURE_SPEC.md` §2.3.2, `SOURCE_CODE_SPEC.md` §6.2 참고).
 - **JSON 캐시와 SQLite의 이원화가 진행 중**: `fundamentals`/`investor_summary`는 SQLite로 이관됐지만 `daily_scan_cache.json`/`week52_cache.json`은 여전히 파일 기반이다 — 두 저장 방식이 당분간 공존한다.
-- **`news_momentum.db` 보존 정책 실행 여부 미검증**(§6).
+- **운영 장기 보존 정책**: `maintenance.py`가 장외 시간에 뉴스·매물대 보존 정리를 수행한다(§6). 운영 VM에서는 `deploy_check.sh`의 유지보수 로그와 날짜 마커로 실행 성공 여부를 확인한다.
