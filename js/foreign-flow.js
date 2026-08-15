@@ -162,6 +162,7 @@
   var signalSortKey = 'score';
   var signalVisibleCount = SIGNAL_PAGE_SIZE;
   var activeSignalCode = null;  // 우측 요약 패널에 표시 중인 종목코드(리스트 하이라이트용)
+  var signalRequestSeq = 0;     // 이전 종목의 늦은 응답이 현재 배너를 덮어쓰지 않게 하는 요청 번호
   var signalSearchQuery = '';   // 리스트 내부 종목명 검색어(빈 문자열이면 검색 비활성)
 
   function init() {
@@ -450,6 +451,7 @@
 
   function clearSignalSelection(container) {
     activeSignalCode = null;
+    signalRequestSeq++;
     var bannerBox = container.querySelector('#ffSigBanner');
     var panelBox = container.querySelector('#ffSigSummary');
     if (bannerBox) {
@@ -529,9 +531,13 @@
   // 그대로 재사용 - 5분 메모리 캐시가 이미 걸려 있어 같은 종목을 리스트에서 눌렀다가 검색창으로
   // 다시 조회해도 중복 호출이 없다.
   function loadSignalSummary(container, code, name) {
+    var requestId = ++signalRequestSeq;
     var bannerBox = container.querySelector('#ffSigBanner');
     var panelBox = container.querySelector('#ffSigSummary');
-    if (bannerBox) bannerBox.hidden = true;
+    if (bannerBox) {
+      bannerBox.hidden = true;
+      bannerBox.innerHTML = '';
+    }
     if (panelBox) panelBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(name) + ' 불러오는 중...</div></div>';
     syncSignalPanelHeight(container);
 
@@ -542,7 +548,7 @@
 
     Promise.all([ForeignFlow.fetchFlow(code, name), chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
-        if (activeSignalCode !== code) return; // 응답 오는 사이 다른 종목을 눌렀으면 무시(레이스 방지)
+        if (activeSignalCode !== code || signalRequestSeq !== requestId) return; // 이전 요청 응답은 무시(레이스 방지)
         var data = results[0], chartData = results[1], entry = results[2], quote = results[3], fundamentals = results[4];
         if (!data || data.error || !data.daily || !data.daily.length) {
           if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요.</div>';
@@ -554,7 +560,7 @@
         syncSignalPanelHeight(container);
       })
       .catch(function () {
-        if (activeSignalCode !== code) return;
+        if (activeSignalCode !== code || signalRequestSeq !== requestId) return;
         if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
         syncSignalPanelHeight(container);
       });
