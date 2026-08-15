@@ -3091,10 +3091,19 @@
       resetBtn.disabled = true;
     }
 
+    function pause() {
+      if (!timer) return;
+      clearInterval(timer);
+      timer = null;
+      playBtn.disabled = false;
+      playBtn.textContent = '▶ 재생';
+    }
+
     function play() {
       if (timer) return;
       updateAxis();
-      playBtn.disabled = true;
+      playBtn.disabled = false;
+      playBtn.textContent = '⏸ 일시정지';
       resetBtn.disabled = false;
       var n = daily.length;
       var perTick = Math.max(1, Math.ceil(n / 220)); // 약 5초 안팎으로 재생되도록 프레임 보정
@@ -3111,7 +3120,11 @@
     }
 
     playBtn.addEventListener('click', function () {
-      if (idx >= daily.length - 1 && !timer) reset();
+      if (timer) {
+        pause();
+        return;
+      }
+      if (idx >= daily.length - 1) reset();
       play();
     });
     resetBtn.addEventListener('click', reset);
