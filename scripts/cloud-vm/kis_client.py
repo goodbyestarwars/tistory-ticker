@@ -542,3 +542,66 @@ def fetch_us_trade_amount_rank(token, appkey, appsecret, exchange, limit=20):
     if not isinstance(rows, list):
         rows = [rows] if isinstance(rows, dict) else []
     return rows[:max(1, min(int(limit), 100))]
+
+
+def _fetch_us_rank_rows(token, appkey, appsecret, exchange, path, tr_id, params, limit=20):
+    """해외주식 순위 API의 output2를 공통으로 꺼낸다."""
+    data = _get_overseas_rank(token, appkey, appsecret, path, tr_id, dict(params, EXCD=exchange))
+    rows = data.get('output2') or data.get('output') or []
+    if not isinstance(rows, list):
+        rows = [rows] if isinstance(rows, dict) else []
+    return rows[:max(1, min(int(limit), 100))]
+
+
+def fetch_us_trade_volume_rank(token, appkey, appsecret, exchange, limit=20):
+    """해외주식 거래량순위[해외주식-043], TR HHDFS76310010."""
+    return _fetch_us_rank_rows(
+        token, appkey, appsecret, exchange,
+        '/uapi/overseas-stock/v1/ranking/trade-vol', 'HHDFS76310010',
+        {'NDAY': '0', 'PRC1': '', 'PRC2': '', 'VOL_RANG': ''}, limit,
+    )
+
+
+def fetch_us_market_cap_rank(token, appkey, appsecret, exchange, limit=20):
+    """해외주식 시가총액순위[해외주식-047], TR HHDFS76350100."""
+    return _fetch_us_rank_rows(
+        token, appkey, appsecret, exchange,
+        '/uapi/overseas-stock/v1/ranking/market-cap', 'HHDFS76350100',
+        {'VOL_RANG': ''}, limit,
+    )
+
+
+def fetch_us_updown_rank(token, appkey, appsecret, exchange, gubn='1', limit=20):
+    """해외주식 상승율/하락율[해외주식-041], TR HHDFS76290000."""
+    return _fetch_us_rank_rows(
+        token, appkey, appsecret, exchange,
+        '/uapi/overseas-stock/v1/ranking/updown-rate', 'HHDFS76290000',
+        {'GUBN': gubn, 'NDAY': '0', 'VOL_RANG': ''}, limit,
+    )
+
+
+def fetch_us_volume_surge_rank(token, appkey, appsecret, exchange, limit=20):
+    """해외주식 거래량급증[해외주식-039], TR HHDFS76270000."""
+    return _fetch_us_rank_rows(
+        token, appkey, appsecret, exchange,
+        '/uapi/overseas-stock/v1/ranking/volume-surge', 'HHDFS76270000',
+        {'MIXN': '0', 'VOL_RANG': ''}, limit,
+    )
+
+
+def fetch_us_volume_power_rank(token, appkey, appsecret, exchange, limit=20):
+    """해외주식 매수체결강도상위[해외주식-040], TR HHDFS76280000."""
+    return _fetch_us_rank_rows(
+        token, appkey, appsecret, exchange,
+        '/uapi/overseas-stock/v1/ranking/volume-power', 'HHDFS76280000',
+        {'NDAY': '0', 'VOL_RANG': ''}, limit,
+    )
+
+
+def fetch_us_new_highlow_rank(token, appkey, appsecret, exchange, gubn='1', limit=20):
+    """해외주식 신고/신저가[해외주식-042], TR HHDFS76300000."""
+    return _fetch_us_rank_rows(
+        token, appkey, appsecret, exchange,
+        '/uapi/overseas-stock/v1/ranking/new-highlow', 'HHDFS76300000',
+        {'GUBN': gubn, 'GUBN2': '1', 'NDAY': '6', 'VOL_RANG': ''}, limit,
+    )

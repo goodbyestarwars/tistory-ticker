@@ -19,9 +19,19 @@
     ['marketCap', '시가총액'],
     ['industry', '업종']
   ];
-  // KIS 해외 거래대금 순위 응답에는 미국 업종·시가총액 필드가 없다.
-  // 값이 없는 탭을 실제 순위처럼 노출하지 않고, 지원되는 순위만 보여준다.
-  var US_TABS = TABS.slice(0, 4);
+  // KIS 해외주식 순위분석 API가 제공하는 미국 순위들만 노출한다.
+  // 업종은 별도 업종별 시세 API가 필요한 분류 화면이므로 이 종목판에서는 제외한다.
+  var US_TABS = [
+    ['tradeAmount', '거래대금'],
+    ['tradeVolume', '거래량'],
+    ['rising', '상승률'],
+    ['falling', '하락률'],
+    ['marketCap', '시가총액'],
+    ['volumeSurge', '거래량급증'],
+    ['volumePower', '체결강도'],
+    ['newHigh', '신고가'],
+    ['newLow', '신저가']
+  ];
   var TABLE_COLUMNS = [
     ['stock', '종목'],
     ['price', '현재가'],
@@ -32,7 +42,7 @@
     ['cap', '시가총액'],
     ['industry', '업종']
   ];
-  var US_TABLE_COLUMNS = TABLE_COLUMNS.slice(0, 6);
+  var US_TABLE_COLUMNS = TABLE_COLUMNS.slice(0, 7);
   var state = {
     mount: null,
     market: '',

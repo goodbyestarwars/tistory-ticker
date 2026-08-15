@@ -209,12 +209,20 @@ class MarketBoardTests(unittest.TestCase):
             }]
 
         with mock.patch.object(market_board.kis_client, 'get_token', return_value='kis-token'), \
-                mock.patch.object(market_board.kis_client, 'fetch_us_trade_amount_rank', side_effect=trade_amount):
+                mock.patch.object(market_board.kis_client, 'fetch_us_trade_amount_rank', side_effect=trade_amount), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_trade_volume_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_market_cap_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_updown_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_volume_surge_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_volume_power_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_new_highlow_rank', return_value=[]):
             result = market_board.fetch_us_kis('appkey', 'secret', limit=2)
 
-        self.assertEqual(result['source'], 'KIS 미국 거래대금 순위(HHDFS76320010)')
+        self.assertIn('KIS 미국 순위', result['source'])
         self.assertEqual([row['symbol'] for row in result['rows']], ['AAPL', 'IBM'])
         self.assertEqual(result['rows'][0]['trade_amount'], 300000)
+        self.assertIn('marketCap', result['sections'])
+        self.assertIn('volumeSurge', result['sections'])
 
 
 if __name__ == '__main__':
