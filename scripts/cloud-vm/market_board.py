@@ -270,7 +270,8 @@ def _kis_domestic_row(row):
 def fetch_domestic_kis(appkey, appsecret, limit=12, wics_map=None):
     """KIS 기반 국내 실시간 종목판.
 
-    거래금액·거래량·등락률·시가총액 순위를 각각 KIS REST로 조회하고,
+    거래금액·거래량·거래증가율·거래회전율·거래대금회전율·등락률·시가총액
+    순위를 각각 KIS REST로 조회하고,
     동일한 공통 행 모델로 합친다. 기존 fetch_domestic()는 키움 롤백 경로로
     유지한다.
     """
@@ -283,6 +284,12 @@ def fetch_domestic_kis(appkey, appsecret, limit=12, wics_map=None):
             kis_token, appkey, appsecret, sort_code='3', limit=query_limit),
         'volume': lambda: kis_client.fetch_domestic_volume_rank(
             kis_token, appkey, appsecret, sort_code='0', limit=query_limit),
+        'volumeGrowth': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='1', limit=query_limit),
+        'turnover': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='2', limit=query_limit),
+        'amountTurnover': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='4', limit=query_limit),
         'rate': lambda: kis_client.fetch_domestic_fluctuation_rank(
             kis_token, appkey, appsecret, limit=query_limit),
         'cap': lambda: kis_client.fetch_domestic_market_cap_rank(
@@ -321,13 +328,38 @@ def fetch_domestic_kis(appkey, appsecret, limit=12, wics_map=None):
         info = wics_map.get(row['code']) or {}
         row['industry'] = info.get('industry') or info.get('sector') or '미분류'
     sections = _sections(list(merged.values()))
+
+    # KIS 순위 API는 응답 자체가 해당 정렬 순서이므로, 거래증가율·회전율은
+    # 공통 행 모델로 합친 뒤 API가 반환한 순서를 유지한다.
+    def ordered_section(rank_name):
+        result = []
+        seen = set()
+        for raw in rank_rows.get(rank_name) or []:
+            item = _kis_domestic_row(raw)
+            code = item.get('code') if item else None
+            if code and code in merged and code not in seen:
+                result.append(merged[code])
+                seen.add(code)
+        return result
+
+    for section_name, rank_name in (
+        ('tradeAmount', 'amount'),
+        ('tradeVolume', 'volume'),
+        ('volumeGrowth', 'volumeGrowth'),
+        ('turnover', 'turnover'),
+        ('amountTurnover', 'amountTurnover'),
+        ('marketCap', 'cap'),
+    ):
+        ordered = ordered_section(rank_name)
+        if ordered:
+            sections[section_name] = ordered
     return {
         'market': 'domestic',
         'session': '국내 · 오전 08:00~오후 08:00',
         'rows': sections['tradeAmount'][:limit],
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),
-        'source': 'KIS 국내 순위(거래금액·거래량·등락률·시가총액)',
+        'source': 'KIS 국내 순위(거래금액·거래량·거래증가율·거래회전율·거래대금회전율·등락률·시가총액)',
     }
 
 

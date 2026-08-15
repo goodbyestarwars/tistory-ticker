@@ -17,6 +17,9 @@
   var TABS = [
     ['tradeAmount', '거래대금'],
     ['tradeVolume', '거래량'],
+    ['volumeGrowth', '거래증가율'],
+    ['turnover', '거래회전율'],
+    ['amountTurnover', '거래대금회전율'],
     ['rising', '상승률'],
     ['falling', '하락률'],
     ['marketCap', '시가총액'],
