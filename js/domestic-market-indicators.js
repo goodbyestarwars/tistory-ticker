@@ -320,7 +320,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-collapse-important';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-value-color';
     document.head.appendChild(link);
   }
 
@@ -530,10 +530,18 @@
   // 쌓은 로컬 이력(programTrading.history)을 그대로 쓴다 - 배포 직후에는 며칠 치밖에
   // 없어 그래프가 짧게 시작해서 매일 자동으로 길어진다(백필 스크립트로 미리 채울 수도
   // 있음).
+  // 2026-08-14 요청: 값 자체 글자색도 미니 그래프 선 색과 같은 기준(1년 평균 대비 높으면
+  // 빨강/낮으면 파랑)으로 맞춘다. 차익/비차익거래처럼 부호가 있는 값도 "순매수/순매도"
+  // 자체 부호가 아니라 "평소보다 많이 샀는지/팔았는지"(평균 대비)로 통일 - 신용잔고 같은
+  // 잔고형 값은 항상 양수라 부호 기준으로는 색이 전혀 안 갈렸던 문제도 같이 해결된다.
+  function avgCompareClass(value, avg) {
+    if (value == null || avg == null) return '';
+    return value > avg ? 'dmi-positive' : value < avg ? 'dmi-negative' : '';
+  }
+
   function programTradingCard(label, desc, field, programTrading) {
     var value = programTrading[field];
     var unit = programTrading.unit;
-    var cls = value > 0 ? 'dmi-positive' : value < 0 ? 'dmi-negative' : '';
     var history = (programTrading.history || []).map(function (row) { return row[field]; })
       .filter(function (v) { return typeof v === 'number' && isFinite(v); });
     var yearAvg = programTrading.yearAverage && programTrading.yearAverage[field];
@@ -542,7 +550,7 @@
     var yearCount = Math.min(YEAR_AVERAGE_DAYS, history.length);
     return '<article class="dmi-fund-card"><span class="dmi-fund-label">' + escapeHtml(label) + '</span>'
       + '<span class="dmi-fund-desc">' + escapeHtml(desc) + '</span>'
-      + '<strong class="dmi-fund-value ' + cls + '">' + formatSignedFunds(value, unit) + '</strong>'
+      + '<strong class="dmi-fund-value ' + avgCompareClass(value, yearAvg) + '">' + formatSignedFunds(value, unit) + '</strong>'
       + (recentAvg != null ? '<span class="dmi-fund-average">최근 평균 ' + formatSignedFunds(recentAvg, unit) + ' (' + recentCount + '일 평균)</span>' : '')
       + (yearAvg != null ? '<span class="dmi-fund-average">1년 평균 ' + formatSignedFunds(yearAvg, unit) + ' (' + yearCount + '일 평균)</span>' : '')
       + miniAverageChart(history, yearAvg)
@@ -555,7 +563,7 @@
     var yearAvg = averageOf(seriesValues, YEAR_AVERAGE_DAYS);
     return '<article class="dmi-fund-card"><span class="dmi-fund-label">' + escapeHtml(label) + '</span>'
       + '<span class="dmi-fund-desc">' + escapeHtml(desc) + '</span>'
-      + '<strong class="dmi-fund-value">' + formatFunds(value, unit) + '</strong>'
+      + '<strong class="dmi-fund-value ' + avgCompareClass(value, yearAvg) + '">' + formatFunds(value, unit) + '</strong>'
       + (recentAvg != null ? '<span class="dmi-fund-average">최근 평균 ' + averageText(seriesValues, unit, RECENT_AVERAGE_DAYS) + '</span>' : '')
       + (yearAvg != null ? '<span class="dmi-fund-average">1년 평균 ' + averageText(seriesValues, unit, YEAR_AVERAGE_DAYS) + '</span>' : '')
       + miniAverageChart(seriesValues.slice(-YEAR_AVERAGE_DAYS), yearAvg)

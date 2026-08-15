@@ -87,11 +87,13 @@
 .dmi-flow-table td.dmi-positive { color: #d24f45 !important; }
 .dmi-flow-table td.dmi-negative { color: #1261c4 !important; }
 .dmi-fund-card { min-height: 150px; }
-.dmi-fund-label { color: #000; font-size: 14px; }
+.dmi-fund-label { color: #000; font-size: 14px; font-weight: 700; }
 .dmi-fund-desc { display: block; margin-top: 5px; color: #000; font-size: 12px; line-height: 1.45; }
 .dmi-fund-value { display: block; margin: 8px 0 4px; color: #000; font-size: 23px; font-weight: 700; }
-.dmi-fund-value.dmi-positive { color: #d24f45; }
-.dmi-fund-value.dmi-negative { color: #1261c4; }
+/* !important: 위 .dmi-shell .dmi-fund-card * { color:#000 !important } 블록 규칙이 이겨서
+   이 색이 실제로는 한 번도 안 보이고 있었다(2026-08-14 발견) - 여기도 !important로 맞춘다. */
+.dmi-fund-value.dmi-positive { color: #d24f45 !important; }
+.dmi-fund-value.dmi-negative { color: #1261c4 !important; }
 .dmi-fund-average { display: block; color: #000; font-size: 12px; }
 .dmi-fund-date { display: block; margin-top: 6px; color: #000; font-size: 12px; }
 
