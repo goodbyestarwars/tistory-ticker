@@ -19,6 +19,20 @@
     ['marketCap', '시가총액'],
     ['industry', '업종']
   ];
+  // KIS 해외 거래대금 순위 응답에는 미국 업종·시가총액 필드가 없다.
+  // 값이 없는 탭을 실제 순위처럼 노출하지 않고, 지원되는 순위만 보여준다.
+  var US_TABS = TABS.slice(0, 4);
+  var TABLE_COLUMNS = [
+    ['stock', '종목'],
+    ['price', '현재가'],
+    ['amount', '거래대금'],
+    ['volume', '거래량'],
+    ['rising', '상승률'],
+    ['falling', '하락률'],
+    ['cap', '시가총액'],
+    ['industry', '업종']
+  ];
+  var US_TABLE_COLUMNS = TABLE_COLUMNS.slice(0, 6);
   var state = {
     mount: null,
     market: '',
@@ -137,6 +151,24 @@
     return hour >= 20 || hour < 8 ? 'us' : 'domestic';
   }
 
+  function tabsForMarket() {
+    return state.market === 'us' ? US_TABS : TABS;
+  }
+
+  function columnsForMarket() {
+    return state.market === 'us' ? US_TABLE_COLUMNS : TABLE_COLUMNS;
+  }
+
+  function tableColspan() {
+    return columnsForMarket().length;
+  }
+
+  function isWeekendInKst() {
+    var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    var day = kst.getUTCDay();
+    return day === 0 || day === 6;
+  }
+
   function marketLabel(market) {
     return market === 'us' ? '미국 · 오후 08:00~오전 08:00' : '국내 · 오전 08:00~오후 08:00';
   }
@@ -224,29 +256,37 @@
     if ((!industry || industry === '미분류') && global.WICS_MAP && global.WICS_MAP[code]) {
       industry = global.WICS_MAP[code].industry || global.WICS_MAP[code].sector || '';
     }
-    return '<tr data-code="' + escapeHtml(code) + '">'
-      + '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span>' + stockIconHtml(item) + '<a href="/page/stock-search?code=' + encodeURIComponent(code)
-      + '&name=' + encodeURIComponent(item.name || code) + '"><strong>' + escapeHtml(item.name || code) + '</strong><small>'
-      + escapeHtml(item.symbol || code) + '</small></a></td>'
-      + '<td class="hrt-price" data-field="price">' + fmtPrice(item.price, item.currency) + '</td>'
-      + '<td data-field="amount">' + fmtAmount(item.trade_amount, item.currency) + '</td>'
-      + '<td data-field="volume">' + fmtCount(item.trade_volume) + '</td>'
-      + '<td data-field="rising">' + rateCell(rate, true) + '</td>'
-      + '<td data-field="falling">' + rateCell(rate, false) + '</td>'
-      + '<td data-field="cap">' + fmtMarketCap(item.market_cap, item.currency) + '</td>'
-      + '<td class="hrt-industry" title="' + escapeHtml(industry) + '">' + escapeHtml(industry || '-') + '</td>'
-      + '</tr>';
+    var cells = {
+      stock: '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span>' + stockIconHtml(item) + '<a href="/page/stock-search?code=' + encodeURIComponent(code)
+        + '&name=' + encodeURIComponent(item.name || code) + '"><strong>' + escapeHtml(item.name || code) + '</strong><small>'
+        + escapeHtml(item.symbol || code) + '</small></a></td>',
+      price: '<td class="hrt-price" data-field="price">' + fmtPrice(item.price, item.currency) + '</td>',
+      amount: '<td data-field="amount">' + fmtAmount(item.trade_amount, item.currency) + '</td>',
+      volume: '<td data-field="volume">' + fmtCount(item.trade_volume) + '</td>',
+      rising: '<td data-field="rising">' + rateCell(rate, true) + '</td>',
+      falling: '<td data-field="falling">' + rateCell(rate, false) + '</td>',
+      cap: '<td data-field="cap">' + fmtMarketCap(item.market_cap, item.currency) + '</td>',
+      industry: '<td class="hrt-industry" title="' + escapeHtml(industry) + '">' + escapeHtml(industry || '-') + '</td>'
+    };
+    return '<tr data-code="' + escapeHtml(code) + '">' + columnsForMarket().map(function (column) {
+      return cells[column[0]];
+    }).join('') + '</tr>';
   }
 
   function buildShell(mount) {
+    var tabs = tabsForMarket();
+    var columns = columnsForMarket();
+    var colspan = columns.length;
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
       + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div>'
       + '<div class="hrt-tabs" role="tablist" aria-label="실시간 종목 정렬">'
-      + TABS.map(function (tab) {
+      + tabs.map(function (tab) {
         return '<button type="button" role="tab" data-hrt-tab="' + tab[0] + '" aria-selected="' + (tab[0] === state.active) + '">' + tab[1] + '</button>';
       }).join('') + '</div>'
-      + '<div class="hrt-table-wrap"><table><thead><tr><th>종목</th><th>현재가</th><th>거래대금</th><th>거래량</th><th>상승률</th><th>하락률</th><th>시가총액</th><th>업종</th></tr></thead>'
-      + '<tbody data-hrt-body><tr><td colspan="8" class="hrt-state">실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
+      + '<div class="hrt-table-wrap"><table><thead><tr>' + columns.map(function (column) {
+        return '<th>' + column[1] + '</th>';
+      }).join('') + '</tr></thead>'
+      + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state">실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
       + '<div class="hrt-foot"><span>체결 발생 행만 갱신</span></div>';
   }
 
@@ -262,7 +302,7 @@
     var rows = rowsForActive();
     body.innerHTML = rows.length
       ? rows.map(function (item, index) { return rowHtml(item, index + 1); }).join('')
-      : '<tr><td colspan="8" class="hrt-state">현재 세션의 종목 데이터가 없습니다.</td></tr>';
+      : '<tr><td colspan="' + tableColspan() + '" class="hrt-state">현재 세션의 종목 데이터가 없습니다.</td></tr>';
     state.mount.querySelectorAll('[data-hrt-tab]').forEach(function (button) {
       var selected = button.getAttribute('data-hrt-tab') === state.active;
       button.classList.toggle('active', selected);
@@ -398,6 +438,7 @@
       state.market = market;
       state.active = 'tradeAmount';
       stopRealtime();
+      buildShell(state.mount);
     }
     var url = API_URL + '?market=' + market + '&limit=' + LIMIT + (force ? '&fresh=1' : '');
     return fetch(url).then(function (response) {
@@ -408,12 +449,13 @@
       var session = state.mount.querySelector('[data-hrt-session]');
       var updated = state.mount.querySelector('[data-hrt-updated]');
       if (session) session.textContent = state.data.session || marketLabel(market);
-      if (updated) updated.textContent = '실시간 · ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
+      if (updated) updated.textContent = (isWeekendInKst() ? '최근 장마감 · ' : '실시간 · ')
+        + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
       renderRows();
       startRealtime();
     }).catch(function () {
       var body = state.mount.querySelector('[data-hrt-body]');
-      if (body && !state.data) body.innerHTML = '<tr><td colspan="8" class="hrt-state">종목 데이터를 잠시 불러오지 못했습니다.</td></tr>';
+      if (body && !state.data) body.innerHTML = '<tr><td colspan="' + tableColspan() + '" class="hrt-state">종목 데이터를 잠시 불러오지 못했습니다.</td></tr>';
     }).then(function () {
       state.loading = false;
     });
