@@ -1407,36 +1407,7 @@
   background: rgba(255,255,255,.72);
   border-radius: 3px;
 }
-#foreign-flow .ff-lwc-pane-labels span:nth-child(1) { top: 55%; }
-#foreign-flow .ff-lwc-pane-labels span:nth-child(2) { top: 66%; }
-#foreign-flow .ff-lwc-pane-labels span:nth-child(3) { top: 77%; }
-#foreign-flow .ff-lwc-pane-labels span:nth-child(4) { top: 88%; }
 #foreign-flow .ff-chart-candle { height: 760px !important; }
-#foreign-flow .ff-chart-news-detail {
-  margin-top: 10px;
-  padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fafafa;
-  color: #4b5563;
-  font-size: 12px;
-  line-height: 1.5;
-}
-#foreign-flow .ff-chart-news-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
-#foreign-flow .ff-chart-news-head strong { color: #111827; font-size: 13px; }
-#foreign-flow .ff-chart-news-head span { color: #6b7280; font-size: 11px; }
-#foreign-flow .ff-chart-news-detail ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
-#foreign-flow .ff-chart-news-detail li { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-#foreign-flow .ff-chart-news-kind { flex: 0 0 auto; padding: 1px 4px; border-radius: 3px; color: #fff; font-size: 10px; }
-#foreign-flow .ff-chart-news-kind.kind-뉴스 { background: #0ea5e9; }
-#foreign-flow .ff-chart-news-kind.kind-공시 { background: #f59e0b; }
-#foreign-flow .ff-chart-news-kind.kind-실적 { background: #8b5cf6; }
-#foreign-flow .ff-chart-news-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#foreign-flow .ff-chart-news-title a { color: #1d4ed8; text-decoration: none; }
-#foreign-flow .ff-chart-news-title a:hover { text-decoration: underline; }
-#foreign-flow .ff-chart-news-detail li small { flex: 0 0 auto; color: #9ca3af; }
-#foreign-flow .ff-chart-news-topic { color: #6b7280; }
-#foreign-flow .ff-chart-news-empty { margin: 0; color: #9ca3af; }
 #foreign-flow .ff-volume-study-label b { color: #4f8df7; font-weight: 600; }
 #foreign-flow .ff-volume-study-label .ff-volume-ma-value { color: #2563eb; }
 #foreign-flow .ff-lwc-pane-labels + .ff-volume-study-label { display: none; }
@@ -1877,13 +1848,6 @@ html.dark #foreign-flow .ff-chart-candle::after { border-top-color: rgba(245, 23
 html.dark #foreign-flow .ff-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #foreign-flow .ff-lwc-pane-labels { color: rgba(245,239,224,.6); }
 html.dark #foreign-flow .ff-lwc-pane-labels span { background: rgba(26,26,26,.72); }
-html.dark #foreign-flow .ff-chart-news-detail { border-color: rgba(245,239,224,.16); background: rgba(245,239,224,.04); color: rgba(245,239,224,.7); }
-html.dark #foreign-flow .ff-chart-news-head strong { color: #f5efe0; }
-html.dark #foreign-flow .ff-chart-news-head span,
-html.dark #foreign-flow .ff-chart-news-topic { color: rgba(245,239,224,.55); }
-html.dark #foreign-flow .ff-chart-news-title a { color: #8ab4f8; }
-html.dark #foreign-flow .ff-chart-news-detail li small,
-html.dark #foreign-flow .ff-chart-news-empty { color: rgba(245,239,224,.45); }
 html.dark #foreign-flow .ff-extra-card { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-extra-card-title { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-extra-grade { color: rgba(245, 239, 224, 0.6) !important; }

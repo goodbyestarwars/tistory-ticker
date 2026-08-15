@@ -96,8 +96,6 @@
   var fundamentalsInflight = {}; // code -> Promise
   var newsMomentumCache = {};    // code -> VM news_momentum.db 조회 결과
   var newsMomentumInflight = {}; // code -> Promise
-  var chartEventsCache = {};     // code -> { t, data } (뉴스·공시·실적 마커 원자료)
-  var chartEventsInflight = {};  // code -> Promise
   var activeView = 'flow';       // 'flow' | 'apt' | 'chart' | 'fundamentals' | 'momentum'
 
   // ---- 종합 점수 요약 박스용 (수급/공매도/연기금/기술적 점수 + AI 한줄요약) ----
@@ -1096,24 +1094,20 @@
     // fundamentalsCache에 저장해두므로 이후 탭 클릭 시 재요청 없음(loadFundamentals 재사용).
     var fundamentalsPromise = fetchFundamentals(resolved.code, resolved.name)
       .catch(function () { return null; });
-    var chartEventsPromise = fetchChartEvents(resolved.code, resolved.name)
-      .catch(function () { return { news: [], momentum: null }; });
-
-    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise, chartEventsPromise])
+    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
         var data = results[0];
         var chartData = results[1];
         var flowEntry = results[2];
         var quote = results[3];
         var fundamentals = results[4];
-        var chartEvents = results[5];
         if (!data || data.error || !data.daily || !data.daily.length) {
           resultBox.innerHTML = '<div class="ff-error">'
             + escapeHtml((data && data.message) || '수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
             + '</div>';
           return;
         }
-        renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals, chartEvents);
+        renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals);
       })
       .catch(function () {
         resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
@@ -1326,7 +1320,7 @@
 
   // ---- 렌더링 ----
 
-  function renderResult(box, data, chartData, entry, quote, fundamentals, chartEvents) {
+  function renderResult(box, data, chartData, entry, quote, fundamentals) {
     if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 2) {
       chartData = buildFlowChartFallback(data);
     }
@@ -1387,7 +1381,7 @@
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
     wireFlowPeriod(box, data.code, data.name);
     loadAiSummary(box, data, entry, techScore, chartData, fundamentals);
-    wireViewTabs(box, data.code, data.name, chartData, chartEvents);
+    wireViewTabs(box, data.code, data.name, chartData);
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
     wireAptTabs(box, chartData && chartData.daily, aptCurrentPrice, data.code);
@@ -1440,7 +1434,7 @@
       + '</div>';
   }
 
-  function wireViewTabs(box, code, name, chartData, chartEvents) {
+  function wireViewTabs(box, code, name, chartData) {
     var tabs = box.querySelectorAll('.ff-view-tab');
     var flowBox = box.querySelector('#ffViewFlow');
     var aptBox = box.querySelector('#ffViewApt');
@@ -1475,7 +1469,7 @@
         if (view === 'chart' && chartBox && !chartBox.dataset.rendered) {
           chartBox.dataset.rendered = '1';
           var lwContainer = chartBox.querySelector('#ffLwChart');
-          if (lwContainer) renderLwChart(lwContainer, chartData, chartEvents);
+          if (lwContainer) renderLwChart(lwContainer, chartData);
         }
         // 과거 시뮬레이션 탭도 처음 열릴 때만 만든다(수급/펀더멘탈처럼 항상 켜둘 필요는 없음).
         if (view === 'sim' && simBox && !simBox.dataset.loaded) {
@@ -1523,33 +1517,6 @@
         throw err;
       });
     newsMomentumInflight[code] = p;
-    return p;
-  }
-
-  // 차트 마커는 본문 뉴스 목록을 다시 크롤링하지 않고 VM의 캐시된 종목 뉴스와
-  // 뉴스 모멘텀 일별 집계를 함께 사용한다. 데이터가 없어도 가격 차트는 정상 표시한다.
-  function fetchChartEvents(code, name) {
-    var hit = chartEventsCache[code];
-    if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
-    if (chartEventsInflight[code]) return chartEventsInflight[code];
-    var newsUrl = KIWOOM_VM_URL + '/domestic-news?code=' + encodeURIComponent(code)
-      + '&name=' + encodeURIComponent(name || '') + '&limit=25';
-    var p = Promise.all([
-      fetchJson(newsUrl).then(function (res) {
-        var data = res && res.data ? res.data : res;
-        return data && data.items ? data.items : [];
-      }).catch(function () { return []; }),
-      fetchNewsMomentum(code).catch(function () { return null; })
-    ]).then(function (parts) {
-      delete chartEventsInflight[code];
-      var data = { news: parts[0], momentum: parts[1] };
-      chartEventsCache[code] = { t: Date.now(), data: data };
-      return data;
-    }).catch(function (err) {
-      delete chartEventsInflight[code];
-      throw err;
-    });
-    chartEventsInflight[code] = p;
     return p;
   }
 
@@ -3320,7 +3287,6 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '</div>'
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
-        + '<div class="ff-chart-news-detail" aria-live="polite">차트의 파란 뉴스 마커 또는 날짜를 클릭하면 해당 날짜의 기사 제목이 여기에 표시됩니다.</div>'
         + (chartData.source === 'flow-fallback'
           ? '<div class="ff-hint">일봉 원천 응답이 지연되어 수급 응답의 종가·거래량으로 임시 표시 중입니다. 실제 OHLC가 도착하면 자동으로 교체됩니다.</div>'
           : '')
@@ -4837,63 +4803,11 @@
     };
   }
 
-  function emaValues(values, period) {
-    var result = values.map(function () { return null; });
-    if (values.length < period) return result;
-    var sum = 0;
-    for (var i = 0; i < period; i++) sum += Number(values[i]) || 0;
-    var prev = sum / period;
-    result[period - 1] = prev;
-    var alpha = 2 / (period + 1);
-    for (var j = period; j < values.length; j++) {
-      prev = (Number(values[j]) || 0) * alpha + prev * (1 - alpha);
-      result[j] = prev;
-    }
-    return result;
-  }
-
-  function computeRsiMacd(daily) {
-    var closes = daily.map(function (d) { return Number(d.close) || 0; });
-    var rsi = [], gains = 0, losses = 0, period = 14;
-    for (var i = 0; i < closes.length; i++) {
-      if (i === 0) { rsi.push(null); continue; }
-      var diff = closes[i] - closes[i - 1];
-      if (i <= period) { gains += Math.max(diff, 0); losses += Math.max(-diff, 0); }
-      if (i === period) {
-        gains /= period; losses /= period;
-      } else if (i > period) {
-        gains = (gains * (period - 1) + Math.max(diff, 0)) / period;
-        losses = (losses * (period - 1) + Math.max(-diff, 0)) / period;
-      }
-      if (i >= period) rsi.push(losses === 0 ? 100 : 100 - 100 / (1 + gains / losses));
-      else rsi.push(null);
-    }
-    var fast = emaValues(closes, 12), slow = emaValues(closes, 26), macd = closes.map(function (_, index) {
-      return fast[index] == null || slow[index] == null ? null : fast[index] - slow[index];
-    });
-    var macdValues = macd.filter(function (value) { return value != null; });
-    var signalValues = emaValues(macdValues, 9);
-    var signal = macd.map(function (value, index) {
-      if (value == null) return null;
-      var macdIndex = macd.slice(0, index + 1).filter(function (item) { return item != null; }).length - 1;
-      return signalValues[macdIndex] == null ? null : signalValues[macdIndex];
-    });
-    return { rsi: rsi, macd: macd, signal: signal };
-  }
-
   function chartDate(value) {
     var raw = String(value || '');
     if (/^\d{8}$/.test(raw)) return raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6, 8);
     var match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (match) return match[1];
-    // 네이버 뉴스 pubDate는 RFC 822 형식(예: Mon, 10 Aug 2026 ...)이라
-    // 차트의 거래일과 연결하려면 날짜만 별도로 뽑아야 한다.
-    var rfc = raw.match(/(?:^|,\s*)(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
-    if (!rfc) return '';
-    var months = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
-      Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
-    if (!months[rfc[2]]) return '';
-    return rfc[3] + '-' + months[rfc[2]] + '-' + String(rfc[1]).padStart(2, '0');
+    return match ? match[1] : '';
   }
 
   function nearestChartDate(value, dates) {
@@ -4909,7 +4823,7 @@
     return best;
   }
 
-  function buildChartMarkers(daily, chartData, chartEvents) {
+  function buildChartMarkers(daily, chartData) {
     var dates = daily.map(function (d) { return chartDate(d.date); });
     var markerByKey = {};
     function add(value, type, text, color, position, shape) {
@@ -4919,22 +4833,6 @@
       if (markerByKey[key]) return;
       markerByKey[key] = { time: date, position: position || 'aboveBar', color: color, shape: shape || 'circle', text: text };
     }
-    var news = chartEvents && chartEvents.news || [];
-    news.forEach(function (item) {
-      var title = String(item.title || '');
-      var isEarnings = /실적|영업이익|순이익|매출액|잠정/.test(title) || item.category === '실적';
-      var isDisclosure = item.kind === 'disclosure';
-      add(item.pubDate, isEarnings ? 'earnings' : isDisclosure ? 'disclosure' : 'news',
-        isEarnings ? '실적' : isDisclosure ? '공시' : '뉴스',
-        isEarnings ? '#8b5cf6' : isDisclosure ? '#f59e0b' : '#0ea5e9',
-        'aboveBar', isEarnings ? 'arrowUp' : isDisclosure ? 'square' : 'circle');
-    });
-    var topics = chartEvents && chartEvents.momentum && chartEvents.momentum.topics || [];
-    topics.forEach(function (topic) {
-      (topic.daily || []).forEach(function (point) {
-        if (Number(point.news_count) > 0) add(point.date, 'momentum', '뉴스', '#0ea5e9', 'aboveBar', 'circle');
-      });
-    });
     var ma5 = chartData.ma && chartData.ma.ma5 || [];
     var ma20 = chartData.ma && chartData.ma.ma20 || [];
     for (var i = 1; i < daily.length; i++) {
@@ -4960,58 +4858,9 @@
       .sort(function (a, b) { return String(a.time).localeCompare(String(b.time)); });
   }
 
-  function chartNewsForDate(date, dailyDates, chartEvents) {
-    var news = chartEvents && chartEvents.news || [];
-    var items = news.filter(function (item) {
-      return nearestChartDate(item && item.pubDate, dailyDates) === date;
-    });
-    var topics = [];
-    var momentumTopics = chartEvents && chartEvents.momentum && chartEvents.momentum.topics || [];
-    momentumTopics.forEach(function (topic) {
-      (topic.daily || []).forEach(function (point) {
-        if (chartDate(point.date) === date && Number(point.news_count) > 0) {
-          topics.push({ name: topic.topicName || '뉴스 이슈', count: Number(point.news_count) });
-        }
-      });
-    });
-    return { items: items, topics: topics };
-  }
-
-  function chartNewsKind(item) {
-    var title = String(item && item.title || '');
-    if (/실적|영업이익|순이익|매출액|잠정/.test(title) || item.category === '실적') return '실적';
-    if (item.kind === 'disclosure') return '공시';
-    return '뉴스';
-  }
-
-  function renderChartNewsDetail(target, date, dailyDates, chartEvents) {
-    if (!target || !date) return;
-    var detail = chartNewsForDate(date, dailyDates, chartEvents);
-    var itemHtml = detail.items.slice(0, 8).map(function (item) {
-      var safeLink = safeExternalUrl(item.link);
-      var title = escapeHtml(item.title || '제목 없음');
-      var titleHtml = safeLink
-        ? '<a href="' + escapeAttr(safeLink) + '" target="_blank" rel="noopener">' + title + '</a>'
-        : title;
-      var source = item.source || item.provider || '';
-      return '<li><span class="ff-chart-news-kind kind-' + escapeAttr(chartNewsKind(item)) + '">' + chartNewsKind(item) + '</span>'
-        + '<span class="ff-chart-news-title">' + titleHtml + '</span>'
-        + (source ? '<small>' + escapeHtml(source) + '</small>' : '') + '</li>';
-    }).join('');
-    var topicHtml = detail.topics.map(function (topic) {
-      return '<li class="ff-chart-news-topic"><span>뉴스 모멘텀</span>'
-        + '<span>' + escapeHtml(topic.name) + ' · ' + topic.count.toLocaleString('ko-KR') + '건</span></li>';
-    }).join('');
-    var body = itemHtml || topicHtml
-      ? '<ul>' + itemHtml + topicHtml + '</ul>'
-      : '<p class="ff-chart-news-empty">이 날짜에 연결된 기사 상세가 없습니다.</p>';
-    target.innerHTML = '<div class="ff-chart-news-head"><strong>' + escapeHtml(date) + ' 뉴스</strong>'
-      + '<span>제목을 클릭하면 원문으로 이동합니다.</span></div>' + body;
-  }
-
   // TradingView Lightweight Charts v5 멀티 패널 차트.
-  // 0=가격, 1=거래량, 2=RSI, 3=MACD, 4=외국인·기관 순매수.
-  function renderLwChart(container, chartData, chartEvents) {
+  // 0=가격, 1=거래량, 2=외국인·기관 순매수. RSI는 아래 별도 섹션에서 표시한다.
+  function renderLwChart(container, chartData) {
     destroyLwChart();
     container.querySelectorAll('.ff-volume-study-label').forEach(function (el) { el.remove(); });
     loadLightweightCharts().then(function (LWC) {
@@ -5114,52 +4963,21 @@
         return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
       }));
 
-      var studies = computeRsiMacd(daily);
-      var rsiSeries = chart.addSeries(LWC.LineSeries, {
-        color: '#8b5cf6', lineWidth: 2, lastValueVisible: true, priceLineVisible: false,
-        title: 'RSI(14)', priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
-      }, 2);
-      rsiSeries.setData(daily.map(function (d, i) { return studies.rsi[i] == null ? null : { time: d.date, value: studies.rsi[i] }; }).filter(Boolean));
-      rsiSeries.createPriceLine({ price: 70, color: '#d24f45', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
-      rsiSeries.createPriceLine({ price: 30, color: '#1261c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
-
-      var macdHistogram = chart.addSeries(LWC.HistogramSeries, {
-        priceFormat: { type: 'custom', minMove: 0.01, formatter: function (v) { return Number(v).toFixed(2); } },
-        lastValueVisible: false, priceLineVisible: false, title: 'MACD 히스토그램'
-      }, 3);
-      macdHistogram.setData(daily.map(function (d, i) {
-        if (studies.macd[i] == null || studies.signal[i] == null) return null;
-        var value = studies.macd[i] - studies.signal[i];
-        return { time: d.date, value: value, color: value >= 0 ? 'rgba(210,79,69,.65)' : 'rgba(18,97,196,.65)' };
-      }).filter(Boolean));
-      var macdSeries = chart.addSeries(LWC.LineSeries, { color: '#1261c4', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: 'MACD' }, 3);
-      macdSeries.setData(daily.map(function (d, i) { return studies.macd[i] == null ? null : { time: d.date, value: studies.macd[i] }; }).filter(Boolean));
-      var signalSeries = chart.addSeries(LWC.LineSeries, { color: '#d24f45', lineWidth: 1, lastValueVisible: true, priceLineVisible: false, title: 'Signal' }, 3);
-      signalSeries.setData(daily.map(function (d, i) { return studies.signal[i] == null ? null : { time: d.date, value: studies.signal[i] }; }).filter(Boolean));
-
       var flowMap = {};
       (chartData.flow || []).forEach(function (row) { flowMap[chartDate(row.date)] = row; });
-      var foreignSeries = chart.addSeries(LWC.LineSeries, { color: '#8b5cf6', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: '외국인' }, 4);
-      var institutionSeries = chart.addSeries(LWC.LineSeries, { color: '#0ca678', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: '기관' }, 4);
+      var foreignSeries = chart.addSeries(LWC.LineSeries, { color: '#8b5cf6', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: '외국인' }, 2);
+      var institutionSeries = chart.addSeries(LWC.LineSeries, { color: '#0ca678', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: '기관' }, 2);
       foreignSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.foreign_net != null ? { time: d.date, value: Number(r.foreign_net) } : null; }).filter(Boolean));
       institutionSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.inst_net != null ? { time: d.date, value: Number(r.inst_net) } : null; }).filter(Boolean));
 
-      var markers = buildChartMarkers(daily, chartData, chartEvents);
+      var markers = buildChartMarkers(daily, chartData);
       if (markers.length && typeof LWC.createSeriesMarkers === 'function') {
         lwcMarkers = LWC.createSeriesMarkers(candleSeries, markers);
-      }
-      var chartNewsDetail = container.parentNode && container.parentNode.querySelector('.ff-chart-news-detail');
-      var dailyDates = daily.map(function (row) { return chartDate(row.date); });
-      if (chartNewsDetail && chart.subscribeClick) {
-        chart.subscribeClick(function (param) {
-          var clickedDate = chartDate(param && param.time);
-          if (clickedDate) renderChartNewsDetail(chartNewsDetail, clickedDate, dailyDates, chartEvents);
-        });
       }
 
       var paneLabels = document.createElement('div');
       paneLabels.className = 'ff-lwc-pane-labels';
-      paneLabels.innerHTML = '<span>거래량</span><span>RSI(14)</span><span>MACD(12,26,9)</span><span>외국인·기관 순매수</span>';
+      paneLabels.innerHTML = '<span>거래량</span><span>외국인·기관 순매수</span>';
       container.appendChild(paneLabels);
 
       // 각 패널을 초기 비율로 나누되 layout.panes.enableResize=true로 사용자가 구분선을 드래그할 수 있다.
@@ -5169,6 +4987,9 @@
       var priceHeight = Math.max(220, totalHeight - subHeight * (panes.length - 1));
       if (panes[0] && panes[0].setHeight) panes[0].setHeight(priceHeight);
       panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
+      paneLabels.querySelectorAll('span').forEach(function (label, index) {
+        label.style.top = (priceHeight + subHeight * index) + 'px';
+      });
 
       var latest = daily[daily.length - 1] || {};
       var latestVolumeMa = volumeMaPoints.length ? volumeMaPoints[volumeMaPoints.length - 1].value : null;

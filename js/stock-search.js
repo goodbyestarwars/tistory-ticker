@@ -106,23 +106,27 @@
   // 실제 패널과 어긋나 보인다(2026-08-14 사용자 스크린샷 제보). MACD 패널은 같은 날
   // 아예 없앴다(거래량/RSI/MACD 3패널 좁은 공간에서 라벨·배지가 계속 겹쳐 보인다는
   // 리포트가 반복돼, 패널 자체를 줄이는 쪽으로 정리).
-  function positionLwcPaneLabels(container, mainHeight, subHeight) {
+  function positionLwcPaneLabels(container, panes, mainHeight, subHeight) {
     // 거래량 패널은 ss-volume-study-label(실제 수치가 있는 범례)이 이미 "거래량" 문구를
     // 포함하고 있어서, paneLabels의 span("RSI(14)" 제목만 있는 라벨)을 같은 top에
     // 겹쳐 놓으면 두 텍스트가 같은 자리에 찍혀 보인다 - paneLabels에는 RSI 라벨만 남기고
     // 거래량은 범례에만 맡긴다.
     var paneLabels = container.querySelector('.ss-lwc-pane-labels');
     var volumeLegend = container.querySelector('.ss-volume-study-label');
+    var actualMainHeight = panes && panes[0] && panes[0].getHeight ? panes[0].getHeight() : mainHeight;
+    var actualVolumeHeight = panes && panes[1] && panes[1].getHeight ? panes[1].getHeight() : subHeight;
+    if (!Number.isFinite(actualMainHeight) || actualMainHeight <= 0) actualMainHeight = mainHeight;
+    if (!Number.isFinite(actualVolumeHeight) || actualVolumeHeight <= 0) actualVolumeHeight = subHeight;
     if (paneLabels) {
       var rsiLabel = paneLabels.querySelector('span');
-      if (rsiLabel) rsiLabel.style.top = (mainHeight + subHeight) + 'px';
+      if (rsiLabel) rsiLabel.style.top = (actualMainHeight + actualVolumeHeight + 6) + 'px';
     }
     // 거래량 막대는 이제 항상 패널 하단(기준선 0)에 붙고 위쪽 15%만 비워두도록 고정했다
     // (chart.priceScale('volume') scaleMargins) - 범례를 패널 맨 위에 두면 데이터 값과
     // 무관하게 항상 막대 바로 위 여백에 온다(2026-08-14 사용자 리포트로 "패널 하단에
     // 붙이기"를 먼저 시도했지만 막대 시작 위치를 못 미리 알아 자리가 계속 안 맞았음 -
     // 막대 위치 자체를 고정하는 쪽으로 대신 해결).
-    if (volumeLegend) volumeLegend.style.top = mainHeight + 'px';
+    if (volumeLegend) volumeLegend.style.top = (actualMainHeight + 6) + 'px';
   }
 
   function resizeStockChart() {
@@ -140,7 +144,7 @@
             var mainHeight = Math.max(220, height - subHeight * (panes.length - 1));
             if (panes[0].setHeight) panes[0].setHeight(mainHeight);
             panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
-            positionLwcPaneLabels(lwcChartContainer, mainHeight, subHeight);
+            positionLwcPaneLabels(lwcChartContainer, panes, mainHeight, subHeight);
           }
         } catch (e) { /* 레이아웃 정리 후 다음 요청에서 재시도 */ }
       }
@@ -1798,7 +1802,7 @@
       // (2026-08-13 사용자 스크린샷 제보: "거래량" 제목이 실제 거래량 패널과 안 맞음).
       // 전체화면으로 열고 닫을 때도 동일하게 다시 맞춰야 해서 resizeStockChart()와
       // positionLwcPaneLabels() 함수를 공유한다.
-      positionLwcPaneLabels(container, mainHeight, subHeight);
+      positionLwcPaneLabels(container, panes, mainHeight, subHeight);
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
       setupStockDrawing(container, chart, candleSeries, timeframe);
     }).catch(function () {
