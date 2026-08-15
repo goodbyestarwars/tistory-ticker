@@ -69,6 +69,24 @@
   스크립트 속성)에 저장: `GROQ_API_KEY`, `KIWOOM_VM_URL`, `KIWOOM_VM_TOKEN` 등
 - `CacheService`로 응답 캐싱(항목마다 TTL 다름, 보통 몇 분~30분)
 - 여기서 VM을 호출할 때는 `X-API-Key` 헤더(`KIWOOM_VM_TOKEN`)로 인증
+- **Groq(참고의견 등) 캐시는 방문자별이 아니라 사이트 전체가 공유하는 GAS 스크립트 캐시**다.
+  누군가 새로 생성시키면 그 결과를 TTL 만료 전까지 모든 방문자가 함께 본다. 각 위젯 프론트는
+  페이지를 열 때 1회만 호출하고(가격·차트처럼 주기적으로 다시 부르지 않음), 다음 생성 시점은
+  "마지막 성공 생성 시각 + 아래 TTL"이다(고정 시각 아님). 2026-08-15 기준:
+
+  | 위젯 | 함수 | 캐시 TTL(성공/실패) | 캐시 키 단위 |
+  |---|---|---|---|
+  | 참고의견(코스피200 선물) | `getKospiFuturesAnalysis` | 30분/2분 | 사이트 공용 1개 |
+  | 참고의견(해외지표/보조지수) | `getSubIndexAnalysis` | 30분/2분 | 사이트 공용 1개 |
+  | 참고의견(증시자금) | `getDomesticFundsAnalysis` | 30분/2분 | 사이트 공용 1개 |
+  | 참고의견(증시온도 브리핑) | `getMarketTempBriefing` | 30분/2분 | 사이트 공용 1개 |
+  | 참고의견(홈 시황) | `getMarketAnalysis` | 30분/2분 | 사이트 공용 1개 |
+  | 종목뉴스 요약 | `summarizeStockNews` | 30분/2분 | 종목코드별 |
+  | 수급 참고의견(종목분석) | `getFlowAiSummary` | 3시간/2분 | 종목코드+당일 날짜+입력데이터 해시(날짜가 바뀌거나 근거 수급 데이터가 바뀌면 TTL 전이어도 즉시 재생성) |
+  | 오늘 등락 이유 한줄 | `getPriceMoveReason` | 30분/2분 | 종목코드별 |
+
+  프롬프트를 바꿔 즉시 반영하고 싶으면 해당 캐시 키 버전 문자열(예: `kospi_futures_analysis_v5`)을
+  올려야 한다 - 안 올리면 TTL이 남은 옛 캐시가 새 프롬프트 배포 이후에도 그대로 나간다.
 - **2026-08-14부터 자동 배포**: `gas/ticker-proxy.gs`·`gas/appsscript.json`·`gas/.clasp.json`이
   `master`에 push되면 `.github/workflows/deploy-gas.yml`이 GitHub 클라우드 러너에서
   `clasp push`+`clasp deploy`를 실행해 기존 배포(운영 웹앱 URL)에 그대로 반영한다.
