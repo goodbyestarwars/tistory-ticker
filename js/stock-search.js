@@ -1817,8 +1817,9 @@
       // 첨부 화면과 같은 RSI(14) 검정 단일선. 색상은 50 기준으로 나누지 않고,
       // 과매수·과매도 구간만 선과 70/30 기준선 사이를 배경으로 강조한다.
       var rsiSeries = chart.addSeries(LWC.LineSeries, {
-        color: '#333333', lineWidth: 2, lastValueVisible: true, priceLineVisible: false,
-        title: 'RSI(14)', priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
+        color: '#333333', lineWidth: 2, lastValueVisible: false, priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
       }, 2);
       rsiSeries.setData(bars.map(function (bar, index) {
         return rsiValues[index] == null ? null : { time: bar.date, value: rsiValues[index] };

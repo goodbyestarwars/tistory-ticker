@@ -775,6 +775,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function stockRsi(bars)", source)
         self.assertNotIn("function stockRsiMacd", source)
         self.assertIn("color: '#333333', lineWidth: 2", source)
+        self.assertIn("lastValueVisible: false, priceLineVisible: false", source)
+        self.assertNotIn("title: 'RSI(14)'", source)
         self.assertNotIn("price: 50", source)
         self.assertIn("fillThresholdSegment", source)
         self.assertIn("lwcRsiZonesCleanup = installRsiZoneCanvas", source)
