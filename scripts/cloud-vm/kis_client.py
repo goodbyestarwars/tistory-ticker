@@ -439,6 +439,55 @@ def _get_overseas_rank(token, appkey, appsecret, path, tr_id, params):
     return data
 
 
+def fetch_domestic_quote(token, appkey, appsecret, code, market='UN'):
+    """국내주식 현재가 시세(v1_국내주식-008), TR FHKST01010100."""
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/inquire-price',
+        'FHKST01010100',
+        {
+            'FID_COND_MRKT_DIV_CODE': market,
+            'FID_INPUT_ISCD': code,
+        },
+    )
+    return data.get('output') or {}
+
+
+def fetch_domestic_order_book(token, appkey, appsecret, code, market='UN'):
+    """국내주식 호가/예상체결(v1_국내주식-011), TR FHKST01010200.
+
+    output1은 10단계 호가, output2는 예상체결 정보다. 화면의 초기 호가와
+    마지막 체결 스냅샷을 함께 채울 수 있도록 두 응답을 그대로 반환한다.
+    """
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn',
+        'FHKST01010200',
+        {
+            'FID_COND_MRKT_DIV_CODE': market,
+            'FID_INPUT_ISCD': code,
+        },
+    )
+    return data.get('output1') or {}, data.get('output2') or {}
+
+
+def fetch_domestic_trade(token, appkey, appsecret, code, market='UN'):
+    """국내주식 현재가 체결(v1_국내주식-009), TR FHKST01010300."""
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/inquire-ccnl',
+        'FHKST01010300',
+        {
+            'FID_COND_MRKT_DIV_CODE': market,
+            'FID_INPUT_ISCD': code,
+        },
+    )
+    rows = data.get('output') or []
+    if isinstance(rows, dict):
+        return [rows]
+    return rows if isinstance(rows, list) else []
+
+
 def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20):
     """국내주식 순위분석[v1_국내주식-047].
 
