@@ -1026,22 +1026,7 @@
     return points;
   }
 
-  function stockEma(values, period) {
-    var out = values.map(function () { return null; });
-    if (values.length < period) return out;
-    var sum = 0;
-    for (var i = 0; i < period; i++) sum += Number(values[i]) || 0;
-    var previous = sum / period;
-    out[period - 1] = previous;
-    var alpha = 2 / (period + 1);
-    for (var j = period; j < values.length; j++) {
-      previous = (Number(values[j]) || 0) * alpha + previous * (1 - alpha);
-      out[j] = previous;
-    }
-    return out;
-  }
-
-  function stockRsiMacd(bars) {
+  function stockRsi(bars) {
     var close = bars.map(function (bar) { return Number(bar.close) || 0; });
     var rsi = [], gain = 0, loss = 0, period = 14;
     for (var i = 0; i < close.length; i++) {
@@ -1055,16 +1040,7 @@
       }
       rsi.push(i < period ? null : (loss === 0 ? 100 : 100 - 100 / (1 + gain / loss)));
     }
-    var fast = stockEma(close, 12), slow = stockEma(close, 26);
-    var macd = close.map(function (_, index) { return fast[index] == null || slow[index] == null ? null : fast[index] - slow[index]; });
-    var compact = macd.filter(function (value) { return value != null; });
-    var signalCompact = stockEma(compact, 9);
-    var signal = macd.map(function (value, index) {
-      if (value == null) return null;
-      var compactIndex = macd.slice(0, index + 1).filter(function (item) { return item != null; }).length - 1;
-      return signalCompact[compactIndex] == null ? null : signalCompact[compactIndex];
-    });
-    return { rsi: rsi, macd: macd, signal: signal };
+    return rsi;
   }
 
   function rollingMidpointValues(bars, period) {
@@ -1198,10 +1174,10 @@
     };
   }
 
-  // RSI 패널의 70 이상(과매수)·30 이하(과매도) 영역을 패널 배경처럼 칠한다.
-  // Lightweight Charts v5에는 개별 pane의 배경 밴드 옵션이 없으므로, RSI 시리즈의
-  // priceToCoordinate()와 실제 pane 높이를 이용해 차트 아래에 캔버스를 깐다.
-  function installRsiZoneCanvas(container, chart, rsiSeries, panes) {
+  // RSI 패널은 첨부 화면처럼 검정 단일선으로 표시하고, 70 이상/30 이하에서만
+  // 선과 기준선 사이를 색칠한다. Lightweight Charts v5에는 개별 pane의 영역 채우기
+  // 옵션이 없으므로, RSI 시리즈 좌표를 읽어 차트 아래에 캔버스를 깐다.
+  function installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues) {
     if (!rsiSeries || !panes || panes.length < 3) return function () {};
     var chartRoot = container.querySelector('.ss-lw-chart-root') || container.querySelector('div');
     var canvas = document.createElement('canvas');
@@ -1215,6 +1191,28 @@
       var value = pane && pane.getHeight ? pane.getHeight() : fallback;
       return Number.isFinite(value) && value > 0 ? value : fallback;
     }
+    function fillThresholdSegment(ctx, x0, y0, v0, x1, y1, v1, threshold, thresholdY, above, color) {
+      var inside0 = above ? v0 >= threshold : v0 <= threshold;
+      var inside1 = above ? v1 >= threshold : v1 <= threshold;
+      if (!inside0 && !inside1) return;
+
+      var startX = x0, startY = y0, endX = x1, endY = y1;
+      if (inside0 !== inside1) {
+        var t = (threshold - v0) / (v1 - v0);
+        var crossX = x0 + t * (x1 - x0);
+        if (!inside0) { startX = crossX; startY = thresholdY; }
+        if (!inside1) { endX = crossX; endY = thresholdY; }
+      }
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(startX, thresholdY);
+      ctx.lineTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.lineTo(endX, thresholdY);
+      ctx.closePath();
+      ctx.fill();
+    }
     function draw() {
       frameId = 0;
       if (!document.body.contains(container)) return;
@@ -1223,11 +1221,10 @@
       if (!width || !height) return;
       var mainHeight = paneHeight(panes[0], Math.max(220, height * 0.68));
       var volumeHeight = paneHeight(panes[1], Math.max(SUB_PANE_MIN_HEIGHT, height * SUB_PANE_RATIO));
-      var rsiHeight = paneHeight(panes[2], Math.max(SUB_PANE_MIN_HEIGHT, height * SUB_PANE_RATIO));
       var rsiTop = mainHeight + volumeHeight;
       var y70 = rsiSeries.priceToCoordinate(70);
       var y30 = rsiSeries.priceToCoordinate(30);
-      if (!Number.isFinite(y70) || !Number.isFinite(y30)) return;
+      if (!Number.isFinite(y70) || !Number.isFinite(y30) || !bars || !rsiValues) return;
 
       var ratio = Math.max(1, global.devicePixelRatio || 1);
       canvas.width = Math.round(width * ratio);
@@ -1236,10 +1233,21 @@
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, width, height);
       var dark = document.documentElement.classList.contains('dark');
-      ctx.fillStyle = dark ? 'rgba(210,79,69,0.16)' : 'rgba(210,79,69,0.09)';
-      ctx.fillRect(0, rsiTop, width, Math.max(0, y70));
-      ctx.fillStyle = dark ? 'rgba(18,97,196,0.17)' : 'rgba(18,97,196,0.08)';
-      ctx.fillRect(0, rsiTop + y30, width, Math.max(0, rsiHeight - y30));
+      var red = dark ? 'rgba(210,79,69,0.28)' : 'rgba(210,79,69,0.22)';
+      var blue = dark ? 'rgba(18,97,196,0.28)' : 'rgba(18,97,196,0.18)';
+      var y70Absolute = rsiTop + y70;
+      var y30Absolute = rsiTop + y30;
+      var timeScale = chart.timeScale();
+      for (var i = 1; i < bars.length; i++) {
+        var v0 = rsiValues[i - 1], v1 = rsiValues[i];
+        if (v0 == null || v1 == null) continue;
+        var x0 = timeScale.timeToCoordinate(bars[i - 1].date);
+        var x1 = timeScale.timeToCoordinate(bars[i].date);
+        var p0 = rsiSeries.priceToCoordinate(v0), p1 = rsiSeries.priceToCoordinate(v1);
+        if (!Number.isFinite(x0) || !Number.isFinite(x1) || !Number.isFinite(p0) || !Number.isFinite(p1)) continue;
+        fillThresholdSegment(ctx, x0, rsiTop + p0, v0, x1, rsiTop + p1, v1, 70, y70Absolute, true, red);
+        fillThresholdSegment(ctx, x0, rsiTop + p0, v0, x1, rsiTop + p1, v1, 30, y30Absolute, false, blue);
+      }
     }
     function scheduleDraw() {
       if (frameId) global.cancelAnimationFrame(frameId);
@@ -1805,31 +1813,18 @@
         return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
       }));
 
-      var studies = stockRsiMacd(bars);
-      // RSI(14)를 50 기준으로 위(매수 우위)는 빨강, 아래(매도 우위)는 파랑 두 색으로 나눠
-      // 그린다(2026-08-13 요청 - 사이트 공통 상승=빨강/하락=파랑 규칙을 RSI에도 적용).
-      // Lightweight Charts의 LineSeries는 값별로 색을 못 바꿔서, 반대 구간은 null로 비운
-      // 시리즈 두 개로 나눈다(경계를 넘나드는 봉 근처에서만 살짝 끊겨 보일 수 있음, 감수).
-      var lastRsiIndex = -1;
-      for (var ri = studies.rsi.length - 1; ri >= 0; ri--) { if (studies.rsi[ri] != null) { lastRsiIndex = ri; break; } }
-      var lastRsiAbove = lastRsiIndex !== -1 && studies.rsi[lastRsiIndex] >= 50;
-      var rsiAboveSeries = chart.addSeries(LWC.LineSeries, {
-        color: '#d24f45', lineWidth: 2, lastValueVisible: lastRsiAbove, priceLineVisible: false,
+      var rsiValues = stockRsi(bars);
+      // 첨부 화면과 같은 RSI(14) 검정 단일선. 색상은 50 기준으로 나누지 않고,
+      // 과매수·과매도 구간만 선과 70/30 기준선 사이를 배경으로 강조한다.
+      var rsiSeries = chart.addSeries(LWC.LineSeries, {
+        color: '#333333', lineWidth: 2, lastValueVisible: true, priceLineVisible: false,
         title: 'RSI(14)', priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
       }, 2);
-      rsiAboveSeries.setData(bars.map(function (bar, index) {
-        return studies.rsi[index] == null || studies.rsi[index] < 50 ? null : { time: bar.date, value: studies.rsi[index] };
+      rsiSeries.setData(bars.map(function (bar, index) {
+        return rsiValues[index] == null ? null : { time: bar.date, value: rsiValues[index] };
       }).filter(Boolean));
-      var rsiBelowSeries = chart.addSeries(LWC.LineSeries, {
-        color: '#1261c4', lineWidth: 2, lastValueVisible: !lastRsiAbove, priceLineVisible: false,
-        title: 'RSI(14)', priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
-      }, 2);
-      rsiBelowSeries.setData(bars.map(function (bar, index) {
-        return studies.rsi[index] == null || studies.rsi[index] >= 50 ? null : { time: bar.date, value: studies.rsi[index] };
-      }).filter(Boolean));
-      rsiAboveSeries.createPriceLine({ price: 70, color: '#d24f45', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
-      rsiAboveSeries.createPriceLine({ price: 50, color: '#9ca3af', lineWidth: 1, lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: false, title: '50' });
-      rsiAboveSeries.createPriceLine({ price: 30, color: '#1261c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
+      rsiSeries.createPriceLine({ price: 70, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '70' });
+      rsiSeries.createPriceLine({ price: 30, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '30' });
       // 2026-08-14 요청: 거래량/RSI/MACD 3개 서브패널이 좁은 공간에서 라벨·배지가 계속
       // 겹쳐 보인다는 리포트가 반복돼(패널 위치 계산을 두 차례 고쳐도 재현) MACD 패널
       // 자체를 없애고 거래량·RSI 2개만 남긴다.
@@ -1870,7 +1865,7 @@
       // positionLwcPaneLabels() 함수를 공유한다.
       positionLwcPaneLabels(container, panes, mainHeight, subHeight);
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
-      lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiAboveSeries, panes);
+      lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
       setupStockDrawing(container, chart, candleSeries, timeframe);
     }).catch(function () {
       container.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';

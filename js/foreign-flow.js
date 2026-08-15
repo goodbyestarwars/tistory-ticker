@@ -3308,10 +3308,8 @@
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ma224Color() + '"></i>224일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#0ea5e9"></i>뉴스</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#f59e0b"></i>공시</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#8b5cf6"></i>실적</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#f97316"></i>패턴·거래</span>'
       + '</div>';
   }
 
@@ -4832,19 +4830,6 @@
       var key = date + ':' + type;
       if (markerByKey[key]) return;
       markerByKey[key] = { time: date, position: position || 'aboveBar', color: color, shape: shape || 'circle', text: text };
-    }
-    var ma5 = chartData.ma && chartData.ma.ma5 || [];
-    var ma20 = chartData.ma && chartData.ma.ma20 || [];
-    for (var i = 1; i < daily.length; i++) {
-      if (ma5[i - 1] != null && ma20[i - 1] != null && ma5[i] != null && ma20[i] != null) {
-        if (ma5[i - 1] <= ma20[i - 1] && ma5[i] > ma20[i]) add(daily[i].date, 'pattern-up', '골든', '#16a34a', 'belowBar', 'arrowUp');
-        if (ma5[i - 1] >= ma20[i - 1] && ma5[i] < ma20[i]) add(daily[i].date, 'pattern-down', '데드', '#dc2626', 'aboveBar', 'arrowDown');
-      }
-      var volume = Number(daily[i].volume) || 0;
-      var average = 0, from = Math.max(0, i - 20);
-      for (var j = from; j < i; j++) average += Number(daily[j].volume) || 0;
-      average /= Math.max(1, i - from);
-      if (average > 0 && volume >= average * 2) add(daily[i].date, 'pattern-volume', '거래', '#f97316', 'aboveBar', 'circle');
     }
     var flowMap = {};
     (chartData.flow || []).forEach(function (row) { flowMap[chartDate(row.date)] = row; });
