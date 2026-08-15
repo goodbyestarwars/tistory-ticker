@@ -1021,7 +1021,7 @@ function futuresLine_(item, label) {
 // 생성된 캐시가 즉시 무효화되게 했다.
 function getKospiFuturesAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v4';
+  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v5';
   // 2026-08-03: 실패-캐시로 저장된 ''을 `if (cached)`가 falsy로 오판해 백오프가 무력화되던
   // 버그 수정(getMarketAnalysis와 동일 원인, null 여부로 정확히 구분).
   var cached = cache.get(cacheKey);
@@ -1048,13 +1048,11 @@ function getKospiFuturesAnalysis() {
 
   var prompt = '오늘/간밤 코스피 선물 지표야: ' + lines.join(', ') + '. ' +
     '코스피200 옵션(콜/풋) 미결제약정(OI) 동향: ' + optionLines.join(', ') + '. ' +
-    '코스피200 선물(주간·야간)과 코스피 현물지수의 관계를 설명하고, 특히 야간선물 동향이 ' +
-    '다음 거래일 한국 증시 개장에 어떤 영향을 줄 수 있는지 먼저 설명해줘. 이어서 옵션 OI 동향을 보고 ' +
-    '콜(상승 포지션)과 풋(하락 포지션) 중 어느 쪽이 확대(신규 진입)되거나 축소(청산)되고 있는지, ' +
-    '그게 시장 심리에 어떤 신호로 해석되는지 분석해줘 - 옵션 데이터가 "데이터 미제공"이면 그 옵션은 ' +
-    '언급하지 마. 투자자 유형(외국인·기관·개인)별 매수·매도 데이터는 없으니 그걸 안다고 지어내지 마. ' +
-    '마지막 한 문장은 이 지표들을 볼 때 주의할 점이나 함께 확인하면 좋은 지표를 알려줘. ' +
-    '투자자 관점에서 6~7문장으로 한국어로 정리해줘. ' + GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
+    '코스피200 선물(주간·야간)이 다음 거래일 개장에 주는 시사점을 한 문장, 옵션 OI로 본 콜·풋 심리를 ' +
+    '한 문장으로 짚어줘 - 옵션 데이터가 "데이터 미제공"이면 그 옵션은 언급하지 마. 투자자 유형(외국인· ' +
+    '기관·개인)별 매수·매도 데이터는 없으니 그걸 안다고 지어내지 마. 마지막 한 문장은 이 지표를 볼 때 ' +
+    '주의할 점을 알려줘. 투자자 관점에서 총 4~5문장으로, 반드시 한국어로만(한자·중국어 금지) 정리해줘. ' +
+    GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? KOSPI_FUTURES_ANALYSIS_CACHE_TTL : KOSPI_FUTURES_ANALYSIS_FAIL_TTL);

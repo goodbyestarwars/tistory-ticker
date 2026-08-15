@@ -203,8 +203,7 @@
 
 #kospi-futures .kf-chart {
   position: relative;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  border: none;
   padding: 0;
   overflow: hidden;
   background: #fff;
@@ -371,7 +370,7 @@ html.dark #kospi-futures .kf-error,
 html.dark #kospi-futures .kf-chart-error { color: rgba(245, 239, 224, 0.4) !important; }
 html.dark #kospi-futures .kf-chart {
   background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.2) !important;
+  border: none !important;
 }
 html.dark #kospi-futures .kf-interval-btn,
 html.dark #kospi-futures .kf-retry-btn {
