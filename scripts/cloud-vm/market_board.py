@@ -332,35 +332,19 @@ def fetch_domestic_kis(appkey, appsecret, limit=12, wics_map=None):
 
 
 def fetch_sidebar_rank_kis(appkey, appsecret, limit=5):
-    """KIS 기반 사이드바 거래량·상승·하락 순위."""
-    if not appkey or not appsecret:
-        raise RuntimeError('KIS_APPKEY/KIS_APPSECRET가 없습니다.')
-    kis_token = kis_client.get_token(appkey, appsecret)
-    query_limit = max(12, min(int(limit), 20))
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        volume_future = pool.submit(
-            kis_client.fetch_domestic_volume_rank,
-            kis_token, appkey, appsecret, '0', query_limit,
-        )
-        rate_future = pool.submit(
-            kis_client.fetch_domestic_fluctuation_rank,
-            kis_token, appkey, appsecret, query_limit,
-        )
-        volume_rows = volume_future.result()
-        rate_rows = rate_future.result()
-    volume = [item for item in (_kis_domestic_row(row) for row in volume_rows) if item]
-    rates = [item for item in (_kis_domestic_row(row) for row in rate_rows) if item]
+    """KIS 기반 사이드바 거래량·상승·하락 순위.
+
+    홈 종목판과 동일한 KIS 병합 결과를 사용해 사이드바만 키움 데이터로
+    바뀌는 것을 막는다. 특히 KIS 거래량 순위 API는 시장/장 상태에 따라
+    정렬 코드별 응답이 비어 있을 수 있으므로, 개별 호출을 별도로 처리하지
+    않고 이미 검증된 공통 종목판 경로를 재사용한다.
+    """
+    board = fetch_domestic_kis(appkey, appsecret, limit=max(12, min(int(limit), 20)))
+    sections = board.get('sections') or {}
     return {
-        'tradeVolume': sorted(volume, key=lambda row: row.get('trade_volume') or 0, reverse=True)[:limit],
-        'upperLimit': sorted(
-            [row for row in rates if (row.get('change_rate') or 0) > 0],
-            key=lambda row: row.get('change_rate') or 0,
-            reverse=True,
-        )[:limit],
-        'lowerLimit': sorted(
-            [row for row in rates if (row.get('change_rate') or 0) < 0],
-            key=lambda row: row.get('change_rate') or 0,
-        )[:limit],
+        'tradeVolume': (sections.get('tradeVolume') or [])[:limit],
+        'upperLimit': (sections.get('rising') or [])[:limit],
+        'lowerLimit': (sections.get('falling') or [])[:limit],
         'source': 'KIS 국내 순위(거래량·등락률)',
     }
 
