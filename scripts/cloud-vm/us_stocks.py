@@ -516,7 +516,10 @@ def quote(symbol):
     if cached is not None:
         return cached
     errors = []
-    for fetcher in (_kiwoom_quote, _kis_quote):
+    # 실시간 종목판의 기본 공급자 정책과 동일하게 KIS를 1차로 사용하고,
+    # KIS 장애·미설정일 때만 키움으로 내려간다. 마지막으로 Yahoo는 지연
+    # 데이터 보조 경로다.
+    for fetcher in (_kis_quote, _kiwoom_quote):
         try:
             data = fetcher(symbol)
             _cache_put(_quote_cache, symbol, data)
@@ -531,4 +534,4 @@ def quote(symbol):
     except Exception as exc:
         errors.append(str(exc))
         logger.warning('Yahoo quote fallback failed for %s: %s', symbol, exc)
-    raise UsStockUnavailable('키움·한국투자증권 미국주식 시세를 모두 조회하지 못했습니다.')
+    raise UsStockUnavailable('한국투자증권·키움 미국주식 시세를 모두 조회하지 못했습니다.')

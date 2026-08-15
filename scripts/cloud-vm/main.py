@@ -831,33 +831,59 @@ async def realtime_quote_socket(websocket: WebSocket):
 
 @app.get('/quote')
 def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = Header(default=None)):
+    """종목분석 펀더멘탈용 현재가 스냅샷.
+
+    KIS FHKST01010100을 1차로 사용하고, 응답 실패·미설정 때만 키움 ka10001을
+    사용한다. GAS의 기존 valuation 키와 호환되도록 KIS 필드에 키움식 별칭을
+    덧붙여 반환한다.
+    """
     require_api_key(x_api_key)
+    errors = []
+    kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
+    kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+    if kis_appkey and kis_appsecret:
+        try:
+            token = kis_client.get_token(kis_appkey, kis_appsecret)
+            raw = kis_client.fetch_domestic_quote(token, kis_appkey, kis_appsecret, code, market='UN')
+            if not raw:
+                raise RuntimeError('KIS 현재가 응답이 비어 있습니다.')
+            result = dict(raw)
+            result.update({
+                'stk_nm': raw.get('hts_kor_isnm') or raw.get('stck_kor_isnm') or code,
+                'cur_prc': raw.get('stck_prpr'),
+                'pred_pre': raw.get('prdy_vrss'),
+                'flu_rt': raw.get('prdy_ctrt'),
+                'mac': raw.get('stck_avls'),
+                'flo_stk': (float(raw['lstn_stcn']) / 1000
+                            if raw.get('lstn_stcn') not in (None, '') else None),
+                'for_exh_rt': raw.get('hts_frgn_ehrt'),
+            })
+            return envelope(result)
+        except Exception as exc:
+            errors.append(exc)
+            logging.getLogger('main').warning('KIS quote 실패(%s), 키움 폴백: %s', code, exc)
+
     try:
         token = get_kiwoom_token()
         res = kiwoom_client.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
+        return envelope(res)
     except HTTPException:
         raise
-    except Exception as primary_error:
-        # 키움 장애/일시 제한 시 data.go.kr 일별 주식시세를 2차 경로로 사용한다.
+    except Exception as exc:
+        errors.append(exc)
+        primary_error = exc
+
+    # 두 증권사 모두 실패했을 때만 공공데이터를 최종 보조 경로로 사용한다.
+    for fallback_fetcher in (public_data.fetch_stock_quote, public_data.fetch_product_quote):
         try:
-            fallback = public_data.fetch_stock_quote(code)
+            fallback = fallback_fetcher(code)
             if fallback:
                 return envelope(fallback)
         except Exception as fallback_error:
             logging.getLogger('main').warning(
                 'quote 공공데이터 fallback 실패(%s): %s', code, type(fallback_error).__name__,
             )
-        # ETF/ETN/ELW는 일반 주식시세에 없을 수 있어 증권상품시세도 시도한다.
-        try:
-            fallback = public_data.fetch_product_quote(code)
-            if fallback:
-                return envelope(fallback)
-        except Exception as fallback_error:
-            logging.getLogger('main').warning(
-                'quote 증권상품 fallback 실패(%s): %s', code, type(fallback_error).__name__,
-            )
-        raise _upstream_http_exception('주식 시세를 불러오지 못했습니다.', primary_error) from primary_error
-    return envelope(res)
+    raise _upstream_http_exception('주식 시세를 불러오지 못했습니다.', primary_error) from primary_error
 
 
 @app.get('/us-search')
@@ -1815,19 +1841,33 @@ def market_board_endpoint(request: Request,
 
 @app.get('/order-book/{code}')
 def order_book_endpoint(request: Request, code: str = Path(..., min_length=6, max_length=6)):
-    """호가창(매도/매수 각 10단계) + 최근 체결(ka10003) - 독립 페이지(js/order-book.js,
+    """호가창(매도/매수 각 10단계) + 최근 체결 - KIS REST 1차, 키움 REST 2차 폴백.
+    독립 페이지(js/order-book.js,
     2026-07-27)가 2초 간격 폴링. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그
-    도메인만 제한) - /futures, /market-rank와 동일한 패턴. order_book.py 필드명 미검증
-    안내 참고. 2초 폴링(분당 30회)이 정상 트래픽이라 rate limit은 여유를 둬서 분당 60회로
-    맞춘다(정상 사용은 절반만 소비, 종목코드 기계적 순회만 걸러냄)."""
+    도메인만 제한) - /futures, /market-rank와 동일한 패턴. KIS는
+    FHKST01010200(호가/예상체결), FHKST01010300(체결)을 사용하며, 해당 조회가
+    실패할 때만 키움 ka10004/ka10003으로 내려간다. 2초 폴링(분당 30회)이 정상
+    트래픽이라 rate limit은 여유를 둬서 분당 60회로 맞춘다."""
     _check_rate_limit('order_book', request, max_per_window=60)
     now = time.time()
     cached = _order_book_cache.get(code)
     if cached is not None and now - cached['t'] < _ORDER_BOOK_TTL:
         return envelope(cached['data'])
+    kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
+    kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+    kiwoom_token = None
+    if os.environ.get('KIWOOM_APPKEY') and os.environ.get('KIWOOM_SECRETKEY'):
+        try:
+            kiwoom_token = get_kiwoom_token()
+        except Exception as exc:
+            logging.getLogger('main').warning('키움 폴백 토큰 발급 실패: %s', exc)
     try:
-        token = get_kiwoom_token()
-        data = order_book.fetch_order_book_full(token, code)
+        data = order_book.fetch_order_book_full(
+            code,
+            kis_appkey=kis_appkey,
+            kis_appsecret=kis_appsecret,
+            kiwoom_token=kiwoom_token,
+        )
     except HTTPException:
         raise
     except Exception as e:

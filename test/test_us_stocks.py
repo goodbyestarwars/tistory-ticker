@@ -34,29 +34,29 @@ class UsStockTests(unittest.TestCase):
             result = us_stocks.search('일라이릴리')
         self.assertEqual([row['symbol'] for row in result], ['LLY'])
 
-    def test_quote_prefers_kiwoom(self):
-        with mock.patch.object(us_stocks, '_kiwoom_quote', return_value={
+    def test_quote_prefers_kis(self):
+        with mock.patch.object(us_stocks, '_kis_quote', return_value={
             'symbol': 'AAPL', 'price': 201.5, 'change': 1.5,
-            'change_rate': 0.75, 'provider': 'kiwoom',
-        }) as kiwoom, mock.patch.object(us_stocks, '_kis_quote') as kis:
+            'change_rate': 0.75, 'provider': 'kis',
+        }) as kis, mock.patch.object(us_stocks, '_kiwoom_quote') as kiwoom:
             data = us_stocks.quote('US:AAPL')
         self.assertEqual(data['symbol'], 'AAPL')
         self.assertEqual(data['price'], 201.5)
         self.assertEqual(data['change'], 1.5)
         self.assertEqual(data['change_rate'], 0.75)
-        kiwoom.assert_called_once_with('AAPL')
-        kis.assert_not_called()
+        kis.assert_called_once_with('AAPL')
+        kiwoom.assert_not_called()
 
-    def test_quote_falls_back_to_kis(self):
+    def test_quote_falls_back_to_kiwoom(self):
         with (
-            mock.patch.object(us_stocks, '_kiwoom_quote', side_effect=RuntimeError('kiwoom down')),
-            mock.patch.object(us_stocks, '_kis_quote', return_value={
-                'symbol': 'MSFT', 'price': 500.0, 'provider': 'kis',
-            }) as kis,
+            mock.patch.object(us_stocks, '_kis_quote', side_effect=RuntimeError('kis down')),
+            mock.patch.object(us_stocks, '_kiwoom_quote', return_value={
+                'symbol': 'MSFT', 'price': 500.0, 'provider': 'kiwoom',
+            }) as kiwoom,
         ):
             data = us_stocks.quote('MSFT')
-        self.assertEqual(data['provider'], 'kis')
-        kis.assert_called_once_with('MSFT')
+        self.assertEqual(data['provider'], 'kiwoom')
+        kiwoom.assert_called_once_with('MSFT')
 
     def test_quote_falls_back_to_yahoo_when_brokers_fail(self):
         payload = {
@@ -69,8 +69,8 @@ class UsStockTests(unittest.TestCase):
                 },
             }]},
         }
-        with mock.patch.object(us_stocks, '_kiwoom_quote', side_effect=RuntimeError('kiwoom down')), \
-             mock.patch.object(us_stocks, '_kis_quote', side_effect=RuntimeError('kis down')), \
+        with mock.patch.object(us_stocks, '_kis_quote', side_effect=RuntimeError('kis down')), \
+             mock.patch.object(us_stocks, '_kiwoom_quote', side_effect=RuntimeError('kiwoom down')), \
              mock.patch.object(us_stocks, '_get_yahoo_json', return_value=payload) as yahoo:
             data = us_stocks.quote('AAPL')
         self.assertEqual(data['price'], 201.5)

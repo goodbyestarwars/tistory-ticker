@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""실시간 호가창(매도/매수 각 10단계) - 주식호가요청(ka10004) 직접 호출.
+"""실시간 호가창(매도/매수 각 10단계).
+
+KIS REST를 1차 공급자로 사용하고, KIS 인증·응답·필드 매핑이 실패할 때만
+키움 REST(ka10004/ka10003)로 폴백한다.
 
 **필드명 미검증**: kiwoom_api.md의 "응답 주요 필드" 요약이 매도6~10차선까지만 나열하고
 있어(생성기가 필드 목록을 자르는 문서 특성 - market_rank.py 사례와 동일), 매도1~5차선과
@@ -12,6 +15,7 @@
 
 import logging
 
+import kis_client
 import kiwoom_client
 
 logger = logging.getLogger('order_book')
@@ -24,6 +28,98 @@ def _num(v):
         return abs(float(v or 0))
     except (TypeError, ValueError):
         return 0.0
+
+
+def _field(row, *names):
+    """KIS 응답의 대소문자·필드명 차이를 흡수한다."""
+    if not isinstance(row, dict):
+        return None
+    lowered = {str(key).lower(): value for key, value in row.items()}
+    for name in names:
+        if name in row:
+            return row[name]
+        value = lowered.get(str(name).lower())
+        if value is not None:
+            return value
+    return None
+
+
+def _signed_num(value, sign=None):
+    """KIS 숫자 필드의 부호 문자열/부호코드를 공통 숫자로 변환한다."""
+    text = str(value or '').strip().replace(',', '')
+    try:
+        number = float(text)
+    except (TypeError, ValueError):
+        return 0.0
+    if text.startswith('-'):
+        return -abs(number)
+    if text.startswith('+'):
+        return abs(number)
+    sign_text = str(sign or '').strip()
+    if sign_text in ('2', '4', '5', 'D', 'DOWN', '하락'):
+        return -abs(number)
+    return abs(number)
+
+
+def _parse_kis_order_book(row, code):
+    asks = []
+    bids = []
+    for level in _LEVELS:
+        ask_price = _field(row, 'askp%d' % level)
+        ask_qty = _field(row, 'askp_rsqn%d' % level)
+        bid_price = _field(row, 'bidp%d' % level)
+        bid_qty = _field(row, 'bidp_rsqn%d' % level)
+        if ask_price is not None or ask_qty is not None:
+            asks.append({'price': _num(ask_price), 'qty': _num(ask_qty)})
+        if bid_price is not None or bid_qty is not None:
+            bids.append({'price': _num(bid_price), 'qty': _num(bid_qty)})
+    if not asks and not bids:
+        raise RuntimeError('KIS 호가 응답에 10단계 호가 필드가 없습니다.')
+    asks.sort(key=lambda item: item['price'], reverse=True)
+    bids.sort(key=lambda item: item['price'], reverse=True)
+    return {
+        'code': code,
+        'asks': asks,
+        'bids': bids,
+        'totalAskQty': sum(item['qty'] for item in asks),
+        'totalBidQty': sum(item['qty'] for item in bids),
+        'stexTp': _field(row, 'stex_tp', 'stck_deal_cls_code'),
+        'source': '한국투자증권 Open API',
+    }
+
+
+def _parse_kis_trade(row):
+    price = _num(_field(row, 'stck_prpr', 'cur_prc', 'last'))
+    change = _signed_num(
+        _field(row, 'prdy_vrss', 'pred_pre', 'change'),
+        _field(row, 'prdy_vrss_sign', 'change_sign'),
+    )
+    return {
+        'time': _field(row, 'stck_cntg_hour', 'cntg_hour', 'time'),
+        'price': price,
+        'qty': _num(_field(row, 'cntg_vol', 'stck_cntg_qty', 'cntr_trde_qty', 'trade_qty')),
+        'up': change > 0,
+        'down': change < 0,
+        'source': '한국투자증권 Open API',
+    }
+
+
+def fetch_kis_order_book(appkey, appsecret, code):
+    token = kis_client.get_token(appkey, appsecret)
+    output1, output2 = kis_client.fetch_domestic_order_book(
+        token, appkey, appsecret, code, market='UN',
+    )
+    result = _parse_kis_order_book(output1, code)
+    result['expected'] = output2
+    return result
+
+
+def fetch_kis_trade(appkey, appsecret, code):
+    token = kis_client.get_token(appkey, appsecret)
+    rows = kis_client.fetch_domestic_trade(token, appkey, appsecret, code, market='UN')
+    if not rows:
+        raise RuntimeError('KIS 체결 응답이 비어 있습니다.')
+    return _parse_kis_trade(rows[0])
 
 
 def _al_code(code):
@@ -139,20 +235,44 @@ def fetch_execution_strength(token, code):
     }
 
 
-def fetch_order_book_full(token, code):
-    """호가 사다리(ka10004) + 최근 체결 스냅샷(ka10003) + 체결강도(ka10046)를 한 응답으로
-    합친다 - 프론트가 2초 폴링 한 번으로 다 받도록. 각 조회가 실패해도 나머지는 그대로
-    표시돼야 하므로 독립적으로 실패를 흡수한다. strength는 장 시간 외엔 정상적으로 None
-    (js/order-book.js가 그럴 땐 기존 근사치로 폴백)."""
-    data = fetch_order_book(token, code)
-    try:
-        data['trade'] = fetch_trade(token, code)
-    except Exception as e:
-        logger.warning('ka10003(%s) 체결 조회 실패: %s', code, e)
-        data['trade'] = None
-    try:
-        data['strength'] = fetch_execution_strength(token, code)
-    except Exception as e:
-        logger.warning('ka10046(%s) 체결강도 조회 실패: %s', code, e)
+def fetch_order_book_full(code, kis_appkey=None, kis_appsecret=None, kiwoom_token=None):
+    """KIS 호가/체결을 1차로 조회하고, 항목별로 키움에 폴백한다.
+
+    호가와 체결은 독립 조회다. 예를 들어 KIS 호가만 성공하면 호가는 KIS를
+    유지하고, 체결만 실패한 경우에만 해당 항목을 키움으로 재시도한다.
+    체결강도(ka10046)는 KIS의 동일한 종목별 추이 API를 아직 연결하지 않았으므로,
+    키움 자격증명이 있을 때만 보조지표로 조회한다.
+    """
+    data = None
+    if kis_appkey and kis_appsecret:
+        try:
+            data = fetch_kis_order_book(kis_appkey, kis_appsecret, code)
+        except Exception as exc:
+            logger.warning('KIS 호가(%s) 실패, 키움 폴백: %s', code, exc)
+    if data is None:
+        if not kiwoom_token:
+            raise RuntimeError('KIS·키움 호가 인증정보가 모두 없습니다.')
+        data = fetch_order_book(kiwoom_token, code)
+
+    trade = None
+    if kis_appkey and kis_appsecret:
+        try:
+            trade = fetch_kis_trade(kis_appkey, kis_appsecret, code)
+        except Exception as exc:
+            logger.warning('KIS 체결(%s) 실패, 키움 폴백: %s', code, exc)
+    if trade is None and kiwoom_token:
+        try:
+            trade = fetch_trade(kiwoom_token, code)
+        except Exception as exc:
+            logger.warning('키움 체결(%s) 폴백 실패: %s', code, exc)
+    data['trade'] = trade
+
+    if kiwoom_token:
+        try:
+            data['strength'] = fetch_execution_strength(kiwoom_token, code)
+        except Exception as exc:
+            logger.warning('키움 체결강도(%s) 보조 조회 실패: %s', code, exc)
+            data['strength'] = None
+    else:
         data['strength'] = None
     return data

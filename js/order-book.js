@@ -2,8 +2,9 @@
  * 실시간 호가창(증권사 HTS 스타일) - 독립 Tistory Page(/page/order-book 예정,
  * <div id="order-book"> 임베드) 위젯. 2026-07-27 신설.
  *
- * 매도/매수 각 10단계 잔량 사다리는 VM(goodbyestar.cloud/order-book/{code}, 키움 REST
- * ka10004 주식호가요청)을 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 허용) -
+ * 매도/매수 각 10단계 잔량 사다리는 VM(goodbyestar.cloud/order-book/{code}, KIS REST
+ * FHKST01010200 1차 / 키움 REST ka10004 2차)을 브라우저가 직접 호출(인증 없음,
+ * CORS로 블로그 도메인만 허용) -
  * js/kospi-futures.js의 /futures와 동일 패턴. 현재가/등락률은 이미 검증된 기존 GAS 시세
  * 프록시(?codes=)를 그대로 재사용한다(호가 사다리와 별도 소스지만 같은 2초 주기로 갱신).
  *
@@ -39,7 +40,7 @@
   var WALL_BREAK_RATIO = 0.15; // 최초로 확인한 벽 잔량의 이 비율 이하로 줄면 "소진"으로 판정
   var MILESTONE_MAX = 8;
   var TOAST_MS = 3500;
-  var TRADE_LIST_MAX = 20; // 최근 체결 리스트 표시 개수(ka10003 스냅샷을 폴링마다 누적)
+  var TRADE_LIST_MAX = 20; // 최근 체결 리스트 표시 개수(KIS FHKST01010300 또는 키움 폴백 스냅샷 누적)
   // 체결강도(근사치) - 실제 체결(0B 웹소켓) 데이터 없이 "추적 중인 매도벽이 틱 사이에 얼마나
   // 빨리 줄어드는가"만으로 추정한다(2026-07-27 사용자 확인: "지금 데이터로 근사치 계산"
   // 추천안으로 진행 - 진짜 체결강도는 별도 데이터소스 연동이 필요해 범위 밖으로 미룸).
@@ -52,7 +53,7 @@
     timer: null,
     // history[i] = { t: ms, base: 그 시점 현재가(없으면 직전 값 유지), asks:[{price,qty}], bids:[{price,qty}] }
     history: [],
-    trades: [],          // 최근 체결(ka10003 스냅샷 누적) - [{time,price,qty,up,down}], 최신이 앞
+    trades: [],          // 최근 체결 스냅샷 누적 - [{time,price,qty,up,down}], 최신이 앞
     startTime: null,
     lastBase: null,      // 직전 tick의 현재가(quote 조회가 실패한 틱에서 이어받을 기준가)
     trackedWall: null,   // { price, peakQty } - 지금 지켜보고 있는 매도벽
@@ -436,7 +437,7 @@
     if (state.history.length > HISTORY_MAX) state.history.shift();
   }
 
-  // ---- 최근 체결(ka10003) ----
+  // ---- 최근 체결(KIS FHKST01010300 / 키움 ka10003 폴백) ----
   // 이 TR은 호출 시점의 마지막 체결 1건만 돌려주는 스냅샷이라(order_book.py 주석 참고),
   // 2초 폴링마다 값을 누적해서 리스트를 만든다 - 직전 스냅샷과 시간/가격/수량이 모두
   // 같으면 그 사이 새 체결이 없었다는 뜻이라 중복으로 넣지 않는다.
