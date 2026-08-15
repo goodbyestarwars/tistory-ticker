@@ -3496,7 +3496,12 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
 
 /* ============ 반응형 오버라이드 (모바일 우선) ============ */
 @media (max-width: 720px) {
-  :root { --topbar-height: 44px; } /* 모바일 상단 메뉴바는 아이콘 없이 얇게(44px) */
+  :root { --topbar-height: 0px; } /* 모바일은 하단 앱 메뉴만 사용하고 상단 중복 메뉴는 숨긴다. */
+  html.nav-secondary-open { --topbar-height: 0px; }
+  /* 모바일에는 같은 링크를 제공하는 하단 앱 메뉴가 있으므로 상단 가로 메뉴는 숨긴다. */
+  .sidebar-left { display: none !important; }
+  /* 한글 단어가 글자 단위로 끊겨 보이지 않도록 한다. 긴 라벨은 각 화면에서 말줄임 처리한다. */
+  body { word-break: keep-all; overflow-wrap: normal; }
   /* ── 내비게이션 바 ── */
   .navbar { padding: 0 12px; gap: 10px; }
   .nav-logo-sub { display: none; }

@@ -330,13 +330,33 @@
 /* ============ 모바일 ============ */
 
 @media (max-width: 480px) {
+  #pattern-scan .ps-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
   #pattern-scan .ps-tab {
     padding: 7px 11px;
     font-size: 12px;
   }
   #pattern-scan .ps-item {
-    padding: 10px 12px;
+    min-width: 0;
+    padding: 8px 9px;
   }
+  #pattern-scan .ps-item-top,
+  #pattern-scan .ps-name {
+    min-width: 0;
+    width: 100%;
+  }
+  #pattern-scan .ps-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #pattern-scan .ps-code { font-size: 10px; }
+  #pattern-scan .ps-quote { gap: 4px; }
+  #pattern-scan .ps-price { font-size: 11.5px; }
+  #pattern-scan .ps-rate { font-size: 10.5px; }
+  #pattern-scan .ps-score-badge { padding: 1px 6px; font-size: 10px; }
 }
 
 /* ============ 다크모드 ============ */

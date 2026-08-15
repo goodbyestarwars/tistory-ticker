@@ -113,7 +113,15 @@
 @media (max-width: 760px) {
   .dmi-flow-grid,
   .dmi-fund-grid { grid-template-columns: 1fr; }
-  .dmi-chart { height: 280px; }
+  /* 선물 차트와 같은 모바일 흐름: 제목 → 조작 탭 → 차트. */
+  .dmi-chart-grid { grid-template-columns: 1fr; gap: 14px; }
+  .dmi-panel { border: 0; border-radius: 0; padding: 0; background: transparent; overflow: visible; }
+  .dmi-panel-title { padding: 0; margin-bottom: 10px; font-size: 15px; }
+  .dmi-tabs { flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+  .dmi-tab,
+  .dmi-tabs .dmi-draw-toggle,
+  .dmi-tabs .dmi-draw-clear { padding: 4px 10px; font-size: 11px; }
+  .dmi-chart { height: 330px; min-height: 330px; border: 0; border-radius: 0; background: #fff; }
   .dmi-heading h2 { font-size: 21px; }
-  .dmi-panel, .dmi-fund-card, .dmi-flow-card { border-radius: 13px; padding: 12px; }
+  .dmi-fund-card, .dmi-flow-card { border-radius: 13px; padding: 12px; }
 }

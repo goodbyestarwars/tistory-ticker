@@ -253,10 +253,30 @@
 #strategy-search .ss-error { color: #d24f45; }
 
 /* ============ 모바일 ============ */
-/* css/market-temp.css의 .sector-cards-grid 모바일 대응(640px에서 1단)과 동일 기준. */
+/* 모바일에서는 긴 종목 행을 2열로 압축해 한 화면에 더 많이 보여준다. */
 @media (max-width: 640px) {
   #strategy-search .ss-cards-grid {
-    columns: 1 100%;
+    columns: 2 150px;
+    column-gap: 8px;
+  }
+  #strategy-search .ss-card {
+    padding: 10px 11px;
+    margin-bottom: 8px;
+  }
+  #strategy-search .ss-card-title { font-size: 12.5px; }
+  #strategy-search .ss-row { padding: 7px 0; font-size: 12px; }
+  #strategy-search .ss-row-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #strategy-search .ss-row-code { font-size: 10px; }
+  #strategy-search .ss-row-price { margin-right: 3px; }
+  #strategy-search .ss-row-metric {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   #strategy-search .ss-etf-search-input {
     margin-left: 0;
@@ -270,7 +290,7 @@
     font-size: 12px;
   }
   #strategy-search .ss-card {
-    padding: 13px 14px;
+    padding: 10px 11px;
   }
 }
 

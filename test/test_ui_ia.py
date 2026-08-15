@@ -83,7 +83,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-flow-table td.dmi-positive { color: #d24f45 !important; }", style)
         self.assertIn(".dmi-flow-table td.dmi-negative { color: #1261c4 !important; }", style)
         self.assertIn(".dmi-shell .dmi-fund-card *", style)
-        self.assertIn("domestic-market-indicators.css?v=20260815-dmi-panel-borderless", frontend)
+        self.assertIn("domestic-market-indicators.css?v=20260815-mobile-layout", frontend)
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
         self.assertIn("function miniAverageChart(values, average)", frontend)
         self.assertIn("신용잔고 (빚투)", frontend)
@@ -105,6 +105,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 2026-08-14 요청: 증시자금 6개 카드를 2열 대신 3열로.
         self.assertIn(".dmi-fund-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));", style)
         self.assertIn(".dmi-chart { position: relative; height: 330px;", style)
+        self.assertIn(".dmi-chart-grid { grid-template-columns: 1fr; gap: 14px; }", style)
+        self.assertIn(".dmi-chart { height: 330px; min-height: 330px;", style)
         self.assertIn(".dmi-subheading h3,", style)
         self.assertNotIn("dmi-funds-provider", frontend)
         self.assertNotIn("dmi-funds-provider", style)
@@ -474,6 +476,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             ".page-wrap { padding-bottom:",
         ):
             self.assertIn(token, style)
+        self.assertIn(":root { --topbar-height: 0px; }", style)
+        self.assertIn(".sidebar-left { display: none !important; }", style)
+        self.assertIn("body { word-break: keep-all; overflow-wrap: normal; }", style)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")
@@ -925,13 +930,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_chart_search_includes_opening_gap_tab(self):
         source = self.read("js/pattern-scan.js")
+        style = self.read("css/pattern-scan.css")
         self.assertIn("key: 'openingGap'", source)
         self.assertIn("label: '시초 갭상승'", source)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr));", style)
+        self.assertIn("#pattern-scan .ps-name", style)
+        self.assertIn("text-overflow: ellipsis;", style)
 
     def test_strategy_search_renders_weekly_envelope_metric(self):
         source = self.read("js/strategy-search.js")
+        style = self.read("css/strategy-search.css")
         self.assertIn("it.envelope", source)
         self.assertIn("엔벨로프 하단", source)
+        self.assertIn("columns: 2 150px;", style)
+        self.assertIn("#strategy-search .ss-row-name", style)
 
     def test_strategy_search_renders_opening_gap_metric(self):
         source = self.read("js/strategy-search.js")
