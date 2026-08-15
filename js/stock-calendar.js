@@ -269,6 +269,20 @@
     return m + '/' + d;
   }
 
+  // Finnhub 실적 이벤트는 회사명을 별도 필드로 내려준다. 예전 localStorage에 저장된
+  // 이벤트는 그 필드가 없을 수 있어, 당시 제목에 이미 들어간 "· 회사명"도 한 번 복구한다.
+  function usCompanyNameFor(ev, meta) {
+    var explicit = String(ev && (ev.company || ev.companyName) || '').trim();
+    if (explicit && explicit.toUpperCase() !== String(meta.stockName || '').toUpperCase()) return explicit;
+    var text = String(meta && meta.text || '');
+    var marker = text.lastIndexOf(' · ');
+    if (marker !== -1) {
+      var fromTitle = text.slice(marker + 3).trim();
+      if (fromTitle && !/^(장전|장후|실적발표|실적발표 완료)/.test(fromTitle)) return fromTitle;
+    }
+    return '';
+  }
+
   function renderEventRow(ev) {
     var meta = parseEvent(ev.title);
     var iconClass, iconHtml;
@@ -295,8 +309,13 @@
     if (ev.result && eventText.indexOf(String(ev.result)) === -1) {
       eventText += (eventText ? ' · ' : '') + String(ev.result);
     }
+    var companyName = meta.isStock && (String(ev.market || '').toLowerCase() === 'us'
+      || String(ev.source || '').toLowerCase() === 'finnhub') ? usCompanyNameFor(ev, meta) : '';
+    var stockLabel = companyName
+      ? escapeHtml(companyName) + ' <span class="sc-ev-symbol">(' + escapeHtml(meta.stockName) + ')</span>'
+      : escapeHtml(meta.stockName);
     var titleHtml = meta.isStock
-      ? '<strong class="sc-ev-ticker">' + escapeHtml(meta.stockName) + '</strong> ' + escapeHtml(eventText)
+      ? '<strong class="sc-ev-ticker">' + stockLabel + '</strong> ' + escapeHtml(eventText)
       : escapeHtml(meta.text);
     var tagHtml = meta.tag ? '<span class="sc-ev-tag">' + escapeHtml(meta.tag) + '</span>' : '';
     var blockedExternalLink = isFinnhubLink(ev.link);

@@ -128,6 +128,7 @@ class EarningsCalendarTests(unittest.TestCase):
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0]['title'], '$AAPL 실적발표 (장후) · Apple Inc. | 미국(Finnhub)')
         self.assertEqual(events[0]['source'], 'finnhub')
+        self.assertEqual(events[0]['company'], 'Apple Inc.')
         self.assertEqual(cached, events)
 
     def test_marks_reported_us_earnings_with_eps_and_revenue_results(self):
@@ -146,6 +147,7 @@ class EarningsCalendarTests(unittest.TestCase):
                 events = earnings_calendar.fetch_us_month(2026, 8)
 
         event = events[0]
+        self.assertEqual(event['company'], 'Apple Inc.')
         self.assertEqual(event['status'], 'reported')
         self.assertEqual(event['eps_actual'], 1.2)
         self.assertEqual(event['revenue_actual'], 91819000000)

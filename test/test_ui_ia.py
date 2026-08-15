@@ -1019,6 +1019,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("event.isComposing", source)
         self.assertIn("eventText = meta.text", source)
         self.assertIn("function stockCodeFor(event, stockName)", source)
+        self.assertIn("function usCompanyNameFor(ev, meta)", source)
+        self.assertIn("sc-ev-symbol", source)
         self.assertIn("function upsertStoredCalendarEvents(incoming)", source)
         self.assertIn("CALENDAR_STORAGE_KEY", source)
         self.assertIn("calendarEventKey(event)", source)
@@ -1030,7 +1032,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("1.1~12.31", source)
         self.assertIn("검색 결과 ' + visibleEvents.length + '건", source)
         self.assertIn(".sc-search input", style)
-        self.assertIn("stock-calendar.js?v=20260813-persistent-upsert-v2", home)
+        self.assertIn("stock-calendar.js?v=20260815-company-name", home)
 
     def test_lightweight_charts_uses_v5_api_across_chart_modules(self):
         files = (

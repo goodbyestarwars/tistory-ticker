@@ -657,6 +657,7 @@ def fetch_us_month(year, month):
             'source': 'finnhub',
             'market': 'us',
             'symbol': symbol,
+            'company': company,
             'status': 'scheduled',
         }
         result = _reported_result(row)

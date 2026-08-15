@@ -121,6 +121,7 @@
 #stock-calendar .sc-ev-body { flex: 1; min-width: 0; }
 #stock-calendar .sc-ev-title { font-size: 13px; color: #334155; line-height: 1.4; }
 #stock-calendar .sc-ev-ticker { color: #4338ca; }
+#stock-calendar .sc-ev-symbol { color: #94a3b8; font-size: 11px; font-weight: 400; }
 #stock-calendar .sc-ev-tag {
   margin-left: 6px; font-size: 10.5px; font-weight: 600; color: #6366f1;
   background: #eef2ff; padding: 2px 8px; border-radius: 8px;
@@ -161,6 +162,7 @@ html.dark #stock-calendar .sc-ev-icon.stock { background: rgba(245, 239, 224, 0.
 html.dark #stock-calendar .sc-ev-icon.flag,
 html.dark #stock-calendar .sc-ev-icon.default { background: rgba(245, 239, 224, 0.08) !important; }
 html.dark #stock-calendar .sc-ev-ticker { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-ev-symbol { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-calendar .sc-ev-tag { background: rgba(245, 239, 224, 0.18) !important; color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-empty,
 html.dark #stock-calendar .sc-loading,
