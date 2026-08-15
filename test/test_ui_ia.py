@@ -912,6 +912,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ff-chart-candle::after", style)
         self.assertNotIn(".ff-chart-news-detail", style)
 
+    def test_signal_banner_ignores_late_responses_from_previous_selection(self):
+        source = self.read("js/foreign-flow.js")
+        self.assertIn("var signalRequestSeq = 0;", source)
+        self.assertIn("var requestId = ++signalRequestSeq;", source)
+        self.assertIn("signalRequestSeq !== requestId", source)
+        self.assertIn("bannerBox.innerHTML = '';", source)
+
     def test_pattern_scan_includes_ma_cloud_breakout_search(self):
         source = self.read("js/pattern-scan.js")
         self.assertIn("key: 'maCloudBreakout'", source)
