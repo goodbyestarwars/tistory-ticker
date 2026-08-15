@@ -173,6 +173,7 @@ def fetch_order_book(token, code):
         'totalAskQty': sum(a['qty'] for a in asks),
         'totalBidQty': sum(b['qty'] for b in bids),
         'stexTp': res.get('stex_tp'),  # 거래소구분 - _AL 접미사가 실제로 통합됐는지 확인용
+        'source': '키움증권 REST API',
     }
 
 
@@ -202,6 +203,7 @@ def fetch_trade(token, code):
         'qty': _num(res.get('cntr_trde_qty')),
         'up': pred_pre > 0,
         'down': pred_pre < 0,
+        'source': '키움증권 REST API',
     }
 
 
