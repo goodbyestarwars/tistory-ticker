@@ -8,6 +8,9 @@
   var WS_RECONNECT_MAX_MS = 30000;
   var LIMIT = 20;
   var REFRESH_MS = 30 * 1000;
+  // 임시 점검 기간에는 미국장 시간 자동 전환 대신 국내증시를 먼저 표시한다.
+  // 미국 종목판으로 되돌릴 때는 이 값을 null로 바꾸면 기존 시간 자동판단이 복원된다.
+  var FORCED_MARKET = 'domestic';
   // Quote ticks stay on WebSocket; this only re-syncs the ranking snapshot.
   var RANK_REFRESH_DEBOUNCE_MS = 5000;
   var SESSION_CHECK_MS = 60 * 1000;
@@ -156,6 +159,7 @@
   }
 
   function currentMarket() {
+    if (FORCED_MARKET) return FORCED_MARKET;
     var now = new Date(Date.now() + 9 * 60 * 60 * 1000);
     var hour = now.getUTCHours();
     return hour >= 20 || hour < 8 ? 'us' : 'domestic';

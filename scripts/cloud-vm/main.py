@@ -1807,6 +1807,38 @@ def market_board_endpoint(request: Request,
             kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
             if market == 'us':
                 data = market_board.fetch_us_kis(kis_appkey, kis_appsecret, limit=limit)
+                # KIS 순위 API는 지표별로 응답 가능 시간이 달라질 수 있다.
+                # 거래대금 하나만 성공해도 전체 요청은 성공으로 끝나던 기존 구조에서는
+                # 나머지 탭이 빈 화면으로 남았으므로, 비어 있는 기본 지표만 키움으로
+                # 보완한다. KIS 데이터가 있으면 그대로 유지한다.
+                missing_metrics = [
+                    metric for metric in ('tradeVolume', 'rising', 'falling', 'marketCap')
+                    if not (data.get('sections') or {}).get(metric)
+                ]
+                if missing_metrics:
+                    try:
+                        kiwoom_data = market_board.fetch_us(
+                            token=get_kiwoom_token(),
+                            limit=limit,
+                            finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+                        )
+                        kis_sections = data.setdefault('sections', {})
+                        kiwoom_sections = kiwoom_data.get('sections') or {}
+                        filled = []
+                        for metric in missing_metrics:
+                            rows = kiwoom_sections.get(metric) or []
+                            if rows:
+                                kis_sections[metric] = rows[:limit]
+                                filled.append(metric)
+                        if filled:
+                            data['source'] = '%s · 키움 지표별 폴백(%s)' % (
+                                data.get('source') or 'KIS 미국 순위',
+                                ', '.join(filled),
+                            )
+                    except Exception as fallback_exc:
+                        logging.getLogger('main').warning(
+                            'KIS 미국 순위별 폴백 실패: %s', fallback_exc,
+                        )
             else:
                 data = market_board.fetch_domestic_kis(kis_appkey, kis_appsecret, limit=limit)
         elif market == 'us':
