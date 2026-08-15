@@ -36,8 +36,10 @@
 .dmi-subheading { margin: 28px 0 12px; }
 .dmi-subheading h3 { font-size: 18px; }
 .dmi-muted { color: #000; font-size: 13px; }
-.dmi-chart-grid,
-.dmi-fund-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.dmi-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+/* 2026-08-14 요청: 증시자금 6개 카드를 2줄x3개로 - 카드 폭이 좁아지는 대신 한 화면에 더
+   많이 보인다. 차트 그리드(코스피/코스닥)는 카드가 넓어야 하는 콘텐츠라 계속 2열로 둔다. */
+.dmi-fund-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .dmi-panel,
 .dmi-fund-card,
 .dmi-flow-card { border: 1px solid #e4eaf2; border-radius: 16px; background: #fff; padding: 16px; box-sizing: border-box; }
