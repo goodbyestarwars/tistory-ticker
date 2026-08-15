@@ -375,6 +375,7 @@ erDiagram
 - `backup_sqlite.py`: 장외 유지보수에서 삭제 전 `news_momentum.db`를 `backups/`에 원자적 백업하고 무결성 검사 후 **최근 7개만 보관**한다. 대용량 `ohlc_snapshot.db`의 배포 직전 백업은 I/O 병목 이력 때문에 비활성화되어 있다.
 - `news_momentum.db`는 `RETENTION_DAYS = 90`(`news_momentum.py:20`) 기준으로 `maintenance.py`가 장외 시간에 `news_topic_daily`와 종료된 이슈의 오래된 DataLab 원본을 삭제한다.
 - `volume_profile_daily`는 `maintenance.py`와 API 요청 경로가 200일 이전 행을 삭제한다. 두 DB 모두 장외 유지보수 때 WAL 체크포인트와 `PRAGMA optimize`를 실행한다.
+- 앱 로그는 최근 10,000줄만 유지한다. 주말 장외 유지보수에는 root 권한이 필요한 VM OS 정리도 비대화식 `sudo -n`으로 수행한다: 현재 syslog 계열 파일은 0바이트로 만들고, `/var/log` 바로 아래의 회전·압축 로그를 삭제하며, systemd journal은 14일·500MB 상한으로 vacuum한다. 권한이 없으면 유지보수를 실패 처리해 날짜 마커를 남기지 않고 다음 회차에 재시도한다.
 - `verify_news_momentum_db.py`가 배포 검증 단계에서 `news_momentum.db`의 무결성/커버리지를 점검한다.
 - GAS `CacheService`는 자체 만료(TTL) 외 별도 백업이 없다 — 애초에 재생성 가능한 캐시이므로 보존 대상이 아니다.
 

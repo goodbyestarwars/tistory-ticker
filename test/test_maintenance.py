@@ -20,6 +20,17 @@ class MaintenanceTests(unittest.TestCase):
     def test_weekend_is_off_hours(self):
         self.assertTrue(maintenance.is_off_hours(datetime(2026, 8, 16, 12, 0, tzinfo=maintenance.KST)))
 
+    def test_system_log_cleanup_runs_only_on_weekends(self):
+        saturday = datetime(2026, 8, 15, 4, 0, tzinfo=maintenance.KST)
+        monday = datetime(2026, 8, 17, 4, 0, tzinfo=maintenance.KST)
+        self.assertTrue(maintenance.is_weekend(saturday))
+        self.assertFalse(maintenance.is_weekend(monday))
+
+    def test_rotated_log_pattern_does_not_match_active_log(self):
+        self.assertFalse(maintenance.ROTATED_LOG_RE.match('syslog'))
+        self.assertTrue(maintenance.ROTATED_LOG_RE.match('syslog.1'))
+        self.assertTrue(maintenance.ROTATED_LOG_RE.match('syslog.2.gz'))
+
     def test_trim_log_keeps_recent_lines_atomically(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = os.path.join(temp_dir, 'sample.log')

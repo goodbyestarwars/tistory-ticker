@@ -119,8 +119,9 @@
 - 배포 직전의 대용량 `ohlc_snapshot.db` 백업은 I/O 병목을 피하려고 비활성화되어 있다.
   대신 `deploy_check.sh`가 새벽 장외 시간에 `maintenance.py`를 하루 한 번 실행해
   뉴스 DB를 삭제 전에 `backup_sqlite.py`로 백업하고 최근 7개만 보관한다. 유지보수는
-  로그 상한, 뉴스 90일·매물대 200일 보존, SQLite WAL 체크포인트·`PRAGMA optimize`를
-  수행한다. 배포 뒤 `/health`, `/news-momentum/000660`, 인증 `/ohlc/005930`을 점검한다. 실패 시
+  앱 로그 상한, 뉴스 90일·매물대 200일 보존, SQLite WAL 체크포인트·`PRAGMA optimize`를
+  수행하며, 주말에는 VM의 현재 syslog 계열 로그를 비우고 회전·압축 로그와 systemd journal을
+  정리한다. 배포 뒤 `/health`, `/news-momentum/000660`, 인증 `/ohlc/005930`을 점검한다. 실패 시
   기존 API 배포 회귀검사는 모멘텀 배치와 분리한다. 모멘텀 실패 시 기존 배포를 롤백하거나
   FastAPI를 다시 시작하지 않고 날짜 마커를 남기지 않는 방식으로만 재시도를 예약한다.
 - 필수 환경변수: `KIWOOM_APPKEY`/`KIWOOM_SECRETKEY`(키움 REST), `API_TOKEN`(GAS→VM 인증용

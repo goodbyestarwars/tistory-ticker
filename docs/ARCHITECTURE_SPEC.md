@@ -52,7 +52,7 @@ flowchart LR
 
 - 엔트리포인트 `main.py`(`uvicorn main:app`), systemd 상시 구동.
 - git push 후 VM이 약 5분 내 자동 재배포(구체 CI/CD는 저장소 밖 VM 설정).
-- 대용량 `ohlc_snapshot.db`의 배포 직전 백업은 I/O 병목 이력으로 비활성화되어 있다. 대신 `deploy_check.sh`가 장외 시간에 `maintenance.py`를 실행해 뉴스 DB 삭제 전 `backup_sqlite.py` 백업, 로그 상한, 뉴스·매물대 보존 정리, SQLite WAL 체크포인트·`PRAGMA optimize`를 수행한다. 배포 후 `/health`·`/news-momentum/000660`·인증 `/ohlc/005930`을 점검한다.
+- 대용량 `ohlc_snapshot.db`의 배포 직전 백업은 I/O 병목 이력으로 비활성화되어 있다. 대신 `deploy_check.sh`가 장외 시간에 `maintenance.py`를 실행해 뉴스 DB 삭제 전 `backup_sqlite.py` 백업, 앱 로그 상한, 뉴스·매물대 보존 정리, SQLite WAL 체크포인트·`PRAGMA optimize`를 수행한다. 주말에는 VM의 현재 syslog 계열 로그를 비우고 회전·압축 로그와 systemd journal도 정리한다. 배포 후 `/health`·`/news-momentum/000660`·인증 `/ohlc/005930`을 점검한다.
 - `deploy_check.sh`는 전체를 `flock`으로 감싸 5분 타이머 중첩 실행을 방지하고, Asia/Seoul 날짜 마커로 뉴스모멘텀 8종목 배치를 하루 1회만 실행한다.
 
 #### 2.3.1 인증 모델 (두 그룹)

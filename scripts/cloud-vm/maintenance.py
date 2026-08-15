@@ -8,7 +8,9 @@
 
 import argparse
 import os
+import re
 import sqlite3
+import subprocess
 from datetime import datetime, timedelta, timezone
 
 try:
@@ -23,6 +25,17 @@ import backup_sqlite
 
 KST = timezone(timedelta(hours=9))
 MAX_LOG_LINES = 10000
+SYSTEM_LOG_DIR = '/var/log'
+SYSTEM_LOG_FILES = (
+    'syslog',
+    'kern.log',
+    'auth.log',
+    'daemon.log',
+    'messages',
+    'debug',
+)
+ROTATED_LOG_RE = re.compile(r'^.+\.(?:\d+|gz|xz|bz2)$')
+JOURNAL_VACUUM_SIZE = '500M'
 LOG_FILES = (
     'deploy.log',
     'search-scan-refresh.log',
@@ -49,6 +62,11 @@ def is_off_hours(now=None):
     return minutes < 9 * 60 or minutes > 15 * 60 + 40
 
 
+def is_weekend(now=None):
+    current = now or _kst_now()
+    return current.weekday() >= 5
+
+
 def trim_log(path, max_lines=MAX_LOG_LINES):
     try:
         with open(path, 'r', encoding='utf-8') as source:
@@ -62,6 +80,95 @@ def trim_log(path, max_lines=MAX_LOG_LINES):
         output.writelines(lines[-max_lines:])
     os.replace(temp_path, path)
     return len(lines) - max_lines
+
+
+def _privileged_command(args):
+    """Return a non-interactive command for operations owned by root."""
+    geteuid = getattr(os, 'geteuid', None)
+    if geteuid is not None and geteuid() == 0:
+        return list(args)
+    return ['sudo', '-n'] + list(args)
+
+
+def _run_privileged(args):
+    try:
+        completed = subprocess.run(
+            _privileged_command(args),
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (FileNotFoundError, PermissionError, subprocess.CalledProcessError) as exc:
+        return {
+            'ok': False,
+            'command': list(args),
+            'error': type(exc).__name__,
+        }
+    except subprocess.TimeoutExpired:
+        return {'ok': False, 'command': list(args), 'error': 'TimeoutExpired'}
+    return {
+        'ok': True,
+        'command': list(args),
+        'output': (completed.stdout or '').strip()[-500:],
+    }
+
+
+def _truncate_system_log(path):
+    if not os.path.isfile(path):
+        return {'skipped': True}
+    result = _run_privileged(['truncate', '-s', '0', path])
+    result['path'] = path
+    return result
+
+
+def _remove_rotated_logs():
+    """Remove only rotated files directly under /var/log; active logs stay."""
+    if not os.path.isdir(SYSTEM_LOG_DIR):
+        return {'skipped': True, 'removed': 0}
+    removed = []
+    failures = []
+    try:
+        entries = list(os.scandir(SYSTEM_LOG_DIR))
+    except OSError as exc:
+        return {'ok': False, 'removed': 0, 'error': type(exc).__name__}
+    for entry in entries:
+        if not entry.is_file() or not ROTATED_LOG_RE.match(entry.name):
+            continue
+        result = _run_privileged(['rm', '-f', entry.path])
+        if result.get('ok'):
+            removed.append(entry.name)
+        else:
+            failures.append({'name': entry.name, 'error': result.get('error')})
+    return {'ok': not failures, 'removed': removed, 'failures': failures}
+
+
+def cleanup_system_logs():
+    """Clean VM OS logs during the weekend without deleting active log files."""
+    truncated = {}
+    for name in SYSTEM_LOG_FILES:
+        truncated[name] = _truncate_system_log(os.path.join(SYSTEM_LOG_DIR, name))
+    rotated = _remove_rotated_logs()
+    journal = _run_privileged([
+        'journalctl',
+        '--vacuum-time=14d',
+        '--vacuum-size=%s' % JOURNAL_VACUUM_SIZE,
+    ])
+    failures = [
+        item for item in truncated.values()
+        if item.get('ok') is False
+    ]
+    if rotated.get('ok') is False:
+        failures.append(rotated)
+    if journal.get('ok') is False:
+        failures.append(journal)
+    return {
+        'ok': not failures,
+        'truncated': truncated,
+        'rotated': rotated,
+        'journal': journal,
+        'failures': failures,
+    }
 
 
 def _maintenance_news_momentum():
@@ -109,9 +216,16 @@ def run(force=False):
     trimmed = {}
     for name in LOG_FILES:
         trimmed[name] = trim_log(os.path.join(app_dir, name))
+    system_logs = cleanup_system_logs() if is_weekend() else {
+        'skipped': True,
+        'reason': '주말 OS 로그 정리 일정이 아닙니다.',
+    }
+    if system_logs.get('ok') is False:
+        raise RuntimeError('VM OS 로그 정리에 실패했습니다: %s' % system_logs)
     result = {
         'dateKst': _kst_now().date().isoformat(),
         'logsTrimmed': trimmed,
+        'systemLogs': system_logs,
         'newsMomentum': _maintenance_news_momentum(),
         'volumeProfile': _maintenance_volume_profile(),
         'ohlcCheckpoint': _checkpoint_sqlite(os.path.join(app_dir, 'ohlc_snapshot.db')),
