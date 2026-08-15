@@ -3347,7 +3347,7 @@
 
   // TradingView 공식 "Bands Indicator" 플러그인 예제와 같은 구조(Series Primitive, v5 지원 -
   // js/pattern-scan.js 참고). drawBackground()로 캔들/선보다 먼저 그려 구름이 배경에 깔리게 한다.
-  function createIchimokuCloudPrimitive(bandPts, bullColor, bearColor) {
+  function createIchimokuCloudPrimitive(bandPts, cloudColor) {
     return {
       _chart: null,
       _series: null,
@@ -3372,7 +3372,7 @@
                     var yA = series.priceToCoordinate(p.a);
                     var yB = series.priceToCoordinate(p.b);
                     if (x == null || yA == null || yB == null) return null;
-                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio, bull: p.a >= p.b };
+                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio };
                   });
                   ctx.save();
                   for (var k = 0; k < pts.length - 1; k++) {
@@ -3384,7 +3384,7 @@
                     ctx.lineTo(p1.x, p1.yB);
                     ctx.lineTo(p0.x, p0.yB);
                     ctx.closePath();
-                    ctx.fillStyle = p0.bull ? bullColor : bearColor;
+                    ctx.fillStyle = cloudColor;
                     ctx.fill();
                   }
                   ctx.restore();
@@ -3406,8 +3406,9 @@
     [['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB]].forEach(function (pair) {
       var key = pair[0], pts = pair[1];
       if (!pts.length) return;
-      // 선행스팬 경계선은 숨기고, 두 선 사이의 구름만 파란색으로 표시한다.
-      var series = lwcChart.addSeries(global.LightweightCharts.LineSeries, { color: 'rgba(18,97,196,0)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      // 선행스팬1·2는 같은 파란색 선으로 표시하고, 두 선 사이에는 테두리 없는
+      // 옅은 파란색 구름만 깐다.
+      var series = lwcChart.addSeries(global.LightweightCharts.LineSeries, { color: '#4dabf7', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       series.setData(pts);
       ichimokuOverlaySeries.push(series);
       seriesByKey[key] = series;
@@ -3417,7 +3418,7 @@
       try {
         var bandPts = pairIchimokuBand(ichi.senkouA, ichi.senkouB);
         if (bandPts.length > 1) {
-          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(210,79,69,0.13)', 'rgba(18,97,196,0.12)');
+          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(77,171,247,0.12)');
           seriesByKey.senkouA.attachPrimitive(cloudPrimitive);
           ichimokuCloudPrimitive = { series: seriesByKey.senkouA, primitive: cloudPrimitive };
         }

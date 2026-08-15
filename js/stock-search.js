@@ -1129,8 +1129,7 @@
         return {
           x: chart.timeScale().timeToCoordinate(point.time),
           yA: candleSeries.priceToCoordinate(point.spanA),
-          yB: candleSeries.priceToCoordinate(point.spanB),
-          bullish: point.spanA >= point.spanB
+          yB: candleSeries.priceToCoordinate(point.spanB)
         };
       });
       for (var i = 1; i < coordinates.length; i++) {
@@ -1143,11 +1142,7 @@
         ctx.lineTo(curr.x, curr.yB);
         ctx.lineTo(prev.x, prev.yB);
         ctx.closePath();
-        ctx.fillStyle = (prev.bullish && curr.bullish)
-          ? 'rgba(210,79,69,0.13)'
-          : (!prev.bullish && !curr.bullish)
-            ? 'rgba(18,97,196,0.12)'
-            : 'rgba(132,139,148,0.10)';
+        ctx.fillStyle = 'rgba(77,171,247,0.12)';
         ctx.fill();
       }
     }
@@ -1730,7 +1725,7 @@
       var cloudPoints = (state.ichimokuEnabled && timeframe !== 'minute') ? ichimokuCloudPoints(bars, timeframe) : [];
       if (state.ichimokuEnabled) {
         var spanASeries = chart.addSeries(LWC.LineSeries, {
-          color: 'rgba(210,79,69,0.62)',
+          color: '#4dabf7',
           lineWidth: 1,
           priceScaleId: 'right',
           lastValueVisible: false,
@@ -1738,7 +1733,7 @@
           crosshairMarkerVisible: false
         });
         var spanBSeries = chart.addSeries(LWC.LineSeries, {
-          color: 'rgba(18,97,196,0.62)',
+          color: '#4dabf7',
           lineWidth: 1,
           priceScaleId: 'right',
           lastValueVisible: false,

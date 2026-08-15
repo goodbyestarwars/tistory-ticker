@@ -876,10 +876,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' };", source)
         self.assertIn("var MA_WIDTHS = { ma5: 1, ma20: 1, ma60: 1, ma224: 3 };", source)
         self.assertIn("movingAverageOverlaySeries.push(lineSeries)", source)
-        self.assertIn("function createIchimokuCloudPrimitive(bandPts, bullColor, bearColor)", source)
-        self.assertIn("ctx.fillStyle = p0.bull ? bullColor : bearColor", source)
-        self.assertIn("color: 'rgba(18,97,196,0)'", source)
-        self.assertIn("createIchimokuCloudPrimitive(bandPts, 'rgba(210,79,69,0.13)', 'rgba(18,97,196,0.12)')", source)
+        self.assertIn("function createIchimokuCloudPrimitive(bandPts, cloudColor)", source)
+        self.assertIn("ctx.fillStyle = cloudColor", source)
+        self.assertIn("color: '#4dabf7'", source)
+        self.assertIn("createIchimokuCloudPrimitive(bandPts, 'rgba(77,171,247,0.12)')", source)
         self.assertIn("var volumeSeries = chart.addSeries(LWC.HistogramSeries", source)
         self.assertIn("priceFormat: { type: 'volume' }", source)
         self.assertIn("movingAverageChartPoints(daily, 'volume', 20)", source)
@@ -908,7 +908,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("최근 5봉 안에 5일선이 20일선을 상향돌파", source)
         self.assertIn("addMaLine(chart, daily, 224, MA224_EARLY_COLOR)", source)
         self.assertIn("psIchimokuEnabled = activeTab === 'maCloudBreakout'", source)
-        self.assertIn("createIchimokuCloudPrimitive(bandPts, 'rgba(210,79,69,0.13)', 'rgba(18,97,196,0.12)')", source)
+        self.assertIn("createIchimokuCloudPrimitive(bandPts, 'rgba(77,171,247,0.12)')", source)
 
     def test_box_range_detail_prefers_vm_snapshot_with_market_cap_filter(self):
         source = self.read("js/pattern-scan.js")

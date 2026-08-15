@@ -384,8 +384,8 @@
 
   // TradingView 공식 "Bands Indicator" 플러그인 예제와 같은 구조(Series Primitive) -
   // drawBackground()에서 캔들/선보다 먼저 그려지게 해서 구름이 항상 배경에 깔리게 한다.
-  // bandPts[i].a >= bandPts[i].b 구간은 양운(상승 구름, 초록), 반대는 음운(하락 구름, 주황).
-  function createIchimokuCloudPrimitive(bandPts, bullColor, bearColor) {
+  // 선행스팬1·2 사이를 테두리 없는 옅은 파란색으로 채운다.
+  function createIchimokuCloudPrimitive(bandPts, cloudColor) {
     return {
       _chart: null,
       _series: null,
@@ -410,7 +410,7 @@
                     var yA = series.priceToCoordinate(p.a);
                     var yB = series.priceToCoordinate(p.b);
                     if (x == null || yA == null || yB == null) return null;
-                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio, bull: p.a >= p.b };
+                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio };
                   });
                   ctx.save();
                   for (var k = 0; k < pts.length - 1; k++) {
@@ -422,7 +422,7 @@
                     ctx.lineTo(p1.x, p1.yB);
                     ctx.lineTo(p0.x, p0.yB);
                     ctx.closePath();
-                    ctx.fillStyle = p0.bull ? bullColor : bearColor;
+                    ctx.fillStyle = cloudColor;
                     ctx.fill();
                   }
                   ctx.restore();
@@ -457,7 +457,7 @@
       try {
         var bandPts = pairIchimokuBand(ichi.senkouA, ichi.senkouB);
         if (bandPts.length > 1) {
-          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(210,79,69,0.13)', 'rgba(18,97,196,0.12)');
+          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(77,171,247,0.12)');
           seriesByKey.senkouA.attachPrimitive(cloudPrimitive);
           psIchimokuCloudPrimitive = { series: seriesByKey.senkouA, primitive: cloudPrimitive };
         }
