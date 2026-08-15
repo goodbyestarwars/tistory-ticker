@@ -3320,6 +3320,7 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '</div>'
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
+        + '<div class="ff-chart-news-detail" aria-live="polite">차트의 파란 뉴스 마커 또는 날짜를 클릭하면 해당 날짜의 기사 제목이 여기에 표시됩니다.</div>'
         + (chartData.source === 'flow-fallback'
           ? '<div class="ff-hint">일봉 원천 응답이 지연되어 수급 응답의 종가·거래량으로 임시 표시 중입니다. 실제 OHLC가 도착하면 자동으로 교체됩니다.</div>'
           : '')
@@ -4884,7 +4885,15 @@
     var raw = String(value || '');
     if (/^\d{8}$/.test(raw)) return raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6, 8);
     var match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
-    return match ? match[1] : '';
+    if (match) return match[1];
+    // 네이버 뉴스 pubDate는 RFC 822 형식(예: Mon, 10 Aug 2026 ...)이라
+    // 차트의 거래일과 연결하려면 날짜만 별도로 뽑아야 한다.
+    var rfc = raw.match(/(?:^|,\s*)(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
+    if (!rfc) return '';
+    var months = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+      Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+    if (!months[rfc[2]]) return '';
+    return rfc[3] + '-' + months[rfc[2]] + '-' + String(rfc[1]).padStart(2, '0');
   }
 
   function nearestChartDate(value, dates) {
@@ -4949,6 +4958,55 @@
     }
     return Object.keys(markerByKey).map(function (key) { return markerByKey[key]; })
       .sort(function (a, b) { return String(a.time).localeCompare(String(b.time)); });
+  }
+
+  function chartNewsForDate(date, dailyDates, chartEvents) {
+    var news = chartEvents && chartEvents.news || [];
+    var items = news.filter(function (item) {
+      return nearestChartDate(item && item.pubDate, dailyDates) === date;
+    });
+    var topics = [];
+    var momentumTopics = chartEvents && chartEvents.momentum && chartEvents.momentum.topics || [];
+    momentumTopics.forEach(function (topic) {
+      (topic.daily || []).forEach(function (point) {
+        if (chartDate(point.date) === date && Number(point.news_count) > 0) {
+          topics.push({ name: topic.topicName || '뉴스 이슈', count: Number(point.news_count) });
+        }
+      });
+    });
+    return { items: items, topics: topics };
+  }
+
+  function chartNewsKind(item) {
+    var title = String(item && item.title || '');
+    if (/실적|영업이익|순이익|매출액|잠정/.test(title) || item.category === '실적') return '실적';
+    if (item.kind === 'disclosure') return '공시';
+    return '뉴스';
+  }
+
+  function renderChartNewsDetail(target, date, dailyDates, chartEvents) {
+    if (!target || !date) return;
+    var detail = chartNewsForDate(date, dailyDates, chartEvents);
+    var itemHtml = detail.items.slice(0, 8).map(function (item) {
+      var safeLink = safeExternalUrl(item.link);
+      var title = escapeHtml(item.title || '제목 없음');
+      var titleHtml = safeLink
+        ? '<a href="' + escapeAttr(safeLink) + '" target="_blank" rel="noopener">' + title + '</a>'
+        : title;
+      var source = item.source || item.provider || '';
+      return '<li><span class="ff-chart-news-kind kind-' + escapeAttr(chartNewsKind(item)) + '">' + chartNewsKind(item) + '</span>'
+        + '<span class="ff-chart-news-title">' + titleHtml + '</span>'
+        + (source ? '<small>' + escapeHtml(source) + '</small>' : '') + '</li>';
+    }).join('');
+    var topicHtml = detail.topics.map(function (topic) {
+      return '<li class="ff-chart-news-topic"><span>뉴스 모멘텀</span>'
+        + '<span>' + escapeHtml(topic.name) + ' · ' + topic.count.toLocaleString('ko-KR') + '건</span></li>';
+    }).join('');
+    var body = itemHtml || topicHtml
+      ? '<ul>' + itemHtml + topicHtml + '</ul>'
+      : '<p class="ff-chart-news-empty">이 날짜에 연결된 기사 상세가 없습니다.</p>';
+    target.innerHTML = '<div class="ff-chart-news-head"><strong>' + escapeHtml(date) + ' 뉴스</strong>'
+      + '<span>제목을 클릭하면 원문으로 이동합니다.</span></div>' + body;
   }
 
   // TradingView Lightweight Charts v5 멀티 패널 차트.
@@ -5089,6 +5147,14 @@
       var markers = buildChartMarkers(daily, chartData, chartEvents);
       if (markers.length && typeof LWC.createSeriesMarkers === 'function') {
         lwcMarkers = LWC.createSeriesMarkers(candleSeries, markers);
+      }
+      var chartNewsDetail = container.parentNode && container.parentNode.querySelector('.ff-chart-news-detail');
+      var dailyDates = daily.map(function (row) { return chartDate(row.date); });
+      if (chartNewsDetail && chart.subscribeClick) {
+        chart.subscribeClick(function (param) {
+          var clickedDate = chartDate(param && param.time);
+          if (clickedDate) renderChartNewsDetail(chartNewsDetail, clickedDate, dailyDates, chartEvents);
+        });
       }
 
       var paneLabels = document.createElement('div');

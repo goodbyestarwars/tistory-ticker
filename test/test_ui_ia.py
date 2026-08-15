@@ -860,8 +860,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var volumeSeries = chart.addSeries(LWC.HistogramSeries", source)
         self.assertIn("priceFormat: { type: 'volume' }", source)
         self.assertIn("movingAverageChartPoints(daily, 'volume', 20)", source)
+        self.assertIn("chart.subscribeClick", source)
+        self.assertIn("ff-chart-news-detail", source)
+        self.assertIn("뉴스 모멘텀", source)
+        self.assertIn("RFC 822", source)
         self.assertIn(".ff-volume-study-label", style)
         self.assertIn(".ff-chart-candle::after", style)
+        self.assertIn(".ff-chart-news-detail", style)
 
     def test_pattern_scan_includes_ma_cloud_breakout_search(self):
         source = self.read("js/pattern-scan.js")

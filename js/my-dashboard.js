@@ -11,7 +11,7 @@
   var API_BASE = 'https://goodbyestar.cloud';
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var VM_URL = API_BASE;
-  var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260813-my-dashboard';
+  var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260815-chart-news-detail';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0 };
   var mount = null;
