@@ -1450,6 +1450,10 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
                 'updated_at': p['updated_at'] if p else None,
                 'oi': p['oi'] if p else None,
                 'oi_change': p['oi_change'] if p else None,
+                'ask_price': p['ask_price'] if p else None,
+                'bid_price': p['bid_price'] if p else None,
+                'ask_qty': p['ask_qty'] if p else None,
+                'bid_qty': p['bid_qty'] if p else None,
                 'chart': chart,
             })
     finally:

@@ -14,7 +14,11 @@
 (kis_client.fetch_option_board 참고)."""
 
 import logging
+import asyncio
+import json
+import os
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 
 import db_schema
@@ -24,6 +28,39 @@ import polling
 logger = logging.getLogger('option_flow')
 
 _POLL_INTERVAL_SEC = 5 * 60
+
+OPTION_TRADE_TR_ID = 'H0IOCNT0'
+OPTION_QUOTE_TR_ID = 'H0IOASP0'
+
+# H0IOCNT0의 앞부분은 옵션 시세판 집계에 필요한 필드가 모두 포함된다. WebSocket
+# 구독은 종목당 1건으로 들어오므로 count가 1인 메시지는 아래 필드만으로 안전하게
+# 해석할 수 있다. 뒤쪽 필드는 호환성을 위해 이름을 붙여 둔다.
+OPTION_TRADE_FIELDS = [
+    'optn_shrn_iscd', 'bsop_hour', 'optn_prpr', 'prdy_vrss_sign', 'optn_prdy_vrss',
+    'prdy_ctrt', 'optn_oprc', 'optn_hgpr', 'optn_lwpr', 'last_cnqn', 'acml_vol',
+    'acml_tr_pbmn', 'hts_thpr', 'hts_otst_stpl_qty', 'otst_stpl_qty_icdc',
+    'oprc_hour', 'oprc_vrss_prpr_sign', 'oprc_vrss_nmix_prpr', 'hgpr_hour',
+    'hgpr_vrss_prpr_sign', 'hgpr_vrss_nmix_prpr', 'lwpr_hour', 'lwpr_vrss_prpr_sign',
+    'lwpr_vrss_nmix_prpr', 'shnu_rate', 'prmm_val', 'invl_val', 'tmvl_val', 'delta',
+    'gama', 'vega', 'theta', 'rho', 'hts_ints_vltl', 'esdg', 'otst_stpl_rgbf_qty_icdc',
+    'thpr_basis', 'unas_hist_vltl', 'cttr', 'dprt', 'mrkt_basis', 'optn_askp1',
+    'optn_bidp1', 'askp_rsqn1', 'bidp_rsqn1', 'seln_cntg_csnu', 'shnu_cntg_csnu',
+    'ntby_cntg_csnu', 'seln_cntg_smtn', 'shnu_cntg_smtn', 'total_askp_rsqn',
+    'total_bidp_rsqn', 'prdy_vol_vrss_acml_vol_rate', 'avrg_vltl', 'dscs_lrqn_vol',
+    'dynm_mxpr', 'dynm_llam', 'dynm_prc_limt_yn',
+]
+
+OPTION_QUOTE_FIELDS = [
+    'optn_shrn_iscd', 'bsop_hour', 'optn_askp1', 'optn_askp2', 'optn_askp3',
+    'optn_askp4', 'optn_askp5', 'optn_bidp1', 'optn_bidp2', 'optn_bidp3',
+    'optn_bidp4', 'optn_bidp5', 'askp_csnu1', 'askp_csnu2', 'askp_csnu3',
+    'askp_csnu4', 'askp_csnu5', 'bidp_csnu1', 'bidp_csnu2', 'bidp_csnu3',
+    'bidp_csnu4', 'bidp_csnu5', 'askp_rsqn1', 'askp_rsqn2', 'askp_rsqn3',
+    'askp_rsqn4', 'askp_rsqn5', 'bidp_rsqn1', 'bidp_rsqn2', 'bidp_rsqn3',
+    'bidp_rsqn4', 'bidp_rsqn5', 'total_askp_csnu', 'total_bidp_csnu',
+    'total_askp_rsqn', 'total_bidp_rsqn', 'total_askp_rsqn_icdc',
+    'total_bidp_rsqn_icdc',
+]
 
 
 def _second_thursday(year, month):
@@ -108,6 +145,144 @@ def refresh_option_flow(appkey, appsecret):
                 mtrt, call_v, call_oi, call_oic, put_v, put_oi, put_oic)
 
 
+def _parse_ws_rows(raw, fields):
+    if isinstance(raw, bytes):
+        raw = raw.decode('utf-8', 'ignore')
+    if not isinstance(raw, str) or not raw.startswith('0|'):
+        return []
+    parts = raw.split('|', 3)
+    if len(parts) != 4:
+        return []
+    try:
+        count = max(1, int(parts[2]))
+    except (TypeError, ValueError):
+        count = 1
+    values = parts[3].split('^')
+    if count == 1:
+        return [dict(zip(fields, values))]
+    if len(values) % count:
+        return []
+    width = len(values) // count
+    return [dict(zip(fields, values[i * width:(i + 1) * width])) for i in range(count)]
+
+
+def _option_code(row):
+    return str(row.get('optn_shrn_iscd') or row.get('option_code') or '').strip().upper()
+
+
+def _merge_ws_row(base, update):
+    merged = dict(base)
+    for key, value in update.items():
+        if value not in (None, ''):
+            merged[key] = value
+    return merged
+
+
+def _persist_rows(calls, puts, mtrt):
+    now_iso = datetime.now(timezone.utc).isoformat()
+    call_v, call_oi, call_oic = _aggregate(calls)
+    put_v, put_oi, put_oic = _aggregate(puts)
+    conn = db_schema.get_conn()
+    try:
+        db_schema.upsert_option_flow(conn, 'CALL', call_v, call_oi, call_oic, now_iso)
+        db_schema.upsert_option_flow(conn, 'PUT', put_v, put_oi, put_oic, now_iso)
+        db_schema.replace_option_flow_strikes(
+            conn,
+            _strike_rows('CALL', calls, now_iso) + _strike_rows('PUT', puts, now_iso),
+        )
+    finally:
+        conn.close()
+    logger.info('option flow WebSocket snapshot refreshed (mtrt=%s): call=%d put=%d',
+                mtrt, call_v, put_v)
+
+
+def _realtime_rows(calls, puts, limit=10):
+    """KIS WebSocket 구독 한도 안에서 거래량이 많은 옵션을 선택한다."""
+    def rank(row):
+        return _number(row, 'acml_vol', 'volume') or 0
+    return sorted(calls, key=rank, reverse=True)[:limit] + sorted(puts, key=rank, reverse=True)[:limit]
+
+
+async def _ws_loop(appkey, appsecret):
+    import websockets
+
+    last_board = 0
+    last_persist = 0
+    mtrt = None
+    calls = []
+    puts = []
+    by_code = {}
+    while True:
+        try:
+            now = time.time()
+            if now - last_board >= _POLL_INTERVAL_SEC or not by_code:
+                token = await asyncio.to_thread(kis_client.get_token, appkey, appsecret)
+                mtrt = nearest_option_maturity_yyyymm()
+                calls, puts = await asyncio.to_thread(
+                    lambda: kis_client.fetch_option_board(token, appkey, appsecret, mtrt)
+                )
+                by_code = {}
+                for side, rows in (('CALL', calls), ('PUT', puts)):
+                    for row in rows:
+                        code = _option_code(row)
+                        if code:
+                            row['_side'] = side
+                            by_code[code] = row
+                _persist_rows(calls, puts, mtrt)
+                last_board = now
+
+            selected = _realtime_rows(calls, puts)
+            selected_codes = [_option_code(row) for row in selected if _option_code(row)]
+            if not selected_codes:
+                await asyncio.sleep(30)
+                continue
+
+            approval_key = await asyncio.to_thread(kis_client.get_approval_key, appkey, appsecret)
+            async with websockets.connect(kis_client.WS_URL, ping_interval=None, open_timeout=10, close_timeout=5) as ws:
+                for tr_id in (OPTION_TRADE_TR_ID, OPTION_QUOTE_TR_ID):
+                    for code in selected_codes:
+                        await ws.send(json.dumps({
+                            'header': {
+                                'approval_key': approval_key, 'custtype': 'P', 'tr_type': '1',
+                                'content-type': 'utf-8',
+                            },
+                            'body': {'input': {'tr_id': tr_id, 'tr_key': code}},
+                        }))
+                        await asyncio.sleep(0.05)
+                logger.info('KIS option WebSocket subscribed: maturity=%s contracts=%d', mtrt, len(selected_codes))
+                async for raw in ws:
+                    # 최근월물·거래량 상위 계약이 바뀔 수 있으므로 5분마다
+                    # 전광판 REST 스냅샷을 다시 읽고 구독 목록을 재구성한다.
+                    if time.time() - last_board >= _POLL_INTERVAL_SEC:
+                        await ws.close()
+                        break
+                    if isinstance(raw, str) and raw.startswith('0|'):
+                        parts = raw.split('|', 3)
+                        tr_id = parts[1] if len(parts) > 1 else ''
+                        fields = OPTION_TRADE_FIELDS if tr_id == OPTION_TRADE_TR_ID else OPTION_QUOTE_FIELDS
+                        for update in _parse_ws_rows(raw, fields):
+                            code = _option_code(update)
+                            if code in by_code:
+                                by_code[code] = _merge_ws_row(by_code[code], update)
+                        if time.time() - last_persist >= 1:
+                            calls = [row for row in by_code.values() if row.get('_side') == 'CALL']
+                            puts = [row for row in by_code.values() if row.get('_side') == 'PUT']
+                            _persist_rows(calls, puts, mtrt)
+                            last_persist = time.time()
+                        continue
+                    try:
+                        message = json.loads(raw)
+                    except (TypeError, json.JSONDecodeError):
+                        continue
+                    if (message.get('header') or {}).get('tr_id') == 'PINGPONG':
+                        await ws.send(raw)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception('KIS option WebSocket disconnected; retrying in 5s')
+            await asyncio.sleep(5)
+
+
 def _poll_loop(appkey, appsecret):
     polling.run_forever(
         lambda: refresh_option_flow(appkey, appsecret),
@@ -118,6 +293,15 @@ def _poll_loop(appkey, appsecret):
 
 
 def start_background(appkey, appsecret):
-    t = threading.Thread(target=_poll_loop, args=(appkey, appsecret), name='option-flow-poll', daemon=True)
+    try:
+        import websockets  # noqa: F401
+    except ImportError:
+        logger.warning('websockets 미설치 - 옵션 수급은 기존 REST polling으로 동작합니다')
+        target = _poll_loop
+        name = 'option-flow-poll'
+    else:
+        target = lambda: asyncio.run(_ws_loop(appkey, appsecret))
+        name = 'option-flow-ws'
+    t = threading.Thread(target=target, args=() if target is not _poll_loop else (appkey, appsecret), name=name, daemon=True)
     t.start()
     return t

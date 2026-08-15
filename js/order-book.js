@@ -259,9 +259,9 @@
     });
   }
 
-  // ---- 실시간 체결가(WebSocket, watchlist.js와 동일 패턴) ----
-  // 호가 사다리/HUD/매물벽 계산은 그대로 2초 폴링(tick)에 맡기고, 이 소켓은 헤더/현재가 행의
-  // 표시(가격·등락률 텍스트)만 더 빠르게 갱신한다.
+  // ---- 실시간 체결가·통합호가(WebSocket) ----
+  // KIS 통합 호가가 오면 사다리도 즉시 갱신한다. REST 2초 폴링은 종목 전환·장외
+  // 폴백용으로만 남겨 둔다.
 
   function stopRealtimeQuote() {
     state.realtimeGeneration += 1;
@@ -293,6 +293,7 @@
         try {
           var quote = JSON.parse(event.data);
           if (quote.type === 'quote' && quote.code === code) applyRealtimeQuote(container, quote);
+          if (quote.type === 'orderbook' && quote.code === code) applyRealtimeOrderbook(container, quote);
         } catch (err) {}
       };
 
@@ -355,6 +356,35 @@
     updateSummary(board, quote);
 
     if (state.onQuote) state.onQuote(quote);
+  }
+
+  function applyRealtimeOrderbook(container, orderbook) {
+    var board = container.querySelector('#obBoard');
+    if (!board) return;
+    var asks = Array.isArray(orderbook.asks) ? orderbook.asks : [];
+    var bids = Array.isArray(orderbook.bids) ? orderbook.bids : [];
+    var maxQty = 1;
+    asks.concat(bids).forEach(function (row) {
+      var qty = numericOrNull(row.qty);
+      if (qty != null && qty > maxQty) maxQty = qty;
+    });
+
+    function updateSide(rows, side) {
+      rows.forEach(function (row, index) {
+        var line = board.querySelector('.ob-row-' + side + '[data-level="' + (index + 1) + '"]');
+        if (!line) return;
+        var price = numericOrNull(row.price);
+        var qty = numericOrNull(row.qty);
+        var qtyEl = line.querySelector('.ob-qty');
+        var priceEl = line.querySelector('.ob-price');
+        var bar = line.querySelector('.ob-bar-wrap > span');
+        if (qtyEl) qtyEl.textContent = qty == null ? '-' : fmtQty(qty);
+        if (priceEl) priceEl.textContent = price == null ? '-' : Math.round(price).toLocaleString('ko-KR');
+        if (bar) bar.style.width = Math.max(2, Math.round((qty || 0) / maxQty * 100)) + '%';
+      });
+    }
+    updateSide(asks, 'ask');
+    updateSide(bids, 'bid');
   }
 
   function tick(container) {
@@ -728,8 +758,8 @@
 
     var summaryHtml = buildSummaryHtml(buildSummaryView(quote));
 
-    var askRows = book.asks.map(function (r) { return rowHtml(r, maxQty, 'ask'); }).join('');
-    var bidRows = book.bids.map(function (r) { return rowHtml(r, maxQty, 'bid'); }).join('');
+    var askRows = book.asks.map(function (r, i) { return rowHtml(r, maxQty, 'ask', i + 1); }).join('');
+    var bidRows = book.bids.map(function (r, i) { return rowHtml(r, maxQty, 'bid', i + 1); }).join('');
 
     var totalAsk = book.totalAskQty || 0;
     var totalBid = book.totalBidQty || 0;
@@ -858,11 +888,11 @@
       + '</div>';
   }
 
-  function rowHtml(row, maxQty, side) {
+  function rowHtml(row, maxQty, side, level) {
     var pct = Math.max(2, Math.round(row.qty / maxQty * 100));
     var barCls = side === 'ask' ? 'ob-bar-ask' : 'ob-bar-bid';
     var textCls = side === 'ask' ? 'ob-ask-text' : 'ob-bid-text';
-    return '<div class="ob-row ob-row-' + side + '">'
+    return '<div class="ob-row ob-row-' + side + '" data-level="' + level + '">'
       + '<span class="ob-qty ' + textCls + '">' + fmtQty(row.qty) + '</span>'
       + '<span class="ob-bar-wrap"><span class="' + barCls + '" style="width:' + pct + '%"></span></span>'
       + '<span class="ob-price ' + textCls + '">' + Math.round(row.price).toLocaleString('ko-KR') + '</span>'

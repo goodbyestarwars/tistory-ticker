@@ -62,6 +62,20 @@ class RealtimeQuotesTests(unittest.TestCase):
         self.assertEqual(events[0]['changeRate'], 1.0)
         self.assertEqual(events[0]['volume'], 1000.0)
 
+    def test_parses_kis_unified_stock_orderbook_message(self):
+        row = ['005930', '123000', '1']
+        row += ['70000'] + ['70100'] * 9
+        row += ['69900'] + ['69800'] * 9
+        row += ['10'] + ['11'] * 9
+        row += ['20'] + ['21'] * 9
+        row += ['100', '200', '0', '0', '0', '0', '0', '0', '0']
+        events = realtime_quotes._kis_quote_events('0|H0UNASP0|1|' + '^'.join(row))
+
+        self.assertEqual(events[0]['type'], 'orderbook')
+        self.assertEqual(events[0]['code'], '005930')
+        self.assertEqual(events[0]['asks'][0], {'price': 70000.0, 'qty': 10.0})
+        self.assertEqual(events[0]['bids'][0], {'price': 69900.0, 'qty': 20.0})
+
 
 if __name__ == '__main__':
     unittest.main()
