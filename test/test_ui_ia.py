@@ -295,6 +295,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, source)
         self.assertIn("object-fit: contain", self.read("style.css"))
 
+    def test_home_realtime_table_uses_correct_won_trillion_unit(self):
+        source = self.read("js/home-realtime-table.js")
+        self.assertIn("1조 = 1,000,000,000,000원(10^12)", source)
+        self.assertIn("parsed >= 1000000000000", source)
+        self.assertIn("parsed / 1000000000000", source)
+        self.assertNotIn("parsed / 100000000000).toFixed", source)
+
     def test_home_realtime_table_reconnects_after_websocket_disconnect(self):
         source = self.read("js/home-realtime-table.js")
         main = self.read("scripts/cloud-vm/main.py")

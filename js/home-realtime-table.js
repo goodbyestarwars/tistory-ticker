@@ -194,7 +194,9 @@
       if (parsed >= 1000000) return '$' + (parsed / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
       return '$' + Math.round(parsed).toLocaleString('en-US');
     }
-    if (parsed >= 100000000000) return (parsed / 100000000000).toFixed(1).replace(/\.0$/, '') + '조';
+    // 한국 원화 단위에서 1조 = 1,000,000,000,000원(10^12)이다.
+    // 10^11로 나누면 거래대금·시가총액이 모두 10배 크게 표시된다.
+    if (parsed >= 1000000000000) return (parsed / 1000000000000).toFixed(1).replace(/\.0$/, '') + '조';
     if (parsed >= 100000000) return (parsed / 100000000).toFixed(1).replace(/\.0$/, '') + '억';
     return Math.round(parsed).toLocaleString('ko-KR') + '원';
   }
