@@ -193,7 +193,7 @@ def _sections(rows):
     }
 
 
-def fetch_domestic(token, limit=12, wics_map=None):
+def fetch_domestic(token, limit=20, wics_map=None):
     try:
         rank = market_rank.fetch_sidebar_rank(token, limit=max(12, min(int(limit), 20)))
     except Exception as exc:
@@ -267,7 +267,7 @@ def _kis_domestic_row(row):
     }
 
 
-def fetch_domestic_kis(appkey, appsecret, limit=12, wics_map=None):
+def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
     """KIS 기반 국내 실시간 종목판.
 
     거래금액·거래량·거래증가율·거래회전율·거래대금회전율·등락률·시가총액
@@ -484,7 +484,7 @@ def _us_rank_row(rank_row, finnhub_api_key):
     }
 
 
-def fetch_us(token, limit=12, finnhub_api_key=''):
+def fetch_us(token, limit=20, finnhub_api_key=''):
     rows = []
     source = 'Kiwoom usa20540 미국주식 거래대금 순위 + Finnhub profile2'
     try:
@@ -611,7 +611,7 @@ def _normalize_kis_us_metric(raw_rows, metric):
     return ordered
 
 
-def fetch_us_kis(appkey, appsecret, limit=12):
+def fetch_us_kis(appkey, appsecret, limit=20):
     """KIS 기반 미국 실시간 종목판.
 
     KIS 해외 순위 API는 거래소별 조회이므로 NYSE/NASDAQ/AMEX를 병렬 조회한 뒤
