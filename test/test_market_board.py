@@ -193,10 +193,12 @@ class MarketBoardTests(unittest.TestCase):
                 ]):
             result = market_board.fetch_domestic_kis('appkey', 'secret', limit=1)
 
-        self.assertEqual(result['source'], 'KIS 국내 순위(거래금액·거래량·등락률·시가총액)')
+        self.assertEqual(result['source'], 'KIS 국내 순위(거래금액·거래량·거래증가율·거래회전율·거래대금회전율·등락률·시가총액)')
         self.assertEqual(result['rows'][0]['code'], '005930')
         self.assertEqual(result['rows'][0]['trade_amount'], 9_000_000_000)
         self.assertEqual(result['rows'][0]['market_cap'], 5_000_000)
+        for section in ('tradeVolume', 'volumeGrowth', 'turnover', 'amountTurnover', 'marketCap'):
+            self.assertIn(section, result['sections'])
 
     def test_us_kis_board_merges_exchange_rankings(self):
         def trade_amount(_token, _appkey, _secret, exchange, limit=20):
