@@ -83,7 +83,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-flow-table td.dmi-positive { color: #d24f45 !important; }", style)
         self.assertIn(".dmi-flow-table td.dmi-negative { color: #1261c4 !important; }", style)
         self.assertIn(".dmi-shell .dmi-fund-card *", style)
-        self.assertIn("domestic-market-indicators.css?v=20260814-draw-controls-hide", frontend)
+        self.assertIn("domestic-market-indicators.css?v=20260814-ai-title-unify", frontend)
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
         self.assertIn("function miniAverageChart(values, average)", frontend)
         self.assertIn("신용잔고 (빚투)", frontend)
@@ -144,6 +144,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function setupKfDrawing", futures_script)
         self.assertIn(".kf-drawing-layer.is-active", futures_css)
         self.assertNotIn('💬 참고의견', futures_script)
+        # 2026-08-14 요청: 사이트 곳곳의 Groq AI 요약 상자 제목·아이콘을 "참고의견" + 말풍선
+        # 아이콘으로 통일(예전엔 "종합 요약"/"요약"/이모지 등으로 제각각이었음).
+        self.assertIn('class="dmi-ai-icon"', frontend)
+        self.assertIn("'참고의견", frontend)
+        market_temp_script = self.read("js/market-temp.js")
+        self.assertIn('class="mt-ai-icon"', market_temp_script)
+        self.assertIn("참고의견", market_temp_script)
+        stock_news = self.read("js/stock-news.js")
+        sector_dashboard = self.read("js/sector-dashboard-v4.js")
+        self.assertIn('class="sn-ai-badge-icon"', stock_news)
+        self.assertIn("참고의견", stock_news)
+        self.assertIn('class="sn-ai-badge-icon"', sector_dashboard)
+        self.assertIn("참고의견", sector_dashboard)
+        self.assertNotIn("개인 · 외국인 · 기관</span>", frontend)
 
     def test_navigation_accessibility_contract(self):
         source = self.read("js/skin-menu.js")

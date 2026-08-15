@@ -18,7 +18,8 @@
 /* 증시자금 카드 위 "종합 요약" - js/kospi-futures.js의 .kf-ai와 동일한 박스 스타일.
    글자색은 위 .dmi-shell .dmi-ai * 규칙(항상 검정)을 그대로 따른다. */
 .dmi-ai { padding: 12px 14px; margin-bottom: 14px; background: #f0f6ff; border-radius: 10px; font-size: 13px; line-height: 1.6; }
-.dmi-ai-title { font-weight: 700; margin-bottom: 4px; }
+.dmi-ai-title { display: flex; align-items: center; gap: 6px; font-weight: 700; margin-bottom: 4px; }
+.dmi-ai-icon { flex: 0 0 auto; }
 .dmi-ai p { margin: 0; }
 .dmi-heading,
 .dmi-subheading {

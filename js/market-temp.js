@@ -369,10 +369,17 @@
 
   // ---- ② AI 시장 브리핑 (비동기로 채워짐 - loadAiBriefing 참고) ----
 
+  // 2026-08-14 요청: 사이트 곳곳의 Groq AI 요약 상자 제목이 "참고의견"/"종합 요약"/"요약"으로
+  // 제각각이라는 지적 - js/kospi-futures.js·js/overnight-market.js가 이미 쓰는 "참고의견" +
+  // 이 말풍선 아이콘으로 통일한다(둘과 완전히 동일한 SVG).
+  var MT_AI_ICON = '<svg class="mt-ai-icon" width="14" height="14" viewBox="0 0 24 24"'
+    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+    + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+
   function buildAiBriefingShell() {
     return ''
       + '<div class="mt-briefing-panel">'
-      + '<div class="mt-briefing-panel-title">📰 시장 브리핑</div>'
+      + '<div class="mt-briefing-panel-title">' + MT_AI_ICON + ' 참고의견</div>'
       + '<div id="mtAiBriefing"><div class="mt-hint mt-hint-inline">브리핑 생성 중...</div></div>'
       + '</div>';
   }

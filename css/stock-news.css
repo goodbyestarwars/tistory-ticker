@@ -589,7 +589,9 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
 }
 
 .sn-ai-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 800;
   color: #ffffff;
@@ -599,6 +601,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   margin-bottom: 10px;
   letter-spacing: 0.2px;
 }
+.sn-ai-badge-icon { flex: 0 0 auto; }
 
 .sn-ai-text {
   margin: 0;

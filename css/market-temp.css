@@ -219,6 +219,7 @@
   font-size: 13px;
   font-weight: 700;
 }
+#market-temp .mt-ai-icon { vertical-align: -2px; margin-right: 2px; }
 #market-temp .mt-ai-text { font-size: 15px; line-height: 1.6; color: #444; margin: 0; }
 #market-temp .mt-ai-empty { color: #aaa; }
 

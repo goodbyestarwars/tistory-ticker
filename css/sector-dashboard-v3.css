@@ -14,7 +14,9 @@
   box-shadow: 0 2px 12px rgba(99, 102, 241, 0.15);
 }
 .market-ai-summary .sn-ai-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 800;
   color: #ffffff;
@@ -24,6 +26,7 @@
   margin-bottom: 10px;
   letter-spacing: 0.2px;
 }
+.market-ai-summary .sn-ai-badge-icon { flex: 0 0 auto; }
 .market-ai-summary .sn-ai-text {
   margin: 0;
   font-size: 14px;

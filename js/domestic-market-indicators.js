@@ -3,6 +3,12 @@
 
   var API_URL = 'https://goodbyestar.cloud/domestic-market-indicators';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  // 2026-08-14 요청: 사이트 곳곳의 Groq AI 요약 상자 제목·아이콘이 "참고의견"/"종합 요약"/
+  // "요약" 등으로 제각각이라는 지적 - js/kospi-futures.js·js/overnight-market.js가 이미 쓰는
+  // "참고의견" + 이 말풍선 아이콘으로 통일한다(둘과 완전히 동일한 SVG).
+  var DMI_AI_ICON = '<svg class="dmi-ai-icon" width="15" height="15" viewBox="0 0 24 24"'
+    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+    + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var KST_OFFSET_SEC = 9 * 60 * 60;
   var CHART_HEIGHT = 330;
@@ -320,7 +326,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-draw-controls-hide';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260814-ai-title-unify';
     document.head.appendChild(link);
   }
 
@@ -606,7 +612,7 @@
       + '<div class="dmi-heading"><h2>국내시장지표</h2></div>'
       + '<div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45)</h3></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div>'
-      + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3><span class="dmi-muted">개인 · 외국인 · 기관</span></div>'
+      + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
       + '<div class="dmi-subheading"><h3>증시자금</h3></div>'
       + '<div class="dmi-ai" id="dmiFundsAi" hidden></div>'
@@ -624,7 +630,7 @@
     fetchFundsAnalysis().then(function (text) {
       if (!text || !fundsAiBox) return;
       fundsAiBox.hidden = false;
-      fundsAiBox.innerHTML = '<div class="dmi-ai-title">종합 요약</div><p>' + escapeHtml(text) + '</p>';
+      fundsAiBox.innerHTML = '<div class="dmi-ai-title">' + DMI_AI_ICON + '참고의견</div><p>' + escapeHtml(text) + '</p>';
     }).catch(function () { /* AI 요약 실패는 조용히 무시 - 카드 자체는 정상 표시 */ });
     root.addEventListener('click', function (event) {
       var collapseButton = event.target.closest ? event.target.closest('.dmi-collapse-btn') : null;
