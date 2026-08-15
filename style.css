@@ -3496,10 +3496,9 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
 
 /* ============ 반응형 오버라이드 (모바일 우선) ============ */
 @media (max-width: 720px) {
-  :root { --topbar-height: 0px; } /* 모바일은 하단 앱 메뉴만 사용하고 상단 중복 메뉴는 숨긴다. */
-  html.nav-secondary-open { --topbar-height: 0px; }
-  /* 모바일에는 같은 링크를 제공하는 하단 앱 메뉴가 있으므로 상단 가로 메뉴는 숨긴다. */
-  .sidebar-left { display: none !important; }
+  :root { --topbar-height: 40px; } /* 상단 메뉴도 유지하되 앱형으로 얇게 줄인다. */
+  html.nav-secondary-open { --topbar-height: 76px; }
+  .sidebar-left { display: flex !important; }
   /* 한글 단어가 글자 단위로 끊겨 보이지 않도록 한다. 긴 라벨은 각 화면에서 말줄임 처리한다. */
   body { word-break: keep-all; overflow-wrap: normal; }
   /* ── 내비게이션 바 ── */
@@ -3599,12 +3598,12 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
     top: 56px !important;
     left: 0 !important; right: 0 !important;
     width: auto !important;
-    height: 44px !important;
+    height: 40px !important;
     z-index: 250 !important;
     overflow-y: hidden !important;
     padding: 0 !important;
     background: rgb(253, 253, 247) !important;
-    box-shadow: none !important;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, .06) !important;
     border-top: 1px solid #eee !important;
     border-bottom: 1px solid #eee !important;
     border-right: none !important;
@@ -3617,7 +3616,7 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
   /* 모바일 navbar 좌측 패딩(위 .navbar 규칙, 12px)과 맞춰 로고와 같은 x좌표에서 시작 */
   .sidebar-left .nav-menu { padding: 0 4px 0 12px; }
   .sidebar-left .nav-item { padding: 0 12px; margin-bottom: 0; }
-  .sidebar-left .nav-item-label { font-size: 13.5px; }
+  .sidebar-left .nav-item-label { font-size: 12px; }
 
   /* ── 피드 ── */
   .feed { gap: 10px; }
@@ -4231,12 +4230,16 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
     padding: 0;
     overflow: visible;
   }
-  .sidebar-left .nav-primary-row { padding: 0 8px; }
-  .sidebar-left .nav-primary-item { padding: 0 12px; }
-  .sidebar-left .nav-primary-item .nav-item-label { font-size: 13.5px; }
+  .sidebar-left .nav-primary-row { height: 40px; padding: 0 6px; }
+  .sidebar-left .nav-primary-item { height: 40px; padding: 0 10px; }
+  .sidebar-left .nav-primary-item .nav-item-label { font-size: 12px; }
   .sidebar-left .nav-secondary-row { margin: 0; }
-  .sidebar-left .nav-secondary-inner { padding: 0 8px; }
-  .sidebar-left .nav-secondary-item { padding: 0 12px; }
+  .sidebar-left .nav-secondary-row,
+  .sidebar-left .nav-secondary-inner,
+  .sidebar-left .nav-secondary-item,
+  .sidebar-left .nav-secondary-separator { height: 36px; }
+  .sidebar-left .nav-secondary-inner { padding: 0 6px; }
+  .sidebar-left .nav-secondary-item { padding: 0 9px; font-size: 11.5px; }
 }
 /* 2026-08-05: 카테고리 글목록(마켓 브리핑 등)에서 우측 "실시간 랭킹" 위젯을 없애달라는
    요청으로, 카테고리 화면만 예외로 우측 사이드바를 강제로 띄우던 규칙을 삭제함.

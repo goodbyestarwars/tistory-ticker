@@ -476,8 +476,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             ".page-wrap { padding-bottom:",
         ):
             self.assertIn(token, style)
-        self.assertIn(":root { --topbar-height: 0px; }", style)
-        self.assertIn(".sidebar-left { display: none !important; }", style)
+        self.assertIn(":root { --topbar-height: 40px; }", style)
+        self.assertIn(".sidebar-left { display: flex !important; }", style)
+        self.assertIn(".sidebar-left .nav-primary-item .nav-item-label { font-size: 12px; }", style)
         self.assertIn("body { word-break: keep-all; overflow-wrap: normal; }", style)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
