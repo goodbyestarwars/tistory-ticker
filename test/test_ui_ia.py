@@ -770,6 +770,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("actualMainHeight + actualVolumeHeight + 6", source)
         self.assertIn("actualMainHeight + 6", source)
         self.assertIn("function installRsiZoneCanvas", source)
+        self.assertIn("SUB_PANE_MIN_HEIGHT = 82", source)
+        self.assertIn("SUB_PANE_RATIO = 0.20", source)
         self.assertIn("rsiSeries.priceToCoordinate(70)", source)
         self.assertIn("rsiSeries.priceToCoordinate(30)", source)
         self.assertIn("function stockRsi(bars)", source)
@@ -779,6 +781,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("title: 'RSI(14)'", source)
         self.assertNotIn("price: 50", source)
         self.assertIn("fillThresholdSegment", source)
+        self.assertIn("subscribeVisibleLogicalRangeChange(scheduleDraw)", source)
+        self.assertIn("pane.subscribeSizeChange(scheduleDraw)", source)
+        self.assertIn("unsubscribeSizeChange(scheduleDraw)", source)
         self.assertIn("lwcRsiZonesCleanup = installRsiZoneCanvas", source)
         self.assertIn(".ss-rsi-zones", style)
 

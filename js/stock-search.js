@@ -97,8 +97,8 @@
   var suggestionRequestId = 0;
   // 거래량/RSI 서브패널이 너무 낮으면 라벨·배지가 부딪혀 겹쳐 보인다(2026-08-14 사용자
   // 스크린샷 제보) - 최소 높이·비율을 넉넉히 준다.
-  var SUB_PANE_MIN_HEIGHT = 58;
-  var SUB_PANE_RATIO = 0.16;
+  var SUB_PANE_MIN_HEIGHT = 82;
+  var SUB_PANE_RATIO = 0.20;
 
   // 패널 제목(RSI)·거래량 범례의 top 위치를 실제 적용된 패널 높이에 맞춰 다시 계산한다.
   // renderLwChart()의 최초 렌더링과 resizeStockChart()의 리사이즈(전체화면 전환·창 크기
@@ -1182,6 +1182,7 @@
 
     var frameId = 0;
     var resizeObserver = null;
+    var paneSizeSubscriptions = [];
     function paneHeight(pane, fallback) {
       var value = pane && pane.getHeight ? pane.getHeight() : fallback;
       return Number.isFinite(value) && value > 0 ? value : fallback;
@@ -1220,6 +1221,7 @@
       var y70 = rsiSeries.priceToCoordinate(70);
       var y30 = rsiSeries.priceToCoordinate(30);
       if (!Number.isFinite(y70) || !Number.isFinite(y30) || !bars || !rsiValues) return;
+      positionLwcPaneLabels(container, panes, mainHeight, volumeHeight);
 
       var ratio = Math.max(1, global.devicePixelRatio || 1);
       canvas.width = Math.round(width * ratio);
@@ -1249,6 +1251,13 @@
       frameId = global.requestAnimationFrame(draw);
     }
 
+    chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
+    panes.forEach(function (pane) {
+      if (pane && typeof pane.subscribeSizeChange === 'function') {
+        pane.subscribeSizeChange(scheduleDraw);
+        paneSizeSubscriptions.push(pane);
+      }
+    });
     if ('ResizeObserver' in global) {
       resizeObserver = new ResizeObserver(scheduleDraw);
       resizeObserver.observe(container);
@@ -1259,6 +1268,10 @@
 
     return function () {
       if (frameId) global.cancelAnimationFrame(frameId);
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw);
+      paneSizeSubscriptions.forEach(function (pane) {
+        if (typeof pane.unsubscribeSizeChange === 'function') pane.unsubscribeSizeChange(scheduleDraw);
+      });
       if (resizeObserver) resizeObserver.disconnect();
       else global.removeEventListener('resize', scheduleDraw);
       canvas.remove();
