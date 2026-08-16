@@ -162,6 +162,9 @@
 
   function currentMarket() {
     if (FORCED_MARKET) return FORCED_MARKET;
+    if (global.HomeMarketSelection && typeof global.HomeMarketSelection.get === 'function') {
+      return global.HomeMarketSelection.get();
+    }
     var now = new Date(Date.now() + 9 * 60 * 60 * 1000);
     var hour = now.getUTCHours();
     return hour >= 20 || hour < 8 ? 'us' : 'domestic';
@@ -489,6 +492,12 @@
       if (!tab) return;
       state.active = tab.getAttribute('data-hrt-tab') || 'tradeAmount';
       renderRows();
+    });
+    global.addEventListener('home-market-change', function (event) {
+      var market = event && event.detail && event.detail.market;
+      if (market !== 'us' && market !== 'domestic') return;
+      FORCED_MARKET = market;
+      fetchBoard(true);
     });
     // wics-map.js(약 220KB)는 업종 라벨 보강용 폴백일 뿐 기본 렌더링에 필수는 아니라서,
     // 첫 로딩 때 이 파일을 다 받을 때까지 종목 데이터 요청을 미루지 않는다(2026-08-14 속도

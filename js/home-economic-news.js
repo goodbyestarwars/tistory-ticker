@@ -38,6 +38,9 @@
   }
 
   function currentMarket() {
+    if (global.HomeMarketSelection && typeof global.HomeMarketSelection.get === 'function') {
+      return global.HomeMarketSelection.get();
+    }
     var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
     var hour = kst.getUTCHours();
     return hour >= 20 || hour < 8 ? 'us' : 'domestic';
@@ -323,6 +326,13 @@
     mount.setAttribute('data-hen-ready', '1');
     global.addEventListener('watchlist:changed', function () {
       render(state.items, state.market, state.flash);
+    });
+    global.addEventListener('home-market-change', function () {
+      closeNewsSocket(false);
+      state.market = currentMarket();
+      loadMarketBoard(state.market);
+      connectNewsSocket();
+      if (!state.socketOpened) fetchNews();
     });
     loadMarketBoard(state.market);
     connectNewsSocket();

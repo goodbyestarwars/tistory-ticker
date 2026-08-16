@@ -72,6 +72,8 @@ html.dark .hwr-source-note, html.dark .hwr-loading { border-color: rgba(245,239,
 .home-weekly-report { margin-bottom: 14px; }
 .hwr-head { position: relative; min-height: 84px; padding: 16px 0 12px; border-top: 0; }
 .hwr-head-copy { min-width: 0; }
+.hwr-market-switch { margin-top: 10px; }
+.hwr-market-switch button { padding: 5px 12px; font-size: 10px; }
 .hwr-head h2 { margin: 5px 0 3px; font-size: 23px; }
 .hwr-head p { font-size: 11px; }
 .hwr-line-art { width: 150px; height: 54px; margin-left: auto; opacity: .8; }

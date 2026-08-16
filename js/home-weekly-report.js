@@ -7,6 +7,8 @@
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
   var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-weekend-lineart-v3';
+  var reportRoot = null;
+  var reportPayload = null;
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
@@ -91,20 +93,34 @@
     var hour = kst.getUTCHours();
     return (day === 6 && hour >= 6) || day === 0 || (day === 1 && hour < 7);
   }
+  function selectedMarket() {
+    return global.HomeMarketSelection && typeof global.HomeMarketSelection.get === 'function'
+      ? global.HomeMarketSelection.get() : 'domestic';
+  }
+  function marketSwitchHtml() {
+    var selected = selectedMarket();
+    return '<div class="hwr-market-switch" role="tablist" aria-label="주간 메인 시장 전환">'
+      + '<button type="button" data-hwr-market="domestic" class="' + (selected === 'domestic' ? 'is-active' : '') + '" role="tab" aria-selected="' + (selected === 'domestic' ? 'true' : 'false') + '">한국증시</button>'
+      + '<button type="button" data-hwr-market="us" class="' + (selected === 'us' ? 'is-active' : '') + '" role="tab" aria-selected="' + (selected === 'us' ? 'true' : 'false') + '">미국증시</button></div>';
+  }
   function render(root, payload) {
     var data = payload && payload.data ? payload.data : payload || {};
     var weekendDay = new Date().getDay();
     var title = weekendDay === 0 || weekendDay === 1 ? '다음 주 준비 리포트' : '한 주 마감 리포트';
     var subtitle = weekendDay === 0 || weekendDay === 1 ? '지난주 흐름과 다음 주 핵심 일정만 간결하게 확인합니다.' : '이번 주 시장 흐름과 주요 이슈를 한 화면에 정리합니다.';
     var indices = data.indices || [];
+    var focus = selectedMarket();
+    var focusIndices = indices.filter(function (item) {
+      return focus === 'us' ? item.symbol === 'NASDAQ_INDEX' || item.symbol === 'SP500_INDEX' : item.symbol === 'KOSPI' || item.symbol === 'KOSDAQ';
+    });
     var fx = data.fx || {};
-    root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><span class="hwr-eyebrow">WEEKEND BRIEF</span><h2>' + title + '</h2><p>' + subtitle + '</p></div><svg class="hwr-line-art" viewBox="0 0 150 54" aria-hidden="true"><path d="M4 43h142M8 38l18-16 15 9 18-20 16 13 18-3 19 13 18-19 20 12"/><path d="M10 48h10M30 48h10M50 48h10M70 48h10M90 48h10M110 48h10M130 48h10"/></svg><div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
+    root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><span class="hwr-eyebrow">WEEKEND BRIEF</span><h2>' + title + '</h2><p>' + subtitle + '</p>' + marketSwitchHtml() + '</div><svg class="hwr-line-art" viewBox="0 0 150 54" aria-hidden="true"><path d="M4 43h142M8 38l18-16 15 9 18-20 16 13 18-3 19 13 18-19 20 12"/><path d="M10 48h10M30 48h10M50 48h10M70 48h10M90 48h10M110 48h10M130 48h10"/></svg><div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + '<p class="hwr-basis"><b>주간뉴스 기준</b> ' + escapeHtml(data.news && data.news.basis || '완료된 월요일~금요일 발행 뉴스') + '</p>'
-      + '<div class="hwr-index-grid">' + indices.map(function (item) {
+      + '<div class="hwr-index-grid">' + focusIndices.map(function (item) {
         return '<article class="hwr-index-card"><div><strong>' + escapeHtml(item.name) + '</strong><span class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span></div><b>' + formatPrice(item.end, item.symbol) + '</b><div class="hwr-spark">' + sparkline(item.series) + '</div><small>' + (item.available ? '주간 종가 추이' : '데이터 없음') + '</small></article>';
       }).join('') + '</div>'
       + '<div class="hwr-summary-row"><article><span>원/달러 환율</span><strong>' + formatPrice(fx.price || (fx.chart && fx.chart[fx.chart.length - 1] && fx.chart[fx.chart.length - 1].close), 'KRW') + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b><small>주간 데이터 기준</small></article><p class="hwr-source-note">국내 지수: KRX/KIS · 미국 지수: 네이버·KIS<br>종목: 마지막 거래일 순위를 상승·하락·거래량·회전율로 분산</p></div>'
-      + '<div class="hwr-columns"><article><div class="hwr-card-title"><strong>이번 주 뜨거운 국내 종목</strong><span>신호를 분산해 선정</span></div>' + stockList(data.hotStocks && data.hotStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>이번 주 미국 종목</strong><span>현재가 · 주간 등락률</span></div>' + stockList(data.hotStocks && data.hotStocks.us, 'us') + '</article></div>'
+      + '<div class="hwr-columns"><article><div class="hwr-card-title"><strong>' + (focus === 'us' ? '미국 hot 종목' : '국내 hot 종목') + '</strong><span>' + (focus === 'us' ? '현재가 · 주간 등락률' : '신호를 분산해 선정') + '</span></div>' + stockList(data.hotStocks && (focus === 'us' ? data.hotStocks.us : data.hotStocks.domestic), focus) + '</article><article><div class="hwr-card-title"><strong>' + (focus === 'us' ? '한국 hot 종목' : '미국 hot 종목') + '</strong><span>' + (focus === 'us' ? '참고용 국내 시장' : '현재가 · 주간 등락률') + '</span></div>' + stockList(data.hotStocks && (focus === 'us' ? data.hotStocks.domestic : data.hotStocks.us), focus === 'us' ? 'domestic' : 'us') + '</article></div>'
       + '<article class="hwr-news-card"><div class="hwr-card-title"><strong>주간 경제 종합뉴스</strong><span>한국·미국 통합 타임라인</span></div>' + newsTimeline(data.news && data.news.timeline) + '</article>'
       + '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'
       + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';
@@ -121,7 +137,15 @@
     root.innerHTML = '<div class="hwr-loading"><strong>주간 리포트를 준비하는 중입니다.</strong><span>지수·뉴스·일정을 묶고 있습니다.</span></div>';
     var dashboard = feed.querySelector('.home-dashboard');
     feed.insertBefore(root, dashboard || feed.firstChild);
-    fetch(API_URL).then(function (response) { if (!response.ok) throw new Error('weekly report ' + response.status); return response.json(); }).then(function (payload) { render(root, payload); }).catch(function () { root.innerHTML = '<div class="hwr-loading"><strong>주간 리포트를 잠시 불러오지 못했습니다.</strong><span>기존 실시간 시장판은 계속 이용할 수 있습니다.</span></div>'; });
+    reportRoot = root;
+    root.addEventListener('click', function (event) {
+      var button = event.target.closest ? event.target.closest('[data-hwr-market]') : null;
+      if (button && global.HomeMarketSelection) global.HomeMarketSelection.set(button.getAttribute('data-hwr-market'));
+    });
+    global.addEventListener('home-market-change', function () {
+      if (reportRoot && reportPayload) render(reportRoot, reportPayload);
+    });
+    fetch(API_URL).then(function (response) { if (!response.ok) throw new Error('weekly report ' + response.status); return response.json(); }).then(function (payload) { reportPayload = payload; render(root, payload); }).catch(function () { root.innerHTML = '<div class="hwr-loading"><strong>주간 리포트를 잠시 불러오지 못했습니다.</strong><span>기존 실시간 시장판은 계속 이용할 수 있습니다.</span></div>'; });
     return root;
   }
   global.HomeWeeklyReport = { init: init };
