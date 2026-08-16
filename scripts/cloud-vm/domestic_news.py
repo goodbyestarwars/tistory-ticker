@@ -13,6 +13,7 @@ import logging
 import os
 import re
 import sqlite3
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -20,11 +21,16 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import naver_news
+import dart_client
 
 LOGGER = logging.getLogger('domestic_news')
 CACHE_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'domestic_news.db')
 CACHE_TTL_SEC = 5 * 60
 DART_URL = 'https://opendart.fss.or.kr/api/list.json'
+WATCHLIST_DISCLOSURE_CACHE_TTL_SEC = 30 * 60
+WATCHLIST_DISCLOSURE_MAX_PAGES = 3
+_watchlist_disclosure_cache = {}
+_watchlist_disclosure_cache_lock = threading.Lock()
 
 CATEGORY_RULES = (
     ('실적', ('영업이익', '순이익', '매출액', '실적', '어닝', '잠정실적', '분기')),
@@ -143,30 +149,49 @@ def normalize_naver(item, code='', name=''):
     }
 
 
-def _dart_items(code='', name='', now=None):
+def _dart_items(code='', name='', now=None, start_date=None, end_date=None,
+                corp_code='', max_pages=1):
     api_key = os.environ.get('DART_API_KEY', '').strip()
     if not api_key:
         return []
     now = now or datetime.now(timezone.utc)
-    request = urllib.request.Request(
-        DART_URL + '?' + urllib.parse.urlencode({
+    start_date = str(start_date or (now - timedelta(days=2)).strftime('%Y%m%d'))
+    end_date = str(end_date or now.strftime('%Y%m%d'))
+    max_pages = max(1, min(int(max_pages or 1), 10))
+    rows = []
+    for page_no in range(1, max_pages + 1):
+        params = {
             'crtfc_key': api_key,
-            'bgn_de': (now - timedelta(days=2)).strftime('%Y%m%d'),
-            'end_de': now.strftime('%Y%m%d'),
-            'page_no': 1, 'page_count': 100, 'sort': 'date', 'sort_mth': 'desc',
-        }),
-        headers={'User-Agent': 'tistory-ticker/1.0'},
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=12) as response:
-            payload = json.loads(response.read().decode('utf-8'))
-    except Exception:
-        LOGGER.exception('DART disclosure fetch failed')
-        return []
-    if payload.get('status') not in (None, '000'):
-        return []
+            'bgn_de': start_date,
+            'end_de': end_date,
+            'page_no': page_no, 'page_count': 100, 'sort': 'date', 'sort_mth': 'desc',
+        }
+        if corp_code:
+            params['corp_code'] = str(corp_code)
+        request = urllib.request.Request(
+            DART_URL + '?' + urllib.parse.urlencode(params),
+            headers={'User-Agent': 'tistory-ticker/1.0'},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=12) as response:
+                payload = json.loads(response.read().decode('utf-8'))
+        except Exception:
+            LOGGER.exception('DART disclosure fetch failed')
+            return []
+        if payload.get('status') == '013':
+            break
+        if payload.get('status') not in (None, '000'):
+            return []
+        page_rows = payload.get('list') or []
+        rows.extend(page_rows)
+        try:
+            total_pages = int(payload.get('total_page') or page_no)
+        except (TypeError, ValueError):
+            total_pages = page_no
+        if not page_rows or page_no >= total_pages:
+            break
     items = []
-    for row in payload.get('list') or []:
+    for row in rows:
         row_code = _strip(row.get('stock_code'))
         corp = _strip(row.get('corp_name'))
         if code and row_code and row_code != str(code):
@@ -196,6 +221,95 @@ def _dart_items(code='', name='', now=None):
         item['id'] = _item_key(item)
         items.append(item)
     return items
+
+
+def get_watchlist_disclosures(codes, days=7, now=None):
+    """Return every DART filing for domestic watchlist stocks in the last week.
+
+    DART's list API accepts ``corp_code`` rather than the six-digit stock code.
+    The static mapping is shared with the fundamentals collector, then each
+    company is fetched once and cached for 30 minutes. This avoids scanning the
+    entire market on every personalized home-page request while still returning
+    all filings (not a global top-five slice).
+    """
+    normalized_codes = []
+    seen_codes = set()
+    for value in codes or []:
+        code = _strip(value)
+        if not re.fullmatch(r'\d{6}', code) or code in seen_codes:
+            continue
+        seen_codes.add(code)
+        normalized_codes.append(code)
+    if not normalized_codes:
+        return []
+
+    api_key = os.environ.get('DART_API_KEY', '').strip()
+    if not api_key:
+        return []
+    now = now or datetime.now(timezone(timedelta(hours=9)))
+    days = max(1, min(int(days or 7), 31))
+    start_date = (now - timedelta(days=days - 1)).strftime('%Y%m%d')
+    end_date = now.strftime('%Y%m%d')
+    try:
+        corp_map = dart_client.get_corp_code_map(api_key)
+    except Exception:
+        LOGGER.exception('DART corporation-code map fetch failed')
+        corp_map = {}
+
+    current_time = time.time()
+    by_code = {}
+    stale_by_code = {}
+    missing = []
+    with _watchlist_disclosure_cache_lock:
+        for code in normalized_codes:
+            cache_key = (code, start_date, end_date)
+            cached = _watchlist_disclosure_cache.get(cache_key)
+            if cached and current_time - cached[0] < WATCHLIST_DISCLOSURE_CACHE_TTL_SEC:
+                by_code[code] = cached[1]
+            else:
+                if cached:
+                    stale_by_code[code] = cached[1]
+                missing.append(code)
+
+    def fetch_code(code):
+        corp_code = corp_map.get(code)
+        if not corp_code:
+            return code, []
+        return code, _dart_items(
+            code=code,
+            now=now,
+            start_date=start_date,
+            end_date=end_date,
+            corp_code=corp_code,
+            max_pages=WATCHLIST_DISCLOSURE_MAX_PAGES,
+        )
+
+    if missing:
+        with ThreadPoolExecutor(max_workers=min(6, len(missing))) as pool:
+            fetched = list(pool.map(fetch_code, missing))
+        with _watchlist_disclosure_cache_lock:
+            for code, items in fetched:
+                if not items and stale_by_code.get(code):
+                    items = stale_by_code[code]
+                cache_key = (code, start_date, end_date)
+                _watchlist_disclosure_cache[cache_key] = (time.time(), items)
+                by_code[code] = items
+            # Date-keyed entries naturally expire, but remove old weeks so a
+            # long-running VM cannot grow this small personalized cache forever.
+            cutoff = time.time() - 2 * 24 * 60 * 60
+            for cache_key, cached in list(_watchlist_disclosure_cache.items()):
+                if cached[0] < cutoff:
+                    _watchlist_disclosure_cache.pop(cache_key, None)
+
+    merged = {}
+    for code in normalized_codes:
+        for item in by_code.get(code, []):
+            copied = dict(item)
+            copied['relevance'] = 'direct'
+            merged[copied.get('id') or _item_key(copied)] = copied
+    result = list(merged.values())
+    result.sort(key=lambda item: _parse_pub_date(item.get('pubDate')).timestamp(), reverse=True)
+    return result
 
 
 def _load_cached(query_key, ttl_sec=CACHE_TTL_SEC):

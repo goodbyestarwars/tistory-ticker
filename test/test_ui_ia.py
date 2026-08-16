@@ -1068,8 +1068,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("home_market_rank_v1", ranking)
         self.assertIn("readRankCache", ranking)
         self.assertIn("home_watchlist_quotes_v1", widgets)
-        self.assertIn("home_disclosures_v1", widgets)
+        self.assertIn("WATCHLIST_DISCLOSURES_URL", widgets)
         self.assertIn("readTimedCache", widgets)
+
+    def test_home_shows_all_weekly_watchlist_disclosures(self):
+        widgets = self.read("js/home-widgets.js")
+        home = self.read("js/skin-main.js")
+        backend = self.read("scripts/cloud-vm/main.py")
+        self.assertIn("https://goodbyestar.cloud/watchlist/disclosures", widgets)
+        self.assertIn("credentials: 'include'", widgets)
+        self.assertIn("최근 7일 · ' + items.length + '건", widgets)
+        self.assertIn("관심종목 주간 공시", widgets)
+        self.assertNotIn("DISC_GAS_URL", widgets)
+        self.assertNotIn("result.length < 5", widgets)
+        self.assertIn("관심종목 주간 공시", home)
+        self.assertIn("@app.get('/watchlist/disclosures')", backend)
+        self.assertIn("get_watchlist_disclosures(domestic_codes, days=7", backend)
 
     def test_market_temperature_cards_use_personal_overrides_and_keep_shared_default(self):
         source = self.read("js/market-temp.js")

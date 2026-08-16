@@ -794,6 +794,25 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
+.home-top-disclosures .home-disclosure-login-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.home-top-disclosures .home-disclosure-login {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 11px;
+  border: 1px solid #dfe4ea;
+  border-radius: 999px;
+  background: #fff;
+  color: #354052;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-decoration: none;
+}
 .home-top-disclosures .home-us-schedule-title {
   display: flex;
   align-items: center;
