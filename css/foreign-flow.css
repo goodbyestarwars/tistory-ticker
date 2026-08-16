@@ -2496,28 +2496,39 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: rgba(245, 239, 224, 0.
 #foreign-flow .ff-swing-regime .ff-panel-title { margin: 0; }
 #foreign-flow .ff-swing-regime strong { font-size: 20px; color: #0c447c; }
 #foreign-flow .ff-swing-regime small { color: #64748b; }
-#foreign-flow .ff-swing-waves { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px 0 4px; }
-#foreign-flow .ff-swing-waves > div { min-height: 48px; padding: 8px 10px; border: 1px solid #dce5ee; border-radius: 8px; background: #f4f8fb; }
-#foreign-flow .ff-swing-waves span, #foreign-flow .ff-swing-waves b { display: block; }
-#foreign-flow .ff-swing-waves span { color: #64748b; font-size: 11px; margin-bottom: 4px; }
-#foreign-flow .ff-swing-waves b { color: #0f4c81; font-size: 13px; }
-#foreign-flow .ff-swing-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 12px 0; }
-#foreign-flow .ff-swing-grid > div { min-height: 54px; padding: 9px 10px; border: 1px solid #e4e8ee; border-radius: 8px; background: #f8fafc; }
-#foreign-flow .ff-swing-grid span, #foreign-flow .ff-swing-grid b { display: block; }
-#foreign-flow .ff-swing-grid span { color: #64748b; font-size: 11px; margin-bottom: 5px; }
-#foreign-flow .ff-swing-grid b { color: #1e293b; font-size: 13px; }
+#foreign-flow .ff-swing-flow { padding: 12px 0 0; }
+#foreign-flow .ff-swing-flow-track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #e1e7ee; border-bottom: 1px solid #e1e7ee; }
+#foreign-flow .ff-swing-step { min-width: 0; padding: 13px 14px 14px; }
+#foreign-flow .ff-swing-step + .ff-swing-step { border-left: 1px solid #e1e7ee; }
+#foreign-flow .ff-swing-step-label { display: block; color: #64748b; font-size: 12px; line-height: 1.35; }
+#foreign-flow .ff-swing-step-label em { margin-left: 4px; color: #94a3b8; font-size: 11px; font-style: normal; }
+#foreign-flow .ff-swing-step strong { display: block; margin-top: 6px; color: #0f4c81; font-size: 15px; line-height: 1.35; }
+#foreign-flow .ff-swing-diagnosis { display: flex; align-items: baseline; gap: 12px; padding: 14px 2px; border-bottom: 1px solid #e1e7ee; }
+#foreign-flow .ff-swing-diagnosis span, #foreign-flow .ff-swing-action span { flex: 0 0 auto; color: #64748b; font-size: 12px; }
+#foreign-flow .ff-swing-diagnosis strong { color: #0f4c81; font-size: 16px; line-height: 1.4; }
+#foreign-flow .ff-swing-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid #e1e7ee; }
+#foreign-flow .ff-swing-action { display: flex; align-items: baseline; gap: 12px; min-width: 0; padding: 13px 2px; }
+#foreign-flow .ff-swing-action + .ff-swing-action { padding-left: 18px; border-left: 1px solid #e1e7ee; }
+#foreign-flow .ff-swing-action strong { min-width: 0; color: #1e293b; font-size: 14px; line-height: 1.45; }
+#foreign-flow .ff-swing-facts { display: flex; flex-wrap: wrap; gap: 0 20px; padding: 12px 2px 4px; }
+#foreign-flow .ff-swing-fact { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+#foreign-flow .ff-swing-fact small { color: #64748b; font-size: 11px; }
+#foreign-flow .ff-swing-fact b { color: #334155; font-size: 12px; font-weight: 600; }
 #foreign-flow .ff-swing-reasons, #foreign-flow .ff-swing-invalidation, #foreign-flow .ff-swing-risk-detail { margin-top: 7px; color: #475569; font-size: 12px; line-height: 1.55; }
 #foreign-flow .ff-swing-risk-detail { color: #b42318; }
 #foreign-flow .ff-sig-banner-score { font-size: 12px; color: #334155; }
 @media (max-width: 760px) {
-  #foreign-flow .ff-swing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #foreign-flow .ff-swing-waves { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #foreign-flow .ff-swing-grid > div:last-child { grid-column: 1 / -1; }
+  #foreign-flow .ff-swing-flow-track { grid-template-columns: 1fr; }
+  #foreign-flow .ff-swing-step + .ff-swing-step { border-top: 1px solid #e1e7ee; border-left: 0; }
+  #foreign-flow .ff-swing-actions { grid-template-columns: 1fr; }
+  #foreign-flow .ff-swing-action + .ff-swing-action { padding-left: 2px; border-top: 1px solid #e1e7ee; border-left: 0; }
+  #foreign-flow .ff-swing-facts { gap: 7px 14px; }
 }
 html.dark #foreign-flow .ff-swing-regime { border-color: rgba(245, 239, 224, 0.16); }
 html.dark #foreign-flow .ff-swing-regime strong { color: #9ac7f4; }
-html.dark #foreign-flow .ff-swing-grid > div { border-color: rgba(245, 239, 224, 0.16); background: rgba(245, 239, 224, 0.07); }
-html.dark #foreign-flow .ff-swing-grid b, html.dark #foreign-flow .ff-swing-reasons, html.dark #foreign-flow .ff-swing-invalidation { color: rgba(245, 239, 224, 0.8); }
+html.dark #foreign-flow .ff-swing-flow-track, html.dark #foreign-flow .ff-swing-step + .ff-swing-step, html.dark #foreign-flow .ff-swing-diagnosis, html.dark #foreign-flow .ff-swing-actions, html.dark #foreign-flow .ff-swing-action + .ff-swing-action { border-color: rgba(245, 239, 224, 0.16); }
+html.dark #foreign-flow .ff-swing-step strong, html.dark #foreign-flow .ff-swing-diagnosis strong { color: #9ac7f4; }
+html.dark #foreign-flow .ff-swing-action strong, html.dark #foreign-flow .ff-swing-fact b, html.dark #foreign-flow .ff-swing-reasons, html.dark #foreign-flow .ff-swing-invalidation { color: rgba(245, 239, 224, 0.8); }
 html.dark #foreign-flow .ff-sig-banner-chip {
   background: rgba(245, 239, 224, 0.1) !important;
   border-color: rgba(245, 239, 224, 0.25) !important;

@@ -1192,15 +1192,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         visible_box = source[box_start:box_end]
         self.assertIn('currentRegime', visible_box)
         self.assertIn('recentEvent', visible_box)
-        self.assertIn('대파동 · 맥락', visible_box)
-        self.assertIn('중파동 · 4주 방향', visible_box)
-        self.assertIn('소파동 · 진입 타이밍', visible_box)
+        self.assertIn('대파동', visible_box)
+        self.assertIn('맥락', visible_box)
+        self.assertIn('중파동', visible_box)
+        self.assertIn('4주 방향', visible_box)
+        self.assertIn('소파동', visible_box)
+        self.assertIn('진입 타이밍', visible_box)
         self.assertIn('assessment.diagnosis', visible_box)
         self.assertIn('보조 상태', visible_box)
         self.assertNotIn('starsHtml(', visible_box)
         self.assertNotIn('ff-stars', visible_box)
         style = self.read('css/foreign-flow.css')
-        self.assertIn('.ff-swing-waves', style)
+        self.assertIn('.ff-swing-flow', style)
+        self.assertNotIn('.ff-swing-grid', style)
 
     def test_weekly_candidate_empty_state_is_explicit(self):
         source = self.read("js/home-weekly-report.js")
