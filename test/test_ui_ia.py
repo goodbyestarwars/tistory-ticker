@@ -1110,6 +1110,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('<strong>곰장 · 하락</strong>', source)
         self.assertIn('M71 61c0 9 4 14 9 14s9-5 9-14', source)
 
+    def test_weekly_summary_includes_indices_and_major_assets_in_order(self):
+        source = self.read("js/home-weekly-report.js")
+        self.assertIn('aria-label="주간 지수·자산 요약"', source)
+        self.assertIn('<span>주간 지수·자산 요약</span>', source)
+        for token in (
+            'KOSPI: 0', 'KOSDAQ: 1', 'NASDAQ_INDEX: 2', 'SP500_INDEX: 3',
+            'WTI: 4', 'GOLD: 5', 'US10Y: 6', 'BTC: 7',
+        ):
+            self.assertIn(token, source)
+        self.assertNotIn("(!item.group || item.group === 'index') && num(item.changeRate)", source)
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (
