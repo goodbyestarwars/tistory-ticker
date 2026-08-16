@@ -1588,7 +1588,10 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
 
     def safe_foreign_news():
         try:
-            archived = news_aggregator.get_general_news_history(start, end, limit=120)
+            archived = news_aggregator.get_general_news_history(
+                start, end, limit=120,
+                alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+            )
             current = news_aggregator.get_general_news(
                 alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
                 finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(), limit=50,
