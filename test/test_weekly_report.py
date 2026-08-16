@@ -104,6 +104,13 @@ class WeeklyReportTests(unittest.TestCase):
         )
         self.assertIn('월요일 주요 뉴스', [item['title'] for item in result])
 
+    def test_report_news_basis_does_not_claim_view_counts(self):
+        result = weekly_report.build_report(
+            datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date(),
+            futures_rows=[], domestic_news_items=[], foreign_news_items=[],
+        )
+        self.assertIn('조회수 미제공', result['news']['basis'])
+
     def test_next_week_schedule_filters_outside_window(self):
         result = weekly_report.next_week_schedule([
             {'start': '2026-08-17', 'title': '$AAPL 실적발표', 'symbol': 'AAPL'},

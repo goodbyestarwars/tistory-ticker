@@ -406,7 +406,7 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
     # 주간 리포트는 최신 하루치가 전체를 덮지 않도록 완료된 월~금만 사용한다.
     # 주말에 새로 들어온 뉴스는 다음 리포트의 수집분으로 남긴다.
     news_end = end
-    news_basis = '%s~%s(KST) 발행 뉴스 기준' % (start.isoformat(), news_end.isoformat())
+    news_basis = '%s~%s(KST) 날짜별 주요 뉴스 · 조회수 미제공' % (start.isoformat(), news_end.isoformat())
     return {
         'week': {'start': start.isoformat(), 'end': end.isoformat(), 'label': '%s ~ %s' % (start.isoformat(), end.isoformat())},
         'indices': index_summary(futures_rows, start, end),
