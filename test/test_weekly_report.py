@@ -80,6 +80,18 @@ class WeeklyReportTests(unittest.TestCase):
         ], [], datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
         self.assertEqual(len(result), 1)
 
+    def test_news_timeline_spreads_articles_across_weekdays(self):
+        domestic = [
+            {'title': '금요일 주요 뉴스 %d' % index, 'pubDate': '2026-08-14T%02d:00:00+09:00' % (9 + index)}
+            for index in range(10)
+        ] + [
+            {'title': '월요일 주요 뉴스', 'pubDate': '2026-08-10T09:00:00+09:00'},
+        ]
+        result = weekly_report.news_timeline(
+            domestic, [], datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date(), limit=6,
+        )
+        self.assertIn('월요일 주요 뉴스', [item['title'] for item in result])
+
     def test_next_week_schedule_filters_outside_window(self):
         result = weekly_report.next_week_schedule([
             {'start': '2026-08-17', 'title': '$AAPL 실적발표', 'symbol': 'AAPL'},

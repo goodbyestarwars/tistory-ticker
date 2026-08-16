@@ -227,6 +227,49 @@ def _load_cached(query_key, ttl_sec=CACHE_TTL_SEC):
         conn.close()
 
 
+def get_weekly_news(start, end, limit=120):
+    """Return archived market news published inside a completed week.
+
+    The normal market feed intentionally uses a five-minute freshness window,
+    but a weekly report must read the archive by publication date. This keeps
+    Saturday's newest headlines from replacing Monday-Friday coverage.
+    """
+    try:
+        start_day = datetime.strptime(str(start)[:10], '%Y-%m-%d').date()
+        end_day = datetime.strptime(str(end)[:10], '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return []
+    conn = _connect()
+    try:
+        rows = conn.execute(
+            'SELECT * FROM domestic_news WHERE kind = ? ORDER BY fetched_at DESC LIMIT 5000',
+            ('news',),
+        ).fetchall()
+    finally:
+        conn.close()
+    result = []
+    seen = set()
+    for row in rows:
+        item = dict(row)
+        pub_date = item.get('pub_date') or ''
+        published = _parse_pub_date(pub_date)
+        if published.date() < start_day or published.date() > end_day:
+            continue
+        key = item.get('item_key') or _item_key(item)
+        if key in seen:
+            continue
+        seen.add(key)
+        item['stockCode'] = item.pop('stock_code') or ''
+        item['stockName'] = item.pop('stock_name') or ''
+        item['pubDate'] = item.pop('pub_date') or ''
+        item.pop('item_key', None)
+        item.pop('fetched_at', None)
+        item['provider'] = 'Naver'
+        result.append(item)
+    result.sort(key=lambda item: _parse_pub_date(item.get('pubDate')).timestamp(), reverse=True)
+    return result[:max(1, min(int(limit or 120), 200))]
+
+
 def _save(items):
     if not items:
         return
