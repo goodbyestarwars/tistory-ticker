@@ -3012,6 +3012,7 @@
       + '</div>'
       + '<div class="ff-sim-stats">'
       + '<div class="ff-sim-stat"><span>기준일</span><b id="ffSimDate">' + escapeHtml(daily[0].date) + '</b></div>'
+      + '<div class="ff-sim-stat"><span>현재가</span><b id="ffSimPrice">' + fmtWon(daily[0].close) + '</b></div>'
       + '<div class="ff-sim-stat"><span>평가금액</span><b id="ffSimValue">' + fmtWon(defaultAmount) + '</b></div>'
       + '<div class="ff-sim-stat"><span>수익률</span><b id="ffSimRate" class="ff-flat">0.0%</b></div>'
       + '</div>'
@@ -3031,6 +3032,7 @@
     var playBtn = box.querySelector('#ffSimPlay');
     var resetBtn = box.querySelector('#ffSimReset');
     var dateEl = box.querySelector('#ffSimDate');
+    var priceEl = box.querySelector('#ffSimPrice');
     var valueEl = box.querySelector('#ffSimValue');
     var rateEl = box.querySelector('#ffSimRate');
     var resultEl = box.querySelector('#ffSimResult');
@@ -3075,6 +3077,7 @@
         dotEl.setAttribute('visibility', 'visible');
       }
       if (dateEl) dateEl.textContent = d.date;
+      if (priceEl) priceEl.textContent = fmtWon(d.close);
       if (valueEl) valueEl.textContent = fmtWon(Math.round(value));
       if (rateEl) {
         rateEl.textContent = fmtSignedPct(rate);
@@ -3091,6 +3094,7 @@
       if (dotEl) dotEl.setAttribute('visibility', 'hidden');
       var amount = currentAmount();
       if (dateEl) dateEl.textContent = daily[0].date;
+      if (priceEl) priceEl.textContent = fmtWon(daily[0].close);
       if (valueEl) valueEl.textContent = fmtWon(amount);
       if (rateEl) { rateEl.textContent = '0.0%'; rateEl.className = 'ff-flat'; }
       if (resultEl) resultEl.innerHTML = simResultText(daily, amount);

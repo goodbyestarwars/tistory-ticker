@@ -946,6 +946,25 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("grid-template-columns: 112px minmax(100px, 1fr) 64px 94px;", style)
         self.assertIn("@media (max-width: 640px)", style)
 
+    def test_stock_simulation_shows_price_before_valuation(self):
+        source = self.read("js/foreign-flow.js")
+        card = re.search(
+            r"function buildSimulationCard\(chartData\) \{(?P<body>.*?)\n  \}",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(card)
+        body = card.group("body")
+        date_pos = body.index('id="ffSimDate"')
+        price_pos = body.index('id="ffSimPrice"')
+        value_pos = body.index('id="ffSimValue"')
+        rate_pos = body.index('id="ffSimRate"')
+        self.assertLess(date_pos, price_pos)
+        self.assertLess(price_pos, value_pos)
+        self.assertLess(value_pos, rate_pos)
+        self.assertIn("if (priceEl) priceEl.textContent = fmtWon(d.close);", source)
+        self.assertIn("if (priceEl) priceEl.textContent = fmtWon(daily[0].close);", source)
+
     def test_signal_banner_ignores_late_responses_from_previous_selection(self):
         source = self.read("js/foreign-flow.js")
         self.assertIn("var signalRequestSeq = 0;", source)
