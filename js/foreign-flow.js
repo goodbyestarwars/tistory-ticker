@@ -47,6 +47,8 @@
   var FCHART_H = 360;
   var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' };
   var MA_WIDTHS = { ma5: 1, ma20: 1, ma60: 1, ma224: 3 };
+  var ICHIMOKU_CLOUD_FILL = 'rgba(135,206,235,0.24)';
+  var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
   // 224일선은 다른 이평선과 구분되는 장기 추세선이라 검은색+굵게(사용자 요청, 2026-07-22) -
   // 다만 순검은색은 다크모드 차트 배경(#222)에서 안 보이므로 테마에 따라 흰색으로 바꿔준다.
   function ma224Color() {
@@ -3425,9 +3427,9 @@
     [['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB]].forEach(function (pair) {
       var key = pair[0], pts = pair[1];
       if (!pts.length) return;
-      // 선행스팬1·2는 같은 파란색 선으로 표시하고, 두 선 사이에는 테두리 없는
-      // 옅은 파란색 구름만 깐다.
-      var series = lwcChart.addSeries(global.LightweightCharts.LineSeries, { color: '#4dabf7', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      // 선행스팬 데이터는 미래 시간축 계산에 사용하되 경계선은 투명하게 숨기고,
+      // 두 선 사이의 하늘색 구름만 표시한다.
+      var series = lwcChart.addSeries(global.LightweightCharts.LineSeries, { color: ICHIMOKU_BORDER_COLOR, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       series.setData(pts);
       ichimokuOverlaySeries.push(series);
       seriesByKey[key] = series;
@@ -3437,7 +3439,7 @@
       try {
         var bandPts = pairIchimokuBand(ichi.senkouA, ichi.senkouB);
         if (bandPts.length > 1) {
-          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(77,171,247,0.12)');
+          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, ICHIMOKU_CLOUD_FILL);
           seriesByKey.senkouA.attachPrimitive(cloudPrimitive);
           ichimokuCloudPrimitive = { series: seriesByKey.senkouA, primitive: cloudPrimitive };
         }

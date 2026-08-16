@@ -98,6 +98,8 @@
   // 거래량/RSI 서브패널은 같은 최소 높이와 비율을 사용해 항상 1:1로 유지한다.
   var SUB_PANE_MIN_HEIGHT = 82;
   var SUB_PANE_RATIO = 0.20;
+  var ICHIMOKU_CLOUD_FILL = 'rgba(135,206,235,0.24)';
+  var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
 
   // 패널 제목(RSI)·거래량 범례의 top 위치를 실제 적용된 패널 높이에 맞춰 다시 계산한다.
   // renderLwChart()의 최초 렌더링과 resizeStockChart()의 리사이즈(전체화면 전환·창 크기
@@ -1145,7 +1147,7 @@
         ctx.lineTo(curr.x, curr.yB);
         ctx.lineTo(prev.x, prev.yB);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(77,171,247,0.12)';
+        ctx.fillStyle = ICHIMOKU_CLOUD_FILL;
         ctx.fill();
       }
     }
@@ -1741,7 +1743,7 @@
       var cloudPoints = (state.ichimokuEnabled && timeframe !== 'minute') ? ichimokuCloudPoints(bars, timeframe) : [];
       if (state.ichimokuEnabled) {
         var spanASeries = chart.addSeries(LWC.LineSeries, {
-          color: '#4dabf7',
+          color: ICHIMOKU_BORDER_COLOR,
           lineWidth: 1,
           priceScaleId: 'right',
           lastValueVisible: false,
@@ -1749,7 +1751,7 @@
           crosshairMarkerVisible: false
         });
         var spanBSeries = chart.addSeries(LWC.LineSeries, {
-          color: '#4dabf7',
+          color: ICHIMOKU_BORDER_COLOR,
           lineWidth: 1,
           priceScaleId: 'right',
           lastValueVisible: false,
