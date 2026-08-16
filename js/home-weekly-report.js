@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-weekend-lineart-v13';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-bold-stock-reason-v14';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v1';
   var FETCH_TIMEOUT_MS = 8000;
 
