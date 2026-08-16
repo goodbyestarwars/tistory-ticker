@@ -233,7 +233,7 @@ def next_week_schedule(events, start, end):
             is_macro = any(term.lower() in title.lower() for term in macro_terms)
             # 일정 공급자가 많은 개별 실적을 반환해도 핵심 일정만 남긴다.
             # 확인된 이벤트만 표시하고, 없는 금리/CPI 일정은 만들지 않는다.
-            if not (is_m7 or is_major_domestic or is_macro or event.get('status') == 'reported'):
+            if not (is_m7 or is_major_domestic or is_macro):
                 continue
             result.append({
                 'date': day.isoformat(),
@@ -261,6 +261,11 @@ def news_timeline(domestic, us, start, end, limit=20):
 def build_report(start, end, futures_rows=None, domestic_news_items=None,
                  foreign_news_items=None, domestic_board=None, us_board=None,
                  schedule_events=None, generated_at=None):
+    # 주말에는 금요일 마감만으로 끊지 않고, 월요일부터 현재 주말까지
+    # 발행된 뉴스도 포함한다. 지수·종목·일정은 여전히 완료된 월~금 기준이다.
+    today_kst = datetime.now(timezone(timedelta(hours=9))).date()
+    news_end = max(end, min(today_kst, end + timedelta(days=3)))
+    news_basis = '%s~%s(KST) 발행 뉴스 기준' % (start.isoformat(), news_end.isoformat())
     return {
         'week': {'start': start.isoformat(), 'end': end.isoformat(), 'label': '%s ~ %s' % (start.isoformat(), end.isoformat())},
         'indices': index_summary(futures_rows, start, end),
@@ -271,10 +276,10 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
             'basis': '주말 마지막 거래일의 KIS 순위(상승·하락·거래량급증·매수체결강도) 기준',
         },
         'news': {
-            'domestic': _news(domestic_news_items, start, end, 8),
-            'us': _news(foreign_news_items, start, end, 8),
-            'timeline': news_timeline(domestic_news_items, foreign_news_items, start, end, 20),
-            'basis': '완료된 주간 월요일 00:00~금요일 23:59(KST) 발행 뉴스 기준',
+            'domestic': _news(domestic_news_items, start, news_end, 8),
+            'us': _news(foreign_news_items, start, news_end, 8),
+            'timeline': news_timeline(domestic_news_items, foreign_news_items, start, news_end, 20),
+            'basis': news_basis,
         },
         'schedule': next_week_schedule(schedule_events, start, end),
         'scheduleBasis': '확인된 다음 주 실적·주요 기업·거시 이벤트 중 핵심 일정만 표시',
