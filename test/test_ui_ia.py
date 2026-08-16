@@ -1238,6 +1238,26 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("거래량 ' + t.volume.score + '/15", source)
         self.assertIn(".ff-rank-tabs-note", style)
 
+    def test_pattern_scan_exposes_exact_conditions_and_common_filters(self):
+        source = self.read("js/pattern-scan.js")
+        style = self.read("css/pattern-scan.css")
+        backend = self.read("scripts/cloud-vm/pattern_detect.py")
+        self.assertIn("var COMMON_SEARCH_DESC = '검색기 공통: 시가총액 3,000억원 이상", source)
+        for text in (
+            "최근 20봉에서 좌우 2봉",
+            "224일선 ±3%",
+            "10~45봉 간격",
+            "어깨-머리-어깨",
+            "RSI(14) 35~65",
+            "최근 20봉 안에 저점 대비 종가가 15% 이상",
+            "종가가 시가 대비 3% 이상",
+        ):
+            self.assertIn(text, source)
+        self.assertIn("COMMON_MARKET_CAP_MIN_EOK = 3000.0", backend)
+        self.assertIn("require_common_market_cap=True", self.read("scripts/cloud-vm/daily_scan.py"))
+        self.assertIn("require_common_market_cap=True", self.read("scripts/cloud-vm/rescan_patterns.py"))
+        self.assertIn(".ps-common-desc", style)
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (

@@ -358,6 +358,16 @@
   #pattern-scan .ps-rate { font-size: 10.5px; }
   #pattern-scan .ps-score-badge { padding: 1px 6px; font-size: 10px; }
 }
+#pattern-scan .ps-common-desc {
+  margin: 10px 0 8px;
+  padding: 9px 12px;
+  border: 1px solid #d9e2ee;
+  border-radius: 9px;
+  background: #f6f9fc;
+  color: #35506f;
+  font-size: 12px;
+  line-height: 1.55;
+}
 
 /* ============ 다크모드 ============ */
 /* 스킨의 html.dark .post-single-body * !important 규칙을 #pattern-scan으로 specificity 확보해 오버라이드 */
@@ -384,6 +394,11 @@ html.dark #pattern-scan .ps-tab-desc {
   color: rgba(245, 239, 224, 0.6) !important;
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.14) !important;
+}
+html.dark #pattern-scan .ps-common-desc {
+  background: rgba(245, 239, 224, 0.06) !important;
+  border-color: rgba(245, 239, 224, 0.18) !important;
+  color: rgba(245, 239, 224, 0.72) !important;
 }
 
 html.dark #pattern-scan .ps-item {

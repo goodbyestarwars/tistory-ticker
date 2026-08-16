@@ -101,7 +101,8 @@ def main():
         }
         daily = db_schema.load_daily_prices(conn, code)
 
-        scanned_p, scanned_pb = pd.scan_stock(stock, daily, pattern_results, pullback_matches)
+        scanned_p, scanned_pb = pd.scan_stock(
+            stock, daily, pattern_results, pullback_matches, require_common_market_cap=True)
         if scanned_p:
             pattern_scanned += 1
         if scanned_pb:

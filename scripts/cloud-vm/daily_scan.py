@@ -233,7 +233,8 @@ def main():
                 time.sleep(THROTTLE_SEC)
 
             scanned_p, scanned_pb = pd.scan_stock(
-                stock, daily, pattern_results, pullback_matches, market_cap_getter=get_market_cap)
+                stock, daily, pattern_results, pullback_matches, market_cap_getter=get_market_cap,
+                require_common_market_cap=True)
             if scanned_p:
                 pattern_scanned += 1
             if scanned_pb:
