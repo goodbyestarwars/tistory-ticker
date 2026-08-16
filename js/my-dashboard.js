@@ -122,7 +122,7 @@
     mount.innerHTML = '<header class="my-dashboard-head">'
       + '<div><span class="my-dashboard-eyebrow">MY PORTFOLIO</span><h2>내 종목 분석</h2><p>종목을 입력하면 시세·차트·수급·매물대를 바로 분석합니다.</p></div></header>'
       + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><div class="my-input-wrap"><span class="my-input-logo" data-my-input-logo aria-hidden="true"><span data-my-input-initials>종목</span><img data-my-input-image alt="" hidden></span><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist></div><button type="button" data-my-load aria-label="입력한 종목 불러오기"><svg class="my-load-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 7.2 4.5M12 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>불러오기</span></button></div><p>저장된 MY 종목은 입력창에서 선택할 수 있고, 새 종목도 먼저 분석할 수 있습니다.</p></div>'
-      + '<section class="my-watchlist-panel"><div class="my-watchlist-panel-head"><div><strong>MY 관심종목</strong><span>행을 누르면 보유 수량·평단과 분석이 아래에 표시됩니다.</span></div><small data-my-watchlist-count>0종목</small></div><div class="my-watchlist-scroll" data-my-watchlist-table></div></section>'
+      + '<section class="my-watchlist-panel"><div class="my-watchlist-panel-head"><div><strong>MY 관심종목</strong><span>그룹을 접어 필요한 종목만 보고, 행을 누르면 아래에서 분석할 수 있습니다.</span></div><small data-my-watchlist-count>0종목</small></div><div class="my-watchlist-groups" data-my-watchlist-table></div></section>'
       + '<div id="myDashboardStatus" class="my-dashboard-status">분석할 종목을 입력하세요.</div>'
       + '<main class="my-dashboard-detail" id="myDashboardDetail"></main>';
   }
@@ -207,6 +207,33 @@
     if (/^US:/i.test(code)) return '$' + formatNumber(value, 0);
     return formatNumber(value, 0);
   }
+  function watchlistRows(items) {
+    return items.map(function (item) {
+      var quote = state.quotes[item.code] || {};
+      var changeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);
+      var price = quoteField(quote, ['price', 'currentPrice', 'stck_prpr']);
+      var change = quoteField(quote, ['change', 'changeValue', 'prdy_vrss']);
+      var high = quoteField(quote, ['high', 'highPrice', 'high_price', 'stck_hgpr']);
+      var low = quoteField(quote, ['low', 'lowPrice', 'low_price', 'stck_lwpr']);
+      var open = quoteField(quote, ['open', 'openPrice', 'open_price', 'stck_oprc']);
+      return '<tr class="my-watchlist-row' + (state.selectedCode === item.code ? ' is-selected' : '') + '" data-my-row="' + escapeAttr(item.code) + '" tabindex="0" role="button"><th><span class="my-watchlist-name">' + stockIconHtml(item) + '<span><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.code) + '</small></span></span></th><td>' + formatPrice(price, item.code) + '</td><td class="' + signClass(changeRate) + '">' + (changeRate == null ? '-' : formatSigned(changeRate, 2) + '%') + (change != null ? '<small>' + formatSigned(change, /^US:/i.test(item.code) ? 2 : 0) + '</small>' : '') + '</td><td>' + formatNumber(tableVolume(quote), 0) + '</td><td>' + formatPrice(high, item.code) + '</td><td>' + formatPrice(low, item.code) + '</td><td>' + tableMarketCap(quote, item.code) + '</td><td>' + formatPrice(open, item.code) + '</td></tr>';
+    }).join('');
+  }
+  function groupedWatchlist(items) {
+    var groups = global.Watchlist && global.Watchlist.getGroups ? global.Watchlist.getGroups() : [];
+    var byId = {};
+    groups.forEach(function (group) { byId[group.id] = { group: group, items: [] }; });
+    items.forEach(function (item) {
+      var id = item.groupId || 'default';
+      if (!byId[id]) {
+        var fallback = { id: id, name: id === 'default' ? '기본' : '기타', collapsed: false };
+        groups.push(fallback);
+        byId[id] = { group: fallback, items: [] };
+      }
+      byId[id].items.push(item);
+    });
+    return groups.map(function (group) { return byId[group.id]; }).filter(function (entry) { return entry && entry.items.length; });
+  }
   function buildWatchlistTable(items) {
     var tableMount = mount.querySelector('[data-my-watchlist-table]');
     var count = mount.querySelector('[data-my-watchlist-count]');
@@ -216,16 +243,13 @@
       tableMount.innerHTML = '<div class="my-watchlist-empty">관심종목이 없습니다. 위 검색창으로 종목을 불러오거나 기존 관심종목에 추가하세요.</div>';
       return;
     }
-    tableMount.innerHTML = '<table class="my-watchlist-table"><thead><tr><th>종목명</th><th>현재가</th><th>전일대비</th><th>거래량</th><th>고가</th><th>저가</th><th>시가총액</th><th>시가</th></tr></thead><tbody>' + items.map(function (item) {
-      var quote = state.quotes[item.code] || {};
-      var changeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);
-      var price = quoteField(quote, ['price', 'currentPrice', 'stck_prpr']);
-      var change = quoteField(quote, ['change', 'changeValue', 'prdy_vrss']);
-      var high = quoteField(quote, ['high', 'highPrice', 'high_price', 'stck_hgpr']);
-      var low = quoteField(quote, ['low', 'lowPrice', 'low_price', 'stck_lwpr']);
-      var open = quoteField(quote, ['open', 'openPrice', 'open_price', 'stck_oprc']);
-      return '<tr class="my-watchlist-row' + (state.selectedCode === item.code ? ' is-selected' : '') + '" data-my-row="' + escapeAttr(item.code) + '" tabindex="0" role="button"><th><span class="my-watchlist-name">' + stockIconHtml(item) + '<span><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.code) + '</small></span></span></th><td>' + formatPrice(price, item.code) + '</td><td class="' + signClass(changeRate) + '">' + (changeRate == null ? '-' : formatSigned(changeRate, 2) + '%') + (change != null ? '<small>' + formatSigned(change, /^US:/i.test(item.code) ? 2 : 0) + '</small>' : '') + '</td><td>' + formatNumber(tableVolume(quote), 0) + '</td><td>' + formatPrice(high, item.code) + '</td><td>' + formatPrice(low, item.code) + '</td><td>' + tableMarketCap(quote, item.code) + '</td><td>' + formatPrice(open, item.code) + '</td></tr>';
-    }).join('') + '</tbody></table>';
+    tableMount.innerHTML = groupedWatchlist(items).map(function (entry) {
+      var group = entry.group;
+      var collapsed = !!group.collapsed;
+      return '<section class="my-watchlist-group' + (collapsed ? ' is-collapsed' : '') + '" data-my-group="' + escapeAttr(group.id) + '">'
+        + '<button type="button" class="my-watchlist-group-toggle" data-my-group-toggle="' + escapeAttr(group.id) + '" aria-expanded="' + (collapsed ? 'false' : 'true') + '"><span><strong>' + escapeHtml(group.name || '기본') + '</strong><small>' + entry.items.length + '종목</small></span><i aria-hidden="true"></i></button>'
+        + '<div class="my-watchlist-group-body"><div class="my-watchlist-scroll"><table class="my-watchlist-table"><thead><tr><th>종목명</th><th>현재가</th><th>전일대비</th><th>거래량</th><th>고가</th><th>저가</th><th>시가총액</th><th>시가</th></tr></thead><tbody>' + watchlistRows(entry.items) + '</tbody></table></div></div></section>';
+    }).join('');
   }
   function refreshWatchlistQuotes(items) {
     if (!items.length || !global.Watchlist) return;
@@ -336,7 +360,7 @@
     var maLabel = notes.tech && notes.tech.desc ? notes.tech.desc : (ma5 != null && ma20 != null ? (ma5 >= ma20 ? '단기 이평선이 중기 이평선 위' : '단기 이평선이 중기 이평선 아래') : '이평선 데이터 부족');
     var momentumLabel = notes.momentum && notes.momentum.desc ? notes.momentum.desc : '최근 가격 추세 데이터 부족';
     return '<section class="my-analysis-card my-chart-shape"><div class="my-card-title"><strong>차트 모양 분석</strong><span>최근 가격 흐름 기준</span></div>'
-      + '<div class="my-shape-badge">' + escapeHtml(shape) + '</div>'
+      + '<div class="my-shape-badge ' + signClass(ret20) + '">' + escapeHtml(shape) + '</div>'
       + '<div class="my-shape-grid"><div><span>5일 변화</span><strong class="' + signClass(ret5) + '">' + formatSigned(ret5, 2) + '%</strong></div><div><span>20일 변화</span><strong class="' + signClass(ret20) + '">' + formatSigned(ret20, 2) + '%</strong></div></div>'
       + '<p class="my-shape-note"><b>이평선</b> ' + escapeHtml(maLabel) + '</p><p class="my-shape-note"><b>추세</b> ' + escapeHtml(momentumLabel) + '</p></section>';
   }
@@ -682,6 +706,14 @@
     mount.addEventListener('click', function (event) {
       var load = event.target.closest('[data-my-load]');
       if (load) { selectedFromInput(); return; }
+      var groupToggle = event.target.closest('[data-my-group-toggle]');
+      if (groupToggle) {
+        var groupId = groupToggle.getAttribute('data-my-group-toggle');
+        var expanded = groupToggle.getAttribute('aria-expanded') === 'true';
+        if (global.Watchlist.setGroupCollapsed) global.Watchlist.setGroupCollapsed(groupId, expanded);
+        buildWatchlistTable(global.Watchlist.getList());
+        return;
+      }
       var row = event.target.closest('[data-my-row]');
       if (row) {
         var rowItem = itemByCode(row.getAttribute('data-my-row'));

@@ -146,6 +146,15 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 .my-watchlist-panel-head strong { font-size: 17px; }
 .my-watchlist-panel-head span { margin-left: 8px; color: #64748b; font-size: 11px; }
 .my-watchlist-panel-head small { color: #94a3b8; font-size: 11px; }
+.my-watchlist-group + .my-watchlist-group { border-top: 1px solid #dce4ee; }
+.my-watchlist-group-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 16px; border: 0; background: #f8fafc; color: #1f2937; font: inherit; text-align: left; cursor: pointer; }
+.my-watchlist-group-toggle:hover { background: #f1f5f9; }
+.my-watchlist-group-toggle > span { display: flex; min-width: 0; align-items: baseline; gap: 8px; }
+.my-watchlist-group-toggle strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.my-watchlist-group-toggle small { flex: 0 0 auto; color: #94a3b8; font-size: 10px; }
+.my-watchlist-group-toggle i { width: 8px; height: 8px; flex: 0 0 auto; border-top: 2px solid currentColor; border-left: 2px solid currentColor; transform: rotate(45deg); transition: transform .16s ease; }
+.my-watchlist-group.is-collapsed .my-watchlist-group-toggle i { transform: rotate(225deg); }
+.my-watchlist-group.is-collapsed .my-watchlist-group-body { display: none; }
 .my-watchlist-scroll { overflow-x: auto; }
 .my-watchlist-table { width: 100%; min-width: 850px; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
 .my-watchlist-table th, .my-watchlist-table td { padding: 11px 12px; border-bottom: 1px solid #edf0f3; color: #1f2937; font-size: 12px; text-align: right; white-space: nowrap; }
@@ -173,6 +182,9 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 .my-holding-preview strong.is-up { color: #d24f45; }
 .my-holding-preview strong.is-down { color: #1261c4; }
 html.dark .my-watchlist-panel { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
+html.dark .my-watchlist-group + .my-watchlist-group { border-color: rgba(245,239,224,.12); }
+html.dark .my-watchlist-group-toggle { background: #202020; color: #f5efe0; }
+html.dark .my-watchlist-group-toggle:hover { background: #282828; }
 html.dark .my-watchlist-panel-head, html.dark .my-watchlist-table th, html.dark .my-watchlist-table td, html.dark .my-holding-preview { border-color: rgba(245,239,224,.1); }
 html.dark .my-watchlist-table th, html.dark .my-watchlist-table td, html.dark .my-watchlist-name strong, html.dark .my-holding-preview strong { color: #f5efe0; }
 html.dark .my-watchlist-table tbody tr:hover, html.dark .my-watchlist-table tbody tr.is-selected { background: #242424; }
@@ -183,6 +195,7 @@ html.dark .my-watchlist-icon img { background: #242424; }
   .my-watchlist-panel-head strong { font-size: 14px; }
   .my-watchlist-panel-head span { display: block; margin: 5px 0 0; font-size: 10px; }
   .my-watchlist-panel-head small { display: block; margin-top: 7px; }
+  .my-watchlist-group-toggle { padding: 10px 12px; }
   .my-watchlist-table { min-width: 760px; }
   .my-watchlist-table th, .my-watchlist-table td { padding: 9px 8px; font-size: 10px; }
   .my-watchlist-table thead th { font-size: 9px; }
@@ -285,3 +298,11 @@ html.dark .my-opinion-verdict > span, html.dark .my-opinion-verdict small { colo
   .my-volume-row { grid-template-columns: 82px minmax(0, 1fr) 58px; }
   .my-opinion-grid { grid-template-columns: 1fr; }
 }
+
+/* MY 전역 등락 규칙: 한국 증시 관례에 맞춰 상승=빨강, 하락=파랑. */
+#my-dashboard .is-up { color: #d24f45; }
+#my-dashboard .is-down { color: #1261c4; }
+#my-dashboard .my-shape-badge.is-up { background: #fff0ed; color: #d24f45; }
+#my-dashboard .my-shape-badge.is-down { background: #eaf2ff; color: #1261c4; }
+html.dark #my-dashboard .my-shape-badge.is-up { background: #49231f; color: #ff9b8f; }
+html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #93c5fd; }

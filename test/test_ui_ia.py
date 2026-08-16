@@ -567,20 +567,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, menu)
         for token in ("loadMyDashboard", "my-dashboard.js", "my-dashboard.css"):
             self.assertIn(token, main)
-        for token in ("updateHolding", "holding", "quantity", "averagePrice"):
+        for token in ("updateHolding", "setGroupCollapsed", "holding", "quantity", "averagePrice"):
             self.assertIn(token, watchlist)
         self.assertIn("/page/watchlist", bootstrap)
-        for token in ("flowAiSummary", "pbar-tratio", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "my-volume-chart", "차트 모양 분석", "물타기 계산기", "my-position-advice", "data-my-calc-recovery", "chartNote", "arrangeAnalysisSections"):
+        for token in ("flowAiSummary", "pbar-tratio", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "data-my-group-toggle", "groupedWatchlist", "my-volume-chart", "차트 모양 분석", "물타기 계산기", "my-position-advice", "data-my-calc-recovery", "chartNote", "arrangeAnalysisSections"):
             self.assertIn(token, my)
         self.assertNotIn("Google 계정에 저장", my)
         self.assertNotIn("Groq ·", my)
-        for token in ("#my-dashboard", ".my-analysis-grid"):
+        for token in ("#my-dashboard", ".my-analysis-grid", ".my-watchlist-group-toggle", "#my-dashboard .is-up { color: #d24f45; }"):
             self.assertIn(token, my_style)
 
     def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
         source = self.read("js/watchlist.js")
         bootstrap = self.read("js/stock-search-panel.js")
-        self.assertIn("watchlist.js?v=20260816-my-dashboard-table-v1", bootstrap)
+        self.assertIn("watchlist.js?v=20260816-my-groups-v2", bootstrap)
         for token in (
             "var domesticCodes = codes.filter",
             "var canUseSocket = codes.length",
