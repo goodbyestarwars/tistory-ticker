@@ -4062,6 +4062,95 @@
       + '</div>';
   }
 
+  // 원본 매물대는 최대 48개 가격 구간까지 내려오지만, 화면에서는 인접 구간을 12개로
+  // 합쳐 가격의 연속성은 유지하면서 한눈에 비교할 수 있게 한다.
+  function compactAptProfileBins(profile, rowCount) {
+    if (!profile || !profile.bins || !profile.bins.length) return [];
+    var bins = profile.bins;
+    var count = Math.max(1, Math.min(Number(rowCount) || 12, bins.length));
+    var compacted = [];
+    for (var i = 0; i < count; i++) {
+      var start = Math.floor(i * bins.length / count);
+      var end = Math.max(start + 1, Math.floor((i + 1) * bins.length / count));
+      var chunk = bins.slice(start, end);
+      var volume = chunk.reduce(function (sum, bin) {
+        return sum + Math.max(0, Number(bin.volume) || 0);
+      }, 0);
+      compacted.push({
+        low: Number(chunk[0].low),
+        high: Number(chunk[chunk.length - 1].high),
+        volume: volume,
+        start: start,
+        end: end - 1
+      });
+    }
+    return compacted;
+  }
+
+  function buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, periodLabel) {
+    if (!profile || !profile.bins || !profile.bins.length) {
+      return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
+    }
+    var rows = compactAptProfileBins(profile, 12);
+    var pocBin = profile.bins[profile.pocIndex];
+    var pocMid = pocBin ? (Number(pocBin.low) + Number(pocBin.high)) / 2 : null;
+    var maxVolume = rows.reduce(function (max, row) { return Math.max(max, row.volume); }, 0);
+    var pocRow = rows.findIndex(function (row) {
+      return profile.pocIndex >= row.start && profile.pocIndex <= row.end;
+    });
+
+    function won(value) {
+      return value == null || !isFinite(Number(value)) ? '-' : Math.round(Number(value)).toLocaleString('ko-KR') + '원';
+    }
+    function rowHasPrice(row, price) {
+      return price != null && isFinite(Number(price)) && Number(price) >= row.low && Number(price) <= row.high;
+    }
+    function rangeText(row) {
+      if (Math.round(row.low) === Math.round(row.high)) return won(row.low);
+      return Math.round(row.low).toLocaleString('ko-KR') + '~' + Math.round(row.high).toLocaleString('ko-KR');
+    }
+
+    var rowHtml = rows.slice().reverse().map(function (row, reverseIndex) {
+      var originalIndex = rows.length - 1 - reverseIndex;
+      var isCurrent = rowHasPrice(row, currentPrice);
+      var isAverage = rowHasPrice(row, avgPrice);
+      var isPoc = originalIndex === pocRow;
+      var width = maxVolume > 0 ? Math.max(3, Math.round(row.volume / maxVolume * 1000) / 10) : 0;
+      var classes = 'ff-apt-simple-row' + (isCurrent ? ' is-current' : '') + (isAverage ? ' is-average' : '') + (isPoc ? ' is-poc' : '');
+      var markers = (isCurrent ? '<span class="current">현재</span>' : '')
+        + (isAverage ? '<span class="average">평균</span>' : '')
+        + (isPoc ? '<span class="poc">최대</span>' : '');
+      return '<div class="' + classes + '">'
+        + '<span class="ff-apt-simple-price">' + rangeText(row) + '</span>'
+        + '<span class="ff-apt-simple-track"><i style="width:' + width + '%"></i></span>'
+        + '<span class="ff-apt-simple-volume">' + compactChartVolume(row.volume) + '주</span>'
+        + '<span class="ff-apt-simple-markers">' + markers + '</span>'
+        + '</div>';
+    }).join('');
+
+    var relation = '최대 매물대 부근';
+    var relationNote = '거래가 가장 많이 쌓인 가격대라 지지·저항이 바뀔 수 있는 구간입니다.';
+    if (currentPrice != null && pocMid != null && Number(currentPrice) > pocMid * 1.01) {
+      relation = '현재가는 최대 매물대 위';
+      relationNote = '아래의 두꺼운 매물대가 지지 후보가 될 수 있습니다.';
+    } else if (currentPrice != null && pocMid != null && Number(currentPrice) < pocMid * .99) {
+      relation = '현재가는 최대 매물대 아래';
+      relationNote = '위의 두꺼운 매물대가 저항 후보가 될 수 있습니다.';
+    }
+
+    return '<div class="ff-apt-simple-summary">'
+      + '<div><span>현재가</span><strong data-apt-simple-current>' + won(currentPrice) + '</strong></div>'
+      + '<div><span>최대 매물대</span><strong>' + won(pocMid) + '</strong></div>'
+      + '<div><span>평균단가</span><strong>' + won(avgPrice) + '</strong></div>'
+      + '</div>'
+      + '<div class="ff-apt-chart-wrap ff-apt-simple" role="img" aria-label="가격대별 거래량 매물대 막대 차트">'
+      + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>막대가 길수록 거래가 많이 쌓인 구간</span></div><em>' + periodLabel + '</em></div>'
+      + '<div class="ff-apt-simple-chart">' + rowHtml + '</div>'
+      + '<div class="ff-apt-simple-legend"><span class="current">현재가</span><span class="average">평균단가</span><span class="poc">최대 매물대</span></div>'
+      + '</div>'
+      + '<div class="ff-apt-simple-note" role="note"><strong>' + relation + '</strong><span>' + relationNote + ' 단독 매매 신호가 아닌 참고 지표입니다.</span></div>';
+  }
+
   // 한국투자 pbar-tratio(실제 체결가) 기반 - ?days=로 VM이 SQLite 누적분까지 합산해준다.
   // 조회할 때마다 그날 스냅샷이 쌓여서 daysIncluded가 자연히 늘어난다.
   // 2026-08-05: "최근 120일(근사)" 병행 뷰는 혼란만 준다는 사용자 판단으로 제거하고
@@ -4069,25 +4158,18 @@
   // 오버레이(addVolumeProfileOverlay)가 여전히 써서 남겨둠).
   function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice) {
     var sourceText = profile.source === 'ohlc-estimate'
-      ? '※ 실제 체결가가 없어 일봉 고가·저가·거래량 기반의 근사 매물대를 표시합니다.'
-      : '※ 실제 체결가·체결거래량 기반의 매물대입니다.';
-    var footnote = '<div class="ff-footnote">' + sourceText + ' 이 종목을 조회할 때마다 그날 데이터가 쌓여 지금은 최근 <b>'
-      + (daysIncluded || 1) + '거래일</b>치가 반영돼 있어요(뜸하게 조회된 종목은 며칠치만 있을 수 있음, 최대 ' + APT_LOOKBACK_DAYS + '일).</div>';
+      ? '일봉 고가·저가·거래량 기반 근사치'
+      : '실제 체결가·체결거래량 기준';
+    var footnote = '<div class="ff-footnote ff-apt-simple-source">' + sourceText + ' · 최근 <b>'
+      + (daysIncluded || 1) + '거래일</b> 반영</div>';
     var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
-    return buildAptZoomButtons(stepIndex)
-      + buildAptSummaryHtml(profile, periodLabel, avgPrice, currentPrice)
-      + buildAptIllustratedLineArtHtml(profile, currentPrice, avgPrice)
-      + '<div class="ff-apt-meaning" role="note">'
-      + '<strong>매물대는 이렇게 읽습니다</strong>'
-      + '<p>가격별로 실제 체결 거래량이 얼마나 쌓였는지를 보여주는 지도입니다. 건물의 높이와 창문 밀도가 클수록 해당 가격에서 거래가 많이 일어났다는 뜻입니다.</p>'
-      + '<p><b>현재가</b>는 지금 가격, <b>평균단가</b>는 조회 기간의 거래량 가중 평균 가격, <b>중심 가격(POC)</b>은 거래량이 가장 많이 몰린 가격입니다. 현재가가 두꺼운 매물대 위에 있으면 지지, 아래에 있으면 저항으로 해석할 수 있지만 단독 매매 신호는 아닙니다.</p>'
-      + '</div>'
+    return buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, periodLabel)
       + footnote;
   }
 
   function buildAptCard() {
     return '<div class="ff-extra-card ff-apt-card" id="ffAptCard">'
-      + '<div class="ff-extra-card-title">🏢 매물대</div>'
+      + '<div class="ff-extra-card-title">매물대</div>'
       + '<div id="ffAptDynamic"><div class="ff-apt-empty">매물대를 불러오는 중...</div></div>'
       + '</div>';
   }
@@ -4251,6 +4333,8 @@
       var parsed = Number(nextPrice);
       if (!isFinite(parsed) || !activeProfile) return;
       currentPrice = parsed;
+      var simpleCurrent = card.querySelector('[data-apt-simple-current]');
+      if (simpleCurrent) simpleCurrent.textContent = Math.round(parsed).toLocaleString('ko-KR') + '원';
       var map = card.querySelector('[data-price-map-surface]');
       if (!map) return;
       updateCurrentMarker(map, parsed);

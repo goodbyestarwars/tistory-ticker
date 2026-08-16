@@ -922,6 +922,30 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ff-chart-candle::after", style)
         self.assertNotIn(".ff-chart-news-detail", style)
 
+    def test_stock_analysis_volume_profile_uses_compact_price_bars(self):
+        source = self.read("js/foreign-flow.js")
+        style = self.read("css/foreign-flow.css")
+        dynamic = re.search(
+            r"function buildAptDynamicHtml\(profile, currentPrice, stepIndex, daysIncluded, avgPrice\) \{(?P<body>.*?)\n  \}",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(dynamic)
+        body = dynamic.group("body")
+        self.assertIn("buildSimpleVolumeProfileHtml", body)
+        self.assertNotIn("buildAptIllustratedLineArtHtml", body)
+        self.assertNotIn("buildAptZoomButtons", body)
+        self.assertNotIn("건물의 높이", body)
+        self.assertIn("function compactAptProfileBins(profile, rowCount)", source)
+        self.assertIn("compactAptProfileBins(profile, 12)", source)
+        self.assertIn('class="ff-apt-chart-wrap ff-apt-simple"', source)
+        self.assertIn('data-apt-simple-current', source)
+        self.assertIn('<div class="ff-extra-card-title">매물대</div>', source)
+        self.assertNotIn('<div class="ff-extra-card-title">🏢 매물대</div>', source)
+        self.assertIn("#foreign-flow .ff-apt-simple-row", style)
+        self.assertIn("grid-template-columns: 112px minmax(100px, 1fr) 64px 94px;", style)
+        self.assertIn("@media (max-width: 640px)", style)
+
     def test_signal_banner_ignores_late_responses_from_previous_selection(self):
         source = self.read("js/foreign-flow.js")
         self.assertIn("var signalRequestSeq = 0;", source)

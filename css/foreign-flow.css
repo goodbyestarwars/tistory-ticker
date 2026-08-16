@@ -2906,3 +2906,193 @@ html.dark #foreign-flow .ff-apt-basement-flow-arrow { fill: #74c9b6; }
   #foreign-flow .ff-apt-illustration-svg { height: 360px; }
   #foreign-flow .ff-apt-bin { flex-basis: 48px; }
 }
+
+/* 종목분석 > 매물대: 장식 없이 가격·거래량 관계만 보여주는 compact profile */
+#foreign-flow .ff-apt-simple-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+#foreign-flow .ff-apt-simple-summary > div {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #e4e9ef;
+  border-radius: 11px;
+  background: #f8fafc;
+}
+#foreign-flow .ff-apt-simple-summary span {
+  display: block;
+  margin-bottom: 3px;
+  color: #7b8794;
+  font-size: 10px;
+}
+#foreign-flow .ff-apt-simple-summary strong {
+  display: block;
+  overflow: hidden;
+  color: #26384a;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#foreign-flow .ff-apt-chart-wrap.ff-apt-simple {
+  min-height: 0;
+  padding: 15px 16px 13px;
+  border: 1px solid #e4e9ef;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+  transform: translateY(4px);
+}
+#foreign-flow .ff-apt-chart-wrap.ff-apt-simple.ff-apt-in { transform: translateY(0); }
+#foreign-flow .ff-apt-simple-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+#foreign-flow .ff-apt-simple-head strong {
+  display: block;
+  color: #26384a;
+  font-size: 13px;
+}
+#foreign-flow .ff-apt-simple-head span {
+  display: block;
+  margin-top: 2px;
+  color: #8a96a3;
+  font-size: 10px;
+}
+#foreign-flow .ff-apt-simple-head em {
+  flex: 0 0 auto;
+  color: #7b8794;
+  font-size: 10px;
+  font-style: normal;
+}
+#foreign-flow .ff-apt-simple-chart { display: grid; gap: 3px; }
+#foreign-flow .ff-apt-simple-row {
+  display: grid;
+  grid-template-columns: 112px minmax(100px, 1fr) 64px 94px;
+  align-items: center;
+  gap: 9px;
+  min-height: 25px;
+  padding: 2px 7px;
+  border-radius: 7px;
+}
+#foreign-flow .ff-apt-simple-row.is-current { background: #eefbf8; }
+#foreign-flow .ff-apt-simple-price,
+#foreign-flow .ff-apt-simple-volume {
+  color: #627080;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#foreign-flow .ff-apt-simple-price { text-align: right; }
+#foreign-flow .ff-apt-simple-volume { text-align: right; }
+#foreign-flow .ff-apt-simple-track {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf1f5;
+}
+#foreign-flow .ff-apt-simple-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #b9c8d8;
+  transition: width .35s ease;
+}
+#foreign-flow .ff-apt-simple-row.is-current .ff-apt-simple-track { box-shadow: 0 0 0 1px #3aa68c; }
+#foreign-flow .ff-apt-simple-row.is-current .ff-apt-simple-track i { background: #69bfa9; }
+#foreign-flow .ff-apt-simple-row.is-poc .ff-apt-simple-track i { background: #f19a59; }
+#foreign-flow .ff-apt-simple-row.is-current.is-poc .ff-apt-simple-track i {
+  background: linear-gradient(90deg, #69bfa9 0 48%, #f19a59 48% 100%);
+}
+#foreign-flow .ff-apt-simple-markers {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 18px;
+}
+#foreign-flow .ff-apt-simple-markers span,
+#foreign-flow .ff-apt-simple-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #6d7986;
+  font-size: 9px;
+  white-space: nowrap;
+}
+#foreign-flow .ff-apt-simple-markers span {
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: #f1f4f7;
+}
+#foreign-flow .ff-apt-simple-markers .current { color: #087f69; background: #dff7f1; }
+#foreign-flow .ff-apt-simple-markers .average { color: #2166b1; background: #e7f0fb; }
+#foreign-flow .ff-apt-simple-markers .poc { color: #c65f1a; background: #fff0e5; }
+#foreign-flow .ff-apt-simple-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 11px;
+}
+#foreign-flow .ff-apt-simple-legend span::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9aa8b7;
+  content: '';
+}
+#foreign-flow .ff-apt-simple-legend .current::before { background: #3aa68c; }
+#foreign-flow .ff-apt-simple-legend .average::before { background: #4d86c5; }
+#foreign-flow .ff-apt-simple-legend .poc::before { background: #f08c46; }
+#foreign-flow .ff-apt-simple-note {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f7f9fb;
+  color: #6d7986;
+  font-size: 10px;
+  line-height: 1.5;
+}
+#foreign-flow .ff-apt-simple-note strong { flex: 0 0 auto; color: #33475b; font-size: 11px; }
+#foreign-flow .ff-footnote.ff-apt-simple-source {
+  margin: 7px 2px 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #98a2ad;
+  font-size: 9px;
+}
+
+html.dark #foreign-flow .ff-apt-simple-summary > div,
+html.dark #foreign-flow .ff-apt-simple-note { border-color: rgba(245,239,224,.14); background: #24292d; }
+html.dark #foreign-flow .ff-apt-simple-summary strong,
+html.dark #foreign-flow .ff-apt-simple-head strong,
+html.dark #foreign-flow .ff-apt-simple-note strong { color: #f5efe0; }
+html.dark #foreign-flow .ff-apt-chart-wrap.ff-apt-simple { border-color: rgba(245,239,224,.17) !important; background: #1f2326 !important; }
+html.dark #foreign-flow .ff-apt-simple-track { background: #333a40; }
+html.dark #foreign-flow .ff-apt-simple-row.is-current { background: rgba(39,138,116,.17); }
+html.dark #foreign-flow .ff-apt-simple-price,
+html.dark #foreign-flow .ff-apt-simple-volume,
+html.dark #foreign-flow .ff-apt-simple-note { color: #b8c0c7; }
+
+@media (max-width: 640px) {
+  #foreign-flow .ff-apt-simple-summary { gap: 5px; }
+  #foreign-flow .ff-apt-simple-summary > div { padding: 9px 8px; }
+  #foreign-flow .ff-apt-simple-summary strong { font-size: 12px; }
+  #foreign-flow .ff-apt-chart-wrap.ff-apt-simple { padding: 13px 9px 11px; }
+  #foreign-flow .ff-apt-simple-row { grid-template-columns: 78px minmax(64px, 1fr) 48px 62px; gap: 5px; padding-inline: 3px; }
+  #foreign-flow .ff-apt-simple-price,
+  #foreign-flow .ff-apt-simple-volume { font-size: 8px; }
+  #foreign-flow .ff-apt-simple-markers { gap: 2px; }
+  #foreign-flow .ff-apt-simple-markers span { padding: 2px 3px; font-size: 8px; }
+  #foreign-flow .ff-apt-simple-note { display: block; }
+  #foreign-flow .ff-apt-simple-note strong { display: block; margin-bottom: 2px; }
+}
