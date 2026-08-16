@@ -13,6 +13,8 @@
       if (localStorage.getItem('bolt-sidebar-collapsed') === '1') document.documentElement.classList.add('sidebar-collapsed');
     } catch (e) {}
   </script>
+  <!-- 폐기된 빈 시장 리본은 외부 CSS가 도착하기 전에도 절대 페인트하지 않는다(새로고침 검은 띠 FOUC 방지). -->
+  <style>.market-ribbon { display: none !important; }</style>
   <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/icon-9bolt-transparent.svg" />
   <!-- github.io(CSS/JS 다수) · GAS(리본/툴팁 시세)는 첫 요청 전에 연결을 미리 열어둔다 -->
   <link rel="preconnect" href="https://goodbyestarwars.github.io" crossorigin />
@@ -20,7 +22,7 @@
   <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
     <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260816-weekly-disclosures-v4" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
-  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/market-ribbon.css" />
+  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/market-ribbon.css?v=20260817-fouc-fix-v1" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/sidebar-rank.css" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/investor-trend-widget.css" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap" rel="stylesheet" />
