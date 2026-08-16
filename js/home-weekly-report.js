@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-weekend-lineart-v7';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-weekend-lineart-v8';
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
@@ -97,9 +97,9 @@
     var values = (indices || []).map(function (item) { return num(item && item.changeRate); }).filter(function (value) { return value != null; });
     var bullish = values.length ? values.reduce(function (sum, value) { return sum + value; }, 0) >= 0 : true;
     if (bullish) {
-      return '<div class="hwr-sentiment hwr-sentiment--up" aria-label="상승 흐름"><svg viewBox="0 0 150 72" role="img" aria-hidden="true"><path d="M18 51c8-14 17-22 31-22 9 0 15 4 22 10l12-13 11 5 12-12 19 8 8 18-10 5-11-7-10 9-15-4c-8 13-18 19-31 19-16 0-28-4-38-16Z"/><path d="M68 39c8-12 16-20 25-23l8-10 3 14 13-6 8 8"/><path d="M28 31 15 18M32 28 23 11M108 28l17-12M113 32l20-4"/><circle cx="112" cy="28" r="2"/></svg><strong>상승 흐름</strong></div>';
+      return '<div class="hwr-sentiment hwr-sentiment--up" aria-label="상승 흐름"><svg viewBox="0 0 160 82" role="img" aria-hidden="true"><path d="M24 50c2-16 15-28 34-29 15-1 28 5 37 16l13-3c11-2 22 2 28 10l-8 7-11-3-8 9-15-2c-8 9-18 13-31 13-18 0-33-7-39-18Z"/><path d="M111 35c7-8 15-11 24-8l9-5-4 10 7 8-16 2-9-7"/><path d="M116 27c-2-8 1-15 8-19M128 26c5-7 12-9 19-6M45 65v11M68 66v11M92 62v10M24 43c-8-2-13-7-16-14"/><circle cx="132" cy="38" r="2"/></svg><strong>상승 흐름</strong></div>';
     }
-    return '<div class="hwr-sentiment hwr-sentiment--down" aria-label="하락 흐름"><svg viewBox="0 0 150 72" role="img" aria-hidden="true"><path d="M19 48c8-13 18-20 31-20 11 0 18 5 25 14l13-8 11 5 12-11 19 5 8 17-10 6-12-6-10 9-16-3c-8 11-18 16-31 16-16 0-29-6-40-24Z"/><path d="M66 39c8-12 16-18 27-21l7-10 7 13 14-3 10 9"/><path d="M31 29 18 13M38 27 31 8M108 29l16-15M114 34l21 0"/><circle cx="115" cy="30" r="2"/></svg><strong>하락 흐름</strong></div>';
+    return '<div class="hwr-sentiment hwr-sentiment--down" aria-label="하락 흐름"><svg viewBox="0 0 160 82" role="img" aria-hidden="true"><path d="M25 53c0-15 12-27 29-30 15-3 29 2 39 12l14-2c11-2 22 3 27 12l-8 7-12-4-8 8-15-1c-8 9-18 14-31 14-17 0-30-6-35-16Z"/><path d="M111 35c7-8 15-11 24-8l9-5-4 10 7 8-16 2-9-7"/><path d="M115 27c-2-8 1-15 8-19M128 26c5-7 12-9 19-6M46 66v10M69 66v10M93 63v9M25 46c-8-1-13-6-17-13"/><circle cx="132" cy="38" r="2"/></svg><strong>하락 흐름</strong></div>';
   }
   function fxStatus(fx) {
     var analysis = fx && fx.analysis || {};
