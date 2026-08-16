@@ -36,12 +36,36 @@ class WeeklyReportTests(unittest.TestCase):
         self.assertEqual(result[0]['code'], 'US:A')
         self.assertEqual(result[0]['tags'], ['거래대금 상위'])
 
+    def test_hot_stocks_rotates_across_rank_buckets(self):
+        result = weekly_report.hot_stocks({'sections': {
+            'rising': [{'code': 'A', 'name': '상승', 'change_rate': 5}],
+            'falling': [{'code': 'B', 'name': '하락', 'change_rate': -4}],
+            'volumeGrowth': [{'code': 'C', 'name': '거래량', 'change_rate': 1}],
+        }}, limit=3)
+        self.assertEqual([item['code'] for item in result], ['A', 'B', 'C'])
+
+    def test_news_timeline_is_merged_and_week_bounded(self):
+        result = weekly_report.news_timeline([
+            {'title': '한국 뉴스', 'pubDate': '2026-08-14T09:00:00+09:00'},
+            {'title': '지난 뉴스', 'pubDate': '2026-08-07T09:00:00+09:00'},
+        ], [
+            {'title': '미국 뉴스', 'pubDate': '2026-08-13T09:00:00+09:00'},
+        ], datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
+        self.assertEqual([item['title'] for item in result], ['한국 뉴스', '미국 뉴스'])
+        self.assertEqual([item['market'] for item in result], ['한국', '미국'])
+
+    def test_news_timeline_accepts_rfc822_dates(self):
+        result = weekly_report.news_timeline([
+            {'title': '한국 RFC 뉴스', 'pubDate': 'Fri, 14 Aug 2026 09:00:00 +0900'},
+        ], [], datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
+        self.assertEqual(len(result), 1)
+
     def test_next_week_schedule_filters_outside_window(self):
         result = weekly_report.next_week_schedule([
-            {'start': '2026-08-17', 'title': '실적'},
+            {'start': '2026-08-17', 'title': '$AAPL 실적발표', 'symbol': 'AAPL'},
             {'start': '2026-08-24', 'title': '다음 주 아님'},
         ], datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
-        self.assertEqual([item['title'] for item in result], ['실적'])
+        self.assertEqual([item['title'] for item in result], ['$AAPL 실적발표'])
 
 
 if __name__ == '__main__':
