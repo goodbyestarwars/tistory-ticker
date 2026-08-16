@@ -1088,6 +1088,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("@app.delete('/sector-cards/me')", backend)
         self.assertIn("#market-temp > .mt-wrap + .mt-explore-card { margin-top: 18px; }", style)
 
+    def test_weekly_report_uses_recognizable_bull_and_bear_labels(self):
+        source = self.read("js/home-weekly-report.js")
+        self.assertIn('aria-label="황소장 상승"', source)
+        self.assertIn('<strong>황소장 · 상승</strong>', source)
+        self.assertIn('aria-label="곰장 하락"', source)
+        self.assertIn('<strong>곰장 · 하락</strong>', source)
+        self.assertIn('M71 61c0 9 4 14 9 14s9-5 9-14', source)
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (
