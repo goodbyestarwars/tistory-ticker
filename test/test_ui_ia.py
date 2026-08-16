@@ -1224,6 +1224,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("root.classList.add('skin-ready')", main)
         self.assertIn('window.setTimeout(reveal, 1800)', main)
 
+    def test_analysis_rank_filters_are_grouped_by_parent_domain(self):
+        source = self.read("js/foreign-flow.js")
+        style = self.read("css/foreign-flow.css")
+        self.assertNotIn("DISABLED_RANKING_LABELS", source)
+        self.assertNotIn("ff-rank-tab-disabled", source)
+        self.assertIn("ROE·부채 점수", source)
+        self.assertIn("PER·배당은 상세 참고", source)
+        self.assertIn("기술적 점수: 이평 25 · 지지 15 · 저항 15 · 일목 30 · 거래량 15", source)
+        self.assertIn("기술적 점수 ' + t.score + '/100", source)
+        self.assertIn("이평 ' + t.ma.score + '/25", source)
+        self.assertIn("일목 ' + t.ichimoku.score + '/30", source)
+        self.assertIn("거래량 ' + t.volume.score + '/15", source)
+        self.assertIn(".ff-rank-tabs-note", style)
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (

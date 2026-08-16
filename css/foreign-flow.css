@@ -2048,6 +2048,13 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
   color: #9ca3af;
   margin-right: 2px;
 }
+#foreign-flow .ff-rank-tabs-note {
+  flex-basis: 100%;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #8a8f98;
+  margin-top: 1px;
+}
 #foreign-flow .ff-rank-tab {
   font-family: inherit;
   font-size: 12px;
@@ -2062,8 +2069,6 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 }
 #foreign-flow .ff-rank-tab:hover { border-color: #999; }
 #foreign-flow .ff-rank-tab.active { background: #333; border-color: #333; color: #fff; }
-#foreign-flow .ff-rank-tab-disabled { opacity: 0.4; cursor: not-allowed; }
-#foreign-flow .ff-rank-tab-disabled:hover { border-color: #ddd; }
 
 /* 리스트 행의 랭킹 metric 컬럼(예: "수급점수 82점") - 이름과 점수/시세 사이 */
 #foreign-flow .ff-sig-metric {
@@ -2478,6 +2483,7 @@ html.dark #foreign-flow .ff-sig-list-col { background: #1A1A1A !important; borde
 html.dark #foreign-flow .ff-rank-tab { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.25) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #foreign-flow .ff-rank-tab.active { background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #1A1A1A !important; }
 html.dark #foreign-flow .ff-rank-tabs-label { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #foreign-flow .ff-rank-tabs-note { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-sig-metric { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-sig-banner {
   background: rgba(245, 239, 224, 0.06) !important;

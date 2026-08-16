@@ -139,18 +139,16 @@
   // 내려주는 rankings.*(수급/외국인기관/기술적/공매도/연기금/펀더멘탈 TOP20, 각 항목
   // [code,name,price,changeRate,metricValue,stars] 6-tuple - invest_signal.upsert_ranked
   // 참고)를 그대로 정렬 기준 탭으로 재사용한다. "상승률"은 rankings에 없지만 버킷 데이터에
-  // 이미 changeRate가 있어 클라이언트에서 바로 정렬 가능해 추가했다. PER·배당·거래대금·
-  // 차트패턴은 대량 종목에 걸쳐 한 번에 제공하는 데이터 소스가 아직 없어(온디맨드 단건
-  // 조회만 가능) 비활성 탭으로 남겨 "없는 척" 하지 않고 준비 중임을 그대로 보여준다.
+  // 이미 changeRate가 있어 클라이언트에서 바로 정렬 가능해 추가했다. PER·배당은 펀더멘털의
+  // 상세 참고값이고 차트패턴은 기술적 분석의 참고 신호이므로 별도 랭킹 탭으로 분리하지 않는다.
   var RANKING_META = [
     { key: 'flow', label: '수급강도', metricLabel: '수급점수', fmt: function (v) { return Math.round(v) + '점'; } },
     { key: 'foreignInst', label: '외국인·기관', metricLabel: '5일 합산', fmt: fmtSharesUnit },
-    { key: 'tech', label: '기술적', metricLabel: '기술점수', fmt: function (v) { return Math.round(v) + '점'; } },
+    { key: 'tech', label: '기술적', metricLabel: '기술점수', hint: '이평·지지·저항·일목·거래량', fmt: function (v) { return Math.round(v) + '점'; } },
     { key: 'shortSafe', label: '공매도 안전', metricLabel: '공매도비중', fmt: function (v) { return v.toFixed(1) + '%'; } },
     { key: 'pension', label: '연기금', metricLabel: '5일 순매수', fmt: fmtSharesUnit },
-    { key: 'fundamental', label: '펀더멘탈', metricLabel: '펀더멘탈점수', fmt: function (v) { return Math.round(v) + '점'; } }
+    { key: 'fundamental', label: '펀더멘탈', metricLabel: 'ROE·부채 점수', hint: 'ROE 60%·부채비율 40% · PER·배당은 상세 참고', fmt: function (v) { return Math.round(v) + '점'; } }
   ];
-  var DISABLED_RANKING_LABELS = ['PER', '배당', '차트패턴']; // 데이터 소스 준비 전 - 안내용 비활성 탭
   var SIGNAL_SORT_META = [
     { key: 'score', label: '종합점수순' },
     { key: 'changeRate', label: '등락률순' },
@@ -247,19 +245,17 @@
       });
   }
 
-  // 필터 탭 - rankings.*를 그대로 정렬 기준으로 노출(RANKING_META 상단 주석 참고).
-  // 데이터 소스가 아직 없는 PER/배당/거래대금/차트패턴은 비활성 탭으로 같이 보여줘서
-  // "필터가 있는데 안 보인다"가 아니라 "준비 중"임을 명확히 한다.
+  // 필터 탭 - 실제로 정렬 가능한 분석축만 노출한다. PER·배당·차트패턴은 각 부모
+  // 분석(펀더멘털/기술적) 안의 상세 참고값으로 안내해, 별도 판단축처럼 보이지 않게 한다.
   function renderRankingTabs(container) {
     var box = container.querySelector('#ffSigRankTabs');
     if (!box) return;
     var activeTabs = RANKING_META.map(function (r) {
-      return '<button type="button" class="ff-rank-tab' + (activeRanking === r.key ? ' active' : '') + '" data-rank="' + escapeAttr(r.key) + '">' + escapeHtml(r.label) + '</button>';
+      var title = r.hint ? ' title="' + escapeAttr(r.hint) + '"' : '';
+      return '<button type="button" class="ff-rank-tab' + (activeRanking === r.key ? ' active' : '') + '" data-rank="' + escapeAttr(r.key) + '"' + title + '>' + escapeHtml(r.label) + '</button>';
     }).join('');
-    var disabledTabs = DISABLED_RANKING_LABELS.map(function (label) {
-      return '<button type="button" class="ff-rank-tab ff-rank-tab-disabled" disabled title="데이터 준비 중입니다">' + escapeHtml(label) + '</button>';
-    }).join('');
-    box.innerHTML = '<span class="ff-rank-tabs-label">필터</span>' + activeTabs + disabledTabs;
+    box.innerHTML = '<span class="ff-rank-tabs-label">필터</span>' + activeTabs
+      + '<span class="ff-rank-tabs-note">기술적 점수: 이평 25 · 지지 15 · 저항 15 · 일목 30 · 거래량 15 / 펀더멘털: ROE 60 · 부채비율 40 · PER·배당은 상세 참고</span>';
   }
 
   // 카운트 배지를 클릭 가능한 버튼으로 렌더링 - 클릭 시 아래 종목 리스트가 그 등급으로 필터링됨.
@@ -845,7 +841,7 @@
         renderSignalList(container);
         return;
       }
-      var rankBtn = e.target.closest ? e.target.closest('.ff-rank-tab:not(.ff-rank-tab-disabled)') : null;
+      var rankBtn = e.target.closest ? e.target.closest('.ff-rank-tab') : null;
       if (rankBtn) {
         var rankKey = rankBtn.getAttribute('data-rank');
         activeRanking = activeRanking === rankKey ? null : rankKey;
@@ -2216,7 +2212,7 @@
 
   function techInterpText(t) {
     if (!t) return '차트 데이터가 부족해 기술적 점수를 계산하지 못했습니다.';
-    return t.ma.label + ' · ' + t.support.label + ' · ' + t.resistance.label;
+    return '기술적 점수 ' + t.score + '/100 · 이평 ' + t.ma.score + '/25 (' + t.ma.label + ') · 지지 ' + t.support.score + '/15 (' + t.support.label + ') · 저항 ' + t.resistance.score + '/15 (' + t.resistance.label + ') · 일목 ' + t.ichimoku.score + '/30 · 거래량 ' + t.volume.score + '/15';
   }
 
   // 가격추세 - 2026-07-28 종목뉴스 페이지("종목분석" 요약 패널) 참고 항목. 최근 가격 추세의
