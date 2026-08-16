@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-weekend-lineart-v8';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-weekend-lineart-v9';
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
@@ -56,19 +56,66 @@
   function dateLabel(value) {
     var text = String(value || '');
     var match = text.match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (!match) return '';
-    return match[2] + '/' + match[3];
+    if (match) return match[2] + '/' + match[3];
+    var parsed = new Date(text);
+    if (isNaN(parsed.getTime())) return '';
+    return String(parsed.getUTCMonth() + 1).padStart(2, '0') + '/' + String(parsed.getUTCDate()).padStart(2, '0');
+  }
+  function timeLabel(value) {
+    var match = String(value || '').match(/(?:T|\s)(\d{1,2}:\d{2})/);
+    return match ? match[1] : '';
+  }
+  function newsType(item) {
+    var text = String((item && item.title) || '') + ' ' + String((item && item.source) || '');
+    return /(공시|10-[QK]|8-K|분기보고서|사업보고서|증권신고서|유상증자|배당|IPO)/i.test(text) ? '공시' : '뉴스';
+  }
+  function newsSummary(item) {
+    var summary = String((item && (item.summary || item.description)) || '').trim();
+    var title = String((item && item.title) || '').trim();
+    if (!summary || summary === title) return '';
+    return summary.length > 150 ? summary.slice(0, 147) + '…' : summary;
   }
   function newsTimeline(items) {
     if (!items || !items.length) return '<p class="hwr-empty">완료된 주간 뉴스가 없습니다.</p>';
-    return '<div class="hwr-news-timeline">' + items.slice(0, 20).map(function (item, index) {
+    var rows = items.slice(0, 20).map(function (item, index) {
       var market = item.market === '미국' ? '미국' : '한국';
-      return '<a class="hwr-news-row" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
-        + '<span class="hwr-news-rail"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
+      var type = newsType(item);
+      var summary = newsSummary(item);
+      var quote = item.price != null ? '<span class="hwr-news-quote"><b>' + escapeHtml(formatStockPrice(item)) + '</b><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span>' : '';
+      return '<article class="hwr-news-event" data-news-type="' + type + '">'
+        + '<div class="hwr-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(timeLabel(item.pubDate)) + '</small></div>'
+        + '<div class="hwr-news-rail"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
+        + '<div class="hwr-news-event-body"><div class="hwr-news-event-meta">'
         + '<b class="hwr-news-market hwr-news-market--' + market + '">' + market + '</b>'
-        + '<span><strong>' + escapeHtml(item.title || '제목 없음') + '</strong><small>' + escapeHtml(item.source || '') + '</small></span>'
-        + '<time>' + escapeHtml(dateLabel(item.pubDate)) + '</time></a>';
-    }).join('') + '</div>';
+        + '<b class="hwr-news-type hwr-news-type--' + type + '">' + type + '</b>'
+        + '<small>' + escapeHtml(item.source || '') + '</small></div>'
+        + '<h4>' + escapeHtml(item.title || '제목 없음') + '</h4>'
+        + (summary ? '<p>' + escapeHtml(summary) + '</p>' : '')
+        + '<div class="hwr-news-event-footer">' + quote + '<a href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">원문 보기 ↗</a></div></div></article>';
+    }).join('');
+    return '<div class="hwr-news-timeline" data-hwr-news-timeline>' + rows + '</div><p class="hwr-news-filter-empty" data-hwr-news-filter-empty hidden>해당 유형의 소식이 없습니다.</p>';
+  }
+  function bindNewsFilters(root) {
+    var buttons = root.querySelectorAll('[data-hwr-news-filter]');
+    var events = root.querySelectorAll('[data-news-type]');
+    var empty = root.querySelector('[data-hwr-news-filter-empty]');
+    buttons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        var filter = button.getAttribute('data-hwr-news-filter');
+        var visible = 0;
+        buttons.forEach(function (candidate) {
+          var active = candidate === button;
+          candidate.classList.toggle('is-active', active);
+          candidate.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        events.forEach(function (event) {
+          var show = filter === 'all' || event.getAttribute('data-news-type') === filter;
+          event.hidden = !show;
+          if (show) visible += 1;
+        });
+        if (empty) empty.hidden = visible > 0;
+      });
+    });
   }
   function stockList(items, market) {
     if (!items || !items.length) return '<p class="hwr-empty">마지막 거래일 순위를 받지 못했습니다.</p>';
@@ -143,9 +190,10 @@
       + '<div class="hwr-summary-row"><div>' + fxCard(fx) + '</div><p class="hwr-source-note"><b>데이터 출처</b><br>지수: 국내 KRX/KIS · 미국 네이버·KIS<br>한국 뉴스: 네이버 뉴스 · DART 공시<br>미국 뉴스: Finnhub · Alpha Vantage (설정된 공급자 기준)<br><small>환율 구간은 최근 1년 관측값을 기준으로 한 참고용 분류입니다.</small></p></div>'
       + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>뜨거운 종목</strong><span>상승·수급·거래대금 신호와 사유</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.us, 'us') + '</article></div></section>'
       + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>차가운 종목</strong><span>하락률 상위 중 유동성 종목 우선</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.us, 'us') + '</article></div></section>'
-      + '<article class="hwr-news-card"><div class="hwr-card-title"><strong>주간 경제 종합뉴스</strong><span>한국·미국 통합 타임라인 · 날짜순</span></div>' + newsTimeline(data.news && data.news.timeline) + '</article>'
+      + '<article class="hwr-news-card"><div class="hwr-news-toolbar"><div class="hwr-card-title"><strong>주간 경제 종합뉴스</strong><span>한국·미국 통합 · 날짜순</span></div><div class="hwr-news-filters" role="tablist" aria-label="뉴스 유형 필터"><button type="button" role="tab" aria-selected="true" class="is-active" data-hwr-news-filter="all">통합</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="뉴스">뉴스</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="공시">공시</button></div></div>' + newsTimeline(data.news && data.news.timeline) + '</article>'
       + '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'
       + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';
+    bindNewsFilters(root);
   }
   function init() {
     if (!isWeekendWindow(new Date())) return null;
