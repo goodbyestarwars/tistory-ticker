@@ -22,6 +22,7 @@
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var SECTOR_CARDS_API_URL = 'https://goodbyestar.cloud/sector-cards';
+  var USER_SECTOR_CARDS_API_URL = SECTOR_CARDS_API_URL + '/me';
   var GOOGLE_AUTH_START_URL = 'https://goodbyestar.cloud/auth/google/start';
   var GOOGLE_AUTH_ME_URL = 'https://goodbyestar.cloud/auth/google/me';
   var GOOGLE_AUTH_LOGOUT_URL = 'https://goodbyestar.cloud/auth/google/logout';
@@ -33,6 +34,7 @@
   // (사용자 실측 재현: "항상 2번 리플레시 해야 뜸"). foreign-flow.js/pension-fund.js 등
   // 여러 소스를 조합하는 다른 무거운 위젯들도 이미 20000을 쓰고 있어 그 값에 맞춤.
   var FETCH_TIMEOUT_MS = 20000;
+  var LOCAL_SECTOR_CARDS_KEY = 'market_temp_sector_cards_v1';
   var GAUGE_MAX_TEMP = 40; // 서버가 실제 만점 기준으로 이미 0~40℃로 정규화해서 내려줌
   var sectorConfigPromise = null;
   var sparklineId = 0;
@@ -711,9 +713,8 @@
 
   // 섹터 풀(SECTOR_MAP) 전체 종목 코드를 모아 시세를 한 번에 조회 - 카드 보기/히트맵 보기가
   // 공유하는 헬퍼(SD.renderCardsHtml/renderHeatmapHtml 둘 다 이 codes 목록이 필요).
-  function fetchSectorConfig_() {
-    if (sectorConfigPromise) return sectorConfigPromise;
-    sectorConfigPromise = fetch(SECTOR_CARDS_API_URL, { cache: 'no-store' })
+  function fetchDefaultSectorConfig_() {
+    return fetch(SECTOR_CARDS_API_URL, { cache: 'no-store' })
       .then(function (r) {
         if (!r.ok) throw new Error('sector config HTTP ' + r.status);
         return r.json();
@@ -723,7 +724,6 @@
         return body.data;
       })
       .catch(function (err) {
-        sectorConfigPromise = null;
         // The static sector file remains a safe read-only fallback while the VM
         // deploys the new /sector-cards endpoint or during a transient outage.
         if (global.SECTOR_MAP && typeof global.SECTOR_MAP === 'object') {
@@ -733,6 +733,83 @@
             editable: false
           };
         }
+        throw err;
+      });
+  }
+
+  function readLocalSectorConfig_() {
+    try {
+      var value = JSON.parse(localStorage.getItem(LOCAL_SECTOR_CARDS_KEY) || 'null');
+      if (value && value.sectors && typeof value.sectors === 'object') {
+        return { sectors: value.sectors, revision: 0, updatedAt: value.updatedAt || null, customized: true, localOnly: true };
+      }
+    } catch (err) { /* 손상된 브라우저 저장값은 공용 기본값으로 안전하게 폴백 */ }
+    return null;
+  }
+
+  function writeLocalSectorConfig_(sectors) {
+    var saved = { sectors: cloneSectorMap_(sectors), updatedAt: new Date().toISOString() };
+    try { localStorage.setItem(LOCAL_SECTOR_CARDS_KEY, JSON.stringify(saved)); } catch (err) { /* ignore */ }
+    return { sectors: saved.sectors, revision: 0, updatedAt: saved.updatedAt, customized: true, localOnly: true };
+  }
+
+  function clearLocalSectorConfig_() {
+    try { localStorage.removeItem(LOCAL_SECTOR_CARDS_KEY); } catch (err) { /* ignore */ }
+  }
+
+  function fetchUserSectorConfig_() {
+    return fetch(USER_SECTOR_CARDS_API_URL, { credentials: 'include', cache: 'no-store' })
+      .then(function (response) {
+        return response.json().then(function (body) {
+          if (!response.ok) throw new Error(body.detail || '개인 카드 설정을 불러오지 못했습니다.');
+          return body.data;
+        });
+      });
+  }
+
+  function saveUserSectorConfig_(sectors, revision) {
+    return fetch(USER_SECTOR_CARDS_API_URL, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sectors: sectors, revision: revision })
+    }).then(function (response) {
+      return response.json().then(function (body) {
+        if (!response.ok) throw new Error(body.detail || '개인 카드 설정 저장에 실패했습니다.');
+        return body.data;
+      });
+    });
+  }
+
+  function fetchSectorConfig_() {
+    if (sectorConfigPromise) return sectorConfigPromise;
+    var localConfig = readLocalSectorConfig_();
+    sectorConfigPromise = Promise.all([fetchDefaultSectorConfig_(), fetchGoogleAuth_()])
+      .then(function (values) {
+        var defaultConfig = values[0];
+        var authState = values[1];
+        if (!authState.configured || !authState.authenticated) return localConfig || defaultConfig;
+        return fetchUserSectorConfig_().then(function (userConfig) {
+          // 로그인 전에 만든 브라우저 편집본은 계정에 아직 편집본이 없을 때만 1회 이관한다.
+          if (!userConfig.customized && localConfig) {
+            return saveUserSectorConfig_(localConfig.sectors, 0).then(function (saved) {
+              clearLocalSectorConfig_();
+              return saved;
+            });
+          }
+          return userConfig;
+        }).catch(function () {
+          return {
+            sectors: defaultConfig.sectors,
+            revision: 0,
+            updatedAt: null,
+            customized: false,
+            defaultRevision: defaultConfig.revision || 0
+          };
+        });
+      })
+      .catch(function (err) {
+        sectorConfigPromise = null;
         throw err;
       });
     return sectorConfigPromise;
@@ -772,15 +849,15 @@
     var googleAuthConfigured = !!(authState && authState.configured);
     var authControls = googleAuthConfigured
       ? '<div class="mt-sector-editor-auth"><span>' +
-        (authState.authenticated && authState.isAdmin
-          ? 'Google 로그인됨: ' + escapeHtml(authState.email || '')
-          : '관리자 Google 로그인이 필요합니다.') +
+        (authState.authenticated
+          ? 'Google: ' + escapeHtml(authState.email || '') + ' · 내 설정으로 저장'
+          : '로그인 전에는 이 브라우저에만 저장됩니다.') +
         '</span>' +
-        (authState.authenticated && authState.isAdmin
+        (authState.authenticated
           ? '<button type="button" data-editor-action="google-logout">로그아웃</button>'
           : '<button type="button" data-editor-action="google-login">Google로 로그인</button>') +
         '</div>'
-      : '<input type="password" data-editor-role="admin-token" aria-label="저장용 관리자 토큰" placeholder="저장용 관리자 토큰" autocomplete="current-password">';
+      : '<div class="mt-sector-editor-auth"><span>이 브라우저에만 저장됩니다.</span></div>';
     var categories = Object.keys(sectorMap);
     var rows = categories.map(function (category, categoryIndex) {
       var stocks = Array.isArray(sectorMap[category]) ? sectorMap[category] : [];
@@ -809,42 +886,19 @@
     }).join('');
 
     return '<div class="mt-sector-editor">' +
-      '<div class="mt-sector-editor-head"><div><strong>카테고리·종목 편집</strong><span>저장하면 모든 사용자에게 반영됩니다.</span></div>' +
+      '<div class="mt-sector-editor-head"><div><strong>카테고리·종목 편집</strong><span>공용 기본 카드를 바탕으로 하며, 편집한 순간부터 내 카드로 따로 저장됩니다.</span></div>' +
         '<div class="mt-sector-editor-head-actions"><button type="button" data-editor-action="collapse-all">전체 접기</button><button type="button" data-editor-action="expand-all">전체 펼치기</button></div></div>' +
       '<datalist id="mt-sector-stock-names">' + stockOptionsHtml_() + '</datalist>' +
       '<div class="mt-sector-editor-categories">' + rows + '</div>' +
       '<div class="mt-sector-editor-actions">' +
         '<button type="button" data-editor-action="add-category">+ 카테고리 추가</button>' +
         authControls +
+        '<button type="button" data-editor-action="reset">기본 카드로 되돌리기</button>' +
         '<button type="button" class="primary" data-editor-action="save">저장</button>' +
         '<button type="button" data-editor-action="cancel">취소</button>' +
       '</div>' +
       '<div class="mt-sector-editor-message" data-editor-role="message"></div>' +
     '</div>';
-  }
-
-  function buildSectorEditorAuthGateHtml_(authState) {
-    var configured = !!(authState && authState.configured);
-    var authenticated = !!(authState && authState.authenticated);
-    var isAdmin = !!(authState && authState.isAdmin);
-    var message = configured && authenticated && !isAdmin
-      ? '현재 Google 계정에는 증시온도 카드 관리자 권한이 없습니다.'
-      : configured
-        ? '카테고리와 종목을 편집하려면 관리자 Google 계정으로 로그인하세요.'
-      : '관리자 인증 설정을 확인하는 중입니다. 잠시 후 다시 시도하세요.';
-    var loginButton = configured && !authenticated
-      ? '<button type="button" class="primary" data-editor-action="google-login">Google로 로그인</button>'
-      : '';
-    var logoutButton = authenticated
-      ? '<button type="button" data-editor-action="google-logout">다른 계정으로 로그인</button>'
-      : '';
-    return '<div class="mt-sector-auth-gate">' +
-      '<strong>관리자 로그인 필요</strong>' +
-      '<p>' + message + '</p>' +
-      loginButton +
-      logoutButton +
-      '<button type="button" data-editor-action="cancel">취소</button>' +
-      '</div>';
   }
 
   function collectSectorMapFromEditor_(root, allowIncomplete) {
@@ -879,18 +933,12 @@
 
   function renderSectorEditor_(panel, sectorMap, revision, onSaved) {
     var model = cloneSectorMap_(sectorMap);
-    var tokenKey = 'sector-card-admin-token';
     var authState = { configured: false, authenticated: false, isAdmin: false };
     var authReady = false;
     var rerender = function () {
-      var canEdit = !authState.configured || (authState.authenticated && authState.isAdmin);
-      panel.innerHTML = authReady && canEdit
+      panel.innerHTML = authReady
         ? buildSectorEditorHtml_(model, authState)
-        : buildSectorEditorAuthGateHtml_(authState);
-      var savedToken = '';
-      try { savedToken = sessionStorage.getItem(tokenKey) || ''; } catch (err) { /* ignore */ }
-      var tokenEl = panel.querySelector('[data-editor-role="admin-token"]');
-      if (tokenEl) tokenEl.value = savedToken;
+        : '<div class="mt-hint">카드 설정을 확인하는 중...</div>';
     };
     var setMessage = function (text, isError) {
       var message = panel.querySelector('[data-editor-role="message"]');
@@ -916,9 +964,9 @@
       var action = actionEl.getAttribute('data-editor-action');
       try {
         if (action === 'google-login') {
-          window.location.href = GOOGLE_AUTH_START_URL;
+          window.location.href = GOOGLE_AUTH_START_URL + '?return_to=' + encodeURIComponent(window.location.href);
         } else if (action === 'google-logout') {
-          window.location.href = GOOGLE_AUTH_LOGOUT_URL;
+          window.location.href = GOOGLE_AUTH_LOGOUT_URL + '?return_to=' + encodeURIComponent(window.location.href);
         } else if (action === 'toggle-category') {
           var categoryEl = actionEl.closest('.mt-sector-editor-category');
           setCategoryCollapsed(categoryEl, !categoryEl.classList.contains('is-collapsed'));
@@ -960,36 +1008,43 @@
           rerender();
         } else if (action === 'cancel') {
           if (onSaved && onSaved.cancel) onSaved.cancel();
+        } else if (action === 'reset') {
+          setMessage('기본 카드로 되돌리는 중...', false);
+          var resetPromise;
+          if (authState.configured && authState.authenticated) {
+            resetPromise = fetch(USER_SECTOR_CARDS_API_URL, {
+              method: 'DELETE', credentials: 'include'
+            }).then(function (response) {
+              return response.json().then(function (body) {
+                if (!response.ok) throw new Error(body.detail || '기본 카드로 되돌리지 못했습니다.');
+                return body.data;
+              });
+            });
+          } else {
+            clearLocalSectorConfig_();
+            resetPromise = fetchDefaultSectorConfig_();
+          }
+          resetPromise.then(function (data) {
+            clearLocalSectorConfig_();
+            invalidateSectorConfig_();
+            if (typeof onSaved === 'function') onSaved(data);
+            else if (onSaved && onSaved.saved) onSaved.saved(data);
+          }).catch(function (error) {
+            setMessage(error.message || '기본 카드로 되돌리지 못했습니다.', true);
+          });
         } else if (action === 'save') {
           var sectors = collectSectorMapFromEditor_(panel);
-          var requestOptions = {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sectors: sectors, revision: revision })
-          };
-          if (authState.configured) {
-            if (!authState.authenticated || !authState.isAdmin) throw new Error('Google 관리자 로그인을 먼저 하세요.');
-            requestOptions.credentials = 'include';
+          var savePromise;
+          if (authState.configured && authState.authenticated) {
+            savePromise = saveUserSectorConfig_(sectors, revision);
           } else {
-            var tokenEl = panel.querySelector('[data-editor-role="admin-token"]');
-            var token = tokenEl ? (tokenEl.value || '').trim() : '';
-            if (!token) throw new Error('관리자 토큰을 입력하세요.');
-            requestOptions.headers['X-API-Key'] = token;
+            savePromise = Promise.resolve(writeLocalSectorConfig_(sectors));
           }
           setMessage('저장 중...', false);
-          fetch(SECTOR_CARDS_API_URL, requestOptions).then(function (response) {
-            return response.json().then(function (body) {
-              if (!response.ok) throw new Error(body.detail || '저장에 실패했습니다.');
-              return body;
-            });
-          }).then(function (body) {
-            if (!authState.configured) {
-              var savedToken = panel.querySelector('[data-editor-role="admin-token"]');
-              try { sessionStorage.setItem(tokenKey, savedToken ? savedToken.value : ''); } catch (err) { /* ignore */ }
-            }
+          savePromise.then(function (saved) {
             invalidateSectorConfig_();
-            if (typeof onSaved === 'function') onSaved(body.data);
-            else if (onSaved && onSaved.saved) onSaved.saved(body.data);
+            if (typeof onSaved === 'function') onSaved(saved);
+            else if (onSaved && onSaved.saved) onSaved.saved(saved);
           }).catch(function (error) {
             setMessage(error.message || '저장에 실패했습니다.', true);
           });
@@ -1029,7 +1084,10 @@
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
       if (SD.injectBadgeStyles) SD.injectBadgeStyles();
       var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
-      var toolbar = '<div class="mt-sector-toolbar"><span>카테고리와 종목을 직접 관리할 수 있습니다.</span>' +
+      var cardState = config.customized
+        ? (config.localOnly ? '내 카드 · 이 브라우저에 저장됨' : '내 카드 · Google 계정에 저장됨')
+        : '기본 카드 · 편집하면 내 카드로 분리됩니다';
+      var toolbar = '<div class="mt-sector-toolbar"><span>' + escapeHtml(cardState) + '</span>' +
         '<button type="button" data-sector-editor-open>카테고리·종목 편집</button></div>';
       panel.innerHTML = toolbar + (html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>');
       var editButton = panel.querySelector('[data-sector-editor-open]');

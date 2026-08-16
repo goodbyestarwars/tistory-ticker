@@ -403,6 +403,7 @@
 #market-temp .mt-guide-stars-empty { color: #e5e5e5; }
 
 #market-temp .mt-updated { margin-top: 2px; font-size: 11px; color: #aaa; text-align: right; }
+#market-temp > .mt-wrap + .mt-explore-card { margin-top: 18px; }
 
 /* ---- 카드 보기/히트맵 보기/시총비례 히트맵 탭 (js/sector-dashboard-v4.js의
    .sector-view-toggle과 동일한 라벨·톤 - 사용자에게 익숙한 패턴을 재사용) ---- */
@@ -644,86 +645,9 @@ html.dark #market-temp .mt-view-btn.active { background: #F5EFE0 !important; col
 #market-temp .mt-sector-editor-auth span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #market-temp .mt-sector-editor-auth button { padding:4px 7px; color:#2563eb; font-size:11px; }
 #market-temp .mt-sector-editor-actions { position:sticky; bottom:0; z-index:2; display:flex; align-items:center; flex-wrap:wrap; gap:7px; flex:0 0 auto; margin:8px -4px -4px; padding:10px 4px 4px; border-top:1px solid #e5e7eb; background:linear-gradient(#f8fafc 75%, rgba(248,250,252,.96)); }
-#market-temp .mt-sector-editor-actions [data-editor-role="admin-token"] { flex:1 1 240px; min-width:180px; box-sizing:border-box; }
 #market-temp .mt-sector-editor button.primary { background:#2563eb; color:#fff; border-color:#2563eb; box-shadow:0 3px 8px rgba(37,99,235,.2); }
 #market-temp .mt-sector-editor-message { min-height:18px; margin:5px 0 0; color:#2563eb; font-size:12px; }
 #market-temp .mt-sector-editor-message.error { color:#d24f45; }
-#market-temp .mt-sector-auth-gate {
-  position:relative;
-  display:grid;
-  grid-template-columns:44px minmax(0,1fr) auto auto;
-  grid-template-rows:auto auto;
-  align-items:center;
-  gap:4px 14px;
-  padding:18px 20px;
-  border:1px solid #dbe5f2;
-  border-radius:14px;
-  background:linear-gradient(135deg,#f7fbff 0%,#ffffff 72%);
-  box-shadow:0 8px 20px rgba(31,41,55,.05);
-}
-#market-temp .mt-sector-auth-gate::before {
-  grid-column:1;
-  grid-row:1 / span 2;
-  content:"G";
-  display:grid;
-  place-items:center;
-  width:40px;
-  height:40px;
-  border:1px solid #d6e2f2;
-  border-radius:12px;
-  background:#fff;
-  color:#4285f4;
-  font-family:Arial,sans-serif;
-  font-size:20px;
-  font-weight:700;
-  box-shadow:0 3px 10px rgba(66,133,244,.12);
-}
-#market-temp .mt-sector-auth-gate strong {
-  grid-column:2;
-  grid-row:1;
-  align-self:end;
-  font-size:15px;
-  line-height:1.35;
-  color:#172033;
-}
-#market-temp .mt-sector-auth-gate p {
-  grid-column:2;
-  grid-row:2;
-  align-self:start;
-  margin:22px 0 0;
-  color:#64748b;
-  font-size:12px;
-  line-height:1.5;
-}
-#market-temp .mt-sector-auth-gate button {
-  flex:0 0 auto;
-  min-height:36px;
-  padding:8px 13px;
-  border:1px solid #d7dee9;
-  border-radius:9px;
-  background:#fff;
-  color:#475569;
-  font:inherit;
-  font-size:12px;
-  font-weight:600;
-  line-height:1;
-  cursor:pointer;
-  transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
-}
-#market-temp .mt-sector-auth-gate button:hover { border-color:#b7c5d8; background:#f8fafc; box-shadow:0 4px 10px rgba(31,41,55,.08); transform:translateY(-1px); }
-#market-temp .mt-sector-auth-gate button:focus-visible { outline:3px solid rgba(37,99,235,.2); outline-offset:2px; }
-#market-temp .mt-sector-auth-gate button.primary {
-  border-color:#2563eb;
-  background:linear-gradient(135deg,#2563eb,#1d4ed8);
-  color:#fff;
-  box-shadow:0 5px 12px rgba(37,99,235,.22);
-}
-#market-temp .mt-sector-auth-gate button.primary:hover { border-color:#1d4ed8; background:linear-gradient(135deg,#1d4ed8,#1e40af); box-shadow:0 7px 14px rgba(37,99,235,.28); }
-#market-temp .mt-sector-auth-gate button[data-editor-action="cancel"] { color:#64748b; }
-#market-temp .mt-sector-auth-gate button.primary,
-#market-temp .mt-sector-auth-gate button[data-editor-action="google-logout"] { grid-column:3; grid-row:1 / span 2; }
-#market-temp .mt-sector-auth-gate button[data-editor-action="cancel"] { grid-column:4; grid-row:1 / span 2; }
-#market-temp .mt-sector-auth-gate button[data-editor-action="google-logout"] { margin-left:8px; }
 html.dark #market-temp .mt-sector-toolbar { color:rgba(245,239,224,.55); }
 html.dark #market-temp .mt-sector-toolbar button,
 html.dark #market-temp .mt-sector-editor button { background:#1a1a1a; color:#f5efe0; border-color:rgba(245,239,224,.2); }
@@ -736,13 +660,6 @@ html.dark #market-temp .mt-sector-editor input,
 html.dark #market-temp .mt-sector-editor select { background:#242424; color:#f5efe0; border-color:rgba(245,239,224,.25); }
 html.dark #market-temp .mt-sector-editor-actions { border-color:rgba(245,239,224,.16); background:linear-gradient(#1a1a1a 75%, rgba(26,26,26,.96)); }
 html.dark #market-temp .mt-sector-editor-auth { background:#242424; border-color:rgba(245,239,224,.24); color:rgba(245,239,224,.65); }
-html.dark #market-temp .mt-sector-auth-gate { background:linear-gradient(135deg,#202b3a 0%,#242424 72%); border-color:rgba(245,239,224,.24); box-shadow:none; }
-html.dark #market-temp .mt-sector-auth-gate::before { background:#1a1a1a; border-color:rgba(245,239,224,.2); color:#8ab4f8; }
-html.dark #market-temp .mt-sector-auth-gate strong { color:#f5efe0; }
-html.dark #market-temp .mt-sector-auth-gate p { color:rgba(245,239,224,.65); }
-html.dark #market-temp .mt-sector-auth-gate button { background:#1a1a1a; border-color:rgba(245,239,224,.2); color:#f5efe0; }
-html.dark #market-temp .mt-sector-auth-gate button:hover { background:#2b2b2b; border-color:rgba(245,239,224,.38); }
-html.dark #market-temp .mt-sector-auth-gate button.primary { background:linear-gradient(135deg,#3b82f6,#2563eb); border-color:#3b82f6; color:#fff; }
 @media (max-width:640px) {
   #market-temp .mt-sector-toolbar { align-items:flex-start; flex-direction:column; }
   #market-temp .mt-sector-editor { max-height:calc(100vh - 24px); padding:10px; }
@@ -758,16 +675,7 @@ html.dark #market-temp .mt-sector-auth-gate button.primary { background:linear-g
   #market-temp .mt-sector-editor-stock button { width:100%; }
   #market-temp .mt-sector-editor-actions { align-items:stretch; }
   #market-temp .mt-sector-editor-auth { flex-basis:100%; min-width:0; }
-  #market-temp .mt-sector-editor-actions > button,
-  #market-temp .mt-sector-editor-actions [data-editor-role="admin-token"] { flex:1 1 calc(50% - 7px); min-width:0; }
-  #market-temp .mt-sector-auth-gate { grid-template-columns:38px minmax(0,1fr); grid-template-rows:auto auto auto; gap:3px 11px; padding:16px; }
-  #market-temp .mt-sector-auth-gate::before { width:36px; height:36px; border-radius:10px; font-size:18px; }
-  #market-temp .mt-sector-auth-gate p { margin-top:20px; }
-  #market-temp .mt-sector-auth-gate button { width:100%; grid-row:3; }
-  #market-temp .mt-sector-auth-gate button.primary,
-  #market-temp .mt-sector-auth-gate button[data-editor-action="google-logout"] { grid-column:1; }
-  #market-temp .mt-sector-auth-gate button[data-editor-action="cancel"] { grid-column:2; }
-  #market-temp .mt-sector-auth-gate button[data-editor-action="google-logout"] { margin-left:0; }
+  #market-temp .mt-sector-editor-actions > button { flex:1 1 calc(50% - 7px); min-width:0; }
 }
 
 html.dark #market-temp .sector-card { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.14) !important; box-shadow: none !important; }

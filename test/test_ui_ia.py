@@ -1071,6 +1071,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("home_disclosures_v1", widgets)
         self.assertIn("readTimedCache", widgets)
 
+    def test_market_temperature_cards_use_personal_overrides_and_keep_shared_default(self):
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        backend = self.read("scripts/cloud-vm/main.py")
+        for token in (
+            "USER_SECTOR_CARDS_API_URL",
+            "market_temp_sector_cards_v1",
+            "기본 카드 · 편집하면 내 카드로 분리됩니다",
+            "기본 카드로 되돌리기",
+            "credentials: 'include'",
+        ):
+            self.assertIn(token, source)
+        self.assertIn("@app.get('/sector-cards/me')", backend)
+        self.assertIn("@app.put('/sector-cards/me')", backend)
+        self.assertIn("@app.delete('/sector-cards/me')", backend)
+        self.assertIn("#market-temp > .mt-wrap + .mt-explore-card { margin-top: 18px; }", style)
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (

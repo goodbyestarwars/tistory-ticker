@@ -182,6 +182,16 @@ CREATE TABLE IF NOT EXISTS watchlist_configs (
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
+
+-- 증시온도 카드의 사용자별 편집본. sector_cards_config는 운영자가 만든 공용 기본값이고,
+-- 이 테이블에 행이 생긴 사용자만 기본값에서 분기한다.
+CREATE TABLE IF NOT EXISTS user_sector_cards_config (
+    user_id INTEGER PRIMARY KEY,
+    config_json TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
+);
 '''
 
 
@@ -282,6 +292,62 @@ def save_sector_cards_config(conn, sectors, updated_at, expected_revision=None):
     except Exception:
         conn.rollback()
         raise
+
+
+def load_user_sector_cards_config(conn, user_id):
+    row = conn.execute(
+        'SELECT config_json, revision, updated_at FROM user_sector_cards_config WHERE user_id=?',
+        (user_id,),
+    ).fetchone()
+    if not row:
+        return None
+    try:
+        sectors = json.loads(row[0])
+    except (TypeError, ValueError) as exc:
+        raise ValueError('user_sector_cards_config contains invalid JSON') from exc
+    return {
+        'sectors': sectors,
+        'revision': row[1],
+        'updatedAt': row[2],
+        'customized': True,
+    }
+
+
+def save_user_sector_cards_config(conn, user_id, sectors, updated_at, expected_revision=None):
+    """사용자 편집본만 원자적으로 저장하고 공용 기본 카드에는 손대지 않는다."""
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        current = conn.execute(
+            'SELECT revision FROM user_sector_cards_config WHERE user_id=?',
+            (user_id,),
+        ).fetchone()
+        current_revision = current[0] if current else 0
+        if expected_revision is not None and int(expected_revision) != current_revision:
+            raise RuntimeError('USER_SECTOR_CONFIG_REVISION_CONFLICT')
+        next_revision = current_revision + 1 if current else 1
+        payload = json.dumps(sectors, ensure_ascii=False, separators=(',', ':'))
+        conn.execute(
+            'INSERT INTO user_sector_cards_config (user_id, config_json, revision, updated_at) '
+            'VALUES (?, ?, ?, ?) '
+            'ON CONFLICT(user_id) DO UPDATE SET config_json=excluded.config_json, '
+            'revision=excluded.revision, updated_at=excluded.updated_at',
+            (user_id, payload, next_revision, updated_at),
+        )
+        conn.commit()
+        return {
+            'sectors': sectors,
+            'revision': next_revision,
+            'updatedAt': updated_at,
+            'customized': True,
+        }
+    except Exception:
+        conn.rollback()
+        raise
+
+
+def delete_user_sector_cards_config(conn, user_id):
+    conn.execute('DELETE FROM user_sector_cards_config WHERE user_id=?', (user_id,))
+    conn.commit()
 
 
 def upsert_google_user(conn, user, updated_at):

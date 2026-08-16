@@ -1,4 +1,4 @@
-"""Small Google OpenID Connect helper for the owner-only sector editor.
+"""Small Google OpenID Connect helper for site user sessions.
 
 The VM keeps the OAuth client secret and signs the short-lived session cookie.
 No Google access or refresh token is stored in the browser or in SQLite.
@@ -85,6 +85,7 @@ class GoogleAuthService:
             'authenticated': bool(user),
             'isAdmin': bool(user and user.get('email') == self.admin_email),
             'email': user.get('email') if user else None,
+            'name': user.get('name') if user else None,
         }
 
     def authorization_url(self, state, nonce):
@@ -146,7 +147,7 @@ class GoogleAuthService:
             payload = json.loads(_b64url_decode(encoded).decode('utf-8'))
             if int(payload.get('exp', 0)) <= int(time.time()):
                 return None
-            if payload.get('email', '').lower() != self.admin_email:
+            if not payload.get('sub') or not payload.get('email'):
                 return None
             return payload
         except (ValueError, TypeError, KeyError, json.JSONDecodeError, UnicodeError):

@@ -138,7 +138,7 @@ ALLOWED_BROWSER_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_BROWSER_ORIGINS,
-    allow_methods=['GET', 'PUT', 'OPTIONS'],
+    allow_methods=['GET', 'PUT', 'DELETE', 'OPTIONS'],
     allow_headers=['*'],
     allow_credentials=True,
 )
@@ -607,6 +607,81 @@ async def update_sector_cards(request: Request, x_api_key: str = Header(default=
     global _sector_cards_cache
     _sector_cards_cache = saved
     return envelope(saved)
+
+
+def _load_user_sector_cards(request: Request):
+    session = require_google_user(request)
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        config = db_schema.load_user_sector_cards_config(conn, user_id)
+        if config is not None:
+            config['sectors'] = sector_cards.normalize_sector_map(config['sectors'])
+            return config
+        default_config = _load_sector_cards_cached()
+        return {
+            'sectors': default_config['sectors'],
+            'revision': 0,
+            'updatedAt': None,
+            'customized': False,
+            'defaultRevision': default_config['revision'],
+        }
+    finally:
+        conn.close()
+
+
+@app.get('/sector-cards/me')
+def user_sector_cards_endpoint(request: Request):
+    """Google 로그인 사용자의 편집본, 없으면 공용 기본 카드를 반환한다."""
+    return envelope(_load_user_sector_cards(request))
+
+
+@app.put('/sector-cards/me')
+async def update_user_sector_cards(request: Request):
+    session = require_google_user(request)
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail='request body must be an object')
+    try:
+        sectors = sector_cards.normalize_sector_map(body.get('sectors', body))
+    except sector_cards.SectorConfigError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        try:
+            saved = db_schema.save_user_sector_cards_config(
+                conn, user_id, sectors, now, expected_revision=body.get('revision'),
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail='revision must be an integer') from exc
+        except RuntimeError as exc:
+            if str(exc) == 'USER_SECTOR_CONFIG_REVISION_CONFLICT':
+                raise HTTPException(status_code=409, detail='personal sector cards changed; reload and try again') from exc
+            raise
+    finally:
+        conn.close()
+    return envelope(saved)
+
+
+@app.delete('/sector-cards/me')
+def reset_user_sector_cards(request: Request):
+    """개인 편집본을 지워 다음 조회부터 운영자의 공용 기본 카드로 돌아간다."""
+    session = require_google_user(request)
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        db_schema.delete_user_sector_cards_config(conn, user_id)
+    finally:
+        conn.close()
+    return envelope(_load_user_sector_cards(request))
 
 
 @app.get('/health/latency')
