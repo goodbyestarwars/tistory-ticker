@@ -1124,7 +1124,12 @@
             code: 'US:' + symbol,
             price: data && data.price,
             change: data && data.change,
-            changeRate: data && (data.change_rate != null ? data.change_rate : data.changeRate)
+            changeRate: data && (data.change_rate != null ? data.change_rate : data.changeRate),
+            high: data && (data.high != null ? data.high : data.day_high),
+            low: data && (data.low != null ? data.low : data.day_low),
+            volume: data && (data.volume != null ? data.volume : data.acc_trde_qty),
+            marketCap: data && (data.market_cap != null ? data.market_cap : data.marketCap),
+            open: data && (data.open != null ? data.open : data.open_price)
           };
         })
         .catch(function () { return null; });

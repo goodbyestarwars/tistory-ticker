@@ -50,6 +50,7 @@ import realtime_quotes
 import sector_cards
 import us_analysis
 import us_stocks
+import weekly_report
 import watchlist
 from google_auth import GoogleAuthError, GoogleAuthService
 
@@ -218,6 +219,8 @@ _order_book_cache = OrderedDict()  # code -> {'t':.., 'data':..}
 # (_market_rank_cache와 동일 패턴).
 _FUTURES_TTL = 10
 _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'data':..}
+_WEEKLY_REPORT_TTL = 15 * 60
+_weekly_report_cache = {}
 _sector_cards_cache = None
 
 
@@ -1515,6 +1518,96 @@ def earnings_calendar_endpoint(request: Request, year: int = Query(..., ge=2000,
     _earnings_calendar_cache.move_to_end(key)
     _evict_lru(_earnings_calendar_cache, _EARNINGS_CALENDAR_MAX_ENTRIES)
     return {'success': True, 'data': data, 'source': 'dart+finnhub', 'cached': False}
+
+
+@app.get('/weekly-report')
+def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
+    """주말 홈 화면용 한 주 요약.
+
+    지수·환율은 이미 수집 중인 일봉 DB를 사용하고, 뉴스·실적 일정·마지막
+    거래일 순위만 필요한 시점에 묶어 반환한다. KIS가 먼저이며 순위 조회가
+    실패하면 기존 키움 경로로 내려간다. 브라우저에는 인증키를 노출하지 않는다.
+    """
+    _check_rate_limit('weekly_report', request, max_per_window=10)
+    start, end = weekly_report.completed_week()
+    cache_key = end.isoformat()
+    cached = _weekly_report_cache.get(cache_key)
+    now = time.time()
+    if cached and not fresh and now - cached['t'] < _WEEKLY_REPORT_TTL:
+        return envelope(cached['data'])
+
+    try:
+        futures_payload = futures(request, interval='day', days=30,
+                                  symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW')
+        futures_rows = futures_payload.get('data') or []
+    except Exception as exc:
+        logging.getLogger('main').warning('weekly report futures failed: %s', type(exc).__name__)
+        futures_rows = []
+
+    def safe_domestic_board():
+        try:
+            return market_board.fetch_domestic_kis(
+                os.environ.get('KIS_APPKEY', '').strip(),
+                os.environ.get('KIS_APPSECRET', '').strip(), limit=20,
+            )
+        except Exception as kis_exc:
+            logging.getLogger('main').warning('weekly report domestic KIS rank failed: %s', type(kis_exc).__name__)
+            try:
+                return market_board.fetch_domestic(get_kiwoom_token(), limit=20)
+            except Exception as fallback_exc:
+                logging.getLogger('main').warning('weekly report domestic Kiwoom rank failed: %s', type(fallback_exc).__name__)
+                return {}
+
+    def safe_us_board():
+        try:
+            return market_board.fetch_us_kis(
+                os.environ.get('KIS_APPKEY', '').strip(),
+                os.environ.get('KIS_APPSECRET', '').strip(), limit=20,
+            )
+        except Exception as kis_exc:
+            logging.getLogger('main').warning('weekly report US KIS rank failed: %s', type(kis_exc).__name__)
+            try:
+                return market_board.fetch_us(
+                    token=get_kiwoom_token(), limit=20,
+                    finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+                )
+            except Exception as fallback_exc:
+                logging.getLogger('main').warning('weekly report US Kiwoom rank failed: %s', type(fallback_exc).__name__)
+                return {}
+
+    try:
+        domestic_news_items = (domestic_news.get_news(limit=50, item_kind='news') or {}).get('items') or []
+    except Exception as exc:
+        logging.getLogger('main').warning('weekly report domestic news failed: %s', type(exc).__name__)
+        domestic_news_items = []
+    try:
+        foreign_news_items = news_aggregator.get_general_news(
+            alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+            finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(), limit=50,
+        )
+    except Exception as exc:
+        logging.getLogger('main').warning('weekly report foreign news failed: %s', type(exc).__name__)
+        foreign_news_items = []
+
+    next_start = end + timedelta(days=3)
+    months = {(next_start.year, next_start.month),
+              ((next_start + timedelta(days=6)).year, (next_start + timedelta(days=6)).month)}
+    schedule_events = []
+    for year, month in sorted(months):
+        try:
+            schedule_events.extend(earnings_calendar.merge_month(year, month))
+        except Exception as exc:
+            logging.getLogger('main').warning('weekly report schedule failed: %s', type(exc).__name__)
+
+    data = weekly_report.build_report(
+        start, end, futures_rows=futures_rows,
+        domestic_news_items=domestic_news_items,
+        foreign_news_items=foreign_news_items,
+        domestic_board=safe_domestic_board(), us_board=safe_us_board(),
+        schedule_events=schedule_events,
+    )
+    _weekly_report_cache[cache_key] = {'t': now, 'data': data}
+    return envelope(data)
 
 
 @app.get('/futures/avg')

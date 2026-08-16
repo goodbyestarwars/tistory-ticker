@@ -49,7 +49,7 @@
      append portfolio/holding analysis without changing other pages. */
   (function loadMyDashboard() {
     if (!/^\/(?:page|pages)\/watchlist\/?$/.test(location.pathname)) return;
-    var cssHref = 'https://goodbyestarwars.github.io/tistory-ticker/css/my-dashboard.css?v=20260813-my-dashboard-v4';
+    var cssHref = 'https://goodbyestarwars.github.io/tistory-ticker/css/my-dashboard.css?v=20260816-my-dashboard-table-v1';
     if (!document.querySelector('link[data-my-dashboard-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -59,7 +59,7 @@
     }
     if (document.querySelector('script[data-my-dashboard]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20260813-my-dashboard-v4';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20260816-my-dashboard-table-v1';
     script.defer = true;
     script.setAttribute('data-my-dashboard', '1');
     document.body.appendChild(script);
@@ -81,6 +81,7 @@
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260813-econ-height-v3';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260816-auto-market';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260813-breaking-flash-v5';
+    var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260816-weekly-report-v1';
 
     function escapeHomeHtml(value) {
       return String(value == null ? '' : value)
@@ -928,7 +929,10 @@
     var pagination = feed.querySelector(':scope > .pagination');
     if (pagination) pagination.remove();
 
-    loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets')
+    loadHomeScript(HOME_WEEKLY_REPORT_SCRIPT_URL, 'HomeWeeklyReport').catch(function () { return null; }).then(function (weekly) {
+      if (weekly && weekly.init) weekly.init();
+      return loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets');
+    })
       .then(function (widgets) {
         if (!widgets || !widgets.init) return;
         widgets.init({
