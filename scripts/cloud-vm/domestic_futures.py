@@ -176,7 +176,9 @@ def fetch_fx_realtime():
 
 
 def fetch_fx_daily_chart():
-    url = 'https://api.stock.naver.com/marketindex/exchange/FX_USDKRW/prices?page=1&pageSize=60'
+    # 주말 환율 리포트에서 1년 관측 구간을 보여주기 위해 최근 365개 거래일을
+    # 한 번에 저장한다. 응답이 짧아도 기존 데이터는 그대로 누적된다.
+    url = 'https://api.stock.naver.com/marketindex/exchange/FX_USDKRW/prices?page=1&pageSize=365'
     data = _get_json(url)
     rows = []
     for r in data:
