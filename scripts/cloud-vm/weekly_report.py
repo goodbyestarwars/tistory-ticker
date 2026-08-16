@@ -272,6 +272,102 @@ def cold_stocks(board_data, limit=5):
     return rows
 
 
+def _candidate_reason(tags, cold=False, change=None):
+    """Explain a forward-looking candidate using only observed rank signals."""
+    labels = {
+        '거래량 급증': '거래량 급증',
+        '거래량 증가': '거래량 증가',
+        '매수체결강도': '매수 체결강도 우위',
+        '거래회전율': '거래회전율 상위',
+        '거래대금 회전율': '거래대금 회전율 상위',
+        '거래대금 상위': '거래대금 집중',
+        '거래량 상위': '거래량 상위',
+        '시가총액 상위': '대형주 유동성',
+        '상승 상위': '상승률 상위',
+        '하락 상위': '하락률 상위',
+    }
+    order = (
+        '거래량 급증', '거래량 증가', '매수체결강도', '거래회전율',
+        '거래대금 회전율', '상승 상위', '하락 상위', '거래대금 상위',
+        '거래량 상위', '시가총액 상위',
+    )
+    visible = [labels[tag] for tag in order if tag in (tags or [])]
+    if cold:
+        visible = ['하락률 상위' if text == '하락률 상위' else text for text in visible]
+        prefix = '약세 흐름'
+    else:
+        prefix = '상승 전환 관심'
+    if not visible:
+        return prefix
+    return prefix + ' · ' + ' + '.join(visible[:3])
+
+
+def candidate_stocks(board_data, cold=False, limit=5):
+    """Rank next-period candidates from overlapping, already observed signals.
+
+    This is a screening score, not a price forecast. A candidate must have a
+    direction signal plus at least one independent liquidity/flow signal, so a
+    single-day price move cannot populate the list by itself.
+    """
+    sections = (board_data or {}).get('sections') or {}
+    if cold:
+        specs = (
+            ('falling', '하락 상위', 3), ('volumeSurge', '거래량 급증', 3),
+            ('volumeGrowth', '거래량 증가', 2), ('tradeAmount', '거래대금 상위', 1),
+            ('tradeVolume', '거래량 상위', 1), ('turnover', '거래회전율', 1),
+            ('amountTurnover', '거래대금 회전율', 1), ('marketCap', '시가총액 상위', 1),
+        )
+    else:
+        specs = (
+            ('rising', '상승 상위', 3), ('volumeSurge', '거래량 급증', 3),
+            ('volumeGrowth', '거래량 증가', 2), ('volumePower', '매수체결강도', 2),
+            ('turnover', '거래회전율', 1), ('amountTurnover', '거래대금 회전율', 1),
+            ('tradeAmount', '거래대금 상위', 1), ('tradeVolume', '거래량 상위', 1),
+            ('marketCap', '시가총액 상위', 1),
+        )
+    merged = {}
+    for section, tag, weight in specs:
+        for position, raw in enumerate((sections.get(section) or [])[:max(limit * 4, 20)]):
+            item = _hot_row(raw, tag)
+            if not item:
+                continue
+            change = item.get('changeRate')
+            if change is None or (change < 0 if not cold else change >= 0):
+                continue
+            current = merged.get(item['code'])
+            if not current:
+                current = dict(item)
+                current['_signals'] = set()
+                current['_score'] = 0.0
+                merged[item['code']] = current
+            current['_signals'].add(tag)
+            current['_score'] += weight + max(0, 1 - position / max(limit * 4, 20))
+            for key in ('price', 'tradeVolume', 'tradeAmount', 'marketCap'):
+                if current.get(key) in (None, 0) and item.get(key) not in (None, 0):
+                    current[key] = item[key]
+
+    candidates = []
+    for item in merged.values():
+        signals = item.pop('_signals', set())
+        item_score = item.pop('_score', 0.0)
+        direction = '하락 상위' if cold else '상승 상위'
+        supporting = signals - {direction}
+        # A price direction plus an independent liquidity/flow signal is the
+        # minimum evidence threshold for a forward-looking candidate.
+        if direction not in signals or not supporting:
+            continue
+        item['reason'] = _candidate_reason(signals, cold=cold, change=item.get('changeRate'))
+        item['signalCount'] = len(signals)
+        item['_candidateScore'] = item_score
+        candidates.append(item)
+    candidates.sort(key=lambda item: (
+        item.pop('_candidateScore', 0),
+        abs(item.get('changeRate') or 0),
+        item.get('tradeAmount') or 0,
+    ), reverse=True)
+    return candidates[:limit]
+
+
 def fx_analysis(row):
     """Summarize the current FX level against its one-year observed range."""
     row = dict(row or {})
@@ -420,6 +516,16 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
             'domestic': cold_stocks(domestic_board),
             'us': cold_stocks(us_board),
             'basis': '하락률 상위 중 시가총액·거래대금이 확인되는 유동성 종목 우선',
+        },
+        'hotCandidates': {
+            'domestic': candidate_stocks(domestic_board),
+            'us': candidate_stocks(us_board),
+            'basis': '상승 방향과 거래량·체결강도·회전율 등 선행 신호가 겹친 종목',
+        },
+        'coldCandidates': {
+            'domestic': candidate_stocks(domestic_board, cold=True),
+            'us': candidate_stocks(us_board, cold=True),
+            'basis': '하락 방향과 거래량·거래대금 등 약세 신호가 겹친 종목',
         },
         'news': {
             'domestic': _news(domestic_news_items, start, news_end, 8),

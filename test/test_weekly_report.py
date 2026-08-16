@@ -66,6 +66,39 @@ class WeeklyReportTests(unittest.TestCase):
         self.assertEqual(result[0]['code'], 'LARGE')
         self.assertIn('하락률 상위', result[0]['reason'])
 
+    def test_candidate_stocks_require_direction_and_independent_signal(self):
+        board = {'sections': {
+            'rising': [
+                {'code': 'A', 'name': '상승만', 'change_rate': 6},
+                {'code': 'B', 'name': '거래량동반', 'change_rate': 3},
+            ],
+            'volumeGrowth': [
+                {'code': 'B', 'name': '거래량동반', 'change_rate': 3},
+                {'code': 'C', 'name': '상승아님', 'change_rate': -1},
+            ],
+            'tradeAmount': [
+                {'code': 'B', 'name': '거래량동반', 'change_rate': 3},
+            ],
+        }}
+        result = weekly_report.candidate_stocks(board, limit=5)
+        self.assertEqual([item['code'] for item in result], ['B'])
+        self.assertIn('거래량 증가', result[0]['reason'])
+        self.assertEqual(result[0]['signalCount'], 3)
+
+    def test_cold_candidates_require_falling_and_liquidity_signal(self):
+        board = {'sections': {
+            'falling': [
+                {'code': 'A', 'name': '하락만', 'change_rate': -6},
+                {'code': 'B', 'name': '거래대금동반', 'change_rate': -3},
+            ],
+            'tradeAmount': [
+                {'code': 'B', 'name': '거래대금동반', 'change_rate': -3},
+            ],
+        }}
+        result = weekly_report.candidate_stocks(board, cold=True, limit=5)
+        self.assertEqual([item['code'] for item in result], ['B'])
+        self.assertIn('하락률 상위', result[0]['reason'])
+
     def test_fx_analysis_classifies_one_year_upper_range(self):
         row = {'symbol': 'USDKRW', 'price': 1418.5, 'chart': [
             {'date': '2025-09-01', 'close': 1200},
