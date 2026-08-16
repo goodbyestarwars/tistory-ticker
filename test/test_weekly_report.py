@@ -22,6 +22,18 @@ class WeeklyReportTests(unittest.TestCase):
         self.assertEqual(result[0]['name'], '코스피')
         self.assertEqual(result[0]['changeRate'], 5.0)
 
+    def test_index_summary_includes_rates_commodities_and_bitcoin(self):
+        rows = [
+            {'symbol': symbol, 'chart': [
+                {'date': '2026-08-10', 'close': 100},
+                {'date': '2026-08-14', 'close': 110},
+            ]}
+            for symbol in ('US10Y', 'WTI', 'GOLD', 'BTC')
+        ]
+        result = weekly_report.index_summary(rows, datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
+        self.assertEqual([item['name'] for item in result], ['미국 10년 국채', 'WTI 원유', '금 선물', '비트코인'])
+        self.assertEqual([item['valueType'] for item in result], ['yield', 'usd', 'usd', 'krw'])
+
     def test_hot_stocks_merges_multiple_rank_tags(self):
         board = {'sections': {
             'rising': [{'code': '005930', 'name': '삼성전자', 'change_rate': 8}],

@@ -61,12 +61,16 @@ def _week_points(chart, start, end):
 
 
 def index_summary(futures_rows, start, end):
-    """Build the four requested index cards from /futures daily charts."""
+    """Build index, rates and major asset cards from /futures daily charts."""
     wanted = {
-        'KOSPI': '코스피',
-        'KOSDAQ': '코스닥',
-        'NASDAQ_INDEX': '나스닥 종합',
-        'SP500_INDEX': 'S&P500',
+        'KOSPI': ('코스피', 'index', None),
+        'KOSDAQ': ('코스닥', 'index', None),
+        'NASDAQ_INDEX': ('나스닥 종합', 'index', None),
+        'SP500_INDEX': ('S&P500', 'index', None),
+        'US10Y': ('미국 10년 국채', 'macro', 'yield'),
+        'WTI': ('WTI 원유', 'asset', 'usd'),
+        'GOLD': ('금 선물', 'asset', 'usd'),
+        'BTC': ('비트코인', 'asset', 'krw'),
     }
     result = []
     for row in futures_rows or []:
@@ -89,7 +93,9 @@ def index_summary(futures_rows, start, end):
         change_rate = ((last - first) / first * 100) if first and last is not None else None
         result.append({
             'symbol': symbol,
-            'name': wanted[symbol],
+            'name': wanted[symbol][0],
+            'group': wanted[symbol][1],
+            'valueType': wanted[symbol][2],
             'start': first,
             'end': last,
             'changeRate': change_rate,
