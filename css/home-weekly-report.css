@@ -155,7 +155,7 @@ html.dark .hwr-news-rail i { background: #1a1a1a; }
 .hwr-fx-main > b { font-size: 10px; }
 .hwr-fx-chart { height: 34px; margin: 4px 0 2px; }
 .hwr-fx-spark { display: block; width: 100%; height: 100%; }
-.hwr-fx-spark polyline { stroke: #64748b; stroke-width: 1.5; }
+.hwr-fx-spark polyline { fill: none; stroke: #64748b; stroke-width: 1.5; }
 .hwr-fx-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: #94a3b8; font-size: 9px; }
 .hwr-fx-meta > small { max-width: 65%; text-align: right; }
 .hwr-fx-status { display: block; font-size: 10px; font-weight: 800; }
