@@ -1040,7 +1040,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("1.1~12.31", source)
         self.assertIn("검색 결과 ' + visibleEvents.length + '건", source)
         self.assertIn(".sc-search input", style)
-        self.assertIn("stock-calendar.js?v=20260815-company-name", home)
+        self.assertIn("stock-calendar.js?v=20260816-us-alias-search-v1", home)
 
     def test_lightweight_charts_uses_v5_api_across_chart_modules(self):
         files = (

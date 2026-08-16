@@ -32,6 +32,17 @@
   // DART 공시의 정식 회사명이 KRX_MAP(data/krx_map.js)의 약칭 키와 다른 경우의 별칭.
   // 예: DART corp_name "현대자동차" vs KRX_MAP 키 "현대차"(005380).
   var DART_NAME_ALIAS = { '현대자동차': '현대차' };
+  // Finnhub가 company를 내려주지 않는 Google 일정도 같은 검색 경험을
+  // 갖도록 대표 미국 종목의 한글명·영문명·통용 약칭을 함께 검색한다.
+  var US_COMPANY_ALIASES = {
+    AAPL: ['애플', 'apple'], MSFT: ['마이크로소프트', 'microsoft', 'ms'],
+    GOOGL: ['구글', '알파벳', 'google', 'alphabet'], GOOG: ['구글', '알파벳', 'google', 'alphabet'],
+    AMZN: ['아마존', 'amazon'], NVDA: ['엔비디아', 'nvidia'],
+    META: ['메타', '페이스북', 'meta', 'facebook'], TSLA: ['테슬라', 'tesla'],
+    AVGO: ['브로드컴', 'broadcom'], AMD: ['amd'], NFLX: ['넷플릭스', 'netflix'],
+    INTC: ['인텔', 'intel'], MU: ['마이크론', 'micron'],
+    JPM: ['제이피모건', 'jp모건', 'jpmorgan'], MS: ['모건스탠리', 'morgan stanley']
+  };
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙,
   // js/foreign-flow.js·js/stock-search.js와 동일 패턴 - window.__stockIconFallback 공유).
@@ -60,6 +71,17 @@
   function usTickerFor(stockName) {
     var value = String(stockName || '').trim();
     return /^[A-Za-z][A-Za-z0-9.-]*$/.test(value) ? value.toUpperCase() : null;
+  }
+
+  function normalizedSearchText(value) {
+    return String(value || '').toLocaleLowerCase().replace(/[\s._-]+/g, '');
+  }
+
+  function eventUsTicker(event) {
+    var symbol = String(event && (event.symbol || event.ticker) || '').trim().toUpperCase();
+    if (symbol) return symbol;
+    var match = String(event && event.title || '').match(/^\$([A-Za-z][A-Za-z0-9.-]*)/);
+    return match ? match[1].toUpperCase() : '';
   }
 
   function isFinnhubLink(link) {
@@ -213,12 +235,15 @@
   }
 
   function eventMatchesSearch(event, query) {
-    var normalizedQuery = String(query || '').trim().toLocaleLowerCase();
+    var normalizedQuery = normalizedSearchText(String(query || '').trim());
     if (!normalizedQuery) return true;
+    var ticker = eventUsTicker(event);
+    var aliases = US_COMPANY_ALIASES[ticker] || [];
     var searchable = [
       event && event.title,
       event && event.symbol,
       event && event.ticker,
+      event && event.company,
       event && event.market,
       event && event.source,
       event && event.status,
@@ -226,8 +251,8 @@
       event && event.report_name,
       event && event.corp_name,
       event && event.symbol
-    ].join(' ').replace(/\s+/g, ' ').toLocaleLowerCase();
-    return searchable.indexOf(normalizedQuery) !== -1;
+    ].concat(aliases).join(' ');
+    return normalizedSearchText(searchable).indexOf(normalizedQuery) !== -1;
   }
 
   function parseEvent(rawTitle) {
