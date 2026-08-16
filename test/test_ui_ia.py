@@ -1152,6 +1152,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_weekly_report_renders_forward_candidate_sections(self):
         source = self.read("js/home-weekly-report.js")
         style = self.read("css/home-weekly-report.css")
+        backend = self.read("scripts/cloud-vm/main.py")
         for token in (
             'data.hotCandidates && data.hotCandidates.domestic',
             'data.coldCandidates && data.coldCandidates.domestic',
@@ -1160,6 +1161,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, source)
         self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-up', style)
         self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-down', style)
+        self.assertIn('_WEEKLY_REPORT_SNAPSHOT_VERSION = 4', backend)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
