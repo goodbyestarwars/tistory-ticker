@@ -1144,6 +1144,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
         self.assertNotIn("(!item.group || item.group === 'index') && num(item.changeRate)", source)
+        self.assertIn("['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX'].indexOf(item.symbol) !== -1", source)
+        self.assertIn("+ '<div class=\"hwr-index-grid\">' + indices.filter(function (item)", source)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
