@@ -529,6 +529,26 @@ def watchlist_endpoint(request: Request):
     return envelope(_load_user_watchlist(request))
 
 
+@app.get('/watchlist/disclosures')
+def watchlist_disclosures_endpoint(request: Request):
+    """Google 사용자의 국내 관심종목 전체에 대한 최근 7일 DART 공시."""
+    _check_rate_limit('watchlist_disclosures', request, max_per_window=30)
+    config = _load_user_watchlist(request)
+    domestic_codes = []
+    for item in config.get('items') or []:
+        code = str(item.get('code') or '').strip()
+        if len(code) == 6 and code.isdigit() and code not in domestic_codes:
+            domestic_codes.append(code)
+    now = datetime.now(timezone(timedelta(hours=9)))
+    items = domestic_news.get_watchlist_disclosures(domestic_codes, days=7, now=now)
+    return envelope({
+        'items': items,
+        'watchlistCount': len(domestic_codes),
+        'periodStart': (now - timedelta(days=6)).strftime('%Y-%m-%d'),
+        'periodEnd': now.strftime('%Y-%m-%d'),
+    })
+
+
 @app.put('/watchlist')
 async def update_watchlist(request: Request):
     session = require_google_user(request)

@@ -3,6 +3,9 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+from datetime import datetime, timedelta, timezone
+import json
+import urllib.parse
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'cloud-vm'))
 
@@ -10,6 +13,9 @@ import domestic_news
 
 
 class DomesticNewsTests(unittest.TestCase):
+    def tearDown(self):
+        domestic_news._watchlist_disclosure_cache.clear()
+
     def test_classifies_financial_and_market_headlines(self):
         self.assertEqual(domestic_news.classify('삼성전자 영업이익 깜짝 실적'), '실적')
         self.assertEqual(domestic_news.classify('코스피 상승 출발'), '시장')
@@ -94,6 +100,74 @@ class DomesticNewsTests(unittest.TestCase):
         merged = domestic_news._merge(items, limit=1, item_kind='news')
 
         self.assertEqual([item['id'] for item in merged], ['news-1'])
+
+    def test_dart_items_reads_every_requested_page_for_a_company(self):
+        pages = {
+            1: {'status': '000', 'total_page': 2, 'list': [
+                {'stock_code': '005930', 'corp_name': '삼성전자', 'rcept_no': '1',
+                 'report_nm': '주요사항보고서', 'flr_nm': '삼성전자', 'rcept_dt': '20260816'},
+            ]},
+            2: {'status': '000', 'total_page': 2, 'list': [
+                {'stock_code': '005930', 'corp_name': '삼성전자', 'rcept_no': '2',
+                 'report_nm': '분기보고서', 'flr_nm': '삼성전자', 'rcept_dt': '20260815'},
+            ]},
+        }
+
+        class FakeResponse:
+            def __init__(self, payload):
+                self.payload = payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return json.dumps(self.payload).encode('utf-8')
+
+        requested = []
+
+        def fake_urlopen(request, timeout=0):
+            query = urllib.parse.parse_qs(urllib.parse.urlsplit(request.full_url).query)
+            requested.append(query)
+            return FakeResponse(pages[int(query['page_no'][0])])
+
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}, clear=False), \
+                mock.patch.object(domestic_news.urllib.request, 'urlopen', side_effect=fake_urlopen):
+            items = domestic_news._dart_items(
+                code='005930', start_date='20260810', end_date='20260816',
+                corp_code='00126380', max_pages=3,
+            )
+
+        self.assertEqual([item['pubDate'] for item in items], ['20260816', '20260815'])
+        self.assertEqual([query['page_no'][0] for query in requested], ['1', '2'])
+        self.assertTrue(all(query['corp_code'][0] == '00126380' for query in requested))
+
+    def test_watchlist_disclosures_include_every_domestic_watchlist_stock(self):
+        now = datetime(2026, 8, 16, 12, tzinfo=timezone(timedelta(hours=9)))
+
+        def fake_dart_items(**kwargs):
+            code = kwargs['code']
+            day = '20260816' if code == '005930' else '20260814'
+            return [{
+                'id': code, 'title': code + ' 공시', 'link': 'https://dart.example/' + code,
+                'pubDate': day, 'kind': 'disclosure', 'stockCode': code,
+                'stockName': '삼성전자' if code == '005930' else 'SK하이닉스',
+            }]
+
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}, clear=False), \
+                mock.patch.object(domestic_news.dart_client, 'get_corp_code_map', return_value={
+                    '005930': '00126380', '000660': '00164779',
+                }), \
+                mock.patch.object(domestic_news, '_dart_items', side_effect=fake_dart_items) as fetch:
+            items = domestic_news.get_watchlist_disclosures(
+                ['005930', 'US:AAPL', '000660', '005930'], days=7, now=now,
+            )
+
+        self.assertEqual([item['stockCode'] for item in items], ['005930', '000660'])
+        self.assertTrue(all(item['relevance'] == 'direct' for item in items))
+        self.assertEqual(fetch.call_count, 2)
 
 
 if __name__ == '__main__':

@@ -11,9 +11,9 @@
   var STORAGE_KEY = 'home_dashboard_layout_v2';
   var WATCHLIST_KEY = 'wl_codes_v1';
   var WATCHLIST_QUOTES_CACHE_KEY = 'home_watchlist_quotes_v1';
-  var DISCLOSURE_CACHE_KEY = 'home_disclosures_v1';
   var US_SCHEDULE_CACHE_KEY = 'home_us_schedule_v1';
-  var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
+  var WATCHLIST_DISCLOSURES_URL = 'https://goodbyestar.cloud/watchlist/disclosures';
+  var GOOGLE_AUTH_START_URL = 'https://goodbyestar.cloud/auth/google/start';
   var EARNINGS_CALENDAR_URL = 'https://goodbyestar.cloud/earnings-calendar';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   // 2026-07-31: 홈 MY 카드도 /page/watchlist(js/watchlist.js)와 동일한 VM 실시간 체결가
@@ -138,14 +138,6 @@
       + '<div class="home-card-heading"><div><strong>MY</strong><span>관심종목</span></div></div>'
       + '<div class="home-my-list" id="homeMyList"><p class="home-card-state">관심종목을 확인하는 중...</p></div>'
       + '<button type="button" class="home-card-more" data-open-global-watchlist>관심종목 열기 →</button>'
-      + '</article>';
-  }
-
-  function disclosureCardHtml() {
-    return '<article class="card home-mini-card home-disclosure-card">'
-      + '<div class="home-card-heading"><div><strong>실시간 공시</strong><span>최신 5건</span></div></div>'
-      + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
-      + '<a class="home-card-more" href="/page/stock-news">전체보기 →</a>'
       + '</article>';
   }
 
@@ -541,59 +533,6 @@
     });
   }
 
-  function cleanCdata(value) {
-    var text = String(value || '');
-    var start = text.indexOf('<![CDATA[');
-    var end = text.lastIndexOf(']]>');
-    return start > -1 && end > -1 ? text.slice(start + 9, end).trim() : text.trim();
-  }
-
-  function extractTag(chunk, tag) {
-    var open = '<' + tag + '>';
-    var close = '</' + tag + '>';
-    var start = chunk.indexOf(open);
-    var end = chunk.indexOf(close, start);
-    return start === -1 || end === -1 ? '' : cleanCdata(chunk.slice(start + open.length, end));
-  }
-
-  function parseDisclosureTitle(title) {
-    var close = title.charAt(0) === '[' ? title.indexOf(']') : -1;
-    var rest = close > -1 ? title.slice(close + 1).trim() : title.trim();
-    var space = rest.indexOf(' ');
-    return {
-      corp: space > -1 ? rest.slice(0, space).trim() : rest,
-      title: space > -1 ? rest.slice(space + 1).trim() : ''
-    };
-  }
-
-  function parseDisclosureXml(xml) {
-    var result = [];
-    var parts = String(xml || '').split('<item>');
-    for (var i = 1; i < parts.length && result.length < 5; i++) {
-      var chunk = parts[i].split('</item>')[0];
-      var title = extractTag(chunk, 'title');
-      if (!title) continue;
-      var parsed = parseDisclosureTitle(title);
-      result.push({
-        corp: parsed.corp,
-        title: parsed.title || title,
-        link: extractTag(chunk, 'link') || '#',
-        pubDate: extractTag(chunk, 'pubDate') || extractTag(chunk, 'dc:date') || extractTag(chunk, 'date')
-      });
-    }
-    return result;
-  }
-
-  function decodeDisclosureResponse(text) {
-    var value = String(text || '').trim().replace(/^﻿/, '');
-    if (!value) return '';
-    if (value.charAt(0) === '<') return value;
-    var binary = atob(value.replace(/\s/g, ''));
-    var bytes = new Uint8Array(binary.length);
-    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new TextDecoder('utf-8').decode(bytes);
-  }
-
   function shortDisclosure(title) {
     var rules = [
       { terms: ['잠정실적', '영업(잠정)실적'], label: '잠정실적' },
@@ -628,24 +567,32 @@
       : dateText + ' ' + parts.dayPeriod + ' ' + parts.hour + ':' + parts.minute;
   }
 
-  function renderDisclosures(items) {
+  function renderDisclosures(items, emptyMessage) {
     var mount = document.getElementById('homeDisclosureList');
     if (!mount) return;
     if (!items.length) {
-      mount.innerHTML = '<p class="home-card-state">현재 확인된 공시가 없습니다.</p>';
+      mount.innerHTML = '<p class="home-card-state">' + escapeHtml(emptyMessage || '최근 한 주 관심종목 공시가 없습니다.') + '</p>';
       return;
     }
     mount.innerHTML = items.map(function (item) {
       var time = disclosureTime(item.pubDate);
       return '<a class="home-disclosure-row" href="' + escapeHtml(item.link) + '" target="_blank" rel="noopener">'
-        + '<strong>' + escapeHtml(item.corp || '시장 공시') + '</strong>'
+        + '<strong>' + escapeHtml(item.stockName || item.corp || '관심종목 공시') + '</strong>'
         + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span>'
         + (time ? '<time>' + escapeHtml(time) + '</time>' : '') + '</a>';
     }).join('');
     // 국내 공시도 미국 일정과 같은 가로 카드 스트립이므로 마우스/터치 drag로
     // 옆 카드까지 넘길 수 있어야 한다. 이전에는 미국 일정 렌더링 경로에만
-    // drag 핸들러가 연결되어 국내 '오늘의 공시'는 trackpad/휠에 의존했다.
+    // drag 핸들러가 연결되어 국내 공시는 trackpad/휠에 의존했다.
     enableScheduleDrag(mount);
+  }
+
+  function renderDisclosureLogin() {
+    var mount = document.getElementById('homeDisclosureList');
+    if (!mount) return;
+    var returnTo = global.location && global.location.href ? global.location.href : 'https://ghlee.tistory.com/';
+    mount.innerHTML = '<p class="home-card-state home-disclosure-login-state">Google 로그인 후 관심종목의 최근 한 주 공시를 볼 수 있습니다. '
+      + '<a class="home-disclosure-login" href="' + GOOGLE_AUTH_START_URL + '?return_to=' + encodeURIComponent(returnTo) + '">로그인</a></p>';
   }
 
   function currentDisclosureMarket() {
@@ -661,9 +608,9 @@
     var title = document.querySelector('[data-home-disclosure-field="title"]');
     var label = document.querySelector('[data-home-disclosure-field="meta"]');
     var section = document.querySelector('[data-home-disclosure-section]');
-    if (title) title.textContent = market === 'us' ? '미국 주요 일정' : '오늘의 공시';
-    if (label) label.textContent = meta || (market === 'us' ? '실적발표·경제일정' : '최신 5건');
-    if (section) section.setAttribute('aria-label', market === 'us' ? '미국 주요 일정' : '오늘의 공시');
+    if (title) title.textContent = market === 'us' ? '미국 주요 일정' : '관심종목 주간 공시';
+    if (label) label.textContent = meta || (market === 'us' ? '실적발표·경제일정' : '최근 7일');
+    if (section) section.setAttribute('aria-label', market === 'us' ? '미국 주요 일정' : '관심종목 주간 공시');
   }
 
   function scheduleDate(value) {
@@ -876,25 +823,39 @@
   }
 
   function loadDomesticDisclosures() {
-    var cached = readTimedCache(DISCLOSURE_CACHE_KEY, 6 * 60 * 60 * 1000);
-    setDisclosureHeader('domestic', '최신 5건');
-    if (cached) renderDisclosures(cached.data);
+    setDisclosureHeader('domestic', '최근 7일');
     var controller = 'AbortController' in global ? new AbortController() : null;
     var timer = controller ? setTimeout(function () { controller.abort(); }, 12000) : null;
-    fetch(DISC_GAS_URL + '?market=0', controller ? { signal: controller.signal } : {})
+    var requestOptions = { credentials: 'include', cache: 'no-store' };
+    if (controller) requestOptions.signal = controller.signal;
+    fetch(WATCHLIST_DISCLOSURES_URL, requestOptions)
       .then(function (response) {
+        if (response.status === 401) {
+          var loginError = new Error('Google login required');
+          loginError.loginRequired = true;
+          throw loginError;
+        }
         if (!response.ok) throw new Error('공시 응답 오류');
-        return response.text();
+        return response.json();
       })
-      .then(function (text) {
+      .then(function (payload) {
         if (timer) clearTimeout(timer);
-        var items = parseDisclosureXml(decodeDisclosureResponse(text));
-        writeTimedCache(DISCLOSURE_CACHE_KEY, items);
-        renderDisclosures(items);
+        var data = payload && payload.data ? payload.data : {};
+        var items = Array.isArray(data.items) ? data.items : [];
+        var watchlistCount = Number(data.watchlistCount || 0);
+        setDisclosureHeader('domestic', '최근 7일 · ' + items.length + '건');
+        renderDisclosures(items, watchlistCount
+          ? '최근 한 주 관심종목 공시가 없습니다.'
+          : '국내 관심종목을 등록하면 최근 한 주 공시가 표시됩니다.');
       })
-      .catch(function () {
+      .catch(function (error) {
         if (timer) clearTimeout(timer);
-        if (!cached) renderDisclosures([]);
+        if (error && error.loginRequired) {
+          setDisclosureHeader('domestic', 'Google 로그인 필요');
+          renderDisclosureLogin();
+          return;
+        }
+        renderDisclosures([], '관심종목 공시를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.');
       });
   }
 
