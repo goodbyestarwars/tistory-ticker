@@ -287,6 +287,20 @@ class OpeningGapDetectionTest(unittest.TestCase):
 
         self.assertEqual([row["code"] for row in results["openingGap"]], ["000001"])
 
+    def test_common_market_cap_filter_applies_to_all_pattern_results(self):
+        results = {"risingLows": [], "maCloudBreakout": [], "doubleBottom": [],
+                   "invHeadShoulders": [], "boxRangeLow": [], "openingGap": []}
+        calls = []
+
+        detector.scan_stock(
+            {"code": "000001", "name": "테스트"}, self.daily(), results, [],
+            market_cap_getter=lambda code: calls.append(code) or 2999,
+            require_common_market_cap=True,
+        )
+
+        self.assertEqual(calls, ["000001"])
+        self.assertEqual(results["openingGap"], [])
+
 
 class BoxRangeLowerFilterTest(unittest.TestCase):
     def test_box_range_requires_all_screener_conditions_and_market_cap(self):
