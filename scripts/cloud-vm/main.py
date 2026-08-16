@@ -1614,7 +1614,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
     def safe_futures():
         try:
             payload = futures(request, interval='day', days=365,
-                              symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW')
+                              symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC')
             return payload.get('data') or []
         except Exception as exc:
             logging.getLogger('main').warning('weekly report futures failed: %s', type(exc).__name__)

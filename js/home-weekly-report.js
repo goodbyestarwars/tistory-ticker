@@ -76,6 +76,14 @@
     var code = String((item && (item.code || item.symbol)) || '');
     return formatPrice(item && item.price, code) + (item && /^US:/i.test(code) ? '' : '원');
   }
+  function formatMarketValue(item) {
+    var value = num(item && item.end);
+    if (value == null) return '-';
+    if (item.valueType === 'yield') return value.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + '%';
+    if (item.valueType === 'usd') return '$' + value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    if (item.valueType === 'krw') return value.toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '원';
+    return formatPrice(value, item.symbol);
+  }
   function signClass(value) { return num(value) > 0 ? 'is-up' : num(value) < 0 ? 'is-down' : 'is-flat'; }
   function sparkline(points, className) {
     if (!points || points.length < 2) return '<span class="hwr-no-chart">추이 데이터 없음</span>';
@@ -170,14 +178,14 @@
     }).join('') + '</ul>';
   }
   function indexSummary(indices) {
-    var rows = (indices || []).filter(function (item) { return item && num(item.changeRate) != null; });
+    var rows = (indices || []).filter(function (item) { return item && (!item.group || item.group === 'index') && num(item.changeRate) != null; });
     if (!rows.length) return '<div class="hwr-index-summary"><span>지수 흐름</span><b>데이터 확인 중</b></div>';
     return '<div class="hwr-index-summary" aria-label="주간 지수 요약"><span>주간 지수 요약</span>' + rows.map(function (item) {
       return '<b><small>' + escapeHtml(item.name) + '</small><strong class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</strong></b>';
     }).join('') + '</div>';
   }
   function sentimentArt(indices) {
-    var values = (indices || []).map(function (item) { return num(item && item.changeRate); }).filter(function (value) { return value != null; });
+    var values = (indices || []).filter(function (item) { return !item.group || item.group === 'index'; }).map(function (item) { return num(item && item.changeRate); }).filter(function (value) { return value != null; });
     var bullish = values.length ? values.reduce(function (sum, value) { return sum + value; }, 0) >= 0 : true;
     if (bullish) {
       return '<div class="hwr-sentiment hwr-sentiment--up" aria-label="상승 흐름"><svg viewBox="0 0 160 82" role="img" aria-hidden="true"><path d="M24 50c2-16 15-28 34-29 15-1 28 5 37 16l13-3c11-2 22 2 28 10l-8 7-11-3-8 9-15-2c-8 9-18 13-31 13-18 0-33-7-39-18Z"/><path d="M111 35c7-8 15-11 24-8l9-5-4 10 7 8-16 2-9-7"/><path d="M116 27c-2-8 1-15 8-19M128 26c5-7 12-9 19-6M45 65v11M68 66v11M92 62v10M24 43c-8-2-13-7-16-14"/><circle cx="132" cy="38" r="2"/></svg><strong>상승 흐름</strong></div>';
@@ -245,7 +253,7 @@
     root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><span class="hwr-eyebrow">WEEKEND BRIEF</span><h2>' + title + '</h2><p>' + subtitle + '</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + indexSummary(indices)
       + '<div class="hwr-index-grid">' + indices.map(function (item) {
-        return '<article class="hwr-index-card"><div><strong>' + escapeHtml(item.name) + '</strong><span class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span></div><b>' + formatPrice(item.end, item.symbol) + '</b><div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div><small>' + (item.available ? '주간 종가 추이' : '데이터 없음') + '</small></article>';
+        return '<article class="hwr-index-card"><div><strong>' + escapeHtml(item.name) + '</strong><span class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span></div><b>' + formatMarketValue(item) + '</b><div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div><small>' + (item.available ? '주간 추이' : '데이터 없음') + '</small></article>';
       }).join('') + '</div>'
       + '<div class="hwr-summary-row"><div>' + fxCard(fx) + '</div><p class="hwr-source-note"><b>데이터 출처</b><br>지수: 국내 KRX/KIS · 미국 네이버·KIS<br>한국 뉴스: 네이버 뉴스 · DART 공시<br>미국 뉴스: Finnhub · Alpha Vantage (설정된 공급자 기준)<br><small>환율 구간은 최근 1년 관측값을 기준으로 한 참고용 분류입니다.</small></p></div>'
       + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>뜨거운 종목</strong><span>상승·수급·거래대금 신호와 사유</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.us, 'us') + '</article></div></section>'
