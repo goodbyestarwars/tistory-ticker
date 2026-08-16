@@ -16,6 +16,7 @@ import sqlite3
 import time
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import naver_news
@@ -266,6 +267,50 @@ def get_weekly_news(start, end, limit=120):
         item.pop('fetched_at', None)
         item['provider'] = 'Naver'
         result.append(item)
+    # 주중 수집기가 특정 날(대개 금요일)만 갱신된 경우를 보완한다. 네이버
+    # 검색 API에는 조회수 필드가 없으므로, 조회수순을 가장하지 않고 날짜별
+    # 발행 기사를 확보해 주간 타임라인이 하루에 몰리지 않게 한다.
+    covered_days = {_parse_pub_date(item.get('pubDate')).date() for item in result
+                    if item.get('pubDate') and _parse_pub_date(item.get('pubDate')) != datetime.min.replace(tzinfo=timezone.utc)}
+    client_id = os.environ.get('NAVER_APIHUB_CLIENT_ID', '').strip()
+    client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET', '').strip()
+    if len(covered_days) < 4 and client_id and client_secret:
+        backfill = []
+        backfill_seen = set()
+        def fetch_page(start_index):
+            return naver_news.search_news(
+                '코스피 코스닥 증시', client_id, client_secret,
+                display=100, sort='date', start=start_index,
+            )
+
+        # 과거 페이지를 병렬로 조회해 보강 때문에 주간 리포트가 다시
+        # 여러 API 타임아웃을 직렬로 기다리지 않도록 한다.
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            pages = list(pool.map(fetch_page, (1, 101, 201)))
+        for raw in pages:
+            if not raw:
+                continue
+            for raw_item in raw:
+                item = normalize_naver(raw_item)
+                if not item:
+                    continue
+                published = _parse_pub_date(item.get('pubDate'))
+                if published == datetime.min.replace(tzinfo=timezone.utc):
+                    continue
+                oldest = published.date() if oldest is None else min(oldest, published.date())
+                if start_day <= published.date() <= end_day:
+                    key = item.get('id') or _item_key(item)
+                    if key not in backfill_seen:
+                        backfill_seen.add(key)
+                        backfill.append(item)
+                        covered_days.add(published.date())
+        _save(backfill)
+        result.extend(backfill)
+    merged = {}
+    for item in result:
+        key = item.get('id') or _item_key(item)
+        merged[key] = item
+    result = list(merged.values())
     result.sort(key=lambda item: _parse_pub_date(item.get('pubDate')).timestamp(), reverse=True)
     return result[:max(1, min(int(limit or 120), 200))]
 

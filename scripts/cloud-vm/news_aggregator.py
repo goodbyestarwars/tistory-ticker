@@ -322,7 +322,16 @@ def get_general_news_history(start, end, limit=120, alpha_api_key=''):
             'source': row['source'] or '', 'provider': row['provider'] or 'US news',
             'category': '시장', 'kind': 'news', 'market': 'us',
         })
-    if not result and alpha_api_key:
+    covered_days = set()
+    for item in result:
+        published = _parse_date(item.get('pubDate'))
+        if published:
+            covered_days.add(datetime.fromtimestamp(published, timezone.utc).astimezone(
+                timezone(timedelta(hours=9))
+            ).date())
+    # Alpha Vantage 뉴스에도 조회수는 없으므로, 주간 리포트는 날짜별 보강을
+    # 우선한다. 기존 캐시가 금요일 기사만 갖고 있어도 월~금 자료를 다시 채운다.
+    if len(covered_days) < 4 and alpha_api_key:
         try:
             backfill = _alpha_general_news(alpha_api_key, start_day, end_day)
             save_cached_news('__GENERAL__', backfill, retain_limit=500)
@@ -336,7 +345,10 @@ def get_general_news_history(start, end, limit=120, alpha_api_key=''):
                 if start_day <= day <= end_day:
                     item = dict(item)
                     item.pop('_published_ts', None)
-                    result.append(item)
+                    key = _dedupe_key(item)
+                    if key not in seen:
+                        seen.add(key)
+                        result.append(item)
         except Exception:
             logger.exception('General news historical backfill failed')
     return result[:max(1, min(int(limit or 120), 200))]
