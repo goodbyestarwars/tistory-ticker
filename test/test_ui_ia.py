@@ -1121,8 +1121,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_weekly_report_uses_recognizable_bull_and_bear_labels(self):
         source = self.read("js/home-weekly-report.js")
-        self.assertIn("var FORCE_BEAR_PREVIEW = true;", source)
-        self.assertIn("var bullish = FORCE_BEAR_PREVIEW ? false :", source)
+        self.assertNotIn("FORCE_BEAR_PREVIEW", source)
+        self.assertIn("var bullish = values.length ? values.reduce(function (sum, value) { return sum + value; }, 0) >= 0 : true;", source)
         self.assertIn('aria-label="황소장 상승"', source)
         self.assertIn('<strong>황소장 · 상승</strong>', source)
         self.assertIn('aria-label="곰장 하락"', source)
