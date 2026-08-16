@@ -159,6 +159,7 @@
     var market = overview && overview.querySelector('.home-market-board');
     var economic = overview && overview.querySelector('.home-economic-news');
     var realtime = dashboard.querySelector('.home-realtime-board');
+    var marketSwitch = dashboard.querySelector('.home-market-switch');
     if (!market || !options.briefing) return false;
 
     grid = document.createElement('div');
@@ -168,6 +169,7 @@
     });
 
     dashboard.innerHTML = '';
+    if (marketSwitch) dashboard.appendChild(marketSwitch);
     dashboard.appendChild(grid);
 
     decorate(market, 'market-summary', 'summary');
