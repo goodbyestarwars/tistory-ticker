@@ -774,26 +774,9 @@
         + '</div>';
     }
 
-    var featured = list.slice(0, FEATURED_COUNT);
-    var headlines = list.slice(FEATURED_COUNT, FEATURED_COUNT + HEADLINE_COUNT);
-    var rest = list.slice(FEATURED_COUNT + HEADLINE_COUNT);
-
-    if (featured.length) {
-      html += '<div class="sn-news-top">';
-      html += featured.map(function (item, idx) { return buildFeaturedCard(item, idx); }).join('');
-      if (headlines.length) {
-        html += '<div class="sn-news-headlines">' + headlines.map(function (item, idx) {
-          return buildHeadlineItem(item, idx + FEATURED_COUNT);
-        }).join('') + '</div>';
-      }
-      html += '</div>';
-    }
-
-    if (rest.length) {
-      html += '<div class="sn-news-grid">' + rest.map(function (item, idx) {
-        return buildGridCard(item, idx + FEATURED_COUNT + HEADLINE_COUNT);
-      }).join('') + '</div>';
-    }
+    html += '<div class="app-news-timeline sn-news-timeline">' + list.map(function (item, idx) {
+      return buildTimelineEvent(item, idx);
+    }).join('') + '</div>';
 
     box.innerHTML = html;
 
@@ -802,6 +785,18 @@
         openNewsModal(list[Number(el.getAttribute('data-idx'))]);
       });
     });
+  }
+
+  function buildTimelineEvent(item, idx) {
+    var formatted = formatDatetime(item.datetime);
+    var date = formatted.slice(0, 5);
+    var time = formatted.slice(6);
+    return '<article class="app-news-event sn-news-timeline-event" data-idx="' + idx + '" role="button" tabindex="0">'
+      + '<div class="app-news-date"><strong>' + escapeHtml(date) + '</strong><small>' + escapeHtml(time) + '</small></div>'
+      + '<div class="app-news-rail"><i class="' + (idx === 0 ? 'is-latest' : '') + '"></i></div>'
+      + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--한국">한국</b><b class="app-news-type app-news-type--뉴스">뉴스</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
+      + '<strong>' + escapeHtml(item.title || '') + '</strong>'
+      + '<div class="app-news-footer"><span class="app-news-open">상세 보기 ↗</span></div></div></article>';
   }
 
   // 2026-07-28 사용자 요청: "작은 미리보기(사진)+제목만 있어도 충분하다" - 큰 카드에만
