@@ -9,6 +9,7 @@
   var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-bold-stock-reason-v14';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v1';
   var FETCH_TIMEOUT_MS = 8000;
+  var FORCE_BEAR_PREVIEW = true;
 
   function readLocalReport() {
     try {
@@ -194,7 +195,7 @@
   }
   function sentimentArt(indices) {
     var values = (indices || []).filter(function (item) { return !item.group || item.group === 'index'; }).map(function (item) { return num(item && item.changeRate); }).filter(function (value) { return value != null; });
-    var bullish = values.length ? values.reduce(function (sum, value) { return sum + value; }, 0) >= 0 : true;
+    var bullish = FORCE_BEAR_PREVIEW ? false : (values.length ? values.reduce(function (sum, value) { return sum + value; }, 0) >= 0 : true);
     if (bullish) {
       return '<div class="hwr-sentiment hwr-sentiment--up" aria-label="황소장 상승"><svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true"><path d="M51 31C39 32 29 26 24 16 20 8 12 4 4 8c11 1 19 7 23 17 3 7 10 11 20 11ZM109 31c12 1 22-5 27-15 4-8 12-12 20-8-11 1-19 7-23 17-3 7-10 11-20 11Z"/><path d="M47 31c7-13 19-19 33-19s26 6 33 19l-7 31c-7 10-16 15-26 15s-19-5-26-15Z"/><path d="M49 34 35 32l5 12 10 2M111 34l14-2-5 12-10 2M59 40l10-3M101 40l-10-3M62 58c3-7 10-10 18-10s15 3 18 10c-4 7-10 10-18 10s-14-3-18-10ZM71 61c0 9 4 14 9 14s9-5 9-14"/><circle cx="64" cy="43" r="2"/><circle cx="96" cy="43" r="2"/><circle cx="71" cy="58" r="2"/><circle cx="89" cy="58" r="2"/></svg><strong>황소장 · 상승</strong></div>';
     }
