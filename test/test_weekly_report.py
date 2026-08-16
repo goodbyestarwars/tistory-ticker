@@ -31,6 +31,11 @@ class WeeklyReportTests(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]['tags'], ['상승 상위', '매수체결강도'])
 
+    def test_hot_stocks_uses_trade_amount_rows_when_rank_sections_are_empty(self):
+        result = weekly_report.hot_stocks({'rows': [{'code': 'US:A', 'name': 'A', 'change_rate': 1.2}]})
+        self.assertEqual(result[0]['code'], 'US:A')
+        self.assertEqual(result[0]['tags'], ['거래대금 상위'])
+
     def test_next_week_schedule_filters_outside_window(self):
         result = weekly_report.next_week_schedule([
             {'start': '2026-08-17', 'title': '실적'},

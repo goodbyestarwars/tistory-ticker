@@ -129,6 +129,17 @@ def hot_stocks(board_data, limit=10):
                 current['tags'] = list(dict.fromkeys(current['tags'] + item['tags']))
             else:
                 merged[item['code']] = item
+    # 휴일·장외에는 일부 KIS 순위 TR만 비어 있을 수 있다. 이때도 마지막
+    # 거래대금 rows를 후보로 남겨 미국 주목 종목 카드가 빈 화면이 되지 않게 한다.
+    for raw in ((board_data or {}).get('rows') or [])[:limit]:
+        item = _hot_row(raw, '거래대금 상위')
+        if not item:
+            continue
+        current = merged.get(item['code'])
+        if current:
+            current['tags'] = list(dict.fromkeys(current['tags'] + item['tags']))
+        else:
+            merged[item['code']] = item
     rows = list(merged.values())
     rows.sort(key=lambda item: (len(item['tags']), abs(item.get('changeRate') or 0)), reverse=True)
     return rows[:limit]
