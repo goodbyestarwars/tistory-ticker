@@ -245,6 +245,19 @@
     persistRemoteState(container);
   }
 
+  function setGroupCollapsed(groupId, collapsed) {
+    var found = false;
+    var groups = loadGroups();
+    groups.forEach(function (group) {
+      if (group.id !== groupId) return;
+      group.collapsed = !!collapsed;
+      found = true;
+    });
+    if (!found) return { ok: false, reason: 'not-found' };
+    saveGroups(groups, document.querySelector(CONTAINER_SELECTOR));
+    return { ok: true, collapsed: !!collapsed };
+  }
+
   function fetchAuthState() {
     return fetch(GOOGLE_AUTH_ME_URL, { credentials: 'include', cache: 'no-store' })
       .then(function (response) { if (!response.ok) throw new Error('auth status HTTP ' + response.status); return response.json(); })
@@ -1171,6 +1184,7 @@
     remove: removeStock,
     has: hasStock,
     updateHolding: updateHolding,
+    setGroupCollapsed: setGroupCollapsed,
     getList: function () { return loadList(); },
     getGroups: function () { return loadGroups(); },
     onChange: function (listener) { if (typeof listener === 'function') changeListeners.push(listener); },
