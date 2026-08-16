@@ -136,6 +136,8 @@ html.dark .hwr-news-rail i { background: #1a1a1a; }
 .hwr-index-summary > b { display: inline-flex; align-items: baseline; gap: 5px; font-size: 11px; }
 .hwr-index-summary small { color: #64748b; font-size: 10px; font-weight: 600; }
 .hwr-index-summary strong { font-size: 11px; }
+.hwr-index-summary .is-up { color: #d24f45; }
+.hwr-index-summary .is-down { color: #1261c4; }
 .hwr-sentiment { display: flex; align-items: center; gap: 7px; margin-left: auto; color: #d24f45; font-size: 10px; font-weight: 800; }
 .hwr-sentiment svg { width: 104px; height: 52px; overflow: visible; }
 .hwr-sentiment svg path, .hwr-sentiment svg circle { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
