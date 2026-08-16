@@ -81,7 +81,8 @@
   function scheduleList(items) {
     if (!items || !items.length) return '<p class="hwr-empty">확인된 핵심 일정이 없습니다.</p>';
     return '<ul class="hwr-schedule-list">' + items.slice(0, 16).map(function (item) {
-      return '<li><time>' + escapeHtml(item.date.slice(5)) + '</time><b class="hwr-schedule-market">' + escapeHtml(item.market === 'us' ? '미국' : '한국') + '</b><span>' + escapeHtml(item.title) + (item.symbol ? ' <small>' + escapeHtml(item.symbol) + '</small>' : '') + '</span></li>';
+      var isUs = item.market === 'us' || /^[A-Z]{1,6}$/.test(String(item.symbol || '')) || /미국|Finnhub|\$[A-Z]/i.test(String(item.title || ''));
+      return '<li><time>' + escapeHtml(String(item.date || '').slice(5)) + '</time><b class="hwr-schedule-market">' + (isUs ? '미국' : '한국') + '</b><span>' + escapeHtml(item.title) + (item.symbol ? ' <small>' + escapeHtml(item.symbol) + '</small>' : '') + '</span></li>';
     }).join('') + '</ul>';
   }
   function isWeekendWindow(date) {
