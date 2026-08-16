@@ -39,7 +39,8 @@
 .my-dashboard-detail { min-height: 300px; }
 .my-detail-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
 .my-detail-head h3 { margin: 7px 0 0; font-size: 22px; letter-spacing: -.04em; }
-.my-selected-title.is-profit .my-selected-name { color: #d24f45; }
+.my-selected-title.is-up .my-selected-name { color: #d24f45; }
+.my-selected-title.is-down .my-selected-name { color: #1261c4; }
 .my-detail-head h3 small { color: #9ca3af; font-size: 11px; font-weight: 400; letter-spacing: 0; }
 .my-detail-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .my-detail-actions a { padding: 8px 10px; border: 1px solid #dbe5f2; border-radius: 9px; color: #334155; font-size: 11px; text-decoration: none; }

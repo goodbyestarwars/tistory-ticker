@@ -93,6 +93,7 @@
   var lwcChartContainer = null;
   var lwcCloudCleanup = null;
   var lwcRsiZonesCleanup = null;
+  var lwcRenderId = 0;
   var stockDrawingState = null;
   var suggestionRequestId = 0;
   // 거래량/RSI 서브패널은 같은 최소 높이와 비율을 사용해 항상 1:1로 유지한다.
@@ -121,7 +122,10 @@
     if (!Number.isFinite(actualVolumeHeight) || actualVolumeHeight <= 0) actualVolumeHeight = subHeight;
     if (paneLabels) {
       var rsiLabel = paneLabels.querySelector('span');
-      if (rsiLabel) rsiLabel.style.top = (actualMainHeight + actualVolumeHeight + 6) + 'px';
+      if (rsiLabel) {
+        rsiLabel.style.top = (actualMainHeight + actualVolumeHeight + 6) + 'px';
+        paneLabels.style.visibility = 'visible';
+      }
     }
     // 거래량 막대는 이제 항상 패널 하단(기준선 0)에 붙고 위쪽 15%만 비워두도록 고정했다
     // (chart.priceScale('volume') scaleMargins) - 범례를 패널 맨 위에 두면 데이터 값과
@@ -1667,15 +1671,16 @@
   }
 
   function renderLwChart(container, bars, timeframe) {
+    var renderId = ++lwcRenderId;
     destroyStockDrawing();
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
-    container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-ichimoku-cloud').forEach(function (el) { el.remove(); });
+    container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud').forEach(function (el) { el.remove(); });
 
     loadLightweightCharts().then(function (LWC) {
-      if (!document.body.contains(container)) return;
+      if (renderId !== lwcRenderId || !document.body.contains(container)) return;
       if (container.querySelector('.ss-hint')) container.innerHTML = '';
 
       var chart = LWC.createChart(container, mergeOptions({
@@ -1845,6 +1850,7 @@
 
       var paneLabels = document.createElement('div');
       paneLabels.className = 'ss-lwc-pane-labels';
+      paneLabels.style.visibility = 'hidden';
       paneLabels.innerHTML = '<span>RSI(14)</span>';
       container.appendChild(paneLabels);
 
@@ -1879,6 +1885,7 @@
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
       setupStockDrawing(container, chart, candleSeries, timeframe);
     }).catch(function () {
+      if (renderId !== lwcRenderId) return;
       container.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });
   }

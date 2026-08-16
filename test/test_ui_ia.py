@@ -778,7 +778,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("priceLineVisible: false", volume_series.group("body"))
         self.assertNotIn("localization: { priceFormatter:", source)
         self.assertIn("movingAveragePoints(bars, 'volume', 20)", source)
-        self.assertIn("querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-ichimoku-cloud')", source)
+        self.assertIn("querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud')", source)
+        self.assertIn("paneLabels.style.visibility = 'hidden'", source)
+        self.assertIn("paneLabels.style.visibility = 'visible'", source)
+        self.assertIn("var renderId = ++lwcRenderId", source)
+        self.assertIn("renderId !== lwcRenderId", source)
         self.assertIn("ss-volume-study-label", source)
         self.assertIn("전일 대비", source)
         self.assertIn("formatSignedPercent", source)
@@ -1101,6 +1105,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("@app.put('/sector-cards/me')", backend)
         self.assertIn("@app.delete('/sector-cards/me')", backend)
         self.assertIn("#market-temp > .mt-wrap + .mt-explore-card { margin-top: 18px; }", style)
+        self.assertIn("function invalidatePersonalHeatmap_(panel)", source)
+        self.assertIn("heatmapPanel.__mtLoaded = false", source)
+        self.assertIn("전체 고정 종목 풀", source)
+
+    def test_my_dashboard_selected_stock_uses_daily_change_color(self):
+        source = self.read("js/my-dashboard.js")
+        style = self.read("css/my-dashboard.css")
+        self.assertIn("var dailyChangeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);", source)
+        self.assertIn("var dailyChangeClass = signClass(dailyChangeRate);", source)
+        self.assertIn('class="my-selected-title \' + dailyChangeClass', source)
+        self.assertNotIn("metrics.rate > 0 ? ' is-profit'", source)
+        self.assertIn(".my-selected-title.is-up .my-selected-name { color: #d24f45; }", style)
+        self.assertIn(".my-selected-title.is-down .my-selected-name { color: #1261c4; }", style)
 
     def test_weekly_report_uses_recognizable_bull_and_bear_labels(self):
         source = self.read("js/home-weekly-report.js")
@@ -1109,6 +1126,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('aria-label="곰장 하락"', source)
         self.assertIn('<strong>곰장 · 하락</strong>', source)
         self.assertIn('M71 61c0 9 4 14 9 14s9-5 9-14', source)
+        self.assertEqual(source.count('<svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor"'), 2)
 
     def test_weekly_summary_includes_indices_and_major_assets_in_order(self):
         source = self.read("js/home-weekly-report.js")

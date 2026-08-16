@@ -36,7 +36,10 @@
   }
   function number(value, fallback) {
     if (value == null || value === '') return fallback == null ? null : fallback;
-    var n = Number(value);
+    var normalized = typeof value === 'string'
+      ? value.replace(/,/g, '').replace(/%/g, '').replace(/[\u2212\u2013\u2014]/g, '-').trim()
+      : value;
+    var n = Number(normalized);
     return isFinite(n) ? n : (fallback == null ? 0 : fallback);
   }
   function formatNumber(value, digits) {
@@ -609,13 +612,15 @@
     if (!item) { detail.innerHTML = '<div class="my-dashboard-empty"><strong>분석할 종목을 입력하세요.</strong><p>위 입력창에 종목명, 6자리 코드 또는 미국 티커를 입력하면 수급·매물대·차트 모양을 계산합니다.</p></div>'; return; }
     var quote = analysis && analysis.quote || state.quotes[item.code] || {};
     var metrics = itemMetrics(item, quote);
+    var dailyChangeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);
+    var dailyChangeClass = signClass(dailyChangeRate);
     if (analysis && analysis.loading) {
       detail.innerHTML = '<div class="my-detail-loading"><strong>' + escapeHtml(item.name) + '</strong><p>차트·수급·매물대 자료를 불러오는 중입니다...</p></div>' + buildHoldingForm(item, metrics);
       return;
     }
     var frameUrl = '/page/foreign-flow?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(item.name);
-    detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3 class="my-selected-title' + (metrics.rate > 0 ? ' is-profit' : '') + '"><span class="my-selected-name">' + escapeHtml(item.name) + '</span> <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
-      + '<div class="my-metric-grid"><div><span>현재가</span><strong>' + formatPrice(metrics.price, item.code) + '</strong><small class="' + signClass(quote.changeRate) + '">' + formatSigned(quote.changeRate, 2) + '%</small></div><div><span>평가금액</span><strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatSigned(metrics.pnl, 0) + '원') + '</strong><small>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
+    detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3 class="my-selected-title ' + dailyChangeClass + '"><span class="my-selected-name">' + escapeHtml(item.name) + '</span> <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
+      + '<div class="my-metric-grid"><div><span>현재가</span><strong>' + formatPrice(metrics.price, item.code) + '</strong><small class="' + dailyChangeClass + '">' + (dailyChangeRate == null ? '-' : formatSigned(dailyChangeRate, 2) + '%') + '</small></div><div><span>평가금액</span><strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatSigned(metrics.pnl, 0) + '원') + '</strong><small>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
       + buildHoldingForm(item, metrics)
       + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code) + '</div>'
       + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
