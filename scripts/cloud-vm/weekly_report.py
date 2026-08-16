@@ -125,6 +125,8 @@ def _stock_reason(item, cold=False):
     change = item.get('changeRate')
     if cold and '하락 상위' in tags:
         return '하락률 상위 · 약세 지속'
+    if cold and change is not None and change < 0:
+        return '등락률 하락 · 유동성 상위'
     priorities = (
         ('매수체결강도', '매수 체결강도 우위'),
         ('거래량 급증', '거래량 급증'),
@@ -161,7 +163,7 @@ def hot_stocks(board_data, limit=10):
     merged = {}
     sections = (board_data or {}).get('sections') or {}
     specs = (
-        ('rising', '상승 상위'), ('falling', '하락 상위'),
+        ('rising', '상승 상위'),
         ('volumeGrowth', '거래량 증가'), ('volumeSurge', '거래량 급증'),
         ('tradeVolume', '거래량 상위'), ('marketCap', '시가총액 상위'),
         ('turnover', '거래회전율'), ('amountTurnover', '거래대금 회전율'),
@@ -170,7 +172,7 @@ def hot_stocks(board_data, limit=10):
     for section, tag in specs:
         for raw in (sections.get(section) or [])[:limit]:
             item = _hot_row(raw, tag)
-            if not item:
+            if not item or (item.get('changeRate') is not None and item['changeRate'] < 0):
                 continue
             current = merged.get(item['code'])
             if current:
@@ -182,7 +184,7 @@ def hot_stocks(board_data, limit=10):
     # section. Keep it as the final diversification bucket.
     for raw in ((board_data or {}).get('rows') or [])[:limit]:
         item = _hot_row(raw, '거래대금 상위')
-        if not item:
+        if not item or (item.get('changeRate') is not None and item['changeRate'] < 0):
             continue
         current = merged.get(item['code'])
         if current:
@@ -195,14 +197,17 @@ def hot_stocks(board_data, limit=10):
         codes = []
         for raw in (sections.get(section) or [])[:limit]:
             item = _hot_row(raw, _tag)
-            if not item:
+            if not item or (item.get('changeRate') is not None and item['changeRate'] < 0):
                 continue
             if item['code'] not in codes and item['code'] in merged:
                 codes.append(item['code'])
         if codes:
             buckets.append(codes)
     row_codes = [item['code'] for item in ((board_data or {}).get('rows') or [])
-                 if _hot_row(item, '거래대금 상위') and _hot_row(item, '거래대금 상위')['code'] in merged]
+                 if _hot_row(item, '거래대금 상위')
+                 and (_hot_row(item, '거래대금 상위').get('changeRate') is None
+                      or _hot_row(item, '거래대금 상위').get('changeRate') >= 0)
+                 and _hot_row(item, '거래대금 상위')['code'] in merged]
     if row_codes:
         buckets.append(list(dict.fromkeys(row_codes)))
 
