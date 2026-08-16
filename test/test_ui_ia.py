@@ -1042,9 +1042,24 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/pattern-scan.css")
         self.assertIn("key: 'openingGap'", source)
         self.assertIn("label: '시초 갭상승'", source)
-        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr));", style)
+        self.assertIn("miniChartRows", source)
+        self.assertIn("ps-list-head", source)
+        self.assertIn("ps-signal", source)
         self.assertIn("#pattern-scan .ps-name", style)
-        self.assertIn("text-overflow: ellipsis;", style)
+
+    def test_chart_search_result_is_scanner_list_without_score_badges(self):
+        source = self.read("js/pattern-scan.js")
+        style = self.read("css/pattern-scan.css")
+        backend = self.read("scripts/cloud-vm/pattern_detect.py")
+        fixture = self.read("test/pattern-scan.html")
+        for token in ("miniChartHtml", "최근 20거래일 종가 흐름", "scannerSignal", "scannerInterpretation", "tabindex=\"0\"", "ps-rank"):
+            self.assertIn(token, source)
+        self.assertNotIn("ps-score-badge", source)
+        self.assertNotIn("patternIcon(activeTab)", source)
+        for token in ("grid-template-columns: 34px", ".ps-mini-chart", ".ps-mobile-signal", "@media (max-width: 480px)"):
+            self.assertIn(token, style)
+        self.assertIn("'miniChart': mini_chart", backend)
+        self.assertIn("miniChart: daily.slice(-20)", fixture)
 
     def test_strategy_search_renders_weekly_envelope_metric(self):
         source = self.read("js/strategy-search.js")

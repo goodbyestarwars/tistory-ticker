@@ -508,12 +508,20 @@ def build_pattern_match(stock, daily, detail):
     last = daily[-1]
     prev = daily[-2] if len(daily) > 1 else None
     change_rate = ((last['close'] - prev['close']) / prev['close'] * 100) if (prev and prev['close']) else None
+    # 결과 리스트의 스캐너 미니차트 전용 스냅샷. 판정·점수 계산은 건드리지 않고,
+    # 목록에서 종목마다 별도 OHLC 요청을 만들지 않도록 최근 종가 20개만 함께 보관한다.
+    mini_chart = [
+        {'date': row.get('date'), 'close': row.get('close')}
+        for row in daily[-20:]
+        if row.get('date') and row.get('close') is not None
+    ]
     return {
         'code': stock['code'],
         'name': stock['name'],
         'price': last['close'],
         'changeRate': change_rate,
         'date': last['date'],
+        'miniChart': mini_chart,
         'score': detail['score'],
         'reasons': detail['reasons'],
         'interpretation': detail['interpretation'],

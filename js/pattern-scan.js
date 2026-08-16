@@ -6,8 +6,8 @@
  * 클릭한 종목의 차트는 그 종목만 온디맨드로 다시 크롤링(?patternChart=1&code=&pattern=).
  *
  * 패턴별 참고 점수는 GAS에서 계산하며, 저점상승형은 구조 조건을 만족하면 점수와 무관하게 포함한다.
- * AI가 패턴을 임의로 판단하지 않고 수치 조건으로만 점수를 매긴다 - 리스트/상세 모두
- * 점수 + 원인(부분점수 breakdown) + 한 줄 해석을 그대로 보여준다.
+ * AI가 패턴을 임의로 판단하지 않고 수치 조건으로만 점수를 매긴다. 점수는 상세 화면에서만
+ * 참고용으로 유지하고, 목록은 패턴 신호·가격 흐름·해석을 빠르게 훑는 스캐너 리스트로 보여준다.
  *
  * 캔들차트는 TradingView Lightweight Charts(오픈소스, CDN 지연 로드)로 렌더링한다 -
  * 가로 스크롤 없이 컨테이너에 자동으로 맞춰(autoSize) 한눈에 들어오게 하기 위함
@@ -50,22 +50,6 @@
     { key: 'pullback', label: '눌림목', desc: '최소 240봉 데이터에서 최근 20봉 안에 저점 대비 종가가 15% 이상 상승한 뒤 고점에서 5~15% 조정받고, 현재 종가가 20일선 또는 240일선 3% 이내입니다. 20일선 상승, 상승구간 거래량 증가, 조정구간 거래량 감소를 모두 확인합니다.' },
     { key: 'openingGap', label: '시초 갭상승', desc: '최근 봉 시가가 전일 종가보다 높고 종가가 시가 대비 3% 이상 상승해야 합니다. 시가는 1,000~500,000원, 거래대금은 3,000~999,999백만원 범위이며 장중 상승이 끝난 후보는 제외합니다.' }
   ];
-
-  // 리스트 항목용 미니 패턴 아이콘 - 실제 캔들을 축소한 게 아니라 O(고점/저점)와 선으로
-  // 패턴의 핵심 구조만 단순화한 것.
-  var PATTERN_ICONS = {
-    risingLows: '<path d="M2,15 L9,15 L20,6 L30,3"/><circle cx="9" cy="15" r="2"/><circle cx="20" cy="6" r="2"/>',
-    maCloudBreakout: '<path d="M2,13 L10,12 L18,10 L25,8 L31,4"/><path d="M3,9 L10,10 L18,8 L25,6 L31,3"/>',
-    doubleBottom: '<path d="M2,4 L8,14 L16,7 L24,14 L30,4"/><circle cx="8" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
-    invHeadShoulders: '<path d="M2,6 L7,10 L12,6 L17,15 L22,6 L27,10 L32,3"/><circle cx="7" cy="10" r="2"/><circle cx="17" cy="15" r="2"/><circle cx="27" cy="10" r="2"/>',
-    boxRangeLow: '<rect x="3" y="2" width="24" height="12" rx="1"/><circle cx="6" cy="14" r="2"/><circle cx="24" cy="14" r="2"/>',
-    pullback: '<path d="M2,15 L10,4 L16,10 L24,2"/><circle cx="10" cy="4" r="2"/><circle cx="16" cy="10" r="2"/>',
-    openingGap: '<path d="M3,14 L10,13 L10,7 L18,8 L25,3 L31,2"/><path d="M10,7 L10,3"/>'
-  };
-
-  function patternIcon(key) {
-    return '<svg class="ps-icon" viewBox="0 0 32 18" width="28" height="16" aria-hidden="true">' + (PATTERN_ICONS[key] || '') + '</svg>';
-  }
 
   var scanData = null;
   var activeTab = 'risingLows';
@@ -134,6 +118,83 @@
       });
   }
 
+  function miniChartRows(item) {
+    var rows = item && (item.miniChart || item.mini_chart || item.closeSeries);
+    if (!Array.isArray(rows) && item && item.patternDetail) rows = item.patternDetail.miniChart;
+    if (!Array.isArray(rows)) return [];
+    return rows.map(function (row) {
+      if (typeof row === 'number') return { close: Number(row) };
+      return { date: row && row.date, close: Number(row && (row.close != null ? row.close : row.price)) };
+    }).filter(function (row) { return isFinite(row.close); }).slice(-20);
+  }
+
+  function miniChartHtml(item) {
+    var rows = miniChartRows(item);
+    if (rows.length < 2) return '<span class="ps-mini-chart-empty">가격 데이터 부족</span>';
+    var values = rows.map(function (row) { return row.close; });
+    var min = Math.min.apply(Math, values);
+    var max = Math.max.apply(Math, values);
+    var range = max - min || Math.max(Math.abs(max) * 0.01, 1);
+    var width = 132, height = 34, pad = 2;
+    var points = values.map(function (value, index) {
+      var x = pad + (width - pad * 2) * index / Math.max(1, values.length - 1);
+      var y = height - pad - (value - min) / range * (height - pad * 2);
+      return x.toFixed(2) + ',' + y.toFixed(2);
+    }).join(' ');
+    var tone = chgClass(item && item.changeRate);
+    return '<svg class="ps-mini-chart ' + tone + '" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="최근 20거래일 종가 흐름">'
+      + '<polyline points="' + points + '"></polyline></svg>';
+  }
+
+  function detailFor(item) {
+    return item && item.patternDetail ? item.patternDetail : {};
+  }
+
+  function nearResistanceText(detail) {
+    var resistance = Number(detail && detail.resistance);
+    var current = Number(detail && detail.signal && detail.signal.price);
+    if (!(resistance > 0) || !(current > 0) || resistance < current) return '';
+    var gap = (resistance - current) / current * 100;
+    return gap <= 10 ? '저항선 ' + gap.toFixed(1) + '% 이내' : '';
+  }
+
+  function scannerSignal(item, patternKey) {
+    var detail = detailFor(item);
+    var resistanceText = nearResistanceText(detail);
+    if (patternKey === 'risingLows') {
+      var lows = Array.isArray(detail.low_swings) ? detail.low_swings.length : 0;
+      return lows ? '저점 ↑ ' + lows + '회' : '저점 상승 확인';
+    }
+    if (patternKey === 'maCloudBreakout') return '5·20일선 상향 교차';
+    if (patternKey === 'doubleBottom') return detail.low1 && detail.low2 ? '쌍바닥 저점 확인' : '쌍바닥 구조';
+    if (patternKey === 'invHeadShoulders') return detail.head && detail.neckline ? '헤드·어깨 구조 확인' : '역헤드앤숄더 구조';
+    if (patternKey === 'boxRangeLow') {
+      var criteria = detail.criteria || {};
+      var position = Number(criteria.lowerPositionPct);
+      return isFinite(position) ? '박스 하단 ' + position.toFixed(1) + '%' : '박스 하단 반등';
+    }
+    if (patternKey === 'openingGap') {
+      var gap = Number(detail.gapRatePct);
+      return isFinite(gap) ? '시초 갭 +' + gap.toFixed(1) + '%' : '시초 갭상승';
+    }
+    if (patternKey === 'pullback') return detail.ma20 || detail.ma240 ? '이평선 눌림 확인' : '눌림목 구조';
+    return resistanceText || '패턴 조건 확인';
+  }
+
+  function scannerInterpretation(item, patternKey) {
+    var text = String(item && item.interpretation || '').replace(/\s*\(?\d+점\)?\.?\s*$/, '').trim();
+    if (text) return text;
+    return {
+      risingLows: '최근 저점이 높아지는 구조',
+      maCloudBreakout: '이평선과 구름대 상단을 확인하는 구간',
+      doubleBottom: '두 저점이 비슷한 쌍바닥 구조',
+      invHeadShoulders: '어깨·머리·어깨 구조',
+      boxRangeLow: '박스 하단 구간',
+      pullback: '상승 후 이평선 부근 눌림목',
+      openingGap: '전일 종가보다 높게 시작한 갭상승'
+    }[patternKey] || '검색 조건을 충족한 차트 패턴';
+  }
+
   function renderList(container) {
     var list = container.querySelector('#psList');
     if (!list) return;
@@ -152,23 +213,35 @@
       return String(b.date || '').localeCompare(String(a.date || ''));
     });
 
-    list.innerHTML = sorted.map(function (it) {
+    list.innerHTML = '<div class="ps-list-head" aria-hidden="true">'
+      + '<span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>감지 신호</span><span>현재가·등락률</span><span>패턴 해석</span>'
+      + '</div>'
+      + sorted.map(function (it, index) {
       var cc = chgClass(it.changeRate);
-      return '<div class="ps-item" data-code="' + it.code + '">'
-        + '<div class="ps-item-top">' + patternIcon(activeTab)
-        + '<span class="ps-name">' + escapeHtml(it.name) + '<span class="ps-code">(' + escapeHtml(it.code) + ')</span></span>'
+      return '<div class="ps-item" data-code="' + escapeHtml(it.code) + '" tabindex="0" role="button" aria-label="' + escapeHtml(it.name) + ' 차트 상세 보기">'
+        + '<span class="ps-rank">' + String(index + 1).padStart(2, '0') + '</span>'
+        + '<div class="ps-stock">'
+        + '<span class="ps-name">' + escapeHtml(it.name) + '</span>'
+        + '<span class="ps-code">' + escapeHtml(it.code) + '</span>'
+        + '<span class="ps-mobile-signal">' + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
         + '</div>'
-        + '<span class="ps-score-badge">' + (it.score != null ? it.score + '점' : '-') + '</span>'
+        + '<div class="ps-mini-chart-wrap">' + miniChartHtml(it) + '</div>'
+        + '<span class="ps-signal">' + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
         + '<span class="ps-quote"><span class="ps-price">' + fmt(it.price) + '</span>'
         + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
+        + '<span class="ps-interpretation">' + escapeHtml(scannerInterpretation(it, activeTab)) + '</span>'
         + '</div>';
     }).join('');
 
     list.querySelectorAll('.ps-item').forEach(function (el) {
-      el.addEventListener('click', function () {
+      var open = function () {
         var code = el.getAttribute('data-code');
         var item = items.filter(function (x) { return x.code === code; })[0];
         openDetail(container, item);
+      };
+      el.addEventListener('click', open);
+      el.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
       });
     });
   }

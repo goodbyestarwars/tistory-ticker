@@ -2659,12 +2659,18 @@ function buildPatternMatch_(stock, daily, detail) {
   var last = daily[daily.length - 1];
   var prev = daily.length > 1 ? daily[daily.length - 2] : null;
   var changeRate = (prev && prev.close) ? ((last.close - prev.close) / prev.close * 100) : null;
+  // 스캐너 목록용 최근 종가 스냅샷. 판정 로직은 그대로 두고, 종목별 추가 요청 없이
+  // 결과 행에서 20일 미니차트를 그릴 수 있도록 표시용 데이터만 함께 보낸다.
+  var miniChart = daily.slice(Math.max(0, daily.length - 20)).map(function (row) {
+    return { date: row.date, close: row.close };
+  });
   return {
     code: stock.code,
     name: stock.name,
     price: last.close,
     changeRate: changeRate,
     date: last.date,
+    miniChart: miniChart,
     score: detail.score,
     reasons: detail.reasons,
     interpretation: detail.interpretation
