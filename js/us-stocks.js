@@ -425,29 +425,15 @@
     var sortedItems = recentItems.slice().sort(function (a, b) {
       return newsTimestamp(b) - newsTimestamp(a);
     });
-    var groups = { morning: [], afternoon: [], night: [] };
-    sortedItems.forEach(function (item) { groups[newsBucket(item.pubDate)].push(item); });
-    var labels = {
-      morning: '오전 <small>08:00–12:00</small>',
-      afternoon: '오후 <small>12:00–18:00</small>',
-      night: '야간 <small>18:00–08:00</small>'
-    };
-    var index = 0;
-    mount.innerHTML = '<div class="us-stocks-news-timetable" role="list">' + ['morning', 'afternoon', 'night'].map(function (bucket) {
-      if (!groups[bucket].length) return '';
-      var html = '<section class="us-stocks-news-group"><h5>' + labels[bucket] + '</h5><div class="us-stocks-news-timeline">';
-      html += groups[bucket].map(function (item) {
-        var pubDate = item.pubDate || '';
-        var itemHtml = '<a class="us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
-          + '<span class="us-stocks-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></span>'
-          + '<span class="us-stocks-news-body">'
-          + '<time class="us-stocks-news-time" datetime="' + escapeAttr(pubDate) + '">' + escapeHtml(formatNewsTime(pubDate)) + '</time>'
-          + '<b>' + escapeHtml(item.title || '') + '</b>'
-          + '</span></a>';
-        index += 1;
-        return itemHtml;
-      }).join('');
-      return html + '</div></section>';
+    mount.innerHTML = '<div class="app-news-timeline us-stocks-news-timeline" role="list">' + sortedItems.map(function (item, index) {
+      var pubDate = item.pubDate || '';
+      var date = new Date(String(pubDate));
+      var dateText = isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' });
+      return '<a class="app-news-event us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
+        + '<div class="app-news-date"><strong>' + escapeHtml(dateText) + '</strong><small>' + escapeHtml(formatNewsTime(pubDate)) + '</small></div>'
+        + '<div class="app-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
+        + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--미국">미국</b><b class="app-news-type app-news-type--뉴스">뉴스</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
+        + '<strong>' + escapeHtml(item.title || '') + '</strong></div></a>';
     }).join('') + '</div>';
   }
 

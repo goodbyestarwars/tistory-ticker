@@ -52,6 +52,15 @@
     return parsed.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
+  function dateLabel(value) {
+    var parsed = parseDate(value);
+    if (isNaN(parsed.getTime())) return '';
+    var parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' }).formatToParts(parsed);
+    var month = (parts.find(function (part) { return part.type === 'month'; }) || {}).value || '';
+    var day = (parts.find(function (part) { return part.type === 'day'; }) || {}).value || '';
+    return month + '/' + day;
+  }
+
   function periodKey(value) {
     var parsed = parseDate(value);
     if (isNaN(parsed.getTime())) return 'pm';
@@ -139,15 +148,15 @@
       list.innerHTML = '<p class="hen-breaking-empty">중요 속보가 없습니다.</p>';
       return;
     }
-    list.innerHTML = rows.map(function (item) {
+    list.innerHTML = '<div class="app-news-timeline hen-breaking-timeline">' + rows.map(function (item, index) {
       var label = item.flashType || (item.kind === 'disclosure' ? '공시' : '속보');
       var href = item.link || '#';
-      return '<a class="hen-breaking-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">'
-        + '<time>' + escapeHtml(flashTimeLabel(item.pubDate)) + '</time>'
-        + '<b class="hen-breaking-badge hen-breaking-badge--' + escapeHtml(String(label).toLowerCase()) + '">' + escapeHtml(label) + '</b>'
-        + '<strong>' + escapeHtml(item.title) + '</strong>'
+      return '<a class="app-news-event hen-breaking-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">'
+        + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(flashTimeLabel(item.pubDate)) + '</small></div>'
+        + '<div class="app-news-rail"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
+        + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-type app-news-type--' + (label === '공시' ? '공시' : '뉴스') + '">' + escapeHtml(label) + '</b></div><strong>' + escapeHtml(item.title) + '</strong></div>'
         + '</a>';
-    }).join('');
+    }).join('') + '</div>';
   }
 
   function render(items, market, flash) {
@@ -163,30 +172,18 @@
       list.innerHTML = '<p class="home-card-state">현재 표시할 경제 뉴스가 없습니다.</p>';
       return;
     }
-    var groups = { am: [], pm: [] };
-    rows.forEach(function (item, index) {
-      groups[periodKey(item.pubDate)].push({ item: item, index: index });
-    });
-    function renderPeriod(key, label) {
-      var group = groups[key];
-      if (!group.length) return '';
-      return '<section class="hen-period hen-period-' + key + '" aria-label="' + label + ' 경제 뉴스">'
-        + '<div class="hen-period-head"><strong>' + label + '</strong><span>' + group.length + '건</span></div>'
-        + '<div class="hen-period-list">'
-        + group.map(function (entry) {
-          var item = entry.item;
-          var quote = quoteFor(item);
-          var tone = quote && quote.rate > 0 ? ' is-up' : quote && quote.rate < 0 ? ' is-down' : '';
-          return '<a class="hen-row' + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
-            + '<span class="hen-rail"><i class="' + (entry.index === 0 ? 'is-latest' : '') + '"></i></span>'
-            + '<time class="hen-time">' + escapeHtml(timeLabel(item.pubDate)) + '</time>'
-            + '<span class="hen-main"><strong>' + escapeHtml(item.title || '') + '</strong>'
-            + '<small><em>' + escapeHtml(kindLabel(item)) + '</em></small></span>'
-            + '</a>';
-        }).join('')
-        + '</div></section>';
-    }
-    list.innerHTML = '<div class="hen-periods">' + renderPeriod('pm', '오후') + renderPeriod('am', '오전') + '</div>';
+    list.innerHTML = '<div class="app-news-timeline hen-timeline">' + rows.map(function (item, index) {
+      var quote = quoteFor(item);
+      var tone = quote && quote.rate > 0 ? 'is-up' : quote && quote.rate < 0 ? 'is-down' : '';
+      var type = item.kind === 'disclosure' ? '공시' : kindLabel(item);
+      return '<a class="app-news-event hen-row ' + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
+        + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(timeLabel(item.pubDate)) + '</small></div>'
+        + '<div class="app-news-rail"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
+        + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--' + (market === 'us' ? '미국' : '한국') + '">' + (market === 'us' ? '미국' : '한국') + '</b><b class="app-news-type app-news-type--' + escapeHtml(type) + '">' + escapeHtml(type) + '</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
+        + '<strong>' + escapeHtml(item.title || '') + '</strong>'
+        + (quote ? '<div class="app-news-footer"><span class="app-news-quote ' + tone + '">' + escapeHtml(quote.name || '') + ' <b>' + (quote.rate > 0 ? '+' : '') + Number(quote.rate || 0).toFixed(2) + '%</b></span></div>' : '')
+        + '</div></a>';
+    }).join('') + '</div>';
     if (updated) updated.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
