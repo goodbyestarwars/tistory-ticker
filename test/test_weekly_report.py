@@ -44,6 +44,26 @@ class WeeklyReportTests(unittest.TestCase):
         }}, limit=3)
         self.assertEqual([item['code'] for item in result], ['A', 'B', 'C'])
 
+    def test_cold_stocks_prefers_liquid_negative_names_and_adds_reason(self):
+        result = weekly_report.cold_stocks({'sections': {
+            'falling': [
+                {'code': 'SMALL', 'name': '소형주', 'change_rate': -9, 'market_cap': 1, 'trade_amount': 2},
+                {'code': 'LARGE', 'name': '대형주', 'change_rate': -3, 'market_cap': 100000, 'trade_amount': 50000},
+            ],
+        }}, limit=1)
+        self.assertEqual(result[0]['code'], 'LARGE')
+        self.assertIn('하락률 상위', result[0]['reason'])
+
+    def test_fx_analysis_classifies_one_year_upper_range(self):
+        row = {'symbol': 'USDKRW', 'price': 1418.5, 'chart': [
+            {'date': '2025-09-01', 'close': 1200},
+            {'date': '2026-01-01', 'close': 1300},
+            {'date': '2026-08-14', 'close': 1418.5},
+        ]}
+        result = weekly_report.fx_analysis(row)
+        self.assertEqual(result['analysis']['status'], 'caution')
+        self.assertEqual(result['analysis']['current'], 1418.5)
+
     def test_news_timeline_is_merged_and_week_bounded(self):
         result = weekly_report.news_timeline([
             {'title': '한국 뉴스', 'pubDate': '2026-08-14T09:00:00+09:00'},
