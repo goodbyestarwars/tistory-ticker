@@ -253,6 +253,21 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
 
+    def test_market_briefing_share_button_is_visible_in_every_card_layout(self):
+        skin = self.read("skin.html")
+        style = self.read("style.css")
+        self.assertIn('class="btn-share" type="button" onclick="sharePost(this)"', skin)
+        for hidden_rule in (
+            ".home-briefing-featured .btn-share { display: none; }",
+            ".home-briefing-small .btn-share { display: none; }",
+            ".post-card.feed-cards-item .btn-share { display: none; }",
+            ".post-card.feed-duo-item .btn-share { display: none; }",
+        ):
+            self.assertNotIn(hidden_rule, style)
+        self.assertIn(".post-card.feed-headline-item .post-footer {", style)
+        self.assertIn(".post-card.feed-headline-item .btn-share { padding: 4px 9px; font-size: 10.5px; }", style)
+        self.assertIn(".post-card.feed-headline-item .btn-read { display: none; }", style)
+
     def test_home_domestic_summary_includes_foreign_investor_trend(self):
         main = self.read("js/skin-main.js")
         style = self.read("style.css")
