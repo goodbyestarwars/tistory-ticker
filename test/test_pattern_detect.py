@@ -143,8 +143,11 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertLess(detail["score"], 70)
 
         results = {"risingLows": [], "doubleBottom": [], "invHeadShoulders": [], "boxRangeLow": []}
-        detector.scan_stock({"code": "000001", "name": "테스트"}, compact_higher_low_daily(), results, [])
+        daily = compact_higher_low_daily()
+        detector.scan_stock({"code": "000001", "name": "테스트"}, daily, results, [])
         self.assertEqual([row["code"] for row in results["risingLows"]], ["000001"])
+        self.assertEqual(len(results["risingLows"][0]["miniChart"]), min(20, len(daily)))
+        self.assertEqual(results["risingLows"][0]["miniChart"][-1]["close"], daily[-1]["close"])
 
     def test_higher_low_does_not_use_a_fixed_rebound_cap(self):
         daily = early_higher_low_daily()

@@ -50,87 +50,133 @@
 }
 
 #pattern-scan .ps-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
   margin-bottom: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+#pattern-scan .ps-list-head,
+#pattern-scan .ps-item {
+  display: grid;
+  grid-template-columns: 34px minmax(155px, 1.1fr) minmax(126px, 150px) minmax(135px, .9fr) minmax(105px, .75fr) minmax(220px, 1.5fr);
+  align-items: center;
+  column-gap: 12px;
+}
+
+#pattern-scan .ps-list-head {
+  min-height: 28px;
+  padding: 0 12px;
+  color: #94a3b8;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 #pattern-scan .ps-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
   min-width: 0;
-  padding: 9px 11px;
+  min-height: 56px;
+  padding: 8px 12px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-bottom: 1px solid #e2e8f0;
   cursor: pointer;
+  transition: background .15s ease, box-shadow .15s ease;
 }
 
 #pattern-scan .ps-item:hover {
-  border-color: #cbd5e1;
+  background: #f8fafc;
+  box-shadow: inset 3px 0 0 #1261c4;
 }
 
-#pattern-scan .ps-item-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
+#pattern-scan .ps-item:focus-visible {
+  outline: 2px solid #1261c4;
+  outline-offset: -2px;
 }
 
-/* 실제 캔들을 축소한 게 아니라 O(고점/저점)+선으로 패턴 구조만 단순화한 미니 아이콘 */
-#pattern-scan .ps-icon {
-  flex-shrink: 0;
+#pattern-scan .ps-rank {
   color: #94a3b8;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
-#pattern-scan .ps-icon path,
-#pattern-scan .ps-icon rect {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-#pattern-scan .ps-icon circle {
-  fill: currentColor;
-  stroke: none;
+
+#pattern-scan .ps-stock {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 7px;
+  min-width: 0;
 }
 
 #pattern-scan .ps-name {
-  max-width: 100%;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #111827;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 #pattern-scan .ps-code {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 400;
   color: #9ca3af;
-  margin-left: 3px;
 }
 
-#pattern-scan .ps-score-badge {
-  align-self: flex-start;
-  font-size: 11px;
+#pattern-scan .ps-mobile-signal { display: none; }
+
+#pattern-scan .ps-mini-chart-wrap {
+  width: 132px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+#pattern-scan .ps-mini-chart {
+  display: block;
+  width: 132px;
+  height: 34px;
+  overflow: visible;
+}
+
+#pattern-scan .ps-mini-chart polyline {
+  fill: none;
+  stroke: #64748b;
+  stroke-width: 1.8;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pattern-scan .ps-mini-chart.ps-up polyline { stroke: #d24f45; }
+#pattern-scan .ps-mini-chart.ps-down polyline { stroke: #1261c4; }
+#pattern-scan .ps-mini-chart-empty {
+  color: #94a3b8;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+#pattern-scan .ps-signal {
+  color: #334155;
+  font-size: 11.5px;
   font-weight: 700;
-  color: #fff;
-  background: #2e9e5b;
-  border-radius: 999px;
-  padding: 1px 8px;
+  line-height: 1.35;
+}
+
+#pattern-scan .ps-interpretation {
+  min-width: 0;
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 #pattern-scan .ps-quote {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 #pattern-scan .ps-price {
@@ -330,33 +376,66 @@
 /* ============ 모바일 ============ */
 
 @media (max-width: 480px) {
-  #pattern-scan .ps-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
-  }
   #pattern-scan .ps-tab {
     padding: 7px 11px;
     font-size: 12px;
   }
+  #pattern-scan .ps-list-head { display: none; }
   #pattern-scan .ps-item {
-    min-width: 0;
-    padding: 8px 9px;
+    grid-template-columns: 22px minmax(0, 1fr) 94px 82px;
+    grid-template-rows: auto auto;
+    gap: 2px 8px;
+    min-height: 58px;
+    padding: 8px 7px;
   }
-  #pattern-scan .ps-item-top,
-  #pattern-scan .ps-name {
-    min-width: 0;
-    width: 100%;
+  #pattern-scan .ps-rank {
+    grid-row: 1 / span 2;
+    align-self: start;
+    padding-top: 3px;
+  }
+  #pattern-scan .ps-stock {
+    align-self: start;
+    gap: 1px 5px;
   }
   #pattern-scan .ps-name {
+    font-size: 12.5px;
+    overflow-wrap: anywhere;
+  }
+  #pattern-scan .ps-code { font-size: 9.5px; }
+  #pattern-scan .ps-mobile-signal {
+    display: block;
+    color: #64748b;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+  #pattern-scan .ps-mini-chart-wrap {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    width: 94px;
+    height: 32px;
+  }
+  #pattern-scan .ps-mini-chart { width: 94px; height: 32px; }
+  #pattern-scan .ps-signal {
+    display: none;
+  }
+  #pattern-scan .ps-quote {
+    grid-column: 4;
+    grid-row: 1 / span 2;
+    align-self: center;
+    justify-content: flex-end;
+    gap: 2px;
+  }
+  #pattern-scan .ps-price { font-size: 11px; }
+  #pattern-scan .ps-rate { font-size: 10px; }
+  #pattern-scan .ps-interpretation {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 10px;
+    line-height: 1.25;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
   }
-  #pattern-scan .ps-code { font-size: 10px; }
-  #pattern-scan .ps-quote { gap: 4px; }
-  #pattern-scan .ps-price { font-size: 11.5px; }
-  #pattern-scan .ps-rate { font-size: 10.5px; }
-  #pattern-scan .ps-score-badge { padding: 1px 6px; font-size: 10px; }
 }
 #pattern-scan .ps-common-desc {
   margin: 10px 0 8px;
@@ -406,12 +485,13 @@ html.dark #pattern-scan .ps-item {
   border-color: rgba(245, 239, 224, 0.14);
 }
 
-html.dark #pattern-scan .ps-icon {
-  color: rgba(245, 239, 224, 0.45);
+html.dark #pattern-scan .ps-list,
+html.dark #pattern-scan .ps-list-head {
+  border-color: rgba(245, 239, 224, 0.14);
 }
 
 html.dark #pattern-scan .ps-item:hover {
-  border-color: rgba(245, 239, 224, 0.3);
+  background: rgba(245, 239, 224, 0.06);
 }
 
 html.dark #pattern-scan .ps-name {
@@ -420,6 +500,18 @@ html.dark #pattern-scan .ps-name {
 
 html.dark #pattern-scan .ps-code {
   color: rgba(245, 239, 224, 0.5) !important;
+}
+
+html.dark #pattern-scan .ps-list-head,
+html.dark #pattern-scan .ps-rank,
+html.dark #pattern-scan .ps-mobile-signal,
+html.dark #pattern-scan .ps-interpretation,
+html.dark #pattern-scan .ps-mini-chart-empty {
+  color: rgba(245, 239, 224, 0.55) !important;
+}
+
+html.dark #pattern-scan .ps-signal {
+  color: rgba(245, 239, 224, 0.82) !important;
 }
 
 html.dark #pattern-scan .ps-price {

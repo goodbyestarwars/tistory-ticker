@@ -228,6 +228,7 @@
       code: code, name: name, price: last.close,
       changeRate: ((last.close - prev.close) / prev.close * 100),
       date: last.date,
+      miniChart: daily.slice(-20).map(function (row) { return { date: row.date, close: row.close }; }),
       score: detail && detail.score,
       reasons: detail && detail.reasons,
       interpretation: detail && detail.interpretation
