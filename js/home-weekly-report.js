@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-weekend-lineart-v11';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-weekend-lineart-v12';
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
@@ -153,14 +153,38 @@
     var status = analysis.status || 'unknown';
     var label = analysis.label || '환율 데이터 확인 중';
     var message = analysis.message || '1년 환율 데이터가 부족합니다.';
-    return '<span class="hwr-fx-status hwr-fx-status--' + escapeHtml(status) + '">' + escapeHtml(label) + '</span><small>' + escapeHtml(message) + '</small>';
+    return '<div class="hwr-fx-advice"><span class="hwr-fx-status hwr-fx-status--' + escapeHtml(status) + '">' + escapeHtml(label) + '</span><small>' + escapeHtml(message) + '</small></div>';
+  }
+  function fxSparkline(fx) {
+    var analysis = fx && fx.analysis || {};
+    var points = (fx && fx.chart || []).map(function (point) { return num(point && point.close); }).filter(function (value) { return value != null; });
+    if (points.length < 2) return '<div class="hwr-fx-chart hwr-fx-chart--empty">1년 추이 데이터 없음</div>';
+    var reference = [analysis.low, analysis.high, analysis.average, analysis.p25, analysis.p75].map(num).filter(function (value) { return value != null; });
+    var values = points.concat(reference);
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var range = max - min || 1;
+    var pad = range * .08;
+    min -= pad; max += pad; range = max - min || 1;
+    var y = function (value) { return 39 - ((value - min) / range * 34); };
+    var poly = points.map(function (value, index) {
+      var x = 2 + index * 96 / Math.max(1, points.length - 1);
+      return x.toFixed(1) + ',' + y(value).toFixed(1);
+    }).join(' ');
+    var low = num(analysis.low), p25 = num(analysis.p25), average = num(analysis.average);
+    var bandTop = p25 == null ? 39 : y(p25);
+    var bandBottom = low == null ? 39 : y(low);
+    var bandHeight = Math.max(0, bandBottom - bandTop);
+    var averageLine = average == null ? '' : '<line class="hwr-fx-average-line" x1="0" y1="' + y(average).toFixed(1) + '" x2="100" y2="' + y(average).toFixed(1) + '"></line>';
+    var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1"></rect>';
+    return '<div class="hwr-fx-chart"><svg class="hwr-fx-spark ' + signClass(fx.change_rate) + '" viewBox="0 0 100 44" preserveAspectRatio="none" role="img" aria-label="최근 1년 원달러 환율 추이"><line class="hwr-fx-guide-line" x1="0" y1="5" x2="100" y2="5"></line><line class="hwr-fx-guide-line" x1="0" y1="39" x2="100" y2="39"></line>' + interestBand + averageLine + '<polyline points="' + poly + '"></polyline></svg></div>';
   }
   function fxCard(fx) {
     fx = fx || {};
     var analysis = fx.analysis || {};
     var current = analysis.current != null ? analysis.current : fx.price;
     var average = analysis.average;
-    return '<article class="hwr-fx-card"><div class="hwr-card-title"><strong>원/달러 환율</strong><span>최근 1년 기준</span></div><div class="hwr-fx-main"><strong>' + (current == null ? '-' : formatPrice(current, 'KRW') + '원') + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b></div><div class="hwr-fx-chart">' + sparkline(fx.chart, 'hwr-fx-spark ' + signClass(fx.change_rate)) + '</div><div class="hwr-fx-meta"><span>1년 평균 ' + (average == null ? '-' : formatPrice(average, 'KRW') + '원') + '</span>' + fxStatus(fx) + '</div></article>';
+    var low = analysis.low, high = analysis.high, p25 = analysis.p25;
+    return '<article class="hwr-fx-card"><div class="hwr-card-title"><strong>원/달러 환율</strong><span>최근 1년 기준</span></div><div class="hwr-fx-main"><strong>' + (current == null ? '-' : formatPrice(current, 'KRW') + '원') + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b></div>' + fxSparkline(fx) + '<div class="hwr-fx-legend"><span><i class="hwr-fx-legend-line hwr-fx-legend-line--average"></i>1년 평균 <b>' + (average == null ? '-' : formatPrice(average, 'KRW') + '원') + '</b></span><span><i class="hwr-fx-legend-swatch"></i>관심 구간 ≤ ' + (p25 == null ? '-' : formatPrice(p25, 'KRW') + '원') + '</span></div><div class="hwr-fx-range"><span>1년 저점 ' + (low == null ? '-' : formatPrice(low, 'KRW') + '원') + '</span><span>1년 고점 ' + (high == null ? '-' : formatPrice(high, 'KRW') + '원') + '</span></div><div class="hwr-fx-meta">' + fxStatus(fx) + '</div></article>';
   }
   function scheduleList(items) {
     if (!items || !items.length) return '<p class="hwr-empty">다음 주 M7·금리·주요 기업 일정이 확인되지 않았습니다.</p>';

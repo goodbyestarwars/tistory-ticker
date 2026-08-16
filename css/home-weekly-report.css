@@ -182,6 +182,36 @@ html.dark .hwr-news-card, html.dark .hwr-news-card .hwr-news-row { background: #
   .hwr-news-row { grid-template-columns: 9px 32px minmax(0, 1fr) 40px; }
 }
 
+/* FX card: show the one-year reference line and lower-quartile interest band. */
+.hwr-fx-card .hwr-fx-chart { height: 72px; margin: 8px 0 4px; }
+.hwr-fx-spark { display: block; width: 100%; height: 100%; overflow: visible; }
+.hwr-fx-spark polyline { fill: none; stroke: #64748b; stroke-width: 1.7; vector-effect: non-scaling-stroke; }
+.hwr-fx-guide-line { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
+.hwr-fx-average-line { stroke: #475569; stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+.hwr-fx-interest-band { fill: rgba(37, 99, 235, .10); }
+.hwr-fx-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; color: #64748b; font-size: 9px; line-height: 1.4; }
+.hwr-fx-legend > span { display: inline-flex; align-items: center; gap: 4px; }
+.hwr-fx-legend b { color: #334155; font-weight: 800; }
+.hwr-fx-legend-line, .hwr-fx-legend-swatch { display: inline-block; width: 13px; height: 0; }
+.hwr-fx-legend-line--average { border-top: 1px dashed #475569; }
+.hwr-fx-legend-swatch { height: 7px; border: 1px solid rgba(37,99,235,.20); border-radius: 2px; background: rgba(37,99,235,.10); }
+.hwr-fx-range { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; color: #94a3b8; font-size: 8px; font-variant-numeric: tabular-nums; }
+.hwr-fx-meta { display: block; margin-top: 7px; color: #94a3b8; font-size: 9px; }
+.hwr-fx-advice { display: flex; align-items: baseline; gap: 7px; }
+.hwr-fx-advice small { color: #64748b; font-size: 9px; }
+.hwr-fx-status { font-size: 10px; font-weight: 800; white-space: nowrap; }
+.hwr-fx-chart--empty { display: flex; align-items: center; color: #94a3b8; font-size: 9px; }
+html.dark .hwr-fx-guide-line { stroke: rgba(245,239,224,.18); }
+html.dark .hwr-fx-average-line { stroke: #cbd5e1; }
+html.dark .hwr-fx-legend b { color: #f5efe0; }
+html.dark .hwr-fx-advice small { color: rgba(245,239,224,.65); }
+@media (max-width: 720px) {
+  .hwr-fx-card .hwr-fx-chart { height: 82px; }
+  .hwr-fx-legend { gap: 3px 9px; }
+  .hwr-fx-advice { display: block; }
+  .hwr-fx-advice small { display: block; margin-top: 2px; }
+}
+
 /* News timeline: date-led cards with compact type filters. */
 .hwr-news-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .hwr-news-toolbar .hwr-card-title { min-width: 0; margin-bottom: 0; }
