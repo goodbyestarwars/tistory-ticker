@@ -1128,6 +1128,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('M71 61c0 9 4 14 9 14s9-5 9-14', source)
         self.assertEqual(source.count('<svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor"'), 2)
 
+    def test_weekly_hot_and_cold_stock_reasons_are_bold(self):
+        source = self.read("js/home-weekly-report.js")
+        style = self.read("css/home-weekly-report.css")
+        self.assertIn('class="hwr-stock-reason"', source)
+        self.assertIn(".hwr-stock-reason { display: block; margin-top: 2px; color: #64748b; font-size: 9px; font-style: normal; font-weight: 700;", style)
+
     def test_weekly_summary_includes_indices_and_major_assets_in_order(self):
         source = self.read("js/home-weekly-report.js")
         self.assertIn('aria-label="주간 지수·자산 요약"', source)
