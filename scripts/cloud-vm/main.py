@@ -15,6 +15,7 @@ import secrets
 import time
 import urllib.parse
 from collections import OrderedDict, deque
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Header, HTTPException, Path, Query, Request, WebSocket, WebSocketDisconnect
@@ -1536,14 +1537,6 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
     if cached and not fresh and now - cached['t'] < _WEEKLY_REPORT_TTL:
         return envelope(cached['data'])
 
-    try:
-        futures_payload = futures(request, interval='day', days=30,
-                                  symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW')
-        futures_rows = futures_payload.get('data') or []
-    except Exception as exc:
-        logging.getLogger('main').warning('weekly report futures failed: %s', type(exc).__name__)
-        futures_rows = []
-
     def safe_domestic_board():
         try:
             return market_board.fetch_domestic_kis(
@@ -1575,36 +1568,70 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
                 logging.getLogger('main').warning('weekly report US Kiwoom rank failed: %s', type(fallback_exc).__name__)
                 return {}
 
-    try:
-        domestic_news_items = (domestic_news.get_news(limit=50, item_kind='news') or {}).get('items') or []
-    except Exception as exc:
-        logging.getLogger('main').warning('weekly report domestic news failed: %s', type(exc).__name__)
-        domestic_news_items = []
-    try:
-        foreign_news_items = news_aggregator.get_general_news(
-            alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
-            finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(), limit=50,
-        )
-    except Exception as exc:
-        logging.getLogger('main').warning('weekly report foreign news failed: %s', type(exc).__name__)
-        foreign_news_items = []
-
-    next_start = end + timedelta(days=3)
-    months = {(next_start.year, next_start.month),
-              ((next_start + timedelta(days=6)).year, (next_start + timedelta(days=6)).month)}
-    schedule_events = []
-    for year, month in sorted(months):
+    def safe_futures():
         try:
-            schedule_events.extend(earnings_calendar.merge_month(year, month))
+            payload = futures(request, interval='day', days=30,
+                              symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW')
+            return payload.get('data') or []
         except Exception as exc:
-            logging.getLogger('main').warning('weekly report schedule failed: %s', type(exc).__name__)
+            logging.getLogger('main').warning('weekly report futures failed: %s', type(exc).__name__)
+            return []
+
+    def safe_domestic_news():
+        try:
+            return (domestic_news.get_news(limit=50, item_kind='news') or {}).get('items') or []
+        except Exception as exc:
+            logging.getLogger('main').warning('weekly report domestic news failed: %s', type(exc).__name__)
+            return []
+
+    def safe_foreign_news():
+        try:
+            return news_aggregator.get_general_news(
+                alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+                finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(), limit=50,
+            )
+        except Exception as exc:
+            logging.getLogger('main').warning('weekly report foreign news failed: %s', type(exc).__name__)
+            return []
+
+    def safe_schedule():
+        next_start = end + timedelta(days=3)
+        months = {(next_start.year, next_start.month),
+                  ((next_start + timedelta(days=6)).year, (next_start + timedelta(days=6)).month)}
+        result = []
+        for year, month in sorted(months):
+            try:
+                result.extend(earnings_calendar.merge_month(year, month))
+            except Exception as exc:
+                logging.getLogger('main').warning('weekly report schedule failed: %s', type(exc).__name__)
+        return result
+
+    # 첫 진입에서 지수·순위·뉴스·일정을 순차 호출하면 한 외부 공급자의 지연이
+    # 전체 화면을 로딩 상태로 붙잡는다. 서로 독립적인 수집은 동시에 실행한다.
+    jobs = {
+        'futures': safe_futures,
+        'domestic_board': safe_domestic_board,
+        'us_board': safe_us_board,
+        'domestic_news': safe_domestic_news,
+        'foreign_news': safe_foreign_news,
+        'schedule': safe_schedule,
+    }
+    results = {}
+    with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+        submitted = {name: pool.submit(fn) for name, fn in jobs.items()}
+        for name, future in submitted.items():
+            try:
+                results[name] = future.result()
+            except Exception as exc:
+                logging.getLogger('main').warning('weekly report %s failed: %s', name, type(exc).__name__)
+                results[name] = [] if name != 'domestic_board' and name != 'us_board' else {}
 
     data = weekly_report.build_report(
-        start, end, futures_rows=futures_rows,
-        domestic_news_items=domestic_news_items,
-        foreign_news_items=foreign_news_items,
-        domestic_board=safe_domestic_board(), us_board=safe_us_board(),
-        schedule_events=schedule_events,
+        start, end, futures_rows=results['futures'],
+        domestic_news_items=results['domestic_news'],
+        foreign_news_items=results['foreign_news'],
+        domestic_board=results['domestic_board'], us_board=results['us_board'],
+        schedule_events=results['schedule'],
     )
     _weekly_report_cache[cache_key] = {'t': now, 'data': data}
     return envelope(data)
