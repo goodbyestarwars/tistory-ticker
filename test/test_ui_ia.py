@@ -1207,6 +1207,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("root.classList.add('skin-ready')", source)
         self.assertIn('window.setTimeout(reveal, 1800)', source)
 
+    def test_live_github_assets_also_guard_initial_paint(self):
+        style = self.read("style.css")
+        main = self.read("js/skin-main.js")
+        self.assertIn('html:not(.skin-ready) body { visibility: hidden; }', style)
+        self.assertIn("root.classList.add('skin-ready')", main)
+        self.assertIn('window.setTimeout(reveal, 1800)', main)
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (

@@ -19,6 +19,22 @@
  * 방식에서 독립 페이지(js/stock-calendar.js, #stock-calendar 마운트)로 옮겼다 - 여기
  * 있던 openCalendarModal/initCalendarWidget은 삭제됨.
  */
+/* 외부 CSS가 적용되기 전 초기 프레임을 숨겨 검은 무늬/무스타일 플래시를 막는다.
+   load 이벤트가 늦어져도 1.8초 뒤에는 안전하게 화면을 연다. */
+(function revealAfterStyles() {
+  var root = document.documentElement;
+  var revealed = false;
+  function reveal() {
+    if (revealed) return;
+    revealed = true;
+    root.classList.add('skin-ready');
+  }
+  window.addEventListener('load', function () {
+    window.requestAnimationFrame(reveal);
+  }, { once: true });
+  window.setTimeout(reveal, 1800);
+}());
+
   /* ── iframe 모드 감지 (모달 안에서 열릴 때 껍데기 숨김) ── */
   if (window !== window.top) {
     document.body.classList.add('iframe-mode');
