@@ -465,6 +465,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("visibility: visible !important", style)
         self.assertIn('.hmb-list dd[title] { cursor: help; }', style)
 
+    def test_home_economic_news_is_us_only(self):
+        news = self.read("js/home-economic-news.js")
+        vm = self.read("scripts/cloud-vm/main.py")
+        self.assertIn("var ECONOMIC_MARKET = 'us';", news)
+        self.assertIn("return ECONOMIC_MARKET;", news)
+        self.assertIn("if (data.market && data.market !== ECONOMIC_MARKET) return false;", news)
+        self.assertIn("var newsUrl = US_API_URL;", news)
+        self.assertIn("var marketUrl = US_MARKET_API_URL;", news)
+        self.assertIn("# 홈의 경제 종합뉴스는 좌측 시장 선택·한국 장중 여부와 무관하게 미국 전용이다.", vm)
+        self.assertIn("def _economic_news_market():", vm)
+        self.assertIn("return 'us'", vm)
+
     def test_visible_provider_labels_are_removed_from_content_pages(self):
         sources = (
             self.read("js/domestic-market-indicators.js"),

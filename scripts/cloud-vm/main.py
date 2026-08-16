@@ -756,8 +756,8 @@ _FLASH_US_INDEX_TERMS = ('나스닥', 's&p 500', 's&p500', '다우지수', '다�
 
 
 def _economic_news_market():
-    now = datetime.now(timezone(timedelta(hours=9)))
-    return 'us' if now.hour >= 20 or now.hour < 8 else 'domestic'
+    # 홈의 경제 종합뉴스는 좌측 시장 선택·한국 장중 여부와 무관하게 미국 전용이다.
+    return 'us'
 
 
 def _fetch_economic_news_snapshot(market):
