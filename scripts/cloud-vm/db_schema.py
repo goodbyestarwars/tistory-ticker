@@ -203,6 +203,10 @@ CREATE TABLE IF NOT EXISTS swing_recommendation_snapshots (
     model_version TEXT NOT NULL,
     close REAL,
     chart_regime TEXT,
+    current_regime TEXT,
+    recent_event TEXT,
+    recent_event_stage TEXT,
+    auxiliary_states_json TEXT,
     turning_point TEXT,
     momentum_state TEXT,
     fundamental_state TEXT,
@@ -226,6 +230,8 @@ CREATE TABLE IF NOT EXISTS swing_recommendation_snapshots (
     t5_excess_return REAL,
     t10_excess_return REAL,
     t20_excess_return REAL,
+    t20_regime TEXT,
+    t20_regime_changed INTEGER,
     mfe REAL,
     mae REAL,
     outcome_updated_at TEXT,
@@ -294,6 +300,12 @@ def create_schema(conn):
     _ensure_column(conn, 'future_prices', 'bid_price', 'REAL')
     _ensure_column(conn, 'future_prices', 'ask_qty', 'REAL')
     _ensure_column(conn, 'future_prices', 'bid_qty', 'REAL')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 'current_regime', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 'recent_event', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 'recent_event_stage', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 'auxiliary_states_json', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 't20_regime', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 't20_regime_changed', 'INTEGER')
     _migrate_investor_trend_market(conn)
     conn.commit()
 
@@ -307,16 +319,22 @@ def upsert_swing_snapshot(conn, snapshot):
     risk = snapshot.get('risk') or {}
     legacy = snapshot.get('legacy') or {}
     ma = chart.get('ma') or {}
+    current_regime = snapshot.get('currentRegime') or chart.get('currentRegime') or {}
+    recent_event = snapshot.get('recentEvent') or chart.get('recentEvent') or {}
+    auxiliary_states = snapshot.get('auxiliaryStates') or chart.get('auxiliaryStates') or []
     conn.execute(
         '''INSERT INTO swing_recommendation_snapshots (
-            as_of_date, code, name, model_version, close, chart_regime, turning_point,
+            as_of_date, code, name, model_version, close, chart_regime, current_regime,
+            recent_event, recent_event_stage, auxiliary_states_json, turning_point,
             momentum_state, fundamental_state, risk_state, risk_reasons_json,
             holder_action, entry_opinion, internal_priority_score, legacy_score,
             legacy_stars, legacy_label, ma5, ma20, ma60, ma224, relative_strength,
             invalidation_condition, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(as_of_date, code, model_version) DO UPDATE SET
             name=excluded.name, close=excluded.close, chart_regime=excluded.chart_regime,
+            current_regime=excluded.current_regime, recent_event=excluded.recent_event,
+            recent_event_stage=excluded.recent_event_stage, auxiliary_states_json=excluded.auxiliary_states_json,
             turning_point=excluded.turning_point, momentum_state=excluded.momentum_state,
             fundamental_state=excluded.fundamental_state, risk_state=excluded.risk_state,
             risk_reasons_json=excluded.risk_reasons_json, holder_action=excluded.holder_action,
@@ -328,6 +346,9 @@ def upsert_swing_snapshot(conn, snapshot):
         (
             snapshot.get('asOfDate'), snapshot.get('code'), snapshot.get('name') or '',
             snapshot.get('modelVersion'), snapshot.get('close'), chart.get('key'),
+            current_regime.get('key') or current_regime.get('label'),
+            recent_event.get('key') or recent_event.get('label'), recent_event.get('stage'),
+            json.dumps(auxiliary_states, ensure_ascii=False),
             chart.get('turningPoint'), momentum.get('state'), fundamental.get('state'),
             risk.get('state'), json.dumps(risk.get('flags') or [], ensure_ascii=False),
             snapshot.get('holderAction'), snapshot.get('entryOpinion'),
@@ -341,13 +362,15 @@ def upsert_swing_snapshot(conn, snapshot):
 def update_swing_snapshot_outcome(conn, as_of_date, code, model_version, outcomes):
     """Fill forward returns after T+5/T+10/T+20 become available."""
     fields = ('t5_return', 't10_return', 't20_return', 't5_excess_return',
-              't10_excess_return', 't20_excess_return', 'mfe', 'mae')
+              't10_excess_return', 't20_excess_return', 't20_regime',
+              't20_regime_changed', 'mfe', 'mae')
     values = [outcomes.get(field) for field in fields]
     values.extend([outcomes.get('outcomeUpdatedAt') or ''])
     conn.execute(
         '''UPDATE swing_recommendation_snapshots SET
            t5_return=?, t10_return=?, t20_return=?, t5_excess_return=?,
-           t10_excess_return=?, t20_excess_return=?, mfe=?, mae=?, outcome_updated_at=?
+           t10_excess_return=?, t20_excess_return=?, t20_regime=?,
+           t20_regime_changed=?, mfe=?, mae=?, outcome_updated_at=?
            WHERE as_of_date=? AND code=? AND model_version=?''',
         values + [as_of_date, code, model_version],
     )

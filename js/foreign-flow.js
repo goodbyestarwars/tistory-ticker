@@ -2523,6 +2523,7 @@
   // 참고값으로만 남기고 4주 행동을 직접 뒤집지 않는다.
   function swingChartRegime(daily) {
     daily = (daily || []).filter(function (row) { return finiteNumber(row.close) != null; });
+    var closes = daily.map(function (row) { return Number(row.close); });
     function ma(period, end) {
       if (end + 1 < period) return null;
       var sum = 0;
@@ -2538,7 +2539,9 @@
     if (daily.length < 60 || ma20 == null || ma60 == null) {
       return { key: 'neutral', label: '횡보·판단 보류', confidence: 'low', turningPoint: 'unknown',
         reasons: ['5·20·60일선 계산에 필요한 일봉이 부족합니다.'], invalidation: '일봉 데이터 60개 이상 확보 후 재판정',
-        ma: { ma5: ma5, ma20: ma20, ma60: ma60, ma224: ma224 } };
+        ma: { ma5: ma5, ma20: ma20, ma60: ma60, ma224: ma224 },
+        currentRegime: { key: 'neutral', label: '횡보·수렴' },
+        recentEvent: { key: 'none', label: '이벤트 없음', stage: 'none' }, auxiliaryStates: [] };
     }
     var s20 = slope(20, 5), s60 = slope(60, 10), s5 = slope(5, 3);
     var prev = daily.slice(Math.max(0, daily.length - 15), Math.max(0, daily.length - 5)).map(function (r) { return Number(r.close); });
@@ -2560,11 +2563,38 @@
     else if (upCount >= 2 && downCount < 2) { key = 'upturn'; turningPoint = upCount >= 3 && current >= ma20 ? 'confirmed' : 'detected'; confidence = turningPoint === 'confirmed' ? 'medium' : 'low'; }
     else if (downCount >= 2 && upCount < 2) { key = 'downturn'; turningPoint = downCount >= 3 && current <= ma20 ? 'confirmed' : 'detected'; confidence = turningPoint === 'confirmed' ? 'medium' : 'low'; }
     else { key = 'neutral'; turningPoint = 'none'; confidence = 'low'; }
+    var currentKey = key === 'uptrend' ? 'uptrend' : key === 'downtrend' ? 'downtrend' : 'neutral';
+    var currentRegime = { key: currentKey, label: currentKey === 'uptrend' ? '상승 추세' : currentKey === 'downtrend' ? '하락 추세' : '횡보·수렴' };
+    var eventLabels = { none: '이벤트 없음', upturn_detected: '상방 변곡 감지', upturn_confirmed: '상방 변곡 확정', uptrend_resume: '상승 추세 재개', downturn_detected: '하방 변곡 감지', downturn_confirmed: '하방 변곡 확정', downtrend_resume: '하락 추세 재개', breakout: '상단 돌파', breakdown: '하단 이탈', compression: '수렴·압축', overheated: '과열·소진', fake_breakout: '페이크 돌파', fake_breakdown: '페이크 이탈', exhaustion: '하락 소진 감지' };
+    function event(key, stage) { return { key: key, label: eventLabels[key], stage: stage || 'none' }; }
+    var recentEvent = event('none');
+    if (closes.length >= 24) {
+      var reference = closes.slice(-23, -3), refHigh = Math.max.apply(Math, reference), refLow = Math.min.apply(Math, reference);
+      if (closes[closes.length - 3] > refHigh * 1.01 && current <= refHigh * 1.01) recentEvent = event('fake_breakout', 'confirmed');
+      else if (closes[closes.length - 3] < refLow * .99 && current >= refLow * .99) recentEvent = event('fake_breakdown', 'confirmed');
+    }
+    if (recentEvent.key === 'none' && closes.length >= 22) {
+      var prior = closes.slice(-21, -1), rangeHigh = Math.max.apply(Math, prior), rangeLow = Math.min.apply(Math, prior), previous = closes[closes.length - 2];
+      if (current > rangeHigh * 1.01 && previous <= rangeHigh * 1.01) recentEvent = event('breakout', 'confirmed');
+      else if (current < rangeLow * .99 && previous >= rangeLow * .99) recentEvent = event('breakdown', 'confirmed');
+    }
+    if (recentEvent.key === 'none' && key === 'upturn') recentEvent = event(turningPoint === 'confirmed' ? 'upturn_confirmed' : 'upturn_detected', turningPoint);
+    else if (recentEvent.key === 'none' && key === 'downturn') recentEvent = event(turningPoint === 'confirmed' ? 'downturn_confirmed' : 'downturn_detected', turningPoint);
+    else if (recentEvent.key === 'none' && currentKey === 'uptrend' && closes.slice(-10, -1).some(function (value) { return value < ma20; }) && current >= ma20 && s5 > 0) recentEvent = event('uptrend_resume', 'confirmed');
+    else if (recentEvent.key === 'none' && currentKey === 'downtrend') recentEvent = event('downtrend_resume', 'confirmed');
+    var auxiliaryStates = [];
+    if (currentKey === 'uptrend' && ((current / ma20 - 1 >= .08) || (closes.length >= 21 && closes[closes.length - 1] / closes[closes.length - 21] - 1 >= .15))) auxiliaryStates.push(event('overheated', 'confirmed'));
+    var exhaustionStart = closes.length >= 21 ? closes[closes.length - 21] : closes[closes.length - 11];
+    var exhaustionEnd = closes.length >= 21 ? closes[closes.length - 11] : closes[closes.length - 1];
+    if (currentKey === 'downtrend' && closes.length >= 11 && exhaustionEnd / exhaustionStart - 1 <= -.08 && closes[closes.length - 1] / closes[closes.length - 6] - 1 >= -.03) auxiliaryStates.push(event('exhaustion', 'detected'));
+    if (recentEvent.key.indexOf('fake_') === 0) auxiliaryStates = [];
+    auxiliaryStates = auxiliaryStates.slice(0, 2);
     var labels = { uptrend: '상승 지속', upturn: '상방 변곡', neutral: '횡보·판단 보류', downturn: '하방 변곡', downtrend: '하락 지속' };
     var invalidation = { uptrend: '20일선 이탈 후 회복 실패', upturn: '반등 저점 이탈 또는 20일선 회복 실패', neutral: '20일선 위 안착 또는 하향 이탈로 국면 재판정', downturn: '최근 반등 고점 돌파 및 20일선 회복', downtrend: '20일선 회복 후 안착' };
     return { key: key, label: labels[key], confidence: confidence, turningPoint: turningPoint,
       reasons: ['5·20·60일선 ' + Math.round(ma5) + ' / ' + Math.round(ma20) + ' / ' + Math.round(ma60), '20일선 5거래일 변화 ' + (s20 * 100).toFixed(2) + '%'].concat(higherLow ? ['최근 저점이 이전 저점보다 높음'] : []).concat(ma224 != null ? ['224일선은 장기 추세 참고값으로만 사용'] : []),
-      invalidation: invalidation[key], ma: { ma5: ma5, ma20: ma20, ma60: ma60, ma224: ma224 }, signals: { up: upCount, down: downCount } };
+      invalidation: invalidation[key], ma: { ma5: ma5, ma20: ma20, ma60: ma60, ma224: ma224 }, signals: { up: upCount, down: downCount },
+      currentRegime: currentRegime, recentEvent: recentEvent, mainEvent: recentEvent, auxiliaryStates: auxiliaryStates };
   }
 
   function buildSwingAssessment(data, entry, chartData, fundamentalScore) {
@@ -2582,23 +2612,29 @@
     if (credit && credit.flag) flags.push(credit.label || '신용·반대매매 주의');
     var risk = flags.length > 1 || (shortP && shortP.danger_gate && shortP.danger_gate.triggered) ? '경고' : flags.length ? '주의' : '없음';
     var blocks = risk !== '없음';
-    var holder, entryOpinion, base;
-    if (chart.key === 'uptrend') { holder = '보유 / 추가매수 검토'; entryOpinion = blocks ? '신규 진입 주의' : '눌림목 매수 후보'; base = 100; }
-    else if (chart.key === 'upturn') { holder = '보유 / 강제 비중축소 금지'; entryOpinion = chart.turningPoint === 'confirmed' && !blocks ? '초기 매수 후보' : '신규 진입 관찰'; base = chart.turningPoint === 'confirmed' ? 82 : 68; }
+    var holder, entryOpinion, base, eventKey = chart.recentEvent && chart.recentEvent.key, auxKeys = (chart.auxiliaryStates || []).map(function (item) { return item.key; });
+    if (eventKey === 'fake_breakout' || eventKey === 'fake_breakdown') { holder = '보유 / 신호 취소 후 관찰'; entryOpinion = '관찰'; base = 35; }
+    else if (chart.key === 'uptrend') { holder = '보유 / 추가매수 검토'; entryOpinion = auxKeys.indexOf('overheated') !== -1 ? '신규 매수 대기' : eventKey === 'breakout' ? (blocks ? '신규 진입 금지' : '돌파 매수 후보') : (blocks ? '신규 진입 금지' : '눌림목 매수 후보'); base = 100; }
+    else if (chart.key === 'upturn') { holder = '보유 / 비중축소 금지'; entryOpinion = chart.turningPoint === 'confirmed' && !blocks ? '초기 매수 후보' : '신규 진입 관찰'; base = chart.turningPoint === 'confirmed' ? 82 : 68; }
     else if (chart.key === 'neutral') { holder = '보유 / 관찰'; entryOpinion = '관찰'; base = 42; }
-    else if (chart.key === 'downturn') { holder = '비중축소 검토'; entryOpinion = '신규 진입 금지'; base = 18; }
+    else if (chart.key === 'downturn') { holder = '보유 주의 / 비중축소 검토'; entryOpinion = '신규 진입 금지'; base = 18; }
+    else if (auxKeys.indexOf('exhaustion') !== -1) { holder = '보유 주의 / 바닥 확인'; entryOpinion = '바닥 확인 관찰'; base = 12; }
     else { holder = '비중축소 / 매도 검토'; entryOpinion = '후보 제외'; base = 5; }
-    if (blocks && (chart.key === 'uptrend' || chart.key === 'upturn')) entryOpinion = '신규 진입 금지';
-    return { modelVersion: 'swing-4w-v1', chartRegime: chart, momentum: { state: momentum, score: momentumScore }, fundamental: { state: fundamental, score: fundamentalScore }, risk: { state: risk, flags: flags, blocksEntry: blocks }, holderAction: holder, entryOpinion: entryOpinion, internalPriorityScore: Math.max(0, Math.min(100, base + (momentumScore - 50) * .25)), legacy: {} };
+    if (blocks && (chart.key === 'uptrend' || chart.key === 'upturn') && eventKey !== 'fake_breakout' && eventKey !== 'fake_breakdown') entryOpinion = '신규 진입 금지';
+    return { modelVersion: 'swing-4w-v2', chartRegime: chart, currentRegime: chart.currentRegime, recentEvent: chart.recentEvent, auxiliaryStates: chart.auxiliaryStates || [], momentum: { state: momentum, score: momentumScore }, fundamental: { state: fundamental, score: fundamentalScore }, risk: { state: risk, flags: flags, blocksEntry: blocks }, holderAction: holder, entryOpinion: entryOpinion, internalPriorityScore: Math.max(0, Math.min(100, base + (momentumScore - 50) * .25)), legacy: {} };
   }
 
   function buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData) {
     var assessment = buildSwingAssessment(data, entry, chartData, computeFundamentalScore(fundamentals));
     var chart = assessment.chartRegime, risk = assessment.risk;
     var reasons = (chart.reasons || []).join(' · ');
+    var currentRegime = assessment.currentRegime || chart.currentRegime || { label: chart.label };
+    var recentEvent = assessment.recentEvent || chart.recentEvent || { label: '이벤트 없음' };
+    var auxiliary = (assessment.auxiliaryStates || chart.auxiliaryStates || []).map(function (item) { return item.label; }).join(' · ') || '없음';
     return '<div class="ff-summary ff-swing-summary">'
-      + '<div class="ff-swing-regime"><span class="ff-panel-title">4주 스윙 판정</span><strong>' + escapeHtml(chart.label) + '</strong><small>' + escapeHtml(chart.turningPoint === 'detected' ? '변곡 감지 · 확인 대기' : chart.turningPoint === 'confirmed' ? '변곡 확인' : '국면 기준') + '</small></div>'
+      + '<div class="ff-swing-regime"><span class="ff-panel-title">4주 스윙 판정</span><strong>' + escapeHtml(currentRegime.label) + '</strong><small>최근 이벤트 · ' + escapeHtml(recentEvent.label) + '</small></div>'
       + '<div class="ff-swing-grid">'
+      + '<div><span>보조 상태</span><b>' + escapeHtml(auxiliary) + '</b></div>'
       + '<div><span>모멘텀</span><b>' + escapeHtml(assessment.momentum.state) + '</b></div>'
       + '<div><span>펀더멘털</span><b>' + escapeHtml(assessment.fundamental.state) + '</b></div>'
       + '<div><span>위험</span><b>' + escapeHtml(risk.state) + '</b></div>'

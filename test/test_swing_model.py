@@ -46,6 +46,37 @@ class SwingModelTests(unittest.TestCase):
         self.assertIn(assessment['chartRegime']['key'], ('downturn', 'downtrend'))
         self.assertNotIn('매수 후보', assessment['entryOpinion'])
 
+    def test_downtrend_cannot_be_a_new_buy_candidate(self):
+        assessment = swing_model.build_swing_assessment(
+            bars([200 - index * 1.5 for index in range(100)]), flow_score=90,
+            foreign_inst_score=90, fundamental_score=90,
+        )
+        self.assertEqual(assessment['currentRegime']['key'], 'downtrend')
+        self.assertNotIn('매수 후보', assessment['entryOpinion'])
+
+    def test_downside_exhaustion_remains_observe_only(self):
+        assessment = swing_model.build_swing_assessment(
+            bars([200 - index * 1.5 for index in range(90)] + [66.5] * 10),
+        )
+        self.assertEqual(assessment['currentRegime']['key'], 'downtrend')
+        self.assertIn('exhaustion', [item['key'] for item in assessment['auxiliaryStates']])
+        self.assertNotIn('매수 후보', assessment['entryOpinion'])
+
+    def test_fake_breakout_and_breakdown_cancel_the_previous_signal(self):
+        for values, event_key in (
+            ([100] * 77 + [115, 105, 100], 'fake_breakout'),
+            ([100] * 77 + [85, 95, 100], 'fake_breakdown'),
+        ):
+            assessment = swing_model.build_swing_assessment(bars(values))
+            self.assertEqual(assessment['recentEvent']['key'], event_key)
+            self.assertEqual(assessment['entryOpinion'], '관찰')
+
+    def test_current_regime_and_recent_event_are_separate_and_auxiliary_is_bounded(self):
+        assessment = swing_model.build_swing_assessment(bars([100 + index for index in range(100)]))
+        self.assertIn(assessment['currentRegime']['key'], ('uptrend', 'neutral', 'downtrend'))
+        self.assertIn('recentEvent', assessment)
+        self.assertLessEqual(len(assessment['auxiliaryStates']), 2)
+
     def test_risk_warning_blocks_new_entry_even_with_high_legacy_score(self):
         assessment = swing_model.build_swing_assessment(
             bars([100 + index for index in range(100)]), flow_score=95,
@@ -102,10 +133,13 @@ class SwingModelTests(unittest.TestCase):
             'asOfDate': '2026-08-14', 'code': '005930', 'name': '삼성전자', 'close': 70000,
             'createdAt': '2026-08-14T08:00:00Z', **assessment,
         })
-        row = conn.execute('SELECT chart_regime, holder_action, entry_opinion, legacy_score, ma224 FROM swing_recommendation_snapshots').fetchone()
+        row = conn.execute('SELECT chart_regime, current_regime, recent_event, auxiliary_states_json, holder_action, entry_opinion, legacy_score, ma224 FROM swing_recommendation_snapshots').fetchone()
         self.assertEqual(row[0], 'uptrend')
-        self.assertEqual(row[3], 77)
-        self.assertIsNotNone(row[4])
+        self.assertEqual(row[1], 'uptrend')
+        self.assertTrue(row[2])
+        self.assertIsNotNone(row[3])
+        self.assertEqual(row[6], 77)
+        self.assertIsNotNone(row[7])
         conn.close()
 
 

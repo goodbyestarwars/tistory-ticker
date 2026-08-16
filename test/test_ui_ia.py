@@ -1183,7 +1183,29 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
         self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-up', style)
-        self.assertIn('_WEEKLY_REPORT_SNAPSHOT_VERSION = 5', backend)
+        self.assertIn('_WEEKLY_REPORT_SNAPSHOT_VERSION = 6', backend)
+
+    def test_swing_ui_separates_regime_event_and_hides_legacy_grade_from_visible_box(self):
+        source = self.read("js/foreign-flow.js")
+        box_start = source.index('function buildSwingSummaryBox')
+        box_end = source.index('function buildSummaryBox', box_start)
+        visible_box = source[box_start:box_end]
+        self.assertIn('currentRegime', visible_box)
+        self.assertIn('recentEvent', visible_box)
+        self.assertIn('보조 상태', visible_box)
+        self.assertNotIn('starsHtml(', visible_box)
+        self.assertNotIn('ff-stars', visible_box)
+
+    def test_weekly_candidate_empty_state_is_explicit(self):
+        source = self.read("js/home-weekly-report.js")
+        self.assertIn("'현재 조건 충족 후보 없음'", source)
+
+    def test_initial_paint_guard_hides_unstyled_refresh_frame(self):
+        source = self.read("skin.html")
+        self.assertIn('id="initial-paint-guard"', source)
+        self.assertIn('html:not(.skin-ready) body { visibility: hidden; }', source)
+        self.assertIn("root.classList.add('skin-ready')", source)
+        self.assertIn('window.setTimeout(reveal, 1800)', source)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")

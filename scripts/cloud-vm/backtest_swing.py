@@ -72,14 +72,21 @@ def evaluate_stock(conn, stock, min_history=60):
         chart = assessment['chartRegime']
         if chart['key'] not in ('uptrend', 'upturn'):
             continue
-        if chart['key'] == 'upturn' and chart.get('turningPoint') != 'confirmed':
+        if (assessment.get('risk') or {}).get('blocksEntry'):
+            continue
+        if assessment.get('entryOpinion') not in ('눌림목 매수 후보', '초기 매수 후보', '돌파 매수 후보'):
+            continue
+        event = assessment.get('recentEvent') or chart.get('recentEvent') or {}
+        if event.get('key') in ('fake_breakout', 'fake_breakdown', 'exhaustion'):
             continue
         outcome = _forward_returns(daily, index)
         if 't20_return' not in outcome:
             continue
         rows.append({
             'code': stock['code'], 'name': stock['name'], 'date': daily[index]['date'],
-            'regime': chart['label'], 'turningPoint': chart.get('turningPoint'),
+            'regime': (assessment.get('currentRegime') or {}).get('label') or chart['label'],
+            'event': event.get('label') or '이벤트 없음', 'eventKey': event.get('key'),
+            'turningPoint': chart.get('turningPoint'),
             **outcome,
         })
     return rows
@@ -102,7 +109,14 @@ def summarize(rows):
                 't20Avg': avg('t20_return'), 't5WinRate': win('t5_return'),
                 't10WinRate': win('t10_return'), 't20WinRate': win('t20_return')}
 
-    return {key: stats(value) for key, value in sorted(grouped.items())}
+    by_regime = {key: stats(value) for key, value in sorted(grouped.items())}
+    by_event = defaultdict(list)
+    for row in rows:
+        by_event[row.get('event') or '이벤트 없음'].append(row)
+    return {
+        'byRegime': by_regime,
+        'byEvent': {key: stats(value) for key, value in sorted(by_event.items())},
+    }
 
 
 def load_legacy(path):
@@ -150,7 +164,7 @@ def run(db_file=None, legacy_json=None):
     return {
         'status': 'completed', 'modelVersion': swing_model.MODEL_VERSION,
         'generatedAt': datetime.now(timezone.utc).isoformat(), 'universe': universe,
-        'signals': len(rows), 'byRegime': summarize(rows),
+        'signals': len(rows), **summarize(rows),
         'legacyComparison': compare_legacy(rows, load_legacy(legacy_json)),
     }
 

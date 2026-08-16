@@ -225,7 +225,7 @@ _weekly_report_cache = {}
 _WEEKLY_REPORT_SNAPSHOT_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'weekly_report_cache.json'
 )
-_WEEKLY_REPORT_SNAPSHOT_VERSION = 5
+_WEEKLY_REPORT_SNAPSHOT_VERSION = 6
 _sector_cards_cache = None
 
 

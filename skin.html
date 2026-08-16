@@ -13,6 +13,29 @@
       if (localStorage.getItem('bolt-sidebar-collapsed') === '1') document.documentElement.classList.add('sidebar-collapsed');
     } catch (e) {}
   </script>
+  <!-- 외부 CSS가 여러 파일로 나뉘어 있어 새로고침 순간 스타일 없는 본문/차트가
+       먼저 그려지는 초기 페인트 FOUC를 막는다. 스타일 적용 뒤 한 번만 표시하며,
+       네트워크가 느려도 1.8초 뒤에는 안전하게 화면을 연다. -->
+  <style id="initial-paint-guard">
+    html, html body { background: rgb(253, 253, 247); }
+    html.dark, html.dark body { background: #1A1A1A; }
+    html:not(.skin-ready) body { visibility: hidden; }
+  </style>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var revealed = false;
+      function reveal() {
+        if (revealed) return;
+        revealed = true;
+        root.classList.add('skin-ready');
+      }
+      window.addEventListener('load', function () {
+        window.requestAnimationFrame(reveal);
+      }, { once: true });
+      window.setTimeout(reveal, 1800);
+    }());
+  </script>
   <!-- 폐기된 빈 시장 리본은 외부 CSS가 도착하기 전에도 절대 페인트하지 않는다(새로고침 검은 띠 FOUC 방지). -->
   <style>.market-ribbon { display: none !important; }</style>
   <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/icon-9bolt-transparent.svg" />

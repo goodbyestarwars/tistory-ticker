@@ -24,7 +24,7 @@ def _returns(prices, entry_close, benchmark=None):
 
 
 def outcome_for_snapshot(conn, row):
-    code, as_of_date, entry_close = row[1], row[0], row[4]
+    code, as_of_date, initial_regime, entry_close = row[1], row[0], row[4], row[5]
     daily = db_schema.load_daily_prices(conn, code)
     after = [item for item in daily if item.get('date', '') > as_of_date]
     benchmark_rows = db_schema.load_future_chart_since(conn, 'KOSPI', as_of_date.replace('-', ''))
@@ -38,6 +38,7 @@ def outcome_for_snapshot(conn, row):
     outcomes = {
         't5_return': None, 't10_return': None, 't20_return': None,
         't5_excess_return': None, 't10_excess_return': None, 't20_excess_return': None,
+        't20_regime': None, 't20_regime_changed': None,
         'mfe': round(max(highs) / entry_close * 100 - 100, 4) if highs and entry_close else None,
         'mae': round(min(lows) / entry_close * 100 - 100, 4) if lows and entry_close else None,
         'outcomeUpdatedAt': datetime.now(timezone.utc).isoformat(),
@@ -50,6 +51,14 @@ def outcome_for_snapshot(conn, row):
                                [entry_benchmark] + benchmark_slice if entry_benchmark and len(benchmark_slice) == horizon else None)
         outcomes[field + '_return'] = ret
         outcomes[field + '_excess_return'] = excess
+    if len(after) >= 20:
+        target_date = after[19].get('date')
+        target_index = next((index for index, item in enumerate(daily) if item.get('date') == target_date), None)
+        if target_index is not None:
+            t20_chart = swing_model.classify_chart_regime(daily[:target_index + 1])
+            t20_regime = (t20_chart.get('currentRegime') or {}).get('key') or 'neutral'
+            outcomes['t20_regime'] = t20_regime
+            outcomes['t20_regime_changed'] = int(bool(initial_regime and t20_regime != initial_regime))
     return outcomes
 
 
@@ -57,7 +66,7 @@ def run(db_file=None):
     conn = db_schema.get_conn(db_file)
     db_schema.create_schema(conn)
     rows = conn.execute(
-        '''SELECT as_of_date, code, model_version, chart_regime, close
+        '''SELECT as_of_date, code, model_version, chart_regime, current_regime, close
            FROM swing_recommendation_snapshots
            WHERE model_version=? ORDER BY as_of_date, code''',
         (swing_model.MODEL_VERSION,),

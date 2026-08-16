@@ -387,18 +387,26 @@ def swing_candidates(swing_scan, limit=5):
         if chart.get('key') not in ('uptrend', 'upturn') or risk.get('blocksEntry'):
             continue
         entry = assessment.get('entryOpinion')
-        if entry not in ('눌림목 매수 후보', '초기 매수 후보'):
+        if entry not in ('눌림목 매수 후보', '초기 매수 후보', '돌파 매수 후보'):
             continue
+        recent_event = assessment.get('recentEvent') or chart.get('recentEvent') or {}
+        if recent_event.get('key') in ('fake_breakout', 'fake_breakdown', 'exhaustion'):
+            continue
+        current_regime = assessment.get('currentRegime') or chart.get('currentRegime') or {}
+        auxiliary = assessment.get('auxiliaryStates') or chart.get('auxiliaryStates') or []
         item = {
             'code': row.get('code'), 'name': row.get('name'), 'price': row.get('price'),
-            'changeRate': row.get('changeRate'), 'chartRegime': chart.get('label'),
+            'changeRate': row.get('changeRate'), 'chartRegime': current_regime.get('label') or chart.get('label'),
+            'recentEvent': recent_event.get('label'),
+            'auxiliaryStates': [item.get('label') for item in auxiliary if isinstance(item, dict)],
             'turningPoint': chart.get('turningPoint'), 'momentum': (assessment.get('momentum') or {}).get('state'),
             'fundamental': (assessment.get('fundamental') or {}).get('state'),
             'risk': risk.get('state'), 'entryOpinion': entry,
             'holderAction': assessment.get('holderAction'),
             'invalidation': chart.get('invalidation'),
-            'reason': '%s · 모멘텀 %s · 펀더멘털 %s · 위험 %s' % (
-                chart.get('label') or '차트 국면 확인',
+            'reason': '%s · %s · 모멘텀 %s · 펀더멘털 %s · 위험 %s' % (
+                current_regime.get('label') or chart.get('label') or '차트 국면 확인',
+                recent_event.get('label') or '이벤트 없음',
                 (assessment.get('momentum') or {}).get('state') or '데이터 부족',
                 (assessment.get('fundamental') or {}).get('state') or '데이터 부족',
                 risk.get('state') or '확인 중',

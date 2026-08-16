@@ -15,13 +15,34 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Optional
 
 
-MODEL_VERSION = 'swing-4w-v1'
+MODEL_VERSION = 'swing-4w-v2'
 REGIME_LABELS = {
     'uptrend': '상승 지속',
     'upturn': '상방 변곡',
     'neutral': '횡보·판단 보류',
     'downturn': '하방 변곡',
     'downtrend': '하락 지속',
+}
+CURRENT_REGIME_LABELS = {
+    'uptrend': '상승 추세',
+    'neutral': '횡보·수렴',
+    'downtrend': '하락 추세',
+}
+EVENT_LABELS = {
+    'none': '이벤트 없음',
+    'upturn_detected': '상방 변곡 감지',
+    'upturn_confirmed': '상방 변곡 확정',
+    'uptrend_resume': '상승 추세 재개',
+    'downturn_detected': '하방 변곡 감지',
+    'downturn_confirmed': '하방 변곡 확정',
+    'downtrend_resume': '하락 추세 재개',
+    'breakout': '상단 돌파',
+    'breakdown': '하단 이탈',
+    'compression': '수렴·압축',
+    'overheated': '과열·소진',
+    'fake_breakout': '페이크 돌파',
+    'fake_breakdown': '페이크 이탈',
+    'exhaustion': '하락 소진 감지',
 }
 
 
@@ -88,16 +109,73 @@ def _relative_strength(closes: List[float], benchmark: Optional[Iterable[Any]]) 
     return (asset_return - market_return) * 100
 
 
+def _event(key: str, stage: str = 'none') -> Dict[str, str]:
+    return {'key': key, 'label': EVENT_LABELS[key], 'stage': stage}
+
+
+def _range_break_state(closes: List[float]) -> Optional[str]:
+    """최근 1~2개 봉이 기준 범위에 다시 들어왔는지 확인한다.
+
+    한 봉의 고가/저가만으로 페이크를 만들지 않도록, 기준 범위를 벗어난
+    봉 뒤에 최소 한 봉이 다시 범위 안으로 복귀한 경우만 판정한다.
+    """
+    if len(closes) < 24:
+        return None
+    reference = closes[-23:-3]
+    if not reference:
+        return None
+    high, low = max(reference), min(reference)
+    probe = closes[-3]
+    latest = closes[-1]
+    if probe > high * 1.01 and latest <= high * 1.01:
+        return 'fake_breakout'
+    if probe < low * 0.99 and latest >= low * 0.99:
+        return 'fake_breakdown'
+    return None
+
+
+def _breakout_state(closes: List[float]) -> Optional[str]:
+    if len(closes) < 22:
+        return None
+    reference = closes[-21:-1]
+    high, low = max(reference), min(reference)
+    previous = closes[-2]
+    latest = closes[-1]
+    if latest > high * 1.01 and previous <= high * 1.01:
+        return 'breakout'
+    if latest < low * 0.99 and previous >= low * 0.99:
+        return 'breakdown'
+    return None
+
+
+def _compression_state(closes: List[float]) -> bool:
+    if len(closes) < 30:
+        return False
+    recent = closes[-10:]
+    prior = closes[-30:-10]
+    recent_range = (max(recent) - min(recent)) / max(min(recent), 1e-9)
+    prior_range = (max(prior) - min(prior)) / max(min(prior), 1e-9)
+    return prior_range > 0 and recent_range / prior_range < 0.6
+
+
 def classify_chart_regime(daily: List[Dict[str, Any]], benchmark: Optional[Iterable[Any]] = None) -> Dict[str, Any]:
-    """Return a five-state chart regime without using a one-day candle alone."""
+    """Return an action-compatible regime plus separate current/event states.
+
+    ``key`` and ``turningPoint`` remain for old callers. New consumers should
+    use ``currentRegime`` and ``recentEvent``. The 224-day average is retained
+    as context and never participates in the four-week action gate.
+    """
     closes = [_close(row) for row in daily or []]
     closes = [value for value in closes if value is not None and value > 0]
     if len(closes) < 60:
+        current = {'key': 'neutral', 'label': CURRENT_REGIME_LABELS['neutral']}
         return {
             'key': 'neutral', 'label': REGIME_LABELS['neutral'], 'confidence': 'low',
             'turningPoint': 'unknown', 'reasons': ['5·20·60일선 계산에 필요한 일봉이 부족합니다.'],
             'invalidation': '일봉 데이터 60개 이상 확보 후 재판정', 'ma': {},
-            'relativeStrength': None,
+            'relativeStrength': None, 'currentRegime': current,
+            'recentEvent': _event('none'), 'mainEvent': _event('none'),
+            'auxiliaryStates': [],
         }
 
     ma5 = _moving_average(closes, 5)
@@ -142,6 +220,44 @@ def classify_chart_regime(daily: List[Dict[str, Any]], benchmark: Optional[Itera
     else:
         key, turn, confidence = 'neutral', 'none', 'low'
 
+    current_key = 'uptrend' if up_confirmed else 'downtrend' if down_confirmed else 'neutral'
+    current_regime = {'key': current_key, 'label': CURRENT_REGIME_LABELS[current_key]}
+    fake_event = _range_break_state(closes)
+    break_event = _breakout_state(closes)
+    if fake_event:
+        recent_event = _event(fake_event, 'confirmed')
+    elif break_event:
+        recent_event = _event(break_event, 'confirmed')
+    elif key == 'upturn':
+        recent_event = _event('upturn_confirmed' if turn == 'confirmed' else 'upturn_detected', turn)
+    elif key == 'downturn':
+        recent_event = _event('downturn_confirmed' if turn == 'confirmed' else 'downturn_detected', turn)
+    elif current_key == 'uptrend':
+        prior_below = any(value < ma20[-1] for value in closes[-10:-1]) if m20 else False
+        recent_event = _event('uptrend_resume', 'confirmed') if prior_below and now >= m20 and short_slope > 0 else _event('none')
+    elif current_key == 'downtrend':
+        recent_event = _event('downtrend_resume', 'confirmed')
+    elif _compression_state(closes):
+        recent_event = _event('compression', 'confirmed')
+    else:
+        recent_event = _event('none')
+
+    auxiliary = []
+    if current_key == 'uptrend' and m20 and (now / m20 - 1 >= 0.08 or (len(closes) >= 21 and closes[-1] / closes[-21] - 1 >= 0.15)):
+        auxiliary.append(_event('overheated', 'confirmed'))
+    if current_key == 'downtrend' and len(closes) >= 11:
+        exhaustion_start = closes[-21] if len(closes) >= 21 else closes[-11]
+        exhaustion_end = closes[-11] if len(closes) >= 21 else closes[-1]
+        recent_loss = exhaustion_end / exhaustion_start - 1 if exhaustion_start else 0
+        last_five = closes[-1] / closes[-6] - 1
+        if recent_loss <= -0.08 and last_five >= -0.03:
+            auxiliary.append(_event('exhaustion', 'detected'))
+    if _compression_state(closes) and recent_event['key'] != 'compression':
+        auxiliary.append(_event('compression', 'confirmed'))
+    if fake_event:
+        auxiliary = []
+    auxiliary = auxiliary[:2]
+
     reasons = []
     if m5 and m20 and m60:
         reasons.append('5·20·60일선 %.1f / %.1f / %.1f' % (m5, m20, m60))
@@ -172,6 +288,10 @@ def classify_chart_regime(daily: List[Dict[str, Any]], benchmark: Optional[Itera
                'slope20': slope20, 'slope60': slope60},
         'relativeStrength': rs,
         'signals': {'up': sum(up_signals), 'down': sum(down_signals)},
+        'currentRegime': current_regime,
+        'recentEvent': recent_event,
+        'mainEvent': recent_event,
+        'auxiliaryStates': auxiliary,
     }
 
 
@@ -215,12 +335,23 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
     risk = '경고' if danger_gate.get('triggered') or len(risk_flags) >= 2 else '주의' if risk_flags else '없음'
     blocks_entry = risk in ('주의', '경고')
 
-    if chart['key'] == 'uptrend':
+    event_key = (chart.get('recentEvent') or {}).get('key')
+    aux_keys = {(item or {}).get('key') for item in chart.get('auxiliaryStates') or []}
+    if event_key in ('fake_breakout', 'fake_breakdown'):
+        holder_action = '보유 / 신호 취소 후 관찰'
+        entry_opinion = '관찰'
+        priority_base = 35
+    elif chart['key'] == 'uptrend':
         holder_action = '보유 / 추가매수 검토'
-        entry_opinion = '눌림목 매수 후보' if not blocks_entry else '신규 진입 주의'
+        if 'overheated' in aux_keys:
+            entry_opinion = '신규 매수 대기'
+        elif event_key == 'breakout':
+            entry_opinion = '돌파 매수 후보' if not blocks_entry else '신규 진입 금지'
+        else:
+            entry_opinion = '눌림목 매수 후보' if not blocks_entry else '신규 진입 금지'
         priority_base = 100
     elif chart['key'] == 'upturn':
-        holder_action = '보유 / 강제 비중축소 금지'
+        holder_action = '보유 / 비중축소 금지'
         entry_opinion = '초기 매수 후보' if chart['turningPoint'] == 'confirmed' and not blocks_entry else '신규 진입 관찰'
         priority_base = 82 if chart['turningPoint'] == 'confirmed' else 68
     elif chart['key'] == 'neutral':
@@ -228,21 +359,29 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
         entry_opinion = '관찰'
         priority_base = 42
     elif chart['key'] == 'downturn':
-        holder_action = '비중축소 검토'
+        holder_action = '보유 주의 / 비중축소 검토'
         entry_opinion = '신규 진입 금지'
         priority_base = 18
     else:
-        holder_action = '비중축소 / 매도 검토'
-        entry_opinion = '후보 제외'
-        priority_base = 5
+        if 'exhaustion' in aux_keys:
+            holder_action = '보유 주의 / 바닥 확인'
+            entry_opinion = '바닥 확인 관찰'
+            priority_base = 12
+        else:
+            holder_action = '비중축소 / 매도 검토'
+            entry_opinion = '후보 제외'
+            priority_base = 5
 
-    if blocks_entry and chart['key'] in ('uptrend', 'upturn'):
+    if blocks_entry and chart['key'] in ('uptrend', 'upturn') and event_key not in ('fake_breakout', 'fake_breakdown'):
         entry_opinion = '신규 진입 금지'
     score_parts = [value for value in (momentum_score, fundamental_score) if value is not None]
     internal_priority = priority_base + (sum(score_parts) / len(score_parts) - 50) * 0.25 if score_parts else priority_base
     return {
         'modelVersion': MODEL_VERSION,
         'chartRegime': chart,
+        'currentRegime': chart.get('currentRegime'),
+        'recentEvent': chart.get('recentEvent'),
+        'auxiliaryStates': chart.get('auxiliaryStates') or [],
         'momentum': {'state': momentum, 'score': momentum_score},
         'fundamental': {'state': fundamental, 'score': fundamental_score},
         'risk': {'state': risk, 'flags': risk_flags, 'blocksEntry': blocks_entry},
