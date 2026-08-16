@@ -260,7 +260,9 @@
     var fx = data.fx || {};
     root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><span class="hwr-eyebrow">WEEKEND BRIEF</span><h2>' + title + '</h2><p>' + subtitle + '</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + indexSummary(indices)
-      + '<div class="hwr-index-grid">' + indices.map(function (item) {
+      + '<div class="hwr-index-grid">' + indices.filter(function (item) {
+        return item && ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX'].indexOf(item.symbol) !== -1;
+      }).map(function (item) {
         return '<article class="hwr-index-card"><div><strong>' + escapeHtml(item.name) + '</strong><span class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span></div><b>' + formatMarketValue(item) + '</b><div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div><small>' + (item.available ? '주간 추이' : '데이터 없음') + '</small></article>';
       }).join('') + '</div>'
       + '<div class="hwr-summary-row"><div>' + fxCard(fx) + '</div><p class="hwr-source-note"><b>데이터 출처</b><br>지수: 국내 KRX/KIS · 미국 네이버·KIS<br>한국 뉴스: 네이버 뉴스 · DART 공시<br>미국 뉴스: Finnhub · Alpha Vantage (설정된 공급자 기준)<br><small>환율 구간은 최근 1년 관측값을 기준으로 한 참고용 분류입니다.</small></p></div>'
