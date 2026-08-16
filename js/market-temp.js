@@ -1094,7 +1094,7 @@
       if (editButton) editButton.addEventListener('click', function () {
         renderSectorEditor_(panel, sectorMap, config.revision, {
           cancel: function () { panel.__mtLoaded = false; loadCardsPanel(panel); },
-          saved: function () { panel.__mtLoaded = false; loadCardsPanel(panel); }
+          saved: function () { invalidatePersonalHeatmap_(panel); panel.__mtLoaded = false; loadCardsPanel(panel); }
         });
       });
     });
@@ -1111,6 +1111,17 @@
       var html = SD.renderHeatmapHtml(sectorMap, krxMap, byCode);
       panel.innerHTML = html ? '<div class="heatmap-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>';
     });
+  }
+
+  // 카드 편집과 일반 히트맵은 같은 개인 섹터 구성을 사용한다. 이미 열어둔 히트맵도
+  // 저장 직후 다음 탭 전환에서 새 구성으로 다시 그리게 한다. 시총비례 히트맵은 시장
+  // 전체 고정 종목 풀과 실제 시가총액을 쓰므로 개인 카드 편집 대상이 아니다.
+  function invalidatePersonalHeatmap_(panel) {
+    var root = panel && panel.closest('.mt-explore-card');
+    var heatmapPanel = root && root.querySelector('[data-view-panel="heatmap"]');
+    if (!heatmapPanel) return;
+    heatmapPanel.__mtLoaded = false;
+    heatmapPanel.innerHTML = '';
   }
 
   function loadCardsPanel(panel) {
