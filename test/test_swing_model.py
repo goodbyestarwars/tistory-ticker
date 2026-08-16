@@ -22,7 +22,7 @@ def bars(values):
 class SwingModelTests(unittest.TestCase):
     def test_rising_trend_never_outputs_reduce_or_sell(self):
         assessment = swing_model.build_swing_assessment(
-            bars([100 + index for index in range(100)]), flow_score=80,
+            bars([100 + index for index in range(260)]), flow_score=80,
             foreign_inst_score=75, fundamental_score=70,
         )
         self.assertEqual(assessment['chartRegime']['key'], 'uptrend')
@@ -79,7 +79,7 @@ class SwingModelTests(unittest.TestCase):
 
     def test_risk_warning_blocks_new_entry_even_with_high_legacy_score(self):
         assessment = swing_model.build_swing_assessment(
-            bars([100 + index for index in range(100)]), flow_score=95,
+            bars([100 + index for index in range(260)]), flow_score=95,
             foreign_inst_score=95, fundamental_score=95, short_score=10,
             entry={'short': {'pressure': {'score': 10, 'danger_gate': {'triggered': True}}}},
             legacy={'score': 98, 'stars': 5, 'label': '적극 매수'},
@@ -88,7 +88,7 @@ class SwingModelTests(unittest.TestCase):
         self.assertEqual(assessment['entryOpinion'], '신규 진입 금지')
 
     def test_holder_and_non_holder_actions_are_separate(self):
-        assessment = swing_model.build_swing_assessment(bars([100 + index for index in range(100)]))
+        assessment = swing_model.build_swing_assessment(bars([100 + index for index in range(260)]))
         self.assertIn('보유', assessment['holderAction'])
         self.assertNotEqual(assessment['holderAction'], '보유')
         self.assertIn('후보', assessment['entryOpinion'])
@@ -103,6 +103,12 @@ class SwingModelTests(unittest.TestCase):
             'code': '005930', 'name': '삼성전자', 'price': 70000, 'changeRate': 1.2,
             'swing': {
                 'chartRegime': {'key': 'upturn', 'label': '상방 변곡', 'turningPoint': 'confirmed', 'invalidation': '20일선 회복 실패'},
+                'waves': {
+                    'big': {'key': 'uptrend', 'label': '상승 추세', 'available': True},
+                    'mid': {'key': 'uptrend', 'label': '상승 추세', 'available': True},
+                    'small': {'key': 'uptrend', 'label': '상승 추세', 'available': True},
+                    'diagnosis': '대·중·소 파동 정렬',
+                },
                 'momentum': {'state': '강화'}, 'fundamental': {'state': '지지'},
                 'risk': {'state': '없음', 'blocksEntry': False},
                 'entryOpinion': '초기 매수 후보', 'holderAction': '보유 / 강제 비중축소 금지',
@@ -133,13 +139,65 @@ class SwingModelTests(unittest.TestCase):
             'asOfDate': '2026-08-14', 'code': '005930', 'name': '삼성전자', 'close': 70000,
             'createdAt': '2026-08-14T08:00:00Z', **assessment,
         })
-        row = conn.execute('SELECT chart_regime, current_regime, recent_event, auxiliary_states_json, holder_action, entry_opinion, legacy_score, ma224 FROM swing_recommendation_snapshots').fetchone()
+        row = conn.execute('SELECT chart_regime, current_regime, recent_event, auxiliary_states_json, big_wave, mid_wave, small_wave, wave_diagnosis, wave_events_json, holder_action, entry_opinion, legacy_score, ma224 FROM swing_recommendation_snapshots').fetchone()
         self.assertEqual(row[0], 'uptrend')
         self.assertEqual(row[1], 'uptrend')
         self.assertTrue(row[2])
         self.assertIsNotNone(row[3])
-        self.assertEqual(row[6], 77)
-        self.assertIsNotNone(row[7])
+        self.assertEqual(row[9], '보유 / 추가매수 검토')
+        self.assertEqual(row[11], 77)
+        self.assertIsNotNone(row[12])
+        self.assertEqual(row[4:8], ('uptrend', 'uptrend', 'uptrend', '대·중·소 파동 정렬'))
+        self.assertIsNotNone(row[8])
+        conn.close()
+
+    def test_big_mid_down_small_upturn_forbids_new_entry(self):
+        base = [220 - index * .45 for index in range(280)]
+        last = base[-1]
+        values = base + [last - index * .2 for index in range(15)] + [last - 14 * .2 + index * 5 for index in range(5)]
+        assessment = swing_model.build_swing_assessment(bars(values))
+        self.assertEqual(assessment['waves']['big']['key'], 'downtrend')
+        self.assertEqual(assessment['waves']['mid']['key'], 'downtrend')
+        self.assertEqual(assessment['waves']['small']['key'], 'uptrend')
+        self.assertEqual(assessment['diagnosis'], '하락 추세 안의 기술적 반등')
+        self.assertEqual(assessment['entryOpinion'], '신규 진입 금지')
+
+    def test_big_mid_up_small_resume_is_a_pullback_candidate(self):
+        values = [100 + index * .4 for index in range(300)]
+        assessment = swing_model.build_swing_assessment(bars(values))
+        self.assertEqual(assessment['waves']['big']['key'], 'uptrend')
+        self.assertEqual(assessment['waves']['mid']['key'], 'uptrend')
+        self.assertEqual(assessment['waves']['small']['key'], 'uptrend')
+        self.assertEqual(assessment['diagnosis'], '대·중·소 파동 정렬')
+        self.assertEqual(assessment['entryOpinion'], '눌림목 매수 후보')
+
+    def test_big_up_mid_down_small_upturn_waits_for_mid_confirmation(self):
+        values = [100 + index * .5 for index in range(230)]
+        values += [values[-1] - index * .6 for index in range(35)]
+        values += [values[-1] + index * 1 for index in range(15)]
+        assessment = swing_model.build_swing_assessment(bars(values))
+        self.assertEqual(assessment['waves']['big']['key'], 'uptrend')
+        self.assertEqual(assessment['waves']['mid']['key'], 'downtrend')
+        self.assertEqual(assessment['waves']['small']['key'], 'uptrend')
+        self.assertEqual(assessment['entryOpinion'], '중파동 확인 대기')
+
+    def test_big_wave_is_unavailable_before_224_trading_days(self):
+        assessment = swing_model.build_swing_assessment(bars([100 + index for index in range(223)]))
+        self.assertFalse(assessment['waves']['big']['available'])
+        self.assertEqual(assessment['waves']['big']['label'], '장기 데이터 부족')
+        self.assertNotIn('매수 후보', assessment['entryOpinion'])
+
+    def test_snapshot_stores_all_wave_layers_and_recent_events(self):
+        assessment = swing_model.build_swing_assessment(bars([100 + index * .4 for index in range(300)]))
+        conn = sqlite3.connect(':memory:')
+        db_schema.create_schema(conn)
+        db_schema.upsert_swing_snapshot(conn, {
+            'asOfDate': '2026-08-14', 'code': '005930', 'name': '삼성전자',
+            'close': 220, 'createdAt': '2026-08-14T08:00:00Z', **assessment,
+        })
+        row = conn.execute('SELECT big_wave, mid_wave, small_wave, wave_diagnosis, wave_events_json FROM swing_recommendation_snapshots').fetchone()
+        self.assertEqual(row[:4], ('uptrend', 'uptrend', 'uptrend', '대·중·소 파동 정렬'))
+        self.assertIsNotNone(row[4])
         conn.close()
 
 

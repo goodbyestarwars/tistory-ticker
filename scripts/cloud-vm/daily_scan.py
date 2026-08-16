@@ -143,6 +143,10 @@ def fresh_signal_state():
         # 2026-07-20: 종목분석 페이지 가중치 탭(수급/외국인·기관/기술적/공매도/펀더멘탈) 통합용 신규 랭킹.
         'topFlow': [], 'topForeignInst': [], 'topTech': [], 'topShortSafe': [], 'topFundamental': [],
         'swingScanned': 0, 'swingCandidates': [], 'swingRegimeCounts': {}, 'swingEventCounts': {},
+        'swingWaveCoverage': {
+            'total': 0, 'bigAvailable': 0, 'bigInsufficient': 0,
+            'midAvailable': 0, 'smallAvailable': 0, 'sampleDaysMin': None, 'sampleDaysMax': None,
+        },
     }
 
 
@@ -313,6 +317,20 @@ def main():
                 signal_state['swingRegimeCounts'][regime_key] = signal_state['swingRegimeCounts'].get(regime_key, 0) + 1
                 event_key = (assessment.get('recentEvent') or {}).get('key') or 'none'
                 signal_state['swingEventCounts'][event_key] = signal_state['swingEventCounts'].get(event_key, 0) + 1
+                coverage = signal_state['swingWaveCoverage']
+                waves = assessment.get('waves') or {}
+                big_wave = waves.get('big') or {}
+                mid_wave = waves.get('mid') or {}
+                small_wave = waves.get('small') or {}
+                sample_days = big_wave.get('sampleDays')
+                coverage['total'] += 1
+                coverage['bigAvailable'] += int(bool(big_wave.get('available')))
+                coverage['bigInsufficient'] += int(not big_wave.get('available'))
+                coverage['midAvailable'] += int(bool(mid_wave.get('available')))
+                coverage['smallAvailable'] += int(bool(small_wave.get('available')))
+                if isinstance(sample_days, int):
+                    coverage['sampleDaysMin'] = sample_days if coverage['sampleDaysMin'] is None else min(coverage['sampleDaysMin'], sample_days)
+                    coverage['sampleDaysMax'] = sample_days if coverage['sampleDaysMax'] is None else max(coverage['sampleDaysMax'], sample_days)
                 as_of_date = last.get('date') or today_str
                 db_schema.upsert_swing_snapshot(conn, {
                     'asOfDate': as_of_date, 'code': code, 'name': name,
@@ -320,10 +338,7 @@ def main():
                     'createdAt': datetime.now(timezone.utc).isoformat(),
                     **assessment,
                 })
-                if (assessment.get('chartRegime') or {}).get('key') in ('uptrend', 'upturn') \
-                        and not (assessment.get('risk') or {}).get('blocksEntry') \
-                        and assessment.get('entryOpinion') in ('눌림목 매수 후보', '초기 매수 후보', '돌파 매수 후보') \
-                        and (assessment.get('recentEvent') or {}).get('key') not in ('fake_breakout', 'fake_breakdown', 'exhaustion'):
+                if swing_model.is_four_week_candidate(assessment):
                     signal_state['swingCandidates'].append(row)
                 signal_state['counts'][verdict['label']] = signal_state['counts'].get(verdict['label'], 0) + 1
                 bucket = signal_state['buckets'].get(verdict['label'])
@@ -390,6 +405,7 @@ def main():
             'scanned': signal_state['swingScanned'],
             'regimeCounts': signal_state['swingRegimeCounts'],
             'eventCounts': signal_state['swingEventCounts'],
+            'waveCoverage': signal_state['swingWaveCoverage'],
             'candidates': signal_state['swingCandidates'],
             'basis': '차트 국면 관문 → 모멘텀·펀더멘털 확인 → 위험 필터, 국내 전용',
         },

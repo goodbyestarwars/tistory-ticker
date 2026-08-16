@@ -10,6 +10,8 @@ from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from math import log1p
 
+import swing_model
+
 
 def completed_week(now=None):
     """Return the most recently completed Monday-Friday week in KST."""
@@ -384,28 +386,37 @@ def swing_candidates(swing_scan, limit=5):
         assessment = row.get('swing') or row.get('assessment') or {}
         chart = assessment.get('chartRegime') or {}
         risk = assessment.get('risk') or {}
-        if chart.get('key') not in ('uptrend', 'upturn') or risk.get('blocksEntry'):
+        if not swing_model.is_four_week_candidate(assessment):
             continue
         entry = assessment.get('entryOpinion')
-        if entry not in ('눌림목 매수 후보', '초기 매수 후보', '돌파 매수 후보'):
-            continue
         recent_event = assessment.get('recentEvent') or chart.get('recentEvent') or {}
         if recent_event.get('key') in ('fake_breakout', 'fake_breakdown', 'exhaustion'):
             continue
         current_regime = assessment.get('currentRegime') or chart.get('currentRegime') or {}
         auxiliary = assessment.get('auxiliaryStates') or chart.get('auxiliaryStates') or []
+        waves = assessment.get('waves') or {}
+        big_wave = waves.get('big') or {}
+        mid_wave = waves.get('mid') or {}
+        small_wave = waves.get('small') or {}
         item = {
             'code': row.get('code'), 'name': row.get('name'), 'price': row.get('price'),
             'changeRate': row.get('changeRate'), 'chartRegime': current_regime.get('label') or chart.get('label'),
             'recentEvent': recent_event.get('label'),
+            'waves': {
+                'big': big_wave.get('label'), 'mid': mid_wave.get('label'),
+                'small': small_wave.get('label'),
+            },
+            'diagnosis': assessment.get('diagnosis') or waves.get('diagnosis'),
             'auxiliaryStates': [item.get('label') for item in auxiliary if isinstance(item, dict)],
             'turningPoint': chart.get('turningPoint'), 'momentum': (assessment.get('momentum') or {}).get('state'),
             'fundamental': (assessment.get('fundamental') or {}).get('state'),
             'risk': risk.get('state'), 'entryOpinion': entry,
             'holderAction': assessment.get('holderAction'),
             'invalidation': chart.get('invalidation'),
-            'reason': '%s · %s · 모멘텀 %s · 펀더멘털 %s · 위험 %s' % (
+            'reason': '%s · 대파동 %s · 중파동 %s · 소파동 %s · 진단 %s · 최근 %s · 모멘텀 %s · 펀더멘털 %s · 위험 %s' % (
                 current_regime.get('label') or chart.get('label') or '차트 국면 확인',
+                big_wave.get('label') or '확인 중', mid_wave.get('label') or '확인 중',
+                small_wave.get('label') or '확인 중', assessment.get('diagnosis') or waves.get('diagnosis') or '파동 확인 중',
                 recent_event.get('label') or '이벤트 없음',
                 (assessment.get('momentum') or {}).get('state') or '데이터 부족',
                 (assessment.get('fundamental') or {}).get('state') or '데이터 부족',
