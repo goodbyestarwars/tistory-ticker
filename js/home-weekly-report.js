@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-candidate-screen-v15';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260817-stock-grid-v16';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v1';
   var FETCH_TIMEOUT_MS = 8000;
 
@@ -171,7 +171,7 @@
   }
   function stockListWithReasons(items, market) {
     if (!items || !items.length) return '<p class="hwr-empty">해당 조건의 종목을 찾지 못했습니다.</p>';
-    return '<ul class="hwr-stock-list">' + items.slice(0, 8).map(function (item) {
+    return '<ul class="hwr-stock-list hwr-stock-list--four">' + items.slice(0, 4).map(function (item) {
       var tags = (item.tags || []).slice(0, 2).join(' · ');
       var meta = market === 'us' ? item.code : item.code + (tags ? ' · ' + tags : '');
       return '<li><span class="hwr-stock-name"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(meta) + '</small><em class="hwr-stock-reason">' + escapeHtml(item.reason || '순위·등락 데이터 기준') + '</em></span><span class="hwr-stock-values"><b>' + escapeHtml(formatStockPrice(item)) + '</b><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span></li>';
