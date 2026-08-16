@@ -32,9 +32,11 @@
   var MA240_COLOR = '#8b5cf6';
 
   // js/foreign-flow.js와 동일한 주기·색상(사이트 전체 일관성) - 일목균형표 토글 전용.
-  // 선행스팬1·2는 둘 다 하늘색으로 통일(2026-07-22 사용자 요청).
+  // 범례는 하늘색으로 표시하되 실제 선행스팬 경계선은 숨기고 구름 채움만 그린다.
   var ICHIMOKU_TENKAN_PERIOD = 9, ICHIMOKU_KIJUN_PERIOD = 26, ICHIMOKU_SENKOU_B_PERIOD = 52, ICHIMOKU_DISPLACEMENT = 26;
-  var ICHIMOKU_COLORS = { senkouA: '#4dabf7', senkouB: '#4dabf7' };
+  var ICHIMOKU_COLORS = { senkouA: '#87ceeb', senkouB: '#87ceeb' };
+  var ICHIMOKU_CLOUD_FILL = 'rgba(135,206,235,0.24)';
+  var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
 
   // desc는 각 detect*_ 함수(gas/ticker-proxy.gs)의 판정 조건을 일반 투자자가 읽을 수 있는
   // 말로 옮긴 것 - 목록이 비어 있을 때도 이 패턴이
@@ -384,7 +386,7 @@
 
   // TradingView 공식 "Bands Indicator" 플러그인 예제와 같은 구조(Series Primitive) -
   // drawBackground()에서 캔들/선보다 먼저 그려지게 해서 구름이 항상 배경에 깔리게 한다.
-  // 선행스팬1·2 사이를 테두리 없는 옅은 파란색으로 채운다.
+  // 선행스팬1·2 사이를 테두리 없는 옅은 하늘색으로 채운다.
   function createIchimokuCloudPrimitive(bandPts, cloudColor) {
     return {
       _chart: null,
@@ -445,7 +447,7 @@
     [['senkouA', ichi.senkouA], ['senkouB', ichi.senkouB]].forEach(function (pair) {
       var key = pair[0], pts = pair[1];
       if (!pts.length) return;
-      var series = psLwcChart.addSeries(global.LightweightCharts.LineSeries, { color: ICHIMOKU_COLORS[key], lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+      var series = psLwcChart.addSeries(global.LightweightCharts.LineSeries, { color: ICHIMOKU_BORDER_COLOR, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
       series.setData(pts);
       psIchimokuSeries.push(series);
       seriesByKey[key] = series;
@@ -457,7 +459,7 @@
       try {
         var bandPts = pairIchimokuBand(ichi.senkouA, ichi.senkouB);
         if (bandPts.length > 1) {
-          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, 'rgba(77,171,247,0.12)');
+          var cloudPrimitive = createIchimokuCloudPrimitive(bandPts, ICHIMOKU_CLOUD_FILL);
           seriesByKey.senkouA.attachPrimitive(cloudPrimitive);
           psIchimokuCloudPrimitive = { series: seriesByKey.senkouA, primitive: cloudPrimitive };
         }
