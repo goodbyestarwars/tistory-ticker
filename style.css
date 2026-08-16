@@ -1245,15 +1245,13 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
 }
-.home-briefing-featured .post-tags,
-.home-briefing-featured .btn-share { display: none; }
+.home-briefing-featured .post-tags { display: none; }
 .home-briefing-small {
   padding: 18px 20px;
 }
 .home-briefing-small .post-cat-badge,
 .home-briefing-small .post-tags { display: none; }
 .home-briefing-small .post-footer { display: flex; }
-.home-briefing-small .btn-share { display: none; }
 .home-briefing-small .post-header {
   justify-content: flex-end;
   margin-bottom: 6px;
@@ -1983,8 +1981,18 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   margin-bottom: 0;
 }
 .post-card.feed-headline-item .post-excerpt,
-.post-card.feed-headline-item .post-tags,
-.post-card.feed-headline-item .post-footer { display: none; }
+.post-card.feed-headline-item .post-tags { display: none; }
+.post-card.feed-headline-item .post-footer {
+  display: flex;
+  order: 3;
+  justify-content: flex-end;
+  margin-top: 5px;
+  padding: 0;
+  border: 0;
+}
+/* 제목 자체가 글 링크이므로 좁은 제목형 목록에는 공유만 남긴다. */
+.post-card.feed-headline-item .btn-read { display: none; }
+.post-card.feed-headline-item .btn-share { padding: 4px 9px; font-size: 10.5px; }
 
 /* 작은 카드형 3개 그리드 - 카드 자체 테두리·그림자는 유지한 채(각자 독립 카드) 3단으로 배치. */
 .feed-block-cards {
@@ -2004,8 +2012,7 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   -webkit-line-clamp: 2;
   font-size: 12px;
 }
-.post-card.feed-cards-item .post-tags,
-.post-card.feed-cards-item .btn-share { display: none; }
+.post-card.feed-cards-item .post-tags { display: none; }
 
 /* 가로로 나란한 2개 - cards보다 넓어서 발췌문을 조금 더 보여준다. */
 .feed-block-duo {
@@ -2025,8 +2032,7 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   -webkit-line-clamp: 2;
   font-size: 12.5px;
 }
-.post-card.feed-duo-item .post-tags,
-.post-card.feed-duo-item .btn-share { display: none; }
+.post-card.feed-duo-item .post-tags { display: none; }
 
 html.dark .feed-block-headline {
   background: #1A1A1A !important;
