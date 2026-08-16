@@ -36,6 +36,11 @@
 .hwr-columns li a { overflow: hidden; color: #24324a; font-size: 11px; line-height: 1.45; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 .hwr-columns li small { display: block; margin-top: 2px; color: #94a3b8; font-size: 9px; }
 .hwr-stock-list li { align-items: center; }
+.hwr-stock-list--four { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 11px; }
+.hwr-stock-list--four li { display: block; min-width: 0; padding: 8px 0; }
+.hwr-stock-list--four li:nth-child(-n+4) { border-top: 0; }
+.hwr-stock-list--four .hwr-stock-reason { display: -webkit-box; min-height: 24px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.hwr-stock-list--four .hwr-stock-values { display: flex; justify-content: space-between; gap: 4px; margin-top: 6px; }
 .hwr-stock-name { min-width: 0; }
 .hwr-stock-name strong { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .hwr-stock-name small { display: block; overflow: hidden; color: #94a3b8; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
@@ -64,6 +69,9 @@ html.dark .hwr-source-note, html.dark .hwr-loading { border-color: rgba(245,239,
   .hwr-period { margin-top: 10px; text-align: left; }
   .hwr-index-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hwr-summary-row, .hwr-columns { grid-template-columns: 1fr; }
+  .hwr-stock-list--four { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; }
+  .hwr-stock-list--four li:nth-child(-n+4) { border-top: 1px solid #f0f2f5; }
+  .hwr-stock-list--four li:nth-child(-n+2) { border-top: 0; }
   .hwr-index-card { padding: 11px; }
   .hwr-index-card > b { font-size: 16px; }
   .hwr-source-note { font-size: 10px; }

@@ -253,6 +253,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
 
+    def test_weekly_stock_sections_fit_four_items_per_market_row(self):
+        script = self.read("js/home-weekly-report.js")
+        style = self.read("css/home-weekly-report.css")
+        self.assertIn('hwr-stock-list hwr-stock-list--four', script)
+        self.assertIn("items.slice(0, 4)", script)
+        self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
+        self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
+        self.assertIn("home-weekly-report.css?v=20260817-stock-grid-v16", script)
+        self.assertIn("home-weekly-report.js?v=20260817-stock-grid-v22", self.read("js/skin-main.js"))
+
     def test_market_briefing_share_button_is_visible_in_every_card_layout(self):
         skin = self.read("skin.html")
         style = self.read("style.css")

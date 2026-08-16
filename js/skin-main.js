@@ -99,7 +99,7 @@
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260816-weekly-disclosures-v1';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260816-market-switch-v3';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260816-market-switch-v3';
-    var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260816-candidate-screen-v21';
+    var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260817-stock-grid-v22';
 
     function isWeekendReportWindow() {
       var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
