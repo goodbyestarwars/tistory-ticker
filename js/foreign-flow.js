@@ -3300,7 +3300,7 @@
       + '</div>';
   }
 
-  // ---- 가격 차트: 지지/저항 + 이동평균 5/20/60/224일선 (?action=flowChart) ----
+  // ---- 가격 차트: 지지/저항 + 이동평균 5/20/60일선 (?action=flowChart) ----
 
   function buildFlowChartCard(chartData, techScore) {
     var body;
