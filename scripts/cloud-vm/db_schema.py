@@ -207,6 +207,11 @@ CREATE TABLE IF NOT EXISTS swing_recommendation_snapshots (
     recent_event TEXT,
     recent_event_stage TEXT,
     auxiliary_states_json TEXT,
+    big_wave TEXT,
+    mid_wave TEXT,
+    small_wave TEXT,
+    wave_diagnosis TEXT,
+    wave_events_json TEXT,
     turning_point TEXT,
     momentum_state TEXT,
     fundamental_state TEXT,
@@ -304,6 +309,11 @@ def create_schema(conn):
     _ensure_column(conn, 'swing_recommendation_snapshots', 'recent_event', 'TEXT')
     _ensure_column(conn, 'swing_recommendation_snapshots', 'recent_event_stage', 'TEXT')
     _ensure_column(conn, 'swing_recommendation_snapshots', 'auxiliary_states_json', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 'big_wave', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 'mid_wave', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 'small_wave', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 'wave_diagnosis', 'TEXT')
+    _ensure_column(conn, 'swing_recommendation_snapshots', 'wave_events_json', 'TEXT')
     _ensure_column(conn, 'swing_recommendation_snapshots', 't20_regime', 'TEXT')
     _ensure_column(conn, 'swing_recommendation_snapshots', 't20_regime_changed', 'INTEGER')
     _migrate_investor_trend_market(conn)
@@ -322,19 +332,27 @@ def upsert_swing_snapshot(conn, snapshot):
     current_regime = snapshot.get('currentRegime') or chart.get('currentRegime') or {}
     recent_event = snapshot.get('recentEvent') or chart.get('recentEvent') or {}
     auxiliary_states = snapshot.get('auxiliaryStates') or chart.get('auxiliaryStates') or []
+    waves = snapshot.get('waves') or {}
+    big_wave = waves.get('big') or {}
+    mid_wave = waves.get('mid') or {}
+    small_wave = waves.get('small') or {}
+    wave_events = waves.get('recentEvents') or []
     conn.execute(
         '''INSERT INTO swing_recommendation_snapshots (
             as_of_date, code, name, model_version, close, chart_regime, current_regime,
-            recent_event, recent_event_stage, auxiliary_states_json, turning_point,
+            recent_event, recent_event_stage, auxiliary_states_json, big_wave, mid_wave,
+            small_wave, wave_diagnosis, wave_events_json, turning_point,
             momentum_state, fundamental_state, risk_state, risk_reasons_json,
             holder_action, entry_opinion, internal_priority_score, legacy_score,
             legacy_stars, legacy_label, ma5, ma20, ma60, ma224, relative_strength,
             invalidation_condition, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(as_of_date, code, model_version) DO UPDATE SET
             name=excluded.name, close=excluded.close, chart_regime=excluded.chart_regime,
             current_regime=excluded.current_regime, recent_event=excluded.recent_event,
             recent_event_stage=excluded.recent_event_stage, auxiliary_states_json=excluded.auxiliary_states_json,
+            big_wave=excluded.big_wave, mid_wave=excluded.mid_wave, small_wave=excluded.small_wave,
+            wave_diagnosis=excluded.wave_diagnosis, wave_events_json=excluded.wave_events_json,
             turning_point=excluded.turning_point, momentum_state=excluded.momentum_state,
             fundamental_state=excluded.fundamental_state, risk_state=excluded.risk_state,
             risk_reasons_json=excluded.risk_reasons_json, holder_action=excluded.holder_action,
@@ -349,6 +367,9 @@ def upsert_swing_snapshot(conn, snapshot):
             current_regime.get('key') or current_regime.get('label'),
             recent_event.get('key') or recent_event.get('label'), recent_event.get('stage'),
             json.dumps(auxiliary_states, ensure_ascii=False),
+            big_wave.get('key') or big_wave.get('label'), mid_wave.get('key') or mid_wave.get('label'),
+            small_wave.get('key') or small_wave.get('label'), waves.get('diagnosis') or snapshot.get('diagnosis'),
+            json.dumps(wave_events, ensure_ascii=False),
             chart.get('turningPoint'), momentum.get('state'), fundamental.get('state'),
             risk.get('state'), json.dumps(risk.get('flags') or [], ensure_ascii=False),
             snapshot.get('holderAction'), snapshot.get('entryOpinion'),

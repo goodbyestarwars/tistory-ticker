@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Optional
 
 
-MODEL_VERSION = 'swing-4w-v2'
+MODEL_VERSION = 'swing-4w-v3'
 REGIME_LABELS = {
     'uptrend': '상승 지속',
     'upturn': '상방 변곡',
@@ -43,6 +43,12 @@ EVENT_LABELS = {
     'fake_breakout': '페이크 돌파',
     'fake_breakdown': '페이크 이탈',
     'exhaustion': '하락 소진 감지',
+}
+WAVE_LABELS = {
+    'uptrend': '상승 추세',
+    'downtrend': '하락 추세',
+    'neutral': '횡보·수렴',
+    'insufficient': '데이터 부족',
 }
 
 
@@ -295,6 +301,135 @@ def classify_chart_regime(daily: List[Dict[str, Any]], benchmark: Optional[Itera
     }
 
 
+def _classify_wave_key(closes: List[float], fast_period: int, slow_period: int,
+                       *, long_period: Optional[int] = None) -> str:
+    """Classify one timeframe from moving-average structure, not Elliott counts."""
+    minimum = max(slow_period, long_period or 0)
+    if len(closes) < minimum:
+        return 'insufficient'
+    fast = _moving_average(closes, fast_period)[-1]
+    slow = _moving_average(closes, slow_period)[-1]
+    slope_fast = _slope(_moving_average(closes, fast_period), 5 if fast_period <= 20 else 10) or 0
+    slope_slow = _slope(_moving_average(closes, slow_period), 10 if slow_period <= 60 else 20) or 0
+    current = closes[-1]
+    if long_period:
+        long = _moving_average(closes, long_period)[-1]
+        if fast is None or slow is None or long is None:
+            return 'insufficient'
+        if current >= slow and fast >= slow and slow >= long and slope_slow >= -0.002:
+            return 'uptrend'
+        if current <= slow and fast <= slow and slow <= long and slope_slow <= 0.002:
+            return 'downtrend'
+        return 'neutral'
+    if fast is None or slow is None:
+        return 'insufficient'
+    if fast_period == 20 and slow_period == 60:
+        if fast >= slow and slope_slow >= -0.005:
+            return 'uptrend'
+        if fast <= slow and slope_slow <= 0.005:
+            return 'downtrend'
+        return 'neutral'
+    if fast >= slow and slope_fast >= 0.001 and slope_slow >= -0.003:
+        return 'uptrend'
+    if fast <= slow and slope_fast <= -0.001 and slope_slow <= 0.003:
+        return 'downtrend'
+    return 'neutral'
+
+
+def _layer_event(layer: str, event: Dict[str, Any]) -> Dict[str, Any]:
+    key = event.get('key') or 'none'
+    label = event.get('label') or EVENT_LABELS.get(key, '이벤트 없음')
+    return {
+        'layer': layer,
+        'key': key,
+        'label': '[%s] %s' % ({'big': '대', 'mid': '중', 'small': '소'}.get(layer, layer), label),
+        'stage': event.get('stage') or 'none',
+    }
+
+
+def classify_wave_structure(daily: List[Dict[str, Any]],
+                            chart: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Return big/mid/small trend context for the domestic four-week system.
+
+    Big wave deliberately requires 224 persisted trading bars.  A short API
+    response is never treated as a long-term downtrend or uptrend.
+    """
+    closes = [_close(row) for row in daily or []]
+    closes = [value for value in closes if value is not None and value > 0]
+    chart = chart or classify_chart_regime(daily)
+    big_key = _classify_wave_key(closes, 60, 120, long_period=224)
+    mid_key = _classify_wave_key(closes, 20, 60)
+    small_key = _classify_wave_key(closes, 5, 20)
+
+    def wave(layer: str, key: str, minimum: int, basis: str) -> Dict[str, Any]:
+        return {
+            'layer': layer, 'key': key,
+            'label': WAVE_LABELS[key] if key != 'insufficient' else ('장기 데이터 부족' if layer == 'big' else '데이터 부족'),
+            'available': key != 'insufficient', 'sampleDays': len(closes),
+            'minRequired': minimum, 'basis': basis,
+        }
+
+    big = wave('big', big_key, 224, '60·120·224일선과 장기 고점·저점')
+    mid = wave('mid', mid_key, 60, '20·60일선과 4~12주 흐름')
+    small = wave('small', small_key, 20, '5·20일선과 최근 1~4주 흐름')
+
+    mid_event = _event('none')
+    if mid_key != 'insufficient' and len(closes) >= 65:
+        prior_mid = _classify_wave_key(closes[:-5], 20, 60)
+        if mid_key == 'uptrend' and prior_mid != 'uptrend':
+            mid_event = _event('uptrend_resume', 'confirmed')
+        elif mid_key == 'downtrend' and prior_mid != 'downtrend':
+            mid_event = _event('downturn_confirmed', 'confirmed')
+    small_event = chart.get('recentEvent') or _event('none')
+    if small_event.get('key') == 'none' and small_key != 'insufficient' and len(closes) >= 25:
+        prior_small = _classify_wave_key(closes[:-3], 5, 20)
+        if small_key == 'uptrend' and prior_small != 'uptrend':
+            small_event = _event('uptrend_resume', 'confirmed')
+        elif small_key == 'downtrend' and prior_small != 'downtrend':
+            small_event = _event('downturn_confirmed', 'confirmed')
+
+    recent_events = []
+    if mid_event['key'] != 'none':
+        recent_events.append(_layer_event('mid', mid_event))
+    if small_event.get('key') != 'none':
+        recent_events.append(_layer_event('small', small_event))
+
+    small_upturn = small_event.get('key') in ('upturn_detected', 'upturn_confirmed')
+    if big_key == 'insufficient':
+        diagnosis = '장기 데이터 부족'
+        action_key = 'insufficient'
+    elif big_key == 'uptrend' and mid_key == 'uptrend' and small_key == 'uptrend' and small_upturn:
+        diagnosis, action_key = '상승 추세 내 소파동 상방 변곡 · 확인 대기', 'observe'
+    elif big_key == 'uptrend' and mid_key == 'uptrend' and small_key == 'uptrend':
+        diagnosis, action_key = '대·중·소 파동 정렬', 'pullback_candidate'
+    elif big_key == 'uptrend' and mid_key == 'uptrend' and small_key == 'downtrend':
+        diagnosis, action_key = '상승 추세 내 정상 조정', 'observe'
+    elif big_key == 'uptrend' and mid_key == 'downtrend' and small_key == 'uptrend':
+        diagnosis, action_key = '중기 조정 중 반등 · 중파동 확인 대기', 'wait_mid_confirmation'
+    elif big_key == 'downtrend' and mid_key == 'downtrend' and small_key == 'uptrend':
+        diagnosis, action_key = '하락 추세 안의 기술적 반등', 'prohibited_rebound'
+    elif big_key == 'downtrend' and mid_key == 'uptrend' and small_key == 'uptrend':
+        diagnosis, action_key = '역추세 반등 · 고위험 관찰', 'high_risk_observe'
+    elif big_key == 'neutral' and mid_key == 'neutral' and small_key == 'uptrend':
+        diagnosis, action_key = '돌파 확인 대기', 'wait_breakout'
+    elif big_key == 'neutral' and mid_key == 'neutral' and small_key == 'downtrend':
+        diagnosis, action_key = '하단 이탈 · 신규 진입 금지', 'prohibited_breakdown'
+    elif mid_key == 'downtrend':
+        diagnosis, action_key = '중파동 하락 · 신규 진입 금지', 'prohibited'
+    elif mid_key == 'neutral':
+        diagnosis, action_key = '중파동 방향 확인 대기', 'observe'
+    else:
+        diagnosis, action_key = '파동 방향 확인 대기', 'observe'
+
+    small['event'] = _layer_event('small', small_event)
+    mid['event'] = _layer_event('mid', mid_event)
+    return {
+        'big': big, 'mid': mid, 'small': small,
+        'diagnosis': diagnosis, 'actionKey': action_key,
+        'recentEvents': recent_events[-6:],
+    }
+
+
 def _state_from_score(score: Optional[float], positive: str, negative: str) -> str:
     if score is None:
         return '데이터 부족'
@@ -313,6 +448,7 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
                            benchmark: Optional[Iterable[Any]] = None,
                            legacy: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     chart = classify_chart_regime(daily, benchmark)
+    waves = classify_wave_structure(daily, chart)
     momentum_score = None
     if flow_score is not None or foreign_inst_score is not None:
         values = [v for v in (flow_score, foreign_inst_score) if v is not None]
@@ -341,23 +477,38 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
         holder_action = '보유 / 신호 취소 후 관찰'
         entry_opinion = '관찰'
         priority_base = 35
-    elif chart['key'] == 'uptrend':
+    elif waves['actionKey'] == 'insufficient':
+        holder_action = '보유 / 장기 데이터 부족 관찰'
+        entry_opinion = '장기 데이터 부족 · 관찰'
+        priority_base = 25
+    elif waves['actionKey'] == 'pullback_candidate':
         holder_action = '보유 / 추가매수 검토'
-        if 'overheated' in aux_keys:
-            entry_opinion = '신규 매수 대기'
-        elif event_key == 'breakout':
-            entry_opinion = '돌파 매수 후보' if not blocks_entry else '신규 진입 금지'
-        else:
-            entry_opinion = '눌림목 매수 후보' if not blocks_entry else '신규 진입 금지'
+        entry_opinion = '눌림목 매수 후보' if not blocks_entry else '신규 진입 금지'
         priority_base = 100
-    elif chart['key'] == 'upturn':
-        holder_action = '보유 / 비중축소 금지'
-        entry_opinion = '초기 매수 후보' if chart['turningPoint'] == 'confirmed' and not blocks_entry else '신규 진입 관찰'
-        priority_base = 82 if chart['turningPoint'] == 'confirmed' else 68
-    elif chart['key'] == 'neutral':
-        holder_action = '보유 / 관찰'
+    elif waves['actionKey'] == 'wait_mid_confirmation':
+        holder_action = '보유 / 중기 조정 확인'
+        entry_opinion = '중파동 확인 대기'
+        priority_base = 58
+    elif waves['actionKey'] == 'prohibited_rebound':
+        holder_action = '보유 / 반등 구간 위험 관리'
+        entry_opinion = '신규 진입 금지'
+        priority_base = 20
+    elif waves['actionKey'] == 'high_risk_observe':
+        holder_action = '보유 / 역추세 반등 위험 관리'
+        entry_opinion = '고위험 관찰'
+        priority_base = 30
+    elif waves['actionKey'] == 'wait_breakout':
+        holder_action = '보유 / 돌파 확인'
+        entry_opinion = '돌파 확인 대기'
+        priority_base = 45
+    elif waves['actionKey'] in ('prohibited_breakdown', 'prohibited'):
+        holder_action = '보유 주의 / 하락 위험 관리'
+        entry_opinion = '신규 진입 금지'
+        priority_base = 10
+    elif waves['actionKey'] == 'observe':
+        holder_action = '보유 / 정상 조정 관찰'
         entry_opinion = '관찰'
-        priority_base = 42
+        priority_base = 65
     elif chart['key'] == 'downturn':
         holder_action = '보유 주의 / 비중축소 검토'
         entry_opinion = '신규 진입 금지'
@@ -372,7 +523,7 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
             entry_opinion = '후보 제외'
             priority_base = 5
 
-    if blocks_entry and chart['key'] in ('uptrend', 'upturn') and event_key not in ('fake_breakout', 'fake_breakdown'):
+    if blocks_entry and waves['actionKey'] == 'pullback_candidate' and event_key not in ('fake_breakout', 'fake_breakdown'):
         entry_opinion = '신규 진입 금지'
     score_parts = [value for value in (momentum_score, fundamental_score) if value is not None]
     internal_priority = priority_base + (sum(score_parts) / len(score_parts) - 50) * 0.25 if score_parts else priority_base
@@ -382,6 +533,8 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
         'currentRegime': chart.get('currentRegime'),
         'recentEvent': chart.get('recentEvent'),
         'auxiliaryStates': chart.get('auxiliaryStates') or [],
+        'waves': waves,
+        'diagnosis': waves['diagnosis'],
         'momentum': {'state': momentum, 'score': momentum_score},
         'fundamental': {'state': fundamental, 'score': fundamental_score},
         'risk': {'state': risk, 'flags': risk_flags, 'blocksEntry': blocks_entry},
@@ -390,3 +543,21 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
         'internalPriorityScore': round(max(0, min(100, internal_priority)), 2),
         'legacy': legacy or {},
     }
+
+
+def is_four_week_candidate(assessment: Dict[str, Any]) -> bool:
+    """Use the same hard gate in daily scan, weekly report and tests."""
+    waves = assessment.get('waves') or {}
+    big = waves.get('big') or {}
+    mid = waves.get('mid') or {}
+    small = waves.get('small') or {}
+    risk = assessment.get('risk') or {}
+    entry = assessment.get('entryOpinion')
+    return bool(
+        big.get('available') and mid.get('key') == 'uptrend' and small.get('key') == 'uptrend'
+        and not risk.get('blocksEntry')
+        and entry in ('눌림목 매수 후보', '초기 매수 후보', '돌파 매수 후보')
+        and (assessment.get('recentEvent') or {}).get('key') not in (
+            'fake_breakout', 'fake_breakdown', 'exhaustion', 'upturn_detected', 'upturn_confirmed'
+        )
+    )

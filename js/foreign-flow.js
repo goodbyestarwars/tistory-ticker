@@ -2597,9 +2597,83 @@
       currentRegime: currentRegime, recentEvent: recentEvent, mainEvent: recentEvent, auxiliaryStates: auxiliaryStates };
   }
 
+  function swingWaveStructure(daily, chart) {
+    daily = (daily || []).filter(function (row) { return finiteNumber(row.close) != null; });
+    var closes = daily.map(function (row) { return Number(row.close); });
+    function ma(period, end) {
+      if (end + 1 < period) return null;
+      var total = 0;
+      for (var i = end - period + 1; i <= end; i++) total += closes[i];
+      return total / period;
+    }
+    function slope(period, lookback) {
+      var now = ma(period, closes.length - 1), before = ma(period, closes.length - 1 - lookback);
+      return now == null || before == null || !before ? 0 : (now - before) / Math.abs(before);
+    }
+    function key(fastPeriod, slowPeriod, longPeriod) {
+      if (closes.length < Math.max(slowPeriod, longPeriod || 0)) return 'insufficient';
+      var fast = ma(fastPeriod, closes.length - 1), slow = ma(slowPeriod, closes.length - 1), long = longPeriod ? ma(longPeriod, closes.length - 1) : null;
+      var fastSlope = slope(fastPeriod, fastPeriod <= 20 ? 5 : 10), slowSlope = slope(slowPeriod, slowPeriod <= 60 ? 10 : 20), current = closes[closes.length - 1];
+      if (longPeriod) {
+        if (current >= slow && fast >= slow && slow >= long && slowSlope >= -.002) return 'uptrend';
+        if (current <= slow && fast <= slow && slow <= long && slowSlope <= .002) return 'downtrend';
+        return 'neutral';
+      }
+      if (fastPeriod === 20 && slowPeriod === 60) {
+        if (fast >= slow && slowSlope >= -.005) return 'uptrend';
+        if (fast <= slow && slowSlope <= .005) return 'downtrend';
+        return 'neutral';
+      }
+      if (fast >= slow && fastSlope >= .001 && slowSlope >= -.003) return 'uptrend';
+      if (fast <= slow && fastSlope <= -.001 && slowSlope <= .003) return 'downtrend';
+      return 'neutral';
+    }
+    var labels = { uptrend: '상승 추세', downtrend: '하락 추세', neutral: '횡보·수렴', insufficient: '데이터 부족' };
+    function wave(layer, waveKey, minimum, basis) {
+      return { layer: layer, key: waveKey, label: waveKey === 'insufficient' && layer === 'big' ? '장기 데이터 부족' : labels[waveKey], available: waveKey !== 'insufficient', sampleDays: closes.length, minRequired: minimum, basis: basis };
+    }
+    var bigKey = key(60, 120, 224), midKey = key(20, 60), smallKey = key(5, 20);
+    var big = wave('big', bigKey, 224, '60·120·224일선과 장기 고점·저점');
+    var mid = wave('mid', midKey, 60, '20·60일선과 4~12주 흐름');
+    var small = wave('small', smallKey, 20, '5·20일선과 최근 1~4주 흐름');
+    var eventLabels = { none: '이벤트 없음', upturn_detected: '상방 변곡 감지', upturn_confirmed: '상방 변곡 확정', uptrend_resume: '상승 추세 재개', downturn_detected: '하방 변곡 감지', downturn_confirmed: '하방 변곡 확정', downtrend_resume: '하락 추세 재개', breakout: '상단 돌파', breakdown: '하단 이탈', fake_breakout: '페이크 돌파', fake_breakdown: '페이크 이탈' };
+    function layerEvent(layer, item) {
+      item = item || { key: 'none', label: '이벤트 없음', stage: 'none' };
+      return { layer: layer, key: item.key || 'none', label: '[' + (layer === 'big' ? '대' : layer === 'mid' ? '중' : '소') + '] ' + (item.label || eventLabels[item.key] || '이벤트 없음'), stage: item.stage || 'none' };
+    }
+    function priorKey(values, fastPeriod, slowPeriod, longPeriod) {
+      if (values.length < Math.max(slowPeriod, longPeriod || 0)) return 'insufficient';
+      var saved = closes; closes = values; var result = key(fastPeriod, slowPeriod, longPeriod); closes = saved; return result;
+    }
+    var midEvent = { key: 'none', label: '이벤트 없음', stage: 'none' };
+    if (midKey !== 'insufficient' && closes.length >= 65 && priorKey(closes.slice(0, -5), 20, 60) !== midKey) midEvent = { key: midKey === 'uptrend' ? 'uptrend_resume' : 'downturn_confirmed', label: eventLabels[midKey === 'uptrend' ? 'uptrend_resume' : 'downturn_confirmed'], stage: 'confirmed' };
+    var smallEvent = chart.recentEvent || { key: 'none', label: '이벤트 없음', stage: 'none' };
+    if (smallEvent.key === 'none' && smallKey !== 'insufficient' && closes.length >= 25 && priorKey(closes.slice(0, -3), 5, 20) !== smallKey) smallEvent = { key: smallKey === 'uptrend' ? 'uptrend_resume' : 'downturn_confirmed', label: eventLabels[smallKey === 'uptrend' ? 'uptrend_resume' : 'downturn_confirmed'], stage: 'confirmed' };
+    var events = [];
+    if (midEvent.key !== 'none') events.push(layerEvent('mid', midEvent));
+    if (smallEvent.key !== 'none') events.push(layerEvent('small', smallEvent));
+    var diagnosis, actionKey;
+    var smallUpturn = smallEvent.key === 'upturn_detected' || smallEvent.key === 'upturn_confirmed';
+    if (bigKey === 'insufficient') { diagnosis = '장기 데이터 부족'; actionKey = 'insufficient'; }
+    else if (bigKey === 'uptrend' && midKey === 'uptrend' && smallKey === 'uptrend' && smallUpturn) { diagnosis = '상승 추세 내 소파동 상방 변곡 · 확인 대기'; actionKey = 'observe'; }
+    else if (bigKey === 'uptrend' && midKey === 'uptrend' && smallKey === 'uptrend') { diagnosis = '대·중·소 파동 정렬'; actionKey = 'pullback_candidate'; }
+    else if (bigKey === 'uptrend' && midKey === 'uptrend' && smallKey === 'downtrend') { diagnosis = '상승 추세 내 정상 조정'; actionKey = 'observe'; }
+    else if (bigKey === 'uptrend' && midKey === 'downtrend' && smallKey === 'uptrend') { diagnosis = '중기 조정 중 반등 · 중파동 확인 대기'; actionKey = 'wait_mid_confirmation'; }
+    else if (bigKey === 'downtrend' && midKey === 'downtrend' && smallKey === 'uptrend') { diagnosis = '하락 추세 안의 기술적 반등'; actionKey = 'prohibited_rebound'; }
+    else if (bigKey === 'downtrend' && midKey === 'uptrend' && smallKey === 'uptrend') { diagnosis = '역추세 반등 · 고위험 관찰'; actionKey = 'high_risk_observe'; }
+    else if (bigKey === 'neutral' && midKey === 'neutral' && smallKey === 'uptrend') { diagnosis = '돌파 확인 대기'; actionKey = 'wait_breakout'; }
+    else if (bigKey === 'neutral' && midKey === 'neutral' && smallKey === 'downtrend') { diagnosis = '하단 이탈 · 신규 진입 금지'; actionKey = 'prohibited_breakdown'; }
+    else if (midKey === 'downtrend') { diagnosis = '중파동 하락 · 신규 진입 금지'; actionKey = 'prohibited'; }
+    else if (midKey === 'neutral') { diagnosis = '중파동 방향 확인 대기'; actionKey = 'observe'; }
+    else { diagnosis = '파동 방향 확인 대기'; actionKey = 'observe'; }
+    small.event = layerEvent('small', smallEvent); mid.event = layerEvent('mid', midEvent);
+    return { big: big, mid: mid, small: small, diagnosis: diagnosis, actionKey: actionKey, recentEvents: events.slice(-6) };
+  }
+
   function buildSwingAssessment(data, entry, chartData, fundamentalScore) {
     var daily = chartData && chartData.daily ? chartData.daily : [];
     var chart = swingChartRegime(daily);
+    var waves = swingWaveStructure(daily, chart);
     var flowScore = computeFlowScore(data), foreignInstScore = computeForeignInstScore(data);
     var momentumScore = (flowScore + foreignInstScore) / 2;
     var momentum = momentumScore >= 65 ? '강화' : momentumScore < 40 ? '약화' : '중립';
@@ -2614,14 +2688,19 @@
     var blocks = risk !== '없음';
     var holder, entryOpinion, base, eventKey = chart.recentEvent && chart.recentEvent.key, auxKeys = (chart.auxiliaryStates || []).map(function (item) { return item.key; });
     if (eventKey === 'fake_breakout' || eventKey === 'fake_breakdown') { holder = '보유 / 신호 취소 후 관찰'; entryOpinion = '관찰'; base = 35; }
-    else if (chart.key === 'uptrend') { holder = '보유 / 추가매수 검토'; entryOpinion = auxKeys.indexOf('overheated') !== -1 ? '신규 매수 대기' : eventKey === 'breakout' ? (blocks ? '신규 진입 금지' : '돌파 매수 후보') : (blocks ? '신규 진입 금지' : '눌림목 매수 후보'); base = 100; }
-    else if (chart.key === 'upturn') { holder = '보유 / 비중축소 금지'; entryOpinion = chart.turningPoint === 'confirmed' && !blocks ? '초기 매수 후보' : '신규 진입 관찰'; base = chart.turningPoint === 'confirmed' ? 82 : 68; }
-    else if (chart.key === 'neutral') { holder = '보유 / 관찰'; entryOpinion = '관찰'; base = 42; }
+    else if (waves.actionKey === 'insufficient') { holder = '보유 / 장기 데이터 부족 관찰'; entryOpinion = '장기 데이터 부족 · 관찰'; base = 25; }
+    else if (waves.actionKey === 'pullback_candidate') { holder = '보유 / 추가매수 검토'; entryOpinion = blocks ? '신규 진입 금지' : '눌림목 매수 후보'; base = 100; }
+    else if (waves.actionKey === 'wait_mid_confirmation') { holder = '보유 / 중기 조정 확인'; entryOpinion = '중파동 확인 대기'; base = 58; }
+    else if (waves.actionKey === 'prohibited_rebound') { holder = '보유 / 반등 구간 위험 관리'; entryOpinion = '신규 진입 금지'; base = 20; }
+    else if (waves.actionKey === 'high_risk_observe') { holder = '보유 / 역추세 반등 위험 관리'; entryOpinion = '고위험 관찰'; base = 30; }
+    else if (waves.actionKey === 'wait_breakout') { holder = '보유 / 돌파 확인'; entryOpinion = '돌파 확인 대기'; base = 45; }
+    else if (waves.actionKey === 'prohibited_breakdown' || waves.actionKey === 'prohibited') { holder = '보유 주의 / 하락 위험 관리'; entryOpinion = '신규 진입 금지'; base = 10; }
+    else if (waves.actionKey === 'observe') { holder = '보유 / 정상 조정 관찰'; entryOpinion = '관찰'; base = 65; }
     else if (chart.key === 'downturn') { holder = '보유 주의 / 비중축소 검토'; entryOpinion = '신규 진입 금지'; base = 18; }
     else if (auxKeys.indexOf('exhaustion') !== -1) { holder = '보유 주의 / 바닥 확인'; entryOpinion = '바닥 확인 관찰'; base = 12; }
     else { holder = '비중축소 / 매도 검토'; entryOpinion = '후보 제외'; base = 5; }
-    if (blocks && (chart.key === 'uptrend' || chart.key === 'upturn') && eventKey !== 'fake_breakout' && eventKey !== 'fake_breakdown') entryOpinion = '신규 진입 금지';
-    return { modelVersion: 'swing-4w-v2', chartRegime: chart, currentRegime: chart.currentRegime, recentEvent: chart.recentEvent, auxiliaryStates: chart.auxiliaryStates || [], momentum: { state: momentum, score: momentumScore }, fundamental: { state: fundamental, score: fundamentalScore }, risk: { state: risk, flags: flags, blocksEntry: blocks }, holderAction: holder, entryOpinion: entryOpinion, internalPriorityScore: Math.max(0, Math.min(100, base + (momentumScore - 50) * .25)), legacy: {} };
+    if (blocks && waves.actionKey === 'pullback_candidate' && eventKey !== 'fake_breakout' && eventKey !== 'fake_breakdown') entryOpinion = '신규 진입 금지';
+    return { modelVersion: 'swing-4w-v3', chartRegime: chart, currentRegime: chart.currentRegime, recentEvent: chart.recentEvent, auxiliaryStates: chart.auxiliaryStates || [], waves: waves, diagnosis: waves.diagnosis, momentum: { state: momentum, score: momentumScore }, fundamental: { state: fundamental, score: fundamentalScore }, risk: { state: risk, flags: flags, blocksEntry: blocks }, holderAction: holder, entryOpinion: entryOpinion, internalPriorityScore: Math.max(0, Math.min(100, base + (momentumScore - 50) * .25)), legacy: {} };
   }
 
   function buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData) {
@@ -2631,8 +2710,18 @@
     var currentRegime = assessment.currentRegime || chart.currentRegime || { label: chart.label };
     var recentEvent = assessment.recentEvent || chart.recentEvent || { label: '이벤트 없음' };
     var auxiliary = (assessment.auxiliaryStates || chart.auxiliaryStates || []).map(function (item) { return item.label; }).join(' · ') || '없음';
+    var waves = assessment.waves || {};
+    var bigWave = waves.big || { label: '장기 데이터 부족' };
+    var midWave = waves.mid || { label: '데이터 부족' };
+    var smallWave = waves.small || { label: '데이터 부족' };
     return '<div class="ff-summary ff-swing-summary">'
       + '<div class="ff-swing-regime"><span class="ff-panel-title">4주 스윙 판정</span><strong>' + escapeHtml(currentRegime.label) + '</strong><small>최근 이벤트 · ' + escapeHtml(recentEvent.label) + '</small></div>'
+      + '<div class="ff-swing-waves">'
+      + '<div><span>대파동 · 맥락</span><b>' + escapeHtml(bigWave.label) + '</b></div>'
+      + '<div><span>중파동 · 4주 방향</span><b>' + escapeHtml(midWave.label) + '</b></div>'
+      + '<div><span>소파동 · 진입 타이밍</span><b>' + escapeHtml(smallWave.label) + '</b></div>'
+      + '<div class="ff-swing-wave-diagnosis"><span>진단</span><b>' + escapeHtml(assessment.diagnosis || waves.diagnosis || '-') + '</b></div>'
+      + '</div>'
       + '<div class="ff-swing-grid">'
       + '<div><span>보조 상태</span><b>' + escapeHtml(auxiliary) + '</b></div>'
       + '<div><span>모멘텀</span><b>' + escapeHtml(assessment.momentum.state) + '</b></div>'

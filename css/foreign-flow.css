@@ -2496,6 +2496,11 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: rgba(245, 239, 224, 0.
 #foreign-flow .ff-swing-regime .ff-panel-title { margin: 0; }
 #foreign-flow .ff-swing-regime strong { font-size: 20px; color: #0c447c; }
 #foreign-flow .ff-swing-regime small { color: #64748b; }
+#foreign-flow .ff-swing-waves { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px 0 4px; }
+#foreign-flow .ff-swing-waves > div { min-height: 48px; padding: 8px 10px; border: 1px solid #dce5ee; border-radius: 8px; background: #f4f8fb; }
+#foreign-flow .ff-swing-waves span, #foreign-flow .ff-swing-waves b { display: block; }
+#foreign-flow .ff-swing-waves span { color: #64748b; font-size: 11px; margin-bottom: 4px; }
+#foreign-flow .ff-swing-waves b { color: #0f4c81; font-size: 13px; }
 #foreign-flow .ff-swing-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 12px 0; }
 #foreign-flow .ff-swing-grid > div { min-height: 54px; padding: 9px 10px; border: 1px solid #e4e8ee; border-radius: 8px; background: #f8fafc; }
 #foreign-flow .ff-swing-grid span, #foreign-flow .ff-swing-grid b { display: block; }
@@ -2506,6 +2511,7 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: rgba(245, 239, 224, 0.
 #foreign-flow .ff-sig-banner-score { font-size: 12px; color: #334155; }
 @media (max-width: 760px) {
   #foreign-flow .ff-swing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #foreign-flow .ff-swing-waves { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #foreign-flow .ff-swing-grid > div:last-child { grid-column: 1 / -1; }
 }
 html.dark #foreign-flow .ff-swing-regime { border-color: rgba(245, 239, 224, 0.16); }
