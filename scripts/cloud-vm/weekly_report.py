@@ -361,9 +361,32 @@ def next_week_schedule(events, start, end):
 
 def news_timeline(domestic, us, start, end, limit=20):
     """Merge Korean and US weekly headlines into one chronological timeline."""
+    def diversified(items, item_limit):
+        candidates = _news(items, start, end, item_limit * 4)
+        buckets = {}
+        for item in candidates:
+            day = _date_value(item.get('pubDate'))
+            key = day.isoformat() if day else ''
+            buckets.setdefault(key, []).append(item)
+        dates = sorted(buckets.keys(), reverse=True)
+        result = []
+        while dates and len(result) < item_limit:
+            next_dates = []
+            for key in dates:
+                bucket = buckets[key]
+                if bucket:
+                    result.append(bucket.pop(0))
+                    if len(result) >= item_limit:
+                        break
+                if bucket:
+                    next_dates.append(key)
+            dates = next_dates
+        return result
+
+    per_market = max(1, limit // 2)
     rows = []
     for market, items in (('한국', domestic), ('미국', us)):
-        for item in _news(items, start, end, limit):
+        for item in diversified(items, per_market):
             item = dict(item)
             item['market'] = market
             rows.append(item)
@@ -374,10 +397,9 @@ def news_timeline(domestic, us, start, end, limit=20):
 def build_report(start, end, futures_rows=None, domestic_news_items=None,
                  foreign_news_items=None, domestic_board=None, us_board=None,
                  schedule_events=None, generated_at=None):
-    # 주말에는 금요일 마감만으로 끊지 않고, 월요일부터 현재 주말까지
-    # 발행된 뉴스도 포함한다. 지수·종목·일정은 여전히 완료된 월~금 기준이다.
-    today_kst = datetime.now(timezone(timedelta(hours=9))).date()
-    news_end = max(end, min(today_kst, end + timedelta(days=3)))
+    # 주간 리포트는 최신 하루치가 전체를 덮지 않도록 완료된 월~금만 사용한다.
+    # 주말에 새로 들어온 뉴스는 다음 리포트의 수집분으로 남긴다.
+    news_end = end
     news_basis = '%s~%s(KST) 발행 뉴스 기준' % (start.isoformat(), news_end.isoformat())
     return {
         'week': {'start': start.isoformat(), 'end': end.isoformat(), 'label': '%s ~ %s' % (start.isoformat(), end.isoformat())},

@@ -1579,17 +1579,21 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
 
     def safe_domestic_news():
         try:
-            return (domestic_news.get_news(limit=50, item_kind='news') or {}).get('items') or []
+            archived = domestic_news.get_weekly_news(start, end, limit=120)
+            fresh = (domestic_news.get_news(limit=50, item_kind='news') or {}).get('items') or []
+            return archived + fresh
         except Exception as exc:
             logging.getLogger('main').warning('weekly report domestic news failed: %s', type(exc).__name__)
             return []
 
     def safe_foreign_news():
         try:
-            return news_aggregator.get_general_news(
+            archived = news_aggregator.get_general_news_history(start, end, limit=120)
+            current = news_aggregator.get_general_news(
                 alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
                 finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(), limit=50,
             )
+            return archived + current
         except Exception as exc:
             logging.getLogger('main').warning('weekly report foreign news failed: %s', type(exc).__name__)
             return []

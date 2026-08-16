@@ -126,7 +126,7 @@ def load_cached_news(symbol, ttl_sec=None):
     return items
 
 
-def save_cached_news(symbol, items):
+def save_cached_news(symbol, items, retain_limit=TOTAL_NEWS_LIMIT):
     """Merge new rows into one symbol's cache and keep the latest ten atomically."""
     symbol = str(symbol or '').strip().upper()
     if not symbol:
@@ -173,7 +173,7 @@ def save_cached_news(symbol, items):
                 merged.values(),
                 key=lambda item: _published_timestamp(item),
                 reverse=True,
-            )[:TOTAL_NEWS_LIMIT]
+            )[:max(TOTAL_NEWS_LIMIT, int(retain_limit or TOTAL_NEWS_LIMIT))]
             conn.execute('DELETE FROM us_news_cache WHERE symbol = ?', (symbol,))
             for item in selected:
                 title = str(item.get('title') or '').strip()
@@ -275,10 +275,54 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
             if current is None or item.get('_published_ts', 0) > current.get('_published_ts', 0):
                 unique[key] = item
         selected = sorted(unique.values(), key=lambda item: item.get('_published_ts', 0), reverse=True)
+        save_cached_news('__GENERAL__', selected, retain_limit=500)
         for item in selected:
             item.pop('_published_ts', None)
         _general_news_cache = (now, selected)
         return list(selected[:max(1, int(limit))])
+
+
+def get_general_news_history(start, end, limit=120):
+    """Read the persisted US general-news archive for a completed week."""
+    try:
+        start_day = datetime.strptime(str(start)[:10], '%Y-%m-%d').date()
+        end_day = datetime.strptime(str(end)[:10], '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return []
+    try:
+        conn = _cache_connect()
+        rows = conn.execute('''
+            SELECT title, link, pub_date, source, provider, published_ts
+            FROM us_news_cache
+            WHERE symbol = ?
+            ORDER BY published_ts DESC
+            LIMIT 1000
+        ''', ('__GENERAL__',)).fetchall()
+        conn.close()
+    except sqlite3.Error:
+        logger.exception('General news archive read failed')
+        return []
+    result = []
+    seen = set()
+    for row in rows:
+        published = _parse_date(row['pub_date'] or '')
+        if not published:
+            continue
+        day = datetime.fromtimestamp(published, timezone.utc).astimezone(
+            timezone(timedelta(hours=9))
+        ).date()
+        if day < start_day or day > end_day:
+            continue
+        key = _dedupe_key({'link': row['link'], 'title': row['title']})
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append({
+            'title': row['title'], 'link': row['link'], 'pubDate': row['pub_date'] or '',
+            'source': row['source'] or '', 'provider': row['provider'] or 'US news',
+            'category': '시장', 'kind': 'news', 'market': 'us',
+        })
+    return result[:max(1, min(int(limit or 120), 200))]
 
 
 def _published_timestamp(item):
