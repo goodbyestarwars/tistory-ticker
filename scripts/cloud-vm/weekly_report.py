@@ -7,6 +7,7 @@
 """
 
 from datetime import date, datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 
 
 def completed_week(now=None):
@@ -34,6 +35,10 @@ def _date_value(value):
                 return datetime.strptime(candidate, fmt).date()
             except ValueError:
                 pass
+    try:
+        return parsedate_to_datetime(text).date()
+    except (TypeError, ValueError, IndexError):
+        pass
     return None
 
 
@@ -113,13 +118,21 @@ def _hot_row(row, tag):
 
 
 def hot_stocks(board_data, limit=10):
-    """Merge last-session rise/fall/volume-power rankings without duplicates."""
+    """Merge several last-session rankings and select a diversified list.
+
+    The board's default rows are 거래대금 중심이라 그대로 쓰면 같은 종류의
+    대형주만 반복된다. 각 순위 바구니에서 한 종목씩 번갈아 고르되, 같은
+    종목이 여러 바구니에 있으면 태그를 합쳐 신호의 겹침도 보여준다.
+    """
     merged = {}
     sections = (board_data or {}).get('sections') or {}
-    for section, tag in (
+    specs = (
         ('rising', '상승 상위'), ('falling', '하락 상위'),
-        ('volumePower', '매수체결강도'), ('volumeSurge', '거래량 급증'),
-    ):
+        ('volumeGrowth', '거래량 증가'), ('volumeSurge', '거래량 급증'),
+        ('turnover', '거래회전율'), ('amountTurnover', '거래대금 회전율'),
+        ('volumePower', '매수체결강도'), ('tradeAmount', '거래대금 상위'),
+    )
+    for section, tag in specs:
         for raw in (sections.get(section) or [])[:limit]:
             item = _hot_row(raw, tag)
             if not item:
@@ -129,8 +142,9 @@ def hot_stocks(board_data, limit=10):
                 current['tags'] = list(dict.fromkeys(current['tags'] + item['tags']))
             else:
                 merged[item['code']] = item
-    # 휴일·장외에는 일부 KIS 순위 TR만 비어 있을 수 있다. 이때도 마지막
-    # 거래대금 rows를 후보로 남겨 미국 주목 종목 카드가 빈 화면이 되지 않게 한다.
+
+    # Some providers expose the primary ranking only as rows, not as a named
+    # section. Keep it as the final diversification bucket.
     for raw in ((board_data or {}).get('rows') or [])[:limit]:
         item = _hot_row(raw, '거래대금 상위')
         if not item:
@@ -140,14 +154,46 @@ def hot_stocks(board_data, limit=10):
             current['tags'] = list(dict.fromkeys(current['tags'] + item['tags']))
         else:
             merged[item['code']] = item
-    rows = list(merged.values())
-    rows.sort(key=lambda item: (len(item['tags']), abs(item.get('changeRate') or 0)), reverse=True)
-    return rows[:limit]
+
+    buckets = []
+    for section, _tag in specs:
+        codes = []
+        for raw in (sections.get(section) or [])[:limit]:
+            item = _hot_row(raw, _tag)
+            if not item:
+                continue
+            if item['code'] not in codes and item['code'] in merged:
+                codes.append(item['code'])
+        if codes:
+            buckets.append(codes)
+    row_codes = [item['code'] for item in ((board_data or {}).get('rows') or [])
+                 if _hot_row(item, '거래대금 상위') and _hot_row(item, '거래대금 상위')['code'] in merged]
+    if row_codes:
+        buckets.append(list(dict.fromkeys(row_codes)))
+
+    rows = []
+    selected = set()
+    cursor = [0] * len(buckets)
+    while len(rows) < limit and any(cursor[index] < len(bucket) for index, bucket in enumerate(buckets)):
+        for index, bucket in enumerate(buckets):
+            while cursor[index] < len(bucket) and bucket[cursor[index]] in selected:
+                cursor[index] += 1
+            if cursor[index] >= len(bucket):
+                continue
+            code = bucket[cursor[index]]
+            cursor[index] += 1
+            selected.add(code)
+            rows.append(merged[code])
+            if len(rows) >= limit:
+                break
+    return rows
 
 
 def _within_week(item, start, end):
     day = _date_value(item.get('pubDate') or item.get('publishedAt') or item.get('date'))
-    return day is None or start <= day <= end
+    # 주간 리포트는 현재 시점에 들어온 최신 뉴스가 섞이지 않도록
+    # 발행일이 확인되는 항목만 완료된 월~금 범위에 포함한다.
+    return day is not None and start <= day <= end
 
 
 def _news(items, start, end, limit):
@@ -174,16 +220,42 @@ def next_week_schedule(events, start, end):
     next_start = end + timedelta(days=3)
     next_end = next_start + timedelta(days=6)
     result = []
+    m7 = {'AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'GOOG', 'META', 'TSLA'}
+    major_domestic = ('삼성전자', 'SK하이닉스', '현대차', '기아', 'NAVER', '카카오', 'LG에너지', '삼성SDI')
+    macro_terms = ('금리', 'FOMC', 'CPI', 'PCE', '고용', 'GDP', '물가', '연준', '한국은행')
     for event in events or []:
         day = _date_value(event.get('start') or event.get('date')) if isinstance(event, dict) else None
         if day and next_start <= day <= next_end:
+            title = str(event.get('title') or event.get('name') or '일정')
+            symbol = str(event.get('symbol') or event.get('ticker') or '').upper()
+            is_m7 = symbol in m7
+            is_major_domestic = any(name in title for name in major_domestic)
+            is_macro = any(term.lower() in title.lower() for term in macro_terms)
+            # 일정 공급자가 많은 개별 실적을 반환해도 핵심 일정만 남긴다.
+            # 확인된 이벤트만 표시하고, 없는 금리/CPI 일정은 만들지 않는다.
+            if not (is_m7 or is_major_domestic or is_macro or event.get('status') == 'reported'):
+                continue
             result.append({
                 'date': day.isoformat(),
-                'title': event.get('title') or event.get('name') or '일정',
-                'symbol': event.get('symbol') or event.get('ticker') or '',
+                'title': title,
+                'symbol': symbol,
                 'source': event.get('source') or event.get('provider') or '',
+                'market': event.get('market') or ('us' if symbol else 'domestic'),
+                'priority': 3 if is_m7 or is_macro else 2 if is_major_domestic else 1,
             })
-    return sorted(result, key=lambda item: (item['date'], item['title']))
+    return sorted(result, key=lambda item: (item['date'], -item['priority'], item['title']))[:24]
+
+
+def news_timeline(domestic, us, start, end, limit=20):
+    """Merge Korean and US weekly headlines into one chronological timeline."""
+    rows = []
+    for market, items in (('한국', domestic), ('미국', us)):
+        for item in _news(items, start, end, limit):
+            item = dict(item)
+            item['market'] = market
+            rows.append(item)
+    rows.sort(key=lambda item: str(item.get('pubDate') or ''), reverse=True)
+    return rows[:limit]
 
 
 def build_report(start, end, futures_rows=None, domestic_news_items=None,
@@ -201,8 +273,11 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
         'news': {
             'domestic': _news(domestic_news_items, start, end, 8),
             'us': _news(foreign_news_items, start, end, 8),
+            'timeline': news_timeline(domestic_news_items, foreign_news_items, start, end, 20),
+            'basis': '완료된 주간 월요일 00:00~금요일 23:59(KST) 발행 뉴스 기준',
         },
         'schedule': next_week_schedule(schedule_events, start, end),
+        'scheduleBasis': '확인된 다음 주 실적·주요 기업·거시 이벤트 중 핵심 일정만 표시',
         'generatedAt': generated_at or datetime.now(timezone.utc).isoformat(),
         'sources': {
             'domesticIndex': 'KRX/KIS 수집 데이터',
