@@ -299,6 +299,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (".hmb-investor-trend", ".hmb-investor-spark", ".hmb-investor-zero"):
             self.assertIn(token, style)
 
+    def test_home_market_switch_refreshes_index_cards_with_selected_market(self):
+        main = self.read("js/skin-main.js")
+        self.assertIn("loadHomeIndices();\n      loadSummaryForSession(homeMarketSession());", main)
+        self.assertIn("applyHomeMarketSession(session);", main)
+        self.assertIn("keys: ['KOSPI', 'KOSDAQ']", main)
+        self.assertIn("keys: ['NASDAQ_INDEX', 'SP500_INDEX']", main)
+
     def test_us_home_cards_use_spot_index_products_explicitly(self):
         main = self.read("js/skin-main.js")
         indices = self.read("js/quick-indices.js")

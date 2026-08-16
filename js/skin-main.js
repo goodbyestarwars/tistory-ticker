@@ -844,6 +844,9 @@
 
     loadSummaryForSession(homeMarketSession());
     window.addEventListener('home-market-change', function () {
+      // 탭 상태만 바꾸면 직전 시장의 지수 카드가 화면에 남는다. 시장을
+      // 전환하는 순간 카드의 라벨·값·차트를 함께 초기화하고 다시 조회한다.
+      loadHomeIndices();
       loadSummaryForSession(homeMarketSession());
     });
     setInterval(function () {
