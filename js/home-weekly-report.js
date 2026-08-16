@@ -7,6 +7,42 @@
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
   var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260816-weekend-lineart-v13';
+  var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v1';
+  var FETCH_TIMEOUT_MS = 8000;
+
+  function readLocalReport() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY) || 'null');
+      return saved && saved.payload ? saved.payload : null;
+    } catch (error) {
+      return null;
+    }
+  }
+  function writeLocalReport(payload) {
+    try {
+      localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), payload: payload }));
+    } catch (error) {
+      // Safari private mode and full localStorage must not block the report.
+    }
+  }
+  function fetchReport() {
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timeoutId = setTimeout(function () {
+      if (controller) controller.abort();
+    }, FETCH_TIMEOUT_MS);
+    var options = { cache: 'no-store' };
+    if (controller) options.signal = controller.signal;
+    return fetch(API_URL, options).then(function (response) {
+      if (!response.ok) throw new Error('weekly report ' + response.status);
+      return response.json();
+    }).then(function (payload) {
+      clearTimeout(timeoutId);
+      return payload;
+    }, function (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    });
+  }
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
@@ -231,7 +267,24 @@
     root.innerHTML = '<div class="hwr-loading"><strong>주간 리포트를 준비하는 중입니다.</strong><span>지수·뉴스·일정을 묶고 있습니다.</span></div>';
     var dashboard = feed.querySelector('.home-dashboard');
     feed.insertBefore(root, dashboard || feed.firstChild);
-    fetch(API_URL).then(function (response) { if (!response.ok) throw new Error('weekly report ' + response.status); return response.json(); }).then(function (payload) { render(root, payload); }).catch(function () { root.innerHTML = '<div class="hwr-loading"><strong>주간 리포트를 잠시 불러오지 못했습니다.</strong><span>기존 실시간 시장판은 계속 이용할 수 있습니다.</span></div>'; });
+    var cached = readLocalReport();
+    if (cached) {
+      render(root, cached);
+      root.setAttribute('data-hwr-refreshing', 'true');
+    }
+    fetchReport().then(function (payload) {
+      writeLocalReport(payload);
+      render(root, payload);
+      root.removeAttribute('data-hwr-refreshing');
+    }).catch(function () {
+      // A previous successful report is more useful than leaving the page in a
+      // spinner state when the VM/browser connection is temporarily stalled.
+      if (cached) {
+        root.removeAttribute('data-hwr-refreshing');
+        return;
+      }
+      root.innerHTML = '<div class="hwr-loading"><strong>주간 리포트를 잠시 불러오지 못했습니다.</strong><span>8초 후 기존 화면을 표시합니다.</span></div>';
+    });
     return root;
   }
   global.HomeWeeklyReport = { init: init };

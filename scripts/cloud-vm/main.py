@@ -222,7 +222,45 @@ _FUTURES_TTL = 10
 _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'data':..}
 _WEEKLY_REPORT_TTL = 15 * 60
 _weekly_report_cache = {}
+_WEEKLY_REPORT_SNAPSHOT_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'weekly_report_cache.json'
+)
 _sector_cards_cache = None
+
+
+def _load_weekly_report_snapshot(cache_key):
+    """VM 재시작 뒤에도 이미 만든 주간 리포트를 즉시 반환한다.
+
+    주간 리포트는 금요일 장 마감 기준으로 고정되므로 메모리 TTL보다 날짜 키가
+    더 정확한 유효성 기준이다. 파일은 배포 대상이 아닌 VM 운영 캐시다.
+    """
+    try:
+        with open(_WEEKLY_REPORT_SNAPSHOT_FILE, 'r', encoding='utf-8') as handle:
+            snapshot = json.load(handle)
+        if snapshot.get('week_end') != cache_key or not isinstance(snapshot.get('data'), dict):
+            return None
+        return snapshot['data']
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def _save_weekly_report_snapshot(cache_key, data):
+    """주간 스냅샷을 원자적으로 저장해 반쯤 쓴 JSON을 남기지 않는다."""
+    temporary = _WEEKLY_REPORT_SNAPSHOT_FILE + '.tmp.%s' % os.getpid()
+    try:
+        with open(temporary, 'w', encoding='utf-8') as handle:
+            json.dump({
+                'week_end': cache_key,
+                'saved_at': datetime.now(timezone.utc).isoformat(),
+                'data': data,
+            }, handle, ensure_ascii=False)
+        os.replace(temporary, _WEEKLY_REPORT_SNAPSHOT_FILE)
+    except (OSError, TypeError, ValueError) as exc:
+        logging.getLogger('main').warning('weekly report snapshot save failed: %s', type(exc).__name__)
+        try:
+            os.remove(temporary)
+        except OSError:
+            pass
 
 
 def _market_board_source():
@@ -1536,6 +1574,11 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
     now = time.time()
     if cached and not fresh and now - cached['t'] < _WEEKLY_REPORT_TTL:
         return envelope(cached['data'])
+    if not fresh:
+        snapshot = _load_weekly_report_snapshot(cache_key)
+        if snapshot is not None:
+            _weekly_report_cache[cache_key] = {'t': now, 'data': snapshot}
+            return envelope(snapshot)
 
     def safe_domestic_board():
         try:
@@ -1640,7 +1683,8 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
         domestic_board=results['domestic_board'], us_board=results['us_board'],
         schedule_events=results['schedule'],
     )
-    _weekly_report_cache[cache_key] = {'t': now, 'data': data}
+    _weekly_report_cache[cache_key] = {'t': time.time(), 'data': data}
+    _save_weekly_report_snapshot(cache_key, data)
     return envelope(data)
 
 
