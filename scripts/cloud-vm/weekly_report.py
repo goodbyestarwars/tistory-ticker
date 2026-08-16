@@ -8,6 +8,7 @@
 
 from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
+from math import log1p
 
 
 def completed_week(now=None):
@@ -113,8 +114,41 @@ def _hot_row(row, tag):
         'changeRate': _number(change),
         'tradeVolume': _number(row.get('trade_volume', row.get('volume', row.get('acml_vol')))),
         'tradeAmount': _number(row.get('trade_amount', row.get('tradeAmount', row.get('acml_tr_pbmn')))),
+        'marketCap': _number(row.get('market_cap', row.get('marketCap', row.get('stck_avls')))),
         'tags': [tag],
     }
+
+
+def _stock_reason(item, cold=False):
+    """Return one short, data-backed reason for the stock card."""
+    tags = item.get('tags') or []
+    change = item.get('changeRate')
+    if cold and '하락 상위' in tags:
+        return '하락률 상위 · 약세 지속'
+    priorities = (
+        ('매수체결강도', '매수 체결강도 우위'),
+        ('거래량 급증', '거래량 급증'),
+        ('거래량 증가', '거래량 증가'),
+        ('상승 상위', '상승률 상위'),
+        ('하락 상위', '하락률 상위'),
+        ('거래대금 상위', '거래대금 집중'),
+        ('거래회전율', '거래회전율 상위'),
+        ('거래대금 회전율', '거래대금 회전율 상위'),
+        ('시가총액 상위', '시가총액 상위 대형주'),
+        ('거래량 상위', '거래량 상위'),
+    )
+    for tag, reason in priorities:
+        if tag in tags:
+            if tag == '상승 상위' and change is not None:
+                return '상승률 상위 · %+0.2f%%' % change
+            if tag == '하락 상위' and change is not None:
+                return '하락률 상위 · %+0.2f%%' % change
+            return reason
+    if change is not None and change > 0:
+        return '등락률 상승 · %+0.2f%%' % change
+    if change is not None and change < 0:
+        return '등락률 하락 · %+0.2f%%' % change
+    return '거래·시가총액 순위 기반'
 
 
 def hot_stocks(board_data, limit=10):
@@ -187,7 +221,80 @@ def hot_stocks(board_data, limit=10):
             rows.append(merged[code])
             if len(rows) >= limit:
                 break
+    for item in rows:
+        item['reason'] = _stock_reason(item)
     return rows
+
+
+def cold_stocks(board_data, limit=5):
+    """Select liquid, negative performers instead of obscure decliners only."""
+    sections = (board_data or {}).get('sections') or {}
+    specs = (
+        ('falling', '하락 상위'), ('tradeAmount', '거래대금 상위'),
+        ('marketCap', '시가총액 상위'), ('tradeVolume', '거래량 상위'),
+    )
+    merged = {}
+    for section, tag in specs:
+        for raw in (sections.get(section) or [])[:max(limit * 3, 15)]:
+            item = _hot_row(raw, tag)
+            if not item or item.get('changeRate') is None or item['changeRate'] >= 0:
+                continue
+            current = merged.get(item['code'])
+            if current:
+                current['tags'] = list(dict.fromkeys(current['tags'] + item['tags']))
+                for key in ('price', 'tradeVolume', 'tradeAmount', 'marketCap'):
+                    if current.get(key) in (None, 0) and item.get(key) not in (None, 0):
+                        current[key] = item[key]
+            else:
+                merged[item['code']] = item
+    rows = list(merged.values())
+    # Market-cap/trade-amount visibility keeps the list focused on liquid names.
+    # The rank APIs already limit the candidate universe; this only changes order.
+    rows.sort(key=lambda item: (
+        log1p(max(item.get('marketCap') or 0, 0))
+        + log1p(max(item.get('tradeAmount') or 0, 0)),
+        abs(item.get('changeRate') or 0),
+    ), reverse=True)
+    rows = rows[:limit]
+    for item in rows:
+        item['reason'] = _stock_reason(item, cold=True)
+    return rows
+
+
+def fx_analysis(row):
+    """Summarize the current FX level against its one-year observed range."""
+    row = dict(row or {})
+    points = []
+    for point in row.get('chart') or []:
+        day = _date_value(point.get('date')) if isinstance(point, dict) else None
+        close = _number(point.get('close')) if isinstance(point, dict) else None
+        if day and close is not None:
+            points.append({'date': day.isoformat(), 'close': close})
+    points = points[-365:]
+    closes = [point['close'] for point in points]
+    current = closes[-1] if closes else _number(row.get('price'))
+    if not closes or current is None:
+        row['analysis'] = {'status': 'unknown', 'label': '데이터 확인 중', 'message': '1년 환율 데이터가 부족합니다.'}
+        return row
+    ordered = sorted(closes)
+    average = sum(closes) / len(closes)
+    low = ordered[0]
+    high = ordered[-1]
+    p25 = ordered[int((len(ordered) - 1) * .25)]
+    p75 = ordered[int((len(ordered) - 1) * .75)]
+    if current >= p75:
+        status, label, message = 'caution', '고환율 주의', '1년 관측 범위 상단이라 추격 매수는 주의'
+    elif current <= p25:
+        status, label, message = 'interest', '관심 구간', '1년 관측 범위 하단이라 분할 접근을 검토'
+    else:
+        status, label, message = 'neutral', '중립·관망', '1년 평균 범위 안에서 방향을 확인'
+    row['chart'] = points
+    row['analysis'] = {
+        'status': status, 'label': label, 'message': message,
+        'current': current, 'average': average, 'low': low, 'high': high,
+        'p25': p25, 'p75': p75,
+    }
+    return row
 
 
 def _within_week(item, start, end):
@@ -270,11 +377,16 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
     return {
         'week': {'start': start.isoformat(), 'end': end.isoformat(), 'label': '%s ~ %s' % (start.isoformat(), end.isoformat())},
         'indices': index_summary(futures_rows, start, end),
-        'fx': next((row for row in futures_rows or [] if row.get('symbol') == 'USDKRW'), None),
+        'fx': fx_analysis(next((row for row in futures_rows or [] if row.get('symbol') == 'USDKRW'), None)),
         'hotStocks': {
             'domestic': hot_stocks(domestic_board),
             'us': hot_stocks(us_board),
             'basis': '주말 마지막 거래일의 KIS 순위(상승·하락·거래량급증·매수체결강도) 기준',
+        },
+        'coldStocks': {
+            'domestic': cold_stocks(domestic_board),
+            'us': cold_stocks(us_board),
+            'basis': '하락률 상위 중 시가총액·거래대금이 확인되는 유동성 종목 우선',
         },
         'news': {
             'domestic': _news(domestic_news_items, start, news_end, 8),

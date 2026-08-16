@@ -1570,7 +1570,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
 
     def safe_futures():
         try:
-            payload = futures(request, interval='day', days=30,
+            payload = futures(request, interval='day', days=365,
                               symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW')
             return payload.get('data') or []
         except Exception as exc:
