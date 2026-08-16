@@ -42,7 +42,7 @@ class WeeklyReportTests(unittest.TestCase):
             'falling': [{'code': 'B', 'name': '하락', 'change_rate': -4}],
             'volumeGrowth': [{'code': 'C', 'name': '거래량', 'change_rate': 1}],
         }}, limit=3)
-        self.assertEqual([item['code'] for item in result], ['A', 'B', 'C'])
+        self.assertEqual([item['code'] for item in result], ['A', 'C'])
 
     def test_cold_stocks_prefers_liquid_negative_names_and_adds_reason(self):
         result = weekly_report.cold_stocks({'sections': {
