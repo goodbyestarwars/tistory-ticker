@@ -178,9 +178,17 @@
     }).join('') + '</ul>';
   }
   function indexSummary(indices) {
-    var rows = (indices || []).filter(function (item) { return item && (!item.group || item.group === 'index') && num(item.changeRate) != null; });
-    if (!rows.length) return '<div class="hwr-index-summary"><span>지수 흐름</span><b>데이터 확인 중</b></div>';
-    return '<div class="hwr-index-summary" aria-label="주간 지수 요약"><span>주간 지수 요약</span>' + rows.map(function (item) {
+    var displayOrder = {
+      KOSPI: 0, KOSDAQ: 1, NASDAQ_INDEX: 2, SP500_INDEX: 3,
+      WTI: 4, GOLD: 5, US10Y: 6, BTC: 7
+    };
+    var rows = (indices || []).filter(function (item) {
+      return item && Object.prototype.hasOwnProperty.call(displayOrder, item.symbol) && num(item.changeRate) != null;
+    }).sort(function (a, b) {
+      return displayOrder[a.symbol] - displayOrder[b.symbol];
+    });
+    if (!rows.length) return '<div class="hwr-index-summary"><span>지수·자산 흐름</span><b>데이터 확인 중</b></div>';
+    return '<div class="hwr-index-summary" aria-label="주간 지수·자산 요약"><span>주간 지수·자산 요약</span>' + rows.map(function (item) {
       return '<b><small>' + escapeHtml(item.name) + '</small><strong class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</strong></b>';
     }).join('') + '</div>';
   }
