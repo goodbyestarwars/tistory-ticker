@@ -95,8 +95,7 @@
   var lwcRsiZonesCleanup = null;
   var stockDrawingState = null;
   var suggestionRequestId = 0;
-  // 거래량/RSI 서브패널이 너무 낮으면 라벨·배지가 부딪혀 겹쳐 보인다(2026-08-14 사용자
-  // 스크린샷 제보) - 최소 높이·비율을 넉넉히 준다.
+  // 거래량/RSI 서브패널은 같은 최소 높이와 비율을 사용해 항상 1:1로 유지한다.
   var SUB_PANE_MIN_HEIGHT = 82;
   var SUB_PANE_RATIO = 0.20;
 
@@ -130,6 +129,19 @@
     if (volumeLegend) volumeLegend.style.top = (actualMainHeight + 6) + 'px';
   }
 
+  function sizeStockChartPanes(panes, totalHeight) {
+    if (!panes || panes.length < 2) return { mainHeight: totalHeight, subHeight: 0 };
+    var subPaneCount = panes.length - 1;
+    var preferredSubHeight = Math.max(SUB_PANE_MIN_HEIGHT, Math.round(totalHeight * SUB_PANE_RATIO));
+    var availableSubHeight = Math.max(1, Math.floor((totalHeight - 220) / subPaneCount));
+    var subHeight = Math.min(preferredSubHeight, availableSubHeight);
+    var mainHeight = Math.max(220, totalHeight - subHeight * subPaneCount);
+    // 거래량과 RSI에 똑같은 값을 적용한다. 가격 패널은 남은 높이만 사용한다.
+    panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
+    if (panes[0].setHeight) panes[0].setHeight(mainHeight);
+    return { mainHeight: mainHeight, subHeight: subHeight };
+  }
+
   function resizeStockChart() {
     if (!lwcChart || !lwcChartContainer || !lwcChart.resize) return;
     global.requestAnimationFrame(function () {
@@ -141,11 +153,8 @@
           lwcChart.resize(width, height);
           var panes = lwcChart.panes ? lwcChart.panes() : [];
           if (panes.length > 1) {
-            var subHeight = Math.max(SUB_PANE_MIN_HEIGHT, Math.round(height * SUB_PANE_RATIO));
-            var mainHeight = Math.max(220, height - subHeight * (panes.length - 1));
-            if (panes[0].setHeight) panes[0].setHeight(mainHeight);
-            panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
-            positionLwcPaneLabels(lwcChartContainer, panes, mainHeight, subHeight);
+            var sizes = sizeStockChartPanes(panes, height);
+            positionLwcPaneLabels(lwcChartContainer, panes, sizes.mainHeight, sizes.subHeight);
           }
         } catch (e) { /* 레이아웃 정리 후 다음 요청에서 재시도 */ }
       }
@@ -1425,7 +1434,7 @@
     return {
       layout: {
         background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', fontFamily: fontFamily, attributionLogo: false,
-        panes: { enableResize: true, separatorColor: dark ? '#3a3a3a' : '#e5e7eb', separatorHoverColor: dark ? '#666' : '#cbd5e1' }
+        panes: { enableResize: false, separatorColor: dark ? '#3a3a3a' : '#e5e7eb', separatorHoverColor: dark ? '#666' : '#cbd5e1' }
       },
       grid: {
         vertLines: { color: dark ? '#3a3a3a' : '#eee' },
@@ -1857,16 +1866,13 @@
       chart.timeScale().fitContent();
       var panes = chart.panes();
       var totalHeight = container.clientHeight || 420;
-      var subHeight = Math.max(SUB_PANE_MIN_HEIGHT, Math.round(totalHeight * SUB_PANE_RATIO));
-      var mainHeight = Math.max(220, totalHeight - subHeight * (panes.length - 1));
-      if (panes[0] && panes[0].setHeight) panes[0].setHeight(mainHeight);
-      panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
+      var sizes = sizeStockChartPanes(panes, totalHeight);
       // 패널 제목·거래량 범례 위치를 CSS 고정 %(58/72/86%) 대신 실제로 적용한 패널 높이
       // 그대로 계산해서 맞춘다 - 컨테이너 높이가 달라지면 고정 %는 패널 경계와 어긋난다
       // (2026-08-13 사용자 스크린샷 제보: "거래량" 제목이 실제 거래량 패널과 안 맞음).
       // 전체화면으로 열고 닫을 때도 동일하게 다시 맞춰야 해서 resizeStockChart()와
       // positionLwcPaneLabels() 함수를 공유한다.
-      positionLwcPaneLabels(container, panes, mainHeight, subHeight);
+      positionLwcPaneLabels(container, panes, sizes.mainHeight, sizes.subHeight);
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
       setupStockDrawing(container, chart, candleSeries, timeframe);
