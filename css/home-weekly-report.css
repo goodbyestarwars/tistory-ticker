@@ -117,6 +117,7 @@ html.dark .hwr-source-note, html.dark .hwr-loading { border-color: rgba(245,239,
 .hwr-schedule-market { color: #64748b; font-size: 8px; font-weight: 600; }
 .hwr-schedule-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hwr-schedule-list small { color: #94a3b8; font-size: 8px; }
+.hwr-schedule .hwr-empty { padding: 8px 0 2px; }
 .hwr-disclaimer { margin-top: 7px; }
 html.dark .hwr-basis { background: rgba(255,255,255,.04); }
 html.dark .hwr-basis b, html.dark .hwr-stock-values > b:first-child, html.dark .hwr-news-row { color: #f5efe0; }
