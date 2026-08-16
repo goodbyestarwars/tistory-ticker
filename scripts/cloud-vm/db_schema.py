@@ -192,6 +192,50 @@ CREATE TABLE IF NOT EXISTS user_sector_cards_config (
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
+
+-- 2026-08: 국내 4주 스윙 추천의 재현 가능한 판정 스냅샷. legacy_*는
+-- 구 별점 모델과의 회귀 비교용일 뿐 최종 행동을 결정하지 않는다. 결과값은
+-- daily_prices가 충분히 쌓인 뒤 monitor_swing_recommendations.py가 T+5/T+10/T+20을 채운다.
+CREATE TABLE IF NOT EXISTS swing_recommendation_snapshots (
+    as_of_date TEXT NOT NULL,
+    code TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    model_version TEXT NOT NULL,
+    close REAL,
+    chart_regime TEXT,
+    turning_point TEXT,
+    momentum_state TEXT,
+    fundamental_state TEXT,
+    risk_state TEXT,
+    risk_reasons_json TEXT,
+    holder_action TEXT,
+    entry_opinion TEXT,
+    internal_priority_score REAL,
+    legacy_score REAL,
+    legacy_stars REAL,
+    legacy_label TEXT,
+    ma5 REAL,
+    ma20 REAL,
+    ma60 REAL,
+    ma224 REAL,
+    relative_strength REAL,
+    invalidation_condition TEXT,
+    t5_return REAL,
+    t10_return REAL,
+    t20_return REAL,
+    t5_excess_return REAL,
+    t10_excess_return REAL,
+    t20_excess_return REAL,
+    mfe REAL,
+    mae REAL,
+    outcome_updated_at TEXT,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (as_of_date, code, model_version)
+);
+CREATE INDEX IF NOT EXISTS idx_swing_snapshots_code_date
+    ON swing_recommendation_snapshots(code, as_of_date);
+CREATE INDEX IF NOT EXISTS idx_swing_snapshots_regime
+    ON swing_recommendation_snapshots(model_version, chart_regime, as_of_date);
 '''
 
 
@@ -252,6 +296,61 @@ def create_schema(conn):
     _ensure_column(conn, 'future_prices', 'bid_qty', 'REAL')
     _migrate_investor_trend_market(conn)
     conn.commit()
+
+
+def upsert_swing_snapshot(conn, snapshot):
+    """Persist one recommendation-time assessment without losing old model rows."""
+    now = snapshot.get('createdAt') or snapshot.get('created_at') or ''
+    chart = snapshot.get('chartRegime') or {}
+    momentum = snapshot.get('momentum') or {}
+    fundamental = snapshot.get('fundamental') or {}
+    risk = snapshot.get('risk') or {}
+    legacy = snapshot.get('legacy') or {}
+    ma = chart.get('ma') or {}
+    conn.execute(
+        '''INSERT INTO swing_recommendation_snapshots (
+            as_of_date, code, name, model_version, close, chart_regime, turning_point,
+            momentum_state, fundamental_state, risk_state, risk_reasons_json,
+            holder_action, entry_opinion, internal_priority_score, legacy_score,
+            legacy_stars, legacy_label, ma5, ma20, ma60, ma224, relative_strength,
+            invalidation_condition, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(as_of_date, code, model_version) DO UPDATE SET
+            name=excluded.name, close=excluded.close, chart_regime=excluded.chart_regime,
+            turning_point=excluded.turning_point, momentum_state=excluded.momentum_state,
+            fundamental_state=excluded.fundamental_state, risk_state=excluded.risk_state,
+            risk_reasons_json=excluded.risk_reasons_json, holder_action=excluded.holder_action,
+            entry_opinion=excluded.entry_opinion, internal_priority_score=excluded.internal_priority_score,
+            legacy_score=excluded.legacy_score, legacy_stars=excluded.legacy_stars,
+            legacy_label=excluded.legacy_label, ma5=excluded.ma5, ma20=excluded.ma20,
+            ma60=excluded.ma60, ma224=excluded.ma224, relative_strength=excluded.relative_strength,
+            invalidation_condition=excluded.invalidation_condition''',
+        (
+            snapshot.get('asOfDate'), snapshot.get('code'), snapshot.get('name') or '',
+            snapshot.get('modelVersion'), snapshot.get('close'), chart.get('key'),
+            chart.get('turningPoint'), momentum.get('state'), fundamental.get('state'),
+            risk.get('state'), json.dumps(risk.get('flags') or [], ensure_ascii=False),
+            snapshot.get('holderAction'), snapshot.get('entryOpinion'),
+            snapshot.get('internalPriorityScore'), legacy.get('score'), legacy.get('stars'),
+            legacy.get('label'), ma.get('ma5'), ma.get('ma20'), ma.get('ma60'), ma.get('ma224'),
+            chart.get('relativeStrength'), chart.get('invalidation'), now,
+        ),
+    )
+
+
+def update_swing_snapshot_outcome(conn, as_of_date, code, model_version, outcomes):
+    """Fill forward returns after T+5/T+10/T+20 become available."""
+    fields = ('t5_return', 't10_return', 't20_return', 't5_excess_return',
+              't10_excess_return', 't20_excess_return', 'mfe', 'mae')
+    values = [outcomes.get(field) for field in fields]
+    values.extend([outcomes.get('outcomeUpdatedAt') or ''])
+    conn.execute(
+        '''UPDATE swing_recommendation_snapshots SET
+           t5_return=?, t10_return=?, t20_return=?, t5_excess_return=?,
+           t10_excess_return=?, t20_excess_return=?, mfe=?, mae=?, outcome_updated_at=?
+           WHERE as_of_date=? AND code=? AND model_version=?''',
+        values + [as_of_date, code, model_version],
+    )
 
 
 def load_sector_cards_config(conn):

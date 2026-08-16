@@ -1,6 +1,7 @@
 #!/bin/bash
 # kiwoom-dailyscan.service/.timer를 등록해서 daily_scan.py(차트패턴+눌림목+투자시그널
 # 전종목 스캔)가 하루 1회(16:00 KST=07:00 UTC, 장마감 15:30 이후 여유) 자동 실행되게 한다.
+# 스캔 성공 뒤에는 전일 이전 추천의 T+5/T+10/T+20 결과도 같은 DB에서 갱신한다.
 # VM에서 한 번만 실행하면 됨: bash scripts/cloud-vm/setup_dailyscan_timer.sh
 set -e
 HOME_DIR="$HOME/kiwoom-api"
@@ -14,6 +15,7 @@ Type=oneshot
 User=$USER
 WorkingDirectory=$HOME_DIR
 ExecStart=$HOME_DIR/venv/bin/python $HOME_DIR/daily_scan.py
+ExecStartPost=$HOME_DIR/venv/bin/python $HOME_DIR/monitor_swing_recommendations.py
 SERVICEEOF
 
 sudo tee /etc/systemd/system/kiwoom-dailyscan.timer > /dev/null << TIMEREOF

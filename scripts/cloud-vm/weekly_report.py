@@ -368,6 +368,49 @@ def candidate_stocks(board_data, cold=False, limit=5):
     return candidates[:limit]
 
 
+def swing_candidates(swing_scan, limit=5):
+    """Return domestic 4-week candidates from the chart-gated daily scan.
+
+    The weekly market-board ranks remain useful for retrospective hot/cold
+    sections, but they are intentionally not allowed to create a forward
+    recommendation. Empty input means no candidate, not a fallback to a
+    price-ranking guess.
+    """
+    rows = (swing_scan or {}).get('candidates') or []
+    result = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        assessment = row.get('swing') or row.get('assessment') or {}
+        chart = assessment.get('chartRegime') or {}
+        risk = assessment.get('risk') or {}
+        if chart.get('key') not in ('uptrend', 'upturn') or risk.get('blocksEntry'):
+            continue
+        entry = assessment.get('entryOpinion')
+        if entry not in ('눌림목 매수 후보', '초기 매수 후보'):
+            continue
+        item = {
+            'code': row.get('code'), 'name': row.get('name'), 'price': row.get('price'),
+            'changeRate': row.get('changeRate'), 'chartRegime': chart.get('label'),
+            'turningPoint': chart.get('turningPoint'), 'momentum': (assessment.get('momentum') or {}).get('state'),
+            'fundamental': (assessment.get('fundamental') or {}).get('state'),
+            'risk': risk.get('state'), 'entryOpinion': entry,
+            'holderAction': assessment.get('holderAction'),
+            'invalidation': chart.get('invalidation'),
+            'reason': '%s · 모멘텀 %s · 펀더멘털 %s · 위험 %s' % (
+                chart.get('label') or '차트 국면 확인',
+                (assessment.get('momentum') or {}).get('state') or '데이터 부족',
+                (assessment.get('fundamental') or {}).get('state') or '데이터 부족',
+                risk.get('state') or '확인 중',
+            ),
+            '_priority': assessment.get('internalPriorityScore') or 0,
+        }
+        if item['code'] and item['name']:
+            result.append(item)
+    result.sort(key=lambda item: item.pop('_priority', 0), reverse=True)
+    return result[:limit]
+
+
 def fx_analysis(row):
     """Summarize the current FX level against its one-year observed range."""
     row = dict(row or {})
@@ -498,7 +541,7 @@ def news_timeline(domestic, us, start, end, limit=20):
 
 def build_report(start, end, futures_rows=None, domestic_news_items=None,
                  foreign_news_items=None, domestic_board=None, us_board=None,
-                 schedule_events=None, generated_at=None):
+                 schedule_events=None, generated_at=None, domestic_swing_scan=None):
     # 주간 리포트는 최신 하루치가 전체를 덮지 않도록 완료된 월~금만 사용한다.
     # 주말에 새로 들어온 뉴스는 다음 리포트의 수집분으로 남긴다.
     news_end = end
@@ -518,14 +561,14 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
             'basis': '하락률 상위 중 시가총액·거래대금이 확인되는 유동성 종목 우선',
         },
         'hotCandidates': {
-            'domestic': candidate_stocks(domestic_board),
-            'us': candidate_stocks(us_board),
-            'basis': '상승 방향과 거래량·체결강도·회전율 등 선행 신호가 겹친 종목',
+            'domestic': swing_candidates(domestic_swing_scan),
+            'us': [],
+            'basis': '국내 4주 스윙 모델: 차트 국면 관문 → 모멘텀·펀더멘털 확인 → 위험 필터',
         },
         'coldCandidates': {
-            'domestic': candidate_stocks(domestic_board, cold=True),
-            'us': candidate_stocks(us_board, cold=True),
-            'basis': '하락 방향과 거래량·거래대금 등 약세 신호가 겹친 종목',
+            'domestic': [],
+            'us': [],
+            'basis': '예측 후보를 만들지 않으며, 하락 국면은 종목분석 위험·행동 판정에서 확인',
         },
         'news': {
             'domestic': _news(domestic_news_items, start, news_end, 8),

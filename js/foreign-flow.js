@@ -266,6 +266,9 @@
   function renderSignalCount(container) {
     var box = container.querySelector('#ffSigCount');
     if (!box) return;
+    box.innerHTML = '<div class="ff-sig-count-line"><strong>국내 4주 스윙 분석</strong><span>차트 국면·모멘텀·펀더멘털·위험을 종목별로 판정합니다.</span></div>'
+      + '<div class="ff-sig-meta">구 별점·합산등급은 내부 회귀 비교용으로만 보존하며 화면 최종의견에는 표시하지 않습니다.</div>';
+    return;
     var counts = signalData.counts || {};
     var line = GRADE_META.map(function (g) {
       return '<button type="button" class="ff-sig-grade ' + g.cls + (activeGradeBucket === g.key ? ' active' : '') + '" data-grade="' + escapeAttr(g.key) + '">'
@@ -434,7 +437,6 @@
       + stockIconHtml(record.code, 'ff-sig-icon')
       + '<span class="ff-sig-name">' + escapeHtml(record.name) + '<span class="ff-sig-code">(' + escapeHtml(record.code) + ')</span></span>'
       + metricHtml
-      + '<span class="ff-sig-score">' + starsHtml(record.stars) + '</span>'
       + '<span class="ff-sig-quote"><span class="ff-sig-price">' + (record.price == null || isNaN(record.price) ? '-' : Math.round(record.price).toLocaleString('ko-KR')) + '</span>'
       + '<span class="ff-sig-rate ' + signClass(record.changeRate) + '">' + fmtSignedPct(record.changeRate) + '</span></span>'
       + '</button>';
@@ -557,7 +559,7 @@
           return;
         }
         var techScore = computeTechnicalScore(chartData);
-        renderSignalBanner(bannerBox, data, entry, techScore, fundamentals);
+        renderSignalBanner(bannerBox, data, entry, techScore, fundamentals, chartData);
         renderSignalSummaryPanel(panelBox, data, entry, techScore, fundamentals, quote, chartData);
         syncSignalPanelHeight(container);
       })
@@ -569,8 +571,17 @@
   }
 
   // ① 시그널 배너 - 항상 연한 파랑 고정색(작업지시서 지정), 등급 칩은 문자 등급 대신 한글 텍스트.
-  function renderSignalBanner(box, data, entry, techScore, fundamentals) {
+  function renderSignalBanner(box, data, entry, techScore, fundamentals, chartData) {
     if (!box) return;
+    var swing = buildSwingAssessment(data, entry, chartData, computeFundamentalScore(fundamentals));
+    var chart = swing.chartRegime;
+    box.hidden = false;
+    box.innerHTML = '<span class="ff-sig-badge ' + (chart.key === 'uptrend' || chart.key === 'upturn' ? 'ff-buy' : chart.key === 'downtrend' || chart.key === 'downturn' ? 'ff-sell' : 'ff-flat') + '">' + escapeHtml(chart.label) + '</span>'
+      + stockIconHtml(data.code, 'ff-sig-banner-icon')
+      + '<span class="ff-sig-banner-name">' + escapeHtml(data.name || data.code) + '</span>'
+      + '<span class="ff-sig-banner-score">모멘텀 ' + escapeHtml(swing.momentum.state) + ' · 위험 ' + escapeHtml(swing.risk.state) + '</span>'
+      + '<span class="ff-sig-banner-chip">신규 진입: ' + escapeHtml(swing.entryOpinion) + '</span>';
+    return;
     var flowScore = computeFlowScore(data);
     var shortP = entry && entry.short && entry.short.pressure;
     var shortScore = shortP ? shortP.score : null;
@@ -602,6 +613,9 @@
   // 2026-07-20 4차: 텍스트 나열 -> 카드/그리드/구분선 테이블로 개편).
   function renderSignalSummaryPanel(box, data, entry, techScore, fundamentals, quote, chartData) {
     if (!box) return;
+    box.innerHTML = buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData)
+      + '<button type="button" class="ff-panel-detail-link" data-open-detail="' + escapeAttr(data.code) + '" data-open-detail-name="' + escapeAttr(data.name || data.code) + '">수급·차트·펀더멘탈·모멘텀 상세 보기 →</button>';
+    return;
     var latest = data.daily && data.daily[0];
     var shortEntry = entry && entry.short;
     var valuation = fundamentals && fundamentals.valuation;
@@ -1359,9 +1373,9 @@
       + ' <span class="ff-asof">' + escapeHtml(asOfLabel) + ' 기준</span></div>'
       + '<div class="ff-divider"></div>';
 
-    // 종합평가(점수·별점·AI 투자의견)는 탭 밖에 항상 노출 - 수급/차트/펀더멘탈 어느 탭을
-    // 보고 있어도 판정 결과가 계속 보여야 한다(2026-07-13 사용자 피드백: 탭으로 분리해달라).
-    html += buildSummaryBox(data, entry, techScore, fundamentals);
+    // 4주 스윙 판정은 탭 밖에 항상 노출한다. 별점/구 등급은 화면 최종의견에서 제거하고
+    // 국면·보유자 행동·신규 진입을 분리해 보여준다.
+    html += buildSummaryBox(data, entry, techScore, fundamentals, chartData);
 
     activeView = 'flow'; // 새 검색마다 수급 탭으로 리셋
     html += buildViewTabs();
@@ -1388,7 +1402,6 @@
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
     wireFlowPeriod(box, data.code, data.name);
-    loadAiSummary(box, data, entry, techScore, chartData, fundamentals);
     wireViewTabs(box, data.code, data.name, chartData);
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
@@ -2504,7 +2517,102 @@
     return parts.length ? parts.join(' · ') + ' 기준입니다.' : '재무 데이터가 불완전합니다.';
   }
 
-  function buildSummaryBox(data, entry, techScore, fundamentals) {
+  // 4주 스윙 판정은 별점·합산점수와 분리한다. 배치의 swing_model.py와 같은
+  // 국면 순서(상승/변곡/보류/하방)를 브라우저에서도 재현해 온디맨드 분석과
+  // 전종목 배치가 같은 행동 문장을 보여주도록 한다. 224일선은 표시·장기
+  // 참고값으로만 남기고 4주 행동을 직접 뒤집지 않는다.
+  function swingChartRegime(daily) {
+    daily = (daily || []).filter(function (row) { return finiteNumber(row.close) != null; });
+    function ma(period, end) {
+      if (end + 1 < period) return null;
+      var sum = 0;
+      for (var i = end - period + 1; i <= end; i++) sum += Number(daily[i].close);
+      return sum / period;
+    }
+    function slope(period, lookback) {
+      var now = ma(period, daily.length - 1), before = ma(period, daily.length - 1 - lookback);
+      return now == null || before == null || !before ? 0 : (now - before) / Math.abs(before);
+    }
+    var ma5 = ma(5, daily.length - 1), ma20 = ma(20, daily.length - 1), ma60 = ma(60, daily.length - 1);
+    var ma224 = ma(224, daily.length - 1), current = Number(daily[daily.length - 1].close);
+    if (daily.length < 60 || ma20 == null || ma60 == null) {
+      return { key: 'neutral', label: '횡보·판단 보류', confidence: 'low', turningPoint: 'unknown',
+        reasons: ['5·20·60일선 계산에 필요한 일봉이 부족합니다.'], invalidation: '일봉 데이터 60개 이상 확보 후 재판정',
+        ma: { ma5: ma5, ma20: ma20, ma60: ma60, ma224: ma224 } };
+    }
+    var s20 = slope(20, 5), s60 = slope(60, 10), s5 = slope(5, 3);
+    var prev = daily.slice(Math.max(0, daily.length - 15), Math.max(0, daily.length - 5)).map(function (r) { return Number(r.close); });
+    var recent = daily.slice(Math.max(0, daily.length - 5)).map(function (r) { return Number(r.close); });
+    var prevLow = Math.min.apply(Math, prev), prevHigh = Math.max.apply(Math, prev);
+    var recentLow = Math.min.apply(Math, recent), recentHigh = Math.max.apply(Math, recent);
+    var oldLow = Math.min.apply(Math, daily.slice(-12, -5).map(function (r) { return Number(r.close); }));
+    var oldHigh = Math.max.apply(Math, daily.slice(-12, -5).map(function (r) { return Number(r.close); }));
+    var higherLow = recentLow > oldLow * 1.005, lowerHigh = recentHigh < oldHigh * 0.995;
+    var rebound = current / prevLow - 1, retreat = current / prevHigh - 1;
+    var upSignals = [rebound >= 0.03, s5 > 0.002, higherLow, current >= ma20];
+    var downSignals = [retreat <= -0.03, s5 < -0.002, lowerHigh, current <= ma20];
+    var upCount = upSignals.filter(Boolean).length, downCount = downSignals.filter(Boolean).length;
+    var upTrend = ma5 != null && ma5 >= ma20 && ma20 >= ma60 && current >= ma20 && s20 >= 0.002 && s60 >= -0.001;
+    var downTrend = ma5 != null && ma5 <= ma20 && ma20 <= ma60 && current <= ma20 && s20 <= -0.002 && s60 <= 0.001;
+    var key, turningPoint, confidence;
+    if (upTrend) { key = 'uptrend'; turningPoint = 'confirmed'; confidence = 'high'; }
+    else if (downTrend) { key = 'downtrend'; turningPoint = 'confirmed'; confidence = 'high'; }
+    else if (upCount >= 2 && downCount < 2) { key = 'upturn'; turningPoint = upCount >= 3 && current >= ma20 ? 'confirmed' : 'detected'; confidence = turningPoint === 'confirmed' ? 'medium' : 'low'; }
+    else if (downCount >= 2 && upCount < 2) { key = 'downturn'; turningPoint = downCount >= 3 && current <= ma20 ? 'confirmed' : 'detected'; confidence = turningPoint === 'confirmed' ? 'medium' : 'low'; }
+    else { key = 'neutral'; turningPoint = 'none'; confidence = 'low'; }
+    var labels = { uptrend: '상승 지속', upturn: '상방 변곡', neutral: '횡보·판단 보류', downturn: '하방 변곡', downtrend: '하락 지속' };
+    var invalidation = { uptrend: '20일선 이탈 후 회복 실패', upturn: '반등 저점 이탈 또는 20일선 회복 실패', neutral: '20일선 위 안착 또는 하향 이탈로 국면 재판정', downturn: '최근 반등 고점 돌파 및 20일선 회복', downtrend: '20일선 회복 후 안착' };
+    return { key: key, label: labels[key], confidence: confidence, turningPoint: turningPoint,
+      reasons: ['5·20·60일선 ' + Math.round(ma5) + ' / ' + Math.round(ma20) + ' / ' + Math.round(ma60), '20일선 5거래일 변화 ' + (s20 * 100).toFixed(2) + '%'].concat(higherLow ? ['최근 저점이 이전 저점보다 높음'] : []).concat(ma224 != null ? ['224일선은 장기 추세 참고값으로만 사용'] : []),
+      invalidation: invalidation[key], ma: { ma5: ma5, ma20: ma20, ma60: ma60, ma224: ma224 }, signals: { up: upCount, down: downCount } };
+  }
+
+  function buildSwingAssessment(data, entry, chartData, fundamentalScore) {
+    var daily = chartData && chartData.daily ? chartData.daily : [];
+    var chart = swingChartRegime(daily);
+    var flowScore = computeFlowScore(data), foreignInstScore = computeForeignInstScore(data);
+    var momentumScore = (flowScore + foreignInstScore) / 2;
+    var momentum = momentumScore >= 65 ? '강화' : momentumScore < 40 ? '약화' : '중립';
+    var fundamental = fundamentalScore == null ? '데이터 부족' : fundamentalScore >= 65 ? '지지' : fundamentalScore < 40 ? '부담' : '중립';
+    var shortP = entry && entry.short && entry.short.pressure;
+    var credit = entry && entry.credit && entry.credit.signal;
+    var flags = [];
+    if (shortP && shortP.danger_gate && shortP.danger_gate.triggered) flags.push('공매도 과열·가격하락·대차증가 동시 확인');
+    else if (shortP && shortP.score != null && shortP.score < 35) flags.push('공매도 압박 높음');
+    if (credit && credit.flag) flags.push(credit.label || '신용·반대매매 주의');
+    var risk = flags.length > 1 || (shortP && shortP.danger_gate && shortP.danger_gate.triggered) ? '경고' : flags.length ? '주의' : '없음';
+    var blocks = risk !== '없음';
+    var holder, entryOpinion, base;
+    if (chart.key === 'uptrend') { holder = '보유 / 추가매수 검토'; entryOpinion = blocks ? '신규 진입 주의' : '눌림목 매수 후보'; base = 100; }
+    else if (chart.key === 'upturn') { holder = '보유 / 강제 비중축소 금지'; entryOpinion = chart.turningPoint === 'confirmed' && !blocks ? '초기 매수 후보' : '신규 진입 관찰'; base = chart.turningPoint === 'confirmed' ? 82 : 68; }
+    else if (chart.key === 'neutral') { holder = '보유 / 관찰'; entryOpinion = '관찰'; base = 42; }
+    else if (chart.key === 'downturn') { holder = '비중축소 검토'; entryOpinion = '신규 진입 금지'; base = 18; }
+    else { holder = '비중축소 / 매도 검토'; entryOpinion = '후보 제외'; base = 5; }
+    if (blocks && (chart.key === 'uptrend' || chart.key === 'upturn')) entryOpinion = '신규 진입 금지';
+    return { modelVersion: 'swing-4w-v1', chartRegime: chart, momentum: { state: momentum, score: momentumScore }, fundamental: { state: fundamental, score: fundamentalScore }, risk: { state: risk, flags: flags, blocksEntry: blocks }, holderAction: holder, entryOpinion: entryOpinion, internalPriorityScore: Math.max(0, Math.min(100, base + (momentumScore - 50) * .25)), legacy: {} };
+  }
+
+  function buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData) {
+    var assessment = buildSwingAssessment(data, entry, chartData, computeFundamentalScore(fundamentals));
+    var chart = assessment.chartRegime, risk = assessment.risk;
+    var reasons = (chart.reasons || []).join(' · ');
+    return '<div class="ff-summary ff-swing-summary">'
+      + '<div class="ff-swing-regime"><span class="ff-panel-title">4주 스윙 판정</span><strong>' + escapeHtml(chart.label) + '</strong><small>' + escapeHtml(chart.turningPoint === 'detected' ? '변곡 감지 · 확인 대기' : chart.turningPoint === 'confirmed' ? '변곡 확인' : '국면 기준') + '</small></div>'
+      + '<div class="ff-swing-grid">'
+      + '<div><span>모멘텀</span><b>' + escapeHtml(assessment.momentum.state) + '</b></div>'
+      + '<div><span>펀더멘털</span><b>' + escapeHtml(assessment.fundamental.state) + '</b></div>'
+      + '<div><span>위험</span><b>' + escapeHtml(risk.state) + '</b></div>'
+      + '<div><span>보유자 행동</span><b>' + escapeHtml(assessment.holderAction) + '</b></div>'
+      + '<div><span>신규 진입</span><b>' + escapeHtml(assessment.entryOpinion) + '</b></div>'
+      + '</div>'
+      + '<div class="ff-swing-reasons"><b>판정 근거</b> ' + escapeHtml(reasons || '차트 데이터 확인 중') + '</div>'
+      + '<div class="ff-swing-invalidation"><b>무효화 조건</b> ' + escapeHtml(chart.invalidation || '-') + '</div>'
+      + (risk.flags && risk.flags.length ? '<div class="ff-swing-risk-detail"><b>위험 근거</b> ' + escapeHtml(risk.flags.join(' · ')) + '</div>' : '')
+      + '</div>';
+  }
+
+  function buildSummaryBox(data, entry, techScore, fundamentals, chartData) {
+    return buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData);
     var flowScore = computeFlowScore(data);
     var foreignInstScore = computeForeignInstScore(data);
 

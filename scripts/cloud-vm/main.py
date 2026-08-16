@@ -225,7 +225,7 @@ _weekly_report_cache = {}
 _WEEKLY_REPORT_SNAPSHOT_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'weekly_report_cache.json'
 )
-_WEEKLY_REPORT_SNAPSHOT_VERSION = 4
+_WEEKLY_REPORT_SNAPSHOT_VERSION = 5
 _sector_cards_cache = None
 
 
@@ -265,6 +265,16 @@ def _save_weekly_report_snapshot(cache_key, data):
             os.remove(temporary)
         except OSError:
             pass
+
+
+def _load_daily_scan_for_weekly():
+    """Read the domestic chart-gated scan without making another market/API call."""
+    try:
+        with open(DAILY_SCAN_CACHE_FILE, 'r', encoding='utf-8') as handle:
+            payload = json.load(handle)
+        return payload.get('swingScan') or {}
+    except (OSError, ValueError, TypeError):
+        return {}
 
 
 def _market_board_source():
@@ -1781,6 +1791,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
         foreign_news_items=results['foreign_news'],
         domestic_board=results['domestic_board'], us_board=results['us_board'],
         schedule_events=results['schedule'],
+        domestic_swing_scan=_load_daily_scan_for_weekly(),
     )
     _weekly_report_cache[cache_key] = {'t': time.time(), 'data': data}
     _save_weekly_report_snapshot(cache_key, data)

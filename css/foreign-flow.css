@@ -2488,6 +2488,30 @@ html.dark #foreign-flow .ff-sig-badge.ff-sell { background: rgba(110, 168, 232, 
 html.dark #foreign-flow .ff-sig-badge.ff-flat { background: rgba(245, 239, 224, 0.16) !important; color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-sig-banner-score-num { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-sig-banner-score-sub { color: rgba(245, 239, 224, 0.6) !important; }
+
+/* 4주 스윙 국면 판정: 별점/합산등급 대신 차트 국면과 보유자·미보유자 행동을
+   분리해 표시한다. 224일선 관련 차트 스타일은 위 기존 규칙을 그대로 유지한다. */
+#foreign-flow .ff-swing-summary { padding: 14px; }
+#foreign-flow .ff-swing-regime { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid #e8ebef; }
+#foreign-flow .ff-swing-regime .ff-panel-title { margin: 0; }
+#foreign-flow .ff-swing-regime strong { font-size: 20px; color: #0c447c; }
+#foreign-flow .ff-swing-regime small { color: #64748b; }
+#foreign-flow .ff-swing-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 12px 0; }
+#foreign-flow .ff-swing-grid > div { min-height: 54px; padding: 9px 10px; border: 1px solid #e4e8ee; border-radius: 8px; background: #f8fafc; }
+#foreign-flow .ff-swing-grid span, #foreign-flow .ff-swing-grid b { display: block; }
+#foreign-flow .ff-swing-grid span { color: #64748b; font-size: 11px; margin-bottom: 5px; }
+#foreign-flow .ff-swing-grid b { color: #1e293b; font-size: 13px; }
+#foreign-flow .ff-swing-reasons, #foreign-flow .ff-swing-invalidation, #foreign-flow .ff-swing-risk-detail { margin-top: 7px; color: #475569; font-size: 12px; line-height: 1.55; }
+#foreign-flow .ff-swing-risk-detail { color: #b42318; }
+#foreign-flow .ff-sig-banner-score { font-size: 12px; color: #334155; }
+@media (max-width: 760px) {
+  #foreign-flow .ff-swing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #foreign-flow .ff-swing-grid > div:last-child { grid-column: 1 / -1; }
+}
+html.dark #foreign-flow .ff-swing-regime { border-color: rgba(245, 239, 224, 0.16); }
+html.dark #foreign-flow .ff-swing-regime strong { color: #9ac7f4; }
+html.dark #foreign-flow .ff-swing-grid > div { border-color: rgba(245, 239, 224, 0.16); background: rgba(245, 239, 224, 0.07); }
+html.dark #foreign-flow .ff-swing-grid b, html.dark #foreign-flow .ff-swing-reasons, html.dark #foreign-flow .ff-swing-invalidation { color: rgba(245, 239, 224, 0.8); }
 html.dark #foreign-flow .ff-sig-banner-chip {
   background: rgba(245, 239, 224, 0.1) !important;
   border-color: rgba(245, 239, 224, 0.25) !important;

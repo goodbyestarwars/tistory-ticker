@@ -278,6 +278,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".post-card.feed-headline-item .btn-share { padding: 4px 9px; font-size: 10.5px; }", style)
         self.assertIn(".post-card.feed-headline-item .btn-read { display: none; }", style)
 
+    def test_discontinued_market_ribbon_is_hidden_before_external_css_loads(self):
+        skin = self.read("skin.html")
+        ribbon_css = self.read("css/market-ribbon.css")
+        self.assertIn(".market-ribbon { display: none !important; }", skin)
+        self.assertIn("css/market-ribbon.css?v=20260817-fouc-fix-v1", skin)
+        self.assertIn(".market-ribbon { display: none !important; }", ribbon_css)
+
     def test_home_domestic_summary_includes_foreign_investor_trend(self):
         main = self.read("js/skin-main.js")
         style = self.read("style.css")
@@ -923,6 +930,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("buildVpLegend()", body)
         self.assertIn("var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' };", source)
         self.assertIn("var MA_WIDTHS = { ma5: 1, ma20: 1, ma60: 1, ma224: 3 };", source)
+        self.assertIn("['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key)", source)
+        self.assertIn("function ma224Color()", source)
+        self.assertIn(">224일선</span>", source)
         self.assertIn("movingAverageOverlaySeries.push(lineSeries)", source)
         self.assertIn("function createIchimokuCloudPrimitive(bandPts, cloudColor)", source)
         self.assertIn("ctx.fillStyle = cloudColor", source)
@@ -1143,6 +1153,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_weekly_hot_and_cold_stock_reasons_are_bold(self):
         source = self.read("js/home-weekly-report.js")
         style = self.read("css/home-weekly-report.css")
+        self.assertIn("뜨거웠던 종목", source)
+        self.assertIn("차가웠던 종목", source)
+        self.assertNotIn(">뜨거운 종목<", source)
+        self.assertNotIn(">차가운 종목<", source)
         self.assertIn('class="hwr-stock-reason"', source)
         self.assertIn(".hwr-stock-reason { display: block; margin-top: 2px; color: #64748b; font-size: 9px; font-style: normal; font-weight: 700;", style)
 
@@ -1165,13 +1179,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         backend = self.read("scripts/cloud-vm/main.py")
         for token in (
             'data.hotCandidates && data.hotCandidates.domestic',
-            'data.coldCandidates && data.coldCandidates.domestic',
-            '뜨거워질 후보', '차가워질 후보', '예측이 아니라 겹친 선행 신호 기준',
+            '4주 스윙 상승 후보', '국내 후보', '보유자 행동과 신규 진입을 분리',
         ):
             self.assertIn(token, source)
         self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-up', style)
-        self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-down', style)
-        self.assertIn('_WEEKLY_REPORT_SNAPSHOT_VERSION = 4', backend)
+        self.assertIn('_WEEKLY_REPORT_SNAPSHOT_VERSION = 5', backend)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")

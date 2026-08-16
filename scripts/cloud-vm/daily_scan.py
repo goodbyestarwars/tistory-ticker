@@ -23,6 +23,7 @@ import kiwoom_client
 import kiwoom_market
 import public_data
 import pattern_detect as pd
+import swing_model
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 INVESTOR_FLOW_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor_flow_cache.json')
@@ -141,6 +142,7 @@ def fresh_signal_state():
         'topForeign': [], 'topInst': [], 'topPension': [], 'improved': [], 'worsened': [],
         # 2026-07-20: 종목분석 페이지 가중치 탭(수급/외국인·기관/기술적/공매도/펀더멘탈) 통합용 신규 랭킹.
         'topFlow': [], 'topForeignInst': [], 'topTech': [], 'topShortSafe': [], 'topFundamental': [],
+        'swingScanned': 0, 'swingCandidates': [], 'swingRegimeCounts': {},
     }
 
 
@@ -271,6 +273,12 @@ def main():
                 verdict = invest_signal.compute_verdict(flow_score, foreign_inst_score, tech, short_score, pension_score,
                                                          credit_score, fundamental_score)
 
+                assessment = swing_model.build_swing_assessment(
+                    daily, flow_score=flow_score, foreign_inst_score=foreign_inst_score,
+                    fundamental_score=fundamental_score, short_score=short_score,
+                    entry=entry, legacy=verdict,
+                )
+
                 last = flow['daily'][0]  # 최신일 우선 정렬
                 r5 = flow['rolling'].get('5d') or {}
                 pension_5d = (entry.get('pension') or {}).get('net_5d') if entry else None
@@ -295,8 +303,25 @@ def main():
                     'techScore': tech.get('score') if tech else None,
                     'shortRatio': short_ratio,
                     'fundamentalScore': fundamental_score,
+                    # 기존 score/stars/label은 API 하위 호환·회귀 비교용이다.
+                    # 화면의 최종 의견과 주간 후보 판정에는 assessment만 사용한다.
+                    'swing': assessment,
                 }
                 signal_state['scanned'] += 1
+                signal_state['swingScanned'] += 1
+                regime_key = (assessment.get('chartRegime') or {}).get('key') or 'neutral'
+                signal_state['swingRegimeCounts'][regime_key] = signal_state['swingRegimeCounts'].get(regime_key, 0) + 1
+                as_of_date = last.get('date') or today_str
+                db_schema.upsert_swing_snapshot(conn, {
+                    'asOfDate': as_of_date, 'code': code, 'name': name,
+                    'modelVersion': assessment.get('modelVersion'), 'close': last.get('close'),
+                    'createdAt': datetime.now(timezone.utc).isoformat(),
+                    **assessment,
+                })
+                if (assessment.get('chartRegime') or {}).get('key') in ('uptrend', 'upturn') \
+                        and not (assessment.get('risk') or {}).get('blocksEntry') \
+                        and assessment.get('entryOpinion') in ('눌림목 매수 후보', '초기 매수 후보'):
+                    signal_state['swingCandidates'].append(row)
                 signal_state['counts'][verdict['label']] = signal_state['counts'].get(verdict['label'], 0) + 1
                 bucket = signal_state['buckets'].get(verdict['label'])
                 if bucket is not None and len(bucket) < invest_signal.INVEST_SIGNAL_BUCKET_CAP:
@@ -330,6 +355,9 @@ def main():
 
     market_cap_cache.update(market_cap_run_cache)
     save_market_cap_cache(market_cap_cache)
+    signal_state['swingCandidates'].sort(
+        key=lambda item: item.get('swing', {}).get('internalPriorityScore', 0), reverse=True)
+    signal_state['swingCandidates'] = signal_state['swingCandidates'][:100]
     pd.finalize_pattern_results(pattern_results, pullback_matches)
     now = datetime.now(timezone.utc).isoformat()
     payload = {
@@ -353,6 +381,13 @@ def main():
                 'shortSafe': signal_state['topShortSafe'],
                 'fundamental': signal_state['topFundamental'],
             },
+        },
+        'swingScan': {
+            'modelVersion': swing_model.MODEL_VERSION,
+            'scanned': signal_state['swingScanned'],
+            'regimeCounts': signal_state['swingRegimeCounts'],
+            'candidates': signal_state['swingCandidates'],
+            'basis': '차트 국면 관문 → 모멘텀·펀더멘털 확인 → 위험 필터, 국내 전용',
         },
     }
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
