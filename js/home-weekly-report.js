@@ -79,7 +79,7 @@
     }).join('') + '</ul>';
   }
   function scheduleList(items) {
-    if (!items || !items.length) return '<p class="hwr-empty">확인된 핵심 일정이 없습니다.</p>';
+    if (!items || !items.length) return '<p class="hwr-empty">다음 주 M7·금리·주요 기업 일정이 확인되지 않았습니다.</p>';
     return '<ul class="hwr-schedule-list">' + items.slice(0, 16).map(function (item) {
       var isUs = item.market === 'us' || /^[A-Z]{1,6}$/.test(String(item.symbol || '')) || /미국|Finnhub|\$[A-Z]/i.test(String(item.title || ''));
       return '<li><time>' + escapeHtml(String(item.date || '').slice(5)) + '</time><b class="hwr-schedule-market">' + (isUs ? '미국' : '한국') + '</b><span>' + escapeHtml(item.title) + (item.symbol ? ' <small>' + escapeHtml(item.symbol) + '</small>' : '') + '</span></li>';

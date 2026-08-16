@@ -129,6 +129,7 @@ def hot_stocks(board_data, limit=10):
     specs = (
         ('rising', '상승 상위'), ('falling', '하락 상위'),
         ('volumeGrowth', '거래량 증가'), ('volumeSurge', '거래량 급증'),
+        ('tradeVolume', '거래량 상위'), ('marketCap', '시가총액 상위'),
         ('turnover', '거래회전율'), ('amountTurnover', '거래대금 회전율'),
         ('volumePower', '매수체결강도'), ('tradeAmount', '거래대금 상위'),
     )
