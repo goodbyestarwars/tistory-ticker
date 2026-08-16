@@ -282,7 +282,7 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
         return list(selected[:max(1, int(limit))])
 
 
-def get_general_news_history(start, end, limit=120):
+def get_general_news_history(start, end, limit=120, alpha_api_key=''):
     """Read the persisted US general-news archive for a completed week."""
     try:
         start_day = datetime.strptime(str(start)[:10], '%Y-%m-%d').date()
@@ -322,6 +322,23 @@ def get_general_news_history(start, end, limit=120):
             'source': row['source'] or '', 'provider': row['provider'] or 'US news',
             'category': '시장', 'kind': 'news', 'market': 'us',
         })
+    if not result and alpha_api_key:
+        try:
+            backfill = _alpha_general_news(alpha_api_key, start_day, end_day)
+            save_cached_news('__GENERAL__', backfill, retain_limit=500)
+            for item in backfill:
+                published = _parse_date(item.get('pubDate'))
+                if not published:
+                    continue
+                day = datetime.fromtimestamp(published, timezone.utc).astimezone(
+                    timezone(timedelta(hours=9))
+                ).date()
+                if start_day <= day <= end_day:
+                    item = dict(item)
+                    item.pop('_published_ts', None)
+                    result.append(item)
+        except Exception:
+            logger.exception('General news historical backfill failed')
     return result[:max(1, min(int(limit or 120), 200))]
 
 
@@ -405,14 +422,19 @@ def _alpha_news(symbol, api_key):
     return items
 
 
-def _alpha_general_news(api_key):
-    query = urllib.parse.urlencode({
+def _alpha_general_news(api_key, start=None, end=None):
+    params = {
         'function': 'NEWS_SENTIMENT',
         'topics': 'financial_markets,economy_macro,economy_monetary,earnings',
         'sort': 'LATEST',
         'limit': 50,
         'apikey': api_key,
-    })
+    }
+    if start is not None:
+        params['time_from'] = start.strftime('%Y%m%dT0000')
+    if end is not None:
+        params['time_to'] = (end + timedelta(days=1)).strftime('%Y%m%dT0000')
+    query = urllib.parse.urlencode(params)
     try:
         payload = _get_json(ALPHA_URL + '?' + query)
     except Exception:
