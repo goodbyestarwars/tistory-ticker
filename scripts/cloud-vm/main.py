@@ -756,8 +756,10 @@ _FLASH_US_INDEX_TERMS = ('나스닥', 's&p 500', 's&p500', '다우지수', '다�
 
 
 def _economic_news_market():
-    # 홈의 경제 종합뉴스는 좌측 시장 선택·한국 장중 여부와 무관하게 미국 전용이다.
-    return 'us'
+    # WebSocket의 기본 시장은 시간대 기준이다. 사용자가 시장 탭을 선택하면
+    # 프론트가 해당 시장 REST 결과를 사용하고, 다른 시장의 소켓 패킷은 무시한다.
+    now = datetime.now(timezone(timedelta(hours=9)))
+    return 'us' if now.hour >= 20 or now.hour < 8 else 'domestic'
 
 
 def _fetch_economic_news_snapshot(market):

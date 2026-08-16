@@ -1,9 +1,10 @@
-/* 홈 상단 경제 종합뉴스: 미국 시장·거시경제 뉴스만 compact timeline으로 표시한다. */
+/* 홈 상단 경제 종합뉴스: 선택한 시장의 시장·거시경제 뉴스만 compact timeline으로 표시한다. */
 (function (global) {
   'use strict';
 
-  var ECONOMIC_MARKET = 'us';
+  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=50';
   var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=50';
+  var DOMESTIC_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
   var US_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=us&limit=20';
   var ECONOMIC_NEWS_WS_URL = 'wss://goodbyestar.cloud/ws/economic-news';
   var REFRESH_MS = 5 * 60 * 1000;
@@ -37,8 +38,12 @@
   }
 
   function currentMarket() {
-    // 좌측 메인 시장 선택과 무관하게 이 영역은 미국 경제뉴스 전용이다.
-    return ECONOMIC_MARKET;
+    if (global.HomeMarketSelection && typeof global.HomeMarketSelection.get === 'function') {
+      return global.HomeMarketSelection.get();
+    }
+    var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    var hour = kst.getUTCHours();
+    return hour >= 20 || hour < 8 ? 'us' : 'domestic';
   }
 
   function timeLabel(value) {
@@ -192,10 +197,11 @@
   function applyNewsPayload(payload) {
     var data = payload && (payload.data || payload);
     if (!data || !Array.isArray(data.items)) return false;
-    // 서버/소켓에서 국내 모드 패킷이 오더라도 경제 종합뉴스에 섞지 않는다.
-    if (data.market && data.market !== ECONOMIC_MARKET) return false;
-    var market = ECONOMIC_MARKET;
-    state.market = ECONOMIC_MARKET;
+    // WebSocket은 서버 시간대 기준 패킷일 수 있다. 현재 사용자가 선택한 시장과
+    // 다르면 그 패킷으로 화면을 덮어쓰지 않고, 선택 시장 REST 결과를 유지한다.
+    var market = data.market === 'us' ? 'us' : 'domestic';
+    if (market !== currentMarket()) return false;
+    state.market = market;
     state.items = data.items;
     state.flash = Array.isArray(data.flash) ? data.flash : [];
     render(state.items, market, state.flash);
@@ -204,11 +210,11 @@
   }
 
   function loadMarketBoard(market) {
-    var marketUrl = US_MARKET_API_URL;
-    state.market = ECONOMIC_MARKET;
+    var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;
+    state.market = market;
     return fetchJson(marketUrl).then(function (json) {
       state.quoteMap = quoteMapFrom(json);
-      if (state.market === ECONOMIC_MARKET) render(state.items, ECONOMIC_MARKET, state.flash);
+      if (state.market === market) render(state.items, market, state.flash);
     }).catch(function () { return null; });
   }
 
@@ -290,10 +296,10 @@
   function fetchNews() {
     if (state.loading) return Promise.resolve();
     state.loading = true;
-    var market = ECONOMIC_MARKET;
-    state.market = ECONOMIC_MARKET;
-    var newsUrl = US_API_URL;
-    var marketUrl = US_MARKET_API_URL;
+    var market = currentMarket();
+    state.market = market;
+    var newsUrl = market === 'us' ? US_API_URL : DOMESTIC_API_URL;
+    var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;
     var newsRequest = fetchJson(newsUrl).then(function (json) {
       var payload = json.data || json;
       state.items = payload.items || [];
@@ -316,15 +322,15 @@
     var mount = options && options.mount;
     if (!mount || mount.getAttribute('data-hen-ready') === '1') return;
     state.mount = mount;
-    state.market = ECONOMIC_MARKET;
+    state.market = currentMarket();
     mount.setAttribute('data-hen-ready', '1');
     global.addEventListener('watchlist:changed', function () {
       render(state.items, state.market, state.flash);
     });
     global.addEventListener('home-market-change', function () {
       closeNewsSocket(false);
-      state.market = ECONOMIC_MARKET;
-      loadMarketBoard(ECONOMIC_MARKET);
+      state.market = currentMarket();
+      loadMarketBoard(state.market);
       connectNewsSocket();
       if (!state.socketOpened) fetchNews();
     });
