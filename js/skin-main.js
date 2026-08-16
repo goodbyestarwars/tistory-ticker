@@ -74,13 +74,31 @@
     var rankMount = document.getElementById('sidebar-rank');
     if (!feed) return;
 
+    window.HomeMarketSelection = window.HomeMarketSelection || (function () {
+      var selected = null;
+      function autoMarket() {
+        var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        var hour = kst.getUTCHours();
+        return hour >= 20 || hour < 8 ? 'us' : 'domestic';
+      }
+      return {
+        get: function () { return selected || autoMarket(); },
+        set: function (market) {
+          market = market === 'us' ? 'us' : 'domestic';
+          if (selected === market) return;
+          selected = market;
+          window.dispatchEvent(new CustomEvent('home-market-change', { detail: { market: market } }));
+        }
+      };
+    })();
+
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260815-company-name';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260813-econ-height-v3')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260813-econ-height-v3';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260816-auto-market';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260813-breaking-flash-v5';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260816-market-switch-v1')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260816-market-switch-v1';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260816-market-switch-v1';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260816-market-switch-v1';
     var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260816-weekend-lineart-v3';
 
     function isWeekendReportWindow() {
@@ -189,6 +207,9 @@
 
     function dashboardHtml() {
       return '<section class="home-dashboard" aria-label="오늘의 시장 상황판">'
+        + '<div class="home-market-switch" role="tablist" aria-label="메인 시장 전환">'
+        + '<span>메인 시장</span><button type="button" data-home-market-switch="domestic" role="tab">한국증시</button><button type="button" data-home-market-switch="us" role="tab">미국증시</button>'
+        + '</div>'
         + '<div class="home-overview-grid">'
         + '<article class="card home-market-board" id="homeMarketBoard">'
         + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live" data-home-market-field="live">실시간</span></div>'
@@ -240,6 +261,21 @@
     var dashboardSection = dashboard.firstElementChild;
     var weekendReportWindow = isWeekendReportWindow();
     if (weekendReportWindow) dashboardSection.classList.add('home-weekend-hidden');
+    function syncMarketSwitch() {
+      var selected = window.HomeMarketSelection.get();
+      dashboardSection.querySelectorAll('[data-home-market-switch]').forEach(function (button) {
+        var active = button.getAttribute('data-home-market-switch') === selected;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+    dashboardSection.querySelectorAll('[data-home-market-switch]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        window.HomeMarketSelection.set(button.getAttribute('data-home-market-switch'));
+      });
+    });
+    syncMarketSwitch();
+    window.addEventListener('home-market-change', syncMarketSwitch);
     feed.insertBefore(dashboardSection, investorMount);
     if (investorMount) investorMount.remove();
     if (rankMount) rankMount.remove();
@@ -466,7 +502,9 @@
     function homeMarketSession() {
       var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
       var hour = kst.getUTCHours();
-      var isUsSession = hour >= 20 || hour < 8;
+      var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
+        ? window.HomeMarketSelection.get() : null;
+      var isUsSession = selected === 'us' || (!selected && (hour >= 20 || hour < 8));
       return isUsSession ? {
         title: '미국 시장',
         live: '나스닥 · S&P500',
@@ -789,6 +827,9 @@
     };
 
     loadSummaryForSession(homeMarketSession());
+    window.addEventListener('home-market-change', function () {
+      loadSummaryForSession(homeMarketSession());
+    });
     setInterval(function () {
       if (document.hidden) return;
       var session = homeMarketSession();

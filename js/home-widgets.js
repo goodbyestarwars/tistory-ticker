@@ -647,6 +647,9 @@
   }
 
   function currentDisclosureMarket() {
+    if (global.HomeMarketSelection && typeof global.HomeMarketSelection.get === 'function') {
+      return global.HomeMarketSelection.get();
+    }
     var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
     var hour = kst.getUTCHours();
     return hour >= 20 || hour < 8 ? 'us' : 'domestic';
@@ -915,6 +918,9 @@
     }
     if (!buildRegistry(options)) return;
     options.dashboard.setAttribute('data-widgets-ready', '1');
+    global.addEventListener('home-market-change', function () {
+      loadDisclosures();
+    });
     applyState(loadState());
     syncEconomicHeight();
     if (typeof ResizeObserver === 'function' && registry['market-summary']) {

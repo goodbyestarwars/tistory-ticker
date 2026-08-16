@@ -391,7 +391,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("renderPeriod('am', '오전')", news)
         self.assertIn("is-latest", news)
         self.assertNotIn("hen-zigzag", news)
-        self.assertIn("v=20260813-breaking-flash-v5", main)
+        self.assertIn("v=20260816-market-switch-v1", main)
         self.assertIn(".hen-breaking { flex: 0 0 auto", style)
         self.assertIn(".home-economic-news .hen-breaking-list { height: 62px", style)
         self.assertNotIn("data-hen-breaking-form", main)
