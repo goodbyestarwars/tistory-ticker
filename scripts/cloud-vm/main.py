@@ -225,6 +225,7 @@ _weekly_report_cache = {}
 _WEEKLY_REPORT_SNAPSHOT_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'weekly_report_cache.json'
 )
+_WEEKLY_REPORT_SNAPSHOT_VERSION = 2
 _sector_cards_cache = None
 
 
@@ -237,7 +238,9 @@ def _load_weekly_report_snapshot(cache_key):
     try:
         with open(_WEEKLY_REPORT_SNAPSHOT_FILE, 'r', encoding='utf-8') as handle:
             snapshot = json.load(handle)
-        if snapshot.get('week_end') != cache_key or not isinstance(snapshot.get('data'), dict):
+        if (snapshot.get('version') != _WEEKLY_REPORT_SNAPSHOT_VERSION
+                or snapshot.get('week_end') != cache_key
+                or not isinstance(snapshot.get('data'), dict)):
             return None
         return snapshot['data']
     except (OSError, ValueError, TypeError):
@@ -250,6 +253,7 @@ def _save_weekly_report_snapshot(cache_key, data):
     try:
         with open(temporary, 'w', encoding='utf-8') as handle:
             json.dump({
+                'version': _WEEKLY_REPORT_SNAPSHOT_VERSION,
                 'week_end': cache_key,
                 'saved_at': datetime.now(timezone.utc).isoformat(),
                 'data': data,
