@@ -579,7 +579,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
         source = self.read("js/watchlist.js")
         bootstrap = self.read("js/stock-search-panel.js")
-        self.assertIn("watchlist.js?v=fast-first-paint-20260812", bootstrap)
+        self.assertIn("watchlist.js?v=20260816-my-dashboard-table-v1", bootstrap)
         for token in (
             "var domesticCodes = codes.filter",
             "var canUseSocket = codes.length",

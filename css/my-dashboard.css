@@ -137,6 +137,59 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 
 /* MY는 관심종목을 나열하는 화면이 아니라 입력형 분석 화면으로 사용한다. */
 #watchlist.my-source-watchlist { display: none !important; }
+
+/* Screenshot-style MY watchlist table. The existing analysis cards remain below
+   it and open after a row click, so quote browsing and position calculation are
+   no longer competing for the same horizontal space. */
+.my-watchlist-panel { margin: 18px 0 0; border: 2px solid #e3eaf3; border-radius: 16px; background: #fff; overflow: hidden; }
+.my-watchlist-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 15px 17px; border-bottom: 1px solid #e5e7eb; }
+.my-watchlist-panel-head strong { font-size: 17px; }
+.my-watchlist-panel-head span { margin-left: 8px; color: #64748b; font-size: 11px; }
+.my-watchlist-panel-head small { color: #94a3b8; font-size: 11px; }
+.my-watchlist-scroll { overflow-x: auto; }
+.my-watchlist-table { width: 100%; min-width: 850px; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.my-watchlist-table th, .my-watchlist-table td { padding: 11px 12px; border-bottom: 1px solid #edf0f3; color: #1f2937; font-size: 12px; text-align: right; white-space: nowrap; }
+.my-watchlist-table thead th { color: #718096; font-size: 10px; font-weight: 700; }
+.my-watchlist-table th:first-child, .my-watchlist-table td:first-child { width: 19%; text-align: left; }
+.my-watchlist-table tbody tr { cursor: pointer; outline: 0; }
+.my-watchlist-table tbody tr:hover, .my-watchlist-table tbody tr.is-selected { background: #f7faff; }
+.my-watchlist-table tbody tr.is-selected { box-shadow: inset 3px 0 #2563eb; }
+.my-watchlist-table tbody tr:last-child th, .my-watchlist-table tbody tr:last-child td { border-bottom: 0; }
+.my-watchlist-name { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.my-watchlist-name > span:last-child { min-width: 0; }
+.my-watchlist-name strong, .my-watchlist-name small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.my-watchlist-name strong { font-size: 12px; }
+.my-watchlist-name small { margin-top: 2px; color: #94a3b8; font-size: 9px; font-weight: 400; }
+.my-watchlist-table td small { display: block; margin-top: 2px; color: #94a3b8; font-size: 9px; }
+.my-watchlist-table .is-up { color: #d24f45; }
+.my-watchlist-table .is-down { color: #1261c4; }
+.my-watchlist-icon { position: relative; display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; overflow: hidden; border-radius: 50%; background: #eef2f7; color: #64748b; font-size: 8px; font-weight: 800; }
+.my-watchlist-icon img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 3px; object-fit: contain; background: #fff; }
+.my-watchlist-icon img[hidden], .my-watchlist-icon span[hidden] { display: none; }
+.my-watchlist-empty { padding: 28px 16px; color: #94a3b8; font-size: 12px; text-align: center; }
+.my-holding-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #eef1f4; }
+.my-holding-preview span { display: flex; flex-direction: column; gap: 4px; color: #94a3b8; font-size: 10px; }
+.my-holding-preview strong { color: #334155; font-size: 14px; font-variant-numeric: tabular-nums; }
+.my-holding-preview strong.is-up { color: #d24f45; }
+.my-holding-preview strong.is-down { color: #1261c4; }
+html.dark .my-watchlist-panel { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
+html.dark .my-watchlist-panel-head, html.dark .my-watchlist-table th, html.dark .my-watchlist-table td, html.dark .my-holding-preview { border-color: rgba(245,239,224,.1); }
+html.dark .my-watchlist-table th, html.dark .my-watchlist-table td, html.dark .my-watchlist-name strong, html.dark .my-holding-preview strong { color: #f5efe0; }
+html.dark .my-watchlist-table tbody tr:hover, html.dark .my-watchlist-table tbody tr.is-selected { background: #242424; }
+html.dark .my-watchlist-icon img { background: #242424; }
+@media (max-width: 720px) {
+  .my-watchlist-panel { border-width: 1px; border-radius: 12px; }
+  .my-watchlist-panel-head { display: block; padding: 12px 13px; }
+  .my-watchlist-panel-head strong { font-size: 14px; }
+  .my-watchlist-panel-head span { display: block; margin: 5px 0 0; font-size: 10px; }
+  .my-watchlist-panel-head small { display: block; margin-top: 7px; }
+  .my-watchlist-table { min-width: 760px; }
+  .my-watchlist-table th, .my-watchlist-table td { padding: 9px 8px; font-size: 10px; }
+  .my-watchlist-table thead th { font-size: 9px; }
+  .my-watchlist-table th:first-child, .my-watchlist-table td:first-child { width: 24%; }
+  .my-holding-preview { gap: 5px; }
+  .my-holding-preview strong { font-size: 12px; }
+}
 #my-dashboard { margin-top: 34px; }
 .my-dashboard-head { padding: 28px 0 20px; }
 .my-dashboard-head h2 { font-size: 31px; }

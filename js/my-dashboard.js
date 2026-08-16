@@ -13,7 +13,7 @@
   var VM_URL = API_BASE;
   var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260816-banner-race-fix';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
-  var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0 };
+  var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0, watchlistQuoteAt: 0 };
   var mount = null;
 
   function escapeHtml(value) {
@@ -29,6 +29,10 @@
   function stockInitials(item) {
     var value = String(item && (item.name || item.code) || '?').replace(/^US:/i, '').trim();
     return escapeHtml(value.slice(0, 2).toUpperCase());
+  }
+  function stockIconHtml(item) {
+    var code = item && item.code || '';
+    return '<span class="my-watchlist-icon"><span>' + stockInitials(item) + '</span><img src="' + escapeAttr(stockIconUrl(code)) + '" alt="" loading="lazy" onerror="this.hidden=true;this.previousElementSibling.hidden=false" onload="this.previousElementSibling.hidden=true"></span>';
   }
   function number(value, fallback) {
     if (value == null || value === '') return fallback == null ? null : fallback;
@@ -118,6 +122,7 @@
     mount.innerHTML = '<header class="my-dashboard-head">'
       + '<div><span class="my-dashboard-eyebrow">MY PORTFOLIO</span><h2>내 종목 분석</h2><p>종목을 입력하면 시세·차트·수급·매물대를 바로 분석합니다.</p></div></header>'
       + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><div class="my-input-wrap"><span class="my-input-logo" data-my-input-logo aria-hidden="true"><span data-my-input-initials>종목</span><img data-my-input-image alt="" hidden></span><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist></div><button type="button" data-my-load aria-label="입력한 종목 불러오기"><svg class="my-load-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 7.2 4.5M12 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>불러오기</span></button></div><p>저장된 MY 종목은 입력창에서 선택할 수 있고, 새 종목도 먼저 분석할 수 있습니다.</p></div>'
+      + '<section class="my-watchlist-panel"><div class="my-watchlist-panel-head"><div><strong>MY 관심종목</strong><span>행을 누르면 보유 수량·평단과 분석이 아래에 표시됩니다.</span></div><small data-my-watchlist-count>0종목</small></div><div class="my-watchlist-scroll" data-my-watchlist-table></div></section>'
       + '<div id="myDashboardStatus" class="my-dashboard-status">분석할 종목을 입력하세요.</div>'
       + '<main class="my-dashboard-detail" id="myDashboardDetail"></main>';
   }
@@ -184,13 +189,63 @@
     var rate = pnl == null || !invested ? null : pnl / invested * 100;
     return { holding: holding, price: price, invested: invested, value: value, pnl: pnl, rate: rate };
   }
+  function quoteField(quote, names) {
+    var source = quote || {};
+    for (var i = 0; i < names.length; i++) {
+      if (source[names[i]] != null && source[names[i]] !== '') return source[names[i]];
+    }
+    return null;
+  }
+  function tableVolume(quote) {
+    return quoteField(quote, ['volume', 'tradeVolume', 'trade_volume', 'acmlVol', 'acml_vol', 'trde_qty']);
+  }
+  function tableMarketCap(quote, code) {
+    var raw = quoteField(quote, ['marketCap', 'market_cap', 'market_cap_eok', 'mac']);
+    var value = number(raw, null);
+    if (value == null) return '-';
+    if (quote && (quote.market_cap_eok != null || quote.mac != null) && !/^US:/i.test(code)) return formatNumber(value, 0) + '억';
+    if (/^US:/i.test(code)) return '$' + formatNumber(value, 0);
+    return formatNumber(value, 0);
+  }
+  function buildWatchlistTable(items) {
+    var tableMount = mount.querySelector('[data-my-watchlist-table]');
+    var count = mount.querySelector('[data-my-watchlist-count]');
+    if (count) count.textContent = items.length + '종목';
+    if (!tableMount) return;
+    if (!items.length) {
+      tableMount.innerHTML = '<div class="my-watchlist-empty">관심종목이 없습니다. 위 검색창으로 종목을 불러오거나 기존 관심종목에 추가하세요.</div>';
+      return;
+    }
+    tableMount.innerHTML = '<table class="my-watchlist-table"><thead><tr><th>종목명</th><th>현재가</th><th>전일대비</th><th>거래량</th><th>고가</th><th>저가</th><th>시가총액</th><th>시가</th></tr></thead><tbody>' + items.map(function (item) {
+      var quote = state.quotes[item.code] || {};
+      var changeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);
+      var price = quoteField(quote, ['price', 'currentPrice', 'stck_prpr']);
+      var change = quoteField(quote, ['change', 'changeValue', 'prdy_vrss']);
+      var high = quoteField(quote, ['high', 'highPrice', 'high_price', 'stck_hgpr']);
+      var low = quoteField(quote, ['low', 'lowPrice', 'low_price', 'stck_lwpr']);
+      var open = quoteField(quote, ['open', 'openPrice', 'open_price', 'stck_oprc']);
+      return '<tr class="my-watchlist-row' + (state.selectedCode === item.code ? ' is-selected' : '') + '" data-my-row="' + escapeAttr(item.code) + '" tabindex="0" role="button"><th><span class="my-watchlist-name">' + stockIconHtml(item) + '<span><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.code) + '</small></span></span></th><td>' + formatPrice(price, item.code) + '</td><td class="' + signClass(changeRate) + '">' + (changeRate == null ? '-' : formatSigned(changeRate, 2) + '%') + (change != null ? '<small>' + formatSigned(change, /^US:/i.test(item.code) ? 2 : 0) + '</small>' : '') + '</td><td>' + formatNumber(tableVolume(quote), 0) + '</td><td>' + formatPrice(high, item.code) + '</td><td>' + formatPrice(low, item.code) + '</td><td>' + tableMarketCap(quote, item.code) + '</td><td>' + formatPrice(open, item.code) + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+  function refreshWatchlistQuotes(items) {
+    if (!items.length || !global.Watchlist) return;
+    if (Date.now() - state.watchlistQuoteAt < 30000) return;
+    state.watchlistQuoteAt = Date.now();
+    global.Watchlist.fetchQuotes(items.map(function (item) { return item.code; })).then(function (quotes) {
+      state.quotes = Object.assign(state.quotes, quotes || {});
+      buildWatchlistTable(global.Watchlist.getList());
+      var item = itemByCode(state.selectedCode);
+      if (item && state.analyses[item.code]) renderDetail(item, state.analyses[item.code]);
+    }).catch(function () {});
+  }
   function buildHoldingForm(item, metrics) {
     var isTemporary = !!item.temporary;
     return '<div class="my-holding-card"><div class="my-card-title"><strong>내 보유정보</strong><span>' + (isTemporary ? '저장하려면 로그인 필요' : '입력값 저장') + '</span></div>'
       + '<div class="my-holding-fields"><label>수량<input type="number" min="0" step="any" data-my-field="quantity" value="' + escapeAttr(metrics.holding.quantity || '') + '"></label>'
       + '<label>평단가<input type="number" min="0" step="any" data-my-field="averagePrice" value="' + escapeAttr(metrics.holding.averagePrice || '') + '"></label>'
       + '<button type="button" class="my-save-holding" data-my-save="' + escapeAttr(item.code) + '">' + (isTemporary ? 'MY에 저장' : '저장') + '</button></div>'
-      + '<div class="my-holding-note">입력하지 않으면 시세·수급 분석만 표시됩니다.</div></div>';
+      + '<div class="my-holding-preview" data-my-holding-preview><span>현재 평가금액<strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></span><span>평가손익<strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '평단 입력 필요' : formatPrice(metrics.pnl, item.code)) + '</strong></span><span>수익률<strong class="' + signClass(metrics.rate) + '">' + (metrics.rate == null ? '-' : formatSigned(metrics.rate, 2) + '%') + '</strong></span></div>'
+      + '<div class="my-holding-note">수량·평단을 입력하면 아래 계산값이 즉시 바뀝니다. 저장하면 다음 방문에도 유지됩니다.</div></div>';
   }
   function buildAveragingCalculator(metrics, code) {
     var invested = metrics.invested || 0;
@@ -595,12 +650,27 @@
     if (recoveryOutput) recoveryOutput.textContent = recovery;
     output.innerHTML = '추가 후 예상 평단가 <strong>' + formatPrice(nextAverage, state.selectedCode) + '</strong> · 총 수량 ' + formatNumber(totalQuantity, 2) + '주 · 원금 회복 예상 <strong>' + escapeHtml(recovery) + '</strong><br><small>최근 20거래일 상승률을 단순 연장한 참고치이며 실제 회복을 보장하지 않습니다.</small>';
   }
+  function updateHoldingPreview(root, item) {
+    if (!root || !item) return;
+    var metrics = itemMetrics(item, state.quotes[item.code] || {});
+    var preview = root.querySelector('[data-my-holding-preview]');
+    if (!preview) return;
+    var values = preview.querySelectorAll('strong');
+    var pnl = values[1];
+    var rate = values[2];
+    if (values[0]) values[0].textContent = metrics.value == null ? '-' : formatPrice(metrics.value, item.code);
+    if (pnl) { pnl.textContent = metrics.pnl == null ? '평단 입력 필요' : formatPrice(metrics.pnl, item.code); pnl.className = signClass(metrics.pnl); }
+    if (rate) { rate.textContent = metrics.rate == null ? '-' : formatSigned(metrics.rate, 2) + '%'; rate.className = signClass(metrics.rate); }
+    updateCalculatorWithRecovery(root, metrics, state.analyses[item.code] && state.analyses[item.code].chart);
+  }
   function render() {
     if (!mount || !global.Watchlist) return;
     var items = global.Watchlist.getList();
     if (state.selectedCode && !items.some(function (item) { return item.code === state.selectedCode; }) && !(state.selectedItem && state.selectedItem.code === state.selectedCode)) state.selectedCode = null;
     if (state.selectedCode && items.some(function (item) { return item.code === state.selectedCode; })) state.selectedItem = items.filter(function (item) { return item.code === state.selectedCode; })[0];
     populateSearchOptions();
+    buildWatchlistTable(items);
+    refreshWatchlistQuotes(items);
     var status = document.getElementById('myDashboardStatus');
     if (status && !state.selectedCode) status.textContent = global.Watchlist.isReady() ? '분석할 종목을 입력하세요.' : '로그인 상태를 확인하는 중입니다. 분석은 먼저 이용할 수 있습니다.';
     var item = itemByCode(state.selectedCode);
@@ -612,6 +682,20 @@
     mount.addEventListener('click', function (event) {
       var load = event.target.closest('[data-my-load]');
       if (load) { selectedFromInput(); return; }
+      var row = event.target.closest('[data-my-row]');
+      if (row) {
+        var rowItem = itemByCode(row.getAttribute('data-my-row'));
+        if (rowItem) {
+          state.selectedCode = rowItem.code;
+          state.selectedItem = rowItem;
+          var input = document.getElementById('myStockInput');
+          if (input) input.value = rowItem.name;
+          updateInputLogo(rowItem);
+          delete state.analyses[rowItem.code];
+          render();
+        }
+        return;
+      }
       var save = event.target.closest('[data-my-save]');
       if (save) {
         var item = itemByCode(save.getAttribute('data-my-save'));
@@ -626,6 +710,14 @@
     });
     mount.addEventListener('input', function (event) {
       if (event.target.id === 'myStockInput') updateInputLogo(resolveInput(event.target.value));
+      if (event.target.matches('[data-my-field]')) {
+        var selected = itemByCode(state.selectedCode);
+        if (selected) {
+          selected.holding = { quantity: number(mount.querySelector('[data-my-field="quantity"]').value), averagePrice: number(mount.querySelector('[data-my-field="averagePrice"]').value) };
+          updateHoldingPreview(mount, selected);
+          buildWatchlistTable(global.Watchlist.getList());
+        }
+      }
       if (event.target.matches('[data-my-calc]')) {
         var item = itemByCode(state.selectedCode);
         if (item) updateCalculatorWithRecovery(mount, itemMetrics(item, state.quotes[item.code] || {}), state.analyses[item.code] && state.analyses[item.code].chart);
