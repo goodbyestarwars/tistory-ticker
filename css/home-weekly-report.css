@@ -151,6 +151,7 @@ html.dark .hwr-news-rail i { background: #1a1a1a; }
 .hwr-section-heading span { color: #94a3b8; font-size: 10px; }
 .hwr-stock-reason { display: block; margin-top: 2px; color: #64748b; font-size: 9px; font-style: normal; line-height: 1.35; }
 .hwr-fx-card { min-width: 0; padding: 10px 11px; border: 1px solid #e2e8f0; border-radius: 9px; background: #fff; }
+.hwr-summary-row .hwr-fx-card { display: block; }
 .hwr-fx-card .hwr-card-title { margin-bottom: 3px; }
 .hwr-fx-main { display: flex; align-items: baseline; gap: 8px; }
 .hwr-fx-main > strong { font-size: 19px; font-variant-numeric: tabular-nums; }
