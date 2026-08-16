@@ -1149,6 +1149,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX'].indexOf(item.symbol) !== -1", source)
         self.assertIn("+ '<div class=\"hwr-index-grid\">' + indices.filter(function (item)", source)
 
+    def test_weekly_report_renders_forward_candidate_sections(self):
+        source = self.read("js/home-weekly-report.js")
+        style = self.read("css/home-weekly-report.css")
+        for token in (
+            'data.hotCandidates && data.hotCandidates.domestic',
+            'data.coldCandidates && data.coldCandidates.domestic',
+            '뜨거워질 후보', '차가워질 후보', '예측이 아니라 겹친 선행 신호 기준',
+        ):
+            self.assertIn(token, source)
+        self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-up', style)
+        self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-down', style)
+
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")
         for url in (

@@ -253,7 +253,7 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | GET | `/fundamentals-batch` | **필요** | 하루 1회(`batch_scan.py`) | DART 재무제표(5년 추세+최근분기) 전종목 배치 캐시 - 배치 소비자 전용 |
 | GET | `/fundamentals/{code}` | **필요** | 하루 1회(`batch_scan.py`) | 위 캐시에서 해당 종목만 잘라 반환(`{code, fundamentals, fetchedAt}`). 종목분석 펀더멘탈 탭용 단건 조회 - 캐시에 없으면 `fundamentals: null` |
 | GET | `/earnings-calendar?year=YYYY&month=M` | 불필요 | 10분 메모리 캐시 | DART 거래소 공시 중 실제 접수된 잠정실적/실적 공시를 캘린더 이벤트로 반환. `DART_API_KEY`가 없으면 빈 배열 |
-| GET | `/weekly-report` | 불필요 | 15분 메모리 캐시 | 완료된 월~금의 KOSPI·KOSDAQ·나스닥·S&P500·환율 추이, 국내·미국 뉴스, 마지막 거래일 KIS 순위 기반 주목 종목, 다음 주 실적 일정을 반환. KIS 실패 시 키움 순위로 폴백 |
+| GET | `/weekly-report` | 불필요 | 15분 메모리 캐시 | 완료된 월~금의 KOSPI·KOSDAQ·나스닥·S&P500·환율 추이, 국내·미국 뉴스, 마지막 거래일 KIS 순위 기반 주목 종목·다음 주 후보(`hotCandidates`/`coldCandidates`), 다음 주 실적 일정을 반환. 후보는 상승·하락 방향과 거래량·체결강도·거래대금·회전율 등 독립 신호가 겹친 종목을 선별하며 가격 예측값이 아니다. KIS 실패 시 키움 순위로 폴백 |
 | GET | `/daily-scan-batch` | **필요** | 하루 1회(`daily_scan.py`) | 차트패턴·눌림목·투자시그널 전종목 스캔 결과 |
 
 `/daily-scan-batch`의 `data.investSignal.buckets[등급]`은 전종목 검색·정렬용으로 최대
