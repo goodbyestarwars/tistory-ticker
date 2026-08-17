@@ -319,6 +319,7 @@
 
     function applyHomeSummarySession(session) {
       var isUs = session && session.keys && session.keys[0] === 'NASDAQ_INDEX';
+      var usSession = isUs ? usRegularSessionState() : null;
       var title = dashboardSection.querySelector('[data-home-summary-field="title"]');
       var meta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
       var labels = dashboardSection.querySelectorAll('.hmb-list dt');
@@ -329,7 +330,7 @@
       var nightFutures = dashboardSection.querySelector('[data-home-night-futures]');
       if (title) title.textContent = isUs ? '미국 시장 요약' : '국내 시장 요약';
       if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
-      if (labels[0]) labels[0].textContent = isUs ? '상승 종목 비율' : '증시온도';
+      if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : isUs ? '상승 종목 비율' : '증시온도';
       if (investorTrend) investorTrend.hidden = isUs;
       if (nightFutures) nightFutures.hidden = !isUs;
     }
@@ -437,6 +438,33 @@
       }
     }
 
+    function usRegularSessionState(now) {
+      var parts;
+      try {
+        parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York',
+          weekday: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          hourCycle: 'h23'
+        }).formatToParts(now || new Date()).reduce(function (result, part) {
+          result[part.type] = part.value;
+          return result;
+        }, {});
+      } catch (error) {
+        return { open: false, label: '본장 상태 확인 중', subtitle: '미국 현물 · 본장 상태 확인 중' };
+      }
+      var hour = Number(parts.hour);
+      if (hour === 24) hour = 0;
+      var minute = hour * 60 + Number(parts.minute);
+      var weekend = parts.weekday === 'Sat' || parts.weekday === 'Sun';
+      if (weekend) return { open: false, label: '미국장 휴장', subtitle: '미국 현물 · 휴장' };
+      if (minute < 9 * 60 + 30) return { open: false, label: '본장 개장 전', subtitle: '미국 현물 · 본장 개장 전' };
+      if (minute >= 16 * 60) return { open: false, label: '본장 마감', subtitle: '미국 현물 · 본장 마감' };
+      return { open: true, label: '장중', subtitle: '미국 현물 · 장중' };
+    }
+
     function summarizeUsMarket(data, indexItems) {
       var payload = data && data.data ? data.data : data;
       var rows = payload && payload.rows ? payload.rows : [];
@@ -461,13 +489,15 @@
         .filter(function (item) { return item && (item.symbol === 'NASDAQ_INDEX' || item.symbol === 'SP500_INDEX'); })
         .map(function (item) { return Number(item.change_rate); })
         .filter(function (rate) { return isFinite(rate); });
+      var usSession = usRegularSessionState();
       return {
         riseRatio: riseRatio,
         averageRate: averageRate,
-        direction: resolveMarketDirection({ components: {
+        direction: usSession.open ? resolveMarketDirection({ components: {
           riseRatio: { ratio: riseRatio },
           avgChange: { avgChangeRate: averageRate }
-        } }, indexRates),
+        } }, indexRates) : { label: usSession.label, tone: 'home-neutral' },
+        sessionState: usSession,
         leaders: industries.filter(function (item) { return item.average > 0; }).slice(0, 3),
         cautions: industries.filter(function (item) { return item.average < 0; }).slice(-3).reverse(),
         updatedAt: payload && payload.updatedAt
@@ -485,7 +515,9 @@
         return;
       }
       var ratio = (summary.riseRatio * 100).toFixed(1) + '%';
-      setField('temperature', ratio, summary.riseRatio >= 0.55 ? 'home-positive' : summary.riseRatio <= 0.45 ? 'home-negative' : 'home-neutral');
+      var sessionOpen = !summary.sessionState || summary.sessionState.open;
+      setField('temperature', sessionOpen ? ratio : summary.sessionState.label,
+        sessionOpen ? summary.riseRatio >= 0.55 ? 'home-positive' : summary.riseRatio <= 0.45 ? 'home-negative' : 'home-neutral' : 'home-neutral');
       setField('direction', summary.direction.label, summary.direction.tone);
       setField('leaders', summary.leaders.length ? summary.leaders.map(function (item) { return item.industry; }).join(' · ') : '데이터 확인 중', 'home-positive');
       setField('cautions', summary.cautions.length ? summary.cautions.map(function (item) { return item.industry; }).join(' · ') : '데이터 확인 중', 'home-negative');
@@ -553,10 +585,11 @@
       var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
         ? window.HomeMarketSelection.get() : null;
       var isUsSession = selected === 'us' || (!selected && (hour >= 20 || hour < 8));
+      var usSession = usRegularSessionState();
       return isUsSession ? {
         title: '미국 시장',
         live: '나스닥 · S&P500',
-        subtitle: '미국 현물 지수 확인 중',
+        subtitle: usSession.subtitle,
         keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
         labels: ['나스닥', 'S&P500']
       } : {
@@ -638,7 +671,7 @@
         var chartEl = card.querySelector('[data-index-field="chart"]');
         if (priceEl) { priceEl.textContent = isFinite(price) ? price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-'; priceEl.className = tone; }
         if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
-        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || (session.keys[0] === 'KOSPI' ? '장중' : '미국 현물')) : '· 데이터 지연';
+        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || (session.keys[0] === 'KOSPI' ? '장중' : usRegularSessionState().label)) : '· 데이터 지연';
         renderHomeIndexChart(chartEl, item && item.chart, change >= 0, key);
       });
     }

@@ -385,7 +385,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         indices = self.read("js/quick-indices.js")
         self.assertIn("keys: ['NASDAQ_INDEX', 'SP500_INDEX']", main)
         self.assertIn("labels: ['나스닥', 'S&P500']", main)
-        self.assertIn("미국 현물 지수 확인 중", main)
+        self.assertIn("미국 현물 · 본장 개장 전", main)
         self.assertNotIn("live: '나스닥100 선물 · S&P500 선물'", main)
         self.assertIn("label: '나스닥100 선물'", indices)
 
@@ -670,8 +670,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "function resolveMarketDirection(marketTemp, indexRates)",
             "var indexDown = validIndexRates.every",
             "return { label: '약세 우위', tone: 'home-negative' }",
-            "direction: resolveMarketDirection({ components:",
+            "direction: usSession.open ? resolveMarketDirection({ components:",
             "latestHomeIndices = items || [];",
+        ):
+            self.assertIn(token, source)
+
+    def test_home_us_market_does_not_call_stale_close_a_live_direction_before_open(self):
+        source = self.read("js/skin-main.js")
+        for token in (
+            "function usRegularSessionState(now)",
+            "label: '본장 개장 전'",
+            "subtitle: '미국 현물 · 본장 개장 전'",
+            "var sessionOpen = !summary.sessionState || summary.sessionState.open;",
+            "direction: usSession.open ? resolveMarketDirection",
+            "if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태'",
         ):
             self.assertIn(token, source)
 
