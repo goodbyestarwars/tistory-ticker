@@ -222,12 +222,12 @@
     }
 
     function dashboardHtml() {
-      return '<section class="home-dashboard" aria-label="오늘의 시장 상황판">'
+      return '<section class="home-dashboard home-editorial-page" aria-label="오늘의 시장 상황판">'
         + '<div class="home-market-switch" role="tablist" aria-label="메인 시장 전환">'
-        + '<span>메인 시장</span><button type="button" data-home-market-switch="domestic" role="tab">한국증시</button><button type="button" data-home-market-switch="us" role="tab">미국증시</button>'
+        + '<span>시장</span><button type="button" data-home-market-switch="domestic" role="tab">한국증시</button><button type="button" data-home-market-switch="us" role="tab">미국증시</button>'
         + '</div>'
-        + '<div class="home-overview-grid">'
-        + '<article class="card home-market-board" id="homeMarketBoard">'
+        + '<div class="home-overview-grid home-editorial-lead">'
+        + '<section class="home-market-board editorial-section" id="homeMarketBoard">'
         + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live" data-home-market-field="live">실시간</span></div>'
         + '<section class="home-top-disclosures" aria-label="관심종목 주간 공시" data-home-disclosure-section>'
         + '<div class="home-top-disclosures-head"><strong data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
@@ -259,16 +259,16 @@
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
-        + '</article>'
-        + '<article class="card home-economic-news" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
+        + '</section>'
+        + '<section class="home-economic-news editorial-section" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
         + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small data-hen-updated>최신 뉴스 확인 중</small></div>'
         + '<div class="hen-breaking" data-hen-breaking aria-label="중요 경제 속보">'
         + '<div class="hen-breaking-head"><strong>속보</strong><span>실적 · 지수 · 금리</span></div>'
         + '<div class="hen-breaking-list" data-hen-breaking-list><p class="hen-breaking-empty">중요 소식을 확인하는 중입니다.</p></div>'
         + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state">경제 뉴스를 불러오는 중입니다.</p></div>'
-        + '</article></div>'
-        + '<article class="card home-realtime-board" id="homeRealtimeBoard" aria-label="실시간 종목판"></article>'
+        + '</section></div>'
+        + '<section class="home-realtime-board editorial-section" id="homeRealtimeBoard" aria-label="실시간 종목판"></section>'
         + '</section>';
     }
 
