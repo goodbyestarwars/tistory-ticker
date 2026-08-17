@@ -4820,4 +4820,490 @@ html:not(.font-gothic) body .mobile-app-sheet-body {
   .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(4) { width: 10%; }
   .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(5) { width: 13%; }
   .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(6) { width: 14%; }
+ }
+
+/* ============ 홈 편집 지면 재설계 ============
+   홈은 위젯 카드 모음이 아니라 경제신문의 첫 화면처럼 읽힌다. 데이터 바인딩과
+   위젯 순서/숨김 기능은 유지하고, 홈에서만 외곽 카드·색면·알약을 제거한다. */
+body#tt-body-index .home-editorial-page {
+  gap: 0;
+  color: var(--text-main);
+}
+body#tt-body-index .home-editorial-page .home-market-switch {
+  width: 100%;
+  min-height: 42px;
+  align-items: flex-end;
+  gap: 18px;
+  margin: 0;
+  padding: 0 0 0;
+  border-bottom: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-market-switch > span {
+  margin: 0 8px 10px 0;
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 700;
+}
+body#tt-body-index .home-editorial-page .home-market-switch button {
+  min-height: 42px;
+  padding: 0 1px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-sub);
+  font: 700 12px/1.2 var(--font-ui);
+}
+body#tt-body-index .home-editorial-page .home-market-switch button:hover {
+  color: var(--text-main);
+  background: transparent !important;
+}
+body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
+  border: 0 !important;
+  border-bottom: 2px solid var(--text-main) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-main) !important;
+}
+
+body#tt-body-index .home-editorial-page .home-overview-grid,
+body#tt-body-index .home-editorial-page .home-widget-grid {
+  gap: 0;
+  align-items: start;
+}
+body#tt-body-index .home-editorial-page .home-overview-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, .86fr);
+  border-bottom: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-widget-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  border-bottom: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
+body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news {
+  grid-column: span 6;
+  min-height: 430px;
+  padding: 28px 30px 30px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board {
+  border-right: 1px solid var(--rule) !important;
+}
+body#tt-body-index .home-editorial-page .editorial-section,
+body#tt-body-index .home-editorial-page .home-widget {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+body#tt-body-index .home-editorial-page .home-card-heading {
+  align-items: baseline;
+  padding: 0;
+  border: 0;
+}
+body#tt-body-index .home-editorial-page .home-card-heading > div {
+  align-items: baseline;
+  gap: 11px;
+}
+body#tt-body-index .home-editorial-page .home-card-heading strong,
+body#tt-body-index .home-editorial-page .hen-head strong {
+  color: var(--text-main);
+  font-family: var(--font-title) !important;
+  font-size: 29px;
+  font-weight: 700;
+  letter-spacing: -.8px;
+  line-height: 1.2;
+}
+body#tt-body-index .home-editorial-page .home-card-heading span,
+body#tt-body-index .home-editorial-page .hen-head span,
+body#tt-body-index .home-editorial-page .hen-head small {
+  color: var(--text-sub);
+  font-size: 11px;
+}
+body#tt-body-index .home-editorial-page .home-market-live {
+  color: var(--text-sub);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* 두 지수는 카드 두 장이 아니라 한 줄의 시세 헤더로 읽힌다. */
+body#tt-body-index .home-editorial-page .home-index-strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 27px;
+  padding: 15px 0 13px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-index-card {
+  min-height: 86px;
+  padding: 0 20px 0 0;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+body#tt-body-index .home-editorial-page .home-index-card + .home-index-card {
+  padding-left: 20px;
+  border-left: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-index-top strong {
+  color: var(--text-sub);
+  font-family: var(--font-ui) !important;
+  font-size: 12px;
+}
+body#tt-body-index .home-editorial-page .home-index-top span {
+  color: var(--text-sub);
+  font-size: 10px;
+}
+body#tt-body-index .home-editorial-page .home-index-price-row {
+  margin-top: 8px;
+}
+body#tt-body-index .home-editorial-page .home-index-price-row strong {
+  color: var(--text-main);
+  font-family: var(--font-data) !important;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -.8px;
+}
+body#tt-body-index .home-editorial-page .home-index-price-row em {
+  font-family: var(--font-data) !important;
+  font-size: 12px;
+}
+body#tt-body-index .home-editorial-page .home-index-chart {
+  height: 30px;
+  margin-top: 10px;
+}
+
+/* 요약은 6개의 둥근 셀이 아닌 핵심 지표를 나란히 읽는 사실표다. */
+body#tt-body-index .home-editorial-page .hmb-summary-head {
+  margin-top: 24px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .hmb-summary-head strong {
+  color: var(--text-main);
+  font-family: var(--font-title) !important;
+  font-size: 16px;
+}
+body#tt-body-index .home-editorial-page .hmb-summary-head span {
+  color: var(--text-sub);
+  font-size: 10px;
+}
+body#tt-body-index .home-editorial-page .hmb-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 22px;
+  margin-top: 0;
+}
+body#tt-body-index .home-editorial-page .hmb-list > div {
+  min-height: 52px;
+  padding: 12px 0 10px;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+}
+body#tt-body-index .home-editorial-page .hmb-list dt {
+  color: var(--text-sub);
+  font-size: 10px;
+}
+body#tt-body-index .home-editorial-page .hmb-list dd {
+  margin-top: 4px;
+  color: var(--text-main);
+  font-family: var(--font-data) !important;
+  font-size: 13px;
+}
+body#tt-body-index .home-editorial-page .hmb-investor-trend {
+  padding-top: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .hmb-investor-trend-head span,
+body#tt-body-index .home-editorial-page .hmb-investor-loading {
+  color: var(--text-sub);
+}
+
+/* 공시는 시장 지면 안의 얇은 목록으로만 남긴다. */
+body#tt-body-index .home-editorial-page .home-top-disclosures {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures-head strong {
+  color: var(--text-main);
+  font-family: var(--font-title) !important;
+  font-size: 15px;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 5px;
+  overflow: visible;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  min-height: 34px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row strong {
+  font-size: 11px;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row span,
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row time {
+  width: auto;
+  color: var(--text-sub);
+  font-size: 10px;
+}
+
+/* 경제뉴스는 하나의 세로 타임라인이다. 속보도 별도 박스처럼 보이지 않는다. */
+body#tt-body-index .home-editorial-page .home-economic-news {
+  min-height: 430px;
+  padding: 28px 30px 30px;
+  overflow: visible;
+  background: transparent !important;
+}
+body#tt-body-index .home-editorial-page .hen-head {
+  min-height: 35px;
+}
+body#tt-body-index .home-editorial-page .hen-breaking {
+  margin-top: 20px;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+body#tt-body-index .home-editorial-page .hen-breaking-head {
+  padding: 9px 0 8px;
+  border-bottom: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .hen-breaking-head strong {
+  color: var(--up);
+  font-family: var(--font-ui) !important;
+  font-size: 11px;
+}
+body#tt-body-index .home-editorial-page .hen-breaking-head span {
+  color: var(--text-sub);
+}
+body#tt-body-index .home-editorial-page .hen-breaking-list {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+body#tt-body-index .home-editorial-page .hen-breaking-row {
+  min-height: 34px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+}
+body#tt-body-index .home-editorial-page .hen-breaking-row:last-child {
+  border-bottom: 0;
+}
+body#tt-body-index .home-editorial-page .hen-breaking-row strong {
+  color: var(--text-main);
+}
+body#tt-body-index .home-editorial-page .hen-list {
+  margin-top: 0;
+  overflow: visible;
+}
+body#tt-body-index .home-editorial-page .app-news-event {
+  padding: 13px 0;
+  border-color: var(--rule);
+}
+body#tt-body-index .home-editorial-page .app-news-rail {
+  border-color: var(--rule);
+}
+body#tt-body-index .home-editorial-page .app-news-rail i {
+  border-color: var(--surface);
+  background: var(--surface);
+}
+body#tt-body-index .home-editorial-page .app-news-rail i.is-latest {
+  border-color: var(--up);
+  background: var(--up);
+  box-shadow: none;
+}
+body#tt-body-index .home-editorial-page .app-news-body {
+  transform: none;
+}
+body#tt-body-index .home-editorial-page .app-news-meta > small,
+body#tt-body-index .home-editorial-page .app-news-market,
+body#tt-body-index .home-editorial-page .app-news-type,
+body#tt-body-index .home-editorial-page .hen-main em {
+  padding: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+  color: var(--text-sub);
+}
+body#tt-body-index .home-editorial-page .app-news-body > strong,
+body#tt-body-index .home-editorial-page .app-news-body > b {
+  color: var(--text-main);
+  font-family: var(--font-title) !important;
+  font-size: 13px;
+}
+body#tt-body-index .home-editorial-page .app-news-event:first-child .app-news-body > strong {
+  font-size: 19px;
+  line-height: 1.4;
+}
+
+/* 실시간 종목판은 위젯 안의 테이블이 아니라 지면 전체 폭의 표다. */
+body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {
+  grid-column: 1 / -1;
+  padding: 28px 0 16px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head {
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong {
+  color: var(--text-main);
+  font-family: var(--font-title) !important;
+  font-size: 25px;
+}
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs {
+  margin: 0;
+  gap: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button {
+  padding: 11px 0 10px;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-sub);
+  font-size: 12px;
+}
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button.active {
+  border-bottom-color: var(--text-main) !important;
+  color: var(--text-main) !important;
+  font-weight: 700;
+}
+body#tt-body-index .home-editorial-page .hrt-table-wrap {
+  overflow-x: auto;
+}
+body#tt-body-index .home-editorial-page .hrt-table-wrap th,
+body#tt-body-index .home-editorial-page .hrt-table-wrap td {
+  padding: 13px 9px;
+  border-color: var(--rule);
+  font-family: var(--font-data) !important;
+  font-variant-numeric: tabular-nums;
+}
+body#tt-body-index .home-editorial-page .hrt-table-wrap th {
+  color: var(--text-sub);
+  font-family: var(--font-ui) !important;
+  font-size: 10px;
+  font-weight: 700;
+}
+body#tt-body-index .home-editorial-page .hrt-stock a,
+body#tt-body-index .home-editorial-page .hrt-stock strong {
+  color: var(--text-main);
+  font-family: var(--font-ui) !important;
+}
+body#tt-body-index .home-editorial-page .hrt-price {
+  color: var(--text-main);
+}
+body#tt-body-index .home-editorial-page .hrt-up { color: var(--up); }
+body#tt-body-index .home-editorial-page .hrt-down { color: var(--down); }
+body#tt-body-index .home-editorial-page .hrt-foot {
+  color: var(--text-sub);
+}
+
+/* 홈 아래 브리핑도 같은 편집 지면의 행간과 경계를 따른다. */
+body#tt-body-index .home-editorial-page .home-widget--full.home-briefing-section {
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-briefing-grid,
+body#tt-body-index .home-editorial-page .home-briefing-left-more {
+  gap: 0;
+}
+body#tt-body-index .home-editorial-page .home-briefing-featured,
+body#tt-body-index .home-editorial-page .home-briefing-small {
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html.dark body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
+html.dark body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news,
+html.dark body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board,
+html.dark body#tt-body-index .home-editorial-page .home-index-card,
+html.dark body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row {
+  background: transparent !important;
+}
+html.dark body#tt-body-index .home-editorial-page .home-card-heading strong,
+html.dark body#tt-body-index .home-editorial-page .hen-head strong,
+html.dark body#tt-body-index .home-editorial-page .home-index-price-row strong,
+html.dark body#tt-body-index .home-editorial-page .hmb-list dd,
+html.dark body#tt-body-index .home-editorial-page .app-news-body > strong,
+html.dark body#tt-body-index .home-editorial-page .app-news-body > b,
+html.dark body#tt-body-index .home-editorial-page .hrt-stock a,
+html.dark body#tt-body-index .home-editorial-page .hrt-stock strong,
+html.dark body#tt-body-index .home-editorial-page .hrt-price {
+  color: #f5efe0 !important;
+}
+html.dark body#tt-body-index .home-editorial-page .home-market-switch button.is-active,
+html.dark body#tt-body-index .home-editorial-page .home-market-switch button:hover,
+html.dark body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button.active {
+  border-bottom-color: #f5efe0;
+  color: #f5efe0;
+  background: transparent;
+}
+
+@media (max-width: 820px) {
+  body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
+  body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news {
+    grid-column: 1 / -1;
+    min-height: 0;
+  }
+  body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board {
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--rule) !important;
+  }
+  body#tt-body-index .home-editorial-page .home-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page .home-market-switch {
+    gap: 14px;
+  }
+  body#tt-body-index .home-editorial-page .home-market-switch > span {
+    margin-right: 2px;
+  }
+  body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
+  body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news {
+    padding: 22px 0 24px;
+  }
+  body#tt-body-index .home-editorial-page .home-card-heading strong,
+  body#tt-body-index .home-editorial-page .hen-head strong {
+    font-size: 25px;
+  }
+  body#tt-body-index .home-editorial-page .home-index-card {
+    min-height: 78px;
+  }
+  body#tt-body-index .home-editorial-page .home-index-price-row strong {
+    font-size: 21px;
+  }
+  body#tt-body-index .home-editorial-page .hmb-list {
+    gap: 0 16px;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong {
+    font-size: 22px;
+  }
+  body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {
+    padding-top: 24px;
+  }
 }
