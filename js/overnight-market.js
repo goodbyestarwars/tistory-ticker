@@ -308,13 +308,6 @@
     return (v > 0 ? '+' : '') + s;
   }
 
-  function fmtTime(iso) {
-    if (!iso) return '-';
-    var d = new Date(iso);
-    if (isNaN(d.getTime())) return '-';
-    return d.toLocaleTimeString('ko-KR', { hour12: false });
-  }
-
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -362,7 +355,6 @@
       + '<span>' + rangeLabel + ' ' + (item.high != null ? fmtPrice(item.high, meta.digits) + meta.unit : '-') + '</span>'
       + '<span>' + lowLabel + ' ' + (item.low != null ? fmtPrice(item.low, meta.digits) + meta.unit : '-') + '</span>'
       + '</div>'
-      + '<div class="om-updated">업데이트 ' + fmtTime(item.updated_at) + '</div>'
       + benchmarkCaption(item.symbol)
       + '</div>';
   }
