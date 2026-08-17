@@ -1611,6 +1611,15 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
             narrowed = [s for s in order if s in wanted]
             if narrowed:
                 order = narrowed
+        # 메인 대시보드 환율은 GAS가 같은 네이버 exchangeInfo를 직접 읽는다. DB 수집 주기
+        # 사이에 /futures가 이전 고시값을 내보내면 두 화면이 1416/1418처럼 갈라지므로,
+        # 환율이 응답에 포함될 때만 현재값을 짧은 /futures 캐시 안에서 한 번 보강한다.
+        live_fx = None
+        if 'USDKRW' in order:
+            try:
+                live_fx = domestic_futures.fetch_fx_realtime()
+            except Exception:
+                logging.getLogger('main').exception('USDKRW live quote fetch failed')
         result = []
         for symbol in order:
             p = prices.get(symbol)
@@ -1618,6 +1627,28 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
                 chart = db_schema.load_future_chart_minute(conn, symbol)
             else:
                 chart = db_schema.load_future_chart(conn, symbol, limit_days=days)
+            if symbol == 'USDKRW':
+                # 환율 실시간 API는 현재가/등락만 제공하고 고가·저가는 제공하지 않는다.
+                # 카드의 '-' 대신 이미 함께 내려가는 기간 차트의 실제 범위를 표시하되,
+                # 프론트가 장중 고가로 오해하지 않도록 범위임을 별도 필드로 알린다.
+                quote = dict(p or {'symbol': symbol, 'name': '원/달러'})
+                if live_fx:
+                    quote.update(live_fx)
+                    quote['name'] = quote.get('name') or '원/달러'
+                highs = [float(row['high']) for row in chart if row.get('high') is not None]
+                lows = [float(row['low']) for row in chart if row.get('low') is not None]
+                if quote.get('high') is None and highs:
+                    quote['high'] = max(highs)
+                if quote.get('low') is None and lows:
+                    quote['low'] = min(lows)
+                quote['high_low_scope'] = 'chart_range'
+                quote.setdefault('price', None)
+                quote.setdefault('change', None)
+                quote.setdefault('change_rate', None)
+                quote.setdefault('high', None)
+                quote.setdefault('low', None)
+                quote.setdefault('updated_at', None)
+                p = quote
             result.append({
                 'symbol': symbol,
                 'name': p['name'] if p else None,
@@ -1626,6 +1657,7 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
                 'change_rate': p['change_rate'] if p else None,
                 'high': p['high'] if p else None,
                 'low': p['low'] if p else None,
+                'high_low_scope': p.get('high_low_scope') if p else None,
                 'updated_at': p['updated_at'] if p else None,
                 'oi': p['oi'] if p else None,
                 'oi_change': p['oi_change'] if p else None,

@@ -10,7 +10,7 @@ foreign_futures.py(나스닥100/S&P500/다우/SOX/VIX/WTI 등, 해외종)와 짝
   카테고리 표기가 다름, 네이버 API 자체가 그렇게 나뉘어 있음). foreign_futures.py의 fetch_realtime과
   응답 필드가 완전히 동일(closePriceRaw 등)해서 그대로 재사용.
 - 원/달러 환율: 현재가는 api.stock.naver.com/marketindex/exchange/FX_USDKRW(exchangeInfo,
-  고가/저가 필드 없음 - 카드에 '-'로 표시됨, 정상), 과거 일봉은 같은 경로 뒤에
+  고가/저가 필드 없음), 과거 일봉은 같은 경로 뒤에
   /prices?page=1&pageSize=60(최대 60건 - 그 이상 요청하면 에러 메시지 반환, 실측 확인) -
   둘 다 지수/선물 API와 필드 이름이 완전히 달라 별도 파서가 필요하다. 날짜가 'YYYY-MM-DD'로
   오는데 future_chart 테이블은 다른 심볼들과 통일되게 'YYYYMMDD'로 저장한다(대시 제거) -

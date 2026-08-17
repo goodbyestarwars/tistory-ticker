@@ -348,6 +348,8 @@
     var tone = item.change_rate > 0 ? 'om-pos' : item.change_rate < 0 ? 'om-neg' : 'om-zero';
     var arrow = item.change_rate > 0 ? '▲' : item.change_rate < 0 ? '▼' : '-';
     var meta = symbolMeta(item.symbol);
+    var rangeLabel = item.high_low_scope === 'chart_range' ? '기간 고가' : '고가';
+    var lowLabel = item.high_low_scope === 'chart_range' ? '기간 저가' : '저가';
 
     return ''
       + '<div class="om-body">'
@@ -357,8 +359,8 @@
         : '')
       + '<div class="om-chart" data-symbol="' + escapeHtml(item.symbol) + '"></div>'
       + '<div class="om-hl">'
-      + '<span>고가 ' + (item.high != null ? fmtPrice(item.high, meta.digits) + meta.unit : '-') + '</span>'
-      + '<span>저가 ' + (item.low != null ? fmtPrice(item.low, meta.digits) + meta.unit : '-') + '</span>'
+      + '<span>' + rangeLabel + ' ' + (item.high != null ? fmtPrice(item.high, meta.digits) + meta.unit : '-') + '</span>'
+      + '<span>' + lowLabel + ' ' + (item.low != null ? fmtPrice(item.low, meta.digits) + meta.unit : '-') + '</span>'
       + '</div>'
       + '<div class="om-updated">업데이트 ' + fmtTime(item.updated_at) + '</div>'
       + benchmarkCaption(item.symbol)
