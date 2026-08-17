@@ -317,7 +317,6 @@
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint">차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래 막대로 표시됩니다.</div>'
       + '</div>'
-      + '</div>'
       + '<section class="ss-news-panel"><div class="ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="ssDomesticNews" class="ss-domestic-news"><div class="ss-hint">뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
   }

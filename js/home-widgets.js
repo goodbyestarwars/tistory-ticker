@@ -596,8 +596,7 @@
         + '<strong>' + escapeHtml(item.stockName || item.corp || '관심종목 공시') + '</strong>'
         + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span>'
         + (time ? '<time>' + escapeHtml(time) + '</time>' : '') + '</a>';
-    }).join('') + (items.length > visibleItems.length
-      ? '<a class="home-disclosure-more" href="/page/watchlist">관심종목·공시 전체보기 →</a>' : '');
+    }).join('');
     // 국내 공시도 미국 일정과 같은 가로 카드 스트립이므로 마우스/터치 drag로
     // 옆 카드까지 넘길 수 있어야 한다. 이전에는 미국 일정 렌더링 경로에만
     // drag 핸들러가 연결되어 국내 공시는 trackpad/휠에 의존했다.
@@ -736,8 +735,7 @@
         + '<strong>미국</strong>'
         + '<span class="home-us-schedule-title">' + scheduleIconHtml(item) + '<span>' + escapeHtml(scheduleTitle(item.title)) + '</span></span>'
         + '<time>' + escapeHtml(scheduleTime(item.start)) + '</time>' + rowEnd;
-    }).join('') + (selection.items.length > visibleItems.length
-      ? '<a class="home-disclosure-more" href="/page/stock-search">미국 일정 전체보기 →</a>' : '');
+    }).join('');
     enableScheduleDrag(mount);
   }
 

@@ -220,6 +220,10 @@ _order_book_cache = OrderedDict()  # code -> {'t':.., 'data':..}
 # (_market_rank_cache와 동일 패턴).
 _FUTURES_TTL = 10
 _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'data':..}
+_MARKET_INDICATOR_SYMBOLS = {
+    'KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX',
+    'USDKRW', 'VIX', 'US10Y', 'US2Y', 'US30Y', 'KTB3Y', 'WTI', 'GOLD',
+}
 _WEEKLY_REPORT_TTL = 15 * 60
 _weekly_report_cache = {}
 _WEEKLY_REPORT_SNAPSHOT_FILE = os.path.join(
@@ -976,6 +980,71 @@ async def realtime_quote_socket(websocket: WebSocket):
         for task in (relay_task, finnhub_task, receive_task):
             if not task.done():
                 task.cancel()
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
+
+def _market_indicator_snapshot(symbols):
+    wanted = set(symbols or _MARKET_INDICATOR_SYMBOLS) & _MARKET_INDICATOR_SYMBOLS
+    conn = db_schema.get_conn()
+    try:
+        latest = {row['symbol']: row for row in db_schema.load_all_future_prices(conn)}
+    finally:
+        conn.close()
+    return [
+        {
+            'symbol': symbol,
+            'name': (latest.get(symbol) or {}).get('name'),
+            'price': (latest.get(symbol) or {}).get('price'),
+            'change': (latest.get(symbol) or {}).get('change'),
+            'change_rate': (latest.get(symbol) or {}).get('change_rate'),
+            'updated_at': (latest.get(symbol) or {}).get('updated_at'),
+        }
+        for symbol in sorted(wanted)
+    ]
+
+
+@app.websocket('/ws/market-indicators')
+async def market_indicators_socket(websocket: WebSocket):
+    """시장·글로벌 지표의 서버 중계 스트림.
+
+    브라우저에는 인증키를 내려주지 않고 VM DB의 최신 수집값만 전달한다. REST
+    /futures가 초기·장애 시 폴백이고, 이 스트림은 페이지가 보이는 동안 5초마다
+    최신 스냅샷과 수신 시각을 보낸다.
+    """
+    global _ws_active_connections
+    if websocket.headers.get('origin') != 'https://ghlee.tistory.com':
+        await websocket.close(code=1008)
+        return
+    raw = (websocket.query_params.get('symbols') or '').split(',')
+    symbols = [item.strip().upper() for item in raw if item.strip() in _MARKET_INDICATOR_SYMBOLS]
+    if not symbols:
+        symbols = list(_MARKET_INDICATOR_SYMBOLS)
+    if _ws_active_connections >= _WS_MAX_CONNECTIONS:
+        await websocket.close(code=1013)
+        return
+    await websocket.accept()
+    _ws_active_connections += 1
+    try:
+        while True:
+            snapshot = await asyncio.to_thread(_market_indicator_snapshot, symbols)
+            await websocket.send_json({
+                'type': 'market-indicators',
+                'data': snapshot,
+                'receivedAt': datetime.now(timezone.utc).isoformat(),
+            })
+            try:
+                await asyncio.wait_for(websocket.receive_text(), timeout=5)
+            except asyncio.TimeoutError:
+                continue
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        logging.getLogger('main').warning('시장지표 WebSocket 종료: %s', type(exc).__name__)
+    finally:
+        _ws_active_connections -= 1
         try:
             await websocket.close()
         except Exception:

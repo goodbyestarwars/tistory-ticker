@@ -257,8 +257,8 @@
 
 #stock-search .ss-panels {
   display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 14px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
   min-width: 0;
 }
@@ -272,7 +272,7 @@
   max-width: 100%;
   box-sizing: border-box;
 }
-#stock-search .ss-panel-right { overflow: hidden; }
+#stock-search .ss-panel-right { overflow: hidden; min-width: 0; }
 
 /* ---- 차트 탭 ---- */
 #stock-search .ss-chart-tabs {
@@ -434,10 +434,14 @@
   color: #999;
 }
 #stock-search .ss-news-panel {
-  margin-top: 14px;
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0;
   padding: 18px 20px 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  border: 1px solid #d8d8d8;
+  border-radius: 0;
+  box-sizing: border-box;
 }
 #stock-search .ss-news-panel-head {
   display: flex;
@@ -448,7 +452,25 @@
 }
 #stock-search .ss-news-panel-head h3 { margin: 0; color: #4f46e5; font-size: 17px; font-weight: 700; }
 #stock-search .ss-news-panel-head span { color: #9aa1aa; font-size: 12px; }
-#stock-search .ss-domestic-news { min-height: 42px; }
+#stock-search .ss-domestic-news {
+  min-height: 42px;
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#stock-search .ss-news-item {
+  min-width: 0;
+  max-width: 100%;
+}
+#stock-search .ss-news-item .app-news-body > strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
 #stock-search .ss-news-group h4 {
   margin: 14px 0 4px; padding: 0 0 8px;
   border-bottom: 1px solid #eef0f2;

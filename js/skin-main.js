@@ -275,6 +275,14 @@
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
     var dashboardSection = dashboard.firstElementChild;
+    // 첫 화면의 편집 순서를 시장 제목 → 요약 → 일정/공시 → 지수 차트로 고정한다.
+    // 기존 데이터 로더와 DOM 선택자는 유지하고, 표시 순서만 여기서 정리한다.
+    var homeMarketBoard = dashboardSection.querySelector('#homeMarketBoard');
+    var homeIndexStrip = homeMarketBoard && homeMarketBoard.querySelector('.home-index-strip');
+    var homeDisclosureSection = homeMarketBoard && homeMarketBoard.querySelector('[data-home-disclosure-section]');
+    if (homeMarketBoard && homeIndexStrip && homeDisclosureSection) {
+      homeMarketBoard.insertBefore(homeDisclosureSection, homeIndexStrip);
+    }
     var latestHomeIndices = [];
     var latestUsBoardData = null;
     var weekendReportWindow = isWeekendReportWindow();

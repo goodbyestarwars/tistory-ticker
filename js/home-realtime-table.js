@@ -225,7 +225,7 @@
     var code = String(item.code || item.symbol || '').replace(/^US:/i, '').toUpperCase();
     var market = String(item.market || state.market || currentMarket()).toLowerCase();
     var naverCode = market === 'us' ? code + '.O' : code;
-    var initials = String(item.name || item.symbol || code).replace(/\s+/g, '').slice(0, 2);
+    var initials = String(item.display_name || item.name_en || item.name || item.symbol || code).replace(/\s+/g, '').slice(0, 2);
     if (!code) return '<span class="hrt-stock-logo hrt-stock-logo--fallback">?</span>';
     return '<span class="hrt-stock-logo"><img src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" '
       + 'data-icon-code="' + escapeHtml(code) + '" data-icon-market="' + escapeHtml(market) + '" data-icon-naver-code="' + escapeHtml(naverCode) + '" data-icon-stage="local" referrerpolicy="no-referrer" '
@@ -311,6 +311,7 @@
 
   function rowHtml(item, rank) {
     var code = item.code || item.symbol;
+    var displayName = item.display_name || item.name_en || item.name || code;
     var rate = number(item.change_rate);
     var tone = rate > 0 ? 'hrt-up' : rate < 0 ? 'hrt-down' : 'hrt-flat';
     var industry = industryFor(item);
@@ -319,7 +320,7 @@
     }
     var cells = {
       stock: '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span>' + stockIconHtml(item) + '<a href="/page/stock-search?code=' + encodeURIComponent(code)
-        + '&name=' + encodeURIComponent(item.name || code) + '"><strong>' + escapeHtml(item.name || code) + '</strong><small>'
+        + '&name=' + encodeURIComponent(displayName) + '"><strong>' + escapeHtml(displayName) + '</strong><small>'
         + escapeHtml(item.symbol || code) + '</small></a></td>',
       price: '<td class="hrt-price" data-field="price">' + fmtPrice(item.price, item.currency) + '</td>',
       amount: '<td data-field="amount">' + fmtAmount(item.trade_amount, item.currency) + '</td>',
