@@ -101,14 +101,17 @@
   }
 
   function loadScan(container) {
-    PatternScan.fetchJson(GAS_TICKER_URL + '?patternScan=1')
+    // GAS/VM의 빈 응답이 브라우저·중간 캐시에 남으면, 다음 일일 스캔이 끝난 뒤에도
+    // "스캔 결과 없음" 화면이 계속 보일 수 있다. 목록 요청은 매번 최신 스냅샷을 확인한다.
+    var scanUrl = GAS_TICKER_URL + '?patternScan=1&_=' + encodeURIComponent(Date.now());
+    PatternScan.fetchJson(scanUrl)
       .then(function (data) {
         scanData = data;
         var meta = container.querySelector('#psMeta');
         if (meta) {
           meta.textContent = data.scannedAt
             ? ('스캔 ' + data.scannedAt + ' · 대상 ' + (data.scanned || 0) + '/' + (data.universe || 0) + '종목')
-            : '아직 스캔 결과가 없어요. (GAS에서 scanChartPatterns를 한 번 실행해야 함)';
+            : '아직 스캔 결과가 없어요. VM 일일 스캔이 한 번 완료되면 표시됩니다.';
         }
         renderList(container);
       })
