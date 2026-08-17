@@ -160,7 +160,7 @@
       if (document.hidden || !state.flashRows.length) return;
       state.flashIndex = (state.flashIndex + 1) % state.flashRows.length;
       renderFlashRow(state.flashRows[state.flashIndex]);
-    }, 4000);
+    }, 5000);
   }
 
   function renderFlash(items) {

@@ -111,10 +111,10 @@
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260816-us-alias-search-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260816-weekly-disclosures-v1')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260816-weekly-disclosures-v1';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260816-market-switch-v3';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260816-market-switch-v3';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260817-disclosure-modal-v2')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260817-disclosure-modal-v2';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260817-widget-drag-v4';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260817-flash-rules-v4';
     var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260817-stock-grid-v22';
 
     function isWeekendReportWindow() {
@@ -263,7 +263,7 @@
         + '<article class="card home-economic-news" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
         + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small data-hen-updated>최신 뉴스 확인 중</small></div>'
         + '<div class="hen-breaking" data-hen-breaking aria-label="중요 경제 속보">'
-        + '<div class="hen-breaking-head"><strong>속보</strong><span>실적 · 지수 · 금리</span></div>'
+        + '<div class="hen-breaking-head"><strong>속보</strong><span>실적 · 거시경제 · 금리</span></div>'
         + '<div class="hen-breaking-list" data-hen-breaking-list><p class="hen-breaking-empty">중요 소식을 확인하는 중입니다.</p></div>'
         + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state">경제 뉴스를 불러오는 중입니다.</p></div>'

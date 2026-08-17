@@ -751,10 +751,6 @@ _FLASH_MACRO_RULES = (
     ('물가·성장', ('pce', 'gdp', '소매판매', '생산자물가'), 85),
     ('M7 실적', ('m7 실적', 'm7 earnings', 'apple earnings', 'microsoft earnings', 'nvidia earnings', 'amazon earnings', 'alphabet earnings', 'meta earnings', 'tesla earnings', '애플 실적', '마이크로소프트 실적', '엔비디아 실적', '아마존 실적', '알파벳 실적', '메타 실적', '테슬라 실적'), 98),
 )
-_FLASH_DOMESTIC_INDEX_TERMS = ('코스피', '코스닥', '코스피200', '지수 급등', '지수 급락')
-_FLASH_US_INDEX_TERMS = ('나스닥', 's&p 500', 's&p500', '다우지수', '다우존스', '지수 급등', '지수 급락')
-
-
 def _economic_news_market():
     # WebSocket의 기본 시장은 시간대 기준이다. 사용자가 시장 탭을 선택하면
     # 프론트가 해당 시장 REST 결과를 사용하고, 다른 시장의 소켓 패킷은 무시한다.
@@ -781,14 +777,15 @@ def _fetch_economic_news_snapshot(market):
             finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
             limit=30,
         ))
-    disclosures = domestic_news.get_disclosures(limit=100)
+    # DART는 국내 공시 원천이다. 미국 시장에는 DART 후보를 섞지 않는다.
+    disclosures = domestic_news.get_disclosures(limit=50) if market == 'domestic' else []
     return {'market': market, 'items': items, 'flash': _build_flash_items(flash_news, disclosures, market)}
 
 
 def _build_flash_items(news_items, disclosures, market='domestic'):
-    """속보 레일에 필요한 실적·공시·지수·미국 거시 이벤트를 정규화한다."""
+    """속보 레일에 필요한 실적·공시·거시 이벤트를 정규화한다."""
     candidates = []
-    for item in disclosures or []:
+    for item in ((disclosures or []) if market == 'domestic' else []):
         title = str(item.get('title') or '').strip()
         text = title.lower()
         if not title:
@@ -804,11 +801,8 @@ def _build_flash_items(news_items, disclosures, market='domestic'):
         if not title:
             continue
         macro = next(((label, weight) for label, terms, weight in _FLASH_MACRO_RULES if any(term in text for term in terms)), None)
-        index_terms = _FLASH_US_INDEX_TERMS if market == 'us' else _FLASH_DOMESTIC_INDEX_TERMS
         if macro:
             candidates.append(dict(item, flashType=macro[0], importance=macro[1]))
-        elif any(term in text for term in index_terms):
-            candidates.append(dict(item, flashType='지수', importance=75))
 
     unique = {}
     for item in candidates:

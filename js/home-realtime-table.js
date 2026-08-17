@@ -296,6 +296,11 @@
     var tabs = tabsForMarket();
     var columns = columnsForMarket();
     var colspan = columns.length;
+    // home-widgets.js decorates this mount with the common drag/menu controls
+    // before the realtime table module initializes. Preserve those controls
+    // when the table shell is rebuilt, otherwise this widget cannot be moved.
+    var widgetActions = mount.querySelector('.home-widget-actions');
+    if (widgetActions) widgetActions.remove();
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
       + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div>'
       + '<div class="hrt-tabs" role="tablist" aria-label="실시간 종목 정렬">'
@@ -307,6 +312,7 @@
       }).join('') + '</tr></thead>'
       + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state">실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
       + '<div class="hrt-foot"><span>체결 발생 행만 갱신</span></div>';
+    if (widgetActions) mount.appendChild(widgetActions);
   }
 
   function rowsForActive() {

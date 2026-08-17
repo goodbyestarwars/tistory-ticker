@@ -393,8 +393,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "todayItems.slice(0, 12)",
             "function enableScheduleDrag(list)",
             "function disclosureHref(item)",
-            "/page/foreign-flow?code=",
-            "title=\"종목분석으로 이동\"",
+            "data-disclosure-modal",
+            "title=\"DART 원문 보기\"",
             "function scheduleSymbol(item)",
             "function scheduleIconHtml(item)",
             "STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/'",
@@ -434,7 +434,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("hen-zigzag", news)
         self.assertIn(".app-news-event", style)
         self.assertIn(".app-news-date", style)
-        self.assertIn("v=20260816-market-switch-v3", main)
+        self.assertIn("v=20260817-flash-rules-v4", main)
+        self.assertIn("v=20260817-widget-drag-v4", main)
+        self.assertIn("v=20260817-disclosure-modal-v2", main)
         self.assertIn(".hen-breaking { flex: 0 0 auto", style)
         self.assertIn(".home-economic-news .hen-breaking-list { height: 62px", style)
         self.assertNotIn("data-hen-breaking-form", main)
@@ -446,10 +448,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".home-economic-news .hen-list { min-height: 0; flex: 1 1 0; display: flex; flex-direction: column; overflow-y: auto;", style)
         self.assertIn("hen-breaking-scoreboard", style)
         self.assertIn('data-hen-breaking-list', main)
+        self.assertIn('실적 · 거시경제 · 금리', main)
+        self.assertNotIn('실적 · 지수 · 금리', main)
         self.assertIn('function renderFlash(items)', news)
         self.assertIn("flashTimer", news)
         self.assertIn("function startFlashTicker()", news)
         self.assertIn("setInterval(function ()", news)
+        self.assertIn("}, 5000);", news)
+        self.assertNotIn("}, 4000);", news)
         self.assertIn('isWatchlistDisclosure(item)', news)
         self.assertIn(".hen-periods", style)
         self.assertIn("max-height: 340px", style)
@@ -466,12 +472,31 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("@app.websocket('/ws/economic-news')", vm)
         self.assertIn("async def _economic_news_broadcast_loop():", vm)
         self.assertIn("asyncio.to_thread(_fetch_economic_news_snapshot, market)", vm)
-        self.assertIn("domestic_news.get_disclosures(limit=100)", vm)
+        self.assertIn("domestic_news.get_disclosures(limit=50)", vm)
+        self.assertNotIn("domestic_news.get_disclosures(limit=100)", vm)
+        self.assertIn("if market == 'domestic' else []", vm)
         self.assertIn("_FLASH_MACRO_RULES", vm)
+        self.assertNotIn("_FLASH_DOMESTIC_INDEX_TERMS", vm)
+        self.assertNotIn("_FLASH_US_INDEX_TERMS", vm)
         self.assertIn("transform: translateX(-50%)", style)
         self.assertIn("display: block !important", style)
         self.assertIn("visibility: visible !important", style)
         self.assertIn('.hmb-list dd[title] { cursor: help; }', style)
+
+    def test_home_disclosures_open_dart_original_in_modal(self):
+        widgets = self.read("js/home-widgets.js")
+        style = self.read("style.css")
+        self.assertIn("data-disclosure-modal", widgets)
+        self.assertIn("data-disclosure-frame", widgets)
+        self.assertIn("DART 원문", widgets)
+        self.assertIn("home-disclosure-modal", style)
+        self.assertIn("home-disclosure-modal-open", style)
+
+    def test_realtime_board_preserves_widget_drag_controls_after_table_build(self):
+        source = self.read("js/home-realtime-table.js")
+        self.assertIn("var widgetActions = mount.querySelector('.home-widget-actions');", source)
+        self.assertIn("if (widgetActions) widgetActions.remove();", source)
+        self.assertIn("if (widgetActions) mount.appendChild(widgetActions);", source)
 
     def test_home_economic_news_follows_selected_market(self):
         news = self.read("js/home-economic-news.js")

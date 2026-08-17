@@ -28,6 +28,7 @@
   var myRealtimeGeneration = 0;
   var disclosureMarket = null;
   var disclosureMarketTimer = null;
+  var disclosureModal = null;
   var DEFAULT_ORDER = [
     'market-summary',
     'economic-news',
@@ -568,12 +569,65 @@
   }
 
   function disclosureHref(item) {
-    var code = String(item && (item.stockCode || item.code) || '').trim();
-    var name = String(item && (item.stockName || item.corp || '') || '').trim();
-    if (/^\d{6}$/.test(code)) {
-      return '/page/foreign-flow?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
-    }
     return String(item && item.link || '#');
+  }
+
+  function closeDisclosureModal() {
+    if (!disclosureModal) return;
+    disclosureModal.hidden = true;
+    var frame = disclosureModal.querySelector('[data-disclosure-frame]');
+    if (frame) frame.src = 'about:blank';
+    document.body.classList.remove('home-disclosure-modal-open');
+  }
+
+  function openDisclosureModal(item) {
+    var href = disclosureHref(item);
+    if (!/^https:\/\//i.test(href)) return;
+    if (!disclosureModal) {
+      document.body.insertAdjacentHTML('beforeend', '<div class="home-disclosure-modal" data-disclosure-modal-root hidden>'
+        + '<div class="home-disclosure-modal-backdrop" data-disclosure-close></div>'
+        + '<section class="home-disclosure-modal-panel" role="dialog" aria-modal="true" aria-labelledby="homeDisclosureModalTitle">'
+        + '<header class="home-disclosure-modal-head"><div><strong id="homeDisclosureModalTitle">DART 원문</strong><small data-disclosure-modal-meta></small></div>'
+        + '<button type="button" class="home-disclosure-modal-close" data-disclosure-close aria-label="공시 원문 닫기">×</button></header>'
+        + '<iframe data-disclosure-frame title="DART 공시 원문" referrerpolicy="no-referrer"></iframe>'
+        + '<footer class="home-disclosure-modal-foot"><a data-disclosure-modal-link target="_blank" rel="noopener">원문을 새 창에서 열기 ↗</a></footer>'
+        + '</section></div>');
+      disclosureModal = document.querySelector('[data-disclosure-modal-root]');
+      disclosureModal.querySelectorAll('[data-disclosure-close]').forEach(function (element) {
+        element.addEventListener('click', closeDisclosureModal);
+      });
+    }
+    var title = String(item && (item.stockName || item.corp || '') || '').trim();
+    var meta = disclosureModal.querySelector('[data-disclosure-modal-meta]');
+    var frame = disclosureModal.querySelector('[data-disclosure-frame]');
+    var link = disclosureModal.querySelector('[data-disclosure-modal-link]');
+    if (meta) meta.textContent = title ? title + ' · 최근 공시' : '최근 공시';
+    if (link) link.href = href;
+    if (frame) frame.src = href;
+    disclosureModal.hidden = false;
+    document.body.classList.add('home-disclosure-modal-open');
+    var closeButton = disclosureModal.querySelector('.home-disclosure-modal-close');
+    if (closeButton) closeButton.focus();
+  }
+
+  function wireDisclosureModal() {
+    if (document.documentElement.getAttribute('data-disclosure-modal-wired') === '1') return;
+    document.documentElement.setAttribute('data-disclosure-modal-wired', '1');
+    document.addEventListener('click', function (event) {
+      var row = event.target.closest ? event.target.closest('[data-disclosure-modal]') : null;
+      if (!row) return;
+      var href = row.getAttribute('href') || '';
+      if (!/^https:\/\//i.test(href)) return;
+      event.preventDefault();
+      openDisclosureModal({
+        link: href,
+        stockName: row.getAttribute('data-disclosure-stock') || '',
+        corp: row.getAttribute('data-disclosure-stock') || ''
+      });
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeDisclosureModal();
+    });
   }
 
   function renderDisclosures(items, emptyMessage) {
@@ -585,10 +639,10 @@
     }
     mount.innerHTML = items.map(function (item) {
       var time = disclosureTime(item.pubDate);
-      var code = String(item && (item.stockCode || item.code) || '').trim();
-      var internal = /^\d{6}$/.test(code);
-      return '<a class="home-disclosure-row" href="' + escapeHtml(disclosureHref(item)) + '"'
-        + (internal ? ' title="종목분석으로 이동"' : ' target="_blank" rel="noopener"') + '>'
+      var originalHref = disclosureHref(item);
+      return '<a class="home-disclosure-row" href="' + escapeHtml(originalHref) + '"'
+        + ' data-disclosure-modal="1" data-disclosure-stock="' + escapeHtml(item.stockName || item.corp || '') + '"'
+        + ' title="DART 원문 보기" draggable="false">'
         + '<strong>' + escapeHtml(item.stockName || item.corp || '관심종목 공시') + '</strong>'
         + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span>'
         + (time ? '<time>' + escapeHtml(time) + '</time>' : '') + '</a>';
@@ -891,6 +945,7 @@
       && typeof options.layoutStorage.set === 'function') {
       layoutStorage = options.layoutStorage;
     }
+    wireDisclosureModal();
     if (!buildRegistry(options)) return;
     options.dashboard.setAttribute('data-widgets-ready', '1');
     global.addEventListener('home-market-change', function () {

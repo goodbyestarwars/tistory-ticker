@@ -169,6 +169,12 @@ class DomesticNewsTests(unittest.TestCase):
         self.assertTrue(all(item['relevance'] == 'direct' for item in items))
         self.assertEqual(fetch.call_count, 2)
 
+    def test_general_disclosures_default_to_fifty_items(self):
+        rows = [{'id': str(index), 'pubDate': '20260816'} for index in range(80)]
+        with mock.patch.object(domestic_news, '_dart_items', return_value=rows):
+            items = domestic_news.get_disclosures()
+        self.assertEqual(len(items), 50)
+
 
 if __name__ == '__main__':
     unittest.main()
