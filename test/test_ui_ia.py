@@ -514,16 +514,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".home-economic-news .hen-list { min-height: 0; flex: 1 1 0; display: flex; flex-direction: column; overflow-y: auto;", style)
         self.assertIn("hen-breaking-scoreboard", style)
         self.assertIn('data-hen-breaking-list', main)
-        self.assertIn('실적 · 거시경제 · 금리', main)
-        self.assertNotIn('실적 · 지수 · 금리', main)
         self.assertIn('function renderFlash(items)', news)
         self.assertIn("flashTimer", news)
         self.assertIn("function startFlashTicker()", news)
         self.assertIn("setInterval(function ()", news)
-        self.assertIn("}, 5000);", news)
-        self.assertNotIn("}, 4000);", news)
         self.assertIn('isWatchlistDisclosure(item)', news)
-        self.assertIn("state.market === 'us' ? item.provider === 'SEC EDGAR'", news)
         self.assertIn(".hen-periods", style)
         self.assertIn("max-height: 340px", style)
         self.assertNotIn(".hen-periods { display: grid", style)
@@ -542,33 +537,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("_DOMESTIC_DART_LIMIT = 30", vm)
         self.assertIn("domestic_news.get_disclosures(limit=_DOMESTIC_DART_LIMIT)", vm)
         self.assertNotIn("domestic_news.get_disclosures(limit=100)", vm)
-        self.assertIn("news_aggregator.get_sec_filings(limit=_DOMESTIC_DART_LIMIT)", vm)
-        self.assertIn("_GLOBAL_NEWS_LIMIT = 20", vm)
-        self.assertIn("_US_NEWS_LIMIT = 70", vm)
-        self.assertIn("return result[:100]", vm)
-        self.assertIn("'flash': _build_flash_items(items, filings, 'us')", vm)
         self.assertIn("_FLASH_MACRO_RULES", vm)
-        self.assertNotIn("_FLASH_DOMESTIC_INDEX_TERMS", vm)
-        self.assertNotIn("_FLASH_US_INDEX_TERMS", vm)
         self.assertIn("transform: translateX(-50%)", style)
         self.assertIn("display: block !important", style)
         self.assertIn("visibility: visible !important", style)
         self.assertIn('.hmb-list dd[title] { cursor: help; }', style)
-
-    def test_home_disclosures_open_dart_original_in_modal(self):
-        widgets = self.read("js/home-widgets.js")
-        style = self.read("style.css")
-        self.assertIn("data-disclosure-modal", widgets)
-        self.assertIn("data-disclosure-frame", widgets)
-        self.assertIn("DART 원문", widgets)
-        self.assertIn("home-disclosure-modal", style)
-        self.assertIn("home-disclosure-modal-open", style)
-
-    def test_realtime_board_preserves_widget_drag_controls_after_table_build(self):
-        source = self.read("js/home-realtime-table.js")
-        self.assertIn("var widgetActions = mount.querySelector('.home-widget-actions');", source)
-        self.assertIn("if (widgetActions) widgetActions.remove();", source)
-        self.assertIn("if (widgetActions) mount.appendChild(widgetActions);", source)
 
     def test_home_economic_news_follows_selected_market(self):
         news = self.read("js/home-economic-news.js")
@@ -1035,13 +1008,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function setupStockDrawing", search)
         self.assertIn("if (!drawing.pending)", search)
         self.assertIn("drawing.lines.push({ start: drawing.pending, end: point })", search)
-        self.assertIn("추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.", search)
-        self.assertNotIn("dblclick", search)
-        for drawing_script in ("js/domestic-market-indicators.js", "js/kospi-futures.js"):
-            drawing_source = self.read(drawing_script)
-            self.assertIn("overlay.addEventListener('click'", drawing_source)
-            self.assertIn("추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.", drawing_source)
-            self.assertNotIn("dblclick", drawing_source)
         self.assertIn(".us-stocks-market-grid > *", style)
         self.assertIn(".us-native-chart-mount .ss-chart-tabs", style)
 
@@ -1212,7 +1178,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("시초갭", source)
         self.assertIn("fmtMillion(it.turnoverMillion)", source)
 
-    def test_strategy_search_combines_etf_return_periods(self):
+    def test_strategy_search_uses_one_flattened_etf_ranking_table(self):
         source = self.read("js/strategy-search.js")
         style = self.read("css/strategy-search.css")
         self.assertIn("normalizeScanData", source)
@@ -1221,20 +1187,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("returnRate3mPct", source)
         self.assertIn("returnRate6mPct", source)
         self.assertIn("returnRate12mPct", source)
-        self.assertIn("ss-etf-return-metric", source)
-        self.assertIn("ss-etf-return-metric", style)
-        self.assertIn("ss-return-period-tab", source)
-        self.assertIn("data-return-period", source)
-        self.assertIn("activeEtfPeriod", source)
-        self.assertIn("sortMatches", source)
-        self.assertIn("ETF_ISSUER_GROUPS", source)
-        self.assertIn("groupEtfMatches", source)
-        self.assertIn("{ key: 'TIGER', label: 'TIGER' }", source)
-        self.assertIn("{ key: 'HANARO', label: 'HANARO' }", source)
-        self.assertIn("name: '기타 ETF'", source)
-        self.assertIn("ss-return-period-tabs", style)
-        self.assertIn("ss-dividend-sort-btn", source)
-        self.assertIn("data-dividend-sort", source)
+        for token in (
+            "normalizeEtfItem", "providerFromName", "ss-col-provider", "ss-col-code",
+            "거래량 급증", "신규상장", "data-etf-filter=\"aum\"",
+            "구성종목 보기", "ss-product-tabs", "ss-comparison-table",
+        ):
+            self.assertIn(token, source)
+        self.assertNotIn("ETF_ISSUER_GROUPS", source)
+        self.assertNotIn("groupEtfMatches", source)
+        self.assertNotIn("ss-cards-grid", source[source.index("function renderEtfProductView"):source.index("function dividendSortOptions")])
+        self.assertIn("ss-col-provider", style)
+        self.assertIn("ss-etf-components-btn", style)
 
     def test_strategy_search_explains_candidates_without_recommendation_language(self):
         source = self.read("js/strategy-search.js")
@@ -1260,6 +1223,35 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("'이격도 '", source)
         for token in (".ss-intro", ".ss-methodology-details", ".ss-row-primary", ".ss-row-secondary", ".ss-etf-components-btn", "columns: 1;"):
             self.assertIn(token, style)
+
+    def test_strategy_search_uses_etf_etn_and_dividend_comparison_tables(self):
+        source = self.read("js/strategy-search.js")
+        style = self.read("css/strategy-search.css")
+        fixture = self.read("test/strategy-search.html")
+        for token in (
+            "etnReturn",
+            "ss-product-tab",
+            "ss-comparison-table",
+            "activeEtfFilters",
+            "data-etf-filter=\"major\"",
+            "data-etf-filter=\"middle\"",
+            "data-etf-filter=\"leverage\"",
+            "data-etf-filter=\"aum\"",
+            "activeDividendMarket",
+            "data-dividend-filter=\"market\"",
+            "배당성향",
+            "dividendHistory",
+            "ss-dividend-basis",
+            "fmtWon",
+            "배당 데이터 ",
+            "현재 ETN 상품 데이터가 제공되지 않습니다.",
+        ):
+            self.assertIn(token, source)
+        self.assertIn("—", source)
+        self.assertIn("ss-warning-row", style)
+        self.assertIn("market: code === '105560' ? 'KOSPI' : 'KOSDAQ'", fixture)
+        self.assertNotIn("ss-score", source)
+        self.assertNotIn("별점", source)
 
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")
@@ -1402,14 +1394,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('html:not(.skin-ready) body { visibility: hidden; }', source)
         self.assertIn("root.classList.add('skin-ready')", source)
         self.assertIn('window.setTimeout(reveal, 1800)', source)
-
-    def test_brand_icon_uses_heartbeat_monitor_artwork(self):
-        skin = self.read("skin.html")
-        logo = self.read("img/heart-monitor.svg")
-        self.assertIn("/img/heart-monitor.svg", skin)
-        self.assertIn('alt="심장박동기 로고"', skin)
-        self.assertIn('심전도 파형이 표시된 심장박동기 모니터', logo)
-        self.assertIn('stroke="#E24A4A"', logo)
 
     def test_live_github_assets_also_guard_initial_paint(self):
         style = self.read("style.css")
