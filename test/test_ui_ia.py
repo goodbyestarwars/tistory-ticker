@@ -209,7 +209,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # gothic mode, and the cache version is bumped for the Tistory skin.
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260817-home-flow-v1", skin)
+        self.assertIn("style.css?v=20260817-home-flow-v2", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")
@@ -543,6 +543,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".home-widget--summary.home-economic-news {\n  height: auto !important;", style)
         self.assertIn(".home-economic-news .hen-list {\n  flex: none !important;", style)
         self.assertIn(".home-economic-news .hen-periods {\n  display: block !important;", style)
+        self.assertIn(".home-widget--full.home-briefing-section {\n    grid-column: 1 / -1;", style)
+        self.assertIn(".home-widget--full.home-briefing-section .home-briefing-grid {\n    width: 100%;", style)
         self.assertIn("var ECONOMIC_NEWS_WS_URL = 'wss://goodbyestar.cloud/ws/economic-news';", news)
         self.assertIn("function connectNewsSocket()", news)
         self.assertIn("function applyNewsPayload(payload)", news)
