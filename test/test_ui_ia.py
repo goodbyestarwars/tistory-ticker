@@ -1038,6 +1038,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".us-stocks-news-item { position: relative; display: grid; grid-template-columns: 52px 13px minmax(0, 1fr);", style)
         self.assertIn(".us-stocks-news-item { grid-template-columns: 45px 11px minmax(0, 1fr); gap: 8px; }", style)
 
+    def test_strategy_dividend_warning_cell_uses_full_mobile_width(self):
+        style = self.read("css/strategy-search.css")
+        self.assertIn("tr.ss-warning-row td { display: block; width: 100% !important;", style)
+
     def test_stock_analysis_chart_matches_price_studies_and_replaces_volume_profile_with_volume(self):
         source = self.read("js/foreign-flow.js")
         style = self.read("css/foreign-flow.css")
