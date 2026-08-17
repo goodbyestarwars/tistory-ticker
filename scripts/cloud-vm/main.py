@@ -1692,15 +1692,19 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
             return envelope(snapshot)
 
     def safe_domestic_board():
+        wics_map = market_board.load_wics_map()
         try:
             return market_board.fetch_domestic_kis(
                 os.environ.get('KIS_APPKEY', '').strip(),
                 os.environ.get('KIS_APPSECRET', '').strip(), limit=20,
+                wics_map=wics_map,
             )
         except Exception as kis_exc:
             logging.getLogger('main').warning('weekly report domestic KIS rank failed: %s', type(kis_exc).__name__)
             try:
-                return market_board.fetch_domestic(get_kiwoom_token(), limit=20)
+                return market_board.fetch_domestic(
+                    get_kiwoom_token(), limit=20, wics_map=wics_map,
+                )
             except Exception as fallback_exc:
                 logging.getLogger('main').warning('weekly report domestic Kiwoom rank failed: %s', type(fallback_exc).__name__)
                 return {}
@@ -2085,6 +2089,7 @@ def market_board_endpoint(request: Request,
     if cached is not None and now - cached['t'] < cache_ttl:
         return envelope(cached['data'])
     try:
+        wics_map = market_board.load_wics_map() if market == 'domestic' else None
         if _market_board_source() == 'kis':
             kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
             kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
@@ -2123,7 +2128,9 @@ def market_board_endpoint(request: Request,
                             'KIS 미국 순위별 폴백 실패: %s', fallback_exc,
                         )
             else:
-                data = market_board.fetch_domestic_kis(kis_appkey, kis_appsecret, limit=limit)
+                data = market_board.fetch_domestic_kis(
+                    kis_appkey, kis_appsecret, limit=limit, wics_map=wics_map,
+                )
         elif market == 'us':
             data = market_board.fetch_us(
                 token=get_kiwoom_token(),
@@ -2131,7 +2138,9 @@ def market_board_endpoint(request: Request,
                 finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
             )
         else:
-            data = market_board.fetch_domestic(get_kiwoom_token(), limit=limit)
+            data = market_board.fetch_domestic(
+                get_kiwoom_token(), limit=limit, wics_map=wics_map,
+            )
     except HTTPException:
         raise
     except Exception as exc:
@@ -2145,7 +2154,9 @@ def market_board_endpoint(request: Request,
                         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
                     )
                 else:
-                    data = market_board.fetch_domestic(get_kiwoom_token(), limit=limit)
+                    data = market_board.fetch_domestic(
+                        get_kiwoom_token(), limit=limit, wics_map=wics_map,
+                    )
             except Exception as fallback_error:
                 raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', fallback_error) from fallback_error
         else:

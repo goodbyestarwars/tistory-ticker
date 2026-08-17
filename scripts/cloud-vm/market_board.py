@@ -20,6 +20,9 @@ _BASIC_TTL_SEC = 15 * 60
 _basic_cache = {}
 _FX_TTL_SEC = 15 * 60
 _fx_cache = {}
+_WICS_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js'
+_WICS_MAP_TTL_SEC = 6 * 60 * 60
+_wics_map_cache = {'t': 0, 'data': {}}
 
 # 순위 TR이 일시적으로 비어도 홈 보드를 비우지 않기 위한 유동성 높은 대표 종목 목록.
 DOMESTIC_FALLBACK_CODES = (
@@ -51,6 +54,37 @@ def _first(row, *names):
         if value not in (None, ''):
             return value
     return None
+
+
+def load_wics_map():
+    """Load the shared WICS industry map used by the browser and strategy scan.
+
+    This is a static GitHub Pages asset, not a per-stock quote request.  A
+    failed refresh returns the last good map so the market board can still
+    show price rankings without making up an industry label.
+    """
+    now = time.time()
+    if _wics_map_cache['data'] and now - _wics_map_cache['t'] < _WICS_MAP_TTL_SEC:
+        return _wics_map_cache['data']
+    try:
+        request = urllib.request.Request(_WICS_MAP_URL, headers={'User-Agent': 'tistory-ticker/1.0'})
+        with urllib.request.urlopen(request, timeout=10) as response:
+            text = response.read().decode('utf-8')
+        import re
+        result = {}
+        for match in re.finditer(
+                r'"([0-9A-Za-z]{6})":\{"name":"([^"]*)","sector":"([^"]*)","industry":"([^"]*)"\}',
+                text):
+            result[match.group(1)] = {
+                'name': match.group(2),
+                'sector': match.group(3),
+                'industry': match.group(4),
+            }
+        if result:
+            _wics_map_cache.update({'t': now, 'data': result})
+    except Exception as exc:
+        logger.info('WICS map lookup failed: %s', exc)
+    return _wics_map_cache['data']
 
 
 def _currency_units_per_usd(currency):
@@ -178,6 +212,60 @@ def _fallback_domestic(token, limit):
     return rows
 
 
+def _industry_top(rows):
+    """Aggregate the collected stock candidates into industry TOP rows.
+
+    The ranking is intentionally sector-level rather than a disguised stock
+    ranking: average change rate first, then rising-stock ratio, then total
+    traded value.  It is based on the same candidate universe already fetched
+    for the board and does not make another quote request.
+    """
+    groups = {}
+    for row in rows:
+        industry = str(row.get('industry') or '').strip()
+        if not industry or industry in ('미분류', '기타'):
+            continue
+        group = groups.setdefault(industry, {
+            'rows': [], 'change_sum': 0.0, 'rising': 0, 'falling': 0,
+            'trade_amount': 0.0, 'trade_volume': 0.0,
+        })
+        change_rate = row.get('change_rate') or 0
+        group['rows'].append(row)
+        group['change_sum'] += change_rate
+        group['rising'] += 1 if change_rate > 0 else 0
+        group['falling'] += 1 if change_rate < 0 else 0
+        group['trade_amount'] += row.get('trade_amount') or 0
+        group['trade_volume'] += row.get('trade_volume') or 0
+
+    result = []
+    for industry, group in groups.items():
+        rows_in_group = group['rows']
+        count = len(rows_in_group)
+        leader = max(rows_in_group, key=lambda item: item.get('trade_amount') or 0)
+        average_change = group['change_sum'] / count if count else 0
+        result.append({
+            'industry': industry,
+            'stock_count': count,
+            'rising_count': group['rising'],
+            'falling_count': group['falling'],
+            'avg_change_rate': average_change,
+            'rise_ratio': group['rising'] / count if count else 0,
+            'trade_amount': group['trade_amount'],
+            'trade_volume': group['trade_volume'],
+            'leader_name': leader.get('name') or leader.get('code') or '-',
+            'leader_code': leader.get('code') or '',
+            'leader_change_rate': leader.get('change_rate') or 0,
+            'currency': 'KRW',
+        })
+    return sorted(
+        result,
+        key=lambda item: (
+            item['avg_change_rate'], item['rise_ratio'], item['trade_amount'],
+        ),
+        reverse=True,
+    )
+
+
 def _sections(rows):
     by_amount = lambda row: row.get('trade_amount') or 0
     by_volume = lambda row: row.get('trade_volume') or 0
@@ -186,10 +274,13 @@ def _sections(rows):
     return {
         'tradeAmount': sorted(rows, key=by_amount, reverse=True),
         'tradeVolume': sorted(rows, key=by_volume, reverse=True),
+        'volumeGrowth': [],
+        'turnover': [],
+        'amountTurnover': [],
         'rising': sorted([row for row in rows if by_rate(row) > 0], key=by_rate, reverse=True),
         'falling': sorted([row for row in rows if by_rate(row) < 0], key=by_rate),
         'marketCap': sorted(rows, key=by_cap, reverse=True),
-        'industry': sorted(rows, key=lambda row: (str(row.get('industry') or '미분류'), -by_amount(row))),
+        'industry': _industry_top(rows),
     }
 
 

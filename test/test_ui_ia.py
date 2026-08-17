@@ -347,6 +347,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/home-realtime-table.js")
         main = self.read("scripts/cloud-vm/main.py")
         for token in (
+            "['volumeGrowth', '거래증가율']",
+            "['turnover', '거래회전율']",
+            "['amountTurnover', '거래대금회전율']",
+            "국내시장 휴장 또는 해당 순위 데이터가 없습니다.",
+            "['industry', '업종 TOP']",
+            "평균등락률 → 상승비율 → 거래대금 순",
+            "function industryRowHtml(item, rank)",
+        ):
+            self.assertIn(token, source)
+        for token in (
+            "def _industry_top(rows):",
+            "'avg_change_rate'",
+            "'rise_ratio'",
+            "load_wics_map()",
+        ):
+            self.assertIn(token, self.read("scripts/cloud-vm/market_board.py"))
+        for token in (
             "reconnectTimer",
             "WS_RECONNECT_MIN_MS = 1500",
             "WS_RECONNECT_MAX_MS = 30000",
