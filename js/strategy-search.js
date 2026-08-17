@@ -145,9 +145,10 @@
   }
 
   function buildShell() {
+    // 페이지 제목은 Tistory 글 제목으로 한 번만 표시한다. 위젯 안에서
+    // 같은 제목을 다시 출력하면 "전략은 두뇌다." 제목이 중복된다.
     return ''
       + '<div class="ss-intro">'
-      + '<h1>전략은 두뇌다.</h1>'
       + '<p>전략 조건으로 후보군을 찾고, 차트와 종목분석에서 진입 여부를 별도로 확인합니다.</p>'
       + '</div>'
       + '<div class="ss-head">'
@@ -239,13 +240,6 @@
         event.preventDefault();
         event.stopPropagation();
         toggleWatchlist(watchButton);
-        return;
-      }
-      var componentsButton = event.target.closest ? event.target.closest('.ss-etf-components-btn') : null;
-      if (componentsButton) {
-        event.preventDefault();
-        event.stopPropagation();
-        openEtfComponentsModal(componentsButton.getAttribute('data-code'), componentsButton.getAttribute('data-name') || componentsButton.getAttribute('data-code'), findItemByCode(activeKey, componentsButton.getAttribute('data-code')));
         return;
       }
       var row = event.target.closest ? event.target.closest('.ss-row') : null;
@@ -559,11 +553,10 @@
 
   function etfTableRow(item, index) {
     var rateClass = chgClass(item.changeRate);
-    var componentButton = '<button type="button" class="ss-etf-components-btn" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" aria-label="' + escapeAttr(item.name) + ' 구성종목 보기">구성종목 보기</button>';
     return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
       + '<td class="ss-col-watch" data-label="관심등록">' + watchButtonHtml(item) + '</td>'
       + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
-      + '<td class="ss-col-product" data-label="상품명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + '</span></strong>' + componentButton + '</td>'
+      + '<td class="ss-col-product" data-label="상품명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + '</span></strong></td>'
       + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
       + '<td class="ss-col-provider" data-label="운용사">' + escapeHtml(item.provider || '—') + '</td>'
       + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'

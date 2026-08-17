@@ -1264,7 +1264,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("returnRate12mPct", source)
         for token in (
             "normalizeEtfItem", "providerFromName", "ss-col-provider", "ss-col-code",
-            "신규상장", "구성종목 보기", "ss-comparison-table",
+            "신규상장", "ss-comparison-table",
         ):
             self.assertIn(token, source)
         self.assertNotIn("ETF_ISSUER_GROUPS", source)
@@ -1274,7 +1274,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn('ss-col-turnover', source)
         self.assertNotIn('ss-col-aum', source)
         self.assertIn("ss-col-provider", style)
-        self.assertIn("ss-etf-components-btn", style)
+        self.assertNotIn("ss-etf-components-btn", source)
+        self.assertNotIn("ss-etf-components-btn", style)
 
     def test_strategy_search_explains_candidates_without_recommendation_language(self):
         source = self.read("js/strategy-search.js")
@@ -1289,7 +1290,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "120일선 대비",
             "배당수익률",
             "주당 현금배당",
-            "구성종목 보기",
             "상위 10종목 비중",
             "ss-etf-comp-row",
             "tabindex=\"0\"",
@@ -1298,7 +1298,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("dividendMatch", fixture)
         self.assertIn("etfMatch", fixture)
         self.assertNotIn("'이격도 '", source)
-        for token in (".ss-intro", ".ss-methodology-details", ".ss-row-primary", ".ss-row-secondary", ".ss-etf-components-btn", "columns: 1;"):
+        for token in (".ss-intro", ".ss-methodology-details", ".ss-row-primary", ".ss-row-secondary", "columns: 1;"):
             self.assertIn(token, style)
 
     def test_strategy_search_uses_etf_etn_and_dividend_comparison_tables(self):

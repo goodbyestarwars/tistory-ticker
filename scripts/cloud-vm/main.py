@@ -1412,7 +1412,11 @@ def etf_components_endpoint(request: Request, code: str = Path(..., min_length=6
         'componentCount': int(kiwoom_market.to_num(summary.get('etf_cnfg_issu_cnt')) or 0) or None,
         'components': components,
     }
-    _live_cache_put(_etf_components_cache, code, result)
+    # 장중/장외 전환 시 KIS가 일시적으로 빈 output2를 반환할 수 있다.
+    # 빈 결과를 10분 캐시하면 다음 클릭에서도 구성종목이 계속 없는 것처럼
+    # 보이므로, 실제 구성종목이 확인된 응답만 캐시한다.
+    if components:
+        _live_cache_put(_etf_components_cache, code, result)
     return envelope(result)
 
 
