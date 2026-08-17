@@ -111,10 +111,10 @@
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260817-earnings-result-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260818-home-layout-v2')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260818-home-layout-v2';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260818-home-layout-v2';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260818-home-layout-v2';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260818-home-summary-v3')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260818-home-summary-v3';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260818-home-summary-v3';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260818-home-summary-v3';
     var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260817-stock-grid-v22';
 
     function isWeekendReportWindow() {
@@ -345,7 +345,26 @@
 
     function sectorSummary(data) {
       var groups = {};
-      var all = data && data.data ? (data.data.KOSPI || []).concat(data.data.KOSDAQ || []) : [];
+      var payload = data && data.data && typeof data.data === 'object' ? data.data : (data || {});
+      var all = [];
+      ['KOSPI', 'KOSDAQ'].forEach(function (market) {
+        if (Array.isArray(payload[market])) all = all.concat(payload[market]);
+      });
+      // GAS bubble 응답은 KOSPI/KOSDAQ 배열을 사용하고, market-board 응답은
+      // rows/sections를 사용한다. 홈에서는 어느 응답이 캐시되었는지와 관계없이
+      // 같은 업종 요약으로 정규화한다.
+      if (!all.length && Array.isArray(payload.rows)) all = payload.rows.slice();
+      if (!all.length && payload.sections && typeof payload.sections === 'object') {
+        var seen = {};
+        Object.keys(payload.sections).forEach(function (key) {
+          (Array.isArray(payload.sections[key]) ? payload.sections[key] : []).forEach(function (item) {
+            var code = String(item && (item.code || item.symbol || item.name) || '');
+            if (code && seen[code]) return;
+            if (code) seen[code] = true;
+            all.push(item);
+          });
+        });
+      }
       all.forEach(function (item) {
         var changeRate = Number(item && (item.changeRate != null ? item.changeRate : item.change_rate));
         if (!isFinite(changeRate)) return;
@@ -353,7 +372,7 @@
         if (!sectors.length && item && (item.sector || item.industry)) sectors = [item.sector || item.industry];
         sectors.forEach(function (sector) {
           sector = String(sector || '').trim();
-          if (!sector) return;
+          if (!sector || /^(미분류|unknown|n\/a|na|-|기타)$/i.test(sector)) return;
           if (!groups[sector]) groups[sector] = { total: 0, count: 0 };
           groups[sector].total += changeRate;
           groups[sector].count += 1;
@@ -366,6 +385,12 @@
         leaders: rows.filter(function (item) { return item.average > 0; }).slice(0, 3),
         cautions: rows.filter(function (item) { return item.average < 0; }).slice(-3).reverse()
       };
+    }
+
+    function sectorSummaryText(items, emptyText) {
+      var names = (items || []).map(function (item) { return String(item && (item.sector || item.industry) || '').trim(); })
+        .filter(function (name) { return name && !/^(미분류|unknown|n\/a|na|-|기타)$/i.test(name); });
+      return names.length ? names.join(' · ') : (emptyText || '업종 데이터 없음');
     }
 
     function resolveMarketDirection(marketTemp, indexRates) {
@@ -560,8 +585,8 @@
           avgChange: { avgChangeRate: averageRate }
         } }, indexRates) : { label: usSession.label, tone: 'home-neutral' },
         sessionState: usSession,
-        leaders: industries.filter(function (item) { return item.average > 0; }).slice(0, 3),
-        cautions: industries.filter(function (item) { return item.average < 0; }).slice(-3).reverse(),
+        leaders: industries.filter(function (item) { return item.average > 0 && item.industry && !/^(미분류|unknown|n\/a|na|-|기타)$/i.test(item.industry); }).slice(0, 3),
+        cautions: industries.filter(function (item) { return item.average < 0 && item.industry && !/^(미분류|unknown|n\/a|na|-|기타)$/i.test(item.industry); }).slice(-3).reverse(),
         updatedAt: payload && payload.updatedAt
       };
     }
@@ -581,16 +606,16 @@
       setField('temperature', sessionOpen ? ratio : summary.sessionState.label,
         sessionOpen ? summary.riseRatio >= 0.55 ? 'home-positive' : summary.riseRatio <= 0.45 ? 'home-negative' : 'home-neutral' : 'home-neutral');
       setField('direction', summary.direction.label, summary.direction.tone);
-      setField('leaders', summary.leaders.length ? summary.leaders.map(function (item) { return item.industry; }).join(' · ') : '데이터 확인 중', 'home-positive');
-      setField('cautions', summary.cautions.length ? summary.cautions.map(function (item) { return item.industry; }).join(' · ') : '데이터 확인 중', 'home-negative');
+      setField('leaders', sectorSummaryText(summary.leaders, '업종 데이터 없음'), 'home-positive');
+      setField('cautions', sectorSummaryText(summary.cautions, '업종 데이터 없음'), 'home-negative');
       var updated = document.getElementById('hmbUpdated');
       if (updated && summary.updatedAt) updated.textContent = formatHomeTimestamp(summary.updatedAt) + ' 기준';
     }
 
     function renderMarketSectors(bubble) {
       var summary = sectorSummary(bubble);
-      setField('leaders', summary.leaders.length ? summary.leaders.map(function (item) { return item.sector; }).join(' · ') : '데이터 확인 중', 'home-positive');
-      setField('cautions', summary.cautions.length ? summary.cautions.map(function (item) { return item.sector; }).join(' · ') : '데이터 확인 중', 'home-negative');
+      setField('leaders', sectorSummaryText(summary.leaders, '업종 데이터 없음'), 'home-positive');
+      setField('cautions', sectorSummaryText(summary.cautions, '업종 데이터 없음'), 'home-negative');
     }
 
     function homeIndexCard(slot) {
@@ -707,7 +732,9 @@
       var nightChartEl = dashboardSection.querySelector('[data-night-futures-chart]');
       if (isNightFuturesHoliday()) {
         setField('nightFutures', '휴장', 'home-neutral');
-        if (nightChartEl) nightChartEl.innerHTML = '<span class="home-index-chart-empty">휴장</span>';
+        // 휴장 문구는 값 칸에만 표시한다. 차트 빈 상태까지 "휴장"을
+        // 반복하면 한 칸이 두 줄처럼 보인다.
+        if (nightChartEl) { nightChartEl.hidden = true; nightChartEl.innerHTML = ''; }
       } else if (nightItem) {
         var nPrice = Number(nightItem.price);
         var nChange = Number(nightItem.change);
@@ -720,10 +747,10 @@
         // 사용자 리포트 - 텍스트만 있고 그래프가 빠져 있었음). renderHomeIndexChart는 SVG를
         // preserveAspectRatio="none"으로 채우므로 컨테이너 CSS 크기만 다르면(style.css의
         // .home-night-futures-chart) 그대로 재사용된다.
-        if (nightChartEl) renderHomeIndexChart(nightChartEl, nightItem.chart, nChange >= 0, 'kospiNight');
+        if (nightChartEl) { nightChartEl.hidden = false; renderHomeIndexChart(nightChartEl, nightItem.chart, nChange >= 0, 'kospiNight'); }
       } else {
         setField('nightFutures', '데이터 확인 중', 'home-neutral');
-        if (nightChartEl) nightChartEl.innerHTML = '<span class="home-index-chart-empty">데이터 확인 중</span>';
+        if (nightChartEl) { nightChartEl.hidden = true; nightChartEl.innerHTML = ''; }
       }
       session.keys.forEach(function (key, index) {
         var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
@@ -837,7 +864,7 @@
     var marketTempCacheKey = 'home_market_temp_v1';
     var marketSectorCacheKey = 'home_market_sectors_v1';
     var cachedMarketTemp = readHomeDataCache(marketTempCacheKey, 10 * 60 * 1000);
-    var cachedMarketSectors = readHomeDataCache(marketSectorCacheKey, 30 * 60 * 1000);
+    var cachedMarketSectors = readHomeDataCache(marketSectorCacheKey, 5 * 60 * 1000);
     var summarySessionKey = '';
     var loadHomeUsSummary;
     var loadHomeDomesticSummary;
@@ -909,7 +936,10 @@
       if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
       // 지연 콜백에만 의존하면 모바일 WebView가 계속 미루면서 주도/주의 업종이
       // 비어 보일 수 있다. fetch 자체는 비동기이므로 즉시 시작해 첫 화면을 막지 않는다.
-      setTimeout(loadHomeSectors, 0);
+      // 업종 응답은 느릴 수 있지만, 지연 콜백에 넣으면 모바일 WebView에서
+      // 조회가 뒤로 밀려 "주도/주의 업종"이 계속 비어 보인다. 캐시를 먼저
+      // 그린 뒤 최신 응답 요청을 즉시 병행한다.
+      loadHomeSectors();
       loadHomeInvestorTrend();
     };
 

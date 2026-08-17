@@ -210,7 +210,7 @@
       return timestamp > 0 && timestamp >= cutoff;
     }).slice().sort(function (a, b) {
       return dateValue(b.pubDate) - dateValue(a.pubDate);
-    }).slice(0, 8);
+    }).slice(0, 10);
     if (!rows.length) {
       list.innerHTML = '<p class="home-card-state">현재 표시할 경제 뉴스가 없습니다.</p>';
       return;

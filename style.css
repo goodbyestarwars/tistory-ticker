@@ -5683,3 +5683,77 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot {
     font-size: 21px !important;
   }
 }
+
+/* Final home density pass: scrollbar chrome stays invisible, while the
+   disclosure/news rails remain draggable and scrollable. */
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list::-webkit-scrollbar-thumb,
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list::-webkit-scrollbar-track,
+body#tt-body-index .home-editorial-page .home-economic-news .hen-list::-webkit-scrollbar,
+body#tt-body-index .home-editorial-page .home-economic-news .hen-periods::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+body#tt-body-index .home-editorial-page .home-widget-grid {
+  align-items: stretch !important;
+}
+body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
+body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news {
+  align-self: stretch !important;
+}
+body#tt-body-index .home-editorial-page .home-economic-news {
+  height: auto !important;
+  min-height: 500px !important;
+  overflow: visible !important;
+}
+body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
+  height: 360px !important;
+  max-height: 360px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+}
+body#tt-body-index .home-editorial-page .home-economic-news .hen-list::-webkit-scrollbar-thumb,
+body#tt-body-index .home-editorial-page .home-economic-news .hen-list::-webkit-scrollbar-track,
+body#tt-body-index .home-editorial-page .home-economic-news .hen-periods::-webkit-scrollbar-thumb,
+body#tt-body-index .home-editorial-page .home-economic-news .hen-periods::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-body > strong,
+body#tt-body-index .home-editorial-page .home-economic-news .app-news-event:first-child .app-news-body > strong,
+body#tt-body-index .home-editorial-page .home-economic-news .app-news-event:nth-child(2) .app-news-body > strong {
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+body#tt-body-index .home-editorial-page [data-home-night-futures] {
+  min-height: 42px !important;
+  padding-top: 8px !important;
+  padding-bottom: 6px !important;
+}
+body#tt-body-index .home-editorial-page [data-home-night-futures] .home-night-futures-chart[hidden] {
+  display: none !important;
+}
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page .home-economic-news {
+    min-height: 410px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
+    height: 280px !important;
+    max-height: 280px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-body > strong,
+  body#tt-body-index .home-editorial-page .home-economic-news .app-news-event:first-child .app-news-body > strong,
+  body#tt-body-index .home-editorial-page .home-economic-news .app-news-event:nth-child(2) .app-news-body > strong {
+    font-size: 13px !important;
+  }
+}
