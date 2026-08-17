@@ -555,7 +555,9 @@
       state.data = json.data || json;
       var session = state.mount.querySelector('[data-hrt-session]');
       var updated = state.mount.querySelector('[data-hrt-updated]');
-      if (session) session.textContent = state.data.session || marketLabel(market);
+      // API가 이전 세션 문구를 캐시하고 있어도 화면은 브라우저의 현재 날짜와
+      // 뉴욕 시간대 기준으로 계산한 운영시간을 우선 표시한다.
+      if (session) session.textContent = marketLabel(market);
       if (updated) updated.textContent = (isWeekendInKst() ? '최근 장마감 · ' : '실시간 · ')
         + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
       renderRows();
