@@ -104,7 +104,8 @@
 /* 2026-08-14 요청: 평균선을 그은 미니 그래프 - 값이 평균보다 위/아래인지 색으로
    구분한다(상승=빨강/하락=파랑, 사이트 공통 규칙을 "평균 대비"로 적용). */
 .dmi-mini-chart { display: block; width: 100%; height: 40px; margin: 8px 0 2px; }
-.dmi-mini-chart-avg { stroke: #9ca3af; stroke-width: 1; stroke-dasharray: 1.5 1.5; }
+/* 글로벌시장지표의 평균 참고선과 동일한 주황색 실선으로 통일한다. */
+.dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }
 .dmi-mini-chart-line { fill: none; stroke-width: 1.6; }
 .dmi-mini-chart.dmi-positive .dmi-mini-chart-line { stroke: #d24f45; }
 .dmi-mini-chart.dmi-negative .dmi-mini-chart-line { stroke: #1261c4; }
