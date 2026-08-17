@@ -41,6 +41,7 @@
   --neutral: #777777;
   --accent-dark: #26364A;
 }
+
 html.nav-secondary-open { --topbar-height: 92px; }
 /* 2026-07-27: 관심지수 리본을 홈("/")에서만 띄우기로 하면서(js/quick-indices.js의
    isHomePage() 참고) 다른 페이지에서는 init()이 아예 실행되지 않아 --qi-height를
@@ -5354,5 +5355,40 @@ body#tt-body-index .home-editorial-page .hrt-more {
   }
   body#tt-body-index .home-editorial-page .hrt-table-wrap td {
     font-size: 12px;
+  }
+}
+
+/* 2026-08-17 mobile flow safety: 뉴스 목록이 다음 지면 위로 흘러가지 않게 한다. */
+body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
+body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news {
+  height: auto !important;
+  min-height: 0 !important;
+}
+body#tt-body-index .home-editorial-page .home-economic-news {
+  display: block !important;
+  overflow: visible !important;
+}
+body#tt-body-index .home-editorial-page .home-economic-news .hen-list,
+body#tt-body-index .home-editorial-page .home-economic-news .hen-periods {
+  display: block !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
+  flex: none !important;
+}
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page .home-economic-news,
+  body#tt-body-index .home-editorial-page .home-realtime-board {
+    position: relative;
+    clear: both;
+  }
+  body#tt-body-index .home-editorial-page .home-economic-news .hen-featured .app-news-body > strong,
+  body#tt-body-index .home-editorial-page .home-economic-news .hen-regular .app-news-body > strong {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 }

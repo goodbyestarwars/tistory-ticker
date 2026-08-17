@@ -204,7 +204,9 @@
     renderFlash(flash || state.flash);
     var rows = (items || []).filter(function (item) { return item && item.kind !== 'disclosure'; }).slice().sort(function (a, b) {
       return dateValue(b.pubDate) - dateValue(a.pubDate);
-    }).slice(0, 7);
+    // 홈에서는 대표 기사 1건과 주요 기사 5건만 먼저 보여준다.
+    // 전체 목록은 하단의 전체 뉴스 링크에서 계속 확인할 수 있다.
+    }).slice(0, 6);
     if (!rows.length) {
       list.innerHTML = '<p class="home-card-state">현재 표시할 경제 뉴스가 없습니다.</p>';
       return;
