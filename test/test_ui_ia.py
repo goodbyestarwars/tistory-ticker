@@ -1014,7 +1014,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/us-stocks.js")
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
-        self.assertIn("us-stocks.css?v=20260813-chart-fit-draw", source)
+        self.assertIn("us-stocks.css?v=20260817-news-columns-v1", source)
         self.assertIn("us-stocks.js?v=20260813-news-24h", search)
         self.assertIn("font-family: inherit", style)
         for token in (
@@ -1035,6 +1035,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("drawing.lines.push({ start: drawing.pending, end: point })", search)
         self.assertIn(".us-stocks-market-grid > *", style)
         self.assertIn(".us-native-chart-mount .ss-chart-tabs", style)
+        self.assertIn(".us-stocks-news-item { position: relative; display: grid; grid-template-columns: 52px 13px minmax(0, 1fr);", style)
+        self.assertIn(".us-stocks-news-item { grid-template-columns: 45px 11px minmax(0, 1fr); gap: 8px; }", style)
 
     def test_stock_analysis_chart_matches_price_studies_and_replaces_volume_profile_with_volume(self):
         source = self.read("js/foreign-flow.js")
