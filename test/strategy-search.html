@@ -17,7 +17,7 @@
 <div class="page-body">
   <h1>strategy-search 로컬 테스트</h1>
   <button class="toggle-dark" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
-  <p style="font-size:13px;color:#888">mock 데이터로 카테고리 탭 전환(저평가 종목 + 두 번째 mock 카테고리로 확장성 확인) + 섹터별 카드/행 + 판정 근거(이격도·ROE) 표시 + 클릭 이동을 확인. 실제 GAS/VM 호출은 배포 후 별도 확인.</p>
+  <p style="font-size:13px;color:#888">mock 데이터로 재무건전 장기 눌림·배당주·ETF·ETN 비교표, 조건 자세히, 누락값 대시, 구성종목 팝업, 클릭 이동을 확인합니다.</p>
   <div id="strategy-search"></div>
 </div>
 
@@ -28,6 +28,17 @@
       code: code, name: name, price: price, changeRate: rate, date: '2026-08-05',
       disparity: disparity, fundamentalScore: 72, roe: roe, debtRatio: debtRatio
     };
+  }
+  function dividendMatch(code, name, price, rate, yieldPct, dps, year) {
+    return { code: code, name: name, price: price, changeRate: rate, date: '2026-08-05', strategy: 'dividend',
+      dividendYieldPct: yieldPct, cashDividendPerShare: dps, payoutRatioPct: 42.5, roe: 11.4, per: 6.8, pbr: 0.72,
+      dividendHistory: [{ year: year, dps: dps }, { year: year - 1, dps: dps - 200 }, { year: year - 2, dps: dps - 100 }, { year: year - 3, dps: dps - 50 }],
+      market: code === '105560' ? 'KOSPI' : 'KOSDAQ', reportYear: year };
+  }
+  function etfMatch(code, name, price, rate, returns) {
+    return { code: code, name: name, price: price, changeRate: rate, date: '2026-08-05', strategy: 'etfReturn',
+      returnRate1mPct: returns[0], returnRate3mPct: returns[1], returnRate6mPct: returns[2], returnRate12mPct: returns[3],
+      volume: 1234567, turnover: 9876543210, aum: 125000000000, majorCategory: '국내주식', middleCategory: '시장대표', leverageType: '일반' };
   }
 
   var mockCategories = {
@@ -49,6 +60,24 @@
           ]
         },
         '산업재': { name: '산업재', matches: [] }
+      }
+    },
+    dividend: {
+      name: '배당주',
+      methodology: 'DART 사업보고서 현금배당 공시를 기준으로 배당수익률과 주당 현금배당금을 비교합니다. 배당수익률은 과거 공시 기준이며 주가 하락·일회성 배당 여부는 별도 확인이 필요합니다.',
+      sectors: {
+        '금융': { name: '금융', matches: [dividendMatch('105560', 'KB금융', 82600, -0.4, 5.2, 4200, 2025)] },
+        '통신서비스': { name: '통신서비스', matches: [dividendMatch('017670', 'SK텔레콤', 54200, 0.2, 4.7, 2500, 2025)] }
+      }
+    },
+    etfReturn: {
+      name: 'ETF 수익률 상위',
+      methodology: '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.',
+      sectors: {
+        ETF: { name: 'ETF', matches: [
+          etfMatch('069500', 'KODEX 200', 42100, 0.8, [4.2, 7.8, 11.4, 18.6]),
+          etfMatch('360750', 'TIGER 미국S&P500', 19800, -0.3, [3.1, 8.4, 15.2, 27.1])
+        ] }
       }
     },
     // 카테고리 탭이 앞으로 계속 늘어난다는 걸 로컬에서도 확인할 수 있도록 넣은 두 번째
@@ -79,6 +108,19 @@
         skippedNoFundamentals: 200,
         categories: mockCategories
       });
+    }
+    return Promise.resolve({});
+  };
+  window.__strategySearchFetch = function (url) {
+    if (url.indexOf('etf-components/') > -1) {
+      return Promise.resolve({ data: {
+        price: 42100, changeRatePct: 0.8, nav: 42020, componentCount: 3, asOf: '2026-08-16',
+        components: [
+          { code: '005930', name: '삼성전자', weightPct: 34.8, price: 68400, changeRatePct: 1.2 },
+          { code: '000660', name: 'SK하이닉스', weightPct: 20.4, price: 174500, changeRatePct: -0.6 },
+          { code: '373220', name: 'LG에너지솔루션', weightPct: 9.6, price: 389000, changeRatePct: 0.1 }
+        ]
+      } });
     }
     return Promise.resolve({});
   };

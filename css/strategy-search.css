@@ -7,6 +7,10 @@
   font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
 }
 
+#strategy-search .ss-intro { margin: 0 0 16px; }
+#strategy-search .ss-intro h1 { margin: 0; color: #111827; font-size: 24px; line-height: 1.25; }
+#strategy-search .ss-intro p { margin: 5px 0 0; color: #64748b; font-size: 12.5px; line-height: 1.5; }
+
 #strategy-search .ss-head {
   display: flex;
   align-items: center;
@@ -58,6 +62,10 @@
   margin-bottom: 14px;
   line-height: 1.5;
 }
+#strategy-search .ss-methodology-summary { margin: 0; color: #334155; font-weight: 700; }
+#strategy-search .ss-methodology-details { margin-top: 7px; border-top: 1px solid #e2e8f0; padding-top: 7px; }
+#strategy-search .ss-methodology-details summary { color: #64748b; cursor: pointer; font-size: 11.5px; font-weight: 700; }
+#strategy-search .ss-methodology-details p { margin: 7px 0 0; }
 
 #strategy-search .ss-return-period-tabs {
   display: flex;
@@ -136,17 +144,20 @@
   gap: 8px;
 }
 
+#strategy-search .ss-card-heading { margin-bottom: 7px; }
+#strategy-search .ss-card-note { margin: 0 0 0 12px; color: #94a3b8; font-size: 11px; line-height: 1.35; }
+
 #strategy-search .ss-card-title::before {
   content: "";
   width: 4px;
   height: 14px;
-  background: #2563eb;
+  background: #64748b;
   border-radius: 2px;
   display: inline-block;
 }
 
 #strategy-search .ss-row {
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid #f1f5f9;
   font-size: 13px;
   cursor: pointer;
@@ -160,6 +171,7 @@
 #strategy-search .ss-row:hover {
   background: #f8fafc;
 }
+#strategy-search .ss-row:focus-visible { outline: 2px solid #475569; outline-offset: -2px; }
 
 #strategy-search .ss-row-top {
   display: flex;
@@ -170,12 +182,8 @@
 #strategy-search .ss-row-name {
   color: #374151;
   font-weight: 500;
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-right: 8px;
+  display: block;
+  line-height: 1.35;
 }
 
 #strategy-search .ss-row-code {
@@ -185,27 +193,15 @@
   margin-left: 3px;
 }
 
-#strategy-search .ss-row-top > span:last-child {
-  white-space: nowrap;
-}
-
-#strategy-search .ss-row-price {
-  color: #6b7280;
-  margin-right: 6px;
-}
-
-#strategy-search .ss-row-rate {
-  font-weight: 600;
-}
-
-/* 왜 이 종목이 뽑혔는지(가격 게이트·품질 게이트 실측값) - 이전 배지가 항상 100%였던
-   문제의 재발 방지: 종목마다 실제로 다른 숫자를 그대로 보여준다. */
-#strategy-search .ss-row-metric {
-  font-size: 11px;
-  color: #9ca3af;
-  line-height: 1.3;
-  margin-top: 2px;
-}
+#strategy-search .ss-row-primary { margin-top: 5px; color: #1e3a5f; font-size: 14px; font-weight: 800; line-height: 1.35; }
+#strategy-search .ss-row-secondary { margin-top: 2px; color: #64748b; font-size: 11.5px; line-height: 1.4; }
+#strategy-search .ss-row-bottom { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; min-height: 18px; }
+#strategy-search .ss-row-quote { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+#strategy-search .ss-row-price { color: #475569; font-size: 12px; font-variant-numeric: tabular-nums; }
+#strategy-search .ss-row-rate { font-size: 11px; font-weight: 600; }
+#strategy-search .ss-row-basis { color: #94a3b8; font-size: 10.5px; }
+#strategy-search .ss-etf-components-btn { margin-left: auto; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 999px; background: #fff; color: #475569; font: inherit; font-size: 10.5px; cursor: pointer; }
+#strategy-search .ss-etf-components-btn:hover { border-color: #475569; color: #334155; }
 
 #strategy-search .ss-etf-return-metric {
   display: flex;
@@ -218,7 +214,7 @@
 }
 
 #strategy-search .ss-etf-return-metric b {
-  color: #2563eb;
+  color: #1e3a5f;
   font-weight: 700;
 }
 
@@ -252,39 +248,128 @@
 
 #strategy-search .ss-error { color: #d24f45; }
 
+/* ETF·ETN·배당주 비교 테이블 */
+#strategy-search .ss-product-tabs { display: flex; gap: 6px; margin: 0 0 10px; }
+#strategy-search .ss-product-tab {
+  padding: 7px 18px; border: 1px solid #dbe3ed; border-radius: 999px;
+  background: #fff; color: #64748b; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700;
+}
+#strategy-search .ss-product-tab.active { background: #111827; border-color: #111827; color: #fff; }
+#strategy-search .ss-product-toolbar,
+#strategy-search .ss-dividend-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+#strategy-search .ss-product-toolbar label,
+#strategy-search .ss-dividend-toolbar label { display: inline-flex; align-items: center; gap: 5px; color: #64748b; font-size: 12px; }
+#strategy-search .ss-etf-control,
+#strategy-search .ss-dividend-sort-select {
+  min-width: 104px; padding: 6px 8px; border: 1px solid #dbe3ed; border-radius: 7px;
+  background: #fff; color: #334155; font: inherit; font-size: 12px;
+}
+#strategy-search .ss-product-toolbar .ss-etf-search-input { margin-left: auto; min-width: 190px; }
+#strategy-search .ss-product-note { margin: 0 0 10px; color: #64748b; font-size: 12px; line-height: 1.5; }
+#strategy-search .ss-table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; }
+#strategy-search .ss-comparison-table { width: 100%; min-width: 1180px; border-collapse: collapse; font-size: 11.5px; table-layout: auto; }
+#strategy-search .ss-comparison-table th {
+  padding: 10px 8px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+  color: #64748b; font-weight: 700; white-space: nowrap; text-align: right;
+}
+#strategy-search .ss-comparison-table th:nth-child(1),
+#strategy-search .ss-comparison-table th:nth-child(2),
+#strategy-search .ss-comparison-table th:nth-child(3),
+#strategy-search .ss-comparison-table td:nth-child(1),
+#strategy-search .ss-comparison-table td:nth-child(2),
+#strategy-search .ss-comparison-table td:nth-child(3) { text-align: left; }
+#strategy-search .ss-comparison-table td { padding: 10px 8px; border-bottom: 1px solid #eef2f7; color: #334155; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#strategy-search .ss-comparison-table tr:last-child td { border-bottom: 0; }
+#strategy-search .ss-comparison-table .ss-table-row { cursor: pointer; }
+#strategy-search .ss-comparison-table .ss-table-row:hover { background: #f8fafc; }
+#strategy-search .ss-col-rank { color: #64748b !important; }
+#strategy-search .ss-col-product { min-width: 170px; text-align: left !important; }
+#strategy-search .ss-col-product strong { display: block; color: #1e293b; font-weight: 700; }
+#strategy-search .ss-col-product small { display: block; margin-top: 2px; color: #94a3b8; font-size: 10px; }
+#strategy-search .ss-watch-toggle { border: 0; padding: 0 3px; background: transparent; color: #94a3b8; cursor: pointer; font-size: 19px; line-height: 1; }
+#strategy-search .ss-watch-toggle.active { color: #e0a400; }
+#strategy-search .ss-row-warning { color: #b45309 !important; font-size: 11px; text-align: left !important; white-space: normal !important; }
+#strategy-search .ss-warning-row td { padding: 5px 8px; background: #fffbeb; border-bottom: 1px solid #eef2f7; }
+#strategy-search .ss-product-empty { padding: 45px 16px; border: 1px solid #e2e8f0; border-radius: 10px; color: #64748b; text-align: center; line-height: 1.8; }
+#strategy-search .ss-product-empty small { color: #94a3b8; }
+
 /* ============ 모바일 ============ */
-/* 모바일에서는 긴 종목 행을 2열로 압축해 한 화면에 더 많이 보여준다. */
 @media (max-width: 640px) {
   #strategy-search .ss-cards-grid {
-    columns: 2 150px;
-    column-gap: 8px;
+    columns: 1;
   }
   #strategy-search .ss-card {
     padding: 10px 11px;
     margin-bottom: 8px;
   }
   #strategy-search .ss-card-title { font-size: 12.5px; }
-  #strategy-search .ss-row { padding: 7px 0; font-size: 12px; }
+  #strategy-search .ss-row { padding: 10px 0; font-size: 12px; }
   #strategy-search .ss-row-name {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
   #strategy-search .ss-row-code { font-size: 10px; }
-  #strategy-search .ss-row-price { margin-right: 3px; }
-  #strategy-search .ss-row-metric {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  #strategy-search .ss-row-primary { font-size: 13.5px; }
+  #strategy-search .ss-row-secondary { font-size: 11px; }
+  #strategy-search .ss-row-bottom { align-items: center; }
+  #strategy-search .ss-etf-components-btn { margin-left: 0; }
   #strategy-search .ss-etf-search-input {
     margin-left: 0;
     flex: 1 1 100%;
     min-width: 0;
   }
+  #strategy-search .ss-product-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #strategy-search .ss-product-toolbar label { min-width: 0; }
+  #strategy-search .ss-product-toolbar .ss-etf-search-input { grid-column: 1 / -1; min-width: 0; margin-left: 0; width: 100%; box-sizing: border-box; }
+  #strategy-search .ss-table-wrap { overflow: visible; border: 0; background: transparent; }
+  #strategy-search .ss-comparison-table { min-width: 0; display: block; font-size: 11px; }
+  #strategy-search .ss-comparison-table thead { display: none; }
+  #strategy-search .ss-comparison-table tbody,
+  #strategy-search .ss-comparison-table tr { display: block; }
+  #strategy-search .ss-comparison-table tr { position: relative; margin-bottom: 8px; padding: 9px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; }
+  #strategy-search .ss-comparison-table td { display: none; padding: 2px 0; border: 0; white-space: normal; text-align: left; }
+  #strategy-search .ss-comparison-table td::before { content: attr(data-label) ' '; color: #94a3b8; font-size: 10px; }
+  #strategy-search .ss-comparison-table td.ss-col-watch,
+  #strategy-search .ss-comparison-table td.ss-col-rank,
+  #strategy-search .ss-comparison-table td.ss-col-product,
+  #strategy-search .ss-comparison-table td.ss-col-price,
+  #strategy-search .ss-comparison-table td.ss-col-change,
+  #strategy-search .ss-comparison-table td[data-label="거래대금"],
+  #strategy-search .ss-comparison-table td[data-label="유형"],
+  #strategy-search .ss-comparison-table td[data-label="1개월"],
+  #strategy-search .ss-comparison-table td[data-label="3개월"],
+  #strategy-search .ss-comparison-table td[data-label="배당금"],
+  #strategy-search .ss-comparison-table td[data-label="배당수익률"],
+  #strategy-search .ss-comparison-table td[data-label="배당성향"],
+  #strategy-search .ss-comparison-table td[data-label="ROE"],
+  #strategy-search .ss-comparison-table td[data-label="PER"],
+  #strategy-search .ss-comparison-table td[data-label="PBR"] { display: block; }
+  #strategy-search .ss-comparison-table td.ss-col-watch,
+  #strategy-search .ss-comparison-table td.ss-col-rank { display: inline-block; margin-right: 5px; }
+  #strategy-search .ss-comparison-table td.ss-col-product { display: inline-block; width: calc(100% - 62px); vertical-align: top; }
+  #strategy-search .ss-comparison-table td.ss-col-price { position: absolute; top: 12px; right: 10px; font-weight: 700; }
+  #strategy-search .ss-comparison-table td.ss-col-change { position: absolute; top: 34px; right: 10px; }
+  #strategy-search .ss-comparison-table td[data-label="거래대금"],
+  #strategy-search .ss-comparison-table td[data-label="유형"],
+  #strategy-search .ss-comparison-table td[data-label="1개월"],
+  #strategy-search .ss-comparison-table td[data-label="3개월"],
+  #strategy-search .ss-comparison-table td[data-label="배당금"],
+  #strategy-search .ss-comparison-table td[data-label="배당수익률"],
+  #strategy-search .ss-comparison-table td[data-label="배당성향"],
+  #strategy-search .ss-comparison-table td[data-label="ROE"],
+  #strategy-search .ss-comparison-table td[data-label="PER"],
+  #strategy-search .ss-comparison-table td[data-label="PBR"] { margin-top: 3px; color: #475569; }
+  #strategy-search .ss-comparison-table td.ss-row-warning { display: block; margin-top: 5px; }
+  #strategy-search .ss-comparison-table tr.ss-warning-row { margin: -8px 0 8px; padding: 0 10px 6px; border-top: 0; }
+  #strategy-search .ss-comparison-table tr.ss-warning-row td { display: block; padding: 3px 0; background: transparent; }
+  #strategy-search .ss-product-note { font-size: 11px; }
+  #strategy-search .ss-product-tabs { overflow-x: auto; }
 }
 @media (max-width: 480px) {
+  #strategy-search .ss-intro h1 { font-size: 21px; }
+  #strategy-search .ss-intro p { font-size: 11.5px; }
+  #strategy-search .ss-head { align-items: flex-start; }
+  #strategy-search .ss-tabs { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding-bottom: 3px; }
+  #strategy-search .ss-tab { flex: 0 0 auto; }
   #strategy-search .ss-tab {
     padding: 7px 11px;
     font-size: 12px;
@@ -292,6 +377,8 @@
   #strategy-search .ss-card {
     padding: 10px 11px;
   }
+  #strategy-search .ss-meta { width: 100%; font-size: 10.5px; line-height: 1.4; }
+  #strategy-search .ss-methodology { font-size: 11.5px; }
 }
 
 /* ============ 다크모드 ============ */
@@ -310,11 +397,17 @@ html.dark #strategy-search .ss-tab.active {
 html.dark #strategy-search .ss-meta {
   color: rgba(245, 239, 224, 0.5) !important;
 }
+html.dark #strategy-search .ss-intro h1 { color: #F5EFE0 !important; }
+html.dark #strategy-search .ss-intro p,
+html.dark #strategy-search .ss-card-note { color: rgba(245,239,224,.55) !important; }
 html.dark #strategy-search .ss-methodology {
   color: rgba(245, 239, 224, 0.6) !important;
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.14) !important;
 }
+html.dark #strategy-search .ss-methodology-summary { color: rgba(245,239,224,.82) !important; }
+html.dark #strategy-search .ss-methodology-details { border-top-color: rgba(245,239,224,.14); }
+html.dark #strategy-search .ss-methodology-details summary { color: rgba(245,239,224,.6); }
 html.dark #strategy-search .ss-return-period-tab {
   background: #1A1A1A;
   border-color: rgba(245, 239, 224, 0.2);
@@ -355,11 +448,12 @@ html.dark #strategy-search .ss-row-code {
 html.dark #strategy-search .ss-row-price {
   color: rgba(245, 239, 224, 0.6) !important;
 }
-html.dark #strategy-search .ss-row-metric {
-  color: rgba(245, 239, 224, 0.45) !important;
-}
+html.dark #strategy-search .ss-row-primary { color: #F5EFE0 !important; }
+html.dark #strategy-search .ss-row-secondary,
+html.dark #strategy-search .ss-row-basis { color: rgba(245,239,224,.55) !important; }
+html.dark #strategy-search .ss-etf-components-btn { background: #1A1A1A; border-color: rgba(245,239,224,.25); color: rgba(245,239,224,.75); }
 html.dark #strategy-search .ss-etf-return-metric b {
-  color: #6ea8e8 !important;
+  color: #F5EFE0 !important;
 }
 html.dark #strategy-search .ss-card-more {
   background: rgba(245, 239, 224, 0.08);
@@ -376,6 +470,22 @@ html.dark #strategy-search .ss-hint,
 html.dark #strategy-search .ss-error {
   color: rgba(245, 239, 224, 0.6) !important;
 }
+html.dark #strategy-search .ss-product-tab,
+html.dark #strategy-search .ss-etf-control,
+html.dark #strategy-search .ss-dividend-sort-select,
+html.dark #strategy-search .ss-table-wrap,
+html.dark #strategy-search .ss-comparison-table tr,
+html.dark #strategy-search .ss-product-empty { background: #1A1A1A; border-color: rgba(245,239,224,.18); color: #F5EFE0; }
+html.dark #strategy-search .ss-product-tab { color: rgba(245,239,224,.75); }
+html.dark #strategy-search .ss-product-tab.active { background: rgba(245,239,224,.22); color: #F5EFE0; }
+html.dark #strategy-search .ss-comparison-table th { background: rgba(245,239,224,.08); color: rgba(245,239,224,.65); border-color: rgba(245,239,224,.14); }
+html.dark #strategy-search .ss-comparison-table td { color: rgba(245,239,224,.78); border-color: rgba(245,239,224,.12); }
+html.dark #strategy-search .ss-warning-row td { background: rgba(245, 158, 11, .08); }
+html.dark #strategy-search .ss-col-product strong { color: #F5EFE0; }
+html.dark #strategy-search .ss-col-product small,
+html.dark #strategy-search .ss-product-note,
+html.dark #strategy-search .ss-product-toolbar label,
+html.dark #strategy-search .ss-dividend-toolbar label { color: rgba(245,239,224,.55); }
 
 /* ============ ETF 구성종목 모달 ============ */
 /* document.body에 바로 붙기 때문에(js/dashboard-enhancements.js의 .de-chart-overlay와
@@ -407,6 +517,9 @@ html.dark #strategy-search .ss-error {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
   border-bottom: 1px solid #e5e9ef;
   color: #25303b;
   font-size: 15px;
@@ -438,8 +551,12 @@ html.dark #strategy-search .ss-error {
 .ss-etf-table-wrap { overflow-x: auto; }
 .ss-etf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ss-etf-table th, .ss-etf-table td { padding: 7px 8px; text-align: right; border-bottom: 1px solid #f1f3f6; white-space: nowrap; }
-.ss-etf-table th:first-child, .ss-etf-table td:first-child { text-align: left; }
+.ss-etf-table th:first-child, .ss-etf-table td:first-child { text-align: center; }
 .ss-etf-table th { color: #8a9099; font-weight: 600; font-size: 11.5px; }
+.ss-etf-comp-row { cursor: pointer; }
+.ss-etf-comp-row:hover { background: #f8fafc; }
+.ss-etf-comp-row:focus-visible { outline: 2px solid #475569; outline-offset: -2px; }
+.ss-etf-comp-rank { color: #94a3b8; font-variant-numeric: tabular-nums; }
 .ss-etf-comp-name { color: #111827; font-weight: 600; }
 .ss-etf-comp-weight { color: #374151; }
 .ss-etf-table .ss-up { color: #d24f45; }
@@ -454,6 +571,8 @@ html.dark .ss-etf-summary { color: rgba(245,239,224,.55); border-bottom-color: r
 html.dark .ss-etf-summary b { color: #F5EFE0; }
 html.dark .ss-etf-table th { color: rgba(245,239,224,.45); }
 html.dark .ss-etf-table th, html.dark .ss-etf-table td { border-bottom-color: rgba(245,239,224,.1); }
+html.dark .ss-etf-comp-row:hover { background: rgba(245,239,224,.06); }
+html.dark .ss-etf-comp-rank { color: rgba(245,239,224,.45); }
 html.dark .ss-etf-comp-name { color: #F5EFE0; }
 html.dark .ss-etf-comp-weight { color: rgba(245,239,224,.7); }
 html.dark .ss-etf-table .ss-up { color: #ff6b6b; }

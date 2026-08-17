@@ -1174,6 +1174,32 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (".ss-intro", ".ss-methodology-details", ".ss-row-primary", ".ss-row-secondary", ".ss-etf-components-btn", "columns: 1;"):
             self.assertIn(token, style)
 
+    def test_strategy_search_uses_etf_etn_and_dividend_comparison_tables(self):
+        source = self.read("js/strategy-search.js")
+        style = self.read("css/strategy-search.css")
+        fixture = self.read("test/strategy-search.html")
+        for token in (
+            "etnReturn",
+            "ss-product-tab",
+            "ss-comparison-table",
+            "activeEtfFilters",
+            "data-etf-filter=\"major\"",
+            "data-etf-filter=\"middle\"",
+            "data-etf-filter=\"leverage\"",
+            "data-etf-filter=\"aum\"",
+            "activeDividendMarket",
+            "data-dividend-filter=\"market\"",
+            "배당성향",
+            "dividendHistory",
+            "현재 ETN 상품 데이터가 제공되지 않습니다.",
+        ):
+            self.assertIn(token, source)
+        self.assertIn("—", source)
+        self.assertIn("ss-warning-row", style)
+        self.assertIn("market: code === '105560' ? 'KOSPI' : 'KOSDAQ'", fixture)
+        self.assertNotIn("ss-score", source)
+        self.assertNotIn("별점", source)
+
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")
         widgets = self.read("js/home-widgets.js")
