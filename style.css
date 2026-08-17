@@ -5437,3 +5437,16 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
     -webkit-line-clamp: 2;
   }
 }
+
+/* 모바일에서도 마켓 브리핑은 홈 전체 폭을 사용한다. */
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page .home-widget--full.home-briefing-section {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+  body#tt-body-index .home-editorial-page .home-widget--full.home-briefing-section .home-briefing-grid {
+    width: 100%;
+    min-width: 0;
+  }
+}
