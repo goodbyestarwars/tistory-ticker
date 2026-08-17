@@ -170,6 +170,36 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("nav-dropdown", source)
         self.assertNotIn("nav-chevron", source)
 
+    def test_global_newspaper_design_system_contract(self):
+        style = self.read("style.css")
+        skin = self.read("skin.html")
+
+        for token in (
+            '--font-title: "MaruBuri"',
+            '--font-ui: "Nanum Gothic"',
+            '--font-data: "Malgun Gothic"',
+            "--page-bg: #F8F7F4",
+            "--surface: #FFFEFC",
+            "--text-main: #171717",
+            "--text-sub: #6F7480",
+            "--rule: #D8D8D8",
+            "--up: #B42318",
+            "--down: #245B9E",
+            "--neutral: #777777",
+            "--accent-dark: #26364A",
+            "font-variant-numeric: tabular-nums",
+            "box-shadow: none !important",
+            "background: transparent !important",
+            ".app-news-type",
+        ):
+            self.assertIn(token, style)
+
+        # The default design roles coexist with the existing user-selectable
+        # gothic mode, and the cache version is bumped for the Tistory skin.
+        self.assertIn("html:not(.font-gothic) body", style)
+        self.assertIn("html.font-gothic body", style)
+        self.assertIn("style.css?v=20260817-design-system-v1", skin)
+
     def test_global_search_routes_to_realtime_then_analysis(self):
         panel = self.read("js/stock-search-panel.js")
         realtime = self.read("js/stock-search.js")
