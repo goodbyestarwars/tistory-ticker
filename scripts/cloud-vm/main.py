@@ -1635,6 +1635,7 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
                 if live_fx:
                     quote.update(live_fx)
                     quote['name'] = quote.get('name') or '원/달러'
+                    quote['updated_at'] = datetime.now(timezone.utc).isoformat()
                 highs = [float(row['high']) for row in chart if row.get('high') is not None]
                 lows = [float(row['low']) for row in chart if row.get('low') is not None]
                 if quote.get('high') is None and highs:
