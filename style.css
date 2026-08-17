@@ -4505,6 +4505,8 @@ html.dark .home-market-switch button.is-active { border-color: #60a5fa; backgrou
 .app-news-quote .is-up { color: #d24f45; }
 .app-news-quote .is-down { color: #1261c4; }
 .app-news-event:hover { background: #fafbff; }
+/* 경제뉴스 타임라인: 점과 시장 배지의 시작선을 맞추고 속보 제목이 하단 경계에 닿지 않게 한다. */
+.home-economic-news .app-news-body { transform: translateY(-8px); }
 html.dark .app-news-event { border-color: rgba(245,239,224,.1); color: #24324a; }
 html.dark .app-news-rail i { background: #1a1a1a; }
 html.dark .app-news-body > strong, html.dark .app-news-body > b { color: #24324a; }
