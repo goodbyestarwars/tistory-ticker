@@ -482,7 +482,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "미국 시장 요약",
             "상승 종목 비율",
             "market-board?market=us&limit=20",
-            "function summarizeUsMarket(data)",
+            "function summarizeUsMarket(data, indexItems)",
             "renderUsMarketSummary",
             "element.title = fullText",
             "element.setAttribute('aria-label', fullText)",
@@ -661,6 +661,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
         self.assertNotIn("?market=1", source)
+
+    def test_home_us_market_direction_respects_both_index_changes(self):
+        source = self.read("js/skin-main.js")
+        for token in (
+            "function resolveMarketDirection(marketTemp, indexRates)",
+            "var indexDown = validIndexRates.every",
+            "return { label: '약세 우위', tone: 'home-negative' }",
+            "direction: resolveMarketDirection({ components:",
+            "latestHomeIndices = items || [];",
+        ):
+            self.assertIn(token, source)
 
     def test_home_disclosure_strip_after_widget_cleanup(self):
         main = self.read("js/skin-main.js")
