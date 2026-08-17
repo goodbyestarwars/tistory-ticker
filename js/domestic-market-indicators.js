@@ -83,9 +83,10 @@
       // Keep the attribution/logo behavior identical to the KOSPI200 futures chart.
       // 코스피·코스닥 주간현물 차트 축/시간축 폰트도 검은색으로 고정한다.
       layout: { background: { color: 'transparent' }, textColor: '#000', attributionLogo: false },
+      // 국내시장 지표의 본 차트는 박스/격자 없이 추세선·축·현재가 라벨만 남긴다.
       grid: {
-        vertLines: { color: dark ? '#3a3a3a' : '#eee' },
-        horzLines: { color: dark ? '#3a3a3a' : '#eee' }
+        vertLines: { visible: false },
+        horzLines: { visible: false }
       },
       rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
       timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' }
@@ -326,7 +327,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260817-average-line-style';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260817-flat-editorial-v1';
     document.head.appendChild(link);
   }
 
@@ -430,7 +431,10 @@
   }
 
   function makeChart(key, element, rows, interval) {
-    var points = (rows || []).map(function (row) { return pointFor(row, interval); }).filter(Boolean);
+    var points = (rows || []).map(function (row) {
+      var point = pointFor(row, interval);
+      return point ? { time: point.time, value: point.close } : null;
+    }).filter(Boolean);
     if (points.length < 2) {
       if (chartInstances[key]) {
         destroyDrawing(key);
@@ -460,10 +464,12 @@
         timeScale: { timeVisible: interval === 'minute', secondsVisible: false },
         localization: { priceFormatter: chartPriceFormatter }
       }, chartThemeOptions()));
-      var series = chart.addSeries(LWC.CandlestickSeries, {
-        upColor: '#d24f45', downColor: '#1261c4',
-        borderUpColor: '#d24f45', borderDownColor: '#1261c4',
-        wickUpColor: '#d24f45', wickDownColor: '#1261c4'
+      var series = chart.addSeries(LWC.LineSeries, {
+        color: '#202124',
+        lineWidth: 2,
+        priceLineVisible: true,
+        lastValueVisible: true,
+        priceLineColor: '#202124'
       });
       series.setData(points);
       chart.timeScale().fitContent();
@@ -610,8 +616,8 @@
     installStyle();
     root.innerHTML = '<div class="dmi-shell">'
       + '<div class="dmi-heading"><h2>국내시장지표</h2></div>'
-      + '<div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45)</h3></div>'
-      + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div>'
+      + '<section class="dmi-chart-section"><div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45)</h3></div>'
+      + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div></section>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
       + '<div class="dmi-subheading"><h3>증시자금</h3></div>'

@@ -126,3 +126,86 @@
   .dmi-heading h2 { font-size: 21px; }
   .dmi-fund-card, .dmi-flow-card { border-radius: 13px; padding: 12px; }
 }
+
+/* 2026-08-17 국내시장지표: 카드가 아닌 평평한 리서치 섹션. */
+.dmi-shell { margin-top: 28px; color: #111; }
+.dmi-chart-section { border-top: 1px solid #d8d8d8; border-bottom: 1px solid #d8d8d8; }
+.dmi-chart-section .dmi-subheading { margin: 0; padding: 16px 0 12px; }
+.dmi-heading h2 { font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 28px; letter-spacing: -.03em; }
+.dmi-subheading h3 { font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 20px; }
+.dmi-chart-grid { gap: 0; align-items: stretch; }
+.dmi-panel,
+.dmi-fund-card,
+.dmi-flow-card { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.dmi-panel { padding: 0 22px 18px 0; overflow: visible; }
+.dmi-panel + .dmi-panel { border-left: 1px solid #d8d8d8; padding: 0 0 18px 22px; }
+.dmi-panel-title { padding: 0 0 7px; font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 18px; }
+.dmi-chart-tools { gap: 10px; }
+.dmi-chart-tools .dmi-collapse-btn { display: none; }
+.dmi-tabs { gap: 15px; margin: 0 0 8px; }
+.dmi-tab,
+.dmi-tabs .dmi-draw-toggle,
+.dmi-tabs .dmi-draw-clear { border: 0; border-radius: 0; border-bottom: 1px solid transparent; background: transparent; color: #777; padding: 3px 0 5px; font-size: 12px; }
+.dmi-tab.is-active,
+.dmi-tabs .dmi-draw-toggle.is-active,
+.dmi-tab:hover,
+.dmi-tabs .dmi-draw-toggle:hover,
+.dmi-tabs .dmi-draw-clear:hover { border-color: #111; background: transparent; color: #111; }
+.dmi-chart { height: 300px; min-height: 0; }
+.dmi-chart-message { color: #777; }
+.dmi-flow-grid { gap: 0; border-top: 1px solid #d8d8d8; border-bottom: 1px solid #d8d8d8; }
+.dmi-flow-card { padding: 14px 20px 16px 0; }
+.dmi-flow-card + .dmi-flow-card { border-left: 1px solid #d8d8d8; padding: 14px 0 16px 20px; }
+.dmi-flow-title { margin-bottom: 8px; font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 16px; }
+.dmi-flow-table th,
+.dmi-flow-table td { padding: 7px 5px; border-bottom-color: #e7e7e7; }
+.dmi-fund-grid { gap: 0; border-top: 1px solid #d8d8d8; border-bottom: 1px solid #d8d8d8; }
+.dmi-fund-card { min-height: 0; padding: 14px 18px 16px 0; }
+.dmi-fund-card:nth-child(3n + 2),
+.dmi-fund-card:nth-child(3n + 3) { border-left: 1px solid #d8d8d8; padding-left: 18px; }
+.dmi-fund-label { font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 16px; }
+.dmi-fund-desc { color: #777; font-size: 11px; }
+.dmi-fund-value { margin: 8px 0 2px; font-size: 24px; }
+.dmi-fund-average,
+.dmi-fund-date { color: #777; font-size: 11px; }
+.dmi-mini-chart { height: 42px; margin: 10px 0 3px; }
+.dmi-ai { margin: 0; padding: 12px 0; border-top: 1px solid #e7e7e7; border-bottom: 1px solid #e7e7e7; border-radius: 0; background: transparent; }
+.dmi-error { border: 1px solid #d8d8d8; border-radius: 0; background: transparent; }
+
+@media (max-width: 760px) {
+  .dmi-heading h2 { font-size: 24px; }
+  .dmi-subheading h3 { font-size: 18px; }
+  .dmi-chart-grid { grid-template-columns: 1fr; gap: 0; }
+  .dmi-panel { padding: 0 0 16px; }
+  .dmi-panel + .dmi-panel { border-top: 1px solid #d8d8d8; border-left: 0; padding: 16px 0; }
+  .dmi-chart { height: 270px; }
+  .dmi-flow-grid,
+  .dmi-fund-grid { grid-template-columns: 1fr; }
+  .dmi-flow-card,
+  .dmi-flow-card + .dmi-flow-card { padding: 14px 0; }
+  .dmi-flow-card + .dmi-flow-card { border-top: 1px solid #d8d8d8; border-left: 0; }
+  .dmi-fund-card,
+  .dmi-fund-card:nth-child(3n + 2),
+  .dmi-fund-card:nth-child(3n + 3) { padding: 14px 0 16px; border-left: 0; }
+  .dmi-fund-card + .dmi-fund-card { border-top: 1px solid #d8d8d8; }
+}
+
+html.dark .dmi-chart-section,
+html.dark .dmi-flow-grid,
+html.dark .dmi-fund-grid,
+html.dark .dmi-panel + .dmi-panel,
+html.dark .dmi-flow-card + .dmi-flow-card,
+html.dark .dmi-fund-card:nth-child(3n + 2),
+html.dark .dmi-fund-card:nth-child(3n + 3),
+html.dark .dmi-ai { border-color: rgba(245,239,224,.2); }
+html.dark .dmi-panel,
+html.dark .dmi-fund-card,
+html.dark .dmi-flow-card,
+html.dark .dmi-ai { background: transparent !important; box-shadow: none !important; }
+html.dark .dmi-tab,
+html.dark .dmi-tabs .dmi-draw-toggle,
+html.dark .dmi-tabs .dmi-draw-clear { background: transparent !important; color: rgba(245,239,224,.6) !important; }
+html.dark .dmi-tab.is-active,
+html.dark .dmi-tab:hover,
+html.dark .dmi-tabs .dmi-draw-toggle:hover,
+html.dark .dmi-tabs .dmi-draw-clear:hover { border-color: #F5EFE0; color: #F5EFE0 !important; }
