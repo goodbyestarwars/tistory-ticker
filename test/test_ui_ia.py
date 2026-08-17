@@ -392,6 +392,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (
             "todayItems.slice(0, 12)",
             "function enableScheduleDrag(list)",
+            "function disclosureHref(item)",
+            "/page/foreign-flow?code=",
+            "title=\"종목분석으로 이동\"",
             "function scheduleSymbol(item)",
             "function scheduleIconHtml(item)",
             "STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/'",
