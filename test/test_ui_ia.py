@@ -1186,6 +1186,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("annotate_pattern_scan_details", backend)
         self.assertIn("miniChart: daily.slice(-20)", fixture)
         self.assertIn("patternDetail:", fixture)
+
+    def test_chart_search_scan_snapshot_bypasses_stale_empty_cache(self):
+        source = self.read("js/pattern-scan.js")
+        self.assertIn("?patternScan=1&_=' + encodeURIComponent(Date.now())", source)
+        self.assertIn("VM 일일 스캔이 한 번 완료되면 표시됩니다.", source)
+        self.assertNotIn("GAS에서 scanChartPatterns를 한 번 실행해야 함", source)
         self.assertIn("최근 20봉에서 좌우 2봉보다 낮은 스윙 저점이 2개 이상이고", source)
         self.assertNotIn("최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간으로 추정됩니다", source)
 
