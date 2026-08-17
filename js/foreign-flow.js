@@ -118,52 +118,31 @@
     '강함': 'caution', '매우 강함': 'caution', '위험': 'caution'
   };
 
-  // ---- 2026-07-20(3차): 작업지시서 최종본 - 가중치 탭(6개) 대신 단일 종목 리스트 + 우측
-  // 요약 패널(2열 레이아웃)로 교체(사용자 확인: 탭 제거, 단일 리스트). 카운트 칩 클릭 시 그
-  // 등급 종목만 리스트에 필터링되고, 아무 등급도 안 골랐으면 전체 등급을 매수쪽부터 이어붙인
-  // 기본 리스트(종합점수순에 근접)를 보여준다. 데이터는 기존과 동일 GAS(?investSignal=1)를
-  // 그대로 재사용. 별도 페이지(js/invest-signal.js)는 이 페이지로 리다이렉트만 함.
-  // cls: 필터탭 배경색(작업지시서 3.2 - 적극매수·매수=빨강/보유=주황/비중축소·매도=파랑)
-  var GRADE_META = [
-    { key: '적극 매수', bucketKey: 'activeBuy', emoji: '🟢', label: '적극매수', cls: 'grade-buy' },
-    { key: '매수 우위', bucketKey: 'buy', emoji: '🟢', label: '매수', cls: 'grade-buy' },
-    { key: '보유', bucketKey: 'hold', emoji: '🟡', label: '보유', cls: 'grade-hold' },
-    { key: '비중축소', bucketKey: 'reduce', emoji: '🟠', label: '비중축소', cls: 'grade-sell' },
-    { key: '매도', bucketKey: 'sell', emoji: '🔴', label: '매도', cls: 'grade-sell' }
+  // ---- 차트 흐름별 탐색 ----
+  // 기존 daily_scan의 swing assessment를 화면에서 탐색하기 위한 표현 메타데이터다.
+  // 새 점수·추천·판정식을 만들지 않고, 서버가 제공한 6개 흐름 그룹만 표시한다.
+  var FLOW_META = [
+    { key: 'upturn', label: '상방 변곡 감지', tone: 'up', description: '하락·횡보 뒤 상승 전환 초기 구조를 탐색합니다.', line: 'M4 36 C18 35 24 30 34 31 S48 26 58 27 S71 16 82 12', aria: '하락 뒤 반등하는 개념 라인' },
+    { key: 'uptrend_resume', label: '상승 추세 재개', tone: 'up', description: '상승 흐름의 눌림 뒤 다시 방향을 회복한 구조입니다.', line: 'M4 30 C17 27 23 18 35 22 S48 30 57 19 S70 10 82 8', aria: '눌림 뒤 상승을 재개하는 개념 라인' },
+    { key: 'uptrend', label: '상승 추세 지속', tone: 'up', description: '고점과 저점이 함께 높아지는 상승 흐름입니다.', line: 'M4 32 L18 27 L29 29 L42 20 L54 23 L67 13 L82 7', aria: '고점과 저점이 함께 높아지는 개념 라인' },
+    { key: 'compression', label: '수렴·압축', tone: 'neutral', description: '변동 폭이 줄어들며 방향을 기다리는 구조입니다.', line: 'M4 10 L20 15 L35 18 L50 22 L65 24 L82 26 M4 38 L20 33 L35 30 L50 28 L65 27 L82 26', aria: '변동 폭이 줄어드는 개념 라인' },
+    { key: 'downturn', label: '하방 변곡 감지', tone: 'down', description: '상승·횡보 뒤 하락 전환이 감지된 구조입니다.', line: 'M4 10 C18 11 25 18 35 16 S49 20 58 25 S71 31 82 36', aria: '상승 뒤 하락 전환하는 개념 라인' },
+    { key: 'downtrend', label: '하락 추세 지속', tone: 'down', description: '고점과 저점이 함께 낮아지는 하락 흐름입니다.', line: 'M4 8 L18 13 L29 11 L42 21 L54 18 L67 29 L82 36', aria: '고점과 저점이 함께 낮아지는 개념 라인' }
   ];
-  var GRADE_BUCKET_ORDER = ['activeBuy', 'buy', 'hold', 'reduce', 'sell']; // 종합점수 높은 순
-  var SIGNAL_PAGE_SIZE = 20; // 전체를 한 번에 DOM에 넣지 않고 PC·모바일 모두 20개씩 점진 렌더링
-
-  // 2026-07-27: "9Pay 증권" 개편 작업지시서 #9 - 종목분석에 필터를 추가하되, 새 배치
-  // 필드를 만들지 않고 daily_scan.py가 이미 계산해서 GAS(getInvestSignalResult)가
-  // 내려주는 rankings.*(수급/외국인기관/기술적/공매도/연기금/펀더멘탈 TOP20, 각 항목
-  // [code,name,price,changeRate,metricValue,stars] 6-tuple - invest_signal.upsert_ranked
-  // 참고)를 그대로 정렬 기준 탭으로 재사용한다. "상승률"은 rankings에 없지만 버킷 데이터에
-  // 이미 changeRate가 있어 클라이언트에서 바로 정렬 가능해 추가했다. PER·배당은 펀더멘털의
-  // 상세 참고값이고 차트패턴은 기술적 분석의 참고 신호이므로 별도 랭킹 탭으로 분리하지 않는다.
-  var RANKING_META = [
-    { key: 'flow', label: '수급강도', metricLabel: '수급점수', fmt: function (v) { return Math.round(v) + '점'; } },
-    { key: 'foreignInst', label: '외국인·기관', metricLabel: '5일 합산', fmt: fmtSharesUnit },
-    { key: 'tech', label: '기술적', metricLabel: '기술점수', hint: '이평·지지·저항·일목·거래량', fmt: function (v) { return Math.round(v) + '점'; } },
-    { key: 'shortSafe', label: '공매도 안전', metricLabel: '공매도비중', fmt: function (v) { return v.toFixed(1) + '%'; } },
-    { key: 'pension', label: '연기금', metricLabel: '5일 순매수', fmt: fmtSharesUnit },
-    { key: 'fundamental', label: '펀더멘탈', metricLabel: 'ROE·부채 점수', hint: 'ROE 60%·부채비율 40% · PER·배당은 상세 참고', fmt: function (v) { return Math.round(v) + '점'; } }
-  ];
-  var SIGNAL_SORT_META = [
-    { key: 'score', label: '종합점수순' },
-    { key: 'changeRate', label: '등락률순' },
+  var FLOW_SORT_META = [
+    { key: 'signal', label: '신호 최신순' },
     { key: 'tradingValue', label: '거래대금순' },
-    { key: 'name', label: '종목명순' }
+    { key: 'volume', label: '거래량순' },
+    { key: 'industry', label: '업종별' }
   ];
-
+  var SIGNAL_PAGE_SIZE = 24;
   var signalData = null;
-  var activeGradeBucket = null; // 카운트 배지 클릭으로 필터링한 등급(GRADE_META.key), null이면 전체
-  var activeRanking = null;     // RANKING_META.key - null이면 등급 버킷 기준(기본), 값이 있으면 그 랭킹으로 정렬
-  var signalSortKey = 'score';
-  var signalVisibleCount = SIGNAL_PAGE_SIZE;
-  var activeSignalCode = null;  // 우측 요약 패널에 표시 중인 종목코드(리스트 하이라이트용)
-  var signalRequestSeq = 0;     // 이전 종목의 늦은 응답이 현재 배너를 덮어쓰지 않게 하는 요청 번호
-  var signalSearchQuery = '';   // 리스트 내부 종목명 검색어(빈 문자열이면 검색 비활성)
+  var activeFlowKey = null;
+  var activeIndustry = null;
+  var flowView = 'flow';
+  var flowSortKey = 'signal';
+  var flowVisibleCount = SIGNAL_PAGE_SIZE;
+  var signalRequestSeq = 0;
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -174,13 +153,6 @@
     loadSignalData(container);
     autoSearchFromUrl(container);
 
-    // 리스트가 화면에 떠 있는 동안(=종목을 조회 중이 아닐 때) 가격·등락률을 주기적으로
-    // 최신화한다(위 patchSignalListPrices 주석 참고). 종목 조회 중엔 ffSigWrap이 숨겨지므로
-    // 그때는 건드리지 않는다.
-    setInterval(function () {
-      var sigWrap = container.querySelector('#ffSigWrap');
-      if (sigWrap && !sigWrap.hidden && !document.hidden) patchSignalListPrices(container);
-    }, 20000);
     global.addEventListener('resize', function () { syncSignalPanelHeight(container); });
   }
 
@@ -196,198 +168,214 @@
     search(container, code);
   }
 
-  // 필터탭(ffSigCount)은 좌측 패널 요소(작업지시서 3.2)라 좌측 컬럼 안에 리스트와 함께 둔다.
   function buildShell() {
     return ''
       + '<div class="ff-search ff-search-compact">'
       + '<div class="ff-input-wrap">'
-      + '<input type="text" id="ffInput" class="ff-input" placeholder="종목명을 입력하세요 (예: 삼성전자)" autocomplete="off" />'
+      + '<input type="text" id="ffInput" class="ff-input" placeholder="종목명 또는 코드 입력" autocomplete="off" />'
       + '<div id="ffSuggest" class="ff-suggest"></div>'
       + '</div>'
       + '<button type="button" id="ffSearchBtn" class="ff-search-btn">조회</button>'
       + '</div>'
       + '<div id="ffSigWrap">'
-      + '<div class="ff-sig-banner" id="ffSigBanner" hidden></div>'
-      + '<div class="ff-sig-twocol">'
-      + '<div class="ff-sig-list-col">'
-      + '<div class="ff-sig-count" id="ffSigCount"><div class="ff-hint">투자시그널 불러오는 중...</div></div>'
-      + '<div class="ff-sig-rank-tabs" id="ffSigRankTabs"></div>'
-      + '<div class="ff-sig-list-tools">'
-      + '<input type="text" id="ffSigSearch" class="ff-sig-search-input" placeholder="목록 내 종목명 검색" autocomplete="off" />'
-      + '<label class="ff-sig-sort-label" for="ffSigSort">정렬'
-      + '<select id="ffSigSort" class="ff-sig-sort-select">'
-      + SIGNAL_SORT_META.map(function (s) { return '<option value="' + s.key + '">' + s.label + '</option>'; }).join('')
-      + '</select></label>'
+      + '<div class="ff-explore-intro"><strong>국내 4주 스윙 분석</strong><span>대파동은 배경, 중파동은 방향, 소파동은 진입 시점을 확인합니다.</span></div>'
+      + '<div class="ff-explore-tabs" role="tablist">'
+      + '<button type="button" class="ff-explore-tab active" data-explore-view="flow" role="tab">차트 흐름별 탐색</button>'
+      + '<button type="button" class="ff-explore-tab" data-explore-view="industry" role="tab">업종별 보기</button>'
       + '</div>'
-      + '<div class="ff-sig-list" id="ffSigList"></div>'
-      + '</div>'
-      + '<div class="ff-sig-summary" id="ffSigSummary"><div class="ff-hint">종목을 선택하세요</div></div>'
-      + '</div>'
+      + '<div id="ffSigCount" class="ff-explore-meta"><div class="ff-hint">차트 흐름 집계를 불러오는 중...</div></div>'
+      + '<div id="ffSigList" class="ff-explore-content"></div>'
       + '<div class="ff-divider"></div>'
       + '</div>'
       + '<div id="ffResult" class="ff-result"></div>';
   }
 
-  // ---- 오늘의 투자시그널(① 배너 ② 카운트 칩 ③ 종목 리스트+요약 패널) ----
-
   function loadSignalData(container) {
     ForeignFlow.fetchJson(GAS_TICKER_URL + '?investSignal=1')
       .then(function (data) {
         signalData = data;
-        renderSignalCount(container);
-        renderRankingTabs(container);
-        renderSignalList(container);
+        renderExplore(container);
         syncSignalPanelHeight(container);
       })
       .catch(function () {
         var box = container.querySelector('#ffSigCount');
-        if (box) box.innerHTML = '<div class="ff-error">투자시그널 데이터를 불러오지 못했어요.</div>';
+        if (box) box.innerHTML = '<div class="ff-error">차트 흐름 데이터를 불러오지 못했어요.</div>';
       });
   }
 
-  // 필터 탭 - 실제로 정렬 가능한 분석축만 노출한다. PER·배당·차트패턴은 각 부모
-  // 분석(펀더멘털/기술적) 안의 상세 참고값으로 안내해, 별도 판단축처럼 보이지 않게 한다.
-  function renderRankingTabs(container) {
-    var box = container.querySelector('#ffSigRankTabs');
-    if (!box) return;
-    var activeTabs = RANKING_META.map(function (r) {
-      var title = r.hint ? ' title="' + escapeAttr(r.hint) + '"' : '';
-      return '<button type="button" class="ff-rank-tab' + (activeRanking === r.key ? ' active' : '') + '" data-rank="' + escapeAttr(r.key) + '"' + title + '>' + escapeHtml(r.label) + '</button>';
-    }).join('');
-    box.innerHTML = '<span class="ff-rank-tabs-label">필터</span>' + activeTabs
-      + '<span class="ff-rank-tabs-note">기술적 점수: 이평 25 · 지지 15 · 저항 15 · 일목 30 · 거래량 15 / 펀더멘털: ROE 60 · 부채비율 40 · PER·배당은 상세 참고</span>';
+  function swingScanData() { return (signalData && signalData.swingScan) || {}; }
+
+  function flowMeta(key) {
+    return FLOW_META.filter(function (item) { return item.key === key; })[0] || FLOW_META[0];
   }
 
-  // 카운트 배지를 클릭 가능한 버튼으로 렌더링 - 클릭 시 아래 종목 리스트가 그 등급으로 필터링됨.
-  function renderSignalCount(container) {
-    var box = container.querySelector('#ffSigCount');
-    if (!box) return;
-    box.innerHTML = '<div class="ff-sig-count-line"><strong>국내 4주 스윙 분석</strong><span>차트 국면·모멘텀·펀더멘털·위험을 종목별로 판정합니다.</span></div>'
-      + '<div class="ff-sig-meta">구 별점·합산등급은 내부 회귀 비교용으로만 보존하며 화면 최종의견에는 표시하지 않습니다.</div>';
-    return;
-    var counts = signalData.counts || {};
-    var line = GRADE_META.map(function (g) {
-      return '<button type="button" class="ff-sig-grade ' + g.cls + (activeGradeBucket === g.key ? ' active' : '') + '" data-grade="' + escapeAttr(g.key) + '">'
-        + g.label + ' ' + (counts[g.key] || 0).toLocaleString('ko-KR') + '종목</button>';
-    }).join('');
-    var meta = signalData.scannedAt
-      ? ('스캔 ' + signalData.scannedAt + ' · 대상 ' + (signalData.scanned || 0) + '/' + (signalData.universe || 0) + '종목')
-      : '아직 스캔 결과가 없어요.';
-    box.innerHTML = '<div class="ff-sig-count-line">' + line + '</div>'
-      + '<div class="ff-sig-meta">' + escapeHtml(meta) + '</div>';
+  function flowKeyFromRecord(record) {
+    var swing = record && record.swing || record || {};
+    var chart = swing.chartRegime || {};
+    var event = swing.recentEvent || chart.recentEvent || {};
+    var eventKey = event.key;
+    if (eventKey === 'upturn_detected' || eventKey === 'upturn_confirmed' || chart.key === 'upturn') return 'upturn';
+    if (eventKey === 'uptrend_resume') return 'uptrend_resume';
+    if (eventKey === 'downturn_detected' || eventKey === 'downturn_confirmed' || chart.key === 'downturn') return 'downturn';
+    if (eventKey === 'downtrend_resume') return 'downtrend';
+    var auxiliary = swing.auxiliaryStates || chart.auxiliaryStates || [];
+    if (eventKey === 'compression' || auxiliary.some(function (item) { return item && item.key === 'compression'; })) return 'compression';
+    if (chart.key === 'uptrend') return 'uptrend';
+    if (chart.key === 'downtrend') return 'downtrend';
+    return null;
   }
 
-  // bucket tuple은 구버전 [code,name,price,changeRate,stars]와 신버전
-  // [code,name,price,changeRate,stars,totalScore,tradingValue]를 모두 허용한다.
-  function bucketSignalRecord(item, gradeMeta) {
-    var stars = Number(item[4]);
-    var totalScore = item.length > 5 && item[5] != null ? Number(item[5]) : stars * 20;
+  function normalizeFlowRow(row, fallback) {
+    var swing = row.swing || {};
+    var chart = swing.chartRegime || {};
+    var waves = swing.waves || {};
+    var signal = row.signal || (waves.small && waves.small.event) || swing.recentEvent || chart.recentEvent || {};
+    var risk = row.risk || swing.risk || {};
+    var code = row.code || fallback && fallback.code;
+    var info = (global.WICS_MAP && global.WICS_MAP[code]) || {};
     return {
-      code: item[0],
-      name: item[1],
-      price: Number(item[2]),
-      changeRate: Number(item[3]),
-      stars: isNaN(stars) ? 0 : stars,
-      totalScore: isNaN(totalScore) ? 0 : totalScore,
-      tradingValue: item.length > 6 && item[6] != null ? Number(item[6]) || 0 : 0,
-      gradeKey: gradeMeta ? gradeMeta.key : null,
-      metricValue: null,
-      rankMeta: null
+      code: code,
+      name: row.name || fallback && fallback.name || info.name || code,
+      price: finiteNumber(row.price),
+      changeRate: finiteNumber(row.changeRate),
+      tradingValue: finiteNumber(row.tradingValue),
+      volume: finiteNumber(row.volume),
+      volumeAvg20: finiteNumber(row.volumeAvg20),
+      bigWave: row.bigWave || waves.big && waves.big.label || '데이터 부족',
+      midWave: row.midWave || waves.mid && waves.mid.label || '데이터 부족',
+      smallWave: row.smallWave || waves.small && waves.small.label || '데이터 부족',
+      signal: signal.label || '이벤트 없음',
+      currentLocation: row.currentLocation || chart.currentRegime && chart.currentRegime.label || '판단 보류',
+      riskState: risk.state || '확인 안 됨',
+      riskFlags: risk.flags || [],
+      industry: info.industry || info.sector || '업종 미분류',
+      asOf: row.asOf || row.date || ''
     };
   }
 
-  // 다섯 등급 버킷을 하나의 전체 종목 풀로 정규화한다. 동일 종목이 중복으로 들어와도
-  // code 기준 한 번만 유지해 검색·건수·점진 렌더링이 서로 어긋나지 않게 한다.
-  function allSignalRecords() {
+  function flowRows(key) {
+    var scan = swingScanData();
+    var groups = scan.flowGroups || {};
+    var raw = groups[key];
+    if (Array.isArray(raw)) return raw.map(function (row) { return normalizeFlowRow(row); }).filter(function (row) { return row.code; });
+    // 이전 캐시를 읽는 동안에는 새 그룹이 없을 수 있다. 그때도 임의의 상태/건수를
+    // 만들지 않고, 이미 저장된 swingCandidates만 해당 흐름에 한해 보여준다.
+    return (scan.candidates || []).filter(function (row) { return flowKeyFromRecord(row) === key; })
+      .map(function (row) { return normalizeFlowRow(row); }).filter(function (row) { return row.code; });
+  }
+
+  function allFlowRows() {
     var out = [];
-    var seen = {};
-    GRADE_META.forEach(function (gradeMeta) {
-      var arr = (signalData.buckets && signalData.buckets[gradeMeta.bucketKey]) || [];
-      arr.forEach(function (item) {
-        if (!item || !item[0] || seen[item[0]]) return;
-        seen[item[0]] = true;
-        out.push(bucketSignalRecord(item, gradeMeta));
-      });
-    });
+    FLOW_META.forEach(function (meta) { flowRows(meta.key).forEach(function (row) { row.flowKey = meta.key; out.push(row); }); });
     return out;
   }
 
-  function rankingSignalRecords(rankMeta, baseRecords) {
-    var byCode = {};
-    baseRecords.forEach(function (record) { byCode[record.code] = record; });
-    var ranked = (signalData.rankings && signalData.rankings[rankMeta.key]) || [];
-    return ranked.map(function (item) {
-      var base = byCode[item[0]] || bucketSignalRecord([item[0], item[1], item[2], item[3], item[5]], null);
-      return {
-        code: base.code,
-        name: base.name,
-        price: base.price,
-        changeRate: base.changeRate,
-        stars: item[5] == null ? base.stars : Number(item[5]),
-        totalScore: base.totalScore,
-        tradingValue: base.tradingValue,
-        gradeKey: base.gradeKey,
-        metricValue: item[4],
-        rankMeta: rankMeta
-      };
+  function flowCounts() {
+    var counts = {};
+    FLOW_META.forEach(function (meta) { counts[meta.key] = flowRows(meta.key).length; });
+    return counts;
+  }
+
+  function flowSvg(meta) {
+    return '<svg class="ff-flow-line ' + meta.tone + '" viewBox="0 0 86 44" role="img" aria-label="' + escapeAttr(meta.aria) + '"><path d="' + meta.line + '" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+  }
+
+  function renderExplore(container) {
+    var metaBox = container.querySelector('#ffSigCount');
+    if (metaBox) {
+      var scan = swingScanData();
+      var scanned = scan.scanned || signalData.scanned || 0;
+      var when = signalData.scannedAt || signalData.generatedAt;
+      metaBox.innerHTML = '<div class="ff-explore-meta-copy"><strong>차트 흐름·파동 상태로 후보를 좁혀보세요.</strong><span>'
+        + (when ? '스캔 기준 ' + escapeHtml(when) + ' · ' : '') + '분석 대상 ' + Number(scanned).toLocaleString('ko-KR') + '종목</span></div>'
+        + '<small>라인은 흐름 형태 예시이며 실제 종목 차트가 아닙니다.</small>';
+    }
+    var content = container.querySelector('#ffSigList');
+    if (!content) return;
+    content.innerHTML = flowView === 'industry' ? renderIndustryView() : renderFlowView();
+  }
+
+  function renderFlowView() {
+    var counts = flowCounts();
+    var cards = FLOW_META.map(function (meta) {
+      var count = counts[meta.key];
+      return '<button type="button" class="ff-flow-card tone-' + meta.tone + (activeFlowKey === meta.key ? ' active' : '') + '" data-flow="' + meta.key + '">'
+        + '<span class="ff-flow-card-copy"><strong>' + escapeHtml(meta.label) + '</strong><b>' + count.toLocaleString('ko-KR') + '종목</b><small>' + escapeHtml(meta.description) + '</small></span>'
+        + flowSvg(meta) + '</button>';
+    }).join('');
+    var detail = activeFlowKey ? renderFlowList(activeFlowKey, null) : '<div class="ff-flow-empty">흐름을 선택하면 해당 상태의 종목과 대·중·소 파동 상태를 확인할 수 있습니다.</div>';
+    return '<section class="ff-flow-overview"><div class="ff-section-head"><div><h2>차트 흐름별 탐색</h2><p>차트 흐름을 먼저 확인하고 종목분석에서 세부 데이터를 살펴봅니다.</p></div></div><div class="ff-flow-grid">' + cards + '</div></section>' + detail;
+  }
+
+  function renderIndustryView() {
+    var rows = allFlowRows();
+    var byIndustry = {};
+    rows.forEach(function (row) {
+      var key = row.industry || '업종 미분류';
+      if (!byIndustry[key]) byIndustry[key] = { total: 0, counts: {} };
+      byIndustry[key].total++;
+      byIndustry[key].counts[row.flowKey] = (byIndustry[key].counts[row.flowKey] || 0) + 1;
+    });
+    var industries = Object.keys(byIndustry).sort(function (a, b) { return byIndustry[b].total - byIndustry[a].total || a.localeCompare(b, 'ko'); });
+    if (!industries.length) return '<div class="ff-flow-empty">업종별 차트 흐름 데이터가 없습니다.</div>';
+    var cards = industries.map(function (industry) {
+      var item = byIndustry[industry];
+      var summary = FLOW_META.filter(function (meta) { return item.counts[meta.key]; }).map(function (meta) { return meta.label + ' ' + item.counts[meta.key]; }).join(' · ');
+      return '<button type="button" class="ff-industry-card' + (activeIndustry === industry ? ' active' : '') + '" data-industry="' + escapeAttr(industry) + '"><strong>' + escapeHtml(industry) + '</strong><b>' + item.total + '종목</b><small>' + escapeHtml(summary || '흐름 데이터 없음') + '</small></button>';
+    }).join('');
+    var detail = activeIndustry ? renderIndustryRows(rows.filter(function (row) { return row.industry === activeIndustry; })) : '<div class="ff-flow-empty">업종을 선택하면 같은 분석 결과를 업종별로 교차 확인할 수 있습니다.</div>';
+    return '<section class="ff-industry-view"><div class="ff-section-head"><div><h2>업종별 보기</h2><p>같은 차트 흐름 분석을 업종 관점으로 확인합니다.</p></div></div><div class="ff-industry-grid">' + cards + '</div></section>' + detail;
+  }
+
+  function sortFlowRows(rows) {
+    return rows.slice().sort(function (a, b) {
+      if (flowSortKey === 'tradingValue') return (b.tradingValue || 0) - (a.tradingValue || 0) || (b.volume || 0) - (a.volume || 0);
+      if (flowSortKey === 'volume') return (b.volume || 0) - (a.volume || 0) || (b.tradingValue || 0) - (a.tradingValue || 0);
+      if (flowSortKey === 'industry') return (a.industry || '').localeCompare(b.industry || '', 'ko') || (a.name || '').localeCompare(b.name || '', 'ko');
+      return String(b.asOf || '').localeCompare(String(a.asOf || '')) || (a.name || '').localeCompare(b.name || '', 'ko');
     });
   }
 
-  function signalSortLabel() {
-    var meta = SIGNAL_SORT_META.filter(function (s) { return s.key === signalSortKey; })[0];
-    return meta ? meta.label : '종합점수순';
+  function renderFlowList(key, filteredRows) {
+    var meta = flowMeta(key);
+    var rows = sortFlowRows(filteredRows || flowRows(key));
+    var shown = rows.slice(0, flowVisibleCount);
+    var head = '<div class="ff-flow-list-head"><div><h3>' + escapeHtml(meta.label) + ' · ' + rows.length.toLocaleString('ko-KR') + '종목</h3><p>' + escapeHtml(meta.description) + '</p></div><label>정렬<select class="ff-explore-sort">' + FLOW_SORT_META.map(function (item) { return '<option value="' + item.key + '"' + (flowSortKey === item.key ? ' selected' : '') + '>' + item.label + '</option>'; }).join('') + '</select></label></div>';
+    if (!rows.length) return head + '<div class="ff-flow-empty">현재 엔진에서 이 흐름으로 분류된 종목이 없습니다.</div>';
+    var tableHead = '<div class="ff-flow-table-head"><span>종목</span><span>파동 상태 · 감지 신호</span><span>현재 위치</span><span>거래대금 · 거래량</span><span>위험 확인</span></div>';
+    var body = shown.map(flowRowHtml).join('');
+    var more = rows.length > shown.length ? '<button type="button" class="ff-flow-more" data-flow-more="1">더 보기 <span>' + shown.length + ' / ' + rows.length + '</span></button>' : '';
+    return '<section class="ff-flow-results">' + head + tableHead + '<div class="ff-flow-rows">' + body + '</div>' + more + '</section>';
   }
 
-  function sortSignalRecords(records) {
-    return records.slice().sort(function (a, b) {
-      if (signalSortKey === 'changeRate') return (b.changeRate || 0) - (a.changeRate || 0) || (b.totalScore || 0) - (a.totalScore || 0);
-      if (signalSortKey === 'tradingValue') return (b.tradingValue || 0) - (a.tradingValue || 0) || (b.totalScore || 0) - (a.totalScore || 0);
-      if (signalSortKey === 'name') return (a.name || '').localeCompare(b.name || '', 'ko');
-      return (b.totalScore || 0) - (a.totalScore || 0) || (b.stars || 0) - (a.stars || 0);
-    });
+  function renderIndustryRows(rows) {
+    var flowKey = rows[0] && rows[0].flowKey;
+    var sorted = sortFlowRows(rows);
+    var shown = sorted.slice(0, flowVisibleCount);
+    var head = '<div class="ff-flow-list-head"><div><h3>선택 업종 · ' + rows.length.toLocaleString('ko-KR') + '종목</h3><p>차트 흐름별 결과를 업종 안에서 교차 확인합니다.</p></div><label>정렬<select class="ff-explore-sort">' + FLOW_SORT_META.map(function (item) { return '<option value="' + item.key + '"' + (flowSortKey === item.key ? ' selected' : '') + '>' + item.label + '</option>'; }).join('') + '</select></label></div>';
+    if (!rows.length) return head + '<div class="ff-flow-empty">선택한 업종에 표시할 데이터가 없습니다.</div>';
+    return '<section class="ff-flow-results"><div class="ff-flow-industry-note">' + escapeHtml(flowKey ? flowMeta(flowKey).label : '차트 흐름별 결과') + '</div><div class="ff-flow-table-head"><span>종목</span><span>파동 상태 · 감지 신호</span><span>현재 위치</span><span>거래대금 · 거래량</span><span>위험 확인</span></div><div class="ff-flow-rows">' + shown.map(flowRowHtml).join('') + '</div>' + (sorted.length > shown.length ? '<button type="button" class="ff-flow-more" data-flow-more="1">더 보기 <span>' + shown.length + ' / ' + sorted.length + '</span></button>' : '') + '</section>';
   }
 
-  function renderSignalList(container) {
-    var box = container.querySelector('#ffSigList');
-    if (!box) return;
-    if (!signalData) { box.innerHTML = '<div class="ff-hint">불러오는 중...</div>'; return; }
+  function formatCompact(value) {
+    if (value == null || isNaN(value)) return '-';
+    var n = Math.abs(Number(value));
+    if (n >= 100000000) return (Number(value) / 100000000).toFixed(1) + '억';
+    if (n >= 10000) return (Number(value) / 10000).toFixed(1) + '만';
+    return Math.round(Number(value)).toLocaleString('ko-KR');
+  }
 
-    var rankMeta = activeRanking ? RANKING_META.filter(function (r) { return r.key === activeRanking; })[0] : null;
-    var meta = (!rankMeta && activeGradeBucket) ? GRADE_META.filter(function (g) { return g.key === activeGradeBucket; })[0] : null;
-
-    var allRecords = allSignalRecords();
-    var items = rankMeta
-      ? rankingSignalRecords(rankMeta, allRecords)
-      : (meta ? allRecords.filter(function (record) { return record.gradeKey === meta.key; }) : allRecords);
-
-    var query = signalSearchQuery.trim();
-    if (query) {
-      var q = query.toLowerCase();
-      items = items.filter(function (record) {
-        return (record.name && record.name.toLowerCase().indexOf(q) !== -1) || (record.code && record.code.indexOf(q) !== -1);
-      });
-    }
-    items = sortSignalRecords(items);
-
-    var filterLabel = rankMeta ? (rankMeta.label + ' 조건') : (meta ? (meta.label + ' 조건') : '전체 종목');
-    var headText = filterLabel + ' ' + items.length.toLocaleString('ko-KR') + '개 · ' + signalSortLabel();
-    if (query) headText = '"' + query + '" 검색 · ' + headText;
-    var headHtml = '<div class="ff-sig-list-head">' + escapeHtml(headText) + '</div>';
-
-    if (!items.length) {
-      box.innerHTML = headHtml + '<div class="ff-hint">' + (query ? '검색 결과가 없어요.' : '해당 종목이 없어요.') + '</div>';
-      return;
-    }
-
-    var shown = items.slice(0, signalVisibleCount);
-    var rowsHtml = shown.map(function (record) { return listRowHtml(record); }).join('');
-    var moreHtml = items.length > shown.length
-      ? '<button type="button" class="ff-sig-more" data-list-more="1">전체 ' + items.length.toLocaleString('ko-KR')
-        + '종목 보기 <span>현재 ' + shown.length.toLocaleString('ko-KR') + '개</span></button>'
-      : '';
-
-    box.innerHTML = headHtml + '<div class="ff-sig-table">' + rowsHtml + '</div>' + moreHtml;
-    patchSignalListPrices(container);
+  function flowRowHtml(row) {
+    var volumeNote = row.volumeAvg20 && row.volume != null ? ' · 평균 대비 ' + (row.volume / row.volumeAvg20).toFixed(1) + '배' : '';
+    var risk = row.riskFlags.length ? row.riskFlags.join(' · ') : row.riskState;
+    var price = row.price == null ? '-' : Math.round(row.price).toLocaleString('ko-KR') + '원';
+    return '<button type="button" class="ff-flow-row" data-flow-code="' + escapeAttr(row.code) + '" data-flow-name="' + escapeAttr(row.name) + '">'
+      + '<span class="ff-flow-stock">' + stockIconHtml(row.code, 'ff-flow-icon') + '<strong>' + escapeHtml(row.name) + '</strong><small>' + escapeHtml(row.code) + '</small><em>' + escapeHtml(row.industry) + '</em><i class="ff-flow-quote">' + escapeHtml(price) + ' · <span class="' + signClass(row.changeRate) + '">' + escapeHtml(fmtSignedPct(row.changeRate)) + '</span></i></span>'
+      + '<span class="ff-flow-signal"><b>' + escapeHtml(row.bigWave) + ' · ' + escapeHtml(row.midWave) + '</b><small>' + escapeHtml(row.smallWave) + ' · ' + escapeHtml(row.signal) + '</small></span>'
+      + '<span class="ff-flow-location">' + escapeHtml(row.currentLocation) + '</span>'
+      + '<span class="ff-flow-volume"><b>' + formatCompact(row.tradingValue) + '</b><small>' + formatCompact(row.volume) + volumeNote + '</small></span>'
+      + '<span class="ff-flow-risk ' + (row.riskFlags.length ? 'warn' : '') + '">' + escapeHtml(risk) + '</span>'
+      + '</button>';
   }
 
   // 2026-07-28 사용자 리포트: 리스트 행의 가격·등락률이 daily_scan(하루 1회 배치) 시점
@@ -753,23 +741,6 @@
     var input = container.querySelector('#ffInput');
     var suggestBox = container.querySelector('#ffSuggest');
     var btn = container.querySelector('#ffSearchBtn');
-    var sigSearchInput = container.querySelector('#ffSigSearch');
-    var sigSortSelect = container.querySelector('#ffSigSort');
-
-    if (sigSearchInput) {
-      sigSearchInput.addEventListener('input', function () {
-        signalSearchQuery = sigSearchInput.value;
-        signalVisibleCount = SIGNAL_PAGE_SIZE;
-        renderSignalList(container);
-      });
-    }
-    if (sigSortSelect) {
-      sigSortSelect.addEventListener('change', function () {
-        signalSortKey = sigSortSelect.value || 'score';
-        signalVisibleCount = SIGNAL_PAGE_SIZE;
-        renderSignalList(container);
-      });
-    }
 
     input.addEventListener('input', function () {
       var query = input.value.trim();
@@ -809,50 +780,55 @@
       if (!container.contains(e.target)) hideSuggestions(suggestBox);
     });
 
-    // 2026-07-20: 업종/테마 배지 클릭 -> 같은 분류의 다른 종목 목록 표시(사용자 요청).
-    // 이벤트 위임으로 container에 한 번만 걸어둔다 - search()가 #ffResult 내부를 통째로
-    // 다시 그려도(펀더멘탈 패널 재생성 등) container 자체는 안 바뀌니 리스너가 계속 산다.
     container.addEventListener('click', function (e) {
+      var viewTab = e.target.closest ? e.target.closest('.ff-explore-tab') : null;
+      if (viewTab) {
+        flowView = viewTab.getAttribute('data-explore-view') || 'flow';
+        activeFlowKey = null;
+        activeIndustry = null;
+        flowVisibleCount = SIGNAL_PAGE_SIZE;
+        container.querySelectorAll('.ff-explore-tab').forEach(function (tab) { tab.classList.toggle('active', tab === viewTab); });
+        renderExplore(container);
+        return;
+      }
+      var flowCard = e.target.closest ? e.target.closest('.ff-flow-card') : null;
+      if (flowCard) {
+        activeFlowKey = activeFlowKey === flowCard.getAttribute('data-flow') ? null : flowCard.getAttribute('data-flow');
+        activeIndustry = null;
+        flowVisibleCount = SIGNAL_PAGE_SIZE;
+        renderExplore(container);
+        return;
+      }
+      var industryCard = e.target.closest ? e.target.closest('.ff-industry-card') : null;
+      if (industryCard) {
+        activeIndustry = activeIndustry === industryCard.getAttribute('data-industry') ? null : industryCard.getAttribute('data-industry');
+        flowVisibleCount = SIGNAL_PAGE_SIZE;
+        renderExplore(container);
+        return;
+      }
+      var sortSelect = e.target.closest ? e.target.closest('.ff-explore-sort') : null;
+      if (sortSelect) {
+        flowSortKey = sortSelect.value || 'signal';
+        flowVisibleCount = SIGNAL_PAGE_SIZE;
+        renderExplore(container);
+        return;
+      }
+      var flowMore = e.target.closest ? e.target.closest('.ff-flow-more') : null;
+      if (flowMore) {
+        flowVisibleCount += SIGNAL_PAGE_SIZE;
+        renderExplore(container);
+        return;
+      }
+      var flowRow = e.target.closest ? e.target.closest('.ff-flow-row') : null;
+      if (flowRow) {
+        openFullDetail(container, flowRow.getAttribute('data-flow-code'), flowRow.getAttribute('data-flow-name'));
+        return;
+      }
       var badge = e.target.closest ? e.target.closest('.ff-badge-clickable') : null;
       if (badge) {
         showRelatedStocks(container, badge.getAttribute('data-related'), badge.getAttribute('data-related-type'));
         return;
       }
-      // 종목 리스트 행 클릭 -> 우측 요약 패널 갱신(페이지 이동 없음, 작업지시서 ③).
-      var sigRow = e.target.closest ? e.target.closest('.ff-sig-list-row') : null;
-      if (sigRow) {
-        selectListStock(container, sigRow.getAttribute('data-code'), sigRow.getAttribute('data-name'));
-        return;
-      }
-      var moreBtn = e.target.closest ? e.target.closest('.ff-sig-more') : null;
-      if (moreBtn) {
-        signalVisibleCount += SIGNAL_PAGE_SIZE;
-        renderSignalList(container);
-        return;
-      }
-      var gradeBtn = e.target.closest ? e.target.closest('.ff-sig-grade') : null;
-      if (gradeBtn) {
-        var key = gradeBtn.getAttribute('data-grade');
-        activeGradeBucket = activeGradeBucket === key ? null : key;
-        activeRanking = null; // 등급 필터와 정렬 필터는 동시에 적용하지 않음(단순한 단일 리스트 유지)
-        signalVisibleCount = SIGNAL_PAGE_SIZE;
-        renderSignalCount(container);
-        renderRankingTabs(container);
-        renderSignalList(container);
-        return;
-      }
-      var rankBtn = e.target.closest ? e.target.closest('.ff-rank-tab') : null;
-      if (rankBtn) {
-        var rankKey = rankBtn.getAttribute('data-rank');
-        activeRanking = activeRanking === rankKey ? null : rankKey;
-        activeGradeBucket = null;
-        signalVisibleCount = SIGNAL_PAGE_SIZE;
-        renderSignalCount(container);
-        renderRankingTabs(container);
-        renderSignalList(container);
-        return;
-      }
-      // 요약 패널의 "상세 보기" -> 기존 검색 흐름(⑤)으로 전환.
       var detailLink = e.target.closest ? e.target.closest('[data-open-detail]') : null;
       if (detailLink) {
         openFullDetail(container, detailLink.getAttribute('data-open-detail'), detailLink.getAttribute('data-open-detail-name'));

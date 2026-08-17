@@ -69,6 +69,29 @@
         }
         return out;
       }
+      function genFlowRows(key, count) {
+        var labels = {
+          upturn: '상방 변곡 감지', uptrend_resume: '상승 추세 재개', uptrend: '상승 지속',
+          compression: '수렴·압축', downturn: '하방 변곡 감지', downtrend: '하락 지속'
+        };
+        var rows = [];
+        for (var i = 0; i < count; i++) {
+          var s = STOCKS[i % STOCKS.length];
+          var price = 30000 + i * 700;
+          var volume = 1200000 + i * 22000;
+          rows.push({
+            code: s[0], name: s[1], price: price, changeRate: +((i % 5 - 2) * 0.43).toFixed(2),
+            tradingValue: price * volume, volume: volume, volumeAvg20: volume / (1.1 + (i % 4) * .2),
+            bigWave: key === 'downtrend' || key === 'downturn' ? '하락 추세' : '상승 추세',
+            midWave: key === 'downtrend' || key === 'downturn' ? '하락 추세' : '상승 추세',
+            smallWave: labels[key], signal: { label: labels[key] },
+            currentLocation: key === 'compression' ? '횡보·수렴' : key.indexOf('down') === 0 ? '하락 추세' : '상승 추세',
+            risk: { state: i % 7 === 0 ? '주의' : '없음', flags: i % 7 === 0 ? ['공매도 압박 확인'] : [] },
+            asOf: '2026-08-' + String(17 - Math.floor(i / 6)).padStart(2, '0')
+          });
+        }
+        return rows;
+      }
       return Promise.resolve({
         scannedAt: '2026-07-20 18:03:11',
         universe: 2691,
@@ -88,6 +111,14 @@
           shortSafe: genRanked(20, 60000, 0.2, 8),
           pension: genRanked(20, 65000, 500, 15000),
           fundamental: genRanked(20, 50000, 30, 100)
+        },
+        swingScan: {
+          scanned: 2691,
+          flowGroups: {
+            upturn: genFlowRows('upturn', 18), uptrend_resume: genFlowRows('uptrend_resume', 14),
+            uptrend: genFlowRows('uptrend', 23), compression: genFlowRows('compression', 11),
+            downturn: genFlowRows('downturn', 9), downtrend: genFlowRows('downtrend', 31)
+          }
         }
       });
     };
