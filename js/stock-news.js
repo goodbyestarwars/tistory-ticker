@@ -19,6 +19,7 @@
     + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   var FETCH_TIMEOUT_MS = 15000; // 뉴스 조회 + Groq AI 요약까지 순차로 도는 GAS 응답이라 여유 있게
   var MAX_SUGGESTIONS = 8;
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var STORAGE_KEY = 'stock-news-extra-v1';
   var REMOVED_STORAGE_KEY = 'stock-news-removed-v1';
   var RANK_OPEN_KEY = 'stock-news-rank-open-v1';
@@ -41,6 +42,15 @@
   var stocksState = [];
   var selectedCode = null;
   var rankLoaded = false;
+
+  function stockIconHtml(code, cls) {
+    if (!code) return '';
+    var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
+    var iconClass = cls || 'sn-stock-icon';
+    return '<img class="' + iconClass + '" data-icon-code="' + escapeAttr(iconCode)
+      + '" data-icon-market="domestic" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode)
+      + '.svg" alt="" loading="lazy" onerror="window.StockIconFallback ? window.StockIconFallback(this) : (window.__stockIconFallback ? window.__stockIconFallback(this) : this.style.display=\'none\')">';
+  }
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -144,7 +154,7 @@
         : '<span class="sn-wl-price">' + Number(s.price).toLocaleString() + '</span>'
           + '<span class="sn-wl-rate ' + dir + '">' + formatRate(s.changeRate) + '</span>';
       return '<div class="sn-wl-item' + (s.code === selectedCode ? ' active' : '') + '" data-code="' + s.code + '">'
-        + '<span class="sn-wl-name">' + escapeHtml(s.name) + '</span>'
+        + '<span class="sn-wl-name">' + stockIconHtml(s.code) + '<span class="sn-wl-name-text">' + escapeHtml(s.name) + '</span></span>'
         + '<span class="sn-wl-quote">' + priceHtml + '</span>'
         + '<button type="button" class="sn-wl-remove" data-code="' + s.code + '" title="목록에서 빼기">×</button>'
         + '</div>';
@@ -379,7 +389,8 @@
     if (!matches.length) { hideSuggestions(box); return; }
 
     box.innerHTML = matches.map(function (name) {
-      return '<div class="sn-suggest-item" data-name="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
+      return '<div class="sn-suggest-item" data-name="' + escapeAttr(name) + '">'
+        + stockIconHtml((global.KRX_MAP || {})[name]) + '<span>' + escapeHtml(name) + '</span></div>';
     }).join('');
     box.classList.add('active');
     box.__activeIndex = -1;
@@ -633,7 +644,7 @@
       var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
       return '<a href="' + escapeAttr(it.link) + '" target="_blank" rel="noopener" class="sn-disc-item">'
         + '<span class="sn-disc-market ' + cls + '">' + it.market + '</span>'
-        + (corp ? '<span class="sn-disc-corp">' + escapeHtml(corp) + '</span>' : '')
+        + (corp ? '<span class="sn-disc-corp">' + stockIconHtml((global.KRX_MAP || {})[corp], 'sn-disc-icon') + '<span>' + escapeHtml(corp) + '</span></span>' : '')
         + '<span class="sn-disc-text">' + escapeHtml(disc) + '</span>'
         + '</a>';
     }).join('');
@@ -760,8 +771,8 @@
       return;
     }
 
-    var html = '<div class="sn-result-header">' + escapeHtml(stock.name)
-      + ' <span class="sn-result-code">(' + escapeHtml(stock.code) + ')</span> 관련 뉴스</div>';
+    var html = '<div class="sn-result-header">' + stockIconHtml(stock.code, 'sn-result-icon') + '<span>' + escapeHtml(stock.name)
+      + ' <span class="sn-result-code">(' + escapeHtml(stock.code) + ')</span> 관련 뉴스</span></div>';
 
     html += buildSectorTags(stock.code);
 

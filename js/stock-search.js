@@ -177,7 +177,9 @@
   function stockIconHtml(code) {
     if (!code) return '';
     var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
-    return '<img class="ss-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
+    var market = /^US:/i.test(String(code)) ? 'us' : 'domestic';
+    return '<img class="ss-icon" data-icon-code="' + escapeAttr(iconCode) + '" data-icon-market="' + market
+      + '" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg" alt="" loading="lazy" onerror="window.StockIconFallback ? window.StockIconFallback(this) : window.__stockIconFallback(this)">';
   }
 
   function init() {

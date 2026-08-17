@@ -156,6 +156,21 @@
   line-height: 1.35;
 }
 
+#strategy-search .ss-row-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+#strategy-search .ss-stock-icon {
+  flex: 0 0 auto;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #f3f5f7;
+}
+
 #strategy-search .ss-row-code {
   font-size: 11px;
   font-weight: 400;
@@ -472,6 +487,10 @@ html.dark .ss-etf-table .ss-flat { color: rgba(245,239,224,.45); }
 #strategy-search .ss-col-provider { min-width: 120px; text-align: left !important; }
 #strategy-search .ss-col-sector { min-width: 150px; text-align: left !important; }
 #strategy-search .ss-col-product strong { display: inline-block; max-width: 190px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; white-space: nowrap; }
+#strategy-search .ss-col-product strong { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; }
+#strategy-search .ss-col-product strong > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#strategy-search .ss-etf-comp-name { display: inline-flex; align-items: center; gap: 7px; }
+#strategy-search .ss-etf-comp-name .ss-stock-icon { width: 20px; height: 20px; }
 #strategy-search .ss-col-product small { display: none; }
 #strategy-search .ss-etf-components-btn {
   display: block;
