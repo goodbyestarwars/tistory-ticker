@@ -4749,3 +4749,19 @@ html:not(.font-gothic) body .mobile-app-sheet-body {
   html:not(.font-gothic) body .home-realtime-board,
   html:not(.font-gothic) body .home-economic-news { border-radius: 3px !important; }
 }
+
+/* 업종 TOP은 업종명과 대표 종목을 먼저 읽는 집계표라서, 좁은 균등 열 대신
+   업종명에 가장 넓은 열을 배정한다. 다른 실시간 순위 탭의 열·가로 스크롤은 유지한다. */
+@media (min-width: 641px) {
+  .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap table {
+    width: 100%;
+    min-width: 100%;
+    table-layout: fixed;
+  }
+  .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(1) { width: 34%; }
+  .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(2) { width: 14%; }
+  .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(3) { width: 15%; }
+  .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(4) { width: 10%; }
+  .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(5) { width: 13%; }
+  .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(6) { width: 14%; }
+}

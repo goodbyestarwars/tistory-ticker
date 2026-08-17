@@ -198,7 +198,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # gothic mode, and the cache version is bumped for the Tistory skin.
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260817-design-system-v1", skin)
+        self.assertIn("style.css?v=20260817-industry-width-v1", skin)
+
+    def test_realtime_industry_table_prioritizes_industry_width(self):
+        style = self.read("style.css")
+        for token in (
+            '.home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active)',
+            "min-width: 100%;",
+            ".hrt-table-wrap th:nth-child(1) { width: 34%; }",
+            ".hrt-table-wrap th:nth-child(6) { width: 14%; }",
+        ):
+            self.assertIn(token, style)
 
     def test_global_search_routes_to_realtime_then_analysis(self):
         panel = self.read("js/stock-search-panel.js")
