@@ -3,7 +3,7 @@
   'use strict';
 
   var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=50';
-  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=50';
+  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=70';
   var DOMESTIC_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
   var US_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=us&limit=20';
   var ECONOMIC_NEWS_WS_URL = 'wss://goodbyestar.cloud/ws/economic-news';
@@ -168,7 +168,8 @@
     if (!list) return;
     var rows = (items || []).filter(function (item) {
       if (!item || !item.title) return false;
-      return item.kind !== 'disclosure' || isWatchlistDisclosure(item);
+      if (item.kind !== 'disclosure') return true;
+      return state.market === 'us' ? item.provider === 'SEC EDGAR' : isWatchlistDisclosure(item);
     }).slice().sort(function (a, b) {
       var importance = Number(b.importance || 0) - Number(a.importance || 0);
       return importance || dateValue(b.pubDate) - dateValue(a.pubDate);

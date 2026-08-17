@@ -141,6 +141,37 @@ class NewsAggregatorTests(unittest.TestCase):
         self.assertEqual({item['provider'] for item in items}, {'Alpha Vantage', 'Finnhub'})
         self.assertTrue(all(item['market'] == 'us' for item in items))
 
+    def test_sec_edgar_filings_are_normalized_as_us_disclosures(self):
+        xml = news_aggregator.ET.fromstring('''
+            <feed xmlns="http://www.w3.org/2005/Atom">
+              <entry>
+                <title>Example Corp - 8-K</title>
+                <updated>2026-08-17T01:02:03Z</updated>
+                <category term="8-K" />
+                <link href="https://www.sec.gov/Archives/edgar/data/example/ filing.html" />
+              </entry>
+              <entry>
+                <title>Example Corp - S-1</title>
+                <updated>2026-08-17T01:01:03Z</updated>
+                <category term="S-1" />
+                <link href="https://www.sec.gov/Archives/edgar/data/example/other.html" />
+              </entry>
+            </feed>
+        ''')
+        with mock.patch.object(news_aggregator.ET, 'fromstring', return_value=xml), \
+                mock.patch.object(news_aggregator.urllib.request, 'urlopen') as urlopen:
+            response = mock.Mock()
+            response.read.return_value = b'<feed />'
+            response.__enter__ = mock.Mock(return_value=response)
+            response.__exit__ = mock.Mock(return_value=False)
+            urlopen.return_value = response
+            news_aggregator._sec_filings_cache = (0, [])
+            items = news_aggregator.get_sec_filings(limit=30, ttl_sec=0)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['provider'], 'SEC EDGAR')
+        self.assertEqual(items[0]['kind'], 'disclosure')
+        self.assertEqual(items[0]['market'], 'us')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -742,6 +742,10 @@ _ECONOMIC_NEWS_WS_CACHE_TTL_SEC = 4 * 60
 _economic_news_ws_clients = set()
 _economic_news_ws_task = None
 _economic_news_ws_cache = {}
+_DOMESTIC_NEWS_LIMIT = 50
+_GLOBAL_NEWS_LIMIT = 20
+_US_NEWS_LIMIT = 70
+_DOMESTIC_DART_LIMIT = 30
 
 _FLASH_MACRO_RULES = (
     ('CPI', ('cpi', '소비자물가', '물가 지표', '물가지표'), 100),
@@ -763,29 +767,31 @@ def _fetch_economic_news_snapshot(market):
         items = news_aggregator.get_general_news(
             alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
             finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
-            limit=50,
+            limit=_US_NEWS_LIMIT,
         )
     else:
-        result = domestic_news.get_news(limit=50, item_kind='news')
+        result = domestic_news.get_news(limit=_DOMESTIC_NEWS_LIMIT, item_kind='news')
         items = result.get('items', []) if isinstance(result, dict) else []
     flash_news = list(items or [])
     if market == 'domestic':
-        # 국내시장 카드에서도 국내 일반뉴스와 섞지 않고, 미국 금리·CPI·M7
-        # 같은 전 세계 시장 공통 충격 요인만 상단 속보로 유지한다.
+        # 국내 일반뉴스 50개에 미국·글로벌 거시뉴스 20개를 보강한다.
         flash_news.extend(news_aggregator.get_general_news(
             alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
             finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
-            limit=30,
+            limit=_GLOBAL_NEWS_LIMIT,
         ))
-    # DART는 국내 공시 원천이다. 미국 시장에는 DART 후보를 섞지 않는다.
-    disclosures = domestic_news.get_disclosures(limit=50) if market == 'domestic' else []
+    # DART는 국내 공시 원천이다. 미국 시장은 SEC EDGAR 공시를 사용한다.
+    disclosures = (
+        domestic_news.get_disclosures(limit=_DOMESTIC_DART_LIMIT)
+        if market == 'domestic' else news_aggregator.get_sec_filings(limit=_DOMESTIC_DART_LIMIT)
+    )
     return {'market': market, 'items': items, 'flash': _build_flash_items(flash_news, disclosures, market)}
 
 
 def _build_flash_items(news_items, disclosures, market='domestic'):
     """속보 레일에 필요한 실적·공시·거시 이벤트를 정규화한다."""
     candidates = []
-    for item in ((disclosures or []) if market == 'domestic' else []):
+    for item in disclosures or []:
         title = str(item.get('title') or '').strip()
         text = title.lower()
         if not title:
@@ -812,7 +818,7 @@ def _build_flash_items(news_items, disclosures, market='domestic'):
     result = list(unique.values())
     result.sort(key=lambda item: item.get('pubDate') or '', reverse=True)
     result.sort(key=lambda item: int(item.get('importance') or 0), reverse=True)
-    return result[:30]
+    return result[:100]
 
 
 async def _economic_news_snapshot(market):
@@ -1862,11 +1868,25 @@ def domestic_news_endpoint(
         raise HTTPException(status_code=400, detail='domestic stock code must be 6 digits')
     item_kind = 'news' if kind.strip().lower() == 'news' else 'all'
     result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit, item_kind)
+    if not normalized_code and not name.strip() and not query.strip():
+        domestic_items = result.get('items', []) if isinstance(result, dict) else []
+        global_items = news_aggregator.get_general_news(
+            alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+            finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+            limit=_GLOBAL_NEWS_LIMIT,
+        )
+        result = dict(result or {})
+        result['market'] = 'domestic'
+        result['flash'] = _build_flash_items(
+            list(domestic_items) + list(global_items),
+            domestic_news.get_disclosures(limit=_DOMESTIC_DART_LIMIT),
+            'domestic',
+        )
     return envelope(result)
 
 
 @app.get('/foreign-news')
-def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=50)):
+def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=70)):
     """미국 세션용 일반 시장·거시경제 뉴스를 Finnhub와 Alpha Vantage에서 합친다."""
     _check_rate_limit('foreign_news', request, max_per_window=20)
     items = news_aggregator.get_general_news(
@@ -1874,10 +1894,12 @@ def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=50))
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
         limit=limit,
     )
+    filings = news_aggregator.get_sec_filings(limit=_DOMESTIC_DART_LIMIT)
     return envelope({
         'market': 'us',
         'items': items,
-        'source': 'Finnhub general + Alpha Vantage NEWS_SENTIMENT',
+        'flash': _build_flash_items(items, filings, 'us'),
+        'source': 'Finnhub general + Alpha Vantage NEWS_SENTIMENT + SEC EDGAR filings',
     })
 
 

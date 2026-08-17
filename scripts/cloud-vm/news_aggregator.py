@@ -26,6 +26,7 @@ logger = logging.getLogger('news_aggregator')
 ALPHA_URL = 'https://www.alphavantage.co/query'
 FINNHUB_URL = 'https://finnhub.io/api/v1/company-news'
 GOOGLE_NEWS_RSS_URL = 'https://news.google.com/rss/search'
+SEC_CURRENT_FILINGS_URL = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&output=atom&count=100'
 HTTP_TIMEOUT = 8
 FOREIGN_NEWS_LIMIT = 2
 LOCAL_NEWS_LIMIT = 1
@@ -39,6 +40,9 @@ NEWS_CACHE_LOCK = threading.Lock()
 GENERAL_NEWS_CACHE_TTL_SEC = 5 * 60
 GENERAL_NEWS_CACHE_LOCK = threading.Lock()
 _general_news_cache = (0, [])
+SEC_FILINGS_CACHE_TTL_SEC = 5 * 60
+SEC_FILINGS_LOCK = threading.Lock()
+_sec_filings_cache = (0, [])
 
 
 def _cache_db_path():
@@ -280,6 +284,85 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
             item.pop('_published_ts', None)
         _general_news_cache = (now, selected)
         return list(selected[:max(1, int(limit))])
+
+
+def get_sec_filings(limit=30, ttl_sec=None):
+    """Return recent US corporate filings from the official SEC EDGAR feed.
+
+    EDGAR is the US counterpart to Korea's DART. Only material current-form
+    filings are used for the home flash rail; the original SEC filing URL is
+    preserved for the detail popup.
+    """
+    global _sec_filings_cache
+    try:
+        ttl = SEC_FILINGS_CACHE_TTL_SEC if ttl_sec is None else max(0, int(ttl_sec))
+    except (TypeError, ValueError):
+        ttl = SEC_FILINGS_CACHE_TTL_SEC
+    now = time.time()
+    fetched_at, cached_items = _sec_filings_cache
+    requested = max(1, int(limit))
+    if fetched_at and now - fetched_at < ttl:
+        return list(cached_items[:requested])
+    with SEC_FILINGS_LOCK:
+        fetched_at, cached_items = _sec_filings_cache
+        if fetched_at and now - fetched_at < ttl:
+            return list(cached_items[:requested])
+        try:
+            request = urllib.request.Request(
+                SEC_CURRENT_FILINGS_URL,
+                headers={
+                    'User-Agent': os.environ.get(
+                        'SEC_USER_AGENT', 'tistory-ticker/1.0 contact: goodbyestarwars@gmail.com'
+                    ),
+                    'Accept': 'application/atom+xml,application/xml',
+                },
+            )
+            with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT) as response:
+                payload = ET.fromstring(response.read())
+        except Exception:
+            logger.exception('SEC EDGAR current filings failed')
+            _sec_filings_cache = (now, [])
+            return []
+
+        allowed_forms = {'8-K', '10-K', '10-Q', '20-F', '40-F', '6-K'}
+        items = []
+        for entry in payload.findall('.//*') if payload is not None else []:
+            if str(entry.tag).rsplit('}', 1)[-1] != 'entry':
+                continue
+            form = ''
+            for child in list(entry):
+                if str(child.tag).rsplit('}', 1)[-1] == 'category':
+                    form = _clean_text(child.attrib.get('term'))
+                    if form:
+                        break
+            title = _clean_text(_xml_text(entry, 'title'))
+            if form not in allowed_forms or not title:
+                continue
+            link = ''
+            for child in list(entry):
+                if str(child.tag).rsplit('}', 1)[-1] == 'link' and child.attrib.get('href'):
+                    link = child.attrib['href']
+                    break
+            if not link:
+                continue
+            pub_date = _xml_text(entry, 'updated') or _xml_text(entry, 'published')
+            items.append({
+                'title': title,
+                'link': link,
+                'pubDate': pub_date,
+                'source': 'SEC EDGAR',
+                'provider': 'SEC EDGAR',
+                'category': '공시',
+                'kind': 'disclosure',
+                'market': 'us',
+                'form': form,
+                '_published_ts': _parse_date(pub_date),
+            })
+        items.sort(key=lambda item: item.get('_published_ts', 0), reverse=True)
+        for item in items:
+            item.pop('_published_ts', None)
+        _sec_filings_cache = (now, items[:30])
+        return list(_sec_filings_cache[1][:requested])
 
 
 def get_general_news_history(start, end, limit=120, alpha_api_key=''):

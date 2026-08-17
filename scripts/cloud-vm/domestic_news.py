@@ -524,7 +524,7 @@ def get_news(code='', name='', query='', limit=10, item_kind='all'):
     }
 
 
-def get_disclosures(limit=50):
+def get_disclosures(limit=30):
     """최근 DART 공시를 속보용으로 반환한다.
 
     일반 종합뉴스는 성능을 위해 공시를 제외하지만, 속보 레일은 실적과
@@ -533,4 +533,4 @@ def get_disclosures(limit=50):
     """
     items = _dart_items()
     items.sort(key=lambda item: _parse_pub_date(item.get('pubDate')).timestamp(), reverse=True)
-    return items[:max(1, min(int(limit or 50), 50))]
+    return items[:max(1, min(int(limit or 30), 30))]

@@ -173,7 +173,7 @@ class DomesticNewsTests(unittest.TestCase):
         rows = [{'id': str(index), 'pubDate': '20260816'} for index in range(80)]
         with mock.patch.object(domestic_news, '_dart_items', return_value=rows):
             items = domestic_news.get_disclosures()
-        self.assertEqual(len(items), 50)
+        self.assertEqual(len(items), 30)
 
 
 if __name__ == '__main__':
