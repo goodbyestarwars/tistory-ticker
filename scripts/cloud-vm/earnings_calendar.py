@@ -197,7 +197,7 @@ class _DartViewerParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag == 'tr':
             self._row = []
-        elif tag == 'td':
+        elif tag in ('td', 'th'):
             self._in_cell = True
             self._cell_parts = []
 
@@ -206,7 +206,7 @@ class _DartViewerParser(HTMLParser):
             self._cell_parts.append(data)
 
     def handle_endtag(self, tag):
-        if tag == 'td' and self._row is not None:
+        if tag in ('td', 'th') and self._row is not None:
             value = re.sub(r'\s+', ' ', ' '.join(self._cell_parts)).strip()
             self._row.append(value)
             self._cell_parts = []
@@ -261,7 +261,7 @@ def _viewer_amount(value, multiplier):
 
 def _reported_dart_viewer_result(html):
     """Read actual-period revenue/profit values from a DART disclosure table."""
-    unit_match = re.search(r'단위\s*[:：]\s*(조원|억원|백만원|천원|원)', html)
+    unit_match = re.search(r'단위\s*[:：]\s*(조원|억원|백만원|천원|원)', re.sub(r'\s+', '', html))
     if not unit_match:
         return None
     multiplier = {
@@ -273,6 +273,13 @@ def _reported_dart_viewer_result(html):
     }[unit_match.group(1)]
     parser = _DartViewerParser()
     parser.feed(html)
+    actual_columns = []
+    for row in parser.rows:
+        normalized = [re.sub(r'\s+', '', cell) for cell in row]
+        for index, cell in enumerate(normalized):
+            if cell in ('당해실적', '당기실적', '당기'):
+                actual_columns.append(index)
+    header_actual_index = actual_columns[0] if actual_columns else None
 
     aliases = (
         ('revenue_actual', ('매출액', '영업수익', '매출')),
@@ -285,11 +292,19 @@ def _reported_dart_viewer_result(html):
             normalized = [re.sub(r'\s+', '', cell) for cell in row]
             if not any(any(name in cell for name in names) for cell in normalized):
                 continue
-            try:
-                actual_index = next(index for index, cell in enumerate(normalized) if cell == '당해실적')
-            except StopIteration:
+            actual_index = next(
+                (index for index, cell in enumerate(normalized)
+                 if cell in ('당해실적', '당기실적', '당기')),
+                header_actual_index,
+            )
+            if actual_index is None:
                 continue
-            for candidate in row[actual_index + 1:]:
+            # 공시 표는 계정명과 '당기실적'이 같은 행에 오기도 하고,
+            # 별도 헤더 행의 열 위치로만 표시되기도 한다.
+            candidates = row[actual_index:] if actual_index > 0 and normalized[actual_index] in (
+                '당해실적', '당기실적', '당기'
+            ) else row[actual_index:actual_index + 1]
+            for candidate in candidates:
                 value = _viewer_amount(candidate, multiplier)
                 if value is not None:
                     values[field] = value
@@ -475,7 +490,9 @@ def fetch_month(year, month):
         if report_name:
             detail += ' · ' + report_name
         event = {
-            'title': '$%s %s | 자동(DART)' % (corp, detail),
+            # 데이터 제공처는 화면 제목에 반복하지 않는다. source 필드는
+            # 내부 병합·시장 구분용으로 유지하고, 제공처 고지는 이용약관에서 한다.
+            'title': '$%s %s' % (corp, detail),
             'start': '%s-%s-%s' % (receipt_date[:4], receipt_date[4:6], receipt_date[6:8]),
             'link': 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=' + receipt_no,
             'source': 'dart',
@@ -497,7 +514,10 @@ def fetch_month(year, month):
             enriched = list(executor.map(lambda item: _enrich_dart_event(api_key, item), lookup_events))
         for event in enriched:
             if event.get('result'):
-                event['title'] = '$%s 실적발표 완료 · %s | 자동(DART)' % (event['corp_name'], event['result'])
+                report_detail = event.get('report_name') or '실적공시'
+                event['title'] = '$%s 실적공시 완료 · %s · %s' % (
+                    event['corp_name'], report_detail, event['result']
+                )
     _cache[key] = (time.time(), events)
     return events
 
@@ -651,7 +671,7 @@ def fetch_us_month(year, month):
         if company:
             detail += ' · ' + company
         event = {
-            'title': '$%s %s | 미국(Finnhub)' % (symbol, detail),
+            'title': '$%s %s' % (symbol, detail),
             'start': event_date,
             'link': 'https://finnhub.io/docs/api/earnings-calendar',
             'source': 'finnhub',
@@ -662,7 +682,7 @@ def fetch_us_month(year, month):
         }
         result = _reported_result(row)
         if result:
-            event['title'] = '$%s 실적발표 완료 · %s | 미국(Finnhub)' % (symbol, result['result'])
+            event['title'] = '$%s 실적발표 완료 · %s' % (symbol, result['result'])
             event.update(result)
         events.append(event)
     events.sort(key=lambda event: (event['start'], event['title']))

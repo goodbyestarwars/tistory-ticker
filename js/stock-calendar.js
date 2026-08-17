@@ -255,8 +255,17 @@
     return normalizedSearchText(searchable).indexOf(normalizedQuery) !== -1;
   }
 
+  function stripProviderLabel(rawTitle) {
+    // 과거 localStorage/API 응답에 남아 있는 제공처 꼬리표도 화면에서는 숨긴다.
+    // source/provider 필드는 시장 구분과 결과 병합에만 사용하고, 제공처 안내는 약관에서 한다.
+    return String(rawTitle || '')
+      .replace(/\s*\|\s*(?:자동\(DART\)|미국\(Finnhub\))\s*$/i, '')
+      .replace(/\s+(?:자동\(DART\)|미국\(Finnhub\))\s*$/i, '')
+      .trim();
+  }
+
   function parseEvent(rawTitle) {
-    var segs = String(rawTitle || '').split('|').map(function (s) { return s.trim(); });
+    var segs = stripProviderLabel(rawTitle).split('|').map(function (s) { return s.trim(); });
     var head = segs[0] || '';
     var tag  = segs[1] || '';
     var stockMatch = head.match(/^\$(\S+)\s*(.*)$/);
@@ -329,7 +338,7 @@
     var eventText = meta.text;
     if (meta.isStock && String(ev.source || '').toLowerCase() === 'dart' && ev.status === 'reported'
       && eventText.indexOf('완료') === -1) {
-      eventText = '실적발표 완료 · ' + eventText;
+      eventText = '실적공시 완료 · ' + eventText;
     }
     if (ev.result && eventText.indexOf(String(ev.result)) === -1) {
       eventText += (eventText ? ' · ' : '') + String(ev.result);
