@@ -79,7 +79,7 @@ class EarningsCalendarTests(unittest.TestCase):
         fetch.assert_called_once_with('test-key', '00126380', 2026, '11012')
         self.assertEqual(events[0]['status'], 'reported')
         self.assertEqual(events[0]['result'], '매출 13.6조 · 영업이익 1.2조 · 순이익 9000억')
-        self.assertIn('실적발표 완료', events[0]['title'])
+        self.assertIn('실적공시 완료', events[0]['title'])
         self.assertIn('매출 13.6조', events[0]['title'])
 
     def test_parses_domestic_result_from_disclosure_viewer(self):
@@ -96,6 +96,19 @@ class EarningsCalendarTests(unittest.TestCase):
         self.assertEqual(result['operating_profit_actual'], 12000000000)
         self.assertEqual(result['net_income_actual'], -3000000000)
         self.assertEqual(result['result'], '매출 1236억 · 영업이익 120억 · 순이익 -30억')
+
+    def test_parses_domestic_result_when_viewer_uses_th_and_danggi_label(self):
+        html = '''
+        <div>단위 : 백만원</div>
+        <table>
+          <tr><th>항목</th><th>당기실적</th><th>전기실적</th></tr>
+          <tr><td>매출액</td><td>1,236</td><td>1,049</td></tr>
+          <tr><td>영업이익</td><td>120</td><td>100</td></tr>
+        </table>
+        '''
+        result = earnings_calendar._reported_dart_viewer_result(html)
+        self.assertEqual(result['revenue_actual'], 1236000000)
+        self.assertEqual(result['operating_profit_actual'], 120000000)
 
     def test_falls_back_to_disclosure_viewer_when_formal_financials_are_empty(self):
         event = {
@@ -126,7 +139,7 @@ class EarningsCalendarTests(unittest.TestCase):
 
         self.assertEqual(fetch.call_count, 1)
         self.assertEqual(len(events), 1)
-        self.assertEqual(events[0]['title'], '$AAPL 실적발표 (장후) · Apple Inc. | 미국(Finnhub)')
+        self.assertEqual(events[0]['title'], '$AAPL 실적발표 (장후) · Apple Inc.')
         self.assertEqual(events[0]['source'], 'finnhub')
         self.assertEqual(events[0]['company'], 'Apple Inc.')
         self.assertEqual(cached, events)
@@ -157,8 +170,8 @@ class EarningsCalendarTests(unittest.TestCase):
         self.assertIn('상회', event['title'])
 
     def test_merges_domestic_and_us_events_in_date_order(self):
-        domestic = [{'title': '$삼성전자 실적발표 | 자동(DART)', 'start': '2026-08-20', 'source': 'dart'}]
-        us = [{'title': '$AAPL 실적발표 | 미국(Finnhub)', 'start': '2026-08-15', 'source': 'finnhub'}]
+        domestic = [{'title': '$삼성전자 실적발표', 'start': '2026-08-20', 'source': 'dart'}]
+        us = [{'title': '$AAPL 실적발표', 'start': '2026-08-15', 'source': 'finnhub'}]
         with mock.patch.object(earnings_calendar, 'safe_fetch_month', return_value=domestic):
             with mock.patch.object(earnings_calendar, 'safe_fetch_us_month', return_value=us):
                 events = earnings_calendar.merge_month(2026, 8)
@@ -193,14 +206,14 @@ class EarningsCalendarTests(unittest.TestCase):
 
     def test_persists_earnings_and_updates_without_deleting_previous_records(self):
         scheduled = {
-            'title': '$AAPL 실적발표 | 미국(Finnhub)',
+            'title': '$AAPL 실적발표',
             'start': '2026-08-15',
             'source': 'finnhub',
             'market': 'us',
             'symbol': 'AAPL',
             'status': 'scheduled',
         }
-        reported = dict(scheduled, title='$AAPL 실적발표 완료 | 미국(Finnhub)', status='reported', result='EPS 1.20')
+        reported = dict(scheduled, title='$AAPL 실적발표 완료 · EPS 1.20', status='reported', result='EPS 1.20')
         with mock.patch.object(earnings_calendar, 'safe_fetch_month', return_value=[]), \
                 mock.patch.object(earnings_calendar, 'safe_fetch_us_month', side_effect=[[scheduled], [reported]]):
             first = earnings_calendar.merge_month(2026, 8)
