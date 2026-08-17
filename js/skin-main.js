@@ -111,10 +111,10 @@
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260817-earnings-result-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260818-market-news-v1')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260818-market-news-v1';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260818-home-schedule-v1')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260818-home-schedule-v1';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260818-market-news-v1';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260818-market-news-v1';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260818-home-schedule-v1';
     var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260817-stock-grid-v22';
 
     function isWeekendReportWindow() {
@@ -255,7 +255,7 @@
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
-        + '<section class="home-top-disclosures" aria-label="관심종목 주간 공시" data-home-disclosure-section>'
+        + '<section class="home-top-disclosures" aria-label="관심종목 주간 공시" data-home-disclosure-section hidden>'
         + '<div class="home-top-disclosures-head"><strong data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
         + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
         + '</section>'
