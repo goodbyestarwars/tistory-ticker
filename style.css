@@ -4412,7 +4412,13 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .home-economic-news { display: flex; flex-direction: column; }
 .home-economic-news { box-sizing: border-box; }
 .home-economic-news .hen-breaking-list { height: 62px; max-height: 62px; }
-.home-economic-news .hen-list { min-height: 0; flex: 1 1 0; display: flex; flex-direction: column; overflow: hidden; }
+.home-economic-news .hen-breaking-list { overflow: hidden; }
+.home-economic-news .hen-breaking-row { min-height: 0; padding: 8px 0; }
+.home-economic-news .hen-breaking-row .app-news-rail { min-height: 42px; }
+.home-economic-news .hen-list { min-height: 0; flex: 1 1 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.home-economic-news .hen-list::-webkit-scrollbar { width: 6px; }
+.home-economic-news .hen-list::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(148, 163, 184, .45); }
+.home-economic-news .hen-list::-webkit-scrollbar-track { background: transparent; }
 .home-economic-news .hen-periods { min-height: 0; height: auto; flex: 1 1 auto; max-height: none; overflow-y: auto; }
 .home-widget--summary.home-market-board,
 .home-widget--summary.home-economic-news { height: auto; min-height: 0; }
@@ -4507,6 +4513,11 @@ html.dark .home-market-switch button.is-active { border-color: #60a5fa; backgrou
 .app-news-event:hover { background: #fafbff; }
 /* 경제뉴스 타임라인: 점과 시장 배지의 시작선을 맞추고 속보 제목이 하단 경계에 닿지 않게 한다. */
 .home-economic-news .app-news-body { transform: translateY(-8px); }
+.home-economic-news .hen-breaking-row--active { animation: hen-breaking-scoreboard .34s ease-out; }
+@keyframes hen-breaking-scoreboard {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 html.dark .app-news-event { border-color: rgba(245,239,224,.1); color: #24324a; }
 html.dark .app-news-rail i { background: #1a1a1a; }
 html.dark .app-news-body > strong, html.dark .app-news-body > b { color: #24324a; }

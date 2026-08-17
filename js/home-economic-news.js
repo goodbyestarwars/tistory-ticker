@@ -15,7 +15,8 @@
   var state = {
     mount: null, timer: null, sessionTimer: null, socket: null, socketGeneration: 0,
     socketOpened: false, socketReconnectTimer: null, socketFallbackTimer: null, socketKeepaliveTimer: null,
-    market: '', quoteMap: {}, items: [], flash: [], loading: false
+    market: '', quoteMap: {}, items: [], flash: [], loading: false,
+    flashTimer: null, flashRows: [], flashKey: '', flashIndex: 0
   };
 
   function escapeHtml(value) {
@@ -134,6 +135,34 @@
     return parsed.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
   }
 
+  function stopFlashTicker() {
+    if (state.flashTimer) clearInterval(state.flashTimer);
+    state.flashTimer = null;
+  }
+
+  function renderFlashRow(item) {
+    var list = state.mount && state.mount.querySelector('[data-hen-breaking-list]');
+    if (!list || !item) return;
+    var label = item.flashType || (item.kind === 'disclosure' ? '공시' : '속보');
+    var href = item.link || '#';
+    list.innerHTML = '<div class="app-news-timeline hen-breaking-timeline" aria-live="polite">'
+      + '<a class="app-news-event hen-breaking-row hen-breaking-row--active" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">'
+      + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(flashTimeLabel(item.pubDate)) + '</small></div>'
+      + '<div class="app-news-rail"><i class="is-latest"></i></div>'
+      + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-type app-news-type--' + (label === '공시' ? '공시' : '뉴스') + '">' + escapeHtml(label) + '</b></div><strong>' + escapeHtml(item.title) + '</strong></div>'
+      + '</a></div>';
+  }
+
+  function startFlashTicker() {
+    stopFlashTicker();
+    if (state.flashRows.length < 2) return;
+    state.flashTimer = setInterval(function () {
+      if (document.hidden || !state.flashRows.length) return;
+      state.flashIndex = (state.flashIndex + 1) % state.flashRows.length;
+      renderFlashRow(state.flashRows[state.flashIndex]);
+    }, 4000);
+  }
+
   function renderFlash(items) {
     var list = state.mount && state.mount.querySelector('[data-hen-breaking-list]');
     if (!list) return;
@@ -145,18 +174,26 @@
       return importance || dateValue(b.pubDate) - dateValue(a.pubDate);
     }).slice(0, 8);
     if (!rows.length) {
+      stopFlashTicker();
+      state.flashRows = [];
+      state.flashKey = '';
+      state.flashIndex = 0;
       list.innerHTML = '<p class="hen-breaking-empty">중요 속보가 없습니다.</p>';
       return;
     }
-    list.innerHTML = '<div class="app-news-timeline hen-breaking-timeline">' + rows.map(function (item, index) {
-      var label = item.flashType || (item.kind === 'disclosure' ? '공시' : '속보');
-      var href = item.link || '#';
-      return '<a class="app-news-event hen-breaking-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">'
-        + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(flashTimeLabel(item.pubDate)) + '</small></div>'
-        + '<div class="app-news-rail"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
-        + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-type app-news-type--' + (label === '공시' ? '공시' : '뉴스') + '">' + escapeHtml(label) + '</b></div><strong>' + escapeHtml(item.title) + '</strong></div>'
-        + '</a>';
-    }).join('') + '</div>';
+    var nextKey = rows.map(function (item) {
+      return String(item.id || item.link || item.title || '') + '|' + String(item.pubDate || '');
+    }).join('\u0001');
+    var changed = nextKey !== state.flashKey;
+    if (changed) {
+      state.flashRows = rows;
+      state.flashKey = nextKey;
+      state.flashIndex = 0;
+    } else if (state.flashIndex >= rows.length) {
+      state.flashIndex = 0;
+    }
+    renderFlashRow(state.flashRows[state.flashIndex]);
+    if (changed || !state.flashTimer) startFlashTicker();
   }
 
   function render(items, market, flash) {
@@ -348,8 +385,12 @@
       }
     }, SESSION_CHECK_MS);
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) closeNewsSocket(false);
+      if (document.hidden) {
+        stopFlashTicker();
+        closeNewsSocket(false);
+      }
       else {
+        startFlashTicker();
         loadMarketBoard(currentMarket());
         connectNewsSocket();
       }
