@@ -725,10 +725,13 @@
       var price = series.coordinateToPrice(event.clientY - rect.top);
       if (time == null || price == null || !isFinite(Number(price))) return;
       var point = { time: time, price: Number(price) };
-      if (!state.pending) state.pending = point;
-      else {
+      if (!state.pending) {
+        state.pending = point;
+        overlay.setAttribute('aria-label', '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
+      } else {
         state.lines.push({ start: state.pending, end: point });
         state.pending = null;
+        overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
         saveKfDrawingLines(state);
       }
       redrawKfDrawing(state);

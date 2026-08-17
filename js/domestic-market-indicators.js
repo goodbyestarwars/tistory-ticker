@@ -238,7 +238,7 @@
     state.button.classList.toggle('is-active', enabled);
     state.button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
     state.button.textContent = enabled ? '그리기 종료' : '선 그리기';
-    state.overlay.title = enabled ? '두 지점을 차례로 클릭해 추세선을 그립니다.' : '';
+    state.overlay.title = enabled ? '시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 추세선이 완성됩니다.' : '';
     redrawDrawing(state);
   }
 
@@ -289,10 +289,13 @@
       var rect = overlay.getBoundingClientRect();
       var point = drawingPointFromCoordinate(state, event.clientX - rect.left, event.clientY - rect.top);
       if (!point) return;
-      if (!state.pending) state.pending = point;
-      else {
+      if (!state.pending) {
+        state.pending = point;
+        overlay.setAttribute('aria-label', '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
+      } else {
         state.lines.push({ start: state.pending, end: point });
         state.pending = null;
+        overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
         saveDrawingLines(state);
       }
       redrawDrawing(state);
@@ -502,7 +505,7 @@
       + '<div class="dmi-panel-title"><span>' + escapeHtml(item.name || market) + '</span><div class="dmi-chart-tools">'
       + '<button type="button" class="dmi-collapse-btn" data-dmi-panel="' + market + '" aria-expanded="' + (collapsed ? 'false' : 'true') + '" aria-label="펼치기/접기">' + (collapsed ? '▸' : '▾') + '</button></div></div>'
       + '<div class="dmi-tabs" role="tablist">'
-      + '<button type="button" class="dmi-draw-toggle" aria-pressed="false" title="두 지점을 차례로 클릭해 추세선을 그립니다.">선 그리기</button>'
+      + '<button type="button" class="dmi-draw-toggle" aria-pressed="false" title="시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 추세선이 완성됩니다.">선 그리기</button>'
       + '<button type="button" class="dmi-draw-clear" title="그린 선을 모두 지웁니다.">지우기</button>'
       + ['minute', 'day', 'week'].map(function (interval) {
         var label = { minute: '분봉', day: '일봉', week: '주봉' }[interval];

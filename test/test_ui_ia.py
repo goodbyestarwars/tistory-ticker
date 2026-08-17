@@ -938,6 +938,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function setupStockDrawing", search)
         self.assertIn("if (!drawing.pending)", search)
         self.assertIn("drawing.lines.push({ start: drawing.pending, end: point })", search)
+        self.assertIn("추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.", search)
+        self.assertNotIn("dblclick", search)
+        for drawing_script in ("js/domestic-market-indicators.js", "js/kospi-futures.js"):
+            drawing_source = self.read(drawing_script)
+            self.assertIn("overlay.addEventListener('click'", drawing_source)
+            self.assertIn("추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.", drawing_source)
+            self.assertNotIn("dblclick", drawing_source)
         self.assertIn(".us-stocks-market-grid > *", style)
         self.assertIn(".us-native-chart-mount .ss-chart-tabs", style)
 

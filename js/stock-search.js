@@ -1611,7 +1611,7 @@
       drawing.button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
       drawing.button.textContent = enabled ? '그리기 종료' : '선 그리기';
     }
-    drawing.overlay.title = enabled ? '차트의 두 지점을 차례로 클릭해 선을 그립니다.' : '';
+    drawing.overlay.title = enabled ? '시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 추세선이 완성됩니다.' : '';
     redrawStockDrawing(drawing);
   }
 
@@ -1639,10 +1639,13 @@
       var rect = overlay.getBoundingClientRect();
       var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
       if (!point) return;
-      if (!drawing.pending) drawing.pending = point;
-      else {
+      if (!drawing.pending) {
+        drawing.pending = point;
+        overlay.setAttribute('aria-label', '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
+      } else {
         drawing.lines.push({ start: drawing.pending, end: point });
         drawing.pending = null;
+        overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
         saveStockDrawingLines(drawing);
       }
       redrawStockDrawing(drawing);
