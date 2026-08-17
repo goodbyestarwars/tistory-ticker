@@ -28,16 +28,32 @@
 - 커밋·push 전에 이번 작업이 중요 변경에 해당하면 `docs/WORK_HISTORY.md` 반영 여부를 반드시 확인한다.
 - 작업이력 변경은 관련 코드 변경과 동일한 커밋 또는 push 범위에 포함한다.
 
-## 필요한 문서만 읽기
+## 작업별 문서 참조 규칙
 
-아래 문서를 시작 시 전부 읽지 않는다.
+작업 시작 전에 아래 표에서 해당하는 항목의 문서를 **모두 참조**한다. 한 문서만 읽고
+구조·API·DB·배포를 판단하지 않는다. 작업 범위가 여러 항목에 걸치면 해당 행을 합쳐서
+읽는다.
 
-- 구조·배포: `ARCHITECTURE.md`
-- VM REST API: `API_REFERENCE.md`
-- UI 기준: `docs/UI_GUIDE.md`
-- 문서 안내: `docs/README.md`
-- 주요 작업이력: `docs/WORK_HISTORY.md`
-- 과거 원문 이력: `git log -p -- CLAUDE.md`
+| 작업 항목 | 반드시 참조할 문서 | 확인할 내용 |
+|---|---|---|
+| 모든 작업의 진입 | `docs/README.md`, `CLAUDE.md` | 문서 지도·공통 규칙·현재 작업 범위 |
+| 시스템 구조·호출 흐름 | `ARCHITECTURE.md`, `docs/ARCHITECTURE_SPEC.md` | Tistory·GitHub Pages·GAS·VM 역할, 호출 경계, WebSocket, 캐시 |
+| REST·WebSocket API | `API_REFERENCE.md`, `docs/API_OPERATION_SPEC.md`, `docs/ARCHITECTURE_SPEC.md` | 라우트·필드·인증·CORS·TTL·장애 대응·운영 점검 |
+| DB·캐시·데이터 보존 | `docs/DB_SPEC.md`, `docs/ARCHITECTURE_SPEC.md`, `scripts/cloud-vm/db_schema.py`, 관련 캐시 모듈 | SQLite 스키마, JSON 캐시, 온디맨드/배치, 보존·백업 |
+| 백엔드 소스 수정 | `docs/SOURCE_CODE_SPEC.md`, `API_REFERENCE.md`, `docs/DB_SPEC.md` | 파일 역할, 함수 연결, 응답·저장 구조 |
+| UI·반응형 수정 | `docs/UI_GUIDE.md`, `ARCHITECTURE.md`, 관련 `js/`·`css/` 파일 | Tistory/GitHub Pages 경로, 디자인·모바일·캐시 버전 |
+| Tistory 스킨 수정 | `ARCHITECTURE.md`, `docs/ARCHITECTURE_SPEC.md`, `skin.html` | 자동 배포 여부와 Tistory 관리자 수동 반영 필요성 |
+| GAS 수정 | `ARCHITECTURE.md`, `docs/API_OPERATION_SPEC.md`, `docs/GAS_AUTO_DEPLOY.md`, `gas/ticker-proxy.gs` | Script Properties, VM 인증, Actions/clasp 배포 |
+| VM 배포·장애 점검 | `docs/API_OPERATION_SPEC.md`, `docs/ARCHITECTURE_SPEC.md`, `docs/DB_SPEC.md`, `scripts/cloud-vm/deploy_check.sh` | health, 로그, DB 유지보수, 자동 배포·롤백 |
+| 작업 이력·인수인계 | `docs/WORK_HISTORY.md`, 최신 `docs/HANDOFF_*.md` | 최근 변경, 검증 결과, 남은 수동 반영·주의사항 |
+| 인증·외부 데이터 설정 | 해당 `docs/*_SETUP.md`, `docs/API_OPERATION_SPEC.md`, `docs/ARCHITECTURE_SPEC.md` | 키 저장 위치, 공급자 폴백, 운영 도메인 제한 |
+
+최신 작업을 이어받을 때는 `docs/HANDOFF_*.md`를 먼저 확인하되, 그것을 현재 코드의
+유일한 근거로 사용하지 않는다. 실제 구현·운영 상태는 위 표의 원본 문서와 소스를
+대조한다.
+
+문서 전체 목록과 목적은 `docs/README.md`를 기준으로 한다. 중요 변경은
+`docs/WORK_HISTORY.md`에도 기록한다.
 
 ## 작업별 Skill
 
