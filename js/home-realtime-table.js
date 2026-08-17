@@ -202,8 +202,22 @@
     return day === 0 || day === 6;
   }
 
+  function usSessionLabel() {
+    var zone = '';
+    try {
+      zone = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', timeZoneName: 'short'
+      }).formatToParts(new Date()).filter(function (part) {
+        return part.type === 'timeZoneName';
+      }).map(function (part) { return part.value; }).join('');
+    } catch (error) {}
+    return /EDT|GMT-04|UTC-04/.test(zone)
+      ? '미국시장 · 정규장 22:30~05:00'
+      : '미국시장 · 정규장 23:30~06:00';
+  }
+
   function marketLabel(market) {
-    return market === 'us' ? '미국 · 오후 08:00~오전 08:00' : '국내 · 오전 08:00~오후 08:00';
+    return market === 'us' ? usSessionLabel() : '국내시장 · 오전 08:00~오후 08:00';
   }
 
   function stockIconHtml(item) {
