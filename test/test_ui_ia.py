@@ -1292,6 +1292,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("root.classList.add('skin-ready')", source)
         self.assertIn('window.setTimeout(reveal, 1800)', source)
 
+    def test_brand_icon_uses_heartbeat_monitor_artwork(self):
+        skin = self.read("skin.html")
+        logo = self.read("img/heart-monitor.svg")
+        self.assertIn("/img/heart-monitor.svg", skin)
+        self.assertIn('alt="심장박동기 로고"', skin)
+        self.assertIn('심전도 파형이 표시된 심장박동기 모니터', logo)
+        self.assertIn('stroke="#E24A4A"', logo)
+
     def test_live_github_assets_also_guard_initial_paint(self):
         style = self.read("style.css")
         main = self.read("js/skin-main.js")
