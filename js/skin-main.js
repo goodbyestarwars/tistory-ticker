@@ -111,10 +111,10 @@
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260817-earnings-result-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260818-home-schedule-v1')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260818-home-schedule-v1';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260818-market-news-v1';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260818-home-schedule-v1';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260818-home-layout-v2')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260818-home-layout-v2';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260818-home-layout-v2';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260818-home-layout-v2';
     var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260817-stock-grid-v22';
 
     function isWeekendReportWindow() {
@@ -347,10 +347,15 @@
       var groups = {};
       var all = data && data.data ? (data.data.KOSPI || []).concat(data.data.KOSDAQ || []) : [];
       all.forEach(function (item) {
-        if (typeof item.changeRate !== 'number') return;
-        (item.sectors || []).forEach(function (sector) {
+        var changeRate = Number(item && (item.changeRate != null ? item.changeRate : item.change_rate));
+        if (!isFinite(changeRate)) return;
+        var sectors = Array.isArray(item && item.sectors) ? item.sectors : [];
+        if (!sectors.length && item && (item.sector || item.industry)) sectors = [item.sector || item.industry];
+        sectors.forEach(function (sector) {
+          sector = String(sector || '').trim();
+          if (!sector) return;
           if (!groups[sector]) groups[sector] = { total: 0, count: 0 };
-          groups[sector].total += item.changeRate;
+          groups[sector].total += changeRate;
           groups[sector].count += 1;
         });
       });
@@ -471,6 +476,55 @@
       if (minute < 9 * 60 + 30) return { open: false, label: '본장 개장 전', subtitle: '미국 현물 · 본장 개장 전' };
       if (minute >= 16 * 60) return { open: false, label: '본장 마감', subtitle: '미국 현물 · 본장 마감' };
       return { open: true, label: '장중', subtitle: '미국 현물 · 장중' };
+    }
+
+    // 코스피 야간선물은 국내 거래소 휴장일에는 최신 가격이 남아 있어도
+    // 거래 중인 것처럼 표시하지 않는다. 기존 코스피 선물 화면과 같은
+    // KST 기준 공휴일 목록을 사용해 주말·대체공휴일까지 공통 처리한다.
+    var KRX_HOLIDAYS = {
+      '2026': {
+        '20260101': true, '20260216': true, '20260217': true, '20260218': true,
+        '20260301': true, '20260302': true, '20260501': true, '20260505': true,
+        '20260525': true, '20260603': true, '20260606': true, '20260717': true,
+        '20260815': true, '20260817': true, '20260924': true, '20260925': true,
+        '20260926': true, '20261003': true, '20261005': true, '20261009': true,
+        '20261225': true, '20261231': true
+      }
+    };
+
+    function kstDateParts() {
+      var kst = new Date(Date.now() + 9 * 60 * 60000);
+      return {
+        year: kst.getUTCFullYear(),
+        month: kst.getUTCMonth() + 1,
+        date: kst.getUTCDate(),
+        day: kst.getUTCDay(),
+        mins: kst.getUTCHours() * 60 + kst.getUTCMinutes()
+      };
+    }
+
+    function kstDateKey(parts) {
+      return String(parts.year) + String(parts.month).padStart(2, '0') + String(parts.date).padStart(2, '0');
+    }
+
+    function previousKstDate(parts) {
+      var previous = new Date(Date.UTC(parts.year, parts.month - 1, parts.date - 1));
+      return {
+        year: previous.getUTCFullYear(),
+        month: previous.getUTCMonth() + 1,
+        date: previous.getUTCDate(),
+        day: previous.getUTCDay(),
+        mins: parts.mins
+      };
+    }
+
+    function isNightFuturesHoliday() {
+      var parts = kstDateParts();
+      // 00:00~06:00은 전날 저녁 세션의 연장 시간이므로 전날을 판정한다.
+      if (parts.mins < 6 * 60) parts = previousKstDate(parts);
+      if (parts.day === 0 || parts.day === 6) return true;
+      var holidays = KRX_HOLIDAYS[String(parts.year)];
+      return !!(holidays && holidays[kstDateKey(parts)]);
     }
 
     function summarizeUsMarket(data, indexItems) {
@@ -650,7 +704,11 @@
       // 미국 시장 요약 카드의 "코스피 야간선물" 칸 - hidden 상태여도 값은 항상 채워둬서
       // 세션이 전환되는 순간(applyHomeSummarySession) 바로 최신값이 보이게 한다.
       var nightItem = bySymbol.KOSPI200_NIGHT;
-      if (nightItem) {
+      var nightChartEl = dashboardSection.querySelector('[data-night-futures-chart]');
+      if (isNightFuturesHoliday()) {
+        setField('nightFutures', '휴장', 'home-neutral');
+        if (nightChartEl) nightChartEl.innerHTML = '<span class="home-index-chart-empty">휴장</span>';
+      } else if (nightItem) {
         var nPrice = Number(nightItem.price);
         var nChange = Number(nightItem.change);
         var nRate = Number(nightItem.change_rate);
@@ -662,8 +720,10 @@
         // 사용자 리포트 - 텍스트만 있고 그래프가 빠져 있었음). renderHomeIndexChart는 SVG를
         // preserveAspectRatio="none"으로 채우므로 컨테이너 CSS 크기만 다르면(style.css의
         // .home-night-futures-chart) 그대로 재사용된다.
-        var nightChartEl = dashboardSection.querySelector('[data-night-futures-chart]');
         if (nightChartEl) renderHomeIndexChart(nightChartEl, nightItem.chart, nChange >= 0, 'kospiNight');
+      } else {
+        setField('nightFutures', '데이터 확인 중', 'home-neutral');
+        if (nightChartEl) nightChartEl.innerHTML = '<span class="home-index-chart-empty">데이터 확인 중</span>';
       }
       session.keys.forEach(function (key, index) {
         var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
@@ -847,8 +907,9 @@
     loadHomeDomesticSummary = function () {
       if (cachedMarketTemp) renderMarketTemperature(cachedMarketTemp);
       if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
-      if (window.requestIdleCallback) window.requestIdleCallback(loadHomeSectors, { timeout: 2500 });
-      else setTimeout(loadHomeSectors, 0);
+      // 지연 콜백에만 의존하면 모바일 WebView가 계속 미루면서 주도/주의 업종이
+      // 비어 보일 수 있다. fetch 자체는 비동기이므로 즉시 시작해 첫 화면을 막지 않는다.
+      setTimeout(loadHomeSectors, 0);
       loadHomeInvestorTrend();
     };
 

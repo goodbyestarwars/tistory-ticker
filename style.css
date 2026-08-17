@@ -5590,3 +5590,96 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-b
   body#tt-body-index .home-editorial-page .home-economic-news .app-news-event:nth-child(2) .app-news-body > strong,
   body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-body > strong { font-size: 14px !important; }
 }
+
+/* 2026-08-18 home follow-up: keep the full watchlist schedule in a compact
+   horizontal rail. It grows sideways, not vertically, and keeps the page
+   height/visual weight of the existing schedule area. */
+body#tt-body-index .home-editorial-page .home-top-disclosures {
+  max-height: 82px !important;
+  margin: 14px 0 16px !important;
+  padding: 10px 0 8px !important;
+  border: 0 !important;
+  border-top: 1px solid var(--rule) !important;
+  border-bottom: 1px solid var(--rule) !important;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-top-disclosures-head {
+  padding: 0 0 6px !important;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch;
+  gap: 0;
+  max-height: 54px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+  cursor: grab;
+  touch-action: pan-x;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list::-webkit-scrollbar {
+  height: 3px;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list::-webkit-scrollbar-thumb {
+  background: var(--rule);
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row {
+  flex: 0 0 min(360px, 43vw) !important;
+  display: grid !important;
+  grid-template-columns: max-content minmax(0, 1fr) max-content !important;
+  min-height: 48px !important;
+  padding: 5px 16px !important;
+  border: 0 !important;
+  border-right: 1px solid var(--rule) !important;
+  background: transparent !important;
+}
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row:last-child {
+  border-right: 0 !important;
+}
+
+/* 한국증시·미국증시 전환선과 모든 홈 지면 제목을 같은 높이로 맞춘다. */
+body#tt-body-index .home-editorial-page .home-market-switch {
+  margin-top: -10px !important;
+  margin-bottom: -4px !important;
+}
+body#tt-body-index .home-editorial-page .home-card-heading strong,
+body#tt-body-index .home-editorial-page .hen-head strong,
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong,
+body#tt-body-index .home-editorial-page .home-section-heading strong {
+  font-size: 28px !important;
+}
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot {
+  justify-content: flex-start;
+}
+
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page .home-top-disclosures {
+    max-height: 78px !important;
+    margin: 10px 0 14px !important;
+    padding: 8px 0 7px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
+    max-height: 50px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row {
+    flex-basis: 78vw !important;
+    min-height: 46px !important;
+    padding: 4px 12px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-market-switch {
+    margin-top: -7px !important;
+    margin-bottom: -2px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-card-heading strong,
+  body#tt-body-index .home-editorial-page .hen-head strong,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong,
+  body#tt-body-index .home-editorial-page .home-section-heading strong {
+    font-size: 21px !important;
+  }
+}

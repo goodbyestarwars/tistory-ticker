@@ -408,9 +408,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "image.style.display = 'none'",
         ):
             self.assertIn(token, source)
-        self.assertIn("HOME_ROW_LIMIT = 10", source)
+        self.assertIn("HOME_ROW_LIMIT = 20", source)
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
-        self.assertIn("전체 순위 보기 →", source)
+        self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
 
     def test_home_realtime_table_uses_correct_won_trillion_unit(self):
@@ -489,7 +489,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, main)
         for token in (
-            "todayItems.slice(0, 12)",
+            "items: todayItems,",
             "function enableScheduleDrag(list)",
             "function disclosureHref(item)",
             "data-disclosure-modal",
@@ -1352,9 +1352,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("관심종목 주간 공시", widgets)
         self.assertNotIn("DISC_GAS_URL", widgets)
         self.assertNotIn("result.length < 5", widgets)
-        self.assertIn("items.slice(0, 8)", widgets)
+        self.assertIn("items.map(renderDomesticDisclosureRow)", widgets)
         self.assertNotIn("home-disclosure-more", widgets)
-        self.assertIn("visibleItems = items.slice(0, 8)", widgets)
+        self.assertIn("selection.items.map(function (item)", widgets)
         self.assertIn("관심종목 주간 공시", home)
         self.assertIn("@app.get('/watchlist/disclosures')", backend)
         self.assertIn("get_watchlist_disclosures(domestic_codes, days=7", backend)

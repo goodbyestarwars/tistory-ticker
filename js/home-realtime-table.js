@@ -7,7 +7,7 @@
   var WS_RECONNECT_MIN_MS = 1500;
   var WS_RECONNECT_MAX_MS = 30000;
   var LIMIT = 20;
-  var HOME_ROW_LIMIT = 10;
+  var HOME_ROW_LIMIT = 20;
   var REFRESH_MS = 30 * 1000;
   // 한국시간 기준으로 국내·미국 시장을 자동 전환한다.
   var FORCED_MARKET = null;
@@ -385,7 +385,7 @@
         return '<th>' + column[1] + '</th>';
       }).join('') + '</tr></thead>'
       + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state">실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
-      + '<div class="hrt-foot"><span data-hrt-foot>체결 발생 행만 갱신</span><a class="hrt-more" href="/page/stock-search">전체 순위 보기 →</a></div>';
+      + '<div class="hrt-foot"><span data-hrt-foot>체결 발생 행만 갱신</span></div>';
     if (widgetActions) mount.appendChild(widgetActions);
   }
 
