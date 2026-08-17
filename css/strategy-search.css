@@ -7,6 +7,10 @@
   font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
 }
 
+#strategy-search .ss-intro { margin: 0 0 16px; }
+#strategy-search .ss-intro h1 { margin: 0; color: #111827; font-size: 24px; line-height: 1.25; }
+#strategy-search .ss-intro p { margin: 5px 0 0; color: #64748b; font-size: 12.5px; line-height: 1.5; }
+
 #strategy-search .ss-head {
   display: flex;
   align-items: center;
@@ -58,6 +62,10 @@
   margin-bottom: 14px;
   line-height: 1.5;
 }
+#strategy-search .ss-methodology-summary { margin: 0; color: #334155; font-weight: 700; }
+#strategy-search .ss-methodology-details { margin-top: 7px; border-top: 1px solid #e2e8f0; padding-top: 7px; }
+#strategy-search .ss-methodology-details summary { color: #64748b; cursor: pointer; font-size: 11.5px; font-weight: 700; }
+#strategy-search .ss-methodology-details p { margin: 7px 0 0; }
 
 #strategy-search .ss-return-period-tabs {
   display: flex;
@@ -136,17 +144,20 @@
   gap: 8px;
 }
 
+#strategy-search .ss-card-heading { margin-bottom: 7px; }
+#strategy-search .ss-card-note { margin: 0 0 0 12px; color: #94a3b8; font-size: 11px; line-height: 1.35; }
+
 #strategy-search .ss-card-title::before {
   content: "";
   width: 4px;
   height: 14px;
-  background: #2563eb;
+  background: #64748b;
   border-radius: 2px;
   display: inline-block;
 }
 
 #strategy-search .ss-row {
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid #f1f5f9;
   font-size: 13px;
   cursor: pointer;
@@ -160,6 +171,7 @@
 #strategy-search .ss-row:hover {
   background: #f8fafc;
 }
+#strategy-search .ss-row:focus-visible { outline: 2px solid #475569; outline-offset: -2px; }
 
 #strategy-search .ss-row-top {
   display: flex;
@@ -170,12 +182,8 @@
 #strategy-search .ss-row-name {
   color: #374151;
   font-weight: 500;
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-right: 8px;
+  display: block;
+  line-height: 1.35;
 }
 
 #strategy-search .ss-row-code {
@@ -185,27 +193,15 @@
   margin-left: 3px;
 }
 
-#strategy-search .ss-row-top > span:last-child {
-  white-space: nowrap;
-}
-
-#strategy-search .ss-row-price {
-  color: #6b7280;
-  margin-right: 6px;
-}
-
-#strategy-search .ss-row-rate {
-  font-weight: 600;
-}
-
-/* 왜 이 종목이 뽑혔는지(가격 게이트·품질 게이트 실측값) - 이전 배지가 항상 100%였던
-   문제의 재발 방지: 종목마다 실제로 다른 숫자를 그대로 보여준다. */
-#strategy-search .ss-row-metric {
-  font-size: 11px;
-  color: #9ca3af;
-  line-height: 1.3;
-  margin-top: 2px;
-}
+#strategy-search .ss-row-primary { margin-top: 5px; color: #1e3a5f; font-size: 14px; font-weight: 800; line-height: 1.35; }
+#strategy-search .ss-row-secondary { margin-top: 2px; color: #64748b; font-size: 11.5px; line-height: 1.4; }
+#strategy-search .ss-row-bottom { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; min-height: 18px; }
+#strategy-search .ss-row-quote { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+#strategy-search .ss-row-price { color: #475569; font-size: 12px; font-variant-numeric: tabular-nums; }
+#strategy-search .ss-row-rate { font-size: 11px; font-weight: 600; }
+#strategy-search .ss-row-basis { color: #94a3b8; font-size: 10.5px; }
+#strategy-search .ss-etf-components-btn { margin-left: auto; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 999px; background: #fff; color: #475569; font: inherit; font-size: 10.5px; cursor: pointer; }
+#strategy-search .ss-etf-components-btn:hover { border-color: #475569; color: #334155; }
 
 #strategy-search .ss-etf-return-metric {
   display: flex;
@@ -218,7 +214,7 @@
 }
 
 #strategy-search .ss-etf-return-metric b {
-  color: #2563eb;
+  color: #1e3a5f;
   font-weight: 700;
 }
 
@@ -253,31 +249,24 @@
 #strategy-search .ss-error { color: #d24f45; }
 
 /* ============ 모바일 ============ */
-/* 모바일에서는 긴 종목 행을 2열로 압축해 한 화면에 더 많이 보여준다. */
 @media (max-width: 640px) {
   #strategy-search .ss-cards-grid {
-    columns: 2 150px;
-    column-gap: 8px;
+    columns: 1;
   }
   #strategy-search .ss-card {
     padding: 10px 11px;
     margin-bottom: 8px;
   }
   #strategy-search .ss-card-title { font-size: 12.5px; }
-  #strategy-search .ss-row { padding: 7px 0; font-size: 12px; }
+  #strategy-search .ss-row { padding: 10px 0; font-size: 12px; }
   #strategy-search .ss-row-name {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
   #strategy-search .ss-row-code { font-size: 10px; }
-  #strategy-search .ss-row-price { margin-right: 3px; }
-  #strategy-search .ss-row-metric {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  #strategy-search .ss-row-primary { font-size: 13.5px; }
+  #strategy-search .ss-row-secondary { font-size: 11px; }
+  #strategy-search .ss-row-bottom { align-items: center; }
+  #strategy-search .ss-etf-components-btn { margin-left: 0; }
   #strategy-search .ss-etf-search-input {
     margin-left: 0;
     flex: 1 1 100%;
@@ -285,6 +274,11 @@
   }
 }
 @media (max-width: 480px) {
+  #strategy-search .ss-intro h1 { font-size: 21px; }
+  #strategy-search .ss-intro p { font-size: 11.5px; }
+  #strategy-search .ss-head { align-items: flex-start; }
+  #strategy-search .ss-tabs { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding-bottom: 3px; }
+  #strategy-search .ss-tab { flex: 0 0 auto; }
   #strategy-search .ss-tab {
     padding: 7px 11px;
     font-size: 12px;
@@ -292,6 +286,8 @@
   #strategy-search .ss-card {
     padding: 10px 11px;
   }
+  #strategy-search .ss-meta { width: 100%; font-size: 10.5px; line-height: 1.4; }
+  #strategy-search .ss-methodology { font-size: 11.5px; }
 }
 
 /* ============ 다크모드 ============ */
@@ -310,11 +306,17 @@ html.dark #strategy-search .ss-tab.active {
 html.dark #strategy-search .ss-meta {
   color: rgba(245, 239, 224, 0.5) !important;
 }
+html.dark #strategy-search .ss-intro h1 { color: #F5EFE0 !important; }
+html.dark #strategy-search .ss-intro p,
+html.dark #strategy-search .ss-card-note { color: rgba(245,239,224,.55) !important; }
 html.dark #strategy-search .ss-methodology {
   color: rgba(245, 239, 224, 0.6) !important;
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.14) !important;
 }
+html.dark #strategy-search .ss-methodology-summary { color: rgba(245,239,224,.82) !important; }
+html.dark #strategy-search .ss-methodology-details { border-top-color: rgba(245,239,224,.14); }
+html.dark #strategy-search .ss-methodology-details summary { color: rgba(245,239,224,.6); }
 html.dark #strategy-search .ss-return-period-tab {
   background: #1A1A1A;
   border-color: rgba(245, 239, 224, 0.2);
@@ -355,11 +357,12 @@ html.dark #strategy-search .ss-row-code {
 html.dark #strategy-search .ss-row-price {
   color: rgba(245, 239, 224, 0.6) !important;
 }
-html.dark #strategy-search .ss-row-metric {
-  color: rgba(245, 239, 224, 0.45) !important;
-}
+html.dark #strategy-search .ss-row-primary { color: #F5EFE0 !important; }
+html.dark #strategy-search .ss-row-secondary,
+html.dark #strategy-search .ss-row-basis { color: rgba(245,239,224,.55) !important; }
+html.dark #strategy-search .ss-etf-components-btn { background: #1A1A1A; border-color: rgba(245,239,224,.25); color: rgba(245,239,224,.75); }
 html.dark #strategy-search .ss-etf-return-metric b {
-  color: #6ea8e8 !important;
+  color: #F5EFE0 !important;
 }
 html.dark #strategy-search .ss-card-more {
   background: rgba(245, 239, 224, 0.08);
@@ -407,6 +410,9 @@ html.dark #strategy-search .ss-error {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
   border-bottom: 1px solid #e5e9ef;
   color: #25303b;
   font-size: 15px;
@@ -438,8 +444,12 @@ html.dark #strategy-search .ss-error {
 .ss-etf-table-wrap { overflow-x: auto; }
 .ss-etf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ss-etf-table th, .ss-etf-table td { padding: 7px 8px; text-align: right; border-bottom: 1px solid #f1f3f6; white-space: nowrap; }
-.ss-etf-table th:first-child, .ss-etf-table td:first-child { text-align: left; }
+.ss-etf-table th:first-child, .ss-etf-table td:first-child { text-align: center; }
 .ss-etf-table th { color: #8a9099; font-weight: 600; font-size: 11.5px; }
+.ss-etf-comp-row { cursor: pointer; }
+.ss-etf-comp-row:hover { background: #f8fafc; }
+.ss-etf-comp-row:focus-visible { outline: 2px solid #475569; outline-offset: -2px; }
+.ss-etf-comp-rank { color: #94a3b8; font-variant-numeric: tabular-nums; }
 .ss-etf-comp-name { color: #111827; font-weight: 600; }
 .ss-etf-comp-weight { color: #374151; }
 .ss-etf-table .ss-up { color: #d24f45; }
@@ -454,6 +464,8 @@ html.dark .ss-etf-summary { color: rgba(245,239,224,.55); border-bottom-color: r
 html.dark .ss-etf-summary b { color: #F5EFE0; }
 html.dark .ss-etf-table th { color: rgba(245,239,224,.45); }
 html.dark .ss-etf-table th, html.dark .ss-etf-table td { border-bottom-color: rgba(245,239,224,.1); }
+html.dark .ss-etf-comp-row:hover { background: rgba(245,239,224,.06); }
+html.dark .ss-etf-comp-rank { color: rgba(245,239,224,.45); }
 html.dark .ss-etf-comp-name { color: #F5EFE0; }
 html.dark .ss-etf-comp-weight { color: rgba(245,239,224,.7); }
 html.dark .ss-etf-table .ss-up { color: #ff6b6b; }

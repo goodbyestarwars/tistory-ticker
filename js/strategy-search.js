@@ -140,6 +140,10 @@
 
   function buildShell() {
     return ''
+      + '<div class="ss-intro">'
+      + '<h1>전략은 두뇌다.</h1>'
+      + '<p>전략 조건으로 후보군을 찾고, 차트와 종목분석에서 진입 여부를 별도로 확인합니다.</p>'
+      + '</div>'
       + '<div class="ss-head">'
       + '<div class="ss-tabs" id="ssTabs"></div>'
       + '<div class="ss-meta" id="ssMeta"></div>'
@@ -150,6 +154,11 @@
 
   function categoryKeys() {
     return Object.keys(scanData.categories);
+  }
+
+  function categoryLabel(key, category) {
+    if (key === 'undervalued') return '재무건전 장기 눌림';
+    return (category && category.name) || key;
   }
 
   function renderAll(container) {
@@ -165,7 +174,7 @@
     tabsEl.innerHTML = categoryKeys().map(function (key) {
       var c = scanData.categories[key];
       return '<button type="button" class="ss-tab' + (key === activeKey ? ' active' : '') + '" data-key="' + key + '">'
-        + escapeHtml((c && c.name) || key) + '</button>';
+        + escapeHtml(categoryLabel(key, c)) + '</button>';
     }).join('');
   }
 
@@ -247,6 +256,12 @@
       }
       global.location.href = STOCK_DETAIL_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
     });
+    container.addEventListener('keydown', function (event) {
+      var row = event.target.closest ? event.target.closest('.ss-row') : null;
+      if (!row || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      row.click();
+    });
   }
 
   function renderMeta(container) {
@@ -256,21 +271,28 @@
       meta.textContent = '아직 스캔 결과가 없어요.';
       return;
     }
-    var text = '스캔 ' + scanData.scannedAt + ' · 대상 ' + (scanData.scanned || 0) + '/' + (scanData.universe || 0) + '종목';
-    if (scanData.skippedIlliquid) {
-      text += ' · 유동성 부족 제외 ' + scanData.skippedIlliquid + '종목';
-    }
+    var text = '스캔 기준시각 ' + scanData.scannedAt + ' · 전체 대상 ' + (scanData.universe || 0) + '종목';
+    if (scanData.skippedIlliquid != null) text += ' · 유동성 부족 제외 ' + scanData.skippedIlliquid + '종목';
     meta.textContent = text;
   }
 
-  // 카테고리의 실제 판정 기준을 화면에 그대로 밝힌다(예: "저평가 종목"은 PER/PBR 없이
-  // 근사한 값이라는 한계까지) - scripts/cloud-vm/strategy_scan.py가 이미 문장으로 채워
-  // 보내주는 methodology를 그대로 옮기기만 한다(프론트에서 새로 요약·해석하지 않음).
+  function methodologySummary(key) {
+    if (key === 'undervalued') return '재무 조건을 통과한 종목 중 120일선 대비 가격이 눌린 종목을 섹터별로 표시합니다.';
+    if (key === 'dividend') return '과거 현금배당 공시를 기준으로 배당수익률과 주당 배당금을 비교합니다.';
+    if (key === 'etfReturn') return '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.';
+    return '전략 조건으로 후보군을 탐색하고, 세부 기준을 확인합니다.';
+  }
+
+  // 첫 화면은 핵심 한 줄만 보여주고, 서버가 내려준 전체 조건·제외 조건·데이터 한계는
+  // details 안에 그대로 보존한다. 조건을 숨기는 것이 아니라 정보량만 접는다.
   function renderMethodology(container) {
     var box = container.querySelector('#ssMethodology');
     if (!box) return;
     var cat = scanData.categories[activeKey];
-    box.textContent = (cat && cat.methodology) || '';
+    var full = (cat && cat.methodology) || '상세 조건 정보가 없습니다.';
+    box.innerHTML = '<p class="ss-methodology-summary">' + escapeHtml(methodologySummary(activeKey)) + '</p>'
+      + '<details class="ss-methodology-details"><summary>조건 자세히</summary>'
+      + '<p>' + escapeHtml(full) + '</p></details>';
   }
 
   function renderCards(container) {
@@ -340,7 +362,8 @@
           + (expanded ? '접기 ▲' : '더보기 · 전체 ' + matches.length + '개 ▼') + '</button>'
         : '';
       return '<div class="ss-card">'
-        + '<div class="ss-card-title">' + escapeHtml(group.name) + '</div>'
+        + '<div class="ss-card-heading"><div class="ss-card-title">' + escapeHtml(group.name) + '</div>'
+        + '<p class="ss-card-note">' + escapeHtml(cardNote(activeKey)) + '</p></div>'
         + '<div class="ss-rows">' + rows + '</div>'
         + moreBtn
         + '</div>';
@@ -386,37 +409,60 @@
     });
   }
 
+  function cardNote(key) {
+    if (key === 'undervalued') return '장기 가격 눌림 상위 후보';
+    if (key === 'dividend') return '현금배당 기준 비교 후보';
+    if (key === 'etfReturn') return '운용사별 기간 성과 비교';
+    return '전략 조건을 충족한 후보군';
+  }
+
+  function periodLabel(key) {
+    var period = ETF_RETURN_PERIODS.filter(function (item) { return item.key === key; })[0];
+    return period ? period.label : key;
+  }
+
   function rowHtml(it) {
     var cc = chgClass(it.changeRate);
-    var metric = it.strategy === 'etfReturn'
-      ? '<span class="ss-etf-return-metric">'
+    var primary = '';
+    var secondary = '';
+    var basis = it.date ? '기준일 ' + it.date : '';
+    var extra = '';
+    if (it.strategy === 'etfReturn') {
+      var selectedField = 'returnRate' + activeEtfPeriod + 'Pct';
+      primary = periodLabel(activeEtfPeriod) + ' 수익률 ' + fmtPct(it[selectedField]);
+      secondary = '<span class="ss-etf-return-metric">'
         + '<span>1개월 <b>' + fmtPct(it.returnRate1mPct) + '</b></span>'
         + '<span>3개월 <b>' + fmtPct(it.returnRate3mPct) + '</b></span>'
         + '<span>6개월 <b>' + fmtPct(it.returnRate6mPct) + '</b></span>'
-        + '<span>12개월 <b>' + fmtPct(it.returnRate12mPct) + '</b></span>'
-        + '</span>'
-      : it.strategy === 'dividend'
-      ? '배당금 ' + fmt(it.cashDividendPerShare) + '원 · 배당수익률 ' + fmtPct(it.dividendYieldPct)
-        + ' · 배당성향 ' + fmtPct(it.payoutRatioPct)
-      : it.gapRatePct != null
-      ? '시초갭 ' + fmtPct(it.gapRatePct) + ' · 시가→종가 ' + fmtPct(it.intradayRatePct)
-        + ' · 거래대금 ' + fmtMillion(it.turnoverMillion) + '백만원'
-      : it.envelope
-      ? '엔벨로프 하단 ' + fmtPct(it.envelope.closeDistancePct) + ' · ROE ' + fmtPct(it.roe)
-      : '이격도 ' + fmtPct(it.disparity) + ' · ROE ' + fmtPct(it.roe);
-    return '<div class="ss-row" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" title="눌러서 종목분석 보기">'
-      + '<div class="ss-row-top">'
-      + '<span class="ss-row-name">' + escapeHtml(it.name) + '<span class="ss-row-code">(' + escapeHtml(it.code) + ')</span></span>'
-      + '<span><span class="ss-row-price">' + fmt(it.price) + '</span>'
-      + '<span class="ss-row-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
-      + '</div>'
-      + '<div class="ss-row-metric">' + metric + '</div>'
+        + '<span>12개월 <b>' + fmtPct(it.returnRate12mPct) + '</b></span></span>';
+      extra = '<button type="button" class="ss-etf-components-btn" aria-label="' + escapeAttr(it.name) + ' 구성종목 보기">구성종목 보기</button>';
+    } else if (it.strategy === 'dividend') {
+      primary = it.dividendYieldPct == null ? '공시 데이터 수집 대기' : '배당수익률 ' + fmtPct(it.dividendYieldPct);
+      secondary = it.cashDividendPerShare == null ? '주당 현금배당 데이터 없음' : '주당 현금배당 ' + fmt(it.cashDividendPerShare) + '원';
+      basis = it.reportYear ? String(it.reportYear) + ' 사업연도 공시 기준' : '공시 기준연도 확인 대기';
+    } else if (it.disparity != null) {
+      primary = '120일선 대비 ' + fmtPctSigned(Number(it.disparity) - 100);
+      secondary = 'ROE ' + fmtPct(it.roe) + ' · 부채비율 ' + fmtPct(it.debtRatio);
+    } else if (it.envelope) {
+      primary = '주봉 엔벨로프 하단 ' + fmtPct(it.envelope.closeDistancePct);
+      secondary = 'ROE ' + fmtPct(it.roe) + ' · 부채비율 ' + fmtPct(it.debtRatio);
+    } else {
+      primary = it.gapRatePct != null ? '시초갭 ' + fmtPct(it.gapRatePct) : '전략 조건 충족';
+      secondary = it.intradayRatePct != null ? '시가→종가 ' + fmtPct(it.intradayRatePct) + ' · 거래대금 ' + fmtMillion(it.turnoverMillion) + '백만원' : '';
+    }
+    return '<div class="ss-row" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" tabindex="0" role="button" title="눌러서 종목분석 보기">'
+      + '<div class="ss-row-top"><span class="ss-row-name">' + escapeHtml(it.name) + '<span class="ss-row-code">(' + escapeHtml(it.code) + ')</span></span></div>'
+      + '<div class="ss-row-primary">' + escapeHtml(primary) + '</div>'
+      + (secondary ? '<div class="ss-row-secondary">' + (it.strategy === 'etfReturn' ? secondary : escapeHtml(secondary)) + '</div>' : '')
+      + '<div class="ss-row-bottom"><span class="ss-row-quote"><span class="ss-row-price">' + fmt(it.price) + '</span><span class="ss-row-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
+      + (basis ? '<span class="ss-row-basis">' + escapeHtml(basis) + '</span>' : '') + extra + '</div>'
       + '</div>';
   }
 
   // ---- 유틸(js/pattern-scan.js와 동일, 등락 표시는 js/sector-dashboard-v4.js와 동일 형식) ----
 
   function fetchJson(url) {
+    if (typeof global.__strategySearchFetch === 'function') return global.__strategySearchFetch(url);
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
@@ -449,6 +495,11 @@
   }
   function fmt(n) { return n == null ? '-' : Math.round(n).toLocaleString('ko-KR'); }
   function fmtPct(n) { return n == null ? '-' : n.toFixed(1) + '%'; }
+  function fmtPctSigned(n) {
+    if (n == null || !isFinite(Number(n))) return '-';
+    var value = Number(n);
+    return (value > 0 ? '+' : '') + value.toFixed(1) + '%';
+  }
   function fmtMillion(n) { return n == null ? '-' : Math.round(n).toLocaleString('ko-KR'); }
 
   function escapeHtml(s) {
@@ -477,9 +528,10 @@
     if (event.key === 'Escape') closeEtfComponentsModal();
   }
 
-  function etfComponentRowHtml(item) {
+  function etfComponentRowHtml(item, index) {
     var cls = chgClass(item.changeRatePct);
-    return '<tr>'
+    return '<tr class="ss-etf-comp-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name || item.code || '-') + '" tabindex="0">'
+      + '<td class="ss-etf-comp-rank">' + (index + 1) + '</td>'
       + '<td class="ss-etf-comp-name">' + escapeHtml(item.name || item.code || '-') + '</td>'
       + '<td class="ss-etf-comp-weight">' + fmtPct(item.weightPct) + '</td>'
       + '<td>' + fmt(item.price) + '원</td>'
@@ -495,13 +547,19 @@
       return;
     }
     var summaryCls = chgClass(data.changeRatePct);
+    var totalCount = data.componentCount != null ? Number(data.componentCount) : components.length;
+    var top10Weight = components.slice(0, 10).reduce(function (sum, item) { return sum + (Number(item.weightPct) || 0); }, 0);
+    var basisDate = data.asOf || data.baseDate || data.dataDate || data.updatedAt || '';
     body.innerHTML = '<div class="ss-etf-summary">'
       + '<span>현재가 <b class="' + summaryCls + '">' + fmt(data.price) + '원 ' + chgSign(data.changeRatePct) + '</b></span>'
       + (data.nav != null ? '<span>NAV <b>' + fmt(data.nav) + '</b></span>' : '')
-      + (data.componentCount != null ? '<span>구성종목 수 <b>' + data.componentCount + '개</b></span>' : '')
+      + '<span>구성종목 수 <b>' + totalCount + '개</b></span>'
+      + '<span>상위 10종목 비중 <b>' + top10Weight.toFixed(1) + '%</b></span>'
+      + '<span>' + (basisDate ? '구성 기준 ' + escapeHtml(basisDate) : '구성 기준일 API 미제공') + '</span>'
+      + '<span>현재 표시 <b>' + components.length + '개</b></span>'
       + '</div>'
       + '<div class="ss-etf-table-wrap"><table class="ss-etf-table">'
-      + '<thead><tr><th>종목명</th><th>비중</th><th>현재가</th><th>등락률</th></tr></thead>'
+      + '<thead><tr><th>순위</th><th>종목명</th><th>비중</th><th>현재가</th><th>등락률</th></tr></thead>'
       + '<tbody>' + components.map(etfComponentRowHtml).join('') + '</tbody>'
       + '</table></div>';
   }
@@ -521,6 +579,12 @@
     etfModalOverlay = overlay;
     overlay.addEventListener('click', function (event) {
       if (event.target === overlay) closeEtfComponentsModal();
+      var componentRow = event.target.closest ? event.target.closest('.ss-etf-comp-row') : null;
+      if (componentRow) {
+        var componentCode = componentRow.getAttribute('data-code');
+        var componentName = componentRow.getAttribute('data-name') || componentCode;
+        if (componentCode) global.location.href = STOCK_DETAIL_PAGE + '?code=' + encodeURIComponent(componentCode) + '&name=' + encodeURIComponent(componentName);
+      }
     });
     overlay.querySelector('.ss-etf-modal-close').addEventListener('click', closeEtfComponentsModal);
     document.addEventListener('keydown', onEtfModalKeydown);

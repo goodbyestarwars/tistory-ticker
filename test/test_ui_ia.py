@@ -1079,7 +1079,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/strategy-search.css")
         self.assertIn("it.envelope", source)
         self.assertIn("엔벨로프 하단", source)
-        self.assertIn("columns: 2 150px;", style)
+        self.assertIn("columns: 1;", style)
         self.assertIn("#strategy-search .ss-row-name", style)
 
     def test_strategy_search_renders_opening_gap_metric(self):
@@ -1111,6 +1111,31 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("ss-return-period-tabs", style)
         self.assertIn("ss-dividend-sort-btn", source)
         self.assertIn("data-dividend-sort", source)
+
+    def test_strategy_search_explains_candidates_without_recommendation_language(self):
+        source = self.read("js/strategy-search.js")
+        style = self.read("css/strategy-search.css")
+        fixture = self.read("test/strategy-search.html")
+        for token in (
+            "전략은 두뇌다.",
+            "전략 조건으로 후보군을 찾고",
+            "categoryLabel",
+            "재무건전 장기 눌림",
+            "조건 자세히",
+            "120일선 대비",
+            "배당수익률",
+            "주당 현금배당",
+            "구성종목 보기",
+            "상위 10종목 비중",
+            "ss-etf-comp-row",
+            "tabindex=\"0\"",
+        ):
+            self.assertIn(token, source)
+        self.assertIn("dividendMatch", fixture)
+        self.assertIn("etfMatch", fixture)
+        self.assertNotIn("'이격도 '", source)
+        for token in (".ss-intro", ".ss-methodology-details", ".ss-row-primary", ".ss-row-secondary", ".ss-etf-components-btn", "columns: 1;"):
+            self.assertIn(token, style)
 
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")
