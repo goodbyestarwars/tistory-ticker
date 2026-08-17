@@ -110,6 +110,9 @@
 }
 
 #pattern-scan .ps-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-size: 13.5px;
   font-weight: 700;
   color: #111827;
@@ -145,6 +148,15 @@
   vector-effect: non-scaling-stroke;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+#pattern-scan .ps-stock-icon {
+  flex: 0 0 auto;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #f3f5f7;
 }
 
 #pattern-scan .ps-mini-chart .ps-pivot-marker {
@@ -254,10 +266,14 @@
 }
 
 #pattern-scan .ps-detail-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-size: 15px;
   font-weight: 700;
   color: #111827;
 }
+#pattern-scan .ps-detail-name .ps-stock-icon { width: 26px; height: 26px; border-radius: 50%; object-fit: contain; background: #f3f5f7; }
 #pattern-scan .ps-timeframe-badge {
   display: inline-flex;
   align-items: center;

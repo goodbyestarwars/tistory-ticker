@@ -24,6 +24,7 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#strategy-search';
   var FETCH_TIMEOUT_MS = 15000;
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   // 종목분석 상세 페이지 - js/stock-search-panel.js·js/watchlist.js와 동일한 이동 방식
   // (?code=&name=). 펀더멘탈(PER·PBR·DART 재무)·차트·수급을 바로 확인할 수 있어 "왜 이
   // 종목이 뽑혔는지" 근거를 확인하기 가장 가까운 기존 페이지다.
@@ -36,6 +37,14 @@
   var activeDividendSort = 'yield';
   var activeDividendMarket = '';
   var etfSearchQuery = '';
+  function stockIconHtml(code, cls) {
+    if (!code) return '';
+    var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
+    var iconClass = cls || 'ss-stock-icon';
+    return '<img class="' + iconClass + '" data-icon-code="' + escapeAttr(iconCode)
+      + '" data-icon-market="domestic" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode)
+      + '.svg" alt="" loading="lazy" onerror="window.StockIconFallback ? window.StockIconFallback(this) : (window.__stockIconFallback ? window.__stockIconFallback(this) : this.style.display=\'none\')">';
+  }
   var ETF_PROVIDER_PREFIXES = [
     ['KODEX', '삼성자산운용'], ['TIGER', '미래에셋자산운용'], ['ACE', '한국투자신탁운용'],
     ['HANARO', 'NH-Amundi자산운용'], ['RISE', 'KB자산운용'], ['KBSTAR', 'KB자산운용'],
@@ -528,7 +537,7 @@
     return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
       + '<td class="ss-col-watch" data-label="관심등록">' + watchButtonHtml(item) + '</td>'
       + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
-      + '<td class="ss-col-product" data-label="상품명"><strong>' + escapeHtml(item.name) + '</strong>' + componentButton + '</td>'
+      + '<td class="ss-col-product" data-label="상품명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + '</span></strong>' + componentButton + '</td>'
       + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
       + '<td class="ss-col-provider" data-label="운용사">' + escapeHtml(item.provider || '—') + '</td>'
       + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
@@ -620,7 +629,7 @@
     var row = '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
       + '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'
       + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
-      + '<td class="ss-col-product" data-label="종목명"><strong>' + escapeHtml(item.name) + '</strong></td>'
+      + '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + '</span></strong></td>'
       + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
       + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(item.market || '—') + ' · ' + escapeHtml(item.sector || '—') + '</td>'
       + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
@@ -693,7 +702,7 @@
       secondary = it.intradayRatePct != null ? '시가→종가 ' + fmtPct(it.intradayRatePct) + ' · 거래대금 ' + fmtMillion(it.turnoverMillion) + '백만원' : '';
     }
     return '<div class="ss-row" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" tabindex="0" role="button" title="눌러서 종목분석 보기">'
-      + '<div class="ss-row-top"><span class="ss-row-name">' + escapeHtml(it.name) + '<span class="ss-row-code">(' + escapeHtml(it.code) + ')</span></span></div>'
+      + '<div class="ss-row-top"><span class="ss-row-name">' + stockIconHtml(it.code) + '<span>' + escapeHtml(it.name) + '</span><span class="ss-row-code">(' + escapeHtml(it.code) + ')</span></span></div>'
       + '<div class="ss-row-primary">' + escapeHtml(primary) + '</div>'
       + (secondary ? '<div class="ss-row-secondary">' + (it.strategy === 'etfReturn' ? secondary : escapeHtml(secondary)) + '</div>' : '')
       + '<div class="ss-row-bottom"><span class="ss-row-quote"><span class="ss-row-price">' + fmt(it.price) + '</span><span class="ss-row-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
@@ -777,7 +786,7 @@
     var cls = chgClass(item.changeRatePct);
     return '<tr class="ss-etf-comp-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name || item.code || '-') + '" tabindex="0">'
       + '<td class="ss-etf-comp-rank">' + (index + 1) + '</td>'
-      + '<td class="ss-etf-comp-name">' + escapeHtml(item.name || item.code || '-') + '</td>'
+      + '<td class="ss-etf-comp-name">' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || item.code || '-') + '</span></td>'
       + '<td class="ss-etf-comp-weight">' + fmtPct(item.weightPct) + '</td>'
       + '<td>' + fmt(item.price) + '원</td>'
       + '<td class="' + cls + '">' + chgSign(item.changeRatePct) + '</td>'

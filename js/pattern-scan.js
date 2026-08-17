@@ -19,6 +19,7 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#pattern-scan';
   var FETCH_TIMEOUT_MS = 15000;
+  var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
 
   var CHART_H = 420;
 
@@ -53,6 +54,15 @@
 
   var scanData = null;
   var activeTab = 'risingLows';
+
+  function stockIconHtml(code, cls) {
+    if (!code) return '';
+    var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
+    var iconClass = cls || 'ps-stock-icon';
+    return '<img class="' + iconClass + '" data-icon-code="' + escapeHtml(iconCode)
+      + '" data-icon-market="domestic" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode)
+      + '.svg" alt="" loading="lazy" onerror="window.StockIconFallback ? window.StockIconFallback(this) : (window.__stockIconFallback ? window.__stockIconFallback(this) : this.style.display=\'none\')">';
+  }
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -282,7 +292,7 @@
       return '<div class="ps-item" data-code="' + escapeHtml(it.code) + '" tabindex="0" role="button" aria-label="' + escapeHtml(it.name) + ' 차트 상세 보기">'
         + '<span class="ps-rank">' + String(index + 1).padStart(2, '0') + '</span>'
         + '<div class="ps-stock">'
-        + '<span class="ps-name">' + escapeHtml(it.name) + '</span>'
+        + '<span class="ps-name">' + stockIconHtml(it.code) + '<span>' + escapeHtml(it.name) + '</span></span>'
         + '<span class="ps-code">' + escapeHtml(it.code) + '</span>'
         + '<span class="ps-mobile-signal">' + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
         + '</div>'
@@ -357,7 +367,7 @@
 
   function renderDetail(box, item, data) {
     var html = '<div class="ps-detail-head">'
-      + '<span class="ps-detail-name">' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span>'
+      + '<span class="ps-detail-name">' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span></span>'
       + '<span class="ps-timeframe-badge">2년 일봉 · 1D</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';

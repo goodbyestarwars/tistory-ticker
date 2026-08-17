@@ -253,6 +253,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("return localRows.concat(rows)", realtime)
         self.assertIn("return localRows.concat(rows)", self.read("js/us-stocks.js"))
 
+    def test_stock_name_renderers_put_shared_logo_before_names(self):
+        stock_news = self.read("js/stock-news.js")
+        stock_search = self.read("js/stock-search.js")
+        pattern = self.read("js/pattern-scan.js")
+        strategy = self.read("js/strategy-search.js")
+        for source in (stock_news, stock_search, pattern, strategy):
+            self.assertIn("STOCK_ICON_BASE", source)
+            self.assertIn("data-icon-code", source)
+            self.assertIn("window.StockIconFallback", source)
+        self.assertIn("sn-wl-name-text", stock_news)
+        self.assertIn("stockIconHtml(s.code)", stock_news)
+        self.assertIn("stockIconHtml(it.code)", pattern)
+        self.assertIn("stockIconHtml(item.code)", strategy)
+
     def test_domestic_name_search_wins_over_us_ticker_detection(self):
         source = self.read("js/stock-search.js")
         self.assertIn("function resolveDomesticName(query)", source)
