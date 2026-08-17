@@ -1,6 +1,6 @@
 # 9Pay 증권 아키텍처 정의서
 
-작성일: 2026-08-03 · 기준 커밋: `3565730` (`master`)
+작성일: 2026-08-17 · 운영 기준 커밋: `0f18642` (`origin/master`)
 
 간단한 인프라 요약은 루트 `ARCHITECTURE.md`(다른 AI에게 붙여넣는 용도)를 본다. 이 문서는 컴포넌트 간 호출·인증·캐시·동시성 구조를 상세화한 것이다. 파일별 상세는 `SOURCE_CODE_SPEC.md`, DB 스키마는 `DB_SPEC.md`를 본다.
 
@@ -64,7 +64,15 @@ flowchart LR
 
 CORS는 서버-서버 호출(브라우저가 아닌 curl/스크립트)에는 적용되지 않는다 — 즉 "공개" 그룹은 사실상 누구나 직접 호출 가능한 공개 API다. 이는 "GAS→VM 구간 간헐적 차단" 문제를 우회하기 위한 의도된 설계이며(`main.py:88-97` 주석), 공개 시세 데이터라 민감정보 노출은 아니지만 레이트리밋이 없다(상세는 `SOURCE_CODE_SPEC.md` §6.3).
 
-`/ws/quotes`(WebSocket)는 `Origin` 헤더 검사로만 접근을 제한하며(`main.py:228-234`), 2026-08-03부터 동시 연결 수 상한(`_WS_MAX_CONNECTIONS=200`)도 함께 적용한다.
+`/ws/quotes`(WebSocket)는 `Origin` 헤더 검사로만 접근을 제한하며(`main.py`의
+`realtime_quote_socket`), 동시 연결 수 상한(`_WS_MAX_CONNECTIONS=200`)도 적용한다.
+국내 종목코드는 그대로 받고 미국 종목은 `US:SYMBOL` 형식으로 같은 연결에서 구독한다.
+
+`/ws/economic-news`는 `https://ghlee.tistory.com` Origin만 허용하고 연결 즉시 현재 시장
+스냅샷을 보낸다. 국내/미국 시장은 프론트의 선택 상태와 분리해 서버가 수집하며, 서버 측
+공유 캐시는 4분, 브로드캐스트 수집 주기는 5분이다. 화면의 속보 한 건씩 넘김(5초)은
+프론트 표시 동작이며 API 수집 주기와 다르다. 국내 스냅샷은 국내 일반뉴스와 공통 미국
+거시·실적 속보를 조합하고, 미국 스냅샷은 미국·글로벌 일반뉴스를 사용한다.
 
 #### 2.3.2 백그라운드 프로세스 모델
 
@@ -86,6 +94,9 @@ CORS는 서버-서버 호출(브라우저가 아닌 curl/스크립트)에는 적
 
 - git 추적은 하지만 배포 경로가 아니다 — Tistory는 이 저장소를 pull하지 않는다.
 - 실제 반영은 Tistory 관리자 → 꾸미기 → 스킨 편집 → HTML 편집에 수동 붙여넣기.
+- Tistory는 이 저장소를 자동 pull하지 않으므로 `master` push만으로 `skin.html`이 운영
+  스킨에 반영되지 않는다. 반면 스킨이 참조하는 GitHub Pages 정적 `js/`, `css/`, `data/`
+  파일은 `master` push 후 별도 수동 복사 없이 갱신된다.
 - 서버 치환 태그(`[##_..._##]`, `<s_xxx>`) 포함 블록만 남아 있고, 나머지는 `js/skin-shell.js`가 런타임 주입.
 
 ### 2.5 로컬 전용 데이터 수집 (`scripts/fetch_investor_flow.py`)
@@ -104,6 +115,18 @@ CORS는 서버-서버 호출(브라우저가 아닌 curl/스크립트)에는 적
 | `data/investor-flow-cache.js` | 이 저장소 | 사용자 PC 로컬 1일 1회 수동 실행 → push | 즉시(수동) |
 
 작업 브랜치는 항상 최종적으로 `master`에 merge되어야 실제 반영된다.
+
+운영 배포 후 최소 확인 순서는 다음과 같다.
+
+1. `git ls-remote origin refs/heads/master`로 원격 커밋 확인
+2. `https://goodbyestar.cloud/health` HTTP 200 확인
+3. `https://goodbyestar.cloud/openapi.json` 또는 `/docs`에서 라우트 변화 확인
+4. 인증 없이 `/futures`, `/market-board`, `/domestic-news`, `/foreign-news`와
+   `wss://goodbyestar.cloud/ws/economic-news`의 공개 경계를 점검하고,
+   인증 라우트는 비밀 헤더를 노출하지 않는 별도 smoke test로 확인
+5. `gas/` 변경이 있으면 GitHub Actions `Deploy GAS ticker-proxy` 성공 여부 확인
+
+`skin.html` 변경은 위 자동 배포와 별개로 Tistory 관리자 수동 반영 여부를 확인해야 한다.
 
 ## 4. 캐싱 계층
 

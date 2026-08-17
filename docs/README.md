@@ -8,6 +8,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `../CLAUDE.md` | 모든 AI의 단일 공통 규칙과 문서 지도 | 작업 시작 시 |
 | `../ARCHITECTURE.md` | 인프라, 호출 흐름, 배포 경로 | 구조·배포 작업 |
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
+| `API_OPERATION_SPEC.md` | API 인증·WebSocket·운영·장애 대응 | 운영/배포 작업 |
 | `UI_GUIDE.md` | 색상, 레이아웃, 반응형 원칙 | UI 작업 |
 | `WORK_HISTORY.md` | 중요한 기능·구조·배포 이력 | 이력 확인·갱신 시 |
 | `GAS_AUTO_DEPLOY.md` | GAS 자동 배포(GitHub Actions+clasp) 설정·확인 절차 | GAS 배포 작업 |
