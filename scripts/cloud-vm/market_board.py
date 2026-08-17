@@ -185,6 +185,11 @@ def _enrich_domestic(token, rows):
             item['name'] = info['name']
         if info.get('market_cap') is not None:
             item['market_cap'] = info['market_cap']
+        item['name_ko'] = item.get('name_ko') or item.get('name') or item.get('code')
+        item['name_en'] = item.get('name_en') or ''
+        item['display_name'] = item.get('display_name') or item['name_ko']
+        item['volume'] = item.get('trade_volume')
+        item['trading_value'] = item.get('trade_amount')
         return item
 
     out = []
@@ -207,6 +212,9 @@ def _domestic_fallback_row(token, code):
         'market': 'domestic',
         'code': code,
         'name': _first(raw, 'stk_nm', 'name') or code,
+        'name_ko': _first(raw, 'stk_nm', 'name') or code,
+        'name_en': '',
+        'display_name': _first(raw, 'stk_nm', 'name') or code,
         'price': price,
         'change': _number(_first(raw, 'pred_pre', 'change', 'prdy_vrss')),
         'change_rate': _number(_first(raw, 'flu_rt', 'change_rate', 'prdy_ctrt')) or 0,
@@ -215,6 +223,8 @@ def _domestic_fallback_row(token, code):
         'market_cap': _number(_first(raw, 'mac', 'market_cap')),
         'industry': '기타',
         'currency': 'KRW',
+        'volume': volume,
+        'trading_value': amount if amount is not None else price * volume,
     }
 
 
@@ -500,11 +510,15 @@ def _us_row(symbol, finnhub_api_key):
     profile = us_analysis.get_profile(symbol, finnhub_api_key) if finnhub_api_key else {}
     price = quote.get('price') or 0
     volume = quote.get('volume') or 0
+    name_en = profile.get('name') or quote.get('name') or symbol
     return {
         'market': 'us',
         'code': 'US:' + symbol,
         'symbol': symbol,
-        'name': profile.get('name') or quote.get('name') or symbol,
+        'name': name_en,
+        'name_ko': '',
+        'name_en': name_en,
+        'display_name': name_en,
         'price': price,
         'change': quote.get('change'),
         'change_rate': quote.get('change_rate') or 0,
@@ -514,6 +528,8 @@ def _us_row(symbol, finnhub_api_key):
         'market_cap': _profile_market_cap(profile),
         'industry': profile.get('finnhubIndustry') or profile.get('gsector') or '미분류',
         'currency': 'USD',
+        'volume': volume,
+        'trading_value': price * volume,
     }
 
 
@@ -577,11 +593,16 @@ def _us_rank_row(rank_row, finnhub_api_key):
     price = abs(_number(_first(rank_row, 'cur_prc', 'price')) or 0)
     volume = _number(_first(rank_row, 'acc_trde_qty', 'volume')) or 0
     trade_amount_thousand_usd = _number(_first(rank_row, 'trde_prica', 'trade_amount')) or 0
+    name_en = profile.get('name') or _first(rank_row, 'stk_enm', 'en_name', 'name') or symbol
+    name_ko = _first(rank_row, 'stk_nm', 'hts_kor_isnm', 'knam') or ''
     return {
         'market': 'us',
         'code': 'US:' + symbol,
         'symbol': symbol,
-        'name': profile.get('name') or _first(rank_row, 'stk_enm', 'stk_nm', 'name') or symbol,
+        'name': name_en,
+        'name_ko': name_ko,
+        'name_en': name_en,
+        'display_name': name_en,
         'price': price,
         'change': _number(_first(rank_row, 'pred_pre', 'change')),
         'change_rate': _number(_first(rank_row, 'flu_rt', 'change_rate')) or 0,
@@ -591,6 +612,8 @@ def _us_rank_row(rank_row, finnhub_api_key):
         'industry': profile.get('finnhubIndustry') or profile.get('gsector') or '미분류',
         'currency': 'USD',
         'exchange': _first(rank_row, 'stex_tp', 'exchange') or '',
+        'volume': volume,
+        'trading_value': trade_amount_thousand_usd * 1000,
     }
 
 
@@ -639,21 +662,28 @@ def _kis_us_row(row):
     price = abs(_number(_kis_value(row, 'last', 'cur_prc', 'price')) or 0)
     volume = _number(_kis_value(row, 'tvol', 'acml_vol', 'volume')) or 0
     amount = _number(_kis_value(row, 'tamt', 'trde_prica', 'trade_amount'))
+    name_en = _kis_value(row, 'en_name', 'enam', 'natn_name', 'eng_name', 'english_name') or symbol
+    name_ko = _kis_value(row, 'hts_kor_isnm', 'knam', 'name', 'korean_name') or ''
     return {
         'market': 'us',
         'code': 'US:' + symbol,
         'symbol': symbol,
-        'name': _kis_value(row, 'hts_kor_isnm', 'knam', 'name', 'en_name', 'enam', 'natn_name') or symbol,
+        'name': name_en,
+        'name_ko': name_ko,
+        'name_en': name_en,
+        'display_name': name_en,
         'price': price,
         'change': _number(_kis_value(row, 'diff', 'pred_pre', 'change')),
         'change_rate': _number(_kis_value(row, 'rate', 'flu_rt', 'change_rate')) or 0,
         'trade_volume': volume,
         'trade_amount': amount if amount is not None else price * volume,
         # HHDFS76350100의 tomv는 백만 USD 단위 시가총액이다.
-        'market_cap': _number(_kis_value(row, 'tomv', 'mktcap', 'market_cap', 'stck_avls')) or 0,
+        'market_cap': _number(_kis_value(row, 'tomv', 'mktcap', 'market_cap', 'stck_avls')),
         'industry': '미분류',
         'currency': 'USD',
         'exchange': _kis_value(row, 'excd', 'exchange') or '',
+        'volume': volume,
+        'trading_value': amount if amount is not None else price * volume,
     }
 
 

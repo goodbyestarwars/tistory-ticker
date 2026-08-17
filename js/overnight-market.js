@@ -121,6 +121,7 @@
 
   var CONTAINER_SELECTOR = '#overnight-market';
   var FUTURES_API = 'https://goodbyestar.cloud/futures';
+  var INDICATORS_WS_URL = 'wss://goodbyestar.cloud/ws/market-indicators';
   var FUTURES_AVG_API = 'https://goodbyestar.cloud/futures/avg';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var FETCH_TIMEOUT_MS = 10000;
@@ -192,6 +193,13 @@
   var chartInstances = {}; // symbol -> { chart, series }
   var themeObserver = null;
   var refreshTimer = null;
+  var indicatorsSocket = null;
+  var indicatorsReconnectTimer = null;
+  var indicatorsStaleTimer = null;
+  var indicatorsReconnectDelay = 1500;
+  var indicatorsGeneration = 0;
+  var indicatorsContainer = null;
+  var currentItems = [];
   // "이 선 위로 오르면 시장에 부담"이라는 해석이 뚜렷한 지표 + BTC(52주 이동평균선, 통상적인
   // 기술적분석 지표)에 장기평균 참고선을 붙인다. 시장지수류는 방향성이 뚜렷하지 않거나
   // (에너지) 이미 상승=호재로 직관적이라 생략하고, GOLD는 별도 해석 코멘트를 함께 제공한다.
@@ -331,7 +339,8 @@
         + '<div class="om-grid">' + cards + '</div>'
         + '</div>';
     }).join('');
-    return '<div class="om-summary" id="omSummary" hidden></div>'
+    return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
+      + '<div class="om-summary" id="omSummary" hidden></div>'
       + '<div class="om-ai" id="omAi" hidden></div>'
       + groups;
   }
@@ -651,6 +660,7 @@
   }
 
   function renderAll(container, items) {
+    currentItems = items || [];
     var bySymbol = {};
     items.forEach(function (item) { bySymbol[item.symbol] = item; });
 
@@ -689,12 +699,83 @@
       });
   }
 
+  function setIndicatorStatus(text) {
+    if (!indicatorsContainer) return;
+    var node = indicatorsContainer.querySelector('[data-om-connection]');
+    if (node) node.textContent = text;
+  }
+
+  function scheduleIndicatorReconnect() {
+    if (document.hidden || indicatorsReconnectTimer) return;
+    var delay = indicatorsReconnectDelay;
+    indicatorsReconnectDelay = Math.min(30000, Math.round(indicatorsReconnectDelay * 1.8));
+    indicatorsReconnectTimer = setTimeout(function () {
+      indicatorsReconnectTimer = null;
+      connectIndicatorSocket();
+    }, delay);
+  }
+
+  function closeIndicatorSocket(reconnect) {
+    indicatorsGeneration += 1;
+    if (indicatorsReconnectTimer) clearTimeout(indicatorsReconnectTimer);
+    if (indicatorsStaleTimer) clearTimeout(indicatorsStaleTimer);
+    indicatorsReconnectTimer = null;
+    indicatorsStaleTimer = null;
+    var socket = indicatorsSocket;
+    indicatorsSocket = null;
+    if (socket) { try { socket.close(); } catch (error) {} }
+    if (reconnect) scheduleIndicatorReconnect();
+  }
+
+  function connectIndicatorSocket() {
+    if (document.hidden || indicatorsSocket || !global.WebSocket) return;
+    var generation = indicatorsGeneration;
+    setIndicatorStatus('연결 재시도');
+    try {
+      indicatorsSocket = new WebSocket(INDICATORS_WS_URL + '?symbols=' + encodeURIComponent(SYMBOL_ORDER.join(',')));
+    } catch (error) {
+      indicatorsSocket = null;
+      scheduleIndicatorReconnect();
+      return;
+    }
+    indicatorsSocket.onopen = function () {
+      if (generation !== indicatorsGeneration) return;
+      indicatorsReconnectDelay = 1500;
+      setIndicatorStatus('실시간');
+    };
+    indicatorsSocket.onmessage = function (event) {
+      if (generation !== indicatorsGeneration) return;
+      var packet;
+      try { packet = JSON.parse(event.data); } catch (error) { return; }
+      if (!packet || packet.type !== 'market-indicators' || !Array.isArray(packet.data)) return;
+      var bySymbol = {};
+      currentItems.forEach(function (item) { bySymbol[item.symbol] = item; });
+      packet.data.forEach(function (quote) {
+        if (!quote || !quote.symbol) return;
+        bySymbol[quote.symbol] = Object.assign({}, bySymbol[quote.symbol] || { symbol: quote.symbol }, quote);
+      });
+      renderAll(indicatorsContainer, SYMBOL_ORDER.map(function (symbol) { return bySymbol[symbol] || { symbol: symbol }; }));
+      setIndicatorStatus('실시간');
+      if (indicatorsStaleTimer) clearTimeout(indicatorsStaleTimer);
+      indicatorsStaleTimer = setTimeout(function () { setIndicatorStatus('지연'); }, 20000);
+    };
+    indicatorsSocket.onerror = function () { setIndicatorStatus('연결 재시도'); };
+    indicatorsSocket.onclose = function () {
+      if (generation !== indicatorsGeneration) return;
+      indicatorsSocket = null;
+      setIndicatorStatus('연결 재시도');
+      scheduleIndicatorReconnect();
+    };
+  }
+
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
 
     container.innerHTML = buildShell();
+    indicatorsContainer = container;
     refresh(container);
+    connectIndicatorSocket();
     renderAiSummary(container);
 
     // 장기평균 참고선 데이터는 페이지 진입 시 심볼별로 1회만 불러온다(AI 해설과 동일한 이유 -
@@ -718,6 +799,11 @@
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () { refresh(container); }, REFRESH_INTERVAL_MS);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) closeIndicatorSocket(false);
+      else { connectIndicatorSocket(); refresh(container); }
+    });
+    global.addEventListener('beforeunload', function () { closeIndicatorSocket(false); });
 
     if (themeObserver) themeObserver.disconnect();
     themeObserver = new MutationObserver(function () {

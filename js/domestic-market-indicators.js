@@ -2,6 +2,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/domestic-market-indicators';
+  var WS_URL = 'wss://goodbyestar.cloud/ws/market-indicators?symbols=KOSPI,KOSDAQ';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   // 2026-08-14 요청: 사이트 곳곳의 Groq AI 요약 상자 제목·아이콘이 "참고의견"/"종합 요약"/
   // "요약" 등으로 제각각이라는 지적 - js/kospi-futures.js·js/overnight-market.js가 이미 쓰는
@@ -15,6 +16,12 @@
   var chartInstances = {};
   var drawingStates = {};
   var lwcPromise = null;
+  var socket = null;
+  var reconnectTimer = null;
+  var reconnectDelay = 1500;
+  var socketGeneration = 0;
+  var staleTimer = null;
+  var dmiRoot = null;
 
   function resizeDmiCharts() {
     global.requestAnimationFrame(function () {
@@ -45,6 +52,78 @@
       if (!payload || payload.success === false) throw new Error('invalid response');
       return payload.data || payload;
     });
+  }
+
+  function setLiveStatus(text) {
+    var node = dmiRoot && dmiRoot.querySelector('[data-dmi-connection]');
+    if (node) node.textContent = text;
+  }
+
+  function scheduleReconnect() {
+    if (document.hidden || reconnectTimer) return;
+    var delay = reconnectDelay;
+    reconnectDelay = Math.min(30000, Math.round(reconnectDelay * 1.8));
+    reconnectTimer = setTimeout(function () { reconnectTimer = null; connectSocket(); }, delay);
+  }
+
+  function closeSocket(reconnect) {
+    socketGeneration += 1;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (staleTimer) clearTimeout(staleTimer);
+    reconnectTimer = null;
+    staleTimer = null;
+    var current = socket;
+    socket = null;
+    if (current) { try { current.close(); } catch (error) {} }
+    if (reconnect) scheduleReconnect();
+  }
+
+  function applyLiveSnapshot(packet) {
+    if (!dmiRoot || !dmiRoot._dmiData || !Array.isArray(packet.data)) return;
+    var data = dmiRoot._dmiData;
+    packet.data.forEach(function (quote) {
+      if (!quote || !quote.symbol || typeof quote.price !== 'number') return;
+      var index = data.indices && data.indices[quote.symbol];
+      if (!index || !index.intervals) return;
+      Object.keys(index.intervals).forEach(function (interval) {
+        var rows = index.intervals[interval].rows || [];
+        if (!rows.length) return;
+        var last = rows[rows.length - 1];
+        last.close = quote.price;
+        last.high = Math.max(Number(last.high) || quote.price, quote.price);
+        last.low = Math.min(Number(last.low) || quote.price, quote.price);
+      });
+    });
+    renderCharts(dmiRoot, data.indices || {});
+  }
+
+  function connectSocket() {
+    if (document.hidden || socket || !global.WebSocket || !dmiRoot) return;
+    var generation = socketGeneration;
+    setLiveStatus('연결 재시도');
+    try { socket = new WebSocket(WS_URL); } catch (error) { socket = null; scheduleReconnect(); return; }
+    socket.onopen = function () {
+      if (generation !== socketGeneration) return;
+      reconnectDelay = 1500;
+      setLiveStatus('실시간');
+    };
+    socket.onmessage = function (event) {
+      if (generation !== socketGeneration) return;
+      var packet;
+      try { packet = JSON.parse(event.data); } catch (error) { return; }
+      if (!packet || packet.type !== 'market-indicators') return;
+      applyLiveSnapshot(packet);
+      setLiveStatus('실시간');
+      if (staleTimer) clearTimeout(staleTimer);
+      staleTimer = setTimeout(function () { setLiveStatus('지연'); }, 20000);
+    };
+    socket.onerror = function () { setLiveStatus('연결 재시도'); };
+    socket.onclose = function () {
+      if (generation !== socketGeneration) return;
+      socket = null;
+      setLiveStatus('연결 재시도');
+      scheduleReconnect();
+    };
   }
 
   // 2026-08-14 요청: 증시자금 카드 위 "종합 요약" - js/kospi-futures.js의 참고의견(AI 해설)과
@@ -619,9 +698,10 @@
     var root = document.getElementById('domestic-market-indicators');
     if (!root || root.getAttribute('data-dmi-ready') === '1') return;
     root.setAttribute('data-dmi-ready', '1');
+    dmiRoot = root;
     installStyle();
     root.innerHTML = '<div class="dmi-shell">'
-      + '<div class="dmi-heading"><h2>국내시장지표</h2></div>'
+      + '<div class="dmi-heading"><h2>국내시장지표</h2><span class="dmi-live-status" data-dmi-connection>REST 확인 중</span></div>'
       + '<section class="dmi-chart-section"><div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45)</h3></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div></section>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3></div>'
@@ -635,9 +715,15 @@
       renderCharts(root, data.indices || {});
       renderInvestor(root, data.investor || {});
       renderFunds(root, data.funds || {}, data.programTrading || {}, data.leverageDetail || {});
+      connectSocket();
     }).catch(function () {
       root.querySelector('.dmi-shell').insertAdjacentHTML('beforeend', '<div class="dmi-error">국내시장지표 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>');
     });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) closeSocket(false);
+      else { connectSocket(); fetchJson().then(function (data) { root._dmiData = data; renderCharts(root, data.indices || {}); }).catch(function () {}); }
+    });
+    global.addEventListener('beforeunload', function () { closeSocket(false); });
     var fundsAiBox = root.querySelector('#dmiFundsAi');
     fetchFundsAnalysis().then(function (text) {
       if (!text || !fundsAiBox) return;

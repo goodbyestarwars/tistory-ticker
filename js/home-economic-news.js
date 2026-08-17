@@ -203,28 +203,36 @@
     var session = state.mount.querySelector('[data-hen-session]');
     if (session) session.textContent = market === 'us' ? '미국 · 실시간 타임라인' : '국내 · 실시간 타임라인';
     renderFlash(flash || state.flash);
-    var rows = (items || []).filter(function (item) { return item && item.kind !== 'disclosure'; }).slice().sort(function (a, b) {
+    var cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    var rows = (items || []).filter(function (item) {
+      if (!item || item.kind === 'disclosure') return false;
+      var timestamp = dateValue(item.pubDate);
+      return timestamp > 0 && timestamp >= cutoff;
+    }).slice().sort(function (a, b) {
       return dateValue(b.pubDate) - dateValue(a.pubDate);
-    // 홈에서는 대표 기사 1건과 주요 기사 5건만 먼저 보여준다.
-    // 전체 목록은 하단의 전체 뉴스 링크에서 계속 확인할 수 있다.
-    }).slice(0, 6);
+    }).slice(0, 8);
     if (!rows.length) {
       list.innerHTML = '<p class="home-card-state">현재 표시할 경제 뉴스가 없습니다.</p>';
       return;
     }
-    list.innerHTML = '<div class="app-news-timeline hen-timeline">' + rows.map(function (item, index) {
-      var quote = quoteFor(item);
-      var tone = quote && quote.rate > 0 ? 'is-up' : quote && quote.rate < 0 ? 'is-down' : '';
-      var type = item.kind === 'disclosure' ? '공시' : kindLabel(item);
-      return '<a class="app-news-event hen-row ' + (index === 0 ? 'hen-featured ' : 'hen-regular ') + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
-        + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(timeLabel(item.pubDate)) + '</small></div>'
-        + '<div class="app-news-rail"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
-        + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--' + (market === 'us' ? '미국' : '한국') + '">' + (market === 'us' ? '미국' : '한국') + '</b><b class="app-news-type app-news-type--' + escapeHtml(type) + '">' + escapeHtml(type) + '</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
-        + '<strong>' + escapeHtml(item.title || '') + '</strong>'
-        + (quote ? '<div class="app-news-footer"><span class="app-news-quote ' + tone + '">' + escapeHtml(quote.name || '') + ' <b>' + (quote.rate > 0 ? '+' : '') + Number(quote.rate || 0).toFixed(2) + '%</b></span></div>' : '')
-        + '</div></a>';
-    }).join('') + '</div>'
-      + '<a class="home-news-more" href="/category/마켓 브리핑">전체 뉴스·브리핑 보기 →</a>';
+    var groups = { am: [], pm: [] };
+    rows.forEach(function (item) { groups[periodKey(item.pubDate)].push(item); });
+    var groupLabels = { am: '오전', pm: '오후' };
+    list.innerHTML = '<div class="app-news-timeline hen-timeline">' + ['am', 'pm'].map(function (period) {
+      if (!groups[period].length) return '';
+      return '<div class="hen-period"><h4>' + groupLabels[period] + '</h4>' + groups[period].map(function (item) {
+        var quote = quoteFor(item);
+        var tone = quote && quote.rate > 0 ? 'is-up' : quote && quote.rate < 0 ? 'is-down' : '';
+        var type = kindLabel(item);
+        return '<a class="app-news-event hen-row hen-regular ' + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
+          + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(timeLabel(item.pubDate)) + '</small></div>'
+          + '<div class="app-news-rail"><i></i></div>'
+          + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--' + (market === 'us' ? '미국' : '한국') + '">' + (market === 'us' ? '미국' : '한국') + '</b><b class="app-news-type app-news-type--' + escapeHtml(type) + '">' + escapeHtml(type) + '</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
+          + '<strong>' + escapeHtml(item.title || '') + '</strong>'
+          + (quote ? '<div class="app-news-footer"><span class="app-news-quote ' + tone + '">' + escapeHtml(quote.name || '') + ' <b>' + (quote.rate > 0 ? '+' : '') + Number(quote.rate || 0).toFixed(2) + '%</b></span></div>' : '')
+          + '</div></a>';
+      }).join('') + '</div>';
+    }).join('') + '</div>';
     if (updated) updated.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 

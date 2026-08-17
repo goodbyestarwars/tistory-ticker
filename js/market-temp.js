@@ -235,6 +235,9 @@
     }
 
     if (meta.unit === 'creditRisk') {
+      if (comp && comp.validation === 'pending') {
+        return { text: '데이터 검증 중', tone: 'mt-val-zero' };
+      }
       if (!comp || !comp.available || typeof comp.score !== 'number') {
         return { text: '데이터 준비 중', tone: 'mt-val-zero' };
       }
@@ -436,8 +439,8 @@
     var band = comp && comp.band ? comp.band : null;
     var tooltip = meta.desc + (band ? ' — 현재 구간: ' + band : '')
       + (comp && comp.criteria ? ' 기준: ' + comp.criteria : '')
-      + (comp && typeof comp.loan_total === 'number' ? ' 현재 신용융자 잔고: ' + (comp.loan_total / 1000000).toFixed(2) + '조원' : '')
-      + (comp && typeof comp.investor_deposits === 'number' ? ' 투자자예탁금: ' + (comp.investor_deposits / 1000000000000).toFixed(2) + '조원' : '');
+      + (comp && comp.available && typeof comp.loan_total === 'number' ? ' 현재 신용융자 잔고: ' + (comp.loan_total / 1000000).toFixed(2) + '조원' : '')
+      + (comp && comp.available && typeof comp.investor_deposits === 'number' ? ' 투자자예탁금: ' + (comp.investor_deposits / 1000000000000).toFixed(2) + '조원' : '');
 
     return ''
       + '<tr class="mt-comp-tr' + (rank < 3 ? ' mt-comp-tr-top' : '') + '">'

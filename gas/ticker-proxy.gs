@@ -1334,7 +1334,7 @@ var MT_COMPONENT_MAX = { // 지표별 배점(문서 그대로) - 합계가 온�
 // 빚투 위험도는 절대 잔고 하나가 아니라 최근 추세·예탁금 대비 비율·반대매매 비중을 함께 본다.
 // 아래 값은 규제 기준이 아니라 시장온도용 운영 기준이다.
 function scoreKofiaCredit_(kofia) {
-  var empty = { available: false, score: null, max: 10 };
+  var empty = { available: false, score: null, max: 10, validation: 'pending', stateLabel: '데이터 검증 중' };
   if (!kofia || !kofia.available) return empty;
 
   var credit = kofia.credit || {};
@@ -1343,6 +1343,40 @@ function scoreKofiaCredit_(kofia) {
   var deposits = typeof funds.investor_deposits === 'number' ? funds.investor_deposits : null;
   var forcedSale = typeof funds.forced_sale_ratio_pct === 'number' ? funds.forced_sale_ratio_pct : null;
   if (loan == null && deposits == null && forcedSale == null) return empty;
+
+  // KIS 원자료는 단위가 hundred_million_krw인 경우가 많다. 서로 다른 단위를
+  // 임의의 큰 배율로 나누면 3천만% 같은 유령 수치가 생기므로, 단위가 확인된
+  // 값만 원화로 환산하고 날짜도 같은 관측일인지 먼저 검증한다.
+  function unitFactor(unit) {
+    if (unit === 'krw') return 1;
+    if (unit === 'million_krw') return 1000000;
+    if (unit === 'hundred_million_krw') return 100000000;
+    return null;
+  }
+  var creditUnit = unitFactor(kofia.credit_unit);
+  var depositUnit = unitFactor(kofia.market_funds_unit);
+  var creditDate = credit.date || kofia.latest_date || '';
+  var depositDate = (funds.date || funds.latest_date || kofia.latest_date || '');
+  if (loan != null && deposits != null) {
+    var invalidReason = null;
+    if (!creditUnit || !depositUnit) invalidReason = '단위 확인 필요';
+    else if (creditDate && depositDate && String(creditDate) !== String(depositDate)) invalidReason = '기준일 불일치';
+    else if (loan < 0 || deposits <= 0) invalidReason = '원자료 범위 확인 필요';
+    if (!invalidReason) {
+      var normalizedLoan = loan * creditUnit;
+      var normalizedDeposits = deposits * depositUnit;
+      var checkedRatio = normalizedLoan / normalizedDeposits * 100;
+      if (!isFinite(checkedRatio) || checkedRatio < 0 || checkedRatio > 1000) invalidReason = '비정상 비율';
+    }
+    if (invalidReason) {
+      Logger.log(JSON.stringify({ type: 'credit-risk-validation', reason: invalidReason,
+        loan_total_raw: loan, investor_deposits_raw: deposits,
+        credit_unit: kofia.credit_unit, market_funds_unit: kofia.market_funds_unit,
+        credit_date: creditDate, deposit_date: depositDate }));
+      return { available: false, score: null, max: 10, validation: 'pending', stateLabel: '데이터 검증 중',
+        validationReason: invalidReason };
+    }
+  }
 
   var series = Array.isArray(kofia.series) ? kofia.series : [];
   var loanValues = series.map(function (item) {
@@ -1353,7 +1387,8 @@ function scoreKofiaCredit_(kofia) {
     ? priorLoanValues.reduce(function (sum, value) { return sum + value; }, 0) / priorLoanValues.length
     : null;
   var loanVsAvgPct = loan != null && priorAvg ? (loan / priorAvg - 1) * 100 : null;
-  var loanToDepositPct = loan != null && deposits > 0 ? (loan * 1000000 / deposits) * 100 : null;
+  var loanToDepositPct = loan != null && deposits > 0
+    ? (loan * creditUnit) / (deposits * depositUnit) * 100 : null;
 
   var riskPoints = 0;
   var maxRiskPoints = 0;
