@@ -111,7 +111,7 @@
  * 2026-07-21: BTC/ETH 카드에 52주 평균선 옆에 "6개월 평균선"을 추가(사용자 요청 - "비트코인이
  * 6개월 선행한다"는 통설을 봤다며 참고선을 하나 더 요청). VM /futures/avg가 이미 days를
  * 파라미터로 받는 범용 엔드포인트라 백엔드 변경 없이 프론트에서 days=180으로 한 번 더 호출.
- * 52주선(주황 실선)과 겹쳐 안 보이지 않도록 보라 점선으로 구분. "6개월 선행" 주장 자체는
+ * 52주선(주황 실선)과 겹쳐 안 보이지 않도록 보라 실선으로 구분. "6개월 선행" 주장 자체는
  * 코드 주석이 아니라 사용자에게 채팅으로 별도 팩트체크 결과를 전달함(리서치 결과, 검증된
  * 통계라기보다 업계에서 도는 경험칙에 가까움 - 4년 반감기 주기와 "선행" 서사가 뒤섞여 있고
  * 표본이 반감기 3~4회뿐이라 통계적으로 확정하기 어려움).
@@ -385,12 +385,12 @@
       out += '<div class="om-benchmark">최근 ' + periodLabel + ' 평균(주황 실선) ' + valueStr + ' — '
         + (BENCHMARK_NOTE[symbol] || '') + '(객관적 "적정 수준"이 아니라 실측 평균 참고선).</div>';
     }
-    // 2026-07-21: BTC/ETH 전용 6개월 평균선(보라 점선) - 52주선과 별도 색으로 구분.
+    // 2026-07-21: BTC/ETH 전용 6개월 평균선(보라 실선) - 52주선과 별도 색으로 구분.
     var b6 = benchmarks6m[symbol];
     if (BENCHMARK_6M_SYMBOLS.indexOf(symbol) !== -1 && b6) {
       var meta6 = symbolMeta(symbol);
       var valueStr6 = fmtPrice(b6.avg, meta6.digits) + '원';
-      out += '<div class="om-benchmark om-benchmark-6m">최근 6개월 평균(보라 점선) ' + valueStr6
+      out += '<div class="om-benchmark om-benchmark-6m">최근 6개월 평균(보라 실선) ' + valueStr6
         + ' — 이동평균선 위는 상승 추세, 아래는 하락 추세로 보는 게 일반적입니다(실측 평균 참고선).</div>';
     }
     return out;
@@ -488,13 +488,13 @@
       }
 
       // 2026-07-21: BTC/ETH 카드 전용 6개월 평균선 - 52주선(주황 실선)과 겹쳐도 구분되도록
-      // 보라 점선으로 그린다.
+      // 보라 실선으로 그린다.
       if (BENCHMARK_6M_SYMBOLS.indexOf(symbol) !== -1 && benchmarks6m[symbol]) {
         series.createPriceLine({
           price: benchmarks6m[symbol].avg,
           color: BENCHMARK_6M_COLOR,
           lineWidth: 1,
-          lineStyle: LWC.LineStyle.Dashed,
+          lineStyle: LWC.LineStyle.Solid,
           axisLabelVisible: false
         });
       }
