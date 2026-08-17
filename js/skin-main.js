@@ -222,9 +222,9 @@
     }
 
     function dashboardHtml() {
-      return '<section class="home-dashboard home-editorial-page" aria-label="오늘의 시장 상황판">'
+        return '<section class="home-dashboard home-editorial-page" aria-label="오늘의 시장 상황판">'
         + '<div class="home-market-switch" role="tablist" aria-label="메인 시장 전환">'
-        + '<span>시장</span><button type="button" data-home-market-switch="domestic" role="tab">한국증시</button><button type="button" data-home-market-switch="us" role="tab">미국증시</button>'
+        + '<button type="button" data-home-market-switch="domestic" role="tab">한국증시</button><button type="button" data-home-market-switch="us" role="tab">미국증시</button>'
         + '</div>'
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section" id="homeMarketBoard">'
