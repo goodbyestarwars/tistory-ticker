@@ -10,10 +10,8 @@
  *
  * "저평가 종목" 카테고리의 판정 기준(품질 게이트: 펀더멘탈 점수, 가격 게이트: 120일 이평
  * 대비 이격도)은 strategy_scan.py 참고. 결과는 WICS 대분류 섹터별로 묶여 오므로, 카테고리
- * 안에서는 js/sector-dashboard-v4.js·js/market-temp.js의 카드보기와 같은 시각 언어
- * (섹터 = 카드, 종목 = 행)로 보여준다(2026-08 UI 피드백 "증시온도 카드보기 그대로 가져다
- * 써"). 다른 모양의 결과를 내는 카테고리가 나중에 추가되면 renderCategoryBody를 그
- * 카테고리 타입에 맞게 분기해야 한다 - 지금은 섹터 그룹 하나뿐이라 분기 없음.
+ * 안에서는 전체 결과를 하나의 순위표로 평탄화해 보여준다. ETF·배당주와 같은
+ * 목록형 결과 컴포넌트를 재사용하고, 섹터는 행의 컬럼으로 표시한다.
  *
  * 리스트는 VM(strategy_scan.py)이 하루 1회 미리 스캔해둔 결과(?strategyScan=1)를 그대로
  * 보여준다(가벼움) - js/pattern-scan.js와 동일한 패턴.
@@ -33,7 +31,7 @@
   var scanData = null;
   var activeKey = null;
   var activeEtfSort = 'return1m';
-  var activeEtfFilters = { major: '', middle: '', leverage: '', aum: '' };
+  var activeEtfFilters = { major: '', middle: '', leverage: '' };
   var activeDividendSort = 'yield';
   var activeDividendMarket = '';
   var etfSearchQuery = '';
@@ -85,20 +83,16 @@
   function normalizeScanData(data) {
     data = data || {};
     data.categories = data.categories || {};
-    // ETN 데이터가 공급되기 전에도 ETF·ETN을 명확히 분리해 보여준다. ETN을 ETF
-    // 목록에 섞거나 임의 수치를 복사하지 않고, 실제 공급 데이터가 들어오면 같은 테이블
-    // 렌더러가 그대로 사용할 수 있는 빈 카테고리로 둔다.
-    if (!data.categories.etnReturn) {
-      data.categories.etnReturn = {
-        name: 'ETN',
-        productKind: 'etn',
-        methodology: '현재 ETN 상품 데이터가 제공되지 않습니다. 데이터 연동 후 표시합니다.',
-        sectors: {}
-      };
-    }
+    // ETN은 현재 화면에서 제공하지 않는다. 백엔드 응답에 ETN 카테고리가
+    // 남아 있어도 프론트 결과에는 노출하지 않는다.
+    delete data.categories.etnReturn;
     var periods = ['1m', '3m', '6m', '12m'];
     if (data.categories.etfReturn) {
       periods.forEach(function (period) { delete data.categories['etf_' + period]; });
+      Object.keys(data.categories.etfReturn.sectors || {}).forEach(function (sector) {
+        var group = data.categories.etfReturn.sectors[sector] || {};
+        group.matches = (group.matches || []).filter(function (row) { return !isEtnProduct(row); });
+      });
       return data;
     }
 
@@ -109,6 +103,7 @@
       Object.keys(category.sectors).forEach(function (sector) {
         var group = category.sectors[sector] || {};
         (group.matches || []).forEach(function (row) {
+          if (isEtnProduct(row)) return;
           var key = row.code || row.name;
           if (!key) return;
           if (!merged[key]) {
@@ -135,7 +130,18 @@
       };
       periods.forEach(function (period) { delete data.categories['etf_' + period]; });
     }
+    if (data.categories.etfReturn && data.categories.etfReturn.sectors) {
+      Object.keys(data.categories.etfReturn.sectors).forEach(function (sector) {
+        var group = data.categories.etfReturn.sectors[sector] || {};
+        group.matches = (group.matches || []).filter(function (row) { return !isEtnProduct(row); });
+      });
+    }
     return data;
+  }
+
+  function isEtnProduct(item) {
+    var text = String(item && (item.name || item.productName || item.itmsNm || item.productKind) || '');
+    return /(^|[^A-Z])ETN([^A-Z]|$)/i.test(text);
   }
 
   function buildShell() {
@@ -153,13 +159,12 @@
   }
 
   function categoryKeys() {
-    return Object.keys(scanData.categories);
+    return Object.keys(scanData.categories).filter(function (key) { return key !== 'etnReturn'; });
   }
 
   function categoryLabel(key, category) {
     if (key === 'undervalued') return '재무건전 장기 눌림';
     if (key === 'etfReturn') return 'ETF';
-    if (key === 'etnReturn') return 'ETN';
     return (category && category.name) || key;
   }
 
@@ -251,7 +256,7 @@
       // 2026-08-14 요청: ETF 수익률 상위에서 종목(=ETF)을 클릭하면 개별주식 종목분석
       // 대신 ETF가 실제로 어떤 종목을 얼마나 담고 있는지(구성종목·비중)를 보여준다.
       // 다른 카테고리(저평가 종목·배당주)는 기존처럼 종목분석으로 이동.
-      if (activeKey === 'etfReturn' || activeKey === 'etnReturn') {
+      if (activeKey === 'etfReturn') {
         openEtfComponentsModal(code, name, findItemByCode(activeKey, code));
         return;
       }
@@ -297,7 +302,6 @@
     if (key === 'undervalued') return '재무 조건을 통과한 종목 중 120일선 대비 가격이 눌린 종목을 섹터별로 표시합니다.';
     if (key === 'dividend') return '과거 현금배당 공시를 기준으로 배당수익률과 주당 현금배당금을 비교합니다.';
     if (key === 'etfReturn') return '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.';
-    if (key === 'etnReturn') return '현재 ETN 상품 데이터가 제공되지 않습니다. 데이터 연동 후 표시합니다.';
     return '전략 조건으로 후보군을 탐색하고, 세부 기준을 확인합니다.';
   }
 
@@ -316,12 +320,16 @@
   function renderCards(container) {
     var wrap = container.querySelector('#ssCards');
     if (!wrap) return;
-    if (activeKey === 'etfReturn' || activeKey === 'etnReturn') {
+    if (activeKey === 'etfReturn') {
       wrap.innerHTML = renderEtfProductView(activeKey);
       return;
     }
     if (activeKey === 'dividend') {
       wrap.innerHTML = renderDividendTable();
+      return;
+    }
+    if (activeKey === 'undervalued') {
+      wrap.innerHTML = renderStrategyTable();
       return;
     }
     var cat = scanData.categories[activeKey];
@@ -344,13 +352,59 @@
     wrap.innerHTML = '<div class="ss-cards-grid">' + html + '</div>';
   }
 
+  function strategySignal(item) {
+    if (item.disparity != null) return '120일선 대비 ' + fmtPctSigned(Number(item.disparity) - 100);
+    if (item.envelope && item.envelope.closeDistancePct != null) return '주봉 엔벨로프 하단 ' + fmtPct(item.envelope.closeDistancePct);
+    if (item.gapRatePct != null) return '시초갭 ' + fmtPct(item.gapRatePct);
+    return '전략 조건 충족';
+  }
+
+  function strategyFundamentals(item) {
+    var parts = [];
+    if (item.roe != null) parts.push('ROE ' + fmtPct(item.roe));
+    if (item.debtRatio != null) parts.push('부채비율 ' + fmtPct(item.debtRatio));
+    return parts.join(' · ');
+  }
+
+  function strategyTableRow(item, index, showFundamentals) {
+    var rate = item.changeRate != null ? item.changeRate : item.changeRatePct;
+    var fundamentals = strategyFundamentals(item);
+    return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
+      + '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'
+      + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
+      + '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || '—') + '</span></strong></td>'
+      + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
+      + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(item.sector || item.industry || '—') + '</td>'
+      + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
+      + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
+      + '<td class="ss-col-signal" data-label="전략 지표">' + escapeHtml(strategySignal(item)) + '</td>'
+      + (showFundamentals ? '<td class="ss-col-fundamentals" data-label="재무 지표">' + escapeHtml(fundamentals || '—') + '</td>' : '')
+      + '</tr>';
+  }
+
+  function renderStrategyTable() {
+    var matches = allMatches('undervalued');
+    if (!matches.length) return '<div class="ss-hint">지금은 이 카테고리 조건에 맞는 종목이 없어요.</div>';
+    var showFundamentals = matches.some(function (item) { return item.roe != null || item.debtRatio != null; });
+    var headers = ['관심', '순위', '종목명', '종목코드', '업종', '현재가', '등락률', '전략 지표'];
+    if (showFundamentals) headers.push('재무 지표');
+    return '<div class="ss-table-wrap"><table class="ss-comparison-table ss-strategy-table"><thead><tr>'
+      + headers.map(function (label) { return '<th>' + label + '</th>'; }).join('')
+      + '</tr></thead><tbody>' + matches.map(function (item, index) { return strategyTableRow(item, index, showFundamentals); }).join('')
+      + '</tbody></table></div>';
+  }
+
   function allMatches(key) {
     var category = scanData.categories[key] || {};
     var sectors = category.sectors || {};
     var rows = Object.keys(sectors).reduce(function (all, sector) {
-      return all.concat((sectors[sector] && sectors[sector].matches) || []);
+      return all.concat(((sectors[sector] && sectors[sector].matches) || []).map(function (item) {
+        var copy = Object.assign({}, item);
+        if (!copy.sector) copy.sector = sector;
+        return copy;
+      }));
     }, []);
-    return (key === 'etfReturn' || key === 'etnReturn')
+    return key === 'etfReturn'
       ? rows.map(function (item) { return normalizeEtfItem(item, key); })
       : key === 'dividend'
         ? rows.map(normalizeDividendItem)
@@ -394,7 +448,7 @@
     normalized.returnRate12mPct = firstValue(item, ['returnRate12mPct', 'return12m', 'return12mPct']);
     normalized.volumeSurgePct = firstValue(item, ['volumeSurgePct', 'volumeGrowthPct', 'volumeSurge']);
     normalized.listedDate = firstValue(item, ['listedDate', 'listingDate', 'listDate']);
-    normalized.productKind = key === 'etnReturn' ? 'ETN' : 'ETF';
+    normalized.productKind = 'ETF';
     return normalized;
   }
 
@@ -423,15 +477,6 @@
     return allMatches(key).filter(function (item) { return String(item.code) === String(code); })[0] || null;
   }
 
-  function productTabs(active) {
-    return '<div class="ss-product-tabs" role="tablist" aria-label="상품 유형">'
-      + '<button type="button" class="ss-product-tab' + (active === 'etfReturn' ? ' active' : '')
-      + '" data-product-key="etfReturn" role="tab" aria-selected="' + (active === 'etfReturn') + '">ETF</button>'
-      + '<button type="button" class="ss-product-tab' + (active === 'etnReturn' ? ' active' : '')
-      + '" data-product-key="etnReturn" role="tab" aria-selected="' + (active === 'etnReturn') + '">ETN</button>'
-      + '</div>';
-  }
-
   function optionList(items, selected) {
     return ['전체'].concat(items).map(function (value, index) {
       var actual = index === 0 ? '' : value;
@@ -444,7 +489,6 @@
     return [
       ['return1m', '1개월 수익률'], ['return3m', '3개월 수익률'], ['return6m', '6개월 수익률'],
       ['return12m', '12개월 수익률'], ['changeUp', '상승률'], ['changeDown', '하락률'],
-      ['volume', '거래량 상위'], ['volumeSurge', '거래량 급증'], ['turnover', '거래대금 상위'],
       ['newListing', '신규상장']
     ].map(function (entry) {
       return '<option value="' + entry[0] + '"' + (entry[0] === activeEtfSort ? ' selected' : '') + '>' + entry[1] + '</option>';
@@ -472,19 +516,6 @@
     return item && (item.middleCategory || item.categoryMiddle || item.subcategory) || '';
   }
 
-  function etfAumBucket(item) {
-    var aum = optionalNumber(item);
-    if (aum == null) return '';
-    // 서버 단위가 원화라는 기존 계약을 우선하고, 이미 억원 단위로 내려온 값은
-    // 화면에서 다시 확대하지 않는다.
-    var eok = aum > 100000000 ? aum / 100000000 : aum;
-    if (eok >= 5000) return '5000eok';
-    if (eok >= 1000) return '1000eok';
-    if (eok >= 500) return '500eok';
-    if (eok >= 100) return '100eok';
-    return '';
-  }
-
   function etfFilteredMatches(key) {
     var query = etfSearchQuery.trim().toUpperCase();
     return allMatches(key).filter(function (item) {
@@ -494,7 +525,6 @@
       if (activeEtfFilters.major && etfMajor(item) !== activeEtfFilters.major) return false;
       if (activeEtfFilters.middle && etfMiddle(item) !== activeEtfFilters.middle) return false;
       if (activeEtfFilters.leverage && etfType(item) !== activeEtfFilters.leverage) return false;
-      if (activeEtfFilters.aum && etfAumBucket(item) !== activeEtfFilters.aum) return false;
       return true;
     });
   }
@@ -506,9 +536,6 @@
       var bv;
       if (field) { av = a[field]; bv = b[field]; }
       else if (activeEtfSort === 'changeUp' || activeEtfSort === 'changeDown') { av = a.changeRate; bv = b.changeRate; }
-      else if (activeEtfSort === 'volume') { av = a.volume; bv = b.volume; }
-      else if (activeEtfSort === 'volumeSurge') { av = a.volumeSurgePct; bv = b.volumeSurgePct; }
-      else if (activeEtfSort === 'turnover') { av = a.turnover || a.tradingValue; bv = b.turnover || b.tradingValue; }
       else if (activeEtfSort === 'newListing') { av = a.listedDate; bv = b.listedDate; return String(bv || '').localeCompare(String(av || '')); }
       var aMissing = av == null || isNaN(Number(av));
       var bMissing = bv == null || isNaN(Number(bv));
@@ -532,7 +559,6 @@
 
   function etfTableRow(item, index) {
     var rateClass = chgClass(item.changeRate);
-    var asset = optionalNumber(item);
     var componentButton = '<button type="button" class="ss-etf-components-btn" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" aria-label="' + escapeAttr(item.name) + ' 구성종목 보기">구성종목 보기</button>';
     return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
       + '<td class="ss-col-watch" data-label="관심등록">' + watchButtonHtml(item) + '</td>'
@@ -542,9 +568,6 @@
       + '<td class="ss-col-provider" data-label="운용사">' + escapeHtml(item.provider || '—') + '</td>'
       + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
       + '<td class="ss-col-change ' + rateClass + '" data-label="전일대비">' + fmtChange(item.changeRate) + '</td>'
-      + '<td class="ss-col-volume" data-label="거래량">' + fmt(item.volume) + '</td>'
-      + '<td class="ss-col-turnover" data-label="거래대금">' + fmt(item.tradingValue) + '</td>'
-      + '<td class="ss-col-aum" data-label="운용자산">' + fmt(item.aum) + '</td>'
       + '<td class="ss-col-type" data-label="유형">' + escapeHtml(etfType(item)) + '</td>'
       + '<td class="ss-col-return ' + chgClass(item.returnRate1mPct) + '" data-label="1개월">' + fmtPct(item.returnRate1mPct) + '</td>'
       + '<td class="ss-col-return ' + chgClass(item.returnRate3mPct) + '" data-label="3개월">' + fmtPct(item.returnRate3mPct) + '</td>'
@@ -554,7 +577,6 @@
   }
 
   function renderEtfProductView(key) {
-    var category = scanData.categories[key] || {};
     var matches = sortEtfMatches(etfFilteredMatches(key));
     var all = allMatches(key);
     var majors = Array.from(new Set(all.map(etfMajor).filter(Boolean))).sort();
@@ -564,21 +586,18 @@
       + '<label>대분류 <select class="ss-etf-control" data-etf-filter="major">' + optionList(majors, activeEtfFilters.major) + '</select></label>'
       + '<label>중분류 <select class="ss-etf-control" data-etf-filter="middle">' + optionList(middles, activeEtfFilters.middle) + '</select></label>'
       + '<label>운용배수 <select class="ss-etf-control" data-etf-filter="leverage"><option value="">전체</option><option value="일반"' + (activeEtfFilters.leverage === '일반' ? ' selected' : '') + '>일반</option><option value="레버리지"' + (activeEtfFilters.leverage === '레버리지' ? ' selected' : '') + '>레버리지</option><option value="인버스"' + (activeEtfFilters.leverage === '인버스' ? ' selected' : '') + '>인버스</option></select></label>'
-      + '<label>운용자산 <select class="ss-etf-control" data-etf-filter="aum"><option value="">전체</option><option value="100eok"' + (activeEtfFilters.aum === '100eok' ? ' selected' : '') + '>100억 이상</option><option value="500eok"' + (activeEtfFilters.aum === '500eok' ? ' selected' : '') + '>500억 이상</option><option value="1000eok"' + (activeEtfFilters.aum === '1000eok' ? ' selected' : '') + '>1,000억 이상</option><option value="5000eok"' + (activeEtfFilters.aum === '5000eok' ? ' selected' : '') + '>5,000억 이상</option></select></label>'
       + '<input type="search" class="ss-etf-search-input" placeholder="상품명 또는 코드 검색" value="' + escapeAttr(etfSearchQuery) + '" aria-label="ETF 검색">'
       + '</div>';
-    var note = category.methodology ? '<p class="ss-product-note">' + escapeHtml(category.methodology) + '</p>' : '';
     var table = '<div class="ss-table-wrap"><table class="ss-comparison-table ss-etf-table"><thead><tr>'
-      + ['관심', '순위', '상품명', '종목코드', '운용사', '현재가', '전일대비', '거래량', '거래대금', '운용자산', '유형', '1개월 수익률', '3개월 수익률', '6개월 수익률', '12개월 수익률'].map(function (label) { return '<th>' + label + '</th>'; }).join('')
+      + ['관심', '순위', '상품명', '종목코드', '운용사', '현재가', '전일대비', '유형', '1개월 수익률', '3개월 수익률', '6개월 수익률', '12개월 수익률'].map(function (label) { return '<th>' + label + '</th>'; }).join('')
       + '</tr></thead><tbody>' + matches.map(etfTableRow).join('') + '</tbody></table></div>';
-    var empty = key === 'etnReturn' && !all.length
-      ? '현재 ETN 상품 데이터가 제공되지 않습니다. ETN 유니버스와 시세 데이터 연동 후 표시됩니다.'
-      : '조건에 맞는 상품이 없습니다.';
-    return productTabs(key) + controls + note + (matches.length ? table : '<div class="ss-product-empty">' + empty + '</div>');
+    return controls + (matches.length ? table : '<div class="ss-product-empty">조건에 맞는 ETF가 없습니다.</div>');
   }
 
-  function dividendSortOptions() {
-    return [['yield', '수익률순'], ['dps', '배당금순'], ['payout', '배당성향순'], ['roe', 'ROE순'], ['per', 'PER 낮은 순'], ['pbr', 'PBR 낮은 순'], ['dps1y', '1년 전 대비 배당금 증가순'], ['stability', '3년 배당금 안정성순']].map(function (entry) {
+  function dividendSortOptions(matches) {
+    var entries = [['yield', '수익률순'], ['dps', '배당금순']];
+    if (matches.some(function (item) { return item.payoutRatioPct != null; })) entries.push(['payout', '배당성향순']);
+    return entries.map(function (entry) {
       return '<option value="' + entry[0] + '"' + (entry[0] === activeDividendSort ? ' selected' : '') + '>' + entry[1] + '</option>';
     }).join('');
   }
@@ -602,62 +621,59 @@
       if (activeDividendSort === 'yield') { av = a.dividendYieldPct; bv = b.dividendYieldPct; }
       else if (activeDividendSort === 'dps') { av = a.cashDividendPerShare; bv = b.cashDividendPerShare; }
       else if (activeDividendSort === 'payout') { av = a.payoutRatioPct; bv = b.payoutRatioPct; }
-      else if (activeDividendSort === 'roe') { av = a.roe; bv = b.roe; }
-      else if (activeDividendSort === 'per') { av = a.per; bv = b.per; }
-      else if (activeDividendSort === 'pbr') { av = a.pbr; bv = b.pbr; }
-      else if (activeDividendSort === 'dps1y') {
-        var aPrevious = dividendHistoryValue(a, 1);
-        var bPrevious = dividendHistoryValue(b, 1);
-        av = a.cashDividendPerShare == null || aPrevious == null ? null : Number(a.cashDividendPerShare) - Number(aPrevious);
-        bv = b.cashDividendPerShare == null || bPrevious == null ? null : Number(b.cashDividendPerShare) - Number(bPrevious);
-      }
-      else { av = a.dividendStreak; bv = b.dividendStreak; }
+      else { av = a.payoutRatioPct; bv = b.payoutRatioPct; }
       var aMissing = av == null || isNaN(Number(av));
       var bMissing = bv == null || isNaN(Number(bv));
       if (aMissing !== bMissing) return aMissing ? 1 : -1;
       av = aMissing ? 0 : Number(av); bv = bMissing ? 0 : Number(bv);
-      var ascending = activeDividendSort === 'per' || activeDividendSort === 'pbr';
-      if (av !== bv) return ascending ? av - bv : bv - av;
+      if (av !== bv) return bv - av;
       return String(a.code || '').localeCompare(String(b.code || ''));
     });
   }
 
-  function dividendTableRow(item, index) {
+  function dividendTableColumns(matches) {
+    var columns = [
+      { label: '관심', html: function (item) { return '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'; } },
+      { label: '순위', html: function (item, index) { return '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'; } },
+      { label: '종목명', html: function (item) { return '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + '</span></strong></td>'; } },
+      { label: '종목코드', cls: 'ss-col-code', html: function (item) { return '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'; } },
+      { label: '업종', cls: 'ss-col-sector', html: function (item) { return '<td class="ss-col-sector" data-label="업종">' + escapeHtml(item.market || '—') + ' · ' + escapeHtml(item.sector || '—') + '</td>'; } },
+      { label: '현재가', cls: 'ss-col-price', html: function (item) { return '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'; } },
+      { label: '배당금', html: function (item) { return '<td data-label="배당금">' + fmtWon(item.cashDividendPerShare) + ' <small class="ss-dividend-status">' + escapeHtml(item.dividendStatus || '실제') + '</small></td>'; } },
+      { label: '배당수익률', html: function (item) { return '<td data-label="배당수익률">' + fmtPctExact(item.dividendYieldPct) + '</td>'; } }
+    ];
+    if (matches.some(function (item) { return item.payoutRatioPct != null; })) {
+      columns.push({ label: '배당성향', html: function (item) { return '<td data-label="배당성향">' + fmtPct(item.payoutRatioPct) + '</td>'; } });
+    }
+    if (matches.some(function (item) { return dividendHistoryValue(item, 2) != null; })) {
+      columns.push({ label: '2년 전 배당금', html: function (item) { return '<td data-label="2년 전 배당금">' + fmtWon(dividendHistoryValue(item, 2)) + '</td>'; } });
+    }
+    if (matches.some(function (item) { return dividendHistoryValue(item, 3) != null; })) {
+      columns.push({ label: '3년 전 배당금', html: function (item) { return '<td data-label="3년 전 배당금">' + fmtWon(dividendHistoryValue(item, 3)) + '</td>'; } });
+    }
+    return columns;
+  }
+
+  function dividendTableRow(item, index, columns) {
     var payout = item.payoutRatioPct;
     var warning = payout != null && (Number(payout) < 0 || Number(payout) > 100) ? '배당성향 ' + (Number(payout) > 100 ? '100% 초과' : '음수') + ' · 지속 가능성 확인 필요' : '';
-    var dividendStatus = item.dividendStatus || '실제';
     var row = '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
-      + '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'
-      + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
-      + '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + '</span></strong></td>'
-      + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
-      + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(item.market || '—') + ' · ' + escapeHtml(item.sector || '—') + '</td>'
-      + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
-      + '<td data-label="배당금">' + fmtWon(item.cashDividendPerShare) + ' <small class="ss-dividend-status">' + escapeHtml(dividendStatus) + '</small></td>'
-      + '<td data-label="배당수익률">' + fmtPctExact(item.dividendYieldPct) + '</td>'
-      + '<td data-label="배당성향">' + fmtPct(item.payoutRatioPct) + '</td>'
-      + '<td data-label="ROE">' + fmtPct(item.roe) + '</td>'
-      + '<td data-label="PER">' + fmtMultiple(item.per) + '</td>'
-      + '<td data-label="PBR">' + fmtMultiple(item.pbr) + '</td>'
-      + '<td data-label="1년 전 배당금">' + fmtWon(dividendHistoryValue(item, 1)) + '</td>'
-      + '<td data-label="2년 전 배당금">' + fmtWon(dividendHistoryValue(item, 2)) + '</td>'
-      + '<td data-label="3년 전 배당금">' + fmtWon(dividendHistoryValue(item, 3)) + '</td>'
+      + columns.map(function (column) { return column.html(item, index); }).join('')
       + '</tr>';
-    return row + (warning ? '<tr class="ss-warning-row"><td class="ss-row-warning" colspan="15">' + escapeHtml(warning) + '</td></tr>' : '');
+    return row + (warning ? '<tr class="ss-warning-row"><td class="ss-row-warning" colspan="' + columns.length + '">' + escapeHtml(warning) + '</td></tr>' : '');
   }
 
   function renderDividendTable() {
-    var category = scanData.categories.dividend || {};
     var matches = sortedDividendMatches();
+    var columns = dividendTableColumns(matches);
     var table = '<div class="ss-table-wrap"><table class="ss-comparison-table ss-dividend-table"><thead><tr>'
-      + ['관심', '순위', '종목명', '종목코드', '업종', '현재가', '배당금', '배당수익률', '배당성향', 'ROE', 'PER', 'PBR', '1년 전 배당금', '2년 전 배당금', '3년 전 배당금'].map(function (label) { return '<th>' + label + '</th>'; }).join('')
-      + '</tr></thead><tbody>' + matches.map(dividendTableRow).join('') + '</tbody></table></div>';
+      + columns.map(function (column) { return '<th>' + column.label + '</th>'; }).join('')
+      + '</tr></thead><tbody>' + matches.map(function (item, index) { return dividendTableRow(item, index, columns); }).join('') + '</tbody></table></div>';
     var reportYears = matches.map(function (item) { return Number(item.reportYear); }).filter(function (year) { return isFinite(year) && year > 0; });
     var reportYear = reportYears.length ? Math.max.apply(Math, reportYears) : null;
     var basis = reportYear ? '최근 결산 연도 기준 · 배당 데이터 ' + reportYear + '년 결산' : '최근 결산 연도 기준 · 배당 기준일 확인 대기';
-    return '<div class="ss-dividend-toolbar"><label>시장 <select class="ss-dividend-sort-select" data-dividend-filter="market"><option value="">전체</option><option value="KOSPI"' + (activeDividendMarket === 'KOSPI' ? ' selected' : '') + '>KOSPI</option><option value="KOSDAQ"' + (activeDividendMarket === 'KOSDAQ' ? ' selected' : '') + '>KOSDAQ</option></select></label><label>정렬 <select class="ss-dividend-sort-select" data-dividend-filter="sort">' + dividendSortOptions() + '</select></label></div>'
+    return '<div class="ss-dividend-toolbar"><label>시장 <select class="ss-dividend-sort-select" data-dividend-filter="market"><option value="">전체</option><option value="KOSPI"' + (activeDividendMarket === 'KOSPI' ? ' selected' : '') + '>KOSPI</option><option value="KOSDAQ"' + (activeDividendMarket === 'KOSDAQ' ? ' selected' : '') + '>KOSDAQ</option></select></label><label>정렬 <select class="ss-dividend-sort-select" data-dividend-filter="sort">' + dividendSortOptions(matches) + '</select></label></div>'
       + '<p class="ss-dividend-basis">' + escapeHtml(basis) + '</p>'
-      + '<p class="ss-product-note">' + escapeHtml(category.methodology || '최근 확정 배당 공시 기준입니다.') + '</p>'
       + (matches.length ? table : '<div class="ss-product-empty">배당 데이터가 없습니다.</div>');
   }
 
@@ -821,6 +837,7 @@
       ['상장일', listedDate], ['기초지수', underlyingIndex], ['구성종목 수', totalCount, '개'],
       ['데이터 기준일', basisDate || product.date]
     ];
+    modalFacts = modalFacts.filter(function (fact) { return fact[1] != null && String(fact[1]).trim() !== ''; });
     body.innerHTML = '<div class="ss-etf-facts">' + modalFacts.map(function (fact) {
       return '<div><dt>' + escapeHtml(fact[0]) + '</dt><dd>' + modalValue(fact[1], fact[2]) + '</dd></div>';
     }).join('') + '</div>'

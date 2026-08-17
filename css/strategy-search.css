@@ -593,3 +593,116 @@ html.dark .ss-etf-table .ss-flat { color: rgba(245,239,224,.45); }
   .ss-etf-modal { max-height: calc(100vh - 16px); border-radius: 12px; }
   .ss-etf-table { font-size: 12px; }
 }
+
+/* 2026-08 결과 정리: 비어 있는 데이터는 화면에서 만들지 않고, 입력과 결과는
+   작은 둥근 알약 대신 평평한 리서치 화면 컨트롤로 통일한다. */
+#strategy-search .ss-tab {
+  padding: 9px 0 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #6b7280;
+}
+#strategy-search .ss-tab.active {
+  border-bottom-color: #111827;
+  background: transparent;
+  color: #111827;
+}
+#strategy-search .ss-tabs { gap: 20px; border-bottom: 1px solid #d9dde2; }
+#strategy-search .ss-etf-control,
+#strategy-search .ss-dividend-sort-select,
+#strategy-search .ss-etf-search-input {
+  box-sizing: border-box;
+  min-height: 40px;
+  border: 1px solid #cfd5dc;
+  border-radius: 5px;
+  background: #fff;
+  color: #1f2933;
+  font: inherit;
+  font-size: 13px;
+}
+#strategy-search .ss-etf-control,
+#strategy-search .ss-dividend-sort-select { min-width: 124px; padding: 0 30px 0 11px; }
+#strategy-search .ss-etf-search-input {
+  min-width: 230px;
+  padding: 0 13px;
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, .03);
+}
+#strategy-search .ss-etf-control:focus,
+#strategy-search .ss-dividend-sort-select:focus,
+#strategy-search .ss-etf-search-input:focus {
+  outline: none;
+  border-color: #111827;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, .08);
+}
+#strategy-search .ss-product-toolbar label,
+#strategy-search .ss-dividend-toolbar label { color: #4b5563; font-weight: 700; }
+#strategy-search .ss-comparison-table .ss-col-product,
+#strategy-search .ss-comparison-table .ss-col-product strong,
+#strategy-search .ss-comparison-table .ss-col-product strong > span { text-align: left !important; }
+#strategy-search .ss-strategy-table { min-width: 900px; }
+#strategy-search .ss-col-signal,
+#strategy-search .ss-col-fundamentals { min-width: 145px; text-align: left !important; white-space: normal !important; }
+#strategy-search .ss-strategy-table .ss-col-signal,
+#strategy-search .ss-strategy-table .ss-col-fundamentals { color: #374151; }
+
+/* 구성종목 모달: label/value를 한 줄씩 쌓지 않고 실제 정보 그리드로 배치한다. */
+.ss-etf-modal {
+  width: min(920px, 100%);
+  border: 1px solid #d8dde3;
+  border-radius: 0;
+  box-shadow: none;
+}
+.ss-etf-modal-head { padding: 16px 20px; font-size: 18px; }
+.ss-etf-modal-body { padding: 18px 20px 24px; }
+.ss-etf-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 18px;
+  margin-bottom: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+.ss-etf-facts > div {
+  min-width: 0;
+  padding: 11px 0 10px;
+  border-bottom: 1px solid #edf0f2;
+}
+.ss-etf-facts dt,
+.ss-etf-facts dd { margin: 0; }
+.ss-etf-facts dt { color: #7b8490; font-size: 11px; line-height: 1.35; }
+.ss-etf-facts dd { margin-top: 4px; color: #1f2933; font-size: 15px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.ss-etf-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 18px; padding: 12px 0; }
+.ss-etf-summary span { min-width: 0; }
+.ss-etf-table th,
+.ss-etf-table td { padding: 10px 9px; }
+.ss-etf-table th:nth-child(2),
+.ss-etf-table td:nth-child(2) { text-align: left; }
+.ss-etf-table td { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  #strategy-search .ss-tabs { gap: 15px; overflow-x: auto; flex-wrap: nowrap; }
+  #strategy-search .ss-tab { flex: 0 0 auto; }
+  #strategy-search .ss-etf-control,
+  #strategy-search .ss-dividend-sort-select { min-width: 0; width: 100%; }
+  #strategy-search .ss-etf-search-input { min-width: 0; width: 100%; }
+  #strategy-search .ss-comparison-table td.ss-col-signal,
+  #strategy-search .ss-comparison-table td.ss-col-fundamentals { display: block; margin-top: 3px; color: #475569; }
+  #strategy-search .ss-etf-modal { max-height: calc(100vh - 16px); }
+  .ss-etf-modal-head { padding: 14px 14px; font-size: 16px; }
+  .ss-etf-modal-body { padding: 14px 14px 18px; }
+  .ss-etf-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+  .ss-etf-summary { grid-template-columns: 1fr; gap: 5px; }
+  .ss-etf-table { min-width: 530px; }
+}
+
+html.dark #strategy-search .ss-tab { background: transparent; border-color: transparent; color: rgba(245,239,224,.6) !important; }
+html.dark #strategy-search .ss-tab.active { background: transparent; border-bottom-color: #F5EFE0; color: #F5EFE0 !important; }
+html.dark #strategy-search .ss-etf-control,
+html.dark #strategy-search .ss-dividend-sort-select,
+html.dark #strategy-search .ss-etf-search-input { background: #1A1A1A; border-color: rgba(245,239,224,.25); color: #F5EFE0; }
+html.dark .ss-etf-modal { border-color: rgba(245,239,224,.2); }
+html.dark .ss-etf-facts { border-top-color: rgba(245,239,224,.14); }
+html.dark .ss-etf-facts > div { border-bottom-color: rgba(245,239,224,.1); }
+html.dark .ss-etf-facts dt { color: rgba(245,239,224,.5); }
+html.dark .ss-etf-facts dd { color: #F5EFE0; }

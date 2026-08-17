@@ -1260,13 +1260,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("returnRate12mPct", source)
         for token in (
             "normalizeEtfItem", "providerFromName", "ss-col-provider", "ss-col-code",
-            "거래량 급증", "신규상장", "data-etf-filter=\"aum\"",
-            "구성종목 보기", "ss-product-tabs", "ss-comparison-table",
+            "신규상장", "구성종목 보기", "ss-comparison-table",
         ):
             self.assertIn(token, source)
         self.assertNotIn("ETF_ISSUER_GROUPS", source)
         self.assertNotIn("groupEtfMatches", source)
         self.assertNotIn("ss-cards-grid", source[source.index("function renderEtfProductView"):source.index("function dividendSortOptions")])
+        self.assertNotIn('ss-col-volume', source)
+        self.assertNotIn('ss-col-turnover', source)
+        self.assertNotIn('ss-col-aum', source)
         self.assertIn("ss-col-provider", style)
         self.assertIn("ss-etf-components-btn", style)
 
@@ -1300,14 +1302,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/strategy-search.css")
         fixture = self.read("test/strategy-search.html")
         for token in (
-            "etnReturn",
-            "ss-product-tab",
             "ss-comparison-table",
             "activeEtfFilters",
             "data-etf-filter=\"major\"",
             "data-etf-filter=\"middle\"",
             "data-etf-filter=\"leverage\"",
-            "data-etf-filter=\"aum\"",
             "activeDividendMarket",
             "data-dividend-filter=\"market\"",
             "배당성향",
@@ -1315,10 +1314,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "ss-dividend-basis",
             "fmtWon",
             "배당 데이터 ",
-            "현재 ETN 상품 데이터가 제공되지 않습니다.",
+            "ss-strategy-table",
         ):
             self.assertIn(token, source)
         self.assertIn("—", source)
+        self.assertNotIn("ROE순", source)
+        self.assertNotIn("PER 낮은 순", source)
+        self.assertNotIn("PBR 낮은 순", source)
+        self.assertNotIn("1년 전 배당금", source)
         self.assertIn("ss-warning-row", style)
         self.assertIn("market: code === '105560' ? 'KOSPI' : 'KOSDAQ'", fixture)
         self.assertNotIn("ss-score", source)
