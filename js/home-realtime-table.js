@@ -27,16 +27,14 @@
   ];
   // KIS 해외주식 순위분석 API가 제공하는 미국 순위들만 노출한다.
   // 업종은 별도 업종별 시세 API가 필요한 분류 화면이므로 이 종목판에서는 제외한다.
+  // 거래량급증·체결강도·신고가·신저가는 현재 운영 API가 빈 배열을 반환하므로,
+  // 데이터 수집/폴백이 보강될 때까지 사용자 화면에서는 숨긴다.
   var US_TABS = [
     ['tradeAmount', '거래대금'],
     ['tradeVolume', '거래량'],
     ['rising', '상승률'],
     ['falling', '하락률'],
-    ['marketCap', '시가총액'],
-    ['volumeSurge', '거래량급증'],
-    ['volumePower', '체결강도'],
-    ['newHigh', '신고가'],
-    ['newLow', '신저가']
+    ['marketCap', '시가총액']
   ];
   var TABLE_COLUMNS = [
     ['stock', '종목'],
