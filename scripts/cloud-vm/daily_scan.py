@@ -32,6 +32,66 @@ OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_sc
 MARKET_CAP_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'market_cap_cache.json')
 THROTTLE_SEC = 0.25
 
+# 종목분석 검색 화면은 기존 swing_model 판정 결과를 흐름별로 탐색한다.
+# 이 분류는 새 점수나 별도 판정식이 아니라, 이미 계산된 chartRegime/recentEvent/
+# auxiliaryStates를 화면용 그룹으로 매핑하는 표현 계층이다.
+SWING_FLOW_KEYS = ('upturn', 'uptrend_resume', 'uptrend', 'compression', 'downturn', 'downtrend')
+
+
+def swing_flow_key(assessment):
+    """Return the visible chart-flow bucket for an existing swing assessment."""
+    chart = assessment.get('chartRegime') or {}
+    event = assessment.get('recentEvent') or chart.get('recentEvent') or {}
+    event_key = event.get('key')
+    if event_key in ('upturn_detected', 'upturn_confirmed') or chart.get('key') == 'upturn':
+        return 'upturn'
+    if event_key == 'uptrend_resume':
+        return 'uptrend_resume'
+    if event_key in ('downturn_detected', 'downturn_confirmed') or chart.get('key') == 'downturn':
+        return 'downturn'
+    if event_key == 'downtrend_resume':
+        return 'downtrend'
+    auxiliary = assessment.get('auxiliaryStates') or chart.get('auxiliaryStates') or []
+    if event_key == 'compression' or any((item or {}).get('key') == 'compression' for item in auxiliary):
+        return 'compression'
+    if chart.get('key') == 'uptrend':
+        return 'uptrend'
+    if chart.get('key') == 'downtrend':
+        return 'downtrend'
+    return None
+
+
+def build_swing_flow_row(stock, daily, assessment):
+    """Build only the existing chart/quote fields needed by the exploration UI."""
+    if not daily:
+        return None
+    last = daily[-1]
+    close = last.get('close')
+    volume = last.get('volume')
+    recent_volumes = [row.get('volume') for row in daily[-20:] if row.get('volume') is not None]
+    volume_avg20 = sum(recent_volumes) / len(recent_volumes) if recent_volumes else None
+    chart = assessment.get('chartRegime') or {}
+    waves = assessment.get('waves') or {}
+    small = waves.get('small') or {}
+    event = assessment.get('recentEvent') or chart.get('recentEvent') or {}
+    risk = assessment.get('risk') or {}
+    return {
+        'code': stock['code'],
+        'name': stock['name'],
+        'price': close,
+        'changeRate': last.get('change_pct'),
+        'tradingValue': close * volume if close is not None and volume is not None else None,
+        'volume': volume,
+        'volumeAvg20': volume_avg20,
+        'bigWave': (waves.get('big') or {}).get('label'),
+        'midWave': (waves.get('mid') or {}).get('label'),
+        'smallWave': small.get('label'),
+        'signal': small.get('event') or event,
+        'currentLocation': (chart.get('currentRegime') or {}).get('label'),
+        'risk': {'state': risk.get('state'), 'flags': risk.get('flags') or []},
+        'asOf': last.get('date'),
+    }
+
 
 def log(msg):
     print('[daily_scan] ' + msg, flush=True)
@@ -143,6 +203,7 @@ def fresh_signal_state():
         # 2026-07-20: 종목분석 페이지 가중치 탭(수급/외국인·기관/기술적/공매도/펀더멘탈) 통합용 신규 랭킹.
         'topFlow': [], 'topForeignInst': [], 'topTech': [], 'topShortSafe': [], 'topFundamental': [],
         'swingScanned': 0, 'swingCandidates': [], 'swingRegimeCounts': {}, 'swingEventCounts': {},
+        'swingFlowGroups': {key: [] for key in SWING_FLOW_KEYS},
         'swingWaveCoverage': {
             'total': 0, 'bigAvailable': 0, 'bigInsufficient': 0,
             'midAvailable': 0, 'smallAvailable': 0, 'sampleDaysMin': None, 'sampleDaysMax': None,
@@ -318,6 +379,11 @@ def main():
                 signal_state['swingRegimeCounts'][regime_key] = signal_state['swingRegimeCounts'].get(regime_key, 0) + 1
                 event_key = (assessment.get('recentEvent') or {}).get('key') or 'none'
                 signal_state['swingEventCounts'][event_key] = signal_state['swingEventCounts'].get(event_key, 0) + 1
+                flow_key = swing_flow_key(assessment)
+                if flow_key:
+                    flow_row = build_swing_flow_row(stock, daily, assessment)
+                    if flow_row:
+                        signal_state['swingFlowGroups'][flow_key].append(flow_row)
                 coverage = signal_state['swingWaveCoverage']
                 waves = assessment.get('waves') or {}
                 big_wave = waves.get('big') or {}
@@ -406,6 +472,7 @@ def main():
             'scanned': signal_state['swingScanned'],
             'regimeCounts': signal_state['swingRegimeCounts'],
             'eventCounts': signal_state['swingEventCounts'],
+            'flowGroups': signal_state['swingFlowGroups'],
             'waveCoverage': signal_state['swingWaveCoverage'],
             'candidates': signal_state['swingCandidates'],
             'basis': '차트 국면 관문 → 모멘텀·펀더멘털 확인 → 위험 필터, 국내 전용',

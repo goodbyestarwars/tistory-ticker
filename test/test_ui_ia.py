@@ -392,6 +392,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (
             "todayItems.slice(0, 12)",
             "function enableScheduleDrag(list)",
+            "function disclosureHref(item)",
+            "/page/foreign-flow?code=",
+            "title=\"종목분석으로 이동\"",
             "function scheduleSymbol(item)",
             "function scheduleIconHtml(item)",
             "STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/'",
@@ -440,8 +443,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("Math.abs(marketRect.top - economicRect.top) > 2", self.read("js/home-widgets.js"))
         self.assertIn(".home-widget--summary.home-economic-news { align-self: start; }", style)
         self.assertIn(".home-economic-news .hen-periods { min-height: 0; height: auto;", style)
+        self.assertIn(".home-economic-news .hen-list { min-height: 0; flex: 1 1 0; display: flex; flex-direction: column; overflow-y: auto;", style)
+        self.assertIn("hen-breaking-scoreboard", style)
         self.assertIn('data-hen-breaking-list', main)
         self.assertIn('function renderFlash(items)', news)
+        self.assertIn("flashTimer", news)
+        self.assertIn("function startFlashTicker()", news)
+        self.assertIn("setInterval(function ()", news)
         self.assertIn('isWatchlistDisclosure(item)', news)
         self.assertIn(".hen-periods", style)
         self.assertIn("max-height: 340px", style)
@@ -1079,7 +1087,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/strategy-search.css")
         self.assertIn("it.envelope", source)
         self.assertIn("엔벨로프 하단", source)
-        self.assertIn("columns: 2 150px;", style)
+        self.assertIn("columns: 1;", style)
         self.assertIn("#strategy-search .ss-row-name", style)
 
     def test_strategy_search_renders_opening_gap_metric(self):
@@ -1111,6 +1119,31 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("ss-return-period-tabs", style)
         self.assertIn("ss-dividend-sort-btn", source)
         self.assertIn("data-dividend-sort", source)
+
+    def test_strategy_search_explains_candidates_without_recommendation_language(self):
+        source = self.read("js/strategy-search.js")
+        style = self.read("css/strategy-search.css")
+        fixture = self.read("test/strategy-search.html")
+        for token in (
+            "전략은 두뇌다.",
+            "전략 조건으로 후보군을 찾고",
+            "categoryLabel",
+            "재무건전 장기 눌림",
+            "조건 자세히",
+            "120일선 대비",
+            "배당수익률",
+            "주당 현금배당",
+            "구성종목 보기",
+            "상위 10종목 비중",
+            "ss-etf-comp-row",
+            "tabindex=\"0\"",
+        ):
+            self.assertIn(token, source)
+        self.assertIn("dividendMatch", fixture)
+        self.assertIn("etfMatch", fixture)
+        self.assertNotIn("'이격도 '", source)
+        for token in (".ss-intro", ".ss-methodology-details", ".ss-row-primary", ".ss-row-secondary", ".ss-etf-components-btn", "columns: 1;"):
+            self.assertIn(token, style)
 
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")
@@ -1262,16 +1295,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_analysis_rank_filters_are_grouped_by_parent_domain(self):
         source = self.read("js/foreign-flow.js")
         style = self.read("css/foreign-flow.css")
-        self.assertNotIn("DISABLED_RANKING_LABELS", source)
-        self.assertNotIn("ff-rank-tab-disabled", source)
-        self.assertIn("ROE·부채 점수", source)
-        self.assertIn("PER·배당은 상세 참고", source)
-        self.assertIn("기술적 점수: 이평 25 · 지지 15 · 저항 15 · 일목 30 · 거래량 15", source)
-        self.assertIn("기술적 점수 ' + t.score + '/100", source)
-        self.assertIn("이평 ' + t.ma.score + '/25", source)
-        self.assertIn("일목 ' + t.ichimoku.score + '/30", source)
-        self.assertIn("거래량 ' + t.volume.score + '/15", source)
-        self.assertIn(".ff-rank-tabs-note", style)
+        self.assertIn("FLOW_META", source)
+        self.assertIn("차트 흐름별 탐색", source)
+        self.assertIn("업종별 보기", source)
+        self.assertIn("SIGNAL_PAGE_SIZE = 24", source)
+        self.assertIn("FLOW_SORT_META", source)
+        self.assertIn("renderIndustryView", source)
+        self.assertIn("data-flow", source)
+        self.assertIn(".ff-flow-grid", style)
+        self.assertIn(".ff-flow-row", style)
+        self.assertIn("@media (max-width: 420px)", style)
 
     def test_pattern_scan_exposes_exact_conditions_and_common_filters(self):
         source = self.read("js/pattern-scan.js")

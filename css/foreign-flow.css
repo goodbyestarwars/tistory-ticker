@@ -2048,6 +2048,176 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
   color: #9ca3af;
   margin-right: 2px;
 }
+
+/* ---- 종목분석 검색: 차트 흐름별 탐색 ---- */
+#foreign-flow .ff-explore-intro {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 2px 0 16px;
+}
+#foreign-flow .ff-explore-intro strong { color: #0c447c; font-size: 18px; }
+#foreign-flow .ff-explore-intro span { color: #64748b; font-size: 12.5px; }
+#foreign-flow .ff-explore-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+#foreign-flow .ff-explore-tab {
+  font-family: inherit;
+  padding: 9px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#foreign-flow .ff-explore-tab.active { color: #0c447c; border-bottom-color: #1261c4; }
+#foreign-flow .ff-explore-meta { margin-bottom: 16px; }
+#foreign-flow .ff-explore-meta-copy { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; }
+#foreign-flow .ff-explore-meta-copy strong { color: #1e293b; font-size: 14px; }
+#foreign-flow .ff-explore-meta-copy span,
+#foreign-flow .ff-explore-meta > small { color: #94a3b8; font-size: 11.5px; }
+#foreign-flow .ff-explore-meta > small { display: block; margin-top: 5px; }
+#foreign-flow .ff-section-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
+#foreign-flow .ff-section-head h2 { margin: 0; color: #1e293b; font-size: 16px; }
+#foreign-flow .ff-section-head p { margin: 4px 0 0; color: #64748b; font-size: 12px; }
+#foreign-flow .ff-flow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+#foreign-flow .ff-flow-card,
+#foreign-flow .ff-industry-card {
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid #dbe3ec;
+  border-radius: 11px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+#foreign-flow .ff-flow-card:hover,
+#foreign-flow .ff-flow-card.active,
+#foreign-flow .ff-industry-card:hover,
+#foreign-flow .ff-industry-card.active { border-color: #7aa9d8; box-shadow: 0 5px 15px rgba(27, 82, 135, .10); transform: translateY(-1px); }
+#foreign-flow .ff-flow-card-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
+#foreign-flow .ff-flow-card-copy strong { color: #1e293b; font-size: 14px; }
+#foreign-flow .ff-flow-card-copy b { color: #0c447c; font-size: 13px; }
+#foreign-flow .ff-flow-card-copy small { color: #64748b; font-size: 11px; line-height: 1.45; }
+#foreign-flow .ff-flow-line { flex: 0 0 86px; width: 86px; height: 44px; }
+#foreign-flow .ff-flow-line.up { color: #d24f45; }
+#foreign-flow .ff-flow-line.down { color: #1261c4; }
+#foreign-flow .ff-flow-line.neutral { color: #8b95a1; }
+#foreign-flow .ff-flow-empty { margin-top: 12px; padding: 22px 14px; border: 1px dashed #dbe3ec; border-radius: 10px; color: #64748b; font-size: 12.5px; text-align: center; }
+#foreign-flow .ff-flow-results { margin-top: 18px; }
+#foreign-flow .ff-flow-list-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+#foreign-flow .ff-flow-list-head h3 { margin: 0; color: #1e293b; font-size: 15px; }
+#foreign-flow .ff-flow-list-head p { margin: 3px 0 0; color: #64748b; font-size: 11.5px; }
+#foreign-flow .ff-flow-list-head label { display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-size: 11.5px; white-space: nowrap; }
+#foreign-flow .ff-explore-sort { font-family: inherit; padding: 6px 8px; border: 1px solid #dbe3ec; border-radius: 6px; background: #fff; color: #334155; font-size: 11.5px; }
+#foreign-flow .ff-flow-table-head,
+#foreign-flow .ff-flow-row { display: grid; grid-template-columns: minmax(150px, 1.35fr) minmax(180px, 1.7fr) minmax(100px, .9fr) minmax(130px, 1.15fr) minmax(110px, 1fr); gap: 12px; align-items: center; }
+#foreign-flow .ff-flow-table-head { padding: 8px 12px; border-top: 1px solid #dbe3ec; border-bottom: 1px solid #dbe3ec; color: #94a3b8; font-size: 10.5px; }
+#foreign-flow .ff-flow-rows { border-bottom: 1px solid #dbe3ec; }
+#foreign-flow .ff-flow-row { width: 100%; padding: 11px 12px; border: 0; border-bottom: 1px solid #eef2f6; background: transparent; font-family: inherit; text-align: left; cursor: pointer; }
+#foreign-flow .ff-flow-row:last-child { border-bottom: 0; }
+#foreign-flow .ff-flow-row:hover { background: #f7fafc; }
+#foreign-flow .ff-flow-stock,
+#foreign-flow .ff-flow-signal,
+#foreign-flow .ff-flow-volume { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+#foreign-flow .ff-flow-stock { position: relative; padding-left: 26px; }
+#foreign-flow .ff-flow-icon { position: absolute; left: 0; top: 1px; width: 19px; height: 19px; border-radius: 50%; object-fit: contain; }
+#foreign-flow .ff-flow-stock strong { overflow: visible; color: #1e293b; font-size: 13px; white-space: nowrap; }
+#foreign-flow .ff-flow-stock small { color: #94a3b8; font-size: 10.5px; }
+#foreign-flow .ff-flow-stock em { overflow: hidden; color: #64748b; font-size: 10.5px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+#foreign-flow .ff-flow-stock i { color: #64748b; font-size: 10.5px; font-style: normal; white-space: nowrap; }
+#foreign-flow .ff-flow-signal b,
+#foreign-flow .ff-flow-volume b { color: #334155; font-size: 12px; }
+#foreign-flow .ff-flow-signal small,
+#foreign-flow .ff-flow-volume small { color: #64748b; font-size: 10.5px; line-height: 1.4; }
+#foreign-flow .ff-flow-location { color: #475569; font-size: 11.5px; line-height: 1.45; }
+#foreign-flow .ff-flow-risk { color: #64748b; font-size: 11.5px; line-height: 1.45; }
+#foreign-flow .ff-flow-risk.warn { color: #b42318; font-weight: 700; }
+#foreign-flow .ff-flow-more { display: block; width: 100%; margin-top: 9px; padding: 10px; border: 1px solid #dbe3ec; border-radius: 8px; background: #fff; color: #1261c4; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+#foreign-flow .ff-flow-more span { margin-left: 5px; color: #94a3b8; font-size: 10.5px; font-weight: 500; }
+#foreign-flow .ff-industry-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+#foreign-flow .ff-industry-card { display: flex; align-items: flex-start; flex-direction: column; gap: 3px; }
+#foreign-flow .ff-industry-card strong { color: #1e293b; font-size: 13px; }
+#foreign-flow .ff-industry-card b { color: #0c447c; font-size: 12px; }
+#foreign-flow .ff-industry-card small { color: #64748b; font-size: 10.5px; line-height: 1.45; }
+#foreign-flow .ff-flow-industry-note { margin-bottom: 7px; color: #64748b; font-size: 11.5px; }
+
+html.dark #foreign-flow .ff-explore-intro strong,
+html.dark #foreign-flow .ff-section-head h2,
+html.dark #foreign-flow .ff-flow-card-copy strong,
+html.dark #foreign-flow .ff-industry-card strong,
+html.dark #foreign-flow .ff-flow-stock strong { color: #f5efe0; }
+html.dark #foreign-flow .ff-explore-intro span,
+html.dark #foreign-flow .ff-section-head p,
+html.dark #foreign-flow .ff-flow-card-copy small,
+html.dark #foreign-flow .ff-flow-stock small,
+html.dark #foreign-flow .ff-flow-stock em,
+html.dark #foreign-flow .ff-flow-stock i,
+html.dark #foreign-flow .ff-flow-signal small,
+html.dark #foreign-flow .ff-flow-volume small,
+html.dark #foreign-flow .ff-flow-location,
+html.dark #foreign-flow .ff-flow-risk,
+html.dark #foreign-flow .ff-industry-card small { color: rgba(245,239,224,.62); }
+html.dark #foreign-flow .ff-explore-tabs,
+html.dark #foreign-flow .ff-flow-table-head,
+html.dark #foreign-flow .ff-flow-rows { border-color: rgba(245,239,224,.18); }
+html.dark #foreign-flow .ff-explore-tab { color: rgba(245,239,224,.62); }
+html.dark #foreign-flow .ff-explore-tab.active { color: #9ac7f4; border-color: #6ea8e8; }
+html.dark #foreign-flow .ff-flow-card,
+html.dark #foreign-flow .ff-industry-card,
+html.dark #foreign-flow .ff-flow-more,
+html.dark #foreign-flow .ff-explore-sort { border-color: rgba(245,239,224,.2); background: #1a1a1a; color: #f5efe0; }
+html.dark #foreign-flow .ff-flow-card:hover,
+html.dark #foreign-flow .ff-flow-card.active,
+html.dark #foreign-flow .ff-industry-card:hover,
+html.dark #foreign-flow .ff-industry-card.active,
+html.dark #foreign-flow .ff-flow-row:hover { background: rgba(245,239,224,.07); }
+html.dark #foreign-flow .ff-flow-empty { border-color: rgba(245,239,224,.2); color: rgba(245,239,224,.62); }
+html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
+
+@media (max-width: 760px) {
+  #foreign-flow .ff-flow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #foreign-flow .ff-industry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #foreign-flow .ff-flow-line { flex-basis: 64px; width: 64px; }
+  #foreign-flow .ff-flow-table-head { display: none; }
+  #foreign-flow .ff-flow-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 12px; padding: 12px 10px; }
+  #foreign-flow .ff-flow-stock { grid-column: 1 / -1; }
+  #foreign-flow .ff-flow-signal,
+  #foreign-flow .ff-flow-location,
+  #foreign-flow .ff-flow-volume,
+  #foreign-flow .ff-flow-risk { min-height: 28px; }
+  #foreign-flow .ff-flow-location::before,
+  #foreign-flow .ff-flow-volume::before,
+  #foreign-flow .ff-flow-risk::before { display: block; margin-bottom: 2px; color: #94a3b8; font-size: 9.5px; }
+  #foreign-flow .ff-flow-location::before { content: '현재 위치'; }
+  #foreign-flow .ff-flow-volume::before { content: '거래대금 · 거래량'; }
+  #foreign-flow .ff-flow-risk::before { content: '위험 확인'; }
+}
+@media (max-width: 420px) {
+  #foreign-flow .ff-explore-intro { display: block; }
+  #foreign-flow .ff-explore-intro span { display: block; margin-top: 5px; }
+  #foreign-flow .ff-flow-grid,
+  #foreign-flow .ff-industry-grid { gap: 7px; }
+  #foreign-flow .ff-flow-card { display: block; padding: 10px; }
+  #foreign-flow .ff-flow-card-copy strong { font-size: 12px; }
+  #foreign-flow .ff-flow-card-copy b { font-size: 11.5px; }
+  #foreign-flow .ff-flow-card-copy small { display: block; min-height: 30px; font-size: 10px; }
+  #foreign-flow .ff-flow-line { display: block; width: 100%; height: 34px; margin-top: 4px; }
+  #foreign-flow .ff-flow-list-head { align-items: flex-start; flex-direction: column; }
+  #foreign-flow .ff-flow-list-head label { align-self: stretch; justify-content: space-between; }
+  #foreign-flow .ff-explore-sort { flex: 1; }
+}
 #foreign-flow .ff-rank-tabs-note {
   flex-basis: 100%;
   font-size: 11px;

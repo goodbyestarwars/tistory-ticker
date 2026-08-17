@@ -3373,6 +3373,7 @@ function getInvestSignalResult() {
     return { scannedAt: null, universe: 0, scanned: 0, counts: {}, buckets: {}, rankings: {} };
   }
   var signal = data.investSignal || {};
+  var swingScan = data.swingScan || {};
   var buckets = signal.buckets || {};
   var rankings = signal.rankings || {};
   return {
@@ -3400,6 +3401,16 @@ function getInvestSignalResult() {
       tech: rankings.tech || [],
       shortSafe: rankings.shortSafe || [],
       fundamental: rankings.fundamental || []
+    },
+    // 종목분석 탐색 화면은 daily_scan이 이미 계산한 차트 흐름 집계를 그대로 사용한다.
+    // 기존 investSignal 필드와 함께 전달해 기존 호출부와 하위 호환을 유지한다.
+    swingScan: {
+      modelVersion: swingScan.modelVersion || null,
+      scanned: swingScan.scanned || 0,
+      flowGroups: swingScan.flowGroups || {},
+      regimeCounts: swingScan.regimeCounts || {},
+      eventCounts: swingScan.eventCounts || {},
+      waveCoverage: swingScan.waveCoverage || {}
     }
   };
 }
