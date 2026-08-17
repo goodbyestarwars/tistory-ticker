@@ -504,17 +504,75 @@ def compute_tech_score(daily):
     return {'score': ma_score + sup_score + res_score + ichi_score + vol_score}
 
 
+def enrich_pattern_detail(detail, daily):
+    """Add display-only price structure fields to an existing pattern result.
+
+    The detector remains the source of truth for inclusion and scoring. These
+    fields only serialize the already-used window so the scanner can render a
+    per-stock observation without another OHLC request.
+    """
+    enriched = dict(detail or {})
+    closes_20d = [
+        {'date': row.get('date'), 'close': row.get('close')}
+        for row in (daily or [])[-20:]
+        if row.get('date') and row.get('close') is not None
+    ]
+    enriched.setdefault('closes_20d', closes_20d)
+
+    low_swings = enriched.get('low_swings') or []
+    if low_swings:
+        enriched.setdefault('pivot_lows', list(low_swings))
+    if len(low_swings) >= 2:
+        previous_low = low_swings[-2]
+        latest_low = low_swings[-1]
+        enriched.setdefault('previous_low', dict(previous_low))
+        enriched.setdefault('latest_low', dict(latest_low))
+        previous_price = previous_low.get('price')
+        latest_price = latest_low.get('price')
+        if previous_price and latest_price:
+            enriched.setdefault('low_rise_pct', (latest_price - previous_price) / previous_price * 100)
+
+    signal = enriched.get('signal') or enriched.get('current') or {}
+    current_close = signal.get('price') if isinstance(signal, dict) else None
+    if current_close is None and closes_20d:
+        current_close = closes_20d[-1].get('close')
+    if current_close is not None:
+        enriched.setdefault('current_close', current_close)
+
+    resistance = enriched.get('resistance')
+    if resistance is not None:
+        enriched.setdefault('recent_resistance', resistance)
+        if current_close:
+            enriched.setdefault('resistance_gap_pct', (resistance - current_close) / current_close * 100)
+
+    latest_low = enriched.get('latest_low')
+    if latest_low and latest_low.get('price'):
+        enriched.setdefault(
+            'from_latest_low_pct',
+            (current_close - latest_low['price']) / latest_low['price'] * 100 if current_close is not None else None,
+        )
+    return enriched
+
+
+def annotate_pattern_scan_details(pattern_results, scanned_at, pullback_matches=None):
+    """Attach the batch scan timestamp to serialized pattern details."""
+    groups = list((pattern_results or {}).values())
+    if pullback_matches is not None:
+        groups.append(pullback_matches)
+    for matches in groups:
+        for item in matches or []:
+            detail = item.get('patternDetail')
+            if detail is not None:
+                detail['scanned_at'] = scanned_at
+            item['scannedAt'] = scanned_at
+
+
 def build_pattern_match(stock, daily, detail):
     last = daily[-1]
     prev = daily[-2] if len(daily) > 1 else None
     change_rate = ((last['close'] - prev['close']) / prev['close'] * 100) if (prev and prev['close']) else None
-    # 결과 리스트의 스캐너 미니차트 전용 스냅샷. 판정·점수 계산은 건드리지 않고,
-    # 목록에서 종목마다 별도 OHLC 요청을 만들지 않도록 최근 종가 20개만 함께 보관한다.
-    mini_chart = [
-        {'date': row.get('date'), 'close': row.get('close')}
-        for row in daily[-20:]
-        if row.get('date') and row.get('close') is not None
-    ]
+    pattern_detail = enrich_pattern_detail(detail, daily)
+    mini_chart = pattern_detail.get('closes_20d') or []
     return {
         'code': stock['code'],
         'name': stock['name'],
@@ -527,7 +585,7 @@ def build_pattern_match(stock, daily, detail):
         'interpretation': detail['interpretation'],
         # 상세 클릭 시 장중 봉으로 재판정하지 않아도 전날 스캔 근거선을 그대로 그릴 수 있게
         # 패턴 좌표(저점/고점/넥라인/지지·저항)를 스냅샷에 함께 보관한다.
-        'patternDetail': detail,
+        'patternDetail': pattern_detail,
     }
 
 

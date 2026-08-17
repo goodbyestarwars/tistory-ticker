@@ -147,6 +147,22 @@
   stroke-linejoin: round;
 }
 
+#pattern-scan .ps-mini-chart .ps-pivot-marker {
+  fill: #ffffff;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+#pattern-scan .ps-mini-chart .ps-pivot-marker.previous { opacity: .72; }
+#pattern-scan .ps-mini-chart .ps-pivot-marker.latest { stroke-width: 1.8; }
+#pattern-scan .ps-mini-chart .ps-current-marker {
+  fill: currentColor;
+  stroke: #ffffff;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
 #pattern-scan .ps-mini-chart.ps-up polyline { stroke: #d24f45; }
 #pattern-scan .ps-mini-chart.ps-down polyline { stroke: #1261c4; }
 #pattern-scan .ps-mini-chart-empty {
@@ -162,6 +178,7 @@
   line-height: 1.35;
 }
 
+#pattern-scan .ps-observation,
 #pattern-scan .ps-interpretation {
   min-width: 0;
   color: #64748b;
@@ -410,7 +427,7 @@
   }
   #pattern-scan .ps-mini-chart-wrap {
     grid-column: 3;
-    grid-row: 1 / span 2;
+    grid-row: 1;
     width: 94px;
     height: 32px;
   }
@@ -420,21 +437,22 @@
   }
   #pattern-scan .ps-quote {
     grid-column: 4;
-    grid-row: 1 / span 2;
+    grid-row: 1;
     align-self: center;
     justify-content: flex-end;
     gap: 2px;
   }
   #pattern-scan .ps-price { font-size: 11px; }
   #pattern-scan .ps-rate { font-size: 10px; }
+  #pattern-scan .ps-observation,
   #pattern-scan .ps-interpretation {
     grid-column: 2;
     grid-row: 2;
+    grid-column-end: 5;
     font-size: 10px;
     line-height: 1.25;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
   }
 }
 #pattern-scan .ps-common-desc {
@@ -505,6 +523,7 @@ html.dark #pattern-scan .ps-code {
 html.dark #pattern-scan .ps-list-head,
 html.dark #pattern-scan .ps-rank,
 html.dark #pattern-scan .ps-mobile-signal,
+html.dark #pattern-scan .ps-observation,
 html.dark #pattern-scan .ps-interpretation,
 html.dark #pattern-scan .ps-mini-chart-empty {
   color: rgba(245, 239, 224, 0.55) !important;

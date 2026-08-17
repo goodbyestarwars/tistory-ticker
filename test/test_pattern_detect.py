@@ -148,6 +148,12 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertEqual([row["code"] for row in results["risingLows"]], ["000001"])
         self.assertEqual(len(results["risingLows"][0]["miniChart"]), min(20, len(daily)))
         self.assertEqual(results["risingLows"][0]["miniChart"][-1]["close"], daily[-1]["close"])
+        detail_snapshot = results["risingLows"][0]["patternDetail"]
+        self.assertEqual(len(detail_snapshot["closes_20d"]), min(20, len(daily)))
+        self.assertEqual(detail_snapshot["previous_low"]["price"], detail_snapshot["pivot_lows"][-2]["price"])
+        self.assertEqual(detail_snapshot["latest_low"]["price"], detail_snapshot["pivot_lows"][-1]["price"])
+        self.assertIsNotNone(detail_snapshot["low_rise_pct"])
+        self.assertIsNotNone(detail_snapshot["from_latest_low_pct"])
 
     def test_higher_low_does_not_use_a_fixed_rebound_cap(self):
         daily = early_higher_low_daily()

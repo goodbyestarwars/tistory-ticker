@@ -229,6 +229,25 @@
       changeRate: ((last.close - prev.close) / prev.close * 100),
       date: last.date,
       miniChart: daily.slice(-20).map(function (row) { return { date: row.date, close: row.close }; }),
+      patternDetail: (function () {
+        var lows = detail && (detail.pivot_lows || detail.low_swings) || [];
+        var previous = lows.length > 1 ? lows[lows.length - 2] : null;
+        var latest = lows.length > 0 ? lows[lows.length - 1] : null;
+        var currentClose = detail && detail.current_close != null ? detail.current_close : last.close;
+        var resistance = detail && (detail.recent_resistance != null ? detail.recent_resistance : detail.resistance);
+        return Object.assign({}, detail || {}, {
+          closes_20d: daily.slice(-20).map(function (row) { return { date: row.date, close: row.close }; }),
+          pivot_lows: lows,
+          previous_low: previous,
+          latest_low: latest,
+          current_close: currentClose,
+          recent_resistance: resistance,
+          low_rise_pct: previous && latest ? (latest.price - previous.price) / previous.price * 100 : null,
+          from_latest_low_pct: latest ? (currentClose - latest.price) / latest.price * 100 : null,
+          resistance_gap_pct: resistance ? (resistance - currentClose) / currentClose * 100 : null,
+          scanned_at: '2026-07-11T07:00:00.000Z'
+        });
+      }()),
       score: detail && detail.score,
       reasons: detail && detail.reasons,
       interpretation: detail && detail.interpretation

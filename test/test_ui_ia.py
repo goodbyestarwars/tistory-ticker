@@ -1073,14 +1073,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/pattern-scan.css")
         backend = self.read("scripts/cloud-vm/pattern_detect.py")
         fixture = self.read("test/pattern-scan.html")
-        for token in ("miniChartHtml", "최근 20거래일 종가 흐름", "scannerSignal", "scannerInterpretation", "tabindex=\"0\"", "ps-rank"):
+        for token in ("miniChartHtml", "최근 20거래일 종가 흐름", "scannerSignal", "scannerInterpretation", "risingLowsObservation", "개별 관측", "ps-pivot-marker", "tabindex=\"0\"", "ps-rank"):
             self.assertIn(token, source)
         self.assertNotIn("ps-score-badge", source)
         self.assertNotIn("patternIcon(activeTab)", source)
         for token in ("grid-template-columns: 34px", ".ps-mini-chart", ".ps-mobile-signal", "@media (max-width: 480px)"):
             self.assertIn(token, style)
         self.assertIn("'miniChart': mini_chart", backend)
+        self.assertIn("'closes_20d'", backend)
+        self.assertIn("'previous_low'", backend)
+        self.assertIn("annotate_pattern_scan_details", backend)
         self.assertIn("miniChart: daily.slice(-20)", fixture)
+        self.assertIn("patternDetail:", fixture)
+        self.assertIn("최근 20봉에서 좌우 2봉보다 낮은 스윙 저점이 2개 이상이고", source)
+        self.assertNotIn("최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간으로 추정됩니다", source)
 
     def test_strategy_search_renders_weekly_envelope_metric(self):
         source = self.read("js/strategy-search.js")
