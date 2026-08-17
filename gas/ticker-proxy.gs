@@ -2650,20 +2650,56 @@ function getPatternChart(code, patternType, scanDate) {
   else if (patternType === 'boxRangeLow') detail = detectBoxRangeLow_(evaluationDaily);
   else if (patternType === 'pullback') detail = detectPullback_(evaluationDaily);
 
+  if (detail) detail = enrichPatternDetail_(detail, evaluationDaily);
+
   return { code: code.toUpperCase(), daily: daily, pattern: patternType, detail: detail, evaluatedAsOf: scanDate || null };
 }
 
+// 기존 판정 결과를 바꾸지 않고, 목록 렌더링에 필요한 스냅샷만 덧붙인다.
+function enrichPatternDetail_(detail, daily) {
+  var enriched = {};
+  Object.keys(detail || {}).forEach(function (key) { enriched[key] = detail[key]; });
+  var closes = (daily || []).slice(Math.max(0, (daily || []).length - 20)).map(function (row) {
+    return { date: row.date, close: row.close };
+  }).filter(function (row) { return row.date && row.close != null; });
+  if (!enriched.closes_20d) enriched.closes_20d = closes;
+
+  var lowSwings = enriched.low_swings || [];
+  if (lowSwings.length && !enriched.pivot_lows) enriched.pivot_lows = lowSwings.slice();
+  if (lowSwings.length >= 2) {
+    var previousLow = lowSwings[lowSwings.length - 2];
+    var latestLow = lowSwings[lowSwings.length - 1];
+    if (!enriched.previous_low) enriched.previous_low = { date: previousLow.date, price: previousLow.price };
+    if (!enriched.latest_low) enriched.latest_low = { date: latestLow.date, price: latestLow.price };
+    if (previousLow.price && latestLow.price && enriched.low_rise_pct == null) {
+      enriched.low_rise_pct = (latestLow.price - previousLow.price) / previousLow.price * 100;
+    }
+  }
+
+  var signal = enriched.signal || enriched.current || {};
+  var currentClose = signal.price != null ? signal.price : (closes.length ? closes[closes.length - 1].close : null);
+  if (currentClose != null && enriched.current_close == null) enriched.current_close = currentClose;
+  if (enriched.resistance != null && enriched.recent_resistance == null) enriched.recent_resistance = enriched.resistance;
+  if (enriched.recent_resistance != null && currentClose && enriched.resistance_gap_pct == null) {
+    enriched.resistance_gap_pct = (enriched.recent_resistance - currentClose) / currentClose * 100;
+  }
+  if (enriched.latest_low && enriched.latest_low.price && currentClose != null && enriched.from_latest_low_pct == null) {
+    enriched.from_latest_low_pct = (currentClose - enriched.latest_low.price) / enriched.latest_low.price * 100;
+  }
+  if (enriched.scanned_at == null) enriched.scanned_at = new Date().toISOString();
+  return enriched;
+}
+
 // detail: 각 detect*_ 함수의 반환값(score/reasons/interpretation 포함) - 스캔 리스트에도
-// 점수+원인+AI 한 줄 해석을 같이 실어서, 프론트가 차트를 다시 열지 않고도 보여줄 수 있게 한다.
+// 점수+원인+AI 한 줄 해석과 실제 20일 가격 구조를 함께 실어 별도 OHLC 요청을 막는다.
 function buildPatternMatch_(stock, daily, detail) {
   var last = daily[daily.length - 1];
   var prev = daily.length > 1 ? daily[daily.length - 2] : null;
   var changeRate = (prev && prev.close) ? ((last.close - prev.close) / prev.close * 100) : null;
   // 스캐너 목록용 최근 종가 스냅샷. 판정 로직은 그대로 두고, 종목별 추가 요청 없이
   // 결과 행에서 20일 미니차트를 그릴 수 있도록 표시용 데이터만 함께 보낸다.
-  var miniChart = daily.slice(Math.max(0, daily.length - 20)).map(function (row) {
-    return { date: row.date, close: row.close };
-  });
+  var patternDetail = enrichPatternDetail_(detail, daily);
+  var miniChart = patternDetail.closes_20d || [];
   return {
     code: stock.code,
     name: stock.name,
@@ -2671,9 +2707,11 @@ function buildPatternMatch_(stock, daily, detail) {
     changeRate: changeRate,
     date: last.date,
     miniChart: miniChart,
-    score: detail.score,
-    reasons: detail.reasons,
-    interpretation: detail.interpretation
+    score: patternDetail.score,
+    reasons: patternDetail.reasons,
+    interpretation: patternDetail.interpretation,
+    patternDetail: patternDetail,
+    scannedAt: patternDetail.scanned_at
   };
 }
 

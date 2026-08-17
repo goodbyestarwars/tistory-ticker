@@ -42,7 +42,7 @@
   // 점수는 후보 간 우선순위를 정하는 참고값이고, 아래 조건은 검색 포함 여부를 결정한다.
   var COMMON_SEARCH_DESC = '검색기 공통: 시가총액 3,000억원 이상 · ETF·스팩·ETN·거래정지·정리매매 제외';
   var TABS = [
-    { key: 'risingLows', label: '저점상승형', desc: '최근 20봉에서 좌우 2봉보다 낮은 스윙 저점이 2개 이상이고, 최근 저점이 직전 저점보다 높으며 현재 종가가 최근 저점 위입니다. 최근 저항을 2% 이상 돌파한 종목은 제외합니다.' },
+    { key: 'risingLows', label: '저점상승형', desc: '최근 20봉에서 좌우 2봉보다 낮은 스윙 저점이 2개 이상이고, 최근 저점이 직전 저점보다 높으며 현재 종가가 최근 저점 위에 있는 종목입니다. 최근 저항을 2% 이상 돌파한 종목은 제외합니다.' },
     { key: 'maCloudBreakout', label: '이평 상승 초입형', desc: '최소 250봉 데이터에서 종가가 224일선 ±3% 이내이고, 현재 종가가 일목 구름 안이며 고가가 구름 상단 3% 이내입니다. 최근 5봉 안에 5일선이 20일선을 상향돌파하고 구름 상단 돌파 전인 종목입니다.' },
     { key: 'doubleBottom', label: '쌍바닥', desc: '최근 120봉에서 10~45봉 간격의 스윙 저점 2개가 3% 이내로 비슷하고, 두 번째 저점 거래량이 첫 번째 이하이며 중간 넥라인까지 8% 이상 반등한 구조입니다. 두 번째 저점은 최근 5봉 안이고 현재 종가는 넥라인 2% 아래보다 높아야 합니다.' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '최근 90봉에서 4~40봉 간격의 저점 3개가 어깨-머리-어깨를 이루고, 머리가 양 어깨보다 각각 2% 이상 낮으며 양 어깨 가격차는 4% 이내입니다. 넥라인 1% 이내, 최근 양봉, 우어깨 이후 거래량은 최근 20봉 평균의 1.2배 이상이어야 합니다.' },
@@ -119,8 +119,8 @@
   }
 
   function miniChartRows(item) {
-    var rows = item && (item.miniChart || item.mini_chart || item.closeSeries);
-    if (!Array.isArray(rows) && item && item.patternDetail) rows = item.patternDetail.miniChart;
+    var detail = detailFor(item);
+    var rows = detail.closes_20d || detail.closes20d || item && (item.miniChart || item.mini_chart || item.closeSeries);
     if (!Array.isArray(rows)) return [];
     return rows.map(function (row) {
       if (typeof row === 'number') return { close: Number(row) };
@@ -130,7 +130,7 @@
 
   function miniChartHtml(item) {
     var rows = miniChartRows(item);
-    if (rows.length < 2) return '<span class="ps-mini-chart-empty">가격 데이터 부족</span>';
+    if (rows.length < 2) return '<span class="ps-mini-chart-empty">상세 가격 흐름 데이터 없음</span>';
     var values = rows.map(function (row) { return row.close; });
     var min = Math.min.apply(Math, values);
     var max = Math.max.apply(Math, values);
@@ -141,9 +141,34 @@
       var y = height - pad - (value - min) / range * (height - pad * 2);
       return x.toFixed(2) + ',' + y.toFixed(2);
     }).join(' ');
-    var tone = chgClass(item && item.changeRate);
+    var change20d = values[0] ? (values[values.length - 1] - values[0]) / values[0] * 100 : 0;
+    var tone = chgClass(change20d);
+    var detail = detailFor(item);
+    var indexByDate = {};
+    rows.forEach(function (row, index) { if (row.date) indexByDate[row.date] = index; });
+    var pivotLows = detail.pivot_lows || detail.low_swings || [];
+    var markerPoints = [];
+    pivotLows.forEach(function (point, index) {
+      var pointIndex = point.date != null ? indexByDate[point.date] : null;
+      if (pointIndex == null && point.price != null) {
+        pointIndex = values.reduce(function (best, value, valueIndex) {
+          return Math.abs(value - point.price) < Math.abs(values[best] - point.price) ? valueIndex : best;
+        }, 0);
+      }
+      if (pointIndex != null && markerPoints.every(function (marker) { return marker.index !== pointIndex; })) {
+        markerPoints.push({ index: pointIndex, kind: index === pivotLows.length - 1 ? 'latest' : 'previous' });
+      }
+    });
+    var markerHtml = markerPoints.map(function (marker) {
+      var x = pad + (width - pad * 2) * marker.index / Math.max(1, values.length - 1);
+      var y = height - pad - (values[marker.index] - min) / range * (height - pad * 2);
+      return '<circle class="ps-pivot-marker ' + marker.kind + '" cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="2.6"></circle>';
+    }).join('');
+    var lastX = width - pad;
+    var lastY = height - pad - (values[values.length - 1] - min) / range * (height - pad * 2);
     return '<svg class="ps-mini-chart ' + tone + '" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="최근 20거래일 종가 흐름">'
-      + '<polyline points="' + points + '"></polyline></svg>';
+      + '<polyline points="' + points + '"></polyline>' + markerHtml
+      + '<circle class="ps-current-marker" cx="' + lastX.toFixed(2) + '" cy="' + lastY.toFixed(2) + '" r="2.2"></circle></svg>';
   }
 
   function detailFor(item) {
@@ -162,8 +187,8 @@
     var detail = detailFor(item);
     var resistanceText = nearResistanceText(detail);
     if (patternKey === 'risingLows') {
-      var lows = Array.isArray(detail.low_swings) ? detail.low_swings.length : 0;
-      return lows ? '저점 ↑ ' + lows + '회' : '저점 상승 확인';
+      var lows = Array.isArray(detail.pivot_lows || detail.low_swings) ? (detail.pivot_lows || detail.low_swings).length : 0;
+      return lows ? '저점 상승 ' + lows + '회' : '저점 상승 확인';
     }
     if (patternKey === 'maCloudBreakout') return '5·20일선 상향 교차';
     if (patternKey === 'doubleBottom') return detail.low1 && detail.low2 ? '쌍바닥 저점 확인' : '쌍바닥 구조';
@@ -181,7 +206,40 @@
     return resistanceText || '패턴 조건 확인';
   }
 
+  function signedObservationPct(value) {
+    var n = Number(value);
+    if (!isFinite(n)) return null;
+    return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
+  }
+
+  function risingLowsObservation(item) {
+    var detail = detailFor(item);
+    var previous = detail.previous_low;
+    var latest = detail.latest_low;
+    var current = Number(detail.current_close != null ? detail.current_close : item && item.price);
+    if (!previous || !latest || !isFinite(Number(previous.price)) || !isFinite(Number(latest.price)) || !isFinite(current)) {
+      return '상세 가격 흐름 데이터 없음';
+    }
+    var lowRise = Number(detail.low_rise_pct);
+    if (!isFinite(lowRise)) lowRise = (Number(latest.price) - Number(previous.price)) / Number(previous.price) * 100;
+    var fromLatest = Number(detail.from_latest_low_pct);
+    if (!isFinite(fromLatest)) fromLatest = (current - Number(latest.price)) / Number(latest.price) * 100;
+    var first = '저점 ' + fmt(previous.price) + '원 → ' + fmt(latest.price) + '원, ' + (signedObservationPct(lowRise) || '-') + ' 높아짐';
+    var resistance = Number(detail.recent_resistance);
+    var gap = Number(detail.resistance_gap_pct);
+    var second = '최근 저점 이후 ' + (signedObservationPct(fromLatest) || '-')
+      + (isFinite(resistance) && resistance > 0
+        ? (isFinite(gap) && gap < 0
+          ? ' · 저항 ' + fmt(resistance) + '원 돌파 ' + signedObservationPct(Math.abs(gap))
+          : ' · 저항 ' + fmt(resistance) + '원까지 ' + (isFinite(gap) ? gap.toFixed(1) : '-') + '%')
+        : ' · 최근 저항 데이터 없음');
+    var lows = detail.pivot_lows || detail.low_swings || [];
+    var countNote = lows.length >= 4 ? '반복 지지 구간' : lows.length === 3 ? '지지 3회 확인' : lows.length === 2 ? '초기 저점 구조' : '';
+    return first + ' · ' + second + (countNote ? ' · ' + countNote : '');
+  }
+
   function scannerInterpretation(item, patternKey) {
+    if (patternKey === 'risingLows') return risingLowsObservation(item);
     var text = String(item && item.interpretation || '').replace(/\s*\(?\d+점\)?\.?\s*$/, '').trim();
     if (text) return text;
     return {
@@ -214,7 +272,7 @@
     });
 
     list.innerHTML = '<div class="ps-list-head" aria-hidden="true">'
-      + '<span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>감지 신호</span><span>현재가·등락률</span><span>패턴 해석</span>'
+      + '<span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>감지 신호</span><span>현재가·등락률</span><span>개별 관측</span>'
       + '</div>'
       + sorted.map(function (it, index) {
       var cc = chgClass(it.changeRate);
@@ -229,7 +287,7 @@
         + '<span class="ps-signal">' + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
         + '<span class="ps-quote"><span class="ps-price">' + fmt(it.price) + '</span>'
         + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
-        + '<span class="ps-interpretation">' + escapeHtml(scannerInterpretation(it, activeTab)) + '</span>'
+        + '<span class="ps-observation">' + escapeHtml(scannerInterpretation(it, activeTab)) + '</span>'
         + '</div>';
     }).join('');
 

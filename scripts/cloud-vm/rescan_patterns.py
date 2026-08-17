@@ -114,6 +114,8 @@ def main():
     conn.close()
 
     pd.finalize_pattern_results(pattern_results, pullback_matches)
+    scan_at = datetime.now(timezone.utc).isoformat()
+    pd.annotate_pattern_scan_details(pattern_results, scan_at, pullback_matches)
     existing = {}
     if os.path.exists(OUTPUT_FILE):
         with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
@@ -121,7 +123,7 @@ def main():
 
     existing['patternScan'] = {'scanned': pattern_scanned, 'patterns': pattern_results}
     existing['pullbackScan'] = {'scanned': pullback_scanned, 'matches': pullback_matches}
-    existing['patternRescanAt'] = datetime.now(timezone.utc).isoformat()  # investSignal은 그대로라 top-level generatedAt은 안 건드림
+    existing['patternRescanAt'] = scan_at  # investSignal은 그대로라 top-level generatedAt은 안 건드림
     existing.setdefault('universe', len(codes))
 
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:

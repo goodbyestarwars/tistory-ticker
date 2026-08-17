@@ -445,6 +445,7 @@ def main():
     signal_state['swingCandidates'] = signal_state['swingCandidates'][:100]
     pd.finalize_pattern_results(pattern_results, pullback_matches)
     now = datetime.now(timezone.utc).isoformat()
+    pd.annotate_pattern_scan_details(pattern_results, now, pullback_matches)
     payload = {
         'generatedAt': now,
         'universe': len(universe),
