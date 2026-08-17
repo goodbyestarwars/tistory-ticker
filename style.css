@@ -25,7 +25,22 @@
    그대로, position만 fixed 가로바로 변경 - skin.html 수정 불필요). 그 높이를
    --topbar-height로 빼서 아래 page-wrap/sidebar-right/quick-indices 오프셋에 전부
    더한다(패턴은 --qi-height와 동일). */
-:root { --qi-height: 86px; --topbar-height: 48px; }
+:root {
+  --qi-height: 86px;
+  --topbar-height: 48px;
+  --font-title: "MaruBuri", "Maru Buri", Georgia, serif;
+  --font-ui: "Nanum Gothic", "NanumGothic", "Malgun Gothic", sans-serif;
+  --font-data: "Malgun Gothic", system-ui, sans-serif;
+  --page-bg: #F8F7F4;
+  --surface: #FFFEFC;
+  --text-main: #171717;
+  --text-sub: #6F7480;
+  --rule: #D8D8D8;
+  --up: #B42318;
+  --down: #245B9E;
+  --neutral: #777777;
+  --accent-dark: #26364A;
+}
 html.nav-secondary-open { --topbar-height: 92px; }
 /* 2026-07-27: 관심지수 리본을 홈("/")에서만 띄우기로 하면서(js/quick-indices.js의
    isHomePage() 참고) 다른 페이지에서는 init()이 아예 실행되지 않아 --qi-height를
@@ -48,9 +63,9 @@ html.full-width-page { --qi-height: 0px; }
    쓰려면 해당 굵기 문맥마다 font-family를 'MaruBuriBold'/'MaruBuriSemiBold'로 따로
    지정해야 함 - 아직 안 함). */
 body {
-  font-family: 'MaruBuri', Georgia, 'Times New Roman', serif;
-  background: rgb(253, 253, 247);
-  color: #1a202c;
+  font-family: var(--font-ui);
+  background: var(--page-bg);
+  color: var(--text-main);
   min-height: 100vh;
 }
 /* 외부 위젯 CSS가 늦게 도착할 때 본문/차트가 무스타일 상태로 먼저
@@ -4568,4 +4583,225 @@ html.dark .app-news-body > strong, html.dark .app-news-body > b { color: #24324a
 @media (max-width: 720px) {
   .app-news-event { grid-template-columns: 45px 11px minmax(0, 1fr); gap: 8px; padding: 10px 0; }
   .app-news-body > strong, .app-news-body > b { font-size: 12px; }
+}
+
+/* ============ 2026 디자인 시스템: 경제신문·리서치 화면 공통 규칙 ============
+   데이터/API/판정 로직은 변경하지 않고, 기존 위젯의 분산된 시각 규칙을 마지막 공통
+   레이어에서 정리한다. 기본 모드는 UI=나눔고딕, 제목=마루부리, 수치=시스템 고딕이다.
+   기존 font-gothic 토글은 사용자가 선택한 모드이므로 그대로 존중한다. */
+html:not(.font-gothic) body,
+html:not(.font-gothic) body * {
+  font-family: var(--font-ui) !important;
+}
+html:not(.font-gothic) body h1,
+html:not(.font-gothic) body h2,
+html:not(.font-gothic) body h3,
+html:not(.font-gothic) body h4,
+html:not(.font-gothic) body .post-title,
+html:not(.font-gothic) body .post-title a,
+html:not(.font-gothic) body .section-title,
+html:not(.font-gothic) body .home-section-heading strong,
+html:not(.font-gothic) body .hrt-head strong,
+html:not(.font-gothic) body .hen-head strong,
+html:not(.font-gothic) body .hen-main strong,
+html:not(.font-gothic) body .app-news-body > strong,
+html:not(.font-gothic) body .app-news-body > b,
+html:not(.font-gothic) body .ff-panel-header-name,
+html:not(.font-gothic) body .ff-panel-title,
+html:not(.font-gothic) body .ff-section-head,
+html:not(.font-gothic) body .ff-chart-title,
+html:not(.font-gothic) body .ff-fund-title,
+html:not(.font-gothic) body .ff-sig-name,
+html:not(.font-gothic) body .om-title,
+html:not(.font-gothic) body .dmi-heading h2,
+html:not(.font-gothic) body .dmi-subheading h3,
+html:not(.font-gothic) body .sc-cal-title,
+html:not(.font-gothic) body .sc-week-title,
+html:not(.font-gothic) body .sc-ev-title,
+html:not(.font-gothic) body .discussion-heading h1,
+html:not(.font-gothic) body .discussion-write-title,
+html:not(.font-gothic) body #strategy-search .ss-intro h1,
+html:not(.font-gothic) body #pattern-scan .ps-detail-name,
+html:not(.font-gothic) body #stock-search .ss-news-body b,
+html:not(.font-gothic) body #stock-search .ss-news-panel-head h3,
+html:not(.font-gothic) body #stock-search .ss-news-group h4 {
+  font-family: var(--font-title) !important;
+}
+html:not(.font-gothic) body .price,
+html:not(.font-gothic) body .rate,
+html:not(.font-gothic) body .change,
+html:not(.font-gothic) body .table-number,
+html:not(.font-gothic) body .market-value,
+html:not(.font-gothic) body .current-price,
+html:not(.font-gothic) body [data-index-field="price"],
+html:not(.font-gothic) body [data-index-field="change"],
+html:not(.font-gothic) body [class$="-price"],
+html:not(.font-gothic) body [class$="-rate"],
+html:not(.font-gothic) body [class$="-change"] {
+  font-family: var(--font-data) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+html:not(.font-gothic) body {
+  background: var(--page-bg) !important;
+  color: var(--text-main);
+}
+html:not(.font-gothic) body .card:not(.nav-menu),
+html:not(.font-gothic) body .post-card,
+html:not(.font-gothic) body .home-market-board,
+html:not(.font-gothic) body .home-realtime-board,
+html:not(.font-gothic) body .home-economic-news,
+html:not(.font-gothic) body .home-widget--summary,
+html:not(.font-gothic) body .qi-wrap,
+html:not(.font-gothic) body #investor-trend-widget .itw-card,
+html:not(.font-gothic) body #sidebar-rank .sr-card,
+html:not(.font-gothic) body #market-temp .mt-card,
+html:not(.font-gothic) body #market-temp .mt-hero-card,
+html:not(.font-gothic) body #market-temp .mt-strategy-card,
+html:not(.font-gothic) body .dmi-panel,
+html:not(.font-gothic) body #overnight-market .om-card,
+html:not(.font-gothic) body #stock-calendar .sc-cal-col,
+html:not(.font-gothic) body #strategy-search .ss-card,
+html:not(.font-gothic) body #pattern-scan .ps-detail,
+html:not(.font-gothic) body #stock-search .ss-panel-left,
+html:not(.font-gothic) body #stock-search .ss-panel-right,
+html:not(.font-gothic) body #stock-search .ss-summary,
+html:not(.font-gothic) body .ff-card,
+html:not(.font-gothic) body .ff-flow-card,
+html:not(.font-gothic) body .ff-chart-card,
+html:not(.font-gothic) body .ff-extra-card,
+html:not(.font-gothic) body .market-discussion {
+  background: var(--surface) !important;
+  border: 1px solid var(--rule) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+html:not(.font-gothic) body .post-card:hover,
+html:not(.font-gothic) body .ff-card:hover,
+html:not(.font-gothic) body .post-card a:hover {
+  box-shadow: none !important;
+}
+html:not(.font-gothic) body table th,
+html:not(.font-gothic) body table td {
+  border-color: var(--rule) !important;
+}
+
+/* 메뉴·탭·필터는 배경색 대신 검정/네이비 활성 상태와 얇은 선을 사용한다. */
+html:not(.font-gothic) body .sidebar-left .nav-item,
+html:not(.font-gothic) body .cat-custom-list li > a,
+html:not(.font-gothic) body .sub-filter-tab,
+html:not(.font-gothic) body .home-market-switch button,
+html:not(.font-gothic) body #pattern-scan .ps-tab,
+html:not(.font-gothic) body #strategy-search .ss-tab,
+html:not(.font-gothic) body #strategy-search .ss-product-tab,
+html:not(.font-gothic) body #stock-calendar .sc-filter-tab,
+html:not(.font-gothic) body .discussion-stock-btn,
+html:not(.font-gothic) body .discussion-current button {
+  border-radius: 3px !important;
+  background: transparent !important;
+  color: var(--text-sub) !important;
+}
+html:not(.font-gothic) body .sidebar-left .nav-item:hover,
+html:not(.font-gothic) body .cat-custom-list li > a:hover,
+html:not(.font-gothic) body .sub-filter-tab:hover,
+html:not(.font-gothic) body .home-market-switch button:hover,
+html:not(.font-gothic) body #pattern-scan .ps-tab:hover,
+html:not(.font-gothic) body #strategy-search .ss-tab:hover {
+  background: #f1f1ee !important;
+  color: var(--accent-dark) !important;
+}
+html:not(.font-gothic) body .sidebar-left .nav-item-home,
+html:not(.font-gothic) body .sidebar-left .nav-item-home .nav-item-label,
+html:not(.font-gothic) body .cat-custom-list li > a.active,
+html:not(.font-gothic) body .sub-filter-tab.active,
+html:not(.font-gothic) body .home-market-switch button.is-active,
+html:not(.font-gothic) body #pattern-scan .ps-tab.active,
+html:not(.font-gothic) body #strategy-search .ss-tab.active,
+html:not(.font-gothic) body #strategy-search .ss-product-tab.active,
+html:not(.font-gothic) body .discussion-stock-btn.is-active {
+  background: var(--accent-dark) !important;
+  border-color: var(--accent-dark) !important;
+  color: #fff !important;
+}
+html:not(.font-gothic) body .sub-filter-bar,
+html:not(.font-gothic) body .ss-tabs,
+html:not(.font-gothic) body .ps-tabs {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 경제뉴스: 민트/네온 배지를 없애고 텍스트 태그와 얇은 타임라인으로 표시한다. */
+html:not(.font-gothic) body .app-news-market,
+html:not(.font-gothic) body .app-news-type,
+html:not(.font-gothic) body .hen-breaking-badge,
+html:not(.font-gothic) body .hen-main em {
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-sub) !important;
+}
+html:not(.font-gothic) body .app-news-rail i.is-latest,
+html:not(.font-gothic) body .hen-row .hen-rail i.is-latest {
+  border-color: var(--up) !important;
+  background: var(--up) !important;
+  box-shadow: none !important;
+}
+html:not(.font-gothic) body .app-news-rail,
+html:not(.font-gothic) body .hen-rail::before {
+  border-color: var(--rule) !important;
+  background: var(--rule) !important;
+}
+
+/* 공통 의미색과 수치 표기 */
+html:not(.font-gothic) body .ss-up,
+html:not(.font-gothic) body .ps-up,
+html:not(.font-gothic) body .hrt-up,
+html:not(.font-gothic) body .om-pos,
+html:not(.font-gothic) body .dmi-positive,
+html:not(.font-gothic) body .is-up { color: var(--up) !important; }
+html:not(.font-gothic) body .ss-down,
+html:not(.font-gothic) body .ps-down,
+html:not(.font-gothic) body .hrt-down,
+html:not(.font-gothic) body .om-neg,
+html:not(.font-gothic) body .dmi-negative,
+html:not(.font-gothic) body .is-down { color: var(--down) !important; }
+html:not(.font-gothic) body .ss-flat,
+html:not(.font-gothic) body .ps-flat,
+html:not(.font-gothic) body .hrt-flat,
+html:not(.font-gothic) body .om-zero { color: var(--neutral) !important; }
+html:not(.font-gothic) body .home-index-price-row strong,
+html:not(.font-gothic) body .hrt-price,
+html:not(.font-gothic) body .ss-row-price,
+html:not(.font-gothic) body .ss-col-price,
+html:not(.font-gothic) body .ss-col-change,
+html:not(.font-gothic) body .ss-col-return,
+html:not(.font-gothic) body .om-price,
+html:not(.font-gothic) body .om-change,
+html:not(.font-gothic) body .dmi-fund-value,
+html:not(.font-gothic) body .sc-ev-date {
+  font-family: var(--font-data) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 공통 패널의 강한 그림자·그라데이션을 제거한다. 모달/드로어는 기능상 별도 유지한다. */
+html:not(.font-gothic) body .sub-filter-bar,
+html:not(.font-gothic) body .nav-search-suggest,
+html:not(.font-gothic) body .post-card,
+html:not(.font-gothic) body .home-switch-countdown,
+html:not(.font-gothic) body .home-widget--summary {
+  box-shadow: none !important;
+}
+html:not(.font-gothic) body .discussion-native-guestbook,
+html:not(.font-gothic) body .account-login-dialog,
+html:not(.font-gothic) body .mobile-app-sheet,
+html:not(.font-gothic) body .mobile-app-sheet-body {
+  background-image: none !important;
+}
+
+@media (max-width: 720px) {
+  html:not(.font-gothic) body .card:not(.nav-menu),
+  html:not(.font-gothic) body .post-card,
+  html:not(.font-gothic) body .home-market-board,
+  html:not(.font-gothic) body .home-realtime-board,
+  html:not(.font-gothic) body .home-economic-news { border-radius: 3px !important; }
 }
