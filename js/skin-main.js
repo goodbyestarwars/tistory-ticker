@@ -275,6 +275,8 @@
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
     var dashboardSection = dashboard.firstElementChild;
+    var latestHomeIndices = [];
+    var latestUsBoardData = null;
     var weekendReportWindow = isWeekendReportWindow();
     if (weekendReportWindow) dashboardSection.classList.add('home-weekend-hidden');
     function syncMarketSwitch() {
@@ -352,7 +354,7 @@
       };
     }
 
-    function resolveMarketDirection(marketTemp) {
+    function resolveMarketDirection(marketTemp, indexRates) {
       var components = marketTemp && marketTemp.components;
       var rise = components && components.riseRatio;
       var avgChange = components && components.avgChange;
@@ -360,6 +362,31 @@
       var averageRate = avgChange && typeof avgChange.avgChangeRate === 'number'
         ? avgChange.avgChangeRate
         : null;
+
+      // 미국 요약은 거래대금 상위 종목의 상승 비율만 보면, 지수 하락일에도
+      // 일부 종목의 상승으로 "강한 강세"가 나올 수 있다. 나스닥·S&P500이
+      // 모두 같은 방향이면 대표 지수 방향을 우선하고, 서로 엇갈리면 혼조로 둔다.
+      var validIndexRates = Array.isArray(indexRates) ? indexRates.filter(function (rate) { return typeof rate === 'number' && isFinite(rate); }) : [];
+      if (validIndexRates.length >= 2) {
+        var indexUp = validIndexRates.every(function (rate) { return rate > 0; });
+        var indexDown = validIndexRates.every(function (rate) { return rate < 0; });
+        var indexAverage = validIndexRates.reduce(function (sum, rate) { return sum + rate; }, 0) / validIndexRates.length;
+        if (indexDown) {
+          if ((riseRatio != null && riseRatio <= 0.3) || (averageRate != null && averageRate <= -1) || indexAverage <= -1) {
+            return { label: '강한 약세', tone: 'home-negative' };
+          }
+          return { label: '약세 우위', tone: 'home-negative' };
+        }
+        if (!indexUp) return { label: '혼조', tone: 'home-neutral' };
+        if (riseRatio != null && averageRate != null && riseRatio >= 0.85 && averageRate >= 1 && indexAverage >= 1) {
+          return { label: '급등', tone: 'home-positive' };
+        }
+        if ((riseRatio != null && riseRatio >= 0.7) && (averageRate == null || averageRate >= 0) && indexAverage >= 0) {
+          return { label: '강한 강세', tone: 'home-positive' };
+        }
+        if (riseRatio != null && riseRatio >= 0.55) return { label: '상승 우위', tone: 'home-positive' };
+        return { label: '혼조', tone: 'home-neutral' };
+      }
 
       // 증시온도 계산에 이미 포함된 전체 시장 상승 비율과 평균등락률을 함께 본다.
       // 숫자가 없는 경우에는 임의 상태를 만들지 않는다.
@@ -410,7 +437,7 @@
       }
     }
 
-    function summarizeUsMarket(data) {
+    function summarizeUsMarket(data, indexItems) {
       var payload = data && data.data ? data.data : data;
       var rows = payload && payload.rows ? payload.rows : [];
       var valid = rows.map(function (row) {
@@ -430,13 +457,17 @@
       var industries = Object.keys(groups).map(function (industry) {
         return { industry: industry, average: groups[industry].total / groups[industry].count };
       }).sort(function (a, b) { return b.average - a.average; });
+      var indexRates = (indexItems || [])
+        .filter(function (item) { return item && (item.symbol === 'NASDAQ_INDEX' || item.symbol === 'SP500_INDEX'); })
+        .map(function (item) { return Number(item.change_rate); })
+        .filter(function (rate) { return isFinite(rate); });
       return {
         riseRatio: riseRatio,
         averageRate: averageRate,
         direction: resolveMarketDirection({ components: {
           riseRatio: { ratio: riseRatio },
           avgChange: { avgChangeRate: averageRate }
-        } }),
+        } }, indexRates),
         leaders: industries.filter(function (item) { return item.average > 0; }).slice(0, 3),
         cautions: industries.filter(function (item) { return item.average < 0; }).slice(-3).reverse(),
         updatedAt: payload && payload.updatedAt
@@ -444,7 +475,8 @@
     }
 
     function renderUsMarketSummary(data) {
-      var summary = summarizeUsMarket(data);
+      latestUsBoardData = data;
+      var summary = summarizeUsMarket(data, latestHomeIndices);
       if (!summary) {
         setField('temperature', '데이터 확인 중', 'home-neutral');
         setField('direction', '데이터 확인 중', 'home-neutral');
@@ -572,6 +604,8 @@
       applyHomeMarketSession(session);
       var bySymbol = {};
       (items || []).forEach(function (item) { if (item && item.symbol) bySymbol[item.symbol] = item; });
+      latestHomeIndices = items || [];
+      if (session.keys[0] === 'NASDAQ_INDEX' && latestUsBoardData) renderUsMarketSummary(latestUsBoardData);
       // 미국 시장 요약 카드의 "코스피 야간선물" 칸 - hidden 상태여도 값은 항상 채워둬서
       // 세션이 전환되는 순간(applyHomeSummarySession) 바로 최신값이 보이게 한다.
       var nightItem = bySymbol.KOSPI200_NIGHT;
