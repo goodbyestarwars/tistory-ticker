@@ -198,7 +198,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # gothic mode, and the cache version is bumped for the Tistory skin.
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260817-editorial-home-v1", skin)
+        self.assertIn("style.css?v=20260817-editorial-density-v1", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")
@@ -375,6 +375,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "image.style.display = 'none'",
         ):
             self.assertIn(token, source)
+        self.assertIn("HOME_ROW_LIMIT = 10", source)
+        self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
+        self.assertIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
 
     def test_home_realtime_table_uses_correct_won_trillion_unit(self):
@@ -492,14 +495,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('app-news-timeline', news)
         self.assertIn("function periodKey(value)", news)
         self.assertIn("limit=50", news)
-        self.assertIn("slice(0, 50)", news)
+        self.assertIn("slice(0, 7)", news)
+        self.assertIn("hen-featured", news)
+        self.assertIn("home-news-more", news)
         self.assertIn("is-latest", news)
         self.assertNotIn("hen-zigzag", news)
         self.assertIn(".app-news-event", style)
         self.assertIn(".app-news-date", style)
-        self.assertIn("v=20260817-flash-rules-v5", main)
-        self.assertIn("v=20260817-widget-drag-v4", main)
-        self.assertIn("v=20260817-disclosure-modal-v2", main)
+        self.assertIn("v=20260817-editorial-density-v1", main)
         self.assertIn(".hen-breaking { flex: 0 0 auto", style)
         self.assertIn(".home-economic-news .hen-breaking-list { height: 62px", style)
         self.assertNotIn("data-hen-breaking-form", main)
@@ -1276,7 +1279,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("WATCHLIST_DISCLOSURES_URL", widgets)
         self.assertIn("readTimedCache", widgets)
 
-    def test_home_shows_all_weekly_watchlist_disclosures(self):
+    def test_home_prioritizes_weekly_watchlist_disclosures(self):
         widgets = self.read("js/home-widgets.js")
         home = self.read("js/skin-main.js")
         backend = self.read("scripts/cloud-vm/main.py")
@@ -1286,6 +1289,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("관심종목 주간 공시", widgets)
         self.assertNotIn("DISC_GAS_URL", widgets)
         self.assertNotIn("result.length < 5", widgets)
+        self.assertIn("items.slice(0, 8)", widgets)
+        self.assertIn("home-disclosure-more", widgets)
         self.assertIn("관심종목 주간 공시", home)
         self.assertIn("@app.get('/watchlist/disclosures')", backend)
         self.assertIn("get_watchlist_disclosures(domestic_codes, days=7", backend)
