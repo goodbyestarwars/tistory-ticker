@@ -216,6 +216,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
         self.assertIn("style.css?v=20260817-home-flow-v2", skin)
+        self.assertIn("skin-main.js?v=20260817-home-flow-v2", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")
