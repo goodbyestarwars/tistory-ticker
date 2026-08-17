@@ -7,6 +7,11 @@ import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:  # pragma: no cover - supported Python versions include zoneinfo
+    ZoneInfo = None
 
 import kiwoom_client
 import kis_client
@@ -35,6 +40,20 @@ US_FALLBACK_SYMBOLS = (
     'AMD', 'NFLX', 'MU', 'PLTR', 'TSM', 'SMCI', 'MSTR', 'COIN',
     'QCOM', 'INTC', 'CSCO', 'ORCL',
 )
+
+DOMESTIC_SESSION_LABEL = '국내시장 · 오전 08:00~오후 08:00'
+
+
+def us_session_label(now=None):
+    """Return the KST US regular-session label for the current US DST date."""
+    if now is None:
+        if ZoneInfo is not None:
+            now = datetime.now(ZoneInfo('America/New_York'))
+        else:  # pragma: no cover - only for Python versions without zoneinfo
+            now = datetime.utcnow()
+    daylight = bool(now.dst()) if getattr(now, 'dst', None) else False
+    hours = '22:30~05:00' if daylight else '23:30~06:00'
+    return '미국시장 · 정규장 ' + hours
 
 
 def _number(value):
@@ -316,7 +335,7 @@ def fetch_domestic(token, limit=20, wics_map=None):
     sections = _sections(rows)
     return {
         'market': 'domestic',
-        'session': '국내 · 오전 08:00~오후 08:00',
+        'session': DOMESTIC_SESSION_LABEL,
         'rows': sections['tradeAmount'][:limit],
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),
@@ -446,7 +465,7 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
             sections[section_name] = ordered
     return {
         'market': 'domestic',
-        'session': '국내 · 오전 08:00~오후 08:00',
+        'session': DOMESTIC_SESSION_LABEL,
         'rows': sections['tradeAmount'][:limit],
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),
@@ -603,7 +622,7 @@ def fetch_us(token, limit=20, finnhub_api_key=''):
     sections = _sections(rows)
     return {
         'market': 'us',
-        'session': '미국 · 오후 08:00~오전 08:00',
+        'session': us_session_label(),
         'rows': sections['tradeAmount'][:limit],
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),
@@ -751,7 +770,7 @@ def fetch_us_kis(appkey, appsecret, limit=20):
     }
     return {
         'market': 'us',
-        'session': '미국 · 오후 08:00~오전 08:00',
+        'session': us_session_label(),
         'rows': ordered[:limit],
         'sections': sections,
         'updated_at': int(time.time()),

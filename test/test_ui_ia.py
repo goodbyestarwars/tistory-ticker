@@ -346,6 +346,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_home_realtime_table_reconnects_after_websocket_disconnect(self):
         source = self.read("js/home-realtime-table.js")
         main = self.read("scripts/cloud-vm/main.py")
+        self.assertIn("미국시장 · 정규장 22:30~05:00", source)
+        self.assertIn("미국시장 · 정규장 23:30~06:00", source)
+        self.assertIn("미국시장 · 정규장 ' + hours", self.read("scripts/cloud-vm/market_board.py"))
+        self.assertIn("America/New_York", source)
+        self.assertIn("국내시장 · 오전 08:00~오후 08:00", source)
         for token in (
             "['volumeGrowth', '거래증가율']",
             "['turnover', '거래회전율']",

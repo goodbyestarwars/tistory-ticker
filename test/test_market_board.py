@@ -2,6 +2,8 @@ import os
 import sys
 import unittest
 from unittest import mock
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'cloud-vm'))
 
@@ -9,6 +11,14 @@ import market_board
 
 
 class MarketBoardTests(unittest.TestCase):
+    def test_session_labels_use_domestic_hours_and_us_dst_hours(self):
+        self.assertEqual(market_board.DOMESTIC_SESSION_LABEL, '국내시장 · 오전 08:00~오후 08:00')
+        self.assertIn('22:30~05:00', market_board.us_session_label(
+            datetime(2026, 7, 1, tzinfo=ZoneInfo('America/New_York'))
+        ))
+        self.assertIn('23:30~06:00', market_board.us_session_label(
+            datetime(2026, 12, 1, tzinfo=ZoneInfo('America/New_York'))
+        ))
     def test_sections_sort_by_requested_metrics(self):
         rows = [
             {'code': 'A', 'trade_amount': 10, 'trade_volume': 300, 'change_rate': 4, 'market_cap': 100},
