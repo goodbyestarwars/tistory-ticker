@@ -164,13 +164,6 @@
   margin-top: 6px;
 }
 
-#overnight-market .om-updated {
-  font-size: 11px;
-  color: #aaa;
-  margin-top: 8px;
-  text-align: right;
-}
-
 /* WTI 카드 전용 "최근 1년 평균" 참고선 캡션 - 차트에 그린 주황 실선(#c9701f)과 같은 색을
    글자에도 살짝 써서 둘이 같은 걸 가리킨다는 걸 알아보기 쉽게 함. */
 #overnight-market .om-benchmark {
@@ -203,7 +196,6 @@ html.dark #overnight-market .om-loading,
 html.dark #overnight-market .om-error,
 html.dark #overnight-market .om-chart-error { color: rgba(245, 239, 224, 0.4) !important; }
 html.dark #overnight-market .om-hl { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #overnight-market .om-updated { color: rgba(245, 239, 224, 0.4) !important; }
 html.dark #overnight-market .om-zero { color: #F5EFE0 !important; }
 html.dark #overnight-market .om-summary { background: rgba(245, 239, 224, 0.08) !important; }
 html.dark #overnight-market .om-summary-icon { color: rgba(245, 239, 224, 0.55) !important; }
