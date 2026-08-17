@@ -567,6 +567,15 @@
       : dateText + ' ' + parts.dayPeriod + ' ' + parts.hour + ':' + parts.minute;
   }
 
+  function disclosureHref(item) {
+    var code = String(item && (item.stockCode || item.code) || '').trim();
+    var name = String(item && (item.stockName || item.corp || '') || '').trim();
+    if (/^\d{6}$/.test(code)) {
+      return '/page/foreign-flow?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
+    }
+    return String(item && item.link || '#');
+  }
+
   function renderDisclosures(items, emptyMessage) {
     var mount = document.getElementById('homeDisclosureList');
     if (!mount) return;
@@ -576,7 +585,10 @@
     }
     mount.innerHTML = items.map(function (item) {
       var time = disclosureTime(item.pubDate);
-      return '<a class="home-disclosure-row" href="' + escapeHtml(item.link) + '" target="_blank" rel="noopener">'
+      var code = String(item && (item.stockCode || item.code) || '').trim();
+      var internal = /^\d{6}$/.test(code);
+      return '<a class="home-disclosure-row" href="' + escapeHtml(disclosureHref(item)) + '"'
+        + (internal ? ' title="종목분석으로 이동"' : ' target="_blank" rel="noopener"') + '>'
         + '<strong>' + escapeHtml(item.stockName || item.corp || '관심종목 공시') + '</strong>'
         + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span>'
         + (time ? '<time>' + escapeHtml(time) + '</time>' : '') + '</a>';

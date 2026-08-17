@@ -631,6 +631,7 @@ def build_dividend_match(stock, daily, sector, signal, annual):
         'date': last.get('date'),
         'sector': sector,
         'strategy': 'dividend',
+        'reportYear': signal.get('reportYear'),
         'dividendYieldPct': round(signal['dividendYieldPct'], 2),
         'reportedDividendYieldPct': signal.get('reportedDividendYieldPct'),
         'payoutRatioPct': round(signal['payoutRatioPct'], 2) if signal.get('payoutRatioPct') is not None else None,

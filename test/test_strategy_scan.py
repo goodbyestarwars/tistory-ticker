@@ -123,6 +123,16 @@ class DividendTests(unittest.TestCase):
         self.assertEqual(signal['payoutRatioPct'], 40)
         self.assertEqual(signal['dividendYieldPct'], 6.0)
 
+    def test_dividend_match_preserves_report_year_for_display(self):
+        match = strategy_scan.build_dividend_match(
+            {'code': '005930', 'name': '테스트'},
+            [{'close': 100}, {'close': 110}],
+            'IT',
+            strategy_scan.dividend_signal([{'close': 100}, {'close': 110}], self._annual(), self._dividend()),
+            self._annual(),
+        )
+        self.assertEqual(match['reportYear'], 2025)
+
     def test_rejects_missing_current_cash_dividend(self):
         dividend = self._dividend()
         dividend['years'][-1]['cashDividendPerShare'] = 0
