@@ -1176,7 +1176,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("시초갭", source)
         self.assertIn("fmtMillion(it.turnoverMillion)", source)
 
-    def test_strategy_search_combines_etf_return_periods(self):
+    def test_strategy_search_uses_one_flattened_etf_ranking_table(self):
         source = self.read("js/strategy-search.js")
         style = self.read("css/strategy-search.css")
         self.assertIn("normalizeScanData", source)
@@ -1185,20 +1185,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("returnRate3mPct", source)
         self.assertIn("returnRate6mPct", source)
         self.assertIn("returnRate12mPct", source)
-        self.assertIn("ss-etf-return-metric", source)
-        self.assertIn("ss-etf-return-metric", style)
-        self.assertIn("ss-return-period-tab", source)
-        self.assertIn("data-return-period", source)
-        self.assertIn("activeEtfPeriod", source)
-        self.assertIn("sortMatches", source)
-        self.assertIn("ETF_ISSUER_GROUPS", source)
-        self.assertIn("groupEtfMatches", source)
-        self.assertIn("{ key: 'TIGER', label: 'TIGER' }", source)
-        self.assertIn("{ key: 'HANARO', label: 'HANARO' }", source)
-        self.assertIn("name: '기타 ETF'", source)
-        self.assertIn("ss-return-period-tabs", style)
-        self.assertIn("ss-dividend-sort-btn", source)
-        self.assertIn("data-dividend-sort", source)
+        for token in (
+            "normalizeEtfItem", "providerFromName", "ss-col-provider", "ss-col-code",
+            "거래량 급증", "신규상장", "data-etf-filter=\"aum\"",
+            "구성종목 보기", "ss-product-tabs", "ss-comparison-table",
+        ):
+            self.assertIn(token, source)
+        self.assertNotIn("ETF_ISSUER_GROUPS", source)
+        self.assertNotIn("groupEtfMatches", source)
+        self.assertNotIn("ss-cards-grid", source[source.index("function renderEtfProductView"):source.index("function dividendSortOptions")])
+        self.assertIn("ss-col-provider", style)
+        self.assertIn("ss-etf-components-btn", style)
 
     def test_strategy_search_explains_candidates_without_recommendation_language(self):
         source = self.read("js/strategy-search.js")
@@ -1242,6 +1239,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "data-dividend-filter=\"market\"",
             "배당성향",
             "dividendHistory",
+            "ss-dividend-basis",
+            "fmtWon",
+            "배당 데이터 ",
             "현재 ETN 상품 데이터가 제공되지 않습니다.",
         ):
             self.assertIn(token, source)

@@ -33,12 +33,12 @@
     return { code: code, name: name, price: price, changeRate: rate, date: '2026-08-05', strategy: 'dividend',
       dividendYieldPct: yieldPct, cashDividendPerShare: dps, payoutRatioPct: 42.5, roe: 11.4, per: 6.8, pbr: 0.72,
       dividendHistory: [{ year: year, dps: dps }, { year: year - 1, dps: dps - 200 }, { year: year - 2, dps: dps - 100 }, { year: year - 3, dps: dps - 50 }],
-      market: code === '105560' ? 'KOSPI' : 'KOSDAQ', reportYear: year };
+      market: code === '105560' ? 'KOSPI' : 'KOSDAQ', sector: code === '105560' ? '금융' : '통신서비스', dividendStatus: '실제', reportYear: year };
   }
   function etfMatch(code, name, price, rate, returns) {
     return { code: code, name: name, price: price, changeRate: rate, date: '2026-08-05', strategy: 'etfReturn',
       returnRate1mPct: returns[0], returnRate3mPct: returns[1], returnRate6mPct: returns[2], returnRate12mPct: returns[3],
-      volume: 1234567, turnover: 9876543210, aum: 125000000000, majorCategory: '국내주식', middleCategory: '시장대표', leverageType: '일반' };
+      volume: 1234567, turnover: 9876543210, aum: 125000000000, provider: name.indexOf('KODEX') === 0 ? '삼성자산운용' : '미래에셋자산운용', majorCategory: '국내주식', middleCategory: '시장대표', leverageType: '일반' };
   }
 
   var mockCategories = {
@@ -77,6 +77,16 @@
         ETF: { name: 'ETF', matches: [
           etfMatch('069500', 'KODEX 200', 42100, 0.8, [4.2, 7.8, 11.4, 18.6]),
           etfMatch('360750', 'TIGER 미국S&P500', 19800, -0.3, [3.1, 8.4, 15.2, 27.1])
+        ] }
+      }
+    },
+    etnReturn: {
+      name: 'ETN',
+      methodology: 'ETN 상품 mock 데이터입니다.',
+      productKind: 'etn',
+      sectors: {
+        ETN: { name: 'ETN', matches: [
+          { code: '550001', name: '삼성 레버리지 ETN', price: 10350, changeRate: 2.42, returnRate1mPct: 12.4, returnRate3mPct: 18.1, returnRate6mPct: 21.2, returnRate12mPct: 28.8, volume: 120000, turnover: 654000000, aum: 15000000000, provider: '삼성증권', leverageType: '레버리지', majorCategory: '국내주식', middleCategory: '레버리지' }
         ] }
       }
     },
