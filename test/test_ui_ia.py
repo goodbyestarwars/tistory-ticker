@@ -62,6 +62,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_domestic_market_indicators_labels_and_provider_contract(self):
         frontend = self.read("js/domestic-market-indicators.js")
+        loader = self.read("js/kospi-futures.js")
         backend = self.read("scripts/cloud-vm/domestic_market_indicators.py")
         style = self.read("css/domestic-market-indicators.css")
         self.assertIn("코스피 · 코스닥 주간현물 (09:00~15:45)", frontend)
@@ -83,7 +84,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-flow-table td.dmi-positive { color: #d24f45 !important; }", style)
         self.assertIn(".dmi-flow-table td.dmi-negative { color: #1261c4 !important; }", style)
         self.assertIn(".dmi-shell .dmi-fund-card *", style)
-        self.assertIn("domestic-market-indicators.css?v=20260817-average-line-style", frontend)
+        self.assertIn("domestic-market-indicators.css?v=20260817-flat-editorial-v1", frontend)
+        self.assertIn("domestic-market-indicators.js?v=20260817-dmi-flat-editorial-v1", loader)
         self.assertIn(".dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }", style)
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
         self.assertIn("function miniAverageChart(values, average)", frontend)
@@ -101,6 +103,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("localStorage.setItem(drawingStorageKey", frontend)
         self.assertIn(".dmi-drawing-layer.is-active", style)
         self.assertIn("var CHART_HEIGHT = 330;", frontend)
+        self.assertIn("addSeries(LWC.LineSeries", frontend)
+        self.assertNotIn("addSeries(LWC.CandlestickSeries", frontend)
+        self.assertIn("value: point.close", frontend)
+        self.assertIn("priceLineVisible: true", frontend)
+        self.assertIn("dmi-chart-section", frontend)
+        self.assertIn(".dmi-chart-section { border-top: 1px solid #d8d8d8;", style)
+        self.assertIn(".dmi-panel + .dmi-panel { border-left: 1px solid #d8d8d8;", style)
+        self.assertIn(".dmi-fund-card:nth-child(3n + 2)", style)
+        self.assertIn("border-radius: 0", style)
         self.assertIn(".dmi-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));", style)
         self.assertIn(".dmi-panel { border: none;", style)
         # 2026-08-14 요청: 증시자금 6개 카드를 2열 대신 3열로.
