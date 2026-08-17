@@ -315,7 +315,7 @@
   #strategy-search .ss-comparison-table td[data-label="PBR"] { margin-top: 3px; color: #475569; }
   #strategy-search .ss-comparison-table td.ss-row-warning { display: block; margin-top: 5px; }
   #strategy-search .ss-comparison-table tr.ss-warning-row { margin: -8px 0 8px; padding: 0 10px 6px; border-top: 0; }
-  #strategy-search .ss-comparison-table tr.ss-warning-row td { display: block; padding: 3px 0; background: transparent; }
+  #strategy-search .ss-comparison-table tr.ss-warning-row td { display: block; width: 100% !important; padding: 3px 0; background: transparent; }
   #strategy-search .ss-product-note { font-size: 11px; }
   #strategy-search .ss-product-tabs { overflow-x: auto; }
 }
