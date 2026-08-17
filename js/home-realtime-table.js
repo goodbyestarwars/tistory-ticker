@@ -22,7 +22,7 @@
     ['rising', '상승률'],
     ['falling', '하락률'],
     ['marketCap', '시가총액'],
-    ['industry', '업종']
+    ['industry', '업종 TOP']
   ];
   // KIS 해외주식 순위분석 API가 제공하는 미국 순위들만 노출한다.
   // 업종은 별도 업종별 시세 API가 필요한 분류 화면이므로 이 종목판에서는 제외한다.
@@ -48,6 +48,14 @@
     ['industry', '업종']
   ];
   var US_TABLE_COLUMNS = TABLE_COLUMNS.slice(0, 7);
+  var INDUSTRY_COLUMNS = [
+    ['industry', '업종'],
+    ['avgChangeRate', '평균등락률'],
+    ['tradeAmount', '거래대금'],
+    ['stockCount', '종목 수'],
+    ['riseRatio', '상승비율'],
+    ['leader', '대표 종목']
+  ];
   var state = {
     mount: null,
     market: '',
@@ -178,8 +186,14 @@
     return state.market === 'us' ? US_TABLE_COLUMNS : TABLE_COLUMNS;
   }
 
+  function columnsForActive() {
+    return state.market !== 'us' && state.active === 'industry'
+      ? INDUSTRY_COLUMNS
+      : columnsForMarket();
+  }
+
   function tableColspan() {
-    return columnsForMarket().length;
+    return columnsForActive().length;
   }
 
   function isWeekendInKst() {
@@ -267,6 +281,19 @@
       + Math.abs(parsed).toFixed(2) + '%</span>';
   }
 
+  function signedRate(rate) {
+    var parsed = number(rate);
+    if (parsed == null) return '<span class="hrt-muted">-</span>';
+    var cls = parsed > 0 ? 'hrt-up' : parsed < 0 ? 'hrt-down' : 'hrt-flat';
+    return '<span class="' + cls + '">' + (parsed > 0 ? '+' : '') + parsed.toFixed(2) + '%</span>';
+  }
+
+  function ratioPct(ratio) {
+    var parsed = number(ratio);
+    if (parsed == null) return '<span class="hrt-muted">-</span>';
+    return (parsed * 100).toFixed(1) + '%';
+  }
+
   function rowHtml(item, rank) {
     var code = item.code || item.symbol;
     var rate = number(item.change_rate);
@@ -292,13 +319,46 @@
     }).join('') + '</tr>';
   }
 
+  function industryRowHtml(item, rank) {
+    var leader = item.leader_name || '-';
+    var leaderRate = signedRate(item.leader_change_rate);
+    var cells = {
+      industry: '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span><strong>'
+        + escapeHtml(item.industry || '업종 미분류') + '</strong><small>' + Number(item.stock_count || 0) + '종목 집계</small></td>',
+      avgChangeRate: '<td class="hrt-price" data-field="avgChangeRate">' + signedRate(item.avg_change_rate) + '</td>',
+      tradeAmount: '<td data-field="tradeAmount">' + fmtAmount(item.trade_amount, 'KRW') + '</td>',
+      stockCount: '<td data-field="stockCount">' + Number(item.stock_count || 0).toLocaleString('ko-KR') + '개</td>',
+      riseRatio: '<td data-field="riseRatio">' + ratioPct(item.rise_ratio) + ' <small>(' + Number(item.rising_count || 0) + ' 상승)</small></td>',
+      leader: '<td class="hrt-industry" data-field="leader">' + escapeHtml(leader) + '<small> ' + leaderRate + '</small></td>'
+    };
+    return '<tr class="hrt-industry-row">' + INDUSTRY_COLUMNS.map(function (column) {
+      return cells[column[0]];
+    }).join('') + '</tr>';
+  }
+
+  function renderTableHead() {
+    var head = state.mount && state.mount.querySelector('.hrt-table-wrap thead tr');
+    if (!head) return;
+    head.innerHTML = columnsForActive().map(function (column) {
+      return '<th>' + column[1] + '</th>';
+    }).join('');
+  }
+
+  function emptyStateText() {
+    if (state.active === 'industry') return '업종 분류 데이터가 없습니다.';
+    if (state.market === 'domestic' && ['volumeGrowth', 'turnover', 'amountTurnover'].indexOf(state.active) >= 0) {
+      return '국내시장 휴장 또는 해당 순위 데이터가 없습니다.';
+    }
+    return '현재 세션의 종목 데이터가 없습니다.';
+  }
+
   function buildShell(mount) {
     var tabs = tabsForMarket();
-    var columns = columnsForMarket();
+    var columns = columnsForActive();
     var colspan = columns.length;
     // home-widgets.js decorates this mount with the common drag/menu controls
     // before the realtime table module initializes. Preserve those controls
-    // when the table shell is rebuilt, otherwise this widget cannot be moved.
+    // when the table shell is rebuilt on market switch.
     var widgetActions = mount.querySelector('.home-widget-actions');
     if (widgetActions) widgetActions.remove();
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
@@ -311,13 +371,16 @@
         return '<th>' + column[1] + '</th>';
       }).join('') + '</tr></thead>'
       + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state">실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
-      + '<div class="hrt-foot"><span>체결 발생 행만 갱신</span></div>';
+      + '<div class="hrt-foot"><span data-hrt-foot>체결 발생 행만 갱신</span></div>';
+
     if (widgetActions) mount.appendChild(widgetActions);
   }
 
   function rowsForActive() {
     var sections = state.data && state.data.sections;
-    return (sections && sections[state.active]) || (state.data && state.data.rows) || [];
+    if (state.active === 'industry') return (sections && sections.industry) || [];
+    if (sections && Array.isArray(sections[state.active])) return sections[state.active];
+    return (state.data && state.data.rows) || [];
   }
 
   function renderRows() {
@@ -326,8 +389,15 @@
     if (!body) return;
     var rows = rowsForActive();
     body.innerHTML = rows.length
-      ? rows.map(function (item, index) { return rowHtml(item, index + 1); }).join('')
-      : '<tr><td colspan="' + tableColspan() + '" class="hrt-state">현재 세션의 종목 데이터가 없습니다.</td></tr>';
+      ? rows.map(function (item, index) {
+        return state.active === 'industry' ? industryRowHtml(item, index + 1) : rowHtml(item, index + 1);
+      }).join('')
+      : '<tr><td colspan="' + tableColspan() + '" class="hrt-state">' + emptyStateText() + '</td></tr>';
+    renderTableHead();
+    var foot = state.mount.querySelector('[data-hrt-foot]');
+    if (foot) foot.textContent = state.active === 'industry'
+      ? '평균등락률 → 상승비율 → 거래대금 순 · 현재 수집 후보 기준'
+      : '체결 발생 행만 갱신';
     state.mount.querySelectorAll('[data-hrt-tab]').forEach(function (button) {
       var selected = button.getAttribute('data-hrt-tab') === state.active;
       button.classList.toggle('active', selected);
