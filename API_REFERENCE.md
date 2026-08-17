@@ -1,5 +1,10 @@
 # 클라우드 VM API 레퍼런스 (`goodbyestar.cloud`)
 
+> 운영 기준: 2026-08-17 · `origin/master` 배포 커밋 `0f18642`
+
+운영 절차·인증 경계·WebSocket·장애 대응은 [`docs/API_OPERATION_SPEC.md`](docs/API_OPERATION_SPEC.md)를
+먼저 읽는다. 이 문서는 엔드포인트별 필드 레퍼런스다.
+
 `scripts/cloud-vm/main.py`(FastAPI) 소스코드를 직접 읽어서 정리한 문서. 이 세션은 VM의
 실제 `/openapi.json`에 네트워크로 접근할 수 없어서(샌드박스 환경), **소스에서 라우트
 데코레이터·파라미터 타입·응답 딕셔너리 구성을 그대로 추출**하는 방식으로 작성했다 —
@@ -15,7 +20,9 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 ## 공통 규칙
 
 - **Base URL**: `https://goodbyestar.cloud`
-- **모든 라우트는 GET만 존재**(POST/PUT/DELETE 없음)
+- **REST 라우트는 GET 중심이며 사용자 설정에 PUT/DELETE가 있다.** `/watchlist`와
+  `/sector-cards/me`는 Google 세션 기반으로 저장·삭제하고, 공용 `/sector-cards` PUT은
+  관리자 인증이 필요하다. WebSocket은 `/ws/quotes`, `/ws/economic-news` 두 개다.
 - **성공 응답 공통 포맷**(`envelope()` 함수가 모든 라우트에 일괄 적용):
   ```json
   { "success": true, "updatedAt": "2026-07-28T05:12:00.123456+00:00", "data": { /* 라우트별 내용 */ } }
@@ -265,12 +272,43 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 
 ---
 
+## 현재 운영 라우트 보충
+
+아래 경로는 최신 운영 기능이며, 필드 상세는 실제 `/openapi.json`과 소스의 Pydantic/
+dict 구성을 함께 대조한다.
+
+| Method | Endpoint | 인증 | 역할 |
+|---|---|---|---|
+| GET | `/domestic-news` | 없음 | 국내 일반뉴스·DART 공시 |
+| GET | `/foreign-news` | 없음 | 미국·글로벌 일반뉴스 |
+| GET | `/market-board` | 없음 | 시장별 실시간 종목판·업종 TOP |
+| GET | `/domestic-market-indicators` | 없음 | 국내시장 요약 지표 |
+| GET | `/kofia-market` | 없음 | 신용·예탁금·반대매매 보조지표 |
+| GET | `/strategy-scan-batch` | API 키 | 전략검색 캐시 |
+| GET | `/etf-components/{code}` | 없음 | ETF 구성종목 |
+| GET | `/us-search`, `/us-quote/{symbol}`, `/us-orderbook/{symbol}` | 없음 | 미국 검색·시세·호가 |
+| GET | `/us-chart/{symbol}`, `/us-news/{symbol}`, `/us-analysis/{symbol}` | 없음 | 미국 차트·뉴스·분석 |
+| GET/PUT | `/watchlist` | Google 세션 | 관심종목 조회·저장 |
+| GET | `/watchlist/disclosures` | Google 세션 | 관심종목 최근 7일 DART 공시 |
+| GET/PUT | `/sector-cards` | GET 공개 / PUT 관리자 | 공용 증시온도 카드 |
+| GET/PUT/DELETE | `/sector-cards/me` | Google 세션 | 개인 카드 설정 |
+| GET | `/auth/google/start`, `/auth/google/callback`, `/auth/google/me`, `/auth/google/logout` | OAuth | Google 로그인 흐름 |
+| WS | `/ws/quotes` | Origin 확인 | 국내·미국 실시간 종목판 |
+| WS | `/ws/economic-news` | Origin 확인 | 시장별 경제 종합뉴스 push |
+
+`/ws/economic-news` 서버 캐시/브로드캐스트 주기는 각각 4분/5분이며, 화면 속보 한 건
+전환 5초는 프론트 동작이다. `/ws/quotes`는 동시 연결 상한 200을 적용한다. 자세한 운영
+규칙과 오류 대응은 `docs/API_OPERATION_SPEC.md`를 기준으로 한다.
+
+---
+
 ## 참고
 
 - 원본 소스: `scripts/cloud-vm/main.py` + `kiwoom_client.py`/`kiwoom_market.py`/
   `foreign_flow_compute.py`/`investor_flow.py`/`investor_trend.py`/`order_book.py`/
   `market_rank.py`/`option_flow.py`/`db_schema.py`
-- 인프라 전체 그림은 `ARCHITECTURE.md`, 사이트 기능별 이력은 `CLAUDE.md` 참고
+- 인프라 전체 그림은 `ARCHITECTURE.md`, 심화 구조는 `docs/ARCHITECTURE_SPEC.md`,
+  DB/캐시는 `docs/DB_SPEC.md`, 사이트 기능별 이력은 `CLAUDE.md` 참고
 - **"미검증" 표시가 있는 필드(호가 필드명, `/quote`의 `mac` 단위 등)는 실제 응답을 한 번
   받아서 대조해보고 쓸 것** — 공식 문서가 필드 목록을 자르거나 단위를 명시하지 않는 경우가
   코드 곳곳에서 이미 발견된 바 있다(코드 주석 참고).
