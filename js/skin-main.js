@@ -92,15 +92,21 @@
 
     window.HomeMarketSelection = window.HomeMarketSelection || (function () {
       var selected = null;
+      function isWeekendKst() {
+        var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        var day = kst.getUTCDay();
+        return day === 0 || day === 6;
+      }
       function autoMarket() {
         var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        if (isWeekendKst()) return 'closed';
         var hour = kst.getUTCHours();
         return hour >= 20 || hour < 8 ? 'us' : 'domestic';
       }
       return {
         get: function () { return selected || autoMarket(); },
         set: function (market) {
-          market = market === 'us' ? 'us' : 'domestic';
+          market = market === 'us' || market === 'closed' ? market : 'domestic';
           if (selected === market) return;
           selected = market;
           window.dispatchEvent(new CustomEvent('home-market-change', { detail: { market: market } }));
@@ -224,8 +230,12 @@
     function dashboardHtml() {
         return '<section class="home-dashboard home-editorial-page" aria-label="오늘의 시장 상황판">'
         + '<div class="home-market-switch" role="tablist" aria-label="메인 시장 전환">'
-        + '<button type="button" data-home-market-switch="domestic" role="tab">한국증시</button><button type="button" data-home-market-switch="us" role="tab">미국증시</button>'
+        + '<button type="button" data-home-market-switch="domestic" role="tab">한국증시</button><button type="button" data-home-market-switch="us" role="tab">미국증시</button><button type="button" data-home-market-switch="closed" role="tab">휴장</button>'
         + '</div>'
+        + '<section class="home-closed-page" data-home-closed-page aria-label="시장 휴장" hidden>'
+        + '<div class="home-closed-lead"><span>주말 시장 안내</span><h1>휴장</h1><p>토요일·일요일은 국내·미국 증시가 휴장합니다.</p></div>'
+        + '<div class="home-closed-note"><strong>다음 거래일에 시장 데이터가 업데이트됩니다.</strong><span>관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</span></div>'
+        + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section" id="homeMarketBoard">'
         + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live" data-home-market-field="live">실시간</span></div>'
@@ -681,6 +691,14 @@
       var hour = kst.getUTCHours();
       var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
         ? window.HomeMarketSelection.get() : null;
+      if (selected === 'closed') return {
+        closed: true,
+        title: '휴장',
+        live: '토요일 · 일요일',
+        subtitle: '국내·미국 증시 · 휴장',
+        keys: [],
+        labels: []
+      };
       var isUsSession = selected === 'us' || (!selected && (hour >= 20 || hour < 8));
       var usSession = usRegularSessionState();
       return isUsSession ? {
@@ -699,6 +717,11 @@
     }
 
     function applyHomeMarketSession(session) {
+      var closedPage = dashboardSection.querySelector('[data-home-closed-page]');
+      var isClosed = !!(session && session.closed);
+      dashboardSection.classList.toggle('is-market-closed', isClosed);
+      if (closedPage) closedPage.hidden = !isClosed;
+      if (isClosed) return;
       var title = dashboardSection.querySelector('[data-home-market-field="title"]');
       var live = dashboardSection.querySelector('[data-home-market-field="live"]');
       var updated = document.getElementById('hmbUpdated');
@@ -782,7 +805,9 @@
     }
 
     function loadHomeIndices() {
-      applyHomeMarketSession(homeMarketSession());
+      var session = homeMarketSession();
+      applyHomeMarketSession(session);
+      if (session.closed) return;
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
         ? window.QuickIndices.fetchFutures()
         : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CKOSPI200_NIGHT', 12000)
@@ -881,6 +906,11 @@
     var loadHomeInvestorTrend;
 
     function loadSummaryForSession(session) {
+      if (session && session.closed) {
+        applyHomeMarketSession(session);
+        summarySessionKey = '';
+        return;
+      }
       var isUs = session && session.keys && session.keys[0] === 'NASDAQ_INDEX';
       var nextKey = (session.keys || []).join('|');
       summarySessionKey = nextKey;
@@ -1028,6 +1058,7 @@
     setInterval(function () {
       if (document.hidden) return;
       var session = homeMarketSession();
+      if (session.closed) return;
       var nextKey = (session.keys || []).join('|');
       if (nextKey !== summarySessionKey) loadSummaryForSession(session);
       else if (nextKey !== 'NASDAQ_INDEX|SP500_INDEX') loadHomeInvestorTrend();

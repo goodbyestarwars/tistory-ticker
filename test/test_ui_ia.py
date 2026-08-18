@@ -182,11 +182,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("nav-dropdown", source)
         self.assertNotIn("nav-chevron", source)
 
-    def test_home_market_switch_omits_redundant_label(self):
+    def test_home_market_switch_includes_weekend_closed_tab(self):
         source = self.read("js/skin-main.js")
         self.assertNotIn("<span>시장</span><button type=\"button\" data-home-market-switch", source)
         self.assertIn('data-home-market-switch="domestic"', source)
         self.assertIn('data-home-market-switch="us"', source)
+        self.assertIn('data-home-market-switch="closed"', source)
+        self.assertIn("if (isWeekendKst()) return 'closed';", source)
+        self.assertIn("market === 'us' || market === 'closed'", source)
+        self.assertIn('data-home-closed-page', source)
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
