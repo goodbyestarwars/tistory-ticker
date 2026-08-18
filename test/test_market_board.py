@@ -211,9 +211,13 @@ class MarketBoardTests(unittest.TestCase):
                 return [{'mksc_shrn_iscd': '005930', 'hts_kor_isnm': '삼성전자',
                          'stck_prpr': '70000', 'acml_vol': '1000',
                          'acml_tr_pbmn': '9000000000'}]
-            return [{'mksc_shrn_iscd': '000660', 'hts_kor_isnm': 'SK하이닉스',
+            row = {'mksc_shrn_iscd': '000660', 'hts_kor_isnm': 'SK하이닉스',
                      'stck_prpr': '100000', 'acml_vol': '5000',
-                     'acml_tr_pbmn': '5000000000'}]
+                     'acml_tr_pbmn': '5000000000'}
+            if sort_code == '0':
+                row.update({'vol_inrt': '120.0', 'vol_tnrt': '3.5', 'tr_pbmn_tnrt': '4.2',
+                            'w52_hgpr': '120000', 'w52_lwpr': '70000'})
+            return [row]
 
         with mock.patch.object(market_board.kis_client, 'get_token', return_value='kis-token'), \
                 mock.patch.object(market_board.kis_client, 'fetch_domestic_volume_rank', side_effect=volume_rank), \
@@ -222,13 +226,23 @@ class MarketBoardTests(unittest.TestCase):
                 ]), \
                 mock.patch.object(market_board.kis_client, 'fetch_domestic_market_cap_rank', return_value=[
                     {'mksc_shrn_iscd': '005930', 'stck_avls': '5000000'},
-                ]):
+                ]), \
+                mock.patch.object(market_board.kis_client, 'fetch_domestic_quote', return_value={
+                    'd250_hgpr': '120000', 'd250_lwpr': '70000',
+                }):
             result = market_board.fetch_domestic_kis('appkey', 'secret', limit=1)
 
         self.assertEqual(result['source'], 'KIS 국내 순위(거래금액·거래량·거래증가율·거래회전율·거래대금회전율·등락률·시가총액)')
         self.assertEqual(result['rows'][0]['code'], '005930')
         self.assertEqual(result['rows'][0]['trade_amount'], 9_000_000_000)
         self.assertEqual(result['rows'][0]['market_cap'], 5_000_000)
+        self.assertEqual(result['rows'][0]['week52_high'], 120000.0)
+        self.assertEqual(result['rows'][0]['week52_low'], 70000.0)
+        self.assertEqual(result['sections']['volumeGrowth'][0]['volume_growth_rate'], 120.0)
+        self.assertEqual(result['sections']['turnover'][0]['turnover_rate'], 3.5)
+        self.assertEqual(result['sections']['amountTurnover'][0]['amount_turnover_rate'], 4.2)
+        self.assertEqual(result['sections']['tradeVolume'][0]['week52_high'], 120000.0)
+        self.assertEqual(result['sections']['tradeVolume'][0]['week52_low'], 70000.0)
         for section in ('tradeVolume', 'volumeGrowth', 'turnover', 'amountTurnover', 'marketCap'):
             self.assertIn(section, result['sections'])
 

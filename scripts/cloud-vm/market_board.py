@@ -23,6 +23,8 @@ logger = logging.getLogger('market_board')
 
 _BASIC_TTL_SEC = 15 * 60
 _basic_cache = {}
+_KIS_QUOTE_TTL_SEC = 15 * 60
+_kis_quote_cache = {}
 _FX_TTL_SEC = 15 * 60
 _fx_cache = {}
 _WICS_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js'
@@ -63,6 +65,11 @@ def _number(value):
         return float(str(value).replace(',', '').replace('+', '').strip())
     except (TypeError, ValueError):
         return None
+
+
+def _positive_number(value):
+    parsed = _number(value)
+    return abs(parsed) if parsed is not None else None
 
 
 def _first(row, *names):
@@ -163,6 +170,10 @@ def _basic_info(token, code):
             # ka10001의 mac은 억원 단위 시가총액이다.
             'market_cap': _number(raw.get('mac')),
             'name': _first(raw, 'stk_nm', 'name'),
+            # 250 거래일을 국내 화면의 52주 범위로 사용한다. 키움 응답은
+            # 연중 고저(oyr_*)도 함께 주므로 구형 응답에는 이를 보조 사용한다.
+            'week52_high': _positive_number(_first(raw, '250hgst', 'd250_hgpr', 'oyr_hgst')),
+            'week52_low': _positive_number(_first(raw, '250lwst', 'd250_lwpr', 'oyr_lwst')),
         }
     except Exception as exc:
         logger.info('ka10001 basic info failed for %s: %s', code, exc)
@@ -185,6 +196,10 @@ def _enrich_domestic(token, rows):
             item['name'] = info['name']
         if info.get('market_cap') is not None:
             item['market_cap'] = info['market_cap']
+        if info.get('week52_high') is not None:
+            item['week52_high'] = info['week52_high']
+        if info.get('week52_low') is not None:
+            item['week52_low'] = info['week52_low']
         item['name_ko'] = item.get('name_ko') or item.get('name') or item.get('code')
         item['name_en'] = item.get('name_en') or ''
         item['display_name'] = item.get('display_name') or item['name_ko']
@@ -221,6 +236,8 @@ def _domestic_fallback_row(token, code):
         'trade_volume': volume,
         'trade_amount': amount if amount is not None else price * volume,
         'market_cap': _number(_first(raw, 'mac', 'market_cap')),
+        'week52_high': _positive_number(_first(raw, '250hgst', 'd250_hgpr', 'oyr_hgst')),
+        'week52_low': _positive_number(_first(raw, '250lwst', 'd250_lwpr', 'oyr_lwst')),
         'industry': '기타',
         'currency': 'KRW',
         'volume': volume,
@@ -239,6 +256,51 @@ def _fallback_domestic(token, limit):
             except Exception as exc:
                 logger.info('domestic fallback quote failed: %s', exc)
     return rows
+
+
+def _kis_week52_quote(token, appkey, appsecret, code):
+    """KIS 기본시세에서 국내 종목의 250거래일 고가·저가를 읽는다."""
+    cached = _kis_quote_cache.get(code)
+    if cached and time.time() - cached[0] < _KIS_QUOTE_TTL_SEC:
+        return cached[1]
+    try:
+        raw = kis_client.fetch_domestic_quote(token, appkey, appsecret, code, market='J')
+        data = {
+            'week52_high': _positive_number(_kis_value(
+                raw, 'd250_hgpr', 'w52_hgpr', 'week52_high')),
+            'week52_low': _positive_number(_kis_value(
+                raw, 'd250_lwpr', 'w52_lwpr', 'week52_low')),
+        }
+    except Exception as exc:
+        logger.info('KIS 52주 기본시세 failed for %s: %s', code, exc)
+        data = {}
+    _kis_quote_cache[code] = (time.time(), data)
+    return data
+
+
+def _enrich_domestic_kis_week52(token, appkey, appsecret, rows, codes):
+    selected = set(codes)
+    targets = [row for row in rows if row.get('code') in selected
+               and (row.get('week52_high') is None or row.get('week52_low') is None)]
+
+    def enrich(row):
+        item = dict(row)
+        item.update({key: value for key, value in _kis_week52_quote(
+            token, appkey, appsecret, item.get('code')).items() if value is not None})
+        return item
+
+    if not targets:
+        return rows
+    enriched = {}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = [pool.submit(enrich, row) for row in targets]
+        for future in as_completed(futures):
+            try:
+                item = future.result()
+                enriched[item.get('code')] = item
+            except Exception as exc:
+                logger.info('KIS 52주 보강 failed: %s', exc)
+    return [enriched.get(row.get('code'), row) for row in rows]
 
 
 def _industry_top(rows):
@@ -300,12 +362,20 @@ def _sections(rows):
     by_volume = lambda row: row.get('trade_volume') or 0
     by_rate = lambda row: row.get('change_rate') or 0
     by_cap = lambda row: row.get('market_cap') or 0
+
+    def descending_metric(key):
+        return sorted(
+            [row for row in rows if row.get(key) is not None],
+            key=lambda row: row.get(key) or 0,
+            reverse=True,
+        )
+
     return {
         'tradeAmount': sorted(rows, key=by_amount, reverse=True),
         'tradeVolume': sorted(rows, key=by_volume, reverse=True),
-        'volumeGrowth': [],
-        'turnover': [],
-        'amountTurnover': [],
+        'volumeGrowth': descending_metric('volume_growth_rate'),
+        'turnover': descending_metric('turnover_rate'),
+        'amountTurnover': descending_metric('amount_turnover_rate'),
         'rising': sorted([row for row in rows if by_rate(row) > 0], key=by_rate, reverse=True),
         'falling': sorted([row for row in rows if by_rate(row) < 0], key=by_rate),
         'marketCap': sorted(rows, key=by_cap, reverse=True),
@@ -382,6 +452,13 @@ def _kis_domestic_row(row):
         'trade_volume': volume,
         'trade_amount': amount if amount is not None else price * volume,
         'market_cap': _number(_kis_value(row, 'stck_avls', 'market_cap', 'mktcap')) or 0,
+        # 거래량순위 응답 하나에 세 지표가 함께 포함된다. 전용 정렬 호출이
+        # 휴장·장마감 직후 빈 배열이어도 이 값을 사용해 화면을 채운다.
+        'volume_growth_rate': _number(_kis_value(row, 'vol_inrt', 'volume_growth_rate', 'volumeGrowth')),
+        'turnover_rate': _number(_kis_value(row, 'vol_tnrt', 'nday_vol_tnrt', 'turnover_rate', 'turnover')),
+        'amount_turnover_rate': _number(_kis_value(row, 'tr_pbmn_tnrt', 'nday_tr_pbmn_tnrt', 'amount_turnover_rate', 'amountTurnover')),
+        'week52_high': _positive_number(_kis_value(row, 'w52_hgpr', 'd250_hgpr', '250hgst', 'week52_high')),
+        'week52_low': _positive_number(_kis_value(row, 'w52_lwpr', 'd250_lwpr', '250lwst', 'week52_low')),
         'industry': '미분류',
         'currency': 'KRW',
     }
@@ -439,7 +516,9 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
                     # 있어, 기본값 0이 먼저 수집한 실데이터를 덮지 않게 한다.
                     if value is None:
                         continue
-                    if key in ('price', 'trade_volume', 'trade_amount', 'market_cap', 'change_rate') \
+                    if key in ('price', 'trade_volume', 'trade_amount', 'market_cap',
+                               'change_rate', 'volume_growth_rate', 'turnover_rate',
+                               'amount_turnover_rate', 'week52_high', 'week52_low') \
                             and value == 0 and current.get(key) not in (None, 0):
                         continue
                     current[key] = value
@@ -447,6 +526,22 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
     for row in merged.values():
         info = wics_map.get(row['code']) or {}
         row['industry'] = info.get('industry') or info.get('sector') or '미분류'
+    # 기본 화면(거래대금 상위)에서 바로 사용할 20개를 우선 보강한다.
+    # 순위 API가 52주 필드를 함께 주는 경우에는 추가 호출하지 않는다.
+    quote_codes = []
+    seen_quote_codes = set()
+    for rank_name in ('amount', 'volume', 'volumeGrowth', 'turnover', 'amountTurnover', 'rate', 'cap'):
+        for raw in rank_rows.get(rank_name) or []:
+            item = _kis_domestic_row(raw)
+            code = item.get('code') if item else None
+            if code and code not in seen_quote_codes:
+                quote_codes.append(code)
+                seen_quote_codes.add(code)
+    quote_codes = quote_codes[:query_limit]
+    rows_with_week52 = _enrich_domestic_kis_week52(
+        kis_token, appkey, appsecret, list(merged.values()), quote_codes,
+    )
+    merged = {row['code']: row for row in rows_with_week52 if row.get('code')}
     sections = _sections(list(merged.values()))
 
     # KIS 순위 API는 응답 자체가 해당 정렬 순서이므로, 거래증가율·회전율은
@@ -462,6 +557,11 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
                 seen.add(code)
         return result
 
+    metric_keys = {
+        'volumeGrowth': 'volume_growth_rate',
+        'turnover': 'turnover_rate',
+        'amountTurnover': 'amount_turnover_rate',
+    }
     for section_name, rank_name in (
         ('tradeAmount', 'amount'),
         ('tradeVolume', 'volume'),
@@ -471,8 +571,24 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         ('marketCap', 'cap'),
     ):
         ordered = ordered_section(rank_name)
+        if section_name in metric_keys:
+            ordered = [row for row in ordered if row.get(metric_keys[section_name]) is not None]
         if ordered:
             sections[section_name] = ordered
+
+    # 전용 순위 TR이 빈 경우에도 거래량순위(0)가 제공한 지표 필드로
+    # 정렬한다. 값이 있는 행만 반환해 빈 화면 대신 실제 순위를 보여준다.
+    for section_name, metric_key in (
+        ('volumeGrowth', 'volume_growth_rate'),
+        ('turnover', 'turnover_rate'),
+        ('amountTurnover', 'amount_turnover_rate'),
+    ):
+        if not sections.get(section_name):
+            sections[section_name] = sorted(
+                [row for row in merged.values() if row.get(metric_key) is not None],
+                key=lambda row: row.get(metric_key) or 0,
+                reverse=True,
+            )
     return {
         'market': 'domestic',
         'session': DOMESTIC_SESSION_LABEL,

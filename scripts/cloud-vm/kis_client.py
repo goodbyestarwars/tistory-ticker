@@ -499,13 +499,17 @@ def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20
         '/uapi/domestic-stock/v1/quotations/volume-rank',
         'FHPST01710000',
         {
-            'FID_COND_MRKT_DIV_CODE': 'UN',
+            # 순위분석 TR은 통합(UN)도 문서상 지원하지만, 거래증가율·
+            # 회전율 계열은 KRX(J)로 요청해야 응답하는 경우가 있다.
+            'FID_COND_MRKT_DIV_CODE': 'J',
             'FID_COND_SCR_DIV_CODE': '20171',
             'FID_INPUT_ISCD': '0000',
             'FID_DIV_CLS_CODE': '0',
             'FID_BLNG_CLS_CODE': sort_code,
-            'FID_TRGT_CLS_CODE': '0',
-            'FID_TRGT_EXLS_CLS_CODE': '0',
+            # 9자리 대상/10자리 제외 마스크를 명시한다. 0 하나만 넣으면
+            # 거래대금순은 오더라도 거래증가율·회전율 순위가 빈 응답이 된다.
+            'FID_TRGT_CLS_CODE': '111111111',
+            'FID_TRGT_EXLS_CLS_CODE': '0000000000',
             'FID_INPUT_PRICE_1': '',
             'FID_INPUT_PRICE_2': '',
             'FID_VOL_CNT': '',

@@ -44,6 +44,8 @@
     ['rising', '상승률'],
     ['falling', '하락률'],
     ['cap', '시가총액'],
+    ['week52High', '52주 최고가'],
+    ['week52Low', '52주 최저가'],
     ['industry', '업종']
   ];
   var US_TABLE_COLUMNS = TABLE_COLUMNS.slice(0, 7);
@@ -326,6 +328,8 @@
       rising: '<td data-field="rising">' + rateCell(rate, true) + '</td>',
       falling: '<td data-field="falling">' + rateCell(rate, false) + '</td>',
       cap: '<td data-field="cap">' + fmtMarketCap(item.market_cap, item.currency) + '</td>',
+      week52High: '<td data-field="week52High">' + fmtPrice(item.week52_high, item.currency) + '</td>',
+      week52Low: '<td data-field="week52Low">' + fmtPrice(item.week52_low, item.currency) + '</td>',
       industry: '<td class="hrt-industry" title="' + escapeHtml(industry) + '">' + escapeHtml(industry || '-') + '</td>'
     };
     return '<tr data-code="' + escapeHtml(code) + '">' + columnsForMarket().map(function (column) {

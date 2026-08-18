@@ -4400,12 +4400,13 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
 .hrt-tabs button { flex: 0 0 auto; padding: 8px 13px 10px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #8d98a5; font: inherit; font-size: 13px; cursor: pointer; }
 .hrt-tabs button.active { border-bottom-color: #263dce; color: #263dce; font-weight: 700; }
 .hrt-table-wrap { overflow-x: auto; }
-.hrt-table-wrap table { width: 100%; min-width: 850px; border-collapse: collapse; table-layout: fixed; }
+.hrt-table-wrap table { width: 100%; min-width: 1120px; border-collapse: collapse; table-layout: fixed; }
 .hrt-table-wrap th, .hrt-table-wrap td { padding: 12px 9px; border-bottom: 1px solid #edf0f2; text-align: right; white-space: nowrap; font-size: 13px; }
 .hrt-table-wrap th { color: #8a94a1; font-size: 11px; font-weight: 600; }
 .hrt-table-wrap th:first-child, .hrt-table-wrap td:first-child { text-align: left; }
 .hrt-table-wrap th:nth-child(1) { width: 22%; }
-.hrt-table-wrap th:nth-child(8) { width: 16%; }
+.hrt-table-wrap th:nth-child(8) { width: 12%; }
+.hrt-table-wrap th:nth-child(9), .hrt-table-wrap th:nth-child(10) { width: 10%; }
 .hrt-stock { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .hrt-stock a { min-width: 0; color: #17202a; text-decoration: none; overflow: hidden; text-overflow: ellipsis; }
 .hrt-stock strong { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
@@ -4493,7 +4494,7 @@ html.dark .hrt-industry, html.dark .hrt-head span, html.dark .hrt-head small, ht
 .hrt-tabs button { padding: 6px 10px 7px; font-size: 12px; }
 .hrt-table-wrap th, .hrt-table-wrap td { padding: 7px 7px; font-size: 11px; }
 .hrt-table-wrap th { font-size: 10px; }
-.hrt-table-wrap table { min-width: 790px; }
+.hrt-table-wrap table { min-width: 1120px; }
 .hrt-stock { gap: 6px; }
 .hrt-stock strong { font-size: 12px; }
 .hrt-stock small { margin-top: 1px; font-size: 9px; }
