@@ -95,6 +95,14 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual(data['week52_low'], 150.0)
         self.assertEqual(data['source'], '키움증권 REST API')
 
+    def test_broker_quote_repairs_absolute_change_for_negative_rate(self):
+        data = us_stocks._normalize_quote({
+            'cur_prc': '142.22', 'base_close_pric': '146.23',
+            'diff': '4.01', 'rate': '-2.74',
+        }, 'SPCX', '한국투자증권 Open API', 'NAS')
+        self.assertAlmostEqual(data['change'], -4.01, places=2)
+        self.assertEqual(data['change_rate'], -2.74)
+
     def test_orderbook_maps_kiwoom_levels(self):
         response = {
             'stk_cd': 'AAPL',

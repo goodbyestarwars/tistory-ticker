@@ -400,6 +400,13 @@
     return isNaN(number) ? '-' : number.toLocaleString('ko-KR') + '원';
   }
 
+  function quoteDirection(quote) {
+    var rate = Number(quote && quote.changeRate);
+    if (!isNaN(rate) && rate !== 0) return rate;
+    var change = Number(quote && quote.change);
+    return isNaN(change) ? 0 : change;
+  }
+
   function renderMyRows(list, quotes) {
     var mount = document.getElementById('homeMyList');
     if (!mount) return;
@@ -409,10 +416,10 @@
     }
     mount.innerHTML = list.map(function (item) {
       var quote = quotes && quotes[item.code];
-      var change = quote ? Number(quote.change) : null;
       var rate = quote ? Number(quote.changeRate) : null;
-      var tone = change > 0 ? 'home-positive' : change < 0 ? 'home-negative' : 'home-neutral';
-      var arrow = change > 0 ? '▲' : change < 0 ? '▼' : '';
+      var direction = quote ? quoteDirection(quote) : 0;
+      var tone = direction > 0 ? 'home-positive' : direction < 0 ? 'home-negative' : 'home-neutral';
+      var arrow = direction > 0 ? '▲' : direction < 0 ? '▼' : '';
       var rateText = rate == null || isNaN(rate) ? '데이터 확인 중' : arrow + Math.abs(rate).toFixed(2) + '%';
       return '<a class="home-my-row" data-code="' + escapeHtml(item.code) + '" href="/page/stock-search?code=' + encodeURIComponent(item.code)
         + '&name=' + encodeURIComponent(item.name) + '">'
@@ -432,10 +439,10 @@
     if (!mount) return;
     var row = mount.querySelector('.home-my-row[data-code="' + cssEscape(code) + '"]');
     if (!row) return;
-    var change = Number(quote.change);
     var rate = Number(quote.changeRate);
-    var tone = change > 0 ? 'home-positive' : change < 0 ? 'home-negative' : 'home-neutral';
-    var arrow = change > 0 ? '▲' : change < 0 ? '▼' : '';
+    var direction = quoteDirection(quote);
+    var tone = direction > 0 ? 'home-positive' : direction < 0 ? 'home-negative' : 'home-neutral';
+    var arrow = direction > 0 ? '▲' : direction < 0 ? '▼' : '';
     var rateText = isNaN(rate) ? '데이터 확인 중' : arrow + Math.abs(rate).toFixed(2) + '%';
     var priceEl = row.querySelector('[data-field="price"]');
     var changeEl = row.querySelector('[data-field="change"]');

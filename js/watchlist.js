@@ -843,11 +843,14 @@
       ? '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       : formatNumber(quote.price) + '원';
     var changeRate = Number(quote.changeRate);
+    // 일부 브로커 응답은 change 금액을 절댓값으로 보낸다. 화면 방향은
+    // 항상 부호가 있는 changeRate를 우선 사용한다.
+    var direction = !isNaN(changeRate) && changeRate !== 0 ? changeRate : Number(quote.change);
     changeEl.textContent = isNaN(changeRate)
       ? ''
-      : arrowSymbol(quote.change) + Math.abs(changeRate).toFixed(2) + '%';
+      : arrowSymbol(direction) + Math.abs(changeRate).toFixed(2) + '%';
     changeEl.classList.remove('wl-up', 'wl-down', 'wl-flat');
-    changeEl.classList.add(quote.change > 0 ? 'wl-up' : quote.change < 0 ? 'wl-down' : 'wl-flat');
+    changeEl.classList.add(direction > 0 ? 'wl-up' : direction < 0 ? 'wl-down' : 'wl-flat');
   }
 
   // ---- 실시간 시세(WebSocket) ----

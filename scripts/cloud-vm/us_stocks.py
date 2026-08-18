@@ -213,12 +213,19 @@ def _normalize_quote(row, symbol, provider, exchange):
     if price is None:
         raise UsStockUnavailable(provider + ' 미국주식 현재가가 비어 있습니다.')
     previous_close = _number(_first(row, 'base_close_pric', 'base', 'base_pric', 'previous_close', 'prev_close'))
-    change = _number(_first(row, 'diff', 'change', 'pred_pre', 'prdy_vrss'))
+    # KIS 해외주식 응답의 diff/prdy_vrss는 하락 종목에서도 절댓값으로
+    # 내려오는 경우가 있다. 전일 종가가 있으면 가격 차이를 기준값으로
+    # 삼아 change와 change_rate의 부호가 항상 일치하도록 정규화한다.
+    raw_change = _number(_first(row, 'diff', 'change', 'pred_pre', 'prdy_vrss'))
     change_rate = _number(_first(row, 'rate', 'flu_rt', 'change_rate', 'prdy_ctrt'))
+    change = raw_change
+    if previous_close is not None:
+        change = price - previous_close
+    elif change is not None and change_rate not in (None, 0):
+        # 전일 종가가 없는 브로커 응답은 등락률의 부호를 우선한다.
+        change = abs(change) if change_rate > 0 else -abs(change)
     if previous_close is None and change is not None:
         previous_close = price - change
-    if change is None and previous_close is not None:
-        change = price - previous_close
     if change_rate is None and previous_close:
         change_rate = change / previous_close * 100 if change is not None else None
     return {

@@ -62,6 +62,13 @@ class RealtimeQuotesTests(unittest.TestCase):
         self.assertEqual(events[0]['changeRate'], 1.0)
         self.assertEqual(events[0]['volume'], 1000.0)
 
+    def test_parses_kis_us_trade_with_signed_change(self):
+        row = ['DNASSPCX', 'SPCX'] + [''] * 9 + ['142.22', '', '4.01', '-2.74'] + [''] * 5 + ['1000']
+        events = realtime_quotes._kis_quote_events('0|HDFSCNT0|1|' + '^'.join(row))
+
+        self.assertEqual(events[0]['change'], -4.01)
+        self.assertEqual(events[0]['changeRate'], -2.74)
+
     def test_parses_kis_unified_stock_orderbook_message(self):
         row = ['005930', '123000', '1']
         row += ['70000'] + ['70100'] * 9

@@ -47,6 +47,13 @@ def _number(value):
         return None
 
 
+def _signed_change(change, change_rate):
+    """Align an absolute broker change amount with the signed rate."""
+    if change is None or change_rate in (None, 0):
+        return change
+    return abs(change) if change_rate > 0 else -abs(change)
+
+
 def _quote_events(message):
     """키움 REAL 응답에서 0B 체결가를 표준 형태로 변환한다.
 
@@ -93,7 +100,7 @@ def _quote_events(message):
             'type': 'quote',
             'code': code,
             'price': abs(price),
-            'change': change or 0,
+            'change': _signed_change(change, change_rate) or 0,
             'changeRate': change_rate or 0,
         }
         if cumulative_volume is not None:
@@ -154,7 +161,8 @@ def _kis_quote_events(raw):
             volume = _kis_number(row[13])
             event = {
                 'type': 'quote', 'code': code, 'price': abs(price or 0),
-                'change': change or 0, 'changeRate': change_rate or 0,
+                'change': _signed_change(change, change_rate) or 0,
+                'changeRate': change_rate or 0,
                 'source': 'KIS WebSocket',
             }
         elif tr_id == 'H0UNASP0':
@@ -193,7 +201,8 @@ def _kis_quote_events(raw):
             volume = _kis_number(row[20])
             event = {
                 'type': 'quote', 'code': 'US:' + symbol, 'symbol': symbol,
-                'price': abs(price or 0), 'change': change or 0,
+                'price': abs(price or 0),
+                'change': _signed_change(change, change_rate) or 0,
                 'changeRate': change_rate or 0, 'source': 'KIS WebSocket',
             }
         else:
