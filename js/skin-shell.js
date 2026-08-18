@@ -180,9 +180,42 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAccountLoginChooser);
-  } else {
+  /*
+   * 글쓰기 화면은 Tistory/Kakao 인증 리다이렉트를 거쳐야 하므로
+   * openArticleModal()의 iframe 안에서 열면 안 된다. 기존에 배포된 skin.html에
+   * 남아 있는 onclick도 제거하고, 항상 최상위 창에서 관리자 글쓰기 주소로
+   * 이동시켜 로그인 화면이 정상적으로 이어지게 한다.
+   */
+  function initWriteButton() {
+    var writeLink = document.querySelector('.nav-write-btn');
+    if (!writeLink || writeLink.getAttribute('data-write-auth-ready') === '1') return;
+
+    var writeUrl = writeLink.getAttribute('href') || '';
+    if (!writeUrl || /^javascript:/i.test(writeUrl)) {
+      var manageLink = document.querySelector('.nav-manage-btn');
+      var managerUrl = manageLink && manageLink.href ? manageLink.href : '';
+      writeUrl = managerUrl.replace(/\/manage\/?(?:#.*)?$/, '/manage/newpost/');
+    }
+    if (!writeUrl || /^javascript:/i.test(writeUrl)) return;
+
+    writeLink.setAttribute('href', writeUrl);
+    writeLink.removeAttribute('onclick');
+    writeLink.setAttribute('data-write-auth-ready', '1');
+    writeLink.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      (window.top || window).location.href = writeUrl;
+    }, true);
+  }
+
+  function initShellAuthLinks() {
+    initWriteButton();
     initAccountLoginChooser();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initShellAuthLinks);
+  } else {
+    initShellAuthLinks();
   }
 })();

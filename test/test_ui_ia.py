@@ -28,6 +28,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("label: '미국주식'", source)
         self.assertEqual(len(primary_labels), 7)
 
+    def test_write_button_uses_top_level_tistory_auth_navigation(self):
+        skin = self.read("skin.html")
+        shell = self.read("js/skin-shell.js")
+        self.assertIn('href="[##_blog_link_##]manage/newpost/" class="nav-icon-btn nav-write-btn"', skin)
+        self.assertNotIn("onclick=\"openArticleModal('[##_blog_link_##]manage/newpost/'", skin)
+        self.assertIn("function initWriteButton()", shell)
+        self.assertIn("writeLink.removeAttribute('onclick')", shell)
+        self.assertIn("event.stopImmediatePropagation()", shell)
+        self.assertIn("(window.top || window).location.href = writeUrl", shell)
+
     def test_stock_menu_opens_analysis_and_search_submenu(self):
         source = self.read("js/skin-menu.js")
         group = re.search(
