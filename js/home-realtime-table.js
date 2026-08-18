@@ -40,10 +40,10 @@
     ['stock', '종목'],
     ['price', '현재가'],
     ['amount', '거래대금'],
+    ['cap', '시가총액'],
     ['volume', '거래량'],
     ['rising', '상승률'],
     ['falling', '하락률'],
-    ['cap', '시가총액'],
     ['week52High', '52주 최고가'],
     ['week52Low', '52주 최저가'],
     ['industry', '업종']
@@ -315,6 +315,8 @@
     var rate = number(item.change_rate);
     var tone = rate > 0 ? 'hrt-up' : rate < 0 ? 'hrt-down' : 'hrt-flat';
     var industry = industryFor(item);
+    var marketCap = item.market_cap != null ? item.market_cap
+      : item.marketCap != null ? item.marketCap : item.market_cap_eok;
     if ((!industry || industry === '미분류') && global.WICS_MAP && global.WICS_MAP[code]) {
       industry = global.WICS_MAP[code].industry || global.WICS_MAP[code].sector || '';
     }
@@ -327,7 +329,7 @@
       volume: '<td data-field="volume">' + fmtCount(item.trade_volume) + '</td>',
       rising: '<td data-field="rising">' + rateCell(rate, true) + '</td>',
       falling: '<td data-field="falling">' + rateCell(rate, false) + '</td>',
-      cap: '<td data-field="cap">' + fmtMarketCap(item.market_cap, item.currency) + '</td>',
+      cap: '<td data-field="cap">' + fmtMarketCap(marketCap, item.currency) + '</td>',
       week52High: '<td data-field="week52High">' + fmtPrice(item.week52_high, item.currency) + '</td>',
       week52Low: '<td data-field="week52Low">' + fmtPrice(item.week52_low, item.currency) + '</td>',
       industry: '<td class="hrt-industry" title="' + escapeHtml(industry) + '">' + escapeHtml(industry || '-') + '</td>'

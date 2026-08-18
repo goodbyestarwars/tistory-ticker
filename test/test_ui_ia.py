@@ -433,6 +433,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("America/New_York", source)
         self.assertIn("국내시장 · 오전 08:00~오후 08:00", source)
         for token in (
+            "['amount', '거래대금']",
+            "['cap', '시가총액']",
             "['volumeGrowth', '거래증가율']",
             "['turnover', '거래회전율']",
             "['amountTurnover', '거래대금회전율']",
@@ -442,6 +444,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "function industryRowHtml(item, rank)",
         ):
             self.assertIn(token, source)
+        self.assertLess(source.index("['amount', '거래대금']"), source.index("['cap', '시가총액']"))
+        self.assertIn("item.marketCap != null ? item.marketCap : item.market_cap_eok", source)
         for token in (
             "def _industry_top(rows):",
             "'avg_change_rate'",
