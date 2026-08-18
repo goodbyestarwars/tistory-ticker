@@ -1058,7 +1058,17 @@
     setInterval(function () {
       if (document.hidden) return;
       var session = homeMarketSession();
-      if (session.closed) return;
+      var wasClosed = dashboardSection.classList.contains('is-market-closed');
+      // 금요일에 홈을 열어 둔 채 토요일로 넘어가도 주말 휴장 지면으로 전환한다.
+      // 반대로 월요일이 되면 자동 시장 선택을 다시 적용한다.
+      if (session.closed || wasClosed) {
+        if (session.closed !== wasClosed) {
+          syncMarketSwitch();
+          loadHomeIndices();
+          loadSummaryForSession(session);
+        }
+        return;
+      }
       var nextKey = (session.keys || []).join('|');
       if (nextKey !== summarySessionKey) loadSummaryForSession(session);
       else if (nextKey !== 'NASDAQ_INDEX|SP500_INDEX') loadHomeInvestorTrend();
