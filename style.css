@@ -5757,3 +5757,29 @@ body#tt-body-index .home-editorial-page [data-home-night-futures] .home-night-fu
     font-size: 13px !important;
   }
 }
+
+/* 2026-08-18 home density follow-up: close the blank band between the
+   watchlist disclosure rail and the index strip, and expose one more news row
+   without changing the source/API item limit. */
+body#tt-body-index .home-editorial-page .home-top-disclosures {
+  margin-bottom: 8px !important;
+}
+body#tt-body-index .home-editorial-page .home-index-strip {
+  margin-top: 10px !important;
+}
+body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
+  height: 450px !important;
+  max-height: 450px !important;
+}
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page .home-top-disclosures {
+    margin-bottom: 8px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-index-strip {
+    margin-top: 8px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
+    height: 350px !important;
+    max-height: 350px !important;
+  }
+}
