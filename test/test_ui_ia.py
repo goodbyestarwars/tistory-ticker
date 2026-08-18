@@ -709,6 +709,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("text-overflow: ellipsis", style)
         self.assertIn("white-space: nowrap", style)
 
+    def test_home_disclosure_separator_stays_inside_each_row(self):
+        style = self.read("style.css")
+        self.assertIn(".home-disclosure-row:not(:last-child)::after", style)
+        self.assertIn("top: 9px;", style)
+        self.assertIn("bottom: 9px;", style)
+        self.assertIn("border: 0 !important;", style)
+
     def test_watchlist_search_supports_keyboard_selection(self):
         source = self.read("js/watchlist.js")
         style = self.read("css/watchlist.css")

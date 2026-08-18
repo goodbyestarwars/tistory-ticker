@@ -5636,11 +5636,19 @@ body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-r
   min-height: 48px !important;
   padding: 5px 16px !important;
   border: 0 !important;
-  border-right: 1px solid var(--rule) !important;
+  position: relative;
   background: transparent !important;
 }
-body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row:last-child {
-  border-right: 0 !important;
+/* 항목 사이 구분선은 행 전체를 가르지 않고, 위·아래 실선과 살짝 떨어진 짧은 bar로 표시한다. */
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  right: 0;
+  width: 1px;
+  background: var(--rule);
+  pointer-events: none;
 }
 
 /* 한국증시·미국증시 전환선과 모든 홈 지면 제목을 같은 높이로 맞춘다. */
