@@ -207,6 +207,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("window.addEventListener('home-market-change', function ()", source)
         self.assertIn("applyHomeMarketSession(homeMarketSession());", source)
         self.assertIn("if (session.closed) return;", source)
+        self.assertIn("try {\n          window.HomeMarketSelection.set(market);", source)
+        self.assertIn("catch (error) {", source)
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")

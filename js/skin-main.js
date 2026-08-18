@@ -307,7 +307,15 @@
     }
     dashboardSection.querySelectorAll('[data-home-market-switch]').forEach(function (button) {
       button.addEventListener('click', function () {
-        window.HomeMarketSelection.set(button.getAttribute('data-home-market-switch'));
+        var market = button.getAttribute('data-home-market-switch');
+        try {
+          window.HomeMarketSelection.set(market);
+        } catch (error) {
+          // 일부 구형 WebView에서 CustomEvent가 실패해도 set()은 선택값을
+          // 먼저 저장하므로, 아래에서 화면을 직접 동기화할 수 있다.
+        }
+        syncMarketSwitch();
+        applyHomeMarketSession(homeMarketSession());
       });
     });
     syncMarketSwitch();
