@@ -5095,6 +5095,9 @@ body#tt-body-index .home-editorial-page .hen-breaking {
   background: transparent;
   overflow: visible;
 }
+body#tt-body-index .home-editorial-page .hen-breaking[hidden] {
+  display: none !important;
+}
 body#tt-body-index .home-editorial-page .hen-breaking-head {
   padding: 9px 0 8px;
   border-bottom: 1px solid var(--rule);

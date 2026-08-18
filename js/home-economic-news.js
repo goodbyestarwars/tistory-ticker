@@ -165,6 +165,7 @@
 
   function renderFlash(items) {
     var list = state.mount && state.mount.querySelector('[data-hen-breaking-list]');
+    var breaking = state.mount && state.mount.querySelector('[data-hen-breaking]');
     if (!list) return;
     var rows = (items || []).filter(function (item) {
       if (!item || !item.title) return false;
@@ -179,9 +180,11 @@
       state.flashRows = [];
       state.flashKey = '';
       state.flashIndex = 0;
-      list.innerHTML = '<p class="hen-breaking-empty">중요 속보가 없습니다.</p>';
+      list.innerHTML = '';
+      if (breaking) breaking.hidden = true;
       return;
     }
+    if (breaking) breaking.hidden = false;
     var nextKey = rows.map(function (item) {
       return String(item.id || item.link || item.title || '') + '|' + String(item.pubDate || '');
     }).join('\u0001');
