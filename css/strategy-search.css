@@ -756,3 +756,130 @@ html.dark #strategy-search .ss-product-tab.active {
   background: #F5EFE0 !important;
   color: #1A1A1A !important;
 }
+
+/* 필드명과 값의 시작점을 같은 컬럼에 맞추고, 데스크톱 표는 사용 가능한 폭을 끝까지 쓴다. */
+@media (min-width: 641px) {
+  #strategy-search .ss-comparison-table {
+    width: 100%;
+    min-width: 1480px;
+  }
+  #strategy-search .ss-comparison-table th,
+  #strategy-search .ss-comparison-table td { vertical-align: middle; }
+  #strategy-search .ss-comparison-table th { text-align: right; }
+  #strategy-search .ss-comparison-table th:nth-child(1),
+  #strategy-search .ss-comparison-table td.ss-col-watch,
+  #strategy-search .ss-comparison-table th:nth-child(2),
+  #strategy-search .ss-comparison-table td.ss-col-rank { text-align: center !important; }
+  #strategy-search .ss-comparison-table th:nth-child(3),
+  #strategy-search .ss-comparison-table th:nth-child(4),
+  #strategy-search .ss-comparison-table th:nth-child(5),
+  #strategy-search .ss-comparison-table td.ss-col-product,
+  #strategy-search .ss-comparison-table td.ss-col-code,
+  #strategy-search .ss-comparison-table td.ss-col-provider,
+  #strategy-search .ss-comparison-table td.ss-col-sector { text-align: left !important; }
+  #strategy-search .ss-strategy-table th:nth-child(8),
+  #strategy-search .ss-strategy-table th:nth-child(9),
+  #strategy-search .ss-etf-table th:nth-child(8),
+  #strategy-search .ss-comparison-table td.ss-col-signal,
+  #strategy-search .ss-comparison-table td.ss-col-fundamentals,
+  #strategy-search .ss-comparison-table td.ss-col-type { text-align: left !important; }
+  #strategy-search .ss-dividend-table th:nth-child(7),
+  #strategy-search .ss-dividend-table th:nth-child(8),
+  #strategy-search .ss-dividend-table th:nth-child(9),
+  #strategy-search .ss-dividend-table td[data-label="배당금"],
+  #strategy-search .ss-dividend-table td[data-label="배당수익률"],
+  #strategy-search .ss-dividend-table td[data-label="배당성향"] { min-width: 104px; text-align: right !important; }
+  #strategy-search .ss-dividend-table th:nth-child(8),
+  #strategy-search .ss-dividend-table td[data-label="배당수익률"] { min-width: 116px; }
+}
+
+#strategy-search .ss-product-toolbar label,
+#strategy-search .ss-dividend-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  white-space: nowrap;
+}
+
+/* ============ 배당 정보 모달 ============ */
+.ss-dividend-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(8, 13, 20, .72);
+  font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
+}
+.ss-dividend-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(620px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow: hidden;
+  border: 1px solid #d8dee7;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(0,0,0,.35);
+}
+.ss-dividend-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid #e5e9ef;
+  color: #25303b;
+  font-size: 17px;
+  font-weight: 700;
+}
+.ss-dividend-modal-close {
+  border: 0;
+  padding: 4px 6px;
+  background: transparent;
+  color: #8a9099;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.ss-dividend-modal-body { overflow: auto; padding: 16px 18px 20px; }
+.ss-dividend-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+  margin: 0;
+  border-top: 1px solid #e9edf2;
+}
+.ss-dividend-facts > div {
+  padding: 9px 0;
+  border-bottom: 1px solid #e9edf2;
+}
+.ss-dividend-facts dt { color: #7b8490; font-size: 11px; }
+.ss-dividend-facts dd { margin: 4px 0 0; color: #1f2933; font-size: 15px; font-weight: 700; }
+.ss-dividend-history { margin-top: 16px; }
+.ss-dividend-history > strong { color: #25303b; font-size: 13px; }
+.ss-dividend-history ul { margin: 8px 0 0; padding: 0; list-style: none; }
+.ss-dividend-history li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #e9edf2; color: #6b7280; font-size: 12px; }
+.ss-dividend-history li b { color: #1f2933; font-variant-numeric: tabular-nums; }
+.ss-dividend-history p { color: #8a9099; font-size: 12px; }
+html.dark .ss-dividend-modal { border-color: rgba(245,239,224,.2); background: #1A1A1A; }
+html.dark .ss-dividend-modal-head { border-bottom-color: rgba(245,239,224,.15); color: #F5EFE0; }
+html.dark .ss-dividend-modal-close { color: rgba(245,239,224,.55); }
+html.dark .ss-dividend-facts { border-top-color: rgba(245,239,224,.14); }
+html.dark .ss-dividend-facts > div,
+html.dark .ss-dividend-history li { border-bottom-color: rgba(245,239,224,.1); }
+html.dark .ss-dividend-facts dt,
+html.dark .ss-dividend-history li,
+html.dark .ss-dividend-history p { color: rgba(245,239,224,.55); }
+html.dark .ss-dividend-facts dd,
+html.dark .ss-dividend-history > strong,
+html.dark .ss-dividend-history li b { color: #F5EFE0; }
+@media (max-width: 640px) {
+  .ss-dividend-modal-overlay { padding: 8px; }
+  .ss-dividend-modal { max-height: calc(100vh - 16px); }
+  .ss-dividend-modal-head { padding: 14px; font-size: 16px; }
+  .ss-dividend-modal-body { padding: 14px 14px 18px; }
+  .ss-dividend-facts { grid-template-columns: 1fr; gap: 0; }
+}

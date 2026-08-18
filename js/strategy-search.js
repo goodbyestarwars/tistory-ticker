@@ -254,6 +254,10 @@
         openEtfComponentsModal(code, name, findItemByCode(activeKey, code));
         return;
       }
+      if (activeKey === 'dividend') {
+        openDividendInfoModal(code, name, findItemByCode(activeKey, code));
+        return;
+      }
       global.location.href = STOCK_DETAIL_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
     });
       container.addEventListener('keydown', function (event) {
@@ -368,7 +372,7 @@
       + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
       + '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || '—') + '</span></strong></td>'
       + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
-      + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(item.sector || item.industry || '—') + '</td>'
+      + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(cleanIndustryLabel(item.sector || item.industry)) + '</td>'
       + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
       + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
       + '<td class="ss-col-signal" data-label="전략 지표">' + escapeHtml(strategySignal(item)) + '</td>'
@@ -412,6 +416,12 @@
     return null;
   }
 
+  function cleanIndustryLabel(value) {
+    var text = String(value == null ? '' : value).trim();
+    text = text.replace(/^[\s—-]+/, '').replace(/^·\s*/, '').trim();
+    return text || '—';
+  }
+
   function providerFromName(name) {
     var upper = String(name || '').trim().toUpperCase();
     for (var i = 0; i < ETF_PROVIDER_PREFIXES.length; i += 1) {
@@ -453,7 +463,7 @@
     normalized.name = String(firstValue(item, ['name', 'corpName']) || '—');
     normalized.code = String(firstValue(item, ['code', 'symbol']) || '');
     normalized.market = firstValue(item, ['market', 'marketName', 'exchange']) || '—';
-    normalized.sector = firstValue(item, ['sector', 'industry', 'wicsSector']) || '—';
+    normalized.sector = cleanIndustryLabel(firstValue(item, ['sector', 'industry', 'wicsSector']));
     normalized.price = firstValue(item, ['price', 'currentPrice', 'close']);
     normalized.cashDividendPerShare = firstValue(item, ['cashDividendPerShare', 'dividend', 'dps']);
     normalized.dividendYieldPct = firstValue(item, ['dividendYieldPct', 'dividendYield', 'yieldPct']);
@@ -630,7 +640,7 @@
       { label: '순위', html: function (item, index) { return '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'; } },
       { label: '종목명', html: function (item) { return '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + '</span></strong></td>'; } },
       { label: '종목코드', cls: 'ss-col-code', html: function (item) { return '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'; } },
-      { label: '업종', cls: 'ss-col-sector', html: function (item) { return '<td class="ss-col-sector" data-label="업종">' + escapeHtml(item.market || '—') + ' · ' + escapeHtml(item.sector || '—') + '</td>'; } },
+      { label: '업종', cls: 'ss-col-sector', html: function (item) { return '<td class="ss-col-sector" data-label="업종">' + escapeHtml(cleanIndustryLabel(item.sector)) + '</td>'; } },
       { label: '현재가', cls: 'ss-col-price', html: function (item) { return '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'; } },
       { label: '배당금', html: function (item) { return '<td data-label="배당금">' + fmtWon(item.cashDividendPerShare) + ' <small class="ss-dividend-status">' + escapeHtml(item.dividendStatus || '실제') + '</small></td>'; } },
       { label: '배당수익률', html: function (item) { return '<td data-label="배당수익률">' + fmtPctExact(item.dividendYieldPct) + '</td>'; } }
@@ -668,6 +678,69 @@
     return '<div class="ss-dividend-toolbar"><label>시장 <select class="ss-dividend-sort-select" data-dividend-filter="market"><option value="">전체</option><option value="KOSPI"' + (activeDividendMarket === 'KOSPI' ? ' selected' : '') + '>KOSPI</option><option value="KOSDAQ"' + (activeDividendMarket === 'KOSDAQ' ? ' selected' : '') + '>KOSDAQ</option></select></label><label>정렬 <select class="ss-dividend-sort-select" data-dividend-filter="sort">' + dividendSortOptions(matches) + '</select></label></div>'
       + '<p class="ss-dividend-basis">' + escapeHtml(basis) + '</p>'
       + (matches.length ? table : '<div class="ss-product-empty">배당 데이터가 없습니다.</div>');
+  }
+
+  var dividendModalOverlay = null;
+
+  function closeDividendInfoModal() {
+    if (!dividendModalOverlay) return;
+    dividendModalOverlay.remove();
+    dividendModalOverlay = null;
+    document.removeEventListener('keydown', onDividendModalKeydown);
+  }
+
+  function onDividendModalKeydown(event) {
+    if (event.key === 'Escape') closeDividendInfoModal();
+  }
+
+  function dividendModalValue(value, suffix) {
+    return value == null || value === '' ? '—' : escapeHtml(String(value)) + (suffix || '');
+  }
+
+  function dividendHistoryRows(item) {
+    return (item && (item.dividendHistory || item.dividendYears) || []).slice().sort(function (a, b) {
+      return Number(b.year || 0) - Number(a.year || 0);
+    });
+  }
+
+  function openDividendInfoModal(code, name, item) {
+    closeDividendInfoModal();
+    item = item || { code: code, name: name };
+    var history = dividendHistoryRows(item);
+    var facts = [
+      ['종목명', item.name || name], ['종목코드', item.code || code],
+      ['시장', item.market], ['업종', cleanIndustryLabel(item.sector)],
+      ['현재가', fmtWon(item.price)],
+      ['주당 현금배당금', fmtWon(item.cashDividendPerShare)],
+      ['배당수익률', fmtPctExact(item.dividendYieldPct)],
+      ['배당성향', fmtPct(item.payoutRatioPct)],
+      ['ROE', fmtPct(item.roe)], ['PER', fmtMultiple(item.per)], ['PBR', fmtMultiple(item.pbr)],
+      ['배당 기준연도', item.reportYear ? String(item.reportYear) + '년 결산' : null]
+    ];
+    var overlay = document.createElement('div');
+    overlay.className = 'ss-dividend-modal-overlay';
+    overlay.innerHTML = '<div class="ss-dividend-modal" role="dialog" aria-modal="true" aria-label="'
+      + escapeAttr(item.name || name) + ' 배당 정보">'
+      + '<div class="ss-dividend-modal-head"><strong>' + escapeHtml(item.name || name) + ' 배당 정보</strong>'
+      + '<button type="button" class="ss-dividend-modal-close" aria-label="닫기">✕</button></div>'
+      + '<div class="ss-dividend-modal-body">'
+      + '<dl class="ss-dividend-facts">' + facts.map(function (fact) {
+        return '<div><dt>' + escapeHtml(fact[0]) + '</dt><dd>' + dividendModalValue(fact[1]) + '</dd></div>';
+      }).join('') + '</dl>'
+      + '<div class="ss-dividend-history"><strong>최근 배당 이력</strong>'
+      + (history.length ? '<ul>' + history.slice(0, 4).map(function (row) {
+        var year = row.year || row.reportYear || '기준연도';
+        var value = row.cashDividendPerShare != null ? row.cashDividendPerShare : row.dps;
+        return '<li><span>' + escapeHtml(String(year)) + '년</span><b>' + fmtWon(value) + '</b></li>';
+      }).join('') + '</ul>' : '<p>배당 이력이 없습니다.</p>')
+      + '</div></div></div>';
+    document.body.appendChild(overlay);
+    dividendModalOverlay = overlay;
+    overlay.addEventListener('click', function (event) {
+      if (event.target === overlay) closeDividendInfoModal();
+    });
+    overlay.querySelector('.ss-dividend-modal-close').addEventListener('click', closeDividendInfoModal);
+    document.addEventListener('keydown', onDividendModalKeydown);
   }
 
   function fmtMultiple(value) {

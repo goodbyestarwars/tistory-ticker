@@ -1363,6 +1363,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "fmtWon",
             "배당 데이터 ",
             "ss-strategy-table",
+            "cleanIndustryLabel",
+            "openDividendInfoModal",
+            "ss-dividend-modal",
         ):
             self.assertIn(token, source)
         self.assertIn("—", source)
@@ -1371,6 +1374,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("PBR 낮은 순", source)
         self.assertNotIn("1년 전 배당금", source)
         self.assertIn("ss-warning-row", style)
+        self.assertIn("width: 100%;", style)
+        self.assertIn("gap: 9px;", style)
+        self.assertIn("display: inline-flex;", style)
+        self.assertIn("ss-dividend-modal-overlay", style)
         self.assertIn("market: code === '105560' ? 'KOSPI' : 'KOSDAQ'", fixture)
         self.assertNotIn("ss-score", source)
         self.assertNotIn("별점", source)
