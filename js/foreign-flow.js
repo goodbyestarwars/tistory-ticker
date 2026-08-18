@@ -178,7 +178,7 @@
       + '<button type="button" id="ffSearchBtn" class="ff-search-btn">조회</button>'
       + '</div>'
       + '<div id="ffSigWrap">'
-      + '<div class="ff-explore-intro"><strong>국내 4주 스윙 분석</strong><span>대파동은 배경, 중파동은 방향, 소파동은 진입 시점을 확인합니다.</span></div>'
+      + '<div class="ff-explore-intro"><strong>국내 4주 스윙 분석</strong><span>장기 국면은 배경, 중기 국면은 방향, 단기 국면은 진입 시점을 확인합니다.</span></div>'
       + '<div class="ff-explore-tabs" role="tablist">'
       + '<button type="button" class="ff-explore-tab active" data-explore-view="flow" role="tab">차트 흐름별 탐색</button>'
       + '<button type="button" class="ff-explore-tab" data-explore-view="industry" role="tab">업종별 보기</button>'
@@ -230,6 +230,8 @@
     var chart = swing.chartRegime || {};
     var waves = swing.waves || {};
     var signal = row.signal || (waves.small && waves.small.event) || swing.recentEvent || chart.recentEvent || {};
+    var shortSignal = row.shortSignal || swing.shortSignal || waves.shortSignal || {};
+    if (shortSignal.key && shortSignal.key !== 'none') signal = shortSignal;
     var risk = row.risk || swing.risk || {};
     var code = row.code || fallback && fallback.code;
     var info = (global.WICS_MAP && global.WICS_MAP[code]) || {};
@@ -244,6 +246,7 @@
       bigWave: row.bigWave || waves.big && waves.big.label || '데이터 부족',
       midWave: row.midWave || waves.mid && waves.mid.label || '데이터 부족',
       smallWave: row.smallWave || waves.small && waves.small.label || '데이터 부족',
+      shortSignal: shortSignal,
       signal: signal.label || '이벤트 없음',
       currentLocation: row.currentLocation || chart.currentRegime && chart.currentRegime.label || '판단 보류',
       riskState: risk.state || '확인 안 됨',
@@ -286,7 +289,7 @@
       var scan = swingScanData();
       var scanned = scan.scanned || signalData.scanned || 0;
       var when = signalData.scannedAt || signalData.generatedAt;
-      metaBox.innerHTML = '<div class="ff-explore-meta-copy"><strong>차트 흐름·파동 상태로 후보를 좁혀보세요.</strong><span>'
+      metaBox.innerHTML = '<div class="ff-explore-meta-copy"><strong>차트 흐름·추세 국면으로 후보를 좁혀보세요.</strong><span>'
         + (when ? '스캔 기준 ' + escapeHtml(when) + ' · ' : '') + '분석 대상 ' + Number(scanned).toLocaleString('ko-KR') + '종목</span></div>'
         + '<small>라인은 흐름 형태 예시이며 실제 종목 차트가 아닙니다.</small>';
     }
@@ -303,7 +306,7 @@
         + '<span class="ff-flow-card-copy"><strong>' + escapeHtml(meta.label) + '</strong><b>' + count.toLocaleString('ko-KR') + '종목</b><small>' + escapeHtml(meta.description) + '</small></span>'
         + flowSvg(meta) + '</button>';
     }).join('');
-    var detail = activeFlowKey ? renderFlowList(activeFlowKey, null) : '<div class="ff-flow-empty">흐름을 선택하면 해당 상태의 종목과 대·중·소 파동 상태를 확인할 수 있습니다.</div>';
+    var detail = activeFlowKey ? renderFlowList(activeFlowKey, null) : '<div class="ff-flow-empty">흐름을 선택하면 해당 상태의 종목과 장기·중기·단기 국면을 확인할 수 있습니다.</div>';
     return '<section class="ff-flow-overview"><div class="ff-section-head"><div><h2>차트 흐름별 탐색</h2><p>차트 흐름을 먼저 확인하고 종목분석에서 세부 데이터를 살펴봅니다.</p></div></div><div class="ff-flow-grid">' + cards + '</div></section>' + detail;
   }
 
@@ -342,7 +345,7 @@
     var shown = rows.slice(0, flowVisibleCount);
     var head = '<div class="ff-flow-list-head"><div><h3>' + escapeHtml(meta.label) + ' · ' + rows.length.toLocaleString('ko-KR') + '종목</h3><p>' + escapeHtml(meta.description) + '</p></div><label>정렬<select class="ff-explore-sort">' + FLOW_SORT_META.map(function (item) { return '<option value="' + item.key + '"' + (flowSortKey === item.key ? ' selected' : '') + '>' + item.label + '</option>'; }).join('') + '</select></label></div>';
     if (!rows.length) return head + '<div class="ff-flow-empty">현재 엔진에서 이 흐름으로 분류된 종목이 없습니다.</div>';
-    var tableHead = '<div class="ff-flow-table-head"><span>종목</span><span>파동 상태 · 감지 신호</span><span>현재 위치</span><span>거래대금 · 거래량</span><span>위험 확인</span></div>';
+    var tableHead = '<div class="ff-flow-table-head"><span>종목</span><span>추세 국면 · 감지 신호</span><span>현재 위치</span><span>거래대금 · 거래량</span><span>위험 확인</span></div>';
     var body = shown.map(flowRowHtml).join('');
     var more = rows.length > shown.length ? '<button type="button" class="ff-flow-more" data-flow-more="1">더 보기 <span>' + shown.length + ' / ' + rows.length + '</span></button>' : '';
     return '<section class="ff-flow-results">' + head + tableHead + '<div class="ff-flow-rows">' + body + '</div>' + more + '</section>';
@@ -354,7 +357,7 @@
     var shown = sorted.slice(0, flowVisibleCount);
     var head = '<div class="ff-flow-list-head"><div><h3>선택 업종 · ' + rows.length.toLocaleString('ko-KR') + '종목</h3><p>차트 흐름별 결과를 업종 안에서 교차 확인합니다.</p></div><label>정렬<select class="ff-explore-sort">' + FLOW_SORT_META.map(function (item) { return '<option value="' + item.key + '"' + (flowSortKey === item.key ? ' selected' : '') + '>' + item.label + '</option>'; }).join('') + '</select></label></div>';
     if (!rows.length) return head + '<div class="ff-flow-empty">선택한 업종에 표시할 데이터가 없습니다.</div>';
-    return '<section class="ff-flow-results"><div class="ff-flow-industry-note">' + escapeHtml(flowKey ? flowMeta(flowKey).label : '차트 흐름별 결과') + '</div><div class="ff-flow-table-head"><span>종목</span><span>파동 상태 · 감지 신호</span><span>현재 위치</span><span>거래대금 · 거래량</span><span>위험 확인</span></div><div class="ff-flow-rows">' + shown.map(flowRowHtml).join('') + '</div>' + (sorted.length > shown.length ? '<button type="button" class="ff-flow-more" data-flow-more="1">더 보기 <span>' + shown.length + ' / ' + sorted.length + '</span></button>' : '') + '</section>';
+    return '<section class="ff-flow-results"><div class="ff-flow-industry-note">' + escapeHtml(flowKey ? flowMeta(flowKey).label : '차트 흐름별 결과') + '</div><div class="ff-flow-table-head"><span>종목</span><span>추세 국면 · 감지 신호</span><span>현재 위치</span><span>거래대금 · 거래량</span><span>위험 확인</span></div><div class="ff-flow-rows">' + shown.map(flowRowHtml).join('') + '</div>' + (sorted.length > shown.length ? '<button type="button" class="ff-flow-more" data-flow-more="1">더 보기 <span>' + shown.length + ' / ' + sorted.length + '</span></button>' : '') + '</section>';
   }
 
   function formatCompact(value) {
@@ -2608,10 +2611,10 @@
     var big = wave('big', bigKey, 224, '60·120·224일선과 장기 고점·저점');
     var mid = wave('mid', midKey, 60, '20·60일선과 4~12주 흐름');
     var small = wave('small', smallKey, 20, '5·20일선과 최근 1~4주 흐름');
-    var eventLabels = { none: '이벤트 없음', upturn_detected: '상방 변곡 감지', upturn_confirmed: '상방 변곡 확정', uptrend_resume: '상승 추세 재개', downturn_detected: '하방 변곡 감지', downturn_confirmed: '하방 변곡 확정', downtrend_resume: '하락 추세 재개', breakout: '상단 돌파', breakdown: '하단 이탈', fake_breakout: '페이크 돌파', fake_breakdown: '페이크 이탈' };
+    var eventLabels = { none: '이벤트 없음', upturn_detected: '상방 변곡 감지', upturn_confirmed: '상방 변곡 확정', uptrend_resume: '상승 추세 재개', downturn_detected: '하방 변곡 감지', downturn_confirmed: '하방 변곡 확정', downtrend_resume: '하락 추세 재개', breakout: '상단 돌파', breakdown: '하단 이탈', fake_breakout: '페이크 돌파', fake_breakdown: '페이크 이탈', ma5_recovery: '5일선 회복' };
     function layerEvent(layer, item) {
       item = item || { key: 'none', label: '이벤트 없음', stage: 'none' };
-      return { layer: layer, key: item.key || 'none', label: '[' + (layer === 'big' ? '대' : layer === 'mid' ? '중' : '소') + '] ' + (item.label || eventLabels[item.key] || '이벤트 없음'), stage: item.stage || 'none' };
+      return { layer: layer, key: item.key || 'none', label: '[' + (layer === 'big' ? '장기' : layer === 'mid' ? '중기' : '단기') + '] ' + (item.label || eventLabels[item.key] || '이벤트 없음'), stage: item.stage || 'none' };
     }
     function priorKey(values, fastPeriod, slowPeriod, longPeriod) {
       if (values.length < Math.max(slowPeriod, longPeriod || 0)) return 'insufficient';
@@ -2619,6 +2622,11 @@
     }
     var midEvent = { key: 'none', label: '이벤트 없음', stage: 'none' };
     if (midKey !== 'insufficient' && closes.length >= 65 && priorKey(closes.slice(0, -5), 20, 60) !== midKey) midEvent = { key: midKey === 'uptrend' ? 'uptrend_resume' : 'downturn_confirmed', label: eventLabels[midKey === 'uptrend' ? 'uptrend_resume' : 'downturn_confirmed'], stage: 'confirmed' };
+    var shortSignal = { key: 'none', label: '이벤트 없음', stage: 'none' };
+    if (closes.length >= 6) {
+      var previousMa5 = ma(5, closes.length - 2), currentMa5 = ma(5, closes.length - 1);
+      if (previousMa5 != null && currentMa5 != null && closes[closes.length - 2] < previousMa5 && closes[closes.length - 1] >= currentMa5) shortSignal = { key: 'ma5_recovery', label: eventLabels.ma5_recovery, stage: 'confirmed' };
+    }
     var smallEvent = chart.recentEvent || { key: 'none', label: '이벤트 없음', stage: 'none' };
     if (smallEvent.key === 'none' && smallKey !== 'insufficient' && closes.length >= 25 && priorKey(closes.slice(0, -3), 5, 20) !== smallKey) smallEvent = { key: smallKey === 'uptrend' ? 'uptrend_resume' : 'downturn_confirmed', label: eventLabels[smallKey === 'uptrend' ? 'uptrend_resume' : 'downturn_confirmed'], stage: 'confirmed' };
     var events = [];
@@ -2627,19 +2635,19 @@
     var diagnosis, actionKey;
     var smallUpturn = smallEvent.key === 'upturn_detected' || smallEvent.key === 'upturn_confirmed';
     if (bigKey === 'insufficient') { diagnosis = '장기 데이터 부족'; actionKey = 'insufficient'; }
-    else if (bigKey === 'uptrend' && midKey === 'uptrend' && smallKey === 'uptrend' && smallUpturn) { diagnosis = '상승 추세 내 소파동 상방 변곡 · 확인 대기'; actionKey = 'observe'; }
-    else if (bigKey === 'uptrend' && midKey === 'uptrend' && smallKey === 'uptrend') { diagnosis = '대·중·소 파동 정렬'; actionKey = 'pullback_candidate'; }
+    else if (bigKey === 'uptrend' && midKey === 'uptrend' && smallKey === 'uptrend' && smallUpturn) { diagnosis = '상승 추세 내 단기 상방 변곡 · 확인 대기'; actionKey = 'observe'; }
+    else if (bigKey === 'uptrend' && midKey === 'uptrend' && smallKey === 'uptrend') { diagnosis = '장기·중기·단기 추세 정렬'; actionKey = 'pullback_candidate'; }
     else if (bigKey === 'uptrend' && midKey === 'uptrend' && smallKey === 'downtrend') { diagnosis = '상승 추세 내 정상 조정'; actionKey = 'observe'; }
-    else if (bigKey === 'uptrend' && midKey === 'downtrend' && smallKey === 'uptrend') { diagnosis = '중기 조정 중 반등 · 중파동 확인 대기'; actionKey = 'wait_mid_confirmation'; }
+    else if (bigKey === 'uptrend' && midKey === 'downtrend' && smallKey === 'uptrend') { diagnosis = '중기 조정 중 반등 · 중기 확인 대기'; actionKey = 'wait_mid_confirmation'; }
     else if (bigKey === 'downtrend' && midKey === 'downtrend' && smallKey === 'uptrend') { diagnosis = '하락 추세 안의 기술적 반등'; actionKey = 'prohibited_rebound'; }
     else if (bigKey === 'downtrend' && midKey === 'uptrend' && smallKey === 'uptrend') { diagnosis = '역추세 반등 · 고위험 관찰'; actionKey = 'high_risk_observe'; }
     else if (bigKey === 'neutral' && midKey === 'neutral' && smallKey === 'uptrend') { diagnosis = '돌파 확인 대기'; actionKey = 'wait_breakout'; }
     else if (bigKey === 'neutral' && midKey === 'neutral' && smallKey === 'downtrend') { diagnosis = '하단 이탈 · 신규 진입 금지'; actionKey = 'prohibited_breakdown'; }
-    else if (midKey === 'downtrend') { diagnosis = '중파동 하락 · 신규 진입 금지'; actionKey = 'prohibited'; }
-    else if (midKey === 'neutral') { diagnosis = '중파동 방향 확인 대기'; actionKey = 'observe'; }
-    else { diagnosis = '파동 방향 확인 대기'; actionKey = 'observe'; }
+    else if (midKey === 'downtrend') { diagnosis = '중기 하락 · 신규 진입 금지'; actionKey = 'prohibited'; }
+    else if (midKey === 'neutral') { diagnosis = '중기 방향 확인 대기'; actionKey = 'observe'; }
+    else { diagnosis = '추세 방향 확인 대기'; actionKey = 'observe'; }
     small.event = layerEvent('small', smallEvent); mid.event = layerEvent('mid', midEvent);
-    return { big: big, mid: mid, small: small, diagnosis: diagnosis, actionKey: actionKey, recentEvents: events.slice(-6) };
+    return { big: big, mid: mid, small: small, shortSignal: shortSignal, diagnosis: diagnosis, actionKey: actionKey, recentEvents: events.slice(-6) };
   }
 
   function buildSwingAssessment(data, entry, chartData, fundamentalScore) {
@@ -2662,7 +2670,7 @@
     if (eventKey === 'fake_breakout' || eventKey === 'fake_breakdown') { holder = '보유 / 신호 취소 후 관찰'; entryOpinion = '관찰'; base = 35; }
     else if (waves.actionKey === 'insufficient') { holder = '보유 / 장기 데이터 부족 관찰'; entryOpinion = '장기 데이터 부족 · 관찰'; base = 25; }
     else if (waves.actionKey === 'pullback_candidate') { holder = '보유 / 추가매수 검토'; entryOpinion = blocks ? '신규 진입 금지' : '눌림목 매수 후보'; base = 100; }
-    else if (waves.actionKey === 'wait_mid_confirmation') { holder = '보유 / 중기 조정 확인'; entryOpinion = '중파동 확인 대기'; base = 58; }
+    else if (waves.actionKey === 'wait_mid_confirmation') { holder = '보유 / 중기 조정 확인'; entryOpinion = '중기 확인 대기'; base = 58; }
     else if (waves.actionKey === 'prohibited_rebound') { holder = '보유 / 반등 구간 위험 관리'; entryOpinion = '신규 진입 금지'; base = 20; }
     else if (waves.actionKey === 'high_risk_observe') { holder = '보유 / 역추세 반등 위험 관리'; entryOpinion = '고위험 관찰'; base = 30; }
     else if (waves.actionKey === 'wait_breakout') { holder = '보유 / 돌파 확인'; entryOpinion = '돌파 확인 대기'; base = 45; }
@@ -2672,7 +2680,7 @@
     else if (auxKeys.indexOf('exhaustion') !== -1) { holder = '보유 주의 / 바닥 확인'; entryOpinion = '바닥 확인 관찰'; base = 12; }
     else { holder = '비중축소 / 매도 검토'; entryOpinion = '후보 제외'; base = 5; }
     if (blocks && waves.actionKey === 'pullback_candidate' && eventKey !== 'fake_breakout' && eventKey !== 'fake_breakdown') entryOpinion = '신규 진입 금지';
-    return { modelVersion: 'swing-4w-v3', chartRegime: chart, currentRegime: chart.currentRegime, recentEvent: chart.recentEvent, auxiliaryStates: chart.auxiliaryStates || [], waves: waves, diagnosis: waves.diagnosis, momentum: { state: momentum, score: momentumScore }, fundamental: { state: fundamental, score: fundamentalScore }, risk: { state: risk, flags: flags, blocksEntry: blocks }, holderAction: holder, entryOpinion: entryOpinion, internalPriorityScore: Math.max(0, Math.min(100, base + (momentumScore - 50) * .25)), legacy: {} };
+    return { modelVersion: 'swing-4w-v4', chartRegime: chart, currentRegime: chart.currentRegime, recentEvent: chart.recentEvent, shortSignal: waves.shortSignal, auxiliaryStates: chart.auxiliaryStates || [], waves: waves, diagnosis: waves.diagnosis, momentum: { state: momentum, score: momentumScore }, fundamental: { state: fundamental, score: fundamentalScore }, risk: { state: risk, flags: flags, blocksEntry: blocks }, holderAction: holder, entryOpinion: entryOpinion, internalPriorityScore: Math.max(0, Math.min(100, base + (momentumScore - 50) * .25)), legacy: {} };
   }
 
   function buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData) {
@@ -2686,13 +2694,14 @@
     var bigWave = waves.big || { label: '장기 데이터 부족' };
     var midWave = waves.mid || { label: '데이터 부족' };
     var smallWave = waves.small || { label: '데이터 부족' };
+    var shortSignal = assessment.shortSignal || waves.shortSignal || { label: '없음' };
     return '<div class="ff-summary ff-swing-summary">'
       + '<div class="ff-swing-regime"><span class="ff-panel-title">4주 스윙 판정</span><strong>' + escapeHtml(currentRegime.label) + '</strong><small>최근 이벤트 · ' + escapeHtml(recentEvent.label) + '</small></div>'
-      + '<div class="ff-swing-flow" aria-label="대·중·소 파동 흐름">'
+      + '<div class="ff-swing-flow" aria-label="장기·중기·단기 추세 국면">'
       + '<div class="ff-swing-flow-track">'
-      + '<div class="ff-swing-step"><span class="ff-swing-step-label">대파동 <em>맥락</em></span><strong>' + escapeHtml(bigWave.label) + '</strong></div>'
-      + '<div class="ff-swing-step"><span class="ff-swing-step-label">중파동 <em>4주 방향</em></span><strong>' + escapeHtml(midWave.label) + '</strong></div>'
-      + '<div class="ff-swing-step"><span class="ff-swing-step-label">소파동 <em>진입 타이밍</em></span><strong>' + escapeHtml(smallWave.label) + '</strong></div>'
+      + '<div class="ff-swing-step"><span class="ff-swing-step-label">장기 국면 <em>맥락</em></span><strong>' + escapeHtml(bigWave.label) + '</strong></div>'
+      + '<div class="ff-swing-step"><span class="ff-swing-step-label">중기 국면 <em>방향</em></span><strong>' + escapeHtml(midWave.label) + '</strong></div>'
+      + '<div class="ff-swing-step"><span class="ff-swing-step-label">단기 국면 <em>진입 시점</em></span><strong>' + escapeHtml(smallWave.label) + '</strong></div>'
       + '</div>'
       + '</div>'
       + '<div class="ff-swing-diagnosis"><span>진단</span><strong>' + escapeHtml(assessment.diagnosis || waves.diagnosis || '-') + '</strong></div>'
@@ -2701,6 +2710,7 @@
       + '<div class="ff-swing-action"><span>신규 진입</span><strong>' + escapeHtml(assessment.entryOpinion) + '</strong></div>'
       + '</div>'
       + '<div class="ff-swing-facts">'
+      + '<span class="ff-swing-fact"><small>5일선 신호</small><b>' + escapeHtml(shortSignal.label || '없음') + '</b></span>'
       + '<span class="ff-swing-fact"><small>보조 상태</small><b>' + escapeHtml(auxiliary) + '</b></span>'
       + '<span class="ff-swing-fact"><small>모멘텀</small><b>' + escapeHtml(assessment.momentum.state) + '</b></span>'
       + '<span class="ff-swing-fact"><small>펀더멘털</small><b>' + escapeHtml(assessment.fundamental.state) + '</b></span>'

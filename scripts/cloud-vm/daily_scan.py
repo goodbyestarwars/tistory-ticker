@@ -86,6 +86,7 @@ def build_swing_flow_row(stock, daily, assessment):
         'bigWave': (waves.get('big') or {}).get('label'),
         'midWave': (waves.get('mid') or {}).get('label'),
         'smallWave': small.get('label'),
+        'shortSignal': waves.get('shortSignal') or {'key': 'none', 'label': '이벤트 없음', 'stage': 'none'},
         'signal': small.get('event') or event,
         'currentLocation': (chart.get('currentRegime') or {}).get('label'),
         'risk': {'state': risk.get('state'), 'flags': risk.get('flags') or []},

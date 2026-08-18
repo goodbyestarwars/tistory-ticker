@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Optional
 
 
-MODEL_VERSION = 'swing-4w-v3'
+MODEL_VERSION = 'swing-4w-v4'
 REGIME_LABELS = {
     'uptrend': '상승 지속',
     'upturn': '상방 변곡',
@@ -43,6 +43,7 @@ EVENT_LABELS = {
     'fake_breakout': '페이크 돌파',
     'fake_breakdown': '페이크 이탈',
     'exhaustion': '하락 소진 감지',
+    'ma5_recovery': '5일선 회복',
 }
 WAVE_LABELS = {
     'uptrend': '상승 추세',
@@ -117,6 +118,22 @@ def _relative_strength(closes: List[float], benchmark: Optional[Iterable[Any]]) 
 
 def _event(key: str, stage: str = 'none') -> Dict[str, str]:
     return {'key': key, 'label': EVENT_LABELS[key], 'stage': stage}
+
+
+def _ma_recovery_event(closes: List[float], period: int = 5) -> Dict[str, str]:
+    """Return a confirmed signal when the latest close recovers its MA.
+
+    This is deliberately a daily-close signal.  It does not claim that the
+    whole trend has turned; it only records the short-term recovery that can
+    be checked consistently in the batch scan and the detail page.
+    """
+    if len(closes) < period + 1:
+        return _event('none')
+    previous_ma = sum(closes[-period - 1:-1]) / period
+    current_ma = sum(closes[-period:]) / period
+    if closes[-2] < previous_ma and closes[-1] >= current_ma:
+        return _event('ma5_recovery' if period == 5 else 'none', 'confirmed')
+    return _event('none')
 
 
 def _range_break_state(closes: List[float]) -> Optional[str]:
@@ -380,6 +397,7 @@ def classify_wave_structure(daily: List[Dict[str, Any]],
             mid_event = _event('uptrend_resume', 'confirmed')
         elif mid_key == 'downtrend' and prior_mid != 'downtrend':
             mid_event = _event('downturn_confirmed', 'confirmed')
+    short_signal = _ma_recovery_event(closes, 5)
     small_event = chart.get('recentEvent') or _event('none')
     if small_event.get('key') == 'none' and small_key != 'insufficient' and len(closes) >= 25:
         prior_small = _classify_wave_key(closes[:-3], 5, 20)
@@ -399,13 +417,13 @@ def classify_wave_structure(daily: List[Dict[str, Any]],
         diagnosis = '장기 데이터 부족'
         action_key = 'insufficient'
     elif big_key == 'uptrend' and mid_key == 'uptrend' and small_key == 'uptrend' and small_upturn:
-        diagnosis, action_key = '상승 추세 내 소파동 상방 변곡 · 확인 대기', 'observe'
+        diagnosis, action_key = '상승 추세 내 단기 상방 변곡 · 확인 대기', 'observe'
     elif big_key == 'uptrend' and mid_key == 'uptrend' and small_key == 'uptrend':
-        diagnosis, action_key = '대·중·소 파동 정렬', 'pullback_candidate'
+        diagnosis, action_key = '장기·중기·단기 추세 정렬', 'pullback_candidate'
     elif big_key == 'uptrend' and mid_key == 'uptrend' and small_key == 'downtrend':
         diagnosis, action_key = '상승 추세 내 정상 조정', 'observe'
     elif big_key == 'uptrend' and mid_key == 'downtrend' and small_key == 'uptrend':
-        diagnosis, action_key = '중기 조정 중 반등 · 중파동 확인 대기', 'wait_mid_confirmation'
+        diagnosis, action_key = '중기 조정 중 반등 · 중기 확인 대기', 'wait_mid_confirmation'
     elif big_key == 'downtrend' and mid_key == 'downtrend' and small_key == 'uptrend':
         diagnosis, action_key = '하락 추세 안의 기술적 반등', 'prohibited_rebound'
     elif big_key == 'downtrend' and mid_key == 'uptrend' and small_key == 'uptrend':
@@ -415,16 +433,17 @@ def classify_wave_structure(daily: List[Dict[str, Any]],
     elif big_key == 'neutral' and mid_key == 'neutral' and small_key == 'downtrend':
         diagnosis, action_key = '하단 이탈 · 신규 진입 금지', 'prohibited_breakdown'
     elif mid_key == 'downtrend':
-        diagnosis, action_key = '중파동 하락 · 신규 진입 금지', 'prohibited'
+        diagnosis, action_key = '중기 하락 · 신규 진입 금지', 'prohibited'
     elif mid_key == 'neutral':
-        diagnosis, action_key = '중파동 방향 확인 대기', 'observe'
+        diagnosis, action_key = '중기 방향 확인 대기', 'observe'
     else:
-        diagnosis, action_key = '파동 방향 확인 대기', 'observe'
+        diagnosis, action_key = '추세 방향 확인 대기', 'observe'
 
     small['event'] = _layer_event('small', small_event)
     mid['event'] = _layer_event('mid', mid_event)
     return {
         'big': big, 'mid': mid, 'small': small,
+        'shortSignal': short_signal,
         'diagnosis': diagnosis, 'actionKey': action_key,
         'recentEvents': recent_events[-6:],
     }
@@ -487,7 +506,7 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
         priority_base = 100
     elif waves['actionKey'] == 'wait_mid_confirmation':
         holder_action = '보유 / 중기 조정 확인'
-        entry_opinion = '중파동 확인 대기'
+        entry_opinion = '중기 확인 대기'
         priority_base = 58
     elif waves['actionKey'] == 'prohibited_rebound':
         holder_action = '보유 / 반등 구간 위험 관리'
@@ -534,6 +553,7 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
         'recentEvent': chart.get('recentEvent'),
         'auxiliaryStates': chart.get('auxiliaryStates') or [],
         'waves': waves,
+        'shortSignal': waves.get('shortSignal') or _event('none'),
         'diagnosis': waves['diagnosis'],
         'momentum': {'state': momentum, 'score': momentum_score},
         'fundamental': {'state': fundamental, 'score': fundamental_score},

@@ -107,7 +107,7 @@ class SwingModelTests(unittest.TestCase):
                     'big': {'key': 'uptrend', 'label': '상승 추세', 'available': True},
                     'mid': {'key': 'uptrend', 'label': '상승 추세', 'available': True},
                     'small': {'key': 'uptrend', 'label': '상승 추세', 'available': True},
-                    'diagnosis': '대·중·소 파동 정렬',
+                    'diagnosis': '장기·중기·단기 추세 정렬',
                 },
                 'momentum': {'state': '강화'}, 'fundamental': {'state': '지지'},
                 'risk': {'state': '없음', 'blocksEntry': False},
@@ -147,7 +147,7 @@ class SwingModelTests(unittest.TestCase):
         self.assertEqual(row[9], '보유 / 추가매수 검토')
         self.assertEqual(row[11], 77)
         self.assertIsNotNone(row[12])
-        self.assertEqual(row[4:8], ('uptrend', 'uptrend', 'uptrend', '대·중·소 파동 정렬'))
+        self.assertEqual(row[4:8], ('uptrend', 'uptrend', 'uptrend', '장기·중기·단기 추세 정렬'))
         self.assertIsNotNone(row[8])
         conn.close()
 
@@ -168,7 +168,7 @@ class SwingModelTests(unittest.TestCase):
         self.assertEqual(assessment['waves']['big']['key'], 'uptrend')
         self.assertEqual(assessment['waves']['mid']['key'], 'uptrend')
         self.assertEqual(assessment['waves']['small']['key'], 'uptrend')
-        self.assertEqual(assessment['diagnosis'], '대·중·소 파동 정렬')
+        self.assertEqual(assessment['diagnosis'], '장기·중기·단기 추세 정렬')
         self.assertEqual(assessment['entryOpinion'], '눌림목 매수 후보')
 
     def test_big_up_mid_down_small_upturn_waits_for_mid_confirmation(self):
@@ -179,7 +179,7 @@ class SwingModelTests(unittest.TestCase):
         self.assertEqual(assessment['waves']['big']['key'], 'uptrend')
         self.assertEqual(assessment['waves']['mid']['key'], 'downtrend')
         self.assertEqual(assessment['waves']['small']['key'], 'uptrend')
-        self.assertEqual(assessment['entryOpinion'], '중파동 확인 대기')
+        self.assertEqual(assessment['entryOpinion'], '중기 확인 대기')
 
     def test_big_wave_is_unavailable_before_224_trading_days(self):
         assessment = swing_model.build_swing_assessment(bars([100 + index for index in range(223)]))
@@ -196,9 +196,16 @@ class SwingModelTests(unittest.TestCase):
             'close': 220, 'createdAt': '2026-08-14T08:00:00Z', **assessment,
         })
         row = conn.execute('SELECT big_wave, mid_wave, small_wave, wave_diagnosis, wave_events_json FROM swing_recommendation_snapshots').fetchone()
-        self.assertEqual(row[:4], ('uptrend', 'uptrend', 'uptrend', '대·중·소 파동 정렬'))
+        self.assertEqual(row[:4], ('uptrend', 'uptrend', 'uptrend', '장기·중기·단기 추세 정렬'))
         self.assertIsNotNone(row[4])
         conn.close()
+
+    def test_short_signal_reports_five_day_average_recovery(self):
+        values = [100] * 23 + [90, 102]
+        assessment = swing_model.build_swing_assessment(bars(values))
+        self.assertEqual(assessment['shortSignal']['key'], 'ma5_recovery')
+        self.assertEqual(assessment['shortSignal']['label'], '5일선 회복')
+        self.assertEqual(assessment['waves']['shortSignal']['key'], 'ma5_recovery')
 
 
 if __name__ == '__main__':
