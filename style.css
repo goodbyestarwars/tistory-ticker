@@ -5794,3 +5794,9 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
     max-height: 350px !important;
   }
 }
+
+/* 2026-08-18 home disclosure cleanup: the weekly disclosure rail should flow
+   into the index strip without a duplicate bottom rule. */
+body#tt-body-index .home-editorial-page .home-top-disclosures {
+  border-bottom: 0 !important;
+}

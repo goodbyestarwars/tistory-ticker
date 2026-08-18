@@ -721,6 +721,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("bottom: 9px;", style)
         self.assertIn("border: 0 !important;", style)
 
+    def test_home_disclosure_rail_has_no_duplicate_bottom_rule(self):
+        style = self.read("style.css")
+        self.assertIn(
+            "/* 2026-08-18 home disclosure cleanup: the weekly disclosure rail should flow\n"
+            "   into the index strip without a duplicate bottom rule. */\n"
+            "body#tt-body-index .home-editorial-page .home-top-disclosures {\n"
+            "  border-bottom: 0 !important;\n"
+            "}",
+            style,
+        )
+
     def test_watchlist_search_supports_keyboard_selection(self):
         source = self.read("js/watchlist.js")
         style = self.read("css/watchlist.css")
