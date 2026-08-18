@@ -1017,6 +1017,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_order_book_renders_quote_summary_and_volume_comparison(self):
         source = self.read("js/order-book.js")
         style = self.read("css/order-book.css")
+        stock_search_style = self.read("css/stock-search.css")
         self.assertIn("fetchSummary(code)", source)
         self.assertIn("?action=flowChart&code=", source)
         self.assertIn("summaryItemHtml('시가'", source)
@@ -1031,6 +1032,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("state.summary.low", source)
         self.assertIn("ob-summary-high", style)
         self.assertIn("ob-summary-low", style)
+        self.assertIn("grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);", stock_search_style)
+        self.assertIn("grid-template-columns: 56px minmax(80px, 1fr) 72px;", style)
+        self.assertIn("white-space: nowrap;", style)
 
     def test_stock_search_renders_requested_price_studies_without_resizing_chart(self):
         source = self.read("js/stock-search.js")

@@ -257,7 +257,9 @@
 
 #stock-search .ss-panels {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  /* 호가창은 가격·잔량·체결가를 읽어야 하므로 240px로 축소하지 않는다.
+     좁은 화면에서는 아래 860px 미디어 쿼리가 1열로 전환한다. */
+  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
   min-width: 0;
