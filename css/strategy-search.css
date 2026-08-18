@@ -714,3 +714,45 @@ html.dark .ss-etf-facts dd { color: #F5EFE0; }
 #strategy-search .ss-watch-toggle:hover { background: #f1f3f5 !important; color: #111827; }
 #strategy-search .ss-watch-toggle:focus-visible { outline: 2px solid #111827; outline-offset: 2px; }
 #strategy-search .ss-comparison-table td.ss-col-watch { padding-left: 0; padding-right: 8px; }
+
+/* 2026-08: 전략검색의 전략·상품 선택도 첫 화면의 캡슐형 탭과 같은 형태로 통일한다. */
+#strategy-search .ss-tabs,
+#strategy-search .ss-product-tabs {
+  gap: 8px !important;
+  border-bottom: 0 !important;
+}
+#strategy-search .ss-tab,
+#strategy-search .ss-product-tab,
+html:not(.font-gothic) body #strategy-search .ss-tab,
+html:not(.font-gothic) body #strategy-search .ss-product-tab {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 8px 16px !important;
+  border: 1px solid #dbe3ed !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+#strategy-search .ss-tab.active,
+#strategy-search .ss-product-tab.active,
+html:not(.font-gothic) body #strategy-search .ss-tab.active,
+html:not(.font-gothic) body #strategy-search .ss-product-tab.active {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #ffffff !important;
+}
+html.dark #strategy-search .ss-tab,
+html.dark #strategy-search .ss-product-tab {
+  border-color: rgba(245,239,224,.24) !important;
+  background: #1A1A1A !important;
+  color: rgba(245,239,224,.78) !important;
+}
+html.dark #strategy-search .ss-tab.active,
+html.dark #strategy-search .ss-product-tab.active {
+  border-color: #F5EFE0 !important;
+  background: #F5EFE0 !important;
+  color: #1A1A1A !important;
+}

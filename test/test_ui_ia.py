@@ -1370,6 +1370,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("ss-score", source)
         self.assertNotIn("별점", source)
 
+    def test_strategy_search_tabs_use_shared_pill_shape(self):
+        style = self.read("css/strategy-search.css")
+        self.assertIn("#strategy-search .ss-tabs", style)
+        self.assertIn("#strategy-search .ss-product-tabs", style)
+        self.assertIn("border-radius: 999px !important;", style)
+        self.assertIn("#strategy-search .ss-tab.active", style)
+        self.assertIn("#strategy-search .ss-product-tab.active", style)
+
     def test_home_widgets_render_cached_data_without_waiting_for_slowest_endpoint(self):
         home = self.read("js/skin-main.js")
         widgets = self.read("js/home-widgets.js")
