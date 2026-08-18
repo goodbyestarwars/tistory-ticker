@@ -483,6 +483,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "상승 종목 비율",
             "market-board?market=us&limit=20",
             "function summarizeUsMarket(data, indexItems)",
+            "상대적으로 덜 하락한 상위 업종을 주도 업종으로 표시",
             "renderUsMarketSummary",
             "element.title = fullText",
             "element.setAttribute('aria-label', fullText)",

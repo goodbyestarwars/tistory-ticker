@@ -572,6 +572,16 @@
       var industries = Object.keys(groups).map(function (industry) {
         return { industry: industry, average: groups[industry].total / groups[industry].count };
       }).sort(function (a, b) { return b.average - a.average; });
+      var eligibleIndustries = industries.filter(function (item) {
+        return item.industry && !/^(미분류|unknown|n\/a|na|-|기타)$/i.test(item.industry);
+      });
+      // 지수 하락일에는 모든 업종의 평균이 음수가 될 수 있다. 양수 업종만
+      // 주도 업종으로 고르면 이 경우 빈 칸이 되므로, 상승 업종이 없을 때는
+      // 상대적으로 덜 하락한 상위 업종을 주도 업종으로 표시한다.
+      var leaders = eligibleIndustries.filter(function (item) { return item.average > 0; }).slice(0, 3);
+      if (!leaders.length) leaders = eligibleIndustries.slice(0, 3);
+      var cautions = eligibleIndustries.filter(function (item) { return item.average < 0; }).slice(-3).reverse();
+      if (!cautions.length) cautions = eligibleIndustries.slice(-3).reverse();
       var indexRates = (indexItems || [])
         .filter(function (item) { return item && (item.symbol === 'NASDAQ_INDEX' || item.symbol === 'SP500_INDEX'); })
         .map(function (item) { return Number(item.change_rate); })
@@ -585,8 +595,8 @@
           avgChange: { avgChangeRate: averageRate }
         } }, indexRates) : { label: usSession.label, tone: 'home-neutral' },
         sessionState: usSession,
-        leaders: industries.filter(function (item) { return item.average > 0 && item.industry && !/^(미분류|unknown|n\/a|na|-|기타)$/i.test(item.industry); }).slice(0, 3),
-        cautions: industries.filter(function (item) { return item.average < 0 && item.industry && !/^(미분류|unknown|n\/a|na|-|기타)$/i.test(item.industry); }).slice(-3).reverse(),
+        leaders: leaders,
+        cautions: cautions,
         updatedAt: payload && payload.updatedAt
       };
     }
