@@ -480,8 +480,11 @@
 #stock-search .ss-news-timeline { border-top: 0; }
 #stock-search .ss-news-item {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 9px;
+  /* app-news-event의 날짜·타임라인·본문 3열 구조를 유지한다.
+     2열로 덮어쓰면 날짜 열이 18px로 줄고 본문이 암시적 열로 밀려
+     뉴스 제목과 배지가 한 글자씩 세로로 표시된다. */
+  grid-template-columns: 52px 13px minmax(0, 1fr);
+  gap: 10px;
   padding: 12px 0;
   border-bottom: 1px solid #eef0f2;
   text-decoration: none;
@@ -512,6 +515,23 @@
 #stock-search .ss-news-body b { overflow: hidden; color: #222; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 #stock-search .ss-news-body small { overflow: hidden; color: #9aa1aa; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 #stock-search .ss-news-body small em { margin-right: 6px; padding: 2px 5px; border-radius: 4px; background: #f2f4f6; color: #69717c; font-style: normal; }
+
+/* 관련 뉴스는 공유 타임라인과 같은 3열을 사용한다. 특히 모바일에서
+   공유 CSS의 낮은 선택도 규칙에 다시 덮이지 않도록 같은 컴포넌트 범위로
+   축소 폭을 명시한다. */
+@media (max-width: 720px) {
+  #stock-search .ss-news-timeline .ss-news-item {
+    grid-template-columns: 45px 11px minmax(0, 1fr);
+    gap: 8px;
+  }
+  #stock-search .ss-news-timeline .app-news-body {
+    min-width: 0;
+  }
+  #stock-search .ss-news-timeline .app-news-body > strong {
+    overflow-wrap: normal;
+    word-break: keep-all;
+  }
+}
 
 /* ---- 반응형: 좁은 화면에서는 호가/차트를 위아래로 ---- */
 @media (max-width: 860px) {

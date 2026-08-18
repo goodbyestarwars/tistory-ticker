@@ -1000,6 +1000,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("lwcRsiZonesCleanup = installRsiZoneCanvas", source)
         self.assertIn(".ss-rsi-zones", style)
 
+    def test_stock_search_related_news_keeps_timeline_body_column(self):
+        source = self.read("js/stock-search.js")
+        style = self.read("css/stock-search.css")
+        self.assertIn('class="app-news-event ss-news-item"', source)
+        self.assertIn("grid-template-columns: 52px 13px minmax(0, 1fr);", style)
+        self.assertIn("#stock-search .ss-news-timeline .ss-news-item", style)
+        self.assertIn("grid-template-columns: 45px 11px minmax(0, 1fr);", style)
+        self.assertIn("#stock-search .ss-news-timeline .app-news-body > strong", style)
+        self.assertIn("overflow-wrap: normal;", style)
+
     def test_order_book_renders_quote_summary_and_volume_comparison(self):
         source = self.read("js/order-book.js")
         style = self.read("css/order-book.css")
