@@ -335,7 +335,8 @@
     }
     handle.setAttribute('data-resize-bound', '1');
 
-    var MIN_LEFT = 360;
+    // 240px에서는 이전처럼 체결가가 줄바꿈될 수 있어, 읽을 수 있는 하한만 300px으로 둔다.
+    var MIN_LEFT = 300;
     var MIN_RIGHT = 360;
     var HANDLE_WIDTH = 16;
     var dragging = false;

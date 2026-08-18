@@ -260,7 +260,7 @@
   /* 호가창은 가격·잔량·체결가를 읽어야 하므로 240px로 축소하지 않는다.
      좁은 화면에서는 아래 860px 미디어 쿼리가 1열로 전환한다. */
   --ss-left-width: 420px;
-  grid-template-columns: minmax(360px, var(--ss-left-width)) 16px minmax(0, 1fr);
+  grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr);
   column-gap: 0;
   row-gap: 16px;
   align-items: start;

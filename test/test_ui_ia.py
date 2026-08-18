@@ -1039,7 +1039,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("state.summary.low", source)
         self.assertIn("ob-summary-high", style)
         self.assertIn("ob-summary-low", style)
-        self.assertIn("grid-template-columns: minmax(360px, var(--ss-left-width)) 16px minmax(0, 1fr);", stock_search_style)
+        self.assertIn("grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr);", stock_search_style)
         self.assertIn("grid-template-columns: 56px minmax(80px, 1fr) 72px;", style)
         self.assertIn("white-space: nowrap;", style)
 
