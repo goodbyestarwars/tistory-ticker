@@ -1032,9 +1032,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("state.summary.low", source)
         self.assertIn("ob-summary-high", style)
         self.assertIn("ob-summary-low", style)
-        self.assertIn("grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);", stock_search_style)
+        self.assertIn("grid-template-columns: minmax(360px, var(--ss-left-width)) 16px minmax(0, 1fr);", stock_search_style)
         self.assertIn("grid-template-columns: 56px minmax(80px, 1fr) 72px;", style)
         self.assertIn("white-space: nowrap;", style)
+
+    def test_stock_search_keeps_two_panel_default_and_allows_manual_resize(self):
+        source = self.read("js/stock-search.js")
+        style = self.read("css/stock-search.css")
+        self.assertIn('class="ss-resize-handle"', source)
+        self.assertIn('role="separator"', source)
+        self.assertIn('aria-label="호가창과 차트 폭 조절"', source)
+        self.assertIn("function wirePanelResize(container)", source)
+        self.assertIn("setProperty('--ss-left-width'", source)
+        self.assertIn("pointerdown", source)
+        self.assertIn("ArrowLeft", source)
+        self.assertIn("#stock-search .ss-panel-left { grid-column: 1; grid-row: 1; }", style)
+        self.assertIn("#stock-search .ss-panel-right { grid-column: 3; grid-row: 1; }", style)
+        self.assertIn("#stock-search .ss-resize-handle { display: none; }", style)
 
     def test_stock_search_renders_requested_price_studies_without_resizing_chart(self):
         source = self.read("js/stock-search.js")

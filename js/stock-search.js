@@ -190,6 +190,7 @@
       if (title.textContent.trim() === '증시검색') title.textContent = '실시간 시세';
     });
     container.innerHTML = buildShell();
+    wirePanelResize(container);
     wireSearch(container);
     autoSearchFromUrl(container);
 
@@ -301,6 +302,7 @@
       // "order-book"으로 맞춰 기존 CSS를 손대지 않고 재사용한다. 이 페이지엔 이 위젯이
       // 하나뿐이라 중복 id 걱정은 없다.
       + '<div class="ss-panel-left"><div id="order-book"></div></div>'
+      + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<div class="ss-panel-right">'
       + '<div class="ss-chart-tabs">'
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
@@ -319,6 +321,117 @@
       + '</div>'
       + '<section class="ss-news-panel"><div class="ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="ssDomesticNews" class="ss-domestic-news"><div class="ss-hint">뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
+  }
+
+  // 호가창·차트는 기본 2분할을 유지하되, 데스크톱에서는 가운데 구분선을
+  // 드래그해 사용자가 각 패널의 폭을 직접 조절할 수 있게 한다.
+  function wirePanelResize(container) {
+    var panels = container.querySelector('.ss-panels');
+    var handle = panels && panels.querySelector('.ss-resize-handle');
+    if (!panels || !handle) return;
+    if (handle.getAttribute('data-resize-bound') === '1') {
+      if (typeof handle.__refreshResizeAria === 'function') handle.__refreshResizeAria();
+      return;
+    }
+    handle.setAttribute('data-resize-bound', '1');
+
+    var MIN_LEFT = 360;
+    var MIN_RIGHT = 360;
+    var HANDLE_WIDTH = 16;
+    var dragging = false;
+    var pointerId = null;
+    var startX = 0;
+    var startWidth = 0;
+    var previousUserSelect = '';
+    var previousCursor = '';
+
+    function panelWidth() {
+      return panels.getBoundingClientRect().width || panels.clientWidth || 0;
+    }
+
+    function maxLeftWidth() {
+      return Math.max(MIN_LEFT, panelWidth() - HANDLE_WIDTH - MIN_RIGHT);
+    }
+
+    function clampWidth(width) {
+      return Math.min(maxLeftWidth(), Math.max(MIN_LEFT, Number(width) || MIN_LEFT));
+    }
+
+    function currentWidth() {
+      var raw = getComputedStyle(panels).getPropertyValue('--ss-left-width');
+      return clampWidth(parseFloat(raw) || 420);
+    }
+
+    function updateAria(width) {
+      var value = Math.round(clampWidth(width));
+      handle.setAttribute('aria-valuemin', String(MIN_LEFT));
+      handle.setAttribute('aria-valuemax', String(Math.round(maxLeftWidth())));
+      handle.setAttribute('aria-valuenow', String(value));
+    }
+
+    function setWidth(width) {
+      var value = clampWidth(width);
+      panels.style.setProperty('--ss-left-width', Math.round(value) + 'px');
+      updateAria(value);
+    }
+
+    function stopDragging(event) {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('is-dragging');
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.cursor = previousCursor;
+      if (pointerId !== null && handle.hasPointerCapture && handle.hasPointerCapture(pointerId)) {
+        handle.releasePointerCapture(pointerId);
+      }
+      pointerId = null;
+      if (event && event.preventDefault) event.preventDefault();
+    }
+
+    handle.addEventListener('pointerdown', function (event) {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      dragging = true;
+      pointerId = event.pointerId;
+      startX = event.clientX;
+      startWidth = currentWidth();
+      previousUserSelect = document.body.style.userSelect;
+      previousCursor = document.body.style.cursor;
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+      handle.classList.add('is-dragging');
+      if (handle.setPointerCapture) handle.setPointerCapture(pointerId);
+      event.preventDefault();
+    });
+
+    handle.addEventListener('pointermove', function (event) {
+      if (!dragging || (pointerId !== null && event.pointerId !== pointerId)) return;
+      setWidth(startWidth + event.clientX - startX);
+      event.preventDefault();
+    });
+    handle.addEventListener('pointerup', stopDragging);
+    handle.addEventListener('pointercancel', stopDragging);
+
+    handle.addEventListener('keydown', function (event) {
+      var width = currentWidth();
+      if (event.key === 'ArrowLeft') {
+        setWidth(width - 20);
+        event.preventDefault();
+      } else if (event.key === 'ArrowRight') {
+        setWidth(width + 20);
+        event.preventDefault();
+      } else if (event.key === 'Home') {
+        setWidth(MIN_LEFT);
+        event.preventDefault();
+      } else if (event.key === 'End') {
+        setWidth(maxLeftWidth());
+        event.preventDefault();
+      }
+    });
+
+    window.addEventListener('resize', function () { updateAria(currentWidth()); });
+    window.addEventListener('blur', stopDragging);
+    handle.__refreshResizeAria = function () { updateAria(currentWidth()); };
+    updateAria(currentWidth());
   }
 
   // ---- 검색/자동완성 (다른 위젯들과 동일한 KRX_MAP 패턴) ----
@@ -675,6 +788,9 @@
 
     var detail = container.querySelector('#ssDetail');
     detail.hidden = false;
+    // 초기 바인딩 시 상세 패널이 hidden이라 폭을 읽을 수 없으므로, 표시한 뒤
+    // aria 범위와 키보드 End 위치를 실제 데스크톱 폭으로 다시 계산한다.
+    wirePanelResize(container);
 
     renderSummary(container, item);
     loadPriceReason(container, item);
