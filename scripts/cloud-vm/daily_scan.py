@@ -51,6 +51,10 @@ def swing_flow_key(assessment):
         return 'downturn'
     if event_key == 'downtrend_resume':
         return 'downtrend'
+    transitions = assessment.get('transitions') or (assessment.get('waves') or {}).get('transitions') or {}
+    if event_key not in ('breakdown', 'fake_breakout', 'fake_breakdown', 'downturn_detected', 'downturn_confirmed'):
+        if (transitions.get('short') or {}).get('active') or (transitions.get('mid') or {}).get('active'):
+            return 'upturn'
     auxiliary = assessment.get('auxiliaryStates') or chart.get('auxiliaryStates') or []
     if event_key == 'compression' or any((item or {}).get('key') == 'compression' for item in auxiliary):
         return 'compression'
@@ -87,6 +91,7 @@ def build_swing_flow_row(stock, daily, assessment):
         'midWave': (waves.get('mid') or {}).get('label'),
         'smallWave': small.get('label'),
         'shortSignal': waves.get('shortSignal') or {'key': 'none', 'label': '이벤트 없음', 'stage': 'none'},
+        'transitions': waves.get('transitions') or {},
         'signal': small.get('event') or event,
         'currentLocation': (chart.get('currentRegime') or {}).get('label'),
         'risk': {'state': risk.get('state'), 'flags': risk.get('flags') or []},

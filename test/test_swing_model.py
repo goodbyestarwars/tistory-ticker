@@ -151,7 +151,7 @@ class SwingModelTests(unittest.TestCase):
         self.assertIsNotNone(row[8])
         conn.close()
 
-    def test_big_mid_down_small_upturn_forbids_new_entry(self):
+    def test_big_mid_down_small_upturn_is_a_mid_transition_candidate(self):
         base = [220 - index * .45 for index in range(280)]
         last = base[-1]
         values = base + [last - index * .2 for index in range(15)] + [last - 14 * .2 + index * 5 for index in range(5)]
@@ -159,8 +159,8 @@ class SwingModelTests(unittest.TestCase):
         self.assertEqual(assessment['waves']['big']['key'], 'downtrend')
         self.assertEqual(assessment['waves']['mid']['key'], 'downtrend')
         self.assertEqual(assessment['waves']['small']['key'], 'uptrend')
-        self.assertEqual(assessment['diagnosis'], '하락 추세 안의 기술적 반등')
-        self.assertEqual(assessment['entryOpinion'], '신규 진입 금지')
+        self.assertEqual(assessment['diagnosis'], '중기 전환 후보 · 장기 확인 대기')
+        self.assertEqual(assessment['entryOpinion'], '중기 전환 후보')
 
     def test_big_mid_up_small_resume_is_a_pullback_candidate(self):
         values = [100 + index * .4 for index in range(300)]
@@ -201,11 +201,12 @@ class SwingModelTests(unittest.TestCase):
         conn.close()
 
     def test_short_signal_reports_five_day_average_recovery(self):
-        values = [100] * 23 + [90, 102]
+        values = [100] * 23 + [100, 100, 90, 95, 120]
         assessment = swing_model.build_swing_assessment(bars(values))
         self.assertEqual(assessment['shortSignal']['key'], 'ma5_recovery')
         self.assertEqual(assessment['shortSignal']['label'], '5일선 회복')
         self.assertEqual(assessment['waves']['shortSignal']['key'], 'ma5_recovery')
+        self.assertTrue(assessment['waves']['transitions']['short']['active'])
 
 
 if __name__ == '__main__':

@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Optional
 
 
-MODEL_VERSION = 'swing-4w-v4'
+MODEL_VERSION = 'swing-4w-v5'
 REGIME_LABELS = {
     'uptrend': '상승 지속',
     'upturn': '상방 변곡',
@@ -44,6 +44,7 @@ EVENT_LABELS = {
     'fake_breakdown': '페이크 이탈',
     'exhaustion': '하락 소진 감지',
     'ma5_recovery': '5일선 회복',
+    'ma20_breakout': '20일선 돌파',
 }
 WAVE_LABELS = {
     'uptrend': '상승 추세',
@@ -81,6 +82,28 @@ def _slope(values: List[Optional[float]], lookback: int) -> Optional[float]:
     if now is None or before in (None, 0):
         return None
     return (now - before) / abs(before)
+
+
+def _slope_at(values: List[Optional[float]], end: int, lookback: int) -> Optional[float]:
+    """Return a moving-average slope ending at an earlier index."""
+    if end < lookback or end >= len(values):
+        return None
+    now = values[end]
+    before = values[end - lookback]
+    if now is None or before in (None, 0):
+        return None
+    return (now - before) / abs(before)
+
+
+def _crossed_above_ma(closes: List[float], ma_values: List[Optional[float]]) -> bool:
+    """Return whether the latest daily close crossed above its moving average."""
+    if len(closes) < 2 or len(ma_values) < 2:
+        return False
+    previous_ma, current_ma = ma_values[-2], ma_values[-1]
+    return bool(
+        previous_ma is not None and current_ma is not None
+        and closes[-2] < previous_ma and closes[-1] >= current_ma
+    )
 
 
 def _has_higher_low(closes: List[float]) -> bool:
@@ -333,9 +356,9 @@ def _classify_wave_key(closes: List[float], fast_period: int, slow_period: int,
         long = _moving_average(closes, long_period)[-1]
         if fast is None or slow is None or long is None:
             return 'insufficient'
-        if current >= slow and fast >= slow and slow >= long and slope_slow >= -0.002:
+        if current >= long and fast >= slow and slow >= long and slope_slow >= -0.002:
             return 'uptrend'
-        if current <= slow and fast <= slow and slow <= long and slope_slow <= 0.002:
+        if current <= long and fast <= slow and slow <= long and slope_slow <= 0.002:
             return 'downtrend'
         return 'neutral'
     if fast is None or slow is None:
@@ -398,6 +421,48 @@ def classify_wave_structure(daily: List[Dict[str, Any]],
         elif mid_key == 'downtrend' and prior_mid != 'downtrend':
             mid_event = _event('downturn_confirmed', 'confirmed')
     short_signal = _ma_recovery_event(closes, 5)
+    ma5_values = _moving_average(closes, 5)
+    ma20_values = _moving_average(closes, 20)
+    ma60_values = _moving_average(closes, 60)
+    if short_signal['key'] == 'none' and _crossed_above_ma(closes, ma20_values):
+        short_signal = _event('ma20_breakout', 'confirmed')
+
+    ma5_slope = _slope(ma5_values, 3) or 0
+    ma20_slope = _slope(ma20_values, 5) or 0
+    prior_ma20_slope = _slope_at(ma20_values, len(closes) - 6, 5) or 0
+    ma60_slope = _slope(ma60_values, 10) or 0
+    prior_ma60_slope = _slope_at(ma60_values, len(closes) - 11, 10) or 0
+    short_trigger = short_signal['key'] in ('ma5_recovery', 'ma20_breakout')
+    short_transition = bool(short_trigger and ma5_slope > 0)
+    current = closes[-1]
+    current_ma20 = ma20_values[-1] if ma20_values else None
+    mid_transition = bool(
+        current_ma20 is not None and current >= current_ma20
+        and (ma20_slope >= 0 or ma20_slope > prior_ma20_slope)
+        and (ma60_slope >= 0 or ma60_slope > prior_ma60_slope)
+    )
+    ma224_values = _moving_average(closes, 224)
+    long_transition = bool(
+        len(closes) >= 224 and ma224_values[-1] is not None
+        and current >= ma224_values[-1] and big_key == 'uptrend'
+    )
+    transitions = {
+        'short': {
+            'active': short_transition,
+            'label': '단기 전환 후보' if short_transition else '단기 전환 없음',
+            'basis': '5일선 회복 또는 20일선 돌파 AND 5일선 상승',
+        },
+        'mid': {
+            'active': mid_transition,
+            'label': '중기 전환 후보' if mid_transition else '중기 전환 없음',
+            'basis': '종가 20일선 위 AND 20일선 방향 개선 AND 60일선 하락 둔화 또는 상승',
+        },
+        'long': {
+            'active': long_transition,
+            'label': '장기 추세 확정' if long_transition else '장기 정배열 미확인',
+            'basis': '60일선·120일선·224일선 정배열 AND 종가 224일선 위',
+        },
+    }
     small_event = chart.get('recentEvent') or _event('none')
     if small_event.get('key') == 'none' and small_key != 'insufficient' and len(closes) >= 25:
         prior_small = _classify_wave_key(closes[:-3], 5, 20)
@@ -424,6 +489,10 @@ def classify_wave_structure(daily: List[Dict[str, Any]],
         diagnosis, action_key = '상승 추세 내 정상 조정', 'observe'
     elif big_key == 'uptrend' and mid_key == 'downtrend' and small_key == 'uptrend':
         diagnosis, action_key = '중기 조정 중 반등 · 중기 확인 대기', 'wait_mid_confirmation'
+    elif short_transition:
+        diagnosis, action_key = '단기 전환 후보 · 중기 확인 대기', 'short_transition_candidate'
+    elif mid_transition:
+        diagnosis, action_key = '중기 전환 후보 · 장기 확인 대기', 'mid_transition_candidate'
     elif big_key == 'downtrend' and mid_key == 'downtrend' and small_key == 'uptrend':
         diagnosis, action_key = '하락 추세 안의 기술적 반등', 'prohibited_rebound'
     elif big_key == 'downtrend' and mid_key == 'uptrend' and small_key == 'uptrend':
@@ -443,7 +512,7 @@ def classify_wave_structure(daily: List[Dict[str, Any]],
     mid['event'] = _layer_event('mid', mid_event)
     return {
         'big': big, 'mid': mid, 'small': small,
-        'shortSignal': short_signal,
+        'shortSignal': short_signal, 'transitions': transitions,
         'diagnosis': diagnosis, 'actionKey': action_key,
         'recentEvents': recent_events[-6:],
     }
@@ -504,6 +573,14 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
         holder_action = '보유 / 추가매수 검토'
         entry_opinion = '눌림목 매수 후보' if not blocks_entry else '신규 진입 금지'
         priority_base = 100
+    elif waves['actionKey'] == 'short_transition_candidate':
+        holder_action = '보유 / 단기 전환 확인'
+        entry_opinion = '단기 전환 후보'
+        priority_base = 72
+    elif waves['actionKey'] == 'mid_transition_candidate':
+        holder_action = '보유 / 중기 전환 확인'
+        entry_opinion = '중기 전환 후보'
+        priority_base = 82
     elif waves['actionKey'] == 'wait_mid_confirmation':
         holder_action = '보유 / 중기 조정 확인'
         entry_opinion = '중기 확인 대기'
@@ -542,7 +619,7 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
             entry_opinion = '후보 제외'
             priority_base = 5
 
-    if blocks_entry and waves['actionKey'] == 'pullback_candidate' and event_key not in ('fake_breakout', 'fake_breakdown'):
+    if blocks_entry and waves['actionKey'] in ('pullback_candidate', 'short_transition_candidate', 'mid_transition_candidate') and event_key not in ('fake_breakout', 'fake_breakdown'):
         entry_opinion = '신규 진입 금지'
     score_parts = [value for value in (momentum_score, fundamental_score) if value is not None]
     internal_priority = priority_base + (sum(score_parts) / len(score_parts) - 50) * 0.25 if score_parts else priority_base
@@ -554,6 +631,7 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
         'auxiliaryStates': chart.get('auxiliaryStates') or [],
         'waves': waves,
         'shortSignal': waves.get('shortSignal') or _event('none'),
+        'transitions': waves.get('transitions') or {},
         'diagnosis': waves['diagnosis'],
         'momentum': {'state': momentum, 'score': momentum_score},
         'fundamental': {'state': fundamental, 'score': fundamental_score},
