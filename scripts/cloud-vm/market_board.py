@@ -679,7 +679,13 @@ def _kis_us_row(row):
         'trade_amount': amount if amount is not None else price * volume,
         # HHDFS76350100의 tomv는 백만 USD 단위 시가총액이다.
         'market_cap': _number(_kis_value(row, 'tomv', 'mktcap', 'market_cap', 'stck_avls')),
-        'industry': '미분류',
+        # KIS 해외 순위 응답에는 업종 필드가 없는 경우가 많다. 호출부에서
+        # Finnhub profile2 업종으로 보강하며, 원본에 값이 있으면 우선 보존한다.
+        'industry': _first(
+            row,
+            'finnhubIndustry', 'gsector', 'industry', 'sector',
+            'bstp_kor_isnm', 'industry_name',
+        ) or '미분류',
         'currency': 'USD',
         'exchange': _kis_value(row, 'excd', 'exchange') or '',
         'volume': volume,
@@ -751,7 +757,36 @@ def _normalize_kis_us_metric(raw_rows, metric):
     return ordered
 
 
-def fetch_us_kis(appkey, appsecret, limit=20):
+def _enrich_us_kis_industries(rows, finnhub_api_key=''):
+    """Fill missing KIS US industries from the existing cached profile source.
+
+    KIS rank TRs provide prices and ranking values but commonly omit sector data.
+    Use Finnhub only for the final trade-amount universe so the home summary can
+    calculate leaders/cautions without multiplying quote requests for every tab.
+    """
+    if not finnhub_api_key or not rows:
+        return
+    targets = [row for row in rows if row.get('industry') in (None, '', '미분류') and row.get('symbol')]
+    if not targets:
+        return
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = {
+            pool.submit(us_analysis.get_profile, row['symbol'], finnhub_api_key): row
+            for row in targets
+        }
+        for future in as_completed(futures):
+            row = futures[future]
+            try:
+                profile = future.result() or {}
+            except Exception as exc:
+                logger.info('US industry profile failed for %s: %s', row.get('symbol'), exc)
+                continue
+            industry = _first(profile, 'finnhubIndustry', 'gsector', 'industry', 'sector')
+            if industry:
+                row['industry'] = industry
+
+
+def fetch_us_kis(appkey, appsecret, limit=20, finnhub_api_key=''):
     """KIS 기반 미국 실시간 종목판.
 
     KIS 해외 순위 API는 거래소별 조회이므로 NYSE/NASDAQ/AMEX를 병렬 조회한 뒤
@@ -794,6 +829,7 @@ def fetch_us_kis(appkey, appsecret, limit=20):
     if not metric_rows.get('tradeAmount'):
         raise RuntimeError('KIS 미국 거래대금 순위 응답이 비어 있습니다.')
     ordered = metric_rows['tradeAmount']
+    _enrich_us_kis_industries(ordered, finnhub_api_key)
     sections = {
         metric: rows[:limit]
         for metric, rows in metric_rows.items()

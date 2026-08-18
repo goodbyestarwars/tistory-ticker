@@ -258,6 +258,32 @@ class MarketBoardTests(unittest.TestCase):
         self.assertIn('marketCap', result['sections'])
         self.assertIn('volumeSurge', result['sections'])
 
+    def test_us_kis_board_enriches_trade_amount_rows_with_industry_profiles(self):
+        def trade_amount(_token, _appkey, _secret, exchange, limit=20):
+            if exchange != 'NAS':
+                return []
+            return [{
+                'symb': 'NVDA', 'hts_kor_isnm': '엔비디아', 'last': '180',
+                'diff': '-4', 'rate': '-2.2', 'tvol': '1000', 'tamt': '300000',
+                'excd': exchange,
+            }]
+
+        with mock.patch.object(market_board.kis_client, 'get_token', return_value='kis-token'), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_trade_amount_rank', side_effect=trade_amount), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_market_cap_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_updown_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_volume_surge_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_volume_power_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_new_highlow_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_trade_volume_rank', return_value=[]), \
+                mock.patch.object(market_board.us_analysis, 'get_profile', return_value={
+                    'finnhubIndustry': 'Technology',
+                }) as profile:
+            result = market_board.fetch_us_kis('appkey', 'secret', limit=1, finnhub_api_key='finnhub-key')
+
+        self.assertEqual(result['rows'][0]['industry'], 'Technology')
+        profile.assert_called_once_with('NVDA', 'finnhub-key')
+
 
 if __name__ == '__main__':
     unittest.main()

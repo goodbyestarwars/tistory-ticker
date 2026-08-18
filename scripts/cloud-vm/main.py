@@ -2216,7 +2216,12 @@ def market_board_endpoint(request: Request,
             kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
             kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
             if market == 'us':
-                data = market_board.fetch_us_kis(kis_appkey, kis_appsecret, limit=limit)
+                data = market_board.fetch_us_kis(
+                    kis_appkey,
+                    kis_appsecret,
+                    limit=limit,
+                    finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+                )
                 # KIS 순위 API는 지표별로 응답 가능 시간이 달라질 수 있다.
                 # 거래대금 하나만 성공해도 전체 요청은 성공으로 끝나던 기존 구조에서는
                 # 나머지 탭이 빈 화면으로 남았으므로, 비어 있는 기본 지표만 키움으로
