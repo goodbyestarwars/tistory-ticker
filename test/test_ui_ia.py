@@ -732,6 +732,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
             style,
         )
 
+    def test_home_news_rows_match_breaking_news_base_height(self):
+        style = self.read("style.css")
+        self.assertIn(
+            "body#tt-body-index .home-editorial-page .home-economic-news .hen-list .app-news-event {\n"
+            "  padding-top: 8px !important;\n"
+            "  padding-bottom: 8px !important;\n"
+            "}",
+            style,
+        )
+        self.assertIn(
+            "body#tt-body-index .home-editorial-page .home-economic-news .hen-list .app-news-rail {\n"
+            "  min-height: 42px !important;\n"
+            "}",
+            style,
+        )
+
     def test_watchlist_search_supports_keyboard_selection(self):
         source = self.read("js/watchlist.js")
         style = self.read("css/watchlist.css")

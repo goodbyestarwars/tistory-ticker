@@ -5800,3 +5800,13 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
 body#tt-body-index .home-editorial-page .home-top-disclosures {
   border-bottom: 0 !important;
 }
+
+/* 2026-08-18 economic news rhythm: regular timeline rows use the same base
+   geometry as the single-row breaking-news ticker without reducing the list. */
+body#tt-body-index .home-editorial-page .home-economic-news .hen-list .app-news-event {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+body#tt-body-index .home-editorial-page .home-economic-news .hen-list .app-news-rail {
+  min-height: 42px !important;
+}
