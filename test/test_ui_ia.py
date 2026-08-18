@@ -202,6 +202,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("market === 'us' || market === 'closed'", source)
         self.assertIn('data-home-closed-page', source)
 
+    def test_home_closed_switch_applies_page_without_waiting_for_market_api(self):
+        source = self.read("js/skin-main.js")
+        self.assertIn("window.addEventListener('home-market-change', function ()", source)
+        self.assertIn("applyHomeMarketSession(homeMarketSession());", source)
+        self.assertIn("if (session.closed) return;", source)
+
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
         skin = self.read("skin.html")

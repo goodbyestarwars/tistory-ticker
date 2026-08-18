@@ -311,7 +311,12 @@
       });
     });
     syncMarketSwitch();
-    window.addEventListener('home-market-change', syncMarketSwitch);
+    window.addEventListener('home-market-change', function () {
+      syncMarketSwitch();
+      // 휴장 탭은 시세 API 응답을 기다리지 않고 준비된 휴장 지면을 즉시 연다.
+      // 이후 아래의 공통 시장 변경 핸들러가 데이터 로더를 갱신한다.
+      applyHomeMarketSession(homeMarketSession());
+    });
     feed.insertBefore(dashboardSection, investorMount);
     if (investorMount) investorMount.remove();
     if (rankMount) rankMount.remove();
