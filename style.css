@@ -5966,3 +5966,70 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list .app-news-
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list .app-news-rail {
   min-height: 42px !important;
 }
+
+/* Market schedule scoreboard: show one watchlist event at a time and use a
+   restrained analog flip when the next event arrives. */
+body#tt-body-index .home-editorial-page .home-top-disclosures .home-scoreboard-list {
+  display: block !important;
+  min-height: 48px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  cursor: default !important;
+  scroll-snap-type: none !important;
+}
+body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row {
+  width: 100% !important;
+  min-height: 48px !important;
+  display: grid !important;
+  grid-template-columns: minmax(84px, 1fr) minmax(0, 2.4fr) auto !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 8px 12px !important;
+  border: 0 !important;
+  border-top: 1px solid #e5e7eb !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  transform-origin: 50% 0;
+}
+body#tt-body-index .home-editorial-page .home-scoreboard-list.is-flipping .home-disclosure-row {
+  animation: home-scoreboard-flip .42s ease both;
+}
+body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row strong {
+  color: #111827 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row span {
+  color: #374151 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row time {
+  color: #6b7280 !important;
+  font-size: 11px !important;
+  font-variant-numeric: tabular-nums;
+}
+body#tt-body-index .home-editorial-page .home-scoreboard-list .home-us-schedule-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+body#tt-body-index .home-editorial-page .home-scoreboard-list .home-us-schedule-icon {
+  flex: 0 0 22px;
+}
+@keyframes home-scoreboard-flip {
+  0% { opacity: 0; transform: perspective(420px) rotateX(-78deg) translateY(-8px); }
+  55% { opacity: 1; transform: perspective(420px) rotateX(10deg) translateY(1px); }
+  100% { opacity: 1; transform: perspective(420px) rotateX(0) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body#tt-body-index .home-editorial-page .home-scoreboard-list.is-flipping .home-disclosure-row { animation: none; }
+}
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row {
+    grid-template-columns: minmax(68px, .8fr) minmax(0, 2fr) auto !important;
+    gap: 8px !important;
+    padding: 8px 6px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row span { font-size: 12px !important; }
+}

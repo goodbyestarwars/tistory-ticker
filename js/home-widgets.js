@@ -696,11 +696,14 @@
       mount.innerHTML = '<p class="home-card-state">' + escapeHtml(emptyMessage || '최근 한 주 관심종목 공시가 없습니다.') + '</p>';
       return;
     }
-    stopDisclosureTicker();
     setDisclosureVisible(true);
-    mount.innerHTML = items.map(renderDomesticDisclosureRow).join('');
-    // 일정 전체를 한 줄의 가로 목록으로 유지하고, 마우스·터치 드래그로 넘긴다.
-    enableScheduleDrag(mount);
+    mount.classList.add('home-scoreboard-list');
+    startDisclosureTicker(items, function (item) {
+      mount.innerHTML = renderDomesticDisclosureRow(item);
+      mount.classList.remove('is-flipping');
+      void mount.offsetWidth;
+      mount.classList.add('is-flipping');
+    });
   }
 
   function renderDisclosureLogin() {
@@ -851,9 +854,9 @@
       mount.innerHTML = '<p class="home-card-state">미국 예정 일정이 없습니다.</p>';
       return;
     }
-    stopDisclosureTicker();
     setDisclosureVisible(true);
-    mount.innerHTML = selection.items.map(function (item) {
+    mount.classList.add('home-scoreboard-list');
+    function renderItem(item) {
       var link = isFinnhubLink(item.link) ? '' : String(item.link || '').trim();
       var rowStart = link
         ? '<a class="home-disclosure-row home-us-schedule-row" href="' + escapeHtml(link) + '" target="_blank" rel="noopener" draggable="false">'
@@ -863,8 +866,13 @@
         + '<strong>미국</strong>'
         + '<span class="home-us-schedule-title">' + scheduleIconHtml(item) + '<span>' + escapeHtml(scheduleTitle(item.title)) + '</span></span>'
         + '<time>' + escapeHtml(scheduleTime(item.start)) + '</time>' + rowEnd;
-    }).join('');
-    enableScheduleDrag(mount);
+    }
+    startDisclosureTicker(selection.items, function (item) {
+      mount.innerHTML = renderItem(item);
+      mount.classList.remove('is-flipping');
+      void mount.offsetWidth;
+      mount.classList.add('is-flipping');
+    });
   }
 
   function enableScheduleDrag(list) {
