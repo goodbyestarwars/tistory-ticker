@@ -94,7 +94,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-flow-table td.dmi-positive { color: #d24f45 !important; }", style)
         self.assertIn(".dmi-flow-table td.dmi-negative { color: #1261c4 !important; }", style)
         self.assertIn(".dmi-shell .dmi-fund-card *", style)
-        self.assertIn("domestic-market-indicators.css?v=20260817-dmi-futures-chart-v1", frontend)
+        self.assertIn("domestic-market-indicators.css?v=20260818-market-news-v1", frontend)
         self.assertIn("domestic-market-indicators.js?v=20260817-dmi-futures-chart-v1", loader)
         self.assertIn(".dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }", style)
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
@@ -226,6 +226,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".home-editorial-page.is-market-closed .home-overview-grid", style)
         self.assertNotIn("body#tt-body-index .home-editorial-page.is-market-closed", style)
 
+    def test_home_index_charts_use_swappable_sample_series_for_layout_work(self):
+        main = self.read("js/skin-main.js")
+        self.assertIn("var HOME_USE_SAMPLE_CHARTS = true;", main)
+        self.assertIn("var HOME_SAMPLE_CHARTS = {", main)
+        self.assertIn("function homeChartRows(rows, key)", main)
+        self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
+        self.assertIn("homeChartRows(rows, key)", main)
+        self.assertIn("skin-main.js?v=20260819-weekend-closed-v5-sample-chart", self.read("skin.html"))
+
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
         skin = self.read("skin.html")
@@ -254,8 +263,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # gothic mode, and the cache version is bumped for the Tistory skin.
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260817-home-flow-v2", skin)
-        self.assertIn("skin-main.js?v=20260817-home-flow-v2", skin)
+        self.assertIn("style.css?v=20260819-weekend-closed-v2", skin)
+        self.assertIn("skin-main.js?v=20260819-weekend-closed-v5-sample-chart", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")

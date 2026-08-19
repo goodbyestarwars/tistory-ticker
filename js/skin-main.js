@@ -655,9 +655,29 @@
       return dashboardSection.querySelector('[data-home-index-slot="' + slot + '"]');
     }
 
+    // 화면 스타일을 조정하는 동안 사용할 임시 시계열입니다.
+    // 운영 데이터로 전환할 때 이 값을 false로 바꾸면 API chart 배열을 그대로 사용합니다.
+    var HOME_USE_SAMPLE_CHARTS = true;
+    var HOME_SAMPLE_CHARTS = {
+      KOSPI: [2642.31, 2648.2, 2655.4, 2651.8, 2663.7, 2670.1, 2665.3, 2678.6, 2684.2, 2691.5, 2687.4, 2698.2, 2705.6, 2712.1, 2708.9, 2720.4],
+      KOSDAQ: [756.88, 758.4, 761.2, 759.6, 763.8, 766.1, 764.2, 768.7, 771.5, 770.2, 774.9, 777.1, 775.4, 779.8, 782.6, 785.3],
+      NASDAQ_INDEX: [18342.2, 18358.4, 18351.1, 18376.8, 18392.5, 18384.7, 18410.2, 18428.6, 18419.3, 18445.7, 18462.1, 18451.8, 18479.4, 18496.2, 18488.5, 18512.7],
+      SP500_INDEX: [5440.1, 5447.8, 5444.2, 5453.9, 5461.7, 5458.4, 5468.2, 5475.6, 5471.9, 5482.3, 5490.1, 5487.6, 5498.4, 5505.2, 5501.8, 5512.6],
+      kospiNight: [360.4, 361.1, 360.8, 361.7, 362.2, 361.9, 362.8, 363.4, 363.1, 364.0, 364.6, 364.2, 365.0, 365.5, 365.2, 366.1]
+    };
+
+    function homeChartRows(rows, key) {
+      if (HOME_USE_SAMPLE_CHARTS && HOME_SAMPLE_CHARTS[key]) {
+        return HOME_SAMPLE_CHARTS[key].map(function (close, index) {
+          return { close: close, timestamp: index };
+        });
+      }
+      return rows;
+    }
+
     function renderHomeIndexChart(element, rows, positive, key) {
       if (!element) return;
-      var values = (rows || []).map(function (row) { return Number(row && row.close); })
+      var values = (homeChartRows(rows, key) || []).map(function (row) { return Number(row && row.close); })
         .filter(function (value) { return isFinite(value); }).slice(-48);
       if (values.length < 2) {
         element.innerHTML = '<span class="home-index-chart-empty">추이 데이터 없음</span>';
