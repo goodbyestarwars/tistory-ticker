@@ -236,7 +236,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260820-market-scoreboard-v2", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260820-tab-cleanup-v1", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -273,7 +273,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("border-bottom: 2px solid #111", style)
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 25px;", style)
-        self.assertIn("skin-main.js?v=20260820-market-scoreboard-v2", skin)
+        self.assertIn("skin-main.js?v=20260820-tab-cleanup-v1", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")
@@ -391,7 +391,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
         self.assertIn("home-weekly-report.css?v=20260819-gold-range-v3", script)
-        self.assertIn("home-weekly-report.js?v=20260819-gold-range-v3", self.read("js/skin-main.js"))
+        self.assertIn("home-weekly-report.js?v=20260820-tab-cleanup-v1", self.read("js/skin-main.js"))
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)
 

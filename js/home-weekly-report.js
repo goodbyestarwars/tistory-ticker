@@ -310,9 +310,13 @@
   function init() {
     var closedSelected = window.HomeMarketSelection && typeof window.HomeMarketSelection.get === 'function'
       && window.HomeMarketSelection.get() === 'closed';
-    if (!isWeekendWindow(new Date()) && !closedSelected) return null;
+    var existing = document.getElementById('homeWeeklyReport');
+    if (!isWeekendWindow(new Date()) && !closedSelected) {
+      if (existing) existing.remove();
+      return null;
+    }
     var feed = document.querySelector('.feed');
-    if (!feed || document.getElementById('homeWeeklyReport')) return null;
+    if (!feed || existing) return null;
     if (!document.querySelector('link[data-home-weekly-report-css]')) {
       var link = document.createElement('link'); link.rel = 'stylesheet'; link.href = CSS_URL; link.setAttribute('data-home-weekly-report-css', '1'); document.head.appendChild(link);
     }
