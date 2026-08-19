@@ -95,7 +95,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-flow-table td.dmi-negative { color: #1261c4 !important; }", style)
         self.assertIn(".dmi-shell .dmi-fund-card *", style)
         self.assertIn("domestic-market-indicators.css?v=20260818-market-news-v1", frontend)
-        self.assertIn("domestic-market-indicators.js?v=20260817-dmi-futures-chart-v1", loader)
+        self.assertIn("domestic-market-indicators.js?v=20260819-dmi-cache-fix-v1", loader)
         self.assertIn(".dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }", style)
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
         self.assertIn("function miniAverageChart(values, average)", frontend)
