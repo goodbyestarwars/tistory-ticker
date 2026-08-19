@@ -64,7 +64,7 @@
   function signClass(value) { return number(value) > 0 ? 'is-up' : number(value) < 0 ? 'is-down' : 'is-flat'; }
   function holdingOf(item) {
     var h = item && item.holding || {};
-    return { quantity: Math.max(0, number(h.quantity)), averagePrice: Math.max(0, number(h.averagePrice)) };
+    return { quantity: Math.max(0, number(h.quantity)), averagePrice: Math.max(0, number(h.averagePrice)), horizon: h.horizon === 'long' ? 'long' : 'short' };
   }
   function itemByCode(code) {
     var saved = global.Watchlist.getList().filter(function (item) { return item.code === code; })[0];
@@ -270,6 +270,7 @@
     return '<div class="my-holding-card"><div class="my-card-title"><strong>내 보유정보</strong><span>' + (isTemporary ? '저장하려면 로그인 필요' : '입력값 저장') + '</span></div>'
       + '<div class="my-holding-fields"><label>수량<input type="number" min="0" step="any" data-my-field="quantity" value="' + escapeAttr(metrics.holding.quantity || '') + '"></label>'
       + '<label>평단가<input type="number" min="0" step="any" data-my-field="averagePrice" value="' + escapeAttr(metrics.holding.averagePrice || '') + '"></label>'
+      + '<label>보유 기준<select data-my-field="horizon"><option value="short"' + (metrics.holding.horizon === 'short' ? ' selected' : '') + '>단타 · 5·20일선</option><option value="long"' + (metrics.holding.horizon === 'long' ? ' selected' : '') + '>중장기 · 60·224일선</option></select></label>'
       + '<button type="button" class="my-save-holding" data-my-save="' + escapeAttr(item.code) + '">' + (isTemporary ? 'MY에 저장' : '저장') + '</button></div>'
       + '<div class="my-holding-preview" data-my-holding-preview><span>현재 평가금액<strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></span><span>평가손익<strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '평단 입력 필요' : formatPrice(metrics.pnl, item.code)) + '</strong></span><span>수익률<strong class="' + signClass(metrics.rate) + '">' + (metrics.rate == null ? '-' : formatSigned(metrics.rate, 2) + '%') + '</strong></span></div>'
       + '<div class="my-holding-note">수량·평단을 입력하면 아래 계산값이 즉시 바뀝니다. 저장하면 다음 방문에도 유지됩니다.</div></div>';
@@ -389,7 +390,23 @@
     if (!data) return '차트 모양 데이터 없음';
     return data.shape + ', 5일 ' + formatSigned(data.ret5, 2) + '%, 20일 ' + formatSigned(data.ret20, 2) + '%; ' + (data.tech || data.momentum || '이동평균 데이터 없음');
   }
-  function profitTakingSignal(chart, data) {
+  function profitTakingSignal(chart, data, horizon) {
+    if (horizon === 'long') {
+      var ma60Long = chart && chart.ma && chart.ma.ma60 || [];
+      var ma120Long = chart && chart.ma && chart.ma.ma120 || [];
+      var ma224Long = chart && chart.ma && chart.ma.ma224 || [];
+      var longLast = Math.max(ma60Long.length, ma120Long.length, ma224Long.length) - 1;
+      var current60 = longLast >= 0 ? number(ma60Long[longLast], null) : null;
+      var current120 = longLast >= 0 ? number(ma120Long[longLast], null) : null;
+      var current224 = longLast >= 0 ? number(ma224Long[longLast], null) : null;
+      var closeLong = number(data && data.close, null);
+      var below224 = closeLong != null && current224 != null && closeLong < current224;
+      var below60 = closeLong != null && current60 != null && closeLong < current60;
+      var longBearAligned = current60 != null && current224 != null && current60 < current224;
+      if (below224) return { level: 3, note: '현재가가 224일선 아래로 내려왔습니다. 중장기 기준선이 훼손된 상태이므로 수익 중이면 분할 익절과 보유 비중 축소를 검토하세요.' };
+      if (below60 && longBearAligned) return { level: 2, note: '현재가가 60일선 아래이고 60일선도 224일선 아래입니다. 중장기 추세가 약해지는 구간이므로 수익 중이면 일부 익절 후 기준선 회복 여부를 확인하세요.' };
+      return { level: 0, note: '' };
+    }
     var ma5 = chart && chart.ma && chart.ma.ma5 || [];
     var ma20 = chart && chart.ma && chart.ma.ma20 || [];
     var last = Math.min(ma5.length, ma20.length) - 1;
@@ -463,7 +480,7 @@
     var deterioration = !!(data && data.ret20 <= -12 && data.ret5 <= 0 && belowPoc);
     var synchronizedWeakness = flowWeak && chartWeak && deterioration;
     var repairable = flowHealthy && chartHealthy && (improving || !belowPoc);
-    var exitSignal = profitTakingSignal(chart, data);
+    var exitSignal = profitTakingSignal(chart, data, metrics && metrics.holding && metrics.holding.horizon);
     // A small positive return is not, by itself, a profit-taking signal. The
     // holding model currently has no entry date, so use a conservative return
     // band until the user has enough price/flow confirmation.
@@ -743,7 +760,7 @@
       if (save) {
         var item = itemByCode(save.getAttribute('data-my-save'));
         var root = save.closest('.my-dashboard-detail');
-        var holding = { quantity: number(root.querySelector('[data-my-field="quantity"]').value), averagePrice: number(root.querySelector('[data-my-field="averagePrice"]').value) };
+        var holding = { quantity: number(root.querySelector('[data-my-field="quantity"]').value), averagePrice: number(root.querySelector('[data-my-field="averagePrice"]').value), horizon: root.querySelector('[data-my-field="horizon"]').value };
         var added = item && item.temporary ? global.Watchlist.add(item.code, item.name) : { ok: true };
         var result = added.ok ? global.Watchlist.updateHolding(item.code, holding) : added;
         save.textContent = result.ok ? '저장됨' : (result.reason === 'login' ? '로그인 필요' : '저장 실패');
@@ -756,7 +773,7 @@
       if (event.target.matches('[data-my-field]')) {
         var selected = itemByCode(state.selectedCode);
         if (selected) {
-          selected.holding = { quantity: number(mount.querySelector('[data-my-field="quantity"]').value), averagePrice: number(mount.querySelector('[data-my-field="averagePrice"]').value) };
+          selected.holding = { quantity: number(mount.querySelector('[data-my-field="quantity"]').value), averagePrice: number(mount.querySelector('[data-my-field="averagePrice"]').value), horizon: mount.querySelector('[data-my-field="horizon"]').value };
           updateHoldingPreview(mount, selected);
           buildWatchlistTable(global.Watchlist.getList());
         }

@@ -221,17 +221,18 @@
   }
 
   // MY 분석 화면에서만 사용하는 보유정보. 시세/차트 원자료는 저장하지 않고
-  // 사용자별 수량·평단 두 값만 기존 관심종목 JSON에 함께 저장한다.
+  // 사용자별 수량·평단·보유 기준을 기존 관심종목 JSON에 함께 저장한다.
   function updateHolding(code, holding) {
     var list = loadList();
     var item = list.filter(function (candidate) { return candidate.code === code; })[0];
     if (!item) return { ok: false, reason: 'not-found' };
     var quantity = Number(holding && holding.quantity);
     var averagePrice = Number(holding && holding.averagePrice);
+    var horizon = holding && holding.horizon === 'long' ? 'long' : 'short';
     if (!isFinite(quantity) || quantity < 0 || !isFinite(averagePrice) || averagePrice < 0) {
       return { ok: false, reason: 'invalid' };
     }
-    item.holding = { quantity: quantity, averagePrice: averagePrice };
+    item.holding = { quantity: quantity, averagePrice: averagePrice, horizon: horizon };
     saveList(list, document.querySelector(CONTAINER_SELECTOR));
     return { ok: true };
   }

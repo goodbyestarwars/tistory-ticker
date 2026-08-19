@@ -865,10 +865,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, menu)
         for token in ("loadMyDashboard", "my-dashboard.js", "my-dashboard.css"):
             self.assertIn(token, main)
-        for token in ("updateHolding", "setGroupCollapsed", "holding", "quantity", "averagePrice"):
+        for token in ("updateHolding", "setGroupCollapsed", "holding", "quantity", "averagePrice", "horizon"):
             self.assertIn(token, watchlist)
         self.assertIn("/page/watchlist", bootstrap)
-        for token in ("flowAiSummary", "pbar-tratio", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "data-my-group-toggle", "groupedWatchlist", "my-volume-chart", "차트 모양 분석", "물타기 계산기", "my-position-advice", "data-my-calc-recovery", "chartNote", "arrangeAnalysisSections", "modestProfit", "보유 · 추세 확인", "매수 당일이나 초기 수익만으로 분할 익절"):
+        for token in ("flowAiSummary", "pbar-tratio", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "data-my-group-toggle", "groupedWatchlist", "my-volume-chart", "차트 모양 분석", "물타기 계산기", "my-position-advice", "data-my-calc-recovery", "chartNote", "arrangeAnalysisSections", "modestProfit", "보유 · 추세 확인", "매수 당일이나 초기 수익만으로 분할 익절", "단타 · 5·20일선", "중장기 · 60·224일선"):
             self.assertIn(token, my)
         self.assertNotIn("Google 계정에 저장", my)
         self.assertNotIn("Groq ·", my)

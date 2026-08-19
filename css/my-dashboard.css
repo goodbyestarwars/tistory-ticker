@@ -55,9 +55,9 @@
 .my-card-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
 .my-card-title strong { font-size: 14px; }
 .my-card-title span { color: #94a3b8; font-size: 10px; }
-.my-holding-fields, .my-calc-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 8px; align-items: end; }
+.my-holding-fields, .my-calc-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 8px; align-items: end; }
 .my-holding-fields label, .my-calc-fields label { display: flex; flex-direction: column; gap: 5px; color: #64748b; font-size: 10px; }
-.my-holding-fields input, .my-calc-fields input { width: 100%; min-height: 36px; padding: 7px 9px; border: 1px solid #dbe5f2; border-radius: 8px; color: #111827; background: #fff; font: inherit; font-size: 13px; }
+.my-holding-fields input, .my-holding-fields select, .my-calc-fields input { width: 100%; min-height: 36px; padding: 7px 9px; border: 1px solid #dbe5f2; border-radius: 8px; color: #111827; background: #fff; font: inherit; font-size: 13px; }
 .my-save-holding { min-height: 36px; padding: 0 13px; border: 0; border-radius: 8px; background: #111827; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
 .my-holding-note, .my-analysis-footnote, .my-muted { margin: 9px 0 0; color: #94a3b8; font-size: 10px; line-height: 1.5; }
 .my-analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
