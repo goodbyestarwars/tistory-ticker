@@ -95,7 +95,9 @@ a { text-decoration: none; color: inherit; }
   z-index: 300;
   height: 56px;
   background: rgb(253, 253, 247);
-  border-bottom: 1px solid #eee;
+  /* 검색창의 하단 실선이 navbar 구분선 아래로 밀려 겹쳐 보이지 않도록
+     navbar 전체 구분선은 제거하고, 검색창 자체의 underline만 유지한다. */
+  border-bottom: 0;
   display: flex;
   align-items: center;
   /* 2026-07-28: 로고를 더 왼쪽으로 붙이기 위해 좌측 패딩만 줄임(우측 아이콘 위치는 유지) -
