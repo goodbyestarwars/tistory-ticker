@@ -222,6 +222,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var overviewGrid = dashboardSection.querySelector('.home-overview-grid');", main)
         self.assertIn("if (overviewGrid) overviewGrid.hidden = isClosed;", main)
         self.assertIn("if (realtimeBoard) realtimeBoard.hidden = isClosed;", main)
+        self.assertIn("다음 주 시장을 준비하는 시간입니다.", main)
         self.assertIn(".home-editorial-page.is-market-closed .home-overview-grid", style)
         self.assertNotIn("body#tt-body-index .home-editorial-page.is-market-closed", style)
 

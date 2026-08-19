@@ -234,7 +234,7 @@
         + '</div>'
         + '<section class="home-closed-page" data-home-closed-page aria-label="시장 휴장" hidden>'
         + '<div class="home-closed-lead"><span>주말 시장 안내</span><h1>휴장</h1><p>토요일·일요일은 국내·미국 증시가 휴장합니다.</p></div>'
-        + '<div class="home-closed-note"><strong>다음 거래일에 시장 데이터가 업데이트됩니다.</strong><span>관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</span></div>'
+        + '<div class="home-closed-note"><strong>다음 주 시장을 준비하는 시간입니다.</strong><span>다음 거래일부터 시장 데이터가 업데이트됩니다. 관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</span></div>'
         + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section" id="homeMarketBoard">'
