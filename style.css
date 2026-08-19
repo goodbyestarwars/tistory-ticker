@@ -3618,6 +3618,14 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
   body { word-break: keep-all; overflow-wrap: normal; }
   /* ── 내비게이션 바 ── */
   .navbar { padding: 0 12px; gap: 10px; }
+  /* 확대 화면에서도 로고·검색창이 서로 겹치지 않도록 모바일 헤더의
+     검색 영역을 flex 잔여 폭 안으로 제한한다. */
+  .navbar .nav-logo { min-width: 0; max-width: 38vw; }
+  .navbar .nav-logo-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .navbar .nav-search { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  .navbar .nav-search-wrap,
+  .navbar .nav-search-input-wrap { width: 100%; min-width: 0; }
+  .navbar .nav-search-input { width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .nav-logo-sub { display: none; }
   /* 2026-07-28: 예전엔 여기서 .nav-search를 통째로 숨기고 돋보기 아이콘(.nav-search-btn)이
      여는 전체화면 오버레이(티스토리 블로그글 검색, /search/{q})로 대신했는데, navbar
@@ -3783,7 +3791,8 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
 
 @media (max-width: 430px) {
   .navbar { gap: 6px; padding: 0 8px; }
-  .nav-search { min-width: 0; margin-left: 2px; }
+  .navbar .nav-logo { max-width: 34vw; }
+  .navbar .nav-search { min-width: 0; margin-left: 2px; }
   /* 작은 화면에서는 폰트·다크 토글과 1차 텍스트 메뉴를 우선한다. MY와 커뮤니티는
      1차 메뉴에서 직접 접근하므로 원형 보조 아이콘은 헤더 폭을 차지하지 않게 한다. */
   .nav-icons > .nav-icon-btn { display: none; }
