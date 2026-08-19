@@ -4872,6 +4872,10 @@ body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
 .home-editorial-page.is-market-closed .home-realtime-board {
   display: none !important;
 }
+.home-editorial-page.is-market-closed .home-overview-grid,
+.home-editorial-page.is-market-closed .home-widget-grid {
+  display: none !important;
+}
 .home-editorial-page .home-closed-page {
   min-height: 360px;
   border-bottom: 1px solid var(--rule);

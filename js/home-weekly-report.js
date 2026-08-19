@@ -287,7 +287,10 @@
     root.id = 'homeWeeklyReport'; root.className = 'home-weekly-report';
     root.innerHTML = '<div class="hwr-loading"><strong>주간 리포트를 준비하는 중입니다.</strong><span>지수·뉴스·일정을 묶고 있습니다.</span></div>';
     var dashboard = feed.querySelector('.home-dashboard');
-    feed.insertBefore(root, dashboard || feed.firstChild);
+    var closedSelected = window.HomeMarketSelection && typeof window.HomeMarketSelection.get === 'function'
+      && window.HomeMarketSelection.get() === 'closed';
+    if (closedSelected && dashboard) dashboard.insertAdjacentElement('afterend', root);
+    else feed.insertBefore(root, dashboard || feed.firstChild);
     var cached = readLocalReport();
     if (cached) {
       render(root, cached);

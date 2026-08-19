@@ -19,7 +19,8 @@
   <style id="initial-paint-guard">
     html, html body { background: rgb(253, 253, 247); }
     html.dark, html.dark body { background: #1A1A1A; }
-    html:not(.skin-ready) body { visibility: hidden; }
+    html:not(.skin-ready) body { visibility: hidden !important; opacity: 0; }
+    html.skin-ready body { visibility: visible; opacity: 1; transition: opacity .12s ease; }
   </style>
   <script>
     (function () {
@@ -410,7 +411,7 @@
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-shell.js?v=20260819-tistory-write-auth-v1"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260819-weekend-closed-v9-weekly-switch"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260819-weekend-closed-v11-brief-layout"></script>
 
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js"></script>
