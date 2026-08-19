@@ -127,6 +127,8 @@
   var FETCH_TIMEOUT_MS = 10000;
   var FUTURES_CACHE_KEY = 'overnight_market_futures_v1';
   var FUTURES_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
+  var lastFuturesUsedCache = false;
+  var latestFuturesRequest = null;
   var REFRESH_INTERVAL_MS = 30000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var SPARKLINE_HEIGHT = 64;
@@ -199,6 +201,8 @@
   var indicatorsReconnectDelay = 1500;
   var indicatorsGeneration = 0;
   var indicatorsContainer = null;
+  var missingDataTimer = null;
+  var MISSING_DATA_GRACE_MS = 15000;
   var currentItems = [];
   // "이 선 위로 오르면 시장에 부담"이라는 해석이 뚜렷한 지표 + BTC(52주 이동평균선, 통상적인
   // 기술적분석 지표)에 장기평균 참고선을 붙인다. 시장지수류는 방향성이 뚜렷하지 않거나
@@ -242,8 +246,9 @@
     return document.documentElement.classList.contains('dark');
   }
 
-  function fetchFutures() {
+  function fetchFutures(forceFresh) {
     var cached = readFuturesCache();
+    lastFuturesUsedCache = !!(cached && !forceFresh);
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
@@ -262,11 +267,16 @@
         if (timer) clearTimeout(timer);
         throw err;
       });
-    if (cached) {
+    latestFuturesRequest = request;
+    if (cached && !forceFresh) {
       request.catch(function () {});
       return Promise.resolve(cached);
     }
     return request;
+  }
+
+  function fetchFuturesFresh() {
+    return latestFuturesRequest || fetchFutures(true);
   }
 
   function readFuturesCache() {
@@ -346,6 +356,7 @@
   }
 
   function buildCardBody(item) {
+    var isLoading = !!(item && item._loading);
     var hasPrice = typeof item.price === 'number';
     var tone = item.change_rate > 0 ? 'om-pos' : item.change_rate < 0 ? 'om-neg' : 'om-zero';
     var arrow = item.change_rate > 0 ? '▲' : item.change_rate < 0 ? '▼' : '-';
@@ -354,8 +365,8 @@
     var lowLabel = item.high_low_scope === 'chart_range' ? '기간 저가' : '저가';
 
     return ''
-      + '<div class="om-body">'
-      + '<div class="om-price ' + tone + '">' + (hasPrice ? fmtPrice(item.price, meta.digits) + meta.unit : '데이터 없음') + '</div>'
+      + '<div class="om-body' + (isLoading ? ' om-loading' : '') + '">'
+      + '<div class="om-price ' + tone + '">' + (isLoading ? '확인 중...' : (hasPrice ? fmtPrice(item.price, meta.digits) + meta.unit : '데이터 없음')) + '</div>'
       + (hasPrice
         ? '<div class="om-change ' + tone + '">' + arrow + ' ' + fmtSigned(item.change, meta.digits) + meta.changeUnit + ' (' + fmtSigned(item.change_rate, 2) + '%)</div>'
         : '')
@@ -684,8 +695,30 @@
       .then(function (futuresItems) {
         var bySymbol = {};
         futuresItems.forEach(function (it) { bySymbol[it.symbol] = it; });
-        var items = SYMBOL_ORDER.map(function (s) { return bySymbol[s] || { symbol: s }; });
+        var hasMissing = SYMBOL_ORDER.some(function (s) { return !bySymbol[s]; });
+        var items = SYMBOL_ORDER.map(function (s) { return bySymbol[s] || { symbol: s, _loading: true }; });
         renderAll(container, items);
+
+        // 일부 지표가 뒤늦게 도착하는 짧은 구간에는 '데이터 없음'으로 단정하지 않는다.
+        if (hasMissing && !missingDataTimer) {
+          missingDataTimer = setTimeout(function () {
+            missingDataTimer = null;
+            renderAll(container, currentItems.map(function (item) {
+              return item && item._loading ? { symbol: item.symbol } : item;
+            }));
+          }, MISSING_DATA_GRACE_MS);
+        }
+
+        // 캐시를 먼저 그린 경우에도 최신 REST 응답이 도착하면 즉시 화면을 갱신한다.
+        if (lastFuturesUsedCache) {
+          OvernightMarket.fetchFuturesFresh().then(function (freshItems) {
+            var freshBySymbol = {};
+            freshItems.forEach(function (it) { freshBySymbol[it.symbol] = it; });
+            renderAll(container, SYMBOL_ORDER.map(function (s) {
+              return freshBySymbol[s] || { symbol: s, _loading: true };
+            }));
+          }).catch(function () { /* 캐시 화면은 그대로 유지한다. */ });
+        }
       })
       .catch(function () {
         SYMBOL_ORDER.forEach(function (symbol) {
@@ -819,6 +852,7 @@
   var OvernightMarket = {
     init: init,
     fetchFutures: fetchFutures,
+    fetchFuturesFresh: fetchFuturesFresh,
     fetchAiSummary: fetchAiSummary,
     fetchBenchmark: fetchBenchmark
   };
