@@ -464,13 +464,19 @@
     var synchronizedWeakness = flowWeak && chartWeak && deterioration;
     var repairable = flowHealthy && chartHealthy && (improving || !belowPoc);
     var exitSignal = profitTakingSignal(chart, data);
+    // A small positive return is not, by itself, a profit-taking signal. The
+    // holding model currently has no entry date, so use a conservative return
+    // band until the user has enough price/flow confirmation.
+    var modestProfit = lossRate != null && lossRate >= 0 && lossRate < 3;
     var advice;
     if (!hasHolding) {
       advice = { label: '보유 수량·평단 입력 필요', tone: 'neutral', reason: '수급과 차트는 확인했지만 물타기·손절 판단은 보유 수량과 평단을 입력한 뒤 계산합니다.' };
     } else if (lossRate >= 0 && exitSignal.level >= 2) {
       advice = { label: '분할 익절 검토', tone: 'up', reason: exitSignal.note };
+    } else if (modestProfit) {
+      advice = { label: '보유 · 추세 확인', tone: 'neutral', reason: '현재 수익률은 소폭 상승 구간입니다. 매수 당일이나 초기 수익만으로 분할 익절을 판단하지 않고 5일선·거래량·수급의 유지 여부를 확인하세요.' };
     } else if (lossRate >= 0) {
-      advice = { label: '수익 구간 · 보유·분할익절 기준 점검', tone: 'up', reason: '손실률만으로 물타기나 손절을 판단할 구간이 아닙니다. 수급과 차트가 유지되는지 확인하면서 목표가와 비중을 관리하세요.' };
+      advice = { label: '수익 구간 · 목표가·비중 점검', tone: 'up', reason: '수익률만으로 분할 익절을 결정하지 않습니다. 수급과 차트가 유지되는지 확인하면서 목표가와 보유 비중을 관리하세요.' };
     } else if (repairable) {
       advice = { label: '조건부 분할 물타기 검토', tone: 'up', reason: '손실률이 있어도 수급과 차트가 함께 회복 신호를 보여 전량 물타기보다 예산을 나눠 평균단가를 낮추는 시나리오를 검토할 수 있습니다.' };
     } else if (synchronizedWeakness && lossRate <= -20) {
