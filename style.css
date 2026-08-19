@@ -4979,8 +4979,8 @@ body#tt-body-index .home-editorial-page .home-closed-kicker > span {
 body#tt-body-index .home-editorial-page .home-closed-kicker h1 {
   margin: 0 0 7px;
   color: #111827;
-  font: 500 clamp(36px, 4.5vw, 54px)/.98 var(--font-title);
-  letter-spacing: -.08em;
+  font: 650 clamp(36px, 4.5vw, 54px)/1.02 "Arial", "Helvetica Neue", sans-serif;
+  letter-spacing: -.045em;
 }
 body#tt-body-index .home-editorial-page .home-closed-kicker p {
   margin: 0;
