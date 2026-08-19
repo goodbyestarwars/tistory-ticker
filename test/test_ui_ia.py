@@ -266,7 +266,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # gothic mode, and the cache version is bumped for the Tistory skin.
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260820-search-responsive-v1", skin)
+        self.assertIn("style.css?v=20260820-search-underline-fit-v1", skin)
         self.assertIn(".home-briefing-featured .post-excerpt", style)
         self.assertIn("min-height: 6.4em", style)
         self.assertIn(".home-briefing-small .post-title", style)
@@ -274,6 +274,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 25px;", style)
         self.assertIn("skin-main.js?v=20260820-tab-cleanup-v1", skin)
+
+    def test_navbar_search_underline_fits_inside_navbar_height(self):
+        # 2026-08-20: .nav-search-input-wrap의 min-height(64px)가 .navbar 자체 높이
+        # (56px)보다 커서 검색창 하단 실선이 navbar 밖으로 흘러넘쳐, 바로 아래 있는
+        # 상단 메뉴바(.sidebar-left)의 border-top과 겹쳐 두꺼운 검은 줄처럼 보이던
+        # 문제를 고정한다(사용자 리포트: "상위 종목검색 하단 검은색 줄이 뒤에
+        # 구분선과 겹쳐"). navbar 높이(56px)보다 작아야 한다.
+        style = self.read("style.css")
+        match = re.search(r"\.navbar \{[^}]*height:\s*(\d+)px", style)
+        self.assertIsNotNone(match)
+        navbar_height = int(match.group(1))
+        search_match = re.search(r"\.navbar \.nav-search-input-wrap \{[^}]*min-height:\s*(\d+)px", style)
+        self.assertIsNotNone(search_match)
+        self.assertLess(int(search_match.group(1)), navbar_height)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")
@@ -391,7 +405,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
         self.assertIn("home-weekly-report.css?v=20260819-gold-range-v3", script)
-        self.assertIn("home-weekly-report.js?v=20260820-tab-cleanup-v1", self.read("js/skin-main.js"))
+        self.assertIn("home-weekly-report.js?v=20260820-sentiment-color-fix-v1", self.read("js/skin-main.js"))
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)
 
@@ -1557,6 +1571,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('<strong>곰장 · 하락</strong>', source)
         self.assertIn('M71 61c0 9 4 14 9 14s9-5 9-14', source)
         self.assertEqual(source.count('<svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor"'), 2)
+
+    def test_weekly_sentiment_svg_inlines_color_to_avoid_black_flash(self):
+        # 2026-08-20: 휴장 탭을 열 때 css/home-weekly-report.css가 늦게 도착하면
+        # stroke="currentColor"가 브라우저 기본색(검정)으로 먼저 그려졌다가 CSS
+        # 도착 후 빨강/파랑으로 바뀌는 깜박임이 있었다(사용자 리포트). 래퍼에 인라인
+        # color를 넣어 외부 CSS 도착 전에도 첫 페인트부터 올바른 색이 나오게 한다.
+        source = self.read("js/home-weekly-report.js")
+        self.assertIn('class="hwr-sentiment hwr-sentiment--up" style="color:#d24f45"', source)
+        self.assertIn('class="hwr-sentiment hwr-sentiment--down" style="color:#1261c4"', source)
 
     def test_weekly_hot_and_cold_stock_reasons_are_bold(self):
         source = self.read("js/home-weekly-report.js")

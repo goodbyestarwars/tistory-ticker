@@ -158,7 +158,12 @@ a { text-decoration: none; color: inherit; }
    (사용자 리포트: "검색창이 이중으로 되어 있어") - 옛 규칙을 삭제해서 해결) */
 .navbar .nav-search-wrap { padding: 0; border-bottom: none; margin-bottom: 0; }
 .navbar .nav-search-input-wrap {
-  min-height: 64px;
+  /* 2026-08-20: min-height가 navbar 자체 높이(56px)보다 커서 검색창 하단 실선이
+     navbar 아래로 흘러넘쳐, 바로 아래 있는 상단 메뉴바(.sidebar-left)의
+     border-top과 겹쳐 두꺼운 검은 줄처럼 보이던 문제를 수정했다(사용자 리포트:
+     "상위 종목검색 하단 검은색 줄이 뒤에 구분선과 겹쳐"). navbar 안에서 실선이
+     완전히 보이도록 56px보다 작게 맞춘다. */
+  min-height: 50px;
   padding: 8px 0 7px;
   gap: 14px;
   border: 0;
