@@ -5991,7 +5991,7 @@ body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-r
   border: 0 !important;
   border-top: 1px solid #e5e7eb !important;
   border-radius: 0 !important;
-  background: #fff !important;
+  background: transparent !important;
   transform-origin: 50% 0;
 }
 body#tt-body-index .home-editorial-page .home-scoreboard-list.is-flipping .home-disclosure-row {
