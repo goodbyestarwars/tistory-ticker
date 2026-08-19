@@ -156,22 +156,23 @@ a { text-decoration: none; color: inherit; }
    (사용자 리포트: "검색창이 이중으로 되어 있어") - 옛 규칙을 삭제해서 해결) */
 .navbar .nav-search-wrap { padding: 0; border-bottom: none; margin-bottom: 0; }
 .navbar .nav-search-input-wrap {
-  min-height: 54px;
-  padding: 12px 20px;
-  gap: 10px;
-  border-radius: 14px;
-  background: #fff;
-  border-color: #d7dee8;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, .08);
-  transition: border-color .18s ease, box-shadow .18s ease;
+  min-height: 64px;
+  padding: 8px 0 7px;
+  gap: 14px;
+  border: 0;
+  border-bottom: 2px solid #111;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: border-color .18s ease;
 }
 .navbar .nav-search-input-wrap:focus-within {
-  border-color: #94a3b8;
-  box-shadow: 0 5px 20px rgba(15, 23, 42, .12);
+  border-bottom-color: #111;
 }
-.navbar .nav-search-icon { display: inline-flex; width: 21px; height: 21px; color: #111827; }
+.navbar .nav-search-icon { display: inline-flex; order: 2; width: 31px; height: 31px; color: #111; }
 .navbar .nav-search-icon svg { display: block; width: 100%; height: 100%; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.navbar .nav-search-input { font-size: 18px; line-height: 1.4; }
+.navbar .nav-search-input { order: 1; font-size: 25px; line-height: 1.3; color: #111; }
+.navbar .nav-search-input::placeholder { color: #7c7c7c; opacity: 1; }
 .nav-icons {
   margin-left: auto;
   display: flex;
@@ -3630,9 +3631,9 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
     margin-left: 8px;
     transform: none;
   }
-  .navbar .nav-search-input-wrap { min-height: 0; padding: 9px 12px; border-radius: 10px; box-shadow: inset 0 2px 4px rgba(0, 0, 0, .08), inset 0 -1px 0 rgba(255, 255, 255, .6); }
-  .navbar .nav-search-icon { width: 17px; height: 17px; }
-  .navbar .nav-search-input { font-size: 13.5px; }
+  .navbar .nav-search-input-wrap { min-height: 48px; padding: 5px 0 4px; border-bottom-width: 1px; border-radius: 0; box-shadow: none; }
+  .navbar .nav-search-icon { width: 24px; height: 24px; }
+  .navbar .nav-search-input { font-size: 19px; }
   /* 2026-07-27: 상단 메뉴바가 항상 노출되는 가로 스크롤 형태로 바뀌면서 모바일
      드로어 자체가 없어져 햄버거 버튼도 더는 쓸 일이 없다(9Pay 증권 작업지시서 #12). */
   .nav-hamburger { display: none !important; }
@@ -4575,6 +4576,8 @@ html.dark .home-market-switch button.is-active { border-color: #60a5fa; backgrou
   .home-market-switch button { padding: 4px 8px; font-size: 9.5px; }
 }
 html.dark .navbar .nav-search-icon { color: #F5EFE0; }
+html.dark .navbar .nav-search-input-wrap { background: transparent; border-bottom-color: #F5EFE0; }
+html.dark .navbar .nav-search-input-wrap:focus-within { border-bottom-color: #F5EFE0; }
 
 /* Shared news timeline: home, stock search, US stocks, and stock analysis. */
 .app-news-timeline { display: grid; grid-template-columns: minmax(0, 1fr); }
