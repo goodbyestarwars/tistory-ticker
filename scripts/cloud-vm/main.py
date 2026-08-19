@@ -1700,6 +1700,32 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
                 chart = db_schema.load_future_chart_minute(conn, symbol)
             else:
                 chart = db_schema.load_future_chart(conn, symbol, limit_days=days)
+            # 야간선물 WebSocket의 현재가와 분봉 수집은 서로 다른 주기로 갱신될 수 있다.
+            # WebSocket 현재가가 오래 멈춘 경우에는 최신 분봉 종가를 우선해 현재가·등락률이
+            # 차트와 서로 다른 시점을 가리키지 않도록 한다. 전일 기준값은 WebSocket이 제공한
+            # change로 복원한다(예: 1,058.10 - 41.85 = 1,016.25).
+            if symbol == 'KOSPI200_NIGHT' and p and p.get('price') is not None:
+                minute_rows = db_schema.load_future_chart_minute(conn, symbol)
+                latest_minute = minute_rows[-1] if minute_rows else None
+                if latest_minute and latest_minute.get('close') is not None:
+                    quote_epoch = None
+                    try:
+                        quote_epoch = datetime.fromisoformat(str(p.get('updated_at') or '').replace('Z', '+00:00')).timestamp()
+                    except (TypeError, ValueError, OSError):
+                        pass
+                    minute_epoch = float(latest_minute.get('ts') or 0)
+                    if minute_epoch and (quote_epoch is None or minute_epoch > quote_epoch):
+                        previous_close = None
+                        try:
+                            previous_close = float(p['price']) - float(p['change'])
+                        except (KeyError, TypeError, ValueError):
+                            pass
+                        if previous_close and previous_close > 0:
+                            p = dict(p)
+                            p['price'] = float(latest_minute['close'])
+                            p['change'] = p['price'] - previous_close
+                            p['change_rate'] = p['change'] / previous_close * 100
+                            p['updated_at'] = datetime.fromtimestamp(minute_epoch, timezone.utc).isoformat()
             if symbol == 'USDKRW':
                 # 환율 실시간 API는 현재가/등락만 제공하고 고가·저가는 제공하지 않는다.
                 # 카드의 '-' 대신 이미 함께 내려가는 기간 차트의 실제 범위를 표시하되,
