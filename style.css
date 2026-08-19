@@ -4869,37 +4869,37 @@ body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
 }
 
 /* 주말에는 마지막 시세를 재사용해 평일 화면처럼 보이지 않게 휴장 지면을 연다. */
-body#tt-body-index .home-editorial-page.is-market-closed .home-overview-grid,
-body#tt-body-index .home-editorial-page.is-market-closed .home-realtime-board {
+.home-editorial-page.is-market-closed .home-overview-grid,
+.home-editorial-page.is-market-closed .home-realtime-board {
   display: none !important;
 }
-body#tt-body-index .home-editorial-page .home-closed-page {
+.home-editorial-page .home-closed-page {
   min-height: 360px;
   border-bottom: 1px solid var(--rule);
   background: transparent;
 }
-body#tt-body-index .home-editorial-page .home-closed-lead {
+.home-editorial-page .home-closed-lead {
   padding: clamp(58px, 10vw, 112px) 0 42px;
   border-bottom: 1px solid var(--rule);
 }
-body#tt-body-index .home-editorial-page .home-closed-lead > span {
+.home-editorial-page .home-closed-lead > span {
   display: block;
   margin-bottom: 14px;
   color: var(--text-sub);
   font: 700 12px/1.4 var(--font-ui);
   letter-spacing: .04em;
 }
-body#tt-body-index .home-editorial-page .home-closed-lead h1 {
+.home-editorial-page .home-closed-lead h1 {
   margin: 0 0 12px;
   color: var(--text-main);
   font: 400 clamp(36px, 5vw, 58px)/1.1 var(--font-title);
 }
-body#tt-body-index .home-editorial-page .home-closed-lead p {
+.home-editorial-page .home-closed-lead p {
   margin: 0;
   color: var(--text-sub);
   font: 400 15px/1.7 var(--font-ui);
 }
-body#tt-body-index .home-editorial-page .home-closed-note {
+.home-editorial-page .home-closed-note {
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -4907,14 +4907,14 @@ body#tt-body-index .home-editorial-page .home-closed-note {
   color: var(--text-sub);
   font: 400 13px/1.6 var(--font-ui);
 }
-body#tt-body-index .home-editorial-page .home-closed-note strong {
+.home-editorial-page .home-closed-note strong {
   color: var(--text-main);
   font-weight: 700;
 }
 @media (max-width: 640px) {
-  body#tt-body-index .home-editorial-page .home-closed-page { min-height: 300px; }
-  body#tt-body-index .home-editorial-page .home-closed-lead { padding: 64px 0 32px; }
-  body#tt-body-index .home-editorial-page .home-closed-note {
+  .home-editorial-page .home-closed-page { min-height: 300px; }
+  .home-editorial-page .home-closed-lead { padding: 64px 0 32px; }
+  .home-editorial-page .home-closed-note {
     display: block;
     padding: 18px 0;
   }

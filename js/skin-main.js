@@ -732,8 +732,15 @@
     function applyHomeMarketSession(session) {
       var closedPage = dashboardSection.querySelector('[data-home-closed-page]');
       var isClosed = !!(session && session.closed);
+      var overviewGrid = dashboardSection.querySelector('.home-overview-grid');
+      var realtimeBoard = dashboardSection.querySelector('.home-realtime-board');
       dashboardSection.classList.toggle('is-market-closed', isClosed);
       if (closedPage) closedPage.hidden = !isClosed;
+      // CSS 선택자가 스킨의 body id에 의존하지 않도록 DOM 자체에서도 숨긴다.
+      // Tistory 스킨·WebView별 body id 차이로 휴장 지면 아래에 이전 시장 화면이
+      // 남는 것을 방지한다.
+      if (overviewGrid) overviewGrid.hidden = isClosed;
+      if (realtimeBoard) realtimeBoard.hidden = isClosed;
       if (isClosed) return;
       var title = dashboardSection.querySelector('[data-home-market-field="title"]');
       var live = dashboardSection.querySelector('[data-home-market-field="live"]');

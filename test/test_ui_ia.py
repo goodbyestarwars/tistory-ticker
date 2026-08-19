@@ -216,6 +216,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (closedPage) dashboard.appendChild(closedPage);", source)
         self.assertIn("home-widgets.js?v=20260819-closed-page-v1", self.read("js/skin-main.js"))
 
+    def test_home_closed_state_hides_market_content_without_body_id_dependency(self):
+        main = self.read("js/skin-main.js")
+        style = self.read("style.css")
+        self.assertIn("var overviewGrid = dashboardSection.querySelector('.home-overview-grid');", main)
+        self.assertIn("if (overviewGrid) overviewGrid.hidden = isClosed;", main)
+        self.assertIn("if (realtimeBoard) realtimeBoard.hidden = isClosed;", main)
+        self.assertIn(".home-editorial-page.is-market-closed .home-overview-grid", style)
+        self.assertNotIn("body#tt-body-index .home-editorial-page.is-market-closed", style)
+
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
         skin = self.read("skin.html")
