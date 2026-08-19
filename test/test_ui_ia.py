@@ -210,6 +210,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("try {\n          window.HomeMarketSelection.set(market);", source)
         self.assertIn("catch (error) {", source)
 
+    def test_home_widgets_preserve_closed_page_when_rebuilding_registry(self):
+        source = self.read("js/home-widgets.js")
+        self.assertIn("var closedPage = dashboard.querySelector('.home-closed-page');", source)
+        self.assertIn("if (closedPage) dashboard.appendChild(closedPage);", source)
+        self.assertIn("home-widgets.js?v=20260819-closed-page-v1", self.read("js/skin-main.js"))
+
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
         skin = self.read("skin.html")
