@@ -161,6 +161,9 @@ html.dark .hwr-news-rail i { background: #1a1a1a; }
 .hwr-candidate-section .hwr-card-title strong.is-up { color: #d24f45; }
 .hwr-candidate-section .hwr-card-title strong.is-down { color: #1261c4; }
 .hwr-fx-card { min-width: 0; padding: 10px 11px; border: 1px solid #e2e8f0; border-radius: 9px; background: #fff; }
+.hwr-fx-card--interest { border-color: #bfdbfe; background: #f5f9ff; }
+.hwr-fx-card--caution { border-color: #fecaca; background: #fff8f7; }
+.hwr-fx-card--neutral, .hwr-fx-card--unknown { background: #fff; }
 .hwr-summary-row .hwr-fx-card { display: block; }
 .hwr-fx-card .hwr-card-title { margin-bottom: 3px; }
 .hwr-fx-main { display: flex; align-items: baseline; gap: 8px; }

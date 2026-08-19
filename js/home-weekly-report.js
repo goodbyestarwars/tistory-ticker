@@ -6,8 +6,8 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260817-stock-grid-v16';
-  var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v1';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260819-gold-range-v1';
+  var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v2';
   var FETCH_TIMEOUT_MS = 8000;
 
   function readLocalReport() {
@@ -200,14 +200,14 @@
     }
     return '<div class="hwr-sentiment hwr-sentiment--down" aria-label="곰장 하락"><svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true"><path d="M54 24c-3-10-15-14-23-7-7 6-4 18 5 21M106 24c3-10 15-14 23-7 7 6 4 18-5 21"/><path d="M43 34c5-14 19-23 37-23s32 9 37 23l5 20c-5 16-20 25-42 25s-37-9-42-25Z"/><path d="M59 38l10-3M101 38l-10-3M61 59c3-8 10-12 19-12s16 4 19 12c-4 8-10 12-19 12S65 67 61 59ZM80 58v8M72 64c2 2 5 3 8 2 3 1 6 0 8-2"/><circle cx="64" cy="41" r="2"/><circle cx="96" cy="41" r="2"/><circle cx="80" cy="56" r="2.4"/></svg><strong>곰장 · 하락</strong></div>';
   }
-  function fxStatus(fx) {
+  function fxStatus(fx, fallbackLabel, fallbackMessage) {
     var analysis = fx && fx.analysis || {};
     var status = analysis.status || 'unknown';
-    var label = analysis.label || '환율 데이터 확인 중';
-    var message = analysis.message || '1년 환율 데이터가 부족합니다.';
+    var label = analysis.label || fallbackLabel || '데이터 확인 중';
+    var message = analysis.message || fallbackMessage || '1년 관측 데이터가 부족합니다.';
     return '<div class="hwr-fx-advice"><span class="hwr-fx-status hwr-fx-status--' + escapeHtml(status) + '">' + escapeHtml(label) + '</span><small>' + escapeHtml(message) + '</small></div>';
   }
-  function fxSparkline(fx) {
+  function fxSparkline(fx, title) {
     var analysis = fx && fx.analysis || {};
     var points = (fx && fx.chart || []).map(function (point) { return num(point && point.close); }).filter(function (value) { return value != null; });
     if (points.length < 2) return '<div class="hwr-fx-chart hwr-fx-chart--empty">1년 추이 데이터 없음</div>';
@@ -228,15 +228,20 @@
     var bandHeight = Math.max(0, bandBottom - bandTop);
     var averageLine = average == null ? '' : '<line class="hwr-fx-average-line" x1="0" y1="' + y(average).toFixed(1) + '" x2="100" y2="' + y(average).toFixed(1) + '"></line>';
     var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1"></rect>';
-    return '<div class="hwr-fx-chart"><svg class="hwr-fx-spark ' + signClass(fx.change_rate) + '" viewBox="0 0 100 44" preserveAspectRatio="none" role="img" aria-label="최근 1년 원달러 환율 추이"><line class="hwr-fx-guide-line" x1="0" y1="5" x2="100" y2="5"></line><line class="hwr-fx-guide-line" x1="0" y1="39" x2="100" y2="39"></line>' + interestBand + averageLine + '<polyline points="' + poly + '"></polyline></svg></div>';
+    return '<div class="hwr-fx-chart"><svg class="hwr-fx-spark ' + signClass(fx.change_rate) + '" viewBox="0 0 100 44" preserveAspectRatio="none" role="img" aria-label="최근 1년 ' + escapeHtml(title || '자산') + ' 추이"><line class="hwr-fx-guide-line" x1="0" y1="5" x2="100" y2="5"></line><line class="hwr-fx-guide-line" x1="0" y1="39" x2="100" y2="39"></line>' + interestBand + averageLine + '<polyline points="' + poly + '"></polyline></svg></div>';
   }
-  function fxCard(fx) {
+  function rangeCard(fx, options) {
     fx = fx || {};
+    options = options || {};
     var analysis = fx.analysis || {};
     var current = analysis.current != null ? analysis.current : fx.price;
     var average = analysis.average;
     var low = analysis.low, high = analysis.high, p25 = analysis.p25;
-    return '<article class="hwr-fx-card"><div class="hwr-card-title"><strong>원/달러 환율</strong><span>최근 1년 기준</span></div><div class="hwr-fx-main"><strong>' + (current == null ? '-' : formatPrice(current, 'KRW') + '원') + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b></div>' + fxSparkline(fx) + '<div class="hwr-fx-legend"><span><i class="hwr-fx-legend-line hwr-fx-legend-line--average"></i>1년 평균 <b>' + (average == null ? '-' : formatPrice(average, 'KRW') + '원') + '</b></span><span><i class="hwr-fx-legend-swatch"></i>관심 구간 ≤ ' + (p25 == null ? '-' : formatPrice(p25, 'KRW') + '원') + '</span></div><div class="hwr-fx-range"><span>1년 저점 ' + (low == null ? '-' : formatPrice(low, 'KRW') + '원') + '</span><span>1년 고점 ' + (high == null ? '-' : formatPrice(high, 'KRW') + '원') + '</span></div><div class="hwr-fx-meta">' + fxStatus(fx) + '</div></article>';
+    var unit = options.unit === 'usd' ? '$' : '원';
+    var symbol = options.unit === 'usd' ? 'US' : 'KRW';
+    var display = function (value) { return value == null ? '-' : formatPrice(value, symbol) + unit; };
+    var status = (analysis.status || 'unknown').replace(/[^a-z-]/g, '');
+    return '<article class="hwr-fx-card hwr-fx-card--' + escapeHtml(status) + '"><div class="hwr-card-title"><strong>' + escapeHtml(options.title || '원/달러 환율') + '</strong><span>최근 1년 기준</span></div><div class="hwr-fx-main"><strong>' + display(current) + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b></div>' + fxSparkline(fx, options.title) + '<div class="hwr-fx-legend"><span><i class="hwr-fx-legend-line hwr-fx-legend-line--average"></i>1년 평균 <b>' + display(average) + '</b></span><span><i class="hwr-fx-legend-swatch"></i>매수 관심 ≤ ' + display(p25) + '</span></div><div class="hwr-fx-range"><span>1년 저점 ' + display(low) + '</span><span>1년 고점 ' + display(high) + '</span></div><div class="hwr-fx-meta">' + fxStatus(fx, options.fallbackLabel, options.fallbackMessage) + '</div></article>';
   }
   function scheduleList(items) {
     if (!items || !items.length) return '<p class="hwr-empty">다음 주 M7·금리·주요 기업 일정이 확인되지 않았습니다.</p>';
@@ -258,6 +263,7 @@
     var subtitle = weekendDay === 0 || weekendDay === 1 ? '한국·미국 증시 흐름과 다음 주 핵심 일정·뉴스를 한 화면에 통합합니다.' : '이번 주 시장 흐름과 주요 이슈를 한 화면에 정리합니다.';
     var indices = data.indices || [];
     var fx = data.fx || {};
+    var gold = data.gold || {};
     root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><span class="hwr-eyebrow">WEEKEND BRIEF</span><h2>' + title + '</h2><p>' + subtitle + '</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + indexSummary(indices)
       + '<div class="hwr-index-grid">' + indices.filter(function (item) {
@@ -265,7 +271,8 @@
       }).map(function (item) {
         return '<article class="hwr-index-card"><div><strong>' + escapeHtml(item.name) + '</strong><span class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span></div><b>' + formatMarketValue(item) + '</b><div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div><small>' + (item.available ? '주간 추이' : '데이터 없음') + '</small></article>';
       }).join('') + '</div>'
-      + '<div class="hwr-summary-row"><div>' + fxCard(fx) + '</div><p class="hwr-source-note"><b>데이터 출처</b><br>지수: 국내 KRX/KIS · 미국 네이버·KIS<br>한국 뉴스: 네이버 뉴스 · DART 공시<br>미국 뉴스: Finnhub · Alpha Vantage (설정된 공급자 기준)<br><small>환율 구간은 최근 1년 관측값을 기준으로 한 참고용 분류입니다.</small></p></div>'
+      + '<div class="hwr-summary-row hwr-asset-row"><div>' + rangeCard(fx, { title: '원/달러 환율', unit: 'krw', fallbackLabel: '환율 데이터 확인 중', fallbackMessage: '1년 환율 데이터가 부족합니다.' }) + '</div><div>' + rangeCard(gold, { title: '금 선물', unit: 'usd', fallbackLabel: '금 시세 데이터 확인 중', fallbackMessage: '1년 금 시세 데이터가 부족합니다.' }) + '</div></div>'
+      + '<p class="hwr-source-note"><b>데이터 출처</b><br>지수: 국내 KRX/KIS · 미국 네이버·KIS<br>한국 뉴스: 네이버 뉴스 · DART 공시<br>미국 뉴스·금 선물: 설정된 공급자 기준<br><small>환율·금 시세는 최근 1년 관측 범위를 기준으로 한 참고용 분류입니다.</small></p>'
       + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>뜨거웠던 종목</strong><span>지난주 상승·수급·거래대금 신호와 사유</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.us, 'us') + '</article></div></section>'
       + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>차가웠던 종목</strong><span>지난주 하락률 상위 중 유동성 종목 우선</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.us, 'us') + '</article></div></section>'
       + '<section class="hwr-stock-section hwr-candidate-section"><div class="hwr-section-heading"><strong>4주 스윙 상승 후보</strong><span>국내 차트 국면·모멘텀·펀더멘털·위험 필터 통과 종목만 표시</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong class="is-up">국내 후보</strong><span>보유자 행동과 신규 진입을 분리</span></div>' + stockListWithReasons(data.hotCandidates && data.hotCandidates.domestic, 'domestic', '현재 조건 충족 후보 없음') + '</article></div></section>'

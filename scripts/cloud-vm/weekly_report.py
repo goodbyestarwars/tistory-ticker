@@ -430,8 +430,8 @@ def swing_candidates(swing_scan, limit=5):
     return result[:limit]
 
 
-def fx_analysis(row):
-    """Summarize the current FX level against its one-year observed range."""
+def range_analysis(row, subject='환율', unknown_message=None):
+    """Summarize a market asset against its one-year observed range."""
     row = dict(row or {})
     points = []
     for point in row.get('chart') or []:
@@ -443,7 +443,7 @@ def fx_analysis(row):
     closes = [point['close'] for point in points]
     current = closes[-1] if closes else _number(row.get('price'))
     if not closes or current is None:
-        row['analysis'] = {'status': 'unknown', 'label': '데이터 확인 중', 'message': '1년 환율 데이터가 부족합니다.'}
+        row['analysis'] = {'status': 'unknown', 'label': '데이터 확인 중', 'message': unknown_message or '1년 관측 데이터가 부족합니다.'}
         return row
     ordered = sorted(closes)
     average = sum(closes) / len(closes)
@@ -452,9 +452,9 @@ def fx_analysis(row):
     p25 = ordered[int((len(ordered) - 1) * .25)]
     p75 = ordered[int((len(ordered) - 1) * .75)]
     if current >= p75:
-        status, label, message = 'caution', '고환율 주의', '1년 관측 범위 상단이라 추격 매수는 주의'
+        status, label, message = 'caution', subject + ' 고점 주의', '1년 관측 범위 상단이라 추격 매수는 주의'
     elif current <= p25:
-        status, label, message = 'interest', '관심 구간', '1년 관측 범위 하단이라 분할 접근을 검토'
+        status, label, message = 'interest', '매수 관심 구간', '1년 관측 범위 하단이라 분할 접근을 검토'
     else:
         status, label, message = 'neutral', '중립·관망', '1년 평균 범위 안에서 방향을 확인'
     row['chart'] = points
@@ -464,6 +464,14 @@ def fx_analysis(row):
         'p25': p25, 'p75': p75,
     }
     return row
+
+
+def fx_analysis(row):
+    return range_analysis(row, '고환율', '1년 환율 데이터가 부족합니다.')
+
+
+def gold_analysis(row):
+    return range_analysis(row, '금값', '1년 금 시세 데이터가 부족합니다.')
 
 
 def _within_week(item, start, end):
@@ -569,6 +577,7 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
         'week': {'start': start.isoformat(), 'end': end.isoformat(), 'label': '%s ~ %s' % (start.isoformat(), end.isoformat())},
         'indices': index_summary(futures_rows, start, end),
         'fx': fx_analysis(next((row for row in futures_rows or [] if row.get('symbol') == 'USDKRW'), None)),
+        'gold': gold_analysis(next((row for row in futures_rows or [] if row.get('symbol') == 'GOLD'), None)),
         'hotStocks': {
             'domestic': hot_stocks(domestic_board),
             'us': hot_stocks(us_board),
