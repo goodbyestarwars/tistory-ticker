@@ -250,6 +250,16 @@
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
+        + '<article class="home-index-card home-index-card--closed-extra" data-home-index-slot="tertiary">'
+        + '<div class="home-index-top"><strong data-index-field="label">코스닥</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
+        + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
+        + '</article>'
+        + '<article class="home-index-card home-index-card--closed-extra" data-home-index-slot="quaternary">'
+        + '<div class="home-index-top"><strong data-index-field="label">S&P500</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
+        + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
+        + '</article>'
         + '</div>'
         + '<div class="hmb-summary-head"><strong data-home-summary-field="title">국내 시장 요약</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list">'
@@ -709,10 +719,12 @@
     }
 
     var HOME_CLOSED_SAMPLE_MARKET = {
-      title: '미국 시장',
+      title: '한국·미국 시장',
       live: '지난 거래일 기준',
       updated: '지난 거래일 기준 · 화면 조정용 샘플',
       indices: [
+        { key: 'KOSPI', label: '코스피', price: 7155.56, rate: -2.55 },
+        { key: 'KOSDAQ', label: '코스닥', price: 857.14, rate: -0.87 },
         { key: 'NASDAQ_INDEX', label: '나스닥', price: 26289.71, rate: -1.33 },
         { key: 'SP500_INDEX', label: 'S&P500', price: 7691.76, rate: -0.69 }
       ],
@@ -732,10 +744,12 @@
       var updated = document.getElementById('hmbUpdated');
       var summaryTitle = dashboardSection.querySelector('[data-home-summary-field="title"]');
       var summaryMeta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
+      var indexStrip = dashboardSection.querySelector('.home-index-strip');
+      if (indexStrip) indexStrip.classList.add('is-closed-both');
       if (title) title.textContent = sample.title;
       if (live) live.textContent = sample.live;
       if (updated) updated.textContent = sample.updated;
-      if (summaryTitle) summaryTitle.textContent = '미국 시장 요약';
+      if (summaryTitle) summaryTitle.textContent = '한국·미국 시장 요약';
       if (summaryMeta) summaryMeta.textContent = '지난 거래일 기준';
       setField('temperature', sample.summary.temperature, 'home-neutral');
       setField('direction', sample.summary.direction, 'home-negative');
@@ -743,7 +757,8 @@
       setField('leaders', sample.summary.leaders, 'home-positive');
       setField('cautions', sample.summary.cautions, 'home-negative');
       sample.indices.forEach(function (item, index) {
-        var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
+        var slots = ['primary', 'secondary', 'tertiary', 'quaternary'];
+        var card = homeIndexCard(slots[index]);
         if (!card) return;
         var price = card.querySelector('[data-index-field="price"]');
         var change = card.querySelector('[data-index-field="change"]');
@@ -808,6 +823,8 @@
       var widgetGrid = dashboardSection.querySelector('.home-widget-grid');
       var realtimeBoard = dashboardSection.querySelector('.home-realtime-board');
       dashboardSection.classList.toggle('is-market-closed', isClosed);
+      var indexStrip = dashboardSection.querySelector('.home-index-strip');
+      if (indexStrip && !isClosed) indexStrip.classList.remove('is-closed-both');
       if (closedPage) closedPage.hidden = !isClosed;
       // CSS 선택자가 스킨의 body id에 의존하지 않도록 DOM 자체에서도 숨긴다.
       // Tistory 스킨·WebView별 body id 차이로 휴장 지면 아래에 이전 시장 화면이
