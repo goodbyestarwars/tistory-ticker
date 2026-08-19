@@ -42,7 +42,7 @@
   var SEARCH_HTML = ''
     + '<div class="nav-search-wrap">'
     + '<div class="nav-search-input-wrap">'
-    + '<span class="nav-search-icon" aria-hidden="true">🔍</span>'
+    + '<span class="nav-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 5 5"></path></svg></span>'
     + '<input type="text" id="navSearchInput" class="nav-search-input" placeholder="종목검색"'
     + ' aria-label="전체 종목 검색" autocomplete="off" />'
     + '</div><div id="navSearchSuggest" class="nav-search-suggest"></div></div>';
