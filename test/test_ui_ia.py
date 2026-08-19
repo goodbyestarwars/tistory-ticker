@@ -214,7 +214,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/home-widgets.js")
         self.assertIn("var closedPage = dashboard.querySelector('.home-closed-page');", source)
         self.assertIn("if (closedPage) dashboard.appendChild(closedPage);", source)
-        self.assertIn("home-widgets.js?v=20260820-market-scoreboard-v1", self.read("js/skin-main.js"))
+        self.assertIn("home-widgets.js?v=20260820-market-scoreboard-v2", self.read("js/skin-main.js"))
 
     def test_home_closed_state_hides_market_content_without_body_id_dependency(self):
         main = self.read("js/skin-main.js")
@@ -236,7 +236,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260820-market-scoreboard-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260820-market-scoreboard-v2", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -273,7 +273,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("border-bottom: 2px solid #111", style)
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 25px;", style)
-        self.assertIn("skin-main.js?v=20260820-market-scoreboard-v1", skin)
+        self.assertIn("skin-main.js?v=20260820-market-scoreboard-v2", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")

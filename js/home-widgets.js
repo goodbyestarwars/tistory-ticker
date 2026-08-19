@@ -728,7 +728,7 @@
     var label = document.querySelector('[data-home-disclosure-field="meta"]');
     var section = document.querySelector('[data-home-disclosure-section]');
     if (title) title.textContent = market === 'us' ? '주요일정' : '관심종목 주간 공시';
-    if (label) label.textContent = meta || (market === 'us' ? '관심종목 일정' : '최근 7일');
+    if (label) label.textContent = meta != null ? meta : (market === 'us' ? '관심종목 일정' : '최근 7일');
     if (section) section.setAttribute('aria-label', market === 'us' ? '관심종목 주요일정' : '관심종목 주간 공시');
   }
 
@@ -847,7 +847,7 @@
   function renderUsSchedule(selection) {
     var mount = document.getElementById('homeDisclosureList');
     if (!mount) return;
-    setDisclosureHeader('us', selection.today ? '오늘 일정' : '다음 일정');
+    setDisclosureHeader('us', '');
     if (!selection.items.length) {
       stopDisclosureTicker();
       setDisclosureVisible(false);
