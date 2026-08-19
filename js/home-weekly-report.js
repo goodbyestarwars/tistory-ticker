@@ -6,8 +6,9 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260819-gold-range-v1';
-  var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v2';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260819-gold-range-v2';
+  var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v3';
+  var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
 
   function readLocalReport() {
@@ -37,7 +38,17 @@
       return response.json();
     }).then(function (payload) {
       clearTimeout(timeoutId);
-      return payload;
+      var data = payload && payload.data;
+      if (data && data.gold && (data.gold.price != null || (data.gold.chart && data.gold.chart.length))) return payload;
+      return fetch(GOLD_FALLBACK_URL, { cache: 'no-store' }).then(function (response) {
+        if (!response.ok) throw new Error('gold fallback ' + response.status);
+        return response.json();
+      }).then(function (goldPayload) {
+        var rows = goldPayload && goldPayload.data;
+        var gold = Array.isArray(rows) ? rows.filter(function (row) { return row && row.symbol === 'GOLD'; })[0] : null;
+        if (gold && data) data.gold = gold;
+        return payload;
+      }).catch(function () { return payload; });
     }, function (error) {
       clearTimeout(timeoutId);
       throw error;
