@@ -295,6 +295,7 @@
     }
     var latestHomeIndices = [];
     var latestUsBoardData = null;
+    var weeklyReportModule = null;
     var weekendReportWindow = isWeekendReportWindow();
     function syncMarketSwitch() {
       var selected = window.HomeMarketSelection.get();
@@ -323,6 +324,9 @@
       // 휴장 탭은 시세 API 응답을 기다리지 않고 준비된 휴장 지면을 즉시 연다.
       // 이후 아래의 공통 시장 변경 핸들러가 데이터 로더를 갱신한다.
       applyHomeMarketSession(homeMarketSession());
+      if (homeMarketSession().closed && weeklyReportModule && weeklyReportModule.init) {
+        weeklyReportModule.init();
+      }
     });
     feed.insertBefore(dashboardSection, investorMount);
     if (investorMount) investorMount.remove();
@@ -1306,7 +1310,9 @@
     if (pagination) pagination.remove();
 
     loadHomeScript(HOME_WEEKLY_REPORT_SCRIPT_URL, 'HomeWeeklyReport').catch(function () { return null; }).then(function (weekly) {
+      weeklyReportModule = weekly;
       if (weekly && weekly.init) weekly.init();
+      if (weekly && weekly.init && homeMarketSession().closed) weekly.init();
       return loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets');
     })
       .then(function (widgets) {

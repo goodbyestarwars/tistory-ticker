@@ -236,7 +236,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260819-weekend-closed-v8-weekly-report", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260819-weekend-closed-v9-weekly-switch", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -267,7 +267,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
         self.assertIn("style.css?v=20260819-weekend-closed-v4", skin)
-        self.assertIn("skin-main.js?v=20260819-weekend-closed-v8-weekly-report", skin)
+        self.assertIn("skin-main.js?v=20260819-weekend-closed-v9-weekly-switch", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")
