@@ -705,6 +705,55 @@
         + '</svg>';
     }
 
+    var HOME_CLOSED_SAMPLE_MARKET = {
+      title: '미국 시장',
+      live: '지난 거래일 기준',
+      updated: '지난 거래일 기준 · 화면 조정용 샘플',
+      indices: [
+        { key: 'NASDAQ_INDEX', label: '나스닥', price: 26289.71, rate: -1.33 },
+        { key: 'SP500_INDEX', label: 'S&P500', price: 7691.76, rate: -0.69 }
+      ],
+      summary: {
+        temperature: '시장 휴장',
+        direction: '지난 거래일 약세',
+        exchange: '1,413.0원 ▼',
+        leaders: 'Retail · Automobiles · Telecommunication',
+        cautions: 'Semiconductors · Technology · Media'
+      }
+    };
+
+    function renderClosedSampleMarket() {
+      var sample = HOME_CLOSED_SAMPLE_MARKET;
+      var title = dashboardSection.querySelector('[data-home-market-field="title"]');
+      var live = dashboardSection.querySelector('[data-home-market-field="live"]');
+      var updated = document.getElementById('hmbUpdated');
+      var summaryTitle = dashboardSection.querySelector('[data-home-summary-field="title"]');
+      var summaryMeta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
+      if (title) title.textContent = sample.title;
+      if (live) live.textContent = sample.live;
+      if (updated) updated.textContent = sample.updated;
+      if (summaryTitle) summaryTitle.textContent = '미국 시장 요약';
+      if (summaryMeta) summaryMeta.textContent = '지난 거래일 기준';
+      setField('temperature', sample.summary.temperature, 'home-neutral');
+      setField('direction', sample.summary.direction, 'home-negative');
+      setField('exchange', sample.summary.exchange, 'home-negative');
+      setField('leaders', sample.summary.leaders, 'home-positive');
+      setField('cautions', sample.summary.cautions, 'home-negative');
+      sample.indices.forEach(function (item, index) {
+        var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
+        if (!card) return;
+        var price = card.querySelector('[data-index-field="price"]');
+        var change = card.querySelector('[data-index-field="change"]');
+        var label = card.querySelector('[data-index-field="label"]');
+        var status = card.querySelector('[data-index-field="status"]');
+        if (label) label.textContent = item.label;
+        if (price) { price.textContent = item.price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }); price.className = 'home-negative'; }
+        if (change) { change.textContent = '▼' + Math.abs(item.rate).toFixed(2) + '%'; change.className = 'home-negative'; }
+        if (status) status.textContent = '· 지난 거래일';
+        renderHomeIndexChart(card.querySelector('[data-index-field="chart"]'), null, false, item.key);
+      });
+    }
+
     function formatHomeTimestamp(value) {
       var date = new Date(value);
       if (isNaN(date.getTime())) return String(value || '');
@@ -760,10 +809,10 @@
       // CSS 선택자가 스킨의 body id에 의존하지 않도록 DOM 자체에서도 숨긴다.
       // Tistory 스킨·WebView별 body id 차이로 휴장 지면 아래에 이전 시장 화면이
       // 남는 것을 방지한다.
-      if (overviewGrid) overviewGrid.hidden = isClosed;
-      if (widgetGrid) widgetGrid.hidden = isClosed;
+      if (overviewGrid) overviewGrid.hidden = false;
+      if (widgetGrid) widgetGrid.hidden = false;
       if (realtimeBoard) realtimeBoard.hidden = isClosed;
-      if (isClosed) return;
+      if (isClosed) { renderClosedSampleMarket(); return; }
       var title = dashboardSection.querySelector('[data-home-market-field="title"]');
       var live = dashboardSection.querySelector('[data-home-market-field="live"]');
       var updated = document.getElementById('hmbUpdated');

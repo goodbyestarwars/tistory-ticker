@@ -4869,8 +4869,6 @@ body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
 }
 
 /* 주말에는 마지막 시세를 재사용해 평일 화면처럼 보이지 않게 휴장 지면을 연다. */
-.home-editorial-page.is-market-closed .home-overview-grid,
-.home-editorial-page.is-market-closed .home-widget-grid,
 .home-editorial-page.is-market-closed .home-realtime-board {
   display: none !important;
 }

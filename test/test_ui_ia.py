@@ -221,12 +221,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("style.css")
         self.assertIn("var overviewGrid = dashboardSection.querySelector('.home-overview-grid');", main)
         self.assertIn("var widgetGrid = dashboardSection.querySelector('.home-widget-grid');", main)
-        self.assertIn("if (overviewGrid) overviewGrid.hidden = isClosed;", main)
-        self.assertIn("if (widgetGrid) widgetGrid.hidden = isClosed;", main)
+        self.assertIn("function renderClosedSampleMarket()", main)
+        self.assertIn("HOME_CLOSED_SAMPLE_MARKET", main)
+        self.assertIn("renderClosedSampleMarket(); return;", main)
         self.assertIn("if (realtimeBoard) realtimeBoard.hidden = isClosed;", main)
         self.assertIn("다음 주 시장을 준비하는 시간입니다.", main)
-        self.assertIn(".home-editorial-page.is-market-closed .home-overview-grid", style)
-        self.assertIn(".home-editorial-page.is-market-closed .home-widget-grid", style)
+        self.assertIn(".home-editorial-page.is-market-closed .home-realtime-board", style)
         self.assertNotIn("body#tt-body-index .home-editorial-page.is-market-closed", style)
 
     def test_home_index_charts_use_swappable_sample_series_for_layout_work(self):
@@ -236,7 +236,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260819-weekend-closed-v6-sample-chart", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260819-weekend-closed-v7-sample-market", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -266,8 +266,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # gothic mode, and the cache version is bumped for the Tistory skin.
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260819-weekend-closed-v3", skin)
-        self.assertIn("skin-main.js?v=20260819-weekend-closed-v6-sample-chart", skin)
+        self.assertIn("style.css?v=20260819-weekend-closed-v4", skin)
+        self.assertIn("skin-main.js?v=20260819-weekend-closed-v7-sample-market", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")
