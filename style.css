@@ -6036,3 +6036,44 @@ body#tt-body-index .home-editorial-page .home-scoreboard-list .home-us-schedule-
   }
   body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row span { font-size: 12px !important; }
 }
+
+/* 홈 마켓브리핑 미리보기: 티스토리 요약 길이가 글마다 달라도
+   카드의 제목·요약·하단 액션 기준선을 일정하게 유지한다. */
+body#tt-body-index .home-editorial-page .home-briefing-featured,
+body#tt-body-index .home-editorial-page .home-briefing-small {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+body#tt-body-index .home-editorial-page .home-briefing-featured {
+  min-height: 286px;
+}
+body#tt-body-index .home-editorial-page .home-briefing-featured .post-excerpt {
+  min-height: 6.4em;
+  max-height: 6.4em;
+  line-height: 1.6;
+}
+body#tt-body-index .home-editorial-page .home-briefing-featured .post-footer,
+body#tt-body-index .home-editorial-page .home-briefing-small .post-footer {
+  margin-top: auto;
+}
+body#tt-body-index .home-editorial-page .home-briefing-small {
+  min-height: 148px;
+}
+body#tt-body-index .home-editorial-page .home-briefing-small .post-title {
+  min-height: 3em;
+  max-height: 3em;
+}
+body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
+  min-height: 4.95em;
+  max-height: 4.95em;
+  line-height: 1.65;
+}
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page .home-briefing-featured {
+    min-height: 0;
+  }
+  body#tt-body-index .home-editorial-page .home-briefing-small {
+    min-height: 132px;
+  }
+}

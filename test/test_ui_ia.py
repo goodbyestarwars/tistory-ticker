@@ -266,7 +266,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # gothic mode, and the cache version is bumped for the Tistory skin.
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260820-modern-search-v4", skin)
+        self.assertIn("style.css?v=20260820-briefing-preview-v1", skin)
+        self.assertIn(".home-briefing-featured .post-excerpt", style)
+        self.assertIn("min-height: 6.4em", style)
+        self.assertIn(".home-briefing-small .post-title", style)
         self.assertIn("border-bottom: 2px solid #111", style)
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 25px;", style)
