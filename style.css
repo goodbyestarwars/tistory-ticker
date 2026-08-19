@@ -4924,6 +4924,74 @@ body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
   body#tt-body-index .home-editorial-page .home-closed-note span { display: block; margin-top: 5px; }
 }
 
+/* Weekend closed page: a clear editorial masthead on a plain white field. */
+body#tt-body-index .home-editorial-page .home-closed-page {
+  min-height: 0 !important;
+  border-bottom: 1px solid #dfe3e8;
+  background: #fff !important;
+}
+body#tt-body-index .home-editorial-page .home-closed-lead {
+  display: grid;
+  grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr);
+  gap: clamp(28px, 6vw, 100px);
+  align-items: end;
+  padding: clamp(42px, 6vw, 76px) 0 38px;
+  border-bottom: 0;
+}
+body#tt-body-index .home-editorial-page .home-closed-kicker > span {
+  display: block;
+  margin-bottom: 13px;
+  color: #64748b;
+  font: 800 11px/1.2 Arial, sans-serif;
+  letter-spacing: .14em;
+}
+body#tt-body-index .home-editorial-page .home-closed-kicker h1 {
+  margin: 0 0 12px;
+  color: #111827;
+  font: 500 clamp(48px, 7vw, 82px)/.95 var(--font-title);
+  letter-spacing: -.08em;
+}
+body#tt-body-index .home-editorial-page .home-closed-kicker p {
+  margin: 0;
+  color: #475569;
+  font: 500 15px/1.6 var(--font-ui);
+}
+body#tt-body-index .home-editorial-page .home-closed-status {
+  display: grid;
+  gap: 9px;
+  align-content: end;
+  min-height: 132px;
+  padding: 0 0 2px 24px;
+  border-left: 2px solid #111827;
+}
+body#tt-body-index .home-editorial-page .home-closed-status strong {
+  color: #111827;
+  font: 700 20px/1.35 var(--font-ui);
+  letter-spacing: -.04em;
+}
+body#tt-body-index .home-editorial-page .home-closed-status span,
+body#tt-body-index .home-editorial-page .home-closed-status small {
+  color: #64748b;
+  font: 400 13px/1.6 var(--font-ui);
+}
+body#tt-body-index .home-editorial-page .home-closed-status small { color: #94a3b8; }
+body#tt-body-index .home-editorial-page .home-closed-note { display: none; }
+@media (max-width: 640px) {
+  body#tt-body-index .home-editorial-page .home-closed-lead {
+    display: block;
+    padding: 42px 0 30px;
+  }
+  body#tt-body-index .home-editorial-page .home-closed-kicker h1 { font-size: 56px; }
+  body#tt-body-index .home-editorial-page .home-closed-status {
+    min-height: 0;
+    margin-top: 30px;
+    padding: 18px 0 0 16px;
+    border-top: 1px solid #dfe3e8;
+    border-left: 0;
+  }
+  body#tt-body-index .home-editorial-page .home-closed-status strong { font-size: 17px; }
+}
+
 body#tt-body-index .home-editorial-page .home-overview-grid,
 body#tt-body-index .home-editorial-page .home-widget-grid {
   gap: 0;
