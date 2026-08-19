@@ -902,6 +902,40 @@ def _enrich_us_kis_industries(rows, finnhub_api_key=''):
                 row['industry'] = industry
 
 
+def _merge_us_kis_metadata(metric_rows):
+    """Share stable metadata from the market-cap ranking with every tab.
+
+    KIS's US ranking TRs are metric-specific.  The trade-value and volume
+    responses commonly contain a ticker and quote fields, but omit both the
+    English company name and ``tomv`` (market capitalization).  The market-cap
+    response does contain those fields, so leaving each normalized section
+    independent makes the same stock display as ``MRNA`` with a ``-`` cap on
+    one tab and ``Moderna Inc`` with a cap on another.  Join by ticker, never
+    by the localized/company name, because the latter varies by TR and vendor.
+    """
+    cap_rows = metric_rows.get('marketCap') or []
+    by_symbol = {
+        str(row.get('symbol') or '').strip().upper(): row
+        for row in cap_rows
+        if row.get('symbol')
+    }
+    if not by_symbol:
+        return
+    for metric, rows in metric_rows.items():
+        if metric == 'marketCap':
+            continue
+        for row in rows:
+            metadata = by_symbol.get(str(row.get('symbol') or '').strip().upper())
+            if not metadata:
+                continue
+            for key in ('market_cap', 'name', 'name_en', 'display_name', 'industry'):
+                current = row.get(key)
+                symbol = str(row.get('symbol') or '').strip().upper()
+                missing_name = key in ('name', 'name_en', 'display_name') and str(current or '').strip().upper() in (symbol, 'US:' + symbol)
+                if (current in (None, '', '미분류') or missing_name) and metadata.get(key) not in (None, '', '미분류'):
+                    row[key] = metadata[key]
+
+
 def fetch_us_kis(appkey, appsecret, limit=20, finnhub_api_key=''):
     """KIS 기반 미국 실시간 종목판.
 
@@ -944,6 +978,7 @@ def fetch_us_kis(appkey, appsecret, limit=20, finnhub_api_key=''):
                 metric_rows[metric] = []
     if not metric_rows.get('tradeAmount'):
         raise RuntimeError('KIS 미국 거래대금 순위 응답이 비어 있습니다.')
+    _merge_us_kis_metadata(metric_rows)
     ordered = metric_rows['tradeAmount']
     _enrich_us_kis_industries(ordered, finnhub_api_key)
     sections = {

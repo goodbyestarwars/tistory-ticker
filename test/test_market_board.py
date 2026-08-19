@@ -272,6 +272,39 @@ class MarketBoardTests(unittest.TestCase):
         self.assertIn('marketCap', result['sections'])
         self.assertIn('volumeSurge', result['sections'])
 
+    def test_us_kis_board_joins_market_cap_metadata_by_symbol(self):
+        def trade_amount(_token, _appkey, _secret, exchange, limit=20):
+            if exchange != 'NAS':
+                return []
+            return [{
+                'symb': 'MRNA', 'hts_kor_isnm': '모더나', 'last': '170',
+                'diff': '2', 'rate': '1.0', 'tvol': '1000', 'tamt': '300000',
+                'excd': exchange,
+            }]
+
+        def market_cap(_token, _appkey, _secret, exchange, limit=20):
+            if exchange != 'NAS':
+                return []
+            return [{
+                'symb': 'MRNA', 'en_name': 'Moderna Inc', 'tomv': '25100',
+                'last': '170', 'excd': exchange,
+            }]
+
+        with mock.patch.object(market_board.kis_client, 'get_token', return_value='kis-token'), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_trade_amount_rank', side_effect=trade_amount), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_market_cap_rank', side_effect=market_cap), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_trade_volume_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_updown_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_volume_surge_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_volume_power_rank', return_value=[]), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_new_highlow_rank', return_value=[]):
+            result = market_board.fetch_us_kis('appkey', 'secret', limit=1)
+
+        row = result['rows'][0]
+        self.assertEqual(row['symbol'], 'MRNA')
+        self.assertEqual(row['display_name'], 'Moderna Inc')
+        self.assertEqual(row['market_cap'], 25100)
+
     def test_us_kis_board_enriches_trade_amount_rows_with_industry_profiles(self):
         def trade_amount(_token, _appkey, _secret, exchange, limit=20):
             if exchange != 'NAS':
