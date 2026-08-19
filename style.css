@@ -135,10 +135,12 @@ a { text-decoration: none; color: inherit; }
   margin-top: 2px;
 }
 .nav-search {
-  flex: 1;
-  max-width: 420px;
-  margin-left: 20px;
-  position: relative;
+  position: absolute;
+  left: 50%;
+  width: min(620px, 48vw);
+  max-width: none;
+  margin-left: 0;
+  transform: translateX(-50%);
 }
 
 /* 2026-07-28: navbar 안에 종목검색 입력창(js/skin-menu.js의 SEARCH_HTML, 원래는 왼쪽
@@ -153,6 +155,22 @@ a { text-decoration: none; color: inherit; }
    래퍼와 안쪽 input에 각각 둥근 박스가 이중으로 그려지는 버그가 있었음
    (사용자 리포트: "검색창이 이중으로 되어 있어") - 옛 규칙을 삭제해서 해결) */
 .navbar .nav-search-wrap { padding: 0; border-bottom: none; margin-bottom: 0; }
+.navbar .nav-search-input-wrap {
+  min-height: 46px;
+  padding: 10px 16px;
+  gap: 10px;
+  border-radius: 14px;
+  background: #fff;
+  border-color: #d7dee8;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, .08);
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.navbar .nav-search-input-wrap:focus-within {
+  border-color: #94a3b8;
+  box-shadow: 0 5px 20px rgba(15, 23, 42, .12);
+}
+.navbar .nav-search-icon { font-size: 17px; }
+.navbar .nav-search-input { font-size: 16px; line-height: 1.4; }
 .nav-icons {
   margin-left: auto;
   display: flex;
@@ -3603,7 +3621,16 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
      햄버거 버튼들이 없어져 공간이 남아서 종목검색창을 모바일에서도 그대로 노출한다
      (사이드바 쪽 종목검색은 navbar로 이전되며 사라졌으므로, 여기마저 숨기면 모바일에서
      종목검색을 아예 할 수 없게 됨). */
-  .nav-search { flex: 1; max-width: none; margin-left: 8px; }
+  .navbar .nav-search {
+    position: relative;
+    left: auto;
+    width: auto;
+    max-width: none;
+    margin-left: 8px;
+    transform: none;
+  }
+  .navbar .nav-search-input-wrap { min-height: 0; padding: 9px 12px; border-radius: 10px; box-shadow: inset 0 2px 4px rgba(0, 0, 0, .08), inset 0 -1px 0 rgba(255, 255, 255, .6); }
+  .navbar .nav-search-input { font-size: 13.5px; }
   /* 2026-07-27: 상단 메뉴바가 항상 노출되는 가로 스크롤 형태로 바뀌면서 모바일
      드로어 자체가 없어져 햄버거 버튼도 더는 쓸 일이 없다(9Pay 증권 작업지시서 #12). */
   .nav-hamburger { display: none !important; }
