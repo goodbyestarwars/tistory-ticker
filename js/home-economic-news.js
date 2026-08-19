@@ -15,7 +15,7 @@
   var state = {
     mount: null, timer: null, sessionTimer: null, socket: null, socketGeneration: 0,
     socketOpened: false, socketReconnectTimer: null, socketFallbackTimer: null, socketKeepaliveTimer: null,
-    market: '', quoteMap: {}, items: [], flash: [], loading: false,
+    market: '', quoteMap: {}, items: [], flash: [], loading: false, loadGeneration: 0,
     flashTimer: null, flashRows: [], flashKey: '', flashIndex: 0
   };
 
@@ -265,8 +265,9 @@
     var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;
     state.market = market;
     return fetchJson(marketUrl).then(function (json) {
+      if (state.market !== market || currentMarket() !== market) return;
       state.quoteMap = quoteMapFrom(json);
-      if (state.market === market) render(state.items, market, state.flash);
+      render(state.items, market, state.flash);
     }).catch(function () { return null; });
   }
 
@@ -349,24 +350,28 @@
     if (state.loading) return Promise.resolve();
     state.loading = true;
     var market = currentMarket();
+    var generation = ++state.loadGeneration;
     state.market = market;
     var newsUrl = market === 'us' ? US_API_URL : DOMESTIC_API_URL;
     var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;
     var newsRequest = fetchJson(newsUrl).then(function (json) {
+      if (generation !== state.loadGeneration || state.market !== market || currentMarket() !== market) return;
       var payload = json.data || json;
       state.items = payload.items || [];
       state.flash = Array.isArray(payload.flash) ? payload.flash : state.flash;
       render(state.items, market, state.flash);
     });
     var marketRequest = fetchJson(marketUrl).then(function (json) {
+      if (generation !== state.loadGeneration || state.market !== market || currentMarket() !== market) return;
       state.quoteMap = quoteMapFrom(json);
-      if (state.market === market) render(state.items, market, state.flash);
+      render(state.items, market, state.flash);
     }).catch(function () { return null; });
     return Promise.all([newsRequest, marketRequest]).catch(function () {
+      if (generation !== state.loadGeneration || state.market !== market || currentMarket() !== market) return;
       var list = state.mount && state.mount.querySelector('[data-hen-list]');
       if (list && !list.querySelector('.hen-row')) list.innerHTML = '<p class="home-card-state">경제 뉴스를 잠시 불러오지 못했습니다.</p>';
     }).then(function () {
-      state.loading = false;
+      if (generation === state.loadGeneration) state.loading = false;
     });
   }
 
@@ -382,9 +387,15 @@
     global.addEventListener('home-market-change', function () {
       closeNewsSocket(false);
       state.market = currentMarket();
+      state.loadGeneration += 1;
+      state.loading = false;
+      state.items = [];
+      state.flash = [];
+      state.quoteMap = {};
+      render([], state.market, []);
       loadMarketBoard(state.market);
       connectNewsSocket();
-      if (!state.socketOpened) fetchNews();
+      fetchNews();
     });
     loadMarketBoard(state.market);
     connectNewsSocket();

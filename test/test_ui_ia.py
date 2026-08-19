@@ -602,7 +602,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("hen-zigzag", news)
         self.assertIn(".app-news-event", style)
         self.assertIn(".app-news-date", style)
-        self.assertIn("v=20260818-home-summary-v3", main)
+        self.assertIn("v=20260820-market-news-switch-v1", main)
         self.assertIn(".hen-breaking { flex: 0 0 auto", style)
         self.assertIn(".home-economic-news .hen-breaking-list { height: 62px", style)
         self.assertNotIn("data-hen-breaking-form", main)
