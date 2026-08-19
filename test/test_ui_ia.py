@@ -236,7 +236,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260819-weekend-closed-v7-sample-market", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260819-weekend-closed-v8-weekly-report", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -267,7 +267,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
         self.assertIn("style.css?v=20260819-weekend-closed-v4", skin)
-        self.assertIn("skin-main.js?v=20260819-weekend-closed-v7-sample-market", skin)
+        self.assertIn("skin-main.js?v=20260819-weekend-closed-v8-weekly-report", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")
@@ -385,7 +385,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
         self.assertIn("home-weekly-report.css?v=20260817-stock-grid-v16", script)
-        self.assertIn("home-weekly-report.js?v=20260817-stock-grid-v22", self.read("js/skin-main.js"))
+        self.assertIn("home-weekly-report.js?v=20260819-closed-report-v23", self.read("js/skin-main.js"))
+        self.assertIn("var closedSelected = window.HomeMarketSelection", script)
+        self.assertIn("&& !closedSelected", script)
 
     def test_market_briefing_share_button_is_visible_in_every_card_layout(self):
         skin = self.read("skin.html")

@@ -275,7 +275,9 @@
     bindNewsFilters(root);
   }
   function init() {
-    if (!isWeekendWindow(new Date())) return null;
+    var closedSelected = window.HomeMarketSelection && typeof window.HomeMarketSelection.get === 'function'
+      && window.HomeMarketSelection.get() === 'closed';
+    if (!isWeekendWindow(new Date()) && !closedSelected) return null;
     var feed = document.querySelector('.feed');
     if (!feed || document.getElementById('homeWeeklyReport')) return null;
     if (!document.querySelector('link[data-home-weekly-report-css]')) {

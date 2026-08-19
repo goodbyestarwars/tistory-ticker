@@ -121,7 +121,7 @@
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260819-closed-page-v1';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260819-domestic-cap-v2';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260818-home-summary-v3';
-    var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260817-stock-grid-v22';
+    var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260819-closed-report-v23';
 
     function isWeekendReportWindow() {
       var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
@@ -296,7 +296,6 @@
     var latestHomeIndices = [];
     var latestUsBoardData = null;
     var weekendReportWindow = isWeekendReportWindow();
-    if (weekendReportWindow) dashboardSection.classList.add('home-weekend-hidden');
     function syncMarketSwitch() {
       var selected = window.HomeMarketSelection.get();
       dashboardSection.querySelectorAll('[data-home-market-switch]').forEach(function (button) {
@@ -1308,7 +1307,6 @@
 
     loadHomeScript(HOME_WEEKLY_REPORT_SCRIPT_URL, 'HomeWeeklyReport').catch(function () { return null; }).then(function (weekly) {
       if (weekly && weekly.init) weekly.init();
-      if (weekendReportWindow) return null;
       return loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets');
     })
       .then(function (widgets) {
