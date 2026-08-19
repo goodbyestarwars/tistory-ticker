@@ -627,6 +627,42 @@ html.dark .ss-etf-table .ss-flat { color: rgba(245,239,224,.45); }
 #strategy-search .ss-strategy-table .ss-col-signal,
 #strategy-search .ss-strategy-table .ss-col-fundamentals { color: #374151; }
 
+/* 전략 결과 표는 헤더와 값이 같은 열 축을 공유하도록 폭을 고정한다.
+   마지막 재무지표는 긴 문장을 줄바꿈해 우측에서 잘리지 않게 한다. */
+#strategy-search .ss-strategy-table {
+  width: 100%;
+  min-width: 1420px;
+  table-layout: fixed;
+}
+#strategy-search .ss-strategy-table th,
+#strategy-search .ss-strategy-table td { vertical-align: middle; }
+#strategy-search .ss-strategy-table th:nth-child(1),
+#strategy-search .ss-strategy-table td:nth-child(1) { width: 52px; }
+#strategy-search .ss-strategy-table th:nth-child(2),
+#strategy-search .ss-strategy-table td:nth-child(2) { width: 58px; }
+#strategy-search .ss-strategy-table th:nth-child(3),
+#strategy-search .ss-strategy-table td:nth-child(3) { width: 260px; }
+#strategy-search .ss-strategy-table th:nth-child(4),
+#strategy-search .ss-strategy-table td:nth-child(4) { width: 110px; }
+#strategy-search .ss-strategy-table th:nth-child(5),
+#strategy-search .ss-strategy-table td:nth-child(5) { width: 160px; }
+#strategy-search .ss-strategy-table th:nth-child(6),
+#strategy-search .ss-strategy-table td:nth-child(6) { width: 125px; }
+#strategy-search .ss-strategy-table th:nth-child(7),
+#strategy-search .ss-strategy-table td:nth-child(7) { width: 115px; }
+#strategy-search .ss-strategy-table th:nth-child(8),
+#strategy-search .ss-strategy-table td:nth-child(8) { width: 230px; }
+#strategy-search .ss-strategy-table th:nth-child(9),
+#strategy-search .ss-strategy-table td:nth-child(9) { width: 280px; }
+#strategy-search .ss-strategy-table .ss-col-signal,
+#strategy-search .ss-strategy-table .ss-col-fundamentals {
+  overflow-wrap: anywhere;
+  white-space: normal !important;
+  line-height: 1.45;
+}
+#strategy-search .ss-strategy-table .ss-col-price,
+#strategy-search .ss-strategy-table .ss-col-change { text-align: right !important; }
+
 /* 구성종목 모달: label/value를 한 줄씩 쌓지 않고 실제 정보 그리드로 배치한다. */
 .ss-etf-modal {
   width: min(920px, 100%);

@@ -542,13 +542,18 @@
     var quotePromise = fetchLiveQuote(code).catch(function () { return null; });
     var fundamentalsPromise = fetchFundamentals(code, name).catch(function () { return null; });
 
-    Promise.all([ForeignFlow.fetchFlow(code, name), chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
+    var flowPromise = ForeignFlow.fetchFlow(code, name).catch(function () { return null; });
+    Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
         if (activeSignalCode !== code || signalRequestSeq !== requestId) return; // 이전 요청 응답은 무시(레이스 방지)
         var data = results[0], chartData = results[1], entry = results[2], quote = results[3], fundamentals = results[4];
         if (!data || data.error || !data.daily || !data.daily.length) {
-          if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요.</div>';
-          return;
+          data = buildUnavailableFlowData(chartData, code, name);
+          if (data) data.flowUnavailable = true;
+          if (!data) {
+            if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요.</div>';
+            return;
+          }
         }
         var techScore = computeTechnicalScore(chartData);
         renderSignalBanner(bannerBox, data, entry, techScore, fundamentals, chartData);
@@ -1064,6 +1069,18 @@
 
   // ---- 조회 ----
 
+  // 수급 VM이 일시적으로 응답하지 않아도 가격 차트와 분석 화면 전체를 막지 않는다.
+  // 차트의 날짜·종가만으로 수급 행을 만들고, 수급 값은 추정하지 않고 —로 표시한다.
+  function buildUnavailableFlowData(chartData, code, name) {
+    var rows = chartData && Array.isArray(chartData.daily) ? chartData.daily.slice() : [];
+    if (rows.length < 2) return null;
+    rows = rows.reverse().map(function (row) {
+      return { date: row.date, close: Number(row.close), ind_net: null, foreign_net: null, inst_net: null };
+    }).filter(function (row) { return isFinite(row.close); });
+    if (rows.length < 2) return null;
+    return { code: code, name: name, daily: rows, rolling: {}, signals: {}, flowUnavailable: true };
+  }
+
   function search(container, query) {
     var resultBox = container.querySelector('#ffResult');
     destroyLwChart(); // 이전 검색의 차트 인스턴스/리스너 정리(리렌더 전에 먼저 끊는다)
@@ -1096,7 +1113,8 @@
     // fundamentalsCache에 저장해두므로 이후 탭 클릭 시 재요청 없음(loadFundamentals 재사용).
     var fundamentalsPromise = fetchFundamentals(resolved.code, resolved.name)
       .catch(function () { return null; });
-    Promise.all([ForeignFlow.fetchFlow(resolved.code, resolved.name), chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
+    var flowPromise = ForeignFlow.fetchFlow(resolved.code, resolved.name).catch(function () { return null; });
+    Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
         var data = results[0];
         var chartData = results[1];
@@ -1104,6 +1122,10 @@
         var quote = results[3];
         var fundamentals = results[4];
         if (!data || data.error || !data.daily || !data.daily.length) {
+          data = buildUnavailableFlowData(chartData, resolved.code, resolved.name);
+          if (data) data.flowUnavailable = true;
+        }
+        if (!data || !data.daily || !data.daily.length) {
           resultBox.innerHTML = '<div class="ff-error">'
             + escapeHtml((data && data.message) || '수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
             + '</div>';
@@ -3039,6 +3061,7 @@
     var toneBadgeCls = TONE_BADGE_CLASS[tone.tone] || 'ff-badge-neutral';
     return '<div class="ff-extra-card">'
       + '<div class="ff-extra-card-title">🧭 개인·외국인·기관 수급</div>'
+      + (data.flowUnavailable ? '<div class="ff-data-notice">수급 원자료가 지연되어 가격 차트만 표시합니다. 실제 수급값은 —로 표시됩니다.</div>' : '')
       + buildBadges(data)
       + '<div class="ff-extra-interp ff-extra-tone-' + tone.tone + '">'
       + '<span class="ff-badge ' + toneBadgeCls + '">' + tone.label + '</span>'

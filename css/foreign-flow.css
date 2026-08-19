@@ -112,6 +112,15 @@
   border: 1px solid #f0d5d2;
   border-radius: 6px;
 }
+#foreign-flow .ff-data-notice {
+  margin: 8px 0 12px;
+  padding: 8px 10px;
+  border-left: 2px solid #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
 
 /* ---- 종합 점수 요약 박스 (수급/공매도/연기금/차트패턴 + AI 한줄요약) ---- */
 #foreign-flow .ff-summary {
