@@ -266,8 +266,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # gothic mode, and the cache version is bumped for the Tistory skin.
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260820-modern-search-v2", skin)
-        self.assertIn("skin-main.js?v=20260819-weekend-closed-v11-brief-layout", skin)
+        self.assertIn("style.css?v=20260820-closed-title-font-v1", skin)
+        self.assertIn("skin-main.js?v=20260819-weekend-closed-v12-markets-closed", skin)
 
     def test_realtime_industry_table_prioritizes_industry_width(self):
         style = self.read("style.css")
