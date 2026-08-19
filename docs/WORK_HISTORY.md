@@ -1,6 +1,6 @@
 # 9Pay 주요 작업이력
 
-**2026-08-19 메인 휴장 탭 전환 복구**: `home-widgets.js`가 홈 위젯 레이아웃을 재구성할 때 `home-closed-page`를 보존하지 않아, 휴장 버튼 클릭 후 이벤트는 실행되어도 표시할 휴장 지면이 사라지는 문제를 수정했다. 휴장 지면을 시장 위젯 그리드 바깥에 유지하고 `home-widgets.js` 캐시 버전을 갱신했으며, 관련 UI 계약 테스트와 JavaScript 문법 검사를 통과했다.
+**2026-08-19 메인 휴장 탭 전환 복구**: `home-widgets.js`가 홈 위젯 레이아웃을 재구성할 때 `home-closed-page`를 보존하지 않아, 휴장 버튼 클릭 후 이벤트는 실행되어도 표시할 휴장 지면이 사라지는 문제를 수정했다. 휴장 지면을 시장 위젯 그리드 바깥에 유지하고 `home-widgets.js` 캐시 버전을 갱신했으며, 관련 UI 계약 테스트와 JavaScript 문법 검사를 통과했다. 운영 커밋 `fd1c315`, GitHub Pages 정적 자산 반영 및 `/health` HTTP 200을 확인했다.
 
 **2026-08-19 Tistory 글쓰기 카카오 로그인 경로 수정**: 우측 상단 연필 버튼이 `manage/newpost/`를 `openArticleModal()`의 iframe 안에서 열어 Tistory가 카카오 로그인으로 리다이렉트할 때 인증 흐름이 막힐 수 있던 문제를 확인했다. `skin.html`의 연필 링크를 직접 관리자 글쓰기 주소로 바꾸고, 이미 설치된 이전 스킨 HTML에도 적용되도록 `js/skin-shell.js`가 기존 `onclick`을 제거한 뒤 최상위 창(`window.top`)으로 이동시키게 했다. 인증 페이지를 iframe에 넣지 않으며, 관련 UI 계약 테스트와 JavaScript 문법 검사를 추가했다. 운영 커밋 `fa6b4ab`.
 
