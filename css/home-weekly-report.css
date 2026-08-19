@@ -20,6 +20,7 @@
 .hwr-spark svg.is-down polyline, .hwr-fx-spark.is-down polyline { stroke: #1261c4; }
 .hwr-no-chart { display: block; padding-top: 12px; color: #94a3b8; font-size: 10px; }
 .hwr-summary-row { display: grid; grid-template-columns: minmax(180px, .55fr) minmax(0, 1fr); gap: 9px; margin-top: 9px; align-items: stretch; }
+.hwr-summary-row.hwr-asset-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hwr-summary-row article { display: grid; grid-template-columns: 1fr auto auto; gap: 7px; align-items: baseline; }
 .hwr-summary-row article span { color: #64748b; font-size: 11px; }
 .hwr-summary-row article strong { font-size: 17px; }

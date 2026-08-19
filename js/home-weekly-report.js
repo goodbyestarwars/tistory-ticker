@@ -6,8 +6,8 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260819-gold-range-v2';
-  var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v3';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260819-gold-range-v3';
+  var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
 
@@ -46,7 +46,7 @@
       }).then(function (goldPayload) {
         var rows = goldPayload && goldPayload.data;
         var gold = Array.isArray(rows) ? rows.filter(function (row) { return row && row.symbol === 'GOLD'; })[0] : null;
-        if (gold && data) data.gold = gold;
+        if (gold && data) { gold.analysis = rangeAnalysis(gold, '1년 금 시세 데이터가 부족합니다.'); data.gold = gold; }
         return payload;
       }).catch(function () { return payload; });
     }, function (error) {
@@ -218,6 +218,21 @@
     var message = analysis.message || fallbackMessage || '1년 관측 데이터가 부족합니다.';
     return '<div class="hwr-fx-advice"><span class="hwr-fx-status hwr-fx-status--' + escapeHtml(status) + '">' + escapeHtml(label) + '</span><small>' + escapeHtml(message) + '</small></div>';
   }
+  function rangeAnalysis(asset, fallbackMessage) {
+    asset = asset || {};
+    var points = (asset.chart || []).map(function (point) { return num(point && point.close); }).filter(function (value) { return value != null; }).slice(-365);
+    var current = points.length ? points[points.length - 1] : num(asset.price);
+    if (!points.length || current == null) return { status: 'unknown', label: '데이터 확인 중', message: fallbackMessage || '1년 관측 데이터가 부족합니다.' };
+    var ordered = points.slice().sort(function (a, b) { return a - b; });
+    var average = points.reduce(function (sum, value) { return sum + value; }, 0) / points.length;
+    var low = ordered[0], high = ordered[ordered.length - 1];
+    var p25 = ordered[Math.floor((ordered.length - 1) * .25)];
+    var p75 = ordered[Math.floor((ordered.length - 1) * .75)];
+    var common = { current: current, average: average, low: low, high: high, p25: p25, p75: p75 };
+    if (current >= p75) return Object.assign({ status: 'caution', label: '고점 주의', message: '1년 관측 범위 상단이라 추격 매수는 주의' }, common);
+    if (current <= p25) return Object.assign({ status: 'interest', label: '매수 관심 구간', message: '1년 관측 범위 하단이라 분할 접근을 검토' }, common);
+    return Object.assign({ status: 'neutral', label: '중립·관망', message: '1년 평균 범위 안에서 방향을 확인' }, common);
+  }
   function fxSparkline(fx, title) {
     var analysis = fx && fx.analysis || {};
     var points = (fx && fx.chart || []).map(function (point) { return num(point && point.close); }).filter(function (value) { return value != null; });
@@ -244,7 +259,7 @@
   function rangeCard(fx, options) {
     fx = fx || {};
     options = options || {};
-    var analysis = fx.analysis || {};
+    var analysis = fx.analysis || rangeAnalysis(fx, options.fallbackMessage);
     var current = analysis.current != null ? analysis.current : fx.price;
     var average = analysis.average;
     var low = analysis.low, high = analysis.high, p25 = analysis.p25;
