@@ -511,7 +511,7 @@
   /* app-news-event의 날짜·타임라인·본문 3열 구조를 유지한다.
      2열로 덮어쓰면 날짜 열이 18px로 줄고 본문이 암시적 열로 밀려
      뉴스 제목과 배지가 한 글자씩 세로로 표시된다. */
-  grid-template-columns: 52px 13px minmax(0, 1fr);
+  grid-template-columns: 56px 13px minmax(0, 1fr);
   gap: 10px;
   padding: 12px 0;
   border-bottom: 1px solid #eef0f2;
@@ -549,7 +549,7 @@
    축소 폭을 명시한다. */
 @media (max-width: 720px) {
   #stock-search .ss-news-timeline .ss-news-item {
-    grid-template-columns: 45px 11px minmax(0, 1fr);
+    grid-template-columns: 48px 11px minmax(0, 1fr);
     gap: 8px;
   }
   #stock-search .ss-news-timeline .app-news-body {
