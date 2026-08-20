@@ -133,6 +133,64 @@ class DividendTests(unittest.TestCase):
         )
         self.assertEqual(match['reportYear'], 2025)
 
+    def test_dividend_match_includes_roe_from_annual(self):
+        """2026-08-20 리포트: 배당 정보 모달의 ROE가 항상 "—"였다 - annual에 이미 있는
+        latest_roe_pct를 match에 담지 않던 버그. build_match()(저평가 전략)는 이미 하고
+        있어 배당주만 빠져 있었다."""
+        annual = dict(self._annual(), latest_roe_pct=12.5)
+        match = strategy_scan.build_dividend_match(
+            {'code': '005930', 'name': '테스트'},
+            [{'close': 100}, {'close': 110}],
+            'IT',
+            strategy_scan.dividend_signal([{'close': 100}, {'close': 110}], annual, self._dividend()),
+            annual,
+        )
+        self.assertEqual(match['roe'], 12.5)
+
+    def test_dividend_match_without_valuation_leaves_per_pbr_none(self):
+        """valuation을 안 넘기면(키움 토큰 미설정 등) per/pbr은 조용히 None - 기존과
+        동일하게 프론트에서 "—"로 표시된다(회귀 없음)."""
+        match = strategy_scan.build_dividend_match(
+            {'code': '005930', 'name': '테스트'},
+            [{'close': 100}, {'close': 110}],
+            'IT',
+            strategy_scan.dividend_signal([{'close': 100}, {'close': 110}], self._annual(), self._dividend()),
+            self._annual(),
+        )
+        self.assertIsNone(match['per'])
+        self.assertIsNone(match['pbr'])
+
+    def test_dividend_match_includes_per_pbr_from_valuation(self):
+        match = strategy_scan.build_dividend_match(
+            {'code': '005930', 'name': '테스트'},
+            [{'close': 100}, {'close': 110}],
+            'IT',
+            strategy_scan.dividend_signal([{'close': 100}, {'close': 110}], self._annual(), self._dividend()),
+            self._annual(),
+            {'per': 18.88, 'pbr': 3.44},
+        )
+        self.assertEqual(match['per'], 18.88)
+        self.assertEqual(match['pbr'], 3.44)
+
+    def test_fetch_dividend_valuation_returns_none_without_token(self):
+        """토큰이 없으면(KIWOOM_APPKEY 미설정) 호출 자체를 안 하고 조용히 None."""
+        with patch.object(strategy_scan.kiwoom_client, 'call_tr') as call_tr:
+            self.assertIsNone(strategy_scan.fetch_dividend_valuation(None, '005930'))
+            call_tr.assert_not_called()
+
+    def test_fetch_dividend_valuation_parses_ka10001_response(self):
+        """main.py /quote가 이미 같은 TR(ka10001)의 per/pbr을 읽어 쓰고 있는 필드명
+        (gas/ticker-proxy.gs getFundamentals_() quote.per/quote.pbr)과 동일하게 파싱한다."""
+        with patch.object(strategy_scan.kiwoom_client, 'call_tr',
+                           return_value={'per': '18.88', 'pbr': '3.44', 'mac': '1000000'}):
+            valuation = strategy_scan.fetch_dividend_valuation('token', '005930')
+        self.assertEqual(valuation, {'per': 18.88, 'pbr': 3.44})
+
+    def test_fetch_dividend_valuation_survives_call_failure(self):
+        """개별 종목의 키움 호출 실패가 전체 배당주 스캔을 죽이지 않는다."""
+        with patch.object(strategy_scan.kiwoom_client, 'call_tr', side_effect=RuntimeError('ka10001 실패')):
+            self.assertIsNone(strategy_scan.fetch_dividend_valuation('token', '005930'))
+
     def test_rejects_missing_current_cash_dividend(self):
         dividend = self._dividend()
         dividend['years'][-1]['cashDividendPerShare'] = 0
