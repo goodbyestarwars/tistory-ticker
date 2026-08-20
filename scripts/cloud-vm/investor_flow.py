@@ -279,6 +279,21 @@ def official_holding(name):
         return None
 
 
+def large_holding_report(name):
+    """국민연금 대량보유상황보고(5% 이상 보유·1%p 이상 변동 신고, data.go.kr) - 위
+    official_holding()(연 1회 전체 랭킹)과는 별개 데이터셋이라 함수도 분리했다.
+    2026-08-20: "연 1회 공시라 오래됐다"는 사용자 리포트에 분기 단위로 갱신되는 이
+    데이터셋을 보조 정보로 추가하기로 함(전체 포트폴리오가 아니라 5%룰 신고 종목만
+    있어 대부분 종목은 None이 정상 - official_holding을 이걸로 대체하지 않음)."""
+    try:
+        return public_data.fetch_nps_large_holding(name)
+    except public_data.PublicDataUnavailable:
+        return None
+    except Exception:
+        logger.warning('국민연금 대량보유상황보고 조회 실패(%s)', name, exc_info=True)
+        return None
+
+
 def fetch_stock(token, code, name):
     strt_dt, end_dt = date_range()
 
@@ -402,5 +417,6 @@ def fetch_stock(token, code, name):
             'cumulative_window_days': len(penfnd_daily),
             'current_price': current_price,
             'official_holding': official_holding(name),
+            'large_holding_report': large_holding_report(name),
         },
     }

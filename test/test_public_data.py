@@ -78,6 +78,36 @@ class PublicDataParserTests(unittest.TestCase):
             with self.assertRaises(public_data.PublicDataUnavailable):
                 public_data._service_key('stock')
 
+    def test_fetch_nps_large_holding_matches_by_normalized_name(self):
+        """대량보유상황보고(namespace=15106890, 분기 단위) - 실제 응답 필드명(발행기관명/
+        보고서 작성기준일/지분율(퍼센트))은 VM에서 직접 curl로 확인한 값 그대로다."""
+        rows = [
+            {'번호': 1, '발행기관명': '(주)KB금융지주', '보고서 작성기준일': '2026-01-29',
+             '지분율(퍼센트)': '8.94'},
+            {'번호': 2, '발행기관명': '효성티앤씨', '보고서 작성기준일': '2026-01-22',
+             '지분율(퍼센트)': '7.86'},
+        ]
+        with mock.patch.object(public_data, '_fetch_nps_large_holding_rows', return_value=rows):
+            result = public_data.fetch_nps_large_holding('효성티앤씨')
+        self.assertEqual(result['as_of'], '2026-01-22')
+        self.assertEqual(result['holding_pct'], 7.86)
+        self.assertIn('대량보유', result['source'])
+
+    def test_fetch_nps_large_holding_returns_none_when_not_a_5pct_filer(self):
+        """전체 포트폴리오가 아니라 5%룰 신고 종목만 있는 데이터셋 - 목록에 없으면
+        None이 정상이고 임의로 채우지 않는다."""
+        rows = [{'번호': 1, '발행기관명': '(주)KB금융지주', '보고서 작성기준일': '2026-01-29',
+                 '지분율(퍼센트)': '8.94'}]
+        with mock.patch.object(public_data, '_fetch_nps_large_holding_rows', return_value=rows):
+            result = public_data.fetch_nps_large_holding('5%룰 신고 없는 종목')
+        self.assertIsNone(result)
+
+    def test_fetch_nps_large_holding_returns_none_when_unavailable(self):
+        with mock.patch.object(public_data, '_fetch_nps_large_holding_rows',
+                                side_effect=public_data.PublicDataUnavailable('키 없음')):
+            with self.assertRaises(public_data.PublicDataUnavailable):
+                public_data.fetch_nps_large_holding('KB금융')
+
     def test_kofia_market_normalizes_credit_and_funds_series(self):
         credit_payload = {
             'response': {'header': {'resultCode': '00'}, 'body': {'items': {'item': [

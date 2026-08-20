@@ -39,6 +39,24 @@ NPS_HOLDING_URL = (
 # 문서에서 직접 확인한 값이므로 다음 연도로 데이터셋이 갱신되면(매년 말 기준 신규 발행)
 # 이 상수도 같은 방식으로(스웨거 문서에서 최신 uddi 확인) 다시 갱신해야 한다.
 
+# 2026-08-20: 위 NPS_HOLDING_URL(연 1회, 연말 보유 전체 랭킹 - 국내주식 투자정보,
+# namespace=3070507)과는 완전히 다른 별도 데이터셋(namespace=15106890, "대량보유주식
+# 보고내역")이다 - 자본시장법상 5% 이상 보유·1%p 이상 변동 시 5영업일 이내 신고하는
+# 수시공시(대량보유상황보고)를 data.go.kr이 분기 단위로 묶어 재배포한 것. 사용자가
+# infuser.odcloud.kr 스웨거 문서(namespace=15106890/v1)에서 실제 응답을 직접 확인한
+# 결과: 발행기관명(종목명)/보고서 작성기준일(행마다 실제 날짜, 위 _NPS_AS_OF 같은 고정값
+# 아님)/지분율(퍼센트)만 있고 평가액·자산군 비중 필드는 없음, 전체 종목 수도 142개뿐(5%
+# 이상 신고 대상만 - 국민연금 전체 포트폴리오가 아니다). 그래서 전략검색 "국민연금
+# 보유종목" 카테고리(위 NPS_HOLDING_URL, 전체 랭킹)는 그대로 두고, 이건 종목분석 페이지
+# 연기금 카드에 "최근 5% 이상 신고 여부"라는 별도 보조 정보로만 추가한다(사용자 확인:
+# "기존건 유지하고 이건 별도로 추가"). 분기마다 새 리소스가 발행되므로(스웨거 문서에
+# 20220701~20260331까지 나열돼 있었음) 아래 uddi도 다음 분기 발행되면 같은 방식(스웨거
+# 문서에서 최신 uddi 확인)으로 갱신해야 한다.
+NPS_LARGE_HOLDING_URL = (
+    'https://api.odcloud.kr/api/15106890/v1/'
+    'uddi:5536983c-fa78-46c7-bef1-b602ec951fcf'  # _20260331(2026-08-20 기준 최신 분기)
+)
+
 _CACHE = {}
 _STOCK_CACHE_TTL = 15 * 60
 _NPS_CACHE_TTL = 24 * 60 * 60
@@ -470,3 +488,53 @@ def fetch_nps_holdings_by_code(universe):
         if info:
             result[stock['code']] = info
     return result
+
+
+def _fetch_nps_large_holding_rows():
+    """대량보유주식 보고내역(위 NPS_LARGE_HOLDING_URL) 원본 행. _fetch_nps_rows()와 같은
+    캐시·재시도 패턴이지만 캐시 키·에러 메시지를 분리해 둘이 서로 영향을 주지 않는다."""
+    cached = _CACHE.get('nps-large-holdings')
+    if cached and time.time() - cached[0] < _NPS_CACHE_TTL:
+        return cached[1]
+    params = {'page': 1, 'perPage': 500, 'returnType': 'JSON'}
+    try:
+        payload = _request_json(NPS_LARGE_HOLDING_URL, params, 'nps')
+    except PublicDataUnavailable:
+        query = dict(params)
+        query['serviceKey'] = _service_key('nps')
+        request = urllib.request.Request(
+            NPS_LARGE_HOLDING_URL + '?' + urllib.parse.urlencode(query),
+            headers={'User-Agent': 'tistory-ticker/1.0'},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                payload = json.loads(response.read().decode('utf-8'))
+        except Exception as exc:
+            raise PublicDataUnavailable('국민연금 대량보유주식 보고내역 호출 실패: %s' % exc)
+    rows = _odcloud_rows(payload)
+    _CACHE['nps-large-holdings'] = (time.time(), rows)
+    return rows
+
+
+_NPS_LARGE_HOLDING_SOURCE = '국민연금공단 대량보유주식 보고내역(5% 이상 보유·1%p 이상 변동 신고)'
+
+
+def fetch_nps_large_holding(name):
+    """국민연금이 최근 분기에 5% 이상 보유(또는 1%p 이상 변동)로 신고한 종목이면 그
+    보고서 작성기준일·지분율을 반환하고, 대상이 아니면 None(전체 포트폴리오가 아니라
+    5%룰 신고 종목만 있는 데이터셋이라 대부분 종목은 None이 정상이다).
+    fetch_nps_holding()(연 1회 전체 랭킹)과는 별개 - 종목분석 연기금 카드의 보조
+    정보로만 쓴다."""
+    target = _nps_name(name)
+    if not target:
+        return None
+    for row in _fetch_nps_large_holding_rows():
+        company = row.get('발행기관명')
+        if _nps_name(company) != target:
+            continue
+        return {
+            'as_of': row.get('보고서 작성기준일'),
+            'holding_pct': _number(row.get('지분율(퍼센트)')),
+            'source': _NPS_LARGE_HOLDING_SOURCE,
+        }
+    return None

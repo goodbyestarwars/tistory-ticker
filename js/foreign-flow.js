@@ -3622,6 +3622,8 @@
       + extraMetric('누적(' + (p.cumulative_window_days || 0) + '영업일)', fmtSignedWon(p.net_cumulative))
       + (p.official_holding ? extraMetric('국민연금 연말 보유', fmtEokWon(p.official_holding.evaluation_amount_eok)
         + ' · 지분율 ' + fmtPct(p.official_holding.holding_pct)) : '')
+      + (p.large_holding_report ? extraMetric('국민연금 5% 신고(' + escapeHtml(p.large_holding_report.as_of || '-') + ' 기준)',
+        '지분율 ' + fmtPct(p.large_holding_report.holding_pct)) : '')
       + '</div>'
       + '</div>';
   }
