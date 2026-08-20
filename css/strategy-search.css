@@ -1,6 +1,6 @@
 /* ============ 저평가 종목 ============ */
 
-/* 저평가 종목·배당주·ETF 수익률 상위 카드만 사이트 마루부리/나눔고딕 토글 대신
+/* 저평가 종목·배당주·ETF 수익률 상위 카드만 사이트 마루부리/프리텐다드 토글 대신
    시스템 고딕으로 고정한다(js/foreign-flow.js와 동일한 폰트 스택 - 2026-08-13 요청).
    탭·스캔 메타·방법론 설명 상자는 2026-08-14 요청으로 사이트 전역 폰트를 그대로 쓴다. */
 #strategy-search .ss-cards-grid {
@@ -512,10 +512,17 @@ html.dark .ss-etf-table .ss-flat { color: rgba(245,239,224,.45); }
     display: block;
     font-size: 12px;
   }
+  /* 2026-08-20: .ss-strategy-table(재무건전 장기 눌림·국민연금 보유종목)은 데스크톱 표
+     정렬용으로 min-width:1420px를 항상 걸어두는데(아래 "전략 결과 표는..." 규칙 참고),
+     이 모바일 구간의 min-width:0 리셋과 동일 우선순위라 소스 순서상 뒤에 오는 그 규칙이
+     이겨서 모바일에서도 표가 1420px로 강제로 넓어져 화면 끝이 잘려 보였다(가로 스크롤도
+     막혀 있어 나머지 열이 아예 안 보임) - !important로 확실히 이 리셋이 이기게 한다. */
+  #strategy-search .ss-strategy-table { min-width: 0 !important; width: 100% !important; }
   #strategy-search .ss-comparison-table thead { display: none; }
   #strategy-search .ss-comparison-table tbody,
   #strategy-search .ss-comparison-table tr { display: block; }
   #strategy-search .ss-comparison-table tr.ss-table-row {
+    position: relative;
     margin: 0;
     padding: 10px 0;
     border: 0;
