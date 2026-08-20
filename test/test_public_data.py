@@ -38,6 +38,31 @@ class PublicDataParserTests(unittest.TestCase):
         self.assertEqual(public_data._nps_name('삼성전자(주)'), '삼성전자')
         self.assertEqual(public_data._nps_name('SK 하이닉스'), 'sk하이닉스')
 
+    def test_fetch_nps_rows_reads_static_2025_snapshot_when_present(self):
+        """2026-08-20: data.go.kr(namespace 3070507)이 아직 2024-12-31 스냅샷까지만 있어서
+        (20차), 사용자가 fund.nps.or.kr에서 직접 받은 2025년 말 실데이터를
+        nps_holdings_2025.json으로 커밋해 API 호출보다 우선하도록 반영했다. 이 테스트는
+        모킹 없이 실제 커밋된 파일을 읽어 형태를 확인한다 - API 서비스키 없이도 항상
+        동작해야 하는 정적 데이터라서 실제 파일로 검증하는 게 맞다."""
+        public_data._CACHE.pop('nps-holdings', None)
+        try:
+            rows = public_data._fetch_nps_rows()
+        finally:
+            public_data._CACHE.pop('nps-holdings', None)
+        self.assertGreater(len(rows), 1000)
+        samsung = next(r for r in rows if r['종목명'] == '삼성전자')
+        self.assertGreater(samsung['지분율(퍼센트)'], 0)
+        self.assertGreater(samsung['평가액(억 원)'], 0)
+
+    def test_fetch_nps_holding_uses_2025_as_of_from_static_snapshot(self):
+        public_data._CACHE.pop('nps-holdings', None)
+        try:
+            info = public_data.fetch_nps_holding('삼성전자')
+        finally:
+            public_data._CACHE.pop('nps-holdings', None)
+        self.assertEqual(info['as_of'], '2025-12-31')
+        self.assertIn('fund.nps.or.kr', info['source'])
+
     def test_fetch_nps_holdings_by_code_matches_universe_by_normalized_name(self):
         rows = [
             {'Company': '삼성전자(주)', 'Amount': '1000', 'Weight': '5.0', 'Holding': '8.5'},
@@ -55,7 +80,7 @@ class PublicDataParserTests(unittest.TestCase):
         self.assertEqual(result['005930']['holding_pct'], 8.5)
         self.assertEqual(result['005930']['evaluation_amount_eok'], 1000.0)
         self.assertEqual(result['000660']['weight_pct'], 2.0)
-        self.assertEqual(result['005930']['source'], '국민연금공단 국내주식 투자정보')
+        self.assertEqual(result['005930']['source'], '국민연금기금운용본부(fund.nps.or.kr) 국내주식 투자종목')
 
     def test_fetch_nps_holdings_by_code_returns_empty_when_unavailable(self):
         """서비스키 미설정 등으로 조회 자체가 안 되면 빈 dict - 값을 임의로 채우지 않는다."""

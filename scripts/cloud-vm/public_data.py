@@ -410,10 +410,28 @@ def _nps_name(value):
     return normalized
 
 
+# 2026-08-20: data.go.kr(namespace 3070507, NPS_HOLDING_URL)은 아직 2024-12-31 스냅샷이
+# 최신이라 2025년 말 데이터가 없었다(infuser.odcloud.kr 스웨거 문서로 직접 확인 - 20차
+# 참고). 사용자가 국민연금기금운용본부 자체 사이트(fund.nps.or.kr, 운용현황 > 자산군별
+# 현황 > 국내 주식 > 투자종목 > "2025" 다운로드)에서 2025년 말 데이터(2026년 3분기 공시,
+# data.go.kr보다 원본이 더 빠름 - 파일 안내문: "전년도 말 기준 자산군별 세부내역은 금년도
+# 3분기에 공시")를 직접 받아와 이 정적 스냅샷으로 반영했다. fund.nps.or.kr을 매번 직접
+# 호출하는 자동화는 아직 안 함(다운로드 URL이 세션/버튼 클릭 기반이라 안정적인 직접 호출
+# 경로인지 검증 전) - 별도 작업으로 남겨둠. 이 파일이 있으면 data.go.kr API보다 우선한다;
+# 다음 해 데이터로 갱신하려면 같은 방식으로 새 스냅샷을 받아 이 파일을 교체하고 아래
+# _NPS_AS_OF/_NPS_SOURCE도 같이 갱신해야 한다(자동 갱신 아님).
+_NPS_STATIC_SNAPSHOT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nps_holdings_2025.json')
+
+
 def _fetch_nps_rows():
     cached = _CACHE.get('nps-holdings')
     if cached and time.time() - cached[0] < _NPS_CACHE_TTL:
         return cached[1]
+    if os.path.exists(_NPS_STATIC_SNAPSHOT_FILE):
+        with open(_NPS_STATIC_SNAPSHOT_FILE, 'r', encoding='utf-8') as f:
+            rows = json.load(f)
+        _CACHE['nps-holdings'] = (time.time(), rows)
+        return rows
     params = {'page': 1, 'perPage': 2000, 'returnType': 'JSON'}
     try:
         payload = _request_json(NPS_HOLDING_URL, params, 'nps')
@@ -435,8 +453,8 @@ def _fetch_nps_rows():
     return rows
 
 
-_NPS_AS_OF = '2024-12-31'  # NPS_HOLDING_URL 데이터셋 자체가 이 시점 스냅샷으로 고정돼 있음(연 1회 공시)
-_NPS_SOURCE = '국민연금공단 국내주식 투자정보'
+_NPS_AS_OF = '2025-12-31'  # nps_holdings_2025.json 스냅샷 기준일(fund.nps.or.kr 원본 파일의 "2025년 말 기준" 표기 그대로)
+_NPS_SOURCE = '국민연금기금운용본부(fund.nps.or.kr) 국내주식 투자종목'
 
 
 def _nps_row_info(row):
