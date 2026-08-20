@@ -482,6 +482,40 @@
   line-height: 1.55;
 }
 
+/* "각도기 테스트" 탭 전용 백테스트 요약(승률/평균수익률) - 다른 탭에선 항상 hidden. */
+#pattern-scan .ps-backtest-box {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid #eadfc4;
+  border-radius: 9px;
+  background: #fdf8ec;
+}
+#pattern-scan .ps-backtest-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #7c5a1e;
+  margin-bottom: 6px;
+}
+#pattern-scan .ps-backtest-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+  color: #4b4033;
+}
+#pattern-scan .ps-backtest-stats b {
+  font-weight: 600;
+  margin-right: 4px;
+  color: #6b5c46;
+}
+#pattern-scan .ps-backtest-footnote,
+#pattern-scan .ps-backtest-empty {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #9a8b6c;
+  line-height: 1.5;
+}
+
 /* ============ 다크모드 ============ */
 /* 스킨의 html.dark .post-single-body * !important 규칙을 #pattern-scan으로 specificity 확보해 오버라이드 */
 
@@ -508,6 +542,15 @@ html.dark #pattern-scan .ps-tab-desc {
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.14) !important;
 }
+html.dark #pattern-scan .ps-backtest-box {
+  background: rgba(245, 239, 224, 0.06) !important;
+  border-color: rgba(245, 239, 224, 0.18) !important;
+}
+html.dark #pattern-scan .ps-backtest-title { color: #e0c98a !important; }
+html.dark #pattern-scan .ps-backtest-stats { color: rgba(245, 239, 224, 0.75) !important; }
+html.dark #pattern-scan .ps-backtest-stats b { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #pattern-scan .ps-backtest-footnote,
+html.dark #pattern-scan .ps-backtest-empty { color: rgba(245, 239, 224, 0.45) !important; }
 html.dark #pattern-scan .ps-common-desc {
   background: rgba(245, 239, 224, 0.06) !important;
   border-color: rgba(245, 239, 224, 0.18) !important;

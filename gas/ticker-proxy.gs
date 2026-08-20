@@ -2636,7 +2636,10 @@ function setupPatternScanTrigger() {
 function getPatternScanResult() {
   var data = kiwoomVmFetch_('/daily-scan-batch');
   if (!data) {
-    return { scannedAt: null, universe: 0, scanned: 0, pullbackScannedAt: null, pullbackScanned: 0, patterns: {} };
+    return {
+      scannedAt: null, universe: 0, scanned: 0, pullbackScannedAt: null, pullbackScanned: 0,
+      patterns: {}, angleMomentumBacktest: null,
+    };
   }
   var patternScan = data.patternScan || {};
   var pullbackScan = data.pullbackScan || {};
@@ -2653,8 +2656,13 @@ function getPatternScanResult() {
       invHeadShoulders: (patternScan.patterns && patternScan.patterns.invHeadShoulders) || [],
       boxRangeLow: (patternScan.patterns && patternScan.patterns.boxRangeLow) || [],
       openingGap: (patternScan.patterns && patternScan.patterns.openingGap) || [],
-      pullback: pullbackScan.matches || []
-    }
+      pullback: pullbackScan.matches || [],
+      // 2026-08-20: "각도기 테스트"(정규화 세력매집각도, angle_momentum_scan.py) 탭 추가.
+      angleMomentum: (patternScan.patterns && patternScan.patterns.angleMomentum) || []
+    },
+    // 각도기 테스트 탭 전용 - 과거 entry_signal 발생분 전체를 5일 보유로 백테스트한 요약
+    // (승률/평균수익률 등). 다른 패턴엔 없는 필드라 patterns 밖에 별도로 둔다.
+    angleMomentumBacktest: data.angleMomentumBacktest || null
   };
 }
 

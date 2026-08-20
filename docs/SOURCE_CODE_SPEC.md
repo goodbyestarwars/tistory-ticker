@@ -58,7 +58,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `watchlist.js` | 534 | 관심종목(MY) 카드, localStorage 저장, 실시간 체결가 | `window.Watchlist{add,remove,has}`, `#watchlist` | GAS `?codes=`, WS `wss://goodbyestar.cloud/ws/quotes` |
 | `marketcap-bubble.js` | 644 | 시가총액 트리맵(스퀘어파이드) | `window.MarketcapBubble`, `#marketcap-bubble` | GAS `?bubble=1` |
 | `home-widgets.js` | 691 | 홈 카드 8개 순서/숨김 관리(드래그앤드롭) | `window.HomeDashboardWidgets.init`, `.home-widget-grid` | GAS(`?market=0`), VM WS |
-| `pattern-scan.js` | 714 | 차트 패턴 스캐너(5종, 캔들+일목균형표) | `window.PatternScan`, `#pattern-scan` | GAS `?patternScan=1`,`?patternChart=1`, unpkg LWC CDN |
+| `pattern-scan.js` | 911 | 차트 패턴 스캐너(7종 - 2026-08-20 "각도기 테스트"(정규화 세력매집각도+백테스트) 추가, 캔들+일목균형표) | `window.PatternScan`, `#pattern-scan` | GAS `?patternScan=1`,`?patternChart=1`, unpkg LWC CDN |
 | `order-book.js` | 738 | 실시간 호가창(2초 폴링) + 매물벽 돌파 감지 | `window.OrderBook`, `#order-book` | VM `/order-book/{code}`, GAS `?codes=`, WS |
 | `overnight-market.js` | 752 | 글로벌 시장지표(미국지수/VIX/원자재/채권/코인) | `window.OvernightMarket`, `#overnight-market` | VM `/futures`,`/futures/avg`, GAS `?action=subIndexAnalysis`, LWC CDN |
 | `kospi-futures.js` | 763 | 코스피200 주/야간선물 캔들차트 + 옵션 수급 + AI해설 | `window.KospiFutures`, `#kospi-futures` | VM `/futures`,`/option-flow`, GAS `?action=kospiFuturesAnalysis`, LWC CDN |
@@ -193,7 +193,9 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `backup_sqlite.py` | 94 | SQLite 원자적 백업(`VACUUM INTO`) | `backup_database` |
 | `latency_monitor.py` | 103 | 주요 엔드포인트 응답시간 5분 주기 기록 | `run_once` |
 | `post_deploy_check.py` | 84 | 배포 후 API 회귀 점검 | `main` |
-| `rescan_patterns.py` | 96 | SQLite 기반 전종목 패턴 재채점(수동) | `main` |
+| `rescan_patterns.py` | 136 | SQLite 기반 전종목 패턴 재채점(수동) | `main` |
+| `accumulation_angle.py` | 174 | 정규화 세력매집각도(전형가 EMA5/20 기울기, %정규화+분출필터) 단일 종목 계산 + 5일 보유 백테스트(2026-08-20, pandas/numpy - pandas-ta는 이 환경에 설치 불가) | `compute_accumulation_angle`, `backtest_entry_signal`, `summarize_backtest` |
+| `angle_momentum_scan.py` | 191 | "각도기 테스트" 탭 전종목 스캔(SQLite만 읽음, 키움 재호출 없음) + 백테스트 집계, `daily_scan_cache.json`에 patternScan.patterns.angleMomentum/angleMomentumBacktest로 저장 | `main` |
 | `verify_news_momentum_db.py` | 101 | `news_momentum.db` 무결성/커버리지 배포검증 | `verify_database` |
 | `cleanup_price_recap_topics.py` | 101 | 과거 버그 노이즈 이슈 정리(dry-run 기본) | `find_noisy_topics` |
 
