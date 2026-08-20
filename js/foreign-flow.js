@@ -2652,6 +2652,15 @@
       var now = ma(period, closes.length - 1), before = ma(period, closes.length - 1 - lookback);
       return now == null || before == null || !before ? 0 : (now - before) / Math.abs(before);
     }
+    // 2026-08-20: swingChartRegime()의 같은 이름 헬퍼는 그 함수 스코프에만 있어 여기선 안
+    // 보이는데(별개 함수), 아래 shortSignal 판정이 이 함수 이름을 그대로 참조하고 있었다 -
+    // "crossedAbove is not defined" ReferenceError로 종목분석 수급 조회 전체가 실패했다
+    // (사용자 리포트). swingChartRegime과 같은 로직을 이 함수 자신의 ma/closes로 재정의한다.
+    function crossedAbove(period) {
+      var previousMa = ma(period, closes.length - 2), currentMa = ma(period, closes.length - 1);
+      return previousMa != null && currentMa != null
+        && closes[closes.length - 2] < previousMa && closes[closes.length - 1] >= currentMa;
+    }
     function key(fastPeriod, slowPeriod, longPeriod) {
       if (closes.length < Math.max(slowPeriod, longPeriod || 0)) return 'insufficient';
       var fast = ma(fastPeriod, closes.length - 1), slow = ma(slowPeriod, closes.length - 1), long = longPeriod ? ma(longPeriod, closes.length - 1) : null;
