@@ -453,6 +453,14 @@ html.dark .ss-etf-table .ss-flat { color: rgba(245,239,224,.45); }
   border-radius: 0;
   background: transparent;
 }
+/* 2026-08-20: 표가 PC에서도 컨테이너보다 넓어(재무건전/배당주/ETF 다 해당) 가로 스크롤이
+   필요한데, OS 기본 스크롤바는 macOS 등에서 손을 안 대면 아예 안 보여서 "끝이 잘렸다"는
+   오해를 샀다(css/quick-indices.css의 .qi-scroll과 동일한 패턴으로 항상 보이게 함). */
+#strategy-search .ss-table-wrap { scrollbar-width: thin; }
+#strategy-search .ss-table-wrap::-webkit-scrollbar { height: 8px; }
+#strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background: #c7ccd3; border-radius: 4px; }
+#strategy-search .ss-table-wrap::-webkit-scrollbar-track { background: transparent; }
+html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background: rgba(245, 239, 224, 0.25) !important; }
 #strategy-search .ss-comparison-table {
   min-width: 1480px;
   font-size: 12px;
