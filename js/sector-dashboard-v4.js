@@ -122,15 +122,17 @@
       var entries = sectorMap[sector]
         .map(function (item) {
           var e = resolveEntry(item, krxMap);
-          return { name: e.name, market: e.market, data: e.code && dataByCode[e.code] };
+          return { name: e.name, code: e.code, market: e.market, data: e.code && dataByCode[e.code] };
         })
         .filter(function (e) { return e.data; })
         .sort(function (a, b) { return b.data.changeRate - a.data.changeRate; });
 
+      // data-code: 실시간 WebSocket 시세 갱신(startCardRealtimeQuotes)이 종목을 찾는 키.
+      // 같은 종목이 여러 섹터 카드에 중복 등장할 수 있어 갱신 시 querySelectorAll로 전부 맞춘다.
       var rows = entries.map(function (e) {
         var d = e.data;
         return (
-          '<div class="sector-row">' +
+          '<div class="sector-row" data-code="' + escapeHTML(e.code) + '">' +
             '<span class="sector-row-name">' + escapeHTML(e.name) + marketBadgeHtml(e.market) + '</span>' +
             '<span><span class="sector-row-price">' + formatNumber(d.price) + '</span>' +
             '<span class="sector-row-rate ' + directionClass(d.change) + '">' +
@@ -185,6 +187,134 @@
     }).join('');
 
     return html;
+  }
+
+  // ---- 카드 보기 실시간 시세(WebSocket) ----
+  // 2026-08-20 요청: 카드 보기는 최초 1회 GAS 배치 조회 후 갱신이 없었다("시장 > 증시온도 >
+  // 카드 > 종목 WebSocket 처리해") - js/watchlist.js·js/home-realtime-table.js가 이미 쓰는
+  // 실시간 체결가 소켓(wss://goodbyestar.cloud/ws/quotes)에 카드에 표시된 종목코드를
+  // 그대로 구독해 가격·등락률만 자리에서 갱신한다(카드 재조립 없음). 재연결은
+  // home-realtime-table.js와 동일한 지수 백오프(1.5초~30초) + 세대 검증 패턴을 따른다.
+  var CARD_WS_URL = 'wss://goodbyestar.cloud/ws/quotes';
+  var CARD_WS_RECONNECT_MIN_MS = 1500;
+  var CARD_WS_RECONNECT_MAX_MS = 30000;
+  var cardRealtime = {
+    container: null,
+    codes: [],
+    socket: null,
+    reconnectTimer: null,
+    reconnectDelay: CARD_WS_RECONNECT_MIN_MS,
+    generation: 0
+  };
+  var cardVisibilityWired = false;
+
+  function cssEscape(s) {
+    return String(s).replace(/["\\]/g, '\\$&');
+  }
+
+  function updateSectorRowQuote(container, code, quote) {
+    var rows = container.querySelectorAll('.sector-row[data-code="' + cssEscape(code) + '"]');
+    if (!rows.length) return;
+    var price = Number(quote.price);
+    var changeRate = Number(quote.changeRate);
+    // 일부 브로커 응답은 change 금액을 절댓값으로 보낸다 - 방향은 부호가 있는
+    // changeRate를 우선한다(js/watchlist.js updateCard와 동일한 규칙).
+    var direction = !isNaN(changeRate) && changeRate !== 0 ? changeRate : Number(quote.change);
+    for (var i = 0; i < rows.length; i++) {
+      var priceEl = rows[i].querySelector('.sector-row-price');
+      var rateEl = rows[i].querySelector('.sector-row-rate');
+      if (priceEl && !isNaN(price)) priceEl.textContent = formatNumber(price);
+      if (rateEl && !isNaN(changeRate)) {
+        rateEl.textContent = arrowSymbol(direction) + Math.abs(changeRate).toFixed(2) + '%';
+        rateEl.className = 'sector-row-rate ' + directionClass(direction);
+      }
+    }
+  }
+
+  function stopCardRealtimeQuotes() {
+    cardRealtime.generation += 1;
+    if (cardRealtime.reconnectTimer) {
+      clearTimeout(cardRealtime.reconnectTimer);
+      cardRealtime.reconnectTimer = null;
+    }
+    if (cardRealtime.socket) {
+      cardRealtime.socket.onclose = null;
+      cardRealtime.socket.close();
+      cardRealtime.socket = null;
+    }
+    cardRealtime.container = null;
+    cardRealtime.codes = [];
+  }
+
+  function scheduleCardRealtimeReconnect(generation) {
+    if (generation !== cardRealtime.generation || document.hidden || !cardRealtime.codes.length) return;
+    if (cardRealtime.reconnectTimer) return;
+    var delay = cardRealtime.reconnectDelay;
+    cardRealtime.reconnectDelay = Math.min(CARD_WS_RECONNECT_MAX_MS, Math.round(cardRealtime.reconnectDelay * 1.8));
+    cardRealtime.reconnectTimer = setTimeout(function () {
+      cardRealtime.reconnectTimer = null;
+      connectCardRealtime(generation);
+    }, delay);
+  }
+
+  function connectCardRealtime(generation) {
+    if (generation !== cardRealtime.generation || document.hidden || !cardRealtime.codes.length) return;
+    var socket;
+    try {
+      socket = new WebSocket(CARD_WS_URL + '?codes=' + cardRealtime.codes.map(encodeURIComponent).join(','));
+    } catch (err) {
+      scheduleCardRealtimeReconnect(generation);
+      return;
+    }
+    cardRealtime.socket = socket;
+    socket.onopen = function () {
+      if (generation !== cardRealtime.generation || cardRealtime.socket !== socket) return;
+      cardRealtime.reconnectDelay = CARD_WS_RECONNECT_MIN_MS;
+    };
+    socket.onmessage = function (event) {
+      if (generation !== cardRealtime.generation || !cardRealtime.container) return;
+      try {
+        var quote = JSON.parse(event.data);
+        if (quote.type === 'quote' && quote.code) updateSectorRowQuote(cardRealtime.container, quote.code, quote);
+      } catch (err) {}
+    };
+    socket.onerror = function () {
+      if (generation === cardRealtime.generation && cardRealtime.socket === socket) socket.close();
+    };
+    socket.onclose = function () {
+      if (generation !== cardRealtime.generation || cardRealtime.socket !== socket) return;
+      cardRealtime.socket = null;
+      scheduleCardRealtimeReconnect(generation);
+    };
+  }
+
+  function wireCardVisibility_() {
+    if (cardVisibilityWired) return;
+    cardVisibilityWired = true;
+    document.addEventListener('visibilitychange', function () {
+      if (!cardRealtime.container) return;
+      if (document.hidden) {
+        if (cardRealtime.reconnectTimer) { clearTimeout(cardRealtime.reconnectTimer); cardRealtime.reconnectTimer = null; }
+        if (cardRealtime.socket) { cardRealtime.socket.onclose = null; cardRealtime.socket.close(); cardRealtime.socket = null; }
+      } else if (!cardRealtime.socket) {
+        cardRealtime.reconnectDelay = CARD_WS_RECONNECT_MIN_MS;
+        connectCardRealtime(cardRealtime.generation);
+      }
+    });
+  }
+
+  // panel: 카드가 그려진 컨테이너(js/market-temp.js의 카드 보기 탭 패널). codes: 그 안에
+  // 표시된 종목코드 배열 - 카드가 다시 그려질 때(섹터 편집 저장 등)마다 다시 호출하면
+  // 기존 연결을 정리하고 새 목록으로 재구독한다.
+  function startCardRealtimeQuotes(container, codes) {
+    stopCardRealtimeQuotes();
+    if (!container || !codes || !codes.length || !('WebSocket' in global)) return;
+    wireCardVisibility_();
+    cardRealtime.container = container;
+    cardRealtime.codes = codes;
+    cardRealtime.reconnectDelay = CARD_WS_RECONNECT_MIN_MS;
+    if (document.hidden) return; // 화면 복귀 시 visibilitychange 핸들러가 연결한다.
+    connectCardRealtime(cardRealtime.generation);
   }
 
   function renderToggle(activeMode) {
@@ -293,7 +423,9 @@
     fetchBatch: fetchBatch,
     renderHeatmapHtml: renderHeatmapHtml, // js/market-temp.js의 "히트맵 보기" 탭이 재사용
     renderCardsHtml: renderCardsHtml, // js/market-temp.js의 "카드 보기" 탭이 재사용
-    injectBadgeStyles: injectBadgeStyles // renderCardsHtml의 시장 뱃지(P/Q) 스타일 - 별도 호출 필요
+    injectBadgeStyles: injectBadgeStyles, // renderCardsHtml의 시장 뱃지(P/Q) 스타일 - 별도 호출 필요
+    startCardRealtimeQuotes: startCardRealtimeQuotes, // js/market-temp.js의 "카드 보기" 탭이 재사용
+    stopCardRealtimeQuotes: stopCardRealtimeQuotes
   };
   global.SectorDashboard = SectorDashboard;
 

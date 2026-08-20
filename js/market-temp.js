@@ -1093,6 +1093,9 @@
       var toolbar = '<div class="mt-sector-toolbar"><span>' + escapeHtml(cardState) + '</span>' +
         '<button type="button" data-sector-editor-open>카테고리·종목 편집</button></div>';
       panel.innerHTML = toolbar + (html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>');
+      // 2026-08-20: 카드 보기는 이 최초 GAS 배치 조회 이후로 갱신이 없었다 - 실시간 체결가
+      // WebSocket(SD.startCardRealtimeQuotes)을 구독해 가격·등락률을 계속 최신으로 유지한다.
+      if (SD.startCardRealtimeQuotes) SD.startCardRealtimeQuotes(panel, codes);
       var editButton = panel.querySelector('[data-sector-editor-open]');
       if (editButton) editButton.addEventListener('click', function () {
         renderSectorEditor_(panel, sectorMap, config.revision, {
