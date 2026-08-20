@@ -18,11 +18,18 @@ confidence/matched·total이 종목마다 다르게 나올 수가 없었다(늘 
      싼 건 저평가가 아니라 밸류트랩일 수 있어서, 새 품질 공식을 만드는 대신 이미 서비스
      중인 펀더멘탈 점수를 그대로 재사용한다.
   2. 가격 게이트: 120일 이동평균 대비 이격도(disparity)가 DISPARITY_MAX 이하. "제 가격
-     흐름 대비 눌려있다"를 근사한다 - 이 프로젝트엔 PER/PBR(주가 대비 밸류에이션) 데이터가
-     없다(js/foreign-flow.js가 "실시간 밸류에이션은 원천 시세 응답이 없어 표시하지
-     않습니다"라고 이미 밝혀둔 상태). 그래서 진짜 PER/PBR 기반 저평가가 아니라 OHLC로
-     계산 가능한 "장기 추세 대비 가격 눌림" 근사치를 쓴다는 걸 화면에도 그대로 명시해야
-     한다 - 미검증 지표를 확정값처럼 보여주면 안 되므로.
+     흐름 대비 눌려있다"를 근사한다 - 이 스캔은 PER/PBR(주가 대비 밸류에이션)을 기준으로
+     쓰지 않는다. (2026-08-20 정정: 여기 원래 "이 프로젝트엔 PER/PBR 데이터가 없다"고
+     적혀 있었는데 부정확했다 - js/foreign-flow.js 종목분석 펀더멘탈 탭은 GAS
+     getFundamentals_() → VM /quote로 실제 PER/PBR을 표시하고 있다. 그 화면의 "실시간
+     밸류에이션은 시세 응답이 없어 표시하지 않습니다"는 온디맨드 호출이 실패했을 때만
+     뜨는 폴백 문구였는데, 그걸 "데이터 자체가 구조적으로 없다"로 오인해 이 스캔은
+     PER/PBR을 아예 시도조차 안 했었다. 배당주 전략은 2026-08-20에 같은 키움 ka10001로
+     PER/PBR을 채우도록 보강했다 - fetch_dividend_valuation() 참고. 이 "저평가" 전략은
+     그래도 disparity 근사치를 그대로 쓴다 - PER/PBR 전환은 이 전략의 판정 기준 자체를
+     바꾸는 별도 결정이라 이번 수정 범위에 넣지 않았다.) 그래서 진짜 PER/PBR 기반 저평가가
+     아니라 OHLC로 계산 가능한 "장기 추세 대비 가격 눌림" 근사치를 쓴다는 걸 화면에도
+     그대로 명시해야 한다 - 미검증 지표를 확정값처럼 보여주면 안 되므로.
 
 두 조건을 모두 만족하는 종목만 후보가 되고, WICS 대분류 섹터별로 묶어 섹터당 이격도가
 가장 낮은(=가장 많이 눌린) 상위 SECTOR_TOP_N개만 남긴다 - "조건 통과자를 무제한으로 다
@@ -36,11 +43,13 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.request
 from datetime import date, datetime, timezone
 
 import db_schema
 import invest_signal
+import kiwoom_client
 import pattern_detect
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
@@ -108,6 +117,17 @@ DIVIDEND_PAYOUT_MIN = 0.0
 DIVIDEND_STREAK_MIN = 1
 DIVIDEND_PROFIT_GROWTH_STREAK_MIN = 0
 DIVIDEND_TOP_N = None
+
+# 2026-08-20: 배당주 상세 모달의 PER/PBR이 항상 "—"라는 리포트로 확인 - 이 스캔은 원래
+# PER/PBR을 아예 안 갖고 있었다(위 모듈 docstring의 "이 프로젝트엔 PER/PBR 데이터가
+# 없다"는 설명은 js/foreign-flow.js 종목분석 펀더멘탈 탭이 이미 GAS getFundamentals_() →
+# VM /quote(js/foreign-flow.js:1830 valuation, gas/ticker-proxy.gs:3525 quote.per/quote.pbr)로
+# 실제 값을 표시하고 있어 그 시점 기준으로도 부정확했던 것으로 보인다 - "시세 응답이 없을
+# 때"의 폴백 안내문을 "데이터 자체가 없다"로 오인한 것). 같은 키움 ka10001을 daily_scan.py
+# market_cap_getter()와 동일한 패턴(토큰 1회 발급 + 종목당 THROTTLE_SEC 대기 + 종목 단위
+# try/except)으로 배당 후보에만 호출해 per/pbr을 채운다 - 저평가/우량주 전략의 이격도
+# 기반 판정 자체는 그대로 두고(그건 여전히 유효한 근사치), 배당주 모달 표시 필드만 보강.
+THROTTLE_SEC = 0.25
 
 # ETF return ranking uses the same trading-day convention as the local daily
 # price cache.  Keeping the calculation local also gives the 12-month screen
@@ -618,7 +638,31 @@ def dividend_signal(daily, annual, dividend):
     }
 
 
-def build_dividend_match(stock, daily, sector, signal, annual):
+def fetch_dividend_valuation(token, code):
+    """배당주 상세 모달의 PER/PBR용 - 키움 ka10001(주식기본정보요청)에서 시세 스냅샷을
+    1건 받는다. main.py `/quote`가 이미 같은 TR로 per/pbr을 내려주고 있고
+    (gas/ticker-proxy.gs getFundamentals_()가 그대로 읽어 종목분석 펀더멘탈 탭에 표시 중 -
+    검증된 필드명), daily_scan.py market_cap_getter()와 동일한 방식으로 재사용한다.
+    실패는 그 종목만 PER/PBR 없이 넘어가고 전체 스캔은 계속되게 None을 돌려준다."""
+    if not token:
+        return None
+    try:
+        raw = kiwoom_client.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
+    except (RuntimeError, OSError):
+        return None
+
+    def to_num(value):
+        if isinstance(value, str):
+            value = value.replace(',', '').strip()
+        try:
+            return float(value) if value not in (None, '') else None
+        except (TypeError, ValueError):
+            return None
+
+    return {'per': to_num(raw.get('per')), 'pbr': to_num(raw.get('pbr'))}
+
+
+def build_dividend_match(stock, daily, sector, signal, annual, valuation=None):
     last = daily[-1]
     prev = daily[-2] if len(daily) > 1 else None
     previous_close = prev.get('close') if prev else None
@@ -642,6 +686,9 @@ def build_dividend_match(stock, daily, sector, signal, annual):
         # roe로 실어 보내는데 이 배당주 전략만 빠져 있어 배당 정보 모달의 ROE가 항상
         # "—"였다(사용자 리포트). annual은 이미 인자로 들어와 있어 계산 비용 없이 채운다.
         'roe': annual.get('latest_roe_pct') if annual else None,
+        # 2026-08-20: PER/PBR도 같은 리포트에서 "—"로 확인됨 - fetch_dividend_valuation() 참고.
+        'per': valuation.get('per') if valuation else None,
+        'pbr': valuation.get('pbr') if valuation else None,
     }
     fundamental_score = invest_signal.compute_fundamental_score(annual)
     if fundamental_score is not None:
@@ -750,7 +797,7 @@ def scan_etf_returns(universe, conn):
     return {'ETF': candidates if ETF_RETURN_TOP_N is None else candidates[:ETF_RETURN_TOP_N]}, scanned
 
 
-def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
+def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None, kiwoom_token=None):
     """Scan domestic common stocks for the conservative dividend strategy."""
     theme_codes = theme_codes or set()
     matches = []
@@ -778,7 +825,12 @@ def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None
         scanned += 1
         if not signal:
             continue
-        matches.append(build_dividend_match(stock, daily, wics['sector'], signal, annual))
+        # PER/PBR은 배당 신호를 통과한 후보에만 호출한다(전종목이 아니라 실제 결과에
+        # 표시될 종목만) - THROTTLE_SEC로 daily_scan.py market_cap_getter()와 동일하게 쉰다.
+        valuation = fetch_dividend_valuation(kiwoom_token, code)
+        if kiwoom_token:
+            time.sleep(THROTTLE_SEC)
+        matches.append(build_dividend_match(stock, daily, wics['sector'], signal, annual, valuation))
 
     matches.sort(key=lambda item: (
         -(item.get('dividendYieldPct') or 0),
@@ -818,6 +870,21 @@ def main():
     fundamentals_cache = load_fundamentals_cache()
     log('펀더멘탈 캐시 종목 수: %d' % len(fundamentals_cache))
 
+    # 2026-08-20: 배당주 PER/PBR 보강(fetch_dividend_valuation) 용 - daily_scan.py와 동일하게
+    # 키움 토큰을 1회만 발급해 재사용한다. 미설정이면 PER/PBR 없이(기존과 동일하게 "—")
+    # 계속 진행한다 - 이 스캔의 다른 카테고리(저평가/우량주/ETF)는 원래 키움 인증이 필요
+    # 없었으므로 필수 요건으로 승격하지 않는다.
+    kiwoom_appkey = os.environ.get('KIWOOM_APPKEY')
+    kiwoom_secretkey = os.environ.get('KIWOOM_SECRETKEY')
+    kiwoom_token = None
+    if kiwoom_appkey and kiwoom_secretkey:
+        try:
+            kiwoom_token = kiwoom_client.get_token(kiwoom_appkey, kiwoom_secretkey)
+        except Exception as e:
+            log('키움 토큰 발급 실패 - 배당주 PER/PBR 없이 진행합니다: %s' % e)
+    else:
+        log('KIWOOM_APPKEY / KIWOOM_SECRETKEY 미설정 - 배당주 PER/PBR이 채워지지 않습니다.')
+
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
 
@@ -825,7 +892,7 @@ def main():
      skipped_no_sector, skipped_no_fundamentals) = scan(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
     dividend_sectors, dividend_scanned = scan_dividend(
-        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
+        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token)
     etf_return_sectors, etf_scanned = scan_etf_returns(universe, conn)
 
     undervalued_category = {
