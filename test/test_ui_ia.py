@@ -244,7 +244,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
         for token in (
             '--font-title: "MaruBuri"',
-            '--font-ui: "Nanum Gothic"',
+            '--font-ui: "Pretendard"',
             '--font-data: "Malgun Gothic"',
             "--page-bg: #F8F7F4",
             "--surface: #FFFEFC",
@@ -714,10 +714,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(provider, terms)
 
     def test_open_source_license_matches_the_gothic_font(self):
+        # 2026-08-20: 고딕 모드 폰트를 나눔고딕에서 프리텐다드로 교체 - 라이선스 표기도 같이 바꼈다.
         license_page = self.read("legal/opensource-license.html")
-        self.assertIn("나눔고딕 (Nanum Gothic)", license_page)
-        self.assertIn("hangeul.naver.com/download", license_page)
-        self.assertNotIn("Pretendard Variable", license_page)
+        self.assertIn("프리텐다드 (Pretendard)", license_page)
+        self.assertIn("github.com/orioncactus/pretendard", license_page)
+        self.assertNotIn("나눔고딕", license_page)
+        self.assertNotIn("NanumGothic", license_page)
 
     def test_mobile_app_bottom_navigation_is_available_without_skin_redeployment(self):
         menu = self.read("js/skin-menu.js")

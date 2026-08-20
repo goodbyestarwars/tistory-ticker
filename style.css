@@ -29,7 +29,7 @@
   --qi-height: 86px;
   --topbar-height: 48px;
   --font-title: "MaruBuri", "Maru Buri", Georgia, serif;
-  --font-ui: "Nanum Gothic", "NanumGothic", "Malgun Gothic", sans-serif;
+  --font-ui: "Pretendard", "Malgun Gothic", sans-serif;
   --font-data: "Malgun Gothic", system-ui, sans-serif;
   --page-bg: #F8F7F4;
   --surface: #FFFEFC;
@@ -3545,7 +3545,7 @@ html.dark .mobile-app-sheet-links a span { color: rgba(245, 239, 224, .5); }
 
 body.account-login-open { overflow: hidden; }
 .account-login-modal[hidden] { display: none; }
-.account-login-modal { position: fixed; inset: 0; z-index: 2200; font-family: 'MaruBuri', 'Maru Buri', 'Nanum Gothic', system-ui, sans-serif; }
+.account-login-modal { position: fixed; inset: 0; z-index: 2200; font-family: 'MaruBuri', 'Maru Buri', 'Pretendard', system-ui, sans-serif; }
 .account-login-backdrop { display: grid; place-items: center; min-height: 100%; padding: 24px; box-sizing: border-box; background: rgba(15, 23, 42, .42); backdrop-filter: blur(5px); }
 .account-login-dialog { position: relative; width: min(520px, 100%); box-sizing: border-box; padding: 32px; border: 1px solid rgba(255, 255, 255, .7); border-radius: 24px; background: linear-gradient(145deg, #fff 0%, #f8fbff 100%); box-shadow: 0 24px 70px rgba(15, 23, 42, .24); color: #172033; }
 .account-login-close { position: absolute; top: 18px; right: 18px; width: 34px; height: 34px; border: 1px solid #e2e8f0; border-radius: 50%; background: rgba(255, 255, 255, .8); color: #64748b; font: inherit; font-size: 22px; line-height: 1; cursor: pointer; transition: background .15s ease, color .15s ease, transform .15s ease; }
@@ -4196,8 +4196,8 @@ html.dark body.iframe-mode { background: #1A1A1A; }
 /* 토글 버튼은 navbar의 #fontModeBtn, 선택은 localStorage('bolt-font')에 저장.
    본문 font-family가 곳곳에 'MaruBuri' !important로 박혀 있어서,
    여기(파일 끝)에 같은 !important + 더 높은 specificity로 덮어쓴다.
-   고딕은 NanumGothic 웹폰트(skin.html에서 로드) - 모든 기기 동일 렌더링.
-   웹폰트 로드 실패 시 맑은고딕/시스템 고딕 폴백. */
+   고딕은 Pretendard 웹폰트(skin.html에서 로드, 2026-08-20 나눔고딕에서 교체) - 모든
+   기기 동일 렌더링. 웹폰트 로드 실패 시 맑은고딕/시스템 고딕 폴백. */
 html.font-gothic body,
 html.font-gothic body *,
 /* 아래: 댓글/방명록/티스토리 위젯(.tt-*)은 명조 규칙의 specificity가 더 높아서
@@ -4206,7 +4206,7 @@ html.font-gothic .post-comments *,
 html.font-gothic .guest-section *,
 html.font-gothic [class^="tt-"], html.font-gothic [class*=" tt-"],
 html.font-gothic [class^="tt-"] *, html.font-gothic [class*=" tt-"] * {
-  font-family: 'NanumGothic', 'Malgun Gothic', sans-serif !important;
+  font-family: 'Pretendard', 'Malgun Gothic', sans-serif !important;
 }
 
 /* 예외: 로고는 Space Grotesk 유지 (브랜드 아이덴티티) */
@@ -4639,7 +4639,7 @@ html.dark .app-news-body > strong, html.dark .app-news-body > b { color: #24324a
 
 /* ============ 2026 디자인 시스템: 경제신문·리서치 화면 공통 규칙 ============
    데이터/API/판정 로직은 변경하지 않고, 기존 위젯의 분산된 시각 규칙을 마지막 공통
-   레이어에서 정리한다. 기본 모드는 UI=나눔고딕, 제목=마루부리, 수치=시스템 고딕이다.
+   레이어에서 정리한다. 기본 모드는 UI=프리텐다드(2026-08-20 나눔고딕에서 교체), 제목=마루부리, 수치=시스템 고딕이다.
    기존 font-gothic 토글은 사용자가 선택한 모드이므로 그대로 존중한다. */
 html:not(.font-gothic) body,
 html:not(.font-gothic) body * {

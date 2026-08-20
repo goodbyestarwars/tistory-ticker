@@ -1,13 +1,13 @@
 /* Shared enhancements loaded by js/dashboard-enhancements.js. */
 
 @import url('https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css');
-@import url('https://cdn.jsdelivr.net/gh/fonts-archive/NanumGothic/NanumGothic.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css'); /* 2026-08-20 나눔고딕에서 교체 */
 
 #watchlist,
 #watchlist *,
 .home-my-card,
 .home-my-card * {
-  font-family: 'Maru Buri', 'MaruBuri', 'Nanum Gothic', '나눔고딕', system-ui, sans-serif;
+  font-family: 'Maru Buri', 'MaruBuri', 'Pretendard', system-ui, sans-serif;
 }
 
 #market-temp .mt-guide-card {
