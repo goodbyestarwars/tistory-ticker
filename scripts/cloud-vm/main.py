@@ -2276,6 +2276,13 @@ def market_board_endpoint(request: Request,
                                 data.get('source') or 'KIS 미국 순위',
                                 ', '.join(filled),
                             )
+                            # fetch_us_kis() 안에서 이미 한 번 병합을 시도했지만, 그때는
+                            # KIS 자체 marketCap 섹션이 비어 있어(marketCap도 missing_metrics에
+                            # 포함된 경우) 병합할 재료가 없어 그냥 통과했다. 방금 키움으로
+                            # 채운 marketCap이 있으면 남은 KIS 원본 섹션(tradeAmount 등)에도
+                            # 회사명·시가총액을 다시 시도해 채운다(종목코드 기준 매칭이라
+                            # KIS/키움 소스가 섞여도 안전).
+                            market_board.merge_us_kis_metadata(kis_sections)
                     except Exception as fallback_exc:
                         logging.getLogger('main').warning(
                             'KIS 미국 순위별 폴백 실패: %s', fallback_exc,
