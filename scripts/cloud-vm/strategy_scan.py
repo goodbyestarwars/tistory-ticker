@@ -638,6 +638,10 @@ def build_dividend_match(stock, daily, sector, signal, annual):
         'cashDividendPerShare': signal.get('cashDividendPerShare'),
         'dividendStreak': signal['dividendStreak'],
         'profitGrowthStreak': signal['profitGrowthStreak'],
+        # 2026-08-20: build_match()(재무건전 전략)는 이미 annual['latest_roe_pct']를
+        # roe로 실어 보내는데 이 배당주 전략만 빠져 있어 배당 정보 모달의 ROE가 항상
+        # "—"였다(사용자 리포트). annual은 이미 인자로 들어와 있어 계산 비용 없이 채운다.
+        'roe': annual.get('latest_roe_pct') if annual else None,
     }
     fundamental_score = invest_signal.compute_fundamental_score(annual)
     if fundamental_score is not None:
