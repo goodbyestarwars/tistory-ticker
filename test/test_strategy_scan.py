@@ -524,5 +524,66 @@ class ScanTests(unittest.TestCase):
         self.assertEqual(set(sectors), {'IT', '금융'})
 
 
+class NpsHoldingsTests(unittest.TestCase):
+    """전략검색 "국민연금 보유종목" 카테고리 - public_data.fetch_nps_holdings_by_code()가
+    이미 이름 매칭까지 끝낸 결과를 받아 가격·섹터만 붙이는지 확인한다."""
+
+    def _daily(self):
+        return [{'date': '2026-08-19', 'close': 100}, {'date': '2026-08-20', 'close': 110}]
+
+    def test_scan_attaches_price_and_sector_to_matched_holdings(self):
+        universe = [
+            {'code': '005930', 'name': '삼성전자'},
+            {'code': '000660', 'name': 'SK하이닉스'},
+        ]
+        wics_map = {
+            '005930': {'name': '삼성전자', 'sector': 'IT', 'industry': 'IT'},
+            '000660': {'name': 'SK하이닉스', 'sector': 'IT', 'industry': 'IT'},
+        }
+        holdings = {
+            '005930': {'holding_pct': 8.5, 'weight_pct': 5.0, 'evaluation_amount_eok': 1000.0,
+                       'as_of': '2024-12-31', 'source': '국민연금공단 국내주식 투자정보'},
+            '000660': {'holding_pct': 7.1, 'weight_pct': 2.0, 'evaluation_amount_eok': 500.0,
+                       'as_of': '2024-12-31', 'source': '국민연금공단 국내주식 투자정보'},
+        }
+        with patch.object(strategy_scan.public_data, 'fetch_nps_holdings_by_code', return_value=holdings), \
+                patch.object(strategy_scan.db_schema, 'load_daily_prices', return_value=self._daily()):
+            sectors, scanned = strategy_scan.scan_nps_holdings(universe, wics_map, object())
+
+        self.assertEqual(scanned, 2)
+        matches = sectors['IT']
+        # 보유 지분율(holdingPct) 내림차순 - 삼성전자(8.5%)가 SK하이닉스(7.1%)보다 먼저.
+        self.assertEqual([m['code'] for m in matches], ['005930', '000660'])
+        self.assertEqual(matches[0]['holdingPct'], 8.5)
+        self.assertEqual(matches[0]['price'], 110)
+        self.assertAlmostEqual(matches[0]['changeRate'], 10.0)
+        self.assertEqual(matches[0]['asOf'], '2024-12-31')
+        self.assertEqual(matches[0]['strategy'], 'nationalPension')
+
+    def test_scan_skips_universe_stocks_without_nps_holding(self):
+        universe = [{'code': '005930', 'name': '삼성전자'}, {'code': '999999', 'name': '미보유종목'}]
+        wics_map = {
+            '005930': {'name': '삼성전자', 'sector': 'IT', 'industry': 'IT'},
+            '999999': {'name': '미보유종목', 'sector': 'IT', 'industry': 'IT'},
+        }
+        holdings = {'005930': {'holding_pct': 8.5, 'weight_pct': 5.0, 'evaluation_amount_eok': 1000.0,
+                                'as_of': '2024-12-31', 'source': '국민연금공단 국내주식 투자정보'}}
+        with patch.object(strategy_scan.public_data, 'fetch_nps_holdings_by_code', return_value=holdings), \
+                patch.object(strategy_scan.db_schema, 'load_daily_prices', return_value=self._daily()):
+            sectors, scanned = strategy_scan.scan_nps_holdings(universe, wics_map, object())
+
+        self.assertEqual([m['code'] for sector_matches in sectors.values() for m in sector_matches], ['005930'])
+
+    def test_scan_returns_empty_when_nps_data_unavailable(self):
+        """공공데이터 조회 실패 시(서비스키 미설정 등) 빈 결과 - 임의로 채우지 않는다."""
+        universe = [{'code': '005930', 'name': '삼성전자'}]
+        wics_map = {'005930': {'name': '삼성전자', 'sector': 'IT', 'industry': 'IT'}}
+        with patch.object(strategy_scan.public_data, 'fetch_nps_holdings_by_code', return_value={}):
+            sectors, scanned = strategy_scan.scan_nps_holdings(universe, wics_map, object())
+
+        self.assertEqual(sectors, {})
+        self.assertEqual(scanned, 0)
+
+
 if __name__ == '__main__':
     unittest.main()

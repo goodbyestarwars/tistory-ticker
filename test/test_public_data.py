@@ -38,6 +38,41 @@ class PublicDataParserTests(unittest.TestCase):
         self.assertEqual(public_data._nps_name('삼성전자(주)'), '삼성전자')
         self.assertEqual(public_data._nps_name('SK 하이닉스'), 'sk하이닉스')
 
+    def test_fetch_nps_holdings_by_code_matches_universe_by_normalized_name(self):
+        rows = [
+            {'Company': '삼성전자(주)', 'Amount': '1000', 'Weight': '5.0', 'Holding': '8.5'},
+            {'Company': 'SK 하이닉스', 'Amount': '500', 'Weight': '2.0', 'Holding': '7.1'},
+        ]
+        universe = [
+            {'code': '005930', 'name': '삼성전자'},
+            {'code': '000660', 'name': 'SK하이닉스'},
+            {'code': '999999', 'name': '국민연금이 안 가진 종목'},
+        ]
+        with mock.patch.object(public_data, '_fetch_nps_rows', return_value=rows):
+            result = public_data.fetch_nps_holdings_by_code(universe)
+
+        self.assertEqual(set(result.keys()), {'005930', '000660'})
+        self.assertEqual(result['005930']['holding_pct'], 8.5)
+        self.assertEqual(result['005930']['evaluation_amount_eok'], 1000.0)
+        self.assertEqual(result['000660']['weight_pct'], 2.0)
+        self.assertEqual(result['005930']['source'], '국민연금공단 국내주식 투자정보')
+
+    def test_fetch_nps_holdings_by_code_returns_empty_when_unavailable(self):
+        """서비스키 미설정 등으로 조회 자체가 안 되면 빈 dict - 값을 임의로 채우지 않는다."""
+        with mock.patch.object(public_data, '_fetch_nps_rows',
+                                side_effect=public_data.PublicDataUnavailable('키 없음')):
+            result = public_data.fetch_nps_holdings_by_code([{'code': '005930', 'name': '삼성전자'}])
+        self.assertEqual(result, {})
+
+    def test_fetch_nps_holdings_by_code_keeps_first_row_on_duplicate_name(self):
+        rows = [
+            {'Company': '삼성전자', 'Amount': '1000', 'Weight': '5.0', 'Holding': '8.5'},
+            {'Company': '삼성전자', 'Amount': '9999', 'Weight': '9.9', 'Holding': '9.9'},
+        ]
+        with mock.patch.object(public_data, '_fetch_nps_rows', return_value=rows):
+            result = public_data.fetch_nps_holdings_by_code([{'code': '005930', 'name': '삼성전자'}])
+        self.assertEqual(result['005930']['holding_pct'], 8.5)
+
     def test_missing_service_key_is_explicit(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(public_data.PublicDataUnavailable):

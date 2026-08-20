@@ -300,6 +300,7 @@
     if (key === 'undervalued') return '재무 조건을 통과한 종목 중 120일선 대비 가격이 눌린 종목을 섹터별로 표시합니다.';
     if (key === 'dividend') return '과거 현금배당 공시를 기준으로 배당수익률과 주당 현금배당금을 비교합니다.';
     if (key === 'etfReturn') return '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.';
+    if (key === 'nationalPension') return '국민연금공단이 공시한 국내주식 보유정보를 지분율 높은 순으로 표시합니다(연 1회 공시 스냅샷).';
     return '전략 조건으로 후보군을 탐색하고, 세부 기준을 확인합니다.';
   }
 
@@ -328,6 +329,10 @@
     }
     if (activeKey === 'undervalued') {
       wrap.innerHTML = renderStrategyTable();
+      return;
+    }
+    if (activeKey === 'nationalPension') {
+      wrap.innerHTML = renderNpsTable();
       return;
     }
     var cat = scanData.categories[activeKey];
@@ -389,6 +394,44 @@
     return '<div class="ss-table-wrap"><table class="ss-comparison-table ss-strategy-table"><thead><tr>'
       + headers.map(function (label) { return '<th>' + label + '</th>'; }).join('')
       + '</tr></thead><tbody>' + matches.map(function (item, index) { return strategyTableRow(item, index, showFundamentals); }).join('')
+      + '</tbody></table></div>';
+  }
+
+  // 2026-08-20: "국민연금이 가진 종목 조회" 요청 - scripts/cloud-vm/public_data.py에 이미
+  // 있었지만 어디서도 안 쓰이던 fetch_nps_holding()(data.go.kr 국민연금공단 국내주식
+  // 투자정보)을 strategy_scan.py의 새 카테고리(nationalPension)로 노출한 것을 여기서
+  // 표로 그린다. 클릭 시 이동은 wireContainer()의 기본 분기(종목분석 이동)를 그대로 쓴다 -
+  // dividend/etfReturn처럼 별도 상세 모달이 필요할 만큼 복잡한 데이터가 아니다.
+  function npsTableRow(item, index) {
+    var rate = item.changeRate != null ? item.changeRate : item.changeRatePct;
+    return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
+      + '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'
+      + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
+      + '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || '—') + '</span></strong></td>'
+      + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
+      + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(cleanIndustryLabel(item.sector)) + '</td>'
+      + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
+      + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
+      + '<td class="ss-col-signal" data-label="보유 지분율">' + fmtPctExact(item.holdingPct) + '</td>'
+      + '<td class="ss-col-fundamentals" data-label="평가액">' + (item.evaluationAmountEok == null ? '—' : fmt(item.evaluationAmountEok) + '억원') + '</td>'
+      + '</tr>';
+  }
+
+  function renderNpsTable() {
+    // allMatches()는 섹터별 그룹을 순서대로 이어붙이기만 해서(저평가 종목처럼 섹터
+    // 단위 순위가 의미 있는 카테고리엔 맞지만) 여기서는 섹터 경계에서 전역 지분율
+    // 순위가 깨진다 - 서버가 이미 지분율 내림차순으로 정렬해 보내지만, 여기서도
+    // 한 번 더 정렬해 항상 전역 순위를 보장한다.
+    var matches = allMatches('nationalPension').sort(function (a, b) {
+      return (b.holdingPct || 0) - (a.holdingPct || 0);
+    });
+    if (!matches.length) return '<div class="ss-hint">지금은 국민연금 보유 정보를 확인할 수 있는 종목이 없어요.</div>';
+    var asOf = matches[0] && matches[0].asOf;
+    var headers = ['관심', '순위', '종목명', '종목코드', '업종', '현재가', '등락률', '보유 지분율', '평가액'];
+    return (asOf ? '<div class="ss-hint">기준일 ' + escapeHtml(asOf) + ' 공시 스냅샷입니다(매일 갱신되지 않습니다).</div>' : '')
+      + '<div class="ss-table-wrap"><table class="ss-comparison-table ss-strategy-table"><thead><tr>'
+      + headers.map(function (label) { return '<th>' + label + '</th>'; }).join('')
+      + '</tr></thead><tbody>' + matches.map(npsTableRow).join('')
       + '</tbody></table></div>';
   }
 

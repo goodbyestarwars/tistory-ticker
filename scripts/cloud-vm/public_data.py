@@ -410,6 +410,20 @@ def _fetch_nps_rows():
     return rows
 
 
+_NPS_AS_OF = '2024-12-31'  # NPS_HOLDING_URL 데이터셋 자체가 이 시점 스냅샷으로 고정돼 있음(연 1회 공시)
+_NPS_SOURCE = '국민연금공단 국내주식 투자정보'
+
+
+def _nps_row_info(row):
+    return {
+        'as_of': _NPS_AS_OF,
+        'evaluation_amount_eok': _number(row.get('Amount') or row.get('평가액(억 원)')),
+        'weight_pct': _number(row.get('Weight') or row.get('자산군 내 비중(퍼센트)')),
+        'holding_pct': _number(row.get('Holding') or row.get('지분율(퍼센트)')),
+        'source': _NPS_SOURCE,
+    }
+
+
 def fetch_nps_holding(name):
     """국민연금 연말 보유정보를 종목분석 보조 정보로 반환."""
     target = _nps_name(name)
@@ -419,11 +433,33 @@ def fetch_nps_holding(name):
         company = row.get('Company') or row.get('company') or row.get('종목명')
         if _nps_name(company) != target:
             continue
-        return {
-            'as_of': '2024-12-31',
-            'evaluation_amount_eok': _number(row.get('Amount') or row.get('평가액(억 원)')),
-            'weight_pct': _number(row.get('Weight') or row.get('자산군 내 비중(퍼센트)')),
-            'holding_pct': _number(row.get('Holding') or row.get('지분율(퍼센트)')),
-            'source': '국민연금공단 국내주식 투자정보',
-        }
+        return _nps_row_info(row)
     return None
+
+
+def fetch_nps_holdings_by_code(universe):
+    """국민연금 보유종목 전체를 유니버스([{code,name},...])의 종목명과 매칭해
+    {code: {evaluation_amount_eok, weight_pct, holding_pct, as_of, source}}로 반환.
+    2026-08-20: 전략검색 "국민연금 보유종목" 카테고리용 - fetch_nps_holding()과 동일한
+    _nps_name() 정규화(주식회사/우선주 '주' 접미사 등 표기 차이 흡수)를 재사용하되,
+    이쪽은 종목 하나가 아니라 전체를 한 번의 HTTP 호출(_fetch_nps_rows(), 24시간 캐시)로
+    매칭한다. 서비스키 미설정 등으로 조회 자체가 안 되면 빈 dict를 돌려줘 호출부가
+    "국민연금 보유 정보를 아직 확인할 수 없습니다"로 처리하게 한다(임의로 채우지 않음)."""
+    try:
+        rows = _fetch_nps_rows()
+    except PublicDataUnavailable:
+        return {}
+    by_name = {}
+    for row in rows:
+        company = row.get('Company') or row.get('company') or row.get('종목명')
+        key = _nps_name(company)
+        if not key or key in by_name:
+            continue  # 동일 정규화 이름이 두 번 나오면(드묾) 먼저 나온 행을 유지
+        by_name[key] = _nps_row_info(row)
+    result = {}
+    for stock in universe:
+        key = _nps_name(stock.get('name'))
+        info = by_name.get(key)
+        if info:
+            result[stock['code']] = info
+    return result
