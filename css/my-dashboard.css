@@ -110,7 +110,7 @@ html.dark .my-dashboard-head, html.dark .my-dashboard-list, html.dark .my-metric
 html.dark .my-dashboard-head p, html.dark .my-dashboard-status, html.dark .my-dashboard-storage, html.dark .my-stock-row-name small, html.dark .my-stock-row-price small, html.dark .my-stock-row-pnl, html.dark .my-card-title span, html.dark .my-holding-note, html.dark .my-analysis-footnote, html.dark .my-muted { color: rgba(245,239,224,.55); }
 html.dark .my-stock-row { border-bottom-color: rgba(245,239,224,.1); background: #1a1a1a; color: #f5efe0; }
 html.dark .my-stock-row:hover, html.dark .my-stock-row.is-selected { background: #242424; }
-html.dark .my-detail-actions a, html.dark .my-holding-fields input, html.dark .my-calc-fields input { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
+html.dark .my-detail-actions a, html.dark .my-holding-fields input, html.dark .my-holding-fields select, html.dark .my-calc-fields input { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
 html.dark .my-volume-highlight, html.dark .my-calc-result { background: #242424; color: rgba(245,239,224,.65); }
 html.dark .my-ai-card { background: linear-gradient(135deg, #202b3a, #1a1a1a); }
 html.dark .my-position-advice:not(.my-composite-card) { background: #1a1a1a; }

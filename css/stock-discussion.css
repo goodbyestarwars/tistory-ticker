@@ -69,3 +69,48 @@
   .discussion-write-actions { align-items:flex-start; flex-direction:column; }
   .discussion-write-actions input[type=submit] { width:100%; }
 }
+
+/* 2026-08-20: 이 위젯(커뮤니티 = 티스토리 방명록 기반 종목 토론방) 전체에 다크모드
+   대응이 아예 없었다(사용자 리포트: "커뮤니티는 DARK 모드가 적용이 안되었어 - 종목선택,
+   의견남기기, 댓글 체크해") - 종목선택 바/자동완성, 의견 남기기 폼(텍스트영역·게스트
+   입력), 댓글 목록 전부 라이트 색이 하드코딩돼 있었다. 사이트 공통 다크모드 팔레트
+   (#1A1A1A 배경 + #F5EFE0 글자, style.css html.dark 규칙과 동일 톤)로 맞춘다. */
+html.dark .discussion-subtitle { color: rgba(245, 239, 224, 0.55); }
+html.dark .discussion-storage-badge { background: rgba(245, 239, 224, 0.06); border-color: rgba(245, 239, 224, 0.18); color: rgba(245, 239, 224, 0.7); }
+html.dark .discussion-stockbar { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.16); }
+html.dark .discussion-stockbar label { color: rgba(245, 239, 224, 0.75); }
+html.dark .discussion-stock-input-wrap::before { color: rgba(245, 239, 224, 0.45); }
+html.dark .discussion-stockbar input { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.2); color: #F5EFE0; }
+html.dark .discussion-stockbar input::placeholder { color: rgba(245, 239, 224, 0.4); }
+html.dark .discussion-stock-suggest { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.2); box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4); }
+html.dark .discussion-stock-suggest-select { color: #F5EFE0; }
+html.dark .discussion-stock-suggest-select:hover, html.dark .discussion-stock-suggest-select:focus { background: rgba(245, 239, 224, 0.08); }
+html.dark .discussion-stock-suggest-icon { background: rgba(245, 239, 224, 0.08); }
+html.dark .discussion-stock-suggest .code { color: rgba(245, 239, 224, 0.45); }
+html.dark .discussion-stock-suggest-favorite { color: rgba(245, 239, 224, 0.3); }
+html.dark .discussion-stock-suggest-favorite:hover, html.dark .discussion-stock-suggest-favorite.is-active { color: #F5EFE0; }
+html.dark .discussion-stock-btn, html.dark .discussion-current button { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.2); color: rgba(245, 239, 224, 0.75); }
+html.dark .discussion-stock-btn.is-active { background: rgba(245, 239, 224, 0.85); border-color: rgba(245, 239, 224, 0.85); color: #1A1A1A; }
+html.dark .discussion-current { color: rgba(245, 239, 224, 0.55); }
+html.dark .discussion-current strong { color: #F5EFE0; }
+html.dark .discussion-native-guestbook { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.16); }
+html.dark .discussion-write-title { color: #F5EFE0; }
+html.dark .discussion-write-help { color: rgba(245, 239, 224, 0.5); }
+html.dark .discussion-guest-fields input { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.2); color: #F5EFE0; }
+html.dark .discussion-write textarea,
+html.dark .market-discussion .discussion-write textarea {
+  background: #1A1A1A !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
+  color: #F5EFE0 !important;
+}
+html.dark .market-discussion .discussion-write textarea::placeholder { color: rgba(245, 239, 224, 0.4) !important; }
+html.dark .discussion-write-note { color: rgba(245, 239, 224, 0.45); }
+html.dark .discussion-list-heading { color: #F5EFE0; }
+html.dark .discussion-list-heading span { color: rgba(245, 239, 224, 0.5); }
+html.dark .discussion-item { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.14); box-shadow: none; }
+html.dark .discussion-item-head .name { color: #F5EFE0; }
+html.dark .discussion-item-head .date { color: rgba(245, 239, 224, 0.4); }
+html.dark .discussion-item-head .control a { color: rgba(245, 239, 224, 0.5); }
+html.dark .discussion-item-body { color: rgba(245, 239, 224, 0.75); }
+html.dark .discussion-replies { border-left-color: rgba(245, 239, 224, 0.14); }
+html.dark .discussion-empty { color: rgba(245, 239, 224, 0.4); }
