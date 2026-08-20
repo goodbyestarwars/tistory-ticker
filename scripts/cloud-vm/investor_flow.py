@@ -12,6 +12,7 @@ import urllib.request
 from datetime import datetime, timedelta
 
 import kiwoom_client
+import public_data
 
 logger = logging.getLogger('investor_flow')
 
@@ -263,6 +264,21 @@ def pension_streak(daily_penfnd):
     return {'days': days, 'direction': 'buy' if direction > 0 else 'sell'}
 
 
+def official_holding(name):
+    """국민연금 연말 공시 보유정보(data.go.kr) - 연기금 매매동향 카드의 보조 정보.
+    2026-08-20: 이 카드는 원래부터 'official_holding'이 있으면 표시하도록 프론트
+    (js/foreign-flow.js buildPensionCard)에 짜여 있었지만 채워주는 곳이 없어 항상
+    빈 채로 숨어 있었다 - 여기서 채운다. 서비스키 미설정/조회 실패 시 None을 돌려줘
+    카드의 나머지(순매수 매매동향)는 그대로 보이고 이 줄만 조용히 빠지게 한다."""
+    try:
+        return public_data.fetch_nps_holding(name)
+    except public_data.PublicDataUnavailable:
+        return None
+    except Exception:
+        logger.warning('국민연금 보유정보 조회 실패(%s)', name, exc_info=True)
+        return None
+
+
 def fetch_stock(token, code, name):
     strt_dt, end_dt = date_range()
 
@@ -385,5 +401,6 @@ def fetch_stock(token, code, name):
             'net_cumulative': net_cumulative,
             'cumulative_window_days': len(penfnd_daily),
             'current_price': current_price,
+            'official_holding': official_holding(name),
         },
     }

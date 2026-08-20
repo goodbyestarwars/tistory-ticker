@@ -3,7 +3,7 @@
  * 다크모드: html.dark #watchlist ... !important (9bolt 스킨 블랑켓 규칙 대응) */
 
 @import url('https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css');
-@import url('https://cdn.jsdelivr.net/gh/fonts-archive/NanumGothic/NanumGothic.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css'); /* 2026-08-20 나눔고딕에서 교체 */
 
 .global-watchlist-drawer {
   position: fixed;
@@ -62,7 +62,7 @@
 }
 
 #watchlist {
-  font-family: 'Maru Buri', 'MaruBuri', 'Nanum Gothic', '나눔고딕', system-ui, sans-serif;
+  font-family: 'Maru Buri', 'MaruBuri', 'Pretendard', system-ui, sans-serif;
   color: #222;
   line-height: 1.5;
   width: 100%;
