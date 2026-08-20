@@ -1725,7 +1725,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("COMMON_MARKET_CAP_MIN_EOK = 3000.0", backend)
         self.assertIn("require_common_market_cap=True", self.read("scripts/cloud-vm/daily_scan.py"))
         self.assertIn("require_common_market_cap=True", self.read("scripts/cloud-vm/rescan_patterns.py"))
-        self.assertIn(".ps-common-desc", style)
+        self.assertIn(".ps-tab-desc-divider", style)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")

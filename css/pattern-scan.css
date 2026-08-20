@@ -48,6 +48,11 @@
   margin-bottom: 14px;
   line-height: 1.5;
 }
+/* 2026-08-20: 공통 조건과 탭별 조건을 박스 하나로 합치면서(사용자 요청: "하나의 칸에서
+   보여줘") 추가한 구분선 - .ps-common-desc는 더 안 쓰여서(내용은 .ps-tab-desc 안 <strong>
+   으로 옮김) 지웠다. */
+#pattern-scan .ps-tab-desc strong { display: block; color: #35506f; font-weight: 700; }
+#pattern-scan .ps-tab-desc-divider { margin: 8px 0; border: 0; border-top: 1px dashed #d9e2ee; }
 
 #pattern-scan .ps-list {
   display: flex;
@@ -471,16 +476,6 @@
     overflow: visible;
   }
 }
-#pattern-scan .ps-common-desc {
-  margin: 10px 0 8px;
-  padding: 9px 12px;
-  border: 1px solid #d9e2ee;
-  border-radius: 9px;
-  background: #f6f9fc;
-  color: #35506f;
-  font-size: 12px;
-  line-height: 1.55;
-}
 
 /* "각도기 테스트" 탭 전용 백테스트 요약(승률/평균수익률) - 다른 탭에선 항상 hidden. */
 #pattern-scan .ps-backtest-box {
@@ -551,11 +546,8 @@ html.dark #pattern-scan .ps-backtest-stats { color: rgba(245, 239, 224, 0.75) !i
 html.dark #pattern-scan .ps-backtest-stats b { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #pattern-scan .ps-backtest-footnote,
 html.dark #pattern-scan .ps-backtest-empty { color: rgba(245, 239, 224, 0.45) !important; }
-html.dark #pattern-scan .ps-common-desc {
-  background: rgba(245, 239, 224, 0.06) !important;
-  border-color: rgba(245, 239, 224, 0.18) !important;
-  color: rgba(245, 239, 224, 0.72) !important;
-}
+html.dark #pattern-scan .ps-tab-desc strong { color: #F5EFE0 !important; }
+html.dark #pattern-scan .ps-tab-desc-divider { border-top-color: rgba(245, 239, 224, 0.18); }
 
 html.dark #pattern-scan .ps-item {
   background: #1A1A1A;
