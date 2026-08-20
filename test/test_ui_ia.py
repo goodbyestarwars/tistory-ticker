@@ -1503,7 +1503,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "renderNpsTable",
             "holdingPct",
             "evaluationAmountEok",
-            "기준일 ",
+            "activeNpsMinPct",
+            "ss-nps-filter-select",
             "보유 지분율",
         ):
             self.assertIn(token, source)
