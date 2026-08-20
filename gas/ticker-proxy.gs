@@ -653,7 +653,10 @@ var GROQ_NO_ADVICE_GUARD_ = '다만 특정 종목·업종·상품을 지금 매�
 // 원본 그대로 베껴야 하는(창작성보다 정확성이 중요한) 호출은 더 낮은 값을 넘겨서 쓴다.
 function callGroq(prompt, temperature) {
   var apiKey = PropertiesService.getScriptProperties().getProperty('GROQ_API_KEY');
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.log('callGroq: GROQ_API_KEY 스크립트 속성이 비어있음 - Groq 호출 자체를 안 함');
+    return null;
+  }
 
   var url = 'https://api.groq.com/openai/v1/chat/completions';
   var payload = JSON.stringify({
@@ -676,14 +679,34 @@ function callGroq(prompt, temperature) {
 
     if (res.getResponseCode() === 429) continue; // 재시도
 
-    if (res.getResponseCode() !== 200) return null;
+    if (res.getResponseCode() !== 200) {
+      // 2026-08-20: "브리핑을 생성하지 못했습니다"가 계속 뜬다는 리포트를 받았는데 GAS
+      // 실행 로그엔 실패(빨간색) 항목이 하나도 없었다 - 이 함수가 예외를 안 던지고 null만
+      // 조용히 반환해서 그렇다. 실제 원인(인증키 오류/레이트리밋/서버 오류 등)을 로그로
+      // 남겨야 다음 실행 로그에서 바로 확인 가능하다.
+      console.log('callGroq: 응답 코드 ' + res.getResponseCode() + ', 본문: '
+        + res.getContentText('UTF-8').slice(0, 500));
+      return null;
+    }
 
-    var body = JSON.parse(res.getContentText('UTF-8'));
+    var body;
+    try {
+      body = JSON.parse(res.getContentText('UTF-8'));
+    } catch (e) {
+      console.log('callGroq: 200 응답인데 JSON 파싱 실패 - ' + e + ', 본문: '
+        + res.getContentText('UTF-8').slice(0, 500));
+      return null;
+    }
     var choice = body && body.choices && body.choices[0];
     var text = choice && choice.message && choice.message.content;
+    if (!text) {
+      console.log('callGroq: 200 응답인데 choices[0].message.content가 비어있음 - 본문: '
+        + res.getContentText('UTF-8').slice(0, 500));
+    }
     return text ? text.trim() : null;
   }
 
+  console.log('callGroq: 429(레이트리밋)로 재시도까지 전부 실패');
   return null; // 재시도까지 다 429면 포기(짧은 캐시 TTL 덕에 곧 다시 시도됨)
 }
 
@@ -1617,7 +1640,10 @@ function getMarketTempBriefing() {
   if (cached !== null) return { analysis: cached || null };
 
   var data = safeCall(getMarketTemp);
-  if (!data) return { analysis: null };
+  if (!data) {
+    console.log('getMarketTempBriefing: getMarketTemp()이 예외를 던져 실패 (safeCall이 삼킴)');
+    return { analysis: null };
+  }
 
   var LABELS = {
     vix: 'VIX', flow: '수급(외국인+기관)', tradingValue: '거래대금', avgChange: '평균등락률',
