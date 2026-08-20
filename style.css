@@ -1391,7 +1391,11 @@ html.dark .home-schedule-title { color: #F5EFE0 !important; }
 html.dark .home-card-heading span,
 html.dark .home-card-state,
   html.dark .hmb-list dt { color: rgba(245, 239, 224, .5) !important; }
-  html.dark .hmb-list > div { background: rgba(245, 239, 224, .05) !important; }
+  /* 2026-08-20: 이 !important 배경이 홈 "편집판"(body#tt-body-index .home-editorial-page
+     .hmb-list > div, 아래 5000번대)이 의도한 background:transparent를 덮어써서, 국내/
+     미국 시장 요약 칸만 카드·페이지 배경과 다른 톤(옅은 크림색 틴트)으로 보였다(사용자
+     리포트: "뒤에 배경색이 다르지? 검은색으로 통일시켜줘"). 편집판 밖(다른 화면)의
+     .hmb-list는 이 파일에 없어 배경을 지워도 영향 없음. */
   html.dark .hmb-summary-head strong { color: #F5EFE0 !important; }
   html.dark .hmb-summary-head span { color: rgba(245, 239, 224, .5) !important; }
 html.dark .hmb-list > div,
