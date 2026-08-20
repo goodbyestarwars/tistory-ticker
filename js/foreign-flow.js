@@ -537,12 +537,15 @@
     if (panelBox) panelBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(name) + ' 불러오는 중...</div></div>';
     syncSignalPanelHeight(container);
 
-    var chartPromise = fetchFlowChart(code).catch(function () { return null; });
+    // 2026-08-20: search()와 동일하게 실패 원인을 flowErr_/chartErr_에 남겨 최종 에러
+    // 문구에 같이 보여준다(개발자도구 없이도 원인 문구를 바로 확인할 수 있게).
+    var flowErr_ = null, chartErr_ = null;
+    var chartPromise = fetchFlowChart(code).catch(function (err) { chartErr_ = err && err.message; return null; });
     var investorFlowPromise = fetchInvestorFlowLive(code, name).catch(function () { return null; });
     var quotePromise = fetchLiveQuote(code).catch(function () { return null; });
     var fundamentalsPromise = fetchFundamentals(code, name).catch(function () { return null; });
 
-    var flowPromise = ForeignFlow.fetchFlow(code, name).catch(function () { return null; });
+    var flowPromise = ForeignFlow.fetchFlow(code, name).catch(function (err) { flowErr_ = err && err.message; return null; });
     Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
         if (activeSignalCode !== code || signalRequestSeq !== requestId) return; // 이전 요청 응답은 무시(레이스 방지)
@@ -551,7 +554,10 @@
           data = buildUnavailableFlowData(chartData, code, name);
           if (data) data.flowUnavailable = true;
           if (!data) {
-            if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요.</div>';
+            var detail_ = flowErr_ || chartErr_;
+            if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요.'
+              + (detail_ ? '<br><small style="opacity:.6">(' + escapeHtml(detail_) + ')</small>' : '')
+              + '</div>';
             return;
           }
         }
@@ -560,9 +566,11 @@
         renderSignalSummaryPanel(panelBox, data, entry, techScore, fundamentals, quote, chartData);
         syncSignalPanelHeight(container);
       })
-      .catch(function () {
+      .catch(function (err) {
         if (activeSignalCode !== code || signalRequestSeq !== requestId) return;
-        if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+        if (panelBox) panelBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'
+          + (err && err.message ? '<br><small style="opacity:.6">(' + escapeHtml(err.message) + ')</small>' : '')
+          + '</div>';
         syncSignalPanelHeight(container);
       });
   }
@@ -1102,8 +1110,13 @@
 
     // 차트 크롤링/VM 온디맨드 호출 둘 다 실패 가능성이 있는데, 그것 때문에 나머지
     // 위젯까지 통째로 에러 처리되면 안 되므로 각자 잡아 실패 시 null/에러 객체로 대체한다.
+    // 2026-08-20: 실패 원인(err.message)을 flowErr_/chartErr_에 남겨뒀다가, 최종적으로
+    // 정말 아무 것도 못 그릴 때만("수급 데이터를 불러오지 못했어요") 화면에 같이 보여준다 -
+    // 사용자 리포트("모든 종목이 다 안 된다")를 재현 못 하는 서버 직접 호출과 달리, 실제
+    // fetch()가 브라우저에서 왜 막히는지(CORS/네트워크 등)를 개발자도구 없이도 바로 볼 수 있게.
+    var flowErr_ = null, chartErr_ = null;
     var chartPromise = fetchFlowChart(resolved.code)
-      .catch(function () { return { error: 'FETCH_FAILED', message: '차트 데이터를 불러오지 못했어요.' }; });
+      .catch(function (err) { chartErr_ = err && err.message; return { error: 'FETCH_FAILED', message: '차트 데이터를 불러오지 못했어요.' }; });
     var investorFlowPromise = fetchInvestorFlowLive(resolved.code, resolved.name)
       .catch(function () { return null; });
     var quotePromise = fetchLiveQuote(resolved.code)
@@ -1113,7 +1126,7 @@
     // fundamentalsCache에 저장해두므로 이후 탭 클릭 시 재요청 없음(loadFundamentals 재사용).
     var fundamentalsPromise = fetchFundamentals(resolved.code, resolved.name)
       .catch(function () { return null; });
-    var flowPromise = ForeignFlow.fetchFlow(resolved.code, resolved.name).catch(function () { return null; });
+    var flowPromise = ForeignFlow.fetchFlow(resolved.code, resolved.name).catch(function (err) { flowErr_ = err && err.message; return null; });
     Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
         var data = results[0];
@@ -1126,15 +1139,19 @@
           if (data) data.flowUnavailable = true;
         }
         if (!data || !data.daily || !data.daily.length) {
+          var detail_ = flowErr_ || chartErr_;
           resultBox.innerHTML = '<div class="ff-error">'
             + escapeHtml((data && data.message) || '수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
+            + (detail_ ? '<br><small style="opacity:.6">(' + escapeHtml(detail_) + ')</small>' : '')
             + '</div>';
           return;
         }
         renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals);
       })
-      .catch(function () {
-        resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+      .catch(function (err) {
+        resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'
+          + (err && err.message ? '<br><small style="opacity:.6">(' + escapeHtml(err.message) + ')</small>' : '')
+          + '</div>';
       });
   }
 
