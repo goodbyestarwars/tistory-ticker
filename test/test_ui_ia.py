@@ -1128,9 +1128,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/stock-search.js")
         style = self.read("css/stock-search.css")
         self.assertIn('class="app-news-event ss-news-item"', source)
-        self.assertIn("grid-template-columns: 52px 13px minmax(0, 1fr);", style)
+        self.assertIn("grid-template-columns: 56px 13px minmax(0, 1fr);", style)
         self.assertIn("#stock-search .ss-news-timeline .ss-news-item", style)
-        self.assertIn("grid-template-columns: 45px 11px minmax(0, 1fr);", style)
+        self.assertIn("grid-template-columns: 48px 11px minmax(0, 1fr);", style)
         self.assertIn("#stock-search .ss-news-timeline .app-news-body > strong", style)
         self.assertIn("overflow-wrap: normal;", style)
 
@@ -1231,8 +1231,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("drawing.lines.push({ start: drawing.pending, end: point })", search)
         self.assertIn(".us-stocks-market-grid > *", style)
         self.assertIn(".us-native-chart-mount .ss-chart-tabs", style)
-        self.assertIn(".us-stocks-news-item { position: relative; display: grid; grid-template-columns: 52px 13px minmax(0, 1fr);", style)
-        self.assertIn(".us-stocks-news-item { grid-template-columns: 45px 11px minmax(0, 1fr); gap: 8px; }", style)
+        self.assertIn(".us-stocks-news-item { position: relative; display: grid; grid-template-columns: 56px 13px minmax(0, 1fr);", style)
+        self.assertIn(".us-stocks-news-item { grid-template-columns: 48px 11px minmax(0, 1fr); gap: 8px; }", style)
 
     def test_strategy_dividend_warning_cell_uses_full_mobile_width(self):
         style = self.read("css/strategy-search.css")
