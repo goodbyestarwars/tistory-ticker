@@ -2638,7 +2638,7 @@ function getPatternScanResult() {
   if (!data) {
     return {
       scannedAt: null, universe: 0, scanned: 0, pullbackScannedAt: null, pullbackScanned: 0,
-      patterns: {}, angleMomentumBacktest: null,
+      patterns: {}, angleMomentumBacktest: null, gongpasanBacktest: null,
     };
   }
   var patternScan = data.patternScan || {};
@@ -2658,11 +2658,16 @@ function getPatternScanResult() {
       openingGap: (patternScan.patterns && patternScan.patterns.openingGap) || [],
       pullback: pullbackScan.matches || [],
       // 2026-08-20: "각도기 테스트"(정규화 세력매집각도, angle_momentum_scan.py) 탭 추가.
-      angleMomentum: (patternScan.patterns && patternScan.patterns.angleMomentum) || []
+      angleMomentum: (patternScan.patterns && patternScan.patterns.angleMomentum) || [],
+      // 2026-08-20: "공파산 타점"(역매공파, gongpasan_scan.py) 탭 추가 - 각도기 테스트와
+      // 독립된 별개 전략(서로 로직을 공유하지 않음).
+      gongpasan: (patternScan.patterns && patternScan.patterns.gongpasan) || []
     },
     // 각도기 테스트 탭 전용 - 과거 entry_signal 발생분 전체를 5일 보유로 백테스트한 요약
     // (승률/평균수익률 등). 다른 패턴엔 없는 필드라 patterns 밖에 별도로 둔다.
-    angleMomentumBacktest: data.angleMomentumBacktest || null
+    angleMomentumBacktest: data.angleMomentumBacktest || null,
+    // 공파산 타점 탭 전용 - 같은 구조의 별도 백테스트 요약.
+    gongpasanBacktest: data.gongpasanBacktest || null
   };
 }
 
