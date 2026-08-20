@@ -3440,15 +3440,25 @@ function jsonResponse(data) {
 // 2026-07-13: 스캔 자체는 VM의 daily_scan.py로 이전됨(getPatternScanResult와 동일 사유) -
 // VM의 /daily-scan-batch 결과를 원래 응답 형태로 재포장한다. 프론트(js/invest-signal.js)는
 // 변경 불필요 - buckets/counts의 한글 라벨(적극 매수 등)만 기존 영문 키로 매핑해준다.
+// 2026-08-20: "종목 > 종목분석" 첫 화면(차트 흐름별 탐색)이 이 응답을 못 받아 "차트 흐름
+// 데이터를 불러오지 못했어요"로 실패하는 리포트를 조사했다 - 브라우저 주소창으로 직접 열면
+// 정상 응답하는데(GAS 실행 자체는 성공) 페이지 안 fetch()만 매번 실패해, 응답을
+// script.googleusercontent.com/macros/echo?... 로 리다이렉트하는 Apps Script의 대용량
+// 응답 처리 경로에 걸린 것으로 보인다(리다이렉트된 origin이 CORS 헤더를 안 들고 있어
+// fetch()만 막히고 직접 접속/새 창 열기는 CORS 검사 자체가 없어 정상으로 보임). 2026-08-14에
+// bucket당 종목 상한을 100→3000으로 올린 뒤로 응답이 커진 시점과 맞물린다(scripts/cloud-vm/
+// invest_signal.py INVEST_SIGNAL_BUCKET_CAP). rankings(수급/외국인·기관 등 10개 top-N
+// 랭킹)는 js/foreign-flow.js 어디서도 읽지 않는 죽은 필드라 - 2026-07-20 통합 이전
+// "가중치 탭"의 잔재로 보임 - 응답에서 제외해 크기를 줄인다. buckets(실제로 검색·필터에
+// 쓰이는 필드)는 손대지 않았다 - 이것만으로 부족하면 buckets 쪽도 다시 봐야 한다.
 function getInvestSignalResult() {
   var data = kiwoomVmFetch_('/daily-scan-batch');
   if (!data) {
-    return { scannedAt: null, universe: 0, scanned: 0, counts: {}, buckets: {}, rankings: {} };
+    return { scannedAt: null, universe: 0, scanned: 0, counts: {}, buckets: {} };
   }
   var signal = data.investSignal || {};
   var swingScan = data.swingScan || {};
   var buckets = signal.buckets || {};
-  var rankings = signal.rankings || {};
   return {
     scannedAt: data.generatedAt || null,
     universe: data.universe || 0,
@@ -3460,20 +3470,6 @@ function getInvestSignalResult() {
       hold: buckets['보유'] || [],
       reduce: buckets['비중축소'] || [],
       sell: buckets['매도'] || []
-    },
-    rankings: {
-      foreign: rankings.foreign || [],
-      inst: rankings.inst || [],
-      pension: rankings.pension || [],
-      improved: rankings.improved || [],
-      worsened: rankings.worsened || [],
-      // 2026-07-20: 종목분석 페이지 통합(가중치 탭) - daily_scan.py가 새로 계산하는 5개
-      // 랭킹(수급/외국인·기관 합산/기술적/공매도낮은순/펀더멘탈) passthrough.
-      flow: rankings.flow || [],
-      foreignInst: rankings.foreignInst || [],
-      tech: rankings.tech || [],
-      shortSafe: rankings.shortSafe || [],
-      fundamental: rankings.fundamental || []
     },
     // 종목분석 탐색 화면은 daily_scan이 이미 계산한 차트 흐름 집계를 그대로 사용한다.
     // 기존 investSignal 필드와 함께 전달해 기존 호출부와 하위 호환을 유지한다.
