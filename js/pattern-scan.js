@@ -49,7 +49,8 @@
     { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '최근 90봉에서 4~40봉 간격의 저점 3개가 어깨-머리-어깨를 이루고, 머리가 양 어깨보다 각각 2% 이상 낮으며 양 어깨 가격차는 4% 이내입니다. 넥라인 1% 이내, 최근 양봉, 우어깨 이후 거래량은 최근 20봉 평균의 1.2배 이상이어야 합니다.' },
     { key: 'boxRangeLow', label: '박스권 하단', desc: '최근 20봉 종가 변동폭 10% 이하, 종가 5·20일선 3% 이내 근접 3회 이상, RSI(14) 35~65, 20봉 전 거래량/직전 5봉 평균 50~120%, 시가 5·20일선 관계 3회 이상, 20봉 수익률 ±10% 이내를 모두 만족하면서 현재가가 박스 하단 35% 구간에 있는 후보입니다.' },
     { key: 'pullback', label: '눌림목', desc: '최소 240봉 데이터에서 최근 20봉 안에 저점 대비 종가가 15% 이상 상승한 뒤 고점에서 5~15% 조정받고, 현재 종가가 20일선 또는 240일선 3% 이내입니다. 20일선 상승, 상승구간 거래량 증가, 조정구간 거래량 감소를 모두 확인합니다.' },
-    { key: 'openingGap', label: '시초 갭상승', desc: '최근 봉 시가가 전일 종가보다 높고 종가가 시가 대비 3% 이상 상승해야 합니다. 시가는 1,000~500,000원, 거래대금은 3,000~999,999백만원 범위이며 장중 상승이 끝난 후보는 제외합니다.' }
+    { key: 'openingGap', label: '시초 갭상승', desc: '최근 봉 시가가 전일 종가보다 높고 종가가 시가 대비 3% 이상 상승해야 합니다. 시가는 1,000~500,000원, 거래대금은 3,000~999,999백만원 범위이며 장중 상승이 끝난 후보는 제외합니다.' },
+    { key: 'angleMomentum', label: '각도기 테스트', desc: '전형가(고가+저가+종가)/3 기준 단기(5일)·장기(20일) 이동평균선의 기울기(각도)를 주가 단위와 무관하게 정규화(%변동률)해 계산합니다. 단기 각도가 양수이면서 중기·장기 각도가 함께 상승 전환되고, 단기 각도가 최근 20일 변화폭 대비 1.5배 이상 튀는(분출) 순간을 포착합니다. 거래량이 터지기 전 이동평균선 곡률이 먼저 꺾이는 구간을 찾는 실험적 지표입니다.' }
   ];
 
   var scanData = null;
@@ -85,6 +86,7 @@
       + '</div>'
       + '<div class="ps-common-desc">' + escapeHtml(COMMON_SEARCH_DESC) + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
+      + '<div class="ps-backtest-box" id="psBacktestBox" hidden></div>'
       + '<div class="ps-list" id="psList"><div class="ps-hint">불러오는 중...</div></div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
   }
@@ -104,10 +106,38 @@
         btn.classList.add('active');
         activeTab = btn.getAttribute('data-tab');
         renderTabDesc(container);
+        renderBacktestBox(container);
         renderList(container);
         closeDetail(container);
       });
     });
+  }
+
+  // "각도기 테스트" 탭 전용 - entry_signal이 과거에 뜬 전체 종목·전체 시점을 5일 보유로
+  // 백테스트한 승률/평균수익률 요약(angle_momentum_scan.py가 미리 계산해 캐시에 저장,
+  // GAS getPatternScanResult()가 scanData.angleMomentumBacktest로 그대로 전달). 다른 탭에는
+  // 없는 정보라 탭이 바뀔 때마다 보이기/숨기기를 다시 결정한다.
+  function renderBacktestBox(container) {
+    var box = container.querySelector('#psBacktestBox');
+    if (!box) return;
+    if (activeTab !== 'angleMomentum') { box.hidden = true; box.innerHTML = ''; return; }
+    var stats = scanData && scanData.angleMomentumBacktest;
+    if (!stats || !stats.totalTrades) {
+      box.hidden = false;
+      box.innerHTML = '<div class="ps-backtest-empty">아직 백테스트 결과가 없어요(스캔이 처음 실행된 뒤부터 누적됩니다).</div>';
+      return;
+    }
+    var winRate = Number(stats.winRatePct);
+    var avgReturn = Number(stats.avgReturnPct);
+    box.hidden = false;
+    box.innerHTML = ''
+      + '<div class="ps-backtest-title">과거 신호 ' + stats.totalTrades + '건 · ' + (stats.holdDays || 5) + '일 보유 백테스트(참고용)</div>'
+      + '<div class="ps-backtest-stats">'
+      + '<span><b>승률</b> ' + (isFinite(winRate) ? winRate.toFixed(1) : '-') + '%</span>'
+      + '<span class="' + chgClass(avgReturn) + '"><b>평균 수익률</b> ' + chgSign(avgReturn) + '</span>'
+      + (stats.profitFactor != null ? '<span><b>손익비</b> ' + Number(stats.profitFactor).toFixed(2) + '</span>' : '')
+      + '</div>'
+      + '<div class="ps-backtest-footnote">과거 신호를 다음날 시가 매수·' + (stats.holdDays || 5) + '일 뒤 종가 매도로 가정한 결과이며, 실제 체결·세금·슬리피지와 다를 수 있습니다. 과거 성과가 미래 수익을 보장하지 않습니다.</div>';
   }
 
   function loadScan(container) {
@@ -123,6 +153,7 @@
             ? ('스캔 ' + data.scannedAt + ' · 대상 ' + (data.scanned || 0) + '/' + (data.universe || 0) + '종목')
             : '아직 스캔 결과가 없어요. VM 일일 스캔이 한 번 완료되면 표시됩니다.';
         }
+        renderBacktestBox(container);
         renderList(container);
       })
       .catch(function () {
@@ -216,6 +247,10 @@
       return isFinite(gap) ? '시초 갭 +' + gap.toFixed(1) + '%' : '시초 갭상승';
     }
     if (patternKey === 'pullback') return detail.ma20 || detail.ma240 ? '이평선 눌림 확인' : '눌림목 구조';
+    if (patternKey === 'angleMomentum') {
+      var angleShort = Number(detail.angleShort);
+      return isFinite(angleShort) ? '단기 각도 +' + angleShort.toFixed(1) + '도' : '각도 상승 전환';
+    }
     return resistanceText || '패턴 조건 확인';
   }
 
@@ -262,7 +297,8 @@
       invHeadShoulders: '어깨·머리·어깨 구조',
       boxRangeLow: '박스 하단 구간',
       pullback: '상승 후 이평선 부근 눌림목',
-      openingGap: '전일 종가보다 높게 시작한 갭상승'
+      openingGap: '전일 종가보다 높게 시작한 갭상승',
+      angleMomentum: '이동평균선 각도가 위로 꺾이며 가속되는 구간'
     }[patternKey] || '검색 조건을 충족한 차트 패턴';
   }
 
@@ -678,6 +714,11 @@
         addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
         addMaLine(chart, daily, 20, MA20_EARLY_COLOR);
         addMaLine(chart, daily, 224, MA224_EARLY_COLOR);
+      } else if (pattern === 'angleMomentum') {
+        // 각도 계산은 서버에서 전형가·EMA 기준으로 하지만, 상세 차트는 다른 탭과 같은
+        // 방식(addMaLine, 종가 기준 단순이동평균)으로 단기/장기선만 시각 참고용으로 겹쳐 그린다.
+        addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
+        addMaLine(chart, daily, 20, MA20_COLOR);
       }
 
       addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
@@ -811,6 +852,8 @@
         addSignal(detail.current);
       }
     } else if (pattern === 'openingGap') {
+      if (detail.signal) addSignal(detail.signal);
+    } else if (pattern === 'angleMomentum') {
       if (detail.signal) addSignal(detail.signal);
     }
 
