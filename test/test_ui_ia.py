@@ -246,7 +246,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             '--font-title: "MaruBuri"',
             '--font-ui: "Pretendard"',
             '--font-data: "Malgun Gothic"',
-            "--page-bg: #F8F7F4",
+            "--page-bg: #FDFDF7",
             "--surface: #FFFEFC",
             "--text-main: #171717",
             "--text-sub: #6F7480",

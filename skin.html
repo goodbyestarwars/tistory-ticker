@@ -17,7 +17,7 @@
        먼저 그려지는 초기 페인트 FOUC를 막는다. 스타일 적용 뒤 한 번만 표시하며,
        네트워크가 느려도 1.8초 뒤에는 안전하게 화면을 연다. -->
   <style id="initial-paint-guard">
-    html, html body { background: #F8F7F4; }
+    html, html body { background: rgb(253, 253, 247); }
     html.dark, html.dark body { background: #1A1A1A; }
     html:not(.skin-ready) body { visibility: hidden !important; opacity: 0; }
     html.skin-ready body { visibility: visible; opacity: 1; transition: opacity .12s ease; }
