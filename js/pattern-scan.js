@@ -50,7 +50,8 @@
     { key: 'boxRangeLow', label: '박스권 하단', desc: '최근 20봉 종가 변동폭 10% 이하, 종가 5·20일선 3% 이내 근접 3회 이상, RSI(14) 35~65, 20봉 전 거래량/직전 5봉 평균 50~120%, 시가 5·20일선 관계 3회 이상, 20봉 수익률 ±10% 이내를 모두 만족하면서 현재가가 박스 하단 35% 구간에 있는 후보입니다.' },
     { key: 'pullback', label: '눌림목', desc: '최소 240봉 데이터에서 최근 20봉 안에 저점 대비 종가가 15% 이상 상승한 뒤 고점에서 5~15% 조정받고, 현재 종가가 20일선 또는 240일선 3% 이내입니다. 20일선 상승, 상승구간 거래량 증가, 조정구간 거래량 감소를 모두 확인합니다.' },
     { key: 'openingGap', label: '시초 갭상승', desc: '최근 봉 시가가 전일 종가보다 높고 종가가 시가 대비 3% 이상 상승해야 합니다. 시가는 1,000~500,000원, 거래대금은 3,000~999,999백만원 범위이며 장중 상승이 끝난 후보는 제외합니다.' },
-    { key: 'angleMomentum', label: '각도기 테스트', desc: '전형가(고가+저가+종가)/3 기준 단기(5일)·장기(20일) 이동평균선의 기울기(각도)를 주가 단위와 무관하게 정규화(%변동률)해 계산합니다. 단기 각도가 양수이면서 중기·장기 각도가 함께 상승 전환되고, 단기 각도가 최근 20일 변화폭 대비 1.5배 이상 튀는(분출) 순간을 포착합니다. 거래량이 터지기 전 이동평균선 곡률이 먼저 꺾이는 구간을 찾는 실험적 지표입니다.' }
+    { key: 'angleMomentum', label: '각도기 테스트', desc: '전형가(고가+저가+종가)/3 기준 단기(5일)·장기(20일) 이동평균선의 기울기(각도)를 주가 단위와 무관하게 정규화(%변동률)해 계산합니다. 단기 각도가 양수이면서 중기·장기 각도가 함께 상승 전환되고, 단기 각도가 최근 20일 변화폭 대비 1.5배 이상 튀는(분출) 순간을 포착합니다. 거래량이 터지기 전 이동평균선 곡률이 먼저 꺾이는 구간을 찾는 실험적 지표입니다.' },
+    { key: 'gongpasan', label: '공파산 타점', desc: '역매공파(역배열·매집봉·공구리·파란점선) 기법입니다. 최근 160일 고점 대비 25% 이상 빠진 종목 중, 최근 40일간 좁게 횡보(공구리)하고 최근 60일 내 대량거래 매집봉이 나온 뒤, 직전 5봉 고가와 5일선을 동시에 돌파하는 장대양봉(오돌이)이 확인된 종목입니다. 돌파 자체가 아니라 그 후 20일선까지 눌림받아 지지가 확인된 첫 캔들만 매수 타점으로 표시합니다.' }
   ];
 
   var scanData = null;
@@ -113,15 +114,35 @@
     });
   }
 
-  // "각도기 테스트" 탭 전용 - entry_signal이 과거에 뜬 전체 종목·전체 시점을 5일 보유로
-  // 백테스트한 승률/평균수익률 요약(angle_momentum_scan.py가 미리 계산해 캐시에 저장,
-  // GAS getPatternScanResult()가 scanData.angleMomentumBacktest로 그대로 전달). 다른 탭에는
-  // 없는 정보라 탭이 바뀔 때마다 보이기/숨기기를 다시 결정한다.
+  // "각도기 테스트"/"공파산 타점" 탭 전용 - entry_signal이 과거에 뜬 전체 종목·전체 시점을
+  // 백테스트한 승률/평균수익률 요약(angle_momentum_scan.py/gongpasan_scan.py가 미리 계산해
+  // 캐시에 저장, GAS getPatternScanResult()가 scanData.XxxBacktest로 그대로 전달). 다른
+  // 탭에는 없는 정보라 탭이 바뀔 때마다 보이기/숨기기를 다시 결정한다. 두 전략이 청산 규칙이
+  // 달라(각도기=고정 N일 보유, 공파산=손절/익절/타임컷) 각주 문구도 탭별로 따로 둔다.
+  var BACKTEST_CONFIGS = {
+    angleMomentum: {
+      field: 'angleMomentumBacktest',
+      footnote: function (stats) {
+        return '과거 신호를 다음날 시가 매수·' + (stats.holdDays || 5) + '일 뒤 종가 매도로 가정한 결과이며, '
+          + '실제 체결·세금·슬리피지와 다를 수 있습니다. 과거 성과가 미래 수익을 보장하지 않습니다.';
+      }
+    },
+    gongpasan: {
+      field: 'gongpasanBacktest',
+      footnote: function (stats) {
+        return '과거 신호를 다음날 시가 매수 후 20일선 이탈 손절·파란점선 도달 익절·'
+          + (stats.timecutDays || 20) + '일 타임컷 중 먼저 오는 조건으로 청산했다고 가정한 결과이며, '
+          + '실제 체결·세금·슬리피지와 다를 수 있습니다. 과거 성과가 미래 수익을 보장하지 않습니다.';
+      }
+    }
+  };
+
   function renderBacktestBox(container) {
     var box = container.querySelector('#psBacktestBox');
     if (!box) return;
-    if (activeTab !== 'angleMomentum') { box.hidden = true; box.innerHTML = ''; return; }
-    var stats = scanData && scanData.angleMomentumBacktest;
+    var config = BACKTEST_CONFIGS[activeTab];
+    if (!config) { box.hidden = true; box.innerHTML = ''; return; }
+    var stats = scanData && scanData[config.field];
     if (!stats || !stats.totalTrades) {
       box.hidden = false;
       box.innerHTML = '<div class="ps-backtest-empty">아직 백테스트 결과가 없어요(스캔이 처음 실행된 뒤부터 누적됩니다).</div>';
@@ -131,13 +152,13 @@
     var avgReturn = Number(stats.avgReturnPct);
     box.hidden = false;
     box.innerHTML = ''
-      + '<div class="ps-backtest-title">과거 신호 ' + stats.totalTrades + '건 · ' + (stats.holdDays || 5) + '일 보유 백테스트(참고용)</div>'
+      + '<div class="ps-backtest-title">과거 신호 ' + stats.totalTrades + '건 백테스트(참고용)</div>'
       + '<div class="ps-backtest-stats">'
       + '<span><b>승률</b> ' + (isFinite(winRate) ? winRate.toFixed(1) : '-') + '%</span>'
       + '<span class="' + chgClass(avgReturn) + '"><b>평균 수익률</b> ' + chgSign(avgReturn) + '</span>'
       + (stats.profitFactor != null ? '<span><b>손익비</b> ' + Number(stats.profitFactor).toFixed(2) + '</span>' : '')
       + '</div>'
-      + '<div class="ps-backtest-footnote">과거 신호를 다음날 시가 매수·' + (stats.holdDays || 5) + '일 뒤 종가 매도로 가정한 결과이며, 실제 체결·세금·슬리피지와 다를 수 있습니다. 과거 성과가 미래 수익을 보장하지 않습니다.</div>';
+      + '<div class="ps-backtest-footnote">' + config.footnote(stats) + '</div>';
   }
 
   function loadScan(container) {
@@ -251,6 +272,10 @@
       var angleShort = Number(detail.angleShort);
       return isFinite(angleShort) ? '단기 각도 +' + angleShort.toFixed(1) + '도' : '각도 상승 전환';
     }
+    if (patternKey === 'gongpasan') {
+      var retreatPct = Number(detail.retreatPct);
+      return isFinite(retreatPct) ? '고점 대비 ' + retreatPct.toFixed(1) + '% · 눌림목 지지' : '눌림목 지지 확인';
+    }
     return resistanceText || '패턴 조건 확인';
   }
 
@@ -298,7 +323,8 @@
       boxRangeLow: '박스 하단 구간',
       pullback: '상승 후 이평선 부근 눌림목',
       openingGap: '전일 종가보다 높게 시작한 갭상승',
-      angleMomentum: '이동평균선 각도가 위로 꺾이며 가속되는 구간'
+      angleMomentum: '이동평균선 각도가 위로 꺾이며 가속되는 구간',
+      gongpasan: '역배열 바닥권 매집 후 돌파·눌림목 지지 구간'
     }[patternKey] || '검색 조건을 충족한 차트 패턴';
   }
 
@@ -719,6 +745,11 @@
         // 방식(addMaLine, 종가 기준 단순이동평균)으로 단기/장기선만 시각 참고용으로 겹쳐 그린다.
         addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
         addMaLine(chart, daily, 20, MA20_COLOR);
+      } else if (pattern === 'gongpasan') {
+        // 20일선(눌림목 지지선)과 파란점선(엔벨로프 상단 = 46일선*1.12, 역매공파 스킬
+        // 기준)을 겹쳐 그린다 - 매수 타점(20일선 지지)과 목표가(파란점선)를 한눈에 보이게.
+        addMaLine(chart, daily, 20, MA20_COLOR);
+        addEnvelopeLine(chart, daily, 46, 1.12, RESIST_COLOR);
       }
 
       addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
@@ -752,6 +783,23 @@
     }
     if (pts.length < 2) return;
     chart.addSeries(global.LightweightCharts.LineSeries, { color: color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false }).setData(pts);
+  }
+
+  // 종가 N일 단순이동평균에 배율을 곱한 엔벨로프선(공파산 탭의 파란점선 전용) - 점선으로
+  // 그려서 실제 이평선(addMaLine)과 시각적으로 구분한다.
+  function addEnvelopeLine(chart, daily, period, mult, color) {
+    var pts = [];
+    var sum = 0;
+    for (var i = 0; i < daily.length; i++) {
+      sum += daily[i].close;
+      if (i >= period) sum -= daily[i - period].close;
+      if (i >= period - 1) pts.push({ time: daily[i].date, value: (sum / period) * mult });
+    }
+    if (pts.length < 2) return;
+    chart.addSeries(global.LightweightCharts.LineSeries, {
+      color: color, lineWidth: 1, lineStyle: global.LightweightCharts.LineStyle.Dashed,
+      priceLineVisible: false, lastValueVisible: false
+    }).setData(pts);
   }
 
   // 패턴별 지지/저항선 + 스윙 포인트 dot + 확인(signal) 지점을 라인 시리즈/마커로 오버레이.
@@ -855,6 +903,8 @@
       if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'angleMomentum') {
       if (detail.signal) addSignal(detail.signal);
+    } else if (pattern === 'gongpasan') {
+      if (detail.signal) addSignal(detail.signal); // 눌림목 매수 타점(오돌이 돌파 자체가 아님)
     }
 
     if (markers.length) LWC.createSeriesMarkers(candleSeries, markers);
