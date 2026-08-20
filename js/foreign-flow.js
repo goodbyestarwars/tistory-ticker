@@ -540,12 +540,18 @@
     // 2026-08-20: search()와 동일하게 실패 원인을 flowErr_/chartErr_에 남겨 최종 에러
     // 문구에 같이 보여준다(개발자도구 없이도 원인 문구를 바로 확인할 수 있게).
     var flowErr_ = null, chartErr_ = null;
-    var chartPromise = fetchFlowChart(code).catch(function (err) { chartErr_ = err && err.message; return null; });
+    // fetchFlow/fetchFlowChart는 VM·GAS 폴백까지 실패해도 예외 없이 {error:...} 모양
+    // JSON을 정상 응답으로 돌려주는 경로가 있어(search()와 동일 이유) resolve된 값도 같이 본다.
+    var chartPromise = fetchFlowChart(code)
+      .then(function (d) { if (d && (d.error || d.detail) && !chartErr_) chartErr_ = d.message || d.error || d.detail; return d; })
+      .catch(function (err) { chartErr_ = err && err.message; return null; });
     var investorFlowPromise = fetchInvestorFlowLive(code, name).catch(function () { return null; });
     var quotePromise = fetchLiveQuote(code).catch(function () { return null; });
     var fundamentalsPromise = fetchFundamentals(code, name).catch(function () { return null; });
 
-    var flowPromise = ForeignFlow.fetchFlow(code, name).catch(function (err) { flowErr_ = err && err.message; return null; });
+    var flowPromise = ForeignFlow.fetchFlow(code, name)
+      .then(function (d) { if (d && (d.error || d.detail) && !flowErr_) flowErr_ = d.message || d.error || d.detail; return d; })
+      .catch(function (err) { flowErr_ = err && err.message; return null; });
     Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
         if (activeSignalCode !== code || signalRequestSeq !== requestId) return; // 이전 요청 응답은 무시(레이스 방지)
@@ -1114,8 +1120,14 @@
     // 정말 아무 것도 못 그릴 때만("수급 데이터를 불러오지 못했어요") 화면에 같이 보여준다 -
     // 사용자 리포트("모든 종목이 다 안 된다")를 재현 못 하는 서버 직접 호출과 달리, 실제
     // fetch()가 브라우저에서 왜 막히는지(CORS/네트워크 등)를 개발자도구 없이도 바로 볼 수 있게.
+    // fetchFlow/fetchFlowChart는 VM·GAS 최종 폴백까지 실패해도 "예외를 던지지 않고" 그냥
+    // {error:...} 모양 JSON을 정상 응답(resolve)으로 돌려주는 경로가 있다(예: VM은 실패해
+    // 던졌지만 그 다음 네이버 GAS 폴백은 200으로 응답하되 body가 {error:...}인 경우) - 이땐
+    // .catch()가 안 걸려서 err.message만 보던 최초 버전은 이 경우를 놓쳤다. resolve된 값도
+    // .error/.detail을 같이 확인한다.
     var flowErr_ = null, chartErr_ = null;
     var chartPromise = fetchFlowChart(resolved.code)
+      .then(function (d) { if (d && (d.error || d.detail) && !chartErr_) chartErr_ = d.message || d.error || d.detail; return d; })
       .catch(function (err) { chartErr_ = err && err.message; return { error: 'FETCH_FAILED', message: '차트 데이터를 불러오지 못했어요.' }; });
     var investorFlowPromise = fetchInvestorFlowLive(resolved.code, resolved.name)
       .catch(function () { return null; });
@@ -1126,7 +1138,9 @@
     // fundamentalsCache에 저장해두므로 이후 탭 클릭 시 재요청 없음(loadFundamentals 재사용).
     var fundamentalsPromise = fetchFundamentals(resolved.code, resolved.name)
       .catch(function () { return null; });
-    var flowPromise = ForeignFlow.fetchFlow(resolved.code, resolved.name).catch(function (err) { flowErr_ = err && err.message; return null; });
+    var flowPromise = ForeignFlow.fetchFlow(resolved.code, resolved.name)
+      .then(function (d) { if (d && (d.error || d.detail) && !flowErr_) flowErr_ = d.message || d.error || d.detail; return d; })
+      .catch(function (err) { flowErr_ = err && err.message; return null; });
     Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
         var data = results[0];
