@@ -317,7 +317,10 @@
     if (key === 'undervalued') return '재무 조건을 통과한 종목 중 120일선 대비 가격이 눌린 종목을 섹터별로 표시합니다.';
     if (key === 'dividend') return '과거 현금배당 공시를 기준으로 배당수익률과 주당 현금배당금을 비교합니다.';
     if (key === 'etfReturn') return '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.';
-    if (key === 'nationalPension') return '국민연금공단이 공시한 국내주식 보유정보를 지분율 기준으로 골라 표시합니다(연 1회 공시 스냅샷). 화면에서 지분율 기준을 바꿀 수 있습니다.';
+    // 2026-08-20: "연 1회 공시 스냅샷" 안내는 요약 줄에서 빼고 "조건 자세히"(전체
+    // methodology, NPS_METHODOLOGY_NOTE)에만 남겼다 - 거기 이미 같은 내용이 있다
+    // ("이 데이터는 매일 갱신되지 않고... 스냅샷입니다").
+    if (key === 'nationalPension') return '국민연금이 보유한 국내주식을 지분율 기준으로 골라 표시합니다. 화면에서 지분율 기준을 바꿀 수 있습니다.';
     return '전략 조건으로 후보군을 탐색하고, 세부 기준을 확인합니다.';
   }
 
@@ -436,12 +439,16 @@
 
   var NPS_MIN_PCT_OPTIONS = [10, 8, 5, 3, 1];
 
-  function npsFilterSelectHtml() {
+  function npsFilterSelectHtml(metaText) {
     var options = NPS_MIN_PCT_OPTIONS.map(function (pct) {
       return '<option value="' + pct + '"' + (pct === activeNpsMinPct ? ' selected' : '') + '>' + pct + '% 이상</option>';
     }).join('');
+    // 2026-08-20: 전체/필터 후 개수 안내(metaText)를 필터 셀렉트와 같은 줄에 붙였다 -
+    // 원래는 .ss-hint(빈 상태 안내용, 위아래 28px 패딩) 재사용이라 셀렉트 밑에 큰 공백이
+    // 뜨고 안내가 한참 아래로 처졌었다(사용자 리포트: "위로 더 올려").
     return '<div class="ss-nps-filter"><label>보유 지분율 <select class="ss-nps-filter-select" data-nps-filter="minPct">'
-      + options + '</select></label></div>';
+      + options + '</select></label>' + (metaText ? '<span class="ss-nps-filter-meta">' + escapeHtml(metaText) + '</span>' : '')
+      + '</div>';
   }
 
   function renderNpsTable() {
@@ -460,12 +467,12 @@
     var truncated = matches.length > NPS_RENDER_CAP;
     var shown = truncated ? matches.slice(0, NPS_RENDER_CAP) : matches;
     var headers = ['관심', '순위', '종목명', '종목코드', '업종', '현재가', '등락률', '보유 지분율', '평가액'];
-    var meta = '<div class="ss-hint">전체 ' + all.length + '종목 중 지분율 ' + activeNpsMinPct + '% 이상 '
-      + matches.length + '종목' + (truncated ? ' · 상위 ' + NPS_RENDER_CAP + '개만 표시' : '') + '</div>';
+    var metaText = '전체 ' + all.length + '종목 중 지분율 ' + activeNpsMinPct + '% 이상 '
+      + matches.length + '종목' + (truncated ? ' · 상위 ' + NPS_RENDER_CAP + '개만 표시' : '');
     if (!shown.length) {
-      return npsFilterSelectHtml() + meta + '<div class="ss-hint">이 지분율 기준을 만족하는 종목이 없어요. 기준을 낮춰보세요.</div>';
+      return npsFilterSelectHtml(metaText) + '<div class="ss-hint">이 지분율 기준을 만족하는 종목이 없어요. 기준을 낮춰보세요.</div>';
     }
-    return npsFilterSelectHtml() + meta
+    return npsFilterSelectHtml(metaText)
       + '<div class="ss-table-wrap"><table class="ss-comparison-table ss-strategy-table"><thead><tr>'
       + headers.map(function (label) { return '<th>' + label + '</th>'; }).join('')
       + '</tr></thead><tbody>' + shown.map(npsTableRow).join('')
