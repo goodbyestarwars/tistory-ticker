@@ -51,6 +51,7 @@ import db_schema
 import invest_signal
 import kiwoom_client
 import pattern_detect
+import public_data
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 WICS_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js'
@@ -188,6 +189,20 @@ DIVIDEND_METHODOLOGY_NOTE = (
     '배당 데이터가 아직 DART 캐시에 없는 종목은 임의 추정하지 않고 다음 배치 수집 후 반영합니다.'
 ).format(
     turnover=MIN_AVG_TURNOVER,
+)
+
+# 2026-08-20: "국민연금이 가진 종목 조회" 요청 - public_data.py에 이미 만들어져 있었지만
+# 어디서도 안 쓰이던 fetch_nps_holding()/data.go.kr "국민연금공단 국내주식 투자정보"
+# 연동을 전략검색의 새 카테고리로 노출한다. 이 데이터셋은 연 1회 스냅샷(공공데이터 URL
+# 자체가 특정 연도로 고정)이라 매일 갱신되는 다른 카테고리와 성격이 다르므로 화면에도
+# 기준일을 그대로 노출해야 한다(as_of, public_data._NPS_AS_OF). 종목명 매칭 실패(표기
+# 차이·상장폐지 등)로 유니버스에 없는 종목은 조용히 빠진다 - 임의 보정하지 않는다.
+NPS_TOP_N = None
+NPS_METHODOLOGY_NOTE = (
+    '국민연금공단이 공공데이터포털(data.go.kr)에 공개한 국내주식 투자정보 기준, 국민연금이 보유한 종목을 '
+    '보유 지분율(%) 높은 순으로 표시합니다. 이 데이터는 매일 갱신되지 않고 국민연금공단이 공시하는 시점의 '
+    '스냅샷입니다(화면의 기준일 참고) - 그 이후 실제 보유 현황과 다를 수 있습니다. 종목명 표기가 달라 '
+    '매칭되지 않는 종목은 목록에서 빠질 수 있습니다.'
 )
 
 
@@ -846,6 +861,60 @@ def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None
     return sectors, scanned
 
 
+def build_nps_match(stock, daily, sector, info):
+    last = daily[-1]
+    prev = daily[-2] if len(daily) > 1 else None
+    previous_close = prev.get('close') if prev else None
+    change_rate = ((last['close'] - previous_close) / previous_close * 100) if previous_close else None
+    return {
+        'code': stock['code'],
+        'name': stock['name'],
+        'price': last['close'],
+        'changeRate': change_rate,
+        'date': last.get('date'),
+        'sector': sector,
+        'strategy': 'nationalPension',
+        'holdingPct': info.get('holding_pct'),
+        'weightPct': info.get('weight_pct'),
+        'evaluationAmountEok': info.get('evaluation_amount_eok'),
+        'asOf': info.get('as_of'),
+        'source': info.get('source'),
+    }
+
+
+def scan_nps_holdings(universe, wics_map, conn, theme_codes=None):
+    """국민연금 보유종목 - public_data.fetch_nps_holdings_by_code()가 이름 매칭까지 끝낸
+    {code: info}를 한 번만 받아, 그 종목들에만 가격·섹터를 붙인다. 다른 전략과 달리 별도
+    시그널 판정이 없다(국민연금이 갖고 있다는 사실 자체가 표시 대상) - 전종목을 순회하며
+    daily_prices를 다시 계산하지 않고 holdings에 있는 종목만 본다."""
+    theme_codes = theme_codes or set()
+    holdings = public_data.fetch_nps_holdings_by_code(universe)
+    matches = []
+    for stock in universe:
+        code = stock['code']
+        info = holdings.get(code)
+        if not info:
+            continue
+        if code in theme_codes:
+            continue
+        if pattern_detect.is_etf_name(stock.get('name')):
+            continue
+        wics = wics_map.get(code)
+        if not wics or not wics.get('sector'):
+            continue
+        daily = db_schema.load_daily_prices(conn, code)
+        if not daily:
+            continue
+        matches.append(build_nps_match(stock, daily, wics['sector'], info))
+
+    matches.sort(key=lambda item: -(item.get('holdingPct') or 0))
+    sectors = {}
+    nps_matches = matches if NPS_TOP_N is None else matches[:NPS_TOP_N]
+    for match in nps_matches:
+        sectors.setdefault(match['sector'], []).append(match)
+    return sectors, len(holdings)
+
+
 def main():
     load_dotenv()
 
@@ -894,6 +963,7 @@ def main():
     dividend_sectors, dividend_scanned = scan_dividend(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token)
     etf_return_sectors, etf_scanned = scan_etf_returns(universe, conn)
+    nps_sectors, nps_scanned = scan_nps_holdings(universe, wics_map, conn, theme_codes=theme_codes)
 
     undervalued_category = {
         'name': '저평가 종목',
@@ -947,6 +1017,17 @@ def main():
         },
     }
     output['etfScanned'] = etf_scanned
+
+    output['categories']['nationalPension'] = {
+        'name': '국민연금 보유종목',
+        'methodology': NPS_METHODOLOGY_NOTE,
+        'sectors': {
+            sector: {'name': sector, 'matches': matches}
+            for sector, matches in nps_sectors.items()
+            if matches
+        },
+    }
+    output['npsScanned'] = nps_scanned
 
     tmp_path = OUTPUT_FILE + '.tmp'
     with open(tmp_path, 'w', encoding='utf-8') as f:

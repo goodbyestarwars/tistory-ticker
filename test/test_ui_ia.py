@@ -1488,6 +1488,35 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("ss-score", source)
         self.assertNotIn("별점", source)
 
+    def test_strategy_search_national_pension_category(self):
+        """2026-08-20: "국민연금이 가진 종목 조회" 요청 - public_data.py에 이미 있던
+        (하지만 어디서도 안 쓰이던) fetch_nps_holding()/data.go.kr 연동을
+        전략검색의 새 카테고리(nationalPension)로 노출."""
+        source = self.read("js/strategy-search.js")
+        scan = self.read("scripts/cloud-vm/strategy_scan.py")
+        public_data = self.read("scripts/cloud-vm/public_data.py")
+        for token in (
+            "activeKey === 'nationalPension'",
+            "renderNpsTable",
+            "holdingPct",
+            "evaluationAmountEok",
+            "기준일 ",
+            "보유 지분율",
+        ):
+            self.assertIn(token, source)
+        for token in (
+            "def scan_nps_holdings(universe, wics_map, conn, theme_codes=None)",
+            "def build_nps_match(stock, daily, sector, info)",
+            "'nationalPension'",
+            "NPS_METHODOLOGY_NOTE",
+        ):
+            self.assertIn(token, scan)
+        for token in (
+            "def fetch_nps_holding(name)",
+            "def fetch_nps_holdings_by_code(universe)",
+        ):
+            self.assertIn(token, public_data)
+
     def test_strategy_search_tabs_use_shared_pill_shape(self):
         style = self.read("css/strategy-search.css")
         self.assertIn("#strategy-search .ss-tabs", style)
