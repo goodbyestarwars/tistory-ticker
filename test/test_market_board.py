@@ -305,6 +305,36 @@ class MarketBoardTests(unittest.TestCase):
         self.assertEqual(row['display_name'], 'Moderna Inc')
         self.assertEqual(row['market_cap'], 25100)
 
+    def test_merge_us_kis_metadata_is_a_noop_when_market_cap_section_is_empty(self):
+        # 2026-08-20: KIS 자체 marketCap 순위 응답이 빈 경우(레이트리밋/일시 실패 등)
+        # fetch_us_kis() 안의 첫 병합 시도는 재료가 없어 아무것도 못 채운다 - 사용자가
+        # "거래대금 탭은 시가총액이 -, 종목명도 티커뿐인데 거래량 탭은 정상"이라고 리포트한
+        # 원인. 이 첫 시도가 안전하게 아무것도 안 건드리는지 확인(예외 없이 통과).
+        sections = {
+            'tradeAmount': [{'symbol': 'MRNA', 'name': 'MRNA', 'market_cap': None}],
+            'marketCap': [],
+        }
+        market_board.merge_us_kis_metadata(sections)
+        self.assertEqual(sections['tradeAmount'][0]['name'], 'MRNA')
+        self.assertIsNone(sections['tradeAmount'][0]['market_cap'])
+
+    def test_merge_us_kis_metadata_second_pass_fills_gap_after_kiwoom_backfill(self):
+        # main.py의 /market-board 엔드포인트가 하는 일을 재현한다: 첫 병합 시도(위 테스트)가
+        # 빈손으로 끝난 뒤, 키움 폴백으로 marketCap 섹션이 뒤늦게 채워지면 이 함수를 한 번 더
+        # 호출해서 그제서야 tradeAmount 같은 KIS 원본 섹션에도 회사명·시가총액이 채워져야 한다
+        # (같은 dict의 sections 자리에 marketCap만 나중에 채워 넣는 상황을 그대로 흉내냄).
+        sections = {
+            'tradeAmount': [{'symbol': 'MRNA', 'name': 'MRNA', 'market_cap': None}],
+            'marketCap': [],
+        }
+        market_board.merge_us_kis_metadata(sections)  # 1차: 재료 없음, 그대로 통과
+
+        sections['marketCap'] = [{'symbol': 'MRNA', 'name': 'Moderna Inc', 'market_cap': 25100}]
+        market_board.merge_us_kis_metadata(sections)  # 2차: 키움 폴백으로 채워진 재료로 재시도
+
+        self.assertEqual(sections['tradeAmount'][0]['name'], 'Moderna Inc')
+        self.assertEqual(sections['tradeAmount'][0]['market_cap'], 25100)
+
     def test_us_kis_board_enriches_trade_amount_rows_with_industry_profiles(self):
         def trade_amount(_token, _appkey, _secret, exchange, limit=20):
             if exchange != 'NAS':

@@ -902,7 +902,7 @@ def _enrich_us_kis_industries(rows, finnhub_api_key=''):
                 row['industry'] = industry
 
 
-def _merge_us_kis_metadata(metric_rows):
+def merge_us_kis_metadata(metric_rows):
     """Share stable metadata from the market-cap ranking with every tab.
 
     KIS's US ranking TRs are metric-specific.  The trade-value and volume
@@ -912,6 +912,15 @@ def _merge_us_kis_metadata(metric_rows):
     independent makes the same stock display as ``MRNA`` with a ``-`` cap on
     one tab and ``Moderna Inc`` with a cap on another.  Join by ticker, never
     by the localized/company name, because the latter varies by TR and vendor.
+
+    Public (no leading underscore) because main.py's /market-board endpoint
+    calls this a second time after backfilling a metric from Kiwoom when KIS's
+    own marketCap section came back empty - the first call inside fetch_us_kis()
+    has nothing to merge from in that case (2026-08-20: found via a user report
+    that tradeAmount kept showing tickers-only names and a dash market cap even
+    though a different tab on the same page showed full names/caps - the
+    Kiwoom-sourced backfill has real metadata but arrived too late for the
+    first merge pass to use it).
     """
     cap_rows = metric_rows.get('marketCap') or []
     by_symbol = {
@@ -978,7 +987,7 @@ def fetch_us_kis(appkey, appsecret, limit=20, finnhub_api_key=''):
                 metric_rows[metric] = []
     if not metric_rows.get('tradeAmount'):
         raise RuntimeError('KIS 미국 거래대금 순위 응답이 비어 있습니다.')
-    _merge_us_kis_metadata(metric_rows)
+    merge_us_kis_metadata(metric_rows)
     ordered = metric_rows['tradeAmount']
     _enrich_us_kis_industries(ordered, finnhub_api_key)
     sections = {

@@ -151,7 +151,7 @@ GAS 캐시는 배포해도 자동으로 비워지지 않으므로, 응답 스키
 | 한국투자증권(KIS) Open API | 야간선물, 시장별 투자자매매동향, 옵션 | VM(`kis_client.py`), GAS 일부 |
 | 네이버 금융 | 실시간 시세(백업), 종목뉴스, 뉴스검색(VM 경유 IP 화이트리스트 우회) | GAS 직접 + VM(`naver_news.py`) |
 | DART(전자공시) | 재무제표, 실적발표 캘린더 | VM(`dart_client.py`, `earnings_calendar.py`) |
-| Groq API(`llama-3.3-70b-versatile`) | AI 요약 전반 | GAS(`callGroq`), 스크립트 속성에 키 저장 |
+| Groq API(`openai/gpt-oss-120b`) | AI 요약 전반 | GAS(`callGroq`), 스크립트 속성에 키 저장 |
 | 구글 캘린더 API | 증시캘린더 이벤트 | `js/stock-calendar.js`에 API 키 하드코딩(사용자 확인: GCP 콘솔에 리퍼러 제한 적용됨, 2026-08-03) |
 | KRX 공시 RSS | 실시간 공시 피드 | GAS(`?market=0`) 경유 |
 | 업비트 | BTC/ETH 시세 | VM(`btc_futures.py`) |

@@ -634,9 +634,13 @@ function summarizePriceMoveReason(name, changeRate, items) {
 
 // Groq API (OpenAI 호환). 키는 PropertiesService에 저장(코드에 노출 안 함):
 // Apps Script 편집기 > 프로젝트 설정 > 스크립트 속성 > GROQ_API_KEY.
-// 무료 티어: llama-3.3-70b-versatile 기준 분당 30건/하루 14,400건 - Gemini(하루 20건)와
-// 비교가 안 되게 널널해서 종목뉴스 요약 + 시황분석을 둘 다 감당 가능.
-var GROQ_MODEL = 'llama-3.3-70b-versatile';
+// 2026-08-20: 기존 llama-3.3-70b-versatile이 Groq에서 단종돼 모든 호출이 404
+// (model_not_found)로 조용히 실패하고 있었다(callGroq의 실패 로그 추가로 발견 -
+// safeCall이 예외를 삼켜서 GAS 실행 기록엔 "완료됨"만 찍히고 있었음). Groq 공식
+// 모델 목록(console.groq.com/docs/models)의 Production Models 등급(안정성 보장,
+// Preview 모델은 예고 없이 단종될 수 있어 제외) 중 가장 강력한 openai/gpt-oss-120b로
+// 교체. 이 상수는 참고의견 외 종목뉴스 요약·공매도 해석 등 다른 Groq 호출부도 공유한다.
+var GROQ_MODEL = 'openai/gpt-oss-120b';
 
 // 2026-08-14 요청: "주의할 점/참고 포인트까지 짚어달라"는 요청으로 여러 AI 해설 프롬프트에
 // "actionable"한 문장(시사점·주의점)을 추가했다 - 다만 자본시장법상 무인가로 특정 투자
