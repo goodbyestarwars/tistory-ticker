@@ -2652,14 +2652,21 @@
       var now = ma(period, closes.length - 1), before = ma(period, closes.length - 1 - lookback);
       return now == null || before == null || !before ? 0 : (now - before) / Math.abs(before);
     }
-    // 2026-08-20: swingChartRegime()의 같은 이름 헬퍼는 그 함수 스코프에만 있어 여기선 안
-    // 보이는데(별개 함수), 아래 shortSignal 판정이 이 함수 이름을 그대로 참조하고 있었다 -
-    // "crossedAbove is not defined" ReferenceError로 종목분석 수급 조회 전체가 실패했다
-    // (사용자 리포트). swingChartRegime과 같은 로직을 이 함수 자신의 ma/closes로 재정의한다.
+    // 2026-08-20: swingChartRegime()의 같은 이름 헬퍼들은 그 함수 스코프에만 있어 여기선 안
+    // 보이는데(별개 함수), 아래 shortSignal/ma20Slope 판정이 이 함수 이름들을 그대로
+    // 참조하고 있었다 - "crossedAbove is not defined"에 이어 "slopeAt is not defined"까지
+    // 같은 패턴의 ReferenceError로 종목분석 수급 조회가 계속 실패했다(사용자 리포트 2건).
+    // swingChartRegime과 같은 로직을 이 함수 자신의 ma/closes로 재정의한다. 이 두 함수가
+    // swingChartRegime의 지역 헬퍼를 참조하는 나머지 자리(event/ma/slope 등)는 이미 각자
+    // 지역 정의가 있어 문제없음을 확인했다(2708~2709줄 부근 전체 재검토).
     function crossedAbove(period) {
       var previousMa = ma(period, closes.length - 2), currentMa = ma(period, closes.length - 1);
       return previousMa != null && currentMa != null
         && closes[closes.length - 2] < previousMa && closes[closes.length - 1] >= currentMa;
+    }
+    function slopeAt(period, lookback, end) {
+      var now = ma(period, end), before = ma(period, end - lookback);
+      return now == null || before == null || !before ? 0 : (now - before) / Math.abs(before);
     }
     function key(fastPeriod, slowPeriod, longPeriod) {
       if (closes.length < Math.max(slowPeriod, longPeriod || 0)) return 'insufficient';
