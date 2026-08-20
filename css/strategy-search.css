@@ -643,32 +643,39 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
 #strategy-search .ss-strategy-table .ss-col-fundamentals { color: #374151; }
 
 /* 전략 결과 표는 헤더와 값이 같은 열 축을 공유하도록 폭을 고정한다.
-   마지막 재무지표는 긴 문장을 줄바꿈해 우측에서 잘리지 않게 한다. */
+   마지막 재무지표는 긴 문장을 줄바꿈해 우측에서 잘리지 않게 한다.
+   2026-08-20: min-width가 1420px(실제로는 아래 .ss-comparison-table의 1480px가 소스
+   순서상 나중이라 그쪽이 이김)로, 이 페이지("/page/strategy-search")는 오른쪽 사이드바가
+   없는 Tistory 페이지 템플릿이라 실제 콘텐츠 폭이 최대 1348px(.main-layout max-width
+   1380px - 좌우 padding 32px)인데도 항상 그보다 넓게 강제돼 있어서, 어떤 화면 크기에서도
+   마우스로 끌어야만 나머지 열이 보이는 문제가 있었다(사용자 리포트: "표가 벗어나서
+   마우스로 끌거나 스크롤해야 보여"). 아래 열 폭 전체를 줄여 실제 콘텐츠 폭 안에 들어오게
+   한다. */
 #strategy-search .ss-strategy-table {
   width: 100%;
-  min-width: 1420px;
+  min-width: 1180px;
   table-layout: fixed;
 }
 #strategy-search .ss-strategy-table th,
 #strategy-search .ss-strategy-table td { vertical-align: middle; }
 #strategy-search .ss-strategy-table th:nth-child(1),
-#strategy-search .ss-strategy-table td:nth-child(1) { width: 52px; }
+#strategy-search .ss-strategy-table td:nth-child(1) { width: 40px; }
 #strategy-search .ss-strategy-table th:nth-child(2),
-#strategy-search .ss-strategy-table td:nth-child(2) { width: 58px; }
+#strategy-search .ss-strategy-table td:nth-child(2) { width: 46px; }
 #strategy-search .ss-strategy-table th:nth-child(3),
-#strategy-search .ss-strategy-table td:nth-child(3) { width: 260px; }
+#strategy-search .ss-strategy-table td:nth-child(3) { width: 210px; }
 #strategy-search .ss-strategy-table th:nth-child(4),
-#strategy-search .ss-strategy-table td:nth-child(4) { width: 110px; }
+#strategy-search .ss-strategy-table td:nth-child(4) { width: 90px; }
 #strategy-search .ss-strategy-table th:nth-child(5),
-#strategy-search .ss-strategy-table td:nth-child(5) { width: 160px; }
+#strategy-search .ss-strategy-table td:nth-child(5) { width: 130px; }
 #strategy-search .ss-strategy-table th:nth-child(6),
-#strategy-search .ss-strategy-table td:nth-child(6) { width: 125px; }
+#strategy-search .ss-strategy-table td:nth-child(6) { width: 100px; }
 #strategy-search .ss-strategy-table th:nth-child(7),
-#strategy-search .ss-strategy-table td:nth-child(7) { width: 115px; }
+#strategy-search .ss-strategy-table td:nth-child(7) { width: 95px; }
 #strategy-search .ss-strategy-table th:nth-child(8),
-#strategy-search .ss-strategy-table td:nth-child(8) { width: 230px; }
+#strategy-search .ss-strategy-table td:nth-child(8) { width: 185px; }
 #strategy-search .ss-strategy-table th:nth-child(9),
-#strategy-search .ss-strategy-table td:nth-child(9) { width: 280px; }
+#strategy-search .ss-strategy-table td:nth-child(9) { width: 225px; }
 #strategy-search .ss-strategy-table .ss-col-signal,
 #strategy-search .ss-strategy-table .ss-col-fundamentals {
   overflow-wrap: anywhere;
@@ -808,11 +815,15 @@ html.dark #strategy-search .ss-product-tab.active {
   color: #1A1A1A !important;
 }
 
-/* 필드명과 값의 시작점을 같은 컬럼에 맞추고, 데스크톱 표는 사용 가능한 폭을 끝까지 쓴다. */
+/* 필드명과 값의 시작점을 같은 컬럼에 맞추고, 데스크톱 표는 사용 가능한 폭을 끝까지 쓴다.
+   2026-08-20: 1480px는 이 페이지(오른쪽 사이드바 없는 Tistory 페이지 템플릿)의 실제
+   콘텐츠 폭(최대 1348px)보다 항상 넓어서 배당주·ETF 표가 어떤 화면 크기에서도 가로
+   스크롤 없이는 다 안 보였다(위 .ss-strategy-table 주석과 같은 원인) - 실제 콘텐츠 폭
+   안에 들어오도록 줄였다. */
 @media (min-width: 641px) {
   #strategy-search .ss-comparison-table {
     width: 100%;
-    min-width: 1480px;
+    min-width: 1180px;
   }
   #strategy-search .ss-comparison-table th,
   #strategy-search .ss-comparison-table td { vertical-align: middle; }

@@ -266,14 +266,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # gothic mode, and the cache version is bumped for the Tistory skin.
         self.assertIn("html:not(.font-gothic) body", style)
         self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260820-search-pill-red-v1", skin)
+        self.assertIn("style.css?v=20260820-darkmode-tokens-v1", skin)
         self.assertIn(".home-briefing-featured .post-excerpt", style)
         self.assertIn("min-height: 6.4em", style)
         self.assertIn(".home-briefing-small .post-title", style)
-        self.assertIn("border: 1.5px solid var(--up)", style)
+        self.assertIn("border: 1px solid var(--up)", style)
         self.assertIn("border-radius: 999px", style)
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
-        self.assertIn(".navbar .nav-search-input { order: 1; font-size: 25px;", style)
+        self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn("skin-main.js?v=20260820-tab-cleanup-v1", skin)
 
     def test_navbar_search_underline_fits_inside_navbar_height(self):
