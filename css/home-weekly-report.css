@@ -60,6 +60,10 @@
 .hwr-columns .is-up, .hwr-summary-row .is-up, .hwr-index-card .is-up { color: #d24f45; }
 .hwr-columns .is-down, .hwr-summary-row .is-down, .hwr-index-card .is-down { color: #1261c4; }
 html.dark .home-weekly-report { color: #f5efe0; }
+/* 2026-08-20: .hwr-head의 라이트모드 테두리(#e5e9ef, 옅은 회색)만 다크모드 대응이
+   빠져있어 "한 주 마감 리포트" 제목 아래 구분선이 주변보다 밝게 떠 보였다(사용자
+   리포트: "중간에 흰색 줄(진한색) 주위 선색이랑 같게 해줘"). */
+html.dark .hwr-head { border-color: rgba(245,239,224,.16); }
 html.dark .hwr-index-card, html.dark .hwr-summary-row article, html.dark .hwr-columns article, html.dark .hwr-schedule { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
 html.dark .hwr-columns li, html.dark .hwr-schedule-list li { border-color: rgba(245,239,224,.1); }
 html.dark .hwr-columns li a, html.dark .hwr-loading strong { color: #f5efe0; }
