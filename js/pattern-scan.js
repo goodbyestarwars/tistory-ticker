@@ -141,7 +141,7 @@
     gongpasan: {
       field: 'gongpasanBacktest',
       footnote: function (stats) {
-        return '과거 신호를 다음날 시가 매수 후 20일선 이탈 손절·파란점선 도달 익절·'
+        return '과거 신호를 다음날 시가 매수 후 20일선 대비 3% 이상 이탈 손절·파란점선 도달 익절·'
           + (stats.timecutDays || 20) + '일 타임컷 중 먼저 오는 조건으로 청산했다고 가정한 결과이며, '
           + '실제 체결·세금·슬리피지와 다를 수 있습니다. 과거 성과가 미래 수익을 보장하지 않습니다.';
       }

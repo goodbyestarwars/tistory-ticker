@@ -48,6 +48,15 @@ SUPPORT_TOUCH_TOL_PCT = 2.0   # 저가가 지지선(20일선) ±이 % 이내로 
 DEFAULT_TIMECUT_DAYS = 20     # 사용자 원 지시서에 명시된 값 그대로 유지
 DEFAULT_SLIPPAGE_PCT = 0.0015
 
+# 2026-08-20: 실제 VM 백테스트 결과(863건) 승률이 25.03%로 낮게 나와 원인을 짚어봤다 -
+# entry_signal 자체가 "20일선에 막 지지받은 첫 캔들"에서 진입하는데, 손절 기준이 "종가가
+# 20일선 아래로 마감"이라 진입가와 손절가가 거의 붙어있는 구조였다. 진입 직후 하루만
+# 살짝 흔들려도(휩쏘) 바로 손절되기 쉬워 승률이 구조적으로 낮아질 수밖에 없었던 것으로
+# 보인다(스킬에 손절 버퍼 명시 없음 - 임의로 추가). 20일선 대비 몇 % 더 빠져야 진짜
+# 이탈로 보도록 여유를 뒀다 - 실제 승률 개선 여부는 VM에서 재배포 후 백테스트를 다시
+# 돌려봐야 확인 가능하다(로컬엔 실제 시세 DB가 없어 직접 검증 불가).
+STOP_BUFFER_PCT = 3.0
+
 DAILY_PRICES_COLUMNS = [
     'date', 'open', 'high', 'low', 'close', 'volume',
     'sma5', 'sma20', 'sma46', 'sma60', 'sma112', 'sma224', 'blue_line',
@@ -190,7 +199,7 @@ def backtest_gongpasan(df, timecut_days=DEFAULT_TIMECUT_DAYS, slippage_pct=DEFAU
         exit_price = None
         last_idx = min(entry_idx + timecut_days, n - 1)
         for j in range(entry_idx, last_idx + 1):
-            if np.isfinite(sma20[j]) and close[j] < sma20[j]:
+            if np.isfinite(sma20[j]) and close[j] < sma20[j] * (1 - STOP_BUFFER_PCT / 100.0):
                 exit_price = close[j]
                 break
             if np.isfinite(blue_line[j]) and close[j] >= blue_line[j]:
