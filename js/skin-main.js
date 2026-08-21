@@ -935,7 +935,14 @@
       }
 
       tick();
-      setInterval(tick, 1000);
+      // 2026-08-21 코드 감사: 다른 60초 타이머(loadHomeIndices)는 이미 document.hidden을
+      // 체크하는데 이 1초 카운트다운만 빠져 있었다 - 백그라운드 탭에서도 계속 돌던 걸
+      // 통일. 탭이 다시 보이면 그 즉시 최신 상태로 갱신되도록 visibilitychange에서도
+      // 한 번 더 tick()을 호출한다.
+      setInterval(function () { if (!document.hidden) tick(); }, 1000);
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) tick();
+      });
     })();
 
     var marketTempCacheKey = 'home_market_temp_v1';

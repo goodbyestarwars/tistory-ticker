@@ -143,6 +143,9 @@
   var flowSortKey = 'signal';
   var flowVisibleCount = SIGNAL_PAGE_SIZE;
   var signalRequestSeq = 0;
+  var searchRequestSeq = 0; // 2026-08-21 코드 감사: search()에 늦게 도착한 이전 요청 응답이
+                            // 최신 검색 결과를 덮어쓰지 않도록 loadSignalSummary와 동일한
+                            // 요청 순서 가드용(레이스 방지).
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -880,9 +883,18 @@
     return out.sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); });
   }
 
+  var relatedModalEscHandler = null; // 2026-08-21 코드 감사: 모달을 열 때마다 새 keydown
+                                      // 리스너를 등록하는데, Esc가 아니라 닫기 버튼/오버레이
+                                      // 클릭으로 닫으면 해제가 안 돼 계속 쌓였다 - closeRelatedModal
+                                      // 이 경로와 무관하게 항상 해제하도록 참조를 여기서 관리.
+
   function closeRelatedModal() {
     var existing = document.querySelector('.ff-related-overlay');
     if (existing) existing.remove();
+    if (relatedModalEscHandler) {
+      document.removeEventListener('keydown', relatedModalEscHandler);
+      relatedModalEscHandler = null;
+    }
   }
 
   function showRelatedStocks(container, name, type) {
@@ -911,11 +923,11 @@
       + '</div>'
       + '</div>';
     document.body.appendChild(overlay);
-    document.addEventListener('keydown', function escHandler(e) {
+    relatedModalEscHandler = function (e) {
       if (e.key !== 'Escape') return;
       closeRelatedModal();
-      document.removeEventListener('keydown', escHandler);
-    });
+    };
+    document.addEventListener('keydown', relatedModalEscHandler);
 
     overlay.addEventListener('click', function (e) {
       if (e.target === overlay || e.target.closest('.ff-related-close')) { closeRelatedModal(); return; }
@@ -1099,6 +1111,7 @@
     var resultBox = container.querySelector('#ffResult');
     destroyLwChart(); // 이전 검색의 차트 인스턴스/리스너 정리(리렌더 전에 먼저 끊는다)
     stopQuotePolling(); // 이전 종목의 헤더 시세 폴링도 같이 정리
+    var requestId = ++searchRequestSeq; // 이 호출의 응답이 나중에 늦게 오면 무시(레이스 방지)
     var resolved = resolveStock(query);
     if (!resolved) {
       resultBox.innerHTML = '<div class="ff-error">'
@@ -1143,6 +1156,7 @@
       .catch(function (err) { flowErr_ = err && err.message; return null; });
     Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
       .then(function (results) {
+        if (requestId !== searchRequestSeq) return; // 이전 검색 응답은 무시(레이스 방지)
         var data = results[0];
         var chartData = results[1];
         var flowEntry = results[2];
@@ -1163,6 +1177,7 @@
         renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals);
       })
       .catch(function (err) {
+        if (requestId !== searchRequestSeq) return; // 이전 검색 응답은 무시(레이스 방지)
         resultBox.innerHTML = '<div class="ff-error">수급 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'
           + (err && err.message ? '<br><small style="opacity:.6">(' + escapeHtml(err.message) + ')</small>' : '')
           + '</div>';
@@ -1456,6 +1471,9 @@
   function startQuotePolling(box, code) {
     stopQuotePolling();
     quotePollTimer = setInterval(function () {
+      // 2026-08-21 코드 감사: 백그라운드 탭에서도 15초마다 계속 폴링됐음 - 다른 실시간
+      // 위젯(watchlist.js, home-widgets.js 등)과 동일하게 탭이 보일 때만 갱신.
+      if (document.hidden) return;
       fetchLiveQuote(code, true).then(function (q) {
         if (!q) return;
         var header = box.querySelector('.ff-header');
@@ -5660,8 +5678,17 @@
       if (el) dots[key] = el;
     });
 
+    // 2026-08-21 코드 감사: mousemove마다 getBoundingClientRect()를 2번씩 강제로 읽어
+    // 매번 동기 리플로우를 유발했다 - 차트 폭은 CHART_W 고정값 기반 변환이라, 호버 시작
+    // (mouseenter/최초 클릭) 시점에 한 번만 읽어 캐시하고 재사용한다.
+    var hoverRect = null, hoverChartRect = null;
+    function refreshHoverRects() {
+      hoverRect = svg.getBoundingClientRect();
+      hoverChartRect = chartEl.getBoundingClientRect();
+    }
+
     function show(evt) {
-      var rect = svg.getBoundingClientRect();
+      var rect = hoverRect || svg.getBoundingClientRect();
       if (!rect.width) return;
       var vx = (evt.clientX - rect.left) / rect.width * CHART_W;
       var i = Math.round((vx - PAD.l) / iw * (n - 1));
@@ -5713,7 +5740,7 @@
       tt.hidden = false;
 
       // 툴팁 픽셀 위치: 가이드선 오른쪽에 붙이되, 오른쪽 끝에선 왼쪽으로 뒤집는다
-      var chartRect = chartEl.getBoundingClientRect();
+      var chartRect = hoverChartRect || chartEl.getBoundingClientRect();
       var lineLeft = (rect.left - chartRect.left) + (X / CHART_W) * rect.width;
       var ttW = tt.offsetWidth || 150;
       var left = lineLeft + 10;
@@ -5728,9 +5755,24 @@
       Object.keys(dots).forEach(function (k) { dots[k].setAttribute('visibility', 'hidden'); });
     }
 
-    svg.addEventListener('mousemove', show);
+    // 2026-08-21 코드 감사: rAF/쓰로틀 없이 mousemove에 직접 바인딩돼 있어, 마우스가
+    // 빠르게 움직이면(초당 수십 회) 매번 동기 리플로우가 발생했다 - requestAnimationFrame으로
+    // 좌표 갱신을 프레임당 최대 1회로 코얼레싱한다.
+    var hoverRafPending = false, hoverLastEvt = null;
+    function onHoverMove(evt) {
+      hoverLastEvt = evt;
+      if (hoverRafPending) return;
+      hoverRafPending = true;
+      requestAnimationFrame(function () {
+        hoverRafPending = false;
+        show(hoverLastEvt);
+      });
+    }
+
+    svg.addEventListener('mouseenter', refreshHoverRects);
+    svg.addEventListener('mousemove', onHoverMove);
     svg.addEventListener('mouseleave', hide);
-    svg.addEventListener('click', show); // 모바일 탭 대응
+    svg.addEventListener('click', function (evt) { refreshHoverRects(); show(evt); }); // 모바일 탭 대응
   }
 
   // x축 날짜 레이블: 처음/중간/끝 3개

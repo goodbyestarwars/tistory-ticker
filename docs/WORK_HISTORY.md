@@ -1,5 +1,28 @@
 # 9Pay 주요 작업이력
 
+**2026-08-21 코드베이스 전수 감사 - 프론트엔드 대형 위젯 JS 6건 수정**: 전수 감사 7개
+영역 중 "프론트엔드 대형 위젯 JS"(foreign-flow.js·kospi-futures.js·skin-main.js) 영역
+6건 전부 수정.
+
+- `foreign-flow.js` 종목 검색(`search()`): 요청 순서 가드가 없어 A종목 검색 직후 B종목을
+  검색하면 A의 느린 응답이 나중에 도착해 B의 결과를 덮어쓸 수 있었다 - `loadSignalSummary`와
+  동일한 `requestId`/`searchRequestSeq` 가드 추가.
+- `kospi-futures.js` 30초 자동 새로고침, `foreign-flow.js` 종목 상세 시세 폴링(15초):
+  둘 다 백그라운드 탭에서도 계속 돌고 있었음 - 다른 실시간 위젯과 동일하게
+  `document.hidden` 가드 추가.
+- `foreign-flow.js` 업종/테마 관련종목 모달: Esc로 닫을 때만 keydown 리스너가 해제되고
+  닫기 버튼·오버레이 클릭으로 닫으면 안 지워져 반복해서 열 때마다 리스너가 쌓였음 -
+  `closeRelatedModal()`이 경로와 무관하게 항상 해제하도록 참조를 모듈 스코프로 이동.
+- `foreign-flow.js` 수급 차트 호버: mousemove마다 `getBoundingClientRect()`를 2번씩
+  강제로 읽어 매번 동기 리플로우가 발생했음 - 호버 시작 시점에 한 번만 캐시하고,
+  `requestAnimationFrame`으로 좌표 갱신을 프레임당 최대 1회로 코얼레싱.
+- `skin-main.js` 장 전환 카운트다운(1초 타이머): 다른 60초 타이머는 이미 있던
+  `document.hidden` 가드가 이것만 빠져 있었음 - 추가하고, 탭이 다시 보이면 즉시
+  최신 상태로 갱신되도록 `visibilitychange`에서도 한 번 더 tick() 호출.
+
+검증: `node --check`로 6개 파일 문법 확인, 관련 Python 회귀 523건 통과(영향 없음 확인).
+`master` 반영 후 GitHub Pages 자동 배포.
+
 **2026-08-21 코드베이스 전수 감사 - GAS 프록시 4건 수정**: 전수 감사 7개 영역 중
 "GAS 프록시"(`gas/ticker-proxy.gs`) 영역 4건 전부 수정.
 
