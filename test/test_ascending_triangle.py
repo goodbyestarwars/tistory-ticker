@@ -20,9 +20,11 @@ if PANDAS_AVAILABLE:
 
 def _triangle_rows(resistance_mode='flat', rising=True):
     """사용자가 그린 그림(계단식 저점 5개 + 저항선 + 돌파)을 그대로 옮긴 합성 OHLC.
-    resistance_mode: 'flat'(수평 저항, 상승삼각형) / 'declining'(완만히 하락하며 저점과
-    좁혀지는 저항, 수렴삼각형) / 'rising'(고점도 계속 올라가는 평행채널 - 막힘 없음, 음성
-    대조군). rising=False면 저점 하나가 앞 저점보다 낮아지게 만든다(음성 대조군)."""
+    resistance_mode: 'flat'(수평 저항 + 저점 상승, 케이스1) / 'declining'(저항 완만히
+    하락 + 저점 상승, 케이스3) / 'rising_converging'(저항도 오르지만 저점보다 느리게
+    올라 간격이 좁혀짐, 케이스2) / 'rising'(저항이 저점보다 더 빨리 올라 간격이 벌어지는
+    발산형 채널 - 막힘 없음, 음성 대조군. 2026-08-21 사용자가 못박은 3가지 케이스에 안
+    들어감). rising=False면 저점 하나가 앞 저점보다 낮아지게 만든다(음성 대조군)."""
     rows = []
     cursor = [date(2024, 1, 1)]
 
@@ -40,7 +42,9 @@ def _triangle_rows(resistance_mode='flat', rising=True):
     if resistance_mode == 'declining':
         resistances = [10900.0, 10800.0, 10700.0, 10600.0, 10500.0]  # 완만히 하락하며 저점과 좁혀짐
     elif resistance_mode == 'rising':
-        resistances = [10300.0, 10450.0, 10600.0, 10750.0, 10900.0]  # 고점도 계속 올라감(막힘 없음)
+        resistances = [10300.0, 10450.0, 10600.0, 10750.0, 10900.0]  # 저점(100씩)보다 빨리(150씩) 올라 간격이 벌어짐(발산)
+    elif resistance_mode == 'rising_converging':
+        resistances = [10700.0, 10750.0, 10800.0, 10850.0, 10900.0]  # 저점(100씩)보다 느리게(50씩) 올라 간격이 좁혀짐
     else:
         resistances = [10500.0] * 5  # 수평 저항(상승삼각형)
 
@@ -83,13 +87,28 @@ class AscendingTriangleSignalTests(unittest.TestCase):
 
         self.assertFalse(df['entry_signal'].any())
 
-    def test_no_signal_when_highs_keep_rising_instead_of_capped(self):
-        """고점도 계속 오르는 평행채널(저항이 막혀있지 않음)은 상승/수렴삼각형이 아니다."""
+    def test_no_signal_when_highs_rise_faster_than_lows_and_diverge(self):
+        """고점이 저점보다 더 빨리 올라 간격이 벌어지는 발산형 채널(막힘 없음)은
+        저점 상승형이 아니다 - 2026-08-21 사용자가 못박은 3가지 케이스(막힘/둘다상승(수렴)/
+        하락)에 안 들어간다."""
         rows = _triangle_rows(resistance_mode='rising')
         with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
             df = at.compute_ascending_triangle_signal('005930', conn=object())
 
         self.assertFalse(df['entry_signal'].any())
+
+    def test_fires_when_resistance_rises_slower_than_lows_and_converges(self):
+        """2026-08-21: 사용자가 저점 상승형은 (1) 상단 막혀있고 저점 상승, (2) 둘 다
+        상승(단, 저점이 더 빨리 올라 간격이 좁혀질 때), (3) 상단 하락 + 저점 상승 - 이
+        3개만 걸리면 된다고 정확히 못박아서 추가한 케이스(2). 저항선도 오르지만 저점보다
+        느리게 올라 간격이 좁혀지면 신호가 떠야 한다."""
+        rows = _triangle_rows(resistance_mode='rising_converging')
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = at.compute_ascending_triangle_signal('005930', conn=object())
+
+        fired = df.index[df['entry_signal']].tolist()
+        self.assertEqual(len(fired), 1)
+        self.assertAlmostEqual(df.loc[fired[0], 'resistance'], 10900.0, places=2)  # 가장 최근(마지막) 저항 터치 값
 
     def test_fires_when_resistance_declines_and_converges_with_rising_lows(self):
         """2026-08-21: 사용자가 두 번째 그림(저항선이 완전히 평평하지 않고 완만하게
