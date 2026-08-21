@@ -1,5 +1,56 @@
 # 9Pay 주요 작업이력
 
+**2026-08-21 코드베이스 전수 감사 - CSS 7건 수정(전수 감사 7개 영역 전부 완료)**: 전수 감사
+마지막 영역인 CSS 11건 중 7건 수정, 4건은 근거를 남기고 의도적으로 보류(아래 참고). 이걸로
+2026-08-21에 시작한 코드베이스 전수 감사(논리적 오류 + 속도, 7개 영역) 전부 완료.
+
+- `watchlist.css`/`dashboard-enhancements.css`: skin.html이 모든 페이지에서 이미 `<link>`로
+  로드 중인 MaruBuri/Pretendard 폰트를 매 페이지 별도 `@import`하던 걸 제거(렌더링 블로킹
+  요청 감소).
+- `foreign-flow.js`/`foreign-flow.css`: 호출되지 않는 매물대 시각화 3세대(타워/일러스트/
+  라인아트 - `buildAptChartHtmlLegacy`/`buildAptLineArtHtmlLegacy`/
+  `buildAptIllustratedLineArtHtml` + 이들만 쓰던 헬퍼·`buildAptZoomButtons`)를 JS에서
+  제거하고, 다른 어떤 살아있는 코드도 참조하지 않는 CSS 클래스 172개 + keyframes 23개를
+  함께 삭제(파일 149KB→약 96KB, foreign-flow.js 570줄 감소). 실제로 살아있는 클래스인지는
+  파일 전체(3개 지운 함수 구간 제외)에서 클래스명이 다시 등장하는지 스크립트로 교차검증했다.
+- `skin.html`/`css/market-ribbon.css`/`js/market-ribbon.js`: 2026-07-16에 이미 기능 폐기되고
+  `display:none !important`로만 숨겨져 있던 리본을 완전히 걷어냈다(`<link>`·빈 `<div>`·
+  `<script>`·인라인 숨김 `<style>` 전부 제거, CSS/JS 파일 삭제, `test/market-ribbon.html`도
+  같이 삭제). style.css의 navbar/sidebar 오프셋은 2026-07-16에 이미 리본 없는 값으로
+  고정돼 있어 영향 없음. **skin.html은 Tistory 관리자에서 수동 반영 필요** - 반영 전까지는
+  라이브 사이트가 삭제된 market-ribbon.css/js를 요청해 404가 뜰 수 있으나(콘솔에만 보임),
+  두 파일 다 이미 아무 시각적 역할이 없어(인라인 스타일이 항상 숨겨왔음) 화면 깨짐은 없다.
+- `strategy-search.css`: `.ss-tab`/`.ss-product-tab`이 3세대(알약형→밑줄형→다시 알약형+
+  `!important`, 라이트+다크모드 각각)에 걸쳐 재정의되며 앞 세대가 지워지지 않고 있던 걸
+  최종 세대만 남기고 정리.
+- `domestic-market-indicators.css`: `.dmi-fund-card *`(모든 자손) 유니버설 선택자가
+  `.dmi-fund-value.dmi-positive/.dmi-negative`의 상승/하락 색을 가리고 있던 근본 원인을
+  제거(2026-08-14엔 그 두 규칙에 `!important`를 얹어 임시 대응했었음). `.dmi-fund-card`
+  자손들은 전부 이름 붙은 클래스가 이미 `color:#000`을 명시하고 있어 검은색 유지에는 영향 없음.
+- `dashboard-enhancements.css`: `#market-temp .mt-guide-card`류가 "화려한" 초안과
+  "차분한" 재디자인 두 세대로 나뉘어 있어 뒤 세대가 항상 이기는데, 뒤 세대가 손대지
+  않은 구조 속성(position/overflow/transition 등)은 앞 세대에만 있어 단순 삭제 대신
+  최종 값 하나로 합쳤다(계산된 스타일 동일, 다운로드 바이트만 감소).
+- `quick-indices.css`: 30초 무한 `transform` 애니메이션(`.qi-news-track` 뉴스 스크롤)에
+  `will-change: transform` 추가.
+
+**보류(근거 남김, 4건)**: (1) market-temp.css의 게이지 마커/진행바 `left`/`width` 스윕 -
+JS 주석에 "JS/rAF와 무관하게 항상 최종적으로 올바른 값"이 되도록 의도적으로 설계된
+구조라 `transform` 기반으로 바꾸면 그 보장이 깨질 위험, 게다가 0.6~0.8초 1회성
+애니메이션이라 실제 체감 비용이 낮음. (2) marketcap-bubble.css `.mcb-cell`의 SVG
+x/y/width/height 트랜지션 - `transform` 전환에는 `<g transform>` 래핑이 필요해 JS의
+SVG 생성 로직까지 같이 바꿔야 하는 더 큰 리팩터. (3) z-index 값 CSS 변수화 - 8개 넘는
+파일에 흩어져 있어 상대 순서를 하나라도 잘못 옮기면 지금은 없는 겹침 버그를 새로 만들
+위험. (4) sector-dashboard-v3.css/market-temp.css 중복 - 확인해보니 `sector-dashboard-
+v3.css`가 skin.html이나 어떤 JS의 동적 로드 경로에서도 안 잡혀서(테스트용 로컬 HTML
+`test/sector-dashboard-v4.html`에서만 참조) 실제 운영에서 어떻게 로드되는지부터 다시
+확인해야 안전하게 합칠 수 있음. 모바일 브레이크포인트 통일(원래 감사에서 "하" 등급·낮은
+확신도로 표시된 5번째 항목)도 시각 검증 없이는 위험해 계속 보류.
+
+검증: `node --check`로 JS 문법 확인, CSS 중괄호 짝 맞음 확인, 전체 회귀 523건 통과
+(스킨 로고 텍스트 관련 1건, `.dmi-fund-card *` 관련 1건 테스트를 실제 수정 내용에 맞게
+갱신). `master` 반영 후 GitHub Pages 자동 배포(`css/`, `js/`) - `skin.html`만 수동 반영 필요.
+
 **2026-08-21 코드베이스 전수 감사 - 프론트엔드 나머지 위젯 JS 6건 수정**: 전수 감사 7개
 영역 중 "프론트엔드 나머지 위젯 JS" 영역 7건 중 6건 수정(사이트 로고 텍스트 건은 사용자가
 의도한 것으로 확인되어 제외).

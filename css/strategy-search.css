@@ -25,23 +25,10 @@
   flex-wrap: wrap;
 }
 
-#strategy-search .ss-tab {
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 8px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #374151;
-  cursor: pointer;
-}
-
-#strategy-search .ss-tab.active {
-  background: #111827;
-  border-color: #111827;
-  color: #ffffff;
-}
+/* 2026-08-21 코드 감사: .ss-tab/.ss-tab.active의 1세대(알약형, 여기)·2세대(밑줄형,
+   "2026-08 결과 정리" 참고)가 지워지지 않고 3세대(다시 알약형, !important, "2026-08:
+   전략검색의 전략·상품 선택도..." 참고)로 !important를 총동원해 덮어써지고 있었다 -
+   구세대 규칙을 지우고 최종 규칙(현재 위치: 이 파일 하단)만 남긴다. */
 
 #strategy-search .ss-meta {
   font-size: 12px;
@@ -257,17 +244,9 @@
 
 /* ============ 다크모드 ============ */
 /* css/pattern-scan.css와 동일한 팔레트(#1A1A1A 배경 + #F5EFE0 글자, 등락색은 의미가
-   있어 별도 유지)로 사이트 전체 다크모드와 통일한다. */
-html.dark #strategy-search .ss-tab {
-  background: #1A1A1A;
-  border-color: rgba(245, 239, 224, 0.2);
-  color: rgba(245, 239, 224, 0.8) !important;
-}
-html.dark #strategy-search .ss-tab.active {
-  background: rgba(245, 239, 224, 0.22);
-  border-color: rgba(245, 239, 224, 0.4);
-  color: #F5EFE0 !important;
-}
+   있어 별도 유지)로 사이트 전체 다크모드와 통일한다.
+   2026-08-21 코드 감사: 이 자리에 있던 .ss-tab/.ss-tab.active 구세대 다크모드 규칙은
+   이 파일 하단의 최종 규칙(모든 속성 !important)에 전부 덮어써져 죽어 있어 삭제. */
 html.dark #strategy-search .ss-meta {
   color: rgba(245, 239, 224, 0.5) !important;
 }
@@ -428,19 +407,8 @@ html.dark .ss-etf-table .ss-flat { color: rgba(245,239,224,.45); }
   margin: 0 0 14px;
   border-bottom: 1px solid #d9dde2;
 }
-#strategy-search .ss-product-tab {
-  padding: 9px 0 8px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: #6b7280;
-}
-#strategy-search .ss-product-tab.active {
-  border-bottom-color: #111827;
-  background: transparent;
-  color: #111827;
-}
+/* 2026-08-21 코드 감사: .ss-tab과 동일한 구세대 규칙(밑줄형) - 최종 규칙(이 파일 하단,
+   알약형+!important)으로 덮어쓰여 죽어 있어 삭제. */
 #strategy-search .ss-product-toolbar,
 #strategy-search .ss-dividend-toolbar {
   padding: 11px 0;
@@ -589,22 +557,8 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
   .ss-etf-table { font-size: 12px; }
 }
 
-/* 2026-08 결과 정리: 비어 있는 데이터는 화면에서 만들지 않고, 입력과 결과는
-   작은 둥근 알약 대신 평평한 리서치 화면 컨트롤로 통일한다. */
-#strategy-search .ss-tab {
-  padding: 9px 0 8px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: #6b7280;
-}
-#strategy-search .ss-tab.active {
-  border-bottom-color: #111827;
-  background: transparent;
-  color: #111827;
-}
-#strategy-search .ss-tabs { gap: 20px; border-bottom: 1px solid #d9dde2; }
+/* 2026-08-21 코드 감사: 위 "2026-08 결과 정리" 세대의 .ss-tab류는 최종 규칙(이 파일
+   하단, 알약형+!important)으로 덮어쓰여 죽어 있어 삭제. */
 #strategy-search .ss-etf-control,
 #strategy-search .ss-dividend-sort-select,
 #strategy-search .ss-nps-filter-select,
@@ -745,8 +699,6 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
   .ss-etf-table { min-width: 530px; }
 }
 
-html.dark #strategy-search .ss-tab { background: transparent; border-color: transparent; color: rgba(245,239,224,.6) !important; }
-html.dark #strategy-search .ss-tab.active { background: transparent; border-bottom-color: #F5EFE0; color: #F5EFE0 !important; }
 html.dark #strategy-search .ss-etf-control,
 html.dark #strategy-search .ss-dividend-sort-select,
 html.dark #strategy-search .ss-nps-filter-select,

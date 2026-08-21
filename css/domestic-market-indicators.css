@@ -2,7 +2,14 @@
   margin-top: 28px;
   color: #000;
 }
-/* 국내시장지표의 세 영역은 스킨의 상속 색상과 무관하게 검은색으로 통일한다. */
+/* 국내시장지표의 세 영역은 스킨의 상속 색상과 무관하게 검은색으로 통일한다.
+   2026-08-21 코드 감사: .dmi-fund-card의 모든 자손(*) 유니버설 선택자가 걸려 있어서
+   .dmi-fund-value.dmi-positive/.dmi-negative의 상승/하락 색(아래)이 한 번도 안
+   보이고 있었다(2026-08-14 발견 당시엔 그 두 규칙에만 !important를 더 얹어 임시
+   대응했었음) - .dmi-fund-card 자손들은 전부 이름 붙은 클래스(.dmi-fund-label/-desc/
+   -value/-average/-date)로 각자 color:#000을 이미 명시하고 있어(아래), 유니버설
+   자손 선택자 없이도 검은색이 유지된다. .dmi-fund-card 컨테이너 자체는 남겨서
+   "데이터 준비 중" 같은 클래스 없는 텍스트는 그대로 검게 나온다. */
 .dmi-shell .dmi-heading h2,
 .dmi-shell .dmi-subheading h3,
 .dmi-shell .dmi-muted,
@@ -11,7 +18,6 @@
 .dmi-shell .dmi-flow-table th,
 .dmi-shell .dmi-flow-table td,
 .dmi-shell .dmi-fund-card,
-.dmi-shell .dmi-fund-card *,
 .dmi-shell .dmi-ai,
 .dmi-shell .dmi-ai *,
 .dmi-shell .dmi-error { color: #000 !important; }
@@ -94,8 +100,11 @@
 .dmi-fund-label { color: #000; font-size: 14px; font-weight: 700; }
 .dmi-fund-desc { display: block; margin-top: 5px; color: #000; font-size: 12px; line-height: 1.45; }
 .dmi-fund-value { display: block; margin: 8px 0 4px; color: #000; font-size: 23px; font-weight: 700; }
-/* !important: 위 .dmi-shell .dmi-fund-card * { color:#000 !important } 블록 규칙이 이겨서
-   이 색이 실제로는 한 번도 안 보이고 있었다(2026-08-14 발견) - 여기도 !important로 맞춘다. */
+/* 2026-08-14: 예전엔 .dmi-shell .dmi-fund-card의 모든 자손(*) 유니버설 선택자가 있어서
+   이 색이 실제로는 한 번도 안 보이지 않았음 - 그때는 !important로 임시 대응했는데,
+   2026-08-21 코드 감사로 그 유니버설 선택자 자체를 걷어냈다(파일 위쪽 참고). !important는
+   .dmi-fund-value(단일 클래스)보다 이 규칙(두 클래스)이 이미 명시도가 높아 굳이 필요
+   없어졌지만, 회귀 방지 차원에서 그대로 남겨둔다. */
 .dmi-fund-value.dmi-positive { color: #d24f45 !important; }
 .dmi-fund-value.dmi-negative { color: #1261c4 !important; }
 .dmi-fund-average { display: block; color: #000; font-size: 12px; }
