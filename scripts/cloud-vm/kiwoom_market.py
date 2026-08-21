@@ -6,6 +6,7 @@ gas/ticker-proxy.gs의 fetchDailyOhlc_/getForeignFlow(네이버 크롤링)를 �
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import db_schema
@@ -463,22 +464,31 @@ def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, t
     잠정치라는 성격상 원래도 근사치라 허용)."""
     end_dt = datetime.now().strftime('%Y%m%d')
 
-    frgn_res = kiwoom_client.call_tr(token, 'ka10008', '/api/dostk/frgnistt', {'stk_cd': code})
-    frgn_by_date = _frgn_by_date_from_ka10008(frgn_res)
-    ka10059_rows = _fetch_ka10059_rows(token, code, end_dt)
+    # 2026-08-21 코드 감사: ka10059는 out(ka10008 기반 frgn_by_date가 필요한 KIS/키움
+    # 일별 조회 - 여러 페이지를 순차 호출할 수 있어 가장 오래 걸림)가 다 끝난 뒤에야
+    # 쓰이므로(ind_net 보완, 오늘 실시간 병합), out 계산과 동시에 백그라운드에서
+    # 미리 받아둔다 - ka10008(frgn_res)은 frgn_by_date가 out 계산에 바로 필요해 그대로 둠.
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        ka10059_future = pool.submit(_fetch_ka10059_rows, token, code, end_dt)
 
-    out = None
-    if kis_appkey and kis_appsecret:
-        try:
-            out = _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days)
-        except Exception as e:
-            # 2026-07-19: 이 예외를 조용히 삼키고 키움으로 폴백하기만 해서, 폴백이 실제로
-            # 언제·왜 발동됐는지 확인할 방법이 없었음(KIS 고객센터 문의로 원인 규명) - 최소한
-            # journalctl(kiwoom-api.service)에서 원인을 볼 수 있게 로그만 남긴다. 여기까지
-            # 오는 건 최근 성공 캐시도 없다는 뜻이라(_daily_rows_from_kis_with_fallback_cache
-            # 참고) 진짜 키움 폴백으로 갈 수밖에 없는 경우다.
-            logger.warning('KIS 실패(%s, 최근 성공 캐시도 없음), 키움 폴백으로 전환: %s', code, e)
-            out = None
+        frgn_res = kiwoom_client.call_tr(token, 'ka10008', '/api/dostk/frgnistt', {'stk_cd': code})
+        frgn_by_date = _frgn_by_date_from_ka10008(frgn_res)
+
+        out = None
+        if kis_appkey and kis_appsecret:
+            try:
+                out = _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days)
+            except Exception as e:
+                # 2026-07-19: 이 예외를 조용히 삼키고 키움으로 폴백하기만 해서, 폴백이 실제로
+                # 언제·왜 발동됐는지 확인할 방법이 없었음(KIS 고객센터 문의로 원인 규명) - 최소한
+                # journalctl(kiwoom-api.service)에서 원인을 볼 수 있게 로그만 남긴다. 여기까지
+                # 오는 건 최근 성공 캐시도 없다는 뜻이라(_daily_rows_from_kis_with_fallback_cache
+                # 참고) 진짜 키움 폴백으로 갈 수밖에 없는 경우다.
+                logger.warning('KIS 실패(%s, 최근 성공 캐시도 없음), 키움 폴백으로 전환: %s', code, e)
+                out = None
+
+        ka10059_rows = ka10059_future.result()
+
     if out is None:
         out = _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, target_days)
 

@@ -6,9 +6,9 @@ import base64
 import binascii
 import logging
 import re
-import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
 import kiwoom_client
@@ -16,7 +16,6 @@ import public_data
 
 logger = logging.getLogger('investor_flow')
 
-THROTTLE_SEC = 0.25
 LOOKBACK_DAYS = 100
 
 # 2026-07-22: "위험" 승격 게이트용 - js/quick-indices.js 긴급속보 패널이 이미 쓰고 있는
@@ -294,24 +293,41 @@ def large_holding_report(name):
         return None
 
 
+def _fetch_pension_holdings(name):
+    """official_holding/large_holding_report는 서로 다른 data.go.kr 엔드포인트를 조회하는
+    독립 호출인데 순차 실행되고 있었다(2026-08-21 코드 감사) - 동시에 실행한다."""
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        official_future = pool.submit(official_holding, name)
+        large_future = pool.submit(large_holding_report, name)
+        return {
+            'official_holding': official_future.result(),
+            'large_holding_report': large_future.result(),
+        }
+
+
 def fetch_stock(token, code, name):
     strt_dt, end_dt = date_range()
 
-    short_res = kiwoom_client.call_tr(token, 'ka10014', '/api/dostk/shsa',
-                                       {'stk_cd': code, 'strt_dt': strt_dt, 'end_dt': end_dt})
-    time.sleep(THROTTLE_SEC)
-    loan_res = kiwoom_client.call_tr(token, 'ka20068', '/api/dostk/slb', {'stk_cd': code})
-    time.sleep(THROTTLE_SEC)
-    invsr_res = kiwoom_client.call_tr(token, 'ka10059', '/api/dostk/stkinfo',
-                                       {'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'})
-    time.sleep(THROTTLE_SEC)
-    # 2026-07-19: 반대매매(담보부족/미수 강제청산) 압박 근사 신호용 - qry_tp='1'이 신용융자
-    # (레버리지 매수, 반대매매 대상)이고 '2'는 신용대주(공매도성 대주, 잔고가 1/2500 수준으로
-    # 작아 국내 시장에서 규모가 훨씬 작음 - 실측으로 구분 확인, 문서에 설명 없음). dt는
-    # 날짜 필터가 아니라 '0'을 넣으면 최근 100영업일이 그대로 옴(ka10059와 비슷한 동작,
-    # 실측 확인 - "1" 등 다른 값은 빈 배열만 옴).
-    credit_res = kiwoom_client.call_tr(token, 'ka10013', '/api/dostk/stkinfo',
-                                        {'stk_cd': code, 'dt': '0', 'qry_tp': '1'})
+    # 2026-08-21 코드 감사: 4개 TR이 서로 결과를 참조하지 않는 독립 조회인데 순차로
+    # 호출 사이마다 THROTTLE_SEC(0.25초)씩 sleep해 최소 0.75초가 그대로 누적됐다.
+    # /investor-flow/{code}는 인증 없이 브라우저가 직접 호출하는 5분 캐시 엔드포인트라
+    # 캐시 미스(첫 조회)마다 이 지연이 그대로 체감됨 - ThreadPoolExecutor로 동시 실행.
+    # qry_tp='1'은 신용융자(레버리지 매수, 반대매매 대상), '2'는 신용대주(공매도성 대주,
+    # 잔고가 1/2500 수준으로 작아 국내 시장에서 규모가 훨씬 작음 - 실측으로 구분 확인,
+    # 문서에 설명 없음). dt는 날짜 필터가 아니라 '0'을 넣으면 최근 100영업일이 그대로
+    # 옴(ka10059와 비슷한 동작, 실측 확인 - "1" 등 다른 값은 빈 배열만 옴).
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        short_future = pool.submit(kiwoom_client.call_tr, token, 'ka10014', '/api/dostk/shsa',
+                                    {'stk_cd': code, 'strt_dt': strt_dt, 'end_dt': end_dt})
+        loan_future = pool.submit(kiwoom_client.call_tr, token, 'ka20068', '/api/dostk/slb', {'stk_cd': code})
+        invsr_future = pool.submit(kiwoom_client.call_tr, token, 'ka10059', '/api/dostk/stkinfo',
+                                    {'stk_cd': code, 'dt': end_dt, 'amt_qty_tp': '1', 'trde_tp': '0', 'unit_tp': '1'})
+        credit_future = pool.submit(kiwoom_client.call_tr, token, 'ka10013', '/api/dostk/stkinfo',
+                                     {'stk_cd': code, 'dt': '0', 'qry_tp': '1'})
+        short_res = short_future.result()
+        loan_res = loan_future.result()
+        invsr_res = invsr_future.result()
+        credit_res = credit_future.result()
 
     short_rows = short_res.get('shrts_trnsn') or []
     loan_rows = loan_res.get('dbrt_trde_trnsn') or []
@@ -416,7 +432,6 @@ def fetch_stock(token, code, name):
             'net_cumulative': net_cumulative,
             'cumulative_window_days': len(penfnd_daily),
             'current_price': current_price,
-            'official_holding': official_holding(name),
-            'large_holding_report': large_holding_report(name),
+            **_fetch_pension_holdings(name),
         },
     }

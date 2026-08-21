@@ -14,6 +14,7 @@ KIS REST를 1차 공급자로 사용하고, KIS 인증·응답·필드 매핑이
 참고) 여기서는 매도/매수 잔량 사다리만 반환한다."""
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 import kis_client
 import kiwoom_client
@@ -244,37 +245,49 @@ def fetch_order_book_full(code, kis_appkey=None, kis_appsecret=None, kiwoom_toke
     유지하고, 체결만 실패한 경우에만 해당 항목을 키움으로 재시도한다.
     체결강도(ka10046)는 KIS의 동일한 종목별 추이 API를 아직 연결하지 않았으므로,
     키움 자격증명이 있을 때만 보조지표로 조회한다.
+
+    호가/체결/체결강도 세 조회는 서로 결과를 참조하지 않는 독립 호출이라
+    ThreadPoolExecutor로 동시에 실행한다(2026-08-21 코드 감사 - 순차 실행 시
+    캐시 미스마다(_ORDER_BOOK_TTL 만료) 지연이 그대로 누적됐음. 2초 간격으로
+    폴링하는 위젯이라 체감 지연이 특히 컸다).
     """
-    data = None
-    if kis_appkey and kis_appsecret:
-        try:
-            data = fetch_kis_order_book(kis_appkey, kis_appsecret, code)
-        except Exception as exc:
-            logger.warning('KIS 호가(%s) 실패, 키움 폴백: %s', code, exc)
-    if data is None:
+    def _fetch_book():
+        if kis_appkey and kis_appsecret:
+            try:
+                return fetch_kis_order_book(kis_appkey, kis_appsecret, code)
+            except Exception as exc:
+                logger.warning('KIS 호가(%s) 실패, 키움 폴백: %s', code, exc)
         if not kiwoom_token:
             raise RuntimeError('KIS·키움 호가 인증정보가 모두 없습니다.')
-        data = fetch_order_book(kiwoom_token, code)
+        return fetch_order_book(kiwoom_token, code)
 
-    trade = None
-    if kis_appkey and kis_appsecret:
-        try:
-            trade = fetch_kis_trade(kis_appkey, kis_appsecret, code)
-        except Exception as exc:
-            logger.warning('KIS 체결(%s) 실패, 키움 폴백: %s', code, exc)
-    if trade is None and kiwoom_token:
-        try:
-            trade = fetch_trade(kiwoom_token, code)
-        except Exception as exc:
-            logger.warning('키움 체결(%s) 폴백 실패: %s', code, exc)
-    data['trade'] = trade
+    def _fetch_trade():
+        if kis_appkey and kis_appsecret:
+            try:
+                return fetch_kis_trade(kis_appkey, kis_appsecret, code)
+            except Exception as exc:
+                logger.warning('KIS 체결(%s) 실패, 키움 폴백: %s', code, exc)
+        if kiwoom_token:
+            try:
+                return fetch_trade(kiwoom_token, code)
+            except Exception as exc:
+                logger.warning('키움 체결(%s) 폴백 실패: %s', code, exc)
+        return None
 
-    if kiwoom_token:
+    def _fetch_strength():
+        if not kiwoom_token:
+            return None
         try:
-            data['strength'] = fetch_execution_strength(kiwoom_token, code)
+            return fetch_execution_strength(kiwoom_token, code)
         except Exception as exc:
             logger.warning('키움 체결강도(%s) 보조 조회 실패: %s', code, exc)
-            data['strength'] = None
-    else:
-        data['strength'] = None
+            return None
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        book_future = pool.submit(_fetch_book)
+        trade_future = pool.submit(_fetch_trade)
+        strength_future = pool.submit(_fetch_strength)
+        data = book_future.result()  # 호가 실패는 원본과 동일하게 예외를 그대로 전파
+        data['trade'] = trade_future.result()
+        data['strength'] = strength_future.result()
     return data

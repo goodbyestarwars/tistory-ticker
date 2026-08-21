@@ -7,6 +7,7 @@
 """
 
 import asyncio
+import anyio.to_thread
 import hmac
 import json
 import logging
@@ -66,6 +67,19 @@ except ImportError:
     night_futures_ws = None
 
 app = FastAPI(title="kiwoom-readonly-api")
+
+# 2026-08-21 코드 감사: /quote, /order-book, /investor-flow 등 다수 동기(def) 라우트가
+# 최대 15초 블로킹되는 외부 API 호출(urllib)을 한다. anyio 기본 스레드풀(기본 40 토큰)을
+# 전용 격리 없이 공유하므로, 캐시 미스가 여러 종목에 겹치면 이 슬로우 콜들이 스레드풀
+# 슬롯을 오래 점유해 /health나 WebSocket 수립처럼 빨라야 할 요청까지 큐잉될 수 있다.
+# 여유 있게 상향(비동기 startup 핸들러 안에서만 현재 이벤트 루프의 limiter를 얻을 수 있음).
+_THREAD_POOL_TOTAL_TOKENS = 100
+
+
+@app.on_event('startup')
+async def _tune_thread_pool():
+    limiter = anyio.to_thread.current_default_thread_limiter()
+    limiter.total_tokens = _THREAD_POOL_TOTAL_TOKENS
 
 
 @app.on_event('startup')
@@ -313,27 +327,32 @@ def _live_cache_put(cache, code, value):
 # 순회하면 캐시를 우회해 매번 키움/KIS 실호출을 유도할 수 있다(외부 API 쿼터 소진 벡터).
 # IP당 라우트별 분당 상한을 넉넉하게 둬서 정상적인 방문자 탐색(수동 클릭)은 막지 않으면서
 # 기계적 순회만 걸러낸다. 단일 프로세스 메모리 상태라 재시작 시 초기화되며, 무제한 증가
-# 방지로 추적 중인 (라우트,IP) 키 수가 상한을 넘으면 통째로 비운다(방문자 IP 다양성이
-# 극단적으로 클 때만 발생하는 드문 경로라 단순하게 처리).
+# 방지로 추적 중인 (라우트,IP) 키 수가 상한을 넘으면 가장 오래 전에 쓰인 키부터 하나씩만
+# 제거한다(2026-08-21, 통째로 비우던 방식은 그 순간 제한 걸려 있던 IP까지 초기화시켜
+# thundering herd를 유발할 수 있어 다른 캐시들과 동일한 LRU eviction으로 교체 - _evict_lru
+# 참고).
 _RATE_LIMIT_WINDOW_SEC = 60
 _RATE_LIMIT_MAX_PER_WINDOW = 30
 _RATE_LIMIT_MAX_TRACKED_KEYS = 5000
-_rate_limit_buckets = {}  # (route_name, ip) -> deque[timestamp]
+_rate_limit_buckets = OrderedDict()  # (route_name, ip) -> deque[timestamp]
 
 
 def _check_rate_limit(route_name, request, max_per_window=None):
     ip = request.client.host if request.client else 'unknown'
     key = (route_name, ip)
     now = time.time()
-    bucket = _rate_limit_buckets.setdefault(key, deque())
+    bucket = _rate_limit_buckets.get(key)
+    if bucket is None:
+        bucket = deque()
+        _rate_limit_buckets[key] = bucket
+    _rate_limit_buckets.move_to_end(key)
     while bucket and now - bucket[0] > _RATE_LIMIT_WINDOW_SEC:
         bucket.popleft()
     limit = max_per_window if max_per_window is not None else _RATE_LIMIT_MAX_PER_WINDOW
     if len(bucket) >= limit:
         raise HTTPException(status_code=429, detail='요청이 너무 많습니다. 잠시 후 다시 시도해주세요.')
     bucket.append(now)
-    if len(_rate_limit_buckets) > _RATE_LIMIT_MAX_TRACKED_KEYS:
-        _rate_limit_buckets.clear()
+    _evict_lru(_rate_limit_buckets, _RATE_LIMIT_MAX_TRACKED_KEYS)
 
 
 def load_dotenv():
@@ -1006,45 +1025,98 @@ def _market_indicator_snapshot(symbols):
     ]
 
 
+# 2026-08-21: 기존엔 연결마다 독립 루프가 5초마다 자기만의 DB 커넥션을 열어 조회했다 -
+# /ws/economic-news처럼 단일 브로드캐스트 루프가 공용 캐시를 한 번만 채우고 연결된 모든
+# 클라이언트에 fan-out하도록 바꿔, 방문자 수와 무관하게 DB 조회를 한 번만 하도록 한다.
+# 클라이언트마다 관심 심볼(symbols)이 다를 수 있어 심볼 집합은 클라이언트별로 들고 있다가
+# 공용 스냅샷(항상 전체 심볼)에서 필터링해 보낸다.
+_MARKET_INDICATOR_WS_INTERVAL_SEC = 5
+_MARKET_INDICATOR_WS_CACHE_TTL_SEC = 4  # 브로드캐스트 주기보다 살짝 짧게 - economic-news와 동일한 이유
+_market_indicator_ws_clients = {}  # websocket -> set(symbols)
+_market_indicator_ws_task = None
+_market_indicator_ws_cache = {'t': 0.0, 'data': None}
+
+
+async def _market_indicator_snapshot_cached():
+    cached = _market_indicator_ws_cache['data']
+    if cached is not None and time.time() - _market_indicator_ws_cache['t'] < _MARKET_INDICATOR_WS_CACHE_TTL_SEC:
+        return cached
+    data = await asyncio.to_thread(_market_indicator_snapshot, _MARKET_INDICATOR_SYMBOLS)
+    _market_indicator_ws_cache['t'] = time.time()
+    _market_indicator_ws_cache['data'] = data
+    return data
+
+
+async def _market_indicator_broadcast_loop():
+    global _market_indicator_ws_task
+    try:
+        while _market_indicator_ws_clients:
+            await asyncio.sleep(_MARKET_INDICATOR_WS_INTERVAL_SEC)
+            if not _market_indicator_ws_clients:
+                break
+            try:
+                snapshot = await _market_indicator_snapshot_cached()
+            except Exception as exc:
+                logging.getLogger('main').warning('시장지표 WebSocket 수집 실패: %s', type(exc).__name__)
+                continue
+            received_at = datetime.now(timezone.utc).isoformat()
+            stale = []
+            for client, symbols in list(_market_indicator_ws_clients.items()):
+                filtered = [row for row in snapshot if row['symbol'] in symbols]
+                try:
+                    await client.send_json({'type': 'market-indicators', 'data': filtered, 'receivedAt': received_at})
+                except Exception:
+                    stale.append(client)
+            for client in stale:
+                _market_indicator_ws_clients.pop(client, None)
+    except asyncio.CancelledError:
+        raise
+    finally:
+        _market_indicator_ws_task = None
+
+
 @app.websocket('/ws/market-indicators')
 async def market_indicators_socket(websocket: WebSocket):
     """시장·글로벌 지표의 서버 중계 스트림.
 
     브라우저에는 인증키를 내려주지 않고 VM DB의 최신 수집값만 전달한다. REST
     /futures가 초기·장애 시 폴백이고, 이 스트림은 페이지가 보이는 동안 5초마다
-    최신 스냅샷과 수신 시각을 보낸다.
+    최신 스냅샷과 수신 시각을 보낸다. /ws/economic-news와 동일하게 단일 브로드캐스트
+    루프가 공용 캐시를 채워 모든 연결에 fan-out한다(연결마다 DB 재조회하지 않음).
     """
-    global _ws_active_connections
+    global _ws_active_connections, _market_indicator_ws_task
     if websocket.headers.get('origin') != 'https://ghlee.tistory.com':
         await websocket.close(code=1008)
         return
     raw = (websocket.query_params.get('symbols') or '').split(',')
-    symbols = [item.strip().upper() for item in raw if item.strip() in _MARKET_INDICATOR_SYMBOLS]
+    symbols = {item.strip().upper() for item in raw if item.strip() in _MARKET_INDICATOR_SYMBOLS}
     if not symbols:
-        symbols = list(_MARKET_INDICATOR_SYMBOLS)
+        symbols = set(_MARKET_INDICATOR_SYMBOLS)
     if _ws_active_connections >= _WS_MAX_CONNECTIONS:
         await websocket.close(code=1013)
         return
     await websocket.accept()
     _ws_active_connections += 1
+    _market_indicator_ws_clients[websocket] = symbols
     try:
+        snapshot = await _market_indicator_snapshot_cached()
+        filtered = [row for row in snapshot if row['symbol'] in symbols]
+        await websocket.send_json({
+            'type': 'market-indicators',
+            'data': filtered,
+            'receivedAt': datetime.now(timezone.utc).isoformat(),
+        })
+        if _market_indicator_ws_task is None or _market_indicator_ws_task.done():
+            _market_indicator_ws_task = asyncio.create_task(_market_indicator_broadcast_loop())
         while True:
-            snapshot = await asyncio.to_thread(_market_indicator_snapshot, symbols)
-            await websocket.send_json({
-                'type': 'market-indicators',
-                'data': snapshot,
-                'receivedAt': datetime.now(timezone.utc).isoformat(),
-            })
-            try:
-                await asyncio.wait_for(websocket.receive_text(), timeout=5)
-            except asyncio.TimeoutError:
-                continue
+            await websocket.receive_text()
     except WebSocketDisconnect:
         pass
     except Exception as exc:
         logging.getLogger('main').warning('시장지표 WebSocket 종료: %s', type(exc).__name__)
     finally:
         _ws_active_connections -= 1
+        _market_indicator_ws_clients.pop(websocket, None)
         try:
             await websocket.close()
         except Exception:
@@ -1275,13 +1347,16 @@ def _maybe_prune_volume_profile():
     if now - _last_volume_profile_prune[0] < _VOLUME_PROFILE_PRUNE_INTERVAL_SEC:
         return
     _last_volume_profile_prune[0] = now
+    conn = None
     try:
         cutoff = (datetime.now(timezone.utc) + timedelta(hours=9) - timedelta(days=_VOLUME_PROFILE_RETENTION_DAYS)).strftime('%Y-%m-%d')
         conn = db_schema.get_conn()
         db_schema.prune_volume_profile_daily(conn, cutoff)
-        conn.close()
     except Exception:
         logging.getLogger('main').exception('volume_profile_daily 정리 실패')
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 @app.get('/pbar-tratio/{code}')
@@ -1327,6 +1402,7 @@ def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length
 
     today_kst = (datetime.now(timezone.utc) + timedelta(hours=9)).strftime('%Y-%m-%d')
     days_included = 1
+    conn = None
     try:
         conn = db_schema.get_conn()
         db_schema.upsert_volume_profile_daily(
@@ -1338,9 +1414,11 @@ def pbar_tratio(request: Request, code: str = Path(..., min_length=6, max_length
             for h in hist_bins:
                 today_bins[h['price']] = today_bins.get(h['price'], 0) + h['volume']
             days_included += hist_days
-        conn.close()
     except Exception:
         logging.getLogger('main').exception('volume_profile_daily 저장/조회 실패(%s) - 오늘 응답만으로 계속 진행', code)
+    finally:
+        if conn is not None:
+            conn.close()
     _maybe_prune_volume_profile()
 
     bins = sorted(({'price': p, 'volume': v} for p, v in today_bins.items()), key=lambda b: b['price'])

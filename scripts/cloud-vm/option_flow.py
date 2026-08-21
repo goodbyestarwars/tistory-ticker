@@ -28,6 +28,8 @@ import polling
 logger = logging.getLogger('option_flow')
 
 _POLL_INTERVAL_SEC = 5 * 60
+_WS_PERSIST_INTERVAL_SEC = 5  # 콜/풋 요약 카드는 초당 갱신이 필요 없음 - 불필요한 SQLite
+                              # 커밋/테이블 재구성 빈도를 줄임(2026-08-21 코드 감사, 기존 1초)
 
 OPTION_TRADE_TR_ID = 'H0IOCNT0'
 OPTION_QUOTE_TR_ID = 'H0IOASP0'
@@ -264,7 +266,7 @@ async def _ws_loop(appkey, appsecret):
                             code = _option_code(update)
                             if code in by_code:
                                 by_code[code] = _merge_ws_row(by_code[code], update)
-                        if time.time() - last_persist >= 1:
+                        if time.time() - last_persist >= _WS_PERSIST_INTERVAL_SEC:
                             calls = [row for row in by_code.values() if row.get('_side') == 'CALL']
                             puts = [row for row in by_code.values() if row.get('_side') == 'PUT']
                             _persist_rows(calls, puts, mtrt)
