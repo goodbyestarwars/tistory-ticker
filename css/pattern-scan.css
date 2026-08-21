@@ -52,7 +52,7 @@
    보여줘") 추가한 구분선 - .ps-common-desc는 더 안 쓰여서(내용은 .ps-tab-desc 안 <strong>
    으로 옮김) 지웠다. */
 #pattern-scan .ps-tab-desc strong { display: block; color: #35506f; font-weight: 700; }
-#pattern-scan .ps-tab-desc-divider { margin: 8px 0; border: 0; border-top: 1px dashed #d9e2ee; }
+#pattern-scan .ps-tab-desc-divider { margin: 8px 0; border: 0; border-top: 1px solid #d9e2ee; }
 
 #pattern-scan .ps-list {
   display: flex;
