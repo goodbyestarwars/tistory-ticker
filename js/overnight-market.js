@@ -349,7 +349,7 @@
         + '<div class="om-grid">' + cards + '</div>'
         + '</div>';
     }).join('');
-    return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
+    return '<div class="om-live-status"><span data-om-connection>REST 확인 중</span></div>'
       + '<div class="om-summary" id="omSummary" hidden></div>'
       + '<div class="om-ai" id="omAi" hidden></div>'
       + groups;
@@ -732,10 +732,14 @@
       });
   }
 
+  var LIVE_STATUS_STATE = { '실시간': 'live', '지연': 'stale', '연결 재시도': 'retry' };
+
   function setIndicatorStatus(text) {
     if (!indicatorsContainer) return;
     var node = indicatorsContainer.querySelector('[data-om-connection]');
-    if (node) node.textContent = text;
+    if (!node) return;
+    node.textContent = text;
+    node.setAttribute('data-state', LIVE_STATUS_STATE[text] || 'init');
   }
 
   function scheduleIndicatorReconnect() {

@@ -36,6 +36,49 @@
 }
 .dmi-heading h2,
 .dmi-subheading h3 { margin: 0; }
+/* 2026-08-21: WS 연결 상태("실시간"/"지연"/"연결 재시도")가 그냥 맨 텍스트로만 떠서
+   눈에 안 띈다는 요청 - 점(dot) + 배지 형태로 바꾸고 상태별 색을 입혔다. .dmi-heading이
+   이미 flex라 flex 아이템인 이 span은 자기 내용 폭만큼만 차지해서 자연스러운 배지가 된다. */
+.dmi-live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+}
+.dmi-live-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.dmi-live-status[data-state="live"] {
+  background: rgba(22, 163, 74, .12);
+  color: #16a34a;
+}
+.dmi-live-status[data-state="live"]::before {
+  animation: dmi-live-pulse 1.6s ease-in-out infinite;
+}
+.dmi-live-status[data-state="stale"] {
+  background: rgba(217, 119, 6, .12);
+  color: #d97706;
+}
+.dmi-live-status[data-state="retry"] {
+  background: rgba(100, 116, 139, .12);
+  color: #64748b;
+}
+@keyframes dmi-live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
 .dmi-heading h2,
 .dmi-subheading h3,
 .dmi-muted,
@@ -199,6 +242,18 @@
   .dmi-fund-card + .dmi-fund-card { border-top: 1px solid #d8d8d8; }
 }
 
+html.dark .dmi-live-status {
+  background: rgba(245, 239, 224, 0.1) !important;
+  color: rgba(245, 239, 224, 0.6) !important;
+}
+html.dark .dmi-live-status[data-state="live"] {
+  background: rgba(74, 222, 128, 0.16) !important;
+  color: #4ade80 !important;
+}
+html.dark .dmi-live-status[data-state="stale"] {
+  background: rgba(251, 191, 36, 0.16) !important;
+  color: #fbbf24 !important;
+}
 html.dark .dmi-chart-section,
 html.dark .dmi-flow-grid,
 html.dark .dmi-fund-grid,

@@ -54,9 +54,13 @@
     });
   }
 
+  var LIVE_STATUS_STATE = { '실시간': 'live', '지연': 'stale', '연결 재시도': 'retry' };
+
   function setLiveStatus(text) {
     var node = dmiRoot && dmiRoot.querySelector('[data-dmi-connection]');
-    if (node) node.textContent = text;
+    if (!node) return;
+    node.textContent = text;
+    node.setAttribute('data-state', LIVE_STATUS_STATE[text] || 'init');
   }
 
   function scheduleReconnect() {

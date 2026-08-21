@@ -1,5 +1,20 @@
 # 9Pay 주요 작업이력
 
+**2026-08-21 글로벌/국내시장지표 실시간 연결 상태를 배지로 개선**: 시장 > 글로벌 시장지표,
+국내시장지표 둘 다 WS 연결 상태("실시간"/"지연"/"연결 재시도")가 그냥 맨 텍스트로만
+떠서 눈에 안 띈다는 요청. `js/overnight-market.js`의 `setIndicatorStatus()`,
+`js/domestic-market-indicators.js`의 `setLiveStatus()`가 텍스트뿐 아니라 상태별
+`data-state`(live/stale/retry) 속성도 같이 설정하도록 고치고, `css/overnight-market.css`
+/`css/domestic-market-indicators.css`에 점(dot) + 색깔 배지 스타일을 추가했다(실시간=초록
++ 살짝 깜빡임, 지연=주황, 연결 재시도=회색). `overnight-market.js`의 `.om-live-status`는
+페이지에 자체 헤딩(`<h2>`)이 없어 오른쪽 정렬 컨테이너 div로 감싸고 그 안에 실제 배지
+span을 둔 구조로 바꿨고(`data-om-connection`을 span으로 이동), `domestic-market-
+indicators.js`의 `.dmi-live-status`는 이미 `.dmi-heading`(flex)의 형제 span이라 CSS만
+추가했다. `test/overnight-market.html`에 Playwright로 라이트/다크/모바일(375px) 렌더링과
+실시간/지연/연결 재시도 3개 상태를 스크린샷으로 확인했다. `pytest test/ -q` 523 passed,
+`node --check`로 두 JS 파일 문법 검사 통과. `js/`, `css/`는 master 반영 후 GitHub Pages
+자동 배포.
+
 **2026-08-21 패턴 백테스트 스캔 6종에 `--hold-days` 옵션 추가**: `ascending_triangle_scan.py`
 /`box_range_scan.py`/`double_bottom_scan.py`/`inv_head_shoulders_v2_scan.py`
 /`opening_gap_scan.py`/`pullback_patterns_scan.py`(고정 보유일 방식 백테스트 스크립트
