@@ -86,6 +86,11 @@ def _fetch_page(page):
     return rows
 
 
+_PAGE_THROTTLE_SEC = 0.2  # 2026-08-21 코드 감사: 400일/7행 기준 최대 58페이지를 쉬는
+                          # 시간 없이 순차 호출하고 있었음(6시간마다 반복) - 네이버 차단
+                          # 위험을 줄이기 위한 최소한의 쓰로틀.
+
+
 def fetch_history(days=_HISTORY_DAYS):
     """과거로 페이징하며 days일치를 모은다. 페이지가 빈 값(더 이상 데이터 없음)을 주면 중단."""
     rows = []
@@ -95,6 +100,8 @@ def fetch_history(days=_HISTORY_DAYS):
         if not page_rows:
             break
         rows.extend(page_rows)
+        if page < pages:
+            time.sleep(_PAGE_THROTTLE_SEC)
     return rows
 
 

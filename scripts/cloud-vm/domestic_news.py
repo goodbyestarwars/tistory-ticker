@@ -389,6 +389,11 @@ def get_weekly_news(start, end, limit=120):
     client_id = os.environ.get('NAVER_APIHUB_CLIENT_ID', '').strip()
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET', '').strip()
     if len(covered_days) < 4 and client_id and client_secret:
+        # 2026-08-21 코드 감사: 여기서 쓰지도 않는 'oldest' 변수를 사전 초기화 없이
+        # 참조+대입하는 줄이 있었다 - 이 조건(주간 커버리지 4일 미만)이 자주 참이라
+        # 이 분기가 실행될 때마다 UnboundLocalError를 던졌고, 호출부의 try/except가
+        # 조용히 삼켜 backfill 전체가 매번 빈 결과로 대체되고 있었다. 사용처가 없어
+        # 그냥 삭제.
         backfill = []
         backfill_seen = set()
         def fetch_page(start_index):
@@ -411,7 +416,6 @@ def get_weekly_news(start, end, limit=120):
                 published = _parse_pub_date(item.get('pubDate'))
                 if published == datetime.min.replace(tzinfo=timezone.utc):
                     continue
-                oldest = published.date() if oldest is None else min(oldest, published.date())
                 if start_day <= published.date() <= end_day:
                     key = item.get('id') or _item_key(item)
                     if key not in backfill_seen:

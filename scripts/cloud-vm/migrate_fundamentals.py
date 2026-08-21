@@ -53,16 +53,20 @@ def main():
             skipped += 1
             continue
         conn.execute(
-            'INSERT INTO fundamentals (code, corp_code, updated_at, annual_json, latest_quarter_json) '
-            'VALUES (?, ?, ?, ?, ?) '
+            'INSERT INTO fundamentals (code, corp_code, updated_at, annual_json, latest_quarter_json, dividend_json) '
+            'VALUES (?, ?, ?, ?, ?, ?) '
             'ON CONFLICT(code) DO UPDATE SET corp_code=excluded.corp_code, updated_at=excluded.updated_at, '
-            'annual_json=excluded.annual_json, latest_quarter_json=excluded.latest_quarter_json',
+            'annual_json=excluded.annual_json, latest_quarter_json=excluded.latest_quarter_json, '
+            'dividend_json=excluded.dividend_json',
             (
                 code,
                 corp_map.get(code),
                 ts,
                 json.dumps(payload.get('annual'), ensure_ascii=False),
                 json.dumps(payload.get('latest_quarter'), ensure_ascii=False),
+                # 2026-08-21 코드 감사: fetch_stock()의 dividend 키가 이관 과정에서
+                # 통째로 빠지고 있었음 - 이 컬럼도 함께 옮긴다.
+                json.dumps(payload.get('dividend'), ensure_ascii=False),
             ),
         )
         migrated += 1
