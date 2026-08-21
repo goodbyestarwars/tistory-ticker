@@ -23,9 +23,11 @@ def _returns(prices, entry_close, benchmark=None):
     return round(ret, 4), round(excess, 4) if excess is not None else None
 
 
-def outcome_for_snapshot(conn, row):
+def outcome_for_snapshot(conn, row, daily_cache=None):
     code, as_of_date, initial_regime, entry_close = row[1], row[0], row[4], row[5]
-    daily = db_schema.load_daily_prices(conn, code)
+    daily = (daily_cache or {}).get(code)
+    if daily is None:
+        daily = db_schema.load_daily_prices(conn, code)
     after = [item for item in daily if item.get('date', '') > as_of_date]
     benchmark_rows = db_schema.load_future_chart_since(conn, 'KOSPI', as_of_date.replace('-', ''))
     benchmark_by_date = {str(item.get('date', '')).replace('-', ''): item.get('close') for item in benchmark_rows}
@@ -65,15 +67,24 @@ def outcome_for_snapshot(conn, row):
 def run(db_file=None):
     conn = db_schema.get_conn(db_file)
     db_schema.create_schema(conn)
+    # 2026-08-21 코드 감사: t20_return까지 다 채워진 행은 더 이상 변하지 않는데(과거 확정
+    # 가격이라) 조건 없이 매번 전량 재처리하고 있었다 - daily_scan.py가 거의 전종목에
+    # 매일 새 스냅샷을 추가해 이 테이블이 무기한 누적되는 구조라, 시간이 갈수록 이 작업의
+    # 비용도 같이 늘어났음. t20_return이 아직 안 채워진(최근 20거래일이 안 지났거나, 상장폐지
+    # 등으로 영영 안 채워질) 행만 재처리하도록 좁힌다.
     rows = conn.execute(
         '''SELECT as_of_date, code, model_version, chart_regime, current_regime, close
            FROM swing_recommendation_snapshots
-           WHERE model_version=? ORDER BY as_of_date, code''',
+           WHERE model_version=? AND t20_return IS NULL ORDER BY code, as_of_date''',
         (swing_model.MODEL_VERSION,),
     ).fetchall()
+    # 같은 code가 여러 as_of_date에 걸쳐 반복 등장하므로(위 ORDER BY로 같은 code끼리
+    # 모여 있음) 한 번의 실행 안에서 code별 가격 이력을 한 번만 로드해 재사용한다.
+    codes = {row[1] for row in rows}
+    daily_cache = {code: db_schema.load_daily_prices(conn, code) for code in codes}
     updated = 0
     for row in rows:
-        outcomes = outcome_for_snapshot(conn, row)
+        outcomes = outcome_for_snapshot(conn, row, daily_cache)
         if any(outcomes.get(key) is not None for key in ('t5_return', 't10_return', 't20_return')):
             db_schema.update_swing_snapshot_outcome(
                 conn, row[0], row[1], row[2], outcomes)

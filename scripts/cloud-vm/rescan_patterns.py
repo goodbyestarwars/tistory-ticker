@@ -14,6 +14,7 @@ import sys
 import urllib.request
 from datetime import datetime, timezone
 
+import daily_scan_cache
 import db_schema
 import pattern_detect as pd
 
@@ -116,18 +117,21 @@ def main():
     pd.finalize_pattern_results(pattern_results, pullback_matches)
     scan_at = datetime.now(timezone.utc).isoformat()
     pd.annotate_pattern_scan_details(pattern_results, scan_at, pullback_matches)
-    existing = {}
-    if os.path.exists(OUTPUT_FILE):
-        with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
-            existing = json.load(f)
 
-    existing['patternScan'] = {'scanned': pattern_scanned, 'patterns': pattern_results}
-    existing['pullbackScan'] = {'scanned': pullback_scanned, 'matches': pullback_matches}
-    existing['patternRescanAt'] = scan_at  # investSignal은 그대로라 top-level generatedAt은 안 건드림
-    existing.setdefault('universe', len(codes))
+    # 2026-08-21 코드 감사: patternScan을 통째로 교체하면 angle_momentum_scan.py/
+    # gongpasan_scan.py가 patternScan.patterns 밑에 써둔 angleMomentum/gongpasan 섹션이
+    # 사라진다 - daily_scan_cache.update()로 잠금 + patterns는 이 스크립트가 채우는
+    # 6개 키만 update()해서 다른 스크립트가 채운 키를 보존한다.
+    def _apply(existing):
+        existing.setdefault('patternScan', {})
+        existing['patternScan']['scanned'] = pattern_scanned
+        existing['patternScan'].setdefault('patterns', {})
+        existing['patternScan']['patterns'].update(pattern_results)
+        existing['pullbackScan'] = {'scanned': pullback_scanned, 'matches': pullback_matches}
+        existing['patternRescanAt'] = scan_at  # investSignal은 그대로라 top-level generatedAt은 안 건드림
+        existing.setdefault('universe', len(codes))
 
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(existing, f, ensure_ascii=False)
+    daily_scan_cache.update(_apply)
     log('저장 완료: %s (패턴 %d / 눌림목 %d / 전체 %d, investSignal 섹션은 기존 값 유지)'
         % (OUTPUT_FILE, pattern_scanned, pullback_scanned, len(codes)))
 

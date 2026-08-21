@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from typing import Any, Dict, Iterable, List, Optional
 
 
@@ -67,10 +68,33 @@ def _close(row: Dict[str, Any]) -> Optional[float]:
 
 
 def _moving_average(values: List[Optional[float]], period: int) -> List[Optional[float]]:
+    """윈도우를 인덱스마다 새로 슬라이싱+합산하던 O(n·period) 구현이었다(2026-08-21
+    코드 감사) - classify_chart_regime/classify_wave_structure가 종목 하나당 ma5/20/60/224를
+    합쳐 10회 넘게 호출하는데(각각 원본 closes와 5일 전 슬라이스로) 224일선 기준 호출 1번이
+    이미 O(n×224)라 daily_scan.py 전종목 배치에서 누적 비용이 컸다. 슬라이딩 합으로 O(n)으로
+    낮춘다 - 결과값은 기존과 동일(윈도우 전체가 채워지고 None이 하나도 없을 때만 평균,
+    아니면 None). 비교 로직(_classify_wave_key)이 전부 >=/<= 부등호라(정확한 골든크로스
+    등가비교가 아님) 누적합 방식의 ULP 오차는 결과에 영향을 주지 않는다."""
     result: List[Optional[float]] = []
-    for index in range(len(values)):
-        window = [v for v in values[max(0, index - period + 1):index + 1] if v is not None]
-        result.append(sum(window) / period if len(window) == period else None)
+    window: deque = deque()
+    total = 0.0
+    none_count = 0
+    for value in values:
+        window.append(value)
+        if value is None:
+            none_count += 1
+        else:
+            total += value
+        if len(window) > period:
+            old = window.popleft()
+            if old is None:
+                none_count -= 1
+            else:
+                total -= old
+        if len(window) == period and none_count == 0:
+            result.append(total / period)
+        else:
+            result.append(None)
     return result
 
 

@@ -63,13 +63,25 @@ def _load(code, conn, rows):
     return df.sort_values('date').reset_index(drop=True)
 
 
+def _avg_volume(vol, from_idx, to_idx):
+    """pattern_detect.avg_volume과 동일하게 numpy .mean()이 아니라 sum()/len()을 쓴다 -
+    numpy의 내부 합산 순서(pairwise summation)가 원본의 좌→우 sum()과 미세하게 달라서,
+    거래량이 일정한 구간(눌림목 조건 판정에 흔함)에서 '이르다/같다' 비교가 뒤집힐 수
+    있다(2026-08-21 코드 감사 - pattern_detect.avg_volume의 2026-08-21 코멘트와 동일한
+    이유인데, 이 파일은 신설 당시 그 사실을 반영하지 못했다)."""
+    if to_idx <= from_idx:
+        return 0
+    vals = vol[from_idx:to_idx]
+    return sum(vals) / len(vals)
+
+
 def _volume_increasing(vol, from_idx, to_idx):
     """pattern_detect.is_volume_increasing과 동일한 정의(절반 구간 평균 비교)."""
     mid = from_idx + (to_idx - from_idx) // 2
     if mid <= from_idx or to_idx <= mid:
         return False
-    early = vol[from_idx:mid].mean()
-    late = vol[mid:to_idx].mean()
+    early = _avg_volume(vol, from_idx, mid)
+    late = _avg_volume(vol, mid, to_idx)
     return early > 0 and late > early
 
 
@@ -78,8 +90,8 @@ def _volume_declining(vol, from_idx, to_idx):
     mid = from_idx + (to_idx - from_idx) // 2
     if mid <= from_idx or to_idx <= mid:
         return False
-    early = vol[from_idx:mid].mean()
-    late = vol[mid:to_idx].mean()
+    early = _avg_volume(vol, from_idx, mid)
+    late = _avg_volume(vol, mid, to_idx)
     return early > 0 and late < early
 
 

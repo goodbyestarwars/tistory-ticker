@@ -1509,7 +1509,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
         for token in (
-            "def scan_nps_holdings(universe, wics_map, conn, theme_codes=None)",
+            "def scan_nps_holdings(universe, wics_map, conn, theme_codes=None, daily_cache=None)",
             "def build_nps_match(stock, daily, sector, info)",
             "'nationalPension'",
             "NPS_METHODOLOGY_NOTE",
