@@ -22,6 +22,8 @@
 
   var cacheByCode = {};
   var inflightByCode = {};
+  var searchRequestSeq = 0; // 2026-08-21 코드 감사: 늦게 온 이전 검색 응답이 최신 검색
+                            // 결과를 덮어쓰지 않게 하는 요청 순서 가드(레이스 방지)
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
@@ -138,8 +140,10 @@
 
     resultBox.innerHTML = '<div class="sp-loading">공매도 데이터를 불러오는 중...</div>';
 
+    var requestId = ++searchRequestSeq; // 이 검색보다 늦게 도착하는 응답은 무시
     ShortPressure.fetchPressure(stock.code)
       .then(function (data) {
+        if (requestId !== searchRequestSeq) return; // 그 사이 다른 검색을 실행했으면 버림
         if (!data || data.error) {
           resultBox.innerHTML = '<div class="sp-error">' + escapeHtml((data && data.message) || '조회에 실패했습니다.') + '</div>';
           return;
@@ -147,6 +151,7 @@
         resultBox.innerHTML = buildResultHtml(data, stock.name);
       })
       .catch(function () {
+        if (requestId !== searchRequestSeq) return;
         resultBox.innerHTML = '<div class="sp-error">조회에 실패했습니다. 잠시 후 다시 시도해주세요.</div>';
       });
   }

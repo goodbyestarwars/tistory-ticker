@@ -481,6 +481,9 @@
 
   function selectStock(container, stock) {
     selectedCode = stock.code;
+    var requestCode = stock.code; // 2026-08-21 코드 감사: loadAnalysis와 동일한 요청 순서
+                                   // 가드 - 늦게 온 이전 종목의 뉴스 응답이 최신 선택을
+                                   // 덮어쓰지 않게 함(레이스 방지)
     renderWatchlist(container);
 
     var resultBox = container.querySelector('#snResult');
@@ -489,15 +492,20 @@
     fetchJson('https://goodbyestar.cloud/domestic-news?code=' + encodeURIComponent(stock.code)
       + '&name=' + encodeURIComponent(stock.name) + '&limit=10')
       .then(function (data) {
+        if (selectedCode !== requestCode) return; // 그 사이 다른 종목을 선택했으면 버림
         var items = data && data.data && Array.isArray(data.data.items) ? data.data.items : [];
         if (items.length) {
           renderNews(resultBox, stock, { items: items.map(normalizeDomesticNewsItem) });
           return;
         }
         return fetchJson(GAS_TICKER_URL + '?news=1&code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name))
-          .then(function (legacy) { renderNews(resultBox, stock, legacy); });
+          .then(function (legacy) {
+            if (selectedCode !== requestCode) return;
+            renderNews(resultBox, stock, legacy);
+          });
       })
       .catch(function () {
+        if (selectedCode !== requestCode) return;
         resultBox.innerHTML = '<div class="sn-error">뉴스를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
 

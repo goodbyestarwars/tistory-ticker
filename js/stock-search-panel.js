@@ -462,7 +462,17 @@
     var rows = currentRowList(query);
     if (!rows.length) return;
     activeIndex = (activeIndex + delta + rows.length) % rows.length;
-    if (query) renderMatches(box, query); else renderIdle(box);
+    // 2026-08-21 코드 감사: 화살표 키로 활성 인덱스만 바꾸면 되는데, query가 있을 때
+    // 매번 renderMatches를 다시 불러 fetchUsSearch가 로컬 별칭에 안 걸리는 검색어에
+    // 대해 매번 원격 API를 재호출했다 - 이미 그려진 목록의 활성 표시만 갱신한다.
+    // renderIdle(즐겨찾기/최근검색)은 네트워크 요청이 없어 그대로 다시 그려도 무방.
+    if (query) highlightActiveRow(box); else renderIdle(box);
+  }
+
+  function highlightActiveRow(box) {
+    box.querySelectorAll('.nav-search-suggest-item').forEach(function (el, i) {
+      el.classList.toggle('active', i === activeIndex);
+    });
   }
 
   // ---- 종목 선택 -> 종목분석 페이지로 이동 ----
