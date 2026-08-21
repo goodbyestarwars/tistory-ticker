@@ -86,7 +86,7 @@ def main():
 
     log('저장 완료: %s (스캔 %d / 백테스트 거래 %d건 / 오늘 돌파 %d종목)'
         % (OUTPUT_FILE, scanned, len(net_returns), len(latest_matches)))
-    print('\n=== 상승삼각형(고점 막힘 + 저점 계단식 상승 후 돌파) 백테스트 ===')
+    print('\n=== 상승/수렴삼각형(고점 정체·완만한 하락 + 저점 계단식 상승 후 돌파) 백테스트 ===')
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     if latest_matches:
         print('\n=== 오늘 기준 방금 돌파한 종목(참고용) ===')

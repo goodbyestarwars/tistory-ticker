@@ -18,11 +18,11 @@ if PANDAS_AVAILABLE:
     import db_schema
 
 
-def _triangle_rows(flat_resistance=True, rising=True):
-    """사용자가 그린 그림(계단식 저점 5개 + 같은 자리에서 막히는 고점 + 저항선 돌파)을
-    그대로 옮긴 합성 OHLC. flat_resistance=False면 고점도 계속 올라가는 평행채널(막힘
-    없음)을 만들고, rising=False면 저점 하나가 앞 저점보다 낮아지게 만든다 - 둘 다 신호가
-    뜨면 안 되는 음성 대조군."""
+def _triangle_rows(resistance_mode='flat', rising=True):
+    """사용자가 그린 그림(계단식 저점 5개 + 저항선 + 돌파)을 그대로 옮긴 합성 OHLC.
+    resistance_mode: 'flat'(수평 저항, 상승삼각형) / 'declining'(완만히 하락하며 저점과
+    좁혀지는 저항, 수렴삼각형) / 'rising'(고점도 계속 올라가는 평행채널 - 막힘 없음, 음성
+    대조군). rising=False면 저점 하나가 앞 저점보다 낮아지게 만든다(음성 대조군)."""
     rows = []
     cursor = [date(2024, 1, 1)]
 
@@ -30,16 +30,19 @@ def _triangle_rows(flat_resistance=True, rising=True):
         rows.append({'date': cursor[0].isoformat(), 'open': o, 'high': h, 'low': l, 'close': c, 'volume': v})
         cursor[0] += timedelta(days=1)
 
-    add(10600, 10650, 10600, 10620)
-    add(10550, 10600, 10550, 10570)
+    add(11200, 11250, 11200, 11220)
+    add(11150, 11200, 11150, 11170)
 
     lows = [9800.0, 9900.0, 10000.0, 10100.0, 10200.0]
     if not rising:
         lows = [9800.0, 9700.0, 10000.0, 9950.0, 10200.0]  # 두 번째 저점이 첫 저점보다 낮음
 
-    resistances = [10500.0] * 5
-    if not flat_resistance:
+    if resistance_mode == 'declining':
+        resistances = [10900.0, 10800.0, 10700.0, 10600.0, 10500.0]  # 완만히 하락하며 저점과 좁혀짐
+    elif resistance_mode == 'rising':
         resistances = [10300.0, 10450.0, 10600.0, 10750.0, 10900.0]  # 고점도 계속 올라감(막힘 없음)
+    else:
+        resistances = [10500.0] * 5  # 수평 저항(상승삼각형)
 
     for low_v, resistance in zip(lows, resistances):
         add(low_v, low_v + 20, low_v, low_v + 10)                                  # 트로프(스윙 저점)
@@ -81,12 +84,24 @@ class AscendingTriangleSignalTests(unittest.TestCase):
         self.assertFalse(df['entry_signal'].any())
 
     def test_no_signal_when_highs_keep_rising_instead_of_capped(self):
-        """고점도 계속 오르는 평행채널(저항이 막혀있지 않음)은 상승삼각형이 아니다."""
-        rows = _triangle_rows(flat_resistance=False)
+        """고점도 계속 오르는 평행채널(저항이 막혀있지 않음)은 상승/수렴삼각형이 아니다."""
+        rows = _triangle_rows(resistance_mode='rising')
         with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
             df = at.compute_ascending_triangle_signal('005930', conn=object())
 
         self.assertFalse(df['entry_signal'].any())
+
+    def test_fires_when_resistance_declines_and_converges_with_rising_lows(self):
+        """2026-08-21: 사용자가 두 번째 그림(저항선이 완전히 평평하지 않고 완만하게
+        하락하며 저점 추세선과 좁혀 들어가는 수렴형)을 보여주며 "자로 잴 필요 없이"
+        조건을 넓혀달라고 해서 추가한 케이스 - 완만히 하락하는 저항도 신호가 떠야 한다."""
+        rows = _triangle_rows(resistance_mode='declining')
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = at.compute_ascending_triangle_signal('005930', conn=object())
+
+        fired = df.index[df['entry_signal']].tolist()
+        self.assertEqual(len(fired), 1)
+        self.assertAlmostEqual(df.loc[fired[0], 'resistance'], 10500.0, places=2)  # 가장 최근(마지막) 저항 터치 값
 
     def test_swing_confirmation_does_not_use_future_bars(self):
         """look-ahead 방지: i번째 봉까지의 데이터만으로 확정 가능한 스윙만 삼각형 판정에

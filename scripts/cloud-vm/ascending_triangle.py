@@ -1,14 +1,22 @@
 # -*- coding: utf-8 -*-
-"""상승삼각형(Ascending Triangle) - 저점은 계단식으로 높아지는데(파란 추세선이 우상향)
-고점은 같은 저항선 근처에서 막혀 반복 터치되는(빨간 수평선) 수렴 구조. 이 압축이 끝나고
+"""상승삼각형/수렴삼각형(Ascending / Converging Triangle) - 저점은 계단식으로 높아지는데
+(파란 추세선이 우상향) 고점은 오르지 않고 막혀 반복 터치되는 수렴 구조. 이 압축이 끝나고
 저항선을 위로 뚫는 순간을 "폭발"(explosive breakout) 신호로 본다 - 사용자가 그린 그림
 (계단식 저점 + 수평 저항선 + 저점을 이은 우상향 추세선 + 돌파 후 폭등)을 그대로 코드로
 옮긴 것.
 
 pattern_detect.detect_rising_lows(저점상승형)와의 차이: 그쪽은 저점이 높아지는 것만 필수
-조건으로 보고 고점은 점수에만 살짝 반영한다(고점이 뭘 하든 신호는 뜸). 이건 고점이 "같은
-자리에서 막혀있는지"(RESISTANCE_FLAT_TOL_PCT 이내로 몰려있는지)를 필수 조건으로 추가하고,
-신호 시점도 "형성 중"이 아니라 "막 뚫은 순간"(저항선 상향 돌파)으로 잡는다.
+조건으로 보고 고점은 점수에만 살짝 반영한다(고점이 뭘 하든 신호는 뜸). 이건 고점이 "오르지
+않고 막혀있는지"를 필수 조건으로 추가하고, 신호 시점도 "형성 중"이 아니라 "막 뚫은 순간"
+(저항선 상향 돌파)으로 잡는다.
+
+2026-08-21: 처음엔 저항선을 "고점들끼리 RESISTANCE_FLAT_TOL_PCT(2.5%) 이내로 몰려있어야
+함"으로 딱딱하게 정의했는데, 사용자가 두 번째 그림(저항선이 완전히 평평하지 않고 살짝
+우하향하면서 저점 추세선과 서로 좁혀 들어가는 모양)을 보여주며 "자로 잴 필요 없이 - 눈으로
+봤을 때 흐름을 만들어 간다고 할까?"로 조건을 넓혀달라고 했다. 그래서 "고점들이 좁은 띠
+안에 있는지"가 아니라 "고점이 오르지 않고(평평하거나 완만하게 하락) + 저점-고점 간격이
+갈수록 좁혀지는지"로 바꿨다 - 상승삼각형(평평한 저항)과 수렴삼각형(완만히 하락하는 저항)을
+하나의 조건으로 함께 잡는다.
 
 주의:
 - 저점/고점 최소 개수, 저항 평탄 허용오차, 룩백 구간, 돌파 확인 폭은 스킬이나 사용자가 준
@@ -33,7 +41,9 @@ MIN_HIGH_SWINGS = 3                # 저항선이 "테스트됐다"고 보려면
                                     # 평행채널(막힘 없음)에서 인접한 2개 고점만 우연히 허용오차
                                     # 안에 들어와 "막혀있다"고 오판하는 걸 합성 데이터로 발견해 3으로
                                     # 올렸다(저항 테스트 최소 3회는 있어야 "막혔다"고 볼 근거가 됨).
-RESISTANCE_FLAT_TOL_PCT = 2.5      # 고점들끼리 이 % 이내로 몰려있어야 "막혀있다"고 봄 - 임의 설정
+RESISTANCE_MAX_DECLINE_PCT = 15.0  # 저항선이 완만하게 하락하는 것까진 허용하되, 이 %보다
+                                    # 더 무너지면 "수렴"이 아니라 그냥 하락 추세로 본다 - 느슨한
+                                    # 안전판일 뿐 주 판정 기준은 아니다(임의 설정).
 BREAKOUT_TOL_PCT = 2.0             # 저항선 대비 이 % 넘게 종가가 올라야 "돌파" 확정 - pattern_detect.BREAKOUT_TOL(1.02)과 동일 기준
 BREAKOUT_MAX_LOOKAHEAD = 10        # 삼각형 완성 후 이 거래일 안에 돌파해야 유효 - 임의 설정
 
@@ -60,8 +70,9 @@ def compute_ascending_triangle_signal(code, conn=None, rows=None):
     각 날짜 i마다, i 기준으로 "이미 확정된"(미래 봉 필요 없이 오늘까지 데이터로 알 수 있는)
     스윙 저점/고점만 모아 최근 LOOKBACK_WINDOW 거래일 안에서:
     - 스윙 저점이 MIN_LOW_SWINGS개 이상이고 전부 순차적으로 높아지는 계단식이며
-    - 스윙 고점이 MIN_HIGH_SWINGS개 이상이고 서로 RESISTANCE_FLAT_TOL_PCT% 이내로 몰려있으면
-    "삼각형 완성"으로 보고 그 저항선(고점 평균)을 기록한다. entry_signal은 삼각형 완성 후
+    - 스윙 고점이 MIN_HIGH_SWINGS개 이상이고 오르지 않으며(평평하거나 완만히 하락,
+      RESISTANCE_MAX_DECLINE_PCT 이내) 저점-고점 간격이 갈수록 좁혀지고 있으면
+    "삼각형 완성"으로 보고 가장 최근 저항 터치를 저항선으로 기록한다. entry_signal은 삼각형 완성 후
     BREAKOUT_MAX_LOOKAHEAD거래일 안에 종가가 그 저항선을 BREAKOUT_TOL_PCT% 넘게 뚫는 첫
     날에만 뜬다. 상태(삼각형 완성 후 돌파 대기 중인지)를 들고 다녀야 하는 순차 스캔이라
     gongpasan_strategy.py의 _pullback_entry_flags와 같은 방식(파이썬 루프)으로 처리한다 -
@@ -118,10 +129,16 @@ def compute_ascending_triangle_signal(code, conn=None, rows=None):
                 low_vals = [lows[k] for k in low_idx]
                 rising = all(low_vals[j] > low_vals[j - 1] for j in range(1, len(low_vals)))
                 high_vals = [highs[k] for k in high_idx]
-                flat = (max(high_vals) - min(high_vals)) / min(high_vals) * 100 <= RESISTANCE_FLAT_TOL_PCT
-                if rising and flat:
+                # 저항선은 "오르지만 않으면" 통과(평평 또는 완만한 하락) - 딱딱한 밴드
+                # 안에 몰려있을 필요는 없다.
+                not_rising = all(high_vals[j] <= high_vals[j - 1] for j in range(1, len(high_vals)))
+                decline_ok = high_vals[0] > 0 and (high_vals[0] - high_vals[-1]) / high_vals[0] * 100 <= RESISTANCE_MAX_DECLINE_PCT
+                # 저점-고점 간격이 갈수록 좁혀지는지("눈으로 봤을 때 흐름을 만들어 간다") -
+                # 초반 첫 저점/고점 간격보다 최근 마지막 저점/고점 간격이 확실히 좁아야 한다.
+                converging = (high_vals[-1] - low_vals[-1]) < (high_vals[0] - low_vals[0])
+                if rising and not_rising and decline_ok and converging:
                     triangle_ok = True
-                    resistance = sum(high_vals) / len(high_vals)
+                    resistance = high_vals[-1]  # 가장 최근 저항 터치를 기준선으로(하락형이면 평균보다 이게 더 정확)
 
         if triangle_ok:
             watching_since = i
