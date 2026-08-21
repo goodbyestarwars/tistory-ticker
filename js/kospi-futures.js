@@ -1195,6 +1195,10 @@
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () {
+      // 2026-08-21 코드 감사: 백그라운드 탭에서도 30초마다 /futures, /option-flow 호출과
+      // 상태배지 갱신이 계속 이어져 VM·GAS에 불필요한 부하를 줬다 - 다른 실시간 위젯과
+      // 동일하게 탭이 보일 때만 갱신.
+      if (document.hidden) return;
       refresh(container);
       refreshOptionFlow(container);
       updateMarketStatusBadges(container);
