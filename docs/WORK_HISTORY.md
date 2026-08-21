@@ -1,5 +1,36 @@
 # 9Pay 주요 작업이력
 
+**2026-08-21 코드베이스 전수 감사 - 패턴/전략 스캔 배치 6건 수정**: 전수 감사(논리적 오류 + 속도)
+7개 영역 중 "패턴·전략 스캔 배치" 영역의 7건 중 6건 수정(1건은 하 등급·저시급 판단으로 의도적
+보류, 아래 참고).
+
+- `daily_scan_cache.json`을 4개 스크립트(daily_scan.py/rescan_patterns.py/angle_momentum_scan.py/
+  gongpasan_scan.py)가 잠금 없이 나눠 쓰던 문제 - `daily_scan.py`가 API 지연으로 예정보다 늦게
+  끝나면 먼저 끝난 스크립트가 써둔 angleMomentum/gongpasan 섹션을 통째로 덮어쓸 수 있었다.
+  신규 `scripts/cloud-vm/daily_scan_cache.py`(파일 잠금 fcntl.flock + tmp파일·os.replace 원자적
+  쓰기)로 4개 스크립트를 전부 통일하고, daily_scan.py/rescan_patterns.py도 patternScan.patterns를
+  통째로 교체하지 않고 자기 소관 키만 update()하도록 고쳤다.
+- `swing_model.py`의 `_moving_average`가 인덱스마다 윈도우를 새로 슬라이싱+합산하던
+  O(n·period) 구현이었던 걸 슬라이딩 합 O(n)으로 교체(224일선 기준 최대 224배 비용 절감,
+  daily_scan.py가 거의 전종목에 매일 호출).
+- `strategy_scan.py`의 scan/scan_dividend/scan_etf_returns/scan_nps_holdings 4개가 같은
+  universe의 daily_prices를 각자 독립 조회하던 걸 main()에서 한 번만 로드해 공유하는
+  캐시(`daily_cache`)로 교체.
+- `monitor_swing_recommendations.py`가 t20_return까지 이미 확정된(다시 안 변하는) 오래된
+  스냅샷까지 매일 무제한 누적 테이블 전체를 재처리하던 걸 `t20_return IS NULL` 조건으로 좁히고,
+  같은 실행 안에서 code별 가격 이력 중복 로드도 캐시로 제거.
+- `ma_cloud_breakout.py`/`pullback_patterns.py`가 pandas rolling().mean()/numpy .mean()을
+  써서, pattern_detect.py가 이미 회귀 테스트로 피했던(부동소수점 합산 순서 차이로 골든크로스·
+  거래량 증감 비교가 뒤집히는) 문제를 재도입한 걸 pattern_detect.py와 동일한 누적합(sum())
+  방식으로 교체.
+- (보류) `_scan.py` 다수가 종목별로 개별 SQLite 조회하는 관행 - 감사에서 "하" 등급·"당장
+  시급도는 낮음"으로 명시됐고, 고치려면 ~10개 독립 스캔 스크립트와 대응 테스트를 전부
+  건드려야 해서 위험 대비 이득이 낮다고 판단해 이번엔 보류.
+
+검증: 신규 테스트 6건(`test_daily_scan_cache.py` 4건, `test_monitor_swing_recommendations.py`
+2건) 포함 전체 회귀 519건 통과(기존 시그니처 문자열을 검사하던 `test_ui_ia.py` 1건도 새
+파라미터에 맞춰 갱신). `master` 반영 후 VM 자동 배포.
+
 **2026-08-21 쌍바닥 스캔 스크립트 누락 보완**: VM에서 신규 패턴 백테스트 7종을 순서대로 돌리던 중 `double_bottom_scan.py`가 애초에 만들어지지 않았던 걸 발견(PR #326에서 `double_bottom.py`만 추가되고 스캔 스크립트가 빠짐). 다른 패턴들(`opening_gap_scan.py` 등)과 동일한 템플릿으로 `scripts/cloud-vm/double_bottom_scan.py`를 추가했다 - 전종목 SQLite 스캔 후 `double_bottom_backtest.json`에 저장, daily_scan_cache.json은 건드리지 않음. VM에서 `venv/bin/python double_bottom_scan.py` 수동 실행 필요.
 
 **2026-08-21 시초 갭상승 백테스트 도구 추가 - 8개 패턴 저점부터 하나씩 검토 완료(수동 실행 전용, 운영 미반영)**: "저점부터 하나씩 코드 좀 줘봐"로 시작된 차트검색 패턴 8종 코드 리뷰의 마지막 항목. 시초 갭상승(`pattern_detect.detect_opening_gap`)은 하루짜리 스냅샷 조건(전일 종가 대비 시가 갭 B + 장중 추가상승 K + 시가 범위 G + 거래대금 범위 L)이라 스윙점이나 여러 날짜 구조가 없어 다른 패턴들과 달리 벡터화가 단순했다 - `scripts/cloud-vm/opening_gap.py`(신규)가 원본 조건 4개를 그대로 pandas 비교식으로 옮겼고, 원본과 완전히 동일한 결과(갭율·장중등락률·거래대금 소수점까지 일치)를 내는 걸 확인했다.

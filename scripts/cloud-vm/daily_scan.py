@@ -17,6 +17,7 @@ import time
 import urllib.request
 from datetime import datetime, timezone
 
+import daily_scan_cache
 import db_schema
 import invest_signal
 import kiwoom_client
@@ -452,12 +453,21 @@ def main():
     pd.finalize_pattern_results(pattern_results, pullback_matches)
     now = datetime.now(timezone.utc).isoformat()
     pd.annotate_pattern_scan_details(pattern_results, now, pullback_matches)
-    payload = {
-        'generatedAt': now,
-        'universe': len(universe),
-        'patternScan': {'scanned': pattern_scanned, 'patterns': pattern_results},
-        'pullbackScan': {'scanned': pullback_scanned, 'matches': pullback_matches},
-        'investSignal': {
+
+    # 2026-08-21 코드 감사: 예전엔 파일 전체를 이 스크립트의 payload로 덮어써서,
+    # angle_momentum_scan.py/gongpasan_scan.py가 patternScan.patterns 밑에 미리 써둔
+    # angleMomentum/gongpasan 섹션이 (이 스크립트가 더 늦게 끝나면) 사라질 수 있었다.
+    # daily_scan_cache.update()로 잠금 + 최신 읽기를 보장하고, patterns는 이 스크립트가
+    # 채우는 6개 키만 update()해서 다른 스크립트가 채운 키를 보존한다.
+    def _apply(existing):
+        existing['generatedAt'] = now
+        existing['universe'] = len(universe)
+        existing.setdefault('patternScan', {})
+        existing['patternScan']['scanned'] = pattern_scanned
+        existing['patternScan'].setdefault('patterns', {})
+        existing['patternScan']['patterns'].update(pattern_results)
+        existing['pullbackScan'] = {'scanned': pullback_scanned, 'matches': pullback_matches}
+        existing['investSignal'] = {
             'scanned': signal_state['scanned'],
             'counts': signal_state['counts'],
             'buckets': signal_state['buckets'],
@@ -473,8 +483,8 @@ def main():
                 'shortSafe': signal_state['topShortSafe'],
                 'fundamental': signal_state['topFundamental'],
             },
-        },
-        'swingScan': {
+        }
+        existing['swingScan'] = {
             'modelVersion': swing_model.MODEL_VERSION,
             'scanned': signal_state['swingScanned'],
             'regimeCounts': signal_state['swingRegimeCounts'],
@@ -483,10 +493,9 @@ def main():
             'waveCoverage': signal_state['swingWaveCoverage'],
             'candidates': signal_state['swingCandidates'],
             'basis': '차트 국면 관문 → 모멘텀·펀더멘털 확인 → 위험 필터, 국내 전용',
-        },
-    }
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(payload, f, ensure_ascii=False)
+        }
+
+    daily_scan_cache.update(_apply)
     log('저장 완료: %s (패턴 %d / 눌림목 %d / 투자시그널 %d / 전체 %d, 오늘자 이미 있어 API 스킵: OHLC %d / 수급 %d)'
         % (OUTPUT_FILE, pattern_scanned, pullback_scanned, signal_state['scanned'], len(universe),
            ohlc_skipped, flow_skipped))

@@ -463,7 +463,25 @@ def apply_strategy_quality_gates(matches):
     return candidates
 
 
-def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
+def _load_daily(conn, code, daily_cache=None):
+    """daily_cache가 있으면 그걸 쓰고, 없으면(단독 호출·테스트 등) 기존처럼 DB에서 바로
+    읽는다. scan/scan_dividend/scan_etf_returns/scan_nps_holdings가 같은 universe의
+    daily_prices를 각자 독립적으로 재조회하던 걸(2026-08-21 코드 감사, main()이 이 4개를
+    순차 실행하면서 전종목을 최대 4번씩 다시 읽고 있었음) main()이 한 번만 로드해 공유하는
+    캐시로 대체하기 위한 헬퍼."""
+    if daily_cache is not None:
+        cached = daily_cache.get(code)
+        if cached is not None:
+            return cached
+    return db_schema.load_daily_prices(conn, code)
+
+
+def preload_daily_prices(conn, universe):
+    """main()이 스캔 함수들을 부르기 전에 한 번만 호출해 공유 캐시를 만든다."""
+    return {stock['code']: db_schema.load_daily_prices(conn, stock['code']) for stock in universe}
+
+
+def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None, daily_cache=None):
     theme_codes = theme_codes or set()
     sectors = {}  # sector_name -> [match, ...] (필터 통과자 전부, 정렬/컷은 이후 일괄)
     scanned = 0
@@ -474,7 +492,7 @@ def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
 
     for stock in universe:
         code = stock['code']
-        daily = db_schema.load_daily_prices(conn, code)
+        daily = _load_daily(conn, code, daily_cache)
         if len(daily) < MIN_BARS:
             skipped_no_data += 1
             continue
@@ -798,12 +816,12 @@ def build_etf_return_match(stock, daily, signals):
     return match
 
 
-def scan_etf_returns(universe, conn):
+def scan_etf_returns(universe, conn, daily_cache=None):
     """Rank one ETF list while exposing all four cumulative return periods."""
     candidates = []
     scanned = 0
     for stock in universe:
-        daily = db_schema.load_daily_prices(conn, stock['code'])
+        daily = _load_daily(conn, stock['code'], daily_cache)
         if not is_eligible_etf(stock, daily):
             continue
         scanned += 1
@@ -833,14 +851,14 @@ def scan_etf_returns(universe, conn):
     return {'ETF': candidates if ETF_RETURN_TOP_N is None else candidates[:ETF_RETURN_TOP_N]}, scanned
 
 
-def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None, kiwoom_token=None):
+def scan_dividend(universe, wics_map, fundamentals_cache, conn, theme_codes=None, kiwoom_token=None, daily_cache=None):
     """Scan domestic common stocks for the conservative dividend strategy."""
     theme_codes = theme_codes or set()
     matches = []
     scanned = 0
     for stock in universe:
         code = stock['code']
-        daily = db_schema.load_daily_prices(conn, code)
+        daily = _load_daily(conn, code, daily_cache)
         if len(daily) < MIN_BARS:
             continue
         if pattern_detect.is_excluded_stock(stock, daily):
@@ -903,7 +921,7 @@ def build_nps_match(stock, daily, sector, info):
     }
 
 
-def scan_nps_holdings(universe, wics_map, conn, theme_codes=None):
+def scan_nps_holdings(universe, wics_map, conn, theme_codes=None, daily_cache=None):
     """국민연금 보유종목 - public_data.fetch_nps_holdings_by_code()가 이름 매칭까지 끝낸
     {code: info}를 한 번만 받아, 그 종목들에만 가격·섹터를 붙인다. 다른 전략과 달리 별도
     시그널 판정이 없다(국민연금이 갖고 있다는 사실 자체가 표시 대상) - 전종목을 순회하며
@@ -923,7 +941,7 @@ def scan_nps_holdings(universe, wics_map, conn, theme_codes=None):
         wics = wics_map.get(code)
         if not wics or not wics.get('sector'):
             continue
-        daily = db_schema.load_daily_prices(conn, code)
+        daily = _load_daily(conn, code, daily_cache)
         if not daily:
             continue
         matches.append(build_nps_match(stock, daily, wics['sector'], info))
@@ -978,13 +996,19 @@ def main():
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
 
+    # 2026-08-21 코드 감사: 아래 4개 스캔이 같은 universe의 daily_prices를 각자 독립
+    # 조회해 하루 한 번의 배치 안에서 전종목을 최대 4번씩 다시 읽고 있었다 - 한 번만
+    # 로드해 공유한다.
+    daily_cache = preload_daily_prices(conn, universe)
+
     (sectors, scanned, skipped_no_data, skipped_illiquid,
      skipped_no_sector, skipped_no_fundamentals) = scan(
-        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes)
+        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, daily_cache=daily_cache)
     dividend_sectors, dividend_scanned = scan_dividend(
-        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token)
-    etf_return_sectors, etf_scanned = scan_etf_returns(universe, conn)
-    nps_sectors, nps_scanned = scan_nps_holdings(universe, wics_map, conn, theme_codes=theme_codes)
+        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,
+        daily_cache=daily_cache)
+    etf_return_sectors, etf_scanned = scan_etf_returns(universe, conn, daily_cache=daily_cache)
+    nps_sectors, nps_scanned = scan_nps_holdings(universe, wics_map, conn, theme_codes=theme_codes, daily_cache=daily_cache)
 
     undervalued_category = {
         'name': '저평가 종목',

@@ -47,6 +47,25 @@ DAILY_PRICES_COLUMNS = [
 ]
 
 
+def _moving_average(values, period):
+    """pattern_detect.moving_average와 동일한 슬라이딩 합(누적 +=/-=) 순서로 계산한다.
+    pandas rolling().mean()의 내부 합산 순서는 미세하게(마지막 자리수) 달라서, 5일선-20일선
+    골든크로스처럼 두 이평선이 '정확히 같을 때'를 기준으로 삼는 비교에서 원본과 다른
+    결과를 낼 수 있다(2026-08-21 코드 감사 - pattern_detect.moving_average가 바로 이 이유로
+    똑같이 pandas rolling을 되돌린 이력이 있는데, 이 파일은 신설 당시 그 사실을 반영하지
+    못했다)."""
+    n = len(values)
+    ma = [None] * n
+    s = 0.0
+    for i in range(n):
+        s += values[i]
+        if i >= period:
+            s -= values[i - period]
+        if i >= period - 1:
+            ma[i] = s / period
+    return ma
+
+
 def compute_ma_cloud_breakout_signal(code, conn=None, rows=None):
     """종목코드 하나로 이평 상승 초입형 신호 DataFrame을 만든다. conn/rows 규칙은
     accumulation_angle.compute_accumulation_angle과 동일."""
@@ -69,9 +88,10 @@ def compute_ma_cloud_breakout_signal(code, conn=None, rows=None):
 
     close, high, low = df['close'], df['high'], df['low']
 
-    df['ma5'] = close.rolling(MA_SHORT).mean()
-    df['ma20'] = close.rolling(MA_MID).mean()
-    df['ma224'] = close.rolling(MA_LONG).mean()
+    close_list = close.tolist()
+    df['ma5'] = _moving_average(close_list, MA_SHORT)
+    df['ma20'] = _moving_average(close_list, MA_MID)
+    df['ma224'] = _moving_average(close_list, MA_LONG)
 
     # 일목균형표: pattern_detect.ichimoku_cloud_at와 동일하게, "오늘 보이는 구름"은
     # ICHIMOKU_DISPLACEMENT(26)일 전 시점의 전환선·기준선·선행스팬B로 계산해 앞으로

@@ -18,6 +18,7 @@ import urllib.request
 from datetime import datetime, timezone
 
 import accumulation_angle as aa
+import daily_scan_cache
 import db_schema
 import pattern_detect as pd
 
@@ -169,20 +170,17 @@ def main():
     backtest_summary = aa.summarize_backtest(net_returns)
     scan_at = datetime.now(timezone.utc).isoformat()
 
-    existing = {}
-    if os.path.exists(OUTPUT_FILE):
-        with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
-            existing = json.load(f)
+    # 2026-08-21 코드 감사: 잠금 없는 read-modify-write는 daily_scan.py 등 다른 스크립트와
+    # 실행 시간이 겹치면 서로의 결과를 덮어쓸 수 있었다 - daily_scan_cache.update()로 직렬화.
+    def _apply(existing):
+        existing.setdefault('patternScan', {'scanned': 0, 'patterns': {}})
+        existing['patternScan'].setdefault('patterns', {})
+        existing['patternScan']['patterns']['angleMomentum'] = matches
+        existing['angleMomentumBacktest'] = dict(backtest_summary or {}, holdDays=BACKTEST_HOLD_DAYS) if backtest_summary else None
+        existing['angleMomentumScannedAt'] = scan_at
+        existing.setdefault('universe', len(codes))
 
-    existing.setdefault('patternScan', {'scanned': 0, 'patterns': {}})
-    existing['patternScan'].setdefault('patterns', {})
-    existing['patternScan']['patterns']['angleMomentum'] = matches
-    existing['angleMomentumBacktest'] = dict(backtest_summary or {}, holdDays=BACKTEST_HOLD_DAYS) if backtest_summary else None
-    existing['angleMomentumScannedAt'] = scan_at
-    existing.setdefault('universe', len(codes))
-
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(existing, f, ensure_ascii=False)
+    daily_scan_cache.update(_apply)
     log('저장 완료: %s (스캔 %d / 후보 %d / 백테스트 거래 %d건, 다른 패턴 섹션은 기존 값 유지)'
         % (OUTPUT_FILE, scanned, len(matches), len(net_returns)))
 
