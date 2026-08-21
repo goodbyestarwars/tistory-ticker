@@ -189,9 +189,17 @@
 
   // ---- "더보기" 모달(TOP20, 블로그 안에서 보여줌 - 외부 이동 없음) ----
 
+  var modalEscHandler = null; // 2026-08-21 코드 감사: Esc가 아니라 닫기 버튼/오버레이
+                              // 클릭으로 닫으면 keydown 리스너 해제가 안 돼 반복해서 열
+                              // 때마다 쌓였다 - closeModal이 경로와 무관하게 항상 해제.
+
   function closeModal() {
     var existing = document.querySelector('.sr-modal-overlay');
     if (existing) existing.remove();
+    if (modalEscHandler) {
+      document.removeEventListener('keydown', modalEscHandler);
+      modalEscHandler = null;
+    }
   }
 
   function openModal(sectionKey) {
@@ -211,11 +219,11 @@
     overlay.addEventListener('click', function (e) {
       if (e.target === overlay || e.target.closest('.sr-modal-close')) closeModal();
     });
-    document.addEventListener('keydown', function escHandler(e) {
+    modalEscHandler = function (e) {
       if (e.key !== 'Escape') return;
       closeModal();
-      document.removeEventListener('keydown', escHandler);
-    });
+    };
+    document.addEventListener('keydown', modalEscHandler);
 
     SidebarRank.fetchRank(MODAL_LIMIT)
       .then(function (data) {

@@ -122,6 +122,16 @@
       return localRows.slice(0, 8);
     });
   }
+  // 2026-08-21 코드 감사: 자동완성 항목의 종목명·코드가 이스케이프 없이 innerHTML에
+  // 그대로 삽입되고 있었다(로컬 목록은 신뢰할 수 있지만, findUsSuggestions가 /us-search
+  // 응답의 row.name을 그대로 옮겨 쓰는 경로도 같은 함수를 거침) - 다른 위젯(stock-news.js
+  // 등)과 동일하게 이스케이프 후 삽입한다.
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   function closeSuggestions() {
     suggestionBox.classList.remove('is-open');
     suggestionItems = [];
@@ -138,7 +148,7 @@
       button.className = 'discussion-stock-suggest-select';
       button.setAttribute('role', 'option');
       button.setAttribute('data-suggestion-index', index);
-      button.innerHTML = '<img class="discussion-stock-suggest-icon" data-icon-code="' + item.code + '" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(item.code) + '.svg" alt="" onerror="window.StockIconFallback ? window.StockIconFallback(this) : this.style.display=\'none\'">' + '<span class="name">' + item.name + '</span><span class="code">' + item.code + '</span>';
+      button.innerHTML = '<img class="discussion-stock-suggest-icon" data-icon-code="' + escapeHtml(item.code) + '" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(item.code) + '.svg" alt="" onerror="window.StockIconFallback ? window.StockIconFallback(this) : this.style.display=\'none\'">' + '<span class="name">' + escapeHtml(item.name) + '</span><span class="code">' + escapeHtml(item.code) + '</span>';
       button.addEventListener('click', function () {
         input.value = item.name;
         applyFilter(item.code, true);
@@ -173,7 +183,7 @@
       button.setAttribute('role', 'option');
       button.setAttribute('data-suggestion-index', index);
       var iconCode = String(item.code).replace(/^US:/i, '');
-      button.innerHTML = '<img class="discussion-stock-suggest-icon" data-icon-code="' + iconCode + '" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(iconCode) + '.svg" alt="" onerror="window.StockIconFallback ? window.StockIconFallback(this) : this.style.display=\'none\'">' + '<span class="name">' + item.name + '</span><span class="code">' + iconCode + '</span>';
+      button.innerHTML = '<img class="discussion-stock-suggest-icon" data-icon-code="' + escapeHtml(iconCode) + '" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/' + encodeURIComponent(iconCode) + '.svg" alt="" onerror="window.StockIconFallback ? window.StockIconFallback(this) : this.style.display=\'none\'">' + '<span class="name">' + escapeHtml(item.name) + '</span><span class="code">' + escapeHtml(iconCode) + '</span>';
       button.addEventListener('click', function () {
         names[item.code] = item.name;
         input.value = item.name;

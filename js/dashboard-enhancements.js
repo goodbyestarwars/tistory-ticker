@@ -313,9 +313,24 @@
     wireCharts();
   }
 
+  // 2026-08-21 코드 감사: order-book.js(2초 폴링 후 innerHTML 재작성) 등 실시간 위젯이
+  // 자주 DOM을 갈아끼우는데, 그때마다 이 콜백이 발동해 wireCharts()의 무거운 5중
+  // document.querySelectorAll을 매번 다시 실행했다 - 한 번의 innerHTML 교체가 여러
+  // childList mutation을 한꺼번에 만들어내는 걸 감안해, requestAnimationFrame으로
+  // 짧은 시간 안의 다수 mutation을 프레임당 최대 1회 scan()으로 코얼레싱한다.
+  var scanRafPending = false;
+  function scheduleScan() {
+    if (scanRafPending) return;
+    scanRafPending = true;
+    global.requestAnimationFrame(function () {
+      scanRafPending = false;
+      scan();
+    });
+  }
+
   function init() {
     scan();
-    observer = new MutationObserver(scan);
+    observer = new MutationObserver(scheduleScan);
     observer.observe(document.body, { childList: true, subtree: true });
     global.setTimeout(scan, 1200);
     global.setTimeout(scan, 3000);

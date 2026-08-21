@@ -1,5 +1,29 @@
 # 9Pay 주요 작업이력
 
+**2026-08-21 코드베이스 전수 감사 - 프론트엔드 나머지 위젯 JS 6건 수정**: 전수 감사 7개
+영역 중 "프론트엔드 나머지 위젯 JS" 영역 7건 중 6건 수정(사이트 로고 텍스트 건은 사용자가
+의도한 것으로 확인되어 제외).
+
+- `stock-news.js` 종목 클릭(`selectStock`): 뉴스 응답 경로에 요청 순서 가드가 없어
+  A→B 연속 클릭 시 A의 늦은 응답이 B의 뉴스 패널을 덮어쓸 수 있었음 - 같은 파일의
+  `loadAnalysis`와 동일한 `requestCode` 가드 추가.
+- `pension-fund.js`/`short-pressure.js` 검색: 연속 검색 시 이전(느린, FETCH_TIMEOUT_MS
+  20초) 검색 응답이 최신 결과를 덮어쓸 수 있었음 - `searchRequestSeq` 가드 추가.
+- `sidebar-rank.js` "더보기" 모달: `foreign-flow.js`와 동일한 유형 - 닫기 버튼·오버레이
+  클릭으로 닫으면 keydown 리스너가 안 지워지던 누수 수정.
+- `dashboard-enhancements.js`: `document.body` 전체를 감시하는 MutationObserver가
+  DOM 변경마다(실시간 위젯이 자주 innerHTML을 갈아끼움) 무거운 5중 querySelectorAll을
+  반복 실행했음 - `requestAnimationFrame`으로 프레임당 최대 1회 `scan()`으로 코얼레싱.
+- `stock-search-panel.js` 자동완성 화살표 키 이동: 활성 인덱스만 바꾸면 되는데 매번
+  `renderMatches`를 재호출해 로컬 별칭에 안 걸리는 검색어는 화살표 이동마다 원격 API를
+  재호출했음 - 이미 그려진 목록의 활성 표시만 갱신하도록 분리.
+- `stock-discussion.js` 자동완성 항목: 종목명·코드가 이스케이프 없이 innerHTML에
+  삽입되고 있었음(로컬 목록은 안전하지만 `/us-search` 응답 경로도 같은 함수를 거침) -
+  다른 위젯과 동일하게 `escapeHtml` 추가.
+
+검증: `node --check`로 7개 파일 문법 확인, 관련 Python 회귀 523건 통과(영향 없음 확인).
+`master` 반영 후 GitHub Pages 자동 배포.
+
 **2026-08-21 코드베이스 전수 감사 - 프론트엔드 대형 위젯 JS 6건 수정**: 전수 감사 7개
 영역 중 "프론트엔드 대형 위젯 JS"(foreign-flow.js·kospi-futures.js·skin-main.js) 영역
 6건 전부 수정.
