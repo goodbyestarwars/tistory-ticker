@@ -5,17 +5,13 @@
 }
 
 /* 2026-08-21: WS 연결 상태("실시간"/"지연"/"연결 재시도")가 그냥 맨 텍스트로만 떠서
-   눈에 안 띈다는 요청 - 점(dot) + 배지 형태로 바꾸고 상태별 색을 입혔다. 바깥 div는
-   오른쪽 정렬용 컨테이너, 안쪽 span(data-om-connection)이 실제 배지. */
+   눈에 안 띈다는 요청 - 점(dot) + 배지 형태로 바꾸고 상태별 색을 입혔다. display:table +
+   margin-left:auto로 내용 폭만큼만 차지하는 박스를 오른쪽 정렬(js 구조 변경 없이 이
+   div 하나에만 스타일 - dmi-live-status처럼 헤딩과 형제 span으로 만드는 구조 변경은
+   불필요한 결합도라 피함). */
 #overnight-market .om-live-status {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
-}
-#overnight-market .om-live-status [data-om-connection] {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: table;
+  margin: 0 0 10px auto;
   padding: 3px 10px 3px 8px;
   border-radius: 999px;
   background: #f1f5f9;
@@ -24,26 +20,28 @@
   font-weight: 600;
   white-space: nowrap;
 }
-#overnight-market .om-live-status [data-om-connection]::before {
+#overnight-market .om-live-status::before {
   content: '';
+  display: inline-block;
   width: 6px;
   height: 6px;
+  margin-right: 6px;
   border-radius: 50%;
   background: currentColor;
-  flex: none;
+  vertical-align: middle;
 }
-#overnight-market .om-live-status [data-om-connection][data-state="live"] {
+#overnight-market .om-live-status[data-state="live"] {
   background: rgba(22, 163, 74, .12);
   color: #16a34a;
 }
-#overnight-market .om-live-status [data-om-connection][data-state="live"]::before {
+#overnight-market .om-live-status[data-state="live"]::before {
   animation: om-live-pulse 1.6s ease-in-out infinite;
 }
-#overnight-market .om-live-status [data-om-connection][data-state="stale"] {
+#overnight-market .om-live-status[data-state="stale"] {
   background: rgba(217, 119, 6, .12);
   color: #d97706;
 }
-#overnight-market .om-live-status [data-om-connection][data-state="retry"] {
+#overnight-market .om-live-status[data-state="retry"] {
   background: rgba(100, 116, 139, .12);
   color: #64748b;
 }
@@ -239,15 +237,15 @@ html.dark #overnight-market .om-card {
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.2) !important;
 }
-html.dark #overnight-market .om-live-status [data-om-connection] {
+html.dark #overnight-market .om-live-status {
   background: rgba(245, 239, 224, 0.1) !important;
   color: rgba(245, 239, 224, 0.6) !important;
 }
-html.dark #overnight-market .om-live-status [data-om-connection][data-state="live"] {
+html.dark #overnight-market .om-live-status[data-state="live"] {
   background: rgba(74, 222, 128, 0.16) !important;
   color: #4ade80 !important;
 }
-html.dark #overnight-market .om-live-status [data-om-connection][data-state="stale"] {
+html.dark #overnight-market .om-live-status[data-state="stale"] {
   background: rgba(251, 191, 36, 0.16) !important;
   color: #fbbf24 !important;
 }

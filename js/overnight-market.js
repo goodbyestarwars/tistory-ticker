@@ -349,7 +349,7 @@
         + '<div class="om-grid">' + cards + '</div>'
         + '</div>';
     }).join('');
-    return '<div class="om-live-status"><span data-om-connection>REST 확인 중</span></div>'
+    return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
       + '<div class="om-summary" id="omSummary" hidden></div>'
       + '<div class="om-ai" id="omAi" hidden></div>'
       + groups;
