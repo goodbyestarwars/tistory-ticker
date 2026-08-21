@@ -1,5 +1,27 @@
 # 9Pay 주요 작업이력
 
+**2026-08-21 코드베이스 전수 감사 - 뉴스/펀더멘털/데이터 수집 4건 수정**: 전수 감사 7개
+영역 중 "뉴스·펀더멘털·외부데이터 수집" 영역 4건 전부 수정.
+
+- `domestic_news.py`: 주간 뉴스 백필 분기가 초기화 안 된 `oldest` 변수를 참조+대입해
+  이 분기가 실행될 때마다(주간 커버리지 4일 미만일 때, 자주 발생) `UnboundLocalError`를
+  던지고 있었다 - 호출부 try/except가 조용히 삼켜 그 주 뉴스 아카이브 전체가 빈 결과로
+  대체됨. 사용처 없는 변수라 그냥 삭제.
+- `news_momentum_scan.py`: `--full` 배치가 커서/예산은 KST로 계산하면서 정작 뉴스
+  수집·이슈 추출·커버리지 저장 기준(`today`)은 `date.today()`(시스템 로컬=UTC)를 따로
+  써서, KST 00:00~09:00 구간(UTC 날짜가 KST보다 하루 뒤처짐)엔 90일 백필 컷오프가 하루
+  밀려 저장됐다 - `today`도 이미 계산해둔 `today_kst`를 쓰도록 통일.
+- `db_schema.py`/`migrate_fundamentals.py`: DART 배당 데이터(`fetch_stock()`의
+  `dividend` 키)가 SQLite `fundamentals` 테이블에 컬럼 자체가 없어 이관 과정에서
+  통째로 누락되던 걸 `dividend_json` 컬럼 추가 + 이관 INSERT에 포함해 고침(현재 이
+  테이블을 읽는 서비스 코드가 없어 운영 화면 영향은 없음 - 향후 잠재 버그 예방).
+- `bond_yield.py`: `fetch_history()`가 최대 58페이지를 쉬는 시간 없이 순차 크롤링하던
+  걸 페이지 사이 0.2초 쓰로틀 추가.
+
+검증: 신규 테스트 4건(`test_domestic_news_weekly_backfill.py`, `test_news_momentum.py`
+1건 추가, `test_migrate_fundamentals.py`, `test_bond_yield.py`) 포함 전체 회귀 523건 통과.
+`master` 반영 후 VM 자동 배포.
+
 **2026-08-21 코드베이스 전수 감사 - 패턴/전략 스캔 배치 6건 수정**: 전수 감사(논리적 오류 + 속도)
 7개 영역 중 "패턴·전략 스캔 배치" 영역의 7건 중 6건 수정(1건은 하 등급·저시급 판단으로 의도적
 보류, 아래 참고).

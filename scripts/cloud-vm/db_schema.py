@@ -298,6 +298,12 @@ def _migrate_investor_trend_market(conn):
 
 def create_schema(conn):
     conn.executescript(SCHEMA)
+    # 2026-08-21 코드 감사: fundamentals.fetch_stock()이 dividend 키까지 반환하는데
+    # migrate_fundamentals.py의 이관 INSERT와 이 테이블 스키마엔 그걸 담을 컬럼이 없어
+    # DART 배당 데이터가 SQLite 이관 과정에서 통째로 누락되고 있었다. 현재 이 테이블을
+    # 읽는 서비스 코드는 없어(전부 fundamentals_cache.json을 직접 읽음) 운영 화면 영향은
+    # 없지만, 향후 이 테이블을 쓰는 기능이 생겼을 때의 잠재 버그를 미리 막아둔다.
+    _ensure_column(conn, 'fundamentals', 'dividend_json', 'TEXT')
     _ensure_column(conn, 'investor_flow_daily', 'ind_net', 'REAL')
     _ensure_column(conn, 'future_prices', 'oi', 'INTEGER')
     _ensure_column(conn, 'future_prices', 'oi_change', 'INTEGER')

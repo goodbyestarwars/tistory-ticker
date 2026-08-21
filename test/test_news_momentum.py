@@ -8,7 +8,7 @@ import tempfile
 import threading
 import time
 import unittest
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest import mock
 
 
@@ -544,6 +544,25 @@ class NewsMomentumTest(unittest.TestCase):
                 mock.patch.dict(os.environ, {
                     'NAVER_APIHUB_CLIENT_ID': 'id', 'NAVER_APIHUB_CLIENT_SECRET': 'secret'}):
             return news_momentum_scan.run(args)
+
+    def test_full_scan_uses_kst_today_not_system_local_date(self):
+        """2026-08-21 코드 감사: 커서/예산 갱신은 kst_today()를 쓰면서 정작 뉴스 수집·
+        이슈 추출·커버리지 저장 기준(today)은 date.today()(시스템 로컬=UTC)를 따로 써서,
+        KST 00:00~09:00 구간(UTC 날짜가 KST보다 하루 뒤처짐)엔 컷오프 날짜가 하루씩
+        밀려 저장됐다 - today도 today_kst를 그대로 쓰도록 고친 뒤, kst_today()가 반환하는
+        날짜가 실제로 저장되는지 확인한다(시스템 로컬 날짜와 무관하게)."""
+        universe = [{'code': '005930', 'name': '삼성전자'}]
+        cursor_path = os.path.join(self.temp_dir.name, 'cursor.json')
+        status_sink = []
+        fixed_kst_today = date(2026, 8, 2)
+        with mock.patch.object(news_momentum_scan, 'kst_today', lambda: fixed_kst_today):
+            self._run_full_scan(universe, [], status_sink, cursor_path)
+        # requestedStartDate(90일 백필 컷오프)는 today(=today_kst)에서 직접 파생되므로
+        # 여기서 시스템 로컬 날짜가 아니라 mocked KST 날짜를 기준으로 계산됐는지 확인한다.
+        row = self.conn.execute(
+            'SELECT requested_start_date FROM news_stock_coverage WHERE stock_code=?', ('005930',)
+        ).fetchone()
+        self.assertEqual(row['requested_start_date'], (fixed_kst_today - timedelta(days=89)).isoformat())
 
     def test_full_scan_throttles_between_stocks(self):
         """2026-08-02 사용자 리포트: --full로 전 종목을 도는 동안 종목 사이 딜레이가

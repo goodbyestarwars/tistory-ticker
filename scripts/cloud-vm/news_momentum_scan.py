@@ -13,7 +13,7 @@ import json
 import os
 import sys
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import daily_scan
 import naver_news
@@ -308,7 +308,11 @@ def run(args):
     failures = []
     try:
         news_momentum.create_schema(conn)
-        today = date.today()
+        # 2026-08-21 코드 감사: 커서/예산 갱신은 today_kst(KST 명시 계산)를 쓰면서
+        # 정작 뉴스 수집·이슈 추출·커버리지 저장 기준은 date.today()(시스템 로컬=UTC)를
+        # 써서, deploy_check.sh가 이 배치를 트리거하는 KST 00:00~00:04 직후(=UTC 날짜가
+        # KST보다 하루 뒤처지는 구간)에 90일 컷오프·오늘 날짜 마커가 하루 밀려 저장됐다.
+        today = today_kst
         start_date = (today - timedelta(days=89)).isoformat()
         end_date = today.isoformat()
 
