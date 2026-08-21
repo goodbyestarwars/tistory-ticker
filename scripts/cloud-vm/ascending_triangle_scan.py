@@ -29,7 +29,18 @@ def log(msg):
     print('[ascending_triangle_scan] ' + msg, flush=True)
 
 
+def _parse_hold_days(default):
+    """--hold-days=N으로 보유일을 코드 수정 없이 바꿔볼 수 있게 함(2026-08-21, 사용자가
+    5일 대신 10거래일 관점으로 여러 값을 실험하고 싶어함). 안 주면 기존 기본값 그대로."""
+    for arg in sys.argv:
+        if arg.startswith('--hold-days='):
+            return int(arg.split('=', 1)[1])
+    return default
+
+
 def main():
+    hold_days = _parse_hold_days(BACKTEST_HOLD_DAYS)
+
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
 
@@ -40,7 +51,7 @@ def main():
     if '--test' in sys.argv:
         codes = codes[:200]
         log('--test 모드: %d종목만 스모크 테스트' % len(codes))
-    log('대상 종목 수: %d' % len(codes))
+    log('대상 종목 수: %d (hold_days=%d)' % (len(codes), hold_days))
 
     net_returns = []
     scanned = 0
@@ -59,7 +70,7 @@ def main():
         if df.empty:
             continue
 
-        net_returns.extend(at.backtest_entry_signal(df, hold_days=BACKTEST_HOLD_DAYS, slippage_pct=BACKTEST_SLIPPAGE_PCT))
+        net_returns.extend(at.backtest_entry_signal(df, hold_days=hold_days, slippage_pct=BACKTEST_SLIPPAGE_PCT))
 
         if bool(df.iloc[-1]['entry_signal']):
             latest_matches.append({'code': code, 'date': df.iloc[-1]['date'].strftime('%Y-%m-%d'),
@@ -79,7 +90,7 @@ def main():
             'generatedAt': generated_at,
             'scanned': scanned,
             'universe': len(codes),
-            'holdDays': BACKTEST_HOLD_DAYS,
+            'holdDays': hold_days,
             'backtest': summary,
             'latestMatches': latest_matches,
         }, f, ensure_ascii=False)

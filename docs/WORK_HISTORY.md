@@ -1,5 +1,17 @@
 # 9Pay 주요 작업이력
 
+**2026-08-21 패턴 백테스트 스캔 6종에 `--hold-days` 옵션 추가**: `ascending_triangle_scan.py`
+/`box_range_scan.py`/`double_bottom_scan.py`/`inv_head_shoulders_v2_scan.py`
+/`opening_gap_scan.py`/`pullback_patterns_scan.py`(고정 보유일 방식 백테스트 스크립트
+6개, `ma_cloud_breakout_scan.py`는 손절+타임컷 방식이라 개념이 달라 제외)에
+`--hold-days=N` 커맨드라인 옵션을 추가했다. 기존엔 보유일(기본 5일)을 바꾸려면 각
+스크립트의 `BACKTEST_HOLD_DAYS` 상수를 코드에서 직접 고쳐야 했음. 사용자가 단타보다
+2주 보유 관점 위주라 10거래일 기준으로 재검증하고 싶어해서, 값을 안 주면 기존 기본값
+그대로 동작하고 `--hold-days=10`처럼 주면 그 값으로 백테스트하도록 만들었다. 화면
+표시나 daily_scan_cache.json 저장 로직은 건드리지 않음(이 스크립트들은 원래도 수동
+분석용 별도 산출물 파일에만 쓴다). 검증: `py_compile` 6개 전부 통과, `pytest test/ -q`
+523 passed. VM 재배포 필요(스크립트 파일 복사 후 `--hold-days=10`으로 재실행).
+
 **2026-08-21 코드베이스 전수 감사 - CSS 7건 수정(전수 감사 7개 영역 전부 완료)**: 전수 감사
 마지막 영역인 CSS 11건 중 7건 수정, 4건은 근거를 남기고 의도적으로 보류(아래 참고). 이걸로
 2026-08-21에 시작한 코드베이스 전수 감사(논리적 오류 + 속도, 7개 영역) 전부 완료.
