@@ -93,7 +93,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, style if token == "color: #000;" else frontend)
         self.assertIn(".dmi-flow-table td.dmi-positive { color: #d24f45 !important; }", style)
         self.assertIn(".dmi-flow-table td.dmi-negative { color: #1261c4 !important; }", style)
-        self.assertIn(".dmi-shell .dmi-fund-card *", style)
+        # 2026-08-21 코드 감사: .dmi-fund-card *(유니버설 자손 선택자)가 .dmi-fund-value.
+        # dmi-positive/negative의 상승/하락 색을 가리고 있었다(2026-08-14 발견 당시 !important로
+        # 임시 대응) - 근본 원인인 유니버설 선택자 자체를 없앴으니 더는 존재하면 안 된다.
+        self.assertNotIn(".dmi-fund-card *", style)
+        self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
         self.assertIn("domestic-market-indicators.css?v=20260818-market-news-v1", frontend)
         self.assertIn("domestic-market-indicators.js?v=20260819-dmi-cache-fix-v1", loader)
         self.assertIn(".dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }", style)
@@ -425,12 +429,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".post-card.feed-headline-item .btn-share { padding: 4px 9px; font-size: 10.5px; }", style)
         self.assertIn(".post-card.feed-headline-item .btn-read { display: none; }", style)
 
-    def test_discontinued_market_ribbon_is_hidden_before_external_css_loads(self):
+    def test_discontinued_market_ribbon_is_fully_removed(self):
+        """2026-08-21 코드 감사: 폐기된 리본을 display:none !important로만 숨겨두면서
+        css/market-ribbon.css·js/market-ribbon.js를 매 페이지 계속 다운로드하고 있었다
+        (이미 숨겨진 걸 또 숨기는 인라인 <style>도 중복) - 아예 걷어냈다. 오프셋은
+        style.css가 이미 리본 없는 값으로 고정돼 있어(2026-07-16) 영향 없음."""
         skin = self.read("skin.html")
-        ribbon_css = self.read("css/market-ribbon.css")
-        self.assertIn(".market-ribbon { display: none !important; }", skin)
-        self.assertIn("css/market-ribbon.css?v=20260817-fouc-fix-v1", skin)
-        self.assertIn(".market-ribbon { display: none !important; }", ribbon_css)
+        self.assertNotIn("market-ribbon", skin)
+        import os
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.assertFalse(os.path.exists(os.path.join(repo_root, "css", "market-ribbon.css")))
+        self.assertFalse(os.path.exists(os.path.join(repo_root, "js", "market-ribbon.js")))
 
     def test_home_domestic_summary_includes_foreign_investor_trend(self):
         main = self.read("js/skin-main.js")

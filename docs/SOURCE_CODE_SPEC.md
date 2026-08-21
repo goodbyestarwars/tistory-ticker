@@ -44,7 +44,6 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | 파일 | 줄수 | 역할 | 주요 함수/전역/마운트 | 호출 API |
 |---|---:|---|---|---|
 | `invest-signal.js` | 18 | 폐기된 페이지 → `/page/foreign-flow` 리다이렉트 | 마운트 `#invest-signal` | 없음 |
-| `market-ribbon.js` | 33 | 폐기된 상단 리본을 숨김 처리 | `window.MarketRibbon.init` | 없음 |
 | `skin-shell.js` | 70 | skin.html 빈 mount에 정적 마크업 주입(모바일 오버레이·검색 오버레이·스크롤탑·푸터) | 즉시실행, 전역 노출 없음 | 없음 |
 | `skin-menu.js` | 148 | 공통 1차/2차 내비게이션 렌더링, 사이드바 검색창 마운트 | `NAV_ITEMS`, `render()`, `#nav-menu-mount` | 없음(StockSearchPanel 호출) |
 | `pension-fund.js` | 257 | 연기금 단독 수급 분석 위젯 | `window.PensionFund`, `#pension-fund` | GAS `?action=pensionFund&code=` |

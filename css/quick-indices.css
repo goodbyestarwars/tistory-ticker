@@ -163,6 +163,9 @@
 .qi-news-track {
   display: flex;
   flex-direction: column;
+  /* 2026-08-21 코드 감사: 30초 무한 transform 애니메이션이라 합성 레이어 힌트를 줘서
+     매 프레임 리페인트 범위가 넓어지는 걸 막는다. */
+  will-change: transform;
   animation: qiNewsScroll 30s linear infinite;
 }
 .qi-news-track:hover { animation-play-state: paused; }

@@ -1,9 +1,10 @@
 /* 모든 페이지 공통 우측 관심종목 드로어 (js/stock-search-panel.js + js/watchlist.js)
  * 상승=빨강 #d24f45, 하락=파랑 #1261c4 (사이트 공통 컬러)
- * 다크모드: html.dark #watchlist ... !important (9bolt 스킨 블랑켓 규칙 대응) */
-
-@import url('https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css');
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css'); /* 2026-08-20 나눔고딕에서 교체 */
+ * 다크모드: html.dark #watchlist ... !important (9bolt 스킨 블랑켓 규칙 대응)
+ * 2026-08-21 코드 감사: MaruBuri/Pretendard @import를 제거했다 - skin.html이 모든
+ * 페이지 <head>에서 이미 두 폰트를 <link>로 직접 로드하고 있어(MaruBuri는
+ * hangeul.pstatic.net, Pretendard는 동일 URL), 이 파일이 매 페이지마다 별도로
+ * @import하는 건 이미 확보된 폰트를 위한 불필요한 렌더링 블로킹 요청이었다. */
 
 .global-watchlist-drawer {
   position: fixed;

@@ -1,7 +1,7 @@
-/* Shared enhancements loaded by js/dashboard-enhancements.js. */
-
-@import url('https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css');
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css'); /* 2026-08-20 나눔고딕에서 교체 */
+/* Shared enhancements loaded by js/dashboard-enhancements.js.
+ * 2026-08-21 코드 감사: MaruBuri/Pretendard @import를 제거했다 - skin.html이 모든
+ * 페이지 <head>에서 이미 두 폰트를 <link>로 직접 로드하고 있어(watchlist.css와 동일한
+ * 이유), 이 파일이 매 페이지마다 별도로 @import하는 건 불필요한 렌더링 블로킹 요청이었다. */
 
 #watchlist,
 #watchlist *,
@@ -10,51 +10,25 @@
   font-family: 'Maru Buri', 'MaruBuri', 'Pretendard', system-ui, sans-serif;
 }
 
+/* 2026-08-21 코드 감사: 아래 세 규칙은 예전에 "화려한/neon" 버전(초기 안)과 "차분한"
+   버전("Keep the temperature guide calm" 재디자인) 두 세대로 나뉘어 있었다 - 뒤 세대가
+   소스 순서상 항상 이겨서 실제로는 뒤 세대 값만 보이는데, 앞 세대가 정의했지만 뒤 세대는
+   손대지 않은 구조 속성(position/overflow/border-width/transition, ::before의 content/
+   position/inset, .mt-card-title의 display/align-items/gap/padding/margin)은 여전히
+   필요해서 단순 삭제 대신 최종적으로 보이는 값 하나로 합쳤다(계산된 스타일은 동일). */
 #market-temp .mt-guide-card {
   position: relative;
   overflow: hidden;
   border-width: 1px;
-  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(247,249,252,.92));
-  box-shadow: 0 8px 18px rgba(26, 35, 48, .08), inset 0 1px rgba(255,255,255,.9);
+  border-color: #dfe5e8 !important;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(31,41,55,.05);
   transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
 }
 #market-temp .mt-guide-card::before {
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 4px;
-  background: linear-gradient(90deg, currentColor, transparent);
-  opacity: .75;
-}
-#market-temp .mt-guide-card:hover {
-  transform: translateY(-4px) scale(1.015);
-  box-shadow: 0 14px 28px rgba(26, 35, 48, .16), 0 0 0 1px rgba(255,255,255,.8) inset;
-  filter: saturate(1.12);
-}
-#market-temp .mt-section:has(.mt-guide-grid-cards) .mt-card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  margin: -14px -16px 14px;
-  color: #fff;
-  background: linear-gradient(115deg, #315b43, #4f8c6a 48%, #d08a3f);
-  box-shadow: 0 6px 14px rgba(49,91,67,.22);
-}
-
-/* Keep the temperature guide calm: preserve the five bands without the neon palette. */
-#market-temp .mt-section:has(.mt-guide-grid-cards) .mt-card-title {
-  color: #315b43;
-  background: #f1f5f2;
-  border-bottom: 1px solid #dfe8e1;
-  box-shadow: none;
-}
-#market-temp .mt-guide-card {
-  border-color: #dfe5e8 !important;
-  background: #fff;
-  box-shadow: 0 3px 10px rgba(31,41,55,.05);
-}
-#market-temp .mt-guide-card::before {
   height: 3px;
   background: #9aa7a0;
   opacity: .45;
@@ -63,6 +37,18 @@
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(31,41,55,.08);
   filter: none;
+}
+/* Keep the temperature guide calm: preserve the five bands without the neon palette. */
+#market-temp .mt-section:has(.mt-guide-grid-cards) .mt-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  margin: -14px -16px 14px;
+  color: #315b43;
+  background: #f1f5f2;
+  border-bottom: 1px solid #dfe8e1;
+  box-shadow: none;
 }
 #market-temp .mt-guide-card-extreme-fear .mt-guide-season,
 #market-temp .mt-guide-card-extreme-fear .mt-guide-card-range,
