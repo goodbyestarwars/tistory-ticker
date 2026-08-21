@@ -6,13 +6,18 @@
 `js/domestic-market-indicators.js`의 `setLiveStatus()`가 텍스트뿐 아니라 상태별
 `data-state`(live/stale/retry) 속성도 같이 설정하도록 고치고, `css/overnight-market.css`
 /`css/domestic-market-indicators.css`에 점(dot) + 색깔 배지 스타일을 추가했다(실시간=초록
-+ 살짝 깜빡임, 지연=주황, 연결 재시도=회색). `overnight-market.js`의 `.om-live-status`는
-페이지에 자체 헤딩(`<h2>`)이 없어 오른쪽 정렬 컨테이너 div로 감싸고 그 안에 실제 배지
-span을 둔 구조로 바꿨고(`data-om-connection`을 span으로 이동), `domestic-market-
-indicators.js`의 `.dmi-live-status`는 이미 `.dmi-heading`(flex)의 형제 span이라 CSS만
-추가했다. `test/overnight-market.html`에 Playwright로 라이트/다크/모바일(375px) 렌더링과
-실시간/지연/연결 재시도 3개 상태를 스크린샷으로 확인했다. `pytest test/ -q` 523 passed,
-`node --check`로 두 JS 파일 문법 검사 통과. `js/`, `css/`는 master 반영 후 GitHub Pages
++ 살짝 깜빡임, 지연=주황, 연결 재시도=회색). `domestic-market-indicators.js`의
+`.dmi-live-status`는 이미 `.dmi-heading`(flex)의 형제 span이라 CSS만 추가했다.
+`overnight-market.js`의 `.om-live-status`는 처음엔 헤딩이 없어 텍스트를 `<span>`으로
+한번 더 감싸고 CSS를 `.om-live-status [data-om-connection]`(자손 선택자)로 걸었는데,
+배포 직후 라이브에서 국내는 배지가 뜨고 글로벌만 맨 텍스트로 남는 문제가 확인됐다(JS·CSS
+캐시 갱신 시점이 어긋나면 이 자손 선택자가 통째로 매치 실패하는 구조적 결합 문제로 판단) -
+JS 구조 변경을 되돌리고(`data-om-connection`을 다시 div에 직접), CSS도
+`.om-live-status`에 `display:table; margin-left:auto`로 직접 스타일을 걸어 dmi와
+동일하게 JS 구조에 의존하지 않는 형태로 고쳤다. `test/overnight-market.html`에
+Playwright로 라이트/다크/모바일(375px) 렌더링과 실시간/지연/연결 재시도 3개 상태를
+스크린샷으로 확인했다. `pytest test/ -q` 523 passed, `node --check`로 두 JS 파일 문법
+검사 통과. `js/`, `css/`는 master 반영 후 GitHub Pages
 자동 배포.
 
 **2026-08-21 패턴 백테스트 스캔 6종에 `--hold-days` 옵션 추가**: `ascending_triangle_scan.py`
