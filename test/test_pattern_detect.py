@@ -135,6 +135,114 @@ def box_range_daily():
     return daily
 
 
+def double_bottom_daily():
+    """2026-08-21: 넥라인(중간 반등 고점)은 반드시 평평한 기준선(base+300)보다 확실히
+    높게 잡아야 한다 - 그보다 낮으면 max_high_between이 진짜 넥라인 대신 평평한 구간의
+    고가를 집어 마지막 봉 근접도 조건이 항상 실패한다(pandas 전환 회귀 테스트 중 확인)."""
+    n = 100
+    daily = []
+    start = date(2025, 1, 1)
+    base = 30000.0
+    for i in range(n):
+        daily.append({
+            "date": (start + timedelta(days=i)).isoformat(),
+            "open": base, "high": base + 300, "low": base - 300, "close": base, "volume": 1000,
+        })
+    i2 = n - 4  # DB_RECENCY_MAX_GAP(5) 이내
+    i1 = i2 - 30  # DB_MIN/MAX_GAP_DAYS(10~45) 범위 안
+    low1 = base * 0.80
+    low2 = low1 * 1.003  # DB_LOW_TOL(3%) 이내로 비슷한 저점
+    daily[i1].update(low=low1, close=low1 + 50, open=low1 + 80, high=low1 + 300, volume=2500)
+    mid = (i1 + i2) // 2
+    neck = base * 1.08
+    daily[mid].update(high=neck, close=neck - 30, open=neck - 60, low=neck - 250, volume=1200)
+    daily[i2].update(low=low2, close=low2 + 40, open=low2 + 70, high=low2 + 300,
+                      volume=900)  # 2번째 저점 거래량 <= 1번째
+    tail = n - 1 - i2
+    for k in range(i2 + 1, n):
+        frac = (k - i2) / tail
+        c = low2 + (neck - low2) * frac
+        lo = max(low2 * 1.002, c * 0.99)
+        daily[k].update(open=c * 0.995, close=c, high=c * 1.01, low=lo, volume=600)
+    daily[-1].update(open=neck * 0.995, close=neck * 1.006, low=neck * 0.99, high=neck * 1.015)
+    return daily
+
+
+def inv_head_shoulders_daily():
+    """double_bottom_daily와 같은 이유로 두 넥라인(peak1/peak2)을 기준선(base)보다
+    확실히 높게 잡는다."""
+    n = 90
+    daily = []
+    start = date(2025, 1, 1)
+    base = 30000.0
+    for i in range(n):
+        daily.append({
+            "date": (start + timedelta(days=i)).isoformat(),
+            "open": base, "high": base + 300, "low": base - 300, "close": base, "volume": 500,
+        })
+    i_r = n - 4  # IHS_RECENCY_MAX_GAP(5) 이내
+    i_h = i_r - 20  # IHS_MIN/MAX_SHOULDER_GAP(4~40) 범위 안
+    i_l = i_h - 20
+    left = base * 0.88
+    head = base * 0.79  # 헤드가 양 어깨보다 확실히 낮음
+    right = left * 1.0  # IHS_SHOULDER_TOL(4%) 이내 대칭
+    daily[i_l].update(low=left, close=left + 60, open=left + 100, high=left + 350, volume=1500)
+    daily[i_h].update(low=head, close=head + 60, open=head + 100, high=head + 350, volume=1500)
+    daily[i_r].update(low=right, close=right + 60, open=right + 100, high=right + 350, volume=1500)
+    peak1 = base * 1.07
+    peak2 = base * 1.06
+    daily[(i_l + i_h) // 2].update(high=peak1, close=peak1 - 30, open=peak1 - 60, low=peak1 - 250, volume=1000)
+    daily[(i_h + i_r) // 2].update(high=peak2, close=peak2 - 30, open=peak2 - 60, low=peak2 - 250, volume=1000)
+    neckline_price = min(peak1, peak2)
+    tail = n - 1 - i_r
+    for k in range(i_r + 1, n):
+        frac = (k - i_r) / tail
+        c = right + (neckline_price - right) * frac
+        lo = max(right * 1.002, c * 0.99)
+        # 우어깨 이후 거래량 급증(20일 평균 대비 1.2배 이상) 조건을 충족시키는 고거래량 구간
+        daily[k].update(open=c * 0.995, close=c, high=c * 1.01, low=lo, volume=5000)
+    daily[-1].update(open=neckline_price * 0.995, close=neckline_price * 1.006,
+                      low=neckline_price * 0.99, high=neckline_price * 1.015, volume=5000)
+    return daily
+
+
+def pullback_daily():
+    """전체 rise+pullback 구간을 recent_start(=n-25) 이후에 담아야 detect_pullback의
+    peak/low 탐색 창(PULLBACK_LOOKBACK+5=25일) 안에서 정확히 잡힌다."""
+    n = 260
+    daily = []
+    start = date(2024, 1, 1)
+    price = 20000.0
+    flat_days = n - 25
+    for i in range(flat_days):
+        daily.append({
+            "date": (start + timedelta(days=i)).isoformat(),
+            "open": price, "high": price * 1.003, "low": price * 0.997, "close": price, "volume": 1000,
+        })
+    low_price = price
+    rise_days = 15
+    rise_total = 0.28
+    for i in range(rise_days):
+        price = low_price * (1 + rise_total * (i + 1) / rise_days)
+        vol = 800 + i * 100  # 상승구간 거래량 증가
+        daily.append({
+            "date": (start + timedelta(days=flat_days + i)).isoformat(),
+            "open": price * 0.999, "high": price * 1.008, "low": price * 0.995, "close": price, "volume": vol,
+        })
+    peak = price
+    drop_days = n - len(daily)
+    drop_total = 0.08
+    for i in range(drop_days):
+        price = peak * (1 - drop_total * (i + 1) / drop_days)
+        vol = max(1800 - i * 130, 100)  # 조정구간 거래량 감소
+        daily.append({
+            "date": (start + timedelta(days=len(daily))).isoformat(),
+            "open": price * 1.001, "high": price * 1.006, "low": price * 0.995, "close": price, "volume": vol,
+        })
+    daily[-1]["close"] = daily[-1]["open"] * 1.002  # 최근 캔들 양봉
+    return daily
+
+
 class RisingLowsDetectionTest(unittest.TestCase):
     def test_small_rise_and_short_gap_are_valid(self):
         detail = detector.detect_rising_lows(compact_higher_low_daily())
@@ -377,6 +485,64 @@ class MaCloudBreakoutDetectionTest(unittest.TestCase):
                             ma_cloud_breakout_daily(), results, [])
 
         self.assertEqual(results["maCloudBreakout"], [])
+
+
+class DoubleBottomDetectionTest(unittest.TestCase):
+    """2026-08-21: pattern_detect.py를 pandas/numpy 기반으로 전환하면서 이 패턴에
+    직접적인 단위 테스트가 없었다는 걸 발견해 같이 추가했다(기존에는 scan_stock을
+    거치는 간접 테스트조차 없었음)."""
+
+    def test_detects_double_bottom_and_neckline(self):
+        detail = detector.detect_double_bottom(double_bottom_daily())
+
+        self.assertIsNotNone(detail)
+        self.assertAlmostEqual(detail["low1"]["price"], detail["low2"]["price"], delta=detail["low1"]["price"] * 0.01)
+        self.assertGreater(detail["neckline"]["price"], detail["low1"]["price"])
+        self.assertGreaterEqual(detail["score"], 70)
+
+    def test_scan_exposes_double_bottom_bucket(self):
+        results = {"risingLows": [], "maCloudBreakout": [], "doubleBottom": [],
+                   "invHeadShoulders": [], "boxRangeLow": []}
+
+        detector.scan_stock({"code": "000004", "name": "테스트"}, double_bottom_daily(), results, [])
+
+        self.assertEqual([row["code"] for row in results["doubleBottom"]], ["000004"])
+
+
+class InvHeadShouldersDetectionTest(unittest.TestCase):
+    def test_detects_symmetric_shoulders_and_neckline(self):
+        detail = detector.detect_inv_head_shoulders(inv_head_shoulders_daily())
+
+        self.assertIsNotNone(detail)
+        self.assertLess(detail["head"]["price"], detail["left_shoulder"]["price"])
+        self.assertLess(detail["head"]["price"], detail["right_shoulder"]["price"])
+        self.assertGreaterEqual(detail["score"], detector.IHS_MIN_SCORE)
+
+    def test_scan_exposes_inv_head_shoulders_bucket(self):
+        results = {"risingLows": [], "maCloudBreakout": [], "doubleBottom": [],
+                   "invHeadShoulders": [], "boxRangeLow": []}
+
+        detector.scan_stock({"code": "000005", "name": "테스트"}, inv_head_shoulders_daily(), results, [])
+
+        self.assertEqual([row["code"] for row in results["invHeadShoulders"]], ["000005"])
+
+
+class PullbackDetectionTest(unittest.TestCase):
+    def test_detects_rise_then_pullback_near_ma20(self):
+        detail = detector.detect_pullback(pullback_daily())
+
+        self.assertIsNotNone(detail)
+        self.assertGreater(detail["peak"]["price"], detail["rise_start"]["price"])
+        self.assertGreaterEqual(detail["score"], detector.PULLBACK_MIN_SCORE)
+
+    def test_scan_exposes_pullback_bucket(self):
+        results = {"risingLows": [], "maCloudBreakout": [], "doubleBottom": [],
+                   "invHeadShoulders": [], "boxRangeLow": []}
+        pullback_matches = []
+
+        detector.scan_stock({"code": "000006", "name": "테스트"}, pullback_daily(), results, pullback_matches)
+
+        self.assertEqual([row["code"] for row in pullback_matches], ["000006"])
 
 
 if __name__ == "__main__":

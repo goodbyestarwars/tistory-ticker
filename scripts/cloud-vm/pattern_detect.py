@@ -6,6 +6,9 @@
 import math
 import re
 
+import numpy as np
+import pandas as pd
+
 PATTERN_SWING = 2
 # A pattern bucket may contain at most this many candidates after its
 # chart-quality gates are applied. We do not slice by universe order.
@@ -134,30 +137,35 @@ def is_excluded_stock(stock, daily):
 
 
 def find_swing_indices(win, field, is_low):
-    idxs = []
-    for i in range(PATTERN_SWING, len(win) - PATTERN_SWING):
-        v = win[i][field]
-        ok = True
-        for k in range(i - PATTERN_SWING, i + PATTERN_SWING + 1):
-            if k == i:
-                continue
-            if (win[k][field] < v) if is_low else (win[k][field] > v):
-                ok = False
-                break
-        if ok:
-            idxs.append(i)
-    return idxs
+    """저점(is_low)/고점 스윙 인덱스 - PATTERN_SWING(2)봉씩 좌우로 겹치지 않는(weak)
+    극값을 찾는다. 동점은 허용한다(원래 파이썬 루프의 엄격한 '<'/'>' 탈락 조건과 동일).
+    2026-08-21: pandas rolling(center=True)로 벡터화(원래 이중 루프와 동일 결과 -
+    test/test_pattern_detect.py + 회귀 스크립트로 확인)."""
+    window = PATTERN_SWING * 2 + 1
+    if len(win) < window:
+        return []
+    values = pd.Series([row[field] for row in win], dtype=float)
+    rolled = values.rolling(window, center=True).min() if is_low else values.rolling(window, center=True).max()
+    mask = rolled.notna() & (values == rolled)
+    return [int(i) for i in values.index[mask]]
 
 
 def max_high_between(win, i1, i2):
-    max_high, idx = -math.inf, -1
-    for k in range(i1 + 1, i2):
-        if win[k]['high'] > max_high:
-            max_high, idx = win[k]['high'], k
-    return None if idx == -1 else {'date': win[idx]['date'], 'high': max_high}
+    if i2 <= i1 + 1:
+        return None
+    highs = np.array([win[k]['high'] for k in range(i1 + 1, i2)], dtype=float)
+    local_idx = int(np.argmax(highs))  # 동점이면 최초(가장 이른) 인덱스를 취해 기존 루프의 '>' 판정과 동일
+    idx = i1 + 1 + local_idx
+    return {'date': win[idx]['date'], 'high': float(highs[local_idx])}
 
 
 def moving_average(win, field, period):
+    """2026-08-21: pandas rolling().mean()으로 벡터화했다가 되돌렸다 - pandas의
+    내부 합산 순서가 원래의 슬라이딩 합(누적 +=/-=)과 미세하게(마지막 자리수) 달라서,
+    ma_cloud_breakout의 5일선-20일선 골든크로스처럼 두 이평선이 '정확히 같을 때'를
+    기준으로 삼는 비교에서 부동소수점 오차만으로 크로스 유무가 뒤집히는 경우를
+    회귀 테스트로 발견했다(diff_test_targeted.py). 그 경로가 있는 한 값 자체보다
+    연산 순서를 원본과 동일하게 유지하는 게 더 중요해서 그대로 둔다."""
     n = len(win)
     ma = [None] * n
     s = 0.0
@@ -171,17 +179,18 @@ def moving_average(win, field, period):
 
 
 def rsi_last(win, period=14, field='close'):
-    """Return Wilder RSI for the latest bar, or None when history is short."""
+    """Return Wilder RSI for the latest bar, or None when history is short.
+    2026-08-21: 등락폭 자체는 numpy(np.diff/np.clip)로 벡터화했지만, 초기 평균(시드)은
+    moving_average와 같은 이유로 numpy .mean()이 아니라 원본과 동일한 좌→우 순서의
+    sum()으로 계산한다(부동소수점 합산 순서 차이로 RSI 임계값 비교가 흔들리는 걸 방지)."""
     if len(win) <= period:
         return None
-    gains = []
-    losses = []
-    for i in range(1, len(win)):
-        change = win[i][field] - win[i - 1][field]
-        gains.append(max(change, 0.0))
-        losses.append(max(-change, 0.0))
-    avg_gain = sum(gains[:period]) / period
-    avg_loss = sum(losses[:period]) / period
+    closes = np.array([row[field] for row in win], dtype=float)
+    changes = np.diff(closes)
+    gains = np.clip(changes, 0.0, None)
+    losses = np.clip(-changes, 0.0, None)
+    avg_gain = float(sum(gains[:period]) / period)
+    avg_loss = float(sum(losses[:period]) / period)
     for i in range(period, len(gains)):
         avg_gain = ((avg_gain * (period - 1)) + gains[i]) / period
         avg_loss = ((avg_loss * (period - 1)) + losses[i]) / period
@@ -191,8 +200,14 @@ def rsi_last(win, period=14, field='close'):
 
 
 def avg_volume(win, from_idx, to_idx):
+    """2026-08-21: moving_average와 같은 이유로 numpy .mean()이 아니라 원본과 동일한
+    sum()/len()을 쓴다 - is_volume_declining/increasing이 두 avg_volume 결과를
+    '이르다/같다'로 엄격 비교하는데, 거래량이 일정한 구간(테스트 데이터에 흔함)에서
+    합산 순서 차이만으로 그 비교가 뒤집히는 사례를 회귀 테스트로 발견했다."""
+    if to_idx <= from_idx:
+        return 0
     vals = [win[i]['volume'] for i in range(from_idx, to_idx)]
-    return (sum(vals) / len(vals)) if vals else 0
+    return sum(vals) / len(vals)
 
 
 def is_volume_declining(win, from_idx, to_idx):
@@ -216,14 +231,16 @@ def is_volume_increasing(win, from_idx, to_idx):
 
 def is_last_candle_bullish(win):
     last = win[-1]
-    return last['close'] > last['open']
+    return bool(last['close'] > last['open'])
 
 
 def has_bullish_after(win, from_idx):
-    for i in range(from_idx + 1, len(win)):
-        if win[i]['close'] > win[i]['open']:
-            return True
-    return False
+    if from_idx + 1 >= len(win):
+        return False
+    tail = win[from_idx + 1:]
+    closes = np.array([row['close'] for row in tail], dtype=float)
+    opens = np.array([row['open'] for row in tail], dtype=float)
+    return bool(np.any(closes > opens))
 
 
 def score_tier(value, tiers):
@@ -280,9 +297,8 @@ def ichimoku_period_mid(daily, i, period):
     start = i - period + 1
     if start < 0:
         return None
-    hi = max(daily[k]['high'] for k in range(start, i + 1))
-    lo = min(daily[k]['low'] for k in range(start, i + 1))
-    return (hi + lo) / 2
+    window = np.array([[daily[k]['high'], daily[k]['low']] for k in range(start, i + 1)], dtype=float)
+    return float((window[:, 0].max() + window[:, 1].min()) / 2)
 
 
 ICHIMOKU_TENKAN_PERIOD = 9
@@ -976,6 +992,25 @@ def detect_inv_head_shoulders(daily):
 # ④ 박스권 하단(Box Range Low)
 # ---------------------------------------------------------------------------
 
+def _ma_near_count(fast_vals, slow_vals, tol):
+    """두 이평선 리스트(moving_average 결과 - 앞쪽에 None이 섞여 있을 수 있음)에서
+    둘 다 값이 있고 slow가 0이 아니며 상대 오차가 tol 이내인 봉 수를 센다(B 조건)."""
+    fast = np.array([np.nan if v is None else v for v in fast_vals], dtype=float)
+    slow = np.array([np.nan if v is None else v for v in slow_vals], dtype=float)
+    valid = ~np.isnan(fast) & ~np.isnan(slow) & (slow != 0)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        ratio = np.abs(np.where(valid, fast / slow, np.nan) - 1)
+    return int(np.sum(valid & (ratio <= tol)))
+
+
+def _ma_above_count(fast_vals, slow_vals):
+    """두 이평선 리스트에서 둘 다 값이 있고 fast >= slow인 봉 수를 센다(G 조건)."""
+    fast = np.array([np.nan if v is None else v for v in fast_vals], dtype=float)
+    slow = np.array([np.nan if v is None else v for v in slow_vals], dtype=float)
+    valid = ~np.isnan(fast) & ~np.isnan(slow)
+    return int(np.sum(valid & (fast >= slow)))
+
+
 def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     """Detect the A/B/C/D/E/G/J box-range lower-zone formula.
 
@@ -988,22 +1023,19 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
         return None
 
     range_win = win[-20:]
-    closes = [row['close'] for row in range_win]
-    lows = [row['low'] for row in range_win]
-    highs = [row['high'] for row in range_win]
-    last_close = closes[-1]
-    close_min = min(closes)
-    close_max = max(closes)
+    closes = np.array([row['close'] for row in range_win], dtype=float)
+    lows = np.array([row['low'] for row in range_win], dtype=float)
+    highs = np.array([row['high'] for row in range_win], dtype=float)
+    last_close = float(closes[-1])
+    close_min = float(closes.min())
+    close_max = float(closes.max())
     close_range = (close_max - close_min) / close_min if close_min else math.inf
     if close_range > BOX_CLOSE_RANGE_MAX:
         return None
 
     close_ma5 = moving_average(daily, 'close', 5)[-20:]
     close_ma20 = moving_average(daily, 'close', 20)[-20:]
-    close_near_count = sum(
-        1 for fast, slow in zip(close_ma5, close_ma20)
-        if fast is not None and slow and abs(fast / slow - 1) <= BOX_MA_NEAR_TOL
-    )
+    close_near_count = _ma_near_count(close_ma5, close_ma20, BOX_MA_NEAR_TOL)
     if close_near_count < BOX_MA_NEAR_COUNT:
         return None
 
@@ -1011,7 +1043,7 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     if rsi is None or not (BOX_RSI_MIN <= rsi <= BOX_RSI_MAX):
         return None
 
-    avg_volume_before = sum(row['volume'] for row in win[-6:-1]) / BOX_VOLUME_AVG_PERIOD
+    avg_volume_before = avg_volume(win, len(win) - 6, len(win) - 1)
     volume_20_ago = win[0]['volume']
     volume_ratio = volume_20_ago / avg_volume_before if avg_volume_before else math.inf
     if not (BOX_VOLUME_RATIO_MIN <= volume_ratio <= BOX_VOLUME_RATIO_MAX):
@@ -1019,10 +1051,7 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
 
     open_ma5 = moving_average(daily, 'open', 5)[-20:]
     open_ma20 = moving_average(daily, 'open', 20)[-20:]
-    open_ma_above_count = sum(
-        1 for fast, slow in zip(open_ma5, open_ma20)
-        if fast is not None and slow is not None and fast >= slow
-    )
+    open_ma_above_count = _ma_above_count(open_ma5, open_ma20)
     if open_ma_above_count < BOX_OPEN_MA_ABOVE_COUNT:
         return None
 
@@ -1030,8 +1059,8 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     if abs(return_20) > BOX_RETURN_MAX:
         return None
 
-    support = min(lows)
-    resistance = max(highs)
+    support = float(lows.min())
+    resistance = float(highs.max())
     box_range = resistance - support
     if box_range <= 0:
         return None
@@ -1098,17 +1127,18 @@ def detect_pullback(daily):
     ma240 = moving_average(win, 'close', 240)
 
     recent_start = max(0, n - PULLBACK_LOOKBACK - 5)
-    peak_idx = recent_start
-    for i in range(recent_start, n):
-        if win[i]['close'] > win[peak_idx]['close']:
-            peak_idx = i
+    # 2026-08-21: 최고가/직전 최저가를 찾는 두 루프를 numpy argmax/argmin으로 벡터화.
+    # 동점일 때 가장 이른 인덱스를 취하는 것까지 argmax/argmin의 기본 동작과 동일하다
+    # (원래 '>'/'<' 엄격 비교 루프와 같은 결과 - test/test_pattern_detect.py +
+    # 회귀 스크립트로 확인).
+    recent_closes = np.array([row['close'] for row in win[recent_start:n]], dtype=float)
+    peak_local = int(np.argmax(recent_closes))
+    peak_idx = recent_start + peak_local
     if (n - 1) - peak_idx > PULLBACK_LOOKBACK:
         return None
 
-    low_idx = recent_start
-    for j in range(recent_start, peak_idx + 1):
-        if win[j]['close'] < win[low_idx]['close']:
-            low_idx = j
+    low_local = int(np.argmin(recent_closes[:peak_local + 1]))
+    low_idx = recent_start + low_local
     if low_idx >= peak_idx:
         return None
 
