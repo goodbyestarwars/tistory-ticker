@@ -211,6 +211,71 @@ function fetchFromNaver(codes) {
   return out;
 }
 
+// 2026-08-21 코드 감사: getMarketTemp()가 섹터 풀 전체(~238종목, fetchQuotesWithCap과
+// 정확히 같은 크기의 워크로드)를 fetchFromNaver()로 순차 호출하고 있었다 - fetchAll로
+// 이미 병렬화된 fetchQuotesWithCap()은 cap/changeRate만 주고 volume이 없어
+// computeVolumeScore_ 등이 바로 못 쓰므로, fetchFromNaver()와 동일한 필드 구성
+// (price/change/changeRate/volume/time)을 유지한 채 fetchQuotesWithCap과 같은
+// fetchAll 청크 패턴만 적용한 버전. getMarketTemp() 전용 - 기존 fetchFromNaver()
+// 호출부(코드 목록이 훨씬 작은 /quote 등)는 그대로 둔다.
+function fetchFromNaverParallel_(codes) {
+  var out = [];
+  var batches = [];
+  for (var i = 0; i < codes.length; i += MARKETCAP_BATCH_SIZE) {
+    batches.push(codes.slice(i, i + MARKETCAP_BATCH_SIZE));
+  }
+
+  for (var start = 0; start < batches.length; start += FETCH_ALL_CHUNK) {
+    var chunk = batches.slice(start, start + FETCH_ALL_CHUNK);
+    var reqs = chunk.map(function (batch) {
+      return {
+        url: NAVER_POLLING_URL + batch.join(','),
+        muteHttpExceptions: true,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      };
+    });
+
+    var responses;
+    try {
+      responses = UrlFetchApp.fetchAll(reqs);
+    } catch (err) {
+      continue; // 이 청크만 스킵 - 나머지 청크 결과는 유지
+    }
+
+    responses.forEach(function (res) {
+      try {
+        if (res.getResponseCode() !== 200) return;
+
+        var body = JSON.parse(res.getContentText('EUC-KR'));
+        var areas = (body && body.result && body.result.areas) || [];
+        var itemArea = null;
+        for (var a = 0; a < areas.length; a++) {
+          if (areas[a].name === 'SERVICE_ITEM') { itemArea = areas[a]; break; }
+        }
+        var datas = (itemArea && itemArea.datas) || [];
+        var time = formatKstTime((body.result && body.result.time) || Date.now());
+
+        datas.forEach(function (d) {
+          var sign = (d.rf === '4' || d.rf === '5') ? -1 : 1;
+          var q = applyNxtOverride_(d, Number(d.nv) || 0, Math.abs(Number(d.cv) || 0) * sign, Math.abs(Number(d.cr) || 0) * sign);
+          out.push({
+            code: d.cd,
+            name: d.nm,
+            price: q.price,
+            change: q.change,
+            changeRate: q.changeRate,
+            volume: Number(d.aq) || 0,
+            time: time
+          });
+        });
+      } catch (err) {
+        // 이 배치만 스킵 - 나머지 배치 결과는 유지
+      }
+    });
+  }
+  return out;
+}
+
 // 정규장(09:00~15:40) 마감 후엔 네이버 폴링 API의 원장(KRX) 필드(nv/cv/cr)가 더 안 바뀌어서
 // "15:00 시세에 고정된 것처럼" 보였다(2026-07-16 사용자 지적). 같은 응답의 각 종목 데이터에
 // 딸려오는 nxtOverMarketPriceInfo(NXT 대체거래소 프리마켓 08:00~09:00/애프터마켓 15:30~20:00
@@ -259,8 +324,11 @@ function getMarketRibbon() {
     btc: safeCall(function () { return fetchCrypto(); })
   };
 
-  // BTC 실패(null)가 장외 30분 캐시에 박제되지 않도록, 실패 시엔 120초만 캐싱
-  var ttl = result.btc ? (isMarketOpenNow() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED) : 120;
+  // BTC 실패(null)가 장외 30분 캐시에 박제되지 않도록, 실패 시엔 120초만 캐싱.
+  // 2026-08-21 코드 감사: 09:00 개장 경계를 capTtlToSessionBoundary_로 캡핑하지 않으면
+  // 08:59에 쓰인 캐시가 09:29까지 장전 값으로 고정될 수 있었다(시세 캐시/시총버블은
+  // 이미 캡핑돼 있었는데 리본만 빠져 있었음).
+  var ttl = capTtlToSessionBoundary_(result.btc ? (isMarketOpenNow() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED) : 120);
   cache.put(cacheKey, JSON.stringify(result), ttl);
   return result;
 }
@@ -1479,7 +1547,9 @@ function getMarketTemp() {
   var universeWithSectors = safeCall(fetchSectorUniverseWithSectors_) || [];
   var universe = universeWithSectors.map(function (u) { return { name: u.name, code: u.code, market: u.market }; });
   var codes = universe.map(function (u) { return u.code; });
-  var quotes = codes.length ? (safeCall(function () { return fetchFromNaver(codes); }) || []) : [];
+  // 2026-08-21 코드 감사: fetchFromNaver()(순차 for 루프, ~6회 직렬 왕복)를
+  // fetchQuotesWithCap()과 동일한 fetchAll 병렬 패턴의 fetchFromNaverParallel_()로 교체.
+  var quotes = codes.length ? (safeCall(function () { return fetchFromNaverParallel_(codes); }) || []) : [];
 
   var vix = scoreVix_(safeCall(fetchVix_));
   var flow = computeCombinedFlowScore_();
@@ -2426,8 +2496,15 @@ function getShortPressure(code) {
     inst_net_today: instNetToday,
     short_squeeze_index: shortSqueezeIndex,
     pressure: pressure,
+    // 2026-08-21 코드 감사: parseShortTradeRows_의 컬럼 인덱스(shortRatioPct 이후)는
+    // 실제 네이버 응답으로 검증된 적 없는 추정 매핑이다(주석 참고, ?debugShortNaver=1로
+    // 검증 가능) - CLAUDE.md "미검증 API 필드를 확정값처럼 쓰지 않는다" 규칙에 따라
+    // 이 사실을 응답에 명시해 프론트/소비자가 신뢰도를 판단할 수 있게 한다. 검증되면
+    // true로 바꾸고 이 코멘트는 지울 것.
+    columnMappingVerified: false,
     note: '대차잔고는 네이버·KRX 모두 개별종목 단위로 공개하지 않아 이 지표에서는 제외했습니다. ' +
-      '공매도 압박은 항상 "가능성/추정"이며, 공매도가 주가를 누른다고 단정하지 않습니다.'
+      '공매도 압박은 항상 "가능성/추정"이며, 공매도가 주가를 누른다고 단정하지 않습니다. ' +
+      '공매도비중/잔고 관련 수치는 컬럼 매핑이 아직 실측 검증되지 않아 부정확할 수 있습니다.'
   };
 }
 
@@ -2702,12 +2779,33 @@ function getStrategyScanResult() {
 // (스캔 결과에는 캔들 전체를 저장하지 않음 - PropertiesService 9KB/속성 제한 때문)
 // 화면 표시는 PATTERN_CHART_PAGES(2년치)로 넉넉히 가져오고, 패턴 판정(detect*_)은 각 함수가
 // daily.slice()로 자기 window(60/90/40일 등)만 잘라 쓰므로 스캔 리스트와 결과가 동일하게 유지된다.
+var PATTERN_CHART_OHLC_CACHE_TTL = 1800; // 30분 - getFlowChart의 FLOW_CHART_CACHE_TTL과 동일한 절충
+
+// 2026-08-21 코드 감사: getFlowChart()와 달리 VM 우선 조회 없이 매번 50페이지(PATTERN_
+// CHART_PAGES) 네이버 크롤링을 했고 캐싱도 안 해서, 같은 종목·패턴을 반복 클릭하거나
+// 새로고침만 해도 매번 재크롤링됐다. getFlowChart와 동일하게 VM /ohlc 우선 조회 + 실패
+// 시 폴백을 적용한다. 패턴 판정(evaluationDaily)은 scanDate에 따라 매번 달라지므로
+// 캐싱 대상에서 제외하고, 여기서는 원본 일봉 데이터만 코드 기준으로 짧게 캐싱한다.
+function fetchDailyOhlcForPatternChart_(code) {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = CACHE_PREFIX + 'pattern_chart_ohlc_' + code;
+  var cached = cache.get(cacheKey);
+  if (cached) {
+    var parsedCache_ = parseCachedJson_(cached);
+    if (parsedCache_ !== null) return parsedCache_;
+  }
+  var daily = kiwoomVmFetch_('/ohlc/' + encodeURIComponent(code));
+  if (!daily || daily.length < 30) daily = fetchDailyOhlc_(code, PATTERN_CHART_PAGES);
+  if (daily && daily.length) cache.put(cacheKey, JSON.stringify(daily), PATTERN_CHART_OHLC_CACHE_TTL);
+  return daily || [];
+}
+
 function getPatternChart(code, patternType, scanDate) {
   if (!/^[0-9A-Za-z]{6}$/i.test(code)) {
     return { error: 'INVALID_CODE', message: '6자리 종목코드가 필요합니다.' };
   }
 
-  var daily = fetchDailyOhlc_(code, PATTERN_CHART_PAGES);
+  var daily = fetchDailyOhlcForPatternChart_(code);
   if (daily.length < BOX_WINDOW) {
     return { error: 'NO_DATA', message: '일봉 데이터를 가져오지 못했습니다.' };
   }
@@ -3415,13 +3513,21 @@ function isAnyTradingSessionOpen_() {
 // CacheService 항목은 저장 시점 TTL을 그대로 유지하므로 08:00가 지나 실제로 장이 열려도
 // 최악의 경우 08:29까지 직전 장외 스냅샷이 그대로 나간다. 다음 08:00/20:00까지 남은 초로
 // ttl을 캡핑해, 경계 직전에 쓴 캐시가 경계 시점 근처에서 자연 만료되도록 한다.
+// 2026-08-21 코드 감사: 08:00/20:00(NXT 프리·애프터마켓, isAnyTradingSessionOpen_ 기준)
+// 경계만 알고 있어서, 정규장 09:00/15:40 경계(isMarketOpenNow() 기준으로 TTL을 정하는
+// getMarketRibbon 등)는 캡핑하지 못했다 - 08:59에 캐싱된 "장외" 판정이 09:29까지
+// 그대로 나가는 문제(사용자 리포트, 08:00 경계와 동일한 유형). 정규장 개장·마감 경계도
+// 함께 넣어 두 판정 함수(isMarketOpenNow/isAnyTradingSessionOpen_) 어느 쪽을 썼든
+// 안전하게 캡핑되도록 한다.
 function capTtlToSessionBoundary_(ttl) {
   var now = new Date();
   var hh = Number(Utilities.formatDate(now, 'Asia/Seoul', 'HH'));
   var mm = Number(Utilities.formatDate(now, 'Asia/Seoul', 'mm'));
   var ss = Number(Utilities.formatDate(now, 'Asia/Seoul', 'ss'));
   var secondsNow = hh * 3600 + mm * 60 + ss;
-  var boundariesSec = [8 * 3600, 20 * 3600, 32 * 3600]; // 08:00, 20:00, 다음날 08:00(24+8시)
+  // 08:00, 09:00, 15:40, 20:00 - 오늘분 + 다음날분(더 늦은 경계를 이미 지난 경우 대비)
+  var todayBoundariesSec = [8 * 3600, 9 * 3600, (15 * 3600 + 40 * 60), 20 * 3600];
+  var boundariesSec = todayBoundariesSec.concat(todayBoundariesSec.map(function (b) { return b + 24 * 3600; }));
   var secondsToNext = boundariesSec.reduce(function (min, b) {
     var diff = b - secondsNow;
     return (diff > 0 && diff < min) ? diff : min;

@@ -1,5 +1,30 @@
 # 9Pay 주요 작업이력
 
+**2026-08-21 코드베이스 전수 감사 - GAS 프록시 4건 수정**: 전수 감사 7개 영역 중
+"GAS 프록시"(`gas/ticker-proxy.gs`) 영역 4건 전부 수정.
+
+- `getMarketRibbon()`(코스피/코스닥/환율/BTC, 모든 페이지 최상단): 캐시 TTL이 08:00/20:00
+  (NXT 프리·애프터마켓) 경계만 알고 09:00 정규장 개장 경계를 몰라, 08:59에 캐싱되면
+  09:29까지 장전 값이 그대로 나가는 문제 - `capTtlToSessionBoundary_`가 09:00/15:40
+  경계도 함께 캡핑하도록 확장(시세 캐시·시총버블에 이미 적용된 수정과 동일한 유형).
+- `getShortPressure()`: 컬럼 매핑이 "실제 미확인, 추정"이라고 스스로 주석에 적어둔 채
+  공매도 압박 점수를 인증 없이 공개 응답하고 있었음(CLAUDE.md "미검증 API 필드를 확정값
+  처럼 쓰지 않는다" 규칙 위반) - 실제 컬럼 순서를 라이브 검증할 수단이 없어 데이터는
+  그대로 두되, `columnMappingVerified: false` 플래그와 사용자 노출 안내문을 추가해
+  미검증 상태를 명시했다. `?debugShortNaver=1`로 실측 검증되면 되돌릴 것.
+- `getMarketTemp()`: 섹터 풀 전체(~238종목, `getMarketcapBubble()`과 동일 크기)를
+  `fetchFromNaver()`(순차 for 루프)로 조회하던 걸, 필드 구성(volume 포함)을 유지한 채
+  `fetchQuotesWithCap()`과 같은 `fetchAll` 병렬 패턴의 신규 `fetchFromNaverParallel_()`로
+  교체(기존 `fetchFromNaver()`의 다른 호출부는 그대로 둠).
+- `getPatternChart()`: `getFlowChart()`와 달리 VM 우선 조회·캐싱 없이 매번 50페이지
+  네이버 크롤링을 하던 걸, VM `/ohlc` 우선 조회 + 폴백 + 30분 캐싱(신규
+  `fetchDailyOhlcForPatternChart_`, scanDate에 따라 달라지는 패턴 판정 자체는 캐싱
+  대상에서 제외)으로 교체.
+
+검증: `node --check`로 문법 확인(GAS는 pytest 대상 아님), 관련 Python 회귀 523건 통과
+(영향 없음 확인). `master` 반영 후 GitHub Actions(clasp) 자동 배포 - Secrets 없으면
+GAS 편집기에서 수동 배포 필요.
+
 **2026-08-21 코드베이스 전수 감사 - 뉴스/펀더멘털/데이터 수집 4건 수정**: 전수 감사 7개
 영역 중 "뉴스·펀더멘털·외부데이터 수집" 영역 4건 전부 수정.
 
