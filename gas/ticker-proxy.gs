@@ -2714,10 +2714,60 @@ function setupPatternScanTrigger() {
   });
 }
 
+// 2026-08-22: "블로그는 속도가 생명" - 이 결과가 캐시 없이 요청마다 VM을 라이브로
+// 왕복하고 있어(아래 getStrategyScanResult()의 예전 주석은 "VM이 이미 파일 캐시라
+// 가벼움"이라고 판단했었는데, 실측(curl)해보니 patternScan 150KB에 11.4초, strategyScan
+// 875KB에 5.8초로 실제로는 느렸다 - 병목은 VM의 파일 읽기가 아니라 GAS<->VM 네트워크
+// 왕복 + 대용량 JSON 재포장 비용이었다). daily_scan.py/strategy_scan.py는 하루 1회만
+// 갱신되므로 몇 분 정도 캐싱해도 신선도 손실이 없다 - CacheService에 결과를 캐싱한다.
+// CacheService 값 1개당 100KB 제한 때문에(이 응답들은 그보다 큼) putChunkedCache_/
+// getChunkedCache_(청크 분할 저장)로 우회한다.
+var SCAN_RESULT_CACHE_TTL = 600; // 10분 - 배치가 하루 1회만 바뀌므로 넉넉히 잡아도 무해
+
+function putChunkedCache_(key, value, ttlSec) {
+  try {
+    var text = JSON.stringify(value);
+    var chunkSize = 90000; // 100KB 제한에 여유를 둔 청크 크기
+    var count = Math.ceil(text.length / chunkSize) || 1;
+    var payload = {};
+    payload[key + '__n'] = String(count);
+    for (var i = 0; i < count; i++) {
+      payload[key + '__' + i] = text.substring(i * chunkSize, (i + 1) * chunkSize);
+    }
+    CacheService.getScriptCache().putAll(payload, ttlSec);
+  } catch (err) {
+    // 캐싱 실패는 무해(다음 요청이 다시 라이브로 가져옴) - 응답 자체를 막지 않는다.
+  }
+}
+
+function getChunkedCache_(key) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var countStr = cache.get(key + '__n');
+    if (!countStr) return null;
+    var count = parseInt(countStr, 10);
+    var keys = [];
+    for (var i = 0; i < count; i++) keys.push(key + '__' + i);
+    var chunks = cache.getAll(keys);
+    var text = '';
+    for (var i = 0; i < count; i++) {
+      var chunk = chunks[key + '__' + i];
+      if (chunk == null) return null; // 청크 일부 유실/만료 - 캐시 미스로 취급
+      text += chunk;
+    }
+    return JSON.parse(text);
+  } catch (err) {
+    return null;
+  }
+}
+
 // 2026-07-13: 스캔 자체는 VM의 daily_scan.py(하루 1회 systemd timer)로 이전됨 - GAS
 // UrlFetchApp 할당량을 태우던 이어달리기 워커는 삭제되고, VM의 /daily-scan-batch 결과를
 // 그대로 읽어와 원래 응답 형태로 재포장한다 - 프론트(js/pattern-scan.js)는 변경 불필요.
 function getPatternScanResult() {
+  var cached = getChunkedCache_('patternScanResult_v1');
+  if (cached) return cached;
+
   var data = kiwoomVmFetch_('/daily-scan-batch');
   if (!data) {
     return {
@@ -2727,7 +2777,7 @@ function getPatternScanResult() {
   }
   var patternScan = data.patternScan || {};
   var pullbackScan = data.pullbackScan || {};
-  return {
+  var result = {
     scannedAt: data.generatedAt || null,
     universe: data.universe || 0,
     scanned: patternScan.scanned || 0,
@@ -2753,16 +2803,22 @@ function getPatternScanResult() {
     // 공파산 타점 탭 전용 - 같은 구조의 별도 백테스트 요약.
     gongpasanBacktest: data.gongpasanBacktest || null
   };
+  putChunkedCache_('patternScanResult_v1', result, SCAN_RESULT_CACHE_TTL);
+  return result;
 }
 
 // 전략검색(js/strategy-search.js) - VM의 strategy_scan.py(하루 1회 systemd timer,
-// daily_scan 20분 뒤)가 전종목을 미리 스캔해둔 결과를 그대로 재포장한다 -
-// getPatternScanResult()와 동일 패턴(캐시 없이 매 요청 kiwoomVmFetch_ 호출, VM 쪽이 이미
-// 파일 캐시라 가벼움). 2026-08: kisyaml 프리셋 10개(전략별 탭)를 폐기하고 "저평가 종목"을
-// 첫 카테고리로 신설했다 - "전략검색"은 여러 카테고리를 탭으로 보여주는 틀이고 저평가
-// 종목은 그 중 하나일 뿐이라(계속 추가 예정), strategy_scan.py 출력이 categories(카테고리
-// id -> {name, methodology, sectors}) 구조로 한 겹 감싸져 있다.
+// daily_scan 20분 뒤)가 전종목을 미리 스캔해둔 결과를 그대로 재포장한다. 2026-08: kisyaml
+// 프리셋 10개(전략별 탭)를 폐기하고 "저평가 종목"을 첫 카테고리로 신설했다 -
+// "전략검색"은 여러 카테고리를 탭으로 보여주는 틀이고 저평가 종목은 그 중 하나일 뿐이라
+// (계속 추가 예정), strategy_scan.py 출력이 categories(카테고리 id -> {name, methodology,
+// sectors}) 구조로 한 겹 감싸져 있다. 2026-08-22: getPatternScanResult()와 동일하게
+// CacheService 캐싱 추가(위 SCAN_RESULT_CACHE_TTL 주석 참고 - 875KB 응답이 캐시 없이는
+// 5.8초 걸리는 것으로 실측됨).
 function getStrategyScanResult() {
+  var cached = getChunkedCache_('strategyScanResult_v1');
+  if (cached) return cached;
+
   var data = kiwoomVmFetch_('/strategy-scan-batch');
   if (!data) {
     return {
@@ -2770,7 +2826,7 @@ function getStrategyScanResult() {
       skippedNoSector: 0, skippedNoFundamentals: 0, categories: {}
     };
   }
-  return {
+  var result = {
     scannedAt: data.scannedAt || null,
     scanned: data.scanned || 0,
     universe: data.universe || 0,
@@ -2780,6 +2836,8 @@ function getStrategyScanResult() {
     skippedNoFundamentals: data.skippedNoFundamentals || 0,
     categories: data.categories || {}
   };
+  putChunkedCache_('strategyScanResult_v1', result, SCAN_RESULT_CACHE_TTL);
+  return result;
 }
 
 // 클릭 시 온디맨드 차트: 그 종목만 다시 크롤링해서 캔들 데이터 + 패턴 좌표를 반환.

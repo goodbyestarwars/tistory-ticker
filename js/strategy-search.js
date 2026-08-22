@@ -361,8 +361,8 @@
       wrap.innerHTML = renderDividendTable();
       return;
     }
-    if (activeKey === 'undervalued') {
-      wrap.innerHTML = renderStrategyTable();
+    if (activeKey === 'undervalued' || activeKey === 'targetPriceGap') {
+      wrap.innerHTML = renderStrategyTable(activeKey);
       return;
     }
     if (activeKey === 'nationalPension') {
@@ -392,6 +392,7 @@
   function strategySignal(item) {
     if (item.disparity != null) return '120일선 대비 ' + fmtPctSigned(Number(item.disparity) - 100);
     if (item.envelope && item.envelope.closeDistancePct != null) return '주봉 엔벨로프 하단 ' + fmtPct(item.envelope.closeDistancePct);
+    if (item.targetGapPct != null) return '목표가 ' + fmtWon(item.targetPrice) + ' (괴리 +' + fmtPct(item.targetGapPct) + ')';
     if (item.gapRatePct != null) return '시초갭 ' + fmtPct(item.gapRatePct);
     return '전략 조건 충족';
   }
@@ -419,8 +420,8 @@
       + '</tr>';
   }
 
-  function renderStrategyTable() {
-    var matches = allMatches('undervalued');
+  function renderStrategyTable(key) {
+    var matches = allMatches(key || 'undervalued');
     if (!matches.length) return '<div class="ss-hint">지금은 이 카테고리 조건에 맞는 종목이 없어요.</div>';
     var showFundamentals = matches.some(function (item) { return item.roe != null || item.debtRatio != null; });
     var headers = ['관심', '순위', '종목명', '종목코드', '업종', '현재가', '등락률', '전략 지표'];
