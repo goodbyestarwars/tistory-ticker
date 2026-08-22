@@ -1514,7 +1514,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "renderNpsTable",
             "holdingPct",
             "evaluationAmountEok",
-            "activeNpsMinPct",
+            "activeNpsRangeIndex",
             "ss-nps-filter-select",
             "보유 지분율",
         ):

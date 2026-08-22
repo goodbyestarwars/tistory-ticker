@@ -38,13 +38,25 @@
   // 2026-08-20: 국민연금 보유종목 - 어제는 표시 개수를 상위 100개로 서버에서 잘랐는데,
   // "1000개는 과하다, %로 자르자"는 사용자 요청으로 지분율 기준 필터로 바꿨다. 서버는
   // 다시 전종목(NPS_TOP_N=None)을 다 내려주고, 렌더링할 행 수는 여기 클라이언트에서
-  // 지분율 임계값(activeNpsMinPct)으로 좁힌다 - 임계값을 바꿔도 서버 재호출 없이 즉시
-  // 다시 그린다(ss-dividend-sort-select와 동일한 클라이언트 재렌더 패턴).
+  // 지분율 구간(activeNpsRangeIndex, 2026-08-22부터 누적 임계값 대신 구간 방식)으로
+  // 좁힌다 - 구간을 바꿔도 서버 재호출 없이 즉시 다시 그린다(ss-dividend-sort-select와
+  // 동일한 클라이언트 재렌더 패턴).
   // NPS_RENDER_CAP은 임계값을 아무리 낮게 잡아도(예: 1% 이상) 어제 같은 대량 렌더 멈춤이
   // 다시 생기지 않도록 거는 안전판이다 - 실제로 이 상한에 걸릴 일은 거의 없을 것으로
   // 예상하지만(5% 이상만 해도 5%룰 신고 종목 규모인 100~150개 안팎으로 추정) 값 분포를
   // 정확히 검증하지 않았으므로 방어적으로 남겨둔다.
-  var activeNpsMinPct = 5;
+  // 2026-08-22: "5% 이상"류 누적 임계값 대신 구간(1~3%/3~5%/5~8%/8~10%/10% 이상)으로
+  // 변경 - 누적식이면 하위 구간을 넓혀도 상위권 종목(순위 1~5위 등)이 그대로 맨 위에
+  // 남아 "안 바뀐 것처럼" 보인다는 사용자 지적 반영. 반개구간([min, max))으로 겹치지
+  // 않게 나누고, 마지막 구간만 상한 없이 10% 이상 전부를 포함한다.
+  var NPS_RANGE_OPTIONS = [
+    { min: 1, max: 3, label: '1% ~ 3%' },
+    { min: 3, max: 5, label: '3% ~ 5%' },
+    { min: 5, max: 8, label: '5% ~ 8%' },
+    { min: 8, max: 10, label: '8% ~ 10%' },
+    { min: 10, max: null, label: '10% 이상' },
+  ];
+  var activeNpsRangeIndex = 2; // 기본값: 5% ~ 8%(예전 기본값 "5% 이상"과 가장 근접한 구간)
   var NPS_RENDER_CAP = 300;
   function stockIconHtml(code, cls) {
     if (!code) return '';
@@ -295,7 +307,8 @@
       }
       var npsSelect = event.target.closest ? event.target.closest('.ss-nps-filter-select') : null;
       if (npsSelect) {
-        activeNpsMinPct = Number(npsSelect.value) || activeNpsMinPct;
+        var rangeIndex = Number(npsSelect.value);
+        if (NPS_RANGE_OPTIONS[rangeIndex]) activeNpsRangeIndex = rangeIndex;
         renderCards(container);
       }
     });
@@ -437,11 +450,9 @@
       + '</tr>';
   }
 
-  var NPS_MIN_PCT_OPTIONS = [10, 8, 5, 3, 1];
-
   function npsFilterSelectHtml(metaText) {
-    var options = NPS_MIN_PCT_OPTIONS.map(function (pct) {
-      return '<option value="' + pct + '"' + (pct === activeNpsMinPct ? ' selected' : '') + '>' + pct + '% 이상</option>';
+    var options = NPS_RANGE_OPTIONS.map(function (range, index) {
+      return '<option value="' + index + '"' + (index === activeNpsRangeIndex ? ' selected' : '') + '>' + range.label + '</option>';
     }).join('');
     // 2026-08-20: 전체/필터 후 개수 안내(metaText)를 필터 셀렉트와 같은 줄에 붙였다 -
     // 원래는 .ss-hint(빈 상태 안내용, 위아래 28px 패딩) 재사용이라 셀렉트 밑에 큰 공백이
@@ -460,14 +471,19 @@
       return (b.holdingPct || 0) - (a.holdingPct || 0);
     });
     if (!all.length) return '<div class="ss-hint">지금은 국민연금 보유 정보를 확인할 수 있는 종목이 없어요.</div>';
-    // 2026-08-20: 어제는 서버에서 상위 100개로 잘랐는데, "1000개는 과하다, %로 자르자"는
-    // 요청으로 지분율 임계값 필터로 바꿨다(전체 종목 수는 필터와 무관하게 항상
-    // filterMeta에 보여줌 - 왜 이 개수만 보이는지 알 수 있게).
-    var matches = all.filter(function (item) { return (item.holdingPct || 0) >= activeNpsMinPct; });
+    // 2026-08-22: 누적 임계값("N% 이상")이 아니라 구간([min, max))으로 필터한다 - 마지막
+    // 구간(max=null)만 상한 없이 min% 이상 전부. 상위권 종목이 어느 구간에서나 그대로
+    // 맨 위에 남아 "안 바뀐 것처럼" 보이던 문제를 없앤다(구간을 바꾸면 아예 다른 종목
+    // 집합이 나옴).
+    var range = NPS_RANGE_OPTIONS[activeNpsRangeIndex];
+    var matches = all.filter(function (item) {
+      var pct = item.holdingPct || 0;
+      return pct >= range.min && (range.max == null || pct < range.max);
+    });
     var truncated = matches.length > NPS_RENDER_CAP;
     var shown = truncated ? matches.slice(0, NPS_RENDER_CAP) : matches;
     var headers = ['관심', '순위', '종목명', '종목코드', '업종', '현재가', '등락률', '보유 지분율', '평가액'];
-    var metaText = '전체 ' + all.length + '종목 중 지분율 ' + activeNpsMinPct + '% 이상 '
+    var metaText = '전체 ' + all.length + '종목 중 지분율 ' + range.label + ' '
       + matches.length + '종목' + (truncated ? ' · 상위 ' + NPS_RENDER_CAP + '개만 표시' : '');
     if (!shown.length) {
       return npsFilterSelectHtml(metaText) + '<div class="ss-hint">이 지분율 기준을 만족하는 종목이 없어요. 기준을 낮춰보세요.</div>';
