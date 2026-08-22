@@ -18,32 +18,40 @@ if PANDAS_AVAILABLE:
     import db_schema
 
 
-def _flat_accelerate_plateau_rows(flat_days=40, accel_days=30, plateau_days=50, base=10000, accel_step=8, plateau_step=240):
+def _flat_accelerate_plateau_rows(flat_days=40, accel_days=30, plateau_days=50, base=10000, accel_step=8,
+                                   plateau_step=240, accel_volume_step=60):
     """평평(각도 0 근방) -> 갈수록 상승폭이 커지는 가속 구간(각도가 빠르게 커짐) -> 상승폭이
     일정해지는 평탄 상승 구간(각도가 다시 완만해짐)으로 이어지는 합성 OHLC. entry_signal이
     "가속이 시작되는 초입"에서만 켜지고, 상승이 이미 일정한 속도로 굳어진 뒤(평탄 상승)에는
-    꺼져야 한다는 걸 확인하는 재료로 쓴다."""
+    꺼져야 한다는 걸 확인하는 재료로 쓴다.
+
+    2026-08-22: entry_signal에 거래량 분출(volume_erupt_filter) 조건이 추가돼, 가속 구간에
+    거래량도 함께 늘어나야 한다 - 평평/평탄 구간은 거래량을 고정(diff=0, 분출 없음)해 두고
+    가속 구간에서만 거래량이 계단식으로 늘게 했다(가격 각도가 가속 구간에서만 튀는 것과
+    같은 방식)."""
     rows = []
     price = float(base)
+    volume = 1000
     cursor = date(2024, 1, 1)
     for i in range(flat_days):
         rows.append({
             'date': cursor.isoformat(),
-            'open': price - 5, 'high': price + 10, 'low': price - 10, 'close': price, 'volume': 1000,
+            'open': price - 5, 'high': price + 10, 'low': price - 10, 'close': price, 'volume': volume,
         })
         cursor += timedelta(days=1)
     for i in range(accel_days):
         price += (i + 1) * accel_step
+        volume += accel_volume_step
         rows.append({
             'date': cursor.isoformat(),
-            'open': price - accel_step, 'high': price + 10, 'low': price - accel_step - 10, 'close': price, 'volume': 1000,
+            'open': price - accel_step, 'high': price + 10, 'low': price - accel_step - 10, 'close': price, 'volume': volume,
         })
         cursor += timedelta(days=1)
     for _ in range(plateau_days):
         price += plateau_step
         rows.append({
             'date': cursor.isoformat(),
-            'open': price - plateau_step, 'high': price + 10, 'low': price - plateau_step - 10, 'close': price, 'volume': 1000,
+            'open': price - plateau_step, 'high': price + 10, 'low': price - plateau_step - 10, 'close': price, 'volume': volume,
         })
         cursor += timedelta(days=1)
     return rows
@@ -141,6 +149,89 @@ class AccumulationAngleTests(unittest.TestCase):
         summary = accumulation_angle.summarize_backtest([0.05, 0.03])
         self.assertIsNone(summary['profitFactor'])
         self.assertIsNone(summary['avgLossPct'])
+
+    # 2026-08-22 신설(작업지시서 1~3단계) --------------------------------------------
+
+    def test_entry_signal_requires_volume_eruption(self):
+        """거래량이 가격 가속 구간에도 전혀 안 늘면(거래량 diff=0 고정) 다른 조건이 전부
+        맞아도 entry_signal이 뜨면 안 된다."""
+        rows = _flat_accelerate_plateau_rows(accel_volume_step=0)
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = accumulation_angle.compute_accumulation_angle('005930', conn=object())
+        self.assertFalse(df['volume_erupt_filter'].any())
+        self.assertFalse(df['entry_signal'].any())
+
+    def test_ema_aligned_reflects_ema_short_above_ema_long(self):
+        rows = _flat_accelerate_plateau_rows()
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = accumulation_angle.compute_accumulation_angle('005930', conn=object())
+        expected = df['ema_short'] > df['ema_long']
+        self.assertTrue((df['ema_aligned'] == expected).all())
+        # entry_signal이 뜨는 날은 전부 정배열(ema_aligned)이어야 한다.
+        self.assertTrue(df.loc[df['entry_signal'], 'ema_aligned'].all())
+
+    def test_overheated_excludes_entry_signal(self):
+        """20일 엔벨로프 상단을 훌쩍 넘는 날(초급등)은 entry_signal 조건을 다 만족해도
+        overheated로 제외돼야 한다."""
+        rows = _flat_accelerate_plateau_rows(flat_days=40, accel_days=10, plateau_days=0,
+                                              accel_step=400)  # 훨씬 가파른 가속으로 과열 유도
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = accumulation_angle.compute_accumulation_angle('005930', conn=object())
+        self.assertTrue(df['overheated'].any(), '이 합성 데이터는 최소 하루는 과열 상태여야 한다')
+        self.assertFalse(df.loc[df['overheated'], 'entry_signal'].any())
+
+    def test_backtest_angle_entry_with_dynamic_exit_stop_loss(self):
+        """진입 기준 봉(신호 당일)의 저가를 이탈하면 그 즉시 종가로 손절 청산돼야 한다."""
+        rows = [
+            {'date': '2025-01-01', 'open': 100.0, 'high': 101.0, 'low': 98.0, 'close': 100.0, 'volume': 100,
+             'angle_short': 1.0, 'entry_signal': False},
+            {'date': '2025-01-02', 'open': 100.0, 'high': 101.0, 'low': 95.0, 'close': 100.0, 'volume': 100,
+             'angle_short': 2.0, 'entry_signal': True},   # 신호 당일 - 저가 95가 손절 기준선
+            {'date': '2025-01-03', 'open': 102.0, 'high': 103.0, 'low': 101.0, 'close': 102.0, 'volume': 100,
+             'angle_short': 3.0, 'entry_signal': False},  # 진입일(다음날 시가 102)
+            {'date': '2025-01-04', 'open': 101.0, 'high': 102.0, 'low': 90.0, 'close': 91.0, 'volume': 100,
+             'angle_short': 4.0, 'entry_signal': False},  # 저가 90 <= 95 -> 손절, 종가 91 청산
+            {'date': '2025-01-05', 'open': 91.0, 'high': 95.0, 'low': 89.0, 'close': 94.0, 'volume': 100,
+             'angle_short': 5.0, 'entry_signal': False},
+        ]
+        df = accumulation_angle.compute_accumulation_angle.__globals__['pd'].DataFrame(rows)
+        trades = accumulation_angle.backtest_angle_entry_with_dynamic_exit(df, slippage_pct=0.0)
+        self.assertEqual(len(trades), 1)
+        self.assertAlmostEqual(trades[0], (91.0 - 102.0) / 102.0, places=6)
+
+    def test_backtest_angle_entry_with_dynamic_exit_take_profit_on_angle_turn(self):
+        """손절 없이 각도가 직전 봉 대비 꺾이는 첫 시점에 종가로 익절 청산돼야 한다."""
+        rows = [
+            {'date': '2025-01-01', 'open': 100.0, 'high': 101.0, 'low': 90.0, 'close': 100.0, 'volume': 100,
+             'angle_short': 1.0, 'entry_signal': True},   # 신호 당일 - 저가 90(손절 기준, 안 뚫림)
+            {'date': '2025-01-02', 'open': 102.0, 'high': 108.0, 'low': 101.0, 'close': 105.0, 'volume': 100,
+             'angle_short': 3.0, 'entry_signal': False},  # 진입일(시가 102), 각도 상승
+            {'date': '2025-01-03', 'open': 106.0, 'high': 112.0, 'low': 104.0, 'close': 110.0, 'volume': 100,
+             'angle_short': 5.0, 'entry_signal': False},  # 각도 계속 상승
+            {'date': '2025-01-04', 'open': 111.0, 'high': 115.0, 'low': 109.0, 'close': 112.0, 'volume': 100,
+             'angle_short': 4.0, 'entry_signal': False},  # 각도 5->4로 꺾임 -> 이 날 종가로 익절
+            {'date': '2025-01-05', 'open': 112.0, 'high': 120.0, 'low': 111.0, 'close': 118.0, 'volume': 100,
+             'angle_short': 6.0, 'entry_signal': False},
+        ]
+        df = accumulation_angle.compute_accumulation_angle.__globals__['pd'].DataFrame(rows)
+        trades = accumulation_angle.backtest_angle_entry_with_dynamic_exit(df, slippage_pct=0.0)
+        self.assertEqual(len(trades), 1)
+        self.assertAlmostEqual(trades[0], (112.0 - 102.0) / 102.0, places=6)
+
+    def test_backtest_angle_entry_with_dynamic_exit_time_cut(self):
+        """손절도 익절도 안 뜨면 max_hold_days 마지막 날 종가로 강제 청산돼야 한다."""
+        rows = [{'date': '2025-01-01', 'open': 100.0, 'high': 101.0, 'low': 50.0, 'close': 100.0,
+                  'volume': 100, 'angle_short': 1.0, 'entry_signal': True}]
+        for i in range(1, 10):
+            rows.append({'date': '2025-01-%02d' % (i + 1), 'open': 100.0 + i, 'high': 101.0 + i,
+                          'low': 60.0, 'close': 100.0 + i, 'volume': 100,
+                          'angle_short': 1.0 + i, 'entry_signal': False})  # 각도 계속 상승(안 꺾임)
+        df = accumulation_angle.compute_accumulation_angle.__globals__['pd'].DataFrame(rows)
+        trades = accumulation_angle.backtest_angle_entry_with_dynamic_exit(df, slippage_pct=0.0, max_hold_days=5)
+        self.assertEqual(len(trades), 1)
+        entry_price = rows[1]['open']  # entry_idx = 0(신호) + 1 = 1
+        exit_price = rows[5]['close']  # last_checkable = entry_idx(1) + max_hold_days(5) - 1 = 5
+        self.assertAlmostEqual(trades[0], (exit_price - entry_price) / entry_price, places=6)
 
 
 if __name__ == '__main__':

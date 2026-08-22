@@ -1,5 +1,38 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(9차) 각도기 타점(`accumulation_angle.compute_accumulation_angle`) 보강**:
+작업지시서 0~4단계 전부 반영("실험적 지표" 표기 유지, 운영 스캔 6개 탭에는 미편입 그대로).
+0단계(선행 조사): angle_short/angle_mid/angle_long을 서로 직접 비교하는 로직은 없음을
+확인(각자 자기 직전 봉 대비 가속 방향만 봄) - N값(5 vs 20) 차이로 인한 교차비교 착시
+문제는 해당 없어 1~3단계만 진행.
+1단계: 거래량도 동시에 "분출" 상태여야 함 - 가격 각도의 erupt_filter와 같은 방식(당일
+변화량이 최근 20일 변화량 표준편차의 배수 초과)을 거래량 원시 변화량에 적용
+(`volume_erupt_filter`, 배수는 `VOLUME_ERUPT_STD_MULTIPLIER`로 분리했지만 지시대로 우선
+`ERUPT_STD_MULTIPLIER`=1.5와 동일값에서 시작).
+2단계: EMA(5)>EMA(20)(`ema_aligned`, 정배열 초입) 조건 추가 - 역배열 상태의 가속 신호를
+배제.
+3단계: 20일 엔벨로프(typical_price 20일 평균 대비 `ENVELOPE_UPPER_PCT`=10%, 신규 상수 -
+gongpasan_strategy.py의 46일 엔벨로프와는 기간·용도가 달라 재사용 안 함) 상단을 시가나
+종가가 벗어나면(`overheated`) 제외.
+4단계(각도기 테스트 탭 전용 백테스트): `backtest_angle_entry_with_dynamic_exit()` 신규
+함수 - 진입 기준 봉 저가 이탈 즉시 손절, 단기 각도가 직전 봉 대비 꺾이는 첫 시점 즉시
+익절, 40거래일(`ANGLE_BACKTEST_MAX_HOLD_DAYS`) 타임컷, 슬리피지 1.5%
+(`ANGLE_BACKTEST_SLIPPAGE_PCT`)로 상향. **중요**: 기존 `backtest_entry_signal`/
+`summarize_backtest`/`DEFAULT_HOLD_DAYS`/`DEFAULT_SLIPPAGE_PCT`는 ascending_triangle.py/
+box_range.py/double_bottom.py/inv_head_shoulders_v2.py/opening_gap.py/pullback_patterns.py/
+angle_momentum_indicator_scan.py/angle_momentum_pullback_variant_scan.py가 함수 객체
+자체를 그대로 재사용(`backtest_entry_signal = aa.backtest_entry_signal`) 중이라는 걸
+확인하고 전혀 안 건드렸다(지시서의 "운영 스캔 6개 탭 로직에 영향 없어야 함" 요구사항과
+직결) - 완전히 새 함수+새 상수로만 4단계를 분리했다. `angle_momentum_scan.py`(실제
+"각도기 테스트" 탭 데이터 소스)만 새 함수를 쓰도록 교체하고, `js/pattern-scan.js`의
+각주 문구도 "고정 N일 보유"에서 "손절/익절/타임컷" 방식으로 갱신.
+검증: 기존 `_flat_accelerate_plateau_rows` 테스트 픽스처가 거래량을 항상 고정값으로 뒀던
+탓에(변화량 없음=분출 없음) 신규 volume_erupt_filter 조건에 막혀 회귀 실패 - 가속구간에
+거래량도 계단식으로 늘게 픽스처를 갱신해서 해결. 신규 회귀 테스트 7건(거래량 분출 필수,
+정배열 필수, 과열 제외, 동적청산 손절/익절/타임컷 3케이스) 추가, 전체 18건 통과. GAS엔
+이 패턴 대응 구현이 없어(VM 전용, "각도기 테스트" 탭 자체가 나중에 추가된 실험 기능)
+동기화 불필요.
+
 **2026-08-22(8차) 눌림목(`detect_pullback`/`detectPullback_`) 보강**: 작업지시서 7단계 중
 1~4번 반영, 5~7번은 지시대로 보류/분리.
 1) 저점 탐색을 "오늘 기준" 창(recentStart)에서 "고점 기준" `PULLBACK_LOW_SEARCH_WINDOW`

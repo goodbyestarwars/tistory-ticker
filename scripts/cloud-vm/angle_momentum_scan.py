@@ -33,7 +33,10 @@ MAX_MATCHES = pd.PATTERN_MAX_MATCHES
 # 각도값(도, 이론상 -90~90)을 정렬용 참고 점수로 그대로 쓴다 - 실제 "적중률"과는 별개다.
 SCORE_CAP = 89
 
-BACKTEST_HOLD_DAYS = aa.DEFAULT_HOLD_DAYS
+# 2026-08-22: 고정 hold_days 청산(aa.backtest_entry_signal, 다른 여러 패턴이 공유하는
+# 함수)에서 "각도기 테스트" 탭 전용 동적 청산(익절=각도 꺾임, 손절=진입 기준 봉 저가
+# 이탈, 타임컷=40거래일, 슬리피지 1.5%)으로 전환 - aa.backtest_angle_entry_with_dynamic_exit
+# 참고. 다른 모듈이 쓰는 aa.backtest_entry_signal/DEFAULT_HOLD_DAYS는 안 건드렸다.
 
 
 def log(msg):
@@ -156,7 +159,7 @@ def main():
         if df.empty:
             continue
 
-        net_returns.extend(aa.backtest_entry_signal(df, hold_days=BACKTEST_HOLD_DAYS))
+        net_returns.extend(aa.backtest_angle_entry_with_dynamic_exit(df))
 
         if bool(df.iloc[-1]['entry_signal']):
             matches.append(_build_match(stock, df))
@@ -176,7 +179,7 @@ def main():
         existing.setdefault('patternScan', {'scanned': 0, 'patterns': {}})
         existing['patternScan'].setdefault('patterns', {})
         existing['patternScan']['patterns']['angleMomentum'] = matches
-        existing['angleMomentumBacktest'] = dict(backtest_summary or {}, holdDays=BACKTEST_HOLD_DAYS) if backtest_summary else None
+        existing['angleMomentumBacktest'] = backtest_summary or None
         existing['angleMomentumScannedAt'] = scan_at
         existing.setdefault('universe', len(codes))
 

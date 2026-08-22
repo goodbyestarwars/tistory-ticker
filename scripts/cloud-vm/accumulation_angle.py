@@ -38,15 +38,42 @@ EMA_LONG_LEN = 20
 ERUPT_STD_MULTIPLIER = 1.5
 ERUPT_STD_WINDOW = 20
 
+# 2026-08-22 신설(작업지시서 1단계): 거래량도 동시에 "분출" 상태여야 진입 신호로 인정 -
+# 가격 각도만 튀고 거래량이 안 붙는 가짜 파동을 걸러내기 위함. 가격과 같은 방식(당일
+# 변화량이 최근 20일 변화량 표준편차의 배수 초과)을 거래량(원시 변화량)에 그대로 적용한다.
+# 배수는 "가격과 동일하게 1.5배 적용해서 시작"이라는 지시대로 ERUPT_STD_MULTIPLIER를
+# 그대로 재사용하되, 나중에 거래량만 따로 조정할 수 있게 별도 상수로 뒀다(현재는 별칭).
+VOLUME_ERUPT_STD_MULTIPLIER = ERUPT_STD_MULTIPLIER
+
+# 2026-08-22 신설(작업지시서 3단계): 과열 구간(20일 엔벨로프 상단 이탈) 필터 - 이
+# 파일에는 없던 개념이라(gongpasan_strategy.py의 46일 엔벨로프와는 기간·용도가 다름)
+# 신규 상수로 분리했다. 임시값, 추후 백테스트로 조정 필요.
+ENVELOPE_MA_PERIOD = 20
+ENVELOPE_UPPER_PCT = 0.10
+
 # 백테스트 기본 보유일수/슬리피지(매수·매도 각각 차감) - 사용자 검토 스펙 기본값을 그대로 썼다.
+# 주의: 이 두 상수(와 backtest_entry_signal/summarize_backtest 함수)는 ascending_triangle.py/
+# box_range.py/double_bottom.py/inv_head_shoulders_v2.py/opening_gap.py/pullback_patterns.py/
+# angle_momentum_indicator_scan.py/angle_momentum_pullback_variant_scan.py가 그대로 재사용
+# 중이라 여기서 바꾸면 그 모듈들 백테스트도 전부 같이 바뀐다 - 그래서 4단계(각도기 테스트
+# 탭 전용 청산 로직)는 이 값을 안 건드리고 ANGLE_BACKTEST_* 상수 + 새 함수로 분리했다.
 DEFAULT_HOLD_DAYS = 5
 DEFAULT_SLIPPAGE_PCT = 0.0015
+
+# 2026-08-22 신설(작업지시서 4단계, "각도기 테스트" 탭 전용 백테스트 - 위 DEFAULT_*와
+# 완전히 분리): 슬리피지를 지시대로 1~2% 범위(중간값 1.5%)로 올렸다.
+ANGLE_BACKTEST_SLIPPAGE_PCT = 0.015
+# 익절(각도 꺾임)도 손절(저가 이탈)도 안 뜨면 이 기간 안에서 강제 청산(무한 보유 방지 -
+# 지시서에 명시 없어 임의로 뒀다).
+ANGLE_BACKTEST_MAX_HOLD_DAYS = 40
 
 DAILY_PRICES_COLUMNS = [
     'date', 'open', 'high', 'low', 'close', 'volume', 'typical_price',
     'ema_short', 'ema_long',
     'angle_short', 'angle_mid', 'angle_long',
-    'angle_mid_turn', 'angle_long_turn', 'erupt_filter', 'entry_signal',
+    'angle_mid_turn', 'angle_long_turn', 'erupt_filter',
+    'volume_erupt_filter', 'ema_aligned', 'envelope_upper', 'overheated',
+    'entry_signal',
 ]
 
 
@@ -74,7 +101,22 @@ def compute_accumulation_angle(code, conn=None, rows=None):
       np.sign(각도.diff())) - 각도가 0을 넘었는지가 아니라 각도 자체의 가속 방향을 본다.
     - erupt_filter = 단기 각도의 하루 변화량이 최근 20일 변화량 표준편차의 1.5배를 초과 =
       "각도가 튀는" 순간
-    - entry_signal = angle_short>0 AND angle_mid_turn>0 AND angle_long_turn>0 AND erupt_filter
+    - volume_erupt_filter = 거래량 하루 변화량이 최근 20일 변화량 표준편차의
+      VOLUME_ERUPT_STD_MULTIPLIER(1.5, erupt_filter와 동일 배수로 시작)배를 초과(2026-08-22
+      신설) - 수급 동반 없는 가격 각도 가속(가짜 파동)을 걸러내기 위함.
+    - ema_aligned = ema_short > ema_long(2026-08-22 신설) - 정배열 초입 상태만 인정,
+      역배열(단기 반등 후 재하락 위험)을 배제.
+    - overheated = 시가 또는 종가가 20일 엔벨로프 상단(typical_price 20일 평균의
+      ENVELOPE_UPPER_PCT=10% 위)을 벗어남(2026-08-22 신설) - 분출 조건 발동 시 흔한
+      추격매수/고점 상투 방지, entry_signal은 이 조건이 False일 때만(~overheated) 성립.
+    - entry_signal = angle_short>0 AND angle_mid_turn>0 AND angle_long_turn>0 AND
+      erupt_filter AND volume_erupt_filter AND ema_aligned AND NOT overheated
+
+    2026-08-22 0단계 확인(작업지시서 선행 조사): angle_short/angle_mid/angle_long을 서로
+    직접 비교(예: angle_short > angle_long)하는 로직은 없다 - angle_mid_turn/angle_long_turn은
+    각 각도가 "자기 자신의 직전 봉 대비" 가속 방향만 보므로, 단기(5)/장기(20) 기간(N값)
+    차이로 인한 교차비교 착시 문제는 이 코드에는 해당하지 않는다(그래서 아래 1~3단계만
+    반영했다).
 
     conn을 안 주면 이 함수 안에서 db_schema.get_conn()으로 얻어서 쓰고 닫는다(단발성
     조회용). 여러 종목을 반복 조회할 때는 밖에서 연결을 하나 만들어 넘기는 게 낫다.
@@ -118,11 +160,31 @@ def compute_accumulation_angle(code, conn=None, rows=None):
     short_std = angle_short_diff.rolling(ERUPT_STD_WINDOW).std()
     df['erupt_filter'] = angle_short_diff > (ERUPT_STD_MULTIPLIER * short_std)
 
+    # 2026-08-22 신설(1단계): 거래량도 동시에 분출 상태여야 함 - 가격 각도의 erupt_filter와
+    # 같은 방식을 거래량 원시 변화량에 적용한다(각도로 정규화하지 않음 - 거래량은 가격과
+    # 달리 절대적인 "튀는 정도"를 그대로 보는 게 더 직관적이라고 판단).
+    volume_diff = df['volume'].diff()
+    volume_std = volume_diff.rolling(ERUPT_STD_WINDOW).std()
+    df['volume_erupt_filter'] = volume_diff > (VOLUME_ERUPT_STD_MULTIPLIER * volume_std)
+
+    # 2026-08-22 신설(2단계): 정배열 초입 상태(EMA5 > EMA20) - 역배열 상태에서의 가속
+    # 신호(단기 반등 후 재하락 위험)를 배제한다.
+    df['ema_aligned'] = df['ema_short'] > df['ema_long']
+
+    # 2026-08-22 신설(3단계): 과열 구간 필터 - 시가 또는 종가가 20일 엔벨로프 상단을
+    # 벗어나면 제외(1.5σ 분출 조건 발동 시 흔한 추격매수/고점 상투 방지).
+    envelope_ma = df['typical_price'].rolling(ENVELOPE_MA_PERIOD).mean()
+    df['envelope_upper'] = envelope_ma * (1 + ENVELOPE_UPPER_PCT)
+    df['overheated'] = (df['open'] > df['envelope_upper']) | (df['close'] > df['envelope_upper'])
+
     df['entry_signal'] = (
         (df['angle_short'] > 0)
         & (df['angle_mid_turn'] > 0)
         & (df['angle_long_turn'] > 0)
         & df['erupt_filter']
+        & df['volume_erupt_filter']
+        & df['ema_aligned']
+        & ~df['overheated']
     )
 
     return df[DAILY_PRICES_COLUMNS]
@@ -172,3 +234,64 @@ def summarize_backtest(net_returns):
         'avgWinPct': round(float(wins.mean() * 100), 2) if len(wins) else None,
         'avgLossPct': round(float(abs(losses.mean()) * 100), 2) if len(losses) else None,
     }
+
+
+def backtest_angle_entry_with_dynamic_exit(df, slippage_pct=ANGLE_BACKTEST_SLIPPAGE_PCT,
+                                            max_hold_days=ANGLE_BACKTEST_MAX_HOLD_DAYS):
+    """2026-08-22 신설(작업지시서 4단계) - "각도기 테스트" 탭 백테스트 요약 전용 청산
+    로직. 위 backtest_entry_signal()(고정 hold_days 청산)은 ascending_triangle.py/
+    box_range.py/double_bottom.py/inv_head_shoulders_v2.py/opening_gap.py/
+    pullback_patterns.py/angle_momentum_indicator_scan.py/
+    angle_momentum_pullback_variant_scan.py가 그대로 재사용 중이라 손대지 않았다 -
+    이 함수는 완전히 별개이고, 운영 스캔 6개 탭이나 다른 패턴의 백테스트에는 전혀
+    영향을 주지 않는다.
+
+    진입: entry_signal이 뜬 날 다음날 시가(다른 백테스트 함수와 동일 규칙).
+    청산(둘 중 먼저 오는 조건, 진입일 다음날부터 순차 확인):
+    - 손절: 그날 저가가 "진입 기준 봉"(entry_signal이 뜬 신호 당일)의 저가 이하로
+      이탈하면 그날 종가에 청산.
+    - 익절: angle_short가 직전 봉 대비 꺾이는 첫 시점(음의 가속 전환)에 그날 종가에 청산.
+    - 타임컷: 위 둘 다 max_hold_days(40) 안에 안 뜨면 그 마지막 날 종가로 강제 청산
+      (지시서에 시간 제한 언급이 없어 무한 보유를 막기 위해 임의로 추가).
+    slippage_pct는 매수·매도 각각 차감(왕복 2회, 지시대로 1.5%로 상향)."""
+    if df is None or df.empty or 'entry_signal' not in df.columns:
+        return []
+
+    opens = df['open'].to_numpy(dtype=float)
+    closes = df['close'].to_numpy(dtype=float)
+    lows = df['low'].to_numpy(dtype=float)
+    angle_short = df['angle_short'].to_numpy(dtype=float)
+    entry_signal = df['entry_signal'].to_numpy(dtype=bool)
+    n = len(df)
+
+    net_returns = []
+    for i in range(n):
+        if not entry_signal[i]:
+            continue
+        entry_idx = i + 1
+        if entry_idx >= n:
+            continue
+        entry_price = opens[entry_idx]
+        if not np.isfinite(entry_price):
+            continue
+        stop_low = lows[i]  # 진입 기준 봉(신호 당일)의 저가
+
+        exit_price = None
+        last_checkable = min(n - 1, entry_idx + max_hold_days - 1)
+        for j in range(entry_idx, last_checkable + 1):
+            if np.isfinite(lows[j]) and lows[j] <= stop_low:
+                exit_price = closes[j]
+                break
+            if j > entry_idx and np.isfinite(angle_short[j]) and np.isfinite(angle_short[j - 1]) \
+                    and angle_short[j] < angle_short[j - 1]:
+                exit_price = closes[j]
+                break
+        if exit_price is None:
+            exit_price = closes[last_checkable]
+
+        if not np.isfinite(exit_price):
+            continue
+        gross_return = (exit_price - entry_price) / entry_price
+        net_returns.append(gross_return - (slippage_pct * 2))
+
+    return net_returns
