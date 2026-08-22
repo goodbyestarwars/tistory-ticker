@@ -439,6 +439,27 @@ class BoxRangeLowerFilterTest(unittest.TestCase):
         self.assertLessEqual(detail["criteria"]["closeRangePct"], 10)
         self.assertEqual(detail["criteria"]["marketCapEok"], 3000)
 
+    def test_reason_labels_are_sequential_and_match_execution_order(self):
+        """2026-08-22 추가: A,B,C,D,E,G,J로 흩어져 있던 라벨을 실행 순서에 맞춰 A~G
+        연속 알파벳으로 재정렬했다 - 순서·문자 둘 다 확인."""
+        detail = detector.detect_box_range_low(
+            box_range_daily(), market_cap_eok=3000, require_market_cap=True)
+
+        self.assertIsNotNone(detail)
+        labels = [r.split(' ', 1)[0] for r in detail["reasons"]]
+        self.assertEqual(labels, ['A', 'B', 'C', 'D', 'E', 'F', 'G'])
+
+    def test_box_range_low_result_includes_entry_trigger(self):
+        """2026-08-22 추가(작업지시서 3단계): detect_box_range_low 결과에 entryTrigger/
+        entrySignal이 붙어야 한다."""
+        detail = detector.detect_box_range_low(
+            box_range_daily(), market_cap_eok=3000, require_market_cap=True)
+
+        self.assertIsNotNone(detail)
+        self.assertIn("entryTrigger", detail)
+        self.assertIn("entrySignal", detail)
+        self.assertIsInstance(detail["entrySignal"], bool)
+
     def test_box_range_rejects_below_300_billion_market_cap(self):
         detail = detector.detect_box_range_low(
             box_range_daily(), market_cap_eok=2999.99, require_market_cap=True)
@@ -457,6 +478,65 @@ class BoxRangeLowerFilterTest(unittest.TestCase):
 
         self.assertEqual(calls, ["000001"])
         self.assertEqual([row["code"] for row in results["boxRangeLow"]], ["000001"])
+
+
+def _entry_trigger_daily(last_open, last_close, last_low, last_high, last_volume):
+    """check_box_range_low_entry_trigger 테스트용 - 앞 9봉은 종가/거래량 100으로
+    평평하게 두고 마지막 1봉만 인자로 받은 값을 넣는다(ma5/거래량평균 기준선 고정용)."""
+    daily = []
+    start = date(2025, 1, 1)
+    for i in range(9):
+        daily.append({
+            "date": (start + timedelta(days=i)).isoformat(),
+            "open": 950.0, "high": 952.0, "low": 948.0, "close": 950.0, "volume": 100,
+        })
+    daily.append({
+        "date": (start + timedelta(days=9)).isoformat(),
+        "open": last_open, "high": last_high, "low": last_low, "close": last_close, "volume": last_volume,
+    })
+    return daily
+
+
+class BoxRangeLowEntryTriggerTest(unittest.TestCase):
+    """2026-08-22 신설(작업지시서 2단계) - support=900/resistance=1100(박스 높이 200)
+    기준, Zone은 종가 896~970 사이(비율 -2%~35%)."""
+
+    BOX_RESULT = {"support": 900.0, "resistance": 1100.0}
+
+    def test_out_of_zone_returns_none(self):
+        daily = _entry_trigger_daily(1040.0, 1050.0, 1035.0, 1055.0, 100)  # zone 75% 위치
+        result = detector.check_box_range_low_entry_trigger(daily, self.BOX_RESULT)
+        self.assertIsNone(result)
+
+    def test_two_signals_trigger_entry(self):
+        # 양봉(캔들) + 거래량 급증(300 >= 평균100*1.3) = 2신호, 5일선과는 멀리 둬서 3번째 신호는 꺼둠
+        daily = _entry_trigger_daily(945.0, 960.0, 940.0, 975.0, 300)
+        result = detector.check_box_range_low_entry_trigger(daily, self.BOX_RESULT)
+
+        self.assertIsNotNone(result)
+        self.assertTrue(result["candle_signal"])
+        self.assertTrue(result["volume_signal"])
+        self.assertFalse(result["ma5_signal"])
+        self.assertEqual(result["signals_met"], 2)
+        self.assertTrue(result["entry_signal"])
+        self.assertAlmostEqual(result["zone_position_pct"], 30.0, delta=0.01)
+
+    def test_single_signal_does_not_trigger_entry(self):
+        # 양봉(캔들)만 충족, 거래량은 평소 수준, 5일선과도 멀리 둠
+        daily = _entry_trigger_daily(945.0, 960.0, 940.0, 975.0, 100)
+        result = detector.check_box_range_low_entry_trigger(daily, self.BOX_RESULT)
+
+        self.assertIsNotNone(result)
+        self.assertTrue(result["candle_signal"])
+        self.assertFalse(result["volume_signal"])
+        self.assertFalse(result["ma5_signal"])
+        self.assertEqual(result["signals_met"], 1)
+        self.assertFalse(result["entry_signal"])
+
+    def test_missing_box_result_returns_none(self):
+        daily = _entry_trigger_daily(945.0, 960.0, 940.0, 975.0, 300)
+        self.assertIsNone(detector.check_box_range_low_entry_trigger(daily, None))
+        self.assertIsNone(detector.check_box_range_low_entry_trigger(daily, {}))
 
 
 class MaCloudBreakoutDetectionTest(unittest.TestCase):

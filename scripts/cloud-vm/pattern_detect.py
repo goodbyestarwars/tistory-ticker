@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """VM 차트 패턴 판정(지시서 6종)과 공용 헬퍼.
 일반 패턴은 GAS 상세 차트와 같은 기준을 사용하지만, 박스권 하단은 VM 일괄 스캔에서
-시가총액까지 조회하는 A/B/C/D/E/G/J 전용 조건을 적용한다."""
+시가총액까지 조회하는 A~G 전용 조건을 적용한다."""
 
 import math
 import re
@@ -76,7 +76,17 @@ BOX_VOLUME_RATIO_MAX = 1.20
 BOX_MARKET_CAP_MIN_EOK = 3000.0
 BOX_OPEN_MA_ABOVE_COUNT = 3
 BOX_RETURN_MAX = 0.10
+# 2026-08-22 확인: BOX_LOWER_ZONE_RATIO는 절대가격 기준(box_low*(1+비율))이 아니라 박스
+# 높이 비율 기준(lower_position=(종가-support)/box_height)이다 - 조건 A(20봉 종가
+# 변동폭 10% 이내)와 단위가 다르므로 35%가 A의 10%보다 커도 논리적 모순이 아니다
+# (작업지시서 "Zone 계산식 확인" 1단계 결론: 형태 B, 정상 설계).
 BOX_LOWER_ZONE_RATIO = 0.35
+
+# 2026-08-22 신설(작업지시서 2단계): 박스권 하단 Zone 진입 트리거 튜닝 상수 - 스킬/지시서에
+# 정확한 숫자가 없어 임의 초기값으로 정했다. 추후 백테스트로 조정 필요.
+BOX_ENTRY_VOLUME_MULT = 1.3       # 당일 거래량이 직전 5봉 평균 대비 이 배수 이상
+BOX_ENTRY_HAMMER_WICK_MULT = 2.0  # 망치형 판정: 아래꼬리가 몸통의 이 배수 이상
+BOX_ENTRY_MA5_NEAR_TOL = 0.01     # 5일선 근접 허용폭 1%
 
 # 모든 차트검색/눌림목 검색에 적용하는 공통 조건. 패턴별 점수와 섞지 않고
 # 후보 자체를 만들기 전에 거르는 하드필터다.
@@ -1055,11 +1065,16 @@ def _ma_above_count(fast_vals, slow_vals):
 
 
 def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
-    """Detect the A/B/C/D/E/G/J box-range lower-zone formula.
+    """Detect the A~G box-range lower-zone formula.
 
     Market cap is fetched lazily by the live scanner only after the technical
-    A/B/C/D/G/J pre-filter passes. ``require_market_cap=False`` is used for
-    that pre-filter and by unit tests; production results always require E.
+    A~F pre-filter passes. ``require_market_cap=False`` is used for
+    that pre-filter and by unit tests; production results always require G.
+
+    2026-08-22: 라벨을 실제 코드 실행 순서에 맞춰 연속 알파벳(A~G)으로 재정렬했다
+    (예전엔 A,B,C,D,E,G,J였고 순서도 실행 순서와 어긋나 있었음 - 로직·기준값은 안 바꿈,
+    라벨과 reasons 배열 순서만 정리). grep으로 확인한 결과 옛 라벨 문자열을 다른 곳(JS/GAS/
+    테스트)에서 참조하는 코드는 없었다.
     """
     win = daily[-BOX_WINDOW:]
     if len(win) < BOX_WINDOW:
@@ -1117,7 +1132,9 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     elif market_cap_eok < BOX_MARKET_CAP_MIN_EOK:
         return None
 
-    # All A/B/C/D/G/J gates are hard filters. The score only ranks survivors.
+    # A~F gates are always-hard filters; G(시가총액)은 require_market_cap=False일 때만
+    # 선택적(조회 전 프리필터 통과 여부만 확인, 실서비스 결과는 항상 G까지 통과해야 함).
+    # The score only ranks survivors.
     range_score = max(0, 20 - round(close_range / BOX_CLOSE_RANGE_MAX * 20))
     ma_score = min(20, close_near_count * 4)
     rsi_score = 15 - round(abs(rsi - 50) / 15 * 15)
@@ -1126,16 +1143,19 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     open_ma_score = min(10, open_ma_above_count * 2)
     return_score = max(0, 10 - round(abs(return_20) / BOX_RETURN_MAX * 10))
     score = clamp_score(range_score + ma_score + rsi_score + volume_score + cap_score + open_ma_score + return_score)
+    # 2026-08-22: 라벨(A~G)과 배열 순서를 실제 코드 실행 순서(변동폭->이평근접->RSI->
+    # 거래량->시가이평->수익률->시가총액)에 맞춰 재정렬(예전엔 E/G/J가 섞여 있었고
+    # 배열 순서도 실행 순서와 달랐음). 기준값·통과 조건은 전혀 안 바꿈.
     reasons = [
         'A 최근 20봉 종가 변동폭 %.1f%% (10%% 이하)' % (close_range * 100),
         'B 종가 5·20일선 3%% 이내 근접 %d회' % close_near_count,
         'C RSI(14) %.1f (35~65)' % rsi,
         'D 20봉전 거래량/직전 5봉 평균 %.1f%% (50~120%%)' % (volume_ratio * 100),
-        'E 시가총액 %.0f억원 (3000억원 이상)' % market_cap_eok if market_cap_eok is not None else 'E 시가총액 확인 대기',
-        'G 시가 5·20일선 관계 충족 %d회' % open_ma_above_count,
-        'J 20봉 수익률 %.1f%% (±10%% 이내)' % (return_20 * 100),
+        'E 시가 5·20일선 관계 충족 %d회' % open_ma_above_count,
+        'F 20봉 수익률 %.1f%% (±10%% 이내)' % (return_20 * 100),
+        'G 시가총액 %.0f억원 (3000억원 이상)' % market_cap_eok if market_cap_eok is not None else 'G 시가총액 확인 대기',
     ]
-    return {
+    result = {
         'support': support,
         'resistance': resistance,
         'signal': {'date': win[-1]['date'], 'price': last_close},
@@ -1153,6 +1173,90 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
             'return20Pct': return_20 * 100,
             'lowerPositionPct': lower_position * 100,
         },
+    }
+    # 2026-08-22 신설(작업지시서 3단계): 박스 하단 Zone 안에서도 지금이 실제 진입 타점인지는
+    # 별개 판단이라 check_box_range_low_entry_trigger()로 분리 계산 후 결과를 붙인다.
+    entry_trigger = check_box_range_low_entry_trigger(daily, result)
+    result['entryTrigger'] = entry_trigger
+    result['entrySignal'] = bool(entry_trigger and entry_trigger.get('entry_signal'))
+    return result
+
+
+def check_box_range_low_entry_trigger(daily, box_result):
+    """박스권 하단 Zone 안에서 실제로 반등을 시도하는 "진입 타점"인지 확인한다(작업지시서
+    2단계). detect_box_range_low()가 이미 통과시킨 종목이라도 지금 이 순간이 진짜 매수
+    시점인지는 별개 판단이라 분리했다 - 캔들/거래량/이평선 3개 신호 중 2개 이상 충족해야
+    entry_signal=True.
+
+    box_result는 detect_box_range_low()의 리턴값(support/resistance 필요)이거나
+    그와 동일한 키를 가진 dict.
+    """
+    if not box_result or not daily:
+        return None
+
+    support = box_result.get('support')
+    resistance = box_result.get('resistance')
+    if support is None or resistance is None:
+        return None
+    box_height = resistance - support
+    if box_height <= 0:
+        return None
+
+    last = daily[-1]
+    last_close = last['close']
+    # 1) 영역 확인: 박스 하단 Zone(박스 높이 비율 기준, detect_box_range_low와 동일 공식) 안인지.
+    zone_position = (last_close - support) / box_height
+    if zone_position < -0.02 or zone_position > BOX_LOWER_ZONE_RATIO:
+        return None
+
+    # 2) 반등 신호 3종
+    # ① 캔들: 양봉(종가>시가) 또는 망치형(아래꼬리 >= 몸통 x 2)
+    body = abs(last['close'] - last['open'])
+    lower_wick = min(last['open'], last['close']) - last['low']
+    is_bullish = last['close'] > last['open']
+    is_hammer = body > 0 and lower_wick >= body * BOX_ENTRY_HAMMER_WICK_MULT
+    candle_signal = bool(is_bullish or is_hammer)
+
+    # ② 거래량: 당일 거래량이 직전 5봉 평균 대비 BOX_ENTRY_VOLUME_MULT(1.3)배 이상
+    n = len(daily)
+    volume_signal = False
+    if n >= 6:
+        avg5_volume = avg_volume(daily, n - 6, n - 1)
+        volume_signal = bool(avg5_volume and last['volume'] >= avg5_volume * BOX_ENTRY_VOLUME_MULT)
+
+    # ③ 이평선: 5일선 상향 돌파(전일 종가<5일선 -> 당일 종가>=5일선) 또는 당일 고가가
+    # 5일선 BOX_ENTRY_MA5_NEAR_TOL(1%) 이내 근접
+    ma5 = moving_average(daily, 'close', 5)
+    ma5_now = ma5[-1] if ma5 else None
+    ma5_prev = ma5[-2] if n >= 2 and len(ma5) >= 2 else None
+    prev_close = daily[-2]['close'] if n >= 2 else None
+    cross_up = bool(
+        ma5_prev is not None and prev_close is not None and ma5_now is not None
+        and prev_close < ma5_prev and last_close >= ma5_now
+    )
+    near_ma5 = bool(ma5_now and abs(last['high'] - ma5_now) / ma5_now <= BOX_ENTRY_MA5_NEAR_TOL)
+    ma5_signal = bool(cross_up or near_ma5)
+
+    signals_met = sum(1 for s in (candle_signal, volume_signal, ma5_signal) if s)
+    entry_signal = signals_met >= 2
+
+    reasons = []
+    if candle_signal:
+        reasons.append('당일 양봉 또는 망치형 캔들 확인')
+    if volume_signal:
+        reasons.append('거래량이 직전 5봉 평균 대비 %.0f%% 이상' % (BOX_ENTRY_VOLUME_MULT * 100))
+    if ma5_signal:
+        reasons.append('5일선 상향 돌파 또는 1% 이내 근접')
+
+    return {
+        'in_zone': True,
+        'zone_position_pct': zone_position * 100,
+        'candle_signal': candle_signal,
+        'volume_signal': volume_signal,
+        'ma5_signal': ma5_signal,
+        'signals_met': signals_met,
+        'entry_signal': entry_signal,
+        'reasons': reasons,
     }
 
 

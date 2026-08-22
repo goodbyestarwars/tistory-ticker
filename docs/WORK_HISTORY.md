@@ -1,5 +1,29 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(7차) 박스권 하단 Zone 계산식 확인 + 진입 트리거 신설 + 조건 라벨 정리**:
+작업지시서 4단계 전부 반영.
+1단계(확인): "박스 하단 위치" 조건(`lower_position=(종가-support)/box_height`, 범위 -2%~35%)이
+절대가격 기준이 아니라 **박스 높이 비율 기준**(형태 B)임을 코드로 확인 - 조건 A(20봉
+종가 변동폭 10% 이내)와 단위 자체가 달라서(A는 종가 변동폭, 이건 박스 높이 대비 위치)
+35%가 10%보다 커도 논리적 모순이 아니었다. 값은 임의로 안 바꾸고 주석에 근거만 추가.
+2단계(신설): `check_box_range_low_entry_trigger(daily, box_result)` 함수 추가 - 박스
+하단 Zone 안에서도 캔들(양봉/망치형)·거래량(직전5봉평균 1.3배 이상)·5일선(상향돌파 또는
+1% 이내 근접) 3개 신호 중 2개 이상 충족해야 `entry_signal=True`. 튜닝 상수
+(`BOX_ENTRY_VOLUME_MULT`=1.3, 망치형 배수=2.0, 5일선 근접=1%)는 지시서 명시대로 임의
+초기값 - 추후 백테스트로 조정 필요.
+3단계: `detect_box_range_low` 리턴에 `entryTrigger`(위 함수 전체 결과)/`entrySignal`(bool)
+추가.
+4단계: 조건 라벨을 A,B,C,D,E(구 G, 시가이평),F(구 J, 수익률),G(구 E, 시가총액)로
+실행 순서에 맞춰 연속 재정렬 - grep으로 확인한 결과 옛 라벨 문자열(`'A 최근...'` 등)을
+참조하는 다른 코드(JS/GAS/테스트)가 없어 안전하게 변경. 로직·기준값은 전혀 안 바꿈.
+GAS `detectBoxRangeLow_`는 이 A~G 스킴과 무관한 완전히 다른 구현(지지/저항 평균+터치
+횟수 방식)이라 동기화 대상 아님(재확인).
+검증: `test/test_pattern_detect.py`에 라벨 순서 테스트 1건 + `entryTrigger` 포함 확인 1건 +
+`check_box_range_low_entry_trigger` 전용 테스트 4건(Zone 밖 제외/신호2개 통과/신호1개
+미통과/box_result 없음 제외) 추가, 전체 37건 통과. 셀프 리뷰 중 "All A~G gates are hard
+filters" 주석이 조건부 게이트인 G(시가총액)까지 hard filter라고 잘못 넓혀 쓴 걸 발견해
+"A~F는 항상 필수, G는 require_market_cap=False일 때만 선택적"으로 정정.
+
 **2026-08-22(6차) 역헤드앤숄더(`detect_inv_head_shoulders`/`detectInvHeadShoulders_`) 넥라인
 계산 변경 + 신규 무효 조건 추가**: 사용자 요청 2건 반영. (1) 넥라인을 "좌어깨~헤드/헤드~우어깨
 두 구간 고가 중 더 낮은 쪽"에서 "더 높은 쪽"(`max`)으로 변경. (2) 우어깨 이후 최저가가
