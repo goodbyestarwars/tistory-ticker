@@ -40,8 +40,9 @@ def early_higher_low_daily():
     return daily
 
 
-def compact_higher_low_daily():
-    """20일 안에서 0.4% 상승·4거래일 간격인 두 저점을 만든다."""
+def compact_higher_low_daily(second_low_close=100.4):
+    """20일 안에서 4거래일 간격인 두 저점을 만든다. second_low_close로 상승폭을 조절한다
+    (기본값 100.4는 첫 저점 100 대비 0.4%만 오른 박스권 노이즈 케이스)."""
     daily = []
     for i in range(20):
         close = 100 + i
@@ -53,7 +54,7 @@ def compact_higher_low_daily():
             "close": close,
             "volume": 100,
         })
-    for i, close in ((8, 100), (9, 111), (10, 112), (11, 113), (12, 100.4), (13, 114), (14, 115)):
+    for i, close in ((8, 100), (9, 111), (10, 112), (11, 113), (12, second_low_close), (13, 114), (14, 115)):
         daily[i].update(open=close, high=close + 1, low=close - 1, close=close)
     for row in daily:
         for field in ("open", "high", "low", "close"):
@@ -244,14 +245,20 @@ def pullback_daily():
 
 
 class RisingLowsDetectionTest(unittest.TestCase):
-    def test_small_rise_and_short_gap_are_valid(self):
-        detail = detector.detect_rising_lows(compact_higher_low_daily())
+    # 2026-08-22: 박스권 안에서 저점이 0.4%만 오른 기업은행 사례가 저점상승형으로 잡히는
+    # 문제가 리포트됨(미원에쓰씨 같은 뚜렷한 V자 반등만 남기고 싶다는 요청) - WEDGE_MIN_LOW_RISE
+    # 미만인 미세한 저점 상승은 이제 제외한다.
+    def test_rise_below_min_threshold_is_excluded(self):
+        detail = detector.detect_rising_lows(compact_higher_low_daily(second_low_close=100.4))
+        self.assertIsNone(detail)
+
+    def test_short_gap_with_sufficient_rise_is_valid(self):
+        daily = compact_higher_low_daily(second_low_close=108)
+        detail = detector.detect_rising_lows(daily)
 
         self.assertIsNotNone(detail)
-        self.assertLess(detail["score"], 70)
 
         results = {"risingLows": [], "doubleBottom": [], "invHeadShoulders": [], "boxRangeLow": []}
-        daily = compact_higher_low_daily()
         detector.scan_stock({"code": "000001", "name": "테스트"}, daily, results, [])
         self.assertEqual([row["code"] for row in results["risingLows"]], ["000001"])
         self.assertEqual(len(results["risingLows"][0]["miniChart"]), min(20, len(daily)))

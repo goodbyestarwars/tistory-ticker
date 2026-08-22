@@ -41,6 +41,11 @@ IHS_WINDOW = 90
 BOX_WINDOW = 21  # 20 bars for the range plus the 20-bars-ago reference bar
 
 WEDGE_MIN_SWINGS = 2
+# 2026-08-22: "저점이 조금이라도 높으면 통과"라 기업은행처럼 박스권 안에서 저점이 미세하게
+# (1%도 안 되게) 올라간 것도 걸리는 문제가 리포트됨(미원에쓰씨 같은 뚜렷한 V자 반등만
+# 잡히길 원함) - 최근 두 스윙 저점 간 최소 상승폭 하한을 추가. gas/ticker-proxy.gs의
+# 동일 상수와 반드시 같이 유지할 것.
+WEDGE_MIN_LOW_RISE = 0.05
 RECENCY_MAX_GAP = 3
 
 DB_LOW_TOL = 0.03
@@ -686,6 +691,11 @@ def detect_rising_lows(daily):
     last_low = win[last_low_idx]['low']
     if last_low <= prev_low:
         return None
+    # 2026-08-22: 저점이 오르긴 했어도 그 폭이 WEDGE_MIN_LOW_RISE 미만이면 박스권 안 노이즈로
+    # 보고 제외(미원에쓰씨처럼 뚜렷한 V자 반등만 남기기 위함).
+    rise_ratio = (last_low - prev_low) / prev_low
+    if rise_ratio < WEDGE_MIN_LOW_RISE:
+        return None
 
     last_close = win[-1]['close']
     if last_close < last_low:
@@ -713,7 +723,7 @@ def detect_rising_lows(daily):
 
     score = clamp_score(higher_low_score + recent_low_score + ma5_score + vol_score + bull_score)
     reasons = [
-        '스윙 저점 순차 상승(%d/40점)' % higher_low_score,
+        '스윙 저점 순차 상승 %.1f%%(%d/40점)' % (rise_ratio * 100, higher_low_score),
         '최근 저점 상승 확인(%d/20점)' % recent_low_score,
         '5일선 저항 근접도(%d/20점)' % ma5_score,
         '거래량 %s(%d/10점)' % ('감소' if vol_score else '유지/증가', vol_score),

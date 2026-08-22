@@ -2656,6 +2656,9 @@ var IHS_WINDOW = 60;             // ③ 역헤드앤숄더: 지시서에 window 
 var BOX_WINDOW = 40;             // ④ 박스권하단: 지시서 "최근 40거래일"
 
 var WEDGE_MIN_SWINGS = 2;        // ① 지시서: Swing Low 2개 이상
+// 2026-08-22: 저점이 조금이라도 높으면 통과하던 걸 박스권 노이즈(기업은행 등) 제외 위해
+// 최소 상승폭 하한 추가 - pattern_detect.py의 동일 상수와 반드시 같이 유지할 것.
+var WEDGE_MIN_LOW_RISE = 0.05;
 // 마지막 스윙이 최근 며칠 안에 있어야 "지금 진행 중"으로 인정. 스윙 판정 자체가
 // 좌우 PATTERN_SWING(2)봉을 확인해야 하는 구조라 이론상 가장 최근이어도 끝에서 2봉 전이
 // 최소값 - 그 최소값 바로 위(3)로 빡빡하게 잡아 "이미 지나간 패턴"을 걸러낸다.
@@ -3119,6 +3122,10 @@ function detectRisingLows_(daily) {
   var prevLow = win[prevLowIdx].low;
   var lastLow = win[lastLowIdx].low;
   if (lastLow <= prevLow) return null;
+  // 2026-08-22: 저점이 오르긴 했어도 그 폭이 WEDGE_MIN_LOW_RISE 미만이면 박스권 노이즈로
+  // 보고 제외(미원에쓰씨처럼 뚜렷한 V자 반등만 남기기 위함).
+  var riseRatio = (lastLow - prevLow) / prevLow;
+  if (riseRatio < WEDGE_MIN_LOW_RISE) return null;
 
   // 최근성: 마지막 저점이 최근 RECENCY_MAX_GAP거래일 안이어야 "지금" 진행 중인 패턴
   var lastClose = win[win.length - 1].close;
@@ -3147,7 +3154,7 @@ function detectRisingLows_(daily) {
 
   var score = clampScore_(higherLowScore + recentLowScore + ma5Score + volScore + bullScore);
   var reasons = [
-    '스윙 저점 순차 상승(' + higherLowScore + '/40점)',
+    '스윙 저점 순차 상승 ' + (riseRatio * 100).toFixed(1) + '%(' + higherLowScore + '/40점)',
     '최근 저점 상승 확인(' + recentLowScore + '/20점)',
     '5일선 저항 근접도(' + ma5Score + '/20점)',
     '거래량 ' + (volScore ? '감소' : '유지/증가') + '(' + volScore + '/10점)',

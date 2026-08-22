@@ -1,5 +1,25 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22 저점상승형(pattern_detect.detect_rising_lows/gas의 detectRisingLows_) 최소
+저점 상승폭 하한 추가**: 기업은행 실제 차트를 검토하다가, 박스권 안에서 저점이 0.4%~1%
+수준으로 미세하게만 올라간 종목도 저점상승형으로 잡혀 화면에 뜨는 문제가 리포트됨(미원에쓰씨
+같은 확실한 V자 반등만 남기고 싶다는 요청). "최근 저점이 직전 저점보다 조금이라도 높으면
+통과"였던 조건에 `WEDGE_MIN_LOW_RISE`(5%) 하한을 추가 - 이 값 미만이면 제외한다.
+5%로 정한 이유: 기존 회귀 테스트(`test_pattern_detect.py`)에 저점이 7.1%만 오른 "가온칩스"
+초기 반등 케이스가 의도적으로 포함(검색 결과에서 누락되면 안 됨, 2026-07-22 결정)돼 있어
+8%로 잡으면 이 케이스까지 걸러져 회귀가 발생했다 - 0.4%(박스권 노이즈, 제외 대상)와
+7.1%(가온칩스, 유지 대상) 사이인 5%를 하한으로 채택했다. `pattern_detect.py`와
+`gas/ticker-proxy.gs`의 `detectRisingLows_`(GAS `?patternScan=1`이 실제 라이브 스캔 소스)
+양쪽에 동일하게 반영(두 구현이 항상 일치해야 함). 점수 공식(고정 40/20/20/10/10점)은
+그대로 두고 하한을 통과 여부(포함/제외)로만 반영 - 통과한 케이스에서 상승폭 크기에 따라
+점수를 더 주는 방식은 시도했다가 "가온칩스"류(하한을 살짝 넘는 약한 케이스도 신뢰도 높게
+보여줘야 함) 테스트와 충돌해 되돌렸다. `test/test_pattern_detect.py`의
+`test_small_rise_and_short_gap_are_valid`를 `test_rise_below_min_threshold_is_excluded`(0.4%
+케이스는 이제 None)와 `test_short_gap_with_sufficient_rise_is_valid`(8%대 상승 유지)로
+분리하고 `python -m unittest test_pattern_detect`로 26개 전부 통과 확인. `js/pattern-scan.js`
+탭 설명 문구도 "8% 이상" → "5% 이상"으로 갱신. `gas/ticker-proxy.gs`는 GitHub Actions(clasp)가
+push 후 자동 배포한다.
+
 **2026-08-21 저점 상승형(ascending_triangle.py) 판정 기준을 "저항선이 오르지 않아야
 함"에서 "간격이 좁혀지기만 하면 됨"으로 확장**: 미원상사(002840) 실제 차트를 놓고 저점
 형성 여부를 같이 보다가, 사용자가 "저점 상승형"으로 인정할 3가지 유형을 정확히 못박았다 -
