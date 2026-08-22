@@ -1,5 +1,14 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22 "시초 갭상승" 탭 삭제**: 사용자 요청으로 `js/pattern-scan.js`의 TABS
+목록에서 `openingGap` 항목만 제거(화면에서 사라짐). 백엔드(`pattern_detect.detect_opening_gap`,
+GAS `?patternScan=1` 데이터, `scripts/cloud-vm/opening_gap.py` 백테스트 모듈)는 되돌리기
+쉽게 그대로 남겨뒀다(daily_scan.py가 계속 계산은 하지만 화면에 안 보임, 무해). 나머지
+`openingGap` 관련 코드 분기(상세 스냅샷·차트 렌더링)는 이제 도달 불가능한 죽은 코드지만
+같은 이유로 남겨뒀다. `test/test_ui_ia.py`의 `test_chart_search_includes_opening_gap_tab`을
+탭이 없어졌는지 확인하는 테스트로 전환하고, 공통조건 테스트에서 시초 갭상승 전용
+어서션을 제거. 전체 회귀 98(UI)+37(pattern_detect) 통과.
+
 **2026-08-22(7차) 박스권 하단 Zone 계산식 확인 + 진입 트리거 신설 + 조건 라벨 정리**:
 작업지시서 4단계 전부 반영.
 1단계(확인): "박스 하단 위치" 조건(`lower_position=(종가-support)/box_height`, 범위 -2%~35%)이

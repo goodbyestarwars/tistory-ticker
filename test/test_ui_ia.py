@@ -1365,11 +1365,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("slice(0, 12)", source)
         self.assertIn("data.detail = item.patternDetail", source)
 
-    def test_chart_search_includes_opening_gap_tab(self):
+    def test_chart_search_opening_gap_tab_removed(self):
+        """2026-08-22: "시초 갭상승" 탭 삭제 요청 - TABS 목록에서만 빠졌는지 확인
+        (백엔드 detect_opening_gap/GAS는 그대로 유지, 되돌리기 쉽게)."""
         source = self.read("js/pattern-scan.js")
         style = self.read("css/pattern-scan.css")
-        self.assertIn("key: 'openingGap'", source)
-        self.assertIn("label: '시초 갭상승'", source)
+        self.assertNotIn("key: 'openingGap'", source)
+        self.assertNotIn("label: '시초 갭상승'", source)
         self.assertIn("miniChartRows", source)
         self.assertIn("ps-list-head", source)
         self.assertIn("ps-signal", source)
@@ -1728,7 +1730,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "어깨-머리-어깨",
             "RSI(14) 35~65",
             "최근 20봉 안에 저점 대비 종가가 15% 이상",
-            "종가가 시가 대비 3% 이상",
         ):
             self.assertIn(text, source)
         self.assertIn("COMMON_MARKET_CAP_MIN_EOK = 3000.0", backend)
