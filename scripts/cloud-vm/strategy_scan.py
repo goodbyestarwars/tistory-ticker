@@ -109,6 +109,37 @@ DISPARITY_MAX = 90
 SECTOR_TOP_N = 5
 STRATEGY_MAX_RESULTS = 20
 
+# 2026-08-22 신설: "목표주가 괴리 저평가주" - 종목 자체 과거 PER/PBR 밴드로 계산한
+# 펀더멘털 목표가가 현재가보다 크게 높은 종목만 찾는다(사용자 요청, 개념 설계 대화 참고).
+# 계산 방식(잠정, 백테스트로 검증된 공식이 아님):
+#   1. fundamentals_cache의 DART 5개년 net_income/equity(fundamentals.py)를 그대로 쓴다.
+#   2. 연도별 EPS/BPS = net_income/equity ÷ 상장주식수. 연도별 상장주식수를 다시 조회하지
+#      않고 "오늘 시가총액(ka10001 mac) ÷ 오늘 종가"로 구한 현재 상장주식수를 과거 연도에도
+#      그대로 적용한다(수년 내 주식수가 크게 안 바뀐다는 근사 - 사용자 확인).
+#   3. 연도별 PER/PBR = 그 회계연도 말(12/31 이전 마지막 거래일) 종가 ÷ 그 해 EPS/BPS.
+#      EPS가 0 이하(적자)인 해는 그 해의 PER만 밴드 평균에서 제외한다(PBR은 자본총계가
+#      양수인 한 계속 포함).
+#   4. 최근 TARGET_PRICE_BAND_YEARS개 연도의 PER/PBR을 각각 평균해 "밴드"로 삼고,
+#      최근 연도 EPS/BPS에 곱해 두 목표가(PER 기준/PBR 기준)를 만든 뒤 평균한다(둘 다
+#      있으면 평균, 하나만 있으면 그것만 사용).
+#   5. 최근 회계연도 net_income이 0 이하(적자 기업)면 스크리닝 대상에서 아예 제외한다
+#      (사용자 확인 - 재무건전 장기 눌림과 동일 원칙, 밸류트랩 방지).
+#   6. 현재가 대비 목표가 괴리율이 TARGET_PRICE_MIN_GAP_PCT 이상인 종목만 후보로 남긴다.
+TARGET_PRICE_BAND_YEARS = 5
+TARGET_PRICE_MIN_BAND_YEARS = 3  # 유효 PER/PBR 표본이 이보다 적으면 밴드를 못 믿는다고 보고 제외
+TARGET_PRICE_MIN_GAP_PCT = 20.0  # 목표가가 현재가보다 이 %+ 높아야 후보(잠정 기준)
+TARGET_PRICE_TOP_N = 30
+
+TARGET_PRICE_METHODOLOGY_NOTE = (
+    '종목 자체 최근 {years}개년 PER·PBR 밴드(회계연도 말 종가 ÷ 그 해 EPS·BPS 평균, '
+    '상장주식수는 오늘 기준을 과거에도 동일 적용)로 계산한 펀더멘털 목표가가 현재가보다 '
+    '{min_gap:.0f}% 이상 높은 종목만 표시합니다. 최근 회계연도가 적자인 종목과 유효 표본이 '
+    '{min_years}개 미만인 종목(상장 얼마 안 된 종목 등)은 제외합니다. 백테스트로 검증된 '
+    '공식이 아니라 참고용 근사치입니다.'
+).format(
+    years=TARGET_PRICE_BAND_YEARS, min_gap=TARGET_PRICE_MIN_GAP_PCT, min_years=TARGET_PRICE_MIN_BAND_YEARS,
+)
+
 # Dividend ranking follows the broad Naver-style screen: keep common stocks
 # with a positive DART-disclosed cash dividend, then rank by yield or DPS.
 # Do not impose a high-yield/payout/profit-growth quality gate here; those
@@ -750,6 +781,163 @@ def build_dividend_match(stock, daily, sector, signal, annual, valuation=None):
     return match
 
 
+def fetch_market_cap(token, code):
+    """목표주가 괴리 스캔용 - 키움 ka10001에서 시가총액(mac)만 받는다. 오늘 종가로 나누면
+    상장주식수 근사치가 나온다(daily_scan.py market_cap_getter()/fetch_dividend_valuation()과
+    같은 TR·같은 호출 패턴, 필드만 다름 - 기존 두 함수는 그대로 두고 새 함수로 분리했다)."""
+    if not token:
+        return None
+    try:
+        raw = kiwoom_client.call_tr(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
+    except (RuntimeError, OSError):
+        return None
+    value = raw.get('mac')
+    if isinstance(value, str):
+        value = value.replace(',', '').strip()
+    try:
+        return float(value) if value not in (None, '') else None
+    except (TypeError, ValueError):
+        return None
+
+
+def year_end_close(daily, year):
+    """year 12/31 이전(그 해 마지막 거래일) 종가. 그 해에 아직 상장 전이었다면 None."""
+    cutoff = '%d-12-31' % year
+    candidates = [row for row in daily if str(row.get('date') or '') <= cutoff]
+    if not candidates:
+        return None
+    return candidates[-1].get('close')
+
+
+def compute_target_price(daily, annual, shares_outstanding):
+    """종목 자체 과거 PER/PBR 밴드 기반 펀더멘털 목표가. annual['years']는 fundamentals.py가
+    오름차순으로 정렬해 돌려준다. 반환값이 None이면 이 종목은 목표주가를 못 구한 것
+    (밴드 표본 부족 등) - 호출부가 그 경우 후보에서 제외한다."""
+    if not shares_outstanding or shares_outstanding <= 0:
+        return None
+    years = sorted((annual or {}).get('years') or [], key=lambda row: row.get('year') or 0)
+    if not years:
+        return None
+    latest = years[-1]
+    if not latest.get('net_income') or latest['net_income'] <= 0:
+        return None  # 최근 회계연도 적자 - 스크리닝 대상에서 제외(사용자 확인)
+
+    band = years[-TARGET_PRICE_BAND_YEARS:]
+    per_samples, pbr_samples = [], []
+    for row in band:
+        price = year_end_close(daily, row['year'])
+        if not price:
+            continue
+        net_income, equity = row.get('net_income'), row.get('equity')
+        eps = (net_income / shares_outstanding) if net_income is not None else None
+        bps = (equity / shares_outstanding) if equity is not None else None
+        if eps and eps > 0:
+            per_samples.append(price / eps)
+        if bps and bps > 0:
+            pbr_samples.append(price / bps)
+
+    latest_eps = latest['net_income'] / shares_outstanding
+    latest_bps = (latest['equity'] / shares_outstanding) if latest.get('equity') else None
+
+    targets = []
+    per_band_avg = pbr_band_avg = None
+    if len(per_samples) >= TARGET_PRICE_MIN_BAND_YEARS:
+        per_band_avg = sum(per_samples) / len(per_samples)
+        targets.append(per_band_avg * latest_eps)
+    if latest_bps and len(pbr_samples) >= TARGET_PRICE_MIN_BAND_YEARS:
+        pbr_band_avg = sum(pbr_samples) / len(pbr_samples)
+        targets.append(pbr_band_avg * latest_bps)
+    if not targets:
+        return None
+
+    return {
+        'targetPrice': sum(targets) / len(targets),
+        'perBandAvg': per_band_avg,
+        'pbrBandAvg': pbr_band_avg,
+        'perBandYears': len(per_samples),
+        'pbrBandYears': len(pbr_samples),
+    }
+
+
+def build_target_price_match(stock, daily, sector, target, annual):
+    last = daily[-1]
+    prev = daily[-2] if len(daily) > 1 else None
+    previous_close = prev.get('close') if prev else None
+    price = last['close']
+    change_rate = ((price - previous_close) / previous_close * 100) if previous_close else None
+    match = {
+        'code': stock['code'],
+        'name': stock['name'],
+        'price': price,
+        'changeRate': change_rate,
+        'date': last.get('date'),
+        'sector': sector,
+        'strategy': 'targetPriceGap',
+        'targetPrice': round(target['targetPrice']),
+        'targetGapPct': round((target['targetPrice'] - price) / price * 100, 1),
+        'perBandAvg': round(target['perBandAvg'], 1) if target.get('perBandAvg') else None,
+        'pbrBandAvg': round(target['pbrBandAvg'], 2) if target.get('pbrBandAvg') else None,
+        'roe': annual.get('latest_roe_pct') if annual else None,
+        'debtRatio': annual.get('latest_debt_ratio_pct') if annual else None,
+    }
+    fundamental_score = invest_signal.compute_fundamental_score(annual)
+    if fundamental_score is not None:
+        match['fundamentalScore'] = fundamental_score
+    return match
+
+
+def scan_target_price_gap(universe, wics_map, fundamentals_cache, conn, theme_codes=None,
+                           kiwoom_token=None, daily_cache=None):
+    """종목 자체 PER/PBR 밴드 목표가가 현재가보다 크게 높은 저평가주를 찾는다. 값싼
+    필터(데이터량·유동성·섹터·최근연도 적자)를 먼저 통과한 종목에만 키움 API를 호출해
+    상장주식수를 받는다(배당주 스캔과 동일하게 결과에 실릴 후보만 호출해 API 부담을 줄임)."""
+    theme_codes = theme_codes or set()
+    matches = []
+    scanned = 0
+    for stock in universe:
+        code = stock['code']
+        daily = _load_daily(conn, code, daily_cache)
+        if len(daily) < MIN_BARS:
+            continue
+        if pattern_detect.is_excluded_stock(stock, daily):
+            continue
+        if daily[-1]['close'] < MIN_PRICE or code in theme_codes:
+            continue
+        if pattern_detect.is_etf_name(stock.get('name')):
+            continue
+        vol_multiple = pattern_detect.compute_volume_multiple(daily)
+        if not vol_multiple or vol_multiple['avg20'] < MIN_AVG_TURNOVER:
+            continue
+        wics = wics_map.get(code)
+        if not wics or not wics.get('sector'):
+            continue
+        annual = (fundamentals_cache.get(code) or {}).get('annual')
+        years = sorted((annual or {}).get('years') or [], key=lambda row: row.get('year') or 0)
+        if not years or not years[-1].get('net_income') or years[-1]['net_income'] <= 0:
+            continue  # 적자 기업 - 상장주식수 조회(API 호출) 전에 값싸게 걸러낸다
+        scanned += 1
+
+        shares_outstanding = None
+        market_cap = fetch_market_cap(kiwoom_token, code)
+        if kiwoom_token:
+            time.sleep(THROTTLE_SEC)
+        if market_cap and daily[-1]['close']:
+            shares_outstanding = market_cap / daily[-1]['close']
+        target = compute_target_price(daily, annual, shares_outstanding)
+        if not target or target['targetPrice'] <= daily[-1]['close']:
+            continue
+        gap_pct = (target['targetPrice'] - daily[-1]['close']) / daily[-1]['close'] * 100
+        if gap_pct < TARGET_PRICE_MIN_GAP_PCT:
+            continue
+        matches.append(build_target_price_match(stock, daily, wics['sector'], target, annual))
+
+    matches.sort(key=lambda item: -(item.get('targetGapPct') or 0))
+    sectors = {}
+    for match in matches[:TARGET_PRICE_TOP_N]:
+        sectors.setdefault(match['sector'], []).append(match)
+    return sectors, scanned
+
+
 def etf_return_signal(daily, lookback_bars):
     """Return a close-to-close ETF return for a trading-day lookback."""
     if not daily or len(daily) <= lookback_bars:
@@ -1009,6 +1197,9 @@ def main():
         daily_cache=daily_cache)
     etf_return_sectors, etf_scanned = scan_etf_returns(universe, conn, daily_cache=daily_cache)
     nps_sectors, nps_scanned = scan_nps_holdings(universe, wics_map, conn, theme_codes=theme_codes, daily_cache=daily_cache)
+    target_price_sectors, target_price_scanned = scan_target_price_gap(
+        universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,
+        daily_cache=daily_cache)
 
     undervalued_category = {
         'name': '저평가 종목',
@@ -1073,6 +1264,17 @@ def main():
         },
     }
     output['npsScanned'] = nps_scanned
+
+    output['categories']['targetPriceGap'] = {
+        'name': '목표주가 괴리 저평가주',
+        'methodology': TARGET_PRICE_METHODOLOGY_NOTE,
+        'sectors': {
+            sector: {'name': sector, 'matches': matches}
+            for sector, matches in target_price_sectors.items()
+            if matches
+        },
+    }
+    output['targetPriceScanned'] = target_price_scanned
 
     tmp_path = OUTPUT_FILE + '.tmp'
     with open(tmp_path, 'w', encoding='utf-8') as f:

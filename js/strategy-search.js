@@ -334,6 +334,7 @@
     // methodology, NPS_METHODOLOGY_NOTE)에만 남겼다 - 거기 이미 같은 내용이 있다
     // ("이 데이터는 매일 갱신되지 않고... 스냅샷입니다").
     if (key === 'nationalPension') return '국민연금이 보유한 국내주식을 지분율 기준으로 골라 표시합니다. 화면에서 지분율 기준을 바꿀 수 있습니다.';
+    if (key === 'targetPriceGap') return '종목 자체 과거 PER·PBR 밴드로 계산한 목표가가 현재가보다 크게 높은 저평가 후보를 표시합니다.';
     return '전략 조건으로 후보군을 탐색하고, 세부 기준을 확인합니다.';
   }
 
@@ -868,6 +869,7 @@
 
   function cardNote(key) {
     if (key === 'undervalued') return '장기 가격 눌림 상위 후보';
+    if (key === 'targetPriceGap') return '목표가 괴리율 높은 순 후보';
     return '전략 조건을 충족한 후보군';
   }
 
@@ -881,6 +883,9 @@
       secondary = 'ROE ' + fmtPct(it.roe) + ' · 부채비율 ' + fmtPct(it.debtRatio);
     } else if (it.envelope) {
       primary = '주봉 엔벨로프 하단 ' + fmtPct(it.envelope.closeDistancePct);
+      secondary = 'ROE ' + fmtPct(it.roe) + ' · 부채비율 ' + fmtPct(it.debtRatio);
+    } else if (it.targetGapPct != null) {
+      primary = '목표가 ' + fmtWon(it.targetPrice) + ' (괴리 +' + fmtPct(it.targetGapPct) + ')';
       secondary = 'ROE ' + fmtPct(it.roe) + ' · 부채비율 ' + fmtPct(it.debtRatio);
     } else {
       primary = it.gapRatePct != null ? '시초갭 ' + fmtPct(it.gapRatePct) : '전략 조건 충족';
