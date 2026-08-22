@@ -562,6 +562,30 @@ class InvHeadShouldersDetectionTest(unittest.TestCase):
         self.assertLess(detail["head"]["price"], detail["right_shoulder"]["price"])
         self.assertGreaterEqual(detail["score"], detector.IHS_MIN_SCORE)
 
+    def test_neckline_uses_the_higher_of_the_two_peaks(self):
+        """2026-08-22 추가: 넥라인 = max(좌어깨~헤드 고가, 헤드~우어깨 고가)로 변경(사용자
+        요청) - inv_head_shoulders_daily()는 peak1(1.07*base) > peak2(1.06*base)이므로
+        더 높은 peak1이 넥라인이어야 한다."""
+        detail = detector.detect_inv_head_shoulders(inv_head_shoulders_daily())
+
+        self.assertIsNotNone(detail)
+        self.assertAlmostEqual(detail["neckline"]["price"], detail["left_peak"]["price"], delta=1)
+        self.assertGreater(detail["neckline"]["price"], detail["right_peak"]["price"])
+
+    def test_new_low_after_right_shoulder_is_excluded(self):
+        """2026-08-22 추가: 우어깨 이후 최저가가 헤드 저점보다 1% 넘게 더 빠지면(새로운
+        저점 재형성) 역헤드앤숄더 무효로 처리한다."""
+        daily = inv_head_shoulders_daily()
+        n = len(daily)
+        i_r = n - 4
+        head_price = daily[i_r - 20]["low"]
+        dip_idx = i_r + 3  # 우어깨 이후, 마지막 봉 이전
+        daily[dip_idx].update(low=head_price * 0.9, high=head_price * 0.95,
+                               open=head_price * 0.93, close=head_price * 0.93)
+
+        detail = detector.detect_inv_head_shoulders(daily)
+        self.assertIsNone(detail)
+
     def test_scan_exposes_inv_head_shoulders_bucket(self):
         results = {"risingLows": [], "maCloudBreakout": [], "doubleBottom": [],
                    "invHeadShoulders": [], "boxRangeLow": []}

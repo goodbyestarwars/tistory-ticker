@@ -963,6 +963,12 @@ def detect_inv_head_shoulders(daily):
                 if shoulder_diff > IHS_SHOULDER_TOL:
                     continue
 
+                # 2026-08-22 추가: 우어깨 이후 저가가 헤드 저점보다 1% 넘게 더 빠지면
+                # (새로운 저점을 다시 만든 셈이라) 진짜 역헤드앤숄더가 아니므로 무효 처리.
+                post_right_min = min_low_between(win, i_r, len(win) - 1)
+                if post_right_min is not None and post_right_min < head * 0.99:
+                    continue
+
                 peak1 = max_high_between(win, i_l, i_h)
                 peak2 = max_high_between(win, i_h, i_r)
                 if not peak1 or not peak2:
@@ -971,8 +977,10 @@ def detect_inv_head_shoulders(daily):
                     continue
                 if (peak2['high'] - head) / head < IHS_NECK_MIN_RISE:
                     continue
-                neckline_price = min(peak1['high'], peak2['high'])
-                neckline_point = peak1 if peak1['high'] <= peak2['high'] else peak2
+                # 2026-08-22: 넥라인을 두 구간(좌어깨~헤드/헤드~우어깨) 고가 중 낮은 쪽이
+                # 아니라 높은 쪽으로 변경(사용자 요청).
+                neckline_price = max(peak1['high'], peak2['high'])
+                neckline_point = peak1 if peak1['high'] >= peak2['high'] else peak2
 
                 last_close = win[-1]['close']
                 proximity = (last_close - neckline_price) / neckline_price

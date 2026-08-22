@@ -1,5 +1,15 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(6차) 역헤드앤숄더(`detect_inv_head_shoulders`/`detectInvHeadShoulders_`) 넥라인
+계산 변경 + 신규 무효 조건 추가**: 사용자 요청 2건 반영. (1) 넥라인을 "좌어깨~헤드/헤드~우어깨
+두 구간 고가 중 더 낮은 쪽"에서 "더 높은 쪽"(`max`)으로 변경. (2) 우어깨 이후 최저가가
+헤드 저점보다 1% 넘게 더 빠지면(새로운 저점을 다시 만든 셈) 무효 처리하는 조건 신설 -
+`min_low_between()`(쌍바닥 작업 때 추가한 헬퍼) 재사용. `pattern_detect.py`와
+`gas/ticker-proxy.gs`의 `detectInvHeadShoulders_` 양쪽에 동일 반영. `test/test_pattern_detect.py`에
+회귀 테스트 2건(`test_neckline_uses_the_higher_of_the_two_peaks`,
+`test_new_low_after_right_shoulder_is_excluded`) 추가, 전체 31건 통과. `js/pattern-scan.js`
+탭 설명 문구 갱신.
+
 **2026-08-22(5차) 이평 상승 초입형에 최소 위치 조건 재도입 + 상단/하단 시도 점수 차등**:
 사용자가 표+검증 코드로 제시한 수정안을 그대로 반영. (1) 3차에서 구름 하단 이탈을
 전면 허용했더니 구름 하단을 한참 벗어난 역배열 약세 종목이 저가만 살짝 하단에 닿아도

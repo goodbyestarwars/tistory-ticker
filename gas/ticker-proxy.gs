@@ -3292,13 +3292,19 @@ function detectInvHeadShoulders_(daily) {
         var shoulderDiff = Math.abs(left - right) / Math.min(left, right);
         if (shoulderDiff > IHS_SHOULDER_TOL) continue;
 
+        // 2026-08-22 추가: 우어깨 이후 저가가 헤드 저점보다 1% 넘게 더 빠지면(새로운 저점을
+        // 다시 만든 셈) 진짜 역헤드앤숄더가 아니므로 무효 처리.
+        var postRightMin = minLowBetween_(win, iR, win.length - 1);
+        if (postRightMin != null && postRightMin < head * 0.99) continue;
+
         var peak1 = maxHighBetween_(win, iL, iH);
         var peak2 = maxHighBetween_(win, iH, iR);
         if (!peak1 || !peak2) continue;
         if ((peak1.high - head) / head < IHS_NECK_MIN_RISE) continue;
         if ((peak2.high - head) / head < IHS_NECK_MIN_RISE) continue;
-        var necklinePrice = Math.min(peak1.high, peak2.high);
-        var necklinePoint = peak1.high <= peak2.high ? peak1 : peak2;
+        // 2026-08-22: 넥라인을 두 구간 고가 중 낮은 쪽이 아니라 높은 쪽으로 변경(사용자 요청).
+        var necklinePrice = Math.max(peak1.high, peak2.high);
+        var necklinePoint = peak1.high >= peak2.high ? peak1 : peak2;
 
         var lastClose = win[win.length - 1].close;
         var proximity = (lastClose - necklinePrice) / necklinePrice;
