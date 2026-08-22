@@ -1,5 +1,16 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(23차) 한국증시/미국증시 탭 전환 시 "한 주 마감 리포트"가 계속 남던 문제 수정**:
+사용자가 "휴장 탭만 건들면 매번 하는 실수"라며 스크린샷 2장(미국증시 탭, 국내 시장 탭)을
+제시 - 둘 다 화면 중간에 주말 전용 "한 주 마감 리포트"(`js/home-weekly-report.js`가
+만드는 `#homeWeeklyReport`)가 그대로 남아 있었다. 원인은 이 요소가 `.home-closed-page`
+등 `applyHomeMarketSession()`이 관리하는 컨테이너들과 별개로 `.feed`에 직접 붙는
+독립 요소라, 주말엔 페이지 로드 시점에 한 번 만들어진 뒤 탭을 한국증시/미국증시로
+바꿔도 숨겨지지 않았기 때문이다(탭 전환 핸들러가 아예 이 요소를 몰랐음). `js/skin-main.js`의
+`applyHomeMarketSession()`이 `.home-closed-page`와 같은 `isClosed` 기준으로
+`#homeWeeklyReport.hidden`도 함께 동기화하도록 수정했다. `test/test_ui_ia.py`에
+회귀 테스트 1건을 추가해 100건 통과.
+
 **2026-08-22(22차) 저점상승형 차트 하단선이 저-저-고로 꺾여 보이는 버그 수정**: 사용자가
 차트 스크린샷으로 "저점 상승형인데 왜 하단(빨간 저점 라인)이 저-저-고로 보이냐"고
 리포트. `detect_rising_lows`(및 GAS 미러 `detectRisingLows_`)의 판정 자체는 마지막

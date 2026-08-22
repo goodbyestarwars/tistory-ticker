@@ -778,6 +778,13 @@
       if (overviewGrid) overviewGrid.hidden = isClosed;
       if (widgetGrid) widgetGrid.hidden = isClosed;
       if (realtimeBoard) realtimeBoard.hidden = isClosed;
+      // 2026-08-22: "한 주 마감 리포트"(js/home-weekly-report.js가 만드는 #homeWeeklyReport)는
+      // 이 함수가 관리하는 컨테이너들과 별개로 .feed에 직접 붙는 요소라, 주말엔 탭을
+      // 한국증시/미국증시로 바꿔도 계속 화면 중간에 끼어 보이는 문제가 있었다(사용자가
+      // "휴장 탭만 건들면 매번 하는 실수"라고 재차 지적). 휴장 탭일 때만 보이도록 여기서도
+      // 같은 isClosed 기준으로 동기화한다.
+      var weeklyReport = document.getElementById('homeWeeklyReport');
+      if (weeklyReport) weeklyReport.hidden = !isClosed;
       if (isClosed) return;
       var title = dashboardSection.querySelector('[data-home-market-field="title"]');
       var live = dashboardSection.querySelector('[data-home-market-field="live"]');

@@ -1690,6 +1690,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/home-weekly-report.js")
         self.assertIn("'현재 조건 충족 후보 없음'", source)
 
+    # 2026-08-22 신설(사용자 리포트: "한국증시/미국증시 누르면 휴장 대시보드가 중간에
+    # 항상 끼네?") - 주말엔 #homeWeeklyReport(js/home-weekly-report.js)가 페이지 로드
+    # 시점에 한 번만 만들어지고, 탭을 한국증시/미국증시로 바꿔도 계속 보이던 문제.
+    # applyHomeMarketSession()이 다른 컨테이너(.home-closed-page 등)와 같은 기준
+    # (isClosed)으로 이 요소도 hidden을 동기화해야 한다.
+    def test_home_market_switch_hides_weekly_report_outside_closed_tab(self):
+        source = self.read("js/skin-main.js")
+        func_start = source.index("function applyHomeMarketSession")
+        func_end = source.index("\n    }", source.index("if (isClosed) return;", func_start))
+        body = source[func_start:func_end]
+        self.assertIn("getElementById('homeWeeklyReport')", body)
+        self.assertIn("weeklyReport.hidden = !isClosed", body)
+
     # 2026-08-22 신설: 휴장 페이지 "다음 주 핵심 스케줄"에 관심종목(watchlist.js localStorage)
     # 실적·공시 일정을 조건부로 얹는 기능 - 표본이 없으면(관심종목 미등록/해당 일정 없음)
     # 섹션 자체를 숨겨야 "그냥 데이터만 붙여넣은 대시보드"가 되지 않는다.
