@@ -210,6 +210,27 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
             result = dmi.fetch_leverage_detail()
         self.assertFalse(result['available'])
 
+    def test_build_dashboard_only_eagerly_fetches_day_and_week(self):
+        # 2026-08-23: 분봉(1,500봉x2종목)을 기본 응답에서 빼(사용자 리포트: "차트가 유독
+        # 느려" - 응답 256KB 중 절반 가까이가 기본 탭(일봉)에서 안 쓰이는 분봉이었음)
+        # /domestic-market-indicators/chart 온디맨드 엔드포인트로 옮겼다 - 회귀 방지로
+        # build_dashboard()가 여전히 day/week만 조회하고 minute은 조회하지 않는지 확인.
+        calls = []
+
+        def fake_fetch_chart(_token, _appkey, _secret, market, interval):
+            calls.append((market, interval))
+            return {'source': 'kiwoom', 'rows': [], 'errors': []}
+
+        with patch.object(dmi, 'fetch_chart', side_effect=fake_fetch_chart), \
+                patch.object(dmi, 'fetch_investor', return_value={}), \
+                patch.object(dmi, 'fetch_funds', return_value={}), \
+                patch.object(dmi, 'fetch_program_trading', return_value={}), \
+                patch.object(dmi, 'fetch_leverage_detail', return_value={}):
+            result = dmi.build_dashboard()
+        self.assertEqual(sorted(calls), [('KOSDAQ', 'day'), ('KOSDAQ', 'week'),
+                                          ('KOSPI', 'day'), ('KOSPI', 'week')])
+        self.assertEqual(set(result['indices']['KOSPI']['intervals']), {'day', 'week'})
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,5 +1,20 @@
 # 9Pay 주요 작업이력
 
+**2026-08-23(5차) 코스피·코스닥 주간현물 차트 속도 개선 - 분봉 온디맨드 분리**: 사용자가
+"국내시장지표 > 코스피·코스닥 주간현물 차트가 유독 느려"로 리포트. `/domestic-market-indicators`
+응답을 실측하니 256KB에 1.4~3초가 걸렸는데, 그중 분봉(1,500봉×2종목)이 절반 가까이를
+차지하면서도 기본 활성 탭은 일봉이라 대부분 방문에서 안 쓰이고 있었다. 서버는 이미
+2026-08-14에 병렬화가 끝난 상태라 분봉을 빼는 게 유일한 남은 지렛대였는데, 기존 탭
+전환 핸들러에 "탭 바꿔도 추가 요청 없음"을 의도적으로 설계해둔 주석이 있어(2026-08-14
+확정 설계) 되돌리는 게 맞는지 사용자에게 확인 후 진행. `domestic_market_indicators.py`의
+`build_dashboard()`가 이제 day/week만 조회(`EAGER_INTERVALS`)하고, 새 엔드포인트
+`GET /domestic-market-indicators/chart?market=&interval=`(같은 `fetch_chart()` 재사용,
+60초 캐시)이 분봉을 온디맨드로 제공한다. 프론트(`js/domestic-market-indicators.js`)는
+사용자가 분봉 탭을 처음 열 때만 이 엔드포인트를 불러 `data.indices[market].intervals.minute`에
+캐싱하고, 이후 탭 전환은 기존처럼 추가 요청 없이 재사용한다. 회귀 테스트
+(`test_build_dashboard_only_eagerly_fetches_day_and_week`) 추가, 관련 스위트 전부 통과.
+`scripts/cloud-vm/`은 VM, `js/`는 GitHub Pages 자동 배포 대상.
+
 **2026-08-23(4차) 목표주가 괴리 저평가주 - 계산법을 "업종 평균 PER/PBR 대비"로 교체**:
 단위 버그(3차, 아래)를 고치고도 VM 재스캔에서 여전히 후보 0건이었다. 원인을 더 파보니
 `compute_target_price`가 "종목 자체 과거 5개년 PER/PBR 밴드"를 계산하려면 최소 3개

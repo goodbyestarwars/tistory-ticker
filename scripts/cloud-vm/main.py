@@ -213,6 +213,10 @@ _KOFIA_MARKET_TTL = 30 * 60
 _kofia_market_cache = {}
 _DOMESTIC_MARKET_INDICATORS_TTL = 60
 _domestic_market_indicators_cache = None
+# 2026-08-23: 분봉(1,500봉)을 기본 응답에서 빼면서 생긴 온디맨드 전용 캐시(아래
+# /domestic-market-indicators/chart) - 메인 캐시와 TTL을 맞춰 분봉 탭도 1분 이상 안
+# 지난 데이터는 재조회 없이 재사용한다.
+_domestic_market_chart_cache = {}
 
 # 캘린더의 Google Calendar 이벤트와 병합하는 자동 실적발표 피드 캐시.
 # 2026-08-03: 다른 메모리 캐시와 달리 상한/정리 로직이 아예 없었다 - year(2000~2100)x
@@ -2293,6 +2297,50 @@ def domestic_market_indicators_endpoint(request: Request, fresh: bool = Query(Fa
         logging.getLogger('main').warning('domestic market indicators failed: %s', exc, exc_info=True)
         raise HTTPException(status_code=502, detail='국내시장지표 데이터를 불러오지 못했습니다.')
     _domestic_market_indicators_cache = {'t': now, 'data': data}
+    return envelope(data)
+
+
+@app.get('/domestic-market-indicators/chart')
+def domestic_market_indicators_chart_endpoint(
+    request: Request,
+    market: str = Query(...),
+    interval: str = Query('minute'),
+):
+    """코스피·코스닥 현물 분봉 온디맨드 조회 (2026-08-23 신설).
+
+    기본 /domestic-market-indicators 응답에 분봉(1,500봉x2종목)까지 항상 담으면
+    응답이 256KB에 달해 기본 활성 탭(일봉)만 보는 대다수 요청에 불필요한 지연을
+    줬다(사용자 리포트: "코스피·코스닥 주간현물 차트가 유독 느려"). 사용자가 실제로
+    분봉 탭을 눌렀을 때만 이 엔드포인트로 그 시장 하나만 조회한다 - fetch_chart()는
+    domestic_market_indicators.py의 기존 함수를 그대로 재사용.
+    """
+    _check_rate_limit('domestic_market_indicators_chart', request, max_per_window=30)
+    market = market.upper()
+    if market not in domestic_market_indicators.MARKETS:
+        raise HTTPException(status_code=400, detail='market은 KOSPI 또는 KOSDAQ이어야 합니다.')
+    if interval not in domestic_market_indicators.INTERVALS:
+        raise HTTPException(status_code=400, detail='interval은 minute/day/week 중 하나여야 합니다.')
+    cache_key = (market, interval)
+    now = time.time()
+    cached = _domestic_market_chart_cache.get(cache_key)
+    if cached and now - cached['t'] < _DOMESTIC_MARKET_INDICATORS_TTL:
+        return envelope(cached['data'])
+    kiwoom_token = None
+    kiwoom_appkey = os.environ.get('KIWOOM_APPKEY')
+    kiwoom_secretkey = os.environ.get('KIWOOM_SECRETKEY')
+    if kiwoom_appkey and kiwoom_secretkey:
+        try:
+            kiwoom_token = kiwoom_client.get_token(kiwoom_appkey, kiwoom_secretkey)
+        except Exception:
+            logging.getLogger('main').warning('domestic market chart: Kiwoom token unavailable', exc_info=True)
+    try:
+        data = domestic_market_indicators.fetch_chart(
+            kiwoom_token, os.environ.get('KIS_APPKEY'), os.environ.get('KIS_APPSECRET'), market, interval,
+        )
+    except Exception as exc:
+        logging.getLogger('main').warning('domestic market chart failed: %s', exc, exc_info=True)
+        raise HTTPException(status_code=502, detail='차트 데이터를 불러오지 못했습니다.')
+    _domestic_market_chart_cache[cache_key] = {'t': now, 'data': data}
     return envelope(data)
 
 

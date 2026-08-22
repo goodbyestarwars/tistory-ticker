@@ -31,6 +31,13 @@ MARKETS = {
     'KOSDAQ': {'name': '코스닥', 'kiwoom_code': '101', 'kis_code': '1001'},
 }
 INTERVALS = ('minute', 'day', 'week')
+# 2026-08-23: 기본 페이지 로드에는 day/week만 담는다(사용자 리포트: "코스피·코스닥
+# 주간현물 차트가 유독 느려" - 실측 결과 응답 256KB 중 분봉 1,500봉x2종목이 절반
+# 가까이를 차지했는데 기본 활성 탭은 일봉이라 대부분 요청에서 안 쓰였다). 분봉은
+# main.py의 /domestic-market-indicators/chart 온디맨드 엔드포인트로 분리해 사용자가
+# 실제로 분봉 탭을 눌렀을 때만 fetch_chart()를 재사용해 그 시점에 가져온다 - "탭 전환
+# 시 추가 요청 없음" 설계를 분봉에 한해 되돌리는 트레이드오프(사용자 확인).
+EAGER_INTERVALS = ('day', 'week')
 # Keep the domestic spot charts on the same lookback as /futures?days=250.
 CHART_LOOKBACK_DAYS = 250
 CHART_MINUTE_MAX_BARS = 1500
@@ -466,7 +473,9 @@ def fetch_leverage_detail():
 
 
 def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
-    """코스피/코스닥 현물 차트 6개(2시장 x 분/일/주) + 투자자 수급 + 증시자금을 모은다.
+    """코스피/코스닥 현물 차트 4개(2시장 x 일/주) + 투자자 수급 + 증시자금을 모은다.
+    분봉은 여기 안 담고 /domestic-market-indicators/chart 온디맨드 엔드포인트에서
+    fetch_chart()를 재사용해 필요할 때만 조회한다(EAGER_INTERVALS 주석 참고).
 
     각 fetch_*는 서로 다른 종목/엔드포인트를 조회하는 독립적인 I/O라 순서를 지킬
     이유가 없는데, 예전에는 전부 한 요청 안에서 순차 호출해서(2026-08-14 사용자
@@ -477,7 +486,7 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
     예외를 잡아 안내 문구가 담긴 결과를 돌려주므로 여기서 추가로 try/except할
     필요는 없다).
     """
-    chart_keys = [(market, interval) for market in MARKETS for interval in INTERVALS]
+    chart_keys = [(market, interval) for market in MARKETS for interval in EAGER_INTERVALS]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(chart_keys) + 4) as pool:
         chart_futures = {
             key: pool.submit(fetch_chart, kiwoom_token, kis_appkey, kis_appsecret, key[0], key[1])
@@ -491,7 +500,7 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
         indices = {}
         for market, cfg in MARKETS.items():
             intervals = {}
-            for interval in INTERVALS:
+            for interval in EAGER_INTERVALS:
                 intervals[interval] = chart_futures[(market, interval)].result()
             indices[market] = {'name': cfg['name'], 'intervals': intervals}
 

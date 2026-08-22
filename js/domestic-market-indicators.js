@@ -2,6 +2,11 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/domestic-market-indicators';
+  // 2026-08-23: 분봉(1,500봉x2종목)을 기본 응답에서 빼고 이 엔드포인트로 온디맨드
+  // 조회한다(사용자 리포트: "코스피·코스닥 주간현물 차트가 유독 느려" - 응답 256KB의
+  // 절반 가까이가 기본 탭(일봉)에서 안 쓰이는 분봉이었음). js/domestic-market-indicators.js
+  // 안 이 파일에서만 쓰인다.
+  var CHART_API_URL = 'https://goodbyestar.cloud/domestic-market-indicators/chart';
   var WS_URL = 'wss://goodbyestar.cloud/ws/market-indicators?symbols=KOSPI,KOSDAQ';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   // 2026-08-14 요청: 사이트 곳곳의 Groq AI 요약 상자 제목·아이콘이 "참고의견"/"종합 요약"/
@@ -46,6 +51,18 @@
 
   function fetchJson() {
     return fetch(API_URL, { cache: 'no-store' }).then(function (response) {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    }).then(function (payload) {
+      if (!payload || payload.success === false) throw new Error('invalid response');
+      return payload.data || payload;
+    });
+  }
+
+  // 2026-08-23: 분봉 온디맨드 조회 - /domestic-market-indicators/chart?market=&interval=
+  function fetchChartInterval(market, interval) {
+    var url = CHART_API_URL + '?market=' + encodeURIComponent(market) + '&interval=' + encodeURIComponent(interval);
+    return fetch(url, { cache: 'no-store' }).then(function (response) {
       if (!response.ok) throw new Error('HTTP ' + response.status);
       return response.json();
     }).then(function (payload) {
@@ -807,11 +824,35 @@
       if (!button) return;
       var panel = button.closest('[data-dmi-panel]');
       if (!panel) return;
-      panel.setAttribute('data-dmi-interval', button.getAttribute('data-interval'));
-      // The response is kept on the root so changing tabs never triggers an
-      // extra provider request or changes the chart's data source.
+      var interval = button.getAttribute('data-interval');
+      var market = panel.getAttribute('data-dmi-panel');
+      panel.setAttribute('data-dmi-interval', interval);
+      // The day/week response is kept on the root so switching between those two
+      // tabs never triggers an extra provider request. Minute(분봉) is the one
+      // exception (2026-08-23) - it's fetched on demand the first time a panel's
+      // 분봉 tab is opened, since shipping it in every page load doubled the
+      // payload for a tab most visits never open (사용자 리포트: "차트가 유독 느려").
       var data = root._dmiData;
-      if (data) renderCharts(root, data.indices || {});
+      if (!data) return;
+      var existing = data.indices && data.indices[market] && data.indices[market].intervals
+        && data.indices[market].intervals[interval];
+      if (existing) {
+        renderCharts(root, data.indices || {});
+        return;
+      }
+      if (interval !== 'minute') {
+        renderCharts(root, data.indices || {});
+        return;
+      }
+      var chartEl = panel.querySelector('.dmi-chart');
+      if (chartEl) chartEl.innerHTML = '<div class="dmi-chart-message">분봉 불러오는 중...</div>';
+      fetchChartInterval(market, interval).then(function (source) {
+        if (panel.getAttribute('data-dmi-interval') !== interval) return; // 그 사이 다른 탭으로 이동
+        data.indices[market].intervals[interval] = source;
+        renderCharts(root, data.indices || {});
+      }).catch(function () {
+        if (chartEl) chartEl.innerHTML = '<div class="dmi-chart-message">분봉 데이터를 불러오지 못했습니다.</div>';
+      });
     });
   }
 
