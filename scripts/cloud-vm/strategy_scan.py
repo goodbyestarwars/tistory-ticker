@@ -109,36 +109,33 @@ DISPARITY_MAX = 90
 SECTOR_TOP_N = 5
 STRATEGY_MAX_RESULTS = 20
 
-# 2026-08-22 신설: "목표주가 괴리 저평가주" - 종목 자체 과거 PER/PBR 밴드로 계산한
-# 펀더멘털 목표가가 현재가보다 크게 높은 종목만 찾는다(사용자 요청, 개념 설계 대화 참고).
-# 계산 방식(잠정, 백테스트로 검증된 공식이 아님):
-#   1. fundamentals_cache의 DART 5개년 net_income/equity(fundamentals.py)를 그대로 쓴다.
-#   2. 연도별 EPS/BPS = net_income/equity ÷ 상장주식수. 연도별 상장주식수를 다시 조회하지
-#      않고 "오늘 시가총액(ka10001 mac) ÷ 오늘 종가"로 구한 현재 상장주식수를 과거 연도에도
-#      그대로 적용한다(수년 내 주식수가 크게 안 바뀐다는 근사 - 사용자 확인).
-#   3. 연도별 PER/PBR = 그 회계연도 말(12/31 이전 마지막 거래일) 종가 ÷ 그 해 EPS/BPS.
-#      EPS가 0 이하(적자)인 해는 그 해의 PER만 밴드 평균에서 제외한다(PBR은 자본총계가
-#      양수인 한 계속 포함).
-#   4. 최근 TARGET_PRICE_BAND_YEARS개 연도의 PER/PBR을 각각 평균해 "밴드"로 삼고,
-#      최근 연도 EPS/BPS에 곱해 두 목표가(PER 기준/PBR 기준)를 만든 뒤 평균한다(둘 다
-#      있으면 평균, 하나만 있으면 그것만 사용).
-#   5. 최근 회계연도 net_income이 0 이하(적자 기업)면 스크리닝 대상에서 아예 제외한다
-#      (사용자 확인 - 재무건전 장기 눌림과 동일 원칙, 밸류트랩 방지).
-#   6. 현재가 대비 목표가 괴리율이 TARGET_PRICE_MIN_GAP_PCT 이상인 종목만 후보로 남긴다.
-TARGET_PRICE_BAND_YEARS = 5
-TARGET_PRICE_MIN_BAND_YEARS = 3  # 유효 PER/PBR 표본이 이보다 적으면 밴드를 못 믿는다고 보고 제외
+# 2026-08-22 신설, 2026-08-23 계산법 교체: "목표주가 괴리 저평가주" - 처음엔 "종목 자체
+# 과거 5개년 PER/PBR 밴드"로 설계했는데, 실측해보니 daily_prices가 2024-06-24부터만
+# 있어(완결 회계연도가 2024·2025 2개뿐) TARGET_PRICE_MIN_BAND_YEARS(3)를 구조적으로
+# 절대 못 채워 항상 후보 0건이었다. 과거 주가 이력이 아예 필요 없는 방식으로 교체:
+# "같은 업종(WICS 섹터) 안 다른 종목들의 오늘 평균 PER/PBR"을 그 종목의 적정 배수로
+# 보고, 그 배수를 이 종목의 오늘 EPS/BPS에 곱해 목표가를 만드는 상대가치평가 방식(사용자
+# 확인 - "업종 평균 PER/PBR 대비"). 계산 방식:
+#   1. 유동성·섹터·최근 회계연도 흑자 필터를 통과한 각 종목의 오늘 EPS/BPS를 구한다
+#      (fundamentals_cache의 DART 최신 회계연도 net_income/equity ÷ 상장주식수,
+#      상장주식수는 "오늘 시가총액(ka10001 mac) ÷ 오늘 종가"로 근사).
+#   2. 오늘 PER/PBR = 오늘 종가 ÷ EPS/BPS. 같은 WICS 섹터의 이 값들을 모아 섹터 평균을
+#      낸다(EPS·BPS가 양수인 표본만 포함 - 적자 종목의 PER은 의미가 없어 제외).
+#   3. 섹터 평균 PER/PBR 각각에 그 종목 자신의 EPS/BPS를 곱해 두 목표가를 만들고
+#      평균한다(둘 다 있으면 평균, 하나만 있으면 그것만 사용). 섹터 표본이
+#      TARGET_PRICE_MIN_SECTOR_PEERS 미만이면 그 섹터 평균은 못 믿는다고 보고 제외.
+#   4. 현재가 대비 목표가 괴리율이 TARGET_PRICE_MIN_GAP_PCT 이상인 종목만 후보로 남긴다.
+TARGET_PRICE_MIN_SECTOR_PEERS = 5  # 섹터 평균 PER/PBR 표본이 이보다 적으면 안 믿고 제외
 TARGET_PRICE_MIN_GAP_PCT = 20.0  # 목표가가 현재가보다 이 %+ 높아야 후보(잠정 기준)
 TARGET_PRICE_TOP_N = 30
 
 TARGET_PRICE_METHODOLOGY_NOTE = (
-    '종목 자체 최근 {years}개년 PER·PBR 밴드(회계연도 말 종가 ÷ 그 해 EPS·BPS 평균, '
-    '상장주식수는 오늘 기준을 과거에도 동일 적용)로 계산한 펀더멘털 목표가가 현재가보다 '
-    '{min_gap:.0f}% 이상 높은 종목만 표시합니다. 최근 회계연도가 적자인 종목과 유효 표본이 '
-    '{min_years}개 미만인 종목(상장 얼마 안 된 종목 등)은 제외합니다. 백테스트로 검증된 '
-    '공식이 아니라 참고용 근사치입니다.'
-).format(
-    years=TARGET_PRICE_BAND_YEARS, min_gap=TARGET_PRICE_MIN_GAP_PCT, min_years=TARGET_PRICE_MIN_BAND_YEARS,
-)
+    '같은 업종(WICS 섹터) 내 다른 종목들의 오늘 평균 PER·PBR을 적정 배수로 보고, '
+    '이 종목의 오늘 EPS·BPS에 곱해 계산한 목표가가 현재가보다 {min_gap:.0f}% 이상 '
+    '높은 종목만 표시합니다. 최근 회계연도가 적자인 종목과 같은 업종 비교 표본이 '
+    '{min_peers}개 미만인 업종은 제외합니다. 백테스트로 검증된 공식이 아니라 참고용 '
+    '근사치입니다.'
+).format(min_gap=TARGET_PRICE_MIN_GAP_PCT, min_peers=TARGET_PRICE_MIN_SECTOR_PEERS)
 
 # Dividend ranking follows the broad Naver-style screen: keep common stocks
 # with a positive DART-disclosed cash dividend, then rank by yield or DPS.
@@ -800,19 +797,9 @@ def fetch_market_cap(token, code):
         return None
 
 
-def year_end_close(daily, year):
-    """year 12/31 이전(그 해 마지막 거래일) 종가. 그 해에 아직 상장 전이었다면 None."""
-    cutoff = '%d-12-31' % year
-    candidates = [row for row in daily if str(row.get('date') or '') <= cutoff]
-    if not candidates:
-        return None
-    return candidates[-1].get('close')
-
-
-def compute_target_price(daily, annual, shares_outstanding):
-    """종목 자체 과거 PER/PBR 밴드 기반 펀더멘털 목표가. annual['years']는 fundamentals.py가
-    오름차순으로 정렬해 돌려준다. 반환값이 None이면 이 종목은 목표주가를 못 구한 것
-    (밴드 표본 부족 등) - 호출부가 그 경우 후보에서 제외한다."""
+def compute_eps_bps(annual, shares_outstanding):
+    """최신 회계연도 EPS/BPS. annual['years']는 fundamentals.py가 오름차순으로 정렬해
+    돌려준다. 반환값이 None이면 이 종목은 목표주가 계산 대상에서 제외한다(적자 등)."""
     if not shares_outstanding or shares_outstanding <= 0:
         return None
     years = sorted((annual or {}).get('years') or [], key=lambda row: row.get('year') or 0)
@@ -821,62 +808,37 @@ def compute_target_price(daily, annual, shares_outstanding):
     latest = years[-1]
     if not latest.get('net_income') or latest['net_income'] <= 0:
         return None  # 최근 회계연도 적자 - 스크리닝 대상에서 제외(사용자 확인)
+    eps = latest['net_income'] / shares_outstanding
+    bps = (latest['equity'] / shares_outstanding) if latest.get('equity') else None
+    return {'eps': eps, 'bps': bps}
 
-    band = years[-TARGET_PRICE_BAND_YEARS:]
-    per_samples, pbr_samples = [], []
-    for row in band:
-        price = year_end_close(daily, row['year'])
-        if not price:
-            continue
-        net_income, equity = row.get('net_income'), row.get('equity')
-        eps = (net_income / shares_outstanding) if net_income is not None else None
-        bps = (equity / shares_outstanding) if equity is not None else None
-        if eps and eps > 0:
-            per_samples.append(price / eps)
-        if bps and bps > 0:
-            pbr_samples.append(price / bps)
 
-    latest_eps = latest['net_income'] / shares_outstanding
-    latest_bps = (latest['equity'] / shares_outstanding) if latest.get('equity') else None
-
-    targets = []
-    per_band_avg = pbr_band_avg = None
-    if len(per_samples) >= TARGET_PRICE_MIN_BAND_YEARS:
-        per_band_avg = sum(per_samples) / len(per_samples)
-        targets.append(per_band_avg * latest_eps)
-    if latest_bps and len(pbr_samples) >= TARGET_PRICE_MIN_BAND_YEARS:
-        pbr_band_avg = sum(pbr_samples) / len(pbr_samples)
-        targets.append(pbr_band_avg * latest_bps)
+def build_target_price_match(record, sector_avg, annual):
+    price = record['price']
+    per_target = sector_avg['perAvg'] * record['eps'] if sector_avg.get('perAvg') and record['eps'] > 0 else None
+    pbr_target = (sector_avg['pbrAvg'] * record['bps']
+                  if sector_avg.get('pbrAvg') and record.get('bps') and record['bps'] > 0 else None)
+    targets = [t for t in (per_target, pbr_target) if t]
     if not targets:
         return None
-
-    return {
-        'targetPrice': sum(targets) / len(targets),
-        'perBandAvg': per_band_avg,
-        'pbrBandAvg': pbr_band_avg,
-        'perBandYears': len(per_samples),
-        'pbrBandYears': len(pbr_samples),
-    }
-
-
-def build_target_price_match(stock, daily, sector, target, annual):
-    last = daily[-1]
-    prev = daily[-2] if len(daily) > 1 else None
-    previous_close = prev.get('close') if prev else None
-    price = last['close']
-    change_rate = ((price - previous_close) / previous_close * 100) if previous_close else None
+    target_price = sum(targets) / len(targets)
+    if target_price <= price:
+        return None
+    gap_pct = (target_price - price) / price * 100
+    if gap_pct < TARGET_PRICE_MIN_GAP_PCT:
+        return None
     match = {
-        'code': stock['code'],
-        'name': stock['name'],
+        'code': record['code'],
+        'name': record['name'],
         'price': price,
-        'changeRate': change_rate,
-        'date': last.get('date'),
-        'sector': sector,
+        'changeRate': record.get('changeRate'),
+        'date': record.get('date'),
+        'sector': record['sector'],
         'strategy': 'targetPriceGap',
-        'targetPrice': round(target['targetPrice']),
-        'targetGapPct': round((target['targetPrice'] - price) / price * 100, 1),
-        'perBandAvg': round(target['perBandAvg'], 1) if target.get('perBandAvg') else None,
-        'pbrBandAvg': round(target['pbrBandAvg'], 2) if target.get('pbrBandAvg') else None,
+        'targetPrice': round(target_price),
+        'targetGapPct': round(gap_pct, 1),
+        'sectorPerAvg': round(sector_avg['perAvg'], 1) if per_target else None,
+        'sectorPbrAvg': round(sector_avg['pbrAvg'], 2) if pbr_target else None,
         'roe': annual.get('latest_roe_pct') if annual else None,
         'debtRatio': annual.get('latest_debt_ratio_pct') if annual else None,
     }
@@ -888,11 +850,15 @@ def build_target_price_match(stock, daily, sector, target, annual):
 
 def scan_target_price_gap(universe, wics_map, fundamentals_cache, conn, theme_codes=None,
                            kiwoom_token=None, daily_cache=None):
-    """종목 자체 PER/PBR 밴드 목표가가 현재가보다 크게 높은 저평가주를 찾는다. 값싼
-    필터(데이터량·유동성·섹터·최근연도 적자)를 먼저 통과한 종목에만 키움 API를 호출해
-    상장주식수를 받는다(배당주 스캔과 동일하게 결과에 실릴 후보만 호출해 API 부담을 줄임)."""
+    """같은 업종(WICS 섹터)의 오늘 평균 PER/PBR 대비 저평가된 종목을 찾는다(2026-08-23
+    계산법 교체 - 처음 설계였던 "종목 자체 과거 5개년 밴드"는 daily_prices가 2024-06-24
+    부터만 있어 완결 회계연도가 2개뿐이라 항상 후보 0건이었다, 위 주석 참고). 1단계로
+    유동성·섹터·최근연도 적자 필터를 통과한 모든 종목의 오늘 EPS/BPS·PER/PBR을 구해
+    섹터별 평균을 먼저 계산하고, 2단계에서 그 평균 대비 각 종목의 목표가·괴리율을
+    매긴다 - 섹터 평균을 내려면 어차피 섹터 내 대부분 종목의 시가총액을 조회해야 해서
+    이전 방식과 API 호출량은 동일하다(전 종목이 아니라 이 필터를 통과한 종목만 호출)."""
     theme_codes = theme_codes or set()
-    matches = []
+    records = []
     scanned = 0
     for stock in universe:
         code = stock['code']
@@ -925,16 +891,49 @@ def scan_target_price_gap(universe, wics_map, fundamentals_cache, conn, theme_co
             # 2026-08-23: 실측(삼성전자)으로 발견한 단위 버그 - ka10001의 mac은 원 단위가
             # 아니라 "억원" 단위다(pattern_detect.detect_box_range_low의 market_cap_eok
             # 파라미터명과 동일 관례, 이미 검증돼 있던 값). 원 단위로 잘못 나누면 상장주식수가
-            # 58주 같은 말이 안 되는 값으로 나와 모든 종목의 target_price가 조용히 None이
-            # 됐었다(전체 0건으로 스크리닝된 원인).
+            # 58주 같은 말이 안 되는 값으로 나와 EPS/BPS가 조용히 엉뚱한 값이 됐었다.
             shares_outstanding = (market_cap_eok * 100_000_000) / daily[-1]['close']
-        target = compute_target_price(daily, annual, shares_outstanding)
-        if not target or target['targetPrice'] <= daily[-1]['close']:
+        eps_bps = compute_eps_bps(annual, shares_outstanding)
+        if not eps_bps:
             continue
-        gap_pct = (target['targetPrice'] - daily[-1]['close']) / daily[-1]['close'] * 100
-        if gap_pct < TARGET_PRICE_MIN_GAP_PCT:
-            continue
-        matches.append(build_target_price_match(stock, daily, wics['sector'], target, annual))
+
+        last = daily[-1]
+        prev = daily[-2] if len(daily) > 1 else None
+        previous_close = prev.get('close') if prev else None
+        price = last['close']
+        records.append({
+            'code': code, 'name': stock['name'], 'sector': wics['sector'],
+            'price': price, 'date': last.get('date'),
+            'changeRate': ((price - previous_close) / previous_close * 100) if previous_close else None,
+            'eps': eps_bps['eps'], 'bps': eps_bps.get('bps'), 'annual': annual,
+        })
+
+    # 섹터별 오늘 평균 PER/PBR - 적자·PBR<=0 표본은 애초에 records에 안 들어오므로
+    # (compute_eps_bps가 걸러냄) 여기 있는 값은 전부 양수 EPS를 가진 종목이다.
+    sector_per, sector_pbr = {}, {}
+    for record in records:
+        sector = record['sector']
+        if record['price'] and record['eps'] > 0:
+            sector_per.setdefault(sector, []).append(record['price'] / record['eps'])
+        if record['price'] and record.get('bps') and record['bps'] > 0:
+            sector_pbr.setdefault(sector, []).append(record['price'] / record['bps'])
+    sector_avgs = {}
+    for sector in set(list(sector_per) + list(sector_pbr)):
+        per_samples = sector_per.get(sector) or []
+        pbr_samples = sector_pbr.get(sector) or []
+        sector_avgs[sector] = {
+            'perAvg': (sum(per_samples) / len(per_samples)
+                       if len(per_samples) >= TARGET_PRICE_MIN_SECTOR_PEERS else None),
+            'pbrAvg': (sum(pbr_samples) / len(pbr_samples)
+                       if len(pbr_samples) >= TARGET_PRICE_MIN_SECTOR_PEERS else None),
+        }
+
+    matches = []
+    for record in records:
+        sector_avg = sector_avgs.get(record['sector']) or {}
+        match = build_target_price_match(record, sector_avg, record['annual'])
+        if match:
+            matches.append(match)
 
     matches.sort(key=lambda item: -(item.get('targetGapPct') or 0))
     sectors = {}

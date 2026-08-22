@@ -587,118 +587,130 @@ class NpsHoldingsTests(unittest.TestCase):
 
 
 class TargetPriceGapTests(unittest.TestCase):
-    """전략검색 "목표주가 괴리 저평가주" - 종목 자체 과거 PER/PBR 밴드 목표가 계산."""
+    """전략검색 "목표주가 괴리 저평가주" - 같은 업종 오늘 평균 PER/PBR 대비 목표가 계산
+    (2026-08-23: daily_prices가 2024-06-24부터만 있어(완결 회계연도 2개뿐) 원래 설계였던
+    "종목 자체 과거 5개년 밴드"가 항상 후보 0건이었던 것을 발견 - 과거 주가 이력이 필요
+    없는 "업종 평균 대비" 방식으로 교체)."""
 
-    def test_year_end_close_finds_last_bar_on_or_before_year_end(self):
-        daily = [
-            {'date': '2024-12-30', 'close': 500},
-            {'date': '2025-03-15', 'close': 550},
-            {'date': '2025-12-30', 'close': 600},
-        ]
-        self.assertEqual(strategy_scan.year_end_close(daily, 2024), 500)
-        self.assertEqual(strategy_scan.year_end_close(daily, 2025), 600)
-        self.assertIsNone(strategy_scan.year_end_close(daily, 2023))
-
-    def test_combines_per_and_pbr_band_targets_when_both_available(self):
-        # 상장주식수 100, EPS/BPS가 매년 똑같이(10/100) 유지되고 연도별 종가만 40/50/60원씩
-        # 오르는 케이스 - PER 밴드(40,50,60 평균 50)와 PBR 밴드(4,5,6 평균 5)가 둘 다
-        # 정확히 500원을 가리키도록 설계했다(손계산 검증 쉽게 하기 위함).
+    def test_compute_eps_bps_returns_latest_year_eps_bps(self):
         annual = {'years': [
-            {'year': 2023, 'net_income': 1000, 'equity': 10000},
-            {'year': 2024, 'net_income': 1000, 'equity': 10000},
+            {'year': 2024, 'net_income': 900, 'equity': 9000},
             {'year': 2025, 'net_income': 1000, 'equity': 10000},
         ]}
-        daily = [
-            {'date': '2023-12-29', 'close': 400},
-            {'date': '2024-12-30', 'close': 500},
-            {'date': '2025-12-30', 'close': 600},
-            {'date': '2026-08-20', 'close': 300},  # 현재가(오늘) - 목표가와 무관, 별도로 비교
-        ]
-        target = strategy_scan.compute_target_price(daily, annual, shares_outstanding=100)
-        self.assertIsNotNone(target)
-        self.assertAlmostEqual(target['targetPrice'], 500.0)
-        self.assertAlmostEqual(target['perBandAvg'], 50.0)
-        self.assertAlmostEqual(target['pbrBandAvg'], 5.0)
-        self.assertEqual(target['perBandYears'], 3)
-        self.assertEqual(target['pbrBandYears'], 3)
+        result = strategy_scan.compute_eps_bps(annual, shares_outstanding=100)
+        self.assertEqual(result, {'eps': 10.0, 'bps': 100.0})
 
-    def test_latest_year_loss_excludes_the_stock_entirely(self):
+    def test_compute_eps_bps_excludes_latest_year_loss(self):
         annual = {'years': [
-            {'year': 2023, 'net_income': 1000, 'equity': 10000},
             {'year': 2024, 'net_income': 1000, 'equity': 10000},
             {'year': 2025, 'net_income': -100, 'equity': 9800},
         ]}
-        daily = [
-            {'date': '2023-12-29', 'close': 400},
-            {'date': '2024-12-30', 'close': 500},
-            {'date': '2025-12-30', 'close': 480},
-        ]
-        self.assertIsNone(strategy_scan.compute_target_price(daily, annual, shares_outstanding=100))
+        self.assertIsNone(strategy_scan.compute_eps_bps(annual, shares_outstanding=100))
 
-    def test_mid_band_loss_year_excluded_from_per_but_pbr_alone_still_works(self):
-        # 중간 연도(2024)만 적자면 그 해의 PER 표본만 빠지고(EPS<=0), PBR은 자본총계가
-        # 양수인 한 계속 포함된다 - PER 유효 표본이 2개(<3)로 줄어 PER 목표가는 못 만들지만
-        # PBR 표본은 3개 그대로라 PBR 단독으로 목표가를 낸다.
-        annual = {'years': [
-            {'year': 2023, 'net_income': 1000, 'equity': 10000},
-            {'year': 2024, 'net_income': -500, 'equity': 9500},
-            {'year': 2025, 'net_income': 1000, 'equity': 10000},
-        ]}
-        daily = [
-            {'date': '2023-12-29', 'close': 400},
-            {'date': '2024-12-30', 'close': 380},
-            {'date': '2025-12-30', 'close': 420},
-        ]
-        target = strategy_scan.compute_target_price(daily, annual, shares_outstanding=100)
-        self.assertIsNotNone(target)
-        self.assertIsNone(target['perBandAvg'])
-        self.assertIsNotNone(target['pbrBandAvg'])
-        # PBR = [400/100, 380/95, 420/100] = [4, 4, 4.2], 평균 4.0667 * 최근 BPS(100)
-        self.assertAlmostEqual(target['pbrBandAvg'], (4 + 4 + 4.2) / 3, places=4)
-        self.assertAlmostEqual(target['targetPrice'], (4 + 4 + 4.2) / 3 * 100, places=2)
+    def test_compute_eps_bps_returns_none_without_shares_outstanding(self):
+        annual = {'years': [{'year': 2025, 'net_income': 1000, 'equity': 10000}]}
+        self.assertIsNone(strategy_scan.compute_eps_bps(annual, shares_outstanding=None))
+        self.assertIsNone(strategy_scan.compute_eps_bps(annual, shares_outstanding=0))
 
-    def test_insufficient_band_years_returns_none(self):
-        annual = {'years': [
-            {'year': 2025, 'net_income': 1000, 'equity': 10000},
-        ]}
-        daily = [{'date': '2025-12-30', 'close': 500}]
-        self.assertIsNone(strategy_scan.compute_target_price(daily, annual, shares_outstanding=100))
-
-    def test_scan_only_keeps_candidates_above_min_gap_threshold(self):
-        universe = [
-            {'code': '000010', 'name': '저평가종목'},   # 목표가 500, 현재가 300 -> 괴리 66.7% (통과)
-            {'code': '000020', 'name': '고평가종목'},   # 목표가 500, 현재가 490 -> 괴리 2% (제외)
-        ]
-        wics_map = {
-            '000010': {'name': '저평가종목', 'sector': 'IT', 'industry': 'IT'},
-            '000020': {'name': '고평가종목', 'sector': 'IT', 'industry': 'IT'},
+    def test_build_target_price_match_combines_per_and_pbr_targets(self):
+        # 업종 평균 PER 10배, PBR 1배. EPS 40, BPS 400 -> PER 목표가 400, PBR 목표가 400,
+        # 평균 400. 현재가 300이면 괴리 33.3%로 최소 기준(20%)을 통과한다.
+        record = {
+            'code': '000010', 'name': '테스트종목', 'sector': 'IT', 'price': 300,
+            'date': '2026-08-20', 'changeRate': 1.5, 'eps': 40, 'bps': 400,
         }
-        annual = {'years': [
-            {'year': 2023, 'net_income': 1000, 'equity': 10000},
-            {'year': 2024, 'net_income': 1000, 'equity': 10000},
-            {'year': 2025, 'net_income': 1000, 'equity': 10000},
-        ]}
-        fundamentals_cache = {'000010': {'annual': annual}, '000020': {'annual': annual}}
+        sector_avg = {'perAvg': 10.0, 'pbrAvg': 1.0}
+        match = strategy_scan.build_target_price_match(record, sector_avg, annual=None)
+        self.assertIsNotNone(match)
+        self.assertEqual(match['targetPrice'], 400)
+        self.assertAlmostEqual(match['targetGapPct'], (400 - 300) / 300 * 100, places=1)
+        self.assertEqual(match['sectorPerAvg'], 10.0)
+        self.assertEqual(match['sectorPbrAvg'], 1.0)
 
-        # 2023~2025 종가는 compute_target_price 검증용 단위 테스트와 동일 비율(400/500/600)을
-        # 10배 스케일(4000/5000/6000)로 써서 penny-stock 제외 기준(1,000원)과 최소 거래대금
-        # (10억원) 게이트를 자연스럽게 통과시킨다 - 목표가/PER/PBR 비율 자체는 그대로 유지됨.
+    def test_build_target_price_match_returns_none_when_below_min_gap(self):
+        # PER 목표가 = 10 * 40 = 400, 현재가 390 -> 괴리 2.6%로 20% 미달, 후보 제외.
+        record = {
+            'code': '000020', 'name': '고평가종목', 'sector': 'IT', 'price': 390,
+            'date': '2026-08-20', 'changeRate': 0.0, 'eps': 40, 'bps': None,
+        }
+        sector_avg = {'perAvg': 10.0, 'pbrAvg': None}
+        self.assertIsNone(strategy_scan.build_target_price_match(record, sector_avg, annual=None))
+
+    def test_build_target_price_match_returns_none_without_any_sector_average(self):
+        record = {
+            'code': '000030', 'name': '표본부족업종', 'sector': '소재', 'price': 300,
+            'date': '2026-08-20', 'changeRate': 0.0, 'eps': 40, 'bps': 400,
+        }
+        # 섹터 표본이 부족해 perAvg/pbrAvg가 둘 다 None인 경우(scan_target_price_gap에서
+        # TARGET_PRICE_MIN_SECTOR_PEERS 미만이면 이렇게 넘어온다).
+        sector_avg = {'perAvg': None, 'pbrAvg': None}
+        self.assertIsNone(strategy_scan.build_target_price_match(record, sector_avg, annual=None))
+
+    def test_scan_flags_stock_priced_below_sector_average_multiple(self):
+        # IT 섹터 5종목, 상장주식수 100주(시가총액/가격으로 역산)로 고정.
+        # 000020~000050(피어 4종목): eps=500/bps=5000, 가격도 5000 -> PER=10/PBR=1로
+        # 통일해 섹터 평균이 정확히 10배/1배가 되도록 설계.
+        # 000010(저평가 대상): eps=400/bps=4000 -> 목표가(PER 기준 4000, PBR 기준 4000,
+        # 평균 4000)인데 실제 가격은 3000이라 괴리 33.3%로 기준(20%) 통과.
+        universe = [{'code': c, 'name': c} for c in
+                    ['000010', '000020', '000030', '000040', '000050']]
+        wics_map = {c: {'name': c, 'sector': 'IT', 'industry': 'IT'} for c in
+                    ['000010', '000020', '000030', '000040', '000050']}
+        fundamentals_cache = {
+            '000010': {'annual': {'years': [{'year': 2025, 'net_income': 40000, 'equity': 400000}]}},
+            '000020': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
+            '000030': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
+            '000040': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
+            '000050': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
+        }
+        prices = {'000010': 3000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000}
+
         def daily_for(price):
-            rows = [
-                {'date': '2023-12-29', 'close': 4000, 'open': 4000, 'high': 4000, 'low': 4000, 'volume': 400000},
-                {'date': '2024-12-30', 'close': 5000, 'open': 5000, 'high': 5000, 'low': 5000, 'volume': 400000},
-                {'date': '2025-12-30', 'close': 6000, 'open': 6000, 'high': 6000, 'low': 6000, 'volume': 400000},
-            ]
+            rows = []
             for i in range(strategy_scan.MIN_BARS):
-                rows.append({'date': '2026-%04d' % i, 'close': price, 'open': price, 'high': price, 'low': price, 'volume': 400000})
+                rows.append({'date': '2026-%04d' % i, 'close': price, 'open': price,
+                             'high': price, 'low': price, 'volume': 400000})
             return rows
 
-        daily_cache = {'000010': daily_for(3000), '000020': daily_for(4900)}
-        # 두 종목 다 상장주식수 100주가 되도록(annual 픽스처가 그 가정으로 설계됨) 시가총액을
-        # 각 종목의 현재가에 비례해 돌려준다. fetch_market_cap()은 "억원" 단위(ka10001 mac,
-        # market_cap_eok과 동일 관례)를 반환하므로 원 단위 목표값(100*price)을 1억으로
-        # 나눠 억원 단위로 맞춘다(scan_target_price_gap이 *100_000_000으로 다시 원 단위 환산).
-        market_caps = {'000010': (100 * 3000) / 100_000_000, '000020': (100 * 4900) / 100_000_000}
+        daily_cache = {code: daily_for(price) for code, price in prices.items()}
+        # fetch_market_cap()은 "억원" 단위(ka10001 mac)를 반환 - 상장주식수 100주가 되도록
+        # (시가총액=가격*100) 역산해 억원 단위로 넘긴다.
+        market_caps = {code: (100 * price) / 100_000_000 for code, price in prices.items()}
+
+        with patch.object(strategy_scan, 'fetch_market_cap', side_effect=lambda token, code: market_caps[code]), \
+                patch.object(time, 'sleep'):
+            sectors, scanned = strategy_scan.scan_target_price_gap(
+                universe, wics_map, fundamentals_cache, object(), kiwoom_token='tok', daily_cache=daily_cache,
+            )
+
+        self.assertEqual(scanned, 5)
+        codes = [m['code'] for sector_matches in sectors.values() for m in sector_matches]
+        self.assertEqual(codes, ['000010'])
+
+    def test_scan_excludes_sector_with_too_few_peers(self):
+        # 섹터에 종목이 2개뿐(TARGET_PRICE_MIN_SECTOR_PEERS=5 미만)이면 섹터 평균을
+        # 못 믿고 아예 후보에서 제외한다 - 000010은 위 테스트와 동일하게 저평가 조건이지만
+        # 섹터 표본 부족으로 여기서는 후보에 안 남아야 한다.
+        universe = [{'code': '000010', 'name': 'A'}, {'code': '000020', 'name': 'B'}]
+        wics_map = {
+            '000010': {'name': 'A', 'sector': '소재', 'industry': '소재'},
+            '000020': {'name': 'B', 'sector': '소재', 'industry': '소재'},
+        }
+        fundamentals_cache = {
+            '000010': {'annual': {'years': [{'year': 2025, 'net_income': 4000, 'equity': 40000}]}},
+            '000020': {'annual': {'years': [{'year': 2025, 'net_income': 5000, 'equity': 50000}]}},
+        }
+        prices = {'000010': 3000, '000020': 5000}
+
+        def daily_for(price):
+            rows = []
+            for i in range(strategy_scan.MIN_BARS):
+                rows.append({'date': '2026-%04d' % i, 'close': price, 'open': price,
+                             'high': price, 'low': price, 'volume': 400000})
+            return rows
+
+        daily_cache = {code: daily_for(price) for code, price in prices.items()}
+        market_caps = {code: (100 * price) / 100_000_000 for code, price in prices.items()}
 
         with patch.object(strategy_scan, 'fetch_market_cap', side_effect=lambda token, code: market_caps[code]), \
                 patch.object(time, 'sleep'):
@@ -707,7 +719,7 @@ class TargetPriceGapTests(unittest.TestCase):
             )
 
         codes = [m['code'] for sector_matches in sectors.values() for m in sector_matches]
-        self.assertEqual(codes, ['000010'])
+        self.assertEqual(codes, [])
 
 
 if __name__ == '__main__':

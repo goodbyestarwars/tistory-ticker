@@ -1,5 +1,26 @@
 # 9Pay 주요 작업이력
 
+**2026-08-23(4차) 목표주가 괴리 저평가주 - 계산법을 "업종 평균 PER/PBR 대비"로 교체**:
+단위 버그(3차, 아래)를 고치고도 VM 재스캔에서 여전히 후보 0건이었다. 원인을 더 파보니
+`compute_target_price`가 "종목 자체 과거 5개년 PER/PBR 밴드"를 계산하려면 최소 3개
+완결 회계연도의 연말 종가가 필요한데, `daily_prices`가 실측 결과 2024-06-24부터만
+쌓여 있어(완결 연도가 2024·2025 2개뿐) `TARGET_PRICE_MIN_BAND_YEARS`(3)를 구조적으로
+절대 못 채우고 있었다 - 시가총액 단위와 무관하게 처음부터 항상 0건이 나올 수밖에
+없는 설계였다. 사용자에게 진단 결과를 보고하고 대안(밴드 연수 축소/3년 유지하고 대기/
+연말종가만 외부 보강/다른 계산법)을 물어 "업종 평균 PER/PBR 대비"로 교체 결정. 과거
+주가 이력이 전혀 필요 없는 방식으로 다시 설계: ①유동성·섹터·최근연도 흑자 필터를
+통과한 각 종목의 오늘 EPS/BPS·PER/PBR을 구하고 ②같은 WICS 섹터 내 이 값들의 평균을
+내(표본 `TARGET_PRICE_MIN_SECTOR_PEERS`=5 미만인 업종은 제외) ③그 섹터 평균 배수에
+종목 자신의 EPS/BPS를 곱해 목표가를 만든다. `year_end_close`/`compute_target_price`/
+`TARGET_PRICE_BAND_YEARS`/`TARGET_PRICE_MIN_BAND_YEARS`를 제거하고 `compute_eps_bps`/
+`build_target_price_match`(섹터 평균 인자로 받도록 재작성)로 교체, `scan_target_price_gap`
+을 1단계(종목별 EPS/BPS 수집)-2단계(섹터 평균)-3단계(목표가 판정)의 2-pass 구조로
+다시 짰다. 매치 필드도 `perBandAvg/pbrBandAvg` -> `sectorPerAvg/sectorPbrAvg`로 개명
+(UI는 `targetGapPct`/`targetPrice`만 표시해 프론트 로직 변경은 불필요, 방법론 설명
+문구만 갱신). `test/test_strategy_scan.py`의 `TargetPriceGapTests`를 전면 재작성(섹터
+평균 미달 시 제외 케이스 포함) - 총 48건 통과. `scripts/cloud-vm/`은 VM 자동 배포
+대상이라 반영 후 `strategy_scan.py` 재실행 필요.
+
 **2026-08-23(2차) 증시온도 빚투 위험도 "데이터 검증 중" 영구 고착 + ⓘ 툴팁 잘림 수정**:
 사용자가 "빚투 위험도 언제까지 검증할래?"로 오늘의 증시온도 위젯의 `💳 빚투 위험도` 항목이
 계속 "데이터 검증 중"만 표시된다고 리포트, 같은 화면 스크린샷에서 VIX 항목의 ⓘ 설명 툴팁이
