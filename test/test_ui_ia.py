@@ -1690,6 +1690,24 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/home-weekly-report.js")
         self.assertIn("'현재 조건 충족 후보 없음'", source)
 
+    # 2026-08-22 신설: 휴장 페이지 "다음 주 핵심 스케줄"에 관심종목(watchlist.js localStorage)
+    # 실적·공시 일정을 조건부로 얹는 기능 - 표본이 없으면(관심종목 미등록/해당 일정 없음)
+    # 섹션 자체를 숨겨야 "그냥 데이터만 붙여넣은 대시보드"가 되지 않는다.
+    def test_weekly_report_shows_watchlist_schedule_only_when_matched(self):
+        source = self.read("js/home-weekly-report.js")
+        self.assertIn("EARNINGS_CALENDAR_URL = 'https://goodbyestar.cloud/earnings-calendar'", source)
+        self.assertIn("localStorage.getItem('wl_codes_v1'", source)
+        self.assertIn("data-hwr-my-schedule", source)
+        self.assertIn("내 종목 다음 주 일정", source)
+        func_start = source.index('function loadMyWatchlistSchedule')
+        func_end = source.index('function scheduleList')
+        body = source[func_start:func_end]
+        self.assertIn('mount.hidden = true', body)
+        self.assertIn('mount.hidden = false', body)
+        style = self.read("css/home-weekly-report.css")
+        self.assertIn('.hwr-my-schedule', style)
+        self.assertIn('.hwr-schedule-market--mine', style)
+
     def test_initial_paint_guard_hides_unstyled_refresh_frame(self):
         source = self.read("skin.html")
         self.assertIn('id="initial-paint-guard"', source)

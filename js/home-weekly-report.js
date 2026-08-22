@@ -10,6 +10,14 @@
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
+  // 2026-08-22 요청: "다음 주 핵심 스케쥴"에 M7·금리 같은 시장 공통 일정뿐 아니라
+  // "내 종목"(js/watchlist.js 관심종목) 공시·실적 일정도 조건부로 보여달라는 요청.
+  // weekly_report.py의 next_week_schedule은 순수 함수(사용자 구분 불가, 하루 1회 공용
+  // 캐시)라 여기서 서버가 개인화할 수 없다 - 대신 이미 있는 /earnings-calendar(월별,
+  // DART+Finnhub 병합)를 브라우저가 직접 불러와 Watchlist.getList()의 종목코드와
+  // 교집합만 남기는 방식으로 클라이언트에서 개인화한다(js/home-widgets.js의 MY 카드가
+  // 같은 /earnings-calendar 월별 조회 패턴을 이미 쓰고 있음).
+  var EARNINGS_CALENDAR_URL = 'https://goodbyestar.cloud/earnings-calendar';
 
   function readLocalReport() {
     try {
@@ -322,6 +330,78 @@
     var status = (analysis.status || 'unknown').replace(/[^a-z-]/g, '');
     return '<article class="hwr-fx-card hwr-fx-card--' + escapeHtml(status) + '"><div class="hwr-card-title"><strong>' + escapeHtml(options.title || '원/달러 환율') + '</strong><span>최근 1년 기준</span></div><div class="hwr-fx-main"><strong>' + display(current) + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b></div>' + fxSparkline(fx, options.title) + '<div class="hwr-fx-legend"><span><i class="hwr-fx-legend-line hwr-fx-legend-line--average"></i>1년 평균 <b>' + display(average) + '</b></span><span><i class="hwr-fx-legend-swatch"></i>매수 관심 ≤ ' + display(p25) + '</span></div><div class="hwr-fx-range"><span>1년 저점 ' + display(low) + '</span><span>1년 고점 ' + display(high) + '</span></div><div class="hwr-fx-meta">' + fxStatus(fx, options.fallbackLabel, options.fallbackMessage) + '</div></article>';
   }
+  // 관심종목 코드 -> 표시용 이름 맵. window.Watchlist.getList()는 #watchlist 컨테이너가
+  // 실제로 DOM에 있는 페이지(예: /page/watchlist)에서만 채워지고 홈 화면(휴장 탭이 붙는
+  // 곳)엔 그 컨테이너가 없어 항상 빈 배열이 된다 - 그래서 js/watchlist.js가 쓰는
+  // localStorage 키(wl_codes_v1)를 여기서도 직접 읽는다(로그인 여부와 무관하게 항상
+  // 최신 로컬 미러를 유지하는 키). 국내는 6자리 코드 그대로, 미국은 watchlist.js가
+  // "US:AAPL" 형태로 저장하므로 접두어를 떼고 대문자로 맞춰 earnings-calendar의
+  // symbol(6자리 코드 또는 대문자 티커)과 직접 비교 가능하게 만든다.
+  function watchlistSymbolMap() {
+    var list;
+    try {
+      list = JSON.parse(localStorage.getItem('wl_codes_v1') || '[]');
+    } catch (error) {
+      list = [];
+    }
+    var map = {};
+    (Array.isArray(list) ? list : []).forEach(function (item) {
+      var code = String((item && item.code) || '').trim();
+      if (!code) return;
+      var symbol = code.indexOf('US:') === 0 ? code.slice(3).toUpperCase() : code;
+      map[symbol] = (item && item.name) || symbol;
+    });
+    return map;
+  }
+  function fmtIsoDate(date) {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  }
+  function myScheduleList(items, nameMap) {
+    return '<ul class="hwr-schedule-list hwr-my-schedule-list">' + items.map(function (item) {
+      var label = nameMap[String(item.symbol || '').toUpperCase()] || item.symbol;
+      return '<li><time>' + escapeHtml(String(item.start || item.date || '').slice(5, 10)) + '</time><b class="hwr-schedule-market hwr-schedule-market--mine">보유</b><span><strong>' + escapeHtml(label) + '</strong> ' + escapeHtml(item.title || '') + '</span></li>';
+    }).join('') + '</ul>';
+  }
+  // 표본이 하나도 없으면(관심종목 미등록, 또는 다음 주에 해당하는 일정이 없음) 마운트
+  // 자체를 숨긴다 - "그냥 데이터만 붙여넣은 대시보드"가 되지 않도록 빈 섹션을 만들지 않음.
+  function loadMyWatchlistSchedule(root, weekEndIso) {
+    var mount = root.querySelector('[data-hwr-my-schedule]');
+    if (!mount) return;
+    var nameMap = watchlistSymbolMap();
+    var symbols = Object.keys(nameMap);
+    if (!symbols.length) { mount.hidden = true; return; }
+    var end = weekEndIso ? new Date(weekEndIso + 'T00:00:00+09:00') : new Date();
+    if (isNaN(end.getTime())) { mount.hidden = true; return; }
+    var nextStart = new Date(end.getTime() + 3 * 86400000);
+    var nextEnd = new Date(nextStart.getTime() + 6 * 86400000);
+    var startIso = fmtIsoDate(nextStart);
+    var endIso = fmtIsoDate(nextEnd);
+    var months = [];
+    var seenMonths = {};
+    [nextStart, nextEnd].forEach(function (date) {
+      var key = date.getFullYear() + '-' + (date.getMonth() + 1);
+      if (!seenMonths[key]) { seenMonths[key] = true; months.push({ year: date.getFullYear(), month: date.getMonth() + 1 }); }
+    });
+    Promise.all(months.map(function (period) {
+      return fetch(EARNINGS_CALENDAR_URL + '?year=' + period.year + '&month=' + period.month)
+        .then(function (response) { if (!response.ok) throw new Error('일정 응답 오류'); return response.json(); })
+        .then(function (payload) { return Array.isArray(payload) ? payload : (payload && payload.data) || []; })
+        .catch(function () { return []; });
+    })).then(function (groups) {
+      var merged = [];
+      groups.forEach(function (group) { merged = merged.concat(group); });
+      var filtered = merged.filter(function (item) {
+        var day = String(item && (item.start || item.date) || '').slice(0, 10);
+        var symbol = String(item && item.symbol || '').toUpperCase();
+        return day >= startIso && day <= endIso && nameMap.hasOwnProperty(symbol);
+      }).sort(function (a, b) {
+        return String(a.start || a.date || '').localeCompare(String(b.start || b.date || ''));
+      });
+      if (!filtered.length) { mount.hidden = true; return; }
+      mount.hidden = false;
+      mount.innerHTML = '<div class="hwr-card-title"><strong>내 종목 다음 주 일정</strong><span>관심종목 실적·공시 일정만 표시</span></div>' + myScheduleList(filtered, nameMap);
+    }).catch(function () { mount.hidden = true; });
+  }
   function scheduleList(items) {
     if (!items || !items.length) return '<p class="hwr-empty">다음 주 M7·금리·주요 기업 일정이 확인되지 않았습니다.</p>';
     return '<ul class="hwr-schedule-list">' + items.slice(0, 16).map(function (item) {
@@ -360,9 +440,11 @@
       + '<section class="hwr-stock-section hwr-candidate-section"><div class="hwr-section-heading"><strong>2주 스윙 상승 후보</strong><span>국내 차트 국면·모멘텀·펀더멘털·위험 필터 통과 종목만 표시</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong class="is-up">국내 후보</strong><span>보유자 행동과 신규 진입을 분리</span></div>' + stockListWithReasons(data.hotCandidates && data.hotCandidates.domestic, 'domestic', '현재 조건 충족 후보 없음') + '</article></div></section>'
       + pastOutcomeList(data.pastCandidateOutcomes && data.pastCandidateOutcomes.domestic, data.pastCandidateOutcomes && data.pastCandidateOutcomes.stats)
       + '<article class="hwr-news-card"><div class="hwr-news-toolbar"><div class="hwr-card-title"><strong>주간 경제 뉴스·이슈</strong><span>' + escapeHtml(data.news && data.news.basis || '월~금 날짜별 주요 뉴스 · 한국·미국 통합') + '</span></div><div class="hwr-news-filters" role="tablist" aria-label="뉴스 유형 필터"><button type="button" role="tab" aria-selected="true" class="is-active" data-hwr-news-filter="all">통합</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="뉴스">뉴스</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="공시">공시</button></div></div>' + newsTimeline(data.news && data.news.timeline) + '</article>'
+      + '<article class="hwr-schedule hwr-my-schedule" data-hwr-my-schedule hidden></article>'
       + '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'
       + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';
     bindNewsFilters(root);
+    loadMyWatchlistSchedule(root, data.week && data.week.end);
   }
   function init() {
     var closedSelected = window.HomeMarketSelection && typeof window.HomeMarketSelection.get === 'function'
