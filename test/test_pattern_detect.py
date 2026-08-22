@@ -648,6 +648,17 @@ class MaCloudBreakoutDetectionTest(unittest.TestCase):
         detail = detector.detect_ma_cloud_breakout(daily)
         self.assertIsNone(detail)
 
+    # 2026-08-22(5차) 신설(사용자 요청: "구름대를 뚫고 하락하면서 상단선 터치하는 건
+    # 제외") - 어제 종가가 이미 구름 하단 아래(뚫고 하락한 상태)였다가 오늘 하루 만에
+    # 구름 상단까지 튀어오른 경우는 급락 후 되돌림(휩쏘)으로 보고 제외해야 한다.
+    def test_bounce_from_below_cloud_to_top_touch_is_excluded(self):
+        daily = ma_cloud_breakout_daily()
+        # 어제(마지막에서 두 번째 봉) 종가를 구름 하단(10000)보다 뚜렷이 낮게(9700, -3%)
+        # 만들고, 오늘(마지막 봉)은 기존처럼 구름 상단(10200)을 고가로 시도하게 둔다.
+        daily[-2].update(open=9750.0, high=9800.0, low=9650.0, close=9700.0)
+        detail = detector.detect_ma_cloud_breakout(daily)
+        self.assertIsNone(detail)
+
     def test_scan_exposes_ma_cloud_breakout_bucket(self):
         results = {"risingLows": [], "doubleBottom": [], "invHeadShoulders": [], "boxRangeLow": []}
 

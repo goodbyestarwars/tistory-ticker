@@ -863,6 +863,16 @@ def detect_ma_cloud_breakout(daily):
     bottom_attempt = daily[last_index]['low'] <= cloud['bottom'] * (1 + MA_CLOUD_TOP_TOL)
     if not (top_attempt or bottom_attempt):
         return None
+    # 2026-08-22(5차): 어제 이미 구름 하단 아래로 뚫고 내려가 있던 종목이 오늘 하루 만에
+    # 구름 상단까지 튀어오른 경우는 "완만한 응축 후 돌파 시도"가 아니라 급락 후 되돌림
+    # (휩쏘)일 가능성이 커서 제외한다(사용자 요청: "구름대를 뚫고 하락하면서 상단선
+    # 터치하는 건 제외"). 하단 시도(bottom_attempt)는 원래 구름 아래 지지력 확인이
+    # 목적이라 이 제외 대상이 아니다.
+    if top_attempt and last_index > 0:
+        prev_cloud = ichimoku_cloud_at(daily, last_index - 1)
+        prev_close = daily[last_index - 1]['close']
+        if prev_cloud and prev_cloud['bottom'] > 0 and prev_close < prev_cloud['bottom'] * 0.98:
+            return None
 
     # 2026-08-22: 5일선-20일선 골든크로스 요건 완전 제거(사용자 요청) - 이제 224일선 근접+
     # 구름 상단/하단 시도 2가지만 필수 조건이다.

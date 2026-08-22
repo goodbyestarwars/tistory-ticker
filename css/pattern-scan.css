@@ -451,7 +451,11 @@
     font-size: 12.5px;
     overflow-wrap: anywhere;
   }
-  #pattern-scan .ps-code { font-size: 9.5px; }
+  /* 2026-08-22 요청: "종목명(코드) 코드번호 위치 좀 글이랑 수평으로 맞춰줘" - 좁은 화면에서
+     .ps-code가 다음 줄로 줄바꿈될 때, 형제 요소인 .ps-name의 아이콘(23px) 폭 때문에 코드
+     번호가 아이콘 아래에서 시작해 종목명 텍스트와 어긋나 보였다. 아이콘+간격만큼
+     들여써서 종목명 텍스트 시작 위치와 맞춘다. */
+  #pattern-scan .ps-code { font-size: 9.5px; margin-left: 30px; }
   #pattern-scan .ps-mobile-signal {
     display: block;
     color: #64748b;
