@@ -99,7 +99,7 @@
   // 거래량/RSI 서브패널은 같은 최소 높이와 비율을 사용해 항상 1:1로 유지한다.
   var SUB_PANE_MIN_HEIGHT = 82;
   var SUB_PANE_RATIO = 0.20;
-  var ICHIMOKU_CLOUD_FILL = 'rgba(135,206,235,0.24)';
+  var ICHIMOKU_CLOUD_FILL = 'rgba(90,170,215,0.4)'; // 2026-08-22 요청: "더 진한 색으로" - 옅은 하늘색 0.24 알파에서 더 짙고 채도 높은 파랑 0.4 알파로 조정
   var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
 
   // 패널 제목(RSI)·거래량 범례의 top 위치를 실제 적용된 패널 높이에 맞춰 다시 계산한다.

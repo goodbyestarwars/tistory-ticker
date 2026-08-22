@@ -36,7 +36,7 @@
   // 범례는 하늘색으로 표시하되 실제 선행스팬 경계선은 숨기고 구름 채움만 그린다.
   var ICHIMOKU_TENKAN_PERIOD = 9, ICHIMOKU_KIJUN_PERIOD = 26, ICHIMOKU_SENKOU_B_PERIOD = 52, ICHIMOKU_DISPLACEMENT = 26;
   var ICHIMOKU_COLORS = { senkouA: '#87ceeb', senkouB: '#87ceeb' };
-  var ICHIMOKU_CLOUD_FILL = 'rgba(135,206,235,0.24)';
+  var ICHIMOKU_CLOUD_FILL = 'rgba(90,170,215,0.4)'; // 2026-08-22 요청: "더 진한 색으로" - 옅은 하늘색 0.24 알파에서 더 짙고 채도 높은 파랑 0.4 알파로 조정
   var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
 
   // desc는 각 detect*_ 함수(pattern_detect.py)의 하드필터를 그대로 옮긴 것이다.
