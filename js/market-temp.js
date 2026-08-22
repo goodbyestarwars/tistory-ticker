@@ -1342,11 +1342,15 @@
 
   // 2026-08-23: ⓘ 툴팁(.mt-info::after)이 아이콘 중앙 기준으로 고정폭(240px)만큼 좌우로
   // 펼쳐지는데, #market-temp 루트에 overflow-x:hidden이 걸려 있어(문서 전체 가로 스크롤
-  // 방지용, 위 주석 참고) 아이콘이 위젯 박스 왼쪽 가장자리 가까이 있으면 말풍선의 왼쪽
-  // 절반이 그대로 잘려 보이는 문제가 실측 신고됨(모바일 폭에서 VIX 항목). 포인터/키보드
-  // 포커스 시 아이콘 위치와 #market-temp 박스 경계를 비교해 필요한 만큼만 좌우로 밀어주는
-  // --mt-tip-shift 커스텀 프로퍼티를 세팅한다(css/market-temp.css의 translateX와 짝).
+  // 방지용, 위 주석 참고) 그 박스 경계를 넘어가는 부분이 그대로 잘려 보이는 문제가 실측
+  // 신고됨. 처음엔 아이콘 위치만 보고 좌우로 밀어주는 --mt-tip-shift만 뒀는데, 사용자가
+  // "VIX뿐 아니라 전부 다 짤린다"고 재신고 - 위젯 박스 자체가 툴팁 고정폭(240px)보다
+  // 좁은 화면(사이드바·좁은 본문 컬럼 등)에서는 밀어줄 여유 공간 자체가 없어(당시 코드는
+  // 이 경우 아예 보정을 포기했음) 모든 행이 계속 잘렸던 것. 위치를 미는 것만으로는 부족해서
+  // 박스 폭에 맞춰 툴팁 자체의 최대폭도 함께 줄이는 --mt-tip-maxw를 추가한다 - 이러면
+  // 위젯이 아무리 좁아도(마진을 제외한 폭까지) 툴팁이 항상 박스 안에 들어간다.
   var TOOLTIP_MAX_WIDTH = 240; // css의 .mt-info::after max-width와 일치시킬 것
+  var TOOLTIP_MIN_WIDTH = 120; // 이보다 더 줄이면 텍스트가 너무 잘게 쪼개져 가독성이 떨어짐
   var TOOLTIP_EDGE_MARGIN = 8;
   function wireTooltipClamp(container) {
     function clamp(icon) {
@@ -1354,13 +1358,16 @@
       var boxRect = container.getBoundingClientRect();
       var iconRect = icon.getBoundingClientRect();
       var center = iconRect.left + iconRect.width / 2;
-      var halfWidth = TOOLTIP_MAX_WIDTH / 2;
+      var availableWidth = boxRect.width - TOOLTIP_EDGE_MARGIN * 2;
+      var effectiveWidth = Math.max(TOOLTIP_MIN_WIDTH, Math.min(TOOLTIP_MAX_WIDTH, availableWidth));
+      var halfWidth = effectiveWidth / 2;
       var minCenter = boxRect.left + TOOLTIP_EDGE_MARGIN + halfWidth;
       var maxCenter = boxRect.right - TOOLTIP_EDGE_MARGIN - halfWidth;
       var clampedCenter = maxCenter >= minCenter
         ? Math.min(Math.max(center, minCenter), maxCenter)
-        : center; // 위젯 자체가 240px보다 좁으면 보정 포기(레이아웃 문제이지 이 함수 책임 아님)
+        : (boxRect.left + boxRect.right) / 2; // 박스가 최소폭보다도 좁으면 가운데 정렬로 최선 보정
       icon.style.setProperty('--mt-tip-shift', (clampedCenter - center) + 'px');
+      icon.style.setProperty('--mt-tip-maxw', effectiveWidth + 'px');
     }
     container.addEventListener('mouseover', function (e) {
       var icon = e.target.closest && e.target.closest('.mt-info');

@@ -96,11 +96,13 @@
   position: absolute;
   bottom: calc(100% + 6px);
   left: 50%;
-  /* 2026-08-23: --mt-tip-shift는 js/market-temp.js의 wireTooltipClamp가 아이콘이 위젯
-     가장자리에 가까워 말풍선이 잘리는 경우에만 hover/focus 시점에 세팅한다(기본 0px). */
+  /* 2026-08-23: --mt-tip-shift/--mt-tip-maxw는 js/market-temp.js의 wireTooltipClamp가
+     hover/focus 시점에 세팅한다(기본값은 각각 0px/240px - 위젯 폭이 충분할 때는 원래
+     동작과 동일). 위젯 박스가 좁으면 위치를 미는 것만으로는 부족해 말풍선 자체의
+     최대폭도 같이 줄여야 모든 화면 폭에서 박스 밖으로 넘치지 않는다. */
   transform: translateX(calc(-50% + var(--mt-tip-shift, 0px)));
   width: max-content;
-  max-width: 240px;
+  max-width: var(--mt-tip-maxw, 240px);
   background: #222;
   color: #fff;
   font-size: 11px;
