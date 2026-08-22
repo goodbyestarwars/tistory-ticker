@@ -413,15 +413,16 @@ def swing_candidates(swing_scan, limit=5):
             'risk': risk.get('state'), 'entryOpinion': entry,
             'holderAction': assessment.get('holderAction'),
             'invalidation': chart.get('invalidation'),
-            'reason': '%s · 장기 국면 %s · 중기 국면 %s · 단기 국면 %s · 진단 %s · 최근 %s · 모멘텀 %s · 펀더멘털 %s · 위험 %s' % (
-                current_regime.get('label') or chart.get('label') or '차트 국면 확인',
-                big_wave.get('label') or '확인 중', mid_wave.get('label') or '확인 중',
-                small_wave.get('label') or '확인 중', assessment.get('diagnosis') or waves.get('diagnosis') or '추세 확인 중',
-                recent_event.get('label') or '이벤트 없음',
-                (assessment.get('momentum') or {}).get('state') or '데이터 부족',
-                (assessment.get('fundamental') or {}).get('state') or '데이터 부족',
-                risk.get('state') or '확인 중',
-            ),
+            # 2026-08-22(2차): 장기/중기/단기 국면 + 진단 + 최근 이벤트 + 모멘텀 + 펀더멘털 +
+            # 위험까지 8개 필드를 전부 이어붙이면(예전 방식) 좁은 목록 칸에서 문장 중간에
+            # 잘리고, 세 국면 라벨이 같은 상승장에선 "상승 추세 · 장기 국면 상승 추세 ·
+            # 중기 국면 상승 추세 · 단기 국면 상승 추세"처럼 같은 말이 반복돼 보였다.
+            # 목록의 "이유"는 한눈에 훑는 요약이라 가장 정보량이 큰 진단 한 문장만 남기고,
+            # 진단과 다른 신규 이벤트가 있을 때만 덧붙인다(그 외 필드는 상세 페이지에서 확인).
+            'reason': ' · '.join(filter(None, [
+                assessment.get('diagnosis') or waves.get('diagnosis') or current_regime.get('label') or chart.get('label') or '추세 확인 중',
+                recent_event.get('label') if recent_event.get('label') and recent_event.get('label') != (assessment.get('diagnosis') or waves.get('diagnosis')) else None,
+            ])),
             '_priority': assessment.get('internalPriorityScore') or 0,
         }
         if item['code'] and item['name']:

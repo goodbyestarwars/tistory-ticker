@@ -220,6 +220,46 @@ class WeeklyReportTests(unittest.TestCase):
         self.assertEqual(result['t5']['count'], 2)
         self.assertEqual(result['t10']['count'], 1)
 
+    # 2026-08-22(2차) 신설(라이브 스크린샷 확인: "상승 추세 · 장기 국면 상승 추세 · 중기
+    # 국면 상승 추세 · 단기 국면 상승 추세 · ..."처럼 8개 필드가 한 줄에 다 붙어 좁은
+    # 목록 칸에서 문장 중간에 잘리고 반복돼 보이던 문제) -----------------------------
+
+    def _candidate_assessment(self, diagnosis='상승 추세 내 단기 상방 변곡 · 확인 대기', recent_event_label=None):
+        return {
+            'waves': {
+                'big': {'available': True, 'label': '상승 추세'},
+                'mid': {'key': 'uptrend', 'label': '상승 추세'},
+                'small': {'key': 'uptrend', 'label': '상승 추세'},
+            },
+            'risk': {'blocksEntry': False, 'state': '낮음'},
+            'entryOpinion': '눌림목 매수 후보',
+            'diagnosis': diagnosis,
+            'recentEvent': {'label': recent_event_label} if recent_event_label else {},
+            'momentum': {'state': '양호'},
+            'fundamental': {'state': '양호'},
+        }
+
+    def test_swing_candidate_reason_keeps_only_diagnosis_by_default(self):
+        result = weekly_report.swing_candidates({'candidates': [
+            {'code': '005930', 'name': '삼성전자', 'swing': self._candidate_assessment()},
+        ]})
+        self.assertEqual(result[0]['reason'], '상승 추세 내 단기 상방 변곡 · 확인 대기')
+
+    def test_swing_candidate_reason_appends_distinct_recent_event(self):
+        result = weekly_report.swing_candidates({'candidates': [
+            {'code': '005930', 'name': '삼성전자',
+             'swing': self._candidate_assessment(recent_event_label='거래량 급증')},
+        ]})
+        self.assertEqual(result[0]['reason'], '상승 추세 내 단기 상방 변곡 · 확인 대기 · 거래량 급증')
+
+    def test_swing_candidate_reason_does_not_repeat_wave_labels(self):
+        result = weekly_report.swing_candidates({'candidates': [
+            {'code': '005930', 'name': '삼성전자', 'swing': self._candidate_assessment()},
+        ]})
+        self.assertNotIn('장기 국면', result[0]['reason'])
+        self.assertNotIn('중기 국면', result[0]['reason'])
+        self.assertNotIn('단기 국면', result[0]['reason'])
+
     def test_past_candidate_outcome_stats_none_when_both_horizons_empty(self):
         rows = [{'t5ReturnPct': None, 't10ReturnPct': None}]
         self.assertIsNone(weekly_report.past_candidate_outcome_stats(rows))
