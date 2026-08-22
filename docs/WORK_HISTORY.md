@@ -1,5 +1,22 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(13차) 주간 리포트에 "지난 2주 스윙 추천 결과" 공유 섹션 신설**: 사용자가
+"추천은 1주일에 한 번, 기록 공유도 빼먹지 않는다"고 요청 - 조사해보니 신호일별 T+5/T+10
+결과 "기록" 자체는 이미 `swing_recommendation_snapshots`에 쌓이고 있었지만, 그 결과를
+화면에 "공유"하는 계층이 없었다(주간 리포트는 이번 주 신규 후보만 보여줬음). `weekly_report.py`
+모듈은 "외부 API·DB에 직접 접근하지 않는 순수 함수" 원칙이라, DB 조회는 `main.py`의
+신규 헬퍼 `_load_past_swing_outcomes()`(t10_return이 확정된 최신 스냅샷 최대 8건 조회)가
+맡고, `weekly_report.py`는 신규 순수 함수 `past_candidate_outcomes()`로 포맷팅만 담당하도록
+분리했다. `build_report()`에 `pastCandidateOutcomes` 필드 추가, 캐시 무효화를 위해
+`_WEEKLY_REPORT_SNAPSHOT_VERSION`을 6→7로 올림. `js/home-weekly-report.js`에 신규
+`pastOutcomeList()` 렌더 함수 + "지난 2주 스윙 추천 결과" 섹션(2주 스윙 상승 후보 섹션
+바로 아래, 결과 없으면 섹션 자체를 숨김) 추가, `css/home-weekly-report.css`에 전용 색상
+규칙 추가(기존 `.hwr-stock-values > b:first-child` 회색 고정 규칙과 충돌 안 하도록
+`.hwr-outcome-values` 스코프로 분리). 검증: `test_weekly_report.py`에 신규 테스트 3건
+(포맷팅·limit, 빈 입력, build_report 통합) 추가, `test_ui_ia.py`의 스냅샷 버전 단언 갱신,
+관련 전체 회귀(test_ui_ia/test_weekly_report/test_swing_model/
+test_monitor_swing_recommendations/test_pattern_detect) 184건 통과.
+
 **2026-08-22(12차) 국내 스윙 추천을 "4주"에서 "2주"로 축소**: 사용자 요청으로 조사부터
 진행(Explore 서브에이전트) - T+5/T+10/T+20은 종목 선정 게이트(`is_four_week_candidate`)
 로직에는 전혀 등장하지 않고 `monitor_swing_recommendations.py`의 **사후 추적 전용**

@@ -151,6 +151,39 @@ class WeeklyReportTests(unittest.TestCase):
         ], datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
         self.assertEqual([item['title'] for item in result], ['$AAPL 실적발표'])
 
+    # 2026-08-22 신설(작업지시서: 지난 스윙 추천 결과 "기록 공유") -----------------------
+
+    def test_past_candidate_outcomes_formats_and_limits_rows(self):
+        rows = [
+            {'asOfDate': '2026-08-10', 'code': '005930', 'name': '삼성전자',
+             'entryOpinion': '눌림목 매수 후보', 't5ReturnPct': 2.5, 't10ReturnPct': None},
+            {'asOfDate': '2026-08-05', 'code': '000660', 'name': 'SK하이닉스',
+             'entryOpinion': '초기 매수 후보', 't5ReturnPct': -1.2, 't10ReturnPct': 3.4},
+        ]
+        result = weekly_report.past_candidate_outcomes(rows, limit=1)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['code'], '005930')
+        self.assertEqual(result[0]['t5ReturnPct'], 2.5)
+        self.assertIsNone(result[0]['t10ReturnPct'])
+
+    def test_past_candidate_outcomes_empty_when_no_rows(self):
+        self.assertEqual(weekly_report.past_candidate_outcomes(None), [])
+        self.assertEqual(weekly_report.past_candidate_outcomes([]), [])
+
+    def test_build_report_includes_past_candidate_outcomes(self):
+        rows = [{'asOfDate': '2026-08-10', 'code': '005930', 'name': '삼성전자',
+                  'entryOpinion': '눌림목 매수 후보', 't5ReturnPct': 2.5, 't10ReturnPct': 4.1}]
+        result = weekly_report.build_report(
+            datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date(),
+            futures_rows=[], domestic_news_items=[], foreign_news_items=[],
+            past_swing_outcomes=rows,
+        )
+        self.assertEqual(result['pastCandidateOutcomes']['domestic'], [
+            {'asOfDate': '2026-08-10', 'code': '005930', 'name': '삼성전자',
+             'entryOpinion': '눌림목 매수 후보', 't5ReturnPct': 2.5, 't10ReturnPct': 4.1},
+        ])
+        self.assertIn('basis', result['pastCandidateOutcomes'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -50,6 +50,7 @@ import order_book
 import public_data
 import realtime_quotes
 import sector_cards
+import swing_model
 import us_analysis
 import us_stocks
 import weekly_report
@@ -243,7 +244,7 @@ _weekly_report_cache = {}
 _WEEKLY_REPORT_SNAPSHOT_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'weekly_report_cache.json'
 )
-_WEEKLY_REPORT_SNAPSHOT_VERSION = 6
+_WEEKLY_REPORT_SNAPSHOT_VERSION = 7  # 2026-08-22: pastCandidateOutcomes 필드 추가
 _sector_cards_cache = None
 
 
@@ -293,6 +294,36 @@ def _load_daily_scan_for_weekly():
         return payload.get('swingScan') or {}
     except (OSError, ValueError, TypeError):
         return {}
+
+
+def _load_past_swing_outcomes(limit=8):
+    """2026-08-22 신설: 지난 2주 스윙 후보들이 실제로 T+5/T+10 동안 어떻게 움직였는지
+    주간 리포트에 같이 보여주기 위한 조회. monitor_swing_recommendations.py가 채운
+    t10_return이 확정된(=null이 아닌) 스냅샷 중 가장 최근 것부터 limit개를 가져온다 -
+    weekly_report.py는 "외부 API를 직접 호출하지 않는 순수 함수" 원칙이라 DB 접근은
+    여기(main.py)에서 하고, 포맷팅만 weekly_report.past_candidate_outcomes()에 넘긴다."""
+    conn = db_schema.get_conn()
+    try:
+        db_schema.create_schema(conn)
+        rows = conn.execute(
+            '''SELECT as_of_date, code, name, entry_opinion, t5_return, t10_return
+               FROM swing_recommendation_snapshots
+               WHERE model_version=? AND t10_return IS NOT NULL
+               ORDER BY as_of_date DESC LIMIT ?''',
+            (swing_model.MODEL_VERSION, limit),
+        ).fetchall()
+        return [
+            {
+                'asOfDate': row[0], 'code': row[1], 'name': row[2], 'entryOpinion': row[3],
+                't5ReturnPct': row[4], 't10ReturnPct': row[5],
+            }
+            for row in rows
+        ]
+    except Exception:
+        logging.getLogger('main').warning('past swing outcomes query failed', exc_info=True)
+        return []
+    finally:
+        conn.close()
 
 
 def _market_board_source():
@@ -2009,6 +2040,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
         domestic_board=results['domestic_board'], us_board=results['us_board'],
         schedule_events=results['schedule'],
         domestic_swing_scan=_load_daily_scan_for_weekly(),
+        past_swing_outcomes=_load_past_swing_outcomes(),
     )
     _weekly_report_cache[cache_key] = {'t': time.time(), 'data': data}
     _save_weekly_report_snapshot(cache_key, data)

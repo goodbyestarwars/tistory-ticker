@@ -286,3 +286,14 @@ html.dark .hwr-news-event-body h4 { color: #F5EFE0; }
   .hwr-news-timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 22px; }
   .hwr-news-event { padding-right: 8px; }
 }
+
+/* 2026-08-22 신설: 지난 2주 스윙 추천 결과("기록 공유") 섹션 - T+5/T+10 배지 2개가
+   .hwr-stock-values의 기존 ":first-child는 회색 고정" 규칙과 충돌하지 않도록 별도
+   스코프에서 색상을 다시 정의한다(상승=빨강/하락=파랑, 사이트 공통 규칙). */
+.hwr-outcome-values { flex-direction: column; align-items: flex-end; gap: 2px; }
+.hwr-outcome-values > b:first-child { color: inherit; font-weight: 600; }
+.hwr-outcome-values .is-up { color: #d24f45; }
+.hwr-outcome-values .is-down { color: #1261c4; }
+.hwr-outcome-values .is-flat { color: #64748b; }
+.hwr-outcome-pending { color: #94a3b8; font-weight: 500; }
+html.dark .hwr-outcome-pending { color: #7d8593; }

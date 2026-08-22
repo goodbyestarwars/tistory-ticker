@@ -188,6 +188,18 @@
       return '<li><span class="hwr-stock-name"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(meta) + '</small><em class="hwr-stock-reason">' + escapeHtml(item.reason || '순위·등락 데이터 기준') + '</em></span><span class="hwr-stock-values"><b>' + escapeHtml(formatStockPrice(item)) + '</b><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span></li>';
     }).join('') + '</ul>';
   }
+  // 2026-08-22 신설: "기록 공유" - 지난 2주 스윙 후보가 그 후 T+5/T+10 동안 실제로 어떻게
+  // 움직였는지 보여준다(이번 주 신규 후보와 별개 섹션). 데이터가 없으면(아직 확정된 결과가
+  // 없거나 백엔드가 옛 버전이면) 섹션 자체를 숨긴다(빈 박스를 억지로 보여주지 않음).
+  function pastOutcomeList(items) {
+    if (!items || !items.length) return '';
+    return '<section class="hwr-stock-section hwr-outcome-section"><div class="hwr-section-heading"><strong>지난 2주 스윙 추천 결과</strong><span>신호일 대비 T+5·T+10 실제 수익률(확정된 건만 표시)</span></div>'
+      + '<ul class="hwr-stock-list hwr-outcome-list">' + items.map(function (item) {
+        var t5 = item.t5ReturnPct != null ? '<b class="' + signClass(item.t5ReturnPct) + '">T+5 ' + signed(item.t5ReturnPct) + '</b>' : '<b class="hwr-outcome-pending">T+5 집계 중</b>';
+        var t10 = item.t10ReturnPct != null ? '<b class="' + signClass(item.t10ReturnPct) + '">T+10 ' + signed(item.t10ReturnPct) + '</b>' : '<b class="hwr-outcome-pending">T+10 집계 중</b>';
+        return '<li><span class="hwr-stock-name"><strong>' + escapeHtml(item.name || item.code || '') + '</strong><small>' + escapeHtml(dateLabel(item.asOfDate)) + ' 신호 · ' + escapeHtml(item.entryOpinion || '') + '</small></span><span class="hwr-stock-values hwr-outcome-values">' + t5 + t10 + '</span></li>';
+      }).join('') + '</ul></section>';
+  }
   function indexSummary(indices) {
     var displayOrder = {
       KOSPI: 0, KOSDAQ: 1, NASDAQ_INDEX: 2, SP500_INDEX: 3,
@@ -310,6 +322,7 @@
       + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>뜨거웠던 종목</strong><span>지난주 상승·수급·거래대금 신호와 사유</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.us, 'us') + '</article></div></section>'
       + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>차가웠던 종목</strong><span>지난주 하락률 상위 중 유동성 종목 우선</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.us, 'us') + '</article></div></section>'
       + '<section class="hwr-stock-section hwr-candidate-section"><div class="hwr-section-heading"><strong>2주 스윙 상승 후보</strong><span>국내 차트 국면·모멘텀·펀더멘털·위험 필터 통과 종목만 표시</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong class="is-up">국내 후보</strong><span>보유자 행동과 신규 진입을 분리</span></div>' + stockListWithReasons(data.hotCandidates && data.hotCandidates.domestic, 'domestic', '현재 조건 충족 후보 없음') + '</article></div></section>'
+      + pastOutcomeList(data.pastCandidateOutcomes && data.pastCandidateOutcomes.domestic)
       + '<article class="hwr-news-card"><div class="hwr-news-toolbar"><div class="hwr-card-title"><strong>주간 경제 뉴스·이슈</strong><span>' + escapeHtml(data.news && data.news.basis || '월~금 날짜별 주요 뉴스 · 한국·미국 통합') + '</span></div><div class="hwr-news-filters" role="tablist" aria-label="뉴스 유형 필터"><button type="button" role="tab" aria-selected="true" class="is-active" data-hwr-news-filter="all">통합</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="뉴스">뉴스</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="공시">공시</button></div></div>' + newsTimeline(data.news && data.news.timeline) + '</article>'
       + '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'
       + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';

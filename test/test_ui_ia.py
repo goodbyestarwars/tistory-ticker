@@ -1662,7 +1662,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
         self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-up', style)
-        self.assertIn('_WEEKLY_REPORT_SNAPSHOT_VERSION = 6', backend)
+        self.assertIn('_WEEKLY_REPORT_SNAPSHOT_VERSION = 7', backend)
 
     def test_swing_ui_separates_regime_event_and_hides_legacy_grade_from_visible_box(self):
         source = self.read("js/foreign-flow.js")

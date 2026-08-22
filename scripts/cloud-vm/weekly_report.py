@@ -566,9 +566,26 @@ def news_timeline(domestic, us, start, end, limit=20):
     return rows[:limit]
 
 
+def past_candidate_outcomes(rows, limit=8):
+    """2026-08-22 신설: main.py가 조회해 넘긴 완결(t10_return 확정) 스냅샷 행을 화면용
+    계약으로 포맷팅한다(이 모듈은 DB에 직접 접근하지 않는 순수 함수 원칙을 지킴).
+    entryOpinion이 매도 계열이 아닌(스윙 매수 후보였던) 행만 남기고, 최근 순으로 자른다."""
+    result = []
+    for row in (rows or [])[:limit]:
+        if not isinstance(row, dict):
+            continue
+        result.append({
+            'asOfDate': row.get('asOfDate'), 'code': row.get('code'), 'name': row.get('name'),
+            'entryOpinion': row.get('entryOpinion'),
+            't5ReturnPct': row.get('t5ReturnPct'), 't10ReturnPct': row.get('t10ReturnPct'),
+        })
+    return result
+
+
 def build_report(start, end, futures_rows=None, domestic_news_items=None,
                  foreign_news_items=None, domestic_board=None, us_board=None,
-                 schedule_events=None, generated_at=None, domestic_swing_scan=None):
+                 schedule_events=None, generated_at=None, domestic_swing_scan=None,
+                 past_swing_outcomes=None):
     # 주간 리포트는 최신 하루치가 전체를 덮지 않도록 완료된 월~금만 사용한다.
     # 주말에 새로 들어온 뉴스는 다음 리포트의 수집분으로 남긴다.
     news_end = end
@@ -597,6 +614,10 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
             'domestic': [],
             'us': [],
             'basis': '예측 후보를 만들지 않으며, 하락 국면은 종목분석 위험·행동 판정에서 확인',
+        },
+        'pastCandidateOutcomes': {
+            'domestic': past_candidate_outcomes(past_swing_outcomes),
+            'basis': '지난 2주 스윙 후보의 신호일 대비 T+5/T+10 실제 수익률(확정된 건만 표시)',
         },
         'news': {
             'domestic': _news(domestic_news_items, start, news_end, 8),
