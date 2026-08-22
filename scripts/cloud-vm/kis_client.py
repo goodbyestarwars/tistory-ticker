@@ -400,6 +400,29 @@ def fetch_market_funds(token, appkey, appsecret, date=''):
     return output if isinstance(output, list) else [output]
 
 
+def fetch_invest_opinion(token, appkey, appsecret, code, date1, date2):
+    """KIS 국내주식 종목투자의견(FHKST663300C0, /uapi/domestic-stock/v1/quotations/invest-opinion).
+
+    날짜1~날짜2(YYYYMMDD) 구간에 나온 증권사 리포트를 개별 건별로 그대로 돌려준다(이미
+    집계된 평균이 아님) - 호출부(invest_opinion.py)가 이 리스트를 모아 평균 목표가·의견
+    분포를 직접 계산한다. 필드명은 KIS 공식 예제(invest_opinion.py) 그대로: invt_opnn
+    (투자의견 텍스트), hts_goal_prc(목표가), stck_bsop_date(리포트 기준일) 등."""
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/invest-opinion',
+        'FHKST663300C0',
+        {
+            'FID_COND_MRKT_DIV_CODE': 'J',
+            'FID_COND_SCR_DIV_CODE': '16633',
+            'FID_INPUT_ISCD': code,
+            'FID_INPUT_DATE_1': date1,
+            'FID_INPUT_DATE_2': date2,
+        },
+    )
+    output = data.get('output') or []
+    return output if isinstance(output, list) else [output]
+
+
 def _avg_delta(rows):
     vals = []
     for r in rows:

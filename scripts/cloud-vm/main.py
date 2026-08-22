@@ -38,6 +38,7 @@ import foreign_futures
 import naver_news
 import news_aggregator
 import news_momentum
+import invest_opinion
 import investor_flow
 import investor_trend
 import kis_client
@@ -189,6 +190,7 @@ _OHLC_MINUTE_CACHE_TTL = 60
 _ohlc_cache = OrderedDict()
 _ohlc_minute_cache = OrderedDict()  # (code, tic_scope) -> (t, data)
 _pbar_tratio_cache = OrderedDict()  # code -> (t, data)
+_invest_opinion_cache = OrderedDict()  # code -> (t, data)
 # ETF 구성종목(편입 비중)은 하루 중 자주 안 바뀌어서 다른 실시간성 캐시보다 길게 둔다.
 _ETF_COMPONENTS_TTL = 10 * 60
 _etf_components_cache = OrderedDict()  # code -> (t, data)
@@ -1619,6 +1621,34 @@ def foreign_flow_endpoint(request: Request, code: str = Path(..., min_length=6, 
     if result is None:
         raise HTTPException(status_code=404, detail='수급 데이터를 찾을 수 없습니다.')
     _live_cache_put(_foreign_flow_cache_mem, cache_key, result)
+    return envelope(result)
+
+
+@app.get('/invest-opinion/{code}')
+def invest_opinion_endpoint(request: Request, code: str = Path(..., min_length=6, max_length=6)):
+    """종목분석 "평균 투자의견" 카드(2026-08-23 신설) - 토스증권의 "최근 3개월 애널리스트
+    평균 투자의견"(FnGuide/Refinitiv 출처)을 참고한 국내 전용 버전. 우리는 그 유료 데이터
+    계약이 없어 KIS 국내주식 종목투자의견(invest_opinion.py, FHKST663300C0)으로 대체 -
+    최근 3개월 리포트를 모아 평균 목표가·매수/중립/매도 분포를 직접 계산한다. 해외 종목은
+    KIS에 대응 API가 없어 지원하지 않는다(사용자 확인). KIS_APPKEY/APPSECRET 미설정이면
+    503, 그 기간에 리포트가 없는 종목(소형주 등)은 available:false로 응답한다(에러 아님).
+    /foreign-flow/{code}와 동일하게 공개(인증 없음) + CORS + 5분 캐시."""
+    _check_rate_limit('invest_opinion', request)
+    kis_appkey = os.environ.get('KIS_APPKEY')
+    kis_appsecret = os.environ.get('KIS_APPSECRET')
+    if not kis_appkey or not kis_appsecret:
+        raise HTTPException(status_code=503, detail='서버에 KIS_APPKEY/KIS_APPSECRET가 설정되지 않았습니다.')
+    cached = _live_cache_get(_invest_opinion_cache, code)
+    if cached is not None:
+        return envelope(cached)
+    try:
+        token = kis_client.get_token(kis_appkey, kis_appsecret)
+        result = invest_opinion.fetch_recent_opinion_summary(kis_client, token, kis_appkey, kis_appsecret, code)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise _upstream_http_exception('투자의견 데이터를 불러오지 못했습니다.', e) from e
+    _live_cache_put(_invest_opinion_cache, code, result)
     return envelope(result)
 
 
