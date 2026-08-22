@@ -386,8 +386,22 @@ def fetch_kofia_market(days=30):
     if not series:
         raise PublicDataUnavailable('KOFIA 시장자금 통계가 비어 있습니다.')
 
-    latest_credit = next((item['credit'] for item in reversed(series) if item['credit']), None)
-    latest_funds = next((item['market_funds'] for item in reversed(series) if item['market_funds']), None)
+    # 2026-08-23: credit(신용융자)/market_funds(증시자금) 두 KOFIA 피드는 공시 주기가 서로
+    # 달라(하나가 하루 늦게 갱신되는 등) 각자 "가장 최근 값"을 독립적으로 고르면 날짜가
+    # 구조적으로 계속 어긋난다 - GAS의 scoreKofiaCredit_가 같은 기준일인지 검사해서
+    # 어긋나면 'pending'(데이터 검증 중)으로 막아두는데, 이 어긋남이 일시적 지연이 아니라
+    # 매번 반복되는 패턴이라 "검증 중" 표시가 영구히 안 풀리는 원인이었다(사용자 실측 신고:
+    # "언제까지 검증할래?"). 두 피드가 실제로 같이 존재하는 가장 최근 날짜를 우선 찾아
+    # latest로 쓰면 날짜가 항상 일치해 정상적으로 점수가 매겨진다 - 겹치는 날이 전혀 없을
+    # 때만 기존처럼 각자 최신값으로 폴백(그때는 여전히 'pending'으로 남는 게 맞음).
+    common_dates = sorted(set(credit_by_date) & set(funds_by_date))
+    if common_dates:
+        latest_common_date = common_dates[-1]
+        latest_credit = credit_by_date.get(latest_common_date)
+        latest_funds = funds_by_date.get(latest_common_date)
+    else:
+        latest_credit = next((item['credit'] for item in reversed(series) if item['credit']), None)
+        latest_funds = next((item['market_funds'] for item in reversed(series) if item['market_funds']), None)
     result = {
         'available': True,
         'source': 'data.go.kr: 금융위원회 금융투자협회 종합통계정보',

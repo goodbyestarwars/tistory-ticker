@@ -150,6 +150,7 @@ class PublicDataParserTests(unittest.TestCase):
                  'brkTrdUcolMnyVsOppsTrdAmt': '30000000000', 'ucolMnyVsOppsTrdRlImpt': '11'},
             ]}}}
         }
+        public_data._CACHE.pop('kofia-market:7', None)
         with mock.patch.dict(os.environ, {'DATA_GO_KR_KOFIA_SERVICE_KEY': 'test-key'}, clear=True):
             with mock.patch.object(public_data, '_request_json', side_effect=[credit_payload, funds_payload]):
                 result = public_data.fetch_kofia_market(days=7)
@@ -158,6 +159,36 @@ class PublicDataParserTests(unittest.TestCase):
         self.assertEqual(result['credit']['loan_total'], 17500000)
         self.assertEqual(result['market_funds']['investor_deposits'], 53000000000000)
         self.assertEqual(len(result['series']), 2)
+
+    def test_kofia_market_picks_a_same_day_pair_when_feeds_publish_on_different_lags(self):
+        # 신용융자(credit) 피드가 증시자금(funds) 피드보다 하루 늦게 갱신되는 경우 -
+        # 각자 독립적으로 "가장 최근 값"을 고르면 기준일이 영원히 어긋나 GAS 검증이
+        # 항상 'pending'으로 막힌다(2026-08-23 실측 버그). 08-06에는 둘 다 있으므로
+        # 그 날짜 쌍을 latest로 골라야 한다(08-07 funds 단독 최신값을 쓰면 안 됨).
+        credit_payload = {
+            'response': {'header': {'resultCode': '00'}, 'body': {'items': {'item': [
+                {'basDt': '20260805', 'crdTrFingWhl': '17300000', 'crdTrFingScrs': '8900000',
+                 'crdTrFingKosdaq': '8300000', 'crdTrLndrWhl': '49000', 'dpsgScrtMogFing': '18900000'},
+                {'basDt': '20260806', 'crdTrFingWhl': '17400000', 'crdTrFingScrs': '9000000',
+                 'crdTrFingKosdaq': '8400000', 'crdTrLndrWhl': '50000', 'dpsgScrtMogFing': '19000000'},
+            ]}}}
+        }
+        funds_payload = {
+            'response': {'header': {'resultCode': '00'}, 'body': {'items': {'item': [
+                {'basDt': '20260806', 'invrDpsgAmt': '52000000000000', 'brkTrdUcolMny': '280000000000',
+                 'brkTrdUcolMnyVsOppsTrdAmt': '29000000000', 'ucolMnyVsOppsTrdRlImpt': '10'},
+                {'basDt': '20260807', 'invrDpsgAmt': '53000000000000', 'brkTrdUcolMny': '281000000000',
+                 'brkTrdUcolMnyVsOppsTrdAmt': '30000000000', 'ucolMnyVsOppsTrdRlImpt': '11'},
+            ]}}}
+        }
+        public_data._CACHE.pop('kofia-market:7', None)
+        with mock.patch.dict(os.environ, {'DATA_GO_KR_KOFIA_SERVICE_KEY': 'test-key'}, clear=True):
+            with mock.patch.object(public_data, '_request_json', side_effect=[credit_payload, funds_payload]):
+                result = public_data.fetch_kofia_market(days=7)
+        self.assertEqual(result['credit']['date'], result['market_funds']['date'])
+        self.assertEqual(result['credit']['date'], '2026-08-06')
+        self.assertEqual(result['credit']['loan_total'], 17400000)
+        self.assertEqual(result['market_funds']['investor_deposits'], 52000000000000)
 
 
 if __name__ == '__main__':

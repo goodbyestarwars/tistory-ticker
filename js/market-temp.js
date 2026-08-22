@@ -1336,6 +1336,40 @@
       requestAnimationFrame(function () { requestAnimationFrame(reveal); });
       setTimeout(reveal, 1000);
     }
+
+    wireTooltipClamp(container);
+  }
+
+  // 2026-08-23: ⓘ 툴팁(.mt-info::after)이 아이콘 중앙 기준으로 고정폭(240px)만큼 좌우로
+  // 펼쳐지는데, #market-temp 루트에 overflow-x:hidden이 걸려 있어(문서 전체 가로 스크롤
+  // 방지용, 위 주석 참고) 아이콘이 위젯 박스 왼쪽 가장자리 가까이 있으면 말풍선의 왼쪽
+  // 절반이 그대로 잘려 보이는 문제가 실측 신고됨(모바일 폭에서 VIX 항목). 포인터/키보드
+  // 포커스 시 아이콘 위치와 #market-temp 박스 경계를 비교해 필요한 만큼만 좌우로 밀어주는
+  // --mt-tip-shift 커스텀 프로퍼티를 세팅한다(css/market-temp.css의 translateX와 짝).
+  var TOOLTIP_MAX_WIDTH = 240; // css의 .mt-info::after max-width와 일치시킬 것
+  var TOOLTIP_EDGE_MARGIN = 8;
+  function wireTooltipClamp(container) {
+    function clamp(icon) {
+      // wireAnimations(container)에 넘어오는 container가 곧 #market-temp 루트 자체다.
+      var boxRect = container.getBoundingClientRect();
+      var iconRect = icon.getBoundingClientRect();
+      var center = iconRect.left + iconRect.width / 2;
+      var halfWidth = TOOLTIP_MAX_WIDTH / 2;
+      var minCenter = boxRect.left + TOOLTIP_EDGE_MARGIN + halfWidth;
+      var maxCenter = boxRect.right - TOOLTIP_EDGE_MARGIN - halfWidth;
+      var clampedCenter = maxCenter >= minCenter
+        ? Math.min(Math.max(center, minCenter), maxCenter)
+        : center; // 위젯 자체가 240px보다 좁으면 보정 포기(레이아웃 문제이지 이 함수 책임 아님)
+      icon.style.setProperty('--mt-tip-shift', (clampedCenter - center) + 'px');
+    }
+    container.addEventListener('mouseover', function (e) {
+      var icon = e.target.closest && e.target.closest('.mt-info');
+      if (icon) clamp(icon);
+    });
+    container.addEventListener('focusin', function (e) {
+      var icon = e.target.closest && e.target.closest('.mt-info');
+      if (icon) clamp(icon);
+    });
   }
 
   function escapeHtml(s) {
