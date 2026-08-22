@@ -785,9 +785,15 @@ def detect_ma_cloud_breakout(daily):
     # "상승 초입"으로 볼 수 있다는 판단.
     if close > cloud['top']:
         return None
+    # 2026-08-22(4차): 위 완화로 구름 하단을 한참 벗어난 역배열 약세 종목까지 잡히던 문제를
+    # 막기 위해 최소 위치 조건을 다시 넣었다 - 종가는 구름 하단 -2% 안에서는 지지받고
+    # 마감해야 한다(장중 밀렸어도 종가 기준 최소 지지력 확인).
+    if close < cloud['bottom'] * 0.98:
+        return None
     # 2026-08-22(2차): "하단 시도도 or로 넣어달라" - 고가가 구름 상단에 근접하거나(위에서
     # 저항 테스트), 저가가 구름 하단에 근접(아래에서 지지 테스트)하면 둘 중 하나만
-    # 만족해도 통과한다(원래는 상단 시도만 필수였음).
+    # 만족해도 통과한다(원래는 상단 시도만 필수였음). 위 -2% 지지 조건을 통과한 구간
+    # 안에서의 시도만 인정되므로 역배열 약세 종목의 하단 터치는 여기 도달하지 못한다.
     top_attempt = daily[last_index]['high'] >= cloud['top'] * (1 - MA_CLOUD_TOP_TOL)
     bottom_attempt = daily[last_index]['low'] <= cloud['bottom'] * (1 + MA_CLOUD_TOP_TOL)
     if not (top_attempt or bottom_attempt):
@@ -797,20 +803,25 @@ def detect_ma_cloud_breakout(daily):
     # 구름 상단/하단 시도 2가지만 필수 조건이다.
     ma5_now, ma20_now = ma5[last_index], ma20[last_index]
 
-    # 점수는 상단·하단 중 실제로 시도한 쪽(더 가까운 쪽)의 근접도를 기준으로 매긴다.
+    # 2026-08-22(4차): 상단 시도(저항 돌파 임박)를 하단 시도(지지 테스트)보다 우대한다 -
+    # 상단 시도는 근접도에 따라 35~50점 차등, 하단 시도는 근접도와 무관하게 25점 고정.
+    # 둘 다 만족하면 더 가치 높은 상단 기준으로 채점한다.
     top_gap = abs(cloud['top'] - daily[last_index]['high']) / cloud['top'] if top_attempt else None
-    bottom_gap = abs(daily[last_index]['low'] - cloud['bottom']) / cloud['bottom'] if bottom_attempt else None
-    cloud_gap = min(g for g in (top_gap, bottom_gap) if g is not None)
-    cloud_side = '상단' if (top_gap is not None and (bottom_gap is None or top_gap <= bottom_gap)) else '하단'
+    if top_attempt:
+        cloud_side = '상단'
+        cloud_score = 50 if top_gap <= 0.01 else 35
+    else:
+        cloud_side = '하단'
+        cloud_score = 25
 
     score = clamp_score(
         (50 if ma224_gap <= 0.015 else 35)
-        + (50 if cloud_gap <= 0.01 else 35)
+        + cloud_score
     )
     signal = {'date': daily[last_index]['date'], 'price': close}
     reasons = [
         '224일선 근접도 %.1f%%(%d/50점)' % (ma224_gap * 100, 50 if ma224_gap <= 0.015 else 35),
-        '현재가 구름 %s 시도(%d/50점)' % (cloud_side, 50 if cloud_gap <= 0.01 else 35),
+        '현재가 구름 %s 시도(%d/%d점)' % (cloud_side, cloud_score, 50 if top_attempt else 25),
     ]
     return {
         'ma5': ma5_now,

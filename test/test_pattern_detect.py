@@ -472,14 +472,25 @@ class MaCloudBreakoutDetectionTest(unittest.TestCase):
     def test_below_cloud_bottom_is_still_included(self):
         """2026-08-22: 구름 하단을 뚫고 내려간 경우도 포함하라는 요청 - 상단만 안 넘었으면
         통과해야 한다(구름 아래에서 다시 올라오는 중인 케이스). 구름[bottom=10000, top=10200]
-        기준으로 마지막 봉 종가만 하단 아래(9900)로 내리고 고가는 그대로 둔다(224일선과는
-        여전히 3% 이내)."""
+        기준으로 마지막 봉 종가만 하단 아래(9900, -2% 안)로 내리고 고가는 그대로 둔다
+        (224일선과는 여전히 3% 이내)."""
         daily = ma_cloud_breakout_daily()
         daily[-1].update(high=10200.0, low=9850.0, close=9900.0)
 
         detail = detector.detect_ma_cloud_breakout(daily)
         self.assertIsNotNone(detail)
         self.assertLess(detail["signal"]["price"], 10000.0)  # 종가가 구름 하단 아래
+
+    def test_far_below_cloud_bottom_is_excluded(self):
+        """2026-08-22(4차) 추가: 종가가 구름 하단보다 2% 넘게 처진 역배열 약세 종목은
+        저가만 하단에 닿았어도 이제 제외된다(최소 위치 조건)."""
+        daily = ma_cloud_breakout_daily()
+        # close=9750은 224일선(~10000.9)과는 여전히 2.5%로 근접 조건(3%)을 통과하지만,
+        # 구름 하단(10000)의 -2.5%라 최소 위치 조건(-2% 이내)엔 못 미친다.
+        daily[-1].update(high=9900.0, low=9500.0, close=9750.0)
+
+        detail = detector.detect_ma_cloud_breakout(daily)
+        self.assertIsNone(detail)
 
     def test_scan_exposes_ma_cloud_breakout_bucket(self):
         results = {"risingLows": [], "doubleBottom": [], "invHeadShoulders": [], "boxRangeLow": []}
