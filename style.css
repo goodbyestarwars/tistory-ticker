@@ -5069,6 +5069,8 @@ body#tt-body-index .home-editorial-page .home-closed-status {
   display: grid;
   gap: 5px;
   align-content: end;
+  justify-items: center;
+  text-align: center;
   min-height: 86px;
   padding: 0 0 0 18px;
   border-left: 2px solid #111827;
@@ -5094,7 +5096,7 @@ body#tt-body-index .home-editorial-page .home-closed-note { display: none; }
   body#tt-body-index .home-editorial-page .home-closed-status {
     min-height: 0;
     margin-top: 18px;
-    padding: 12px 0 0 12px;
+    padding: 12px 0 0;
     border-top: 1px solid #dfe3e8;
     border-left: 0;
   }
