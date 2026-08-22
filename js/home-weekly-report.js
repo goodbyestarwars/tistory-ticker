@@ -406,7 +406,13 @@
     if (!items || !items.length) return '<p class="hwr-empty">다음 주 M7·금리·주요 기업 일정이 확인되지 않았습니다.</p>';
     return '<ul class="hwr-schedule-list">' + items.slice(0, 16).map(function (item) {
       var isUs = item.market === 'us' || /^[A-Z]{1,6}$/.test(String(item.symbol || '')) || /미국|Finnhub|\$[A-Z]/i.test(String(item.title || ''));
-      return '<li><time>' + escapeHtml(String(item.date || '').slice(5)) + '</time><b class="hwr-schedule-market">' + (isUs ? '미국' : '한국') + '</b><span>' + escapeHtml(item.title) + (item.symbol ? ' <small>' + escapeHtml(item.symbol) + '</small>' : '') + '</span></li>';
+      var title = String(item.title || '');
+      // 2026-08-22: 제목에 이미 "$NVDA 실적발표"처럼 심볼이 들어있는데 뒤에 <small>NVDA</small>가
+      // 또 붙어 "$NVDA 실적발표 (장후) NVDA"로 중복 표시되던 문제 - 제목이 이미 그 심볼을
+      // 포함하면 별도 태그를 만들지 않는다.
+      var symbol = String(item.symbol || '');
+      var showSymbolTag = symbol && title.toUpperCase().indexOf(symbol.toUpperCase()) === -1;
+      return '<li><time>' + escapeHtml(String(item.date || '').slice(5)) + '</time><b class="hwr-schedule-market">' + (isUs ? '미국' : '한국') + '</b><span>' + escapeHtml(title) + (showSymbolTag ? ' <small>' + escapeHtml(symbol) + '</small>' : '') + '</span></li>';
     }).join('') + '</ul>';
   }
   function isWeekendWindow(date) {
