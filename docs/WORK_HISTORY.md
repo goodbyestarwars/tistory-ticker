@@ -1,5 +1,20 @@
 # 9Pay 주요 작업이력
 
+**2026-08-23(8차) 코스피 선물 "행사가별 콜·풋 프로파일"이 항상 빈 상태였던 버그 수정**:
+사용자가 옵션 수급 카드 스크린샷을 보여주며 "행사가별 콜·풋 프로파일" 영역이 늘 "옵션
+수급 수집이 한 번 실행되면 표시됩니다"만 뜬다고(콜/풋 합계 카드는 정상 표시) 리포트.
+`option_flow._strike_rows()`가 행사가 필드를 `stnd_prc`/`optn_stnd_prc`/`optn_prc`/
+`strike_prc`/`xprc` 순서로 추정해 찾고 있었는데, `kis-code-assistant-mcp`로 이 TR
+(`FHPIF05030100`, `display_board_callput`, "국내옵션전광판_콜풋")의 공식 예제
+(`chk_display_board_callput.py`의 `COLUMN_MAPPING`)를 확인하니 실제 필드명은 **`acpr`**
+이었다 - 목록에 아예 없어서 모든 행이 "행사가 없음"으로 걸러져 항상 빈 배열이 됐던
+것. 합계 카드는 `_aggregate()`가 다른 필드(`acml_vol`/`hts_otst_stpl_qty` 등, 같은
+공식 문서로 재확인 - 맞게 쓰고 있었음)를 써서 영향이 없었다. `_number(row, 'acpr', ...)`
+로 정확한 필드명을 최우선으로 추가(기존 추정 명칭들은 폴백으로 유지). `test_kis_websocket_
+parsers.py`에 회귀 테스트 2건 추가, 전체 549건 통과. `scripts/cloud-vm/`은 VM 자동
+배포 대상 - 반영 후 다음 5분 폴링(`refresh_option_flow`)이 한 번 돌면 프로파일이
+채워진다.
+
 **2026-08-23(7차) 종목분석 "평균 투자의견" 카드 신설(국내 전용, 미검증)**: 사용자가
 토스증권의 "최근 3개월(해외 6개월) 애널리스트 평균 투자의견"(FnGuide/Refinitiv 출처)
 카드를 보여주며 우리도 가능한지 물어봄. `kis-code-assistant-mcp`로 KIS API를 뒤져 국내

@@ -110,13 +110,17 @@ def _number(row, *keys):
 def _strike_rows(side, rows, updated_at):
     """KIS 옵션 전광판 응답을 화면용 최소 필드로 정규화한다.
 
-    TR 응답 버전에 따라 기준 행사가 키 이름이 다를 수 있어 공식/실측 명칭을
-    순서대로 허용한다. 행사가가 없는 행은 합계에는 포함하되 프로파일에서는
-    제외한다.
+    2026-08-23: 행사가별 프로파일이 항상 빈 상태였던 버그를 발견·수정 - 이 함수가
+    시도하던 키 목록(stnd_prc/optn_stnd_prc/optn_prc/strike_prc/xprc)에 실제 필드명이
+    없어 모든 행이 "행사가 없음"으로 걸러졌었다(합계 카드는 다른 필드를 써서 정상으로
+    보였음). kis-code-assistant-mcp로 이 TR(FHPIF05030100, display_board_callput)의
+    공식 예제(chk_display_board_callput.py COLUMN_MAPPING)를 확인해 정확한 필드명이
+    'acpr'(행사가)임을 확인 - 첫 번째로 시도하도록 추가하고, 혹시 모를 응답 버전
+    차이에 대비해 기존 추정 명칭들은 폴백으로 남겨둔다.
     """
     result = []
     for row in rows:
-        strike = _number(row, 'stnd_prc', 'optn_stnd_prc', 'optn_prc', 'strike_prc', 'xprc')
+        strike = _number(row, 'acpr', 'stnd_prc', 'optn_stnd_prc', 'optn_prc', 'strike_prc', 'xprc')
         if strike is None:
             continue
         volume = _number(row, 'acml_vol', 'acc_trde_qty', 'trde_qty', 'volume') or 0
