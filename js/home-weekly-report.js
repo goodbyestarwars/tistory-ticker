@@ -215,9 +215,23 @@
       return '<b><small>' + escapeHtml(item.name) + '</small><strong class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</strong></b>';
     }).join('') + '</div>';
   }
-  function sentimentArt(indices) {
+  function isBullishWeek(indices) {
     var values = (indices || []).filter(function (item) { return !item.group || item.group === 'index'; }).map(function (item) { return num(item && item.changeRate); }).filter(function (value) { return value != null; });
-    var bullish = values.length ? values.reduce(function (sum, value) { return sum + value; }, 0) >= 0 : true;
+    return values.length ? values.reduce(function (sum, value) { return sum + value; }, 0) >= 0 : true;
+  }
+  // 2026-08-22 요청: "Markets Closed" 자물쇠도 같은 황소·곰 기준(빨강=상승/파랑=하락)으로
+  // 색을 입혀달라는 요청 - skin-main.js가 그리는 정적 마크업(#home-closed-page 안의
+  // .home-closed-lock)에 이 데이터가 도착한 시점(render())에 클래스만 덧입힌다. 파일이
+  // 갈려 있어(skin-main.js는 골격, 이 파일은 데이터) DOM 클래스로 다리를 놓는 방식 -
+  // 두 파일 다 이 클래스 이름(is-bull/is-bear)에 합의돼 있어야 함.
+  function applyLockSentiment(bullish) {
+    var lock = document.querySelector('.home-closed-lock');
+    if (!lock) return;
+    lock.classList.toggle('is-bull', bullish);
+    lock.classList.toggle('is-bear', !bullish);
+  }
+  function sentimentArt(indices) {
+    var bullish = isBullishWeek(indices);
     // 2026-08-20: 이 SVG는 stroke="currentColor"로 색을 상속받는데, 실제 색은 외부
     // css/home-weekly-report.css의 .hwr-sentiment(색)에서만 정해진다. 이 CSS는 휴장
     // 탭을 열 때(init())에야 동적으로 <link>가 삽입돼 늦게 도착하므로, 그 사이 브라우저
@@ -310,6 +324,7 @@
     var indices = data.indices || [];
     var fx = data.fx || {};
     var gold = data.gold || {};
+    applyLockSentiment(isBullishWeek(indices));
     root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><span class="hwr-eyebrow">WEEKEND BRIEF</span><h2>' + title + '</h2><p>' + subtitle + '</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + indexSummary(indices)
       + '<div class="hwr-index-grid">' + indices.filter(function (item) {

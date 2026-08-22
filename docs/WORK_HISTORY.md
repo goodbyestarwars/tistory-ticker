@@ -1,5 +1,19 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(16차) 휴장 페이지 "Markets Closed" 자물쇠 아이콘 신설 + 황소장/곰장 색 연동**:
+사용자 요청 "자물쇠 모양으로 최대한 이쁘고 웅장하게" - `js/skin-main.js`의 휴장 탭
+`dashboardHtml()`에 `<h1>Markets Closed</h1>` 앞에 인라인 SVG 자물쇠(걸쇠+몸통+열쇠구멍,
+drop-shadow로 입체감)를 추가. 이어서 "황소장은 빨간색, 곰장은 파란색 자물쇠로" 요청 -
+`js/home-weekly-report.js`가 이미 갖고 있던 황소/곰 SVG 판정 로직(`sentimentArt`의 지수
+등락률 합산 부호)에서 판정 부분만 `isBullishWeek()`로 분리하고, 새 `applyLockSentiment()`
+함수가 `render()` 실행 시(데이터 도착 후) `.home-closed-lock`에 `is-bull`/`is-bear`
+클래스를 붙인다. 자물쇠 SVG는 `currentColor`로 색을 상속받게 바꿔서(원래 금색/차콜
+그라데이션이었던 걸 단색으로 교체) CSS의 `.home-closed-lock.is-bull{color:#d24f45}`/
+`.is-bear{color:#1261c4}`(사이트 공통 상승=빨강/하락=파랑)가 그대로 적용된다 - 데이터
+도착 전 기본값은 중립 차콜(#454b59). 두 파일(skin-main.js=정적 골격, home-weekly-
+report.js=데이터)이 클래스 이름으로 다리를 놓는 구조라 주석에 합의 사항을 명시해뒀다.
+`test/test_ui_ia.js`의 리팩터링된 `sentimentArt` 관련 단언 갱신, 98건 통과.
+
 **2026-08-22(15차) 국민연금 보유종목 지분율 필터를 누적 임계값→구간으로 변경**: 사용자가
 "% 바꿔도 종목이 안 바뀐다"고 리포트 - 실제로는 정상 작동 중이었으나(라이브에서 직접
 확인: "5% 이상"→"1% 이상" 전환 시 232종목→538종목으로 개수 자체는 정확히 바뀜), 필터가

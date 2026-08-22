@@ -5037,8 +5037,28 @@ body#tt-body-index .home-editorial-page .home-closed-kicker > span {
   font: 800 11px/1.2 Arial, sans-serif;
   letter-spacing: .14em;
 }
-body#tt-body-index .home-editorial-page .home-closed-kicker h1 {
+/* 2026-08-22 요청: "Markets Closed" 앞에 자물쇠 아이콘 - drop-shadow로 입체감을 주고
+   ("웅장하게"), js/home-weekly-report.js의 황소장/곰장 판정과 같은 색(상승=빨강/
+   하락=파랑)을 currentColor로 물려받는다(2026-08-22 2차: 사용자가 "황소장은 빨간색,
+   곰장은 파란색 자물쇠"로 요청 - 원래의 금색/차콜 중립 배색에서 변경). 데이터 도착 전
+   기본값은 중립 차콜. */
+body#tt-body-index .home-editorial-page .home-closed-title-row {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.4vw, 18px);
   margin: 0 0 7px;
+}
+body#tt-body-index .home-editorial-page .home-closed-lock {
+  flex: 0 0 auto;
+  width: clamp(30px, 3.4vw, 40px);
+  height: auto;
+  color: #454b59;
+  transition: color .2s ease;
+}
+body#tt-body-index .home-editorial-page .home-closed-lock.is-bull { color: #d24f45; }
+body#tt-body-index .home-editorial-page .home-closed-lock.is-bear { color: #1261c4; }
+body#tt-body-index .home-editorial-page .home-closed-kicker h1 {
+  margin: 0;
   color: #111827;
   font: 650 clamp(36px, 4.5vw, 54px)/1.02 "Arial", "Helvetica Neue", sans-serif;
   letter-spacing: -.045em;
