@@ -1729,7 +1729,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "10~45봉 간격",
             "어깨-머리-어깨",
             "RSI(14) 35~65",
-            "최근 20봉 안에 저점 대비 종가가 15% 이상",
+            "고점 직전 25봉 안 저점 대비 종가가 15% 이상",
         ):
             self.assertIn(text, source)
         self.assertIn("COMMON_MARKET_CAP_MIN_EOK = 3000.0", backend)

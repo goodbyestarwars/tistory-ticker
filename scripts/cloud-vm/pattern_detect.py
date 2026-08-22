@@ -107,6 +107,26 @@ PULLBACK_MAX_DROP = 0.15
 PULLBACK_MA_TOL = 0.03
 PULLBACK_MIN_DAYS = 240  # 1년선(240거래일) 계산에 필요한 최소 보유 일수
 
+# 2026-08-22 신설(작업지시서: detect_pullback 보강)
+# ① 최저점 탐색을 "오늘 기준"이 아니라 "고점 기준" 과거 N봉으로 제한 - 6개월 전 저점
+# 대비 상승폭이 계산되는 착시를 막고 단기 강한 파동만 잡기 위함. 임의 초기값(20~30봉
+# 범위 중간값), 추후 백테스트로 조정.
+PULLBACK_LOW_SEARCH_WINDOW = 25
+# ② 조정구간 최대거래량이 상승구간 최대거래량의 이 비율 이하여야 함(신설, 임시값).
+PULLBACK_MAX_VOL_RATIO = 0.70
+# ③ 20일선 방향 조건 두 버전 - 'ma5_above_ma20'(정배열 초입) / 'ma20_slope_tol'(완만한
+# 하락까지 허용). 기본값은 B(ma20_slope_tol)로 둔다 - 조정구간엔 5일선이 20일선 아래로
+# 잠깐 처지는 게 흔해서(단기가 장기보다 먼저 반응) A는 정상적인 눌림목까지 과도하게
+# 걸러낼 위험이 있다고 판단했다(실제로 기존 회귀 테스트 데이터로도 A는 탈락, B는 통과).
+# 백테스트로 비교 후 확정.
+PULLBACK_TREND_FILTER_VERSION = 'ma20_slope_tol'
+PULLBACK_MA20_SLOPE_TOL = -0.005  # 'ma20_slope_tol' 버전에서 허용하는 완만한 하락(-0.5%)
+# ④ 진입 트리거(check_pullback_entry_trigger) 튜닝 상수
+PULLBACK_ENTRY_WICK_MULT = 2.0    # 아래꼬리 캔들 판정: 아래꼬리가 몸통의 이 배수 이상
+# ⑤ 거래대금 필터 - 근거 부족으로 지금은 비활성(0 = 미사용). 값을 넣으면(백만원 단위)
+# 그 이상만 통과하도록 나중에 활성화할 수 있게 상수만 분리해둔다.
+PULLBACK_MIN_TRADING_VALUE = 0
+
 # Conservative score floors filter weak structures before the display cap.
 # Scores combine shape, support, volume, and recent-candle evidence, so the
 # result does not depend on the order in which symbols are scanned.
@@ -1284,8 +1304,14 @@ def detect_pullback(daily):
     if (n - 1) - peak_idx > PULLBACK_LOOKBACK:
         return None
 
-    low_local = int(np.argmin(recent_closes[:peak_local + 1]))
-    low_idx = recent_start + low_local
+    # 2026-08-22 개편: 저점 탐색을 "오늘 기준" 창(recent_start)이 아니라 "고점 기준"
+    # 과거 PULLBACK_LOW_SEARCH_WINDOW(25)봉으로 제한 - 고점이 탐색창 이른 쪽에 있을 때
+    # 저점 탐색 구간이 뜻하지 않게 좁아지거나(반대로 넓어지거나) 하는 것을 막고, 항상
+    # "고점 직전 일정 기간"의 저점만 상승폭 계산에 쓰이게 한다.
+    low_search_start = max(0, peak_idx - PULLBACK_LOW_SEARCH_WINDOW)
+    low_search_closes = np.array([row['close'] for row in win[low_search_start:peak_idx + 1]], dtype=float)
+    low_local = int(np.argmin(low_search_closes))
+    low_idx = low_search_start + low_local
     if low_idx >= peak_idx:
         return None
 
@@ -1300,6 +1326,7 @@ def detect_pullback(daily):
     if drop_ratio < PULLBACK_MIN_DROP or drop_ratio > PULLBACK_MAX_DROP:
         return None
 
+    ma5 = moving_average(win, 'close', 5)
     ma20_now = ma20[n - 1]
     ma240_now = ma240[n - 1]
     diff20 = abs(last_close - ma20_now) / ma20_now if ma20_now else math.inf
@@ -1307,16 +1334,49 @@ def detect_pullback(daily):
     if diff20 > PULLBACK_MA_TOL and diff240 > PULLBACK_MA_TOL:
         return None
 
-    # 2026-07-22 개편: 20일선이 상승 중이어야 함
+    # 2026-08-22 개편: "20일선 상승 중" 단일 조건을 두 버전 중 선택 가능하게 바꿈(사용자
+    # 요청, 백테스트로 비교 후 확정 예정) - PULLBACK_TREND_FILTER_VERSION으로 전환.
+    # A) ma5_above_ma20: 5일선이 20일선 위(정배열 초입) - 역배열 상태의 단기 반등을 배제.
+    # B) ma20_slope_tol: 20일선 기울기가 PULLBACK_MA20_SLOPE_TOL(-0.5%) 이내(완만한
+    #    하락까지 허용) - 예전 "무조건 상승"보다 느슨함.
+    ma5_now = ma5[n - 1]
     ma20_slope_from = ma20[n - 1 - MA_SLOPE_LOOKBACK]
-    if ma20_now is None or ma20_slope_from is None or ma20_now < ma20_slope_from:
-        return None
+    if PULLBACK_TREND_FILTER_VERSION == 'ma5_above_ma20':
+        if ma5_now is None or ma20_now is None or ma5_now < ma20_now:
+            return None
+    else:
+        if ma20_now is None or ma20_slope_from is None:
+            return None
+        ma20_slope = (ma20_now - ma20_slope_from) / ma20_slope_from if ma20_slope_from else -math.inf
+        if ma20_slope < PULLBACK_MA20_SLOPE_TOL:
+            return None
 
     # 2026-07-22 개편: 상승구간 거래량 증가 + 조정구간 거래량 감소
     rise_vol_up = is_volume_increasing(win, low_idx, peak_idx)
     drop_vol_down = is_volume_declining(win, peak_idx, n)
     if not rise_vol_up or not drop_vol_down:
         return None
+
+    # 2026-08-22 신설: 조정구간 최대거래량이 상승구간 최대거래량의 PULLBACK_MAX_VOL_RATIO
+    # (0.70) 이하여야 함 - "거래량 감소" 방향만 보던 것보다 더 엄격하게, 조정구간에서
+    # 거래량이 튀는(분산/투매) 순간이 상승구간 최고치에 근접하지 않는지 확인. 고점 당일은
+    # 상승 클라이맥스(보통 상승구간 전체에서 거래량이 가장 큰 날)라 조정구간에 포함시키면
+    # 이 조건이 사실상 항상 실패해버린다(고점 거래량이 그 자체로 상승구간 최고치이거나
+    # 그에 준하므로) - 그래서 조정구간은 고점 다음 날부터로 본다(is_volume_declining의
+    # 평균 비교 방식과는 달리 max 하나로 판정해서 특히 민감함).
+    rise_vols = [row['volume'] for row in win[low_idx:peak_idx]]
+    drop_vols = [row['volume'] for row in win[peak_idx + 1:n]]
+    max_rise_vol = max(rise_vols) if rise_vols else 0
+    max_drop_vol = max(drop_vols) if drop_vols else 0
+    if max_rise_vol > 0 and max_drop_vol > max_rise_vol * PULLBACK_MAX_VOL_RATIO:
+        return None
+
+    # 2026-08-22 신설(현재 비활성, PULLBACK_MIN_TRADING_VALUE=0): 거래대금 필터 - 근거
+    # 부족으로 지금은 값을 안 넣었다. 나중에 상수를 채우면 자동으로 활성화된다.
+    if PULLBACK_MIN_TRADING_VALUE > 0:
+        last_trading_value_eok = (win[n - 1]['close'] * win[n - 1]['volume']) / 1e8
+        if last_trading_value_eok < PULLBACK_MIN_TRADING_VALUE:
+            return None
 
     # ---- 점수(100점, 2026-07-22 개편): 상승추세30 + 조정폭25 + 이평선위치20
     # + 거래량패턴15(고정) + 최근양봉10 ----
@@ -1329,15 +1389,17 @@ def detect_pullback(daily):
 
     score = clamp_score(rise_score + drop_score + ma_score + vol_score + bull_score)
     ma_label = '20일선' if diff20 <= diff240 else '1년선(240일선)'
+    trend_label = '5일선 20일선 위(정배열)' if PULLBACK_TREND_FILTER_VERSION == 'ma5_above_ma20' \
+        else '20일선 완만한 하락 이내'
     reasons = [
         '상승폭 %.1f%%(%d/30점)' % (rise_ratio * 100, rise_score),
         '조정폭 %.1f%%(%d/25점)' % (drop_ratio * 100, drop_score),
-        '%s 근접도, 20일선 상승 중(%d/20점)' % (ma_label, ma_score),
+        '%s 근접도, %s(%d/20점)' % (ma_label, trend_label, ma_score),
         '상승구간 거래량 증가 + 조정구간 거래량 감소(%d/15점)' % vol_score,
         '최근 캔들 %s(%d/10점)' % ('양봉' if bull_score else '음봉', bull_score),
     ]
 
-    return {
+    result = {
         'rise_start': {'date': win[low_idx]['date'], 'price': low_close},
         'peak': {'date': win[peak_idx]['date'], 'price': peak_close},
         'current': {'date': win[n - 1]['date'], 'price': last_close},
@@ -1349,6 +1411,87 @@ def detect_pullback(daily):
         'reasons': reasons,
         'interpretation': '%.1f%% 상승 후 %.1f%% 눌림목 조정을 받아 %s 부근에서 지지를 시도하는 구간으로 추정됩니다(%d점).'
                            % (rise_ratio * 100, drop_ratio * 100, ma_label, score),
+    }
+    # 2026-08-22 신설(작업지시서 4단계): 눌림목 지지선 근접 상태에서도 지금이 실제 진입
+    # 타점인지는 별개 판단이라 check_pullback_entry_trigger()로 분리(박스권의
+    # check_box_range_low_entry_trigger와 동일한 구조로 통일).
+    entry_trigger = check_pullback_entry_trigger(daily, result)
+    result['entryTrigger'] = entry_trigger
+    result['entrySignal'] = bool(entry_trigger and entry_trigger.get('entry_signal'))
+    return result
+
+
+def check_pullback_entry_trigger(daily, pullback_result):
+    """눌림목 지지선(20일선 또는 240일선) 근처에서 실제로 반등을 시도하는 "진입 타점"인지
+    확인한다(작업지시서 4단계). detect_pullback()이 이미 통과시킨 종목이라도 지금 이
+    순간이 진짜 매수 시점인지는 별개 판단이라 분리했다 - 지지선 근접 상태(Zone)를 먼저
+    확인하고, 그 안에서 아래꼬리 캔들 또는 양봉 전환 중 하나만 있어도 entry_signal=True
+    (박스권과 달리 "2개 중 1개"만 있으면 됨 - 지시서 문구 그대로).
+
+    pullback_result는 detect_pullback()의 리턴값(ma20/ma240 필요)이거나 동일한 키를
+    가진 dict."""
+    if not pullback_result or not daily:
+        return None
+
+    ma20_now = pullback_result.get('ma20')
+    ma240_now = pullback_result.get('ma240')
+    last = daily[-1]
+    last_close = last['close']
+
+    diff20 = abs(last_close - ma20_now) / ma20_now if ma20_now else math.inf
+    diff240 = abs(last_close - ma240_now) / ma240_now if ma240_now else math.inf
+    if diff20 > PULLBACK_MA_TOL and diff240 > PULLBACK_MA_TOL:
+        return None
+    if diff20 <= diff240:
+        support_label, support_price = '20일선', ma20_now
+    else:
+        support_label, support_price = '1년선(240일선)', ma240_now
+
+    # ① 아래꼬리 캔들: 아래꼬리가 몸통의 PULLBACK_ENTRY_WICK_MULT(2.0)배 이상
+    body = abs(last['close'] - last['open'])
+    lower_wick = min(last['open'], last['close']) - last['low']
+    wick_signal = bool(body > 0 and lower_wick >= body * PULLBACK_ENTRY_WICK_MULT)
+
+    # ② 양봉 전환: 당일 종가 > 시가
+    bullish_signal = bool(last['close'] > last['open'])
+
+    entry_signal = bool(wick_signal or bullish_signal)
+
+    reasons = []
+    if wick_signal:
+        reasons.append('아래꼬리가 몸통의 %.1f배 이상(지지 확인)' % PULLBACK_ENTRY_WICK_MULT)
+    if bullish_signal:
+        reasons.append('당일 양봉 전환')
+
+    return {
+        'in_zone': True,
+        'support_label': support_label,
+        'support_price': support_price,
+        'wick_signal': wick_signal,
+        'bullish_signal': bullish_signal,
+        'entry_signal': entry_signal,
+        'reasons': reasons,
+    }
+
+
+def check_market_regime(index_daily, ma_period=20):
+    """2026-08-22 신설(작업지시서 6단계, 아직 호출부 없음) - "KOSPI/KOSDAQ 20일선 위에서만
+    매매"를 개별 종목 판정(detect_pullback 등)과 분리해 시장 국면만 독립적으로 판단하는
+    함수. 스캐너 실행 파이프라인 상위 단계(daily_scan.py 등)에서 KOSPI/KOSDAQ 지수
+    일봉을 받아 호출하도록 설계했지만, 지수 데이터를 어디서 받아올지(키움 지수 TR 등)는
+    이번 작업 범위 밖이라 실제 연결은 아직 안 했다 - 함수만 준비."""
+    if not index_daily or len(index_daily) < ma_period:
+        return None
+    ma = moving_average(index_daily, 'close', ma_period)
+    ma_now = ma[-1]
+    last_close = index_daily[-1]['close']
+    if ma_now is None:
+        return None
+    return {
+        'above_ma': bool(last_close >= ma_now),
+        'ma_period': ma_period,
+        'ma_value': ma_now,
+        'last_close': last_close,
     }
 
 

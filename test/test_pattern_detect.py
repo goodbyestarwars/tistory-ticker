@@ -208,8 +208,11 @@ def inv_head_shoulders_daily():
 
 
 def pullback_daily():
-    """전체 rise+pullback 구간을 recent_start(=n-25) 이후에 담아야 detect_pullback의
-    peak/low 탐색 창(PULLBACK_LOOKBACK+5=25일) 안에서 정확히 잡힌다."""
+    """2026-08-22: 저점 탐색이 "오늘 기준" 창에서 "고점 기준" PULLBACK_LOW_SEARCH_WINDOW
+    (25봉)로 바뀌면서, 저점은 이제 고점(peak_idx) 직전 25봉 안에서 찾는다 - 평평한 구간
+    (전부 동일가) 안에 있어도 상관없다(같은 값이면 가장 이른 날짜를 저점으로 잡음).
+    드롭구간 거래량도 상승구간 최고 거래량의 70%(PULLBACK_MAX_VOL_RATIO) 이하로 낮춰서
+    새로 추가된 조정구간 거래량 상한 조건을 통과하도록 뒀다."""
     n = 260
     daily = []
     start = date(2024, 1, 1)
@@ -235,7 +238,7 @@ def pullback_daily():
     drop_total = 0.08
     for i in range(drop_days):
         price = peak * (1 - drop_total * (i + 1) / drop_days)
-        vol = max(1800 - i * 130, 100)  # 조정구간 거래량 감소
+        vol = max(1400 - i * 130, 100)  # 조정구간 거래량 감소(상승구간 최고 거래량 2100의 70%=1470 이하로)
         daily.append({
             "date": (start + timedelta(days=len(daily))).isoformat(),
             "open": price * 1.001, "high": price * 1.006, "low": price * 0.995, "close": price, "volume": vol,
@@ -691,6 +694,100 @@ class PullbackDetectionTest(unittest.TestCase):
         detector.scan_stock({"code": "000006", "name": "테스트"}, pullback_daily(), results, pullback_matches)
 
         self.assertEqual([row["code"] for row in pullback_matches], ["000006"])
+
+    def test_result_includes_entry_trigger(self):
+        """2026-08-22 추가(작업지시서 4단계): detect_pullback 결과에 entryTrigger/
+        entrySignal이 붙어야 한다."""
+        detail = detector.detect_pullback(pullback_daily())
+
+        self.assertIsNotNone(detail)
+        self.assertIn("entryTrigger", detail)
+        self.assertIn("entrySignal", detail)
+        self.assertIsInstance(detail["entrySignal"], bool)
+
+    def test_correction_volume_spike_near_rise_max_is_excluded(self):
+        """2026-08-22 추가: 조정구간 최대거래량이 상승구간 최대거래량의 70%를 넘으면
+        (거래량 감소 방향 자체는 맞아도) 이제 제외된다."""
+        daily = pullback_daily()
+        # 조정구간 첫날 거래량을 상승구간 최고치(2100)의 70%(1470)보다 높게 올린다
+        # (그 뒤로는 원래처럼 감소해 is_volume_declining 자체는 여전히 참이 되도록 유지).
+        daily[250]["volume"] = 2000
+        self.assertIsNone(detector.detect_pullback(daily))
+
+    def test_trend_filter_version_b_tolerates_mild_ma20_decline(self):
+        """PULLBACK_TREND_FILTER_VERSION='ma20_slope_tol'(기본값)은 20일선이 완만하게
+        하락(-0.5% 이내)해도 통과시킨다."""
+        self.assertEqual(detector.PULLBACK_TREND_FILTER_VERSION, 'ma20_slope_tol')
+        detail = detector.detect_pullback(pullback_daily())
+        self.assertIsNotNone(detail)
+
+
+class PullbackEntryTriggerTest(unittest.TestCase):
+    """2026-08-22 신설(작업지시서 4단계) - support_price=1000 기준, MA_TOL(3%) 이내 근접."""
+
+    PULLBACK_RESULT = {"ma20": 1000.0, "ma240": 900.0}
+
+    def _daily(self, last_open, last_close, last_low, last_high):
+        daily = []
+        start = date(2025, 1, 1)
+        for i in range(9):
+            daily.append({
+                "date": (start + timedelta(days=i)).isoformat(),
+                "open": 1000.0, "high": 1010.0, "low": 990.0, "close": 1000.0, "volume": 100,
+            })
+        daily.append({
+            "date": (start + timedelta(days=9)).isoformat(),
+            "open": last_open, "high": last_high, "low": last_low, "close": last_close, "volume": 100,
+        })
+        return daily
+
+    def test_out_of_zone_returns_none(self):
+        daily = self._daily(1100.0, 1110.0, 1095.0, 1115.0)  # ma20(1000) 대비 11% 이탈
+        self.assertIsNone(detector.check_pullback_entry_trigger(daily, self.PULLBACK_RESULT))
+
+    def test_wick_signal_triggers_entry(self):
+        # 몸통 5, 아래꼬리 15(몸통의 3배) - 종가는 시가보다 낮아 양봉은 아님
+        daily = self._daily(1005.0, 1000.0, 985.0, 1006.0)
+        result = detector.check_pullback_entry_trigger(daily, self.PULLBACK_RESULT)
+
+        self.assertIsNotNone(result)
+        self.assertTrue(result["wick_signal"])
+        self.assertFalse(result["bullish_signal"])
+        self.assertTrue(result["entry_signal"])
+        self.assertEqual(result["support_label"], "20일선")
+
+    def test_bullish_flip_triggers_entry_without_wick(self):
+        # 양봉이지만 아래꼬리는 몸통보다 작음
+        daily = self._daily(998.0, 1005.0, 997.0, 1006.0)
+        result = detector.check_pullback_entry_trigger(daily, self.PULLBACK_RESULT)
+
+        self.assertIsNotNone(result)
+        self.assertFalse(result["wick_signal"])
+        self.assertTrue(result["bullish_signal"])
+        self.assertTrue(result["entry_signal"])
+
+    def test_neither_signal_does_not_trigger(self):
+        # 음봉, 아래꼬리도 짧음
+        daily = self._daily(1005.0, 1000.0, 998.0, 1006.0)
+        result = detector.check_pullback_entry_trigger(daily, self.PULLBACK_RESULT)
+
+        self.assertIsNotNone(result)
+        self.assertFalse(result["wick_signal"])
+        self.assertFalse(result["bullish_signal"])
+        self.assertFalse(result["entry_signal"])
+
+
+class MarketRegimeTest(unittest.TestCase):
+    def test_above_ma_true_when_close_over_ma(self):
+        daily = [{"date": "2025-01-%02d" % (i + 1), "close": 100.0 + i} for i in range(25)]
+        result = detector.check_market_regime(daily, ma_period=20)
+
+        self.assertIsNotNone(result)
+        self.assertTrue(result["above_ma"])
+
+    def test_returns_none_when_not_enough_days(self):
+        daily = [{"date": "2025-01-01", "close": 100.0}]
+        self.assertIsNone(detector.check_market_regime(daily, ma_period=20))
 
 
 if __name__ == "__main__":

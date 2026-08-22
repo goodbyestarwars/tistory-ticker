@@ -3432,6 +3432,11 @@ var PULLBACK_MIN_RISE = 0.15;   // 저점->고점 15% 이상 상승
 var PULLBACK_MIN_DROP = 0.05;   // 고점 대비 조정폭 하한 5%
 var PULLBACK_MAX_DROP = 0.15;   // 조정폭 상한 15%
 var PULLBACK_MA_TOL = 0.03;     // 20일선/240일선 ±3%
+// 2026-08-22 신설(pattern_detect.py와 동일 - 작업지시서: detect_pullback 보강)
+var PULLBACK_LOW_SEARCH_WINDOW = 25;  // 저점 탐색을 "오늘 기준"이 아니라 "고점 기준" 이 봉수 이내로 제한
+var PULLBACK_MAX_VOL_RATIO = 0.70;    // 조정구간(고점 다음날부터) 최대거래량이 상승구간 최대거래량의 이 비율 이하
+var PULLBACK_TREND_FILTER_VERSION = 'ma20_slope_tol';  // 'ma5_above_ma20' | 'ma20_slope_tol'
+var PULLBACK_MA20_SLOPE_TOL = -0.005;  // 'ma20_slope_tol' 버전의 허용 하락폭(-0.5%)
 
 function detectPullback_(daily) {
   var win = daily.slice(Math.max(0, daily.length - PULLBACK_WINDOW));
@@ -3448,8 +3453,11 @@ function detectPullback_(daily) {
   }
   if ((n - 1) - peakIdx > PULLBACK_LOOKBACK) return null; // 고점이 너무 오래 전이면 "최근 상승" 아님
 
-  var lowIdx = recentStart;
-  for (var j = recentStart; j <= peakIdx; j++) {
+  // 2026-08-22 개편: 저점 탐색을 "오늘 기준" 창(recentStart)이 아니라 "고점 기준"
+  // PULLBACK_LOW_SEARCH_WINDOW(25)봉으로 제한(pattern_detect.py와 동일).
+  var lowSearchStart = Math.max(0, peakIdx - PULLBACK_LOW_SEARCH_WINDOW);
+  var lowIdx = lowSearchStart;
+  for (var j = lowSearchStart; j <= peakIdx; j++) {
     if (win[j].close < win[lowIdx].close) lowIdx = j;
   }
   if (lowIdx >= peakIdx) return null; // 상승 구간(저점->고점) 자체가 없음
@@ -3463,22 +3471,39 @@ function detectPullback_(daily) {
   var dropRatio = (peakClose - lastClose) / peakClose;
   if (dropRatio < PULLBACK_MIN_DROP || dropRatio > PULLBACK_MAX_DROP) return null;
 
+  var ma5 = movingAverage_(win, 'close', 5);
   var ma20Now = ma20[n - 1];
   var ma240Now = ma240[n - 1];
   var diff20 = ma20Now ? Math.abs(lastClose - ma20Now) / ma20Now : Infinity;
   var diff240 = ma240Now ? Math.abs(lastClose - ma240Now) / ma240Now : Infinity;
   if (diff20 > PULLBACK_MA_TOL && diff240 > PULLBACK_MA_TOL) return null;
 
-  // 2026-07-22 개편: 20일선이 상승 중이어야 함 - 조정이 추세 이탈이 아니라 일시적으로
-  // 쉬어가는 자리임을 확인
+  // 2026-08-22 개편: "20일선 상승 중" 단일 조건을 두 버전 중 선택 가능하게 바꿈
+  // (pattern_detect.py와 동일한 이유·기본값) - PULLBACK_TREND_FILTER_VERSION으로 전환.
+  var ma5Now = ma5[n - 1];
   var ma20SlopeFrom = ma20[n - 1 - MA_SLOPE_LOOKBACK];
-  if (ma20Now == null || ma20SlopeFrom == null || ma20Now < ma20SlopeFrom) return null;
+  if (PULLBACK_TREND_FILTER_VERSION === 'ma5_above_ma20') {
+    if (ma5Now == null || ma20Now == null || ma5Now < ma20Now) return null;
+  } else {
+    if (ma20Now == null || ma20SlopeFrom == null) return null;
+    var ma20Slope = ma20SlopeFrom ? (ma20Now - ma20SlopeFrom) / ma20SlopeFrom : -Infinity;
+    if (ma20Slope < PULLBACK_MA20_SLOPE_TOL) return null;
+  }
 
   // 2026-07-22 개편: 상승구간엔 거래량이 늘고 조정구간엔 거래량이 줄어야 정상적인
   // 눌림목(추세 상승은 힘 있게, 조정은 힘 빠지며) - 두 조건 다 필요
   var riseVolUp = isVolumeIncreasing_(win, lowIdx, peakIdx);
   var dropVolDown = isVolumeDeclining_(win, peakIdx, n);
   if (!riseVolUp || !dropVolDown) return null;
+
+  // 2026-08-22 신설: 조정구간(고점 다음날부터, 고점 당일은 상승 클라이맥스라 제외 -
+  // pattern_detect.py와 동일 이유) 최대거래량이 상승구간 최대거래량의
+  // PULLBACK_MAX_VOL_RATIO(0.70) 이하여야 함.
+  var maxRiseVol = -Infinity;
+  for (var r = lowIdx; r < peakIdx; r++) { if (win[r].volume > maxRiseVol) maxRiseVol = win[r].volume; }
+  var maxDropVol = -Infinity;
+  for (var d = peakIdx + 1; d < n; d++) { if (win[d].volume > maxDropVol) maxDropVol = win[d].volume; }
+  if (maxRiseVol > 0 && maxDropVol > maxRiseVol * PULLBACK_MAX_VOL_RATIO) return null;
 
   // ---- 점수(100점, 2026-07-22 개편): 상승추세30 + 조정폭25 + 이평선위치20
   // + 거래량패턴15(필터 통과 시 고정) + 최근양봉10 ----
@@ -3491,10 +3516,11 @@ function detectPullback_(daily) {
 
   var score = clampScore_(riseScore + dropScore + maScore + volScore + bullScore);
   var maLabel = diff20 <= diff240 ? '20일선' : '1년선(240일선)';
+  var trendLabel = PULLBACK_TREND_FILTER_VERSION === 'ma5_above_ma20' ? '5일선 20일선 위(정배열)' : '20일선 완만한 하락 이내';
   var reasons = [
     '상승폭 ' + (riseRatio * 100).toFixed(1) + '%(' + riseScore + '/30점)',
     '조정폭 ' + (dropRatio * 100).toFixed(1) + '%(' + dropScore + '/25점)',
-    maLabel + ' 근접도, 20일선 상승 중(' + maScore + '/20점)',
+    maLabel + ' 근접도, ' + trendLabel + '(' + maScore + '/20점)',
     '상승구간 거래량 증가 + 조정구간 거래량 감소(' + volScore + '/15점)',
     '최근 캔들 ' + (bullScore ? '양봉' : '음봉') + '(' + bullScore + '/10점)'
   ];

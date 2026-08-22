@@ -1,5 +1,35 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(8차) 눌림목(`detect_pullback`/`detectPullback_`) 보강**: 작업지시서 7단계 중
+1~4번 반영, 5~7번은 지시대로 보류/분리.
+1) 저점 탐색을 "오늘 기준" 창(recentStart)에서 "고점 기준" `PULLBACK_LOW_SEARCH_WINDOW`
+(25봉) 창으로 재anchoring - 6개월 전 저점 대비 계산되는 착시 방지 목적.
+2) 조정구간 최대거래량이 상승구간 최대거래량의 `PULLBACK_MAX_VOL_RATIO`(0.70) 이하여야
+하는 조건 신설 - 구현 중 "고점 당일을 조정구간에 포함시키면 고점 자체가 보통 상승구간
+전체 최고 거래량이라 조건이 사실상 항상 실패한다"는 걸 발견해 조정구간을 고점 당일이
+아니라 다음 날부터로 정의(기존 `is_volume_declining`의 평균 비교 방식은 그대로 고점
+포함 유지 - 둘은 성격이 다른 별개 체크라 안 건드림).
+3) "20일선 상승 중" 단일 조건을 `PULLBACK_TREND_FILTER_VERSION` 플래그로 두 버전 중
+선택 가능하게 변경 - A(`ma5_above_ma20`, 정배열 초입) / B(`ma20_slope_tol`, -0.5% 이내
+완만한 하락 허용). 기존 회귀 테스트 데이터로 실측한 결과 A는 탈락(조정구간엔 5일선이
+20일선보다 먼저 처지는 게 흔함), B는 통과해서 기본값을 B로 정했다(사용자가 지시서에서
+기본값을 특정하지 않아 실측 근거로 선택, 백테스트 비교 후 재확정 예정).
+4) `check_pullback_entry_trigger(daily, pullback_result)` 신설 - 지지선(20/240일선) 근접
+Zone 확인 후 아래꼬리 캔들 또는 양봉 전환 중 하나만 있어도 `entry_signal=True`(박스권의
+"2개 중 2개 이상"과 달리 지시서 문구대로 "1개 중 1개"). `detect_pullback` 결과에
+`entryTrigger`/`entrySignal` 필드 추가.
+5) 거래대금 필터는 `PULLBACK_MIN_TRADING_VALUE=0`(비활성 placeholder)으로만 분리.
+6) 시장 지수 필터는 지시대로 함수 내부에 안 넣고 `check_market_regime(index_daily,
+ma_period)`을 별도 함수로 신설(호출부는 아직 없음 - 지수 데이터 소스 연결은 이번 범위
+밖).
+7) 점수 체계는 지시대로 그대로 유지.
+`gas/ticker-proxy.gs`의 `detectPullback_`(온디맨드 차트 재판정용)에도 1~3번을 동일하게
+반영(4~6번은 VM 전용, 박스권 선례와 동일). 기존 `pullback_daily()` 테스트 픽스처가 새
+조건(고점 당일 거래량이 상승구간 최고치라 조정구간 최대비율 조건을 위반, 기본값이 B로
+바뀌며 A 조건 자체는 문제 없었음)에 안 맞아 조정구간 거래량 값을 낮춰 갱신. 신규 회귀
+테스트(entryTrigger 포함 확인, 거래량 급증 제외, 진입 트리거 3케이스, 시장국면 함수
+2케이스) 추가, 전체 46건 통과.
+
 **2026-08-22 "시초 갭상승" 탭 삭제**: 사용자 요청으로 `js/pattern-scan.js`의 TABS
 목록에서 `openingGap` 항목만 제거(화면에서 사라짐). 백엔드(`pattern_detect.detect_opening_gap`,
 GAS `?patternScan=1` 데이터, `scripts/cloud-vm/opening_gap.py` 백테스트 모듈)는 되돌리기
