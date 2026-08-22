@@ -739,14 +739,19 @@ def detect_rising_lows(daily):
     if last_close < last_low:
         return None
     # 2026-08-22: low_idxs(20봉 창 안의 모든 스윙 저점, 3개 이상일 수 있음)를 전부 선으로
-    # 이으면 실제 판정에 쓰이지 않은 더 이전의(더 낮을 수도 있는) 저점까지 같이 그려져
-    # "저점 상승형"인데 중간에 더 낮은 저점이 끼어 저-저-고로 보이는 문제가 있었다
-    # (사용자 리포트: 차트 하단 선이 저저고로 꺾여 보임). 패턴 판정 자체가 마지막 두
-    # 스윙 저점(prev_low_idx, last_low_idx)만 비교하므로, 차트에도 이 두 점만 그려
-    # 항상 단조 상승(low1 < low2)으로 보이게 한다.
+    # 이으면 실제 판정에 쓰이지 않은, 계단을 끊는 더 이전 저점까지 같이 그려져 "저점
+    # 상승형"인데 중간에 더 낮은 저점이 끼어 저-저-고로 보이는 문제가 있었다(사용자 리포트).
+    # 2026-08-22(2차): 그렇다고 마지막 두 점으로 무조건 자르면, 스윙 저점 3개 이상이 전부
+    # 계단식으로 오르는 진짜 저점상승형까지 정보가 뭉개진다(사용자 지적: "2봉 이상 쭉
+    # 올라가는 건 다 검출해야지"). 그래서 마지막 저점에서 거꾸로 훑어 직전 저점이 그보다
+    # 낮은 동안(=계단이 끊기지 않는 동안)만 포함시키고, 계단이 끊기는 지점에서 멈춘다 -
+    # 원래 버그(판정에 안 쓰인, 계단을 끊는 더 이전 저점)는 그 지점에서 걸러지고, 진짜
+    # 계단식 다단 상승은 전부 남는다.
+    run_start = len(low_idxs) - 1
+    while run_start > 0 and win[low_idxs[run_start - 1]]['low'] < win[low_idxs[run_start]]['low']:
+        run_start -= 1
     low_swing_points = [
-        {'date': win[prev_low_idx]['date'], 'price': prev_low},
-        {'date': win[last_low_idx]['date'], 'price': last_low},
+        {'date': win[i]['date'], 'price': win[i]['low']} for i in low_idxs[run_start:]
     ]
     current = {'date': win[-1]['date'], 'price': last_close}
 

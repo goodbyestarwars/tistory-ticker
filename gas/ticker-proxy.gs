@@ -3143,14 +3143,19 @@ function detectRisingLows_(daily) {
   if (lastClose < lastLow) return null;
 
   // 2026-08-22: lowIdxs(20봉 창 안의 모든 스윙 저점, 3개 이상일 수 있음)를 전부 선으로
-  // 이으면 판정에 안 쓰인 더 이전 저점(더 낮을 수도 있음)까지 같이 그려져 "저점 상승형"
-  // 인데 중간에 더 낮은 저점이 끼어 저-저-고로 보이는 문제가 있었다(사용자 리포트).
-  // 판정 자체가 마지막 두 스윙 저점(prevLowIdx, lastLowIdx)만 비교하므로 차트도
-  // 이 두 점만 그려 항상 단조 상승(low1 < low2)으로 보이게 한다.
-  var lowSwingPoints = [
-    { date: win[prevLowIdx].date, price: prevLow },
-    { date: win[lastLowIdx].date, price: lastLow }
-  ];
+  // 이으면 판정에 안 쓰인, 계단을 끊는 더 이전 저점까지 같이 그려져 "저점 상승형"인데
+  // 중간에 더 낮은 저점이 끼어 저-저-고로 보이는 문제가 있었다(사용자 리포트).
+  // 2026-08-22(2차): 그렇다고 마지막 두 점으로 무조건 자르면, 스윙 저점 3개 이상이
+  // 전부 계단식으로 오르는 진짜 저점상승형까지 정보가 뭉개진다(사용자 지적: "2봉 이상
+  // 쭉 올라가는 건 다 검출해야지"). 마지막 저점에서 거꾸로 훑어 직전 저점이 그보다
+  // 낮은 동안(=계단이 끊기지 않는 동안)만 포함시키고, 계단이 끊기는 지점에서 멈춘다.
+  var runStart = lowIdxs.length - 1;
+  while (runStart > 0 && win[lowIdxs[runStart - 1]].low < win[lowIdxs[runStart]].low) {
+    runStart -= 1;
+  }
+  var lowSwingPoints = lowIdxs.slice(runStart).map(function (idx) {
+    return { date: win[idx].date, price: win[idx].low };
+  });
   var current = { date: win[win.length - 1].date, price: lastClose };
 
   // 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은

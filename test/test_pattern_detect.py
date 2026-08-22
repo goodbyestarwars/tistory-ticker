@@ -294,10 +294,16 @@ class RisingLowsDetectionTest(unittest.TestCase):
 
     # 2026-08-22(3차) 신설: 사용자가 라이브 차트 스크린샷으로 "저점 상승형인데 하단 선이
     # 저-저-고로 꺾여 보인다"고 리포트 - 20봉 창 안에 스윙 저점이 3개 이상이면(판정에는
-    # 마지막 두 개만 쓰지만) 예전엔 그 전부를 차트에 그려서, 판정에 안 쓰인 더 이전의
-    # 더 깊은 저점까지 선에 포함돼 단조 상승이 아닌 지그재그로 보였다. 이제는 판정에
-    # 실제로 쓰인 마지막 두 점만 담아야 한다.
-    def three_swing_lows_daily(self):
+    # 마지막 두 개만 비교하지만) 예전엔 그 전부를 차트에 그려서, 판정에 안 쓰인 더 이전의
+    # 저점까지 선에 포함돼 단조 상승이 아닌 지그재그로 보였다.
+    # 2026-08-22(4차): 처음엔 "마지막 두 점만 그린다"로 고쳤는데, 사용자가 "2봉 이상 쭉
+    # 올라가는 건 다 검출해야지"라고 지적 - 스윙 저점 3개 이상이 전부 계단식으로 오르는
+    # 진짜 저점상승형까지 마지막 두 점으로 뭉개버리면 안 된다. 그래서 마지막 저점에서
+    # 거꾸로 훑어 "직전 저점이 그보다 낮은 동안"만 포함시키고(=계단이 끊기지 않는 동안),
+    # 계단이 끊기는 지점(그 저점이 다음 저점보다 낮지 않은 지점)에서 멈추는 방식으로
+    # 다시 고쳤다. 이러면 진짜 계단식 다단 상승은 전부 표시되고, 원래 버그였던 "계단을
+    # 끊는 더 이전 저점"만 정확히 제외된다.
+    def _rising_lows_daily(self, dip1_low, dip2_low, dip3_low):
         daily = []
         for i in range(20):
             close = 200 + i
@@ -306,21 +312,26 @@ class RisingLowsDetectionTest(unittest.TestCase):
                 "open": close, "high": close + 1, "low": close - 1, "close": close,
                 "volume": 100,
             })
-        daily[3].update(open=51, high=52, low=50, close=51)  # 가장 깊은(하지만 가장 이른) 저점
-        daily[10].update(open=81, high=82, low=80, close=81)  # 판정에 쓰이는 "이전 저점"
-        daily[17].update(open=91, high=92, low=90, close=91)  # 판정에 쓰이는 "최근 저점"(80 대비 +12.5%)
-        daily[19].update(open=96, high=100, low=95, close=98)  # 현재가 - 마지막 저점(90) 위
+        daily[3].update(open=dip1_low + 1, high=dip1_low + 2, low=dip1_low, close=dip1_low + 1)
+        daily[10].update(open=dip2_low + 1, high=dip2_low + 2, low=dip2_low, close=dip2_low + 1)
+        daily[17].update(open=dip3_low + 1, high=dip3_low + 2, low=dip3_low, close=dip3_low + 1)
+        daily[19].update(open=96, high=100, low=95, close=max(98, dip3_low + 8))  # 현재가 - 마지막 저점 위
         return daily
 
-    def test_rising_lows_chart_only_draws_the_two_compared_swing_lows(self):
-        detail = detector.detect_rising_lows(self.three_swing_lows_daily())
+    def test_rising_lows_chart_shows_the_full_monotonic_staircase(self):
+        # dip1(50) < dip2(80) < dip3(90) - 전부 계단식으로 오르는 진짜 3단 저점상승형이라
+        # 세 점 다 보여야 한다(마지막 두 점만 남기면 정보 손실).
+        detail = detector.detect_rising_lows(self._rising_lows_daily(50, 80, 90))
         self.assertIsNotNone(detail)
-        self.assertEqual(len(detail["low_swings"]), 2)
-        first_price, second_price = detail["low_swings"][0]["price"], detail["low_swings"][1]["price"]
-        self.assertEqual([first_price, second_price], [80, 90])
-        # 창 안에는 이 둘보다 더 낮은, 더 이른 저점(50)이 실제로 존재하지만 판정에 쓰이지
-        # 않았으므로 low_swings에도 나타나지 않아야 한다(그렸다가는 다시 저-저-고로 보임).
-        self.assertNotIn(50, [p["price"] for p in detail["low_swings"]])
+        self.assertEqual([p["price"] for p in detail["low_swings"]], [50, 80, 90])
+
+    def test_rising_lows_chart_excludes_earlier_low_that_breaks_the_staircase(self):
+        # dip1(85)은 dip2(80)보다 낮지 않아(오히려 더 높아) 계단이 끊긴다 - 판정에는
+        # 마지막 두 점(80->90)만 쓰이므로 차트에도 이 둘만 남고 dip1(85)은 제외돼야
+        # 한다(그렸다가는 저-저-고/지그재그로 다시 보임 - 원래 사용자 리포트).
+        detail = detector.detect_rising_lows(self._rising_lows_daily(85, 80, 90))
+        self.assertIsNotNone(detail)
+        self.assertEqual([p["price"] for p in detail["low_swings"]], [80, 90])
 
     def test_scan_includes_early_higher_low(self):
         results = {
