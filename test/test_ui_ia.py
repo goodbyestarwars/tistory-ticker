@@ -202,7 +202,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('data-home-market-switch="domestic"', source)
         self.assertIn('data-home-market-switch="us"', source)
         self.assertIn('data-home-market-switch="closed"', source)
-        self.assertIn("if (isWeekendKst()) return 'closed';", source)
+        self.assertIn("if (isClosedWindowKst()) return 'closed';", source)
         self.assertIn("market === 'us' || market === 'closed'", source)
         self.assertIn('data-home-closed-page', source)
 
@@ -697,7 +697,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;", news)
         self.assertIn("# WebSocket의 기본 시장은 시간대 기준이다.", vm)
         self.assertIn("def _economic_news_market():", vm)
-        self.assertIn("return 'us' if now.hour >= 20 or now.hour < 8 else 'domestic'", vm)
+        self.assertIn("return 'us' if now.hour > 20 or (now.hour == 20 and now.minute >= 30) or now.hour < 7 else 'domestic'", vm)
 
     def test_visible_provider_labels_are_removed_from_content_pages(self):
         sources = (

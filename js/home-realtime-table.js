@@ -176,7 +176,10 @@
     }
     var now = new Date(Date.now() + 9 * 60 * 60 * 1000);
     var hour = now.getUTCHours();
-    return hour >= 20 || hour < 8 ? 'us' : 'domestic';
+    var minute = now.getUTCMinutes();
+    // 2026-08-22: skin-main.js의 HomeMarketSelection과 동일한 경계(20:30/07:00)로 갱신 -
+    // HomeMarketSelection이 아직 안 실린 페이지에서만 쓰이는 방어적 폴백.
+    return hour > 20 || (hour === 20 && minute >= 30) || hour < 7 ? 'us' : 'domestic';
   }
 
   function tabsForMarket() {
@@ -198,9 +201,15 @@
   }
 
   function isWeekendInKst() {
+    // 2026-08-22: "휴장" 판정 경계를 skin-main.js의 HomeMarketSelection과 동일하게
+    // 토요일 07:00~월요일 06:00으로 맞췄다(예전엔 토·일 종일).
     var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
     var day = kst.getUTCDay();
-    return day === 0 || day === 6;
+    var hour = kst.getUTCHours();
+    if (day === 6) return hour >= 7;
+    if (day === 0) return true;
+    if (day === 1) return hour < 6;
+    return false;
   }
 
   function usSessionLabel() {

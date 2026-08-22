@@ -92,16 +92,25 @@
 
     window.HomeMarketSelection = window.HomeMarketSelection || (function () {
       var selected = null;
-      function isWeekendKst() {
+      // 2026-08-22: 탭 경계를 "평일 주간 07:00~20:30 한국증시 / 평일 야간 20:30~07:00
+      // 미국증시 / 토요일 07:00~월요일 06:00 휴장"으로 재조정(사용자 요청) - 예전 08:00/
+      // 20:00 정시 경계, 토·일 종일 휴장 방식에서 변경.
+      function isClosedWindowKst() {
         var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-        var day = kst.getUTCDay();
-        return day === 0 || day === 6;
+        var day = kst.getUTCDay(); // 0=일 ... 6=토
+        var hour = kst.getUTCHours();
+        if (day === 6) return hour >= 7;   // 토요일 07:00부터
+        if (day === 0) return true;         // 일요일 종일
+        if (day === 1) return hour < 6;     // 월요일 06:00 이전까지
+        return false;
       }
       function autoMarket() {
+        if (isClosedWindowKst()) return 'closed';
         var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-        if (isWeekendKst()) return 'closed';
         var hour = kst.getUTCHours();
-        return hour >= 20 || hour < 8 ? 'us' : 'domestic';
+        var minute = kst.getUTCMinutes();
+        var isUsHour = hour > 20 || (hour === 20 && minute >= 30) || hour < 7;
+        return isUsHour ? 'us' : 'domestic';
       }
       return {
         get: function () { return selected || autoMarket(); },
@@ -124,10 +133,12 @@
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260820-sentiment-color-fix-v1';
 
     function isWeekendReportWindow() {
+      // 2026-08-22: HomeMarketSelection의 휴장 판정(토요일 07:00~월요일 06:00)과
+      // 동일한 경계로 통일 - 예전엔 06:00/07:00으로 살짝 어긋나 있었다.
       var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
       var day = kst.getUTCDay();
       var hour = kst.getUTCHours();
-      return (day === 6 && hour >= 6) || day === 0 || (day === 1 && hour < 7);
+      return (day === 6 && hour >= 7) || day === 0 || (day === 1 && hour < 6);
     }
 
     function escapeHomeHtml(value) {
@@ -732,7 +743,9 @@
         keys: [],
         labels: []
       };
-      var isUsSession = selected === 'us' || (!selected && (hour >= 20 || hour < 8));
+      var minute = kst.getUTCMinutes();
+      var isUsSession = selected === 'us'
+        || (!selected && (hour > 20 || (hour === 20 && minute >= 30) || hour < 7));
       var usSession = usRegularSessionState();
       return isUsSession ? {
         title: '미국 시장',

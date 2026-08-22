@@ -283,10 +283,12 @@
     }).join('') + '</ul>';
   }
   function isWeekendWindow(date) {
+    // 2026-08-22: skin-main.js의 HomeMarketSelection 휴장 판정(토요일 07:00~월요일
+    // 06:00)과 동일한 경계로 통일 - 예전엔 06:00/07:00으로 살짝 어긋나 있었다.
     var kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
     var day = kst.getUTCDay();
     var hour = kst.getUTCHours();
-    return (day === 6 && hour >= 6) || day === 0 || (day === 1 && hour < 7);
+    return (day === 6 && hour >= 7) || day === 0 || (day === 1 && hour < 6);
   }
   function render(root, payload) {
     var data = payload && payload.data ? payload.data : payload || {};

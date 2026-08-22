@@ -781,8 +781,9 @@ _FLASH_MACRO_RULES = (
 def _economic_news_market():
     # WebSocket의 기본 시장은 시간대 기준이다. 사용자가 시장 탭을 선택하면
     # 프론트가 해당 시장 REST 결과를 사용하고, 다른 시장의 소켓 패킷은 무시한다.
+    # 2026-08-22: js/skin-main.js의 HomeMarketSelection 경계(20:30/07:00)와 통일.
     now = datetime.now(timezone(timedelta(hours=9)))
-    return 'us' if now.hour >= 20 or now.hour < 8 else 'domestic'
+    return 'us' if now.hour > 20 or (now.hour == 20 and now.minute >= 30) or now.hour < 7 else 'domestic'
 
 
 def _fetch_economic_news_snapshot(market):

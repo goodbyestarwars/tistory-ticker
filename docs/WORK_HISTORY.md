@@ -1,5 +1,22 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(11차) 홈 화면 시장 탭 전환 경계 재조정**: 사용자 요청("평일 주간 07:00~20:30
+한국증시 / 평일 야간 20:30~07:00 미국증시 / 토요일 07:00~월요일 새벽 06:00 휴장")으로
+`js/skin-main.js`의 `HomeMarketSelection.autoMarket()`(예전 08:00/20:00 정시 경계, 토·일
+종일 휴장)을 새 경계로 교체. 조사해보니 **"한국증시/미국증시/휴장" 3탭 UI 자체와
+"휴장 탭에 다음 주 핵심 스케줄+주간 요약을 같이 보여주는" 기능은 이미 완성돼 있었음**
+(`js/home-weekly-report.js`가 휴장 탭 선택 시 대시보드 바로 아래에 "다음 주 핵심
+스케줄"+투자자 동향+뉴스를 포함한 주간 리포트를 자동 삽입 - 사용자가 물어본 "$NVDA"의
+`$`도 이 리포트가 아니라 증시캘린더의 종목 이벤트 마커였음, 별도 답변함) - 이번엔 시간
+경계만 재조정하면 되는 작업이었다. `HomeMarketSelection`과 동일한 경계를 중복 구현한
+방어적 폴백(HomeMarketSelection 미로딩 시에만 쓰임) 5곳(`js/home-economic-news.js`,
+`js/home-widgets.js`, `js/home-realtime-table.js` 2곳, `scripts/cloud-vm/main.py`의
+`_economic_news_market`)과 `js/skin-main.js`의 `isWeekendReportWindow`,
+`js/home-weekly-report.js`의 `isWeekendWindow`(둘 다 예전 06:00/07:00 경계로 서로도
+미묘하게 어긋나 있었음)까지 전부 새 경계로 통일. `js/quick-indices.js`의 개별 지수
+장중/장마감 판정(코스피 09:00~15:30 등)은 완전히 다른 개념이라 그대로 뒀다.
+`test/test_ui_ia.py`의 관련 문자열 단언 갱신, 전체 98건 통과.
+
 **2026-08-22(10차) 공파산 타점(`gongpasan_strategy.calculate_gongpasan_signal`) 보강**:
 작업지시서 1~6단계 전부 반영("공파산 타점" 탭 전용, 운영 스캔 6개 탭 로직 미영향).
 1) 공구리(②) - 40일 변동폭 조건에 "그 구간 안에 20일선-60일선 이격도가
