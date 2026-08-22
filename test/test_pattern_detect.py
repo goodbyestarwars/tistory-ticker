@@ -292,6 +292,36 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertGreaterEqual(detail["score"], 70)
         self.assertTrue(any("스윙 저점 순차 상승" in reason for reason in detail["reasons"]))
 
+    # 2026-08-22(3차) 신설: 사용자가 라이브 차트 스크린샷으로 "저점 상승형인데 하단 선이
+    # 저-저-고로 꺾여 보인다"고 리포트 - 20봉 창 안에 스윙 저점이 3개 이상이면(판정에는
+    # 마지막 두 개만 쓰지만) 예전엔 그 전부를 차트에 그려서, 판정에 안 쓰인 더 이전의
+    # 더 깊은 저점까지 선에 포함돼 단조 상승이 아닌 지그재그로 보였다. 이제는 판정에
+    # 실제로 쓰인 마지막 두 점만 담아야 한다.
+    def three_swing_lows_daily(self):
+        daily = []
+        for i in range(20):
+            close = 200 + i
+            daily.append({
+                "date": "2026-03-%02d" % (i + 1),
+                "open": close, "high": close + 1, "low": close - 1, "close": close,
+                "volume": 100,
+            })
+        daily[3].update(open=51, high=52, low=50, close=51)  # 가장 깊은(하지만 가장 이른) 저점
+        daily[10].update(open=81, high=82, low=80, close=81)  # 판정에 쓰이는 "이전 저점"
+        daily[17].update(open=91, high=92, low=90, close=91)  # 판정에 쓰이는 "최근 저점"(80 대비 +12.5%)
+        daily[19].update(open=96, high=100, low=95, close=98)  # 현재가 - 마지막 저점(90) 위
+        return daily
+
+    def test_rising_lows_chart_only_draws_the_two_compared_swing_lows(self):
+        detail = detector.detect_rising_lows(self.three_swing_lows_daily())
+        self.assertIsNotNone(detail)
+        self.assertEqual(len(detail["low_swings"]), 2)
+        first_price, second_price = detail["low_swings"][0]["price"], detail["low_swings"][1]["price"]
+        self.assertEqual([first_price, second_price], [80, 90])
+        # 창 안에는 이 둘보다 더 낮은, 더 이른 저점(50)이 실제로 존재하지만 판정에 쓰이지
+        # 않았으므로 low_swings에도 나타나지 않아야 한다(그렸다가는 다시 저-저-고로 보임).
+        self.assertNotIn(50, [p["price"] for p in detail["low_swings"]])
+
     def test_scan_includes_early_higher_low(self):
         results = {
             "risingLows": [],

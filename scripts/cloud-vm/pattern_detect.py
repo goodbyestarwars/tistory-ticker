@@ -738,7 +738,16 @@ def detect_rising_lows(daily):
     last_close = win[-1]['close']
     if last_close < last_low:
         return None
-    low_swing_points = [{'date': win[i]['date'], 'price': win[i]['low']} for i in low_idxs]
+    # 2026-08-22: low_idxs(20봉 창 안의 모든 스윙 저점, 3개 이상일 수 있음)를 전부 선으로
+    # 이으면 실제 판정에 쓰이지 않은 더 이전의(더 낮을 수도 있는) 저점까지 같이 그려져
+    # "저점 상승형"인데 중간에 더 낮은 저점이 끼어 저-저-고로 보이는 문제가 있었다
+    # (사용자 리포트: 차트 하단 선이 저저고로 꺾여 보임). 패턴 판정 자체가 마지막 두
+    # 스윙 저점(prev_low_idx, last_low_idx)만 비교하므로, 차트에도 이 두 점만 그려
+    # 항상 단조 상승(low1 < low2)으로 보이게 한다.
+    low_swing_points = [
+        {'date': win[prev_low_idx]['date'], 'price': prev_low},
+        {'date': win[last_low_idx]['date'], 'price': last_low},
+    ]
     current = {'date': win[-1]['date'], 'price': last_close}
 
     # 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은

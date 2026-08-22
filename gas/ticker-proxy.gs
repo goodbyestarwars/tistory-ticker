@@ -3142,7 +3142,15 @@ function detectRisingLows_(daily) {
   // 마지막 저점 이후 그 저점을 다시 깨고 내려갔으면(스윙으로는 아직 안 잡혀도) 무효
   if (lastClose < lastLow) return null;
 
-  var lowSwingPoints = lowIdxs.map(function (idx) { return { date: win[idx].date, price: win[idx].low }; });
+  // 2026-08-22: lowIdxs(20봉 창 안의 모든 스윙 저점, 3개 이상일 수 있음)를 전부 선으로
+  // 이으면 판정에 안 쓰인 더 이전 저점(더 낮을 수도 있음)까지 같이 그려져 "저점 상승형"
+  // 인데 중간에 더 낮은 저점이 끼어 저-저-고로 보이는 문제가 있었다(사용자 리포트).
+  // 판정 자체가 마지막 두 스윙 저점(prevLowIdx, lastLowIdx)만 비교하므로 차트도
+  // 이 두 점만 그려 항상 단조 상승(low1 < low2)으로 보이게 한다.
+  var lowSwingPoints = [
+    { date: win[prevLowIdx].date, price: prevLow },
+    { date: win[lastLowIdx].date, price: lastLow }
+  ];
   var current = { date: win[win.length - 1].date, price: lastClose };
 
   // 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은
