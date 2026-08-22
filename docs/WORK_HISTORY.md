@@ -14,6 +14,35 @@ drop-shadow로 입체감)를 추가. 이어서 "황소장은 빨간색, 곰장�
 report.js=데이터)이 클래스 이름으로 다리를 놓는 구조라 주석에 합의 사항을 명시해뒀다.
 `test/test_ui_ia.js`의 리팩터링된 `sentimentArt` 관련 단언 갱신, 98건 통과.
 
+**2026-08-22(17차) "지난 2주 추천 결과" 승률/평균수익률 요약카드("성과지표") 추가**: 사용자가
+"단타 5거래일, 성과지표는 아직 업데이트가 안 됐다"고 지적 - 명확히 확인해보니 목록(8건)
+위에 T+5/T+10 승률·평균수익률 요약카드가 없다는 뜻이었다. `scripts/cloud-vm/main.py`의
+`_load_past_swing_outcomes()`를 `limit=8`→`stats_limit=200`으로 넓혀(목록 8건만으로는
+통계 표본이 너무 작다는 지적 반영, 목록 자르기는 `weekly_report.py`가 그대로 담당)
+넉넉한 표본을 넘기고, `weekly_report.py`에 `_horizon_stats()`(win/count/avg 계산)와
+`past_candidate_outcome_stats()`(T+5/T+10 분리, 둘 다 없으면 None)를 신설해
+`pastCandidateOutcomes.stats`로 응답에 실었다. 프론트(`js/home-weekly-report.js`)의
+`pastOutcomeStatsCard()`가 이 값을 목록 섹션 헤더 바로 아래에 카드 2개(단타 5거래일/2주)로
+렌더링하며, 표본이 없으면 카드 자체를 숨긴다. `css/home-weekly-report.css`에
+`.hwr-outcome-stats` 스타일(다크모드 포함)을 추가했다. `test/test_weekly_report.py`에
+신규 함수 검사 6건을 추가해 23건 통과, `test/test_ui_ia.py` 98건도 통과.
+
+**2026-08-22(18차) 휴장 페이지 자물쇠 아이콘을 사용자 레퍼런스 이미지로 교체**: (16차)에서
+직접 그린 인라인 SVG 자물쇠 대신 "자물쇠는 내가 준 파일로 써" 요청 - 사용자가 채팅에
+첨부한 손그림 스타일 빨강/파랑 자물쇠 웹피(webp) 이미지를 세션 트랜스크립트에서 원본
+base64로 복원해(`img/lock-bull.webp`/`lock-bear.webp`) 확보했다. 이 원본은 "Markets
+Closed" 문구와 크림색 배경이 그림 자체에 포함돼 있어, 그대로 쓰면 사이트가 이미 렌더링하는
+라이브 `<h1>Markets Closed</h1>` 텍스트와 중복되고 다크모드에서 배경이 어울리지 않는다.
+Pillow로 배경색(크림)을 알파 채널로 치환하고, 텍스트가 그려진 영역만 별도로 투명 처리해
+자물쇠 그림만 남긴 뒤 여백을 크롭해 `img/lock-bull.png`/`lock-bear.png`(474×654, 동일
+크기로 정렬)로 저장했다(원본 webp는 삭제). `js/skin-main.js`의 인라인 `<svg
+class="home-closed-lock">`를 `<img class="home-closed-lock" src=".../lock-bull.png">`로
+교체하고, `js/home-weekly-report.js`의 `applyLockSentiment()`는 CSS 클래스(is-bull/
+is-bear) 토글 대신 `img.src`를 두 파일 사이에서 직접 교체하도록 변경했다.
+`style.css`에서 `currentColor`/`.is-bull`/`.is-bear` 규칙을 제거하고 `<img>` 크기
+규칙으로 정리했다. `test/test_ui_ia.py` 98건, `test/test_weekly_report.py` 23건 모두
+영향 없이 통과.
+
 **2026-08-22(15차) 국민연금 보유종목 지분율 필터를 누적 임계값→구간으로 변경**: 사용자가
 "% 바꿔도 종목이 안 바뀐다"고 리포트 - 실제로는 정상 작동 중이었으나(라이브에서 직접
 확인: "5% 이상"→"1% 이상" 전환 시 232종목→538종목으로 개수 자체는 정확히 바뀜), 필터가

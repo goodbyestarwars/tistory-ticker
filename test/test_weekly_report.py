@@ -183,6 +183,48 @@ class WeeklyReportTests(unittest.TestCase):
              'entryOpinion': '눌림목 매수 후보', 't5ReturnPct': 2.5, 't10ReturnPct': 4.1},
         ])
         self.assertIn('basis', result['pastCandidateOutcomes'])
+        self.assertEqual(result['pastCandidateOutcomes']['stats'], {
+            't5': {'count': 1, 'winRatePct': 100.0, 'avgReturnPct': 2.5},
+            't10': {'count': 1, 'winRatePct': 100.0, 'avgReturnPct': 4.1},
+        })
+
+    # 2026-08-22(2차) 신설(사용자 요청: "지난 2주 추천 결과 리스트 위에 승률/평균수익률
+    # 요약카드가 없다") - 목록(8건)과 별개로, 백엔드가 넉넉히 넘긴 전체 표본으로 계산한
+    # 승률/평균수익률 요약카드 ------------------------------------------------------
+
+    def test_horizon_stats_computes_win_rate_and_average(self):
+        rows = [
+            {'t5ReturnPct': 3.0}, {'t5ReturnPct': -1.0}, {'t5ReturnPct': 2.0},
+        ]
+        result = weekly_report._horizon_stats(rows, 't5ReturnPct')
+        self.assertEqual(result['count'], 3)
+        self.assertAlmostEqual(result['winRatePct'], round(2 / 3 * 100, 1))
+        self.assertAlmostEqual(result['avgReturnPct'], round((3.0 - 1.0 + 2.0) / 3, 2))
+
+    def test_horizon_stats_ignores_rows_missing_the_field(self):
+        rows = [{'t5ReturnPct': 1.0}, {'t5ReturnPct': None}, {'other': 1}]
+        result = weekly_report._horizon_stats(rows, 't5ReturnPct')
+        self.assertEqual(result['count'], 1)
+
+    def test_horizon_stats_none_when_no_samples(self):
+        self.assertIsNone(weekly_report._horizon_stats([], 't5ReturnPct'))
+        self.assertIsNone(weekly_report._horizon_stats(None, 't5ReturnPct'))
+        self.assertIsNone(weekly_report._horizon_stats([{'t5ReturnPct': None}], 't5ReturnPct'))
+
+    def test_past_candidate_outcome_stats_splits_t5_and_t10(self):
+        rows = [
+            {'t5ReturnPct': 2.0, 't10ReturnPct': None},
+            {'t5ReturnPct': -1.0, 't10ReturnPct': 5.0},
+        ]
+        result = weekly_report.past_candidate_outcome_stats(rows)
+        self.assertEqual(result['t5']['count'], 2)
+        self.assertEqual(result['t10']['count'], 1)
+
+    def test_past_candidate_outcome_stats_none_when_both_horizons_empty(self):
+        rows = [{'t5ReturnPct': None, 't10ReturnPct': None}]
+        self.assertIsNone(weekly_report.past_candidate_outcome_stats(rows))
+        self.assertIsNone(weekly_report.past_candidate_outcome_stats(None))
+        self.assertIsNone(weekly_report.past_candidate_outcome_stats([]))
 
 
 if __name__ == '__main__':

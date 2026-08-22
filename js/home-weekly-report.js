@@ -191,9 +191,27 @@
   // 2026-08-22 신설: "기록 공유" - 지난 2주 스윙 후보가 그 후 T+5/T+10 동안 실제로 어떻게
   // 움직였는지 보여준다(이번 주 신규 후보와 별개 섹션). 데이터가 없으면(아직 확정된 결과가
   // 없거나 백엔드가 옛 버전이면) 섹션 자체를 숨긴다(빈 박스를 억지로 보여주지 않음).
-  function pastOutcomeList(items) {
+  // 2026-08-22(2차) 신설: "성과지표" - 목록(최근 8건)만으로는 승률·평균수익률을 말하기엔
+  // 표본이 작다는 지적으로, 백엔드가 더 넉넉한 표본(최대 200건)으로 미리 계산해 내려주는
+  // stats(t5/t10 각각 count/winRatePct/avgReturnPct)를 목록 위에 요약카드로 얹는다.
+  // 표본이 하나도 없으면(t5/t10 둘 다 null) 카드 자체를 숨긴다.
+  function pastOutcomeStatsCard(stats) {
+    if (!stats) return '';
+    var cells = ['t5', 't10'].map(function (key) {
+      var s = stats[key];
+      if (!s) return '';
+      var label = key === 't5' ? '단타 5거래일(T+5)' : '2주(T+10)';
+      return '<div class="hwr-outcome-stat"><b>' + label + '</b>'
+        + '<strong class="' + signClass(s.avgReturnPct) + '">' + s.winRatePct + '% 승률</strong>'
+        + '<span>평균 ' + signed(s.avgReturnPct) + ' · ' + s.count + '건</span></div>';
+    }).join('');
+    if (!cells) return '';
+    return '<div class="hwr-outcome-stats">' + cells + '</div>';
+  }
+  function pastOutcomeList(items, stats) {
     if (!items || !items.length) return '';
     return '<section class="hwr-stock-section hwr-outcome-section"><div class="hwr-section-heading"><strong>지난 2주 스윙 추천 결과</strong><span>신호일 대비 T+5·T+10 실제 수익률(확정된 건만 표시)</span></div>'
+      + pastOutcomeStatsCard(stats)
       + '<ul class="hwr-stock-list hwr-outcome-list">' + items.map(function (item) {
         var t5 = item.t5ReturnPct != null ? '<b class="' + signClass(item.t5ReturnPct) + '">T+5 ' + signed(item.t5ReturnPct) + '</b>' : '<b class="hwr-outcome-pending">T+5 집계 중</b>';
         var t10 = item.t10ReturnPct != null ? '<b class="' + signClass(item.t10ReturnPct) + '">T+10 ' + signed(item.t10ReturnPct) + '</b>' : '<b class="hwr-outcome-pending">T+10 집계 중</b>';
@@ -221,14 +239,17 @@
   }
   // 2026-08-22 요청: "Markets Closed" 자물쇠도 같은 황소·곰 기준(빨강=상승/파랑=하락)으로
   // 색을 입혀달라는 요청 - skin-main.js가 그리는 정적 마크업(#home-closed-page 안의
-  // .home-closed-lock)에 이 데이터가 도착한 시점(render())에 클래스만 덧입힌다. 파일이
-  // 갈려 있어(skin-main.js는 골격, 이 파일은 데이터) DOM 클래스로 다리를 놓는 방식 -
-  // 두 파일 다 이 클래스 이름(is-bull/is-bear)에 합의돼 있어야 함.
+  // .home-closed-lock)에 이 데이터가 도착한 시점(render())에 img src만 바꿔친다. 파일이
+  // 갈려 있어(skin-main.js는 골격, 이 파일은 데이터) src 교체로 다리를 놓는 방식.
+  // 2026-08-22(2차): 자물쇠 아이콘을 인라인 SVG 대신 사용자가 준 손그림 스타일
+  // 레퍼런스 이미지(img/lock-bull.png / img/lock-bear.png, 원본에 있던 "Markets Closed"
+  // 텍스트는 라이브 <h1>과 중복돼 크롭해서 제거)로 교체 - CSS 클래스(is-bull/is-bear)
+  // 대신 이미지 파일 자체를 스와핑한다.
+  var LOCK_IMG_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/';
   function applyLockSentiment(bullish) {
     var lock = document.querySelector('.home-closed-lock');
     if (!lock) return;
-    lock.classList.toggle('is-bull', bullish);
-    lock.classList.toggle('is-bear', !bullish);
+    lock.src = LOCK_IMG_BASE + (bullish ? 'lock-bull.png' : 'lock-bear.png');
   }
   function sentimentArt(indices) {
     var bullish = isBullishWeek(indices);
@@ -337,7 +358,7 @@
       + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>뜨거웠던 종목</strong><span>지난주 상승·수급·거래대금 신호와 사유</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.us, 'us') + '</article></div></section>'
       + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>차가웠던 종목</strong><span>지난주 하락률 상위 중 유동성 종목 우선</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.us, 'us') + '</article></div></section>'
       + '<section class="hwr-stock-section hwr-candidate-section"><div class="hwr-section-heading"><strong>2주 스윙 상승 후보</strong><span>국내 차트 국면·모멘텀·펀더멘털·위험 필터 통과 종목만 표시</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong class="is-up">국내 후보</strong><span>보유자 행동과 신규 진입을 분리</span></div>' + stockListWithReasons(data.hotCandidates && data.hotCandidates.domestic, 'domestic', '현재 조건 충족 후보 없음') + '</article></div></section>'
-      + pastOutcomeList(data.pastCandidateOutcomes && data.pastCandidateOutcomes.domestic)
+      + pastOutcomeList(data.pastCandidateOutcomes && data.pastCandidateOutcomes.domestic, data.pastCandidateOutcomes && data.pastCandidateOutcomes.stats)
       + '<article class="hwr-news-card"><div class="hwr-news-toolbar"><div class="hwr-card-title"><strong>주간 경제 뉴스·이슈</strong><span>' + escapeHtml(data.news && data.news.basis || '월~금 날짜별 주요 뉴스 · 한국·미국 통합') + '</span></div><div class="hwr-news-filters" role="tablist" aria-label="뉴스 유형 필터"><button type="button" role="tab" aria-selected="true" class="is-active" data-hwr-news-filter="all">통합</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="뉴스">뉴스</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="공시">공시</button></div></div>' + newsTimeline(data.news && data.news.timeline) + '</article>'
       + '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'
       + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';

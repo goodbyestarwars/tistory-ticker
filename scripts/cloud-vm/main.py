@@ -296,12 +296,17 @@ def _load_daily_scan_for_weekly():
         return {}
 
 
-def _load_past_swing_outcomes(limit=8):
+def _load_past_swing_outcomes(stats_limit=200):
     """2026-08-22 신설: 지난 2주 스윙 후보들이 실제로 T+5/T+10 동안 어떻게 움직였는지
     주간 리포트에 같이 보여주기 위한 조회. monitor_swing_recommendations.py가 채운
-    t10_return이 확정된(=null이 아닌) 스냅샷 중 가장 최근 것부터 limit개를 가져온다 -
+    t10_return이 확정된(=null이 아닌) 스냅샷 중 가장 최근 것부터 가져온다 -
     weekly_report.py는 "외부 API를 직접 호출하지 않는 순수 함수" 원칙이라 DB 접근은
-    여기(main.py)에서 하고, 포맷팅만 weekly_report.past_candidate_outcomes()에 넘긴다."""
+    여기(main.py)에서 하고, 포맷팅만 weekly_report.py의 순수 함수들에 넘긴다.
+
+    2026-08-22(2차): 목록에는 최근 8건만 표시하지만, 승률·평균수익률 요약카드는 8건
+    만으로는 표본이 너무 작다는 지적을 받아 stats_limit(200)까지 더 넉넉하게 가져와서
+    요약 통계는 이 전체 표본으로 계산한다(weekly_report.past_candidate_outcomes가
+    목록용 8건으로 다시 자름)."""
     conn = db_schema.get_conn()
     try:
         db_schema.create_schema(conn)
@@ -310,7 +315,7 @@ def _load_past_swing_outcomes(limit=8):
                FROM swing_recommendation_snapshots
                WHERE model_version=? AND t10_return IS NOT NULL
                ORDER BY as_of_date DESC LIMIT ?''',
-            (swing_model.MODEL_VERSION, limit),
+            (swing_model.MODEL_VERSION, stats_limit),
         ).fetchall()
         return [
             {

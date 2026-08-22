@@ -582,6 +582,32 @@ def past_candidate_outcomes(rows, limit=8):
     return result
 
 
+def _horizon_stats(rows, field):
+    """rows 중 field(t5ReturnPct/t10ReturnPct)가 채워진 건만으로 승률·평균수익률을
+    구한다. 표본이 하나도 없으면 None(카드 자체를 숨기라는 신호)."""
+    values = [row.get(field) for row in (rows or []) if isinstance(row, dict) and row.get(field) is not None]
+    if not values:
+        return None
+    wins = [v for v in values if v > 0]
+    return {
+        'count': len(values),
+        'winRatePct': round(len(wins) / len(values) * 100, 1),
+        'avgReturnPct': round(sum(values) / len(values), 2),
+    }
+
+
+def past_candidate_outcome_stats(rows):
+    """2026-08-22(2차) 신설: "지난 2주 추천 결과" 목록 위에 붙일 승률/평균수익률 요약
+    - main.py가 넉넉히(최대 200건) 넘긴 전체 표본으로 계산한다(목록은 8건으로 잘리지만
+    통계는 그보다 큰 표본이어야 의미가 있다는 지적 반영). T+5(단타 5거래일)/T+10(2주)를
+    따로 낸다 - 둘 다 표본이 없으면 None."""
+    t5 = _horizon_stats(rows, 't5ReturnPct')
+    t10 = _horizon_stats(rows, 't10ReturnPct')
+    if t5 is None and t10 is None:
+        return None
+    return {'t5': t5, 't10': t10}
+
+
 def build_report(start, end, futures_rows=None, domestic_news_items=None,
                  foreign_news_items=None, domestic_board=None, us_board=None,
                  schedule_events=None, generated_at=None, domestic_swing_scan=None,
@@ -617,6 +643,7 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
         },
         'pastCandidateOutcomes': {
             'domestic': past_candidate_outcomes(past_swing_outcomes),
+            'stats': past_candidate_outcome_stats(past_swing_outcomes),
             'basis': '지난 2주 스윙 후보의 신호일 대비 T+5/T+10 실제 수익률(확정된 건만 표시)',
         },
         'news': {

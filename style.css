@@ -5037,11 +5037,11 @@ body#tt-body-index .home-editorial-page .home-closed-kicker > span {
   font: 800 11px/1.2 Arial, sans-serif;
   letter-spacing: .14em;
 }
-/* 2026-08-22 요청: "Markets Closed" 앞에 자물쇠 아이콘 - drop-shadow로 입체감을 주고
-   ("웅장하게"), js/home-weekly-report.js의 황소장/곰장 판정과 같은 색(상승=빨강/
-   하락=파랑)을 currentColor로 물려받는다(2026-08-22 2차: 사용자가 "황소장은 빨간색,
-   곰장은 파란색 자물쇠"로 요청 - 원래의 금색/차콜 중립 배색에서 변경). 데이터 도착 전
-   기본값은 중립 차콜. */
+/* 2026-08-22 요청: "Markets Closed" 앞에 자물쇠 아이콘("웅장하게"). 2026-08-22 3차:
+   인라인 SVG(currentColor로 클래스 스와핑) 대신 사용자가 직접 준 손그림 스타일
+   레퍼런스 이미지(img/lock-bull.png=빨강/lock-bear.png=파랑)를 그대로 크롭해서 쓴다 -
+   js/home-weekly-report.js의 applyLockSentiment()가 황소장/곰장 판정에 따라
+   <img>의 src 자체를 교체(클래스 토글 아님). */
 body#tt-body-index .home-editorial-page .home-closed-title-row {
   display: flex;
   align-items: center;
@@ -5050,13 +5050,10 @@ body#tt-body-index .home-editorial-page .home-closed-title-row {
 }
 body#tt-body-index .home-editorial-page .home-closed-lock {
   flex: 0 0 auto;
-  width: clamp(30px, 3.4vw, 40px);
+  width: clamp(38px, 4.2vw, 52px);
   height: auto;
-  color: #454b59;
-  transition: color .2s ease;
+  display: block;
 }
-body#tt-body-index .home-editorial-page .home-closed-lock.is-bull { color: #d24f45; }
-body#tt-body-index .home-editorial-page .home-closed-lock.is-bear { color: #1261c4; }
 body#tt-body-index .home-editorial-page .home-closed-kicker h1 {
   margin: 0;
   color: #111827;
