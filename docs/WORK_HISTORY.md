@@ -15,6 +15,18 @@ parsers.py`에 회귀 테스트 2건 추가, 전체 549건 통과. `scripts/clou
 배포 대상 - 반영 후 다음 5분 폴링(`refresh_option_flow`)이 한 번 돌면 프로파일이
 채워진다.
 
+**2026-08-23(7차-2) 평균 투자의견 프론트엔드 연결 완료(라이브 검증 성공)**: (7차)에서
+백엔드만 만들고 미뤄뒀던 프론트를 라이브 검증(`curl .../invest-opinion/005930` ->
+`reportCount:30, avgTargetPrice:499833, latestOpinion:"BUY"`, 정상 데이터 확인) 후 연결.
+`js/foreign-flow.js`의 "펀더멘탈" 탭에 새 섹션으로 추가 - `fetchInvestOpinion()`을
+`fetchFundamentals()`와 병렬로 불러(`loadFundamentals`의 `Promise.all`) 실패해도 나머지
+펀더멘탈 섹션은 그대로 표시되게 하고(다른 보조 fetch들과 동일한 방어 패턴), 매수/중립/매도
+비율 막대(`ff-opinion-bar-wrap`, 사이트 공통 부호색 매수=빨강/매도=파랑/중립=회색)+평균
+목표가+최신 의견 날짜+"투자 제안 아님·해외 미지원·KIS 출처" 문구를 표시한다. 로컬(CORS로
+VM 직접 호출 차단)에서는 정상적으로 "리포트 없음" 폴백이 뜨는 것까지 확인했고, 성공
+경로 마크업/색상은 실제 라이브 응답 값을 주입해 별도로 검증(막대 100% 매수, `#d24f45`
+정확히 렌더링). `scripts/cloud-vm/`은 VM, `js/css`는 GitHub Pages 자동 배포 대상.
+
 **2026-08-23(7차) 종목분석 "평균 투자의견" 카드 신설(국내 전용, 미검증)**: 사용자가
 토스증권의 "최근 3개월(해외 6개월) 애널리스트 평균 투자의견"(FnGuide/Refinitiv 출처)
 카드를 보여주며 우리도 가능한지 물어봄. `kis-code-assistant-mcp`로 KIS API를 뒤져 국내

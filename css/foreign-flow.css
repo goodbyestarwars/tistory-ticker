@@ -996,6 +996,33 @@
 #foreign-flow .ff-fund-label { font-size: 11.5px; color: #888; }
 #foreign-flow .ff-fund-val { font-size: 14px; font-weight: 700; }
 
+/* 2026-08-23 신설 - 평균 투자의견(매수/중립/매도 비율 막대). 사이트 공통 부호색
+   (상승=빨강/하락=파랑)을 그대로 따라 매수=빨강, 매도=파랑, 중립=회색으로 맞춘다. */
+#foreign-flow .ff-opinion-bar-wrap {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #eee;
+}
+#foreign-flow .ff-opinion-bar { height: 100%; }
+#foreign-flow .ff-opinion-bar.buy { background: #d24f45; }
+#foreign-flow .ff-opinion-bar.hold { background: #999; }
+#foreign-flow .ff-opinion-bar.sell { background: #1261c4; }
+#foreign-flow .ff-opinion-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+}
+#foreign-flow .ff-opinion-legend span { display: inline-flex; align-items: center; gap: 5px; }
+#foreign-flow .ff-dot-buy { background: #d24f45; }
+#foreign-flow .ff-dot-hold { background: #999; }
+#foreign-flow .ff-dot-sell { background: #1261c4; }
+
 #foreign-flow .ff-fund-table {
   width: 100%;
   border-collapse: collapse;
@@ -1297,6 +1324,8 @@ html.dark #foreign-flow .ff-fund-title { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-fund-cell { background: #1A1A1A !important; }
 html.dark #foreign-flow .ff-fund-label { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-fund-val { color: #F5EFE0 !important; }
+html.dark #foreign-flow .ff-opinion-legend { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #foreign-flow .ff-opinion-bar-wrap { background: rgba(245, 239, 224, 0.15) !important; }
 html.dark #foreign-flow .ff-fund-table th,
 html.dark #foreign-flow .ff-fund-table td { border-color: rgba(245, 239, 224, 0.25) !important; color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-fund-table th { background: rgba(245, 239, 224, 0.14) !important; }

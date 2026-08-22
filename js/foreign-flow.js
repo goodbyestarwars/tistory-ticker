@@ -96,6 +96,8 @@
   var quoteInflight = {}; // code -> Promise
   var fundamentalsCache = {};    // code -> GAS ?action=fundamentals 응답(당일 내내 유효, 새로고침 시 초기화)
   var fundamentalsInflight = {}; // code -> Promise
+  var investOpinionCache = {};    // code -> VM /invest-opinion/{code} 응답(2026-08-23 신설)
+  var investOpinionInflight = {}; // code -> Promise
   var newsMomentumCache = {};    // code -> VM news_momentum.db 조회 결과
   var newsMomentumInflight = {}; // code -> Promise
   var activeView = 'flow';       // 'flow' | 'apt' | 'chart' | 'fundamentals' | 'momentum'
@@ -1572,6 +1574,28 @@
     return p;
   }
 
+  // 2026-08-23 신설 - 토스증권의 "최근 3개월 애널리스트 평균 투자의견"을 참고한 국내
+  // 전용 카드(해외 종목은 KIS에 대응 API가 없어 미지원, 사용자 확인). VM이 KIS 리포트를
+  // 이미 매수/중립/매도로 집계해서 내려주므로(invest_opinion.py) 프론트는 그대로 표시만
+  // 한다. 실패해도 펀더멘탈 탭의 나머지 섹션은 정상 표시돼야 하므로 항상 null로 대체.
+  function fetchInvestOpinion(code) {
+    if (investOpinionCache[code]) return Promise.resolve(investOpinionCache[code]);
+    if (investOpinionInflight[code]) return investOpinionInflight[code];
+    var p = fetchJson(KIWOOM_VM_URL + '/invest-opinion/' + encodeURIComponent(code))
+      .then(function (envelope) {
+        delete investOpinionInflight[code];
+        var data = envelope && envelope.data ? envelope.data : envelope;
+        investOpinionCache[code] = data;
+        return data;
+      })
+      .catch(function (err) {
+        delete investOpinionInflight[code];
+        throw err;
+      });
+    investOpinionInflight[code] = p;
+    return p;
+  }
+
   // 뉴스·검색 관심도 모멘텀은 배치가 별도 news_momentum.db에 미리 계산한 결과만 읽는다.
   // 사용자 탭 진입 시 네이버 뉴스/DataLab API를 직접 호출하지 않는다.
   function fetchNewsMomentum(code) {
@@ -1808,22 +1832,27 @@
   // 2026-08-02: 캐시 히트 경로는 동기 실행이라 buildFundamentalsPanel이 예외를 던지면
   // box.innerHTML이 아예 설정되지 않아 탭이 빈 화면으로 남았다(응답 구조가 조금만 달라도
   // 사용자 눈에는 "펀더멘탈이 안 나온다"로 보임). 두 경로 모두 렌더 실패를 잡아 안내한다.
-  function renderFundamentalsPanel(box, res, name) {
+  function renderFundamentalsPanel(box, res, name, opinion) {
     try {
-      box.innerHTML = buildFundamentalsPanel(res, name);
+      box.innerHTML = buildFundamentalsPanel(res, name, opinion);
     } catch (err) {
       box.innerHTML = '<div class="ff-error">펀더멘탈 데이터를 표시하지 못했어요. 응답 형식이 예상과 달라 화면을 그릴 수 없습니다.</div>';
     }
   }
 
   function loadFundamentals(box, code, name) {
+    // 평균 투자의견은 실패해도(미설정/데이터 없음 등) 펀더멘탈 나머지 섹션은 정상 표시돼야
+    // 하므로 항상 null로 흡수한다(다른 보조 fetch들과 동일한 방어 패턴).
+    var opinionPromise = fetchInvestOpinion(code).catch(function () { return null; });
     if (fundamentalsCache[code]) {
-      renderFundamentalsPanel(box, fundamentalsCache[code], name);
+      opinionPromise.then(function (opinion) {
+        renderFundamentalsPanel(box, fundamentalsCache[code], name, opinion);
+      });
       return;
     }
     box.innerHTML = '<div class="ff-loading"><svg class="ff-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>펀더멘탈 데이터를 불러오는 중...</div></div>';
-    fetchFundamentals(code, name).then(function (res) {
-      renderFundamentalsPanel(box, res, name);
+    Promise.all([fetchFundamentals(code, name), opinionPromise]).then(function (results) {
+      renderFundamentalsPanel(box, results[0], name, results[1]);
     }).catch(function () {
       box.innerHTML = '<div class="ff-error">펀더멘탈 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
     });
@@ -1844,7 +1873,7 @@
     return fmtEokWon(v / 1e8);
   }
 
-  function buildFundamentalsPanel(res, name) {
+  function buildFundamentalsPanel(res, name, opinion) {
     var valuation = res && res.valuation;
     var fundamentals = res && res.fundamentals;
     var annual = fundamentals && fundamentals.annual;
@@ -1889,9 +1918,47 @@
       + (valuation ? buildValuationGrid(valuation) : '<div class="ff-hint">실시간 PER·PBR·EPS 데이터가 없습니다. 재무 실적 기준 지표는 위 연간 실적을 확인해주세요.</div>')
       + '</div>';
 
+    html += '<div class="ff-fund-section">'
+      + '<div class="ff-fund-title">평균 투자의견 (최근 3개월)</div>'
+      + buildInvestOpinionBlock(opinion)
+      + '</div>';
+
     html += '<div class="ff-footnote">재무 데이터와 밸류에이션은 참고용이며, 투자판단 및 그에 따른 책임은 본인에게 있습니다.</div>';
 
     return html;
+  }
+
+  // 2026-08-23 신설 - 토스증권의 "최근 3개월 애널리스트 평균 투자의견"(FnGuide/Refinitiv
+  // 출처) 카드 참고. 우리는 그 유료 데이터 계약이 없어 KIS 국내주식 종목투자의견으로
+  // 대체(scripts/cloud-vm/invest_opinion.py) - 해외 종목은 KIS에 대응 API가 없어
+  // 지원하지 않는다(사용자 확인, 국내 종목만).
+  function buildInvestOpinionBlock(opinion) {
+    if (!opinion || !opinion.available) {
+      return '<div class="ff-hint">최근 3개월 내 국내 증권사 리포트가 없어 평균 투자의견을 표시할 수 없습니다.</div>';
+    }
+    var total = opinion.reportCount || 0;
+    function pct(count) { return total > 0 ? Math.round(count / total * 100) : 0; }
+    var buyPct = pct(opinion.buyCount);
+    var holdPct = pct(opinion.holdCount);
+    var sellPct = pct(opinion.sellCount);
+    var bars = '<div class="ff-opinion-bar-wrap">'
+      + '<span class="ff-opinion-bar buy" style="width:' + buyPct + '%"></span>'
+      + '<span class="ff-opinion-bar hold" style="width:' + holdPct + '%"></span>'
+      + '<span class="ff-opinion-bar sell" style="width:' + sellPct + '%"></span>'
+      + '</div>';
+    var legend = '<div class="ff-opinion-legend">'
+      + '<span><i class="ff-dot ff-dot-buy"></i>매수 ' + opinion.buyCount + '건(' + buyPct + '%)</span>'
+      + '<span><i class="ff-dot ff-dot-hold"></i>중립 ' + opinion.holdCount + '건(' + holdPct + '%)</span>'
+      + '<span><i class="ff-dot ff-dot-sell"></i>매도 ' + opinion.sellCount + '건(' + sellPct + '%)</span>'
+      + '</div>';
+    var targetText = opinion.avgTargetPrice
+      ? '평균 목표가 ' + Math.round(opinion.avgTargetPrice).toLocaleString('ko-KR') + '원(' + (opinion.targetPriceSamples || 0) + '건 평균)'
+      : '목표가를 제시한 리포트가 없습니다.';
+    return bars + legend
+      + '<div class="ff-fund-cell" style="margin-top:8px"><span class="ff-fund-label">' + escapeHtml(targetText) + '</span></div>'
+      + '<div class="ff-hint">최근 리포트 ' + total + '건 · 최신 의견 "' + escapeHtml(opinion.latestOpinion || '-') + '"'
+      + (opinion.latestDate ? '(' + escapeHtml(String(opinion.latestDate)) + ')' : '') + '</div>'
+      + '<div class="ff-hint">국내 종목의 최근 3개월 증권사 리포트를 집계한 참고용 수치이며, 투자 제안이나 매매 권유가 아닙니다. 해외 종목은 지원하지 않습니다. (출처: KIS 한국투자증권)</div>';
   }
 
   function buildOverviewGrid(v) {
