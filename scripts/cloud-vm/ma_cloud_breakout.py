@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""이평 상승 초입형(pattern_detect.detect_ma_cloud_breakout)을 전체 이력에 걸쳐
+"""224 장기이평 응축기(구 "이평 상승 초입형", pattern_detect.detect_ma_cloud_breakout)를 전체 이력에 걸쳐
 계산 + 백테스트할 수 있게 만든 버전. 원래 함수는 "오늘 스냅샷" 하나만 판정하는
 pattern_detect.py 스타일이라(차트검색 일일 스캔용) 과거에 이 신호가 몇 번 떴고
 승률이 얼마인지는 알 수 없었다 - accumulation_angle.py/ascending_triangle.py와
@@ -67,7 +67,7 @@ def _moving_average(values, period):
 
 
 def compute_ma_cloud_breakout_signal(code, conn=None, rows=None):
-    """종목코드 하나로 이평 상승 초입형 신호 DataFrame을 만든다. conn/rows 규칙은
+    """종목코드 하나로 224 장기이평 응축기 신호 DataFrame을 만든다. conn/rows 규칙은
     accumulation_angle.compute_accumulation_angle과 동일."""
     if rows is None:
         own_conn = conn is None

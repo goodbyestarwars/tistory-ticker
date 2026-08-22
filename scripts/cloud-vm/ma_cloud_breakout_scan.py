@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""이평 상승 초입형(ma_cloud_breakout.py) 전종목 스캔 - "실제 확률"(백테스트 승률)을
+"""224 장기이평 응축기(구 "이평 상승 초입형", ma_cloud_breakout.py) 전종목 스캔 - "실제 확률"(백테스트 승률)을
 확인하기 위한 수동 실행 전용 스크립트(타이머 없음, rescan_patterns.py와 같은 성격).
 SQLite daily_prices만 읽고 키움 API는 재호출하지 않는다.
 
@@ -77,7 +77,7 @@ def main():
         }, f, ensure_ascii=False)
 
     log('저장 완료: %s (스캔 %d / 백테스트 거래 %d건)' % (OUTPUT_FILE, scanned, len(net_returns)))
-    print('\n=== 이평 상승 초입형(224일선+구름 상단 시도+5일선 골든크로스) 백테스트 ===')
+    print('\n=== 224 장기이평 응축기(224일선+구름 상단 시도+5일선 골든크로스) 백테스트 ===')
     print('청산 규칙: 구름 하단 이탈 손절, 아니면 최대 %d거래일 보유' % BACKTEST_TIMECUT_DAYS)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 

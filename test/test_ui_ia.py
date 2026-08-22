@@ -1349,8 +1349,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_pattern_scan_includes_ma_cloud_breakout_search(self):
         source = self.read("js/pattern-scan.js")
         self.assertIn("key: 'maCloudBreakout'", source)
-        self.assertIn("label: '이평 상승 초입형'", source)
-        self.assertIn("최근 5봉 안에 5일선이 20일선을 상향돌파", source)
+        self.assertIn("label: '224 장기이평 응축기'", source)
+        self.assertIn("고가가 구름 상단 3% 이내로 접근했거나 저가가 구름 하단 3% 이내로 접근", source)
         self.assertIn("addMaLine(chart, daily, 224, MA224_EARLY_COLOR)", source)
         self.assertIn("psIchimokuEnabled = activeTab === 'maCloudBreakout'", source)
         self.assertIn("ICHIMOKU_COLORS = { senkouA: '#87ceeb', senkouB: '#87ceeb' }", source)
