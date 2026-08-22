@@ -1958,6 +1958,7 @@
       + '<div class="ff-fund-cell" style="margin-top:8px"><span class="ff-fund-label">' + escapeHtml(targetText) + '</span></div>'
       + '<div class="ff-hint">최근 리포트 ' + total + '건 · 최신 의견 "' + escapeHtml(opinion.latestOpinion || '-') + '"'
       + (opinion.latestDate ? '(' + escapeHtml(String(opinion.latestDate)) + ')' : '') + '</div>'
+      + '<div class="ff-hint">계산 방법: 최근 3개월 안에 나온 국내 증권사 리포트 ' + total + '건을 모아, 리포트별 투자의견 문구를 매수·중립·매도 3그룹으로 분류해 건수 비율(' + buyPct + '% · ' + holdPct + '% · ' + sellPct + '%)을 냈습니다. 평균 목표가는 리포트에 목표가가 실제로 제시된 ' + (opinion.targetPriceSamples || 0) + '건만 골라(0원·공란 제외) 단순 산술평균한 값입니다.</div>'
       + '<div class="ff-hint">국내 종목의 최근 3개월 증권사 리포트를 집계한 참고용 수치이며, 투자 제안이나 매매 권유가 아닙니다. 해외 종목은 지원하지 않습니다. (출처: KIS 한국투자증권)</div>';
   }
 
