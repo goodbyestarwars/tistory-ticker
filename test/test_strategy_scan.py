@@ -695,8 +695,10 @@ class TargetPriceGapTests(unittest.TestCase):
 
         daily_cache = {'000010': daily_for(3000), '000020': daily_for(4900)}
         # 두 종목 다 상장주식수 100주가 되도록(annual 픽스처가 그 가정으로 설계됨) 시가총액을
-        # 각 종목의 현재가에 비례해 돌려준다(mac ÷ 오늘 종가 = 상장주식수).
-        market_caps = {'000010': 100 * 3000, '000020': 100 * 4900}
+        # 각 종목의 현재가에 비례해 돌려준다. fetch_market_cap()은 "억원" 단위(ka10001 mac,
+        # market_cap_eok과 동일 관례)를 반환하므로 원 단위 목표값(100*price)을 1억으로
+        # 나눠 억원 단위로 맞춘다(scan_target_price_gap이 *100_000_000으로 다시 원 단위 환산).
+        market_caps = {'000010': (100 * 3000) / 100_000_000, '000020': (100 * 4900) / 100_000_000}
 
         with patch.object(strategy_scan, 'fetch_market_cap', side_effect=lambda token, code: market_caps[code]), \
                 patch.object(time, 'sleep'):

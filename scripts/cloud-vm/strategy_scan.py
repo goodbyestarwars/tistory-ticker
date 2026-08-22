@@ -918,11 +918,16 @@ def scan_target_price_gap(universe, wics_map, fundamentals_cache, conn, theme_co
         scanned += 1
 
         shares_outstanding = None
-        market_cap = fetch_market_cap(kiwoom_token, code)
+        market_cap_eok = fetch_market_cap(kiwoom_token, code)
         if kiwoom_token:
             time.sleep(THROTTLE_SEC)
-        if market_cap and daily[-1]['close']:
-            shares_outstanding = market_cap / daily[-1]['close']
+        if market_cap_eok and daily[-1]['close']:
+            # 2026-08-23: 실측(삼성전자)으로 발견한 단위 버그 - ka10001의 mac은 원 단위가
+            # 아니라 "억원" 단위다(pattern_detect.detect_box_range_low의 market_cap_eok
+            # 파라미터명과 동일 관례, 이미 검증돼 있던 값). 원 단위로 잘못 나누면 상장주식수가
+            # 58주 같은 말이 안 되는 값으로 나와 모든 종목의 target_price가 조용히 None이
+            # 됐었다(전체 0건으로 스크리닝된 원인).
+            shares_outstanding = (market_cap_eok * 100_000_000) / daily[-1]['close']
         target = compute_target_price(daily, annual, shares_outstanding)
         if not target or target['targetPrice'] <= daily[-1]['close']:
             continue
