@@ -247,17 +247,17 @@
   }
   // 2026-08-22 요청: "Markets Closed" 자물쇠도 같은 황소·곰 기준(빨강=상승/파랑=하락)으로
   // 색을 입혀달라는 요청 - skin-main.js가 그리는 정적 마크업(#home-closed-page 안의
-  // .home-closed-lock)에 이 데이터가 도착한 시점(render())에 img src만 바꿔친다. 파일이
-  // 갈려 있어(skin-main.js는 골격, 이 파일은 데이터) src 교체로 다리를 놓는 방식.
-  // 2026-08-22(2차): 자물쇠 아이콘을 인라인 SVG 대신 사용자가 준 손그림 스타일
-  // 레퍼런스 이미지(img/lock-bull.png / img/lock-bear.png, 원본에 있던 "Markets Closed"
-  // 텍스트는 라이브 <h1>과 중복돼 크롭해서 제거)로 교체 - CSS 클래스(is-bull/is-bear)
-  // 대신 이미지 파일 자체를 스와핑한다.
-  var LOCK_IMG_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/';
+  // .home-closed-lock)에 이 데이터가 도착한 시점(render())에 클래스만 덧입힌다. 파일이
+  // 갈려 있어(skin-main.js는 골격, 이 파일은 데이터) DOM 클래스로 다리를 놓는 방식 -
+  // 두 파일 다 이 클래스 이름(is-bull/is-bear)에 합의돼 있어야 함.
+  // 2026-08-22(3차): 래스터 이미지(lock-bull.png/lock-bear.png, 사용자가 준 손그림
+  // 레퍼런스를 크롭한 것)를 사용자 요청으로 다시 인라인 SVG로 교체 - 확대해도 흐려지지
+  // 않고 currentColor로 클래스 스와핑만으로 색이 바뀐다(이미지 두 장을 별도로 안 둬도 됨).
   function applyLockSentiment(bullish) {
     var lock = document.querySelector('.home-closed-lock');
     if (!lock) return;
-    lock.src = LOCK_IMG_BASE + (bullish ? 'lock-bull.png' : 'lock-bear.png');
+    lock.classList.toggle('is-bull', bullish);
+    lock.classList.toggle('is-bear', !bullish);
   }
   function sentimentArt(indices) {
     var bullish = isBullishWeek(indices);

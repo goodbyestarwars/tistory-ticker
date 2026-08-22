@@ -1,5 +1,16 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(28차) 휴장 자물쇠 아이콘을 다시 인라인 SVG로 교체(래스터 이미지 폐기)**:
+(18차)에서 사용자가 준 손그림 레퍼런스를 크롭한 래스터 이미지(img/lock-bull.png/
+lock-bear.png)로 바꿨었는데, 사용자가 "직접 html/css로 그려 똑같이 - 그게 나을 것
+같다"고 재요청해 다시 인라인 SVG로 되돌렸다. 뭉툭한 아치형 걸쇠 + 둥근 몸통 + 열쇠
+구멍(작은 장식 곡선 포함)으로 실루엣을 최대한 비슷하게 재현했고, `currentColor` +
+`is-bull`/`is-bear` 클래스 토글 방식(16차와 동일한 패턴)으로 되돌려 이미지 파일 없이
+확대해도 흐려지지 않는다. `js/skin-main.js`(마크업)·`js/home-weekly-report.js`
+(`applyLockSentiment` 클래스 토글)·`style.css`(색상 규칙) 갱신, 이제 안 쓰는
+`img/lock-bull.png`/`lock-bear.png`는 삭제했다. 로컬 스크래치 HTML로 렌더링 확인 후
+정리. `test/test_ui_ia.py` 100건 통과(관련 테스트 없었음).
+
 **2026-08-22(27차) 로딩 표시를 원형 스피너 -> 심장박동 모니터(ECG) 파형으로 전면 교체**:
 사용자 요청("모든 페이지에서") - 종목분석(`js/foreign-flow.js`)·호가창(`js/order-book.js`)·
 패턴스캔(`js/pattern-scan.js`)·종목검색(`js/stock-search.js`) 4개 페이지, 총 11곳의 로딩
