@@ -85,7 +85,7 @@ def main():
     market_cap_cache = load_market_cap_cache()
 
     pattern_results = {
-        'risingLows': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [],
+        'risingLows': [], 'shortTermMaBreakout': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [],
         'boxRangeLow': [], 'openingGap': [],
     }
     pattern_scanned = 0

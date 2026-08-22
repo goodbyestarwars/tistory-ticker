@@ -48,6 +48,7 @@
   var COMMON_SEARCH_DESC = '검색기 공통: 시가총액 3,000억원 이상 · ETF·스팩·ETN·관리종목·우선주·거래정지·정리매매·동전주(1,000원 미만) 제외';
   var TABS = [
     { key: 'risingLows', label: '저점상승형', desc: '최근 20봉에서 좌우 2봉보다 낮은 스윙 저점이 2개 이상이고, 최근 저점이 직전 저점보다 5% 이상 높으며 현재 종가가 최근 저점 위에 있는 종목입니다. 저점-고점 간격이 갈수록 좁혀지는(고점이 막혀있거나 완만히 하락) 종목만 남기고, 최근 저항을 2% 이상 돌파한 종목은 제외합니다.' },
+    { key: 'shortTermMaBreakout', label: '단기이평 돌파형', desc: '최근 20봉 스윙 고점 2개를 이은 하락 추세선을 오늘 종가와 5일선이 함께 뚫고 올라온 종목입니다. 어제까지는 종가가 추세선 아래(또는 거의 붙어) 있었어야 "막 돌파하는 순간"으로 보고 포함하며, 이미 한참 위로 올라간 종목은 제외합니다.' },
     { key: 'maCloudBreakout', label: '장기이평 응축기', desc: '최소 250봉 데이터에서 종가가 224일선 ±3% 이내이고, 종가가 일목 구름 상단을 아직 넘지 않았으며 구름 하단 -2% 안에서는 지지받고 있고, 고가가 구름 상단 3% 이내로 접근했거나 저가가 구름 하단 3% 이내로 접근한 종목입니다(둘 중 하나만 만족해도 포함, 상단 시도가 하단 시도보다 고득점).' },
     { key: 'doubleBottom', label: '쌍바닥', desc: '최근 120봉에서 10~45봉 간격의 스윙 저점 2개가 3% 이내로 비슷하고, 두 저점 사이에 그보다 2% 넘게 더 낮은 저가가 없으며, 두 번째 저점 거래량이 첫 번째 이하이며 중간 넥라인까지 8% 이상 반등한 구조입니다. 두 번째 저점은 최근 5봉 안이고 현재 종가는 넥라인 2% 아래보다 높아야 합니다.' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '최근 90봉에서 4~40봉 간격의 저점 3개가 어깨-머리-어깨를 이루고, 머리가 양 어깨보다 각각 2% 이상 낮으며 양 어깨 가격차는 4% 이내입니다. 우어깨 이후 저가가 머리 저점보다 1% 넘게 더 빠지면 제외합니다. 넥라인(두 구간 고가 중 더 높은 쪽) 1% 이내, 최근 양봉, 우어깨 이후 거래량은 최근 20봉 평균의 1.2배 이상이어야 합니다.' },
@@ -271,6 +272,12 @@
       return lows ? '저점 상승 ' + lows + '회' : '저점 상승 확인';
     }
     if (patternKey === 'maCloudBreakout') return '224일선 근접·구름 상/하단 시도';
+    if (patternKey === 'shortTermMaBreakout') {
+      var trendPrice = Number(detail.resistance);
+      var signalPrice = Number(detail.signal && detail.signal.price);
+      var breakGap = trendPrice > 0 && signalPrice > 0 ? (signalPrice - trendPrice) / trendPrice * 100 : null;
+      return '추세선+5일선 동시 돌파' + (breakGap != null ? ' · 돌파폭 +' + breakGap.toFixed(1) + '%' : '');
+    }
     if (patternKey === 'doubleBottom') return detail.low1 && detail.low2 ? '쌍바닥 저점 확인' : '쌍바닥 구조';
     if (patternKey === 'invHeadShoulders') return detail.head && detail.neckline ? '헤드·어깨 구조 확인' : '역헤드앤숄더 구조';
     if (patternKey === 'boxRangeLow') {
@@ -332,6 +339,7 @@
     if (text) return text;
     return {
       risingLows: '최근 저점이 높아지는 구조',
+      shortTermMaBreakout: '하락 추세선을 종가·5일선이 함께 뚫는 초입',
       maCloudBreakout: '이평선과 구름대 상단을 확인하는 구간',
       doubleBottom: '두 저점이 비슷한 쌍바닥 구조',
       invHeadShoulders: '어깨·머리·어깨 구조',
@@ -755,6 +763,8 @@
         addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
         addMaLine(chart, daily, 20, MA20_EARLY_COLOR);
         addMaLine(chart, daily, 224, MA224_EARLY_COLOR);
+      } else if (pattern === 'shortTermMaBreakout') {
+        addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
       } else if (pattern === 'angleMomentum') {
         // 각도 계산은 서버에서 전형가·EMA 기준으로 하지만, 상세 차트는 다른 탭과 같은
         // 방식(addMaLine, 종가 기준 단순이동평균)으로 단기/장기선만 시각 참고용으로 겹쳐 그린다.
@@ -907,6 +917,13 @@
       boxLows.forEach(function (p) { addDot(p, SUPPORT_COLOR, 'belowBar'); });
       boxHighs.forEach(function (p) { addDot(p, RESIST_COLOR, 'aboveBar'); });
       if (detail.signal) addSignal(detail.signal); // 현재가(박스 하단 근접 지점)
+    } else if (pattern === 'shortTermMaBreakout') {
+      // trendline은 [스윙 고점 시작점, 오늘 지점까지 연장된 저항선] 2점 - 그대로 이으면
+      // 참고 그림의 검은 하락 추세선이 된다. 5일선은 위 addMaLine(MA5_EARLY_COLOR)이 그림.
+      if (Array.isArray(detail.trendline) && detail.trendline.length === 2) {
+        addLine(detail.trendline, RESIST_COLOR, { bold: true });
+      }
+      if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'maCloudBreakout') {
       if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'pullback') {

@@ -445,6 +445,66 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertEqual(pullback[0]["code"], "999999")
 
 
+def short_ma_breakout_daily(prev_close=90, final_close=95):
+    """20봉 - 하락 스윙고점 2개(110@day2, 100@day10, PATTERN_SWING=2라 각각의 좌우
+    2봉보다 높아야 스윙으로 잡힌다)로 그은 추세선을 마지막 날 종가+5일선이 함께
+    돌파하는 케이스. trend_at(18)=90.0, trend_at(19)=88.75(직접 계산 - 아래 테스트에서
+    재확인). prev_close=90(<=90*1.01, "아직 안 뚫은 상태")이고 final_close=95(>88.75)면
+    "막 돌파" 케이스, prev_close를 더 올리면 "이미 돌파 완료"(breakout=True) 케이스가 된다."""
+    # 2026-08-23: 원래 95~110 스케일이 동전주 제외 기준(PENNY_STOCK_MAX_PRICE=1,000원)에
+    # 걸려 scan_stock() 통합 테스트가 조용히 빈 결과를 냈다 - x100 스케일(9,500~11,000원대)로
+    # 올려서 비율(추세선 기울기·돌파폭 %)은 그대로 두고 절대가만 정상 범위로 맞춘다.
+    scale = 100
+    highs = [95, 105, 110, 95, 90, 85, 88, 92, 97, 99, 100, 98, 96, 90, 85, 80, 82, 84, 89, 95]
+    closes = [90, 100, 105, 90, 85, 80, 83, 87, 92, 94, 95, 93, 91, 88, 84, 85, 87, 89,
+              prev_close, final_close]
+    daily = []
+    for i in range(20):
+        c = closes[i] * scale
+        h = max(highs[i] * scale, c + 1)
+        daily.append({
+            'date': '2026-01-%02d' % (i + 1),
+            'open': c - 1,
+            'high': h,
+            'low': c - 500,
+            'close': c,
+            'volume': 1000,
+        })
+    return daily
+
+
+class ShortMaBreakoutDetectionTest(unittest.TestCase):
+    def test_detects_fresh_breakout_above_declining_trendline(self):
+        detail = detector.detect_short_ma_breakout(short_ma_breakout_daily())
+        self.assertIsNotNone(detail)
+        self.assertFalse(detail['breakout'])
+        # trend_at(19) = 11000 + slope*(19-2), slope = (10000-11000)/(10-2) = -125 (x100 스케일)
+        self.assertAlmostEqual(detail['resistance'], 8875.0, places=2)
+        self.assertEqual(detail['signal']['price'], 9500)
+        self.assertEqual(len(detail['trendline']), 2)
+
+    def test_already_broken_out_is_flagged_and_excluded_by_caller(self):
+        # 어제(prev_close=95)도 이미 추세선(90.0) 위였으면 "막 돌파"가 아니라 완료된
+        # 돌파 - breakout=True로 표시돼 scan_stock에서 제외된다(다른 돌파형 패턴과 동일).
+        detail = detector.detect_short_ma_breakout(short_ma_breakout_daily(prev_close=95, final_close=97))
+        self.assertIsNotNone(detail)
+        self.assertTrue(detail['breakout'])
+
+    def test_returns_none_when_highs_are_not_declining(self):
+        daily = short_ma_breakout_daily()
+        daily[10]['high'] = 12000  # 두 번째 스윙 고점(원래 10000)을 첫 번째(11000)보다 높여 우상향으로 만든다
+        self.assertIsNone(detector.detect_short_ma_breakout(daily))
+
+    def test_returns_none_when_close_has_not_cleared_the_trendline(self):
+        daily = short_ma_breakout_daily(prev_close=80, final_close=82)  # 여전히 추세선 아래
+        self.assertIsNone(detector.detect_short_ma_breakout(daily))
+
+    def test_scan_exposes_short_term_ma_breakout_bucket(self):
+        results = {'risingLows': []}
+        detector.scan_stock({'code': '000001', 'name': '테스트'}, short_ma_breakout_daily(), results, [])
+        self.assertEqual([row['code'] for row in results['shortTermMaBreakout']], ['000001'])
+
+
 class ChartScanFilterTest(unittest.TestCase):
     def daily(self, volume=100):
         return [{

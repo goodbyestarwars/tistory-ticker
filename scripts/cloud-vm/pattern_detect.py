@@ -32,6 +32,13 @@ OPENING_GAP_MIN_TURNOVER_MILLION = 3_000
 OPENING_GAP_MAX_TURNOVER_MILLION = 999_999
 
 RISING_LOWS_WINDOW = 20
+# 2026-08-23 신설: "단기이평 돌파형" - 하락 추세선(최근 스윙 고점 2개를 잇는 저항선)을
+# 종가와 5일선이 함께 뚫고 올라오는 순간을 잡는다(사용자 요청, 참고 그림: "추세선+5일이평선").
+# 창(window)은 20일 - swing_model.classify_wave_structure()의 소파동(20일) 스케일과
+# 맞추기로 사용자 확인(소파동이 5일선을 뚫는 그림과 개념이 일치). 60일(중파동)은 신호가
+# 늦고 뜸해져서 채택 안 함.
+SHORT_MA_BREAKOUT_WINDOW = 20
+SHORT_MA_BREAKOUT_FRESH_TOL = 1.01  # 어제 종가가 추세선의 이 배율 이하였어야 "막 돌파"로 봄
 MA_CLOUD_MIN_DAYS = 250
 MA_CLOUD_NEAR_TOL = 0.03       # 현재가와 224일선 사이 최대 3%
 MA_CLOUD_TOP_TOL = 0.03        # 구름 상단을 향한 현재 봉의 고가 근접도 최대 3%
@@ -817,6 +824,83 @@ def detect_rising_lows(daily):
 
 
 # ---------------------------------------------------------------------------
+# 단기이평 돌파형 - 하락 추세선(스윙 고점 2개를 잇는 저항선)을 종가와 5일선이
+# 함께 뚫고 올라오는 순간(위 SHORT_MA_BREAKOUT_WINDOW 주석 참고)
+# ---------------------------------------------------------------------------
+
+def detect_short_ma_breakout(daily):
+    """최근 20봉 스윙 고점 2개로 하락 추세선을 긋고, 오늘 종가와 5일선이 모두 그 선
+    위로 올라온 종목을 찾는다. 어제까지는 종가가 추세선 아래(또는 거의 붙어)였어야
+    "막 돌파하는 순간"으로 보고 포함한다 - 이미 한참 위로 올라간 종목은 breakout=True로
+    표시해 호출부가 제외한다(다른 돌파형 패턴과 동일한 관례)."""
+    win = daily[max(0, len(daily) - SHORT_MA_BREAKOUT_WINDOW):]
+    if len(win) < SHORT_MA_BREAKOUT_WINDOW:
+        return None
+
+    high_idxs = find_swing_indices(win, 'high', False)
+    if len(high_idxs) < WEDGE_MIN_SWINGS:
+        return None
+    first_idx, last_swing_idx = high_idxs[0], high_idxs[-1]
+    if first_idx == last_swing_idx:
+        return None
+    high_first, high_last = win[first_idx]['high'], win[last_swing_idx]['high']
+    if high_last >= high_first:
+        return None  # 우하향 추세선이 아니면(고점이 안 낮아지면) 이 패턴이 아니다
+
+    slope = (high_last - high_first) / (last_swing_idx - first_idx)
+
+    def trend_at(i):
+        return high_first + slope * (i - first_idx)
+
+    last_index = len(win) - 1
+    if last_index <= last_swing_idx:
+        return None  # 스윙 고점 자체가 오늘/어제면 추세선 돌파를 판정할 여지가 없다
+
+    ma5 = moving_average(win, 'close', 5)
+    close_today = win[last_index]['close']
+    ma5_today = ma5[last_index]
+    trend_today = trend_at(last_index)
+    if not trend_today or ma5_today is None:
+        return None
+    if not (close_today > trend_today and ma5_today > trend_today):
+        return None
+
+    prev_index = last_index - 1
+    trend_prev = trend_at(prev_index)
+    close_prev = win[prev_index]['close']
+    already_broken = bool(trend_prev) and close_prev > trend_prev * SHORT_MA_BREAKOUT_FRESH_TOL
+
+    close_gap = (close_today - trend_today) / trend_today
+    ma5_gap = (ma5_today - trend_today) / trend_today
+    # 갓 돌파한 순간일수록(간격이 작을수록) 더 신뢰도가 높다고 보고 고득점.
+    close_score = 40 if close_gap <= 0.02 else 25 if close_gap <= 0.05 else 10
+    ma5_score = 20 if ma5_gap <= 0.02 else 10
+    vol_score = 20 if is_volume_increasing(win, last_swing_idx, len(win)) else 0
+    bull_score = 20 if is_last_candle_bullish(win) else 0
+    score = clamp_score(close_score + ma5_score + vol_score + bull_score)
+
+    trendline_start = {'date': win[first_idx]['date'], 'price': high_first}
+    trendline_end = {'date': win[last_index]['date'], 'price': trend_today}
+    signal = {'date': win[last_index]['date'], 'price': close_today}
+    reasons = [
+        '추세선 돌파 간격 %.1f%%(%d/40점)' % (close_gap * 100, close_score),
+        '5일선-추세선 간격 %.1f%%(%d/20점)' % (ma5_gap * 100, ma5_score),
+        '거래량 %s(%d/20점)' % ('증가' if vol_score else '유지/감소', vol_score),
+        '최근 캔들 %s(%d/20점)' % ('양봉' if bull_score else '음봉', bull_score),
+    ]
+    return {
+        'trendline': [trendline_start, trendline_end],
+        'ma5': ma5_today,
+        'resistance': trend_today,
+        'signal': signal,
+        'breakout': already_broken,
+        'score': score,
+        'reasons': reasons,
+        'interpretation': '최근 20거래일 하락 추세선을 종가와 5일선이 함께 돌파하는 초입으로 추정됩니다(%d점).' % score,
+    }
+
+
+# ---------------------------------------------------------------------------
 # ② 224 장기이평 응축기(구 "이평 상승 초입형", 224일선 + 구름대)
 # ---------------------------------------------------------------------------
 
@@ -1554,6 +1638,7 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
     pullback_scanned = False
     pattern_results.setdefault('maCloudBreakout', [])
     pattern_results.setdefault('openingGap', [])
+    pattern_results.setdefault('shortTermMaBreakout', [])
     if is_excluded_stock(stock, daily):
         return pattern_scanned, pullback_scanned
 
@@ -1583,6 +1668,12 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
         rl = detect_rising_lows(daily)
         if rl and not rl['breakout'] and common_search_ok():
             pattern_results['risingLows'].append(build_pattern_match(stock, daily, rl))
+
+    if len(daily) >= SHORT_MA_BREAKOUT_WINDOW:
+        pattern_scanned = True
+        short_ma = detect_short_ma_breakout(daily)
+        if short_ma and not short_ma['breakout'] and common_search_ok():
+            pattern_results['shortTermMaBreakout'].append(build_pattern_match(stock, daily, short_ma))
 
     if len(daily) >= MA_CLOUD_MIN_DAYS:
         pattern_scanned = True
@@ -1636,7 +1727,7 @@ def finalize_pattern_results(pattern_results, pullback_matches=None):
     tightened using pattern-specific chart evidence until they fit; no bucket
     is truncated by universe order.
     """
-    for key in ('risingLows', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow', 'openingGap'):
+    for key in ('risingLows', 'shortTermMaBreakout', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow', 'openingGap'):
         if key in pattern_results:
             filtered = _quality_gate_matches(pattern_results.get(key), key)
             pattern_results[key] = _rank_matches(filtered)

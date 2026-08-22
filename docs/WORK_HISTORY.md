@@ -1,5 +1,26 @@
 # 9Pay 주요 작업이력
 
+**2026-08-23(6차) 차트검색기 "단기이평 돌파형" 신규 패턴 추가**: 사용자가 "소파동이
+5일선을 뚫고 나오는" 참고 그림(하락 추세선을 종가+5일선이 함께 돌파하는 매매 시점)을
+보여주며 새 패턴 추가를 요청. 추세선 창을 20일/60일 중 어느 쪽으로 할지 물어와 20일을
+추천(swing_model.classify_wave_structure()의 소파동=20일 스케일과 그림의 "소파동" 개념이
+정확히 일치, 60일은 신호가 늦고 뜸해짐) - 사용자 확인. 돌파 판정 기준(종가+5일선 모두
+추세선 위)과 패턴명("단기이평 돌파형")도 확인 후 진행. `pattern_detect.py`에
+`detect_short_ma_breakout()` 신규 - 최근 20봉 스윙 고점 2개(PATTERN_SWING 재사용)로
+하락 추세선을 긋고, 오늘 종가·5일선이 모두 그 선 위로 올라왔으면서 어제는 아직
+안(또는 거의 안) 넘었던(SHORT_MA_BREAKOUT_FRESH_TOL=1.01) "막 돌파하는 순간"만 포함한다
+(이미 한참 위인 경우는 다른 돌파형 패턴과 동일하게 breakout=True로 표시해 호출부가
+제외). `장기이평 응축기`(maCloudBreakout)와 같은 아키텍처(별도 스캔 스크립트/systemd
+타이머 없이 `pattern_detect.py`의 기존 `scan_stock()` 루프에 편입, `daily_scan.py`가
+매일 함께 스캔)라 GAS 미러도 필요 없다(box-range/gongpasan/angleMomentum/ma-cloud와
+동일 전례). `js/pattern-scan.js`에 탭 추가(라벨/설명/신호문구/차트 오버레이 - 추세선은
+2점 직선, 5일선은 기존 `addMaLine()` 재사용). `test/test_pattern_detect.py`에
+`ShortMaBreakoutDetectionTest`(5건: 정상 돌파/이미 돌파완료 제외/우상향이면 제외/아직
+안 뚫었으면 제외/scan_stock 버킷 노출) 추가 - 전체 55건 통과. 로컬 mock
+(`test/pattern-scan.html`)은 이 패턴 전용 데이터를 아직 안 넣어서 "해당 종목 없음"
+빈 상태만 확인, 실제 후보 표시는 배포 후 라이브로 확인 필요. `scripts/cloud-vm/`은
+VM, `js/`는 GitHub Pages 자동 배포 대상.
+
 **2026-08-23(5차) 코스피·코스닥 주간현물 차트 속도 개선 - 분봉 온디맨드 분리**: 사용자가
 "국내시장지표 > 코스피·코스닥 주간현물 차트가 유독 느려"로 리포트. `/domestic-market-indicators`
 응답을 실측하니 256KB에 1.4~3초가 걸렸는데, 그중 분봉(1,500봉×2종목)이 절반 가까이를
