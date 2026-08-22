@@ -181,7 +181,7 @@
       + '<button type="button" id="ffSearchBtn" class="ff-search-btn">조회</button>'
       + '</div>'
       + '<div id="ffSigWrap">'
-      + '<div class="ff-explore-intro"><strong>국내 4주 스윙 분석</strong><span>장기 국면은 배경, 중기 국면은 방향, 단기 국면은 진입 시점을 확인합니다.</span></div>'
+      + '<div class="ff-explore-intro"><strong>국내 2주 스윙 분석</strong><span>장기 국면은 배경, 중기 국면은 방향, 단기 국면은 진입 시점을 확인합니다.</span></div>'
       + '<div class="ff-explore-tabs" role="tablist">'
       + '<button type="button" class="ff-explore-tab active" data-explore-view="flow" role="tab">차트 흐름별 탐색</button>'
       + '<button type="button" class="ff-explore-tab" data-explore-view="industry" role="tab">업종별 보기</button>'
@@ -1421,7 +1421,7 @@
       + ' <span class="ff-asof">' + escapeHtml(asOfLabel) + ' 기준</span></div>'
       + '<div class="ff-divider"></div>';
 
-    // 4주 스윙 판정은 탭 밖에 항상 노출한다. 별점/구 등급은 화면 최종의견에서 제거하고
+    // 2주 스윙 판정은 탭 밖에 항상 노출한다. 별점/구 등급은 화면 최종의견에서 제거하고
     // 국면·보유자 행동·신규 진입을 분리해 보여준다.
     html += buildSummaryBox(data, entry, techScore, fundamentals, chartData);
 
@@ -2568,7 +2568,7 @@
     return parts.length ? parts.join(' · ') + ' 기준입니다.' : '재무 데이터가 불완전합니다.';
   }
 
-  // 4주 스윙 판정은 별점·합산점수와 분리한다. 배치의 swing_model.py와 같은
+  // 2주 스윙 판정은 별점·합산점수와 분리한다. 배치의 swing_model.py와 같은
   // 국면 순서(상승/변곡/보류/하방)를 브라우저에서도 재현해 온디맨드 분석과
   // 전종목 배치가 같은 행동 문장을 보여주도록 한다. 224일선은 표시·장기
   // 참고값으로만 남기고 4주 행동을 직접 뒤집지 않는다.
@@ -2819,7 +2819,7 @@
       : transition.mid && transition.mid.active ? transition.mid.label
       : transition.short && transition.short.active ? transition.short.label : '전환 신호 없음';
     return '<div class="ff-summary ff-swing-summary">'
-      + '<div class="ff-swing-regime"><span class="ff-panel-title">4주 스윙 판정</span><strong>' + escapeHtml(currentRegime.label) + '</strong><small>최근 이벤트 · ' + escapeHtml(recentEvent.label) + '</small></div>'
+      + '<div class="ff-swing-regime"><span class="ff-panel-title">2주 스윙 판정</span><strong>' + escapeHtml(currentRegime.label) + '</strong><small>최근 이벤트 · ' + escapeHtml(recentEvent.label) + '</small></div>'
       + '<div class="ff-swing-flow" aria-label="장기·중기·단기 추세 국면">'
       + '<div class="ff-swing-flow-track">'
       + '<div class="ff-swing-step"><span class="ff-swing-step-label">장기 국면 <em>맥락</em></span><strong>' + escapeHtml(bigWave.label) + '</strong></div>'

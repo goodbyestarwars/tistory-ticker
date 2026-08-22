@@ -1,5 +1,33 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(12차) 국내 스윙 추천을 "4주"에서 "2주"로 축소**: 사용자 요청으로 조사부터
+진행(Explore 서브에이전트) - T+5/T+10/T+20은 종목 선정 게이트(`is_four_week_candidate`)
+로직에는 전혀 등장하지 않고 `monitor_swing_recommendations.py`의 **사후 추적 전용**
+수치임을 확인(거래일 10일=2주, 20일=4주에 대응). 이 사실을 근거로 "T+20 제거 + T+10을
+새 완결 기준으로" 방식을 채택(전체 축을 T+2/5/10로 다시 짜는 방식보다 변경 범위가
+작고 과거 t5/t10 데이터와 연속성이 유지됨).
+- `swing_model.py`: `is_four_week_candidate` → `is_two_week_candidate` 이름 변경(호출부
+  `daily_scan.py`/`weekly_report.py` 동시 변경). **`MODEL_VERSION`(`swing-4w-v5`)은
+  의도적으로 유지** - 판정 조건식 자체는 안 바뀌었고 T+N은 원래 이 게이트와 무관했으므로
+  모델 버전을 바꿔 과거 스냅샷과의 연속성을 끊을 이유가 없음.
+- `monitor_swing_recommendations.py`: T+20 계산(수익률·초과수익률·국면 재판정)을 전부
+  제거, mfe/mae 창을 20거래일→10거래일로 축소, 재처리 완료 판정 필터를
+  `t20_return IS NULL`→`t10_return IS NULL`로 변경.
+- `db_schema.py`: `update_swing_snapshot_outcome()`이 `t20_*` 컬럼을 더 이상 UPDATE
+  문에 포함하지 않도록 변경(컬럼 자체는 하위호환을 위해 스키마에 남김) - 기존 4주 모델
+  시절 t20 값이 실수로 NULL로 덮어써질 위험을 원천 차단.
+- `backtest_swing.py`(수동 백테스트 도구): T+20 계산 제거, `--legacy-json` 비교 시
+  newT20은 항상 None(무해).
+- 문구 갱신: `weekly_report.py`의 `basis` 필드, `js/home-weekly-report.js`의 "2주 스윙
+  상승 후보" 섹션 제목, `js/foreign-flow.js`의 종목분석 "2주 스윙 분석/판정" 라벨(4곳).
+검증: `test/test_monitor_swing_recommendations.py`를 t10_return 기준으로 재작성(+구
+t20_return 보존 확인 테스트 추가), `test/test_ui_ia.py` 문구 단언 갱신. 관련 전체
+회귀(test_ui_ia/test_swing_model/test_monitor_swing_recommendations/test_pattern_detect)
+166건 통과. `docs/DB_SPEC.md`/`docs/API_OPERATION_SPEC.md`도 갱신.
+**VM 반영 필요**: `monitor_swing_recommendations.py`는 `daily_scan.py` 실행 후
+`setup_dailyscan_timer.sh`가 자동 연쇄 실행하는 systemd 타이머라 스케줄 변경은
+불필요 - master push 후 다음 배치부터 자동 반영.
+
 **2026-08-22(11차) 홈 화면 시장 탭 전환 경계 재조정**: 사용자 요청("평일 주간 07:00~20:30
 한국증시 / 평일 야간 20:30~07:00 미국증시 / 토요일 07:00~월요일 새벽 06:00 휴장")으로
 `js/skin-main.js`의 `HomeMarketSelection.autoMarket()`(예전 08:00/20:00 정시 경계, 토·일

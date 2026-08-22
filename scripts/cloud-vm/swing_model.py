@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""국내 4주 스윙 추천의 단일 판정 모델.
+"""국내 2주 스윙 추천의 단일 판정 모델.
 
 별점/합산점수는 과거 결과와의 비교를 위해 계산할 수 있지만 최종 행동을
 결정하지 않는다. 차트 국면이 먼저 진입 가능성을 걸러내고, 모멘텀과
@@ -7,7 +7,11 @@
 주의/진입차단 필터로 처리한다.
 
 입력 daily는 오래된 날짜부터 최신 날짜 순서의 OHLC 행이다.
-"4주"는 신호일의 종가를 기준으로 T+5/T+10/T+20을 추적하는 운영 기간이다.
+"2주"는 신호일의 종가를 기준으로 T+5/T+10을 추적하는 운영 기간이다(2026-08-22:
+기존 "4주"(T+5/T+10/T+20)에서 T+20을 제거하고 T+10을 완결 기준으로 삼도록 축소 -
+판정 게이트(`is_two_week_candidate`, 옛 `is_four_week_candidate`) 자체는 애초에
+T+N을 참조하지 않으므로 이 변경은 사후 추적 기간만 좁히는 것이지 종목 선정 로직을
+바꾸는 게 아니다).
 """
 
 from __future__ import annotations
@@ -233,7 +237,7 @@ def classify_chart_regime(daily: List[Dict[str, Any]], benchmark: Optional[Itera
 
     ``key`` and ``turningPoint`` remain for old callers. New consumers should
     use ``currentRegime`` and ``recentEvent``. The 224-day average is retained
-    as context and never participates in the four-week action gate.
+    as context and never participates in the two-week action gate.
     """
     closes = [_close(row) for row in daily or []]
     closes = [value for value in closes if value is not None and value > 0]
@@ -413,7 +417,7 @@ def _layer_event(layer: str, event: Dict[str, Any]) -> Dict[str, Any]:
 
 def classify_wave_structure(daily: List[Dict[str, Any]],
                             chart: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Return big/mid/small trend context for the domestic four-week system.
+    """Return big/mid/small trend context for the domestic two-week system.
 
     Big wave deliberately requires 224 persisted trading bars.  A short API
     response is never treated as a long-term downtrend or uptrend.
@@ -667,8 +671,13 @@ def build_swing_assessment(daily: List[Dict[str, Any]], *, flow_score: Optional[
     }
 
 
-def is_four_week_candidate(assessment: Dict[str, Any]) -> bool:
-    """Use the same hard gate in daily scan, weekly report and tests."""
+def is_two_week_candidate(assessment: Dict[str, Any]) -> bool:
+    """Use the same hard gate in daily scan, weekly report and tests.
+
+    2026-08-22: 운영 기간을 4주(T+20)에서 2주(T+10)로 좁히면서 함수명을 바꿨다 - 판정
+    조건식 자체(파동 정렬·위험 필터·entryOpinion 화이트리스트)는 전혀 안 바뀜, T+N은
+    애초에 이 게이트에 등장한 적이 없다(monitor_swing_recommendations.py의 사후 추적
+    전용). 그래서 MODEL_VERSION도 그대로 유지한다."""
     waves = assessment.get('waves') or {}
     big = waves.get('big') or {}
     mid = waves.get('mid') or {}

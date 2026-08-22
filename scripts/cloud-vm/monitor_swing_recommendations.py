@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Fill T+5/T+10/T+20 outcomes for saved domestic swing snapshots.
+"""Fill T+5/T+10 outcomes for saved domestic swing snapshots.
 
 This job makes the recommendation measurable without changing the signal after
 the fact. It is safe to run repeatedly: outcomes are recalculated from the
 same immutable signal date and only become non-null when enough trading bars
 exist.
-"""
+
+2026-08-22: 운영 기간을 4주(T+5/T+10/T+20)에서 2주(T+5/T+10)로 좁히면서 T+20 추적을
+없앴다. mfe/mae(최대favorable/adverse 변동폭)도 원래 "20거래일 이내 고저"였는데,
+2주 모델과 맞춰 10거래일로 줄였다."""
 
 from datetime import datetime, timezone
 
@@ -24,7 +27,10 @@ def _returns(prices, entry_close, benchmark=None):
 
 
 def outcome_for_snapshot(conn, row, daily_cache=None):
-    code, as_of_date, initial_regime, entry_close = row[1], row[0], row[4], row[5]
+    # row[4](current_regime, 신호 당시 국면)는 T+20 국면 재판정(t20_regime_changed)에만
+    # 쓰였는데 2주 모델 전환으로 그 계산 자체가 없어져 더 이상 안 읽는다 - SELECT 컬럼은
+    # 하위호환을 위해 그대로 둠(row 인덱스가 바뀌지 않게).
+    code, as_of_date, entry_close = row[1], row[0], row[5]
     daily = (daily_cache or {}).get(code)
     if daily is None:
         daily = db_schema.load_daily_prices(conn, code)
@@ -32,20 +38,20 @@ def outcome_for_snapshot(conn, row, daily_cache=None):
     benchmark_rows = db_schema.load_future_chart_since(conn, 'KOSPI', as_of_date.replace('-', ''))
     benchmark_by_date = {str(item.get('date', '')).replace('-', ''): item.get('close') for item in benchmark_rows}
     prices = [float(item['close']) for item in after if item.get('close') not in (None, 0)]
-    highs = [float(item['high']) for item in after[:20] if item.get('high') not in (None, 0)]
-    lows = [float(item['low']) for item in after[:20] if item.get('low') not in (None, 0)]
+    # 2026-08-22: 2주 모델(T+10 완결 기준)에 맞춰 mfe/mae 창을 20거래일에서 10거래일로 축소.
+    highs = [float(item['high']) for item in after[:10] if item.get('high') not in (None, 0)]
+    lows = [float(item['low']) for item in after[:10] if item.get('low') not in (None, 0)]
     entry_benchmark = benchmark_by_date.get(as_of_date.replace('-', ''))
-    future_benchmark = [benchmark_by_date.get(str(item.get('date', '')).replace('-', '')) for item in after[:20]]
+    future_benchmark = [benchmark_by_date.get(str(item.get('date', '')).replace('-', '')) for item in after[:10]]
     future_benchmark = [value for value in future_benchmark if value]
     outcomes = {
-        't5_return': None, 't10_return': None, 't20_return': None,
-        't5_excess_return': None, 't10_excess_return': None, 't20_excess_return': None,
-        't20_regime': None, 't20_regime_changed': None,
+        't5_return': None, 't10_return': None,
+        't5_excess_return': None, 't10_excess_return': None,
         'mfe': round(max(highs) / entry_close * 100 - 100, 4) if highs and entry_close else None,
         'mae': round(min(lows) / entry_close * 100 - 100, 4) if lows and entry_close else None,
         'outcomeUpdatedAt': datetime.now(timezone.utc).isoformat(),
     }
-    for field, horizon in (('t5', 5), ('t10', 10), ('t20', 20)):
+    for field, horizon in (('t5', 5), ('t10', 10)):
         if len(prices) < horizon:
             continue
         benchmark_slice = future_benchmark[:horizon]
@@ -53,14 +59,6 @@ def outcome_for_snapshot(conn, row, daily_cache=None):
                                [entry_benchmark] + benchmark_slice if entry_benchmark and len(benchmark_slice) == horizon else None)
         outcomes[field + '_return'] = ret
         outcomes[field + '_excess_return'] = excess
-    if len(after) >= 20:
-        target_date = after[19].get('date')
-        target_index = next((index for index, item in enumerate(daily) if item.get('date') == target_date), None)
-        if target_index is not None:
-            t20_chart = swing_model.classify_chart_regime(daily[:target_index + 1])
-            t20_regime = (t20_chart.get('currentRegime') or {}).get('key') or 'neutral'
-            outcomes['t20_regime'] = t20_regime
-            outcomes['t20_regime_changed'] = int(bool(initial_regime and t20_regime != initial_regime))
     return outcomes
 
 
@@ -70,12 +68,14 @@ def run(db_file=None):
     # 2026-08-21 코드 감사: t20_return까지 다 채워진 행은 더 이상 변하지 않는데(과거 확정
     # 가격이라) 조건 없이 매번 전량 재처리하고 있었다 - daily_scan.py가 거의 전종목에
     # 매일 새 스냅샷을 추가해 이 테이블이 무기한 누적되는 구조라, 시간이 갈수록 이 작업의
-    # 비용도 같이 늘어났음. t20_return이 아직 안 채워진(최근 20거래일이 안 지났거나, 상장폐지
-    # 등으로 영영 안 채워질) 행만 재처리하도록 좁힌다.
+    # 비용도 같이 늘어났음.
+    # 2026-08-22: 운영 기간이 2주(T+10 완결)로 좁혀지면서 완료 판정 컬럼도 t20_return에서
+    # t10_return으로 바꿨다 - t10_return이 아직 안 채워진(최근 10거래일이 안 지났거나,
+    # 상장폐지 등으로 영영 안 채워질) 행만 재처리한다.
     rows = conn.execute(
         '''SELECT as_of_date, code, model_version, chart_regime, current_regime, close
            FROM swing_recommendation_snapshots
-           WHERE model_version=? AND t20_return IS NULL ORDER BY code, as_of_date''',
+           WHERE model_version=? AND t10_return IS NULL ORDER BY code, as_of_date''',
         (swing_model.MODEL_VERSION,),
     ).fetchall()
     # 같은 code가 여러 as_of_date에 걸쳐 반복 등장하므로(위 ORDER BY로 같은 code끼리
@@ -85,7 +85,7 @@ def run(db_file=None):
     updated = 0
     for row in rows:
         outcomes = outcome_for_snapshot(conn, row, daily_cache)
-        if any(outcomes.get(key) is not None for key in ('t5_return', 't10_return', 't20_return')):
+        if any(outcomes.get(key) is not None for key in ('t5_return', 't10_return')):
             db_schema.update_swing_snapshot_outcome(
                 conn, row[0], row[1], row[2], outcomes)
             updated += 1

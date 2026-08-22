@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
-"""국내 46종목 4주 스윙 백테스트 재실행 도구.
+"""국내 46종목 2주 스윙 백테스트 재실행 도구.
 
 운영 VM의 daily_prices를 사용해 재현한다. 이 저장소에는 운영 SQLite와
 기존 46종목 결과 파일이 포함되지 않으므로, 로컬에서 임의의 시장 데이터를
 만들지 않는다. DB가 있으면 KRX_MAP의 국내 대표 종목 앞 46개를 고정된
 순서로 사용하고, --legacy-json이 있으면 구 모델 결과와 같은 신호일의
-T+5/T+10/T+20을 비교한다.
+T+5/T+10을 비교한다.
+
+2026-08-22: 운영 기간을 4주(T+5/T+10/T+20)에서 2주(T+5/T+10)로 좁히면서 이 도구도
+T+20 계산을 없앴다(--legacy-json 비교 시 옛 t20_return 필드가 있어도 newT20은 항상
+None으로 나온다 - 무해함, 새 모델 자체가 더 이상 T+20을 계산하지 않기 때문).
 
 구 모델 결과 형식(선택):
 {
   "signals": [{"code":"005930", "date":"2026-01-02", "entry": true,
-               "t5_return": 1.2, "t10_return": 2.0, "t20_return": 4.0}]
+               "t5_return": 1.2, "t10_return": 2.0}]
 }
 
 구 결과가 없을 때도 새 모델의 실제 가격 결과는 계산하되, 구·신 비교는
@@ -57,7 +61,7 @@ def _forward_returns(daily, index):
     if not entry:
         return {}
     result = {}
-    for label, horizon in (('t5', 5), ('t10', 10), ('t20', 20)):
+    for label, horizon in (('t5', 5), ('t10', 10)):
         target = index + horizon
         if target < len(daily) and daily[target].get('close'):
             result[label + '_return'] = round(daily[target]['close'] / entry * 100 - 100, 4)
@@ -67,7 +71,7 @@ def _forward_returns(daily, index):
 def evaluate_stock(conn, stock, min_history=60):
     daily = db_schema.load_daily_prices(conn, stock['code'])
     rows = []
-    for index in range(min_history, max(min_history, len(daily) - 20)):
+    for index in range(min_history, max(min_history, len(daily) - 10)):
         assessment = swing_model.build_swing_assessment(daily[:index + 1])
         chart = assessment['chartRegime']
         if chart['key'] not in ('uptrend', 'upturn'):
@@ -80,7 +84,7 @@ def evaluate_stock(conn, stock, min_history=60):
         if event.get('key') in ('fake_breakout', 'fake_breakdown', 'exhaustion'):
             continue
         outcome = _forward_returns(daily, index)
-        if 't20_return' not in outcome:
+        if 't10_return' not in outcome:
             continue
         rows.append({
             'code': stock['code'], 'name': stock['name'], 'date': daily[index]['date'],
@@ -99,15 +103,14 @@ def summarize(rows):
 
     def stats(items):
         if not items:
-            return {'signals': 0, 't5Avg': None, 't10Avg': None, 't20Avg': None,
-                    't5WinRate': None, 't10WinRate': None, 't20WinRate': None}
+            return {'signals': 0, 't5Avg': None, 't10Avg': None,
+                    't5WinRate': None, 't10WinRate': None}
         def avg(field):
             return round(sum(item[field] for item in items) / len(items), 4)
         def win(field):
             return round(sum(item[field] > 0 for item in items) / len(items) * 100, 2)
         return {'signals': len(items), 't5Avg': avg('t5_return'), 't10Avg': avg('t10_return'),
-                't20Avg': avg('t20_return'), 't5WinRate': win('t5_return'),
-                't10WinRate': win('t10_return'), 't20WinRate': win('t20_return')}
+                't5WinRate': win('t5_return'), 't10WinRate': win('t10_return')}
 
     by_regime = {key: stats(value) for key, value in sorted(grouped.items())}
     by_event = defaultdict(list)

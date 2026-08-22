@@ -1658,7 +1658,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         backend = self.read("scripts/cloud-vm/main.py")
         for token in (
             'data.hotCandidates && data.hotCandidates.domestic',
-            '4주 스윙 상승 후보', '국내 후보', '보유자 행동과 신규 진입을 분리',
+            '2주 스윙 상승 후보', '국내 후보', '보유자 행동과 신규 진입을 분리',
         ):
             self.assertIn(token, source)
         self.assertIn('.hwr-candidate-section .hwr-card-title strong.is-up', style)

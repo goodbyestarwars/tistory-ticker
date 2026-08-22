@@ -412,7 +412,7 @@ def main():
                     'createdAt': datetime.now(timezone.utc).isoformat(),
                     **assessment,
                 })
-                if swing_model.is_four_week_candidate(assessment):
+                if swing_model.is_two_week_candidate(assessment):
                     signal_state['swingCandidates'].append(row)
                 signal_state['counts'][verdict['label']] = signal_state['counts'].get(verdict['label'], 0) + 1
                 bucket = signal_state['buckets'].get(verdict['label'])

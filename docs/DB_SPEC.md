@@ -291,7 +291,7 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 
 행이 없으면 `sector_cards_config` 공용 기본값을 사용하고, DELETE 시 개인 편집본을 지워 기본값으로 돌아간다.
 
-### 2.15 `swing_recommendation_snapshots` — 국내 4주 스윙 판정 스냅샷
+### 2.15 `swing_recommendation_snapshots` — 국내 2주 스윙 판정 스냅샷
 
 복합 PK는 `(as_of_date, code, model_version)`이다. 차트 국면·대/중/소 파동·모멘텀·펀더멘털·위험·보유자 행동·신규 진입 의견을 판정 당시 값으로 보존한다. `wave_events_json`·`risk_reasons_json`·`auxiliary_states_json`은 상세 근거 배열을 JSON으로 저장한다.
 
@@ -304,7 +304,7 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 | 행동/비교 | `holder_action`, `entry_opinion`, `internal_priority_score`, `legacy_score`, `legacy_stars`, `legacy_label` |
 | 사후 검증 | `t5_return`, `t10_return`, `t20_return`, `t5_excess_return`, `t10_excess_return`, `t20_excess_return`, `t20_regime`, `t20_regime_changed`, `mfe`, `mae`, `outcome_updated_at` |
 
-구 레거시 별점·점수 컬럼은 회귀 비교용이며 새 판정의 단일 근거가 아니다. `daily_scan.py`가 판정 스냅샷을 저장하고 `monitor_swing_recommendations.py`가 T+5/T+10/T+20 결과를 후속 갱신한다.
+구 레거시 별점·점수 컬럼은 회귀 비교용이며 새 판정의 단일 근거가 아니다. `daily_scan.py`가 판정 스냅샷을 저장하고 `monitor_swing_recommendations.py`가 T+5/T+10 결과를 후속 갱신한다. **2026-08-22**: 운영 기간을 4주(T+5/T+10/T+20)에서 2주(T+5/T+10)로 좁히면서 `t20_*` 컬럼은 하위호환을 위해 스키마에 남겨뒀지만 더 이상 채워지지 않는다(옛 4주 모델 시절 값만 남아있음). `mfe`/`mae`도 이제 T+10(10거래일) 기준으로 계산한다.
 
 ---
 

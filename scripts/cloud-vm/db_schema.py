@@ -193,7 +193,8 @@ CREATE TABLE IF NOT EXISTS user_sector_cards_config (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
--- 2026-08: 국내 4주 스윙 추천의 재현 가능한 판정 스냅샷. legacy_*는
+-- 2026-08: 국내 2주 스윙 추천의 재현 가능한 판정 스냅샷(2026-08-22: 4주에서 2주로
+-- 운영 기간 축소, T+20 추적 제거 - monitor_swing_recommendations.py 참고). legacy_*는
 -- 구 별점 모델과의 회귀 비교용일 뿐 최종 행동을 결정하지 않는다. 결과값은
 -- daily_prices가 충분히 쌓인 뒤 monitor_swing_recommendations.py가 T+5/T+10/T+20을 채운다.
 CREATE TABLE IF NOT EXISTS swing_recommendation_snapshots (
@@ -387,17 +388,20 @@ def upsert_swing_snapshot(conn, snapshot):
 
 
 def update_swing_snapshot_outcome(conn, as_of_date, code, model_version, outcomes):
-    """Fill forward returns after T+5/T+10/T+20 become available."""
-    fields = ('t5_return', 't10_return', 't20_return', 't5_excess_return',
-              't10_excess_return', 't20_excess_return', 't20_regime',
-              't20_regime_changed', 'mfe', 'mae')
+    """Fill forward returns after T+5/T+10 become available.
+
+    2026-08-22: 운영 기간을 4주(T+5/T+10/T+20)에서 2주(T+5/T+10)로 좁히면서
+    t20_return/t20_excess_return/t20_regime/t20_regime_changed는 이 UPDATE에서
+    완전히 제외했다 - 컬럼 자체는 과거 데이터 호환을 위해 DB 스키마에 그대로 남겨두되
+    (옛 4주 모델 시절 데이터가 이미 값을 갖고 있음), 앞으로는 이 함수가 그 컬럼들을
+    아예 건드리지 않아서 기존 값이 실수로 NULL로 덮어써질 위험이 없다."""
+    fields = ('t5_return', 't10_return', 't5_excess_return', 't10_excess_return', 'mfe', 'mae')
     values = [outcomes.get(field) for field in fields]
     values.extend([outcomes.get('outcomeUpdatedAt') or ''])
     conn.execute(
         '''UPDATE swing_recommendation_snapshots SET
-           t5_return=?, t10_return=?, t20_return=?, t5_excess_return=?,
-           t10_excess_return=?, t20_excess_return=?, t20_regime=?,
-           t20_regime_changed=?, mfe=?, mae=?, outcome_updated_at=?
+           t5_return=?, t10_return=?, t5_excess_return=?,
+           t10_excess_return=?, mfe=?, mae=?, outcome_updated_at=?
            WHERE as_of_date=? AND code=? AND model_version=?''',
         values + [as_of_date, code, model_version],
     )

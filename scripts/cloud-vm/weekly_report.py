@@ -371,7 +371,7 @@ def candidate_stocks(board_data, cold=False, limit=5):
 
 
 def swing_candidates(swing_scan, limit=5):
-    """Return domestic 4-week candidates from the chart-gated daily scan.
+    """Return domestic 2-week candidates from the chart-gated daily scan.
 
     The weekly market-board ranks remain useful for retrospective hot/cold
     sections, but they are intentionally not allowed to create a forward
@@ -386,7 +386,7 @@ def swing_candidates(swing_scan, limit=5):
         assessment = row.get('swing') or row.get('assessment') or {}
         chart = assessment.get('chartRegime') or {}
         risk = assessment.get('risk') or {}
-        if not swing_model.is_four_week_candidate(assessment):
+        if not swing_model.is_two_week_candidate(assessment):
             continue
         entry = assessment.get('entryOpinion')
         recent_event = assessment.get('recentEvent') or chart.get('recentEvent') or {}
@@ -591,7 +591,7 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
         'hotCandidates': {
             'domestic': swing_candidates(domestic_swing_scan),
             'us': [],
-            'basis': '국내 4주 스윙 모델: 차트 국면 관문 → 모멘텀·펀더멘털 확인 → 위험 필터',
+            'basis': '국내 2주 스윙 모델: 차트 국면 관문 → 모멘텀·펀더멘털 확인 → 위험 필터',
         },
         'coldCandidates': {
             'domestic': [],

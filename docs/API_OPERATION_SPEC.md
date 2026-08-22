@@ -107,7 +107,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | `/order-book/{code}` | 없음 | 약 1.5초 | 호가·체결강도, 프론트 2초 폴링 |
 
 `daily_prices`의 대파동 판정은 224거래일 미만이면 억지로 장기 추세를 만들지 않는다.
-국내 4주 스윙 스냅샷의 `big_wave`, `mid_wave`, `small_wave`, 최근 이벤트와 근거는
+국내 2주 스윙 스냅샷의 `big_wave`, `mid_wave`, `small_wave`, 최근 이벤트와 근거는
 `ohlc_snapshot.db`에 함께 저장한다.
 
 ### 3.3 시장지표·뉴스·주간 리포트
