@@ -465,7 +465,21 @@ class MaCloudBreakoutDetectionTest(unittest.TestCase):
 
         self.assertIsNotNone(detail)
         self.assertLessEqual(abs(detail["ma224"] - 10000.0) / 10000.0, detector.MA_CLOUD_NEAR_TOL)
-        self.assertIn("5일선이 20일선 상향돌파", detail["reasons"][2])
+        # 2026-08-22: 골든크로스 요건이 완전히 제거돼 이제 조건이 224일선 근접 + 구름
+        # 상단 시도 2개뿐이다(reasons도 2개).
+        self.assertEqual(len(detail["reasons"]), 2)
+
+    def test_below_cloud_bottom_is_still_included(self):
+        """2026-08-22: 구름 하단을 뚫고 내려간 경우도 포함하라는 요청 - 상단만 안 넘었으면
+        통과해야 한다(구름 아래에서 다시 올라오는 중인 케이스). 구름[bottom=10000, top=10200]
+        기준으로 마지막 봉 종가만 하단 아래(9900)로 내리고 고가는 그대로 둔다(224일선과는
+        여전히 3% 이내)."""
+        daily = ma_cloud_breakout_daily()
+        daily[-1].update(high=10200.0, low=9850.0, close=9900.0)
+
+        detail = detector.detect_ma_cloud_breakout(daily)
+        self.assertIsNotNone(detail)
+        self.assertLess(detail["signal"]["price"], 10000.0)  # 종가가 구름 하단 아래
 
     def test_scan_exposes_ma_cloud_breakout_bucket(self):
         results = {"risingLows": [], "doubleBottom": [], "invHeadShoulders": [], "boxRangeLow": []}

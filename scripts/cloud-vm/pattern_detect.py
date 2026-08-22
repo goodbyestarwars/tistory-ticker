@@ -35,7 +35,6 @@ RISING_LOWS_WINDOW = 20
 MA_CLOUD_MIN_DAYS = 250
 MA_CLOUD_NEAR_TOL = 0.03       # 현재가와 224일선 사이 최대 3%
 MA_CLOUD_TOP_TOL = 0.03        # 구름 상단을 향한 현재 봉의 고가 근접도 최대 3%
-MA_CLOUD_CROSS_LOOKBACK = 5    # 최근 5봉 안의 5일선-20일선 골든크로스
 DOUBLE_BOTTOM_WINDOW = 120
 IHS_WINDOW = 90
 BOX_WINDOW = 21  # 20 bars for the range plus the 20-bars-ago reference bar
@@ -772,49 +771,38 @@ def detect_ma_cloud_breakout(daily):
     cloud = ichimoku_cloud_at(daily, last_index)
     if not cloud or cloud['top'] <= 0:
         return None
-    # 종가는 아직 구름 안에 있어야 하며, 고가는 상단에 닿거나 상단 3% 이내여야 한다.
-    if close < cloud['bottom'] or close > cloud['top']:
+    # 2026-08-22: 구름 하단을 뚫고 내려간 것도 통과시켜 달라는 요청 - 상단만 아직 안
+    # 뚫었으면(=돌파 완료가 아니면) 포함한다. 구름 아래에서 다시 올라오는 중인 케이스도
+    # "상승 초입"으로 볼 수 있다는 판단.
+    if close > cloud['top']:
         return None
     if daily[last_index]['high'] < cloud['top'] * (1 - MA_CLOUD_TOP_TOL):
         return None
 
-    cross_index = None
-    first_cross_index = max(1, last_index - MA_CLOUD_CROSS_LOOKBACK + 1)
-    for i in range(first_cross_index, last_index + 1):
-        if ma5[i - 1] is None or ma20[i - 1] is None or ma5[i] is None or ma20[i] is None:
-            continue
-        if ma5[i - 1] <= ma20[i - 1] and ma5[i] > ma20[i]:
-            cross_index = i
-    if cross_index is None:
-        return None
-
+    # 2026-08-22: 5일선-20일선 골든크로스 요건 완전 제거(사용자 요청) - 이제 224일선 근접+
+    # 구름 상단 시도 2가지만 필수 조건이다.
     ma5_now, ma20_now = ma5[last_index], ma20[last_index]
-    if ma5_now is None or ma20_now is None:
-        return None
 
     cloud_gap = (cloud['top'] - close) / cloud['top']
     score = clamp_score(
-        (35 if ma224_gap <= 0.015 else 25)
-        + (35 if cloud_gap <= 0.01 else 25)
-        + 30
+        (50 if ma224_gap <= 0.015 else 35)
+        + (50 if cloud_gap <= 0.01 else 35)
     )
     signal = {'date': daily[last_index]['date'], 'price': close}
     reasons = [
-        '224일선 근접도 %.1f%%(%d/35점)' % (ma224_gap * 100, 35 if ma224_gap <= 0.015 else 25),
-        '현재가 구름 안·상단 시도(%d/35점)' % (35 if cloud_gap <= 0.01 else 25),
-        '최근 %d봉 안 5일선이 20일선 상향돌파(30/30점)' % MA_CLOUD_CROSS_LOOKBACK,
+        '224일선 근접도 %.1f%%(%d/50점)' % (ma224_gap * 100, 50 if ma224_gap <= 0.015 else 35),
+        '현재가 구름 상단 시도(%d/50점)' % (50 if cloud_gap <= 0.01 else 35),
     ]
     return {
         'ma5': ma5_now,
         'ma20': ma20_now,
         'ma224': ma224_now,
         'cloud': cloud,
-        'cross': {'date': daily[cross_index]['date'], 'price': daily[cross_index]['close']},
         'signal': signal,
         'breakout': False,
         'score': score,
         'reasons': reasons,
-        'interpretation': '주가가 224일선 근처에서 일목 구름 안에 머물며 상단 돌파를 시도하고, 최근 %d봉 안에 5일선이 20일선을 상향돌파한 상승 초입으로 추정됩니다(%d점).' % (MA_CLOUD_CROSS_LOOKBACK, score),
+        'interpretation': '주가가 224일선 근처에서 일목 구름 상단 돌파를 시도하는 상승 초입으로 추정됩니다(%d점).' % score,
     }
 
 

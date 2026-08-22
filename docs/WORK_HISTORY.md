@@ -1,5 +1,41 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(2차) 이평 상승 초입형(`detect_ma_cloud_breakout`) 필수 조건 2개 완화/제거**:
+사용자 확인 결과 (1) 구름 하단을 뚫고 내려간 경우도 "상승 초입"으로 포함해야 함(상단만
+아직 안 넘었으면 통과 - 종가가 구름 아래에 있어도 제외하지 않도록 `close < cloud['bottom']`
+하한 제거, `close > cloud['top']` 상한만 유지), (2) 최근 5거래일 안 5일선-20일선
+골든크로스 요건은 완전히 제거(사용자: "골든 크로스 없어도 된다"). 이제 필수 조건은
+224일선 근접(3% 이내) + 구름 상단 시도(고가가 상단 3% 이내) 2개뿐이다. 점수 배점도
+기존 35/35/30(골든크로스 고정 30점) 구조에서 224일선50 + 구름상단시도50 2개로
+재배분했다(최저 70점 보장, 최고 100점). `js/pattern-scan.js` 탭 설명·신호 라벨 문구도
+갱신. `test/test_pattern_detect.py`의 골든크로스 관련 assertion을 수정하고, 구름 하단
+이탈 케이스가 포함되는지 확인하는 신규 테스트(`test_below_cloud_bottom_is_still_included`)를
+추가 - `python -m unittest test_pattern_detect` 27건 전부 통과. 이 함수는 GAS엔 대응
+구현이 없어(원래 4종만 GAS에 있었고 이평 상승 초입형은 VM 전용으로 나중에 추가됨) GAS
+동기화는 불필요. 단, `scripts/cloud-vm/ma_cloud_breakout.py`(전체이력 백테스트 전용,
+운영 미반영)는 원본과 동일한 상수·조건(골든크로스 포함)을 그대로 복제해둔 상태라 이번
+변경이 반영 안 돼 있음 - 이 백테스트 도구를 다시 쓸 일이 있으면 같이 갱신할 것.
+
+**2026-08-22 저점상승형(pattern_detect.detect_rising_lows/gas의 detectRisingLows_) 최소
+저점 상승폭 하한 추가**: 기업은행 실제 차트를 검토하다가, 박스권 안에서 저점이 0.4%~1%
+수준으로 미세하게만 올라간 종목도 저점상승형으로 잡혀 화면에 뜨는 문제가 리포트됨(미원에쓰씨
+같은 확실한 V자 반등만 남기고 싶다는 요청). "최근 저점이 직전 저점보다 조금이라도 높으면
+통과"였던 조건에 `WEDGE_MIN_LOW_RISE`(5%) 하한을 추가 - 이 값 미만이면 제외한다.
+5%로 정한 이유: 기존 회귀 테스트(`test_pattern_detect.py`)에 저점이 7.1%만 오른 "가온칩스"
+초기 반등 케이스가 의도적으로 포함(검색 결과에서 누락되면 안 됨, 2026-07-22 결정)돼 있어
+8%로 잡으면 이 케이스까지 걸러져 회귀가 발생했다 - 0.4%(박스권 노이즈, 제외 대상)와
+7.1%(가온칩스, 유지 대상) 사이인 5%를 하한으로 채택했다. `pattern_detect.py`와
+`gas/ticker-proxy.gs`의 `detectRisingLows_`(GAS `?patternScan=1`이 실제 라이브 스캔 소스)
+양쪽에 동일하게 반영(두 구현이 항상 일치해야 함). 점수 공식(고정 40/20/20/10/10점)은
+그대로 두고 하한을 통과 여부(포함/제외)로만 반영 - 통과한 케이스에서 상승폭 크기에 따라
+점수를 더 주는 방식은 시도했다가 "가온칩스"류(하한을 살짝 넘는 약한 케이스도 신뢰도 높게
+보여줘야 함) 테스트와 충돌해 되돌렸다. `test/test_pattern_detect.py`의
+`test_small_rise_and_short_gap_are_valid`를 `test_rise_below_min_threshold_is_excluded`(0.4%
+케이스는 이제 None)와 `test_short_gap_with_sufficient_rise_is_valid`(8%대 상승 유지)로
+분리하고 `python -m unittest test_pattern_detect`로 26개 전부 통과 확인. `js/pattern-scan.js`
+탭 설명 문구도 "8% 이상" → "5% 이상"으로 갱신. `gas/ticker-proxy.gs`는 GitHub Actions(clasp)가
+push 후 자동 배포한다.
+
 **2026-08-22 저점상승형(pattern_detect.detect_rising_lows/gas의 detectRisingLows_) 최소
 저점 상승폭 하한 추가**: 기업은행 실제 차트를 검토하다가, 박스권 안에서 저점이 0.4%~1%
 수준으로 미세하게만 올라간 종목도 저점상승형으로 잡혀 화면에 뜨는 문제가 리포트됨(미원에쓰씨
