@@ -273,3 +273,12 @@ html.dark .dmi-tab.is-active,
 html.dark .dmi-tab:hover,
 html.dark .dmi-tabs .dmi-draw-toggle:hover,
 html.dark .dmi-tabs .dmi-draw-clear:hover { border-color: #F5EFE0; color: #F5EFE0 !important; }
+
+/* 2026-08-22: "코스피·코스닥 주간현물" 헤더의 휴장/장마감 배지 -
+   js/kospi-futures.js의 .kf-stat-status와 동일한 톤(회색, 굵게)으로 통일. */
+.dmi-market-status {
+  font-weight: 600;
+  font-size: 13px;
+  color: #94a3b8;
+}
+html.dark .dmi-market-status { color: rgba(245, 239, 224, 0.4) !important; }

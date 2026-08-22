@@ -54,6 +54,30 @@
     });
   }
 
+  // 2026-08-22 요청: "코스피·코스닥 주간현물" 헤더가 주말에도 "(09:00~15:45)"만 보여서
+  // 장중인 것처럼 보인다는 지적 - js/kospi-futures.js의 isMarketOpen/isKrxHoliday와 같은
+  // 방식(KST 기준 요일+시각, 주말·공휴일은 별도 목록)으로 "(휴장)"/"(장 마감)" 배지를
+  // 추가한다. 이 위젯은 코스피·코스닥 현물(09:00~15:45, 야간 세션 없음)만 다루므로
+  // kospi-futures.js보다 단순한 단일 세션 판정이면 충분하다.
+  var KRX_HOLIDAYS_2026 = {
+    '20260101': true, '20260216': true, '20260217': true, '20260218': true,
+    '20260301': true, '20260302': true, '20260501': true, '20260505': true,
+    '20260525': true, '20260603': true, '20260606': true, '20260717': true,
+    '20260815': true, '20260817': true, '20260924': true, '20260925': true,
+    '20260926': true, '20261003': true, '20261005': true, '20261009': true,
+    '20261225': true, '20261231': true
+  };
+  function domesticCashMarketStatusLabel() {
+    var kst = new Date(Date.now() + 9 * 60 * 60000);
+    var day = kst.getUTCDay(); // 0=일 ... 6=토
+    var mins = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+    var dateKey = String(kst.getUTCFullYear()) + String(kst.getUTCMonth() + 1).padStart(2, '0') + String(kst.getUTCDate()).padStart(2, '0');
+    var isHoliday = day === 0 || day === 6 || !!KRX_HOLIDAYS_2026[dateKey];
+    var isWeekdayOpenHours = !isHoliday && mins >= 9 * 60 && mins < 15 * 60 + 45;
+    if (isWeekdayOpenHours) return '';
+    return isHoliday ? '(휴장)' : '(장 마감)';
+  }
+
   var LIVE_STATUS_STATE = { '실시간': 'live', '지연': 'stale', '연결 재시도': 'retry' };
 
   function setLiveStatus(text) {
@@ -706,7 +730,7 @@
     installStyle();
     root.innerHTML = '<div class="dmi-shell">'
       + '<div class="dmi-heading"><h2>국내시장지표</h2><span class="dmi-live-status" data-dmi-connection>REST 확인 중</span></div>'
-      + '<section class="dmi-chart-section"><div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45)</h3></div>'
+      + '<section class="dmi-chart-section"><div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45) <span class="dmi-market-status" data-dmi-market-status></span></h3></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div></section>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
@@ -714,6 +738,8 @@
       + '<div class="dmi-ai" id="dmiFundsAi" hidden></div>'
       + '<div class="dmi-fund-grid"><div class="dmi-fund-card">데이터 준비 중</div><div class="dmi-fund-card">데이터 준비 중</div></div>'
       + '</div>';
+    var marketStatusNode = root.querySelector('[data-dmi-market-status]');
+    if (marketStatusNode) marketStatusNode.textContent = domesticCashMarketStatusLabel();
     fetchJson().then(function (data) {
       root._dmiData = data;
       renderCharts(root, data.indices || {});
@@ -725,7 +751,10 @@
     });
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) closeSocket(false);
-      else { connectSocket(); fetchJson().then(function (data) { root._dmiData = data; renderCharts(root, data.indices || {}); }).catch(function () {}); }
+      else {
+        if (marketStatusNode) marketStatusNode.textContent = domesticCashMarketStatusLabel();
+        connectSocket(); fetchJson().then(function (data) { root._dmiData = data; renderCharts(root, data.indices || {}); }).catch(function () {});
+      }
     });
     global.addEventListener('beforeunload', function () { closeSocket(false); });
     var fundsAiBox = root.querySelector('#dmiFundsAi');
