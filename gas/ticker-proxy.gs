@@ -2663,6 +2663,10 @@ var WEDGE_MIN_LOW_RISE = 0.05;
 // 좌우 PATTERN_SWING(2)봉을 확인해야 하는 구조라 이론상 가장 최근이어도 끝에서 2봉 전이
 // 최소값 - 그 최소값 바로 위(3)로 빡빡하게 잡아 "이미 지나간 패턴"을 걸러낸다.
 var RECENCY_MAX_GAP = 3;
+// 2026-08-22(3차): ascending_triangle.py(고점 막힘/수렴 전용 분석 모듈)의 "저점-고점
+// 간격이 갈수록 좁혀져야 한다" 필수 조건을 라이브 저점상승형에도 연결(사용자 확인).
+// pattern_detect.py의 동일 상수와 반드시 같이 유지할 것.
+var RESISTANCE_MAX_DECLINE_PCT = 0.15;
 
 var DB_LOW_TOL = 0.02;
 var DB_MIN_GAP_DAYS = 12;
@@ -3158,8 +3162,20 @@ function detectRisingLows_(daily) {
   });
   var current = { date: win[win.length - 1].date, price: lastClose };
 
-  // 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은
-  // 추세 전환 확인 신호이지, 아직 형성 중인 저점상승형을 제외할 필수 조건은 아니다.
+  // 2026-08-22(3차): "저점상승형은 Higher Low만 보고 고점이 뭘 하든 신호는 뜬다"던 예전
+  // 설계를 사용자 확인 하에 뒤집는다 - ascending_triangle.py의 "저점-고점 간격이 갈수록
+  // 좁혀져야 한다"는 필수 조건을 여기도 그대로 요구한다. 고점 비교 구간은 화면에도 쓰는
+  // 저점 계단(runStart~끝)과 같은 날짜 범위로 맞춘다.
+  var runStartIdx = lowIdxs[runStart];
+  var highsInRun = highIdxs.filter(function (idx) { return idx >= runStartIdx; });
+  if (highsInRun.length < WEDGE_MIN_SWINGS) return null;
+  var highFirst = win[highsInRun[0]].high;
+  var highLast = win[highsInRun[highsInRun.length - 1]].high;
+  var lowFirst = win[lowIdxs[runStart]].low;
+  var declineOk = highFirst > 0 && (highFirst - highLast) / highFirst <= RESISTANCE_MAX_DECLINE_PCT;
+  var converging = (highLast - lastLow) < (highFirst - lowFirst);
+  if (!(declineOk && converging)) return null;
+
   // ---- 점수(100점): 저점상승폭40 + 저점간격20 + 5일선저항20 + 거래량감소10 + 최근양봉10 ----
   var higherLowScore = 40;
   var recentLowScore = 20;

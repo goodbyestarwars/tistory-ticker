@@ -46,6 +46,13 @@ WEDGE_MIN_SWINGS = 2
 # 동일 상수와 반드시 같이 유지할 것.
 WEDGE_MIN_LOW_RISE = 0.05
 RECENCY_MAX_GAP = 3
+# 2026-08-22(3차): ascending_triangle.py(고점 막힘/수렴까지 보는 별도 분석 전용 모듈)의
+# "저점-고점 간격이 갈수록 좁혀져야 한다" 필수 조건을 라이브 저점상승형 탭에도 그대로
+# 연결한다(사용자 확인: 가온칩스처럼 고점이 아직 안 좁혀진 초기 반등 케이스는 이제 제외돼도
+# 됨 - 예전 설계를 의도적으로 뒤집는 것). RESISTANCE_MAX_DECLINE_PCT는 ascending_triangle.py와
+# 동일값 재사용(그쪽에서 이미 임의로 정했다고 문서화된 값). gas/ticker-proxy.gs의
+# 동일 상수와 반드시 같이 유지할 것.
+RESISTANCE_MAX_DECLINE_PCT = 0.15
 
 DB_LOW_TOL = 0.03
 DB_MIN_GAP_DAYS = 10
@@ -755,11 +762,25 @@ def detect_rising_lows(daily):
     ]
     current = {'date': win[-1]['date'], 'price': last_close}
 
-    # 저점상승형은 Higher Low 자체를 먼저 포착한다. Higher High와 20일선 상승은
-    # 추세 전환 확인 신호이지, 아직 형성 중인 저점상승형을 제외할 필수 조건은 아니다.
-    # 이 구분을 하지 않으면 가온칩스처럼 저점은 높아졌지만 고점/20일선은 아직 낮은
-    # 초기 반등 종목이 검색 결과에서 누락된다.
-    # 점수는 참고용이다. 검색 포함 여부는 위의 Higher Low 조건만으로 결정한다.
+    # 2026-08-22(3차): "저점상승형은 Higher Low만 보고, 고점이 뭘 하든 신호는 뜬다"던
+    # 예전 설계(가온칩스처럼 고점/20일선이 아직 안 따라온 초기 반등도 포착하려는 의도)를
+    # 사용자 확인 하에 뒤집는다 - ascending_triangle.py(고점 막힘/수렴 전용 분석 모듈)의
+    # "저점-고점 간격이 갈수록 좁혀져야 한다"는 필수 조건을 여기에도 그대로 요구한다.
+    # 이제 고점이 아직 안 좁혀진 가온칩스류 초기 반등은 저점상승형에서 제외된다.
+    # 고점 쪽 비교 구간은 화면에도 쓰는 저점 계단(run_start~끝)과 같은 날짜 범위로 맞춘다.
+    run_start_idx = low_idxs[run_start]
+    highs_in_run = [i for i in high_idxs if i >= run_start_idx]
+    if len(highs_in_run) < WEDGE_MIN_SWINGS:
+        return None
+    high_first = win[highs_in_run[0]]['high']
+    high_last = win[highs_in_run[-1]]['high']
+    low_first = win[low_idxs[run_start]]['low']
+    decline_ok = high_first > 0 and (high_first - high_last) / high_first <= RESISTANCE_MAX_DECLINE_PCT
+    converging = (high_last - last_low) < (high_first - low_first)
+    if not (decline_ok and converging):
+        return None
+
+    # 점수는 참고용이다. 검색 포함 여부는 위의 Higher Low + 고점 수렴 조건으로 결정한다.
     higher_low_score = 40
     recent_low_score = 20
 

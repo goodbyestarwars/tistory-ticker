@@ -10,8 +10,16 @@ sys.path.insert(0, str(ROOT / "scripts" / "cloud-vm"))
 import pattern_detect as detector
 
 
-def early_higher_low_daily():
-    """Higher Low is present while the latest High and MA20 are still falling."""
+def early_higher_low_daily(capped_highs=False):
+    """Higher Low is present while the latest High and MA20 are still falling.
+
+    2026-08-22(3차): 라이브 저점상승형에 ascending_triangle.py의 "저점-고점 간격이
+    갈수록 좁혀져야 한다" 조건을 필수로 연결하면서, 이 픽스처가 원래 나타내던
+    "고점이 아직 안 좁혀진 초기 반등"은 이제 제외 대상이 됐다(사용자 확인). 그 반전을
+    확인하는 테스트는 capped_highs=False(기본값, 고점이 여전히 안 좁혀진 원본)를 쓰고,
+    다른 목적(rebound cap, 랭킹 한도)의 기존 테스트가 계속 통과해야 하면
+    capped_highs=True로 평평한 저항선(고점 2개, 같은 값)을 추가해 수렴 조건을
+    trivial하게 만족시킨다."""
     daily = []
     for i in range(60):
         close = 60000 - i * 150
@@ -37,6 +45,13 @@ def early_higher_low_daily():
     daily[57].update(open=43000, high=44000, low=42800, close=43500)
     daily[58].update(open=44500, high=46000, low=44000, close=45500)
     daily[59].update(open=46000, high=46850, low=45500, close=46850)
+    if capped_highs:
+        # low 필드는 그대로 두고 high만 평평하게 띄워 "저점-고점 간격이 좁혀지는지" 조건을
+        # 저점 상승 자체만으로 trivial하게 통과시킨다(고점이 평평하면 간격은 저점이 오른
+        # 만큼 그대로 좁혀짐). 판정에 실제로 쓰이는 저점 구간(스윙 저점 50/57번째 봉)과
+        # 같은 구간 안(52/56번째 봉)에 있어야 "고점 비교 구간"에 포함된다.
+        daily[52].update(high=70000)
+        daily[56].update(high=70000)
     return daily
 
 
@@ -56,6 +71,11 @@ def compact_higher_low_daily(second_low_close=100.4):
         })
     for i, close in ((8, 100), (9, 111), (10, 112), (11, 113), (12, second_low_close), (13, 114), (14, 115)):
         daily[i].update(open=close, high=close + 1, low=close - 1, close=close)
+    # 2026-08-22(3차): ascending_triangle.py의 "저점-고점 간격이 좁혀져야 한다" 조건이
+    # 라이브 저점상승형에도 필수로 붙으면서, 저점 상승폭 자체만 보는 이 픽스처가 계속
+    # 통과하도록 평평한 저항선(고점 2개, 같은 값)을 8~14 다음 구간(15, 17)에 추가한다.
+    daily[15].update(high=140)
+    daily[17].update(high=140)
     for row in daily:
         for field in ("open", "high", "low", "close"):
             row[field] *= 100
@@ -274,7 +294,7 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertIsNotNone(detail_snapshot["from_latest_low_pct"])
 
     def test_higher_low_does_not_use_a_fixed_rebound_cap(self):
-        daily = early_higher_low_daily()
+        daily = early_higher_low_daily(capped_highs=True)
         # 현재가가 마지막 스윙 저점 42,800원보다 16% 이상 높아도
         # 저점상승형 판정 자체는 유지한다. 완성된 돌파는 scan_stock의
         # breakout 필터가 검색 결과에서 제외한다.
@@ -285,9 +305,16 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertIsNotNone(detail)
         self.assertGreaterEqual(detail["score"], 70)
 
-    def test_early_higher_low_is_not_blocked_by_confirmation_signals(self):
+    # 2026-08-22(3차) 신설: ascending_triangle.py의 "저점-고점 간격이 갈수록 좁혀져야
+    # 한다" 조건을 라이브 저점상승형에 연결하면서(사용자 확인), 이 픽스처가 원래 나타내던
+    # "고점이 아직 안 좁혀진 초기 반등"(가온칩스류)은 이제 저점상승형에서 제외된다 -
+    # 예전 테스트(같은 이름, "차단되면 안 된다")를 정확히 반전시킨 회귀 테스트로 바꾼다.
+    def test_early_higher_low_without_converging_highs_is_now_excluded(self):
         detail = detector.detect_rising_lows(early_higher_low_daily())
+        self.assertIsNone(detail)
 
+    def test_early_higher_low_is_included_once_highs_converge(self):
+        detail = detector.detect_rising_lows(early_higher_low_daily(capped_highs=True))
         self.assertIsNotNone(detail)
         self.assertGreaterEqual(detail["score"], 70)
         self.assertTrue(any("스윙 저점 순차 상승" in reason for reason in detail["reasons"]))
@@ -316,6 +343,11 @@ class RisingLowsDetectionTest(unittest.TestCase):
         daily[10].update(open=dip2_low + 1, high=dip2_low + 2, low=dip2_low, close=dip2_low + 1)
         daily[17].update(open=dip3_low + 1, high=dip3_low + 2, low=dip3_low, close=dip3_low + 1)
         daily[19].update(open=96, high=100, low=95, close=max(98, dip3_low + 8))  # 현재가 - 마지막 저점 위
+        # 2026-08-22(3차): ascending_triangle.py의 "저점-고점 간격이 좁혀져야 한다" 조건이
+        # 라이브 저점상승형에도 필수로 붙으면서, 이 조건과 무관한 테스트(저점 계단 표시
+        # 범위 검사)가 계속 통과하도록 평평한 저항선(고점 2개, 같은 값)을 추가한다.
+        daily[12].update(high=300)
+        daily[16].update(high=300)
         return daily
 
     def test_rising_lows_chart_shows_the_full_monotonic_staircase(self):
@@ -333,7 +365,7 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertIsNotNone(detail)
         self.assertEqual([p["price"] for p in detail["low_swings"]], [80, 90])
 
-    def test_scan_includes_early_higher_low(self):
+    def test_scan_includes_early_higher_low_once_highs_converge(self):
         results = {
             "risingLows": [],
             "doubleBottom": [],
@@ -343,7 +375,7 @@ class RisingLowsDetectionTest(unittest.TestCase):
 
         detector.scan_stock(
             {"code": "399720", "name": "가온칩스"},
-            early_higher_low_daily(),
+            early_higher_low_daily(capped_highs=True),
             results,
             [],
         )
@@ -360,7 +392,7 @@ class RisingLowsDetectionTest(unittest.TestCase):
 
         detector.scan_stock(
             {"code": "399720", "name": "가온칩스"},
-            early_higher_low_daily(),
+            early_higher_low_daily(capped_highs=True),
             results,
             [],
         )
