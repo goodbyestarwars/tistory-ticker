@@ -19,7 +19,7 @@ if PANDAS_AVAILABLE:
     import gongpasan_strategy as gp
 
 
-def _decline_gongguri_breakout_pullback_rows():
+def _decline_gongguri_breakout_pullback_rows(volume_scale=50):
     """역매공파 4단계를 전부 통과하도록 설계한 합성 OHLC:
     160일 이상 -50% 급락(낙폭과대) -> 45일 좁은 횡보(공구리, 중간에 매집봉 1개) ->
     단 하루 만에 5봉 고가+5일선을 동시에 뚫는 오돌이 돌파 -> 며칠 상승 후 20일선까지
@@ -77,6 +77,12 @@ def _decline_gongguri_breakout_pullback_rows():
         rows.append({'date': cursor.isoformat(), 'open': base * 1.005, 'high': base + 20,
                       'low': base - 40, 'close': base, 'volume': 35000})
         cursor += timedelta(days=1)
+    # 2026-08-22: 매집봉/오돌이 거래대금 조건(각각 100억/300억 이상)이 신설되면서, 원래
+    # 저가/저거래량 합성 종목(가격 1만원대 x 거래량 5만주 안팎)은 거래대금이 10~20억원
+    # 수준밖에 안 나와 항상 미달이었다 - 상대적 비율(거래량 배수·몸통%) 조건은 그대로
+    # 두고 거래량만 절대 배수로 키워서 거래대금 조건도 통과하게 했다(가격은 안 건드림).
+    for r in rows:
+        r['volume'] *= volume_scale
     return rows, breakout_idx, entry_idx
 
 
@@ -177,6 +183,69 @@ class GongpasanStrategyTests(unittest.TestCase):
 
     def test_summarize_backtest_returns_none_when_no_trades(self):
         self.assertIsNone(gp.summarize_backtest([]))
+
+    # 2026-08-22 신설(작업지시서 1~4단계) --------------------------------------------
+
+    def test_daejip_requires_min_trading_value(self):
+        """거래량 배수·몸통% 조건은 그대로 만족해도(volume_scale=1이면 원래 저유동성
+        합성종목), 매집봉 당일 거래대금이 100억 미만이면 has_daejip_bong이 없어야 한다."""
+        rows, _, _ = _decline_gongguri_breakout_pullback_rows(volume_scale=1)
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = gp.calculate_gongpasan_signal('005930', conn=object())
+        self.assertFalse(df['has_daejip_bong'].any())
+
+    def test_odori_requires_min_trading_value(self):
+        """거래대금이 부족하면(volume_scale=1) 오돌이 조건 자체가 안 뜬다."""
+        rows, _, _ = _decline_gongguri_breakout_pullback_rows(volume_scale=1)
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = gp.calculate_gongpasan_signal('005930', conn=object())
+        self.assertFalse(df['is_odori'].any())
+
+    def test_gongguri_requires_ma_converge_even_within_range_tolerance(self):
+        """40일 종가 변동폭이 25% 이내라도, 그 구간 안에서 20일선-60일선 이격도가 한 번도
+        5% 이내로 수렴하지 않으면(계단식 하락 중 일시 횡보) is_gongguri가 False여야 한다."""
+        rows = []
+        cursor = date(2023, 1, 1)
+        price = 20000.0
+        # 60일선이 현재가보다 계속 훨씬 높게 유지되도록 급격한 하락(-4%/일 x 80일) 후,
+        # 마지막 40일은 거의 평평하게(변동폭 <=25% 유지) - 60일선에는 급락 구간이 여전히
+        # 섞여 있어 20일선과 5% 넘게 벌어진 채로 유지된다(실측: 갭 약 15%).
+        for _ in range(80):
+            price *= 0.96
+            rows.append({'date': cursor.isoformat(), 'open': price, 'high': price + 10,
+                         'low': price - 10, 'close': price, 'volume': 500000})
+            cursor += timedelta(days=1)
+        base = price
+        for i in range(40):
+            c = base * (1 - 0.0002 * i)  # 아주 완만하게만 더 하락(40일 변동폭 <=25% 유지)
+            rows.append({'date': cursor.isoformat(), 'open': c, 'high': c + 10, 'low': c - 10,
+                         'close': c, 'volume': 500000})
+            cursor += timedelta(days=1)
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = gp.calculate_gongpasan_signal('005930', rows=rows)
+        # 마지막 40일 구간 자체의 변동폭은 좁지만, 60일선에는 그 이전의 가파른 하락 구간이
+        # 섞여 들어가 있어 20일선과 계속 5% 넘게 벌어져 있어야 한다.
+        self.assertFalse(bool(df['is_gongguri'].iloc[-1]))
+
+    def test_entry_quality_marks_bullish_close_as_high(self):
+        rows, breakout_idx, _ = _decline_gongguri_breakout_pullback_rows()
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = gp.calculate_gongpasan_signal('005930', conn=object())
+        entry_idxs = df.index[df['entry_signal']].tolist()
+        self.assertTrue(entry_idxs, '이 합성 데이터는 진입 신호가 최소 1회 떠야 한다')
+        for idx in entry_idxs:
+            row = df.iloc[idx]
+            is_bullish_or_wick = (row['close'] > row['open']) or (
+                min(row['open'], row['close']) - row['low'] > abs(row['close'] - row['open']))
+            expected = 'high' if is_bullish_or_wick else 'low'
+            self.assertEqual(row['entry_quality'], expected)
+
+    def test_entry_quality_is_none_when_no_entry_signal(self):
+        rows, _, _ = _decline_gongguri_breakout_pullback_rows()
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = gp.calculate_gongpasan_signal('005930', conn=object())
+        non_entry = df[~df['entry_signal']]
+        self.assertTrue(non_entry['entry_quality'].isna().all())
 
 
 if __name__ == '__main__':
