@@ -571,7 +571,7 @@
       return;
     }
     if (!/^\d{6}$/.test(query)) {
-      resultsBox.innerHTML = '<div class="ss-hint"><div class="ss-spinner"></div>한국·미국 종목을 찾는 중...</div>';
+      resultsBox.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>한국·미국 종목을 찾는 중...</div>';
       fetchUsSearch(query).then(function (rows) {
         if (rows.length) {
           openUsSymbol(container, rows[0].code);
@@ -601,7 +601,7 @@
       return;
     }
 
-    resultsBox.innerHTML = '<div class="ss-hint"><div class="ss-spinner"></div>시세를 불러오는 중...</div>';
+    resultsBox.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>시세를 불러오는 중...</div>';
 
     var items = names.map(function (name) { return { name: name, code: map[name] }; });
     var codes = items.map(function (it) { return it.code; });
@@ -1089,7 +1089,7 @@
       renderChartForCode(container, code);
       return;
     }
-    chartEl.innerHTML = '<div class="ss-hint"><div class="ss-spinner"></div>차트를 불러오는 중...</div>';
+    chartEl.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div>';
     fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code))
       .then(function (data) {
         if (!data || data.error || !data.daily || !data.daily.length) throw new Error('NO_DATA');
@@ -1521,7 +1521,7 @@
       renderLwChart(chartEl, cached.bars, 'minute');
       return;
     }
-    chartEl.innerHTML = '<div class="ss-hint"><div class="ss-spinner"></div>분봉을 불러오는 중...</div>';
+    chartEl.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>분봉을 불러오는 중...</div>';
     fetchJson(VM_OHLC_MINUTE_URL + encodeURIComponent(code) + '?tic_scope=1')
       .then(function (json) {
         var bars = minuteRowsToBars((json && json.data) || []);

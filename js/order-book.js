@@ -238,7 +238,7 @@
     if (state.timer) clearInterval(state.timer);
 
     var board = container.querySelector('#obBoard');
-    board.innerHTML = '<div class="ob-hint"><div class="ob-spinner"></div>' + escapeHtml(name) + ' 호가 불러오는 중...</div>';
+    board.innerHTML = '<div class="ob-hint"><svg class="ob-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + escapeHtml(name) + ' 호가 불러오는 중...</div>';
     var toast = container.querySelector('#obToast');
     if (toast) { toast.className = 'ob-toast'; toast.textContent = ''; }
     var milestoneBox = container.querySelector('#obMilestones');

@@ -402,7 +402,7 @@
     // 이 패턴은 구름 안·상단 시도가 핵심이므로 상세 차트에서 구름을 기본으로 켠다.
     psIchimokuEnabled = activeTab === 'maCloudBreakout';
     detail.hidden = false;
-    detail.innerHTML = '<div class="ps-loading"><div class="ps-spinner"></div><div>' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div></div>';
+    detail.innerHTML = '<div class="ps-loading"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div></div>';
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     PatternScan.fetchJson(GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code)

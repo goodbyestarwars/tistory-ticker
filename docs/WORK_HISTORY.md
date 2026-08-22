@@ -1,5 +1,17 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(27차) 로딩 표시를 원형 스피너 -> 심장박동 모니터(ECG) 파형으로 전면 교체**:
+사용자 요청("모든 페이지에서") - 종목분석(`js/foreign-flow.js`)·호가창(`js/order-book.js`)·
+패턴스캔(`js/pattern-scan.js`)·종목검색(`js/stock-search.js`) 4개 페이지, 총 11곳의 로딩
+스피너를 전부 교체했다. 기존엔 4개 페이지가 각자 `border-top-color` 회전 원(`@keyframes
+xx-spin`)을 개별 구현하고 있었는데, `pathLength="100"` 폴리라인 + `stroke-dashoffset`
+애니메이션(SVG2, 실제 좌표 길이와 무관하게 0~100 단위로 다룰 수 있음)으로 통일했다.
+색상은 `currentColor`를 써서 다크모드 오버라이드가 `color` 한 줄로 단순화됐다(기존엔
+`border-color`/`border-top-color` 두 줄씩 있었음). 크기는 22px 정사각형에서 72×28px
+가로 스트립으로 키웠다(사용자 확인: "좀 더 크게"). 진행 중 sed 일괄치환이 무관한 아이콘
+크기(`.ff-sig-icon`/`.ff-panel-header-icon`, 18px 정사각형)까지 실수로 건드린 걸
+git diff로 발견해 원복했다. `test/test_ui_ia.py` 100건, 4개 JS 파일 문법 검사 통과.
+
 **2026-08-22(26차) 저점상승형에 고점 수렴/막힘 필수 조건 연결(가온칩스류 초기 반등 제외로 반전)**:
 사용자가 하림지주 실제 차트를 예로 들며 "저점만 오르는 게 아니라 고점도 막혀있거나
 수렴해야 진짜 저점상승형 아니냐"고 지적하고, 이미 만들어져 있던 `ascending_triangle.py`

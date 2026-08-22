@@ -537,7 +537,7 @@
       bannerBox.hidden = true;
       bannerBox.innerHTML = '';
     }
-    if (panelBox) panelBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(name) + ' 불러오는 중...</div></div>';
+    if (panelBox) panelBox.innerHTML = '<div class="ff-loading"><svg class="ff-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>' + escapeHtml(name) + ' 불러오는 중...</div></div>';
     syncSignalPanelHeight(container);
 
     // 2026-08-20: search()와 동일하게 실패 원인을 flowErr_/chartErr_에 남겨 최종 에러
@@ -1120,7 +1120,7 @@
       return;
     }
 
-    resultBox.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>' + escapeHtml(resolved.name) + ' 분석 중입니다. (가격 차트는 최초 조회 시 다소 걸릴 수 있어요)</div></div>';
+    resultBox.innerHTML = '<div class="ff-loading"><svg class="ff-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>' + escapeHtml(resolved.name) + ' 분석 중입니다. (가격 차트는 최초 조회 시 다소 걸릴 수 있어요)</div></div>';
 
     // 2026-07-20 사용자 피드백: 종목을 조회하면 위 투자시그널 카운트/탭 영역은 화면만
     // 길어지게 하므로 숨긴다(랭킹 행 클릭이든 직접 입력 검색이든 동일하게 적용).
@@ -1736,7 +1736,7 @@
   }
 
   function loadNewsMomentum(box, code, name) {
-    box.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>뉴스·검색 관심도 모멘텀을 불러오는 중...</div></div>';
+    box.innerHTML = '<div class="ff-loading"><svg class="ff-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>뉴스·검색 관심도 모멘텀을 불러오는 중...</div></div>';
     // 테스트 페이지에서 외부 VM 호출 없이 고정 데이터를 주입할 수 있도록 공개 API를 경유한다.
     var api = global.ForeignFlow && global.ForeignFlow.fetchNewsMomentum
       ? global.ForeignFlow.fetchNewsMomentum : fetchNewsMomentum;
@@ -1821,7 +1821,7 @@
       renderFundamentalsPanel(box, fundamentalsCache[code], name);
       return;
     }
-    box.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>펀더멘탈 데이터를 불러오는 중...</div></div>';
+    box.innerHTML = '<div class="ff-loading"><svg class="ff-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>펀더멘탈 데이터를 불러오는 중...</div></div>';
     fetchFundamentals(code, name).then(function (res) {
       renderFundamentalsPanel(box, res, name);
     }).catch(function () {
@@ -3155,7 +3155,7 @@
       if (!btn || btn.classList.contains('active')) return;
       var days = Number(btn.getAttribute('data-days'));
       wrap.querySelectorAll('.ff-flow-period-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
-      chartsWrap.innerHTML = '<div class="ff-loading"><div class="ff-spinner"></div><div>불러오는 중...</div></div>';
+      chartsWrap.innerHTML = '<div class="ff-loading"><svg class="ff-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>불러오는 중...</div></div>';
       ForeignFlow.fetchFlow(code, name, days)
         .then(function (data) {
           if (!data || data.error || !data.daily || !data.daily.length) throw new Error('기간 데이터 없음');
