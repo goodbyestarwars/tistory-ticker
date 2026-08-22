@@ -14,10 +14,7 @@
   height: 42px;
   margin: 0 auto 8px;
   overflow: visible;
-  /* 2026-08-23 요청: 실제 ECG 모니터처럼 빛나는 형광 녹색으로 변경(사용자 제공 참고
-     이미지) - 라이트/다크 모드 공통으로 이 색을 쓴다(모니터 그린은 밝은 배경에서도
-     또렷하게 보임, 기존 사이트 부호색 규칙과는 무관한 장식용 로딩 인디케이터라 예외). */
-  color: #39ff6a;
+  color: #1261c4;
 }
 .hb-spinner polyline {
   fill: none;
@@ -27,7 +24,6 @@
   stroke-linejoin: round;
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
-  filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 8px currentColor);
   animation: hb-heartbeat 1.6s linear infinite;
 }
 @keyframes hb-heartbeat {
@@ -35,7 +31,7 @@
   70% { stroke-dashoffset: 0; }
   100% { stroke-dashoffset: -20; }
 }
-html.dark .hb-spinner { color: #39ff6a; }
+html.dark .hb-spinner { color: #F5EFE0; }
 
 /* 2026-07-16: 상단 market-ribbon(코스피/코스닥/원달러/BTC 고정바)을 완전히 걷어내고
    그 자리를 없앴다(js/market-ribbon.js가 #market-ribbon을 display:none 처리) - navbar가
