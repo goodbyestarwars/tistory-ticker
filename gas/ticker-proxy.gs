@@ -3037,6 +3037,16 @@ function maxHighBetween_(win, i1, i2) {
   return idx === -1 ? null : { date: win[idx].date, high: maxHigh };
 }
 
+// 2026-08-22: 쌍바닥 두 저점 사이(양끝 포함)에 그보다 더 낮은 저가가 있는지 확인하는 용도 -
+// maxHighBetween_과 짝을 이루는 헬퍼(pattern_detect.py의 min_low_between과 동일).
+function minLowBetween_(win, i1, i2) {
+  var minLow = Infinity;
+  for (var k = i1; k <= i2; k++) {
+    if (win[k].low < minLow) minLow = win[k].low;
+  }
+  return minLow === Infinity ? null : minLow;
+}
+
 // period 이동평균 시리즈(win과 같은 길이, 앞쪽 period-1개는 null). 저점상승형(5일선)·
 // 눌림목(20일선/60일선) 점수 계산에서 공용으로 쓴다.
 function movingAverage_(win, field, period) {
@@ -3193,6 +3203,11 @@ function detectDoubleBottom_(daily) {
       var low1 = win[i1].low, low2 = win[i2].low;
       var diff = Math.abs(low1 - low2) / Math.min(low1, low2);
       if (diff > DB_LOW_TOL) continue; // 가격 차이 ±2%
+
+      // 2026-08-22 추가: 두 저점 사이에 그보다 더 낮은 저가가 있으면(허용오차 2% 넘게)
+      // 진짜 W자 바닥이 아니라 중간 저점이 더 낮은 삼중바닥/하락 추세로 봐야 하므로 무효 처리.
+      var betweenMin = minLowBetween_(win, i1, i2);
+      if (betweenMin != null && betweenMin < Math.min(low1, low2) * 0.98) continue;
 
       // 2026-07-22 개편: 두 번째 저점 거래량이 첫 번째 저점 이하 - 저점을 다지면서
       // 매도 압력이 줄어드는 정상적인 바닥 형성 신호인지 확인

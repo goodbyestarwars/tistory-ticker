@@ -163,6 +163,15 @@ def max_high_between(win, i1, i2):
     return {'date': win[idx]['date'], 'high': float(highs[local_idx])}
 
 
+def min_low_between(win, i1, i2):
+    """i1~i2 사이(양끝 포함)의 최저 저가. 쌍바닥 두 저점 사이에 그보다 더 낮은 저가가
+    끼어있는지(무효 조합) 확인하는 용도 - max_high_between과 짝을 이루는 헬퍼."""
+    if i2 < i1:
+        return None
+    lows = np.array([win[k]['low'] for k in range(i1, i2 + 1)], dtype=float)
+    return float(np.min(lows))
+
+
 def moving_average(win, field, period):
     """2026-08-21: pandas rolling().mean()으로 벡터화했다가 되돌렸다 - pandas의
     내부 합산 순서가 원래의 슬라이딩 합(누적 +=/-=)과 미세하게(마지막 자리수) 달라서,
@@ -839,6 +848,13 @@ def detect_double_bottom(daily):
             low1, low2 = win[i1]['low'], win[i2]['low']
             diff = abs(low1 - low2) / min(low1, low2)
             if diff > DB_LOW_TOL:
+                continue
+
+            # 2026-08-22 추가: 두 저점 사이에 그보다 더 낮은 저가가 있으면(허용오차 2%
+            # 넘게) 진짜 W자 바닥이 아니라 그 중간 저점이 더 낮은 삼중바닥/하락 추세로
+            # 봐야 하므로 이 조합은 무효 처리한다.
+            between_min = min_low_between(win, i1, i2)
+            if between_min is not None and between_min < min(low1, low2) * 0.98:
                 continue
 
             # 2026-07-22 개편: 두 번째 저점 거래량이 첫 번째 저점 이하

@@ -529,6 +529,18 @@ class DoubleBottomDetectionTest(unittest.TestCase):
 
         self.assertEqual([row["code"] for row in results["doubleBottom"]], ["000004"])
 
+    def test_deeper_low_between_the_two_bottoms_is_excluded(self):
+        """2026-08-22 추가: 두 저점 사이에 그보다 2% 넘게 더 낮은 저가가 끼어있으면
+        W자 쌍바닥이 아니라 중간에 더 낮은 저점이 있는 잘못된 조합으로 보고 제외한다."""
+        daily = double_bottom_daily()
+        i1, i2 = 66, 96  # double_bottom_daily()와 동일한 계산(n=100, i2=n-4, i1=i2-30)
+        dip_idx = 75  # i1<dip_idx<i2, 넥라인(mid=81)과 겹치지 않는 지점
+        low1 = daily[i1]["low"]
+        daily[dip_idx].update(low=low1 * 0.9, high=low1 * 0.95, open=low1 * 0.93, close=low1 * 0.93)
+
+        detail = detector.detect_double_bottom(daily)
+        self.assertIsNone(detail)
+
 
 class InvHeadShouldersDetectionTest(unittest.TestCase):
     def test_detects_symmetric_shoulders_and_neckline(self):

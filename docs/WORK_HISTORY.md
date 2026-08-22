@@ -1,5 +1,20 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(4차) 쌍바닥(`detect_double_bottom`/`detectDoubleBottom_`)에 "두 저점 사이 더
+낮은 저가 없음" 검증 추가**: 사용자가 제시한 검증 코드(`between_min_price = min(low_prices[
+low1_idx:low2_idx])`, `min(low1,low2)*0.98`보다 낮으면 무효)를 그대로 반영 - 두 저점 사이에
+그보다 2% 넘게 더 낮은 저가가 끼어있으면 진짜 W자 쌍바닥이 아니라 중간에 더 낮은 저점이
+있는 잘못된 조합(삼중바닥/하락 추세)으로 보고 제외한다. `pattern_detect.py`에
+`min_low_between()`(기존 `max_high_between`과 짝) 헬퍼를 추가하고 저점 가격차 확인 직후에
+체크를 넣었다. GAS `ticker-proxy.gs`의 `detectDoubleBottom_`(온디맨드 차트 재판정용)에도
+`minLowBetween_()` 헬퍼 + 동일 체크를 추가 - 단, 이 함수의 `DB_LOW_TOL`(0.02)/
+`DB_MIN_GAP_DAYS`(12)/`DB_MAX_GAP_DAYS`(35)/`DB_SECOND_VOLUME_MAX_RATIO`(0.85) 상수가
+Python 쪽(각각 0.03/10/45/1.00)과 이미 오래전부터 어긋나 있었음을 발견함(이번 작업 범위
+밖이라 손대지 않음 - GAS는 스캔 목록이 아니라 클릭 시 온디맨드 차트 재판정에만 쓰여서
+실사용 영향은 제한적이지만, 나중에 이 패턴을 다시 만질 때 같이 맞출 필요가 있음).
+`test/test_pattern_detect.py`에 회귀 테스트(`test_deeper_low_between_the_two_bottoms_is_excluded`)
+추가, 전체 28건 통과. `js/pattern-scan.js` 탭 설명 문구 갱신.
+
 **2026-08-22(3차) 이평 상승 초입형 "구름 상단 시도" 조건에 "구름 하단 시도"를 OR로 추가**:
 2차 수정 직후 사용자가 "하단 시도도 or로 넣어줘"라고 추가 요청 - 기존엔 고가가 구름
 상단 3% 이내로 접근하는 것만 필수였는데, 저가가 구름 하단 3% 이내로 접근하는 것도
