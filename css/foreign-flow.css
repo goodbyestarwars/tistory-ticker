@@ -146,6 +146,15 @@
   overflow: hidden;
   background: #fff;
 }
+/* 2026-08-23: 평균 투자의견 - "펀더멘탈 탭 말고 요약(탭 밖 항상 노출 영역)에" 요청으로
+   .ff-summary(2주 스윙 판정 카드)와 같은 스타일의 별도 카드로 그 바로 아래에 둔다. */
+#foreign-flow .ff-summary-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  padding: 14px;
+  background: #fff;
+}
 #foreign-flow .ff-verdict {
   font-size: 19px;
   font-weight: 800;
@@ -1210,6 +1219,7 @@ html.dark #foreign-flow .ff-error {
   color: #e8877e !important;
 }
 html.dark #foreign-flow .ff-summary { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #foreign-flow .ff-summary-card { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-stars { color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #foreign-flow .ff-stars::before { color: #ffb84d !important; }
 html.dark #foreign-flow .ff-verdict-score { color: rgba(245, 239, 224, 0.65) !important; }

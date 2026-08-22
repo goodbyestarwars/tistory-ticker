@@ -11,10 +11,20 @@ API 50개를 뒤져봐도 이 용도의 API가 없어(사용자 확인 후) 국�
 필드명(invt_opnn/hts_goal_prc 등)은 KIS 공식 예제 그대로지만, 실제 응답에서 종목별로
 리포트가 몇 건이나 나오는지(소형주는 0건일 수 있음)는 라이브 확인 전까지 모른다."""
 
+import time
 from datetime import datetime, timedelta, timezone
+
+import db_schema
+import kis_client
 
 KST = timezone(timedelta(hours=9))
 LOOKBACK_MONTHS = 3
+# 2026-08-23: 차트검색/전략검색(daily_scan.py/strategy_scan.py)은 한 번에 수십 종목을
+# 나열해서, 행마다 종목분석 페이지처럼 라이브로 KIS를 부르면 배치가 너무 느려진다(사용자
+# 확인 - "db에 저장할까? 일단 차트검색, 전략검색에만 넣어"). db_schema.invest_opinions에
+# 하루 1회만 갱신해 저장하고 그 사이 재실행되는 배치는 캐시를 그대로 재사용한다.
+THROTTLE_SEC = 0.25
+FRESH_HOURS = 20  # 배치 주기(하루 1회)보다 살짝 짧게 - 같은 날 여러 번 재실행돼도 재조회 안 함
 
 # KIS invt_opnn 텍스트를 매수/중립/매도 3버킷으로 묶는다(정확한 표기를 몰라 넓게 매칭 -
 # 알 수 없는 문구는 '기타'로 남겨 조용히 매수/매도로 오분류하지 않는다).
@@ -101,9 +111,67 @@ def summarize_opinions(rows):
     }
 
 
-def fetch_recent_opinion_summary(kis_client, token, appkey, appsecret, code, months=LOOKBACK_MONTHS):
+def fetch_recent_opinion_summary(kis_client_module, token, appkey, appsecret, code, months=LOOKBACK_MONTHS):
     """VM 엔드포인트가 호출하는 진입점 - kis_client 모듈을 인자로 받아 테스트에서
     쉽게 목(mock)으로 바꿀 수 있게 한다(다른 fetch_* 함수들과 동일한 관례)."""
     date1, date2 = recent_date_range(months)
-    rows = kis_client.fetch_invest_opinion(token, appkey, appsecret, code, date1, date2)
+    rows = kis_client_module.fetch_invest_opinion(token, appkey, appsecret, code, date1, date2)
     return summarize_opinions(rows)
+
+
+def _is_fresh(summary, now):
+    if not summary or not summary.get('_updatedAt'):
+        return False
+    try:
+        updated_at = datetime.fromisoformat(summary['_updatedAt'])
+    except ValueError:
+        return False
+    return (now - updated_at).total_seconds() < FRESH_HOURS * 3600
+
+
+def enrich_matches_with_target_price(matches, kis_appkey, kis_appsecret, conn):
+    """차트검색/전략검색 배치(daily_scan.py/strategy_scan.py)가 스캔을 다 끝낸 뒤, 화면에
+    실제로 나갈 최종 후보 목록(matches, code/price 필드를 가진 dict 리스트)에만 평균
+    투자의견을 붙인다 - 전체 유니버스가 아니라 이미 필터를 통과한 소수 종목만 조회해서
+    배치 시간 부담을 최소화한다. 각 match에 analystTargetPrice/analystTargetGapPct/
+    analystReportCount 필드를 in-place로 추가한다(기존 targetPrice/targetGapPct 필드는
+    전략검색의 "목표주가 괴리 저평가주" 카테고리가 이미 쓰고 있어 이름이 겹치지 않게
+    분리했다). KIS 미설정이면 아무 것도 하지 않고 조용히 반환한다."""
+    if not matches or not kis_appkey or not kis_appsecret:
+        return
+    codes = []
+    for m in matches:
+        code = m.get('code')
+        if code and code not in codes:
+            codes.append(code)
+    if not codes:
+        return
+
+    cached = db_schema.load_invest_opinions(conn, codes)
+    now = datetime.now(timezone.utc)
+    token = None
+    for code in codes:
+        if _is_fresh(cached.get(code), now):
+            continue
+        if token is None:
+            token = kis_client.get_token(kis_appkey, kis_appsecret)
+        try:
+            summary = fetch_recent_opinion_summary(kis_client, token, kis_appkey, kis_appsecret, code)
+        except Exception:
+            summary = {'available': False, 'reportCount': 0}
+        time.sleep(THROTTLE_SEC)
+        summary['_updatedAt'] = now.isoformat()
+        db_schema.upsert_invest_opinion(conn, code, summary, now.isoformat())
+        cached[code] = summary
+
+    for m in matches:
+        summary = cached.get(m.get('code'))
+        if not summary or not summary.get('available'):
+            continue
+        target_price = summary.get('avgTargetPrice')
+        m['analystReportCount'] = summary.get('reportCount')
+        if target_price:
+            m['analystTargetPrice'] = target_price
+            price = m.get('price')
+            if price:
+                m['analystTargetGapPct'] = round((target_price - price) / price * 100, 1)

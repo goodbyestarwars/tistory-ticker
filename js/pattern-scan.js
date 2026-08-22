@@ -351,6 +351,19 @@
     }[patternKey] || '검색 조건을 충족한 차트 패턴';
   }
 
+  // 2026-08-23 신설 - "db에 저장할까? 일단 차트검색, 전략검색에만 넣어" 요청으로 daily_scan.py가
+  // 하루 1회 배치로 KIS 평균 투자의견을 붙여준다(invest_opinion.enrich_matches_with_target_price,
+  // scripts/cloud-vm/invest_opinion.py). 종목분석 페이지의 라이브 카드와 달리 여기는 필드가
+  // item에 이미 채워져 있어(analystTargetPrice/analystTargetGapPct/analystReportCount)
+  // 별도 fetch 없이 그대로 표시만 한다 - 없는 종목(리포트 0건 등)은 아무것도 안 붙인다.
+  function analystTargetPriceText(item) {
+    var target = Number(item && item.analystTargetPrice);
+    if (!isFinite(target) || target <= 0) return '';
+    var gap = Number(item.analystTargetGapPct);
+    var gapText = isFinite(gap) ? ' (' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + '%)' : '';
+    return ' · 애널리스트 목표가 ' + fmt(target) + '원' + gapText;
+  }
+
   function renderList(container) {
     var list = container.querySelector('#psList');
     if (!list) return;
@@ -385,7 +398,7 @@
         + '<span class="ps-signal">' + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
         + '<span class="ps-quote"><span class="ps-price">' + fmt(it.price) + '</span>'
         + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
-        + '<span class="ps-observation">' + escapeHtml(scannerInterpretation(it, activeTab)) + '</span>'
+        + '<span class="ps-observation">' + escapeHtml(scannerInterpretation(it, activeTab) + analystTargetPriceText(it)) + '</span>'
         + '</div>';
     }).join('');
 

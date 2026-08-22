@@ -208,7 +208,7 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 3px 6px;
+  gap: 3px 10px; /* 2026-08-23: 현재가·등락률이 붙어 보인다는 지적으로 6px -> 10px */
   min-width: 0;
   white-space: nowrap;
 }

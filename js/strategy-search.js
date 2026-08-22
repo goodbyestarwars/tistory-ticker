@@ -397,6 +397,21 @@
     return '전략 조건 충족';
   }
 
+  // 2026-08-23 신설 - "db에 저장할까? 일단 차트검색, 전략검색에만 넣어" 요청으로
+  // strategy_scan.py가 하루 1회 배치로 KIS 평균 투자의견을 붙여준다
+  // (invest_opinion.enrich_matches_with_target_price). 종목분석 페이지의 라이브 카드와
+  // 달리 여기는 필드가 item에 이미 채워져 있어(analystTargetPrice/analystTargetGapPct)
+  // 별도 fetch 없이 그대로 표시만 한다 - 없는 종목(리포트 0건 등)은 빈 문자열을 돌려준다.
+  // targetPriceGap 카테고리의 자체 목표가(targetPrice/targetGapPct, 업종 평균 PER/PBR
+  // 기반)와는 다른 값이라 "애널리스트"를 붙여 구분한다.
+  function analystTargetPriceText(item) {
+    var target = Number(item && item.analystTargetPrice);
+    if (!isFinite(target) || target <= 0) return '';
+    var gap = Number(item.analystTargetGapPct);
+    var gapText = isFinite(gap) ? ' (' + (gap >= 0 ? '+' : '') + fmtPct(gap) + ')' : '';
+    return '애널리스트 목표가 ' + fmtWon(target) + gapText;
+  }
+
   function strategyFundamentals(item) {
     var parts = [];
     if (item.roe != null) parts.push('ROE ' + fmtPct(item.roe));
@@ -415,7 +430,8 @@
       + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(cleanIndustryLabel(item.sector || item.industry)) + '</td>'
       + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
       + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
-      + '<td class="ss-col-signal" data-label="전략 지표">' + escapeHtml(strategySignal(item)) + '</td>'
+      + '<td class="ss-col-signal" data-label="전략 지표">' + escapeHtml(strategySignal(item))
+      + (analystTargetPriceText(item) ? '<br><small>' + escapeHtml(analystTargetPriceText(item)) + '</small>' : '') + '</td>'
       + (showFundamentals ? '<td class="ss-col-fundamentals" data-label="재무 지표">' + escapeHtml(fundamentals || '—') + '</td>' : '')
       + '</tr>';
   }
@@ -892,6 +908,8 @@
       primary = it.gapRatePct != null ? '시초갭 ' + fmtPct(it.gapRatePct) : '전략 조건 충족';
       secondary = it.intradayRatePct != null ? '시가→종가 ' + fmtPct(it.intradayRatePct) + ' · 거래대금 ' + fmtMillion(it.turnoverMillion) + '백만원' : '';
     }
+    var analystText = analystTargetPriceText(it);
+    if (analystText) secondary = secondary ? secondary + ' · ' + analystText : analystText;
     return '<div class="ss-row" data-code="' + escapeAttr(it.code) + '" data-name="' + escapeAttr(it.name) + '" tabindex="0" role="button" title="눌러서 종목분석 보기">'
       + '<div class="ss-row-top"><span class="ss-row-name">' + stockIconHtml(it.code) + '<span>' + escapeHtml(it.name) + '</span><span class="ss-row-code">(' + escapeHtml(it.code) + ')</span></span></div>'
       + '<div class="ss-row-primary">' + escapeHtml(primary) + '</div>'

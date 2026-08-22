@@ -15,6 +15,33 @@ parsers.py`에 회귀 테스트 2건 추가, 전체 549건 통과. `scripts/clou
 배포 대상 - 반영 후 다음 5분 폴링(`refresh_option_flow`)이 한 번 돌면 프로파일이
 채워진다.
 
+**2026-08-23(9차) 평균 투자의견 - 요약 이동 + 차트검색·전략검색 목표가(DB 배치) 추가**:
+라이브 배포 화면을 본 사용자가 "이건 펀더멘탈에 있으면 안되겠어. 요약에 넣고"라고
+지적 - `js/foreign-flow.js`의 renderResult()에서 탭 밖 항상-노출 요약 영역(2주 스윙
+판정 카드, buildSummaryBox 바로 아래)에 별도 카드(`.ff-summary-card`)로 옮기고
+`search()`의 초기 병렬 fetch(Promise.all)에 편입, 펀더멘탈 탭에서는 제거했다(성공 시
+현재가 대비 목표가 괴리율도 추가로 계산해 표시). 이어서 "표로 조회되는 모든 종목에
+목표가를 넣어"라는 요청에는 어느 표인지 먼저 확인(종목분석 좌측 "오늘의 투자시그널"
+순위 리스트로 확정) 했다가, 사용자가 "db에 저장할까? 일단 차트검색, 전략검색에만
+넣어"로 방향을 바꿔 종목분석 리스트가 아니라 **차트검색/전략검색 페이지에 하루 1회
+배치로 미리 계산해 DB에 저장**하는 쪽으로 확정됐다(행마다 KIS를 라이브로 부르면 두
+페이지 다 수십 종목을 한 번에 나열해서 너무 느려짐 - "속도가 생명" 원칙). `db_schema.py`에
+`invest_opinions` 테이블(code별 요약 JSON) 신설, `invest_opinion.py`에
+`enrich_matches_with_target_price()` 추가 - 화면에 실제로 나갈 최종 후보에만(전체
+유니버스 아님) DB 캐시(FRESH_HOURS=20시간, 하루 여러 번 재실행돼도 재호출 안 함) 우선
+재사용하고 없으면 KIS를 새로 불러 저장한다. `daily_scan.py`(차트검색)·`strategy_scan.py`
+(전략검색) 둘 다 최종 결과 조립 직후 이 함수를 호출하도록 연결 - `targetPriceGap`
+카테고리가 이미 쓰는 `targetPrice`/`targetGapPct`(업종 평균 PER/PBR 기반, 자체 계산)와
+필드명이 겹치지 않게 `analystTargetPrice`/`analystTargetGapPct`/`analystReportCount`로
+분리해 나란히 표시되게 했다. `js/pattern-scan.js`(개별 관측 열)·`js/strategy-search.js`
+(전략 지표 열/카드 보조줄)에 "애널리스트 목표가 X원 (+Y%)" 텍스트를 붙였다.
+`test_invest_opinion_enrichment.py` 10건 신설(DB 캐시 재사용/신선도 만료/필드 충돌
+없음/중복 코드 1회만 호출 등), 전체 559건 통과. 같은 대화에서 "표 정렬이 가독성 나쁘다"
+(현재가·등락률이 붙어 보임) 지적도 함께 받아 `.ps-quote`/`.ss-row-quote`의 가격-등락률
+간격을 6px→10px로 넓혔다(그 외 표는 추가 확인 필요 시 후속 작업). `scripts/cloud-vm/`은
+VM, `js/`·`css/`는 GitHub Pages 자동 배포 대상 - daily_scan.py/strategy_scan.py는 다음
+배치 실행부터 목표가 필드가 채워진다.
+
 **2026-08-23(7차-2) 평균 투자의견 프론트엔드 연결 완료(라이브 검증 성공)**: (7차)에서
 백엔드만 만들고 미뤄뒀던 프론트를 라이브 검증(`curl .../invest-opinion/005930` ->
 `reportCount:30, avgTargetPrice:499833, latestOpinion:"BUY"`, 정상 데이터 확인) 후 연결.

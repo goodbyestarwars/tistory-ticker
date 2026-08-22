@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 
 import daily_scan_cache
 import db_schema
+import invest_opinion
 import invest_signal
 import kiwoom_client
 import kiwoom_market
@@ -451,6 +452,23 @@ def main():
         key=lambda item: item.get('swing', {}).get('internalPriorityScore', 0), reverse=True)
     signal_state['swingCandidates'] = signal_state['swingCandidates'][:100]
     pd.finalize_pattern_results(pattern_results, pullback_matches)
+
+    # 2026-08-23: 차트검색(패턴 탭)에 평균 투자의견의 목표가를 붙인다(사용자 확인 - "db에
+    # 저장할까? 일단 차트검색, 전략검색에만 넣어"). 전체 유니버스가 아니라 화면에 실제로
+    # 나갈 최종 후보(finalize 이후)에만 붙여 KIS 호출을 최소화하고, DB에 하루 캐싱해 같은
+    # 날 재실행되는 배치는 재호출하지 않는다(invest_opinion.FRESH_HOURS).
+    all_matches = list(pullback_matches)
+    for cat_matches in pattern_results.values():
+        all_matches.extend(cat_matches)
+    if all_matches:
+        opinion_conn = db_schema.get_conn()
+        try:
+            invest_opinion.enrich_matches_with_target_price(all_matches, kis_appkey, kis_appsecret, opinion_conn)
+        except Exception as e:
+            log('평균 투자의견 보강 실패(무시하고 계속): %s' % e)
+        finally:
+            opinion_conn.close()
+
     now = datetime.now(timezone.utc).isoformat()
     pd.annotate_pattern_scan_details(pattern_results, now, pullback_matches)
 

@@ -48,6 +48,7 @@ import urllib.request
 from datetime import date, datetime, timezone
 
 import db_schema
+import invest_opinion
 import invest_signal
 import kiwoom_client
 import pattern_detect
@@ -1279,6 +1280,27 @@ def main():
         },
     }
     output['targetPriceScanned'] = target_price_scanned
+
+    # 2026-08-23: 전략검색에 평균 투자의견의 목표가를 붙인다(사용자 확인 - "db에 저장할까?
+    # 일단 차트검색, 전략검색에만 넣어"). 화면에 실제로 나갈 최종 후보에만 붙이고 DB에
+    # 하루 캐싱해 같은 날 재실행되는 배치는 재호출하지 않는다(invest_opinion.FRESH_HOURS).
+    # targetPriceGap 카테고리는 이미 자체 목표가(targetPrice/targetGapPct, 업종 평균
+    # PER/PBR 기반)를 갖고 있는데, 이건 필드명이 달라서(analystTargetPrice 등) 덮어쓰지
+    # 않고 나란히 추가된다.
+    kis_appkey = os.environ.get('KIS_APPKEY')
+    kis_appsecret = os.environ.get('KIS_APPSECRET')
+    all_matches = []
+    for category in output['categories'].values():
+        for sector in category['sectors'].values():
+            all_matches.extend(sector['matches'])
+    if all_matches:
+        opinion_conn = db_schema.get_conn()
+        try:
+            invest_opinion.enrich_matches_with_target_price(all_matches, kis_appkey, kis_appsecret, opinion_conn)
+        except Exception as e:
+            log('평균 투자의견 보강 실패(무시하고 계속): %s' % e)
+        finally:
+            opinion_conn.close()
 
     tmp_path = OUTPUT_FILE + '.tmp'
     with open(tmp_path, 'w', encoding='utf-8') as f:

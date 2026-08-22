@@ -125,6 +125,17 @@ CREATE TABLE IF NOT EXISTS kis_flow_cache (
     PRIMARY KEY (code, target_days)
 );
 
+-- 2026-08-23: 평균 투자의견(invest_opinion.py, KIS 종목투자의견)을 종목분석 페이지에서는
+-- 온디맨드 라이브 호출(VM 메모리 캐시)로 쓰지만, 차트검색/전략검색처럼 한 번에 수십 종목을
+-- 나열하는 페이지에서 행마다 라이브 호출하면 너무 느려서(사용자 확인) 하루 1회 배치로
+-- 미리 계산해 저장해두는 용도 - invest_opinion.summarize_opinions()의 결과를 그대로
+-- JSON 직렬화한다(개별 컬럼화 불필요, kis_flow_cache와 동일한 이유).
+CREATE TABLE IF NOT EXISTS invest_opinions (
+    code TEXT PRIMARY KEY,
+    updated_at TEXT,
+    summary_json TEXT
+);
+
 -- 2026-07-20: 메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4) - 시장별(코스피/코스닥)
 -- 개인/외국인/기관계 일별 순매수(억원, KIS FHPTJ04040000 1차 소스, investor_trend.py 참고).
 -- 2026-07-21: 코스피 단일 시장에서 코스피/코스닥 다중 시장으로 확장하며 market 컬럼 추가
@@ -792,6 +803,38 @@ def load_kis_flow_cache(conn, code, target_days):
     if not row:
         return None, None
     return json.loads(row[0]), row[1]
+
+
+def upsert_invest_opinion(conn, code, summary, updated_at):
+    """invest_opinion_scan.py(하루 1회 배치)가 종목 하나의 요약을 저장. 차트검색/전략검색이
+    행마다 KIS를 라이브로 호출하지 않고 이 값을 그대로 재사용한다."""
+    import json
+    conn.execute(
+        'INSERT INTO invest_opinions (code, updated_at, summary_json) VALUES (?, ?, ?) '
+        'ON CONFLICT(code) DO UPDATE SET updated_at=excluded.updated_at, summary_json=excluded.summary_json',
+        (code, updated_at, json.dumps(summary, ensure_ascii=False)),
+    )
+    conn.commit()
+
+
+def load_invest_opinions(conn, codes=None):
+    """{code: summary_dict} - codes를 주면 그 종목들만, 생략하면 저장된 전체를 반환한다."""
+    import json
+    if codes:
+        placeholders = ','.join('?' for _ in codes)
+        rows = conn.execute(
+            'SELECT code, summary_json FROM invest_opinions WHERE code IN (%s)' % placeholders,
+            list(codes),
+        ).fetchall()
+    else:
+        rows = conn.execute('SELECT code, summary_json FROM invest_opinions').fetchall()
+    result = {}
+    for code, summary_json in rows:
+        try:
+            result[code] = json.loads(summary_json)
+        except (TypeError, ValueError):
+            continue
+    return result
 
 
 def upsert_investor_trend_rows(conn, market, rows):
