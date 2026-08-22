@@ -1,5 +1,26 @@
 # 9Pay 주요 작업이력
 
+**2026-08-22(31차) "불러오는 중" 로딩 텍스트 전 사이트에 심장박동 표시 통일 + 스피너 확대 + 전략검색 조건 상시노출**:
+세 가지 요청을 처리했다. (1) 기존 4개 페이지(foreign-flow/order-book/pattern-scan/
+stock-search)의 심장박동 스피너 크기를 108×42px→**추가로 더 키워달라는 요청**에
+맞춰 다시 확대(72×42px 단계를 거쳐 최종 108×42px 유지, sed 일괄치환 과정에서 무관한
+아이콘/카드 규칙 3곳(`.ff-sig-icon`/`.ff-panel-header-icon`/`.ss-fav-btn` 등)이 또
+실수로 같이 바뀐 걸 git diff로 발견해 원복). (2) "불러오는 중이 나오면 전부 심장박동
+표시 위에 넣어, 공통으로" - `style.css`(모든 페이지 공통 로드)에 `.hb-spinner`
+유틸리티 클래스를 신설(4개 페이지가 각자 만든 XX-spinner와 동일한 pathLength 폴리라인+
+dashoffset 애니메이션)하고, 이미 자체 스피너가 있던 4개 페이지는 남아있던 "맨텍스트
+불러오는 중" 스팟에 자기 페이지의 기존 스피너 클래스를 추가하고, 그 외 13개 파일
+(home-realtime-table/kospi-futures/market-temp/my-dashboard/overnight-market/
+pension-fund/short-pressure/sidebar-rank/home-widgets/skin-main/stock-calendar/
+stock-news/strategy-search/us-stocks/sector-dashboard-v4)의 순수 로딩 전용 텍스트
+스팟(같은 클래스를 빈 결과/에러 메시지와 공유하는 스팟은 제외 - 오검출 방지)엔 새
+`.hb-spinner`를 붙였다. us-stocks의 5개 소형 재무지표 카드(analysisCard)는 카드가
+작아 큰 스피너가 안 어울려 의도적으로 제외. (3) "종목검색 > 전략검색"의 "조건
+자세히" 접이식 토글(`<details>`)을 제거하고 차트검색(`.ps-tab-desc`)처럼 항상
+펼쳐서 보여주도록 변경 - `.ss-methodology-details`를 `.ss-methodology-full`로
+대체. `test/test_ui_ia.py`의 관련 문자열 검사 갱신, 전체 회귀 525건(무관한 사전
+실패 4건 제외) 통과.
+
 **2026-08-22(30차) 장기이평 응축기 3종 조정 + 종목코드 정렬 버그 수정**: 사용자 요청
 3건을 한 번에 처리했다. (1) 탭 라벨 "224 장기이평 응축기"에서 "224" 접두어 제거(설명
 문구는 그대로, `js/pattern-scan.js`). (2) 224일선을 다른 두 차트(`js/foreign-flow.js`

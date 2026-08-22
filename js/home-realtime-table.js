@@ -399,7 +399,7 @@
       + '<div class="hrt-table-wrap"><table><thead><tr>' + columns.map(function (column) {
         return '<th>' + column[1] + '</th>';
       }).join('') + '</tr></thead>'
-      + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state">실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
+      + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
       + '<div class="hrt-foot"><span data-hrt-foot>체결 발생 행만 갱신</span></div>';
     if (widgetActions) mount.appendChild(widgetActions);
   }

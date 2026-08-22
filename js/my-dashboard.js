@@ -638,7 +638,7 @@
     var dailyChangeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);
     var dailyChangeClass = signClass(dailyChangeRate);
     if (analysis && analysis.loading) {
-      detail.innerHTML = '<div class="my-detail-loading"><strong>' + escapeHtml(item.name) + '</strong><p>차트·수급·매물대 자료를 불러오는 중입니다...</p></div>' + buildHoldingForm(item, metrics);
+      detail.innerHTML = '<div class="my-detail-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><strong>' + escapeHtml(item.name) + '</strong><p>차트·수급·매물대 자료를 불러오는 중입니다...</p></div>' + buildHoldingForm(item, metrics);
       return;
     }
     var frameUrl = '/page/foreign-flow?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(item.name);

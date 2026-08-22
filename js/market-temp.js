@@ -117,7 +117,7 @@
     var gaugeOnly = !!(opts && opts.gaugeOnly);
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
-    container.innerHTML = '<div class="mt-hint">증시온도 불러오는 중...</div>';
+    container.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>증시온도 불러오는 중...</div>';
 
     MarketTemp.fetchMarketTemp()
       .then(function (data) {
@@ -1135,7 +1135,7 @@
     panel.__mtLoaded = true;
     var SD = global.SectorDashboard;
     if (SD) {
-      panel.innerHTML = '<div class="mt-hint">종목 카드 불러오는 중...</div>';
+      panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>종목 카드 불러오는 중...</div>';
       fetchSectorConfig_()
         .then(function (config) { return renderCardsPanelFromConfig_(panel, SD, config); })
         .catch(function () { panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>'; });
@@ -1151,7 +1151,7 @@
     if (!codes.length) { panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>'; return; }
 
     if (SD.injectBadgeStyles) SD.injectBadgeStyles();
-    panel.innerHTML = '<div class="mt-hint">종목 카드 불러오는 중...</div>';
+    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>종목 카드 불러오는 중...</div>';
     SD.fetchTickerData(codes).then(function (list) {
       var byCode = {};
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
@@ -1167,7 +1167,7 @@
     panel.__mtLoaded = true;
     var SD = global.SectorDashboard;
     if (SD) {
-      panel.innerHTML = '<div class="mt-hint">히트맵 불러오는 중...</div>';
+      panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>히트맵 불러오는 중...</div>';
       fetchSectorConfig_()
         .then(function (config) { return renderHeatmapPanelFromConfig_(panel, SD, config); })
         .catch(function () { panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>'; });
@@ -1182,7 +1182,7 @@
     var codes = sectorPoolCodes(sectorMap, krxMap);
     if (!codes.length) { panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>'; return; }
 
-    panel.innerHTML = '<div class="mt-hint">히트맵 불러오는 중...</div>';
+    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>히트맵 불러오는 중...</div>';
     SD.fetchTickerData(codes).then(function (list) {
       var byCode = {};
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });

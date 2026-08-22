@@ -388,7 +388,7 @@
 
     if (!codes.length) return;
 
-    container.innerHTML = '<div class="sector-loading">시세 불러오는 중...</div>';
+    container.innerHTML = '<div class="sector-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>시세 불러오는 중...</div>';
 
     // AI 시황분석(Groq 캐시 미스 시 수 초)이 시세 표시를 막지 않게 분리:
     // 시세가 오면 즉시 그리고, AI는 도착하는 대로 맨 위에 끼워넣는다.

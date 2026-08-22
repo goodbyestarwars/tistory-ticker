@@ -77,7 +77,7 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
-    container.innerHTML = '<div class="ss-hint">불러오는 중...</div>';
+    container.innerHTML = '<div class="ss-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>';
     loadScan(container);
   }
 
@@ -337,16 +337,16 @@
     return '전략 조건으로 후보군을 탐색하고, 세부 기준을 확인합니다.';
   }
 
-  // 첫 화면은 핵심 한 줄만 보여주고, 서버가 내려준 전체 조건·제외 조건·데이터 한계는
-  // details 안에 그대로 보존한다. 조건을 숨기는 것이 아니라 정보량만 접는다.
+  // 2026-08-22 요청: "조건 자세히" 접이식 토글 제거하고 차트검색(js/pattern-scan.js의
+  // .ps-tab-desc)처럼 요약+전체 조건을 항상 펼쳐서 보여준다 - 조건을 숨기지 않는다는
+  // 취지는 그대로, 클릭해서 펼치는 단계만 없앤 것.
   function renderMethodology(container) {
     var box = container.querySelector('#ssMethodology');
     if (!box) return;
     var cat = scanData.categories[activeKey];
     var full = (cat && cat.methodology) || '상세 조건 정보가 없습니다.';
     box.innerHTML = '<p class="ss-methodology-summary">' + escapeHtml(methodologySummary(activeKey)) + '</p>'
-      + '<details class="ss-methodology-details"><summary>조건 자세히</summary>'
-      + '<p>' + escapeHtml(full) + '</p></details>';
+      + '<p class="ss-methodology-full">' + escapeHtml(full) + '</p>';
   }
 
   function renderCards(container) {
@@ -1030,7 +1030,7 @@
       + escapeAttr(name) + ' 구성종목">'
       + '<div class="ss-etf-modal-head"><strong>' + escapeHtml(name) + ' 구성종목</strong>'
       + '<button type="button" class="ss-etf-modal-close" aria-label="닫기">✕</button></div>'
-      + '<div class="ss-etf-modal-body"><p class="ss-etf-loading">불러오는 중...</p></div>'
+      + '<div class="ss-etf-modal-body"><p class="ss-etf-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</p></div>'
       + '</div>';
     document.body.appendChild(overlay);
     etfModalOverlay = overlay;

@@ -134,7 +134,7 @@
       return;
     }
 
-    resultBox.innerHTML = '<div class="pf-loading">연기금 매매 데이터를 불러오는 중...</div>';
+    resultBox.innerHTML = '<div class="pf-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>연기금 매매 데이터를 불러오는 중...</div>';
 
     var requestId = ++searchRequestSeq; // 이 검색보다 늦게 도착하는 응답은 무시
     PensionFund.fetchPensionFund(stock.code)

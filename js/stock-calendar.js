@@ -449,7 +449,7 @@
       if (month > 11) { month = 0; year += 1; }
       currentYear = year;
       currentMonth = month;
-      container.innerHTML = '<div class="sc-loading">불러오는 중...</div>';
+      container.innerHTML = '<div class="sc-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>';
       StockCalendar.fetchEvents(year, month)
         .then(function (evs) {
           if (searchQuery.trim()) requestYearSearch(year, month, evs);
@@ -505,7 +505,7 @@
         ? '<small class="sc-search-count">검색 결과 ' + visibleEvents.length + '건</small>'
         : '';
       var listHtml = annualSearchLoading
-        ? '<div class="sc-empty">연간 일정을 불러오는 중...</div>'
+        ? '<div class="sc-empty"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>연간 일정을 불러오는 중...</div>'
         : annualMode
         ? (yearGroups.length
           ? yearGroups.map(function (group) {

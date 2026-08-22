@@ -95,7 +95,7 @@
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
       + '<div class="ps-backtest-box" id="psBacktestBox" hidden></div>'
-      + '<div class="ps-list" id="psList"><div class="ps-hint">불러오는 중...</div></div>'
+      + '<div class="ps-list" id="psList"><div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div></div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
   }
 
@@ -346,7 +346,7 @@
   function renderList(container) {
     var list = container.querySelector('#psList');
     if (!list) return;
-    if (!scanData) { list.innerHTML = '<div class="ps-hint">불러오는 중...</div>'; return; }
+    if (!scanData) { list.innerHTML = '<div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'; return; }
 
     var items = (scanData.patterns && scanData.patterns[activeTab]) || [];
     if (!items.length) {

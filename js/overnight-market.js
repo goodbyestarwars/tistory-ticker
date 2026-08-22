@@ -341,7 +341,7 @@
         return ''
           + '<div class="om-card" data-symbol="' + symbol + '">'
           + '<div class="om-title">' + escapeHtml(LABELS[symbol]) + '</div>'
-          + '<div class="om-body om-loading">불러오는 중...</div>'
+          + '<div class="om-body om-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'
           + '</div>';
       }).join('');
       return '<div class="om-category">'

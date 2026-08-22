@@ -3,6 +3,36 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* 2026-08-22 요청: "'불러오는 중' 나오면 전부 심장박동 표시 위에 넣어, 공통으로" -
+   foreign-flow/order-book/pattern-scan/stock-search 4개 페이지가 각자 만든 XX-spinner
+   (원형 회전 -> 심장박동 ECG 파형)와 같은 패턴을 사이트 전체가 재사용할 수 있게 여기
+   style.css(모든 페이지 공통 로드)에 한 벌만 둔다. 로딩 텍스트 위에
+   `<svg class="hb-spinner">...</svg>`만 붙이면 어디서든 동일하게 보인다. */
+.hb-spinner {
+  display: block;
+  width: 108px;
+  height: 42px;
+  margin: 0 auto 8px;
+  overflow: visible;
+  color: #1261c4;
+}
+.hb-spinner polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: hb-heartbeat 1.6s linear infinite;
+}
+@keyframes hb-heartbeat {
+  0% { stroke-dashoffset: 100; }
+  70% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -20; }
+}
+html.dark .hb-spinner { color: #F5EFE0; }
+
 /* 2026-07-16: 상단 market-ribbon(코스피/코스닥/원달러/BTC 고정바)을 완전히 걷어내고
    그 자리를 없앴다(js/market-ribbon.js가 #market-ribbon을 display:none 처리) - navbar가
    맨 위(top:0)로 올라오고, 그만큼 아래 disc-ticker/page-wrap/sidebar 좌표를 전부 32px씩

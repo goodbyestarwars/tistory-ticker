@@ -245,8 +245,10 @@
 /* 2026-08-22 요청: 로딩 표시를 원형 스피너 대신 심장박동 모니터(ECG) 파형으로 교체 -
    foreign-flow.css와 동일 패턴(pathLength="100" polyline + dashoffset 애니메이션). */
 #pattern-scan .ps-spinner {
-  width: 72px;
-  height: 28px;
+  display: block;
+  width: 108px;
+  height: 42px;
+  margin: 0 auto 8px;
   overflow: visible;
   color: #1261c4;
 }

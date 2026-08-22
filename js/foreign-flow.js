@@ -186,7 +186,7 @@
       + '<button type="button" class="ff-explore-tab active" data-explore-view="flow" role="tab">차트 흐름별 탐색</button>'
       + '<button type="button" class="ff-explore-tab" data-explore-view="industry" role="tab">업종별 보기</button>'
       + '</div>'
-      + '<div id="ffSigCount" class="ff-explore-meta"><div class="ff-hint">차트 흐름 집계를 불러오는 중...</div></div>'
+      + '<div id="ffSigCount" class="ff-explore-meta"><div class="ff-hint"><svg class="ff-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트 흐름 집계를 불러오는 중...</div></div>'
       + '<div id="ffSigList" class="ff-explore-content"></div>'
       + '<div class="ff-divider"></div>'
       + '</div>'
@@ -3950,7 +3950,7 @@
   function buildAptCard() {
     return '<div class="ff-extra-card ff-apt-card" id="ffAptCard">'
       + '<div class="ff-extra-card-title">매물대</div>'
-      + '<div id="ffAptDynamic"><div class="ff-apt-empty">매물대를 불러오는 중...</div></div>'
+      + '<div id="ffAptDynamic"><div class="ff-apt-empty"><svg class="ff-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>매물대를 불러오는 중...</div></div>'
       + '</div>';
   }
 

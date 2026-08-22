@@ -49,9 +49,9 @@
   line-height: 1.5;
 }
 #strategy-search .ss-methodology-summary { margin: 0; color: #334155; font-weight: 700; }
-#strategy-search .ss-methodology-details { margin-top: 7px; border-top: 1px solid #e2e8f0; padding-top: 7px; }
-#strategy-search .ss-methodology-details summary { color: #64748b; cursor: pointer; font-size: 11.5px; font-weight: 700; }
-#strategy-search .ss-methodology-details p { margin: 7px 0 0; }
+/* 2026-08-22 요청: "조건 자세히" 접이식 토글 제거 - 항상 펼쳐서 보여준다(차트검색
+   .ps-tab-desc와 동일 취지). */
+#strategy-search .ss-methodology-full { margin: 7px 0 0; border-top: 1px solid #e2e8f0; padding-top: 7px; }
 
 /* ETF명·코드 검색은 통합 상품 toolbar 안에 배치한다. */
 #strategy-search .ss-etf-search-input {
@@ -258,8 +258,7 @@ html.dark #strategy-search .ss-methodology {
   border-color: rgba(245, 239, 224, 0.14) !important;
 }
 html.dark #strategy-search .ss-methodology-summary { color: rgba(245,239,224,.82) !important; }
-html.dark #strategy-search .ss-methodology-details { border-top-color: rgba(245,239,224,.14); }
-html.dark #strategy-search .ss-methodology-details summary { color: rgba(245,239,224,.6); }
+html.dark #strategy-search .ss-methodology-full { border-top-color: rgba(245,239,224,.14); }
 html.dark #strategy-search .ss-etf-search-input {
   background: #1A1A1A;
   border-color: rgba(245, 239, 224, 0.2);

@@ -307,7 +307,7 @@
       return '<div class="kf-stat-card" data-symbol="' + symbol + '">'
         + '<div class="kf-stat-label">' + escapeHtml(PANEL_LABELS[symbol])
         + ' <span class="kf-stat-status" data-symbol="' + symbol + '"></span></div>'
-        + '<div class="kf-stat-body kf-loading">불러오는 중...</div>'
+        + '<div class="kf-stat-body kf-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'
         + '</div>';
     }).join('');
 
@@ -368,7 +368,7 @@
     var cards = OPTION_SIDES.map(function (s) {
       return '<div class="kf-opt-card" data-side="' + s.key + '">'
         + '<div class="kf-opt-title">' + escapeHtml(s.label) + '</div>'
-        + '<div class="kf-opt-body kf-loading">불러오는 중...</div>'
+        + '<div class="kf-opt-body kf-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'
         + '</div>';
     }).join('');
     return '<div class="kf-section" data-section-key="option">'
@@ -376,7 +376,7 @@
       + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
       + '<div class="kf-option-profile" id="kfOptionProfile">'
       + '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
-      + '<div class="kf-option-profile-loading">행사가별 데이터를 불러오는 중...</div>'
+      + '<div class="kf-option-profile-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>행사가별 데이터를 불러오는 중...</div>'
       + '</div>'
       + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
       + '콜/풋 전체 미결제약정(OI) 증감으로 포지션 방향을 추정해서 보여드립니다. 콜옵션은 상승 포지션, 풋옵션은 '

@@ -1450,7 +1450,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "전략 조건으로 후보군을 찾고",
             "categoryLabel",
             "재무건전 장기 눌림",
-            "조건 자세히",
             "120일선 대비",
             "배당수익률",
             "주당 현금배당",
@@ -1462,7 +1461,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("dividendMatch", fixture)
         self.assertIn("etfMatch", fixture)
         self.assertNotIn("'이격도 '", source)
-        for token in (".ss-intro", ".ss-methodology-details", ".ss-row-primary", ".ss-row-secondary", "columns: 1;"):
+        for token in (".ss-intro", ".ss-methodology-full", ".ss-row-primary", ".ss-row-secondary", "columns: 1;"):
             self.assertIn(token, style)
 
     def test_strategy_search_uses_etf_etn_and_dividend_comparison_tables(self):

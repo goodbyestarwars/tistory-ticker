@@ -140,7 +140,7 @@
   function myCardHtml() {
     return '<article class="card home-mini-card home-my-card">'
       + '<div class="home-card-heading"><div><strong>MY</strong><span>관심종목</span></div></div>'
-      + '<div class="home-my-list" id="homeMyList"><p class="home-card-state">관심종목을 확인하는 중...</p></div>'
+      + '<div class="home-my-list" id="homeMyList"><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>관심종목을 확인하는 중...</p></div>'
       + '<button type="button" class="home-card-more" data-open-global-watchlist>관심종목 열기 →</button>'
       + '</article>';
   }
