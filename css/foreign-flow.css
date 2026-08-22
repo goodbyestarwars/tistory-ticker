@@ -699,6 +699,14 @@
   width: 100%;
   height: auto;
 }
+/* 2026-08-23 요청: 순매매량 추이/보유율 추이 두 차트를 세로로 쌓지 않고 한 줄에 절반씩 -
+   .ff-svg가 width:100%+viewBox 비율 유지라 컬럼만 절반 폭으로 만들면 차트도 자동으로
+   절반 크기가 된다. 좁은 화면(640px 이하)에서는 다시 세로로 쌓는다. */
+#foreign-flow .ff-chart-row { display: flex; gap: 12px; align-items: flex-start; }
+#foreign-flow .ff-chart-col { flex: 1 1 0; min-width: 0; }
+@media (max-width: 640px) {
+  #foreign-flow .ff-chart-row { flex-direction: column; }
+}
 #foreign-flow .ff-grid { stroke: #eee; stroke-width: 1; }
 #foreign-flow .ff-zero { stroke: #bbb; stroke-width: 1; stroke-dasharray: 4 3; }
 #foreign-flow .ff-axis { fill: #999; font-size: 11px; }

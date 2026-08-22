@@ -3109,11 +3109,16 @@
     }).join('') + '</div>';
   }
 
+  // 2026-08-23 요청: 두 차트(순매매량 추이/보유율 추이)를 세로로 쌓지 않고 한 줄에 절반씩
+  // 나란히 배치 - .ff-svg가 이미 width:100%+viewBox 비율 유지(height:auto)라 컬럼을
+  // 절반 폭으로 만들면 두 차트 모두 자동으로 절반 크기로 줄어든다(별도 스케일 계산 불필요).
   function buildFlowChartsInner(daily) {
-    return '<div class="ff-chart-title">개인·외국인·기관 순매매량 추이 (최근 ' + daily.length + '영업일)</div>'
-      + buildNetChart(daily)
-      + '<div class="ff-chart-title">외국인 보유율 추이</div>'
-      + buildRatioChart(daily);
+    return '<div class="ff-chart-row">'
+      + '<div class="ff-chart-col"><div class="ff-chart-title">개인·외국인·기관 순매매량 추이 (최근 ' + daily.length + '영업일)</div>'
+      + buildNetChart(daily) + '</div>'
+      + '<div class="ff-chart-col"><div class="ff-chart-title">외국인 보유율 추이</div>'
+      + buildRatioChart(daily) + '</div>'
+      + '</div>';
   }
 
   function buildFlowChartsWrap(daily) {
