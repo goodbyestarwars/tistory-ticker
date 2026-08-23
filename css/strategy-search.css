@@ -511,6 +511,12 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
     border: 0;
     white-space: normal;
     text-align: left !important;
+    /* 2026-08-23: 사이트 전역 본문 line-height(약 1.9)를 그대로 물려받아, 실제로는
+       한 줄짜리 값(종목코드/등락률 등)인데도 칸 높이가 22.8px로 부풀어 카드 전체가
+       빈 줄이 낀 것처럼 헐렁해 보였다(사용자 리포트 - "UI좀 고쳐야지, 보기 불편해",
+       스크린샷으로 확인). 전략/재무 지표 두 필드만 이미 1.45로 좁혀져 있던 걸 나머지
+       필드에도 동일하게 맞춰 카드 전체 리듬을 통일한다. */
+    line-height: 1.45;
   }
   #strategy-search .ss-comparison-table td::before { content: attr(data-label) ' '; color: #9ca3af; font-size: 10px; }
   #strategy-search .ss-comparison-table td.ss-col-watch,
