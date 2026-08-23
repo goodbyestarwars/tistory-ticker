@@ -617,16 +617,16 @@ class TargetPriceGapTests(unittest.TestCase):
         # (35%)만큼만 부분수렴한다고 가정하도록 계산식을 바꿨다(사용자 리포트 - KG스틸처럼
         # 완전수렴 가정이 실제 애널리스트 목표가보다 훨씬 높은 목표가를 냈던 문제).
         # 업종 평균 PER 10배, PBR 1배. EPS 40, BPS 400 -> 완전수렴 목표가는 PER/PBR 둘 다
-        # 400인데, 현재가(100)에서 그 방향으로 35%만 이동한 205가 실제 목표가가 된다.
+        # 400인데, 현재가(200)에서 그 방향으로 35%만 이동한 270이 실제 목표가가 된다.
         record = {
-            'code': '000010', 'name': '테스트종목', 'sector': 'IT', 'price': 100,
+            'code': '000010', 'name': '테스트종목', 'sector': 'IT', 'price': 200,
             'date': '2026-08-20', 'changeRate': 1.5, 'eps': 40, 'bps': 400,
         }
         sector_avg = {'perAvg': 10.0, 'pbrAvg': 1.0}
         match = strategy_scan.build_target_price_match(record, sector_avg, annual=None)
         self.assertIsNotNone(match)
-        self.assertEqual(match['targetPrice'], 205)
-        self.assertAlmostEqual(match['targetGapPct'], (205 - 100) / 100 * 100, places=1)
+        self.assertEqual(match['targetPrice'], 270)
+        self.assertAlmostEqual(match['targetGapPct'], (270 - 200) / 200 * 100, places=1)
         self.assertEqual(match['sectorPerAvg'], 10.0)
         self.assertEqual(match['sectorPbrAvg'], 1.0)
 
@@ -830,7 +830,7 @@ class ApplyAnalystTargetPriceAnchorTests(unittest.TestCase):
         ]}}
         strategy_scan.apply_analyst_target_price_anchor(sectors)
         match = sectors['소재']['matches'][0]
-        expected = round(5290 + 0.8 * (7550 - 5290))
+        expected = round(5290 + 0.7 * (7550 - 5290))
         self.assertEqual(match['targetPrice'], expected)
         self.assertAlmostEqual(match['targetGapPct'], (expected - 5290) / 5290 * 100, places=1)
         self.assertTrue(match['targetPriceAdjustedToAnalyst'])
@@ -856,6 +856,14 @@ class ApplyAnalystTargetPriceAnchorTests(unittest.TestCase):
         match = sectors['소재']['matches'][0]
         self.assertLess(match['targetPrice'], match['analystTargetPrice'])
         self.assertTrue(match['targetPriceAdjustedToAnalyst'])
+
+    def test_analyst_target_below_current_price_rejects_candidate(self):
+        sectors = {'소재': {'matches': [
+            {'code': '000026', 'price': 5000, 'targetPrice': 8000, 'targetGapPct': 60.0,
+             'analystTargetPrice': 4500},
+        ]}}
+        strategy_scan.apply_analyst_target_price_anchor(sectors)
+        self.assertEqual(sectors['소재']['matches'], [])
 
     def test_stock_without_analyst_coverage_is_left_untouched(self):
         sectors = {'소재': {'matches': [

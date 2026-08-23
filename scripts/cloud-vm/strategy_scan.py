@@ -148,11 +148,11 @@ TARGET_PRICE_PBR_CAP = 10.0   # 이보다 높은 개별 PBR은 섹터 평균 표
 # 방식에서 "애초에 부분수렴만 가정하는" 방식으로 계산 자체를 바꿨다(사용자 확인 -
 # "애널리스트 목표가 보다 낮게, 일관성 있는 계산식으로, 우리만의 변수를 반영").
 TARGET_PRICE_REVERSION_FACTOR = 0.35  # 현재 배수에서 섹터 중앙값까지 이 비율만큼만 수렴한다고 가정(부분 재평가)
-TARGET_PRICE_MAX_GAP_PCT = 150.0  # 부분수렴 이후에도 이 이상이면 데이터 이상치로 보고 제외
+TARGET_PRICE_MAX_GAP_PCT = 60.0  # 신뢰 우선: 이 이상인 목표 괴리는 과도한 낙관으로 보고 제외
 # 애널리스트 목표가는 정답/하드 캡으로 복사하지 않고, 자체 목표가가 그보다 높을 때만
 # 현재가에서 애널리스트 목표가 방향으로 이 비율만큼 참고한다. 20%는 데이터·시점
 # 차이를 위한 여유로 남겨 두므로 화면에 두 목표가가 똑같이 반복되는 현상을 줄인다.
-TARGET_PRICE_ANALYST_ANCHOR_FACTOR = 0.80
+TARGET_PRICE_ANALYST_ANCHOR_FACTOR = 0.70
 TARGET_PRICE_TOP_N = 30
 
 TARGET_PRICE_METHODOLOGY_NOTE = (
@@ -897,7 +897,7 @@ def apply_analyst_target_price_anchor(target_price_sectors):
     """애널리스트 목표가를 하드 캡이 아닌 보수적 참고값으로 반영한다.
 
     자체계산 목표가가 애널리스트 목표가보다 높을 때도 애널리스트 목표가를 그대로
-    복사하지 않고, 현재가에서 애널리스트 목표가까지의 80%만 이동한다. 이렇게 하면
+    복사하지 않고, 현재가에서 애널리스트 목표가까지의 70%만 이동한다. 이렇게 하면
     업종 PER/PBR 기반 계산은 유지하면서 시장 기대치보다 낮고, 두 값이 기계적으로
     같아지는 현상도 피한다.
     """
@@ -906,7 +906,11 @@ def apply_analyst_target_price_anchor(target_price_sectors):
             analyst_price = match.get('analystTargetPrice')
             current_price = match.get('price')
             own_target = match.get('targetPrice')
-            if (analyst_price and current_price and own_target
+            if analyst_price and current_price and own_target and analyst_price <= current_price:
+                # 시장 기대치가 현재가보다 낮은 종목은 업종 상대가치만으로 저평가라고
+                # 부르지 않는다. 신뢰성 우선의 보수적 제외 규칙이다.
+                match['targetPriceRejectedByAnalyst'] = True
+            elif (analyst_price and current_price and own_target
                     and analyst_price > current_price and own_target >= analyst_price):
                 anchored_target = current_price + TARGET_PRICE_ANALYST_ANCHOR_FACTOR * (analyst_price - current_price)
                 rounded_target = round(anchored_target)
@@ -919,7 +923,9 @@ def apply_analyst_target_price_anchor(target_price_sectors):
                 match['targetPriceAdjustedToAnalyst'] = True
         # 조정 후 괴리율이 최소 기준 아래로 떨어진 종목은 더 이상 후보가 아니다.
         sector_info['matches'] = [
-            m for m in sector_info['matches'] if (m.get('targetGapPct') or 0) >= TARGET_PRICE_MIN_GAP_PCT
+            m for m in sector_info['matches']
+            if not m.get('targetPriceRejectedByAnalyst')
+            and (m.get('targetGapPct') or 0) >= TARGET_PRICE_MIN_GAP_PCT
         ]
 
 
