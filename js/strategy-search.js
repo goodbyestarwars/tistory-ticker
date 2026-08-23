@@ -1050,7 +1050,7 @@
     var cls = chgClass(item.changeRatePct);
     return '<tr class="ss-etf-comp-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name || item.code || '-') + '" tabindex="0">'
       + '<td class="ss-etf-comp-rank">' + (index + 1) + '</td>'
-      + '<td class="ss-etf-comp-name">' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || item.code || '-') + '</span></td>'
+      + '<td class="ss-etf-comp-name">' + stockIconHtml(item.code, 'ss-etf-comp-icon') + '<span>' + escapeHtml(item.name || item.code || '-') + '</span></td>'
       + '<td class="ss-etf-comp-weight">' + fmtPct(item.weightPct) + '</td>'
       + '<td>' + fmt(item.price) + '원</td>'
       + '<td class="' + cls + '">' + chgSign(item.changeRatePct) + '</td>'

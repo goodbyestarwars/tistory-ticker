@@ -460,6 +460,14 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
 #strategy-search .ss-col-product strong > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #strategy-search .ss-etf-comp-name { display: inline-flex; align-items: center; gap: 7px; }
 #strategy-search .ss-etf-comp-name .ss-stock-icon { width: 20px; height: 20px; }
+.ss-etf-comp-name .ss-etf-comp-icon {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #f3f5f7;
+}
 #strategy-search .ss-col-product small { display: none; }
 #strategy-search .ss-dividend-basis {
   margin: 0 0 9px;

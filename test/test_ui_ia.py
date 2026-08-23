@@ -1507,6 +1507,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "주당 현금배당",
             "상위 10종목 비중",
             "ss-etf-comp-row",
+            "stockIconHtml(item.code, 'ss-etf-comp-icon')",
             "tabindex=\"0\"",
         ):
             self.assertIn(token, source)
@@ -1515,6 +1516,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("'이격도 '", source)
         for token in (".ss-intro", ".ss-methodology-full", ".ss-row-primary", ".ss-row-secondary", "columns: 1;"):
             self.assertIn(token, style)
+        self.assertIn(".ss-etf-comp-name .ss-etf-comp-icon", style)
 
     def test_strategy_search_uses_etf_etn_and_dividend_comparison_tables(self):
         source = self.read("js/strategy-search.js")
