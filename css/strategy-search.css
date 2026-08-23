@@ -671,6 +671,11 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
 #strategy-search .ss-strategy-table .ss-col-price,
 #strategy-search .ss-strategy-table .ss-col-change { text-align: right !important; }
 
+/* 목표주가 괴리 표는 핵심 열 폭을 이미 고정해 두었으므로 별도 하단 가로 스크롤을
+   만들지 않는다. 좁은 화면에서는 위 모바일 카드 규칙이 적용된다. */
+#strategy-search .ss-target-price-table-wrap { overflow-x: hidden; }
+#strategy-search .ss-target-price-table-wrap .ss-strategy-table { min-width: 0 !important; }
+
 /* 구성종목 모달: label/value를 한 줄씩 쌓지 않고 실제 정보 그리드로 배치한다. */
 .ss-etf-modal {
   width: min(920px, 100%);

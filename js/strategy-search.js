@@ -334,7 +334,7 @@
     // methodology, NPS_METHODOLOGY_NOTE)에만 남겼다 - 거기 이미 같은 내용이 있다
     // ("이 데이터는 매일 갱신되지 않고... 스냅샷입니다").
     if (key === 'nationalPension') return '국민연금이 보유한 국내주식을 지분율 기준으로 골라 표시합니다. 화면에서 지분율 기준을 바꿀 수 있습니다.';
-    if (key === 'targetPriceGap') return '같은 업종의 PER·PBR 중앙값을 기준으로 현재가에서 35%만 부분수렴한 6~12개월 참고 목표주가입니다. 애널리스트 목표가보다 높아지면 70% 지점으로 낮추고, 괴리율 60% 초과 값은 제외합니다.';
+    if (key === 'targetPriceGap') return '같은 업종의 PER·PBR 중앙값을 기준으로 현재가에서 35%만 부분수렴한 6~12개월 참고 목표주가입니다. 애널리스트 목표가보다 높아지면 70% 지점으로 낮추고, 괴리율 60% 초과 값은 제외합니다. 괴리율 높은 순 최대 30종목만 표시합니다.';
     return '전략 조건으로 후보군을 탐색하고, 세부 기준을 확인합니다.';
   }
 
@@ -487,7 +487,8 @@
       headers.push({label: '전략 지표', cls: 'ss-col-signal'});
     }
     if (showFundamentals) headers.push({label: '재무 지표', cls: 'ss-col-fundamentals'});
-    return '<div class="ss-table-wrap"><table class="ss-comparison-table ss-strategy-table"><thead><tr>'
+    var tableWrapClass = key === 'targetPriceGap' ? ' ss-target-price-table-wrap' : '';
+    return '<div class="ss-table-wrap' + tableWrapClass + '"><table class="ss-comparison-table ss-strategy-table"><thead><tr>'
       + headers.map(function (h) { return '<th class="' + h.cls + '">' + h.label + '</th>'; }).join('')
       + '</tr></thead><tbody>' + matches.map(function (item, index) { return strategyTableRow(item, index, showFundamentals, splitTargetColumns); }).join('')
       + '</tbody></table></div>';
@@ -940,7 +941,7 @@
 
   function cardNote(key) {
     if (key === 'undervalued') return '장기 가격 눌림 상위 후보';
-    if (key === 'targetPriceGap') return '목표가 괴리율 높은 순 후보';
+    if (key === 'targetPriceGap') return '괴리율 높은 순 최대 30종목 · 기준 미달 제외';
     return '전략 조건을 충족한 후보군';
   }
 

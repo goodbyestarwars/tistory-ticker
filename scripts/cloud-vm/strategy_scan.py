@@ -171,12 +171,14 @@ TARGET_PRICE_METHODOLOGY_NOTE = (
     '데이터·시점 차이를 위한 여유로 남김). 애널리스트 목표가를 그대로 복사하지 '
     '않으므로 두 값이 같은 현상을 줄입니다. 결과는 6~12개월 참고 목표주가이며, '
     '과거 적중률 백테스트가 끝난 확정 예측값이 아니라 일관된 계산식에 따른 참고용 '
-    '근사치입니다.'
+    '근사치입니다. 최종 화면에는 괴리율이 높은 순으로 최대 {top_n}종목만 표시하며, '
+    '후속 애널리스트 검증에서 기준 미달이 된 종목은 빠질 수 있습니다.'
 ).format(min_gap=TARGET_PRICE_MIN_GAP_PCT, min_peers=TARGET_PRICE_MIN_SECTOR_PEERS,
          per_cap=TARGET_PRICE_PER_CAP, pbr_cap=TARGET_PRICE_PBR_CAP, max_gap=TARGET_PRICE_MAX_GAP_PCT,
          reversion=TARGET_PRICE_REVERSION_FACTOR * 100,
          analyst_anchor=TARGET_PRICE_ANALYST_ANCHOR_FACTOR * 100,
-         analyst_buffer=(1 - TARGET_PRICE_ANALYST_ANCHOR_FACTOR) * 100)
+         analyst_buffer=(1 - TARGET_PRICE_ANALYST_ANCHOR_FACTOR) * 100,
+         top_n=TARGET_PRICE_TOP_N)
 
 # Dividend ranking follows the broad Naver-style screen: keep common stocks
 # with a positive DART-disclosed cash dividend, then rank by yield or DPS.

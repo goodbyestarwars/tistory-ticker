@@ -1441,11 +1441,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/strategy-search.js")
         style = self.read("css/strategy-search.css")
         scan = self.read("scripts/cloud-vm/strategy_scan.py")
-        for token in ("6~12개월 참고 목표주가", "targetPriceCellHtml", "참고 목표주가", "70% 지점"):
+        for token in ("6~12개월 참고 목표주가", "targetPriceCellHtml", "참고 목표주가", "70% 지점", "최대 30종목"):
             self.assertIn(token, source)
         self.assertIn("ss-target-price-note", style)
+        self.assertIn("ss-target-price-table-wrap", style)
         self.assertIn("6~12개월 참고 목표주가", scan)
         self.assertIn("백테스트가 끝난 확정 예측값이 아니라", scan)
+        self.assertIn("최대 {top_n}종목", scan)
 
     def test_strategy_search_uses_one_flattened_etf_ranking_table(self):
         source = self.read("js/strategy-search.js")
