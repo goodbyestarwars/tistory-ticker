@@ -691,14 +691,17 @@ class TargetPriceGapTests(unittest.TestCase):
         # 2026-08-23 실측 버그 회귀 테스트: 효성화학이 목표가 13,466,334원(괴리 +17831%)로
         # 나온 사건 - 섹터 안에 이익이 거의 0에 가까운(그러나 양수인) 종목 하나가 있으면
         # 그 종목의 PER(=주가/EPS)이 수천 배로 튀어서, 산술평균을 쓰면 섹터 평균 전체가
-        # 그 한 종목에 끌려간다. IT 섹터 5종목 중 000050 하나만 eps=1(거의 0)로 극단적
-        # PER(5000배)을 갖게 하고, 나머지(000010 포함) 4종목은 PER=10으로 통일했다 -
-        # 중앙값을 쓰면 이 이상치 하나가 최종 결과에 영향을 주지 않아야 한다(정렬 시
-        # [7.5, 10, 10, 10, 5000]의 중앙값은 10, 산술평균이었다면 1007.5로 완전히 달라짐).
+        # 그 한 종목에 끌려간다. IT 섹터 6종목 중 000050 하나만 eps=1(거의 0)로 극단적
+        # PER(5000배)을 갖게 하고, 나머지 5종목(000010 포함)은 PER=10으로 통일했다.
+        # 000050은 TARGET_PRICE_PER_CAP(80)을 넘어 애초에 섹터 표본에서 제외되므로(2026-08-23
+        # 2차 수정), 남은 5개 표본([7.5, 10, 10, 10, 10])의 중앙값 10이 그대로 쓰여야 한다 -
+        # 이 종목 하나를 빼도 여전히 TARGET_PRICE_MIN_SECTOR_PEERS(5) 문턱을 채우도록
+        # 정상 종목을 하나 더 늘렸다(예전엔 5종목 중 하나가 걸러지면 4개로 줄어 문턱을
+        # 못 채우는 부작용이 있었음).
         universe = [{'code': c, 'name': c} for c in
-                    ['000010', '000020', '000030', '000040', '000050']]
+                    ['000010', '000020', '000030', '000040', '000050', '000060']]
         wics_map = {c: {'name': c, 'sector': 'IT', 'industry': 'IT'} for c in
-                    ['000010', '000020', '000030', '000040', '000050']}
+                    ['000010', '000020', '000030', '000040', '000050', '000060']}
         fundamentals_cache = {
             '000010': {'annual': {'years': [{'year': 2025, 'net_income': 40000, 'equity': 400000}]}},
             '000020': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
@@ -706,8 +709,9 @@ class TargetPriceGapTests(unittest.TestCase):
             '000040': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
             # 상장주식수 100주 기준 eps=1(net_income=100) - 거의 0에 가까운 흑자, PER 폭주 유발.
             '000050': {'annual': {'years': [{'year': 2025, 'net_income': 100, 'equity': 500000}]}},
+            '000060': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
         }
-        prices = {'000010': 3000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000}
+        prices = {'000010': 3000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000, '000060': 5000}
 
         def daily_for(price):
             rows = []
@@ -731,6 +735,49 @@ class TargetPriceGapTests(unittest.TestCase):
         # 이상치를 산술평균했다면 403,000원 근처(1007.5배)로 나왔을 것이다.
         self.assertLess(target['targetPrice'], 5000)
         self.assertEqual(target['sectorPerAvg'], 10.0)
+
+    def test_extreme_per_peer_is_excluded_from_the_sector_pool_entirely(self):
+        # 2026-08-23(2차): 중앙값만으로는 표본 절반 가까이가 극단치일 때 여전히 오염될 수
+        # 있어(효성화학이 median 적용 후에도 여전히 괴리 +1717%로 비정상이었음, 실측),
+        # TARGET_PRICE_PER_CAP(80)을 넘는 개별 PER은 애초에 섹터 표본에 안 들어가게 했다.
+        # 5종목(000010 후보 + 4피어)에서 000050 하나만 PER=5000(cap 초과)이면, 표본에서
+        # 빠져 유효 PER 표본이 4개로 줄어 TARGET_PRICE_MIN_SECTOR_PEERS(5) 문턱을 못
+        # 채운다 - perAvg가 None이 돼야 하고(sectorPerAvg 필드에 반영), PBR은 모든 종목이
+        # cap(10) 이내라 정상적으로 표본 5개를 채워 그대로 살아있어야 한다.
+        universe = [{'code': c, 'name': c} for c in
+                    ['000010', '000020', '000030', '000040', '000050']]
+        wics_map = {c: {'name': c, 'sector': 'IT', 'industry': 'IT'} for c in
+                    ['000010', '000020', '000030', '000040', '000050']}
+        fundamentals_cache = {
+            '000010': {'annual': {'years': [{'year': 2025, 'net_income': 40000, 'equity': 400000}]}},
+            '000020': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
+            '000030': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
+            '000040': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
+            '000050': {'annual': {'years': [{'year': 2025, 'net_income': 100, 'equity': 500000}]}},
+        }
+        prices = {'000010': 3000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000}
+
+        def daily_for(price):
+            rows = []
+            for i in range(strategy_scan.MIN_BARS):
+                rows.append({'date': '2026-%04d' % i, 'close': price, 'open': price,
+                             'high': price, 'low': price, 'volume': 400000})
+            return rows
+
+        daily_cache = {code: daily_for(price) for code, price in prices.items()}
+        market_caps = {code: (100 * price) / 100_000_000 for code, price in prices.items()}
+
+        with patch.object(strategy_scan, 'fetch_market_cap', side_effect=lambda token, code: market_caps[code]), \
+                patch.object(time, 'sleep'):
+            sectors, scanned = strategy_scan.scan_target_price_gap(
+                universe, wics_map, fundamentals_cache, object(), kiwoom_token='tok', daily_cache=daily_cache,
+            )
+
+        matches = [m for sector_matches in sectors.values() for m in sector_matches]
+        target = next(m for m in matches if m['code'] == '000010')
+        self.assertIsNone(target['sectorPerAvg'])  # PER 표본이 4개로 줄어 문턱 미달
+        self.assertEqual(target['sectorPbrAvg'], 1.0)  # PBR은 전부 cap 이내라 그대로 유지
+        self.assertEqual(target['targetPrice'], 4000)  # PBR 목표가만으로 계산됨
 
     def test_scan_excludes_sector_with_too_few_peers(self):
         # 섹터에 종목이 2개뿐(TARGET_PRICE_MIN_SECTOR_PEERS=5 미만)이면 섹터 평균을

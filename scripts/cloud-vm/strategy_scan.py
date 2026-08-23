@@ -129,6 +129,18 @@ STRATEGY_MAX_RESULTS = 20
 #   4. 현재가 대비 목표가 괴리율이 TARGET_PRICE_MIN_GAP_PCT 이상인 종목만 후보로 남긴다.
 TARGET_PRICE_MIN_SECTOR_PEERS = 5  # 섹터 평균 PER/PBR 표본이 이보다 적으면 안 믿고 제외
 TARGET_PRICE_MIN_GAP_PCT = 20.0  # 목표가가 현재가보다 이 %+ 높아야 후보(잠정 기준)
+# 2026-08-23(2차): 중앙값으로 바꾼 뒤에도(위 커밋 참고) 여전히 괴리율이 수백~수천%로
+# 나오는 종목이 남아있었다(효성화학 17831%→1717%로 줄었지만 여전히 비정상 - 실측 확인).
+# 표본 5개 중 2개 이상이 극단치면 중앙값도 오염될 수 있고, 종목 자신의 최근 1개년
+# 순이익에 일회성 이익(자산매각 등)이 섞여 EPS 자체가 비정상적으로 커 보이는 경우도
+# 배제 못 한다(다년치로 정규화한 이익이 아니라 최근 1개년 net_income 그대로 씀). 두
+# 방향으로 방어한다: ①섹터 평균을 낼 때 그 자체로 비정상인 개별 PER/PBR은 애초에
+# 표본에서 뺀다(TARGET_PRICE_PER_CAP/PBR_CAP) ②그래도 남는 극단적 결과는 화면에 아예
+# 안 보이게 괴리율 상한(TARGET_PRICE_MAX_GAP_PCT)으로 걸러낸다 - "저평가 후보"로
+# 믿기 어려운 수백% 이상 괴리는 발굴이 아니라 데이터 이상치일 가능성이 훨씬 크다.
+TARGET_PRICE_PER_CAP = 80.0   # 이보다 높은 개별 PER은 섹터 평균 표본에서 제외
+TARGET_PRICE_PBR_CAP = 10.0   # 이보다 높은 개별 PBR은 섹터 평균 표본에서 제외
+TARGET_PRICE_MAX_GAP_PCT = 300.0  # 이보다 큰 괴리율은 이상치로 보고 후보에서 제외
 TARGET_PRICE_TOP_N = 30
 
 TARGET_PRICE_METHODOLOGY_NOTE = (
@@ -137,8 +149,12 @@ TARGET_PRICE_METHODOLOGY_NOTE = (
     '높은 종목만 표시합니다. 최근 회계연도가 적자인 종목과 같은 업종 비교 표본이 '
     '{min_peers}개 미만인 업종은 제외합니다. 평균이 아닌 중앙값을 쓰는 이유는 이익이 '
     '거의 0에 가까운 종목 하나가 PER을 극단적으로 튀게 만들어 평균 전체를 왜곡하는 '
-    '것을 막기 위함입니다. 백테스트로 검증된 공식이 아니라 참고용 근사치입니다.'
-).format(min_gap=TARGET_PRICE_MIN_GAP_PCT, min_peers=TARGET_PRICE_MIN_SECTOR_PEERS)
+    '것을 막기 위함입니다. PER·PBR이 각각 {per_cap:.0f}배·{pbr_cap:.0f}배를 넘는 개별 '
+    '종목은 업종 비교 표본 자체에서 제외하고, 계산된 괴리율이 {max_gap:.0f}%를 넘는 '
+    '경우도 데이터 이상치로 보고 후보에서 제외합니다. 백테스트로 검증된 공식이 아니라 '
+    '참고용 근사치입니다.'
+).format(min_gap=TARGET_PRICE_MIN_GAP_PCT, min_peers=TARGET_PRICE_MIN_SECTOR_PEERS,
+         per_cap=TARGET_PRICE_PER_CAP, pbr_cap=TARGET_PRICE_PBR_CAP, max_gap=TARGET_PRICE_MAX_GAP_PCT)
 
 # Dividend ranking follows the broad Naver-style screen: keep common stocks
 # with a positive DART-disclosed cash dividend, then rank by yield or DPS.
@@ -828,7 +844,7 @@ def build_target_price_match(record, sector_avg, annual):
     if target_price <= price:
         return None
     gap_pct = (target_price - price) / price * 100
-    if gap_pct < TARGET_PRICE_MIN_GAP_PCT:
+    if gap_pct < TARGET_PRICE_MIN_GAP_PCT or gap_pct > TARGET_PRICE_MAX_GAP_PCT:
         return None
     match = {
         'code': record['code'],
@@ -917,9 +933,13 @@ def scan_target_price_gap(universe, wics_map, fundamentals_cache, conn, theme_co
     for record in records:
         sector = record['sector']
         if record['price'] and record['eps'] > 0:
-            sector_per.setdefault(sector, []).append(record['price'] / record['eps'])
+            per = record['price'] / record['eps']
+            if per <= TARGET_PRICE_PER_CAP:
+                sector_per.setdefault(sector, []).append(per)
         if record['price'] and record.get('bps') and record['bps'] > 0:
-            sector_pbr.setdefault(sector, []).append(record['price'] / record['bps'])
+            pbr = record['price'] / record['bps']
+            if pbr <= TARGET_PRICE_PBR_CAP:
+                sector_pbr.setdefault(sector, []).append(pbr)
     # 2026-08-23 실측 버그 수정: 산술평균(sum/len)은 PER 표본 하나가 극단값이면(거의 0에
     # 가까운 양수 EPS 종목 - 흑자지만 이익이 미미해 PER=주가/EPS가 수천 배로 튀는 경우)
     # 섹터 평균 전체가 그 한 종목에 끌려가 버린다(효성화학 사례: 목표가 13,466,334원,
