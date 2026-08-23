@@ -1449,6 +1449,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("백테스트가 끝난 확정 예측값이 아니라", scan)
         self.assertIn("최대 {top_n}종목", scan)
 
+    def test_strategy_search_mobile_table_uses_compact_aligned_rows(self):
+        style = self.read("css/strategy-search.css")
+        self.assertIn("모바일 전략표 재배치", style)
+        self.assertIn("grid-template-areas", style)
+        self.assertIn('"watch rank product price"', style)
+        self.assertIn('"code code change change"', style)
+        self.assertIn("content: attr(data-label) ' ';", style)
+        self.assertIn("#strategy-search .ss-strategy-table td::before { display: none; }", style)
+
     def test_strategy_search_uses_one_flattened_etf_ranking_table(self):
         source = self.read("js/strategy-search.js")
         style = self.read("css/strategy-search.css")

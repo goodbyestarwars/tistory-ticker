@@ -854,6 +854,188 @@ html.dark #strategy-search .ss-product-tab.active {
   #strategy-search .ss-dividend-table td[data-label="배당수익률"] { min-width: 116px; }
 }
 
+/* 2026-08-23 모바일 전략표 재배치:
+   셀을 세로로 단순 나열하면 관심/순위/종목명/현재가 라벨이 반복되고 행이 지나치게
+   길어진다. 상단 식별 정보는 한 줄, 나머지 지표는 의미별 한 줄로 정렬해 공간을 줄인다. */
+@media (max-width: 640px) {
+  #strategy-search .ss-strategy-table tbody,
+  #strategy-search .ss-strategy-table tr.ss-table-row {
+    display: grid;
+  }
+  #strategy-search .ss-strategy-table tr.ss-table-row {
+    grid-template-columns: 28px 38px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "watch rank product price"
+      "code code change change"
+      "signal signal signal signal"
+      "fund fund fund fund";
+    column-gap: 5px;
+    row-gap: 4px;
+    padding: 10px 0 11px;
+  }
+  #strategy-search .ss-strategy-table tr.ss-target-row {
+    grid-template-areas:
+      "watch rank product price"
+      "code code change change"
+      "gap gap gap gap"
+      "target target target target"
+      "analyst analyst analyst analyst"
+      "fund fund fund fund";
+  }
+  #strategy-search .ss-strategy-table td {
+    display: none !important;
+    width: auto !important;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    line-height: 1.35;
+    white-space: normal;
+    text-align: left !important;
+  }
+  #strategy-search .ss-strategy-table td::before { display: none; }
+  #strategy-search .ss-strategy-table td.ss-col-watch,
+  #strategy-search .ss-strategy-table td.ss-col-rank,
+  #strategy-search .ss-strategy-table td.ss-col-product,
+  #strategy-search .ss-strategy-table td.ss-col-price,
+  #strategy-search .ss-strategy-table td.ss-col-code,
+  #strategy-search .ss-strategy-table td.ss-col-change,
+  #strategy-search .ss-strategy-table td.ss-col-signal,
+  #strategy-search .ss-strategy-table td.ss-col-fundamentals,
+  #strategy-search .ss-strategy-table td.ss-col-gap,
+  #strategy-search .ss-strategy-table td.ss-col-target-price,
+  #strategy-search .ss-strategy-table td.ss-col-analyst-target { display: block !important; }
+  #strategy-search .ss-strategy-table td.ss-col-watch { grid-area: watch; }
+  #strategy-search .ss-strategy-table td.ss-col-rank {
+    grid-area: rank;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-rank::before {
+    display: inline;
+    content: attr(data-label) ' ';
+    color: #9ca3af;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-product {
+    grid-area: product;
+    overflow: hidden;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-product strong {
+    display: inline-flex;
+    width: 100%;
+    max-width: none;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-price {
+    position: static;
+    grid-area: price;
+    align-self: center;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-watch { align-self: center; }
+  #strategy-search .ss-strategy-table td.ss-col-watch .ss-watch-toggle {
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    font-size: 20px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-code {
+    grid-area: code;
+    color: #94a3b8;
+    font-size: 10px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-code::before {
+    display: inline;
+    content: attr(data-label) ' ';
+    color: #b0b7c0;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-change {
+    grid-area: change;
+    color: #2563a8;
+    font-size: 12px;
+    text-align: right !important;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-change::before {
+    display: inline;
+    content: attr(data-label) ' ';
+    color: #94a3b8;
+    font-size: 10px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-sector {
+    display: none !important;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-signal {
+    grid-area: signal;
+    color: #334155;
+    font-size: 11px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-signal::before {
+    display: inline;
+    content: attr(data-label) ' ';
+    color: #94a3b8;
+    font-size: 10px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-fundamentals {
+    grid-area: fund;
+    color: #64748b;
+    font-size: 10px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-fundamentals::before {
+    display: inline;
+    content: attr(data-label) ' ';
+    color: #a0a8b2;
+    font-size: 10px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-gap {
+    grid-area: gap;
+    color: #2563a8;
+    font-size: 11px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-gap::before {
+    display: inline;
+    content: attr(data-label) ' ';
+    color: #94a3b8;
+    font-size: 10px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-target-price {
+    grid-area: target;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-target-price::before {
+    display: inline;
+    content: attr(data-label) ' ';
+    color: #94a3b8;
+    font-size: 10px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-target-price .ss-target-price-note {
+    display: inline;
+    margin-left: 3px;
+    font-size: 9px;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-analyst-target {
+    grid-area: analyst;
+    color: #64748b;
+    font-size: 10px;
+    text-align: right !important;
+  }
+  #strategy-search .ss-strategy-table td.ss-col-analyst-target::before {
+    display: inline;
+    content: attr(data-label) ' ';
+    color: #94a3b8;
+    font-size: 10px;
+  }
+}
+
 #strategy-search .ss-product-toolbar label,
 #strategy-search .ss-dividend-toolbar label {
   display: inline-flex;

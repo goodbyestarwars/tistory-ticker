@@ -452,7 +452,7 @@
       middleHtml = '<td class="ss-col-signal" data-label="전략 지표">' + escapeHtml(strategySignal(item))
         + (analystTargetPriceText(item) ? '<br><small>' + escapeHtml(analystTargetPriceText(item)) + '</small>' : '') + '</td>';
     }
-    return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
+    return '<tr class="ss-table-row ss-row' + (splitTargetColumns ? ' ss-target-row' : '') + '" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
       + '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'
       + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
       + '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || '—') + '</span></strong></td>'
