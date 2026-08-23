@@ -1761,6 +1761,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('.hwr-my-schedule', style)
         self.assertIn('.hwr-schedule-market--mine', style)
 
+    def test_closed_weekly_report_places_schedule_under_closed_page_and_removes_source_note(self):
+        source = self.read("js/home-weekly-report.js")
+        schedule = '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong>'
+        self.assertNotIn('class="hwr-source-note"', source)
+        self.assertIn(schedule, source)
+        self.assertLess(source.index(schedule), source.index("+ indexSummary(indices)"))
+
     def test_initial_paint_guard_hides_unstyled_refresh_frame(self):
         source = self.read("skin.html")
         self.assertIn('id="initial-paint-guard"', source)
