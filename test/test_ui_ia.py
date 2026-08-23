@@ -48,6 +48,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIsNotNone(group)
         body = group.group("body")
         self.assertIn("{ href: '/page/foreign-flow', label: '종목분석' }", body)
+        self.assertIn("{ href: '/page/market-temp?view=stocks', label: '국내 주요종목' }", body)
         self.assertIn("{ href: '/page/stock-search', label: '실시간 시세 (US. Include)' }", body)
         search_group = re.search(
             r"\{\n\s+label: '종목검색',\n\s+children: \[(?P<body>.*?)\n\s+\]\n\s+\},",
@@ -76,6 +77,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/market-temp.css")
         self.assertIn("{ href: '/page/market-temp?view=stocks', label: '국내 주요종목' }", menu)
         self.assertIn("query.get('view') === 'stocks'", menu)
+        self.assertIn("if (!parts[1]) return query.get('view') !== 'stocks';", menu)
+        self.assertIn("path === '/page/market-temp'", menu)
+        market_group = re.search(
+            r"\{\n\s+label: '시장',\n\s+children: \[(?P<body>.*?)\n\s+\]\n\s+\},",
+            menu,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(market_group)
+        self.assertNotIn("label: '국내 주요종목'", market_group.group("body"))
         self.assertIn("function isStocksView()", source)
         self.assertIn("buildStocksOnlyPage", source)
         self.assertIn("container.innerHTML = buildCard(data);", source)

@@ -12,7 +12,6 @@
       children: [
         { href: '/category/마켓 브리핑', label: '마켓브리핑' },
         { href: '/page/market-temp', label: '증시온도' },
-        { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
         { href: '/pages/overnight-market', label: '글로벌 시장지표' },
         { href: '/pages/kospi-futures', label: '국내시장지표' }
       ]
@@ -21,6 +20,7 @@
       label: '종목',
       children: [
         { href: '/page/foreign-flow', label: '종목분석' },
+        { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
         { href: '/page/stock-search', label: '실시간 시세 (US. Include)' }
       ]
     },
@@ -61,8 +61,8 @@
     if (!item.href) return false;
     var parts = item.href.split('?');
     if (currentPath() !== parts[0]) return false;
-    if (!parts[1]) return true;
     var query = new URLSearchParams(location.search);
+    if (!parts[1]) return query.get('view') !== 'stocks';
     return parts[1] === 'view=stocks' ? query.get('view') === 'stocks' : query.get('market') === 'us';
   }
 
@@ -130,7 +130,8 @@
     var path = currentPath();
     if (path === '/') return 'home';
     if (path === '/page/watchlist') return 'my';
-    if (['/page/market-temp', '/pages/overnight-market', '/pages/kospi-futures', '/category/마켓 브리핑'].indexOf(path) !== -1) return 'market';
+    if (path === '/page/market-temp') return new URLSearchParams(location.search).get('view') === 'stocks' ? 'stock' : 'market';
+    if (['/pages/overnight-market', '/pages/kospi-futures', '/category/마켓 브리핑'].indexOf(path) !== -1) return 'market';
     if (['/page/foreign-flow', '/page/stock-search'].indexOf(path) !== -1) return 'stock';
     if (['/page/pattern-scan', '/page/strategy-search'].indexOf(path) !== -1) return 'search';
     return 'more';
