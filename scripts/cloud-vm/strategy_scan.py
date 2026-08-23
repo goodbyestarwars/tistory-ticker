@@ -140,21 +140,33 @@ TARGET_PRICE_MIN_GAP_PCT = 20.0  # 목표가가 현재가보다 이 %+ 높아야
 # 믿기 어려운 수백% 이상 괴리는 발굴이 아니라 데이터 이상치일 가능성이 훨씬 크다.
 TARGET_PRICE_PER_CAP = 80.0   # 이보다 높은 개별 PER은 섹터 평균 표본에서 제외
 TARGET_PRICE_PBR_CAP = 10.0   # 이보다 높은 개별 PBR은 섹터 평균 표본에서 제외
-TARGET_PRICE_MAX_GAP_PCT = 300.0  # 이보다 큰 괴리율은 이상치로 보고 후보에서 제외
+# 2026-08-23(3차): 위 두 겹 방어를 거쳐도 실측 결과가 여전히 비정상이었다(사용자 리포트 -
+# KG스틸 목표가 19,957원/괴리 +277.3%인데 KIS 실제 애널리스트 목표가는 7,550원/+42.7%에
+# 불과함). 근본 원인은 캡의 유무가 아니라 "섹터 중앙값 PER/PBR로 완전히 수렴한다"는 가정
+# 자체가 비현실적이라는 것 - 실적이 눌린(트로프) 종목의 낮은 PER을 업종 중앙값까지
+# 그대로 밀어올리면 캡을 아무리 죄어도 수백%가 나온다. "캡으로 이상치를 사후에 걸러내는"
+# 방식에서 "애초에 부분수렴만 가정하는" 방식으로 계산 자체를 바꿨다(사용자 확인 -
+# "애널리스트 목표가 보다 낮게, 일관성 있는 계산식으로, 우리만의 변수를 반영").
+TARGET_PRICE_REVERSION_FACTOR = 0.35  # 현재 배수에서 섹터 중앙값까지 이 비율만큼만 수렴한다고 가정(부분 재평가)
+TARGET_PRICE_MAX_GAP_PCT = 150.0  # 부분수렴 이후에도 이 이상이면 데이터 이상치로 보고 제외
 TARGET_PRICE_TOP_N = 30
 
 TARGET_PRICE_METHODOLOGY_NOTE = (
-    '같은 업종(WICS 섹터) 내 다른 종목들의 오늘 PER·PBR 중앙값을 적정 배수로 보고, '
-    '이 종목의 오늘 EPS·BPS에 곱해 계산한 목표가가 현재가보다 {min_gap:.0f}% 이상 '
-    '높은 종목만 표시합니다. 최근 회계연도가 적자인 종목과 같은 업종 비교 표본이 '
-    '{min_peers}개 미만인 업종은 제외합니다. 평균이 아닌 중앙값을 쓰는 이유는 이익이 '
-    '거의 0에 가까운 종목 하나가 PER을 극단적으로 튀게 만들어 평균 전체를 왜곡하는 '
-    '것을 막기 위함입니다. PER·PBR이 각각 {per_cap:.0f}배·{pbr_cap:.0f}배를 넘는 개별 '
-    '종목은 업종 비교 표본 자체에서 제외하고, 계산된 괴리율이 {max_gap:.0f}%를 넘는 '
-    '경우도 데이터 이상치로 보고 후보에서 제외합니다. 백테스트로 검증된 공식이 아니라 '
-    '참고용 근사치입니다.'
+    '같은 업종(WICS 섹터) 내 다른 종목들의 오늘 PER·PBR 중앙값을 적정 배수로 보되, '
+    '이 종목이 그 배수까지 한 번에 전부 수렴한다고 가정하지 않고 현재 배수에서 '
+    '{reversion:.0f}%만큼만 좁혀진다고 보수적으로 가정해(부분 재평가) 목표가를 '
+    '계산합니다. 목표가가 현재가보다 {min_gap:.0f}% 이상 높은 종목만 표시합니다. '
+    '최근 회계연도가 적자인 종목과 같은 업종 비교 표본이 {min_peers}개 미만인 업종은 '
+    '제외합니다. 평균이 아닌 중앙값을 쓰는 이유는 이익이 거의 0에 가까운 종목 하나가 '
+    'PER을 극단적으로 튀게 만들어 평균 전체를 왜곡하는 것을 막기 위함입니다. PER·PBR이 '
+    '각각 {per_cap:.0f}배·{pbr_cap:.0f}배를 넘는 개별 종목은 업종 비교 표본 자체에서 '
+    '제외하고, 계산된 괴리율이 {max_gap:.0f}%를 넘는 경우도 데이터 이상치로 보고 '
+    '후보에서 제외합니다. 같은 종목에 KIS 실제 애널리스트 목표가(옆의 "애널리스트 '
+    '목표가")가 있으면 이 계산값이 그보다 높을 수 없도록 낮춰 표시합니다. 백테스트로 '
+    '검증된 공식이 아니라 참고용 근사치입니다.'
 ).format(min_gap=TARGET_PRICE_MIN_GAP_PCT, min_peers=TARGET_PRICE_MIN_SECTOR_PEERS,
-         per_cap=TARGET_PRICE_PER_CAP, pbr_cap=TARGET_PRICE_PBR_CAP, max_gap=TARGET_PRICE_MAX_GAP_PCT)
+         per_cap=TARGET_PRICE_PER_CAP, pbr_cap=TARGET_PRICE_PBR_CAP, max_gap=TARGET_PRICE_MAX_GAP_PCT,
+         reversion=TARGET_PRICE_REVERSION_FACTOR * 100)
 
 # Dividend ranking follows the broad Naver-style screen: keep common stocks
 # with a positive DART-disclosed cash dividend, then rank by yield or DPS.
@@ -834,9 +846,14 @@ def compute_eps_bps(annual, shares_outstanding):
 
 def build_target_price_match(record, sector_avg, annual):
     price = record['price']
-    per_target = sector_avg['perAvg'] * record['eps'] if sector_avg.get('perAvg') and record['eps'] > 0 else None
-    pbr_target = (sector_avg['pbrAvg'] * record['bps']
-                  if sector_avg.get('pbrAvg') and record.get('bps') and record['bps'] > 0 else None)
+    # 2026-08-23(3차): "섹터 중앙값까지 완전히 수렴"이 아니라 "그 방향으로 일부만
+    # 좁혀진다"고 가정한다(TARGET_PRICE_REVERSION_FACTOR) - 완전수렴 목표가(*_full)와
+    # 현재가 사이를 그 비율만큼만 잇는다. factor=1이면 기존(완전수렴) 방식과 동일하다.
+    per_target_full = sector_avg['perAvg'] * record['eps'] if sector_avg.get('perAvg') and record['eps'] > 0 else None
+    pbr_target_full = (sector_avg['pbrAvg'] * record['bps']
+                        if sector_avg.get('pbrAvg') and record.get('bps') and record['bps'] > 0 else None)
+    per_target = price + TARGET_PRICE_REVERSION_FACTOR * (per_target_full - price) if per_target_full else None
+    pbr_target = price + TARGET_PRICE_REVERSION_FACTOR * (pbr_target_full - price) if pbr_target_full else None
     targets = [t for t in (per_target, pbr_target) if t]
     if not targets:
         return None
@@ -865,6 +882,31 @@ def build_target_price_match(record, sector_avg, annual):
     if fundamental_score is not None:
         match['fundamentalScore'] = fundamental_score
     return match
+
+
+def apply_analyst_target_price_ceiling(target_price_sectors):
+    """targetPriceGap(업종 PER/PBR 기반 자체 계산)이 같은 종목의 실제 애널리스트
+    목표가(analystTargetPrice, invest_opinion.enrich_matches_with_target_price가 미리
+    붙여놓음)보다 높게 나오는 사례가 실측으로 확인됐다(2026-08-23 3차, 사용자 리포트 -
+    KG스틸 자체계산 19,957원 vs 애널리스트 7,550원). 부분수렴(TARGET_PRICE_REVERSION_FACTOR)
+    으로 구조적 원인은 고쳤지만, 실제 목표가가 있는 종목에서는 그 값을 최종 상한으로 삼아
+    "우리 계산이 실제 애널리스트 목표가보다 높게 표시되는 일이 없도록" 이중으로 보장한다
+    (사용자 확인 - "애널리스트 목표가 보다 낮게"). 애널리스트 커버리지가 없는 종목은
+    부분수렴 공식 결과 그대로 둔다. `target_price_sectors`는
+    {섹터명: {'matches': [...]}} 형태(output['categories']['targetPriceGap']['sectors'])를
+    제자리에서(in-place) 수정한다."""
+    for sector_info in target_price_sectors.values():
+        for match in sector_info['matches']:
+            analyst_price = match.get('analystTargetPrice')
+            if analyst_price and match.get('targetPrice') and match['targetPrice'] > analyst_price:
+                match['targetPrice'] = analyst_price
+                match['targetGapPct'] = round((analyst_price - match['price']) / match['price'] * 100, 1)
+                match['targetPriceCappedByAnalyst'] = True
+        # 클램프로 괴리율이 최소 기준(TARGET_PRICE_MIN_GAP_PCT) 아래로 떨어진 종목은
+        # 더 이상 "저평가 후보"가 아니므로 목록에서도 제외한다.
+        sector_info['matches'] = [
+            m for m in sector_info['matches'] if (m.get('targetGapPct') or 0) >= TARGET_PRICE_MIN_GAP_PCT
+        ]
 
 
 def scan_target_price_gap(universe, wics_map, fundamentals_cache, conn, theme_codes=None,
@@ -1328,6 +1370,8 @@ def main():
             log('평균 투자의견 보강 실패(무시하고 계속): %s' % e)
         finally:
             opinion_conn.close()
+
+    apply_analyst_target_price_ceiling(output['categories']['targetPriceGap']['sectors'])
 
     tmp_path = OUTPUT_FILE + '.tmp'
     with open(tmp_path, 'w', encoding='utf-8') as f:

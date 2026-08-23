@@ -613,17 +613,20 @@ class TargetPriceGapTests(unittest.TestCase):
         self.assertIsNone(strategy_scan.compute_eps_bps(annual, shares_outstanding=0))
 
     def test_build_target_price_match_combines_per_and_pbr_targets(self):
-        # 업종 평균 PER 10배, PBR 1배. EPS 40, BPS 400 -> PER 목표가 400, PBR 목표가 400,
-        # 평균 400. 현재가 300이면 괴리 33.3%로 최소 기준(20%)을 통과한다.
+        # 2026-08-23(3차): "섹터 중앙값까지 완전히 수렴"이 아니라 TARGET_PRICE_REVERSION_FACTOR
+        # (35%)만큼만 부분수렴한다고 가정하도록 계산식을 바꿨다(사용자 리포트 - KG스틸처럼
+        # 완전수렴 가정이 실제 애널리스트 목표가보다 훨씬 높은 목표가를 냈던 문제).
+        # 업종 평균 PER 10배, PBR 1배. EPS 40, BPS 400 -> 완전수렴 목표가는 PER/PBR 둘 다
+        # 400인데, 현재가(100)에서 그 방향으로 35%만 이동한 205가 실제 목표가가 된다.
         record = {
-            'code': '000010', 'name': '테스트종목', 'sector': 'IT', 'price': 300,
+            'code': '000010', 'name': '테스트종목', 'sector': 'IT', 'price': 100,
             'date': '2026-08-20', 'changeRate': 1.5, 'eps': 40, 'bps': 400,
         }
         sector_avg = {'perAvg': 10.0, 'pbrAvg': 1.0}
         match = strategy_scan.build_target_price_match(record, sector_avg, annual=None)
         self.assertIsNotNone(match)
-        self.assertEqual(match['targetPrice'], 400)
-        self.assertAlmostEqual(match['targetGapPct'], (400 - 300) / 300 * 100, places=1)
+        self.assertEqual(match['targetPrice'], 205)
+        self.assertAlmostEqual(match['targetGapPct'], (205 - 100) / 100 * 100, places=1)
         self.assertEqual(match['sectorPerAvg'], 10.0)
         self.assertEqual(match['sectorPbrAvg'], 1.0)
 
@@ -650,8 +653,9 @@ class TargetPriceGapTests(unittest.TestCase):
         # IT 섹터 5종목, 상장주식수 100주(시가총액/가격으로 역산)로 고정.
         # 000020~000050(피어 4종목): eps=500/bps=5000, 가격도 5000 -> PER=10/PBR=1로
         # 통일해 섹터 평균이 정확히 10배/1배가 되도록 설계.
-        # 000010(저평가 대상): eps=400/bps=4000 -> 목표가(PER 기준 4000, PBR 기준 4000,
-        # 평균 4000)인데 실제 가격은 3000이라 괴리 33.3%로 기준(20%) 통과.
+        # 000010(저평가 대상): eps=400/bps=4000 -> 완전수렴 목표가(PER/PBR 둘 다 4000)인데
+        # 2026-08-23(3차)부터 부분수렴(35%)만 반영해 실제 가격 2000에서 2700으로만
+        # 이동한다(2000 + 0.35*(4000-2000)=2700, 괴리 35%로 기준(20%) 통과).
         universe = [{'code': c, 'name': c} for c in
                     ['000010', '000020', '000030', '000040', '000050']]
         wics_map = {c: {'name': c, 'sector': 'IT', 'industry': 'IT'} for c in
@@ -663,13 +667,13 @@ class TargetPriceGapTests(unittest.TestCase):
             '000040': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
             '000050': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
         }
-        prices = {'000010': 3000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000}
+        prices = {'000010': 2000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000}
 
         def daily_for(price):
             rows = []
             for i in range(strategy_scan.MIN_BARS):
                 rows.append({'date': '2026-%04d' % i, 'close': price, 'open': price,
-                             'high': price, 'low': price, 'volume': 400000})
+                             'high': price, 'low': price, 'volume': 1000000})
             return rows
 
         daily_cache = {code: daily_for(price) for code, price in prices.items()}
@@ -711,13 +715,13 @@ class TargetPriceGapTests(unittest.TestCase):
             '000050': {'annual': {'years': [{'year': 2025, 'net_income': 100, 'equity': 500000}]}},
             '000060': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
         }
-        prices = {'000010': 3000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000, '000060': 5000}
+        prices = {'000010': 2000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000, '000060': 5000}
 
         def daily_for(price):
             rows = []
             for i in range(strategy_scan.MIN_BARS):
                 rows.append({'date': '2026-%04d' % i, 'close': price, 'open': price,
-                             'high': price, 'low': price, 'volume': 400000})
+                             'high': price, 'low': price, 'volume': 1000000})
             return rows
 
         daily_cache = {code: daily_for(price) for code, price in prices.items()}
@@ -755,13 +759,13 @@ class TargetPriceGapTests(unittest.TestCase):
             '000040': {'annual': {'years': [{'year': 2025, 'net_income': 50000, 'equity': 500000}]}},
             '000050': {'annual': {'years': [{'year': 2025, 'net_income': 100, 'equity': 500000}]}},
         }
-        prices = {'000010': 3000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000}
+        prices = {'000010': 2000, '000020': 5000, '000030': 5000, '000040': 5000, '000050': 5000}
 
         def daily_for(price):
             rows = []
             for i in range(strategy_scan.MIN_BARS):
                 rows.append({'date': '2026-%04d' % i, 'close': price, 'open': price,
-                             'high': price, 'low': price, 'volume': 400000})
+                             'high': price, 'low': price, 'volume': 1000000})
             return rows
 
         daily_cache = {code: daily_for(price) for code, price in prices.items()}
@@ -777,7 +781,9 @@ class TargetPriceGapTests(unittest.TestCase):
         target = next(m for m in matches if m['code'] == '000010')
         self.assertIsNone(target['sectorPerAvg'])  # PER 표본이 4개로 줄어 문턱 미달
         self.assertEqual(target['sectorPbrAvg'], 1.0)  # PBR은 전부 cap 이내라 그대로 유지
-        self.assertEqual(target['targetPrice'], 4000)  # PBR 목표가만으로 계산됨
+        # PBR 목표가만으로 계산: 완전수렴 목표가 4000에서 부분수렴(35%)만 반영해
+        # 2000 + 0.35*(4000-2000) = 2700.
+        self.assertEqual(target['targetPrice'], 2700)
 
     def test_scan_excludes_sector_with_too_few_peers(self):
         # 섹터에 종목이 2개뿐(TARGET_PRICE_MIN_SECTOR_PEERS=5 미만)이면 섹터 평균을
@@ -812,6 +818,52 @@ class TargetPriceGapTests(unittest.TestCase):
 
         codes = [m['code'] for sector_matches in sectors.values() for m in sector_matches]
         self.assertEqual(codes, [])
+
+
+class ApplyAnalystTargetPriceCeilingTests(unittest.TestCase):
+    """2026-08-23(3차) 신규: 자체계산 목표가가 KIS 실제 애널리스트 목표가보다 높으면
+    안 된다는 사용자 리포트(KG스틸 사례)에 대한 회귀 테스트."""
+
+    def test_calculated_target_above_analyst_target_is_clamped_down(self):
+        sectors = {'소재': {'matches': [
+            {'code': '000010', 'price': 5290, 'targetPrice': 19957, 'targetGapPct': 277.3,
+             'analystTargetPrice': 7550},
+        ]}}
+        strategy_scan.apply_analyst_target_price_ceiling(sectors)
+        match = sectors['소재']['matches'][0]
+        self.assertEqual(match['targetPrice'], 7550)
+        self.assertAlmostEqual(match['targetGapPct'], (7550 - 5290) / 5290 * 100, places=1)
+        self.assertTrue(match['targetPriceCappedByAnalyst'])
+
+    def test_calculated_target_already_below_analyst_target_is_left_untouched(self):
+        sectors = {'소재': {'matches': [
+            {'code': '000020', 'price': 5000, 'targetPrice': 6000, 'targetGapPct': 20.0,
+             'analystTargetPrice': 7550},
+        ]}}
+        strategy_scan.apply_analyst_target_price_ceiling(sectors)
+        match = sectors['소재']['matches'][0]
+        self.assertEqual(match['targetPrice'], 6000)
+        self.assertEqual(match['targetGapPct'], 20.0)
+        self.assertNotIn('targetPriceCappedByAnalyst', match)
+
+    def test_stock_without_analyst_coverage_is_left_untouched(self):
+        sectors = {'소재': {'matches': [
+            {'code': '000030', 'price': 5000, 'targetPrice': 9000, 'targetGapPct': 80.0},
+        ]}}
+        strategy_scan.apply_analyst_target_price_ceiling(sectors)
+        match = sectors['소재']['matches'][0]
+        self.assertEqual(match['targetPrice'], 9000)
+        self.assertNotIn('targetPriceCappedByAnalyst', match)
+
+    def test_clamped_match_below_min_gap_is_dropped_from_the_list(self):
+        # 클램프 이후 괴리율이 최소 기준(20%) 아래로 떨어지면 더 이상 "저평가 후보"가
+        # 아니므로 목록에서도 빠져야 한다.
+        sectors = {'소재': {'matches': [
+            {'code': '000040', 'price': 5000, 'targetPrice': 9000, 'targetGapPct': 80.0,
+             'analystTargetPrice': 5500},  # 클램프 후 괴리 10% -> 20% 미달
+        ]}}
+        strategy_scan.apply_analyst_target_price_ceiling(sectors)
+        self.assertEqual(sectors['소재']['matches'], [])
 
 
 if __name__ == '__main__':
