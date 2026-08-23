@@ -1836,19 +1836,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(url, source)
 
-    def test_stock_calendar_supports_searching_loaded_events(self):
+    def test_stock_calendar_shows_today_only(self):
         source = self.read("js/stock-calendar.js")
         home = self.read("js/skin-main.js")
         style = self.read("css/stock-calendar.css")
-        self.assertIn("function eventMatchesSearch(event, query)", source)
-        self.assertIn("function fetchYearEvents(year)", source)
-        self.assertIn("function groupByYearMonth(events)", source)
-        self.assertIn("annualSearchLoading", source)
-        self.assertIn('id="scSearch"', source)
-        self.assertIn("compositionstart", source)
-        self.assertIn("compositionend", source)
-        self.assertIn("var queryAtRequest = searchQuery", source)
-        self.assertIn("event.isComposing", source)
+        self.assertIn("function dateKey(date)", source)
+        self.assertIn("function renderToday(today, events)", source)
+        self.assertIn("오늘의 일정", source)
+        self.assertIn("오늘 일정만 표시합니다.", source)
+        self.assertIn("String(event && event.start || '').slice(0, 10) === todayKey", source)
+        self.assertIn("function loadToday()", source)
+        self.assertNotIn('id="scSearch"', source)
+        self.assertNotIn("연간 일정", source)
         self.assertIn("eventText = meta.text", source)
         self.assertIn("function stockCodeFor(event, stockName)", source)
         self.assertIn("function usCompanyNameFor(ev, meta)", source)
@@ -1863,10 +1862,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("자동(DART)", source)
         self.assertNotIn("미국(Finnhub)", source)
         self.assertIn("ev.result", source)
-        self.assertNotIn("renderPage(year, month, monthEvents, undefined, [], true);", source)
-        self.assertIn("1.1~12.31", source)
-        self.assertIn("검색 결과 ' + visibleEvents.length + '건", source)
-        self.assertIn(".sc-search input", style)
+        self.assertIn(".sc-today-only", style)
+        self.assertIn(".sc-today-head", style)
         self.assertIn("stock-calendar.js?v=20260817-earnings-result-v1", home)
 
     def test_lightweight_charts_uses_v5_api_across_chart_modules(self):

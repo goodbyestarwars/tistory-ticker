@@ -1,8 +1,8 @@
 /**
  * 증시캘린더 - 독립 페이지 위젯 (2026-07-22)
  * 예전엔 js/skin-main.js의 openCalendarModal()이 중앙 모달로 띄우는 방식이었으나,
- * 사용자 요청으로 별도 Tistory Page(#stock-calendar 마운트)로 전환 - 필터 없이
- * 월 달력 + 주차별 이벤트 리스트만 항상 펼쳐서 보여준다.
+ * 사용자 요청으로 별도 Tistory Page(#stock-calendar 마운트)로 전환 - 월간 목록 대신
+ * 오늘 날짜의 일정만 간결하게 보여준다.
  *
  * 데이터 소스는 구글 캘린더 이벤트(제목+날짜/시간)와 DART 국내 실적공시, Finnhub
  * 미국 예정 실적일정이다. 예측치/이전치 같은 경제지표 수치는 소스가 없어 표시하지 않는다.
@@ -32,18 +32,6 @@
   // DART 공시의 정식 회사명이 KRX_MAP(data/krx_map.js)의 약칭 키와 다른 경우의 별칭.
   // 예: DART corp_name "현대자동차" vs KRX_MAP 키 "현대차"(005380).
   var DART_NAME_ALIAS = { '현대자동차': '현대차' };
-  // Finnhub가 company를 내려주지 않는 Google 일정도 같은 검색 경험을
-  // 갖도록 대표 미국 종목의 한글명·영문명·통용 약칭을 함께 검색한다.
-  var US_COMPANY_ALIASES = {
-    AAPL: ['애플', 'apple'], MSFT: ['마이크로소프트', 'microsoft', 'ms'],
-    GOOGL: ['구글', '알파벳', 'google', 'alphabet'], GOOG: ['구글', '알파벳', 'google', 'alphabet'],
-    AMZN: ['아마존', 'amazon'], NVDA: ['엔비디아', 'nvidia'],
-    META: ['메타', '페이스북', 'meta', 'facebook'], TSLA: ['테슬라', 'tesla'],
-    AVGO: ['브로드컴', 'broadcom'], AMD: ['amd'], NFLX: ['넷플릭스', 'netflix'],
-    INTC: ['인텔', 'intel'], MU: ['마이크론', 'micron'],
-    JPM: ['제이피모건', 'jp모건', 'jpmorgan'], MS: ['모건스탠리', 'morgan stanley']
-  };
-
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙,
   // js/foreign-flow.js·js/stock-search.js와 동일 패턴 - window.__stockIconFallback 공유).
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -73,17 +61,6 @@
     return /^[A-Za-z][A-Za-z0-9.-]*$/.test(value) ? value.toUpperCase() : null;
   }
 
-  function normalizedSearchText(value) {
-    return String(value || '').toLocaleLowerCase().replace(/[\s._-]+/g, '');
-  }
-
-  function eventUsTicker(event) {
-    var symbol = String(event && (event.symbol || event.ticker) || '').trim().toUpperCase();
-    if (symbol) return symbol;
-    var match = String(event && event.title || '').match(/^\$([A-Za-z][A-Za-z0-9.-]*)/);
-    return match ? match[1].toUpperCase() : '';
-  }
-
   function isFinnhubLink(link) {
     return /(?:^|:\/\/)(?:www\.)?finnhub\.io(?:\/|$)/i.test(String(link || ''));
   }
@@ -102,12 +79,6 @@
 
   function fetchEarnings(year, month) {
     return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month + 1), 15000)
-      .then(function (data) { return Array.isArray(data) ? data : (data && data.data) || []; })
-      .catch(function () { return []; });
-  }
-
-  function fetchEarningsYear(year) {
-    return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year), 30000)
       .then(function (data) { return Array.isArray(data) ? data : (data && data.data) || []; })
       .catch(function () { return []; });
   }
@@ -186,11 +157,6 @@
     return loadStoredCalendarEvents().filter(function (event) { return String(event.start || '').slice(0, 7) === prefix; });
   }
 
-  function storedYearEvents(year) {
-    var prefix = String(year);
-    return loadStoredCalendarEvents().filter(function (event) { return String(event.start || '').slice(0, 4) === prefix; });
-  }
-
   function fetchGoogleEvents(year, month) {
     var tMin = new Date(year, month == null ? 0 : month, 1).toISOString();
     var tMax = month == null
@@ -226,35 +192,6 @@
       });
   }
 
-  function fetchYearEvents(year) {
-    return Promise.all([fetchGoogleEvents(year, null), fetchEarningsYear(year)])
-      .then(function (results) {
-        upsertStoredCalendarEvents((results[0] || []).concat(results[1] || []));
-        return mergeEvents(storedYearEvents(year), []);
-      });
-  }
-
-  function eventMatchesSearch(event, query) {
-    var normalizedQuery = normalizedSearchText(String(query || '').trim());
-    if (!normalizedQuery) return true;
-    var ticker = eventUsTicker(event);
-    var aliases = US_COMPANY_ALIASES[ticker] || [];
-    var searchable = [
-      event && event.title,
-      event && event.symbol,
-      event && event.ticker,
-      event && event.company,
-      event && event.market,
-      event && event.source,
-      event && event.status,
-      event && event.result,
-      event && event.report_name,
-      event && event.corp_name,
-      event && event.symbol
-    ].concat(aliases).join(' ');
-    return normalizedSearchText(searchable).indexOf(normalizedQuery) !== -1;
-  }
-
   function stripProviderLabel(rawTitle) {
     // 과거 localStorage/API 응답에 남아 있는 제공처 꼬리표도 화면에서는 숨긴다.
     // source/provider 필드는 시장 구분과 결과 병합에만 사용하고, 제공처 안내는 약관에서 한다.
@@ -283,10 +220,6 @@
   function escapeHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function dayOf(ev) {
-    return parseInt((ev.start.indexOf('T') !== -1 ? ev.start : ev.start + 'T00:00').slice(8, 10), 10);
   }
 
   function timeOf(ev) {
@@ -365,232 +298,54 @@
       + rowEnd;
   }
 
-  /* 달력 그리드의 각 행(일~토)을 "N주차"로 묶는다 - 이벤트가 있는 주차만 리스트에 노출 */
-  function groupByWeek(year, month, evs) {
-    var byDay = {};
-    evs.forEach(function (ev) {
-      var d = dayOf(ev);
-      if (!byDay[d]) byDay[d] = [];
-      byDay[d].push(ev);
-    });
-    var firstDay    = new Date(year, month, 1).getDay();
-    var daysInMonth = new Date(year, month + 1, 0).getDate();
-    var weeks = [];
-    var weekNo = 1;
-    var current = { weekNo: weekNo, items: [] };
-    for (var d = 1; d <= daysInMonth; d++) {
-      var dow = (firstDay + d - 1) % 7;
-      if (byDay[d]) {
-        byDay[d].forEach(function (ev) { current.items.push(ev); });
-      }
-      if (dow === 6 || d === daysInMonth) {
-        weeks.push(current);
-        weekNo++;
-        current = { weekNo: weekNo, items: [] };
-      }
-    }
-    return weeks.filter(function (w) { return w.items.length > 0; });
-  }
-
-  function buildMonthGrid(year, month, evs, selectedDay) {
-    var byDay = {};
-    evs.forEach(function (ev) { byDay[dayOf(ev)] = true; });
-    var firstDay    = new Date(year, month, 1).getDay();
-    var daysInMonth = new Date(year, month + 1, 0).getDate();
-    var today = new Date();
-    var isThisMonth = year === today.getFullYear() && month === today.getMonth();
-    var html = '';
-    for (var i = 0; i < firstDay; i++) html += '<div class="sc-day sc-day-empty"></div>';
-    for (var d = 1; d <= daysInMonth; d++) {
-      var dow = (firstDay + d - 1) % 7;
-      var isToday = isThisMonth && d === today.getDate();
-      var isSelected = selectedDay === d;
-      var cls = 'sc-day sc-day-clickable' + (isToday ? ' sc-today' : '')
-        + (isSelected ? ' sc-selected' : '') + (byDay[d] ? ' sc-has-event' : '');
-      var style = '';
-      if (!isToday) {
-        if (dow === 0) style = ' style="color:#e11d48;"';
-        if (dow === 6) style = ' style="color:#2563eb;"';
-      }
-      html += '<div class="' + cls + '" data-day="' + d + '" role="button" tabindex="0"' + style + '><span>' + d + '</span>'
-        + (byDay[d] ? '<div class="sc-dot"></div>' : '') + '</div>';
-    }
-    return html;
-  }
-
-  function groupByYearMonth(events) {
-    var groups = {};
-    (events || []).slice().sort(compareEvents).forEach(function (event) {
-      var key = String(event && event.start || '').slice(0, 7);
-      if (!key) return;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(event);
-    });
-    return Object.keys(groups).sort().map(function (key) {
-      return { label: Number(key.slice(5, 7)) + '월', items: groups[key] };
-    });
-  }
-
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
 
-    var currentYear;
-    var currentMonth;
-    var searchQuery = '';
-    var annualEvents = null;
-    var annualSearchLoading = false;
-    var searchRequestId = 0;
-    var searchTimer = null;
-    var isComposing = false;
+    function dateKey(date) {
+      return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0')
+        + '-' + String(date.getDate()).padStart(2, '0');
+    }
 
-    function load(year, month) {
-      if (month < 0) { month = 11; year -= 1; }
-      if (month > 11) { month = 0; year += 1; }
-      currentYear = year;
-      currentMonth = month;
+    function renderToday(today, events) {
+      var todayKey = dateKey(today);
+      var todayEvents = (events || []).filter(function (event) {
+        return String(event && event.start || '').slice(0, 10) === todayKey;
+      }).sort(compareEvents);
+      var dateTitle = today.getFullYear() + '년 ' + (today.getMonth() + 1) + '월 ' + today.getDate() + '일';
+      var listHtml = todayEvents.length
+        ? '<div class="sc-today-rows">' + todayEvents.map(renderEventRow).join('') + '</div>'
+        : '<div class="sc-empty">오늘 예정된 일정이 없습니다.</div>';
+
+      container.innerHTML =
+        '<div class="sc-today-only">'
+        + '<div class="sc-today-head"><div><strong>오늘의 일정</strong><span>' + dateTitle + '</span></div>'
+        + '<small>오늘 일정만 표시합니다.</small></div>'
+        + listHtml
+        + '</div>';
+    }
+
+    function loadToday() {
+      var today = new Date();
       container.innerHTML = '<div class="sc-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>';
-      StockCalendar.fetchEvents(year, month)
+      StockCalendar.fetchEvents(today.getFullYear(), today.getMonth())
         .then(function (evs) {
-          if (searchQuery.trim()) requestYearSearch(year, month, evs);
-          else renderPage(year, month, evs);
+          renderToday(today, evs);
         })
         .catch(function () {
           container.innerHTML = '<div class="sc-error">일정을 불러오지 못했습니다.</div>';
         });
     }
 
-    function requestYearSearch(year, month, monthEvents, selectedDay) {
-      var requestId = ++searchRequestId;
-      var queryAtRequest = searchQuery;
-      if (!searchQuery.trim()) {
-        annualEvents = null;
-        annualSearchLoading = false;
-        renderPage(year, month, monthEvents, selectedDay);
-        restoreSearchFocus();
-        return;
-      }
-      annualEvents = null;
-      annualSearchLoading = true;
-      StockCalendar.fetchYearEvents(year).then(function (events) {
-        if (requestId !== searchRequestId || queryAtRequest !== searchQuery || isComposing) return;
-        annualEvents = events;
-        annualSearchLoading = false;
-        renderPage(year, month, monthEvents, undefined, annualEvents, true);
-        restoreSearchFocus();
-      });
-    }
-
-    function restoreSearchFocus() {
-      var input = document.getElementById('scSearch');
-      if (!input) return;
-      input.focus();
-      input.setSelectionRange(searchQuery.length, searchQuery.length);
-    }
-
-    function renderPage(year, month, evs, selectedDay, listEvents, annualMode) {
-      var sourceEvents = annualMode ? (listEvents || []) : evs;
-      var dayEvents = annualMode || typeof selectedDay !== 'number'
-        ? sourceEvents
-        : sourceEvents.filter(function (event) { return dayOf(event) === selectedDay; });
-      var visibleEvents = dayEvents.filter(function (event) { return eventMatchesSearch(event, searchQuery); });
-      var yearGroups = annualMode ? groupByYearMonth(visibleEvents) : [];
-      var weeks = annualMode ? [] : groupByWeek(year, month, visibleEvents);
-      var listTitle = annualMode
-        ? year + '년 전체 일정'
-        : (typeof selectedDay === 'number'
-          ? (month + 1) + '월 ' + selectedDay + '일 일정'
-          : (month + 1) + '월 일정');
-      var resultLabel = searchQuery.trim()
-        ? '<small class="sc-search-count">검색 결과 ' + visibleEvents.length + '건</small>'
-        : '';
-      var listHtml = annualSearchLoading
-        ? '<div class="sc-empty"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>연간 일정을 불러오는 중...</div>'
-        : annualMode
-        ? (yearGroups.length
-          ? yearGroups.map(function (group) {
-              return '<div class="sc-week">'
-                + '<div class="sc-week-title">' + group.label + '</div>'
-                + '<div class="sc-week-rows">' + group.items.map(renderEventRow).join('') + '</div>'
-                + '</div>';
-            }).join('')
-          : '<div class="sc-empty">검색 결과가 없습니다.</div>')
-        : weeks.length
-        ? weeks.map(function (w) {
-            return '<div class="sc-week">'
-              + '<div class="sc-week-title">' + (month + 1) + '월 ' + w.weekNo + '주차</div>'
-              + '<div class="sc-week-rows">' + w.items.map(renderEventRow).join('') + '</div>'
-              + '</div>';
-          }).join('')
-        : '<div class="sc-empty">' + (searchQuery.trim() ? '검색 결과가 없습니다.' : '이번 달 일정이 없습니다.') + '</div>';
-
-      container.innerHTML =
-        '<div class="sc-layout">'
-        + '<div class="sc-cal-col">'
-        + '<div class="sc-cal-header"><button type="button" class="sc-nav" id="scPrev">‹</button>'
-        + '<span class="sc-cal-title">' + year + '년 ' + (month + 1) + '월</span>'
-        + '<button type="button" class="sc-nav" id="scNext">›</button></div>'
-        + '<div class="sc-dow"><span style="color:#e11d48;">일</span><span>월</span><span>화</span>'
-        + '<span>수</span><span>목</span><span>금</span><span style="color:#2563eb;">토</span></div>'
-        + '<div class="sc-grid">' + buildMonthGrid(year, month, evs, selectedDay) + '</div>'
-        + '</div>'
-      + '<div class="sc-list-col">'
-        + '<div class="sc-filter-head"><strong>' + listTitle + resultLabel + '</strong>'
-        + (typeof selectedDay === 'number'
-          ? '<button type="button" id="scClearDay">전체 일정</button>'
-          : '') + '</div>'
-        + '<label class="sc-search"><span>연간 검색</span><input id="scSearch" type="search" value="' + escapeHtml(searchQuery) + '" placeholder="1.1~12.31 종목명·티커·내용 검색" autocomplete="off" /></label>'
-        + listHtml + '</div>'
-        + '</div>';
-
-      document.getElementById('scPrev').addEventListener('click', function () { load(year, month - 1); });
-      document.getElementById('scNext').addEventListener('click', function () { load(year, month + 1); });
-      container.querySelectorAll('.sc-day-clickable').forEach(function (day) {
-        var choose = function () {
-          if (searchQuery.trim()) return;
-          renderPage(year, month, evs, Number(day.getAttribute('data-day')));
-        };
-        day.addEventListener('click', choose);
-        day.addEventListener('keydown', function (event) {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            choose();
-          }
-        });
-      });
-      var clearDay = document.getElementById('scClearDay');
-      if (clearDay) clearDay.addEventListener('click', function () { renderPage(year, month, evs); });
-      var searchInput = document.getElementById('scSearch');
-      if (searchInput) {
-        var scheduleSearch = function () {
-          searchQuery = searchInput.value;
-          if (searchTimer) clearTimeout(searchTimer);
-          searchTimer = setTimeout(function () {
-            requestYearSearch(year, month, evs, selectedDay);
-          }, 250);
-        };
-        searchInput.addEventListener('compositionstart', function () { isComposing = true; });
-        searchInput.addEventListener('compositionend', function () {
-          isComposing = false;
-          setTimeout(scheduleSearch, 0);
-        });
-        searchInput.addEventListener('input', function (event) {
-          searchQuery = searchInput.value;
-          if (!isComposing && !event.isComposing && event.inputType !== 'insertCompositionText') scheduleSearch();
-        });
-      }
-    }
-
-    var today = new Date();
-    load(today.getFullYear(), today.getMonth());
-    // 새로 접수된 실적 공시가 같은 달 화면에 반영되도록 열어둔 달을 주기적으로 갱신한다.
+    loadToday();
+    // 새로 접수된 오늘 일정이 화면에 반영되도록 주기적으로 갱신한다.
     // 페이지를 떠나면 브라우저가 타이머를 정리하므로 별도 서버 작업은 필요 없다.
     setInterval(function () {
-      if (!document.hidden) load(currentYear, currentMonth);
+      if (!document.hidden) loadToday();
     }, 15 * 60 * 1000);
   }
 
-  var StockCalendar = { fetchEvents: fetchEvents, fetchYearEvents: fetchYearEvents, init: init };
+  var StockCalendar = { fetchEvents: fetchEvents, init: init };
   global.StockCalendar = StockCalendar;
   document.addEventListener('DOMContentLoaded', init);
 })(window);

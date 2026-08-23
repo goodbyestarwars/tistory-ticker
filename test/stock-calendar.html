@@ -29,7 +29,9 @@
 <script src="../data/krx_map.js"></script>
 <script src="../js/stock-calendar.js"></script>
 <script>
-  var todayISO = new Date().toISOString().slice(0, 10);
+  var localToday = new Date();
+  var todayISO = localToday.getFullYear() + '-' + String(localToday.getMonth() + 1).padStart(2, '0')
+    + '-' + String(localToday.getDate()).padStart(2, '0');
 
   function mockEvents() {
     // fetchEvents()가 실제로 resolve하는 후처리된 형태({title, start, link}) - 원본 구글
@@ -40,7 +42,8 @@
       { title: '🇺🇸 2분기 경제성장률(GDP) 발표(속보치)', start: todayISO, link: '#' },
       { title: '🇺🇸 FOMC 회의 결과 발표', start: todayISO, link: '#' },
       { title: '🇺🇸 개인소비지출 물가지수 발표(전년 대비)', start: todayISO, link: '#' },
-      { title: '$램리서치 실적발표 | 주요', start: todayISO + 'T05:00:00+09:00', link: '#' }
+      { title: '$램리서치 실적발표 | 주요', start: todayISO + 'T05:00:00+09:00', link: '#' },
+      { title: '$내일종목 실적발표 | 제외', start: new Date(new Date(todayISO + 'T12:00:00Z').getTime() + 86400000).toISOString().slice(0, 10), link: '#' }
     ];
   }
 
@@ -53,11 +56,6 @@
         return Promise.resolve([]);
       }
       return Promise.resolve(mockEvents());
-    };
-    StockCalendar.fetchYearEvents = function (year) {
-      console.log('[mock] fetchYearEvents', year, window.__mockMode);
-      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
-      return Promise.resolve(window.__mockMode === 'empty' || year !== new Date().getFullYear() ? [] : mockEvents());
     };
   }
 

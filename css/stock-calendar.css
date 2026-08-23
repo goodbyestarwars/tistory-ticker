@@ -1,9 +1,18 @@
 /* ============ 증시캘린더 (독립 페이지, js/stock-calendar.js) ============
-   상승=빨강(#d24f45)/하락=파랑(#1261c4) 사이트 공통색과 별개로, 이 위젯은 캘린더
-   본연의 색(일요일 빨강/토요일 파랑, 인디고 포인트)을 그대로 쓴다.
+   상승=빨강(#d24f45)/하락=파랑(#1261c4) 사이트 공통색과 별개로, 이 위젯은
+   인디고 포인트를 사용한다. 현재는 오늘 일정만 표시한다.
    다크모드는 html.dark #stock-calendar ... !important (9bolt 스킨 블랑켓 규칙 대응) */
 
 #stock-calendar { font-size: 14px; }
+#stock-calendar .sc-today-only { max-width: 760px; margin: 0 auto; }
+#stock-calendar .sc-today-head {
+  display: flex; align-items: end; justify-content: space-between; gap: 12px;
+  margin-bottom: 12px; padding-bottom: 11px; border-bottom: 1px solid #e2e8f0;
+}
+#stock-calendar .sc-today-head strong { display: block; color: #0d1b40; font-size: 18px; }
+#stock-calendar .sc-today-head span { display: block; margin-top: 4px; color: #64748b; font-size: 12px; }
+#stock-calendar .sc-today-head small { color: #94a3b8; font-size: 11px; white-space: nowrap; }
+#stock-calendar .sc-today-rows { display: flex; flex-direction: column; gap: 6px; }
 
 #stock-calendar .sc-layout {
   display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
@@ -133,6 +142,8 @@
 }
 
 @media (max-width: 720px) {
+  #stock-calendar .sc-today-head { align-items: start; flex-direction: column; gap: 4px; }
+  #stock-calendar .sc-today-head strong { font-size: 17px; }
   #stock-calendar .sc-cal-col { flex: 1 1 100%; }
   #stock-calendar .sc-day { height: 34px; font-size: 12px; }
 }
@@ -141,6 +152,10 @@
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. */
 html.dark #stock-calendar .sc-cal-col { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #stock-calendar .sc-today-head { border-bottom-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #stock-calendar .sc-today-head strong { color: #F5EFE0 !important; }
+html.dark #stock-calendar .sc-today-head span,
+html.dark #stock-calendar .sc-today-head small { color: rgba(245, 239, 224, 0.58) !important; }
 html.dark #stock-calendar .sc-cal-title,
 html.dark #stock-calendar .sc-week-title,
 html.dark #stock-calendar .sc-filter-head strong { color: #F5EFE0 !important; }
