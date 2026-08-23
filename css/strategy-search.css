@@ -641,16 +641,23 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
 #strategy-search .ss-strategy-table td:nth-child(6) { width: 100px; }
 #strategy-search .ss-strategy-table th:nth-child(7),
 #strategy-search .ss-strategy-table td:nth-child(7) { width: 95px; }
-#strategy-search .ss-strategy-table th:nth-child(8),
-#strategy-search .ss-strategy-table td:nth-child(8) { width: 185px; }
-#strategy-search .ss-strategy-table th:nth-child(9),
-#strategy-search .ss-strategy-table td:nth-child(9) { width: 225px; }
+/* 2026-08-23: 이전엔 8·9번째 열 폭을 nth-child(위치)로 고정했는데, 목표주가 괴리
+   카테고리만 열이 3개 늘어나면서(괴리율/목표가/애널 목표가) 위치가 카테고리마다
+   달라졌다 - 클래스(의미) 기준으로 바꿔서 어느 카테고리든 올바른 열에 폭이 붙게 한다. */
+#strategy-search .ss-strategy-table .ss-col-signal { width: 185px; }
+#strategy-search .ss-strategy-table .ss-col-fundamentals { width: 225px; }
+#strategy-search .ss-strategy-table .ss-col-gap { width: 85px; }
+#strategy-search .ss-strategy-table .ss-col-target-price { width: 115px; }
+#strategy-search .ss-strategy-table .ss-col-analyst-target { width: 160px; }
 #strategy-search .ss-strategy-table .ss-col-signal,
 #strategy-search .ss-strategy-table .ss-col-fundamentals {
   overflow-wrap: anywhere;
   white-space: normal !important;
   line-height: 1.45;
 }
+#strategy-search .ss-strategy-table .ss-col-gap,
+#strategy-search .ss-strategy-table .ss-col-target-price,
+#strategy-search .ss-strategy-table .ss-col-analyst-target { text-align: right !important; }
 #strategy-search .ss-strategy-table .ss-col-price,
 #strategy-search .ss-strategy-table .ss-col-change { text-align: right !important; }
 
@@ -696,7 +703,10 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
   #strategy-search .ss-nps-filter label { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
   #strategy-search .ss-etf-search-input { min-width: 0; width: 100%; }
   #strategy-search .ss-comparison-table td.ss-col-signal,
-  #strategy-search .ss-comparison-table td.ss-col-fundamentals { display: block; margin-top: 3px; color: #475569; }
+  #strategy-search .ss-comparison-table td.ss-col-fundamentals,
+  #strategy-search .ss-comparison-table td.ss-col-gap,
+  #strategy-search .ss-comparison-table td.ss-col-target-price,
+  #strategy-search .ss-comparison-table td.ss-col-analyst-target { display: block; margin-top: 3px; color: #475569; text-align: left !important; }
   #strategy-search .ss-etf-modal { max-height: calc(100vh - 16px); }
   .ss-etf-modal-head { padding: 14px 14px; font-size: 16px; }
   .ss-etf-modal-body { padding: 14px 14px 18px; }
@@ -811,12 +821,14 @@ html.dark #strategy-search .ss-product-tab.active {
   #strategy-search .ss-comparison-table td.ss-col-code,
   #strategy-search .ss-comparison-table td.ss-col-provider,
   #strategy-search .ss-comparison-table td.ss-col-sector { text-align: left !important; }
-  #strategy-search .ss-strategy-table th:nth-child(8),
-  #strategy-search .ss-strategy-table th:nth-child(9),
+  #strategy-search .ss-strategy-table th.ss-col-signal,
+  #strategy-search .ss-strategy-table th.ss-col-fundamentals,
   #strategy-search .ss-etf-table th:nth-child(8),
   #strategy-search .ss-comparison-table td.ss-col-signal,
   #strategy-search .ss-comparison-table td.ss-col-fundamentals,
   #strategy-search .ss-comparison-table td.ss-col-type { text-align: left !important; }
+  /* 목표주가 괴리 전용 3열은 숫자값이라 기본 우측정렬(th{text-align:right}, 아래
+     .ss-col-gap 등 td 규칙)을 그대로 쓴다 - 위 규칙과 달리 여기서 left로 뒤집지 않는다. */
   #strategy-search .ss-dividend-table th:nth-child(7),
   #strategy-search .ss-dividend-table th:nth-child(8),
   #strategy-search .ss-dividend-table th:nth-child(9),

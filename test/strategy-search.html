@@ -109,13 +109,15 @@
         'IT': {
           name: 'IT',
           matches: [
-            targetPriceMatch('035420', 'NAVER', 178000, 1.4, 245000, 15.0, 42.0),
+            Object.assign(targetPriceMatch('035420', 'NAVER', 178000, 1.4, 245000, 15.0, 42.0),
+              { analystTargetPrice: 245000, analystTargetGapPct: 37.6, targetPriceCappedByAnalyst: true }),
             targetPriceMatch('018260', '삼성에스디에스', 138000, -0.6, 172000, 9.8, 30.1)
           ]
         },
         '산업재': {
           name: '산업재',
-          matches: [targetPriceMatch('012330', '현대모비스', 215000, 0.9, 280000, 8.4, 45.6)]
+          matches: [Object.assign(targetPriceMatch('012330', '현대모비스', 215000, 0.9, 280000, 8.4, 45.6),
+            { analystTargetPrice: 310000, analystTargetGapPct: 44.2 })]
         }
       }
     }

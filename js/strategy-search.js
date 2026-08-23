@@ -419,9 +419,34 @@
     return parts.join(' · ');
   }
 
-  function strategyTableRow(item, index, showFundamentals) {
+  // 2026-08-23 요청: targetPriceGap(목표주가 괴리 저평가주)의 "전략 지표" 한 칸에
+  // "목표가 X원 (괴리 +Y%)"와 "애널리스트 목표가 Z원 (+W%)"가 줄바꿈으로 겹쳐 있어
+  // 알아보기 힘들다고(스크린샷) - 이 카테고리만 괴리율/목표가/애널 목표가 3칸으로
+  // 분리한다. 다른 카테고리(재무건전 장기 눌림 등)는 종목마다 신호 형태가 다양해서
+  // (120일선 대비/엔벨로프/시초갭) 이 3칸 구조가 안 맞으므로 기존 "전략 지표" 한 칸을
+  // 그대로 유지한다.
+  function analystTargetCellText(item) {
+    var target = Number(item && item.analystTargetPrice);
+    if (!isFinite(target) || target <= 0) return '—';
+    var gap = Number(item.analystTargetGapPct);
+    var gapText = isFinite(gap) ? ' (' + (gap >= 0 ? '+' : '') + fmtPct(gap) + ')' : '';
+    return fmtWon(target) + gapText;
+  }
+
+  function strategyTableRow(item, index, showFundamentals, splitTargetColumns) {
     var rate = item.changeRate != null ? item.changeRate : item.changeRatePct;
     var fundamentals = strategyFundamentals(item);
+    var middleHtml;
+    if (splitTargetColumns) {
+      var gapPct = item.targetGapPct;
+      var gapText = gapPct != null ? '+' + fmtPct(gapPct) : '—';
+      middleHtml = '<td class="ss-col-gap ' + (gapPct != null ? chgClass(gapPct) : '') + '" data-label="괴리율">' + escapeHtml(gapText) + '</td>'
+        + '<td class="ss-col-target-price" data-label="목표가">' + fmtWon(item.targetPrice) + '</td>'
+        + '<td class="ss-col-analyst-target" data-label="애널 목표가">' + escapeHtml(analystTargetCellText(item)) + '</td>';
+    } else {
+      middleHtml = '<td class="ss-col-signal" data-label="전략 지표">' + escapeHtml(strategySignal(item))
+        + (analystTargetPriceText(item) ? '<br><small>' + escapeHtml(analystTargetPriceText(item)) + '</small>' : '') + '</td>';
+    }
     return '<tr class="ss-table-row ss-row" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
       + '<td class="ss-col-watch" data-label="관심">' + watchButtonHtml(item) + '</td>'
       + '<td class="ss-col-rank" data-label="순위">' + (index + 1) + '</td>'
@@ -430,8 +455,7 @@
       + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(cleanIndustryLabel(item.sector || item.industry)) + '</td>'
       + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
       + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
-      + '<td class="ss-col-signal" data-label="전략 지표">' + escapeHtml(strategySignal(item))
-      + (analystTargetPriceText(item) ? '<br><small>' + escapeHtml(analystTargetPriceText(item)) + '</small>' : '') + '</td>'
+      + middleHtml
       + (showFundamentals ? '<td class="ss-col-fundamentals" data-label="재무 지표">' + escapeHtml(fundamentals || '—') + '</td>' : '')
       + '</tr>';
   }
@@ -440,11 +464,27 @@
     var matches = allMatches(key || 'undervalued');
     if (!matches.length) return '<div class="ss-hint">지금은 이 카테고리 조건에 맞는 종목이 없어요.</div>';
     var showFundamentals = matches.some(function (item) { return item.roe != null || item.debtRatio != null; });
-    var headers = ['관심', '순위', '종목명', '종목코드', '업종', '현재가', '등락률', '전략 지표'];
-    if (showFundamentals) headers.push('재무 지표');
+    var splitTargetColumns = key === 'targetPriceGap';
+    // 2026-08-23: <th>에도 <td>와 같은 열 클래스를 달아서, 정렬(text-align) CSS가
+    // 열 순서(nth-child)가 아니라 의미(클래스)로 결정되게 한다 - 카테고리마다 열 개수가
+    // 달라졌는데(이 카테고리만 3칸 추가) 위치 기반 CSS를 그대로 쓰면 다른 카테고리의
+    // 정렬이 같이 틀어질 수 있다.
+    var headers = [
+      {label: '관심', cls: 'ss-col-watch'}, {label: '순위', cls: 'ss-col-rank'},
+      {label: '종목명', cls: 'ss-col-product'}, {label: '종목코드', cls: 'ss-col-code'},
+      {label: '업종', cls: 'ss-col-sector'}, {label: '현재가', cls: 'ss-col-price'},
+      {label: '등락률', cls: 'ss-col-change'},
+    ];
+    if (splitTargetColumns) {
+      headers.push({label: '괴리율', cls: 'ss-col-gap'}, {label: '목표가', cls: 'ss-col-target-price'},
+        {label: '애널 목표가', cls: 'ss-col-analyst-target'});
+    } else {
+      headers.push({label: '전략 지표', cls: 'ss-col-signal'});
+    }
+    if (showFundamentals) headers.push({label: '재무 지표', cls: 'ss-col-fundamentals'});
     return '<div class="ss-table-wrap"><table class="ss-comparison-table ss-strategy-table"><thead><tr>'
-      + headers.map(function (label) { return '<th>' + label + '</th>'; }).join('')
-      + '</tr></thead><tbody>' + matches.map(function (item, index) { return strategyTableRow(item, index, showFundamentals); }).join('')
+      + headers.map(function (h) { return '<th class="' + h.cls + '">' + h.label + '</th>'; }).join('')
+      + '</tr></thead><tbody>' + matches.map(function (item, index) { return strategyTableRow(item, index, showFundamentals, splitTargetColumns); }).join('')
       + '</tbody></table></div>';
   }
 
@@ -500,7 +540,16 @@
     });
     var truncated = matches.length > NPS_RENDER_CAP;
     var shown = truncated ? matches.slice(0, NPS_RENDER_CAP) : matches;
-    var headers = ['관심', '순위', '종목명', '종목코드', '업종', '현재가', '등락률', '보유 지분율', '평가액'];
+    // 2026-08-23: renderStrategyTable()과 동일하게 <th>에 열 클래스를 달아 정렬 CSS가
+    // 위치(nth-child)가 아니라 의미(클래스)로 결정되게 한다(아래 npsTableRow의 td 클래스와
+    // 동일 - 보유 지분율=ss-col-signal, 평가액=ss-col-fundamentals 재사용).
+    var headers = [
+      {label: '관심', cls: 'ss-col-watch'}, {label: '순위', cls: 'ss-col-rank'},
+      {label: '종목명', cls: 'ss-col-product'}, {label: '종목코드', cls: 'ss-col-code'},
+      {label: '업종', cls: 'ss-col-sector'}, {label: '현재가', cls: 'ss-col-price'},
+      {label: '등락률', cls: 'ss-col-change'}, {label: '보유 지분율', cls: 'ss-col-signal'},
+      {label: '평가액', cls: 'ss-col-fundamentals'},
+    ];
     var metaText = '전체 ' + all.length + '종목 중 지분율 ' + range.label + ' '
       + matches.length + '종목' + (truncated ? ' · 상위 ' + NPS_RENDER_CAP + '개만 표시' : '');
     if (!shown.length) {
@@ -508,7 +557,7 @@
     }
     return npsFilterSelectHtml(metaText)
       + '<div class="ss-table-wrap"><table class="ss-comparison-table ss-strategy-table"><thead><tr>'
-      + headers.map(function (label) { return '<th>' + label + '</th>'; }).join('')
+      + headers.map(function (h) { return '<th class="' + h.cls + '">' + h.label + '</th>'; }).join('')
       + '</tr></thead><tbody>' + shown.map(npsTableRow).join('')
       + '</tbody></table></div>';
   }
