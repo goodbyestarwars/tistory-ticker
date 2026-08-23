@@ -42,6 +42,13 @@
   var CHART_W = 820;
   var CHART_H = 280;
   var RATIO_H = 120;
+  // 2026-08-23: 순매매량 추이(CHART_H)와 보유율 추이(RATIO_H)를 한 줄에 절반씩 배치하면서
+  // 두 차트의 viewBox 세로 비율이 서로 달라(280 vs 120) 나란히 놓았을 때 높이가 눈에 띄게
+  // 안 맞아 보였다(사용자 리포트: "상하 크기가 이상하지 않니?"). RATIO_H는 RSI(14) 차트도
+  // 같이 쓰고 있어(전체폭 단독 배치라 이 문제가 없음) 그쪽은 그대로 두고, 보유율 추이
+  // 전용으로 CHART_H와 같은 높이를 쓰는 별도 상수를 둔다 - 같은 폭일 때 두 차트 높이가
+  // 정확히 같아진다.
+  var FOREIGN_RATIO_H = CHART_H;
   var PAD = { l: 68, r: 16, t: 16, b: 30 };
 
   var FCHART_H = 360;
@@ -1941,19 +1948,30 @@
       return '<div class="ff-hint">최근 3개월 내 국내 증권사 리포트가 없어 평균 투자의견을 표시할 수 없습니다.</div>';
     }
     var total = opinion.reportCount || 0;
+    // 2026-08-23: 매수+중립+매도 합이 reportCount보다 적을 수 있다(invest_opinion.py가
+    // 못 알아본 문구는 otherCount로 남긴다 - 정확한 KIS 표기를 몰라 넓게 매칭했기 때문,
+    // scripts/cloud-vm/invest_opinion.py의 _classify_opinion 주석 참고). 이 "기타"를
+    // 막대·범례에서 빼먹으면 퍼센트 합이 100%가 안 되고 막대도 절반쯤 빈 채로 보여서
+    // "정렬이 이상하다"는 리포트가 들어왔다 - 기타도 네 번째 구간으로 명시해 합이 항상
+    // 100%가 되게 한다.
+    var otherCount = opinion.otherCount != null ? opinion.otherCount
+      : Math.max(0, total - (opinion.buyCount || 0) - (opinion.holdCount || 0) - (opinion.sellCount || 0));
     function pct(count) { return total > 0 ? Math.round(count / total * 100) : 0; }
     var buyPct = pct(opinion.buyCount);
     var holdPct = pct(opinion.holdCount);
     var sellPct = pct(opinion.sellCount);
+    var otherPct = pct(otherCount);
     var bars = '<div class="ff-opinion-bar-wrap">'
       + '<span class="ff-opinion-bar buy" style="width:' + buyPct + '%"></span>'
       + '<span class="ff-opinion-bar hold" style="width:' + holdPct + '%"></span>'
       + '<span class="ff-opinion-bar sell" style="width:' + sellPct + '%"></span>'
+      + (otherPct ? '<span class="ff-opinion-bar other" style="width:' + otherPct + '%"></span>' : '')
       + '</div>';
     var legend = '<div class="ff-opinion-legend">'
       + '<span><i class="ff-dot ff-dot-buy"></i>매수 ' + opinion.buyCount + '건(' + buyPct + '%)</span>'
       + '<span><i class="ff-dot ff-dot-hold"></i>중립 ' + opinion.holdCount + '건(' + holdPct + '%)</span>'
       + '<span><i class="ff-dot ff-dot-sell"></i>매도 ' + opinion.sellCount + '건(' + sellPct + '%)</span>'
+      + (otherCount ? '<span><i class="ff-dot ff-dot-other"></i>기타 ' + otherCount + '건(' + otherPct + '%)</span>' : '')
       + '</div>';
     var gapText = '';
     if (opinion.avgTargetPrice && currentPrice) {
@@ -5125,7 +5143,7 @@
     var max = dom.max;
 
     var iw = CHART_W - PAD.l - PAD.r;
-    var ih = RATIO_H - PAD.t - PAD.b;
+    var ih = FOREIGN_RATIO_H - PAD.t - PAD.b;
     function x(i) { return PAD.l + (i / (n - 1)) * iw; }
     function y(v) { return PAD.t + (1 - (v - min) / (max - min)) * ih; }
 
@@ -5133,14 +5151,14 @@
       return x(i).toFixed(1) + ',' + y(d.foreign_ratio).toFixed(1);
     }).join(' ');
 
-    var svg = '<svg class="ff-svg" viewBox="0 0 ' + CHART_W + ' ' + RATIO_H + '" role="img" aria-label="외국인 보유율 추이">';
+    var svg = '<svg class="ff-svg" viewBox="0 0 ' + CHART_W + ' ' + FOREIGN_RATIO_H + '" role="img" aria-label="외국인 보유율 추이">';
     svg += '<line class="ff-grid" x1="' + PAD.l + '" y1="' + y(max).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(max).toFixed(1) + '"/>';
     svg += '<line class="ff-grid" x1="' + PAD.l + '" y1="' + y(min).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(min).toFixed(1) + '"/>';
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(max) + 4).toFixed(1) + '" text-anchor="end">' + max.toFixed(1) + '%</text>';
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + min.toFixed(1) + '%</text>';
-    svg += xAxisLabels(asc, x, RATIO_H - 8);
+    svg += xAxisLabels(asc, x, FOREIGN_RATIO_H - 8);
     svg += '<polyline class="ff-line-ratio" points="' + pts + '"/>';
-    svg += hoverMarkup(RATIO_H, ['ratio']);
+    svg += hoverMarkup(FOREIGN_RATIO_H, ['ratio']);
     svg += '</svg>';
 
     // 전체가 null은 아니어도(위 가드 통과) 가장 최근 날짜 하나만 null인 예외적인 경우를
@@ -5176,7 +5194,9 @@
     var n = asc.length;
     if (n < 2) return;
 
-    var H = type === 'net' ? CHART_H : RATIO_H;
+    // 'net'/'ratio' 둘만 이 함수를 쓴다(RSI는 별도 로직) - ratio 차트 높이를
+    // FOREIGN_RATIO_H로 올렸으니 호버 좌표 계산도 같이 맞춘다(안 맞추면 툴팁 위치가 어긋남).
+    var H = type === 'net' ? CHART_H : FOREIGN_RATIO_H;
     var iw = CHART_W - PAD.l - PAD.r;
     var ih = H - PAD.t - PAD.b;
     var dom = type === 'net' ? netDomain(asc) : ratioDomain(asc);

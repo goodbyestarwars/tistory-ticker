@@ -334,7 +334,7 @@
     // methodology, NPS_METHODOLOGY_NOTE)에만 남겼다 - 거기 이미 같은 내용이 있다
     // ("이 데이터는 매일 갱신되지 않고... 스냅샷입니다").
     if (key === 'nationalPension') return '국민연금이 보유한 국내주식을 지분율 기준으로 골라 표시합니다. 화면에서 지분율 기준을 바꿀 수 있습니다.';
-    if (key === 'targetPriceGap') return '같은 업종의 오늘 평균 PER·PBR 대비 계산한 목표가가 현재가보다 크게 높은 저평가 후보를 표시합니다.';
+    if (key === 'targetPriceGap') return '같은 업종의 오늘 PER·PBR 중앙값 대비 계산한 목표가가 현재가보다 크게 높은 저평가 후보를 표시합니다.';
     return '전략 조건으로 후보군을 탐색하고, 세부 기준을 확인합니다.';
   }
 

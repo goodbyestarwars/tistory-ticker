@@ -43,6 +43,7 @@ import json
 import os
 import re
 import sys
+import statistics
 import time
 import urllib.request
 from datetime import date, datetime, timezone
@@ -131,11 +132,12 @@ TARGET_PRICE_MIN_GAP_PCT = 20.0  # 목표가가 현재가보다 이 %+ 높아야
 TARGET_PRICE_TOP_N = 30
 
 TARGET_PRICE_METHODOLOGY_NOTE = (
-    '같은 업종(WICS 섹터) 내 다른 종목들의 오늘 평균 PER·PBR을 적정 배수로 보고, '
+    '같은 업종(WICS 섹터) 내 다른 종목들의 오늘 PER·PBR 중앙값을 적정 배수로 보고, '
     '이 종목의 오늘 EPS·BPS에 곱해 계산한 목표가가 현재가보다 {min_gap:.0f}% 이상 '
     '높은 종목만 표시합니다. 최근 회계연도가 적자인 종목과 같은 업종 비교 표본이 '
-    '{min_peers}개 미만인 업종은 제외합니다. 백테스트로 검증된 공식이 아니라 참고용 '
-    '근사치입니다.'
+    '{min_peers}개 미만인 업종은 제외합니다. 평균이 아닌 중앙값을 쓰는 이유는 이익이 '
+    '거의 0에 가까운 종목 하나가 PER을 극단적으로 튀게 만들어 평균 전체를 왜곡하는 '
+    '것을 막기 위함입니다. 백테스트로 검증된 공식이 아니라 참고용 근사치입니다.'
 ).format(min_gap=TARGET_PRICE_MIN_GAP_PCT, min_peers=TARGET_PRICE_MIN_SECTOR_PEERS)
 
 # Dividend ranking follows the broad Naver-style screen: keep common stocks
@@ -918,14 +920,19 @@ def scan_target_price_gap(universe, wics_map, fundamentals_cache, conn, theme_co
             sector_per.setdefault(sector, []).append(record['price'] / record['eps'])
         if record['price'] and record.get('bps') and record['bps'] > 0:
             sector_pbr.setdefault(sector, []).append(record['price'] / record['bps'])
+    # 2026-08-23 실측 버그 수정: 산술평균(sum/len)은 PER 표본 하나가 극단값이면(거의 0에
+    # 가까운 양수 EPS 종목 - 흑자지만 이익이 미미해 PER=주가/EPS가 수천 배로 튀는 경우)
+    # 섹터 평균 전체가 그 한 종목에 끌려가 버린다(효성화학 사례: 목표가 13,466,334원,
+    # 괴리 +17831% - 섹터 평균 PER이 정상 대비 수백 배로 튀어 있었음). 이상치 영향이 훨씬
+    # 적은 중앙값(median)으로 교체 - 재무 비율 섹터 비교에서 표준적으로 쓰이는 방식이다.
     sector_avgs = {}
     for sector in set(list(sector_per) + list(sector_pbr)):
         per_samples = sector_per.get(sector) or []
         pbr_samples = sector_pbr.get(sector) or []
         sector_avgs[sector] = {
-            'perAvg': (sum(per_samples) / len(per_samples)
+            'perAvg': (statistics.median(per_samples)
                        if len(per_samples) >= TARGET_PRICE_MIN_SECTOR_PEERS else None),
-            'pbrAvg': (sum(pbr_samples) / len(pbr_samples)
+            'pbrAvg': (statistics.median(pbr_samples)
                        if len(pbr_samples) >= TARGET_PRICE_MIN_SECTOR_PEERS else None),
         }
 

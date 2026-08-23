@@ -1019,6 +1019,7 @@
 #foreign-flow .ff-opinion-bar.buy { background: #d24f45; }
 #foreign-flow .ff-opinion-bar.hold { background: #999; }
 #foreign-flow .ff-opinion-bar.sell { background: #1261c4; }
+#foreign-flow .ff-opinion-bar.other { background: #d8dee6; }
 #foreign-flow .ff-opinion-legend {
   display: flex;
   flex-wrap: wrap;
@@ -1031,6 +1032,7 @@
 #foreign-flow .ff-dot-buy { background: #d24f45; }
 #foreign-flow .ff-dot-hold { background: #999; }
 #foreign-flow .ff-dot-sell { background: #1261c4; }
+#foreign-flow .ff-dot-other { background: #d8dee6; }
 
 #foreign-flow .ff-fund-table {
   width: 100%;
