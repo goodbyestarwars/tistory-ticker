@@ -110,13 +110,29 @@
     'extreme-greed': { action: '현금 확보', actionTone: 'mt-val-neg', stock: 10, cash: 90, note: '극단적 과열 - 조정 리스크 유의' }
   };
 
-  // opts.gaugeOnly: true면 카드보기/히트맵보기/시총트리맵 탐색카드(buildExploreCard) 없이
-  // 온도 게이지 카드(buildCard)만 렌더링한다 - js/home-dashboard.js가 트리맵을 별도 카드로
-  // 직접 배치할 때, 같은 #marketcap-bubble을 여기서 또 만들지 않기 위해 사용.
+  // 증시온도 화면은 온도 게이지(buildCard)만 렌더링하고, 카드/히트맵 탐색은
+  // ?view=stocks의 국내 주요종목 화면에서 별도로 렌더링한다. 기존 호출부의
+  // opts.gaugeOnly 인자는 하위 호환을 위해 계속 받을 수 있지만 현재는 동일한 온도 화면을 사용한다.
+  function isStocksView() {
+    return /(?:^|&)view=stocks(?:&|$)/.test(String(global.location && global.location.search || '').replace(/^\?/, ''));
+  }
+
+  function buildStocksOnlyPage() {
+    return '<div class="mt-stocks-only">'
+      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>업종별 주요 종목의 현재가와 등락률을 한눈에 확인합니다.</p></div>'
+      + buildExploreCard()
+      + '</div>';
+  }
+
   function init(opts) {
-    var gaugeOnly = !!(opts && opts.gaugeOnly);
+    var stocksOnly = isStocksView();
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    if (stocksOnly) {
+      container.innerHTML = buildStocksOnlyPage();
+      wireViewTabs(container);
+      return;
+    }
     container.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>증시온도 불러오는 중...</div>';
 
     MarketTemp.fetchMarketTemp()
@@ -125,10 +141,9 @@
           container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
           return;
         }
-        container.innerHTML = buildCard(data) + (gaugeOnly ? '' : buildExploreCard());
+        container.innerHTML = buildCard(data);
         wireAnimations(container, data);
         loadAiBriefing(container);
-        if (!gaugeOnly) wireViewTabs(container);
       })
       .catch(function () {
         container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';

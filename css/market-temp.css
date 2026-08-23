@@ -46,6 +46,9 @@
   color: #666;
   margin-bottom: 9px;
 }
+#market-temp .mt-stocks-only-heading { margin: 0 0 14px; }
+#market-temp .mt-stocks-only-heading h1 { margin: 0; color: #1f2937; font-size: 24px; line-height: 1.25; }
+#market-temp .mt-stocks-only-heading p { margin: 5px 0 0; color: #7b8490; font-size: 12px; }
 
 /* 2026-07-18(2차): 관련 섹션 2개를 좌우 50:50으로 묶는 범용 wrapper(AI브리핑|TOP5,
    최근7일|오늘의전략) - 모바일(640px 이하)에서는 1열로 자동 스택(아래 미디어쿼리). */

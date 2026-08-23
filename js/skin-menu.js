@@ -12,6 +12,7 @@
       children: [
         { href: '/category/마켓 브리핑', label: '마켓브리핑' },
         { href: '/page/market-temp', label: '증시온도' },
+        { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
         { href: '/pages/overnight-market', label: '글로벌 시장지표' },
         { href: '/pages/kospi-futures', label: '국내시장지표' }
       ]
@@ -61,7 +62,8 @@
     var parts = item.href.split('?');
     if (currentPath() !== parts[0]) return false;
     if (!parts[1]) return true;
-    return new URLSearchParams(location.search).get('market') === 'us';
+    var query = new URLSearchParams(location.search);
+    return parts[1] === 'view=stocks' ? query.get('view') === 'stocks' : query.get('market') === 'us';
   }
 
   function groupIsActive(item) {

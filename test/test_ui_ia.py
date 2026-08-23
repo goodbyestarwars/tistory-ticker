@@ -70,6 +70,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("/pages/kospi-futures", futures)
         self.assertIn("container.parentNode.insertBefore(mount, container)", futures)
 
+    def test_domestic_major_stocks_has_independent_market_temperature_view(self):
+        menu = self.read("js/skin-menu.js")
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        self.assertIn("{ href: '/page/market-temp?view=stocks', label: '국내 주요종목' }", menu)
+        self.assertIn("query.get('view') === 'stocks'", menu)
+        self.assertIn("function isStocksView()", source)
+        self.assertIn("buildStocksOnlyPage", source)
+        self.assertIn("container.innerHTML = buildCard(data);", source)
+        self.assertIn("mt-stocks-only-heading", style)
+
     def test_domestic_market_indicators_labels_and_provider_contract(self):
         frontend = self.read("js/domestic-market-indicators.js")
         loader = self.read("js/kospi-futures.js")
