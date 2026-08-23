@@ -3435,6 +3435,23 @@
       + fmtWon(finalValue) + '</b>(<span class="' + cls + '">' + fmtSignedPct(rate) + '</span>)이 됩니다.';
   }
 
+  // 과거 재생의 기준일과 사용자의 실제 매수 시점은 다를 수 있으므로, 내 평단 상태는
+  // 시뮬레이션 금액/그래프와 섞지 않고 최신 종가 기준으로 별도 계산한다.
+  function simPersonalStatusHtml(daily, averagePrice) {
+    var latest = daily[daily.length - 1];
+    var avg = Number(averagePrice);
+    if (!latest || !(isFinite(avg) && avg > 0)) {
+      return '<span class="ff-sim-personal-empty">내 평단을 입력하면 최신 종가 기준 손익 상태를 보여줍니다.</span>';
+    }
+    var rate = (latest.close / avg - 1) * 100;
+    var diff = latest.close - avg;
+    var cls = signClass(rate);
+    return '<span class="ff-sim-personal-label">현재가 기준</span>'
+      + '<b class="' + cls + '">' + fmtSignedPct(rate) + '</b>'
+      + '<small>현재가 ' + fmtWon(latest.close) + ' · 내 평단 ' + fmtWon(avg)
+      + ' · 주당 ' + (diff >= 0 ? '+' : '') + fmtWon(diff) + '</small>';
+  }
+
   function buildSimulationCard(chartData) {
     var daily = chartData && chartData.daily;
     if (!daily || daily.length < 2) {
@@ -3453,6 +3470,10 @@
       + '<label class="ff-sim-amount-label">투자금 <input type="number" id="ffSimAmount" min="10000" step="10000" value="' + defaultAmount + '">원</label>'
       + '<button type="button" id="ffSimPlay" class="ff-sim-btn ff-sim-btn-play">▶ 재생</button>'
       + '<button type="button" id="ffSimReset" class="ff-sim-btn ff-sim-btn-reset" disabled>↺ 처음부터</button>'
+      + '</div>'
+      + '<div class="ff-sim-personal">'
+      + '<label class="ff-sim-amount-label">내 평단 <input type="number" id="ffSimAveragePrice" min="1" step="1" placeholder="예: 50000">원</label>'
+      + '<div class="ff-sim-personal-status" id="ffSimPersonalStatus">' + simPersonalStatusHtml(daily, null) + '</div>'
       + '</div>'
       + '<div class="ff-sim-stats">'
       + '<div class="ff-sim-stat"><span>기준일</span><b id="ffSimDate">' + escapeHtml(daily[0].date) + '</b></div>'
@@ -3473,6 +3494,7 @@
     if (!daily || daily.length < 2) return;
     var geo = simGeometry(daily);
     var amountInput = box.querySelector('#ffSimAmount');
+    var averagePriceInput = box.querySelector('#ffSimAveragePrice');
     var playBtn = box.querySelector('#ffSimPlay');
     var resetBtn = box.querySelector('#ffSimReset');
     var dateEl = box.querySelector('#ffSimDate');
@@ -3485,6 +3507,7 @@
     var dotEl = box.querySelector('#ffSimDot');
     var axisMaxEl = box.querySelector('#ffSimAxisMax');
     var axisMinEl = box.querySelector('#ffSimAxisMin');
+    var personalStatusEl = box.querySelector('#ffSimPersonalStatus');
     if (!amountInput || !playBtn || !resetBtn || !lineEl) return;
 
     var timer = null;
@@ -3493,6 +3516,10 @@
     function currentAmount() {
       var n = Number(amountInput.value);
       return (isFinite(n) && n > 0) ? n : 1000000;
+    }
+
+    function updatePersonalStatus() {
+      if (personalStatusEl) personalStatusEl.innerHTML = simPersonalStatusHtml(daily, averagePriceInput && averagePriceInput.value);
     }
 
     function updateAxis() {
@@ -3542,6 +3569,7 @@
       if (valueEl) valueEl.textContent = fmtWon(amount);
       if (rateEl) { rateEl.textContent = '0.0%'; rateEl.className = 'ff-flat'; }
       if (resultEl) resultEl.innerHTML = simResultText(daily, amount);
+      updatePersonalStatus();
       playBtn.disabled = false;
       playBtn.textContent = '▶ 재생';
       resetBtn.disabled = true;
@@ -3592,6 +3620,7 @@
       if (idx === 0 && valueEl) valueEl.textContent = fmtWon(amount);
       if (resultEl) resultEl.innerHTML = simResultText(daily, amount);
     });
+    if (averagePriceInput) averagePriceInput.addEventListener('input', updatePersonalStatus);
 
     reset();
   }

@@ -820,37 +820,48 @@ class TargetPriceGapTests(unittest.TestCase):
         self.assertEqual(codes, [])
 
 
-class ApplyAnalystTargetPriceCeilingTests(unittest.TestCase):
-    """2026-08-23(3차) 신규: 자체계산 목표가가 KIS 실제 애널리스트 목표가보다 높으면
-    안 된다는 사용자 리포트(KG스틸 사례)에 대한 회귀 테스트."""
+class ApplyAnalystTargetPriceAnchorTests(unittest.TestCase):
+    """애널리스트 목표가를 그대로 복사하지 않는 보수적 앵커 회귀 테스트."""
 
-    def test_calculated_target_above_analyst_target_is_clamped_down(self):
+    def test_calculated_target_above_analyst_target_is_softly_adjusted(self):
         sectors = {'소재': {'matches': [
             {'code': '000010', 'price': 5290, 'targetPrice': 19957, 'targetGapPct': 277.3,
              'analystTargetPrice': 7550},
         ]}}
-        strategy_scan.apply_analyst_target_price_ceiling(sectors)
+        strategy_scan.apply_analyst_target_price_anchor(sectors)
         match = sectors['소재']['matches'][0]
-        self.assertEqual(match['targetPrice'], 7550)
-        self.assertAlmostEqual(match['targetGapPct'], (7550 - 5290) / 5290 * 100, places=1)
-        self.assertTrue(match['targetPriceCappedByAnalyst'])
+        expected = round(5290 + 0.8 * (7550 - 5290))
+        self.assertEqual(match['targetPrice'], expected)
+        self.assertAlmostEqual(match['targetGapPct'], (expected - 5290) / 5290 * 100, places=1)
+        self.assertTrue(match['targetPriceAdjustedToAnalyst'])
+        self.assertNotEqual(match['targetPrice'], match['analystTargetPrice'])
 
     def test_calculated_target_already_below_analyst_target_is_left_untouched(self):
         sectors = {'소재': {'matches': [
             {'code': '000020', 'price': 5000, 'targetPrice': 6000, 'targetGapPct': 20.0,
              'analystTargetPrice': 7550},
         ]}}
-        strategy_scan.apply_analyst_target_price_ceiling(sectors)
+        strategy_scan.apply_analyst_target_price_anchor(sectors)
         match = sectors['소재']['matches'][0]
         self.assertEqual(match['targetPrice'], 6000)
         self.assertEqual(match['targetGapPct'], 20.0)
         self.assertNotIn('targetPriceCappedByAnalyst', match)
 
+    def test_equal_targets_are_also_softly_adjusted(self):
+        sectors = {'소재': {'matches': [
+            {'code': '000025', 'price': 5000, 'targetPrice': 7550, 'targetGapPct': 51.0,
+             'analystTargetPrice': 7550},
+        ]}}
+        strategy_scan.apply_analyst_target_price_anchor(sectors)
+        match = sectors['소재']['matches'][0]
+        self.assertLess(match['targetPrice'], match['analystTargetPrice'])
+        self.assertTrue(match['targetPriceAdjustedToAnalyst'])
+
     def test_stock_without_analyst_coverage_is_left_untouched(self):
         sectors = {'소재': {'matches': [
             {'code': '000030', 'price': 5000, 'targetPrice': 9000, 'targetGapPct': 80.0},
         ]}}
-        strategy_scan.apply_analyst_target_price_ceiling(sectors)
+        strategy_scan.apply_analyst_target_price_anchor(sectors)
         match = sectors['소재']['matches'][0]
         self.assertEqual(match['targetPrice'], 9000)
         self.assertNotIn('targetPriceCappedByAnalyst', match)
@@ -862,7 +873,7 @@ class ApplyAnalystTargetPriceCeilingTests(unittest.TestCase):
             {'code': '000040', 'price': 5000, 'targetPrice': 9000, 'targetGapPct': 80.0,
              'analystTargetPrice': 5500},  # 클램프 후 괴리 10% -> 20% 미달
         ]}}
-        strategy_scan.apply_analyst_target_price_ceiling(sectors)
+        strategy_scan.apply_analyst_target_price_anchor(sectors)
         self.assertEqual(sectors['소재']['matches'], [])
 
 

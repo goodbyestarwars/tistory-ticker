@@ -307,3 +307,54 @@ html.dark .my-opinion-verdict > span, html.dark .my-opinion-verdict small { colo
 #my-dashboard .my-shape-badge.is-down { background: #eaf2ff; color: #1261c4; }
 html.dark #my-dashboard .my-shape-badge.is-up { background: #49231f; color: #ff9b8f; }
 html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #93c5fd; }
+
+/* 2026-08-23: MY 화면의 확장형 스타일이 카드마다 큰 여백과 큰 글자를 강제해
+   정보 밀도가 낮아졌다. 핵심 값은 읽히게 유지하면서 기본 카드 단위로 되돌린다. */
+#my-dashboard { margin-top: 22px; }
+#my-dashboard .my-dashboard-head { padding: 18px 0 14px; }
+#my-dashboard .my-dashboard-head h2 { font-size: 25px; }
+#my-dashboard .my-dashboard-head p { font-size: 12px; }
+#my-dashboard .my-dashboard-eyebrow { font-size: 10px; }
+#my-dashboard .my-search-panel { margin: 12px 0; padding: 13px 14px; border-width: 1px; border-radius: 12px; }
+#my-dashboard .my-search-panel label { margin-bottom: 7px; font-size: 13px; }
+#my-dashboard .my-search-row { gap: 8px; }
+#my-dashboard .my-search-row input { min-height: 40px; padding: 8px 12px 8px 44px; font-size: 13px; }
+#my-dashboard .my-input-logo { left: 10px; width: 24px; height: 24px; }
+#my-dashboard .my-search-row button { min-height: 40px; padding: 0 14px; font-size: 12px; }
+#my-dashboard .my-search-panel p { margin-top: 7px; font-size: 11px; }
+#my-dashboard .my-dashboard-status { min-height: 20px; padding: 8px 2px; font-size: 12px; }
+#my-dashboard .my-dashboard-detail { padding: 13px; border-width: 1px; border-radius: 14px; }
+#my-dashboard .my-detail-head h3 { font-size: 22px; }
+#my-dashboard .my-metric-grid { gap: 8px; }
+#my-dashboard .my-metric-grid > div { padding: 11px; border-width: 1px; border-radius: 11px; }
+#my-dashboard .my-metric-grid strong { font-size: 17px; }
+#my-dashboard .my-metric-grid span, #my-dashboard .my-metric-grid small { font-size: 10px; }
+#my-dashboard .my-holding-card, #my-dashboard .my-analysis-card, #my-dashboard .my-detail-frame { padding: 12px; border-width: 1px; border-radius: 12px; }
+#my-dashboard .my-card-title strong { font-size: 14px; }
+#my-dashboard .my-card-title span, #my-dashboard .my-holding-note, #my-dashboard .my-analysis-footnote, #my-dashboard .my-muted { font-size: 10px; }
+#my-dashboard .my-flow-row { font-size: 12px; }
+#my-dashboard .my-flow-row small { font-size: 10px; }
+#my-dashboard .my-flow-row b { font-size: 13px; }
+#my-dashboard .my-opinion-axis { padding: 11px; }
+#my-dashboard .my-opinion-axis-head strong { font-size: 13px; }
+#my-dashboard .my-opinion-axis-head span { font-size: 11px; }
+#my-dashboard .my-opinion-axis p { font-size: 11px; }
+#my-dashboard .my-opinion-verdict strong { font-size: 17px; }
+#my-dashboard .my-opinion-verdict p { font-size: 12px; }
+#my-dashboard .my-volume-highlight { font-size: 11px; }
+#my-dashboard .my-volume-highlight strong { font-size: 18px; }
+#my-dashboard .my-shape-badge { margin-bottom: 9px; padding: 6px 10px; font-size: 13px; }
+#my-dashboard .my-shape-note { margin-top: 9px; font-size: 12px; }
+#my-dashboard .my-calc-auto span { padding: 9px; font-size: 11px; }
+#my-dashboard .my-calc-auto strong { font-size: 15px; }
+#my-dashboard .my-calc-result { font-size: 11px; }
+#my-dashboard .my-calc-result strong { font-size: 15px; }
+
+@media (max-width: 720px) {
+  #my-dashboard { margin-top: 16px; }
+  #my-dashboard .my-dashboard-head { padding: 14px 0 11px; }
+  #my-dashboard .my-dashboard-head h2 { font-size: 22px; }
+  #my-dashboard .my-search-panel { padding: 11px 12px; }
+  #my-dashboard .my-dashboard-detail { padding: 10px; }
+  #my-dashboard .my-metric-grid > div { padding: 10px; }
+}

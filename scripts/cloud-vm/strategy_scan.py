@@ -149,6 +149,10 @@ TARGET_PRICE_PBR_CAP = 10.0   # 이보다 높은 개별 PBR은 섹터 평균 표
 # "애널리스트 목표가 보다 낮게, 일관성 있는 계산식으로, 우리만의 변수를 반영").
 TARGET_PRICE_REVERSION_FACTOR = 0.35  # 현재 배수에서 섹터 중앙값까지 이 비율만큼만 수렴한다고 가정(부분 재평가)
 TARGET_PRICE_MAX_GAP_PCT = 150.0  # 부분수렴 이후에도 이 이상이면 데이터 이상치로 보고 제외
+# 애널리스트 목표가는 정답/하드 캡으로 복사하지 않고, 자체 목표가가 그보다 높을 때만
+# 현재가에서 애널리스트 목표가 방향으로 이 비율만큼 참고한다. 20%는 데이터·시점
+# 차이를 위한 여유로 남겨 두므로 화면에 두 목표가가 똑같이 반복되는 현상을 줄인다.
+TARGET_PRICE_ANALYST_ANCHOR_FACTOR = 0.80
 TARGET_PRICE_TOP_N = 30
 
 TARGET_PRICE_METHODOLOGY_NOTE = (
@@ -162,11 +166,16 @@ TARGET_PRICE_METHODOLOGY_NOTE = (
     '각각 {per_cap:.0f}배·{pbr_cap:.0f}배를 넘는 개별 종목은 업종 비교 표본 자체에서 '
     '제외하고, 계산된 괴리율이 {max_gap:.0f}%를 넘는 경우도 데이터 이상치로 보고 '
     '후보에서 제외합니다. 같은 종목에 KIS 실제 애널리스트 목표가(옆의 "애널리스트 '
-    '목표가")가 있으면 이 계산값이 그보다 높을 수 없도록 낮춰 표시합니다. 백테스트로 '
-    '검증된 공식이 아니라 참고용 근사치입니다.'
+    '목표가")가 있고 자체계산값이 더 높으면, 애널리스트 목표가까지의 거리 중 '
+    '{analyst_anchor:.0f}%만 참고해 보수적으로 낮춥니다(나머지 {analyst_buffer:.0f}%는 '
+    '데이터·시점 차이를 위한 여유로 남김). 애널리스트 목표가를 그대로 복사하지 '
+    '않으므로 두 값이 같은 현상을 줄입니다. 백테스트로 검증된 공식이 아니라 참고용 '
+    '근사치입니다.'
 ).format(min_gap=TARGET_PRICE_MIN_GAP_PCT, min_peers=TARGET_PRICE_MIN_SECTOR_PEERS,
          per_cap=TARGET_PRICE_PER_CAP, pbr_cap=TARGET_PRICE_PBR_CAP, max_gap=TARGET_PRICE_MAX_GAP_PCT,
-         reversion=TARGET_PRICE_REVERSION_FACTOR * 100)
+         reversion=TARGET_PRICE_REVERSION_FACTOR * 100,
+         analyst_anchor=TARGET_PRICE_ANALYST_ANCHOR_FACTOR * 100,
+         analyst_buffer=(1 - TARGET_PRICE_ANALYST_ANCHOR_FACTOR) * 100)
 
 # Dividend ranking follows the broad Naver-style screen: keep common stocks
 # with a positive DART-disclosed cash dividend, then rank by yield or DPS.
@@ -884,26 +893,31 @@ def build_target_price_match(record, sector_avg, annual):
     return match
 
 
-def apply_analyst_target_price_ceiling(target_price_sectors):
-    """targetPriceGap(업종 PER/PBR 기반 자체 계산)이 같은 종목의 실제 애널리스트
-    목표가(analystTargetPrice, invest_opinion.enrich_matches_with_target_price가 미리
-    붙여놓음)보다 높게 나오는 사례가 실측으로 확인됐다(2026-08-23 3차, 사용자 리포트 -
-    KG스틸 자체계산 19,957원 vs 애널리스트 7,550원). 부분수렴(TARGET_PRICE_REVERSION_FACTOR)
-    으로 구조적 원인은 고쳤지만, 실제 목표가가 있는 종목에서는 그 값을 최종 상한으로 삼아
-    "우리 계산이 실제 애널리스트 목표가보다 높게 표시되는 일이 없도록" 이중으로 보장한다
-    (사용자 확인 - "애널리스트 목표가 보다 낮게"). 애널리스트 커버리지가 없는 종목은
-    부분수렴 공식 결과 그대로 둔다. `target_price_sectors`는
-    {섹터명: {'matches': [...]}} 형태(output['categories']['targetPriceGap']['sectors'])를
-    제자리에서(in-place) 수정한다."""
+def apply_analyst_target_price_anchor(target_price_sectors):
+    """애널리스트 목표가를 하드 캡이 아닌 보수적 참고값으로 반영한다.
+
+    자체계산 목표가가 애널리스트 목표가보다 높을 때도 애널리스트 목표가를 그대로
+    복사하지 않고, 현재가에서 애널리스트 목표가까지의 80%만 이동한다. 이렇게 하면
+    업종 PER/PBR 기반 계산은 유지하면서 시장 기대치보다 낮고, 두 값이 기계적으로
+    같아지는 현상도 피한다.
+    """
     for sector_info in target_price_sectors.values():
         for match in sector_info['matches']:
             analyst_price = match.get('analystTargetPrice')
-            if analyst_price and match.get('targetPrice') and match['targetPrice'] > analyst_price:
-                match['targetPrice'] = analyst_price
-                match['targetGapPct'] = round((analyst_price - match['price']) / match['price'] * 100, 1)
-                match['targetPriceCappedByAnalyst'] = True
-        # 클램프로 괴리율이 최소 기준(TARGET_PRICE_MIN_GAP_PCT) 아래로 떨어진 종목은
-        # 더 이상 "저평가 후보"가 아니므로 목록에서도 제외한다.
+            current_price = match.get('price')
+            own_target = match.get('targetPrice')
+            if (analyst_price and current_price and own_target
+                    and analyst_price > current_price and own_target >= analyst_price):
+                anchored_target = current_price + TARGET_PRICE_ANALYST_ANCHOR_FACTOR * (analyst_price - current_price)
+                rounded_target = round(anchored_target)
+                # 원 단위 반올림으로 애널리스트 값과 다시 같아지는 마지막 1원 edge case도
+                # 피한다. 이 경우 괴리율이 기준 미달이면 아래 필터가 후보에서 제거한다.
+                if rounded_target >= analyst_price:
+                    rounded_target = max(round(current_price), int(analyst_price) - 1)
+                match['targetPrice'] = rounded_target
+                match['targetGapPct'] = round((rounded_target - current_price) / current_price * 100, 1)
+                match['targetPriceAdjustedToAnalyst'] = True
+        # 조정 후 괴리율이 최소 기준 아래로 떨어진 종목은 더 이상 후보가 아니다.
         sector_info['matches'] = [
             m for m in sector_info['matches'] if (m.get('targetGapPct') or 0) >= TARGET_PRICE_MIN_GAP_PCT
         ]
@@ -1371,7 +1385,7 @@ def main():
         finally:
             opinion_conn.close()
 
-    apply_analyst_target_price_ceiling(output['categories']['targetPriceGap']['sectors'])
+    apply_analyst_target_price_anchor(output['categories']['targetPriceGap']['sectors'])
 
     tmp_path = OUTPUT_FILE + '.tmp'
     with open(tmp_path, 'w', encoding='utf-8') as f:
