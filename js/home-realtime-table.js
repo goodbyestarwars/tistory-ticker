@@ -369,7 +369,7 @@
     var head = state.mount && state.mount.querySelector('.hrt-table-wrap thead tr');
     if (!head) return;
     head.innerHTML = columnsForActive().map(function (column) {
-      return '<th>' + column[1] + '</th>';
+      return '<th data-field="' + escapeHtml(column[0]) + '">' + column[1] + '</th>';
     }).join('');
   }
 
@@ -390,6 +390,7 @@
     // when the table shell is rebuilt on market switch.
     var widgetActions = mount.querySelector('.home-widget-actions');
     if (widgetActions) widgetActions.remove();
+    mount.setAttribute('data-hrt-active', state.active);
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
       + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div>'
       + '<div class="hrt-tabs" role="tablist" aria-label="실시간 종목 정렬">'
@@ -397,7 +398,7 @@
         return '<button type="button" role="tab" data-hrt-tab="' + tab[0] + '" aria-selected="' + (tab[0] === state.active) + '">' + tab[1] + '</button>';
       }).join('') + '</div>'
       + '<div class="hrt-table-wrap"><table><thead><tr>' + columns.map(function (column) {
-        return '<th>' + column[1] + '</th>';
+        return '<th data-field="' + escapeHtml(column[0]) + '">' + column[1] + '</th>';
       }).join('') + '</tr></thead>'
       + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
       + '<div class="hrt-foot"><span data-hrt-foot>체결 발생 행만 갱신</span></div>';
@@ -416,6 +417,7 @@
     var body = state.mount.querySelector('[data-hrt-body]');
     if (!body) return;
     var rows = rowsForActive().slice(0, HOME_ROW_LIMIT);
+    state.mount.setAttribute('data-hrt-active', state.active);
     body.innerHTML = rows.length
       ? rows.map(function (item, index) {
         return state.active === 'industry' ? industryRowHtml(item, index + 1) : rowHtml(item, index + 1);

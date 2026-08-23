@@ -496,6 +496,25 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
 
+    def test_mobile_home_realtime_table_stays_readable_and_header_scrolls_with_body(self):
+        source = self.read("js/home-realtime-table.js")
+        style = self.read("style.css")
+        for token in (
+            "data-hrt-active",
+            "data-field=\"' + escapeHtml(column[0]) + '\"",
+            "state.mount.setAttribute('data-hrt-active', state.active)",
+        ):
+            self.assertIn(token, source)
+        for token in (
+            ".navbar {\n    position: relative !important;",
+            ".page-wrap {\n    padding-top: 0 !important;",
+            ".home-realtime-board .hrt-table-wrap table {",
+            "min-width: 0;",
+            ".home-realtime-board[data-hrt-active=\"tradeAmount\"]",
+            ".home-realtime-board[data-hrt-active=\"industry\"]",
+        ):
+            self.assertIn(token, style)
+
     def test_home_realtime_table_uses_correct_won_trillion_unit(self):
         source = self.read("js/home-realtime-table.js")
         self.assertIn("1조 = 1,000,000,000,000원(10^12)", source)
