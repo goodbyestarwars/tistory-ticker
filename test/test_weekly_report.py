@@ -144,6 +144,21 @@ class WeeklyReportTests(unittest.TestCase):
         )
         self.assertIn('조회수 미제공', result['news']['basis'])
 
+    def test_report_news_uses_friday_to_sunday_window(self):
+        domestic = [
+            {'title': '월요일 제외 뉴스', 'pubDate': '2026-08-10T09:00:00+09:00'},
+            {'title': '금요일 뉴스', 'pubDate': '2026-08-14T09:00:00+09:00'},
+            {'title': '토요일 뉴스', 'pubDate': '2026-08-15T09:00:00+09:00'},
+            {'title': '일요일 뉴스', 'pubDate': '2026-08-16T09:00:00+09:00'},
+        ]
+        result = weekly_report.build_report(
+            datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date(),
+            futures_rows=[], domestic_news_items=domestic, foreign_news_items=[],
+        )
+        self.assertIn('2026-08-14~2026-08-16(KST)', result['news']['basis'])
+        titles = [item['title'] for item in result['news']['timeline']]
+        self.assertEqual(set(titles), {'금요일 뉴스', '토요일 뉴스', '일요일 뉴스'})
+
     def test_next_week_schedule_filters_outside_window(self):
         result = weekly_report.next_week_schedule([
             {'start': '2026-08-17', 'title': '$AAPL 실적발표', 'symbol': 'AAPL'},

@@ -366,7 +366,7 @@ def get_sec_filings(limit=30, ttl_sec=None):
 
 
 def get_general_news_history(start, end, limit=120, alpha_api_key=''):
-    """Read the persisted US general-news archive for a completed week."""
+    """Read the persisted US general-news archive for the requested window."""
     try:
         start_day = datetime.strptime(str(start)[:10], '%Y-%m-%d').date()
         end_day = datetime.strptime(str(end)[:10], '%Y-%m-%d').date()
@@ -412,8 +412,8 @@ def get_general_news_history(start, end, limit=120, alpha_api_key=''):
             covered_days.add(datetime.fromtimestamp(published, timezone.utc).astimezone(
                 timezone(timedelta(hours=9))
             ).date())
-    # Alpha Vantage 뉴스에도 조회수는 없으므로, 주간 리포트는 날짜별 보강을
-    # 우선한다. 기존 캐시가 금요일 기사만 갖고 있어도 월~금 자료를 다시 채운다.
+    # Alpha Vantage 뉴스에도 조회수는 없으므로, 주말 리포트는 날짜별 보강을
+    # 우선한다. 기존 캐시가 금요일 기사만 갖고 있어도 금~일 자료를 다시 채운다.
     if len(covered_days) < 4 and alpha_api_key:
         try:
             backfill = _alpha_general_news(alpha_api_key, start_day, end_day)

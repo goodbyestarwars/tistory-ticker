@@ -1963,6 +1963,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
     """
     _check_rate_limit('weekly_report', request, max_per_window=10)
     start, end = weekly_report.completed_week()
+    news_start, news_end = weekly_report.news_window(start, end)
     cache_key = end.isoformat()
     cached = _weekly_report_cache.get(cache_key)
     now = time.time()
@@ -2020,7 +2021,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
 
     def safe_domestic_news():
         try:
-            archived = domestic_news.get_weekly_news(start, end, limit=120)
+            archived = domestic_news.get_weekly_news(news_start, news_end, limit=120)
             fresh = (domestic_news.get_news(limit=50, item_kind='news') or {}).get('items') or []
             return archived + fresh
         except Exception as exc:
@@ -2030,7 +2031,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
     def safe_foreign_news():
         try:
             archived = news_aggregator.get_general_news_history(
-                start, end, limit=120,
+                news_start, news_end, limit=120,
                 alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
             )
             current = news_aggregator.get_general_news(

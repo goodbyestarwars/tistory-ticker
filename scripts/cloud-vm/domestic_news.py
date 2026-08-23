@@ -343,11 +343,11 @@ def _load_cached(query_key, ttl_sec=CACHE_TTL_SEC):
 
 
 def get_weekly_news(start, end, limit=120):
-    """Return archived market news published inside a completed week.
+    """Return archived market news published inside the requested date window.
 
     The normal market feed intentionally uses a five-minute freshness window,
-    but a weekly report must read the archive by publication date. This keeps
-    Saturday's newest headlines from replacing Monday-Friday coverage.
+    but a weekend report must read the archive by publication date. The caller
+    supplies the Friday-Sunday window so newer headlines do not replace it.
     """
     try:
         start_day = datetime.strptime(str(start)[:10], '%Y-%m-%d').date()
@@ -381,16 +381,16 @@ def get_weekly_news(start, end, limit=120):
         item.pop('fetched_at', None)
         item['provider'] = 'Naver'
         result.append(item)
-    # 주중 수집기가 특정 날(대개 금요일)만 갱신된 경우를 보완한다. 네이버
+    # 수집기가 특정 날만 갱신된 경우를 보완한다. 네이버
     # 검색 API에는 조회수 필드가 없으므로, 조회수순을 가장하지 않고 날짜별
     # 발행 기사를 확보해 주간 타임라인이 하루에 몰리지 않게 한다.
     covered_days = {_parse_pub_date(item.get('pubDate')).date() for item in result
                     if item.get('pubDate') and _parse_pub_date(item.get('pubDate')) != datetime.min.replace(tzinfo=timezone.utc)}
     client_id = os.environ.get('NAVER_APIHUB_CLIENT_ID', '').strip()
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET', '').strip()
-    if len(covered_days) < 4 and client_id and client_secret:
+    if len(covered_days) < 3 and client_id and client_secret:
         # 2026-08-21 코드 감사: 여기서 쓰지도 않는 'oldest' 변수를 사전 초기화 없이
-        # 참조+대입하는 줄이 있었다 - 이 조건(주간 커버리지 4일 미만)이 자주 참이라
+        # 참조+대입하는 줄이 있었다 - 이 조건(주말 커버리지 3일 미만)이 자주 참이라
         # 이 분기가 실행될 때마다 UnboundLocalError를 던졌고, 호출부의 try/except가
         # 조용히 삼켜 backfill 전체가 매번 빈 결과로 대체되고 있었다. 사용처가 없어
         # 그냥 삭제.

@@ -28,6 +28,11 @@ def completed_week(now=None):
     return end - timedelta(days=4), end
 
 
+def news_window(start, end):
+    """Return the completed Friday-Sunday window used by the weekend news card."""
+    return end, end + timedelta(days=2)
+
+
 def _date_value(value):
     text = str(value or '').strip()
     if not text:
@@ -477,8 +482,8 @@ def gold_analysis(row):
 
 def _within_week(item, start, end):
     day = _date_value(item.get('pubDate') or item.get('publishedAt') or item.get('date'))
-    # 주간 리포트는 현재 시점에 들어온 최신 뉴스가 섞이지 않도록
-    # 발행일이 확인되는 항목만 완료된 월~금 범위에 포함한다.
+    # 주말 리포트는 현재 시점에 들어온 최신 뉴스가 섞이지 않도록
+    # 발행일이 확인되는 항목만 호출부가 지정한 금~일 범위에 포함한다.
     return day is not None and start <= day <= end
 
 
@@ -613,10 +618,10 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
                  foreign_news_items=None, domestic_board=None, us_board=None,
                  schedule_events=None, generated_at=None, domestic_swing_scan=None,
                  past_swing_outcomes=None):
-    # 주간 리포트는 최신 하루치가 전체를 덮지 않도록 완료된 월~금만 사용한다.
-    # 주말에 새로 들어온 뉴스는 다음 리포트의 수집분으로 남긴다.
-    news_end = end
-    news_basis = '%s~%s(KST) 날짜별 주요 뉴스 · 조회수 미제공' % (start.isoformat(), news_end.isoformat())
+    # 시장 지수·종목 요약은 월~금 기준으로 유지하고, 휴장 화면의 뉴스만
+    # 직전 금요일부터 일요일까지의 주말 구간으로 별도 제한한다.
+    news_start, news_end = news_window(start, end)
+    news_basis = '%s~%s(KST) 날짜별 주요 뉴스 · 조회수 미제공' % (news_start.isoformat(), news_end.isoformat())
     return {
         'week': {'start': start.isoformat(), 'end': end.isoformat(), 'label': '%s ~ %s' % (start.isoformat(), end.isoformat())},
         'indices': index_summary(futures_rows, start, end),
@@ -648,9 +653,9 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
             'basis': '지난 2주 스윙 후보의 신호일 대비 T+5/T+10 실제 수익률(확정된 건만 표시)',
         },
         'news': {
-            'domestic': _news(domestic_news_items, start, news_end, 8),
-            'us': _news(foreign_news_items, start, news_end, 8),
-            'timeline': news_timeline(domestic_news_items, foreign_news_items, start, news_end, 20),
+            'domestic': _news(domestic_news_items, news_start, news_end, 8),
+            'us': _news(foreign_news_items, news_start, news_end, 8),
+            'timeline': news_timeline(domestic_news_items, foreign_news_items, news_start, news_end, 20),
             'basis': news_basis,
         },
         'schedule': next_week_schedule(schedule_events, start, end),

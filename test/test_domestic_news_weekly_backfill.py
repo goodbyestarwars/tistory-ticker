@@ -12,7 +12,7 @@ import domestic_news
 
 
 class WeeklyNewsBackfillTests(unittest.TestCase):
-    """get_weekly_news()의 백필 분기(주간 커버리지 4일 미만일 때)가 초기화 안 된 'oldest'
+    """get_weekly_news()의 백필 분기(주말 커버리지 3일 미만일 때)가 초기화 안 된 'oldest'
     변수를 참조+대입해 매번 UnboundLocalError를 던지던 문제(2026-08-21 코드 감사) -
     호출부 try/except가 삼켜서 그 주의 뉴스 아카이브 전체가 조용히 빈 결과로 대체됐었다."""
 
@@ -38,7 +38,7 @@ class WeeklyNewsBackfillTests(unittest.TestCase):
         ]
         with mock.patch.dict(os.environ, {'NAVER_APIHUB_CLIENT_ID': 'id', 'NAVER_APIHUB_CLIENT_SECRET': 'secret'}):
             with mock.patch.object(domestic_news.naver_news, 'search_news', return_value=fake_items):
-                # 커버리지 캐시가 비어 있어(len(covered_days) < 4) 반드시 백필 분기를 탄다.
+                # 커버리지 캐시가 비어 있어(len(covered_days) < 3) 반드시 백필 분기를 탄다.
                 result = domestic_news.get_weekly_news(start.isoformat(), end.isoformat())
         self.assertEqual(len(result), 2)
         titles = {item['title'] for item in result}

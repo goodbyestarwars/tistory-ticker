@@ -1788,6 +1788,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/home-weekly-report.js")
         schedule = '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong>'
         self.assertNotIn('class="hwr-source-note"', source)
+        self.assertIn('금~일 날짜별 주요 뉴스 · 한국·미국 통합', source)
         self.assertIn(schedule, source)
         self.assertLess(source.index(schedule), source.index("+ indexSummary(indices)"))
 
