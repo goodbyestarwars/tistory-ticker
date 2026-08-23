@@ -278,6 +278,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("border-radius: 999px", style)
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
+        self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
         self.assertIn("skin-main.js?v=20260820-tab-cleanup-v1", skin)
 
     def test_navbar_search_underline_fits_inside_navbar_height(self):

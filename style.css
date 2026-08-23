@@ -3689,7 +3689,8 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
   .navbar .nav-search-input { width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .navbar .nav-search-input-wrap { min-height: 40px; padding: 6px 14px; }
   .navbar .nav-search-icon { width: 24px; height: 24px; }
-  .navbar .nav-search-input { font-size: 10px; }
+  /* 2026-08-23: 모바일 종목검색 placeholder가 너무 작아 한 단계 키운다. */
+  .navbar .nav-search-input { font-size: 11px; }
   /* 2026-07-27: 상단 메뉴바가 항상 노출되는 가로 스크롤 형태로 바뀌면서 모바일
      드로어 자체가 없어져 햄버거 버튼도 더는 쓸 일이 없다(9Pay 증권 작업지시서 #12). */
   .nav-hamburger { display: none !important; }
