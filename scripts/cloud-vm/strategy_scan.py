@@ -169,7 +169,8 @@ TARGET_PRICE_METHODOLOGY_NOTE = (
     '목표가")가 있고 자체계산값이 더 높으면, 애널리스트 목표가까지의 거리 중 '
     '{analyst_anchor:.0f}%만 참고해 보수적으로 낮춥니다(나머지 {analyst_buffer:.0f}%는 '
     '데이터·시점 차이를 위한 여유로 남김). 애널리스트 목표가를 그대로 복사하지 '
-    '않으므로 두 값이 같은 현상을 줄입니다. 백테스트로 검증된 공식이 아니라 참고용 '
+    '않으므로 두 값이 같은 현상을 줄입니다. 결과는 6~12개월 참고 목표주가이며, '
+    '과거 적중률 백테스트가 끝난 확정 예측값이 아니라 일관된 계산식에 따른 참고용 '
     '근사치입니다.'
 ).format(min_gap=TARGET_PRICE_MIN_GAP_PCT, min_peers=TARGET_PRICE_MIN_SECTOR_PEERS,
          per_cap=TARGET_PRICE_PER_CAP, pbr_cap=TARGET_PRICE_PBR_CAP, max_gap=TARGET_PRICE_MAX_GAP_PCT,

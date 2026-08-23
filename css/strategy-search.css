@@ -658,6 +658,16 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
 #strategy-search .ss-strategy-table .ss-col-gap,
 #strategy-search .ss-strategy-table .ss-col-target-price,
 #strategy-search .ss-strategy-table .ss-col-analyst-target { text-align: right !important; }
+#strategy-search .ss-target-price-value { display: block; }
+#strategy-search .ss-target-price-note {
+  display: block;
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.25;
+  white-space: nowrap;
+}
 #strategy-search .ss-strategy-table .ss-col-price,
 #strategy-search .ss-strategy-table .ss-col-change { text-align: right !important; }
 
