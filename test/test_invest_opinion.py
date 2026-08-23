@@ -41,6 +41,22 @@ class SummarizeOpinionsTests(unittest.TestCase):
         self.assertEqual(result['avgTargetPrice'], 85000)  # (80000+90000)/2
         self.assertEqual(result['targetPriceSamples'], 2)
 
+    def test_target_price_uses_median_so_one_stale_outlier_report_cannot_skew_it(self):
+        # 2026-08-23: strategy_scan.py 섹터 평균 PER/PBR 버그(산술평균이 이상치 하나에
+        # 끌려간 사건) 이후 같은 위험(여러 값의 산술평균)이 있는 다른 계산도 점검하다가
+        # 여기서도 같은 패턴을 발견해 미리 방어했다 - 액면분할 등으로 스케일이 다른
+        # 옛 리포트 목표가가 하나 섞여도 중앙값이면 결과가 휘둘리지 않아야 한다.
+        rows = [
+            _report('20260501', '매수', '90000'),
+            _report('20260601', '매수', '95000'),
+            _report('20260701', '매수', '100000'),
+            _report('20260801', '매수', '900000'),  # 분할 전 스케일이 남은 이상치 리포트
+        ]
+        result = invest_opinion.summarize_opinions(rows)
+        # 산술평균이었다면 (90000+95000+100000+900000)/4 = 296250으로 튀었을 것.
+        # 중앙값(95000, 100000의 평균인 97500)은 이상치 하나에 흔들리지 않는다.
+        self.assertEqual(result['avgTargetPrice'], 97500)
+
     def test_latest_report_is_the_most_recent_date_not_last_in_input_order(self):
         # 입력 순서가 날짜순이 아닐 수 있다고 보고 direct 정렬로 최신을 골라야 한다.
         rows = [

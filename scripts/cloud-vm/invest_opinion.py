@@ -11,6 +11,7 @@ API 50개를 뒤져봐도 이 용도의 API가 없어(사용자 확인 후) 국�
 필드명(invt_opnn/hts_goal_prc 등)은 KIS 공식 예제 그대로지만, 실제 응답에서 종목별로
 리포트가 몇 건이나 나오는지(소형주는 0건일 수 있음)는 라이브 확인 전까지 모른다."""
 
+import statistics
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -92,8 +93,14 @@ def summarize_opinions(rows):
     for r in reports:
         counts[r['bucket']] += 1
 
+    # 2026-08-23: strategy_scan.py의 섹터 평균 PER/PBR 버그(산술평균이 이상치 리포트 하나에
+    # 끌려간 사건) 이후 "여러 값을 평균 내는" 다른 계산도 같은 위험이 있는지 점검하다가
+    # 발견 - 이 목표가 평균도 3개월 사이 액면분할·무상증자 등으로 리포트 하나가 스케일이
+    # 다른 목표가를 갖고 있으면(예: 분할 전 리포트가 안 갱신된 옛 목표가를 그대로 유지)
+    # 산술평균이 왜곡될 수 있다. 같은 이유로 중앙값을 쓴다(리포트 수가 적을 때도 동작은
+    # 산술평균과 동일하거나 더 안전함).
     target_prices = [r['targetPrice'] for r in reports if r['targetPrice']]
-    avg_target_price = round(sum(target_prices) / len(target_prices)) if target_prices else None
+    avg_target_price = round(statistics.median(target_prices)) if target_prices else None
 
     latest = reports[-1]
     return {
