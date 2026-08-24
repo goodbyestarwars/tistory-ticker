@@ -389,11 +389,46 @@
     var asks = (book.asks || []).slice().reverse();
     var bids = book.bids || [];
     var rows = Math.max(asks.length, bids.length);
-    var html = '<div class="us-stocks-book-head"><span>매도 잔량</span><span>가격</span><span>매수 잔량</span></div>';
+    var levelSize = function (level) {
+      var value = level && level.size != null ? level.size : level && level.qty;
+      return Number.isFinite(Number(value)) ? Number(value) : 0;
+    };
+    var sumSize = function (levels) {
+      return levels.reduce(function (sum, level) { return sum + levelSize(level); }, 0);
+    };
+    var askTotal = Number(book.totalAskQty);
+    var bidTotal = Number(book.totalBidQty);
+    if (!Number.isFinite(askTotal)) askTotal = sumSize(asks);
+    if (!Number.isFinite(bidTotal)) bidTotal = sumSize(bids);
+    var maxLevel = Math.max.apply(null, asks.concat(bids).map(levelSize).concat([1]));
+    var balanceTotal = askTotal + bidTotal;
+    var askShare = balanceTotal > 0 ? Math.round(askTotal / balanceTotal * 100) : 0;
+    var bidShare = balanceTotal > 0 ? 100 - askShare : 0;
+    var balanceLabel = askTotal === bidTotal ? '균형' : (askTotal > bidTotal ? '매도 우위' : '매수 우위');
+    var current = state.lastQuote && Number(state.lastQuote.price);
+    if (!rows && !Number.isFinite(current)) {
+      mount.innerHTML = '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
+      return;
+    }
+    var html = '<div class="us-stocks-book-balance">'
+      + '<div class="us-stocks-book-balance-head"><span>호가 잔량</span><b>' + balanceLabel + '</b></div>'
+      + '<div class="us-stocks-book-balance-bar"><i class="us-book-ask-fill" style="width:' + askShare + '%"></i><i class="us-book-bid-fill" style="width:' + bidShare + '%"></i></div>'
+      + '<div class="us-stocks-book-balance-values"><span class="us-book-ask-text">매도 ' + formatVolume(askTotal) + ' (' + askShare + '%)</span><span class="us-book-bid-text">매수 ' + formatVolume(bidTotal) + ' (' + bidShare + '%)</span></div>'
+      + '</div>'
+      + '<div class="us-stocks-book-head"><span>매도 잔량</span><span>가격</span><span>매수 잔량</span></div>';
     for (var i = 0; i < rows; i++) {
       var ask = asks[i] || {};
       var bid = bids[i] || {};
-      html += '<div class="us-stocks-book-row"><span class="us-down">' + formatVolume(ask.size) + '</span><b>' + formatPrice(ask.price || bid.price) + '</b><span class="us-up">' + formatVolume(bid.size) + '</span></div>';
+      var askWidth = Math.round(levelSize(ask) / maxLevel * 100);
+      var bidWidth = Math.round(levelSize(bid) / maxLevel * 100);
+      html += '<div class="us-stocks-book-row">'
+        + '<span class="us-book-side us-book-ask"><b>' + formatVolume(levelSize(ask)) + '</b><i><em style="width:' + askWidth + '%"></em></i></span>'
+        + '<b class="us-stocks-book-price ' + (ask.price ? 'us-book-ask-price' : 'us-book-bid-price') + '">' + formatPrice(ask.price || bid.price) + '</b>'
+        + '<span class="us-book-side us-book-bid"><i><em style="width:' + bidWidth + '%"></em></i><b>' + formatVolume(levelSize(bid)) + '</b></span>'
+        + '</div>';
+    }
+    if (Number.isFinite(current)) {
+      html += '<div class="us-stocks-book-current"><span>현재가</span><strong>' + formatPrice(current) + '</strong><span>' + formatPercent(state.lastQuote.change_rate) + '</span></div>';
     }
     mount.innerHTML = html || '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
   }
