@@ -452,6 +452,10 @@
   pointer-events: none;
 }
 #stock-search .ss-volume-study-label b { color: #4f8df7; font-weight: 600; }
+#stock-search .ss-volume-study-label em { color: #8a9099; font-size: 9.5px; font-style: normal; font-weight: 400; }
+#stock-search .ss-volume-study-label .ss-volume-current-label b,
+#stock-search .ss-volume-study-label .ss-volume-amount-label b { color: #4f8df7; }
+#stock-search .ss-volume-study-label .ss-volume-amount-label { color: #64748b; }
 #stock-search .ss-volume-study-label .ss-volume-ma5-value { color: #b45309; }
 #stock-search .ss-volume-study-label .ss-volume-ma-value { color: #2563eb; }
 #stock-search .ss-volume-study-label .ss-volume-day-label { margin-left: 3px; color: #8a9099; }
@@ -663,6 +667,8 @@ html.dark #stock-search .ss-chart-studies label { color: rgba(245, 239, 224, 0.7
 html.dark #stock-search .ss-chart::after { border-top-color: rgba(245, 239, 224, 0.16) !important; }
 html.dark #stock-search .ss-price-study-label .ss-ichimoku-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-search .ss-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #stock-search .ss-volume-study-label em,
+html.dark #stock-search .ss-volume-study-label .ss-volume-amount-label { color: rgba(245, 239, 224, 0.58) !important; }
 html.dark #stock-search .ss-volume-study-label .ss-volume-ma5-value { color: #fbbf24 !important; }
 html.dark #stock-search .ss-lwc-pane-labels { color: rgba(245,239,224,.6); }
 html.dark #stock-search .ss-lwc-pane-labels span { background: rgba(26,26,26,.72); }

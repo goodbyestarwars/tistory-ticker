@@ -1442,6 +1442,19 @@
     if (Math.abs(n) >= 1000) return scaled(1000, 'K');
     return Math.round(n).toLocaleString('ko-KR');
   }
+  function ratioPercent(value, basis) {
+    var numerator = Number(value), denominator = Number(basis);
+    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return '';
+    return (numerator / denominator * 100).toFixed(1) + '%';
+  }
+  function compactTradingValue(value, isUsChart) {
+    var n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return '-';
+    if (isUsChart) return '$' + compactVolume(n);
+    if (n >= 100000000) return (n / 100000000).toFixed(1) + '억';
+    if (n >= 10000) return Math.round(n / 10000).toLocaleString('ko-KR') + '만';
+    return Math.round(n).toLocaleString('ko-KR') + '원';
+  }
 
   function ma224Color() {
     return document.documentElement.classList.contains('dark') ? '#f1f3f5' : '#000000';
@@ -2005,12 +2018,24 @@
       var previousVolume = previousBar ? Number(previousBar.volume) || 0 : 0;
       var latestVolume = Number(latestBar.volume) || 0;
       var volumeChangePct = previousVolume > 0 ? (latestVolume - previousVolume) / previousVolume * 100 : null;
+      // 거래대금은 일봉 종가×거래량으로 계산한 참고값이다. 국내·미국 모두 같은
+      // 비율을 적용하되, 표시는 국내는 억원·미국은 달러 축약 단위로 구분한다.
+      var valueBars = bars.map(function (bar) {
+        return { date: bar.date, tradingValue: Math.max(0, Number(bar.close) || 0) * Math.max(0, Number(bar.volume) || 0) };
+      });
+      var valueMa20Points = movingAveragePoints(valueBars, 'tradingValue', 20);
+      var latestTradingValue = Math.max(0, Number(latestBar.close) || 0) * latestVolume;
+      var latestTradingValueMa20 = valueMa20Points.length ? valueMa20Points[valueMa20Points.length - 1].value : null;
+      var latestVolumeVs20 = ratioPercent(latestVolume, latestVolumeMa);
+      var latestTradingValueVs20 = ratioPercent(latestTradingValue, latestTradingValueMa20);
+      var latestVsMa5 = ratioPercent(latestVolume, latestVolumeMa5);
+      var latestVsMa20 = ratioPercent(latestVolume, latestVolumeMa);
       var volumeLegend = document.createElement('div');
       volumeLegend.className = 'ss-volume-study-label';
-      volumeLegend.innerHTML = '<span>거래량</span>'
-        + '<b>' + compactVolume(latestVolume) + '</b>'
-        + (latestVolumeMa5 == null ? '' : '<b class="ss-volume-ma5-value"><i class="ss-volume-dot ss-volume-dot-5"></i>5일평균 ' + compactVolume(latestVolumeMa5) + '</b>')
-        + (latestVolumeMa == null ? '' : '<b class="ss-volume-ma-value"><i class="ss-volume-dot ss-volume-dot-20"></i>20일평균 ' + compactVolume(latestVolumeMa) + '</b>')
+      volumeLegend.innerHTML = '<span class="ss-volume-current-label">거래량 <b>' + compactVolume(latestVolume) + '</b>' + (latestVolumeVs20 ? ' <em>(' + latestVolumeVs20 + ' · 20일 대비)</em>' : '') + '</span>'
+        + '<span class="ss-volume-amount-label">거래대금 <b>' + compactTradingValue(latestTradingValue, isUsChart) + '</b>' + (latestTradingValueVs20 ? ' <em>(' + latestTradingValueVs20 + ' · 20일 대비)</em>' : '') + '</span>'
+        + (latestVolumeMa5 == null ? '' : '<b class="ss-volume-ma5-value"><i class="ss-volume-dot ss-volume-dot-5"></i>5일평균 ' + compactVolume(latestVolumeMa5) + (latestVsMa5 ? ' <em>(현재 ' + latestVsMa5 + ')</em>' : '') + '</b>')
+        + (latestVolumeMa == null ? '' : '<b class="ss-volume-ma-value"><i class="ss-volume-dot ss-volume-dot-20"></i>20일평균 ' + compactVolume(latestVolumeMa) + (latestVsMa20 ? ' <em>(현재 ' + latestVsMa20 + ')</em>' : '') + '</b>')
         + '<span class="ss-volume-day-label">전일 대비</span>'
         + '<b class="ss-volume-day-change ' + (volumeChangePct > 0 ? 'is-up' : (volumeChangePct < 0 ? 'is-down' : 'is-flat')) + '">' + formatSignedPercent(volumeChangePct) + '</b>';
       container.appendChild(volumeLegend);
