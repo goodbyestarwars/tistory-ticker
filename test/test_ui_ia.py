@@ -1875,16 +1875,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(url, source)
 
-    def test_stock_calendar_shows_today_only(self):
+    def test_stock_calendar_defaults_to_today_with_date_picker(self):
         source = self.read("js/stock-calendar.js")
         home = self.read("js/skin-main.js")
         style = self.read("css/stock-calendar.css")
         self.assertIn("function dateKey(date)", source)
-        self.assertIn("function renderToday(today, events)", source)
+        self.assertIn("function renderMonthCalendar(state)", source)
+        self.assertIn("function renderSchedule(state, loading)", source)
         self.assertIn("오늘의 일정", source)
-        self.assertIn("오늘 일정만 표시합니다.", source)
-        self.assertIn("String(event && event.start || '').slice(0, 10) === todayKey", source)
-        self.assertIn("function loadToday()", source)
+        self.assertIn("달력에서 날짜를 선택할 수 있습니다.", source)
+        self.assertIn("data-calendar-date", source)
+        self.assertIn("data-calendar-action=\"previous\"", source)
+        self.assertIn("data-calendar-action=\"next\"", source)
+        self.assertIn("data-calendar-action=\"today\"", source)
+        self.assertIn("function loadMonth(year, month, selected)", source)
         self.assertNotIn('id="scSearch"', source)
         self.assertNotIn("연간 일정", source)
         self.assertIn("eventText = meta.text", source)
@@ -1901,9 +1905,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("자동(DART)", source)
         self.assertNotIn("미국(Finnhub)", source)
         self.assertIn("ev.result", source)
-        self.assertIn(".sc-today-only", style)
+        self.assertIn(".sc-layout", style)
+        self.assertIn(".sc-cal-today", style)
         self.assertIn(".sc-today-head", style)
-        self.assertIn("stock-calendar.js?v=20260817-earnings-result-v1", home)
+        self.assertIn("stock-calendar.js?v=20260825-date-picker-v1", home)
 
     def test_lightweight_charts_uses_v5_api_across_chart_modules(self):
         files = (

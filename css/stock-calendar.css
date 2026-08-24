@@ -1,6 +1,6 @@
 /* ============ 증시캘린더 (독립 페이지, js/stock-calendar.js) ============
    상승=빨강(#d24f45)/하락=파랑(#1261c4) 사이트 공통색과 별개로, 이 위젯은
-   인디고 포인트를 사용한다. 현재는 오늘 일정만 표시한다.
+   인디고 포인트를 사용한다. 기본은 오늘 일정이며 달력 날짜를 선택할 수 있다.
    다크모드는 html.dark #stock-calendar ... !important (9bolt 스킨 블랑켓 규칙 대응) */
 
 #stock-calendar { font-size: 14px; }
@@ -37,6 +37,12 @@
   transition: background 0.15s;
 }
 #stock-calendar .sc-nav:hover { background: #eef2ff; color: #6366f1; border-color: #c7d2fe; }
+#stock-calendar .sc-cal-today {
+  border: 1px solid #c7d2fe; border-radius: 999px; background: #eef2ff;
+  color: #4f46e5; padding: 5px 10px; font: inherit; font-size: 11px;
+  font-weight: 700; cursor: pointer;
+}
+#stock-calendar .sc-cal-today:hover { background: #e0e7ff; }
 #stock-calendar .sc-dow {
   display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 6px;
 }
@@ -50,8 +56,10 @@
   height: 40px; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   border-radius: 8px; position: relative;
+  border: 0; padding: 0; background: transparent; font: inherit;
   font-size: 13px; color: #334155;
 }
+#stock-calendar .sc-day-empty { pointer-events: none; }
 #stock-calendar .sc-day-clickable { cursor: pointer; }
 #stock-calendar .sc-day-clickable:hover { background: #eef2ff; }
 #stock-calendar .sc-day.sc-selected { outline: 2px solid #6366f1; outline-offset: -2px; font-weight: 700; }
@@ -161,6 +169,7 @@ html.dark #stock-calendar .sc-week-title,
 html.dark #stock-calendar .sc-filter-head strong { color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-nav { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #stock-calendar .sc-nav:hover { background: rgba(245, 239, 224, 0.18) !important; color: #F5EFE0 !important; border-color: rgba(245, 239, 224, 0.4) !important; }
+html.dark #stock-calendar .sc-cal-today { background: rgba(245, 239, 224, 0.12) !important; border-color: rgba(245, 239, 224, 0.25) !important; color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-day { color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-week-title { border-bottom-color: rgba(245, 239, 224, 0.14) !important; }
 html.dark #stock-calendar .sc-filter-head { border-bottom-color: rgba(245, 239, 224, 0.14) !important; }

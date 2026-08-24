@@ -1,8 +1,8 @@
 /**
  * 증시캘린더 - 독립 페이지 위젯 (2026-07-22)
  * 예전엔 js/skin-main.js의 openCalendarModal()이 중앙 모달로 띄우는 방식이었으나,
- * 사용자 요청으로 별도 Tistory Page(#stock-calendar 마운트)로 전환 - 월간 목록 대신
- * 오늘 날짜의 일정만 간결하게 보여준다.
+ * 사용자 요청으로 별도 Tistory Page(#stock-calendar 마운트)로 전환 - 기본은
+ * 오늘 날짜의 일정만 보여주되, 월 달력에서 날짜를 선택하면 해당 날짜를 조회한다.
  *
  * 데이터 소스는 구글 캘린더 이벤트(제목+날짜/시간)와 DART 국내 실적공시, Finnhub
  * 미국 예정 실적일정이다. 예측치/이전치 같은 경제지표 수치는 소스가 없어 표시하지 않는다.
@@ -307,41 +307,142 @@
         + '-' + String(date.getDate()).padStart(2, '0');
     }
 
-    function renderToday(today, events) {
-      var todayKey = dateKey(today);
-      var todayEvents = (events || []).filter(function (event) {
-        return String(event && event.start || '').slice(0, 10) === todayKey;
+    function dateTitle(key) {
+      var parts = String(key || '').split('-');
+      return parts.length === 3
+        ? parts[0] + '년 ' + Number(parts[1]) + '월 ' + Number(parts[2]) + '일'
+        : '선택한 날짜';
+    }
+
+    function hasEventOn(events, key) {
+      return (events || []).some(function (event) {
+        return String(event && event.start || '').slice(0, 10) === key;
+      });
+    }
+
+    function renderMonthCalendar(state) {
+      var first = new Date(state.viewYear, state.viewMonth, 1);
+      var daysInMonth = new Date(state.viewYear, state.viewMonth + 1, 0).getDate();
+      var todayKey = dateKey(new Date());
+      var cells = [];
+      var day;
+      for (day = 0; day < first.getDay(); day += 1) {
+        cells.push('<span class="sc-day sc-day-empty" aria-hidden="true"></span>');
+      }
+      for (day = 1; day <= daysInMonth; day += 1) {
+        var current = new Date(state.viewYear, state.viewMonth, day);
+        var key = dateKey(current);
+        var classes = ['sc-day', 'sc-day-clickable'];
+        if (key === todayKey) classes.push('sc-today');
+        if (key === state.selectedKey) classes.push('sc-selected');
+        cells.push('<button type="button" class="' + classes.join(' ') + '" data-calendar-date="' + key + '" aria-label="'
+          + (state.viewMonth + 1) + '월 ' + day + '일' + (hasEventOn(state.events, key) ? ', 일정 있음' : '') + '" aria-pressed="'
+          + (key === state.selectedKey ? 'true' : 'false') + '">' + day
+          + (hasEventOn(state.events, key) ? '<span class="sc-dot" aria-hidden="true"></span>' : '')
+          + '</button>');
+      }
+      while (cells.length % 7) cells.push('<span class="sc-day sc-day-empty" aria-hidden="true"></span>');
+      var monthTitle = state.viewYear + '년 ' + (state.viewMonth + 1) + '월';
+      return '<div class="sc-cal-header">'
+        + '<button type="button" class="sc-nav" data-calendar-action="previous" aria-label="이전 달">‹</button>'
+        + '<strong class="sc-cal-title">' + monthTitle + '</strong>'
+        + '<button type="button" class="sc-nav" data-calendar-action="next" aria-label="다음 달">›</button>'
+        + '</div>'
+        + '<div class="sc-dow" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>'
+        + '<div class="sc-grid">' + cells.join('') + '</div>';
+    }
+
+    function renderSchedule(state, loading) {
+      var selectedEvents = (state.events || []).filter(function (event) {
+        return String(event && event.start || '').slice(0, 10) === state.selectedKey;
       }).sort(compareEvents);
-      var dateTitle = today.getFullYear() + '년 ' + (today.getMonth() + 1) + '월 ' + today.getDate() + '일';
-      var listHtml = todayEvents.length
-        ? '<div class="sc-today-rows">' + todayEvents.map(renderEventRow).join('') + '</div>'
-        : '<div class="sc-empty">오늘 예정된 일정이 없습니다.</div>';
+      var isToday = state.selectedKey === dateKey(new Date());
+      var listHtml = loading
+        ? '<div class="sc-loading">불러오는 중...</div>'
+        : selectedEvents.length
+          ? '<div class="sc-today-rows">' + selectedEvents.map(renderEventRow).join('') + '</div>'
+          : '<div class="sc-empty">선택한 날짜에 예정된 일정이 없습니다.</div>';
 
       container.innerHTML =
-        '<div class="sc-today-only">'
-        + '<div class="sc-today-head"><div><strong>오늘의 일정</strong><span>' + dateTitle + '</span></div>'
-        + '<small>오늘 일정만 표시합니다.</small></div>'
+        '<div class="sc-layout">'
+        + '<aside class="sc-cal-col" aria-label="일정 달력">'
+        + renderMonthCalendar(state)
+        + '</aside>'
+        + '<section class="sc-list-col" aria-live="polite">'
+        + '<div class="sc-today-head"><div><strong>' + (isToday ? '오늘의 일정' : '선택한 날짜 일정') + '</strong><span>' + dateTitle(state.selectedKey) + '</span></div>'
+        + (isToday ? '<small>달력에서 날짜를 선택할 수 있습니다.</small>' : '<button type="button" class="sc-cal-today" data-calendar-action="today">오늘로 이동</button>')
+        + '</div>'
         + listHtml
+        + '</section>'
         + '</div>';
     }
 
-    function loadToday() {
-      var today = new Date();
-      container.innerHTML = '<div class="sc-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>';
-      StockCalendar.fetchEvents(today.getFullYear(), today.getMonth())
-        .then(function (evs) {
-          renderToday(today, evs);
+    var now = new Date();
+    var state = {
+      viewYear: now.getFullYear(),
+      viewMonth: now.getMonth(),
+      selectedKey: dateKey(now),
+      events: []
+    };
+    var requestId = 0;
+
+    function loadMonth(year, month, selected) {
+      var target = new Date(year, month, 1);
+      state.viewYear = target.getFullYear();
+      state.viewMonth = target.getMonth();
+      state.selectedKey = selected || dateKey(target);
+      state.events = [];
+      var currentRequest = ++requestId;
+      renderSchedule(state, true);
+      StockCalendar.fetchEvents(state.viewYear, state.viewMonth)
+        .then(function (events) {
+          if (currentRequest !== requestId) return;
+          state.events = events || [];
+          renderSchedule(state, false);
         })
         .catch(function () {
-          container.innerHTML = '<div class="sc-error">일정을 불러오지 못했습니다.</div>';
+          if (currentRequest !== requestId) return;
+          renderSchedule(state, false);
+          var empty = container.querySelector('.sc-empty');
+          if (empty) empty.textContent = '일정을 불러오지 못했습니다.';
         });
     }
 
-    loadToday();
-    // 새로 접수된 오늘 일정이 화면에 반영되도록 주기적으로 갱신한다.
+    function findActionTarget(target) {
+      while (target && target !== container) {
+        if (target.getAttribute && (target.getAttribute('data-calendar-action') || target.getAttribute('data-calendar-date'))) return target;
+        target = target.parentNode;
+      }
+      return null;
+    }
+
+    container.addEventListener('click', function (event) {
+      var target = findActionTarget(event.target);
+      if (!target) return;
+      var action = target.getAttribute('data-calendar-action');
+      if (action === 'today') {
+        var today = new Date();
+        loadMonth(today.getFullYear(), today.getMonth(), dateKey(today));
+        return;
+      }
+      if (action === 'previous' || action === 'next') {
+        var offset = action === 'previous' ? -1 : 1;
+        var next = new Date(state.viewYear, state.viewMonth + offset, 1);
+        loadMonth(next.getFullYear(), next.getMonth(), dateKey(next));
+        return;
+      }
+      var selected = target.getAttribute('data-calendar-date');
+      if (selected) {
+        state.selectedKey = selected;
+        renderSchedule(state, false);
+      }
+    });
+
+    loadMonth(state.viewYear, state.viewMonth, state.selectedKey);
+    // 새로 접수된 일정이 화면에 반영되도록 주기적으로 갱신한다.
     // 페이지를 떠나면 브라우저가 타이머를 정리하므로 별도 서버 작업은 필요 없다.
     setInterval(function () {
-      if (!document.hidden) loadToday();
+      if (!document.hidden) loadMonth(state.viewYear, state.viewMonth, state.selectedKey);
     }, 15 * 60 * 1000);
   }
 
