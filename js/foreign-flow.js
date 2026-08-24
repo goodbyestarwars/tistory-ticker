@@ -2897,44 +2897,6 @@
     return { modelVersion: 'swing-4w-v5', chartRegime: chart, currentRegime: chart.currentRegime, recentEvent: chart.recentEvent, shortSignal: waves.shortSignal, transitions: waves.transitions || {}, auxiliaryStates: chart.auxiliaryStates || [], waves: waves, diagnosis: waves.diagnosis, momentum: { state: momentum, score: momentumScore }, fundamental: { state: fundamental, score: fundamentalScore }, risk: { state: risk, flags: flags, blocksEntry: blocks }, holderAction: holder, entryOpinion: entryOpinion, internalPriorityScore: Math.max(0, Math.min(100, base + (momentumScore - 50) * .25)), legacy: {} };
   }
 
-  // 수급 요약 하단의 빈 공간을 최근 흐름으로 채운다. 상세 수급 탭의 큰 차트와
-  // 중복되지 않도록 최근 20거래일만 보여주는 정적 미니 라인차트로 구성한다.
-  function buildDemandSupplyMiniChart(daily) {
-    var asc = (daily || []).slice(0, 20).reverse().filter(function (row) { return row && row.date; });
-    if (asc.length < 2) return '';
-    var width = 720, height = 156;
-    var pad = { left: 48, right: 10, top: 12, bottom: 26 };
-    var domain = netDomain(asc);
-    var min = domain.min, max = domain.max;
-    var innerWidth = width - pad.left - pad.right;
-    var innerHeight = height - pad.top - pad.bottom;
-    function x(index) { return pad.left + (index / (asc.length - 1)) * innerWidth; }
-    function y(value) { return pad.top + (1 - (value - min) / (max - min)) * innerHeight; }
-    function points(field) {
-      return asc.map(function (row, index) {
-        var value = finiteNumber(row[field]);
-        return x(index).toFixed(1) + ',' + y(value == null ? 0 : value).toFixed(1);
-      }).join(' ');
-    }
-    var svg = '<svg class="ff-svg ff-swing-flow-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="최근 20거래일 개인 외국인 기관 순매매 흐름">';
-    svg += '<line class="ff-grid" x1="' + pad.left + '" y1="' + y(max).toFixed(1) + '" x2="' + (width - pad.right) + '" y2="' + y(max).toFixed(1) + '"/>';
-    svg += '<line class="ff-grid" x1="' + pad.left + '" y1="' + y(min).toFixed(1) + '" x2="' + (width - pad.right) + '" y2="' + y(min).toFixed(1) + '"/>';
-    svg += '<line class="ff-zero" x1="' + pad.left + '" y1="' + y(0).toFixed(1) + '" x2="' + (width - pad.right) + '" y2="' + y(0).toFixed(1) + '"/>';
-    svg += '<text class="ff-axis" x="' + (pad.left - 6) + '" y="' + (y(max) + 4).toFixed(1) + '" text-anchor="end">' + fmtCompact(max) + '</text>';
-    svg += '<text class="ff-axis" x="' + (pad.left - 6) + '" y="' + (y(0) + 4).toFixed(1) + '" text-anchor="end">0</text>';
-    svg += '<text class="ff-axis" x="' + (pad.left - 6) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + fmtCompact(min) + '</text>';
-    svg += xAxisLabels(asc, x, height - 8);
-    if (asc.some(function (row) { return finiteNumber(row.ind_net) != null; })) svg += '<polyline class="ff-line-ind" points="' + points('ind_net') + '"/>';
-    svg += '<polyline class="ff-line-foreign" points="' + points('foreign_net') + '"/>';
-    svg += '<polyline class="ff-line-inst" points="' + points('inst_net') + '"/>';
-    svg += '</svg>';
-    return '<div class="ff-swing-flow-chart">'
-      + '<div class="ff-swing-flow-chart-head"><strong>최근 20거래일 수급 흐름</strong><small>순매수 + · 순매도 -</small></div>'
-      + svg
-      + '<div class="ff-swing-flow-chart-legend"><span><i class="ff-dot ff-dot-ind"></i>개인</span><span><i class="ff-dot ff-dot-foreign"></i>외국인</span><span><i class="ff-dot ff-dot-inst"></i>기관</span></div>'
-      + '</div>';
-  }
-
   function buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData) {
     var assessment = buildSwingAssessment(data, entry, chartData, computeFundamentalScore(fundamentals));
     var chart = assessment.chartRegime, risk = assessment.risk;
@@ -2965,7 +2927,6 @@
       + '<div class="ff-swing-action"><span>보유자 행동</span><strong>' + escapeHtml(assessment.holderAction) + '</strong></div>'
       + '<div class="ff-swing-action"><span>신규 진입</span><strong>' + escapeHtml(assessment.entryOpinion) + '</strong></div>'
       + '</div>'
-      + buildDemandSupplyMiniChart(data.daily)
       + '<div class="ff-swing-facts">'
       + '<span class="ff-swing-fact"><small>5일선 신호</small><b>' + escapeHtml(shortSignal.label || '없음') + '</b></span>'
       + '<span class="ff-swing-fact"><small>전환 단계</small><b>' + escapeHtml(transitionLabel) + '</b></span>'

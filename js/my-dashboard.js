@@ -11,7 +11,7 @@
   var API_BASE = 'https://goodbyestar.cloud';
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var VM_URL = API_BASE;
-  var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260825-supply-mini-chart-v1';
+  var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260816-banner-race-fix';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0, watchlistQuoteAt: 0, watchlistCollapsed: false };
   var mount = null;
@@ -292,6 +292,57 @@
       + '<div class="my-calc-auto"><span>추가 매수가<strong data-my-calc-price>' + formatPrice(metrics.price, code) + '</strong></span><span>자동 매수 수량<strong data-my-calc-quantity>-</strong></span></div>'
       + '<div class="my-calc-result" data-my-calc-result>현재 수량과 평단을 입력하면 예상 평단가를 계산합니다.</div></section>';
   }
+  function buildMyFlowMiniChart(flow) {
+    var daily = flow && Array.isArray(flow.daily) ? flow.daily : [];
+    var asc = daily.slice(0, 20).reverse().filter(function (row) { return row && row.date; });
+    if (asc.length < 2) return '';
+    var values = [];
+    asc.forEach(function (row) {
+      ['foreign_net', 'inst_net', 'ind_net'].forEach(function (key) {
+        var value = number(row[key], null);
+        if (value != null) values.push(value);
+      });
+    });
+    if (!values.length) return '';
+    var max = Math.max.apply(null, values.concat([0]));
+    var min = Math.min.apply(null, values.concat([0]));
+    var span = (max - min) || 1;
+    min -= span * .08;
+    max += span * .08;
+    var width = 720, height = 148;
+    var pad = { left: 42, right: 8, top: 10, bottom: 24 };
+    var innerWidth = width - pad.left - pad.right;
+    var innerHeight = height - pad.top - pad.bottom;
+    function x(index) { return pad.left + (index / (asc.length - 1)) * innerWidth; }
+    function y(value) { return pad.top + (1 - (value - min) / (max - min)) * innerHeight; }
+    function compact(value) {
+      var abs = Math.abs(value), sign = value > 0 ? '+' : value < 0 ? '-' : '';
+      if (abs >= 100000000) return sign + (abs / 100000000).toFixed(1) + '억';
+      if (abs >= 10000) return sign + Math.round(abs / 10000).toLocaleString() + '만';
+      return sign + Math.round(abs).toLocaleString();
+    }
+    function points(field) {
+      return asc.map(function (row, index) {
+        return x(index).toFixed(1) + ',' + y(number(row[field], 0)).toFixed(1);
+      }).join(' ');
+    }
+    function dateLabel(date) { return String(date).slice(5, 10).replace('-', '/'); }
+    var svg = '<svg class="my-flow-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="최근 20거래일 개인 외국인 기관 순매매 흐름">';
+    svg += '<line class="my-flow-grid-line" x1="' + pad.left + '" y1="' + y(max).toFixed(1) + '" x2="' + (width - pad.right) + '" y2="' + y(max).toFixed(1) + '"/>';
+    svg += '<line class="my-flow-grid-line" x1="' + pad.left + '" y1="' + y(min).toFixed(1) + '" x2="' + (width - pad.right) + '" y2="' + y(min).toFixed(1) + '"/>';
+    svg += '<line class="my-flow-zero-line" x1="' + pad.left + '" y1="' + y(0).toFixed(1) + '" x2="' + (width - pad.right) + '" y2="' + y(0).toFixed(1) + '"/>';
+    svg += '<text class="my-flow-axis" x="' + (pad.left - 5) + '" y="' + (y(max) + 4).toFixed(1) + '" text-anchor="end">' + compact(max) + '</text>';
+    svg += '<text class="my-flow-axis" x="' + (pad.left - 5) + '" y="' + (y(0) + 4).toFixed(1) + '" text-anchor="end">0</text>';
+    svg += '<text class="my-flow-axis" x="' + (pad.left - 5) + '" y="' + (y(min) + 4).toFixed(1) + '" text-anchor="end">' + compact(min) + '</text>';
+    [0, Math.floor((asc.length - 1) / 2), asc.length - 1].forEach(function (index, labelIndex) {
+      var anchor = labelIndex === 0 ? 'start' : labelIndex === 2 ? 'end' : 'middle';
+      svg += '<text class="my-flow-axis" x="' + x(index).toFixed(1) + '" y="' + (height - 6) + '" text-anchor="' + anchor + '">' + dateLabel(asc[index].date) + '</text>';
+    });
+    if (asc.some(function (row) { return number(row.ind_net, null) != null; })) svg += '<polyline class="my-flow-line-ind" points="' + points('ind_net') + '"/>';
+    svg += '<polyline class="my-flow-line-foreign" points="' + points('foreign_net') + '"/>';
+    svg += '<polyline class="my-flow-line-inst" points="' + points('inst_net') + '"/>';
+    return '<div class="my-flow-chart"><div class="my-flow-chart-head"><strong>최근 20거래일 흐름</strong><small>순매수 + · 순매도 -</small></div>' + svg + '<div class="my-flow-legend"><span><i class="my-flow-dot my-flow-dot-ind"></i>개인</span><span><i class="my-flow-dot my-flow-dot-foreign"></i>외국인</span><span><i class="my-flow-dot my-flow-dot-inst"></i>기관</span></div></div>';
+  }
   function buildFlowCard(flow) {
     var daily = flow && flow.daily && flow.daily[0] || {};
     var rolling = flow && flow.rolling && flow.rolling['5d'] || {};
@@ -303,7 +354,7 @@
     return '<section class="my-analysis-card"><div class="my-card-title"><strong>수요·공급 흐름</strong><span>단위: 주 · ' + escapeHtml(daily.date || '최근 데이터') + '</span></div>'
       + '<div class="my-flow-grid">' + rows.map(function (row) {
         return '<div class="my-flow-row"><span>' + row[0] + '</span><b class="' + signClass(row[1]) + '">' + formatSignedShares(row[1]) + '</b><small>5일 ' + formatSignedShares(row[2]) + '</small></div>';
-      }).join('') + '</div><p class="my-analysis-footnote">+는 순매수, -는 순매도입니다. 수급은 투자 참고용으로만 확인하세요.</p></section>';
+      }).join('') + '</div>' + buildMyFlowMiniChart(flow) + '<p class="my-analysis-footnote">+는 순매수, -는 순매도입니다. 수급은 투자 참고용으로만 확인하세요.</p></section>';
   }
   var MY_VOLUME_LOOKBACK_DAYS = 120;
   var MY_VOLUME_BIN_COUNT = 24;

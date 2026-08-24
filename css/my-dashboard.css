@@ -67,6 +67,24 @@
 .my-flow-row:last-child { padding-bottom: 0; border-bottom: 0; }
 .my-flow-row b { font-variant-numeric: tabular-nums; }
 .my-flow-row small { color: #94a3b8; font-size: 10px; }
+.my-flow-chart { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eef1f4; }
+.my-flow-chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.my-flow-chart-head strong { color: #334155; font-size: 11px; }
+.my-flow-chart-head small { color: #94a3b8; font-size: 9px; }
+.my-flow-svg { display: block; width: 100%; height: auto; margin-top: 3px; }
+.my-flow-grid-line { stroke: #e8edf3; stroke-width: 1; }
+.my-flow-zero-line { stroke: #b8c4d2; stroke-width: 1; stroke-dasharray: 3 3; }
+.my-flow-axis { fill: #94a3b8; font-size: 10px; }
+.my-flow-line-ind, .my-flow-line-foreign, .my-flow-line-inst { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.my-flow-line-ind { stroke: #d24f45; }
+.my-flow-line-foreign { stroke: #2563eb; }
+.my-flow-line-inst { stroke: #0f9f75; }
+.my-flow-legend { display: flex; flex-wrap: wrap; gap: 7px 11px; margin-top: 1px; color: #64748b; font-size: 9px; }
+.my-flow-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.my-flow-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+.my-flow-dot-ind { background: #d24f45; }
+.my-flow-dot-foreign { background: #2563eb; }
+.my-flow-dot-inst { background: #0f9f75; }
 .my-volume-highlight { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 10px; background: #f7faff; color: #64748b; font-size: 11px; }
 .my-volume-highlight strong { color: #2563eb; font-size: 18px; }
 .my-ai-card { background: linear-gradient(135deg, #f7faff, #fff); }
@@ -112,6 +130,11 @@ html.dark .my-stock-row { border-bottom-color: rgba(245,239,224,.1); background:
 html.dark .my-stock-row:hover, html.dark .my-stock-row.is-selected { background: #242424; }
 html.dark .my-detail-actions a, html.dark .my-holding-fields input, html.dark .my-holding-fields select, html.dark .my-calc-fields input { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
 html.dark .my-volume-highlight, html.dark .my-calc-result { background: #242424; color: rgba(245,239,224,.65); }
+html.dark .my-flow-chart { border-top-color: rgba(245,239,224,.1); }
+html.dark .my-flow-chart-head strong { color: #f5efe0; }
+html.dark .my-flow-grid-line { stroke: rgba(245,239,224,.14); }
+html.dark .my-flow-zero-line { stroke: rgba(245,239,224,.35); }
+html.dark .my-flow-axis, html.dark .my-flow-chart-head small, html.dark .my-flow-legend { fill: rgba(245,239,224,.58); color: rgba(245,239,224,.58); }
 html.dark .my-ai-card { background: linear-gradient(135deg, #202b3a, #1a1a1a); }
 html.dark .my-position-advice:not(.my-composite-card) { background: #1a1a1a; }
 html.dark .my-position-note { color: rgba(245,239,224,.8); }
