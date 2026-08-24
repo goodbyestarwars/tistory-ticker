@@ -235,10 +235,10 @@
         state.renderedSymbol = state.symbol;
         loadOrderbook();
         if (firstRender) {
-          loadNativeChart();
-          loadAnalysis();
-          loadCongressTrades();
-          loadNews(quote.name || state.symbol);
+            loadNativeChart();
+            loadAnalysis();
+            renderCongressLinks();
+            loadNews(quote.name || state.symbol);
         }
       })
       .catch(function () {
@@ -407,50 +407,19 @@
     setAnalysisCard(mount, 'insider', '<span class="' + insiderTone + '">' + formatVolume(summary.insider_net_change) + '주</span>', '거래 ' + Number(summary.insider_transaction_count || 0) + '건');
   }
 
-  function loadCongressTrades() {
-    if (!state.symbol) return;
-    fetchJson(API_BASE + '/us-congress-trades/' + encodeURIComponent(state.symbol))
-      .then(renderCongressTrades)
-      .catch(function () {
-        var mount = document.querySelector('#usStocksCongress');
-        if (mount) mount.innerHTML = '<div class="us-stocks-empty">의회 거래 공시를 확인할 수 없습니다.</div>';
-      });
-  }
-
-  function renderCongressTrades(payload) {
+  function renderCongressLinks() {
     var mount = document.querySelector('#usStocksCongress');
     if (!mount) return;
-    var sourceUrl = payload && payload.source_url || 'https://www.quiverquant.com/congresstrading/';
-    var disclaimer = payload && payload.disclaimer || '공개 신고 기반 · 최대 45일 지연 가능 · 복사매매 신호 아님';
-    if (!payload || !payload.available) {
-      var unavailableText = payload && payload.errors && payload.errors[0] === 'QUIVER_API_KEY is not configured'
-        ? '의회 거래 공시 연동을 준비 중입니다.'
-        : '현재 의회 거래 공시를 확인할 수 없습니다.';
-      mount.innerHTML = '<div class="us-stocks-congress-empty">' + escapeHtml(unavailableText) + '<small>서버에 공개 데이터 공급자 연결이 필요합니다.</small></div>'
-        + '<p class="us-stocks-congress-note">' + escapeHtml(disclaimer) + ' · <a href="' + escapeAttr(sourceUrl) + '" target="_blank" rel="noopener">원문 확인</a></p>';
-      return;
-    }
-    var trades = Array.isArray(payload.trades) ? payload.trades : [];
-    if (!trades.length) {
-      mount.innerHTML = '<div class="us-stocks-congress-empty">최근 공개된 의회 거래가 없습니다.</div>'
-        + '<p class="us-stocks-congress-note">' + escapeHtml(disclaimer) + ' · <a href="' + escapeAttr(sourceUrl) + '" target="_blank" rel="noopener">원문 확인</a></p>';
-      return;
-    }
-    var rows = trades.slice(0, 10).map(function (trade) {
-      var transaction = String(trade.transaction || '거래').trim();
-      var lower = transaction.toLowerCase();
-      var tone = lower.indexOf('purchase') >= 0 || lower.indexOf('buy') >= 0 || transaction.indexOf('매수') >= 0 ? 'us-up' : lower.indexOf('sale') >= 0 || lower.indexOf('sell') >= 0 || transaction.indexOf('매도') >= 0 ? 'us-down' : '';
-      var member = trade.member || '의원명 미제공';
-      var role = [trade.party, trade.chamber].filter(Boolean).join(' · ');
-      var delay = trade.delay_days == null ? '지연일 미확인' : '신고 지연 ' + trade.delay_days + '일';
-      return '<article class="us-stocks-congress-row">'
-        + '<div class="us-stocks-congress-member"><strong>' + escapeHtml(member) + '</strong><small>' + escapeHtml(role || '미국 의회') + '</small></div>'
-        + '<div class="us-stocks-congress-action"><b class="' + tone + '">' + escapeHtml(transaction) + '</b><small>' + escapeHtml(trade.amount || '금액구간 미제공') + '</small></div>'
-        + '<div class="us-stocks-congress-dates"><span>거래일 <b>' + escapeHtml(trade.traded_date || '-') + '</b></span><span>신고일 <b>' + escapeHtml(trade.filed_date || '-') + '</b></span><small>' + escapeHtml(delay) + '</small></div>'
-        + '</article>';
-    }).join('');
-    mount.innerHTML = '<div class="us-stocks-congress-list" role="list">' + rows + '</div>'
-      + '<p class="us-stocks-congress-note">' + escapeHtml(disclaimer) + ' · <a href="' + escapeAttr(sourceUrl) + '" target="_blank" rel="noopener">원문 확인</a></p>';
+    var symbol = encodeURIComponent(state.symbol || '');
+    var quiverUrl = 'https://www.quiverquant.com/congresstrading/stock/' + symbol;
+    var officialUrl = 'https://disclosures-clerk.house.gov/FinancialDisclosure/ViewReport';
+    mount.innerHTML = '<div class="us-stocks-congress-links">'
+      + '<a class="us-stocks-congress-link" href="' + escapeAttr(quiverUrl) + '" target="_blank" rel="noopener">'
+      + '<strong>Quiver에서 ' + escapeHtml(state.symbol) + ' 거래 확인</strong><span>의원별 매수·매도·거래일·신고일 보기 ↗</span></a>'
+      + '<a class="us-stocks-congress-link" href="' + escapeAttr(officialUrl) + '" target="_blank" rel="noopener">'
+      + '<strong>미 하원 공식 신고자료</strong><span>공개된 재무·거래 신고 원문 확인 ↗</span></a>'
+      + '</div>'
+      + '<p class="us-stocks-congress-note">외부 공개자료 · 거래일과 신고일이 다를 수 있음 · 최대 45일 지연 가능 · 복사매매 신호 아님</p>';
   }
 
   function setAnalysisCard(mount, key, value, detail) {

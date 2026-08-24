@@ -139,18 +139,15 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | `/us-chart/{symbol}` | 없음 | 공급자 캐시 | 미국 차트 |
 | `/us-news/{symbol}` | 없음 | `us_news_cache.db`, 기본 30분 | Alpha Vantage/Finnhub/Google RSS/Naver fallback |
 | `/us-analysis/{symbol}` | 없음 | `us_analysis_cache.db`, 기본 6시간 | Finnhub 분석·프로필 |
-| `/us-congress-trades/{symbol}` | 없음 | `us_congress_trades_cache.db`, 기본 3시간 | Quiver Congress Trading, `QUIVER_API_KEY`가 서버에 설정된 경우만 제공 |
 
 미국은 국내 DART가 없으므로 미국 기업 뉴스·실적·프로필 공급자를 사용한다. 미국
 실적 일정은 `/earnings-calendar`의 미국 공급자 결과로 보완하며 국내 DART와 같은 DB에
 합쳐 저장하지 않는다.
 
-`/us-congress-trades/{symbol}`은 미국 의회 공개 거래 신고를 종목별로 보여주는 참고용
-패널이다. 서버 환경변수 `QUIVER_API_KEY`를 사용하며 키를 브라우저에 노출하지 않는다.
-응답은 `traded_date`(실제 거래일), `filed_date`(신고일), `delay_days`(두 날짜 차이),
-금액구간과 의원·정당·의회 정보를 포함한다. 신고 지연과 배우자·부양가족 명의 가능성이
-있으므로 복사매매 신호로 해석하지 않으며, 키가 없거나 공급자 호출에 실패하면 명시적인
-미제공 상태를 반환한다. Quiver API 사용권과 상업적 이용 조건은 별도 확인이 필요하다.
+미국 의회 거래는 유료 API를 서버에서 재배포하지 않는다. 미국 종목분석 화면에는 선택한
+티커를 붙인 Quiver 종목별 거래 페이지와 미 하원 공식 신고자료 페이지로 연결되는 외부 링크만
+표시한다. 거래 원자료·API 응답·캐시는 저장하지 않으며, 외부 페이지에서 거래일과 신고일을
+직접 확인하도록 안내한다.
 
 ## 4. WebSocket 운영
 
