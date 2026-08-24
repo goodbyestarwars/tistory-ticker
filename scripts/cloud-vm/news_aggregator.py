@@ -27,6 +27,12 @@ ALPHA_URL = 'https://www.alphavantage.co/query'
 FINNHUB_URL = 'https://finnhub.io/api/v1/company-news'
 GOOGLE_NEWS_RSS_URL = 'https://news.google.com/rss/search'
 SEC_CURRENT_FILINGS_URL = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&output=atom&count=100'
+# 공개 RSS의 제목·링크만 사용한다. Bloomberg 피드는 간헐적으로 404/차단될 수
+# 있으므로 한 공급자 실패가 전체 미국 뉴스 수집을 막지 않도록 개별 예외 처리한다.
+MAJOR_NEWS_FEEDS = (
+    ('CNBC', 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114'),
+    ('Bloomberg', 'https://feeds.bloomberg.com/markets/news.rss'),
+)
 HTTP_TIMEOUT = 8
 FOREIGN_NEWS_LIMIT = 2
 LOCAL_NEWS_LIMIT = 1
@@ -240,7 +246,7 @@ def get_or_refresh_news(symbol, naver_fetcher=None, alpha_api_key='', finnhub_ap
 
 
 def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=None):
-    """Return cached US market and macro news from Finnhub and Alpha Vantage."""
+    """Return cached US market and macro news from major RSS/API providers."""
     global _general_news_cache
     try:
         ttl = GENERAL_NEWS_CACHE_TTL_SEC if ttl_sec is None else max(0, int(ttl_sec))
@@ -257,6 +263,8 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
             return list(cached_items[:max(1, int(limit))])
         items = []
         providers = []
+        for provider, feed_url in MAJOR_NEWS_FEEDS:
+            providers.append((provider, lambda provider=provider, feed_url=feed_url: _publisher_rss(feed_url, provider)))
         if finnhub_api_key:
             providers.append(('Finnhub', lambda: _finnhub_general_news(finnhub_api_key)))
         if alpha_api_key:
@@ -448,15 +456,18 @@ def _published_timestamp(item):
 
 
 def merge_news(symbol, naver_items=None, alpha_api_key='', finnhub_api_key='', limit=TOTAL_NEWS_LIMIT):
-    """세 공급자의 종목별 뉴스를 중복 제거·최신순으로 합친다."""
+    """주요 매체·선택형 API·네이버 종목 뉴스를 중복 제거·최신순으로 합친다."""
     items = []
     if alpha_api_key:
         items.extend(_alpha_news(symbol, alpha_api_key))
     if finnhub_api_key:
         items.extend(_finnhub_news(symbol, finnhub_api_key))
-    # 유료/선택형 키가 없거나 두 공급자가 기사를 못 주는 경우에도
-    # 해외 뉴스 2개가 비지 않도록 영어권 Google News RSS를 보완합니다.
+    # CNBC/Bloomberg를 우선 검색해 유력 경제지 기사를 확보한다. 결과가 부족하면
+    # 기존 영어권 Google News RSS 검색으로 보완한다.
     foreign_count = sum(1 for item in items if item.get('provider') != 'Naver')
+    if foreign_count < FOREIGN_NEWS_LIMIT:
+        items.extend(_google_news(symbol, major_publishers=True))
+        foreign_count = sum(1 for item in items if item.get('provider') != 'Naver')
     if foreign_count < FOREIGN_NEWS_LIMIT:
         items.extend(_google_news(symbol))
     items.extend(_normalize_naver(item) for item in (naver_items or []))
@@ -617,9 +628,12 @@ def _finnhub_general_news(api_key):
     return items[:50]
 
 
-def _google_news(symbol):
+def _google_news(symbol, major_publishers=False):
+    query_text = '"' + symbol + '" stock'
+    if major_publishers:
+        query_text += ' (site:cnbc.com OR site:bloomberg.com)'
     query = urllib.parse.urlencode({
-        'q': '"' + symbol + '" stock',
+        'q': query_text,
         'hl': 'en-US',
         'gl': 'US',
         'ceid': 'US:en',
@@ -647,6 +661,35 @@ def _google_news(symbol):
             '_published_ts': _parse_date(pub_date),
         })
     return items[:10]
+
+
+def _publisher_rss(feed_url, provider):
+    """Normalize a public publisher RSS feed without storing article bodies."""
+    try:
+        payload = _get_xml(feed_url)
+    except Exception:
+        logger.exception('%s RSS failed', provider)
+        return []
+
+    items = []
+    for row in payload.findall('.//item') if payload is not None else []:
+        title = _clean_text(_xml_text(row, 'title'))
+        link = _xml_text(row, 'link').strip()
+        pub_date = _xml_text(row, 'pubDate') or _xml_text(row, 'published')
+        if not title or not link:
+            continue
+        items.append({
+            'title': title,
+            'link': link,
+            'pubDate': pub_date,
+            'source': provider,
+            'provider': provider + ' RSS',
+            'category': '시장',
+            'kind': 'news',
+            'market': 'us',
+            '_published_ts': _parse_date(pub_date),
+        })
+    return items[:50]
 
 
 def _normalize_naver(item):

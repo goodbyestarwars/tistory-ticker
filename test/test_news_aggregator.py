@@ -134,12 +134,36 @@ class NewsAggregatorTests(unittest.TestCase):
             }]}
 
         with mock.patch.object(news_aggregator, '_general_news_cache', (0, [])), \
-                mock.patch.object(news_aggregator, '_get_json', side_effect=fake_get_json):
+                mock.patch.object(news_aggregator, '_get_json', side_effect=fake_get_json), \
+                mock.patch.object(news_aggregator, '_get_xml', return_value=None):
             items = news_aggregator.get_general_news(alpha_api_key='alpha', finnhub_api_key='finnhub', limit=10)
 
         self.assertEqual(len(items), 2)
         self.assertEqual({item['provider'] for item in items}, {'Alpha Vantage', 'Finnhub'})
         self.assertTrue(all(item['market'] == 'us' for item in items))
+
+    def test_general_news_includes_major_publisher_rss(self):
+        xml = news_aggregator.ET.fromstring('''
+            <rss><channel>
+              <item><title>CNBC market headline</title><link>https://cnbc.example.test/one</link><pubDate>Fri, 08 Aug 2026 10:00:00 +0000</pubDate></item>
+            </channel></rss>
+        ''')
+        with mock.patch.object(news_aggregator, '_general_news_cache', (0, [])), \
+                mock.patch.object(news_aggregator, '_get_xml', return_value=xml):
+            items = news_aggregator.get_general_news(limit=10)
+
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['source'], 'CNBC')
+        self.assertEqual(items[0]['provider'], 'CNBC RSS')
+
+    def test_google_news_can_prioritize_major_publishers(self):
+        xml = news_aggregator.ET.fromstring('<rss><channel></channel></rss>')
+        with mock.patch.object(news_aggregator, '_get_xml', return_value=xml) as get_xml:
+            news_aggregator._google_news('AAPL', major_publishers=True)
+
+        query = get_xml.call_args[0][0]
+        self.assertIn('site%3Acnbc.com', query)
+        self.assertIn('site%3Abloomberg.com', query)
 
     def test_sec_edgar_filings_are_normalized_as_us_disclosures(self):
         xml = news_aggregator.ET.fromstring('''
