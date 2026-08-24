@@ -499,7 +499,13 @@
     function connect() {
       if (generation !== myRealtimeGeneration || document.hidden) return;
 
-      var socket = new WebSocket(REALTIME_QUOTES_URL + '?codes=' + encodedCodes);
+      var socket;
+      try {
+        socket = new WebSocket(REALTIME_QUOTES_URL + '?codes=' + encodedCodes);
+      } catch (error) {
+        // WebView/브라우저가 WebSocket 생성 자체를 거부해도 GAS 폴백 갱신은 계속한다.
+        return;
+      }
       myRealtimeSocket = socket;
 
       socket.onmessage = function (event) {

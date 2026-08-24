@@ -9,7 +9,7 @@
  *  - 피드의 pinnedNotice 스크립트 (피드 마크업과 한 몸)
  *  - 이 파일과 skin-menu.js를 불러오는 <script src> 두 줄
  *
- * 포함 기능: iframe 모드 / 다크모드·폰트 토글 / 카테고리 파싱·필터 탭 /
+ * 포함 기능: iframe 모드 / 다크모드 / 카테고리 파싱·필터 탭 /
  * 아티클 모달 / 공유·더보기 / 표 스크롤 래핑 / 요약 줄바꿈 / 모바일 드로어·검색
  *
  * 2026-07-17(9차): KRX 공시 티커 fetch/파싱/렌더 로직을 js/quick-indices.js로 옮겼다
@@ -20,7 +20,7 @@
  * 있던 openCalendarModal/initCalendarWidget은 삭제됨.
  */
 /* 외부 CSS가 적용되기 전 초기 프레임을 숨겨 검은 무늬/무스타일 플래시를 막는다.
-   load 이벤트가 늦어져도 1.8초 뒤에는 안전하게 화면을 연다. */
+   DOMContentLoaded가 늦어져도 0.8초 뒤에는 안전하게 화면을 연다. */
 (function revealAfterStyles() {
   var root = document.documentElement;
   var revealed = false;
@@ -29,10 +29,10 @@
     revealed = true;
     root.classList.add('skin-ready');
   }
-  window.addEventListener('load', function () {
+  window.addEventListener('DOMContentLoaded', function () {
     window.requestAnimationFrame(reveal);
   }, { once: true });
-  window.setTimeout(reveal, 1800);
+  window.setTimeout(reveal, 800);
 }());
 
   /* ── iframe 모드 감지 (모달 안에서 열릴 때 껍데기 숨김) ── */
@@ -53,6 +53,9 @@
   /* 시세·증시온도 페이지의 공통 시각 개선은 페이지별 위젯이 비동기로 DOM을
      만든 뒤에도 연결되어야 하므로 별도 모듈로 지연 로드한다. */
   (function loadDashboardEnhancements() {
+    // 홈·글 목록·법적 페이지에는 차트 확장 기능이 없어 이 추가 JS/CSS를
+    // 내려받지 않는다. 차트/분석 화면에서만 로드해 첫 화면 요청 수를 줄인다.
+    if (!/\/(?:page|pages)\/(?:market-temp|stock-search|foreign-flow|overnight-market|strategy-search|pattern-scan)(?:\/|$)/i.test(location.pathname)) return;
     if (document.querySelector('script[data-dashboard-enhancements]')) return;
     var script = document.createElement('script');
     script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/dashboard-enhancements.js?v=20260813-chart-fullscreen-layout-v3';
@@ -126,9 +129,9 @@
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260825-date-picker-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260820-market-scoreboard-v2')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260820-market-scoreboard-v2';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260819-domestic-cap-v2';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260825-ws-fallback-v1')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260825-ws-fallback-v1';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260825-ws-fallback-v1';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260820-market-news-switch-v1';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260820-sentiment-color-fix-v1';
 
@@ -357,6 +360,9 @@
       var element = field(name);
       if (!element) return;
       var fullText = text == null ? '' : String(text);
+      // 요약 API가 일시적으로 '?'를 반환해도 사용자가 의미 없는 물음표를
+      // 지표 값으로 오해하지 않도록 상태 문구로 바꿔 표시한다.
+      if (/^\?+$/.test(fullText.trim())) fullText = '데이터 확인 중';
       element.textContent = fullText;
       // 업종명은 카드 폭에 맞춰 말줄임표로 보이지만, hover/focus 시 전체 문구를
       // 확인할 수 있도록 native tooltip과 접근성 레이블을 함께 유지한다.
@@ -1291,27 +1297,26 @@
     var pagination = feed.querySelector(':scope > .pagination');
     if (pagination) pagination.remove();
 
-    loadHomeScript(HOME_WEEKLY_REPORT_SCRIPT_URL, 'HomeWeeklyReport').catch(function () { return null; }).then(function (weekly) {
-      weeklyReportModule = weekly;
-      if (weekly && weekly.init) weekly.init();
-      return loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets');
-    })
-      .then(function (widgets) {
-        if (!widgets || !widgets.init) return;
-        widgets.init({
+    // 네 모듈은 서로의 코드에 의존하지 않는다. 기존 직렬 로딩을 병렬로
+    // 바꿔 첫 화면에서 네트워크 왕복 한 번 이상을 줄인다.
+    Promise.all([
+      loadHomeScript(HOME_WEEKLY_REPORT_SCRIPT_URL, 'HomeWeeklyReport').catch(function () { return null; }),
+      loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets').catch(function () { return null; }),
+      loadHomeScript(HOME_REALTIME_TABLE_SCRIPT_URL, 'HomeRealtimeTable').catch(function () { return null; }),
+      loadHomeScript(HOME_ECONOMIC_NEWS_SCRIPT_URL, 'HomeEconomicNews').catch(function () { return null; })
+    ]).then(function (modules) {
+        var weekly = modules[0];
+        var widgets = modules[1];
+        var table = modules[2];
+        var news = modules[3];
+        weeklyReportModule = weekly;
+        if (weekly && weekly.init) weekly.init();
+        if (widgets && widgets.init) widgets.init({
           dashboard: dashboardSection,
           briefing: briefing,
           gasUrl: GAS_TICKER_URL,
           fetchJson: fetchHomeJson
         });
-        return Promise.all([
-          loadHomeScript(HOME_REALTIME_TABLE_SCRIPT_URL, 'HomeRealtimeTable'),
-          loadHomeScript(HOME_ECONOMIC_NEWS_SCRIPT_URL, 'HomeEconomicNews')
-        ]);
-      })
-      .then(function (modules) {
-        var table = modules && modules[0];
-        var news = modules && modules[1];
         if (table && table.init) table.init({ mount: dashboardSection.querySelector('#homeRealtimeBoard') });
         if (news && news.init) news.init({ mount: dashboardSection.querySelector('#homeEconomicNews') });
       })
@@ -1390,16 +1395,6 @@
       renderBlock(block.key, slice, beforeNode);
       idx += take;
     }
-  })();
-
-  /* ── 폰트 전환 토글 (명조 ⇄ 고딕, 조기 적용 스크립트는 head에 있음) ── */
-  (function() {
-    var btn = document.getElementById('fontModeBtn');
-    if (!btn) return;
-    btn.addEventListener('click', function() {
-      var on = document.documentElement.classList.toggle('font-gothic');
-      try { localStorage.setItem('bolt-font', on ? 'gothic' : ''); } catch (e) {}
-    });
   })();
 
   /* ── 데스크톱 사이드바 토글 (완전 숨김 ↔ 복원, 2026-07-21 사이드바 리디자인 #3)

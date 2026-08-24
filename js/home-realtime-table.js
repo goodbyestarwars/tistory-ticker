@@ -235,7 +235,7 @@
     var market = String(item.market || state.market || currentMarket()).toLowerCase();
     var naverCode = market === 'us' ? code + '.O' : code;
     var initials = String(item.display_name || item.name_en || item.name || item.symbol || code).replace(/\s+/g, '').slice(0, 2);
-    if (!code) return '<span class="hrt-stock-logo hrt-stock-logo--fallback">?</span>';
+    if (!code) return '<span class="hrt-stock-logo hrt-stock-logo--fallback">' + escapeHtml(initials || '종목') + '</span>';
     return '<span class="hrt-stock-logo"><img src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" '
       + 'data-icon-code="' + escapeHtml(code) + '" data-icon-market="' + escapeHtml(market) + '" data-icon-naver-code="' + escapeHtml(naverCode) + '" data-icon-stage="local" referrerpolicy="no-referrer" '
       + 'onerror="window.HomeRealtimeTableIconFallback(this);" />'

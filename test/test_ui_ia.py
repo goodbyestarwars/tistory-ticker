@@ -239,7 +239,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/home-widgets.js")
         self.assertIn("var closedPage = dashboard.querySelector('.home-closed-page');", source)
         self.assertIn("if (closedPage) dashboard.appendChild(closedPage);", source)
-        self.assertIn("home-widgets.js?v=20260820-market-scoreboard-v2", self.read("js/skin-main.js"))
+        self.assertIn("home-widgets.js?v=20260825-ws-fallback-v1", self.read("js/skin-main.js"))
 
     def test_home_closed_state_hides_market_content_without_body_id_dependency(self):
         main = self.read("js/skin-main.js")
@@ -261,7 +261,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260820-tab-cleanup-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260825-newspaper-speed-v1", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -270,7 +270,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (
             '--font-title: "MaruBuri"',
             '--font-ui: "Pretendard"',
-            '--font-data: "Malgun Gothic"',
+            '--font-data: "Pretendard"',
             "--page-bg: #FDFDF7",
             "--surface: #FFFEFC",
             "--text-main: #171717",
@@ -287,11 +287,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, style)
 
-        # The default design roles coexist with the existing user-selectable
-        # gothic mode, and the cache version is bumped for the Tistory skin.
-        self.assertIn("html:not(.font-gothic) body", style)
-        self.assertIn("html.font-gothic body", style)
-        self.assertIn("style.css?v=20260820-hmb-bg-unify-v1", skin)
+        # The New newspaper system has one fixed UI font and no header toggle.
+        self.assertIn("html body,\nhtml body * { font-family: var(--font-ui) !important; }", style)
+        self.assertIn("html body .site-footer-version", style)
+        self.assertIn("color: #d24f45", style)
+        self.assertIn("window.addEventListener('DOMContentLoaded'", skin)
+        self.assertIn("<span>NEW</span>", skin)
+        self.assertNotIn("fontModeBtn", skin)
+        self.assertNotIn("bolt-font", skin)
+        self.assertIn("style.css?v=20260825-newspaper-font-v1", skin)
         self.assertIn(".home-briefing-featured .post-excerpt", style)
         self.assertIn("min-height: 6.4em", style)
         self.assertIn(".home-briefing-small .post-title", style)
@@ -300,7 +304,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
-        self.assertIn("skin-main.js?v=20260820-tab-cleanup-v1", skin)
+        self.assertIn("skin-main.js?v=20260825-newspaper-speed-v1", skin)
 
     def test_navbar_search_underline_fits_inside_navbar_height(self):
         # 2026-08-20: .nav-search-input-wrap의 min-height(64px)가 .navbar 자체 높이
@@ -1880,14 +1884,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('id="initial-paint-guard"', source)
         self.assertIn('html:not(.skin-ready) body { visibility: hidden !important; opacity: 0; }', source)
         self.assertIn("root.classList.add('skin-ready')", source)
-        self.assertIn('window.setTimeout(reveal, 1800)', source)
+        self.assertIn('window.setTimeout(reveal, 800)', source)
 
     def test_live_github_assets_also_guard_initial_paint(self):
         style = self.read("style.css")
         main = self.read("js/skin-main.js")
         self.assertIn('html:not(.skin-ready) body { visibility: hidden; }', style)
         self.assertIn("root.classList.add('skin-ready')", main)
-        self.assertIn('window.setTimeout(reveal, 1800)', main)
+        self.assertIn('window.setTimeout(reveal, 800)', main)
 
     def test_analysis_rank_filters_are_grouped_by_parent_domain(self):
         source = self.read("js/foreign-flow.js")

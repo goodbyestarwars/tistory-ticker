@@ -5,17 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>[##_page_title_##]</title>
   <script>
-    /* 다크모드/폰트/사이드바 조기 적용 (깜빡임 방지) — 토글 버튼은 navbar의
-       #darkModeBtn/#fontModeBtn/#sidebarToggleBtn(2026-07-21 사이드바 리디자인 #3) */
+    /* 다크모드/사이드바 조기 적용 (깜빡임 방지) — 토글 버튼은 navbar의
+       #darkModeBtn/#sidebarToggleBtn */
     try {
       if (localStorage.getItem('bolt-dark') === '1') document.documentElement.classList.add('dark');
-      if (localStorage.getItem('bolt-font') === 'gothic') document.documentElement.classList.add('font-gothic');
       if (localStorage.getItem('bolt-sidebar-collapsed') === '1') document.documentElement.classList.add('sidebar-collapsed');
     } catch (e) {}
   </script>
   <!-- 외부 CSS가 여러 파일로 나뉘어 있어 새로고침 순간 스타일 없는 본문/차트가
        먼저 그려지는 초기 페인트 FOUC를 막는다. 스타일 적용 뒤 한 번만 표시하며,
-       네트워크가 느려도 1.8초 뒤에는 안전하게 화면을 연다. -->
+       네트워크가 느려도 0.8초 뒤에는 안전하게 화면을 연다. -->
   <style id="initial-paint-guard">
     html, html body { background: rgb(253, 253, 247); }
     html.dark, html.dark body { background: #1A1A1A; }
@@ -31,27 +30,28 @@
         revealed = true;
         root.classList.add('skin-ready');
       }
-      window.addEventListener('load', function () {
+      window.addEventListener('DOMContentLoaded', function () {
         window.requestAnimationFrame(reveal);
       }, { once: true });
-      window.setTimeout(reveal, 1800);
+      window.setTimeout(reveal, 800);
     }());
   </script>
   <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg" />
   <!-- github.io(CSS/JS 다수) · GAS(리본/툴팁 시세)는 첫 요청 전에 연결을 미리 열어둔다 -->
   <link rel="preconnect" href="https://goodbyestarwars.github.io" crossorigin />
   <link rel="preconnect" href="https://script.google.com" />
+  <link rel="preconnect" href="https://hangeul.pstatic.net" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
-    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260820-hmb-bg-unify-v1" />
+    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260825-newspaper-font-v1" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/sidebar-rank.css" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/investor-trend-widget.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap" rel="stylesheet" />
   <!-- 기본(명조) 폰트 마루 부리 - 2026-08부터 'Noto Serif KR'을 대체. 이전엔 이 이름의
        웹폰트를 실제로 로드하는 <link>가 없어서(이 파일에 없었음) 방문자 OS에 그 폰트가
        깔려있지 않으면 그냥 Georgia/serif 폴백으로 보이던 상태였다 - 이걸로 실제 로드됨. -->
   <link href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" rel="stylesheet">
-  <!-- 고딕 모드용 프리텐다드 - 2026-08-20 나눔고딕에서 교체 -->
+  <!-- 본문·UI 공통 프리텐다드 -->
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
   <script>
     /* 오른쪽 사이드바(인기글/해시태그)는 전체글(홈, "/") 화면에서만 보이고,
@@ -100,7 +100,6 @@
   <div class="nav-search" id="navSearchMount"></div>
 
   <div class="nav-icons">
-    <button class="nav-font-btn" id="fontModeBtn" title="폰트 전환 (명조/고딕)" aria-label="폰트 전환">가</button>
     <button class="nav-dark-btn" id="darkModeBtn" title="다크모드" aria-label="다크모드 전환">
       <span class="dark-toggle-knob"></span>
     </button>
@@ -384,14 +383,9 @@
 
   </div>
 
-  <!-- 사이트 하단 푸터: 링크 4종(shell-footerLinks, 태그 없는 순수 UI라 git js/skin-shell.js가
-       주입) + 카피라이트(© [##_blogger_##] 티스토리 서버 치환 태그가 섞여있어 git으로 못
-       옮김, 여기 직접 유지 - 우측 사이드바 하단에 있던 걸 2026-07-22에 이 자리로 이동,
-       문의하기 옆에 오도록 배치). "(사이트 이용 방법)" 라벨과 함께 클릭하면 사이트 사용법
-       안내(legal/guide.html)로 이동 - 2026-07-23: "2017 ~" 연도 표기 삭제(요청).
-       문의하기와의 구분은 별도 텍스트 "|" 대신 .copyright의 border-left로 처리
-       (앞의 링크 구분선과 굵기·색·간격이 완전히 같아 보이도록, 실측 후 텍스트 방식 폐기). -->
+  <!-- 사이트 하단 푸터: 링크와 버전 표시는 git의 shell/skin CSS가 관리한다. -->
   <footer class="site-footer">
+    <div class="site-footer-version"><span>NEW</span><small>gOOdbyestar · 데이터 서비스 v2026.08.25</small></div>
     <div id="shell-footerLinks"></div>
     <a class="copyright" href="https://goodbyestarwars.github.io/tistory-ticker/legal/guide.html">© [##_blogger_##] (사이트 이용 방법)</a>
   </footer>
@@ -405,7 +399,7 @@
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-shell.js?v=20260819-tistory-write-auth-v1"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js?v=20260820-modern-search-v2"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260820-tab-cleanup-v1"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260825-newspaper-speed-v1"></script>
 
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js"></script>

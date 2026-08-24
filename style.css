@@ -1,6 +1,4 @@
 /* ============ RESET & BASE ============ */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;800&display=swap');
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* 2026-08-22 요청: "'불러오는 중' 나오면 전부 심장박동 표시 위에 넣어, 공통으로" -
@@ -14,7 +12,7 @@
   height: 42px;
   margin: 0 auto 8px;
   overflow: visible;
-  color: #1261c4;
+  color: #d24f45;
 }
 .hb-spinner polyline {
   fill: none;
@@ -31,7 +29,7 @@
   70% { stroke-dashoffset: 0; }
   100% { stroke-dashoffset: -20; }
 }
-html.dark .hb-spinner { color: #F5EFE0; }
+html.dark .hb-spinner { color: #ff8a80; }
 
 /* 2026-07-16: 상단 market-ribbon(코스피/코스닥/원달러/BTC 고정바)을 완전히 걷어내고
    그 자리를 없앴다(js/market-ribbon.js가 #market-ribbon을 display:none 처리) - navbar가
@@ -64,7 +62,7 @@ html.dark .hb-spinner { color: #F5EFE0; }
   --navbar-mobile-extra-height: 0px;
   --font-title: "MaruBuri", "Maru Buri", Georgia, serif;
   --font-ui: "Pretendard", "Malgun Gothic", sans-serif;
-  --font-data: "Malgun Gothic", system-ui, sans-serif;
+  --font-data: "Pretendard", "Malgun Gothic", sans-serif;
   --page-bg: #FDFDF7;
   --surface: #FFFEFC;
   --text-main: #171717;
@@ -3395,11 +3393,15 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
   margin-top: 12px;
   padding: 18px 16px 32px;
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   row-gap: 8px;
 }
+.site-footer-version { display: flex; align-items: center; gap: 8px; color: #8b929d; font: 700 10px/1.4 var(--font-ui); letter-spacing: .04em; }
+.site-footer-version span { padding: 3px 6px; border: 1px solid var(--up); color: var(--up); font-size: 9px; letter-spacing: .08em; }
+.site-footer-version small { font-size: 10px; font-weight: 600; letter-spacing: 0; }
 .site-footer-links {
   display: flex;
   flex-wrap: wrap;
@@ -3430,6 +3432,8 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
 }
 .copyright:hover { color: #374151; text-decoration: underline; }
 html.dark .site-footer { border-top-color: rgba(245, 239, 224, 0.14); }
+html.dark .site-footer-version { color: rgba(245, 239, 224, .55); }
+html.dark .site-footer-version span { border-color: #ff8a80; color: #ff8a80; }
 html.dark .site-footer-links a { color: rgba(245, 239, 224, 0.55); border-right-color: rgba(245, 239, 224, 0.14); }
 html.dark .site-footer-links a:hover { color: #F5EFE0; }
 html.dark .copyright { color: rgba(245, 239, 224, 0.55); border-left-color: rgba(245, 239, 224, 0.14); }
@@ -3443,6 +3447,42 @@ body.iframe-mode .mobile-app-bottom-nav,
 body.iframe-mode .mobile-app-sheet { display: none !important; }
 
 html.dark .mobile-app-bottom-nav { background: rgba(26, 26, 26, .97); border-top-color: rgba(245, 239, 224, .14); }
+
+/* 2026-08-25 New newspaper type system.
+   Font switching is removed from the header: body/UI/content use Pretendard,
+   while editorial titles, banners and Tistory content titles use MaruBuri. */
+html body,
+html body * { font-family: var(--font-ui) !important; }
+html body h1,
+html body h2,
+html body h3,
+html body h4,
+html body h5,
+html body h6,
+html body .nav-logo-name,
+html body .home-section-heading strong,
+html body .home-card-heading strong,
+html body .hen-head strong,
+html body .hwr-head h2,
+html body .hwr-eyebrow,
+html body .post-title,
+html body .post-title a,
+html body .post-single-title,
+html body .section-title,
+html body .app-news-body > strong,
+html body .app-news-body > b,
+html body .discussion-heading h1,
+html body .discussion-write-title,
+html body #strategy-search .ss-intro h1,
+html body #pattern-scan .ps-detail-name,
+html body #stock-search .ss-news-body b,
+html body #stock-search .ss-news-panel-head h3,
+html body #stock-search .ss-news-group h4 {
+  font-family: var(--font-title) !important;
+}
+html body .site-footer-version,
+html body .site-footer-links,
+html body .copyright { font-family: var(--font-ui) !important; }
 html.dark .mobile-app-bottom-item { color: rgba(245, 239, 224, .55); }
 html.dark .mobile-app-bottom-item.active { color: #F5EFE0; }
 html.dark .mobile-app-bottom-item:active { background: rgba(245, 239, 224, .08); }
@@ -4071,7 +4111,7 @@ html.dark body { background: #1A1A1A; color: #F5EFE0; }
    var()로 참조하는데, 이 토큰들 자체엔 다크모드 재정의가 없어서(:root에만 라이트 값이
    있음) 카드 배경은 다크모드로 바뀌어도 글자·구분선 색만 라이트 그대로 남아 안 보였다
    (사용자 리포트: "실시간 종목판(글씨), 거래대금(글씨) Dark 모드 적용 안되었어" 등 다수).
-   특히 --page-bg는 "html:not(.font-gothic) body { background: var(--page-bg) !important; }"
+   특히 --page-bg는 공통 뉴스페이퍼 레이어가 body 배경을 !important로 고정한다.
    (기본 뉴스페이퍼 디자인 모드, 아래 4700번대 규칙)가 body 배경 자체를 !important로
    강제하고 있어서, 고딕 모드가 아닌 한(기본값) 위 줄의 html.dark body 배경(#1A1A1A,
    !important 없음)이 애초에 이길 수 없었다 - 다크모드인데도 페이지 전체 배경이 계속
@@ -4344,63 +4384,8 @@ html.dark body.iframe-mode { background: #1A1A1A; }
   }
 }
 
-/* ============ 폰트 전환 (명조 ⇄ 고딕) ============ */
-/* 토글 버튼은 navbar의 #fontModeBtn, 선택은 localStorage('bolt-font')에 저장.
-   본문 font-family가 곳곳에 'MaruBuri' !important로 박혀 있어서,
-   여기(파일 끝)에 같은 !important + 더 높은 specificity로 덮어쓴다.
-   고딕은 Pretendard 웹폰트(skin.html에서 로드, 2026-08-20 나눔고딕에서 교체) - 모든
-   기기 동일 렌더링. 웹폰트 로드 실패 시 맑은고딕/시스템 고딕 폴백. */
-html.font-gothic body,
-html.font-gothic body *,
-/* 아래: 댓글/방명록/티스토리 위젯(.tt-*)은 명조 규칙의 specificity가 더 높아서
-   (예: .post-comments input[type="submit"]) 위 blanket만으로는 못 이김 → 동급 이상으로 재지정 */
-html.font-gothic .post-comments *,
-html.font-gothic .guest-section *,
-html.font-gothic [class^="tt-"], html.font-gothic [class*=" tt-"],
-html.font-gothic [class^="tt-"] *, html.font-gothic [class*=" tt-"] * {
-  font-family: 'Pretendard', 'Malgun Gothic', sans-serif !important;
-}
-
-/* 예외: 로고는 Space Grotesk 유지 (브랜드 아이덴티티) */
-html.font-gothic .nav-logo-name {
-  font-family: 'MaruBuri', Georgia, serif !important;
-}
-
-html.font-gothic .nav-logo-name-gradient,
-html.font-gothic svg text {
-  font-family: 'Space Grotesk', 'Noto Sans KR', sans-serif !important;
-}
-
-/* 토글 버튼: 현재 적용 중인 폰트로 "가"를 보여줘서 상태를 드러냄 */
-.nav-font-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  background: transparent;
-  color: #888;
-  font-size: 14px;
-  font-weight: 700;
-  font-family: 'MaruBuri', Georgia, serif;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: color 0.2s, border-color 0.2s;
-}
-.nav-font-btn:hover {
-  color: #000;
-  border-color: #000;
-}
-html.font-gothic .nav-font-btn {
-  color: #000;
-  border-color: #000;
-}
-/* 2026-07-28: navbar가 더 이상 진초록이 아니라 사이트 공통 다크 배경(#1A1A1A)이라
-   버튼 색도 크림색 계열로 통일 */
-html.dark .nav-font-btn { border-color: rgba(245, 239, 224, 0.4); color: rgba(245, 239, 224, 0.75); }
-html.dark .nav-font-btn:hover { color: #F5EFE0; border-color: #F5EFE0; }
-html.dark.font-gothic .nav-font-btn { color: #F5EFE0; border-color: #F5EFE0; }
+/* 2026-08-25: 폰트 전환 UI 제거. 본문과 제목 역할은 아래 New 신문사
+   타이포그래피 레이어에서 한 번만 선언한다. */
 
 /* ============ full-width 페이지(오늘의 온도 등) ============ */
 html.full-width-page .sidebar-right,
@@ -4577,7 +4562,7 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
   .nav-bolt { animation-name: bolt-strike-mobile; }
 }
 .nav-logo-name-gradient {
-  font-family: 'Space Grotesk', 'Noto Sans KR', sans-serif;
+  font-family: var(--font-ui);
   font-weight: 700;
   font-size: 18px;
   color: #ffffff;
@@ -4798,8 +4783,7 @@ html.dark .app-news-body > strong, html.dark .app-news-body > b { color: #24324a
 
 /* ============ 2026 디자인 시스템: 경제신문·리서치 화면 공통 규칙 ============
    데이터/API/판정 로직은 변경하지 않고, 기존 위젯의 분산된 시각 규칙을 마지막 공통
-   레이어에서 정리한다. 기본 모드는 UI=프리텐다드(2026-08-20 나눔고딕에서 교체), 제목=마루부리, 수치=시스템 고딕이다.
-   기존 font-gothic 토글은 사용자가 선택한 모드이므로 그대로 존중한다. */
+   레이어에서 정리한다. UI·본문은 프리텐다드, 제목·배너는 마루부리로 고정한다. */
 html:not(.font-gothic) body,
 html:not(.font-gothic) body * {
   font-family: var(--font-ui) !important;
