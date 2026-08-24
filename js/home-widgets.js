@@ -11,7 +11,10 @@
   var STORAGE_KEY = 'home_dashboard_layout_v2';
   var WATCHLIST_KEY = 'wl_codes_v1';
   var WATCHLIST_QUOTES_CACHE_KEY = 'home_watchlist_quotes_v1';
-  var US_SCHEDULE_CACHE_KEY = 'home_us_schedule_v1';
+  // 2026-08-25: 미국 주요일정은 DART와 같은 응답을 공유하므로
+  // 출처/시장 필터를 엄격하게 적용한다. 기존 캐시에 남아 있던 국내 공시
+  // 오분류를 재사용하지 않도록 버전을 올린다.
+  var US_SCHEDULE_CACHE_KEY = 'home_us_schedule_v2';
   var WATCHLIST_DISCLOSURES_URL = 'https://goodbyestar.cloud/watchlist/disclosures';
   var GOOGLE_AUTH_START_URL = 'https://goodbyestar.cloud/auth/google/start';
   var EARNINGS_CALENDAR_URL = 'https://goodbyestar.cloud/earnings-calendar';
@@ -742,13 +745,13 @@
   }
 
   function isUsScheduleEvent(event) {
-    var market = String(event && event.market || '').toLowerCase();
-    if (market === 'us' || market === 'usa' || market === 'foreign') return true;
-    if (market === 'domestic' || market === 'kr' || market === 'korea') return false;
-    var source = String(event && (event.source || event.provider || '') || '');
-    var title = String(event && event.title || '');
-    return /finnhub|미국|nasdaq|nyse|s\u0026p/i.test(source + ' ' + title)
-      || /^\$[A-Za-z]/.test(title);
+    var market = String(event && event.market || '').trim().toLowerCase();
+    var source = String(event && (event.source || event.provider || '') || '').trim().toLowerCase();
+    // /earnings-calendar는 국내 DART와 미국 Finnhub를 함께 반환한다.
+    // 제목('$회사명')이나 종목명 추정은 국내 법인명과 충돌할 수 있으므로
+    // 명시적인 시장·출처 필드만 신뢰한다.
+    return (market === 'us' || market === 'usa' || market === 'foreign')
+      && source === 'finnhub';
   }
 
   function scheduleTitle(value) {
