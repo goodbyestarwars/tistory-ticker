@@ -298,52 +298,96 @@
         return '<div class="my-flow-row"><span>' + row[0] + '</span><b class="' + signClass(row[1]) + '">' + formatSignedShares(row[1]) + '</b><small>5일 ' + formatSignedShares(row[2]) + '</small></div>';
       }).join('') + '</div><p class="my-analysis-footnote">+는 순매수, -는 순매도입니다. 수급은 투자 참고용으로만 확인하세요.</p></section>';
   }
-  function approximateVolumeFromChart(chart, code) {
-    if (!chart || !chart.daily || chart.daily.length < 2) return null;
-    var points = chart.daily.filter(function (row) { return number(row.close, null) > 0; });
+  var MY_VOLUME_LOOKBACK_DAYS = 120;
+  var MY_VOLUME_BIN_COUNT = 24;
+  var MY_VOLUME_DISPLAY_COUNT = 12;
+
+  // 호가/오늘 체결량과 섞지 않고, 완전한 일봉 OHLCV로 최근 체결 매물대를
+  // 계산한다. 하루 거래량은 그날의 고가~저가 구간에 비례 배분한다.
+  function buildDailyVolumeProfile(chart, code) {
+    if (!chart || !Array.isArray(chart.daily)) return null;
+    var points = chart.daily.map(function (row) {
+      var low = number(row.low, null), high = number(row.high, null);
+      var close = number(row.close, null), volume = Math.max(0, number(row.volume, 0));
+      if (low == null || high == null || close == null || high < low || close <= 0) return null;
+      return { date: String(row.date || ''), low: low, high: high, close: close, volume: volume };
+    }).filter(Boolean).sort(function (a, b) { return a.date.localeCompare(b.date); }).slice(-MY_VOLUME_LOOKBACK_DAYS);
     if (points.length < 2) return null;
-    var prices = points.map(function (row) { return number(row.close, 0); });
-    var min = Math.min.apply(null, prices), max = Math.max.apply(null, prices);
-    var range = max - min || Math.max(1, max * 0.01);
-    var count = 8, bins = [];
-    for (var i = 0; i < count; i++) bins.push({ low: min + range * i / count, high: min + range * (i + 1) / count, volume: 0 });
+    var minLow = Math.min.apply(null, points.map(function (row) { return row.low; }));
+    var maxHigh = Math.max.apply(null, points.map(function (row) { return row.high; }));
+    if (!(maxHigh > minLow)) return null;
+    var binSize = (maxHigh - minLow) / MY_VOLUME_BIN_COUNT;
+    var bins = [];
+    for (var i = 0; i < MY_VOLUME_BIN_COUNT; i++) {
+      bins.push({ low: minLow + i * binSize, high: minLow + (i + 1) * binSize, volume: 0 });
+    }
     points.forEach(function (row) {
-      var close = number(row.close, 0), index = Math.min(count - 1, Math.max(0, Math.floor((close - min) / range * count)));
-      bins[index].volume += Math.max(0, number(row.volume, 0));
+      if (!(row.volume > 0)) return;
+      var range = row.high - row.low;
+      if (!(range > 0)) {
+        var flatIndex = Math.min(MY_VOLUME_BIN_COUNT - 1, Math.max(0, Math.floor((row.close - minLow) / binSize)));
+        bins[flatIndex].volume += row.volume;
+        return;
+      }
+      var startIndex = Math.max(0, Math.floor((row.low - minLow) / binSize));
+      var endIndex = Math.min(MY_VOLUME_BIN_COUNT - 1, Math.floor((row.high - minLow) / binSize));
+      for (var index = startIndex; index <= endIndex; index++) {
+        var overlap = Math.min(bins[index].high, row.high) - Math.max(bins[index].low, row.low);
+        if (overlap > 0) bins[index].volume += row.volume * (overlap / range);
+      }
     });
-    return { code: code, currentPrice: number(points[points.length - 1].close, null), daysIncluded: points.length, approximate: true, bins: bins.map(function (bin) {
-      return { price: (bin.low + bin.high) / 2, low: bin.low, high: bin.high, volume: bin.volume };
-    }) };
+    var pocIndex = 0, maxVolume = 0;
+    bins.forEach(function (bin, index) {
+      if (bin.volume > maxVolume) { maxVolume = bin.volume; pocIndex = index; }
+    });
+    if (!(maxVolume > 0)) return null;
+    return {
+      code: code,
+      currentPrice: points[points.length - 1].close,
+      daysIncluded: points.length,
+      approximate: true,
+      source: 'daily-ohlcv',
+      poc: (bins[pocIndex].low + bins[pocIndex].high) / 2,
+      pocLow: bins[pocIndex].low,
+      pocHigh: bins[pocIndex].high,
+      bins: bins.map(function (bin) {
+        return { price: (bin.low + bin.high) / 2, low: bin.low, high: bin.high, volume: bin.volume };
+      })
+    };
   }
-  function buildVolumeCard(volume, chart, code) {
-    if (!volume || !volume.bins || !volume.bins.length) volume = approximateVolumeFromChart(chart, code);
+  function buildVolumeCard(volume, chart, code, livePrice) {
+    volume = buildDailyVolumeProfile(chart, code);
     if (!volume || !volume.bins || !volume.bins.length) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">가격·거래량 데이터가 부족해 그래프를 표시할 수 없습니다.</p></section>';
     var bins = volume.bins.map(function (bin) {
-      return { price: number(bin.price || ((number(bin.low) + number(bin.high)) / 2), 0), volume: Math.max(0, number(bin.volume || bin.vol, 0)) };
-    }).filter(function (bin) { return bin.price > 0; });
+      var low = number(bin.low, null), high = number(bin.high, null);
+      var price = number(bin.price, null);
+      if (low == null || high == null) return null;
+      return { price: price == null ? (low + high) / 2 : price, low: low, high: high, volume: Math.max(0, number(bin.volume || bin.vol, 0)) };
+    }).filter(Boolean);
+    bins = bins.filter(function (bin) { return bin.price > 0 && bin.high >= bin.low; });
     if (!bins.length) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">가격대별 거래량이 없습니다.</p></section>';
-    var max = bins.reduce(function (best, bin) { return bin.volume > best.volume ? bin : best; }, bins[0]);
-    var poc = volume.poc || volume.pocPrice || max.price;
-    var maxVolume = max.volume || 1;
-    var bucketSize = Math.max(1, Math.ceil(bins.length / 12));
+    var poc = volume.poc || volume.pocPrice || bins[0].price;
+    var bucketSize = Math.max(1, Math.ceil(bins.length / MY_VOLUME_DISPLAY_COUNT));
     var compact = [];
     for (var i = 0; i < bins.length; i += bucketSize) {
       var part = bins.slice(i, i + bucketSize);
-      compact.push({ price: part[0].price, high: part[part.length - 1].price, volume: part.reduce(function (sum, bin) { return sum + bin.volume; }, 0) });
+      compact.push({ low: part[0].low, high: part[part.length - 1].high, volume: part.reduce(function (sum, bin) { return sum + bin.volume; }, 0) });
     }
-    var current = number(volume.currentPrice, null);
+    var maxVolume = compact.reduce(function (best, bin) { return Math.max(best, bin.volume); }, 0) || 1;
+    var current = number(livePrice, number(volume.currentPrice, null));
     var rows = compact.map(function (bin) {
-      var mid = (bin.price + bin.high) / 2;
       var width = Math.max(4, Math.round(bin.volume / maxVolume * 100));
-      var isPoc = poc >= bin.price && poc <= bin.high;
-      var isCurrent = current != null && current >= bin.price && current <= bin.high;
-      return '<div class="my-volume-row' + (isPoc ? ' is-poc' : '') + (isCurrent ? ' is-current' : '') + '"><span>' + formatPrice(mid, volume.code || '') + '</span><i><b style="width:' + width + '%"></b></i><small>' + formatNumber(bin.volume, 0) + '</small></div>';
+      var isPoc = poc >= bin.low && poc <= bin.high;
+      var isCurrent = current != null && current >= bin.low && current <= bin.high;
+      var rangeLabel = formatPrice(bin.low, volume.code || '') + ' ~ ' + formatPrice(bin.high, volume.code || '');
+      return '<div class="my-volume-row' + (isPoc ? ' is-poc' : '') + (isCurrent ? ' is-current' : '') + '"><span>' + rangeLabel + '</span><i><b style="width:' + width + '%"></b></i><small>' + formatNumber(bin.volume, 0) + '</small></div>';
     }).join('');
-    return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong><span>' + (volume.approximate ? '차트 거래량 추정' : '실제 체결가 기반') + '</span></div>'
-      + '<div class="my-volume-highlight"><span>거래가 가장 몰린 구간</span><strong>' + formatPrice(poc, volume.code || '') + '</strong></div>'
+    var periodLabel = '최근 ' + volume.daysIncluded + '거래일 일봉';
+    return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong><span>' + periodLabel + '</span></div>'
+      + '<div class="my-volume-highlight"><span>최근 체결량 최대 구간</span><strong>' + formatPrice(volume.pocLow, volume.code || '') + ' ~ ' + formatPrice(volume.pocHigh, volume.code || '') + '</strong></div>'
       + '<div class="my-volume-chart" aria-label="가격대별 매물대 간략 그래프">' + rows + '</div>'
       + '<div class="my-volume-legend"><span><i class="is-poc"></i>거래량 최다</span><span><i class="is-current"></i>현재가</span></div>'
-      + '<p class="my-analysis-footnote">현재가가 두꺼운 매물대 위에 있으면 지지, 아래에 있으면 저항으로 해석할 수 있습니다. ' + (volume.approximate ? '실제 체결가 API가 없을 때 차트 거래량으로 간략 추정했습니다.' : '상세 차트에서 전체 구간을 확인하세요.') + '</p></section>';
+      + '<p class="my-analysis-footnote">호가창의 현재 대기 물량과는 다른 지표입니다. 현재가가 두꺼운 매물대 위에 있으면 지지, 아래에 있으면 저항 후보로 참고하세요. 일봉 고가·저가·거래량을 구간에 비례 배분한 추정치입니다.</p></section>';
   }
   function buildChartShapeCard(chart, summary) {
     var notes = summaryNotes(summary);
@@ -467,7 +511,7 @@
     if (chartScore == null) chartScore = number(notes.momentum && notes.momentum.score, null);
     if (chartScore == null && data) chartScore = 50 + (number(data.ret5, 0) * 1.8) + (number(data.ret20, 0) * 0.35);
     chartScore = chartScore == null ? null : clampScore(chartScore);
-    var effectiveVolume = volume || approximateVolumeFromChart(chart, metrics && metrics.code);
+    var effectiveVolume = volume || buildDailyVolumeProfile(chart, metrics && metrics.code);
     var poc = effectiveVolume && number(effectiveVolume.poc || effectiveVolume.pocPrice, null);
     var belowPoc = !!(poc != null && data && data.close < poc);
     var hasHolding = !!(metrics && metrics.holding && metrics.holding.quantity && metrics.holding.averagePrice && metrics.price != null);
@@ -602,14 +646,6 @@
     params.set('holdingNote', '보유수량 ' + formatNumber(metrics.holding.quantity, 2) + ', 평단 ' + formatPrice(metrics.holding.averagePrice, item.code) + ', 손익률 ' + formatSigned(metrics.rate, 2) + '%');
     return fetchJson(GAS_URL + '?' + params.toString()).then(function (body) { return body && body.data && body.data.summary || body.summary || null; });
   }
-  function fetchVolume(item) {
-    if (/^US:/i.test(item.code)) return Promise.resolve(null);
-    return fetchJson(VM_URL + '/pbar-tratio/' + encodeURIComponent(item.code) + '?days=20').then(function (body) {
-      var data = body && body.data || body;
-      if (data) data.code = item.code;
-      return data;
-    }).catch(function () { return null; });
-  }
   function fetchSelected(item) {
     var id = ++state.requestId;
     var cached = state.analyses[item.code];
@@ -617,13 +653,14 @@
     var flowPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchFlow(item.code, item.name, 63); }).catch(function () { return null; });
     var summaryPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchAnalysisSummary(item.code, item.name); }).catch(function () { return null; });
     var chartPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchJson(GAS_URL + '?action=flowChart&code=' + encodeURIComponent(item.code)); }).catch(function () { return null; });
-    var volumePromise = fetchVolume(item);
+    var volumePromise = Promise.resolve(null);
     Promise.all([quotePromise, flowPromise, summaryPromise, volumePromise, chartPromise]).then(function (results) {
       if (id !== state.requestId || !itemByCode(item.code)) return;
       var metrics = itemMetrics(item, results[0]);
-      fetchAi(item, results[2], results[3], metrics, results[4]).catch(function () { return null; }).then(function (ai) {
+      var volume = buildDailyVolumeProfile(results[4], item.code);
+      fetchAi(item, results[2], volume, metrics, results[4]).catch(function () { return null; }).then(function (ai) {
         if (id !== state.requestId) return;
-        state.analyses[item.code] = { quote: results[0], flow: results[1], summary: results[2], volume: results[3], chart: results[4], ai: ai };
+        state.analyses[item.code] = { quote: results[0], flow: results[1], summary: results[2], volume: volume, chart: results[4], ai: ai };
         render();
       });
     });
@@ -645,7 +682,7 @@
     detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3 class="my-selected-title ' + dailyChangeClass + '"><span class="my-selected-name">' + escapeHtml(item.name) + '</span> <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
       + '<div class="my-metric-grid"><div><span>현재가</span><strong>' + formatPrice(metrics.price, item.code) + '</strong><small class="' + dailyChangeClass + '">' + (dailyChangeRate == null ? '-' : formatSigned(dailyChangeRate, 2) + '%') + '</small></div><div><span>평가금액</span><strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatSigned(metrics.pnl, 0) + '원') + '</strong><small>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
       + buildHoldingForm(item, metrics)
-      + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code) + '</div>'
+      + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code, metrics.price) + '</div>'
       + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
       + buildCompositeOpinionCard(metrics, analysis && analysis.chart, analysis && analysis.summary, analysis && analysis.volume, analysis && analysis.ai || '')
       + buildAveragingCalculatorWithRecovery(metrics, item.code, analysis && analysis.chart)

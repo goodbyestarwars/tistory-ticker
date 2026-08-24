@@ -251,8 +251,8 @@ html.dark .my-watchlist-icon img { background: #242424; }
 .my-volume-highlight { border: 1px solid #dbe5f2; font-size: 14px; }
 .my-volume-highlight strong { font-size: 22px; }
 .my-volume-chart { display: grid; gap: 6px; margin-top: 14px; }
-.my-volume-row { display: grid; grid-template-columns: 92px minmax(0, 1fr) 72px; gap: 8px; align-items: center; min-height: 22px; color: #64748b; font-size: 11px; font-variant-numeric: tabular-nums; }
-.my-volume-row > span { text-align: right; }
+.my-volume-row { display: grid; grid-template-columns: 148px minmax(0, 1fr) 72px; gap: 8px; align-items: center; min-height: 22px; color: #64748b; font-size: 11px; font-variant-numeric: tabular-nums; }
+.my-volume-row > span { min-width: 0; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .my-volume-row > i { display: block; height: 12px; border-radius: 99px; background: #edf2f7; overflow: hidden; }
 .my-volume-row > i > b { display: block; height: 100%; border-radius: inherit; background: #9db9e1; }
 .my-volume-row.is-poc > i > b { background: #e36a5b; }
@@ -296,7 +296,7 @@ html.dark .my-opinion-verdict > span, html.dark .my-opinion-verdict small { colo
   .my-dashboard-head h2 { font-size: 26px; }
   .my-search-row { display: grid; grid-template-columns: 1fr; }
   .my-dashboard-detail { padding: 12px; }
-  .my-volume-row { grid-template-columns: 82px minmax(0, 1fr) 58px; }
+  .my-volume-row { grid-template-columns: 132px minmax(0, 1fr) 58px; }
   .my-opinion-grid { grid-template-columns: 1fr; }
 }
 
