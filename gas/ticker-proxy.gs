@@ -1418,8 +1418,8 @@ var US_FUTURES_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/ES=F'; /
 var MT_FLOW_CODE = '069500'; // KODEX 200 - 코스피200 추종 ETF, 수급 대리지표
 var MT_VOL_HISTORY_KEY = 'mt_vol_hist_v2'; // v1(10일 기록)->v2(5일 평균 기준으로 명확화) 캐시 키 분리
 var MT_VOL_HISTORY_MAX = 6; // 오늘 포함 6개 = "오늘 제외 직전 5거래일 평균"의 기준
-var MT_DAILY_HISTORY_KEY = 'mt_daily_history_v1'; // 전일 대비/1주일·1개월 평균용 일별 온도 기록
-var MT_DAILY_HISTORY_MAX = 35; // 1개월(30일) 평균 계산 + 여유분
+var MT_DAILY_HISTORY_KEY = 'mt_daily_history_v1'; // 전일 대비/1주일·1개월·단기흐름용 일별 온도 기록
+var MT_DAILY_HISTORY_MAX = 65; // 최근 40일 흐름 + 30일 기준선 계산용 여유분
 var MT_COMPONENT_MAX = { // 지표별 배점(문서 그대로) - 합계가 온도 환산의 실제 만점 기준이 됨
   vix: 20, flow: 20, tradingValue: 15, avgChange: 15,
   riseRatio: 10, sectorStrength: 10, week52: 10, exchange: 5, usFutures: 5,
@@ -1531,7 +1531,7 @@ function getMarketTemp() {
   // 응답에 recentDays/band 필드 추가 - 재배포해도 CacheService는 자동으로 안 비워지므로
   // (실측: 재배포 후에도 30분간 옛 스키마가 그대로 응답됨) 스키마 바뀔 때마다 캐시 키도
   // 같이 올려야 함(이 프로젝트 반복 관례, news_ 캐시 키 이력 참고).
-  var cacheKey = CACHE_PREFIX + 'market_temp_v6';
+  var cacheKey = CACHE_PREFIX + 'market_temp_v7';
   var cached = cache.get(cacheKey);
   if (cached) {
     var parsedCache_ = parseCachedJson_(cached);
@@ -1690,14 +1690,12 @@ function computeMarketTempHistory_(currentTemp, storedHistory) {
   };
 }
 
-// 2026-07-18: "최근 7일 증시온도" 스파크라인용 - computeMarketTempHistory_와 같은 일별
-// 기록(MT_DAILY_HISTORY_KEY)을 읽어 최근 6일(오늘 이전) + 오늘(currentTemp)을 이어붙여
-// 최대 7포인트를 반환한다. 기록이 없으면(트리거 등록 초기) 오늘 1포인트만 반환 - 프론트는
-// 2포인트 미만이면 "수집 중" 처리(history가 null일 때와 동일한 패턴).
+// 최근 단기흐름(5/10/20/40일) 그래프용 - 오늘 이전 최대 40일 + 오늘을 반환한다.
+// 기존 7일 데이터도 그대로 호환하며, 기록이 쌓이면 프런트에서 기간 버튼을 활성화한다.
 function computeMarketTempSparkline_(currentTemp, storedHistory) {
   var hist = storedHistory || readDailyMarketTempHistory_();
   var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
-  var priorDays = hist.filter(function (h) { return h.date !== today; }).slice(-6);
+  var priorDays = hist.filter(function (h) { return h.date !== today; }).slice(-40);
   return priorDays.concat([{ date: today, temp: currentTemp }]);
 }
 

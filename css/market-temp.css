@@ -50,11 +50,11 @@
 #market-temp .mt-stocks-only-heading h1 { margin: 0; color: #1f2937; font-size: 24px; line-height: 1.25; }
 #market-temp .mt-stocks-only-heading p { margin: 5px 0 0; color: #7b8490; font-size: 12px; }
 
-/* 2026-07-18(2차): 관련 섹션 2개를 좌우 50:50으로 묶는 범용 wrapper(AI브리핑|TOP5,
-   최근7일|오늘의전략) - 모바일(640px 이하)에서는 1열로 자동 스택(아래 미디어쿼리). */
+/* 2026-07-18(2차): 관련 섹션을 좌우로 묶되, 구성 요소 그래프에 조금 더 폭을 준다.
+   모바일(640px 이하)에서는 1열로 자동 스택한다. */
 #market-temp .mt-row-2col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr);
   gap: 10px;
   align-items: stretch;
 }
@@ -278,29 +278,29 @@
 #market-temp .mt-gauge-bands span:first-child { text-align: left; }
 #market-temp .mt-gauge-bands span:last-child { text-align: right; }
 
-/* ================= ③ 시장 구성 요소 (2026-07-18 5차: 카드형 -> 표 형태로 재설계) =================
-   "오늘 시장 영향요인 TOP5"와 중복이라는 지적에 따라 두 섹션을 하나의 표로 통합 -
-   |기여도| 내림차순 정렬 자체가 "영향 큰 순"이 되어 별도 TOP5 리스트가 필요 없다.
-   상위 3행(.mt-comp-tr-top)은 은은한 배경으로 강조해 예전 TOP5의 "한눈에 보기" 기능을
-   대신한다. 색상 모디파이어 클래스(mt-bar-vix 등)는 기존 지표 표시와 공유. */
+/* ================= ③ 시장 구성 요소 (영향도 그래프) =================
+   숫자 열을 먼저 읽지 않는 사용자를 위해 현재 점수/만점은 가로 막대, 온도 기여도는
+   빨강(+)/파랑(-)으로 분리해 표시한다. 상세 원자료는 ⓘ 설명에서 확인한다. */
 /* 2026-07-19: overflow-x:auto가 있으면 CSS 스펙상 overflow-y도 auto로 강제 계산돼(visible과
    섞어 쓸 수 없음) ⓘ 툴팁(.mt-info::after, 행 위로 팝업)이 위쪽으로 잘리거나 다음 행과
    겹쳐 보이는 버그가 있었음(사용자 스크린샷으로 확인) - width:100%로 이미 반응형이라
    가로 스크롤 안전망 없이도 실제로는 넘치지 않아서 제거. */
-#market-temp .mt-comp-table-wrap { overflow: visible; }
-#market-temp .mt-comp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-#market-temp .mt-comp-tr { border-bottom: 1px solid #f4f4f4; }
-#market-temp .mt-comp-tr:last-child { border-bottom: none; }
-#market-temp .mt-comp-tr-top { background: rgba(251, 140, 0, 0.06); }
-#market-temp .mt-comp-table td { padding: 7px 6px; vertical-align: middle; }
-#market-temp .mt-comp-td-label { display: flex; align-items: center; gap: 4px; color: #555; white-space: nowrap; }
-#market-temp .mt-comp-icon { font-size: 12px; flex: 0 0 auto; }
-#market-temp .mt-comp-label { word-break: keep-all; }
-#market-temp .mt-comp-td-value { font-weight: 700; color: #222; white-space: nowrap; text-align: right; }
-#market-temp .mt-comp-td-contrib { font-weight: 700; text-align: right; white-space: nowrap; padding-left: 10px !important; }
-#market-temp .mt-comp-td-bar { width: 30%; min-width: 60px; }
-#market-temp .mt-comp-bar-track { height: 6px; border-radius: 999px; background: #eee; overflow: hidden; }
+#market-temp .mt-comp-visual-list { display: flex; flex-direction: column; gap: 0; }
+#market-temp .mt-comp-visual-row { padding: 8px 6px 9px; border-bottom: 1px solid #f1f3f5; }
+#market-temp .mt-comp-visual-row:last-child { border-bottom: 0; }
+#market-temp .mt-comp-visual-row-top { background: rgba(251, 140, 0, 0.06); border-radius: 7px; }
+#market-temp .mt-comp-visual-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+#market-temp .mt-comp-visual-label { display: flex; align-items: center; gap: 4px; min-width: 0; color: #555; }
+#market-temp .mt-comp-icon { flex: 0 0 auto; font-size: 12px; }
+#market-temp .mt-comp-label { overflow: hidden; word-break: keep-all; text-overflow: ellipsis; white-space: nowrap; }
+#market-temp .mt-comp-visual-values { display: flex; align-items: baseline; justify-content: flex-end; gap: 9px; min-width: 0; text-align: right; }
+#market-temp .mt-comp-visual-raw { overflow: hidden; max-width: 190px; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+#market-temp .mt-comp-visual-score { color: #8b929d; font-size: 10px; white-space: nowrap; }
+#market-temp .mt-comp-visual-contrib { min-width: 42px; font-size: 12px; text-align: right; white-space: nowrap; }
+#market-temp .mt-comp-bar-track { height: 8px; margin-top: 7px; border-radius: 999px; background: #edf0f2; overflow: hidden; }
 #market-temp .mt-comp-bar-fill { height: 100%; border-radius: 999px; }
+#market-temp .mt-comp-visual-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 10px; color: #9aa1ab; font-size: 10px; }
+#market-temp .mt-comp-visual-legend b { font-weight: 800; }
 
 /* 색상 모디파이어(그리드 카드/오늘의전략 등 여러 base 클래스에서 공유) */
 #market-temp .mt-bar-vix { background: #d24f45; }
@@ -320,7 +320,7 @@
 #market-temp .mt-pill.mt-val-neg { background: #e1ecfa; color: #0e4c96; }
 #market-temp .mt-pill.mt-val-zero { background: #eee; color: #888; }
 
-/* ================= ④ 최근 7일 흐름 그래프 ================= */
+/* ================= ④ 최근 단기흐름 그래프 ================= */
 #market-temp .mt-spark { width: 100%; height: 104px; display: block; overflow: visible; }
 #market-temp .mt-spark-grid-line { stroke: rgba(107, 114, 128, .12); stroke-width: 1; stroke-dasharray: 3 5; }
 #market-temp .mt-spark-area { pointer-events: none; }
@@ -353,6 +353,28 @@
 #market-temp .mt-spark-single strong { font-size: 28px; line-height: 1.2; }
 #market-temp .mt-spark-single span { font-size: 12px; }
 #market-temp .mt-spark-single small { margin-top: 4px; font-size: 12px; color: #777; }
+#market-temp .mt-history-tail-head { align-items: center; flex-wrap: wrap; }
+#market-temp .mt-flow-periods { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+#market-temp .mt-flow-period { min-width: 38px; padding: 4px 7px; border: 1px solid #dfe4ea; border-radius: 999px; background: #fff; color: #7b8490; cursor: pointer; font: inherit; font-size: 10px; line-height: 1.2; }
+#market-temp .mt-flow-period:hover { border-color: #d24f45; color: #b3392f; }
+#market-temp .mt-flow-period.active { border-color: #26364a; background: #26364a; color: #fff; }
+#market-temp .mt-flow-period:disabled { cursor: not-allowed; opacity: .42; }
+#market-temp .mt-history-chart-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 1px 0 3px; color: #98a0aa; font-size: 10px; }
+#market-temp .mt-history-chart-meta b { font-size: 11px; }
+#market-temp .mt-wave-spark { height: 142px; }
+#market-temp .mt-wave-zero { stroke: #9aa3ad; stroke-width: 1.2; stroke-dasharray: 4 4; }
+#market-temp .mt-wave-area { opacity: .2; pointer-events: none; }
+#market-temp .mt-wave-area-pos { fill: #d24f45; }
+#market-temp .mt-wave-area-neg { fill: #1261c4; }
+#market-temp .mt-wave-segment-pos { stroke: #d24f45; }
+#market-temp .mt-wave-segment-neg { stroke: #1261c4; }
+#market-temp .mt-wave-segment-zero { stroke: #8d96a1; }
+#market-temp .mt-wave-dot-pos { fill: #d24f45; }
+#market-temp .mt-wave-dot-neg { fill: #1261c4; }
+#market-temp .mt-wave-dot-zero { fill: #8d96a1; }
+#market-temp .mt-wave-legend { margin-top: 3px; }
+#market-temp .mt-wave-legend span { display: inline-flex; align-items: center; gap: 4px; }
+#market-temp .mt-wave-legend i { flex: 0 0 auto; width: 6px; height: 6px; margin: 0; border-radius: 50%; }
 
 /* ================= ⑤ 시장 레이더 차트 (2026-07-18 2차: 단독 배치라 폭을 콤팩트하게 축소) ================= */
 #market-temp .mt-radar { width: 100%; max-width: 280px; display: block; margin: 0 auto; }
@@ -530,14 +552,17 @@
   #market-temp .mt-score { font-size: 34px; }
   #market-temp .mt-hero-deltas { gap: 12px; }
   #market-temp .mt-guide-grid-cards { grid-template-columns: repeat(2, 1fr); }
-  #market-temp .mt-radar { max-width: 260px; }
+  #market-temp .mt-radar { max-width: 220px; }
   #market-temp .sector-cards-grid { columns: 1 100%; }
-  /* 2026-07-18(2차): 좌우 50:50 배치(시장구성요소|레이더, 최근7일|오늘의전략)는 좁은
-     화면에서 1열로 스택 - 각 카드 폭이 너무 좁아지면(특히 레이더/스파크라인 SVG, 표)
+  /* 2026-07-18(2차): 좌우 배치(시장구성요소|레이더, 단기흐름|오늘의전략)는 좁은
+     화면에서 1열로 스택 - 각 카드 폭이 너무 좁아지면(특히 레이더/스파크라인 SVG)
      내용이 눌리므로. */
   #market-temp .mt-row-2col { grid-template-columns: 1fr; }
-  #market-temp .mt-comp-table { font-size: 11.5px; }
-  #market-temp .mt-comp-td-bar { width: 22%; min-width: 40px; }
+  #market-temp .mt-comp-visual-head { align-items: flex-start; flex-direction: column; gap: 2px; }
+  #market-temp .mt-comp-visual-values { justify-content: flex-start; width: 100%; padding-left: 16px; text-align: left; }
+  #market-temp .mt-comp-visual-raw { max-width: 48vw; }
+  #market-temp .mt-flow-periods { width: 100%; margin-left: 0; }
+  #market-temp .mt-flow-period { flex: 1 1 0; }
 }
 
 /* ---- 온도 구간별 카드 배경 (Hero, 공포=한랭, 과열=온난 톤) ---- */
@@ -586,10 +611,12 @@ html.dark #market-temp .mt-strategy-panel { border-color: rgba(245, 239, 224, 0.
 html.dark #market-temp .mt-ai-text { color: rgba(245, 239, 224, 0.8) !important; }
 html.dark #market-temp .mt-ai-empty { color: rgba(245, 239, 224, 0.45) !important; }
 
-html.dark #market-temp .mt-comp-tr { border-color: rgba(245, 239, 224, 0.14) !important; }
-html.dark #market-temp .mt-comp-tr-top { background: rgba(251, 140, 0, 0.1) !important; }
-html.dark #market-temp .mt-comp-td-label { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #market-temp .mt-comp-td-value { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-comp-visual-row { border-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #market-temp .mt-comp-visual-row-top { background: rgba(251, 140, 0, 0.1) !important; }
+html.dark #market-temp .mt-comp-visual-label { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #market-temp .mt-comp-visual-score,
+html.dark #market-temp .mt-comp-visual-legend { color: rgba(245, 239, 224, 0.48) !important; }
+html.dark #market-temp .mt-comp-visual-raw { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-comp-bar-track { background: rgba(245, 239, 224, 0.14) !important; }
 html.dark #market-temp .mt-bar-vix { background: #ff6b5b !important; }
 html.dark #market-temp .mt-bar-flow { background: #4d9fff !important; }
@@ -618,6 +645,12 @@ html.dark #market-temp .mt-spark-dot,
 html.dark #market-temp .mt-spark-current-dot { stroke: #1A1A1A !important; }
 html.dark #market-temp .mt-spark-single { color: rgba(245, 239, 224, 0.45) !important; }
 html.dark #market-temp .mt-spark-single small { color: rgba(245, 239, 224, 0.62) !important; }
+html.dark #market-temp .mt-flow-period { background: #1A1A1A !important; color: rgba(245, 239, 224, 0.62) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #market-temp .mt-flow-period:hover { border-color: #ff6b5b !important; color: #ff8f80 !important; }
+html.dark #market-temp .mt-flow-period.active { background: #F5EFE0 !important; color: #1A1A1A !important; border-color: #F5EFE0 !important; }
+html.dark #market-temp .mt-history-chart-meta { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #market-temp .mt-wave-zero { stroke: rgba(245, 239, 224, 0.42) !important; }
+html.dark #market-temp .mt-wave-legend { color: rgba(245, 239, 224, 0.55) !important; }
 
 html.dark #market-temp .mt-radar-grid { color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #market-temp .mt-radar-label { fill: rgba(245, 239, 224, 0.55) !important; }

@@ -57,6 +57,18 @@
     var futures = Math.max(0, Math.min(5, Math.round((total - vix - flowScore - vol - avgChange - rise - sectorStrength - week52 - exchange) * 10) / 10));
 
     var temp = Math.round(total * (40 / MAX_POSSIBLE) * 10) / 10;
+    var recentDays = [];
+    if (total === 84) {
+      recentDays = [{ date: '2026-07-13', temp: temp }];
+    } else {
+      for (var dayIndex = 0; dayIndex < 41; dayIndex++) {
+        var day = new Date(2026, 5, 3 + dayIndex);
+        var dayIso = day.toISOString().slice(0, 10);
+        var wave = Math.sin(dayIndex * 0.55) * 2.1 + Math.cos(dayIndex * 0.21) * 1.2;
+        recentDays.push({ date: dayIso, temp: Math.max(0, temp - 2.2 + wave) });
+      }
+      recentDays[recentDays.length - 1].temp = temp;
+    }
     var grade = temp < 10 ? { emoji: '🧊', label: '극단적 공포', tone: 'extreme-fear' }
       : temp < 20 ? { emoji: '🔵', label: '공포', tone: 'fear' }
       : temp < 28 ? { emoji: '🟡', label: '중립', tone: 'neutral' }
@@ -103,16 +115,8 @@
         monthAvg: Math.max(0, temp - 3.2),
         monthDays: total === 36 ? 12 : 30 // 36점 버튼에서는 "수집 중(30일 미만)" 일수 표기도 확인
       },
-      // total===84(탐욕 버튼)일 때만 "수집 중"(1포인트뿐) 케이스, 나머지는 7일치 예시
-      recentDays: total === 84 ? [{ date: '2026-07-13', temp: temp }] : [
-        { date: '2026-07-07', temp: Math.max(0, temp - 5.2 * sign) },
-        { date: '2026-07-08', temp: Math.max(0, temp - 4.0 * sign) },
-        { date: '2026-07-09', temp: Math.max(0, temp - 3.1 * sign) },
-        { date: '2026-07-10', temp: Math.max(0, temp - 1.8 * sign) },
-        { date: '2026-07-11', temp: Math.max(0, temp - 2.5 * sign) },
-        { date: '2026-07-12', temp: Math.max(0, temp - 2.1 * sign) },
-        { date: '2026-07-13', temp: temp }
-      ],
+      // total===84(탐욕 버튼)일 때만 "수집 중"(1포인트뿐) 케이스, 나머지는 41일치 예시
+      recentDays: recentDays,
       updatedAt: '2026-07-13 18:00:00'
     };
   }

@@ -1081,18 +1081,43 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
         for token in (
-            "market_temp_v6",
+            "market_temp_v7",
             "upsertDailyMarketTemp_(temp)",
             "readDailyMarketTempHistory_",
             "computeMarketTempHistory_(temp, dailyHistory)",
             "computeMarketTempSparkline_(temp, dailyHistory)",
         ):
             self.assertIn(token, gas)
-        self.assertIn("if (days.length === 1)", source)
+        self.assertIn("if (shown.length === 1)", source)
         self.assertIn("오늘부터 일별 기록을 시작했습니다.", source)
         self.assertNotIn("추이 데이터 수집 중 (며칠 후부터 표시됩니다)", source)
         self.assertNotIn("며칠 후부터 표시됩니다", source)
         self.assertIn(".mt-spark-single", style)
+
+    def test_market_temperature_short_flow_has_period_switches_and_zero_centered_wave(self):
+        gas = self.read("gas/ticker-proxy.gs")
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        for period in (5, 10, 20, 40):
+            self.assertIn(str(period), source)
+        self.assertIn("var HISTORY_PERIODS = [5, 10, 20, 40];", source)
+        self.assertIn("최근 단기흐름", source)
+        self.assertIn("smoothSegment_", source)
+        self.assertIn("30일 평균", source)
+        self.assertIn("computeMarketTempSparkline_(temp, dailyHistory)", gas)
+        self.assertIn("slice(-40)", gas)
+        self.assertIn(".mt-wave-zero", style)
+        self.assertIn(".mt-wave-segment-pos", style)
+        self.assertIn(".mt-wave-segment-neg", style)
+
+    def test_market_temperature_components_use_visual_score_bars_next_to_radar(self):
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        self.assertIn("mt-comp-visual-list", source)
+        self.assertIn("영향도 그래프", source)
+        self.assertIn("grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr)", style)
+        self.assertIn("mt-comp-visual-legend", style)
+        self.assertNotIn("<table class=\"mt-comp-table\"", source)
 
     def test_market_temperature_includes_kofia_credit_risk_component(self):
         gas = self.read("gas/ticker-proxy.gs")

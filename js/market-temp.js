@@ -4,13 +4,13 @@
  * 실제 만점 기준으로 0~40℃로 환산해 온도 카드로 렌더링하는
  * 구조 자체는 유지. 이번 개편은 "정보는 있는데 3초 안에 안 읽힌다"는 피드백에 따라 CNN
  * Fear&Greed Index 스타일의 대표 콘텐츠로 재구성한 것 - 백엔드 계산은 대부분 그대로 두고
- * (gas/ticker-proxy.gs getMarketTemp), 응답에 recentDays(스파크라인용)와 지표별 band
+ * (gas/ticker-proxy.gs getMarketTemp), 응답에 recentDays(5/10/20/40일 단기흐름용)와 지표별 band
  * (계산식 투명성용) 필드만 추가했다.
  *
- * 섹션 순서: Hero+최근 흐름 꼬리 -> 시장 구성요소(표) | 시장 레이더 -> 온도 기준표
+ * 섹션 순서: Hero+최근 단기흐름 꼬리 -> 시장 구성요소 그래프 | 시장 레이더 -> 온도 기준표
  * -> 시장 브리핑+오늘의 전략(마지막) -> (기존 유지) 카드보기/히트맵보기/시총비례 탐색.
  * "오늘 시장 영향요인 TOP5"는 시장 구성요소와 내용이 중복이라는 지적(5차)에 따라 별도
- * 섹션을 없애고 구성요소 표를 |기여도| 내림차순 정렬하는 것으로 흡수 통합함.
+ * 섹션을 없애고 구성요소 그래프를 |기여도| 내림차순 정렬하는 것으로 흡수 통합함.
  *
  * 투자시그널/투자전략은 "역발상형"(공포=매수 신호, CNN F&G 지수의 통상적 활용법)으로
  * 매핑 - 사용자 확정. "Data Quality %" 같은 근거 없는 가짜 수치는 넣지 않고 실시간 배지 +
@@ -37,7 +37,8 @@
   var LOCAL_SECTOR_CARDS_KEY = 'market_temp_sector_cards_v1';
   var GAUGE_MAX_TEMP = 40; // 서버가 실제 만점 기준으로 이미 0~40℃로 정규화해서 내려줌
   var sectorConfigPromise = null;
-  var sparklineId = 0;
+  var HISTORY_PERIODS = [5, 10, 20, 40];
+  var DEFAULT_HISTORY_PERIOD = 10;
 
   // unit: 'index'(그대로 표기) / 'pct'(부호 있는 % - 붉은/파란색) / 'pctDirect'(comp에 이미 %
   // 단위로 들어있는 값) / 'ratio'(상승·하락 종목수) / 'sectorCount'(섹터 강도) /
@@ -457,19 +458,29 @@
       + (comp && comp.available && typeof comp.loan_total === 'number' ? ' 현재 신용융자 잔고: ' + (comp.loan_total / 1000000).toFixed(2) + '조원' : '')
       + (comp && comp.available && typeof comp.investor_deposits === 'number' ? ' 투자자예탁금: ' + (comp.investor_deposits / 1000000000000).toFixed(2) + '조원' : '');
 
+    var scoreText = comp && typeof comp.score === 'number'
+      ? score.toFixed(1) + ' / ' + meta.max + '점'
+      : '데이터 확인 중';
+    var rawHtml = raw
+      ? '<span class="mt-comp-visual-raw ' + raw.tone + '">' + escapeHtml(raw.text) + '</span>'
+      : '<span class="mt-comp-visual-raw mt-val-zero">데이터 확인 중</span>';
+    var contributionHtml = c == null
+      ? '<b class="mt-val-zero">-</b>'
+      : '<b class="' + contribTone(c) + '">' + escapeHtml(fmtContribution(c)) + '</b>';
     return ''
-      + '<tr class="mt-comp-tr' + (rank < 3 ? ' mt-comp-tr-top' : '') + '">'
-      + '<td class="mt-comp-td-label">'
-      + '<span class="mt-comp-icon">' + meta.icon + '</span>'
+      + '<div class="mt-comp-visual-row' + (rank < 3 ? ' mt-comp-visual-row-top' : '') + '">'
+      + '<div class="mt-comp-visual-head">'
+      + '<div class="mt-comp-visual-label"><span class="mt-comp-icon">' + meta.icon + '</span>'
       + '<span class="mt-comp-label">' + escapeHtml(meta.label) + '</span>'
-      + '<span class="mt-info" data-tooltip="' + escapeHtml(tooltip) + '">ⓘ</span>'
-      + '</td>'
-      + '<td class="mt-comp-td-value' + (raw ? ' ' + raw.tone : '') + '">' + (raw ? escapeHtml(raw.text) : '-') + '</td>'
-      + '<td class="mt-comp-td-contrib' + (c == null ? '' : ' ' + contribTone(c)) + '">' + (c == null ? '-' : fmtContribution(c)) + '</td>'
-      // 점수 0점은 폭 0%라 바가 통째로 안 보여 "로딩 실패"처럼 오해받기 쉬워서, 이 경우만
-      // 최소 4px 폭을 줘서 "0점으로 정상 렌더링됐다"는 걸 눈으로 구분할 수 있게 한다.
-      + '<td class="mt-comp-td-bar"><div class="mt-comp-bar-track"><div class="mt-comp-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div></div></td>'
-      + '</tr>';
+      + '<span class="mt-info" data-tooltip="' + escapeHtml(tooltip) + '">ⓘ</span></div>'
+      + '<div class="mt-comp-visual-values">' + rawHtml + '<span class="mt-comp-visual-score">' + escapeHtml(scoreText) + '</span>'
+      + '<span class="mt-comp-visual-contrib">' + contributionHtml + '</span></div>'
+      + '</div>'
+      + '<div class="mt-comp-bar-track" role="img" aria-label="' + escapeHtml(meta.label + ' 현재 점수 ' + scoreText) + '">'
+      // 점수 0점도 최소 폭으로 표시해 데이터 없음과 0점을 구분한다.
+      + '<div class="mt-comp-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div>'
+      + '</div>'
+      + '</div>';
   }
 
   function buildBars(data) {
@@ -481,119 +492,135 @@
     var rows = ranked.map(function (r, i) { return buildComponentRow(r.meta, r.comp, i); }).join('');
     return ''
       + '<div class="mt-card">'
-      + '<div class="mt-card-title">📊 시장 구성 요소 <span class="mt-card-subtitle">(영향 큰 순)</span></div>'
-      + '<div class="mt-comp-table-wrap"><table class="mt-comp-table"><tbody>' + rows + '</tbody></table></div>'
+      + '<div class="mt-card-title">📊 시장 구성 요소 <span class="mt-card-subtitle">(영향도 그래프)</span></div>'
+      + '<div class="mt-comp-visual-list">' + rows + '</div>'
+      + '<div class="mt-comp-visual-legend"><span>막대: 현재 점수 / 만점</span><span><b class="mt-val-pos">+점</b> 온도 상승</span><span><b class="mt-val-neg">-점</b> 온도 하락</span></div>'
       + '</div>';
   }
 
-  // ---- ⑥ 최근 7일 흐름 ----
+  // ---- 최근 단기흐름(5/10/20/40일) ----
 
-  function buildSparkline(data, compact) {
-    var days = data.recentDays || [];
-    var frameClass = compact ? 'mt-history-tail' : 'mt-card';
-    function titleHtml(label) {
-      return compact
-        ? '<div class="mt-history-tail-head"><div class="mt-card-title">' + label + '</div><span class="mt-history-tail-direction">과거 → 오늘</span></div>'
-        : '<div class="mt-card-title">' + label + '</div>';
+  function historyDays_(data) {
+    return (data.recentDays || []).filter(function (item) {
+      return item && typeof item.temp === 'number' && isFinite(item.temp);
+    }).slice(-40);
+  }
+
+  function smoothSegment_(points, index) {
+    var p1 = points[index], p2 = points[index + 1];
+    var p0 = points[index - 1] || p1, p3 = points[index + 2] || p2;
+    var c1x = p1.x + (p2.x - p0.x) / 6;
+    var c1y = p1.y + (p2.y - p0.y) / 6;
+    var c2x = p2.x - (p3.x - p1.x) / 6;
+    var c2y = p2.y - (p3.y - p1.y) / 6;
+    return 'M' + p1.x.toFixed(1) + ',' + p1.y.toFixed(1)
+      + ' C' + c1x.toFixed(1) + ',' + c1y.toFixed(1) + ' '
+      + c2x.toFixed(1) + ',' + c2y.toFixed(1) + ' '
+      + p2.x.toFixed(1) + ',' + p2.y.toFixed(1);
+  }
+
+  function signedTemp_(value) {
+    var rounded = Math.round(value * 10) / 10;
+    return (rounded > 0 ? '+' : '') + rounded.toFixed(1) + '℃';
+  }
+
+  function buildSparklineContent(data, period) {
+    var days = historyDays_(data);
+    if (!days.length) return '<div class="mt-stats-empty">증시온도 기록을 확인할 수 없습니다.</div>';
+    var shown = days.slice(-period);
+    if (shown.length === 1) {
+      return '<div class="mt-spark-single"><strong>' + shown[0].temp.toFixed(1) + '℃</strong>'
+        + '<span>' + escapeHtml(shown[0].date) + '</span><small>단기흐름 데이터가 더 쌓이면 기간을 비교할 수 있습니다.</small></div>';
     }
-    if (!days.length) {
-      return ''
-        + '<div class="' + frameClass + '">'
-        + titleHtml('📈 최근 7일 흐름')
-        + '<div class="mt-stats-empty">증시온도 기록을 확인할 수 없습니다.</div>'
-        + '</div>';
-    }
-    if (days.length === 1) {
-      var onlyDay = days[0];
-      var onlyGrade = gradeForTempClient_(onlyDay.temp);
-      var onlyColor = (GRADE_BY_TONE[onlyGrade.tone] || {}).color || '#888';
-      return ''
-        + '<div class="' + frameClass + '">'
-        + titleHtml('📈 최근 1일 흐름')
-        + '<div class="mt-spark-single">'
-        + '<strong style="color:' + onlyColor + '">' + onlyDay.temp.toFixed(1) + '℃</strong>'
-        + '<span>' + escapeHtml(onlyDay.date) + '</span>'
-        + '<small>오늘부터 일별 기록을 시작했습니다.</small>'
-        + '</div>'
-        + '</div>';
-    }
-    var W = 600, H = 100, PAD = 8;
-    var temps = days.map(function (d) { return d.temp; });
-    var min = Math.min.apply(null, temps), max = Math.max.apply(null, temps);
-    var range = (max - min) || 1;
-    var stepX = (W - PAD * 2) / (days.length - 1);
-    var points = days.map(function (d, i) {
-      var x = PAD + i * stepX;
-      var y = H - PAD - ((d.temp - min) / range) * (H - PAD * 2);
-      return { x: x, y: y, temp: d.temp, date: d.date };
+
+    // 현재값을 포함하지 않은 최근 30개를 기준선으로 삼아, 오늘이 평소보다
+    // 높은지(빨강) 낮은지(파랑)를 바로 읽게 한다.
+    var priorDays = days.slice(0, -1);
+    var baselineRows = (priorDays.length ? priorDays : days).slice(-30);
+    var baseline = baselineRows.reduce(function (sum, item) { return sum + item.temp; }, 0) / baselineRows.length;
+    var deltas = shown.map(function (item) { return item.temp - baseline; });
+    var maxAbs = Math.max.apply(null, deltas.map(function (value) { return Math.abs(value); })) || 1;
+    var W = 640, H = 142, PAD = 12, center = H / 2, half = H / 2 - PAD;
+    var stepX = (W - PAD * 2) / (shown.length - 1);
+    var points = shown.map(function (item, i) {
+      return { x: PAD + i * stepX, y: center - (deltas[i] / maxAbs) * half, temp: item.temp, delta: deltas[i], date: item.date };
     });
-    var pointGrades = points.map(function (p) { return gradeForTempClient_(p.temp); });
-    var averageTemp = temps.reduce(function (sum, value) { return sum + value; }, 0) / temps.length;
-    var averageGrade = gradeForTempClient_(averageTemp);
-    var averageColor = averageGrade.color || '#888';
-    var firstTemp = temps[0];
-    var currentTemp = temps[temps.length - 1];
-    var trendDelta = Math.round((currentTemp - firstTemp) * 10) / 10;
-    var trendTone = trendDelta > 0 ? 'mt-val-pos' : trendDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
-    var trendArrow = trendDelta > 0 ? '▲' : trendDelta < 0 ? '▼' : '—';
-    var pathD = points.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
-    var areaD = pathD + ' L' + points[points.length - 1].x.toFixed(1) + ',' + (H - PAD) + ' L' + points[0].x.toFixed(1) + ',' + (H - PAD) + ' Z';
-    var gradientId = 'mt-spark-area-' + (++sparklineId);
+    var segmentPaths = points.slice(1).map(function (point, i) {
+      var previous = points[i];
+      var tone = (previous.delta + point.delta) / 2 > 0 ? 'pos' : (previous.delta + point.delta) / 2 < 0 ? 'neg' : 'zero';
+      return '<path class="mt-spark-segment mt-spark-draw mt-wave-segment-' + tone + '" d="' + smoothSegment_(points, i) + '"></path>';
+    }).join('');
+    var areaPaths = points.slice(1).map(function (point, i) {
+      var previous = points[i];
+      var tone = (previous.delta + point.delta) / 2 > 0 ? 'pos' : 'neg';
+      return '<path class="mt-wave-area mt-wave-area-' + tone + '" d="M' + previous.x.toFixed(1) + ',' + center.toFixed(1)
+        + ' L' + previous.x.toFixed(1) + ',' + previous.y.toFixed(1) + ' L' + point.x.toFixed(1) + ',' + point.y.toFixed(1)
+        + ' L' + point.x.toFixed(1) + ',' + center.toFixed(1) + ' Z"></path>';
+    }).join('');
+    var dots = points.map(function (point, i) {
+      var tone = point.delta > 0 ? 'pos' : point.delta < 0 ? 'neg' : 'zero';
+      return '<circle class="mt-spark-dot mt-wave-dot-' + tone + (i === points.length - 1 ? ' mt-spark-current-dot' : '')
+        + '" cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="' + (i === points.length - 1 ? 4.5 : 2.5) + '"><title>'
+        + escapeHtml(point.date) + ' ' + point.temp.toFixed(1) + '℃ (' + signedTemp_(point.delta) + ')</title></circle>';
+    }).join('');
     var gridLines = [0.25, 0.5, 0.75].map(function (ratio) {
       var y = (PAD + (H - PAD * 2) * ratio).toFixed(1);
       return '<line class="mt-spark-grid-line" x1="' + PAD + '" y1="' + y + '" x2="' + (W - PAD) + '" y2="' + y + '"></line>';
     }).join('');
-    var segmentPaths = points.slice(1).map(function (p, i) {
-      var previous = points[i];
-      var segmentTemp = (previous.temp + p.temp) / 2;
-      var segmentColor = gradeForTempClient_(segmentTemp).color || '#888';
-      return '<path class="mt-spark-segment mt-spark-draw" d="M' + previous.x.toFixed(1) + ',' + previous.y.toFixed(1) + ' L' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + '" stroke="' + segmentColor + '"></path>';
-    }).join('');
-    var dots = points.map(function (p, i) {
-      var isLast = i === points.length - 1;
-      var pointColor = pointGrades[i].color || '#888';
-      return '<circle class="' + (isLast ? 'mt-spark-current-dot' : 'mt-spark-dot') + '" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isLast ? 5 : 3.5) + '" fill="' + pointColor + '"'
-        + '><title>' + escapeHtml(p.date) + ' ' + p.temp.toFixed(1) + '℃</title></circle>';
-    }).join('');
-    var summaryPoints = [];
-    if (points.length > 2) summaryPoints.push({ label: points.length >= 7 ? '1주 전' : '시작일', point: points[0] });
-    if (points.length > 1) summaryPoints.push({ label: '어제', point: points[points.length - 2] });
-    summaryPoints.push({ label: '오늘', point: points[points.length - 1], current: true });
-    var recentLabels = summaryPoints.map(function (item) {
-      var itemColor = gradeForTempClient_(item.point.temp).color || '#888';
-      return '<span' + (item.current ? ' class="is-current"' : '') + '><i style="background:' + itemColor + '"></i>' + item.label + ' <b style="color:' + itemColor + '">' + item.point.temp.toFixed(1) + '</b></span>';
-    }).join('');
-    var metricsHtml = '<div class="mt-history-metrics">'
-      + '<span><small>7일 평균</small><b style="color:' + averageColor + '">' + averageTemp.toFixed(1) + '℃</b></span>'
-      + '<span><small>최저</small><b style="color:' + (gradeForTempClient_(min).color || '#888') + '">' + min.toFixed(1) + '℃</b></span>'
-      + '<span><small>최고</small><b style="color:' + (gradeForTempClient_(max).color || '#888') + '">' + max.toFixed(1) + '℃</b></span>'
-      + '<span><small>시작 대비</small><b class="' + trendTone + '">' + trendArrow + ' ' + Math.abs(trendDelta).toFixed(1) + '℃</b></span>'
+    var current = points[points.length - 1];
+    var first = points[0];
+    var periodDelta = current.delta - first.delta;
+    var periodTone = periodDelta > 0 ? 'mt-val-pos' : periodDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
+    var labels = '<span><i class="mt-wave-dot-neg"></i>낮음 <b class="mt-val-neg">-</b></span>'
+      + '<span><i class="mt-wave-dot-zero"></i>30일 평균 <b>' + baseline.toFixed(1) + '℃</b></span>'
+      + '<span><i class="mt-wave-dot-pos"></i>높음 <b class="mt-val-pos">+</b></span>';
+    var metrics = '<div class="mt-history-metrics">'
+      + '<span><small>30일 기준선</small><b>' + baseline.toFixed(1) + '℃</b></span>'
+      + '<span><small>최저 편차</small><b class="mt-val-neg">' + signedTemp_(Math.min.apply(null, deltas)) + '</b></span>'
+      + '<span><small>최고 편차</small><b class="mt-val-pos">' + signedTemp_(Math.max.apply(null, deltas)) + '</b></span>'
+      + '<span><small>기간 변화</small><b class="' + periodTone + '">' + (periodDelta > 0 ? '▲ ' : periodDelta < 0 ? '▼ ' : '— ') + signedTemp_(periodDelta) + '</b></span>'
       + '</div>';
+    return '<div class="mt-history-chart-meta"><span>30일 평균 ' + baseline.toFixed(1) + '℃ 기준</span><b class="' + periodTone + '">현재 ' + signedTemp_(current.delta) + '</b></div>'
+      + '<svg class="mt-spark mt-wave-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="최근 ' + period + '일 단기흐름">'
+      + gridLines + '<line class="mt-wave-zero" x1="' + PAD + '" y1="' + center + '" x2="' + (W - PAD) + '" y2="' + center + '"></line>'
+      + areaPaths + segmentPaths + dots + '</svg>'
+      + '<div class="mt-spark-labels mt-wave-legend">' + labels + '</div>' + metrics;
+  }
 
-    return ''
-      + '<div class="' + frameClass + '">'
-      + '<div class="mt-history-tail-head"><div class="mt-card-title">📈 최근 ' + days.length + '일 흐름</div><span class="mt-history-tail-summary" style="color:' + averageColor + '">평균 ' + averageTemp.toFixed(1) + '℃</span></div>'
-      + '<svg class="mt-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">'
-      + '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + averageColor + '" stop-opacity=".22"></stop><stop offset="100%" stop-color="' + averageColor + '" stop-opacity="0"></stop></linearGradient></defs>'
-      + gridLines
-      + '<path class="mt-spark-area" d="' + areaD + '" fill="url(#' + gradientId + ')"></path>'
-      + segmentPaths
-      + dots
-      + '</svg>'
-      + '<div class="mt-spark-labels">' + recentLabels + '</div>'
-      + metricsHtml
+  function buildSparkline(data, compact, selectedPeriod) {
+    var days = historyDays_(data);
+    var frameClass = compact ? 'mt-history-tail' : 'mt-card';
+    var selected = HISTORY_PERIODS.indexOf(selectedPeriod) >= 0 ? selectedPeriod : DEFAULT_HISTORY_PERIOD;
+    var availablePeriods = HISTORY_PERIODS.filter(function (period) { return days.length >= period; });
+    if (availablePeriods.length && availablePeriods.indexOf(selected) < 0) selected = availablePeriods[availablePeriods.length - 1];
+    var buttons = HISTORY_PERIODS.map(function (period) {
+      var unavailable = days.length < period;
+      return '<button type="button" class="mt-flow-period' + (selected === period ? ' active' : '') + '" data-history-period="' + period + '"'
+        + (unavailable ? ' disabled title="데이터 수집 중 (' + days.length + '/' + period + '일)"' : '')
+        + ' aria-label="최근 ' + period + '일 흐름" aria-selected="' + (selected === period ? 'true' : 'false') + '">' + period + '일</button>';
+    }).join('');
+    return '<div class="' + frameClass + '" data-mt-history-panel>'
+      + '<div class="mt-history-tail-head"><div class="mt-card-title">📈 최근 단기흐름</div><div class="mt-flow-periods" role="tablist" aria-label="단기흐름 기간">' + buttons + '</div></div>'
+      + '<div data-mt-history-content>' + buildSparklineContent(data, selected) + '</div>'
       + '</div>';
   }
 
-  // GAS gradeForTemp_와 동일한 밴드 - 프론트에서 과거 스파크라인 포인트의 색을 정할 때만
-  // 씀(서버가 각 포인트마다 grade를 안 내려주므로 클라이언트에서 동일 로직 재현).
-  function gradeForTempClient_(temp) {
-    for (var i = 0; i < GRADE_BANDS.length; i++) {
-      var b = GRADE_BANDS[i];
-      var upper = i === GRADE_BANDS.length - 1 ? Infinity : parseInt(b.range.split('~')[1], 10);
-      if (temp < upper || i === GRADE_BANDS.length - 1) return b;
-    }
-    return GRADE_BANDS[GRADE_BANDS.length - 1];
+  function wireHistoryPeriods(container, data) {
+    var panel = container.querySelector('[data-mt-history-panel]');
+    if (!panel) return;
+    panel.addEventListener('click', function (event) {
+      var button = event.target.closest && event.target.closest('[data-history-period]');
+      if (!button || button.disabled) return;
+      var period = parseInt(button.getAttribute('data-history-period'), 10);
+      var content = panel.querySelector('[data-mt-history-content]');
+      if (!content || HISTORY_PERIODS.indexOf(period) < 0) return;
+      panel.querySelectorAll('[data-history-period]').forEach(function (item) {
+        var active = item === button;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      content.innerHTML = buildSparklineContent(data, period);
+    });
   }
 
   // ---- ⑦ 시장 레이더 차트 ----
@@ -1270,8 +1297,8 @@
     function row2col(a, b) { return '<div class="mt-section mt-row-2col">' + a + b + '</div>'; }
 
     var sections = [
-      buildHeroCard(data),                          // ① 오늘의 온도 | 과거→오늘 흐름 꼬리
-      row2col(buildBars(data), buildRadar(data)),   // ② 시장 구성요소(표) | 시장 레이더 (좌우)
+      buildHeroCard(data),                          // ① 오늘의 온도 | 최근 단기흐름
+      row2col(buildBars(data), buildRadar(data)),   // ② 시장 구성요소 그래프 | 시장 레이더 (좌우)
       buildBriefingStrategy(grade),                 // ③ 시장 브리핑 + 오늘의 전략(마지막)
     ];
 
@@ -1310,7 +1337,7 @@
     setTimeout(finish, durationMs + 200);
   }
 
-  function wireAnimations(container) {
+  function wireAnimations(container, data) {
     // 섹션 페이드인(순차 등장)
     var sections = container.querySelectorAll('.mt-section');
     sections.forEach(function (el, i) {
@@ -1357,6 +1384,7 @@
       setTimeout(reveal, 1000);
     }
 
+    wireHistoryPeriods(container, data);
     wireTooltipClamp(container);
   }
 

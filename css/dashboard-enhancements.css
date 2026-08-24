@@ -349,7 +349,7 @@ html.dark .de-chart-modal-body { background: #1A1A1A; }
   font-size: 11px;
   line-height: 1.55;
 }
-#market-temp .mt-hero-card::after { content: '현재 시장의 과열·침체 정도와 최근 7일 흐름을 함께 보여줍니다.'; }
+#market-temp .mt-hero-card::after { content: '현재 시장의 과열·침체 정도와 최근 단기흐름을 함께 보여줍니다.'; }
 #market-temp .mt-briefing-strategy-card::after { content: '오늘 시장 흐름을 요약하고 현재 온도에 맞는 참고용 대응 방향을 함께 보여줍니다.'; }
 #market-temp .mt-row-2col > .mt-card:first-child::after { content: '증시온도에 영향을 준 지표를 기여도 순으로 보여줍니다.'; }
 #market-temp .mt-row-2col > .mt-card:last-child::after { content: '시장 흐름을 여러 축으로 나누어 상대적인 강도를 보여줍니다.'; }
