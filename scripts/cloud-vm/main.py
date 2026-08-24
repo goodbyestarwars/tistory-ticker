@@ -2,6 +2,7 @@
 """KIS/키움 조회 전용 REST API 서버.
 실행: uvicorn main:app --host 0.0.0.0 --port 8080
 필수 환경변수: API_TOKEN(이 서버 자체 인증용, 아무 문자열이나 직접 정해서 사용)
+선택 환경변수: QUIVER_API_KEY(미국 의회 거래 공시 패널용, 브라우저에는 노출하지 않음)
 종목판 기본 소스: KIS_APPKEY, KIS_APPSECRET. MARKET_BOARD_SOURCE=kiwoom으로 기존 경로 롤백 가능.
 야간선물 웹소켓 사용하려면 `pip install websockets` 필요.
 """
@@ -26,6 +27,7 @@ from fastapi.responses import RedirectResponse
 
 import bond_yield
 import btc_futures
+import congress_trading
 import dart_client
 import db_schema
 import domestic_futures
@@ -1318,6 +1320,20 @@ def us_analysis_endpoint(request: Request, symbol: str = Path(..., min_length=1,
     return envelope(us_analysis.get_analysis(
         ticker,
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+    ))
+
+
+@app.get('/us-congress-trades/{symbol}')
+def us_congress_trades_endpoint(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
+    """미국주식과 관련된 의회 거래 공시를 참고용 시그널로 조회한다."""
+    _check_rate_limit('us_congress_trades', request, max_per_window=10)
+    try:
+        ticker = us_stocks.normalize_symbol(symbol)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return envelope(congress_trading.get_trades(
+        ticker,
+        quiver_api_key=os.environ.get('QUIVER_API_KEY', '').strip(),
     ))
 
 

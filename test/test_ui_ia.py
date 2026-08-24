@@ -350,6 +350,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("return localRows.concat(rows)", realtime)
         self.assertIn("return localRows.concat(rows)", self.read("js/us-stocks.js"))
 
+    def test_us_stock_page_shows_delayed_congress_disclosures_as_a_signal(self):
+        source = self.read("js/us-stocks.js")
+        self.assertIn("/us-congress-trades/", source)
+        self.assertIn("미국 의회 거래 공시", source)
+        self.assertIn("거래일", source)
+        self.assertIn("신고일", source)
+        self.assertIn("신고 지연", source)
+        self.assertIn("복사매매 신호 아님", source)
+        self.assertIn("원문 확인", source)
+        style = self.read("css/us-stocks.css")
+        self.assertIn(".us-stocks-congress-row", style)
+        self.assertIn("@media (max-width: 700px)", style)
+
     def test_stock_name_renderers_put_shared_logo_before_names(self):
         stock_news = self.read("js/stock-news.js")
         stock_search = self.read("js/stock-search.js")

@@ -2,14 +2,14 @@
 
 작성일: 2026-08-17 · 운영 기준 커밋: `0f18642` (`origin/master`) · 근거: `scripts/cloud-vm/db_schema.py`, `scripts/cloud-vm/news_momentum.py`, `domestic_news.py`, `news_aggregator.py`, `us_analysis.py` 확인
 
-이 서비스는 전통적 DB 서버가 아니라 **VM 로컬 SQLite 파일 5개** + **VM 로컬 JSON 캐시 파일 다수** + **저장소 내 정적 `window.XXX` 데이터 파일**로 데이터를 관리한다. 이 문서는 세 계층을 모두 정의한다. SQLite 파일은 `ohlc_snapshot.db`(시세·수급·사용자 설정·스윙 스냅샷), `news_momentum.db`(종목 뉴스 이슈), `domestic_news.db`(국내 일반뉴스·DART 공시), `us_news_cache.db`(미국 종목·글로벌 뉴스 메타데이터), `us_analysis_cache.db`(미국 종목 프로필·분석 캐시)다.
+이 서비스는 전통적 DB 서버가 아니라 **VM 로컬 SQLite 파일 6개** + **VM 로컬 JSON 캐시 파일 다수** + **저장소 내 정적 `window.XXX` 데이터 파일**로 데이터를 관리한다. 이 문서는 세 계층을 모두 정의한다. SQLite 파일은 `ohlc_snapshot.db`(시세·수급·사용자 설정·스윙 스냅샷), `news_momentum.db`(종목 뉴스 이슈), `domestic_news.db`(국내 일반뉴스·DART 공시), `us_news_cache.db`(미국 종목·글로벌 뉴스 메타데이터), `us_analysis_cache.db`(미국 종목 프로필·분석 캐시), `us_congress_trades_cache.db`(미국 의회 거래 공시 캐시)다.
 
 ## 목차
 
 1. 개요 — DB를 왜 이렇게 나눴는가
 2. `ohlc_snapshot.db` (SQLite)
 3. `news_momentum.db` (SQLite)
-4. 기타 SQLite 캐시 파일 — `domestic_news.db`, `us_news_cache.db`, `us_analysis_cache.db`
+4. 기타 SQLite 캐시 파일 — `domestic_news.db`, `us_news_cache.db`, `us_analysis_cache.db`, `us_congress_trades_cache.db`
 5. 파일 기반 캐시(JSON)
 6. 파일 기반 정적 데이터(`window.XXX` .js)
 7. 백업/보존 정책
@@ -449,6 +449,15 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 기업 프로필·분석 데이터를 재사용하며 분석 캐시 TTL은 6시간, 프로필 메모리 캐시 TTL은
 24시간이다. 키가 없거나 공급자가 실패하면 빈/부분 응답으로 폴백하며 API 키를 저장소에
 기록하지 않는다.
+
+### 4.4 `us_congress_trades_cache.db` — 미국 의회 거래 공시 캐시
+
+경로: `scripts/cloud-vm/us_congress_trades_cache.db`(환경변수 `US_CONGRESS_CACHE_DB`로
+대체 가능). 테이블 `us_congress_trades_cache(symbol TEXT PRIMARY KEY, payload_json TEXT
+NOT NULL, fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-congress-trades/{symbol}`에서
+Quiver Congress Trading의 최근 공시를 3시간 재사용하며, 실제 거래일·신고일·지연일수와
+금액구간을 포함한 정규화 응답을 저장한다. `QUIVER_API_KEY`가 없으면 외부 호출 없이
+명시적인 미제공 응답을 반환한다.
 
 ---
 
