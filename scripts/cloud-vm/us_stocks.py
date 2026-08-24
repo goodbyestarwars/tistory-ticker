@@ -206,9 +206,14 @@ def _market_state():
 
 
 def _normalize_quote(row, symbol, provider, exchange):
-    # 키움 해외주식 응답의 cur_prc는 하락 종목에 부호가 붙을 수 있다.
-    # 가격 자체는 양수로 노출하고, change/change_rate에만 방향을 보존한다.
-    raw_price = _number(_first(row, 'cur_prc', 'last', 'last_pric', 'last_price', 'price'))
+    # 키움 해외주식 응답의 cur_prc와 KIS의 ovrs_prpr는 하락 종목에
+    # 부호가 붙을 수 있다. 가격 자체는 양수로 노출하고, change/change_rate에만
+    # 방향을 보존한다.
+    raw_price = _number(_first(
+        row,
+        'cur_prc', 'ovrs_prpr', 'ovrs_nmix_prpr',
+        'last', 'last_pric', 'last_price', 'price',
+    ))
     price = abs(raw_price) if raw_price is not None else None
     if price is None:
         raise UsStockUnavailable(provider + ' 미국주식 현재가가 비어 있습니다.')
@@ -228,6 +233,21 @@ def _normalize_quote(row, symbol, provider, exchange):
         previous_close = price - change
     if change_rate is None and previous_close:
         change_rate = change / previous_close * 100 if change is not None else None
+    # KIS 해외주식 현재체결가 응답은 high_pric/low_pric가 아니라
+    # ovrs_hgpr/ovrs_lwpr를 사용한다. 이 별칭을 놓치면 현재가·등락은
+    # 보이는데 오늘 고가·저가만 '-'로 남는다.
+    day_high = _number(_first(
+        row, 'ovrs_hgpr', 'high_pric', 'high', 'day_high', 'high_price', 'highPrice',
+    ))
+    day_low = _number(_first(
+        row, 'ovrs_lwpr', 'low_pric', 'low', 'day_low', 'low_price', 'lowPrice',
+    ))
+    week52_high = _number(_first(
+        row, '52wk_hgst_pric', 'fifty_two_week_high', 'h52hgpr', 'w52_hgpr',
+    ))
+    week52_low = _number(_first(
+        row, '52wk_lwst_pric', 'fifty_two_week_low', 'h52lwpr', 'w52_lwpr',
+    ))
     return {
         'market': 'us',
         'symbol': symbol,
@@ -239,11 +259,11 @@ def _normalize_quote(row, symbol, provider, exchange):
         'previous_close': previous_close,
         'change': change,
         'change_rate': change_rate,
-        'day_high': abs(_number(_first(row, 'high_pric', 'high', 'day_high'))) if _number(_first(row, 'high_pric', 'high', 'day_high')) is not None else None,
-        'day_low': abs(_number(_first(row, 'low_pric', 'low', 'day_low'))) if _number(_first(row, 'low_pric', 'low', 'day_low')) is not None else None,
-        'volume': _number(_first(row, 'acc_trde_qty', 'tvol', 'volume', 'acml_vol')),
-        'week52_high': abs(_number(_first(row, '52wk_hgst_pric', 'fifty_two_week_high'))) if _number(_first(row, '52wk_hgst_pric', 'fifty_two_week_high')) is not None else None,
-        'week52_low': abs(_number(_first(row, '52wk_lwst_pric', 'fifty_two_week_low'))) if _number(_first(row, '52wk_lwst_pric', 'fifty_two_week_low')) is not None else None,
+        'day_high': abs(day_high) if day_high is not None else None,
+        'day_low': abs(day_low) if day_low is not None else None,
+        'volume': _number(_first(row, 'ovrs_vol', 'acc_trde_qty', 'tvol', 'volume', 'acml_vol')),
+        'week52_high': abs(week52_high) if week52_high is not None else None,
+        'week52_low': abs(week52_low) if week52_low is not None else None,
         'market_state': _market_state(),
         'updated_at': int(time.time()),
         'source': provider,

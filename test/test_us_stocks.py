@@ -95,6 +95,20 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual(data['week52_low'], 150.0)
         self.assertEqual(data['source'], '키움증권 REST API')
 
+    def test_kis_quote_normalizes_overseas_high_low_fields(self):
+        data = us_stocks._normalize_quote({
+            'ovrs_item_name': 'Apple Inc.', 'ovrs_prpr': '201.5000',
+            'prdy_vrss': '-1.50', 'prdy_ctrt': '-0.74',
+            'ovrs_hgpr': '203.2500', 'ovrs_lwpr': '198.7500',
+            'ovrs_vol': '123456',
+        }, 'AAPL', '한국투자증권 Open API', 'NAS')
+        self.assertEqual(data['price'], 201.5)
+        self.assertEqual(data['day_high'], 203.25)
+        self.assertEqual(data['day_low'], 198.75)
+        self.assertEqual(data['volume'], 123456.0)
+        self.assertEqual(data['change'], -1.5)
+        self.assertEqual(data['change_rate'], -0.74)
+
     def test_broker_quote_repairs_absolute_change_for_negative_rate(self):
         data = us_stocks._normalize_quote({
             'cur_prc': '142.22', 'base_close_pric': '146.23',
