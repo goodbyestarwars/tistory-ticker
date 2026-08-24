@@ -997,7 +997,8 @@
     container.querySelectorAll('.wl-card').forEach(function (card) {
       function goToRealtime() {
         location.href = STOCK_SEARCH_PAGE_URL + '?code=' + encodeURIComponent(card.getAttribute('data-code'))
-          + '&name=' + encodeURIComponent(card.getAttribute('data-name'));
+          + '&name=' + encodeURIComponent(card.getAttribute('data-name'))
+          + '&from=my';
       }
       card.addEventListener('click', function (e) {
         if (didDrag) { didDrag = false; return; }

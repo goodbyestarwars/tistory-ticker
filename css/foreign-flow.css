@@ -2101,6 +2101,30 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: rgba(245, 239, 224, 0.
 #foreign-flow .ff-swing-fact small { color: #64748b; font-size: 11px; }
 #foreign-flow .ff-swing-fact b { color: #334155; font-size: 12px; font-weight: 600; }
 #foreign-flow .ff-swing-fact:first-child b { color: #0f4c81; }
+#foreign-flow .ff-swing-flow-chart {
+  margin-top: 10px;
+  padding: 10px 2px 0;
+  border-top: 1px solid #e1e7ee;
+}
+#foreign-flow .ff-swing-flow-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+#foreign-flow .ff-swing-flow-chart-head strong { color: #334155; font-size: 12px; }
+#foreign-flow .ff-swing-flow-chart-head small { color: #94a3b8; font-size: 10.5px; }
+#foreign-flow .ff-swing-flow-svg { width: 100%; height: auto; margin-top: 2px; }
+#foreign-flow .ff-swing-flow-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  color: #64748b;
+  font-size: 10.5px;
+}
+#foreign-flow .ff-swing-flow-chart-legend span { display: inline-flex; align-items: center; gap: 4px; }
+#foreign-flow .ff-swing-flow-chart-legend .ff-dot { width: 7px; height: 7px; }
 #foreign-flow .ff-swing-reasons, #foreign-flow .ff-swing-invalidation, #foreign-flow .ff-swing-risk-detail { margin-top: 7px; color: #475569; font-size: 12px; line-height: 1.55; }
 #foreign-flow .ff-swing-risk-detail { color: #b42318; }
 #foreign-flow .ff-sig-banner-score { font-size: 12px; color: #334155; }
@@ -2116,6 +2140,10 @@ html.dark #foreign-flow .ff-swing-regime strong { color: #9ac7f4; }
 html.dark #foreign-flow .ff-swing-flow-track, html.dark #foreign-flow .ff-swing-step + .ff-swing-step, html.dark #foreign-flow .ff-swing-diagnosis, html.dark #foreign-flow .ff-swing-actions, html.dark #foreign-flow .ff-swing-action + .ff-swing-action { border-color: rgba(245, 239, 224, 0.16); }
 html.dark #foreign-flow .ff-swing-step strong, html.dark #foreign-flow .ff-swing-diagnosis strong { color: #9ac7f4; }
 html.dark #foreign-flow .ff-swing-action strong, html.dark #foreign-flow .ff-swing-fact b, html.dark #foreign-flow .ff-swing-reasons, html.dark #foreign-flow .ff-swing-invalidation { color: rgba(245, 239, 224, 0.8); }
+html.dark #foreign-flow .ff-swing-flow-chart { border-color: rgba(245, 239, 224, 0.16); }
+html.dark #foreign-flow .ff-swing-flow-chart-head strong { color: #F5EFE0; }
+html.dark #foreign-flow .ff-swing-flow-chart-head small,
+html.dark #foreign-flow .ff-swing-flow-chart-legend { color: rgba(245, 239, 224, 0.58); }
 html.dark #foreign-flow .ff-sig-banner-chip {
   background: rgba(245, 239, 224, 0.1) !important;
   border-color: rgba(245, 239, 224, 0.25) !important;

@@ -44,6 +44,20 @@
   white-space: nowrap;
 }
 #stock-search .ss-go-btn:hover { background: #555; }
+#stock-search .ss-change-stock-btn {
+  display: block;
+  margin: -5px 0 12px auto;
+  padding: 6px 11px;
+  border: 1px solid #d7dee8;
+  border-radius: 999px;
+  background: #fff;
+  color: #526173;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#stock-search .ss-change-stock-btn:hover { border-color: #9aa9bc; color: #1f3d5d; background: #f8fafc; }
 
 #stock-search .ss-suggest {
   display: none;
@@ -604,6 +618,7 @@
 html.dark #stock-search { color: #F5EFE0 !important; }
 html.dark #stock-search .ss-spinner { color: #F5EFE0 !important; }
 html.dark #stock-search .ss-input { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.25) !important; color: #F5EFE0 !important; }
+html.dark #stock-search .ss-change-stock-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.25) !important; color: rgba(245, 239, 224, 0.75) !important; }
 html.dark #stock-search .ss-suggest { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #stock-search .ss-suggest-item:hover,
 html.dark #stock-search .ss-suggest-item.active { background: rgba(245, 239, 224, 0.1) !important; }

@@ -253,8 +253,10 @@
   function autoSearchFromUrl(container) {
     var params = new URLSearchParams(location.search);
     var code = (params.get('code') || '').trim();
+    var fromMy = params.get('from') === 'my';
     if (params.get('market') === 'us' || /^US:/i.test(code)) {
       setMarketMode(container, true);
+      if (fromMy) setStockSelectorHidden(container, true);
       loadUsStocksModule(container);
       return;
     }
@@ -263,7 +265,20 @@
     var name = (params.get('name') || '').trim();
     var input = container.querySelector('#ssInput');
     if (input) input.value = name || code;
+    // MY에서 들어온 URL은 이미 한 종목이 확정된 상태다. 검색 결과 1건을
+    // 다시 고르게 할 이유가 없어 선택 영역 전체를 접고, 필요한 경우에만
+    // '종목 변경' 버튼으로 다시 연다.
+    if (fromMy) setStockSelectorHidden(container, true);
     runSearch(container, code);
+  }
+
+  function setStockSelectorHidden(container, hidden) {
+    var search = container.querySelector('.ss-search');
+    var results = container.querySelector('#ssResults');
+    var change = container.querySelector('#ssChangeStockBtn');
+    if (search) search.hidden = hidden;
+    if (results) results.hidden = hidden;
+    if (change) change.hidden = !hidden;
   }
 
   function openUsSymbol(container, query) {
@@ -292,6 +307,7 @@
       + '</div>'
       + '<button type="button" id="ssGoBtn" class="ss-go-btn">검색</button>'
       + '</div>'
+      + '<button type="button" id="ssChangeStockBtn" class="ss-change-stock-btn" hidden>종목 변경</button>'
       + '<div id="ssResults" class="ss-results"></div>'
       + '<div id="ssUsModule" class="ss-us-module" hidden></div>'
       + '<div id="ssDetail" class="ss-detail" hidden>'
@@ -472,6 +488,13 @@
     goBtn.addEventListener('click', function () {
       hideSuggestions(suggestBox);
       runSearch(container, input.value.trim());
+    });
+    var changeBtn = container.querySelector('#ssChangeStockBtn');
+    if (changeBtn) changeBtn.addEventListener('click', function () {
+      setStockSelectorHidden(container, false);
+      input.value = '';
+      hideSuggestions(suggestBox);
+      input.focus();
     });
     document.addEventListener('click', function (e) {
       if (!container.contains(e.target)) hideSuggestions(suggestBox);
