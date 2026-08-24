@@ -83,6 +83,13 @@
 .dmi-subheading h3,
 .dmi-muted,
 .dmi-heading h2 { font-size: 24px; }
+.dmi-spot-quotes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
+.dmi-spot-card { min-width: 0; border: 1px solid #e4eaf2; border-radius: 12px; background: #fff; padding: 14px 16px; box-sizing: border-box; }
+.dmi-spot-label { display: block; color: #64748b; font-size: 12px; font-weight: 600; }
+.dmi-spot-price { display: block; margin-top: 5px; color: #111827; font-size: 24px; line-height: 1.1; }
+.dmi-spot-change { display: block; margin-top: 5px; color: #64748b; font-size: 12px; font-weight: 600; }
+.dmi-spot-change.dmi-positive { color: #d24f45 !important; }
+.dmi-spot-change.dmi-negative { color: #1261c4 !important; }
 .dmi-subheading { margin: 28px 0 12px; }
 .dmi-subheading h3 { font-size: 18px; }
 .dmi-muted { color: #000; font-size: 13px; }
@@ -225,6 +232,9 @@
 .dmi-error { border: 1px solid #d8d8d8; border-radius: 0; background: transparent; }
 
 @media (max-width: 760px) {
+  .dmi-spot-quotes { gap: 8px; margin-bottom: 14px; }
+  .dmi-spot-card { padding: 12px; }
+  .dmi-spot-price { font-size: 20px; }
   .dmi-heading h2 { font-size: 24px; }
   .dmi-subheading h3 { font-size: 18px; }
   .dmi-chart-grid { grid-template-columns: 1fr; gap: 0; }
@@ -266,6 +276,10 @@ html.dark .dmi-panel,
 html.dark .dmi-fund-card,
 html.dark .dmi-flow-card,
 html.dark .dmi-ai { background: transparent !important; box-shadow: none !important; }
+html.dark .dmi-spot-card { background: transparent !important; border-color: rgba(245,239,224,.2); }
+html.dark .dmi-spot-label,
+html.dark .dmi-spot-price,
+html.dark .dmi-spot-change { color: #F5EFE0 !important; }
 html.dark .dmi-tab,
 html.dark .dmi-tabs .dmi-draw-toggle,
 html.dark .dmi-tabs .dmi-draw-clear { background: transparent !important; color: rgba(245,239,224,.6) !important; }

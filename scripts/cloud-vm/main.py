@@ -2259,6 +2259,11 @@ def option_flow_endpoint():
         conn.close()
     data = {r['side']: r for r in rows}
     data['strikes'] = strikes
+    maturity = option_flow.nearest_option_maturity_yyyymm()
+    data['maturity'] = maturity
+    data['maturity_label'] = '%s년 %s월물' % (maturity[:4], maturity[4:])
+    data['source'] = 'KIS 옵션 전광판 REST + KIS WebSocket'
+    data['websocket'] = option_flow.websocket_available()
     return envelope(data)
 
 

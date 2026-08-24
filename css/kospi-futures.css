@@ -303,6 +303,7 @@
   padding: 14px;
   background: rgba(255,255,255,.72);
 }
+#kospi-futures .kf-option-title-meta { margin-left: 8px; color: #8993a1; font-size: 11px; font-weight: 400; }
 #kospi-futures .kf-option-profile-head,
 #kospi-futures .kf-option-profile-labels {
   display: flex;

@@ -130,6 +130,11 @@
       if (!quote || !quote.symbol || typeof quote.price !== 'number') return;
       var index = data.indices && data.indices[quote.symbol];
       if (!index || !index.intervals) return;
+      index.quote = index.quote || {};
+      index.quote.price = quote.price;
+      index.quote.change = quote.change;
+      index.quote.change_rate = quote.change_rate;
+      index.quote.updated_at = quote.updated_at;
       Object.keys(index.intervals).forEach(function (interval) {
         var rows = index.intervals[interval].rows || [];
         if (!rows.length) return;
@@ -140,6 +145,7 @@
       });
     });
     renderCharts(dmiRoot, data.indices || {});
+    renderSpotQuotes(dmiRoot, data.indices || {});
   }
 
   function connectSocket() {
@@ -219,6 +225,37 @@
 
   function chartPriceFormatter(value) {
     return value == null || isNaN(value) ? '' : value.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function spotPrice(value) {
+    if (value == null || isNaN(Number(value))) return '-';
+    return Number(value).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function spotChange(value, digits) {
+    if (value == null || isNaN(Number(value))) return '-';
+    var number = Number(value);
+    return (number > 0 ? '+' : '') + number.toFixed(digits == null ? 2 : digits);
+  }
+
+  function renderSpotQuotes(root, indices) {
+    var mount = root && root.querySelector('.dmi-spot-quotes');
+    if (!mount) return;
+    mount.innerHTML = ['KOSPI', 'KOSDAQ'].map(function (market) {
+      var item = indices && indices[market] || {};
+      var quote = item.quote || {};
+      var rows = item.intervals && item.intervals.day && item.intervals.day.rows || [];
+      var last = rows.length ? rows[rows.length - 1] : {};
+      var price = quote.price != null ? quote.price : last.close;
+      var change = quote.change;
+      var rate = quote.change_rate;
+      var cls = Number(change) > 0 ? 'dmi-positive' : Number(change) < 0 ? 'dmi-negative' : '';
+      return '<article class="dmi-spot-card">'
+        + '<span class="dmi-spot-label">' + escapeHtml(item.name || market) + '</span>'
+        + '<strong class="dmi-spot-price">' + spotPrice(price) + '</strong>'
+        + '<span class="dmi-spot-change ' + cls + '">' + spotChange(change) + ' (' + spotChange(rate) + '%)</span>'
+        + '</article>';
+    }).join('');
   }
 
   function mergeOptions(base, extra) {
@@ -454,7 +491,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260818-market-news-v1';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260825-cash-box-v1';
     document.head.appendChild(link);
   }
 
@@ -747,6 +784,7 @@
     installStyle();
     root.innerHTML = '<div class="dmi-shell">'
       + '<div class="dmi-heading"><h2>국내시장지표</h2><span class="dmi-live-status" data-dmi-connection>REST 확인 중</span></div>'
+      + '<div class="dmi-spot-quotes"><article class="dmi-spot-card">불러오는 중...</article><article class="dmi-spot-card">불러오는 중...</article></div>'
       + '<section class="dmi-chart-section"><div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45) <span class="dmi-market-status" data-dmi-market-status></span></h3></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div></section>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3></div>'
@@ -760,6 +798,7 @@
     fetchJson().then(function (data) {
       root._dmiData = data;
       renderCharts(root, data.indices || {});
+      renderSpotQuotes(root, data.indices || {});
       renderInvestor(root, data.investor || {});
       renderFunds(root, data.funds || {}, data.programTrading || {}, data.leverageDetail || {});
       connectSocket();
@@ -770,7 +809,7 @@
       if (document.hidden) closeSocket(false);
       else {
         if (marketStatusNode) marketStatusNode.textContent = domesticCashMarketStatusLabel();
-        connectSocket(); fetchJson().then(function (data) { root._dmiData = data; renderCharts(root, data.indices || {}); }).catch(function () {});
+        connectSocket(); fetchJson().then(function (data) { root._dmiData = data; renderCharts(root, data.indices || {}); renderSpotQuotes(root, data.indices || {}); }).catch(function () {});
       }
     });
     global.addEventListener('beforeunload', function () { closeSocket(false); });
@@ -827,11 +866,8 @@
       var interval = button.getAttribute('data-interval');
       var market = panel.getAttribute('data-dmi-panel');
       panel.setAttribute('data-dmi-interval', interval);
-      // The day/week response is kept on the root so switching between those two
-      // tabs never triggers an extra provider request. Minute(분봉) is the one
-      // exception (2026-08-23) - it's fetched on demand the first time a panel's
-      // 분봉 tab is opened, since shipping it in every page load doubled the
-      // payload for a tab most visits never open (사용자 리포트: "차트가 유독 느려").
+      // 일봉만 초기 응답에 담고 주봉·분봉은 탭을 눌렀을 때 가져온다. 두 시장의
+      // 주봉까지 첫 화면에서 조회하던 것이 현물 차트 로딩을 늦추고 있었다.
       var data = root._dmiData;
       if (!data) return;
       var existing = data.indices && data.indices[market] && data.indices[market].intervals
@@ -840,12 +876,12 @@
         renderCharts(root, data.indices || {});
         return;
       }
-      if (interval !== 'minute') {
+      if (interval !== 'minute' && interval !== 'week') {
         renderCharts(root, data.indices || {});
         return;
       }
       var chartEl = panel.querySelector('.dmi-chart');
-      if (chartEl) chartEl.innerHTML = '<div class="dmi-chart-message">분봉 불러오는 중...</div>';
+      if (chartEl) chartEl.innerHTML = '<div class="dmi-chart-message">' + (interval === 'week' ? '주봉' : '분봉') + ' 불러오는 중...</div>';
       fetchChartInterval(market, interval).then(function (source) {
         if (panel.getAttribute('data-dmi-interval') !== interval) return; // 그 사이 다른 탭으로 이동
         data.indices[market].intervals[interval] = source;

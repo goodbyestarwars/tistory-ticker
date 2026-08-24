@@ -372,7 +372,7 @@
         + '</div>';
     }).join('');
     return '<div class="kf-section" data-section-key="option">'
-      + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급</div></div>'
+      + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급 <span class="kf-option-title-meta">만기 확인 중</span></div></div>'
       + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
       + '<div class="kf-option-profile" id="kfOptionProfile">'
       + '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
@@ -453,6 +453,11 @@
 
   function refreshOptionFlow(container) {
     KospiFutures.fetchOptionFlow().then(function (bySide) {
+      var optionMeta = container.querySelector('.kf-option-title-meta');
+      if (optionMeta) {
+        var sourceLabel = bySide.websocket ? ' · WS 실시간 보강' : ' · REST 스냅샷';
+        optionMeta.textContent = (bySide.maturity_label || '최근월물') + sourceLabel;
+      }
       OPTION_SIDES.forEach(function (s) {
         var card = container.querySelector('.kf-opt-card[data-side="' + s.key + '"]');
         if (!card) return;
@@ -1132,7 +1137,7 @@
     // domestic-market-indicators.js를 다시 안 받아온다 - 그 파일을 고칠 때마다 같이 올려야
     // 한다(오늘 여러 번 고쳤는데 이 값을 안 올려서 캐시된 사용자가 최신 코드를 못 받는
     // 문제를 뒤늦게 발견함).
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260819-dmi-cache-fix-v1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260825-cash-box-v1';
     script.setAttribute('data-domestic-market-indicators', '1');
     script.onload = function () {
       if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();

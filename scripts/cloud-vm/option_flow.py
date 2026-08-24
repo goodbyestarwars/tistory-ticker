@@ -31,6 +31,14 @@ _POLL_INTERVAL_SEC = 5 * 60
 _WS_PERSIST_INTERVAL_SEC = 5  # 콜/풋 요약 카드는 초당 갱신이 필요 없음 - 불필요한 SQLite
                               # 커밋/테이블 재구성 빈도를 줄임(2026-08-21 코드 감사, 기존 1초)
 
+
+def websocket_available():
+    try:
+        import websockets  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
 OPTION_TRADE_TR_ID = 'H0IOCNT0'
 OPTION_QUOTE_TR_ID = 'H0IOASP0'
 
@@ -184,6 +192,15 @@ def _merge_ws_row(base, update):
     return merged
 
 
+def _board_with_ws_updates(board_rows, by_code):
+    """REST 전광판 전체 행을 유지하면서 구독한 계약만 WS 값으로 갱신한다."""
+    result = []
+    for row in board_rows:
+        code = _option_code(row)
+        result.append(_merge_ws_row(row, by_code.get(code, {})) if code else row)
+    return result
+
+
 def _persist_rows(calls, puts, mtrt):
     now_iso = datetime.now(timezone.utc).isoformat()
     call_v, call_oi, call_oic = _aggregate(calls)
@@ -271,9 +288,15 @@ async def _ws_loop(appkey, appsecret):
                             if code in by_code:
                                 by_code[code] = _merge_ws_row(by_code[code], update)
                         if time.time() - last_persist >= _WS_PERSIST_INTERVAL_SEC:
-                            calls = [row for row in by_code.values() if row.get('_side') == 'CALL']
-                            puts = [row for row in by_code.values() if row.get('_side') == 'PUT']
-                            _persist_rows(calls, puts, mtrt)
+                            # WS는 거래량 상위 일부 계약만 구독한다. 여기서 selected
+                            # 행만 저장하면 전체 OI/거래량과 행사가 프로파일이 20개 계약으로
+                            # 축소되는 회귀가 생기므로, REST 전광판 전체 행을 기준으로
+                            # 구독 계약의 최신값만 합쳐서 저장한다.
+                            _persist_rows(
+                                _board_with_ws_updates(calls, by_code),
+                                _board_with_ws_updates(puts, by_code),
+                                mtrt,
+                            )
                             last_persist = time.time()
                         continue
                     try:

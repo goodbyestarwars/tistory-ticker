@@ -31,13 +31,10 @@ MARKETS = {
     'KOSDAQ': {'name': '코스닥', 'kiwoom_code': '101', 'kis_code': '1001'},
 }
 INTERVALS = ('minute', 'day', 'week')
-# 2026-08-23: 기본 페이지 로드에는 day/week만 담는다(사용자 리포트: "코스피·코스닥
-# 주간현물 차트가 유독 느려" - 실측 결과 응답 256KB 중 분봉 1,500봉x2종목이 절반
-# 가까이를 차지했는데 기본 활성 탭은 일봉이라 대부분 요청에서 안 쓰였다). 분봉은
-# main.py의 /domestic-market-indicators/chart 온디맨드 엔드포인트로 분리해 사용자가
-# 실제로 분봉 탭을 눌렀을 때만 fetch_chart()를 재사용해 그 시점에 가져온다 - "탭 전환
-# 시 추가 요청 없음" 설계를 분봉에 한해 되돌리는 트레이드오프(사용자 확인).
-EAGER_INTERVALS = ('day', 'week')
+# 2026-08-25: 기본 페이지 로드에는 일봉만 담는다. 주봉·분봉은 사용자가 해당 탭을
+# 눌렀을 때 /domestic-market-indicators/chart에서 가져온다. 현물 차트의 느린 첫 로딩은
+# 키움/KIS의 4개 차트 요청이 페이지 응답을 함께 붙잡고 있던 것이 원인이었다.
+EAGER_INTERVALS = ('day',)
 # Keep the domestic spot charts on the same lookback as /futures?days=250.
 CHART_LOOKBACK_DAYS = 250
 CHART_MINUTE_MAX_BARS = 1500
@@ -88,14 +85,28 @@ def _timestamp(value):
         return None
 
 
-def _candle(row, minute=False):
+def _normalise_index_price(value, market):
+    """키움 지수 OHLC의 100배 표기를 네이버/KIS 단위로 통일한다.
+
+    ka20006/ka20007 실측 응답은 코스피·코스닥 지수 가격을 100배 정수처럼
+    내려준다(예: 669696 -> 6696.96, 81333 -> 813.33). 반면 Naver와
+    실시간 스냅샷은 정상 소수점 단위라 마지막 봉만 작아지는 꼬리가 생겼다.
+    10,000을 넘는 국내 현물 지수값만 보정하므로 정상 단위 응답에는 손대지 않는다.
+    """
+    number = _price_number(value)
+    if number is not None and market in MARKETS and number > 10000:
+        return number / 100.0
+    return number
+
+
+def _candle(row, minute=False, market=None):
     date_value = _first(row, 'dt', 'stck_bsop_date', 'date', 'localDate')
     time_value = _first(row, 'cntr_tm', 'stck_cntg_hour', 'time', 'localDateTime')
     point = {
-        'open': _price_number(_first(row, 'open_pric', 'stck_oprc', 'bstp_nmix_oprc', 'openPrice')),
-        'high': _price_number(_first(row, 'high_pric', 'stck_hgpr', 'bstp_nmix_hgpr', 'highPrice')),
-        'low': _price_number(_first(row, 'low_pric', 'stck_lwpr', 'bstp_nmix_lwpr', 'lowPrice')),
-        'close': _price_number(_first(row, 'cur_prc', 'stck_clpr', 'bstp_nmix_prpr', 'closePrice', 'currentPrice')),
+        'open': _normalise_index_price(_first(row, 'open_pric', 'stck_oprc', 'bstp_nmix_oprc', 'openPrice'), market),
+        'high': _normalise_index_price(_first(row, 'high_pric', 'stck_hgpr', 'bstp_nmix_hgpr', 'highPrice'), market),
+        'low': _normalise_index_price(_first(row, 'low_pric', 'stck_lwpr', 'bstp_nmix_lwpr', 'lowPrice'), market),
+        'close': _normalise_index_price(_first(row, 'cur_prc', 'stck_clpr', 'bstp_nmix_prpr', 'closePrice', 'currentPrice'), market),
         'volume': _number(_first(row, 'trde_qty', 'acml_vol', 'acc_trde_qty', 'volume')) or 0,
     }
     if any(point[key] is None for key in ('open', 'high', 'low', 'close')):
@@ -115,10 +126,10 @@ def _chart_cutoff_date():
     return (datetime.now(KST) - timedelta(days=CHART_LOOKBACK_DAYS)).strftime('%Y-%m-%d')
 
 
-def _sort_rows(rows, minute=False, limit=600, since_date=None):
+def _sort_rows(rows, minute=False, limit=600, since_date=None, market=None):
     unique = {}
     for row in rows or []:
-        point = _candle(row, minute=minute)
+        point = _candle(row, minute=minute, market=market)
         if not point:
             continue
         if not minute and since_date and point['date'] < since_date:
@@ -157,6 +168,7 @@ def _fetch_kiwoom(token, market, interval):
         minute=minute,
         limit=CHART_MINUTE_MAX_BARS if minute else 600,
         since_date=None if minute else _chart_cutoff_date(),
+        market=market,
     )
     if len(points) < 2:
         raise RuntimeError('%s returned too few %s candles' % (api_id, market))
@@ -167,21 +179,21 @@ def _fetch_kis(token, appkey, appsecret, market, interval):
     code = MARKETS[market]['kis_code']
     if interval == 'minute':
         _, rows = kis_client.fetch_index_time_chart(token, appkey, appsecret, code, '60')
-        return _sort_rows(rows, minute=True, limit=CHART_MINUTE_MAX_BARS)
+        return _sort_rows(rows, minute=True, limit=CHART_MINUTE_MAX_BARS, market=market)
     start = (datetime.now(KST) - timedelta(days=CHART_LOOKBACK_DAYS)).strftime('%Y%m%d')
     end = datetime.now(KST).strftime('%Y%m%d')
     _, rows = kis_client.fetch_index_period_chart(
         token, appkey, appsecret, code, start, end, 'W' if interval == 'week' else 'D')
-    return _sort_rows(rows, minute=False, limit=600, since_date=_chart_cutoff_date())
+    return _sort_rows(rows, minute=False, limit=600, since_date=_chart_cutoff_date(), market=market)
 
 
 def _fetch_naver(market, interval):
     symbol = market
     if interval == 'minute':
         rows = domestic_futures.fetch_domestic_index_chart_minute('index', symbol, days=3)
-        return _sort_rows(rows, minute=True, limit=CHART_MINUTE_MAX_BARS)
+        return _sort_rows(rows, minute=True, limit=CHART_MINUTE_MAX_BARS, market=market)
     rows = domestic_futures.fetch_domestic_index_chart('index', symbol, days=CHART_LOOKBACK_DAYS)
-    points = _sort_rows(rows, minute=False, limit=600, since_date=_chart_cutoff_date())
+    points = _sort_rows(rows, minute=False, limit=600, since_date=_chart_cutoff_date(), market=market)
     if interval == 'week':
         # Naver's index endpoint is daily; aggregate it into the same weekly
         # candle shape used by the provider APIs.
@@ -243,6 +255,26 @@ def fetch_investor():
             'rows': _normalise_investor(result),
         }
     return data
+
+
+def fetch_cash_quote(market):
+    """현물 숫자 BOX용 최신 네이버 스냅샷."""
+    try:
+        quote = domestic_futures.fetch_index_realtime(market)
+        if not quote:
+            return None
+        return {
+            'price': quote.get('price'),
+            'change': quote.get('change'),
+            'change_rate': quote.get('change_rate'),
+            'high': quote.get('high'),
+            'low': quote.get('low'),
+            'updated_at': datetime.now(timezone.utc).isoformat(),
+            'source': 'naver',
+        }
+    except Exception as exc:
+        logger.warning('cash quote unavailable for %s: %s', market, exc)
+        return None
 
 
 def _number_from_candidates(row, keys):
@@ -473,8 +505,8 @@ def fetch_leverage_detail():
 
 
 def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
-    """코스피/코스닥 현물 차트 4개(2시장 x 일/주) + 투자자 수급 + 증시자금을 모은다.
-    분봉은 여기 안 담고 /domestic-market-indicators/chart 온디맨드 엔드포인트에서
+    """코스피/코스닥 현물 일봉 + 최신 숫자 + 투자자 수급 + 증시자금을 모은다.
+    주봉·분봉은 /domestic-market-indicators/chart 온디맨드 엔드포인트에서
     fetch_chart()를 재사용해 필요할 때만 조회한다(EAGER_INTERVALS 주석 참고).
 
     각 fetch_*는 서로 다른 종목/엔드포인트를 조회하는 독립적인 I/O라 순서를 지킬
@@ -487,7 +519,7 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
     필요는 없다).
     """
     chart_keys = [(market, interval) for market in MARKETS for interval in EAGER_INTERVALS]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(chart_keys) + 4) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(chart_keys) + 6) as pool:
         chart_futures = {
             key: pool.submit(fetch_chart, kiwoom_token, kis_appkey, kis_appsecret, key[0], key[1])
             for key in chart_keys
@@ -496,13 +528,21 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
         funds_future = pool.submit(fetch_funds, kis_appkey, kis_appsecret)
         program_trading_future = pool.submit(fetch_program_trading, kiwoom_token)
         leverage_detail_future = pool.submit(fetch_leverage_detail)
+        quote_futures = {
+            market: pool.submit(fetch_cash_quote, market)
+            for market in MARKETS
+        }
 
         indices = {}
         for market, cfg in MARKETS.items():
             intervals = {}
             for interval in EAGER_INTERVALS:
                 intervals[interval] = chart_futures[(market, interval)].result()
-            indices[market] = {'name': cfg['name'], 'intervals': intervals}
+            indices[market] = {
+                'name': cfg['name'],
+                'quote': quote_futures[market].result(),
+                'intervals': intervals,
+            }
 
         return {
             'sourcePriority': ['kiwoom', 'kis', 'naver'],
