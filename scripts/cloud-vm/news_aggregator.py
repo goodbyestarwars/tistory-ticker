@@ -37,6 +37,7 @@ HTTP_TIMEOUT = 8
 FOREIGN_NEWS_LIMIT = 2
 LOCAL_NEWS_LIMIT = 1
 TOTAL_NEWS_LIMIT = 10
+NEWS_CACHE_VERSION = 'major-publishers-v2'
 
 # Keep raw article bodies out of the database. This cache stores only the small
 # metadata payload needed by the US news panel and survives API process restarts.
@@ -83,11 +84,15 @@ def _cache_connect():
         );
         CREATE TABLE IF NOT EXISTS us_news_cache_meta (
             symbol TEXT PRIMARY KEY,
-            fetched_at INTEGER NOT NULL
+            fetched_at INTEGER NOT NULL,
+            cache_version TEXT NOT NULL DEFAULT ''
         );
         CREATE INDEX IF NOT EXISTS idx_us_news_cache_symbol_published
             ON us_news_cache(symbol, published_ts DESC);
     ''')
+    meta_columns = {row[1] for row in conn.execute('PRAGMA table_info(us_news_cache_meta)').fetchall()}
+    if 'cache_version' not in meta_columns:
+        conn.execute("ALTER TABLE us_news_cache_meta ADD COLUMN cache_version TEXT NOT NULL DEFAULT ''")
     return conn
 
 
@@ -100,10 +105,11 @@ def load_cached_news(symbol, ttl_sec=None):
     try:
         conn = _cache_connect()
         meta = conn.execute(
-            'SELECT fetched_at FROM us_news_cache_meta WHERE symbol = ?',
+            'SELECT fetched_at, cache_version FROM us_news_cache_meta WHERE symbol = ?',
             (symbol,),
         ).fetchone()
-        if meta is None or int(time.time()) - int(meta['fetched_at']) >= ttl:
+        if (meta is None or meta['cache_version'] != NEWS_CACHE_VERSION
+                or int(time.time()) - int(meta['fetched_at']) >= ttl):
             conn.close()
             return None
         rows = conn.execute('''
@@ -207,9 +213,9 @@ def save_cached_news(symbol, items, retain_limit=TOTAL_NEWS_LIMIT):
                     fetched_at,
                 ))
             conn.execute('''
-                INSERT OR REPLACE INTO us_news_cache_meta(symbol, fetched_at)
-                VALUES (?, ?)
-            ''', (symbol, fetched_at))
+                INSERT OR REPLACE INTO us_news_cache_meta(symbol, fetched_at, cache_version)
+                VALUES (?, ?, ?)
+            ''', (symbol, fetched_at, NEWS_CACHE_VERSION))
     except sqlite3.Error:
         logger.exception('News cache write failed for %s', symbol)
     finally:
@@ -217,7 +223,7 @@ def save_cached_news(symbol, items, retain_limit=TOTAL_NEWS_LIMIT):
             conn.close()
 
 
-def get_or_refresh_news(symbol, naver_fetcher=None, alpha_api_key='', finnhub_api_key='', limit=TOTAL_NEWS_LIMIT, ttl_sec=None):
+def get_or_refresh_news(symbol, naver_fetcher=None, alpha_api_key='', finnhub_api_key='', limit=TOTAL_NEWS_LIMIT, ttl_sec=None, search_terms=''):
     """Read SQLite first and fetch/replace only when this symbol's cache expires."""
     cached = load_cached_news(symbol, ttl_sec=ttl_sec)
     if cached is not None:
@@ -240,6 +246,7 @@ def get_or_refresh_news(symbol, naver_fetcher=None, alpha_api_key='', finnhub_ap
             alpha_api_key=alpha_api_key,
             finnhub_api_key=finnhub_api_key,
             limit=limit,
+            search_terms=search_terms,
         )
         save_cached_news(symbol, items)
         return items
@@ -455,7 +462,7 @@ def _published_timestamp(item):
     return _parse_date(item.get('pubDate'))
 
 
-def merge_news(symbol, naver_items=None, alpha_api_key='', finnhub_api_key='', limit=TOTAL_NEWS_LIMIT):
+def merge_news(symbol, naver_items=None, alpha_api_key='', finnhub_api_key='', limit=TOTAL_NEWS_LIMIT, search_terms=''):
     """주요 매체·선택형 API·네이버 종목 뉴스를 중복 제거·최신순으로 합친다."""
     items = []
     if alpha_api_key:
@@ -466,10 +473,10 @@ def merge_news(symbol, naver_items=None, alpha_api_key='', finnhub_api_key='', l
     # 기존 영어권 Google News RSS 검색으로 보완한다.
     foreign_count = sum(1 for item in items if item.get('provider') != 'Naver')
     if foreign_count < FOREIGN_NEWS_LIMIT:
-        items.extend(_google_news(symbol, major_publishers=True))
+        items.extend(_google_news(symbol, search_terms=search_terms, major_publishers=True))
         foreign_count = sum(1 for item in items if item.get('provider') != 'Naver')
     if foreign_count < FOREIGN_NEWS_LIMIT:
-        items.extend(_google_news(symbol))
+        items.extend(_google_news(symbol, search_terms=search_terms))
     items.extend(_normalize_naver(item) for item in (naver_items or []))
 
     unique = {}
@@ -485,12 +492,15 @@ def merge_news(symbol, naver_items=None, alpha_api_key='', finnhub_api_key='', l
     max_items = max(1, int(limit))
     foreign = [item for item in result if item.get('provider') != 'Naver']
     local = [item for item in result if item.get('provider') == 'Naver']
-    selected = (foreign[:FOREIGN_NEWS_LIMIT] + local[:LOCAL_NEWS_LIMIT])[:max_items]
+    # 미국 종목 화면은 해외 기사를 우선 노출하고, 국내 보완 기사는 최대 1개만 붙인다.
+    # 이전에는 부족한 자리를 전체 result로 채워 네이버 기사 9개가 다시 섞이는 문제가 있었다.
+    selected_foreign = sorted(foreign, key=lambda item: item.get('_published_ts', 0), reverse=True)
+    selected_local = sorted(local, key=lambda item: item.get('_published_ts', 0), reverse=True)
+    selected = selected_foreign[:min(FOREIGN_NEWS_LIMIT, max_items)]
     if len(selected) < max_items:
-        selected_keys = {_dedupe_key(item) for item in selected}
-        selected.extend(item for item in result if _dedupe_key(item) not in selected_keys)
-        selected = selected[:max_items]
-    selected = sorted(selected, key=lambda item: item.get('_published_ts', 0), reverse=True)
+        selected.extend(selected_local[:min(LOCAL_NEWS_LIMIT, max_items - len(selected))])
+    if len(selected) < max_items:
+        selected.extend(selected_foreign[len(selected_foreign[:min(FOREIGN_NEWS_LIMIT, max_items)]):max_items])
     for item in selected:
         item.pop('_published_ts', None)
     return selected
@@ -628,8 +638,12 @@ def _finnhub_general_news(api_key):
     return items[:50]
 
 
-def _google_news(symbol, major_publishers=False):
-    query_text = '"' + symbol + '" stock'
+def _google_news(symbol, search_terms='', major_publishers=False):
+    safe_terms = str(search_terms or '').replace('"', '').strip()[:80]
+    query_text = '"' + symbol + '"'
+    if safe_terms and safe_terms.upper() != str(symbol).upper():
+        query_text += ' "' + safe_terms + '"'
+    query_text += ' stock'
     if major_publishers:
         query_text += ' (site:cnbc.com OR site:bloomberg.com)'
     query = urllib.parse.urlencode({

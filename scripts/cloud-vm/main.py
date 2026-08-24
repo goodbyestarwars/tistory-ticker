@@ -1299,6 +1299,7 @@ def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=1
         alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
         limit=10,
+        search_terms=name,
     )
     providers = sorted(set(item.get('provider') for item in items if item.get('provider')))
     return envelope({
@@ -2191,7 +2192,7 @@ def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=70))
         'market': 'us',
         'items': items,
         'flash': _build_flash_items(items, filings, 'us'),
-        'source': 'Finnhub general + Alpha Vantage NEWS_SENTIMENT + SEC EDGAR filings',
+        'source': 'CNBC/Bloomberg RSS + Finnhub + Alpha Vantage + SEC EDGAR filings',
     })
 
 

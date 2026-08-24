@@ -165,6 +165,15 @@ class NewsAggregatorTests(unittest.TestCase):
         self.assertIn('site%3Acnbc.com', query)
         self.assertIn('site%3Abloomberg.com', query)
 
+    def test_stock_news_keeps_foreign_news_ahead_of_one_local_fallback(self):
+        with mock.patch.object(news_aggregator, '_google_news', return_value=[]):
+            items = news_aggregator.merge_news('AAPL', naver_items=[
+                {'title': '국내 기사 1', 'link': 'https://kr.example/1', 'pubDate': 'Tue, 25 Aug 2026 10:00:00 +0000'},
+                {'title': '국내 기사 2', 'link': 'https://kr.example/2', 'pubDate': 'Tue, 25 Aug 2026 09:00:00 +0000'},
+            ])
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['provider'], 'Naver')
+
     def test_sec_edgar_filings_are_normalized_as_us_disclosures(self):
         xml = news_aggregator.ET.fromstring('''
             <feed xmlns="http://www.w3.org/2005/Atom">
