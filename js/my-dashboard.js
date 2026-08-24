@@ -124,17 +124,60 @@
   function renderShell() {
     mount.innerHTML = '<header class="my-dashboard-head">'
       + '<div><span class="my-dashboard-eyebrow">MY PORTFOLIO</span><h2>내 종목 분석</h2><p>종목을 입력하면 시세·차트·수급·매물대를 바로 분석합니다.</p></div></header>'
-      + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><div class="my-input-wrap"><span class="my-input-logo" data-my-input-logo aria-hidden="true"><span data-my-input-initials>종목</span><img data-my-input-image alt="" hidden></span><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist></div><button type="button" data-my-load aria-label="입력한 종목 불러오기"><svg class="my-load-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 7.2 4.5M12 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>불러오기</span></button></div><p>저장된 MY 종목은 입력창에서 선택할 수 있고, 새 종목도 먼저 분석할 수 있습니다.</p></div>'
-      + '<div class="my-watchlist-wrap"><section class="my-watchlist-panel"><div class="my-watchlist-panel-head"><div><strong>MY 관심종목</strong><span>그룹을 접어 필요한 종목만 보고, 행을 누르면 아래에서 분석할 수 있습니다.</span></div><small data-my-watchlist-count>0종목</small></div><div class="my-watchlist-groups" data-my-watchlist-table></div></section><button type="button" class="my-watchlist-show" data-my-watchlist-show hidden>관심종목 보기</button></div>'
+      + '<div class="my-search-panel"><label for="myStockInput">분석할 종목</label><div class="my-search-row"><div class="my-input-wrap"><span class="my-input-logo" data-my-input-logo aria-hidden="true"><span data-my-input-initials>종목</span><img data-my-input-image alt="" hidden></span><input id="myStockInput" list="myStockOptions" type="search" placeholder="종목명, 종목코드 또는 미국 티커 입력" autocomplete="off"><datalist id="myStockOptions"></datalist></div><button type="button" data-my-load aria-label="입력한 종목 불러오기"><svg class="my-load-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 7.2 4.5M12 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>불러오기</span></button></div><p>불러오기는 분석만 진행합니다. MY에 계속 보관하려면 아래 <b>+ 관심종목 추가</b>를 이용하세요.</p></div>'
+      + '<div class="my-watchlist-wrap"><section class="my-watchlist-panel"><div class="my-watchlist-panel-head"><div><strong>MY 관심종목</strong><span>그룹을 접어 필요한 종목만 보고, 행을 누르면 아래에서 분석할 수 있습니다.</span></div><div class="my-watchlist-head-actions"><small data-my-watchlist-count>0종목</small><button type="button" class="my-watchlist-add" data-my-watchlist-add>+ 관심종목 추가</button></div></div><div class="my-watchlist-groups" data-my-watchlist-table></div></section><button type="button" class="my-watchlist-show" data-my-watchlist-show hidden>관심종목 보기</button></div>'
+      + '<div class="my-watchlist-modal" data-my-watchlist-modal hidden><div class="my-watchlist-modal-backdrop" data-my-watchlist-close></div><section class="my-watchlist-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="myWatchlistModalTitle"><div class="my-watchlist-modal-head"><strong id="myWatchlistModalTitle">관심종목 추가</strong><button type="button" class="my-watchlist-modal-close" data-my-watchlist-close aria-label="관심종목 추가 창 닫기">×</button></div><p>국내 종목명·6자리 코드 또는 미국 티커를 입력하세요.</p><div class="my-watchlist-modal-row"><input id="myWatchlistAddInput" list="myWatchlistAddOptions" type="search" placeholder="예: 삼성전자, 005930, AAPL" autocomplete="off"><datalist id="myWatchlistAddOptions"></datalist><button type="button" data-my-watchlist-add-confirm>추가</button></div><p class="my-watchlist-modal-message" data-my-watchlist-modal-message hidden></p></section></div>'
       + '<div id="myDashboardStatus" class="my-dashboard-status">분석할 종목을 입력하세요.</div>'
       + '<main class="my-dashboard-detail" id="myDashboardDetail"></main>';
   }
-  function populateSearchOptions() {
-    var options = document.getElementById('myStockOptions');
+  function populateOptions(id) {
+    var options = document.getElementById(id);
     if (!options || !global.Watchlist) return;
     options.innerHTML = global.Watchlist.getList().map(function (item) {
       return '<option value="' + escapeAttr(item.name) + '">' + escapeHtml(item.code) + '</option>';
     }).join('');
+  }
+  function populateSearchOptions() {
+    populateOptions('myStockOptions');
+    populateOptions('myWatchlistAddOptions');
+  }
+  function watchlistModalMessage(message) {
+    var output = document.querySelector('[data-my-watchlist-modal-message]');
+    if (!output) return;
+    output.textContent = message || '';
+    output.hidden = !message;
+  }
+  function openWatchlistAddModal() {
+    var modal = document.querySelector('[data-my-watchlist-modal]');
+    var input = document.getElementById('myWatchlistAddInput');
+    if (!modal) return;
+    populateOptions('myWatchlistAddOptions');
+    watchlistModalMessage('');
+    modal.hidden = false;
+    if (input) { input.value = ''; input.focus(); }
+  }
+  function closeWatchlistAddModal() {
+    var modal = document.querySelector('[data-my-watchlist-modal]');
+    if (modal) modal.hidden = true;
+  }
+  function addFromWatchlistModal() {
+    var input = document.getElementById('myWatchlistAddInput');
+    var item = resolveInput(input && input.value);
+    if (!item) {
+      watchlistModalMessage('종목명·6자리 코드·미국 티커를 정확히 입력해 주세요.');
+      return;
+    }
+    var result = global.Watchlist.add(item.code, item.name);
+    if (!result.ok) {
+      var messages = { login: '로그인 후 관심종목으로 저장할 수 있습니다.', exists: '이미 관심종목에 담긴 종목입니다.', full: '관심종목은 최대 50개까지 담을 수 있습니다.' };
+      watchlistModalMessage(messages[result.reason] || '관심종목을 추가하지 못했습니다.');
+      return;
+    }
+    state.selectedCode = item.code;
+    state.selectedItem = item;
+    state.watchlistCollapsed = false;
+    closeWatchlistAddModal();
+    render();
   }
   function updateInputLogo(item) {
     var logo = document.querySelector('[data-my-input-logo]');
@@ -451,8 +494,8 @@
     var notes = summaryNotes(summary);
     if (!chart || !chart.daily || chart.daily.length < 2) return '<section class="my-analysis-card my-chart-shape"><div class="my-card-title"><strong>차트 모양 분석</strong></div><p class="my-muted">차트 데이터를 불러오지 못했습니다.</p></section>';
     var daily = chart.daily, last = daily[daily.length - 1], close = number(last.close, 0);
-    function returnPct(days) { var prev = daily[Math.max(0, daily.length - 1 - days)]; return prev && prev.close ? (close - prev.close) / prev.close * 100 : null; }
-    var ret5 = returnPct(5), ret20 = returnPct(20);
+    function returnPct(days) { if (daily.length <= days) return null; var prev = daily[daily.length - 1 - days]; return prev && prev.close ? (close - prev.close) / prev.close * 100 : null; }
+    var ret5 = returnPct(5), ret20 = returnPct(20), ret60 = returnPct(60), ret112 = returnPct(112), ret224 = returnPct(224);
     var ma5 = chart.ma && chart.ma.ma5 && chart.ma.ma5[chart.ma.ma5.length - 1];
     var ma20 = chart.ma && chart.ma.ma20 && chart.ma.ma20[chart.ma.ma20.length - 1];
     var shape = '횡보·방향 탐색';
@@ -467,14 +510,14 @@
     var momentumLabel = notes.momentum && notes.momentum.desc ? notes.momentum.desc : '최근 가격 추세 데이터 부족';
     return '<section class="my-analysis-card my-chart-shape"><div class="my-card-title"><strong>차트 모양 분석</strong><span>최근 가격 흐름 기준</span></div>'
       + '<div class="my-shape-badge ' + signClass(ret20) + '">' + escapeHtml(shape) + '</div>'
-      + '<div class="my-shape-grid"><div><span>5일 변화</span><strong class="' + signClass(ret5) + '">' + formatSigned(ret5, 2) + '%</strong></div><div><span>20일 변화</span><strong class="' + signClass(ret20) + '">' + formatSigned(ret20, 2) + '%</strong></div></div>'
+      + '<div class="my-shape-grid"><div><span>5일 변화</span><strong class="' + signClass(ret5) + '">' + formatSigned(ret5, 2) + '%</strong></div><div><span>20일 변화</span><strong class="' + signClass(ret20) + '">' + formatSigned(ret20, 2) + '%</strong></div><div><span>60일 변화</span><strong class="' + signClass(ret60) + '">' + formatSigned(ret60, 2) + '%</strong></div><div><span>112일 변화</span><strong class="' + signClass(ret112) + '">' + formatSigned(ret112, 2) + '%</strong></div><div><span>224일 변화</span><strong class="' + signClass(ret224) + '">' + formatSigned(ret224, 2) + '%</strong></div></div>'
       + '<p class="my-shape-note"><b>이평선</b> ' + escapeHtml(maLabel) + '</p><p class="my-shape-note"><b>추세</b> ' + escapeHtml(momentumLabel) + '</p></section>';
   }
   function chartShapeData(chart, summary) {
     if (!chart || !chart.daily || chart.daily.length < 2) return null;
     var daily = chart.daily, last = daily[daily.length - 1], close = number(last.close, 0);
-    function returnPct(days) { var prev = daily[Math.max(0, daily.length - 1 - days)]; return prev && prev.close ? (close - prev.close) / prev.close * 100 : null; }
-    var ret5 = returnPct(5), ret20 = returnPct(20);
+    function returnPct(days) { if (daily.length <= days) return null; var prev = daily[daily.length - 1 - days]; return prev && prev.close ? (close - prev.close) / prev.close * 100 : null; }
+    var ret5 = returnPct(5), ret20 = returnPct(20), ret60 = returnPct(60), ret112 = returnPct(112), ret224 = returnPct(224);
     var ma5 = chart.ma && chart.ma.ma5 && chart.ma.ma5[chart.ma.ma5.length - 1];
     var ma20 = chart.ma && chart.ma.ma20 && chart.ma.ma20[chart.ma.ma20.length - 1];
     var notes = summaryNotes(summary);
@@ -485,12 +528,12 @@
       else if (ret20 >= 8) shape = '상승 추세';
       else if (ret20 <= -8) shape = '하락 추세';
     }
-    return { close: close, ret5: ret5, ret20: ret20, ma5: number(ma5, null), ma20: number(ma20, null), shape: shape, tech: notes.tech && notes.tech.desc || '', momentum: notes.momentum && notes.momentum.desc || '' };
+    return { close: close, ret5: ret5, ret20: ret20, ret60: ret60, ret112: ret112, ret224: ret224, ma5: number(ma5, null), ma20: number(ma20, null), shape: shape, tech: notes.tech && notes.tech.desc || '', momentum: notes.momentum && notes.momentum.desc || '' };
   }
   function chartShapeNote(chart, summary) {
     var data = chartShapeData(chart, summary);
     if (!data) return '차트 모양 데이터 없음';
-    return data.shape + ', 5일 ' + formatSigned(data.ret5, 2) + '%, 20일 ' + formatSigned(data.ret20, 2) + '%; ' + (data.tech || data.momentum || '이동평균 데이터 없음');
+    return data.shape + ', 5일 ' + formatSigned(data.ret5, 2) + '%, 20일 ' + formatSigned(data.ret20, 2) + '%, 60일 ' + formatSigned(data.ret60, 2) + '%, 112일 ' + formatSigned(data.ret112, 2) + '%, 224일 ' + formatSigned(data.ret224, 2) + '%; ' + (data.tech || data.momentum || '이동평균 데이터 없음');
   }
   function profitTakingSignal(chart, data, horizon) {
     if (horizon === 'long') {
@@ -830,6 +873,12 @@
     mount.addEventListener('click', function (event) {
       var load = event.target.closest('[data-my-load]');
       if (load) { selectedFromInput(); return; }
+      var addWatchlist = event.target.closest('[data-my-watchlist-add]');
+      if (addWatchlist) { openWatchlistAddModal(); return; }
+      var closeWatchlistModal = event.target.closest('[data-my-watchlist-close]');
+      if (closeWatchlistModal) { closeWatchlistAddModal(); return; }
+      var confirmWatchlist = event.target.closest('[data-my-watchlist-add-confirm]');
+      if (confirmWatchlist) { addFromWatchlistModal(); return; }
       var groupToggle = event.target.closest('[data-my-group-toggle]');
       if (groupToggle) {
         var groupId = groupToggle.getAttribute('data-my-group-toggle');
@@ -888,6 +937,8 @@
     });
     mount.addEventListener('keydown', function (event) {
       if (event.target.id === 'myStockInput' && event.key === 'Enter') { event.preventDefault(); selectedFromInput(); }
+      if (event.target.id === 'myWatchlistAddInput' && event.key === 'Enter') { event.preventDefault(); addFromWatchlistModal(); }
+      if (event.target.id === 'myWatchlistAddInput' && event.key === 'Escape') { event.preventDefault(); closeWatchlistAddModal(); }
     });
     global.addEventListener('watchlist:changed', function () { render(); });
   }

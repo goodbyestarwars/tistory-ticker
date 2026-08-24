@@ -959,12 +959,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in ("updateHolding", "setGroupCollapsed", "holding", "quantity", "averagePrice", "horizon"):
             self.assertIn(token, watchlist)
         self.assertIn("/page/watchlist", bootstrap)
-        for token in ("flowAiSummary", "MY_VOLUME_LOOKBACK_DAYS", "MY_VOLUME_BIN_COUNT", "buildDailyVolumeProfile", "buildMyFlowMiniChart", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "data-my-group-toggle", "groupedWatchlist", "my-volume-chart", "차트 모양 분석", "물타기 계산기", "my-position-advice", "data-my-calc-recovery", "chartNote", "arrangeAnalysisSections", "modestProfit", "보유 · 추세 확인", "매수 당일이나 초기 수익만으로 분할 익절", "단타 · 5·20일선", "중장기 · 60·224일선", "watchlistCollapsed", "data-my-watchlist-show", "updateWatchlistVisibility"):
+        for token in ("flowAiSummary", "MY_VOLUME_LOOKBACK_DAYS", "MY_VOLUME_BIN_COUNT", "buildDailyVolumeProfile", "buildMyFlowMiniChart", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "data-my-group-toggle", "groupedWatchlist", "my-volume-chart", "차트 모양 분석", "5일 변화", "20일 변화", "60일 변화", "112일 변화", "224일 변화", "data-my-watchlist-add", "data-my-watchlist-modal", "data-my-watchlist-add-confirm", "addFromWatchlistModal", "물타기 계산기", "my-position-advice", "data-my-calc-recovery", "chartNote", "arrangeAnalysisSections", "modestProfit", "보유 · 추세 확인", "매수 당일이나 초기 수익만으로 분할 익절", "단타 · 5·20일선", "중장기 · 60·224일선", "watchlistCollapsed", "data-my-watchlist-show", "updateWatchlistVisibility"):
             self.assertIn(token, my)
         self.assertNotIn("Google 계정에 저장", my)
         self.assertNotIn("Groq ·", my)
-        for token in ("#my-dashboard", ".my-analysis-grid", ".my-watchlist-group-toggle", ".my-watchlist-wrap", ".my-watchlist-show", ".my-flow-chart", ".my-flow-svg", "#my-dashboard .is-up { color: #d24f45; }"):
+        for token in ("#my-dashboard", ".my-analysis-grid", ".my-watchlist-group-toggle", ".my-watchlist-wrap", ".my-watchlist-show", ".my-watchlist-add", ".my-watchlist-modal", ".my-flow-chart", ".my-flow-svg", "#my-dashboard .is-up { color: #d24f45; }"):
             self.assertIn(token, my_style)
+        self.assertIn("grid-template-columns: repeat(5, minmax(0, 1fr));", my_style)
 
     def test_my_watchlist_groups_use_compact_multi_column_layout(self):
         style = self.read("css/my-dashboard.css")

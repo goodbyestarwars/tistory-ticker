@@ -173,6 +173,22 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 .my-watchlist-panel-head strong { font-size: 17px; }
 .my-watchlist-panel-head span { margin-left: 8px; color: #64748b; font-size: 11px; }
 .my-watchlist-panel-head small { color: #94a3b8; font-size: 11px; }
+.my-watchlist-head-actions { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
+.my-watchlist-add { padding: 7px 10px; border: 1px solid #c9d8ec; border-radius: 8px; background: #fff; color: #2563eb; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.my-watchlist-add:hover { border-color: #2563eb; background: #f7faff; }
+.my-watchlist-modal { position: fixed; z-index: 1200; inset: 0; display: grid; place-items: center; padding: 18px; }
+.my-watchlist-modal[hidden] { display: none; }
+.my-watchlist-modal-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .42); }
+.my-watchlist-modal-dialog { position: relative; width: min(460px, 100%); padding: 20px; border: 1px solid #dbe5f2; border-radius: 16px; background: #fff; box-shadow: 0 20px 60px rgba(15, 23, 42, .2); }
+.my-watchlist-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.my-watchlist-modal-head strong { color: #111827; font-size: 18px; }
+.my-watchlist-modal-close { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: #f1f5f9; color: #64748b; font-size: 22px; line-height: 1; cursor: pointer; }
+.my-watchlist-modal-dialog > p { margin: 9px 0 13px; color: #64748b; font-size: 12px; line-height: 1.5; }
+.my-watchlist-modal-row { display: flex; gap: 8px; }
+.my-watchlist-modal-row input { width: 100%; min-width: 0; min-height: 42px; padding: 9px 11px; border: 1px solid #b9c9dc; border-radius: 9px; color: #111827; background: #fff; font: inherit; font-size: 14px; }
+.my-watchlist-modal-row button { min-width: 70px; padding: 0 13px; border: 0; border-radius: 9px; background: #111827; color: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.my-watchlist-modal-row button:hover { background: #263448; }
+.my-watchlist-modal-message { margin-bottom: 0 !important; color: #c24136 !important; font-weight: 700; }
 .my-watchlist-group + .my-watchlist-group { border-top: 1px solid #dce4ee; }
 .my-watchlist-group-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 16px; border: 0; background: #f8fafc; color: #1f2937; font: inherit; text-align: left; cursor: pointer; }
 .my-watchlist-group-toggle:hover { background: #f1f5f9; }
@@ -211,6 +227,13 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 html.dark .my-watchlist-panel { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
 html.dark .my-watchlist-show { border-color: rgba(245,239,224,.2); background: #1a1a1a; color: rgba(245,239,224,.75); }
 html.dark .my-watchlist-show:hover { border-color: rgba(245,239,224,.4); background: #242424; color: #f5efe0; }
+html.dark .my-watchlist-add { border-color: rgba(245,239,224,.2); background: #1a1a1a; color: #bfdbfe; }
+html.dark .my-watchlist-add:hover { border-color: #93c5fd; background: #242424; }
+html.dark .my-watchlist-modal-dialog { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
+html.dark .my-watchlist-modal-head strong { color: #f5efe0; }
+html.dark .my-watchlist-modal-close { background: #303030; color: rgba(245,239,224,.75); }
+html.dark .my-watchlist-modal-dialog > p { color: rgba(245,239,224,.65); }
+html.dark .my-watchlist-modal-row input { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
 html.dark .my-watchlist-group + .my-watchlist-group { border-color: rgba(245,239,224,.12); }
 html.dark .my-watchlist-group-toggle { background: #202020; color: #f5efe0; }
 html.dark .my-watchlist-group-toggle:hover { background: #282828; }
@@ -225,6 +248,8 @@ html.dark .my-watchlist-icon img { background: #242424; }
   .my-watchlist-panel-head strong { font-size: 14px; }
   .my-watchlist-panel-head span { display: block; margin: 5px 0 0; font-size: 10px; }
   .my-watchlist-panel-head small { display: block; margin-top: 7px; }
+  .my-watchlist-head-actions { justify-content: space-between; margin-top: 9px; }
+  .my-watchlist-head-actions small { display: inline; margin-top: 0; }
   .my-watchlist-group-toggle { padding: 10px 12px; }
   .my-watchlist-table { min-width: 760px; }
   .my-watchlist-table th, .my-watchlist-table td { padding: 9px 8px; font-size: 10px; }
@@ -293,7 +318,7 @@ html.dark .my-watchlist-icon img { background: #242424; }
 .my-volume-legend i.is-current { background: #2563eb; }
 .my-chart-shape { background: #fff; }
 .my-shape-badge { display: inline-block; margin-bottom: 13px; padding: 8px 12px; border-radius: 999px; background: #eaf2ff; color: #1d4ed8; font-size: 16px; font-weight: 800; }
-.my-shape-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.my-shape-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
 .my-shape-grid > div { padding: 11px; border: 1px solid #e3eaf3; border-radius: 10px; }
 .my-shape-grid span { display: block; color: #64748b; font-size: 12px; }
 .my-shape-grid strong { display: block; margin-top: 5px; font-size: 19px; }
@@ -440,4 +465,10 @@ html.dark #my-dashboard .my-watchlist-group + .my-watchlist-group { border-color
   #my-dashboard .my-watchlist-groups { grid-template-columns: 1fr; gap: 8px; padding: 8px; }
   #my-dashboard .my-watchlist-table th,
   #my-dashboard .my-watchlist-table td { padding: 8px 5px; font-size: 10px; }
+  #my-dashboard .my-shape-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #my-dashboard .my-watchlist-modal-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  #my-dashboard .my-shape-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
