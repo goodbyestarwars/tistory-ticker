@@ -119,8 +119,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 임시 대응) - 근본 원인인 유니버설 선택자 자체를 없앴으니 더는 존재하면 안 된다.
         self.assertNotIn(".dmi-fund-card *", style)
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
-        self.assertIn("domestic-market-indicators.css?v=20260818-market-news-v1", frontend)
-        self.assertIn("domestic-market-indicators.js?v=20260819-dmi-cache-fix-v1", loader)
+        self.assertIn("domestic-market-indicators.css?v=20260825-cash-box-v1", frontend)
+        self.assertIn("domestic-market-indicators.js?v=20260825-cash-box-v1", loader)
         self.assertIn(".dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }", style)
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
         self.assertIn("function miniAverageChart(values, average)", frontend)
