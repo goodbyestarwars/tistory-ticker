@@ -393,29 +393,27 @@
       var value = level && level.size != null ? level.size : level && level.qty;
       return Number.isFinite(Number(value)) ? Number(value) : 0;
     };
-    var sumSize = function (levels) {
-      return levels.reduce(function (sum, level) { return sum + levelSize(level); }, 0);
-    };
-    var askTotal = Number(book.totalAskQty);
-    var bidTotal = Number(book.totalBidQty);
-    if (!Number.isFinite(askTotal)) askTotal = sumSize(asks);
-    if (!Number.isFinite(bidTotal)) bidTotal = sumSize(bids);
-    var maxLevel = Math.max.apply(null, asks.concat(bids).map(levelSize).concat([1]));
-    var balanceTotal = askTotal + bidTotal;
-    var askShare = balanceTotal > 0 ? Math.round(askTotal / balanceTotal * 100) : 0;
-    var bidShare = balanceTotal > 0 ? 100 - askShare : 0;
-    var balanceLabel = askTotal === bidTotal ? '균형' : (askTotal > bidTotal ? '매도 우위' : '매수 우위');
+    var maxAsk = Math.max.apply(null, asks.map(levelSize).concat([0]));
+    var maxBid = Math.max.apply(null, bids.map(levelSize).concat([0]));
+    var maxLevel = Math.max(maxAsk, maxBid, 1);
+    var strength = maxAsk > 0 ? maxBid / maxAsk * 100 : null;
+    var strengthWidth = strength == null ? 0 : Math.max(0, Math.min(100, strength / 2));
+    var balanceLabel = maxAsk === maxBid ? '균형' : (maxAsk > maxBid ? '매도 우위' : '매수 우위');
     var current = state.lastQuote && Number(state.lastQuote.price);
     if (!rows && !Number.isFinite(current)) {
       mount.innerHTML = '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
       return;
     }
-    var html = '<div class="us-stocks-book-balance">'
-      + '<div class="us-stocks-book-balance-head"><span>호가 잔량</span><b>' + balanceLabel + '</b></div>'
-      + '<div class="us-stocks-book-balance-bar"><i class="us-book-ask-fill" style="width:' + askShare + '%"></i><i class="us-book-bid-fill" style="width:' + bidShare + '%"></i></div>'
-      + '<div class="us-stocks-book-balance-values"><span class="us-book-ask-text">매도 ' + formatVolume(askTotal) + ' (' + askShare + '%)</span><span class="us-book-bid-text">매수 ' + formatVolume(bidTotal) + ' (' + bidShare + '%)</span></div>'
+    var html = '<div class="us-stocks-level-summary">'
+      + '<div class="us-stocks-level-row"><span class="us-level-label us-book-ask-text">저항(매도벽)</span><i><em class="us-book-ask-fill" style="width:' + Math.round(maxAsk / maxLevel * 100) + '%"></em></i><b>' + formatVolume(maxAsk) + '</b></div>'
+      + '<div class="us-stocks-level-row"><span class="us-level-label us-book-bid-text">지지(매수벽)</span><i><em class="us-book-bid-fill" style="width:' + Math.round(maxBid / maxLevel * 100) + '%"></em></i><b>' + formatVolume(maxBid) + '</b></div>'
+      + '<div class="us-stocks-level-row"><span class="us-level-label">호가강도</span><i><em class="us-book-strength-fill" style="width:' + strengthWidth + '%"></em></i><b>' + (strength == null ? '-' : strength.toFixed(1) + '%') + '</b></div>'
+      + '<p>미국 10단계 호가 잔량 기준 · 실제 체결강도와는 다를 수 있습니다. <strong>' + balanceLabel + '</strong></p>'
       + '</div>'
       + '<div class="us-stocks-book-head"><span>매도 잔량</span><span>가격</span><span>매수 잔량</span></div>';
+    if (Number.isFinite(current)) {
+      html += '<div class="us-stocks-book-current"><span>현재가</span><strong>' + formatPrice(current) + '</strong><span>' + formatPercent(state.lastQuote.change_rate) + '</span></div>';
+    }
     for (var i = 0; i < rows; i++) {
       var ask = asks[i] || {};
       var bid = bids[i] || {};
@@ -426,9 +424,6 @@
         + '<b class="us-stocks-book-price ' + (ask.price ? 'us-book-ask-price' : 'us-book-bid-price') + '">' + formatPrice(ask.price || bid.price) + '</b>'
         + '<span class="us-book-side us-book-bid"><i><em style="width:' + bidWidth + '%"></em></i><b>' + formatVolume(levelSize(bid)) + '</b></span>'
         + '</div>';
-    }
-    if (Number.isFinite(current)) {
-      html += '<div class="us-stocks-book-current"><span>현재가</span><strong>' + formatPrice(current) + '</strong><span>' + formatPercent(state.lastQuote.change_rate) + '</span></div>';
     }
     mount.innerHTML = html || '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
   }
