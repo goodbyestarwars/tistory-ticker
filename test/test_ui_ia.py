@@ -950,6 +950,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in ("#my-dashboard", ".my-analysis-grid", ".my-watchlist-group-toggle", "#my-dashboard .is-up { color: #d24f45; }"):
             self.assertIn(token, my_style)
 
+    def test_my_watchlist_groups_use_compact_multi_column_layout(self):
+        style = self.read("css/my-dashboard.css")
+        self.assertIn("#my-dashboard .my-watchlist-groups", style)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr));", style)
+        self.assertIn("@media (min-width: 1200px)", style)
+        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr));", style)
+        self.assertIn("@media (max-width: 720px)", style)
+        self.assertIn("grid-template-columns: 1fr;", style)
+        self.assertIn("#my-dashboard .my-watchlist-table { min-width: 0; }", style)
+
     def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
         source = self.read("js/watchlist.js")
         bootstrap = self.read("js/stock-search-panel.js")
