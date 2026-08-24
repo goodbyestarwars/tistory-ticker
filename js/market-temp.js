@@ -1111,13 +1111,17 @@
       // 2026-08-20: 카드 보기는 이 최초 GAS 배치 조회 이후로 갱신이 없었다 - 실시간 체결가
       // WebSocket(SD.startCardRealtimeQuotes)을 구독해 가격·등락률을 계속 최신으로 유지한다.
       if (SD.startCardRealtimeQuotes) SD.startCardRealtimeQuotes(panel, codes);
-      var editButton = panel.querySelector('[data-sector-editor-open]');
-      if (editButton) editButton.addEventListener('click', function () {
-        renderSectorEditor_(panel, sectorMap, config.revision, {
-          cancel: function () { panel.__mtLoaded = false; loadCardsPanel(panel); },
-          saved: function () { invalidatePersonalHeatmap_(panel); panel.__mtLoaded = false; loadCardsPanel(panel); }
+      function wireEditor() {
+        var editButton = panel.querySelector('[data-sector-editor-open]');
+        if (editButton) editButton.addEventListener('click', function () {
+          renderSectorEditor_(panel, sectorMap, config.revision, {
+            cancel: function () { panel.__mtLoaded = false; loadCardsPanel(panel); },
+            saved: function () { invalidatePersonalHeatmap_(panel); panel.__mtLoaded = false; loadCardsPanel(panel); }
+          });
         });
-      });
+      }
+      wireEditor();
+      if (SD.wireSectorCardSelection) SD.wireSectorCardSelection(panel, sectorMap, krxMap, byCode, wireEditor);
     });
   }
 
@@ -1172,6 +1176,7 @@
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
       var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
       panel.innerHTML = html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>';
+      if (SD.wireSectorCardSelection) SD.wireSectorCardSelection(panel, sectorMap, krxMap, byCode);
     }).catch(function () {
       panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>';
     });

@@ -22,6 +22,14 @@
   // 남은 제약은 URL 길이와 브라우저 동시연결(도메인당 6개)뿐이다.
   // 60개 × 4배치면 전 종목이 한 라운드에 병렬 조회된다 (25개 × 10배치 = 2라운드였음).
   var BATCH_SIZE = 60;
+  // 카드에 현재 편성된 종목과 별도로, 같은 업종에서 함께 비교할 만하지만
+  // 현재 카드에는 넣지 않은 추천 관련 종목을 흐리게 보여준다.
+  var RELATED_SECTOR_RECOMMENDATIONS = {
+    '택배': [
+      { name: '롯데로지스틱', note: '추천 관련 종목' },
+      { name: '로젠', note: '추천 관련 종목' }
+    ]
+  };
 
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
@@ -132,12 +140,12 @@
       var rows = entries.map(function (e) {
         var d = e.data;
         return (
-          '<div class="sector-row" data-code="' + escapeHTML(e.code) + '">' +
+          '<button type="button" class="sector-row" data-code="' + escapeHTML(e.code) + '" data-sector="' + escapeHTML(sector) + '" aria-label="' + escapeHTML(e.name) + ' 섹터 상세 보기">' +
             '<span class="sector-row-name">' + escapeHTML(e.name) + marketBadgeHtml(e.market) + '</span>' +
             '<span><span class="sector-row-price">' + formatNumber(d.price) + '</span>' +
             '<span class="sector-row-rate ' + directionClass(d.change) + '">' +
               arrowSymbol(d.change) + Math.abs(d.changeRate).toFixed(2) + '%</span></span>' +
-          '</div>'
+          '</button>'
         );
       }).join('');
       if (!rows) return '';
@@ -150,6 +158,66 @@
     }).join('');
 
     return html;
+  }
+
+  function sectorNamesForCode(sectorMap, krxMap, code) {
+    return Object.keys(sectorMap).filter(function (sector) {
+      return (sectorMap[sector] || []).some(function (item) {
+        return resolveEntry(item, krxMap).code === code;
+      });
+    });
+  }
+
+  function stockBubbleHtml(entry, dataByCode) {
+    var data = entry.code && dataByCode[entry.code];
+    if (!data) {
+      return '<div class="sector-stock-bubble is-muted" aria-label="' + escapeHTML(entry.name) + ' 현재 카드에 없음">'
+        + '<strong>' + escapeHTML(entry.name) + '</strong><small>현재 카드에 없음</small></div>';
+    }
+    return '<button type="button" class="sector-stock-bubble is-listed" data-code="' + escapeHTML(entry.code) + '">'
+      + '<strong>' + escapeHTML(entry.name) + '</strong>'
+      + '<small>' + formatNumber(data.price) + '</small>'
+      + '<em class="' + directionClass(data.change) + '">' + arrowSymbol(data.change) + Math.abs(Number(data.changeRate) || 0).toFixed(2) + '%</em>'
+      + '</button>';
+  }
+
+  function recommendationBubbleHtml(item) {
+    return '<div class="sector-stock-bubble is-recommended" aria-label="' + escapeHTML(item.name) + ' 추천 관련 종목">'
+      + '<strong>' + escapeHTML(item.name) + '</strong><small>' + escapeHTML(item.note || '추천 관련 종목') + '</small></div>';
+  }
+
+  function renderSectorDetailHtml(sectorMap, krxMap, dataByCode, selectedCode, selectedName) {
+    var sectors = sectorNamesForCode(sectorMap, krxMap, selectedCode);
+    var sections = sectors.map(function (sector) {
+      var entries = (sectorMap[sector] || []).map(function (item) { return resolveEntry(item, krxMap); });
+      var recommendations = RELATED_SECTOR_RECOMMENDATIONS[sector] || [];
+      var bubbles = entries.map(function (entry) { return stockBubbleHtml(entry, dataByCode); }).join('')
+        + recommendations.map(recommendationBubbleHtml).join('');
+      return '<section class="sector-detail-section"><div class="sector-detail-section-head"><strong>' + escapeHTML(sector) + '</strong><small>현재 카드 · 추천 관련 종목</small></div><div class="sector-stock-bubbles">' + bubbles + '</div></section>';
+    }).join('');
+    return '<div class="sector-detail-view">'
+      + '<div class="sector-detail-head"><button type="button" class="sector-detail-back" data-sector-detail-back aria-label="카드 보기로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg><span>카드 보기</span></button><div><strong>' + escapeHTML(selectedName || selectedCode) + '</strong><small>관련 섹터 종목</small></div></div>'
+      + (sections || '<div class="sector-detail-empty">이 종목의 섹터 정보가 없습니다.</div>')
+      + '<p class="sector-detail-note">음영 처리된 종목은 현재 주요종목 카드에는 없지만 함께 비교할 만한 추천 관련 종목입니다.</p>'
+      + '</div>';
+  }
+
+  function wireSectorCardSelection(container, sectorMap, krxMap, dataByCode, onRestore) {
+    if (!container) return;
+    container.querySelectorAll('.sector-row[data-code]').forEach(function (row) {
+      row.addEventListener('click', function () {
+        var code = row.getAttribute('data-code');
+        var entry = (sectorMap[row.getAttribute('data-sector')] || []).map(function (item) { return resolveEntry(item, krxMap); }).filter(function (item) { return item.code === code; })[0];
+        var previousHtml = container.innerHTML;
+        container.innerHTML = renderSectorDetailHtml(sectorMap, krxMap, dataByCode, code, entry && entry.name);
+        var back = container.querySelector('[data-sector-detail-back]');
+        if (back) back.addEventListener('click', function () {
+          container.innerHTML = previousHtml;
+          wireSectorCardSelection(container, sectorMap, krxMap, dataByCode, onRestore);
+          if (onRestore) onRestore();
+        });
+      });
+    });
   }
 
   // 한 종목이 여러 섹터에 중복 등장할 수 있어(sectors-v3.js 참고) 히트맵에서는 1회만 표시,
@@ -360,6 +428,7 @@
         renderAll(container, sectorMap, krxMap, dataByCode, newMode, aiState);
       });
     }
+    if (mode === 'cards') wireSectorCardSelection(container, sectorMap, krxMap, dataByCode);
   }
 
   function fetchMarketAnalysis() {
@@ -423,6 +492,8 @@
     fetchBatch: fetchBatch,
     renderHeatmapHtml: renderHeatmapHtml, // js/market-temp.js의 "히트맵 보기" 탭이 재사용
     renderCardsHtml: renderCardsHtml, // js/market-temp.js의 "카드 보기" 탭이 재사용
+    renderSectorDetailHtml: renderSectorDetailHtml,
+    wireSectorCardSelection: wireSectorCardSelection,
     injectBadgeStyles: injectBadgeStyles, // renderCardsHtml의 시장 뱃지(P/Q) 스타일 - 별도 호출 필요
     startCardRealtimeQuotes: startCardRealtimeQuotes, // js/market-temp.js의 "카드 보기" 탭이 재사용
     stopCardRealtimeQuotes: stopCardRealtimeQuotes

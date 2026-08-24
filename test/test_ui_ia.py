@@ -1695,6 +1695,24 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("heatmapPanel.__mtLoaded = false", source)
         self.assertIn("전체 고정 종목 풀", source)
 
+    def test_major_stock_cards_open_sector_bubbles_with_shaded_recommendations(self):
+        dashboard = self.read("js/sector-dashboard-v4.js")
+        dashboard_style = self.read("css/sector-dashboard-v3.css")
+        market_temp = self.read("js/market-temp.js")
+        for token in (
+            "RELATED_SECTOR_RECOMMENDATIONS",
+            "renderSectorDetailHtml",
+            "wireSectorCardSelection",
+            "data-sector-detail-back",
+            "data-sector=\"' + escapeHTML(sector) + '\"",
+            "롯데로지스틱",
+            "로젠",
+        ):
+            self.assertIn(token, dashboard)
+        self.assertIn("SD.wireSectorCardSelection(panel, sectorMap, krxMap, byCode, wireEditor)", market_temp)
+        for token in (".sector-stock-bubbles", ".sector-stock-bubble.is-recommended", ".sector-detail-back"):
+            self.assertIn(token, dashboard_style)
+
     def test_my_dashboard_selected_stock_uses_daily_change_color(self):
         source = self.read("js/my-dashboard.js")
         style = self.read("css/my-dashboard.css")
