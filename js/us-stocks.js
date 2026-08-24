@@ -10,9 +10,11 @@
   var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20260817-news-columns-v1';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var REFRESH_MS = 15000;
+  var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
+  var REALTIME_RECONNECT_MS = 5000;
   var LAST_SYMBOL_KEY = 'us:lastSelected';
   var DEFAULT_SYMBOL = 'AAPL';
-  var state = { container: null, symbol: null, refreshTimer: null, initialized: false, renderedSymbol: null, nativeChartPromise: null };
+  var state = { container: null, symbol: null, refreshTimer: null, realtimeSocket: null, realtimeTimer: null, realtimeGeneration: 0, initialized: false, renderedSymbol: null, nativeChartPromise: null, lastQuote: null };
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
     { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
@@ -59,8 +61,8 @@
     container.innerHTML = buildShell();
     autoSelect();
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) stopRefresh();
-      else if (state.symbol) startRefresh();
+      if (document.hidden) { stopRefresh(); stopRealtime(); }
+      else if (state.symbol) { startRefresh(); startRealtime(); }
     });
   }
 
@@ -203,9 +205,11 @@
 
   function select(symbol) {
     stopRefresh();
+    stopRealtime();
     state.symbol = String(symbol || '').toUpperCase().replace(/^US:/, '');
     state.renderedSymbol = null;
     state.nativeChartPromise = null;
+    state.lastQuote = null;
     try { localStorage.setItem(LAST_SYMBOL_KEY, state.symbol); } catch (err) { /* 저장소가 막힌 환경도 조회는 계속한다. */ }
     var detail = document.querySelector('#usStocksDetail');
     if (!detail) return;
@@ -213,6 +217,7 @@
     detail.innerHTML = '<div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + escapeHtml(state.symbol) + ' 시세를 불러오는 중...</div>';
     refreshQuote();
     startRefresh();
+    startRealtime();
   }
 
   function startRefresh() {
@@ -224,6 +229,64 @@
   function stopRefresh() {
     if (state.refreshTimer) clearInterval(state.refreshTimer);
     state.refreshTimer = null;
+  }
+
+  function stopRealtime() {
+    state.realtimeGeneration += 1;
+    if (state.realtimeTimer) clearTimeout(state.realtimeTimer);
+    state.realtimeTimer = null;
+    if (state.realtimeSocket) {
+      state.realtimeSocket.onclose = null;
+      try { state.realtimeSocket.close(); } catch (err) {}
+      state.realtimeSocket = null;
+    }
+  }
+
+  function startRealtime() {
+    stopRealtime();
+    if (!state.symbol || document.hidden || !global.WebSocket) return;
+    var generation = state.realtimeGeneration;
+    function connect() {
+      if (generation !== state.realtimeGeneration || document.hidden || !state.symbol) return;
+      var socket;
+      try {
+        socket = new WebSocket(REALTIME_QUOTES_URL + '?codes=' + encodeURIComponent('US:' + state.symbol));
+      } catch (err) {
+        state.realtimeTimer = setTimeout(connect, REALTIME_RECONNECT_MS);
+        return;
+      }
+      state.realtimeSocket = socket;
+      socket.onmessage = function (event) {
+        if (generation !== state.realtimeGeneration) return;
+        try {
+          var quote = JSON.parse(event.data);
+          if (quote.type === 'quote' && quote.code === 'US:' + state.symbol) applyRealtimeQuote(quote);
+        } catch (err) {}
+      };
+      socket.onopen = function () {
+        if (generation !== state.realtimeGeneration) return;
+        if (socket.readyState === WebSocket.OPEN) socket.send('ping');
+      };
+      socket.onerror = function () { try { socket.close(); } catch (err) {} };
+      socket.onclose = function () {
+        if (generation !== state.realtimeGeneration || document.hidden) return;
+        state.realtimeSocket = null;
+        state.realtimeTimer = setTimeout(connect, REALTIME_RECONNECT_MS);
+      };
+    }
+    connect();
+  }
+
+  function applyRealtimeQuote(quote) {
+    if (!quote || quote.code !== 'US:' + state.symbol || !Number.isFinite(Number(quote.price))) return;
+    var merged = Object.assign({}, state.lastQuote || {}, quote);
+    if (quote.changeRate != null) merged.change_rate = quote.changeRate;
+    state.lastQuote = merged;
+    var detail = document.querySelector('#usStocksDetail');
+    if (detail) updateQuoteFields(state.lastQuote, detail);
+    if (global.StockSearchChart && typeof global.StockSearchChart.updateQuote === 'function') {
+      global.StockSearchChart.updateQuote('US:' + state.symbol, quote);
+    }
   }
 
   function refreshQuote() {
@@ -249,6 +312,7 @@
 
   function renderQuote(quote) {
     if (!quote || quote.symbol !== state.symbol) return;
+    state.lastQuote = Object.assign({}, state.lastQuote || {}, quote);
     var detail = document.querySelector('#usStocksDetail');
     if (!detail) return;
     var card = detail.querySelector('.us-stocks-live-card');
@@ -346,8 +410,10 @@
     state.nativeChartPromise = global.StockSearchChart.mount({
       container: mount,
       key: 'US:' + symbol,
-      load: function (timeframe) {
-        return fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(symbol) + '?timeframe=' + timeframe)
+      load: function (timeframe, minuteScope) {
+        var query = '?timeframe=' + timeframe;
+        if (timeframe === 'minute') query += '&tic_scope=' + encodeURIComponent(minuteScope || '1');
+        return fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(symbol) + query)
           .then(function (payload) { return normalizeChartBars(payload && payload.points, timeframe); });
       }
     }).catch(function () {

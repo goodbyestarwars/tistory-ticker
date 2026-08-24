@@ -74,23 +74,30 @@
     { symbol: 'ASTS', name: 'AST SpaceMobile', aliases: 'ast asts 스페이스모바일 spacemobile' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
+  var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];
 
   var state = {
     selectedCode: null,
     selectedName: null,
     ladderMounted: false,
     timeframe: 'day', // 'day' | 'week' | 'month' | 'minute'
+    minuteScope: '1',
     movingAverageEnabled: true,
     ichimokuEnabled: false,
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
-    minuteCache: {},  // code -> { t, bars(LWC 형식으로 변환 완료) } 1분 캐시
+    minuteCache: {},  // code|scope -> { t, bars(LWC 형식으로 변환 완료) }
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
     resultsCollapsed: false, // 종목을 고르면 목록이 화면을 계속 차지하지 않도록 접음(사용자 리포트)
-    minuteRefreshTimer: null
+    minuteRefreshTimer: null,
+    externalMinuteLoader: null,
+    liveQuotes: {}
   };
   var lwcLoadPromise = null;
   var lwcChart = null;
   var lwcChartContainer = null;
+  var lwcCandleSeries = null;
+  var lwcLiveBars = [];
+  var lwcLiveTimeframe = null;
   var lwcCloudCleanup = null;
   var lwcRsiZonesCleanup = null;
   var lwcRenderId = 0;
@@ -281,6 +288,18 @@
     if (change) change.hidden = !hidden;
   }
 
+  function minuteCacheKey(code, scope) {
+    return String(code || '') + '|' + String(scope || state.minuteScope || '1');
+  }
+
+  function minuteScopeControlHtml() {
+    return '<label class="ss-minute-scope"><span>분봉 간격</span><select data-minute-scope aria-label="분봉 간격">'
+      + MINUTE_SCOPES.map(function (scope) {
+        return '<option value="' + scope + '"' + (scope === '1' ? ' selected' : '') + '>' + scope + '분</option>';
+      }).join('')
+      + '</select></label>';
+  }
+
   function openUsSymbol(container, query) {
     var symbol = String(query || '').replace(/^US:/i, '').trim().toUpperCase();
     if (!/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(symbol)) return false;
@@ -328,6 +347,7 @@
       + '<button type="button" class="ss-tf-btn" data-tf="month">월봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="minute">분봉</button>'
       + '</div>'
+      + '<div class="ss-minute-scope-wrap" data-minute-scope-wrap hidden>' + minuteScopeControlHtml() + '</div>'
       + '<div class="ss-chart-studies">'
       + '<label><input type="checkbox" id="ssMovingAverageToggle" checked /> 이동평균선 표시</label>'
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
@@ -809,6 +829,8 @@
     }
     state.selectedCode = item.code;
     state.selectedName = item.name;
+    state.minuteScope = '1';
+    state.externalMinuteLoader = null;
 
     var detail = container.querySelector('#ssDetail');
     detail.hidden = false;
@@ -991,6 +1013,7 @@
 
   function applyRealtimeQuote(container, quote) {
     if (state.selectedCode !== quote.code || typeof quote.price !== 'number') return;
+    state.liveQuotes[quote.code] = quote;
 
     // 검색 결과는 GAS 조회 시점의 스냅샷이고 상세 상단은 WebSocket 체결가이므로,
     // 장중에는 같은 종목이 서로 다른 가격으로 남을 수 있다. 선택된 결과 행도
@@ -1029,6 +1052,22 @@
     if (priceEl) { priceEl.textContent = fmtPrice(quote.price) + '원'; priceEl.className = 'ss-summary-price ' + cls; }
     var changeEl = box.querySelector('.ss-summary-change');
     if (changeEl) { changeEl.textContent = fmtSignedPct(quote.changeRate); changeEl.className = 'ss-summary-change ' + cls; }
+    updateLiveChartQuote(quote.code, quote);
+  }
+
+  // 호가창과 차트가 서로 다른 시점의 가격을 보여주지 않도록, 같은 WebSocket 체결가를
+  // 현재 분봉의 종가·고가·저가에도 즉시 반영한다. 새 분봉 생성은 다음 분봉 API 갱신이
+  // 담당하고, 현재 캔들 안의 틱은 setData 전체 재렌더 없이 Lightweight Charts update로
+  // 갱신해 화면 흔들림을 줄인다.
+  function updateLiveChartQuote(code, quote) {
+    if (!lwcCandleSeries || lwcLiveTimeframe !== 'minute' || state.selectedCode !== code) return;
+    var price = Number(quote && quote.price);
+    var last = lwcLiveBars.length ? lwcLiveBars[lwcLiveBars.length - 1] : null;
+    if (!last || !Number.isFinite(price)) return;
+    last.close = price;
+    last.high = Math.max(Number(last.high) || price, price);
+    last.low = Math.min(Number(last.low) || price, price);
+    lwcCandleSeries.update({ time: last.date, open: last.open, high: last.high, low: last.low, close: last.close });
   }
 
   // ---- 분봉 자동 재조회 ----
@@ -1048,7 +1087,7 @@
         stopMinuteRefresh();
         return;
       }
-      delete state.minuteCache[code]; // 60초 캐시 TTL과 무관하게 이 타이머 주기마다 강제로 새로 받음
+      delete state.minuteCache[minuteCacheKey(code, state.minuteScope)]; // 60초 캐시 TTL과 무관하게 강제로 새로 받음
       renderMinuteChart(container, code);
     }, MINUTE_REFRESH_MS);
   }
@@ -1058,6 +1097,17 @@
   // 일/주/월봉과 달리 state.chartCache(daily)가 아니라 별도 state.minuteCache를 쓴다.
 
   function wireChartTabs(container) {
+    var minuteScopeWrap = container.querySelector('[data-minute-scope-wrap]');
+    var minuteScope = container.querySelector('[data-minute-scope]');
+    if (minuteScope) {
+      minuteScope.value = state.minuteScope;
+      minuteScope.onchange = function () {
+        var nextScope = MINUTE_SCOPES.indexOf(minuteScope.value) > -1 ? minuteScope.value : '1';
+        state.minuteScope = nextScope;
+        if (state.selectedCode) delete state.minuteCache[minuteCacheKey(state.selectedCode, nextScope)];
+        if (state.timeframe === 'minute') renderChartForCode(container, state.selectedCode);
+      };
+    }
     container.querySelectorAll('.ss-tf-btn').forEach(function (btn) {
       if (btn.disabled) return;
       btn.onclick = function () {
@@ -1065,9 +1115,11 @@
         if (state.timeframe === tf) return;
         state.timeframe = tf;
         container.querySelectorAll('.ss-tf-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        if (minuteScopeWrap) minuteScopeWrap.hidden = tf !== 'minute';
         renderChartForCode(container, state.selectedCode);
       };
     });
+    if (minuteScopeWrap) minuteScopeWrap.hidden = state.timeframe !== 'minute';
     var movingAverageToggle = container.querySelector('#ssMovingAverageToggle, [data-chart-ma-toggle]');
     if (movingAverageToggle) {
       movingAverageToggle.checked = state.movingAverageEnabled;
@@ -1484,6 +1536,8 @@
     stopMinuteRefresh();
     state.selectedCode = code;
     state.timeframe = 'day';
+    state.minuteScope = '1';
+    state.externalMinuteLoader = function (scope) { return options.load('minute', scope); };
     container.innerHTML = ''
       + '<div class="ss-chart-tabs">'
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
@@ -1493,6 +1547,7 @@
       + '<button type="button" class="ss-tf-btn" data-tf="month">월봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="minute">분봉</button>'
       + '</div>'
+      + '<div class="ss-minute-scope-wrap" data-minute-scope-wrap hidden>' + minuteScopeControlHtml() + '</div>'
       + '<div class="ss-chart-studies">'
       + '<label><input type="checkbox" data-chart-ma-toggle checked /> 이동평균선 표시</label>'
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
@@ -1501,13 +1556,13 @@
       + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
 
     var dailyPromise = Promise.resolve().then(function () { return options.load('daily'); }).catch(function () { return []; });
-    var minutePromise = Promise.resolve().then(function () { return options.load('minute'); }).catch(function () { return []; });
+    var minutePromise = Promise.resolve().then(function () { return options.load('minute', state.minuteScope); }).catch(function () { return []; });
     return Promise.all([dailyPromise, minutePromise]).then(function (result) {
       var daily = Array.isArray(result[0]) ? result[0] : [];
       var minute = Array.isArray(result[1]) ? result[1] : [];
       if (!daily.length && !minute.length) throw new Error('NO_DATA');
       state.chartCache[code] = { t: Date.now(), data: { daily: daily } };
-      state.minuteCache[code] = { t: Date.now(), bars: minute };
+      state.minuteCache[minuteCacheKey(code, state.minuteScope)] = { t: Date.now(), bars: minute };
       if (state.selectedCode !== code) return { daily: daily, minute: minute };
       wireChartTabs(container);
       renderChartForCode(container, code);
@@ -1552,16 +1607,21 @@
 
   function renderMinuteChart(container, code) {
     var chartEl = container.querySelector('#ssChart');
-    var cached = state.minuteCache[code];
+    var scope = state.minuteScope;
+    var cacheKey = minuteCacheKey(code, scope);
+    var cached = state.minuteCache[cacheKey];
     if (cached && Date.now() - cached.t < 60 * 1000) {
       renderLwChart(chartEl, cached.bars, 'minute');
       return;
     }
     chartEl.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>분봉을 불러오는 중...</div>';
-    fetchJson(VM_OHLC_MINUTE_URL + encodeURIComponent(code) + '?tic_scope=1')
-      .then(function (json) {
-        var bars = minuteRowsToBars((json && json.data) || []);
-        state.minuteCache[code] = { t: Date.now(), bars: bars };
+    var loader = typeof state.externalMinuteLoader === 'function' && /^US:/i.test(String(code))
+      ? state.externalMinuteLoader(scope)
+      : fetchJson(VM_OHLC_MINUTE_URL + encodeURIComponent(code) + '?tic_scope=' + encodeURIComponent(scope));
+    Promise.resolve(loader)
+      .then(function (payload) {
+        var bars = Array.isArray(payload) ? payload : minuteRowsToBars((payload && payload.data) || []);
+        state.minuteCache[cacheKey] = { t: Date.now(), bars: bars };
         if (state.selectedCode === code && state.timeframe === 'minute') {
           renderLwChart(container.querySelector('#ssChart'), bars, 'minute');
         }
@@ -1829,6 +1889,9 @@
 
   function renderLwChart(container, bars, timeframe) {
     var renderId = ++lwcRenderId;
+    lwcCandleSeries = null;
+    lwcLiveBars = [];
+    lwcLiveTimeframe = null;
     destroyStockDrawing();
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
@@ -1870,6 +1933,12 @@
       candleSeries.setData(bars.map(function (d) {
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
+      lwcCandleSeries = candleSeries;
+      lwcLiveBars = bars.map(function (bar) {
+        return { date: bar.date, open: Number(bar.open), high: Number(bar.high), low: Number(bar.low), close: Number(bar.close), volume: Number(bar.volume) || 0 };
+      });
+      lwcLiveTimeframe = timeframe;
+      if (state.liveQuotes[state.selectedCode]) updateLiveChartQuote(state.selectedCode, state.liveQuotes[state.selectedCode]);
 
       var priceStudies = [
         { period: 5, label: '5', color: '#d24f45' },
@@ -2109,7 +2178,7 @@
   function escapeAttr(s) { return escapeHtml(s); }
 
   global.StockSearch = { init: init };
-  global.StockSearchChart = { mount: mountExternalChart };
+  global.StockSearchChart = { mount: mountExternalChart, updateQuote: updateLiveChartQuote };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

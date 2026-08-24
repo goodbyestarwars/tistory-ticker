@@ -1110,6 +1110,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("timeVisible: timeframe === 'minute'", source)
         self.assertIn("lwcThemeOptions(LWC, timeframe)", source)
 
+    def test_stock_search_minute_chart_supports_scopes_and_live_candle_sync(self):
+        source = self.read("js/stock-search.js")
+        us_source = self.read("js/us-stocks.js")
+        backend = self.read("scripts/cloud-vm/main.py")
+        us_backend = self.read("scripts/cloud-vm/us_stocks.py")
+        self.assertIn("var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];", source)
+        self.assertIn("data-minute-scope", source)
+        self.assertIn("tic_scope=' + encodeURIComponent(scope)", source)
+        self.assertIn("function updateLiveChartQuote(code, quote)", source)
+        self.assertIn("lwcCandleSeries.update", source)
+        self.assertIn("global.StockSearchChart.updateQuote", us_source)
+        self.assertIn("REALTIME_QUOTES_URL", us_source)
+        self.assertIn("tic_scope: str = Query('1')", backend)
+        self.assertIn("us_stocks.chart(symbol, timeframe=timeframe, tic_scope=tic_scope)", backend)
+        self.assertIn("US_MINUTE_SCOPES = ('1', '3', '5', '30', '60')", us_backend)
+        self.assertIn("body['tic_scope'] = tic_scope", us_backend)
+
     def test_stock_search_minute_chart_keeps_only_latest_date(self):
         # 2026-08-05(5차) 사용자 리포트: 분봉 차트가 8/3~8/5 여러 날짜가 이어붙어 그려지고
         # 새로고침마다 그 전체 구간에 맞춰 줌아웃된 것처럼 보였음 - API_REFERENCE.md에 이미

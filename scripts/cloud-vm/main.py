@@ -1264,11 +1264,14 @@ def us_orderbook(request: Request, symbol: str = Path(..., min_length=1, max_len
 
 @app.get('/us-chart/{symbol}')
 def us_chart(request: Request, symbol: str = Path(..., min_length=1, max_length=12),
-             timeframe: str = Query('minute', pattern='^(minute|daily)$')):
-    """미국주식 분봉·일봉 차트 조회."""
+             timeframe: str = Query('minute', pattern='^(minute|daily)$'),
+             tic_scope: str = Query('1')):
+    """미국주식 분봉·일봉 차트 조회. 분봉은 1/3/5/30/60분 간격을 지원한다."""
     _check_rate_limit('us_chart', request, max_per_window=30)
+    if tic_scope not in ('1', '3', '5', '30', '60'):
+        raise HTTPException(status_code=400, detail='tic_scope는 1/3/5/30/60 중 하나여야 합니다.')
     try:
-        return envelope(us_stocks.chart(symbol, timeframe=timeframe))
+        return envelope(us_stocks.chart(symbol, timeframe=timeframe, tic_scope=tic_scope))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except us_stocks.UsStockUnavailable as exc:

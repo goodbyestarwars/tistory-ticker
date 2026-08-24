@@ -34,6 +34,7 @@ MAX_CACHE_ENTRIES = 100
 NY_TZ = ZoneInfo('America/New_York')
 US_DAILY_LOOKBACK_CALENDAR_DAYS = 730
 US_DAILY_MIN_POINTS_FOR_LONG_MA = 224
+US_MINUTE_SCOPES = ('1', '3', '5', '30', '60')
 YAHOO_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/'
 
 _cache_lock = threading.Lock()
@@ -351,11 +352,14 @@ def _chart_time(row, daily):
         return None
 
 
-def chart(symbol, timeframe='minute'):
+def chart(symbol, timeframe='minute', tic_scope='1'):
     """키움 미국주식 분봉 또는 일봉을 공통 포맷으로 반환한다."""
     symbol = normalize_symbol(symbol)
     if timeframe not in ('minute', 'daily'):
         raise ValueError('timeframe은 minute 또는 daily여야 합니다.')
+    tic_scope = str(tic_scope or '1')
+    if tic_scope not in US_MINUTE_SCOPES:
+        raise ValueError('tic_scope는 1/3/5/30/60 중 하나여야 합니다.')
     last_error = None
     if _has_kiwoom():
         try:
@@ -373,7 +377,7 @@ def chart(symbol, timeframe='minute'):
                     'upd_stkpc_tp': '1', 'exrt_appl_tp': '0',
                 }
                 if timeframe == 'minute':
-                    body['tic_scope'] = '1'
+                    body['tic_scope'] = tic_scope
                 response = kiwoom_client.call_tr(token, api_id, '/api/us/chart', body)
                 rows = _records(response)
                 points = []
@@ -418,15 +422,48 @@ def chart(symbol, timeframe='minute'):
         except Exception as exc:
             last_error = exc
     try:
-        return _yahoo_chart(symbol, timeframe)
+        return _yahoo_chart(symbol, timeframe, tic_scope=tic_scope)
     except Exception as exc:
         if last_error is None:
             last_error = exc
     raise UsStockUnavailable('미국주식 차트 조회 실패') from last_error
 
 
-def _yahoo_chart(symbol, timeframe):
-    range_value, interval = ('1d', '5m') if timeframe == 'minute' else ('2y', '1d')
+def _aggregate_intraday_points(points, minutes):
+    """Yahoo 1분 데이터를 요청 간격으로 합친다(미국 거래소 현지시간 기준)."""
+    groups = {}
+    for point in points:
+        stamp = point.get('time')
+        if not isinstance(stamp, (int, float)):
+            continue
+        local = datetime.fromtimestamp(stamp, tz=NY_TZ)
+        bucket_minute = (local.hour * 60 + local.minute) // minutes * minutes
+        key = (local.date().isoformat(), bucket_minute)
+        group = groups.get(key)
+        if group is None:
+            group = {
+                'time': int(local.replace(hour=bucket_minute // 60, minute=bucket_minute % 60,
+                                          second=0, microsecond=0).timestamp()),
+                'open': point['open'], 'high': point['high'], 'low': point['low'],
+                'close': point['close'], 'price': point['close'], 'volume': point['volume'],
+            }
+            groups[key] = group
+        else:
+            group['high'] = max(group['high'], point['high'])
+            group['low'] = min(group['low'], point['low'])
+            group['close'] = point['close']
+            group['price'] = point['close']
+            group['volume'] += point['volume']
+    return sorted(groups.values(), key=lambda point: point['time'])
+
+
+def _yahoo_chart(symbol, timeframe, tic_scope='1'):
+    if timeframe == 'minute':
+        # Yahoo는 3분봉을 직접 제공하지 않으므로 1분봉을 받아 아래에서 합친다.
+        interval = {'1': '1m', '3': '1m', '5': '5m', '30': '30m', '60': '60m'}[str(tic_scope)]
+        range_value = '7d' if interval == '1m' else ('60d' if interval in ('5m', '30m') else '730d')
+    else:
+        range_value, interval = '2y', '1d'
     query = urllib.parse.urlencode({'range': range_value, 'interval': interval, 'events': 'history'})
     payload = _get_yahoo_json(YAHOO_CHART_URL + urllib.parse.quote(symbol, safe='') + '?' + query)
     result = ((payload.get('chart') or {}).get('result') or [None])[0]
@@ -455,6 +492,8 @@ def _yahoo_chart(symbol, timeframe):
         })
     if not points:
         raise RuntimeError('Yahoo chart points are empty')
+    if timeframe == 'minute' and str(tic_scope) == '3':
+        points = _aggregate_intraday_points(points, 3)
     return {
         'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
         'timeframe': timeframe, 'exchange': ((result.get('meta') or {}).get('exchangeName') or 'US'),

@@ -143,6 +143,16 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual(data['points'][0]['price'], 201.5)
         self.assertEqual(call_tr.call_args.args[1:3], ('usa06011', '/api/us/chart'))
 
+    def test_minute_chart_passes_requested_scope_to_kiwoom(self):
+        response = {'result_list': [
+            {'bus_dt': '20260808', 'cntr_tm': '20260808143000', 'cur_prc': '201.5', 'trde_qty': '10'},
+        ]}
+        with mock.patch.dict(os.environ, {'KIWOOM_APPKEY': 'key', 'KIWOOM_SECRETKEY': 'secret'}), \
+             mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='token'), \
+             mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response) as call_tr:
+            us_stocks.chart('AAPL', 'minute', tic_scope='30')
+        self.assertEqual(call_tr.call_args.args[3]['tic_scope'], '30')
+
     def test_daily_chart_requests_two_year_range(self):
         response = {'result_list': [
             {'bus_dt': '20260808', 'cur_prc': '201.5', 'trde_qty': '10'}

@@ -63,6 +63,8 @@
     realtimeReconnectTimer: null,
     realtimeKeepaliveTimer: null,
     realtimeGeneration: 0,
+    lastRealtimeQuote: null,
+    lastRealtimeAt: 0,
     summary: null,
     summaryGeneration: 0,
     onQuote: null // 2026-08-05: 이 위젯을 임베드하는 상위 페이지(js/stock-search.js)가 자기
@@ -230,6 +232,8 @@
     state.trades = [];
     state.startTime = Date.now();
     state.lastBase = null;
+    state.lastRealtimeQuote = null;
+    state.lastRealtimeAt = 0;
     state.summary = null;
     state.summaryGeneration += 1;
     state.trackedWall = null;
@@ -326,6 +330,8 @@
   function applyRealtimeQuote(container, quote) {
     if (typeof quote.price !== 'number') return;
     state.lastBase = quote.price;
+    state.lastRealtimeQuote = quote;
+    state.lastRealtimeAt = Date.now();
 
     var board = container.querySelector('#obBoard');
     if (!board) return;
@@ -402,6 +408,12 @@
         if (state.code !== code) return; // 응답 오는 사이 다른 종목을 골랐으면 무시(레이스 방지)
         var book = results[0];
         var quote = results[1];
+        // REST 시세가 WebSocket 체결가보다 늦게 도착하면 호가창이 다시 예전 가격으로
+        // 돌아가 차트와 벌어진다. 최근 체결가가 있으면 이번 폴링 렌더에도 같은 값을 쓴다.
+        if (state.lastRealtimeQuote && state.lastRealtimeQuote.code === code
+            && Date.now() - state.lastRealtimeAt < 10000) {
+          quote = state.lastRealtimeQuote;
+        }
         if (book) recordTrade(book);
         if (book && (book.asks.length || book.bids.length)) {
           recordSnapshot(book, quote);
