@@ -321,14 +321,35 @@
     return String(s).replace(/["\\]/g, '\\$&');
   }
 
+  function quoteNumber_(value) {
+    if (value == null || value === '') return NaN;
+    if (typeof value === 'number') return value;
+    return Number(String(value)
+      .replace(/,/g, '')
+      .replace(/%/g, '')
+      .replace(/[▲▼]/g, '')
+      .trim());
+  }
+
+  function quoteFieldNumber_(quote, fields) {
+    for (var i = 0; i < fields.length; i++) {
+      var value = quoteNumber_(quote && quote[fields[i]]);
+      if (!isNaN(value)) return value;
+    }
+    return NaN;
+  }
+
   function updateSectorRowQuote(container, code, quote) {
     var rows = container.querySelectorAll('.sector-row[data-code="' + cssEscape(code) + '"]');
     if (!rows.length) return;
-    var price = Number(quote.price);
-    var changeRate = Number(quote.changeRate);
+    var price = quoteFieldNumber_(quote, ['price', 'last', 'currentPrice']);
+    // 실시간 공급자/중계 버전에 따라 camelCase·snake_case·문자열 퍼센트가
+    // 섞여 들어올 수 있으므로 가격과 같은 quote 메시지에서 모두 호환한다.
+    var changeRate = quoteFieldNumber_(quote, ['changeRate', 'change_rate', 'changeRatePct', 'change_rate_pct']);
+    var change = quoteFieldNumber_(quote, ['change', 'change_amount', 'changeAmount']);
     // 일부 브로커 응답은 change 금액을 절댓값으로 보낸다 - 방향은 부호가 있는
     // changeRate를 우선한다(js/watchlist.js updateCard와 동일한 규칙).
-    var direction = !isNaN(changeRate) && changeRate !== 0 ? changeRate : Number(quote.change);
+    var direction = !isNaN(changeRate) && changeRate !== 0 ? changeRate : change;
     for (var i = 0; i < rows.length; i++) {
       var priceEl = rows[i].querySelector('.sector-row-price');
       var rateEl = rows[i].querySelector('.sector-row-rate');
