@@ -46,6 +46,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("localStorage.removeItem('bolt-font')", menu)
         self.assertIn(".nav-font-btn { display: none !important; }", style)
 
+    def test_market_briefing_category_uses_stable_newspaper_layout(self):
+        source = self.read("js/skin-main.js")
+        style = self.read("style.css")
+        start = source.index("function buildCategoryFeedBlocks()")
+        end = source.index("/* ── 데스크톱 사이드바 토글", start)
+        category_source = source[start:end]
+        self.assertIn("category-masthead", category_source)
+        self.assertIn("var BLOCK_SEQUENCE", category_source)
+        self.assertIn("sequenceIndex % BLOCK_SEQUENCE.length", category_source)
+        self.assertNotIn("Math.random()", category_source)
+        self.assertIn(".category-masthead", style)
+        self.assertIn("font: 700 30px/1.15 var(--font-title)", style)
+
     def test_stock_menu_opens_analysis_and_search_submenu(self):
         source = self.read("js/skin-menu.js")
         group = re.search(
@@ -269,7 +282,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260825-newspaper-speed-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260826-category-newspaper-v1", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -303,7 +316,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260826-warm-bg-v3", skin)
+        self.assertIn("style.css?v=20260826-category-newspaper-v1", skin)
         self.assertIn(".home-briefing-featured .post-excerpt", style)
         self.assertIn("min-height: 6.4em", style)
         self.assertIn(".home-briefing-small .post-title", style)
@@ -312,7 +325,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
-        self.assertIn("skin-main.js?v=20260825-newspaper-speed-v1", skin)
+        self.assertIn("skin-main.js?v=20260826-category-newspaper-v1", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")

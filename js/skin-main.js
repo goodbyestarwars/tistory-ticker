@@ -1325,25 +1325,31 @@
       });
   })();
 
-  /* ── 카테고리 글목록: 블록 단위 무작위 배치(2026-08-05, 재요청으로 재설계) ──
+  /* ── 카테고리 글목록: 신문 지면형 고정 편집(2026-08-26) ──
      처음엔 카드 하나하나에 독립적으로 크기만 다른 클래스를 줬는데(모두 세로 1열, "왜 일열이야"
      피드백) - 사용자가 표로 예를 들어 요구한 건 그게 아니라 진짜 구조가 다른 "블록"들이
      섞이는 것. 처음엔 "제목만 목록"을 독립된 블록으로 뒀는데, 사용자가 "그럴 땐 왼쪽에 포스팅
      하나 + 오른쪽에 제목만 있는 목록으로 해야 하지 않을까?"라고 재지적 - 제목만 있는 목록이
      혼자 둥둥 떠 있는 것보다 큰 글 옆에 붙어야 자연스럽다는 지적이 맞아서, single(대표 1개)과
      headline(제목 목록)을 하나의 hero 블록(왼쪽 대표 1 + 오른쪽 제목 목록 최대 4)으로 합쳤다.
-     글을 앞에서부터 순서대로(최신순 그대로, 절대 재정렬 안 함) 소비하면서, 매번 남은 글 수에
-     맞는 블록 타입을 무작위로 골라 그만큼씩 묶어 서로 다른 모양의 블록으로 렌더링한다. */
+     글을 앞에서부터 순서대로(최신순 그대로, 절대 재정렬 안 함) 소비하면서, 대표 기사와
+     헤드라인을 먼저 보여주고 이후 카드 3개·가로 기사 2개를 반복해 안정적인 지면을 만든다. */
   (function buildCategoryFeedBlocks() {
     if (location.pathname.indexOf('/category/') !== 0) return;
     var feed = document.querySelector('.feed');
     if (!feed) return;
+    if (!feed.querySelector('.category-masthead')) {
+      var masthead = document.createElement('header');
+      masthead.className = 'category-masthead';
+      masthead.innerHTML = '<div><p>MARKET BRIEFING</p><h1>마켓 브리핑</h1><span>시장과 종목의 흐름을 한 장씩 읽습니다.</span></div>'
+        + '<small>최신순 · 전체 글</small>';
+      feed.insertBefore(masthead, feed.firstChild);
+    }
     var cards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     if (cards.length < 2) return; /* 카드가 1개뿐이면 다양화할 의미가 없음 */
 
-    var BLOCK_TYPES = [
-      { key: 'single', min: 1, max: 1 }, // 1개 단독 - 대표 글만(feed-featured)
-      { key: 'hero', min: 2, max: 5 },   // 왼쪽 대표 1 + 오른쪽 제목 목록 최대 4(최소 1개는 있어야 hero다움)
+    var BLOCK_SEQUENCE = [
+      { key: 'hero', min: 2, max: 5 },   // 최신 대표 1 + 헤드라인 최대 4
       { key: 'cards', min: 3, max: 3 },  // 작은 카드형 3개 그리드
       { key: 'duo', min: 2, max: 2 }     // 가로로 나란한 2개
     ];
@@ -1384,16 +1390,18 @@
     }
 
     var idx = 0;
+    var sequenceIndex = 0;
     while (idx < cards.length) {
       var remaining = cards.length - idx;
-      // 남은 글 수보다 최소 소요량이 큰 블록 타입은 후보에서 뺀다(single은 1개라 항상 가능).
-      var candidates = BLOCK_TYPES.filter(function (b) { return b.min <= remaining; });
-      var block = candidates[Math.floor(Math.random() * candidates.length)];
+      var block = BLOCK_SEQUENCE[sequenceIndex % BLOCK_SEQUENCE.length];
+      // 마지막에 1개만 남으면 단독 카드로 마무리한다.
+      if (remaining < block.min) block = { key: 'single', min: 1, max: 1 };
       var take = Math.min(block.max, remaining);
       var slice = cards.slice(idx, idx + take);
       var beforeNode = idx + take < cards.length ? cards[idx + take] : tailAnchor;
       renderBlock(block.key, slice, beforeNode);
       idx += take;
+      sequenceIndex += 1;
     }
   })();
 
