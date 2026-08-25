@@ -75,6 +75,10 @@ html.dark .hb-spinner { color: #ff8a80; }
 }
 
 html.nav-secondary-open { --topbar-height: 92px; }
+/* 티스토리 스킨에 남아 있을 수 있는 초기 인라인 배경색보다 공통 토큰을 우선한다.
+   body만 바뀌면 화면은 대부분 맞아 보여도 html/스크롤 영역에 예전 색이 남을 수 있다. */
+html { background: var(--page-bg); }
+html.skin-ready { background: var(--page-bg) !important; }
 /* 2026-07-27: 관심지수 리본을 홈("/")에서만 띄우기로 하면서(js/quick-indices.js의
    isHomePage() 참고) 다른 페이지에서는 init()이 아예 실행되지 않아 --qi-height를
    setProperty할 JS가 없다 - :root의 기본값(140px)이 그대로 남아 .page-wrap 등의
