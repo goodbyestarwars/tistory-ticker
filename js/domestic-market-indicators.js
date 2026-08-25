@@ -241,7 +241,7 @@
   function renderSpotQuotes(root, indices) {
     var mount = root && root.querySelector('.dmi-spot-quotes');
     if (!mount) return;
-    mount.innerHTML = ['KOSPI', 'KOSDAQ'].map(function (market) {
+    var rows = ['KOSPI', 'KOSDAQ'].map(function (market) {
       var item = indices && indices[market] || {};
       var quote = item.quote || {};
       var rows = item.intervals && item.intervals.day && item.intervals.day.rows || [];
@@ -250,12 +250,17 @@
       var change = quote.change;
       var rate = quote.change_rate;
       var cls = Number(change) > 0 ? 'dmi-positive' : Number(change) < 0 ? 'dmi-negative' : '';
-      return '<article class="dmi-spot-card">'
-        + '<span class="dmi-spot-label">' + escapeHtml(item.name || market) + '</span>'
-        + '<strong class="dmi-spot-price">' + spotPrice(price) + '</strong>'
-        + '<span class="dmi-spot-change ' + cls + '">' + spotChange(change) + ' (' + spotChange(rate) + '%)</span>'
-        + '</article>';
+      return '<tr>'
+        + '<th scope="row">' + escapeHtml(item.name || market) + '</th>'
+        + '<td class="dmi-spot-price">' + spotPrice(price) + '</td>'
+        + '<td class="' + cls + '">' + spotChange(change) + '</td>'
+        + '<td class="' + cls + '">' + spotChange(rate) + '%</td>'
+        + '</tr>';
     }).join('');
+    mount.innerHTML = '<table class="dmi-spot-table">'
+      + '<caption class="dmi-visually-hidden">국내 현물 지수</caption>'
+      + '<thead><tr><th scope="col">지수</th><th scope="col">현재가</th><th scope="col">전일 대비</th><th scope="col">등락률</th></tr></thead>'
+      + '<tbody>' + rows + '</tbody></table>';
   }
 
   function mergeOptions(base, extra) {
@@ -491,7 +496,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260826-dmi-layout-v1';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260826-dmi-layout-v2';
     document.head.appendChild(link);
   }
 
@@ -667,6 +672,8 @@
 
   function renderCharts(root, indices) {
     var intervals = ['minute', 'day', 'week'];
+    var spotSection = root.querySelector('.dmi-spot-section');
+    if (spotSection && spotSection.classList.contains('dmi-collapsed')) return;
     Object.keys(indices || {}).forEach(function (market) {
       var item = indices[market] || {};
       var panel = root.querySelector('[data-dmi-panel="' + market + '"]');
@@ -693,12 +700,14 @@
       + '<div class="dmi-panel-title"><span>' + escapeHtml(item.name || market) + '</span><div class="dmi-chart-tools">'
       + '<button type="button" class="dmi-collapse-btn" data-dmi-panel="' + market + '" aria-expanded="' + (collapsed ? 'false' : 'true') + '" aria-label="펼치기/접기">' + (collapsed ? '▸' : '▾') + '</button></div></div>'
       + '<div class="dmi-tabs" role="tablist">'
-      + '<button type="button" class="dmi-draw-toggle" aria-pressed="false" title="시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 추세선이 완성됩니다.">선 그리기</button>'
-      + '<button type="button" class="dmi-draw-clear" title="그린 선을 모두 지웁니다.">지우기</button>'
-      + ['minute', 'day', 'week'].map(function (interval) {
+      + '<div class="dmi-interval-tabs">' + ['minute', 'day', 'week'].map(function (interval) {
         var label = { minute: '분봉', day: '일봉', week: '주봉' }[interval];
         return '<button type="button" class="dmi-tab' + (interval === 'day' ? ' is-active' : '') + '" data-interval="' + interval + '">' + label + '</button>';
-      }).join('')
+      }).join('') + '</div>'
+      + '<div class="dmi-draw-buttons">'
+      + '<button type="button" class="dmi-draw-toggle" aria-pressed="false" title="시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 추세선이 완성됩니다.">선 그리기</button>'
+      + '<button type="button" class="dmi-draw-clear" title="그린 선을 모두 지웁니다.">지우기</button>'
+      + '</div>'
       + '</div><div class="dmi-chart" aria-label="' + escapeHtml(item.name || market) + ' 표준 차트"></div></section>';
   }
 
@@ -800,11 +809,14 @@
     root.setAttribute('data-dmi-ready', '1');
     dmiRoot = root;
     installStyle();
+    var spotCollapsed = loadCollapsed('spot');
     root.innerHTML = '<div class="dmi-shell">'
       + '<div class="dmi-heading"><h2>국내시장지표</h2><span class="dmi-live-status" data-dmi-connection>REST 확인 중</span></div>'
-      + '<div class="dmi-spot-quotes"><article class="dmi-spot-card">불러오는 중...</article><article class="dmi-spot-card">불러오는 중...</article></div>'
-      + '<section class="dmi-chart-section"><div class="dmi-subheading"><h3>코스피 · 코스닥 주간현물 (09:00~15:45) <span class="dmi-market-status" data-dmi-market-status></span></h3></div>'
-      + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div></section>'
+      + '<section class="dmi-chart-section dmi-spot-section' + (spotCollapsed ? ' dmi-collapsed' : '') + '">'
+      + '<div class="dmi-subheading"><h3>코스피 · 코스닥 현물 (09:00~15:45) <span class="dmi-market-status" data-dmi-market-status></span></h3>'
+      + '<button type="button" class="dmi-spot-collapse" aria-expanded="' + (spotCollapsed ? 'false' : 'true') + '">' + (spotCollapsed ? '펼치기' : '숨기기') + '</button></div>'
+      + '<div class="dmi-spot-body"><div class="dmi-spot-quotes"><div class="dmi-spot-loading">불러오는 중...</div></div>'
+      + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div></div></section>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
       + '<div class="dmi-subheading"><h3>증시자금</h3></div>'
@@ -838,6 +850,24 @@
       fundsAiBox.innerHTML = '<div class="dmi-ai-title">' + DMI_AI_ICON + '참고의견</div><p>' + escapeHtml(text) + '</p>';
     }).catch(function () { /* AI 요약 실패는 조용히 무시 - 카드 자체는 정상 표시 */ });
     root.addEventListener('click', function (event) {
+      var spotCollapseButton = event.target.closest ? event.target.closest('.dmi-spot-collapse') : null;
+      if (spotCollapseButton) {
+        var spotSection = spotCollapseButton.closest('.dmi-spot-section');
+        if (!spotSection) return;
+        var isSpotCollapsed = !spotSection.classList.contains('dmi-collapsed');
+        spotSection.classList.toggle('dmi-collapsed', isSpotCollapsed);
+        spotCollapseButton.textContent = isSpotCollapsed ? '펼치기' : '숨기기';
+        spotCollapseButton.setAttribute('aria-expanded', isSpotCollapsed ? 'false' : 'true');
+        saveCollapsed('spot', isSpotCollapsed);
+        if (!isSpotCollapsed) {
+          var spotData = root._dmiData;
+          setTimeout(function () {
+            if (spotData) renderCharts(root, spotData.indices || {});
+            resizeDmiCharts();
+          }, 0);
+        }
+        return;
+      }
       var collapseButton = event.target.closest ? event.target.closest('.dmi-collapse-btn') : null;
       if (collapseButton) {
         // 2026-08-14 발견: 버튼 자신도 data-dmi-panel 속성을 갖고 있어서
