@@ -491,7 +491,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260825-cash-box-v1';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260826-dmi-layout-v1';
     document.head.appendChild(link);
   }
 
@@ -557,10 +557,9 @@
     return formatFunds(avg, unit) + ' (' + count + '개 평균)';
   }
 
-  // 값 배열 + 평균선을 그리는 미니 그래프. 외부 차트 라이브러리 없이 SVG를 직접 그리는
-  // js/foreign-flow.js와 같은 방식이다. 지금 값(마지막 값)이 평균보다 높으면 빨강,
-  // 낮으면 파랑으로 선 색을 바꾼다(사이트 공통 상승=빨강/하락=파랑 규칙을 "평균 대비"
-  // 기준으로 적용 - 전일 대비 등락과는 다른 규칙이라 별도 클래스명을 쓴다).
+  // 값 배열 + 1년 평균선을 그리는 미니 그래프. 평균 위 구간은 빨강, 아래 구간은 파랑으로
+  // 직접 나눈다. 마지막 값 하나로 전체 선 색을 정하면 중간 흐름이 사라져 사용자가
+  // "돈이 평소보다 위/아래에 있는 구간"을 읽을 수 없었기 때문이다.
   function miniAverageChart(values, average) {
     if (!values || values.length < 2 || average == null) return '';
     var w = 260, h = 46, pad = 3;
@@ -570,13 +569,32 @@
     var range = (max - min) || 1;
     function x(i) { return pad + (i / (values.length - 1)) * (w - pad * 2); }
     function y(v) { return h - pad - ((v - min) / range) * (h - pad * 2); }
-    var path = values.map(function (v, i) { return (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1); }).join(' ');
+    var segments = [];
+    function addSegment(x1, y1, x2, y2, side) {
+      segments.push('<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1)
+        + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1)
+        + '" class="dmi-mini-chart-line ' + side + '"></line>');
+    }
+    values.slice(0, -1).forEach(function (value, i) {
+      var next = values[i + 1];
+      var x1 = x(i), x2 = x(i + 1), y1 = y(value), y2 = y(next);
+      var a = value - average, b = next - average;
+      if ((a < 0 && b > 0) || (a > 0 && b < 0)) {
+        var ratio = (average - value) / (next - value);
+        var crossX = x1 + (x2 - x1) * ratio;
+        var crossY = y(average);
+        addSegment(x1, y1, crossX, crossY, a > 0 ? 'dmi-above' : 'dmi-below');
+        addSegment(crossX, crossY, x2, y2, b > 0 ? 'dmi-above' : 'dmi-below');
+      } else {
+        addSegment(x1, y1, x2, y2, (a >= 0 && b >= 0) ? 'dmi-above' : 'dmi-below');
+      }
+    });
     var last = values[values.length - 1];
     var cls = last > average ? 'dmi-positive' : (last < average ? 'dmi-negative' : 'dmi-flat');
     var avgY = y(average).toFixed(1);
     return '<svg class="dmi-mini-chart ' + cls + '" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">'
       + '<line x1="0" y1="' + avgY + '" x2="' + w + '" y2="' + avgY + '" class="dmi-mini-chart-avg"></line>'
-      + '<path d="' + path + '" class="dmi-mini-chart-line"></path>'
+      + segments.join('')
       + '</svg>';
   }
 

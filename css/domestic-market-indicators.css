@@ -296,3 +296,101 @@ html.dark .dmi-tabs .dmi-draw-clear:hover { border-color: #F5EFE0; color: #F5EFE
   color: #94a3b8;
 }
 html.dark .dmi-market-status { color: rgba(245, 239, 224, 0.4) !important; }
+
+/* 2026-08-26: 현물 지수는 투자자별 매매동향과 같은 평평한 2열 지면으로 통일.
+   둥근 사각 카드가 제목·구분선에 바로 붙어 보이던 문제를 없애고, 가운데 세로선과
+   좌우 여백으로 코스피·코스닥을 분리한다. */
+.dmi-spot-quotes {
+  gap: 0;
+  margin: 0 0 18px;
+  border-top: 1px solid #d8d8d8;
+  border-bottom: 1px solid #d8d8d8;
+}
+.dmi-spot-card,
+.dmi-spot-card + .dmi-spot-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 14px 20px 16px 0;
+}
+.dmi-spot-card + .dmi-spot-card {
+  border-left: 1px solid #d8d8d8;
+  padding-right: 0;
+  padding-left: 20px;
+}
+
+/* 증시자금은 지표를 한 장씩 비교하는 카드형 UI로 원복한다. */
+.dmi-fund-grid {
+  gap: 14px;
+  border: 0;
+}
+.dmi-fund-card,
+.dmi-fund-card:nth-child(3n + 2),
+.dmi-fund-card:nth-child(3n + 3) {
+  min-height: 150px;
+  border: 1px solid #e4eaf2;
+  border-radius: 16px;
+  background: rgb(255, 254, 252);
+  padding: 16px;
+}
+
+/* 그리기·지우기는 차트 바로 위 오른쪽에 두고, 네모난 버튼으로 통일한다. */
+.dmi-chart-tools button,
+.dmi-tabs .dmi-draw-toggle,
+.dmi-tabs .dmi-draw-clear,
+.dmi-panel .de-draw-controls .dmi-draw-toggle,
+.dmi-panel .de-draw-controls .dmi-draw-clear {
+  border-radius: 4px;
+}
+.dmi-panel .de-draw-controls {
+  justify-content: flex-end;
+  margin: -4px 0 8px;
+}
+.dmi-mini-chart-line { stroke-width: 1.8; }
+.dmi-mini-chart-line.dmi-above { stroke: #d24f45; }
+.dmi-mini-chart-line.dmi-below { stroke: #1261c4; }
+.dmi-mini-chart.dmi-positive .dmi-mini-chart-line.dmi-below { stroke: #1261c4; }
+.dmi-mini-chart.dmi-negative .dmi-mini-chart-line.dmi-above { stroke: #d24f45; }
+
+@media (max-width: 760px) {
+  .dmi-spot-card,
+  .dmi-spot-card + .dmi-spot-card {
+    padding: 14px 0;
+  }
+  .dmi-spot-card + .dmi-spot-card {
+    border-top: 1px solid #d8d8d8;
+    border-left: 0;
+  }
+  .dmi-fund-card,
+  .dmi-fund-card:nth-child(3n + 2),
+  .dmi-fund-card:nth-child(3n + 3) {
+    min-height: 150px;
+    border: 1px solid #e4eaf2;
+    border-radius: 13px;
+    padding: 12px;
+  }
+  .dmi-fund-card + .dmi-fund-card { border-top: 1px solid #e4eaf2; }
+}
+
+html.dark .dmi-spot-quotes { border-color: rgba(245,239,224,.2); }
+html.dark .dmi-spot-card + .dmi-spot-card { border-left-color: rgba(245,239,224,.2); }
+html.dark .dmi-fund-card,
+html.dark .dmi-fund-card:nth-child(3n + 2),
+html.dark .dmi-fund-card:nth-child(3n + 3) {
+  border-color: rgba(245,239,224,.2);
+  background: transparent !important;
+}
+html.dark .dmi-spot-card + .dmi-spot-card { border-top-color: rgba(245,239,224,.2); }
+
+@media (min-width: 761px) {
+  /* 차트 탭은 왼쪽, 그리기 도구는 차트 바로 위 오른쪽으로 분리한다. */
+  .dmi-panel { position: relative; }
+  .dmi-panel > .dmi-tabs { padding-right: 190px; }
+  .dmi-panel > .de-draw-controls {
+    position: absolute;
+    top: 29px;
+    right: 0;
+    z-index: 4;
+    margin: 0;
+  }
+}

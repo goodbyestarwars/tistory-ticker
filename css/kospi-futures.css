@@ -174,7 +174,7 @@
   font-weight: 600;
   padding: 4px 12px;
   border: 1px solid #e2e8f0;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #f8fafc;
   color: #6b7280;
   cursor: pointer;
@@ -207,6 +207,18 @@
   padding: 0;
   overflow: hidden;
   background: rgb(255, 254, 252);
+}
+
+@media (min-width: 761px) {
+  #kospi-futures .kf-section-body { position: relative; }
+  #kospi-futures .kf-section-body > .kf-interval-toggle { padding-right: 190px; }
+  #kospi-futures .kf-section-body > .de-draw-controls {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 4;
+    margin: 0;
+  }
 }
 
 @media (max-width: 760px) {

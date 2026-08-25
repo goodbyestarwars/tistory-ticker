@@ -140,11 +140,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 임시 대응) - 근본 원인인 유니버설 선택자 자체를 없앴으니 더는 존재하면 안 된다.
         self.assertNotIn(".dmi-fund-card *", style)
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
-        self.assertIn("domestic-market-indicators.css?v=20260825-cash-box-v1", frontend)
-        self.assertIn("domestic-market-indicators.js?v=20260825-cash-box-v1", loader)
+        self.assertIn("domestic-market-indicators.css?v=20260826-dmi-layout-v1", frontend)
+        self.assertIn("domestic-market-indicators.js?v=20260826-dmi-layout-v1", loader)
         self.assertIn(".dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }", style)
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
         self.assertIn("function miniAverageChart(values, average)", frontend)
+        self.assertIn("dmi-above", frontend)
+        self.assertIn("dmi-below", frontend)
         self.assertIn("신용잔고 (빚투)", frontend)
         self.assertIn("신용대주잔고", frontend)
         self.assertIn("예탁증권담보융자", frontend)
@@ -173,6 +175,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-panel { border: none;", style)
         # 2026-08-14 요청: 증시자금 6개 카드를 2열 대신 3열로.
         self.assertIn(".dmi-fund-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));", style)
+        self.assertIn(".dmi-spot-quotes {", style)
+        self.assertIn(".dmi-spot-card + .dmi-spot-card", style)
+        self.assertIn("border-radius: 4px;", style)
         self.assertIn(".dmi-chart { position: relative; height: 330px;", style)
         self.assertIn(".dmi-chart-grid { grid-template-columns: 1fr; gap: 14px; }", style)
         self.assertIn(".dmi-chart { height: 330px; min-height: 330px;", style)
@@ -200,6 +205,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         futures_style = self.read("css/dashboard-enhancements.css")
         futures_script = self.read("js/kospi-futures.js")
         futures_css = self.read("css/kospi-futures.css")
+        self.assertIn("border-radius: 4px;", futures_css)
         self.assertIn("#kospi-futures .kf-chart { height: 330px !important; }", futures_style)
         self.assertIn("var CHART_HEIGHT = 330;", futures_script)
         self.assertIn('data-section-key="ai"]', futures_css)

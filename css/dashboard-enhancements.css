@@ -170,7 +170,9 @@
 .de-chart-control-row .de-expand-button.de-expand-inline { float: none; margin-left: auto; flex: 0 0 auto; }
 .de-draw-controls { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin: -4px 0 10px; }
 .de-draw-controls .dmi-draw-toggle,
-.de-draw-controls .dmi-draw-clear { border: 1px solid #d7dee8; border-radius: 999px; background: rgb(255, 254, 252); color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.de-draw-controls .dmi-draw-clear,
+.de-draw-controls .kf-draw-toggle,
+.de-draw-controls .kf-draw-clear { border: 1px solid #d7dee8; border-radius: 4px; background: rgb(255, 254, 252); color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .de-draw-controls .dmi-draw-toggle:hover,
 .de-draw-controls .dmi-draw-toggle.is-active,
 .de-draw-controls .dmi-draw-clear:hover { border-color: #e11d48; color: #e11d48; }
