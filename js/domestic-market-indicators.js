@@ -235,7 +235,10 @@
   function spotChange(value, digits) {
     if (value == null || isNaN(Number(value))) return '-';
     var number = Number(value);
-    return (number > 0 ? '+' : '') + number.toFixed(digits == null ? 2 : digits);
+    var precision = digits == null ? 2 : digits;
+    if (number > 0) return '▲ ' + Math.abs(number).toFixed(precision);
+    if (number < 0) return '▼ ' + Math.abs(number).toFixed(precision);
+    return (0).toFixed(precision);
   }
 
   function renderSpotQuotes(root, indices) {
@@ -496,7 +499,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260826-dmi-layout-v3';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260826-dmi-layout-v4';
     document.head.appendChild(link);
   }
 
@@ -588,14 +591,15 @@
         var ratio = (average - value) / (next - value);
         var crossX = x1 + (x2 - x1) * ratio;
         var crossY = y(average);
-        addSegment(x1, y1, crossX, crossY, a > 0 ? 'dmi-above' : 'dmi-below');
-        addSegment(crossX, crossY, x2, y2, b > 0 ? 'dmi-above' : 'dmi-below');
+        addSegment(x1, y1, crossX, crossY, next > value ? 'dmi-above' : 'dmi-below');
+        addSegment(crossX, crossY, x2, y2, next > value ? 'dmi-above' : 'dmi-below');
       } else {
-        addSegment(x1, y1, x2, y2, (a >= 0 && b >= 0) ? 'dmi-above' : 'dmi-below');
+        addSegment(x1, y1, x2, y2, next >= value ? 'dmi-above' : 'dmi-below');
       }
     });
+    var first = values[0];
     var last = values[values.length - 1];
-    var cls = last > average ? 'dmi-positive' : (last < average ? 'dmi-negative' : 'dmi-flat');
+    var cls = last > first ? 'dmi-positive' : (last < first ? 'dmi-negative' : 'dmi-flat');
     var avgY = y(average).toFixed(1);
     var areaPoints = values.map(function (value, index) {
       return x(index).toFixed(1) + ',' + y(value).toFixed(1);
@@ -826,6 +830,7 @@
     dmiRoot = root;
     installStyle();
     var spotCollapsed = loadCollapsed('spot');
+    var fundsCollapsed = loadCollapsed('funds');
     root.innerHTML = '<div class="dmi-shell">'
       + '<div class="dmi-heading"><h2>국내시장지표</h2><span class="dmi-live-status" data-dmi-connection>REST 확인 중</span></div>'
       + '<section class="dmi-chart-section dmi-spot-section' + (spotCollapsed ? ' dmi-collapsed' : '') + '">'
@@ -835,9 +840,11 @@
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div></div></section>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
-      + '<div class="dmi-subheading"><h3>증시자금</h3></div>'
-      + '<div class="dmi-ai" id="dmiFundsAi" hidden></div>'
-      + '<div class="dmi-fund-grid"><div class="dmi-fund-card">데이터 준비 중</div><div class="dmi-fund-card">데이터 준비 중</div></div>'
+      + '<section class="dmi-funds-section' + (fundsCollapsed ? ' dmi-collapsed' : '') + '">'
+      + '<div class="dmi-subheading"><h3>증시자금</h3>'
+      + '<button type="button" class="dmi-section-collapse dmi-funds-collapse" aria-expanded="' + (fundsCollapsed ? 'false' : 'true') + '">' + (fundsCollapsed ? '펼치기' : '숨기기') + '</button></div>'
+      + '<div class="dmi-funds-body"><div class="dmi-ai" id="dmiFundsAi" hidden></div>'
+      + '<div class="dmi-fund-grid"><div class="dmi-fund-card">데이터 준비 중</div><div class="dmi-fund-card">데이터 준비 중</div></div></div></section>'
       + '</div>';
     var marketStatusNode = root.querySelector('[data-dmi-market-status]');
     if (marketStatusNode) marketStatusNode.textContent = domesticCashMarketStatusLabel();
@@ -882,6 +889,17 @@
             resizeDmiCharts();
           }, 0);
         }
+        return;
+      }
+      var fundsCollapseButton = event.target.closest ? event.target.closest('.dmi-funds-collapse') : null;
+      if (fundsCollapseButton) {
+        var fundsSection = fundsCollapseButton.closest('.dmi-funds-section');
+        if (!fundsSection) return;
+        var isFundsCollapsed = !fundsSection.classList.contains('dmi-collapsed');
+        fundsSection.classList.toggle('dmi-collapsed', isFundsCollapsed);
+        fundsCollapseButton.textContent = isFundsCollapsed ? '펼치기' : '숨기기';
+        fundsCollapseButton.setAttribute('aria-expanded', isFundsCollapsed ? 'false' : 'true');
+        saveCollapsed('funds', isFundsCollapsed);
         return;
       }
       var collapseButton = event.target.closest ? event.target.closest('.dmi-collapse-btn') : null;

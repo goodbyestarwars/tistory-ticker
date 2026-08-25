@@ -189,6 +189,15 @@
     return (v > 0 ? '+' : '') + v.toFixed(digits == null ? 2 : digits);
   }
 
+  function fmtDirection(v, digits) {
+    if (v == null || isNaN(v)) return '-';
+    var number = Number(v);
+    var precision = digits == null ? 2 : digits;
+    if (number > 0) return '▲ ' + Math.abs(number).toFixed(precision);
+    if (number < 0) return '▼ ' + Math.abs(number).toFixed(precision);
+    return (0).toFixed(precision);
+  }
+
   function fmtTime(iso) {
     if (!iso) return '-';
     var d = new Date(iso);
@@ -323,7 +332,7 @@
       return '<div class="kf-section' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="' + c.key + '">'
         + '<div class="kf-section-head">'
         + '<div class="kf-section-title">' + escapeHtml(c.label) + '</div>'
-        + '<button type="button" class="kf-collapse-btn" data-chart-key="' + c.key + '" aria-label="펼치기/접기">' + (collapsed ? '▸' : '▾') + '</button>'
+        + '<button type="button" class="kf-collapse-btn" data-chart-key="' + c.key + '" aria-label="' + (collapsed ? '펼치기' : '숨기기') + '">' + (collapsed ? '펼치기' : '숨기기') + '</button>'
         + '</div>'
         + '<div class="kf-section-body">'
         + toggleHtml
@@ -371,9 +380,11 @@
         + '<div class="kf-opt-body kf-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'
         + '</div>';
     }).join('');
-    return '<div class="kf-section" data-section-key="option">'
-      + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급 <span class="kf-option-title-meta">만기 확인 중</span></div></div>'
-      + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
+    var collapsed = loadCollapsed('option');
+    return '<div class="kf-section' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="option">'
+      + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급 <span class="kf-option-title-meta">만기 확인 중</span></div>'
+      + '<button type="button" class="kf-collapse-btn" data-chart-key="option" aria-label="' + (collapsed ? '펼치기' : '숨기기') + '">' + (collapsed ? '펼치기' : '숨기기') + '</button></div>'
+      + '<div class="kf-section-body"><div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
       + '<div class="kf-option-profile" id="kfOptionProfile">'
       + '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
       + '<div class="kf-option-profile-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>행사가별 데이터를 불러오는 중...</div>'
@@ -383,7 +394,7 @@
       + '하락 포지션으로 보고, OI가 늘면 신규 진입(포지션 확대), 줄면 청산(포지션 정리)으로 표시합니다 - '
       + '단순 순매수/순매도 부호만으로 상승·하락을 단정하지 않고 신규/청산을 구분해서 보여드리는 방식입니다. '
       + '옵션은 야간선물과 달리 야간 세션이 없어 정규장(09:00~15:45)에만 값이 바뀌고, '
-      + '장 마감 후에는 마지막 값이 그대로 표시됩니다.</div>'
+      + '장 마감 후에는 마지막 값이 그대로 표시됩니다.</div></div>'
       + '</div>';
   }
 
@@ -544,12 +555,11 @@
   function buildStatBody(item) {
     var hasPrice = item && typeof item.price === 'number';
     var tone = !hasPrice ? 'kf-zero' : item.change_rate > 0 ? 'kf-pos' : item.change_rate < 0 ? 'kf-neg' : 'kf-zero';
-    var arrow = !hasPrice ? '' : item.change_rate > 0 ? '▲' : item.change_rate < 0 ? '▼' : '-';
     return ''
       + '<div class="kf-stat-body">'
       + '<div class="kf-stat-price ' + tone + '">' + (hasPrice ? fmtPrice(item.price) : '데이터 없음') + '</div>'
       + (hasPrice
-        ? '<div class="kf-stat-change ' + tone + '">' + arrow + ' ' + fmtSigned(item.change, 2) + ' (' + fmtSigned(item.change_rate, 2) + '%)</div>'
+        ? '<div class="kf-stat-change ' + tone + '">' + fmtDirection(item.change, 2) + ' (' + fmtDirection(item.change_rate, 2) + '%)</div>'
         : '')
       + (hasPrice ? fmtOiLine(item.oi, item.oi_change) : '')
       + '<div class="kf-stat-updated">' + (hasPrice ? '업데이트 ' + fmtTime(item.updated_at) : '') + '</div>'
@@ -1137,7 +1147,7 @@
     // domestic-market-indicators.js를 다시 안 받아온다 - 그 파일을 고칠 때마다 같이 올려야
     // 한다(오늘 여러 번 고쳤는데 이 값을 안 올려서 캐시된 사용자가 최신 코드를 못 받는
     // 문제를 뒤늦게 발견함).
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260826-dmi-layout-v3';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260826-dmi-layout-v4';
     script.setAttribute('data-domestic-market-indicators', '1');
     script.onload = function () {
       if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();
@@ -1155,12 +1165,13 @@
         var key = btn.getAttribute('data-chart-key');
         var section = container.querySelector('.kf-section[data-section-key="' + key + '"]');
         var cfg = CHARTS.filter(function (c) { return c.key === key; })[0];
-        if (!section || !cfg) return;
+        if (!section) return;
         var collapsed = !section.classList.contains('kf-collapsed');
         section.classList.toggle('kf-collapsed', collapsed);
-        btn.textContent = collapsed ? '▸' : '▾';
+        btn.textContent = collapsed ? '펼치기' : '숨기기';
+        btn.setAttribute('aria-label', collapsed ? '펼치기' : '숨기기');
         saveCollapsed(key, collapsed);
-        if (!collapsed) {
+        if (!collapsed && cfg) {
           destroyChart(key);
           renderChartPanel(cfg);
         }

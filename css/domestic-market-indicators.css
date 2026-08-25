@@ -382,6 +382,44 @@ html.dark .dmi-fund-card:nth-child(3n + 3) {
 }
 html.dark .dmi-spot-card + .dmi-spot-card { border-top-color: rgba(245,239,224,.2); }
 
+/* 2026-08-26: 현물 차트는 영역 전체의 접기 버튼으로 함께 제어한다.
+   개별 차트 버튼은 같은 기능을 중복 제공하므로 화면에서 제거한다. */
+.dmi-spot-section .dmi-chart-tools .dmi-collapse-btn { display: none !important; }
+
+/* 현물·증시자금 전체를 접는 버튼은 같은 네모 스타일을 사용한다. */
+.dmi-section-collapse {
+  border: 1px solid #d7dee8;
+  border-radius: 4px;
+  background: rgb(255, 254, 252);
+  color: #111;
+  padding: 5px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dmi-section-collapse:hover { border-color: #111; }
+.dmi-funds-section .dmi-subheading { align-items: center; }
+.dmi-funds-section.dmi-collapsed .dmi-funds-body { display: none; }
+
+/* 차트 패널의 네모 외곽선과 코스피·코스닥 사이 세로선을 제거한다. */
+.dmi-spot-section .dmi-panel,
+.dmi-spot-section .dmi-panel + .dmi-panel,
+.dmi-spot-section .dmi-chart { border: 0; box-shadow: none; }
+
+/* 증시자금 그래프는 상승 구간을 빨강, 하락 구간을 파랑으로 읽는다. */
+.dmi-mini-chart-line { stroke-width: 2.2; }
+.dmi-mini-chart-area { opacity: .10; }
+.dmi-mini-chart.dmi-positive .dmi-mini-chart-area { fill: #d24f45; }
+.dmi-mini-chart.dmi-negative .dmi-mini-chart-area { fill: #1261c4; }
+
+html.dark .dmi-section-collapse {
+  background: transparent;
+  color: #F5EFE0;
+  border-color: rgba(245,239,224,.2);
+}
+
 @media (min-width: 761px) {
   /* 차트 탭은 왼쪽, 그리기 도구는 차트 바로 위 오른쪽으로 분리한다. */
   .dmi-panel { position: relative; }

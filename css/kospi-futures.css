@@ -128,16 +128,18 @@
 
 #kospi-futures .kf-collapse-btn {
   font-family: inherit;
-  font-size: 13px;
-  line-height: 1;
-  width: 26px;
-  height: 26px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #f8fafc;
-  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.2;
+  min-width: 68px;
+  padding: 5px 10px;
+  border: 1px solid #d7dee8;
+  border-radius: 4px;
+  background: rgb(255, 254, 252);
+  color: #111;
+  font-weight: 600;
   cursor: pointer;
 }
+#kospi-futures .kf-collapse-btn:hover { border-color: #111; }
 
 #kospi-futures .kf-section.kf-collapsed .kf-section-body {
   display: none;
@@ -397,8 +399,8 @@ html.dark #kospi-futures .kf-interval-btn.active {
   border-color: #F5EFE0 !important;
 }
 html.dark #kospi-futures .kf-collapse-btn {
-  background: rgba(245, 239, 224, 0.08) !important;
-  color: rgba(245, 239, 224, 0.55) !important;
+  background: transparent !important;
+  color: #F5EFE0 !important;
   border-color: rgba(245, 239, 224, 0.2) !important;
 }
 html.dark #kospi-futures .kf-stat-oi { color: rgba(245, 239, 224, 0.55) !important; }
