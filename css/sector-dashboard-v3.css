@@ -161,7 +161,7 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
   font-weight: 600;
   padding: 6px 14px;
   border: 1px solid #e2e8f0;
-  border-radius: 999px;
+  border-radius: 4px;
   background: rgb(255, 254, 252);
   color: #6b7280;
   cursor: pointer;

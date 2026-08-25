@@ -111,6 +111,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("buildStocksOnlyPage", source)
         self.assertIn("container.innerHTML = buildCard(data);", source)
         self.assertIn("mt-stocks-only-heading", style)
+        self.assertIn("#market-temp .mt-view-btn", style)
+        self.assertIn("border-radius: 4px;", style)
+        self.assertIn(".sector-view-btn", self.read("css/sector-dashboard-v3.css"))
 
     def test_domestic_market_indicators_labels_and_provider_contract(self):
         frontend = self.read("js/domestic-market-indicators.js")
