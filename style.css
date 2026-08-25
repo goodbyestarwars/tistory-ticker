@@ -5639,6 +5639,8 @@ body#tt-body-index .home-editorial-page .home-briefing-left-more {
 body#tt-body-index .home-editorial-page .home-briefing-featured,
 body#tt-body-index .home-editorial-page .home-briefing-small {
   border: 0;
+  border-left: 0 !important;
+  border-right: 0 !important;
   border-bottom: 1px solid var(--rule);
   border-radius: 0;
   background: transparent;

@@ -40,7 +40,42 @@
   var HISTORY_PERIODS = [5, 10, 20, 40];
   var DEFAULT_HISTORY_PERIOD = 10;
   var INDUSTRY_FLOW_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
-  var INDUSTRY_FLOW_STORAGE_KEY = 'market_temp_industry_flow_v1';
+  // WICS 세부 업종 원문 대신 투자자가 읽기 쉬운 상위 업종으로 집계한다.
+  // 저장 키도 분리해 이전 세부 업종 순위가 새 상위 업종 순위에 섞이지 않게 한다.
+  var INDUSTRY_FLOW_STORAGE_KEY = 'market_temp_industry_flow_v2';
+  var INDUSTRY_DISPLAY_MAP_ = {
+    '내구소비재와의류': '소비재·의류',
+    '기술하드웨어와장비': 'IT하드웨어',
+    '자본재': '산업재·장비',
+    '자동차와부품': '자동차·부품',
+    '미디어와엔터테인먼트': '미디어·엔터',
+    '제약과생물공학': '제약·바이오',
+    '식품,음료,담배': '음식료',
+    '반도체와반도체장비': '반도체',
+    '소프트웨어와서비스': '소프트웨어',
+    '전자와전기제품': '전자·전기',
+    '전기통신서비스': '통신',
+    '건강관리장비와서비스': '헬스케어',
+    '상업서비스와공급품': '상업서비스',
+    '호텔,레스토랑,레저': '여행·레저',
+    '가정용품과개인용품': '생활용품',
+    '금속과광물': '금속·광물',
+    '복합기업': '지주·복합기업',
+    '소비자서비스': '소비자서비스',
+    '금융서비스': '금융',
+    '유틸리티': '유틸리티',
+    '부동산': '부동산',
+    '건설': '건설',
+    '운송': '운송',
+    '화학': '화학',
+    '에너지': '에너지',
+    '은행': '은행',
+    '보험': '보험',
+    '증권': '증권',
+    '디스플레이': '디스플레이',
+    '교육서비스': '교육',
+    '통신장비': '통신장비'
+  };
 
   // unit: 'index'(그대로 표기) / 'pct'(부호 있는 % - 붉은/파란색) / 'pctDirect'(comp에 이미 %
   // 단위로 들어있는 값) / 'ratio'(상승·하락 종목수) / 'sectorCount'(섹터 강도) /
@@ -158,6 +193,41 @@
     return Math.round(n / 10000).toLocaleString('ko-KR') + '만';
   }
 
+  function industryDisplayName_(name) {
+    var raw = String(name || '').trim();
+    return INDUSTRY_DISPLAY_MAP_[raw] || raw || '기타 업종';
+  }
+
+  function aggregateIndustryFlow_(rows) {
+    var groups = {};
+    (rows || []).forEach(function (row) {
+      var displayName = industryDisplayName_(row && row.industry);
+      var count = Number(row && (row.stock_count != null ? row.stock_count : row.stockCount));
+      var rate = Number(row && (row.avg_change_rate != null ? row.avg_change_rate : row.avgChangeRate));
+      var amount = Number(row && (row.trade_amount != null ? row.trade_amount : row.tradeAmount));
+      if (!isFinite(count) || count <= 0) count = 1;
+      if (!isFinite(rate)) rate = 0;
+      if (!isFinite(amount)) amount = 0;
+      if (!groups[displayName]) {
+        groups[displayName] = { industry: displayName, stockCount: 0, rateTotal: 0, tradeAmount: 0 };
+      }
+      groups[displayName].stockCount += count;
+      groups[displayName].rateTotal += rate * count;
+      groups[displayName].tradeAmount += amount;
+    });
+    return Object.keys(groups).map(function (name) {
+      var group = groups[name];
+      return {
+        industry: group.industry,
+        stock_count: group.stockCount,
+        avg_change_rate: group.stockCount ? group.rateTotal / group.stockCount : 0,
+        trade_amount: group.tradeAmount
+      };
+    }).sort(function (a, b) {
+      return Number(b.avg_change_rate) - Number(a.avg_change_rate);
+    });
+  }
+
   function renderIndustryFlow_(mount, rows, dateKey) {
     var snapshots = readIndustryFlowSnapshots_();
     var previous = previousSnapshot_(snapshots, dateKey);
@@ -175,8 +245,8 @@
         + '<small>' + escapeHtml(rankText) + '</small></div>';
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
-      + '<div class="mt-industry-flow-head"><strong>오늘 업종 TOP</strong><span>최근 거래일 대비 순위 변화</span></div>'
-      + '<div class="mt-industry-flow-columns"><span>업종</span><span>평균등락</span><span>거래대금</span><span>최근 거래일 대비</span></div>'
+      + '<div class="mt-industry-flow-head"><strong>오늘 업종 TOP</strong><span>상위 업종 기준 · 최근 거래일 대비 순위 변화</span></div>'
+      + '<div class="mt-industry-flow-columns"><span>상위 업종</span><span>평균등락</span><span>거래대금</span><span>최근 거래일 대비</span></div>'
       + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
       + '<p class="mt-industry-flow-note">실시간 종목판의 업종 TOP을 기준으로 집계합니다. 전일 순위는 이 브라우저가 관측한 마지막 거래일 스냅샷과 비교합니다.</p>'
       + '</div>';
@@ -193,7 +263,7 @@
         // 구형 프록시가 바로 { sections: ... }를 반환할 가능성도 있어 양쪽을
         // 허용한다. 기존 경로만 읽으면 카드 껍데기만 생기고 행이 비어 보인다.
         var payload = body && body.data ? body.data : body;
-        var rows = payload && payload.sections && payload.sections.industry || [];
+        var rows = aggregateIndustryFlow_(payload && payload.sections && payload.sections.industry || []);
         writeIndustryFlowSnapshot_(dateKey, rows);
         renderIndustryFlow_(mount, rows, dateKey);
       })
