@@ -17,6 +17,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
@@ -27,10 +28,16 @@ LOGGER = logging.getLogger('domestic_news')
 CACHE_DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'domestic_news.db')
 CACHE_TTL_SEC = 5 * 60
 DART_URL = 'https://opendart.fss.or.kr/api/list.json'
+KIND_RSS_URL = ('https://kind.krx.co.kr/disclosure/rsstodaydistribute.do?'
+                'method=searchRssTodayDistribute&repIsuSrtCd=&mktTpCd=0&'
+                'searchCorpName=&currentPageSize=100')
 WATCHLIST_DISCLOSURE_CACHE_TTL_SEC = 30 * 60
 WATCHLIST_DISCLOSURE_MAX_PAGES = 3
+KIND_CACHE_TTL_SEC = 30
 _watchlist_disclosure_cache = {}
 _watchlist_disclosure_cache_lock = threading.Lock()
+_kind_cache = None
+_kind_cache_lock = threading.Lock()
 
 CATEGORY_RULES = (
     ('실적', ('영업이익', '순이익', '매출액', '실적', '어닝', '잠정실적', '분기')),
@@ -60,9 +67,20 @@ def _connect():
              stock_code TEXT,
              stock_name TEXT,
              relevance TEXT,
+             source_status TEXT,
+             alternate_link TEXT,
+             source_links TEXT,
              fetched_at REAL NOT NULL
            )'''
     )
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(domestic_news)').fetchall()}
+    for name, definition in (
+        ('source_status', 'TEXT'),
+        ('alternate_link', 'TEXT'),
+        ('source_links', 'TEXT'),
+    ):
+        if name not in columns:
+            conn.execute('ALTER TABLE domestic_news ADD COLUMN %s %s' % (name, definition))
     conn.commit()
     return conn
 
@@ -116,6 +134,158 @@ def _parse_pub_date(value):
         except ValueError:
             pass
     return datetime.min.replace(tzinfo=timezone.utc)
+
+
+def _date_key(value):
+    parsed = _parse_pub_date(value)
+    if parsed == datetime.min.replace(tzinfo=timezone.utc):
+        digits = re.sub(r'[^0-9]', '', _strip(value))
+        return digits[:8] if len(digits) >= 8 else ''
+    return parsed.astimezone(timezone(timedelta(hours=9))).strftime('%Y%m%d')
+
+
+def _source_links(item):
+    raw = item.get('sourceLinks')
+    if isinstance(raw, list):
+        return [link for link in raw if isinstance(link, dict) and link.get('link')]
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                return [link for link in parsed if isinstance(link, dict) and link.get('link')]
+        except (TypeError, ValueError):
+            pass
+    provider = str(item.get('provider') or item.get('source') or '').strip()
+    link = str(item.get('link') or '').strip()
+    return [{'provider': provider, 'link': link}] if link else []
+
+
+def _compact_corp(value):
+    return re.sub(r'[^0-9a-z가-힣]', '', _strip(value).lower().replace('주식회사', ''))
+
+
+def _disclosure_terms(title, corp=''):
+    text = _strip(title).lower()
+    if corp:
+        text = text.replace(_strip(corp).lower(), ' ')
+    return set(re.findall(r'[0-9a-z가-힣]{2,}', text))
+
+
+def _same_disclosure(left, right):
+    """Conservative KIND↔DART match; same company/date plus strong title overlap only."""
+    left_corp = _compact_corp(left.get('stockName') or left.get('corp'))
+    right_corp = _compact_corp(right.get('stockName') or right.get('corp'))
+    if not left_corp or left_corp != right_corp or _date_key(left.get('pubDate')) != _date_key(right.get('pubDate')):
+        return False
+    left_text = _compact(left.get('title')).replace(left_corp, '')
+    right_text = _compact(right.get('title')).replace(right_corp, '')
+    if not left_text or not right_text:
+        return False
+    if left_text in right_text or right_text in left_text:
+        return True
+    return len(_disclosure_terms(left.get('title'), left.get('stockName') or left.get('corp'))
+               & _disclosure_terms(right.get('title'), right.get('stockName') or right.get('corp'))) >= 2
+
+
+def _merge_disclosure_pair(left, right):
+    sources = _source_links(left) + _source_links(right)
+    unique = {}
+    for source in sources:
+        key = (source.get('provider'), source.get('link'))
+        if key[1]:
+            unique[key] = source
+    links = list(unique.values())
+    dart = next((item for item in (left, right) if item.get('provider') == 'DART'), None)
+    kind = next((item for item in (left, right) if item.get('provider') == 'KIND'), None)
+    canonical = dict(dart or left)
+    canonical['sourceStatus'] = 'dart-confirmed' if dart and kind else canonical.get('sourceStatus', 'dart-only')
+    canonical['source'] = 'DART + KIND' if dart and kind else canonical.get('source', canonical.get('provider', ''))
+    canonical['provider'] = 'DART' if dart else canonical.get('provider', '')
+    canonical['sourceLinks'] = links
+    canonical['alternateLink'] = kind.get('link') if dart and kind else ''
+    canonical['kindLink'] = kind.get('link') if kind else canonical.get('kindLink', '')
+    canonical['dartLink'] = dart.get('link') if dart else canonical.get('dartLink', '')
+    return canonical
+
+
+def _dedupe_disclosures(items):
+    groups = []
+    for item in items or []:
+        if not item or not item.get('title'):
+            continue
+        current = dict(item)
+        if not current.get('sourceStatus'):
+            current['sourceStatus'] = 'kind-only' if current.get('provider') == 'KIND' else 'dart-only'
+        match = next((index for index, group in enumerate(groups)
+                      if _same_disclosure(group, current)), None)
+        if match is None:
+            groups.append(current)
+        else:
+            groups[match] = _merge_disclosure_pair(groups[match], current)
+    groups.sort(key=lambda item: _parse_pub_date(item.get('pubDate')).timestamp(), reverse=True)
+    return groups
+
+
+def _kind_corp(value):
+    text = _strip(value)
+    return re.sub(r'^\[(?:유|코|코넥스)\]\s*', '', text).strip()
+
+
+def _kind_items(code='', name=''):
+    """Read today's KRX/KIND RSS and normalize it as a disclosure feed."""
+    global _kind_cache
+    now_ts = time.time()
+    with _kind_cache_lock:
+        rows = _kind_cache[1] if _kind_cache and now_ts - _kind_cache[0] < KIND_CACHE_TTL_SEC else None
+    if rows is None:
+        request = urllib.request.Request(KIND_RSS_URL, headers={'User-Agent': 'tistory-ticker/1.0'})
+        try:
+            with urllib.request.urlopen(request, timeout=12) as response:
+                root = ET.fromstring(response.read())
+            rows = []
+            for row in root.findall('./channel/item'):
+                title = _strip(row.findtext('title'))
+                link = _strip(row.findtext('link'))
+                author = _kind_corp(row.findtext('author'))
+                if not title or not link:
+                    continue
+                corp = author
+                detail = title
+                if detail.startswith('['):
+                    close = detail.find(']')
+                    detail = detail[close + 1:].strip() if close >= 0 else detail
+                if corp and detail.startswith(corp):
+                    detail = detail[len(corp):].strip()
+                item_link = link.replace('http://kind.krx.co.kr:80', 'https://kind.krx.co.kr')
+                item = {
+                    'id': _item_key({'title': title, 'link': item_link}),
+                    'title': (corp + ' ' + detail).strip(),
+                    'link': item_link,
+                    'description': _strip(row.findtext('category')),
+                    'pubDate': _strip(row.findtext('pubDate')),
+                    'source': 'KIND', 'provider': 'KIND', 'category': '공시',
+                    'kind': 'disclosure', 'stockCode': '', 'stockName': corp,
+                    'market': 'KOSDAQ' if title.startswith('[코]') or title.startswith('[코넥스]') else 'KOSPI',
+                    'relevance': 'market', 'sourceStatus': 'kind-only',
+                    'sourceLinks': [{'provider': 'KIND', 'link': item_link}],
+                }
+                rows.append(item)
+            with _kind_cache_lock:
+                _kind_cache = (time.time(), rows)
+        except Exception:
+            LOGGER.exception('KIND disclosure RSS fetch failed')
+            with _kind_cache_lock:
+                rows = _kind_cache[1] if _kind_cache else []
+    result = []
+    for item in rows:
+        if name and _compact_corp(name) not in _compact_corp(item.get('stockName')):
+            continue
+        copied = dict(item)
+        if code:
+            copied['stockCode'] = str(code)
+            copied['relevance'] = 'direct'
+        result.append(copied)
+    return result
 
 
 def _direct_match(title, description, code, name):
@@ -217,14 +387,16 @@ def _dart_items(code='', name='', now=None, start_date=None, end_date=None,
             'stockCode': row_code,
             'stockName': corp,
             'relevance': 'direct' if code else 'market',
+            'sourceStatus': 'dart-only',
         }
+        item['sourceLinks'] = [{'provider': 'DART', 'link': item['link']}]
         item['id'] = _item_key(item)
         items.append(item)
     return items
 
 
-def get_watchlist_disclosures(codes, days=7, now=None):
-    """Return every DART filing for domestic watchlist stocks in the last week.
+def get_watchlist_disclosures(codes, days=7, now=None, names_by_code=None):
+    """Return recent watchlist disclosures, merging KIND speed with DART confirmation.
 
     DART's list API accepts ``corp_code`` rather than the six-digit stock code.
     The static mapping is shared with the fundamentals collector, then each
@@ -244,14 +416,12 @@ def get_watchlist_disclosures(codes, days=7, now=None):
         return []
 
     api_key = os.environ.get('DART_API_KEY', '').strip()
-    if not api_key:
-        return []
     now = now or datetime.now(timezone(timedelta(hours=9)))
     days = max(1, min(int(days or 7), 31))
     start_date = (now - timedelta(days=days - 1)).strftime('%Y%m%d')
     end_date = now.strftime('%Y%m%d')
     try:
-        corp_map = dart_client.get_corp_code_map(api_key)
+        corp_map = dart_client.get_corp_code_map(api_key) if api_key else {}
     except Exception:
         LOGGER.exception('DART corporation-code map fetch failed')
         corp_map = {}
@@ -284,7 +454,7 @@ def get_watchlist_disclosures(codes, days=7, now=None):
             max_pages=WATCHLIST_DISCLOSURE_MAX_PAGES,
         )
 
-    if missing:
+    if missing and api_key:
         with ThreadPoolExecutor(max_workers=min(6, len(missing))) as pool:
             fetched = list(pool.map(fetch_code, missing))
         with _watchlist_disclosure_cache_lock:
@@ -301,14 +471,23 @@ def get_watchlist_disclosures(codes, days=7, now=None):
                 if cached[0] < cutoff:
                     _watchlist_disclosure_cache.pop(cache_key, None)
 
-    merged = {}
+    merged_items = []
     for code in normalized_codes:
         for item in by_code.get(code, []):
             copied = dict(item)
             copied['relevance'] = 'direct'
-            merged[copied.get('id') or _item_key(copied)] = copied
-    result = list(merged.values())
-    result.sort(key=lambda item: _parse_pub_date(item.get('pubDate')).timestamp(), reverse=True)
+            merged_items.append(copied)
+    if names_by_code:
+        for code in normalized_codes:
+            name = _strip((names_by_code or {}).get(code))
+            if not name:
+                continue
+            for item in _kind_items(code=code, name=name):
+                item['stockName'] = name
+                merged_items.append(item)
+    start_key = (now - timedelta(days=days - 1)).strftime('%Y%m%d')
+    result = [item for item in _dedupe_disclosures(merged_items)
+              if _date_key(item.get('pubDate')) >= start_key]
     return result
 
 
@@ -325,9 +504,17 @@ def _load_cached(query_key, ttl_sec=CACHE_TTL_SEC):
             item['stockCode'] = item.pop('stock_code') or ''
             item['stockName'] = item.pop('stock_name') or ''
             item['pubDate'] = item.pop('pub_date') or ''
+            item['sourceStatus'] = item.pop('source_status') or ''
+            item['alternateLink'] = item.pop('alternate_link') or ''
+            source_links = item.pop('source_links') or ''
+            if source_links:
+                try:
+                    item['sourceLinks'] = json.loads(source_links)
+                except (TypeError, ValueError):
+                    item['sourceLinks'] = []
             item.pop('item_key', None)
             item.pop('fetched_at', None)
-            item['provider'] = 'DART' if item.get('kind') == 'disclosure' else 'Naver'
+            item['provider'] = item.get('source') or ('DART' if item.get('kind') == 'disclosure' else 'Naver')
             # 예전 캐시에 본문 일치만으로 direct로 저장된 뉴스가 남아 있어도
             # 제목에 종목명이 없는 기사는 종목별 피드에서 직접 관련으로 재사용하지 않는다.
             if (query_key != 'market' and item.get('kind') == 'news'
@@ -442,12 +629,15 @@ def _save(items):
         conn.executemany(
             '''INSERT OR REPLACE INTO domestic_news
                (item_key, title, link, description, pub_date, source, category, kind,
-                stock_code, stock_name, relevance, fetched_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                stock_code, stock_name, relevance, source_status, alternate_link,
+                source_links, fetched_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             [(
                 item['id'], item['title'], item['link'], item.get('description', ''), item.get('pubDate', ''),
                 item.get('source', ''), item.get('category', '일반'), item.get('kind', 'news'),
-                item.get('stockCode', ''), item.get('stockName', ''), item.get('relevance', 'market'), now,
+                item.get('stockCode', ''), item.get('stockName', ''), item.get('relevance', 'market'),
+                item.get('sourceStatus', ''), item.get('alternateLink', ''),
+                json.dumps(item.get('sourceLinks') or [], ensure_ascii=False), now,
             ) for item in items],
         )
         conn.commit()
@@ -492,6 +682,12 @@ def _select_stock_news(items, code='', name='', body_fallback_limit=3):
     return other_items + title_items + body_items[:max(0, body_fallback_limit - len(title_items))]
 
 
+def _disclosure_items(code='', name=''):
+    dart_items = _dart_items(code, name)
+    kind_items = _kind_items(code, name)
+    return _dedupe_disclosures(dart_items + kind_items)
+
+
 def get_news(code='', name='', query='', limit=10, item_kind='all'):
     code = _strip(code)
     name = _strip(name)
@@ -515,7 +711,7 @@ def get_news(code='', name='', query='', limit=10, item_kind='all'):
         raw = naver_news.search_news(search_query, client_id, client_secret,
                                      display=min(max(int(limit or 10) * 2, 10), 100))
         fresh.extend(item for item in (normalize_naver(raw_item, code, name) for raw_item in raw) if item)
-    fresh.extend(_dart_items(code, name))
+    fresh.extend(_disclosure_items(code, name))
     fresh = _select_stock_news(fresh, code, name)
     _save(fresh)
     # API 장애나 일시적인 빈 응답에도 기존 기사를 화면에서 지우지 않는다.
@@ -529,12 +725,11 @@ def get_news(code='', name='', query='', limit=10, item_kind='all'):
 
 
 def get_disclosures(limit=30):
-    """최근 DART 공시를 속보용으로 반환한다.
+    """최근 KIND/DART 공시를 속보용으로 반환한다.
 
     일반 종합뉴스는 성능을 위해 공시를 제외하지만, 속보 레일은 실적과
     관심종목 공시를 즉시 구분해야 하므로 DART 원문 메타데이터만 별도로 읽는다.
     호출 주기는 상위 WebSocket 캐시가 제한한다.
     """
-    items = _dart_items()
-    items.sort(key=lambda item: _parse_pub_date(item.get('pubDate')).timestamp(), reverse=True)
+    items = _disclosure_items()
     return items[:max(1, min(int(limit or 30), 30))]

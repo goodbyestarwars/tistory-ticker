@@ -608,16 +608,20 @@ def watchlist_endpoint(request: Request):
 
 @app.get('/watchlist/disclosures')
 def watchlist_disclosures_endpoint(request: Request):
-    """Google 사용자의 국내 관심종목 전체에 대한 최근 7일 DART 공시."""
+    """Google 사용자의 국내 관심종목 전체에 대한 최근 7일 KIND/DART 공시."""
     _check_rate_limit('watchlist_disclosures', request, max_per_window=30)
     config = _load_user_watchlist(request)
     domestic_codes = []
+    names_by_code = {}
     for item in config.get('items') or []:
         code = str(item.get('code') or '').strip()
         if len(code) == 6 and code.isdigit() and code not in domestic_codes:
             domestic_codes.append(code)
+            name = str(item.get('name') or item.get('stockName') or '').strip()
+            if name:
+                names_by_code[code] = name
     now = datetime.now(timezone(timedelta(hours=9)))
-    items = domestic_news.get_watchlist_disclosures(domestic_codes, days=7, now=now)
+    items = domestic_news.get_watchlist_disclosures(domestic_codes, days=7, now=now, names_by_code=names_by_code)
     return envelope({
         'items': items,
         'watchlistCount': len(domestic_codes),
@@ -2176,6 +2180,16 @@ def domestic_news_endpoint(
             'domestic',
         )
     return envelope(result)
+
+
+@app.get('/domestic-disclosures')
+def domestic_disclosures_endpoint(request: Request, limit: int = Query(30, ge=1, le=50)):
+    """KIND 속보와 DART 원문을 중복 병합한 국내 공시 피드."""
+    _check_rate_limit('domestic_disclosures', request, max_per_window=30)
+    return envelope({
+        'items': domestic_news.get_disclosures(limit=limit),
+        'source': 'KIND + DART',
+    })
 
 
 @app.get('/foreign-news')

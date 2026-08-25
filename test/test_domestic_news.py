@@ -15,6 +15,7 @@ import domestic_news
 class DomesticNewsTests(unittest.TestCase):
     def tearDown(self):
         domestic_news._watchlist_disclosure_cache.clear()
+        domestic_news._kind_cache = None
 
     def test_classifies_financial_and_market_headlines(self):
         self.assertEqual(domestic_news.classify('삼성전자 영업이익 깜짝 실적'), '실적')
@@ -174,6 +175,47 @@ class DomesticNewsTests(unittest.TestCase):
         with mock.patch.object(domestic_news, '_dart_items', return_value=rows):
             items = domestic_news.get_disclosures()
         self.assertEqual(len(items), 30)
+
+    def test_kind_and_dart_same_event_are_merged_with_both_source_links(self):
+        kind = {
+            'id': 'kind-1', 'title': '삼성전자 단일판매·공급계약체결',
+            'link': 'https://kind.example/1', 'pubDate': 'Mon, 10 Aug 2026 09:01:00 +0900',
+            'provider': 'KIND', 'source': 'KIND', 'stockName': '삼성전자',
+            'kind': 'disclosure', 'sourceStatus': 'kind-only',
+        }
+        dart = {
+            'id': 'dart-1', 'title': '삼성전자 단일판매·공급계약 체결',
+            'link': 'https://dart.example/1', 'pubDate': '20260810',
+            'provider': 'DART', 'source': 'DART', 'stockName': '삼성전자',
+            'kind': 'disclosure', 'sourceStatus': 'dart-only',
+        }
+
+        merged = domestic_news._dedupe_disclosures([kind, dart])
+
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0]['provider'], 'DART')
+        self.assertEqual(merged[0]['sourceStatus'], 'dart-confirmed')
+        self.assertEqual(merged[0]['alternateLink'], 'https://kind.example/1')
+        self.assertEqual({row['provider'] for row in merged[0]['sourceLinks']}, {'KIND', 'DART'})
+
+    def test_kind_only_event_is_retained_when_dart_has_no_match(self):
+        kind = {
+            'id': 'kind-only', 'title': '삼성전자 매매거래정지 예고',
+            'link': 'https://kind.example/only', 'pubDate': 'Mon, 10 Aug 2026 09:01:00 +0900',
+            'provider': 'KIND', 'source': 'KIND', 'stockName': '삼성전자',
+            'kind': 'disclosure', 'sourceStatus': 'kind-only',
+        }
+        dart = {
+            'id': 'dart-other', 'title': '삼성전자 분기보고서',
+            'link': 'https://dart.example/other', 'pubDate': '20260810',
+            'provider': 'DART', 'source': 'DART', 'stockName': '삼성전자',
+            'kind': 'disclosure', 'sourceStatus': 'dart-only',
+        }
+
+        result = domestic_news._dedupe_disclosures([kind, dart])
+
+        self.assertEqual(len(result), 2)
+        self.assertIn('kind-only', [item['sourceStatus'] for item in result])
 
 
 if __name__ == '__main__':

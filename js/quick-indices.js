@@ -79,6 +79,7 @@
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
+  var DISC_VM_URL = 'https://goodbyestar.cloud/domestic-disclosures?limit=30';
   var FUTURES_API = 'https://goodbyestar.cloud/futures';
   var CONTAINER_ID = 'quick-indices';
   var STORAGE_KEY = 'qi_selected_v1';
@@ -349,6 +350,24 @@
     return items;
   }
 
+  function normalizeDisclosurePayload(payload) {
+    var rows = payload && payload.data && Array.isArray(payload.data.items)
+      ? payload.data.items : (payload && Array.isArray(payload.items) ? payload.items : []);
+    return rows.map(function (item) {
+      var corp = String(item.stockName || item.corp || '').trim();
+      var title = String(item.title || '').trim();
+      var disc = corp && title.indexOf(corp) === 0 ? title.slice(corp.length).trim() : title;
+      return {
+        corp: corp,
+        disc: disc || title,
+        link: item.link || '#',
+        market: item.market || 'KOSPI',
+        sourceStatus: item.sourceStatus || '',
+        alternateLink: item.alternateLink || ''
+      };
+    });
+  }
+
   // 목록을 2번 이어붙이고 translateY로 절반만큼 움직여 끊김 없이 순환(원본 disc-track 트릭).
   function fillNewsTrack(track, itemHTMLs, limit) {
     track.innerHTML = itemHTMLs.slice(0, limit || 5).join('');
@@ -446,8 +465,10 @@
       if (entry.kind === 'disclosure') {
         var disc = entry.item;
         var market = disc.market === 'KOSDAQ' ? 'KOSDAQ' : 'KOSPI';
+        var sourceLabel = disc.sourceStatus === 'dart-confirmed' ? 'DART 확인'
+          : disc.sourceStatus === 'kind-only' ? 'KIND 속보' : '공시';
         return '<a href="' + escapeNewsHtml(disc.link || '#') + '" target="_blank" rel="noopener" class="qi-news-item">'
-          + '<span class="qi-news-market-news">공시</span>'
+          + '<span class="qi-news-market-news" title="' + escapeNewsHtml(sourceLabel) + '">' + escapeNewsHtml(sourceLabel) + '</span>'
           + '<span class="qi-news-corp">' + escapeNewsHtml(disc.corp || '') + '</span>'
           + escapeNewsHtml(disc.disc || '') + '</a>';
       }
@@ -466,7 +487,9 @@
 
   function loadDisclosures(container) {
     var track = container.querySelector('#qiNewsTrack');
-    var disclosureRequest = fetch(DISC_GAS_URL + '?market=0')
+    var disclosureRequest = fetchJson(DISC_VM_URL)
+      .then(function (payload) { return normalizeDisclosurePayload(payload); })
+      .catch(function () { return fetch(DISC_GAS_URL + '?market=0')
       .then(function (r) { return r.text(); })
       .then(function (text) {
         var t = text.trim().replace(/^﻿/, '');
@@ -481,8 +504,8 @@
           } catch (err) { return []; }
         }
         return [];
-      })
-      .catch(function () { return []; });
+      });
+      });
     var newsRequest = fetchJson(GAS_TICKER_URL + '?rankNews=1')
       .then(function (json) { return (json && json.items) || []; })
       .catch(function () { return []; });

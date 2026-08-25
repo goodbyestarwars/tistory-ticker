@@ -614,10 +614,10 @@
       document.body.insertAdjacentHTML('beforeend', '<div class="home-disclosure-modal" data-disclosure-modal-root hidden>'
         + '<div class="home-disclosure-modal-backdrop" data-disclosure-close></div>'
         + '<section class="home-disclosure-modal-panel" role="dialog" aria-modal="true" aria-labelledby="homeDisclosureModalTitle">'
-        + '<header class="home-disclosure-modal-head"><div><strong id="homeDisclosureModalTitle">DART 원문</strong><small data-disclosure-modal-meta></small></div>'
+        + '<header class="home-disclosure-modal-head"><div><strong id="homeDisclosureModalTitle" data-disclosure-modal-title>DART 원문</strong><small data-disclosure-modal-meta></small></div>'
         + '<button type="button" class="home-disclosure-modal-close" data-disclosure-close aria-label="공시 원문 닫기">×</button></header>'
         + '<iframe data-disclosure-frame title="DART 공시 원문" referrerpolicy="no-referrer"></iframe>'
-        + '<footer class="home-disclosure-modal-foot"><a data-disclosure-modal-link target="_blank" rel="noopener">원문을 새 창에서 열기 ↗</a></footer>'
+        + '<footer class="home-disclosure-modal-foot"><a data-disclosure-modal-link target="_blank" rel="noopener">DART 원문 ↗</a><a data-disclosure-modal-kind-link target="_blank" rel="noopener" hidden>KIND 최초 포착 ↗</a></footer>'
         + '</section></div>');
       disclosureModal = document.querySelector('[data-disclosure-modal-root]');
       disclosureModal.querySelectorAll('[data-disclosure-close]').forEach(function (element) {
@@ -628,8 +628,21 @@
     var meta = disclosureModal.querySelector('[data-disclosure-modal-meta]');
     var frame = disclosureModal.querySelector('[data-disclosure-frame]');
     var link = disclosureModal.querySelector('[data-disclosure-modal-link]');
+    var kindLink = disclosureModal.querySelector('[data-disclosure-modal-kind-link]');
+    var modalTitle = disclosureModal.querySelector('[data-disclosure-modal-title]');
+    var alternate = String(item && item.alternateLink || '').trim();
     if (meta) meta.textContent = title ? title + ' · 최근 공시' : '최근 공시';
-    if (link) link.href = href;
+    if (modalTitle) modalTitle.textContent = alternate
+      ? 'DART 원문 · KIND 최초 포착'
+      : /^https:\/\/kind\.krx\.co\.kr/i.test(href) ? 'KIND 공시 원문' : 'DART 원문';
+    if (link) {
+      link.href = href;
+      link.textContent = /^https:\/\/kind\.krx\.co\.kr/i.test(href) ? 'KIND 원문 ↗' : 'DART 원문 ↗';
+    }
+    if (kindLink) {
+      kindLink.href = alternate || '#';
+      kindLink.hidden = !/^https:\/\//i.test(alternate);
+    }
     if (frame) frame.src = href;
     disclosureModal.hidden = false;
     document.body.classList.add('home-disclosure-modal-open');
@@ -648,6 +661,7 @@
       event.preventDefault();
       openDisclosureModal({
         link: href,
+        alternateLink: row.getAttribute('data-disclosure-alternate-link') || '',
         stockName: row.getAttribute('data-disclosure-stock') || '',
         corp: row.getAttribute('data-disclosure-stock') || ''
       });
@@ -688,11 +702,15 @@
     var time = disclosureTime(item.pubDate);
     var code = String(item && (item.stockCode || item.code) || '').trim();
     var internal = /^\d{6}$/.test(code);
+    var status = item.sourceStatus === 'dart-confirmed'
+      ? 'DART 확인 · KIND 속보'
+      : item.provider === 'KIND' || item.sourceStatus === 'kind-only' ? 'KIND 속보' : 'DART 원문';
     return '<a class="home-disclosure-row" href="' + escapeHtml(disclosureHref(item)) + '"'
       + ' data-disclosure-modal="1" data-disclosure-stock="' + escapeHtml(item.stockName || item.corp || '') + '"'
+      + ' data-disclosure-alternate-link="' + escapeHtml(item.alternateLink || '') + '"'
       + ' title="DART 원문 보기" draggable="false">'
       + '<strong>' + escapeHtml(item.stockName || item.corp || '관심종목 공시') + '</strong>'
-      + '<span>' + escapeHtml(shortDisclosure(item.title)) + '</span>'
+      + '<span>' + escapeHtml(shortDisclosure(item.title)) + ' <small class="home-disclosure-source">' + escapeHtml(status) + '</small></span>'
       + (time ? '<time>' + escapeHtml(time) + '</time>' : '') + '</a>';
   }
 

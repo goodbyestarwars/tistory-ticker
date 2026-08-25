@@ -873,6 +873,15 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 }
 .home-top-disclosures .home-disclosure-row strong { font-size: 11px; }
 .home-top-disclosures .home-disclosure-row span { width: auto; font-size: 11px; }
+.home-top-disclosures .home-disclosure-source {
+  display: inline-block;
+  width: auto;
+  margin-left: 4px;
+  color: #9a6b24;
+  font-size: 9px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
 .home-top-disclosures .home-disclosure-row time {
   color: #a0a7b0;
   font-size: 10px;
@@ -1407,6 +1416,7 @@ html.dark .home-market-live { color: #e8776d !important; }
 html.dark .home-top-disclosures-head strong { color: #F5EFE0 !important; }
 html.dark .home-top-disclosures-head span,
 html.dark .home-top-disclosures .home-disclosure-row time { color: rgba(245, 239, 224, .5) !important; }
+html.dark .home-top-disclosures .home-disclosure-source { color: #e6b74a !important; }
 html.dark .home-top-disclosures .home-disclosure-row {
   background: rgba(245, 239, 224, .05) !important;
   border-color: rgba(245, 239, 224, .12) !important;

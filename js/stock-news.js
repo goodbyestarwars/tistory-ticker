@@ -26,6 +26,7 @@
   var RANK_REFRESH_MS = 30 * 60 * 1000; // 30분
   // 실시간 공시(KRX 공시 RSS) - js/quick-indices.js "긴급속보" 패널과 동일한 GAS(?market=0)
   var DISC_GAS_URL = 'https://script.google.com/macros/s/AKfycbxGl0gCeiQs4QFV1FmPZP_xJQSiVRa1-Dg8Mv23VpevpE9j4xdL9MFxud34teslWzL0wg/exec';
+  var DISC_VM_URL = 'https://goodbyestar.cloud/domestic-disclosures?limit=30';
   var DISC_REFRESH_MS = 30 * 1000; // 30초
   var stockNewsScriptSrc = document.currentScript && document.currentScript.src;
   var FOREIGN_FLOW_JS_URL = stockNewsScriptSrc
@@ -643,6 +644,18 @@
     return items;
   }
 
+  function normalizeDisclosurePayload(payload) {
+    var rows = payload && payload.data && Array.isArray(payload.data.items)
+      ? payload.data.items : (payload && Array.isArray(payload.items) ? payload.items : []);
+    return rows.map(function (item) {
+      var corp = String(item.stockName || item.corp || '').trim();
+      var title = String(item.title || '').trim();
+      var disc = corp && title.indexOf(corp) === 0 ? title.slice(corp.length).trim() : title;
+      return { corp: corp, disc: disc || title, link: item.link || '#',
+        market: item.market || 'KOSPI', sourceStatus: item.sourceStatus || '' };
+    });
+  }
+
   function renderDiscList(list, items) {
     if (!list) return;
     if (!items.length) { list.innerHTML = '<div class="sn-hint">공시가 없어요.</div>'; return; }
@@ -650,8 +663,10 @@
       var cls = it.market === 'KOSDAQ' ? 'sn-disc-kosdaq' : 'sn-disc-kospi';
       var disc = it.disc.replace(/\s*\|\s*/g, ' ').trim();
       var corp = it.corp.replace(/\s*\|\s*/g, ' ').trim();
+      var sourceLabel = it.sourceStatus === 'dart-confirmed' ? 'DART 확인'
+        : it.sourceStatus === 'kind-only' ? 'KIND 속보' : it.market;
       return '<a href="' + escapeAttr(it.link) + '" target="_blank" rel="noopener" class="sn-disc-item">'
-        + '<span class="sn-disc-market ' + cls + '">' + it.market + '</span>'
+        + '<span class="sn-disc-market ' + cls + '" title="' + escapeAttr(sourceLabel) + '">' + escapeHtml(sourceLabel) + '</span>'
         + (corp ? '<span class="sn-disc-corp">' + stockIconHtml((global.KRX_MAP || {})[corp], 'sn-disc-icon') + '<span>' + escapeHtml(corp) + '</span></span>' : '')
         + '<span class="sn-disc-text">' + escapeHtml(disc) + '</span>'
         + '</a>';
@@ -684,7 +699,9 @@
       if (items.length) renderDiscList(list, items);
       else loadDisclosureFallback(list);
     }
-    fetch(DISC_GAS_URL + '?market=0')
+    fetchJson(DISC_VM_URL)
+      .then(function (payload) { handle(normalizeDisclosurePayload(payload)); })
+      .catch(function () { return fetch(DISC_GAS_URL + '?market=0')
       .then(function (r) { return r.text(); })
       .then(function (text) {
         var t = text.trim().replace(/^﻿/, '');
@@ -705,6 +722,7 @@
         }
       })
       .catch(function () { loadDisclosureFallback(list); });
+      });
   }
 
   function fetchJson(url) {
