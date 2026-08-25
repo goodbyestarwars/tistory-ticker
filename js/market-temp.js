@@ -175,8 +175,8 @@
         + '<small>' + escapeHtml(rankText) + '</small></div>';
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
-      + '<div class="mt-industry-flow-head"><strong>업종 자금 흐름</strong><span>오늘 TOP · 전일 순위 비교</span></div>'
-      + '<div class="mt-industry-flow-columns"><span>업종</span><span>평균등락</span><span>거래대금</span><span>전일 대비</span></div>'
+      + '<div class="mt-industry-flow-head"><strong>오늘 업종 TOP</strong><span>최근 거래일 대비 순위 변화</span></div>'
+      + '<div class="mt-industry-flow-columns"><span>업종</span><span>평균등락</span><span>거래대금</span><span>최근 거래일 대비</span></div>'
       + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
       + '<p class="mt-industry-flow-note">실시간 종목판의 업종 TOP을 기준으로 집계합니다. 전일 순위는 이 브라우저가 관측한 마지막 거래일 스냅샷과 비교합니다.</p>'
       + '</div>';
@@ -189,7 +189,11 @@
     fetch(INDUSTRY_FLOW_URL)
       .then(function (response) { if (!response.ok) throw new Error('industry flow ' + response.status); return response.json(); })
       .then(function (body) {
-        var rows = body && body.sections && body.sections.industry || [];
+        // market-board 응답은 현재 { data: { sections: ... } } 형태이며,
+        // 구형 프록시가 바로 { sections: ... }를 반환할 가능성도 있어 양쪽을
+        // 허용한다. 기존 경로만 읽으면 카드 껍데기만 생기고 행이 비어 보인다.
+        var payload = body && body.data ? body.data : body;
+        var rows = payload && payload.sections && payload.sections.industry || [];
         writeIndustryFlowSnapshot_(dateKey, rows);
         renderIndustryFlow_(mount, rows, dateKey);
       })
