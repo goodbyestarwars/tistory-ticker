@@ -40,11 +40,26 @@
   var HISTORY_PERIODS = [5, 10, 20, 40];
   var DEFAULT_HISTORY_PERIOD = 10;
   var INDUSTRY_FLOW_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
-  // WICS 세부 업종 원문 대신 투자자가 읽기 쉬운 상위 업종으로 집계한다.
-  // 저장 키도 분리해 이전 세부 업종 순위가 새 상위 업종 순위에 섞이지 않게 한다.
+  // WICS 세부 업종 원문 대신 투자자가 읽기 쉬운 테마 업종으로 집계한다.
+  // 저장 키도 분리해 이전 세부 업종 순위가 새 테마 업종 순위에 섞이지 않게 한다.
   var INDUSTRY_FLOW_STORAGE_KEY = 'market_temp_industry_flow_v2';
+  // WICS는 자동차·부품, 반도체·장비, 자본재처럼 투자자가 실제로 보는 테마를
+  // 한 덩어리로 묶는다. 아래 규칙은 상위 거래대금 종목에만 적용하는 화면용 테마
+  // 태깅이며, 공식 업종 분류를 덮어쓰는 회계·지수 분류가 아니다.
+  var INDUSTRY_THEME_CODE_MAP_ = {
+    '005930': '반도체', '000660': '반도체', '000990': '반도체',
+    '005380': '자동차', '000270': '자동차',
+    '034020': '원전', '052690': '원전', '051600': '원전', '032820': '원전',
+    '094820': '원전', '083650': '원전', '100090': '원전', '121800': '원전'
+  };
+  var INDUSTRY_THEME_KEYWORDS_ = [
+    { label: '원전', words: ['두산에너빌리티', '한전기술', '한전KPS', '우리기술', '보성파워텍', '비에이치아이', '우진', '일진파워', '오르비텍', '한신기계', '우진엔텍'] },
+    { label: '자동차 부품', words: ['현대모비스', '현대위아', 'HL만도', '한온시스템', '에스엘', '서연이화', '화신', '성우하이텍', 'SNT모티브', '모토닉', '대원강업', '명신산업', '한국타이어', '금호타이어', '넥센타이어', '아진산업', '피에이치에이', '서진오토모티브', '두올'] },
+    { label: '자동차', words: ['현대차', '기아'] },
+    { label: '반도체 소부장', words: ['한미반도체', '테크윙', '원익IPS', '원익아이피에스', '주성엔지니어링', 'HPSP', '이오테크닉스', '유진테크', '피에스케이', '리노공업', '동진쎄미켐', '솔브레인', '후성', '심텍', '대덕전자', 'ISC', '하나마이크론', '두산테스나', '오로스테크놀로지', '에스티아이', '케이씨텍', '티씨케이', '넥스틴', '디아이'] }
+  ];
   var INDUSTRY_DISPLAY_MAP_ = {
-    '내구소비재와의류': '소비재·의류',
+    '내구소비재와의류': '소비재',
     '기술하드웨어와장비': 'IT하드웨어',
     '자본재': '산업재·장비',
     '자동차와부품': '자동차·부품',
@@ -198,13 +213,31 @@
     return INDUSTRY_DISPLAY_MAP_[raw] || raw || '기타 업종';
   }
 
+  function industryThemeName_(row) {
+    var code = String(row && (row.code || row.stock_code || '') || '').trim();
+    var name = String(row && (row.name || row.stock_name || '') || '').trim();
+    var rawIndustry = String(row && row.industry || '').trim();
+    if (INDUSTRY_THEME_CODE_MAP_[code]) return INDUSTRY_THEME_CODE_MAP_[code];
+    for (var i = 0; i < INDUSTRY_THEME_KEYWORDS_.length; i += 1) {
+      var rule = INDUSTRY_THEME_KEYWORDS_[i];
+      if (rule.words.some(function (word) { return name.indexOf(word) !== -1; })) return rule.label;
+    }
+    if (rawIndustry === '반도체와반도체장비') return '반도체 소부장';
+    if (rawIndustry === '제약과생물공학') return '제약·바이오';
+    if (rawIndustry === '자동차와부품') return '자동차·부품';
+    if (!rawIndustry || rawIndustry === '미분류' || rawIndustry === '기타') return '';
+    return industryDisplayName_(rawIndustry);
+  }
+
   function aggregateIndustryFlow_(rows) {
     var groups = {};
+    var totalTradeAmount = 0;
     (rows || []).forEach(function (row) {
-      var displayName = industryDisplayName_(row && row.industry);
+      var displayName = industryThemeName_(row);
       var count = Number(row && (row.stock_count != null ? row.stock_count : row.stockCount));
       var rate = Number(row && (row.avg_change_rate != null ? row.avg_change_rate : row.avgChangeRate));
       var amount = Number(row && (row.trade_amount != null ? row.trade_amount : row.tradeAmount));
+      if (!displayName) return;
       if (!isFinite(count) || count <= 0) count = 1;
       if (!isFinite(rate)) rate = 0;
       if (!isFinite(amount)) amount = 0;
@@ -214,6 +247,7 @@
       groups[displayName].stockCount += count;
       groups[displayName].rateTotal += rate * count;
       groups[displayName].tradeAmount += amount;
+      totalTradeAmount += amount;
     });
     return Object.keys(groups).map(function (name) {
       var group = groups[name];
@@ -221,10 +255,12 @@
         industry: group.industry,
         stock_count: group.stockCount,
         avg_change_rate: group.stockCount ? group.rateTotal / group.stockCount : 0,
-        trade_amount: group.tradeAmount
+        trade_amount: group.tradeAmount,
+        trade_share: totalTradeAmount ? group.tradeAmount / totalTradeAmount : 0
       };
     }).sort(function (a, b) {
-      return Number(b.avg_change_rate) - Number(a.avg_change_rate);
+      return Number(b.trade_amount) - Number(a.trade_amount)
+        || Number(b.avg_change_rate) - Number(a.avg_change_rate);
     });
   }
 
@@ -240,15 +276,15 @@
       var tone = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
       return '<div class="mt-industry-flow-row ' + tone + '">'
         + '<b>' + escapeHtml(row.industry || '-') + '</b>'
-        + '<span>' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
         + '<span>' + formatFlowAmount_(row.trade_amount != null ? row.trade_amount : row.tradeAmount) + '</span>'
+        + '<span>' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
         + '<small>' + escapeHtml(rankText) + '</small></div>';
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
-      + '<div class="mt-industry-flow-head"><strong>오늘 업종 TOP</strong><span>상위 업종 기준 · 최근 거래일 대비 순위 변화</span></div>'
-      + '<div class="mt-industry-flow-columns"><span>상위 업종</span><span>평균등락</span><span>거래대금</span><span>최근 거래일 대비</span></div>'
+      + '<div class="mt-industry-flow-head"><strong>오늘 업종 TOP</strong><span>테마별 총 거래대금 기준 · 최근 거래일 대비 순위 변화</span></div>'
+      + '<div class="mt-industry-flow-columns"><span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>최근 거래일 대비</span></div>'
       + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
-      + '<p class="mt-industry-flow-note">실시간 종목판의 업종 TOP을 기준으로 집계합니다. 전일 순위는 이 브라우저가 관측한 마지막 거래일 스냅샷과 비교합니다.</p>'
+      + '<p class="mt-industry-flow-note">실시간 종목판의 거래대금 상위 종목을 테마별로 합산합니다. 거래대금이 돈의 흐름 순위이며 평균등락률은 보조지표입니다. 전일 순위는 이 브라우저가 관측한 마지막 거래일 스냅샷과 비교합니다.</p>'
       + '</div>';
   }
 
@@ -263,7 +299,12 @@
         // 구형 프록시가 바로 { sections: ... }를 반환할 가능성도 있어 양쪽을
         // 허용한다. 기존 경로만 읽으면 카드 껍데기만 생기고 행이 비어 보인다.
         var payload = body && body.data ? body.data : body;
-        var rows = aggregateIndustryFlow_(payload && payload.sections && payload.sections.industry || []);
+        var sections = payload && payload.sections || {};
+        // 개별 거래대금 상위 종목이 있으면 자동차/부품·반도체/소부장·원전처럼
+        // WICS 한 업종을 투자 테마로 다시 나눌 수 있다. 구형 응답은 기존 집계로 폴백한다.
+        var sourceRows = sections.tradeAmount && sections.tradeAmount.length
+          ? sections.tradeAmount : sections.industry || [];
+        var rows = aggregateIndustryFlow_(sourceRows);
         writeIndustryFlowSnapshot_(dateKey, rows);
         renderIndustryFlow_(mount, rows, dateKey);
       })

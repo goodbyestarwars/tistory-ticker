@@ -42,7 +42,7 @@ class MarketBoardTests(unittest.TestCase):
         self.assertEqual(sections['turnover'], [])
         self.assertEqual(sections['amountTurnover'], [])
 
-    def test_industry_top_aggregates_and_sorts_by_strength(self):
+    def test_industry_top_aggregates_and_sorts_by_traded_value(self):
         rows = [
             {'code': 'A', 'name': 'A종목', 'industry': '반도체', 'change_rate': 4,
              'trade_amount': 100, 'trade_volume': 10},
@@ -54,12 +54,12 @@ class MarketBoardTests(unittest.TestCase):
 
         result = market_board._industry_top(rows)
 
-        self.assertEqual([row['industry'] for row in result], ['반도체', '자동차'])
-        self.assertEqual(result[0]['stock_count'], 2)
-        self.assertEqual(result[0]['rising_count'], 2)
-        self.assertAlmostEqual(result[0]['avg_change_rate'], 3)
-        self.assertAlmostEqual(result[0]['rise_ratio'], 1)
-        self.assertEqual(result[0]['leader_name'], 'A종목')
+        self.assertEqual([row['industry'] for row in result], ['자동차', '반도체'])
+        self.assertEqual(result[1]['stock_count'], 2)
+        self.assertEqual(result[1]['rising_count'], 2)
+        self.assertAlmostEqual(result[1]['avg_change_rate'], 3)
+        self.assertAlmostEqual(result[1]['rise_ratio'], 1)
+        self.assertEqual(result[1]['leader_name'], 'A종목')
 
     def test_domestic_board_converts_trade_amount_and_preserves_name(self):
         rank = {

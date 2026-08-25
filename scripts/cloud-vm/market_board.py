@@ -307,9 +307,11 @@ def _industry_top(rows):
     """Aggregate the collected stock candidates into industry TOP rows.
 
     The ranking is intentionally sector-level rather than a disguised stock
-    ranking: average change rate first, then rising-stock ratio, then total
-    traded value.  It is based on the same candidate universe already fetched
-    for the board and does not make another quote request.
+    ranking: total traded value first, then average change rate and rising-stock
+    ratio.  The page is meant to show where money is flowing; return is a
+    secondary signal, not the ranking key.  It is based on the same candidate
+    universe already fetched for the board and does not make another quote
+    request.
     """
     groups = {}
     for row in rows:
@@ -351,7 +353,7 @@ def _industry_top(rows):
     return sorted(
         result,
         key=lambda item: (
-            item['avg_change_rate'], item['rise_ratio'], item['trade_amount'],
+            item['trade_amount'], item['avg_change_rate'], item['rise_ratio'],
         ),
         reverse=True,
     )
