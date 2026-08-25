@@ -201,6 +201,21 @@
       + '</div>';
   }
 
+  function renderSectorMappingHtml(sectors, selectedName) {
+    var mapped = sectors.slice(0, 3);
+    if (!mapped.length) return '';
+    var extraCount = Math.max(0, sectors.length - mapped.length);
+    return '<div class="sector-detail-mapping" aria-label="중복 섹터 매핑">'
+      + '<div class="sector-detail-mapping-head"><strong>섹터 매핑</strong><small>' + mapped.length + '개' + (extraCount ? ' · +' + extraCount + '개 더 있음' : '') + '</small></div>'
+      + '<div class="sector-detail-mapping-route">'
+      + '<span class="sector-detail-mapping-source">' + escapeHTML(selectedName) + '</span>'
+      + '<span class="sector-detail-mapping-arrow" aria-hidden="true">→</span>'
+      + '<div class="sector-detail-mapping-targets">' + mapped.map(function (sector) {
+        return '<span class="sector-detail-mapping-target">' + escapeHTML(sector) + '</span>';
+      }).join('') + (extraCount ? '<span class="sector-detail-mapping-more">+' + extraCount + '</span>' : '') + '</div>'
+      + '</div></div>';
+  }
+
   function renderSectorDetailHtml(sectorMap, krxMap, dataByCode, selectedCode, selectedName) {
     var sectors = sectorNamesForCode(sectorMap, krxMap, selectedCode);
     var sections = sectors.map(function (sector) {
@@ -211,6 +226,7 @@
     }).join('');
     return '<div class="sector-detail-view">'
       + '<div class="sector-detail-head"><button type="button" class="sector-detail-back" data-sector-detail-back aria-label="카드 보기로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg><span>카드 보기</span></button><div><strong>' + escapeHTML(selectedName || selectedCode) + '</strong><small>관련 섹터 종목</small></div></div>'
+      + renderSectorMappingHtml(sectors, selectedName || selectedCode)
       + (sections || '<div class="sector-detail-empty">이 종목의 섹터 정보가 없습니다.</div>')
       + '<p class="sector-detail-note">현재 카드에 편집된 종목은 검은색 선으로, 함께 비교할 만하지만 아직 카드에 편집하지 않은 종목은 옅은색 선으로 표시합니다.</p>'
       + '</div>';
