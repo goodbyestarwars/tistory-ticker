@@ -537,6 +537,27 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
 
+    def test_home_realtime_table_can_include_or_exclude_etfs(self):
+        source = self.read("js/home-realtime-table.js")
+        style = self.read("style.css")
+        for token in (
+            "ETF_FILTER_KEY = 'home_hrt_etf_v1'",
+            "data-hrt-etf-toggle",
+            "ETF 제외",
+            "ETF 포함",
+            "function isEtf(item)",
+            "function visibleRows(rows)",
+            "state.includeEtf || !isEtf(item)",
+            "state.realtimeCodes",
+            "saveEtfPreference();",
+        ):
+            self.assertIn(token, source)
+        for token in (
+            ".hrt-etf-toggle",
+            ".hrt-etf-toggle[aria-pressed=\"true\"]",
+        ):
+            self.assertIn(token, style)
+
     def test_mobile_home_realtime_table_stays_readable_and_header_scrolls_with_body(self):
         source = self.read("js/home-realtime-table.js")
         style = self.read("style.css")

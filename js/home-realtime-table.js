@@ -14,6 +14,7 @@
   // Quote ticks stay on WebSocket; this only re-syncs the ranking snapshot.
   var RANK_REFRESH_DEBOUNCE_MS = 5000;
   var SESSION_CHECK_MS = 60 * 1000;
+  var ETF_FILTER_KEY = 'home_hrt_etf_v1';
   var TABS = [
     ['tradeAmount', '거래대금'],
     ['tradeVolume', '거래량'],
@@ -69,7 +70,8 @@
     reconnectTimer: null,
     reconnectDelay: WS_RECONNECT_MIN_MS,
     realtimeGeneration: 0,
-    realtimeCodes: []
+    realtimeCodes: [],
+    includeEtf: false
   };
   var NAVER_ICON_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
@@ -251,12 +253,59 @@
       industry = mapped.industry || mapped.sector || '';
     }
     if (!industry || industry === '미분류') {
-      if (/ETF|레버리지|인버스|KODEX|TIGER|ACE|SOL|RISE|KOSEF|HANARO|KBSTAR|ARIRANG|PLUS|TIMEFOLIO|FOCUS|1Q/i.test(name)) {
+      if (isEtfName(name)) {
         return 'ETF';
       }
       return item.market === 'us' ? '미국주식' : '기타';
     }
     return industry;
+  }
+
+  function isEtfName(name) {
+    return /ETF|레버리지|인버스|KODEX|TIGER|ACE|SOL|RISE|KOSEF|HANARO|KBSTAR|ARIRANG|PLUS|TIMEFOLIO|FOCUS|1Q/i.test(String(name || ''));
+  }
+
+  function isEtf(item) {
+    if (!item) return false;
+    if (item.is_etf === true || item.isETF === true || item.asset_type === 'ETF'
+        || item.assetType === 'ETF' || item.product_type === 'ETF') return true;
+    if (String(item.industry || '').trim().toUpperCase() === 'ETF') return true;
+    var names = [item.display_name, item.name_ko, item.name, item.name_en, item.symbol, item.code];
+    var etfNames = global.KRX_ETF_NAMES || [];
+    return names.some(function (value) {
+      var text = String(value || '').trim();
+      if (!text) return false;
+      if (etfNames.indexOf(text) >= 0) return true;
+      return state.market !== 'us' ? isEtfName(text) : /^(SPY|QQQ|IVV|VOO|VTI|IWM|DIA|XLK|XLF|TLT|GLD|SLV|ARKK|SOXL|SOXS|TQQQ|SQQQ|UPRO|TMF)$/i.test(text.replace(/^US:/i, ''));
+    });
+  }
+
+  function readEtfPreference() {
+    try {
+      return localStorage.getItem(ETF_FILTER_KEY) === 'include';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function saveEtfPreference() {
+    try {
+      localStorage.setItem(ETF_FILTER_KEY, state.includeEtf ? 'include' : 'exclude');
+    } catch (error) {}
+  }
+
+  function updateEtfToggle() {
+    var button = state.mount && state.mount.querySelector('[data-hrt-etf-toggle]');
+    if (!button) return;
+    button.textContent = state.includeEtf ? 'ETF 포함' : 'ETF 제외';
+    button.setAttribute('aria-pressed', String(state.includeEtf));
+    button.setAttribute('title', state.includeEtf ? 'ETF를 숨기려면 누르세요.' : 'ETF를 포함하려면 누르세요.');
+  }
+
+  function visibleRows(rows) {
+    return (rows || []).filter(function (item) {
+      return state.includeEtf || !isEtf(item);
+    });
   }
 
   function fmtPrice(value, currency) {
@@ -392,7 +441,8 @@
     if (widgetActions) widgetActions.remove();
     mount.setAttribute('data-hrt-active', state.active);
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
-      + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div>'
+      + '<div class="hrt-head-actions"><button type="button" class="hrt-etf-toggle" data-hrt-etf-toggle aria-pressed="false" title="ETF를 포함하려면 누르세요.">ETF 제외</button>'
+      + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div></div>'
       + '<div class="hrt-tabs" role="tablist" aria-label="실시간 종목 정렬">'
       + tabs.map(function (tab) {
         return '<button type="button" role="tab" data-hrt-tab="' + tab[0] + '" aria-selected="' + (tab[0] === state.active) + '">' + tab[1] + '</button>';
@@ -403,13 +453,14 @@
       + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
       + '<div class="hrt-foot"><span data-hrt-foot>체결 발생 행만 갱신</span></div>';
     if (widgetActions) mount.appendChild(widgetActions);
+    updateEtfToggle();
   }
 
   function rowsForActive() {
     var sections = state.data && state.data.sections;
     if (state.active === 'industry') return (sections && sections.industry) || [];
-    if (sections && Array.isArray(sections[state.active])) return sections[state.active];
-    return (state.data && state.data.rows) || [];
+    if (sections && Array.isArray(sections[state.active])) return visibleRows(sections[state.active]);
+    return visibleRows((state.data && state.data.rows) || []);
   }
 
   function renderRows() {
@@ -515,7 +566,10 @@
     var seen = {};
     Object.keys(data.sections || {}).forEach(function (key) {
       (data.sections[key] || []).forEach(function (item) {
-        if (item && item.code && !seen[item.code]) { seen[item.code] = true; all.push(item.code); }
+        if (item && item.code && (state.includeEtf || !isEtf(item)) && !seen[item.code]) {
+          seen[item.code] = true;
+          all.push(item.code);
+        }
       });
     });
     var sameCodes = all.length === state.realtimeCodes.length && all.every(function (code, index) {
@@ -593,9 +647,20 @@
     if (!mount || mount.getAttribute('data-hrt-ready') === '1') return;
     state.mount = mount;
     state.market = currentMarket();
+    state.includeEtf = readEtfPreference();
     mount.setAttribute('data-hrt-ready', '1');
     buildShell(mount);
     mount.addEventListener('click', function (event) {
+      var etfToggle = event.target.closest ? event.target.closest('[data-hrt-etf-toggle]') : null;
+      if (etfToggle) {
+        state.includeEtf = !state.includeEtf;
+        saveEtfPreference();
+        updateEtfToggle();
+        stopRealtime();
+        renderRows();
+        startRealtime();
+        return;
+      }
       var tab = event.target.closest ? event.target.closest('[data-hrt-tab]') : null;
       if (!tab) return;
       state.active = tab.getAttribute('data-hrt-tab') || 'tradeAmount';
