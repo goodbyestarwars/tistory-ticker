@@ -11,6 +11,11 @@ import market_board
 
 
 class MarketBoardTests(unittest.TestCase):
+    def test_market_board_can_request_extra_candidates_for_etf_filter(self):
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'cloud-vm', 'main.py'), encoding='utf-8') as handle:
+            source = handle.read()
+        self.assertIn("limit: int = Query(20, ge=6, le=40)", source)
+
     def test_session_labels_use_domestic_hours_and_us_dst_hours(self):
         self.assertEqual(market_board.DOMESTIC_SESSION_LABEL, '국내시장 · 오전 08:00~오후 08:00')
         self.assertIn('22:30~05:00', market_board.us_session_label(

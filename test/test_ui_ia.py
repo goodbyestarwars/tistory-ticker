@@ -532,6 +532,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "image.style.display = 'none'",
         ):
             self.assertIn(token, source)
+        self.assertIn("LIMIT = 40", source)
         self.assertIn("HOME_ROW_LIMIT = 20", source)
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)

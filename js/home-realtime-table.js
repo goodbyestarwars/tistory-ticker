@@ -6,7 +6,9 @@
   var WS_URL = 'wss://goodbyestar.cloud/ws/quotes';
   var WS_RECONNECT_MIN_MS = 1500;
   var WS_RECONNECT_MAX_MS = 30000;
-  var LIMIT = 20;
+  // ETF를 브라우저에서 제외한 뒤에도 비ETF 20개를 채우려면, 거래대금
+  // 상위 20개만 받아서는 부족하다(현재 상위권에 ETF가 13개인 경우 7개만 남음).
+  var LIMIT = 40;
   var HOME_ROW_LIMIT = 20;
   var REFRESH_MS = 30 * 1000;
   // 한국시간 기준으로 국내·미국 시장을 자동 전환한다.

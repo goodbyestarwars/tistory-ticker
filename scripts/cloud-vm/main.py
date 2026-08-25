@@ -2445,7 +2445,7 @@ def market_rank_endpoint(request: Request, limit: int = Query(5, ge=1, le=_MARKE
 @app.get('/market-board')
 def market_board_endpoint(request: Request,
                           market: str = Query('domestic'),
-                          limit: int = Query(20, ge=6, le=20),
+                          limit: int = Query(20, ge=6, le=40),
                           fresh: bool = Query(False)):
     """홈 증권사형 실시간 종목판. 국내·미국 세션별 같은 행 모델을 반환한다."""
     _check_rate_limit('market_board', request, max_per_window=30)

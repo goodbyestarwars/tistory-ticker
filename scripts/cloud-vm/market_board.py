@@ -246,7 +246,7 @@ def _domestic_fallback_row(token, code):
 
 
 def _fallback_domestic(token, limit):
-    codes = DOMESTIC_FALLBACK_CODES[:max(12, min(int(limit), 20))]
+    codes = DOMESTIC_FALLBACK_CODES[:max(12, min(int(limit), 40))]
     rows = []
     with ThreadPoolExecutor(max_workers=4) as pool:
         futures = [pool.submit(_domestic_fallback_row, token, code) for code in codes]
@@ -385,7 +385,7 @@ def _sections(rows):
 
 def fetch_domestic(token, limit=20, wics_map=None):
     try:
-        rank = market_rank.fetch_sidebar_rank(token, limit=max(12, min(int(limit), 20)))
+        rank = market_rank.fetch_sidebar_rank(token, limit=max(12, min(int(limit), 40)))
     except Exception as exc:
         logger.warning('domestic ranking unavailable; using fallback quotes: %s', exc)
         rank = {}
@@ -475,7 +475,7 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
     if not appkey or not appsecret:
         raise RuntimeError('KIS_APPKEY/KIS_APPSECRET가 없습니다.')
     kis_token = kis_client.get_token(appkey, appsecret)
-    query_limit = max(12, min(int(limit), 20))
+    query_limit = max(12, min(int(limit), 40))
     tasks = {
         'amount': lambda: kis_client.fetch_domestic_volume_rank(
             kis_token, appkey, appsecret, sort_code='3', limit=query_limit),
@@ -607,7 +607,7 @@ def fetch_sidebar_rank_kis(appkey, appsecret, limit=5):
     정렬 코드별 응답이 비어 있을 수 있으므로, 개별 호출을 별도로 처리하지
     않고 이미 검증된 공통 종목판 경로를 재사용한다.
     """
-    board = fetch_domestic_kis(appkey, appsecret, limit=max(12, min(int(limit), 20)))
+    board = fetch_domestic_kis(appkey, appsecret, limit=max(12, min(int(limit), 40)))
     sections = board.get('sections') or {}
     return {
         'tradeVolume': (sections.get('tradeVolume') or [])[:limit],
@@ -698,7 +698,7 @@ def _fetch_us_trade_amount_rank(token, limit):
     rows = _records(response)
     if not rows:
         raise RuntimeError('usa20540 미국주식 거래대금 순위 응답이 비어 있습니다.')
-    return rows[:max(1, min(int(limit), 20))]
+    return rows[:max(1, min(int(limit), 40))]
 
 
 def _us_rank_row(rank_row, finnhub_api_key):
@@ -750,7 +750,7 @@ def fetch_us(token, limit=20, finnhub_api_key=''):
     except Exception as exc:
         logger.warning('US ranking unavailable; using fallback quotes: %s', exc)
         source = 'Kiwoom/KIS 개별 시세 + Yahoo Finance fallback'
-        symbols = US_FALLBACK_SYMBOLS[:max(12, min(int(limit), 20))]
+        symbols = US_FALLBACK_SYMBOLS[:max(12, min(int(limit), 40))]
         with ThreadPoolExecutor(max_workers=6) as pool:
             futures = [pool.submit(_us_row, symbol, finnhub_api_key) for symbol in symbols]
             for future in as_completed(futures):
@@ -955,7 +955,7 @@ def fetch_us_kis(appkey, appsecret, limit=20, finnhub_api_key=''):
     if not appkey or not appsecret:
         raise RuntimeError('KIS_APPKEY/KIS_APPSECRET가 없습니다.')
     kis_token = kis_client.get_token(appkey, appsecret)
-    query_limit = max(12, min(int(limit), 20))
+    query_limit = max(12, min(int(limit), 40))
     metric_fetchers = {
         'tradeAmount': (kis_client.fetch_us_trade_amount_rank, {}),
         'tradeVolume': (kis_client.fetch_us_trade_volume_rank, {}),
