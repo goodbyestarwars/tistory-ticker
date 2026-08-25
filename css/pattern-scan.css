@@ -236,6 +236,18 @@
   color: #6b7280;
   font-size: 13px;
 }
+#pattern-scan .ps-retry {
+  display: block;
+  margin: 12px auto 0;
+  padding: 7px 14px;
+  border: 1px solid #cfd9e5;
+  border-radius: 4px;
+  background: #fff;
+  color: #35506f;
+  cursor: pointer;
+  font: inherit;
+}
+#pattern-scan .ps-retry:disabled { opacity: .55; cursor: wait; }
 #pattern-scan .ps-loading {
   display: flex;
   flex-direction: column;

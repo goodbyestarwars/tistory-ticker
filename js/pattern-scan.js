@@ -19,6 +19,7 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#pattern-scan';
   var FETCH_TIMEOUT_MS = 15000;
+  var FETCH_RETRY_COUNT = 2;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
 
   var CHART_H = 420;
@@ -181,7 +182,9 @@
     // GAS/VM의 빈 응답이 브라우저·중간 캐시에 남으면, 다음 일일 스캔이 끝난 뒤에도
     // "스캔 결과 없음" 화면이 계속 보일 수 있다. 목록 요청은 매번 최신 스냅샷을 확인한다.
     var scanUrl = GAS_TICKER_URL + '?patternScan=1&_=' + encodeURIComponent(Date.now());
-    PatternScan.fetchJson(scanUrl)
+    fetchWithRetry(scanUrl, function (data) {
+      return data && !data.error && data.patterns && typeof data.patterns === 'object';
+    })
       .then(function (data) {
         scanData = data;
         var meta = container.querySelector('#psMeta');
@@ -193,10 +196,41 @@
         renderBacktestBox(container);
         renderList(container);
       })
-      .catch(function () {
+      .catch(function (err) {
         var list = container.querySelector('#psList');
-        if (list) list.innerHTML = '<div class="ps-error">스캔 결과를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+        if (!list) return;
+        list.innerHTML = '<div class="ps-error">' + escapeHtml((err && err.message) || '스캔 결과를 불러오지 못했어요.')
+          + '<button type="button" class="ps-retry" id="psRetry">다시 조회</button></div>';
+        var retry = list.querySelector('#psRetry');
+        if (retry) retry.addEventListener('click', function () {
+          retry.disabled = true;
+          retry.textContent = '조회 중...';
+          loadScan(container);
+        });
       });
+  }
+
+  // GAS는 간헐적으로 302 뒤 HTML 오류 페이지나 빈 캐시 응답을 반환할 수 있다.
+  // 기존에는 이 첫 응답을 그대로 실패로 처리해 사용자가 새로고침해야 했다.
+  // 짧은 재시도는 정상 응답일 때 추가 부담이 없고, 실패 때만 새 nonce로 재호출한다.
+  function fetchWithRetry(url, isValid) {
+    var attempt = 0;
+    function request() {
+      var requestUrl = url + (url.indexOf('?') >= 0 ? '&' : '?')
+        + '_retry=' + encodeURIComponent(attempt);
+      return PatternScan.fetchJson(requestUrl).then(function (data) {
+        if (isValid && !isValid(data)) {
+          var apiMessage = data && (data.message || data.error);
+          throw new Error(apiMessage ? String(apiMessage) : '차트검색 응답 형식이 올바르지 않습니다.');
+        }
+        return data;
+      }).catch(function (err) {
+        if (attempt >= FETCH_RETRY_COUNT) throw err;
+        attempt += 1;
+        return new Promise(function (resolve) { setTimeout(resolve, 350 * attempt); }).then(request);
+      });
+    }
+    return request();
   }
 
   function miniChartRows(item) {
@@ -426,8 +460,11 @@
     detail.innerHTML = '<div class="ps-loading"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div></div>';
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    PatternScan.fetchJson(GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code)
-      + '&pattern=' + encodeURIComponent(activeTab) + '&scanDate=' + encodeURIComponent(item.date || ''))
+    var chartUrl = GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code)
+      + '&pattern=' + encodeURIComponent(activeTab) + '&scanDate=' + encodeURIComponent(item.date || '');
+    fetchWithRetry(chartUrl, function (data) {
+      return data && !data.error && Array.isArray(data.daily);
+    })
       .then(function (data) {
         if (data.error || !data.daily || !data.daily.length) {
           detail.innerHTML = '<div class="ps-error">' + escapeHtml((data && data.message) || '차트를 불러오지 못했어요.') + '</div>';
