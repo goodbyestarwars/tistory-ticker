@@ -413,9 +413,9 @@ html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #9
   #my-dashboard .my-metric-grid > div { padding: 10px; }
 }
 
-/* 2026-08-25: MY 관심종목 그룹은 한 그룹이 한 줄을 독점하지 않도록
-   2열(넓은 화면은 3열) 카드 그리드로 배치한다. 모바일은 표의 숫자를
-   억지로 줄이지 않고 한 카드씩 보여 가독성을 유지한다. */
+/* MY 관심종목 그룹은 데스크톱에서 두 카드가 한 행을 반씩 나눠 쓰고,
+   세 번째 그룹부터는 다음 행으로 내려간다. 모바일은 한 카드씩 보여
+   표의 숫자를 억지로 줄이지 않고 가독성을 유지한다. */
 #my-dashboard .my-watchlist-groups {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -456,10 +456,6 @@ html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #9
 html.dark #my-dashboard .my-watchlist-groups { background: #141414; }
 html.dark #my-dashboard .my-watchlist-group,
 html.dark #my-dashboard .my-watchlist-group + .my-watchlist-group { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
-
-@media (min-width: 1200px) {
-  #my-dashboard .my-watchlist-groups { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
 
 @media (max-width: 720px) {
   #my-dashboard .my-watchlist-groups { grid-template-columns: 1fr; gap: 8px; padding: 8px; }
