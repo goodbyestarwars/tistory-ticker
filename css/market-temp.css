@@ -496,7 +496,7 @@
   margin-bottom: 14px;
 }
 #market-temp .sector-card-title { font-size: 14px; font-weight: 600; color: #111827; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
-#market-temp .sector-card-title::before { content: ""; width: 4px; height: 14px; background: #2563eb; border-radius: 2px; display: inline-block; }
+#market-temp .sector-card-title::before { content: ""; width: 4px; height: 14px; background: #111827; border-radius: 2px; display: inline-block; }
 #market-temp .sector-row { display: flex; width: 100%; justify-content: space-between; align-items: baseline; padding: 8px 0; border: 0; border-bottom: 1px solid #f1f5f9; background: transparent; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 #market-temp .sector-row:hover { background: #f8fafc; }
 #market-temp .sector-row:last-child { border-bottom: none; padding-bottom: 0; }
@@ -518,6 +518,19 @@
 #market-temp .sector-detail-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 #market-temp .sector-detail-section-head strong { color: #111827; font-size: 14px; }
 #market-temp .sector-detail-section-head small { color: #94a3b8; font-size: 10px; }
+#market-temp .sector-detail-line-list { border-top: 1px solid #111827; }
+#market-temp .sector-detail-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 9px 2px; border-bottom: 1px solid #e5e7eb; background: transparent; }
+#market-temp .sector-detail-row.is-listed { color: #111827; }
+#market-temp .sector-detail-row-name { min-width: 0; overflow: hidden; color: #111827; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+#market-temp .sector-detail-row-values { display: inline-flex; flex: 0 0 auto; align-items: baseline; gap: 8px; color: #111827; font-size: 12px; white-space: nowrap; }
+#market-temp .sector-detail-row-values b { font-weight: 700; }
+#market-temp .sector-detail-row-values em { color: #111827; font-style: normal; font-weight: 700; }
+#market-temp .sector-detail-row.is-selected { background: #f8fafc; }
+#market-temp .sector-detail-row.is-pending { border-bottom-style: dashed; border-bottom-color: #d1d5db; }
+#market-temp .sector-detail-row.is-pending .sector-detail-row-name,
+#market-temp .sector-detail-row.is-pending .sector-detail-row-status { color: #9ca3af; font-weight: 500; }
+#market-temp .sector-detail-row-status { flex: 0 0 auto; color: #111827; font-size: 10px; white-space: nowrap; }
+#market-temp .sector-detail-row.is-data-pending .sector-detail-row-status { color: #9ca3af; }
 #market-temp .sector-stock-bubbles { display: flex; flex-wrap: wrap; gap: 9px; }
 #market-temp .sector-stock-bubble { display: inline-flex; min-width: 108px; min-height: 66px; flex-direction: column; justify-content: center; gap: 3px; padding: 9px 12px; border: 1px solid #dbe5f2; border-radius: 14px; background: #f8fbff; color: #1f2937; text-align: left; }
 #market-temp button.sector-stock-bubble { font: inherit; cursor: pointer; }
@@ -709,6 +722,8 @@ html.dark #market-temp .mt-view-btn.active { background: #F5EFE0 !important; col
 /* DB-backed sector card editor */
 #market-temp .mt-sector-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; font-size:12px; color:#6b7280; }
 #market-temp .mt-sector-toolbar span { flex:1; min-width:0; }
+#market-temp .mt-sector-config-status.is-edited { color:#111827; font-weight:700; }
+#market-temp .mt-sector-config-status.is-pending { color:#9ca3af; font-weight:500; }
 #market-temp .mt-sector-toolbar button,
 #market-temp .mt-sector-editor button { border:1px solid #d1d5db; border-radius:7px; background:#fff; color:#374151; padding:7px 10px; cursor:pointer; font:inherit; font-size:12px; white-space:nowrap; }
 #market-temp .mt-sector-toolbar button:hover,
@@ -796,6 +811,15 @@ html.dark #market-temp .sector-row-rate.sector-down { color: #4dabf7 !important;
 html.dark #market-temp .sector-detail-head > div strong,
 html.dark #market-temp .sector-detail-section-head strong { color: #F5EFE0 !important; }
 html.dark #market-temp .sector-detail-section { border-color: rgba(245,239,224,.14); background: #1A1A1A; }
+html.dark #market-temp .sector-detail-line-list { border-top-color: #F5EFE0; }
+html.dark #market-temp .sector-detail-row { border-bottom-color: rgba(245,239,224,.14); }
+html.dark #market-temp .sector-detail-row-name,
+html.dark #market-temp .sector-detail-row-values,
+html.dark #market-temp .sector-detail-row-values em,
+html.dark #market-temp .sector-detail-row-status { color: #F5EFE0; }
+html.dark #market-temp .sector-detail-row.is-pending .sector-detail-row-name,
+html.dark #market-temp .sector-detail-row.is-pending .sector-detail-row-status,
+html.dark #market-temp .sector-detail-row.is-data-pending .sector-detail-row-status { color: rgba(245,239,224,.55); }
 html.dark #market-temp .sector-stock-bubble { border-color: rgba(245,239,224,.18); background: #202020; color: #F5EFE0; }
 html.dark #market-temp .sector-stock-bubble small,
 html.dark #market-temp .sector-detail-section-head small,
@@ -804,6 +828,8 @@ html.dark #market-temp .sector-detail-note { color: rgba(245,239,224,.58); }
 html.dark #market-temp .sector-stock-bubble.is-recommended,
 html.dark #market-temp .sector-stock-bubble.is-muted { border-color: rgba(245,239,224,.2); background: #242424; color: rgba(245,239,224,.55); }
 html.dark #market-temp .mt-card-realtime-status { color: rgba(245,239,224,.6); }
+html.dark #market-temp .mt-sector-config-status.is-edited { color:#F5EFE0; }
+html.dark #market-temp .mt-sector-config-status.is-pending { color:rgba(245,239,224,.55); }
 html.dark #market-temp .sector-bubble-chart { border-color: rgba(245,239,224,.14); background: radial-gradient(circle at 50% 35%, #242424 0, #1a1a1a 72%); }
 html.dark #market-temp .sector-bubble-chart-meta { color: rgba(245,239,224,.58); }
 html.dark #market-temp .sector-bubble-stage { background-image: linear-gradient(rgba(245,239,224,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(245,239,224,.06) 1px, transparent 1px); }

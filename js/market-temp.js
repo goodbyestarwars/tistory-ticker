@@ -1167,9 +1167,10 @@
       if (SD.injectBadgeStyles) SD.injectBadgeStyles();
       var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
       var cardState = config.customized
-        ? (config.localOnly ? '내 카드 · 이 브라우저에 저장됨' : '내 카드 · Google 계정에 저장됨')
-        : '기본 카드 · 편집하면 내 카드로 분리됩니다';
-      var toolbar = '<div class="mt-sector-toolbar"><span>' + escapeHtml(cardState) + '</span>' +
+        ? (config.localOnly ? '편집됨 · 이 브라우저에 저장됨' : '편집됨 · Google 계정에 저장됨')
+        : '편집 대기 · 기본 카드';
+      var cardStateClass = config.customized ? ' is-edited' : ' is-pending';
+      var toolbar = '<div class="mt-sector-toolbar"><span class="mt-sector-config-status' + cardStateClass + '">' + escapeHtml(cardState) + '</span>' +
         '<span class="mt-card-realtime-status" data-card-realtime-status>실시간 연결 중</span>' +
         '<button type="button" data-sector-editor-open>카테고리·종목 편집</button></div>';
       panel.innerHTML = toolbar + (html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>');

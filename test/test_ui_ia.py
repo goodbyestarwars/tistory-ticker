@@ -1760,7 +1760,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (
             "USER_SECTOR_CARDS_API_URL",
             "market_temp_sector_cards_v1",
-            "기본 카드 · 편집하면 내 카드로 분리됩니다",
+            "편집 대기 · 기본 카드",
             "기본 카드로 되돌리기",
             "credentials: 'include'",
         ):
@@ -1773,7 +1773,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("heatmapPanel.__mtLoaded = false", source)
         self.assertIn("전체 고정 종목 풀", source)
 
-    def test_major_stock_cards_open_sector_bubbles_with_shaded_recommendations(self):
+    def test_major_stock_cards_open_line_lists_with_shaded_pending_recommendations(self):
         dashboard = self.read("js/sector-dashboard-v4.js")
         dashboard_style = self.read("css/sector-dashboard-v3.css")
         market_temp = self.read("js/market-temp.js")
@@ -1788,11 +1788,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, dashboard)
         self.assertIn("SD.wireSectorCardSelection(panel, sectorMap, krxMap, byCode, wireEditor)", market_temp)
-        for token in (".sector-stock-bubbles", ".sector-stock-bubble.is-recommended", ".sector-detail-back",
-                      ".sector-bubble-chart", ".sector-bubble-stage", ".sector-chart-bubble.sector-up"):
-            self.assertIn(token, dashboard_style)
-        for token in ("function renderSectorBubbleChart", "sector-bubble-chart", "sector-chart-bubble",
-                      "bubbleSize", "버블 크기 · 섹터 내 대표 순위", "섹터 안의 표시 순위를 참고용"):
+        for token in (".sector-detail-line-list", ".sector-detail-row.is-listed", ".sector-detail-row.is-pending",
+                      ".sector-detail-back", ".mt-sector-config-status.is-edited", ".mt-sector-config-status.is-pending"):
+            self.assertIn(token, dashboard_style + self.read("css/market-temp.css"))
+        for token in ("function renderSectorLineList", "sector-detail-line-list", "sector-detail-row is-pending",
+                      "검은색: 현재 카드 · 옅은색: 편집 대기", "현재 카드에 편집된 종목은 검은색 선"):
             self.assertIn(token, dashboard)
 
     def test_my_dashboard_selected_stock_uses_daily_change_color(self):
