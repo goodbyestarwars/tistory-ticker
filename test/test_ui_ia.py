@@ -1792,7 +1792,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/strategy-search.css")
         self.assertIn("#strategy-search .ss-tabs", style)
         self.assertIn("#strategy-search .ss-product-tabs", style)
-        self.assertIn("border-radius: 999px !important;", style)
+        self.assertIn("border-radius: 4px !important;", style)
         self.assertIn("#strategy-search .ss-tab.active", style)
         self.assertIn("#strategy-search .ss-product-tab.active", style)
 

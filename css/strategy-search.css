@@ -792,13 +792,14 @@ html:not(.font-gothic) body #strategy-search .ss-product-tab {
   min-height: 40px;
   padding: 8px 16px !important;
   border: 1px solid #dbe3ed !important;
-  border-radius: 999px !important;
+  border-radius: 4px !important;
   background: rgb(255, 254, 252) !important;
   color: #374151 !important;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.2;
 }
+
 #strategy-search .ss-tab.active,
 #strategy-search .ss-product-tab.active,
 html:not(.font-gothic) body #strategy-search .ss-tab.active,
