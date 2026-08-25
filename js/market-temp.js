@@ -1137,6 +1137,12 @@
         row.querySelector('[data-editor-role="stock-code"]').value = code;
       }
     };
+    panel.onkeydown = function (event) {
+      if (event.key !== 'Enter' || !event.target.matches('[data-editor-role="stock-search"]')) return;
+      event.preventDefault();
+      var addButton = event.target.closest('.mt-sector-editor-add-stock-box').querySelector('[data-editor-action="add-stock"]');
+      if (addButton) addButton.click();
+    };
   }
 
   function sectorPoolCodes(sectorMap, krxMap) {
@@ -1164,6 +1170,7 @@
         ? (config.localOnly ? '내 카드 · 이 브라우저에 저장됨' : '내 카드 · Google 계정에 저장됨')
         : '기본 카드 · 편집하면 내 카드로 분리됩니다';
       var toolbar = '<div class="mt-sector-toolbar"><span>' + escapeHtml(cardState) + '</span>' +
+        '<span class="mt-card-realtime-status" data-card-realtime-status>실시간 연결 중</span>' +
         '<button type="button" data-sector-editor-open>카테고리·종목 편집</button></div>';
       panel.innerHTML = toolbar + (html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>');
       // 2026-08-20: 카드 보기는 이 최초 GAS 배치 조회 이후로 갱신이 없었다 - 실시간 체결가
@@ -1233,7 +1240,8 @@
       var byCode = {};
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
       var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
-      panel.innerHTML = html ? '<div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>';
+      panel.innerHTML = html ? '<div class="mt-sector-toolbar"><span>기본 카드</span><span class="mt-card-realtime-status" data-card-realtime-status>실시간 연결 중</span></div><div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>';
+      if (SD.startCardRealtimeQuotes) SD.startCardRealtimeQuotes(panel, codes);
       if (SD.wireSectorCardSelection) SD.wireSectorCardSelection(panel, sectorMap, krxMap, byCode);
     }).catch(function () {
       panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>';
@@ -1282,7 +1290,11 @@
       return;
     }
     panel.innerHTML = '<div id="marketcap-bubble"></div>';
-    global.MarketcapBubble.init();
+    try {
+      global.MarketcapBubble.init();
+    } catch (error) {
+      panel.innerHTML = '<div class="mt-error">시총비례 히트맵을 불러오지 못했습니다.</div>';
+    }
   }
 
   function loadPanel(view, panel) {

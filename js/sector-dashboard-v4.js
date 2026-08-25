@@ -303,11 +303,15 @@
   var CARD_WS_URL = 'wss://goodbyestar.cloud/ws/quotes';
   var CARD_WS_RECONNECT_MIN_MS = 1500;
   var CARD_WS_RECONNECT_MAX_MS = 30000;
+  var CARD_WS_KEEPALIVE_MS = 20000;
+  var CARD_SNAPSHOT_FALLBACK_MS = 30000;
   var cardRealtime = {
     container: null,
     codes: [],
     socket: null,
     reconnectTimer: null,
+    keepaliveTimer: null,
+    fallbackTimer: null,
     reconnectDelay: CARD_WS_RECONNECT_MIN_MS,
     generation: 0
   };
@@ -336,11 +340,41 @@
     }
   }
 
+  function setCardRealtimeStatus(container, text) {
+    var status = container && container.querySelector('[data-card-realtime-status]');
+    if (status) status.textContent = text;
+  }
+
+  function refreshCardSnapshot(generation) {
+    if (generation !== cardRealtime.generation || document.hidden || !cardRealtime.codes.length) return;
+    fetchTickerData(cardRealtime.codes).then(function (list) {
+      if (generation !== cardRealtime.generation) return;
+      (list || []).forEach(function (item) {
+        if (!item || !item.code) return;
+        updateSectorRowQuote(cardRealtime.container, item.code, {
+          type: 'quote',
+          code: item.code,
+          price: item.price,
+          change: item.change,
+          changeRate: item.changeRate != null ? item.changeRate : item.change_rate
+        });
+      });
+    }).catch(function () { /* WebSocket 재연결 중이면 직전 시세를 유지한다. */ });
+  }
+
   function stopCardRealtimeQuotes() {
     cardRealtime.generation += 1;
     if (cardRealtime.reconnectTimer) {
       clearTimeout(cardRealtime.reconnectTimer);
       cardRealtime.reconnectTimer = null;
+    }
+    if (cardRealtime.keepaliveTimer) {
+      clearInterval(cardRealtime.keepaliveTimer);
+      cardRealtime.keepaliveTimer = null;
+    }
+    if (cardRealtime.fallbackTimer) {
+      clearInterval(cardRealtime.fallbackTimer);
+      cardRealtime.fallbackTimer = null;
     }
     if (cardRealtime.socket) {
       cardRealtime.socket.onclose = null;
@@ -364,6 +398,7 @@
 
   function connectCardRealtime(generation) {
     if (generation !== cardRealtime.generation || document.hidden || !cardRealtime.codes.length) return;
+    setCardRealtimeStatus(cardRealtime.container, '실시간 연결 중');
     var socket;
     try {
       socket = new WebSocket(CARD_WS_URL + '?codes=' + cardRealtime.codes.map(encodeURIComponent).join(','));
@@ -375,12 +410,20 @@
     socket.onopen = function () {
       if (generation !== cardRealtime.generation || cardRealtime.socket !== socket) return;
       cardRealtime.reconnectDelay = CARD_WS_RECONNECT_MIN_MS;
+      if (cardRealtime.keepaliveTimer) clearInterval(cardRealtime.keepaliveTimer);
+      cardRealtime.keepaliveTimer = setInterval(function () {
+        if (socket.readyState === WebSocket.OPEN) socket.send('ping');
+      }, CARD_WS_KEEPALIVE_MS);
+      setCardRealtimeStatus(cardRealtime.container, '실시간 연결됨');
     };
     socket.onmessage = function (event) {
       if (generation !== cardRealtime.generation || !cardRealtime.container) return;
       try {
         var quote = JSON.parse(event.data);
-        if (quote.type === 'quote' && quote.code) updateSectorRowQuote(cardRealtime.container, quote.code, quote);
+        if (quote.type === 'quote' && quote.code) {
+          updateSectorRowQuote(cardRealtime.container, quote.code, quote);
+          setCardRealtimeStatus(cardRealtime.container, '실시간 연결됨');
+        }
       } catch (err) {}
     };
     socket.onerror = function () {
@@ -388,7 +431,12 @@
     };
     socket.onclose = function () {
       if (generation !== cardRealtime.generation || cardRealtime.socket !== socket) return;
+      if (cardRealtime.keepaliveTimer) {
+        clearInterval(cardRealtime.keepaliveTimer);
+        cardRealtime.keepaliveTimer = null;
+      }
       cardRealtime.socket = null;
+      setCardRealtimeStatus(cardRealtime.container, '재연결 중');
       scheduleCardRealtimeReconnect(generation);
     };
   }
@@ -400,6 +448,7 @@
       if (!cardRealtime.container) return;
       if (document.hidden) {
         if (cardRealtime.reconnectTimer) { clearTimeout(cardRealtime.reconnectTimer); cardRealtime.reconnectTimer = null; }
+        if (cardRealtime.keepaliveTimer) { clearInterval(cardRealtime.keepaliveTimer); cardRealtime.keepaliveTimer = null; }
         if (cardRealtime.socket) { cardRealtime.socket.onclose = null; cardRealtime.socket.close(); cardRealtime.socket = null; }
       } else if (!cardRealtime.socket) {
         cardRealtime.reconnectDelay = CARD_WS_RECONNECT_MIN_MS;
@@ -413,12 +462,26 @@
   // 기존 연결을 정리하고 새 목록으로 재구독한다.
   function startCardRealtimeQuotes(container, codes) {
     stopCardRealtimeQuotes();
-    if (!container || !codes || !codes.length || !('WebSocket' in global)) return;
-    wireCardVisibility_();
+    if (!container || !codes || !codes.length) return;
+    setCardRealtimeStatus(container, '실시간 연결 중');
     cardRealtime.container = container;
     cardRealtime.codes = codes;
+    cardRealtime.fallbackTimer = setInterval(function () {
+      if (!global.WebSocket || !cardRealtime.socket || cardRealtime.socket.readyState !== global.WebSocket.OPEN) {
+        refreshCardSnapshot(cardRealtime.generation);
+      }
+    }, CARD_SNAPSHOT_FALLBACK_MS);
+    if (!('WebSocket' in global)) {
+      setCardRealtimeStatus(container, '주기 갱신 중');
+      refreshCardSnapshot(cardRealtime.generation);
+      return;
+    }
+    wireCardVisibility_();
     cardRealtime.reconnectDelay = CARD_WS_RECONNECT_MIN_MS;
-    if (document.hidden) return; // 화면 복귀 시 visibilitychange 핸들러가 연결한다.
+    if (document.hidden) {
+      setCardRealtimeStatus(container, '화면 복귀 시 연결');
+      return;
+    }
     connectCardRealtime(cardRealtime.generation);
   }
 
