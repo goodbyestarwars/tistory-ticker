@@ -1199,6 +1199,12 @@ def quote(code: str = Query(..., min_length=6, max_length=6), x_api_key: str = H
                 'mac': raw.get('stck_avls'),
                 'flo_stk': (float(raw['lstn_stcn']) / 1000
                             if raw.get('lstn_stcn') not in (None, '') else None),
+                'listed_shares_thousand': (float(raw['lstn_stcn']) / 1000
+                                           if raw.get('lstn_stcn') not in (None, '') else None),
+                # KIS 계정/상품에 따라 유통주식수 필드가 생략될 수 있다. 가능한
+                # 별칭은 그대로 전달해 GAS가 값이 있으면 표시하도록 한다.
+                'dstr_stk': raw.get('dstr_stk') or raw.get('free_float_shares'),
+                'dstr_rt': raw.get('dstr_rt') or raw.get('free_float_ratio'),
                 'for_exh_rt': raw.get('hts_frgn_ehrt'),
             })
             return envelope(result)

@@ -485,6 +485,23 @@
 
 #market-temp .mt-explore-card { margin-top: 0; }
 
+/* 증시온도 하단 업종 TOP 흐름. 오늘 순위와 전일 대비를 한 줄에 매핑한다. */
+#market-temp .mt-industry-flow-card { margin-top: 0; padding: 14px 16px; }
+#market-temp .mt-industry-flow-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; }
+#market-temp .mt-industry-flow-head strong { font-size:15px; color:#111827; }
+#market-temp .mt-industry-flow-head span, #market-temp .mt-industry-flow-note { color:#94a3b8; font-size:10px; }
+#market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { display:grid; grid-template-columns:minmax(0,1.4fr) .8fr .8fr .75fr; align-items:center; gap:8px; }
+#market-temp .mt-industry-flow-columns { padding:0 5px 6px; border-bottom:1px solid #111827; color:#94a3b8; font-size:10px; }
+#market-temp .mt-industry-flow-columns span:not(:first-child), #market-temp .mt-industry-flow-row > span, #market-temp .mt-industry-flow-row > small { text-align:right; }
+#market-temp .mt-industry-flow-row { min-height:34px; padding:6px 5px; border-bottom:1px solid #eef2f7; font-size:12px; }
+#market-temp .mt-industry-flow-row b { overflow:hidden; color:#1f2937; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+#market-temp .mt-industry-flow-row > span { font-weight:700; }
+#market-temp .mt-industry-flow-row.is-up > span:first-of-type { color:#d24f45; }
+#market-temp .mt-industry-flow-row.is-down > span:first-of-type { color:#1261c4; }
+#market-temp .mt-industry-flow-row.is-flat > span:first-of-type { color:#64748b; }
+#market-temp .mt-industry-flow-row small { color:#94a3b8; font-size:10px; }
+#market-temp .mt-industry-flow-note { margin:9px 0 0; line-height:1.5; }
+
 #market-temp .sector-cards-grid { columns: 3 220px; column-gap: 14px; }
 #market-temp .sector-card {
   background: #ffffff;
@@ -594,6 +611,8 @@
 
 @media (max-width: 640px) {
   #market-temp .mt-card { padding: 12px 12px; }
+  #market-temp .mt-industry-flow-card { padding: 12px; }
+  #market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { grid-template-columns:minmax(0,1.3fr) .7fr .7fr .7fr; gap:5px; }
   #market-temp .mt-hero-card { padding: 14px; }
   #market-temp .mt-hero { flex-direction: column; }
   #market-temp .mt-hero-right { align-items: flex-start; text-align: left; padding-left: 0; border-left: none; padding-top: 12px; border-top: 1px dashed #eee; width: 100%; }

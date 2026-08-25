@@ -31,6 +31,28 @@
     ]
   };
 
+  // 수동 추천표가 없는 섹터도 현재 카드에 없는 같은 섹터 종목을 후보로 보여준다.
+  // 이는 증권사 매수 추천을 뜻하지 않고, 사용자가 편집한 카드와 비교할 수 있는
+  // “섹터 관련 후보”다. KOSPI/KOSDAQ은 추천을 가르지 않고 기존 뱃지만 유지한다.
+  function relatedSectorCandidates(sector, sectorMap, krxMap, entries) {
+    var listed = {};
+    (entries || []).forEach(function (entry) {
+      listed[String(entry.code || entry.name || '').toUpperCase()] = true;
+    });
+    var manual = RELATED_SECTOR_RECOMMENDATIONS[sector] || [];
+    var manualNames = {};
+    manual.forEach(function (item) { manualNames[String(item.name || '').toLowerCase()] = true; });
+    var automatic = (sectorMap[sector] || []).map(function (item) {
+      return resolveEntry(item, krxMap);
+    }).filter(function (entry) {
+      var key = String(entry.code || entry.name || '').toUpperCase();
+      return key && !listed[key] && !manualNames[String(entry.name || '').toLowerCase()];
+    }).map(function (entry) {
+      return { name: entry.name, code: entry.code, market: entry.market, note: '섹터 관련 후보' };
+    });
+    return manual.concat(automatic).slice(0, 6);
+  }
+
   function logError() {
     if (global.console && console.error) console.error.apply(console, arguments);
   }
@@ -184,19 +206,35 @@
   }
 
   function sectorDetailPendingRowHtml(item) {
-    return '<div class="sector-detail-row is-pending" aria-label="' + escapeHTML(item.name) + ' 편집 대기">'
-      + '<span class="sector-detail-row-name">' + escapeHTML(item.name) + '</span>'
-      + '<span class="sector-detail-row-status">편집 대기</span></div>';
+    return '<div class="sector-detail-row is-pending" aria-label="' + escapeHTML(item.name) + ' 섹터 관련 후보">'
+      + '<span class="sector-detail-row-name">' + escapeHTML(item.name) + marketBadgeHtml(item.market) + '</span>'
+      + '<span class="sector-detail-row-status">' + escapeHTML(item.note || '섹터 관련 후보') + '</span></div>';
   }
 
-  function renderSectorLineList(entries, recommendations, dataByCode, selectedCode) {
+  function renderSectorLineList(entries, recommendations, dataByCode, selectedCode, listedCodes) {
+    var listed = listedCodes || {};
     var listedNames = {};
-    entries.forEach(function (entry) { listedNames[String(entry.name || '').toLowerCase()] = true; });
-    var pending = recommendations.filter(function (item) {
-      return !listedNames[String(item.name || '').toLowerCase()];
+    var listedEntries = entries.filter(function (entry) {
+      var key = String(entry.code || entry.name || '').toUpperCase();
+      var isListed = listedCodes == null || listed[key];
+      if (isListed) listedNames[String(entry.name || '').toLowerCase()] = true;
+      return isListed;
+    });
+    var pendingEntries = entries.filter(function (entry) {
+      var key = String(entry.code || entry.name || '').toUpperCase();
+      return listedCodes != null && !listed[key];
+    }).map(function (entry) {
+      return { name: entry.name, code: entry.code, market: entry.market, note: '섹터 관련 후보' };
+    });
+    var pending = pendingEntries.concat(recommendations || []).filter(function (item, index, list) {
+      var name = String(item.name || '').toLowerCase();
+      if (listedNames[name]) return false;
+      return list.findIndex(function (candidate) {
+        return String(candidate.name || '').toLowerCase() === name;
+      }) === index;
     });
     return '<div class="sector-detail-line-list" aria-label="섹터 종목 목록">'
-      + entries.map(function (entry) { return sectorDetailListedRowHtml(entry, dataByCode, selectedCode); }).join('')
+      + listedEntries.map(function (entry) { return sectorDetailListedRowHtml(entry, dataByCode, selectedCode); }).join('')
       + pending.map(sectorDetailPendingRowHtml).join('')
       + '</div>';
   }
@@ -216,19 +254,24 @@
       + '</div></div>';
   }
 
-  function renderSectorDetailHtml(sectorMap, krxMap, dataByCode, selectedCode, selectedName) {
+  function renderSectorDetailHtml(sectorMap, krxMap, dataByCode, selectedCode, selectedName, selectedSector) {
     var sectors = sectorNamesForCode(sectorMap, krxMap, selectedCode);
+    var selectedGroup = selectedSector ? (sectorMap[selectedSector] || []) : [];
+    var listedCodes = {};
+    selectedGroup.map(function (item) { return resolveEntry(item, krxMap); }).forEach(function (entry) {
+      listedCodes[String(entry.code || entry.name || '').toUpperCase()] = true;
+    });
     var sections = sectors.map(function (sector) {
       var entries = (sectorMap[sector] || []).map(function (item) { return resolveEntry(item, krxMap); });
-      var recommendations = RELATED_SECTOR_RECOMMENDATIONS[sector] || [];
-      return '<section class="sector-detail-section"><div class="sector-detail-section-head"><strong>' + escapeHTML(sector) + '</strong><small>검은색: 현재 카드 · 옅은색: 편집 대기</small></div>'
-        + renderSectorLineList(entries, recommendations, dataByCode, selectedCode) + '</section>';
+      var recommendations = relatedSectorCandidates(sector, sectorMap, krxMap, entries);
+      return '<section class="sector-detail-section"><div class="sector-detail-section-head"><strong>' + escapeHTML(sector) + '</strong><small>검은색: 현재 카드 · 옅은색: 편집 대기 (섹터 관련 후보)</small></div>'
+        + renderSectorLineList(entries, recommendations, dataByCode, selectedCode, selectedSector ? listedCodes : null) + '</section>';
     }).join('');
     return '<div class="sector-detail-view">'
       + '<div class="sector-detail-head"><button type="button" class="sector-detail-back" data-sector-detail-back aria-label="카드 보기로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg><span>카드 보기</span></button><div><strong>' + escapeHTML(selectedName || selectedCode) + '</strong><small>관련 섹터 종목</small></div></div>'
       + renderSectorMappingHtml(sectors, selectedName || selectedCode)
       + (sections || '<div class="sector-detail-empty">이 종목의 섹터 정보가 없습니다.</div>')
-      + '<p class="sector-detail-note">현재 카드에 편집된 종목은 검은색 선으로, 함께 비교할 만하지만 아직 카드에 편집하지 않은 종목은 옅은색 선으로 표시합니다.</p>'
+      + '<p class="sector-detail-note">현재 카드에 편집된 종목은 검은색 선으로, 함께 비교할 만하지만 아직 카드에 편집하지 않은 종목은 옅은색 선으로 표시합니다. 옅은색은 매수 추천이 아니라 섹터 관련 비교 후보입니다.</p>'
       + '</div>';
   }
 
@@ -237,9 +280,10 @@
     container.querySelectorAll('.sector-row[data-code]').forEach(function (row) {
       row.addEventListener('click', function () {
         var code = row.getAttribute('data-code');
-        var entry = (sectorMap[row.getAttribute('data-sector')] || []).map(function (item) { return resolveEntry(item, krxMap); }).filter(function (item) { return item.code === code; })[0];
+        var sector = row.getAttribute('data-sector');
+        var entry = (sectorMap[sector] || []).map(function (item) { return resolveEntry(item, krxMap); }).filter(function (item) { return item.code === code; })[0];
         var previousHtml = container.innerHTML;
-        container.innerHTML = renderSectorDetailHtml(sectorMap, krxMap, dataByCode, code, entry && entry.name);
+        container.innerHTML = renderSectorDetailHtml(sectorMap, krxMap, dataByCode, code, entry && entry.name, sector);
         var back = container.querySelector('[data-sector-detail-back]');
         if (back) back.addEventListener('click', function () {
           container.innerHTML = previousHtml;

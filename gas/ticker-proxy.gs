@@ -3811,9 +3811,15 @@ function fetchKofiaMarketFromVm_() {
 function getFundamentals_(code) {
   if (!code) return { error: 'code required' };
   var quote = kiwoomVmFetch_('/quote?code=' + encodeURIComponent(code));
+  var listedShares = quote ? toNum_(quote.flo_stk || quote.listed_shares_thousand) : null;
+  var currentPrice = quote ? toNum_(quote.cur_prc || quote.stck_prpr) : null;
+  // 일부 KIS 응답에서 시가총액 필드가 빠져도 현재가×상장주식수로 억원 단위를
+  // 재구성한다. 유통주식수는 상장주식수와 다른 값이므로 대신 표시하지 않는다.
+  var derivedMarketCap = listedShares != null && currentPrice != null
+    ? currentPrice * listedShares * 1000 / 100000000 : null;
   var valuation = quote ? {
-    market_cap_eok: toNum_(quote.mac),           // 시가총액(억원)
-    listed_shares_thousand: toNum_(quote.flo_stk), // 발행주식수(천주)
+    market_cap_eok: toNum_(quote.mac || quote.market_cap_eok) != null ? toNum_(quote.mac || quote.market_cap_eok) : derivedMarketCap, // 시가총액(억원)
+    listed_shares_thousand: listedShares, // 발행주식수(천주)
     float_shares_thousand: toNum_(quote.dstr_stk),  // 유통주식수(천주)
     float_ratio_pct: toNum_(quote.dstr_rt),
     foreign_hold_ratio_pct: toNum_(quote.for_exh_rt),

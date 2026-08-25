@@ -39,6 +39,8 @@
   var sectorConfigPromise = null;
   var HISTORY_PERIODS = [5, 10, 20, 40];
   var DEFAULT_HISTORY_PERIOD = 10;
+  var INDUSTRY_FLOW_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
+  var INDUSTRY_FLOW_STORAGE_KEY = 'market_temp_industry_flow_v1';
 
   // unit: 'index'(그대로 표기) / 'pct'(부호 있는 % - 붉은/파란색) / 'pctDirect'(comp에 이미 %
   // 단위로 들어있는 값) / 'ratio'(상승·하락 종목수) / 'sectorCount'(섹터 강도) /
@@ -118,10 +120,90 @@
     return /(?:^|&)view=stocks(?:&|$)/.test(String(global.location && global.location.search || '').replace(/^\?/, ''));
   }
 
+  function kstDateKey_(date) {
+    var parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date || new Date());
+    var values = {};
+    parts.forEach(function (part) { values[part.type] = part.value; });
+    return values.year + '-' + values.month + '-' + values.day;
+  }
+
+  function readIndustryFlowSnapshots_() {
+    try {
+      var parsed = JSON.parse(localStorage.getItem(INDUSTRY_FLOW_STORAGE_KEY) || '{}');
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) { return {}; }
+  }
+
+  function writeIndustryFlowSnapshot_(dateKey, rows) {
+    try {
+      var snapshots = readIndustryFlowSnapshots_();
+      snapshots[dateKey] = (rows || []).slice(0, 8).map(function (row) {
+        return { industry: row.industry, avgChangeRate: row.avg_change_rate, tradeAmount: row.trade_amount, riseRatio: row.rise_ratio };
+      });
+      Object.keys(snapshots).sort().slice(0, -10).forEach(function (key) { delete snapshots[key]; });
+      localStorage.setItem(INDUSTRY_FLOW_STORAGE_KEY, JSON.stringify(snapshots));
+    } catch (error) { /* 저장소가 막혀도 현재 화면은 표시한다 */ }
+  }
+
+  function previousSnapshot_(snapshots, dateKey) {
+    var keys = Object.keys(snapshots || {}).filter(function (key) { return key < dateKey; }).sort();
+    return keys.length ? (snapshots[keys[keys.length - 1]] || []) : [];
+  }
+
+  function formatFlowAmount_(value) {
+    var n = Number(value);
+    if (!isFinite(n)) return '-';
+    if (Math.abs(n) >= 1000000000000) return (n / 1000000000000).toFixed(1) + '조';
+    if (Math.abs(n) >= 100000000) return (n / 100000000).toFixed(0) + '억';
+    return Math.round(n / 10000).toLocaleString('ko-KR') + '만';
+  }
+
+  function renderIndustryFlow_(mount, rows, dateKey) {
+    var snapshots = readIndustryFlowSnapshots_();
+    var previous = previousSnapshot_(snapshots, dateKey);
+    var previousByName = {};
+    previous.forEach(function (row, index) { previousByName[row.industry] = { rank: index + 1 }; });
+    var html = (rows || []).slice(0, 8).map(function (row, index) {
+      var old = previousByName[row.industry];
+      var rankText = old ? (old.rank === index + 1 ? '유지' : (old.rank > index + 1 ? '▲ ' + (old.rank - index - 1) : '▼ ' + (index + 1 - old.rank))) : '첫 관측';
+      var rate = Number(row.avg_change_rate != null ? row.avg_change_rate : row.avgChangeRate);
+      var tone = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
+      return '<div class="mt-industry-flow-row ' + tone + '">'
+        + '<b>' + escapeHtml(row.industry || '-') + '</b>'
+        + '<span>' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
+        + '<span>' + formatFlowAmount_(row.trade_amount != null ? row.trade_amount : row.tradeAmount) + '</span>'
+        + '<small>' + escapeHtml(rankText) + '</small></div>';
+    }).join('');
+    mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
+      + '<div class="mt-industry-flow-head"><strong>업종 자금 흐름</strong><span>오늘 TOP · 전일 순위 비교</span></div>'
+      + '<div class="mt-industry-flow-columns"><span>업종</span><span>평균등락</span><span>거래대금</span><span>전일 대비</span></div>'
+      + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
+      + '<p class="mt-industry-flow-note">실시간 종목판의 업종 TOP을 기준으로 집계합니다. 전일 순위는 이 브라우저가 관측한 마지막 거래일 스냅샷과 비교합니다.</p>'
+      + '</div>';
+  }
+
+  function loadIndustryFlow_(container) {
+    var mount = container.querySelector('[data-industry-flow]');
+    if (!mount) return;
+    var dateKey = kstDateKey_(new Date());
+    fetch(INDUSTRY_FLOW_URL)
+      .then(function (response) { if (!response.ok) throw new Error('industry flow ' + response.status); return response.json(); })
+      .then(function (body) {
+        var rows = body && body.sections && body.sections.industry || [];
+        writeIndustryFlowSnapshot_(dateKey, rows);
+        renderIndustryFlow_(mount, rows, dateKey);
+      })
+      .catch(function () {
+        renderIndustryFlow_(mount, readIndustryFlowSnapshots_()[dateKey] || [], dateKey);
+      });
+  }
+
   function buildStocksOnlyPage() {
+    var params = new URLSearchParams(String(global.location && global.location.search || ''));
+    var initialView = params.get('panel') === 'heatmap' ? 'heatmap' : params.get('panel') === 'marketcap' ? 'marketcap' : 'cards';
     return '<div class="mt-stocks-only">'
       + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>업종별 주요 종목의 현재가와 등락률을 한눈에 확인합니다.</p></div>'
-      + buildExploreCard()
+      + buildExploreCard(initialView)
       + '</div>';
   }
 
@@ -145,6 +227,7 @@
         container.innerHTML = buildCard(data);
         wireAnimations(container, data);
         loadAiBriefing(container);
+        loadIndustryFlow_(container);
       })
       .catch(function () {
         container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
@@ -741,17 +824,18 @@
     { key: 'marketcap', label: '시총비례 히트맵' }
   ];
 
-  function buildExploreCard() {
-    var toggleHtml = '<div class="mt-view-toggle">' + VIEW_TABS.map(function (t, i) {
-      return '<button type="button" class="mt-view-btn' + (i === 0 ? ' active' : '') + '" data-view="' + t.key + '">' + escapeHtml(t.label) + '</button>';
+  function buildExploreCard(initialView) {
+    initialView = initialView || 'cards';
+    var toggleHtml = '<div class="mt-view-toggle">' + VIEW_TABS.map(function (t) {
+      return '<button type="button" class="mt-view-btn' + (t.key === initialView ? ' active' : '') + '" data-view="' + t.key + '">' + escapeHtml(t.label) + '</button>';
     }).join('') + '</div>';
     return ''
       + '<div class="mt-card mt-explore-card">'
       + toggleHtml
       + '<div class="mt-view-panels">'
-      + '<div class="mt-view-panel" data-view-panel="cards"></div>'
-      + '<div class="mt-view-panel" data-view-panel="heatmap" hidden></div>'
-      + '<div class="mt-view-panel" data-view-panel="marketcap" hidden></div>'
+      + '<div class="mt-view-panel" data-view-panel="cards"' + (initialView === 'cards' ? '' : ' hidden') + '></div>'
+      + '<div class="mt-view-panel" data-view-panel="heatmap"' + (initialView === 'heatmap' ? '' : ' hidden') + '></div>'
+      + '<div class="mt-view-panel" data-view-panel="marketcap"' + (initialView === 'marketcap' ? '' : ' hidden') + '></div>'
       + '</div>'
       + '</div>';
   }
@@ -1319,7 +1403,9 @@
       });
     });
     // 기본 활성 탭(카드 보기)은 클릭 없이도 바로 보여야 하니 최초 1회는 직접 로드해준다.
-    if (panels.cards) loadCardsPanel(panels.cards);
+    var initial = container.querySelector('.mt-view-btn.active');
+    var initialView = initial ? initial.getAttribute('data-view') : 'cards';
+    if (panels[initialView]) loadPanel(initialView, panels[initialView]);
   }
 
   function buildCard(data) {
@@ -1344,6 +1430,7 @@
       buildHeroCard(data),                          // ① 오늘의 온도 | 최근 단기흐름
       row2col(buildBars(data), buildRadar(data)),   // ② 시장 구성요소 그래프 | 시장 레이더 (좌우)
       buildBriefingStrategy(grade),                 // ③ 시장 브리핑 + 오늘의 전략(마지막)
+      '<div data-industry-flow></div>',             // ④ 업종 TOP 당일·전일 흐름
     ];
 
     return ''

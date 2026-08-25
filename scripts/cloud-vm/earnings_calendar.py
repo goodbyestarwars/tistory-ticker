@@ -27,7 +27,9 @@ CACHE_TTL_SEC = 10 * 60
 FINNHUB_CACHE_TTL_SEC = 10 * 60
 DART_LIST_PAGE_COUNT = 100
 DART_LIST_MAX_PAGES = 10
-DART_RESULT_LOOKUP_MAX = 80
+# 캘린더는 공시 원문 수치보다 날짜·공시명 표시가 우선이다. 월별 목록을 빠르게
+# 보여주기 위해 원문 결과 보강은 상위 12건까지만 수행한다(나머지도 공시명은 표시).
+DART_RESULT_LOOKUP_MAX = 12
 _cache = {}
 _financials_cache = {}
 _viewer_cache = {}
@@ -147,17 +149,19 @@ def _fetch(api_key, start_date, end_date):
     뒤로 밀릴 수 있다. 기존에는 첫 페이지만 읽어 당일 실적이 누락됐으므로,
     DART가 알려준 전체 페이지 수만큼(안전 상한 내에서) 순회한다.
     """
-    rows = []
-    for page_no in range(1, DART_LIST_MAX_PAGES + 1):
-        data = _fetch_page(api_key, start_date, end_date, page_no)
-        page_rows = data.get('list') or []
-        rows.extend(page_rows)
-        try:
-            total_pages = int(data.get('total_page') or page_no)
-        except (TypeError, ValueError):
-            total_pages = page_no
-        if not page_rows or page_no >= total_pages:
-            break
+    first = _fetch_page(api_key, start_date, end_date, 1)
+    rows = list(first.get('list') or [])
+    try:
+        total_pages = int(first.get('total_page') or 1)
+    except (TypeError, ValueError):
+        total_pages = 1
+    total_pages = max(1, min(DART_LIST_MAX_PAGES, total_pages))
+    if total_pages > 1:
+        # 실적 시즌에는 페이지가 여러 장 생긴다. 1페이지를 받은 뒤 나머지는
+        # 병렬 요청해 순차 10페이지 대기 시간을 줄인다.
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            for data in executor.map(lambda page: _fetch_page(api_key, start_date, end_date, page), range(2, total_pages + 1)):
+                rows.extend(data.get('list') or [])
     return rows
 
 

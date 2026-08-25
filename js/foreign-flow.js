@@ -4050,7 +4050,7 @@
       return '<div class="' + classes + '">'
         + '<span class="ff-apt-simple-price">' + rangeText(row) + '</span>'
         + '<span class="ff-apt-simple-track"><i style="width:' + width + '%"></i></span>'
-        + '<span class="ff-apt-simple-volume">' + compactChartVolume(row.volume) + '주</span>'
+        + '<span class="ff-apt-simple-volume">' + (row.volume > 0 ? compactChartVolume(row.volume) + '주' : '거래 없음') + '</span>'
         + '<span class="ff-apt-simple-markers">' + markers + '</span>'
         + '</div>';
     }).join('');
@@ -4179,6 +4179,32 @@
     };
   }
 
+  // 오늘 실제 체결가가 현재가에서 끝나면 원자료만 그릴 때 상방이 잘려 보인다.
+  // 이는 “상방 거래가 없다”는 뜻이지 가격축의 끝이 현재가여야 한다는 뜻은 아니므로,
+  // 실제 체결량 0인 빈 가격대를 위·아래에 추가한다. 빈 구간은 거래 없음으로 표시해
+  // 실제 거래량과 추정치를 섞지 않는다.
+  function extendRealVolumeProfileRange(profile, currentPrice) {
+    if (!profile || !profile.bins || !profile.bins.length || !isFinite(Number(currentPrice))) return profile;
+    var price = Number(currentPrice);
+    var low = Number(profile.minLow), high = Number(profile.maxHigh);
+    if (!(high > low) || price <= 0) return profile;
+    var pad = Math.max(price * 0.05, (high - low) * 0.12);
+    var step = Math.max(price * 0.005, pad / 4);
+    var below = [], above = [], i;
+    for (i = 4; i >= 1; i--) below.push({ low: Math.max(0, low - step * i), high: Math.max(0, low - step * (i - 1)), volume: 0 });
+    for (i = 1; i <= 4; i++) above.push({ low: high + step * (i - 1), high: high + step * i, volume: 0 });
+    var bins = below.concat(profile.bins, above);
+    return {
+      bins: bins,
+      maxVolume: profile.maxVolume,
+      pocIndex: profile.pocIndex + below.length,
+      minLow: bins[0].low,
+      maxHigh: bins[bins.length - 1].high,
+      days: profile.days,
+      trendUp: profile.trendUp
+    };
+  }
+
   // 확대(+)/축소(-) 버튼: 캐시된 pbar-tratio 원자료로 층수(bin count)만 바꿔 즉시
   // 재계산한다(fetchRealVolumeProfile 자체가 1분 캐시라 층수만 바꿀 땐 재조회 없음) -
   // 토스 차트에서 확대/축소하면 매물대가 다시 그려지는 것과 같은 반응성을 구현.
@@ -4284,6 +4310,7 @@
       fetchRealVolumeProfile(code, APT_LOOKBACK_DAYS).then(function (result) {
         var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
         if (!profile) throw new Error('실제 체결 데이터가 비어 있습니다.');
+        profile = extendRealVolumeProfileRange(profile, currentPrice);
         profile.source = result.source || 'kis-pbar';
         activeProfile = profile;
         dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded, result.avgPrice);
