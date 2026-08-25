@@ -2092,7 +2092,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("CALENDAR_STORAGE_KEY", source)
         self.assertIn("calendarEventKey(event)", source)
         self.assertIn("var symbol = String(event && event.symbol || '').trim();", source)
-        self.assertIn("var code = stockCodeFor(ev, meta.stockName);", source)
+        self.assertIn("var code = meta.isStock ? stockCodeFor(ev, meta.stockName) : null;", source)
+        self.assertIn("data-stock-search-code", source)
+        self.assertIn("stockSearchUrl = '/page/stock-search?code='", source)
+        self.assertIn("function isUsStockEvent(ev, meta)", source)
         self.assertIn("실적공시 완료", source)
         self.assertIn("function stripProviderLabel(rawTitle)", source)
         self.assertNotIn("자동(DART)", source)
@@ -2100,8 +2103,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("ev.result", source)
         self.assertIn(".sc-layout", style)
         self.assertIn(".sc-cal-today", style)
+        self.assertIn(".sc-cal-today {\n  border: 1px solid #c7d2fe; border-radius: 4px;", style)
+        self.assertIn(".sc-ev-stock-link", style)
         self.assertIn(".sc-today-head", style)
-        self.assertIn("stock-calendar.js?v=20260825-date-picker-v1", home)
+        self.assertIn("stock-calendar.js?v=20260826-stock-link-v1", home)
 
     def test_lightweight_charts_uses_v5_api_across_chart_modules(self):
         files = (

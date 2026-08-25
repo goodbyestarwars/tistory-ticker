@@ -250,16 +250,23 @@
     return '';
   }
 
+  function isUsStockEvent(ev, meta) {
+    var market = String(ev && ev.market || '').toLowerCase();
+    var source = String(ev && (ev.source || ev.provider) || '').toLowerCase();
+    if (market === 'us' || market === 'usa' || market === 'foreign' || source === 'finnhub') return true;
+    return !!(meta && meta.isStock && !krxCodeFor(meta.stockName) && usTickerFor(meta.stockName));
+  }
+
   function renderEventRow(ev) {
     var meta = parseEvent(ev.title);
     var iconClass, iconHtml;
+    var code = meta.isStock ? stockCodeFor(ev, meta.stockName) : null;
     if (meta.isStock) {
       iconClass = 'sc-ev-icon stock';
       // 2글자 약칭을 바탕색으로 항상 먼저 깔고, KRX_MAP(종목명->코드)에서 코드를 찾으면
       // 실제 로고 이미지를 그 위에 겹쳐 그린다 - 이름이 KRX_MAP과 정확히 안 맞거나
       // (예: 표기 차이) 로고 파일이 없는 종목은 svg->png 3단 폴백 끝에 이미지가 숨겨져도
       // 밑에 깔린 약칭이 그대로 보여 빈 원으로 남지 않는다.
-      var code = stockCodeFor(ev, meta.stockName);
       iconHtml = escapeHtml((meta.stockName || '').slice(0, 2)) + stockIconHtml(code);
     } else if (meta.isForeign) {
       iconClass = 'sc-ev-icon flag';
@@ -281,8 +288,16 @@
     var stockLabel = companyName
       ? escapeHtml(companyName) + ' <span class="sc-ev-symbol">(' + escapeHtml(meta.stockName) + ')</span>'
       : escapeHtml(meta.stockName);
+    var stockSearchCode = code ? (isUsStockEvent(ev, meta) ? 'US:' + code : code) : '';
+    var stockSearchName = companyName || meta.stockName || '';
+    var stockLabelHtml = meta.isStock && stockSearchCode
+      ? '<button type="button" class="sc-ev-stock-link" data-stock-search-code="'
+        + escapeHtml(stockSearchCode) + '" data-stock-search-name="' + escapeHtml(stockSearchName)
+        + '" data-stock-search-market="' + (isUsStockEvent(ev, meta) ? 'us' : 'domestic') + '">'
+        + stockLabel + '</button>'
+      : stockLabel;
     var titleHtml = meta.isStock
-      ? '<strong class="sc-ev-ticker">' + stockLabel + '</strong> ' + escapeHtml(eventText)
+      ? '<strong class="sc-ev-ticker">' + stockLabelHtml + '</strong> ' + escapeHtml(eventText)
       : escapeHtml(meta.text);
     var tagHtml = meta.tag ? '<span class="sc-ev-tag">' + escapeHtml(meta.tag) + '</span>' : '';
     var blockedExternalLink = isFinnhubLink(ev.link);
@@ -410,7 +425,8 @@
 
     function findActionTarget(target) {
       while (target && target !== container) {
-        if (target.getAttribute && (target.getAttribute('data-calendar-action') || target.getAttribute('data-calendar-date'))) return target;
+        if (target.getAttribute && (target.getAttribute('data-calendar-action') || target.getAttribute('data-calendar-date')
+          || target.getAttribute('data-stock-search-code'))) return target;
         target = target.parentNode;
       }
       return null;
@@ -419,6 +435,18 @@
     container.addEventListener('click', function (event) {
       var target = findActionTarget(event.target);
       if (!target) return;
+      var stockSearchCode = target.getAttribute('data-stock-search-code');
+      if (stockSearchCode) {
+        event.preventDefault();
+        event.stopPropagation();
+        var stockSearchName = target.getAttribute('data-stock-search-name') || '';
+        var stockSearchMarket = target.getAttribute('data-stock-search-market') || '';
+        var stockSearchUrl = '/page/stock-search?code=' + encodeURIComponent(stockSearchCode)
+          + '&name=' + encodeURIComponent(stockSearchName);
+        if (stockSearchMarket === 'us') stockSearchUrl += '&market=us';
+        global.location.href = stockSearchUrl;
+        return;
+      }
       var action = target.getAttribute('data-calendar-action');
       if (action === 'today') {
         var today = new Date();
