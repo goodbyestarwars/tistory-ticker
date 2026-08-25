@@ -1973,20 +1973,38 @@
       + '<span><i class="ff-dot ff-dot-sell"></i>매도 ' + opinion.sellCount + '건(' + sellPct + '%)</span>'
       + (otherCount ? '<span><i class="ff-dot ff-dot-other"></i>기타 ' + otherCount + '건(' + otherPct + '%)</span>' : '')
       + '</div>';
-    var gapText = '';
+    var gapPct = null;
     if (opinion.avgTargetPrice && currentPrice) {
-      var gapPct = (opinion.avgTargetPrice - currentPrice) / currentPrice * 100;
-      gapText = '(' + (gapPct >= 0 ? '+' : '') + gapPct.toFixed(1) + '%)';
+      gapPct = (opinion.avgTargetPrice - currentPrice) / currentPrice * 100;
     }
-    var targetText = opinion.avgTargetPrice
-      ? '평균 목표가 ' + Math.round(opinion.avgTargetPrice).toLocaleString('ko-KR') + '원 ' + gapText + ' (' + (opinion.targetPriceSamples || 0) + '건 평균)'
+    var latestOpinion = String(opinion.latestOpinion || '-');
+    var latestClass = /BUY|매수|강력매수|비중확대/i.test(latestOpinion) ? 'ff-buy'
+      : /SELL|매도|강력매도|비중축소/i.test(latestOpinion) ? 'ff-sell' : 'ff-flat';
+    var latestDate = opinion.latestDate ? String(opinion.latestDate).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1.$2.$3') : '';
+    var targetValue = opinion.avgTargetPrice
+      ? Math.round(opinion.avgTargetPrice).toLocaleString('ko-KR') + '원'
+      : '목표가 없음';
+    var targetMeta = opinion.avgTargetPrice
+      ? (gapPct != null ? '현재가 대비 ' + (gapPct >= 0 ? '+' : '') + gapPct.toFixed(1) + '%' : '')
+        + ' · ' + (opinion.targetPriceSamples || 0) + '건'
       : '목표가를 제시한 리포트가 없습니다.';
-    return bars + legend
-      + '<div class="ff-fund-cell" style="margin-top:8px"><span class="ff-fund-label">' + escapeHtml(targetText) + '</span></div>'
-      + '<div class="ff-hint">최근 리포트 ' + total + '건 · 최신 의견 "' + escapeHtml(opinion.latestOpinion || '-') + '"'
-      + (opinion.latestDate ? '(' + escapeHtml(String(opinion.latestDate)) + ')' : '') + '</div>'
-      + '<div class="ff-hint">계산 방법: 최근 3개월 안에 나온 국내 증권사 리포트 ' + total + '건을 모아, 리포트별 투자의견 문구를 매수·중립·매도 3그룹으로 분류해 건수 비율(' + buyPct + '% · ' + holdPct + '% · ' + sellPct + '%)을 냈습니다. 평균 목표가는 리포트에 목표가가 실제로 제시된 ' + (opinion.targetPriceSamples || 0) + '건만 골라(0원·공란 제외) 중앙값을 낸 값입니다(액면분할 등으로 스케일이 다른 옛 리포트 하나가 섞여도 결과가 안 흔들리도록 산술평균 대신 중앙값 사용).</div>'
-      + '<div class="ff-hint">국내 종목의 최근 3개월 증권사 리포트를 집계한 참고용 수치이며, 투자 제안이나 매매 권유가 아닙니다. 해외 종목은 지원하지 않습니다. (출처: KIS 한국투자증권)</div>';
+    var method = '<details class="ff-opinion-method">'
+      + '<summary>계산 방법 · 데이터 범위</summary>'
+      + '<p>최근 3개월 안에 나온 국내 증권사 리포트를 모아, 투자의견 문구를 매수·중립·매도 3그룹으로 분류해 건수 비율(' + buyPct + '% · ' + holdPct + '% · ' + sellPct + '%)을 냈습니다. 목표가가 실제로 제시된 ' + (opinion.targetPriceSamples || 0) + '건만 골라 0원·공란을 제외하고 중앙값을 사용합니다.</p>'
+      + '<p class="ff-opinion-disclaimer">액면분할 등으로 스케일이 다른 옛 리포트의 영향을 줄인 참고용 수치입니다. 국내 종목만 지원하며 투자 제안이나 매매 권유가 아닙니다. 출처: KIS 한국투자증권.</p>'
+      + '</details>';
+    return '<div class="ff-opinion-kicker">증권사 리포트 종합 · 최근 3개월</div>'
+      + '<div class="ff-opinion-lede">'
+      + '<div class="ff-opinion-meta">'
+      + '<span>최근 리포트 <b>' + total + '건</b></span>'
+      + '<span>최신 의견 <strong class="ff-opinion-latest ' + latestClass + '">' + escapeHtml(latestOpinion) + '</strong></span>'
+      + (latestDate ? '<time datetime="' + escapeHtml(String(opinion.latestDate)) + '">' + escapeHtml(latestDate) + '</time>' : '')
+      + '</div>'
+      + '<div class="ff-opinion-target"><span>평균 목표가</span><strong>' + escapeHtml(targetValue) + '</strong><em>' + escapeHtml(targetMeta) + '</em></div>'
+      + '</div>'
+      + '<div class="ff-opinion-chart"><div class="ff-opinion-chart-head"><b>의견 분포</b><span>' + total + '건 기준</span></div>'
+      + bars + legend + '</div>'
+      + method;
   }
 
   function buildOverviewGrid(v) {

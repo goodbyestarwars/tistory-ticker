@@ -1055,6 +1055,122 @@
 #foreign-flow .ff-dot-sell { background: #1261c4; }
 #foreign-flow .ff-dot-other { background: #d8dee6; }
 
+/* 2026-08-25 - 평균 투자의견을 카드형 설명문에서 신문 지면형 요약으로 개편.
+   핵심 수치는 펼치지 않아도 읽히고, 산식·주의문은 details 안에 보존한다. */
+#foreign-flow .ff-opinion-summary-card {
+  border: 0;
+  border-top: 3px double #27313a;
+  border-bottom: 1px solid #cbd2d8;
+  border-radius: 0;
+  padding: 13px 0 12px;
+  margin: 14px 0 18px;
+  background: transparent;
+}
+#foreign-flow .ff-opinion-summary-card > .ff-panel-title {
+  font-family: Georgia, "Noto Serif KR", "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  color: #202b34;
+  margin: 0 0 11px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #d9dee3;
+}
+#foreign-flow .ff-opinion-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: #8a929a;
+  margin-bottom: 7px;
+}
+#foreign-flow .ff-opinion-lede {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  padding: 0 0 11px;
+  border-bottom: 1px solid #e3e7ea;
+}
+#foreign-flow .ff-opinion-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 14px;
+  color: #68737c;
+  font-size: 12px;
+}
+#foreign-flow .ff-opinion-meta span { white-space: nowrap; }
+#foreign-flow .ff-opinion-meta b { color: #202b34; font-size: 15px; }
+#foreign-flow .ff-opinion-meta time { color: #969da3; font-size: 11px; }
+#foreign-flow .ff-opinion-latest { font-size: 15px; }
+#foreign-flow .ff-opinion-latest.ff-buy { color: #c7463d; }
+#foreign-flow .ff-opinion-latest.ff-sell { color: #1261c4; }
+#foreign-flow .ff-opinion-latest.ff-flat { color: #66717a; }
+#foreign-flow .ff-opinion-target {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  gap: 0 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+#foreign-flow .ff-opinion-target span { color: #7a848c; font-size: 11px; }
+#foreign-flow .ff-opinion-target strong {
+  color: #202b34;
+  font-family: Georgia, "Noto Serif KR", "Times New Roman", serif;
+  font-size: 21px;
+  letter-spacing: -0.03em;
+}
+#foreign-flow .ff-opinion-target em {
+  grid-column: 1 / -1;
+  color: #c7463d;
+  font-size: 11px;
+  font-style: normal;
+}
+#foreign-flow .ff-opinion-chart { padding-top: 11px; }
+#foreign-flow .ff-opinion-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  color: #3f4a52;
+  font-size: 12px;
+}
+#foreign-flow .ff-opinion-chart-head span { color: #9aa2a9; font-size: 10.5px; }
+#foreign-flow .ff-opinion-chart .ff-opinion-bar-wrap {
+  height: 12px;
+  border-radius: 1px;
+  background: #edf0f2;
+}
+#foreign-flow .ff-opinion-chart .ff-opinion-legend {
+  margin-top: 7px;
+  gap: 6px 15px;
+  font-size: 11px;
+}
+#foreign-flow .ff-opinion-method {
+  margin-top: 11px;
+  padding-top: 8px;
+  border-top: 1px dotted #cbd2d8;
+  color: #707b84;
+}
+#foreign-flow .ff-opinion-method summary {
+  cursor: pointer;
+  color: #58636c;
+  font-size: 11px;
+  font-weight: 700;
+}
+#foreign-flow .ff-opinion-method p {
+  max-width: 760px;
+  margin: 7px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+#foreign-flow .ff-opinion-method .ff-opinion-disclaimer { color: #929aa1; }
+@media (max-width: 520px) {
+  #foreign-flow .ff-opinion-lede { grid-template-columns: 1fr; gap: 9px; }
+  #foreign-flow .ff-opinion-target { text-align: left; justify-content: start; }
+}
+
 #foreign-flow .ff-fund-table {
   width: 100%;
   border-collapse: collapse;
@@ -2465,3 +2581,25 @@ html.dark #foreign-flow .ff-apt-simple-note { color: #b8c0c7; }
   #foreign-flow .ff-apt-simple-note { display: block; }
   #foreign-flow .ff-apt-simple-note strong { display: block; margin-bottom: 2px; }
 }
+
+html.dark #foreign-flow .ff-opinion-summary-card {
+  background: transparent !important;
+  border-top-color: rgba(245,239,224,.72) !important;
+  border-bottom-color: rgba(245,239,224,.25) !important;
+}
+html.dark #foreign-flow .ff-opinion-summary-card > .ff-panel-title,
+html.dark #foreign-flow .ff-opinion-chart-head b { color: #f5efe0 !important; }
+html.dark #foreign-flow .ff-opinion-summary-card > .ff-panel-title,
+html.dark #foreign-flow .ff-opinion-lede,
+html.dark #foreign-flow .ff-opinion-method { border-color: rgba(245,239,224,.2) !important; }
+html.dark #foreign-flow .ff-opinion-kicker,
+html.dark #foreign-flow .ff-opinion-meta,
+html.dark #foreign-flow .ff-opinion-target span,
+html.dark #foreign-flow .ff-opinion-chart-head span,
+html.dark #foreign-flow .ff-opinion-method,
+html.dark #foreign-flow .ff-opinion-method summary { color: rgba(245,239,224,.62) !important; }
+html.dark #foreign-flow .ff-opinion-meta b,
+html.dark #foreign-flow .ff-opinion-target strong { color: #f5efe0 !important; }
+html.dark #foreign-flow .ff-opinion-meta time,
+html.dark #foreign-flow .ff-opinion-method .ff-opinion-disclaimer { color: rgba(245,239,224,.45) !important; }
+html.dark #foreign-flow .ff-opinion-chart .ff-opinion-bar-wrap { background: rgba(245,239,224,.15) !important; }
