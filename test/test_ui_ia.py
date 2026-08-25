@@ -1873,8 +1873,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, dashboard_style + self.read("css/market-temp.css"))
         for token in ("function renderSectorLineList", "sector-detail-line-list", "sector-detail-row is-pending",
                       "function renderSectorMappingHtml", "sector-detail-mapping-route", "sector-detail-mapping-target",
-                      "검은색: 현재 카드 · 옅은색: 편집 대기", "현재 카드에 편집된 종목은 검은색 선"):
+                      "검은색: 현재 카드 · 옅은색: 편집 대기", "현재 카드에 편집된 종목은 검은색 선",
+                      "is-sector-detail", "classList.add('is-sector-detail')"):
             self.assertIn(token, dashboard)
+        market_temp_style = self.read("css/market-temp.css")
+        self.assertIn('.mt-explore-card.is-sector-detail .mt-view-btn[data-view="heatmap"]', market_temp_style)
+        self.assertIn('.mt-explore-card.is-sector-detail .mt-view-btn[data-view="marketcap"]', market_temp_style)
 
     def test_my_dashboard_selected_stock_uses_daily_change_color(self):
         source = self.read("js/my-dashboard.js")

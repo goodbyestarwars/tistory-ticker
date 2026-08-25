@@ -277,15 +277,19 @@
 
   function wireSectorCardSelection(container, sectorMap, krxMap, dataByCode, onRestore) {
     if (!container) return;
+    var exploreCard = container.closest('.mt-explore-card');
+    if (exploreCard) exploreCard.classList.remove('is-sector-detail');
     container.querySelectorAll('.sector-row[data-code]').forEach(function (row) {
       row.addEventListener('click', function () {
         var code = row.getAttribute('data-code');
         var sector = row.getAttribute('data-sector');
         var entry = (sectorMap[sector] || []).map(function (item) { return resolveEntry(item, krxMap); }).filter(function (item) { return item.code === code; })[0];
         var previousHtml = container.innerHTML;
+        if (exploreCard) exploreCard.classList.add('is-sector-detail');
         container.innerHTML = renderSectorDetailHtml(sectorMap, krxMap, dataByCode, code, entry && entry.name, sector);
         var back = container.querySelector('[data-sector-detail-back]');
         if (back) back.addEventListener('click', function () {
+          if (exploreCard) exploreCard.classList.remove('is-sector-detail');
           container.innerHTML = previousHtml;
           wireSectorCardSelection(container, sectorMap, krxMap, dataByCode, onRestore);
           if (onRestore) onRestore();

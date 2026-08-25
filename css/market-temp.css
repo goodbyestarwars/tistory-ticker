@@ -450,6 +450,10 @@
 }
 #market-temp .mt-view-btn.active { background: #222; color: #fff; border-color: #222; }
 #market-temp .mt-view-panel[hidden] { display: none; }
+/* 카드에서 종목을 눌러 섹터 상세로 들어간 동안에는 상세 화면과 무관한
+   전체 히트맵 전환 버튼을 숨긴다. 뒤로 돌아가면 JS가 클래스를 제거한다. */
+#market-temp .mt-explore-card.is-sector-detail .mt-view-btn[data-view="heatmap"],
+#market-temp .mt-explore-card.is-sector-detail .mt-view-btn[data-view="marketcap"] { display: none; }
 
 #market-temp .heatmap-grid {
   display: grid;
