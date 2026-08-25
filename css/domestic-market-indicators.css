@@ -84,7 +84,7 @@
 .dmi-muted,
 .dmi-heading h2 { font-size: 24px; }
 .dmi-spot-quotes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
-.dmi-spot-card { min-width: 0; border: 1px solid #e4eaf2; border-radius: 12px; background: #fff; padding: 14px 16px; box-sizing: border-box; }
+.dmi-spot-card { min-width: 0; border: 1px solid #e4eaf2; border-radius: 12px; background: rgb(255, 254, 252); padding: 14px 16px; box-sizing: border-box; }
 .dmi-spot-label { display: block; color: #64748b; font-size: 12px; font-weight: 600; }
 .dmi-spot-price { display: block; margin-top: 5px; color: #111827; font-size: 24px; line-height: 1.1; }
 .dmi-spot-change { display: block; margin-top: 5px; color: #64748b; font-size: 12px; font-weight: 600; }
@@ -99,15 +99,15 @@
 .dmi-fund-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .dmi-panel,
 .dmi-fund-card,
-.dmi-flow-card { border: 1px solid #e4eaf2; border-radius: 16px; background: #fff; padding: 16px; box-sizing: border-box; }
+.dmi-flow-card { border: 1px solid #e4eaf2; border-radius: 16px; background: rgb(255, 254, 252); padding: 16px; box-sizing: border-box; }
 .dmi-panel { border: none; border-radius: 6px; padding: 0; overflow: hidden; }
 .dmi-panel-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 14px 0; font-size: 15px; font-weight: 700; }
 .dmi-chart-tools { display: flex; gap: 5px; margin-left: auto; }
-.dmi-chart-tools button { border: 1px solid #d7dee8; border-radius: 999px; background: #fff; color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.dmi-chart-tools button { border: 1px solid #d7dee8; border-radius: 999px; background: rgb(255, 254, 252); color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .dmi-chart-tools button:hover,
 .dmi-chart-tools button.is-active { border-color: #e11d48; color: #e11d48; }
 .dmi-tabs .dmi-draw-toggle,
-.dmi-tabs .dmi-draw-clear { border: 1px solid #d7dee8; border-radius: 999px; background: #fff; color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.dmi-tabs .dmi-draw-clear { border: 1px solid #d7dee8; border-radius: 999px; background: rgb(255, 254, 252); color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .dmi-tabs .dmi-draw-toggle:hover,
 .dmi-tabs .dmi-draw-toggle.is-active,
 .dmi-tabs .dmi-draw-clear:hover { border-color: #e11d48; color: #e11d48; }
@@ -181,7 +181,7 @@
   .dmi-tab,
   .dmi-tabs .dmi-draw-toggle,
   .dmi-tabs .dmi-draw-clear { padding: 4px 10px; font-size: 11px; }
-  .dmi-chart { height: 330px; min-height: 330px; border: 0; border-radius: 0; background: #fff; }
+  .dmi-chart { height: 330px; min-height: 330px; border: 0; border-radius: 0; background: rgb(255, 254, 252); }
   .dmi-heading h2 { font-size: 21px; }
   .dmi-fund-card, .dmi-flow-card { border-radius: 13px; padding: 12px; }
 }

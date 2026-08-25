@@ -37,7 +37,7 @@
   padding: 14px 16px;
   border: 1px solid #e5e5e5;
   border-radius: 12px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 #market-temp .mt-card-title {
@@ -355,7 +355,7 @@
 #market-temp .mt-spark-single small { margin-top: 4px; font-size: 12px; color: #777; }
 #market-temp .mt-history-tail-head { align-items: center; flex-wrap: wrap; }
 #market-temp .mt-flow-periods { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-#market-temp .mt-flow-period { min-width: 38px; padding: 4px 7px; border: 1px solid #dfe4ea; border-radius: 999px; background: #fff; color: #7b8490; cursor: pointer; font: inherit; font-size: 10px; line-height: 1.2; }
+#market-temp .mt-flow-period { min-width: 38px; padding: 4px 7px; border: 1px solid #dfe4ea; border-radius: 999px; background: rgb(255, 254, 252); color: #7b8490; cursor: pointer; font: inherit; font-size: 10px; line-height: 1.2; }
 #market-temp .mt-flow-period:hover { border-color: #d24f45; color: #b3392f; }
 #market-temp .mt-flow-period.active { border-color: #26364a; background: #26364a; color: #fff; }
 #market-temp .mt-flow-period:disabled { cursor: not-allowed; opacity: .42; }
@@ -416,7 +416,7 @@
   border-radius: 10px;
   padding: 10px 12px;
   text-align: center;
-  background: #fff;
+  background: rgb(255, 254, 252);
   background: linear-gradient(145deg, color-mix(in srgb, var(--mt-guide-color) 8%, #fff), #fff 72%);
   box-shadow: 0 4px 12px rgba(31, 41, 55, .04);
   box-shadow: inset 0 3px 0 color-mix(in srgb, var(--mt-guide-color) 70%, transparent), 0 4px 12px rgba(31, 41, 55, .04);
@@ -504,7 +504,7 @@
 
 #market-temp .sector-cards-grid { columns: 3 220px; column-gap: 14px; }
 #market-temp .sector-card {
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px 18px;
@@ -542,7 +542,7 @@
 #market-temp .sector-detail-mapping-target,
 #market-temp .sector-detail-mapping-more { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 3px; color: #111827; font-size: 11px; font-weight: 600; white-space: nowrap; }
 #market-temp .sector-detail-mapping-more { border-style: dashed; color: #9ca3af; }
-#market-temp .sector-detail-section { margin-top: 12px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; }
+#market-temp .sector-detail-section { margin-top: 12px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: rgb(255, 254, 252); }
 #market-temp .sector-detail-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 #market-temp .sector-detail-section-head strong { color: #111827; font-size: 14px; }
 #market-temp .sector-detail-section-head small { color: #94a3b8; font-size: 10px; }
@@ -638,7 +638,7 @@
 /* ---- 온도 구간별 카드 배경 (Hero, 공포=한랭, 과열=온난 톤) ---- */
 #market-temp .mt-wrap.mt-tone-extreme-fear .mt-hero-card { background: linear-gradient(160deg, #dceeff 0%, #ffffff 65%); border-color: #b8daf5; }
 #market-temp .mt-wrap.mt-tone-fear .mt-hero-card { background: linear-gradient(160deg, #eaf4ff 0%, #ffffff 70%); border-color: #cfe6fa; }
-#market-temp .mt-wrap.mt-tone-neutral .mt-hero-card { background: #fff; }
+#market-temp .mt-wrap.mt-tone-neutral .mt-hero-card { background: rgb(255, 254, 252); }
 #market-temp .mt-wrap.mt-tone-greed .mt-hero-card { background: linear-gradient(160deg, #fff2e0 0%, #ffffff 70%); border-color: #f7d9b3; }
 #market-temp .mt-wrap.mt-tone-extreme-greed .mt-hero-card { background: linear-gradient(160deg, #ffe1d6 0%, #fff6f0 65%); border-color: #f6bda6; }
 
@@ -755,7 +755,7 @@ html.dark #market-temp .mt-view-btn.active { background: #F5EFE0 !important; col
 #market-temp .mt-sector-config-status.is-edited { color:#111827; font-weight:700; }
 #market-temp .mt-sector-config-status.is-pending { color:#9ca3af; font-weight:500; }
 #market-temp .mt-sector-toolbar button,
-#market-temp .mt-sector-editor button { border:1px solid #d1d5db; border-radius:7px; background:#fff; color:#374151; padding:7px 10px; cursor:pointer; font:inherit; font-size:12px; white-space:nowrap; }
+#market-temp .mt-sector-editor button { border:1px solid #d1d5db; border-radius:7px; background:rgb(255, 254, 252); color:#374151; padding:7px 10px; cursor:pointer; font:inherit; font-size:12px; white-space:nowrap; }
 #market-temp .mt-sector-toolbar button:hover,
 #market-temp .mt-sector-editor button:hover { border-color:#2563eb; color:#2563eb; }
 #market-temp .mt-card-realtime-status { color:#6b7280; font-size:11px; white-space:nowrap; }
@@ -768,7 +768,7 @@ html.dark #market-temp .mt-view-btn.active { background: #F5EFE0 !important; col
 #market-temp .mt-sector-editor-head-actions { display:flex; gap:6px; }
 #market-temp .mt-sector-editor-head-actions button { padding:5px 8px; color:#6b7280; font-size:11px; }
 #market-temp .mt-sector-editor-categories { flex:1 1 auto; min-height:0; overflow:auto; padding:2px 4px 2px 0; scrollbar-gutter:stable; }
-#market-temp .mt-sector-editor-category { border:1px solid #e5e7eb; border-radius:10px; background:#fff; padding:8px; margin-bottom:7px; box-shadow:0 2px 8px rgba(31,41,55,.04); }
+#market-temp .mt-sector-editor-category { border:1px solid #e5e7eb; border-radius:10px; background:rgb(255, 254, 252); padding:8px; margin-bottom:7px; box-shadow:0 2px 8px rgba(31,41,55,.04); }
 #market-temp .mt-sector-editor-category-head { display:grid; grid-template-columns:minmax(0,1fr) auto auto auto; align-items:center; gap:7px; margin-bottom:7px; }
 #market-temp .mt-sector-editor-category-head input { min-width:0; font-weight:700; }
 #market-temp .mt-sector-editor-category-count { color:#9ca3af; font-size:11px; white-space:nowrap; }
@@ -788,7 +788,7 @@ html.dark #market-temp .mt-view-btn.active { background: #F5EFE0 !important; col
 #market-temp .mt-sector-editor-add-stock-box { display:grid; grid-template-columns:minmax(0,1fr) 88px auto; gap:6px; }
 #market-temp .mt-sector-editor-add-stock-button { padding:5px 10px !important; color:#2563eb !important; font-size:11px !important; }
 #market-temp .mt-sector-editor-add-stock small { color:#9ca3af; font-size:10px; }
-#market-temp .mt-sector-editor-auth { display:flex; align-items:center; justify-content:space-between; gap:8px; flex:1 1 240px; min-width:220px; padding:5px 8px; border:1px solid #dbe3ef; border-radius:7px; background:#fff; color:#6b7280; font-size:11px; }
+#market-temp .mt-sector-editor-auth { display:flex; align-items:center; justify-content:space-between; gap:8px; flex:1 1 240px; min-width:220px; padding:5px 8px; border:1px solid #dbe3ef; border-radius:7px; background:rgb(255, 254, 252); color:#6b7280; font-size:11px; }
 #market-temp .mt-sector-editor-auth span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #market-temp .mt-sector-editor-auth button { padding:4px 7px; color:#2563eb; font-size:11px; }
 #market-temp .mt-sector-editor-actions { position:sticky; bottom:0; z-index:2; display:flex; align-items:center; flex-wrap:wrap; gap:7px; flex:0 0 auto; margin:8px -4px -4px; padding:10px 4px 4px; border-top:1px solid #e5e7eb; background:linear-gradient(#f8fafc 75%, rgba(248,250,252,.96)); }

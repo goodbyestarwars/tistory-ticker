@@ -37,7 +37,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
 }
 
 .sn-rank-summary {
@@ -195,7 +195,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   left: 0;
   right: 0;
   z-index: 20;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -235,7 +235,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
 }
 
 .sn-wl-item {
@@ -400,7 +400,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 14px 16px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
 }
 
 .sn-af-title {
@@ -481,7 +481,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 14px 16px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
 }
 
 .sn-disc-title {
@@ -657,7 +657,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
 .sn-news-featured {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   overflow: hidden;
@@ -701,7 +701,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   display: flex;
   gap: 10px;
   align-items: center;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 8px 10px;
@@ -734,7 +734,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   gap: 12px;
 }
 .sn-news-grid-item {
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
@@ -795,7 +795,7 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   width: min(560px, 92vw);
   max-height: 82vh;
   overflow-y: auto;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border-radius: 14px;
   padding: 20px 22px 24px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);

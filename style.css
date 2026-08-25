@@ -106,7 +106,7 @@ body {
    붙여 즉시 표시한다. 표시 지연은 로드 초기에만 발생하며 검은 무늬가
    한 프레임 노출되는 것보다 안전하다. */
 html:not(.skin-ready) body { visibility: hidden; }
-html:not(.skin-ready) { background: #fff !important; }
+html:not(.skin-ready) { background: rgb(255, 254, 252) !important; }
 html.skin-ready body { visibility: visible; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: #bdc8e0; border-radius: 4px; }
@@ -346,7 +346,7 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
 
 /* Card base */
 .card {
-  background: #fff;
+  background: rgb(255, 254, 252);
   border-radius: 16px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.08);
 }
@@ -376,13 +376,13 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
 .nav-item:hover { background: #f1f5f9; }
 /* 2026-07-17: 아이콘 원형 배경(회색/연보라)이 흰 페이지 배경과 도드라져 보여서
    흰색으로 통일(사용자 요청 - "토스처럼", 배경 대신 텍스트 색으로만 강조). */
-.nav-item-home { background: #fff; }
+.nav-item-home { background: rgb(255, 254, 252); }
 .nav-item-home .nav-item-label { color: #4338ca; }
-.nav-item-home .nav-item-icon { background: #fff; }
+.nav-item-home .nav-item-icon { background: rgb(255, 254, 252); }
 .nav-item-icon {
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: #fff;
+  background: rgb(255, 254, 252);
   display: flex; align-items: center; justify-content: center;
   font-size: 15px;
   flex-shrink: 0;
@@ -424,7 +424,7 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
   left: 10px;
   right: 10px;
   z-index: 30;
-  background: #fff;
+  background: rgb(255, 254, 252);
   border: 1px solid #dde1e7;
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
@@ -457,7 +457,7 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
   height: 18px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 .nav-search-suggest-market {
   display: inline-flex;
@@ -609,7 +609,7 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
 
 /* Post card */
 .post-card {
-  background: #fff;
+  background: rgb(255, 254, 252);
   border-radius: 16px;
   padding: 22px 24px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.07);
@@ -632,7 +632,7 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
   justify-content: center;
   border: 1px solid #e2e7e4;
   border-radius: 12px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #315b43;
   font-size: 13px;
 }
@@ -900,7 +900,7 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   padding: 0 11px;
   border: 1px solid #dfe4ea;
   border-radius: 999px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #354052;
   font-size: 10.5px;
   font-weight: 700;
@@ -1507,7 +1507,7 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
 .home-hidden-widgets button {
   border: 1px solid #dfe3e1;
   border-radius: 9px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #555;
   font-family: inherit;
   font-size: 11.5px;
@@ -1525,7 +1525,7 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   padding: 14px;
   border: 1px solid #e0e4e2;
   border-radius: 12px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 10px 28px rgba(0, 0, 0, .13);
 }
 .home-settings-panel[hidden] { display: none; }
@@ -1646,7 +1646,7 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   padding: 4px;
   border: 1px solid #e0e4e2;
   border-radius: 10px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 8px 24px rgba(0, 0, 0, .14);
 }
 .home-widget-menu[hidden] { display: none; }
@@ -1768,7 +1768,7 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
   overflow: hidden;
   border: 1px solid #dfe5e9;
   border-radius: 14px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 20px 60px rgba(15, 23, 42, .25);
 }
 .home-disclosure-modal-head,
@@ -1778,7 +1778,7 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
 .home-disclosure-modal-head strong { color: #18202a; font-size: 16px; }
 .home-disclosure-modal-head small { overflow: hidden; color: #8e98a4; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .home-disclosure-modal-close { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #f1f4f6; color: #53606d; font-size: 22px; line-height: 1; cursor: pointer; }
-.home-disclosure-modal-panel iframe { display: block; width: 100%; min-height: 0; flex: 1 1 auto; border: 0; background: #fff; }
+.home-disclosure-modal-panel iframe { display: block; width: 100%; min-height: 0; flex: 1 1 auto; border: 0; background: rgb(255, 254, 252); }
 .home-disclosure-modal-foot { justify-content: flex-end; border-top: 1px solid #e8ecef; }
 .home-disclosure-modal-foot a { color: #2167b5; font-size: 12px; text-decoration: none; }
 html.dark .home-disclosure-modal-panel { border-color: rgba(245,239,224,.18); background: #242424; }
@@ -2110,7 +2110,7 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: #fff;
+  background: rgb(255, 254, 252);
   border-radius: 16px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.07);
   padding: 4px 18px;
@@ -2262,7 +2262,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 1px 6px rgba(0,0,0,0.07);
   display: block;
 }
@@ -2536,7 +2536,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
 .tt-box-account { display: flex !important; gap: 8px !important; margin-bottom: 4px !important; }
 .tt-box-account input {
   flex: 1 !important;
-  background: #fff !important;
+  background: rgb(255, 254, 252) !important;
   border: 1.5px solid #e2e8f0 !important;
   border-radius: 8px !important;
   padding: 7px 12px !important;
@@ -2755,7 +2755,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
 }
 .post-comments .tt-box-account input {
   flex: 1 !important;
-  background: #fff !important;
+  background: rgb(255, 254, 252) !important;
   border: 1.5px solid #e2e8f0 !important;
   border-radius: 8px !important;
   padding: 7px 12px !important;
@@ -3263,7 +3263,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
 
 /* ============ 페이지네이션 ============ */
 .pagination {
-  background: #fff;
+  background: rgb(255, 254, 252);
   border-radius: 16px;
   padding: 14px 20px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.07);
@@ -3276,7 +3276,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
   width: 34px; height: 34px;
   border-radius: 8px;
   border: 1.5px solid #e2e8f0;
-  background: #fff;
+  background: rgb(255, 254, 252);
   cursor: pointer;
   font-size: 13px;
   color: #64748b;
@@ -3650,13 +3650,13 @@ body.account-login-open { overflow: hidden; }
 .account-login-heading h2 { margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -.04em; }
 .account-login-heading p { margin: 9px 0 0; color: #64748b; font-size: 13px; line-height: 1.6; }
 .account-login-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.account-login-option { display: grid; grid-template-columns: 40px minmax(0, 1fr) 18px; align-items: center; gap: 11px; min-height: 92px; box-sizing: border-box; padding: 15px; border: 1px solid #dbe5f2; border-radius: 16px; background: #fff; color: #172033; text-align: left; text-decoration: none; font: inherit; cursor: pointer; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease; }
+.account-login-option { display: grid; grid-template-columns: 40px minmax(0, 1fr) 18px; align-items: center; gap: 11px; min-height: 92px; box-sizing: border-box; padding: 15px; border: 1px solid #dbe5f2; border-radius: 16px; background: rgb(255, 254, 252); color: #172033; text-align: left; text-decoration: none; font: inherit; cursor: pointer; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease; }
 .account-login-option:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(31, 41, 55, .09); }
 .account-login-tistory:hover { border-color: #e6c77b; background: #fffdf7; }
 .account-login-google:hover { border-color: #9fc0f8; background: #f8fbff; }
 .account-login-option-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-family: Arial, sans-serif; font-size: 20px; font-weight: 800; }
 .account-login-kakao-icon { background: #fee500; color: #191919; font-size: 13px; }
-.account-login-google-icon { border: 1px solid #d6e2f2; background: #fff; color: #4285f4; box-shadow: 0 3px 10px rgba(66, 133, 244, .12); }
+.account-login-google-icon { border: 1px solid #d6e2f2; background: rgb(255, 254, 252); color: #4285f4; box-shadow: 0 3px 10px rgba(66, 133, 244, .12); }
 .account-login-option-copy { min-width: 0; }
 .account-login-option-copy strong { display: block; font-size: 13px; line-height: 1.35; }
 .account-login-option-copy small { display: block; margin-top: 4px; color: #7b8798; font-size: 11px; line-height: 1.35; white-space: nowrap; }
@@ -3809,7 +3809,7 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
     left: 0;
     padding: 16px 14px 14px;
     border-radius: 20px 20px 0 0;
-    background: #fff;
+    background: rgb(255, 254, 252);
     box-shadow: 0 -12px 36px rgba(15, 23, 42, .18);
   }
   .mobile-app-sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; color: #111827; font-size: 16px; }
@@ -4030,7 +4030,7 @@ body.iframe-mode .notice-card { border-radius: 0; }
   position: relative; z-index: 1;
   width: min(960px, 80vw);
   height: min(72vh, 768px);
-  background: #fff;
+  background: rgb(255, 254, 252);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 24px 64px rgba(0,0,0,0.35);
@@ -4046,7 +4046,7 @@ body.iframe-mode .notice-card { border-radius: 0; }
   padding: 13px 16px;
   border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0; gap: 10px;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 .nm-title {
   font-size: 12.5px; font-weight: 700; color: #0d1b40;
@@ -4067,7 +4067,7 @@ body.iframe-mode .notice-card { border-radius: 0; }
   font-family: inherit; flex-shrink: 0;
 }
 .nm-close:hover { background: #e2e8f0; color: #374151; }
-.nm-iframe { flex: 1; border: none; width: 100%; background: #fff; }
+.nm-iframe { flex: 1; border: none; width: 100%; background: rgb(255, 254, 252); }
 
 .nm-card.nm-wide { width: min(1280px, 78vw); height: min(75vh, 832px); }
 @media (max-width: 600px) {
@@ -4080,7 +4080,7 @@ body.iframe-mode .notice-card { border-radius: 0; }
   position: absolute; top: 0; left: 0;
   width: 1200px; height: 1300px;
   transform-origin: top left;
-  border: none; background: #fff;
+  border: none; background: rgb(255, 254, 252);
 }
 
 /* ============ 다크모드 (html.dark — 토글: navbar #darkModeBtn, 저장: localStorage 'bolt-dark') ============ */
@@ -4105,7 +4105,7 @@ body.iframe-mode .notice-card { border-radius: 0; }
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   transition: transform 0.2s;
 }
@@ -4592,7 +4592,7 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
 .hrt-head { justify-content: space-between; gap: 14px; }
 .hrt-head > div { gap: 10px; }
 .hrt-head-actions { justify-content: flex-end; gap: 9px !important; }
-.hrt-etf-toggle { flex: 0 0 auto; padding: 4px 9px; border: 1px solid #dbe3ee; border-radius: 999px; background: #fff; color: #64748b; cursor: pointer; font: 700 10px/1.2 inherit; }
+.hrt-etf-toggle { flex: 0 0 auto; padding: 4px 9px; border: 1px solid #dbe3ee; border-radius: 999px; background: rgb(255, 254, 252); color: #64748b; cursor: pointer; font: 700 10px/1.2 inherit; }
 .hrt-etf-toggle:hover { border-color: #e59b8f; color: #c84d3d; }
 .hrt-etf-toggle[aria-pressed="true"] { border-color: #e59b8f; background: #fff7f5; color: #c84d3d; }
 .hrt-head strong { color: #18202a; font-size: 20px; letter-spacing: -.5px; }
@@ -4738,7 +4738,7 @@ html.dark .hen-period + .hen-period { border-color: rgba(245,239,224,.12); }
 }
 .home-market-switch { display: inline-flex; align-items: center; gap: 3px; margin-top: -4px; padding: 0 0 4px; }
 .home-market-switch > span { margin-right: 3px; color: #94a3b8; font-size: 9px; }
-.home-market-switch button { padding: 4px 9px; border: 1px solid #dbe3ee; border-radius: 999px; background: #fff; color: #64748b; cursor: pointer; font: 700 10px/1.2 inherit; }
+.home-market-switch button { padding: 4px 9px; border: 1px solid #dbe3ee; border-radius: 999px; background: rgb(255, 254, 252); color: #64748b; cursor: pointer; font: 700 10px/1.2 inherit; }
 .home-market-switch button:hover { border-color: #93c5fd; color: #1d4ed8; }
 .home-market-switch button.is-active { border-color: #2563eb; background: #2563eb; color: #fff; }
 html.dark .home-market-switch button { border-color: rgba(245,239,224,.2); background: #1a1a1a; color: #cbd5e1; }
@@ -4767,7 +4767,7 @@ html.dark .navbar .nav-search-input-wrap:focus-within { border-color: #ff6b5b; b
 .app-news-date strong { display: block; color: #64748b; font-size: 11px; white-space: nowrap; }
 .app-news-date small { display: block; margin-top: 3px; color: #a0a9b7; font-size: 9px; white-space: nowrap; }
 .app-news-rail { position: relative; min-height: 62px; border-left: 1px solid #cbd5e1; }
-.app-news-rail i { position: absolute; top: 4px; left: -4px; width: 7px; height: 7px; border: 1px solid #94a3b8; border-radius: 50%; background: #fff; }
+.app-news-rail i { position: absolute; top: 4px; left: -4px; width: 7px; height: 7px; border: 1px solid #94a3b8; border-radius: 50%; background: rgb(255, 254, 252); }
 .app-news-rail i.is-latest { border-color: #2563eb; background: #2563eb; box-shadow: 0 0 0 3px #eff6ff; }
 .app-news-body { min-width: 0; }
 .app-news-meta { display: flex; align-items: center; gap: 5px; min-width: 0; }
@@ -5151,7 +5151,7 @@ body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
 body#tt-body-index .home-editorial-page .home-closed-page {
   min-height: 0 !important;
   border-bottom: 1px solid #dfe3e8;
-  background: #fff !important;
+  background: rgb(255, 254, 252) !important;
 }
 body#tt-body-index .home-editorial-page .home-closed-lead {
   display: grid;

@@ -47,7 +47,7 @@
   top: calc(100% + 2px);
   left: 0;
   right: 0;
-  background: #fff;
+  background: rgb(255, 254, 252);
   border: 1px solid #ccc;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
@@ -70,7 +70,7 @@
   height: 16px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #foreign-flow .ff-suggest-item:hover,
 #foreign-flow .ff-suggest-item.active { background: #f2f2f2; }
@@ -144,7 +144,7 @@
   border-radius: 10px;
   margin-bottom: 8px;
   overflow: hidden;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 /* 2026-08-23: 평균 투자의견 - "펀더멘탈 탭 말고 요약(탭 밖 항상 노출 영역)에" 요청으로
    .ff-summary(2주 스윙 판정 카드)와 같은 스타일의 별도 카드로 그 바로 아래에 둔다. */
@@ -153,7 +153,7 @@
   border-radius: 10px;
   margin-bottom: 8px;
   padding: 14px;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #foreign-flow .ff-verdict {
   font-size: 19px;
@@ -211,7 +211,7 @@
   height: 22px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #foreign-flow .ff-divider {
   height: 1px;
@@ -267,7 +267,7 @@
   padding: 20px;
 }
 .ff-related-modal {
-  background: #fff;
+  background: rgb(255, 254, 252);
   border-radius: 12px;
   width: 100%;
   max-width: 420px;
@@ -326,7 +326,7 @@
   height: 16px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 .ff-related-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ff-related-quote {
@@ -413,7 +413,7 @@
   padding: 14px 16px;
   border: 1px solid #e5e5e5;
   border-radius: 10px;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #foreign-flow .ff-extra-card-title {
   font-size: 14px;
@@ -512,7 +512,7 @@
   padding: 6px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   color: #6b7280;
   cursor: pointer;
 }
@@ -527,7 +527,7 @@
   padding: 5px 10px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   color: #6b7280;
   cursor: pointer;
 }
@@ -622,7 +622,7 @@
   margin-top: 2px;
 }
 #foreign-flow .ff-apt-stat {
-  background: #fff;
+  background: rgb(255, 254, 252);
   border: 1px solid #e7ebf1;
   border-radius: 8px;
   padding: 8px 10px;
@@ -680,7 +680,7 @@
   padding: 5px 10px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   color: #6b7280;
   cursor: pointer;
 }
@@ -701,7 +701,7 @@
   border-radius: 6px;
   padding: 8px 8px 4px;
   margin-bottom: 8px;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #foreign-flow .ff-svg {
   display: block;
@@ -834,7 +834,7 @@
   position: absolute;
   z-index: 20;
   pointer-events: none;
-  background: #fff;
+  background: rgb(255, 254, 252);
   border: 1px solid #ccc;
   border-radius: 6px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14);
@@ -884,7 +884,7 @@
   padding: 8px 14px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   color: #374151;
   cursor: pointer;
 }
@@ -952,7 +952,7 @@
   padding: 7px 14px;
   border: 1px solid #d2dce7;
   border-radius: 8px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #374151;
   cursor: pointer;
 }
@@ -1226,7 +1226,7 @@
   padding: 15px;
   border: 1px solid #e5e7eb;
   border-radius: 11px;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #foreign-flow .ff-momentum-card-head { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
 #foreign-flow .ff-momentum-card-head h4 { flex: 1; min-width: 0; margin: 0; font-size: 15px; line-height: 1.4; }
@@ -1623,7 +1623,7 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
   padding: 13px;
   border: 1px solid #dbe3ec;
   border-radius: 11px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   text-align: left;
   cursor: pointer;
   transition: border-color .15s, box-shadow .15s, transform .15s;
@@ -1646,7 +1646,7 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 #foreign-flow .ff-flow-list-head h3 { margin: 0; color: #1e293b; font-size: 15px; }
 #foreign-flow .ff-flow-list-head p { margin: 3px 0 0; color: #64748b; font-size: 11.5px; }
 #foreign-flow .ff-flow-list-head label { display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-size: 11.5px; white-space: nowrap; }
-#foreign-flow .ff-explore-sort { font-family: inherit; padding: 6px 8px; border: 1px solid #dbe3ec; border-radius: 6px; background: #fff; color: #334155; font-size: 11.5px; }
+#foreign-flow .ff-explore-sort { font-family: inherit; padding: 6px 8px; border: 1px solid #dbe3ec; border-radius: 6px; background: rgb(255, 254, 252); color: #334155; font-size: 11.5px; }
 #foreign-flow .ff-flow-table-head,
 #foreign-flow .ff-flow-row { display: grid; grid-template-columns: minmax(150px, 1.35fr) minmax(180px, 1.7fr) minmax(100px, .9fr) minmax(130px, 1.15fr) minmax(110px, 1fr); gap: 12px; align-items: center; }
 #foreign-flow .ff-flow-table-head { padding: 8px 12px; border-top: 1px solid #dbe3ec; border-bottom: 1px solid #dbe3ec; color: #94a3b8; font-size: 10.5px; }
@@ -1670,7 +1670,7 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 #foreign-flow .ff-flow-location { color: #475569; font-size: 11.5px; line-height: 1.45; }
 #foreign-flow .ff-flow-risk { color: #64748b; font-size: 11.5px; line-height: 1.45; }
 #foreign-flow .ff-flow-risk.warn { color: #b42318; font-weight: 700; }
-#foreign-flow .ff-flow-more { display: block; width: 100%; margin-top: 9px; padding: 10px; border: 1px solid #dbe3ec; border-radius: 8px; background: #fff; color: #1261c4; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+#foreign-flow .ff-flow-more { display: block; width: 100%; margin-top: 9px; padding: 10px; border: 1px solid #dbe3ec; border-radius: 8px; background: rgb(255, 254, 252); color: #1261c4; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 #foreign-flow .ff-flow-more span { margin-left: 5px; color: #94a3b8; font-size: 10.5px; font-weight: 500; }
 #foreign-flow .ff-industry-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
 #foreign-flow .ff-industry-card { display: flex; align-items: flex-start; flex-direction: column; gap: 3px; }
@@ -1758,7 +1758,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   padding: 5px 10px;
   border: 1px solid #ddd;
   border-radius: 999px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #555;
   cursor: pointer;
   white-space: nowrap;
@@ -1806,7 +1806,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   height: 20px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #foreign-flow .ff-sig-banner-name { font-weight: 700; }
 #foreign-flow .ff-sig-banner-score-num { font-size: 18px; font-weight: 800; color: #222; }
@@ -1840,7 +1840,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   padding: 14px;
   border: 1px solid #eee;
   border-radius: 10px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   overflow: hidden;
 }
 
@@ -1876,7 +1876,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   padding: 7px 26px 7px 9px;
   border: 1px solid #ddd;
   border-radius: 6px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #333;
   font-family: inherit;
   font-size: 12px;
@@ -1937,7 +1937,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   height: 18px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 
 #foreign-flow .ff-sig-name {
@@ -2005,7 +2005,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   border-radius: 10px;
   padding: 14px;
   font-size: 13px;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 
 @media (max-width: 760px) {
@@ -2032,7 +2032,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   height: 18px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #foreign-flow .ff-panel-header-name { font-size: 17px; font-weight: 500; color: #222; }
 #foreign-flow .ff-panel-header-code { font-size: 13px; color: #9ca3af; }
@@ -2426,7 +2426,7 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   padding: 15px 16px 13px;
   border: 1px solid #e4e9ef;
   border-radius: 14px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: none;
   transform: translateY(4px);
 }

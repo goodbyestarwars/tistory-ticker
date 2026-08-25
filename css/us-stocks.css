@@ -3,7 +3,7 @@
 .us-stocks-shell *, .us-stocks-shell *::before, .us-stocks-shell *::after { box-sizing: border-box; }
 .us-stocks-heading, .us-stocks-live-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .us-stocks-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.us-stocks-icon { flex: 0 0 auto; width: 34px; height: 34px; padding: 6px; box-sizing: border-box; border: 1px solid #e5e7eb; border-radius: 50%; background: #fff; object-fit: contain; }
+.us-stocks-icon { flex: 0 0 auto; width: 34px; height: 34px; padding: 6px; box-sizing: border-box; border: 1px solid #e5e7eb; border-radius: 50%; background: rgb(255, 254, 252); object-fit: contain; }
 .us-stocks-eyebrow { color: #2563eb; font-size: 12px; font-weight: 800; letter-spacing: .12em; }
 .us-stocks-heading h2 { margin: 2px 0 0; font-size: 21px; }
 .us-stocks-note, .us-stocks-disclaimer { color: #8b95a1; font-size: 13px; }
@@ -13,7 +13,7 @@
 .us-stocks-search input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
 .us-stocks-search button { padding: 0 18px; border: 0; border-radius: 9px; background: #1d4ed8; color: #fff; font-weight: 700; cursor: pointer; }
 .us-stocks-search button:hover { background: #1e40af; }
-.us-stocks-suggest { display: none; position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow: auto; padding: 5px; border: 1px solid #d7dce2; border-radius: 10px; background: #fff; box-shadow: 0 8px 24px rgba(15,23,42,.14); }
+.us-stocks-suggest { display: none; position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow: auto; padding: 5px; border: 1px solid #d7dce2; border-radius: 10px; background: rgb(255, 254, 252); box-shadow: 0 8px 24px rgba(15,23,42,.14); }
 .us-stocks-suggest.active { display: grid; }
 .us-stocks-suggest-item { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 10px; padding: 10px; border: 0; border-radius: 7px; background: transparent; color: #1f2937; text-align: left; cursor: pointer; }
 .us-stocks-suggest-item:hover { background: #eff6ff; }
@@ -25,14 +25,14 @@
 .us-stocks-results-head, .us-stocks-result-row { display: grid; grid-template-columns: minmax(180px, 2.2fr) minmax(90px, 1fr) minmax(78px, .95fr) minmax(100px, 1.2fr) minmax(70px, .8fr) 50px; align-items: center; gap: 10px; width: 100%; }
 .us-stocks-results-head { padding: 9px 14px; color: #718096; background: #f8fafc; font-size: 11px; font-weight: 700; }
 .us-stocks-results-head span:not(:first-child), .us-stocks-result-row > span:not(:first-child) { text-align: right; }
-.us-stocks-result-row { padding: 12px 14px; border: 0; border-top: 1px solid #eef0f3; background: #fff; font: inherit; text-align: left; cursor: pointer; }
+.us-stocks-result-row { padding: 12px 14px; border: 0; border-top: 1px solid #eef0f3; background: rgb(255, 254, 252); font: inherit; text-align: left; cursor: pointer; }
 .us-stocks-result-row:hover { background: #eff6ff; }
 .us-stocks-result-name { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .us-stocks-result-name b { color: #1d4ed8; }
 .us-stocks-result-name small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b7280; }
 .us-stocks-result-market { color: #64748b; font-size: 12px; }
 .us-stocks-result-favorite { display: flex; justify-content: flex-end; }
-.us-stocks-fav-btn { width: 30px; height: 30px; padding: 0; border: 1px solid #dbe2ea; border-radius: 50%; background: #fff; color: #94a3b8; font: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+.us-stocks-fav-btn { width: 30px; height: 30px; padding: 0; border: 1px solid #dbe2ea; border-radius: 50%; background: rgb(255, 254, 252); color: #94a3b8; font: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
 .us-stocks-fav-btn:hover, .us-stocks-fav-btn.active { border-color: #eab308; color: #ca8a04; background: #fffdf0; }
 .us-up { color: #d24f45; }
 .us-down { color: #1261c4; }
@@ -48,7 +48,7 @@
 .us-stocks-live-price { display: flex; align-items: baseline; gap: 10px; margin: 14px 0; font-size: 30px; font-weight: 800; letter-spacing: -.04em; }
 .us-stocks-live-price span { font-size: 14px; letter-spacing: 0; }
 .us-stocks-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.us-stocks-metric { padding: 9px; border: 1px solid #e5eaf2; border-radius: 8px; background: #fff; }
+.us-stocks-metric { padding: 9px; border: 1px solid #e5eaf2; border-radius: 8px; background: rgb(255, 254, 252); }
 .us-stocks-metric span, .us-stocks-metric b { display: block; }
 .us-stocks-metric span { color: #8b95a1; font-size: 12px; }
 .us-stocks-metric b { margin-top: 4px; font-size: 15px; }
@@ -72,14 +72,14 @@
 .us-stocks-congress-note a { color: #2563eb; text-decoration: none; }
 .us-stocks-disclaimer { margin: 10px 2px 0; }
 .us-stocks-market-grid { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); width: 100%; max-width: 100%; min-width: 0; gap: 10px; margin-top: 10px; align-items: stretch; }
-.us-stocks-market-grid > *, .us-stocks-panel { width: 100%; max-width: 100%; min-width: 0; padding: 10px; border: 1px solid #e5e7eb; border-radius: 11px; background: #fff; }
+.us-stocks-market-grid > *, .us-stocks-panel { width: 100%; max-width: 100%; min-width: 0; padding: 10px; border: 1px solid #e5e7eb; border-radius: 11px; background: rgb(255, 254, 252); }
 .us-stocks-market-grid > .us-stocks-panel { padding: 0; border: 0; border-radius: 0; background: transparent; }
 .us-stocks-orderbook-panel { display: flex; flex-direction: column; min-height: 0; }
 .us-stocks-chart-panel { min-width: 0; overflow: hidden; }
 .us-stocks-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .us-stocks-panel-head h4 { margin: 0; font-size: 16px; }
 .us-stocks-panel-head span { color: #9ca3af; font-size: 12px; }
-.us-stocks-level-summary { padding: 10px 12px 9px; border: 1px solid #e5eaf2; border-radius: 9px; background: #fff; }
+.us-stocks-level-summary { padding: 10px 12px 9px; border: 1px solid #e5eaf2; border-radius: 9px; background: rgb(255, 254, 252); }
 .us-stocks-level-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
 .us-stocks-level-row .us-level-label { flex: 0 0 78px; font-weight: 700; }
 .us-stocks-level-row i { flex: 1 1 auto; height: 8px; overflow: hidden; border-radius: 999px; background: #eef2f7; }
@@ -123,7 +123,7 @@
 .us-stocks-news-rail { position: relative; display: block; width: auto; min-height: 62px; }
 .us-stocks-news-rail::after { content: ''; position: absolute; top: 12px; bottom: -11px; left: 6px; width: 1px; background: #e5e7eb; }
 .us-stocks-news-item:last-child .us-stocks-news-rail::after { display: none; }
-.us-stocks-news-rail i { position: absolute; z-index: 1; top: 4px; left: 2px; width: 7px; height: 7px; border: 2px solid #cbd5e1; border-radius: 50%; background: #fff; box-sizing: border-box; }
+.us-stocks-news-rail i { position: absolute; z-index: 1; top: 4px; left: 2px; width: 7px; height: 7px; border: 2px solid #cbd5e1; border-radius: 50%; background: rgb(255, 254, 252); box-sizing: border-box; }
 .us-stocks-news-rail i.is-latest { border-color: #f97316; background: #fb923c; box-shadow: 0 0 0 2px #ffedd5; }
 .us-stocks-news-body { display: block; min-width: 0; }
 .us-stocks-news-time { display: block; margin-bottom: 3px; color: #f97316; font-size: 12px; font-weight: 700; line-height: 1.2; }
@@ -146,7 +146,7 @@ html.dark .us-stocks-congress-link { border-color: rgba(245,239,224,.15); backgr
 html.dark .us-stocks-congress-link:hover { border-color: #60a5fa; background: rgba(96,165,250,.12); }
 html.dark .us-stocks-congress-link span, html.dark .us-stocks-congress-note { color: rgba(245,239,224,.62); }
 html.dark .us-stocks-news-group h5 { border-bottom-color: rgba(245,239,224,.15); color: #f5efe0; }
-html.dark .us-stocks-icon { border-color: rgba(245,239,224,.2); background: #fff; }
+html.dark .us-stocks-icon { border-color: rgba(245,239,224,.2); background: rgb(255, 254, 252); }
 html.dark .us-stocks-panel { border-color: rgba(245,239,224,.2); background: rgba(245,239,224,.05); }
 html.dark .us-stocks-market-grid > .us-stocks-panel { border-color: transparent; background: transparent; }
 html.dark .us-stocks-level-summary { border-color: rgba(245,239,224,.15); background: rgba(245,239,224,.06); }

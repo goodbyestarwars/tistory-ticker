@@ -50,7 +50,7 @@
   padding: 6px 11px;
   border: 1px solid #d7dee8;
   border-radius: 999px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #526173;
   font: inherit;
   font-size: 11.5px;
@@ -64,7 +64,7 @@
   position: absolute;
   top: calc(100% + 2px);
   left: 0; right: 0;
-  background: #fff;
+  background: rgb(255, 254, 252);
   border: 1px solid #ccc;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
@@ -93,7 +93,7 @@
   height: 20px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 
 /* ---- 상태 메시지 ---- */
@@ -189,7 +189,7 @@
 #stock-search .ss-result-row {
   border-top: 1px solid #eee;
   cursor: pointer;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #stock-search .ss-result-row:hover { background: #f8f9fb; }
 #stock-search .ss-result-row.active { background: #eef2ff; }
@@ -219,7 +219,7 @@
   height: 28px;
   border-radius: 50%;
   border: 1px solid #ddd;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #ccc;
   font-size: 14px;
   line-height: 1;
@@ -344,7 +344,7 @@
   font-family: inherit;
   border: 1px solid #ddd;
   border-radius: 999px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #666;
   cursor: pointer;
 }
@@ -352,7 +352,7 @@
 #stock-search .ss-tf-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 #stock-search .ss-minute-scope-wrap { display: flex; align-items: center; margin: -2px 0 10px; }
 #stock-search .ss-minute-scope { display: inline-flex; align-items: center; gap: 7px; color: #666; font-size: 12px; }
-#stock-search .ss-minute-scope select { min-width: 76px; padding: 5px 24px 5px 9px; border: 1px solid #ddd; border-radius: 7px; background: #fff; color: #333; font: inherit; cursor: pointer; }
+#stock-search .ss-minute-scope select { min-width: 76px; padding: 5px 24px 5px 9px; border: 1px solid #ddd; border-radius: 7px; background: rgb(255, 254, 252); color: #333; font: inherit; cursor: pointer; }
 #stock-search .ss-draw-toggle,
 #stock-search .ss-draw-clear {
   padding: 6px 14px;
@@ -360,7 +360,7 @@
   font-family: inherit;
   border: 1px solid #ddd;
   border-radius: 999px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #555;
   cursor: pointer;
 }

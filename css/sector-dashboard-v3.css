@@ -59,7 +59,7 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
 }
 
 .sector-card {
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px 18px;
@@ -162,7 +162,7 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
   padding: 6px 14px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   color: #6b7280;
   cursor: pointer;
 }
@@ -180,7 +180,7 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
 .sector-detail-head > div small { color: #94a3b8; font-size: 11px; }
 .sector-detail-back { display: inline-flex; align-items: center; gap: 3px; padding: 6px 8px 6px 2px; border: 0; background: transparent; color: #2563eb; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .sector-detail-back svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.sector-detail-section { margin-top: 12px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; }
+.sector-detail-section { margin-top: 12px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: rgb(255, 254, 252); }
 .sector-detail-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .sector-detail-section-head strong { color: #111827; font-size: 14px; }
 .sector-detail-section-head small { color: #94a3b8; font-size: 10px; }

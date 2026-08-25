@@ -39,7 +39,7 @@
   cursor: pointer;
 }
 #sidebar-rank .sr-tab.active {
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #082415;
   box-shadow: 0 1px 4px rgba(0,0,0,.08);
 }
@@ -85,7 +85,7 @@
   height: 16px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #sidebar-rank .sr-name {
   flex: 1;
@@ -156,7 +156,7 @@
   padding: 6px 10px;
   border: 1px solid #d8dedb;
   border-radius: 8px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #374151;
   cursor: pointer;
 }
@@ -190,7 +190,7 @@
   padding: 20px;
 }
 .sr-modal {
-  background: #fff;
+  background: rgb(255, 254, 252);
   border-radius: 14px;
   width: 100%;
   max-width: 480px;
@@ -239,7 +239,7 @@
 }
 .sr-modal-list .sr-row:hover { background: #f7f8fa; }
 .sr-modal-list .sr-rank { flex-shrink: 0; width: 24px; font-weight: 400; color: #9ca3af; font-size: 13.5px; }
-.sr-modal-list .sr-icon { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; object-fit: contain; background: #fff; }
+.sr-modal-list .sr-icon { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; object-fit: contain; background: rgb(255, 254, 252); }
 .sr-modal-list .sr-name {
   flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-weight: 400; font-size: 15px; color: #0d1b40; text-decoration: none;

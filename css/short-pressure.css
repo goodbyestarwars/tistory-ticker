@@ -48,7 +48,7 @@
   top: calc(100% + 2px);
   left: 0;
   right: 0;
-  background: #fff;
+  background: rgb(255, 254, 252);
   border: 1px solid #ccc;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
@@ -88,7 +88,7 @@
   border: 1px solid #e5e5e5;
   border-left: 6px solid #9aa0a6;
   border-radius: 12px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 #short-pressure .sp-card.sp-tone-1 { border-left-color: #2e9e5b; }

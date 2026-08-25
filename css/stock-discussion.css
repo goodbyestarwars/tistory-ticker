@@ -7,8 +7,8 @@
 .discussion-stockbar label { color:#3d536c; font-size:14px; font-weight:700; }
 .discussion-stock-input-wrap { position:relative; flex:1 1 260px; min-width:220px; }
 .discussion-stock-input-wrap::before { content:'⌕'; position:absolute; z-index:1; left:13px; top:7px; color:#7e9cc1; font-size:22px; line-height:1; pointer-events:none; }
-.discussion-stockbar input { width:100%; box-sizing:border-box; height:40px; padding:0 13px 0 37px; border:1px solid #d6e0eb; border-radius:10px; background:#fff; color:#263b55; font:inherit; }
-.discussion-stock-suggest { position:absolute; z-index:20; top:calc(100% + 6px); left:0; right:0; display:none; max-height:280px; overflow:auto; margin:0; padding:6px; border:1px solid #dbe6f2; border-radius:12px; background:#fff; box-shadow:0 12px 26px rgba(44,73,109,.16); list-style:none; }
+.discussion-stockbar input { width:100%; box-sizing:border-box; height:40px; padding:0 13px 0 37px; border:1px solid #d6e0eb; border-radius:10px; background:rgb(255, 254, 252); color:#263b55; font:inherit; }
+.discussion-stock-suggest { position:absolute; z-index:20; top:calc(100% + 6px); left:0; right:0; display:none; max-height:280px; overflow:auto; margin:0; padding:6px; border:1px solid #dbe6f2; border-radius:12px; background:rgb(255, 254, 252); box-shadow:0 12px 26px rgba(44,73,109,.16); list-style:none; }
 .discussion-stock-suggest.is-open { display:block; }
 .discussion-stock-suggest-row { display:flex; align-items:center; gap:2px; }
 .discussion-stock-suggest-select { display:flex; align-items:center; gap:10px; flex:1; min-width:0; padding:10px 8px 10px 9px; border:0; border-radius:8px; background:transparent; color:#314b69; cursor:pointer; font:inherit; text-align:left; }
@@ -18,7 +18,7 @@
 .discussion-stock-suggest .code { color:#8a9bb0; font-size:12px; }
 .discussion-stock-suggest-favorite { flex:0 0 34px; padding:7px 6px; border:0; background:transparent; color:#bdcad9; cursor:pointer; font-size:22px; line-height:1; }
 .discussion-stock-suggest-favorite:hover, .discussion-stock-suggest-favorite.is-active { color:#6f9bd4; }
-.discussion-stock-btn, .discussion-current button { border:1px solid #d5e0ec; border-radius:999px; background:#fff; color:#536a83; padding:9px 13px; cursor:pointer; font:inherit; font-size:13px; }
+.discussion-stock-btn, .discussion-current button { border:1px solid #d5e0ec; border-radius:999px; background:rgb(255, 254, 252); color:#536a83; padding:9px 13px; cursor:pointer; font:inherit; font-size:13px; }
 .discussion-stock-btn.is-active { background:#172335; border-color:#172335; color:#fff; }
 .discussion-current { display:flex; align-items:center; gap:10px; margin:16px 0; color:#718398; font-size:14px; }
 .discussion-current strong { color:#1f4167; font-size:18px; }
@@ -27,8 +27,8 @@
 .discussion-write-title { color:#213a56; font-weight:800; font-size:18px; letter-spacing:-.02em; }
 .discussion-write-help { margin:7px 0 14px; color:#8495a8; font-size:13px; line-height:1.6; }
 .discussion-guest-fields { display:flex; gap:8px; margin-bottom:9px; }
-.discussion-guest-fields input { min-width:0; flex:1; height:38px; padding:0 11px; border:1px solid #d8e2ed; border-radius:9px; background:#fff; font:inherit; }
-.discussion-write textarea { display:block; width:100%; box-sizing:border-box; min-height:110px; resize:vertical; padding:13px; border:1px solid #d8e2ed; border-radius:11px; background:#fff; font:inherit; line-height:1.6; }
+.discussion-guest-fields input { min-width:0; flex:1; height:38px; padding:0 11px; border:1px solid #d8e2ed; border-radius:9px; background:rgb(255, 254, 252); font:inherit; }
+.discussion-write textarea { display:block; width:100%; box-sizing:border-box; min-height:110px; resize:vertical; padding:13px; border:1px solid #d8e2ed; border-radius:11px; background:rgb(255, 254, 252); font:inherit; line-height:1.6; }
 .market-discussion .discussion-write textarea {
   display:block !important;
   width:100% !important;
@@ -37,7 +37,7 @@
   padding:14px !important;
   border:1px solid #d8e2ed !important;
   border-radius:11px !important;
-  background:#fff !important;
+  background:rgb(255, 254, 252) !important;
   color:#263b55 !important;
   resize:vertical !important;
   opacity:1 !important;
@@ -51,7 +51,7 @@
 .discussion-list-heading { display:flex; justify-content:space-between; align-items:center; margin:28px 0 12px; color:#1f3854; }
 .discussion-list-heading span { color:#94a1b0; font-size:13px; font-weight:400; }
 .discussion-list ol { margin:0; padding:0; list-style:none; }
-.discussion-item { margin:0 0 12px; padding:18px 20px; border:1px solid #e0e8f1; border-radius:15px; background:#fff; box-shadow:0 4px 12px rgba(54,86,120,.04); }
+.discussion-item { margin:0 0 12px; padding:18px 20px; border:1px solid #e0e8f1; border-radius:15px; background:rgb(255, 254, 252); box-shadow:0 4px 12px rgba(54,86,120,.04); }
 .discussion-item-head { display:flex; align-items:center; gap:9px; }
 .discussion-item-head .name { color:#385571; font-weight:700; }
 .discussion-item-head .date { color:#a0adba; font-size:12px; }

@@ -21,7 +21,7 @@
 /* ── 좌측: 월 달력 ── */
 #stock-calendar .sc-cal-col {
   flex: 0 0 320px; max-width: 100%;
-  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;
+  background: rgb(255, 254, 252); border: 1px solid #e2e8f0; border-radius: 14px;
   padding: 18px;
 }
 #stock-calendar .sc-cal-header {
@@ -31,7 +31,7 @@
 #stock-calendar .sc-cal-title { font-size: 16px; font-weight: 700; color: #0d1b40; }
 #stock-calendar .sc-nav {
   width: 30px; height: 30px; border-radius: 50%;
-  border: 1px solid #e2e8f0; background: #fff;
+  border: 1px solid #e2e8f0; background: rgb(255, 254, 252);
   font-size: 16px; color: #64748b; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.15s;
@@ -66,7 +66,7 @@
 #stock-calendar .sc-day.sc-today {
   background: #6366f1; color: #fff !important; font-weight: 700;
 }
-#stock-calendar .sc-day.sc-today .sc-dot { background: #fff !important; }
+#stock-calendar .sc-day.sc-today .sc-dot { background: rgb(255, 254, 252) !important; }
 #stock-calendar .sc-dot {
   width: 4px; height: 4px; border-radius: 50%;
   background: #d97706; position: absolute; bottom: 5px;
@@ -94,7 +94,7 @@
 #stock-calendar .sc-search {
   display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
   padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 9px;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 #stock-calendar .sc-search span {
   flex-shrink: 0; color: #64748b; font-size: 12px; font-weight: 700;

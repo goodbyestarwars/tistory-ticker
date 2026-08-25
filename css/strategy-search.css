@@ -62,7 +62,7 @@
   padding: 7px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   color: #111827;
 }
 #strategy-search .ss-etf-search-input::placeholder { color: #9ca3af; }
@@ -81,7 +81,7 @@
 }
 
 #strategy-search .ss-card {
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px 18px;
@@ -330,7 +330,7 @@ html.dark #strategy-search .ss-error {
   max-height: calc(100vh - 36px);
   overflow: hidden;
   border-radius: 16px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 24px 70px rgba(0,0,0,.35);
 }
 .ss-etf-modal-head {
@@ -581,7 +581,7 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
   min-height: 40px;
   border: 1px solid #cfd5dc;
   border-radius: 5px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   color: #1f2933;
   font: inherit;
   font-size: 13px;
@@ -793,7 +793,7 @@ html:not(.font-gothic) body #strategy-search .ss-product-tab {
   padding: 8px 16px !important;
   border: 1px solid #dbe3ed !important;
   border-radius: 999px !important;
-  background: #ffffff !important;
+  background: rgb(255, 254, 252) !important;
   color: #374151 !important;
   font-size: 14px;
   font-weight: 700;
@@ -1072,7 +1072,7 @@ html.dark #strategy-search .ss-product-tab.active {
   overflow: hidden;
   border: 1px solid #d8dee7;
   border-radius: 8px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 24px 70px rgba(0,0,0,.35);
 }
 .ss-dividend-modal-head {

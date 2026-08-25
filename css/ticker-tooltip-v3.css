@@ -21,7 +21,7 @@
   height: 14px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 
 .ticker-badge.ticker-up {
@@ -73,7 +73,7 @@
   height: 18px;
   border-radius: 50%;
   object-fit: contain;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 
 .ticker-tooltip-row {
@@ -149,7 +149,7 @@
   display: block;
   width: 100%;
   border-radius: 6px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
 }
 
 /* ============ 언급 종목 요약 박스 (3단계) ============ */

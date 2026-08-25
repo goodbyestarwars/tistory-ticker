@@ -21,7 +21,7 @@
   overflow: hidden;
   border-width: 1px;
   border-color: #dfe5e8 !important;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: 0 3px 10px rgba(31,41,55,.05);
   transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
 }
@@ -91,7 +91,7 @@
   border: 1px solid #e1e7e4 !important;
   border-radius: 12px;
   padding: 12px 13px 11px;
-  background: #fff;
+  background: rgb(255, 254, 252);
   box-shadow: none;
 }
 #market-temp .mt-guide-card::after {
@@ -144,21 +144,21 @@
 .de-custom-card-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #e3e8ef; border-radius: 10px; background: linear-gradient(110deg, #f8fbf9, #f8fafc); }
 .de-custom-card-toolbar strong { display: block; color: #315b43; font-size: 13px; }
 .de-custom-card-toolbar span { display: block; margin-top: 2px; color: #8b95a3; font-size: 11px; }
-.de-custom-add, .de-custom-editor-actions button, .de-custom-edit, .de-custom-delete { border: 1px solid #dce3eb; border-radius: 999px; background: #fff; color: #5f6b78; cursor: pointer; font: inherit; font-size: 11px; padding: 5px 9px; }
+.de-custom-add, .de-custom-editor-actions button, .de-custom-edit, .de-custom-delete { border: 1px solid #dce3eb; border-radius: 999px; background: rgb(255, 254, 252); color: #5f6b78; cursor: pointer; font: inherit; font-size: 11px; padding: 5px 9px; }
 .de-custom-add { border-color: #315b43; color: #315b43; font-weight: 700; white-space: nowrap; }
 .de-custom-editor { display: grid; gap: 8px; margin-top: 8px; padding: 12px; border: 1px solid #d8e4db; border-radius: 10px; background: #fbfefc; }
 .de-custom-editor[hidden] { display: none; }
 .de-custom-editor-title { color: #315b43; font-size: 12px; font-weight: 700; }
-.de-custom-input { width: 100%; box-sizing: border-box; border: 1px solid #dce3eb; border-radius: 7px; padding: 8px 9px; background: #fff; color: #25303b; font: inherit; font-size: 12px; }
+.de-custom-input { width: 100%; box-sizing: border-box; border: 1px solid #dce3eb; border-radius: 7px; padding: 8px 9px; background: rgb(255, 254, 252); color: #25303b; font: inherit; font-size: 12px; }
 .de-custom-textarea { min-height: 82px; resize: vertical; }
 .de-custom-editor-row { display: flex; gap: 10px; flex-wrap: wrap; color: #6c7784; font-size: 11px; }
 .de-custom-editor-row label { display: flex; align-items: center; gap: 5px; }
-.de-custom-icon { min-width: 112px; border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; background: #fff; color: #5f6b78; font: inherit; }
+.de-custom-icon { min-width: 112px; border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; background: rgb(255, 254, 252); color: #5f6b78; font: inherit; }
 .de-custom-color { border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; color: #5f6b78; font: inherit; }
 .de-custom-editor-actions { display: flex; justify-content: flex-end; gap: 6px; }
 .de-custom-editor-actions .primary { border-color: #315b43; background: #315b43; color: #fff; font-weight: 700; }
 .de-custom-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 8px; }
-.de-custom-card { min-height: 96px; border: 1px solid #e1e6ec; border-left: 4px solid var(--de-card-accent); border-radius: 9px; padding: 10px 11px; background: #fff; box-shadow: 0 3px 10px rgba(28,39,51,.06); }
+.de-custom-card { min-height: 96px; border: 1px solid #e1e6ec; border-left: 4px solid var(--de-card-accent); border-radius: 9px; padding: 10px 11px; background: rgb(255, 254, 252); box-shadow: 0 3px 10px rgba(28,39,51,.06); }
 .de-custom-card-heading { display: flex; align-items: center; gap: 5px; color: #25303b; font-size: 12px; }
 .de-custom-card-heading strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .de-custom-card p { margin: 8px 0 0; color: #657181; font-size: 12px; line-height: 1.55; word-break: break-word; }
@@ -170,7 +170,7 @@
 .de-chart-control-row .de-expand-button.de-expand-inline { float: none; margin-left: auto; flex: 0 0 auto; }
 .de-draw-controls { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin: -4px 0 10px; }
 .de-draw-controls .dmi-draw-toggle,
-.de-draw-controls .dmi-draw-clear { border: 1px solid #d7dee8; border-radius: 999px; background: #fff; color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.de-draw-controls .dmi-draw-clear { border: 1px solid #d7dee8; border-radius: 999px; background: rgb(255, 254, 252); color: #000; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .de-draw-controls .dmi-draw-toggle:hover,
 .de-draw-controls .dmi-draw-toggle.is-active,
 .de-draw-controls .dmi-draw-clear:hover { border-color: #e11d48; color: #e11d48; }
@@ -191,7 +191,7 @@
 #stock-search .ss-chart { height: 760px; }
 #kospi-futures .kf-chart { height: 330px !important; }
 .de-chart-overlay { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(8, 13, 20, .72); }
-.de-chart-modal { display: flex; flex-direction: column; width: min(1480px, 100%); height: min(94vh, 100%); max-height: calc(100vh - 36px); overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.35); }
+.de-chart-modal { display: flex; flex-direction: column; width: min(1480px, 100%); height: min(94vh, 100%); max-height: calc(100vh - 36px); overflow: hidden; border-radius: 16px; background: rgb(255, 254, 252); box-shadow: 0 24px 70px rgba(0,0,0,.35); }
 .de-chart-modal-head { position: relative; z-index: 2; display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #e5e9ef; color: #25303b; font-size: 14px; }
 .de-chart-close { border: 0; background: transparent; color: #7e8995; cursor: pointer; font-size: 16px; }
 .de-chart-modal-body { display: flex; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; padding: 22px 18px 26px; }

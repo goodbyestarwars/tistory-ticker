@@ -22,7 +22,7 @@
   padding: 8px 14px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   color: #374151;
   cursor: pointer;
 }
@@ -83,7 +83,7 @@
   min-width: 0;
   min-height: 56px;
   padding: 8px 12px;
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border-bottom: 1px solid #e2e8f0;
   cursor: pointer;
   transition: background .15s ease, box-shadow .15s ease;
@@ -271,7 +271,7 @@
 /* ---- 상세(캔들차트) ---- */
 
 #pattern-scan .ps-detail {
-  background: #ffffff;
+  background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   padding: 16px 18px 18px;

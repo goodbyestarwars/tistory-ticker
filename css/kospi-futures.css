@@ -40,7 +40,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 14px;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 
 #kospi-futures .kf-stat-label {
@@ -206,7 +206,7 @@
   border: none;
   padding: 0;
   overflow: hidden;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 
 @media (max-width: 760px) {
@@ -256,7 +256,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 14px;
-  background: #fff;
+  background: rgb(255, 254, 252);
 }
 
 #kospi-futures .kf-opt-title {
