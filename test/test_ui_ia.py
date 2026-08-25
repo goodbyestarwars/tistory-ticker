@@ -295,7 +295,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260825-mobile-realtime-v1", skin)
+        self.assertIn("style.css?v=20260825-mobile-realtime-v2", skin)
         self.assertIn(".home-briefing-featured .post-excerpt", style)
         self.assertIn("min-height: 6.4em", style)
         self.assertIn(".home-briefing-small .post-title", style)
@@ -574,6 +574,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "min-width: 0;",
             ".home-realtime-board[data-hrt-active=\"tradeAmount\"]",
             ".home-realtime-board[data-hrt-active=\"industry\"]",
+            "2026-08-25 모바일 메인화면 최종 보정",
+            "grid-template-columns: minmax(0, 1fr) auto;",
+            "padding: 8px 4px !important;",
         ):
             self.assertIn(token, style)
 

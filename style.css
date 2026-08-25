@@ -6351,12 +6351,123 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
   }
 }
 
-/* 모바일 종목판 축약 규칙은 legacy/editorial 규칙보다 마지막에 적용해야 한다. */
+/* 2026-08-25 모바일 메인화면 최종 보정:
+   편집판의 데스크톱 전용 패딩·폰트 규칙이 모바일에서 우선 적용되어
+   제목이 두 줄로 밀리고, 종목 행 높이가 불필요하게 커지며, 마지막 숫자 열이
+   화면 밖으로 밀리던 문제를 한 곳에서 정리한다. */
 @media (max-width: 720px) {
-  .home-realtime-board .hrt-table-wrap {
-    overflow-x: visible !important;
-  }
-  .home-realtime-board .hrt-table-wrap table {
+  body#tt-body-index .home-editorial-page .home-realtime-board {
+    width: 100% !important;
     min-width: 0 !important;
+    padding: 13px 0 10px !important;
+    overflow: hidden !important;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px;
+    padding: 0 0 9px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head > div:first-child {
+    display: block !important;
+    min-width: 0;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong {
+    display: block;
+    overflow: hidden;
+    font-size: 21px !important;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head > div:first-child > span {
+    display: block;
+    max-width: 100%;
+    margin-top: 4px;
+    overflow: hidden;
+    font-size: 10px !important;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head-actions {
+    display: flex !important;
+    min-width: 0;
+    align-items: flex-end;
+    gap: 3px !important;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-etf-toggle {
+    padding: 5px 9px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs {
+    gap: 0;
+    margin: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs::-webkit-scrollbar { display: none; }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button {
+    padding: 8px 10px 7px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden !important;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap table {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td {
+    box-sizing: border-box;
+    max-width: 0;
+    padding: 8px 4px !important;
+    overflow: hidden;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    text-overflow: ellipsis;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th:first-child,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td:first-child {
+    width: 48% !important;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th:nth-child(2),
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td:nth-child(2) {
+    width: 27% !important;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock {
+    gap: 4px;
+    min-width: 0;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock-logo {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+    border-radius: 6px;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock a,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock strong,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock small,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-price {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock strong { font-size: 12px !important; }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock small { font-size: 9px !important; }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-rank { width: 13px; font-size: 9px; }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot {
+    padding-top: 6px;
+    font-size: 9px;
   }
 }
