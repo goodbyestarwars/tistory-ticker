@@ -4965,7 +4965,13 @@ html:not(.font-gothic) body .hen-row .hen-rail i.is-latest {
   background: var(--up) !important;
   box-shadow: none !important;
 }
-html:not(.font-gothic) body .app-news-rail,
+/* 타임라인 레일은 왼쪽 1px 선과 점만 보여야 한다. 레일 열 전체에
+   --rule을 배경으로 칠하면 날짜와 본문 사이가 회색 직사각형으로
+   뭉개져 보인다(경제뉴스·관련뉴스 공통). */
+html:not(.font-gothic) body .app-news-rail {
+  border-color: var(--rule) !important;
+  background: transparent !important;
+}
 html:not(.font-gothic) body .hen-rail::before {
   border-color: var(--rule) !important;
   background: var(--rule) !important;
