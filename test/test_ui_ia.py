@@ -1181,6 +1181,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/market-temp.js")
         for token in (
             "var INDUSTRY_DISPLAY_MAP_",
+            "var INDUSTRY_TOP_LIMIT_ = 10;",
             "내구소비재와의류': '소비재'",
             "기술하드웨어와장비': 'IT하드웨어'",
             "제약과생물공학': '제약·바이오'",
@@ -1192,6 +1193,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "function industryThemeName_(row)",
             "function aggregateIndustryFlow_(rows)",
             "테마별 총 거래대금 기준 · 최근 거래일 대비 순위 변화",
+            "오늘 업종 TOP 10",
             "Number(b.trade_amount) - Number(a.trade_amount)",
             "sections.tradeAmount",
         ):

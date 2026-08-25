@@ -40,6 +40,7 @@
   var HISTORY_PERIODS = [5, 10, 20, 40];
   var DEFAULT_HISTORY_PERIOD = 10;
   var INDUSTRY_FLOW_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
+  var INDUSTRY_TOP_LIMIT_ = 10;
   // WICS 세부 업종 원문 대신 투자자가 읽기 쉬운 테마 업종으로 집계한다.
   // 저장 키도 분리해 이전 세부 업종 순위가 새 테마 업종 순위에 섞이지 않게 한다.
   var INDUSTRY_FLOW_STORAGE_KEY = 'market_temp_industry_flow_v2';
@@ -187,7 +188,7 @@
   function writeIndustryFlowSnapshot_(dateKey, rows) {
     try {
       var snapshots = readIndustryFlowSnapshots_();
-      snapshots[dateKey] = (rows || []).slice(0, 8).map(function (row) {
+      snapshots[dateKey] = (rows || []).slice(0, INDUSTRY_TOP_LIMIT_).map(function (row) {
         return { industry: row.industry, avgChangeRate: row.avg_change_rate, tradeAmount: row.trade_amount, riseRatio: row.rise_ratio };
       });
       Object.keys(snapshots).sort().slice(0, -10).forEach(function (key) { delete snapshots[key]; });
@@ -269,7 +270,7 @@
     var previous = previousSnapshot_(snapshots, dateKey);
     var previousByName = {};
     previous.forEach(function (row, index) { previousByName[row.industry] = { rank: index + 1 }; });
-    var html = (rows || []).slice(0, 8).map(function (row, index) {
+    var html = (rows || []).slice(0, INDUSTRY_TOP_LIMIT_).map(function (row, index) {
       var old = previousByName[row.industry];
       var rankText = old ? (old.rank === index + 1 ? '유지' : (old.rank > index + 1 ? '▲ ' + (old.rank - index - 1) : '▼ ' + (index + 1 - old.rank))) : '첫 관측';
       var rate = Number(row.avg_change_rate != null ? row.avg_change_rate : row.avgChangeRate);
@@ -281,7 +282,7 @@
         + '<small>' + escapeHtml(rankText) + '</small></div>';
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
-      + '<div class="mt-industry-flow-head"><strong>오늘 업종 TOP</strong><span>테마별 총 거래대금 기준 · 최근 거래일 대비 순위 변화</span></div>'
+      + '<div class="mt-industry-flow-head"><strong>오늘 업종 TOP 10</strong><span>테마별 총 거래대금 기준 · 최근 거래일 대비 순위 변화</span></div>'
       + '<div class="mt-industry-flow-columns"><span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>최근 거래일 대비</span></div>'
       + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
       + '<p class="mt-industry-flow-note">실시간 종목판의 거래대금 상위 종목을 테마별로 합산합니다. 거래대금이 돈의 흐름 순위이며 평균등락률은 보조지표입니다. 전일 순위는 이 브라우저가 관측한 마지막 거래일 스냅샷과 비교합니다.</p>'
