@@ -7,7 +7,7 @@
   'use strict';
 
   var API_BASE = 'https://goodbyestar.cloud';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20260817-news-columns-v1';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20260825-us-results-table-v1';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var REFRESH_MS = 15000;
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
@@ -59,6 +59,7 @@
       });
     }
     container.innerHTML = buildShell();
+    wireSearch();
     autoSelect();
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) { stopRefresh(); stopRealtime(); }
@@ -79,6 +80,14 @@
     return '<section class="us-stocks-shell">'
       + '<div class="us-stocks-heading"><div><span class="us-stocks-eyebrow">US MARKET</span><h2>미국주식</h2></div>'
       + '<span class="us-stocks-note">한국·미국 통합 시세</span></div>'
+      + '<div class="us-stocks-search">'
+      + '<div class="us-stocks-input-wrap">'
+      + '<input id="usStocksInput" type="search" placeholder="미국 티커 또는 종목명 (예: AAPL, NVIDIA)" autocomplete="off" aria-label="미국주식 검색">'
+      + '<div id="usStocksSuggest" class="us-stocks-suggest"></div>'
+      + '</div>'
+      + '<button type="button" id="usStocksSearchBtn">검색</button>'
+      + '</div>'
+      + '<div id="usStocksResults" class="us-stocks-results" hidden></div>'
       + '<div id="usStocksDetail" class="us-stocks-detail" hidden></div>'
       + '<p class="us-stocks-disclaimer">증권사 API 상태와 거래소 시간대에 따라 지연될 수 있습니다.</p>'
       + '</section>';
@@ -140,6 +149,8 @@
     if (!query) return;
     hideSuggestions();
     var results = document.querySelector('#usStocksResults');
+    if (!results) return;
+    results.hidden = false;
     results.innerHTML = '<div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>미국주식 시세를 불러오는 중...</div>';
     searchRows(query, 8)
       .then(function (rows) {
@@ -152,9 +163,27 @@
       })
       .then(function (items) {
         results.innerHTML = '<div class="us-stocks-result-count">검색 결과 ' + items.length + '건</div>'
+          + '<div class="us-stocks-results-head" aria-hidden="true">'
+          + '<span>종목</span><span>현재가</span><span>등락률</span><span>거래량</span><span>시장</span><span>관심</span>'
+          + '</div>'
           + items.map(resultRowHtml).join('');
         results.querySelectorAll('[data-symbol]').forEach(function (row) {
-          row.addEventListener('click', function () { select(row.getAttribute('data-symbol')); });
+          row.addEventListener('click', function (event) {
+            if (event.target.closest('.us-stocks-fav-btn')) return;
+            select(row.getAttribute('data-symbol'));
+          });
+          row.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              select(row.getAttribute('data-symbol'));
+            }
+          });
+        });
+        results.querySelectorAll('.us-stocks-fav-btn').forEach(function (button) {
+          button.addEventListener('click', function (event) {
+            event.stopPropagation();
+            toggleFavorite(button);
+          });
         });
       })
       .catch(function () {
@@ -165,12 +194,33 @@
   function resultRowHtml(item) {
     var quote = item.quote || {};
     var cls = signClass(quote.change_rate);
-    return '<button type="button" class="us-stocks-result-row" data-symbol="' + escapeAttr(item.row.symbol) + '">'
+    var symbol = String(item.row.symbol || '').toUpperCase();
+    var code = 'US:' + symbol;
+    var isFav = !!(global.Watchlist && global.Watchlist.has(code));
+    var exchange = quote.exchange || item.row.exchange || '-';
+    return '<div role="button" tabindex="0" class="us-stocks-result-row" data-symbol="' + escapeAttr(symbol) + '">'
       + '<span class="us-stocks-result-name"><b>' + escapeHtml(item.row.symbol) + '</b><small>' + escapeHtml(item.row.name) + '</small></span>'
       + '<span class="' + cls + '">' + formatPrice(quote.price) + '</span>'
       + '<span class="' + cls + '">' + formatPercent(quote.change_rate) + '</span>'
       + '<span>' + formatVolume(quote.volume) + '</span>'
-      + '</button>';
+      + '<span class="us-stocks-result-market">' + escapeHtml(exchange) + '</span>'
+      + '<span class="us-stocks-result-favorite"><button type="button" class="us-stocks-fav-btn' + (isFav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(item.row.name || symbol) + '" title="관심종목에 추가/제거" aria-label="관심종목 토글">★</button></span>'
+      + '</div>';
+  }
+
+  function toggleFavorite(button) {
+    if (!global.Watchlist) return;
+    var code = button.getAttribute('data-code');
+    var name = button.getAttribute('data-name') || code;
+    if (global.Watchlist.has(code)) {
+      global.Watchlist.remove(code);
+      button.classList.remove('active');
+      return;
+    }
+    var result = global.Watchlist.add(code, name);
+    if (result.ok) button.classList.add('active');
+    else if (result.reason === 'login') alert('Google 로그인 후 관심종목을 저장할 수 있습니다.');
+    else if (result.reason === 'full') alert('관심종목은 최대 ' + global.Watchlist.MAX_ITEMS + '개까지 담을 수 있습니다.');
   }
 
   function searchRows(query, limit) {
