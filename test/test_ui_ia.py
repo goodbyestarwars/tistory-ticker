@@ -1156,6 +1156,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".mt-wave-segment-pos", style)
         self.assertIn(".mt-wave-segment-neg", style)
 
+    def test_market_temperature_industry_flow_uses_reader_friendly_parent_labels(self):
+        source = self.read("js/market-temp.js")
+        for token in (
+            "var INDUSTRY_DISPLAY_MAP_",
+            "내구소비재와의류': '소비재·의류'",
+            "기술하드웨어와장비': 'IT하드웨어'",
+            "제약과생물공학': '제약·바이오'",
+            "function aggregateIndustryFlow_(rows)",
+            "상위 업종 기준 · 최근 거래일 대비 순위 변화",
+        ):
+            self.assertIn(token, source)
+
     def test_market_temperature_components_use_visual_score_bars_next_to_radar(self):
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
