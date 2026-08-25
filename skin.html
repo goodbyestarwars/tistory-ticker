@@ -16,7 +16,7 @@
        먼저 그려지는 초기 페인트 FOUC를 막는다. 스타일 적용 뒤 한 번만 표시하며,
        네트워크가 느려도 0.8초 뒤에는 안전하게 화면을 연다. -->
   <style id="initial-paint-guard">
-    html, html body { background: rgb(253, 253, 247); }
+    html, html body { background: rgb(255, 254, 252); }
     html.dark, html.dark body { background: #1A1A1A; }
     html:not(.skin-ready) body { visibility: hidden !important; opacity: 0; }
     html.skin-ready body { visibility: visible; opacity: 1; transition: opacity .12s ease; }
@@ -43,7 +43,7 @@
   <link rel="preconnect" href="https://hangeul.pstatic.net" crossorigin />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
-    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260825-mobile-realtime-v2" />
+    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260826-warm-bg-v3" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/sidebar-rank.css" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/investor-trend-widget.css" />

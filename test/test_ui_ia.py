@@ -279,7 +279,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             '--font-title: "MaruBuri"',
             '--font-ui: "Pretendard"',
             '--font-data: "Pretendard"',
-            "--page-bg: #FDFDF7",
+            "--page-bg: rgb(255, 254, 252)",
             "--surface: #FFFEFC",
             "--text-main: #171717",
             "--text-sub: #6F7480",
@@ -303,7 +303,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260825-mobile-realtime-v2", skin)
+        self.assertIn("style.css?v=20260826-warm-bg-v3", skin)
         self.assertIn(".home-briefing-featured .post-excerpt", style)
         self.assertIn("min-height: 6.4em", style)
         self.assertIn(".home-briefing-small .post-title", style)
