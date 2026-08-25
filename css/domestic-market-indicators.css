@@ -506,3 +506,18 @@ html.dark .dmi-panel .de-draw-controls .dmi-draw-toggle,
 html.dark .dmi-panel .de-draw-controls .dmi-draw-clear { background: transparent; color: #F5EFE0; border-color: rgba(245,239,224,.2); }
 html.dark .dmi-spot-table th,
 html.dark .dmi-spot-table td { color: #F5EFE0; border-color: rgba(245,239,224,.2); }
+
+/* 참고의견과 증시자금 그리드가 맞닿는 곳에 같은 구분선이 두 번 그려지지 않게 한다. */
+.dmi-ai { border-bottom: 0 !important; }
+
+/* 글로벌시장지표의 추이 그래프처럼 평균선·가이드선·영역 채움을 함께 사용한다.
+   데이터는 평균 위를 빨강, 아래를 파랑으로 나누되 그래프 전체 흐름은 면으로 읽히게 한다. */
+.dmi-mini-chart { height: 72px; margin: 10px 0 4px; overflow: visible; }
+.dmi-mini-chart-guide { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 2 3; }
+.dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }
+.dmi-mini-chart-area { opacity: .12; }
+.dmi-mini-chart.dmi-positive .dmi-mini-chart-area { fill: #d24f45; }
+.dmi-mini-chart.dmi-negative .dmi-mini-chart-area { fill: #1261c4; }
+.dmi-mini-chart.dmi-flat .dmi-mini-chart-area { fill: #64748b; }
+.dmi-mini-chart-line { stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+html.dark .dmi-mini-chart-guide { stroke: rgba(245,239,224,.18); }

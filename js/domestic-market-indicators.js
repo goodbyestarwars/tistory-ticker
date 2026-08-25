@@ -496,7 +496,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260826-dmi-layout-v2';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260826-dmi-layout-v3';
     document.head.appendChild(link);
   }
 
@@ -597,7 +597,13 @@
     var last = values[values.length - 1];
     var cls = last > average ? 'dmi-positive' : (last < average ? 'dmi-negative' : 'dmi-flat');
     var avgY = y(average).toFixed(1);
+    var areaPoints = values.map(function (value, index) {
+      return x(index).toFixed(1) + ',' + y(value).toFixed(1);
+    }).join(' ') + ' ' + (w - pad).toFixed(1) + ',' + (h - pad).toFixed(1) + ' ' + pad + ',' + (h - pad).toFixed(1);
     return '<svg class="dmi-mini-chart ' + cls + '" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">'
+      + '<line x1="0" y1="' + (h * .25).toFixed(1) + '" x2="' + w + '" y2="' + (h * .25).toFixed(1) + '" class="dmi-mini-chart-guide"></line>'
+      + '<line x1="0" y1="' + (h * .75).toFixed(1) + '" x2="' + w + '" y2="' + (h * .75).toFixed(1) + '" class="dmi-mini-chart-guide"></line>'
+      + '<polygon points="' + areaPoints + '" class="dmi-mini-chart-area"></polygon>'
       + '<line x1="0" y1="' + avgY + '" x2="' + w + '" y2="' + avgY + '" class="dmi-mini-chart-avg"></line>'
       + segments.join('')
       + '</svg>';
@@ -752,6 +758,16 @@
       .filter(function (v) { return typeof v === 'number' && isFinite(v); });
     var yearAvg = programTrading.yearAverage && programTrading.yearAverage[field];
     var recentAvg = programTrading.recentAverage && programTrading.recentAverage[field];
+    var hasMeaningfulValue = [value].concat(history, [yearAvg, recentAvg]).some(function (v) {
+      return v != null && isFinite(Number(v)) && Math.abs(Number(v)) > 0;
+    });
+    if (!hasMeaningfulValue) {
+      return '<article class="dmi-fund-card dmi-fund-empty"><span class="dmi-fund-label">' + escapeHtml(label) + '</span>'
+        + '<span class="dmi-fund-desc">' + escapeHtml(desc) + '</span>'
+        + '<strong class="dmi-fund-value">데이터 없음</strong>'
+        + '<span class="dmi-fund-average">프로그램매매 원자료가 제공되지 않은 상태입니다.</span>'
+        + '<span class="dmi-fund-date">' + escapeHtml(programTrading.date || '-') + '</span></article>';
+    }
     var recentCount = Math.min(RECENT_AVERAGE_DAYS, history.length);
     var yearCount = Math.min(YEAR_AVERAGE_DAYS, history.length);
     return '<article class="dmi-fund-card"><span class="dmi-fund-label">' + escapeHtml(label) + '</span>'

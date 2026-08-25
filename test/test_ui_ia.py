@@ -143,8 +143,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 임시 대응) - 근본 원인인 유니버설 선택자 자체를 없앴으니 더는 존재하면 안 된다.
         self.assertNotIn(".dmi-fund-card *", style)
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
-        self.assertIn("domestic-market-indicators.css?v=20260826-dmi-layout-v2", frontend)
-        self.assertIn("domestic-market-indicators.js?v=20260826-dmi-layout-v2", loader)
+        self.assertIn("domestic-market-indicators.css?v=20260826-dmi-layout-v3", frontend)
+        self.assertIn("domestic-market-indicators.js?v=20260826-dmi-layout-v3", loader)
         self.assertIn(".dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }", style)
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
         self.assertIn("function miniAverageChart(values, average)", frontend)
@@ -185,6 +185,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("dmi-spot-section", frontend)
         self.assertIn("dmi-interval-tabs", frontend)
         self.assertIn("dmi-draw-buttons", frontend)
+        self.assertIn("dmi-fund-empty", frontend)
+        self.assertIn("dmi-mini-chart-area", frontend)
+        self.assertIn(".dmi-ai { border-bottom: 0 !important; }", style)
+        self.assertIn(".dmi-mini-chart-guide", style)
         self.assertIn(".dmi-spot-section.dmi-collapsed .dmi-spot-body", style)
         self.assertIn(".dmi-chart-tools .dmi-collapse-btn { display: inline-flex", style)
         self.assertIn("border-radius: 4px;", style)
