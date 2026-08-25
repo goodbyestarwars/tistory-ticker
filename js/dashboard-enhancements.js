@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20260813-chart-fullscreen-layout-v3';
+  var ENHANCEMENT_VERSION = '20260825-custom-card-icon-picker-v1';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -72,6 +72,18 @@
       '</article>';
   }
 
+  function customIconOptions(selected) {
+    var choices = [
+      ['📌', '핀'], ['📈', '추세'], ['💰', '자금'], ['🛡️', '방어'],
+      ['🔥', '이슈'], ['⭐', '관심'], ['📝', '메모'], ['🔎', '탐색']
+    ];
+    var known = choices.some(function (choice) { return choice[0] === selected; });
+    if (!known && selected) choices.push([selected, '기존 아이콘']);
+    return choices.map(function (choice) {
+      return '<option value="' + escapeHtml(choice[0]) + '"' + (choice[0] === selected ? ' selected' : '') + '>' + escapeHtml(choice[0] + ' ' + choice[1]) + '</option>';
+    }).join('');
+  }
+
   function renderCustomCards(root) {
     var list = root.querySelector('.de-custom-list');
     if (!list) return;
@@ -87,8 +99,8 @@
       '<div class="de-custom-editor-title">내 카드 만들기</div>' +
       '<input class="de-custom-input" data-custom-field="title" maxlength="40" placeholder="카드 제목" value="' + escapeHtml(card.title) + '">' +
       '<textarea class="de-custom-input de-custom-textarea" data-custom-field="body" maxlength="500" placeholder="메모나 분석 기준을 적어보세요">' + escapeHtml(card.body) + '</textarea>' +
-      '<div class="de-custom-editor-row"><label>아이콘 <input class="de-custom-emoji" data-custom-field="emoji" maxlength="2" value="' + escapeHtml(card.emoji) + '"></label>' +
-      '<label>색상 <select class="de-custom-color" data-custom-field="color"><option value="#315b43">숲</option><option value="#1261c4">파랑</option><option value="#d24f45">빨강</option><option value="#e08a3c">주황</option><option value="#7c5cdb">보라</option></select></label></div>' +
+      '<div class="de-custom-editor-row"><label>아이콘 <select class="de-custom-icon" data-custom-field="emoji" aria-label="카드 아이콘">' + customIconOptions(card.emoji) + '</select></label>' +
+      '<label>색상 <select class="de-custom-color" data-custom-field="color"><option value="#315b43">녹색</option><option value="#1261c4">파랑</option><option value="#d24f45">빨강</option><option value="#e08a3c">주황</option><option value="#7c5cdb">보라</option></select></label></div>' +
       '<div class="de-custom-editor-actions"><button type="button" data-custom-action="cancel">취소</button><button type="button" class="primary" data-custom-action="save">저장</button></div>' +
       '<input type="hidden" data-custom-field="id" value="' + escapeHtml(card.id) + '"></div>';
   }

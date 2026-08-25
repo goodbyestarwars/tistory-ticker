@@ -153,7 +153,7 @@
 .de-custom-textarea { min-height: 82px; resize: vertical; }
 .de-custom-editor-row { display: flex; gap: 10px; flex-wrap: wrap; color: #6c7784; font-size: 11px; }
 .de-custom-editor-row label { display: flex; align-items: center; gap: 5px; }
-.de-custom-emoji { width: 38px; border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; font: inherit; text-align: center; }
+.de-custom-icon { min-width: 112px; border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; background: #fff; color: #5f6b78; font: inherit; }
 .de-custom-color { border: 1px solid #dce3eb; border-radius: 6px; padding: 5px; color: #5f6b78; font: inherit; }
 .de-custom-editor-actions { display: flex; justify-content: flex-end; gap: 6px; }
 .de-custom-editor-actions .primary { border-color: #315b43; background: #315b43; color: #fff; font-weight: 700; }
@@ -204,7 +204,7 @@
 html.dark .de-custom-card-toolbar, html.dark .de-custom-editor, html.dark .de-custom-card, html.dark .de-chart-modal { background: #1A1A1A; border-color: rgba(245,239,224,.2); }
 html.dark .de-custom-card-toolbar strong, html.dark .de-custom-editor-title, html.dark .de-custom-card-heading, html.dark .de-chart-modal-head { color: #F5EFE0; }
 html.dark .de-custom-card-toolbar span, html.dark .de-custom-card p, html.dark .de-custom-empty { color: rgba(245,239,224,.55); }
-html.dark .de-custom-input, html.dark .de-custom-emoji, html.dark .de-custom-color, html.dark .de-expand-button { background: #242424; border-color: rgba(245,239,224,.24); color: #F5EFE0; }
+html.dark .de-custom-input, html.dark .de-custom-icon, html.dark .de-custom-color, html.dark .de-expand-button { background: #242424; border-color: rgba(245,239,224,.24); color: #F5EFE0; }
 html.dark .de-custom-add { background: #1A1A1A; color: #9bd4ad; border-color: #9bd4ad; }
 html.dark .de-chart-modal-body { background: #1A1A1A; }
 
