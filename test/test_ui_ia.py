@@ -1788,8 +1788,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, dashboard)
         self.assertIn("SD.wireSectorCardSelection(panel, sectorMap, krxMap, byCode, wireEditor)", market_temp)
-        for token in (".sector-stock-bubbles", ".sector-stock-bubble.is-recommended", ".sector-detail-back"):
+        for token in (".sector-stock-bubbles", ".sector-stock-bubble.is-recommended", ".sector-detail-back",
+                      ".sector-bubble-chart", ".sector-bubble-stage", ".sector-chart-bubble.sector-up"):
             self.assertIn(token, dashboard_style)
+        for token in ("function renderSectorBubbleChart", "sector-bubble-chart", "sector-chart-bubble",
+                      "bubbleSize", "버블 크기 · 섹터 내 대표 순위", "섹터 안의 표시 순위를 참고용"):
+            self.assertIn(token, dashboard)
 
     def test_my_dashboard_selected_stock_uses_daily_change_color(self):
         source = self.read("js/my-dashboard.js")
