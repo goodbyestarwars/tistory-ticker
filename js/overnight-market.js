@@ -115,6 +115,11 @@
  * 코드 주석이 아니라 사용자에게 채팅으로 별도 팩트체크 결과를 전달함(리서치 결과, 검증된
  * 통계라기보다 업계에서 도는 경험칙에 가까움 - 4년 반감기 주기와 "선행" 서사가 뒤섞여 있고
  * 표본이 반감기 3~4회뿐이라 통계적으로 확정하기 어려움).
+ *
+ * 2026-08-25: BTC/ETH의 52주 평균선이 차트에서 사라지는 것처럼 보이던 원인을 수정.
+ * /futures의 기본 차트는 90일인데 평균선은 365일/180일 범위로 계산되고 있어, 52주 평균이
+ * 현재 차트의 세로 범위 밖으로 밀릴 수 있었다. 이 페이지는 365일 차트 데이터를 요청하고,
+ * 화면에 쓰는 심볼만 symbols 파라미터로 제한해 평균선과 차트의 기간을 일치시킨다.
  */
 (function (global) {
   'use strict';
@@ -125,7 +130,9 @@
   var FUTURES_AVG_API = 'https://goodbyestar.cloud/futures/avg';
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var FETCH_TIMEOUT_MS = 10000;
-  var FUTURES_CACHE_KEY = 'overnight_market_futures_v1';
+  var FUTURES_HISTORY_DAYS = 365;
+  // 기존 v1에는 90일 차트가 들어 있으므로, 365일 차트가 섞이지 않도록 캐시 키를 분리한다.
+  var FUTURES_CACHE_KEY = 'overnight_market_futures_v2_365d';
   var FUTURES_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
   var lastFuturesUsedCache = false;
   var latestFuturesRequest = null;
@@ -211,6 +218,7 @@
   // 2026-07-21: BTC/ETH 카드에만 6개월 평균선을 추가로 그린다(52주선과 별도 색으로 구분).
   var BENCHMARK_6M_SYMBOLS = CRYPTO_SYMBOLS;
   var BENCHMARK_6M_DAYS = 180;
+  var BENCHMARK_52W_COLOR = '#c9701f';
   var BENCHMARK_6M_COLOR = '#8b5fbf';
   var BENCHMARK_NOTE = {
     GOLD: '금값 상승은 달러 약세·금리 하락 또는 안전자산 선호가 반영된 신호일 수 있습니다. 금값만으로 달러 강세/약세를 단정하지 말고 원/달러 환율과 미 국채금리를 함께 확인하세요',
@@ -246,13 +254,19 @@
     return document.documentElement.classList.contains('dark');
   }
 
+  function futuresRequestUrl() {
+    // 화면에 쓰지 않는 KOSPI200 선물까지 내려받지 않아 365일로 늘어난 응답량을 최소화한다.
+    return FUTURES_API + '?days=' + FUTURES_HISTORY_DAYS
+      + '&symbols=' + encodeURIComponent(SYMBOL_ORDER.join(','));
+  }
+
   function fetchFutures(forceFresh) {
     var cached = readFuturesCache();
     lastFuturesUsedCache = !!(cached && !forceFresh);
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    var request = fetch(FUTURES_API, hasAbort ? { signal: controller.signal } : {})
+    var request = fetch(futuresRequestUrl(), hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
         if (!r.ok) throw new Error('futures API 오류: ' + r.status);
         return r.json();
@@ -500,8 +514,8 @@
       if (BENCHMARK_SYMBOLS.indexOf(symbol) !== -1 && benchmarks[symbol]) {
         series.createPriceLine({
           price: benchmarks[symbol].avg,
-          color: '#c9701f',
-          lineWidth: 1,
+          color: BENCHMARK_52W_COLOR,
+          lineWidth: 2,
           lineStyle: LWC.LineStyle.Solid,
           axisLabelVisible: false
         });
@@ -513,7 +527,7 @@
         series.createPriceLine({
           price: benchmarks6m[symbol].avg,
           color: BENCHMARK_6M_COLOR,
-          lineWidth: 1,
+          lineWidth: 2,
           lineStyle: LWC.LineStyle.Solid,
           axisLabelVisible: false
         });

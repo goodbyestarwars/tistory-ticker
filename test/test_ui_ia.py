@@ -314,6 +314,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
         self.assertIn("skin-main.js?v=20260825-newspaper-speed-v1", skin)
 
+    def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
+        source = self.read("js/overnight-market.js")
+        # /futures 기본값은 90일이지만 BTC/ETH 평균선은 365일·180일로 계산된다.
+        # 차트도 365일을 요청해야 52주 평균선이 현재 차트 범위 밖으로 밀리지 않는다.
+        self.assertIn("var FUTURES_HISTORY_DAYS = 365;", source)
+        self.assertIn("var FUTURES_CACHE_KEY = 'overnight_market_futures_v2_365d';", source)
+        self.assertIn("function futuresRequestUrl()", source)
+        self.assertIn("'?days=' + FUTURES_HISTORY_DAYS", source)
+        self.assertIn("encodeURIComponent(SYMBOL_ORDER.join(','))", source)
+        self.assertIn("var BENCHMARK_52W_COLOR = '#c9701f';", source)
+        self.assertIn("color: BENCHMARK_52W_COLOR", source)
+        self.assertIn("color: BENCHMARK_6M_COLOR", source)
+
     def test_navbar_search_underline_fits_inside_navbar_height(self):
         # 2026-08-20: .nav-search-input-wrap의 min-height(64px)가 .navbar 자체 높이
         # (56px)보다 커서 검색창 하단 실선이 navbar 밖으로 흘러넘쳐, 바로 아래 있는
