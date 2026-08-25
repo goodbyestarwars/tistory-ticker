@@ -210,10 +210,26 @@
     });
   }
 
+  /*
+   * 운영 티스토리 스킨은 관리자가 마지막으로 붙여넣은 HTML이 저장되므로,
+   * 저장소에서 폰트 전환 UI를 삭제해도 예전 버튼(#fontModeBtn)이 남을 수 있다.
+   * 신문사형 타이포그래피는 이제 CSS에서 고정하므로 이 버튼과 이전 선택값을
+   * 런타임에 정리한다. 정적 스킨을 다시 붙여넣기 전에도 같은 화면을 보장한다.
+   */
+  function removeLegacyFontToggle() {
+    document.querySelectorAll('#fontModeBtn, .nav-font-btn').forEach(function (item) {
+      item.remove();
+    });
+    document.documentElement.classList.remove('font-gothic');
+    try { localStorage.removeItem('bolt-font'); } catch (err) {}
+  }
+
   function render() {
     var searchMount = document.getElementById('navSearchMount');
     var mount = document.getElementById('nav-menu-mount');
     if (searchMount) searchMount.innerHTML = SEARCH_HTML;
+
+    removeLegacyFontToggle();
 
     // 관심종목은 모든 페이지의 우측 고정 드로어로 제공한다. 운영 스킨에 남아 있는
     // 이전 MY 아이콘도 정적 자산 배포만으로 즉시 제거되도록 런타임에서 함께 정리한다.

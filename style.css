@@ -3632,6 +3632,9 @@ html.dark .mobile-app-sheet-links a span { color: rgba(245, 239, 224, .5); }
 
 /* 모바일 전용 검색 버튼 (nav-icons 안) */
 .nav-search-btn { display: none; }
+/* 폰트 전환은 신문사형 타이포그래피로 통일되어 더 이상 제공하지 않는다.
+   운영 스킨에 남은 구버전 마크업이 잠깐 존재해도 화면에 노출하지 않는다. */
+.nav-font-btn { display: none !important; }
 .nav-manage-btn:hover svg { stroke: #745b37; }
 
 body.account-login-open { overflow: hidden; }

@@ -38,6 +38,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("event.stopImmediatePropagation()", shell)
         self.assertIn("(window.top || window).location.href = writeUrl", shell)
 
+    def test_legacy_font_toggle_is_removed_from_the_live_skin(self):
+        menu = self.read("js/skin-menu.js")
+        style = self.read("style.css")
+        self.assertIn("function removeLegacyFontToggle()", menu)
+        self.assertIn("#fontModeBtn, .nav-font-btn", menu)
+        self.assertIn("localStorage.removeItem('bolt-font')", menu)
+        self.assertIn(".nav-font-btn { display: none !important; }", style)
+
     def test_stock_menu_opens_analysis_and_search_submenu(self):
         source = self.read("js/skin-menu.js")
         group = re.search(
