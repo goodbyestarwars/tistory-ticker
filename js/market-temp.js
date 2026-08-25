@@ -871,8 +871,23 @@
   function stockOptionsHtml_() {
     var map = global.KRX_MAP || {};
     return Object.keys(map).map(function (name) {
-      return '<option value="' + escapeHtml(name) + '"></option>';
+      return '<option value="' + escapeHtml(name) + '" label="' + escapeHtml(map[name]) + '"></option>';
     }).join('');
+  }
+
+  function resolveStockInput_(value) {
+    var query = String(value || '').trim().toUpperCase();
+    var map = global.KRX_MAP || {};
+    if (!query) return null;
+    var names = Object.keys(map);
+    for (var i = 0; i < names.length; i += 1) {
+      var name = names[i];
+      var code = String(map[name] || '').toUpperCase();
+      if (name.toUpperCase() === query || code === query) {
+        return { name: name, code: code, market: 'KOSPI' };
+      }
+    }
+    return null;
   }
 
   function fetchGoogleAuth_() {
@@ -926,12 +941,20 @@
         '</div>' +
         '<div class="mt-sector-editor-stock-labels" aria-hidden="true"><span>종목명</span><span>종목코드</span><span>시장</span><span></span></div>' +
         '<div class="mt-sector-editor-stocks">' + stockRows + '</div>' +
-        '<button type="button" class="mt-sector-editor-add-stock" data-editor-action="add-stock">+ 종목 추가</button>' +
+        '<div class="mt-sector-editor-add-stock">' +
+          '<label for="mt-sector-stock-search-' + categoryIndex + '">종목 추가</label>' +
+          '<div class="mt-sector-editor-add-stock-box">' +
+            '<input id="mt-sector-stock-search-' + categoryIndex + '" data-editor-role="stock-search" list="mt-sector-stock-names" placeholder="종목명 또는 6자리 코드 입력" autocomplete="off">' +
+            '<select data-editor-role="stock-add-market" aria-label="추가할 종목 시장"><option value="KOSPI">KOSPI</option><option value="KOSDAQ">KOSDAQ</option></select>' +
+            '<button type="button" class="mt-sector-editor-add-stock-button" data-editor-action="add-stock">＋ 추가</button>' +
+          '</div>' +
+          '<small>검색 결과를 선택하거나 종목코드를 입력한 뒤 추가하세요.</small>' +
+        '</div>' +
       '</section>';
     }).join('');
 
     return '<div class="mt-sector-editor">' +
-      '<div class="mt-sector-editor-head"><div><strong>카테고리·종목 편집</strong><span>공용 기본 카드를 바탕으로 하며, 편집한 순간부터 내 카드로 따로 저장됩니다.</span></div>' +
+      '<div class="mt-sector-editor-head"><div><strong>카테고리·종목 편집</strong><span>작은 입력칸에서 종목을 검색해 추가하고, 아래 목록에서 삭제한 뒤 저장하세요.</span></div>' +
         '<div class="mt-sector-editor-head-actions"><button type="button" data-editor-action="collapse-all">전체 접기</button><button type="button" data-editor-action="expand-all">전체 펼치기</button></div></div>' +
       '<datalist id="mt-sector-stock-names">' + stockOptionsHtml_() + '</datalist>' +
       '<div class="mt-sector-editor-categories">' + rows + '</div>' +
@@ -1040,7 +1063,15 @@
           var targetEl = actionEl.closest('.mt-sector-editor-category');
           var targetIndex = Number(targetEl.getAttribute('data-category-index'));
           var targetName = Object.keys(model)[targetIndex];
-          model[targetName].push({ name: '', code: '', market: 'KOSPI' });
+          var searchEl = targetEl.querySelector('[data-editor-role="stock-search"]');
+          var stock = resolveStockInput_(searchEl && searchEl.value);
+          if (!stock) throw new Error('종목명 또는 6자리 종목코드를 검색 결과에서 선택하세요.');
+          var marketEl = targetEl.querySelector('[data-editor-role="stock-add-market"]');
+          if (marketEl) stock.market = marketEl.value;
+          if (model[targetName].some(function (item) { return item && item.code === stock.code; })) {
+            throw new Error(targetName + ' 카테고리에 이미 있는 종목입니다.');
+          }
+          model[targetName].push(stock);
           rerender();
         } else if (action === 'delete-stock') {
           model = collectSectorMapFromEditor_(panel, true);

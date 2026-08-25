@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20260825-custom-card-icon-picker-v1';
+  var ENHANCEMENT_VERSION = '20260825-hts-sector-editor-v1';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -321,7 +321,8 @@
   function scan() {
     loadStyle();
     var market = document.querySelector('#market-temp .mt-explore-card');
-    if (market) wireCustomCards(market);
+    // 종목 편집은 market-temp의 계정별 카테고리 편집기로 통합한다.
+    // 예전 로컬 메모 카드(Custom Card)는 종목과 연결되지 않아 더 이상 화면에 노출하지 않는다.
     wireCharts();
   }
 

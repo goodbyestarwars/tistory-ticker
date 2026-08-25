@@ -58,7 +58,7 @@
     if (!/\/(?:page|pages)\/(?:market-temp|stock-search|foreign-flow|overnight-market|strategy-search|pattern-scan)(?:\/|$)/i.test(location.pathname)) return;
     if (document.querySelector('script[data-dashboard-enhancements]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/dashboard-enhancements.js?v=20260825-custom-card-icon-picker-v1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/dashboard-enhancements.js?v=20260825-hts-sector-editor-v1';
     script.defer = true;
     script.setAttribute('data-dashboard-enhancements', '1');
     document.body.appendChild(script);
