@@ -5841,6 +5841,56 @@ body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-l
 }
 body#tt-body-index .home-editorial-page .home-news-more,
 body#tt-body-index .home-editorial-page .home-disclosure-more { display: none !important; }
+
+/* 2026-08-25 모바일 실시간 종목판 최종 폭 보정:
+   공통 테이블의 min-width·셀 패딩이 모바일 3열 축약 규칙보다 크게 계산되면
+   마지막 등락률 열이 화면 오른쪽에서 잘린다. 표시할 세 열을 화면 폭 안에서
+   다시 고정하고, 긴 종목명만 말줄임 처리한다. */
+@media (max-width: 720px) {
+  .home-realtime-board .hrt-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .home-realtime-board .hrt-table-wrap table {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100%;
+    table-layout: fixed !important;
+  }
+  .home-realtime-board .hrt-table-wrap th,
+  .home-realtime-board .hrt-table-wrap td {
+    box-sizing: border-box;
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .home-realtime-board .hrt-table-wrap th[data-field="stock"],
+  .home-realtime-board .hrt-table-wrap td[data-field="stock"],
+  .home-realtime-board .hrt-table-wrap th[data-field="industry"],
+  .home-realtime-board .hrt-table-wrap td[data-field="industry"] { width: 48% !important; }
+  .home-realtime-board .hrt-table-wrap th[data-field="price"],
+  .home-realtime-board .hrt-table-wrap td[data-field="price"] { width: 27% !important; }
+  .home-realtime-board .hrt-table-wrap th[data-field="amount"],
+  .home-realtime-board .hrt-table-wrap td[data-field="amount"],
+  .home-realtime-board .hrt-table-wrap th[data-field="volume"],
+  .home-realtime-board .hrt-table-wrap td[data-field="volume"],
+  .home-realtime-board .hrt-table-wrap th[data-field="rising"],
+  .home-realtime-board .hrt-table-wrap td[data-field="rising"],
+  .home-realtime-board .hrt-table-wrap th[data-field="falling"],
+  .home-realtime-board .hrt-table-wrap td[data-field="falling"],
+  .home-realtime-board .hrt-table-wrap th[data-field="cap"],
+  .home-realtime-board .hrt-table-wrap td[data-field="cap"],
+  .home-realtime-board .hrt-table-wrap th[data-field="avgChangeRate"],
+  .home-realtime-board .hrt-table-wrap td[data-field="avgChangeRate"] { width: 25% !important; }
+  .home-realtime-board .hrt-stock { min-width: 0; overflow: hidden; }
+  .home-realtime-board .hrt-stock a,
+  .home-realtime-board .hrt-stock strong,
+  .home-realtime-board .hrt-stock small { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .home-realtime-board .hrt-stock strong { white-space: nowrap; }
+  .home-realtime-board .hrt-price { white-space: nowrap; }
+}
+
 body#tt-body-index .home-editorial-page .home-economic-news {
   display: block !important;
   height: 430px !important;
