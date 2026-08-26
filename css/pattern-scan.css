@@ -415,6 +415,23 @@
 #pattern-scan .ps-legend-item { display: inline-flex; align-items: center; gap: 5px; }
 #pattern-scan .ps-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 
+/* 실시간 시세 차트와 같은 가격 이동평균선 범례 */
+#pattern-scan .ps-moving-average-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  padding: 3px 0 9px;
+  font-size: 12px;
+  font-weight: 600;
+}
+#pattern-scan .ps-ma-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+#pattern-scan .ps-ma-legend-item i { display: inline-block; width: 18px; height: 2px; border-radius: 99px; background: currentColor; }
+#pattern-scan .ps-ma-legend-item b { font-weight: 600; }
+#pattern-scan .ps-ma5 { color: #d24f45; }
+#pattern-scan .ps-ma20 { color: #1261c4; }
+#pattern-scan .ps-ma60 { color: #0ca678; }
+#pattern-scan .ps-ma224 { color: #000000; }
+
 /* TradingView Lightweight Charts 캔버스 - autoSize로 컨테이너 폭에 맞춰 그려서
    가로 스크롤 없이 한눈에 들어온다(예전 SVG 버전은 캔들이 많으면 가로 스크롤이 생겼음) */
 #pattern-scan .ps-chart {
@@ -654,6 +671,7 @@ html.dark #pattern-scan .ps-ichimoku-toggle,
 html.dark #pattern-scan .ps-ichimoku-legend {
   color: rgba(245, 239, 224, 0.65) !important;
 }
+html.dark #pattern-scan .ps-ma224 { color: #f1f3f5 !important; }
 
 html.dark #pattern-scan .ps-detail-name {
   color: #F5EFE0 !important;

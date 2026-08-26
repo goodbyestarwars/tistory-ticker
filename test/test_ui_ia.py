@@ -143,8 +143,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 임시 대응) - 근본 원인인 유니버설 선택자 자체를 없앴으니 더는 존재하면 안 된다.
         self.assertNotIn(".dmi-fund-card *", style)
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
-        self.assertIn("domestic-market-indicators.css?v=20260827-dmi-flat-chart-v3", frontend)
-        self.assertIn("domestic-market-indicators.js?v=20260827-dmi-flat-chart-v3", loader)
+        self.assertIn("domestic-market-indicators.css?v=20260827-dmi-funds-live-v4", frontend)
+        self.assertIn("domestic-market-indicators.js?v=20260827-dmi-funds-live-v4", loader)
         self.assertIn("kospi-futures.css?v=20260827-kf-css-loader-v1", loader)
         self.assertIn("function installKospiFuturesStyle()", loader)
         self.assertIn("installKospiFuturesStyle();", loader)
@@ -165,6 +165,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("secondsVisible: false, borderVisible: false", frontend)
         self.assertIn(".dmi-mini-chart.dmi-positive .dmi-mini-chart-line { stroke: #d24f45; }", style)
         self.assertIn(".dmi-mini-chart.dmi-negative .dmi-mini-chart-line { stroke: #1261c4; }", style)
+        self.assertIn(".dmi-mini-chart-line { stroke-width: 1.2;", style)
         self.assertIn("신용잔고 (빚투)", frontend)
         self.assertIn("신용대주잔고", frontend)
         self.assertIn("예탁증권담보융자", frontend)
@@ -1636,7 +1637,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("key: 'maCloudBreakout'", source)
         self.assertIn("label: '장기이평 응축기'", source)
         self.assertIn("고가가 구름 상단 3% 이내로 접근했거나 저가가 구름 하단 3% 이내로 접근", source)
-        self.assertIn("addMaLine(chart, daily, 224, MA224_EARLY_COLOR)", source)
+        self.assertIn("{ key: 'ma224', period: 224, label: '224일선', color: ma224Color() }", source)
+        self.assertIn("standardMovingAverageStudies().forEach(function (study)", source)
         self.assertIn("psIchimokuEnabled = activeTab === 'maCloudBreakout'", source)
         self.assertIn("ICHIMOKU_COLORS = { senkouA: '#87ceeb', senkouB: '#87ceeb' }", source)
         self.assertIn("ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)'", source)
@@ -2122,6 +2124,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("require_common_market_cap=True", self.read("scripts/cloud-vm/daily_scan.py"))
         self.assertIn("require_common_market_cap=True", self.read("scripts/cloud-vm/rescan_patterns.py"))
         self.assertIn(".ps-tab-desc-divider", style)
+
+    def test_pattern_scan_chart_always_shows_standard_price_moving_averages(self):
+        source = self.read("js/pattern-scan.js")
+        style = self.read("css/pattern-scan.css")
+        self.assertIn("var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' };", source)
+        for token in ("label: '5일선'", "label: '20일선'", "label: '60일선'", "label: '224일선'"):
+            self.assertIn(token, source)
+        self.assertIn("standardMovingAverageStudies().forEach(function (study)", source)
+        self.assertIn("if (study.period === 224) ma224Series = series;", source)
+        self.assertIn("lineWidth = period === 224 ? 3 : 1", source)
+        self.assertIn("ps-moving-average-legend", source)
+        self.assertIn("#pattern-scan .ps-moving-average-legend", style)
+        self.assertIn("html.dark #pattern-scan .ps-ma224", style)
 
     def test_existing_urls_are_preserved(self):
         source = self.read("js/skin-menu.js")

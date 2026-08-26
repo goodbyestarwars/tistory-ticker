@@ -27,11 +27,22 @@
   var SUPPORT_COLOR = '#d24f45';
   var RESIST_COLOR = '#1261c4';
   var SIGNAL_COLOR = '#ec4899';
-  var MA5_EARLY_COLOR = '#d24f45';
-  var MA20_EARLY_COLOR = '#1261c4';
-  var MA224_EARLY_COLOR = '#000000';
-  var MA20_COLOR = '#f59e0b';
+  // 실시간 시세 차트와 같은 가격 이동평균선 규격.
+  var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' };
   var MA240_COLOR = '#8b5cf6';
+
+  function ma224Color() {
+    return document.documentElement.classList.contains('dark') ? '#f1f3f5' : '#000000';
+  }
+
+  function standardMovingAverageStudies() {
+    return [
+      { key: 'ma5', period: 5, label: '5일선', color: MA_COLORS.ma5 },
+      { key: 'ma20', period: 20, label: '20일선', color: MA_COLORS.ma20 },
+      { key: 'ma60', period: 60, label: '60일선', color: MA_COLORS.ma60 },
+      { key: 'ma224', period: 224, label: '224일선', color: ma224Color() }
+    ];
+  }
 
   // js/foreign-flow.js와 동일한 주기·색상(사이트 전체 일관성) - 일목균형표 토글 전용.
   // 범례는 하늘색으로 표시하되 실제 선행스팬 경계선은 숨기고 구름 채움만 그린다.
@@ -507,6 +518,7 @@
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
     html += buildScoreBox(data.detail);
+    html += buildMovingAverageLegend(data.daily);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
     html += buildIchimokuLegend();
     html += '<div class="ps-pattern-legend">'
@@ -543,6 +555,23 @@
     return '<div class="ps-ichimoku-legend"' + (psIchimokuEnabled ? '' : ' hidden') + '>'
       + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.senkouA + '"></i>선행스팬1</span>'
       + '<span class="ps-legend-item"><i class="ps-dot" style="background:' + ICHIMOKU_COLORS.senkouB + '"></i>선행스팬2</span>'
+      + '</div>';
+  }
+
+  function latestMovingAverage(daily, period) {
+    if (!Array.isArray(daily) || daily.length < period) return null;
+    var sum = 0;
+    for (var i = daily.length - period; i < daily.length; i++) sum += Number(daily[i].close) || 0;
+    return sum / period;
+  }
+
+  function buildMovingAverageLegend(daily) {
+    return '<div class="ps-moving-average-legend" aria-label="가격 이동평균선">'
+      + standardMovingAverageStudies().map(function (study) {
+        var latest = latestMovingAverage(daily, study.period);
+        return '<span class="ps-ma-legend-item ps-' + study.key + '"><i></i>'
+          + study.label + ' <b>' + (latest == null ? '—' : psChartPriceFormatter(latest)) + '</b></span>';
+      }).join('')
       + '</div>';
   }
 
@@ -805,25 +834,18 @@
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
 
-      // 눌림목: 단기 20일선과 장기 1년선(240거래일) 중 어디에서 지지받는지 함께 표시한다.
+      // 패턴 종류와 관계없이 실시간 시세 차트와 같은 5·20·60·224일선을 항상 표시한다.
+      var ma224Series = null;
+      standardMovingAverageStudies().forEach(function (study) {
+        var series = addMaLine(chart, daily, study.period, study.color);
+        if (study.period === 224) ma224Series = series;
+      });
+
+      // 패턴 자체가 별도 장기선/목표선을 사용하는 경우에만 추가 보조선을 겹쳐 표시한다.
       if (pattern === 'pullback') {
-        addMaLine(chart, daily, 20, MA20_COLOR);
         addMaLine(chart, daily, 240, MA240_COLOR);
-      } else if (pattern === 'maCloudBreakout') {
-        addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
-        addMaLine(chart, daily, 20, MA20_EARLY_COLOR);
-        addMaLine(chart, daily, 224, MA224_EARLY_COLOR);
-      } else if (pattern === 'shortTermMaBreakout') {
-        addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
-      } else if (pattern === 'angleMomentum') {
-        // 각도 계산은 서버에서 전형가·EMA 기준으로 하지만, 상세 차트는 다른 탭과 같은
-        // 방식(addMaLine, 종가 기준 단순이동평균)으로 단기/장기선만 시각 참고용으로 겹쳐 그린다.
-        addMaLine(chart, daily, 5, MA5_EARLY_COLOR);
-        addMaLine(chart, daily, 20, MA20_COLOR);
       } else if (pattern === 'gongpasan') {
-        // 20일선(눌림목 지지선)과 파란점선(엔벨로프 상단 = 46일선*1.12, 역매공파 스킬
-        // 기준)을 겹쳐 그린다 - 매수 타점(20일선 지지)과 목표가(파란점선)를 한눈에 보이게.
-        addMaLine(chart, daily, 20, MA20_COLOR);
+        // 파란점선(엔벨로프 상단 = 46일선*1.12)을 목표가 참고선으로 추가한다.
         addEnvelopeLine(chart, daily, 46, 1.12, RESIST_COLOR);
       }
 
@@ -840,6 +862,7 @@
 
       psLwcThemeObserver = new MutationObserver(function () {
         chart.applyOptions(psThemeOptions());
+        if (ma224Series) ma224Series.applyOptions({ color: ma224Color() });
       });
       psLwcThemeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     }).catch(function () {
@@ -856,12 +879,20 @@
       if (i >= period) sum -= daily[i - period].close;
       if (i >= period - 1) pts.push({ time: daily[i].date, value: sum / period });
     }
-    if (pts.length < 2) return;
+    if (pts.length < 2) return null;
     // 2026-08-22 요청: "224선은 좀 더 굵게(차트 공통)" - js/foreign-flow.js(MA_WIDTHS.ma224=3)·
     // js/stock-search.js(lineWidth: period===224 ? 3 : 1)는 이미 224일선만 굵게 그리고 있었고,
     // 이 파일(pattern-scan.js)만 전부 1px로 통일돼 있던 걸 맞춘다.
     var lineWidth = period === 224 ? 3 : 1;
-    chart.addSeries(global.LightweightCharts.LineSeries, { color: color, lineWidth: lineWidth, priceLineVisible: false, lastValueVisible: false }).setData(pts);
+    var series = chart.addSeries(global.LightweightCharts.LineSeries, {
+      color: color,
+      lineWidth: lineWidth,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false
+    });
+    series.setData(pts);
+    return series;
   }
 
   // 종가 N일 단순이동평균에 배율을 곱한 엔벨로프선(공파산 탭의 파란점선 전용) - 점선으로
@@ -969,7 +1000,7 @@
       if (detail.signal) addSignal(detail.signal); // 현재가(박스 하단 근접 지점)
     } else if (pattern === 'shortTermMaBreakout') {
       // trendline은 [스윙 고점 시작점, 오늘 지점까지 연장된 저항선] 2점 - 그대로 이으면
-      // 참고 그림의 검은 하락 추세선이 된다. 5일선은 위 addMaLine(MA5_EARLY_COLOR)이 그림.
+      // 참고 그림의 검은 하락 추세선이 된다. 5일선은 위 공통 이평선 렌더링에서 이미 그린다.
       if (Array.isArray(detail.trendline) && detail.trendline.length === 2) {
         addLine(detail.trendline, RESIST_COLOR, { bold: true });
       }

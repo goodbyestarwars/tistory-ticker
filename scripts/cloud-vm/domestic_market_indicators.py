@@ -389,13 +389,21 @@ def _fetch_kiwoom_program_trading(token):
         latest = rows[-1]
         arbitrage = _number(latest.get('dfrt_trde_tdy'))
         non_arbitrage = _number(latest.get('ndiffpro_trde_tdy'))
+        total = _number(latest.get('all_tdy'))
         if arbitrage is None and non_arbitrage is None:
+            continue
+        # 장 시작 전 ka90007은 당일 날짜의 행을 정상 응답으로 내려주면서 차익·비차익·합계를
+        # 모두 0으로 채운다. 이를 최신 실데이터로 받아들이면 화면에 0원이 노출되고 그 0이
+        # 이력에도 저장된다. 세 값이 모두 정확히 0인 행은 미완성 당일 스냅샷으로 보고 직전
+        # 영업일까지 계속 조회한다. 두 프로그램매매 항목이 동시에 정확히 0인 정상 장 마감은
+        # 사실상 발생 가능성이 매우 낮고, 합계까지 함께 확인해 오탐을 줄인다.
+        if arbitrage == 0 and non_arbitrage == 0 and total == 0:
             continue
         return {
             'date': _date(latest.get('dt')) or date_str,
             'arbitrage': arbitrage,
             'nonArbitrage': non_arbitrage,
-            'total': _number(latest.get('all_tdy')),
+            'total': total,
             'unit': 'million_krw',
         }
     return None
@@ -419,6 +427,15 @@ def fetch_program_trading(kiwoom_token):
             except Exception:
                 logger.exception('Program trading history record failed')
             history = program_trading_history.load()
+            # 수정 배포 전에 저장된 장 시작 전 0원 스냅샷도 평균과 차트에서 제외한다.
+            history = {
+                date: entry for date, entry in history.items()
+                if not (
+                    entry.get('arbitrage') == 0
+                    and entry.get('nonArbitrage') == 0
+                    and entry.get('total') == 0
+                )
+            }
             data['recentAverage'] = {
                 'arbitrage': program_trading_history.average(history, 'arbitrage', _PROGRAM_TRADING_RECENT_DAYS),
                 'nonArbitrage': program_trading_history.average(history, 'nonArbitrage', _PROGRAM_TRADING_RECENT_DAYS),

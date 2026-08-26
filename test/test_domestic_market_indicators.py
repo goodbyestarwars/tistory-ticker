@@ -176,6 +176,47 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertNotIn('20260815', queried_dates)  # 토요일은 아예 호출하지 않는다
         self.assertEqual(queried_dates, ['20260814'])
 
+    def test_program_trading_skips_preopen_all_zero_row_and_stale_zero_history(self):
+        # 장 시작 전 ka90007은 오늘 날짜로 0/0/0 행을 내려준다. 이 행을 최신값으로
+        # 채택하거나 이력 평균에 포함하지 않고 직전 영업일 실데이터를 사용해야 한다.
+        import datetime as datetime_module
+
+        class FixedDatetime(datetime_module.datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime_module.datetime(2026, 8, 27, 7, 0, tzinfo=tz)
+
+        responses = {
+            '20260827': {'prm_trde_acc_trnsn': [{
+                'dt': '20260827', 'dfrt_trde_tdy': '0', 'ndiffpro_trde_tdy': '0', 'all_tdy': '0',
+            }]},
+            '20260826': {'prm_trde_acc_trnsn': [{
+                'dt': '20260826', 'dfrt_trde_tdy': '+167762',
+                'ndiffpro_trde_tdy': '-1167884', 'all_tdy': '-1000122',
+            }]},
+        }
+
+        def call(token, api_id, path, body):
+            return responses.get(body['date'], {'prm_trde_acc_trnsn': []})
+
+        fake_history = {
+            '2026-08-26': {'arbitrage': 167762.0, 'nonArbitrage': -1167884.0, 'total': -1000122.0},
+            '2026-08-27': {'arbitrage': 0.0, 'nonArbitrage': 0.0, 'total': 0.0},
+        }
+        with patch.object(dmi, 'datetime', FixedDatetime), \
+             patch.object(dmi.kiwoom_client, 'call_tr', side_effect=call) as call_tr, \
+             patch.object(dmi.program_trading_history, 'record'), \
+             patch.object(dmi.program_trading_history, 'load', return_value=fake_history):
+            result = dmi.fetch_program_trading('token')
+
+        self.assertEqual(result['date'], '2026-08-26')
+        self.assertEqual(result['arbitrage'], 167762.0)
+        self.assertEqual(result['nonArbitrage'], -1167884.0)
+        self.assertEqual(result['history'], [{
+            'date': '2026-08-26', 'arbitrage': 167762.0, 'nonArbitrage': -1167884.0,
+        }])
+        self.assertEqual([c.args[3]['date'] for c in call_tr.call_args_list], ['20260827', '20260826'])
+
     def test_leverage_detail_extracts_lending_and_collateral_from_kofia(self):
         # 2026-08-14 요청: 신용대주잔고·예탁증권담보융자 - KOFIA credit 시리즈 중 이 두
         # 필드만 뽑아 fundCard가 바로 쓸 수 있는 series 모양으로 내려주는지 확인.

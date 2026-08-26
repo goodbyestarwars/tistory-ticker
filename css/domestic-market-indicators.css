@@ -348,7 +348,7 @@ html.dark .dmi-market-status { color: rgba(245, 239, 224, 0.4) !important; }
   justify-content: flex-end;
   margin: -4px 0 8px;
 }
-.dmi-mini-chart-line { stroke-width: 2.2; }
+.dmi-mini-chart-line { stroke-width: 1.2; }
 .dmi-mini-chart.dmi-positive .dmi-mini-chart-line { stroke: #d24f45; }
 .dmi-mini-chart.dmi-negative .dmi-mini-chart-line { stroke: #1261c4; }
 .dmi-mini-chart.dmi-flat .dmi-mini-chart-line { stroke: #9ca3af; }
@@ -424,7 +424,7 @@ html:not(.font-gothic) body #domestic-market-indicators .dmi-spot-section .dmi-c
 }
 
 /* 증시자금 그래프는 전체 흐름이 상승이면 빨강, 하락이면 파랑으로 읽는다. */
-.dmi-mini-chart-line { stroke-width: 2.2; }
+.dmi-mini-chart-line { stroke-width: 1.2; }
 .dmi-mini-chart-area { opacity: .10; }
 .dmi-mini-chart.dmi-positive .dmi-mini-chart-area { fill: #d24f45; }
 .dmi-mini-chart.dmi-negative .dmi-mini-chart-area { fill: #1261c4; }
@@ -574,5 +574,5 @@ html.dark .dmi-spot-table td { color: #F5EFE0; border-color: rgba(245,239,224,.2
 .dmi-mini-chart.dmi-positive .dmi-mini-chart-area { fill: #d24f45; }
 .dmi-mini-chart.dmi-negative .dmi-mini-chart-area { fill: #1261c4; }
 .dmi-mini-chart.dmi-flat .dmi-mini-chart-area { fill: #64748b; }
-.dmi-mini-chart-line { stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.dmi-mini-chart-line { stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 html.dark .dmi-mini-chart-guide { stroke: rgba(245,239,224,.18); }
