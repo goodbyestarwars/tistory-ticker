@@ -502,7 +502,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260827-dmi-funds-live-v4';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260827-dmi-funds-live-v5';
     document.head.appendChild(link);
   }
 
@@ -771,6 +771,27 @@
     return value > avg ? 'dmi-positive' : value < avg ? 'dmi-negative' : '';
   }
 
+  function normalizeProgramTrading(programTrading) {
+    var currentArbitrage = Number(programTrading.arbitrage);
+    var currentNonArbitrage = Number(programTrading.nonArbitrage);
+    if (currentArbitrage !== 0 || currentNonArbitrage !== 0) return programTrading;
+
+    var history = (programTrading.history || []).filter(function (row) {
+      return Number(row.arbitrage) !== 0 || Number(row.nonArbitrage) !== 0;
+    });
+    if (!history.length) return programTrading;
+
+    // 장 시작 전 VM이 아직 구버전이어도 당일 0/0 행 대신 직전 영업일 실데이터를 쓴다.
+    var latest = history[history.length - 1];
+    return Object.assign({}, programTrading, {
+      date: latest.date || programTrading.date,
+      arbitrage: Number(latest.arbitrage),
+      nonArbitrage: Number(latest.nonArbitrage),
+      total: Number(latest.arbitrage) + Number(latest.nonArbitrage),
+      history: history
+    });
+  }
+
   function programTradingCard(label, desc, field, programTrading) {
     var value = programTrading[field];
     var unit = programTrading.unit;
@@ -814,7 +835,7 @@
 
   function renderFunds(root, funds, programTrading, leverageDetail) {
     funds = funds || {};
-    programTrading = programTrading || {};
+    programTrading = normalizeProgramTrading(programTrading || {});
     leverageDetail = leverageDetail || {};
     var credit = funds.credit || {};
     var deposits = funds.market_funds || {};
