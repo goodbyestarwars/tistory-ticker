@@ -349,6 +349,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("style.css?v=20260827-market-briefing-bottom-rule-v1", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
+        self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
         self.assertIn(".ui-module", self.read("css/ui-system.css"))
         self.assertIn(".home-briefing-featured .post-excerpt", style)
         self.assertIn("min-height: 6.4em", style)
@@ -1506,6 +1507,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_stock_analysis_chart_matches_price_studies_and_replaces_volume_profile_with_volume(self):
         source = self.read("js/foreign-flow.js")
+        self.assertIn('class="ui-btn ui-btn-tab ff-view-tab active"', source)
         style = self.read("css/foreign-flow.css")
         chart_card = re.search(
             r"function buildFlowChartCard\(chartData, techScore\) \{(?P<body>.*?)\n  \}",

@@ -2618,3 +2618,22 @@ html.dark #foreign-flow .ff-opinion-target strong { color: #f5efe0 !important; }
 html.dark #foreign-flow .ff-opinion-meta time,
 html.dark #foreign-flow .ff-opinion-method .ff-opinion-disclaimer { color: rgba(245,239,224,.45) !important; }
 html.dark #foreign-flow .ff-opinion-chart .ff-opinion-bar-wrap { background: rgba(245,239,224,.15) !important; }
+
+/* 종목분석 탭은 공통 UI 시스템의 직사각형 탭 버튼을 사용한다(1번 참고 이미지 기준). */
+#foreign-flow .ff-view-tab.ui-btn-tab {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--ui-rule);
+  border-radius: 4px;
+  background: var(--ui-surface);
+  color: var(--ui-muted);
+  font-size: 16px;
+}
+#foreign-flow .ff-view-tab.ui-btn-tab.active {
+  border-color: var(--ui-ink);
+  background: var(--ui-ink);
+  color: var(--ui-surface);
+}
+@media (max-width: 640px) {
+  #foreign-flow .ff-view-tab.ui-btn-tab { min-height: 40px; padding: 0 14px; font-size: 14px; }
+}

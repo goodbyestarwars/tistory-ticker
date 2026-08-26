@@ -81,6 +81,24 @@
 .ui-btn-d:hover,
 .ui-btn-text:hover { color: var(--ui-ink); }
 
+/* 탭: 1번 첨부파일의 공통 직사각형 버튼 규격 */
+.ui-btn-tab {
+  min-height: 44px;
+  padding-right: 18px;
+  padding-left: 18px;
+  border-color: var(--ui-rule);
+  border-radius: 4px;
+  background: var(--ui-surface);
+  color: var(--ui-muted);
+  font-size: 16px;
+}
+.ui-btn-tab.active,
+.ui-btn-tab[aria-selected="true"] {
+  border-color: var(--ui-ink);
+  background: var(--ui-ink);
+  color: var(--ui-surface);
+}
+
 .ui-btn:focus-visible {
   outline: 2px solid var(--ui-focus);
   outline-offset: 2px;
@@ -148,6 +166,7 @@
 
 @media (max-width: 640px) {
   .ui-btn { min-height: 36px; padding-right: 13px; padding-left: 13px; font-size: 12px; }
+  .ui-btn-tab { min-height: 40px; padding-right: 14px; padding-left: 14px; font-size: 14px; }
   .ui-section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
   .ui-section-heading-title { font-size: 19px; }
   .ui-section-heading-description { font-size: 12px; }

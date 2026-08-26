@@ -1535,12 +1535,12 @@
 
   function buildViewTabs() {
     return '<div class="ff-view-tabs">'
-      + '<button type="button" class="ff-view-tab active" data-view="flow">수급</button>'
-      + '<button type="button" class="ff-view-tab" data-view="apt">매물대</button>'
-      + '<button type="button" class="ff-view-tab" data-view="chart">차트</button>'
-      + '<button type="button" class="ff-view-tab" data-view="fundamentals">펀더멘탈</button>'
-      + '<button type="button" class="ff-view-tab" data-view="momentum">모멘텀</button>'
-      + '<button type="button" class="ff-view-tab" data-view="sim">과거 시뮬레이션</button>'
+      + '<button type="button" class="ui-btn ui-btn-tab ff-view-tab active" data-view="flow">수급</button>'
+      + '<button type="button" class="ui-btn ui-btn-tab ff-view-tab" data-view="apt">매물대</button>'
+      + '<button type="button" class="ui-btn ui-btn-tab ff-view-tab" data-view="chart">차트</button>'
+      + '<button type="button" class="ui-btn ui-btn-tab ff-view-tab" data-view="fundamentals">펀더멘탈</button>'
+      + '<button type="button" class="ui-btn ui-btn-tab ff-view-tab" data-view="momentum">모멘텀</button>'
+      + '<button type="button" class="ui-btn ui-btn-tab ff-view-tab" data-view="sim">과거 시뮬레이션</button>'
       + '</div>';
   }
 
