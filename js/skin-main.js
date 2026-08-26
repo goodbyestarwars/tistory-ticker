@@ -1327,7 +1327,7 @@
 
   /* ── 카테고리 글목록: 신문 지면형 고정 편집(2026-08-26) ──
      일반 카테고리는 대표 1개 + 헤드라인 최대 4개 뒤에 작은 카드·2열을 반복한다. 다만
-     마켓브리핑은 최신 글 1개만 미리보기로 두고 이후 글 전부를 오른쪽 세로 목록으로 유지한다.
+     마켓브리핑은 최신 1개 + 오른쪽 목록 3개를 먼저 두고, 이후 글은 3열 카드로 이어 붙인다.
      글은 언제나 최신순 그대로 소비하며 재정렬하지 않는다. */
   (function buildCategoryFeedBlocks() {
     if (location.pathname.indexOf('/category/') !== 0) return;
@@ -1344,10 +1344,7 @@
     if (cards.length < 2) return; /* 카드가 1개뿐이면 다양화할 의미가 없음 */
     var isMarketBriefing = decodeURIComponent(location.pathname) === '/category/마켓 브리핑';
 
-    var BLOCK_SEQUENCE = isMarketBriefing ? [
-      // 마켓브리핑: 최신 1개만 미리보기, 나머지는 제목·날짜·공유 중심의 세로 목록.
-      { key: 'briefingHero', min: 2, max: cards.length }
-    ] : [
+    var BLOCK_SEQUENCE = [
       { key: 'hero', min: 2, max: 5 },   // 최신 대표 1 + 헤드라인 최대 4
       { key: 'cards', min: 3, max: 3 },  // 작은 카드형 3개 그리드
       { key: 'duo', min: 2, max: 2 }     // 가로로 나란한 2개
@@ -1380,12 +1377,28 @@
         return;
       }
       var wrap = document.createElement('div');
-      wrap.className = 'feed-block feed-block-' + type;
+      var cardType = type === 'briefingCards' ? 'cards' : type;
+      wrap.className = 'feed-block feed-block-' + cardType + (type === 'briefingCards' ? ' feed-block-briefing-cards' : '');
       feed.insertBefore(wrap, beforeNode);
       slice.forEach(function (card) {
-        card.classList.add('feed-' + type + '-item');
+        card.classList.add('feed-' + cardType + '-item');
+        if (type === 'briefingCards') card.classList.add('feed-briefing-cards-item');
         wrap.appendChild(card);
       });
+    }
+
+    // 마켓브리핑만은 상단의 최신 1 + 목록 3개 뒤로 남은 모든 글을 3열 카드로 유지한다.
+    // hero/cards/duo 순서가 반복되며 다시 큰 미리보기가 생기지 않게 별도 처리한다.
+    if (isMarketBriefing) {
+      var heroTake = Math.min(4, cards.length);
+      renderBlock('briefingHero', cards.slice(0, heroTake), heroTake < cards.length ? cards[heroTake] : tailAnchor);
+      for (var briefingIndex = heroTake; briefingIndex < cards.length; briefingIndex += 3) {
+        var briefingSlice = cards.slice(briefingIndex, briefingIndex + 3);
+        var briefingBefore = briefingIndex + briefingSlice.length < cards.length
+          ? cards[briefingIndex + briefingSlice.length] : tailAnchor;
+        renderBlock('briefingCards', briefingSlice, briefingBefore);
+      }
+      return;
     }
 
     var idx = 0;
