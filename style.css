@@ -5026,6 +5026,34 @@ html:not(.font-gothic) body .feed > .feed-block + .post-card {
   border-top: 0 !important;
 }
 
+/* 마켓브리핑은 카드 외곽선 없이 각 포스트의 아래 구분선만 표시한다.
+   홈 미리보기와 시장 > 마켓브리핑 카테고리 양쪽에 같은 규칙을 적용한다. */
+html:not(.font-gothic) body#tt-body-index .home-editorial-page .home-briefing-section .home-briefing-featured,
+html:not(.font-gothic) body#tt-body-index .home-editorial-page .home-briefing-section .home-briefing-small,
+html:not(.font-gothic) body#tt-body-category .feed > .feed-block .post-card,
+html:not(.font-gothic) body#tt-body-category .feed > .post-card {
+  border: 0 !important;
+  border-bottom: 1px solid var(--rule) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 카테고리 오른쪽 헤드라인 목록도 큰 외곽 박스 없이 아래선만 남긴다. */
+html:not(.font-gothic) body#tt-body-category .feed-block-headline {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 포스트 내부 버튼 영역의 윗선은 카드 하단선과 별개의 중복선이므로 제거한다. */
+html:not(.font-gothic) body#tt-body-index .home-editorial-page .home-briefing-section .post-footer,
+html:not(.font-gothic) body#tt-body-category .feed > .feed-block .post-card .post-footer,
+html:not(.font-gothic) body#tt-body-category .feed > .post-card .post-footer {
+  border-top: 0 !important;
+}
+
 @media (max-width: 640px) {
   #foreign-flow .ff-badge-legend {
     text-align: left;
