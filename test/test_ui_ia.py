@@ -145,6 +145,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
         self.assertIn("domestic-market-indicators.css?v=20260827-dmi-fund-chart-v2", frontend)
         self.assertIn("domestic-market-indicators.js?v=20260827-dmi-fund-chart-v2", loader)
+        self.assertIn("kospi-futures.css?v=20260827-kf-css-loader-v1", loader)
+        self.assertIn("function installKospiFuturesStyle()", loader)
+        self.assertIn("installKospiFuturesStyle();", loader)
+        self.assertIn(".kf-option-profile-scroll { max-height: 390px; overflow-y: auto;", self.read("css/kospi-futures.css"))
         self.assertIn(".dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }", style)
         self.assertIn("function fundSeriesValues(funds, field)", frontend)
         self.assertIn("function miniAverageChart(values, average)", frontend)

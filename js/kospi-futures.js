@@ -81,6 +81,7 @@
     { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '코스피200 야간선물 (18:00~06:00)', intervals: ['minute', 'day', 'week'] }
   ];
   var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
+  var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20260827-kf-css-loader-v1';
 
   var CHART_EL_BY_KEY = {};
   CHARTS.forEach(function (c) { CHART_EL_BY_KEY[c.key] = c.elId; });
@@ -130,6 +131,22 @@
       document.head.appendChild(s);
     });
     return lwcLoadPromise;
+  }
+
+  // 티스토리 페이지 HTML에서 전용 CSS <link>가 빠져도 옵션 프로파일 100개 행이 일반
+  // 블록으로 풀려 페이지가 수만 px까지 늘어나지 않도록 스크립트가 자기 스타일을 보장한다.
+  // 예전 페이지에 버전 없는 링크가 남아 있으면 새 링크를 중복 추가하지 않고 최신 URL로
+  // 교체한다.
+  function installKospiFuturesStyle() {
+    var link = document.getElementById('kf-style')
+      || document.querySelector('link[href*="/css/kospi-futures.css"]');
+    if (!link) {
+      link = document.createElement('link');
+      document.head.appendChild(link);
+    }
+    link.id = 'kf-style';
+    link.rel = 'stylesheet';
+    if (link.href !== KOSPI_FUTURES_CSS_URL) link.href = KOSPI_FUTURES_CSS_URL;
   }
 
   function isDark() {
@@ -1171,6 +1188,7 @@
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
 
+    installKospiFuturesStyle();
     loadDomesticMarketIndicators(container);
     container.innerHTML = buildShell();
     wireIntervalToggles(container);
