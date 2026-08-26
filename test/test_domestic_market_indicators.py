@@ -72,6 +72,23 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertEqual(rows, [{'bsop_date': '20260812'}])
         self.assertEqual(request.call_args.args[5], {'FID_INPUT_DATE_1': '20260812'})
 
+    def test_kis_program_trading_daily_uses_official_contract(self):
+        with patch.object(kis_client, '_get_domestic_quote', return_value={'output': [{
+            'stck_bsop_date': '20260812',
+        }]}) as request:
+            rows = kis_client.fetch_program_trading_daily(
+                'token', 'appkey', 'secret', '20250701', '20260812', market='K')
+        self.assertEqual(rows, [{'stck_bsop_date': '20260812'}])
+        self.assertEqual(request.call_args.args[3],
+                         '/uapi/domestic-stock/v1/quotations/comp-program-trade-daily')
+        self.assertEqual(request.call_args.args[4], 'FHPPG04600001')
+        self.assertEqual(request.call_args.args[5], {
+            'FID_COND_MRKT_DIV_CODE': 'J',
+            'FID_MRKT_CLS_CODE': 'K',
+            'FID_INPUT_DATE_1': '20250701',
+            'FID_INPUT_DATE_2': '20260812',
+        })
+
     def test_kis_funds_uses_kst_query_date(self):
         with patch.object(dmi.kis_client, 'get_token', return_value='token') as token:
             with patch.object(dmi.kis_client, 'fetch_market_funds', return_value=[{
@@ -138,6 +155,41 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         # 구성상 반영되지 않는다(실제로는 record 후 load가 갱신된 파일을 읽는다).
         self.assertEqual(result['recentAverage']['arbitrage'], -100.0)
         self.assertIn('history', result)
+
+    def test_program_trading_prefers_kis_period_history(self):
+        # KIS 공식 일별 API는 날짜 범위를 한 번에 돌려주므로 키움 하루치 누적보다 우선한다.
+        kis_rows = [
+            {'stck_bsop_date': '20260811', 'arbt_smtn_ntby_tr_pbmn': '-100', 'nabt_smtn_ntby_tr_pbmn': '40'},
+            {'stck_bsop_date': '20260812', 'arbt_smtn_ntby_tr_pbmn': '200', 'nabt_smtn_ntby_tr_pbmn': '-30'},
+        ]
+        with patch.object(dmi.kis_client, 'get_token', return_value='kis-token') as get_token, \
+             patch.object(dmi.kis_client, 'fetch_program_trading_daily', return_value=kis_rows) as request, \
+             patch.object(dmi, '_fetch_kiwoom_program_trading_with_history') as kiwoom:
+            result = dmi.fetch_program_trading('kiwoom-token', 'appkey', 'secret')
+
+        self.assertTrue(result['available'])
+        self.assertEqual(result['source'], 'kis')
+        self.assertEqual(result['date'], '2026-08-12')
+        self.assertEqual(result['arbitrage'], 200.0)
+        self.assertEqual(result['nonArbitrage'], -30.0)
+        self.assertEqual(result['total'], 170.0)
+        self.assertEqual(result['history'], [
+            {'date': '2026-08-11', 'arbitrage': -100.0, 'nonArbitrage': 40.0},
+            {'date': '2026-08-12', 'arbitrage': 200.0, 'nonArbitrage': -30.0},
+        ])
+        get_token.assert_called_once_with('appkey', 'secret')
+        self.assertEqual(request.call_args.kwargs['market'], 'K')
+        self.assertRegex(request.call_args.args[3], r'^\d{8}$')
+        self.assertRegex(request.call_args.args[4], r'^\d{8}$')
+        kiwoom.assert_not_called()
+
+    def test_program_trading_falls_back_to_kiwoom_when_kis_has_no_rows(self):
+        fallback = {'available': True, 'source': 'kiwoom', 'date': '2026-08-12'}
+        with patch.object(dmi, '_fetch_kis_program_trading', return_value=[]), \
+             patch.object(dmi, '_fetch_kiwoom_program_trading_with_history', return_value=fallback) as kiwoom:
+            result = dmi.fetch_program_trading('kiwoom-token', 'appkey', 'secret')
+        self.assertIs(result, fallback)
+        kiwoom.assert_called_once_with('kiwoom-token')
 
     def test_program_trading_unavailable_without_token(self):
         result = dmi.fetch_program_trading(None)

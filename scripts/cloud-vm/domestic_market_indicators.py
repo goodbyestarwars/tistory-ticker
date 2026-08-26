@@ -412,9 +412,87 @@ def _fetch_kiwoom_program_trading(token):
 _PROGRAM_TRADING_RECENT_DAYS = 20   # "최근 평균" - 대략 한 달 영업일
 _PROGRAM_TRADING_YEAR_DAYS = 252    # "1년 평균" - 연간 영업일 근사치
 _PROGRAM_TRADING_CHART_DAYS = 260   # 화면에 넘겨줄 추이(스파크라인) 최대 길이
+_PROGRAM_TRADING_KIS_LOOKBACK_DAYS = 400  # 252 영업일과 휴장일에 여유를 둔 달력일 범위
 
 
-def fetch_program_trading(kiwoom_token):
+def _normalise_kis_program_trading(rows):
+    """KIS 일별 프로그램매매 응답을 UI 공통 형식으로 정규화한다.
+
+    KIS ``comp-program-trade-daily``는 날짜별 차익/비차익 합계 순매수
+    거래대금(``*_smtn_ntby_tr_pbmn``)을 한 번에 돌려준다. 키움 ka90007처럼
+    하루치만 누적할 필요가 없으므로, 중복 날짜는 마지막 응답으로 교체한 뒤 날짜순으로
+    반환한다.
+    """
+    by_date = {}
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        date = _date(_first(row, 'stck_bsop_date', 'bsop_date', 'date'))
+        arbitrage = _number(_first(row, 'arbt_smtn_ntby_tr_pbmn'))
+        non_arbitrage = _number(_first(row, 'nabt_smtn_ntby_tr_pbmn'))
+        if not date or arbitrage is None or non_arbitrage is None:
+            continue
+        by_date[date] = {
+            'date': date,
+            'arbitrage': arbitrage,
+            'nonArbitrage': non_arbitrage,
+            'total': arbitrage + non_arbitrage,
+        }
+    return [by_date[date] for date in sorted(by_date)]
+
+
+def _program_trading_payload(rows, source):
+    """일별 행으로 현재값·평균·차트 이력을 같은 계약으로 만든다."""
+    rows = list(rows or [])
+    if not rows:
+        return None
+    latest = rows[-1]
+
+    def average(field, limit):
+        values = [row[field] for row in rows[-limit:] if row.get(field) is not None]
+        return (sum(values) / len(values)) if values else None
+
+    return {
+        'available': True,
+        'source': source,
+        'date': latest['date'],
+        'arbitrage': latest['arbitrage'],
+        'nonArbitrage': latest['nonArbitrage'],
+        'total': latest['total'],
+        'unit': 'million_krw',
+        'recentAverage': {
+            'arbitrage': average('arbitrage', _PROGRAM_TRADING_RECENT_DAYS),
+            'nonArbitrage': average('nonArbitrage', _PROGRAM_TRADING_RECENT_DAYS),
+        },
+        'yearAverage': {
+            'arbitrage': average('arbitrage', _PROGRAM_TRADING_YEAR_DAYS),
+            'nonArbitrage': average('nonArbitrage', _PROGRAM_TRADING_YEAR_DAYS),
+        },
+        'history': [{
+            'date': row['date'],
+            'arbitrage': row['arbitrage'],
+            'nonArbitrage': row['nonArbitrage'],
+        } for row in rows[-_PROGRAM_TRADING_CHART_DAYS:]],
+    }
+
+
+def _fetch_kis_program_trading(kis_appkey, kis_appsecret):
+    """KIS 일별 API로 코스피 프로그램매매 1년 추이를 바로 가져온다."""
+    if not kis_appkey or not kis_appsecret:
+        return []
+    end = datetime.now(KST).date()
+    start = end - timedelta(days=_PROGRAM_TRADING_KIS_LOOKBACK_DAYS)
+    token = kis_client.get_token(kis_appkey, kis_appsecret)
+    rows = kis_client.fetch_program_trading_daily(
+        token, kis_appkey, kis_appsecret,
+        start.strftime('%Y%m%d'), end.strftime('%Y%m%d'),
+        market='K',
+    )
+    return _normalise_kis_program_trading(rows)
+
+
+def _fetch_kiwoom_program_trading_with_history(kiwoom_token):
+    """KIS를 사용할 수 없을 때만 기존 키움 하루치 누적 이력을 사용한다."""
     try:
         data = _fetch_kiwoom_program_trading(kiwoom_token)
         if data:
@@ -459,6 +537,18 @@ def fetch_program_trading(kiwoom_token):
         'source': 'kiwoom',
         'message': '프로그램매매(차익/비차익) 데이터를 잠시 불러오지 못했습니다.',
     }
+
+
+def fetch_program_trading(kiwoom_token, kis_appkey=None, kis_appsecret=None):
+    """프로그램매매는 KIS 기간 이력을 우선, 키움 하루치 누적을 보조로 사용한다."""
+    try:
+        kis_rows = _fetch_kis_program_trading(kis_appkey, kis_appsecret)
+        payload = _program_trading_payload(kis_rows, 'kis')
+        if payload:
+            return payload
+    except Exception:
+        logger.exception('KIS program trading history failed')
+    return _fetch_kiwoom_program_trading_with_history(kiwoom_token)
 
 
 _LEVERAGE_DETAIL_LOOKBACK_DAYS = 400  # 1년 평균(252영업일)에 여유를 더한 상한
@@ -543,7 +633,7 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
         }
         investor_future = pool.submit(fetch_investor)
         funds_future = pool.submit(fetch_funds, kis_appkey, kis_appsecret)
-        program_trading_future = pool.submit(fetch_program_trading, kiwoom_token)
+        program_trading_future = pool.submit(fetch_program_trading, kiwoom_token, kis_appkey, kis_appsecret)
         leverage_detail_future = pool.submit(fetch_leverage_detail)
         quote_futures = {
             market: pool.submit(fetch_cash_quote, market)

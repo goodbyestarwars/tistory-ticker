@@ -400,6 +400,29 @@ def fetch_market_funds(token, appkey, appsecret, date=''):
     return output if isinstance(output, list) else [output]
 
 
+def fetch_program_trading_daily(token, appkey, appsecret, start_date, end_date, market='K'):
+    """KIS 프로그램매매 종합현황(일별)을 기간 단위로 조회한다.
+
+    KIS 공식 API `comp-program-trade-daily`의 계약 그대로 사용한다.
+    ``market``은 KOSPI(K) 또는 KOSDAQ(Q)이고, 국내 주식/NX 통합 시장 구분은
+    ``J``로 고정한다. 응답의 ``*_tr_pbmn`` 거래대금은 이 대시보드가 표시하는
+    백만원 단위 순매수 금액이다.
+    """
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/comp-program-trade-daily',
+        'FHPPG04600001',
+        {
+            'FID_COND_MRKT_DIV_CODE': 'J',
+            'FID_MRKT_CLS_CODE': market,
+            'FID_INPUT_DATE_1': start_date,
+            'FID_INPUT_DATE_2': end_date,
+        },
+    )
+    output = data.get('output') or []
+    return output if isinstance(output, list) else [output]
+
+
 def fetch_invest_opinion(token, appkey, appsecret, code, date1, date2):
     """KIS 국내주식 종목투자의견(FHKST663300C0, /uapi/domestic-stock/v1/quotations/invest-opinion).
 
