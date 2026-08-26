@@ -143,8 +143,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 임시 대응) - 근본 원인인 유니버설 선택자 자체를 없앴으니 더는 존재하면 안 된다.
         self.assertNotIn(".dmi-fund-card *", style)
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
-        self.assertIn("domestic-market-indicators.css?v=20260827-dmi-fund-chart-v2", frontend)
-        self.assertIn("domestic-market-indicators.js?v=20260827-dmi-fund-chart-v2", loader)
+        self.assertIn("domestic-market-indicators.css?v=20260827-dmi-flat-chart-v3", frontend)
+        self.assertIn("domestic-market-indicators.js?v=20260827-dmi-flat-chart-v3", loader)
         self.assertIn("kospi-futures.css?v=20260827-kf-css-loader-v1", loader)
         self.assertIn("function installKospiFuturesStyle()", loader)
         self.assertIn("installKospiFuturesStyle();", loader)
@@ -158,6 +158,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("dmi-below", frontend)
         self.assertIn("var anchor = Number(average) === Number(current) ? 0 : Number(average);", frontend)
         self.assertIn("#domestic-market-indicators .dmi-spot-section .dmi-panel", style)
+        self.assertIn("#domestic-market-indicators .dmi-spot-section {", style)
+        self.assertIn("border-top: 0 !important;", style)
+        self.assertIn("border-bottom: 0 !important;", style)
+        self.assertIn("rightPriceScale: { borderVisible: false }", frontend)
+        self.assertIn("secondsVisible: false, borderVisible: false", frontend)
         self.assertIn(".dmi-mini-chart.dmi-positive .dmi-mini-chart-line { stroke: #d24f45; }", style)
         self.assertIn(".dmi-mini-chart.dmi-negative .dmi-mini-chart-line { stroke: #1261c4; }", style)
         self.assertIn("신용잔고 (빚투)", frontend)

@@ -218,8 +218,10 @@
         vertLines: { color: dark ? '#3a3a3a' : '#eee' },
         horzLines: { color: dark ? '#3a3a3a' : '#eee' }
       },
-      rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
-      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' }
+      // 차트 DOM의 CSS border가 아니라 Lightweight Charts가 canvas 안에 직접 그리는
+      // 오른쪽·아래 축 테두리다. 차트를 둘러싼 네모처럼 보이지 않게 둘 다 끈다.
+      rightPriceScale: { borderVisible: false },
+      timeScale: { borderVisible: false }
     };
   }
 
@@ -500,7 +502,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260827-dmi-fund-chart-v2';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260827-dmi-flat-chart-v3';
     document.head.appendChild(link);
   }
 
@@ -667,13 +669,14 @@
         current.chart.remove();
       }
       element.innerHTML = '';
-      var chart = LWC.createChart(element, mergeOptions({
+      var chart = LWC.createChart(element, mergeOptions(chartThemeOptions(), {
         autoSize: true,
         height: CHART_HEIGHT,
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { timeVisible: interval === 'minute', secondsVisible: false },
+        // 얕은 병합에서 테마의 timeScale 객체를 교체하므로 축선 제거값도 함께 유지한다.
+        timeScale: { timeVisible: interval === 'minute', secondsVisible: false, borderVisible: false },
         localization: { priceFormatter: chartPriceFormatter }
-      }, chartThemeOptions()));
+      }));
       var series = chart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45',
         downColor: '#1261c4',

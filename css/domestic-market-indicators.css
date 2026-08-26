@@ -416,6 +416,13 @@ html:not(.font-gothic) body #domestic-market-indicators .dmi-spot-section .dmi-c
   background: transparent !important;
 }
 
+/* 현물 차트 두 개를 한 덩어리로 감싸던 위·아래 구분선도 제거한다. 각 차트 canvas의
+   축 테두리는 JS의 rightPriceScale/timeScale borderVisible:false로 별도 제거한다. */
+#domestic-market-indicators .dmi-spot-section {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
+
 /* 증시자금 그래프는 전체 흐름이 상승이면 빨강, 하락이면 파랑으로 읽는다. */
 .dmi-mini-chart-line { stroke-width: 2.2; }
 .dmi-mini-chart-area { opacity: .10; }
