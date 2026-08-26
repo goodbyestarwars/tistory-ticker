@@ -5018,6 +5018,12 @@ html:not(.font-gothic) body .feed-block-headline .post-card.feed-headline-item {
   border-top: 0 !important;
 }
 
+/* 대표 포스트 바로 아래의 3개 카드도 앞 포스트의 하단선과 맞닿으므로,
+   다음 카드의 윗선을 중복해서 그리지 않는다. 다른 카드 그룹의 외곽선은 유지한다. */
+html:not(.font-gothic) body .feed-block-hero + .feed-block-cards .post-card.feed-cards-item {
+  border-top: 0 !important;
+}
+
 @media (max-width: 640px) {
   #foreign-flow .ff-badge-legend {
     text-align: left;
