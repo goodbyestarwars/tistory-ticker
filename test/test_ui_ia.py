@@ -1553,6 +1553,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ff-volume-study-label", style)
         self.assertIn(".ff-chart-candle::after", style)
         self.assertNotIn(".ff-chart-news-detail", style)
+        self.assertIn('.ff-chart-row .ff-chart-title { font-family: "Pretendard", "Malgun Gothic", sans-serif; }', style)
 
     def test_stock_analysis_volume_profile_uses_compact_price_bars(self):
         source = self.read("js/foreign-flow.js")

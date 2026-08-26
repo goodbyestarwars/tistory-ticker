@@ -713,6 +713,8 @@
    절반 크기가 된다. 좁은 화면(640px 이하)에서는 다시 세로로 쌓는다. */
 #foreign-flow .ff-chart-row { display: flex; gap: 12px; align-items: flex-start; }
 #foreign-flow .ff-chart-col { flex: 1 1 0; min-width: 0; }
+/* 순매매량·보유율 차트 제목은 전역 명조 폰트를 상속하지 않고 본문 UI 폰트로 고정한다. */
+#foreign-flow .ff-chart-row .ff-chart-title { font-family: "Pretendard", "Malgun Gothic", sans-serif; }
 @media (max-width: 640px) {
   #foreign-flow .ff-chart-row { flex-direction: column; }
 }
