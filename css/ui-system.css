@@ -1,0 +1,154 @@
+/*
+ * 9Pay UI system v1
+ *
+ * 새 UI는 화면별 임의값 대신 아래 토큰과 컴포넌트 클래스를 사용한다.
+ * 의미색(--up/--down)은 시세·상태 데이터에만 사용하고, 버튼 구조색과 섞지 않는다.
+ */
+:root {
+  --ui-ink: var(--text-main);
+  --ui-muted: var(--text-sub);
+  --ui-rule: var(--rule);
+  --ui-surface: var(--surface);
+  --ui-page: var(--page-bg);
+  --ui-accent-soft: #eef2ff;
+  --ui-accent-ink: #4338ca;
+  --ui-focus: #1261c4;
+  --ui-radius-control: 999px;
+  --ui-radius-module: 4px;
+  --ui-control-height: 38px;
+  --ui-control-gap: 8px;
+}
+
+/* ── 버튼 표준 ── */
+.ui-btn {
+  display: inline-flex;
+  min-height: var(--ui-control-height);
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-control);
+  background: transparent;
+  color: var(--ui-ink);
+  font: 600 13px/1 var(--font-ui);
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+/* A: 주요 실행 */
+.ui-btn-a,
+.ui-btn-primary {
+  border-color: var(--ui-ink);
+  background: var(--ui-ink);
+  color: var(--ui-surface);
+}
+.ui-btn-a:hover,
+.ui-btn-primary:hover { opacity: .86; }
+
+/* B: 보조 실행 */
+.ui-btn-b,
+.ui-btn-secondary {
+  border-color: var(--ui-rule);
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+}
+.ui-btn-b:hover,
+.ui-btn-secondary:hover { border-color: var(--ui-ink); }
+
+/* C: 이동·더보기 */
+.ui-btn-c,
+.ui-btn-soft {
+  border-color: var(--ui-accent-soft);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-ink);
+}
+.ui-btn-c:hover,
+.ui-btn-soft:hover { background: #e0e7ff; }
+
+/* D: 가벼운 링크형 */
+.ui-btn-d,
+.ui-btn-text {
+  min-height: 32px;
+  padding-right: 4px;
+  padding-left: 4px;
+  color: var(--ui-muted);
+}
+.ui-btn-d:hover,
+.ui-btn-text:hover { color: var(--ui-ink); }
+
+.ui-btn:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+.ui-btn:disabled,
+.ui-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+/* ── 모듈 표준 ── */
+/* 기본 모듈: 아래 구분선만 표시한다. */
+.ui-module {
+  box-sizing: border-box;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--ui-rule);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 외부 감싸기가 꼭 필요한 표·입력 모듈에만 사용한다. */
+.ui-module-boxed {
+  border: 1px solid var(--ui-rule);
+  border-radius: var(--ui-radius-module);
+  background: var(--ui-surface);
+  box-shadow: none;
+}
+
+.ui-section-heading {
+  display: flex;
+  min-width: 0;
+  box-sizing: border-box;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 2px 10px;
+  border-bottom: 1px solid var(--ui-rule);
+}
+.ui-section-heading > div { min-width: 0; }
+.ui-section-heading-title {
+  margin: 0;
+  color: var(--ui-ink);
+  font: 700 22px/1.2 var(--font-ui);
+  letter-spacing: -0.04em;
+}
+.ui-section-heading-description {
+  margin: 0;
+  color: var(--ui-muted);
+  font: 13px/1.4 var(--font-ui);
+}
+
+.ui-list-row {
+  display: flex;
+  min-width: 0;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ui-rule);
+}
+.ui-list-row:last-child { border-bottom: 0; }
+
+@media (max-width: 640px) {
+  .ui-btn { min-height: 36px; padding-right: 13px; padding-left: 13px; font-size: 12px; }
+  .ui-section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .ui-section-heading-title { font-size: 19px; }
+  .ui-section-heading-description { font-size: 12px; }
+}
