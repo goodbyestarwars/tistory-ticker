@@ -789,15 +789,15 @@ html.dark .ss-etf-facts dd { color: #F5EFE0; }
 html:not(.font-gothic) body #strategy-search .ss-tab,
 html:not(.font-gothic) body #strategy-search .ss-product-tab {
   flex: 0 0 auto;
-  min-height: 40px;
-  padding: 8px 16px !important;
+  min-height: 0 !important;
+  padding: 8px 14px !important;
   border: 1px solid #dbe3ed !important;
   border-radius: 4px !important;
   background: rgb(255, 254, 252) !important;
   color: #374151 !important;
-  font-size: 14px;
+  font-size: 13px !important;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: normal;
 }
 
 #strategy-search .ss-tab.active,

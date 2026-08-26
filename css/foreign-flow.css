@@ -2212,9 +2212,10 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: rgba(245, 239, 224, 0.
 #foreign-flow .ff-swing-flow { padding: 12px 0 0; }
 #foreign-flow .ff-swing-flow-track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #e1e7ee; border-bottom: 1px solid #e1e7ee; }
 #foreign-flow .ff-swing-step {
-  display: flex;
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
   align-items: baseline;
-  gap: 12px;
+  column-gap: 12px;
   min-width: 0;
   padding: 13px 14px 14px;
 }
@@ -2624,19 +2625,20 @@ html.dark #foreign-flow .ff-opinion-chart .ff-opinion-bar-wrap { background: rgb
 
 /* 종목분석 탭은 공통 UI 시스템의 직사각형 탭 버튼을 사용한다(1번 참고 이미지 기준). */
 #foreign-flow .ff-view-tab.ui-btn-tab {
-  min-height: 44px;
-  padding: 0 18px;
-  border: 1px solid var(--ui-rule);
-  border-radius: 4px;
-  background: var(--ui-surface);
-  color: var(--ui-muted);
-  font-size: 16px;
+  min-height: 0 !important;
+  padding: 8px 14px !important;
+  border: 1px solid var(--ui-rule) !important;
+  border-radius: 4px !important;
+  background: var(--ui-surface) !important;
+  color: var(--ui-muted) !important;
+  font-size: 13px !important;
+  line-height: normal;
 }
 #foreign-flow .ff-view-tab.ui-btn-tab.active {
-  border-color: var(--ui-ink);
-  background: var(--ui-ink);
-  color: var(--ui-surface);
+  border-color: var(--ui-ink) !important;
+  background: var(--ui-ink) !important;
+  color: var(--ui-surface) !important;
 }
 @media (max-width: 640px) {
-  #foreign-flow .ff-view-tab.ui-btn-tab { min-height: 40px; padding: 0 14px; font-size: 14px; }
+  #foreign-flow .ff-view-tab.ui-btn-tab { padding: 7px 11px !important; font-size: 12px !important; }
 }

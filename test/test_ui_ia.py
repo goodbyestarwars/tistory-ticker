@@ -1530,6 +1530,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/foreign-flow.js")
         self.assertIn('class="ui-btn ui-btn-tab ff-view-tab active"', source)
         style = self.read("css/foreign-flow.css")
+        self.assertIn("#foreign-flow .ff-view-tab.ui-btn-tab", style)
+        self.assertIn("padding: 8px 14px !important;", style)
+        self.assertIn("font-size: 13px !important;", style)
+        self.assertIn("border: 1px solid var(--ui-rule) !important;", style)
         chart_card = re.search(
             r"function buildFlowChartCard\(chartData, techScore\) \{(?P<body>.*?)\n  \}",
             source,
@@ -1840,11 +1844,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, public_data)
 
-    def test_strategy_search_tabs_use_shared_pill_shape(self):
+    def test_strategy_search_tabs_match_chart_search_control_size(self):
         style = self.read("css/strategy-search.css")
         self.assertIn("#strategy-search .ss-tabs", style)
         self.assertIn("#strategy-search .ss-product-tabs", style)
         self.assertIn("border-radius: 4px !important;", style)
+        self.assertIn("min-height: 0 !important;", style)
+        self.assertIn("padding: 8px 14px !important;", style)
+        self.assertIn("font-size: 13px !important;", style)
         self.assertIn("#strategy-search .ss-tab.active", style)
         self.assertIn("#strategy-search .ss-product-tab.active", style)
 
@@ -2022,6 +2029,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read('css/foreign-flow.css')
         self.assertIn('.ff-swing-flow', style)
         self.assertIn('align-items: baseline; flex: 0 0 auto; gap: 4px;', style)
+        self.assertIn('grid-template-columns: 90px minmax(0, 1fr);', style)
         self.assertNotIn('.ff-swing-grid', style)
 
     def test_weekly_candidate_empty_state_is_explicit(self):
