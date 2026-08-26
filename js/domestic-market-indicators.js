@@ -500,7 +500,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260827-dmi-futures-table-v1';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260827-dmi-fund-chart-v2';
     document.head.appendChild(link);
   }
 
@@ -566,9 +566,9 @@
     return formatFunds(avg, unit) + ' (' + count + '개 평균)';
   }
 
-  // 값 배열 + 1년 평균선을 그리는 미니 그래프. 평균 위 구간은 빨강, 아래 구간은 파랑으로
-  // 직접 나눈다. 마지막 값 하나로 전체 선 색을 정하면 중간 흐름이 사라져 사용자가
-  // "돈이 평소보다 위/아래에 있는 구간"을 읽을 수 없었기 때문이다.
+  // 값 배열 + 1년 평균선을 그리는 미니 그래프. 전체 흐름이 상승이면 빨강, 하락이면
+  // 파랑 한 색으로 그린다. 평균선은 참고선으로만 남겨 선 자체가 구간마다 쪼개져
+  // 보이지 않게 한다.
   function miniAverageChart(values, average) {
     if (!values || values.length < 2 || average == null) return '';
     var w = 260, h = 46, pad = 3;
@@ -579,10 +579,13 @@
     function x(i) { return pad + (i / (values.length - 1)) * (w - pad * 2); }
     function y(v) { return h - pad - ((v - min) / range) * (h - pad * 2); }
     var segments = [];
-    function addSegment(x1, y1, x2, y2, side) {
+    var first = values[0];
+    var last = values[values.length - 1];
+    var cls = last > first ? 'dmi-positive' : (last < first ? 'dmi-negative' : 'dmi-flat');
+    function addSegment(x1, y1, x2, y2) {
       segments.push('<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1)
         + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1)
-        + '" class="dmi-mini-chart-line ' + side + '"></line>');
+        + '" class="dmi-mini-chart-line"></line>');
     }
     values.slice(0, -1).forEach(function (value, i) {
       var next = values[i + 1];
@@ -592,15 +595,12 @@
         var ratio = (average - value) / (next - value);
         var crossX = x1 + (x2 - x1) * ratio;
         var crossY = y(average);
-        addSegment(x1, y1, crossX, crossY, next > value ? 'dmi-above' : 'dmi-below');
-        addSegment(crossX, crossY, x2, y2, next > value ? 'dmi-above' : 'dmi-below');
+        addSegment(x1, y1, crossX, crossY);
+        addSegment(crossX, crossY, x2, y2);
       } else {
-        addSegment(x1, y1, x2, y2, next >= value ? 'dmi-above' : 'dmi-below');
+        addSegment(x1, y1, x2, y2);
       }
     });
-    var first = values[0];
-    var last = values[values.length - 1];
-    var cls = last > first ? 'dmi-positive' : (last < first ? 'dmi-negative' : 'dmi-flat');
     var avgY = y(average).toFixed(1);
     var areaPoints = values.map(function (value, index) {
       return x(index).toFixed(1) + ',' + y(value).toFixed(1);
@@ -616,11 +616,12 @@
 
   function chartValuesWithFallback(values, current, average) {
     if (values && values.length >= 2) return values;
-    // 프로그램매매 이력은 백필 전까지 하루치만 내려올 수 있다. 이때도 현재값과
-    // 평균값을 두 점으로 그려 카드 높이와 정보 구조가 다른 증시자금 카드와 같게
-    // 유지한다. 임의의 과거값을 만들지 않고 API가 내려준 평균/현재값만 사용한다.
+    // 프로그램매매 이력은 백필 전까지 하루치만 내려올 수 있다. 현재값과 평균값이
+    // 같으면 두 점이 겹쳐 선이 안 보이므로, 그때는 순매수·순매도의 중립 기준인 0과
+    // 현재값을 연결해 차트를 표시한다. 이력 데이터가 두 점 이상이면 원자료를 그대로 쓴다.
     if (current != null && average != null && isFinite(Number(current)) && isFinite(Number(average))) {
-      return [Number(average), Number(current)];
+      var anchor = Number(average) === Number(current) ? 0 : Number(average);
+      return [anchor, Number(current)];
     }
     return values || [];
   }

@@ -348,11 +348,10 @@ html.dark .dmi-market-status { color: rgba(245, 239, 224, 0.4) !important; }
   justify-content: flex-end;
   margin: -4px 0 8px;
 }
-.dmi-mini-chart-line { stroke-width: 1.8; }
-.dmi-mini-chart-line.dmi-above { stroke: #d24f45; }
-.dmi-mini-chart-line.dmi-below { stroke: #1261c4; }
-.dmi-mini-chart.dmi-positive .dmi-mini-chart-line.dmi-below { stroke: #1261c4; }
-.dmi-mini-chart.dmi-negative .dmi-mini-chart-line.dmi-above { stroke: #d24f45; }
+.dmi-mini-chart-line { stroke-width: 2.2; }
+.dmi-mini-chart.dmi-positive .dmi-mini-chart-line { stroke: #d24f45; }
+.dmi-mini-chart.dmi-negative .dmi-mini-chart-line { stroke: #1261c4; }
+.dmi-mini-chart.dmi-flat .dmi-mini-chart-line { stroke: #9ca3af; }
 
 @media (max-width: 760px) {
   .dmi-spot-card,
@@ -405,12 +404,19 @@ html.dark .dmi-spot-card + .dmi-spot-card { border-top-color: rgba(245,239,224,.
 .dmi-funds-section .dmi-subheading { align-items: center; }
 .dmi-funds-section.dmi-collapsed .dmi-funds-body { display: none; }
 
-/* 차트 패널의 네모 외곽선과 코스피·코스닥 사이 세로선을 제거한다. */
-.dmi-spot-section .dmi-panel,
-.dmi-spot-section .dmi-panel + .dmi-panel,
-.dmi-spot-section .dmi-chart { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
+/* 차트 패널의 네모 외곽선과 코스피·코스닥 사이 세로선을 제거한다.
+   공통 style.css의 카드 규칙이 이미 캐시된 운영 스킨에 남아 있어도 이 페이지
+   CSS가 우선하도록 ID를 포함한 선택자를 사용한다. */
+html:not(.font-gothic) body #domestic-market-indicators .dmi-spot-section .dmi-panel,
+html:not(.font-gothic) body #domestic-market-indicators .dmi-spot-section .dmi-panel + .dmi-panel,
+html:not(.font-gothic) body #domestic-market-indicators .dmi-spot-section .dmi-chart {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
 
-/* 증시자금 그래프는 상승 구간을 빨강, 하락 구간을 파랑으로 읽는다. */
+/* 증시자금 그래프는 전체 흐름이 상승이면 빨강, 하락이면 파랑으로 읽는다. */
 .dmi-mini-chart-line { stroke-width: 2.2; }
 .dmi-mini-chart-area { opacity: .10; }
 .dmi-mini-chart.dmi-positive .dmi-mini-chart-area { fill: #d24f45; }
@@ -553,7 +559,7 @@ html.dark .dmi-spot-table td { color: #F5EFE0; border-color: rgba(245,239,224,.2
 .dmi-ai { border-bottom: 0 !important; }
 
 /* 글로벌시장지표의 추이 그래프처럼 평균선·가이드선·영역 채움을 함께 사용한다.
-   데이터는 평균 위를 빨강, 아래를 파랑으로 나누되 그래프 전체 흐름은 면으로 읽히게 한다. */
+   미니 그래프 선은 전체 흐름이 상승이면 빨강, 하락이면 파랑 한 색으로 표시한다. */
 .dmi-mini-chart { height: 72px; margin: 10px 0 4px; overflow: visible; }
 .dmi-mini-chart-guide { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 2 3; }
 .dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }
