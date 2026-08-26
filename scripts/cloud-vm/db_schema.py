@@ -669,22 +669,37 @@ def upsert_future_orderbook(conn, symbol, ask_price, bid_price, ask_qty, bid_qty
 
 def upsert_future_chart_rows(conn, symbol, rows):
     """rows: [{date, open, high, low, close}, ...]. 중복 INSERT는 PRIMARY KEY(symbol,date) UPSERT로 방지."""
+    def normalize_date(value):
+        return str(value or '').replace('-', '')[:8]
+
     conn.executemany(
         'INSERT INTO future_chart (symbol, date, open, high, low, close) VALUES (?, ?, ?, ?, ?, ?) '
         'ON CONFLICT(symbol, date) DO UPDATE SET '
         'open=excluded.open, high=excluded.high, low=excluded.low, close=excluded.close',
-        [(symbol, r['date'], r['open'], r['high'], r['low'], r['close']) for r in rows],
+        [(symbol, normalize_date(r['date']), r['open'], r['high'], r['low'], r['close']) for r in rows],
     )
     conn.commit()
 
 
+def _canonical_future_chart_rows(rows):
+    """구형 YYYY-MM-DD 행과 표준 YYYYMMDD 행이 섞인 기간을 정렬·중복 제거한다."""
+    by_date = {}
+    for row in rows:
+        date = str(row[0] or '').replace('-', '')[:8]
+        if len(date) != 8 or not date.isdigit():
+            continue
+        item = {'date': date, 'open': row[1], 'high': row[2], 'low': row[3], 'close': row[4]}
+        if date not in by_date or str(row[0]) == date:
+            by_date[date] = item
+    return [by_date[key] for key in sorted(by_date)]
+
+
 def load_future_chart(conn, symbol, limit_days=90):
     rows = conn.execute(
-        'SELECT date, open, high, low, close FROM future_chart WHERE symbol=? ORDER BY date DESC LIMIT ?',
-        (symbol, limit_days),
+        'SELECT date, open, high, low, close FROM future_chart WHERE symbol=?',
+        (symbol,),
     ).fetchall()
-    rows.reverse()
-    return [{'date': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4]} for r in rows]
+    return _canonical_future_chart_rows(rows)[-limit_days:]
 
 
 def load_future_chart_since(conn, symbol, since_date):
@@ -694,10 +709,10 @@ def load_future_chart_since(conn, symbol, since_date):
     사용자 지적으로 발견) - main.py의 /futures/avg가 심볼과 무관하게 정확히 같은 달력 기간을
     비교하고 싶을 때 이 함수를 쓴다."""
     rows = conn.execute(
-        'SELECT date, open, high, low, close FROM future_chart WHERE symbol=? AND date>=? ORDER BY date',
-        (symbol, since_date),
+        'SELECT date, open, high, low, close FROM future_chart WHERE symbol=?',
+        (symbol,),
     ).fetchall()
-    return [{'date': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4]} for r in rows]
+    return [row for row in _canonical_future_chart_rows(rows) if row['date'] >= since_date]
 
 
 def upsert_future_chart_minute_rows(conn, symbol, rows):

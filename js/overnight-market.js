@@ -456,7 +456,8 @@
   // 일치하게 만든다. 차트 마지막 점도 현재가로 맞춰(일봉 이력이 어제까지만 있으면 오늘 점을
   // 덧붙임) 선의 위/아래가 등락 배지와 어긋나지 않게 한다.
   function renderSparkline(container, symbol, chartRows, positive, price, change) {
-    if (!chartRows || chartRows.length < 2) return;
+    var normalizedRows = normalizeChartRows(chartRows);
+    if (normalizedRows.length < 2) return;
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;
 
@@ -486,7 +487,7 @@
         lastValueVisible: false,
         crosshairMarkerVisible: false
       });
-      var seriesData = chartRows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; });
+      var seriesData = normalizedRows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; });
       if (typeof price === 'number') {
         var kst = new Date(Date.now() + 9 * 60 * 60000);
         var today = kst.toISOString().slice(0, 10);
@@ -499,7 +500,7 @@
 
       // 기준선(전일 종가) - priceLine을 chartInstances에 같이 들고 있어야 다크모드 토글 때
       // 색을 다시 맞출 수 있다.
-      var baseValue = (typeof price === 'number' && typeof change === 'number') ? price - change : chartRows[0].close;
+      var baseValue = (typeof price === 'number' && typeof change === 'number') ? price - change : normalizedRows[0].close;
       var baseLine = series.createPriceLine({
         price: baseValue,
         color: isDark() ? '#666' : '#ccc',
@@ -671,10 +672,26 @@
       .catch(function () { box.hidden = true; });
   }
 
-  // 백엔드(KIS stck_bsop_date, 네이버 localDate)가 전부 'YYYYMMDD' 포맷을 주는데
+  // 백엔드(KIS stck_bsop_date, 네이버 localDate)는 'YYYYMMDD'를 주고, 과거 BTC DB에는
+  // 일부 'YYYY-MM-DD' 행이 남아 있어 두 포맷이 섞일 수 있다. 차트 입력 전 항상 대시를
+  // 제거해 한 포맷으로 통일한다.
+  function normalizeChartRows(rows) {
+    var byDate = {};
+    (rows || []).forEach(function (row) {
+      var date = String(row && row.date || '').replace(/-/g, '').slice(0, 8);
+      if (!/^\d{8}$/.test(date) || !row || row.close == null) return;
+      // 같은 날짜의 구형/신형 행이 동시에 있으면 이미 정규화된 행을 우선한다.
+      if (!byDate[date] || String(row.date) === date) {
+        byDate[date] = { date: date, close: Number(row.close) };
+      }
+    });
+    return Object.keys(byDate).sort().map(function (date) { return byDate[date]; });
+  }
+
   // Lightweight Charts는 business day 문자열로 'YYYY-MM-DD'(대시 포함)를 요구한다.
   function toLwcTime(yyyymmdd) {
-    return yyyymmdd.slice(0, 4) + '-' + yyyymmdd.slice(4, 6) + '-' + yyyymmdd.slice(6, 8);
+    var date = String(yyyymmdd).replace(/-/g, '');
+    return date.slice(0, 4) + '-' + date.slice(4, 6) + '-' + date.slice(6, 8);
   }
 
   function hexToRgba(hex, alpha) {
