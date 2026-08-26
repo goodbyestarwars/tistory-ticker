@@ -502,7 +502,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260827-dmi-funds-live-v5';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260827-dmi-chart-controls-v6';
     document.head.appendChild(link);
   }
 
@@ -874,7 +874,7 @@
       + '<div class="dmi-subheading"><h3>코스피 · 코스닥 현물 (09:00~15:45) <span class="dmi-market-status" data-dmi-market-status></span></h3>'
       + '<button type="button" class="dmi-spot-collapse" aria-expanded="' + (spotCollapsed ? 'false' : 'true') + '">' + (spotCollapsed ? '펼치기' : '숨기기') + '</button></div>'
       + '<div class="dmi-spot-body"><div class="dmi-spot-quotes"><div class="dmi-spot-loading">불러오는 중...</div></div>'
-      + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: '코스피' }) + chartPanel('KOSDAQ', { name: '코스닥' }) + '</div></div></section>'
+      + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: 'KOSPI' }) + chartPanel('KOSDAQ', { name: 'KOSDAQ' }) + '</div></div></section>'
       + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3></div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
       + '<section class="dmi-funds-section' + (fundsCollapsed ? ' dmi-collapsed' : '') + '">'

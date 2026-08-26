@@ -81,7 +81,7 @@
     { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '코스피200 야간선물 (18:00~06:00)', intervals: ['minute', 'day', 'week'] }
   ];
   var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
-  var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20260827-kf-css-loader-v1';
+  var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20260827-kf-chart-controls-v2';
 
   var CHART_EL_BY_KEY = {};
   CHARTS.forEach(function (c) { CHART_EL_BY_KEY[c.key] = c.elId; });
@@ -341,11 +341,11 @@
 
     var sections = CHARTS.map(function (c) {
       var toggleHtml = '<div class="kf-interval-toggle" data-chart-key="' + c.key + '"'
-        + '><button type="button" class="kf-draw-toggle" aria-pressed="false">선 그리기</button>'
-        + '<button type="button" class="kf-draw-clear">지우기</button>'
-        + c.intervals.map(function (iv) {
+        + '><div class="kf-interval-tabs">' + c.intervals.map(function (iv) {
           return '<button type="button" class="kf-interval-btn' + (iv === panelState[c.key].interval ? ' active' : '') + '" data-interval="' + iv + '">' + INTERVAL_LABELS[iv] + '</button>';
-        }).join('')
+        }).join('') + '</div>'
+        + '<div class="kf-draw-buttons"><button type="button" class="kf-draw-toggle" aria-pressed="false">선 그리기</button>'
+        + '<button type="button" class="kf-draw-clear">지우기</button></div>'
         + '</div>';
       var collapsed = loadCollapsed(c.key);
       return '<div class="kf-section' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="' + c.key + '">'

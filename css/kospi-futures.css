@@ -157,15 +157,25 @@
 
 #kospi-futures .kf-interval-toggle {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 10px;
+}
+
+#kospi-futures .kf-interval-tabs,
+#kospi-futures .kf-draw-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 #kospi-futures .kf-interval-btn {
   font-family: inherit;
-  font-size: 12px;
+  min-height: 36px;
+  padding: 0 17px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 4px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
   background: #f8fafc;
@@ -182,15 +192,19 @@
 #kospi-futures .kf-draw-toggle,
 #kospi-futures .kf-draw-clear {
   font-family: inherit;
-  font-size: 12px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 4px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
   background: #f8fafc;
   color: #6b7280;
   cursor: pointer;
 }
+
+#kospi-futures .kf-draw-toggle:hover,
+#kospi-futures .kf-draw-clear:hover { border-color: #111; color: #111; }
 
 #kospi-futures .kf-draw-toggle.is-active {
   background: #222;
@@ -236,6 +250,9 @@
 
 @media (max-width: 760px) {
   #kospi-futures .kf-chart-grid { grid-template-columns: 1fr; }
+  #kospi-futures .kf-interval-toggle { align-items: flex-start; flex-direction: column; gap: 8px; }
+  #kospi-futures .kf-interval-tabs,
+  #kospi-futures .kf-draw-buttons { flex-wrap: wrap; }
   #kospi-futures .kf-quote-table th,
   #kospi-futures .kf-quote-table td { padding: 8px 4px; font-size: 11px; }
   #kospi-futures .kf-quote-table th:first-child,

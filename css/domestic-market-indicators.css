@@ -574,5 +574,40 @@ html.dark .dmi-spot-table td { color: #F5EFE0; border-color: rgba(245,239,224,.2
 .dmi-mini-chart.dmi-positive .dmi-mini-chart-area { fill: #d24f45; }
 .dmi-mini-chart.dmi-negative .dmi-mini-chart-area { fill: #1261c4; }
 .dmi-mini-chart.dmi-flat .dmi-mini-chart-area { fill: #64748b; }
-.dmi-mini-chart-line { stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.dmi-mini-chart-line { stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 현물·선물 차트 공통 제어 규격: 기간은 둥근 탭, 그리기 도구는 얇은 사각 버튼으로
+   한 행에 둔다. 전역 카드 버튼의 영향 없이 첨부 시안의 위계를 유지한다. */
+#domestic-market-indicators .dmi-tab {
+  min-height: 36px;
+  padding: 0 17px;
+  border-color: #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+}
+#domestic-market-indicators .dmi-tab.is-active {
+  border-color: #222;
+  background: #222;
+  color: #fff;
+}
+#domestic-market-indicators .dmi-draw-toggle,
+#domestic-market-indicators .dmi-draw-clear {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #d7dee8;
+  border-radius: 4px;
+  background: rgb(255, 254, 252);
+  color: #64748b;
+  font-size: 13px;
+}
+#domestic-market-indicators .dmi-draw-toggle.is-active {
+  border-color: #222;
+  background: #222;
+  color: #fff;
+}
+#domestic-market-indicators .dmi-draw-toggle:hover,
+#domestic-market-indicators .dmi-draw-clear:hover { border-color: #111; color: #111; }
+
 html.dark .dmi-mini-chart-guide { stroke: rgba(245,239,224,.18); }
