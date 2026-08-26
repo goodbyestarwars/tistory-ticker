@@ -1326,14 +1326,9 @@
   })();
 
   /* ── 카테고리 글목록: 신문 지면형 고정 편집(2026-08-26) ──
-     처음엔 카드 하나하나에 독립적으로 크기만 다른 클래스를 줬는데(모두 세로 1열, "왜 일열이야"
-     피드백) - 사용자가 표로 예를 들어 요구한 건 그게 아니라 진짜 구조가 다른 "블록"들이
-     섞이는 것. 처음엔 "제목만 목록"을 독립된 블록으로 뒀는데, 사용자가 "그럴 땐 왼쪽에 포스팅
-     하나 + 오른쪽에 제목만 있는 목록으로 해야 하지 않을까?"라고 재지적 - 제목만 있는 목록이
-     혼자 둥둥 떠 있는 것보다 큰 글 옆에 붙어야 자연스럽다는 지적이 맞아서, single(대표 1개)과
-     headline(제목 목록)을 하나의 hero 블록(왼쪽 대표 1 + 오른쪽 제목 목록 최대 4)으로 합쳤다.
-     글을 앞에서부터 순서대로(최신순 그대로, 절대 재정렬 안 함) 소비하면서, 대표 기사와
-     헤드라인을 먼저 보여주고 이후 카드 3개·가로 기사 2개를 반복해 안정적인 지면을 만든다. */
+     일반 카테고리는 대표 1개 + 헤드라인 최대 4개 뒤에 작은 카드·2열을 반복한다. 다만
+     마켓브리핑은 최신 글 1개만 미리보기로 두고 이후 글 전부를 오른쪽 세로 목록으로 유지한다.
+     글은 언제나 최신순 그대로 소비하며 재정렬하지 않는다. */
   (function buildCategoryFeedBlocks() {
     if (location.pathname.indexOf('/category/') !== 0) return;
     var feed = document.querySelector('.feed');
@@ -1347,8 +1342,12 @@
     }
     var cards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     if (cards.length < 2) return; /* 카드가 1개뿐이면 다양화할 의미가 없음 */
+    var isMarketBriefing = decodeURIComponent(location.pathname) === '/category/마켓 브리핑';
 
-    var BLOCK_SEQUENCE = [
+    var BLOCK_SEQUENCE = isMarketBriefing ? [
+      // 마켓브리핑: 최신 1개만 미리보기, 나머지는 제목·날짜·공유 중심의 세로 목록.
+      { key: 'briefingHero', min: 2, max: cards.length }
+    ] : [
       { key: 'hero', min: 2, max: 5 },   // 최신 대표 1 + 헤드라인 최대 4
       { key: 'cards', min: 3, max: 3 },  // 작은 카드형 3개 그리드
       { key: 'duo', min: 2, max: 2 }     // 가로로 나란한 2개
@@ -1360,9 +1359,9 @@
         slice[0].classList.add('feed-featured'); // 이미 제자리에 있으므로 이동 없이 클래스만
         return;
       }
-      if (type === 'hero') {
+      if (type === 'hero' || type === 'briefingHero') {
         var hero = document.createElement('div');
-        hero.className = 'feed-block feed-block-hero';
+        hero.className = 'feed-block feed-block-hero' + (type === 'briefingHero' ? ' feed-block-briefing-hero' : '');
         feed.insertBefore(hero, beforeNode);
         var featuredSlot = document.createElement('div');
         featuredSlot.className = 'feed-hero-featured-slot';

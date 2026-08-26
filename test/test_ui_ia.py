@@ -55,9 +55,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("category-masthead", category_source)
         self.assertIn("var BLOCK_SEQUENCE", category_source)
         self.assertIn("sequenceIndex % BLOCK_SEQUENCE.length", category_source)
+        self.assertIn("var isMarketBriefing = decodeURIComponent(location.pathname) === '/category/마켓 브리핑';", category_source)
+        self.assertIn("{ key: 'briefingHero', min: 2, max: cards.length }", category_source)
+        self.assertIn("feed-block-briefing-hero", category_source)
         self.assertNotIn("Math.random()", category_source)
         self.assertIn(".category-masthead", style)
         self.assertIn("font: 700 30px/1.15 var(--font-title)", style)
+        self.assertIn(".feed-block-briefing-hero .post-card.feed-headline-item .post-title", style)
+        self.assertIn("-webkit-line-clamp: 3;", style)
 
     def test_stock_menu_opens_analysis_and_search_submenu(self):
         source = self.read("js/skin-menu.js")
