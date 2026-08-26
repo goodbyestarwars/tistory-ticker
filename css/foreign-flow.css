@@ -2217,8 +2217,9 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: rgba(245, 239, 224, 0.
   padding: 13px 14px 14px;
 }
 #foreign-flow .ff-swing-step + .ff-swing-step { border-left: 1px solid #e1e7ee; }
-#foreign-flow .ff-swing-step-label { display: block; flex: 0 0 auto; color: #64748b; font-size: 12px; line-height: 1.35; white-space: nowrap; }
-#foreign-flow .ff-swing-step-label em { margin-left: 4px; color: #94a3b8; font-size: 11px; font-style: normal; }
+#foreign-flow .ff-swing-step-label { display: inline-flex; align-items: baseline; flex: 0 0 auto; gap: 4px; color: #64748b; font-size: 12px; line-height: 1.35; white-space: nowrap; }
+#foreign-flow .ff-swing-step-name, #foreign-flow .ff-swing-step-context { display: inline-block; }
+#foreign-flow .ff-swing-step-context { color: #94a3b8; font-size: 11px; }
 #foreign-flow .ff-swing-step strong { display: block; min-width: 0; margin-top: 0; color: #0f4c81; font-size: 15px; line-height: 1.35; }
 #foreign-flow .ff-swing-diagnosis { display: flex; align-items: baseline; gap: 12px; padding: 14px 2px; border-bottom: 1px solid #e1e7ee; }
 #foreign-flow .ff-swing-diagnosis span, #foreign-flow .ff-swing-action span { flex: 0 0 auto; color: #64748b; font-size: 12px; }

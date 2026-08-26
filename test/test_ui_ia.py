@@ -1986,6 +1986,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('recentEvent', visible_box)
         self.assertIn('장기 국면', visible_box)
         self.assertIn('맥락', visible_box)
+        self.assertIn('ff-swing-step-name', visible_box)
+        self.assertIn('ff-swing-step-context', visible_box)
         self.assertIn('중기 국면', visible_box)
         self.assertIn('방향', visible_box)
         self.assertIn('단기 국면', visible_box)
@@ -1997,6 +1999,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn('ff-stars', visible_box)
         style = self.read('css/foreign-flow.css')
         self.assertIn('.ff-swing-flow', style)
+        self.assertIn('align-items: baseline; flex: 0 0 auto; gap: 4px;', style)
         self.assertNotIn('.ff-swing-grid', style)
 
     def test_weekly_candidate_empty_state_is_explicit(self):
