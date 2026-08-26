@@ -5,17 +5,19 @@
 }
 
 #kospi-futures .kf-ai {
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  background: #f0f6ff;
-  border-radius: 10px;
+  padding: 12px 0;
+  margin: 0;
+  background: transparent;
+  border-top: 1px solid #e7e7e7;
+  border-bottom: 1px solid #e7e7e7;
+  border-radius: 0;
   font-size: 13px;
   line-height: 1.6;
 }
 
 #kospi-futures .kf-ai p {
   margin: 0;
-  color: #444;
+  color: #000;
 }
 
 #kospi-futures .kf-ai-head {
@@ -26,28 +28,29 @@
 
 #kospi-futures .kf-ai-icon {
   flex: 0 0 auto;
-  color: #4a7fd6;
+  color: #000;
 }
 
 #kospi-futures .kf-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  display: block;
   margin-bottom: 20px;
 }
 
-#kospi-futures .kf-stat-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 14px;
-  background: rgb(255, 254, 252);
+#kospi-futures .kf-quote-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid #d8d8d8;
+  border-bottom: 1px solid #d8d8d8;
+  table-layout: fixed;
 }
 
-#kospi-futures .kf-stat-label {
+#kospi-futures .kf-quote-table th,
+#kospi-futures .kf-quote-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e7e7e7;
+  text-align: right;
   font-size: 13px;
-  font-weight: 700;
-  color: #666;
-  margin-bottom: 6px;
+  color: #111;
 }
 
 /* 2026-08-05: 정규장 마감 시 "(장 마감)" 배지 - js/kospi-futures.js의 updateMarketStatusBadges가
@@ -56,6 +59,13 @@
   font-weight: 600;
   color: #94a3b8;
 }
+
+#kospi-futures .kf-quote-table thead th { color: #777; font-size: 12px; font-weight: 600; }
+#kospi-futures .kf-quote-table tbody tr:last-child th,
+#kospi-futures .kf-quote-table tbody tr:last-child td { border-bottom: 0; }
+#kospi-futures .kf-quote-table th:first-child,
+#kospi-futures .kf-quote-table td:first-child { width: 34%; text-align: left; }
+#kospi-futures .kf-quote-table tbody th { font-weight: 700; }
 
 #kospi-futures .kf-stat-price {
   font-size: 24px;
@@ -102,8 +112,8 @@
 
 #kospi-futures .kf-section[data-section-key="ai"] {
   margin-top: 32px;
-  padding-top: 14px;
-  border-top: 1px solid #e2e8f0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 /* 2026-08-14: 옵션 수급이 바로 위 차트 그리드에 딱 붙어 보인다는 리포트 - 참고의견
@@ -205,10 +215,11 @@
 
 #kospi-futures .kf-chart {
   position: relative;
-  border: none;
+  border: none !important;
+  border-radius: 0 !important;
   padding: 0;
   overflow: hidden;
-  background: rgb(255, 254, 252);
+  background: transparent !important;
 }
 
 @media (min-width: 761px) {
@@ -225,6 +236,10 @@
 
 @media (max-width: 760px) {
   #kospi-futures .kf-chart-grid { grid-template-columns: 1fr; }
+  #kospi-futures .kf-quote-table th,
+  #kospi-futures .kf-quote-table td { padding: 8px 4px; font-size: 11px; }
+  #kospi-futures .kf-quote-table th:first-child,
+  #kospi-futures .kf-quote-table td:first-child { width: 32%; word-break: keep-all; }
 }
 
 #kospi-futures .kf-chart-error {
@@ -249,8 +264,14 @@
 #kospi-futures .kf-stat-oi {
   font-size: 12px;
   color: #888;
-  margin-top: 6px;
+  font-weight: 600;
 }
+
+#kospi-futures .kf-quote-table .kf-stat-price { font-size: 16px; font-weight: 700; }
+#kospi-futures .kf-quote-table .kf-stat-change { font-weight: 700; }
+#kospi-futures .kf-quote-table .kf-pos { color: #d24f45 !important; }
+#kospi-futures .kf-quote-table .kf-neg { color: #1261c4 !important; }
+#kospi-futures .kf-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* ---- 참고의견 섹션 내 옵션 수급 원자료(콜/풋) ---- */
 #kospi-futures .kf-opt-desc {
@@ -369,14 +390,13 @@
 
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. */
-html.dark #kospi-futures .kf-ai { background: rgba(245, 239, 224, 0.06) !important; }
+html.dark #kospi-futures .kf-ai { background: transparent !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #kospi-futures .kf-ai p { color: #F5EFE0 !important; }
 html.dark #kospi-futures .kf-ai-icon { color: #F5EFE0 !important; }
-html.dark #kospi-futures .kf-stat-card {
-  background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.2) !important;
-}
-html.dark #kospi-futures .kf-stat-label { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #kospi-futures .kf-quote-table th,
+html.dark #kospi-futures .kf-quote-table td { color: #F5EFE0; border-bottom-color: rgba(245,239,224,.12); }
+html.dark #kospi-futures .kf-quote-table { border-color: rgba(245,239,224,.2); }
+html.dark #kospi-futures .kf-quote-table thead th { color: rgba(245,239,224,.55); }
 html.dark #kospi-futures .kf-stat-status { color: rgba(245, 239, 224, 0.4) !important; }
 html.dark #kospi-futures .kf-stat-updated { color: rgba(245, 239, 224, 0.4) !important; }
 html.dark #kospi-futures .kf-zero { color: #F5EFE0 !important; }

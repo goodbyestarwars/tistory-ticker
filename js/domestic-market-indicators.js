@@ -252,10 +252,11 @@
       var price = quote.price != null ? quote.price : last.close;
       var change = quote.change;
       var rate = quote.change_rate;
-      var cls = Number(change) > 0 ? 'dmi-positive' : Number(change) < 0 ? 'dmi-negative' : '';
+      var direction = change != null ? change : rate;
+      var cls = Number(direction) > 0 ? 'dmi-positive' : Number(direction) < 0 ? 'dmi-negative' : '';
       return '<tr>'
         + '<th scope="row">' + escapeHtml(item.name || market) + '</th>'
-        + '<td class="dmi-spot-price">' + spotPrice(price) + '</td>'
+        + '<td class="dmi-spot-price ' + cls + '">' + spotPrice(price) + '</td>'
         + '<td class="' + cls + '">' + spotChange(change) + '</td>'
         + '<td class="' + cls + '">' + spotChange(rate) + '%</td>'
         + '</tr>';
@@ -499,7 +500,7 @@
     var link = document.createElement('link');
     link.id = 'dmi-style';
     link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260826-dmi-layout-v4';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/domestic-market-indicators.css?v=20260827-dmi-futures-table-v1';
     document.head.appendChild(link);
   }
 
@@ -611,6 +612,17 @@
       + '<line x1="0" y1="' + avgY + '" x2="' + w + '" y2="' + avgY + '" class="dmi-mini-chart-avg"></line>'
       + segments.join('')
       + '</svg>';
+  }
+
+  function chartValuesWithFallback(values, current, average) {
+    if (values && values.length >= 2) return values;
+    // 프로그램매매 이력은 백필 전까지 하루치만 내려올 수 있다. 이때도 현재값과
+    // 평균값을 두 점으로 그려 카드 높이와 정보 구조가 다른 증시자금 카드와 같게
+    // 유지한다. 임의의 과거값을 만들지 않고 API가 내려준 평균/현재값만 사용한다.
+    if (current != null && average != null && isFinite(Number(current)) && isFinite(Number(average))) {
+      return [Number(average), Number(current)];
+    }
+    return values || [];
   }
 
   function signed(value) {
@@ -779,7 +791,7 @@
       + '<strong class="dmi-fund-value ' + avgCompareClass(value, yearAvg) + '">' + formatSignedFunds(value, unit) + '</strong>'
       + (recentAvg != null ? '<span class="dmi-fund-average">최근 평균 ' + formatSignedFunds(recentAvg, unit) + ' (' + recentCount + '일 평균)</span>' : '')
       + (yearAvg != null ? '<span class="dmi-fund-average">1년 평균 ' + formatSignedFunds(yearAvg, unit) + ' (' + yearCount + '일 평균)</span>' : '')
-      + miniAverageChart(history, yearAvg)
+      + miniAverageChart(chartValuesWithFallback(history, value, yearAvg), yearAvg)
       + '<span class="dmi-fund-average">코스피 전체, 순매수(+)/순매도(-)</span>'
       + '<span class="dmi-fund-date">' + escapeHtml(programTrading.date || '-') + '</span></article>';
   }

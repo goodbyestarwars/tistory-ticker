@@ -65,7 +65,7 @@
     KOSPI200_DAY: '코스피200 주간선물 (09:00~15:45)',
     KOSPI200_NIGHT: '코스피200 야간선물 (18:00~06:00)'
   };
-  // buildStatBody/updateMarketStatusBadges가 심볼 -> 세션 종류를 찾을 때 쓴다(아래 isMarketOpen).
+  // buildQuoteRow/updateMarketStatusBadges가 심볼 -> 세션 종류를 찾을 때 쓴다(아래 isMarketOpen).
   var PANEL_KEY_BY_SYMBOL = { KOSPI200_DAY: 'day', KOSPI200_NIGHT: 'night' };
   // 이 페이지가 실제로 쓰는 심볼만 서버에 요청한다 - /futures는 코스피/코스닥·미국지수·원자재·
   // 환율·채권·코인까지 21개 심볼을 한 번에 주는 공용 엔드포인트인데, 이 페이지는 선물 2개만
@@ -312,13 +312,15 @@
   }
 
   function buildShell() {
-    var panelCards = PANEL_ORDER.map(function (symbol) {
-      return '<div class="kf-stat-card" data-symbol="' + symbol + '">'
-        + '<div class="kf-stat-label">' + escapeHtml(PANEL_LABELS[symbol])
-        + ' <span class="kf-stat-status" data-symbol="' + symbol + '"></span></div>'
-        + '<div class="kf-stat-body kf-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'
-        + '</div>';
+    var panelRows = PANEL_ORDER.map(function (symbol) {
+      return '<tr data-symbol="' + symbol + '"><th scope="row">' + escapeHtml(PANEL_LABELS[symbol])
+        + ' <span class="kf-stat-status" data-symbol="' + symbol + '"></span></th>'
+        + '<td colspan="4" class="kf-loading">불러오는 중...</td></tr>';
     }).join('');
+    var panelCards = '<table class="kf-quote-table" aria-label="선물 지수">'
+      + '<caption class="kf-visually-hidden">선물 지수</caption>'
+      + '<thead><tr><th scope="col">지수</th><th scope="col">현재가</th><th scope="col">전일 대비</th><th scope="col">등락률</th><th scope="col">미결제약정 (증감)</th></tr></thead>'
+      + '<tbody>' + panelRows + '</tbody></table>';
 
     var sections = CHARTS.map(function (c) {
       var toggleHtml = '<div class="kf-interval-toggle" data-chart-key="' + c.key + '"'
@@ -541,29 +543,22 @@
       + '<div class="kf-option-profile-scroll">' + body + '</div>';
   }
 
-  // 미결제약정(OI)은 야간선물(KIS 소스)만 값이 있음 - 주간선물(네이버)은 원래 OI를 안 줘서
-  // item.oi가 null로 온다(정상, 에러 아님).
-  function fmtOiLine(oi, oiChange) {
-    if (oi == null) return '';
-    var tone = oiChange > 0 ? 'kf-pos' : oiChange < 0 ? 'kf-neg' : 'kf-zero';
-    var sign = oiChange > 0 ? '+' : '';
-    return '<div class="kf-stat-oi">미결제약정 ' + Math.round(oi).toLocaleString('ko-KR')
-      + (oiChange != null ? ' <span class="' + tone + '">(' + sign + Math.round(oiChange).toLocaleString('ko-KR') + ')</span>' : '')
-      + '</div>';
-  }
-
-  function buildStatBody(item) {
+  function buildQuoteRow(item, symbol) {
     var hasPrice = item && typeof item.price === 'number';
     var tone = !hasPrice ? 'kf-zero' : item.change_rate > 0 ? 'kf-pos' : item.change_rate < 0 ? 'kf-neg' : 'kf-zero';
     return ''
-      + '<div class="kf-stat-body">'
-      + '<div class="kf-stat-price ' + tone + '">' + (hasPrice ? fmtPrice(item.price) : '데이터 없음') + '</div>'
+      + '<tr data-symbol="' + escapeHtml(symbol) + '">'
+      + '<th scope="row">' + escapeHtml(PANEL_LABELS[symbol] || symbol)
+      + ' <span class="kf-stat-status" data-symbol="' + escapeHtml(symbol) + '"></span></th>'
+      + '<td class="kf-stat-price ' + tone + '">' + (hasPrice ? fmtPrice(item.price) : '데이터 없음') + '</td>'
       + (hasPrice
-        ? '<div class="kf-stat-change ' + tone + '">' + fmtDirection(item.change, 2) + ' (' + fmtDirection(item.change_rate, 2) + '%)</div>'
-        : '')
-      + (hasPrice ? fmtOiLine(item.oi, item.oi_change) : '')
-      + '<div class="kf-stat-updated">' + (hasPrice ? '업데이트 ' + fmtTime(item.updated_at) : '') + '</div>'
-      + '</div>';
+        ? '<td class="kf-stat-change ' + tone + '">' + fmtDirection(item.change, 2) + '</td>'
+          + '<td class="kf-stat-change ' + tone + '">' + fmtDirection(item.change_rate, 2) + '%</td>'
+          + '<td class="kf-stat-oi">' + (item.oi == null ? '-' : Math.round(item.oi).toLocaleString('ko-KR'))
+            + (item.oi_change == null ? '' : ' <span class="' + (item.oi_change > 0 ? 'kf-pos' : item.oi_change < 0 ? 'kf-neg' : 'kf-zero') + '">(' + fmtSigned(Number(item.oi_change), 0) + ')</span>')
+            + '</td>'
+        : '<td colspan="3" class="kf-error">데이터 없음</td>')
+      + '</tr>';
   }
 
   // js/foreign-flow.js의 lwcThemeOptions와 동일 패턴 - 9bolt 스킨 다크모드(html.dark 토글)를
@@ -1081,11 +1076,10 @@
     var bySymbol = {};
     items.forEach(function (item) { bySymbol[item.symbol] = item; });
 
-    PANEL_ORDER.forEach(function (symbol) {
-      var card = container.querySelector('.kf-stat-card[data-symbol="' + symbol + '"]');
-      if (!card) return;
-      card.querySelector('.kf-stat-body').outerHTML = buildStatBody(bySymbol[symbol]);
-    });
+    var tableBody = container.querySelector('.kf-quote-table tbody');
+    if (tableBody) tableBody.innerHTML = PANEL_ORDER.map(function (symbol) {
+      return buildQuoteRow(bySymbol[symbol], symbol);
+    }).join('');
 
     CHARTS.forEach(function (cfg) {
       panelState[cfg.key].dayItem = bySymbol[cfg.symbol];
@@ -1101,14 +1095,8 @@
     return KospiFutures.fetchFutures('day', DAY_RANGE, { symbols: PAGE_SYMBOLS })
       .then(function (items) { renderAll(container, items); })
       .catch(function () {
-        PANEL_ORDER.forEach(function (symbol) {
-          var card = container.querySelector('.kf-stat-card[data-symbol="' + symbol + '"]');
-          if (!card) return;
-          var body = card.querySelector('.kf-stat-body');
-          if (body && body.classList.contains('kf-loading')) {
-            body.outerHTML = '<div class="kf-stat-body kf-error">시세를 불러오지 못했어요.</div>';
-          }
-        });
+        var tableBody = container.querySelector('.kf-quote-table tbody');
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="kf-error">시세를 불러오지 못했어요.</td></tr>';
       });
   }
 
@@ -1147,7 +1135,7 @@
     // domestic-market-indicators.js를 다시 안 받아온다 - 그 파일을 고칠 때마다 같이 올려야
     // 한다(오늘 여러 번 고쳤는데 이 값을 안 올려서 캐시된 사용자가 최신 코드를 못 받는
     // 문제를 뒤늦게 발견함).
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260826-dmi-layout-v4';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260827-dmi-futures-table-v1';
     script.setAttribute('data-domestic-market-indicators', '1');
     script.onload = function () {
       if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();

@@ -280,6 +280,8 @@ html.dark .dmi-spot-card { background: transparent !important; border-color: rgb
 html.dark .dmi-spot-label,
 html.dark .dmi-spot-price,
 html.dark .dmi-spot-change { color: #F5EFE0 !important; }
+html.dark .dmi-spot-table .dmi-spot-price.dmi-positive { color: #d24f45 !important; }
+html.dark .dmi-spot-table .dmi-spot-price.dmi-negative { color: #1261c4 !important; }
 html.dark .dmi-tab,
 html.dark .dmi-tabs .dmi-draw-toggle,
 html.dark .dmi-tabs .dmi-draw-clear { background: transparent !important; color: rgba(245,239,224,.6) !important; }
@@ -406,7 +408,7 @@ html.dark .dmi-spot-card + .dmi-spot-card { border-top-color: rgba(245,239,224,.
 /* 차트 패널의 네모 외곽선과 코스피·코스닥 사이 세로선을 제거한다. */
 .dmi-spot-section .dmi-panel,
 .dmi-spot-section .dmi-panel + .dmi-panel,
-.dmi-spot-section .dmi-chart { border: 0; box-shadow: none; }
+.dmi-spot-section .dmi-chart { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
 
 /* 증시자금 그래프는 상승 구간을 빨강, 하락 구간을 파랑으로 읽는다. */
 .dmi-mini-chart-line { stroke-width: 2.2; }
@@ -477,6 +479,8 @@ html.dark .dmi-section-collapse {
 .dmi-spot-table .dmi-spot-price { font-size: 16px; font-weight: 700; }
 .dmi-spot-table .dmi-positive { color: #d24f45; font-weight: 700; }
 .dmi-spot-table .dmi-negative { color: #1261c4; font-weight: 700; }
+.dmi-spot-table .dmi-spot-price.dmi-positive { color: #d24f45; }
+.dmi-spot-table .dmi-spot-price.dmi-negative { color: #1261c4; }
 .dmi-spot-loading { padding: 12px 0; color: #777; font-size: 13px; }
 .dmi-visually-hidden {
   position: absolute;
