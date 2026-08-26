@@ -1533,7 +1533,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("#foreign-flow .ff-view-tab.ui-btn-tab", style)
         self.assertIn("padding: 8px 14px !important;", style)
         self.assertIn("font-size: 13px !important;", style)
-        self.assertIn("border: 1px solid var(--ui-rule) !important;", style)
+        self.assertIn("border: 1px solid var(--ui-rule, #dbe3ed) !important;", style)
+        self.assertIn("background: var(--ui-ink, #111827) !important;", style)
         chart_card = re.search(
             r"function buildFlowChartCard\(chartData, techScore\) \{(?P<body>.*?)\n  \}",
             source,

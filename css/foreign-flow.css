@@ -2627,17 +2627,17 @@ html.dark #foreign-flow .ff-opinion-chart .ff-opinion-bar-wrap { background: rgb
 #foreign-flow .ff-view-tab.ui-btn-tab {
   min-height: 0 !important;
   padding: 8px 14px !important;
-  border: 1px solid var(--ui-rule) !important;
+  border: 1px solid var(--ui-rule, #dbe3ed) !important;
   border-radius: 4px !important;
-  background: var(--ui-surface) !important;
-  color: var(--ui-muted) !important;
+  background: var(--ui-surface, rgb(255, 254, 252)) !important;
+  color: var(--ui-muted, #374151) !important;
   font-size: 13px !important;
-  line-height: normal;
+  line-height: normal !important;
 }
 #foreign-flow .ff-view-tab.ui-btn-tab.active {
-  border-color: var(--ui-ink) !important;
-  background: var(--ui-ink) !important;
-  color: var(--ui-surface) !important;
+  border-color: var(--ui-ink, #111827) !important;
+  background: var(--ui-ink, #111827) !important;
+  color: var(--ui-surface, #ffffff) !important;
 }
 @media (max-width: 640px) {
   #foreign-flow .ff-view-tab.ui-btn-tab { padding: 7px 11px !important; font-size: 12px !important; }
