@@ -337,7 +337,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260826-category-newspaper-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260827-market-briefing-list-v2", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -371,7 +371,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260827-global-chart-title-font-v1", skin)
+        self.assertIn("style.css?v=20260827-market-briefing-list-v2", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -388,7 +388,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
-        self.assertIn("skin-main.js?v=20260826-category-newspaper-v1", skin)
+        self.assertIn("skin-main.js?v=20260827-market-briefing-list-v2", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
