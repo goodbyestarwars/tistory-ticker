@@ -5773,6 +5773,10 @@ body#tt-body-index .home-editorial-page .home-widget--full.home-briefing-section
   padding-top: 28px;
   border-top: 1px solid var(--rule);
 }
+body#tt-body-index .home-editorial-page .home-briefing-section .home-section-heading {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
 body#tt-body-index .home-editorial-page .home-briefing-grid,
 body#tt-body-index .home-editorial-page .home-briefing-left-more {
   gap: 0;
