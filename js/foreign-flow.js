@@ -21,7 +21,12 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var CONTAINER_SELECTOR = '#foreign-flow';
-  var FETCH_TIMEOUT_MS = 20000; // 네이버 2페이지 크롤링 + 파싱이라 여유 있게
+  var FETCH_TIMEOUT_MS = 20000; // 종목별 조회 기본 제한시간
+  // 전종목 차트 흐름 집계는 GAS가 약 2.4MB 스냅샷을 반환하고 콜드 스타트가 겹치면
+  // 기본 조회보다 오래 걸릴 수 있다. 짧은 제한시간 때문에 정상 응답도 오류 화면으로
+  // 바뀌던 문제를 막기 위해 초기 집계 요청만 별도 여유를 둔다.
+  var SIGNAL_FETCH_TIMEOUT_MS = 60000;
+  var SIGNAL_FETCH_RETRY_DELAY_MS = 800;
   var MAX_SUGGESTIONS = 8;
   var CLIENT_CACHE_MS = 5 * 60 * 1000;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
@@ -203,7 +208,19 @@
   }
 
   function loadSignalData(container) {
-    ForeignFlow.fetchJson(GAS_TICKER_URL + '?investSignal=1')
+    var signalUrl = GAS_TICKER_URL + '?investSignal=1';
+    function requestSignal(attempt) {
+      return ForeignFlow.fetchJson(signalUrl, SIGNAL_FETCH_TIMEOUT_MS).catch(function (err) {
+        if (attempt > 0) throw err;
+        return new Promise(function (resolve) {
+          setTimeout(resolve, SIGNAL_FETCH_RETRY_DELAY_MS);
+        }).then(function () {
+          return ForeignFlow.fetchJson(signalUrl, SIGNAL_FETCH_TIMEOUT_MS);
+        });
+      });
+    }
+
+    requestSignal(0)
       .then(function (data) {
         signalData = data;
         renderExplore(container);
