@@ -350,7 +350,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260827-market-briefing-bottom-rule-v1", skin)
+        self.assertIn("style.css?v=20260827-global-chart-title-font-v1", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -360,6 +360,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".home-briefing-small .post-title", style)
         self.assertIn("border: 1px solid var(--up)", style)
         self.assertIn("border-radius: 999px", style)
+        self.assertIn(
+            'html:not(.font-gothic) body .om-title {\n  font-family: var(--font-ui) !important;',
+            style,
+        )
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)

@@ -4881,7 +4881,6 @@ html:not(.font-gothic) body .ff-section-head,
 html:not(.font-gothic) body .ff-chart-title,
 html:not(.font-gothic) body .ff-fund-title,
 html:not(.font-gothic) body .ff-sig-name,
-html:not(.font-gothic) body .om-title,
 html:not(.font-gothic) body .dmi-heading h2,
 html:not(.font-gothic) body .dmi-subheading h3,
 html:not(.font-gothic) body .sc-cal-title,
@@ -4895,6 +4894,12 @@ html:not(.font-gothic) body #stock-search .ss-news-body b,
 html:not(.font-gothic) body #stock-search .ss-news-panel-head h3,
 html:not(.font-gothic) body #stock-search .ss-news-group h4 {
   font-family: var(--font-title) !important;
+}
+/* 글로벌 시장지표의 카드·차트 제목은 데이터/UI 문맥이므로 명조 제목 체계에서
+   제외하고 프리텐다드로 고정한다. 위의 공통 body * 규칙보다 뒤에서 선언해
+   페이지별 CSS가 아니라 사이트 공통 디자인 시스템에서도 동일하게 유지한다. */
+html:not(.font-gothic) body .om-title {
+  font-family: var(--font-ui) !important;
 }
 html:not(.font-gothic) body .price,
 html:not(.font-gothic) body .rate,
