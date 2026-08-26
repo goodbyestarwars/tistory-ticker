@@ -753,7 +753,9 @@
 
 #foreign-flow .ff-legend {
   display: flex;
-  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
   padding: 4px 6px 6px;
   font-size: 12px;
   color: #666;
@@ -810,7 +812,14 @@
 #foreign-flow .ff-volume-study-label b { color: #4f8df7; font-weight: 600; }
 #foreign-flow .ff-volume-study-label .ff-volume-ma-value { color: #2563eb; }
 #foreign-flow .ff-lwc-pane-labels + .ff-volume-study-label { display: none; }
-#foreign-flow .ff-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+#foreign-flow .ff-legend-item {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  min-width: max-content;
+  white-space: nowrap;
+}
 #foreign-flow .ff-dot {
   display: inline-block;
   width: 10px;
@@ -1059,7 +1068,7 @@
    핵심 수치는 펼치지 않아도 읽히고, 산식·주의문은 details 안에 보존한다. */
 #foreign-flow .ff-opinion-summary-card {
   border: 0;
-  border-top: 3px double #27313a;
+  border-top: 0;
   border-bottom: 1px solid #cbd2d8;
   border-radius: 0;
   padding: 13px 0 12px;
@@ -2200,11 +2209,17 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: rgba(245, 239, 224, 0.
 #foreign-flow .ff-swing-regime small { color: #64748b; }
 #foreign-flow .ff-swing-flow { padding: 12px 0 0; }
 #foreign-flow .ff-swing-flow-track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #e1e7ee; border-bottom: 1px solid #e1e7ee; }
-#foreign-flow .ff-swing-step { min-width: 0; padding: 13px 14px 14px; }
+#foreign-flow .ff-swing-step {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px 14px 14px;
+}
 #foreign-flow .ff-swing-step + .ff-swing-step { border-left: 1px solid #e1e7ee; }
-#foreign-flow .ff-swing-step-label { display: block; color: #64748b; font-size: 12px; line-height: 1.35; }
+#foreign-flow .ff-swing-step-label { display: block; flex: 0 0 auto; color: #64748b; font-size: 12px; line-height: 1.35; white-space: nowrap; }
 #foreign-flow .ff-swing-step-label em { margin-left: 4px; color: #94a3b8; font-size: 11px; font-style: normal; }
-#foreign-flow .ff-swing-step strong { display: block; margin-top: 6px; color: #0f4c81; font-size: 15px; line-height: 1.35; }
+#foreign-flow .ff-swing-step strong { display: block; min-width: 0; margin-top: 0; color: #0f4c81; font-size: 15px; line-height: 1.35; }
 #foreign-flow .ff-swing-diagnosis { display: flex; align-items: baseline; gap: 12px; padding: 14px 2px; border-bottom: 1px solid #e1e7ee; }
 #foreign-flow .ff-swing-diagnosis span, #foreign-flow .ff-swing-action span { flex: 0 0 auto; color: #64748b; font-size: 12px; }
 #foreign-flow .ff-swing-diagnosis strong { color: #0f4c81; font-size: 16px; line-height: 1.4; }

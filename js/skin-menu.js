@@ -21,7 +21,6 @@
       children: [
         { href: '/page/foreign-flow', label: '종목분석' },
         { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
-        { href: '/page/market-temp?view=stocks&panel=heatmap', label: '섹터 히트맵' },
         { href: '/page/stock-search', label: '실시간 시세 (US. Include)' }
       ]
     },

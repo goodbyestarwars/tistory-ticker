@@ -4882,8 +4882,6 @@ html:not(.font-gothic) body .ff-chart-title,
 html:not(.font-gothic) body .ff-fund-title,
 html:not(.font-gothic) body .ff-sig-name,
 html:not(.font-gothic) body .om-title,
-html:not(.font-gothic) body .mt-briefing-panel-title,
-html:not(.font-gothic) body .mt-strategy-panel-title,
 html:not(.font-gothic) body .dmi-heading h2,
 html:not(.font-gothic) body .dmi-subheading h3,
 html:not(.font-gothic) body .sc-cal-title,
@@ -4980,6 +4978,65 @@ html:not(.font-gothic) body #pattern-scan .ps-tab:hover,
 html:not(.font-gothic) body #strategy-search .ss-tab:hover {
   background: #f1f1ee !important;
   color: var(--accent-dark) !important;
+}
+
+/* ============ 모바일 메뉴·모듈·폰트 보정 ============
+   큰 화면 컨테이너는 배경/테두리를 걷고, 내부 데이터 모듈의 경계는 유지한다. */
+html:not(.font-gothic) body #market-temp .mt-wrap > .mt-section.mt-card,
+html:not(.font-gothic) body #market-temp .mt-stocks-only > .mt-explore-card {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* 참고의견·오늘의 전략은 제목용 명조가 아니라 본문 UI 폰트로 통일한다. */
+html:not(.font-gothic) body #market-temp .mt-briefing-panel-title,
+html:not(.font-gothic) body #market-temp .mt-strategy-panel-title {
+  font-family: var(--font-ui) !important;
+}
+
+/* 상·하단 메뉴는 hover/focus/active 상태에서 동일하게 검정으로 표시한다. */
+html:not(.font-gothic) body .sidebar-left .nav-primary-item:hover,
+html:not(.font-gothic) body .sidebar-left .nav-primary-item:focus-visible,
+html:not(.font-gothic) body .sidebar-left .nav-primary-item.nav-item-active,
+html:not(.font-gothic) body .sidebar-left .nav-primary-item[aria-expanded="true"] {
+  background: transparent !important;
+  border-bottom-color: #111 !important;
+  color: #111 !important;
+}
+html:not(.font-gothic) body .mobile-app-bottom-item:hover,
+html:not(.font-gothic) body .mobile-app-bottom-item:focus-visible,
+html:not(.font-gothic) body .mobile-app-bottom-item:active,
+html:not(.font-gothic) body .mobile-app-bottom-item.active {
+  color: #111 !important;
+}
+
+/* 마켓 브리핑 제목 목록은 항목마다 아래 구분선만 사용한다.
+   공통 카드 테두리의 윗선까지 겹치면 포스트 사이가 이중선으로 보인다. */
+html:not(.font-gothic) body .feed-block-headline .post-card.feed-headline-item {
+  border-top: 0 !important;
+}
+
+@media (max-width: 640px) {
+  #foreign-flow .ff-badge-legend {
+    text-align: left;
+    word-break: keep-all;
+  }
+}
+
+/* 종목분석의 2주 스윙 요약은 본문 UI 폰트와 검정 강조색으로 통일한다.
+   주가·등락률 등 데이터 의미색(상승 빨강/하락 파랑)은 유지한다. */
+html:not(.font-gothic) body #foreign-flow .ff-swing-regime .ff-panel-title {
+  font-family: var(--font-ui) !important;
+}
+html:not(.font-gothic) body #foreign-flow .ff-swing-regime strong,
+html:not(.font-gothic) body #foreign-flow .ff-swing-step strong,
+html:not(.font-gothic) body #foreign-flow .ff-swing-diagnosis strong,
+html:not(.font-gothic) body #foreign-flow .ff-swing-action strong,
+html:not(.font-gothic) body #foreign-flow .ff-swing-fact:first-child b {
+  color: #111 !important;
+  font-weight: 700 !important;
 }
 html:not(.font-gothic) body .sidebar-left .nav-item-home,
 html:not(.font-gothic) body .sidebar-left .nav-item-home .nav-item-label,
