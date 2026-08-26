@@ -5018,9 +5018,11 @@ html:not(.font-gothic) body .feed-block-headline .post-card.feed-headline-item {
   border-top: 0 !important;
 }
 
-/* 대표 포스트 바로 아래의 3개 카드도 앞 포스트의 하단선과 맞닿으므로,
-   다음 카드의 윗선을 중복해서 그리지 않는다. 다른 카드 그룹의 외곽선은 유지한다. */
-html:not(.font-gothic) body .feed-block-hero + .feed-block-cards .post-card.feed-cards-item {
+/* 마켓 브리핑 블록이 연속될 때는 앞 블록의 하단선만 구분선으로 사용한다.
+   다음 블록 카드의 윗선까지 그리면 포스트 사이가 두 줄로 보이므로,
+   대표→3개→2개→대표 반복 구간 전체에서 중복 상단선을 제거한다. */
+html:not(.font-gothic) body .feed > .feed-block + .feed-block .post-card,
+html:not(.font-gothic) body .feed > .feed-block + .post-card {
   border-top: 0 !important;
 }
 
