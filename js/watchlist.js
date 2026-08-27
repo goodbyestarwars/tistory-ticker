@@ -35,6 +35,21 @@
   var US_SEARCH_URL = API_BASE_URL + '/us-search';
   var US_WATCHLIST_GROUP_NAME = '미국주식';
   var US_WATCHLIST_ETF_SYMBOLS = ['SOXL', 'SOXS', 'KORU'];
+  var US_DISPLAY_NAMES = {
+    AAPL: '애플', MSFT: '마이크로소프트', NVDA: '엔비디아', AMZN: '아마존',
+    GOOGL: '알파벳 A', GOOG: '알파벳 C', TSLA: '테슬라', META: '메타', INTC: '인텔',
+    MRVL: '마벨 테크놀로지', AVGO: '브로드컴', AMD: 'AMD', PLTR: '팔란티어',
+    SKHY: 'SK하이닉스(ADR)', SPCX: '스페이스X', MSTR: '스트래티지', CRWD: '크라우드스트라이크', STX: '씨게이트 테크놀로지',
+    RGTI: '리게티 컴퓨팅', RKLB: '로켓 랩', ORCL: '오라클', MU: '마이크론 테크놀로지',
+    CBRS: '세레브라스 시스템즈', SNDK: '샌디스크', DELL: '델 테크놀로지스', IONQ: '아이온큐',
+    LLY: '일라이 릴리', ASTS: 'AST 스페이스모바일', NFLX: '넷플릭스', SPY: 'S&P 500 ETF', QQQ: '인베스코 QQQ ETF'
+  };
+  function localizedUsName(code, fallback) {
+    var symbol = String(code || '').replace(/^US:/i, '').toUpperCase();
+    return /^US:/i.test(String(code || '')) && US_DISPLAY_NAMES[symbol]
+      ? US_DISPLAY_NAMES[symbol]
+      : String(fallback || symbol || '종목');
+  }
   var US_WATCHLIST_STOCKS = [
     { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'sk하이닉스 하이닉스 sk hynix' },
     { symbol: 'SPCX', name: '스페이스X', aliases: '스페이스x spacex' },
@@ -62,14 +77,18 @@
     { symbol: 'ASTS', name: 'AST 스페이스모바일', aliases: 'ast asts 스페이스모바일 spacemobile' }
   ];
   var LOCAL_US_SYMBOLS = [
-    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
-    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
-    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia' },
-    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
-    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
-    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
-    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' }
+    { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
+    { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft microsoft corporation' },
+    { symbol: 'NVDA', name: '엔비디아', aliases: '엔비디아 nvidia nvidia corporation' },
+    { symbol: 'AMZN', name: '아마존', aliases: '아마존 amazon amazon.com inc amazon.com, inc.' },
+    { symbol: 'GOOGL', name: '알파벳 A', aliases: '구글 알파벳 google alphabet alphabet inc' },
+    { symbol: 'TSLA', name: '테슬라', aliases: '테슬라 tesla tesla inc' },
+    { symbol: 'META', name: '메타', aliases: '메타 meta 페이스북 meta platforms inc meta platforms, inc.' },
+    { symbol: 'INTC', name: '인텔', aliases: '인텔 intel intel corp intel corporation' },
+    { symbol: 'GOOG', name: '알파벳 C', aliases: '알파벳 google alphabet' },
+    { symbol: 'MSTR', name: '스트래티지', aliases: '스트래티지 strategy microstrategy strategy inc' },
+    { symbol: 'CRWD', name: '크라우드스트라이크', aliases: '크라우드스트라이크 crowdstrike crowdstrike holdings inc' },
+    { symbol: 'STX', name: '씨게이트 테크놀로지', aliases: '씨게이트 seagate seagate technology holdings plc' }
   ].concat(US_WATCHLIST_STOCKS).filter(function (row, index, rows) {
     return rows.findIndex(function (candidate) { return candidate.symbol === row.symbol; }) === index;
   });
@@ -584,7 +603,8 @@
       })
       .then(function (body) {
         var rows = (body && body.data ? body.data : []).map(function (row) {
-          return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
+          var code = row.code || ('US:' + row.symbol);
+          return { code: code, name: localizedUsName(code, row.name || row.symbol), market: 'us' };
         });
         if (!rows.length) throw new Error('미국주식 검색 결과 없음');
         return rows;
@@ -632,7 +652,7 @@
     if (!query) return null;
     if (/^US:/i.test(query)) {
       var usSymbol = query.slice(3).trim().toUpperCase();
-      return /^[A-Z][A-Z0-9.\-]{0,9}$/.test(usSymbol) ? { code: 'US:' + usSymbol, name: usSymbol } : null;
+      return /^[A-Z][A-Z0-9.\-]{0,9}$/.test(usSymbol) ? { code: 'US:' + usSymbol, name: localizedUsName('US:' + usSymbol, usSymbol) } : null;
     }
     var map = global.KRX_MAP || {};
     if (/^[0-9A-Z]{6}$/i.test(query)) {
@@ -656,7 +676,7 @@
     if (/^[A-Z][A-Z0-9.\-]{0,9}$/i.test(query)) {
       var directSymbol = query.toUpperCase();
       var localUs = LOCAL_US_SYMBOLS.filter(function (row) { return row.symbol === directSymbol; })[0];
-      return { code: 'US:' + directSymbol, name: localUs ? localUs.name : directSymbol };
+      return { code: 'US:' + directSymbol, name: localizedUsName('US:' + directSymbol, localUs ? localUs.name : directSymbol) };
     }
 
     var q = query.toLowerCase();
@@ -679,7 +699,7 @@
     if (list.some(function (it) { return it.code === code; })) return { ok: false, reason: 'exists' };
     if (list.length >= MAX_ITEMS) return { ok: false, reason: 'full' };
 
-    list.push({ code: code, name: name || code, groupId: DEFAULT_GROUP_ID });
+    list.push({ code: code, name: localizedUsName(code, name || code), groupId: DEFAULT_GROUP_ID });
     var container = document.querySelector(CONTAINER_SELECTOR);
     saveList(list, container);
     if (container) render(container);
@@ -699,7 +719,7 @@
 
   function addByQuery(container, query, explicitName) {
     var stock = resolveStock(query);
-    if (stock && /^US:/i.test(stock.code) && explicitName) stock.name = explicitName;
+    if (stock && /^US:/i.test(stock.code)) stock.name = localizedUsName(stock.code, explicitName || stock.name);
     var input = container.querySelector('#wlInput');
     if (!stock) {
       showMsg(container, '종목을 찾을 수 없습니다: "' + query + '"');
@@ -808,7 +828,7 @@
       + '</button>'
       + (group.id === DEFAULT_GROUP_ID ? '' : '<button type="button" class="wl-group-delete" aria-label="그룹 삭제">삭제</button>')
       + '</div><div class="wl-group-items" data-group-id="' + escapeAttr(group.id) + '">'
-      + (items.length ? items.map(function (it) { return buildCard(it.code, it.name); }).join('') : '<p class="wl-group-empty">이 그룹에 종목이 없습니다.</p>')
+      + (items.length ? items.map(function (it) { return buildCard(it.code, localizedUsName(it.code, it.name)); }).join('') : '<p class="wl-group-empty">이 그룹에 종목이 없습니다.</p>')
       + '</div></section>';
   }
 

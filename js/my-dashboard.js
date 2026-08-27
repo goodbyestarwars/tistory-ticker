@@ -13,6 +13,30 @@
   var VM_URL = API_BASE;
   var FOREIGN_FLOW_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/foreign-flow.js?v=20260816-banner-race-fix';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
+  // 서버에 예전에 저장된 영문 회사명도 MY 화면에서는 동일한 한글 표시명으로 보여준다.
+  // 티커(code)는 API 조회와 상세 페이지 이동에 쓰이므로 그대로 유지한다.
+  var US_DISPLAY_NAMES = {
+    AAPL: '애플', MSFT: '마이크로소프트', NVDA: '엔비디아', AMZN: '아마존',
+    GOOGL: '알파벳 A', GOOG: '알파벳 C', TSLA: '테슬라', META: '메타', INTC: '인텔',
+    MRVL: '마벨 테크놀로지', AVGO: '브로드컴', AMD: 'AMD', PLTR: '팔란티어',
+    SKHY: 'SK하이닉스(ADR)', SPCX: '스페이스X', MSTR: '스트래티지', CRWD: '크라우드스트라이크',
+    STX: '씨게이트 테크놀로지', RGTI: '리게티 컴퓨팅', RKLB: '로켓 랩',
+    ORCL: '오라클', MU: '마이크론 테크놀로지', CBRS: '세레브라스 시스템즈',
+    SNDK: '샌디스크', DELL: '델 테크놀로지스', IONQ: '아이온큐', LLY: '일라이 릴리',
+    ASTS: 'AST 스페이스모바일', NFLX: '넷플릭스', SPY: 'S&P 500 ETF', QQQ: '인베스코 QQQ ETF'
+  };
+  var US_NAME_ALIASES = {
+    'sk hynix': 'SKHY', 'sk hynix adr': 'SKHY', 'apple': 'AAPL', 'microsoft': 'MSFT', 'nvidia': 'NVDA', 'amazon': 'AMZN',
+    'amazon.com inc': 'AMZN', 'amazon.com, inc.': 'AMZN', 'alphabet': 'GOOGL',
+    'google': 'GOOGL', 'tesla': 'TSLA', 'meta platforms inc': 'META', 'meta platforms, inc.': 'META',
+    'intel': 'INTC', 'intel corp': 'INTC', 'intel corporation': 'INTC',
+    'marvell': 'MRVL', 'marvell technology inc': 'MRVL', 'broadcom': 'AVGO',
+    'advanced micro devices': 'AMD', 'advanced micro devices inc': 'AMD', 'palantir': 'PLTR',
+    'palantir technologies inc': 'PLTR', 'spacex': 'SPCX', 'space exploration technologies corp': 'SPCX',
+    'strategy': 'MSTR', 'strategy inc': 'MSTR', 'microstrategy': 'MSTR',
+    'crowdstrike': 'CRWD', 'crowdstrike holdings inc': 'CRWD',
+    'seagate': 'STX', 'seagate technology holdings plc': 'STX'
+  };
   var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0, watchlistQuoteAt: 0, watchlistCollapsed: false };
   var mount = null;
 
@@ -26,8 +50,31 @@
     var iconCode = String(code || '').replace(/^US:/i, '').toUpperCase();
     return iconCode ? STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg' : '';
   }
+  function normalizeUsQuery(value) {
+    return String(value || '').toLowerCase().replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  function localizedUsName(code, fallback) {
+    var symbol = String(code || '').replace(/^US:/i, '').toUpperCase();
+    return /^US:/i.test(String(code || '')) && US_DISPLAY_NAMES[symbol]
+      ? US_DISPLAY_NAMES[symbol]
+      : String(fallback || symbol || '종목');
+  }
+  function usSymbolForQuery(query) {
+    var raw = String(query || '').trim();
+    var symbol = raw.replace(/^US:/i, '').toUpperCase();
+    if (US_DISPLAY_NAMES[symbol]) return symbol;
+    var normalized = normalizeUsQuery(raw.replace(/^US:/i, ''));
+    if (US_NAME_ALIASES[normalized]) return US_NAME_ALIASES[normalized];
+    for (var key in US_DISPLAY_NAMES) {
+      if (Object.prototype.hasOwnProperty.call(US_DISPLAY_NAMES, key) && normalizeUsQuery(US_DISPLAY_NAMES[key]) === normalized) return key;
+    }
+    return null;
+  }
+  function displayName(item) {
+    return localizedUsName(item && item.code, item && item.name);
+  }
   function stockInitials(item) {
-    var value = String(item && (item.name || item.code) || '?').replace(/^US:/i, '').trim();
+    var value = String(displayName(item) || item && item.code || '?').replace(/^US:/i, '').trim();
     return escapeHtml(value.slice(0, 2).toUpperCase());
   }
   function stockIconHtml(item) {
@@ -134,7 +181,7 @@
     var options = document.getElementById(id);
     if (!options || !global.Watchlist) return;
     options.innerHTML = global.Watchlist.getList().map(function (item) {
-      return '<option value="' + escapeAttr(item.name) + '">' + escapeHtml(item.code) + '</option>';
+      return '<option value="' + escapeAttr(displayName(item)) + '">' + escapeHtml(item.code) + '</option>';
     }).join('');
   }
   function populateSearchOptions() {
@@ -185,7 +232,7 @@
     var initials = logo && logo.querySelector('[data-my-input-initials]');
     if (!logo || !image || !initials) return;
     var value = item || { name: (document.getElementById('myStockInput') || {}).value || '종목' };
-    initials.textContent = String(value.name || value.code || '종목').replace(/^US:/i, '').slice(0, 2).toUpperCase();
+    initials.textContent = String(displayName(value) || value.code || '종목').replace(/^US:/i, '').slice(0, 2).toUpperCase();
     image.hidden = true;
     initials.hidden = false;
     if (value.code) {
@@ -198,8 +245,16 @@
     var q = String(query || '').trim();
     if (!q) return null;
     var saved = global.Watchlist.getList();
-    var exactSaved = saved.filter(function (item) { return item.code.toLowerCase() === q.toLowerCase() || item.name.toLowerCase() === q.toLowerCase(); })[0];
-    if (exactSaved) return exactSaved;
+    var normalizedQuery = normalizeUsQuery(q);
+    var exactSaved = saved.filter(function (item) {
+      return String(item.code || '').toLowerCase() === q.toLowerCase()
+        || normalizeUsQuery(item.name) === normalizedQuery
+        || normalizeUsQuery(displayName(item)) === normalizedQuery
+        || (usSymbolForQuery(q) && String(item.code || '').toUpperCase() === 'US:' + usSymbolForQuery(q));
+    })[0];
+    if (exactSaved) return Object.assign({}, exactSaved, { name: displayName(exactSaved) });
+    var usSymbol = usSymbolForQuery(q);
+    if (usSymbol) return { code: 'US:' + usSymbol, name: localizedUsName('US:' + usSymbol, usSymbol), temporary: true, holding: { quantity: 0, averagePrice: 0 } };
     if (/^US:/i.test(q)) return { code: 'US:' + q.slice(3).trim().toUpperCase(), name: q.slice(3).trim().toUpperCase(), temporary: true, holding: { quantity: 0, averagePrice: 0 } };
     var map = global.KRX_MAP || {};
     if (/^[0-9A-Z]{6}$/i.test(q)) {
@@ -208,7 +263,7 @@
     if (Object.prototype.hasOwnProperty.call(map, q)) return { code: map[q], name: q, temporary: true, holding: { quantity: 0, averagePrice: 0 } };
     var matches = Object.keys(map).filter(function (name) { return name.toLowerCase().indexOf(q.toLowerCase()) !== -1; });
     if (matches.length === 1) return { code: map[matches[0]], name: matches[0], temporary: true, holding: { quantity: 0, averagePrice: 0 } };
-    if (/^[A-Z][A-Z0-9.\-]{0,9}$/i.test(q)) return { code: 'US:' + q.toUpperCase(), name: q.toUpperCase(), temporary: true, holding: { quantity: 0, averagePrice: 0 } };
+    if (/^[A-Z][A-Z0-9.\-]{0,9}$/i.test(q)) return { code: 'US:' + q.toUpperCase(), name: localizedUsName('US:' + q.toUpperCase(), q.toUpperCase()), temporary: true, holding: { quantity: 0, averagePrice: 0 } };
     return null;
   }
   function selectedFromInput() {
@@ -255,6 +310,7 @@
   }
   function watchlistRows(items) {
     return items.map(function (item) {
+      var name = displayName(item);
       var quote = state.quotes[item.code] || {};
       var changeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);
       var price = quoteField(quote, ['price', 'currentPrice', 'stck_prpr']);
@@ -262,7 +318,7 @@
       var high = quoteField(quote, ['high', 'highPrice', 'high_price', 'stck_hgpr']);
       var low = quoteField(quote, ['low', 'lowPrice', 'low_price', 'stck_lwpr']);
       var open = quoteField(quote, ['open', 'openPrice', 'open_price', 'stck_oprc']);
-      return '<tr class="my-watchlist-row' + (state.selectedCode === item.code ? ' is-selected' : '') + '" data-my-row="' + escapeAttr(item.code) + '" tabindex="0" role="button"><th><span class="my-watchlist-name">' + stockIconHtml(item) + '<span><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.code) + '</small></span></span></th><td>' + formatPrice(price, item.code) + '</td><td class="' + signClass(changeRate) + '">' + (changeRate == null ? '-' : formatSigned(changeRate, 2) + '%') + (change != null ? '<small>' + formatSigned(change, /^US:/i.test(item.code) ? 2 : 0) + '</small>' : '') + '</td><td>' + formatNumber(tableVolume(quote), 0) + '</td><td>' + formatPrice(high, item.code) + '</td><td>' + formatPrice(low, item.code) + '</td><td>' + tableMarketCap(quote, item.code) + '</td><td>' + formatPrice(open, item.code) + '</td></tr>';
+      return '<tr class="my-watchlist-row' + (state.selectedCode === item.code ? ' is-selected' : '') + '" data-my-row="' + escapeAttr(item.code) + '" tabindex="0" role="button"><th><span class="my-watchlist-name">' + stockIconHtml(item) + '<span><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(item.code) + '</small></span></span></th><td>' + formatPrice(price, item.code) + '</td><td class="' + signClass(changeRate) + '">' + (changeRate == null ? '-' : formatSigned(changeRate, 2) + '%') + (change != null ? '<small>' + formatSigned(change, /^US:/i.test(item.code) ? 2 : 0) + '</small>' : '') + '</td><td>' + formatNumber(tableVolume(quote), 0) + '</td><td>' + formatPrice(high, item.code) + '</td><td>' + formatPrice(low, item.code) + '</td><td>' + tableMarketCap(quote, item.code) + '</td><td>' + formatPrice(open, item.code) + '</td></tr>';
     }).join('');
   }
   function groupedWatchlist(items) {
@@ -728,7 +784,7 @@
     var params = new URLSearchParams();
     params.set('action', 'flowAiSummary');
     params.set('code', item.code);
-    params.set('name', item.name);
+    params.set('name', displayName(item));
     params.set('flowScore', notes.flow && notes.flow.score || '');
     params.set('flowNote', notes.flow && notes.flow.desc || '');
     params.set('foreignInstScore', notes.foreignInst && notes.foreignInst.score || '');
@@ -751,8 +807,8 @@
     var id = ++state.requestId;
     var cached = state.analyses[item.code];
     var quotePromise = global.Watchlist.fetchQuotes([item.code]).then(function (quotes) { state.quotes[item.code] = quotes[item.code] || {}; return quotes[item.code] || {}; }).catch(function () { return state.quotes[item.code] || {}; });
-    var flowPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchFlow(item.code, item.name, 63); }).catch(function () { return null; });
-    var summaryPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchAnalysisSummary(item.code, item.name); }).catch(function () { return null; });
+    var flowPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchFlow(item.code, displayName(item), 63); }).catch(function () { return null; });
+    var summaryPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchAnalysisSummary(item.code, displayName(item)); }).catch(function () { return null; });
     var chartPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchJson(GAS_URL + '?action=flowChart&code=' + encodeURIComponent(item.code)); }).catch(function () { return null; });
     var volumePromise = Promise.resolve(null);
     Promise.all([quotePromise, flowPromise, summaryPromise, volumePromise, chartPromise]).then(function (results) {
@@ -771,23 +827,24 @@
     var detail = document.getElementById('myDashboardDetail');
     if (!detail) return;
     if (!item) { detail.innerHTML = '<div class="my-dashboard-empty"><strong>분석할 종목을 입력하세요.</strong><p>위 입력창에 종목명, 6자리 코드 또는 미국 티커를 입력하면 수급·매물대·차트 모양을 계산합니다.</p></div>'; return; }
+    var name = displayName(item);
     var quote = analysis && analysis.quote || state.quotes[item.code] || {};
     var metrics = itemMetrics(item, quote);
     var dailyChangeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);
     var dailyChangeClass = signClass(dailyChangeRate);
     if (analysis && analysis.loading) {
-      detail.innerHTML = '<div class="my-detail-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><strong>' + escapeHtml(item.name) + '</strong><p>차트·수급·매물대 자료를 불러오는 중입니다...</p></div>' + buildHoldingForm(item, metrics);
+      detail.innerHTML = '<div class="my-detail-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><strong>' + escapeHtml(name) + '</strong><p>차트·수급·매물대 자료를 불러오는 중입니다...</p></div>' + buildHoldingForm(item, metrics);
       return;
     }
-    var frameUrl = '/page/foreign-flow?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(item.name);
-    detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3 class="my-selected-title ' + dailyChangeClass + '"><span class="my-selected-name">' + escapeHtml(item.name) + '</span> <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
+    var frameUrl = '/page/foreign-flow?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(name);
+    detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3 class="my-selected-title ' + dailyChangeClass + '"><span class="my-selected-name">' + escapeHtml(name) + '</span> <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
       + '<div class="my-metric-grid"><div><span>현재가</span><strong>' + formatPrice(metrics.price, item.code) + '</strong><small class="' + dailyChangeClass + '">' + (dailyChangeRate == null ? '-' : formatSigned(dailyChangeRate, 2) + '%') + '</small></div><div><span>평가금액</span><strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatSigned(metrics.pnl, 0) + '원') + '</strong><small>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
       + buildHoldingForm(item, metrics)
       + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code, metrics.price) + '</div>'
       + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
       + buildCompositeOpinionCard(metrics, analysis && analysis.chart, analysis && analysis.summary, analysis && analysis.volume, analysis && analysis.ai || '')
       + buildAveragingCalculatorWithRecovery(metrics, item.code, analysis && analysis.chart)
-      + '<details class="my-detail-frame"><summary>기존 차트·매물대 도구를 이 화면에서 펼치기</summary><iframe title="' + escapeAttr(item.name) + ' 종목분석" loading="lazy" src="' + frameUrl + '"></iframe></details>';
+      + '<details class="my-detail-frame"><summary>기존 차트·매물대 도구를 이 화면에서 펼치기</summary><iframe title="' + escapeAttr(name) + ' 종목분석" loading="lazy" src="' + frameUrl + '"></iframe></details>';
     arrangeAnalysisSections(detail);
     updateCalculatorWithRecovery(detail, metrics, analysis && analysis.chart);
   }
@@ -895,7 +952,7 @@
           state.selectedItem = rowItem;
           state.watchlistCollapsed = true;
           var input = document.getElementById('myStockInput');
-          if (input) input.value = rowItem.name;
+          if (input) input.value = displayName(rowItem);
           updateInputLogo(rowItem);
           delete state.analyses[rowItem.code];
           render();

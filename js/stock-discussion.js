@@ -11,34 +11,47 @@
   var buttons = Array.prototype.slice.call(root.querySelectorAll('[data-discussion-stock]'));
   var names = { '005930': '삼성전자', '000660': 'SK하이닉스', '042660': '한화오션' };
   var US_API_BASE = 'https://goodbyestar.cloud';
+  var US_DISPLAY_NAMES = {
+    AAPL: '애플', MSFT: '마이크로소프트', NVDA: '엔비디아', AMZN: '아마존', GOOGL: '알파벳 A', GOOG: '알파벳 C',
+    TSLA: '테슬라', META: '메타', AMD: 'AMD', NFLX: '넷플릭스', QQQ: '인베스코 QQQ ETF', LLY: '일라이 릴리',
+    SKHY: 'SK하이닉스(ADR)', SPCX: '스페이스X', MRVL: '마벨 테크놀로지', RGTI: '리게티 컴퓨팅', RKLB: '로켓 랩',
+    AVGO: '브로드컴', ORCL: '오라클', MU: '마이크론 테크놀로지', INTC: '인텔', CBRS: '세레브라스 시스템즈',
+    PLTR: '팔란티어', SNDK: '샌디스크', DELL: '델 테크놀로지스', IONQ: '아이온큐', ASTS: 'AST 스페이스모바일',
+    MSTR: '스트래티지', CRWD: '크라우드스트라이크', STX: '씨게이트 테크놀로지'
+  };
+  function localizedUsName(code, fallback) {
+    var symbol = String(code || '').replace(/^US:/i, '').toUpperCase();
+    return US_DISPLAY_NAMES[symbol] || fallback || symbol;
+  }
   var LOCAL_US_SYMBOLS = [
-    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple nasdaq 나스닥' },
-    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft nasdaq 나스닥' },
-    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia nasdaq 나스닥' },
-    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon nasdaq 나스닥' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '알파벳 google nasdaq 나스닥' },
-    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla nasdaq 나스닥' },
-    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta nasdaq 나스닥' },
-    { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd nasdaq 나스닥' },
-    { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix nasdaq 나스닥' },
-    { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq nasdaq 나스닥' },
-    { symbol: 'LLY', name: 'Eli Lilly and Company', aliases: '일라이릴리 일라이 릴리 eli lilly lilly nyse' },
+    { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc nasdaq 나스닥' },
+    { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft microsoft corporation nasdaq 나스닥' },
+    { symbol: 'NVDA', name: '엔비디아', aliases: '엔비디아 nvidia nvidia corporation nasdaq 나스닥' },
+    { symbol: 'AMZN', name: '아마존', aliases: '아마존 amazon amazon.com inc nasdaq 나스닥' },
+    { symbol: 'GOOGL', name: '알파벳 A', aliases: '알파벳 google alphabet alphabet inc nasdaq 나스닥' },
+    { symbol: 'TSLA', name: '테슬라', aliases: '테슬라 tesla tesla inc nasdaq 나스닥' },
+    { symbol: 'META', name: '메타', aliases: '메타 meta meta platforms inc nasdaq 나스닥' },
+    { symbol: 'AMD', name: 'AMD', aliases: 'amd advanced micro devices nasdaq 나스닥' },
+    { symbol: 'NFLX', name: '넷플릭스', aliases: '넷플릭스 netflix netflix inc nasdaq 나스닥' },
+    { symbol: 'QQQ', name: '인베스코 QQQ ETF', aliases: 'qqq invesco qqq trust nasdaq 나스닥' },
+    { symbol: 'LLY', name: '일라이 릴리', aliases: '일라이릴리 일라이 릴리 eli lilly lilly nyse' },
     { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'SK하이닉스 하이닉스 sk hynix nasdaq' },
-    { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' },
-    { symbol: 'MRVL', name: 'Marvell Technology', aliases: '마벨 마벨테크놀로지 marvell' },
-    { symbol: 'RGTI', name: 'Rigetti Computing', aliases: '리게티 rigetti' },
-    { symbol: 'RKLB', name: 'Rocket Lab', aliases: '로켓랩 로켓 랩 rocket lab' },
-    { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
-    { symbol: 'ORCL', name: 'Oracle Corporation', aliases: '오라클 oracle' },
-    { symbol: 'MU', name: 'Micron Technology', aliases: '마이크론 마이크론테크놀로지 micron' },
-    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
-    { symbol: 'CBRS', name: 'Cerebras Systems', aliases: '세레브라스 cerebras' },
-    { symbol: 'PLTR', name: 'Palantir Technologies', aliases: '팔란티어 palantir' },
-    { symbol: 'SNDK', name: 'Sandisk', aliases: '샌디스크 sandisk' },
-    { symbol: 'DELL', name: 'Dell Technologies', aliases: '델 델테크놀로지스 dell' },
-    { symbol: 'IONQ', name: 'IonQ', aliases: '아이온큐 ionq' },
-    { symbol: 'ASTS', name: 'AST SpaceMobile', aliases: 'ast asts 스페이스모바일 spacemobile' }
+    { symbol: 'SPCX', name: '스페이스X', aliases: '스페이스X spacex' },
+    { symbol: 'MRVL', name: '마벨 테크놀로지', aliases: '마벨 마벨테크놀로지 marvell marvell technology' },
+    { symbol: 'RGTI', name: '리게티 컴퓨팅', aliases: '리게티 rigetti' },
+    { symbol: 'RKLB', name: '로켓 랩', aliases: '로켓랩 로켓 랩 rocket lab' },
+    { symbol: 'AVGO', name: '브로드컴', aliases: '브로드컴 broadcom broadcom inc' },
+    { symbol: 'ORCL', name: '오라클', aliases: '오라클 oracle oracle corporation' },
+    { symbol: 'MU', name: '마이크론 테크놀로지', aliases: '마이크론 마이크론테크놀로지 micron' },
+    { symbol: 'INTC', name: '인텔', aliases: '인텔 intel intel corp intel corporation' },
+    { symbol: 'CBRS', name: '세레브라스 시스템즈', aliases: '세레브라스 cerebras' },
+    { symbol: 'PLTR', name: '팔란티어', aliases: '팔란티어 palantir palantir technologies' },
+    { symbol: 'SNDK', name: '샌디스크', aliases: '샌디스크 sandisk' },
+    { symbol: 'DELL', name: '델 테크놀로지스', aliases: '델 델테크놀로지스 dell dell technologies' },
+    { symbol: 'IONQ', name: '아이온큐', aliases: '아이온큐 ionq' },
+    { symbol: 'ASTS', name: 'AST 스페이스모바일', aliases: 'ast asts 스페이스모바일 spacemobile' }
   ];
+  LOCAL_US_SYMBOLS.forEach(function (row) { names['US:' + row.symbol] = row.name; });
   var krxMap = window.KRX_MAP || {};
   Object.keys(krxMap).forEach(function (name) { names[krxMap[name]] = name; });
   var suggestionBox = document.createElement('ul');
@@ -110,7 +123,7 @@
     }).then(function (body) {
       var remoteRows = (body && body.data ? body.data : []).map(function (row) {
         var symbol = String(row.symbol || row.code || '').replace(/^US:/i, '').toUpperCase();
-        return { code: 'US:' + symbol, name: row.name || symbol, market: 'us' };
+        return { code: 'US:' + symbol, name: localizedUsName('US:' + symbol, row.name || symbol), market: 'us' };
       }).filter(function (row) { return row.code !== 'US:'; });
       var seen = {};
       return localRows.concat(remoteRows).filter(function (row) {
@@ -228,13 +241,14 @@
     value = normalize(value);
     if (!value || value === '전체' || value === 'all') return '';
     if (/^\d{6}$/.test(value)) return value;
-    if (/^[A-Z][A-Z0-9.\-^=]{0,11}$/i.test(value)) return 'US:' + value.toUpperCase();
+    var query = value.toLowerCase();
     for (var i = 0; i < LOCAL_US_SYMBOLS.length; i++) {
-      var us = LOCAL_US_SYMBOLS[i];
-      if (us.name.toLowerCase() === value.toLowerCase() || us.aliases.toLowerCase().split(' ').indexOf(value.toLowerCase()) !== -1) {
-        return 'US:' + us.symbol;
+      var local = LOCAL_US_SYMBOLS[i];
+      if (local.symbol.toLowerCase() === query || local.name.toLowerCase() === query || local.aliases.toLowerCase().split(' ').indexOf(query) !== -1) {
+        return 'US:' + local.symbol;
       }
     }
+    if (/^[A-Z][A-Z0-9.\-^=]{0,11}$/i.test(value)) return 'US:' + value.toUpperCase();
     for (var code in names) if (names[code] === value) return code;
     return value;
   }
