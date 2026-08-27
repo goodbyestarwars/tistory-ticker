@@ -45,36 +45,43 @@
   var FETCH_TIMEOUT_MS = 15000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
-  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20260828-domestic-layout-parity-v2';
+  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20260828-domestic-layout-parity-v3';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
-    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
-    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
-    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia' },
-    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
-    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
-    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
-    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
-    { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' },
+    { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
+    { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft microsoft corporation' },
+    { symbol: 'NVDA', name: '엔비디아', aliases: '엔비디아 nvidia nvidia corporation' },
+    { symbol: 'AMZN', name: '아마존', aliases: '아마존 amazon amazon.com' },
+    { symbol: 'GOOGL', name: '구글', aliases: '구글 알파벳 google alphabet alphabet inc' },
+    { symbol: 'TSLA', name: '테슬라', aliases: '테슬라 tesla' },
+    { symbol: 'META', name: '메타', aliases: '메타 meta 페이스북 facebook' },
+    { symbol: 'INTC', name: '인텔', aliases: '인텔 intel intel corporation' },
+    { symbol: 'SPCX', name: '스페이스X', aliases: '스페이스X spacex' },
     { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'SK하이닉스 하이닉스 sk hynix' },
-    { symbol: 'MRVL', name: 'Marvell Technology', aliases: '마벨 마벨테크놀로지 marvell' },
-    { symbol: 'RGTI', name: 'Rigetti Computing', aliases: '리게티 rigetti' },
-    { symbol: 'RKLB', name: 'Rocket Lab', aliases: '로켓랩 로켓 랩 rocket lab' },
-    { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
-    { symbol: 'ORCL', name: 'Oracle Corporation', aliases: '오라클 oracle' },
-    { symbol: 'MU', name: 'Micron Technology', aliases: '마이크론 마이크론테크놀로지 micron' },
-    { symbol: 'CBRS', name: 'Cerebras Systems', aliases: '세레브라스 cerebras' },
-    { symbol: 'PLTR', name: 'Palantir Technologies', aliases: '팔란티어 palantir' },
-    { symbol: 'SNDK', name: 'Sandisk', aliases: '샌디스크 sandisk' },
-    { symbol: 'DELL', name: 'Dell Technologies', aliases: '델 델테크놀로지스 dell' },
-    { symbol: 'IONQ', name: 'IonQ', aliases: '아이온큐 ionq' },
-    { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd' },
-    { symbol: 'LLY', name: 'Eli Lilly and Company', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
-    { symbol: 'ASTS', name: 'AST SpaceMobile', aliases: 'ast asts 스페이스모바일 spacemobile' }
+    { symbol: 'MRVL', name: '마벨 테크놀로지', aliases: '마벨 마벨테크놀로지 marvell marvell technology' },
+    { symbol: 'RGTI', name: '리게티 컴퓨팅', aliases: '리게티 rigetti rigetti computing' },
+    { symbol: 'RKLB', name: '로켓 랩', aliases: '로켓랩 로켓 랩 rocket lab' },
+    { symbol: 'AVGO', name: '브로드컴', aliases: '브로드컴 broadcom broadcom inc' },
+    { symbol: 'ORCL', name: '오라클', aliases: '오라클 oracle oracle corporation' },
+    { symbol: 'MU', name: '마이크론 테크놀로지', aliases: '마이크론 마이크론테크놀로지 micron micron technology' },
+    { symbol: 'CBRS', name: '세레브라스 시스템즈', aliases: '세레브라스 cerebras cerebras systems' },
+    { symbol: 'PLTR', name: '팔란티어', aliases: '팔란티어 palantir palantir technologies' },
+    { symbol: 'SNDK', name: '샌디스크', aliases: '샌디스크 sandisk' },
+    { symbol: 'DELL', name: '델 테크놀로지스', aliases: '델 델테크놀로지스 dell dell technologies' },
+    { symbol: 'IONQ', name: '아이온큐', aliases: '아이온큐 ionq' },
+    { symbol: 'AMD', name: 'AMD', aliases: 'amd advanced micro devices' },
+    { symbol: 'LLY', name: '일라이 릴리', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
+    { symbol: 'ASTS', name: 'AST 스페이스모바일', aliases: 'ast asts 스페이스모바일 spacemobile ast spacemobile' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
   var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];
+
+  function localizedUsName(symbol, fallback) {
+    var code = String(symbol || '').replace(/^US:/i, '').toUpperCase();
+    var local = LOCAL_US_SYMBOLS.find(function (row) { return row.symbol === code; });
+    var safeFallback = String(fallback || '').trim();
+    return local ? local.name : (/[가-힣]/.test(safeFallback) ? safeFallback : '미국 종목');
+  }
 
   var state = {
     selectedCode: null,
@@ -688,7 +695,8 @@
       })
       .then(function (body) {
         var rows = (body && body.data ? body.data : []).map(function (row) {
-          return { code: row.code || ('US:' + row.symbol), name: row.name || row.symbol, market: 'us' };
+          var code = row.code || ('US:' + row.symbol);
+          return { code: code, name: localizedUsName(code, row.name || row.symbol), market: 'us' };
         });
         if (!rows.length) throw new Error('미국주식 검색 결과 없음');
         var seen = {};

@@ -16,34 +16,50 @@
   var DEFAULT_SYMBOL = 'AAPL';
   var state = { container: null, symbol: null, refreshTimer: null, realtimeSocket: null, realtimeTimer: null, realtimeGeneration: 0, initialized: false, embedded: false, renderedSymbol: null, nativeChartPromise: null, lastQuote: null };
   var LOCAL_US_SYMBOLS = [
-    { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
-    { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
-    { symbol: 'NVDA', name: 'NVIDIA Corporation', aliases: '엔비디아 nvidia' },
-    { symbol: 'AMZN', name: 'Amazon.com, Inc.', aliases: '아마존 amazon' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', aliases: '구글 알파벳 google alphabet' },
-    { symbol: 'TSLA', name: 'Tesla, Inc.', aliases: '테슬라 tesla' },
-    { symbol: 'META', name: 'Meta Platforms, Inc.', aliases: '메타 meta 페이스북' },
-    { symbol: 'INTC', name: 'Intel Corporation', aliases: '인텔 intel' },
-    { symbol: 'SPCX', name: 'SpaceX', aliases: '스페이스X spacex' },
+    { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
+    { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft microsoft corporation' },
+    { symbol: 'NVDA', name: '엔비디아', aliases: '엔비디아 nvidia nvidia corporation' },
+    { symbol: 'AMZN', name: '아마존', aliases: '아마존 amazon amazon.com' },
+    { symbol: 'GOOGL', name: '구글', aliases: '구글 알파벳 google alphabet alphabet inc' },
+    { symbol: 'TSLA', name: '테슬라', aliases: '테슬라 tesla' },
+    { symbol: 'META', name: '메타', aliases: '메타 meta 페이스북 facebook' },
+    { symbol: 'INTC', name: '인텔', aliases: '인텔 intel intel corporation' },
+    { symbol: 'SPCX', name: '스페이스X', aliases: '스페이스X spacex' },
     { symbol: 'SKHY', name: 'SK하이닉스(ADR)', aliases: 'SK하이닉스 하이닉스 sk hynix' },
-    { symbol: 'MRVL', name: 'Marvell Technology', aliases: '마벨 마벨테크놀로지 marvell' },
-    { symbol: 'RGTI', name: 'Rigetti Computing', aliases: '리게티 rigetti' },
-    { symbol: 'RKLB', name: 'Rocket Lab', aliases: '로켓랩 로켓 랩 rocket lab' },
-    { symbol: 'AVGO', name: 'Broadcom Inc.', aliases: '브로드컴 broadcom' },
-    { symbol: 'ORCL', name: 'Oracle Corporation', aliases: '오라클 oracle' },
-    { symbol: 'MU', name: 'Micron Technology', aliases: '마이크론 마이크론테크놀로지 micron' },
-    { symbol: 'CBRS', name: 'Cerebras Systems', aliases: '세레브라스 cerebras' },
-    { symbol: 'PLTR', name: 'Palantir Technologies', aliases: '팔란티어 palantir' },
-    { symbol: 'SNDK', name: 'Sandisk', aliases: '샌디스크 sandisk' },
-    { symbol: 'DELL', name: 'Dell Technologies', aliases: '델 델테크놀로지스 dell' },
-    { symbol: 'IONQ', name: 'IonQ', aliases: '아이온큐 ionq' },
-    { symbol: 'LLY', name: 'Eli Lilly and Company', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
-    { symbol: 'ASTS', name: 'AST SpaceMobile', aliases: 'ast asts 스페이스모바일 spacemobile' },
-    { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', aliases: 'amd' },
-    { symbol: 'NFLX', name: 'Netflix, Inc.', aliases: '넷플릭스 netflix' },
-    { symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', aliases: 'spy s&p500' },
-    { symbol: 'QQQ', name: 'Invesco QQQ Trust', aliases: 'qqq 나스닥' }
+    { symbol: 'MRVL', name: '마벨 테크놀로지', aliases: '마벨 마벨테크놀로지 marvell marvell technology' },
+    { symbol: 'RGTI', name: '리게티 컴퓨팅', aliases: '리게티 rigetti rigetti computing' },
+    { symbol: 'RKLB', name: '로켓 랩', aliases: '로켓랩 로켓 랩 rocket lab' },
+    { symbol: 'AVGO', name: '브로드컴', aliases: '브로드컴 broadcom broadcom inc' },
+    { symbol: 'ORCL', name: '오라클', aliases: '오라클 oracle oracle corporation' },
+    { symbol: 'MU', name: '마이크론 테크놀로지', aliases: '마이크론 마이크론테크놀로지 micron micron technology' },
+    { symbol: 'CBRS', name: '세레브라스 시스템즈', aliases: '세레브라스 cerebras cerebras systems' },
+    { symbol: 'PLTR', name: '팔란티어', aliases: '팔란티어 palantir palantir technologies' },
+    { symbol: 'SNDK', name: '샌디스크', aliases: '샌디스크 sandisk' },
+    { symbol: 'DELL', name: '델 테크놀로지스', aliases: '델 델테크놀로지스 dell dell technologies' },
+    { symbol: 'IONQ', name: '아이온큐', aliases: '아이온큐 ionq' },
+    { symbol: 'LLY', name: '일라이 릴리', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
+    { symbol: 'ASTS', name: 'AST 스페이스모바일', aliases: 'ast asts 스페이스모바일 spacemobile ast spacemobile' },
+    { symbol: 'AMD', name: 'AMD', aliases: 'amd advanced micro devices' },
+    { symbol: 'NFLX', name: '넷플릭스', aliases: '넷플릭스 netflix' },
+    { symbol: 'SPY', name: 'S&P 500 ETF', aliases: 'spy s&p500 spdr' },
+    { symbol: 'QQQ', name: '인베스코 QQQ ETF', aliases: 'qqq 나스닥 invesco' }
   ];
+
+  function localizedUsName(symbol, fallback) {
+    var code = String(symbol || '').replace(/^US:/i, '').toUpperCase();
+    var local = LOCAL_US_SYMBOLS.find(function (row) { return row.symbol === code; });
+    var safeFallback = String(fallback || '').trim();
+    return local ? local.name : (/[가-힣]/.test(safeFallback) ? safeFallback : '미국 종목');
+  }
+
+  function exchangeLabel(value) {
+    var code = String(value || '').toUpperCase();
+    return {
+      US: '미국', NAS: '나스닥', NMS: '나스닥', NASDAQ: '나스닥', ND: '나스닥',
+      NYS: '뉴욕증권거래소', NY: '뉴욕증권거래소', NYSE: '뉴욕증권거래소', NYQ: '뉴욕증권거래소',
+      AMS: '아멕스', NA: '아멕스', AMEX: '아멕스', ASE: '아멕스'
+    }[code] || (value ? '미국 거래소' : '-');
+  }
 
   function init(targetContainer) {
     var container = targetContainer || document.querySelector('#stock-search');
@@ -86,11 +102,11 @@
         + '</section>';
     }
     return '<section class="us-stocks-shell">'
-      + '<div class="us-stocks-heading"><div><span class="us-stocks-eyebrow">US MARKET</span><h2>미국주식</h2></div>'
+      + '<div class="us-stocks-heading"><div><span class="us-stocks-eyebrow">미국 시장</span><h2>미국주식</h2></div>'
       + '<span class="us-stocks-note">한국·미국 통합 시세</span></div>'
       + '<div class="us-stocks-search">'
       + '<div class="us-stocks-input-wrap">'
-      + '<input id="usStocksInput" type="search" placeholder="미국 티커 또는 종목명 (예: AAPL, NVIDIA)" autocomplete="off" aria-label="미국주식 검색">'
+      + '<input id="usStocksInput" type="search" placeholder="미국 티커 또는 종목명 (예: AAPL, 엔비디아)" autocomplete="off" aria-label="미국주식 검색">'
       + '<div id="usStocksSuggest" class="us-stocks-suggest"></div>'
       + '</div>'
       + '<button type="button" id="usStocksSearchBtn">검색</button>'
@@ -205,14 +221,15 @@
     var symbol = String(item.row.symbol || '').toUpperCase();
     var code = 'US:' + symbol;
     var isFav = !!(global.Watchlist && global.Watchlist.has(code));
-    var exchange = quote.exchange || item.row.exchange || '-';
+    var exchange = exchangeLabel(quote.exchange || item.row.exchange || '-');
+    var displayName = localizedUsName(symbol, item.row.name);
     return '<div role="button" tabindex="0" class="us-stocks-result-row" data-symbol="' + escapeAttr(symbol) + '">'
-      + '<span class="us-stocks-result-name"><b>' + escapeHtml(item.row.symbol) + '</b><small>' + escapeHtml(item.row.name) + '</small></span>'
+      + '<span class="us-stocks-result-name"><b>' + escapeHtml(item.row.symbol) + '</b><small>' + escapeHtml(displayName) + '</small></span>'
       + '<span class="' + cls + '">' + formatPrice(quote.price) + '</span>'
       + '<span class="' + cls + '">' + formatPercent(quote.change_rate) + '</span>'
       + '<span>' + formatVolume(quote.volume) + '</span>'
       + '<span class="us-stocks-result-market">' + escapeHtml(exchange) + '</span>'
-      + '<span class="us-stocks-result-favorite"><button type="button" class="us-stocks-fav-btn' + (isFav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(item.row.name || symbol) + '" title="관심종목에 추가/제거" aria-label="관심종목 토글">★</button></span>'
+      + '<span class="us-stocks-result-favorite"><button type="button" class="us-stocks-fav-btn' + (isFav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(displayName) + '" title="관심종목에 추가/제거" aria-label="관심종목 토글">★</button></span>'
       + '</div>';
   }
 
@@ -238,7 +255,12 @@
       .then(function (rows) {
         if (!rows || !rows.length) return localRows;
         var seen = {};
-        return localRows.concat(rows).filter(function (row) {
+        return localRows.concat(rows).map(function (row) {
+          return Object.assign({}, row, {
+            name: localizedUsName(row.symbol, row.name),
+            exchange: exchangeLabel(row.exchange)
+          });
+        }).filter(function (row) {
           var key = String(row.symbol || '').toUpperCase();
           if (seen[key]) return false;
           seen[key] = true;
@@ -359,7 +381,7 @@
             loadNativeChart();
             loadAnalysis();
             renderCongressLinks();
-            loadNews(quote.name || state.symbol);
+            loadNews(localizedUsName(quote.symbol, quote.name));
         }
       })
       .catch(function () {
@@ -446,8 +468,8 @@
     if (!card) return;
     var priceWrap = card.querySelector('[data-us-price-wrap]');
     applyTone(priceWrap, quote.change_rate);
-    card.querySelector('[data-us-name]').textContent = quote.name || quote.symbol;
-    card.querySelector('[data-us-symbol]').textContent = quote.symbol + ' · ' + (quote.exchange || '');
+    card.querySelector('[data-us-name]').textContent = localizedUsName(quote.symbol, quote.name);
+    card.querySelector('[data-us-symbol]').textContent = quote.symbol + ' · ' + exchangeLabel(quote.exchange);
     card.querySelector('[data-us-state]').textContent = marketStateLabel(quote.market_state);
     card.querySelector('[data-us-price]').textContent = formatPrice(quote.price);
     var changeNode = card.querySelector('[data-us-change]');
@@ -699,7 +721,7 @@
     var number = Number(value);
     var absolute = Math.abs(number);
     var divisor = absolute >= 1e9 ? 1e9 : absolute >= 1e6 ? 1e6 : absolute >= 1e3 ? 1e3 : 1;
-    var suffix = divisor === 1e9 ? 'B' : divisor === 1e6 ? 'M' : divisor === 1e3 ? 'K' : '';
+    var suffix = divisor === 1e9 ? '십억 달러' : divisor === 1e6 ? '백만 달러' : divisor === 1e3 ? '천 달러' : '';
     return '$' + (number / divisor).toFixed(divisor === 1 ? 0 : 1) + suffix;
   }
 
