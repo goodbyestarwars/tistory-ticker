@@ -1357,7 +1357,7 @@
     if (!feed.querySelector('.category-masthead')) {
       var masthead = document.createElement('header');
       masthead.className = 'category-masthead';
-      masthead.innerHTML = '<div><p>MARKET BRIEFING</p><h1>마켓 브리핑</h1><span>시장과 종목의 흐름을 한 장씩 읽습니다.</span></div>'
+      masthead.innerHTML = '<div><p>MARKET BRIEFING</p><h1>마켓 브리핑</h1><span>지난 시장과 종목의 흐름을 돌아보며, 다음 거래를 생각해봅니다.</span></div>'
         + '<small>최신순 · 전체 글</small>';
       feed.insertBefore(masthead, feed.firstChild);
     }
