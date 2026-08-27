@@ -31,8 +31,9 @@ INTERVALS = ('minute', 'day', 'week')
 # 눌렀을 때 /domestic-market-indicators/chart에서 가져온다. 현물 차트의 느린 첫 로딩은
 # 키움/KIS의 4개 차트 요청이 페이지 응답을 함께 붙잡고 있던 것이 원인이었다.
 EAGER_INTERVALS = ('day',)
-# Keep the domestic spot charts on the same lookback as /futures?days=250.
-CHART_LOOKBACK_DAYS = 250
+# KIS 국내업종 기간별 시세는 페이지당 약 50개 일봉을 반환한다. 연속조회와 함께
+# 약 1년(250영업일)을 확보하려면 달력 기준으로 1년보다 조금 넉넉해야 한다.
+CHART_LOOKBACK_DAYS = 370
 CHART_MINUTE_MAX_BARS = 1500
 
 

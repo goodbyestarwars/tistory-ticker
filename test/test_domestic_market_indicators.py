@@ -104,6 +104,19 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
             'FID_INPUT_ISCD': '0001',
         })
 
+    def test_kis_index_period_chart_collects_continuation_pages(self):
+        pages = [
+            ({'output1': {'name': 'KOSPI'}, 'output2': [{'stck_bsop_date': '20260827'}]}, 'M'),
+            ({'output1': {'name': 'KOSPI'}, 'output2': [{'stck_bsop_date': '20260617'}]}, ''),
+        ]
+        with patch.object(kis_client, '_get_domestic_quote', side_effect=pages) as request:
+            output, rows = kis_client.fetch_index_period_chart(
+                'token', 'appkey', 'secret', '0001', '20250801', '20260827')
+        self.assertEqual(output, {'name': 'KOSPI'})
+        self.assertEqual([row['stck_bsop_date'] for row in rows], ['20260827', '20260617'])
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(request.call_args_list[1].kwargs['tr_cont'], 'N')
+
     def test_cash_quote_uses_kis_index_price(self):
         with patch.object(dmi.kis_client, 'get_token', return_value='token') as token, \
              patch.object(dmi.kis_client, 'fetch_index_price', return_value={

@@ -328,45 +328,76 @@ def fetch_overseas_price(token, appkey, appsecret, excd, symb):
     return data.get('output') or data.get('output1') or {}
 
 
-def _get_domestic_quote(token, appkey, appsecret, path, tr_id, params):
+def _get_domestic_quote(token, appkey, appsecret, path, tr_id, params,
+                        tr_cont='', return_continuation=False):
+    """KIS 국내 시세 API를 호출한다.
+
+    ``tr_cont``는 KIS의 연속조회 헤더다. 기본 반환값은 기존 호출부와 호환되도록
+    응답 본문만 유지하고, 기간별 시세처럼 여러 페이지가 필요한 호출만
+    ``return_continuation=True``로 다음 페이지 여부를 함께 받는다.
+    """
     query = urllib.parse.urlencode(params)
+    headers = {
+        'Content-Type': 'application/json; charset=utf-8',
+        'authorization': 'Bearer ' + token,
+        'appkey': appkey,
+        'appsecret': appsecret,
+        'tr_id': tr_id,
+        'custtype': 'P',
+    }
+    if tr_cont:
+        headers['tr_cont'] = tr_cont
     req = urllib.request.Request(
         BASE_URL + path + '?' + query,
-        headers={
-            'Content-Type': 'application/json; charset=utf-8',
-            'authorization': 'Bearer ' + token,
-            'appkey': appkey,
-            'appsecret': appsecret,
-            'tr_id': tr_id,
-            'custtype': 'P',
-        },
+        headers=headers,
         method='GET',
     )
     try:
         with urllib.request.urlopen(req, timeout=15) as res:
             data = json.loads(res.read().decode('utf-8'))
+            continuation = (res.headers.get('tr_cont') or '').strip()
     except urllib.error.HTTPError as e:
         raise RuntimeError('%s HTTP %s: %s' % (tr_id, e.code, e.read().decode('utf-8', 'ignore')))
     if data.get('rt_cd') != '0':
         raise RuntimeError('%s 실패: %s' % (tr_id, json.dumps(data, ensure_ascii=False)))
+    if return_continuation:
+        return data, continuation
     return data
 
 
-def fetch_index_period_chart(token, appkey, appsecret, iscd, date1, date2, period='D'):
-    """KIS domestic index daily/weekly candles (FHKUP03500100)."""
-    data = _get_domestic_quote(
-        token, appkey, appsecret,
-        '/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice',
-        'FHKUP03500100',
-        {
-            'FID_COND_MRKT_DIV_CODE': 'U',
-            'FID_INPUT_ISCD': iscd,
-            'FID_INPUT_DATE_1': date1,
-            'FID_INPUT_DATE_2': date2,
-            'FID_PERIOD_DIV_CODE': period,
-        },
-    )
-    return data.get('output1') or {}, data.get('output2') or []
+def fetch_index_period_chart(token, appkey, appsecret, iscd, date1, date2, period='D', max_pages=10):
+    """KIS 국내업종 기간별 시세를 연속조회까지 모아 반환한다.
+
+    ``FHKUP03500100``은 한 응답에 최근 약 50개 일봉만 내려줄 수 있다. KIS 공식
+    예제처럼 응답 헤더 ``tr_cont``가 ``M`` 또는 ``F``이면 ``tr_cont=N``으로 다음
+    페이지를 요청한다. 그래서 넓은 조회 기간을 줘도 앞부분 일봉이 사라지지 않는다.
+    """
+    params = {
+        'FID_COND_MRKT_DIV_CODE': 'U',
+        'FID_INPUT_ISCD': iscd,
+        'FID_INPUT_DATE_1': date1,
+        'FID_INPUT_DATE_2': date2,
+        'FID_PERIOD_DIV_CODE': period,
+    }
+    output1 = {}
+    rows = []
+    continuation = ''
+    for _ in range(max_pages):
+        data, next_continuation = _get_domestic_quote(
+            token, appkey, appsecret,
+            '/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice',
+            'FHKUP03500100', params,
+            tr_cont=continuation,
+            return_continuation=True,
+        )
+        if not output1:
+            output1 = data.get('output1') or {}
+        page_rows = data.get('output2') or []
+        rows.extend(page_rows if isinstance(page_rows, list) else [page_rows])
+        if str(next_continuation).upper() not in ('M', 'F'):
+            break
+        continuation = 'N'
+    return output1, rows
 
 
 def fetch_index_time_chart(token, appkey, appsecret, iscd, interval='60'):
