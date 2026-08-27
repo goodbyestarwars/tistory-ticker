@@ -47,6 +47,11 @@ NEWS_CACHE_LOCK = threading.Lock()
 GENERAL_NEWS_CACHE_TTL_SEC = 5 * 60
 GENERAL_NEWS_CACHE_LOCK = threading.Lock()
 _general_news_cache = (0, [])
+TRANSLATION_URL = 'https://translate.google.com/translate_a/single'
+TRANSLATION_TIMEOUT_SEC = 5
+TRANSLATION_CACHE_MAX = 512
+TRANSLATION_CACHE_LOCK = threading.Lock()
+_translation_cache = {}
 SEC_FILINGS_CACHE_TTL_SEC = 5 * 60
 SEC_FILINGS_LOCK = threading.Lock()
 _sec_filings_cache = (0, [])
@@ -227,14 +232,14 @@ def get_or_refresh_news(symbol, naver_fetcher=None, alpha_api_key='', finnhub_ap
     """Read SQLite first and fetch/replace only when this symbol's cache expires."""
     cached = load_cached_news(symbol, ttl_sec=ttl_sec)
     if cached is not None:
-        return cached
+        return translate_news_titles(cached, max_items=min(10, len(cached)))
 
     # A second check under the lock prevents duplicate provider calls when two
     # requests for the same symbol arrive at the same time in this process.
     with NEWS_CACHE_LOCK:
         cached = load_cached_news(symbol, ttl_sec=ttl_sec)
         if cached is not None:
-            return cached
+            return translate_news_titles(cached, max_items=min(10, len(cached)))
         try:
             naver_items = naver_fetcher() if naver_fetcher else []
         except Exception:
@@ -249,7 +254,58 @@ def get_or_refresh_news(symbol, naver_fetcher=None, alpha_api_key='', finnhub_ap
             search_terms=search_terms,
         )
         save_cached_news(symbol, items)
-        return items
+        return translate_news_titles(items, max_items=min(10, len(items)))
+
+
+def translate_news_title(title):
+    """Translate a public news title for display while keeping the original link/title.
+
+    Google Translate's public web endpoint is used only for short headlines; failures
+    return the original text so the news feed never depends on translation uptime.
+    Results are process-cached because the same headlines are shown to many visitors.
+    """
+    text = str(title or '').strip()
+    if not text or not re.search(r'[A-Za-z]', text):
+        return text
+    with TRANSLATION_CACHE_LOCK:
+        if text in _translation_cache:
+            return _translation_cache[text]
+    try:
+        query = urllib.parse.urlencode({
+            'client': 'gtx', 'sl': 'auto', 'tl': 'ko', 'dt': 't', 'q': text[:500],
+        })
+        request = urllib.request.Request(
+            TRANSLATION_URL + '?' + query,
+            headers={'User-Agent': 'tistory-ticker/1.0'},
+        )
+        with urllib.request.urlopen(request, timeout=TRANSLATION_TIMEOUT_SEC) as response:
+            payload = json.loads(response.read().decode('utf-8'))
+        translated = ''.join(
+            str(part[0]) for part in (payload[0] if isinstance(payload, list) else [])
+            if isinstance(part, list) and part and part[0]
+        ).strip()
+        result = translated or text
+    except Exception:
+        logger.warning('News title translation failed', exc_info=True)
+        result = text
+    with TRANSLATION_CACHE_LOCK:
+        if len(_translation_cache) >= TRANSLATION_CACHE_MAX:
+            _translation_cache.pop(next(iter(_translation_cache)))
+        _translation_cache[text] = result
+    return result
+
+
+def translate_news_titles(items, max_items=10):
+    """Attach title_ko to a bounded set of news rows without changing title."""
+    rows = list(items or [])
+    selected = rows[:max(0, int(max_items or 0))]
+    if not selected:
+        return rows
+    with ThreadPoolExecutor(max_workers=min(4, len(selected))) as executor:
+        translated = list(executor.map(lambda item: translate_news_title(item.get('title')), selected))
+    for item, title_ko in zip(selected, translated):
+        item['title_ko'] = title_ko
+    return rows
 
 
 def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=None):
@@ -262,11 +318,13 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
     now = time.time()
     fetched_at, cached_items = _general_news_cache
     if fetched_at and now - fetched_at < ttl:
+        translate_news_titles(cached_items, max_items=min(20, len(cached_items)))
         return list(cached_items[:max(1, int(limit))])
 
     with GENERAL_NEWS_CACHE_LOCK:
         fetched_at, cached_items = _general_news_cache
         if fetched_at and now - fetched_at < ttl:
+            translate_news_titles(cached_items, max_items=min(20, len(cached_items)))
             return list(cached_items[:max(1, int(limit))])
         items = []
         providers = []
@@ -297,6 +355,7 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
         save_cached_news('__GENERAL__', selected, retain_limit=500)
         for item in selected:
             item.pop('_published_ts', None)
+        translate_news_titles(selected, max_items=min(20, len(selected)))
         _general_news_cache = (now, selected)
         return list(selected[:max(1, int(limit))])
 

@@ -79,6 +79,14 @@
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var ICONIFY_BASE = 'https://api.iconify.design/';
   var FAVICON_BASE = 'https://icons.duckduckgo.com/ip3/';
+  var US_DISPLAY_NAMES = {
+    AAPL: '애플', MSFT: '마이크로소프트', NVDA: '엔비디아', AMZN: '아마존', GOOGL: '알파벳 A', GOOG: '알파벳 C',
+    TSLA: '테슬라', META: '메타', AMD: 'AMD', NFLX: '넷플릭스', QQQ: '인베스코 QQQ ETF', LLY: '일라이 릴리',
+    SKHY: 'SK하이닉스(ADR)', SPCX: '스페이스X', MRVL: '마벨 테크놀로지', RGTI: '리게티 컴퓨팅', RKLB: '로켓 랩',
+    AVGO: '브로드컴', ORCL: '오라클', MU: '마이크론 테크놀로지', INTC: '인텔', CBRS: '세레브라스 시스템즈',
+    PLTR: '팔란티어', SNDK: '샌디스크', DELL: '델 테크놀로지스', IONQ: '아이온큐', ASTS: 'AST 스페이스모바일',
+    MSTR: '스트래티지', CRWD: '크라우드스트라이크', STX: '씨게이트 테크놀로지', CRM: '세일스포스'
+  };
   // 로컬 아이콘이 아직 없는 미국 종목은 Iconify의 공개 브랜드 아이콘을 먼저 시도한다.
   // 브랜드 아이콘이 없는 경우에도 회사 공식 도메인의 favicon을 한 번 더 시도해
   // 단순 이니셜 박스로 끝나는 종목을 줄인다.
@@ -119,6 +127,12 @@
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
     });
+  }
+
+  function localizedUsName(item) {
+    var code = String(item && (item.code || item.symbol) || '').replace(/^US:/i, '').toUpperCase();
+    if (state.market === 'us' && US_DISPLAY_NAMES[code]) return US_DISPLAY_NAMES[code];
+    return item && (item.name_ko || item.display_name || item.name_en || item.name || item.symbol) || code;
   }
 
   function cssEscape(value) {
@@ -230,6 +244,26 @@
       : '미국시장 · 정규장 23:30~06:00';
   }
 
+  function isUsRegularSessionOpen() {
+    try {
+      var parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false
+      }).formatToParts(new Date());
+      var weekday = (parts.find(function (part) { return part.type === 'weekday'; }) || {}).value || '';
+      var hour = Number((parts.find(function (part) { return part.type === 'hour'; }) || {}).value || 0);
+      var minute = Number((parts.find(function (part) { return part.type === 'minute'; }) || {}).value || 0);
+      if (weekday === 'Sat' || weekday === 'Sun') return false;
+      var totalMinutes = hour * 60 + minute;
+      return totalMinutes >= 9 * 60 + 30 && totalMinutes < 16 * 60;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function isMarketLive(market) {
+    return market === 'us' ? isUsRegularSessionOpen() : !isWeekendInKst();
+  }
+
   function marketLabel(market) {
     return market === 'us' ? usSessionLabel() : '국내시장 · 오전 08:00~오후 08:00';
   }
@@ -238,7 +272,7 @@
     var code = String(item.code || item.symbol || '').replace(/^US:/i, '').toUpperCase();
     var market = String(item.market || state.market || currentMarket()).toLowerCase();
     var naverCode = market === 'us' ? code + '.O' : code;
-    var initials = String(item.display_name || item.name_en || item.name || item.symbol || code).replace(/\s+/g, '').slice(0, 2);
+    var initials = String(localizedUsName(item)).replace(/\s+/g, '').slice(0, 2);
     if (!code) return '<span class="hrt-stock-logo hrt-stock-logo--fallback">' + escapeHtml(initials || '종목') + '</span>';
     return '<span class="hrt-stock-logo"><img src="' + STOCK_ICON_BASE + encodeURIComponent(code) + '.svg" alt="" loading="lazy" '
       + 'data-icon-code="' + escapeHtml(code) + '" data-icon-market="' + escapeHtml(market) + '" data-icon-naver-code="' + escapeHtml(naverCode) + '" data-icon-stage="local" referrerpolicy="no-referrer" '
@@ -371,7 +405,7 @@
 
   function rowHtml(item, rank) {
     var code = item.code || item.symbol;
-    var displayName = item.display_name || item.name_en || item.name || code;
+    var displayName = localizedUsName(item);
     var rate = number(item.change_rate);
     var tone = rate > 0 ? 'hrt-up' : rate < 0 ? 'hrt-down' : 'hrt-flat';
     var industry = industryFor(item);
@@ -612,7 +646,10 @@
   }
 
   function fetchBoard(force) {
-    if (state.loading) return Promise.resolve();
+    if (state.loading) {
+      if (force) state.pendingMarket = currentMarket();
+      return Promise.resolve();
+    }
     state.loading = true;
     var market = currentMarket();
     if (market !== state.market) {
@@ -626,13 +663,14 @@
       if (!response.ok) throw new Error('market-board ' + response.status);
       return response.json();
     }).then(function (json) {
+      if (currentMarket() !== market) return;
       state.data = json.data || json;
       var session = state.mount.querySelector('[data-hrt-session]');
       var updated = state.mount.querySelector('[data-hrt-updated]');
       // API가 이전 세션 문구를 캐시하고 있어도 화면은 브라우저의 현재 날짜와
       // 뉴욕 시간대 기준으로 계산한 운영시간을 우선 표시한다.
       if (session) session.textContent = marketLabel(market);
-      if (updated) updated.textContent = (isWeekendInKst() ? '최근 장마감 · ' : '실시간 · ')
+      if (updated) updated.textContent = (isMarketLive(market) ? '실시간 · ' : '최근 장마감 · ')
         + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
       renderRows();
       startRealtime();
@@ -641,6 +679,12 @@
       if (body && !state.data) body.innerHTML = '<tr><td colspan="' + tableColspan() + '" class="hrt-state">종목 데이터를 잠시 불러오지 못했습니다.</td></tr>';
     }).then(function () {
       state.loading = false;
+      if (state.pendingMarket && state.pendingMarket !== state.market) {
+        state.pendingMarket = null;
+        fetchBoard(true);
+      } else {
+        state.pendingMarket = null;
+      }
     });
   }
 

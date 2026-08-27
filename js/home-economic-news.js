@@ -152,7 +152,7 @@
       + '<a class="app-news-event hen-breaking-row hen-breaking-row--active" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">'
       + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(flashTimeLabel(item.pubDate)) + '</small></div>'
       + '<div class="app-news-rail"><i class="is-latest"></i></div>'
-      + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-type app-news-type--' + (label === '공시' ? '공시' : '뉴스') + '">' + escapeHtml(label) + '</b></div><strong>' + escapeHtml(item.title) + '</strong></div>'
+      + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-type app-news-type--' + (label === '공시' ? '공시' : '뉴스') + '">' + escapeHtml(label) + '</b></div><strong>' + escapeHtml(item.title_ko || item.title) + '</strong></div>'
       + '</a></div>';
   }
 
@@ -234,7 +234,7 @@
           + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(timeLabel(item.pubDate)) + '</small></div>'
           + '<div class="app-news-rail"><i></i></div>'
           + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--' + (market === 'us' ? '미국' : '한국') + '">' + (market === 'us' ? '미국' : '한국') + '</b><b class="app-news-type app-news-type--' + escapeHtml(type) + '">' + escapeHtml(type) + '</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
-          + '<strong>' + escapeHtml(item.title || '') + '</strong>'
+          + '<strong>' + escapeHtml(item.title_ko || item.title || '') + '</strong>'
           + (quote ? '<div class="app-news-footer"><span class="app-news-quote ' + tone + '">' + escapeHtml(quote.name || '') + ' <b>' + (quote.rate > 0 ? '+' : '') + Number(quote.rate || 0).toFixed(2) + '%</b></span></div>' : '')
           + '</div></a>';
       }).join('') + '</div>';

@@ -665,7 +665,7 @@
         + '<div class="app-news-date"><strong>' + escapeHtml(dateText) + '</strong><small>' + escapeHtml(formatNewsTime(pubDate)) + '</small></div>'
         + '<div class="app-news-rail ss-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
         + '<div class="app-news-body ss-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--미국">미국</b><b class="app-news-type app-news-type--뉴스">뉴스</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
-        + '<strong>' + escapeHtml(item.title || '') + '</strong></div></a>';
+        + '<strong>' + escapeHtml(item.title_ko || item.title || '') + '</strong></div></a>';
     }).join('') + '</div>';
   }
 

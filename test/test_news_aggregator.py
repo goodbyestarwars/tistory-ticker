@@ -10,6 +10,30 @@ import news_aggregator
 
 
 class NewsAggregatorTests(unittest.TestCase):
+    def setUp(self):
+        # Existing provider/cache tests should not call the external translation
+        # service; translation itself is covered with a focused mocked test below.
+        self.translation_patch = mock.patch.object(
+            news_aggregator, 'translate_news_titles', side_effect=lambda items, max_items=10: items
+        )
+        self.translation_patch.start()
+        self.addCleanup(self.translation_patch.stop)
+
+    def test_news_title_translation_keeps_original_and_adds_korean_text(self):
+        news_aggregator._translation_cache.clear()
+        response = mock.Mock()
+        response.read.return_value = '[[["번역된 헤드라인", "Original headline"]]]'.encode('utf-8')
+        response.__enter__ = mock.Mock(return_value=response)
+        response.__exit__ = mock.Mock(return_value=False)
+        with mock.patch.object(news_aggregator.urllib.request, 'urlopen', return_value=response) as urlopen:
+            translated = news_aggregator.translate_news_title('Original headline')
+
+        self.assertEqual(translated, '번역된 헤드라인')
+        self.assertEqual(urlopen.call_count, 1)
+        self.assertIn('tl=ko', urlopen.call_args.args[0].full_url)
+        self.assertEqual(news_aggregator.translate_news_title('Original headline'), '번역된 헤드라인')
+        self.assertEqual(urlopen.call_count, 1)
+
     def test_persistent_cache_skips_provider_calls_until_expired(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             with mock.patch.object(news_aggregator, 'NEWS_CACHE_DB_FILE', os.path.join(temp_dir, 'news.db')):

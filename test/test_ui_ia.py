@@ -628,6 +628,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_home_realtime_table_fills_missing_stock_icons(self):
         source = self.read("js/home-realtime-table.js")
+        main = self.read("js/skin-main.js")
         for token in (
             "NAVER_ICON_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock'",
             "ICONIFY_BASE = 'https://api.iconify.design/'",
@@ -647,6 +648,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
+        self.assertIn("home-realtime-table.js?v=20260828-us-market-refresh-v2", main)
+        for token in (
+            "function localizedUsName(item)",
+            "name_ko || item.display_name",
+            "US_DISPLAY_NAMES",
+            "state.pendingMarket = currentMarket()",
+            "if (currentMarket() !== market) return;",
+        ):
+            self.assertIn(token, source)
 
     def test_home_realtime_table_can_include_or_exclude_etfs(self):
         source = self.read("js/home-realtime-table.js")
@@ -705,6 +715,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("미국시장 · 정규장 23:30~06:00", source)
         self.assertIn("미국시장 · 정규장 ' + hours", self.read("scripts/cloud-vm/market_board.py"))
         self.assertIn("America/New_York", source)
+        self.assertIn("function isUsRegularSessionOpen()", source)
+        self.assertIn("function isMarketLive(market)", source)
+        self.assertIn("최근 장마감 · ", source)
         self.assertIn("국내시장 · 오전 08:00~오후 08:00", source)
         for token in (
             "['amount', '거래대금']",
@@ -822,7 +835,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("hen-zigzag", news)
         self.assertIn(".app-news-event", style)
         self.assertIn(".app-news-date", style)
-        self.assertIn("v=20260820-market-news-switch-v1", main)
+        self.assertIn("v=20260828-us-news-ko-v2", main)
         self.assertIn(".hen-breaking { flex: 0 0 auto", style)
         self.assertIn(".home-economic-news .hen-breaking-list { height: 62px", style)
         self.assertNotIn("data-hen-breaking-form", main)
@@ -891,6 +904,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (market !== currentMarket()) return false;", news)
         self.assertIn("var newsUrl = market === 'us' ? US_API_URL : DOMESTIC_API_URL;", news)
         self.assertIn("var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;", news)
+        self.assertIn("item.title_ko || item.title", news)
         self.assertIn("# WebSocket의 기본 시장은 시간대 기준이다.", vm)
         self.assertIn("def _economic_news_market():", vm)
         self.assertIn("return 'us' if now.hour > 20 or (now.hour == 20 and now.minute >= 30) or now.hour < 7 else 'domestic'", vm)
@@ -1546,6 +1560,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "'십억 달러'",
         ):
             self.assertIn(token, source)
+        self.assertIn("item.title_ko || item.title || ''", source)
         self.assertIn("font-family: inherit", style)
         self.assertIn(".us-stocks-search > button", style)
         self.assertNotIn(".us-stocks-search button {", style)
