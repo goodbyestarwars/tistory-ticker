@@ -1535,7 +1535,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
         self.assertIn("us-stocks.css?v=20260828-domestic-layout-parity-v2", source)
-        self.assertIn("us-stocks.js?v=20260828-domestic-layout-parity-v3", search)
+        self.assertIn("us-stocks.js?v=20260828-us-detail-loading-fix-v4", search)
         for token in (
             'id="usStocksInput"',
             'id="usStocksSearchBtn"',
