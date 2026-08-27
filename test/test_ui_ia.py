@@ -1517,7 +1517,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
         self.assertIn("us-stocks.css?v=20260828-domestic-layout-parity-v2", source)
-        self.assertIn("us-stocks.js?v=20260828-domestic-layout-parity-v1", search)
+        self.assertIn("us-stocks.js?v=20260828-domestic-layout-parity-v2", search)
         for token in (
             'id="usStocksInput"',
             'id="usStocksSearchBtn"',
@@ -1532,6 +1532,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             'class="ss-panel-right us-stocks-panel us-stocks-chart-panel"',
             'class="ss-news-panel us-stocks-panel us-stocks-news-panel"',
             'applyTone(priceWrap, quote.change_rate)',
+            "var apiTimeframe = timeframe === 'minute' ? 'minute' : 'daily';",
+            "'?timeframe=' + apiTimeframe",
         ):
             self.assertIn(token, source)
         self.assertIn("font-family: inherit", style)

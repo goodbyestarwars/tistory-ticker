@@ -535,7 +535,10 @@
       container: mount,
       key: 'US:' + symbol,
       load: function (timeframe, minuteScope) {
-        var query = '?timeframe=' + timeframe;
+        // 공통 차트 모듈은 day/week/month를 UI 상태로 사용하지만 미국 API는
+        // minute/daily만 받는다. 일봉 요청을 그대로 day로 보내면 422가 난다.
+        var apiTimeframe = timeframe === 'minute' ? 'minute' : 'daily';
+        var query = '?timeframe=' + apiTimeframe;
         if (timeframe === 'minute') query += '&tic_scope=' + encodeURIComponent(minuteScope || '1');
         return fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(symbol) + query)
           .then(function (payload) { return normalizeChartBars(payload && payload.points, timeframe); });
