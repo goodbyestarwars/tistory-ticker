@@ -1516,7 +1516,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/us-stocks.js")
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
-        self.assertIn("us-stocks.css?v=20260825-us-results-table-v1", source)
+        self.assertIn("us-stocks.css?v=20260828-domestic-style-parity-v1", source)
         self.assertIn("us-stocks.js?v=20260825-us-results-table-v1", search)
         for token in (
             'id="usStocksInput"',
@@ -1527,6 +1527,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
         self.assertIn("font-family: inherit", style)
+        self.assertIn(".us-stocks-search > button", style)
+        self.assertNotIn(".us-stocks-search button {", style)
+        self.assertIn("flex: 0 1 33%; min-width: 220px", style)
+        self.assertIn("background: #333; color: #fff; font-size: 14px", style)
         for token in (
             ".us-stocks-metric span { color: #8b95a1; font-size: 12px;",
             ".us-stocks-metric b { margin-top: 4px; font-size: 15px;",
