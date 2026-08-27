@@ -1432,6 +1432,8 @@
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
     var aptCurrentPrice = quote ? Number(quote.price) : (latest && latest.close);
+    var aptDaily = chartData && chartData.daily;
+    var aptOpeningPrice = aptDaily && aptDaily.length ? Number(aptDaily[aptDaily.length - 1].open) : null;
     // quote(실시간, NXT 시간외 포함)가 있으면 그걸 헤더에 우선 쓰고, 실패 시에만 daily[0](정규장
     // 종가 고정)로 폴백한다. asOfLabel도 quote 성공 시 "시각"으로, 폴백 시 기존처럼 "날짜"로 보여준다.
     var priceHtml = '';
@@ -1491,7 +1493,7 @@
     wireViewTabs(box, data.code, data.name, chartData);
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
-    wireAptTabs(box, chartData && chartData.daily, aptCurrentPrice, data.code);
+    wireAptTabs(box, chartData && chartData.daily, aptCurrentPrice, data.code, aptOpeningPrice);
     startQuotePolling(box, data.code);
   }
 
@@ -4046,6 +4048,18 @@
     function won(value) {
       return value == null || !isFinite(Number(value)) ? '-' : Math.round(Number(value)).toLocaleString('ko-KR') + '원';
     }
+    var referenceOpen = Number(profile.openPrice);
+    var lowerLimit = Number(profile.lowerLimit);
+    var upperLimit = Number(profile.upperLimit);
+    var limitHtml = '';
+    if (isFinite(referenceOpen) && referenceOpen > 0 && isFinite(lowerLimit) && isFinite(upperLimit)) {
+      limitHtml = '<div class="ff-apt-simple-limits" aria-label="시가 기준 참고 가격 범위">'
+        + '<span class="basis">시가 기준 ±30%</span>'
+        + '<span class="open">시가 ' + won(referenceOpen) + '</span>'
+        + '<span class="lower">하한가 ' + won(lowerLimit) + '</span>'
+        + '<span class="upper">상한가 ' + won(upperLimit) + '</span>'
+        + '</div>';
+    }
     function rowHasPrice(row, price) {
       return price != null && isFinite(Number(price)) && Number(price) >= row.low && Number(price) <= row.high;
     }
@@ -4059,7 +4073,7 @@
       var isCurrent = rowHasPrice(row, currentPrice);
       var isAverage = rowHasPrice(row, avgPrice);
       var isPoc = originalIndex === pocRow;
-      var width = maxVolume > 0 ? Math.max(3, Math.round(row.volume / maxVolume * 1000) / 10) : 0;
+      var width = row.volume > 0 && maxVolume > 0 ? Math.max(0.8, Math.round(row.volume / maxVolume * 1000) / 10) : 0;
       var classes = 'ff-apt-simple-row' + (isCurrent ? ' is-current' : '') + (isAverage ? ' is-average' : '') + (isPoc ? ' is-poc' : '');
       var markers = (isCurrent ? '<span class="current">현재</span>' : '')
         + (isAverage ? '<span class="average">평균</span>' : '')
@@ -4089,6 +4103,7 @@
       + '</div>'
       + '<div class="ff-apt-chart-wrap ff-apt-simple" role="img" aria-label="가격대별 거래량 매물대 막대 차트">'
       + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>막대가 길수록 거래가 많이 쌓인 구간</span></div><em>' + periodLabel + '</em></div>'
+      + limitHtml
       + '<div class="ff-apt-simple-chart">' + rowHtml + '</div>'
       + '<div class="ff-apt-simple-legend"><span class="current">현재가</span><span class="average">평균단가</span><span class="poc">최대 매물대</span></div>'
       + '</div>'
@@ -4196,36 +4211,31 @@
     };
   }
 
-  // 오늘 실제 체결가가 현재가에서 끝나면 원자료만 그릴 때 상방이 잘려 보인다.
-  // 이는 “상방 거래가 없다”는 뜻이지 가격축의 끝이 현재가여야 한다는 뜻은 아니므로,
-  // 실제 체결량 0인 빈 가격대를 위·아래에 추가한다. 빈 구간은 거래 없음으로 표시해
-  // 실제 거래량과 추정치를 섞지 않는다.
-  function extendRealVolumeProfileRange(profile, currentPrice) {
-    if (!profile || !profile.bins || !profile.bins.length || !isFinite(Number(currentPrice))) return profile;
-    var price = Number(currentPrice);
-    var low = Number(profile.minLow), high = Number(profile.maxHigh);
-    if (!(high > low) || price <= 0) return profile;
-    var pad = Math.max(price * 0.05, (high - low) * 0.12);
-    var step = Math.max(price * 0.005, pad / 4);
-    var below = [], above = [], i;
-    for (i = 4; i >= 1; i--) below.push({ low: Math.max(0, low - step * i), high: Math.max(0, low - step * (i - 1)), volume: 0 });
-    for (i = 1; i <= 4; i++) above.push({ low: high + step * (i - 1), high: high + step * i, volume: 0 });
-    var bins = below.concat(profile.bins, above);
+  // 체결 데이터가 없는 가격대를 현재가 주변에 임의로 덧붙이면 실제 매물대처럼
+  // 보이는 문제가 생긴다. 실제 체결 구간은 그대로 두고, 시가 기준 참고 상·하한만
+  // 메타데이터로 붙여 화면에 명확히 표시한다(매물대 계산에는 포함하지 않음).
+  function attachAptPriceLimits(profile, openPrice) {
+    if (!profile || !profile.bins || !profile.bins.length) return profile;
+    var base = Number(openPrice);
+    if (!(base > 0) || !isFinite(base)) return profile;
     return {
-      bins: bins,
+      bins: profile.bins,
       maxVolume: profile.maxVolume,
-      pocIndex: profile.pocIndex + below.length,
-      minLow: bins[0].low,
-      maxHigh: bins[bins.length - 1].high,
+      pocIndex: profile.pocIndex,
+      minLow: profile.minLow,
+      maxHigh: profile.maxHigh,
       days: profile.days,
-      trendUp: profile.trendUp
+      trendUp: profile.trendUp,
+      openPrice: base,
+      lowerLimit: Math.round(base * 0.7),
+      upperLimit: Math.round(base * 1.3)
     };
   }
 
   // 확대(+)/축소(-) 버튼: 캐시된 pbar-tratio 원자료로 층수(bin count)만 바꿔 즉시
   // 재계산한다(fetchRealVolumeProfile 자체가 1분 캐시라 층수만 바꿀 땐 재조회 없음) -
   // 토스 차트에서 확대/축소하면 매물대가 다시 그려지는 것과 같은 반응성을 구현.
-  function wireAptTabs(box, chartDaily, currentPrice, code) {
+  function wireAptTabs(box, chartDaily, currentPrice, code, openPrice) {
     var card = box.querySelector('#ffAptCard');
     if (!card) return;
     var stepIndex = APT_BIN_DEFAULT_INDEX;
@@ -4327,7 +4337,7 @@
       fetchRealVolumeProfile(code, APT_LOOKBACK_DAYS).then(function (result) {
         var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
         if (!profile) throw new Error('실제 체결 데이터가 비어 있습니다.');
-        profile = extendRealVolumeProfileRange(profile, currentPrice);
+        profile = attachAptPriceLimits(profile, openPrice);
         profile.source = result.source || 'kis-pbar';
         activeProfile = profile;
         dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded, result.avgPrice);
@@ -4345,6 +4355,7 @@
           dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 계산할 거래량 데이터가 없습니다.</div>';
           return;
         }
+        fallbackProfile = attachAptPriceLimits(fallbackProfile, openPrice);
         fallbackProfile.source = fallback.source;
         activeProfile = fallbackProfile;
         dynamic.innerHTML = buildAptDynamicHtml(fallbackProfile, currentPrice, stepIndex, fallback.daysIncluded, fallback.avgPrice);

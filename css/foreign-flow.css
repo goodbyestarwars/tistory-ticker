@@ -2474,6 +2474,24 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   font-size: 10px;
   font-style: normal;
 }
+#foreign-flow .ff-apt-simple-limits {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+  margin: -4px 0 10px;
+}
+#foreign-flow .ff-apt-simple-limits span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#foreign-flow .ff-apt-simple-limits .basis { color: #7b8794; background: transparent; }
+#foreign-flow .ff-apt-simple-limits .open { color: #647180; background: #f1f4f7; }
+#foreign-flow .ff-apt-simple-limits .lower { color: #1261c4; background: #eaf2fd; }
+#foreign-flow .ff-apt-simple-limits .upper { color: #d24f45; background: #fff0ee; }
 #foreign-flow .ff-apt-simple-chart { display: grid; gap: 3px; }
 #foreign-flow .ff-apt-simple-row {
   display: grid;
@@ -2582,6 +2600,10 @@ html.dark #foreign-flow .ff-apt-simple-head strong,
 html.dark #foreign-flow .ff-apt-simple-note strong { color: #f5efe0; }
 html.dark #foreign-flow .ff-apt-chart-wrap.ff-apt-simple { border-color: rgba(245,239,224,.17) !important; background: #1f2326 !important; }
 html.dark #foreign-flow .ff-apt-simple-track { background: #333a40; }
+html.dark #foreign-flow .ff-apt-simple-limits .basis { color: #9da8b2; background: transparent; }
+html.dark #foreign-flow .ff-apt-simple-limits .open { color: #b8c0c7; background: #333a40; }
+html.dark #foreign-flow .ff-apt-simple-limits .lower { color: #8db9f0; background: rgba(18,97,196,.2); }
+html.dark #foreign-flow .ff-apt-simple-limits .upper { color: #f09b94; background: rgba(210,79,69,.2); }
 html.dark #foreign-flow .ff-apt-simple-row.is-current { background: rgba(39,138,116,.17); }
 html.dark #foreign-flow .ff-apt-simple-price,
 html.dark #foreign-flow .ff-apt-simple-volume,
@@ -2593,6 +2615,7 @@ html.dark #foreign-flow .ff-apt-simple-note { color: #b8c0c7; }
   #foreign-flow .ff-apt-simple-summary strong { font-size: 12px; }
   #foreign-flow .ff-apt-chart-wrap.ff-apt-simple { padding: 13px 9px 11px; }
   #foreign-flow .ff-apt-simple-row { grid-template-columns: 78px minmax(64px, 1fr) 48px 62px; gap: 5px; padding-inline: 3px; }
+  #foreign-flow .ff-apt-simple-limits { justify-content: flex-start; margin-top: -2px; }
   #foreign-flow .ff-apt-simple-price,
   #foreign-flow .ff-apt-simple-volume { font-size: 8px; }
   #foreign-flow .ff-apt-simple-markers { gap: 2px; }
