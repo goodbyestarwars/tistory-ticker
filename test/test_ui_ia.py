@@ -238,7 +238,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn('class="dmi-provider"', frontend)
         self.assertNotIn("분봉 · 일봉 · 주봉", frontend)
         backend = self.read("scripts/cloud-vm/domestic_market_indicators.py")
-        self.assertIn("CHART_LOOKBACK_DAYS = 250", backend)
+        self.assertIn("CHART_LOOKBACK_DAYS = 370", backend)
         self.assertIn("CHART_MINUTE_MAX_BARS = 1500", backend)
         enhancements = self.read("js/dashboard-enhancements.js")
         self.assertIn("modalTarget.classList.contains('dmi-chart')", enhancements)
@@ -2185,7 +2185,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function usCompanyNameFor(ev, meta)", source)
         self.assertIn("sc-ev-symbol", source)
         self.assertIn("function upsertStoredCalendarEvents(incoming)", source)
-        self.assertIn("CALENDAR_STORAGE_KEY", source)
+        self.assertIn("function kstDateKey(value)", source)
+        self.assertIn("function usDateLabel(ev)", source)
+        self.assertIn("timeZone: 'Asia/Seoul'", source)
+        self.assertIn("calendar-events:v3", source)
         self.assertIn("calendarEventKey(event)", source)
         self.assertIn("var symbol = String(event && event.symbol || '').trim();", source)
         self.assertIn("var code = meta.isStock ? stockCodeFor(ev, meta.stockName) : null;", source)
@@ -2202,7 +2205,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".sc-cal-today {\n  border: 1px solid #c7d2fe; border-radius: 4px;", style)
         self.assertIn(".sc-ev-stock-link", style)
         self.assertIn(".sc-today-head", style)
-        self.assertIn("stock-calendar.js?v=20260826-stock-link-v1", home)
+        self.assertIn("stock-calendar.js?v=20260827-kst-calendar-v1", home)
+        self.assertIn("function homeKstDayStart(value)", home)
 
     def test_lightweight_charts_uses_v5_api_across_chart_modules(self):
         files = (

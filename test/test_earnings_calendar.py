@@ -140,9 +140,17 @@ class EarningsCalendarTests(unittest.TestCase):
         self.assertEqual(fetch.call_count, 1)
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0]['title'], '$AAPL 실적발표 (장후) · Apple Inc.')
+        self.assertEqual(events[0]['start'], '2026-08-16')
+        self.assertEqual(events[0]['us_date'], '2026-08-15')
+        self.assertEqual(events[0]['us_session'], '장후')
         self.assertEqual(events[0]['source'], 'finnhub')
         self.assertEqual(events[0]['company'], 'Apple Inc.')
         self.assertEqual(cached, events)
+
+    def test_us_earnings_kst_date_uses_session_boundary(self):
+        self.assertEqual(earnings_calendar._finnhub_kst_date('2026-08-15', 'bmo'), '2026-08-15')
+        self.assertEqual(earnings_calendar._finnhub_kst_date('2026-08-15', 'amc'), '2026-08-16')
+        self.assertEqual(earnings_calendar._finnhub_kst_date('2026-08-15', 'dmh'), '2026-08-16')
 
     def test_marks_reported_us_earnings_with_eps_and_revenue_results(self):
         rows = [{

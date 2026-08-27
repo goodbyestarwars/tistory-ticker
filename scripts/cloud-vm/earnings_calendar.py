@@ -81,7 +81,10 @@ def _event_key(event):
     symbol = str(event.get('symbol') or event.get('ticker') or '').strip().upper()
     if source == 'finnhub' and symbol:
         # Finnhub can revise the date/result for the same month's report.
-        return 'finnhub:' + symbol + ':' + str(event.get('start') or '')[:7]
+        # ``start``는 KST 표시일이라 장후 실적이 다음 달로 넘어갈 수 있으므로,
+        # 중복·갱신 키는 변하지 않는 미국 현지 발표일을 우선 사용한다.
+        us_date = str(event.get('us_date') or event.get('start') or '')
+        return 'finnhub:' + symbol + ':' + us_date[:7]
     return '|'.join((source, str(event.get('start') or ''), str(event.get('title') or '').strip()))
 
 
@@ -561,6 +564,20 @@ def _finnhub_hour_label(hour):
     }.get(str(hour or '').lower(), '')
 
 
+def _finnhub_kst_date(event_date, hour):
+    """미국 실적 발표일을 한국 캘린더에 표시할 날짜로 바꾼다.
+
+    Finnhub는 미국 현지 날짜와 장전(BMO)/장후(AMC)/장중(DMH) 구분만 주고 정확한
+    시각은 주지 않는다. 장전은 한국시간 같은 날 밤, 장후·장중은 다음 날 새벽에
+    해당하므로 날짜만 보이는 한국 캘린더에서는 후자 둘을 다음 날로 둔다. 원본
+    미국 날짜는 ``us_date``로 별도 보존해 화면에서 함께 안내한다.
+    """
+    local_date = date.fromisoformat(str(event_date)[:10])
+    if str(hour or '').lower() in ('amc', 'dmh'):
+        local_date += timedelta(days=1)
+    return local_date.isoformat()
+
+
 def _number(value):
     if value in (None, ''):
         return None
@@ -642,7 +659,7 @@ def _reported_result(row):
 
 
 def fetch_us_month(year, month):
-    """Finnhub 예정 실적일정을 월별 캘린더 이벤트로 변환한다."""
+    """Finnhub 예정 실적일정을 한국 날짜 기준 월별 이벤트로 변환한다."""
     key = '%04d-%02d' % (int(year), int(month))
     cached = _finnhub_cache.get(key)
     if cached and time.time() - cached[0] < FINNHUB_CACHE_TTL_SEC:
@@ -652,10 +669,12 @@ def fetch_us_month(year, month):
     if not api_key:
         return []
 
+    # 미국 장후·장중 실적은 KST 다음 날이므로, 해당 월 첫날에 표시될 전날 미국
+    # 일정까지 포함해 조회한다.
     start = date(int(year), int(month), 1)
     end = (date(int(year) + 1, 1, 1) if int(month) == 12
            else date(int(year), int(month) + 1, 1)) - timedelta(days=1)
-    rows = _fetch_finnhub(api_key, start.isoformat(), end.isoformat())
+    rows = _fetch_finnhub(api_key, (start - timedelta(days=1)).isoformat(), end.isoformat())
     events = []
     seen = set()
     for row in rows:
@@ -663,7 +682,13 @@ def fetch_us_month(year, month):
             continue
         symbol = str(row.get('symbol') or '').strip().upper()
         event_date = str(row.get('date') or '').strip()
-        if not symbol or not event_date or event_date[:7] != key:
+        if not symbol or not event_date:
+            continue
+        try:
+            kst_date = _finnhub_kst_date(event_date, row.get('hour'))
+        except ValueError:
+            continue
+        if kst_date[:7] != key:
             continue
         dedupe_key = (event_date, symbol)
         if dedupe_key in seen:
@@ -676,12 +701,14 @@ def fetch_us_month(year, month):
             detail += ' · ' + company
         event = {
             'title': '$%s %s' % (symbol, detail),
-            'start': event_date,
+            'start': kst_date,
             'link': 'https://finnhub.io/docs/api/earnings-calendar',
             'source': 'finnhub',
             'market': 'us',
             'symbol': symbol,
             'company': company,
+            'us_date': event_date[:10],
+            'us_session': hour,
             'status': 'scheduled',
         }
         result = _reported_result(row)

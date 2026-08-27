@@ -127,7 +127,7 @@
     })();
 
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260826-stock-link-v1';
+    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260827-kst-calendar-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260825-ws-fallback-v1')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260825-ws-fallback-v1';
@@ -1173,11 +1173,31 @@
       return new Date(value);
     }
 
+    function homeKstParts(value) {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false, hourCycle: 'h23'
+      }).formatToParts(value || new Date()).reduce(function (result, part) {
+        result[part.type] = part.value;
+        return result;
+      }, {});
+    }
+
+    function homeKstDayStart(value) {
+      var parts = homeKstParts(value);
+      return new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)) - 9 * 60 * 60 * 1000);
+    }
+
     function scheduleTime(event, includeDate) {
       var allDay = event.start.indexOf('T') === -1;
       var date = eventDate(event);
-      var dateLabel = (date.getMonth() + 1) + '.' + date.getDate() + '.';
-      var timeLabel = allDay ? '종일' : String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+      var parts = homeKstParts(date);
+      var dateLabel = Number(parts.month) + '.' + Number(parts.day) + '.';
+      var usDate = String(event.us_date || '').slice(0, 10);
+      var timeLabel = usDate
+        ? '미국 ' + Number(usDate.slice(5, 7)) + '/' + Number(usDate.slice(8, 10))
+          + (event.us_session ? ' · ' + event.us_session : '')
+        : allDay ? '종일' : parts.hour + ':' + parts.minute;
       return includeDate ? dateLabel + ' ' + timeLabel : timeLabel;
     }
 
@@ -1202,17 +1222,18 @@
     }
 
     function nearestEvents(events) {
-      var now = new Date();
-      var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var todayStart = homeKstDayStart(new Date());
       var tomorrow = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
       var upcoming = (events || []).filter(function (event) { return eventDate(event) >= todayStart; })
         .sort(compareCalendarEvents);
       var todayItems = upcoming.filter(function (event) { return eventDate(event) < tomorrow; });
       if (todayItems.length) return { items: todayItems.slice(0, 4), includeDate: false, label: '오늘 일정' };
       if (!upcoming.length) return { items: [], includeDate: true, label: '오늘 또는 가장 가까운 일정' };
-      var nearest = eventDate(upcoming[0]).toDateString();
+      var nearest = eventDate(upcoming[0]).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
       return {
-        items: upcoming.filter(function (event) { return eventDate(event).toDateString() === nearest; }).slice(0, 4),
+        items: upcoming.filter(function (event) {
+          return eventDate(event).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }) === nearest;
+        }).slice(0, 4),
         includeDate: true,
         label: '가장 가까운 일정'
       };
@@ -1240,12 +1261,12 @@
     loadHomeScript(CALENDAR_SCRIPT_URL, 'StockCalendar')
       .then(function (calendar) {
         if (!calendar || !calendar.fetchEvents) throw new Error('캘린더 모듈 없음');
-        var today = new Date();
-        return calendar.fetchEvents(today.getFullYear(), today.getMonth())
+        var today = homeKstParts(new Date());
+        return calendar.fetchEvents(Number(today.year), Number(today.month) - 1)
           .then(function (events) {
             var current = nearestEvents(events);
             if (current.items.length) return current;
-            return calendar.fetchEvents(today.getFullYear(), today.getMonth() + 1).then(nearestEvents);
+            return calendar.fetchEvents(Number(today.year), Number(today.month)).then(nearestEvents);
           });
       })
       .then(renderSchedule)

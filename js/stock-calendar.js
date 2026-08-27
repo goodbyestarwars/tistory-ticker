@@ -27,7 +27,9 @@
   var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
   var CONTAINER_SELECTOR = '#stock-calendar';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
-  var CALENDAR_STORAGE_KEY = 'tistory-ticker:calendar-events:v2';
+  // 미국 장후 실적의 KST 날짜가 달라졌으므로 이전 현지일 캐시와 섞지 않는다.
+  var CALENDAR_STORAGE_KEY = 'tistory-ticker:calendar-events:v3';
+  var KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
   // DART 공시의 정식 회사명이 KRX_MAP(data/krx_map.js)의 약칭 키와 다른 경우의 별칭.
   // 예: DART corp_name "현대자동차" vs KRX_MAP 키 "현대차"(005380).
@@ -122,7 +124,10 @@
     if (event && event.id) return 'google:' + String(event.id);
     if (source === 'dart' && event.receipt_no) return 'dart:' + String(event.receipt_no);
     if (source === 'finnhub' && (event.symbol || event.ticker)) {
-      return 'finnhub:' + String(event.symbol || event.ticker).toUpperCase() + ':' + String(event.start || '').slice(0, 7);
+      // KST 표시일은 장후 실적에서 다음 달이 될 수 있으므로, 원본 미국 날짜로 갱신 키를
+      // 고정해 이전 현지일 캐시 행을 새 KST 행으로 교체한다.
+      var usDate = String(event.us_date || event.start || '');
+      return 'finnhub:' + String(event.symbol || event.ticker).toUpperCase() + ':' + usDate.slice(0, 7);
     }
     return String(event && event.start || '') + '|' + String(event && event.title || '').replace(/\s+/g, ' ').trim();
   }
@@ -158,10 +163,12 @@
   }
 
   function fetchGoogleEvents(year, month) {
-    var tMin = new Date(year, month == null ? 0 : month, 1).toISOString();
+    // 일정의 월·오늘 기준은 사용자의 기기 시간이나 미국 시간이 아니라 KST로 고정한다.
+    // Google Calendar timeMax는 exclusive라 다음 달 1일 00:00 KST를 그대로 준다.
+    var tMin = kstBoundaryIso(year, month == null ? 0 : month, 1);
     var tMax = month == null
-      ? new Date(year + 1, 0, 1).toISOString()
-      : new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+      ? kstBoundaryIso(year + 1, 0, 1)
+      : kstBoundaryIso(year, month + 1, 1);
     var url = 'https://www.googleapis.com/calendar/v3/calendars/' + CAL_ID
       + '/events?key=' + API_KEY
       + '&timeMin=' + encodeURIComponent(tMin)
@@ -222,10 +229,42 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function kstBoundaryIso(year, month, day) {
+    return new Date(Date.UTC(year, month, day) - KST_OFFSET_MS).toISOString();
+  }
+
+  function kstParts(value) {
+    var date = value instanceof Date ? value : new Date(value);
+    var parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false, hourCycle: 'h23'
+    }).formatToParts(date).reduce(function (result, part) {
+      result[part.type] = part.value;
+      return result;
+    }, {});
+    if (parts.hour === '24') parts.hour = '00';
+    return parts;
+  }
+
+  function kstDateKey(value) {
+    var parts = kstParts(value);
+    return parts.year + '-' + parts.month + '-' + parts.day;
+  }
+
+  function usDateLabel(ev) {
+    var datePart = String(ev && ev.us_date || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return '';
+    var session = String(ev.us_session || '').trim();
+    return '미국 ' + Number(datePart.slice(5, 7)) + '/' + Number(datePart.slice(8, 10))
+      + (session ? ' · ' + session : '');
+  }
+
   function timeOf(ev) {
+    var usLabel = usDateLabel(ev);
+    if (usLabel) return usLabel;
     if (ev.start.indexOf('T') === -1) return '종일';
-    var dt = new Date(ev.start);
-    return dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
+    var parts = kstParts(ev.start);
+    return parts.hour + ':' + parts.minute;
   }
 
   /* "M/D" 형식 - 주차 리스트는 여러 날짜가 섞여 있어 행마다 날짜를 밝혀야 함(사용자 요청) */
@@ -338,7 +377,7 @@
     function renderMonthCalendar(state) {
       var first = new Date(state.viewYear, state.viewMonth, 1);
       var daysInMonth = new Date(state.viewYear, state.viewMonth + 1, 0).getDate();
-      var todayKey = dateKey(new Date());
+      var todayKey = kstDateKey(new Date());
       var cells = [];
       var day;
       for (day = 0; day < first.getDay(); day += 1) {
@@ -371,7 +410,7 @@
       var selectedEvents = (state.events || []).filter(function (event) {
         return String(event && event.start || '').slice(0, 10) === state.selectedKey;
       }).sort(compareEvents);
-      var isToday = state.selectedKey === dateKey(new Date());
+      var isToday = state.selectedKey === kstDateKey(new Date());
       var listHtml = loading
         ? '<div class="sc-loading">불러오는 중...</div>'
         : selectedEvents.length
@@ -392,11 +431,11 @@
         + '</div>';
     }
 
-    var now = new Date();
+    var now = kstParts(new Date());
     var state = {
-      viewYear: now.getFullYear(),
-      viewMonth: now.getMonth(),
-      selectedKey: dateKey(now),
+      viewYear: Number(now.year),
+      viewMonth: Number(now.month) - 1,
+      selectedKey: now.year + '-' + now.month + '-' + now.day,
       events: []
     };
     var requestId = 0;
@@ -449,8 +488,8 @@
       }
       var action = target.getAttribute('data-calendar-action');
       if (action === 'today') {
-        var today = new Date();
-        loadMonth(today.getFullYear(), today.getMonth(), dateKey(today));
+        var today = kstParts(new Date());
+        loadMonth(Number(today.year), Number(today.month) - 1, today.year + '-' + today.month + '-' + today.day);
         return;
       }
       if (action === 'previous' || action === 'next') {
