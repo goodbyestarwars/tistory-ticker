@@ -1213,7 +1213,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
         for token in (
-            "market_temp_v7",
+            "market_temp_v8",
             "upsertDailyMarketTemp_(temp)",
             "readDailyMarketTempHistory_",
             "computeMarketTempHistory_(temp, dailyHistory)",
@@ -1282,8 +1282,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("key: 'creditRisk'", source)
         self.assertIn("unit: 'creditRisk'", source)
         self.assertIn("신용/예탁", source)
+        self.assertIn("comp.loan_total / 1000000000000", source)
         self.assertIn("데이터 검증 중", gas)
         self.assertIn("unitFactor", gas)
+        self.assertIn("market_temp_v8", gas)
         self.assertIn("normalizedLoan / normalizedDeposits * 100", gas)
 
     def test_stock_search_minute_chart_shows_time_of_day(self):

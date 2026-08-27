@@ -156,6 +156,8 @@ class PublicDataParserTests(unittest.TestCase):
                 result = public_data.fetch_kofia_market(days=7)
         self.assertTrue(result['available'])
         self.assertEqual(result['latest_date'], '2026-08-07')
+        self.assertEqual(result['credit_unit'], 'krw')
+        self.assertEqual(result['market_funds_unit'], 'krw')
         self.assertEqual(result['credit']['loan_total'], 17500000)
         self.assertEqual(result['market_funds']['investor_deposits'], 53000000000000)
         self.assertEqual(len(result['series']), 2)

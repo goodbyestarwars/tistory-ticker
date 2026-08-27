@@ -1531,7 +1531,9 @@ function getMarketTemp() {
   // 응답에 recentDays/band 필드 추가 - 재배포해도 CacheService는 자동으로 안 비워지므로
   // (실측: 재배포 후에도 30분간 옛 스키마가 그대로 응답됨) 스키마 바뀔 때마다 캐시 키도
   // 같이 올려야 함(이 프로젝트 반복 관례, news_ 캐시 키 이력 참고).
-  var cacheKey = CACHE_PREFIX + 'market_temp_v7';
+  // v7->v8: KOFIA 신용융자 단위 메타데이터가 million_krw가 아니라 실제 KRW로
+  // 정정됐다. 이전 "비정상 비율" pending 결과를 30분간 재사용하지 않도록 분리한다.
+  var cacheKey = CACHE_PREFIX + 'market_temp_v8';
   var cached = cache.get(cacheKey);
   if (cached) {
     var parsedCache_ = parseCachedJson_(cached);

@@ -323,15 +323,14 @@ def _fetch_kofia_rows(url, begin_date, end_date):
 def fetch_kofia_market(days=30):
     """Return KOFIA credit-balance and market-funds history for dashboard context.
 
-    The KOFIA fields use different source units, and this isn't even uniform
-    within `credit`: loan_total/loan_securities/loan_kosdaq (신용융자) are in
-    million KRW (verified via js/market-temp.js's /1,000,000 -> 조원 display,
-    which produces sane values), but lending_total(신용대주)/collateral_loan
-    (예탁증권담보융자) turned out to already be plain KRW - treating them as
-    million KRW produced physically impossible figures (2026-08-14, caught by
-    a user screenshot: "24,715,600.8조원"). market-funds amounts are plain KRW.
-    No official docs confirm any of this - it's inferred from what produces
-    plausible magnitudes, same as other undocumented TRs in this codebase.
+    The published KOFIA values in this endpoint are plain KRW.  In particular,
+    the credit-balance values that were previously marked ``million_krw`` are
+    observed as roughly 32 trillion KRW (not 32 quadrillion): pairing them
+    with investor deposits now produces a plausible low-30% credit/deposit
+    ratio.  Treating them as million KRW made the risk-score validator see a
+    fictitious tens-of-millions-percent ratio.  The public API does not supply
+    a field-level unit contract, so this is kept as an observed-value
+    normalization rather than an undocumented provider claim.
     """
     # 2026-08-14: 증시자금 신용대주잔고/예탁증권담보융자 카드가 "1년 평균"(252영업일)을
     # 계산하려면 90일 상한으로는 부족해서 400으로 올린다 - /kofia-market 엔드포인트는
@@ -405,7 +404,7 @@ def fetch_kofia_market(days=30):
     result = {
         'available': True,
         'source': 'data.go.kr: 금융위원회 금융투자협회 종합통계정보',
-        'credit_unit': 'million_krw',
+        'credit_unit': 'krw',
         'market_funds_unit': 'krw',
         'latest_date': series[-1]['date'],
         'credit': latest_credit,
