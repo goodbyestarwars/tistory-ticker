@@ -511,7 +511,8 @@
       var node = card.querySelector('[data-us-metric="' + key + '"]');
       if (node) node.textContent = values[key];
     });
-    card.querySelector('[data-us-updated]').textContent = formatUpdated(quote.updated_at);
+    var updatedNode = card.querySelector('[data-us-updated]');
+    if (updatedNode) updatedNode.textContent = formatUpdated(quote.updated_at);
   }
 
   function loadOrderbook() {

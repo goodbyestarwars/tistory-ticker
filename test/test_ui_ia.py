@@ -1607,6 +1607,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("error.status !== 429", us_source)
         self.assertIn("function loadDetailData(quote, symbol)", us_source)
         self.assertIn("state.detailLoadedSymbol = null", us_source)
+        self.assertIn("if (updatedNode) updatedNode.textContent", us_source)
         self.assertIn("function isClosedOnStockSearchPage()", watchlist_source)
         self.assertIn("if (isClosedOnStockSearchPage()) usCodes = [];", watchlist_source)
         self.assertNotIn("var pending = target.getAttribute('data-us-symbol')", search_source)
