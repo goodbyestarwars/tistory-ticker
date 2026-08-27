@@ -10,6 +10,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -369,8 +370,10 @@ def fetch_index_period_chart(token, appkey, appsecret, iscd, date1, date2, perio
     """KIS 국내업종 기간별 시세를 연속조회까지 모아 반환한다.
 
     ``FHKUP03500100``은 한 응답에 최근 약 50개 일봉만 내려줄 수 있다. KIS 공식
-    예제처럼 응답 헤더 ``tr_cont``가 ``M`` 또는 ``F``이면 ``tr_cont=N``으로 다음
-    페이지를 요청한다. 그래서 넓은 조회 기간을 줘도 앞부분 일봉이 사라지지 않는다.
+    연속조회 헤더 ``tr_cont``가 ``M``/``F``일 때는 ``tr_cont=N``으로 다음 페이지를
+    요청한다. 다만 실운영 응답에는 해당 헤더가 비어 있는 경우도 있어, 일봉은 가장
+    오래된 봉의 전날로 종료일을 옮겨 다시 조회하는 방식까지 병행한다. 그래서 넓은
+    조회 기간을 줘도 앞부분 일봉이 사라지지 않는다.
     """
     params = {
         'FID_COND_MRKT_DIV_CODE': 'U',
@@ -382,11 +385,13 @@ def fetch_index_period_chart(token, appkey, appsecret, iscd, date1, date2, perio
     output1 = {}
     rows = []
     continuation = ''
+    used_continuation = False
+    requested_end_dates = set()
     for _ in range(max_pages):
         data, next_continuation = _get_domestic_quote(
             token, appkey, appsecret,
             '/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice',
-            'FHKUP03500100', params,
+            'FHKUP03500100', dict(params),
             tr_cont=continuation,
             return_continuation=True,
         )
@@ -394,9 +399,35 @@ def fetch_index_period_chart(token, appkey, appsecret, iscd, date1, date2, perio
             output1 = data.get('output1') or {}
         page_rows = data.get('output2') or []
         rows.extend(page_rows if isinstance(page_rows, list) else [page_rows])
-        if str(next_continuation).upper() not in ('M', 'F'):
+        if str(next_continuation).upper() in ('M', 'F'):
+            continuation = 'N'
+            used_continuation = True
+            continue
+
+        # KIS가 연속조회 헤더를 누락해도 일봉 이력을 확보한다. 반환되는 50개 중
+        # 가장 이른 거래일 전날을 다음 종료일로 잡으면 같은 구간을 반복하지 않는다.
+        # 표준 연속조회를 이미 쓴 뒤 헤더가 끝난 경우에는 KIS가 마지막 페이지를
+        # 알려준 것이므로 날짜 이동 조회를 추가로 하지 않는다.
+        if used_continuation:
             break
-        continuation = 'N'
+        if period != 'D':
+            break
+        page_dates = []
+        for row in page_rows if isinstance(page_rows, list) else [page_rows]:
+            value = str((row or {}).get('stck_bsop_date') or (row or {}).get('dt') or '')[:8]
+            if len(value) == 8 and value.isdigit():
+                page_dates.append(value)
+        if not page_dates:
+            break
+        earliest = min(page_dates)
+        if earliest <= date1 or earliest in requested_end_dates:
+            break
+        next_end = (datetime.strptime(earliest, '%Y%m%d') - timedelta(days=1)).strftime('%Y%m%d')
+        if next_end < date1:
+            break
+        requested_end_dates.add(earliest)
+        params['FID_INPUT_DATE_2'] = next_end
+        continuation = ''
     return output1, rows
 
 

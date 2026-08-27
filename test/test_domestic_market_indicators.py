@@ -117,6 +117,24 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertEqual(request.call_count, 2)
         self.assertEqual(request.call_args_list[1].kwargs['tr_cont'], 'N')
 
+    def test_kis_index_period_chart_backtracks_when_continuation_header_is_missing(self):
+        pages = [
+            ({'output1': {'name': 'KOSPI'}, 'output2': [
+                {'stck_bsop_date': '20260826'}, {'stck_bsop_date': '20260827'},
+            ]}, ''),
+            ({'output1': {'name': 'KOSPI'}, 'output2': [
+                {'stck_bsop_date': '20260824'}, {'stck_bsop_date': '20260825'},
+            ]}, ''),
+        ]
+        with patch.object(kis_client, '_get_domestic_quote', side_effect=pages) as request:
+            _, rows = kis_client.fetch_index_period_chart(
+                'token', 'appkey', 'secret', '0001', '20260801', '20260827', max_pages=2)
+        self.assertEqual(
+            [row['stck_bsop_date'] for row in rows],
+            ['20260826', '20260827', '20260824', '20260825'])
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(request.call_args_list[1].args[5]['FID_INPUT_DATE_2'], '20260825')
+
     def test_cash_quote_uses_kis_index_price(self):
         with patch.object(dmi.kis_client, 'get_token', return_value='token') as token, \
              patch.object(dmi.kis_client, 'fetch_index_price', return_value={
