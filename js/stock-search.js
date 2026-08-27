@@ -251,8 +251,6 @@
     script.onload = function () {
       if (global.UsStocks && typeof global.UsStocks.init === 'function') {
         global.UsStocks.init(target);
-        var pending = target.getAttribute('data-us-symbol');
-        if (pending && typeof global.UsStocks.select === 'function') global.UsStocks.select(pending);
       }
     };
     script.onerror = function () {

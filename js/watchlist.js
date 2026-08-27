@@ -1115,6 +1115,11 @@
     if (!codes.length) return Promise.resolve({});
     var domesticCodes = codes.filter(function (code) { return !/^US:/i.test(code); });
     var usCodes = codes.filter(function (code) { return /^US:/i.test(code); });
+    // 실시간 종목 상세 페이지에서는 관심종목 서랍이 닫혀 있어도 목록이
+    // 초기화되며 미국 종목 REST 요청을 한꺼번에 보낸다. 이 요청 폭주가
+    // 같은 VM rate limit을 쓰는 상세 종목의 첫 /us-quote를 429로 만들 수
+    // 있으므로, 서랍을 열기 전에는 WebSocket·캐시만 사용한다.
+    if (isClosedOnStockSearchPage()) usCodes = [];
 
     return Promise.all([
       fetchDomesticQuotes(domesticCodes).catch(function () { return {}; }),
@@ -1122,6 +1127,12 @@
     ]).then(function (parts) {
       return Object.assign({}, parts[0], parts[1]);
     });
+  }
+
+  function isClosedOnStockSearchPage() {
+    if (!/^\/(?:page|pages)\/stock-search\/?$/.test(location.pathname)) return false;
+    var drawer = document.querySelector('.global-watchlist-drawer');
+    return !!drawer && !drawer.classList.contains('is-open');
   }
 
   function fetchDomesticQuotes(codes) {

@@ -14,7 +14,7 @@
   var REALTIME_RECONNECT_MS = 5000;
   var LAST_SYMBOL_KEY = 'us:lastSelected';
   var DEFAULT_SYMBOL = 'AAPL';
-  var state = { container: null, symbol: null, refreshTimer: null, realtimeSocket: null, realtimeTimer: null, realtimeGeneration: 0, initialized: false, embedded: false, renderedSymbol: null, nativeChartPromise: null, lastQuote: null };
+  var state = { container: null, symbol: null, refreshTimer: null, realtimeSocket: null, realtimeTimer: null, realtimeGeneration: 0, initialized: false, embedded: false, renderedSymbol: null, detailLoadedSymbol: null, quoteRetryTimer: null, nativeChartPromise: null, lastQuote: null };
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
     { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft microsoft corporation' },
@@ -286,8 +286,11 @@
   function select(symbol) {
     stopRefresh();
     stopRealtime();
+    if (state.quoteRetryTimer) clearTimeout(state.quoteRetryTimer);
+    state.quoteRetryTimer = null;
     state.symbol = String(symbol || '').toUpperCase().replace(/^US:/, '');
     state.renderedSymbol = null;
+    state.detailLoadedSymbol = null;
     state.nativeChartPromise = null;
     state.lastQuote = null;
     try { localStorage.setItem(LAST_SYMBOL_KEY, state.symbol); } catch (err) { /* 저장소가 막힌 환경도 조회는 계속한다. */ }
@@ -371,23 +374,45 @@
 
   function refreshQuote() {
     if (!state.symbol) return;
-    fetchJson(API_BASE + '/us-quote/' + encodeURIComponent(state.symbol))
+    var symbol = state.symbol;
+    fetchQuoteWithRetry(symbol, 0)
       .then(function (quote) {
-        var firstRender = state.renderedSymbol !== state.symbol;
+        if (state.symbol !== symbol) return;
         renderQuote(quote);
-        state.renderedSymbol = state.symbol;
-        loadOrderbook();
-        if (firstRender) {
-            loadNativeChart();
-            loadAnalysis();
-            renderCongressLinks();
-            loadNews(localizedUsName(quote.symbol, quote.name));
-        }
+        state.renderedSymbol = symbol;
+        loadDetailData(quote, symbol);
       })
       .catch(function () {
+        if (state.symbol !== symbol) return;
         var detail = document.querySelector('#usStocksDetail');
         if (detail && !detail.querySelector('.us-stocks-live-card')) detail.innerHTML = '<div class="us-stocks-empty us-stocks-error">시세를 불러오지 못했어요.</div>';
       });
+  }
+
+  // 관심종목판은 페이지 진입 때 여러 미국 종목을 동시에 조회한다. 그때
+  // 상세 종목의 첫 요청이 VM의 공개 rate limit(429)에 걸려도, 한 번 실패한
+  // 채로 후속 데이터가 영원히 로딩 상태에 남지 않도록 짧게 재시도한다.
+  function fetchQuoteWithRetry(symbol, attempt) {
+    return fetchJson(API_BASE + '/us-quote/' + encodeURIComponent(symbol)).catch(function (error) {
+      if (state.symbol !== symbol || error.status !== 429 || attempt >= 3) throw error;
+      var delay = 1200 * Math.pow(2, attempt);
+      return new Promise(function (resolve) {
+        state.quoteRetryTimer = setTimeout(function () {
+          state.quoteRetryTimer = null;
+          resolve();
+        }, delay);
+      }).then(function () { return fetchQuoteWithRetry(symbol, attempt + 1); });
+    });
+  }
+
+  function loadDetailData(quote, symbol) {
+    if (!quote || state.symbol !== symbol || state.detailLoadedSymbol === symbol) return;
+    state.detailLoadedSymbol = symbol;
+    loadOrderbook();
+    loadNativeChart();
+    loadAnalysis();
+    renderCongressLinks();
+    loadNews(localizedUsName(quote.symbol, quote.name));
   }
 
   function renderQuote(quote) {
@@ -727,7 +752,11 @@
 
   function fetchJson(url) {
     return fetch(url).then(function (response) {
-      if (!response.ok) throw new Error('HTTP ' + response.status);
+      if (!response.ok) {
+        var error = new Error('HTTP ' + response.status);
+        error.status = response.status;
+        throw error;
+      }
       return response.json();
     }).then(function (body) {
       if (body && body.success === false) throw new Error('API_ERROR');

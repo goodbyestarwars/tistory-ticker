@@ -1599,6 +1599,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".us-stocks-shell.us-stocks-embedded { margin: 0; }", style)
         self.assertIn("#stock-search .us-stocks-embedded .us-stocks-market-grid { margin-top: 0; }", style)
 
+    def test_us_detail_survives_watchlist_quote_rate_limit(self):
+        us_source = self.read("js/us-stocks.js")
+        search_source = self.read("js/stock-search.js")
+        watchlist_source = self.read("js/watchlist.js")
+        self.assertIn("function fetchQuoteWithRetry(symbol, attempt)", us_source)
+        self.assertIn("error.status !== 429", us_source)
+        self.assertIn("function loadDetailData(quote, symbol)", us_source)
+        self.assertIn("state.detailLoadedSymbol = null", us_source)
+        self.assertIn("function isClosedOnStockSearchPage()", watchlist_source)
+        self.assertIn("if (isClosedOnStockSearchPage()) usCodes = [];", watchlist_source)
+        self.assertNotIn("var pending = target.getAttribute('data-us-symbol')", search_source)
+
     def test_strategy_dividend_warning_cell_uses_full_mobile_width(self):
         style = self.read("css/strategy-search.css")
         self.assertIn("tr.ss-warning-row td { display: block; width: 100% !important;", style)
