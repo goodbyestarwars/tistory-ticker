@@ -1226,6 +1226,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("며칠 후부터 표시됩니다", source)
         self.assertIn(".mt-spark-single", style)
 
+    def test_home_us_schedule_title_follows_the_market_label(self):
+        style = self.read("style.css")
+        selector = "body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row"
+        start = style.index(selector)
+        end = style.index("}", start)
+        rule = style[start:end]
+        self.assertIn("grid-template-columns: max-content minmax(0, 1fr) max-content", rule)
+
     def test_market_temperature_short_flow_has_period_switches_and_zero_centered_wave(self):
         gas = self.read("gas/ticker-proxy.gs")
         source = self.read("js/market-temp.js")

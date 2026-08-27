@@ -6436,7 +6436,9 @@ body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-r
   width: 100% !important;
   min-height: 48px !important;
   display: grid !important;
-  grid-template-columns: minmax(84px, 1fr) minmax(0, 2.4fr) auto !important;
+  /* 국가명(미국/한국)은 분류용 짧은 라벨이다. 1fr로 남는 폭을 차지하면
+     실적 제목이 본문 중앙까지 밀리므로, 내용 너비만 쓰고 제목을 바로 잇는다. */
+  grid-template-columns: max-content minmax(0, 1fr) max-content !important;
   align-items: center !important;
   gap: 14px !important;
   padding: 8px 12px !important;
@@ -6482,7 +6484,7 @@ body#tt-body-index .home-editorial-page .home-scoreboard-list .home-us-schedule-
 }
 @media (max-width: 640px) {
   body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row {
-    grid-template-columns: minmax(68px, .8fr) minmax(0, 2fr) auto !important;
+    grid-template-columns: max-content minmax(0, 1fr) max-content !important;
     gap: 8px !important;
     padding: 8px 6px !important;
   }
