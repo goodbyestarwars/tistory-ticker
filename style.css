@@ -4987,6 +4987,12 @@ html:not(.font-gothic) body .discussion-current button {
   background: transparent !important;
   color: var(--text-sub) !important;
 }
+/* 공통 탭의 3px 모서리가 시장 등 상단 메뉴의 활성 밑줄 끝까지 둥글게 만든다.
+   내비게이션의 선택 표시는 버튼이 아니라 곧은 구분선으로 보이도록 별도 고정한다. */
+html:not(.font-gothic) body .sidebar-left .nav-primary-item,
+html:not(.font-gothic) body .sidebar-left .nav-secondary-item {
+  border-radius: 0 !important;
+}
 html:not(.font-gothic) body .sidebar-left .nav-item:hover,
 html:not(.font-gothic) body .cat-custom-list li > a:hover,
 html:not(.font-gothic) body .sub-filter-tab:hover,
