@@ -158,7 +158,7 @@
         + '<div class="mobile-app-sheet-links">'
         + '<a href="/page/stock-calendar">캘린더<span>실적·경제 일정</span></a>'
         + '<a href="/pages/overnight-market">글로벌 시장지표<span>미국·해외 시장</span></a>'
-        + '<a href="/pages/kospi-futures">국내시장지표<span>코스피·코스닥·선물</span></a>'
+        + '<a href="/pages/kospi-futures">국내시장지표<span>KOSPI·KOSDAQ·선물</span></a>'
         + '<a href="/page/strategy-search">검색<span>차트·전략 검색</span></a>'
         + '<a href="/guestbook">커뮤니티<span>의견과 문의</span></a>'
         + '</div></section></div>');

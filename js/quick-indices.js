@@ -109,8 +109,8 @@
   })();
 
   var OPTIONS = [
-    { key: 'kospi', label: '코스피', source: 'futures', sourceKey: 'KOSPI' },
-    { key: 'kosdaq', label: '코스닥', source: 'futures', sourceKey: 'KOSDAQ' },
+    { key: 'kospi', label: 'KOSPI', source: 'futures', sourceKey: 'KOSPI' },
+    { key: 'kosdaq', label: 'KOSDAQ', source: 'futures', sourceKey: 'KOSDAQ' },
     // 2026-07-17: GAS(market, 시세 이력 없음) -> VM(futures, 일봉 이력 있음)로 전환해
     // 미니차트가 뜨게 함 - VM이 USDKRW를 upsert_future_chart_rows로 따로 수집해두고 있었음
     // (scripts/cloud-vm/domestic_futures.py fetch_fx_daily_chart 참고).
@@ -120,7 +120,7 @@
     // 수집하도록 옮겼다. 방문자 브라우저가 매번 업비트 레이트리밋/CORS에 노출되던 문제가
     // 원천적으로 사라짐(VM 자신은 30초에 1번만 호출).
     { key: 'btc', label: 'BTC', source: 'futures', sourceKey: 'BTC' },
-    { key: 'kospi_night', label: '코스피 야간선물', source: 'futures', sourceKey: 'KOSPI200_NIGHT' },
+    { key: 'kospi_night', label: 'KOSPI200 야간선물', source: 'futures', sourceKey: 'KOSPI200_NIGHT' },
     { key: 'nasdaq', label: '나스닥100 선물', source: 'futures', sourceKey: 'NASDAQ100' },
     { key: 'sp500', label: 'S&P500 선물', source: 'futures', sourceKey: 'SP500' },
     { key: 'dow', label: '다우 선물', source: 'futures', sourceKey: 'DOW' },

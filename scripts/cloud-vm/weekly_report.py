@@ -70,8 +70,8 @@ def _week_points(chart, start, end):
 def index_summary(futures_rows, start, end):
     """Build index, rates and major asset cards from /futures daily charts."""
     wanted = {
-        'KOSPI': ('코스피', 'index', None),
-        'KOSDAQ': ('코스닥', 'index', None),
+        'KOSPI': ('KOSPI', 'index', None),
+        'KOSDAQ': ('KOSDAQ', 'index', None),
         'NASDAQ_INDEX': ('나스닥 종합', 'index', None),
         'SP500_INDEX': ('S&P500', 'index', None),
         'US10Y': ('미국 10년 국채', 'macro', 'yield'),

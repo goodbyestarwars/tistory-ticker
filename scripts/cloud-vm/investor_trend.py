@@ -69,8 +69,8 @@ _HISTORY_REFRESH_SEC = 6 * 3600  # 월 탭은 장마감 후 확정치면 충분 
 # 시장 키(프론트/쿼리파라미터용, 소문자) -> DB에 저장하는 시장명 + 각 소스별 파라미터.
 # 선물은 데이터 소스가 없어 제외(위 모듈 독스트링 참고).
 MARKETS = {
-    'kospi': {'db': 'KOSPI', 'kis_iscd': 'KSP', 'kis_inds_cd': '0001', 'kiwoom_mrkt_tp': '0', 'naver': True, 'label': '코스피'},
-    'kosdaq': {'db': 'KOSDAQ', 'kis_iscd': 'KSQ', 'kis_inds_cd': '1001', 'kiwoom_mrkt_tp': '1', 'naver': False, 'label': '코스닥'},
+    'kospi': {'db': 'KOSPI', 'kis_iscd': 'KSP', 'kis_inds_cd': '0001', 'kiwoom_mrkt_tp': '0', 'naver': True, 'label': 'KOSPI'},
+    'kosdaq': {'db': 'KOSDAQ', 'kis_iscd': 'KSQ', 'kis_inds_cd': '1001', 'kiwoom_mrkt_tp': '1', 'naver': False, 'label': 'KOSDAQ'},
 }
 DEFAULT_MARKET = 'kospi'
 

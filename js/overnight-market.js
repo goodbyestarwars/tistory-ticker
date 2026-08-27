@@ -141,8 +141,8 @@
   var SPARKLINE_HEIGHT = 64;
 
   var LABELS = {
-    KOSPI: '코스피',
-    KOSDAQ: '코스닥',
+    KOSPI: 'KOSPI',
+    KOSDAQ: 'KOSDAQ',
     NASDAQ_INDEX: '나스닥 종합지수',
     SP500_INDEX: 'S&P500 지수',
     DOW_INDEX: '다우존스 지수',

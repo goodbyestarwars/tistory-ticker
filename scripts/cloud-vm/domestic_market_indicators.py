@@ -23,8 +23,8 @@ logger = logging.getLogger('domestic_market_indicators')
 KST = timezone(timedelta(hours=9))
 
 MARKETS = {
-    'KOSPI': {'name': '코스피', 'kiwoom_code': '001', 'kis_code': '0001'},
-    'KOSDAQ': {'name': '코스닥', 'kiwoom_code': '101', 'kis_code': '1001'},
+    'KOSPI': {'name': 'KOSPI', 'kiwoom_code': '001', 'kis_code': '0001'},
+    'KOSDAQ': {'name': 'KOSDAQ', 'kiwoom_code': '101', 'kis_code': '1001'},
 }
 INTERVALS = ('minute', 'day', 'week')
 # 2026-08-25: 기본 페이지 로드에는 일봉만 담는다. 주봉·분봉은 사용자가 해당 탭을

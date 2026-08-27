@@ -261,12 +261,12 @@
         + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live" data-home-market-field="live">실시간</span></div>'
         + '<div class="home-index-strip" aria-label="대표 시장 지수">'
         + '<article class="home-index-card" data-home-index-slot="primary">'
-        + '<div class="home-index-top"><strong data-index-field="label">코스피</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-index-top"><strong data-index-field="label">KOSPI</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '<article class="home-index-card" data-home-index-slot="secondary">'
-        + '<div class="home-index-top"><strong data-index-field="label">코스닥</strong><span data-index-field="status">· 확인 중</span></div>'
+        + '<div class="home-index-top"><strong data-index-field="label">KOSDAQ</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
@@ -278,9 +278,9 @@
         + '<div><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
         + '<div><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
         + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
-        + '<div data-home-night-futures hidden><dt>코스피 야간선물</dt><dd data-market-field="nightFutures">데이터 확인 중</dd>'
+        + '<div data-home-night-futures hidden><dt>KOSPI200 야간선물</dt><dd data-market-field="nightFutures">데이터 확인 중</dd>'
         + '<div class="home-index-chart home-night-futures-chart" data-night-futures-chart aria-hidden="true"></div></div>'
-        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="코스피 코스닥 외국인 순매수 추이">'
+        + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인 순매수 추이">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><span>외국인 순매수</span></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
@@ -771,7 +771,7 @@
         live: '실시간',
         subtitle: '오늘의 시장판 · 시세 확인 중',
         keys: ['KOSPI', 'KOSDAQ'],
-        labels: ['코스피', '코스닥']
+        labels: ['KOSPI', 'KOSDAQ']
       };
     }
 
@@ -957,7 +957,7 @@
           el.hidden = false;
           el.classList.toggle('hsc-to-us', toUs);
           el.classList.toggle('hsc-to-kr', !toUs);
-          labelEl.textContent = toUs ? '나스닥 개장까지' : '코스피 개장까지';
+          labelEl.textContent = toUs ? '나스닥 개장까지' : 'KOSPI 개장까지';
           wasVisible = true;
         }
         var minutes = Math.floor(next.secondsLeft / 60);
@@ -1100,8 +1100,8 @@
       var body = host.querySelector('.hmb-investor-trend-body');
       if (!body) return;
       var markets = [
-        { key: 'kospi', label: '코스피' },
-        { key: 'kosdaq', label: '코스닥' }
+        { key: 'kospi', label: 'KOSPI' },
+        { key: 'kosdaq', label: 'KOSDAQ' }
       ];
       var html = markets.map(function (market, index) {
         var result = results[index] && results[index].data ? results[index].data : (results[index] || {});

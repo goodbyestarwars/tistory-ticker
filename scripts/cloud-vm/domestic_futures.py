@@ -66,8 +66,8 @@ UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.1
 # {symbol: (표시명, 네이버 code)} - realtime/domestic/index/{code} API로 커버됨.
 REALTIME_SYMBOLS = {
     'KOSPI200_DAY': ('코스피200 주간선물', 'FUT'),
-    'KOSPI': ('코스피', 'KOSPI'),
-    'KOSDAQ': ('코스닥', 'KOSDAQ'),
+    'KOSPI': ('KOSPI', 'KOSPI'),
+    'KOSDAQ': ('KOSDAQ', 'KOSDAQ'),
 }
 
 # 과거 일봉을 수집하는 심볼 - {symbol: (네이버 chart category, 네이버 code)}.

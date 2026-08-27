@@ -16,7 +16,7 @@
   var FETCH_TIMEOUT_MS = 8000;
 
   var CATEGORY_ORDER = ['KOSPI', 'KOSDAQ', 'ETF', 'INVERSE', 'LEV'];
-  var CATEGORY_LABELS = { KOSPI: '코스피', KOSDAQ: '코스닥', ETF: 'ETF', INVERSE: '인버스 ETF', LEV: '단일종목 레버리지' };
+  var CATEGORY_LABELS = { KOSPI: 'KOSPI', KOSDAQ: 'KOSDAQ', ETF: 'ETF', INVERSE: '인버스 ETF', LEV: '단일종목 레버리지' };
 
   // 등락률 -3%~+3% 7단계 색 구간(경계는 정수% 눈금을 가운데 두도록 ±0.5% 간격).
   // 파랑(하락)-회색(보합)-빨강(상승) 대비, CSS(.mcb-cell.mcb-c-3 ~ .mcb-c3)에서 실제 색 정의.

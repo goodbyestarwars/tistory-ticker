@@ -49,8 +49,8 @@
   var DEFAULT_PERIOD = 'day';
 
   var MARKETS = [
-    { key: 'kospi', label: '코스피' },
-    { key: 'kosdaq', label: '코스닥' }
+    { key: 'kospi', label: 'KOSPI' },
+    { key: 'kosdaq', label: 'KOSDAQ' }
   ];
   var DEFAULT_MARKET = 'kospi';
   var CACHE_PREFIX = 'investor_trend_v1_';

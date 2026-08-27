@@ -62,8 +62,8 @@
 
   var PANEL_ORDER = ['KOSPI200_DAY', 'KOSPI200_NIGHT'];
   var PANEL_LABELS = {
-    KOSPI200_DAY: '코스피200 주간선물 (09:00~15:45)',
-    KOSPI200_NIGHT: '코스피200 야간선물 (18:00~06:00)'
+    KOSPI200_DAY: 'KOSPI200 주간선물 (09:00~15:45)',
+    KOSPI200_NIGHT: 'KOSPI200 야간선물 (18:00~06:00)'
   };
   // buildQuoteRow/updateMarketStatusBadges가 심볼 -> 세션 종류를 찾을 때 쓴다(아래 isMarketOpen).
   var PANEL_KEY_BY_SYMBOL = { KOSPI200_DAY: 'day', KOSPI200_NIGHT: 'night' };
@@ -77,8 +77,8 @@
   // 2026-07-16: 야간선물도 분봉 지원 추가 - 처음엔 KIS에 소스가 없다고 판단했었으나 공식
   // 예제 저장소에서 TR(FHKIF03020200)을 찾아 실측 확인함(night_futures_ws.py 참고).
   var CHARTS = [
-    { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: '코스피200 주간선물 (09:00~15:45)', intervals: ['minute', 'day', 'week'] },
-    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '코스피200 야간선물 (18:00~06:00)', intervals: ['minute', 'day', 'week'] }
+    { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: 'KOSPI200 주간선물 (09:00~15:45)', intervals: ['minute', 'day', 'week'] },
+    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: 'KOSPI200 야간선물 (18:00~06:00)', intervals: ['minute', 'day', 'week'] }
   ];
   var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
   var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20260827-kf-chart-controls-v2';

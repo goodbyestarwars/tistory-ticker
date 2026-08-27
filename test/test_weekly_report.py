@@ -19,7 +19,7 @@ class WeeklyReportTests(unittest.TestCase):
             {'date': '2026-08-14', 'close': 105},
         ]}]
         result = weekly_report.index_summary(rows, datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
-        self.assertEqual(result[0]['name'], '코스피')
+        self.assertEqual(result[0]['name'], 'KOSPI')
         self.assertEqual(result[0]['changeRate'], 5.0)
 
     def test_index_summary_includes_rates_commodities_and_bitcoin(self):

@@ -813,7 +813,7 @@
       + (recentAvg != null ? '<span class="dmi-fund-average">최근 평균 ' + formatSignedFunds(recentAvg, unit) + ' (' + recentCount + '일 평균)</span>' : '')
       + (yearAvg != null ? '<span class="dmi-fund-average">1년 평균 ' + formatSignedFunds(yearAvg, unit) + ' (' + yearCount + '일 평균)</span>' : '')
       + miniAverageChart(chartValuesWithFallback(history, value, yearAvg), yearAvg)
-      + '<span class="dmi-fund-average">코스피 전체, 순매수(+)/순매도(-)</span>'
+      + '<span class="dmi-fund-average">KOSPI 전체, 순매수(+)/순매도(-)</span>'
       + '<span class="dmi-fund-date">' + escapeHtml(programTrading.date || '-') + '</span></article>';
   }
 
@@ -867,7 +867,7 @@
     root.innerHTML = '<div class="dmi-shell">'
       + '<div class="dmi-heading"><h2>국내시장지표</h2><span class="dmi-live-status" data-dmi-connection>REST 확인 중</span></div>'
       + '<section class="dmi-chart-section dmi-spot-section' + (spotCollapsed ? ' dmi-collapsed' : '') + '">'
-      + '<div class="dmi-subheading"><h3>코스피 · 코스닥 현물 (09:00~15:45) <span class="dmi-market-status" data-dmi-market-status></span></h3>'
+      + '<div class="dmi-subheading"><h3>KOSPI · KOSDAQ 현물 (09:00~15:45) <span class="dmi-market-status" data-dmi-market-status></span></h3>'
       + '<button type="button" class="dmi-spot-collapse" aria-expanded="' + (spotCollapsed ? 'false' : 'true') + '">' + (spotCollapsed ? '펼치기' : '숨기기') + '</button></div>'
       + '<div class="dmi-spot-body"><div class="dmi-spot-quotes"><div class="dmi-spot-loading">불러오는 중...</div></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: 'KOSPI' }) + chartPanel('KOSDAQ', { name: 'KOSDAQ' }) + '</div></div></section>'
