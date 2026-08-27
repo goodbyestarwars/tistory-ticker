@@ -2330,8 +2330,8 @@ def kofia_market_endpoint(request: Request, days: int = Query(30, ge=7, le=90)):
 def domestic_market_indicators_endpoint(request: Request, fresh: bool = Query(False)):
     """국내시장지표: 현물 코스피/코스닥 차트, 투자자별 수급, 증시자금.
 
-    The provider order is kept in domestic_market_indicators.py so the page
-    never accidentally falls back to futures when the cash index API is down.
+    지수·수급·증시자금은 KIS 단일 소스를 사용하며, 신용대주·담보융자 두 카드만
+    KOFIA 공공데이터를 사용한다.
     """
     _check_rate_limit('domestic_market_indicators', request, max_per_window=20)
     global _domestic_market_indicators_cache
@@ -2339,17 +2339,8 @@ def domestic_market_indicators_endpoint(request: Request, fresh: bool = Query(Fa
     if (not fresh and _domestic_market_indicators_cache and
             now - _domestic_market_indicators_cache['t'] < _DOMESTIC_MARKET_INDICATORS_TTL):
         return envelope(_domestic_market_indicators_cache['data'])
-    kiwoom_token = None
-    kiwoom_appkey = os.environ.get('KIWOOM_APPKEY')
-    kiwoom_secretkey = os.environ.get('KIWOOM_SECRETKEY')
-    if kiwoom_appkey and kiwoom_secretkey:
-        try:
-            kiwoom_token = kiwoom_client.get_token(kiwoom_appkey, kiwoom_secretkey)
-        except Exception:
-            logging.getLogger('main').warning('domestic market indicators: Kiwoom token unavailable', exc_info=True)
     try:
         data = domestic_market_indicators.build_dashboard(
-            kiwoom_token=kiwoom_token,
             kis_appkey=os.environ.get('KIS_APPKEY'),
             kis_appsecret=os.environ.get('KIS_APPSECRET'),
         )
@@ -2385,17 +2376,9 @@ def domestic_market_indicators_chart_endpoint(
     cached = _domestic_market_chart_cache.get(cache_key)
     if cached and now - cached['t'] < _DOMESTIC_MARKET_INDICATORS_TTL:
         return envelope(cached['data'])
-    kiwoom_token = None
-    kiwoom_appkey = os.environ.get('KIWOOM_APPKEY')
-    kiwoom_secretkey = os.environ.get('KIWOOM_SECRETKEY')
-    if kiwoom_appkey and kiwoom_secretkey:
-        try:
-            kiwoom_token = kiwoom_client.get_token(kiwoom_appkey, kiwoom_secretkey)
-        except Exception:
-            logging.getLogger('main').warning('domestic market chart: Kiwoom token unavailable', exc_info=True)
     try:
         data = domestic_market_indicators.fetch_chart(
-            kiwoom_token, os.environ.get('KIS_APPKEY'), os.environ.get('KIS_APPSECRET'), market, interval,
+            os.environ.get('KIS_APPKEY'), os.environ.get('KIS_APPSECRET'), market, interval,
         )
     except Exception as exc:
         logging.getLogger('main').warning('domestic market chart failed: %s', exc, exc_info=True)

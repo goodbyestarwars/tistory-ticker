@@ -7,21 +7,13 @@
 get_investor_trend를 stk_cd 없이 직접 호출) 둘 다 `오류: 'stk_cd'`로 실패 - 두 TR 모두
 종목별 조회 전용이고 시장 전체 집계를 지원하지 않는다.
 
-**데이터 소스**: 1차 소스는 KIS(한국투자증권) TR `FHPTJ04040000`(시장별 투자자매매동향(일별),
-kis_client.fetch_market_investor_daily) - 한국투자 HTS [0404] 시장별 일별동향 화면과 1:1
-대응하는 정식 API. market_iscd로 'KSP'(코스피)/'KSQ'(코스닥)를 선택. 하루치씩만 조회되는
-구조라(공식 예제가 FID_INPUT_DATE_1=FID_INPUT_DATE_2만 검증됨) 날짜별로 반복 호출해
-DB(investor_trend_daily, market 컬럼으로 시장 구분)에 쌓는다(사용자 판단: "숫자 데이터라
-용량 부담 없으니 일별로 저장" - 2026-07-20). `_tr_pbmn`(거래대금) 필드는 백만원 단위(배포
-후 라이브 응답을 이전 네이버 캐시값과 대조해 확정, /100). 외국인 필드는 종목별 KIS
-TR(FHPTJ04160001)의 "frgn_reg_ntby_qty(등록 외국인)을 써야 Toss/키움HTS와 일치" 실측
-기록을 따라 frgn_reg_ntby_pbmn(등록만) 사용.
-
-KIS_APPKEY/APPSECRET이 없거나 KIS 호출이 실패하면(코스피에 한해) 네이버로 폴백하고,
-그것도 실패하면 키움 ka10051("종합" 행, "오늘"만 제공)로 한 번 더 폴백한다. 네이버
-(finance.naver.com/sise/investorDealTrendDay.naver)는 코스피 전용 페이지라(sosok 파라미터로
-코스닥을 시도했지만 빈 결과만 옴, 2026-07-21 확인) 코스닥은 KIS 실패 시 키움으로 바로
-폴백한다(네이버 단계 없음).
+**데이터 소스**: KIS(한국투자증권) TR `FHPTJ04040000`(시장별 투자자매매동향(일별),
+kis_client.fetch_market_investor_daily)만 사용한다. 한국투자 HTS [0404] 시장별 일별동향과
+1:1 대응하는 정식 API이며 market_iscd로 'KSP'(코스피)/'KSQ'(코스닥)를 선택한다. 하루치씩만
+조회되는 구조라(공식 예제가 FID_INPUT_DATE_1=FID_INPUT_DATE_2만 검증됨) 날짜별로 반복
+호출해 DB(investor_trend_daily, market 컬럼으로 시장 구분)에 쌓는다. `_tr_pbmn`(거래대금)
+필드는 백만원 단위이며, 외국인은 frgn_reg_ntby_pbmn(등록 외국인)만 사용한다. KIS 장애 때는
+기존 KIS 캐시를 유지하고 다른 공급자로 대체하지 않는다.
 
 **최종 결론(2026-07-20, 코스피 기준)**: 이 위젯이 원래 목표했던 "HTS 투자자별매매종합
 ([0780]/[0404]/[0403] 등) 코스피 행"과 정확히 일치하는 소스는 못 찾음 - KIS 일별/키움
@@ -373,33 +365,21 @@ def get_result(period, market=DEFAULT_MARKET):
     return {'period': period, 'market': market, 'asOf': as_of, 'rows': fn(rows)}
 
 
-def _refresh_recent_chain(market_cfg, has_kiwoom, kiwoom_appkey, kiwoom_secretkey, has_kis, kis_appkey, kis_appsecret):
-    """"오늘" 행 갱신 - KIS(FHPTJ04040000) 1순위 -> (코스피에 한해)네이버 2순위 ->
-    키움(ka10051) 3순위. 상위 소스가 예외를 던지면 그 폴링 tick 안에서 다음 소스로 즉시 넘어간다."""
+def _refresh_recent_chain(market_cfg, has_kis, kis_appkey, kis_appsecret):
+    """"오늘" 행은 KIS(FHPTJ04040000)로만 갱신한다."""
     market_db = market_cfg['db']
-    if has_kis:
-        try:
-            refresh_recent_kis(kis_appkey, kis_appsecret, market_db, market_cfg['kis_iscd'], market_cfg['kis_inds_cd'])
-            return
-        except Exception:
-            logger.exception('investor_trend[%s] refresh_recent_kis failed - falling back for this tick', market_db)
-    if market_cfg['naver']:
-        try:
-            refresh_recent(market_db)
-            return
-        except Exception:
-            logger.exception('investor_trend[%s] refresh_recent(Naver) failed - falling back for this tick', market_db)
-    if has_kiwoom:
-        try:
-            refresh_recent_kiwoom(kiwoom_appkey, kiwoom_secretkey, market_db, market_cfg['kiwoom_mrkt_tp'])
-        except Exception:
-            logger.exception('investor_trend[%s] refresh_recent_kiwoom failed', market_db)
+    if not has_kis:
+        logger.warning('investor_trend[%s] KIS credentials unavailable; keeping existing KIS cache', market_db)
+        return
+    try:
+        refresh_recent_kis(kis_appkey, kis_appsecret, market_db, market_cfg['kis_iscd'], market_cfg['kis_inds_cd'])
+    except Exception:
+        logger.exception('investor_trend[%s] refresh_recent_kis failed; keeping existing KIS cache', market_db)
 
 
 def _poll_market(market_key, market_cfg, kis_appkey, kis_appsecret, kiwoom_appkey, kiwoom_secretkey, state):
-    """시장 하나에 대한 초기 백필(1회) + "오늘" 갱신(매 tick) - _poll_loop가 시장별로 호출."""
+    """시장 하나에 대한 KIS 초기 백필(1회) + "오늘" 갱신(매 tick)."""
     has_kis = bool(kis_appkey and kis_appsecret)
-    has_kiwoom = bool(kiwoom_appkey and kiwoom_secretkey)
     market_db = market_cfg['db']
 
     if not state.get('backfilled'):
@@ -407,33 +387,12 @@ def _poll_market(market_key, market_cfg, kis_appkey, kis_appsecret, kiwoom_appke
             try:
                 _ensure_kis_backfill(kis_appkey, kis_appsecret, market_db, market_cfg['kis_iscd'], market_cfg['kis_inds_cd'])
             except Exception:
-                logger.exception('investor_trend[%s] KIS backfill failed - falling back to Naver history for now', market_db)
-                has_kis = False
-                if market_cfg['naver']:
-                    try:
-                        refresh_history(market_db)
-                    except Exception:
-                        logger.exception('investor_trend[%s] refresh_history(Naver fallback) failed', market_db)
-        elif market_cfg['naver']:
-            try:
-                refresh_history(market_db)
-            except Exception:
-                logger.exception('investor_trend[%s] refresh_history failed', market_db)
+                logger.exception('investor_trend[%s] KIS backfill failed; keeping existing KIS cache', market_db)
+        else:
+            logger.warning('investor_trend[%s] KIS credentials unavailable; backfill skipped', market_db)
         state['backfilled'] = True
-        state['has_kis'] = has_kis
-        state['last_naver_history_refresh'] = time.time()
 
-    has_kis = state.get('has_kis', has_kis)
-    _refresh_recent_chain(market_cfg, has_kiwoom, kiwoom_appkey, kiwoom_secretkey, has_kis, kis_appkey, kis_appsecret)
-
-    if not has_kis and market_cfg['naver']:
-        now = time.time()
-        if now - state.get('last_naver_history_refresh', 0) > _HISTORY_REFRESH_SEC:
-            try:
-                refresh_history(market_db)
-            except Exception:
-                logger.exception('investor_trend[%s] refresh_history failed', market_db)
-            state['last_naver_history_refresh'] = now
+    _refresh_recent_chain(market_cfg, has_kis, kis_appkey, kis_appsecret)
 
 
 def _poll_loop(kis_appkey=None, kis_appsecret=None, kiwoom_appkey=None, kiwoom_secretkey=None):

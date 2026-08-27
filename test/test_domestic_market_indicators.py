@@ -8,6 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, 'scripts', 'cloud-vm'))
 
 import domestic_market_indicators as dmi
+import investor_trend
 import kis_client
 
 
@@ -89,6 +90,65 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
             'FID_INPUT_DATE_2': '20260812',
         })
 
+    def test_kis_index_price_uses_official_contract(self):
+        with patch.object(kis_client, '_get_domestic_quote', return_value={'output': {
+            'bstp_nmix_prpr': '6808.21',
+        }}) as request:
+            row = kis_client.fetch_index_price('token', 'appkey', 'secret', '0001')
+        self.assertEqual(row['bstp_nmix_prpr'], '6808.21')
+        self.assertEqual(request.call_args.args[3],
+                         '/uapi/domestic-stock/v1/quotations/inquire-index-price')
+        self.assertEqual(request.call_args.args[4], 'FHPUP02100000')
+        self.assertEqual(request.call_args.args[5], {
+            'FID_COND_MRKT_DIV_CODE': 'U',
+            'FID_INPUT_ISCD': '0001',
+        })
+
+    def test_cash_quote_uses_kis_index_price(self):
+        with patch.object(dmi.kis_client, 'get_token', return_value='token') as token, \
+             patch.object(dmi.kis_client, 'fetch_index_price', return_value={
+                 'bstp_nmix_prpr': '6808.21',
+                 'bstp_nmix_prdy_vrss': '65.47',
+                 'bstp_nmix_prdy_ctrt': '0.97',
+                 'prdy_vrss_sign': '2',
+                 'bstp_nmix_hgpr': '6820.00',
+                 'bstp_nmix_lwpr': '6740.00',
+             }) as request:
+            quote = dmi.fetch_cash_quote('appkey', 'secret', 'KOSPI')
+        self.assertEqual(quote['source'], 'kis')
+        self.assertEqual(quote['price'], 6808.21)
+        self.assertEqual(quote['change'], 65.47)
+        self.assertEqual(quote['change_rate'], 0.97)
+        token.assert_called_once_with('appkey', 'secret')
+        request.assert_called_once_with('token', 'appkey', 'secret', '0001')
+
+    def test_kis_index_change_uses_official_direction_code(self):
+        self.assertEqual(dmi._signed_kis_index_change({
+            'bstp_nmix_prdy_vrss': '0.28', 'prdy_vrss_sign': '5',
+        }, 'bstp_nmix_prdy_vrss'), -0.28)
+        self.assertEqual(dmi._signed_kis_index_change({
+            'bstp_nmix_prdy_vrss': '-0.28', 'prdy_vrss_sign': '2',
+        }, 'bstp_nmix_prdy_vrss'), 0.28)
+
+    def test_chart_does_not_fall_back_from_kis(self):
+        with patch.object(dmi.kis_client, 'get_token', side_effect=RuntimeError('KIS down')), \
+             patch.object(dmi, '_fetch_naver') as naver, \
+             patch.object(dmi, '_fetch_kiwoom') as kiwoom:
+            result = dmi.fetch_chart('appkey', 'secret', 'KOSPI', 'day')
+        self.assertEqual(result['source'], 'kis')
+        self.assertEqual(result['rows'], [])
+        naver.assert_not_called()
+        kiwoom.assert_not_called()
+
+    def test_investor_refresh_does_not_fall_back_from_kis(self):
+        market = investor_trend.MARKETS['kospi']
+        with patch.object(investor_trend, 'refresh_recent_kis', side_effect=RuntimeError('KIS down')), \
+             patch.object(investor_trend, 'refresh_recent') as naver, \
+             patch.object(investor_trend, 'refresh_recent_kiwoom') as kiwoom:
+            investor_trend._refresh_recent_chain(market, True, 'appkey', 'secret')
+        naver.assert_not_called()
+        kiwoom.assert_not_called()
+
     def test_kis_funds_uses_kst_query_date(self):
         with patch.object(dmi.kis_client, 'get_token', return_value='token') as token:
             with patch.object(dmi.kis_client, 'fetch_market_funds', return_value=[{
@@ -123,13 +183,9 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertEqual(dmi._number('+50602'), 50602.0)
         self.assertEqual(dmi._number('-1'), -1.0)
 
-    def test_program_trading_parses_real_kiwoom_response_shape(self):
-        # 2026-08-14 VM 실측 원본 응답(코스피, mrkt_tp='0') 그대로.
-        # program_trading_history는 실제 파일을 건드리므로(program_trading_history.json)
-        # 단위 테스트에서는 패치해서 디스크에 아무것도 남기지 않는다.
-        fake_history = {
-            '2026-08-13': {'arbitrage': -100.0, 'nonArbitrage': 40.0, 'total': -60.0},
-        }
+    def test_legacy_kiwoom_program_parser_keeps_its_response_shape(self):
+        # 더는 대시보드의 runtime source가 아니지만, 과거 장애 진단용 파서는 응답을
+        # 안전하게 읽을 수 있어야 한다.
         with patch.object(dmi.kiwoom_client, 'call_tr', return_value={
             'prm_trde_acc_trnsn': [{
                 'dt': '20260814', 'kospi200': '+1084.97', 'basis': '1.53',
@@ -138,23 +194,14 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
                 'all_tdy': '--189105', 'all_acc': '--189105',
             }],
             'return_code': 0, 'return_msg': '정상적으로 처리되었습니다',
-        }) as call_tr, \
-             patch.object(dmi.program_trading_history, 'record') as record, \
-             patch.object(dmi.program_trading_history, 'load', return_value=fake_history):
-            result = dmi.fetch_program_trading('token')
-        self.assertTrue(result['available'])
+        }) as call_tr:
+            result = dmi._fetch_kiwoom_program_trading('token')
         self.assertEqual(result['arbitrage'], -239707.0)
         self.assertEqual(result['nonArbitrage'], 50602.0)
         self.assertEqual(result['total'], -189105.0)
         self.assertEqual(result['arbitrage'] + result['nonArbitrage'], result['total'])
         self.assertEqual(call_tr.call_args.args[1], 'ka90007')
         self.assertIn('date', call_tr.call_args.args[3])
-        record.assert_called_once_with('2026-08-14', -239707.0, 50602.0, -189105.0)
-        # load()를 고정된 fake_history로 패치해뒀으므로(record()는 no-op) 평균은
-        # 그 안의 값(2026-08-13 하루치)만 반영한다 - 오늘 방금 기록한 값은 이 목(mock)
-        # 구성상 반영되지 않는다(실제로는 record 후 load가 갱신된 파일을 읽는다).
-        self.assertEqual(result['recentAverage']['arbitrage'], -100.0)
-        self.assertIn('history', result)
 
     def test_program_trading_prefers_kis_period_history(self):
         # KIS 공식 일별 API는 날짜 범위를 한 번에 돌려주므로 키움 하루치 누적보다 우선한다.
@@ -163,9 +210,8 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
             {'stck_bsop_date': '20260812', 'arbt_smtn_ntby_tr_pbmn': '200', 'nabt_smtn_ntby_tr_pbmn': '-30'},
         ]
         with patch.object(dmi.kis_client, 'get_token', return_value='kis-token') as get_token, \
-             patch.object(dmi.kis_client, 'fetch_program_trading_daily', return_value=kis_rows) as request, \
-             patch.object(dmi, '_fetch_kiwoom_program_trading_with_history') as kiwoom:
-            result = dmi.fetch_program_trading('kiwoom-token', 'appkey', 'secret')
+             patch.object(dmi.kis_client, 'fetch_program_trading_daily', return_value=kis_rows) as request:
+            result = dmi.fetch_program_trading('appkey', 'secret')
 
         self.assertTrue(result['available'])
         self.assertEqual(result['source'], 'kis')
@@ -181,18 +227,15 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertEqual(request.call_args.kwargs['market'], 'K')
         self.assertRegex(request.call_args.args[3], r'^\d{8}$')
         self.assertRegex(request.call_args.args[4], r'^\d{8}$')
-        kiwoom.assert_not_called()
 
-    def test_program_trading_falls_back_to_kiwoom_when_kis_has_no_rows(self):
-        fallback = {'available': True, 'source': 'kiwoom', 'date': '2026-08-12'}
-        with patch.object(dmi, '_fetch_kis_program_trading', return_value=[]), \
-             patch.object(dmi, '_fetch_kiwoom_program_trading_with_history', return_value=fallback) as kiwoom:
-            result = dmi.fetch_program_trading('kiwoom-token', 'appkey', 'secret')
-        self.assertIs(result, fallback)
-        kiwoom.assert_called_once_with('kiwoom-token')
+    def test_program_trading_does_not_fall_back_from_kis(self):
+        with patch.object(dmi, '_fetch_kis_program_trading', return_value=[]):
+            result = dmi.fetch_program_trading('appkey', 'secret')
+        self.assertFalse(result['available'])
+        self.assertEqual(result['source'], 'kis')
 
     def test_program_trading_unavailable_without_token(self):
-        result = dmi.fetch_program_trading(None)
+        result = dmi.fetch_program_trading(None, None)
         self.assertFalse(result['available'])
 
     def test_program_trading_retries_previous_business_day_when_today_is_empty(self):
@@ -217,12 +260,9 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
             return responses.get(body['date'], {'prm_trde_acc_trnsn': []})
 
         with patch.object(dmi, 'datetime', FixedDatetime), \
-             patch.object(dmi.kiwoom_client, 'call_tr', side_effect=call) as call_tr, \
-             patch.object(dmi.program_trading_history, 'record'), \
-             patch.object(dmi.program_trading_history, 'load', return_value={}):
-            result = dmi.fetch_program_trading('token')
+             patch.object(dmi.kiwoom_client, 'call_tr', side_effect=call) as call_tr:
+            result = dmi._fetch_kiwoom_program_trading('token')
 
-        self.assertTrue(result['available'])
         self.assertEqual(result['date'], '2026-08-14')
         queried_dates = [c.args[3]['date'] for c in call_tr.call_args_list]
         self.assertNotIn('20260815', queried_dates)  # 토요일은 아예 호출하지 않는다
@@ -251,22 +291,13 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         def call(token, api_id, path, body):
             return responses.get(body['date'], {'prm_trde_acc_trnsn': []})
 
-        fake_history = {
-            '2026-08-26': {'arbitrage': 167762.0, 'nonArbitrage': -1167884.0, 'total': -1000122.0},
-            '2026-08-27': {'arbitrage': 0.0, 'nonArbitrage': 0.0, 'total': 0.0},
-        }
         with patch.object(dmi, 'datetime', FixedDatetime), \
-             patch.object(dmi.kiwoom_client, 'call_tr', side_effect=call) as call_tr, \
-             patch.object(dmi.program_trading_history, 'record'), \
-             patch.object(dmi.program_trading_history, 'load', return_value=fake_history):
-            result = dmi.fetch_program_trading('token')
+             patch.object(dmi.kiwoom_client, 'call_tr', side_effect=call) as call_tr:
+            result = dmi._fetch_kiwoom_program_trading('token')
 
         self.assertEqual(result['date'], '2026-08-26')
         self.assertEqual(result['arbitrage'], 167762.0)
         self.assertEqual(result['nonArbitrage'], -1167884.0)
-        self.assertEqual(result['history'], [{
-            'date': '2026-08-26', 'arbitrage': 167762.0, 'nonArbitrage': -1167884.0,
-        }])
         self.assertEqual([c.args[3]['date'] for c in call_tr.call_args_list], ['20260827', '20260826'])
 
     def test_leverage_detail_extracts_lending_and_collateral_from_kofia(self):
@@ -310,9 +341,9 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         # build_dashboard()가 기본 응답에서 day만 조회하고 minute/week은 조회하지 않는지 확인.
         calls = []
 
-        def fake_fetch_chart(_token, _appkey, _secret, market, interval):
+        def fake_fetch_chart(_appkey, _secret, market, interval):
             calls.append((market, interval))
-            return {'source': 'kiwoom', 'rows': [], 'errors': []}
+            return {'source': 'kis', 'rows': [], 'errors': []}
 
         with patch.object(dmi, 'fetch_chart', side_effect=fake_fetch_chart), \
                 patch.object(dmi, 'fetch_investor', return_value={}), \

@@ -384,6 +384,26 @@ def fetch_index_time_chart(token, appkey, appsecret, iscd, interval='60'):
     return {}, data.get('output') or []
 
 
+def fetch_index_price(token, appkey, appsecret, iscd):
+    """KIS 국내업종 현재지수(FHPUP02100000)를 반환한다.
+
+    ``iscd``는 코스피 0001, 코스닥 1001처럼 KIS 업종 코드다. 공식 API
+    ``inquire-index-price``는 이 두 지수를 포함한 국내 업종 현재가·등락·고저가를
+    같은 응답으로 제공한다.
+    """
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/inquire-index-price',
+        'FHPUP02100000',
+        {
+            'FID_COND_MRKT_DIV_CODE': 'U',
+            'FID_INPUT_ISCD': iscd,
+        },
+    )
+    output = data.get('output') or {}
+    return output[0] if isinstance(output, list) and output else output
+
+
 def fetch_market_funds(token, appkey, appsecret, date=''):
     """KIS market funds aggregate (FHKST649100C0, values in 100m KRW).
 

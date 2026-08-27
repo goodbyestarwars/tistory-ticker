@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 """Domestic market dashboard data providers.
 
-The public endpoint deliberately keeps provider selection in one place:
-Kiwoom index candles first, KIS index candles second, and Naver as the last
-resort. Investor flow uses the existing background collector because it
-already maintains the three participant buckets. 신용잔고/고객예탁금(fetch_funds)은
-KIS market-funds API 전용이다(2026-08-12에 KOFIA fallback 제거). 신용대주잔고/
-예탁증권담보융자(fetch_leverage_detail)는 KIS에 없는 필드라 KOFIA 공공데이터를
-쓰는 별도 provider - fetch_funds의 fallback이 아니라 독립된 추가 카드다.
+국내시장지표의 지수·수급·증시자금은 KIS Open API만 사용한다. 신용대주잔고와
+예탁증권담보융자(fetch_leverage_detail)는 KIS에 동등한 시장 전체 필드가 없어 KOFIA
+공공데이터를 쓰는 두 개의 독립 카드다.
 """
 
 import concurrent.futures
@@ -210,24 +206,19 @@ def _fetch_naver(market, interval):
     return points
 
 
-def fetch_chart(token, kis_appkey, kis_appsecret, market, interval):
-    errors = []
-    if token:
-        try:
-            return {'source': 'kiwoom', 'rows': _fetch_kiwoom(token, market, interval), 'errors': []}
-        except Exception as exc:
-            errors.append('kiwoom: %s' % exc)
-    if kis_appkey and kis_appsecret:
-        try:
-            kis_token = kis_client.get_token(kis_appkey, kis_appsecret)
-            return {'source': 'kis', 'rows': _fetch_kis(kis_token, kis_appkey, kis_appsecret, market, interval), 'errors': errors}
-        except Exception as exc:
-            errors.append('kis: %s' % exc)
+def fetch_chart(kis_appkey, kis_appsecret, market, interval):
+    """코스피·코스닥 차트는 KIS 단일 소스로만 조회한다."""
+    if not kis_appkey or not kis_appsecret:
+        return {'source': 'kis', 'rows': [], 'errors': ['KIS credentials unavailable']}
     try:
-        return {'source': 'naver', 'rows': _fetch_naver(market, interval), 'errors': errors}
+        kis_token = kis_client.get_token(kis_appkey, kis_appsecret)
+        rows = _fetch_kis(kis_token, kis_appkey, kis_appsecret, market, interval)
+        if len(rows) < 2:
+            raise RuntimeError('KIS returned too few %s %s candles' % (market, interval))
+        return {'source': 'kis', 'rows': rows, 'errors': []}
     except Exception as exc:
-        errors.append('naver: %s' % exc)
-        return {'source': None, 'rows': [], 'errors': errors}
+        logger.warning('KIS %s %s chart unavailable: %s', market, interval, exc)
+        return {'source': 'kis', 'rows': [], 'errors': ['kis: %s' % exc]}
 
 
 def _normalise_investor(result):
@@ -257,23 +248,39 @@ def fetch_investor():
     return data
 
 
-def fetch_cash_quote(market):
-    """현물 숫자 BOX용 최신 네이버 스냅샷."""
+def _signed_kis_index_change(quote, key):
+    """KIS 업종지수 전일대비 값에 공식 부호 코드를 반영한다."""
+    value = _number(quote.get(key))
+    if value is None:
+        return None
+    sign = str(quote.get('prdy_vrss_sign') or '').strip()
+    if sign in ('1', '2'):  # 상한/상승
+        return abs(value)
+    if sign in ('4', '5'):  # 하한/하락
+        return -abs(value)
+    return value
+
+
+def fetch_cash_quote(kis_appkey, kis_appsecret, market):
+    """현물 숫자 BOX용 KIS 국내업종 현재지수 스냅샷."""
+    if not kis_appkey or not kis_appsecret:
+        return None
     try:
-        quote = domestic_futures.fetch_index_realtime(market)
+        token = kis_client.get_token(kis_appkey, kis_appsecret)
+        quote = kis_client.fetch_index_price(token, kis_appkey, kis_appsecret, MARKETS[market]['kis_code'])
         if not quote:
             return None
         return {
-            'price': quote.get('price'),
-            'change': quote.get('change'),
-            'change_rate': quote.get('change_rate'),
-            'high': quote.get('high'),
-            'low': quote.get('low'),
+            'price': _number(quote.get('bstp_nmix_prpr')),
+            'change': _signed_kis_index_change(quote, 'bstp_nmix_prdy_vrss'),
+            'change_rate': _signed_kis_index_change(quote, 'bstp_nmix_prdy_ctrt'),
+            'high': _number(quote.get('bstp_nmix_hgpr')),
+            'low': _number(quote.get('bstp_nmix_lwpr')),
             'updated_at': datetime.now(timezone.utc).isoformat(),
-            'source': 'naver',
+            'source': 'kis',
         }
     except Exception as exc:
-        logger.warning('cash quote unavailable for %s: %s', market, exc)
+        logger.warning('KIS cash quote unavailable for %s: %s', market, exc)
         return None
 
 
@@ -539,8 +546,8 @@ def _fetch_kiwoom_program_trading_with_history(kiwoom_token):
     }
 
 
-def fetch_program_trading(kiwoom_token, kis_appkey=None, kis_appsecret=None):
-    """프로그램매매는 KIS 기간 이력을 우선, 키움 하루치 누적을 보조로 사용한다."""
+def fetch_program_trading(kis_appkey=None, kis_appsecret=None):
+    """프로그램매매는 KIS 일별 이력만 사용한다."""
     try:
         kis_rows = _fetch_kis_program_trading(kis_appkey, kis_appsecret)
         payload = _program_trading_payload(kis_rows, 'kis')
@@ -548,7 +555,11 @@ def fetch_program_trading(kiwoom_token, kis_appkey=None, kis_appsecret=None):
             return payload
     except Exception:
         logger.exception('KIS program trading history failed')
-    return _fetch_kiwoom_program_trading_with_history(kiwoom_token)
+    return {
+        'available': False,
+        'source': 'kis',
+        'message': 'KIS 프로그램매매(차익/비차익) 데이터를 잠시 불러오지 못했습니다.',
+    }
 
 
 _LEVERAGE_DETAIL_LOOKBACK_DAYS = 400  # 1년 평균(252영업일)에 여유를 더한 상한
@@ -611,7 +622,7 @@ def fetch_leverage_detail():
     }
 
 
-def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
+def build_dashboard(kis_appkey=None, kis_appsecret=None):
     """코스피/코스닥 현물 일봉 + 최신 숫자 + 투자자 수급 + 증시자금을 모은다.
     주봉·분봉은 /domestic-market-indicators/chart 온디맨드 엔드포인트에서
     fetch_chart()를 재사용해 필요할 때만 조회한다(EAGER_INTERVALS 주석 참고).
@@ -619,8 +630,8 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
     각 fetch_*는 서로 다른 종목/엔드포인트를 조회하는 독립적인 I/O라 순서를 지킬
     이유가 없는데, 예전에는 전부 한 요청 안에서 순차 호출해서(2026-08-14 사용자
     리포트: 같은 페이지의 코스피200 선물 위젯보다 훨씬 느리게 뜬다) 느린 API 하나가
-    전체 응답 시간을 그대로 늘렸다. kiwoom_client/kis_client의 토큰 캐시가 이미
-    threading.Lock으로 동시 호출에 안전해서, 스레드풀로 병렬 실행해 전체 응답
+    전체 응답 시간을 그대로 늘렸다. kis_client의 토큰 캐시가 이미 threading.Lock으로
+    동시 호출에 안전해서, 스레드풀로 병렬 실행해 전체 응답
     시간을 가장 느린 호출 1개 수준으로 줄인다(각 fetch_*는 실패해도 내부에서
     예외를 잡아 안내 문구가 담긴 결과를 돌려주므로 여기서 추가로 try/except할
     필요는 없다).
@@ -628,15 +639,15 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
     chart_keys = [(market, interval) for market in MARKETS for interval in EAGER_INTERVALS]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(chart_keys) + 6) as pool:
         chart_futures = {
-            key: pool.submit(fetch_chart, kiwoom_token, kis_appkey, kis_appsecret, key[0], key[1])
+            key: pool.submit(fetch_chart, kis_appkey, kis_appsecret, key[0], key[1])
             for key in chart_keys
         }
         investor_future = pool.submit(fetch_investor)
         funds_future = pool.submit(fetch_funds, kis_appkey, kis_appsecret)
-        program_trading_future = pool.submit(fetch_program_trading, kiwoom_token, kis_appkey, kis_appsecret)
+        program_trading_future = pool.submit(fetch_program_trading, kis_appkey, kis_appsecret)
         leverage_detail_future = pool.submit(fetch_leverage_detail)
         quote_futures = {
-            market: pool.submit(fetch_cash_quote, market)
+            market: pool.submit(fetch_cash_quote, kis_appkey, kis_appsecret, market)
             for market in MARKETS
         }
 
@@ -652,7 +663,7 @@ def build_dashboard(kiwoom_token=None, kis_appkey=None, kis_appsecret=None):
             }
 
         return {
-            'sourcePriority': ['kiwoom', 'kis', 'naver'],
+            'sourcePriority': ['kis', 'kofia'],
             'indices': indices,
             'investor': investor_future.result(),
             'funds': funds_future.result(),
