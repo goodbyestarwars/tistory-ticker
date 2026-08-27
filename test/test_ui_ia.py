@@ -1213,7 +1213,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
         for token in (
-            "market_temp_v8",
+            "market_temp_v9",
             "upsertDailyMarketTemp_(temp)",
             "readDailyMarketTempHistory_",
             "computeMarketTempHistory_(temp, dailyHistory)",
@@ -1281,19 +1281,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("mt-comp-visual-legend", style)
         self.assertNotIn("<table class=\"mt-comp-table\"", source)
 
-    def test_market_temperature_includes_kofia_credit_risk_component(self):
+    def test_market_temperature_keeps_kofia_credit_risk_as_reference_only(self):
         gas = self.read("gas/ticker-proxy.gs")
         source = self.read("js/market-temp.js")
-        self.assertIn("creditRisk: 10", gas)
+        self.assertNotIn("creditRisk: 10", gas)
         self.assertIn("function scoreKofiaCredit_(kofia)", gas)
         self.assertIn("예탁금 대비 35% 미만", gas)
         self.assertIn("key: 'creditRisk'", source)
         self.assertIn("unit: 'creditRisk'", source)
+        self.assertIn("referenceOnly: true", source)
+        self.assertIn("점수 미반영", source)
+        self.assertIn("온도 점수에 반영하지 않는 참고 지표", source)
         self.assertIn("신용/예탁", source)
         self.assertIn("comp.loan_total / 1000000000000", source)
         self.assertIn("데이터 검증 중", gas)
         self.assertIn("unitFactor", gas)
-        self.assertIn("market_temp_v8", gas)
+        self.assertIn("market_temp_v9", gas)
         self.assertIn("normalizedLoan / normalizedDeposits * 100", gas)
 
     def test_stock_search_minute_chart_shows_time_of_day(self):

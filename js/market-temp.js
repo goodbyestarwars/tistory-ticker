@@ -1,7 +1,7 @@
 /**
  * 오늘의 증시온도 위젯 (2026-07-18 전면 개편)
- * GAS 프록시 ?marketTemp=1 호출 -> 기본 지표와 KOFIA 빚투 위험도(10점)를
- * 실제 만점 기준으로 0~40℃로 환산해 온도 카드로 렌더링하는
+ * GAS 프록시 ?marketTemp=1 호출 -> 9개 기본 지표를 실제 만점 기준으로 0~40℃로
+ * 환산하고 KOFIA 빚투 위험도는 참고 지표로 함께 렌더링하는
  * 구조 자체는 유지. 이번 개편은 "정보는 있는데 3초 안에 안 읽힌다"는 피드백에 따라 CNN
  * Fear&Greed Index 스타일의 대표 콘텐츠로 재구성한 것 - 백엔드 계산은 대부분 그대로 두고
  * (gas/ticker-proxy.gs getMarketTemp), 응답에 recentDays(5/10/20/40일 단기흐름용)와 지표별 band
@@ -118,7 +118,7 @@
       desc: '원/달러 환율 전일 대비 등락률(원화 강세=환율 하락일수록 가점)' },
     { key: 'usFutures', label: '미국 선물지수', max: 5, unit: 'pct', icon: '🌎', barClass: 'mt-bar-fx',
       desc: 'S&P500 E-mini 선물(ES=F) 등락률, 시간대별 가중치 적용 - 미국장 마감~한국장 개장 사이 선행지표' },
-    { key: 'creditRisk', label: '빚투 위험도', max: 10, unit: 'creditRisk', icon: '💳', barClass: 'mt-bar-vix',
+    { key: 'creditRisk', label: '빚투 위험도', max: 10, unit: 'creditRisk', icon: '💳', referenceOnly: true,
       desc: '신용융자 추세·예탁금 대비 비율·반대매매 비중을 합산한 시장 레버리지 위험도. 안정/주의/과열은 운영 기준입니다.' }
   ];
   var COMPONENT_BY_KEY = {};
@@ -529,6 +529,7 @@
   // 개별 지표 행/TOP5 영향요인 카드가 공유하는 계산식 - GAS getMarketTempBriefing()의
   // AI 프롬프트도 동일한 공식을 쓴다(숫자 불일치 방지).
   function contribution(meta, comp) {
+    if (meta.referenceOnly) return null;
     if (meta.unit === 'creditRisk' && (!comp || !comp.available || typeof comp.score !== 'number')) return null;
     var score = comp && typeof comp.score === 'number' ? comp.score : meta.max / 2;
     return score - meta.max / 2;
@@ -662,17 +663,27 @@
       + (comp && comp.available && typeof comp.loan_total === 'number' ? ' 현재 신용융자 잔고: ' + (comp.loan_total / 1000000000000).toFixed(2) + '조원' : '')
       + (comp && comp.available && typeof comp.investor_deposits === 'number' ? ' 투자자예탁금: ' + (comp.investor_deposits / 1000000000000).toFixed(2) + '조원' : '');
 
-    var scoreText = comp && typeof comp.score === 'number'
+    var scoreText = meta.referenceOnly
+      ? '참고 지표'
+      : comp && typeof comp.score === 'number'
       ? score.toFixed(1) + ' / ' + meta.max + '점'
       : '데이터 확인 중';
     var rawHtml = raw
       ? '<span class="mt-comp-visual-raw ' + raw.tone + '">' + escapeHtml(raw.text) + '</span>'
       : '<span class="mt-comp-visual-raw mt-val-zero">데이터 확인 중</span>';
-    var contributionHtml = c == null
+    var contributionHtml = meta.referenceOnly
+      ? '<b class="mt-val-zero">점수 미반영</b>'
+      : c == null
       ? '<b class="mt-val-zero">-</b>'
       : '<b class="' + contribTone(c) + '">' + escapeHtml(fmtContribution(c)) + '</b>';
+    var visualHtml = meta.referenceOnly
+      ? '<div class="mt-comp-reference-note">온도 점수에 반영하지 않는 참고 지표입니다.</div>'
+      : '<div class="mt-comp-bar-track" role="img" aria-label="' + escapeHtml(meta.label + ' 현재 점수 ' + scoreText) + '">'
+        // 점수 0점도 최소 폭으로 표시해 데이터 없음과 0점을 구분한다.
+        + '<div class="mt-comp-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div>'
+        + '</div>';
     return ''
-      + '<div class="mt-comp-visual-row' + (rank < 3 ? ' mt-comp-visual-row-top' : '') + '">'
+      + '<div class="mt-comp-visual-row' + (rank >= 0 && rank < 3 ? ' mt-comp-visual-row-top' : '') + '">'
       + '<div class="mt-comp-visual-head">'
       + '<div class="mt-comp-visual-label"><span class="mt-comp-icon">' + meta.icon + '</span>'
       + '<span class="mt-comp-label">' + escapeHtml(meta.label) + '</span>'
@@ -680,25 +691,25 @@
       + '<div class="mt-comp-visual-values">' + rawHtml + '<span class="mt-comp-visual-score">' + escapeHtml(scoreText) + '</span>'
       + '<span class="mt-comp-visual-contrib">' + contributionHtml + '</span></div>'
       + '</div>'
-      + '<div class="mt-comp-bar-track" role="img" aria-label="' + escapeHtml(meta.label + ' 현재 점수 ' + scoreText) + '">'
-      // 점수 0점도 최소 폭으로 표시해 데이터 없음과 0점을 구분한다.
-      + '<div class="mt-comp-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div>'
-      + '</div>'
+      + visualHtml
       + '</div>';
   }
 
   function buildBars(data) {
-    var ranked = COMPONENT_META.map(function (meta) {
+    var ranked = COMPONENT_META.filter(function (meta) { return !meta.referenceOnly; }).map(function (meta) {
       var comp = data.components && data.components[meta.key];
       return { meta: meta, comp: comp, c: contribution(meta, comp) };
     }).sort(function (a, b) { return Math.abs(b.c) - Math.abs(a.c); });
 
-    var rows = ranked.map(function (r, i) { return buildComponentRow(r.meta, r.comp, i); }).join('');
+    var rows = ranked.map(function (r, i) { return buildComponentRow(r.meta, r.comp, i); }).join('')
+      + COMPONENT_META.filter(function (meta) { return meta.referenceOnly; }).map(function (meta) {
+        return buildComponentRow(meta, data.components && data.components[meta.key], -1);
+      }).join('');
     return ''
       + '<div class="mt-card">'
       + '<div class="mt-card-title">📊 시장 구성 요소 <span class="mt-card-subtitle">(영향도 그래프)</span></div>'
       + '<div class="mt-comp-visual-list">' + rows + '</div>'
-      + '<div class="mt-comp-visual-legend"><span>막대: 현재 점수 / 만점</span><span><b class="mt-val-pos">+점</b> 온도 상승</span><span><b class="mt-val-neg">-점</b> 온도 하락</span></div>'
+      + '<div class="mt-comp-visual-legend"><span>막대: 현재 점수 / 만점</span><span><b class="mt-val-pos">+점</b> 온도 상승</span><span><b class="mt-val-neg">-점</b> 온도 하락</span><span>💳 빚투 위험도: 참고용</span></div>'
       + '</div>';
   }
 

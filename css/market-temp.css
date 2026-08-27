@@ -385,6 +385,9 @@
    정보 밀도를 높임(buildRadar의 markers/scoreLabels 참고). */
 #market-temp .mt-radar-score { font-size: 10px; font-weight: 700; fill: #333; }
 
+/* 빚투 위험도는 온도 산식 밖의 참고 지표라 점수 막대 대신 고정 안내로 구분한다. */
+#market-temp .mt-comp-reference-note { margin-top: 5px; color: #8d96a1; font-size: 11px; line-height: 1.45; }
+
 /* ================= ④-2 오늘 투자전략 (최근 7일과 좌우 배치) ================= */
 #market-temp .mt-strategy-action { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
 #market-temp .mt-strategy-action.mt-val-zero {
@@ -729,6 +732,7 @@ html.dark #market-temp .mt-wave-legend { color: rgba(245, 239, 224, 0.55) !impor
 html.dark #market-temp .mt-radar-grid { color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #market-temp .mt-radar-label { fill: rgba(245, 239, 224, 0.55) !important; }
 html.dark #market-temp .mt-radar-score { fill: #F5EFE0 !important; }
+html.dark #market-temp .mt-comp-reference-note { color: rgba(245, 239, 224, 0.55) !important; }
 
 html.dark #market-temp .mt-strategy-bar-row { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #market-temp .mt-strategy-bar-row b { color: #F5EFE0 !important; }

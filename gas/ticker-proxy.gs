@@ -1402,8 +1402,8 @@ function getSubIndexAnalysis() {
 // 있지만 실제 풀은 238개라 코드는 그 실제 값을 그대로 쓴다(238 하드코딩 아님 - 풀이 늘면
 // 자동 반영).
 // 배점(문서 그대로): VIX20 + 수급(외국인75%+기관25% 통합)20 + 거래대금15 + 평균등락률15 +
-// 상승비율10 + 섹터강도10 + 52주신고저10 + 환율5 + 미국선물5 + 빚투위험도10 = 120점. 문서에는 "총점 100점"
-// 이라 적혀 있지만 항목을 다 더하면 110이라(사용자에게 확인 후 결정) 온도 환산식을
+// 상승비율10 + 섹터강도10 + 52주신고저10 + 환율5 + 미국선물5 = 110점. 문서에는 "총점 100점"
+// 이라 적혀 있지만 항목을 다 더하면 110이라 온도 환산식을
 // "총점 x (40/실제만점)"으로 자기보정하게 만들어서, 만점이 100이든 110이든 105든 항상
 // 만점=40.0℃가 되도록 했다 - 나중에 배점을 또 조정해도 이 식은 안 깨짐.
 // 52주 신고가/신저가는 종목당 네이버 페이지 크롤링이 1건씩 필요해(배치 API 없음) GAS에서
@@ -1422,8 +1422,7 @@ var MT_DAILY_HISTORY_KEY = 'mt_daily_history_v1'; // 전일 대비/1주일·1개
 var MT_DAILY_HISTORY_MAX = 65; // 최근 40일 흐름 + 30일 기준선 계산용 여유분
 var MT_COMPONENT_MAX = { // 지표별 배점(문서 그대로) - 합계가 온도 환산의 실제 만점 기준이 됨
   vix: 20, flow: 20, tradingValue: 15, avgChange: 15,
-  riseRatio: 10, sectorStrength: 10, week52: 10, exchange: 5, usFutures: 5,
-  creditRisk: 10
+  riseRatio: 10, sectorStrength: 10, week52: 10, exchange: 5, usFutures: 5
 };
 
 // 빚투 위험도는 절대 잔고 하나가 아니라 최근 추세·예탁금 대비 비율·반대매매 비중을 함께 본다.
@@ -1532,8 +1531,9 @@ function getMarketTemp() {
   // (실측: 재배포 후에도 30분간 옛 스키마가 그대로 응답됨) 스키마 바뀔 때마다 캐시 키도
   // 같이 올려야 함(이 프로젝트 반복 관례, news_ 캐시 키 이력 참고).
   // v7->v8: KOFIA 신용융자 단위 메타데이터가 million_krw가 아니라 실제 KRW로
-  // 정정됐다. 이전 "비정상 비율" pending 결과를 30분간 재사용하지 않도록 분리한다.
-  var cacheKey = CACHE_PREFIX + 'market_temp_v8';
+  // 정정됐다. v8->v9: 빚투 위험도를 온도 합산에서 빼고 참고 지표로만 되돌렸다.
+  // 이전 120점 산식 결과를 30분간 재사용하지 않도록 캐시 키를 분리한다.
+  var cacheKey = CACHE_PREFIX + 'market_temp_v9';
   var cached = cache.get(cacheKey);
   if (cached) {
     var parsedCache_ = parseCachedJson_(cached);
@@ -1562,20 +1562,16 @@ function getMarketTemp() {
   var week52 = computeWeek52Score_();
   var fx = computeExchangeScore_();
   var futures = computeUsFuturesScore_();
-  // KOFIA는 실시간 시세를 대체하지 않지만, 확인 가능한 경우 빚투 위험도 10점으로 온도에 반영한다.
+  // KOFIA는 실시간 시세를 대체하지 않으므로 빚투 위험도는 참고 지표로만 반환한다.
   var kofia = safeCall(fetchKofiaMarketFromVm_) || null;
   var creditRisk = scoreKofiaCredit_(kofia);
 
   var maxPossible = 0;
-  Object.keys(MT_COMPONENT_MAX).forEach(function (k) {
-    if (k === 'creditRisk' && !creditRisk.available) return;
-    maxPossible += MT_COMPONENT_MAX[k];
-  });
+  Object.keys(MT_COMPONENT_MAX).forEach(function (k) { maxPossible += MT_COMPONENT_MAX[k]; });
 
   var total = Math.max(0, Math.min(maxPossible,
     vix.score + flow.score + vol.score + avgChange.score + rise.score
-    + sectorStrength.score + week52.score + fx.score + futures.score
-    + (creditRisk.available ? creditRisk.score : 0)));
+    + sectorStrength.score + week52.score + fx.score + futures.score));
   var temp = Math.round(total * (40 / maxPossible) * 10) / 10; // 만점(maxPossible) -> 40.0℃로 항상 정규화
 
   var dailyHistory = upsertDailyMarketTemp_(temp);
