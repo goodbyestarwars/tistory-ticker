@@ -433,7 +433,9 @@
 #market-temp .mt-strategy-bar-row b { flex: 0 0 36px; text-align: right; color: #333; }
 #market-temp .mt-strategy-bar { flex: 1; height: 10px; border-radius: 999px; background: #eee; overflow: hidden; }
 #market-temp .mt-strategy-bar-fill { height: 100%; border-radius: 999px; }
-#market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: #b0b8c4; }
+/* 오늘의 전략 비중은 등급색이 아니라 사이트 공통 의미색으로 고정한다: 주식=매수(빨강), 현금=방어(파랑). */
+#market-temp .mt-strategy-bar-fill.mt-strategy-bar-stock { background: #d24f45; }
+#market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: #1261c4; }
 #market-temp .mt-strategy-note { font-size: 12px; color: #999; }
 
 /* ================= ⑥ 온도 기준표(카드형) ================= */
@@ -777,7 +779,8 @@ html.dark #market-temp .mt-radar-score { fill: #F5EFE0 !important; }
 html.dark #market-temp .mt-strategy-bar-row { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #market-temp .mt-strategy-bar-row b { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-strategy-bar { background: rgba(245, 239, 224, 0.14) !important; }
-html.dark #market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: rgba(245, 239, 224, 0.35) !important; }
+html.dark #market-temp .mt-strategy-bar-fill.mt-strategy-bar-stock { background: #d24f45 !important; }
+html.dark #market-temp .mt-strategy-bar-fill.mt-strategy-bar-cash { background: #1261c4 !important; }
 html.dark #market-temp .mt-strategy-note { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #market-temp .mt-strategy-action.mt-val-zero {
   border: 0 !important;

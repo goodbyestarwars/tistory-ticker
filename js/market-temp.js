@@ -916,7 +916,7 @@
       + '<div class="mt-strategy-panel-title">🎯 오늘의 전략</div>'
       + '<div class="mt-strategy-action ' + s.actionTone + '">' + escapeHtml(s.action) + '</div>'
       + '<div class="mt-strategy-bars">'
-      + '<div class="mt-strategy-bar-row"><span>주식비중</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill" style="width:' + s.stock + '%;background:' + grade.color + '"></div></div><b>' + s.stock + '%</b></div>'
+      + '<div class="mt-strategy-bar-row"><span>주식비중</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill mt-strategy-bar-stock" style="width:' + s.stock + '%"></div></div><b>' + s.stock + '%</b></div>'
       + '<div class="mt-strategy-bar-row"><span>현금</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill mt-strategy-bar-cash" style="width:' + s.cash + '%"></div></div><b>' + s.cash + '%</b></div>'
       + '</div>'
       + '<div class="mt-strategy-note">⚠ ' + escapeHtml(s.note) + '</div>'
