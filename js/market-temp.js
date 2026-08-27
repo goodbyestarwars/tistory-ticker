@@ -236,7 +236,12 @@
     (rows || []).forEach(function (row) {
       var displayName = industryThemeName_(row);
       var count = Number(row && (row.stock_count != null ? row.stock_count : row.stockCount));
-      var rate = Number(row && (row.avg_change_rate != null ? row.avg_change_rate : row.avgChangeRate));
+      // market-board의 거래대금 상위 종목 행은 ``change_rate``를 내려준다.
+      // 이전에는 업종 집계 전용 필드(avg_change_rate)만 읽어, 개별 종목을 테마로
+      // 다시 묶는 오늘 업종 TOP 10이 전부 0.00%로 보였다.
+      var rate = Number(row && (row.avg_change_rate != null ? row.avg_change_rate
+        : row.avgChangeRate != null ? row.avgChangeRate
+          : row.change_rate != null ? row.change_rate : row.changeRate));
       var amount = Number(row && (row.trade_amount != null ? row.trade_amount : row.tradeAmount));
       if (!displayName) return;
       if (!isFinite(count) || count <= 0) count = 1;

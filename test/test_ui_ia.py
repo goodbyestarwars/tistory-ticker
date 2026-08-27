@@ -129,6 +129,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         backend = self.read("scripts/cloud-vm/domestic_market_indicators.py")
         style = self.read("css/domestic-market-indicators.css")
         self.assertIn("KOSPI · KOSDAQ 현물 (09:00~15:45)", frontend)
+        market_temp = self.read("js/market-temp.js")
+        self.assertIn("row.change_rate != null ? row.change_rate : row.changeRate", market_temp)
         self.assertNotIn("현물 기준 · 키움 → KIS → 네이버 fallback", frontend)
         self.assertNotIn("kiwoom/kis/naver background collector", backend)
         self.assertIn("'source': 'KIS'", backend)
