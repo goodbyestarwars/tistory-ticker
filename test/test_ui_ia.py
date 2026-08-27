@@ -1516,14 +1516,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/us-stocks.js")
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
-        self.assertIn("us-stocks.css?v=20260828-domestic-style-parity-v1", source)
-        self.assertIn("us-stocks.js?v=20260825-us-results-table-v1", search)
+        self.assertIn("us-stocks.css?v=20260828-domestic-layout-parity-v2", source)
+        self.assertIn("us-stocks.js?v=20260828-domestic-layout-parity-v1", search)
         for token in (
             'id="usStocksInput"',
             'id="usStocksSearchBtn"',
             'id="usStocksResults"',
             'class="us-stocks-results-head"',
             'function toggleFavorite(button)',
+            'function buildShell(isEmbedded)',
+            'class="us-stocks-shell us-stocks-embedded"',
+            'class="us-stocks-detail ss-detail"',
+            'class="ss-panels us-stocks-market-grid"',
+            'class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"',
+            'class="ss-panel-right us-stocks-panel us-stocks-chart-panel"',
+            'class="ss-news-panel us-stocks-panel us-stocks-news-panel"',
+            'applyTone(priceWrap, quote.change_rate)',
         ):
             self.assertIn(token, source)
         self.assertIn("font-family: inherit", style)
@@ -1561,6 +1569,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".us-native-chart-mount .ss-chart-tabs", style)
         self.assertIn(".us-stocks-news-item { position: relative; display: grid; grid-template-columns: 56px 13px minmax(0, 1fr);", style)
         self.assertIn(".us-stocks-news-item { grid-template-columns: 48px 11px minmax(0, 1fr); gap: 8px; }", style)
+        self.assertIn(".us-stocks-shell.us-stocks-embedded { margin: 0; }", style)
+        self.assertIn("#stock-search .us-stocks-embedded .us-stocks-market-grid { margin-top: 0; }", style)
 
     def test_strategy_dividend_warning_cell_uses_full_mobile_width(self):
         style = self.read("css/strategy-search.css")

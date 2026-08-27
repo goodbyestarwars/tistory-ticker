@@ -7,14 +7,14 @@
   'use strict';
 
   var API_BASE = 'https://goodbyestar.cloud';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20260828-domestic-style-parity-v1';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20260828-domestic-layout-parity-v2';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var REFRESH_MS = 15000;
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
   var REALTIME_RECONNECT_MS = 5000;
   var LAST_SYMBOL_KEY = 'us:lastSelected';
   var DEFAULT_SYMBOL = 'AAPL';
-  var state = { container: null, symbol: null, refreshTimer: null, realtimeSocket: null, realtimeTimer: null, realtimeGeneration: 0, initialized: false, renderedSymbol: null, nativeChartPromise: null, lastQuote: null };
+  var state = { container: null, symbol: null, refreshTimer: null, realtimeSocket: null, realtimeTimer: null, realtimeGeneration: 0, initialized: false, embedded: false, renderedSymbol: null, nativeChartPromise: null, lastQuote: null };
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: 'Apple Inc.', aliases: '애플 apple' },
     { symbol: 'MSFT', name: 'Microsoft Corporation', aliases: '마이크로소프트 microsoft' },
@@ -50,6 +50,7 @@
     if (!container) return;
     if (state.initialized && state.container === container) return;
     state.container = container;
+    state.embedded = !!targetContainer;
     state.initialized = true;
     injectStyles();
     if (!targetContainer) {
@@ -58,7 +59,7 @@
         if (/증시검색|실시간 시세/.test(title.textContent.trim())) title.textContent = '미국주식';
       });
     }
-    container.innerHTML = buildShell();
+    container.innerHTML = buildShell(state.embedded);
     wireSearch();
     autoSelect();
     document.addEventListener('visibilitychange', function () {
@@ -76,7 +77,14 @@
     document.head.appendChild(link);
   }
 
-  function buildShell() {
+  function buildShell(isEmbedded) {
+    if (isEmbedded) {
+      // 국내 화면의 공통 검색창(ss-search)은 stock-search.js가 이미 렌더링한다.
+      // 미국 모듈이 자체 헤더·검색창을 다시 만들면 화면이 중복되므로 상세 영역만 임베드한다.
+      return '<section class="us-stocks-shell us-stocks-embedded">'
+        + '<div id="usStocksDetail" class="us-stocks-detail ss-detail" hidden></div>'
+        + '</section>';
+    }
     return '<section class="us-stocks-shell">'
       + '<div class="us-stocks-heading"><div><span class="us-stocks-eyebrow">US MARKET</span><h2>미국주식</h2></div>'
       + '<span class="us-stocks-note">한국·미국 통합 시세</span></div>'
@@ -367,7 +375,7 @@
     if (!detail) return;
     var card = detail.querySelector('.us-stocks-live-card');
     if (!card || card.getAttribute('data-symbol') !== quote.symbol) {
-      detail.innerHTML = '<div class="us-stocks-live-card" data-symbol="' + escapeAttr(quote.symbol) + '">'
+      detail.innerHTML = state.embedded ? embeddedDetailHtml(quote) : '<div class="us-stocks-live-card" data-symbol="' + escapeAttr(quote.symbol) + '">'
         + '<div class="us-stocks-live-head"><div class="us-stocks-identity">' + stockIconHtml(quote.symbol) + '<div><span class="us-stocks-market-badge">미국주식</span><h3 data-us-name></h3><p data-us-symbol></p></div></div>'
         + '<span class="us-stocks-market-state" data-us-state></span></div>'
         + '<div class="us-stocks-live-price" data-us-price-wrap><span data-us-price></span><span data-us-change></span></div>'
@@ -398,17 +406,53 @@
     updateQuoteFields(quote, detail);
   }
 
+  function embeddedDetailHtml(quote) {
+    return '<div class="us-stocks-live-card ss-summary" data-symbol="' + escapeAttr(quote.symbol) + '">'
+      + '<div class="ss-summary-head us-stocks-live-head">'
+      + stockIconHtml(quote.symbol)
+      + '<span class="ss-summary-name" data-us-name></span>'
+      + '<span class="ss-summary-code" data-us-symbol></span>'
+      + '<span class="ss-summary-price" data-us-price-wrap><span data-us-price></span></span>'
+      + '<span class="ss-summary-change" data-us-change></span>'
+      + '</div>'
+      + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식 · <span data-us-state></span> · 15초 자동 갱신</span></div>'
+      + '<details class="us-stocks-metrics-more"><summary>세부 시세</summary><div class="us-stocks-metrics">'
+      + metric('전일 종가', '', 'previous')
+      + metric('오늘 고가', '', 'high')
+      + metric('오늘 저가', '', 'low')
+      + metric('거래량', '', 'volume')
+      + metric('52주 범위', '', 'week52')
+      + '</div></details>'
+      + '</div>'
+      + '<div id="usStocksAnalysis" class="us-stocks-analysis-grid">'
+      + analysisCard('기본 재무', '재무지표를 불러오는 중...', 'financials')
+      + analysisCard('재무 흐름', '매출·순이익 지표를 불러오는 중...', 'statements')
+      + analysisCard('실적 일정', '실적 일정을 불러오는 중...', 'earnings')
+      + analysisCard('애널리스트', '전망 데이터를 불러오는 중...', 'recommendation')
+      + analysisCard('내부자 거래', '내부자 거래를 불러오는 중...', 'insider')
+      + '</div>'
+      + '<section class="us-stocks-panel us-stocks-congress-panel"><div class="us-stocks-panel-head"><h4>미국 의회 거래 공시</h4><span>참고용 시그널</span></div><div id="usStocksCongress" class="us-stocks-congress"><div class="us-stocks-loading">의회 거래 공시를 불러오는 중...</div></div></section>'
+      + '<div class="ss-panels us-stocks-market-grid">'
+      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>10단계 호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div></section>'
+      + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
+      + '<section class="ss-panel-right us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
+      + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div></section>'
+      + '<section class="ss-news-panel us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>뉴스를 불러오는 중...</div></div></section>'
+      + '</div>';
+  }
+
   function updateQuoteFields(quote, detail) {
     var card = detail.querySelector('.us-stocks-live-card');
     if (!card) return;
     var priceWrap = card.querySelector('[data-us-price-wrap]');
-    priceWrap.classList.remove('us-up', 'us-down', 'us-flat');
-    priceWrap.classList.add(signClass(quote.change_rate));
+    applyTone(priceWrap, quote.change_rate);
     card.querySelector('[data-us-name]').textContent = quote.name || quote.symbol;
     card.querySelector('[data-us-symbol]').textContent = quote.symbol + ' · ' + (quote.exchange || '');
     card.querySelector('[data-us-state]').textContent = marketStateLabel(quote.market_state);
     card.querySelector('[data-us-price]').textContent = formatPrice(quote.price);
-    card.querySelector('[data-us-change]').textContent = formatPercent(quote.change_rate);
+    var changeNode = card.querySelector('[data-us-change]');
+    changeNode.textContent = formatPercent(quote.change_rate);
+    applyTone(changeNode, quote.change_rate);
     var values = {
       previous: formatPrice(quote.previous_close),
       high: formatPrice(quote.day_high),
@@ -588,14 +632,14 @@
     var sortedItems = recentItems.slice().sort(function (a, b) {
       return newsTimestamp(b) - newsTimestamp(a);
     });
-    mount.innerHTML = '<div class="app-news-timeline us-stocks-news-timeline" role="list">' + sortedItems.map(function (item, index) {
+    mount.innerHTML = '<div class="app-news-timeline ss-news-timeline us-stocks-news-timeline" role="list">' + sortedItems.map(function (item, index) {
       var pubDate = item.pubDate || '';
       var date = new Date(String(pubDate));
       var dateText = isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' });
-      return '<a class="app-news-event us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
+      return '<a class="app-news-event ss-news-item us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
         + '<div class="app-news-date"><strong>' + escapeHtml(dateText) + '</strong><small>' + escapeHtml(formatNewsTime(pubDate)) + '</small></div>'
-        + '<div class="app-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
-        + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--미국">미국</b><b class="app-news-type app-news-type--뉴스">뉴스</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
+        + '<div class="app-news-rail ss-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
+        + '<div class="app-news-body ss-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--미국">미국</b><b class="app-news-type app-news-type--뉴스">뉴스</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
         + '<strong>' + escapeHtml(item.title || '') + '</strong></div></a>';
     }).join('') + '</div>';
   }
@@ -684,6 +728,12 @@
     return { pre: '장전', regular: '정규장', post: '장후', closed: '장 마감' }[value] || '시장 상태 확인 중';
   }
   function signClass(value) { return value > 0 ? 'us-up' : value < 0 ? 'us-down' : 'us-flat'; }
+  function applyTone(node, value) {
+    if (!node) return;
+    var tone = signClass(value);
+    node.classList.remove('us-up', 'us-down', 'us-flat', 'ss-up', 'ss-down', 'ss-flat');
+    node.classList.add(tone, tone.replace(/^us-/, 'ss-'));
+  }
   function stockIconHtml(symbol) {
     var code = String(symbol || '').replace(/^US:/i, '').toUpperCase();
     if (!code) return '';

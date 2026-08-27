@@ -41,6 +41,17 @@
 .us-stocks-error { color: #b42318; }
 .us-stocks-detail { margin-top: 12px; }
 .us-stocks-live-card { width: 100%; max-width: 100%; min-width: 0; padding: 14px; border: 1px solid #e5e5e5; border-radius: 12px; background: rgb(255, 254, 252); }
+.us-stocks-shell.us-stocks-embedded { margin: 0; }
+#stock-search .us-stocks-embedded .us-stocks-detail { margin-top: 18px; }
+#stock-search .us-stocks-embedded .us-stocks-live-head { justify-content: flex-start; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+#stock-search .us-stocks-embedded .ss-summary-price > [data-us-price] { font-size: inherit; }
+#stock-search .us-stocks-embedded .us-stocks-metrics-more { margin-top: 10px; border-top: 1px solid #eef0f2; color: #69717c; font-size: 12px; }
+#stock-search .us-stocks-embedded .us-stocks-metrics-more summary { padding-top: 8px; cursor: pointer; }
+#stock-search .us-stocks-embedded .us-stocks-metrics { margin-top: 8px; }
+#stock-search .us-stocks-embedded .us-stocks-analysis-grid { margin-top: 0; }
+#stock-search .us-stocks-embedded .us-stocks-market-grid { margin-top: 0; }
+#stock-search .us-stocks-embedded .us-stocks-news-panel { margin-top: 0; }
+#stock-search .us-stocks-embedded .us-stocks-news { min-height: 42px; max-height: 360px; overflow-y: auto; overflow-x: hidden; padding: 0; }
 .us-stocks-market-badge { display: inline-flex; padding: 3px 8px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
 .us-stocks-live-head h3 { margin: 6px 0 0; font-size: 18px; }
 .us-stocks-live-head p { margin: 3px 0 0; color: #8b95a1; font-size: 13px; }
