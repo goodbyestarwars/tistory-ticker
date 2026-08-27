@@ -100,25 +100,35 @@
   // icon: 2026-07-18 스펙 지정 아이콘으로 통일(vix/수급/거래대금/신고가/섹터강도/상승비율/
   // 환율/미국선물 8개는 스펙 명시 그대로, avgChange만 스펙에 없어 겹치지 않는 신규 아이콘 배정)
   var COMPONENT_META = [
-    { key: 'vix', label: 'VIX', max: 20, unit: 'index', icon: '😨', barClass: 'mt-bar-vix',
+    { key: 'vix', label: 'VIX', max: 20, unit: 'index', icon: '😨', barClass: 'mt-bar-vix', source: 'Yahoo Finance ^VIX',
+      guide: '15 미만=20점 · 15~20=16점 · 20~25=10점 · 25~30=5점 · 30 이상=0점',
       desc: '변동성지수(공포지수). 미국 S&P500 옵션의 내재변동성으로 산출 - 낮을수록 시장이 안정적이라는 뜻' },
-    { key: 'flow', label: '수급(외국인+기관)', max: 20, unit: 'flow', icon: '🏦', barClass: 'mt-bar-flow',
+    { key: 'flow', label: '수급(외국인+기관)', max: 20, unit: 'flow', icon: '🏦', barClass: 'mt-bar-flow', source: 'KODEX 200 최근 5일 수급',
+      guide: '외국인 75% + 기관 25% 가중 순매수강도. 중립은 50%, 이를 20점으로 환산',
       desc: 'KODEX 200 최근 5일 순매수를 20일 평균과 비교, 외국인 75%+기관 25% 가중합산' },
-    { key: 'tradingValue', label: '거래대금', max: 15, unit: 'pct', icon: '📊', barClass: 'mt-bar-vol',
+    { key: 'tradingValue', label: '거래대금', max: 15, unit: 'pct', icon: '📊', barClass: 'mt-bar-vol', source: '섹터 풀 실시간 시세',
+      guide: '직전 5일 평균 대비 130% 이상=15점 · 110~130%=11점 · 90~110%=7점 · 70~90%=4점 · 70% 미만=0점',
       desc: '섹터 풀 종목 거래대금 합계를 최근 5거래일 평균과 비교(평소보다 활발하면 가점)' },
-    { key: 'avgChange', label: '평균등락률', max: 15, unit: 'pctDirect', icon: '💹', barClass: 'mt-bar-rise',
+    { key: 'avgChange', label: '평균등락률', max: 15, unit: 'pctDirect', icon: '💹', barClass: 'mt-bar-rise', source: '섹터 풀 실시간 시세',
+      guide: '+2% 이상=15점 · +1~2%=12점 · 0~+1%=8점 · -1~0%=4점 · -1% 미만=0점',
       desc: '섹터 풀 종목 동일가중(시가총액 가중 아님) 평균 등락률 - 일부 대형주만 오르는 상황을 지수보다 잘 잡아냄' },
-    { key: 'riseRatio', label: '상승비율', max: 10, unit: 'ratio', icon: '⚡', barClass: 'mt-bar-rise',
+    { key: 'riseRatio', label: '상승비율', max: 10, unit: 'ratio', icon: '⚡', barClass: 'mt-bar-rise', source: '섹터 풀 실시간 시세',
+      guide: '상승 종목 비율 70% 이상=10점 · 55~70%=8점 · 45~55%=5점 · 30~45%=3점 · 30% 미만=0점',
       desc: '섹터 풀(코스피+코스닥 통합) 상승·하락 종목 수 비율' },
-    { key: 'sectorStrength', label: '섹터 강도', max: 10, unit: 'sectorCount', icon: '🏭', barClass: 'mt-bar-vol',
+    { key: 'sectorStrength', label: '섹터 강도', max: 10, unit: 'sectorCount', icon: '🏭', barClass: 'mt-bar-vol', source: '섹터 분류 + 실시간 시세',
+      guide: '각 섹터의 평균등락률>0, 상승비율≥50%를 각각 1점으로 계산해 전체 강세 포인트 비율을 10점으로 환산',
       desc: '각 섹터의 평균등락률·상승비율을 종합 - 강세 섹터가 많을수록 가점' },
-    { key: 'week52', label: '52주 신고가/신저가', max: 10, unit: 'week52Count', icon: '📈', barClass: 'mt-bar-vix',
+    { key: 'week52', label: '52주 신고가/신저가', max: 10, unit: 'week52Count', icon: '📈', barClass: 'mt-bar-vix', source: 'VM 일 1회 배치',
+      guide: '기본 5점에서 (신고가 수 − 신저가 수)×0.3을 더하거나 빼며, 0~10점 범위로 제한',
       desc: '섹터 풀 종목 중 52주 신고가·신저가 종목 수(VM이 하루 1회 미리 계산)' },
-    { key: 'exchange', label: '환율', max: 5, unit: 'pct', icon: '💵', barClass: 'mt-bar-fx',
+    { key: 'exchange', label: '환율', max: 5, unit: 'pct', icon: '💵', barClass: 'mt-bar-fx', source: '원/달러 전일 대비',
+      guide: '기본 2.5점에서 원/달러 전일 등락률을 뺀 값(원화 강세일수록 가점), 0~5점 범위',
       desc: '원/달러 환율 전일 대비 등락률(원화 강세=환율 하락일수록 가점)' },
-    { key: 'usFutures', label: '미국 선물지수', max: 5, unit: 'pct', icon: '🌎', barClass: 'mt-bar-fx',
+    { key: 'usFutures', label: '미국 선물지수', max: 5, unit: 'pct', icon: '🌎', barClass: 'mt-bar-fx', source: 'Yahoo Finance S&P500 E-mini',
+      guide: '기본 2.5점 + 전일 대비 등락률×시간대 가중치. 장 마감 후에는 중립 2.5점, 0~5점 범위',
       desc: 'S&P500 E-mini 선물(ES=F) 등락률, 시간대별 가중치 적용 - 미국장 마감~한국장 개장 사이 선행지표' },
-    { key: 'creditRisk', label: '빚투 위험도', max: 10, unit: 'creditRisk', icon: '💳', barClass: 'mt-bar-vix',
+    { key: 'creditRisk', label: '빚투 위험도', max: 10, unit: 'creditRisk', icon: '💳', barClass: 'mt-bar-vix', source: 'KOFIA 신용융자·예탁금·반대매매',
+      guide: '신용/예탁 비율·최근 평균 대비 신용융자 증가율·반대매매 비중을 합산. 안정=고점수, 과열=저점수',
       desc: '신용융자 추세·예탁금 대비 비율·반대매매 비중을 합산한 시장 레버리지 위험도. 안정/주의/과열은 운영 기준입니다.' }
   ];
   var COMPONENT_BY_KEY = {};
@@ -534,6 +544,14 @@
     return score - meta.max / 2;
   }
 
+  function score100(data) {
+    var rawScore = Number(data && data.score);
+    var rawMax = Number(data && data.maxScore);
+    if (isFinite(rawScore) && isFinite(rawMax) && rawMax > 0) return rawScore / rawMax * 100;
+    var temp = Number(data && data.temp);
+    return isFinite(temp) ? temp / GAUGE_MAX_TEMP * 100 : 0;
+  }
+
   function fmtContribution(c) {
     return (c > 0 ? '+' : c < 0 ? '' : '±') + c.toFixed(1) + '점';
   }
@@ -549,6 +567,7 @@
   function buildHero(data) {
     var grade = data.grade || { emoji: '', label: '', tone: 'neutral' };
     var signal = SIGNAL_BY_TONE[grade.tone] || SIGNAL_BY_TONE.neutral;
+    var normalizedScore = score100(data);
     var starsHtml = '<span class="mt-hero-stars">'
       + '★'.repeat(signal.stars) + '<span class="mt-hero-stars-empty">' + '★'.repeat(5 - signal.stars) + '</span>'
       + '</span>';
@@ -572,7 +591,7 @@
     return ''
       + '<div class="mt-hero">'
       + '<div class="mt-hero-left">'
-      + '<div class="mt-hero-title">🌡 오늘의 증시온도 <span class="mt-info" data-tooltip="시장이 과열되거나 침체된 정도를 온도로 보여드립니다.">ⓘ</span></div>'
+      + '<div class="mt-hero-title">🌡 오늘의 증시온도 <span class="mt-info" data-tooltip="10개 지표의 원점수(120점 만점)를 100점으로 환산한 뒤 0~40℃로 바꿉니다. 50~70점(20~28℃)은 중립이며, 높을수록 과열 방향·낮을수록 공포 방향입니다.">ⓘ</span></div>'
       + '<div class="mt-hero-main">'
       + '<span class="mt-thermometer-art" aria-hidden="true"><span class="mt-thermometer-mercury"></span></span>'
       // 2026-07-18: 초기 렌더 값을 "0.0"(애니메이션 시작점) 대신 이미 정답 온도로 그린다 -
@@ -582,6 +601,7 @@
       + '<span class="mt-score" style="--mt-score-color:' + grade.color + ';color:var(--mt-score-color)" data-count-target="' + data.temp.toFixed(1) + '">' + data.temp.toFixed(1) + '<span class="mt-score-unit">℃</span></span>'
       + '<span class="mt-grade-pill" style="background:' + grade.color + '22;color:' + grade.color + '">' + escapeHtml(grade.emoji) + ' ' + escapeHtml(grade.label) + '</span>'
       + '</div>'
+      + '<div class="mt-hero-score-context"><strong>환산 점수 ' + normalizedScore.toFixed(1) + ' / 100점</strong><span>중립 50~70점 · 현재 ' + escapeHtml(grade.label) + '</span></div>'
       + '<div class="mt-hero-deltas">' + deltasHtml + '</div>'
       + '</div>'
       + '<div class="mt-hero-right">'
@@ -671,6 +691,9 @@
     var contributionHtml = c == null
       ? '<b class="mt-val-zero">-</b>'
       : '<b class="' + contribTone(c) + '">' + escapeHtml(fmtContribution(c)) + '</b>';
+    var currentBandHtml = band
+      ? '<div class="mt-comp-current-band">현재 구간: ' + escapeHtml(band) + '</div>'
+      : '';
     return ''
       + '<div class="mt-comp-visual-row' + (rank < 3 ? ' mt-comp-visual-row-top' : '') + '">'
       + '<div class="mt-comp-visual-head">'
@@ -680,6 +703,7 @@
       + '<div class="mt-comp-visual-values">' + rawHtml + '<span class="mt-comp-visual-score">' + escapeHtml(scoreText) + '</span>'
       + '<span class="mt-comp-visual-contrib">' + contributionHtml + '</span></div>'
       + '</div>'
+      + currentBandHtml
       + '<div class="mt-comp-bar-track" role="img" aria-label="' + escapeHtml(meta.label + ' 현재 점수 ' + scoreText) + '">'
       // 점수 0점도 최소 폭으로 표시해 데이터 없음과 0점을 구분한다.
       + '<div class="mt-comp-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div>'
@@ -694,11 +718,18 @@
     }).sort(function (a, b) { return Math.abs(b.c) - Math.abs(a.c); });
 
     var rows = ranked.map(function (r, i) { return buildComponentRow(r.meta, r.comp, i); }).join('');
+    var methodRows = COMPONENT_META.map(function (meta) {
+      return '<li><b>' + meta.icon + ' ' + escapeHtml(meta.label) + ' · ' + meta.max + '점</b><span>'
+        + escapeHtml(meta.guide) + '</span><small>데이터: ' + escapeHtml(meta.source) + '</small></li>';
+    }).join('');
+    var normalizedScore = score100(data);
     return ''
       + '<div class="mt-card">'
       + '<div class="mt-card-title">📊 시장 구성 요소 <span class="mt-card-subtitle">(영향도 그래프)</span></div>'
+      + '<div class="mt-score-explainer"><b>온도 읽는 법</b><span>10개 지표 원점수 120점을 <strong>' + normalizedScore.toFixed(1) + ' / 100점</strong>으로 환산한 뒤 0~40℃로 표시합니다. 50~70점(20~28℃)은 중립입니다.</span></div>'
       + '<div class="mt-comp-visual-list">' + rows + '</div>'
       + '<div class="mt-comp-visual-legend"><span>막대: 현재 점수 / 만점</span><span><b class="mt-val-pos">+점</b> 온도 상승</span><span><b class="mt-val-neg">-점</b> 온도 하락</span></div>'
+      + '<details class="mt-score-method"><summary>지표별 계산 기준과 데이터 출처 보기</summary><p>각 지표는 서로 다른 만점이 있어 원점수로 합산한 뒤 100점으로 환산합니다. 높은 점수는 시장이 과열 방향으로, 낮은 점수는 공포 방향으로 기울었음을 뜻하며 투자 권유가 아닙니다.</p><ul>' + methodRows + '</ul></details>'
       + '</div>';
   }
 
