@@ -412,6 +412,8 @@
       + '콜/풋 전체 미결제약정(OI) 증감으로 포지션 방향을 추정해서 보여드립니다. 콜옵션은 상승 포지션, 풋옵션은 '
       + '하락 포지션으로 보고, OI가 늘면 신규 진입(포지션 확대), 줄면 청산(포지션 정리)으로 표시합니다 - '
       + '단순 순매수/순매도 부호만으로 상승·하락을 단정하지 않고 신규/청산을 구분해서 보여드리는 방식입니다. '
+      + '행사가별 프로파일과 콜/풋 합계는 KIS가 제공한 콜·풋 각 최대 100건의 조회 범위를 기준으로 하며, '
+      + '포지션 방향은 원자료가 아닌 추정치입니다. '
       + '옵션은 야간선물과 달리 야간 세션이 없어 정규장(09:00~15:45)에만 값이 바뀌고, '
       + '장 마감 후에는 마지막 값이 그대로 표시됩니다.</div></div>'
       + '</div>';
@@ -510,7 +512,7 @@
   function fmtOptionNumber(value) {
     var n = Number(value);
     if (!isFinite(n)) return '-';
-    return Math.round(n).toLocaleString('ko-KR');
+    return n.toLocaleString('ko-KR', { maximumFractionDigits: 1 });
   }
 
   function optionBar(value, max, tone, label) {
