@@ -1272,19 +1272,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
-    def test_market_temperature_components_use_visual_score_bars_next_to_radar(self):
+    def test_market_temperature_components_prioritize_action_and_driver_graphs(self):
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
-        self.assertIn("mt-comp-visual-list", source)
-        self.assertIn("영향도 그래프", source)
-        self.assertIn("환산 점수", source)
-        self.assertIn("중립 50~70점", source)
-        self.assertIn("현재 구간", source)
-        self.assertIn("지표별 계산 기준과 데이터 출처 보기", source)
+        self.assertIn("오늘 시장 판단", source)
+        self.assertIn("오늘 행동", source)
+        self.assertIn("점수를 올린 요인", source)
+        self.assertIn("점수를 내린 요인", source)
+        self.assertIn("function buildDriverRow", source)
+        self.assertIn("점수·계산 기준·데이터 출처 보기", source)
         self.assertIn("function score100(data)", source)
-        self.assertIn("mt-score-method", style)
+        self.assertIn("mt-market-decision", style)
+        self.assertIn("mt-driver-grid", style)
         self.assertIn("grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr)", style)
-        self.assertIn("mt-comp-visual-legend", style)
+        self.assertIn("mt-driver-legend", style)
         self.assertNotIn("<table class=\"mt-comp-table\"", source)
 
     def test_market_temperature_includes_kofia_credit_risk_component(self):

@@ -155,11 +155,11 @@
   // (사이트 공통 부호색)으로 통일. 등급 자체를 나타내는 mt-grade-pill(예: "🔵 공포")은
   // 온도 밴드 색상이 맞으므로 그대로 grade.color 유지.
   var SIGNAL_BY_TONE = {
-    'extreme-fear': { label: '적극매수', stars: 5, tone: 'mt-val-pos' },
-    'fear': { label: '매수', stars: 4, tone: 'mt-val-pos' },
-    'neutral': { label: '관망', stars: 3, tone: 'mt-val-zero' },
-    'greed': { label: '주의', stars: 2, tone: 'mt-val-neg' },
-    'extreme-greed': { label: '위험', stars: 1, tone: 'mt-val-neg' }
+    'extreme-fear': { label: '적극매수', stars: 5, tone: 'mt-val-pos', summary: '공포가 과도합니다 · 한 번에 매수하지 말고 분할 접근' },
+    'fear': { label: '매수', stars: 4, tone: 'mt-val-pos', summary: '공포 우세 구간 · 분할 매수 후보를 확인' },
+    'neutral': { label: '관망', stars: 3, tone: 'mt-val-zero', summary: '혼조 구간 · 신규 매수보다 종목 선별 우선' },
+    'greed': { label: '주의', stars: 2, tone: 'mt-val-neg', summary: '과열 접근 · 추격 매수는 피하고 비중 점검' },
+    'extreme-greed': { label: '위험', stars: 1, tone: 'mt-val-neg', summary: '과열 경고 · 신규 매수는 멈추고 보유 비중 점검' }
   };
 
   // 오늘 투자전략 카드(같은 역발상 논리) - 사용자 확정 룩업.
@@ -665,50 +665,32 @@
       + '</div>';
   }
 
-  // ---- ③ 시장 구성 요소 (2026-07-18 5차: "오늘 시장 영향요인 TOP5"와 중복이라는 지적에
-  // 따라 별도 섹션을 없애고 하나로 합침 - 10개 지표를 |기여도| 내림차순으로 정렬한 표
-  // 하나로 통합하면 자연스럽게 "영향 큰 순서"가 되어 TOP5 리스트가 따로 필요 없다.
-  // 카드형 대신 표 형태로(사용자 요청) - 상위 3개 행은 은은한 강조 배경으로 표시해
-  // "오늘 가장 큰 영향을 준 지표"를 여전히 한눈에 알아볼 수 있게 한다. ----
+  // ---- ③ 시장 구성 요소: 개인 투자자가 글을 읽지 않아도 "오늘 판단 / 무엇이 점수를
+  // 올리고 내렸는지"를 바로 읽도록 양방향 영향도 막대로 압축한다. 상세 기준은 접은 영역에 둔다. ----
 
-  function buildComponentRow(meta, comp, rank) {
+  function buildDriverRow(item, direction) {
+    var meta = item.meta;
+    var comp = item.comp;
     var score = comp && typeof comp.score === 'number' ? comp.score : 0;
-    var pct = meta.max ? Math.max(0, Math.min(100, (score / meta.max) * 100)) : 0;
     var raw = formatRaw(meta, comp);
-    var c = contribution(meta, comp);
     var band = comp && comp.band ? comp.band : null;
-    var tooltip = meta.desc + (band ? ' — 현재 구간: ' + band : '')
-      + (comp && comp.criteria ? ' 기준: ' + comp.criteria : '')
-      + (comp && comp.available && typeof comp.loan_total === 'number' ? ' 현재 신용융자 잔고: ' + (comp.loan_total / 1000000000000).toFixed(2) + '조원' : '')
-      + (comp && comp.available && typeof comp.investor_deposits === 'number' ? ' 투자자예탁금: ' + (comp.investor_deposits / 1000000000000).toFixed(2) + '조원' : '');
-
-    var scoreText = comp && typeof comp.score === 'number'
-      ? score.toFixed(1) + ' / ' + meta.max + '점'
-      : '데이터 확인 중';
-    var rawHtml = raw
-      ? '<span class="mt-comp-visual-raw ' + raw.tone + '">' + escapeHtml(raw.text) + '</span>'
-      : '<span class="mt-comp-visual-raw mt-val-zero">데이터 확인 중</span>';
-    var contributionHtml = c == null
-      ? '<b class="mt-val-zero">-</b>'
-      : '<b class="' + contribTone(c) + '">' + escapeHtml(fmtContribution(c)) + '</b>';
-    var currentBandHtml = band
-      ? '<div class="mt-comp-current-band">현재 구간: ' + escapeHtml(band) + '</div>'
-      : '';
+    var rawText = raw ? raw.text : (band || '데이터 확인 중');
+    var maxContribution = meta.max / 2;
+    var width = maxContribution ? Math.max(8, Math.min(100, Math.abs(item.c) / maxContribution * 100)) : 8;
+    var sign = direction === 'up' ? '+' : '−';
     return ''
-      + '<div class="mt-comp-visual-row' + (rank < 3 ? ' mt-comp-visual-row-top' : '') + '">'
-      + '<div class="mt-comp-visual-head">'
-      + '<div class="mt-comp-visual-label"><span class="mt-comp-icon">' + meta.icon + '</span>'
-      + '<span class="mt-comp-label">' + escapeHtml(meta.label) + '</span>'
-      + '<span class="mt-info" data-tooltip="' + escapeHtml(tooltip) + '">ⓘ</span></div>'
-      + '<div class="mt-comp-visual-values">' + rawHtml + '<span class="mt-comp-visual-score">' + escapeHtml(scoreText) + '</span>'
-      + '<span class="mt-comp-visual-contrib">' + contributionHtml + '</span></div>'
+      + '<div class="mt-driver-row mt-driver-' + direction + '">'
+      + '<div class="mt-driver-label"><span>' + meta.icon + ' ' + escapeHtml(meta.label) + '</span><small>' + escapeHtml(rawText) + '</small></div>'
+      + '<div class="mt-driver-track"><span class="mt-driver-fill" style="width:' + width.toFixed(0) + '%"></span></div>'
+      + '<b>' + sign + Math.abs(item.c).toFixed(1) + '</b>'
       + '</div>'
-      + currentBandHtml
-      + '<div class="mt-comp-bar-track" role="img" aria-label="' + escapeHtml(meta.label + ' 현재 점수 ' + scoreText) + '">'
-      // 점수 0점도 최소 폭으로 표시해 데이터 없음과 0점을 구분한다.
-      + '<div class="mt-comp-bar-fill mt-anim-width ' + meta.barClass + '" style="width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + ';--mt-target-width:' + (pct > 0 ? pct.toFixed(0) + '%' : '4px') + '"></div>'
-      + '</div>'
-      + '</div>';
+  }
+
+  function buildDriverGroup(title, direction, items) {
+    var rows = items.length
+      ? items.map(function (item) { return buildDriverRow(item, direction); }).join('')
+      : '<div class="mt-driver-empty">중립에 가까운 항목입니다.</div>';
+    return '<section class="mt-driver-group mt-driver-group-' + direction + '"><h4>' + title + '</h4>' + rows + '</section>';
   }
 
   function buildBars(data) {
@@ -717,19 +699,28 @@
       return { meta: meta, comp: comp, c: contribution(meta, comp) };
     }).sort(function (a, b) { return Math.abs(b.c) - Math.abs(a.c); });
 
-    var rows = ranked.map(function (r, i) { return buildComponentRow(r.meta, r.comp, i); }).join('');
+    var rising = ranked.filter(function (r) { return r.c > 0; });
+    var falling = ranked.filter(function (r) { return r.c < 0; });
     var methodRows = COMPONENT_META.map(function (meta) {
       return '<li><b>' + meta.icon + ' ' + escapeHtml(meta.label) + ' · ' + meta.max + '점</b><span>'
         + escapeHtml(meta.guide) + '</span><small>데이터: ' + escapeHtml(meta.source) + '</small></li>';
     }).join('');
     var normalizedScore = score100(data);
+    var grade = data.grade || { tone: 'neutral', label: '중립' };
+    var signal = SIGNAL_BY_TONE[grade.tone] || SIGNAL_BY_TONE.neutral;
     return ''
-      + '<div class="mt-card">'
-      + '<div class="mt-card-title">📊 시장 구성 요소 <span class="mt-card-subtitle">(영향도 그래프)</span></div>'
-      + '<div class="mt-score-explainer"><b>온도 읽는 법</b><span>10개 지표 원점수 120점을 <strong>' + normalizedScore.toFixed(1) + ' / 100점</strong>으로 환산한 뒤 0~40℃로 표시합니다. 50~70점(20~28℃)은 중립입니다.</span></div>'
-      + '<div class="mt-comp-visual-list">' + rows + '</div>'
-      + '<div class="mt-comp-visual-legend"><span>막대: 현재 점수 / 만점</span><span><b class="mt-val-pos">+점</b> 온도 상승</span><span><b class="mt-val-neg">-점</b> 온도 하락</span></div>'
-      + '<details class="mt-score-method"><summary>지표별 계산 기준과 데이터 출처 보기</summary><p>각 지표는 서로 다른 만점이 있어 원점수로 합산한 뒤 100점으로 환산합니다. 높은 점수는 시장이 과열 방향으로, 낮은 점수는 공포 방향으로 기울었음을 뜻하며 투자 권유가 아닙니다.</p><ul>' + methodRows + '</ul></details>'
+      + '<div class="mt-card mt-decision-card">'
+      + '<div class="mt-card-title">📊 오늘 시장 판단</div>'
+      + '<div class="mt-market-decision">'
+      + '<div><span class="mt-market-decision-label">오늘 점수</span><strong>' + normalizedScore.toFixed(1) + '<small>/100</small></strong></div>'
+      + '<div class="mt-market-decision-action ' + signal.tone + '"><span>오늘 행동</span><b>' + escapeHtml(signal.label) + '</b><small>' + escapeHtml(signal.summary) + '</small></div>'
+      + '</div>'
+      + '<div class="mt-driver-grid">'
+      + buildDriverGroup('▲ 점수를 올린 요인', 'up', rising)
+      + buildDriverGroup('▼ 점수를 내린 요인', 'down', falling)
+      + '</div>'
+      + '<div class="mt-driver-legend"><span>막대가 길수록 오늘 점수에 미친 영향이 큽니다.</span><span>빨강: 과열 방향 · 파랑: 공포 방향</span></div>'
+      + '<details class="mt-score-method"><summary>점수·계산 기준·데이터 출처 보기</summary><p>10개 지표의 원점수 120점을 100점으로 환산합니다. 50~70점은 중립, 높을수록 과열 방향·낮을수록 공포 방향입니다. 투자 권유가 아닙니다.</p><ul>' + methodRows + '</ul></details>'
       + '</div>';
   }
 
