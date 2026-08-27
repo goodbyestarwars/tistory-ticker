@@ -515,7 +515,7 @@
   gap: 12px;
   margin-bottom: 10px;
 }
-#stock-search .ss-news-panel-head h3 { margin: 0; color: #4f46e5; font-size: 17px; font-weight: 700; }
+#stock-search .ss-news-panel-head h3 { margin: 0; color: #374151; font-size: 17px; font-weight: 700; }
 #stock-search .ss-news-panel-head span { color: #9aa1aa; font-size: 12px; }
 #stock-search .ss-domestic-news {
   min-height: 42px;
