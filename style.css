@@ -54,7 +54,11 @@ html.dark .hb-spinner { color: #ff8a80; }
    --topbar-height로 빼서 아래 page-wrap/sidebar-right/quick-indices 오프셋에 전부
    더한다(패턴은 --qi-height와 동일). */
 :root {
-  --qi-height: 86px;
+  /* 2026-08-29: 관심지수 리본(js/quick-indices.js)이 2026-08-10에 제거됐다("remove top
+     market ticker widget"). 예전엔 86px로 자리를 잡아두고 quick-indices.js init()이
+     0px로 덮었는데, 리본이 없으니 처음부터 0px로 둔다(홈에서 86px->0px 레이아웃 점프도
+     사라짐). --qi-height를 참조하는 곳은 이제 아래 모바일 padding calc 한 곳뿐이다. */
+  --qi-height: 0px;
   --topbar-height: 48px;
   /* 2026-08-20: 모바일에서 navbar가 로고+검색창을 한 줄에 욱여넣다가 겹쳐 보이는 문제로
      검색창을 두 번째 줄로 내렸다(@media max-width:720px에서만 0이 아닌 값으로 바뀜) -
@@ -79,12 +83,9 @@ html.nav-secondary-open { --topbar-height: 92px; }
    body만 바뀌면 화면은 대부분 맞아 보여도 html/스크롤 영역에 예전 색이 남을 수 있다. */
 html { background: var(--page-bg); }
 html.skin-ready { background: var(--page-bg) !important; }
-/* 2026-07-27: 관심지수 리본을 홈("/")에서만 띄우기로 하면서(js/quick-indices.js의
-   isHomePage() 참고) 다른 페이지에서는 init()이 아예 실행되지 않아 --qi-height를
-   setProperty할 JS가 없다 - :root의 기본값(140px)이 그대로 남아 .page-wrap 등의
-   padding-top 계산에 리본이 없는데도 그 자리만큼 빈 여백이 생김. full-width-page는
-   skin.html 인라인 스크립트가 홈이 아닌 모든 페이지에 미리 붙여두는 클래스라 여기서
-   재사용해 0으로 덮어쓴다(:root보다 명시도가 높아 이김). */
+/* 2026-08-29: 관심지수 리본 제거 이후 :root 기본값이 0px라 이 규칙은 사실상 무의미하지만
+   (홈/비홈 모두 0px), 혹시 리본을 되살릴 경우를 대비해 남겨둔다 - 그때 :root를 다시
+   양수로 올리면 비홈은 이 규칙이 0으로 눌러준다. */
 html.full-width-page { --qi-height: 0px; }
 
 /* 2026-07-17: 페이지 배경을 연라벤더(#edf0f7)에서 흰색으로 변경(사용자 요청 - "토스

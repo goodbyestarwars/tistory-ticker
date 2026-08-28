@@ -1,5 +1,20 @@
 # 9Pay 주요 작업이력
 
+**2026-08-29 메인 페이지 속도 - 관심지수 리본 잔재 정리(3차)**: `js/quick-indices.js`는
+2026-08-10 "remove top market ticker widget" 이후 `init()`이 컨테이너만 지우는 껍데기가
+됐고(`ensureContainer`/`rebuild`/`refresh`/스파크라인 등 렌더 코드 ~850줄은 정의만 되고
+호출 안 됨), 실제로 살아있는 건 `skin-main.js`가 홈 지수 카드용으로 쓰던
+`QuickIndices.fetchFutures()` 하나뿐이었다. skin-main엔 이미 자체 `/futures` 폴백(심볼
+5개로 리본 버전보다 적음)이 있어, `skin.html`에서 `css/quick-indices.css`(24KB, 전부
+`.qi-*` 리본용이라 완전 사장)와 `js/quick-indices.js`(non-defer라 파싱 블로킹)를 제거했다
+(두 파일은 롤백 대비 저장소 유지). `style.css`의 `:root --qi-height` 기본값을 86px→0px로
+바꿔(리본이 없으니 자리 예약 불필요) 홈에서 86px→0px 레이아웃 점프도 없앴다 -
+`--qi-height`를 참조하는 CSS는 이제 모바일 padding calc 한 곳뿐. 로컬(mock Tistory 태그)
+데스크톱·모바일 375px 검증: `--qi-height` 0px, navbar/콘텐츠 겹침 없음, 주말 주간리포트
+레이아웃 정상, 수평 스크롤 없음, 콘솔 에러 없음(로컬 CORS 제외). `test_ui_ia` 122건 통과.
+`style.css` 버전 쿼리 `20260829-qi-height-0-v1`. **skin.html은 수동 반영**(먼저 `style.css`
+GitHub Pages 배포 확인 후).
+
 **2026-08-29 메인 페이지 속도 - 중복 API 호출 통합(1차)**: 홈 코드 리뷰 결과, 1회 로드가
 1코어 VM에 무거운 요청을 동시에 던지고 그 중 상당수가 중복이라 응답 꼬리가 15~36초까지
 늘어나는 것을 실측했다(`/market-board?market=us` limit=20/40 두 번, `/earnings-calendar`

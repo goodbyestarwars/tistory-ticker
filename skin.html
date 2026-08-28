@@ -43,7 +43,7 @@
   <link rel="preconnect" href="https://hangeul.pstatic.net" crossorigin />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
-    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260827-market-briefing-list-v2" />
+    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260829-qi-height-0-v1" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ui-system.css?v=20260827-ui-system-v1" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
   <!-- 2026-08-29: sidebar-rank.css / investor-trend-widget.css 제거. 두 위젯은 홈에서만
@@ -405,8 +405,11 @@
 <!-- 2026-08-29: sidebar-rank.js / investor-trend-widget.js 제거(죽은 코드 - 위 mount 주석 참고). -->
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/stock-discussion.css?v=discussion-16px">
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-discussion.js?v=20260811-auto-icon-fallback"></script>
-<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/quick-indices.css">
-<script src="https://goodbyestarwars.github.io/tistory-ticker/js/quick-indices.js?v=20260813-lwc5"></script>
+<!-- 2026-08-29: quick-indices.css / quick-indices.js 제거. 관심지수 리본은 2026-08-10에
+     기능이 제거됐고(quick-indices.js init()이 컨테이너만 지움) 지금은 skin-main.js가
+     홈 지수 카드용으로 fetchFutures만 쓰던 상태였다 - skin-main에 이미 자체 /futures
+     폴백(더 적은 심볼)이 있어 그대로 동작한다. 두 파일은 롤백 대비 저장소에 유지.
+     CSS는 전부 리본용(.qi-*)이라 완전 사장. --qi-height 기본값은 style.css에서 0px로. -->
 </s_t3>
 </body>
 </html>
