@@ -2326,7 +2326,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("ev.result", source)
         self.assertIn(".sc-layout", style)
         self.assertIn(".sc-cal-today", style)
-        self.assertIn(".sc-cal-today {\n  border: 1px solid #c7d2fe; border-radius: 4px;", style)
+        self.assertIn("--sc-accent: #2f5d7c;", style)
+        self.assertIn("border: 1px solid var(--sc-accent-border);", style)
+        for old_indigo in ("#6366f1", "#4f46e5", "#4338ca", "#eef2ff", "#e0e7ff", "#c7d2fe"):
+            self.assertNotIn(old_indigo, style)
         self.assertIn(".sc-ev-stock-link", style)
         self.assertIn(".sc-today-head", style)
         self.assertIn("stock-calendar.js?v=20260828-home-cache-v1", home)
