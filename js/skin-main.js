@@ -95,24 +95,22 @@
 
     window.HomeMarketSelection = window.HomeMarketSelection || (function () {
       var selected = null;
-      // 2026-08-22: 탭 경계를 "평일 주간 07:00~20:30 한국증시 / 평일 야간 20:30~07:00
-      // 미국증시 / 토요일 07:00~월요일 06:00 휴장"으로 재조정(사용자 요청) - 예전 08:00/
-      // 20:00 정시 경계, 토·일 종일 휴장 방식에서 변경.
+      // 홈은 미국 프리마켓(뉴욕 04:00)부터 미국 시세·뉴스를 우선한다. 서머타임에는
+      // KST 17:00~익일 09:00이며, KOSPI 현물이 시작하는 09:00에 국내 시장으로 넘긴다.
       function isClosedWindowKst() {
         var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
         var day = kst.getUTCDay(); // 0=일 ... 6=토
-        var hour = kst.getUTCHours();
-        if (day === 6) return hour >= 7;   // 토요일 07:00부터
+        var minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+        if (day === 6) return minutes >= 9 * 60; // 금요일 미국 장후 종료 뒤 토요일 09:00부터
         if (day === 0) return true;         // 일요일 종일
-        if (day === 1) return hour < 6;     // 월요일 06:00 이전까지
+        if (day === 1) return minutes < 9 * 60; // 월요일 KOSPI 개장 전까지
         return false;
       }
       function autoMarket() {
         if (isClosedWindowKst()) return 'closed';
         var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-        var hour = kst.getUTCHours();
-        var minute = kst.getUTCMinutes();
-        var isUsHour = hour > 20 || (hour === 20 && minute >= 30) || hour < 7;
+        var minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+        var isUsHour = minutes >= 17 * 60 || minutes < 9 * 60;
         return isUsHour ? 'us' : 'domestic';
       }
       return {
@@ -131,8 +129,8 @@
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260825-ws-fallback-v1')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260825-ws-fallback-v1';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260828-shared-market-board-v1';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260828-shared-market-board-v1';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260828-us-premarket-session-v2';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260828-us-premarket-session-v2';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260820-sentiment-color-fix-v1';
 
     function isWeekendReportWindow() {
@@ -745,7 +743,6 @@
 
     function homeMarketSession() {
       var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-      var hour = kst.getUTCHours();
       var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
         ? window.HomeMarketSelection.get() : null;
       if (selected === 'closed') return {
@@ -756,9 +753,9 @@
         keys: [],
         labels: []
       };
-      var minute = kst.getUTCMinutes();
+      var minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
       var isUsSession = selected === 'us'
-        || (!selected && (hour > 20 || (hour === 20 && minute >= 30) || hour < 7));
+        || (!selected && (minutes >= 17 * 60 || minutes < 9 * 60));
       var usSession = usRegularSessionState();
       return isUsSession ? {
         title: '미국 시장',
@@ -901,11 +898,11 @@
     setInterval(function () { if (!document.hidden) loadHomeIndices(); }, 60 * 1000);
 
     // ---- 코스피↔나스닥 전환 카운트다운 (2026-08-13 요청) ----
-    // homeMarketSession()이 국내/미국 장을 나누는 기준(08:00·20:00 KST)과 정확히 같은
+    // homeMarketSession()이 국내/미국 장을 나누는 기준(09:00·17:00 KST)과 정확히 같은
     // 시각 3분 전부터만 뜨는 라인아트 링 배지. 위치를 정확히 어디에 둬야 할지 몰라
     // 화면 좌하단 고정으로 두었다(style.css .home-switch-countdown 주석 참고).
     (function setupHomeSwitchCountdown() {
-      var SWITCH_HOURS = [8, 20]; // KST, homeMarketSession()과 동일 기준
+      var SWITCH_HOURS = [9, 17]; // KST, homeMarketSession()과 동일 기준
       var WARN_SECONDS = 180; // 3분 전부터 노출
       var RING_R = 16;
       var RING_C = 2 * Math.PI * RING_R;
@@ -928,7 +925,7 @@
         timeEl = el.querySelector('.hsc-time');
       }
 
-      // 다음 전환(08:00 또는 20:00)까지 남은 초와, 그 전환이 미국장으로 가는 건지 반환.
+      // 다음 전환(09:00 또는 17:00)까지 남은 초와, 그 전환이 미국장으로 가는 건지 반환.
       function nextSwitch(kstNowSec) {
         var best = null;
         SWITCH_HOURS.forEach(function (hour) {
@@ -951,13 +948,13 @@
           return;
         }
         mount();
-        var toUs = next.hour === 20;
+        var toUs = next.hour === 17;
         if (!wasVisible) {
           // 새로 나타날 때만 innerHTML을 건드려 애니메이션(hscFadeIn)이 다시 재생되게 한다.
           el.hidden = false;
           el.classList.toggle('hsc-to-us', toUs);
           el.classList.toggle('hsc-to-kr', !toUs);
-          labelEl.textContent = toUs ? '나스닥 개장까지' : 'KOSPI 개장까지';
+          labelEl.textContent = toUs ? '미국장 프리마켓까지' : 'KOSPI 개장까지';
           wasVisible = true;
         }
         var minutes = Math.floor(next.secondsLeft / 60);

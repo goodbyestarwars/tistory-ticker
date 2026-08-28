@@ -198,9 +198,9 @@
     var now = new Date(Date.now() + 9 * 60 * 60 * 1000);
     var hour = now.getUTCHours();
     var minute = now.getUTCMinutes();
-    // 2026-08-22: skin-main.js의 HomeMarketSelection과 동일한 경계(20:30/07:00)로 갱신 -
+    // skin-main.js의 HomeMarketSelection과 동일하게 프리마켓 시작부터 미국 화면을 쓴다.
     // HomeMarketSelection이 아직 안 실린 페이지에서만 쓰이는 방어적 폴백.
-    return hour > 20 || (hour === 20 && minute >= 30) || hour < 7 ? 'us' : 'domestic';
+    return hour >= 17 || hour < 9 ? 'us' : 'domestic';
   }
 
   function tabsForMarket() {
@@ -222,14 +222,13 @@
   }
 
   function isWeekendInKst() {
-    // 2026-08-22: "휴장" 판정 경계를 skin-main.js의 HomeMarketSelection과 동일하게
-    // 토요일 07:00~월요일 06:00으로 맞췄다(예전엔 토·일 종일).
+    // 프리/애프터마켓을 포함한 홈 전환 경계와 맞춘다.
     var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
     var day = kst.getUTCDay();
     var hour = kst.getUTCHours();
-    if (day === 6) return hour >= 7;
+    if (day === 6) return hour >= 9;
     if (day === 0) return true;
-    if (day === 1) return hour < 6;
+    if (day === 1) return hour < 9;
     return false;
   }
 

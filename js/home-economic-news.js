@@ -44,10 +44,9 @@
     }
     var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
     var hour = kst.getUTCHours();
-    var minute = kst.getUTCMinutes();
-    // 2026-08-22: skin-main.js의 HomeMarketSelection과 동일한 경계(20:30/07:00)로 갱신 -
+    // skin-main.js의 HomeMarketSelection과 동일하게 프리마켓 시작부터 미국 뉴스를 쓴다.
     // HomeMarketSelection이 아직 안 실린 페이지에서만 쓰이는 방어적 폴백.
-    return hour > 20 || (hour === 20 && minute >= 30) || hour < 7 ? 'us' : 'domestic';
+    return hour >= 17 || hour < 9 ? 'us' : 'domestic';
   }
 
   function timeLabel(value) {

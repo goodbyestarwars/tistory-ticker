@@ -348,7 +348,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260828-home-request-budget-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260828-us-premarket-session-v2", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -399,7 +399,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
-        self.assertIn("skin-main.js?v=20260828-home-request-budget-v1", skin)
+        self.assertIn("skin-main.js?v=20260828-us-premarket-session-v2", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -648,7 +648,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260828-shared-market-board-v1", main)
+        self.assertIn("home-realtime-table.js?v=20260828-us-premarket-session-v2", main)
         for token in (
             "function localizedUsName(item)",
             "name_ko || item.display_name",
@@ -835,7 +835,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("hen-zigzag", news)
         self.assertIn(".app-news-event", style)
         self.assertIn(".app-news-date", style)
-        self.assertIn("v=20260828-shared-market-board-v1", main)
+        self.assertIn("v=20260828-us-premarket-session-v2", main)
         self.assertIn(".hen-breaking { flex: 0 0 auto", style)
         self.assertIn(".home-economic-news .hen-breaking-list { height: 62px", style)
         self.assertNotIn("data-hen-breaking-form", main)
@@ -907,7 +907,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("item.title_ko || item.title", news)
         self.assertIn("# WebSocket의 기본 시장은 시간대 기준이다.", vm)
         self.assertIn("def _economic_news_market():", vm)
-        self.assertIn("return 'us' if now.hour > 20 or (now.hour == 20 and now.minute >= 30) or now.hour < 7 else 'domestic'", vm)
+        self.assertIn("minutes >= 17 * 60 or minutes < 9 * 60", vm)
+
+    def test_home_auto_switches_to_us_at_premarket_start(self):
+        main = self.read("js/skin-main.js")
+        board = self.read("js/home-realtime-table.js")
+        news = self.read("js/home-economic-news.js")
+        self.assertIn("minutes >= 17 * 60 || minutes < 9 * 60", main)
+        self.assertIn("hour >= 17 || hour < 9 ? 'us' : 'domestic'", board)
+        self.assertIn("hour >= 17 || hour < 9 ? 'us' : 'domestic'", news)
 
     def test_visible_provider_labels_are_removed_from_content_pages(self):
         sources = (
