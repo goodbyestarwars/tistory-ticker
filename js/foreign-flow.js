@@ -112,6 +112,10 @@
   var fundamentalsInflight = {}; // code -> Promise
   var investOpinionCache = {};    // code -> VM /invest-opinion/{code} 응답(2026-08-23 신설)
   var investOpinionInflight = {}; // code -> Promise
+  var researchReportsCache = {};  // code -> VM /research-reports/{code}, 원문 펼칠 때만 조회
+  var researchReportsInflight = {};
+  var etfInfoCache = {};           // code -> VM /etf-components/{code}, ETF 종목에만 조회
+  var etfInfoInflight = {};
   var newsMomentumCache = {};    // code -> VM news_momentum.db 조회 결과
   var newsMomentumInflight = {}; // code -> Promise
   var activeView = 'flow';       // 'flow' | 'apt' | 'chart' | 'fundamentals' | 'momentum'
@@ -1053,10 +1057,13 @@
   // 2026-07-20: data/krx_map.js가 window.KRX_ETF_NAMES(ETF 이름 목록)도 같이 내려준다 -
   // Set으로 한 번만 변환해 자동완성 정렬에서 "이 이름이 ETF인지" O(1)로 판별한다.
   var etfNameSet = null;
+  var etfNameSetSource = null;
   function isEtfName(name) {
-    if (!etfNameSet) {
+    var source = global.KRX_ETF_NAMES || [];
+    if (!etfNameSet || etfNameSetSource !== source) {
       etfNameSet = {};
-      (global.KRX_ETF_NAMES || []).forEach(function (n) { etfNameSet[n] = true; });
+      source.forEach(function (n) { etfNameSet[n] = true; });
+      etfNameSetSource = source;
     }
     return !!etfNameSet[name];
   }
@@ -1190,19 +1197,28 @@
       .catch(function () { return null; });
     var quotePromise = fetchLiveQuote(resolved.code)
       .catch(function () { return null; });
+    var selectedIsEtf = isEtfName(resolved.name);
     // 2026-07-19: 종합점수에 펀더멘탈(ROE/부채비율)을 반영하면서(computeFundamentalScore)
     // "펀더멘탈" 탭을 열 때만 불러오던 걸 처음부터 같이 불러오도록 변경 - fetchFundamentals가
     // fundamentalsCache에 저장해두므로 이후 탭 클릭 시 재요청 없음(loadFundamentals 재사용).
-    var fundamentalsPromise = fetchFundamentals(resolved.code, resolved.name)
-      .catch(function () { return null; });
+    var fundamentalsPromise = selectedIsEtf
+      ? Promise.resolve(null)
+      : fetchFundamentals(resolved.code, resolved.name).catch(function () { return null; });
     // 2026-08-23: 평균 투자의견은 요약 영역(탭 밖, 항상 노출)에 쓰이므로 펀더멘탈과
     // 마찬가지로 검색 시점에 미리 불러온다 - 실패해도 나머지 요약/탭은 정상 표시돼야
     // 하므로 항상 null로 흡수한다.
-    var opinionPromise = fetchInvestOpinion(resolved.code).catch(function () { return null; });
+    // ETF에는 개별기업 애널리스트 투자의견이 적용되지 않는다. 평균 투자의견 호출을 생략하고
+    // KIS ETF 구성종목을 병렬 조회해 상품 성격과 주요 편입종목을 보여준다.
+    var opinionPromise = selectedIsEtf
+      ? Promise.resolve(null)
+      : fetchInvestOpinion(resolved.code).catch(function () { return null; });
+    var etfInfoPromise = selectedIsEtf
+      ? fetchEtfInfo(resolved.code).catch(function () { return null; })
+      : Promise.resolve(null);
     var flowPromise = ForeignFlow.fetchFlow(resolved.code, resolved.name)
       .then(function (d) { if (d && (d.error || d.detail) && !flowErr_) flowErr_ = d.message || d.error || d.detail; return d; })
       .catch(function (err) { flowErr_ = err && err.message; return null; });
-    Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise, opinionPromise])
+    Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise, opinionPromise, etfInfoPromise])
       .then(function (results) {
         if (requestId !== searchRequestSeq) return; // 이전 검색 응답은 무시(레이스 방지)
         var data = results[0];
@@ -1211,6 +1227,7 @@
         var quote = results[3];
         var fundamentals = results[4];
         var opinion = results[5];
+        var etfInfo = results[6];
         if (!data || data.error || !data.daily || !data.daily.length) {
           data = buildUnavailableFlowData(chartData, resolved.code, resolved.name);
           if (data) data.flowUnavailable = true;
@@ -1223,7 +1240,7 @@
             + '</div>';
           return;
         }
-        renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals, opinion);
+        renderResult(resultBox, data, chartData, flowEntry, quote, fundamentals, opinion, etfInfo, selectedIsEtf);
       })
       .catch(function (err) {
         if (requestId !== searchRequestSeq) return; // 이전 검색 응답은 무시(레이스 방지)
@@ -1439,7 +1456,7 @@
 
   // ---- 렌더링 ----
 
-  function renderResult(box, data, chartData, entry, quote, fundamentals, opinion) {
+  function renderResult(box, data, chartData, entry, quote, fundamentals, opinion, etfInfo, selectedIsEtf) {
     if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 2) {
       chartData = buildFlowChartFallback(data);
     }
@@ -1479,9 +1496,15 @@
     // 2026-08-23: "펀더멘탈 탭에 있으면 안되겠어, 요약에 넣어" 요청으로 여기(탭 밖,
     // 항상 노출되는 요약 영역)로 이동. 현재가는 헤더와 같은 기준(quote 우선, 없으면
     // 최신 종가)을 써서 괴리율이 헤더 가격과 어긋나 보이지 않게 한다.
-    html += '<div class="ff-summary-card ff-opinion-summary-card"><div class="ff-panel-title">평균 투자의견 (최근 3개월)</div>'
-      + buildInvestOpinionBlock(opinion, aptCurrentPrice)
-      + '</div>';
+    if (selectedIsEtf) {
+      html += '<div class="ff-summary-card ff-etf-summary-card"><div class="ff-panel-title">ETF 상품 정보</div>'
+        + buildEtfInfoBlock(data.name || data.code, data.code, etfInfo)
+        + '</div>';
+    } else {
+      html += '<div class="ff-summary-card ff-opinion-summary-card"><div class="ff-panel-title">평균 투자의견 (최근 3개월)</div>'
+        + buildInvestOpinionBlock(opinion, aptCurrentPrice, data.code)
+        + '</div>';
+    }
 
     activeView = 'flow'; // 새 검색마다 수급 탭으로 리셋
     html += buildViewTabs();
@@ -1512,6 +1535,7 @@
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
     wireAptTabs(box, chartData && chartData.daily, aptCurrentPrice, data.code, aptOpeningPrice);
+    wireOpinionEvidence(box, data.code);
     startQuotePolling(box, data.code);
   }
 
@@ -1649,6 +1673,42 @@
         throw err;
       });
     investOpinionInflight[code] = p;
+    return p;
+  }
+
+  function fetchResearchReports(code) {
+    if (researchReportsCache[code]) return Promise.resolve(researchReportsCache[code]);
+    if (researchReportsInflight[code]) return researchReportsInflight[code];
+    var p = fetchJson(KIWOOM_VM_URL + '/research-reports/' + encodeURIComponent(code))
+      .then(function (envelope) {
+        delete researchReportsInflight[code];
+        var data = envelope && envelope.data ? envelope.data : envelope;
+        researchReportsCache[code] = data;
+        return data;
+      })
+      .catch(function (err) {
+        delete researchReportsInflight[code];
+        throw err;
+      });
+    researchReportsInflight[code] = p;
+    return p;
+  }
+
+  function fetchEtfInfo(code) {
+    if (etfInfoCache[code]) return Promise.resolve(etfInfoCache[code]);
+    if (etfInfoInflight[code]) return etfInfoInflight[code];
+    var p = fetchJson(KIWOOM_VM_URL + '/etf-components/' + encodeURIComponent(code))
+      .then(function (envelope) {
+        delete etfInfoInflight[code];
+        var data = envelope && envelope.data ? envelope.data : envelope;
+        etfInfoCache[code] = data;
+        return data;
+      })
+      .catch(function (err) {
+        delete etfInfoInflight[code];
+        throw err;
+      });
+    etfInfoInflight[code] = p;
     return p;
   }
 
@@ -1980,9 +2040,114 @@
   // 유료 데이터 계약이 없어 KIS 국내주식 종목투자의견으로 대체(scripts/cloud-vm/
   // invest_opinion.py) - 해외 종목은 KIS에 대응 API가 없어 지원하지 않는다(사용자 확인,
   // 국내 종목만).
-  function buildInvestOpinionBlock(opinion, currentPrice) {
+  function formatOpinionDate(value) {
+    return String(value || '').replace(/^(\d{4})-?(\d{2})-?(\d{2})$/, '$1.$2.$3');
+  }
+
+  function buildKisEvidenceRows(opinion) {
+    var reports = opinion && opinion.reports || [];
+    if (!reports.length) return '<div class="ff-hint">KIS 관측치가 없습니다.</div>';
+    return '<div class="ff-opinion-evidence-list">' + reports.map(function (report) {
+      var target = report.targetPrice ? Math.round(report.targetPrice).toLocaleString('ko-KR') + '원' : '목표가 없음';
+      return '<div class="ff-opinion-evidence-row">'
+        + '<time>' + escapeHtml(formatOpinionDate(report.date)) + '</time>'
+        + '<strong>' + escapeHtml(report.opinion || '-') + '</strong>'
+        + '<span>' + escapeHtml(target) + '</span>'
+        + '</div>';
+    }).join('') + '</div>';
+  }
+
+  function buildOpinionEvidence(opinion, code) {
+    var docsUrl = safeExternalUrl(opinion && opinion.sourceDocumentationUrl);
+    return '<details class="ff-opinion-evidence" data-code="' + escapeAttr(code) + '">'
+      + '<summary>원문 · 산출 근거 보기</summary>'
+      + '<div class="ff-opinion-evidence-body">'
+      + '<h4>KIS 산출 근거</h4>'
+      + '<p>KIS 원응답에는 날짜·투자의견·목표가만 있고 증권사명·보고서 제목·원문 URL은 없습니다. 아래는 평균 계산에 실제 사용한 날짜별 관측치입니다.</p>'
+      + buildKisEvidenceRows(opinion)
+      + (docsUrl ? '<a class="ff-opinion-source-link" href="' + escapeAttr(docsUrl) + '" target="_blank" rel="noopener noreferrer">KIS 공식 API 명세 ↗</a>' : '')
+      + '<h4>무료 공개 리포트 원문</h4>'
+      + '<p class="ff-opinion-source-note">Npay 증권의 최근 3개월 리포트입니다. KIS 관측치와 공급원이 달라 1:1 대응하지 않습니다.</p>'
+      + '<div class="ff-research-reports" data-state="idle"><div class="ff-hint">펼치면 원문 목록을 불러옵니다.</div></div>'
+      + '</div></details>';
+  }
+
+  function buildResearchReportsHtml(data) {
+    var reports = data && data.reports || [];
+    if (!reports.length) {
+      var listOnly = safeExternalUrl(data && data.listUrl);
+      return '<div class="ff-hint">최근 3개월 공개 리포트가 없습니다.'
+        + (listOnly ? ' <a href="' + escapeAttr(listOnly) + '" target="_blank" rel="noopener noreferrer">전체 목록 보기 ↗</a>' : '')
+        + '</div>';
+    }
+    var rows = reports.map(function (report) {
+      var originalUrl = safeExternalUrl(report.pdfUrl) || safeExternalUrl(report.detailUrl);
+      return '<div class="ff-research-row">'
+        + '<div><strong>' + escapeHtml(report.title || '제목 없음') + '</strong><span>'
+        + escapeHtml(report.broker || '증권사 미표기') + ' · ' + escapeHtml(formatOpinionDate(report.date)) + '</span></div>'
+        + (originalUrl ? '<a href="' + escapeAttr(originalUrl) + '" target="_blank" rel="noopener noreferrer">PDF 원문 ↗</a>' : '<em>원문 없음</em>')
+        + '</div>';
+    }).join('');
+    var listUrl = safeExternalUrl(data.listUrl);
+    return '<div class="ff-research-list">' + rows + '</div>'
+      + (listUrl ? '<a class="ff-opinion-source-link" href="' + escapeAttr(listUrl) + '" target="_blank" rel="noopener noreferrer">Npay 증권 전체 목록 ↗</a>' : '');
+  }
+
+  function wireOpinionEvidence(box, code) {
+    var details = box.querySelector('.ff-opinion-evidence[data-code="' + code + '"]');
+    if (!details) return;
+    details.addEventListener('toggle', function () {
+      if (!details.open || details.dataset.loaded) return;
+      details.dataset.loaded = '1';
+      var target = details.querySelector('.ff-research-reports');
+      if (!target) return;
+      target.dataset.state = 'loading';
+      target.innerHTML = '<div class="ff-hint">리포트 원문을 불러오는 중...</div>';
+      fetchResearchReports(code).then(function (data) {
+        target.dataset.state = 'done';
+        target.innerHTML = buildResearchReportsHtml(data);
+      }).catch(function () {
+        target.dataset.state = 'error';
+        target.innerHTML = '<div class="ff-hint">원문 목록을 불러오지 못했습니다. KIS 산출 근거는 위에서 확인할 수 있습니다.</div>';
+      });
+    });
+  }
+
+  function etfTraits(name) {
+    var value = String(name || '');
+    var traits = [];
+    if (/인버스/.test(value)) traits.push('인버스');
+    if (/레버리지|2X/i.test(value)) traits.push('레버리지');
+    if (/커버드콜/.test(value)) traits.push('커버드콜');
+    if (/액티브/.test(value)) traits.push('액티브');
+    if (/채권|국고채|회사채|통안채|머니마켓|KOFR|CD금리|SOFR/i.test(value)) traits.push('채권·금리형');
+    else if (/금|은|원유|구리|팔라듐|탄소배출권|농산물/.test(value)) traits.push('원자재형');
+    else if (/리츠|인프라/.test(value)) traits.push('리츠·인프라형');
+    else traits.push(/미국|글로벌|차이나|중국|일본|인도|유로|나스닥|S&P|MSCI|항셍/i.test(value) ? '해외주식형' : '국내주식형');
+    return traits;
+  }
+
+  function buildEtfInfoBlock(name, code, etfInfo) {
+    var traits = etfTraits(name);
+    var components = etfInfo && etfInfo.components || [];
+    var componentCount = etfInfo && etfInfo.componentCount || components.length || null;
+    var nav = etfInfo && etfInfo.nav ? Math.round(etfInfo.nav).toLocaleString('ko-KR') + '원' : '확인 불가';
+    var top = components.slice(0, 8);
+    return '<div class="ff-etf-kicker">국내 상장 ETF · ' + escapeHtml(code) + '</div>'
+      + '<div class="ff-etf-name">' + escapeHtml(name) + '</div>'
+      + '<div class="ff-etf-traits">' + traits.map(function (trait) { return '<span>' + escapeHtml(trait) + '</span>'; }).join('') + '</div>'
+      + '<div class="ff-etf-stats"><span>NAV <b>' + escapeHtml(nav) + '</b></span><span>구성종목 <b>' + (componentCount || '확인 불가') + '</b></span></div>'
+      + (top.length ? '<div class="ff-etf-components"><h4>주요 편입종목</h4>' + top.map(function (item) {
+        var weight = item.weightPct == null ? '-' : Number(item.weightPct).toFixed(2) + '%';
+        return '<div><span>' + escapeHtml(item.name || item.code || '-') + '</span><b>' + escapeHtml(weight) + '</b></div>';
+      }).join('') + '</div>' : '<div class="ff-hint">해외지수·파생형 ETF는 KIS에서 구성종목을 제공하지 않을 수 있습니다.</div>')
+      + '<p class="ff-etf-note">ETF 여부는 KRX 상장 ETF 목록, 구성종목·NAV는 KIS ETF 구성종목시세 기준입니다. 유형은 상품명 기준 분류입니다.</p>';
+  }
+
+  function buildInvestOpinionBlock(opinion, currentPrice, code) {
     if (!opinion || !opinion.available) {
-      return '<div class="ff-hint">최근 3개월 내 국내 증권사 리포트가 없어 평균 투자의견을 표시할 수 없습니다.</div>';
+      return '<div class="ff-hint">최근 3개월 KIS 투자의견 관측치가 없어 평균 투자의견을 표시할 수 없습니다.</div>'
+        + buildOpinionEvidence(opinion || {}, code);
     }
     var total = opinion.reportCount || 0;
     // 2026-08-23: 매수+중립+매도 합이 reportCount보다 적을 수 있다(invest_opinion.py가
@@ -2024,24 +2189,25 @@
     var targetMeta = opinion.avgTargetPrice
       ? (gapPct != null ? '현재가 대비 ' + (gapPct >= 0 ? '+' : '') + gapPct.toFixed(1) + '%' : '')
         + ' · ' + (opinion.targetPriceSamples || 0) + '건'
-      : '목표가를 제시한 리포트가 없습니다.';
+      : '목표가가 있는 관측치가 없습니다.';
     var method = '<details class="ff-opinion-method">'
       + '<summary>계산 방법 · 데이터 범위</summary>'
-      + '<p>최근 3개월 안에 나온 국내 증권사 리포트를 모아, 투자의견 문구를 매수·중립·매도 3그룹으로 분류해 건수 비율(' + buyPct + '% · ' + holdPct + '% · ' + sellPct + '%)을 냈습니다. 목표가가 실제로 제시된 ' + (opinion.targetPriceSamples || 0) + '건만 골라 0원·공란을 제외하고 중앙값을 사용합니다.</p>'
-      + '<p class="ff-opinion-disclaimer">액면분할 등으로 스케일이 다른 옛 리포트의 영향을 줄인 참고용 수치입니다. 국내 종목만 지원하며 투자 제안이나 매매 권유가 아닙니다. 출처: KIS 한국투자증권.</p>'
+      + '<p>최근 3개월 KIS 날짜별 관측치의 투자의견 문구를 매수·중립·매도 3그룹으로 분류해 건수 비율(' + buyPct + '% · ' + holdPct + '% · ' + sellPct + '%)을 냈습니다. 목표가가 제시된 ' + (opinion.targetPriceSamples || 0) + '건만 골라 0원·공란을 제외하고 중앙값을 사용합니다.</p>'
+      + '<p class="ff-opinion-disclaimer">KIS 응답에는 증권사명·보고서 제목·원문 URL이 없어 개별 증권사 리포트 평균으로 단정할 수 없습니다. 국내 일반주식만 지원하며 투자 제안이나 매매 권유가 아닙니다.</p>'
       + '</details>';
-    return '<div class="ff-opinion-kicker">증권사 리포트 종합 · 최근 3개월</div>'
+    return '<div class="ff-opinion-kicker">KIS 투자의견 관측치 종합 · 최근 3개월</div>'
       + '<div class="ff-opinion-lede">'
       + '<div class="ff-opinion-meta">'
-      + '<span>최근 리포트 <b>' + total + '건</b></span>'
+      + '<span>관측치 <b>' + total + '건</b></span>'
       + '<span>최신 의견 <strong class="ff-opinion-latest ' + latestClass + '">' + escapeHtml(latestOpinion) + '</strong></span>'
       + (latestDate ? '<time datetime="' + escapeHtml(String(opinion.latestDate)) + '">' + escapeHtml(latestDate) + '</time>' : '')
       + '</div>'
-      + '<div class="ff-opinion-target"><span>평균 목표가</span><strong>' + escapeHtml(targetValue) + '</strong><em>' + escapeHtml(targetMeta) + '</em></div>'
+      + '<div class="ff-opinion-target"><span>목표가 중앙값</span><strong>' + escapeHtml(targetValue) + '</strong><em>' + escapeHtml(targetMeta) + '</em></div>'
       + '</div>'
       + '<div class="ff-opinion-chart"><div class="ff-opinion-chart-head"><b>의견 분포</b><span>' + total + '건 기준</span></div>'
       + bars + legend + '</div>'
-      + method;
+      + method
+      + buildOpinionEvidence(opinion, code);
   }
 
   function buildOverviewGrid(v) {

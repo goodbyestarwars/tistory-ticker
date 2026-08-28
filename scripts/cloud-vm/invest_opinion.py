@@ -2,9 +2,10 @@
 """종목분석 "평균 투자의견" 카드 - 토스증권의 "최근 3개월(해외 6개월) 애널리스트 평균
 투자의견" 카드를 참고해(사용자 요청) 국내 종목에 한해 만든다. 토스는 FnGuide/Refinitiv
 (유료 데이터 제공업체)를 쓰지만 우리는 그 계약이 없어서, KIS의 국내주식 종목투자의견
-(FHKST663300C0, kis_client.fetch_invest_opinion)로 대체한다 - 이 TR은 "이미 집계된
-평균"이 아니라 그 기간에 나온 증권사 리포트를 건별로 주므로, 최근 3개월치를 모아
-평균 목표가·의견 분포를 여기서 직접 계산한다. 해외 종목은 KIS 해외주식 카테고리
+(FHKST663300C0, kis_client.fetch_invest_opinion)로 대체한다. 공식 응답에는 날짜별 투자의견·
+목표가만 있고 증권사명·제목·원문 URL이 없으므로 "개별 증권사 리포트"라고 단정하지 않고
+KIS 관측치로 표시한다. 최근 3개월 관측치의 목표가 중앙값·의견 분포는 여기서 직접 계산한다.
+해외 종목은 KIS 해외주식 카테고리
 API 50개를 뒤져봐도 이 용도의 API가 없어(사용자 확인 후) 국내 종목만 지원한다.
 
 **미검증**: kis-code-assistant-mcp는 코드 검색 전용이라 실계좌로 직접 테스트 못 했다 -
@@ -66,8 +67,8 @@ def recent_date_range(months=LOOKBACK_MONTHS, today=None):
 
 
 def summarize_opinions(rows):
-    """kis_client.fetch_invest_opinion()이 돌려주는 개별 리포트 목록을 평균 목표가·의견
-    분포로 요약한다. 리포트가 하나도 없으면 available=False를 돌려주고(소형주 등 커버리지
+    """kis_client.fetch_invest_opinion()이 돌려주는 날짜별 관측치를 목표가·의견
+    분포로 요약한다. 관측치가 하나도 없으면 available=False를 돌려주고(소형주 등 커버리지
     없는 종목에서 흔함), 목표가는 0/공란을 유효하지 않은 값으로 보고 평균에서 제외한다."""
     reports = []
     for row in rows or []:
@@ -83,6 +84,8 @@ def summarize_opinions(rows):
             'bucket': bucket,
             'targetPrice': target_price,
             'previousClose': _to_number(row.get('stck_prdy_clpr')),
+            'previousOpinion': row.get('rgbf_invt_opnn') or None,
+            'gapRatePct': _to_number(row.get('nday_dprt')) or _to_number(row.get('dprt')),
         })
 
     if not reports:
@@ -115,6 +118,14 @@ def summarize_opinions(rows):
         'latestOpinion': latest['opinion'],
         'latestDate': latest['date'],
         'source': 'KIS(한국투자증권) 국내주식 종목투자의견',
+        'sourceTrId': 'FHKST663300C0',
+        'sourceEndpoint': '/uapi/domestic-stock/v1/quotations/invest-opinion',
+        'sourceDocumentationUrl': ('https://github.com/koreainvestment/open-trading-api/tree/main/'
+                                   'examples_llm/domestic_stock/invest_opinion'),
+        'originalReportLinksAvailable': False,
+        'basisNote': ('KIS가 제공한 날짜별 투자의견·목표가 관측치를 자체 집계합니다. '
+                      'KIS 응답에는 증권사명·보고서 제목·원문 URL이 없습니다.'),
+        'reports': list(reversed(reports)),
     }
 
 

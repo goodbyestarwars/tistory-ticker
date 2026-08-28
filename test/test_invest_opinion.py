@@ -40,6 +40,9 @@ class SummarizeOpinionsTests(unittest.TestCase):
         self.assertEqual(result['sellCount'], 0)
         self.assertEqual(result['avgTargetPrice'], 85000)  # (80000+90000)/2
         self.assertEqual(result['targetPriceSamples'], 2)
+        self.assertEqual([row['date'] for row in result['reports']], ['20260701', '20260601', '20260501'])
+        self.assertFalse(result['originalReportLinksAvailable'])
+        self.assertEqual(result['sourceTrId'], 'FHKST663300C0')
 
     def test_target_price_uses_median_so_one_stale_outlier_report_cannot_skew_it(self):
         # 2026-08-23: strategy_scan.py 섹터 평균 PER/PBR 버그(산술평균이 이상치 하나에

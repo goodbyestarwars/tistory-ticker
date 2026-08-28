@@ -508,9 +508,10 @@ def fetch_program_trading_daily(token, appkey, appsecret, start_date, end_date, 
 def fetch_invest_opinion(token, appkey, appsecret, code, date1, date2):
     """KIS 국내주식 종목투자의견(FHKST663300C0, /uapi/domestic-stock/v1/quotations/invest-opinion).
 
-    날짜1~날짜2(YYYYMMDD) 구간에 나온 증권사 리포트를 개별 건별로 그대로 돌려준다(이미
-    집계된 평균이 아님) - 호출부(invest_opinion.py)가 이 리스트를 모아 평균 목표가·의견
-    분포를 직접 계산한다. 필드명은 KIS 공식 예제(invest_opinion.py) 그대로: invt_opnn
+    날짜1~날짜2(YYYYMMDD) 구간의 날짜별 투자의견 관측치를 그대로 돌려준다. KIS 공식
+    응답에는 증권사명·리포트 제목·원문 URL이 없으므로 개별 증권사 리포트라고 단정하면
+    안 된다. 호출부(invest_opinion.py)가 이 리스트로 목표가 중앙값·의견 분포를 계산한다.
+    필드명은 KIS 공식 예제(invest_opinion.py) 그대로: invt_opnn
     (투자의견 텍스트), hts_goal_prc(목표가), stck_bsop_date(리포트 기준일) 등."""
     data = _get_domestic_quote(
         token, appkey, appsecret,

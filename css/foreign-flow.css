@@ -1177,9 +1177,97 @@
   line-height: 1.6;
 }
 #foreign-flow .ff-opinion-method .ff-opinion-disclaimer { color: #929aa1; }
+#foreign-flow .ff-opinion-evidence {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dotted #cbd2d8;
+}
+#foreign-flow .ff-opinion-evidence > summary {
+  cursor: pointer;
+  color: #214f84;
+  font-size: 11px;
+  font-weight: 800;
+}
+#foreign-flow .ff-opinion-evidence-body { padding-top: 8px; }
+#foreign-flow .ff-opinion-evidence-body h4,
+#foreign-flow .ff-etf-components h4 {
+  margin: 10px 0 5px;
+  color: #303b44;
+  font-size: 12px;
+}
+#foreign-flow .ff-opinion-evidence-body p {
+  margin: 0 0 7px;
+  color: #737d85;
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+#foreign-flow .ff-opinion-evidence-list,
+#foreign-flow .ff-research-list { border-top: 1px solid #e2e6e9; }
+#foreign-flow .ff-opinion-evidence-row {
+  display: grid;
+  grid-template-columns: 88px minmax(80px, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  padding: 7px 2px;
+  border-bottom: 1px solid #edf0f2;
+  font-size: 11px;
+}
+#foreign-flow .ff-opinion-evidence-row time { color: #8a939a; }
+#foreign-flow .ff-opinion-evidence-row strong { color: #343f47; }
+#foreign-flow .ff-opinion-evidence-row span { color: #59646d; font-variant-numeric: tabular-nums; }
+#foreign-flow .ff-opinion-source-link {
+  display: inline-block;
+  margin-top: 7px;
+  color: #214f84;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-decoration: none;
+}
+#foreign-flow .ff-research-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 2px;
+  border-bottom: 1px solid #edf0f2;
+}
+#foreign-flow .ff-research-row strong,
+#foreign-flow .ff-research-row span { display: block; }
+#foreign-flow .ff-research-row strong { color: #343f47; font-size: 11px; line-height: 1.4; }
+#foreign-flow .ff-research-row span { margin-top: 2px; color: #8a939a; font-size: 10px; }
+#foreign-flow .ff-research-row a { color: #214f84; font-size: 10.5px; font-weight: 800; white-space: nowrap; text-decoration: none; }
+#foreign-flow .ff-research-row em { color: #9aa2a9; font-size: 10px; font-style: normal; }
+
+#foreign-flow .ff-etf-summary-card {
+  margin: 14px 0 18px;
+  padding: 13px 0 12px;
+  border: 0;
+  border-bottom: 1px solid #cbd2d8;
+  border-radius: 0;
+  background: transparent;
+}
+#foreign-flow .ff-etf-summary-card > .ff-panel-title {
+  margin: 0 0 11px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #d9dee3;
+  color: #202b34;
+  font-family: Georgia, "Noto Serif KR", "Times New Roman", serif;
+  font-size: 17px;
+}
+#foreign-flow .ff-etf-kicker { color: #8a929a; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; }
+#foreign-flow .ff-etf-name { margin-top: 5px; color: #202b34; font-size: 19px; font-weight: 800; }
+#foreign-flow .ff-etf-traits { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+#foreign-flow .ff-etf-traits span { padding: 3px 7px; border-radius: 999px; background: #eef3f8; color: #315878; font-size: 10px; font-weight: 700; }
+#foreign-flow .ff-etf-stats { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 11px; padding: 9px 0; border-block: 1px solid #e3e7ea; color: #707b84; font-size: 11px; }
+#foreign-flow .ff-etf-stats b { margin-left: 5px; color: #202b34; font-size: 13px; }
+#foreign-flow .ff-etf-components > div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 2px; border-bottom: 1px solid #edf0f2; color: #56616a; font-size: 11px; }
+#foreign-flow .ff-etf-components > div b { color: #303b44; font-variant-numeric: tabular-nums; }
+#foreign-flow .ff-etf-note { margin: 9px 0 0; color: #929aa1; font-size: 10px; line-height: 1.5; }
 @media (max-width: 520px) {
   #foreign-flow .ff-opinion-lede { grid-template-columns: 1fr; gap: 9px; }
   #foreign-flow .ff-opinion-target { text-align: left; justify-content: start; }
+  #foreign-flow .ff-opinion-evidence-row { grid-template-columns: 74px minmax(70px, 1fr) auto; gap: 6px; font-size: 10px; }
+  #foreign-flow .ff-research-row { align-items: start; }
 }
 
 #foreign-flow .ff-fund-table {
@@ -2704,6 +2792,33 @@ html.dark #foreign-flow .ff-opinion-target strong { color: #f5efe0 !important; }
 html.dark #foreign-flow .ff-opinion-meta time,
 html.dark #foreign-flow .ff-opinion-method .ff-opinion-disclaimer { color: rgba(245,239,224,.45) !important; }
 html.dark #foreign-flow .ff-opinion-chart .ff-opinion-bar-wrap { background: rgba(245,239,224,.15) !important; }
+html.dark #foreign-flow .ff-opinion-evidence,
+html.dark #foreign-flow .ff-opinion-evidence-list,
+html.dark #foreign-flow .ff-research-list,
+html.dark #foreign-flow .ff-opinion-evidence-row,
+html.dark #foreign-flow .ff-research-row,
+html.dark #foreign-flow .ff-etf-summary-card,
+html.dark #foreign-flow .ff-etf-summary-card > .ff-panel-title,
+html.dark #foreign-flow .ff-etf-stats,
+html.dark #foreign-flow .ff-etf-components > div { border-color: rgba(245,239,224,.16) !important; }
+html.dark #foreign-flow .ff-opinion-evidence > summary,
+html.dark #foreign-flow .ff-opinion-source-link,
+html.dark #foreign-flow .ff-research-row a { color: #8dbbe7 !important; }
+html.dark #foreign-flow .ff-opinion-evidence-body h4,
+html.dark #foreign-flow .ff-opinion-evidence-row strong,
+html.dark #foreign-flow .ff-research-row strong,
+html.dark #foreign-flow .ff-etf-summary-card > .ff-panel-title,
+html.dark #foreign-flow .ff-etf-name,
+html.dark #foreign-flow .ff-etf-stats b,
+html.dark #foreign-flow .ff-etf-components > div b { color: #f5efe0 !important; }
+html.dark #foreign-flow .ff-opinion-evidence-body p,
+html.dark #foreign-flow .ff-opinion-evidence-row,
+html.dark #foreign-flow .ff-research-row span,
+html.dark #foreign-flow .ff-etf-kicker,
+html.dark #foreign-flow .ff-etf-stats,
+html.dark #foreign-flow .ff-etf-components > div,
+html.dark #foreign-flow .ff-etf-note { color: rgba(245,239,224,.58) !important; }
+html.dark #foreign-flow .ff-etf-traits span { background: rgba(141,187,231,.14); color: #a9cff1; }
 
 /* 종목분석 탭은 공통 UI 시스템의 직사각형 탭 버튼을 사용한다(1번 참고 이미지 기준). */
 #foreign-flow .ff-view-tab.ui-btn-tab {
