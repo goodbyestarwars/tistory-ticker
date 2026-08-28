@@ -2514,6 +2514,27 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
 #foreign-flow .ff-apt-simple-limits .lower { color: #1261c4; background: #eaf2fd; }
 #foreign-flow .ff-apt-simple-limits .upper { color: #d24f45; background: #fff0ee; }
 #foreign-flow .ff-apt-simple-chart { display: grid; gap: 3px; }
+#foreign-flow .ff-apt-simple-side-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 5px 7px 1px;
+  padding-top: 5px;
+  border-top: 1px solid #e7ecf1;
+  color: #82909e;
+  font-size: 9px;
+}
+#foreign-flow .ff-apt-simple-side-heading strong {
+  font-size: 10px;
+  font-weight: 800;
+}
+#foreign-flow .ff-apt-simple-side-heading span {
+  white-space: nowrap;
+}
+#foreign-flow .ff-apt-simple-side-heading.above strong { color: #1261c4; }
+#foreign-flow .ff-apt-simple-side-heading.below strong { color: #d24f45; }
+#foreign-flow .ff-apt-simple-side-heading.current strong { color: #087f69; }
 #foreign-flow .ff-apt-simple-row {
   display: grid;
   grid-template-columns: 112px minmax(100px, 1fr) 64px 94px;
@@ -2524,6 +2545,9 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   border-radius: 7px;
 }
 #foreign-flow .ff-apt-simple-row.is-current { background: #eefbf8; }
+#foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-price,
+#foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-volume { color: #9aa7b5; }
+#foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-track { background: repeating-linear-gradient(90deg, #edf1f5 0 6px, #fff 6px 10px); }
 #foreign-flow .ff-apt-simple-price,
 #foreign-flow .ff-apt-simple-volume {
   color: #627080;
@@ -2621,6 +2645,11 @@ html.dark #foreign-flow .ff-apt-simple-head strong,
 html.dark #foreign-flow .ff-apt-simple-note strong { color: #f5efe0; }
 html.dark #foreign-flow .ff-apt-chart-wrap.ff-apt-simple { border-color: rgba(245,239,224,.17) !important; background: #1f2326 !important; }
 html.dark #foreign-flow .ff-apt-simple-track { background: #333a40; }
+html.dark #foreign-flow .ff-apt-simple-side-heading { border-top-color: rgba(245,239,224,.14); color: #9da8b2; }
+html.dark #foreign-flow .ff-apt-simple-side-heading.above strong { color: #8db9f0; }
+html.dark #foreign-flow .ff-apt-simple-side-heading.below strong { color: #f09b94; }
+html.dark #foreign-flow .ff-apt-simple-side-heading.current strong { color: #69bfa9; }
+html.dark #foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-track { background: repeating-linear-gradient(90deg, #333a40 0 6px, #1f2326 6px 10px); }
 html.dark #foreign-flow .ff-apt-simple-limits .basis { color: #9da8b2; background: transparent; }
 html.dark #foreign-flow .ff-apt-simple-limits .open { color: #b8c0c7; background: #333a40; }
 html.dark #foreign-flow .ff-apt-simple-limits .lower { color: #8db9f0; background: rgba(18,97,196,.2); }
@@ -2647,6 +2676,9 @@ html.dark #foreign-flow .ff-apt-simple-note strong.neutral { color: #c2cad1 !imp
   #foreign-flow .ff-apt-simple-volume { font-size: 8px; }
   #foreign-flow .ff-apt-simple-markers { gap: 2px; }
   #foreign-flow .ff-apt-simple-markers span { padding: 2px 3px; font-size: 8px; }
+  #foreign-flow .ff-apt-simple-side-heading { margin-inline: 3px; }
+  #foreign-flow .ff-apt-simple-side-heading strong { font-size: 9px; }
+  #foreign-flow .ff-apt-simple-side-heading span { font-size: 8px; }
   #foreign-flow .ff-apt-simple-note { display: block; }
   #foreign-flow .ff-apt-simple-note strong { display: block; margin-bottom: 2px; }
 }

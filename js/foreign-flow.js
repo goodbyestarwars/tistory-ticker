@@ -4027,17 +4027,82 @@
         high: Number(chunk[chunk.length - 1].high),
         volume: volume,
         start: start,
-        end: end - 1
+        end: end - 1,
+        synthetic: false
       });
     }
     return compacted;
+  }
+
+  // 호가창처럼 현재가를 기준으로 위·아래를 나눠 보여주되, 실제 매물대에 없는 가격을
+  // 거래량 데이터로 오인하지 않도록 빈 구간은 synthetic=true로 표시한다. 위·아래가
+  // 한쪽으로 치우친 경우에도 현재가 주변에 최소 3개 구간씩 남겨 방향을 읽기 쉽게 한다.
+  function buildAptOrderBookRows(rows, currentPrice) {
+    if (!rows || !rows.length) return { rows: [], currentIndex: -1, aboveVolume: 0, belowVolume: 0 };
+
+    var actualRows = rows.map(function (row) {
+      return Object.assign({}, row, { synthetic: false });
+    });
+    var widths = actualRows.map(function (row) {
+      return Math.abs(Number(row.high) - Number(row.low));
+    }).filter(function (width) { return isFinite(width) && width > 0; }).sort(function (a, b) { return a - b; });
+    var step = widths.length ? widths[Math.floor(widths.length / 2)] : 1;
+    if (!(step > 0) || !isFinite(step)) step = 1;
+
+    function emptyRow(low, high) {
+      return { low: low, high: high, volume: 0, start: -1, end: -1, synthetic: true };
+    }
+
+    var current = Number(currentPrice);
+    var currentIndex = isFinite(current) ? actualRows.findIndex(function (row) {
+      return current >= Number(row.low) && current <= Number(row.high);
+    }) : -1;
+    if (currentIndex < 0 && isFinite(current)) {
+      var insertIndex = actualRows.findIndex(function (row) { return Number(row.low) > current; });
+      var currentRow = emptyRow(current - step / 2, current + step / 2);
+      currentRow.isCurrent = true;
+      if (insertIndex < 0) {
+        actualRows.push(currentRow);
+        currentIndex = actualRows.length - 1;
+      } else {
+        actualRows.splice(insertIndex, 0, currentRow);
+        currentIndex = insertIndex;
+      }
+    }
+    if (currentIndex < 0) {
+      return { rows: actualRows, currentIndex: -1, aboveVolume: 0, belowVolume: 0 };
+    }
+
+    var currentRowAtIndex = actualRows[currentIndex];
+    var belowRows = actualRows.slice(0, currentIndex);
+    var aboveRows = actualRows.slice(currentIndex + 1);
+    while (aboveRows.length < 3) {
+      var aboveBase = aboveRows.length ? Number(aboveRows[aboveRows.length - 1].high) : Number(currentRowAtIndex.high);
+      aboveRows.push(emptyRow(aboveBase, aboveBase + step));
+    }
+    while (belowRows.length < 3) {
+      var belowBase = belowRows.length ? Number(belowRows[0].low) : Number(currentRowAtIndex.low);
+      belowRows.unshift(emptyRow(belowBase - step, belowBase));
+    }
+
+    function volumeOf(list) {
+      return list.reduce(function (sum, row) { return sum + Math.max(0, Number(row.volume) || 0); }, 0);
+    }
+    return {
+      rows: belowRows.concat([currentRowAtIndex], aboveRows),
+      currentIndex: belowRows.length,
+      aboveVolume: volumeOf(aboveRows),
+      belowVolume: volumeOf(belowRows)
+    };
   }
 
   function buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, periodLabel) {
     if (!profile || !profile.bins || !profile.bins.length) {
       return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
     }
-    var rows = compactAptProfileBins(profile, 12);
+    var compactRows = compactAptProfileBins(profile, 12);
+    var orderBook = buildAptOrderBookRows(compactRows, currentPrice);
+    var rows = orderBook.rows;
     var pocBin = profile.bins[profile.pocIndex];
     var pocMid = pocBin ? (Number(pocBin.low) + Number(pocBin.high)) / 2 : null;
     var maxVolume = rows.reduce(function (max, row) { return Math.max(max, row.volume); }, 0);
@@ -4068,17 +4133,42 @@
       return Math.round(row.low).toLocaleString('ko-KR') + '~' + Math.round(row.high).toLocaleString('ko-KR');
     }
 
+    function sideVolumeText(volume) {
+      return volume > 0 ? compactChartVolume(volume) + '주' : '확인된 거래 없음';
+    }
+
+    function rowSide(row) {
+      var price = Number(currentPrice);
+      if (!isFinite(price)) return 'current';
+      if (Number(row.low) > price) return 'above';
+      if (Number(row.high) < price) return 'below';
+      return 'current';
+    }
+
+    var seenSides = {};
     var rowHtml = rows.slice().reverse().map(function (row, reverseIndex) {
       var originalIndex = rows.length - 1 - reverseIndex;
-      var isCurrent = rowHasPrice(row, currentPrice);
+      var side = rowSide(row);
+      var isCurrent = row.isCurrent || rowHasPrice(row, currentPrice);
       var isAverage = rowHasPrice(row, avgPrice);
       var isPoc = originalIndex === pocRow;
       var width = row.volume > 0 && maxVolume > 0 ? Math.max(0.8, Math.round(row.volume / maxVolume * 1000) / 10) : 0;
-      var classes = 'ff-apt-simple-row' + (isCurrent ? ' is-current' : '') + (isAverage ? ' is-average' : '') + (isPoc ? ' is-poc' : '');
+      var classes = 'ff-apt-simple-row' + (row.synthetic ? ' is-empty' : '') + (isCurrent ? ' is-current' : '') + (isAverage ? ' is-average' : '') + (isPoc ? ' is-poc' : '');
       var markers = (isCurrent ? '<span class="current">현재</span>' : '')
         + (isAverage ? '<span class="average">평균</span>' : '')
         + (isPoc ? '<span class="poc">최대</span>' : '');
-      return '<div class="' + classes + '">'
+      var sideHeading = '';
+      if (!seenSides[side]) {
+        seenSides[side] = true;
+        if (side === 'above') {
+          sideHeading = '<div class="ff-apt-simple-side-heading above"><strong>현재가 위 · 저항 후보</strong><span>확인된 거래량 ' + sideVolumeText(orderBook.aboveVolume) + '</span></div>';
+        } else if (side === 'below') {
+          sideHeading = '<div class="ff-apt-simple-side-heading below"><strong>현재가 아래 · 지지 후보</strong><span>확인된 거래량 ' + sideVolumeText(orderBook.belowVolume) + '</span></div>';
+        } else {
+          sideHeading = '<div class="ff-apt-simple-side-heading current"><strong>현재가 기준</strong><span>' + won(currentPrice) + '</span></div>';
+        }
+      }
+      return sideHeading + '<div class="' + classes + '">'
         + '<span class="ff-apt-simple-price">' + rangeText(row) + '</span>'
         + '<span class="ff-apt-simple-track"><i style="width:' + width + '%"></i></span>'
         + '<span class="ff-apt-simple-volume">' + (row.volume > 0 ? compactChartVolume(row.volume) + '주' : '거래 없음') + '</span>'
@@ -4122,7 +4212,7 @@
       + '<div class="ff-apt-simple-chart">' + rowHtml + '</div>'
       + '<div class="ff-apt-simple-legend"><span class="current">현재가</span><span class="average">평균단가</span><span class="poc">최대 매물대</span></div>'
       + '</div>'
-      + '<div class="ff-apt-simple-note" role="note"><strong class="' + relationTone + '">' + relation + '</strong><span>' + relationNote + ' 단독 매매 신호가 아닌 참고 지표입니다.</span></div>';
+      + '<div class="ff-apt-simple-note" role="note"><strong class="' + relationTone + '">' + relation + '</strong><span>' + relationNote + ' 위·아래 수치는 호가창 대기 물량이 아닌 해당 기간의 과거 체결 거래량입니다. 단독 매매 신호가 아닌 참고 지표입니다.</span></div>';
   }
 
   // 한국투자 pbar-tratio(실제 체결가) 기반 - ?days=로 VM이 SQLite 누적분까지 합산해준다.
@@ -4226,9 +4316,10 @@
     };
   }
 
-  // 체결 데이터가 없는 가격대를 현재가 주변에 임의로 덧붙이면 실제 매물대처럼
-  // 보이는 문제가 생긴다. 실제 체결 구간은 그대로 두고, 시가 기준 참고 상·하한만
-  // 메타데이터로 붙여 화면에 명확히 표시한다(매물대 계산에는 포함하지 않음).
+  // 체결 데이터가 없는 가격대를 profile 원자료에 임의로 덧붙이면 실제 매물대처럼
+  // 보이는 문제가 생긴다. 실제 profile은 그대로 두고, 화면 표시 단계에서만 현재가
+  // 위·아래 방향을 읽기 위한 빈 구간을 synthetic으로 추가한다(매물대 계산에는 불포함).
+  // 시가 기준 참고 상·하한도 profile과 분리된 메타데이터로 붙인다.
   function attachAptPriceLimits(profile, openPrice) {
     if (!profile || !profile.bins || !profile.bins.length) return profile;
     var base = Number(openPrice);

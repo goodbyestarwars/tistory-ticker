@@ -1687,6 +1687,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("건물의 높이", body)
         self.assertIn("function compactAptProfileBins(profile, rowCount)", source)
         self.assertIn("compactAptProfileBins(profile, 12)", source)
+        self.assertIn("function buildAptOrderBookRows(rows, currentPrice)", source)
+        self.assertIn("현재가 위 · 저항 후보", source)
+        self.assertIn("현재가 아래 · 지지 후보", source)
+        self.assertIn("확인된 거래 없음", source)
+        self.assertIn("synthetic: true", source)
         self.assertIn('class="ff-apt-chart-wrap ff-apt-simple"', source)
         self.assertIn('data-apt-simple-current', source)
         self.assertIn("row.volume > 0 && maxVolume > 0", source)
@@ -1710,6 +1715,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('class="ff-apt-simple-signal ', source)
         self.assertIn(".ff-apt-simple-signal.up", style)
         self.assertIn(".ff-apt-simple-signal.down", style)
+        self.assertIn(".ff-apt-simple-side-heading", style)
+        self.assertIn(".ff-apt-simple-row.is-empty", style)
 
     def test_stock_simulation_shows_price_before_valuation(self):
         source = self.read("js/foreign-flow.js")
