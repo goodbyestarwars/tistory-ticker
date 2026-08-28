@@ -16,6 +16,7 @@ import secrets
 import threading
 import time
 import urllib.parse
+import urllib.request
 from collections import OrderedDict, deque
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -114,6 +115,10 @@ def _start_futures_collectors():
         alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
     )
+
+    # 홈 종목판(/market-board) KIS 순위 지연(3~4초)을 방문자가 매번 맞지 않도록,
+    # 트래픽이 있는 동안에만 백그라운드로 캐시를 미리 데운다.
+    _start_market_board_warmer()
 
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
@@ -223,6 +228,14 @@ _MARKET_BOARD_LIVE_TTL = 5
 _market_board_cache = {}
 _market_board_inflight = {}  # (market, limit) -> threading.Event
 _market_board_inflight_lock = threading.Lock()
+# KIS 순위 API가 3~4초 걸려서, 30초 캐시가 만료되는 순간의 첫 방문자가 매번 그 지연을
+# 그대로 맞는다. 실제 방문이 최근(3분 이내)일 때만 백그라운드로 캐시를 미리 데워
+# 방문자는 항상 캐시 히트가 되게 한다. 조회/폴백 로직 중복을 피하려고 루프백 HTTP로
+# 기존 엔드포인트 경로를 그대로 태운다(실패해도 온디맨드 경로가 그대로 동작 - 무해).
+_MARKET_BOARD_WARM_INTERVAL_SEC = 20
+_MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC = 180
+_market_board_last_real_hit = 0.0
+_market_board_warmer_started = False
 _KOFIA_MARKET_TTL = 30 * 60
 _kofia_market_cache = {}
 _DOMESTIC_MARKET_INDICATORS_TTL = 60
@@ -2514,6 +2527,39 @@ def market_rank_endpoint(request: Request, limit: int = Query(5, ge=1, le=_MARKE
     return envelope(data)
 
 
+def _note_market_board_real_hit(request):
+    """실제 방문자가 /market-board를 호출했음을 기록한다(워머 루프백은 제외)."""
+    global _market_board_last_real_hit
+    ip = (request.client.host if request and request.client else '') or ''
+    if ip not in ('127.0.0.1', '::1', 'localhost'):
+        _market_board_last_real_hit = time.time()
+
+
+def _market_board_warm_loop():
+    port = (os.environ.get('PORT', '') or os.environ.get('APP_PORT', '') or '8080').strip()
+    log = logging.getLogger('main')
+    while True:
+        try:
+            if time.time() - _market_board_last_real_hit <= _MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC:
+                market = _economic_news_market()
+                url = 'http://127.0.0.1:%s/market-board?market=%s&limit=40&fresh=1' % (port, market)
+                req = urllib.request.Request(url, headers={'User-Agent': 'market-board-warmer/1'})
+                with urllib.request.urlopen(req, timeout=20) as resp:
+                    resp.read()
+        except Exception:
+            log.debug('market-board 캐시 워머 갱신 실패', exc_info=True)
+        time.sleep(_MARKET_BOARD_WARM_INTERVAL_SEC)
+
+
+def _start_market_board_warmer():
+    global _market_board_warmer_started
+    if _market_board_warmer_started:
+        return
+    _market_board_warmer_started = True
+    threading.Thread(target=_market_board_warm_loop, name='market-board-warmer', daemon=True).start()
+    logging.getLogger('main').info('market-board 캐시 워머 시작(트래픽 있을 때만 20초 주기)')
+
+
 @app.get('/market-board')
 def market_board_endpoint(request: Request,
                           market: str = Query('domestic'),
@@ -2521,6 +2567,7 @@ def market_board_endpoint(request: Request,
                           fresh: bool = Query(False)):
     """홈 증권사형 실시간 종목판. 국내·미국 세션별 같은 행 모델을 반환한다."""
     _check_rate_limit('market_board', request, max_per_window=30)
+    _note_market_board_real_hit(request)
     market = 'us' if str(market).lower() == 'us' else 'domestic'
     key = (market, limit)
     now = time.time()

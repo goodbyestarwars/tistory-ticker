@@ -1,5 +1,18 @@
 # 9Pay 주요 작업이력
 
+**2026-08-29 메인 페이지 속도 - /market-board 캐시 워머(4차, VM)**: 홈 리뷰에서 남은
+단일 병목이 `/market-board`였다(KIS 순위 API 3~4초). 30초 공유 캐시가 만료되는 순간의
+첫 방문자가 매번 그 지연을 그대로 맞았다(기본 소스가 KIS라 market_rank 같은 백그라운드
+폴러도 없음). `main.py`에 트래픽 구동형 캐시 워머를 추가했다: `_market_board_last_real_hit`
+(비-루프백 방문 시각)을 엔드포인트에서 기록하고, 데몬 스레드가 마지막 실제 방문이 3분
+이내일 때만 20초 주기로 `http://127.0.0.1:<port>/market-board?...&limit=40&fresh=1`를
+루프백 호출해 캐시를 미리 데운다. 조회·KIS/키움 폴백 로직은 기존 엔드포인트를 그대로
+재사용(중복 없음)하고, 워머 호출이 실패해도 온디맨드 경로가 그대로 동작한다(무해).
+트래픽이 없으면 워머는 타임스탬프만 확인하고 쉰다. 20초 주기 < 30초 TTL이라 일반
+요청은 항상 캐시 히트. `py_compile` + `test_market_board`/`test_ui_ia`/신규
+`test_market_board_warmer` 통과(사전부터 실패하던 `test_domestic_news` 1건은 무관).
+`scripts/cloud-vm/`은 `master` 반영 후 VM 자동 배포(uvicorn 재시작 시 워머 기동).
+
 **2026-08-29 메인 페이지 속도 - 관심지수 리본 잔재 정리(3차)**: `js/quick-indices.js`는
 2026-08-10 "remove top market ticker widget" 이후 `init()`이 컨테이너만 지우는 껍데기가
 됐고(`ensureContainer`/`rebuild`/`refresh`/스파크라인 등 렌더 코드 ~850줄은 정의만 되고
