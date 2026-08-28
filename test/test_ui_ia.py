@@ -1704,6 +1704,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("grid-template-columns: 112px minmax(100px, 1fr) 64px 94px;", style)
         self.assertIn("@media (max-width: 640px)", style)
         self.assertIn(".ff-apt-simple-limits", style)
+        self.assertIn("매물대 돌파 중", source)
+        self.assertIn("돌파 후 밀림", source)
+        self.assertIn("매물대에 밀리는 중", source)
+        self.assertIn('class="ff-apt-simple-signal ', source)
+        self.assertIn(".ff-apt-simple-signal.up", style)
+        self.assertIn(".ff-apt-simple-signal.down", style)
 
     def test_stock_simulation_shows_price_before_valuation(self):
         source = self.read("js/foreign-flow.js")

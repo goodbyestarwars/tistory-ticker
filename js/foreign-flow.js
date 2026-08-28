@@ -4086,14 +4086,29 @@
         + '</div>';
     }).join('');
 
-    var relation = '최대 매물대 부근';
-    var relationNote = '거래가 가장 많이 쌓인 가격대라 지지·저항이 바뀔 수 있는 구간입니다.';
-    if (currentPrice != null && pocMid != null && Number(currentPrice) > pocMid * 1.01) {
-      relation = '현재가는 최대 매물대 위';
-      relationNote = '아래의 두꺼운 매물대가 지지 후보가 될 수 있습니다.';
-    } else if (currentPrice != null && pocMid != null && Number(currentPrice) < pocMid * .99) {
-      relation = '현재가는 최대 매물대 아래';
-      relationNote = '위의 두꺼운 매물대가 저항 후보가 될 수 있습니다.';
+    var relation = '매물대 안에서 공방';
+    var relationTone = 'neutral';
+    var relationNote = '현재가가 거래가 가장 많이 쌓인 구간 안에 있어 지지·저항을 확인하는 구간입니다.';
+    var pocLow = pocBin ? Number(pocBin.low) : null;
+    var pocHigh = pocBin ? Number(pocBin.high) : null;
+    var abovePoc = currentPrice != null && isFinite(Number(currentPrice)) && pocHigh != null && Number(currentPrice) > pocHigh;
+    var belowPoc = currentPrice != null && isFinite(Number(currentPrice)) && pocLow != null && Number(currentPrice) < pocLow;
+    if (abovePoc && profile.trendUp) {
+      relation = '▲ 매물대 돌파 중';
+      relationTone = 'up';
+      relationNote = '현재가가 최대 매물대 상단을 넘었고 최근 종가도 올라 돌파 흐름으로 표시합니다.';
+    } else if (abovePoc && !profile.trendUp) {
+      relation = '▼ 돌파 후 밀림';
+      relationTone = 'down';
+      relationNote = '현재가는 매물대 위지만 최근 종가 방향이 내려 돌파 후 힘이 약해지는 흐름입니다.';
+    } else if (belowPoc && !profile.trendUp) {
+      relation = '▼ 매물대에 밀리는 중';
+      relationTone = 'down';
+      relationNote = '현재가가 최대 매물대 하단에 있고 최근 종가도 내려 저항에 밀리는 흐름으로 표시합니다.';
+    } else if (belowPoc && profile.trendUp) {
+      relation = '▲ 매물대 회복 시도';
+      relationTone = 'up';
+      relationNote = '현재가는 매물대 아래지만 최근 종가 방향이 올라 회복을 시도하는 흐름입니다.';
     }
 
     return '<div class="ff-apt-simple-summary">'
@@ -4102,12 +4117,12 @@
       + '<div><span>평균단가</span><strong>' + won(avgPrice) + '</strong></div>'
       + '</div>'
       + '<div class="ff-apt-chart-wrap ff-apt-simple" role="img" aria-label="가격대별 거래량 매물대 막대 차트">'
-      + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>막대가 길수록 거래가 많이 쌓인 구간</span></div><em>' + periodLabel + '</em></div>'
+      + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>막대가 길수록 거래가 많이 쌓인 구간</span></div><div class="ff-apt-simple-head-right"><b class="ff-apt-simple-signal ' + relationTone + '">' + relation + '</b><em>' + periodLabel + '</em></div></div>'
       + limitHtml
       + '<div class="ff-apt-simple-chart">' + rowHtml + '</div>'
       + '<div class="ff-apt-simple-legend"><span class="current">현재가</span><span class="average">평균단가</span><span class="poc">최대 매물대</span></div>'
       + '</div>'
-      + '<div class="ff-apt-simple-note" role="note"><strong>' + relation + '</strong><span>' + relationNote + ' 단독 매매 신호가 아닌 참고 지표입니다.</span></div>';
+      + '<div class="ff-apt-simple-note" role="note"><strong class="' + relationTone + '">' + relation + '</strong><span>' + relationNote + ' 단독 매매 신호가 아닌 참고 지표입니다.</span></div>';
   }
 
   // 한국투자 pbar-tratio(실제 체결가) 기반 - ?days=로 VM이 SQLite 누적분까지 합산해준다.

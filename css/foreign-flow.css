@@ -2474,6 +2474,27 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   font-size: 10px;
   font-style: normal;
 }
+#foreign-flow .ff-apt-simple-head-right {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+#foreign-flow .ff-apt-simple-signal {
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+#foreign-flow .ff-apt-simple-signal.up,
+#foreign-flow .ff-apt-simple-note strong.up { color: #d24f45; background: #fff0ee; }
+#foreign-flow .ff-apt-simple-signal.down,
+#foreign-flow .ff-apt-simple-note strong.down { color: #1261c4; background: #eaf2fd; }
+#foreign-flow .ff-apt-simple-signal.neutral,
+#foreign-flow .ff-apt-simple-note strong.neutral { color: #526173; background: #f1f4f7; }
 #foreign-flow .ff-apt-simple-limits {
   display: flex;
   flex-wrap: wrap;
@@ -2583,7 +2604,7 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   font-size: 10px;
   line-height: 1.5;
 }
-#foreign-flow .ff-apt-simple-note strong { flex: 0 0 auto; color: #33475b; font-size: 11px; }
+#foreign-flow .ff-apt-simple-note strong { flex: 0 0 auto; padding: 4px 7px; border-radius: 999px; color: #33475b; font-size: 11px; }
 #foreign-flow .ff-footnote.ff-apt-simple-source {
   margin: 7px 2px 0;
   padding: 0;
@@ -2608,6 +2629,12 @@ html.dark #foreign-flow .ff-apt-simple-row.is-current { background: rgba(39,138,
 html.dark #foreign-flow .ff-apt-simple-price,
 html.dark #foreign-flow .ff-apt-simple-volume,
 html.dark #foreign-flow .ff-apt-simple-note { color: #b8c0c7; }
+html.dark #foreign-flow .ff-apt-simple-signal.up,
+html.dark #foreign-flow .ff-apt-simple-note strong.up { color: #f09b94 !important; background: rgba(210,79,69,.2); }
+html.dark #foreign-flow .ff-apt-simple-signal.down,
+html.dark #foreign-flow .ff-apt-simple-note strong.down { color: #8db9f0 !important; background: rgba(18,97,196,.2); }
+html.dark #foreign-flow .ff-apt-simple-signal.neutral,
+html.dark #foreign-flow .ff-apt-simple-note strong.neutral { color: #c2cad1 !important; background: #333a40; }
 
 @media (max-width: 640px) {
   #foreign-flow .ff-apt-simple-summary { gap: 5px; }
