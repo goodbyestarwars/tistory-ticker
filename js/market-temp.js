@@ -199,7 +199,21 @@
     try {
       var snapshots = readIndustryFlowSnapshots_();
       snapshots[dateKey] = (rows || []).slice(0, INDUSTRY_TOP_LIMIT_).map(function (row) {
-        return { industry: row.industry, avgChangeRate: row.avg_change_rate, tradeAmount: row.trade_amount, riseRatio: row.rise_ratio };
+        return {
+          industry: row.industry,
+          avgChangeRate: row.avg_change_rate,
+          tradeAmount: row.trade_amount,
+          riseRatio: row.rise_ratio,
+          stocks: (row.stocks || []).slice(0, 3).map(function (stock) {
+            return {
+              code: stock.code,
+              name: stock.name,
+              price: stock.price,
+              changeRate: stock.change_rate,
+              tradeAmount: stock.trade_amount
+            };
+          })
+        };
       });
       Object.keys(snapshots).sort().slice(0, -10).forEach(function (key) { delete snapshots[key]; });
       localStorage.setItem(INDUSTRY_FLOW_STORAGE_KEY, JSON.stringify(snapshots));
@@ -245,6 +259,8 @@
     var totalTradeAmount = 0;
     (rows || []).forEach(function (row) {
       var displayName = industryThemeName_(row);
+      var code = String(row && (row.code || row.stock_code || '') || '').trim();
+      var name = String(row && (row.name || row.stock_name || '') || '').trim();
       var count = Number(row && (row.stock_count != null ? row.stock_count : row.stockCount));
       // market-board의 거래대금 상위 종목 행은 ``change_rate``를 내려준다.
       // 이전에는 업종 집계 전용 필드(avg_change_rate)만 읽어, 개별 종목을 테마로
@@ -258,11 +274,20 @@
       if (!isFinite(rate)) rate = 0;
       if (!isFinite(amount)) amount = 0;
       if (!groups[displayName]) {
-        groups[displayName] = { industry: displayName, stockCount: 0, rateTotal: 0, tradeAmount: 0 };
+        groups[displayName] = { industry: displayName, stockCount: 0, rateTotal: 0, tradeAmount: 0, stocks: [] };
       }
       groups[displayName].stockCount += count;
       groups[displayName].rateTotal += rate * count;
       groups[displayName].tradeAmount += amount;
+      if (code || name) {
+        groups[displayName].stocks.push({
+          code: code,
+          name: name || code,
+          price: row && row.price,
+          change_rate: rate,
+          trade_amount: amount
+        });
+      }
       totalTradeAmount += amount;
     });
     return Object.keys(groups).map(function (name) {
@@ -272,7 +297,10 @@
         stock_count: group.stockCount,
         avg_change_rate: group.stockCount ? group.rateTotal / group.stockCount : 0,
         trade_amount: group.tradeAmount,
-        trade_share: totalTradeAmount ? group.tradeAmount / totalTradeAmount : 0
+        trade_share: totalTradeAmount ? group.tradeAmount / totalTradeAmount : 0,
+        stocks: group.stocks.sort(function (a, b) {
+          return Number(b.trade_amount) - Number(a.trade_amount);
+        }).slice(0, 3)
       };
     }).sort(function (a, b) {
       return Number(b.trade_amount) - Number(a.trade_amount)
@@ -285,16 +313,47 @@
     var previous = previousSnapshot_(snapshots, dateKey);
     var previousByName = {};
     previous.forEach(function (row, index) { previousByName[row.industry] = { rank: index + 1 }; });
+    function stockPrice_(value) {
+      var n = Number(value);
+      return isFinite(n) && n > 0 ? Math.round(n).toLocaleString('ko-KR') + '원' : '-';
+    }
+    function stockRate_(value) {
+      var n = Number(value);
+      return isFinite(n) ? (n > 0 ? '+' : '') + n.toFixed(2) + '%' : '-';
+    }
+    function stockTone_(value) {
+      var n = Number(value);
+      return n > 0 ? 'is-up' : n < 0 ? 'is-down' : 'is-flat';
+    }
+    function representativeStocksHtml_(row, index) {
+      var stocks = Array.isArray(row && row.stocks) ? row.stocks.slice(0, 3) : [];
+      var stockHtml = stocks.map(function (stock) {
+        var code = String(stock.code || '').trim();
+        var name = String(stock.name || code || '-').trim();
+        var rate = Number(stock.change_rate != null ? stock.change_rate : stock.changeRate);
+        return '<a class="mt-industry-flow-stock" href="/page/stock-search?code=' + encodeURIComponent(code) + '&amp;name=' + encodeURIComponent(name) + '" aria-label="' + escapeHtml(name) + ' 실시간 시세 보기">'
+          + '<span><b>' + escapeHtml(name) + '</b><small>' + escapeHtml(code || '-') + '</small></span>'
+          + '<span><strong>' + stockPrice_(stock.price) + '</strong><em class="' + stockTone_(rate) + '">' + stockRate_(rate) + '</em></span>'
+          + '</a>';
+      }).join('');
+      return '<div id="mt-industry-detail-' + index + '" class="mt-industry-flow-detail" hidden>'
+        + '<div class="mt-industry-flow-detail-head"><strong>대표 종목</strong><span>현재 거래대금 상위 · 누르면 실시간 시세</span></div>'
+        + (stockHtml || '<div class="mt-industry-flow-detail-empty">대표 종목 데이터가 없습니다.</div>')
+        + '</div>';
+    }
     var html = (rows || []).slice(0, INDUSTRY_TOP_LIMIT_).map(function (row, index) {
       var old = previousByName[row.industry];
       var rankText = old ? (old.rank === index + 1 ? '유지' : (old.rank > index + 1 ? '▲ ' + (old.rank - index - 1) : '▼ ' + (index + 1 - old.rank))) : '첫 관측';
       var rate = Number(row.avg_change_rate != null ? row.avg_change_rate : row.avgChangeRate);
       var tone = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
-      return '<div class="mt-industry-flow-row ' + tone + '">'
+      return '<div class="mt-industry-flow-item">'
+        + '<button type="button" class="mt-industry-flow-row ' + tone + '" data-industry-index="' + index + '" aria-expanded="false" aria-controls="mt-industry-detail-' + index + '">'
         + '<b>' + escapeHtml(row.industry || '-') + '</b>'
         + '<span>' + formatFlowAmount_(row.trade_amount != null ? row.trade_amount : row.tradeAmount) + '</span>'
         + '<span>' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
-        + '<small>' + escapeHtml(rankText) + '</small></div>';
+        + '<small>' + escapeHtml(rankText) + ' · 대표 종목 ▾</small></button>'
+        + representativeStocksHtml_(row, index)
+        + '</div>';
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
       + '<div class="mt-industry-flow-head"><strong>오늘 업종 TOP 10</strong><span>테마별 총 거래대금 기준 · 최근 거래일 대비 순위 변화</span></div>'
@@ -302,6 +361,25 @@
       + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
       + '<p class="mt-industry-flow-note">실시간 종목판의 거래대금 상위 종목을 테마별로 합산합니다. 거래대금이 돈의 흐름 순위이며 평균등락률은 보조지표입니다. 전일 순위는 이 브라우저가 관측한 마지막 거래일 스냅샷과 비교합니다.</p>'
       + '</div>';
+    mount.onclick = function (event) {
+      var rowButton = event.target.closest && event.target.closest('.mt-industry-flow-row');
+      if (!rowButton || !mount.contains(rowButton)) return;
+      var detail = mount.querySelector('#' + rowButton.getAttribute('aria-controls'));
+      if (!detail) return;
+      var shouldOpen = detail.hidden;
+      mount.querySelectorAll('.mt-industry-flow-detail').forEach(function (item) {
+        item.hidden = true;
+      });
+      mount.querySelectorAll('.mt-industry-flow-row').forEach(function (item) {
+        item.setAttribute('aria-expanded', 'false');
+        item.classList.remove('is-open');
+      });
+      if (shouldOpen) {
+        detail.hidden = false;
+        rowButton.setAttribute('aria-expanded', 'true');
+        rowButton.classList.add('is-open');
+      }
+    };
   }
 
   function loadIndustryFlow_(container) {
