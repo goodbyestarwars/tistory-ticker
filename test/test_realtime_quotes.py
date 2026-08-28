@@ -5,9 +5,23 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'cloud-vm'))
 
 import realtime_quotes
+import us_stocks
 
 
 class RealtimeQuotesTests(unittest.TestCase):
+    def test_kis_us_keys_use_one_registration_for_known_exchange(self):
+        previous = dict(us_stocks._symbol_exchange)
+        try:
+            us_stocks._symbol_exchange.clear()
+            us_stocks._symbol_exchange.update({'AAPL': 'NAS', 'LLY': 'NYS'})
+            self.assertEqual(realtime_quotes._kis_us_keys(['AAPL', 'LLY']), [
+                ('DNASAAPL', 'HDFSCNT0'),
+                ('DNYSLLY', 'HDFSCNT0'),
+            ])
+        finally:
+            us_stocks._symbol_exchange.clear()
+            us_stocks._symbol_exchange.update(previous)
+
     def test_parses_nxt_quote_with_exchange_and_session_fields(self):
         events = realtime_quotes._quote_events({
             'trnm': 'REAL',

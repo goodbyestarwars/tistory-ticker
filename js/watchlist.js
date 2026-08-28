@@ -220,6 +220,15 @@
     } catch (err) { return {}; }
   }
 
+  function publishQuote(code, quote) {
+    if (!code || !quote) return;
+    try {
+      global.dispatchEvent(new CustomEvent('watchlist:quote', {
+        detail: { code: code, quote: quote }
+      }));
+    } catch (err) {}
+  }
+
   function writeQuoteCache(data) {
     if (!data || typeof data !== 'object' || !Object.keys(data).length) return;
     try { localStorage.setItem(QUOTES_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: data })); }
@@ -790,8 +799,12 @@
       })
       .catch(function () {
         // 최초 시세 조회 실패 시에도 WebSocket 연결과 저빈도 폴백이 이어서 갱신한다.
+      })
+      .then(function () {
+        // 미국 REST가 확인한 실제 거래소를 서버가 실시간 등록키에 재사용한다.
+        // 초기 스냅샷 뒤 연결해야 미국 종목을 NAS/NYS/AMS에 중복 등록하지 않는다.
+        startRealtimeQuotes(container, codes);
       });
-    startRealtimeQuotes(container, codes);
   }
 
   // 목록 구성(종목 추가/삭제/그룹)은 그대로고 실시간 연결만 재개하면 되는 경로(탭 재방문)
@@ -816,8 +829,8 @@
       .catch(function () {
         // 실패해도 아래 웹소켓/폴백이 이어서 갱신하고, 화면엔 직전 값이 그대로 남는다
         // (render()처럼 "-"로 되돌리지 않음 - 이게 이 함수를 만든 이유).
-      });
-    startRealtimeQuotes(container, codes);
+      })
+      .then(function () { startRealtimeQuotes(container, codes); });
   }
 
   function buildGroup(group, items) {
@@ -843,6 +856,7 @@
   }
 
   function updateCard(container, code, quote) {
+    publishQuote(code, quote);
     var card = container.querySelector('.wl-card[data-code="' + cssEscape(code) + '"]');
     if (!card) return;
     var priceEl = card.querySelector('[data-field="price"]');
@@ -1160,6 +1174,43 @@
 
   function fetchUsQuotes(codes) {
     if (!codes.length) return Promise.resolve({});
+    var symbols = codes.map(function (code) {
+      return String(code).replace(/^US:/i, '').toUpperCase();
+    });
+    return fetch(API_BASE_URL + '/us-quotes?symbols=' + encodeURIComponent(symbols.join(',')))
+      .then(function (response) {
+        if (!response.ok) throw new Error('미국주식 일괄 시세 오류: ' + response.status);
+        return response.json();
+      })
+      .then(function (body) {
+        var payload = body && body.data ? body.data : body;
+        var rows = payload && Array.isArray(payload.items) ? payload.items : [];
+        var byCode = {};
+        rows.forEach(function (data) {
+          var symbol = String(data && data.symbol || '').toUpperCase();
+          if (!symbol || data.price == null) return;
+          byCode['US:' + symbol] = normalizeUsQuote(symbol, data);
+        });
+        return byCode;
+      })
+      .catch(function () { return fetchUsQuotesIndividually(codes); });
+  }
+
+  function normalizeUsQuote(symbol, data) {
+    return {
+      code: 'US:' + symbol,
+      price: data && data.price,
+      change: data && data.change,
+      changeRate: data && (data.change_rate != null ? data.change_rate : data.changeRate),
+      high: data && (data.high != null ? data.high : data.day_high),
+      low: data && (data.low != null ? data.low : data.day_low),
+      volume: data && (data.volume != null ? data.volume : data.acc_trde_qty),
+      marketCap: data && (data.market_cap != null ? data.market_cap : data.marketCap),
+      open: data && (data.open != null ? data.open : data.open_price)
+    };
+  }
+
+  function fetchUsQuotesIndividually(codes) {
     return Promise.all(codes.map(function (code) {
       var symbol = String(code).replace(/^US:/i, '').toUpperCase();
       return fetch(API_BASE_URL + '/us-quote/' + encodeURIComponent(symbol))
@@ -1169,17 +1220,7 @@
         })
         .then(function (body) {
           var data = body && body.data ? body.data : body;
-          return {
-            code: 'US:' + symbol,
-            price: data && data.price,
-            change: data && data.change,
-            changeRate: data && (data.change_rate != null ? data.change_rate : data.changeRate),
-            high: data && (data.high != null ? data.high : data.day_high),
-            low: data && (data.low != null ? data.low : data.day_low),
-            volume: data && (data.volume != null ? data.volume : data.acc_trde_qty),
-            marketCap: data && (data.market_cap != null ? data.market_cap : data.marketCap),
-            open: data && (data.open != null ? data.open : data.open_price)
-          };
+          return normalizeUsQuote(symbol, data);
         })
         .catch(function () { return null; });
     })).then(function (rows) {
@@ -1223,6 +1264,7 @@
     setGroupCollapsed: setGroupCollapsed,
     getList: function () { return loadList(); },
     getGroups: function () { return loadGroups(); },
+    getCachedQuotes: function (codes) { return readQuoteCache(codes || []); },
     onChange: function (listener) { if (typeof listener === 'function') changeListeners.push(listener); },
     isReady: function () { return remoteReady && authState.authenticated; },
     MAX_ITEMS: MAX_ITEMS

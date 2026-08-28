@@ -348,7 +348,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260828-free-translation-fallback-v3", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260829-my-quotes-layout-v1", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -399,7 +399,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
-        self.assertIn("skin-main.js?v=20260828-free-translation-fallback-v3", skin)
+        self.assertIn("skin-main.js?v=20260829-my-quotes-layout-v1", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -1147,6 +1147,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/my-dashboard.css")
         self.assertIn("#my-dashboard .my-watchlist-groups", style)
         self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr));", style)
+        self.assertIn("align-items: start;", style)
+        self.assertIn("max-height: 560px;", style)
         self.assertNotIn("@media (min-width: 1200px) {\n  #my-dashboard .my-watchlist-groups { grid-template-columns: repeat(3", style)
         self.assertIn("@media (max-width: 720px)", style)
         self.assertIn("grid-template-columns: 1fr;", style)
@@ -1155,7 +1157,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
         source = self.read("js/watchlist.js")
         bootstrap = self.read("js/stock-search-panel.js")
-        self.assertIn("watchlist.js?v=20260825-my-stock-search-collapse-v1", bootstrap)
+        self.assertIn("watchlist.js?v=20260829-my-batch-quotes-v1", bootstrap)
         for token in (
             "var domesticCodes = codes.filter",
             "var canUseSocket = codes.length",
@@ -1172,8 +1174,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "var QUOTES_CACHE_KEY = 'watchlist_quotes_v2';",
             "function readQuoteCache(codes)",
             "var remoteDataPromise = fetchRemoteWatchlistState()",
+            "API_BASE_URL + '/us-quotes?symbols='",
+            "function publishQuote(code, quote)",
+            "watchlist:quote",
+            "getCachedQuotes: function (codes)",
         ):
             self.assertIn(token, source)
+        my = self.read("js/my-dashboard.js")
+        self.assertIn("function applyWatchlistQuote(code, quote)", my)
+        self.assertIn("function updateSelectedQuote(code)", my)
+        self.assertIn("data-my-live-price", my)
+        self.assertIn("global.addEventListener('watchlist:quote'", my)
+        self.assertNotIn("refreshWatchlistQuotes(items);", my)
 
     def test_stock_search_keeps_result_row_in_sync_with_realtime_summary(self):
         source = self.read("js/stock-search.js")

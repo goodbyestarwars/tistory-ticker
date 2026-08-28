@@ -419,6 +419,7 @@ html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #9
 #my-dashboard .my-watchlist-groups {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 10px;
   padding: 10px;
   background: #f8fafc;
@@ -434,7 +435,12 @@ html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #9
 #my-dashboard .my-watchlist-group-toggle { padding: 10px 12px; }
 #my-dashboard .my-watchlist-group-toggle strong { font-size: 12px; }
 #my-dashboard .my-watchlist-group-toggle small { font-size: 9px; }
-#my-dashboard .my-watchlist-scroll { overflow-x: hidden; }
+#my-dashboard .my-watchlist-scroll {
+  max-height: 560px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
 #my-dashboard .my-watchlist-table { min-width: 0; }
 #my-dashboard .my-watchlist-table th,
 #my-dashboard .my-watchlist-table td {

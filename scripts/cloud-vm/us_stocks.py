@@ -245,6 +245,12 @@ def _normalize_quote(row, symbol, provider, exchange):
     day_low = _number(_first(
         row, 'ovrs_lwpr', 'low_pric', 'low', 'day_low', 'low_price', 'lowPrice',
     ))
+    open_price = _number(_first(
+        row, 'ovrs_oprc', 'open_pric', 'open', 'open_price', 'openPrice',
+    ))
+    market_cap = _number(_first(
+        row, 'market_cap', 'marketCap', 'mcap', 'tomv', 'total_market_value',
+    ))
     week52_high = _number(_first(
         row, '52wk_hgst_pric', 'fifty_two_week_high', 'h52hgpr', 'w52_hgpr',
     ))
@@ -264,6 +270,8 @@ def _normalize_quote(row, symbol, provider, exchange):
         'change_rate': change_rate,
         'day_high': abs(day_high) if day_high is not None else None,
         'day_low': abs(day_low) if day_low is not None else None,
+        'open': abs(open_price) if open_price is not None else None,
+        'market_cap': abs(market_cap) if market_cap is not None else None,
         'volume': _number(_first(row, 'ovrs_vol', 'acc_trde_qty', 'tvol', 'volume', 'acml_vol')),
         'week52_high': abs(week52_high) if week52_high is not None else None,
         'week52_low': abs(week52_low) if week52_low is not None else None,
@@ -592,6 +600,9 @@ def _kis_quote(symbol):
             if isinstance(row, list):
                 row = row[0] if row else {}
             if row:
+                # 미국 실시간 WebSocket 등록키(DNAS/DNYS/DAMS)를 한 종목당 하나만
+                # 만들 수 있도록 REST에서 확인한 거래소를 같은 프로세스에 기억한다.
+                _symbol_exchange[symbol] = exchange
                 return _normalize_quote(row, symbol, '한국투자증권 Open API', exchange)
         except Exception as exc:
             last_error = exc

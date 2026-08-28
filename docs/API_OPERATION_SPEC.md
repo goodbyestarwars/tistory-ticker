@@ -135,6 +135,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 |---|---|---|---|
 | `/us-search?q=...` | 없음 | 공급자/메모리 캐시 | 미국 종목 검색 |
 | `/us-quote/{symbol}` | 없음 | 공급자별 단기 캐시 | 미국 현재가 |
+| `/us-quotes?symbols=AAPL,MSFT` | 없음 | 공급자별 단기 캐시 | 관심종목용 미국 현재가 최대 50종목 일괄 조회 |
 | `/us-orderbook/{symbol}` | 없음 | 공급자별 단기 캐시 | 미국 호가 가능 범위 |
 | `/us-chart/{symbol}` | 없음 | 공급자 캐시 | 미국 차트 |
 | `/us-news/{symbol}` | 없음 | `us_news_cache.db`, 기본 30분 | Alpha Vantage/Finnhub/Google RSS/Naver fallback |

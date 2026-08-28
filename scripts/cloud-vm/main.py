@@ -1270,6 +1270,51 @@ def us_quote(request: Request, symbol: str = Path(..., min_length=1, max_length=
         raise _upstream_http_exception('미국주식 시세를 불러오지 못했습니다.', exc) from exc
 
 
+@app.get('/us-quotes')
+def us_quotes(request: Request, symbols: str = Query(..., min_length=1, max_length=600)):
+    """관심종목용 미국 시세 일괄 조회.
+
+    브라우저가 종목마다 /us-quote를 동시에 호출하면 MY 페이지와 숨겨진 관심종목
+    모듈이 같은 목록을 중복 조회하면서 분당 제한을 소모한다. 한 요청으로 최대
+    50종목을 받고 서버 내부에서 제한된 동시성으로 공용 종목 캐시를 재사용한다.
+    일부 종목 조회가 실패해도 성공한 종목은 즉시 반환한다.
+    """
+    _check_rate_limit('us_quotes', request, max_per_window=30)
+    requested = []
+    seen = set()
+    for raw in symbols.split(','):
+        try:
+            symbol = us_stocks.normalize_symbol(raw)
+        except ValueError:
+            continue
+        if symbol in seen:
+            continue
+        seen.add(symbol)
+        requested.append(symbol)
+        if len(requested) >= 50:
+            break
+    if not requested:
+        raise HTTPException(status_code=400, detail='유효한 미국 종목 티커가 없습니다.')
+
+    def load_one(symbol):
+        try:
+            return us_stocks.quote(symbol), None
+        except Exception as exc:
+            logging.getLogger('main').warning('미국 시세 일괄 조회 실패(%s): %s', symbol, type(exc).__name__)
+            return None, symbol
+
+    with ThreadPoolExecutor(max_workers=min(6, len(requested))) as pool:
+        loaded = list(pool.map(load_one, requested))
+    items = [row for row, _ in loaded if row]
+    failed = [symbol for _, symbol in loaded if symbol]
+    return envelope({
+        'items': items,
+        'requested': len(requested),
+        'resolved': len(items),
+        'failed': failed,
+    })
+
+
 @app.get('/us-orderbook/{symbol}')
 def us_orderbook(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
     """미국주식 매도·매수 10호가 조회."""

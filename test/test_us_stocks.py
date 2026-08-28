@@ -101,11 +101,13 @@ class UsStockTests(unittest.TestCase):
             'ovrs_item_name': 'Apple Inc.', 'ovrs_prpr': '201.5000',
             'prdy_vrss': '-1.50', 'prdy_ctrt': '-0.74',
             'ovrs_hgpr': '203.2500', 'ovrs_lwpr': '198.7500',
-            'ovrs_vol': '123456',
+            'ovrs_oprc': '199.0000', 'mcap': '3210000000000', 'ovrs_vol': '123456',
         }, 'AAPL', '한국투자증권 Open API', 'NAS')
         self.assertEqual(data['price'], 201.5)
         self.assertEqual(data['day_high'], 203.25)
         self.assertEqual(data['day_low'], 198.75)
+        self.assertEqual(data['open'], 199.0)
+        self.assertEqual(data['market_cap'], 3210000000000.0)
         self.assertEqual(data['volume'], 123456.0)
         self.assertEqual(data['change'], -1.5)
         self.assertEqual(data['change_rate'], -0.74)

@@ -13,6 +13,7 @@ import re
 
 import kiwoom_client
 import kis_client
+import us_stocks
 
 logger = logging.getLogger(__name__)
 
@@ -265,13 +266,25 @@ async def _relay_once(browser_ws, codes):
 
 
 def _kis_us_keys(symbols):
-    """거래소를 모르는 브라우저 심볼을 KIS 미국 실시간 키로 확장한다."""
+    """미국 종목을 KIS 실시간 키로 바꾼다.
+
+    REST 시세에서 확인한 거래소가 있으면 종목당 한 키만 등록한다. 예전처럼 모든
+    종목을 NAS/NYS/AMS 세 거래소에 중복 등록하면 국내 13 + 미국 24 관심종목에서
+    KIS 50개 등록 상한을 넘어 뒤쪽 미국 종목이 WebSocket에서 빠진다.
+    """
     keys = []
+    prefixes = {
+        'NAS': 'DNAS', 'ND': 'DNAS', 'NMS': 'DNAS', 'NASDAQ': 'DNAS',
+        'NYS': 'DNYS', 'NY': 'DNYS', 'NYSE': 'DNYS',
+        'AMS': 'DAMS', 'NA': 'DAMS', 'AMEX': 'DAMS',
+    }
     for symbol in symbols:
         clean = str(symbol or '').strip().upper()
         if not clean:
             continue
-        for prefix in ('DNAS', 'DNYS', 'DAMS'):
+        known = str(us_stocks._symbol_exchange.get(clean) or '').strip().upper()
+        candidates = (prefixes[known],) if known in prefixes else ('DNAS', 'DNYS', 'DAMS')
+        for prefix in candidates:
             keys.append((prefix + clean, 'HDFSCNT0'))
     return keys[:_MAX_CODES]
 

@@ -37,7 +37,7 @@
     'crowdstrike': 'CRWD', 'crowdstrike holdings inc': 'CRWD',
     'seagate': 'STX', 'seagate technology holdings plc': 'STX'
   };
-  var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0, watchlistQuoteAt: 0, watchlistCollapsed: false };
+  var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0, watchlistCollapsed: false };
   var mount = null;
 
   function escapeHtml(value) {
@@ -339,6 +339,9 @@
   function buildWatchlistTable(items) {
     var tableMount = mount.querySelector('[data-my-watchlist-table]');
     var count = mount.querySelector('[data-my-watchlist-count]');
+    if (global.Watchlist && global.Watchlist.getCachedQuotes) {
+      state.quotes = Object.assign({}, global.Watchlist.getCachedQuotes(items.map(function (item) { return item.code; })), state.quotes);
+    }
     if (count) count.textContent = items.length + '종목';
     if (!tableMount) return;
     if (!items.length) {
@@ -360,16 +363,46 @@
     if (panel) panel.hidden = collapsed;
     if (show) show.hidden = !collapsed;
   }
-  function refreshWatchlistQuotes(items) {
-    if (!items.length || !global.Watchlist) return;
-    if (Date.now() - state.watchlistQuoteAt < 30000) return;
-    state.watchlistQuoteAt = Date.now();
-    global.Watchlist.fetchQuotes(items.map(function (item) { return item.code; })).then(function (quotes) {
-      state.quotes = Object.assign(state.quotes, quotes || {});
-      buildWatchlistTable(global.Watchlist.getList());
-      var item = itemByCode(state.selectedCode);
-      if (item && state.analyses[item.code]) renderDetail(item, state.analyses[item.code]);
-    }).catch(function () {});
+  function applyWatchlistQuote(code, quote) {
+    if (!code || !quote) return;
+    state.quotes[code] = Object.assign({}, state.quotes[code] || {}, quote);
+    var row = mount && mount.querySelector('[data-my-row="' + String(code).replace(/["\\]/g, '\\$&') + '"]');
+    if (!row) return;
+    var cells = row.querySelectorAll('td');
+    if (cells.length < 7) return;
+    var merged = state.quotes[code];
+    var changeRate = quoteField(merged, ['changeRate', 'change_rate', 'change_rate_pct']);
+    var change = quoteField(merged, ['change', 'changeValue', 'prdy_vrss']);
+    cells[0].textContent = formatPrice(quoteField(merged, ['price', 'currentPrice', 'stck_prpr']), code);
+    cells[1].className = signClass(changeRate);
+    cells[1].innerHTML = changeRate == null ? '-' : escapeHtml(formatSigned(changeRate, 2) + '%')
+      + (change == null ? '' : '<small>' + escapeHtml(formatSigned(change, /^US:/i.test(code) ? 2 : 0)) + '</small>');
+    cells[2].textContent = formatNumber(tableVolume(merged), 0);
+    cells[3].textContent = formatPrice(quoteField(merged, ['high', 'highPrice', 'high_price', 'stck_hgpr']), code);
+    cells[4].textContent = formatPrice(quoteField(merged, ['low', 'lowPrice', 'low_price', 'stck_lwpr']), code);
+    cells[5].textContent = tableMarketCap(merged, code);
+    cells[6].textContent = formatPrice(quoteField(merged, ['open', 'openPrice', 'open_price', 'stck_oprc']), code);
+    if (code === state.selectedCode && state.analyses[code]) updateSelectedQuote(code);
+  }
+  function updateSelectedQuote(code) {
+    var item = itemByCode(code);
+    var root = document.getElementById('myDashboardDetail');
+    if (!item || !root) return;
+    var quote = state.quotes[code] || {};
+    var metrics = itemMetrics(item, quote);
+    var changeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);
+    var price = root.querySelector('[data-my-live-price]');
+    var rate = root.querySelector('[data-my-live-rate]');
+    var value = root.querySelector('[data-my-live-value]');
+    var pnl = root.querySelector('[data-my-live-pnl]');
+    var pnlRate = root.querySelector('[data-my-live-pnl-rate]');
+    if (price) price.textContent = formatPrice(metrics.price, code);
+    if (rate) { rate.textContent = changeRate == null ? '-' : formatSigned(changeRate, 2) + '%'; rate.className = signClass(changeRate); }
+    if (value) value.textContent = metrics.value == null ? '-' : formatPrice(metrics.value, code);
+    if (pnl) { pnl.textContent = metrics.pnl == null ? '-' : formatPrice(metrics.pnl, code); pnl.className = signClass(metrics.pnl); }
+    if (pnlRate) pnlRate.textContent = metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%';
+    updateHoldingPreview(root, item);
+    updateCalculatorWithRecovery(root, metrics, state.analyses[code] && state.analyses[code].chart);
   }
   function buildHoldingForm(item, metrics) {
     var isTemporary = !!item.temporary;
@@ -838,7 +871,7 @@
     }
     var frameUrl = '/page/foreign-flow?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(name);
     detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3 class="my-selected-title ' + dailyChangeClass + '"><span class="my-selected-name">' + escapeHtml(name) + '</span> <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
-      + '<div class="my-metric-grid"><div><span>현재가</span><strong>' + formatPrice(metrics.price, item.code) + '</strong><small class="' + dailyChangeClass + '">' + (dailyChangeRate == null ? '-' : formatSigned(dailyChangeRate, 2) + '%') + '</small></div><div><span>평가금액</span><strong>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatSigned(metrics.pnl, 0) + '원') + '</strong><small>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
+      + '<div class="my-metric-grid"><div><span>현재가</span><strong data-my-live-price>' + formatPrice(metrics.price, item.code) + '</strong><small data-my-live-rate class="' + dailyChangeClass + '">' + (dailyChangeRate == null ? '-' : formatSigned(dailyChangeRate, 2) + '%') + '</small></div><div><span>평가금액</span><strong data-my-live-value>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong data-my-live-pnl class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatPrice(metrics.pnl, item.code)) + '</strong><small data-my-live-pnl-rate>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
       + buildHoldingForm(item, metrics)
       + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code, metrics.price) + '</div>'
       + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
@@ -918,7 +951,6 @@
     populateSearchOptions();
     buildWatchlistTable(items);
     updateWatchlistVisibility();
-    refreshWatchlistQuotes(items);
     var status = document.getElementById('myDashboardStatus');
     if (status && !state.selectedCode) status.textContent = global.Watchlist.isReady() ? '분석할 종목을 입력하세요.' : '로그인 상태를 확인하는 중입니다. 분석은 먼저 이용할 수 있습니다.';
     var item = itemByCode(state.selectedCode);
@@ -998,6 +1030,10 @@
       if (event.target.id === 'myWatchlistAddInput' && event.key === 'Escape') { event.preventDefault(); closeWatchlistAddModal(); }
     });
     global.addEventListener('watchlist:changed', function () { render(); });
+    global.addEventListener('watchlist:quote', function (event) {
+      var detail = event && event.detail || {};
+      applyWatchlistQuote(detail.code, detail.quote);
+    });
   }
   function init() {
     mount = mountPage();
