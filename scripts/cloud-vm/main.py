@@ -108,6 +108,13 @@ def _start_futures_collectors():
     btc_futures.start_background()
     bond_yield.start_background()
 
+    # 경제 종합뉴스 영문 헤드라인 한글 번역 프리워밍 - 무료 번역 엔드포인트가 429를
+    # 낼 때 콜드 캐시 방문자가 영어 제목을 보던 문제를 완화한다(SQLite에 영구 저장).
+    news_aggregator.start_translation_prewarmer(
+        alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
+        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+    )
+
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
     kiwoom_appkey = os.environ.get('KIWOOM_APPKEY')

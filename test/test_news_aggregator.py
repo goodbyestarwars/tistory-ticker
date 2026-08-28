@@ -294,6 +294,28 @@ class NewsAggregatorTests(unittest.TestCase):
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]['provider'], 'Naver')
 
+    def test_translation_prewarm_fills_untranslated_general_headlines(self):
+        with tempfile.TemporaryDirectory() as temp_dir, \
+                mock.patch.object(news_aggregator, 'NEWS_CACHE_DB_FILE', os.path.join(temp_dir, 'news.db')):
+            news_aggregator._translation_cache.clear()
+            news_aggregator._translation_retry_after = 0
+            cached_items = [
+                {'title': 'First English headline', 'title_ko': '이미 번역됨'},
+                {'title': 'Second English headline'},
+                {'title': '이미 한글 제목'},
+            ]
+            with mock.patch.object(news_aggregator, '_general_news_cache', (news_aggregator.time.time(), cached_items)), \
+                    mock.patch.object(news_aggregator, 'get_general_news'), \
+                    mock.patch.object(
+                        news_aggregator, '_translations_for_titles',
+                        return_value={'Second English headline': '두 번째 번역'}) as translate:
+                news_aggregator._prewarm_general_translations_once()
+
+            translate.assert_called_once_with(['Second English headline'])
+            self.assertEqual(cached_items[1]['title_ko'], '두 번째 번역')
+            self.assertEqual(cached_items[0]['title_ko'], '이미 번역됨')
+            self.assertNotIn('title_ko', cached_items[2])
+
     def test_sec_edgar_filings_are_normalized_as_us_disclosures(self):
         xml = news_aggregator.ET.fromstring('''
             <feed xmlns="http://www.w3.org/2005/Atom">

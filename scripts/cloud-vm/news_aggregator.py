@@ -584,6 +584,91 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
         return list(selected[:max(1, int(limit))])
 
 
+# The on-demand path (translate_news_titles) only translates the first ~20
+# headlines and stops on the first HTTP 429, so a cold cache leaves the rest of
+# the general-news list in English until enough refreshes have run. This
+# background loop walks the *whole* cached list a few titles at a time with long
+# pauses so the free Google/MyMemory endpoints do not rate-limit, and every
+# success lands in SQLite (news_translation_cache) where it survives restarts.
+TRANSLATION_PREWARM_INTERVAL_SEC = 75
+TRANSLATION_PREWARM_TITLES_PER_CYCLE = 8
+TRANSLATION_PREWARM_MICRO_BATCH = 2
+TRANSLATION_PREWARM_MICRO_PAUSE_SEC = 2.0
+_translation_prewarmer_started = False
+_translation_prewarmer_lock = threading.Lock()
+
+
+def _prewarm_general_translations_once(alpha_api_key='', finnhub_api_key=''):
+    """Translate a small slice of the still-untranslated general-news headlines."""
+    try:
+        get_general_news(alpha_api_key=alpha_api_key, finnhub_api_key=finnhub_api_key, limit=500)
+    except Exception:
+        logger.warning('translation prewarm: general news refresh failed', exc_info=True)
+
+    _fetched_at, items = _general_news_cache
+    pending = []
+    for item in list(items or []):
+        title = str(item.get('title') or '').strip()
+        if not title or not re.search(r'[A-Za-z]', title):
+            continue
+        if _valid_translation(title, item.get('title_ko')):
+            continue
+        pending.append((item, title))
+    if not pending:
+        return
+
+    known = _load_persistent_translations([title for _item, title in pending])
+    if known:
+        with TRANSLATION_CACHE_LOCK:
+            _translation_cache.update(known)
+    todo = []
+    for item, title in pending:
+        if title in known:
+            item['title_ko'] = known[title]
+        else:
+            todo.append((item, title))
+    todo = todo[:TRANSLATION_PREWARM_TITLES_PER_CYCLE]
+
+    for start in range(0, len(todo), TRANSLATION_PREWARM_MICRO_BATCH):
+        chunk = todo[start:start + TRANSLATION_PREWARM_MICRO_BATCH]
+        try:
+            translated = _translations_for_titles([title for _item, title in chunk])
+        except Exception:
+            logger.warning('translation prewarm: batch failed', exc_info=True)
+            translated = {}
+        for item, title in chunk:
+            if _valid_translation(title, translated.get(title)):
+                item['title_ko'] = translated[title]
+        if start + TRANSLATION_PREWARM_MICRO_BATCH < len(todo):
+            time.sleep(TRANSLATION_PREWARM_MICRO_PAUSE_SEC)
+
+
+def _translation_prewarm_loop(alpha_api_key='', finnhub_api_key=''):
+    while True:
+        try:
+            _prewarm_general_translations_once(alpha_api_key, finnhub_api_key)
+        except Exception:
+            logger.warning('translation prewarm loop iteration failed', exc_info=True)
+        time.sleep(TRANSLATION_PREWARM_INTERVAL_SEC)
+
+
+def start_translation_prewarmer(alpha_api_key='', finnhub_api_key=''):
+    """Start the general-news translation prewarmer once per process."""
+    global _translation_prewarmer_started
+    with _translation_prewarmer_lock:
+        if _translation_prewarmer_started:
+            return
+        _translation_prewarmer_started = True
+    thread = threading.Thread(
+        target=_translation_prewarm_loop,
+        kwargs={'alpha_api_key': alpha_api_key, 'finnhub_api_key': finnhub_api_key},
+        name='news-translation-prewarmer',
+        daemon=True,
+    )
+    thread.start()
+    logger.info('news translation prewarmer started')
+
+
 def get_sec_filings(limit=30, ttl_sec=None):
     """Return recent US corporate filings from the official SEC EDGAR feed.
 
