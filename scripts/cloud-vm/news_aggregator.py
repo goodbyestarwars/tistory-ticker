@@ -50,6 +50,7 @@ GENERAL_NEWS_CACHE_TTL_SEC = 5 * 60
 GENERAL_NEWS_CACHE_LOCK = threading.Lock()
 _general_news_cache = (0, [])
 TRANSLATION_URL = 'https://translate.googleapis.com/translate_a/single'
+TRANSLATION_FALLBACK_URL = 'https://api.mymemory.translated.net/get'
 TRANSLATION_TIMEOUT_SEC = 5
 TRANSLATION_CACHE_MAX = 2048
 TRANSLATION_BATCH_SIZE = 10
@@ -378,6 +379,55 @@ def _request_translation_payload(query):
             raise original_error
 
 
+def _translate_with_mymemory(titles):
+    """Free, keyless fallback used only while Google rejects the VM.
+
+    MyMemory limits anonymous usage, so requests are kept below its short-text limit
+    and successful results immediately enter SQLite. The fallback is therefore paid
+    only once per unique headline and never runs for already cached titles.
+    """
+    titles = [str(title or '').strip() for title in titles]
+    result = {}
+    groups = []
+    current = []
+    current_chars = 0
+    for index, title in enumerate(titles):
+        if not title or not re.search(r'[A-Za-z]', title):
+            continue
+        segment = 'ZZZ%dZZZ %s' % (index, title[:400])
+        if current and current_chars + 1 + len(segment) > 450:
+            groups.append(current)
+            current = []
+            current_chars = 0
+        current.append((index, segment))
+        current_chars += len(segment) + (1 if current_chars else 0)
+    if current:
+        groups.append(current)
+
+    for group in groups:
+        joined = '\n'.join(segment for _, segment in group)
+        query = urllib.parse.urlencode({'q': joined, 'langpair': 'en|ko'})
+        request = urllib.request.Request(
+            TRANSLATION_FALLBACK_URL + '?' + query,
+            headers={'User-Agent': 'tistory-ticker/1.0'},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=TRANSLATION_TIMEOUT_SEC) as response:
+                payload = json.loads(response.read().decode('utf-8'))
+            if int(payload.get('responseStatus') or 0) != 200:
+                continue
+            combined = html.unescape(str((payload.get('responseData') or {}).get('translatedText') or ''))
+            matches = re.findall(r'ZZZ(\d+)ZZZ\s*(.*?)(?=\n?ZZZ\d+ZZZ|$)', combined, re.DOTALL)
+            for index_text, translated in matches:
+                index = int(index_text)
+                if index < len(titles) and _valid_translation(titles[index], translated):
+                    result[titles[index]] = translated.strip()
+        except Exception:
+            logger.warning('Fallback news title translation failed', exc_info=True)
+            break
+    return result
+
+
 def _translate_title_batch_unlocked(titles):
     """Translate several public headlines with one free request.
 
@@ -389,8 +439,10 @@ def _translate_title_batch_unlocked(titles):
     global _translation_retry_after
     titles = [str(title or '').strip() for title in titles]
     titles = [title for title in titles if title and re.search(r'[A-Za-z]', title)]
-    if not titles or time.time() < _translation_retry_after:
+    if not titles:
         return {}
+    if time.time() < _translation_retry_after:
+        return _translate_with_mymemory(titles)
     joined = '\n'.join('<<<%d>>> %s' % (index, title[:500]) for index, title in enumerate(titles))
     try:
         query = urllib.parse.urlencode({
@@ -407,6 +459,9 @@ def _translate_title_batch_unlocked(titles):
             index = int(index_text)
             if index < len(titles) and _valid_translation(titles[index], translated):
                 result[titles[index]] = translated.strip()
+        missing = [title for title in titles if title not in result]
+        if missing:
+            result.update(_translate_with_mymemory(missing))
         return result
     except urllib.error.HTTPError as error:
         if error.code == 429:
@@ -414,10 +469,10 @@ def _translate_title_batch_unlocked(titles):
             logger.warning('News title translation rate limited; retry delayed')
         else:
             logger.warning('News title translation HTTP failure: %s', error.code)
-        return {}
+        return _translate_with_mymemory(titles)
     except Exception:
         logger.warning('News title translation failed', exc_info=True)
-        return {}
+        return _translate_with_mymemory(titles)
 
 
 def _translate_title_batch(titles):

@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import tempfile
@@ -78,11 +79,34 @@ class NewsAggregatorTests(unittest.TestCase):
             success.read.return_value = '[[["<<<0>>> 재시도 성공", "<<<0>>> Original headline"]]]'.encode('utf-8')
             success.__enter__ = mock.Mock(return_value=success)
             success.__exit__ = mock.Mock(return_value=False)
-            with mock.patch.object(news_aggregator.urllib.request, 'urlopen', side_effect=[failed, success]) as urlopen:
+            with mock.patch.object(news_aggregator.urllib.request, 'urlopen', side_effect=[failed, success]) as urlopen, \
+                    mock.patch.object(news_aggregator, '_translate_with_mymemory', return_value={}):
                 self.assertEqual(news_aggregator.translate_news_title('Original headline'), 'Original headline')
                 self.assertNotIn('Original headline', news_aggregator._translation_cache)
                 self.assertEqual(news_aggregator.translate_news_title('Original headline'), '재시도 성공')
             self.assertEqual(urlopen.call_count, 2)
+
+    def test_free_fallback_translates_multiple_titles_in_one_request(self):
+        response = mock.Mock()
+        response.read.return_value = json.dumps({
+            'responseStatus': 200,
+            'responseData': {
+                'translatedText': 'ZZZ0ZZZ 첫 번째 무료 번역\nZZZ1ZZZ 두 번째 무료 번역',
+            },
+        }).encode('utf-8')
+        response.__enter__ = mock.Mock(return_value=response)
+        response.__exit__ = mock.Mock(return_value=False)
+        with mock.patch.object(news_aggregator.urllib.request, 'urlopen', return_value=response) as urlopen:
+            translated = news_aggregator._translate_with_mymemory([
+                'First free headline', 'Second free headline',
+            ])
+
+        self.assertEqual(translated, {
+            'First free headline': '첫 번째 무료 번역',
+            'Second free headline': '두 번째 무료 번역',
+        })
+        self.assertEqual(urlopen.call_count, 1)
+        self.assertIn('langpair=en%7Cko', urlopen.call_args.args[0].full_url)
 
     def test_translation_uses_existing_curl_when_python_transport_is_rate_limited(self):
         news_aggregator._translation_prefer_curl = False
