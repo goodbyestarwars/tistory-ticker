@@ -565,16 +565,24 @@
     document.body.appendChild(script);
   }
 
+  function loadWatchlistOnDemand() {
+    // 관심종목 드로어는 모든 페이지에 노출되지만, 닫힌 상태에서는 시세·로그인 상태를
+    // 조회할 이유가 없다. 특히 미국 종목은 종목별 VM REST 호출이라 홈 진입마다
+    // 수십 건을 동시에 보내면 상세 화면과 같은 rate limit을 소모한다.
+    ensureKrxMap().then(loadWatchlistScript).catch(loadWatchlistScript);
+  }
+
   function bootGlobalWatchlist() {
     if (watchlistBooted || document.querySelector('.global-watchlist-drawer')) return;
     watchlistBooted = true;
+    // 드로어 자체의 위치·토글 스타일은 즉시 필요하지만, 시세 모듈은 열 때까지 미룬다.
     ensureStylesheet(WATCHLIST_CSS);
 
     // /page/watchlist is the dedicated MY screen. Keep its existing in-page
     // mount instead of moving it into the global drawer; other pages retain
     // the global drawer behavior unchanged.
     if (/^\/(?:page|pages)\/watchlist\/?$/.test(location.pathname)) {
-      ensureKrxMap().then(loadWatchlistScript).catch(loadWatchlistScript);
+      loadWatchlistOnDemand();
       return;
     }
 
@@ -593,19 +601,27 @@
       panel.appendChild(legacyMount);
     }
     document.body.appendChild(drawer);
-    setWatchlistDrawerOpen(drawer, isWatchlistDrawerOpen());
+    var initiallyOpen = isWatchlistDrawerOpen();
+    setWatchlistDrawerOpen(drawer, initiallyOpen);
     drawer.querySelector('.global-watchlist-toggle').addEventListener('click', function () {
-      setWatchlistDrawerOpen(drawer, !drawer.classList.contains('is-open'));
+      var open = !drawer.classList.contains('is-open');
+      setWatchlistDrawerOpen(drawer, open);
+      if (open) {
+        loadWatchlistOnDemand();
+      }
     });
     document.addEventListener('click', function (event) {
       if (!event.target.closest('[data-open-global-watchlist]')) return;
       event.preventDefault();
       setWatchlistDrawerOpen(drawer, true);
+      loadWatchlistOnDemand();
     });
     // 관심종목을 여러 개 연속으로 추가할 수 있도록 바깥 영역 클릭으로
     // 자동 닫지 않는다. 닫기는 토글 버튼을 눌렀을 때만 수행한다.
 
-    ensureKrxMap().then(loadWatchlistScript).catch(loadWatchlistScript);
+    if (initiallyOpen) {
+      loadWatchlistOnDemand();
+    }
   }
 
   // ---- 포맷 유틸 ----

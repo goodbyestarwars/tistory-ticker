@@ -17,6 +17,9 @@
   var RANK_REFRESH_DEBOUNCE_MS = 5000;
   var SESSION_CHECK_MS = 60 * 1000;
   var ETF_FILTER_KEY = 'home_hrt_etf_v1';
+  // 홈 뉴스와 실시간 종목판이 같은 시장 종목판을 동시에 요청한다. 최대 40건 응답을
+  // 공유하면 서버 캐시 키(limit=20/40) 분리와 콜드 미스 중복을 모두 피할 수 있다.
+  var sharedBoardRequests = global.__homeMarketBoardRequests || (global.__homeMarketBoardRequests = {});
   var TABS = [
     ['tradeAmount', '거래대금'],
     ['tradeVolume', '거래량'],
@@ -658,11 +661,7 @@
       stopRealtime();
       buildShell(state.mount);
     }
-    var url = API_URL + '?market=' + market + '&limit=' + LIMIT + (force ? '&fresh=1' : '');
-    return fetch(url).then(function (response) {
-      if (!response.ok) throw new Error('market-board ' + response.status);
-      return response.json();
-    }).then(function (json) {
+    return fetchSharedMarketBoard(market, force).then(function (json) {
       if (currentMarket() !== market) return;
       state.data = json.data || json;
       var session = state.mount.querySelector('[data-hrt-session]');
@@ -686,6 +685,28 @@
         state.pendingMarket = null;
       }
     });
+  }
+
+  function fetchSharedMarketBoard(market, force) {
+    var key = market === 'us' ? 'us' : 'domestic';
+    var entry = sharedBoardRequests[key] || (sharedBoardRequests[key] = {});
+    if (!force && entry.data && Date.now() - entry.updatedAt < REFRESH_MS) {
+      return Promise.resolve(entry.data);
+    }
+    // 이미 시작된 일반 조회도 현재 화면에 충분히 새 데이터다. 강제 갱신이 겹쳐도
+    // 별도 요청을 만들지 않고 같은 Promise를 기다린다.
+    if (entry.promise) return entry.promise;
+    var url = API_URL + '?market=' + key + '&limit=' + LIMIT + (force ? '&fresh=1' : '');
+    entry.promise = fetch(url).then(function (response) {
+      if (!response.ok) throw new Error('market-board ' + response.status);
+      return response.json();
+    }).then(function (json) {
+      entry.data = json;
+      entry.updatedAt = Date.now();
+      return json;
+    });
+    entry.promise.then(function () { entry.promise = null; }, function () { entry.promise = null; });
+    return entry.promise;
   }
 
   function init(options) {
@@ -746,5 +767,6 @@
   }
 
   global.HomeRealtimeTableIconFallback = stockIconFallback;
+  global.HomeMarketBoard = { fetch: fetchSharedMarketBoard };
   global.HomeRealtimeTable = { init: init };
 })(window);

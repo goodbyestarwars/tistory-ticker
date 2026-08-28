@@ -31,7 +31,9 @@
   var CLIENT_CACHE_MS = 5 * 60 * 1000;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+  var WICS_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js';
   var krxMapPromise = null;
+  var wicsMapPromise = null;
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -167,6 +169,9 @@
     container.innerHTML = buildShell();
     wireEvents(container);
     ensureKrxMap().catch(function () { /* 입력 시 다시 시도한다. */ });
+    // WICS는 이 화면에서만 필요한 업종 보강 데이터다. 공통 스킨에서 모든 페이지에
+    // 내려받지 않고, 종목분석 진입 시에만 병렬 로드한다.
+    ensureWicsMap().catch(function () { /* 업종 태그는 기존 폴백으로 표시한다. */ });
     loadSignalData(container);
     autoSearchFromUrl(container);
 
@@ -1016,6 +1021,19 @@
       document.head.appendChild(script);
     });
     return krxMapPromise;
+  }
+
+  function ensureWicsMap() {
+    if (global.WICS_MAP) return Promise.resolve(global.WICS_MAP);
+    if (wicsMapPromise) return wicsMapPromise;
+    wicsMapPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = WICS_MAP_JS;
+      script.onload = function () { resolve(global.WICS_MAP || {}); };
+      script.onerror = function () { wicsMapPromise = null; reject(new Error('wics-map.js 로드 실패')); };
+      document.head.appendChild(script);
+    });
+    return wicsMapPromise;
   }
 
   // 키보드(위/아래 화살표)로 자동완성 항목 탐색 - box.__activeIndex에 현재 위치 저장

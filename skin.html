@@ -130,7 +130,7 @@
 <div id="shell-discTicker"></div>
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/stock-search-panel.css">
 <script src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-icon.js?v=20260811-auto-fallback"></script>
-<script src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-search-panel.js?v=fast-first-paint-20260812"></script>
+<script src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-search-panel.js?v=lazy-watchlist-20260828"></script>
 <!-- ============ PAGE ============ -->
 <div class="page-wrap">
   <div class="main-layout">
@@ -396,14 +396,12 @@
 <!-- ============ JAVASCRIPT ============ -->
 <!-- 스킨 공통 스크립트: git 관리. 수정은 git push로 (스킨 편집 불필요)
      skin-shell.js는 shell-* mount에 태그 없는 UI를 주입하므로 반드시 먼저 로드
-     (defer는 선언 순서 실행을 보장하므로 shell→menu→main, krx_map→tooltip 순서 유지됨) -->
+     (종목·업종 맵은 각 소비 모듈이 필요할 때 지연 로드한다) -->
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-shell.js?v=20260819-tistory-write-auth-v1"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js?v=20260820-modern-search-v2"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260827-market-briefing-list-v2"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260828-home-request-budget-v1"></script>
 
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js?v=20260828-lazy-krx-v1"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/sidebar-rank.js"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/investor-trend-widget.js"></script>
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/stock-discussion.css?v=discussion-16px">

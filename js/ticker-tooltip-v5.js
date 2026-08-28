@@ -7,6 +7,8 @@
   'use strict';
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  var KRX_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+  var krxMapPromise = null;
 
   // .post-single-body: 퍼머링크(글 상세) 본문, .post-excerpt: 메인/목록 화면 요약
   var CONTENT_SELECTORS = ['.post-single-body', '.post-excerpt', '.entry-content', '.article_view'];
@@ -41,10 +43,17 @@
 
   // ---- 데이터 로딩 (테스트에서 override 가능하도록 TickerTooltip 객체 메서드로 호출) ----
 
-  // data/krx_map.js가 ticker-tooltip.js보다 먼저 <script>로 로드되어
-  // window.KRX_MAP에 종목명->코드 매핑을 심어둔다는 전제.
   function loadKrxMap() {
-    return Promise.resolve(global.KRX_MAP || {});
+    if (global.KRX_MAP) return Promise.resolve(global.KRX_MAP);
+    if (krxMapPromise) return krxMapPromise;
+    krxMapPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = KRX_MAP_JS;
+      script.onload = function () { resolve(global.KRX_MAP || {}); };
+      script.onerror = function () { krxMapPromise = null; reject(new Error('krx_map.js 로드 실패')); };
+      document.head.appendChild(script);
+    });
+    return krxMapPromise;
   }
 
   function fetchTickerData(codes) {

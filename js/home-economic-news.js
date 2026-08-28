@@ -4,8 +4,8 @@
 
   var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=50';
   var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=70';
-  var DOMESTIC_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=20';
-  var US_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=us&limit=20';
+  var DOMESTIC_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
+  var US_MARKET_API_URL = 'https://goodbyestar.cloud/market-board?market=us&limit=40';
   var ECONOMIC_NEWS_WS_URL = 'wss://goodbyestar.cloud/ws/economic-news';
   var REFRESH_MS = 5 * 60 * 1000;
   var SESSION_CHECK_MS = 60 * 1000;
@@ -267,7 +267,12 @@
   function loadMarketBoard(market) {
     var marketUrl = market === 'us' ? US_MARKET_API_URL : DOMESTIC_MARKET_API_URL;
     state.market = market;
-    return fetchJson(marketUrl).then(function (json) {
+    // HomeRealtimeTable이 먼저 초기화되므로 같은 40건 시장판 Promise를 재사용한다.
+    // 단독 테스트나 모듈 로드 실패 때는 기존 REST 경로로 자연스럽게 폴백한다.
+    var request = global.HomeMarketBoard && typeof global.HomeMarketBoard.fetch === 'function'
+      ? global.HomeMarketBoard.fetch(market)
+      : fetchJson(marketUrl);
+    return request.then(function (json) {
       if (state.market !== market || currentMarket() !== market) return;
       state.quoteMap = quoteMapFrom(json);
       render(state.items, market, state.flash);

@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import secrets
+import threading
 import time
 import urllib.parse
 from collections import OrderedDict, deque
@@ -211,6 +212,8 @@ _MARKET_BOARD_TTL = 30
 # keeping ordinary home summary requests on the 30-second shared cache.
 _MARKET_BOARD_LIVE_TTL = 5
 _market_board_cache = {}
+_market_board_inflight = {}  # (market, limit) -> threading.Event
+_market_board_inflight_lock = threading.Lock()
 _KOFIA_MARKET_TTL = 30 * 60
 _kofia_market_cache = {}
 _DOMESTIC_MARKET_INDICATORS_TTL = 60
@@ -2441,97 +2444,125 @@ def market_board_endpoint(request: Request,
     market = 'us' if str(market).lower() == 'us' else 'domestic'
     key = (market, limit)
     now = time.time()
-    cached = _market_board_cache.get(key)
     cache_ttl = _MARKET_BOARD_LIVE_TTL if fresh else _MARKET_BOARD_TTL
+    cached = _market_board_cache.get(key)
     if cached is not None and now - cached['t'] < cache_ttl:
         return envelope(cached['data'])
+
+    # 홈의 종목판·경제뉴스가 거의 동시에 이 API를 호출한다. 캐시 미스마다 각각
+    # KIS/키움 순위 API를 호출하면 외부 API 지연과 스레드풀 점유가 방문자 수만큼
+    # 증폭되므로, 같은 (시장, limit)는 첫 요청 하나만 실제 조회하고 나머지는 기다린다.
+    with _market_board_inflight_lock:
+        cached = _market_board_cache.get(key)
+        if cached is not None and now - cached['t'] < cache_ttl:
+            return envelope(cached['data'])
+        completion = _market_board_inflight.get(key)
+        if completion is None:
+            completion = threading.Event()
+            _market_board_inflight[key] = completion
+            is_leader = True
+        else:
+            is_leader = False
+
+    if not is_leader:
+        completion.wait(timeout=25)
+        cached = _market_board_cache.get(key)
+        if cached is not None and time.time() - cached['t'] < cache_ttl:
+            return envelope(cached['data'])
+        raise HTTPException(status_code=503, detail='시장 종목판 갱신을 완료하지 못했습니다.')
+
     try:
-        wics_map = market_board.load_wics_map() if market == 'domestic' else None
-        if _market_board_source() == 'kis':
-            kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
-            kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
-            if market == 'us':
-                data = market_board.fetch_us_kis(
-                    kis_appkey,
-                    kis_appsecret,
+        try:
+            wics_map = market_board.load_wics_map() if market == 'domestic' else None
+            if _market_board_source() == 'kis':
+                kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
+                kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+                if market == 'us':
+                    data = market_board.fetch_us_kis(
+                        kis_appkey,
+                        kis_appsecret,
+                        limit=limit,
+                        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+                    )
+                    # KIS 순위 API는 지표별로 응답 가능 시간이 달라질 수 있다.
+                    # 거래대금 하나만 성공해도 전체 요청은 성공으로 끝나던 기존 구조에서는
+                    # 나머지 탭이 빈 화면으로 남았으므로, 비어 있는 기본 지표만 키움으로
+                    # 보완한다. KIS 데이터가 있으면 그대로 유지한다.
+                    missing_metrics = [
+                        metric for metric in ('tradeVolume', 'rising', 'falling', 'marketCap')
+                        if not (data.get('sections') or {}).get(metric)
+                    ]
+                    if missing_metrics:
+                        try:
+                            kiwoom_data = market_board.fetch_us(
+                                token=get_kiwoom_token(),
+                                limit=limit,
+                                finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+                            )
+                            kis_sections = data.setdefault('sections', {})
+                            kiwoom_sections = kiwoom_data.get('sections') or {}
+                            filled = []
+                            for metric in missing_metrics:
+                                rows = kiwoom_sections.get(metric) or []
+                                if rows:
+                                    kis_sections[metric] = rows[:limit]
+                                    filled.append(metric)
+                            if filled:
+                                data['source'] = '%s · 키움 지표별 폴백(%s)' % (
+                                    data.get('source') or 'KIS 미국 순위',
+                                    ', '.join(filled),
+                                )
+                                # fetch_us_kis() 안에서 이미 한 번 병합을 시도했지만, 그때는
+                                # KIS 자체 marketCap 섹션이 비어 있어(marketCap도 missing_metrics에
+                                # 포함된 경우) 병합할 재료가 없어 그냥 통과했다. 방금 키움으로
+                                # 채운 marketCap이 있으면 남은 KIS 원본 섹션(tradeAmount 등)에도
+                                # 회사명·시가총액을 다시 시도해 채운다(종목코드 기준 매칭이라
+                                # KIS/키움 소스가 섞여도 안전).
+                                market_board.merge_us_kis_metadata(kis_sections)
+                        except Exception as fallback_exc:
+                            logging.getLogger('main').warning(
+                                'KIS 미국 순위별 폴백 실패: %s', fallback_exc,
+                            )
+                else:
+                    data = market_board.fetch_domestic_kis(
+                        kis_appkey, kis_appsecret, limit=limit, wics_map=wics_map,
+                    )
+            elif market == 'us':
+                data = market_board.fetch_us(
+                    token=get_kiwoom_token(),
                     limit=limit,
                     finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
                 )
-                # KIS 순위 API는 지표별로 응답 가능 시간이 달라질 수 있다.
-                # 거래대금 하나만 성공해도 전체 요청은 성공으로 끝나던 기존 구조에서는
-                # 나머지 탭이 빈 화면으로 남았으므로, 비어 있는 기본 지표만 키움으로
-                # 보완한다. KIS 데이터가 있으면 그대로 유지한다.
-                missing_metrics = [
-                    metric for metric in ('tradeVolume', 'rising', 'falling', 'marketCap')
-                    if not (data.get('sections') or {}).get(metric)
-                ]
-                if missing_metrics:
-                    try:
-                        kiwoom_data = market_board.fetch_us(
+            else:
+                data = market_board.fetch_domestic(
+                    get_kiwoom_token(), limit=limit, wics_map=wics_map,
+                )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            if _market_board_source() == 'kis':
+                try:
+                    logging.getLogger('main').warning('KIS 시장 종목판 실패, 키움 폴백: %s', exc)
+                    if market == 'us':
+                        data = market_board.fetch_us(
                             token=get_kiwoom_token(),
                             limit=limit,
                             finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
                         )
-                        kis_sections = data.setdefault('sections', {})
-                        kiwoom_sections = kiwoom_data.get('sections') or {}
-                        filled = []
-                        for metric in missing_metrics:
-                            rows = kiwoom_sections.get(metric) or []
-                            if rows:
-                                kis_sections[metric] = rows[:limit]
-                                filled.append(metric)
-                        if filled:
-                            data['source'] = '%s · 키움 지표별 폴백(%s)' % (
-                                data.get('source') or 'KIS 미국 순위',
-                                ', '.join(filled),
-                            )
-                            # fetch_us_kis() 안에서 이미 한 번 병합을 시도했지만, 그때는
-                            # KIS 자체 marketCap 섹션이 비어 있어(marketCap도 missing_metrics에
-                            # 포함된 경우) 병합할 재료가 없어 그냥 통과했다. 방금 키움으로
-                            # 채운 marketCap이 있으면 남은 KIS 원본 섹션(tradeAmount 등)에도
-                            # 회사명·시가총액을 다시 시도해 채운다(종목코드 기준 매칭이라
-                            # KIS/키움 소스가 섞여도 안전).
-                            market_board.merge_us_kis_metadata(kis_sections)
-                    except Exception as fallback_exc:
-                        logging.getLogger('main').warning(
-                            'KIS 미국 순위별 폴백 실패: %s', fallback_exc,
+                    else:
+                        data = market_board.fetch_domestic(
+                            get_kiwoom_token(), limit=limit, wics_map=wics_map,
                         )
+                except Exception as fallback_error:
+                    raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', fallback_error) from fallback_error
             else:
-                data = market_board.fetch_domestic_kis(
-                    kis_appkey, kis_appsecret, limit=limit, wics_map=wics_map,
-                )
-        elif market == 'us':
-            data = market_board.fetch_us(
-                token=get_kiwoom_token(),
-                limit=limit,
-                finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
-            )
-        else:
-            data = market_board.fetch_domestic(
-                get_kiwoom_token(), limit=limit, wics_map=wics_map,
-            )
-    except HTTPException:
-        raise
-    except Exception as exc:
-        if _market_board_source() == 'kis':
-            try:
-                logging.getLogger('main').warning('KIS 시장 종목판 실패, 키움 폴백: %s', exc)
-                if market == 'us':
-                    data = market_board.fetch_us(
-                        token=get_kiwoom_token(),
-                        limit=limit,
-                        finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
-                    )
-                else:
-                    data = market_board.fetch_domestic(
-                        get_kiwoom_token(), limit=limit, wics_map=wics_map,
-                    )
-            except Exception as fallback_error:
-                raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', fallback_error) from fallback_error
-        else:
-            raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', exc) from exc
-    _market_board_cache[key] = {'t': now, 'data': data}
-    return envelope(data)
+                raise _upstream_http_exception('시장 종목판을 불러오지 못했습니다.', exc) from exc
+        _market_board_cache[key] = {'t': now, 'data': data}
+        return envelope(data)
+    finally:
+        with _market_board_inflight_lock:
+            _market_board_inflight.pop(key, None)
+            completion.set()
 
 
 @app.get('/order-book/{code}')

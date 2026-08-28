@@ -127,12 +127,12 @@
     })();
 
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260827-kst-calendar-v1';
+    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260828-home-cache-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260825-ws-fallback-v1')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260825-ws-fallback-v1';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260828-us-market-refresh-v2';
-    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260828-us-news-ko-v2';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260828-shared-market-board-v1';
+    var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260828-shared-market-board-v1';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260820-sentiment-color-fix-v1';
 
     function isWeekendReportWindow() {
@@ -1258,22 +1258,26 @@
       }).join('');
     }
 
-    loadHomeScript(CALENDAR_SCRIPT_URL, 'StockCalendar')
-      .then(function (calendar) {
-        if (!calendar || !calendar.fetchEvents) throw new Error('캘린더 모듈 없음');
-        var today = homeKstParts(new Date());
-        return calendar.fetchEvents(Number(today.year), Number(today.month) - 1)
-          .then(function (events) {
-            var current = nearestEvents(events);
-            if (current.items.length) return current;
-            return calendar.fetchEvents(Number(today.year), Number(today.month)).then(nearestEvents);
-          });
-      })
-      .then(renderSchedule)
-      .catch(function () {
-        var list = document.getElementById('homeScheduleList');
-        if (list) list.innerHTML = '<p class="home-card-state">일정을 불러오지 못했습니다.</p>';
-      });
+    // 일정은 즉시 의사결정에 필요한 시세보다 우선순위가 낮다. 홈의 API·WebSocket
+    // 연결이 자리 잡은 뒤 불러와 첫 화면에서 15초짜리 캘린더 요청이 경쟁하지 않게 한다.
+    window.setTimeout(function () {
+      loadHomeScript(CALENDAR_SCRIPT_URL, 'StockCalendar')
+        .then(function (calendar) {
+          if (!calendar || !calendar.fetchEvents) throw new Error('캘린더 모듈 없음');
+          var today = homeKstParts(new Date());
+          return calendar.fetchEvents(Number(today.year), Number(today.month) - 1)
+            .then(function (events) {
+              var current = nearestEvents(events);
+              if (current.items.length) return current;
+              return calendar.fetchEvents(Number(today.year), Number(today.month)).then(nearestEvents);
+            });
+        })
+        .then(renderSchedule)
+        .catch(function () {
+          var list = document.getElementById('homeScheduleList');
+          if (list) list.innerHTML = '<p class="home-card-state">일정을 불러오지 못했습니다.</p>';
+        });
+    }, 2000);
 
     /* 최신 마켓브리핑 8건: 대표 1건 + 오른쪽 3건 + 왼쪽 아래 4건으로 재구성한다. */
     var allCards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));

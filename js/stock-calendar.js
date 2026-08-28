@@ -30,6 +30,7 @@
   // 미국 장후 실적의 KST 날짜가 달라졌으므로 이전 현지일 캐시와 섞지 않는다.
   var CALENDAR_STORAGE_KEY = 'tistory-ticker:calendar-events:v3';
   var KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  var monthFetchInflight = {};
 
   // DART 공시의 정식 회사명이 KRX_MAP(data/krx_map.js)의 약칭 키와 다른 경우의 별칭.
   // 예: DART corp_name "현대자동차" vs KRX_MAP 키 "현대차"(005380).
@@ -192,11 +193,16 @@
   }
 
   function fetchEvents(year, month) {
-    return Promise.all([fetchGoogleEvents(year, month), fetchEarnings(year, month)])
+    var key = String(year) + '-' + String(month == null ? 'year' : month);
+    if (monthFetchInflight[key]) return monthFetchInflight[key];
+    var request = Promise.all([fetchGoogleEvents(year, month), fetchEarnings(year, month)])
       .then(function (results) {
         upsertStoredCalendarEvents((results[0] || []).concat(results[1] || []));
         return mergeEvents(storedMonthEvents(year, month), []);
       });
+    monthFetchInflight[key] = request;
+    request.then(function () { delete monthFetchInflight[key]; }, function () { delete monthFetchInflight[key]; });
+    return request;
   }
 
   function stripProviderLabel(rawTitle) {
