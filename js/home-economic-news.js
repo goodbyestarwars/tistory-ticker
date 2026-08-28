@@ -12,11 +12,15 @@
   var WS_RECONNECT_MS = 10 * 1000;
   var WS_FALLBACK_MS = 6 * 1000;
   var WS_KEEPALIVE_MS = 25 * 1000;
+  var CLIENT_TRANSLATION_URL = 'https://api.mymemory.translated.net/get';
+  var CLIENT_TRANSLATION_CACHE_KEY = 'hen_translation_cache_v1';
+  var CLIENT_TRANSLATION_CACHE_LIMIT = 200;
   var state = {
     mount: null, timer: null, sessionTimer: null, socket: null, socketGeneration: 0,
     socketOpened: false, socketReconnectTimer: null, socketFallbackTimer: null, socketKeepaliveTimer: null,
     market: '', quoteMap: {}, items: [], flash: [], loading: false, loadGeneration: 0,
-    flashTimer: null, flashRows: [], flashKey: '', flashIndex: 0
+    flashTimer: null, flashRows: [], flashKey: '', flashIndex: 0,
+    translationPromise: null
   };
 
   function escapeHtml(value) {
@@ -248,6 +252,138 @@
     });
   }
 
+  function validKoreanTranslation(original, translated) {
+    translated = String(translated || '').trim();
+    return !!(translated && translated !== String(original || '').trim() && /[가-힣]/.test(translated));
+  }
+
+  function readTranslationCache() {
+    try {
+      var cached = JSON.parse(localStorage.getItem(CLIENT_TRANSLATION_CACHE_KEY) || '{}');
+      return cached && typeof cached === 'object' && !Array.isArray(cached) ? cached : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function writeTranslationCache(cache) {
+    try {
+      var compact = {};
+      Object.keys(cache || {}).slice(-CLIENT_TRANSLATION_CACHE_LIMIT).forEach(function (title) {
+        if (validKoreanTranslation(title, cache[title])) compact[title] = cache[title];
+      });
+      localStorage.setItem(CLIENT_TRANSLATION_CACHE_KEY, JSON.stringify(compact));
+    } catch (error) { /* private mode/quota: keep the current render only */ }
+  }
+
+  function decodeTranslationText(value) {
+    var textarea = document.createElement('textarea');
+    textarea.innerHTML = String(value || '');
+    return textarea.value;
+  }
+
+  function applyCachedTranslations(items, cache) {
+    var changed = false;
+    (items || []).forEach(function (item) {
+      var title = String(item && item.title || '').trim();
+      if (!title || validKoreanTranslation(title, item.title_ko)) return;
+      if (validKoreanTranslation(title, cache[title])) {
+        item.title_ko = cache[title];
+        changed = true;
+      } else if (item && item.title_ko) {
+        delete item.title_ko;
+      }
+    });
+    return changed;
+  }
+
+  function clientTranslationGroups(titles) {
+    var groups = [];
+    var current = [];
+    var chars = 0;
+    titles.forEach(function (title, index) {
+      var segment = 'ZZZ' + index + 'ZZZ ' + title.slice(0, 400);
+      if (current.length && chars + segment.length + 1 > 450) {
+        groups.push(current);
+        current = [];
+        chars = 0;
+      }
+      current.push({ index: index, segment: segment });
+      chars += segment.length + (chars ? 1 : 0);
+    });
+    if (current.length) groups.push(current);
+    return groups;
+  }
+
+  function translateMissingTitles(items) {
+    if (state.translationPromise) return state.translationPromise;
+    var cache = readTranslationCache();
+    applyCachedTranslations(items, cache);
+    var titles = [];
+    (items || []).forEach(function (item) {
+      var title = String(item && item.title || '').trim();
+      if (titles.length >= 12 || !/[A-Za-z]/.test(title) || validKoreanTranslation(title, item.title_ko)
+          || titles.indexOf(title) >= 0) return;
+      titles.push(title);
+    });
+    if (!titles.length) return Promise.resolve(false);
+
+    var translations = {};
+    var groups = clientTranslationGroups(titles);
+    state.translationPromise = groups.reduce(function (promise, group) {
+      return promise.then(function () {
+        var joined = group.map(function (row) { return row.segment; }).join('\n');
+        var url = CLIENT_TRANSLATION_URL + '?q=' + encodeURIComponent(joined) + '&langpair=en%7Cko';
+        return fetch(url).then(function (response) {
+          if (!response.ok) throw new Error('client-translation ' + response.status);
+          return response.json();
+        }).then(function (payload) {
+          if (Number(payload && payload.responseStatus) !== 200) return;
+          var combined = decodeTranslationText(payload && payload.responseData && payload.responseData.translatedText);
+          var marker = /ZZZ(\d+)ZZZ\s*([\s\S]*?)(?=\n?ZZZ\d+ZZZ|$)/g;
+          var match;
+          while ((match = marker.exec(combined))) {
+            var index = Number(match[1]);
+            var translated = String(match[2] || '').trim();
+            if (index < titles.length && validKoreanTranslation(titles[index], translated)) {
+              translations[titles[index]] = translated;
+            }
+          }
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      var changed = false;
+      (items || []).forEach(function (item) {
+        var title = String(item && item.title || '').trim();
+        if (validKoreanTranslation(title, translations[title])) {
+          item.title_ko = translations[title];
+          cache[title] = translations[title];
+          changed = true;
+        }
+      });
+      if (changed) writeTranslationCache(cache);
+      return changed;
+    }).catch(function () {
+      return false;
+    }).then(function (changed) {
+      state.translationPromise = null;
+      return changed;
+    });
+    return state.translationPromise;
+  }
+
+  function ensureClientTranslations(market) {
+    if (market !== 'us') return;
+    var rows = state.items.concat(state.flash || []);
+    var cache = readTranslationCache();
+    if (applyCachedTranslations(rows, cache)) render(state.items, market, state.flash);
+    translateMissingTitles(rows).then(function (changed) {
+      if (changed && state.market === 'us' && currentMarket() === 'us') {
+        render(state.items, 'us', state.flash);
+      }
+    });
+  }
+
   function applyNewsPayload(payload) {
     var data = payload && (payload.data || payload);
     if (!data || !Array.isArray(data.items)) return false;
@@ -259,6 +395,7 @@
     state.items = data.items;
     state.flash = Array.isArray(data.flash) ? data.flash : [];
     render(state.items, market, state.flash);
+    ensureClientTranslations(market);
     state.loading = false;
     return true;
   }
@@ -367,6 +504,7 @@
       state.items = payload.items || [];
       state.flash = Array.isArray(payload.flash) ? payload.flash : state.flash;
       render(state.items, market, state.flash);
+      ensureClientTranslations(market);
     });
     var marketRequest = fetchJson(marketUrl).then(function (json) {
       if (generation !== state.loadGeneration || state.market !== market || currentMarket() !== market) return;

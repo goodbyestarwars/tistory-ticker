@@ -348,7 +348,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260828-us-premarket-session-v2", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260828-free-translation-fallback-v3", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -399,7 +399,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
-        self.assertIn("skin-main.js?v=20260828-us-premarket-session-v2", skin)
+        self.assertIn("skin-main.js?v=20260828-free-translation-fallback-v3", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -835,7 +835,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("hen-zigzag", news)
         self.assertIn(".app-news-event", style)
         self.assertIn(".app-news-date", style)
-        self.assertIn("v=20260828-us-premarket-session-v2", main)
+        self.assertIn("home-economic-news.js?v=20260828-free-translation-fallback-v3", main)
         self.assertIn(".hen-breaking { flex: 0 0 auto", style)
         self.assertIn(".home-economic-news .hen-breaking-list { height: 62px", style)
         self.assertNotIn("data-hen-breaking-form", main)
@@ -908,6 +908,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("# WebSocket의 기본 시장은 시간대 기준이다.", vm)
         self.assertIn("def _economic_news_market():", vm)
         self.assertIn("minutes >= 17 * 60 or minutes < 9 * 60", vm)
+
+    def test_home_economic_news_has_keyless_browser_translation_fallback(self):
+        news = self.read("js/home-economic-news.js")
+        for token in (
+            "CLIENT_TRANSLATION_URL = 'https://api.mymemory.translated.net/get'",
+            "CLIENT_TRANSLATION_CACHE_KEY = 'hen_translation_cache_v1'",
+            "function translateMissingTitles(items)",
+            "function ensureClientTranslations(market)",
+            "validKoreanTranslation(title, item.title_ko)",
+            "localStorage.setItem(CLIENT_TRANSLATION_CACHE_KEY",
+            "&langpair=en%7Cko",
+        ):
+            self.assertIn(token, news)
 
     def test_home_auto_switches_to_us_at_premarket_start(self):
         main = self.read("js/skin-main.js")
