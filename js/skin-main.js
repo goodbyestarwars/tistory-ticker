@@ -35,6 +35,72 @@
   window.setTimeout(reveal, 800);
 }());
 
+  /* ── 월별 /earnings-calendar 공유 로더 ──
+     홈의 일정 카드(stock-calendar.js)·미국 실적(home-widgets.js)·주간 리포트
+     (home-weekly-report.js)가 같은 year-month 조회를 제각각 fetch 하던 것을 한 번으로
+     합친다. 응답이 크고(월 단위 전체, 수백 KB) VM이 1코어라, 첫 화면에서 이 호출이
+     4번씩 겹치던 게 메인 지연의 큰 원인이었다. 60초 TTL 단일 요청을 공유하며, 실패는
+     빈 배열로 흡수한다(세 소비자 모두 .catch(()=>[]) 규약). */
+  (function () {
+    if (window.EarningsCalendarFeed) return;
+    var BASE = 'https://goodbyestar.cloud/earnings-calendar';
+    var TTL_MS = 60 * 1000;
+    var cache = {};
+    function month(year, monthNum) {
+      var key = year + '-' + monthNum;
+      var hit = cache[key];
+      if (hit && (hit.inflight || Date.now() - hit.at < TTL_MS)) return hit.promise;
+      var hasAbort = 'AbortController' in window;
+      var controller = hasAbort ? new AbortController() : null;
+      var timer = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
+      var promise = fetch(BASE + '?year=' + year + '&month=' + monthNum, controller ? { signal: controller.signal } : {})
+        .then(function (response) {
+          if (!response.ok) throw new Error('earnings-calendar ' + response.status);
+          return response.json();
+        })
+        .then(function (data) {
+          if (timer) clearTimeout(timer);
+          var rows = Array.isArray(data) ? data : (data && data.data) || [];
+          cache[key] = { promise: Promise.resolve(rows), at: Date.now(), inflight: false };
+          return rows;
+        })
+        .catch(function () {
+          if (timer) clearTimeout(timer);
+          delete cache[key];
+          return [];
+        });
+      cache[key] = { promise: promise, at: Date.now(), inflight: true };
+      return promise;
+    }
+    window.EarningsCalendarFeed = { month: month };
+  }());
+
+  /* ── /market-board 공유 로더 ──
+     홈 시장 요약(아래 loadHomeUsSummary)과 실시간 종목판(home-realtime-table.js)이 같은
+     market=us|domestic 데이터를 limit=20 / limit=40으로 따로 부르던 것을 합친다. 두 모듈이
+     같은 요청 풀(__homeMarketBoardRequests)·같은 limit·같은 30초 창을 공유하게 해 서버
+     캐시 키 분리와 콜드 미스 중복을 없앤다. home-realtime-table.js가 나중에 같은 이름으로
+     자기 구현을 올려도 풀·limit이 동일해 호환된다. */
+  (function () {
+    if (window.HomeMarketBoard) return;
+    var BASE = 'https://goodbyestar.cloud/market-board';
+    var LIMIT = 40;
+    var REFRESH_MS = 30 * 1000;
+    var pool = window.__homeMarketBoardRequests || (window.__homeMarketBoardRequests = {});
+    function fetchBoard(market, force) {
+      var key = market === 'us' ? 'us' : 'domestic';
+      var entry = pool[key] || (pool[key] = {});
+      if (!force && entry.data && Date.now() - entry.updatedAt < REFRESH_MS) return Promise.resolve(entry.data);
+      if (entry.promise) return entry.promise;
+      entry.promise = fetch(BASE + '?market=' + key + '&limit=' + LIMIT + (force ? '&fresh=1' : ''))
+        .then(function (response) { if (!response.ok) throw new Error('market-board ' + response.status); return response.json(); })
+        .then(function (json) { entry.data = json; entry.updatedAt = Date.now(); return json; });
+      entry.promise.then(function () { entry.promise = null; }, function () { entry.promise = null; });
+      return entry.promise;
+    }
+    window.HomeMarketBoard = { fetch: fetchBoard };
+  }());
+
   /* ── iframe 모드 감지 (모달 안에서 열릴 때 껍데기 숨김) ── */
   if (window !== window.top) {
     document.body.classList.add('iframe-mode');
@@ -1040,7 +1106,9 @@
     };
 
     loadHomeUsSummary = function () {
-      fetchHomeJson('https://goodbyestar.cloud/market-board?market=us&limit=20', 12000)
+      (window.HomeMarketBoard
+        ? window.HomeMarketBoard.fetch('us')
+        : fetchHomeJson('https://goodbyestar.cloud/market-board?market=us&limit=40', 12000))
         .then(renderUsMarketSummary)
         .catch(function () {
           setField('temperature', '데이터 확인 중', 'home-neutral');

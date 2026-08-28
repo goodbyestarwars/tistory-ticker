@@ -776,7 +776,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "data-home-summary-field=\"title\"",
             "미국 시장 요약",
             "상승 종목 비율",
-            "market-board?market=us&limit=20",
+            "window.HomeMarketBoard.fetch('us')",
+            "market-board?market=us&limit=40",
             "function summarizeUsMarket(data, indexItems)",
             "상대적으로 덜 하락한 상위 업종을 주도 업종으로 표시",
             "renderUsMarketSummary",
@@ -2027,6 +2028,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("home_watchlist_quotes_v1", widgets)
         self.assertIn("WATCHLIST_DISCLOSURES_URL", widgets)
         self.assertIn("readTimedCache", widgets)
+
+    def test_home_shares_earnings_calendar_and_market_board_requests(self):
+        # 홈 1회 로드에서 /earnings-calendar(월별, 수백 KB)와 /market-board를 여러 위젯이
+        # 제각각 호출하던 것을 skin-main.js의 공유 로더로 합친다. 세 소비자가 전역 로더를
+        # 우선 쓰고, 없을 때만 기존 직접 호출로 폴백해야 한다.
+        home = self.read("js/skin-main.js")
+        widgets = self.read("js/home-widgets.js")
+        weekly = self.read("js/home-weekly-report.js")
+        calendar = self.read("js/stock-calendar.js")
+        self.assertIn("window.EarningsCalendarFeed = { month: month }", home)
+        self.assertIn("window.HomeMarketBoard = { fetch: fetchBoard }", home)
+        self.assertIn("window.__homeMarketBoardRequests", home)
+        for consumer in (widgets, weekly):
+            self.assertIn("window.EarningsCalendarFeed", consumer)
+            self.assertIn("window.EarningsCalendarFeed.month(period.year, period.month)", consumer)
+        self.assertIn("global.EarningsCalendarFeed.month(year, month + 1)", calendar)
 
     def test_home_prioritizes_weekly_watchlist_disclosures(self):
         widgets = self.read("js/home-widgets.js")

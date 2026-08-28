@@ -81,6 +81,10 @@
   }
 
   function fetchEarnings(year, month) {
+    // skin-main.js가 제공하는 월별 공유 로더(60초 단일 요청)로 중복 호출을 없앤다.
+    // 홈에서 일정 카드·미국 실적·주간 리포트가 같은 월을 각자 fetch 하던 것을 합친다.
+    // 전역이 없으면(로드 실패 등) 기존 직접 호출로 폴백한다.
+    if (global.EarningsCalendarFeed) return global.EarningsCalendarFeed.month(year, month + 1);
     return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month + 1), 15000)
       .then(function (data) { return Array.isArray(data) ? data : (data && data.data) || []; })
       .catch(function () { return []; });

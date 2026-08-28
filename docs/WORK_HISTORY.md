@@ -1,5 +1,19 @@
 # 9Pay 주요 작업이력
 
+**2026-08-29 메인 페이지 속도 - 중복 API 호출 통합(1차)**: 홈 코드 리뷰 결과, 1회 로드가
+1코어 VM에 무거운 요청을 동시에 던지고 그 중 상당수가 중복이라 응답 꼬리가 15~36초까지
+늘어나는 것을 실측했다(`/market-board?market=us` limit=20/40 두 번, `/earnings-calendar`
+월별 응답 약 773KB를 일정 카드·미국 실적·주간 리포트가 각자 호출해 4회). `js/skin-main.js`
+최상단에 두 개의 공유 로더를 추가했다: `window.EarningsCalendarFeed.month(year, month)`는
+year-month 키로 60초 단일 요청을 공유하고, `window.HomeMarketBoard.fetch(market)`는
+`__homeMarketBoardRequests` 풀·limit=40·30초 창을 `home-realtime-table.js`와 공유한다.
+`home-widgets.js`/`home-weekly-report.js`/`stock-calendar.js`는 전역 로더를 우선 쓰고
+없을 때만 기존 직접 fetch로 폴백한다. skin-main의 US 요약도 limit=20 직접 호출 대신
+공유 로더를 쓴다. `test_ui_ia` 122건 통과, JS 문법 검사 통과. `js/`는 `master` 반영 후
+GitHub Pages 자동 배포. **후속(미착수)**: 렌더 블로킹 스크립트 3개 `defer`화, 죽은
+위젯(`investor-trend-widget.*`/`sidebar-rank.*`) 제거, `pretendard.css` 서브셋 - 모두
+`skin.html` 수동 반영이 필요해 이번 커밋에서 분리했다.
+
 **2026-08-29 경제 종합뉴스 번역 프리워밍 백그라운드 추가**: 무과금 번역 안정화(2026-08-28)
 이후에도 콜드 캐시 방문자가 영어 제목을 보는 현상이 남아 있었다. 온디맨드 경로
 (`translate_news_titles`)는 상위 20개만 번역을 시도하고 첫 `HTTP 429`에서 나머지 배치를

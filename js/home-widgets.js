@@ -991,6 +991,7 @@
       { year: nextMonth.getFullYear(), month: nextMonth.getMonth() + 1 }
     ];
     Promise.all(months.map(function (period) {
+      if (window.EarningsCalendarFeed) return window.EarningsCalendarFeed.month(period.year, period.month);
       return fetch(EARNINGS_CALENDAR_URL + '?year=' + period.year + '&month=' + period.month)
         .then(function (response) { if (!response.ok) throw new Error('미국 일정 응답 오류'); return response.json(); })
         .then(function (payload) { return Array.isArray(payload) ? payload : (payload && payload.data) || []; })
