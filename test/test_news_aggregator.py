@@ -20,19 +20,91 @@ class NewsAggregatorTests(unittest.TestCase):
         self.addCleanup(self.translation_patch.stop)
 
     def test_news_title_translation_keeps_original_and_adds_korean_text(self):
-        news_aggregator._translation_cache.clear()
-        response = mock.Mock()
-        response.read.return_value = '[[["번역된 헤드라인", "Original headline"]]]'.encode('utf-8')
-        response.__enter__ = mock.Mock(return_value=response)
-        response.__exit__ = mock.Mock(return_value=False)
-        with mock.patch.object(news_aggregator.urllib.request, 'urlopen', return_value=response) as urlopen:
-            translated = news_aggregator.translate_news_title('Original headline')
+        with tempfile.TemporaryDirectory() as temp_dir, \
+                mock.patch.object(news_aggregator, 'NEWS_CACHE_DB_FILE', os.path.join(temp_dir, 'news.db')):
+            news_aggregator._translation_cache.clear()
+            news_aggregator._translation_retry_after = 0
+            response = mock.Mock()
+            response.read.return_value = '[[["<<<0>>> 번역된 헤드라인", "<<<0>>> Original headline"]]]'.encode('utf-8')
+            response.__enter__ = mock.Mock(return_value=response)
+            response.__exit__ = mock.Mock(return_value=False)
+            with mock.patch.object(news_aggregator.urllib.request, 'urlopen', return_value=response) as urlopen:
+                translated = news_aggregator.translate_news_title('Original headline')
 
-        self.assertEqual(translated, '번역된 헤드라인')
-        self.assertEqual(urlopen.call_count, 1)
-        self.assertIn('tl=ko', urlopen.call_args.args[0].full_url)
-        self.assertEqual(news_aggregator.translate_news_title('Original headline'), '번역된 헤드라인')
-        self.assertEqual(urlopen.call_count, 1)
+                self.assertEqual(translated, '번역된 헤드라인')
+                self.assertEqual(urlopen.call_count, 1)
+                self.assertIn('translate.googleapis.com', urlopen.call_args.args[0].full_url)
+                self.assertIn('tl=ko', urlopen.call_args.args[0].full_url)
+                self.assertEqual(news_aggregator.translate_news_title('Original headline'), '번역된 헤드라인')
+                self.assertEqual(urlopen.call_count, 1)
+
+    def test_translation_batch_uses_one_request_and_persists_success(self):
+        with tempfile.TemporaryDirectory() as temp_dir, \
+                mock.patch.object(news_aggregator, 'NEWS_CACHE_DB_FILE', os.path.join(temp_dir, 'news.db')):
+            news_aggregator._translation_cache.clear()
+            news_aggregator._translation_retry_after = 0
+            response = mock.Mock()
+            response.read.return_value = (
+                '[[["<<<0>>> 첫 번째 번역\\n", "<<<0>>> First headline\\n"],'
+                '["<<<1>>> 두 번째 번역", "<<<1>>> Second headline"]]]'
+            ).encode('utf-8')
+            response.__enter__ = mock.Mock(return_value=response)
+            response.__exit__ = mock.Mock(return_value=False)
+            with mock.patch.object(news_aggregator.urllib.request, 'urlopen', return_value=response) as urlopen:
+                translated = news_aggregator._translations_for_titles(['First headline', 'Second headline'])
+            self.assertEqual(translated, {
+                'First headline': '첫 번째 번역',
+                'Second headline': '두 번째 번역',
+            })
+            self.assertEqual(urlopen.call_count, 1)
+
+            news_aggregator._translation_cache.clear()
+            with mock.patch.object(
+                    news_aggregator.urllib.request, 'urlopen',
+                    side_effect=AssertionError('persistent translation should be reused')):
+                cached = news_aggregator.translate_news_title('First headline')
+            self.assertEqual(cached, '첫 번째 번역')
+
+    def test_failed_translation_is_not_cached_as_korean_title(self):
+        with tempfile.TemporaryDirectory() as temp_dir, \
+                mock.patch.object(news_aggregator, 'NEWS_CACHE_DB_FILE', os.path.join(temp_dir, 'news.db')):
+            news_aggregator._translation_cache.clear()
+            news_aggregator._translation_retry_after = 0
+            failed = mock.Mock()
+            failed.read.return_value = '[[["<<<0>>> Original headline", "<<<0>>> Original headline"]]]'.encode('utf-8')
+            failed.__enter__ = mock.Mock(return_value=failed)
+            failed.__exit__ = mock.Mock(return_value=False)
+            success = mock.Mock()
+            success.read.return_value = '[[["<<<0>>> 재시도 성공", "<<<0>>> Original headline"]]]'.encode('utf-8')
+            success.__enter__ = mock.Mock(return_value=success)
+            success.__exit__ = mock.Mock(return_value=False)
+            with mock.patch.object(news_aggregator.urllib.request, 'urlopen', side_effect=[failed, success]) as urlopen:
+                self.assertEqual(news_aggregator.translate_news_title('Original headline'), 'Original headline')
+                self.assertNotIn('Original headline', news_aggregator._translation_cache)
+                self.assertEqual(news_aggregator.translate_news_title('Original headline'), '재시도 성공')
+            self.assertEqual(urlopen.call_count, 2)
+
+    def test_translation_uses_existing_curl_when_python_transport_is_rate_limited(self):
+        news_aggregator._translation_prefer_curl = False
+        self.addCleanup(setattr, news_aggregator, '_translation_prefer_curl', False)
+        rate_limit = news_aggregator.urllib.error.HTTPError(
+            news_aggregator.TRANSLATION_URL, 429, 'Too Many Requests', {}, None
+        )
+        completed = mock.Mock(
+            stdout='[[["<<<0>>> 무료 번역", "<<<0>>> Free translation"]]]'.encode('utf-8')
+        )
+        query = news_aggregator.urllib.parse.urlencode({
+            'client': 'gtx', 'sl': 'auto', 'tl': 'ko', 'dt': 't',
+            'q': '<<<0>>> Free translation',
+        })
+        with mock.patch.object(news_aggregator.urllib.request, 'urlopen', side_effect=rate_limit), \
+                mock.patch.object(news_aggregator.subprocess, 'run', return_value=completed) as run:
+            payload = news_aggregator._request_translation_payload(query)
+
+        self.assertEqual(payload[0][0][0], '<<<0>>> 무료 번역')
+        self.assertTrue(news_aggregator._translation_prefer_curl)
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(run.call_args.args[0][0], 'curl')
 
     def test_persistent_cache_skips_provider_calls_until_expired(self):
         with tempfile.TemporaryDirectory() as temp_dir:

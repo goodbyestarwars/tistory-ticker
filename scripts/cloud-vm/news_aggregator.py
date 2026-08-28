@@ -12,9 +12,11 @@ import logging
 import os
 import re
 import sqlite3
+import subprocess
 import threading
 import time
 import urllib.parse
+import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
@@ -47,11 +49,16 @@ NEWS_CACHE_LOCK = threading.Lock()
 GENERAL_NEWS_CACHE_TTL_SEC = 5 * 60
 GENERAL_NEWS_CACHE_LOCK = threading.Lock()
 _general_news_cache = (0, [])
-TRANSLATION_URL = 'https://translate.google.com/translate_a/single'
+TRANSLATION_URL = 'https://translate.googleapis.com/translate_a/single'
 TRANSLATION_TIMEOUT_SEC = 5
-TRANSLATION_CACHE_MAX = 512
+TRANSLATION_CACHE_MAX = 2048
+TRANSLATION_BATCH_SIZE = 10
+TRANSLATION_RATE_LIMIT_COOLDOWN_SEC = 5 * 60
 TRANSLATION_CACHE_LOCK = threading.Lock()
+TRANSLATION_REQUEST_LOCK = threading.Lock()
 _translation_cache = {}
+_translation_retry_after = 0
+_translation_prefer_curl = False
 SEC_FILINGS_CACHE_TTL_SEC = 5 * 60
 SEC_FILINGS_LOCK = threading.Lock()
 _sec_filings_cache = (0, [])
@@ -94,6 +101,11 @@ def _cache_connect():
         );
         CREATE INDEX IF NOT EXISTS idx_us_news_cache_symbol_published
             ON us_news_cache(symbol, published_ts DESC);
+        CREATE TABLE IF NOT EXISTS news_translation_cache (
+            title TEXT PRIMARY KEY,
+            translated TEXT NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
     ''')
     meta_columns = {row[1] for row in conn.execute('PRAGMA table_info(us_news_cache_meta)').fetchall()}
     if 'cache_version' not in meta_columns:
@@ -257,54 +269,211 @@ def get_or_refresh_news(symbol, naver_fetcher=None, alpha_api_key='', finnhub_ap
         return translate_news_titles(items, max_items=min(10, len(items)))
 
 
-def translate_news_title(title):
-    """Translate a public news title for display while keeping the original link/title.
+def _valid_translation(original, translated):
+    translated = str(translated or '').strip()
+    return bool(translated and translated != original and re.search(r'[가-힣]', translated))
 
-    Google Translate's public web endpoint is used only for short headlines; failures
-    return the original text so the news feed never depends on translation uptime.
-    Results are process-cached because the same headlines are shown to many visitors.
-    """
-    text = str(title or '').strip()
-    if not text or not re.search(r'[A-Za-z]', text):
-        return text
+
+def _load_persistent_translations(titles):
+    titles = list(dict.fromkeys(str(title or '').strip() for title in titles if str(title or '').strip()))
+    if not titles:
+        return {}
+    conn = None
+    try:
+        conn = _cache_connect()
+        placeholders = ','.join('?' for _ in titles)
+        rows = conn.execute(
+            'SELECT title, translated FROM news_translation_cache WHERE title IN (%s)' % placeholders,
+            titles,
+        ).fetchall()
+        return {
+            row['title']: row['translated'] for row in rows
+            if _valid_translation(row['title'], row['translated'])
+        }
+    except sqlite3.Error:
+        logger.warning('News translation cache read failed', exc_info=True)
+        return {}
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def _save_persistent_translations(translations):
+    valid = {
+        str(title).strip(): str(translated).strip()
+        for title, translated in (translations or {}).items()
+        if _valid_translation(str(title).strip(), translated)
+    }
+    if not valid:
+        return
+    conn = None
+    try:
+        conn = _cache_connect()
+        with conn:
+            conn.executemany('''
+                INSERT OR REPLACE INTO news_translation_cache(title, translated, updated_at)
+                VALUES (?, ?, ?)
+            ''', [(title, translated, int(time.time())) for title, translated in valid.items()])
+    except sqlite3.Error:
+        logger.warning('News translation cache write failed', exc_info=True)
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def _remember_translations(translations):
+    valid = {
+        title: translated for title, translated in (translations or {}).items()
+        if _valid_translation(title, translated)
+    }
+    if not valid:
+        return
     with TRANSLATION_CACHE_LOCK:
-        if text in _translation_cache:
-            return _translation_cache[text]
+        for title, translated in valid.items():
+            while len(_translation_cache) >= TRANSLATION_CACHE_MAX:
+                _translation_cache.pop(next(iter(_translation_cache)))
+            _translation_cache[title] = translated
+    _save_persistent_translations(valid)
+
+
+def _request_translation_payload(query):
+    """Use urllib first and fall back to the VM's existing curl binary.
+
+    Google can rate-limit Python's TLS client fingerprint while accepting the exact
+    same free request through curl. deploy_check.sh already requires curl on the VM,
+    so this adds no package or paid service. Once fallback succeeds, the process keeps
+    using curl and avoids a guaranteed rejected probe on every refresh.
+    """
+    global _translation_prefer_curl
+    url = TRANSLATION_URL + '?' + query
+
+    def via_curl():
+        completed = subprocess.run(
+            ['curl', '--fail', '--silent', '--show-error', '--max-time',
+             str(TRANSLATION_TIMEOUT_SEC), url],
+            capture_output=True,
+            check=True,
+            timeout=TRANSLATION_TIMEOUT_SEC + 2,
+        )
+        return json.loads(completed.stdout.decode('utf-8'))
+
+    if _translation_prefer_curl:
+        return via_curl()
+    request = urllib.request.Request(
+        url,
+        headers={
+            'User-Agent': 'Mozilla/5.0 (compatible; tistory-ticker/1.0)',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=TRANSLATION_TIMEOUT_SEC) as response:
+            return json.loads(response.read().decode('utf-8'))
+    except Exception as original_error:
+        try:
+            payload = via_curl()
+            _translation_prefer_curl = True
+            return payload
+        except Exception:
+            raise original_error
+
+
+def _translate_title_batch_unlocked(titles):
+    """Translate several public headlines with one free request.
+
+    The previous implementation issued one request per headline with four workers,
+    which quickly triggered HTTP 429. Numbered markers let a single response be split
+    back into titles. Failed/original results are deliberately not cached so a later
+    refresh can retry after the short process-wide cooldown.
+    """
+    global _translation_retry_after
+    titles = [str(title or '').strip() for title in titles]
+    titles = [title for title in titles if title and re.search(r'[A-Za-z]', title)]
+    if not titles or time.time() < _translation_retry_after:
+        return {}
+    joined = '\n'.join('<<<%d>>> %s' % (index, title[:500]) for index, title in enumerate(titles))
     try:
         query = urllib.parse.urlencode({
-            'client': 'gtx', 'sl': 'auto', 'tl': 'ko', 'dt': 't', 'q': text[:500],
+            'client': 'gtx', 'sl': 'auto', 'tl': 'ko', 'dt': 't', 'q': joined,
         })
-        request = urllib.request.Request(
-            TRANSLATION_URL + '?' + query,
-            headers={'User-Agent': 'tistory-ticker/1.0'},
-        )
-        with urllib.request.urlopen(request, timeout=TRANSLATION_TIMEOUT_SEC) as response:
-            payload = json.loads(response.read().decode('utf-8'))
-        translated = ''.join(
+        payload = _request_translation_payload(query)
+        combined = ''.join(
             str(part[0]) for part in (payload[0] if isinstance(payload, list) else [])
             if isinstance(part, list) and part and part[0]
         ).strip()
-        result = translated or text
+        matches = re.findall(r'<<<(\d+)>>>\s*(.*?)(?=\n?<<<\d+>>>|$)', combined, re.DOTALL)
+        result = {}
+        for index_text, translated in matches:
+            index = int(index_text)
+            if index < len(titles) and _valid_translation(titles[index], translated):
+                result[titles[index]] = translated.strip()
+        return result
+    except urllib.error.HTTPError as error:
+        if error.code == 429:
+            _translation_retry_after = time.time() + TRANSLATION_RATE_LIMIT_COOLDOWN_SEC
+            logger.warning('News title translation rate limited; retry delayed')
+        else:
+            logger.warning('News title translation HTTP failure: %s', error.code)
+        return {}
     except Exception:
         logger.warning('News title translation failed', exc_info=True)
-        result = text
+        return {}
+
+
+def _translate_title_batch(titles):
+    # General feed and per-symbol detail requests can arrive together. Serialize only
+    # the small translation call so they reuse the just-written cache instead of
+    # creating another request burst.
+    with TRANSLATION_REQUEST_LOCK:
+        cached = _load_persistent_translations(titles)
+        missing = [title for title in titles if title not in cached]
+        cached.update(_translate_title_batch_unlocked(missing))
+        return cached
+
+
+def _translations_for_titles(titles):
+    titles = list(dict.fromkeys(str(title or '').strip() for title in titles if str(title or '').strip()))
+    result = {}
     with TRANSLATION_CACHE_LOCK:
-        if len(_translation_cache) >= TRANSLATION_CACHE_MAX:
-            _translation_cache.pop(next(iter(_translation_cache)))
-        _translation_cache[text] = result
+        result.update({title: _translation_cache[title] for title in titles if title in _translation_cache})
+    missing = [title for title in titles if title not in result and re.search(r'[A-Za-z]', title)]
+    if missing:
+        persisted = _load_persistent_translations(missing)
+        result.update(persisted)
+        with TRANSLATION_CACHE_LOCK:
+            _translation_cache.update(persisted)
+    missing = [title for title in missing if title not in result]
+    for start in range(0, len(missing), TRANSLATION_BATCH_SIZE):
+        translated = _translate_title_batch(missing[start:start + TRANSLATION_BATCH_SIZE])
+        if translated:
+            _remember_translations(translated)
+            result.update(translated)
+        elif time.time() < _translation_retry_after:
+            break
     return result
 
 
+def translate_news_title(title):
+    """Translate one public headline, reusing the same persistent free cache."""
+    text = str(title or '').strip()
+    if not text or not re.search(r'[A-Za-z]', text):
+        return text
+    return _translations_for_titles([text]).get(text, text)
+
+
 def translate_news_titles(items, max_items=10):
-    """Attach title_ko to a bounded set of news rows without changing title."""
+    """Attach successful Korean translations without caching failure fallbacks."""
     rows = list(items or [])
     selected = rows[:max(0, int(max_items or 0))]
     if not selected:
         return rows
-    with ThreadPoolExecutor(max_workers=min(4, len(selected))) as executor:
-        translated = list(executor.map(lambda item: translate_news_title(item.get('title')), selected))
-    for item, title_ko in zip(selected, translated):
-        item['title_ko'] = title_ko
+    titles = [str(item.get('title') or '').strip() for item in selected]
+    translations = _translations_for_titles(titles)
+    for item, title in zip(selected, titles):
+        if title in translations:
+            item['title_ko'] = translations[title]
+        else:
+            item.pop('title_ko', None)
     return rows
 
 
