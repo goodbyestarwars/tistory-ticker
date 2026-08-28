@@ -46,8 +46,11 @@
     <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260827-market-briefing-list-v2" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ui-system.css?v=20260827-ui-system-v1" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
-  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/sidebar-rank.css" />
-  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/investor-trend-widget.css" />
+  <!-- 2026-08-29: sidebar-rank.css / investor-trend-widget.css 제거. 두 위젯은 홈에서만
+       쓰였는데 js/skin-main.js buildHomeDashboard가 그 mount(#sidebar-rank /
+       #investor-trend-widget)를 제거하고 자체 구현으로 대체하면서 죽은 코드가 됐다.
+       기능은 home-realtime-table.js(거래량 TOP)와 skin-main의 renderHomeInvestorTrend가
+       그대로 담당한다. -->
   <!-- 기본(명조) 폰트 마루 부리 - 2026-08부터 'Noto Serif KR'을 대체. 이전엔 이 이름의
        웹폰트를 실제로 로드하는 <link>가 없어서(이 파일에 없었음) 방문자 OS에 그 폰트가
        깔려있지 않으면 그냥 Georgia/serif 폴백으로 보이던 상태였다 - 이걸로 실제 로드됨. -->
@@ -129,8 +132,11 @@
 <!-- KRX 공시 티커: git js/skin-shell.js가 껍데기 주입, 내용은 skin-main.js가 GAS에서 받아와 채움 -->
 <div id="shell-discTicker"></div>
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/stock-search-panel.css">
-<script src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-icon.js?v=20260811-auto-fallback"></script>
-<script src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-search-panel.js?v=my-batch-quotes-20260829"></script>
+<!-- 2026-08-29: defer 추가. 두 스크립트 모두 DOMContentLoaded에서 자기 초기화하고
+     (stock-search-panel은 skin-menu.js가 안 그렸으면 재시도 루프로 대기) 파싱 중
+     실행될 이유가 없다 - non-defer라 HTML 파싱을 막던 것을 해제. -->
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-icon.js?v=20260811-auto-fallback"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-search-panel.js?v=my-batch-quotes-20260829"></script>
 <!-- ============ PAGE ============ -->
 <div class="page-wrap">
   <div class="main-layout">
@@ -163,11 +169,9 @@
       <!-- 세부 카테고리 서브 필터: git js/skin-shell.js가 주입, 내용은 skin-main.js가 동적 표시 -->
       <div id="shell-subFilterBar"></div>
 
-      <!-- 투자자별 매매 동향 위젯(작업지시서 #4, 2026-07-20) — 예전 공지사항 고정 카드
-           (#pinnedNotice) 자리를 대체. js/investor-trend-widget.js가 홈("/")에서만 채움.
-           공지 자체는 삭제가 아니라 비노출 처리(지시서 6.비고) — /notice 글은 그대로 남아있고
-           s_notice_rep 루프(아래)도 유지, 퍼머링크 접근은 그대로 동작함 -->
-      <div id="investor-trend-widget"></div>
+      <!-- 2026-08-29: #investor-trend-widget mount 제거. js/skin-main.js가 홈에서 이 mount를
+           제거하고 자체 renderHomeInvestorTrend로 대체해와서 위젯이 렌더된 적이 없다(죽은 코드).
+           대시보드는 skin-main이 첫 글 카드 앞에 삽입한다. 공지 비노출 정책은 그대로. -->
 
       <!-- 공지사항 — 인덱스에서는 요약 카드, /notice/글번호 퍼머링크에서는 전체 본문 -->
       <s_notice_rep>
@@ -372,15 +376,11 @@
     </section>
 
     <!-- ====== RIGHT SIDEBAR ====== -->
-    <aside class="sidebar-right">
-
-      <!-- 2026-07-20: 인기글/해시태그(태그 없는 순수 UI 아님, 티스토리 서버 치환 태그라
-           git으로 못 옮김) -> 실시간 시장데이터(거래대금/상한가/하한가)로 교체(작업지시서).
-           js/sidebar-rank.js가 이 빈 mount를 채운다(quick-indices의 shell-* mount와 동일 패턴,
-           단 이건 페이지 태그가 아니라 순수 위젯이라 skin-shell.js를 거치지 않고 자기 스스로 마운트). -->
-      <div id="sidebar-rank"></div>
-
-    </aside>
+    <!-- 2026-08-29: #sidebar-rank mount 제거. js/skin-main.js가 홈에서 이 mount를 제거하고
+         거래량 TOP 등은 home-realtime-table.js가 대체해와서 위젯이 렌더된 적이 없다(죽은 코드).
+         홈이 아닌 화면에서는 html.full-width-page가 이 aside를 숨긴다. .main-layout 그리드
+         구조 유지를 위해 빈 aside는 남겨둔다. -->
+    <aside class="sidebar-right"></aside>
 
   </div>
 
@@ -399,11 +399,10 @@
      (종목·업종 맵은 각 소비 모듈이 필요할 때 지연 로드한다) -->
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-shell.js?v=20260819-tistory-write-auth-v1"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js?v=20260820-modern-search-v2"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260829-my-quotes-layout-v1"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260829-perf-shared-loaders-v1"></script>
 
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js?v=20260828-lazy-krx-v1"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/sidebar-rank.js"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/investor-trend-widget.js"></script>
+<!-- 2026-08-29: sidebar-rank.js / investor-trend-widget.js 제거(죽은 코드 - 위 mount 주석 참고). -->
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/stock-discussion.css?v=discussion-16px">
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-discussion.js?v=20260811-auto-icon-fallback"></script>
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/quick-indices.css">

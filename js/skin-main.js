@@ -410,7 +410,12 @@
       applyHomeMarketSession(homeMarketSession());
       if (weeklyReportModule && weeklyReportModule.init) weeklyReportModule.init();
     });
-    feed.insertBefore(dashboardSection, investorMount);
+    // 대시보드는 피드 최상단(첫 공지/글 카드 바로 앞)에 넣는다. 예전엔 이제 제거된
+    // #investor-trend-widget mount를 기준점으로 썼는데, 그 mount가 없어도 위치가
+    // 유지되도록 첫 카드를 기준점으로 폴백한다.
+    var dashboardAnchor = investorMount || feed.querySelector('.notice-card, .post-card');
+    if (dashboardAnchor) feed.insertBefore(dashboardSection, dashboardAnchor);
+    else feed.appendChild(dashboardSection);
     if (investorMount) investorMount.remove();
     if (rankMount) rankMount.remove();
     var oldSidebar = document.querySelector('.sidebar-right');

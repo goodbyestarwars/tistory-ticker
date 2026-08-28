@@ -10,9 +10,25 @@ year-month 키로 60초 단일 요청을 공유하고, `window.HomeMarketBoard.f
 `home-widgets.js`/`home-weekly-report.js`/`stock-calendar.js`는 전역 로더를 우선 쓰고
 없을 때만 기존 직접 fetch로 폴백한다. skin-main의 US 요약도 limit=20 직접 호출 대신
 공유 로더를 쓴다. `test_ui_ia` 122건 통과, JS 문법 검사 통과. `js/`는 `master` 반영 후
-GitHub Pages 자동 배포. **후속(미착수)**: 렌더 블로킹 스크립트 3개 `defer`화, 죽은
-위젯(`investor-trend-widget.*`/`sidebar-rank.*`) 제거, `pretendard.css` 서브셋 - 모두
-`skin.html` 수동 반영이 필요해 이번 커밋에서 분리했다.
+GitHub Pages 자동 배포.
+
+**2026-08-29 메인 페이지 속도 - 죽은 위젯 제거 + 렌더 블로킹 스크립트 defer(2차, skin.html)**:
+`js/investor-trend-widget.*`와 `js/sidebar-rank.*`는 홈에서만 쓰였는데
+`skin-main.js buildHomeDashboard`가 두 mount(`#investor-trend-widget`/`#sidebar-rank`)를
+`.remove()` 하고 자체 구현(`renderHomeInvestorTrend`/`home-realtime-table.js`)으로
+대체하면서 렌더된 적이 없는 죽은 코드였다(라이브 DOM으로 확인). `skin.html`에서 두
+`<link>`·두 `<script>`·두 mount div를 제거했다(JS/CSS 파일 자체는 롤백 대비 저장소에
+유지). skin-main은 이제 없어진 mount 대신 첫 글 카드를 기준점으로 대시보드를 삽입한다
+(`dashboardAnchor` 폴백). `stock-icon.js`·`stock-search-panel.js`는 non-defer라 HTML
+파싱을 막던 것을 `defer`로 바꿨다(둘 다 DOMContentLoaded 자기 초기화, stock-search-panel은
+skin-menu 미완이면 재시도 루프). 로컬(mock Tistory 태그 + 실제 git JS, `python http.server`)
+데스크톱·모바일 375px 검증: 대시보드 위치·투자자 동향·실시간판·나브 검색·수평
+스크롤 없음 정상, 콘솔 에러 없음(로컬 CORS 차단 제외). `pretendard.css`는 실측 결과
+현재 woff2를 한 개도 안 받고 있어(시스템 폴백) dynamic-subset 교체가 실익 없어 보류했다.
+`test_ui_ia` 122건 통과. **skin.html은 자동 배포가 아니므로 사용자가 Tistory 관리자 →
+꾸미기 → 스킨 편집 → HTML에 직접 붙여넣어야 반영된다**(먼저 `js/`가 GitHub Pages에
+올라온 것을 확인한 뒤). **후속(미착수)**: `quick-indices.js` defer+위치이동(skin-main보다
+먼저 실행돼야 `window.QuickIndices` 공유 유지), `/futures` 심볼셋 통일.
 
 **2026-08-29 경제 종합뉴스 번역 프리워밍 백그라운드 추가**: 무과금 번역 안정화(2026-08-28)
 이후에도 콜드 캐시 방문자가 영어 제목을 보는 현상이 남아 있었다. 온디맨드 경로
