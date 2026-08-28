@@ -410,9 +410,15 @@
     state.detailLoadedSymbol = symbol;
     loadOrderbook();
     loadNativeChart();
-    loadAnalysis();
-    renderCongressLinks();
-    loadNews(localizedUsName(quote.symbol, quote.name));
+    // 시세·호가·현재 보이는 일봉이 먼저 연결되게 하고, 화면 아래의 분석·뉴스는
+    // 잠시 뒤 시작한다. 외부 뉴스와 차트가 동시에 느릴 때 VM 스레드풀이 포화되어
+    // 현재가까지 늦어지던 경쟁을 피한다.
+    global.setTimeout(function () {
+      if (state.symbol !== symbol || state.detailLoadedSymbol !== symbol) return;
+      loadAnalysis();
+      renderCongressLinks();
+      loadNews(localizedUsName(quote.symbol, quote.name));
+    }, 750);
   }
 
   function renderQuote(quote) {

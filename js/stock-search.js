@@ -1561,18 +1561,17 @@
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
 
-    var dailyPromise = Promise.resolve().then(function () { return options.load('daily'); }).catch(function () { return []; });
-    var minutePromise = Promise.resolve().then(function () { return options.load('minute', state.minuteScope); }).catch(function () { return []; });
-    return Promise.all([dailyPromise, minutePromise]).then(function (result) {
-      var daily = Array.isArray(result[0]) ? result[0] : [];
-      var minute = Array.isArray(result[1]) ? result[1] : [];
-      if (!daily.length && !minute.length) throw new Error('NO_DATA');
+    // 첫 화면은 일봉만 보인다. 이전에는 보이지 않는 분봉까지 동시에 조회해서
+    // 미국 상세 진입 때 뉴스·일봉·분봉 외부 요청이 한꺼번에 몰렸다. 분봉은 탭을
+    // 실제로 눌렀을 때 renderMinuteChart()가 조회한다.
+    return Promise.resolve().then(function () { return options.load('daily'); }).then(function (dailyResult) {
+      var daily = Array.isArray(dailyResult) ? dailyResult : [];
+      if (!daily.length) throw new Error('NO_DATA');
       state.chartCache[code] = { t: Date.now(), data: { daily: daily } };
-      state.minuteCache[minuteCacheKey(code, state.minuteScope)] = { t: Date.now(), bars: minute };
-      if (state.selectedCode !== code) return { daily: daily, minute: minute };
+      if (state.selectedCode !== code) return { daily: daily, minute: [] };
       wireChartTabs(container);
       renderChartForCode(container, code);
-      return { daily: daily, minute: minute };
+      return { daily: daily, minute: [] };
     }).catch(function (error) {
       var chartEl = container.querySelector('#ssChart');
       if (chartEl && state.selectedCode === code) chartEl.innerHTML = '<div class="ss-hint ss-error">차트 데이터를 불러오지 못했습니다.</div>';

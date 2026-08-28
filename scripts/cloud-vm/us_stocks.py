@@ -2,7 +2,7 @@
 """미국주식 검색·시세 어댑터.
 
 시세 우선순위는 키움 REST API -> 한국투자증권 Open API다.
-차트는 키움 실패 시 Yahoo 공개 차트 데이터로 보완한다.
+분봉은 키움 우선, 2년 일봉은 Yahoo 공개 차트 우선으로 조회한다.
 """
 
 import logging
@@ -30,6 +30,7 @@ US_SEARCH_ALIASES = {
 }
 SEARCH_TTL_SEC = 600
 QUOTE_TTL_SEC = 10
+CHART_TTL_SEC = {'minute': 30, 'daily': 5 * 60}
 MAX_CACHE_ENTRIES = 100
 NY_TZ = ZoneInfo('America/New_York')
 US_DAILY_LOOKBACK_CALENDAR_DAYS = 730
@@ -40,6 +41,7 @@ YAHOO_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/'
 _cache_lock = threading.Lock()
 _search_cache = {}
 _quote_cache = {}
+_chart_cache = {}
 _symbol_cache = {'saved_at': 0, 'rows': []}
 _symbol_exchange = {}
 
@@ -360,6 +362,22 @@ def chart(symbol, timeframe='minute', tic_scope='1'):
     tic_scope = str(tic_scope or '1')
     if tic_scope not in US_MINUTE_SCOPES:
         raise ValueError('tic_scope는 1/3/5/30/60 중 하나여야 합니다.')
+    cache_key = (symbol, timeframe, tic_scope)
+    cached = _cache_get(_chart_cache, cache_key, CHART_TTL_SEC[timeframe])
+    if cached is not None:
+        return cached
+
+    # 키움 usa06012는 2년을 요청해도 약 100개로 잘린 일봉을 주는 경우가 많아,
+    # 결국 Yahoo 2년 보완 호출까지 직렬로 거쳤다. 첫 차트가 6초 이상 걸리던
+    # 주된 원인이므로, 장기 이동평균에 필요한 일봉은 바로 Yahoo에서 가져온다.
+    if timeframe == 'daily':
+        try:
+            data = _yahoo_chart(symbol, timeframe, tic_scope=tic_scope)
+            _cache_put(_chart_cache, cache_key, data)
+            return data
+        except Exception as exc:
+            raise UsStockUnavailable('미국주식 일봉 차트 조회 실패') from exc
+
     last_error = None
     if _has_kiwoom():
         try:
@@ -408,12 +426,14 @@ def chart(symbol, timeframe='minute', tic_scope='1'):
                 )
                 if points and has_long_daily_history:
                     points.sort(key=lambda point: point['time'])
-                    return {
+                    data = {
                         'market': 'us', 'symbol': symbol, 'code': 'US:' + symbol,
                         'timeframe': timeframe, 'exchange': exchange,
                         'points': points, 'updated_at': int(time.time()),
                         'source': '키움증권 REST API',
                     }
+                    _cache_put(_chart_cache, cache_key, data)
+                    return data
                 if timeframe == 'daily' and points:
                     logger.warning(
                         'Kiwoom daily chart returned only %s points for %s; using Yahoo two-year fallback',
@@ -422,7 +442,9 @@ def chart(symbol, timeframe='minute', tic_scope='1'):
         except Exception as exc:
             last_error = exc
     try:
-        return _yahoo_chart(symbol, timeframe, tic_scope=tic_scope)
+        data = _yahoo_chart(symbol, timeframe, tic_scope=tic_scope)
+        _cache_put(_chart_cache, cache_key, data)
+        return data
     except Exception as exc:
         if last_error is None:
             last_error = exc

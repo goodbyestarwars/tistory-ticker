@@ -12,6 +12,7 @@ class UsStockTests(unittest.TestCase):
     def setUp(self):
         us_stocks._search_cache.clear()
         us_stocks._quote_cache.clear()
+        us_stocks._chart_cache.clear()
         us_stocks._symbol_cache.update(saved_at=0, rows=[])
         us_stocks._symbol_exchange.clear()
 
@@ -153,23 +154,17 @@ class UsStockTests(unittest.TestCase):
             us_stocks.chart('AAPL', 'minute', tic_scope='30')
         self.assertEqual(call_tr.call_args.args[3]['tic_scope'], '30')
 
-    def test_daily_chart_requests_two_year_range(self):
-        response = {'result_list': [
-            {'bus_dt': '20260808', 'cur_prc': '201.5', 'trde_qty': '10'}
-            for _ in range(us_stocks.US_DAILY_MIN_POINTS_FOR_LONG_MA)
-        ]}
-        with mock.patch.dict(os.environ, {'KIWOOM_APPKEY': 'key', 'KIWOOM_SECRETKEY': 'secret'}), \
-             mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='token'), \
-             mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response) as call_tr:
+    def test_daily_chart_uses_yahoo_directly_to_avoid_kiwoom_fallback_delay(self):
+        expected = {
+            'market': 'us', 'symbol': 'AAPL', 'code': 'US:AAPL', 'timeframe': 'daily',
+            'points': [{'time': '2026-08-08', 'close': 201.5}], 'source': 'Yahoo Finance chart fallback',
+        }
+        with mock.patch.object(us_stocks, '_yahoo_chart', return_value=expected) as yahoo, \
+             mock.patch.object(us_stocks.kiwoom_client, 'call_tr') as call_tr:
             data = us_stocks.chart('AAPL', 'daily')
-        request_body = call_tr.call_args.args[3]
-        self.assertEqual(call_tr.call_args.args[1:3], ('usa06012', '/api/us/chart'))
-        self.assertEqual(len(data['points']), us_stocks.US_DAILY_MIN_POINTS_FOR_LONG_MA)
-        self.assertEqual(request_body['strt_dt'], (
-            us_stocks.datetime.now(us_stocks.NY_TZ).date()
-            - us_stocks.timedelta(days=us_stocks.US_DAILY_LOOKBACK_CALENDAR_DAYS)
-        ).strftime('%Y%m%d'))
-        self.assertNotIn('tic_scope', request_body)
+        self.assertEqual(data, expected)
+        yahoo.assert_called_once_with('AAPL', 'daily', tic_scope='1')
+        call_tr.assert_not_called()
 
     def test_chart_falls_back_to_yahoo_when_kiwoom_fails(self):
         yahoo_payload = {
@@ -191,11 +186,7 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual(data['points'][0]['close'], 313.33)
         yahoo.assert_called_once()
 
-    def test_daily_chart_uses_yahoo_when_kiwoom_history_is_too_short_for_long_ma(self):
-        short_rows = [
-            {'bus_dt': '20260808', 'cur_prc': '201.5', 'trde_qty': '10'}
-            for _ in range(us_stocks.US_DAILY_MIN_POINTS_FOR_LONG_MA - 1)
-        ]
+    def test_daily_chart_is_cached_after_the_first_yahoo_response(self):
         yahoo_payload = {
             'chart': {'result': [{
                 'meta': {'exchangeName': 'NMS'},
@@ -206,14 +197,13 @@ class UsStockTests(unittest.TestCase):
                 }]},
             }]}
         }
-        with mock.patch.dict(os.environ, {'KIWOOM_APPKEY': 'key', 'KIWOOM_SECRETKEY': 'secret'}), \
-                mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='token'), \
-                mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value={'result_list': short_rows}), \
-                mock.patch.object(us_stocks, '_get_yahoo_json', return_value=yahoo_payload) as yahoo:
+        with mock.patch.object(us_stocks, '_get_yahoo_json', return_value=yahoo_payload) as yahoo:
             data = us_stocks.chart('AAPL', 'daily')
+            cached = us_stocks.chart('AAPL', 'daily')
         self.assertEqual(data['source'], 'Yahoo Finance chart fallback')
         self.assertEqual(len(data['points']), 2)
         yahoo.assert_called_once()
+        self.assertEqual(cached, data)
 
     def test_invalid_symbol_is_rejected(self):
         with self.assertRaises(ValueError):
