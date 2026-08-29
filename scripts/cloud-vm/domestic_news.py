@@ -81,8 +81,30 @@ def _connect():
     ):
         if name not in columns:
             conn.execute('ALTER TABLE domestic_news ADD COLUMN %s %s' % (name, definition))
+    # 2026-08-30 속도 점검: item_key PRIMARY KEY 말고는 인덱스가 없어서
+    # _load_cached()의 `WHERE fetched_at >= ? ORDER BY pub_date DESC`가 매번 전체
+    # 테이블 스캔 + 전체 정렬이었다. 이 테이블은 삭제 정책이 없어 계속 자라기만 하고,
+    # get_news()는 요청당 이 쿼리를 두 번(신선분 5분 + 폴백 24시간) 돌린다.
+    # 라이브 측정: 외부 API를 전혀 안 타는 캐시 응답(source=cache)이 6~13초.
+    # 종목별 조회(6.34초)와 전체 피드(6.43초)가 같은 시간이라 공통 구간인 이 쿼리가
+    # 비용의 전부임을 확인했다. 범위 탐색으로 바꿔주는 인덱스만 추가한다(동작 불변).
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_domestic_news_fetched_at ON domestic_news(fetched_at)')
+    # get_weekly_news()의 `WHERE kind = ? ORDER BY fetched_at DESC LIMIT 5000`용.
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_domestic_news_kind_fetched_at ON domestic_news(kind, fetched_at)')
     conn.commit()
     return conn
+
+
+def ensure_schema():
+    """스키마·인덱스를 요청 경로 밖(앱 기동 시)에서 한 번 만들어 둔다.
+
+    `_connect()`의 CREATE INDEX IF NOT EXISTS는 인덱스가 이미 있으면 사실상 공짜지만,
+    처음 만들 때는 테이블이 커진 만큼 시간이 걸리고 그동안 쓰기 락을 잡는다. 그 최초
+    1회가 사용자 요청 중에 일어나면 다른 요청이 `timeout=10`에 걸려 실패할 수 있어
+    기동 시점으로 옮긴다. 실패해도 다음 `_connect()`가 다시 시도하므로 치명적이지 않다.
+    """
+    conn = _connect()
+    conn.close()
 
 
 def _strip(value):

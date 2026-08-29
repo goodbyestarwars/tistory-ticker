@@ -1,5 +1,26 @@
 # 9Pay 주요 작업이력
 
+**2026-08-30 /domestic-news 6~13초 - 뉴스 캐시 테이블 인덱스 누락(7차, VM)**: 홈 콘솔에
+`/domestic-news`·`/market-board` CORS 에러와 WebSocket 실패가 찍혀 확인해 보니 서버는
+정상(200 + 올바른 `Access-Control-Allow-Origin`)이었고, 실제 원인은 **응답이 6~13초**라
+브라우저가 타임아웃/연결 실패를 CORS 에러로 표시한 것이었다(1코어 VM이라 이 요청 하나가
+다른 요청까지 굶긴다). 응답의 `source`가 `cache`라 외부 API는 전혀 안 타는데도 느렸고,
+종목별 조회(6.34초)와 전체 피드(6.43초)가 같은 시간이라 공통 구간만 남았다 -
+`get_news()`가 요청당 두 번 부르는 `_load_cached()`.
+원인: `domestic_news` 테이블에 `item_key` PRIMARY KEY 외에 **인덱스가 하나도 없어서**
+`WHERE fetched_at >= ? ORDER BY pub_date DESC LIMIT 100`이 매번 전체 테이블 스캔 + 전체
+정렬이었다. 이 테이블은 삭제·보존 정책도 없어 계속 자라기만 한다.
+수정: `_connect()`에 `idx_domestic_news_fetched_at`(범위 탐색용)과
+`idx_domestic_news_kind_fetched_at`(`get_weekly_news`의 `WHERE kind=? ORDER BY fetched_at`용)
+추가. 인덱스 최초 생성은 쓰기 락을 잡으므로 요청 경로가 아니라 앱 기동 시
+`domestic_news.ensure_schema()`(main.py startup, try/except)에서 만든다. 쿼리·응답 로직은
+불변. 로컬 벤치(12만 행/54MB 합성 테이블)에서 요청당 2쿼리 75.7ms → 5.8ms(13배),
+실행계획 `SCAN` → `SEARCH ... USING INDEX`. 회귀 테스트 2건 추가
+(`test_domestic_news.py` - 인덱스 존재 + 실행계획에 SCAN 없음). 사전부터 실패하던
+DART 의존 테스트 1건은 무관. `scripts/cloud-vm/` 자동 배포.
+남은 항목: 이 테이블에 **보존 정책이 없다**(무한 증가). 인덱스로 조회는 빨라졌지만
+파일 크기는 계속 커지므로 별도 정리 정책 검토 필요.
+
 **2026-08-30 첫 페인트(FCP) 2.4초 → 조회 테이블 2종 유휴 로딩(6차)**: 라이브 측정에서
 TTFB 149ms / domInteractive 813ms인데 **FCP가 2400ms**였다(흰 화면 2.4초).
 `renderBlockingStatus`로 확인하니 렌더 블로킹 리소스는 481ms에 모두 끝났고, `skin-ready`
@@ -13,8 +34,11 @@ krx_map을 받고 GAS 시세(`?codes=`, 1.5초)까지 태웠다. 본문 종목 �
 ② `js/home-realtime-table.js`: wics-map을 `init()`에서 바로 받고 있었다(병렬 요청 자체는
 2026-08-14에 맞게 고쳤으나 시점이 일렀음). `loadWicsMapWhenIdle()`로 감싸 동일하게 `load`
 이후 유휴 시간에 받도록 변경 - 늦게 도착하면 행을 재렌더하는 기존 경로 그대로 재사용.
-두 변경 모두 **최종 화면은 동일하고 실행 순서만 바뀐다**. (라이브 재측정 결과는 GH Pages
-전파 후 아래에 추가.)
+두 변경 모두 **최종 화면은 동일하고 실행 순서만 바뀐다**. 배포 후 라이브 확인: 두 스크립트
+요청 시각이 `load`(447ms) 이후인 746ms로 이동(이전 1326ms/1939ms). **FCP 재측정은 못 했다** -
+검증에 쓴 브라우저 패널이 숨김 상태로 로드돼 Chrome이 paint 엔트리를 기록하지 않는다.
+다음에 확인할 사람은 창을 띄운 채 새로고침하고 DevTools 또는
+`performance.getEntriesByType('paint')`로 확인할 것(개선 전 기준값 2400ms).
 `skin-main.js`의 realtime-table 버전 쿼리 `20260830-idle-wics-v1`(+ 계약 테스트 동기화).
 `ticker-tooltip-v5.js`는 `skin.html`에 버전 쿼리가 있으나 GH Pages 캐시(10분)로 자연
 전파되므로 **skin.html은 건드리지 않음**. `test_ui_ia` 122건 통과.

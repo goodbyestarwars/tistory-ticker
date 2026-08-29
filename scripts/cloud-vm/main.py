@@ -104,6 +104,13 @@ def _start_futures_collectors():
         logging.getLogger('main').info('seeded sector card configuration from data/sectors-v3.js')
     conn.close()
 
+    # 국내 뉴스 캐시 인덱스는 최초 생성 때 쓰기 락을 잡으므로 요청 경로가 아니라
+    # 여기서 만든다(2026-08-30 /domestic-news 6~13초 문제).
+    try:
+        domestic_news.ensure_schema()
+    except Exception:
+        logging.getLogger('main').exception('domestic_news schema/index preparation failed')
+
     foreign_futures.start_background()
     domestic_futures.start_background()
     btc_futures.start_background()

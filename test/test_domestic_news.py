@@ -17,6 +17,45 @@ class DomesticNewsTests(unittest.TestCase):
         domestic_news._watchlist_disclosure_cache.clear()
         domestic_news._kind_cache = None
 
+    def test_cache_reads_use_an_index_instead_of_scanning_the_whole_table(self):
+        """캐시 조회가 전체 테이블 스캔으로 돌아가지 않는지 고정한다.
+
+        2026-08-30: 인덱스가 item_key PRIMARY KEY뿐이라 `WHERE fetched_at >= ?
+        ORDER BY pub_date DESC`가 매 요청 전체 스캔 + 전체 정렬이었고, get_news()가
+        이걸 요청당 두 번 돌려 캐시 응답이 라이브에서 6~13초 걸렸다.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, 'domestic.db')
+            with mock.patch.object(domestic_news, 'CACHE_DB_FILE', db_path):
+                conn = domestic_news._connect()
+                try:
+                    indexes = {row['name'] for row in
+                               conn.execute("PRAGMA index_list('domestic_news')").fetchall()}
+                    self.assertIn('idx_domestic_news_fetched_at', indexes)
+                    self.assertIn('idx_domestic_news_kind_fetched_at', indexes)
+                    plan = conn.execute(
+                        'EXPLAIN QUERY PLAN SELECT * FROM domestic_news '
+                        'WHERE fetched_at >= ? ORDER BY pub_date DESC LIMIT 100', (0,)
+                    ).fetchall()
+                    detail = ' '.join(str(row[-1]) for row in plan)
+                    self.assertIn('idx_domestic_news_fetched_at', detail)
+                    self.assertNotIn('SCAN domestic_news', detail)
+                finally:
+                    conn.close()
+
+    def test_ensure_schema_builds_indexes_off_the_request_path(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, 'domestic.db')
+            with mock.patch.object(domestic_news, 'CACHE_DB_FILE', db_path):
+                domestic_news.ensure_schema()
+                conn = domestic_news._connect()
+                try:
+                    indexes = {row['name'] for row in
+                               conn.execute("PRAGMA index_list('domestic_news')").fetchall()}
+                finally:
+                    conn.close()
+        self.assertIn('idx_domestic_news_fetched_at', indexes)
+
     def test_classifies_financial_and_market_headlines(self):
         self.assertEqual(domestic_news.classify('삼성전자 영업이익 깜짝 실적'), '실적')
         self.assertEqual(domestic_news.classify('코스피 상승 출발'), '시장')
