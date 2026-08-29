@@ -350,7 +350,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260829-live-index-charts-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260830-no-paint-guard-v1", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -380,11 +380,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("html body,\nhtml body * { font-family: var(--font-ui) !important; }", style)
         self.assertIn("html body .site-footer-version", style)
         self.assertIn("color: #d24f45", style)
-        self.assertIn("window.addEventListener('DOMContentLoaded'", skin)
+        # (2026-08-30: 여기 있던 skin.html의 DOMContentLoaded 리스너 검사는 초기 페인트
+        #  가드의 reveal 스크립트를 가리키던 것으로, 가드 제거와 함께 사라져 뺐다.
+        #  가드 자체는 test_initial_paint_guard_no_longer_hides_the_page가 고정한다.)
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260829-qi-height-0-v1", skin)
+        self.assertIn("style.css?v=20260830-no-paint-guard-v1", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -401,7 +403,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
-        self.assertIn("skin-main.js?v=20260829-live-index-charts-v1", skin)
+        self.assertIn("skin-main.js?v=20260830-no-paint-guard-v1", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -2249,19 +2251,34 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(schedule, source)
         self.assertLess(source.index(schedule), source.index("+ indexSummary(indices)"))
 
-    def test_initial_paint_guard_hides_unstyled_refresh_frame(self):
+    # 2026-08-30: 첫 페인트를 최대 800ms 가리던 `visibility: hidden` 가드를 제거했다.
+    # 파서 CSS는 어차피 렌더 블로킹이라 무스타일 페인트가 안 나고, JS 주입 위젯 CSS는
+    # 가드가 열린 뒤에 도착해 애초에 막지 못했다. 되살아나지 않도록 고정한다.
+    def test_initial_paint_guard_no_longer_hides_the_page(self):
         source = self.read("skin.html")
         self.assertIn('id="initial-paint-guard"', source)
-        self.assertIn('html:not(.skin-ready) body { visibility: hidden !important; opacity: 0; }', source)
-        self.assertIn("root.classList.add('skin-ready')", source)
-        self.assertIn('window.setTimeout(reveal, 800)', source)
+        # 배경색 지정은 첫 페인트 색 튐 방지용으로 남긴다.
+        self.assertIn('html, html body { background: rgb(255, 254, 252); }', source)
+        # 주석에 옛 규칙을 인용해 두었으므로 실제 선언 형태로만 검사한다.
+        self.assertNotIn('visibility: hidden !important; opacity: 0;', source)
+        self.assertNotIn('window.setTimeout(reveal, 800)', source)
+        # 클래스 자체는 style.css의 배경 토큰 확정에 쓰이므로 계속 붙인다.
+        self.assertIn("document.documentElement.classList.add('skin-ready')", source)
 
-    def test_live_github_assets_also_guard_initial_paint(self):
+    def test_live_github_assets_do_not_hide_the_page_either(self):
         style = self.read("style.css")
         main = self.read("js/skin-main.js")
-        self.assertIn('html:not(.skin-ready) body { visibility: hidden; }', style)
-        self.assertIn("root.classList.add('skin-ready')", main)
-        self.assertIn('window.setTimeout(reveal, 800)', main)
+        self.assertNotIn('html:not(.skin-ready) body { visibility: hidden; }', style)
+        self.assertNotIn('window.setTimeout(reveal, 800)', main)
+        self.assertIn("document.documentElement.classList.add('skin-ready')", main)
+
+    def test_widgets_guard_their_own_unstyled_paint_instead(self):
+        """가드를 없앤 대신 무스타일 페인트는 위젯별로 막는다."""
+        weekly = self.read("js/home-weekly-report.js")
+        # 자기 CSS가 도착한 뒤에 본문을 그린다.
+        self.assertIn('whenStyleReady', weekly)
+        # 그래도 남는 경우를 대비해 SVG에 최종 색을 프레젠테이션 속성으로 같이 박는다.
+        self.assertIn('fill="none" stroke="', weekly)
 
     def test_analysis_rank_filters_are_grouped_by_parent_domain(self):
         source = self.read("js/foreign-flow.js")

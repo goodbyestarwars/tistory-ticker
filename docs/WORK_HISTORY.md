@@ -1,5 +1,38 @@
 # 9Pay 주요 작업이력
 
+**2026-08-30 초기 페인트 가드 제거 + /domestic-news 캐시 워머(8차)**: 사용자 승인 후 진행.
+
+① **`skin-ready` 초기 페인트 가드 제거**(`skin.html`·`style.css`·`js/skin-main.js`).
+`html:not(.skin-ready) body { visibility: hidden }`로 최대 800ms 동안 화면 전체를 가리고
+있었는데, 라이브 측정상 **보호 효과가 0**이었다: (1) 파서가 읽는 CSS는 어차피 렌더
+블로킹이라 브라우저가 그 전에 그리지 않고, (2) JS가 주입하는 위젯
+CSS(`watchlist.css` 1098ms, `home-weekly-report.css` 2137ms)는 가드가 열리는 800ms보다
+늦게 도착해 애초에 막지 못했다 - 같은 날 고친 휴장 탭 검은 대각선 FOUC가 그 증거다.
+무스타일 페인트는 위젯별로 막는 게 맞고(주간 리포트는 이미 그렇게 고침) 가드는 흰 화면만
+늘리고 있었다. `skin-ready` 클래스 자체는 `style.css`의 배경 토큰 확정에 쓰이므로 계속
+붙이되 기다리지 않고 즉시 붙인다. 배경색 지정(`#initial-paint-guard`)은 첫 페인트 색 튐
+방지용으로 유지.
+
+② **`/domestic-news` 트래픽 구동형 캐시 워머**(`main.py`). 7차의 인덱스·DART 캐시로
+캐시 히트는 1.3초가 됐지만 **미스는 여전히 7~14초**였다 - 이 엔드포인트는 미스마다
+DART·KIND·RSS·Finnhub/Alpha를 요청 안에서 동기 호출하고, 각 캐시 TTL이 30초~5분이라
+트래픽이 적은 블로그에서는 대부분의 방문자가 미스를 맞는 구조였다(TTL 조정으로는 못 잡음).
+`_start_market_board_warmer()`와 **동일한 트래픽 구동형 패턴**을 그대로 적용했다:
+엔드포인트가 비-루프백 방문 시각(`_domestic_news_last_real_hit`)을 기록하고, 데몬 스레드가
+마지막 실제 방문 3분 이내일 때만 45초 주기로 `http://127.0.0.1:<port>/domestic-news?kind=news&limit=50`을
+루프백 호출한다. 조회·폴백 로직은 기존 엔드포인트를 그대로 재사용(중복 없음), 워머가
+실패해도 온디맨드 경로가 그대로 동작(무해), 트래픽이 없으면 타임스탬프만 확인하고 쉰다.
+주기 45초는 DART 캐시 TTL(60초)보다 짧아 DART·일반뉴스(5분)·뉴스 DB(5분)를 항상 warm으로
+유지한다. KIND만 TTL 30초라 warm 사이에 만료될 수 있으나 그 몫은 약 1초다. 주기를 더
+줄이면 1코어 VM 부하와 외부 API 호출량이 그만큼 는다(market-board 워머도 20초 주기로
+동시 구동 중이라 여유를 뒀다).
+
+검증: `test_ui_ia` 등 145건 중 사전부터 실패하던 DART 의존 1건을 빼고 전부 통과. 신규
+계약 테스트 `test_domestic_news_warmer.py`(3건) + 가드 제거 고정 테스트 3건.
+**배포**: `js/`·`style.css`·`scripts/cloud-vm/`은 자동. **`skin.html`은 티스토리 관리자에서
+수동 반영 필요** - 이번엔 `style.css`/`skin-main.js`/`ticker-tooltip-v5.js` 버전 쿼리도
+같이 올렸다(`20260830-no-paint-guard-v1`, `20260830-idle-krx-map-v1`).
+
 **2026-08-30 /domestic-news 6~13초 → 인덱스 + DART 캐시(7차, VM)**: 홈 콘솔에
 `/domestic-news`·`/market-board` CORS 에러와 WebSocket 실패가 찍혀 확인해 보니 서버는
 정상(200 + 올바른 `Access-Control-Allow-Origin`)이었고, 실제 원인은 **응답이 6~13초**라

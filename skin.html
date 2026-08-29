@@ -12,29 +12,25 @@
       if (localStorage.getItem('bolt-sidebar-collapsed') === '1') document.documentElement.classList.add('sidebar-collapsed');
     } catch (e) {}
   </script>
-  <!-- 외부 CSS가 여러 파일로 나뉘어 있어 새로고침 순간 스타일 없는 본문/차트가
-       먼저 그려지는 초기 페인트 FOUC를 막는다. 스타일 적용 뒤 한 번만 표시하며,
-       네트워크가 느려도 0.8초 뒤에는 안전하게 화면을 연다. -->
+  <!-- 2026-08-30: 여기 있던 `html:not(.skin-ready) body { visibility: hidden }`를 제거했다.
+       원래 목적은 "위젯 CSS가 늦게 도착할 때의 무스타일 페인트 차단"이었는데 라이브
+       측정에서 아무것도 막지 못하면서 첫 화면만 가리고 있었다:
+       (1) 파서가 읽는 CSS(style.css 등)는 어차피 렌더 블로킹이라 브라우저가 그 전에
+           그리지 않는다 - 가드가 없어도 무스타일 페인트는 안 난다.
+       (2) JS가 주입하는 위젯 CSS(watchlist.css 1098ms, home-weekly-report.css 2137ms)는
+           가드가 열리는 800ms보다 늦게 도착해서 애초에 못 막았다(휴장 탭 검은 대각선
+           FOUC가 그 증거 - 그건 해당 위젯에서 직접 고쳤다).
+       즉 보호 효과는 0이고 흰 화면만 최대 800ms 늘리던 코드였다. 배경색 지정은 첫
+       페인트 색 튐을 막아주므로 그대로 둔다. -->
   <style id="initial-paint-guard">
     html, html body { background: rgb(255, 254, 252); }
     html.dark, html.dark body { background: #1A1A1A; }
-    html:not(.skin-ready) body { visibility: hidden !important; opacity: 0; }
-    html.skin-ready body { visibility: visible; opacity: 1; transition: opacity .12s ease; }
   </style>
   <script>
-    (function () {
-      var root = document.documentElement;
-      var revealed = false;
-      function reveal() {
-        if (revealed) return;
-        revealed = true;
-        root.classList.add('skin-ready');
-      }
-      window.addEventListener('DOMContentLoaded', function () {
-        window.requestAnimationFrame(reveal);
-      }, { once: true });
-      window.setTimeout(reveal, 800);
-    }());
+    // skin-ready는 더 이상 화면을 가리지 않지만, style.css가 배경 토큰을 !important로
+    // 확정하는 데 이 클래스를 쓰므로(html.skin-ready { background: var(--page-bg) })
+    // 계속 붙인다. 가릴 게 없으니 기다리지 않고 즉시 붙인다.
+    document.documentElement.classList.add('skin-ready');
   </script>
   <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg" />
   <!-- github.io(CSS/JS 다수) · GAS(리본/툴팁 시세)는 첫 요청 전에 연결을 미리 열어둔다 -->
@@ -43,7 +39,7 @@
   <link rel="preconnect" href="https://hangeul.pstatic.net" crossorigin />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
-    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260829-qi-height-0-v1" />
+    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260830-no-paint-guard-v1" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ui-system.css?v=20260827-ui-system-v1" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
   <!-- 2026-08-29: sidebar-rank.css / investor-trend-widget.css 제거. 두 위젯은 홈에서만
@@ -399,9 +395,9 @@
      (종목·업종 맵은 각 소비 모듈이 필요할 때 지연 로드한다) -->
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-shell.js?v=20260819-tistory-write-auth-v1"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js?v=20260820-modern-search-v2"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260829-live-index-charts-v1"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260830-no-paint-guard-v1"></script>
 
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js?v=20260828-lazy-krx-v1"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js?v=20260830-idle-krx-map-v1"></script>
 <!-- 2026-08-29: sidebar-rank.js / investor-trend-widget.js 제거(죽은 코드 - 위 mount 주석 참고). -->
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/stock-discussion.css?v=discussion-16px">
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-discussion.js?v=20260811-auto-icon-fallback"></script>

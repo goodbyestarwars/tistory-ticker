@@ -127,6 +127,10 @@ def _start_futures_collectors():
     # 트래픽이 있는 동안에만 백그라운드로 캐시를 미리 데운다.
     _start_market_board_warmer()
 
+    # 홈 경제뉴스(/domestic-news)도 캐시 미스마다 외부 API 3~4곳을 요청 안에서 동기
+    # 호출해 7~14초가 걸렸다. 같은 트래픽 구동형 패턴으로 방문자가 미스를 맞지 않게 한다.
+    _start_domestic_news_warmer()
+
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
     kiwoom_appkey = os.environ.get('KIWOOM_APPKEY')
@@ -243,6 +247,17 @@ _MARKET_BOARD_WARM_INTERVAL_SEC = 20
 _MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC = 180
 _market_board_last_real_hit = 0.0
 _market_board_warmer_started = False
+# 2026-08-30: /domestic-news도 같은 이유로 워머를 붙인다. 이 엔드포인트는 캐시 미스마다
+# DART·KIND·RSS·Finnhub/Alpha를 요청 안에서 동기 호출해서 히트 1.3초 / 미스 7~14초였다.
+# 트래픽이 적으면 대부분의 방문자가 미스를 맞는 구조라 TTL 조정으로는 못 잡는다.
+# 주기 45초는 이 경로가 쓰는 캐시 TTL 중 DART(60초)보다 짧아 DART·일반뉴스(5분)·뉴스
+# DB(5분)는 항상 warm으로 유지된다. KIND만 TTL이 30초라 warm 사이에 만료될 수 있지만
+# 그 몫은 약 1초라 방문자 체감에서 밀린다. 주기를 더 줄이면 1코어 VM 부하와 외부 API
+# 호출량이 그만큼 늘어난다(현재 market-board 워머도 20초 주기로 돌고 있음).
+_DOMESTIC_NEWS_WARM_INTERVAL_SEC = 45
+_DOMESTIC_NEWS_WARM_ACTIVE_WINDOW_SEC = 180
+_domestic_news_last_real_hit = 0.0
+_domestic_news_warmer_started = False
 _KOFIA_MARKET_TTL = 30 * 60
 _kofia_market_cache = {}
 _DOMESTIC_MARKET_INDICATORS_TTL = 60
@@ -2291,6 +2306,7 @@ def domestic_news_endpoint(
     캐시된 결과를 우선 반환한다. 종목 코드는 국내 6자리 숫자만 허용한다.
     """
     _check_rate_limit('domestic_news', request, max_per_window=20)
+    _note_domestic_news_real_hit(request)
     normalized_code = (code or '').strip()
     if normalized_code and (len(normalized_code) != 6 or not normalized_code.isdigit()):
         raise HTTPException(status_code=400, detail='domestic stock code must be 6 digits')
@@ -2587,6 +2603,39 @@ def _start_market_board_warmer():
     _market_board_warmer_started = True
     threading.Thread(target=_market_board_warm_loop, name='market-board-warmer', daemon=True).start()
     logging.getLogger('main').info('market-board 캐시 워머 시작(트래픽 있을 때만 20초 주기)')
+
+
+def _note_domestic_news_real_hit(request):
+    """실제 방문자가 /domestic-news를 호출했음을 기록한다(워머 루프백은 제외)."""
+    global _domestic_news_last_real_hit
+    ip = (request.client.host if request and request.client else '') or ''
+    if ip not in ('127.0.0.1', '::1', 'localhost'):
+        _domestic_news_last_real_hit = time.time()
+
+
+def _domestic_news_warm_loop():
+    port = (os.environ.get('PORT', '') or os.environ.get('APP_PORT', '') or '8080').strip()
+    log = logging.getLogger('main')
+    while True:
+        try:
+            if time.time() - _domestic_news_last_real_hit <= _DOMESTIC_NEWS_WARM_ACTIVE_WINDOW_SEC:
+                # 홈이 실제로 부르는 것과 같은 쿼리를 태워 같은 캐시를 데운다.
+                url = 'http://127.0.0.1:%s/domestic-news?kind=news&limit=50' % port
+                req = urllib.request.Request(url, headers={'User-Agent': 'domestic-news-warmer/1'})
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    resp.read()
+        except Exception:
+            log.debug('domestic-news 캐시 워머 갱신 실패', exc_info=True)
+        time.sleep(_DOMESTIC_NEWS_WARM_INTERVAL_SEC)
+
+
+def _start_domestic_news_warmer():
+    global _domestic_news_warmer_started
+    if _domestic_news_warmer_started:
+        return
+    _domestic_news_warmer_started = True
+    threading.Thread(target=_domestic_news_warm_loop, name='domestic-news-warmer', daemon=True).start()
+    logging.getLogger('main').info('domestic-news 캐시 워머 시작(트래픽 있을 때만 45초 주기)')
 
 
 @app.get('/market-board')

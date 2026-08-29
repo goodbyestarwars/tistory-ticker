@@ -19,21 +19,11 @@
  * 방식에서 독립 페이지(js/stock-calendar.js, #stock-calendar 마운트)로 옮겼다 - 여기
  * 있던 openCalendarModal/initCalendarWidget은 삭제됨.
  */
-/* 외부 CSS가 적용되기 전 초기 프레임을 숨겨 검은 무늬/무스타일 플래시를 막는다.
-   DOMContentLoaded가 늦어져도 0.8초 뒤에는 안전하게 화면을 연다. */
-(function revealAfterStyles() {
-  var root = document.documentElement;
-  var revealed = false;
-  function reveal() {
-    if (revealed) return;
-    revealed = true;
-    root.classList.add('skin-ready');
-  }
-  window.addEventListener('DOMContentLoaded', function () {
-    window.requestAnimationFrame(reveal);
-  }, { once: true });
-  window.setTimeout(reveal, 800);
-}());
+/* 2026-08-30: skin-ready는 더 이상 화면을 가리지 않는다(근거는 skin.html의
+   #initial-paint-guard 주석). style.css가 배경 토큰을 확정하는 데 이 클래스를 쓰고,
+   skin.html이 아직 옛 버전인 티스토리 스킨에서도 클래스가 붙도록 여기서도 붙인다.
+   가릴 게 없으니 기다리지 않고 즉시 붙인다. */
+document.documentElement.classList.add('skin-ready');
 
   /* ── 월별 /earnings-calendar 공유 로더 ──
      홈의 일정 카드(stock-calendar.js)·미국 실적(home-widgets.js)·주간 리포트

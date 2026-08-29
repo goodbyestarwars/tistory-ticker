@@ -106,13 +106,13 @@ body {
   color: var(--text-main);
   min-height: 100vh;
 }
-/* 외부 위젯 CSS가 늦게 도착할 때 본문/차트가 무스타일 상태로 먼저
-   페인트되는 새로고침 FOUC를 막는다. skin-main.js가 준비되면 skin-ready를
-   붙여 즉시 표시한다. 표시 지연은 로드 초기에만 발생하며 검은 무늬가
-   한 프레임 노출되는 것보다 안전하다. */
-html:not(.skin-ready) body { visibility: hidden; }
+/* 2026-08-30: 여기 있던 `html:not(.skin-ready) body { visibility: hidden }`를 제거했다.
+   파서가 읽는 CSS는 어차피 렌더 블로킹이라 무스타일 페인트가 나지 않고, JS가 주입하는
+   위젯 CSS는 가드가 열린 뒤에 도착해서 애초에 막지 못했다(자세한 근거는 skin.html의
+   #initial-paint-guard 주석). 무스타일 페인트는 위젯별로 막는다 - 예: 주간 리포트는
+   js/home-weekly-report.js가 자기 CSS 도착 뒤에 그리고 SVG에 프레젠테이션 속성을 같이
+   박는다. 배경색만 첫 페인트 색 튐 방지용으로 남긴다. */
 html:not(.skin-ready) { background: rgb(255, 254, 252) !important; }
-html.skin-ready body { visibility: visible; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: #bdc8e0; border-radius: 4px; }
 button, input, textarea { font-family: inherit; }
