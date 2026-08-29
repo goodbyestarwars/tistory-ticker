@@ -106,6 +106,14 @@ body {
   color: var(--text-main);
   min-height: 100vh;
 }
+/* 2026-08-30 모바일 점검: 이 값이 없으면 안드로이드 크롬의 자동 글자 확대(font boosting)가
+   켜져 있어, 폭이 좁은 블록의 글자만 브라우저가 제멋대로 키운다. 시세표처럼 열 정렬이
+   중요한 화면에서 한 칸만 글자가 커져 줄이 어긋나는 원인이 된다. 100%로 고정해 우리가
+   지정한 크기 그대로 그리게 한다(사용자 핀치 확대는 그대로 동작). */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 /* 2026-08-30: 여기 있던 `html:not(.skin-ready) body { visibility: hidden }`를 제거했다.
    파서가 읽는 CSS는 어차피 렌더 블로킹이라 무스타일 페인트가 나지 않고, JS가 주입하는
    위젯 CSS는 가드가 열린 뒤에 도착해서 애초에 막지 못했다(자세한 근거는 skin.html의
@@ -3800,8 +3808,13 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
   .navbar .nav-search-input { width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .navbar .nav-search-input-wrap { min-height: 40px; padding: 6px 14px; }
   .navbar .nav-search-icon { width: 24px; height: 24px; }
-  /* 2026-08-23: 모바일 종목검색 placeholder가 너무 작아 한 단계 키운다. */
-  .navbar .nav-search-input { font-size: 11px; }
+  /* 2026-08-23: 모바일 종목검색 placeholder가 너무 작아 한 단계 키운다.
+     2026-08-30: 11px -> 16px. iOS 사파리는 font-size가 16px 미만인 입력창을 탭하면
+     페이지 전체를 자동 확대하고 되돌리지 않는다(스크롤도 어긋남). 모바일에서
+     .nav-search-btn이 숨겨져 있어 이 입력창이 유일한 종목검색 진입점이라 반드시
+     피해야 하는 동작이다. 글자가 커 보이는 건 placeholder를 따로 줄여 상쇄한다. */
+  .navbar .nav-search-input { font-size: 16px; }
+  .navbar .nav-search-input::placeholder { font-size: 13px; }
   /* 2026-07-27: 상단 메뉴바가 항상 노출되는 가로 스크롤 형태로 바뀌면서 모바일
      드로어 자체가 없어져 햄버거 버튼도 더는 쓸 일이 없다(9Pay 증권 작업지시서 #12). */
   .nav-hamburger { display: none !important; }

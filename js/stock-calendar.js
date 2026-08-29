@@ -234,9 +234,13 @@
     };
   }
 
+  // 2026-08-30 중복 점검: 저장소의 escapeHtml 26벌 중 이 구현만 작은따옴표를 빠뜨리고
+  // 있었다. 지금 사용처는 전부 큰따옴표 속성이라 실제 구멍은 아니지만, 나중에 누가
+  // 작은따옴표 속성으로 바꾸면 그때 뚫린다. 나머지 25벌과 동작을 맞춘다.
   function escapeHtml(s) {
     return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function kstBoundaryIso(year, month, day) {

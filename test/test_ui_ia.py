@@ -402,7 +402,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         )
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
-        self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
+        # 2026-08-30: 모바일 종목검색 입력창은 16px 미만이면 iOS 사파리가 탭 순간 페이지를
+        # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
+        # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
+        self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
         self.assertIn("skin-main.js?v=20260830-no-paint-guard-v1", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):

@@ -1,5 +1,51 @@
 # 9Pay 주요 작업이력
 
+**2026-08-30 모바일 반응형 전수 점검 + 중복 모듈 점검(9차)**: 라이브(ghlee.tistory.com)를
+375px·320px로 실제 측정하고 CSS를 정적 분석했다.
+
+**레이아웃은 문제 없음**: 홈·market-temp·foreign-flow·stock-search·stock-calendar·
+strategy-search·pattern-scan·watchlist 8개 페이지 전부 **가로 오버플로 0**(375px, 320px 모두).
+뷰포트 밖으로 나가는 건 의도된 오프스크린 드로어(`.global-watchlist-panel`)뿐이고,
+넓은 표는 전부 가로 스크롤 컨테이너 안에 있다. `viewport` 메타도 정상이며 `user-scalable=no`
+같은 확대 차단이 없다.
+
+**고친 것 2건**:
+① `.navbar .nav-search-input` 모바일 `font-size: 11px → 16px`(`style.css`, `max-width:720px`).
+iOS 사파리는 16px 미만 입력창을 탭하면 페이지 전체를 자동 확대하고 되돌리지 않는다.
+모바일에서는 `.nav-search-btn`이 숨겨져 이 입력창이 **유일한 종목검색 진입점**이라 반드시
+피해야 하는 동작이었다. 글자가 커 보이는 건 `::placeholder`를 13px로 따로 줄여 상쇄.
+② `html { -webkit-text-size-adjust: 100% }` 추가. 값이 없어 안드로이드 크롬의 자동 글자
+확대(font boosting)가 켜진 상태였고, 폭이 좁은 블록의 글자만 브라우저가 임의로 키워
+시세표 열 정렬이 어긋날 수 있었다.
+
+**미조치(사용자 판단 필요)**: 9~10px 글자가 모바일에서 그대로 쓰인다 - 홈 375px 기준
+9px 147개 + 10px 86개(320px에서는 233개). 저장소 전체 `font-size < 11px` 선언은 296개
+(`style.css` 68, `foreign-flow.css` 53, `home-weekly-report.css` 43 …). 밀도는 의도된
+설계지만 한글 9px는 모바일에서 판독이 어렵다. 일괄 변경은 열 넓이·줄바꿈에 영향이 커서
+별도 승인 후 진행할 항목으로 남긴다.
+
+**중복 모듈 점검**: `escapeHtml`이 26벌(7가지 변종), `stockIconHtml` 14벌, `escapeAttr` 12벌,
+`fetchJson` 11벌, `GAS_TICKER_URL` 상수 20벌. 그중 **`js/stock-calendar.js`의 `escapeHtml`만
+작은따옴표를 이스케이프하지 않아** 나머지 25벌과 동작이 달랐다 - 현재 사용처가 전부
+큰따옴표 속성이라 실제 구멍은 아니었지만 나머지와 맞췄다(중복이 이미 만들어낸 divergence).
+**일괄 병합은 하지 않았다**: 이 저장소는 번들러·모듈 시스템이 없고 각 파일이 독립 IIFE로
+GitHub Pages에서 개별 로드되며 상당수는 다른 스크립트가 동적 지연 로드한다. 공용
+`utils.js`로 묶으면 20여 페이지 전부에 로드 순서 의존이 생기고, 공용 파일 하나가 실패하면
+전 페이지가 깨진다. 실익(≈130줄)보다 위험이 커서 divergence만 제거하고 구조는 유지했다.
+`css/*.css` 10개가 저장소 내부에서 참조되지 않아 고아처럼 보이지만 **오탐**이다 -
+`/page/*` 커스텀 페이지 본문(티스토리 관리자에 있고 저장소에 없음)이 `<link>`로 직접
+로드한다(라이브에서 `foreign-flow.css` 로드 확인).
+
+**주말 서버 클랜징 점검**: `maintenance.py`가 `deploy_check.sh`(5분 타이머)를 통해
+**03:00~05:00 KST에 하루 한 번**만 실행되고, OS 로그 정리(`cleanup_system_logs`)는
+`is_weekend()`일 때만 돈다. 실행 여부를 노출하는 API가 없어 **원격 확인 불가**이며
+VM에서 `.off_hours_maintenance_last_run_date` 마커와 `maintenance.log`로 봐야 한다.
+점검 중 확인된 공백: 코드가 쓰는 SQLite는 5개(`ohlc_snapshot` `news_momentum`
+`domestic_news` `us_analysis_cache` `us_news_cache`)인데 유지보수 대상은 2개뿐이다.
+**`domestic_news.db`·`us_analysis_cache.db`·`us_news_cache.db`는 보존 정리도 WAL
+체크포인트도 백업도 없다** - 7차에서 `/domestic-news`가 느렸던 원인(무한히 자라는
+`domestic_news` 테이블)과 같은 뿌리다.
+
 **2026-08-30 초기 페인트 가드 제거 + /domestic-news 캐시 워머(8차)**: 사용자 승인 후 진행.
 
 ① **`skin-ready` 초기 페인트 가드 제거**(`skin.html`·`style.css`·`js/skin-main.js`).
