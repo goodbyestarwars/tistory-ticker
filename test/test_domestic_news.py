@@ -16,6 +16,7 @@ class DomesticNewsTests(unittest.TestCase):
     def tearDown(self):
         domestic_news._watchlist_disclosure_cache.clear()
         domestic_news._kind_cache = None
+        domestic_news._dart_cache.clear()
 
     def test_cache_reads_use_an_index_instead_of_scanning_the_whole_table(self):
         """캐시 조회가 전체 테이블 스캔으로 돌아가지 않는지 고정한다.
@@ -140,6 +141,90 @@ class DomesticNewsTests(unittest.TestCase):
         merged = domestic_news._merge(items, limit=1, item_kind='news')
 
         self.assertEqual([item['id'] for item in merged], ['news-1'])
+
+    def _fake_dart(self, rows, calls):
+        """DART 목록 API 응답을 흉내내고 호출 횟수를 세는 urlopen 대역."""
+        class FakeResponse:
+            def __init__(self, payload):
+                self.payload = payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return json.dumps(self.payload).encode('utf-8')
+
+        def fake_urlopen(request, timeout=0):
+            calls.append(request.full_url)
+            return FakeResponse({'status': '000', 'total_page': 1, 'list': rows})
+
+        return fake_urlopen
+
+    def test_general_dart_feed_is_cached_so_every_request_does_not_call_dart(self):
+        """2026-08-30: 같은 파일 KIND는 30초 캐시가 있는데 DART만 없어서 홈이 부르는
+        /domestic-news가 요청마다 DART를 라이브로 쳤다(서버 작업의 약 3.1초)."""
+        rows = [
+            {'stock_code': '005930', 'corp_name': '삼성전자', 'rcept_no': '1',
+             'report_nm': '주요사항보고서', 'flr_nm': '삼성전자', 'rcept_dt': '20260830'},
+            {'stock_code': '000660', 'corp_name': 'SK하이닉스', 'rcept_no': '2',
+             'report_nm': '분기보고서', 'flr_nm': 'SK하이닉스', 'rcept_dt': '20260830'},
+        ]
+        calls = []
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}, clear=False), \
+                mock.patch.object(domestic_news.urllib.request, 'urlopen',
+                                  side_effect=self._fake_dart(rows, calls)):
+            first = domestic_news._dart_items(start_date='20260828', end_date='20260830')
+            second = domestic_news._dart_items(start_date='20260828', end_date='20260830')
+            # 캐시는 필터 이전 원본 행을 담으므로 종목 필터는 캐시 히트에서도 동작해야 한다.
+            filtered = domestic_news._dart_items(code='005930', start_date='20260828',
+                                                 end_date='20260830')
+        self.assertEqual(len(calls), 1)
+        self.assertEqual([i['stockCode'] for i in first], ['005930', '000660'])
+        self.assertEqual([i['stockCode'] for i in second], ['005930', '000660'])
+        self.assertEqual([i['stockCode'] for i in filtered], ['005930'])
+
+    def test_expired_dart_cache_refetches(self):
+        rows = [{'stock_code': '005930', 'corp_name': '삼성전자', 'rcept_no': '1',
+                 'report_nm': '주요사항보고서', 'flr_nm': '삼성전자', 'rcept_dt': '20260830'}]
+        calls = []
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}, clear=False), \
+                mock.patch.object(domestic_news, 'DART_CACHE_TTL_SEC', 0), \
+                mock.patch.object(domestic_news.urllib.request, 'urlopen',
+                                  side_effect=self._fake_dart(rows, calls)):
+            domestic_news._dart_items(start_date='20260828', end_date='20260830')
+            domestic_news._dart_items(start_date='20260828', end_date='20260830')
+        self.assertEqual(len(calls), 2)
+
+    def test_company_specific_dart_lookup_is_not_cached(self):
+        """corp_code별 조회는 상위 _watchlist_disclosure_cache(30분)가 담당하므로
+        여기서 캐시하면 키가 종목 수만큼 늘어난다."""
+        rows = [{'stock_code': '005930', 'corp_name': '삼성전자', 'rcept_no': '1',
+                 'report_nm': '주요사항보고서', 'flr_nm': '삼성전자', 'rcept_dt': '20260830'}]
+        calls = []
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}, clear=False), \
+                mock.patch.object(domestic_news.urllib.request, 'urlopen',
+                                  side_effect=self._fake_dart(rows, calls)):
+            domestic_news._dart_items(corp_code='00126380', start_date='20260828', end_date='20260830')
+            domestic_news._dart_items(corp_code='00126380', start_date='20260828', end_date='20260830')
+        self.assertEqual(len(calls), 2)
+
+    def test_dart_failure_serves_the_last_successful_rows(self):
+        rows = [{'stock_code': '005930', 'corp_name': '삼성전자', 'rcept_no': '1',
+                 'report_nm': '주요사항보고서', 'flr_nm': '삼성전자', 'rcept_dt': '20260830'}]
+        calls = []
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}, clear=False), \
+                mock.patch.object(domestic_news.urllib.request, 'urlopen',
+                                  side_effect=self._fake_dart(rows, calls)):
+            domestic_news._dart_items(start_date='20260828', end_date='20260830')
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}, clear=False), \
+                mock.patch.object(domestic_news, 'DART_CACHE_TTL_SEC', 0), \
+                mock.patch.object(domestic_news.urllib.request, 'urlopen',
+                                  side_effect=OSError('DART down')):
+            items = domestic_news._dart_items(start_date='20260828', end_date='20260830')
+        self.assertEqual([i['stockCode'] for i in items], ['005930'])
 
     def test_dart_items_reads_every_requested_page_for_a_company(self):
         pages = {

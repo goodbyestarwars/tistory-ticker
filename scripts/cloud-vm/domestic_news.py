@@ -34,10 +34,17 @@ KIND_RSS_URL = ('https://kind.krx.co.kr/disclosure/rsstodaydistribute.do?'
 WATCHLIST_DISCLOSURE_CACHE_TTL_SEC = 30 * 60
 WATCHLIST_DISCLOSURE_MAX_PAGES = 3
 KIND_CACHE_TTL_SEC = 30
+# 2026-08-30: 같은 파일의 KIND는 30초 캐시가 있는데 DART만 캐시가 없어서
+# `_disclosure_items()`가 불릴 때마다 DART 목록 API를 라이브로 쳤다. 홈이 부르는
+# `/domestic-news`가 요청마다 이걸 태워 서버 작업의 대부분(약 3.1초)을 차지했다.
+# 값을 올리면 미스율이 더 떨어지지만 공시 속보성이 그만큼 늦어진다(튜닝 포인트).
+DART_CACHE_TTL_SEC = 60
 _watchlist_disclosure_cache = {}
 _watchlist_disclosure_cache_lock = threading.Lock()
 _kind_cache = None
 _kind_cache_lock = threading.Lock()
+_dart_cache = {}
+_dart_cache_lock = threading.Lock()
 
 CATEGORY_RULES = (
     ('실적', ('영업이익', '순이익', '매출액', '실적', '어닝', '잠정실적', '분기')),
@@ -350,6 +357,19 @@ def _dart_items(code='', name='', now=None, start_date=None, end_date=None,
     start_date = str(start_date or (now - timedelta(days=2)).strftime('%Y%m%d'))
     end_date = str(end_date or now.strftime('%Y%m%d'))
     max_pages = max(1, min(int(max_pages or 1), 10))
+    # code/name은 DART에 보내지 않고 아래에서 받아온 행을 거르는 데만 쓰므로(아래 필터
+    # 참고), 네트워크 결과는 (기간, corp_code, 페이지 수)에만 의존한다. 종목 지정 없는
+    # 일반 피드만 캐시한다 - 관심종목 corp_code별 조회는 이미 상위
+    # `_watchlist_disclosure_cache`(30분)가 있고, 캐시 키가 종목 수만큼 늘지 않게 한다.
+    cacheable = not corp_code
+    cache_key = (start_date, end_date, max_pages)
+    if cacheable:
+        now_ts = time.time()
+        with _dart_cache_lock:
+            entry = _dart_cache.get(cache_key)
+            cached_rows = entry[1] if entry and now_ts - entry[0] < DART_CACHE_TTL_SEC else None
+        if cached_rows is not None:
+            return _dart_rows_to_items(cached_rows, code, name)
     rows = []
     for page_no in range(1, max_pages + 1):
         params = {
@@ -369,11 +389,11 @@ def _dart_items(code='', name='', now=None, start_date=None, end_date=None,
                 payload = json.loads(response.read().decode('utf-8'))
         except Exception:
             LOGGER.exception('DART disclosure fetch failed')
-            return []
+            return _dart_stale_items(cacheable, cache_key, code, name)
         if payload.get('status') == '013':
             break
         if payload.get('status') not in (None, '000'):
-            return []
+            return _dart_stale_items(cacheable, cache_key, code, name)
         page_rows = payload.get('list') or []
         rows.extend(page_rows)
         try:
@@ -382,8 +402,39 @@ def _dart_items(code='', name='', now=None, start_date=None, end_date=None,
             total_pages = page_no
         if not page_rows or page_no >= total_pages:
             break
+    if cacheable:
+        with _dart_cache_lock:
+            _dart_cache[cache_key] = (time.time(), rows)
+            # 날짜가 바뀌면 예전 기간 키가 남으므로 만료된 항목을 정리한다(키는 하루
+            # 몇 개 수준이지만 프로세스가 오래 떠 있으므로 그냥 두지 않는다).
+            if len(_dart_cache) > 8:
+                cutoff = time.time() - DART_CACHE_TTL_SEC
+                for key in [k for k, v in _dart_cache.items() if v[0] < cutoff]:
+                    _dart_cache.pop(key, None)
+    return _dart_rows_to_items(rows, code, name)
+
+
+def _dart_stale_items(cacheable, cache_key, code, name):
+    """DART 호출이 실패하면 마지막으로 성공한 행을 그대로 쓴다.
+
+    같은 파일의 `_kind_items()`가 이미 쓰는 방식이다 - 일시적인 장애 때 공시 레일을
+    빈 화면으로 만들지 않는다. 캐시가 없으면 기존과 동일하게 빈 목록.
+    """
+    if not cacheable:
+        return []
+    with _dart_cache_lock:
+        entry = _dart_cache.get(cache_key)
+    return _dart_rows_to_items(entry[1], code, name) if entry else []
+
+
+def _dart_rows_to_items(rows, code='', name=''):
+    """DART 목록 API 원본 행을 화면용 항목으로 바꾼다.
+
+    code/name은 DART에 보내지 않고 여기서만 거르므로, 캐시는 필터 이전의 원본 행을
+    담고 이 변환은 요청마다 다시 수행한다.
+    """
     items = []
-    for row in rows:
+    for row in rows or []:
         row_code = _strip(row.get('stock_code'))
         corp = _strip(row.get('corp_name'))
         if code and row_code and row_code != str(code):

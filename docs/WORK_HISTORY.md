@@ -1,25 +1,46 @@
 # 9Pay 주요 작업이력
 
-**2026-08-30 /domestic-news 6~13초 - 뉴스 캐시 테이블 인덱스 누락(7차, VM)**: 홈 콘솔에
+**2026-08-30 /domestic-news 6~13초 → 인덱스 + DART 캐시(7차, VM)**: 홈 콘솔에
 `/domestic-news`·`/market-board` CORS 에러와 WebSocket 실패가 찍혀 확인해 보니 서버는
 정상(200 + 올바른 `Access-Control-Allow-Origin`)이었고, 실제 원인은 **응답이 6~13초**라
 브라우저가 타임아웃/연결 실패를 CORS 에러로 표시한 것이었다(1코어 VM이라 이 요청 하나가
-다른 요청까지 굶긴다). 응답의 `source`가 `cache`라 외부 API는 전혀 안 타는데도 느렸고,
-종목별 조회(6.34초)와 전체 피드(6.43초)가 같은 시간이라 공통 구간만 남았다 -
-`get_news()`가 요청당 두 번 부르는 `_load_cached()`.
-원인: `domestic_news` 테이블에 `item_key` PRIMARY KEY 외에 **인덱스가 하나도 없어서**
-`WHERE fetched_at >= ? ORDER BY pub_date DESC LIMIT 100`이 매번 전체 테이블 스캔 + 전체
-정렬이었다. 이 테이블은 삭제·보존 정책도 없어 계속 자라기만 한다.
-수정: `_connect()`에 `idx_domestic_news_fetched_at`(범위 탐색용)과
-`idx_domestic_news_kind_fetched_at`(`get_weekly_news`의 `WHERE kind=? ORDER BY fetched_at`용)
-추가. 인덱스 최초 생성은 쓰기 락을 잡으므로 요청 경로가 아니라 앱 기동 시
-`domestic_news.ensure_schema()`(main.py startup, try/except)에서 만든다. 쿼리·응답 로직은
-불변. 로컬 벤치(12만 행/54MB 합성 테이블)에서 요청당 2쿼리 75.7ms → 5.8ms(13배),
-실행계획 `SCAN` → `SEARCH ... USING INDEX`. 회귀 테스트 2건 추가
-(`test_domestic_news.py` - 인덱스 존재 + 실행계획에 SCAN 없음). 사전부터 실패하던
-DART 의존 테스트 1건은 무관. `scripts/cloud-vm/` 자동 배포.
-남은 항목: 이 테이블에 **보존 정책이 없다**(무한 증가). 인덱스로 조회는 빨라졌지만
-파일 크기는 계속 커지므로 별도 정리 정책 검토 필요.
+다른 요청까지 굶긴다). 원인은 두 개였고 순서대로 잡았다.
+
+① **뉴스 캐시 테이블 인덱스 누락**: `domestic_news` 테이블에 `item_key` PRIMARY KEY 외
+인덱스가 하나도 없어 `WHERE fetched_at >= ? ORDER BY pub_date DESC LIMIT 100`이 매번 전체
+스캔 + 전체 정렬이었다(`get_news()`는 요청당 두 번 호출). 이 테이블은 보존 정책도 없어
+계속 자란다. `_connect()`에 `idx_domestic_news_fetched_at`과
+`idx_domestic_news_kind_fetched_at`(`get_weekly_news`용) 추가. 최초 생성이 쓰기 락을
+잡으므로 요청 경로가 아니라 앱 기동 시 `domestic_news.ensure_schema()`(main.py startup,
+try/except)에서 만든다. 로컬 벤치(12만 행/54MB 합성): 요청당 2쿼리 75.7ms → 5.8ms,
+실행계획 `SCAN` → `SEARCH ... USING INDEX`. 배포 후 라이브 캐시 경로 6.43초 → 3.96초.
+
+② **DART 목록 API에 캐시가 없었음**: ①만으로 3.9초가 남아 형제 엔드포인트로 분해했다
+(네트워크 왕복 약 0.4초 제외한 서버 작업): `/health` 0.18초, `/foreign-news`
+(`get_general_news`) 1.15초, `/domestic-disclosures`(`get_disclosures`) **3.1초**,
+`/domestic-news` 3.4초. 즉 남은 비용은 DB가 아니라 `_disclosure_items()`가 부르는
+`_dart_items()`였고, 같은 파일의 `_kind_items()`는 30초 캐시가 있는데 **DART만 캐시가 없어**
+요청마다 라이브 호출이었다. `code`/`name`은 DART로 보내지 않고 받아온 행을 거르는 데만
+쓰므로(네트워크 결과는 기간·corp_code·페이지 수에만 의존), 필터 이전 원본 행을
+`DART_CACHE_TTL_SEC = 60`으로 캐시하고 변환·필터는 요청마다 수행하도록 분리
+(`_dart_rows_to_items()`). 종목 지정(`corp_code`) 조회는 캐시하지 않는다 - 상위
+`_watchlist_disclosure_cache`(30분)가 이미 담당하고 캐시 키가 종목 수만큼 늘지 않게 하기
+위함. 실패 시 `_kind_items()`와 동일하게 마지막 성공 행으로 폴백(`_dart_stale_items()`).
+TTL 60초는 공시 속보성과 미스율의 절충이라 튜닝 포인트로 상수에 주석을 남겼다.
+
+**정정**: 이 조사 도중 "종목별 조회(6.34초)와 전체 피드(6.43초)가 같은 시간이니 공통
+구간인 `_load_cached()`가 비용의 전부"라고 판단했는데 **틀렸다**. 응답의 `source`를 확인해
+보니 종목별 조회는 `live`(네이버+DART 호출), 전체 피드는 `cache`로 **서로 다른 경로**였고
+시간이 비슷했던 건 우연이었다. ①은 그 자체로 옳은 수정이었지만(캐시 경로 6.43→3.96초로
+실측 확인) 근거가 잘못됐었다. 이후 형제 엔드포인트 분해로 ②를 찾았다.
+
+회귀 테스트 6건 추가(`test_domestic_news.py`): 인덱스 존재·실행계획에 SCAN 없음,
+`ensure_schema`, DART 캐시 히트 시 재호출 없음 + 캐시 히트에서도 종목 필터 동작,
+TTL 만료 시 재호출, corp_code 조회는 캐시 안 함, 실패 시 직전 성공분 폴백.
+사전부터 실패하던 DART 의존 테스트 1건(`test_general_disclosures_default_to_fifty_items`)은
+이 변경과 무관(변경 전에도 실패). `scripts/cloud-vm/` 자동 배포.
+남은 항목: `domestic_news` 테이블에 **보존 정책이 없다**(무한 증가). 인덱스로 조회는
+빨라졌지만 파일은 계속 커지므로 정리 정책 검토 필요.
 
 **2026-08-30 첫 페인트(FCP) 2.4초 → 조회 테이블 2종 유휴 로딩(6차)**: 라이브 측정에서
 TTFB 149ms / domInteractive 813ms인데 **FCP가 2400ms**였다(흰 화면 2.4초).
