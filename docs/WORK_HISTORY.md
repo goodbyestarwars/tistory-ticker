@@ -1,5 +1,22 @@
 # 9Pay 주요 작업이력
 
+**2026-08-30 휴장 탭 전환 시 검은 대각선 번쩍임(FOUC) 수정**: 사용자 리포트 "Markets
+Closed 전환 시 검은색 대각선으로 뭔가 뜬다". 원인은 `js/home-weekly-report.js`의
+`init()`이 `css/home-weekly-report.css` `<link>`를 붙인 **같은 틱에** localStorage 캐시
+(`readLocalReport()`)로 리포트 본문을 그려버린 것. 스타일이 도착하기 전 몇 프레임 동안
+스파크라인 SVG가 SVG 기본값(`fill:black`, `stroke:none`)으로 칠해져 `<polyline>`이 검은
+쐐기(대각선 덩어리)로, `<rect class="hwr-fx-interest-band">`가 검은 사각형으로 보였다
+(모든 fill/stroke가 외부 CSS에만 있었음). 두 겹으로 수정: ① `ensureStyle()`/
+`whenStyleReady()`를 추가해 `<link>`의 `load`/`error`(또는 2초 타임아웃) 뒤에 `render()`를
+실행 - 캐시 렌더·fetch 렌더 모두 게이팅. ② 그래도 남는 경우를 대비해 `sparkline()`·
+`fxSparkline()`이 최종 색·굵기를 프레젠테이션 속성(`fill`/`stroke`/`stroke-width`/
+`stroke-dasharray`/`fill-opacity`)과 `width`/`height`로 같이 출력 - CSS 속성이 프레젠테이션
+속성을 이기므로 CSS 도착 후 최종 렌더는 이전과 동일. 2026-08-20 황소·곰 SVG 인라인 색
+보정과 같은 계열의 문제였고 이번에 스파크라인까지 덮었다. 무-CSS 상태 렌더를 브라우저로
+before/after 비교해 검은 덩어리 소멸 확인, `test_ui_ia` 122건 통과. `skin-main.js`의
+weekly-report 버전 쿼리 `20260830-weekly-fouc-fix-v1`(+ 계약 테스트 동기화).
+`js/` 자동 배포, `skin.html` 변경 없음.
+
 **2026-08-29 홈 지수차트 실데이터 전환 + /earnings-calendar 응답 슬리밍(5차)**:
 ① 홈 시장판 지수 카드(KOSPI/KOSDAQ/NASDAQ/S&P/야간선물)의 미니 스파크라인이
 `HOME_USE_SAMPLE_CHARTS=true`로 고정 샘플 시계열을 쓰고 있었다("레이아웃 작업용" 임시).

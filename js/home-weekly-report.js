@@ -10,6 +10,7 @@
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
+  var STYLE_TIMEOUT_MS = 2000;
   // 2026-08-22 요청: "다음 주 핵심 스케쥴"에 M7·금리 같은 시장 공통 일정뿐 아니라
   // "내 종목"(js/watchlist.js 관심종목) 공시·실적 일정도 조건부로 보여달라는 요청.
   // weekly_report.py의 next_week_schedule은 순수 함수(사용자 구분 불가, 하루 1회 공용
@@ -104,6 +105,17 @@
     return formatPrice(value, item.symbol);
   }
   function signClass(value) { return num(value) > 0 ? 'is-up' : num(value) < 0 ? 'is-down' : 'is-flat'; }
+  // 2026-08-30: 스파크라인의 fill/stroke가 css/home-weekly-report.css에만 있어서, 그 CSS가
+  // 도착하기 전 한 프레임이 SVG 기본값(fill:black, stroke:none)으로 칠해졌다 - <polyline>이
+  // 검은 덩어리로 채워져 "검은색 대각선"이 번쩍이는 현상(사용자 리포트). 최종 색을 프레젠테이션
+  // 속성으로 같이 박아 첫 페인트부터 같은 그림이 나오게 한다(CSS 속성이 프레젠테이션 속성을
+  // 이기므로 CSS가 도착하면 그대로 덮인다).
+  function strokeAttr(className, flatColor) {
+    var name = String(className || '');
+    if (name.indexOf('is-up') !== -1) return '#d24f45';
+    if (name.indexOf('is-down') !== -1) return '#1261c4';
+    return flatColor;
+  }
   function sparkline(points, className) {
     if (!points || points.length < 2) return '<span class="hwr-no-chart">추이 데이터 없음</span>';
     var values = points.map(function (point) { return num(point.close); }).filter(function (value) { return value != null; });
@@ -114,7 +126,8 @@
       var y = 30 - (value - min) / range * 26;
       return x.toFixed(1) + ',' + y.toFixed(1);
     }).join(' ');
-    return '<svg class="' + escapeHtml(className || '') + '" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + poly + '"></polyline></svg>';
+    return '<svg class="' + escapeHtml(className || '') + '" viewBox="0 0 100 32" width="100%" height="38" preserveAspectRatio="none" aria-hidden="true">'
+      + '<polyline points="' + poly + '" fill="none" stroke="' + strokeAttr(className, '#2563eb') + '" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline></svg>';
   }
   function dateLabel(value) {
     var text = String(value || '');
@@ -313,9 +326,18 @@
     var bandTop = p25 == null ? 39 : y(p25);
     var bandBottom = low == null ? 39 : y(low);
     var bandHeight = Math.max(0, bandBottom - bandTop);
-    var averageLine = average == null ? '' : '<line class="hwr-fx-average-line" x1="0" y1="' + y(average).toFixed(1) + '" x2="100" y2="' + y(average).toFixed(1) + '"></line>';
-    var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1"></rect>';
-    return '<div class="hwr-fx-chart"><svg class="hwr-fx-spark ' + signClass(fx.change_rate) + '" viewBox="0 0 100 44" preserveAspectRatio="none" role="img" aria-label="최근 1년 ' + escapeHtml(title || '자산') + ' 추이"><line class="hwr-fx-guide-line" x1="0" y1="5" x2="100" y2="5"></line><line class="hwr-fx-guide-line" x1="0" y1="39" x2="100" y2="39"></line>' + interestBand + averageLine + '<polyline points="' + poly + '"></polyline></svg></div>';
+    // 위 sparkline()과 같은 이유로 CSS 도착 전 첫 페인트용 프레젠테이션 속성을 같이 박는다.
+    // 특히 <rect class="hwr-fx-interest-band">는 fill 기본값이 검정이라 CSS가 늦으면 차트
+    // 자리에 검은 사각형이 그대로 보였다.
+    var guideAttrs = ' stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"';
+    var averageLine = average == null ? '' : '<line class="hwr-fx-average-line" x1="0" y1="' + y(average).toFixed(1) + '" x2="100" y2="' + y(average).toFixed(1) + '" stroke="#475569" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"></line>';
+    var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1" fill="#2563eb" fill-opacity=".10"></rect>';
+    var spark = signClass(fx.change_rate);
+    return '<div class="hwr-fx-chart"><svg class="hwr-fx-spark ' + spark + '" viewBox="0 0 100 44" width="100%" height="72" preserveAspectRatio="none" role="img" aria-label="최근 1년 ' + escapeHtml(title || '자산') + ' 추이">'
+      + '<line class="hwr-fx-guide-line" x1="0" y1="5" x2="100" y2="5"' + guideAttrs + '></line>'
+      + '<line class="hwr-fx-guide-line" x1="0" y1="39" x2="100" y2="39"' + guideAttrs + '></line>'
+      + interestBand + averageLine
+      + '<polyline points="' + poly + '" fill="none" stroke="' + strokeAttr(spark, '#64748b') + '" stroke-width="1.7" vector-effect="non-scaling-stroke"></polyline></svg></div>';
   }
   function rangeCard(fx, options) {
     fx = fx || {};
@@ -454,6 +476,38 @@
     bindNewsFilters(root);
     loadMyWatchlistSchedule(root, data.week && data.week.end);
   }
+  // 2026-08-30: css/home-weekly-report.css는 휴장 탭을 열 때에야 <link>로 붙는데,
+  // localStorage 캐시가 있으면 바로 다음 줄에서 마크업까지 그려져 스타일이 도착하기 전
+  // 몇 프레임이 그대로 페인트됐다(사용자 리포트: 휴장 전환 시 검은 대각선 덩어리가 뜸).
+  // 스타일이 준비된 뒤에 본문을 그리고, 로드 실패나 지연이면 타임아웃으로 그냥 그린다
+  // (그 경우에도 위 SVG 프레젠테이션 속성 덕분에 검은 덩어리로는 안 보인다).
+  var styleReady = false;
+  var stylePending = [];
+  function markStyleReady() {
+    if (styleReady) return;
+    styleReady = true;
+    var queued = stylePending.splice(0, stylePending.length);
+    queued.forEach(function (fn) { fn(); });
+  }
+  function ensureStyle() {
+    var link = document.querySelector('link[data-home-weekly-report-css]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = CSS_URL;
+      link.setAttribute('data-home-weekly-report-css', '1');
+      document.head.appendChild(link);
+    }
+    // 교차 출처(GitHub Pages) 스타일시트도 로드가 끝나면 link.sheet 객체는 생긴다.
+    if (link.sheet) { markStyleReady(); return; }
+    link.addEventListener('load', markStyleReady);
+    link.addEventListener('error', markStyleReady);
+    setTimeout(markStyleReady, STYLE_TIMEOUT_MS);
+  }
+  function whenStyleReady(fn) {
+    if (styleReady) { fn(); return; }
+    stylePending.push(fn);
+  }
   function init() {
     var closedSelected = window.HomeMarketSelection && typeof window.HomeMarketSelection.get === 'function'
       && window.HomeMarketSelection.get() === 'closed';
@@ -464,9 +518,7 @@
     }
     var feed = document.querySelector('.feed');
     if (!feed || existing) return null;
-    if (!document.querySelector('link[data-home-weekly-report-css]')) {
-      var link = document.createElement('link'); link.rel = 'stylesheet'; link.href = CSS_URL; link.setAttribute('data-home-weekly-report-css', '1'); document.head.appendChild(link);
-    }
+    ensureStyle();
     var root = document.createElement('section');
     root.id = 'homeWeeklyReport'; root.className = 'home-weekly-report';
     root.innerHTML = '<div class="hwr-loading"><strong>주간 리포트를 준비하는 중입니다.</strong><span>지수·뉴스·일정을 묶고 있습니다.</span></div>';
@@ -477,13 +529,15 @@
     else feed.insertBefore(root, dashboard || feed.firstChild);
     var cached = readLocalReport();
     if (cached) {
-      render(root, cached);
       root.setAttribute('data-hwr-refreshing', 'true');
+      whenStyleReady(function () { render(root, cached); });
     }
     fetchReport().then(function (payload) {
       writeLocalReport(payload);
-      render(root, payload);
-      root.removeAttribute('data-hwr-refreshing');
+      whenStyleReady(function () {
+        render(root, payload);
+        root.removeAttribute('data-hwr-refreshing');
+      });
     }).catch(function () {
       // A previous successful report is more useful than leaving the page in a
       // spinner state when the VM/browser connection is temporarily stalled.
