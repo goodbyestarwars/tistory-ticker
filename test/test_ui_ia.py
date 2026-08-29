@@ -650,7 +650,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260828-us-premarket-session-v2", main)
+        self.assertIn("home-realtime-table.js?v=20260830-idle-wics-v1", main)
         for token in (
             "function localizedUsName(item)",
             "name_ko || item.display_name",

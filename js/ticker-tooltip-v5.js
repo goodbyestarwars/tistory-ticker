@@ -493,9 +493,16 @@
   };
   global.TickerTooltip = TickerTooltip;
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  // 2026-08-30 속도 점검: init()이 DOMContentLoaded 즉시 krx_map.js(153KB)를 받아
+  // 파싱하고 GAS 시세까지 불러서 첫 페인트와 경쟁했다(라이브 측정: krx_map 1326~1934ms,
+  // wics-map 1939~2145ms, FCP 2400ms - 이 두 파싱이 끝나자마자 페인트됨).
+  // 본문 종목 배지는 글 내용 "장식"이라 첫 화면 필수가 아니므로 load 이후 유휴 시간으로
+  // 미룬다. 최종 결과는 같고 실행 순서만 바뀐다(배지 표시는 체감상 그대로 - 어차피
+  // krx_map + GAS 시세를 기다려야 나온다).
+  function bootWhenIdle() {
+    if (typeof global.requestIdleCallback === 'function') global.requestIdleCallback(function () { init(); }, { timeout: 2000 });
+    else global.setTimeout(init, 200);
   }
+  if (document.readyState === 'complete') bootWhenIdle();
+  else global.addEventListener('load', bootWhenIdle, { once: true });
 })(window);

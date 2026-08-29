@@ -708,6 +708,24 @@
     return entry.promise;
   }
 
+  // wics-map.js(약 220KB)는 업종 라벨 보강용 폴백이라 첫 페인트 뒤 유휴 시간에 받는다.
+  // 도착하면 이미 그려진 행의 업종 라벨만 다시 채운다.
+  function loadWicsMapWhenIdle() {
+    function load() {
+      if (global.WICS_MAP) { if (state.data) renderRows(); return; }
+      var script = document.createElement('script');
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js?v=20260810';
+      script.onload = function () { if (state.data) renderRows(); };
+      document.head.appendChild(script);
+    }
+    function schedule() {
+      if (typeof global.requestIdleCallback === 'function') global.requestIdleCallback(load, { timeout: 2000 });
+      else global.setTimeout(load, 200);
+    }
+    if (document.readyState === 'complete') schedule();
+    else global.addEventListener('load', schedule, { once: true });
+  }
+
   function init(options) {
     var mount = options && options.mount;
     if (!mount || mount.getAttribute('data-hrt-ready') === '1') return;
@@ -742,12 +760,13 @@
     // 첫 로딩 때 이 파일을 다 받을 때까지 종목 데이터 요청을 미루지 않는다(2026-08-14 속도
     // 점검 - 직렬 대기가 최초 표시를 불필요하게 늦추고 있었음). 병렬로 요청하고, 늦게
     // 도착하면 이미 그려진 행을 업종 라벨만 다시 채우도록 재렌더링한다.
+    // 2026-08-30 속도 점검: 병렬 요청까지는 맞았는데 시점이 너무 일렀다. 221KB 스크립트가
+    // 첫 페인트 직전에 도착해 파싱이 메인 스레드를 잡았다(라이브: 1939~2145ms 수신,
+    // FCP 2400ms). 행 렌더는 이 파일 없이도 되고 이미 늦게 와도 재렌더하도록 돼 있으니,
+    // load 이후 유휴 시간으로 미뤄 첫 페인트와 경쟁하지 않게 한다.
     fetchBoard();
     if (!global.WICS_MAP) {
-      var script = document.createElement('script');
-      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js?v=20260810';
-      script.onload = function () { if (state.data) renderRows(); };
-      document.head.appendChild(script);
+      loadWicsMapWhenIdle();
     }
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) {

@@ -1,5 +1,24 @@
 # 9Pay 주요 작업이력
 
+**2026-08-30 첫 페인트(FCP) 2.4초 → 조회 테이블 2종 유휴 로딩(6차)**: 라이브 측정에서
+TTFB 149ms / domInteractive 813ms인데 **FCP가 2400ms**였다(흰 화면 2.4초).
+`renderBlockingStatus`로 확인하니 렌더 블로킹 리소스는 481ms에 모두 끝났고, `skin-ready`
+가드도 800ms 타이머로 열린다 - 즉 2.4초는 네트워크가 아니라 **메인 스레드 점유**였다.
+워터폴상 원인은 첫 화면에 필요 없는 대용량 조회 테이블 2개:
+`data/krx_map.js`(153KB, 1326~1934ms)와 `data/wics-map.js`(221KB, 1939~2145ms).
+합계 375KB의 객체 리터럴 파싱이 끝난 직후(2400ms)에 페인트가 났다.
+① `js/ticker-tooltip-v5.js`: `init()`이 DOMContentLoaded 즉시 `loadKrxMap()`을 불러
+krx_map을 받고 GAS 시세(`?codes=`, 1.5초)까지 태웠다. 본문 종목 배지는 글 내용 장식이라
+첫 화면 필수가 아니므로 부트를 `load` + `requestIdleCallback`(timeout 2000)으로 이동.
+② `js/home-realtime-table.js`: wics-map을 `init()`에서 바로 받고 있었다(병렬 요청 자체는
+2026-08-14에 맞게 고쳤으나 시점이 일렀음). `loadWicsMapWhenIdle()`로 감싸 동일하게 `load`
+이후 유휴 시간에 받도록 변경 - 늦게 도착하면 행을 재렌더하는 기존 경로 그대로 재사용.
+두 변경 모두 **최종 화면은 동일하고 실행 순서만 바뀐다**. (라이브 재측정 결과는 GH Pages
+전파 후 아래에 추가.)
+`skin-main.js`의 realtime-table 버전 쿼리 `20260830-idle-wics-v1`(+ 계약 테스트 동기화).
+`ticker-tooltip-v5.js`는 `skin.html`에 버전 쿼리가 있으나 GH Pages 캐시(10분)로 자연
+전파되므로 **skin.html은 건드리지 않음**. `test_ui_ia` 122건 통과.
+
 **2026-08-30 휴장 탭 전환 시 검은 대각선 번쩍임(FOUC) 수정**: 사용자 리포트 "Markets
 Closed 전환 시 검은색 대각선으로 뭔가 뜬다". 원인은 `js/home-weekly-report.js`의
 `init()`이 `css/home-weekly-report.css` `<link>`를 붙인 **같은 틱에** localStorage 캐시
