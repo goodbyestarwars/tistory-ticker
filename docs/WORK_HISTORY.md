@@ -1,5 +1,22 @@
 # 9Pay 주요 작업이력
 
+**2026-08-29 홈 지수차트 실데이터 전환 + /earnings-calendar 응답 슬리밍(5차)**:
+① 홈 시장판 지수 카드(KOSPI/KOSDAQ/NASDAQ/S&P/야간선물)의 미니 스파크라인이
+`HOME_USE_SAMPLE_CHARTS=true`로 고정 샘플 시계열을 쓰고 있었다("레이아웃 작업용" 임시).
+`/futures` 응답의 `chart` 배열(일봉 90개)을 라이브로 확인하니 모든 심볼의 마지막 종가가
+현재가와 정확히 일치 - 실데이터로 전환(`false`). 샘플 토글·기구(`HOME_SAMPLE_CHARTS`/
+`homeChartRows`)는 레이아웃 작업 재사용을 위해 유지. `skin.html` skin-main 버전 쿼리
+`20260829-live-index-charts-v1`.
+② `/earnings-calendar` 월 응답이 1,900건 넘고(미국 Finnhub 예정 실적 대부분) 그 중
+`corp_code`·`report_name`·`receipt_date`·`eps_actual`·`eps_estimate`·`revenue_actual`·
+`revenue_estimate`·`operating_profit_actual`·`net_income_actual` 9개 필드는 프론트
+(home-widgets/home-weekly-report/stock-calendar) 어디서도 안 쓴다(표시용 요약은 `result`
+문자열로 이미 포함). `main.py` 엔드포인트에서 캐시 저장 직전 `_slim_calendar_events()`로
+이 필드들을 제거 - `merge_month()` 내부 계산과 단위 테스트는 그대로. 동작 변경 없음,
+전송·클라이언트 파싱 비용만 감소. `test_ui_ia`/`test_earnings_calendar`/신규
+`test_earnings_calendar_response` 통과. `js/`·`scripts/cloud-vm/` 자동 배포, `skin.html`
+수동 반영.
+
 **2026-08-29 메인 페이지 속도 - /market-board 캐시 워머(4차, VM)**: 홈 리뷰에서 남은
 단일 병목이 `/market-board`였다(KIS 순위 API 3~4초). 30초 공유 캐시가 만료되는 순간의
 첫 방문자가 매번 그 지연을 그대로 맞았다(기본 소스가 KIS라 market_rank 같은 백그라운드

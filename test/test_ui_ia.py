@@ -341,14 +341,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".home-editorial-page.is-market-closed .home-widget-grid", style)
         self.assertNotIn("body#tt-body-index .home-editorial-page.is-market-closed", style)
 
-    def test_home_index_charts_use_swappable_sample_series_for_layout_work(self):
+    def test_home_index_charts_use_live_futures_data_with_sample_toggle_retained(self):
+        # 2026-08-29: 운영 전환 - 기본은 /futures 실데이터. 레이아웃 작업용 고정 샘플
+        # 토글(HOME_USE_SAMPLE_CHARTS)과 기구(HOME_SAMPLE_CHARTS/homeChartRows)는 유지.
         main = self.read("js/skin-main.js")
-        self.assertIn("var HOME_USE_SAMPLE_CHARTS = true;", main)
+        self.assertIn("var HOME_USE_SAMPLE_CHARTS = false;", main)
         self.assertIn("var HOME_SAMPLE_CHARTS = {", main)
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260829-perf-shared-loaders-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260829-live-index-charts-v1", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -399,7 +401,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         self.assertIn(".navbar .nav-search-input { font-size: 11px; }", style)
-        self.assertIn("skin-main.js?v=20260829-perf-shared-loaders-v1", skin)
+        self.assertIn("skin-main.js?v=20260829-live-index-charts-v1", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")

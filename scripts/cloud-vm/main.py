@@ -2042,6 +2042,27 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
     return envelope(result)
 
 
+# 월 단위 응답이 1,900건을 넘고(미국 Finnhub 예정 실적이 대부분) 아래 필드는
+# 프론트(home-widgets.js·home-weekly-report.js·stock-calendar.js) 어디서도 안 쓴다.
+# merge_month()의 내부 계산에는 필요하지만 HTTP 응답에서는 빼서 전송·파싱 비용을 줄인다
+# (표시용 요약은 이미 'result' 문자열로 들어 있음). 계약 테스트: test_earnings_calendar.
+_EARNINGS_CLIENT_DROP_FIELDS = frozenset((
+    'corp_code', 'report_name', 'receipt_date',
+    'eps_actual', 'eps_estimate', 'revenue_actual', 'revenue_estimate',
+    'operating_profit_actual', 'net_income_actual',
+))
+
+
+def _slim_calendar_events(events):
+    if not isinstance(events, list):
+        return events
+    return [
+        {k: v for k, v in event.items() if k not in _EARNINGS_CLIENT_DROP_FIELDS}
+        if isinstance(event, dict) else event
+        for event in events
+    ]
+
+
 @app.get('/earnings-calendar')
 def earnings_calendar_endpoint(request: Request, year: int = Query(..., ge=2000, le=2100), month: int = Query(default=None, ge=1, le=12)):
     """국내 DART 실적공시와 미국 Finnhub 예정 실적을 캘린더 이벤트로 반환한다.
@@ -2057,6 +2078,7 @@ def earnings_calendar_endpoint(request: Request, year: int = Query(..., ge=2000,
     if cached and time.time() - cached['t'] < _EARNINGS_CALENDAR_TTL:
         return {'success': True, 'data': cached['data'], 'source': 'dart+finnhub', 'cached': True}
     data = earnings_calendar.merge_month(year, month) if month is not None else earnings_calendar.merge_year(year)
+    data = _slim_calendar_events(data)
     _earnings_calendar_cache[key] = {'t': time.time(), 'data': data}
     _earnings_calendar_cache.move_to_end(key)
     _evict_lru(_earnings_calendar_cache, _EARNINGS_CALENDAR_MAX_ENTRIES)
