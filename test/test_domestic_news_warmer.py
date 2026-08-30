@@ -13,8 +13,9 @@ class DomesticNewsWarmerTest(unittest.TestCase):
 
     def test_warmer_only_runs_on_recent_real_traffic_and_reuses_endpoint(self):
         src = self.read()
-        # 홈이 실제로 부르는 것과 같은 쿼리를 루프백으로 태워 같은 캐시를 데운다.
-        self.assertIn("http://127.0.0.1:%s/domestic-news?kind=news&limit=50", src)
+        # 홈이 실제로 부르는 것과 같은 쿼리에 fresh=1만 붙여 루프백으로 태운다.
+        # fresh가 없으면 워머가 TTL이 남은 캐시를 그냥 읽고 가서 방문자가 갱신 비용을 문다.
+        self.assertIn("http://127.0.0.1:%s/domestic-news?kind=news&limit=50&fresh=1", src)
         # 트래픽이 있을 때만(마지막 실제 방문 3분 이내) 데운다.
         self.assertIn("_DOMESTIC_NEWS_WARM_ACTIVE_WINDOW_SEC = 180", src)
         self.assertIn(
@@ -34,6 +35,19 @@ class DomesticNewsWarmerTest(unittest.TestCase):
         self.assertIn('_DOMESTIC_NEWS_WARM_INTERVAL_SEC = 45', src)
         news_src = (ROOT / 'scripts' / 'cloud-vm' / 'domestic_news.py').read_text(encoding='utf-8')
         self.assertIn('DART_CACHE_TTL_SEC = 60', news_src)
+
+    def test_general_news_uses_refresh_ahead_not_forced_refresh(self):
+        """일반뉴스까지 매 회차 강제 갱신하면 Alpha Vantage/Finnhub 무료 쿼터를 태운다.
+        워머만 더 짧은 TTL로 읽어 미리 갱신하고, 방문자는 원래 TTL로 항상 warm하게 읽는다."""
+        src = self.read()
+        self.assertIn('_GENERAL_NEWS_WARM_AHEAD_TTL_SEC = 240', src)
+        self.assertIn('ttl_sec=_GENERAL_NEWS_WARM_AHEAD_TTL_SEC if fresh else None', src)
+        agg = (ROOT / 'scripts' / 'cloud-vm' / 'news_aggregator.py').read_text(encoding='utf-8')
+        self.assertIn('GENERAL_NEWS_CACHE_TTL_SEC = 5 * 60', agg)  # 240 < 300 이어야 의미가 있다
+
+    def test_disclosures_are_force_refreshed_by_the_warmer(self):
+        src = self.read()
+        self.assertIn('domestic_news.get_disclosures(limit=_DOMESTIC_DART_LIMIT, fresh=fresh)', src)
 
     def test_warmer_thread_is_a_daemon_so_it_never_blocks_shutdown(self):
         src = self.read()

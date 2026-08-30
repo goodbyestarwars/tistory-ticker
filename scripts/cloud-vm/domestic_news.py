@@ -260,12 +260,18 @@ def _kind_corp(value):
     return re.sub(r'^\[(?:유|코|코넥스)\]\s*', '', text).strip()
 
 
-def _kind_items(code='', name=''):
-    """Read today's KRX/KIND RSS and normalize it as a disclosure feed."""
+def _kind_items(code='', name='', fresh=False):
+    """Read today's KRX/KIND RSS and normalize it as a disclosure feed.
+
+    ``fresh``는 캐시 워머 전용이다. 워머가 TTL이 아직 남은 캐시를 그냥 읽고 가면
+    정작 만료 직후에 도착한 실제 방문자가 갱신 비용을 뒤집어쓴다(2026-08-30 실측:
+    워머 도입 후에도 약 20%가 4초). 워머만 강제로 갱신해 방문자는 항상 캐시를 읽게 한다.
+    """
     global _kind_cache
     now_ts = time.time()
     with _kind_cache_lock:
-        rows = _kind_cache[1] if _kind_cache and now_ts - _kind_cache[0] < KIND_CACHE_TTL_SEC else None
+        rows = None if fresh else (
+            _kind_cache[1] if _kind_cache and now_ts - _kind_cache[0] < KIND_CACHE_TTL_SEC else None)
     if rows is None:
         request = urllib.request.Request(KIND_RSS_URL, headers={'User-Agent': 'tistory-ticker/1.0'})
         try:
@@ -349,7 +355,7 @@ def normalize_naver(item, code='', name=''):
 
 
 def _dart_items(code='', name='', now=None, start_date=None, end_date=None,
-                corp_code='', max_pages=1):
+                corp_code='', max_pages=1, fresh=False):
     api_key = os.environ.get('DART_API_KEY', '').strip()
     if not api_key:
         return []
@@ -363,7 +369,8 @@ def _dart_items(code='', name='', now=None, start_date=None, end_date=None,
     # `_watchlist_disclosure_cache`(30분)가 있고, 캐시 키가 종목 수만큼 늘지 않게 한다.
     cacheable = not corp_code
     cache_key = (start_date, end_date, max_pages)
-    if cacheable:
+    # fresh=True는 캐시 워머 전용(위 _kind_items 주석 참고) - 저장은 그대로 하고 읽기만 건너뛴다.
+    if cacheable and not fresh:
         now_ts = time.time()
         with _dart_cache_lock:
             entry = _dart_cache.get(cache_key)
@@ -755,9 +762,9 @@ def _select_stock_news(items, code='', name='', body_fallback_limit=3):
     return other_items + title_items + body_items[:max(0, body_fallback_limit - len(title_items))]
 
 
-def _disclosure_items(code='', name=''):
-    dart_items = _dart_items(code, name)
-    kind_items = _kind_items(code, name)
+def _disclosure_items(code='', name='', fresh=False):
+    dart_items = _dart_items(code, name, fresh=fresh)
+    kind_items = _kind_items(code, name, fresh=fresh)
     return _dedupe_disclosures(dart_items + kind_items)
 
 
@@ -797,12 +804,12 @@ def get_news(code='', name='', query='', limit=10, item_kind='all'):
     }
 
 
-def get_disclosures(limit=30):
+def get_disclosures(limit=30, fresh=False):
     """최근 KIND/DART 공시를 속보용으로 반환한다.
 
     일반 종합뉴스는 성능을 위해 공시를 제외하지만, 속보 레일은 실적과
     관심종목 공시를 즉시 구분해야 하므로 DART 원문 메타데이터만 별도로 읽는다.
     호출 주기는 상위 WebSocket 캐시가 제한한다.
     """
-    items = _disclosure_items()
+    items = _disclosure_items(fresh=fresh)
     return items[:max(1, min(int(limit or 30), 30))]

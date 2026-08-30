@@ -186,6 +186,33 @@ class DomesticNewsTests(unittest.TestCase):
         self.assertEqual([i['stockCode'] for i in second], ['005930', '000660'])
         self.assertEqual([i['stockCode'] for i in filtered], ['005930'])
 
+    def test_warmer_fresh_flag_bypasses_the_dart_cache(self):
+        """워머가 TTL이 남은 캐시를 그냥 읽고 가면, 만료 직후 도착한 실제 방문자가
+        갱신 비용을 뒤집어쓴다(2026-08-30: 워머 도입 후에도 약 20%가 4초)."""
+        rows = [{'stock_code': '005930', 'corp_name': '삼성전자', 'rcept_no': '1',
+                 'report_nm': '주요사항보고서', 'flr_nm': '삼성전자', 'rcept_dt': '20260830'}]
+        calls = []
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}, clear=False), \
+                mock.patch.object(domestic_news.urllib.request, 'urlopen',
+                                  side_effect=self._fake_dart(rows, calls)):
+            domestic_news._dart_items(start_date='20260828', end_date='20260830')
+            domestic_news._dart_items(start_date='20260828', end_date='20260830')  # 캐시 히트
+            self.assertEqual(len(calls), 1)
+            domestic_news._dart_items(start_date='20260828', end_date='20260830', fresh=True)
+            self.assertEqual(len(calls), 2)
+            # 워머가 갱신한 뒤에는 방문자가 다시 캐시 히트여야 한다.
+            domestic_news._dart_items(start_date='20260828', end_date='20260830')
+            self.assertEqual(len(calls), 2)
+
+    def test_get_disclosures_threads_fresh_through_to_both_sources(self):
+        seen = {}
+        with mock.patch.object(domestic_news, '_dart_items',
+                               side_effect=lambda *a, **k: seen.update(dart=k.get('fresh')) or []), \
+                mock.patch.object(domestic_news, '_kind_items',
+                                  side_effect=lambda *a, **k: seen.update(kind=k.get('fresh')) or []):
+            domestic_news.get_disclosures(limit=30, fresh=True)
+        self.assertEqual(seen, {'dart': True, 'kind': True})
+
     def test_expired_dart_cache_refetches(self):
         rows = [{'stock_code': '005930', 'corp_name': '삼성전자', 'rcept_no': '1',
                  'report_nm': '주요사항보고서', 'flr_nm': '삼성전자', 'rcept_dt': '20260830'}]

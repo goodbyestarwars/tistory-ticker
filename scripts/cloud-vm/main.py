@@ -256,6 +256,10 @@ _market_board_warmer_started = False
 # 호출량이 그만큼 늘어난다(현재 market-board 워머도 20초 주기로 돌고 있음).
 _DOMESTIC_NEWS_WARM_INTERVAL_SEC = 45
 _DOMESTIC_NEWS_WARM_ACTIVE_WINDOW_SEC = 180
+# 일반뉴스 캐시(news_aggregator.GENERAL_NEWS_CACHE_TTL_SEC = 300)를 워머만 4분에 만료로
+# 보고 미리 갱신한다 - 방문자(5분 기준)는 항상 warm. 반드시 300보다 작아야 의미가 있고,
+# 너무 작으면 Alpha Vantage/Finnhub 무료 쿼터를 태운다.
+_GENERAL_NEWS_WARM_AHEAD_TTL_SEC = 240
 _domestic_news_last_real_hit = 0.0
 _domestic_news_warmer_started = False
 _KOFIA_MARKET_TTL = 30 * 60
@@ -2299,6 +2303,7 @@ def domestic_news_endpoint(
     query: str = Query('', max_length=100),
     kind: str = Query('all', max_length=10),
     limit: int = Query(10, ge=1, le=50),
+    fresh: bool = Query(False),
 ):
     """국내 전체/종목별 뉴스와 DART 공시를 시간순으로 반환한다.
 
@@ -2314,16 +2319,24 @@ def domestic_news_endpoint(
     result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit, item_kind)
     if not normalized_code and not name.strip() and not query.strip():
         domestic_items = result.get('items', []) if isinstance(result, dict) else []
+        # 2026-08-30: 이 두 호출이 이 엔드포인트에서 실제로 초 단위를 먹는 구간이다
+        # (일반뉴스 5분 TTL ~4.6초, 공시 DART 60초/KIND 30초 TTL ~2~3초).
+        # 공시(DART/KIND)는 TTL이 워머 주기(45초)와 비슷해 워머가 매번 강제 갱신한다.
+        # 일반뉴스는 TTL이 5분으로 훨씬 길어서 매 회차 강제하면 Alpha Vantage/Finnhub
+        # 호출이 45초마다 발생해 무료 쿼터를 태운다. 그래서 강제 대신 **갱신 선행**:
+        # 워머만 4분을 만료로 보고 미리 갱신해, 5분 TTL로 읽는 방문자는 항상 warm이다.
+        # 외부 호출 빈도는 5분당 1회 -> 4분당 1회로만 바뀐다.
         global_items = news_aggregator.get_general_news(
             alpha_api_key=os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip(),
             finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
             limit=_GLOBAL_NEWS_LIMIT,
+            ttl_sec=_GENERAL_NEWS_WARM_AHEAD_TTL_SEC if fresh else None,
         )
         result = dict(result or {})
         result['market'] = 'domestic'
         result['flash'] = _build_flash_items(
             list(domestic_items) + list(global_items),
-            domestic_news.get_disclosures(limit=_DOMESTIC_DART_LIMIT),
+            domestic_news.get_disclosures(limit=_DOMESTIC_DART_LIMIT, fresh=fresh),
             'domestic',
         )
     return envelope(result)
@@ -2619,8 +2632,10 @@ def _domestic_news_warm_loop():
     while True:
         try:
             if time.time() - _domestic_news_last_real_hit <= _DOMESTIC_NEWS_WARM_ACTIVE_WINDOW_SEC:
-                # 홈이 실제로 부르는 것과 같은 쿼리를 태워 같은 캐시를 데운다.
-                url = 'http://127.0.0.1:%s/domestic-news?kind=news&limit=50' % port
+                # 홈이 실제로 부르는 것과 같은 쿼리에 fresh=1만 붙여 태운다. fresh가 없으면
+                # 워머가 TTL이 남은 캐시를 그냥 읽고 가서, 만료 직후 도착한 실제 방문자가
+                # 갱신 비용을 뒤집어썼다(워머 도입 후에도 약 20%가 4초였던 원인).
+                url = 'http://127.0.0.1:%s/domestic-news?kind=news&limit=50&fresh=1' % port
                 req = urllib.request.Request(url, headers={'User-Agent': 'domestic-news-warmer/1'})
                 with urllib.request.urlopen(req, timeout=30) as resp:
                     resp.read()

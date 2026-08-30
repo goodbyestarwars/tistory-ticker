@@ -187,7 +187,7 @@ document.documentElement.classList.add('skin-ready');
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260825-ws-fallback-v1';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260830-idle-wics-v1';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260828-free-translation-fallback-v3';
-  var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260830-weekly-fouc-fix-v1';
+  var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260831-fx-card-v1';
 
     function isWeekendReportWindow() {
       // 2026-08-22: HomeMarketSelection의 휴장 판정(토요일 07:00~월요일 06:00)과

@@ -237,7 +237,17 @@ html.dark .hwr-fx-advice small { color: rgba(245,239,224,.65); }
   .hwr-fx-legend { gap: 3px 9px; }
   .hwr-fx-advice { display: block; }
   .hwr-fx-advice small { display: block; margin-top: 2px; }
+  /* 2026-08-31 사용자 리포트("숫자 잘림 허용 안 되게"): 환율·금 카드를 모바일에서도 2열로
+     두면 카드 폭이 약 165px라 "1년 저점 1,411원"이 "1," / "411원"으로 숫자 중간에서
+     쪼개졌다. 한 줄에 한 카드로 바꿔 폭을 확보하고, 값은 아래에서 nowrap으로 고정한다. */
+  .hwr-summary-row.hwr-asset-row { grid-template-columns: minmax(0, 1fr); }
 }
+/* 숫자는 어떤 폭에서도 중간에서 끊기지 않게 한다. 라벨과 값 사이에서만 줄이 바뀌도록
+   값(.hwr-fx-num)을 통째로 nowrap 처리하고, 줄이 모자라면 아이템 단위로 감싼다. */
+.hwr-fx-range { flex-wrap: wrap; }
+.hwr-fx-range > span,
+.hwr-fx-legend > span { min-width: 0; }
+.hwr-fx-num { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* News timeline: date-led cards with compact type filters. */
 .hwr-news-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 8px; }

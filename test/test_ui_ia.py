@@ -561,6 +561,35 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
 
+    def test_interest_band_opacity_is_not_multiplied_by_a_presentation_attribute(self):
+        """2026-08-30 FOUC 수정에서 넣은 fill-opacity가 CSS의 rgba 알파와 곱해져
+        매수 관심 구간이 불투명도 1%로 사실상 안 보였다(사용자 리포트). CSS는 fill만
+        정의하므로 fill-opacity 속성은 살아남는다 - fill 하나로만 최종색을 넣어야 한다."""
+        weekly = self.read("js/home-weekly-report.js")
+        band_line = [ln for ln in weekly.splitlines()
+                     if 'hwr-fx-interest-band' in ln and '<rect' in ln
+                     and not ln.strip().startswith('//')]
+        self.assertTrue(band_line, "interest band 렌더 코드를 찾지 못했다")
+        self.assertNotIn('fill-opacity', band_line[0])
+        self.assertIn('fill="rgba(37, 99, 235, 0.1)"', band_line[0])
+
+    def test_usd_range_card_does_not_print_the_dollar_sign_twice(self):
+        """formatPrice()가 US 심볼이면 '$'를 앞에 붙이는데 단위를 또 붙여서
+        "$4,504.3$"가 나오고 있었다(금 선물 카드 전부)."""
+        weekly = self.read("js/home-weekly-report.js")
+        self.assertIn("formatPrice(value, symbol) + (isUsd ? '' : '원')", weekly)
+        self.assertNotIn("formatPrice(value, symbol) + unit", weekly)
+
+    def test_numbers_never_break_mid_value_on_narrow_screens(self):
+        """사용자 요구: 숫자 잘림 허용 안 됨. 좁은 폭에서 "1,411원"이 "1,"/"411원"으로
+        쪼개지던 문제 - 값을 .hwr-fx-num으로 감싸 nowrap하고, 모바일에서는 환율·금
+        카드를 1열로 내려 폭을 확보한다."""
+        weekly = self.read("js/home-weekly-report.js")
+        style = self.read("css/home-weekly-report.css")
+        self.assertIn('class="hwr-fx-num"', weekly)
+        self.assertIn('.hwr-fx-num { white-space: nowrap;', style)
+        self.assertIn('.hwr-summary-row.hwr-asset-row { grid-template-columns: minmax(0, 1fr); }', style)
+
     def test_weekly_stock_sections_fit_four_items_per_market_row(self):
         script = self.read("js/home-weekly-report.js")
         style = self.read("css/home-weekly-report.css")
@@ -568,8 +597,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("items.slice(0, 4)", script)
         self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
-        self.assertIn("home-weekly-report.css?v=20260820-dark-border-v1", script)
-        self.assertIn("home-weekly-report.js?v=20260830-weekly-fouc-fix-v1", self.read("js/skin-main.js"))
+        self.assertIn("home-weekly-report.css?v=20260831-fx-card-v1", script)
+        self.assertIn("home-weekly-report.js?v=20260831-fx-card-v1", self.read("js/skin-main.js"))
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)
 

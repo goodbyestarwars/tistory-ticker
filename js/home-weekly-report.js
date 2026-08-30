@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260820-dark-border-v1';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260831-fx-card-v1';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -331,7 +331,12 @@
     // 자리에 검은 사각형이 그대로 보였다.
     var guideAttrs = ' stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"';
     var averageLine = average == null ? '' : '<line class="hwr-fx-average-line" x1="0" y1="' + y(average).toFixed(1) + '" x2="100" y2="' + y(average).toFixed(1) + '" stroke="#475569" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"></line>';
-    var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1" fill="#2563eb" fill-opacity=".10"></rect>';
+    // 2026-08-31 회귀 수정: 여기 `fill="#2563eb" fill-opacity=".10"`을 쓰면 CSS의
+    // `.hwr-fx-interest-band { fill: rgba(37,99,235,.10) }`가 fill만 덮고 fill-opacity는
+    // CSS에 없어서 프레젠테이션 속성이 그대로 살아남는다 -> 0.10 x 0.10 = 불투명도 1%로
+    // 매수 관심 구간이 사실상 안 보였다(2026-08-30 FOUC 수정에서 들어간 값).
+    // CSS와 같은 최종 색을 fill 하나로 넣어 곱해지지 않게 한다.
+    var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1" fill="rgba(37, 99, 235, 0.1)"></rect>';
     var spark = signClass(fx.change_rate);
     return '<div class="hwr-fx-chart"><svg class="hwr-fx-spark ' + spark + '" viewBox="0 0 100 44" width="100%" height="72" preserveAspectRatio="none" role="img" aria-label="최근 1년 ' + escapeHtml(title || '자산') + ' 추이">'
       + '<line class="hwr-fx-guide-line" x1="0" y1="5" x2="100" y2="5"' + guideAttrs + '></line>'
@@ -346,11 +351,19 @@
     var current = analysis.current != null ? analysis.current : fx.price;
     var average = analysis.average;
     var low = analysis.low, high = analysis.high, p25 = analysis.p25;
-    var unit = options.unit === 'usd' ? '$' : '원';
-    var symbol = options.unit === 'usd' ? 'US' : 'KRW';
-    var display = function (value) { return value == null ? '-' : formatPrice(value, symbol) + unit; };
+    var isUsd = options.unit === 'usd';
+    var symbol = isUsd ? 'US' : 'KRW';
+    // 2026-08-31: formatPrice()는 US 심볼이면 이미 '$'를 앞에 붙인다. 여기서 단위를 또
+    // 붙여서 "$4,504.3$"처럼 달러 기호가 두 번 나오고 있었다(금 선물 카드 전부).
+    // 원화만 뒤에 '원'을 붙인다.
+    var display = function (value) {
+      return value == null ? '-' : formatPrice(value, symbol) + (isUsd ? '' : '원');
+    };
+    // 숫자는 라벨과 분리해 nowrap으로 감싼다 - 좁은 폭에서 "1,411원"이 "1," / "411원"으로
+    // 쪼개지던 문제(2026-08-31 사용자 리포트).
+    var num_ = function (value) { return '<span class="hwr-fx-num">' + display(value) + '</span>'; };
     var status = (analysis.status || 'unknown').replace(/[^a-z-]/g, '');
-    return '<article class="hwr-fx-card hwr-fx-card--' + escapeHtml(status) + '"><div class="hwr-card-title"><strong>' + escapeHtml(options.title || '원/달러 환율') + '</strong><span>최근 1년 기준</span></div><div class="hwr-fx-main"><strong>' + display(current) + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b></div>' + fxSparkline(fx, options.title) + '<div class="hwr-fx-legend"><span><i class="hwr-fx-legend-line hwr-fx-legend-line--average"></i>1년 평균 <b>' + display(average) + '</b></span><span><i class="hwr-fx-legend-swatch"></i>매수 관심 ≤ ' + display(p25) + '</span></div><div class="hwr-fx-range"><span>1년 저점 ' + display(low) + '</span><span>1년 고점 ' + display(high) + '</span></div><div class="hwr-fx-meta">' + fxStatus(fx, options.fallbackLabel, options.fallbackMessage) + '</div></article>';
+    return '<article class="hwr-fx-card hwr-fx-card--' + escapeHtml(status) + '"><div class="hwr-card-title"><strong>' + escapeHtml(options.title || '원/달러 환율') + '</strong><span>최근 1년 기준</span></div><div class="hwr-fx-main"><strong>' + num_(current) + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b></div>' + fxSparkline(fx, options.title) + '<div class="hwr-fx-legend"><span><i class="hwr-fx-legend-line hwr-fx-legend-line--average"></i>1년 평균 <b>' + num_(average) + '</b></span><span><i class="hwr-fx-legend-swatch"></i>매수 관심 ≤ ' + num_(p25) + '</span></div><div class="hwr-fx-range"><span>1년 저점 ' + num_(low) + '</span><span>1년 고점 ' + num_(high) + '</span></div><div class="hwr-fx-meta">' + fxStatus(fx, options.fallbackLabel, options.fallbackMessage) + '</div></article>';
   }
   // 관심종목 코드 -> 표시용 이름 맵. window.Watchlist.getList()는 #watchlist 컨테이너가
   // 실제로 DOM에 있는 페이지(예: /page/watchlist)에서만 채워지고 홈 화면(휴장 탭이 붙는
