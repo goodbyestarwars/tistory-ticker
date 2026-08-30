@@ -545,7 +545,19 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
         translate_news_titles(cached_items, max_items=min(20, len(cached_items)))
         return list(cached_items[:max(1, int(limit))])
 
-    with GENERAL_NEWS_CACHE_LOCK:
+    # 2026-08-31: 아래 갱신은 여러 공급자(RSS 2곳 + Finnhub + Alpha)를 다 받을 때까지
+    # 락을 쥐고 있어서 약 3초가 걸린다. 그동안 도착한 다른 요청은 이 락에서 그대로
+    # 대기했고, 그래서 /domestic-news와 /foreign-news가 **동시에** 3초대로 튀었다
+    # (실측: 두 엔드포인트가 같은 회차에 3.38s/3.35s, 다음 회차엔 둘 다 1초 미만).
+    # 갱신 중이면 기다리지 말고 직전 캐시를 그대로 준다(stale-while-revalidate).
+    # 캐시가 아예 없는 콜드 스타트에서만 기존처럼 기다린다.
+    acquired = GENERAL_NEWS_CACHE_LOCK.acquire(blocking=False)
+    if not acquired:
+        if cached_items:
+            translate_news_titles(cached_items, max_items=min(20, len(cached_items)))
+            return list(cached_items[:max(1, int(limit))])
+        GENERAL_NEWS_CACHE_LOCK.acquire()
+    try:
         fetched_at, cached_items = _general_news_cache
         if fetched_at and now - fetched_at < ttl:
             translate_news_titles(cached_items, max_items=min(20, len(cached_items)))
@@ -582,6 +594,8 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
         translate_news_titles(selected, max_items=min(20, len(selected)))
         _general_news_cache = (now, selected)
         return list(selected[:max(1, int(limit))])
+    finally:
+        GENERAL_NEWS_CACHE_LOCK.release()
 
 
 # The on-demand path (translate_news_titles) only translates the first ~20

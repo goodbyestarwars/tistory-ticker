@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -350,3 +351,40 @@ class NewsAggregatorTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class GeneralNewsStaleWhileRevalidateTest(unittest.TestCase):
+    """갱신 중인 스레드가 락을 3초쯤 쥐고 있어서, 그동안 도착한 다른 요청이 그대로
+    대기했다 - /domestic-news와 /foreign-news가 같은 회차에 동시에 3초대로 튀던 원인
+    (2026-08-31 실측). 갱신 중이면 기다리지 말고 직전 캐시를 준다."""
+
+    def tearDown(self):
+        news_aggregator._general_news_cache = (0, [])
+        if news_aggregator.GENERAL_NEWS_CACHE_LOCK.locked():
+            try:
+                news_aggregator.GENERAL_NEWS_CACHE_LOCK.release()
+            except RuntimeError:
+                pass
+
+    def test_returns_stale_cache_instead_of_blocking_while_another_thread_refreshes(self):
+        news_aggregator._general_news_cache = (0, [{'title': '이전값', 'link': 'https://e/1'}])
+        news_aggregator.GENERAL_NEWS_CACHE_LOCK.acquire()  # 다른 스레드가 갱신 중인 상황
+        try:
+            started = time.time()
+            with mock.patch.object(news_aggregator, 'translate_news_titles', lambda *a, **k: None):
+                items = news_aggregator.get_general_news(limit=5)
+            elapsed = time.time() - started
+        finally:
+            news_aggregator.GENERAL_NEWS_CACHE_LOCK.release()
+        self.assertEqual([i['title'] for i in items], ['이전값'])
+        self.assertLess(elapsed, 0.5, '갱신 중인 락을 기다리면 안 된다')
+
+    def test_cold_start_with_no_cache_still_waits_for_the_refresh(self):
+        news_aggregator._general_news_cache = (0, [])
+        calls = []
+        with mock.patch.object(news_aggregator, 'translate_news_titles', lambda *a, **k: None), \
+                mock.patch.object(news_aggregator, 'save_cached_news',
+                                  side_effect=lambda *a, **k: calls.append(1)):
+            news_aggregator.get_general_news(limit=5)
+        self.assertEqual(len(calls), 1, '캐시가 없으면 건너뛰지 말고 실제로 받아와야 한다')
+        self.assertFalse(news_aggregator.GENERAL_NEWS_CACHE_LOCK.locked(), '락이 반드시 풀려야 한다')
