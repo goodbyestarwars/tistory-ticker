@@ -265,6 +265,33 @@ def flow_component(foreign_ratio, inst_ratio):
                             _flow_ratio_to_score100(inst_ratio))
 
 
+def flow_component_from_payload(flow):
+    """`foreign_flow_compute.build_result()` 응답에서 바로 수급 점수를 낸다.
+
+    이 응답은 모듈 독스트링에 적힌 대로 **GAS `getForeignFlow()`와 동일한 형태**라
+    (`daily[i].foreign_net`, `rolling['5d'].foreign`) GAS `computeFlowRatioFromData_`가
+    읽던 필드를 그대로 읽는다. GAS는 이걸 네이버 크롤링으로 만들었지만 VM은 KIS 일별
+    데이터로 만든다는 점만 다르다(같은 수치를 더 정확한 소스에서 받는 쪽).
+    """
+    if not flow or flow.get('error'):
+        return flow_component(None, None), {'foreign': None, 'inst': None}
+    daily = flow.get('daily') or []
+    rolling5 = (flow.get('rolling') or {}).get('5d') or {}
+    ratios = {}
+    for field in ('foreign', 'inst'):
+        nets = [row.get(field + '_net') for row in daily]
+        got = flow_ratio_from_daily(nets, rolling5.get(field))
+        ratios[field] = got['ratio'] if got else None
+    component = flow_component(ratios['foreign'], ratios['inst'])
+    # GAS 응답과 같은 부가 필드(화면이 쓸 수도 있으므로 형태를 맞춘다).
+    component['foreign'] = {'score100': _flow_ratio_to_score100(ratios['foreign']),
+                            'ratio': ratios['foreign'], 'v5': rolling5.get('foreign')}
+    component['inst'] = {'score100': _flow_ratio_to_score100(ratios['inst']),
+                         'ratio': ratios['inst'], 'v5': rolling5.get('inst')}
+    component['note'] = 'KODEX 200(069500) 5일 합산 수급 기준, 외국인75%+기관25% 가중합산'
+    return component, ratios
+
+
 def universe_with_sectors():
     """`data/sectors-v3.js`에서 (코드, 업종목록)을 만든다 - GAS는 이 파일을 GitHub Pages에서
     받아왔지만 VM엔 저장소가 그대로 있으므로 로컬에서 읽는다."""

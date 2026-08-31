@@ -169,3 +169,102 @@ def total_and_temperature(component_scores, credit_available):
     total = _clamp(sum(component_scores), 0, max_possible)
     temp = _round_half_up(total * (40.0 / max_possible), 1)
     return {'score': total, 'maxScore': max_possible, 'temp': temp}
+
+# ---- 신용융자 위험도(GAS scoreKofiaCredit_ 이식) ----
+
+_CREDIT_PENDING = {'available': False, 'score': None, 'max': 10,
+                   'validation': 'pending', 'stateLabel': '데이터 검증 중'}
+
+_UNIT_FACTOR = {'krw': 1, 'million_krw': 1000000, 'hundred_million_krw': 100000000}
+
+
+def score_kofia_credit(kofia):
+    """빚투 위험도. 절대 잔고 하나가 아니라 최근 추세·예탁금 대비 비율·반대매매 비중을
+    함께 본다(GAS 주석 그대로 - 규제 기준이 아니라 시장온도용 운영 기준).
+
+    단위 검증이 핵심이다. KIS 원자료는 `hundred_million_krw`인 경우가 많아 서로 다른
+    단위를 임의 배율로 나누면 3천만% 같은 유령 수치가 나온다. 단위가 확인된 값만 원화로
+    환산하고, 신용/예탁금이 **같은 관측일**인지도 먼저 본다. 하나라도 어긋나면 점수를
+    내지 않고 '검증 중'으로 빠진다(그러면 총점 만점에서도 10점이 빠져 온도 정규화가 맞는다).
+    """
+    if not kofia or not kofia.get('available'):
+        return dict(_CREDIT_PENDING)
+
+    credit = kofia.get('credit') or {}
+    funds = kofia.get('market_funds') or {}
+    loan = credit.get('loan_total') if isinstance(credit.get('loan_total'), (int, float)) else None
+    deposits = funds.get('investor_deposits') if isinstance(funds.get('investor_deposits'), (int, float)) else None
+    forced_sale = funds.get('forced_sale_ratio_pct') if isinstance(funds.get('forced_sale_ratio_pct'), (int, float)) else None
+    if loan is None and deposits is None and forced_sale is None:
+        return dict(_CREDIT_PENDING)
+
+    credit_unit = _UNIT_FACTOR.get(kofia.get('credit_unit'))
+    deposit_unit = _UNIT_FACTOR.get(kofia.get('market_funds_unit'))
+    credit_date = credit.get('date') or kofia.get('latest_date') or ''
+    deposit_date = funds.get('date') or funds.get('latest_date') or kofia.get('latest_date') or ''
+
+    if loan is not None and deposits is not None:
+        reason = None
+        if not credit_unit or not deposit_unit:
+            reason = '단위 확인 필요'
+        elif credit_date and deposit_date and str(credit_date) != str(deposit_date):
+            reason = '기준일 불일치'
+        elif loan < 0 or deposits <= 0:
+            reason = '원자료 범위 확인 필요'
+        if not reason:
+            ratio = loan * credit_unit / (deposits * deposit_unit) * 100
+            if not (0 <= ratio <= 1000):
+                reason = '비정상 비율'
+        if reason:
+            pending = dict(_CREDIT_PENDING)
+            pending['validationReason'] = reason
+            return pending
+
+    series = kofia.get('series') if isinstance(kofia.get('series'), list) else []
+    loan_values = [
+        item['credit']['loan_total'] for item in series
+        if isinstance(item, dict) and isinstance(item.get('credit'), dict)
+        and isinstance(item['credit'].get('loan_total'), (int, float))
+    ]
+    prior = loan_values[max(0, len(loan_values) - 21):max(0, len(loan_values) - 1)]
+    prior_avg = (sum(prior) / len(prior)) if prior else None
+    loan_vs_avg_pct = ((loan / prior_avg - 1) * 100) if (loan is not None and prior_avg) else None
+    loan_to_deposit_pct = (
+        loan * credit_unit / (deposits * deposit_unit) * 100
+        if (loan is not None and deposits and deposits > 0 and credit_unit and deposit_unit) else None)
+
+    state = {'risk': 0.0, 'max': 0.0, 'danger': False, 'caution': False}
+
+    def add_risk(value, caution_level, danger_level, weight):
+        if value is None:
+            return
+        state['max'] += weight
+        if value >= danger_level:
+            state['risk'] += weight
+            state['danger'] = True
+        elif value >= caution_level:
+            state['risk'] += weight * 0.5
+            state['caution'] = True
+
+    add_risk(loan_vs_avg_pct, 5, 10, 4)
+    add_risk(loan_to_deposit_pct, 35, 45, 4)
+    add_risk(forced_sale, 10, 15, 2)
+
+    risk_ratio = (state['risk'] / state['max']) if state['max'] else 0.5
+    value = _round_half_up((10 - risk_ratio * 10), 1)
+    if state['danger'] or risk_ratio >= 0.55:
+        label, name = '과열', 'overheated'
+    elif state['caution'] or risk_ratio >= 0.25:
+        label, name = '주의', 'caution'
+    else:
+        label, name = '안정', 'stable'
+    return {
+        'available': True, 'score': value, 'max': 10,
+        'state': name, 'stateLabel': label, 'band': label,
+        'loan_total': loan, 'investor_deposits': deposits,
+        'loan_vs_avg_pct': loan_vs_avg_pct,
+        'loan_to_deposit_pct': loan_to_deposit_pct,
+        'forced_sale_ratio_pct': forced_sale,
+        'criteria': ('안정: 예탁금 대비 35% 미만·최근 평균 대비 +5% 미만·반대매매 비중 10% 미만'
+                     ' / 과열: 45% 이상·+10% 이상·15% 이상 중 하나'),
+    }

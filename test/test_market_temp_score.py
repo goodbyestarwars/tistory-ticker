@@ -321,8 +321,7 @@ class MarketTempAssemblyTest(unittest.TestCase):
 
     def test_missing_credit_risk_lowers_max_score_so_temperature_stays_normalised(self):
         """신용융자가 없는 날은 만점에서도 10점을 빼야 40℃ 정규화가 어긋나지 않는다."""
-        import market_temp as mt
-        credit = mt.score_kofia_credit(None)
+        credit = mts.score_kofia_credit(None)   # market_temp_score로 이동됨
         self.assertFalse(credit['available'])
         full = mts.total_and_temperature([20, 20, 15, 15, 10, 10, 10, 5, 5, 10], True)
         self.assertEqual(full['maxScore'], 120)
@@ -375,6 +374,106 @@ class MarketTempEndpointContractTest(unittest.TestCase):
             src = fh.read()
         self.assertNotIn('market_temp.db', src)
         self.assertIn('CREATE TABLE IF NOT EXISTS market_temp_daily', src)
+
+
+class KofiaCreditPortTest(unittest.TestCase):
+    """신용융자 위험도 이식(GAS scoreKofiaCredit_). 단위 검증이 핵심이다 - KIS 원자료가
+    hundred_million_krw인 경우가 많아 서로 다른 단위를 임의 배율로 나누면 3천만% 같은
+    유령 수치가 나온다."""
+
+    def _kofia(self, **over):
+        base = {
+            'available': True,
+            'credit': {'loan_total': 20, 'date': '20260831'},
+            'market_funds': {'investor_deposits': 100, 'date': '20260831',
+                             'forced_sale_ratio_pct': 5},
+            'credit_unit': 'hundred_million_krw',
+            'market_funds_unit': 'hundred_million_krw',
+            'series': [{'credit': {'loan_total': 20}} for _ in range(25)],
+        }
+        base.update(over)
+        return base
+
+    def test_unavailable_input_stays_pending(self):
+        for value in (None, {}, {'available': False}):
+            got = mts.score_kofia_credit(value)
+            self.assertFalse(got['available'])
+            self.assertEqual(got['stateLabel'], '데이터 검증 중')
+            self.assertIsNone(got['score'])
+
+    def test_date_mismatch_is_rejected_not_scored(self):
+        got = mts.score_kofia_credit(self._kofia(
+            credit={'loan_total': 20, 'date': '20260830'}))
+        self.assertFalse(got['available'])
+        self.assertEqual(got['validationReason'], '기준일 불일치')
+
+    def test_unknown_unit_is_rejected(self):
+        got = mts.score_kofia_credit(self._kofia(credit_unit='banana'))
+        self.assertFalse(got['available'])
+        self.assertEqual(got['validationReason'], '단위 확인 필요')
+
+    def test_out_of_range_ratio_is_rejected(self):
+        """단위가 어긋나면 비율이 폭발한다 - 그 경우를 점수로 만들지 않는다.
+        (신용을 억원, 예탁금을 원으로 읽으면 20억/100원 = 2e9% 가 된다.
+         반대 방향은 값이 아주 작아질 뿐 범위 안이라 통과하는 게 맞다.)"""
+        got = mts.score_kofia_credit(self._kofia(credit_unit='hundred_million_krw',
+                                                 market_funds_unit='krw'))
+        self.assertFalse(got['available'])
+        self.assertEqual(got['validationReason'], '비정상 비율')
+
+    def test_stable_market_scores_high(self):
+        got = mts.score_kofia_credit(self._kofia())
+        self.assertTrue(got['available'])
+        self.assertEqual(got['stateLabel'], '안정')
+        self.assertEqual(got['score'], 10.0)
+        self.assertAlmostEqual(got['loan_to_deposit_pct'], 20.0)
+
+    def test_overheated_market_scores_low(self):
+        """예탁금 대비 45% 이상 + 최근 평균 대비 +10% 이상 + 반대매매 15% 이상."""
+        got = mts.score_kofia_credit(self._kofia(
+            credit={'loan_total': 50, 'date': '20260831'},
+            market_funds={'investor_deposits': 100, 'date': '20260831',
+                          'forced_sale_ratio_pct': 20},
+            series=[{'credit': {'loan_total': 20}} for _ in range(25)]))
+        self.assertTrue(got['available'])
+        self.assertEqual(got['stateLabel'], '과열')
+        self.assertEqual(got['score'], 0.0)
+
+    def test_score_never_leaves_zero_to_ten(self):
+        for loan in (0, 1, 20, 50, 200):
+            got = mts.score_kofia_credit(self._kofia(
+                credit={'loan_total': loan, 'date': '20260831'}))
+            if got['available']:
+                self.assertGreaterEqual(got['score'], 0)
+                self.assertLessEqual(got['score'], 10)
+
+
+class FlowFromPayloadTest(unittest.TestCase):
+    """수급을 foreign_flow_compute 응답에서 바로 뽑는다. 그 응답은 모듈 독스트링대로
+    GAS getForeignFlow()와 같은 형태(daily[i].foreign_net, rolling['5d'].foreign)다."""
+
+    def test_matches_gas_golden_when_ratios_are_reproduced(self):
+        import market_temp_data as mtd
+        g = load_golden()['components']['flow']
+        # 골든의 ratio가 그대로 나오도록 daily/rolling을 역산해서 만든다.
+        # ratio = v5 / (mean(|daily|) * 5) 이므로 daily를 1로 두면 v5 = ratio * 5.
+        payload = {
+            'daily': [{'foreign_net': 1, 'inst_net': 1} for _ in range(20)],
+            'rolling': {'5d': {'foreign': g['foreign']['ratio'] * 5,
+                               'inst': g['inst']['ratio'] * 5}},
+        }
+        component, ratios = mtd.flow_component_from_payload(payload)
+        self.assertAlmostEqual(ratios['foreign'], g['foreign']['ratio'], places=9)
+        self.assertEqual(component['foreign']['score100'], g['foreign']['score100'])
+        self.assertEqual(component['inst']['score100'], g['inst']['score100'])
+        self.assertEqual(component['score'], g['score'])
+        self.assertEqual(component['band'], g['band'])
+
+    def test_missing_payload_is_neutral_not_zero(self):
+        import market_temp_data as mtd
+        component, ratios = mtd.flow_component_from_payload(None)
+        self.assertEqual(component['score'], 10, '수급 조회 실패는 0점이 아니라 중립이어야 한다')
+        self.assertEqual(ratios, {'foreign': None, 'inst': None})
 
 
 if __name__ == '__main__':

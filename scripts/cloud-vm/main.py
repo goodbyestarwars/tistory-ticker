@@ -38,6 +38,7 @@ import finnhub_realtime
 import foreign_flow_compute
 import foreign_futures
 import market_temp
+import market_temp_data
 import naver_news
 import news_aggregator
 import news_momentum
@@ -135,7 +136,8 @@ def _start_futures_collectors():
     # 증시온도는 방문자마다 달라지지 않는 시장 전체 지표라 요청 경로에서 계산하지 않는다.
     # 백그라운드로 미리 계산해 두고 /market-temp는 읽기만 한다.
     market_temp.start_background(db_schema.get_conn, WEEK52_CACHE_FILE,
-                                 lambda: public_data.fetch_kofia_market(30))
+                                 lambda: public_data.fetch_kofia_market(30),
+                                 flow_factory=_market_temp_flow_payload)
 
     # 코스피/코스닥 현물 지표도 같은 이유로 요청 경로에서 만들지 않는다
     # (캐시 미스 때 방문자가 8.5초를 물던 구조 - 2026-09-01 사용자 리포트).
@@ -2453,6 +2455,23 @@ def option_flow_endpoint():
     data['source'] = 'KIS 옵션 전광판 REST + KIS WebSocket'
     data['websocket'] = option_flow.websocket_available()
     return envelope(data)
+
+
+
+def _market_temp_flow_payload():
+    """증시온도 수급용 KODEX 200(069500) 일별 외국인/기관 순매매.
+
+    GAS는 이걸 네이버 크롤링(getForeignFlow)으로 만들었지만, VM에는 같은 형태를 KIS 일별
+    데이터로 만드는 경로가 이미 있다(/foreign-flow/{code}와 같은 함수) - 소스가 더 정확하고
+    (NXT 포함 통합 집계) GAS가 VM을 부르던 홉도 사라진다.
+    """
+    token = get_kiwoom_token()
+    daily = kiwoom_market.fetch_foreign_inst_daily(
+        token, market_temp_data.FLOW_CODE,
+        kis_appkey=os.environ.get('KIS_APPKEY'),
+        kis_appsecret=os.environ.get('KIS_APPSECRET'),
+    )
+    return foreign_flow_compute.build_result(market_temp_data.FLOW_CODE, daily)
 
 
 @app.get('/market-temp')

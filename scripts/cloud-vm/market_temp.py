@@ -116,12 +116,14 @@ def compute_sparkline(current_temp, stored_history, today):
 
 # ---- 조립 ----
 
-def build(conn, week52_cache_file, kofia, now_kst=None):
+def build(conn, week52_cache_file, kofia, flow_payload=None, now_kst=None):
     """증시온도 한 판을 계산한다. GAS getMarketTemp()와 같은 형태를 돌려준다.
 
     conn: 운영 SQLite(daily_prices/future_prices) 연결.
     kofia: `public_data.fetch_kofia_market()` 결과 또는 None - GAS는 이걸 VM에 HTTP로
            물어봤지만(브라우저→GAS→VM) 여기선 호출부가 직접 넘긴다.
+    flow_payload: KODEX200(069500)의 `foreign_flow_compute.build_result()` 응답 또는 None.
+           GAS는 네이버 크롤링으로 만든 같은 형태를 썼다. 없으면 수급은 중립(50/50).
     """
     now_kst = now_kst or datetime.now(KST)
     today = now_kst.strftime('%Y-%m-%d')
@@ -134,10 +136,8 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
     quote_parts = data.build_quote_components(quotes, universe, prior_values)
     market_parts = data.market_components_from_db(conn, now_kst)
     week52 = data.week52_component(week52_cache_file)
-    credit = score_kofia_credit(kofia)
-
-    # 수급은 아직 배선 전이라 중립(50/50)으로 둔다 - 붙는 즉시 이 줄만 바뀐다.
-    flow = data.flow_component(None, None)
+    credit = score.score_kofia_credit(kofia)
+    flow, _ratios = data.flow_component_from_payload(flow_payload)
 
     components = {
         'vix': market_parts['vix'],
@@ -173,18 +173,6 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
     }
 
 
-def score_kofia_credit(kofia):
-    """신용융자 위험도. GAS scoreKofiaCredit_은 96줄짜리라 아직 이식 전이다 -
-    데이터가 없을 때 GAS가 내는 것과 같은 '검증 중' 응답을 돌려주고, 총점 계산에서는
-    빠진다(maxPossible에서도 10점이 빠져 온도 정규화가 맞는다)."""
-    if not kofia or not kofia.get('available'):
-        return {'available': False, 'score': None, 'max': 10,
-                'validation': 'pending', 'stateLabel': '데이터 검증 중'}
-    return {'available': False, 'score': None, 'max': 10,
-            'validation': 'pending', 'stateLabel': '데이터 검증 중',
-            'note': 'VM 이식 대기 - GAS scoreKofiaCredit_ 참고'}
-
-
 # ---- 백그라운드 계산 ----
 
 def get_cached():
@@ -192,7 +180,7 @@ def get_cached():
         return dict(_state)
 
 
-def refresh_once(conn_factory, week52_cache_file, kofia_factory):
+def refresh_once(conn_factory, week52_cache_file, kofia_factory, flow_factory=None):
     try:
         conn = conn_factory()
         try:
@@ -201,7 +189,13 @@ def refresh_once(conn_factory, week52_cache_file, kofia_factory):
                 kofia = kofia_factory()
             except Exception:
                 LOGGER.debug('kofia fetch failed - creditRisk 없이 계산', exc_info=True)
-            result = build(conn, week52_cache_file, kofia)
+            flow_payload = None
+            if flow_factory is not None:
+                try:
+                    flow_payload = flow_factory()
+                except Exception:
+                    LOGGER.debug('KODEX200 수급 조회 실패 - flow 중립 처리', exc_info=True)
+            result = build(conn, week52_cache_file, kofia, flow_payload=flow_payload)
         finally:
             conn.close()
         with _lock:
@@ -217,7 +211,7 @@ def refresh_once(conn_factory, week52_cache_file, kofia_factory):
 
 
 def start_background(conn_factory, week52_cache_file, kofia_factory,
-                     interval=REFRESH_INTERVAL_SEC):
+                     flow_factory=None, interval=REFRESH_INTERVAL_SEC):
     """주기 계산 스레드. 다른 폴러(foreign_futures 등)와 같은 패턴이다.
 
     방문자 요청이 계산을 유발하지 않으므로 캐시 워머가 필요 없다.
@@ -229,7 +223,7 @@ def start_background(conn_factory, week52_cache_file, kofia_factory,
 
     def loop():
         while True:
-            refresh_once(conn_factory, week52_cache_file, kofia_factory)
+            refresh_once(conn_factory, week52_cache_file, kofia_factory, flow_factory)
             time.sleep(interval)
 
     threading.Thread(target=loop, name='market-temp', daemon=True).start()
