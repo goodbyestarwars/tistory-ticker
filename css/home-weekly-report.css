@@ -337,3 +337,50 @@ html.dark .hwr-outcome-stat > b { color: #8b95a5; }
 .hwr-outcome-stat > strong.is-flat { color: #64748b; }
 .hwr-outcome-stat > span { font-size: 12px; color: #94a3b8; }
 html.dark .hwr-outcome-stat > span { color: #7d8593; }
+
+/* 2026-08-31 모바일 가독성: 이 파일의 8~10px 선언은 대부분 미디어쿼리 밖에 있어
+   데스크톱 밀도가 모바일에 그대로 적용되고 있었다(홈 375px 실측: 9px 147개, 10px 86개).
+   한글은 같은 px에서도 라틴 문자보다 획이 많아 9px는 판독이 어렵다.
+   데스크톱은 그대로 두고 모바일에만 하한선을 둔다 - 9px 이하는 11px, 10px대는 12px로
+   올려 두 단계 위계는 유지한다. */
+@media (max-width: 720px) {
+  .hwr-columns li small,
+  .hwr-stock-name small,
+  .hwr-news-row time,
+  .hwr-news-market,
+  .hwr-news-row small,
+  .hwr-schedule-list time,
+  .hwr-schedule-market,
+  .hwr-schedule-list small,
+  .hwr-stock-reason,
+  .hwr-fx-meta,
+  .hwr-fx-legend,
+  .hwr-fx-range,
+  .hwr-fx-advice small,
+  .hwr-fx-chart--empty,
+  .hwr-news-date small,
+  .hwr-news-event-meta > small,
+  .hwr-news-type,
+  .hwr-news-event-footer > a,
+  .hwr-card-title span { font-size: 11px; }
+
+  .hwr-period small,
+  .hwr-index-card > small,
+  .hwr-no-chart,
+  .hwr-summary-row article small,
+  .hwr-source-note,
+  .hwr-disclaimer,
+  .hwr-basis,
+  .hwr-stock-values,
+  .hwr-stock-values > b:last-child,
+  .hwr-news-row strong,
+  .hwr-schedule-list li,
+  .hwr-index-summary > span,
+  .hwr-index-summary small,
+  .hwr-sentiment,
+  .hwr-section-heading span,
+  .hwr-fx-main > b,
+  .hwr-fx-status,
+  .hwr-news-filters button,
+  .hwr-news-quote { font-size: 12px; }
+}

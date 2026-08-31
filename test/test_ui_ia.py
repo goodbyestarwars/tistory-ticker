@@ -609,8 +609,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("items.slice(0, 4)", script)
         self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
-        self.assertIn("home-weekly-report.css?v=20260831-fx-card-v1", script)
-        self.assertIn("home-weekly-report.js?v=20260831-fx-card-v1", self.read("js/skin-main.js"))
+        self.assertIn("home-weekly-report.css?v=20260831-mobile-legibility-v1", script)
+        self.assertIn("home-weekly-report.js?v=20260831-mobile-legibility-v1", self.read("js/skin-main.js"))
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)
 
