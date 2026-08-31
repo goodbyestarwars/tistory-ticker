@@ -279,6 +279,19 @@ def flow_component(foreign_ratio, inst_ratio):
                             _flow_ratio_to_score100(inst_ratio))
 
 
+def _has_investor_data(row):
+    """개인·외국인·기관이 **모두** 0/None인 행은 거래가 없는 자리표시자로 본다.
+
+    2026-09-01 확인: `investor_trend_daily`에는 개장 전에도 당일 행이 0으로 들어가 있다
+    (그날 06시에 조회하니 09.01이 0/0/0). 이 행을 그대로 두면 두 방향으로 어긋난다.
+      - 5일 합산: 실질 4일치를 5일로 취급해 수급 신호가 희석된다.
+      - 20일 기준선: 0을 한 날로 세어 평균 |순매매|가 낮아지고 비율이 부풀려진다.
+    실제 거래일이 개인·외국인·기관 셋 다 정확히 0.0이 되는 일은 없으므로 이 조건으로
+    자리표시자만 안전하게 걸러진다. 장이 열려 값이 들어오면 자연히 다시 포함된다.
+    """
+    return any((row.get(k) or 0) != 0 for k in ('ind', 'frgn', 'orgn'))
+
+
 def flow_component_from_market_trend(conn, market='KOSPI'):
     """수급 - **시장 전체** 외국인/기관 순매매(investor_trend_daily)로 낸다.
 
@@ -298,6 +311,7 @@ def flow_component_from_market_trend(conn, market='KOSPI'):
     """
     import db_schema
     rows = db_schema.load_investor_trend_daily(conn, market, limit_days=40)
+    rows = [r for r in rows if _has_investor_data(r)]
     if not rows:
         return flow_component(None, None), {'foreign': None, 'inst': None}
     recent = list(reversed(rows))          # 최신일 우선 - GAS daily 배열과 같은 순서
