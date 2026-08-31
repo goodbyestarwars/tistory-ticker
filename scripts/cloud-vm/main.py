@@ -277,10 +277,9 @@ _kofia_market_cache = {}
 _DOMESTIC_MARKET_INDICATORS_TTL = 60
 _domestic_market_indicators_cache = None
 _domestic_market_indicators_refresher_started = False
-# 2026-08-23: 분봉(1,500봉)을 기본 응답에서 빼면서 생긴 온디맨드 전용 캐시(아래
-# /domestic-market-indicators/chart) - 메인 캐시와 TTL을 맞춰 분봉 탭도 1분 이상 안
-# 지난 데이터는 재조회 없이 재사용한다.
-_domestic_market_chart_cache = {}
+# 2026-09-01: 여기 있던 _domestic_market_chart_cache(2026-08-23 온디맨드 분봉용 60초 캐시)는
+# 제거했다. 차트 캐시는 domestic_market_indicators.fetch_chart 안에 인터벌별 TTL로
+# 한 곳에만 둔다(day/week 5분, minute 1분).
 
 # 캘린더의 Google Calendar 이벤트와 병합하는 자동 실적발표 피드 캐시.
 # 2026-08-03: 다른 메모리 캐시와 달리 상한/정리 로직이 아예 없었다 - year(2000~2100)x
@@ -2597,11 +2596,9 @@ def domestic_market_indicators_chart_endpoint(
         raise HTTPException(status_code=400, detail='market은 KOSPI 또는 KOSDAQ이어야 합니다.')
     if interval not in domestic_market_indicators.INTERVALS:
         raise HTTPException(status_code=400, detail='interval은 minute/day/week 중 하나여야 합니다.')
-    cache_key = (market, interval)
-    now = time.time()
-    cached = _domestic_market_chart_cache.get(cache_key)
-    if cached and now - cached['t'] < _DOMESTIC_MARKET_INDICATORS_TTL:
-        return envelope(cached['data'])
+    # 2026-09-01: 여기 있던 60초 캐시는 걷어냈다. fetch_chart가 인터벌별 TTL로 자체
+    # 캐시하므로(day/week 5분, minute 1분) 같은 걸 두 겹으로 두면 다음 사람이 어느 쪽이
+    # 진짜 TTL인지 헷갈린다 - 캐시는 한 곳(fetch_chart)에만 둔다.
     try:
         data = domestic_market_indicators.fetch_chart(
             os.environ.get('KIS_APPKEY'), os.environ.get('KIS_APPSECRET'), market, interval,
@@ -2609,7 +2606,6 @@ def domestic_market_indicators_chart_endpoint(
     except Exception as exc:
         logging.getLogger('main').warning('domestic market chart failed: %s', exc, exc_info=True)
         raise HTTPException(status_code=502, detail='차트 데이터를 불러오지 못했습니다.')
-    _domestic_market_chart_cache[cache_key] = {'t': now, 'data': data}
     return envelope(data)
 
 

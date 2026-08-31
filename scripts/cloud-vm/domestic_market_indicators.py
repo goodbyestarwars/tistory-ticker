@@ -240,7 +240,34 @@ def _fetch_naver(market, interval):
     return points
 
 
+# 2026-09-01: 일봉은 CHART_LOOKBACK_DAYS(370일)를 한 번에 받는데, 그중 오늘 봉 하나만
+# 움직이고 나머지는 확정된 과거다. 그런데 대시보드가 60초마다 갱신하면서 370일치를 매번
+# 다시 받고 있었다(프로그램매매와 같은 형태 - 계측에서 chart:KOSPI:day 2.85~4.00초).
+# 인터벌마다 실제로 변하는 속도가 달라 TTL도 다르게 준다.
+#   day/week : 오늘 봉 하나만 움직이므로 5분이면 충분(현재가는 quote가 따로 준다)
+#   minute   : 장중엔 계속 바뀌므로 1분
+# 락을 걸지 않는다 - build_dashboard가 KOSPI/KOSDAQ 차트를 **병렬로** 부르는데 공용 락을
+# 쓰면 둘이 직렬화돼 오히려 느려진다. 키가 달라 실제 중복 조회도 안 생기고, 같은 키가
+# 동시에 미스 나도 중복 호출 한 번뿐이라 무해하다(조회는 멱등).
+_CHART_TTL = {'minute': 60, 'day': 300, 'week': 300}
+_chart_cache = {}
+
+
 def fetch_chart(kis_appkey, kis_appsecret, market, interval):
+    """코스피·코스닥 차트(인터벌별 TTL 캐시). 아래 _fetch_chart_uncached가 실제 조회."""
+    key = (market, interval)
+    ttl = _CHART_TTL.get(interval, 60)
+    hit = _chart_cache.get(key)
+    if hit and time.time() - hit['t'] < ttl:
+        return hit['data']
+    result = _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval)
+    # 빈 결과는 캐시하지 않는다 - 일시 실패를 TTL 내내 붙들고 있으면 안 된다.
+    if result.get('rows'):
+        _chart_cache[key] = {'t': time.time(), 'data': result}
+    return result
+
+
+def _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval):
     """코스피·코스닥 차트. 일봉·주봉은 KIS 단일 소스, 분봉만 네이버 폴백을 둔다.
 
     2026-09-01: 분봉 탭이 빈 화면이었다(실측 응답

@@ -137,3 +137,66 @@ class ProgramTradingCacheTest(unittest.TestCase):
             dmi.fetch_program_trading(None, None)   # 예외 없이 통과해야 한다
         finally:
             dmi._fetch_program_trading_uncached = original
+
+
+class ChartCacheTest(unittest.TestCase):
+    """2026-09-01: 일봉은 370일(CHART_LOOKBACK_DAYS)을 한 번에 받는데 그중 오늘 봉
+    하나만 움직인다. 대시보드가 60초마다 갱신하며 370일치를 매번 다시 받고 있었다."""
+
+    def setUp(self):
+        self._saved_cache = dict(dmi._chart_cache)
+        self._saved_fn = dmi._fetch_chart_uncached
+        dmi._chart_cache.clear()
+
+    def tearDown(self):
+        dmi._fetch_chart_uncached = self._saved_fn
+        dmi._chart_cache.clear()
+        dmi._chart_cache.update(self._saved_cache)
+
+    def _stub(self, calls):
+        def fake(appkey, appsecret, market, interval):
+            calls.append((market, interval))
+            return {'source': 'kis', 'rows': [{'date': '2026-08-31'}, {'date': '2026-08-28'}],
+                    'errors': []}
+        return fake
+
+    def test_repeat_call_within_ttl_does_not_refetch(self):
+        calls = []
+        dmi._fetch_chart_uncached = self._stub(calls)
+        dmi.fetch_chart('k', 's', 'KOSPI', 'day')
+        dmi.fetch_chart('k', 's', 'KOSPI', 'day')
+        self.assertEqual(calls, [('KOSPI', 'day')], '370일치를 매번 다시 받으면 안 된다')
+
+    def test_markets_and_intervals_are_cached_separately(self):
+        calls = []
+        dmi._fetch_chart_uncached = self._stub(calls)
+        dmi.fetch_chart('k', 's', 'KOSPI', 'day')
+        dmi.fetch_chart('k', 's', 'KOSDAQ', 'day')
+        dmi.fetch_chart('k', 's', 'KOSPI', 'minute')
+        self.assertEqual(len(calls), 3, '시장·인터벌이 다르면 각각 조회해야 한다')
+
+    def test_minute_ttl_is_shorter_than_daily(self):
+        """분봉은 장중 계속 바뀌고, 일봉은 오늘 봉 하나만 움직인다."""
+        self.assertLess(dmi._CHART_TTL['minute'], dmi._CHART_TTL['day'])
+
+    def test_empty_result_is_not_cached(self):
+        calls = []
+
+        def failing(appkey, appsecret, market, interval):
+            calls.append(1)
+            return {'source': 'kis', 'rows': [], 'errors': ['일시 실패']}
+
+        dmi._fetch_chart_uncached = failing
+        dmi.fetch_chart('k', 's', 'KOSPI', 'day')
+        dmi.fetch_chart('k', 's', 'KOSPI', 'day')
+        self.assertEqual(len(calls), 2, '일시 실패를 TTL 내내 붙들고 있으면 안 된다')
+
+    def test_cache_is_lock_free_so_parallel_markets_do_not_serialise(self):
+        """build_dashboard가 KOSPI/KOSDAQ 차트를 병렬로 부른다. 공용 락을 쓰면
+        둘이 직렬화돼 오히려 느려지므로 락을 두지 않는다."""
+        with open(os.path.join(CLOUD_VM_DIR, 'domestic_market_indicators.py'),
+                  encoding='utf-8') as fh:
+            src = fh.read()
+        start = src.index('def fetch_chart(')
+        end = src.index('def _fetch_chart_uncached')
+        self.assertNotIn('_lock', src[start:end])
