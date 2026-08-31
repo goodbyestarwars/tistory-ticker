@@ -2459,19 +2459,20 @@ def market_temp_endpoint(request: Request):
     실측 7,102ms). 여기서는 백그라운드 스레드가 미리 계산해둔 값을 그대로 돌려주므로
     방문자는 계산을 유발하지 않는다 - 워머 같은 보조 장치도 필요 없다.
 
-    아직 한 번도 계산되지 않았으면(기동 직후) 그 자리에서 한 번 계산한다. 이 경로는
-    프로세스당 최초 1회뿐이다.
+    2026-08-31: 처음엔 "아직 계산 전이면 그 자리에서 한 번 계산"하게 만들었다가 배포 후
+    **504 Gateway Timeout(61~64초)** 을 맞았다. 전종목 시세 수집이 1코어 VM에서 60초를
+    넘겨 nginx 타임아웃을 뚫었고, 그동안 요청 스레드도 잡고 있었다. 요청 경로에서 계산하지
+    않는다는 게 이 설계의 핵심인데 예외 하나를 열어둔 게 화근이었다 - 그 예외를 없앤다.
+    기동 직후엔 백그라운드 스레드가 이미 첫 계산을 돌리고 있으므로, 그때까지는 503으로
+    "준비 중"을 즉시 알린다(프론트는 GAS 응답으로 폴백하거나 다음 갱신을 기다리면 된다).
     /investor-flow와 동일하게 공개(인증 없음) + CORS 제한 + 레이트리밋.
     """
     _check_rate_limit('market_temp', request, max_per_window=30)
     cached = market_temp.get_cached()
     if cached.get('result') is None:
-        result = market_temp.refresh_once(db_schema.get_conn, WEEK52_CACHE_FILE,
-                                          lambda: public_data.fetch_kofia_market(30))
-        if result is None:
-            raise HTTPException(status_code=503,
-                                detail=cached.get('error') or '증시온도를 아직 계산하지 못했습니다.')
-        return envelope(result)
+        raise HTTPException(
+            status_code=503,
+            detail=cached.get('error') or '증시온도를 계산하는 중입니다. 잠시 후 다시 시도해주세요.')
     return envelope(cached['result'])
 
 

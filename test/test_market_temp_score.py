@@ -332,5 +332,38 @@ class MarketTempAssemblyTest(unittest.TestCase):
         self.assertEqual(without['temp'], 40.0, '만점이면 신용융자 유무와 무관하게 40℃')
 
 
+class MarketTempEndpointContractTest(unittest.TestCase):
+    """main.py는 fastapi 의존이라 이 샌드박스에서 import 불가 - 소스 텍스트 계약만 검사한다
+    (test_market_board_warmer.py와 동일 패턴)."""
+
+    def read_main(self):
+        path = os.path.join(CLOUD_VM_DIR, 'main.py')
+        with io.open(path, encoding='utf-8') as fh:
+            return fh.read()
+
+    def test_request_path_never_computes(self):
+        """2026-08-31: 요청 경로에서 계산하게 뒀다가 배포 후 504(61~64초)를 맞았다.
+        전종목 수집이 1코어 VM에서 nginx 타임아웃을 뚫는다. 다시 열리지 않게 고정한다."""
+        src = self.read_main()
+        start = src.index("@app.get('/market-temp')")
+        end = src.index('@app.get(', start + 10)
+        body = src[start:end]
+        self.assertNotIn('market_temp.refresh_once', body,
+                         '요청 경로에서 계산하면 안 된다 - 백그라운드가 담당한다')
+        self.assertIn('status_code=503', body, '계산 전이면 즉시 503으로 알려야 한다')
+
+    def test_background_computation_is_started(self):
+        src = self.read_main()
+        self.assertIn('market_temp.start_background(', src)
+
+    def test_daily_history_lives_in_the_operational_db(self):
+        """DB 파일을 6번째로 늘리지 않는다(5개 중 2개만 유지보수되던 걸 고친 직후)."""
+        path = os.path.join(CLOUD_VM_DIR, 'market_temp.py')
+        with io.open(path, encoding='utf-8') as fh:
+            src = fh.read()
+        self.assertNotIn('market_temp.db', src)
+        self.assertIn('CREATE TABLE IF NOT EXISTS market_temp_daily', src)
+
+
 if __name__ == '__main__':
     unittest.main()
