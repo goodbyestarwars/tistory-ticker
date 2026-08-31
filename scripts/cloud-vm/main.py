@@ -137,6 +137,10 @@ def _start_futures_collectors():
     market_temp.start_background(db_schema.get_conn, WEEK52_CACHE_FILE,
                                  lambda: public_data.fetch_kofia_market(30))
 
+    # 코스피/코스닥 현물 지표도 같은 이유로 요청 경로에서 만들지 않는다
+    # (캐시 미스 때 방문자가 8.5초를 물던 구조 - 2026-09-01 사용자 리포트).
+    _start_domestic_market_indicators_refresher()
+
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
     kiwoom_appkey = os.environ.get('KIWOOM_APPKEY')
@@ -272,6 +276,7 @@ _KOFIA_MARKET_TTL = 30 * 60
 _kofia_market_cache = {}
 _DOMESTIC_MARKET_INDICATORS_TTL = 60
 _domestic_market_indicators_cache = None
+_domestic_market_indicators_refresher_started = False
 # 2026-08-23: 분봉(1,500봉)을 기본 응답에서 빼면서 생긴 온디맨드 전용 캐시(아래
 # /domestic-market-indicators/chart) - 메인 캐시와 TTL을 맞춰 분봉 탭도 1분 이상 안
 # 지난 데이터는 재조회 없이 재사용한다.
@@ -2517,13 +2522,32 @@ def domestic_market_indicators_endpoint(request: Request, fresh: bool = Query(Fa
 
     지수·수급·증시자금은 KIS 단일 소스를 사용하며, 신용대주·담보융자 두 카드만
     KOFIA 공공데이터를 사용한다.
+
+    2026-09-01: 사용자 리포트 "코스피 주간 현물 차트가 느려(야간·지수는 빠른데)".
+    실측하니 캐시 히트는 0.81초인데 **미스가 8.47초**였다 - 60초 TTL이 만료되는 순간의
+    방문자가 매번 그 8.5초를 통째로 물던 구조다(2026-08-23에 분봉을 응답에서 빼 크기는
+    줄였지만 미스 비용 자체는 그대로였다). 코스피/코스닥 지표는 방문자마다 달라지지 않는
+    시장 전체 지표라 요청 경로에서 만들 이유가 없다 - docs/BACKEND_CONSOLIDATION.md 4절과
+    같은 판단으로 백그라운드 주기 계산으로 바꾼다. 요청은 저장된 값을 읽기만 하므로
+    "캐시 미스"라는 개념 자체가 사라진다.
     """
     _check_rate_limit('domestic_market_indicators', request, max_per_window=20)
+    if fresh:
+        # 관리·디버깅용 강제 갱신은 남겨둔다(백그라운드 주기를 기다리지 않고 확인).
+        data = _refresh_domestic_market_indicators()
+        if data is None:
+            raise HTTPException(status_code=502, detail='국내시장지표 데이터를 불러오지 못했습니다.')
+        return envelope(data)
+    cached = _domestic_market_indicators_cache
+    if not cached:
+        raise HTTPException(status_code=503,
+                            detail='국내시장지표를 준비하는 중입니다. 잠시 후 다시 시도해주세요.')
+    return envelope(cached['data'])
+
+
+def _refresh_domestic_market_indicators():
+    """국내시장지표 한 판을 만들어 저장한다(백그라운드 스레드와 ?fresh=1이 공유)."""
     global _domestic_market_indicators_cache
-    now = time.time()
-    if (not fresh and _domestic_market_indicators_cache and
-            now - _domestic_market_indicators_cache['t'] < _DOMESTIC_MARKET_INDICATORS_TTL):
-        return envelope(_domestic_market_indicators_cache['data'])
     try:
         data = domestic_market_indicators.build_dashboard(
             kis_appkey=os.environ.get('KIS_APPKEY'),
@@ -2531,9 +2555,26 @@ def domestic_market_indicators_endpoint(request: Request, fresh: bool = Query(Fa
         )
     except Exception as exc:
         logging.getLogger('main').warning('domestic market indicators failed: %s', exc, exc_info=True)
-        raise HTTPException(status_code=502, detail='국내시장지표 데이터를 불러오지 못했습니다.')
-    _domestic_market_indicators_cache = {'t': now, 'data': data}
-    return envelope(data)
+        return None
+    _domestic_market_indicators_cache = {'t': time.time(), 'data': data}
+    return data
+
+
+def _domestic_market_indicators_loop():
+    while True:
+        _refresh_domestic_market_indicators()
+        time.sleep(_DOMESTIC_MARKET_INDICATORS_TTL)
+
+
+def _start_domestic_market_indicators_refresher():
+    global _domestic_market_indicators_refresher_started
+    if _domestic_market_indicators_refresher_started:
+        return
+    _domestic_market_indicators_refresher_started = True
+    threading.Thread(target=_domestic_market_indicators_loop,
+                     name='domestic-market-indicators', daemon=True).start()
+    logging.getLogger('main').info('국내시장지표 백그라운드 갱신 시작(%d초 주기)',
+                                  _DOMESTIC_MARKET_INDICATORS_TTL)
 
 
 @app.get('/domestic-market-indicators/chart')

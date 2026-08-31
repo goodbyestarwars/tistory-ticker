@@ -356,6 +356,18 @@ class MarketTempEndpointContractTest(unittest.TestCase):
         src = self.read_main()
         self.assertIn('market_temp.start_background(', src)
 
+    def test_domestic_market_indicators_also_left_the_request_path(self):
+        """2026-09-01: 캐시 미스 때 방문자가 8.47초를 물던 구조(히트는 0.81초).
+        시장 전체 지표는 요청 경로에서 만들지 않는다 - 같은 판단을 여기에도 적용했다."""
+        src = self.read_main()
+        start = src.index("@app.get('/domestic-market-indicators')")
+        end = src.index('def _refresh_domestic_market_indicators', start)
+        body = src[start:end]
+        self.assertNotIn('build_dashboard', body,
+                         '요청 경로에서 만들면 미스 때 방문자가 8초를 문다')
+        self.assertIn('status_code=503', body)
+        self.assertIn('_start_domestic_market_indicators_refresher()', src)
+
     def test_daily_history_lives_in_the_operational_db(self):
         """DB 파일을 6번째로 늘리지 않는다(5개 중 2개만 유지보수되던 걸 고친 직후)."""
         path = os.path.join(CLOUD_VM_DIR, 'market_temp.py')
