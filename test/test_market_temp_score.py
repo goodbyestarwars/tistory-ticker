@@ -269,5 +269,68 @@ class FlowAndTimeWeightTest(unittest.TestCase):
         self.assertIsNone(at(20, 0))
 
 
+class MarketTempAssemblyTest(unittest.TestCase):
+    """조립 계층 - 등급 경계, 일별 이력, 신용융자 결측 시 만점 처리."""
+
+    def _conn(self):
+        import sqlite3
+        return sqlite3.connect(':memory:')
+
+    def test_grade_boundaries_match_gas(self):
+        import market_temp as mt
+        cases = [(9.9, '극도의 공포'), (10, '공포'), (19.9, '공포'), (20, '중립'),
+                 (27.9, '중립'), (28, '낙관'), (34.9, '낙관'), (35, '과열'), (40, '과열')]
+        for temp, label in cases:
+            self.assertEqual(mt.grade_for_temp(temp)['label'], label, '%s℃' % temp)
+
+    def test_daily_history_upsert_replaces_same_day_and_caps_length(self):
+        import market_temp as mt
+        conn = self._conn()
+        try:
+            mt.upsert_daily_temp(conn, 20.0, '2026-08-31')
+            mt.upsert_daily_temp(conn, 24.0, '2026-08-31')   # 같은 날 재계산 -> 덮어쓰기
+            rows = mt.read_daily_history(conn)
+            self.assertEqual(rows, [{'date': '2026-08-31', 'temp': 24.0}])
+            for i in range(1, mt.DAILY_HISTORY_MAX + 20):
+                mt.upsert_daily_temp(conn, float(i), '2026-%02d-%02d' % (1 + i // 28, 1 + i % 28))
+            self.assertLessEqual(len(mt.read_daily_history(conn)), mt.DAILY_HISTORY_MAX)
+        finally:
+            conn.close()
+
+    def test_history_is_none_on_first_day_then_reports_day_change(self):
+        import market_temp as mt
+        conn = self._conn()
+        try:
+            hist = mt.upsert_daily_temp(conn, 24.0, '2026-08-31')
+            self.assertIsNone(mt.compute_history(24.0, hist, '2026-08-31'),
+                              '이력이 오늘뿐이면 전일 대비를 낼 수 없다')
+            mt.upsert_daily_temp(conn, 20.0, '2026-08-28')
+            hist = mt.upsert_daily_temp(conn, 24.0, '2026-08-31')
+            got = mt.compute_history(24.0, hist, '2026-08-31')
+            self.assertEqual(got['yesterday'], 20.0)
+            self.assertEqual(got['dayChange'], 4.0)
+        finally:
+            conn.close()
+
+    def test_sparkline_appends_today_after_prior_days(self):
+        import market_temp as mt
+        hist = [{'date': '2026-08-28', 'temp': 20.0}, {'date': '2026-08-31', 'temp': 24.0}]
+        got = mt.compute_sparkline(24.0, hist, '2026-08-31')
+        self.assertEqual(got[-1], {'date': '2026-08-31', 'temp': 24.0})
+        self.assertEqual([g['date'] for g in got], ['2026-08-28', '2026-08-31'])
+
+    def test_missing_credit_risk_lowers_max_score_so_temperature_stays_normalised(self):
+        """신용융자가 없는 날은 만점에서도 10점을 빼야 40℃ 정규화가 어긋나지 않는다."""
+        import market_temp as mt
+        credit = mt.score_kofia_credit(None)
+        self.assertFalse(credit['available'])
+        full = mts.total_and_temperature([20, 20, 15, 15, 10, 10, 10, 5, 5, 10], True)
+        self.assertEqual(full['maxScore'], 120)
+        self.assertEqual(full['temp'], 40.0)
+        without = mts.total_and_temperature([20, 20, 15, 15, 10, 10, 10, 5, 5], False)
+        self.assertEqual(without['maxScore'], 110)
+        self.assertEqual(without['temp'], 40.0, '만점이면 신용융자 유무와 무관하게 40℃')
+
+
 if __name__ == '__main__':
     unittest.main()

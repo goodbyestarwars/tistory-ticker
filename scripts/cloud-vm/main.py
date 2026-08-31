@@ -37,6 +37,7 @@ import earnings_calendar
 import finnhub_realtime
 import foreign_flow_compute
 import foreign_futures
+import market_temp
 import naver_news
 import news_aggregator
 import news_momentum
@@ -130,6 +131,11 @@ def _start_futures_collectors():
     # 홈 경제뉴스(/domestic-news)도 캐시 미스마다 외부 API 3~4곳을 요청 안에서 동기
     # 호출해 7~14초가 걸렸다. 같은 트래픽 구동형 패턴으로 방문자가 미스를 맞지 않게 한다.
     _start_domestic_news_warmer()
+
+    # 증시온도는 방문자마다 달라지지 않는 시장 전체 지표라 요청 경로에서 계산하지 않는다.
+    # 백그라운드로 미리 계산해 두고 /market-temp는 읽기만 한다.
+    market_temp.start_background(db_schema.get_conn, WEEK52_CACHE_FILE,
+                                 lambda: public_data.fetch_kofia_market(30))
 
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
@@ -2443,6 +2449,30 @@ def option_flow_endpoint():
     data['source'] = 'KIS 옵션 전광판 REST + KIS WebSocket'
     data['websocket'] = option_flow.websocket_available()
     return envelope(data)
+
+
+@app.get('/market-temp')
+def market_temp_endpoint(request: Request):
+    """오늘의 증시온도. GAS `?marketTemp=1`을 대체한다(docs/BACKEND_CONSOLIDATION.md 1단계).
+
+    GAS는 요청을 받고 나서 전종목을 긁어 캐시 미스면 방문자가 7초를 물었다(2026-08-31
+    실측 7,102ms). 여기서는 백그라운드 스레드가 미리 계산해둔 값을 그대로 돌려주므로
+    방문자는 계산을 유발하지 않는다 - 워머 같은 보조 장치도 필요 없다.
+
+    아직 한 번도 계산되지 않았으면(기동 직후) 그 자리에서 한 번 계산한다. 이 경로는
+    프로세스당 최초 1회뿐이다.
+    /investor-flow와 동일하게 공개(인증 없음) + CORS 제한 + 레이트리밋.
+    """
+    _check_rate_limit('market_temp', request, max_per_window=30)
+    cached = market_temp.get_cached()
+    if cached.get('result') is None:
+        result = market_temp.refresh_once(db_schema.get_conn, WEEK52_CACHE_FILE,
+                                          lambda: public_data.fetch_kofia_market(30))
+        if result is None:
+            raise HTTPException(status_code=503,
+                                detail=cached.get('error') or '증시온도를 아직 계산하지 못했습니다.')
+        return envelope(result)
+    return envelope(cached['result'])
 
 
 @app.get('/kofia-market')
