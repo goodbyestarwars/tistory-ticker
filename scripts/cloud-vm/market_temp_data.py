@@ -1,0 +1,168 @@
+# -*- coding: utf-8 -*-
+"""증시온도 데이터 수집 - gas/ticker-proxy.gs getMarketTemp()의 입력 수집부 이식.
+
+`docs/BACKEND_CONSOLIDATION.md` 1-b단계. 배점은 `market_temp_score.py`가 이미 이식했고
+(GAS 응답과 12건 일치 확인) 이 파일은 그 배점에 넣을 값을 모은다.
+
+**VM에 이미 있는 것은 다시 안 받는다** - 이게 이번 일원화의 핵심이다:
+
+| 입력 | GAS가 받던 곳 | VM에서 쓰는 곳 |
+|---|---|---|
+| VIX | Yahoo `^VIX` | `foreign_futures.py` 폴러가 이미 수집(.VIX) → DB |
+| S&P500 선물 | Yahoo `ES=F` | `foreign_futures.py` 폴러(EScv1) → DB |
+| 원/달러 | 네이버 marketindex | `domestic_futures.py` 폴러(FX_USDKRW) → DB, **GAS와 같은 소스** |
+| 52주 신고저 | VM `/week52-batch` 호출 | 같은 캐시를 직접 읽음 |
+| 신용융자 | VM `/kofia-market` 호출 | 같은 모듈을 직접 호출 |
+| 섹터 유니버스 | GitHub Pages fetch | `sector_cards.load_static_sector_map()` 로컬 파일 |
+| 전종목 시세 | 네이버 polling API | 동일 API(여기서 신규 수집) |
+| 수급(KODEX200) | 네이버 종목별 외국인/기관 | 동일(여기서 신규 수집) |
+
+즉 새로 받는 건 시세와 수급 둘뿐이고 나머지 5종은 이미 VM 안에 있다. GAS가 VM을 부르던
+홉(`fetchKofiaMarketFromVm_`, `computeWeek52Score_`)이 그대로 사라진다.
+
+**알려진 차이(의도적)**: VIX와 S&P500 선물의 출처가 Yahoo → 네이버로 바뀐다. 같은 지수라
+값은 거의 같지만 소수점이 달라 배점 경계(VIX 15/20/25/30)를 스칠 수 있다. 외부 호출을
+새로 늘리지 않으려고 기존 폴러 데이터를 쓰기로 했고, 종단 비교에서 점수가 갈리면
+경계값 때문인지 먼저 확인할 것.
+"""
+
+import json
+import logging
+import os
+import time
+import urllib.parse
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+
+import market_temp_score as score
+
+LOGGER = logging.getLogger('market_temp')
+
+NAVER_POLLING_URL = 'https://polling.finance.naver.com/api/realtime?query=SERVICE_ITEM:'
+NAVER_BATCH_SIZE = 40      # GAS MARKETCAP_BATCH_SIZE - 40개까지 안정 검증된 값
+NAVER_MAX_WORKERS = 8      # GAS는 fetchAll 15개씩 - VM은 스레드라 보수적으로 잡는다
+HTTP_TIMEOUT = 12
+FLOW_CODE = '069500'       # KODEX 200 - 코스피200 추종 ETF, 수급 대리지표(GAS MT_FLOW_CODE)
+USER_AGENT = 'tistory-ticker/1.0'
+
+
+def _get_json(url, timeout=HTTP_TIMEOUT, encoding='utf-8'):
+    request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        if response.status != 200:
+            return None
+        return json.loads(response.read().decode(encoding, 'replace'))
+
+
+# ---- 전종목 시세 ----
+
+def _parse_naver_batch(body):
+    """네이버 polling 응답 한 배치를 표준 형태로 편다.
+
+    GAS applyNxtOverride_(장 종료 후 NXT 시간외 단일가 우선)는 여기선 적용하지 않는다 -
+    증시온도는 정규장 기준 지표이고, 시간외 가격을 섞으면 GAS와 값이 갈린다.
+    (GAS도 isMarketOpenNow()가 참이면 그대로 쓰므로 장중에는 동일하다.)
+    """
+    areas = ((body or {}).get('result') or {}).get('areas') or []
+    item_area = next((a for a in areas if a.get('name') == 'SERVICE_ITEM'), None)
+    rows = []
+    for d in (item_area or {}).get('datas') or []:
+        sign = -1 if d.get('rf') in ('4', '5') else 1
+        try:
+            price = float(d.get('nv') or 0)
+            change = abs(float(d.get('cv') or 0)) * sign
+            change_rate = abs(float(d.get('cr') or 0)) * sign
+            volume = float(d.get('aq') or 0)
+        except (TypeError, ValueError):
+            continue
+        rows.append({'code': d.get('cd'), 'name': d.get('nm'), 'price': price,
+                     'change': change, 'changeRate': change_rate, 'volume': volume})
+    return rows
+
+
+def fetch_quotes(codes):
+    """전종목 현재가/등락률/거래량. 실패한 배치는 건너뛰고 나머지는 유지한다."""
+    batches = [codes[i:i + NAVER_BATCH_SIZE] for i in range(0, len(codes), NAVER_BATCH_SIZE)]
+    out = []
+
+    def one(batch):
+        url = NAVER_POLLING_URL + urllib.parse.quote(','.join(batch), safe=',')
+        try:
+            return _parse_naver_batch(_get_json(url, encoding='euc-kr'))
+        except Exception:
+            LOGGER.debug('naver polling batch failed', exc_info=True)
+            return []
+
+    with ThreadPoolExecutor(max_workers=NAVER_MAX_WORKERS) as pool:
+        for rows in pool.map(one, batches):
+            out.extend(rows)
+    return out
+
+
+# ---- 컴포넌트 조립 ----
+
+def build_quote_components(quotes, universe_with_sectors, prior_trading_values):
+    """시세 하나로 나오는 4개 컴포넌트(거래대금·평균등락·상승비율·섹터강세)를 만든다."""
+    today_value = sum((q.get('price') or 0) * (q.get('volume') or 0) for q in quotes)
+    trading_value = score.score_trading_value(today_value, prior_trading_values)
+
+    if quotes:
+        avg = sum(q.get('changeRate') or 0 for q in quotes) / len(quotes)
+        avg_change = score.score_avg_change(avg, len(quotes))
+    else:
+        avg_change = score.score_avg_change(0, 0)
+
+    up = sum(1 for q in quotes if (q.get('change') or 0) > 0)
+    down = sum(1 for q in quotes if (q.get('change') or 0) < 0)
+    rise_ratio = score.score_rise_ratio(up, down)
+
+    by_code = {q['code']: q for q in quotes if q.get('code')}
+    by_sector = {}
+    for u in universe_with_sectors:
+        q = by_code.get(u.get('code'))
+        if not q:
+            continue
+        for sector in u.get('sectors') or []:
+            bucket = by_sector.setdefault(sector, {'up': 0, 'down': 0, 'sum_change': 0.0, 'total': 0})
+            bucket['total'] += 1
+            bucket['sum_change'] += q.get('changeRate') or 0
+            if (q.get('change') or 0) > 0:
+                bucket['up'] += 1
+            elif (q.get('change') or 0) < 0:
+                bucket['down'] += 1
+
+    strong = 0
+    for bucket in by_sector.values():
+        avg_change_sector = bucket['sum_change'] / bucket['total'] if bucket['total'] else 0
+        rise = bucket['up'] / bucket['total'] if bucket['total'] else 0
+        if avg_change_sector > 0:
+            strong += 1
+        if rise >= 0.5:
+            strong += 1
+    sector_strength = score.score_sector_strength(len(by_sector), strong)
+
+    return {
+        'tradingValue': trading_value,
+        'avgChange': avg_change,
+        'riseRatio': rise_ratio,
+        'sectorStrength': sector_strength,
+        'todayTradingValue': today_value,
+    }
+
+
+def universe_with_sectors():
+    """`data/sectors-v3.js`에서 (코드, 업종목록)을 만든다 - GAS는 이 파일을 GitHub Pages에서
+    받아왔지만 VM엔 저장소가 그대로 있으므로 로컬에서 읽는다."""
+    import sector_cards
+    parsed = sector_cards.load_static_sector_map()
+    by_code = {}
+    for category, stocks in (parsed or {}).items():
+        for stock in stocks:
+            code = stock.get('code')
+            if not code:
+                continue
+            entry = by_code.setdefault(code, {'code': code, 'name': stock.get('name'),
+                                              'market': stock.get('market'), 'sectors': []})
+            if category not in entry['sectors']:
+                entry['sectors'].append(category)
+    return list(by_code.values())

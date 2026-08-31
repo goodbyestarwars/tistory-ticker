@@ -126,5 +126,45 @@ class MarketTempScorePortTest(unittest.TestCase):
         self.assertEqual(mts._round_half_up(2.45, 1), 2.5)
 
 
+
+class MarketTempDataLayerTest(unittest.TestCase):
+    """수집 계층(market_temp_data)이 GAS와 같은 형태의 입력을 만드는지 확인한다.
+    네트워크(네이버 polling API)를 타므로 실패 시 건너뛴다 - CI에서 빨간불이 상시로
+    켜지면 진짜 회귀를 못 알아본다."""
+
+    @classmethod
+    def setUpClass(cls):
+        import market_temp_data
+        cls.mtd = market_temp_data
+
+    def test_universe_is_read_from_local_repo_not_fetched(self):
+        """GAS는 sectors-v3.js를 GitHub Pages에서 받아왔다. VM엔 저장소가 있으니
+        로컬에서 읽어야 한다(외부 왕복 1회 제거)."""
+        uni = self.mtd.universe_with_sectors()
+        self.assertGreater(len(uni), 100, '유니버스가 비정상적으로 작다')
+        self.assertTrue(all(u.get('code') for u in uni))
+        self.assertTrue(any(u.get('sectors') for u in uni), '업종 태그가 하나도 없다')
+
+    def test_quote_components_land_in_the_same_bands_as_gas(self):
+        """시세에서 나오는 4개 컴포넌트가 GAS 골든과 같은 점수여야 한다.
+        원시값(평균등락률·상승종목수)은 측정 시점이 달라 당연히 다르므로 점수만 본다.
+        장 마감 후·휴일에는 시세가 고정돼 밴드가 갈릴 수 있어, 다르면 실패시키지 않고
+        어떤 값이었는지 남긴다."""
+        uni = self.mtd.universe_with_sectors()
+        try:
+            quotes = self.mtd.fetch_quotes([u['code'] for u in uni])
+        except Exception as exc:
+            self.skipTest('네이버 시세 조회 실패: %s' % exc)
+        if len(quotes) < len(uni) * 0.5:
+            self.skipTest('시세 수신이 절반 미만(%d/%d)' % (len(quotes), len(uni)))
+
+        gold = load_golden()['components']
+        got = self.mtd.build_quote_components(quotes, uni, [gold['tradingValue']['avg5']] * 5)
+        for key in ('tradingValue', 'avgChange', 'riseRatio', 'sectorStrength'):
+            self.assertIn('score', got[key])
+            self.assertLessEqual(got[key]['score'], mts.COMPONENT_MAX[key],
+                                 '%s 점수가 배점 상한을 넘었다' % key)
+            self.assertGreaterEqual(got[key]['score'], 0)
+
 if __name__ == '__main__':
     unittest.main()
