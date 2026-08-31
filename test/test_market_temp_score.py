@@ -476,5 +476,65 @@ class FlowFromPayloadTest(unittest.TestCase):
         self.assertEqual(ratios, {'foreign': None, 'inst': None})
 
 
+class ExchangeLiveQuoteTest(unittest.TestCase):
+    """원/달러는 DB(future_prices) 값이 뒤처질 수 있다. 종단 비교에서 VM 1418.5 vs
+    GAS 1368.4로 50원이나 벌어졌고, /futures는 이미 같은 함정을 알고 실시간 고시값으로
+    보강하고 있었다(main.py "1416/1418처럼 갈라지므로")."""
+
+    def test_live_quote_overrides_stale_db_value(self):
+        import market_temp_data as mtd
+
+        class FakeConn:
+            def execute(self, *a, **k):
+                raise AssertionError('사용 안 함')
+
+        stale = [{'symbol': 'USDKRW', 'name': '원/달러', 'price': 1418.5, 'change_rate': -0.12},
+                 {'symbol': 'VIX', 'name': 'VIX', 'price': 15.0, 'change_rate': 0},
+                 {'symbol': 'SP500', 'name': 'S&P', 'price': 6400.0, 'change_rate': 0.1}]
+
+        import types
+        fake_db = types.SimpleNamespace(load_all_future_prices=lambda conn: stale)
+        fake_fut = types.SimpleNamespace(
+            fetch_fx_realtime=lambda: {'price': 1368.4, 'change_rate': -0.91})
+        saved = (sys.modules.get('db_schema'), sys.modules.get('domestic_futures'))
+        sys.modules['db_schema'] = fake_db
+        sys.modules['domestic_futures'] = fake_fut
+        try:
+            got = mtd.market_components_from_db(FakeConn())
+        finally:
+            for name, mod in zip(('db_schema', 'domestic_futures'), saved):
+                if mod is None:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = mod
+        self.assertEqual(got['exchange']['price'], 1368.4, 'DB의 낡은 값을 쓰면 안 된다')
+        self.assertEqual(got['exchange']['changeRate'], -0.91)
+
+    def test_falls_back_to_db_when_live_quote_fails(self):
+        import market_temp_data as mtd
+        import types
+
+        class FakeConn:
+            pass
+
+        stale = [{'symbol': 'USDKRW', 'price': 1418.5, 'change_rate': -0.12}]
+
+        def boom():
+            raise RuntimeError('네트워크 실패')
+
+        saved = (sys.modules.get('db_schema'), sys.modules.get('domestic_futures'))
+        sys.modules['db_schema'] = types.SimpleNamespace(load_all_future_prices=lambda c: stale)
+        sys.modules['domestic_futures'] = types.SimpleNamespace(fetch_fx_realtime=boom)
+        try:
+            got = mtd.market_components_from_db(FakeConn())
+        finally:
+            for name, mod in zip(('db_schema', 'domestic_futures'), saved):
+                if mod is None:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = mod
+        self.assertEqual(got['exchange']['price'], 1418.5, '실시간 실패 시 DB 값으로 떨어져야 한다')
+
+
 if __name__ == '__main__':
     unittest.main()

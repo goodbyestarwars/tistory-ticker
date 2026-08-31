@@ -211,8 +211,22 @@ def market_components_from_db(conn, now_kst=None):
     vix_row = prices.get('VIX') or {}
     vix = score.score_vix(vix_row.get('price'))
 
+    # 원/달러는 DB 값이 뒤처질 수 있다. `/futures`가 이미 같은 함정을 알고 우회하고 있다
+    # (main.py: "DB 수집 주기 사이에 이전 고시값을 내보내면 두 화면이 1416/1418처럼
+    #  갈라지므로") - 실제로 종단 비교에서 VM 1418.5 vs GAS 1368.4로 50원이나 벌어졌다.
+    # 같은 방식으로 실시간 고시값을 한 번 보강하고, 실패하면 DB 값으로 떨어진다.
     fx_row = prices.get('USDKRW') or {}
-    exchange = score.score_exchange(fx_row.get('change_rate'), fx_row.get('price'))
+    fx_price = fx_row.get('price')
+    fx_change_rate = fx_row.get('change_rate')
+    try:
+        import domestic_futures
+        live_fx = domestic_futures.fetch_fx_realtime()
+        if live_fx and live_fx.get('change_rate') is not None:
+            fx_price = live_fx.get('price', fx_price)
+            fx_change_rate = live_fx.get('change_rate')
+    except Exception:
+        LOGGER.debug('USDKRW 실시간 고시 조회 실패 - DB 값 사용', exc_info=True)
+    exchange = score.score_exchange(fx_change_rate, fx_price)
 
     sp_row = prices.get('SP500') or {}
     weight = us_futures_time_weight(now_kst)
