@@ -190,6 +190,16 @@
     moreButton.addEventListener('click', function () {
       if (sheet.hidden) openSheet(); else closeSheet();
     });
+    // 2026-08-31: 모바일에서 "맨 위로" 떠 있는 버튼(.scroll-top-btn)이 본문 글자를 덮어
+    // style.css의 max-width:720px 구간에서 숨겼다. 그 기능을 여기로 옮긴다 - 지금 보고
+    // 있는 탭을 다시 누르면 페이지 맨 위로 올라간다(흔한 모바일 앱 패턴). 다른 탭을
+    // 누르면 기존대로 그 페이지로 이동한다.
+    nav.addEventListener('click', function (event) {
+      var item = event.target.closest ? event.target.closest('[data-bottom-key]') : null;
+      if (!item || !item.classList.contains('active')) return;
+      event.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
     sheet.addEventListener('click', function (event) {
       var action = event.target.closest ? event.target.closest('[data-bottom-action]') : null;
       if (action && action.getAttribute('data-bottom-action') === 'close') closeSheet();

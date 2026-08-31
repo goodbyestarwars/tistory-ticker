@@ -102,6 +102,30 @@ def _connect():
     return conn
 
 
+# 2026-08-31: 이 테이블은 지금까지 삭제 정책이 아예 없어 수집한 기사가 영구 누적됐다
+# (7차에서 /domestic-news가 6~13초였던 근본 원인). 읽는 쪽의 최대 조회 범위는
+# `_load_cached`의 stale 폴백 24시간과 `get_weekly_news`의 주간 창(약 7일)이라
+# 90일은 그보다 13배 이상 여유가 있다. news_momentum의 RETENTION_DAYS와 값을 맞춘다.
+RETENTION_DAYS = 90
+
+
+def prune_old_rows(retention_days=RETENTION_DAYS, now=None):
+    """보존 기간이 지난 뉴스·공시 행을 지운다(장외 유지보수에서 호출).
+
+    지우는 기준은 수집 시각(`fetched_at`)이다. 발행일(`pub_date`)은 형식이 제각각이라
+    비교가 불안정하고, 오래된 기사가 뒤늦게 수집되는 경우까지 잘못 지울 수 있다.
+    """
+    cutoff = (now if now is not None else time.time()) - max(1, int(retention_days)) * 86400
+    conn = _connect()
+    try:
+        before = conn.total_changes
+        conn.execute('DELETE FROM domestic_news WHERE fetched_at < ?', (cutoff,))
+        conn.commit()
+        return {'deleted': conn.total_changes - before, 'retentionDays': int(retention_days)}
+    finally:
+        conn.close()
+
+
 def ensure_schema():
     """스키마·인덱스를 요청 경로 밖(앱 기동 시)에서 한 번 만들어 둔다.
 

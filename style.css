@@ -3888,7 +3888,14 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
   .mobile-app-sheet-links a { display: flex; min-height: 56px; padding: 11px 12px; flex-direction: column; justify-content: center; border: 1px solid #e5e7eb; border-radius: 12px; color: #111827; font-size: 13px; font-weight: 700; text-decoration: none; }
   .mobile-app-sheet-links a span { margin-top: 3px; color: #9ca3af; font-size: 10px; font-weight: 400; }
   html.mobile-app-sheet-open { overflow: hidden; }
-  .scroll-top-btn { bottom: 82px; }
+  /* 2026-08-31 사용자 요구("단어 잘림 허용 안 되게"): 이 떠 있는 버튼이 본문 글자를
+     덮고 있었다(실측: "009150 · 시가총액 상위 · 거래대금 상위" 30x10px,
+     "거래대금 집중" 30x24px). 고정 버튼이 전체폭 본문 위에 있으면 스크롤 위치에 따라
+     항상 뭔가를 가리므로, 위치 조정으로는 해결되지 않는다. 이 구간에는 하단 네비게이션
+     바가 이미 있으므로 버튼은 숨기고 "현재 탭 다시 탭 = 맨 위로"(js/skin-menu.js)로
+     기능을 옮긴다. 흔한 모바일 앱 패턴이고 본문을 가리지 않는다.
+     데스크톱(721px 이상)은 하단 네비가 없으므로 버튼을 그대로 쓴다. */
+  .scroll-top-btn { display: none !important; }
 
   /* ── 페이지 래퍼 ── */
   .main-layout { padding: 10px 10px; }

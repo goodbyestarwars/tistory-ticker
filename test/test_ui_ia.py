@@ -561,6 +561,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
 
+    def test_floating_scroll_top_button_does_not_cover_mobile_body_text(self):
+        """2026-08-31: 떠 있는 "맨 위로" 버튼이 본문 글자를 덮고 있었다(실측 30x24px).
+        고정 버튼이 전체폭 본문 위에 있으면 스크롤 위치에 따라 항상 뭔가를 가리므로,
+        하단 네비가 있는 모바일에서는 버튼을 숨기고 "현재 탭 재탭 = 맨 위로"로 옮겼다."""
+        style = self.read("style.css")
+        menu = self.read("js/skin-menu.js")
+        self.assertIn('.scroll-top-btn { display: none !important; }', style)
+        # 데스크톱에는 하단 네비가 없으므로 버튼이 남아 있어야 한다.
+        self.assertIn('.scroll-top-btn {\n  position: fixed;', style)
+        self.assertIn("item.classList.contains('active')", menu)
+        self.assertIn("window.scrollTo({ top: 0, behavior: 'smooth' })", menu)
+
     def test_interest_band_opacity_is_not_multiplied_by_a_presentation_attribute(self):
         """2026-08-30 FOUC 수정에서 넣은 fill-opacity가 CSS의 rgba 알파와 곱해져
         매수 관심 구간이 불투명도 1%로 사실상 안 보였다(사용자 리포트). CSS는 fill만

@@ -11,6 +11,7 @@ import os
 import re
 import sqlite3
 import subprocess
+import time
 from datetime import datetime, timedelta, timezone
 
 try:
@@ -19,6 +20,7 @@ except ImportError:  # pragma: no cover - Windows 개발 환경에서는 단일 
     fcntl = None
 
 import db_schema
+import domestic_news
 import news_momentum
 import backup_sqlite
 
@@ -197,6 +199,59 @@ def _maintenance_volume_profile():
         conn.close()
 
 
+def _maintenance_domestic_news():
+    """국내 뉴스 캐시 보존 정리.
+
+    2026-08-31: 이 DB는 유지보수 대상에서 빠져 있어 수집한 기사가 영구 누적됐고,
+    그게 /domestic-news가 6~13초 걸리던 근본 원인이었다(인덱스 추가로 조회는 빨라졌지만
+    파일은 계속 커진다). 다른 뉴스 DB와 같이 삭제 전에 백업을 남긴다.
+    """
+    path = os.path.join(_app_dir(), 'domestic_news.db')
+    if not os.path.exists(path):
+        return {'deleted': 0, 'skipped': True}
+    backup_sqlite.backup_database(path, os.path.join(_app_dir(), 'backups'), keep=7)
+    return domestic_news.prune_old_rows()
+
+
+def _maintenance_us_caches():
+    """미국 뉴스·분석 캐시에서 오래 안 쓴 심볼을 지운다.
+
+    두 테이블 모두 심볼 단위라 행이 무한히 늘지는 않지만(us_analysis_cache는 심볼당
+    1행, us_news_cache는 save_cached_news가 심볼별로 지우고 다시 넣는다), 한 번 조회된
+    뒤 다시 안 보는 심볼이 계속 남는다. 읽기 TTL이 각각 6시간·30분이라 30일이 지난
+    행은 확실히 재조회 대상이고, 지워도 다음 요청 때 다시 채워진다.
+    """
+    cutoff = int(time.time()) - 30 * 86400
+    result = {}
+    news_path = os.path.join(_app_dir(), 'us_news_cache.db')
+    if os.path.exists(news_path):
+        conn = sqlite3.connect(news_path, timeout=60)
+        try:
+            before = conn.total_changes
+            conn.execute('DELETE FROM us_news_cache WHERE fetched_at < ?', (cutoff,))
+            conn.execute('DELETE FROM us_news_cache_meta WHERE fetched_at < ?', (cutoff,))
+            conn.commit()
+            result['usNewsDeleted'] = conn.total_changes - before
+        finally:
+            conn.close()
+    else:
+        result['usNewsDeleted'] = 0
+    analysis_path = os.path.join(_app_dir(), 'us_analysis_cache.db')
+    if os.path.exists(analysis_path):
+        conn = sqlite3.connect(analysis_path, timeout=60)
+        try:
+            before = conn.total_changes
+            conn.execute('DELETE FROM us_analysis_cache WHERE fetched_at < ?', (cutoff,))
+            conn.commit()
+            result['usAnalysisDeleted'] = conn.total_changes - before
+        finally:
+            conn.close()
+    else:
+        result['usAnalysisDeleted'] = 0
+    result['cutoffEpoch'] = cutoff
+    return result
+
+
 def _checkpoint_sqlite(path):
     if not os.path.exists(path):
         return {'skipped': True}
@@ -228,8 +283,15 @@ def run(force=False):
         'systemLogs': system_logs,
         'newsMomentum': _maintenance_news_momentum(),
         'volumeProfile': _maintenance_volume_profile(),
+        # 2026-08-31: 코드가 쓰는 SQLite는 5개인데 유지보수 대상이 2개뿐이었다.
+        # 나머지 3개(domestic_news / us_news_cache / us_analysis_cache)를 편입한다.
+        'domesticNews': _maintenance_domestic_news(),
+        'usCaches': _maintenance_us_caches(),
         'ohlcCheckpoint': _checkpoint_sqlite(os.path.join(app_dir, 'ohlc_snapshot.db')),
         'newsCheckpoint': _checkpoint_sqlite(os.path.join(app_dir, 'news_momentum.db')),
+        'domesticNewsCheckpoint': _checkpoint_sqlite(os.path.join(app_dir, 'domestic_news.db')),
+        'usNewsCheckpoint': _checkpoint_sqlite(os.path.join(app_dir, 'us_news_cache.db')),
+        'usAnalysisCheckpoint': _checkpoint_sqlite(os.path.join(app_dir, 'us_analysis_cache.db')),
     }
     print('[maintenance] %s' % result, flush=True)
     return result
