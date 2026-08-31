@@ -185,13 +185,44 @@ def _fetch_kis(token, appkey, appsecret, market, interval):
     return _sort_rows(rows, minute=False, limit=600, since_date=_chart_cutoff_date(), market=market)
 
 
+def _sort_normalised(rows, key, limit, since_date=None):
+    """domestic_futures가 이미 정규화해 준 행을 정렬·중복제거·자르기만 한다.
+
+    2026-09-01: 여기서 원래 `_sort_rows()`를 부르고 있었는데, 그건 공급자 **원본** 필드명
+    (`open_pric`/`stck_oprc`/`openPrice` …)을 찾는 함수다. 네이버 쪽 두 함수
+    (`fetch_domestic_index_chart`, `..._minute`)는 이미 `open`/`high`/`low`/`close`로
+    정규화해서 주기 때문에 `_candle()`이 전부 None을 만들어 **행이 통째로 버려졌다**
+    (분봉·일봉 모두). KIS 단일 소스로 바뀐 뒤 이 경로가 안 쓰여서 드러나지 않았을 뿐,
+    분봉 폴백으로 쓰려는 순간 0봉이 나와 발견했다.
+    """
+    unique = {}
+    for row in rows or []:
+        value = row.get(key)
+        if value is None:
+            continue
+        item = dict(row)
+        if key == 'date':
+            # 네이버는 localDate를 '20260831'로 준다. KIS 경로는 _date()를 거쳐
+            # '2026-08-31'을 만들므로 여기서도 맞춰야 한다 - 안 맞추면 since_date 문자열
+            # 비교가 엉키고, 주봉 집계의 strptime('%Y-%m-%d')이 그대로 터진다.
+            value = _date(value)
+            if not value:
+                continue
+            item['date'] = value
+            if since_date and value < since_date:
+                continue
+        item.setdefault('volume', 0)
+        unique[value] = item
+    return [unique[k] for k in sorted(unique)][-limit:]
+
+
 def _fetch_naver(market, interval):
     symbol = market
     if interval == 'minute':
         rows = domestic_futures.fetch_domestic_index_chart_minute('index', symbol, days=3)
-        return _sort_rows(rows, minute=True, limit=CHART_MINUTE_MAX_BARS, market=market)
+        return _sort_normalised(rows, 'ts', CHART_MINUTE_MAX_BARS)
     rows = domestic_futures.fetch_domestic_index_chart('index', symbol, days=CHART_LOOKBACK_DAYS)
-    points = _sort_rows(rows, minute=False, limit=600, since_date=_chart_cutoff_date(), market=market)
+    points = _sort_normalised(rows, 'date', 600, since_date=_chart_cutoff_date())
     if interval == 'week':
         # Naver's index endpoint is daily; aggregate it into the same weekly
         # candle shape used by the provider APIs.
@@ -209,8 +240,19 @@ def _fetch_naver(market, interval):
 
 
 def fetch_chart(kis_appkey, kis_appsecret, market, interval):
-    """코스피·코스닥 차트는 KIS 단일 소스로만 조회한다."""
+    """코스피·코스닥 차트. 일봉·주봉은 KIS 단일 소스, 분봉만 네이버 폴백을 둔다.
+
+    2026-09-01: 분봉 탭이 빈 화면이었다(실측 응답
+    `{"rows":[],"errors":["kis: KIS returned too few KOSPI minute candles"]}`).
+    원인은 우리 코드가 아니라 KIS `inquire-index-timeprice`(FHPUP02110200)가 **당일
+    장중 데이터만** 주는 API라는 것 - 장이 끝나면 빈 응답이라 분봉이 통째로 사라졌다.
+    같은 시각 네이버 지수 분봉은 직전 장 393봉(09:00~15:32)을 그대로 준다.
+    분봉에 한해 KIS가 비면 네이버로 넘어간다. 일봉·주봉은 KIS가 24시간 정상이라 그대로
+    두고(숫자 일관성 유지), 응답의 `source`로 어느 쪽이 쓰였는지 알 수 있다.
+    """
     if not kis_appkey or not kis_appsecret:
+        if interval == 'minute':
+            return _fetch_minute_via_naver(market, ['KIS credentials unavailable'])
         return {'source': 'kis', 'rows': [], 'errors': ['KIS credentials unavailable']}
     try:
         kis_token = kis_client.get_token(kis_appkey, kis_appsecret)
@@ -220,7 +262,21 @@ def fetch_chart(kis_appkey, kis_appsecret, market, interval):
         return {'source': 'kis', 'rows': rows, 'errors': []}
     except Exception as exc:
         logger.warning('KIS %s %s chart unavailable: %s', market, interval, exc)
+        if interval == 'minute':
+            return _fetch_minute_via_naver(market, ['kis: %s' % exc])
         return {'source': 'kis', 'rows': [], 'errors': ['kis: %s' % exc]}
+
+
+def _fetch_minute_via_naver(market, prior_errors):
+    """KIS 분봉이 비었을 때의 폴백. 네이버는 장 종료 후에도 직전 장 분봉을 준다."""
+    try:
+        rows = _fetch_naver(market, 'minute')
+        if len(rows) < 2:
+            raise RuntimeError('naver returned too few %s minute candles' % market)
+        return {'source': 'naver', 'rows': rows, 'errors': prior_errors}
+    except Exception as exc:
+        logger.warning('naver %s minute chart unavailable: %s', market, exc)
+        return {'source': 'naver', 'rows': [], 'errors': prior_errors + ['naver: %s' % exc]}
 
 
 def _normalise_investor(result):
