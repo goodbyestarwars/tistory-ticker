@@ -10,6 +10,7 @@ import concurrent.futures
 import logging
 import math
 import re
+import time
 from datetime import datetime, timedelta, timezone
 
 import domestic_futures
@@ -637,6 +638,7 @@ def build_dashboard(kis_appkey=None, kis_appsecret=None):
     예외를 잡아 안내 문구가 담긴 결과를 돌려주므로 여기서 추가로 try/except할
     필요는 없다).
     """
+    started_at = time.time()
     chart_keys = [(market, interval) for market in MARKETS for interval in EAGER_INTERVALS]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(chart_keys) + 6) as pool:
         chart_futures = {
@@ -652,22 +654,46 @@ def build_dashboard(kis_appkey=None, kis_appsecret=None):
             for market in MARKETS
         }
 
+        chart_timings = {}
         indices = {}
         for market, cfg in MARKETS.items():
             intervals = {}
             for interval in EAGER_INTERVALS:
+                begin = time.time()
                 intervals[interval] = chart_futures[(market, interval)].result()
+                chart_timings['chart:%s:%s' % (market, interval)] = round(time.time() - begin, 2)
+            begin = time.time()
+            quote = quote_futures[market].result()
+            chart_timings['quote:%s' % market] = round(time.time() - begin, 2)
             indices[market] = {
                 'name': cfg['name'],
-                'quote': quote_futures[market].result(),
+                'quote': quote,
                 'intervals': intervals,
             }
+
+        # 2026-09-01: 전체가 8.5초씩 걸리는데 이미 병렬이라 "가장 느린 호출 하나"가 범인인데
+        # 어느 것인지 알 수가 없었다. 추측으로 고치지 않으려고 구간별 소요를 응답에 싣는다.
+        # 공개 시장데이터라 민감하지 않고, 느려질 때 바로 어디인지 볼 수 있어 남겨둔다.
+        timings = dict(chart_timings)
+
+        def timed(name, future):
+            begin = time.time()
+            value = future.result()
+            timings[name] = round(time.time() - begin, 2)
+            return value
+
+        investor = timed('investor', investor_future)
+        funds = timed('funds', funds_future)
+        program_trading = timed('programTrading', program_trading_future)
+        leverage_detail = timed('leverageDetail', leverage_detail_future)
+        timings['total'] = round(time.time() - started_at, 2)
 
         return {
             'sourcePriority': ['kis', 'kofia'],
             'indices': indices,
-            'investor': investor_future.result(),
-            'funds': funds_future.result(),
-            'programTrading': program_trading_future.result(),
-            'leverageDetail': leverage_detail_future.result(),
+            'investor': investor,
+            'funds': funds,
+            'programTrading': program_trading,
+            'leverageDetail': leverage_detail,
+            'timings': timings,
         }
