@@ -568,7 +568,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("style.css")
         menu = self.read("js/skin-menu.js")
         self.assertIn('.scroll-top-btn { display: none !important; }', style)
-        # 데스크톱에는 하단 네비가 없으므로 버튼이 남아 있어야 한다.
+        # 기본 규칙은 남겨둔다(이 버튼은 원래부터 모바일 전용 - 기본 display:none,
+        # 720px 블록에서만 flex로 켰었다. 721px 이상은 예전에도 안 보였다).
         self.assertIn('.scroll-top-btn {\n  position: fixed;', style)
         self.assertIn("item.classList.contains('active')", menu)
         self.assertIn("window.scrollTo({ top: 0, behavior: 'smooth' })", menu)
