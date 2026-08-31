@@ -577,6 +577,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 손잡이가 보여야 어디를 잡는지 알 수 있고, touch-action:none이라야 스크롤과 안 싸운다.
         self.assertIn("touch-action: none;", css)
         self.assertIn("#watchlist .wl-card.is-touch-dragging", css)
+        # 옮길 그룹이 화면 밖이면 손가락을 끌어도 닿을 방법이 없다 - 가장자리 자동 스크롤.
+        self.assertIn("function autoScrollStep", js)
+        # 빈 그룹은 <p class="wl-group-empty">를 담고 있어 :empty로는 안 잡힌다.
+        self.assertIn("#watchlist.is-reordering .wl-group-empty", css)
+        self.assertNotIn(".wl-group-items:empty", css)
 
     def test_floating_scroll_top_button_does_not_cover_mobile_body_text(self):
         """2026-08-31: 떠 있는 "맨 위로" 버튼이 본문 글자를 덮고 있었다(실측 30x24px).

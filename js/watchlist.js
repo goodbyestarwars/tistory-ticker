@@ -1101,6 +1101,15 @@
     });
   }
 
+  // 드로어 밖(예: /page/watchlist 본문)에서도 자동 스크롤이 되도록 실제 스크롤 조상을 찾는다.
+  function scrollableAncestor(node) {
+    for (var el = node.parentElement; el; el = el.parentElement) {
+      var overflowY = getComputedStyle(el).overflowY;
+      if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+    }
+    return null;
+  }
+
   // 포인터 좌표가 어느 그룹 목록 위인지 찾는다.
   // elementFromPoint를 먼저 쓰되(가장 정확), 그것만 믿지 않고 사각형 판정으로 보완한다 -
   // 좌표가 시각 뷰포트 밖이면 elementFromPoint가 null을 돌려주기 때문이다(드래그 중
@@ -1129,12 +1138,49 @@
   function wireTouchDrag(container, card, handle) {
     var state = null;
 
+    // 카드를 지금 포인터 위치에 맞는 자리로 옮긴다. pointermove와 자동 스크롤 루프가
+    // 같은 함수를 쓴다 - 손가락이 멈춰 있어도 화면이 흐르면 꽂히는 자리가 달라지므로
+    // 스크롤할 때마다 다시 계산해야 한다.
+    function placeAtPointer() {
+      if (!state) return;
+      var items = groupItemsAtPoint(container, state.x, state.y);
+      if (!items) return;
+      container.querySelectorAll('.wl-group-items').forEach(function (list) {
+        list.classList.toggle('is-drag-over', list === items);
+      });
+      var before = getDragBeforeElement(items, state.y);
+      if (before) items.insertBefore(card, before);
+      else items.appendChild(card);
+    }
+
+    // 2026-08-31 사용자 리포트: "미국 탭으로 이동시킬 공간이 없어".
+    // 옮길 그룹이 화면 밖(목록 아래쪽)에 있으면 손가락을 아래로 끌어도 패널이 따라
+    // 스크롤되지 않아 도달할 방법이 없었다. 포인터가 스크롤 영역 위/아래 가장자리에
+    // 머무는 동안 rAF로 계속 스크롤한다(손가락이 멈춰 있어도 계속 흘러야 하므로
+    // pointermove가 아니라 별도 루프여야 한다).
+    function autoScrollStep() {
+      if (!state || !state.scroller) { state && (state.raf = 0); return; }
+      var rect = state.scroller.getBoundingClientRect();
+      var edge = Math.min(64, rect.height / 4);
+      var delta = 0;
+      if (state.y < rect.top + edge) delta = -Math.ceil((rect.top + edge - state.y) / 4);
+      else if (state.y > rect.bottom - edge) delta = Math.ceil((state.y - (rect.bottom - edge)) / 4);
+      if (delta) {
+        var before = state.scroller.scrollTop;
+        state.scroller.scrollTop += delta;
+        if (state.scroller.scrollTop !== before) placeAtPointer();
+      }
+      state.raf = global.requestAnimationFrame(autoScrollStep);
+    }
+
     function cleanup(save) {
       if (!state) return;
+      if (state.raf) global.cancelAnimationFrame(state.raf);
       if (handle.releasePointerCapture && state.pointerId != null) {
         try { handle.releasePointerCapture(state.pointerId); } catch (err) { /* 이미 해제됨 */ }
       }
       card.classList.remove('is-dragging', 'is-touch-dragging');
+      container.classList.remove('is-reordering');
       container.querySelectorAll('.wl-group-items').forEach(function (items) {
         items.classList.remove('is-drag-over');
       });
@@ -1148,30 +1194,34 @@
     handle.addEventListener('pointerdown', function (event) {
       if (event.pointerType === 'mouse') return;
       event.preventDefault();
-      state = { pointerId: event.pointerId };
+      state = {
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        scroller: card.closest('.global-watchlist-panel') || scrollableAncestor(card),
+        raf: 0
+      };
       draggedCode = card.getAttribute('data-code');
       didDrag = true;
       card.classList.add('is-dragging', 'is-touch-dragging');
+      // 끄는 동안에만 빈 그룹의 드롭 자리를 크게 열어준다(평소엔 목록이 길어지지 않게).
+      container.classList.add('is-reordering');
       if (handle.setPointerCapture) {
         try { handle.setPointerCapture(event.pointerId); } catch (err) { /* 캡처 없이 진행 */ }
       }
       if (navigator.vibrate) navigator.vibrate(20);
+      if (global.requestAnimationFrame) state.raf = global.requestAnimationFrame(autoScrollStep);
     });
 
     handle.addEventListener('pointermove', function (event) {
       if (!state || state.pointerId !== event.pointerId) return;
       event.preventDefault();
+      state.x = event.clientX;
+      state.y = event.clientY;
       // 포인터 아래의 그룹 목록을 찾는다. 다른 그룹 위로 가면 그대로 그 그룹에 꽂히므로
       // 순서 변경과 그룹 간 이동이 같은 동작으로 처리된다(persistDraggedOrder가 카드가
       // 실제로 들어가 있는 .wl-group-items의 data-group-id를 읽어 저장한다).
-      var items = groupItemsAtPoint(container, event.clientX, event.clientY);
-      if (!items) return;
-      container.querySelectorAll('.wl-group-items').forEach(function (list) {
-        list.classList.toggle('is-drag-over', list === items);
-      });
-      var before = getDragBeforeElement(items, event.clientY);
-      if (before) items.insertBefore(card, before);
-      else items.appendChild(card);
+      placeAtPointer();
     }, { passive: false });
 
     handle.addEventListener('pointerup', function (event) {

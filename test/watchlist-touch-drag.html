@@ -7,13 +7,19 @@
 <!--
   2026-08-31: 관심종목 순서 변경·그룹 이동이 HTML5 드래그앤드롭으로만 돼 있어 터치
   기기에서 아예 동작하지 않던 것을 포인터 이벤트로 고쳤다. 실제 화면은 Google 로그인이
-  있어야 카드가 렌더되므로, 여기서는 fetch만 스텁해서 **진짜 js/watchlist.js**를 그대로
-  띄우고 포인터 이벤트를 합성해 검증한다(로직 사본이 아니라 실제 코드를 테스트한다).
+  있어야 카드가 렌더되므로, fetch만 스텁해서 **진짜 js/watchlist.js**를 그대로 띄우고
+  포인터 이벤트를 합성해 검증한다(로직 사본이 아니라 실제 코드를 테스트한다).
+
+  로컬 실행:  python -m http.server 8777   ->  /test/watchlist-touch-drag.html
+  (file:// 로 열면 상대 경로 스크립트가 안 붙는 환경이 있어 http로 여는 것을 권장)
 -->
 <link rel="stylesheet" href="../css/watchlist.css">
 <style>
   body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #fff; }
-  #wrap { width: 375px; margin: 0 auto; }
+  /* 실제 드로어처럼 높이를 고정해야 패널이 진짜로 스크롤된다(자동 스크롤 검증에 필요). */
+  #wrap { position: relative; width: 375px; height: 460px; margin: 0 auto; border: 1px solid #ddd; }
+  #wrap .global-watchlist-drawer { position: absolute; inset: 0; transform: none; width: 100%; }
+  #wrap .global-watchlist-panel { height: 100%; }
   #log { padding: 10px 14px; font: 12px/1.7 ui-monospace, monospace; white-space: pre-wrap; border-top: 1px solid #ddd; }
   .pass { color: #157f3d; } .fail { color: #c02626; font-weight: 700; }
 </style>
@@ -29,18 +35,30 @@
 <div id="log"></div>
 
 <script>
-  // ---- 네트워크 스텁: 인증됨 + 두 그룹에 종목 4개 ----
+  // 이 페이지는 보통 숨겨진 탭에서 자동 검증된다. 숨은 탭은 requestAnimationFrame이
+  // 멈춰서 자동 스크롤 루프가 한 번도 안 돈다 - 스케줄러만 setTimeout으로 갈아끼운다
+  // (watchlist.js가 타는 코드 경로는 완전히 동일하다).
+  if (document.hidden) {
+    window.requestAnimationFrame = function (cb) { return setTimeout(function () { cb(Date.now()); }, 16); };
+    window.cancelAnimationFrame = function (id) { clearTimeout(id); };
+  }
+
+  // ---- 네트워크 스텁: 인증됨 + 그룹 4개(그중 '미국'과 '빈그룹'은 비어 있음) ----
   var STATE = {
     revision: 1,
     groups: [
       { id: 'g-core', name: '핵심', collapsed: false },
-      { id: 'g-watch', name: '관찰', collapsed: false }
+      { id: 'g-watch', name: '관찰', collapsed: false },
+      { id: 'g-us', name: '미국', collapsed: false },
+      { id: 'g-empty', name: '빈그룹', collapsed: false }
     ],
     items: [
       { code: '005930', name: '삼성전자',   groupId: 'g-core' },
       { code: '000660', name: 'SK하이닉스', groupId: 'g-core' },
       { code: '035420', name: 'NAVER',      groupId: 'g-core' },
-      { code: '005380', name: '현대차',     groupId: 'g-watch' }
+      { code: '005380', name: '현대차',     groupId: 'g-watch' },
+      { code: '000270', name: '기아',       groupId: 'g-watch' },
+      { code: '051910', name: 'LG화학',     groupId: 'g-watch' }
     ]
   };
   var saved = null;
@@ -59,7 +77,6 @@
       }
       return json(STATE);
     }
-    // 시세 등 나머지는 빈 응답
     return json([]);
   };
   window.WebSocket = function () { this.close = function () {}; this.addEventListener = function () {}; };
@@ -70,69 +87,112 @@
   var log = document.getElementById('log');
   var results = [];
   function check(name, ok, detail) {
-    results.push(ok);
+    results.push(!!ok);
     log.innerHTML += '<div class="' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'PASS' : 'FAIL') + ' — ' + name +
       (detail ? '\n        ' + detail : '') + '</div>';
   }
+  function itemsOf(groupId) { return document.querySelector('.wl-group-items[data-group-id="' + groupId + '"]'); }
   function codesIn(groupId) {
-    var items = document.querySelector('.wl-group-items[data-group-id="' + groupId + '"]');
-    if (!items) return '(no group ' + groupId + ')';
-    return [].map.call(items.querySelectorAll('.wl-card'), function (c) { return c.getAttribute('data-code'); }).join(',');
+    var el = itemsOf(groupId);
+    if (!el) return '(no group ' + groupId + ')';
+    return [].map.call(el.querySelectorAll('.wl-card'), function (c) { return c.getAttribute('data-code'); }).join(',');
   }
+  function handleOf(code) { return document.querySelector('.wl-card[data-code="' + code + '"] .wl-drag-handle'); }
   function pointer(target, type, x, y) {
-    var ev = new PointerEvent(type, {
-      bubbles: true, cancelable: true, pointerId: 1, pointerType: 'touch',
-      clientX: x, clientY: y
-    });
-    target.dispatchEvent(ev);
+    target.dispatchEvent(new PointerEvent(type, {
+      bubbles: true, cancelable: true, pointerId: 1, pointerType: 'touch', clientX: x, clientY: y
+    }));
   }
   function centerOf(el) {
     var r = el.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
+  function drag(code, toEl) {
+    var h = handleOf(code); if (!h || !toEl) return false;
+    var from = centerOf(h), to = centerOf(toEl);
+    pointer(h, 'pointerdown', from.x, from.y);
+    pointer(h, 'pointermove', to.x, to.y);
+    pointer(h, 'pointerup', to.x, to.y);
+    return true;
+  }
 
   function run() {
-    var cards = document.querySelectorAll('.wl-card');
-    if (!cards.length) {
+    if (!document.querySelectorAll('.wl-card').length) {
       check('카드 렌더', false, '카드가 렌더되지 않았다 - 스텁 확인 필요');
       return finish();
     }
-    check('카드 렌더', true, codesIn('g-core') + ' | ' + codesIn('g-watch'));
+    check('카드 렌더', true, 'core=' + codesIn('g-core') + ' watch=' + codesIn('g-watch'));
+    check('드래그 손잡이 존재', !!handleOf('005930'));
 
-    var handle = document.querySelector('.wl-card[data-code="005930"] .wl-drag-handle');
-    check('드래그 손잡이 존재', !!handle);
-    if (!handle) return finish();
-
-    // (1) 같은 그룹 안에서 삼성전자를 NAVER 아래로 이동
+    // (1) 같은 그룹 안에서 순서 변경
     var before = codesIn('g-core');
-    var naver = document.querySelector('.wl-card[data-code="035420"]');
-    var p0 = centerOf(handle), pN = centerOf(naver);
-    pointer(handle, 'pointerdown', p0.x, p0.y);
-    pointer(handle, 'pointermove', pN.x, pN.y + 20);
-    pointer(handle, 'pointerup', pN.x, pN.y + 20);
-    var after = codesIn('g-core');
-    check('같은 그룹 순서 변경', before !== after, before + '  ->  ' + after);
+    drag('005930', document.querySelector('.wl-card[data-code="035420"]'));
+    check('같은 그룹 순서 변경', before !== codesIn('g-core'), before + '  ->  ' + codesIn('g-core'));
 
     // (2) 다른 그룹으로 이동
-    var h2 = document.querySelector('.wl-card[data-code="000660"] .wl-drag-handle');
-    var watchItems = document.querySelector('.wl-group-items[data-group-id="g-watch"]');
-    if (h2 && watchItems) {
-      var pw = centerOf(watchItems);
-      var ph = centerOf(h2);
-      pointer(h2, 'pointerdown', ph.x, ph.y);
-      pointer(h2, 'pointermove', pw.x, pw.y);
-      pointer(h2, 'pointerup', pw.x, pw.y);
-      check('다른 그룹으로 이동', codesIn('g-watch').indexOf('000660') !== -1,
-            'core=' + codesIn('g-core') + '  watch=' + codesIn('g-watch'));
+    drag('000660', itemsOf('g-watch'));
+    check('다른 그룹으로 이동', codesIn('g-watch').indexOf('000660') !== -1,
+          'core=' + codesIn('g-core') + '  watch=' + codesIn('g-watch'));
+
+    // (3) 빈 그룹의 드롭 자리가 끄는 동안 넓어지는가
+    //     (사용자 리포트: "미국 탭으로 이동시킬 공간이 없어")
+    // 빈 그룹은 <p class="wl-group-empty">를 담고 있어 :empty로는 안 잡힌다.
+    var emptyBox = itemsOf('g-empty') && itemsOf('g-empty').querySelector('.wl-group-empty');
+    if (emptyBox) {
+      var idleH = Math.round(emptyBox.getBoundingClientRect().height);
+      var h = handleOf('005380'), p = centerOf(h);
+      pointer(h, 'pointerdown', p.x, p.y);
+      var dragH = Math.round(emptyBox.getBoundingClientRect().height);
+      var hint = getComputedStyle(emptyBox, '::after').content;
+      pointer(h, 'pointerup', p.x, p.y);
+      check('끄는 동안 빈 그룹 드롭존이 넓어짐', dragH > idleH + 20,
+            '평소 ' + idleH + 'px -> 드래그 중 ' + dragH + 'px');
+      check('빈 그룹에 드롭 안내 표시', /끌어다/.test(hint), 'content=' + hint);
     } else {
-      check('다른 그룹으로 이동', false, '대상 그룹을 찾지 못함');
+      check('끄는 동안 빈 그룹 드롭존이 넓어짐', false, 'g-empty 안내 요소를 찾지 못함');
+      check('빈 그룹에 드롭 안내 표시', false, '-');
     }
 
-    // (3) 서버 저장 호출에 groupId가 반영됐는지
+    // (4) 빈 '미국' 그룹으로 실제 이동
+    drag('035420', itemsOf('g-us'));
+    check('빈 그룹으로 이동', codesIn('g-us').indexOf('035420') !== -1, 'us=' + codesIn('g-us'));
+    check('놓은 뒤 드롭 안내 사라짐',
+          !document.getElementById('watchlist').classList.contains('is-reordering'));
+
+    // (5) 자동 스크롤: 아래 가장자리에 손가락이 머무는 동안 패널이 따라 내려가야 한다
+    var panel = document.querySelector('.global-watchlist-panel');
+    if (!panel || panel.scrollHeight <= panel.clientHeight + 4) {
+      check('가장자리에서 자동 스크롤', false,
+            '패널이 스크롤 상태가 아니다(clientH ' + (panel && panel.clientHeight) +
+            ' / scrollH ' + (panel && panel.scrollHeight) + ')');
+      return step5();
+    }
+    panel.scrollTop = 0;
+    var hh = handleOf('005930') || document.querySelector('.wl-drag-handle');
+    var pr = panel.getBoundingClientRect();
+    var ph = centerOf(hh);
+    var startTop = panel.scrollTop;
+    pointer(hh, 'pointerdown', ph.x, ph.y);
+    pointer(hh, 'pointermove', ph.x, pr.bottom - 6);
     setTimeout(function () {
-      var ok = !!saved && Array.isArray(saved.items);
-      var moved = ok && saved.items.filter(function (i) { return i.code === '000660'; })[0];
-      check('저장 페이로드에 그룹 반영', !!(moved && moved.groupId === 'g-watch'),
+      var moved = panel.scrollTop;
+      pointer(hh, 'pointerup', ph.x, pr.bottom - 6);
+      check('가장자리에서 자동 스크롤', moved > startTop,
+            'scrollTop ' + Math.round(startTop) + ' -> ' + Math.round(moved));
+      setTimeout(function () {
+        check('손 떼면 자동 스크롤 멈춤',
+              Math.abs(panel.scrollTop - moved) < 4,
+              '정지 후 ' + Math.round(panel.scrollTop));
+        step5();
+      }, 400);
+    }, 1200);
+  }
+
+  function step5() {
+    setTimeout(function () {
+      var moved = saved && Array.isArray(saved.items)
+        ? saved.items.filter(function (i) { return i.code === '035420'; })[0] : null;
+      check('저장 페이로드에 그룹 반영', !!(moved && moved.groupId === 'g-us'),
             moved ? JSON.stringify(moved) : '저장 호출 없음');
       finish();
     }, 300);
@@ -144,7 +204,7 @@
     window.__RESULT__ = { passed: passed, total: results.length };
   }
 
-  setTimeout(run, 600);
+  setTimeout(run, 700);
 }());
 </script>
 </body>

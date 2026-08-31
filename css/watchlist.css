@@ -281,8 +281,33 @@
 #watchlist .wl-card:active { cursor: grabbing; }
 #watchlist .wl-card.is-dragging { opacity: .38; background: #eef1f5; }
 #watchlist .wl-drag-handle { grid-area: handle; width: 0; overflow: hidden; color: transparent; font-size: 0; cursor: grab; }
-#watchlist .wl-group-items { min-height: 18px; border-radius: 0; transition: background .12s, box-shadow .12s; }
+#watchlist .wl-group-items { min-height: 18px; border-radius: 0; transition: background .12s, box-shadow .12s, min-height .12s; }
 #watchlist .wl-group-items.is-drag-over { background: #edf2f8; box-shadow: inset 0 0 0 1px #cbd5e1; }
+/* 2026-08-31 사용자 리포트: "미국 탭으로 이동시킬 공간이 없어". 종목이 하나도 없는
+   그룹은 안내 문구 한 줄뿐이라 사실상 겨냥할 수 없는 표적이었다. 끄는 동안에만 자리를
+   크게 열고 문구를 바꾼다(평소에는 목록이 괜히 길어지지 않게 원래 높이 유지).
+   주의: 빈 그룹은 <p class="wl-group-empty">를 담고 있어 :empty로는 안 잡힌다
+   (처음에 :empty로 썼다가 test/watchlist-touch-drag.html에서 잡혔다). */
+#watchlist.is-reordering .wl-group-empty {
+  display: grid;
+  place-items: center;
+  min-height: 56px;
+  margin: 0 0 10px;
+  border: 1px dashed #c2cddc;
+  border-radius: 10px;
+  background: #f4f7fb;
+  font-size: 0;              /* 원문("이 그룹에 종목이 없습니다.")은 숨기고 */
+}
+#watchlist.is-reordering .wl-group-empty::after {
+  content: '여기로 끌어다 놓기';   /* 끄는 동안엔 이 안내만 보여준다 */
+  color: #8d99a8;
+  font-size: 11px;
+}
+html.dark #watchlist.is-reordering .wl-group-empty {
+  border-color: rgba(245, 239, 224, .28);
+  background: rgba(245, 239, 224, .05);
+  color: rgba(245, 239, 224, .5);
+}
 #watchlist .wl-card:hover {
   background: rgba(255, 255, 255, .56);
 }
@@ -351,7 +376,10 @@
 @media (max-width: 640px) {
   .global-watchlist-drawer { top: 0; bottom: 0; width: min(330px, calc(100vw - 28px)); }
   .global-watchlist-toggle { width: 42px; min-height: 68px; }
-  .global-watchlist-panel { padding: 22px 16px 26px; }
+  /* 2026-08-31: 하단 고정 네비게이션(.mobile-app-bottom-nav, 약 65px)이 드로어 위에
+     겹쳐 있어 마지막 그룹이 가려졌다 - 스크린샷에서 "미국" 그룹이 네비에 잘려 드롭할
+     자리가 안 보이던 원인 중 하나다. 네비 높이 + 여유만큼 아래 여백을 준다. */
+  .global-watchlist-panel { padding: 22px 16px calc(84px + env(safe-area-inset-bottom)); }
   #watchlist .wl-add { order: 3; flex-basis: 100%; max-width: none; }
 
   /* 2026-08-31: 순서 변경·그룹 이동이 HTML5 드래그앤드롭으로만 돼 있어 터치 기기에서는
