@@ -2319,9 +2319,12 @@
         + '<td>' + fmtPct(y.debt_ratio_pct) + '</td>'
         + '</tr>';
     }).join('');
-    return '<table class="ff-fund-table"><thead><tr>'
+    // 2026-09-01 사용자 리포트("숫자가 잘려"): 9열 표가 width:100%로 모바일 폭에 눌려
+    // "2,3 / 49 / 억원"처럼 숫자가 세로로 쪼개졌다(연도까지 2/0/2/1로 갈라짐).
+    // 저장소의 다른 넓은 표(.hrt-table-wrap)와 같이 가로 스크롤 컨테이너로 감싼다.
+    return '<div class="ff-fund-table-wrap"><table class="ff-fund-table"><thead><tr>'
       + '<th>연도</th><th>매출액</th><th>영업이익</th><th>순이익</th><th>영업이익률</th><th>순이익률</th><th>ROE</th><th>ROA</th><th>부채비율</th>'
-      + '</tr></thead><tbody>' + rows + '</tbody></table>';
+      + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
 
   var TREND_NEUTRAL_COLOR = '#9ca3af';
@@ -4029,8 +4032,12 @@
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ma224Color() + '"></i>224일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#f59e0b"></i>공시</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#8b5cf6"></i>실적</span>'
+      // 2026-09-01 사용자 리포트("차트 밑에 범례가 이상해 - 공시 실적??"): 범례가 실제
+      // 차트와 어긋나 있었다. buildChartMarkers()가 그리는 마커는 '수급'(#d946ef 네모)
+      // **하나뿐**인데, 범례는 그려지지도 않는 공시(#f59e0b)·실적(#8b5cf6)을 광고하고
+      // 정작 수급은 빠져 있었다. 예전에 있던 마커를 지우면서 범례를 같이 안 지운 흔적이다.
+      // 실제 그려지는 것만 남긴다.
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d946ef"></i>수급</span>'
       + '</div>';
   }
 

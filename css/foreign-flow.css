@@ -1285,6 +1285,21 @@
 #foreign-flow .ff-fund-table th:first-child,
 #foreign-flow .ff-fund-table td:first-child { text-align: left; }
 #foreign-flow .ff-fund-table th { background: #f7f7f8; font-weight: 700; }
+/* 2026-09-01: 9열 표가 모바일 폭에 눌려 숫자가 세로로 쪼개졌다("2,3 / 49 / 억원",
+   연도도 2/0/2/1). 표 자체를 줄이는 대신 가로로 스크롤시킨다 - 저장소의 다른 넓은 표
+   (.hrt-table-wrap)와 같은 방식이고, 값을 자르지 않는다는 원칙에도 맞는다.
+   셀은 nowrap으로 고정해 숫자가 어떤 폭에서도 끊기지 않게 한다. */
+#foreign-flow .ff-fund-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 10px;
+}
+#foreign-flow .ff-fund-table-wrap .ff-fund-table {
+  min-width: 640px;
+  margin-bottom: 0;
+}
+#foreign-flow .ff-fund-table th,
+#foreign-flow .ff-fund-table td { white-space: nowrap; }
 
 #foreign-flow .ff-quarter-label { font-size: 12.5px; color: #888; margin-bottom: 6px; }
 

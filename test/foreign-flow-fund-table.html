@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko" class="skin-ready"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재무표 모바일 검수</title>
+<link rel="stylesheet" href="../css/foreign-flow.css">
+<style>
+  body{margin:0;font:14px system-ui,sans-serif}
+  #foreign-flow{width:375px;margin:0 auto}  /* 테두리를 주면 그 2px가 문서 폭에 잡혀 오탐 */
+  #log{padding:10px;font:12px/1.7 ui-monospace,monospace;white-space:pre-wrap;border-top:1px solid #ddd}
+  .pass{color:#157f3d}.fail{color:#c02626;font-weight:700}
+</style></head><body>
+<div id="foreign-flow"><div class="ff-fund-section">
+  <div class="ff-fund-title">재무 (최근 5년)</div>
+  <div class="ff-fund-table-wrap"><table class="ff-fund-table"><thead><tr>
+  <th>연도</th><th>매출액</th><th>영업이익</th><th>순이익</th><th>영업이익률</th><th>순이익률</th><th>ROE</th><th>ROA</th><th>부채비율</th>
+  </tr></thead><tbody>
+  <tr><td>2021</td><td>2,349억원</td><td>-306억원</td><td>-346억원</td><td>-13.03%</td><td>-14.73%</td><td>-53.70%</td><td>-8.86%</td><td>505.93%</td></tr>
+  <tr><td>2025</td><td>7,741억원</td><td>755억원</td><td>652억원</td><td>9.75%</td><td>8.42%</td><td>36.70%</td><td>7.85%</td><td>367.65%</td></tr>
+  </tbody></table></div>
+</div></div>
+<div id="log"></div>
+<script>
+(function(){
+  var log=document.getElementById('log'),res=[];
+  function check(n,ok,d){res.push(!!ok);log.innerHTML+='<div class="'+(ok?'pass':'fail')+'">'+(ok?'PASS':'FAIL')+' — '+n+(d?'\n        '+d:'')+'</div>';}
+  var root=document.getElementById('foreign-flow');
+  var wrap=root.querySelector('.ff-fund-table-wrap');
+  var table=root.querySelector('.ff-fund-table');
+
+  check('가로 스크롤 컨테이너 존재', !!wrap && getComputedStyle(wrap).overflowX==='auto',
+        wrap?('overflow-x='+getComputedStyle(wrap).overflowX):'없음');
+  check('표가 컨테이너보다 넓다(스크롤 발생)', wrap.scrollWidth > wrap.clientWidth+1,
+        'scrollW='+wrap.scrollWidth+' clientW='+wrap.clientWidth);
+
+  // 핵심: 어떤 셀도 두 줄이 되면 안 된다
+  var multiline=[], clipped=[];
+  root.querySelectorAll('.ff-fund-table td, .ff-fund-table th').forEach(function(c){
+    var cs=getComputedStyle(c);
+    var lh=parseFloat(cs.lineHeight);
+    if(!lh||isNaN(lh)) lh=parseFloat(cs.fontSize)*1.2;
+    // 셀 높이에는 상하 패딩이 들어있다 - 빼지 않으면 한 줄짜리도 2줄로 세어진다.
+    var inner=c.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+    var lines=Math.max(1,Math.round(inner/lh));
+    if(lines>1) multiline.push(c.textContent.trim()+'('+lines+'줄)');
+    if(c.scrollWidth>c.clientWidth+1) clipped.push(c.textContent.trim());
+  });
+  check('세로로 쪼개진 셀 없음', multiline.length===0, multiline.slice(0,6).join(', ')||'0건');
+  check('잘린 셀 없음', clipped.length===0, clipped.slice(0,6).join(', ')||'0건');
+
+  // 본문이 가로로 넘치면 안 된다(스크롤은 컨테이너 안에서만)
+  check('페이지 가로 오버플로 없음',
+        document.documentElement.scrollWidth<=document.documentElement.clientWidth+1,
+        'doc='+document.documentElement.scrollWidth+' vw='+document.documentElement.clientWidth);
+
+  log.innerHTML+='\n<strong>'+res.filter(Boolean).length+'/'+res.length+' 통과</strong>';
+})();
+</script></body></html>
