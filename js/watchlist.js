@@ -1053,6 +1053,16 @@
         draggedCode = null;
         setTimeout(function () { didDrag = false; }, 0);
       });
+      // 2026-08-31: 순서 변경·그룹 이동이 HTML5 드래그앤드롭으로만 돼 있어서 터치 기기에서는
+      // 아예 동작하지 않았다(모바일 브라우저는 터치 제스처로 drag 이벤트를 만들지 않는다).
+      // 사용자 리포트: "모바일에서 관심종목간 이동이 불편해".
+      // js/home-widgets.js가 홈 위젯에 쓰는 포인터 이벤트 방식을 그대로 가져오되, 여기서는
+      // 전용 손잡이(.wl-drag-handle)를 모바일에 노출하고 그 위에서만 끌 수 있게 한다.
+      // 손잡이에 touch-action:none을 주므로 목록 스크롤과 충돌하지 않고, 잡는 순간 바로
+      // 끌리기 시작해 길게 누르기를 기다릴 필요가 없다(홈 위젯은 카드 전체가 대상이라
+      // 450ms 길게 누르기가 필요했던 것 - 손잡이가 있으면 의도가 이미 분명하다).
+      var handle = card.querySelector('.wl-drag-handle');
+      if (handle && global.PointerEvent) wireTouchDrag(container, card, handle);
     });
     container.querySelectorAll('.wl-group-items').forEach(function (items) {
       items.addEventListener('dragover', function (e) {
@@ -1088,6 +1098,89 @@
         saveList(list, container);
         render(container);
       });
+    });
+  }
+
+  // 포인터 좌표가 어느 그룹 목록 위인지 찾는다.
+  // elementFromPoint를 먼저 쓰되(가장 정확), 그것만 믿지 않고 사각형 판정으로 보완한다 -
+  // 좌표가 시각 뷰포트 밖이면 elementFromPoint가 null을 돌려주기 때문이다(드래그 중
+  // 목록 끝까지 끌었을 때 실제로 발생). 세로 위치가 어느 그룹에도 딱 안 걸리면 가장
+  // 가까운 그룹으로 붙여서, 그룹 사이 여백에서 끌어도 반응이 끊기지 않게 한다.
+  function groupItemsAtPoint(container, x, y) {
+    var under = document.elementFromPoint(x, y);
+    var hit = under && under.closest ? under.closest('.wl-group-items') : null;
+    if (hit && container.contains(hit)) return hit;
+    var lists = Array.prototype.slice.call(container.querySelectorAll('.wl-group-items'));
+    if (!lists.length) return null;
+    var nearest = null;
+    var nearestGap = Number.POSITIVE_INFINITY;
+    for (var i = 0; i < lists.length; i++) {
+      var rect = lists[i].getBoundingClientRect();
+      if (!rect.height && !rect.width) continue;   // 접힌 그룹은 건너뛴다
+      if (y >= rect.top && y <= rect.bottom) return lists[i];
+      var gap = y < rect.top ? rect.top - y : y - rect.bottom;
+      if (gap < nearestGap) { nearestGap = gap; nearest = lists[i]; }
+    }
+    return nearest;
+  }
+
+  // 포인터(터치·펜) 기반 드래그. 마우스는 기존 HTML5 드래그앤드롭이 그대로 처리하므로
+  // 여기서는 건드리지 않는다 - 한 입력에 두 경로가 겹치지 않게 pointerType으로 가른다.
+  function wireTouchDrag(container, card, handle) {
+    var state = null;
+
+    function cleanup(save) {
+      if (!state) return;
+      if (handle.releasePointerCapture && state.pointerId != null) {
+        try { handle.releasePointerCapture(state.pointerId); } catch (err) { /* 이미 해제됨 */ }
+      }
+      card.classList.remove('is-dragging', 'is-touch-dragging');
+      container.querySelectorAll('.wl-group-items').forEach(function (items) {
+        items.classList.remove('is-drag-over');
+      });
+      if (save) persistDraggedOrder(container);
+      draggedCode = null;
+      state = null;
+      // 손을 뗀 직후의 click이 종목 상세로 넘어가지 않게 한 틱 뒤에 푼다.
+      setTimeout(function () { didDrag = false; }, 0);
+    }
+
+    handle.addEventListener('pointerdown', function (event) {
+      if (event.pointerType === 'mouse') return;
+      event.preventDefault();
+      state = { pointerId: event.pointerId };
+      draggedCode = card.getAttribute('data-code');
+      didDrag = true;
+      card.classList.add('is-dragging', 'is-touch-dragging');
+      if (handle.setPointerCapture) {
+        try { handle.setPointerCapture(event.pointerId); } catch (err) { /* 캡처 없이 진행 */ }
+      }
+      if (navigator.vibrate) navigator.vibrate(20);
+    });
+
+    handle.addEventListener('pointermove', function (event) {
+      if (!state || state.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      // 포인터 아래의 그룹 목록을 찾는다. 다른 그룹 위로 가면 그대로 그 그룹에 꽂히므로
+      // 순서 변경과 그룹 간 이동이 같은 동작으로 처리된다(persistDraggedOrder가 카드가
+      // 실제로 들어가 있는 .wl-group-items의 data-group-id를 읽어 저장한다).
+      var items = groupItemsAtPoint(container, event.clientX, event.clientY);
+      if (!items) return;
+      container.querySelectorAll('.wl-group-items').forEach(function (list) {
+        list.classList.toggle('is-drag-over', list === items);
+      });
+      var before = getDragBeforeElement(items, event.clientY);
+      if (before) items.insertBefore(card, before);
+      else items.appendChild(card);
+    }, { passive: false });
+
+    handle.addEventListener('pointerup', function (event) {
+      if (!state || state.pointerId !== event.pointerId) return;
+      cleanup(true);
+    });
+    handle.addEventListener('pointercancel', function (event) {
+      if (!state || state.pointerId !== event.pointerId) return;
+      cleanup(false);
     });
   }
 

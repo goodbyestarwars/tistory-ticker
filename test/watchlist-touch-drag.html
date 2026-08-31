@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko" class="skin-ready">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관심종목 터치 드래그 검수</title>
+<!--
+  2026-08-31: 관심종목 순서 변경·그룹 이동이 HTML5 드래그앤드롭으로만 돼 있어 터치
+  기기에서 아예 동작하지 않던 것을 포인터 이벤트로 고쳤다. 실제 화면은 Google 로그인이
+  있어야 카드가 렌더되므로, 여기서는 fetch만 스텁해서 **진짜 js/watchlist.js**를 그대로
+  띄우고 포인터 이벤트를 합성해 검증한다(로직 사본이 아니라 실제 코드를 테스트한다).
+-->
+<link rel="stylesheet" href="../css/watchlist.css">
+<style>
+  body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #fff; }
+  #wrap { width: 375px; margin: 0 auto; }
+  #log { padding: 10px 14px; font: 12px/1.7 ui-monospace, monospace; white-space: pre-wrap; border-top: 1px solid #ddd; }
+  .pass { color: #157f3d; } .fail { color: #c02626; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div class="global-watchlist-drawer is-open">
+    <aside class="global-watchlist-panel">
+      <div id="watchlist"></div>
+    </aside>
+  </div>
+</div>
+<div id="log"></div>
+
+<script>
+  // ---- 네트워크 스텁: 인증됨 + 두 그룹에 종목 4개 ----
+  var STATE = {
+    revision: 1,
+    groups: [
+      { id: 'g-core', name: '핵심', collapsed: false },
+      { id: 'g-watch', name: '관찰', collapsed: false }
+    ],
+    items: [
+      { code: '005930', name: '삼성전자',   groupId: 'g-core' },
+      { code: '000660', name: 'SK하이닉스', groupId: 'g-core' },
+      { code: '035420', name: 'NAVER',      groupId: 'g-core' },
+      { code: '005380', name: '현대차',     groupId: 'g-watch' }
+    ]
+  };
+  var saved = null;
+  function json(data) {
+    return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve({ data: data }); } });
+  }
+  window.fetch = function (url, options) {
+    url = String(url);
+    if (/\/auth\/google\/me/.test(url)) {
+      return json({ configured: true, authenticated: true, isAdmin: false, email: 't@example.com' });
+    }
+    if (/\/watchlist$/.test(url)) {
+      if (options && options.method && options.method !== 'GET') {
+        try { saved = JSON.parse(options.body); } catch (e) { saved = null; }
+        return json({ revision: ++STATE.revision });
+      }
+      return json(STATE);
+    }
+    // 시세 등 나머지는 빈 응답
+    return json([]);
+  };
+  window.WebSocket = function () { this.close = function () {}; this.addEventListener = function () {}; };
+</script>
+<script src="../js/watchlist.js"></script>
+<script>
+(function () {
+  var log = document.getElementById('log');
+  var results = [];
+  function check(name, ok, detail) {
+    results.push(ok);
+    log.innerHTML += '<div class="' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'PASS' : 'FAIL') + ' — ' + name +
+      (detail ? '\n        ' + detail : '') + '</div>';
+  }
+  function codesIn(groupId) {
+    var items = document.querySelector('.wl-group-items[data-group-id="' + groupId + '"]');
+    if (!items) return '(no group ' + groupId + ')';
+    return [].map.call(items.querySelectorAll('.wl-card'), function (c) { return c.getAttribute('data-code'); }).join(',');
+  }
+  function pointer(target, type, x, y) {
+    var ev = new PointerEvent(type, {
+      bubbles: true, cancelable: true, pointerId: 1, pointerType: 'touch',
+      clientX: x, clientY: y
+    });
+    target.dispatchEvent(ev);
+  }
+  function centerOf(el) {
+    var r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  function run() {
+    var cards = document.querySelectorAll('.wl-card');
+    if (!cards.length) {
+      check('카드 렌더', false, '카드가 렌더되지 않았다 - 스텁 확인 필요');
+      return finish();
+    }
+    check('카드 렌더', true, codesIn('g-core') + ' | ' + codesIn('g-watch'));
+
+    var handle = document.querySelector('.wl-card[data-code="005930"] .wl-drag-handle');
+    check('드래그 손잡이 존재', !!handle);
+    if (!handle) return finish();
+
+    // (1) 같은 그룹 안에서 삼성전자를 NAVER 아래로 이동
+    var before = codesIn('g-core');
+    var naver = document.querySelector('.wl-card[data-code="035420"]');
+    var p0 = centerOf(handle), pN = centerOf(naver);
+    pointer(handle, 'pointerdown', p0.x, p0.y);
+    pointer(handle, 'pointermove', pN.x, pN.y + 20);
+    pointer(handle, 'pointerup', pN.x, pN.y + 20);
+    var after = codesIn('g-core');
+    check('같은 그룹 순서 변경', before !== after, before + '  ->  ' + after);
+
+    // (2) 다른 그룹으로 이동
+    var h2 = document.querySelector('.wl-card[data-code="000660"] .wl-drag-handle');
+    var watchItems = document.querySelector('.wl-group-items[data-group-id="g-watch"]');
+    if (h2 && watchItems) {
+      var pw = centerOf(watchItems);
+      var ph = centerOf(h2);
+      pointer(h2, 'pointerdown', ph.x, ph.y);
+      pointer(h2, 'pointermove', pw.x, pw.y);
+      pointer(h2, 'pointerup', pw.x, pw.y);
+      check('다른 그룹으로 이동', codesIn('g-watch').indexOf('000660') !== -1,
+            'core=' + codesIn('g-core') + '  watch=' + codesIn('g-watch'));
+    } else {
+      check('다른 그룹으로 이동', false, '대상 그룹을 찾지 못함');
+    }
+
+    // (3) 서버 저장 호출에 groupId가 반영됐는지
+    setTimeout(function () {
+      var ok = !!saved && Array.isArray(saved.items);
+      var moved = ok && saved.items.filter(function (i) { return i.code === '000660'; })[0];
+      check('저장 페이로드에 그룹 반영', !!(moved && moved.groupId === 'g-watch'),
+            moved ? JSON.stringify(moved) : '저장 호출 없음');
+      finish();
+    }, 300);
+  }
+
+  function finish() {
+    var passed = results.filter(Boolean).length;
+    log.innerHTML += '\n<strong>' + passed + '/' + results.length + ' 통과</strong>';
+    window.__RESULT__ = { passed: passed, total: results.length };
+  }
+
+  setTimeout(run, 600);
+}());
+</script>
+</body>
+</html>

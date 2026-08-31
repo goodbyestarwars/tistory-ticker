@@ -561,6 +561,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("id=\"qiNews\"", indices)
         self.assertNotIn("loadDisclosures(container);", indices)
 
+    def test_watchlist_reorder_works_on_touch_not_just_mouse_drag(self):
+        """2026-08-31: 순서 변경·그룹 이동이 HTML5 드래그앤드롭으로만 돼 있어 터치
+        기기에서는 아예 동작하지 않았다(모바일 브라우저는 터치 제스처로 drag 이벤트를
+        만들지 않는다). 사용자 리포트: "모바일에서 관심종목간 이동이 불편해".
+        동작 검증은 test/watchlist-touch-drag.html이 실제 watchlist.js를 띄워서 한다."""
+        js = self.read("js/watchlist.js")
+        css = self.read("css/watchlist.css")
+        for handler in ("'pointerdown'", "'pointermove'", "'pointerup'", "'pointercancel'"):
+            self.assertIn(handler, js, "%s 핸들러가 없으면 터치에서 다시 못 옮긴다" % handler)
+        # 마우스는 기존 HTML5 경로가 처리한다 - 한 입력이 두 경로를 타면 안 된다.
+        self.assertIn("if (event.pointerType === 'mouse') return;", js)
+        # 좌표가 뷰포트 밖이면 elementFromPoint가 null이라 사각형 판정 폴백이 필요하다.
+        self.assertIn("function groupItemsAtPoint", js)
+        # 손잡이가 보여야 어디를 잡는지 알 수 있고, touch-action:none이라야 스크롤과 안 싸운다.
+        self.assertIn("touch-action: none;", css)
+        self.assertIn("#watchlist .wl-card.is-touch-dragging", css)
+
     def test_floating_scroll_top_button_does_not_cover_mobile_body_text(self):
         """2026-08-31: 떠 있는 "맨 위로" 버튼이 본문 글자를 덮고 있었다(실측 30x24px).
         고정 버튼이 전체폭 본문 위에 있으면 스크롤 위치에 따라 항상 뭔가를 가리므로,
@@ -1207,7 +1224,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_watchlist_refreshes_us_quotes_without_reopening_drawer(self):
         source = self.read("js/watchlist.js")
         bootstrap = self.read("js/stock-search-panel.js")
-        self.assertIn("watchlist.js?v=20260829-my-batch-quotes-v1", bootstrap)
+        self.assertIn("watchlist.js?v=20260831-touch-reorder-v1", bootstrap)
         for token in (
             "var domesticCodes = codes.filter",
             "var canUseSocket = codes.length",

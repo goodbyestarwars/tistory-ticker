@@ -353,7 +353,33 @@
   .global-watchlist-toggle { width: 42px; min-height: 68px; }
   .global-watchlist-panel { padding: 22px 16px 26px; }
   #watchlist .wl-add { order: 3; flex-basis: 100%; max-width: none; }
+
+  /* 2026-08-31: 순서 변경·그룹 이동이 HTML5 드래그앤드롭으로만 돼 있어 터치 기기에서는
+     아예 안 됐다(사용자 리포트). js/watchlist.js가 포인터 이벤트로 처리하게 바꾸면서,
+     끌 수 있는 자리를 명확히 보여주려고 여태 width:0으로 숨겨져 있던 손잡이를 노출한다.
+     touch-action:none은 손잡이에만 준다 - 카드의 나머지 부분에서는 목록이 그대로
+     세로 스크롤돼야 하기 때문이다. */
+  #watchlist .wl-card { grid-template-columns: 26px minmax(0, 1fr) auto 26px; }
+  #watchlist .wl-drag-handle {
+    width: 26px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    overflow: visible;
+    color: #b6bfcb;
+    font-size: 13px;
+    line-height: 1;
+    letter-spacing: -1px;
+    touch-action: none;
+  }
+  #watchlist .wl-card.is-touch-dragging {
+    opacity: .9;
+    background: #eef2f8;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .18);
+  }
 }
+html.dark #watchlist .wl-drag-handle { color: rgba(245, 239, 224, .42); }
+html.dark #watchlist .wl-card.is-touch-dragging { background: rgba(245, 239, 224, .1) !important; box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
 
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
