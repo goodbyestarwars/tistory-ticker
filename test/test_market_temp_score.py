@@ -166,5 +166,64 @@ class MarketTempDataLayerTest(unittest.TestCase):
                                  '%s 점수가 배점 상한을 넘었다' % key)
             self.assertGreaterEqual(got[key]['score'], 0)
 
+class TradingValueHistoryTest(unittest.TestCase):
+    """거래대금 5일 이력을 daily_prices에서 재구성한다.
+
+    GAS는 PropertiesService에 이력을 직접 쌓아둬서, VM 이관 시 3영업일간 중립(7.5)이
+    나올 줄 알았다. 그런데 daily_scan.py가 이미 KRX 전종목 일봉을 daily_prices에 넣고
+    있어 같은 값을 계산해낼 수 있다 - 이관도 중립 기간도 불필요하다."""
+
+    def _conn(self):
+        import sqlite3
+        conn = sqlite3.connect(':memory:')
+        conn.execute('CREATE TABLE daily_prices (code TEXT, date TEXT, open REAL, high REAL,'
+                     ' low REAL, close REAL, volume INTEGER, PRIMARY KEY (code, date))')
+        rows = []
+        # 2종목 × 6영업일. 날짜별 총 거래대금이 1,2,3,4,5,6조가 되도록 만든다.
+        for i, day in enumerate(['2026-08-24', '2026-08-25', '2026-08-26',
+                                 '2026-08-27', '2026-08-28', '2026-08-31'], start=1):
+            rows.append(('005930', day, 0, 0, 0, 1000.0, i * 600_000_000))
+            rows.append(('000660', day, 0, 0, 0, 1000.0, i * 400_000_000))
+        conn.executemany('INSERT INTO daily_prices VALUES (?,?,?,?,?,?,?)', rows)
+        conn.commit()
+        return conn
+
+    def test_excludes_today_and_returns_five_prior_days(self):
+        import market_temp_data as mtd
+        conn = self._conn()
+        try:
+            got = mtd.prior_trading_values(conn, ['005930', '000660'], '2026-08-31')
+        finally:
+            conn.close()
+        # 오늘(08-31, 6조)은 빠지고 직전 5일이 오래된 날부터
+        self.assertEqual(got, [1e12, 2e12, 3e12, 4e12, 5e12])
+
+    def test_enough_history_means_no_neutral_fallback(self):
+        """이력이 3일 이상이면 중립(7.5)으로 빠지지 않고 실제 배점이 나온다."""
+        import market_temp_data as mtd
+        conn = self._conn()
+        try:
+            prior = mtd.prior_trading_values(conn, ['005930', '000660'], '2026-08-31')
+        finally:
+            conn.close()
+        got = mts.score_trading_value(6e12, prior)   # 오늘 6조 vs 평균 3조 = 200%
+        self.assertNotEqual(got['score'], 7.5)
+        self.assertEqual(got['score'], 15)
+        self.assertEqual(got['band'], '평균대비 130% 이상')
+
+    def test_empty_history_still_falls_back_to_neutral(self):
+        import market_temp_data as mtd
+        import sqlite3
+        conn = sqlite3.connect(':memory:')
+        conn.execute('CREATE TABLE daily_prices (code TEXT, date TEXT, open REAL, high REAL,'
+                     ' low REAL, close REAL, volume INTEGER, PRIMARY KEY (code, date))')
+        try:
+            prior = mtd.prior_trading_values(conn, ['005930'], '2026-08-31')
+        finally:
+            conn.close()
+        self.assertEqual(prior, [])
+        self.assertEqual(mts.score_trading_value(1e12, prior)['score'], 7.5)
+
+
 if __name__ == '__main__':
     unittest.main()

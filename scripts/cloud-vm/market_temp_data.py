@@ -150,6 +150,34 @@ def build_quote_components(quotes, universe_with_sectors, prior_trading_values):
     }
 
 
+def prior_trading_values(conn, codes, today_kst, limit=5):
+    """직전 거래일들의 유니버스 총 거래대금을 `daily_prices`에서 재구성한다.
+
+    GAS는 이 이력을 `PropertiesService`에 직접 쌓아뒀고(`mt_vol_hist_v2`), 그래서 VM으로
+    옮기면 이력이 비어 3영업일간 중립(7.5)이 나오는 줄 알았다. 그런데 `daily_scan.py`가
+    이미 **KRX 전종목 일봉을 daily_prices에 넣고 있어** 같은 값을 그냥 계산해낼 수 있다 -
+    이관도, 중립 기간도 필요 없다. 오히려 GAS 쪽이 프로퍼티가 초기화되면 이력을 잃는
+    구조라 이쪽이 더 튼튼하다.
+
+    `today_kst` 당일은 제외한다(GAS도 오늘을 뺀 직전 5거래일 평균을 쓴다).
+    종가×거래량이라 마감된 날 기준이고, 오늘치는 장중 시세로 따로 계산해 비교한다.
+    """
+    if not codes:
+        return []
+    placeholders = ','.join('?' * len(codes))
+    rows = conn.execute(
+        'SELECT date, SUM(close * volume) AS total FROM daily_prices '
+        'WHERE code IN (%s) AND date < ? AND close IS NOT NULL AND volume IS NOT NULL '
+        'GROUP BY date ORDER BY date DESC LIMIT ?' % placeholders,
+        list(codes) + [today_kst, int(limit)],
+    ).fetchall()
+    # 최신순으로 뽑았으니 되돌려 오래된 날부터 담는다(평균만 쓰므로 순서는 무해하지만
+    # 로그·디버깅에서 날짜 순서가 뒤집혀 보이지 않게 한다).
+    totals = [r[1] for r in rows if r[1]]
+    totals.reverse()
+    return totals
+
+
 def universe_with_sectors():
     """`data/sectors-v3.js`에서 (코드, 업종목록)을 만든다 - GAS는 이 파일을 GitHub Pages에서
     받아왔지만 VM엔 저장소가 그대로 있으므로 로컬에서 읽는다."""
