@@ -178,6 +178,93 @@ def prior_trading_values(conn, codes, today_kst, limit=5):
     return totals
 
 
+def us_futures_time_weight(now_kst=None):
+    """미국 선물 반영 가중치(GAS usFuturesTimeWeight_ 그대로).
+
+    국내 장이 열려 있는 동안만 미국 선물을 반영하고, 시간이 갈수록 비중을 줄인다.
+    15:30 이후엔 None - 호출부가 중립(2.5)으로 처리한다.
+    """
+    import datetime
+    if now_kst is None:
+        now_kst = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+    hm = now_kst.hour * 100 + now_kst.minute
+    if hm < 1100:
+        return 1.0
+    if hm < 1300:
+        return 0.7
+    if hm < 1530:
+        return 0.3
+    return None
+
+
+def market_components_from_db(conn, now_kst=None):
+    """VIX·원달러·미국선물 - 이미 폴러가 DB에 넣어둔 값을 읽어 점수만 낸다.
+
+    GAS는 이 셋을 Yahoo/네이버에서 매번 새로 받았다. VM은 `foreign_futures.py`와
+    `domestic_futures.py`가 상시 폴링해 `future_prices`에 넣고 있으므로 읽기만 하면 된다
+    (외부 왕복 3회 제거). 원달러는 GAS와 **같은 소스**(네이버 marketindex)라 값이 같고,
+    VIX·S&P500 선물만 Yahoo → 네이버로 출처가 바뀐다(문서의 "알려진 차이" 참고).
+    """
+    import db_schema
+    prices = {p['symbol']: p for p in db_schema.load_all_future_prices(conn)}
+
+    vix_row = prices.get('VIX') or {}
+    vix = score.score_vix(vix_row.get('price'))
+
+    fx_row = prices.get('USDKRW') or {}
+    exchange = score.score_exchange(fx_row.get('change_rate'), fx_row.get('price'))
+
+    sp_row = prices.get('SP500') or {}
+    weight = us_futures_time_weight(now_kst)
+    us_futures = score.score_us_futures(sp_row.get('change_rate'), sp_row.get('price'), weight)
+
+    return {'vix': vix, 'exchange': exchange, 'usFutures': us_futures}
+
+
+def week52_component(cache_file):
+    """52주 신고가/신저가 - `week52_scan.py`가 만든 캐시 파일을 직접 읽는다.
+
+    GAS는 이걸 VM `/week52-batch`를 HTTP로 불러 썼다(브라우저 → GAS → VM). 같은 프로세스
+    안이니 파일을 그대로 읽으면 홉이 사라진다.
+    """
+    try:
+        with open(cache_file, 'r', encoding='utf-8') as fh:
+            cached = json.load(fh)
+    except (OSError, ValueError):
+        return score.score_week52(None, None)
+    return score.score_week52(cached.get('newHighCount'), cached.get('newLowCount'),
+                              cached.get('scanned'))
+
+
+def flow_ratio_from_daily(daily_nets, net5):
+    """일별 순매매에서 -1~+1 순매수강도를 낸다(GAS computeFlowRatioFromData_ 그대로).
+
+    최근 20일 |일별 순매매| 평균 × 5를 기준선으로 잡고, 5일 합산을 그 기준선으로 나눈다.
+    즉 "평소 5일치만큼 샀으면 1.0"이라는 상대 강도다.
+    """
+    if not daily_nets:
+        return None
+    window = daily_nets[:20]
+    avg_daily = sum(abs(v or 0) for v in window) / len(window) if window else 0
+    baseline = avg_daily * 5
+    if baseline <= 0:
+        return {'ratio': 0, 'v5': net5}
+    return {'ratio': max(-1.0, min(1.0, (net5 or 0) / baseline)), 'v5': net5}
+
+
+def _flow_ratio_to_score100(ratio):
+    """GAS flowRatioToScore100_ - 중립 50, ±1이 0/100."""
+    if ratio is None:
+        return 50
+    return score._clamp(int(score._round_half_up(50 + ratio * 50)), 0, 100)
+
+
+def flow_component(foreign_ratio, inst_ratio):
+    """수급 - KODEX 200(069500) 기준, 외국인 75% + 기관 25% 가중합산."""
+    return score.score_flow(_flow_ratio_to_score100(foreign_ratio),
+                            _flow_ratio_to_score100(inst_ratio))
+
+
 def universe_with_sectors():
     """`data/sectors-v3.js`에서 (코드, 업종목록)을 만든다 - GAS는 이 파일을 GitHub Pages에서
     받아왔지만 VM엔 저장소가 그대로 있으므로 로컬에서 읽는다."""

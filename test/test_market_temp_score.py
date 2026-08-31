@@ -225,5 +225,49 @@ class TradingValueHistoryTest(unittest.TestCase):
         self.assertEqual(mts.score_trading_value(1e12, prior)['score'], 7.5)
 
 
+class FlowAndTimeWeightTest(unittest.TestCase):
+    """수급 변환과 미국선물 시간가중치가 GAS와 같은지."""
+
+    def test_flow_ratio_to_score100_matches_gas_golden(self):
+        import market_temp_data as mtd
+        g = load_golden()['components']['flow']
+        self.assertEqual(mtd._flow_ratio_to_score100(g['foreign']['ratio']),
+                         g['foreign']['score100'])
+        self.assertEqual(mtd._flow_ratio_to_score100(g['inst']['ratio']),
+                         g['inst']['score100'])
+        got = mtd.flow_component(g['foreign']['ratio'], g['inst']['ratio'])
+        self.assertEqual(got['score'], g['score'])
+        self.assertEqual(got['band'], g['band'])
+
+    def test_flow_ratio_is_clamped_and_baseline_guarded(self):
+        import market_temp_data as mtd
+        # 평소 하루 100씩 사던 종목이 5일간 5000 순매수 -> 기준선(100*5=500)의 10배 -> 1.0 상한
+        self.assertEqual(mtd.flow_ratio_from_daily([100] * 20, 5000)['ratio'], 1.0)
+        self.assertEqual(mtd.flow_ratio_from_daily([100] * 20, -5000)['ratio'], -1.0)
+        # 거래가 아예 없던 종목은 0으로 나누지 않고 중립 0
+        self.assertEqual(mtd.flow_ratio_from_daily([0] * 20, 0)['ratio'], 0)
+        self.assertIsNone(mtd.flow_ratio_from_daily([], 0))
+        # 중립(비율 0)이면 score100이 50
+        self.assertEqual(mtd._flow_ratio_to_score100(0), 50)
+        self.assertEqual(mtd._flow_ratio_to_score100(None), 50)
+
+    def test_us_futures_time_weight_matches_gas_bands(self):
+        import datetime
+        import market_temp_data as mtd
+        KST = datetime.timezone(datetime.timedelta(hours=9))
+
+        def at(h, m):
+            return mtd.us_futures_time_weight(datetime.datetime(2026, 8, 31, h, m, tzinfo=KST))
+
+        self.assertEqual(at(8, 0), 1.0)     # 장 전
+        self.assertEqual(at(10, 59), 1.0)
+        self.assertEqual(at(11, 0), 0.7)
+        self.assertEqual(at(12, 59), 0.7)
+        self.assertEqual(at(13, 0), 0.3)
+        self.assertEqual(at(15, 29), 0.3)
+        self.assertIsNone(at(15, 30))       # 장 종료 후 -> 호출부가 중립 처리
+        self.assertIsNone(at(20, 0))
+
+
 if __name__ == '__main__':
     unittest.main()
