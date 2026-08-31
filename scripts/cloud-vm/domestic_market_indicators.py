@@ -10,6 +10,7 @@ import concurrent.futures
 import logging
 import math
 import re
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -604,8 +605,37 @@ def _fetch_kiwoom_program_trading_with_history(kiwoom_token):
     }
 
 
+# 2026-09-01: 계측해 보니 대시보드 7.25초 중 프로그램매매 한 호출이 4.37초로 가장 컸다.
+# KIS comp-program-trade-daily에 400일 구간을 한 번에 요청하는데, 그 400일 중 오늘 하루를
+# 뺀 나머지는 이미 확정된 과거 이력이다. 대시보드는 60초마다 갱신되므로 확정된 1년치를
+# 1분에 한 번씩 다시 받고 있었던 셈이다. 별도 TTL을 둬서 그 낭비를 없앤다.
+# (대시보드가 백그라운드 계산으로 바뀐 뒤라 이 캐시가 만료돼도 비용은 방문자가 아니라
+#  백그라운드 스레드가 문다 - 다만 1코어 VM에서 갱신 중 경합이 생기므로 창을 줄인다.)
+_PROGRAM_TRADING_TTL = 600
+_program_trading_cache = {'t': 0.0, 'data': None}
+_program_trading_lock = threading.Lock()
+
+
 def fetch_program_trading(kis_appkey=None, kis_appsecret=None):
-    """프로그램매매는 KIS 일별 이력만 사용한다."""
+    """프로그램매매는 KIS 일별 이력만 사용한다. 400일 이력이라 10분 캐시를 둔다."""
+    global _program_trading_cache
+    now = time.time()
+    cached = _program_trading_cache
+    if cached['data'] is not None and now - cached['t'] < _PROGRAM_TRADING_TTL:
+        return cached['data']
+    with _program_trading_lock:
+        # 락을 기다리는 동안 다른 스레드가 채웠으면 그걸 쓴다.
+        cached = _program_trading_cache
+        if cached['data'] is not None and time.time() - cached['t'] < _PROGRAM_TRADING_TTL:
+            return cached['data']
+        result = _fetch_program_trading_uncached(kis_appkey, kis_appsecret)
+        # 실패 응답(available=False)은 짧게만 들고 있는다 - 다음 주기에 다시 시도하도록.
+        if result.get('available'):
+            _program_trading_cache = {'t': time.time(), 'data': result}
+        return result
+
+
+def _fetch_program_trading_uncached(kis_appkey=None, kis_appsecret=None):
     try:
         kis_rows = _fetch_kis_program_trading(kis_appkey, kis_appsecret)
         payload = _program_trading_payload(kis_rows, 'kis')

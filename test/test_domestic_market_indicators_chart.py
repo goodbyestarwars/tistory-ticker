@@ -82,3 +82,58 @@ class MinuteFallbackContractTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ProgramTradingCacheTest(unittest.TestCase):
+    """2026-09-01: 대시보드 7.25초 중 프로그램매매 한 호출이 4.37초로 가장 컸다.
+    KIS에 400일 구간을 요청하는데 그중 오늘 하루 빼고는 확정된 과거 이력인데도
+    60초마다 다시 받고 있었다."""
+
+    def setUp(self):
+        self._saved = dmi._program_trading_cache
+        dmi._program_trading_cache = {'t': 0.0, 'data': None}
+
+    def tearDown(self):
+        dmi._program_trading_cache = self._saved
+
+    def test_successful_result_is_reused_within_ttl(self):
+        calls = []
+
+        def fake(appkey, appsecret):
+            calls.append(1)
+            return {'available': True, 'source': 'kis', 'n': len(calls)}
+
+        original = dmi._fetch_program_trading_uncached
+        dmi._fetch_program_trading_uncached = fake
+        try:
+            first = dmi.fetch_program_trading('k', 's')
+            second = dmi.fetch_program_trading('k', 's')
+        finally:
+            dmi._fetch_program_trading_uncached = original
+        self.assertEqual(len(calls), 1, '400일 이력을 매번 다시 받으면 안 된다')
+        self.assertEqual(first['n'], second['n'])
+
+    def test_failed_result_is_not_cached_so_next_cycle_retries(self):
+        calls = []
+
+        def failing(appkey, appsecret):
+            calls.append(1)
+            return {'available': False, 'source': 'kis', 'message': '일시 실패'}
+
+        original = dmi._fetch_program_trading_uncached
+        dmi._fetch_program_trading_uncached = failing
+        try:
+            dmi.fetch_program_trading('k', 's')
+            dmi.fetch_program_trading('k', 's')
+        finally:
+            dmi._fetch_program_trading_uncached = original
+        self.assertEqual(len(calls), 2, '실패를 10분간 붙들고 있으면 안 된다')
+
+    def test_first_call_does_not_raise_unbound_local(self):
+        """global 선언이 빠지면 첫 읽기에서 UnboundLocalError가 난다(실제로 그랬다)."""
+        original = dmi._fetch_program_trading_uncached
+        dmi._fetch_program_trading_uncached = lambda a, b: {'available': True}
+        try:
+            dmi.fetch_program_trading(None, None)   # 예외 없이 통과해야 한다
+        finally:
+            dmi._fetch_program_trading_uncached = original
