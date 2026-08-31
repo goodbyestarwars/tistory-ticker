@@ -34,9 +34,52 @@ SPARKLINE_DAYS = 40
 
 REFRESH_INTERVAL_SEC = 180      # 3분. GAS 캐시 TTL은 30분이었지만 방문자가 기다리지
                                 # 않으므로 더 자주 갱신해도 체감 비용이 없다.
+
+# 마지막 계산 결과를 디스크에 남긴다. week52_cache.json 등과 같은 관례.
+#
+# 2026-09-01: 프론트를 GAS에서 이쪽으로 넘기기 전 점검하다 발견한 구멍이다. 결과가
+# 메모리에만 있어서 FastAPI가 재시작하면(배포 타이머가 5분마다 새 커밋을 확인하므로
+# 배포 때마다) 백그라운드 첫 계산이 끝날 때까지 /market-temp가 503을 냈다. GAS는 그
+# 상황에서 직접 계산해 채워줬으니, 그대로 전환하면 배포마다 증시온도가 잠깐 깨진다.
+# 요청 경로에서 계산하지 않는다는 원칙(504 사고로 얻은 것)은 그대로 두고, 재시작이
+# 값을 잃지 않게만 만든다 - 몇 분 지난 값이라도 빈 화면보다 낫다.
+CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'market_temp_cache.json')
+
 _state = {'result': None, 'computed_at': 0.0, 'error': None}
 _lock = threading.Lock()
 _started = False
+
+
+def _save_cache(result, computed_at):
+    try:
+        tmp = CACHE_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as handle:
+            json.dump({'result': result, 'computed_at': computed_at}, handle,
+                      ensure_ascii=False)
+        os.replace(tmp, CACHE_FILE)      # 원자적 교체 - 읽는 쪽이 반쪽 파일을 보지 않게
+    except Exception:
+        LOGGER.debug('market temp 캐시 저장 실패 - 메모리 값은 그대로 쓴다', exc_info=True)
+
+
+def load_cache():
+    """기동 시 마지막 결과를 메모리로 올린다. 없거나 깨졌으면 조용히 넘어간다."""
+    try:
+        with open(CACHE_FILE, 'r', encoding='utf-8') as handle:
+            saved = json.load(handle)
+    except FileNotFoundError:
+        return None
+    except Exception:
+        LOGGER.warning('market temp 캐시를 읽지 못했다 - 첫 계산까지 503', exc_info=True)
+        return None
+    result = saved.get('result')
+    if not result:
+        return None
+    with _lock:
+        if _state['result'] is None:     # 이미 새로 계산됐으면 덮지 않는다
+            _state['result'] = result
+            _state['computed_at'] = saved.get('computed_at') or 0.0
+    LOGGER.info('market temp 캐시 복원(계산시각 %s)', result.get('updatedAt'))
+    return result
 
 
 # ---- 일별 온도 이력(SQLite) ----
@@ -191,10 +234,12 @@ def refresh_once(conn_factory, week52_cache_file, kofia_factory):
             result = build(conn, week52_cache_file, kofia)
         finally:
             conn.close()
+        computed_at = time.time()
         with _lock:
             _state['result'] = result
-            _state['computed_at'] = time.time()
+            _state['computed_at'] = computed_at
             _state['error'] = None
+        _save_cache(result, computed_at)
         return result
     except Exception as exc:
         LOGGER.exception('market temp refresh failed')
@@ -213,6 +258,8 @@ def start_background(conn_factory, week52_cache_file, kofia_factory,
     if _started:
         return
     _started = True
+
+    load_cache()        # 첫 계산이 끝나기 전까지 지난 값으로 버틴다
 
     def loop():
         while True:
