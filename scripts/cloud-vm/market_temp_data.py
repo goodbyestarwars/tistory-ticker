@@ -279,30 +279,42 @@ def flow_component(foreign_ratio, inst_ratio):
                             _flow_ratio_to_score100(inst_ratio))
 
 
-def flow_component_from_payload(flow):
-    """`foreign_flow_compute.build_result()` 응답에서 바로 수급 점수를 낸다.
+def flow_component_from_market_trend(conn, market='KOSPI'):
+    """수급 - **시장 전체** 외국인/기관 순매매(investor_trend_daily)로 낸다.
 
-    이 응답은 모듈 독스트링에 적힌 대로 **GAS `getForeignFlow()`와 동일한 형태**라
-    (`daily[i].foreign_net`, `rolling['5d'].foreign`) GAS `computeFlowRatioFromData_`가
-    읽던 필드를 그대로 읽는다. GAS는 이걸 네이버 크롤링으로 만들었지만 VM은 KIS 일별
-    데이터로 만든다는 점만 다르다(같은 수치를 더 정확한 소스에서 받는 쪽).
+    2026-09-01: GAS는 KODEX 200(069500) ETF를 시장 수급의 대리지표로 썼다. VM으로 옮기며
+    같은 ETF를 KIS 종목별투자자매매동향으로 받아봤더니 **과거 이력을 주지 않았다**
+    (64일 중 63일이 0, 오늘 장중 실시간 한 줄만 값이 있음). 그러면 기준선
+    (최근 20일 |순매매| 평균 x5)이 무너져 비율이 항상 ±1.0으로 포화된다 -
+    실제로 종단 비교에서 VM 15점 vs GAS 13점으로 갈렸다.
+
+    ETF 하나를 대리로 쓴 건 GAS가 시장 전체 수급을 구할 방법이 없어서였다. VM에는
+    `investor_trend_daily`에 코스피/코스닥 **시장 전체** 일별 수급이 최대 140행 쌓여 있고
+    (`/investor-trend`가 이미 쓰는 데이터) 시장 전체 온도에는 이쪽이 개념적으로 맞다.
+    배점 공식(20일 기준선, 외국인75%+기관25%)은 GAS 그대로 두고 입력만 바꾼다.
+
+    사용자 승인 후 교체(2026-09-01). GAS와 수급 점수가 달라질 수 있고 그만큼 온도도
+    바뀔 수 있다 - 더 정확해지는 방향이다.
     """
-    if not flow or flow.get('error'):
+    import db_schema
+    rows = db_schema.load_investor_trend_daily(conn, market, limit_days=40)
+    if not rows:
         return flow_component(None, None), {'foreign': None, 'inst': None}
-    daily = flow.get('daily') or []
-    rolling5 = (flow.get('rolling') or {}).get('5d') or {}
+    recent = list(reversed(rows))          # 최신일 우선 - GAS daily 배열과 같은 순서
     ratios = {}
-    for field in ('foreign', 'inst'):
-        nets = [row.get(field + '_net') for row in daily]
-        got = flow_ratio_from_daily(nets, rolling5.get(field))
+    for field, key in (('foreign', 'frgn'), ('inst', 'orgn')):
+        nets = [r.get(key) for r in recent]
+        net5 = sum(v for v in nets[:5] if v is not None)
+        got = flow_ratio_from_daily(nets, net5)
         ratios[field] = got['ratio'] if got else None
+        ratios[field + '_v5'] = net5
     component = flow_component(ratios['foreign'], ratios['inst'])
-    # GAS 응답과 같은 부가 필드(화면이 쓸 수도 있으므로 형태를 맞춘다).
     component['foreign'] = {'score100': _flow_ratio_to_score100(ratios['foreign']),
-                            'ratio': ratios['foreign'], 'v5': rolling5.get('foreign')}
+                            'ratio': ratios['foreign'], 'v5': ratios['foreign_v5']}
     component['inst'] = {'score100': _flow_ratio_to_score100(ratios['inst']),
-                         'ratio': ratios['inst'], 'v5': rolling5.get('inst')}
-    component['note'] = 'KODEX 200(069500) 5일 합산 수급 기준, 외국인75%+기관25% 가중합산'
+                         'ratio': ratios['inst'], 'v5': ratios['inst_v5']}
+    component['note'] = ('코스피 시장 전체 5일 합산 수급 기준, 외국인75%+기관25% 가중합산'
+                         '(GAS는 KODEX200 ETF 대리지표를 썼으나 과거 이력이 없어 교체)')
     return component, ratios
 
 

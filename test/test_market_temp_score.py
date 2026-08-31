@@ -448,92 +448,70 @@ class KofiaCreditPortTest(unittest.TestCase):
                 self.assertLessEqual(got['score'], 10)
 
 
-class FlowFromPayloadTest(unittest.TestCase):
-    """수급을 foreign_flow_compute 응답에서 바로 뽑는다. 그 응답은 모듈 독스트링대로
-    GAS getForeignFlow()와 같은 형태(daily[i].foreign_net, rolling['5d'].foreign)다."""
+class FlowFromMarketTrendTest(unittest.TestCase):
+    """수급 입력을 KODEX200 ETF -> 코스피 시장 전체로 교체(2026-09-01, 사용자 승인).
 
-    def test_matches_gas_golden_when_ratios_are_reproduced(self):
+    GAS는 ETF를 대리지표로 썼지만 VM의 KIS는 그 ETF의 과거 이력을 주지 않는다
+    (64일 중 63일이 0) - 기준선이 무너져 비율이 항상 ±1.0으로 포화됐다.
+    배점 공식은 GAS 그대로 두고 입력만 바꾼다.
+    """
+
+    def _conn(self, rows):
+        import types
+        fake = types.SimpleNamespace(
+            load_investor_trend_daily=lambda conn, market, limit_days=40: rows)
+        return fake
+
+    def _with_db(self, fake_db, fn):
+        saved = sys.modules.get('db_schema')
+        sys.modules['db_schema'] = fake_db
+        try:
+            return fn()
+        finally:
+            if saved is None:
+                sys.modules.pop('db_schema', None)
+            else:
+                sys.modules['db_schema'] = saved
+
+    def test_scoring_formula_still_matches_gas(self):
+        """입력만 바뀌었을 뿐 배점 공식은 GAS 그대로여야 한다 - 골든의 ratio를 넣으면
+        같은 score100/점수가 나와야 한다."""
         import market_temp_data as mtd
         g = load_golden()['components']['flow']
-        # 골든의 ratio가 그대로 나오도록 daily/rolling을 역산해서 만든다.
-        # ratio = v5 / (mean(|daily|) * 5) 이므로 daily를 1로 두면 v5 = ratio * 5.
-        payload = {
-            'daily': [{'foreign_net': 1, 'inst_net': 1} for _ in range(20)],
-            'rolling': {'5d': {'foreign': g['foreign']['ratio'] * 5,
-                               'inst': g['inst']['ratio'] * 5}},
-        }
-        component, ratios = mtd.flow_component_from_payload(payload)
-        self.assertAlmostEqual(ratios['foreign'], g['foreign']['ratio'], places=9)
-        self.assertEqual(component['foreign']['score100'], g['foreign']['score100'])
-        self.assertEqual(component['inst']['score100'], g['inst']['score100'])
-        self.assertEqual(component['score'], g['score'])
-        self.assertEqual(component['band'], g['band'])
+        self.assertEqual(mtd._flow_ratio_to_score100(g['foreign']['ratio']),
+                         g['foreign']['score100'])
+        self.assertEqual(mtd._flow_ratio_to_score100(g['inst']['ratio']),
+                         g['inst']['score100'])
+        self.assertEqual(mtd.flow_component(g['foreign']['ratio'], g['inst']['ratio'])['score'],
+                         g['score'])
 
-    def test_missing_payload_is_neutral_not_zero(self):
+    def test_uses_market_wide_rows_and_does_not_saturate(self):
         import market_temp_data as mtd
-        component, ratios = mtd.flow_component_from_payload(None)
-        self.assertEqual(component['score'], 10, '수급 조회 실패는 0점이 아니라 중립이어야 한다')
+        # 오름차순 20일(load_investor_trend_daily는 오름차순 반환) - 평범한 등락
+        rows = [{'date': '2026-08-%02d' % (i + 1), 'frgn': (100 if i % 2 else -80),
+                 'orgn': (60 if i % 3 else -40)} for i in range(20)]
+        component, ratios = self._with_db(
+            self._conn(rows), lambda: mtd.flow_component_from_market_trend(object()))
+        self.assertNotIn(ratios['foreign'], (1.0, -1.0),
+                         'ETF 경로처럼 ±1.0으로 포화되면 안 된다')
+        self.assertGreaterEqual(component['score'], 0)
+        self.assertLessEqual(component['score'], 20)
+        self.assertIn('시장 전체', component['note'])
+
+    def test_empty_history_is_neutral_not_zero(self):
+        import market_temp_data as mtd
+        component, ratios = self._with_db(
+            self._conn([]), lambda: mtd.flow_component_from_market_trend(object()))
+        self.assertEqual(component['score'], 10, '이력이 없으면 0점이 아니라 중립')
         self.assertEqual(ratios, {'foreign': None, 'inst': None})
 
-
-class ExchangeLiveQuoteTest(unittest.TestCase):
-    """원/달러는 DB(future_prices) 값이 뒤처질 수 있다. 종단 비교에서 VM 1418.5 vs
-    GAS 1368.4로 50원이나 벌어졌고, /futures는 이미 같은 함정을 알고 실시간 고시값으로
-    보강하고 있었다(main.py "1416/1418처럼 갈라지므로")."""
-
-    def test_live_quote_overrides_stale_db_value(self):
+    def test_v5_sums_only_the_five_most_recent_days(self):
         import market_temp_data as mtd
-
-        class FakeConn:
-            def execute(self, *a, **k):
-                raise AssertionError('사용 안 함')
-
-        stale = [{'symbol': 'USDKRW', 'name': '원/달러', 'price': 1418.5, 'change_rate': -0.12},
-                 {'symbol': 'VIX', 'name': 'VIX', 'price': 15.0, 'change_rate': 0},
-                 {'symbol': 'SP500', 'name': 'S&P', 'price': 6400.0, 'change_rate': 0.1}]
-
-        import types
-        fake_db = types.SimpleNamespace(load_all_future_prices=lambda conn: stale)
-        fake_fut = types.SimpleNamespace(
-            fetch_fx_realtime=lambda: {'price': 1368.4, 'change_rate': -0.91})
-        saved = (sys.modules.get('db_schema'), sys.modules.get('domestic_futures'))
-        sys.modules['db_schema'] = fake_db
-        sys.modules['domestic_futures'] = fake_fut
-        try:
-            got = mtd.market_components_from_db(FakeConn())
-        finally:
-            for name, mod in zip(('db_schema', 'domestic_futures'), saved):
-                if mod is None:
-                    sys.modules.pop(name, None)
-                else:
-                    sys.modules[name] = mod
-        self.assertEqual(got['exchange']['price'], 1368.4, 'DB의 낡은 값을 쓰면 안 된다')
-        self.assertEqual(got['exchange']['changeRate'], -0.91)
-
-    def test_falls_back_to_db_when_live_quote_fails(self):
-        import market_temp_data as mtd
-        import types
-
-        class FakeConn:
-            pass
-
-        stale = [{'symbol': 'USDKRW', 'price': 1418.5, 'change_rate': -0.12}]
-
-        def boom():
-            raise RuntimeError('네트워크 실패')
-
-        saved = (sys.modules.get('db_schema'), sys.modules.get('domestic_futures'))
-        sys.modules['db_schema'] = types.SimpleNamespace(load_all_future_prices=lambda c: stale)
-        sys.modules['domestic_futures'] = types.SimpleNamespace(fetch_fx_realtime=boom)
-        try:
-            got = mtd.market_components_from_db(FakeConn())
-        finally:
-            for name, mod in zip(('db_schema', 'domestic_futures'), saved):
-                if mod is None:
-                    sys.modules.pop(name, None)
-                else:
-                    sys.modules[name] = mod
-        self.assertEqual(got['exchange']['price'], 1418.5, '실시간 실패 시 DB 값으로 떨어져야 한다')
+        rows = [{'date': '2026-08-%02d' % (i + 1), 'frgn': i + 1, 'orgn': 0} for i in range(10)]
+        _, ratios = self._with_db(
+            self._conn(rows), lambda: mtd.flow_component_from_market_trend(object()))
+        # 오름차순 입력이므로 최신 5일은 6,7,8,9,10 -> 합 40
+        self.assertEqual(ratios['foreign_v5'], 40)
 
 
 if __name__ == '__main__':

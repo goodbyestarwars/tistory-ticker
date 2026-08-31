@@ -116,14 +116,13 @@ def compute_sparkline(current_temp, stored_history, today):
 
 # ---- 조립 ----
 
-def build(conn, week52_cache_file, kofia, flow_payload=None, now_kst=None):
+def build(conn, week52_cache_file, kofia, now_kst=None):
     """증시온도 한 판을 계산한다. GAS getMarketTemp()와 같은 형태를 돌려준다.
 
     conn: 운영 SQLite(daily_prices/future_prices) 연결.
     kofia: `public_data.fetch_kofia_market()` 결과 또는 None - GAS는 이걸 VM에 HTTP로
            물어봤지만(브라우저→GAS→VM) 여기선 호출부가 직접 넘긴다.
-    flow_payload: KODEX200(069500)의 `foreign_flow_compute.build_result()` 응답 또는 None.
-           GAS는 네이버 크롤링으로 만든 같은 형태를 썼다. 없으면 수급은 중립(50/50).
+    수급은 `investor_trend_daily`(시장 전체)에서 conn으로 직접 읽는다.
     """
     now_kst = now_kst or datetime.now(KST)
     today = now_kst.strftime('%Y-%m-%d')
@@ -137,7 +136,7 @@ def build(conn, week52_cache_file, kofia, flow_payload=None, now_kst=None):
     market_parts = data.market_components_from_db(conn, now_kst)
     week52 = data.week52_component(week52_cache_file)
     credit = score.score_kofia_credit(kofia)
-    flow, _ratios = data.flow_component_from_payload(flow_payload)
+    flow, _ratios = data.flow_component_from_market_trend(conn)
 
     components = {
         'vix': market_parts['vix'],
@@ -180,7 +179,7 @@ def get_cached():
         return dict(_state)
 
 
-def refresh_once(conn_factory, week52_cache_file, kofia_factory, flow_factory=None):
+def refresh_once(conn_factory, week52_cache_file, kofia_factory):
     try:
         conn = conn_factory()
         try:
@@ -189,13 +188,7 @@ def refresh_once(conn_factory, week52_cache_file, kofia_factory, flow_factory=No
                 kofia = kofia_factory()
             except Exception:
                 LOGGER.debug('kofia fetch failed - creditRisk 없이 계산', exc_info=True)
-            flow_payload = None
-            if flow_factory is not None:
-                try:
-                    flow_payload = flow_factory()
-                except Exception:
-                    LOGGER.debug('KODEX200 수급 조회 실패 - flow 중립 처리', exc_info=True)
-            result = build(conn, week52_cache_file, kofia, flow_payload=flow_payload)
+            result = build(conn, week52_cache_file, kofia)
         finally:
             conn.close()
         with _lock:
@@ -211,7 +204,7 @@ def refresh_once(conn_factory, week52_cache_file, kofia_factory, flow_factory=No
 
 
 def start_background(conn_factory, week52_cache_file, kofia_factory,
-                     flow_factory=None, interval=REFRESH_INTERVAL_SEC):
+                     interval=REFRESH_INTERVAL_SEC):
     """주기 계산 스레드. 다른 폴러(foreign_futures 등)와 같은 패턴이다.
 
     방문자 요청이 계산을 유발하지 않으므로 캐시 워머가 필요 없다.
@@ -223,7 +216,7 @@ def start_background(conn_factory, week52_cache_file, kofia_factory,
 
     def loop():
         while True:
-            refresh_once(conn_factory, week52_cache_file, kofia_factory, flow_factory)
+            refresh_once(conn_factory, week52_cache_file, kofia_factory)
             time.sleep(interval)
 
     threading.Thread(target=loop, name='market-temp', daemon=True).start()
