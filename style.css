@@ -1006,6 +1006,21 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
 }
 .hmb-list dd[title] { cursor: help; }
 .hmb-list dd[data-market-field="nightFutures"] { text-align: right; }
+/* 2026-08-31 사용자 요구("단어 잘림 허용 안 되게"): 위 규칙이 nowrap + ellipsis라
+   모바일 3열(칸 폭 약 170px)에서 업종 목록이 잘렸다(실측:
+   "신재생/원자력 · 건설 · IT/스테이블코인" 197px -> 170px로 잘림).
+   모바일에서는 자르지 말고 줄을 바꾼다. `word-break: keep-all`은 한글에서 낱말 중간이
+   아니라 띄어쓰기에서만 줄을 바꾸게 하고, "1,380.5원"처럼 공백 없는 숫자는 통째로
+   유지되므로 숫자 중간 줄바꿈도 생기지 않는다. */
+@media (max-width: 720px) {
+  .hmb-list dd {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: normal;
+  }
+}
 .hmb-investor-trend[hidden] { display: none; }
 .hmb-investor-trend-head {
   display: flex;
