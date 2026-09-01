@@ -341,25 +341,55 @@
         + (stockHtml || '<div class="mt-industry-flow-detail-empty">대표 종목 데이터가 없습니다.</div>')
         + '</div>';
     }
-    var html = (rows || []).slice(0, INDUSTRY_TOP_LIMIT_).map(function (row, index) {
+    var shown = (rows || []).slice(0, INDUSTRY_TOP_LIMIT_);
+    // 막대 길이는 1위 대비 비율이다. 거래대금은 조·억 단위가 섞여 나와서(8.6조 vs
+    // 6946억 = 12배) 숫자만으로는 크기 차이가 안 잡힌다는 2026-09-01 사용자 지적에
+    // 따라 추가했다. 호가창 막대와 같은 방식이라 화면 사이에서 읽는 법이 같다.
+    var maxAmount = shown.reduce(function (max, row) {
+      var v = Number(row.trade_amount != null ? row.trade_amount : row.tradeAmount);
+      return isFinite(v) && v > max ? v : max;
+    }, 0);
+
+    var html = shown.map(function (row, index) {
       var old = previousByName[row.industry];
-      var rankText = old ? (old.rank === index + 1 ? '유지' : (old.rank > index + 1 ? '▲ ' + (old.rank - index - 1) : '▼ ' + (index + 1 - old.rank))) : '첫 관측';
+      var rank = index + 1;
+      // 순위 변화에 ▲▼를 쓰면 바로 옆 등락률의 ▲▼와 같은 기호라 "2% 상승"으로 읽힌다
+      // (2026-09-01 사용자 지적). 계단 수를 명시하고 화살표도 ↑↓로 바꿔 구분한다.
+      var moveText, moveClass;
+      if (!old) { moveText = 'NEW'; moveClass = 'is-new'; }
+      else if (old.rank === rank) { moveText = '유지'; moveClass = 'is-same'; }
+      else {
+        var diff = old.rank - rank;
+        moveText = Math.abs(diff) + '계단' + (diff > 0 ? '↑' : '↓');
+        moveClass = diff > 0 ? 'is-rank-up' : 'is-rank-down';
+      }
       var rate = Number(row.avg_change_rate != null ? row.avg_change_rate : row.avgChangeRate);
       var tone = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
+      var amount = Number(row.trade_amount != null ? row.trade_amount : row.tradeAmount);
+      // 최소 3%는 남겨 하위 업종도 막대가 보이게 한다(1위가 압도적이면 나머지가 0에
+      // 수렴해 아예 안 보인다).
+      var fill = (isFinite(amount) && maxAmount > 0) ? Math.max(3, amount / maxAmount * 100) : 0;
       return '<div class="mt-industry-flow-item">'
         + '<button type="button" class="mt-industry-flow-row ' + tone + '" data-industry-index="' + index + '" aria-expanded="false" aria-controls="mt-industry-detail-' + index + '">'
+        + '<i class="mt-if-fill" style="width:' + fill.toFixed(1) + '%" aria-hidden="true"></i>'
+        + '<i class="mt-if-rank">' + rank + '</i>'
         + '<b>' + escapeHtml(row.industry || '-') + '</b>'
-        + '<span>' + formatFlowAmount_(row.trade_amount != null ? row.trade_amount : row.tradeAmount) + '</span>'
-        + '<span>' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
-        + '<small>' + escapeHtml(rankText) + ' · 대표 종목 ▾</small></button>'
+        + '<span class="mt-if-amount">' + formatFlowAmount_(amount) + '</span>'
+        + '<span class="mt-if-rate">' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
+        + '<em class="mt-if-move ' + moveClass + '">' + moveText
+        + '<i class="mt-if-caret" aria-hidden="true">▾</i></em>'
+        + '</button>'
         + representativeStocksHtml_(row, index)
         + '</div>';
     }).join('');
+    // 데이터가 10개보다 적을 때가 있어(오늘 8개) 제목의 "TOP 10"이 사실과 달랐다.
+    // 실제로 보여주는 개수를 쓴다.
+    var title = shown.length ? '오늘 업종 TOP ' + shown.length : '오늘 업종 흐름';
     mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
-      + '<div class="mt-industry-flow-head"><strong>오늘 업종 TOP 10</strong><span>테마별 총 거래대금 기준 · 최근 거래일 대비 순위 변화</span></div>'
-      + '<div class="mt-industry-flow-columns"><span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>최근 거래일 대비</span></div>'
+      + '<div class="mt-industry-flow-head"><strong>' + title + '</strong><span>거래대금이 많이 몰린 순서</span></div>'
+      + '<div class="mt-industry-flow-columns"><span></span><span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>순위</span></div>'
       + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
-      + '<p class="mt-industry-flow-note">실시간 종목판의 거래대금 상위 종목을 테마별로 합산합니다. 거래대금이 돈의 흐름 순위이며 평균등락률은 보조지표입니다. 전일 순위는 이 브라우저가 관측한 마지막 거래일 스냅샷과 비교합니다.</p>'
+      + '<p class="mt-industry-flow-note">실시간 종목판의 거래대금 상위 종목을 테마별로 합산합니다. 막대 길이는 1위 업종 대비 거래대금 비율이고, 평균등락률은 보조지표입니다. 순위 변화는 이 브라우저가 관측한 마지막 거래일과 비교하며, 누르면 대표 종목이 열립니다.</p>'
       + '</div>';
     mount.onclick = function (event) {
       var rowButton = event.target.closest && event.target.closest('.mt-industry-flow-row');
@@ -1788,7 +1818,11 @@
   var MarketTemp = {
     init: init,
     fetchMarketTemp: fetchMarketTemp,
-    fetchMarketTempBriefing: fetchMarketTempBriefing
+    fetchMarketTempBriefing: fetchMarketTempBriefing,
+    // 업종 TOP은 실시간 종목판 응답에서 파생돼 mock만으로는 화면을 못 그린다.
+    // 로컬 하네스가 표본 데이터를 직접 넣어 레이아웃을 확인할 수 있게 열어둔다
+    // (js/foreign-flow.js의 fetchJson 몽키패치와 같은 취지).
+    renderIndustryFlow: renderIndustryFlow_
   };
   global.MarketTemp = MarketTemp;
 

@@ -527,17 +527,38 @@
 #market-temp .mt-industry-flow-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; }
 #market-temp .mt-industry-flow-head strong { font-size:15px; color:#111827; }
 #market-temp .mt-industry-flow-head span, #market-temp .mt-industry-flow-note { color:#94a3b8; font-size:10px; }
-#market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { display:grid; grid-template-columns:minmax(0,1.4fr) .8fr .8fr .75fr; align-items:center; gap:8px; }
+/* 2026-09-01 직관성 개선. 열 구성: 순위 · 업종 · 거래대금 · 평균등락 · 순위변화 · 펼침. */
+#market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { display:grid; grid-template-columns:15px minmax(0,1.3fr) .78fr .7fr .66fr; align-items:center; gap:7px; }
 #market-temp .mt-industry-flow-columns { padding:0 5px 6px; border-bottom:1px solid #111827; color:#94a3b8; font-size:10px; }
-#market-temp .mt-industry-flow-columns span:not(:first-child), #market-temp .mt-industry-flow-row > span, #market-temp .mt-industry-flow-row > small { text-align:right; }
+#market-temp .mt-industry-flow-columns span:nth-child(n+3), #market-temp .mt-industry-flow-row > span, #market-temp .mt-industry-flow-row > em { text-align:right; }
 #market-temp .mt-industry-flow-item { border-bottom:1px solid #eef2f7; }
-#market-temp .mt-industry-flow-row { width:100%; min-height:34px; padding:6px 5px; border:0; background:transparent; color:inherit; font:inherit; font-size:12px; text-align:left; cursor:pointer; }
+#market-temp .mt-industry-flow-row { position:relative; width:100%; min-height:34px; padding:6px 5px; border:0; background:transparent; color:inherit; font:inherit; font-size:12px; text-align:left; cursor:pointer; }
 #market-temp .mt-industry-flow-row:hover, #market-temp .mt-industry-flow-row.is-open { background:#f8fafc; }
-#market-temp .mt-industry-flow-row b { overflow:hidden; color:#1f2937; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+#market-temp .mt-industry-flow-row b { position:relative; overflow:hidden; color:#1f2937; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+
+/* 거래대금 비중 막대. 돈이 얼마나 몰렸는지를 길이로 보여준다 - 조/억 단위가 섞여
+   숫자만으로는 크기 차이가 안 잡힌다는 지적에 따른 것. 방향이 없는 양이라 중립색을
+   쓴다(상승 빨강/하락 파랑은 방향성 있는 값에만). */
+#market-temp .mt-if-fill { position:absolute; left:5px; bottom:3px; z-index:0; height:3px; max-width:calc(100% - 10px); border-radius:2px; background:#cfdae7; pointer-events:none; }
+#market-temp .mt-industry-flow-row > *:not(.mt-if-fill) { position:relative; z-index:1; }
+
+#market-temp .mt-if-rank { color:#94a3b8; font-size:10px; font-style:normal; font-weight:700; text-align:center; }
 #market-temp .mt-industry-flow-row > span { font-weight:700; }
-#market-temp .mt-industry-flow-row.is-up > span:first-of-type { color:#d24f45; }
-#market-temp .mt-industry-flow-row.is-down > span:first-of-type { color:#1261c4; }
-#market-temp .mt-industry-flow-row.is-flat > span:first-of-type { color:#64748b; }
+
+/* 거래대금은 방향이 없는 양이다. 예전에는 행의 등락 방향(is-up/is-down)이 거래대금
+   숫자에 칠해져서 "파란 거래대금 = 나쁨"으로 읽혔다(2026-09-01 사용자 지적).
+   색은 등락률에만 남긴다. */
+#market-temp .mt-if-amount { color:#334155; }
+#market-temp .mt-industry-flow-row.is-up .mt-if-rate { color:#d24f45; }
+#market-temp .mt-industry-flow-row.is-down .mt-if-rate { color:#1261c4; }
+#market-temp .mt-industry-flow-row.is-flat .mt-if-rate { color:#64748b; }
+
+/* 순위 변화는 가격이 아니라 등수다. 등락률과 같은 색을 쓰면 또 헷갈리므로 중립색. */
+#market-temp .mt-if-move { color:#64748b; font-size:10px; font-style:normal; font-weight:600; white-space:nowrap; }
+#market-temp .mt-if-move.is-same { color:#b6bfca; font-weight:500; }
+#market-temp .mt-if-move.is-new { color:#7c6cd6; }
+#market-temp .mt-if-caret { display:inline-block; margin-left:3px; color:#c3ccd6; font-size:9px; font-style:normal; transition:transform .15s ease; }
+#market-temp .mt-industry-flow-row.is-open .mt-if-caret { transform:rotate(180deg); }
 #market-temp .mt-industry-flow-row small { color:#94a3b8; font-size:10px; }
 #market-temp .mt-industry-flow-detail { margin:0 5px 8px; padding:7px 9px; border:1px solid #e5edf6; border-radius:9px; background:#f8fbff; }
 #market-temp .mt-industry-flow-detail-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px; color:#64748b; font-size:10px; }
@@ -666,7 +687,9 @@
 @media (max-width: 640px) {
   #market-temp .mt-card { padding: 12px 12px; }
   #market-temp .mt-industry-flow-card { padding: 12px; }
-  #market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { grid-template-columns:minmax(0,1.3fr) .7fr .7fr .7fr; gap:5px; }
+  /* 2026-09-01: 순위 열이 생겨 5열이다. 여기를 같이 안 고치면 항목이 넘쳐 행이
+     두 줄로 접힌다(실제로 그렇게 깨졌다). */
+  #market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { grid-template-columns:14px minmax(0,1.25fr) .72fr .66fr .6fr; gap:5px; }
   #market-temp .mt-industry-flow-row { min-height:38px; padding-inline:3px; }
   #market-temp .mt-industry-flow-row small { font-size:9px; }
   #market-temp .mt-industry-flow-detail { margin-inline:3px; }
@@ -954,6 +977,18 @@ html.dark #market-temp .mt-industry-flow-row.is-open { background: #242424; }
 html.dark #market-temp .mt-industry-flow-row b,
 html.dark #market-temp .mt-industry-flow-stock,
 html.dark #market-temp .mt-industry-flow-detail-head strong { color: #F5EFE0; }
+/* 2026-09-01 추가 요소들의 다크 대응. 막대는 배경보다 살짝 밝게만 - 값이 아니라
+   배경이므로 글자를 이기면 안 된다. */
+html.dark #market-temp .mt-if-fill { background: rgba(245,239,224,.28); }
+html.dark #market-temp .mt-if-rank { color: rgba(245,239,224,.45); }
+html.dark #market-temp .mt-if-amount { color: rgba(245,239,224,.88); }
+html.dark #market-temp .mt-industry-flow-row.is-up .mt-if-rate { color: #ff8a83; }
+html.dark #market-temp .mt-industry-flow-row.is-down .mt-if-rate { color: #80b8ff; }
+html.dark #market-temp .mt-industry-flow-row.is-flat .mt-if-rate { color: rgba(245,239,224,.58); }
+html.dark #market-temp .mt-if-move { color: rgba(245,239,224,.6); }
+html.dark #market-temp .mt-if-move.is-same { color: rgba(245,239,224,.35); }
+html.dark #market-temp .mt-if-move.is-new { color: #b8aef0; }
+html.dark #market-temp .mt-if-caret { color: rgba(245,239,224,.35); }
 html.dark #market-temp .mt-industry-flow-detail { border-color: rgba(245,239,224,.14); background: #202020; }
 html.dark #market-temp .mt-industry-flow-detail-head,
 html.dark #market-temp .mt-industry-flow-stock small,

@@ -1395,8 +1395,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
             "aria-expanded",
             "대표 종목",
             "/page/stock-search?code=",
-            "테마별 총 거래대금 기준 · 최근 거래일 대비 순위 변화",
-            "오늘 업종 TOP 10",
+            # 2026-09-01 직관성 개선으로 문구가 바뀌었다(제목은 실제 개수를 쓰고,
+            # 부제는 정렬 기준만 밝힌다). 세부 계약은
+            # test_market_temp_industry_top_is_readable_at_a_glance에서 본다.
+            "거래대금이 많이 몰린 순서",
             "Number(b.trade_amount) - Number(a.trade_amount)",
             "sections.tradeAmount",
         ):
@@ -2554,6 +2556,47 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".hrt-stock small { display: block;", css)
         # 데스크톱은 기존 flex 레이아웃 그대로 둔다.
         self.assertIn(".hrt-stock { display: flex;", css)
+
+    def test_market_temp_industry_top_is_readable_at_a_glance(self):
+        """증시온도 업종 TOP이 직관적이지 않다는 리포트(2026-09-01)로 손본 것들.
+
+        고친 문제: ① 제목이 "TOP 10" 고정인데 실제로는 8개만 나왔다 ② 순위 번호가
+        없었다 ③ 거래대금에 등락 방향색이 칠해져 "파란 거래대금 = 나쁨"으로 읽혔다
+        ④ 조/억이 섞여 크기 비교가 안 됐다 ⑤ 순위 변화 `▲ 2`가 바로 옆 등락률의
+        ▲와 같은 기호라 "2% 상승"으로 읽혔다.
+        """
+        source = self.read("js/market-temp.js")
+        # ① 제목은 실제로 보여주는 개수를 쓴다. 과거 버그를 설명하는 주석에도 같은
+        # 문구가 남아 있으므로 렌더링 문자열만 겨냥한다.
+        self.assertNotIn("<strong>오늘 업종 TOP 10</strong>", source)
+        self.assertIn("'오늘 업종 TOP ' + shown.length", source)
+        # ② 순위 번호.
+        self.assertIn("mt-if-rank", source)
+        # ④ 거래대금 비중 막대.
+        self.assertIn("mt-if-fill", source)
+        self.assertIn("maxAmount", source)
+        # ⑤ 순위 변화는 등락률과 다른 기호를 쓴다.
+        self.assertIn("계단", source)
+        self.assertNotIn("'▲ ' + (old.rank", source)
+
+        css = self.read("css/market-temp.css")
+        # ③ 방향색은 등락률에만. 거래대금(첫 span)에 칠하던 예전 규칙이 남으면 안 된다.
+        self.assertNotIn(".mt-industry-flow-row.is-up > span:first-of-type", css)
+        self.assertIn(".mt-industry-flow-row.is-up .mt-if-rate", css)
+        self.assertIn(".mt-if-amount", css)
+        # 모바일 그리드 열 수가 데스크톱과 달라지면 항목이 넘쳐 행이 두 줄로 접힌다
+        # (실제로 그렇게 깨졌다).
+        flow_grids = re.findall(
+            r"\.mt-industry-flow-columns[^{}]*\.mt-industry-flow-row[^{}]*\{[^{}]*?"
+            r"grid-template-columns:([^;]+);",
+            css,
+        )
+        self.assertTrue(flow_grids, "업종 흐름 그리드를 찾지 못했다")
+        for grid in flow_grids:
+            # minmax(0, 1.3fr) 안의 공백 때문에 열 수를 잘못 세지 않도록 괄호 안을 지운다.
+            columns = re.sub(r"\([^)]*\)", "()", grid).split()
+            self.assertEqual(len(columns), 5,
+                             "업종 흐름 그리드는 5열이어야 한다: %s" % grid.strip())
 
     def test_order_book_summary_values_fit_on_narrow_mobile(self):
         """운영 모바일 본문 폭(321px)에서 시가·고가·저가·거래량이 칸보다 3~4px 넓어
