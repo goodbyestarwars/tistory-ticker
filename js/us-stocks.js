@@ -84,13 +84,56 @@
     });
   }
 
+  // 2026-09-02 사용자 리포트("UI가 왜 그래?" - 라벨과 값이 붙고 호가표가 무너진 화면).
+  // 이 스타일시트는 skin.html의 <link>가 아니라 여기서 런타임에 꽂는데, 예전에는 로드
+  // 완료를 기다리지 않고 곧바로 내용을 그렸다. 데이터는 우리 VM에서 빨리 오는 반면
+  // CSS는 GitHub Pages로 가는 별도 연결(DNS+TLS)이라, 모바일 셀룰러에서 그 사이가
+  // 벌어지면 "값은 다 찼는데 스타일만 없는" 화면이 그대로 보인다. 요청이 실패하면
+  // 영구히 그 상태로 남는다.
+  //
+  // js/home-weekly-report.js가 같은 문제에 쓴 방식(ensureStyle/whenStyleReady)을 따른다.
+  // 다만 여기서는 스타일을 못 받아도 화면을 영영 숨기지 않는다 - 스타일 없는 값이라도
+  // 아무것도 없는 것보다는 낫기 때문에, 짧은 타임아웃 뒤에는 그냥 그린다.
+  var STYLE_WAIT_MS = 2500;
+  var styleReady = false;
+  var stylePending = [];
+
+  function flushStylePending() {
+    if (styleReady) return;
+    styleReady = true;
+    var queued = stylePending.slice();
+    stylePending.length = 0;
+    // 대기 중인 콜백 하나가 실패해도 나머지는 실행되게 한다.
+    queued.forEach(function (fn) {
+      try { fn(); } catch (e) { if (global.console && console.error) console.error(e); }
+    });
+  }
+
   function injectStyles() {
-    if (document.querySelector('link[data-us-stocks-css]')) return;
+    var existing = document.querySelector('link[data-us-stocks-css]');
+    if (existing) {
+      // 이미 꽂혀 있으면 로드가 끝났는지 확인한다(다른 진입점이 먼저 넣었을 수 있다).
+      if (existing.sheet) flushStylePending();
+      else {
+        existing.addEventListener('load', flushStylePending);
+        existing.addEventListener('error', flushStylePending);
+        setTimeout(flushStylePending, STYLE_WAIT_MS);
+      }
+      return;
+    }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = CSS_URL;
     link.setAttribute('data-us-stocks-css', '1');
+    link.addEventListener('load', flushStylePending);
+    link.addEventListener('error', flushStylePending);   // 실패해도 화면은 그린다
     document.head.appendChild(link);
+    setTimeout(flushStylePending, STYLE_WAIT_MS);
+  }
+
+  function whenStyleReady(fn) {
+    if (styleReady) { fn(); return; }
+    stylePending.push(fn);
   }
 
   function buildShell(isEmbedded) {
@@ -298,9 +341,14 @@
     if (!detail) return;
     detail.hidden = false;
     detail.innerHTML = '<div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + escapeHtml(state.symbol) + ' 시세를 불러오는 중...</div>';
-    refreshQuote();
-    startRefresh();
-    startRealtime();
+    // 스타일이 붙기 전에 값을 그리면 라벨과 값이 붙어 나오는 화면이 된다(2026-09-02
+    // 리포트). 로딩 표시는 그대로 두고, 실제 내용만 스타일시트를 기다렸다 그린다.
+    whenStyleReady(function () {
+      if (state.symbol !== String(symbol || '').toUpperCase().replace(/^US:/, '')) return;
+      refreshQuote();
+      startRefresh();
+      startRealtime();
+    });
   }
 
   function startRefresh() {
