@@ -171,3 +171,55 @@
   .ui-section-heading-title { font-size: 19px; }
   .ui-section-heading-description { font-size: 12px; }
 }
+
+/* ── 한글·숫자 줄바꿈 복원 ──
+ *
+ * 티스토리 본문 래퍼(.contents_style)와 티스토리 기본 표 규칙이 word-break: break-word를
+ * 걸어, 우리 body의 keep-all을 덮어쓴다. 그 안에 들어가는 위젯 전체가 영향을 받아 한글
+ * 단어와 숫자가 토큰 중간에서 갈라진다.
+ *     "일봉" -> 일/봉,  "1,097.35" -> 1,09/7.35,  "-1,739억원" -> -1,73/9억원
+ *
+ * 자손까지 지정하는 이유: 루트에만 걸면 표 셀이 안 고쳐진다. word-break는 상속되지만
+ * 티스토리가 td를 직접 겨냥하는 규칙을 갖고 있어 조상 상속을 이긴다(2026-09-01 실측 -
+ * 루트 선언만으로는 kf-stat-price가 그대로 2줄이었다). 그 스타일시트는 CORS로 막혀 있어
+ * 규칙 본문을 읽을 수는 없고, 계산값과 매칭 결과로만 확인했다.
+ *
+ * 2026-09-01 실측(운영 페이지, 모바일 375px), 세로로 갈라진 값:
+ *     종목분석   23건 -> 1건      (-1,739억원 / -12,634,191 등)
+ *     실시간시세  8건 -> 0건      (분봉·일봉 탭도 2줄 44px -> 1줄 29px)
+ *     야간선물    2건 -> 0건      (선물 지수 1,097.35 / 1,064.50)
+ * 세 화면 모두 새로 생긴 가로 넘침·클리핑은 없었다(페이지 오버플로 0).
+ *
+ * overflow-wrap은 켜지 않는다 - 켜면 좁은 칸에서 숫자가 다시 갈라진다(위 증상의 원인).
+ * 블로그 글 본문(.contents_style 자체)은 건드리지 않는다. 거기까지 keep-all로 바꾸면 긴
+ * URL이 넘칠 수 있고 이번 요청 범위도 아니다.
+ */
+#domestic-market-indicators, #domestic-market-indicators *,
+#foreign-flow, #foreign-flow *,
+#invest-signal, #invest-signal *,
+#investor-trend-widget, #investor-trend-widget *,
+#kospi-futures, #kospi-futures *,
+#market-temp, #market-temp *,
+#my-dashboard, #my-dashboard *,
+#order-book, #order-book *,
+#overnight-market, #overnight-market *,
+#pattern-scan, #pattern-scan *,
+#pension-fund, #pension-fund *,
+#short-pressure, #short-pressure *,
+#sidebar-rank, #sidebar-rank *,
+#sn-modal, #sn-modal *,
+#stock-calendar, #stock-calendar *,
+#stock-search, #stock-search *,
+#strategy-search, #strategy-search *,
+#watchlist, #watchlist * {
+  word-break: keep-all;
+}
+
+/* 긴 산문·URL이 들어가는 블록만 예외 - 넘치느니 끊는 게 낫다. 원래 word-break:break-word로
+ * 선언돼 있던 곳이며(dashboard-enhancements.css / stock-discussion.css), 위 규칙이 id
+ * 특이도로 그걸 이기므로 같은 의도를 overflow-wrap으로 되살린다. keep-all과 함께 쓰면
+ * 한글 단어는 온전히 두고 끊을 수 없는 긴 토큰만 끊는다. */
+.de-custom-card p,
+.discussion-item-body {
+  overflow-wrap: break-word;
+}

@@ -285,6 +285,16 @@
 #order-book .ob-summary-item b.ob-summary-low { color: #1261c4; }
 #order-book .ob-summary-volume-change { grid-column: span 2; }
 
+/* 2026-09-01 사용자 리포트("숫자 잘림"). 운영 모바일에서는 본문 폭이 321px라(하네스 375px와
+ * 다르다) 시가·고가·저가·거래량 값이 칸보다 3~4px 넓어져 말줄임으로 끝 글자가 잘렸다.
+ *     "256,500원" -> "256,500…"   "254,000원" -> "254,000…"
+ * 값을 줄이거나 3열을 무너뜨리지 않고, 칸 안쪽 여백과 열 간격만 좁혀 자리를 만든다
+ * (열당 약 10px 확보 - 필요한 4px보다 여유가 있다). */
+@media (max-width: 420px) {
+  #order-book .ob-summary { gap: 6px; padding-right: 10px; padding-left: 10px; }
+  #order-book .ob-summary-item { padding-right: 6px; padding-left: 6px; }
+}
+
 #order-book .ob-table {
   display: flex;
   flex-direction: column;

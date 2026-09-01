@@ -2473,6 +2473,41 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("'https://goodbyestarwars.tistory.com'", source)
         self.assertIn("allow_origins=ALLOWED_BROWSER_ORIGINS", source)
 
+    def test_widget_roots_restore_keep_all_line_breaking(self):
+        """티스토리 .contents_style이 word-break: break-word로 덮어써서 위젯 안의 한글
+        단어와 숫자가 토큰 중간에서 갈라졌다(2026-09-01 사용자 리포트).
+
+        자손 선택자까지 있어야 한다 - 루트에만 걸면 티스토리가 td를 직접 겨냥하는
+        규칙에 져서 표 셀이 그대로 갈라진다(운영 페이지 실측으로 확인).
+        """
+        css = self.read("css/ui-system.css")
+        self.assertIn("word-break: keep-all;", css)
+        for root in ("#stock-search", "#foreign-flow", "#kospi-futures",
+                     "#domestic-market-indicators", "#order-book", "#market-temp"):
+            self.assertIn(root + ", " + root + " *", css,
+                          "%s 루트와 자손이 모두 지정돼야 한다" % root)
+        # overflow-wrap을 위젯 전체에 켜면 좁은 칸에서 숫자가 다시 갈라진다.
+        self.assertNotIn("#stock-search *,\n  overflow-wrap", css)
+        # 산문 블록은 긴 URL을 끊을 수 있어야 한다.
+        self.assertIn(".discussion-item-body", css)
+        self.assertIn("overflow-wrap: break-word;", css)
+
+    def test_order_book_summary_values_fit_on_narrow_mobile(self):
+        """운영 모바일 본문 폭(321px)에서 시가·고가·저가·거래량이 칸보다 3~4px 넓어
+        말줄임으로 끝 글자가 잘렸다("256,500원" -> "256,500…").
+
+        값을 줄이거나 3열을 무너뜨리지 않고 여백만 좁혀 자리를 만든 변경이라,
+        3열 배치와 말줄임 설정 자체는 그대로 남아 있어야 한다.
+        """
+        css = self.read("css/order-book.css")
+        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr));", css)
+        self.assertIn("text-overflow: ellipsis;", css)
+        self.assertIn("@media (max-width: 420px)", css)
+        narrow = css[css.index("@media (max-width: 420px)"):]
+        self.assertIn("#order-book .ob-summary {", narrow)
+        self.assertIn("#order-book .ob-summary-item {", narrow)
+        self.assertIn("padding-left: 6px;", narrow)
+
 
 if __name__ == "__main__":
     unittest.main()
