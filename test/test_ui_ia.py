@@ -2516,6 +2516,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 점수·순위는 스캔 기준이 맞는 값이라 건드리지 않는다.
         self.assertIn("순위·전략 지표·재무는 스캔 시점 기준", source)
 
+        # renderCards는 탭 전환뿐 아니라 ETF 검색창 입력 한 글자마다 다시 그린다
+        # (applyEtfSearch). 그대로 두면 타이핑마다 GAS를 부른다 - 캐시·디바운스로 막는다.
+        self.assertIn("LIVE_QUOTE_TTL_MS", source)
+        self.assertIn("LIVE_QUOTE_DEBOUNCE_MS", source)
+        self.assertIn("clearTimeout(liveQuoteTimer)", source)
+        # 늦게 온 응답이 최신 화면을 덮어쓰지 않아야 한다.
+        self.assertIn("seq !== liveQuoteSeq", source)
+
         css = self.read("css/strategy-search.css")
         # 값이 같을 때 빈 줄이 남지 않아야 한다.
         self.assertIn(".ss-price-basis:empty", css)

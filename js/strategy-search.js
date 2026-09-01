@@ -1042,66 +1042,106 @@
     return '스캔 ' + fmt(scanPrice) + ' · ' + (gap > 0 ? '+' : '') + gap.toFixed(1) + '%';
   }
 
+  // 렌더될 때마다 GAS를 부르면 안 된다. renderCards는 탭 전환뿐 아니라 ETF 검색창
+  // **입력 한 글자마다** 다시 그리고(applyEtfSearch), GAS는 1.9~6.4초에 사이트 전체가
+  // 할당량을 공유한다. 그래서 (1) 30초 캐시로 같은 종목을 다시 묻지 않고,
+  // (2) 새로 물어볼 종목이 있을 때만 디바운스해서 한 번에 모아 보내며,
+  // (3) 늦게 온 응답이 최신 화면을 덮어쓰지 않도록 순번을 확인한다.
+  var LIVE_QUOTE_TTL_MS = 30000;
+  var LIVE_QUOTE_DEBOUNCE_MS = 250;
+  var liveQuoteCache = {};     // code -> { data, at }
+  var liveQuoteTimer = null;
+  var liveQuoteSeq = 0;
+
+  function cachedQuote(code) {
+    var hit = liveQuoteCache[code];
+    return (hit && Date.now() - hit.at < LIVE_QUOTE_TTL_MS) ? hit.data : null;
+  }
+
   function patchLivePrices(container) {
     var rows = container.querySelectorAll('.ss-row[data-code], .ss-table-row[data-code]');
-    var codes = [];
+    var fresh = {};
+    var missing = [];
     Array.prototype.forEach.call(rows, function (row) {
       var code = row.getAttribute('data-code');
       // 6자리 국내 종목코드만 - ETF 상품/해외 등 다른 식별자는 ?codes=가 못 받는다.
-      if (code && /^\d{6}$/.test(code) && codes.indexOf(code) === -1) codes.push(code);
+      if (!code || !/^\d{6}$/.test(code)) return;
+      var hit = cachedQuote(code);
+      if (hit) fresh[code] = hit;
+      else if (missing.indexOf(code) === -1) missing.push(code);
     });
-    if (!codes.length) return;
 
-    StrategySearch.fetchJson(GAS_TICKER_URL + '?codes=' + codes.slice(0, LIVE_QUOTE_MAX_CODES).join(','))
-      .then(function (list) {
-        var byCode = {};
-        (list || []).forEach(function (d) { if (d && d.code != null) byCode[String(d.code)] = d; });
+    // 캐시에 있는 건 즉시 반영한다 - 탭을 오갈 때 값이 '스캔 시점'으로 되돌아갔다가
+    // 다시 채워지는 깜빡임이 없다.
+    if (Object.keys(fresh).length) applyLiveQuotes(container, rows, fresh);
+    if (!missing.length) {
+      if (Object.keys(fresh).length) markPriceBasis(container, true);
+      return;
+    }
 
-        Array.prototype.forEach.call(rows, function (row) {
-          var live = byCode[row.getAttribute('data-code')];
-          if (!live) return;   // 응답에 없는 종목은 '스캔 시점' 표시를 그대로 둔다
-
-          var priceCell = row.querySelector('.ss-col-price');
-          if (priceCell && live.price != null && !isNaN(live.price)) {
-            var scanPrice = Number(priceCell.getAttribute('data-scan-price'));
-            var valEl = priceCell.querySelector('.ss-price-val');
-            var basisEl = priceCell.querySelector('.ss-price-basis');
-            if (valEl) valEl.textContent = fmtWon(live.price);
-            if (basisEl) basisEl.textContent = priceBasisText(Number(live.price), scanPrice);
-            priceCell.className = priceCell.className.replace('is-scan', 'is-live');
-          }
-
-          // 카드 뷰(기본 화면)는 표와 마크업이 달라 따로 갱신한다.
-          var quote = row.querySelector('.ss-row-quote');
-          if (quote && live.price != null && !isNaN(live.price)) {
-            var cardScan = Number(quote.getAttribute('data-scan-price'));
-            var cardPrice = quote.querySelector('.ss-row-price');
-            var cardTag = quote.querySelector('.ss-row-basis-tag');
-            if (cardPrice) cardPrice.textContent = fmt(live.price);
-            if (cardTag) cardTag.textContent = priceBasisText(Number(live.price), cardScan);
-            quote.className = quote.className.replace('is-scan', 'is-live');
-          }
-          var cardRate = row.querySelector('.ss-row-rate');
-          if (cardRate && live.changeRate != null && !isNaN(live.changeRate)) {
-            cardRate.textContent = chgSign(live.changeRate);
-            cardRate.className = 'ss-row-rate ' + chgClass(live.changeRate);
-          }
-
-          // data-label(모바일에서 셀 앞에 붙는 항목명)은 카테고리마다 '등락률'/'전일대비'로
-          // 달라서 그대로 둔다 - className만 바꾸면 속성은 유지된다.
-          var changeCell = row.querySelector('.ss-col-change');
-          if (changeCell && live.changeRate != null && !isNaN(live.changeRate)) {
-            changeCell.textContent = fmtChange(live.changeRate);
-            changeCell.className = 'ss-col-change ' + chgClass(live.changeRate);
-          }
+    clearTimeout(liveQuoteTimer);
+    var seq = ++liveQuoteSeq;
+    liveQuoteTimer = setTimeout(function () {
+      StrategySearch.fetchJson(GAS_TICKER_URL + '?codes=' + missing.slice(0, LIVE_QUOTE_MAX_CODES).join(','))
+        .then(function (list) {
+          var byCode = {};
+          (list || []).forEach(function (d) {
+            if (!d || d.code == null) return;
+            byCode[String(d.code)] = d;
+            liveQuoteCache[String(d.code)] = { data: d, at: Date.now() };
+          });
+          if (seq !== liveQuoteSeq) return;   // 그사이 다시 그려졌다 - 늦은 응답은 버린다
+          applyLiveQuotes(container, container.querySelectorAll('.ss-row[data-code], .ss-table-row[data-code]'), byCode);
+          markPriceBasis(container, true);
+        })
+        .catch(function () {
+          if (seq !== liveQuoteSeq) return;
+          // 실패해도 스캔 값을 지우지 않는다. 다만 '스캔 시점' 표시를 그대로 남겨
+          // 실시간인 척하지 않게 한다.
+          markPriceBasis(container, false);
         });
-        markPriceBasis(container, true);
-      })
-      .catch(function () {
-        // 실패해도 스캔 값을 지우지 않는다. 다만 '스캔 시점' 표시를 그대로 남겨
-        // 실시간인 척하지 않게 한다.
-        markPriceBasis(container, false);
-      });
+    }, LIVE_QUOTE_DEBOUNCE_MS);
+  }
+
+  function applyLiveQuotes(container, rows, byCode) {
+    Array.prototype.forEach.call(rows, function (row) {
+      var live = byCode[row.getAttribute('data-code')];
+      if (!live) return;   // 응답에 없는 종목은 '스캔 시점' 표시를 그대로 둔다
+
+      var priceCell = row.querySelector('.ss-col-price');
+      if (priceCell && live.price != null && !isNaN(live.price)) {
+        var scanPrice = Number(priceCell.getAttribute('data-scan-price'));
+        var valEl = priceCell.querySelector('.ss-price-val');
+        var basisEl = priceCell.querySelector('.ss-price-basis');
+        if (valEl) valEl.textContent = fmtWon(live.price);
+        if (basisEl) basisEl.textContent = priceBasisText(Number(live.price), scanPrice);
+        priceCell.className = priceCell.className.replace('is-scan', 'is-live');
+      }
+
+      // 카드 뷰(기본 화면)는 표와 마크업이 달라 따로 갱신한다.
+      var quote = row.querySelector('.ss-row-quote');
+      if (quote && live.price != null && !isNaN(live.price)) {
+        var cardScan = Number(quote.getAttribute('data-scan-price'));
+        var cardPrice = quote.querySelector('.ss-row-price');
+        var cardTag = quote.querySelector('.ss-row-basis-tag');
+        if (cardPrice) cardPrice.textContent = fmt(live.price);
+        if (cardTag) cardTag.textContent = priceBasisText(Number(live.price), cardScan);
+        quote.className = quote.className.replace('is-scan', 'is-live');
+      }
+      var cardRate = row.querySelector('.ss-row-rate');
+      if (cardRate && live.changeRate != null && !isNaN(live.changeRate)) {
+        cardRate.textContent = chgSign(live.changeRate);
+        cardRate.className = 'ss-row-rate ' + chgClass(live.changeRate);
+      }
+
+      // data-label(모바일에서 셀 앞에 붙는 항목명)은 카테고리마다 '등락률'/'전일대비'로
+      // 달라서 그대로 둔다 - className만 바꾸면 속성은 유지된다.
+      var changeCell = row.querySelector('.ss-col-change');
+      if (changeCell && live.changeRate != null && !isNaN(live.changeRate)) {
+        changeCell.textContent = fmtChange(live.changeRate);
+        changeCell.className = 'ss-col-change ' + chgClass(live.changeRate);
+      }
+    });
   }
 
   // 표 위 안내문에 어떤 값이 어느 시점 기준인지 한 줄로 밝힌다.
