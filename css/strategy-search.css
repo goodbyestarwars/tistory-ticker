@@ -1135,3 +1135,41 @@ html.dark .ss-dividend-history li b { color: #F5EFE0; }
   .ss-dividend-modal-body { padding: 14px 14px 18px; }
   .ss-dividend-facts { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* ── 가격 시점 구분(2026-09-01) ──
+ * 리스트는 하루 1회 스캔 결과라 열 이름만 `현재가`였다. 실시간 값으로 덮어쓰되,
+ * 도착 전·실패 시에는 스캔 시점 값임을 밝힌다(실시간인 척하지 않는다).
+ * 값 아래 한 줄로 붙여 표에 열을 늘리지 않는다 - 모바일에서 열이 늘면 값이 잘린다. */
+#strategy-search .ss-col-price { line-height: 1.35; }
+#strategy-search .ss-price-val { display: block; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#strategy-search .ss-price-basis,
+#strategy-search .ss-row-basis-tag {
+  display: block;
+  color: #94a3b8;
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+#strategy-search .ss-row-basis-tag { display: inline; margin-left: 6px; }
+/* 실시간 값이 스캔가와 같으면 문구가 비어 여백만 남는다 - 그때는 줄 자체를 접는다. */
+#strategy-search .ss-price-basis:empty,
+#strategy-search .ss-row-basis-tag:empty { display: none; }
+/* 아직 스캔 값일 때는 조금 더 눈에 띄게 - 값의 시점을 착각하지 않도록. */
+#strategy-search .ss-col-price.is-scan .ss-price-basis,
+#strategy-search .ss-row-quote.is-scan .ss-row-basis-tag { color: #b45309; }
+
+#strategy-search .ss-price-basis-note {
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+#strategy-search .ss-price-basis-note.is-stale { color: #b45309; }
+#strategy-search .ss-price-basis-note:empty { display: none; }
+
+html.dark #strategy-search .ss-price-basis,
+html.dark #strategy-search .ss-row-basis-tag,
+html.dark #strategy-search .ss-price-basis-note { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #strategy-search .ss-col-price.is-scan .ss-price-basis,
+html.dark #strategy-search .ss-row-quote.is-scan .ss-row-basis-tag,
+html.dark #strategy-search .ss-price-basis-note.is-stale { color: #e0a458 !important; }

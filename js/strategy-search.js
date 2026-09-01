@@ -177,6 +177,8 @@
       + '<div class="ss-head">'
       + '<div class="ss-tabs" id="ssTabs"></div>'
       + '<div class="ss-meta" id="ssMeta"></div>'
+      // 어떤 값이 스캔 시점이고 어떤 값이 지금인지 한 줄로 밝힌다(patchLivePrices가 채운다).
+      + '<div class="ss-price-basis-note" id="ssPriceBasis"></div>'
       + '</div>'
       + '<div class="ss-methodology" id="ssMethodology"></div>'
       + '<div id="ssCards"></div>';
@@ -350,7 +352,14 @@
       + '<p class="ss-methodology-full">' + escapeHtml(full) + '</p>';
   }
 
+  // 분기가 여러 개라 각 분기 끝에서 부르지 않고 한 겹 감싼다 - 새 카테고리를 추가해도
+  // 실시간 갱신을 빠뜨리지 않는다.
   function renderCards(container) {
+    renderCardsInner(container);
+    patchLivePrices(container);
+  }
+
+  function renderCardsInner(container) {
     var wrap = container.querySelector('#ssCards');
     if (!wrap) return;
     if (activeKey === 'etfReturn') {
@@ -458,7 +467,7 @@
       + '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || '—') + '</span></strong></td>'
       + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
       + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(cleanIndustryLabel(item.sector || item.industry)) + '</td>'
-      + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
+      + priceCellHtml(item)
       + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
       + middleHtml
       + (showFundamentals ? '<td class="ss-col-fundamentals" data-label="재무 지표">' + escapeHtml(fundamentals || '—') + '</td>' : '')
@@ -507,7 +516,7 @@
       + '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || '—') + '</span></strong></td>'
       + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
       + '<td class="ss-col-sector" data-label="업종">' + escapeHtml(cleanIndustryLabel(item.sector)) + '</td>'
-      + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
+      + priceCellHtml(item)
       + '<td class="ss-col-change ' + chgClass(rate) + '" data-label="등락률">' + fmtChange(rate) + '</td>'
       + '<td class="ss-col-signal" data-label="보유 지분율">' + fmtPctExact(item.holdingPct) + '</td>'
       + '<td class="ss-col-fundamentals" data-label="평가액">' + (item.evaluationAmountEok == null ? '—' : fmt(item.evaluationAmountEok) + '억원') + '</td>'
@@ -745,7 +754,7 @@
       + '<td class="ss-col-product" data-label="상품명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + '</span></strong></td>'
       + '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'
       + '<td class="ss-col-provider" data-label="운용사">' + escapeHtml(item.provider || '—') + '</td>'
-      + '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'
+      + priceCellHtml(item)
       + '<td class="ss-col-change ' + rateClass + '" data-label="전일대비">' + fmtChange(item.changeRate) + '</td>'
       + '<td class="ss-col-type" data-label="유형">' + escapeHtml(etfType(item)) + '</td>'
       + '<td class="ss-col-return ' + chgClass(item.returnRate1mPct) + '" data-label="1개월">' + fmtPct(item.returnRate1mPct) + '</td>'
@@ -817,7 +826,7 @@
       { label: '종목명', html: function (item) { return '<td class="ss-col-product" data-label="종목명"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + '</span></strong></td>'; } },
       { label: '종목코드', cls: 'ss-col-code', html: function (item) { return '<td class="ss-col-code" data-label="종목코드">' + escapeHtml(item.code || '—') + '</td>'; } },
       { label: '업종', cls: 'ss-col-sector', html: function (item) { return '<td class="ss-col-sector" data-label="업종">' + escapeHtml(cleanIndustryLabel(item.sector)) + '</td>'; } },
-      { label: '현재가', cls: 'ss-col-price', html: function (item) { return '<td class="ss-col-price" data-label="현재가">' + fmtWon(item.price) + '</td>'; } },
+      { label: '현재가', cls: 'ss-col-price', html: function (item) { return priceCellHtml(item); } },
       { label: '배당금', html: function (item) { return '<td data-label="배당금">' + fmtWon(item.cashDividendPerShare) + ' <small class="ss-dividend-status">' + escapeHtml(item.dividendStatus || '실제') + '</small></td>'; } },
       { label: '배당수익률', html: function (item) { return '<td data-label="배당수익률">' + fmtPctExact(item.dividendYieldPct) + '</td>'; } }
     ];
@@ -969,7 +978,10 @@
       + '<div class="ss-row-top"><span class="ss-row-name">' + stockIconHtml(it.code) + '<span>' + escapeHtml(it.name) + '</span><span class="ss-row-code">(' + escapeHtml(it.code) + ')</span></span></div>'
       + '<div class="ss-row-primary">' + escapeHtml(primary) + '</div>'
       + (secondary ? '<div class="ss-row-secondary">' + (it.strategy === 'etfReturn' ? secondary : escapeHtml(secondary)) + '</div>' : '')
-      + '<div class="ss-row-bottom"><span class="ss-row-quote"><span class="ss-row-price">' + fmt(it.price) + '</span><span class="ss-row-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
+      + '<div class="ss-row-bottom"><span class="ss-row-quote is-scan"'
+      + (it.price == null || isNaN(Number(it.price)) ? '' : ' data-scan-price="' + escapeAttr(String(Number(it.price))) + '"')
+      + '><span class="ss-row-price">' + fmt(it.price) + '</span><span class="ss-row-rate ' + cc + '">' + chgSign(it.changeRate) + '</span>'
+      + '<span class="ss-row-basis-tag">스캔 시점</span></span>'
       + (basis ? '<span class="ss-row-basis">' + escapeHtml(basis) + '</span>' : '') + '</div>'
       + '</div>';
   }
@@ -995,6 +1007,111 @@
         if (timer) clearTimeout(timer);
         throw err;
       });
+  }
+
+  // ---- 가격 시점 구분: 스캔 시점 스냅샷 vs 지금 ----
+  //
+  // 2026-09-01 사용자 리포트: "실시간 가격을 반영해?? 신뢰할 수 있겠어? 스캔 시점 /
+  // 오늘 시점 구분이 필요해". 맞는 지적이었다. 리스트는 strategy_scan.py가 하루 1회
+  // 만들어둔 결과를 그대로 그리는데 열 이름만 `현재가`였다. 스캔은 장 시작 전에 돌아서
+  // 개장(09:00) 이후에는 종일 그 값에 고정된다 - 등락률도 어제 것이 계속 남는다.
+  // 실측(2026-09-01 08시, 개장 전인데도): 439260 스캔 47,500 vs 실시간 47,000(-1.05%),
+  // 017960 24,150 vs 23,750(-1.66%), 071970 52,100 vs 51,300(-1.54%).
+  //
+  // js/foreign-flow.js가 2026-07-28에 같은 리포트를 받고 쓴 방식(patchSignalListPrices)을
+  // 따른다 - 점수·순위·재무는 스캔 시점이 맞는 값이라 그대로 두고, 가격·등락률만
+  // 실시간으로 덮어쓴다. 다만 거기서 한 걸음 더 간다: 실시간 값이 도착하기 전이나
+  // 조회에 실패했을 때 스캔 값을 말없이 `현재가`로 보여주지 않고 `스캔 시점`이라고
+  // 밝힌다. 값을 못 갱신하는 것보다 어느 시점 값인지 모르는 게 더 나쁘다.
+  var LIVE_QUOTE_MAX_CODES = 60;   // GAS ?codes= 한 번에 보낼 상한(URL 길이·실행시간 여유)
+
+  function priceCellHtml(item, label) {
+    var scan = (item.price == null || isNaN(Number(item.price))) ? '' : String(Number(item.price));
+    return '<td class="ss-col-price is-scan" data-label="' + (label || '현재가') + '"'
+      + (scan ? ' data-scan-price="' + escapeAttr(scan) + '"' : '') + '>'
+      + '<span class="ss-price-val">' + fmtWon(item.price) + '</span>'
+      + '<span class="ss-price-basis">스캔 시점</span>'
+      + '</td>';
+  }
+
+  // 실시간 값이 스캔 값과 다를 때만 "스캔 대비"를 덧붙인다. 같으면(장 마감 등) 군더더기다.
+  function priceBasisText(livePrice, scanPrice) {
+    if (scanPrice == null || livePrice == null || !isFinite(scanPrice) || !isFinite(livePrice)) return '';
+    if (Math.round(livePrice) === Math.round(scanPrice)) return '';
+    var gap = (livePrice - scanPrice) / scanPrice * 100;
+    return '스캔 ' + fmt(scanPrice) + ' · ' + (gap > 0 ? '+' : '') + gap.toFixed(1) + '%';
+  }
+
+  function patchLivePrices(container) {
+    var rows = container.querySelectorAll('.ss-row[data-code], .ss-table-row[data-code]');
+    var codes = [];
+    Array.prototype.forEach.call(rows, function (row) {
+      var code = row.getAttribute('data-code');
+      // 6자리 국내 종목코드만 - ETF 상품/해외 등 다른 식별자는 ?codes=가 못 받는다.
+      if (code && /^\d{6}$/.test(code) && codes.indexOf(code) === -1) codes.push(code);
+    });
+    if (!codes.length) return;
+
+    StrategySearch.fetchJson(GAS_TICKER_URL + '?codes=' + codes.slice(0, LIVE_QUOTE_MAX_CODES).join(','))
+      .then(function (list) {
+        var byCode = {};
+        (list || []).forEach(function (d) { if (d && d.code != null) byCode[String(d.code)] = d; });
+
+        Array.prototype.forEach.call(rows, function (row) {
+          var live = byCode[row.getAttribute('data-code')];
+          if (!live) return;   // 응답에 없는 종목은 '스캔 시점' 표시를 그대로 둔다
+
+          var priceCell = row.querySelector('.ss-col-price');
+          if (priceCell && live.price != null && !isNaN(live.price)) {
+            var scanPrice = Number(priceCell.getAttribute('data-scan-price'));
+            var valEl = priceCell.querySelector('.ss-price-val');
+            var basisEl = priceCell.querySelector('.ss-price-basis');
+            if (valEl) valEl.textContent = fmtWon(live.price);
+            if (basisEl) basisEl.textContent = priceBasisText(Number(live.price), scanPrice);
+            priceCell.className = priceCell.className.replace('is-scan', 'is-live');
+          }
+
+          // 카드 뷰(기본 화면)는 표와 마크업이 달라 따로 갱신한다.
+          var quote = row.querySelector('.ss-row-quote');
+          if (quote && live.price != null && !isNaN(live.price)) {
+            var cardScan = Number(quote.getAttribute('data-scan-price'));
+            var cardPrice = quote.querySelector('.ss-row-price');
+            var cardTag = quote.querySelector('.ss-row-basis-tag');
+            if (cardPrice) cardPrice.textContent = fmt(live.price);
+            if (cardTag) cardTag.textContent = priceBasisText(Number(live.price), cardScan);
+            quote.className = quote.className.replace('is-scan', 'is-live');
+          }
+          var cardRate = row.querySelector('.ss-row-rate');
+          if (cardRate && live.changeRate != null && !isNaN(live.changeRate)) {
+            cardRate.textContent = chgSign(live.changeRate);
+            cardRate.className = 'ss-row-rate ' + chgClass(live.changeRate);
+          }
+
+          // data-label(모바일에서 셀 앞에 붙는 항목명)은 카테고리마다 '등락률'/'전일대비'로
+          // 달라서 그대로 둔다 - className만 바꾸면 속성은 유지된다.
+          var changeCell = row.querySelector('.ss-col-change');
+          if (changeCell && live.changeRate != null && !isNaN(live.changeRate)) {
+            changeCell.textContent = fmtChange(live.changeRate);
+            changeCell.className = 'ss-col-change ' + chgClass(live.changeRate);
+          }
+        });
+        markPriceBasis(container, true);
+      })
+      .catch(function () {
+        // 실패해도 스캔 값을 지우지 않는다. 다만 '스캔 시점' 표시를 그대로 남겨
+        // 실시간인 척하지 않게 한다.
+        markPriceBasis(container, false);
+      });
+  }
+
+  // 표 위 안내문에 어떤 값이 어느 시점 기준인지 한 줄로 밝힌다.
+  function markPriceBasis(container, live) {
+    var meta = container.querySelector('#ssPriceBasis');
+    if (!meta) return;
+    meta.textContent = live
+      ? '가격·등락률은 방금 조회한 실시간 값이고, 순위·전략 지표·재무는 스캔 시점 기준입니다.'
+      : '실시간 시세를 불러오지 못해 가격·등락률도 스캔 시점 값을 그대로 보여줍니다.';
+    meta.className = 'ss-price-basis-note' + (live ? '' : ' is-stale');
   }
 
   function chgClass(rt) {

@@ -2492,6 +2492,37 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".discussion-item-body", css)
         self.assertIn("overflow-wrap: break-word;", css)
 
+    def test_strategy_search_distinguishes_scan_time_from_live_price(self):
+        """차트검색 리스트는 하루 1회 스캔 결과인데 열 이름만 `현재가`였다
+        (2026-09-01 사용자 리포트: "실시간 가격을 반영해?? 신뢰할 수 있겠어?").
+
+        js/foreign-flow.js가 같은 리포트를 받고 쓴 방식대로 가격·등락률만 실시간으로
+        덮어쓰되, 도착 전·실패 시에는 스캔 시점 값임을 밝혀야 한다 - 값을 못 갱신하는
+        것보다 어느 시점 값인지 모르는 게 더 나쁘다.
+        """
+        source = self.read("js/strategy-search.js")
+        self.assertIn("function patchLivePrices(", source)
+        self.assertIn("'?codes=' +", source)
+        # 렌더 분기마다 부르지 않고 한 겹 감싸야 새 카테고리에서 빠지지 않는다.
+        self.assertIn("renderCardsInner(container);", source)
+        self.assertIn("patchLivePrices(container);", source)
+        # 스캔 시점 값을 실시간인 척 보여주지 않는다.
+        self.assertIn("스캔 시점", source)
+        self.assertIn("is-scan", source)
+        self.assertIn("실시간 시세를 불러오지 못해", source)
+        # 표와 카드 두 마크업 모두 갱신 대상이어야 한다.
+        self.assertIn(".ss-col-price", source)
+        self.assertIn(".ss-row-quote", source)
+        # 점수·순위는 스캔 기준이 맞는 값이라 건드리지 않는다.
+        self.assertIn("순위·전략 지표·재무는 스캔 시점 기준", source)
+
+        css = self.read("css/strategy-search.css")
+        # 값이 같을 때 빈 줄이 남지 않아야 한다.
+        self.assertIn(".ss-price-basis:empty", css)
+        self.assertIn(".ss-row-basis-tag:empty", css)
+        # 스캔 값일 때는 색으로도 구분한다.
+        self.assertIn(".ss-col-price.is-scan .ss-price-basis", css)
+
     def test_order_book_summary_values_fit_on_narrow_mobile(self):
         """운영 모바일 본문 폭(321px)에서 시가·고가·저가·거래량이 칸보다 3~4px 넓어
         말줄임으로 끝 글자가 잘렸다("256,500원" -> "256,500…").
