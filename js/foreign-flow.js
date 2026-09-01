@@ -5275,12 +5275,7 @@
       lwcCandleSeries = candleSeries;
 
       var levels = chartData.levels || {};
-      (levels.support || []).forEach(function (v) {
-        candleSeries.createPriceLine({ price: v, color: '#1261c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '지지' });
-      });
-      (levels.resistance || []).forEach(function (v) {
-        candleSeries.createPriceLine({ price: v, color: '#d24f45', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '저항' });
-      });
+      addLevelLines(candleSeries, LWC, levels, daily);
 
       ['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key) {
         var series = (chartData.ma && chartData.ma[key]) || [];
@@ -5419,6 +5414,58 @@
   }
   // 캔들차트 축·지지/저항선·크로스헤어에 표시되는 가격에 천단위 콤마(원화는 소수점 없음)
   function chartPriceFormatter(v) { return v == null || isNaN(v) ? '' : Math.round(v).toLocaleString(); }
+
+  // 지지/저항선 그리기. 서버(computeSupportResistance_)가 현재가 기준 위아래로 각각 최대
+  // 2개씩(slice(0, 2)) 주므로 선은 최대 4개다 - 이 개수 자체는 의도된 설계다.
+  //
+  // 2026-09-01 사용자 리포트: "지지 58,500"이 "지지 56,900"에 완전히 가려져 값을 읽을 수
+  // 없었다. 두 값은 2.8% 차이라 서버의 1% 중복 제거(dedupeLevels_)에는 걸리지 않지만,
+  // 화면에서는 가격축 라벨 한 줄 높이보다 가까워 뒤에 그려진 것이 앞의 것을 덮는다.
+  // 라이브러리는 라벨 충돌을 스스로 피해주지 않는다.
+  //
+  // 선은 4개 그대로 두고(정보를 지우지 않는다), 겹치는 라벨만 감춘 뒤 그 값은 선 위
+  // 제목에 넣어 계속 읽을 수 있게 한다. 현재가에 가까운 레벨이 축 라벨을 갖는다.
+  // 가격축 라벨 상자 높이(글자 12px + 상하 여백) + 약간의 여유. 리포트된 화면에서 지지
+  // 58,500과 56,900은 세로로 19px 남짓 떨어져 있었는데도 겹쳤으므로, 라벨 높이는 그보다
+  // 크다. 20px대 초반으로 보고 24px를 쓴다 - 조금 넉넉하게 잡아 겹치는 쪽을 확실히 없앤다.
+  var LEVEL_LABEL_MIN_GAP_PX = 24;
+
+  function addLevelLines(series, LWC, levels, daily) {
+    var lastClose = daily && daily.length ? daily[daily.length - 1].close : null;
+    var labeledY = [];
+
+    function draw(values, color, name) {
+      (values || []).slice().sort(function (a, b) {
+        if (lastClose == null) return 0;
+        return Math.abs(a - lastClose) - Math.abs(b - lastClose);   // 현재가에 가까운 순
+      }).forEach(function (v) {
+        var y = null;
+        try { y = series.priceToCoordinate(v); } catch (e) { y = null; }
+
+        // 좌표를 못 구하면(레이아웃 전 등) 예전처럼 전부 라벨을 단다 - 정보를 잃지 않는다.
+        var showLabel = true;
+        if (y != null) {
+          showLabel = labeledY.every(function (prev) {
+            return Math.abs(prev - y) >= LEVEL_LABEL_MIN_GAP_PX;
+          });
+          if (showLabel) labeledY.push(y);
+        }
+
+        series.createPriceLine({
+          price: v,
+          color: color,
+          lineWidth: 1,
+          lineStyle: LWC.LineStyle.Dashed,
+          axisLabelVisible: showLabel,
+          // 축 라벨을 못 단 선은 제목에 가격을 실어 값이 사라지지 않게 한다.
+          title: showLabel ? name : name + ' ' + chartPriceFormatter(v)
+        });
+      });
+    }
+
+    draw(levels.support, '#1261c4', '지지');
+    draw(levels.resistance, '#d24f45', '저항');
+  }
   function movingAverageChartPoints(bars, field, period) {
     var sum = 0;
     var points = [];
@@ -5797,7 +5844,10 @@
     fetchNewsMomentum: fetchNewsMomentum,
     // js/stock-news.js "종목분석 요약" 패널 전용 경량 API(위 정의부 주석 참고) - #foreign-flow
     // 마운트 없이도(즉 이 스크립트를 로드만 해도) 호출 가능.
-    fetchAnalysisSummary: fetchAnalysisSummary
+    fetchAnalysisSummary: fetchAnalysisSummary,
+    // 지지/저항선 라벨 충돌 회피(2026-09-01) - 캔버스에 그려지는 축 라벨은 DOM으로
+    // 검증할 수 없어, 가짜 series를 넘겨 어떤 선이 라벨을 갖는지 계약만 확인한다.
+    addLevelLines: addLevelLines
   };
   global.ForeignFlow = ForeignFlow;
 

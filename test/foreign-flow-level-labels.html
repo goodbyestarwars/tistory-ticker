@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>종목분석 지지/저항선 라벨 검증</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 24px; background: #fff; color: #111; }
+  h1 { font-size: 18px; }
+  p.note { color: #555; font-size: 13px; line-height: 1.6; max-width: 760px; }
+  table { border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; white-space: nowrap; }
+  .pass { color: #1a7f37; font-weight: 700; }
+  .fail { color: #c92a2a; font-weight: 700; }
+  #summary { margin-top: 16px; font-size: 15px; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>종목분석 지지/저항선 라벨 검증</h1>
+<p class="note">
+  2026-09-01 사용자 리포트: 가격 차트에서 <b>“지지 58,500”이 “지지 56,900”에 완전히 가려져</b>
+  값을 읽을 수 없었다. 서버(<code>computeSupportResistance_</code>)는 현재가 위아래로 각각
+  최대 2개씩 주므로 선이 최대 4개인 건 의도된 설계지만, 두 값이 2.8% 차이라 서버의 1%
+  중복 제거에는 걸리지 않으면서 화면에서는 축 라벨 높이보다 가까워 겹쳤다.
+  축 라벨은 캔버스에 그려져 DOM으로 확인할 수 없으므로, 가짜 series를 넘겨
+  <code>createPriceLine</code>에 어떤 옵션이 전달되는지로 계약을 검증한다.
+</p>
+<div id="out"></div>
+<div id="summary"></div>
+
+<div id="foreign-flow" style="display:none"></div>
+<script>
+  // foreign-flow.js는 로드 시 init()이 네트워크를 건드릴 수 있어, fetch를 먼저 막아둔다.
+  window.fetch = function () { return new Promise(function () {}); };
+</script>
+<script src="../js/foreign-flow.js"></script>
+<script>
+(function () {
+  var results = [];
+  function check(name, cond, detail) {
+    results.push({ name: name, ok: !!cond, detail: detail || '' });
+  }
+
+  // 리포트된 화면 그대로: 지지 58,500 / 56,900, 저항 62,000 / 66,700.
+  // 서버는 지지를 항상 종가 아래로만 주므로(computeSupportResistance_) 종가를 59,000으로 둔다.
+  function fakeSeries(coordFn) {
+    var calls = [];
+    return {
+      calls: calls,
+      priceToCoordinate: coordFn,
+      createPriceLine: function (opts) { calls.push(opts); return {}; }
+    };
+  }
+  var LWC = { LineStyle: { Dashed: 2 } };
+  // 가격 -> y좌표: 화면에서 1,000원이 약 12px인 압축된 축을 흉내낸다.
+  function coord(price) { return (100000 - price) * 0.012; }
+  var daily = [{ date: '2026-08-31', open: 58000, high: 59500, low: 57000, close: 59000 }];
+
+  // ── 1) 겹치는 지지 두 개: 가까운 쪽만 축 라벨 ──
+  var s1 = fakeSeries(coord);
+  window.ForeignFlow.addLevelLines(s1, LWC, { support: [58500, 56900], resistance: [] }, daily);
+  var sup = s1.calls;
+  check('지지선 2개가 모두 그려진다(선을 지우지 않는다)', sup.length === 2, '그려진 선 ' + sup.length + '개');
+  var labeled = sup.filter(function (c) { return c.axisLabelVisible; });
+  check('겹치는 라벨은 하나만 표시된다', labeled.length === 1,
+        '라벨 ' + labeled.length + '개: ' + sup.map(function (c) { return c.price + '=' + c.axisLabelVisible; }).join(', '));
+  check('현재가(59,000)에 가까운 58,500이 축 라벨을 갖는다',
+        labeled.length === 1 && labeled[0].price === 58500, labeled.length ? String(labeled[0].price) : '없음');
+  var hidden = sup.filter(function (c) { return !c.axisLabelVisible; })[0];
+  check('라벨을 감춘 선은 제목에 가격을 실어 값이 사라지지 않는다',
+        hidden && /56,900/.test(hidden.title), hidden ? hidden.title : '없음');
+  check('라벨을 가진 선의 제목은 값 없이 "지지"',
+        labeled.length === 1 && labeled[0].title === '지지', labeled.length ? labeled[0].title : '없음');
+
+  check('리포트된 두 지지선의 화면상 간격은 라벨 높이보다 작다(버그 재현 조건)',
+        Math.abs(coord(58500) - coord(56900)) < 24,
+        Math.abs(coord(58500) - coord(56900)).toFixed(1) + 'px');
+
+  // ── 2) 충분히 떨어진 저항 두 개: 둘 다 라벨 ──
+  var s2 = fakeSeries(coord);
+  window.ForeignFlow.addLevelLines(s2, LWC, { support: [], resistance: [62000, 66700] }, daily);
+  check('멀리 떨어진 저항 2개는 둘 다 축 라벨을 갖는다',
+        s2.calls.length === 2 && s2.calls.every(function (c) { return c.axisLabelVisible; }),
+        s2.calls.map(function (c) { return c.price + '=' + c.axisLabelVisible; }).join(', '));
+
+  // ── 3) 지지와 저항이 서로 가까울 때도 겹치지 않는다 ──
+  var s3 = fakeSeries(coord);
+  window.ForeignFlow.addLevelLines(s3, LWC, { support: [57000], resistance: [57400] }, daily);
+  var labeled3 = s3.calls.filter(function (c) { return c.axisLabelVisible; });
+  check('지지-저항끼리 가까워도 라벨은 하나만', labeled3.length === 1,
+        s3.calls.map(function (c) { return c.title + '@' + c.price + '=' + c.axisLabelVisible; }).join(', '));
+
+  // ── 4) 좌표를 못 구하면 예전처럼 전부 라벨(정보 손실 없음) ──
+  var s4 = fakeSeries(function () { return null; });
+  window.ForeignFlow.addLevelLines(s4, LWC, { support: [58500, 56900], resistance: [] }, daily);
+  check('좌표를 못 구하면 전부 라벨을 단다(회귀 안전장치)',
+        s4.calls.length === 2 && s4.calls.every(function (c) { return c.axisLabelVisible; }),
+        s4.calls.map(function (c) { return c.price + '=' + c.axisLabelVisible; }).join(', '));
+
+  // ── 5) 선 색은 의미색을 유지한다 ──
+  var s5 = fakeSeries(coord);
+  window.ForeignFlow.addLevelLines(s5, LWC, { support: [50000], resistance: [70000] }, daily);
+  var sLine = s5.calls.filter(function (c) { return c.title.indexOf('지지') === 0; })[0];
+  var rLine = s5.calls.filter(function (c) { return c.title.indexOf('저항') === 0; })[0];
+  check('지지=파랑 #1261c4 / 저항=빨강 #d24f45 유지',
+        sLine && rLine && sLine.color === '#1261c4' && rLine.color === '#d24f45',
+        (sLine ? sLine.color : '?') + ' / ' + (rLine ? rLine.color : '?'));
+
+  // ── 6) 레벨이 없어도 죽지 않는다 ──
+  var s6 = fakeSeries(coord);
+  var threw = false;
+  try { window.ForeignFlow.addLevelLines(s6, LWC, {}, daily); } catch (e) { threw = true; }
+  check('levels가 비어도 예외가 없다', !threw && s6.calls.length === 0, threw ? '예외 발생' : '선 0개');
+
+  var rows = results.map(function (r) {
+    return '<tr><td class="' + (r.ok ? 'pass' : 'fail') + '">' + (r.ok ? 'PASS' : 'FAIL')
+      + '</td><td>' + r.name + '</td><td>' + r.detail + '</td></tr>';
+  }).join('');
+  document.getElementById('out').innerHTML =
+    '<table><thead><tr><th>결과</th><th>검증</th><th>실측</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  var passed = results.filter(function (r) { return r.ok; }).length;
+  document.getElementById('summary').textContent = passed + '/' + results.length + ' 통과';
+  document.getElementById('summary').className = passed === results.length ? 'pass' : 'fail';
+  window.__testResult = { passed: passed, total: results.length, results: results };
+})();
+</script>
+</body>
+</html>
