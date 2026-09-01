@@ -300,12 +300,21 @@ def fetch_pbar_tratio(token, appkey, appsecret, code, hour1=''):
 
 
 def fetch_overseas_price(token, appkey, appsecret, excd, symb):
-    """해외주식 현재체결가(v1_해외주식-009)를 조회한다.
+    """해외주식 현재가상세(v1_해외주식-029, HHDFS76200200)를 조회한다.
 
     미국주식은 KIS 무료시세 정책상 지연체결가일 수 있으나, 공개 중계 소스가
     아니라 KIS 계정에 연결된 공식 Open API 응답을 사용한다.
+
+    2026-09-01: 원래는 현재체결가(HHDFS00000300)를 썼는데 그 응답에는 현재가·전일종가·
+    거래량만 있고 시가/고가/저가/52주/시가총액이 아예 없다. 그래서 미국 종목 화면의
+    "오늘 고가·저가"와 "52주 범위"가 계속 `-`로 남아 있었다(2026-08-25에 같은 증상을
+    차트 쪽에서 고쳤지만 이 경로는 남아 있었다). 현재가상세는 같은 인증으로 한 번만
+    부르면 되고 아래 필드를 모두 준다:
+        open 시가 · high 고가 · low 저가 · last 현재가 · base 전일종가
+        h52p 52주최고가 · l52p 52주최저가 · tomv 시가총액 · shar 상장주수
+        tvol 거래량 · tamt 거래대금 · perx/pbrx/epsx/bpsx
     """
-    path = ('/uapi/overseas-price/v1/quotations/price'
+    path = ('/uapi/overseas-price/v1/quotations/price-detail'
             '?AUTH=&EXCD=%s&SYMB=%s' % (excd, symb))
     req = urllib.request.Request(
         BASE_URL + path,
@@ -314,7 +323,7 @@ def fetch_overseas_price(token, appkey, appsecret, excd, symb):
             'authorization': 'Bearer ' + token,
             'appkey': appkey,
             'appsecret': appsecret,
-            'tr_id': 'HHDFS00000300',
+            'tr_id': 'HHDFS76200200',
             'custtype': 'P',
         },
         method='GET',
@@ -323,9 +332,9 @@ def fetch_overseas_price(token, appkey, appsecret, excd, symb):
         with urllib.request.urlopen(req, timeout=15) as res:
             data = json.loads(res.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
-        raise RuntimeError('HHDFS00000300 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
+        raise RuntimeError('HHDFS76200200 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
     if data.get('rt_cd') not in (None, '0', 0):
-        raise RuntimeError('HHDFS00000300 실패: ' + json.dumps(data, ensure_ascii=False))
+        raise RuntimeError('HHDFS76200200 실패: ' + json.dumps(data, ensure_ascii=False))
     return data.get('output') or data.get('output1') or {}
 
 

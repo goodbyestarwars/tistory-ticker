@@ -251,11 +251,16 @@ def _normalize_quote(row, symbol, provider, exchange):
     market_cap = _number(_first(
         row, 'market_cap', 'marketCap', 'mcap', 'tomv', 'total_market_value',
     ))
+    # 'h52p'/'l52p'는 KIS 해외주식 현재가상세(HHDFS76200200)의 52주 최고/최저 필드다.
     week52_high = _number(_first(
-        row, '52wk_hgst_pric', 'fifty_two_week_high', 'h52hgpr', 'w52_hgpr',
+        row, 'h52p', '52wk_hgst_pric', 'fifty_two_week_high', 'h52hgpr', 'w52_hgpr',
     ))
     week52_low = _number(_first(
-        row, '52wk_lwst_pric', 'fifty_two_week_low', 'h52lwpr', 'w52_lwpr',
+        row, 'l52p', '52wk_lwst_pric', 'fifty_two_week_low', 'h52lwpr', 'w52_lwpr',
+    ))
+    # 상장주수(발행주식 수). 현재가상세의 'shar'로 들어온다 - 유통주식 수 표시에 쓴다.
+    shares = _number(_first(
+        row, 'shar', 'lstg_stcn', 'listed_shares', 'shares_outstanding',
     ))
     return {
         'market': 'us',
@@ -275,6 +280,7 @@ def _normalize_quote(row, symbol, provider, exchange):
         'volume': _number(_first(row, 'ovrs_vol', 'acc_trde_qty', 'tvol', 'volume', 'acml_vol')),
         'week52_high': abs(week52_high) if week52_high is not None else None,
         'week52_low': abs(week52_low) if week52_low is not None else None,
+        'shares_outstanding': abs(shares) if shares is not None else None,
         'market_state': _market_state(),
         'updated_at': int(time.time()),
         'source': provider,

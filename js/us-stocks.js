@@ -433,11 +433,13 @@
         + '<span class="us-stocks-market-state" data-us-state></span></div>'
         + '<div class="us-stocks-live-price" data-us-price-wrap><span data-us-price></span><span data-us-change></span></div>'
         + '<div class="us-stocks-metrics">'
+        + metric('시가', '', 'open')
         + metric('전일 종가', '', 'previous')
         + metric('오늘 고가', '', 'high')
         + metric('오늘 저가', '', 'low')
         + metric('거래량', '', 'volume')
         + metric('52주 범위', '', 'week52')
+        + metric('상장주식 수', '', 'shares')
         + '</div>'
         + '<div class="us-stocks-live-footer"><span>15초 자동 갱신</span><span data-us-updated></span></div>'
         + '</div>'
@@ -470,11 +472,13 @@
       + '</div>'
       + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식 · <span data-us-state></span> · 15초 자동 갱신</span></div>'
       + '<details class="us-stocks-metrics-more"><summary>세부 시세</summary><div class="us-stocks-metrics">'
+      + metric('시가', '', 'open')
       + metric('전일 종가', '', 'previous')
       + metric('오늘 고가', '', 'high')
       + metric('오늘 저가', '', 'low')
       + metric('거래량', '', 'volume')
       + metric('52주 범위', '', 'week52')
+      + metric('상장주식 수', '', 'shares')
       + '</div></details>'
       + '</div>'
       + '<div id="usStocksAnalysis" class="us-stocks-analysis-grid">'
@@ -507,11 +511,14 @@
     changeNode.textContent = formatPercent(quote.change_rate);
     applyTone(changeNode, quote.change_rate);
     var values = {
+      open: formatPrice(quote.open),
       previous: formatPrice(quote.previous_close),
       high: formatPrice(quote.day_high),
       low: formatPrice(quote.day_low),
       volume: formatVolume(quote.volume),
-      week52: formatPrice(quote.week52_low) + ' ~ ' + formatPrice(quote.week52_high)
+      week52: formatPrice(quote.week52_low) + ' ~ ' + formatPrice(quote.week52_high),
+      // 상장주식 수는 가격이 아니라 수량이라 통화기호 없이 축약해 보여준다.
+      shares: formatVolume(quote.shares_outstanding)
     };
     Object.keys(values).forEach(function (key) {
       var node = card.querySelector('[data-us-metric="' + key + '"]');
