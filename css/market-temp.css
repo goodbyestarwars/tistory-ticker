@@ -1005,3 +1005,68 @@ html.dark #market-temp .mt-industry-flow-stock:hover { color: #80b8ff; }
 html.dark #market-temp .mt-industry-flow-stock .is-up { color: #ff8a83; }
 html.dark #market-temp .mt-industry-flow-stock .is-down { color: #80b8ff; }
 html.dark #market-temp .mt-industry-flow-stock .is-flat { color: rgba(245,239,224,.58); }
+
+/* ── 오늘 돈이 몰린 섹터 (2026-09-02) ──
+ * 순위는 '평소 대비 배수'라 덩치가 아니라 오늘 새로 몰린 정도를 보여준다.
+ * 업종 TOP 표(mt-industry-flow-*)와 열 구성이 달라 클래스를 따로 둔다 - 저기는
+ * 거래대금 크기 비교가 목적이고 여기는 배수 순위 + 펼침이 목적이다. */
+#market-temp .mt-sf-card { margin-bottom: 14px; padding: 14px 16px; }
+/* 제목이 부제에 밀려 두 줄로 접혔다(모바일 375px). 제목은 줄이지 않고 부제를 줄인다. */
+#market-temp .mt-sf-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+#market-temp .mt-sf-head strong { flex: 0 0 auto; white-space: nowrap; }
+#market-temp .mt-sf-head span { min-width: 0; text-align: right; }
+#market-temp .mt-sf-head strong { color: #111827; font-size: 15px; }
+#market-temp .mt-sf-head span, #market-temp .mt-sf-note { color: #94a3b8; font-size: 10.5px; }
+#market-temp .mt-sf-note { margin: 8px 0 0; line-height: 1.5; }
+
+#market-temp .mt-sf-item { border-bottom: 1px solid #eef2f7; }
+#market-temp .mt-sf-item:last-of-type { border-bottom: 0; }
+#market-temp .mt-sf-row {
+  display: grid; grid-template-columns: 15px minmax(0, 1fr) auto auto 10px;
+  align-items: center; gap: 8px;
+  width: 100%; min-height: 40px; padding: 8px 4px;
+  border: 0; background: transparent; color: inherit; font: inherit; font-size: 12.5px;
+  text-align: left; cursor: pointer;
+}
+#market-temp .mt-sf-row:hover, #market-temp .mt-sf-row.is-open { background: #f8fafc; }
+#market-temp .mt-sf-rank { color: #94a3b8; font-size: 10px; font-style: normal; font-weight: 700; text-align: center; }
+#market-temp .mt-sf-row b { overflow: hidden; color: #1f2937; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+/* 배수가 이 카드의 주인공이라 가장 눈에 띄게 둔다. 방향이 없는 양이라 중립색. */
+#market-temp .mt-sf-mult { color: #111827; font-weight: 700; white-space: nowrap; }
+#market-temp .mt-sf-rate { font-weight: 700; white-space: nowrap; }
+#market-temp .mt-sf-row.is-up .mt-sf-rate { color: #d24f45; }
+#market-temp .mt-sf-row.is-down .mt-sf-rate { color: #1261c4; }
+#market-temp .mt-sf-row.is-flat .mt-sf-rate { color: #64748b; }
+#market-temp .mt-sf-caret { color: #c3ccd6; font-size: 9px; font-style: normal; transition: transform .15s ease; }
+#market-temp .mt-sf-row.is-open .mt-sf-caret { transform: rotate(180deg); }
+
+#market-temp .mt-sf-detail { padding: 2px 4px 10px; }
+#market-temp .mt-sf-stock {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 7px 6px; border-top: 1px solid #eef2f7; color: #1f2937; text-decoration: none;
+}
+#market-temp .mt-sf-stock:hover { color: #2563eb; }
+#market-temp .mt-sf-stock-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+#market-temp .mt-sf-stock-val { display: inline-flex; flex: 0 0 auto; align-items: baseline; gap: 8px; white-space: nowrap; }
+#market-temp .mt-sf-stock-val b { font-size: 12px; }
+#market-temp .mt-sf-stock-val em { font-size: 11px; font-style: normal; font-weight: 700; }
+#market-temp .mt-sf-stock-val .is-up { color: #d24f45; }
+#market-temp .mt-sf-stock-val .is-down { color: #1261c4; }
+#market-temp .mt-sf-stock-val .is-flat { color: #94a3b8; }
+
+/* 파생 섹터 - 같은 종목을 공유해 함께 움직이는 경우가 많은 섹터. */
+#market-temp .mt-sf-derived { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 9px; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
+#market-temp .mt-sf-derived > span { color: #94a3b8; font-size: 10.5px; }
+#market-temp .mt-sf-derived b { padding: 3px 8px; border: 1px solid #e5edf6; border-radius: 999px; background: #f8fbff; color: #334155; font-size: 11px; font-weight: 600; }
+#market-temp .mt-sf-derived b small { color: #94a3b8; font-size: 10px; font-weight: 500; }
+
+html.dark #market-temp .mt-sf-head strong { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-sf-row b, html.dark #market-temp .mt-sf-mult { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-sf-item { border-bottom-color: rgba(245,239,224,.12) !important; }
+html.dark #market-temp .mt-sf-row:hover, html.dark #market-temp .mt-sf-row.is-open { background: #242424 !important; }
+html.dark #market-temp .mt-sf-row.is-up .mt-sf-rate, html.dark #market-temp .mt-sf-stock-val .is-up { color: #ff8a83 !important; }
+html.dark #market-temp .mt-sf-row.is-down .mt-sf-rate, html.dark #market-temp .mt-sf-stock-val .is-down { color: #80b8ff !important; }
+html.dark #market-temp .mt-sf-stock { border-top-color: rgba(245,239,224,.12) !important; color: #F5EFE0 !important; }
+html.dark #market-temp .mt-sf-stock:hover { color: #80b8ff !important; }
+html.dark #market-temp .mt-sf-derived { border-top-color: rgba(245,239,224,.14) !important; }
+html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !important; background: rgba(245,239,224,.06) !important; color: rgba(245,239,224,.85) !important; }

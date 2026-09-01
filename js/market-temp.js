@@ -454,11 +454,148 @@
       });
   }
 
+
+  // ---- 오늘 돈이 몰린 섹터 (국내 주요종목 상단) ----
+  //
+  // 2026-09-02 사용자 요청. 원래 이 화면의 "추천 종목"은 `섹터 전체 - 카드에 이미 편성된
+  // 종목`이라 카드를 잘 채울수록 후보가 사라지는 구조였다(실측: 37개 섹터 중 35개가 0개).
+  // 그래서 추천을 섹터 단위로 바꾼다. 사용자가 말한 흐름 그대로다:
+  //     (1) 오늘의 섹터가 뭐지  (2) 그럼 이 종목은 뭐가 있지  (3) 여기 파생되는 섹터는
+  //
+  // 순위는 거래대금 절대액이 아니라 '평소 대비 배수'로 매긴다. 절대액은 매일 덩치
+  // 순서라(반도체가 2위의 5배) 돈이 새로 들어온 곳을 못 짚는다.
+  var SECTOR_FLOW_URL = 'https://goodbyestar.cloud/industry-flow';
+  var SECTOR_FLOW_TOP = 6;
+
+  function flowMultipleText_(row) {
+    var m = Number(row && row.flow_multiple);
+    if (!isFinite(m) || m <= 0) return '';
+    return '평소의 ' + m.toFixed(1) + '배';
+  }
+
+  // (3) 파생 섹터: 선택한 섹터와 종목을 공유하는 다른 섹터. 한 종목이 두 테마에 걸쳐
+  // 있으면 한쪽이 뜰 때 다른 쪽도 같이 움직이는 경우가 많아 다음에 볼 후보가 된다.
+  // 백엔드가 테마 흐름에서 뺀 시가총액 묶음(코스피 3대장 등)은 여기서도 빼야 한다 -
+  // 이쪽은 SECTOR_MAP을 직접 읽으므로 서버 필터가 적용되지 않는다.
+  var DERIVED_EXCLUDE = { '코스피 3대장': true };
+
+  function derivedSectors_(sectorName, rows) {
+    var map = global.SECTOR_MAP || {};
+    var mine = {};
+    (map[sectorName] || []).forEach(function (item) {
+      var code = String((item && item.code) || item || '').toUpperCase();
+      if (code) mine[code] = true;
+    });
+    if (!Object.keys(mine).length) return [];
+    var byName = {};
+    (rows || []).forEach(function (r) { byName[r.industry] = r; });
+
+    var out = [];
+    Object.keys(map).forEach(function (other) {
+      if (other === sectorName || DERIVED_EXCLUDE[other]) return;
+      var shared = (map[other] || []).filter(function (item) {
+        var code = String((item && item.code) || item || '').toUpperCase();
+        return code && mine[code];
+      });
+      if (!shared.length) return;
+      var flow = byName[other];
+      out.push({
+        sector: other,
+        shared: shared.length,
+        multiple: flow ? Number(flow.flow_multiple) : null
+      });
+    });
+    // 겹치는 종목이 많고, 오늘 많이 움직인 섹터를 앞에 둔다.
+    out.sort(function (a, b) {
+      return (b.shared - a.shared) || ((b.multiple || 0) - (a.multiple || 0));
+    });
+    return out.slice(0, 4);
+  }
+
+  function sectorFlowStockHtml_(stock) {
+    var code = String(stock.code || '');
+    var rate = Number(stock.change_rate != null ? stock.change_rate : stock.changeRate);
+    var tone = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
+    var price = isFinite(Number(stock.price)) ? Math.round(stock.price).toLocaleString('ko-KR') : '-';
+    return '<a class="mt-sf-stock" href="/page/stock-search?code=' + encodeURIComponent(code)
+      + '&amp;name=' + encodeURIComponent(stock.name || code) + '">'
+      + '<span class="mt-sf-stock-name">' + escapeHtml(stock.name || code) + '</span>'
+      + '<span class="mt-sf-stock-val"><b>' + price + '</b>'
+      + '<em class="' + tone + '">' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</em></span>'
+      + '</a>';
+  }
+
+  function sectorFlowRowHtml_(row, index, rows) {
+    var rate = Number(row.avg_change_rate);
+    var tone = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
+    var derived = derivedSectors_(row.industry, rows);
+    var derivedHtml = derived.length
+      ? '<div class="mt-sf-derived"><span>함께 볼 섹터</span>'
+        + derived.map(function (d) {
+            var m = isFinite(d.multiple) && d.multiple ? ' ' + d.multiple.toFixed(1) + '배' : '';
+            return '<b>' + escapeHtml(d.sector) + '<small>' + escapeHtml(m) + '</small></b>';
+          }).join('') + '</div>'
+      : '';
+    return '<div class="mt-sf-item">'
+      + '<button type="button" class="mt-sf-row ' + tone + '" data-sf-index="' + index + '" aria-expanded="false">'
+      + '<i class="mt-sf-rank">' + (index + 1) + '</i>'
+      + '<b>' + escapeHtml(row.industry || '-') + '</b>'
+      + '<span class="mt-sf-mult">' + escapeHtml(flowMultipleText_(row) || '-') + '</span>'
+      + '<span class="mt-sf-rate">' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
+      + '<i class="mt-sf-caret" aria-hidden="true">▾</i>'
+      + '</button>'
+      + '<div class="mt-sf-detail" hidden>'
+      + (row.stocks || []).map(sectorFlowStockHtml_).join('')
+      + derivedHtml
+      + '</div></div>';
+  }
+
+  function renderSectorFlow_(mount, rows) {
+    if (!mount) return;
+    // 배수가 있는 것만 배수 순으로. 아직 배수가 없으면(이력 부족) 거래대금 순을 그대로 쓴다.
+    var withMultiple = (rows || []).filter(function (r) { return Number(r.flow_multiple) > 0; });
+    var ordered = withMultiple.length
+      ? withMultiple.slice().sort(function (a, b) { return b.flow_multiple - a.flow_multiple; })
+      : (rows || []).slice();
+    var shown = ordered.slice(0, SECTOR_FLOW_TOP);
+    if (!shown.length) { mount.innerHTML = ''; return; }
+    var basis = withMultiple.length
+      ? '평소(최근 20거래일 평균) 대비 오늘 거래대금이 많이 늘어난 순서입니다. 덩치가 아니라 오늘 새로 몰린 정도를 봅니다.'
+      : '오늘 거래대금이 많은 순서입니다. 평소 대비 배수는 이력이 쌓이면 표시됩니다.';
+    mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
+      + '<div class="mt-sf-head"><strong>오늘 돈이 몰린 섹터</strong><span>누르면 종목과 함께 볼 섹터가 열립니다</span></div>'
+      + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows); }).join('')
+      + '<p class="mt-sf-note">' + escapeHtml(basis) + '</p>'
+      + '</div>';
+    mount.onclick = function (event) {
+      var button = event.target.closest && event.target.closest('.mt-sf-row');
+      if (!button || !mount.contains(button)) return;
+      var detail = button.parentElement.querySelector('.mt-sf-detail');
+      if (!detail) return;
+      var open = !detail.hasAttribute('hidden');
+      if (open) { detail.setAttribute('hidden', ''); button.classList.remove('is-open'); }
+      else { detail.removeAttribute('hidden'); button.classList.add('is-open'); }
+      button.setAttribute('aria-expanded', open ? 'false' : 'true');
+    };
+  }
+
+  function loadSectorFlow_(container) {
+    var mount = container.querySelector('[data-sector-flow]');
+    if (!mount) return;
+    fetchJson_(SECTOR_FLOW_URL)
+      .then(function (body) {
+        var payload = body && body.data ? body.data : body;
+        renderSectorFlow_(mount, (payload && payload.rows) || []);
+      })
+      .catch(function () { mount.innerHTML = ''; });   // 실패하면 조용히 비운다 - 아래 카드가 본체다
+  }
+
   function buildStocksOnlyPage() {
     var params = new URLSearchParams(String(global.location && global.location.search || ''));
     var initialView = params.get('panel') === 'heatmap' ? 'heatmap' : params.get('panel') === 'marketcap' ? 'marketcap' : 'cards';
     return '<div class="mt-stocks-only">'
       + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>업종별 주요 종목의 현재가와 등락률을 한눈에 확인합니다.</p></div>'
+      + '<div data-sector-flow></div>'
       + buildExploreCard(initialView)
       + '</div>';
   }
@@ -470,6 +607,7 @@
     if (stocksOnly) {
       container.innerHTML = buildStocksOnlyPage();
       wireViewTabs(container);
+      loadSectorFlow_(container);
       return;
     }
     container.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>증시온도 불러오는 중...</div>';
@@ -1839,7 +1977,10 @@
     // 업종 TOP은 실시간 종목판 응답에서 파생돼 mock만으로는 화면을 못 그린다.
     // 로컬 하네스가 표본 데이터를 직접 넣어 레이아웃을 확인할 수 있게 열어둔다
     // (js/foreign-flow.js의 fetchJson 몽키패치와 같은 취지).
-    renderIndustryFlow: renderIndustryFlow_
+    renderIndustryFlow: renderIndustryFlow_,
+    // 섹터 흐름도 같은 이유로 열어둔다 - /industry-flow 응답이 있어야 그려져서
+    // mock만으로는 레이아웃을 볼 수 없다.
+    renderSectorFlow: renderSectorFlow_
   };
   global.MarketTemp = MarketTemp;
 
