@@ -121,5 +121,84 @@ class IndustryFlowTest(unittest.TestCase):
         self.assertEqual(len(data.build_industry_flow(many_quotes, many_universe)), 10)
 
 
+
+class FlowMultipleTest(unittest.TestCase):
+    """'평소 대비 배수' - 거래대금 절대액만 보면 매일 덩치 순서라 돈의 이동이 안 보인다.
+
+    2026-09-02 사용자 요청. 반도체가 2위의 5배인 게 지표 특성 때문이었고, 오늘 값을
+    그 테마의 평소값으로 나누면 대형주 편향 없이 "오늘 새로 들어온 곳"이 보인다.
+    """
+
+    def setUp(self):
+        import sqlite3
+        self.conn = sqlite3.connect(':memory:')
+        self.conn.execute('CREATE TABLE daily_prices (code TEXT, date TEXT, open REAL,'
+                          ' high REAL, low REAL, close REAL, volume INTEGER,'
+                          ' PRIMARY KEY (code, date))')
+        # 20거래일치를 넣는다. 삼성전자는 하루 100,000, SK하이닉스는 200,000.
+        rows = []
+        for i in range(1, 25):
+            day = '2026-08-%02d' % i
+            rows.append(('005930', day, 0, 0, 0, 100.0, 1000))
+            rows.append(('000660', day, 0, 0, 0, 200.0, 1000))
+        # 현대차는 이력이 3일뿐 - 기준선에서 빠져야 한다(신규 상장 등).
+        for i in range(1, 4):
+            rows.append(('005380', '2026-08-%02d' % i, 0, 0, 0, 50.0, 1000))
+        self.conn.executemany('INSERT INTO daily_prices VALUES (?,?,?,?,?,?,?)', rows)
+        self.conn.commit()
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_baseline_is_per_stock_average(self):
+        base = data.baseline_trade_amounts(self.conn, ['005930', '000660'], '2026-09-01')
+        self.assertAlmostEqual(base['005930'], 100000)
+        self.assertAlmostEqual(base['000660'], 200000)
+
+    def test_today_is_excluded_from_baseline(self):
+        """오늘은 장중이라 아직 안 끝났다 - 비교 대상은 마감된 날들이다."""
+        self.conn.execute("INSERT INTO daily_prices VALUES ('005930','2026-09-01',0,0,0,999.0,9999)")
+        self.conn.commit()
+        base = data.baseline_trade_amounts(self.conn, ['005930'], '2026-09-01')
+        self.assertAlmostEqual(base['005930'], 100000)   # 999*9999가 섞이지 않는다
+
+    def test_short_history_stock_is_dropped(self):
+        base = data.baseline_trade_amounts(self.conn, ['005380'], '2026-09-01')
+        self.assertNotIn('005380', base)
+
+    def test_multiple_is_today_over_baseline(self):
+        rows = [{'industry': '반도체', 'trade_amount': 900000, 'stocks': [
+            {'code': '005930', 'trade_amount': 300000},
+            {'code': '000660', 'trade_amount': 600000},
+        ]}]
+        base = data.baseline_trade_amounts(self.conn, ['005930', '000660'], '2026-09-01')
+        data.attach_flow_multiple(rows, base)
+        # 오늘 900,000 / 평소 300,000 = 3배
+        self.assertAlmostEqual(rows[0]['flow_multiple'], 3.0)
+        self.assertAlmostEqual(rows[0]['baseline_trade_amount'], 300000)
+        self.assertEqual(rows[0]['baseline_stock_count'], 2)
+
+    def test_stock_without_baseline_excluded_from_both_sides(self):
+        """분자에만 있고 분모에 없으면 배수가 부풀려진다 - 양쪽에서 같이 뺀다."""
+        rows = [{'industry': '혼합', 'trade_amount': 1000000, 'stocks': [
+            {'code': '005930', 'trade_amount': 300000},
+            {'code': '005380', 'trade_amount': 700000},   # 기준선 없음
+        ]}]
+        base = data.baseline_trade_amounts(self.conn, ['005930', '005380'], '2026-09-01')
+        data.attach_flow_multiple(rows, base)
+        # 005380은 양쪽에서 빠져 300,000 / 100,000 = 3배
+        self.assertAlmostEqual(rows[0]['flow_multiple'], 3.0)
+        self.assertEqual(rows[0]['baseline_stock_count'], 1)
+
+    def test_no_baseline_at_all_gives_none(self):
+        rows = [{'industry': '신생', 'trade_amount': 500, 'stocks': [
+            {'code': '999999', 'trade_amount': 500}]}]
+        data.attach_flow_multiple(rows, {})
+        self.assertIsNone(rows[0]['flow_multiple'])
+        self.assertIsNone(rows[0]['baseline_trade_amount'])
+
+    def test_empty_codes_does_not_query(self):
+        self.assertEqual(data.baseline_trade_amounts(self.conn, [], '2026-09-01'), {})
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -202,7 +202,13 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
 
     history_rows = upsert_daily_temp(conn, totals['temp'], today)
     # 테마별 자금 흐름은 위에서 이미 받아둔 시세·유니버스만 쓴다 - 외부 호출이 늘지 않는다.
+    # '평소 대비 배수'는 daily_prices에서 종목별 20일 평균 거래대금을 읽어 붙인다(DB만 읽음).
     industry_flow = data.build_industry_flow(quotes, universe)
+    try:
+        baselines = data.baseline_trade_amounts(conn, codes, today)
+        data.attach_flow_multiple(industry_flow, baselines)
+    except Exception:
+        LOGGER.exception('테마 평소 대비 배수 계산 실패 - 거래대금 순위는 그대로 낸다')
     return {
         'score': totals['score'],
         'maxScore': totals['maxScore'],

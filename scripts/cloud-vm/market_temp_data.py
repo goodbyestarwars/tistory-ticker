@@ -417,3 +417,61 @@ def build_industry_flow(quotes, universe, top_n=10, stocks_per=8):
         })
     rows.sort(key=lambda r: (-(r['trade_amount'] or 0), -(r['avg_change_rate'] or 0)))
     return rows[:max(1, int(top_n))]
+
+
+BASELINE_DAYS = 20          # "평소"의 기준 창. 한 달 남짓 거래일.
+MIN_BASELINE_DAYS = 5       # 이보다 이력이 적은 종목은 기준선에서 뺀다(신규 상장 등)
+
+
+def baseline_trade_amounts(conn, codes, today_kst, days=BASELINE_DAYS):
+    """종목별 '평소 하루 거래대금'(최근 days 거래일 평균)을 낸다.
+
+    2026-09-02 사용자 요청("돈이 도는 흐름을 보고싶어"). 거래대금 절대액만 보면 덩치
+    순서라 매일 같은 테마가 1등이고(반도체가 2위의 5배) 오늘 어디로 돈이 새로 들어왔는지는
+    안 보인다. 오늘 값을 이 평소값으로 나누면 '평소의 몇 배'가 나와서 대형주 편향이 사라진다.
+
+    오늘은 제외한다(장중이라 아직 안 끝났고, 비교 대상은 마감된 날들이다).
+    종가×거래량이라 `prior_trading_values`와 같은 정의이며, 거기는 유니버스 합계를
+    날짜별로 내는 반면 여기는 종목별 평균이 필요해 따로 둔다.
+    """
+    if not codes:
+        return {}
+    placeholders = ','.join('?' * len(codes))
+    rows = conn.execute(
+        'SELECT code, AVG(amt) AS avg_amt, COUNT(*) AS n FROM ('
+        '  SELECT code, close * volume AS amt,'
+        '         ROW_NUMBER() OVER (PARTITION BY code ORDER BY date DESC) AS rn'
+        '  FROM daily_prices'
+        '  WHERE code IN (%s) AND date < ? AND close IS NOT NULL AND volume IS NOT NULL'
+        ') WHERE rn <= ? GROUP BY code' % placeholders,
+        list(codes) + [today_kst, int(days)],
+    ).fetchall()
+    out = {}
+    for code, avg_amt, n in rows:
+        if avg_amt and n >= MIN_BASELINE_DAYS:
+            out[code] = avg_amt
+    return out
+
+
+def attach_flow_multiple(rows, baselines):
+    """테마별 '평소 대비 배수'를 붙인다.
+
+    테마의 평소값 = 그 테마에 든 종목들의 평소 하루 거래대금 합. 오늘 값과 같은 종목
+    집합으로 계산해야 비율이 성립하므로, 기준선이 없는 종목(신규 상장 등)은 오늘 값에서도
+    빼고 비교한다 - 분자에만 있고 분모에 없으면 배수가 부풀려진다.
+    """
+    for row in rows:
+        base = 0.0
+        today = 0.0
+        covered = 0
+        for stock in row.get('stocks') or []:
+            b = baselines.get(stock.get('code'))
+            if not b:
+                continue
+            base += b
+            today += stock.get('trade_amount') or 0
+            covered += 1
+        row['baseline_trade_amount'] = base or None
+        row['baseline_stock_count'] = covered
+        row['flow_multiple'] = (today / base) if base > 0 else None
+    return rows
