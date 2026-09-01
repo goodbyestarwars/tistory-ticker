@@ -6677,6 +6677,26 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock {
     gap: 4px;
     min-width: 0;
+    /* 2026-09-01 사용자 리포트("번호 로고 ... 줄바뀜이 문제야" - 국내/미국 탭 모두).
+       전역 `.hrt-stock { display: flex }`가 여기서는 안 먹는다. 티스토리가 td를 직접
+       겨냥하는 규칙을 갖고 있어(우리 word-break: keep-all을 이겼던 것과 같은 계열)
+       특이도에서 `.hrt-stock`(0,1,0)이 진다 - 실제 계산값이 table-cell이었다.
+       그러면 자식이 인라인으로 흐르는데, `<a>`가 인라인인 채로 블록인 <strong>/<small>을
+       담고 있어 줄이 강제로 쪼개진다(번호·로고 한 줄, 이름·티커가 다음 줄들).
+
+       td를 flex로 되돌리는 쪽이 자연스러워 보이지만 실측에서 종목 열이 170px -> 8px로
+       무너지고 이름이 잘렸다(table-layout: fixed의 열 너비 계산에서 셀이 빠져서다).
+       그래서 셀은 table-cell로 두고, 줄이 쪼개지는 원인만 없앤다. 실측 셀 높이
+       73px -> 47px, 열 너비 170px 유지, 이름 잘림 없음. */
+    white-space: nowrap;
+  }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock > * {
+    vertical-align: middle;
+  }
+  /* 인라인 <a> 안에 블록 자식을 두면 줄이 쪼개진다 - 이름 위, 티커 아래 배치는 그대로
+     두면서 <a> 자체를 한 덩어리로 만든다. */
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock a {
+    display: inline-block;
   }
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock-logo {
     width: 22px;

@@ -2531,6 +2531,30 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 스캔 값일 때는 색으로도 구분한다.
         self.assertIn(".ss-col-price.is-scan .ss-price-basis", css)
 
+    def test_home_realtime_board_stock_cell_stays_on_one_line_on_mobile(self):
+        """홈 실시간 종목판에서 번호·로고·종목명이 각각 다른 줄로 쪼개졌다
+        (2026-09-01 사용자 리포트, 국내·미국 탭 모두).
+
+        전역 `.hrt-stock { display: flex }`가 모바일 홈에서는 td를 직접 겨냥하는
+        규칙에 특이도로 져서 table-cell이 되고, 인라인 <a> 안에 블록 자식이 있어
+        줄이 강제로 쪼개졌다. td를 flex로 되돌리면 종목 열이 170px→8px로 무너지므로
+        (table-layout: fixed의 열 계산에서 셀이 빠진다) 셀은 table-cell로 두고
+        줄바꿈 원인만 없앤다.
+        """
+        css = self.read("style.css")
+        home = "body#tt-body-index .home-editorial-page .home-realtime-board"
+        # 셀을 flex로 되돌리지 않는다 - 열 붕괴를 부른다.
+        self.assertNotIn(home + " .hrt-stock {\n    display: flex", css)
+        # 한 줄 유지 + 인라인 <a> 안의 블록 자식이 줄을 쪼개지 않게 한다.
+        self.assertIn("white-space: nowrap;", css)
+        self.assertIn(home + " .hrt-stock a {", css)
+        self.assertIn(home + " .hrt-stock > * {", css)
+        # 이름 위 / 티커 아래 배치는 유지돼야 한다.
+        self.assertIn(".hrt-stock strong { display: block;", css)
+        self.assertIn(".hrt-stock small { display: block;", css)
+        # 데스크톱은 기존 flex 레이아웃 그대로 둔다.
+        self.assertIn(".hrt-stock { display: flex;", css)
+
     def test_order_book_summary_values_fit_on_narrow_mobile(self):
         """운영 모바일 본문 폭(321px)에서 시가·고가·저가·거래량이 칸보다 3~4px 넓어
         말줄임으로 끝 글자가 잘렸다("256,500원" -> "256,500…").
