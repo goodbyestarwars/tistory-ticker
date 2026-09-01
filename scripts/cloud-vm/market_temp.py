@@ -201,6 +201,8 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
         credit_available)
 
     history_rows = upsert_daily_temp(conn, totals['temp'], today)
+    # 테마별 자금 흐름은 위에서 이미 받아둔 시세·유니버스만 쓴다 - 외부 호출이 늘지 않는다.
+    industry_flow = data.build_industry_flow(quotes, universe)
     return {
         'score': totals['score'],
         'maxScore': totals['maxScore'],
@@ -212,6 +214,7 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
         'recentDays': compute_sparkline(totals['temp'], history_rows, today),
         'updatedAt': now_kst.strftime('%Y-%m-%d %H:%M:%S'),
         'quoteCount': len(quotes),
+        'industryFlow': industry_flow,
     }
 
 

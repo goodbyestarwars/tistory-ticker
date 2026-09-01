@@ -2483,6 +2483,32 @@ def market_temp_endpoint(request: Request):
     return envelope(cached['result'])
 
 
+@app.get('/industry-flow')
+def industry_flow_endpoint(request: Request):
+    """증시온도 화면의 "오늘 업종 TOP" - 테마별 거래대금·평균등락과 대표 종목.
+
+    2026-09-01 사용자 요청("TOP 10으로, 대표 종목이 너무 적어, 돈이 도는 흐름을 보고싶어").
+    그전까지 화면은 `/market-board?limit=40`을 브라우저가 테마로 묶어 썼는데, 실측하니
+    돌아오는 30종목 중 17개가 ETF라 업종이 없어 버려지고 개별종목이 13개뿐이었다
+    (테마 8개, 테마당 1~3종목). 자세한 배경은 market_temp_data.build_industry_flow 참고.
+
+    여기서는 증시온도 백그라운드 계산이 3분마다 이미 받아둔 238종목(37개 테마)을 그대로
+    쓴다 - 외부 호출이 늘지 않고, /market-temp와 같이 요청 경로에서 계산하지 않는다.
+    응답도 이 위젯에 필요한 만큼만 담아 market-board(30행 96KB)보다 훨씬 가볍다.
+    """
+    _check_rate_limit('industry_flow', request, max_per_window=30)
+    cached = market_temp.get_cached()
+    result = cached.get('result')
+    if not result:
+        raise HTTPException(
+            status_code=503,
+            detail=cached.get('error') or '테마 흐름을 계산하는 중입니다. 잠시 후 다시 시도해주세요.')
+    return envelope({
+        'rows': result.get('industryFlow') or [],
+        'updatedAt': result.get('updatedAt'),
+    })
+
+
 @app.get('/kofia-market')
 def kofia_market_endpoint(request: Request, days: int = Query(30, ge=7, le=90)):
     """KOFIA 공공데이터 보조지표(신용융자·증시자금) - 30분 캐시.

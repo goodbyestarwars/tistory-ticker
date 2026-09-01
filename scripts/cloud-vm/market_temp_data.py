@@ -348,3 +348,63 @@ def universe_with_sectors():
             if category not in entry['sectors']:
                 entry['sectors'].append(category)
     return list(by_code.values())
+
+
+# ---- 테마별 자금 흐름(증시온도 화면의 "오늘 업종 TOP") ----
+
+def build_industry_flow(quotes, universe, top_n=10, stocks_per=8):
+    """테마별 거래대금·평균등락과 대표 종목을 만든다.
+
+    2026-09-01 사용자 요청("TOP 10으로, 대표 종목이 너무 적어, 돈이 도는 흐름을 보고싶어").
+    그때까지 화면은 `/market-board?limit=40`(거래대금 상위)을 브라우저가 테마로 묶어
+    썼는데, 실측해보니 돌아오는 30종목 중 **17개가 ETF**(KODEX 200, TIGER 미국S&P500 등)라
+    업종이 없어 통째로 버려지고 개별종목이 13개뿐이었다. 그래서 테마가 8개에 그치고
+    테마당 종목도 1~3개였다. `market-board`의 limit 상한을 올리는 방법도 있지만 캐시
+    키가 (시장, limit)이라 새 limit은 워머 밖이고, 방문자가 KIS 순위 조회와 종목별
+    시세를 그만큼 더 물어야 한다.
+
+    여기서는 증시온도가 이미 3분마다 받아두는 238종목(`data/sectors-v3.js`의 37개 테마)을
+    그대로 재사용한다 - 외부 호출이 늘지 않는다.
+
+    한 종목이 여러 테마에 속할 수 있다(238개 중 14개, 6%. 삼성전자=코스피 3대장+반도체).
+    화면의 막대가 '1위 대비 비율'이라 합이 100%일 필요가 없으므로 중복을 그대로 각
+    테마에 계상한다 - 어느 테마를 버릴지 임의로 정하지 않기 위해서다.
+    """
+    by_code = {q.get('code'): q for q in (quotes or []) if q.get('code')}
+    groups = {}
+
+    for entry in (universe or []):
+        quote = by_code.get(entry.get('code'))
+        if not quote:
+            continue
+        price = quote.get('price') or 0
+        volume = quote.get('volume') or 0
+        amount = price * volume
+        if amount <= 0:
+            continue
+        for theme in (entry.get('sectors') or []):
+            group = groups.setdefault(theme, {'industry': theme, 'trade_amount': 0.0,
+                                              'rate_total': 0.0, 'stock_count': 0, 'stocks': []})
+            group['trade_amount'] += amount
+            group['rate_total'] += quote.get('changeRate') or 0
+            group['stock_count'] += 1
+            group['stocks'].append({
+                'code': entry.get('code'),
+                'name': entry.get('name') or quote.get('name') or entry.get('code'),
+                'price': price,
+                'change_rate': quote.get('changeRate'),
+                'trade_amount': amount,
+            })
+
+    rows = []
+    for group in groups.values():
+        group['stocks'].sort(key=lambda s: -(s['trade_amount'] or 0))
+        rows.append({
+            'industry': group['industry'],
+            'trade_amount': group['trade_amount'],
+            'avg_change_rate': (group['rate_total'] / group['stock_count']) if group['stock_count'] else 0,
+            'stock_count': group['stock_count'],
+            'stocks': group['stocks'][:max(1, int(stocks_per))],
+        })
+    rows.sort(key=lambda r: (-(r['trade_amount'] or 0), -(r['avg_change_rate'] or 0)))
+    return rows[:max(1, int(top_n))]
