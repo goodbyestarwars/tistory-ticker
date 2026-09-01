@@ -352,6 +352,13 @@ def universe_with_sectors():
 
 # ---- 테마별 자금 흐름(증시온도 화면의 "오늘 업종 TOP") ----
 
+# 테마가 아니라 시가총액 묶음인 카테고리. 거래대금 상위 종목이 그대로 모여 있어 매일
+# 상단을 차지하는데, "오늘 어디로 돈이 도는가"에는 아무 정보가 없다(2026-09-01 사용자
+# 지시 "3대장은 빼"). 우리가 관리하는 `data/sectors-v3.js`의 카테고리명이라 이름으로
+# 거르는 게 취약하지 않다. 새 묶음이 생기면 여기에 추가한다.
+BROAD_MARKET_BUCKETS = frozenset({'코스피 3대장'})
+
+
 def build_industry_flow(quotes, universe, top_n=10, stocks_per=8):
     """테마별 거래대금·평균등락과 대표 종목을 만든다.
 
@@ -383,6 +390,8 @@ def build_industry_flow(quotes, universe, top_n=10, stocks_per=8):
         if amount <= 0:
             continue
         for theme in (entry.get('sectors') or []):
+            if theme in BROAD_MARKET_BUCKETS:
+                continue
             group = groups.setdefault(theme, {'industry': theme, 'trade_amount': 0.0,
                                               'rate_total': 0.0, 'stock_count': 0, 'stocks': []})
             group['trade_amount'] += amount

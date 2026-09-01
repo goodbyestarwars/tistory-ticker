@@ -47,15 +47,20 @@ class IndustryFlowTest(unittest.TestCase):
         by_name = {r['industry']: r['trade_amount'] for r in rows}
         self.assertAlmostEqual(by_name['반도체'], 300000)          # 100*1000 + 200*1000
         self.assertAlmostEqual(by_name['자동차'], 60000)           # 50*1000 + 10*1000
-        self.assertAlmostEqual(by_name['코스피 3대장'], 350000)     # 위 셋 중 대형주 3종목
 
-    def test_broad_size_bucket_can_outrank_real_themes(self):
-        """`코스피 3대장` 같은 대형주 묶음은 거래대금 상위 종목이 모여 있어 상단을
-        차지한다. 지금은 이걸 걸러내지 않는다 - 어떤 테마를 '진짜'로 볼지는 임의
-        규칙으로 정할 문제가 아니라서, 동작을 시험으로 못박아 두고 판단은 남겨둔다.
+    def test_broad_size_bucket_is_excluded(self):
+        """`코스피 3대장`은 테마가 아니라 시가총액 묶음이라 매일 상단을 차지하면서
+        "오늘 어디로 돈이 도는가"에는 정보가 없다(2026-09-01 사용자 지시 "3대장은 빼").
         """
-        rows = self.flow()
-        self.assertEqual(rows[0]['industry'], '코스피 3대장')
+        names = [r['industry'] for r in self.flow()]
+        self.assertNotIn('코스피 3대장', names)
+        self.assertEqual(names[0], '반도체')      # 제외 후 실제 테마가 1위로 올라온다
+
+    def test_excluded_bucket_does_not_drop_its_stocks(self):
+        """묶음만 빼고 종목은 본래 테마에 그대로 남아야 한다."""
+        rows = {r['industry']: r for r in self.flow()}
+        self.assertIn('005930', [s['code'] for s in rows['반도체']['stocks']])
+        self.assertIn('005380', [s['code'] for s in rows['자동차']['stocks']])
 
     def test_multi_theme_stock_counts_in_each_theme(self):
         """한 종목이 여러 테마에 속하면 각 테마에 계상한다.
@@ -64,11 +69,9 @@ class IndustryFlowTest(unittest.TestCase):
         임의로 정하지 않으려는 선택이다(238개 중 14개, 6%가 복수 테마).
         """
         rows = {r['industry']: r for r in self.flow()}
-        self.assertIn('코스피 3대장', rows)
-        self.assertIn('반도체', rows)
-        # 삼성전자는 두 테마 모두에 들어간다
+        # 삼성전자는 반도체에, 현대차는 자동차에 들어간다(3대장 묶음은 제외 대상).
         self.assertIn('005930', [s['code'] for s in rows['반도체']['stocks']])
-        self.assertIn('005930', [s['code'] for s in rows['코스피 3대장']['stocks']])
+        self.assertIn('005380', [s['code'] for s in rows['자동차']['stocks']])
 
     def test_quote_missing_stock_is_skipped(self):
         rows = {r['industry']: r for r in self.flow()}
@@ -88,7 +91,8 @@ class IndustryFlowTest(unittest.TestCase):
 
     def test_top_n_limits_rows(self):
         self.assertEqual(len(self.flow(top_n=2)), 2)
-        self.assertGreaterEqual(len(self.flow(top_n=10)), 4)
+        # 픽스처의 실제 테마는 반도체·자동차·IT/플랫폼주 셋이다(코스피 3대장은 제외).
+        self.assertEqual(len(self.flow(top_n=10)), 3)
 
     def test_avg_change_rate_is_mean_of_members(self):
         rows = {r['industry']: r for r in self.flow()}
