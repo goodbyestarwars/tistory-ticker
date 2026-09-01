@@ -539,7 +539,12 @@
 /* 거래대금 비중 막대. 돈이 얼마나 몰렸는지를 길이로 보여준다 - 조/억 단위가 섞여
    숫자만으로는 크기 차이가 안 잡힌다는 지적에 따른 것. 방향이 없는 양이라 중립색을
    쓴다(상승 빨강/하락 파랑은 방향성 있는 값에만). */
-#market-temp .mt-if-fill { position:absolute; left:5px; bottom:3px; z-index:0; height:3px; max-width:calc(100% - 10px); border-radius:2px; background:#cfdae7; pointer-events:none; }
+/* 2026-09-01 사용자 요청("칸 자체에 색이 입혔으면 좋겠어"). 거래대금 비중을 칸 전체를
+   채우는 색으로 보여준다 - 돈이 몰린 테마일수록 칸이 길게 칠해진다. 처음엔 하단 3px
+   띠로 뒀는데 "돈의 양"이라는 감이 약했다.
+   글자를 이기지 않도록 옅은 채움 + 오른쪽 끝을 흐리게 해서 막대가 아니라 '차오른 칸'으로
+   읽히게 한다. 방향이 없는 양이라 색은 중립을 쓴다(상승 빨강/하락 파랑은 등락률에만). */
+#market-temp .mt-if-fill { position:absolute; left:0; top:2px; bottom:2px; z-index:0; border-radius:0 6px 6px 0; background:linear-gradient(90deg, #dbe6f2 0%, #e8eff7 78%, rgba(232,239,247,0) 100%); pointer-events:none; }
 #market-temp .mt-industry-flow-row > *:not(.mt-if-fill) { position:relative; z-index:1; }
 
 #market-temp .mt-if-rank { color:#94a3b8; font-size:10px; font-style:normal; font-weight:700; text-align:center; }
@@ -563,6 +568,7 @@
 #market-temp .mt-industry-flow-detail { margin:0 5px 8px; padding:7px 9px; border:1px solid #e5edf6; border-radius:9px; background:#f8fbff; }
 #market-temp .mt-industry-flow-detail-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px; color:#64748b; font-size:10px; }
 #market-temp .mt-industry-flow-detail-head strong { color:#334155; font-size:11px; }
+#market-temp .mt-industry-flow-detail { max-height:none; }
 #market-temp .mt-industry-flow-stock { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; padding:6px 2px; border-top:1px solid #e5edf6; color:#1f2937; text-decoration:none; }
 #market-temp .mt-industry-flow-stock:hover { color:#2563eb; }
 #market-temp .mt-industry-flow-stock > span:first-child { display:flex; align-items:baseline; gap:7px; min-width:0; }
@@ -979,7 +985,7 @@ html.dark #market-temp .mt-industry-flow-stock,
 html.dark #market-temp .mt-industry-flow-detail-head strong { color: #F5EFE0; }
 /* 2026-09-01 추가 요소들의 다크 대응. 막대는 배경보다 살짝 밝게만 - 값이 아니라
    배경이므로 글자를 이기면 안 된다. */
-html.dark #market-temp .mt-if-fill { background: rgba(245,239,224,.28); }
+html.dark #market-temp .mt-if-fill { background: linear-gradient(90deg, rgba(245,239,224,.16) 0%, rgba(245,239,224,.09) 78%, rgba(245,239,224,0) 100%); }
 html.dark #market-temp .mt-if-rank { color: rgba(245,239,224,.45); }
 html.dark #market-temp .mt-if-amount { color: rgba(245,239,224,.88); }
 html.dark #market-temp .mt-industry-flow-row.is-up .mt-if-rate { color: #ff8a83; }

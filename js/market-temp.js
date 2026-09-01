@@ -39,8 +39,14 @@
   var sectorConfigPromise = null;
   var HISTORY_PERIODS = [5, 10, 20, 40];
   var DEFAULT_HISTORY_PERIOD = 10;
-  var INDUSTRY_FLOW_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
+  // VM이 집계한 테마 흐름(증시온도 배경 계산의 238종목 재사용). 2026-09-01 이전에는
+  // 아래 폴백만 썼는데, 거래대금 상위 30종목 중 17개가 ETF라 테마가 8개뿐이었다.
+  var INDUSTRY_FLOW_URL = 'https://goodbyestar.cloud/industry-flow';
+  var INDUSTRY_FLOW_FALLBACK_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
   var INDUSTRY_TOP_LIMIT_ = 10;
+  // 2026-09-01 사용자 요청("대표 종목이 너무 적어"). VM이 테마별로 최대 8종목을
+  // 내려주므로 그대로 다 보여준다 - 매수 후보를 여기서 바로 훑을 수 있게.
+  var REPRESENTATIVE_STOCK_LIMIT_ = 8;
   // WICS 세부 업종 원문 대신 투자자가 읽기 쉬운 테마 업종으로 집계한다.
   // 저장 키도 분리해 이전 세부 업종 순위가 새 테마 업종 순위에 섞이지 않게 한다.
   var INDUSTRY_FLOW_STORAGE_KEY = 'market_temp_industry_flow_v2';
@@ -326,7 +332,7 @@
       return n > 0 ? 'is-up' : n < 0 ? 'is-down' : 'is-flat';
     }
     function representativeStocksHtml_(row, index) {
-      var stocks = Array.isArray(row && row.stocks) ? row.stocks.slice(0, 3) : [];
+      var stocks = Array.isArray(row && row.stocks) ? row.stocks.slice(0, REPRESENTATIVE_STOCK_LIMIT_) : [];
       var stockHtml = stocks.map(function (stock) {
         var code = String(stock.code || '').trim();
         var name = String(stock.name || code || '-').trim();
@@ -389,7 +395,7 @@
       + '<div class="mt-industry-flow-head"><strong>' + title + '</strong><span>거래대금이 많이 몰린 순서</span></div>'
       + '<div class="mt-industry-flow-columns"><span></span><span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>순위</span></div>'
       + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
-      + '<p class="mt-industry-flow-note">실시간 종목판의 거래대금 상위 종목을 테마별로 합산합니다. 막대 길이는 1위 업종 대비 거래대금 비율이고, 평균등락률은 보조지표입니다. 순위 변화는 이 브라우저가 관측한 마지막 거래일과 비교하며, 누르면 대표 종목이 열립니다.</p>'
+      + '<p class="mt-industry-flow-note">테마별 대표 종목들의 거래대금을 합산합니다(약 240종목·37개 테마, 3분마다 갱신). 칸을 채운 색의 길이는 1위 테마 대비 거래대금 비율이고, 평균등락률은 보조지표입니다. 한 종목이 여러 테마에 속할 수 있어 테마 합계는 시장 전체와 다릅니다. 순위 변화는 이 브라우저가 관측한 마지막 거래일과 비교하며, 누르면 대표 종목이 열립니다.</p>'
       + '</div>';
     mount.onclick = function (event) {
       var rowButton = event.target.closest && event.target.closest('.mt-industry-flow-row');
@@ -416,24 +422,35 @@
     var mount = container.querySelector('[data-industry-flow]');
     if (!mount) return;
     var dateKey = kstDateKey_(new Date());
-    fetch(INDUSTRY_FLOW_URL)
-      .then(function (response) { if (!response.ok) throw new Error('industry flow ' + response.status); return response.json(); })
+    // VM이 집계해 둔 테마 흐름을 먼저 쓰고, 실패하면 예전 경로(market-board를 브라우저가
+    // 묶는 방식)로 내려간다. 2026-09-01: 예전 경로는 거래대금 상위 30종목 중 17개가
+    // ETF라 업종이 없어 버려져 테마가 8개, 테마당 1~3종목뿐이었다. VM 쪽은 증시온도가
+    // 3분마다 이미 받아두는 238종목(37개 테마)을 쓰므로 훨씬 두껍고 외부 호출도 안 는다.
+    fetchJson_(INDUSTRY_FLOW_URL)
       .then(function (body) {
-        // market-board 응답은 현재 { data: { sections: ... } } 형태이며,
-        // 구형 프록시가 바로 { sections: ... }를 반환할 가능성도 있어 양쪽을
-        // 허용한다. 기존 경로만 읽으면 카드 껍데기만 생기고 행이 비어 보인다.
+        var payload = body && body.data ? body.data : body;
+        var rows = (payload && payload.rows) || [];
+        if (!rows.length) throw new Error('industry flow empty');
+        writeIndustryFlowSnapshot_(dateKey, rows);
+        renderIndustryFlow_(mount, rows, dateKey);
+      })
+      .catch(function () { return loadIndustryFlowFromBoard_(mount, dateKey); })
+      .catch(function () {
+        renderIndustryFlow_(mount, readIndustryFlowSnapshots_()[dateKey] || [], dateKey);
+      });
+  }
+
+  // 예전 경로(폴백). VM `/industry-flow`가 아직 배포 전이거나 실패했을 때만 쓴다.
+  function loadIndustryFlowFromBoard_(mount, dateKey) {
+    return fetchJson_(INDUSTRY_FLOW_FALLBACK_URL)
+      .then(function (body) {
         var payload = body && body.data ? body.data : body;
         var sections = payload && payload.sections || {};
-        // 개별 거래대금 상위 종목이 있으면 자동차/부품·반도체/소부장·원전처럼
-        // WICS 한 업종을 투자 테마로 다시 나눌 수 있다. 구형 응답은 기존 집계로 폴백한다.
         var sourceRows = sections.tradeAmount && sections.tradeAmount.length
           ? sections.tradeAmount : sections.industry || [];
         var rows = aggregateIndustryFlow_(sourceRows);
         writeIndustryFlowSnapshot_(dateKey, rows);
         renderIndustryFlow_(mount, rows, dateKey);
-      })
-      .catch(function () {
-        renderIndustryFlow_(mount, readIndustryFlowSnapshots_()[dateKey] || [], dateKey);
       });
   }
 

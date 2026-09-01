@@ -2572,9 +2572,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("'오늘 업종 TOP ' + shown.length", source)
         # ② 순위 번호.
         self.assertIn("mt-if-rank", source)
-        # ④ 거래대금 비중 막대.
+        # ④ 거래대금 비중은 칸을 채우는 색으로 보여준다(2026-09-01 "칸 자체에 색이
+        # 입혔으면 좋겠어").
         self.assertIn("mt-if-fill", source)
         self.assertIn("maxAmount", source)
+        # 데이터원: 예전 경로(market-board 상위 30종목)는 절반 이상이 ETF라 테마가
+        # 8개뿐이었다. VM이 238종목으로 집계한 값을 먼저 쓰고 실패 시에만 폴백한다.
+        self.assertIn("https://goodbyestar.cloud/industry-flow", source)
+        self.assertIn("INDUSTRY_FLOW_FALLBACK_URL", source)
+        self.assertIn("loadIndustryFlowFromBoard_", source)
+        # 대표 종목 3개는 매수 참고용으로 너무 적었다.
+        self.assertIn("REPRESENTATIVE_STOCK_LIMIT_ = 8", source)
+        self.assertNotIn("row.stocks.slice(0, 3)", source)
+        # 각주가 바뀐 데이터원을 반영해야 한다(예전 문구가 남으면 사실과 달라진다).
+        self.assertNotIn("실시간 종목판의 거래대금 상위 종목을 테마별로 합산합니다", source)
         # ⑤ 순위 변화는 등락률과 다른 기호를 쓴다.
         self.assertIn("계단", source)
         self.assertNotIn("'▲ ' + (old.rank", source)
