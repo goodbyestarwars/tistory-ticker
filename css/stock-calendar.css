@@ -76,9 +76,12 @@
   background: var(--sc-accent); color: #fff !important; font-weight: 700;
 }
 #stock-calendar .sc-day.sc-today .sc-dot { background: rgb(255, 254, 252) !important; }
+/* 2026-09-01 색감 정리: 점이 주황(#d97706)이라 이 화면에서 유일한 난색이었고,
+   금융 화면에서는 '경고'로 읽힌다. 헤더 주석대로 이 화면의 포인트는 차분한 네이비이므로
+   점도 같은 계열로 맞춘다. 크기도 4px는 모바일에서 잘 안 보여 5px로 키운다. */
 #stock-calendar .sc-dot {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: #d97706; position: absolute; bottom: 5px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--sc-accent); position: absolute; bottom: 5px;
 }
 #stock-calendar .sc-loading,
 #stock-calendar .sc-error {
@@ -123,10 +126,15 @@
 #stock-calendar .sc-ev-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: 10px; text-decoration: none;
-  background: #f8fafc; transition: background 0.12s;
+  border: 1px solid #eef2f6;
+  background: #f8fafc; transition: background 0.12s, border-color 0.12s;
 }
-#stock-calendar .sc-ev-item:hover { background: var(--sc-accent-soft); }
-#stock-calendar .sc-ev-item-disabled { cursor: default; }
+#stock-calendar .sc-ev-item:hover { border-color: var(--sc-accent-border); background: var(--sc-accent-soft); }
+/* 링크가 없는 일정(종목 연결 불가)은 눌러도 아무 일이 없는데 활성 행과 배경·글자색이
+   똑같아 구분이 안 됐다 - 배경을 빼고 글자를 낮춰 '읽기 전용'임을 보이게 한다. */
+#stock-calendar .sc-ev-item-disabled { cursor: default; background: transparent; }
+#stock-calendar .sc-ev-item-disabled:hover { background: transparent; }
+#stock-calendar .sc-ev-item-disabled .sc-ev-title { color: #64748b; }
 #stock-calendar .sc-ev-date {
   flex-shrink: 0; width: 34px; font-size: 12px; font-weight: 700; color: var(--sc-accent);
 }
@@ -191,7 +199,14 @@ html.dark #stock-calendar .sc-search { background: rgba(245, 239, 224, 0.06) !im
 html.dark #stock-calendar .sc-search span,
 html.dark #stock-calendar .sc-search input { color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-search input::placeholder { color: rgba(245, 239, 224, 0.5) !important; }
-html.dark #stock-calendar .sc-ev-item { background: rgba(245, 239, 224, 0.06) !important; }
+/* 2026-09-01 색감 정리분의 다크 대응. 네이비 포인트는 어두운 배경에서 묻히므로
+   점과 날짜는 밝은 청색 계열로 올린다. */
+html.dark #stock-calendar .sc-dot { background: #7fb0d8 !important; }
+html.dark #stock-calendar .sc-ev-date { color: #7fb0d8 !important; }
+html.dark #stock-calendar .sc-ev-item-disabled,
+html.dark #stock-calendar .sc-ev-item-disabled:hover { background: transparent !important; }
+html.dark #stock-calendar .sc-ev-item-disabled .sc-ev-title { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #stock-calendar .sc-ev-item { background: rgba(245, 239, 224, 0.06) !important; border-color: rgba(245, 239, 224, 0.12) !important; }
 html.dark #stock-calendar .sc-ev-item:hover { background: rgba(245, 239, 224, 0.14) !important; }
 html.dark #stock-calendar .sc-ev-date { color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-ev-title { color: #F5EFE0 !important; }
