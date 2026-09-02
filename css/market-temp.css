@@ -169,6 +169,16 @@
 #market-temp .mt-hero-score-context { display: flex; align-items: baseline; gap: 8px; margin-top: 5px; color: #7c8590; font-size: 11px; }
 #market-temp .mt-hero-score-context strong { color: #3d4652; font-size: 12px; }
 
+/* 2026-09-02: 상승·하락 종목 수를 온도 바로 밑에 노출(요청). 상승=빨강/하락=파랑 사이트 공통
+   부호색을 따르고, 모집단이 전체 시장이 아니라는 주석 문구를 작게 붙인다. */
+#market-temp .mt-hero-breadth { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; margin-top: 5px; font-size: 11px; color: #7c8590; }
+#market-temp .mt-hero-breadth strong { font-size: 13px; font-weight: 700; }
+#market-temp .mt-breadth-up { color: #d24f45; }
+#market-temp .mt-breadth-down { color: #1261c4; }
+#market-temp .mt-breadth-sep { color: #c3cad3; }
+#market-temp .mt-breadth-ratio { color: #3d4652; font-weight: 600; }
+#market-temp .mt-breadth-note { color: #9aa3ad; }
+
 #market-temp .mt-hero-deltas {
   display: flex;
   gap: 18px;
@@ -797,6 +807,12 @@ html.dark #market-temp .mt-bar-vol { background: #f0a868 !important; }
 html.dark #market-temp .mt-bar-fx { background: #a8b0bd !important; }
 html.dark #market-temp .mt-val-pos { color: #ff6b5b !important; }
 html.dark #market-temp .mt-val-neg { color: #4d9fff !important; }
+html.dark #market-temp .mt-hero-breadth { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #market-temp .mt-breadth-up { color: #ff6b5b !important; }
+html.dark #market-temp .mt-breadth-down { color: #4d9fff !important; }
+html.dark #market-temp .mt-breadth-sep { color: rgba(245, 239, 224, 0.3) !important; }
+html.dark #market-temp .mt-breadth-ratio { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-breadth-note { color: rgba(245, 239, 224, 0.42) !important; }
 html.dark #market-temp .mt-val-zero { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #market-temp .mt-pill.mt-val-pos { background: #4a2620 !important; color: #ff8f80 !important; }
 html.dark #market-temp .mt-pill.mt-val-neg { background: #1c3050 !important; color: #7cb3ff !important; }
