@@ -635,7 +635,7 @@
 
     return fetch(url, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
+        if (!r.ok) throw new Error('응답 오류: ' + r.status);
         return r.json();
       })
       .then(function (data) {
@@ -648,8 +648,26 @@
       });
   }
 
+  // 2026-09-02: GAS `?marketTemp=1` -> VM `/market-temp` 전환
+  // (docs/BACKEND_CONSOLIDATION.md 1단계). GAS는 요청을 받고 나서 전종목 시세를 긁어
+  // 점수를 매겨 캐시 미스면 방문자가 7초를 물었다. VM은 백그라운드 3분 주기로 미리
+  // 계산해두고 방문자는 저장된 값만 읽는다.
+  //
+  // 전환 전 같은 시각 두 응답을 대조했고 수급·거래대금 두 컴포넌트가 갈렸다. 되돌리지
+  // 않고 VM을 정답으로 확정한 근거는 docs/BACKEND_CONSOLIDATION.md 5절 표에 남겼다
+  // (요약: GAS 수급은 과거 이력이 없는 ETF 대리지표라 비율이 포화됐고, GAS 거래대금
+  // 5일 이력은 방문이 있는 날만 장중 스냅샷으로 쌓여 과소평가된다).
+  //
+  // 폴백을 두지 않는다 - VM이 죽으면 GAS 숫자로 조용히 갈아타는 건 온도 기준이 말없이
+  // 바뀌는 것이라 오히려 나쁘다. 이 화면의 다른 카드(업종 TOP 등)도 이미 VM 단독이다.
+  var MARKET_TEMP_URL = 'https://goodbyestar.cloud/market-temp';
+
   function fetchMarketTemp() {
-    return fetchJson_(GAS_TICKER_URL + '?marketTemp=1');
+    return fetchJson_(MARKET_TEMP_URL).then(function (body) {
+      // VM은 {success, updatedAt, data}로 감싸고 GAS는 본문을 그대로 준다 - 이 화면의
+      // 다른 VM 호출부와 같은 방식으로 둘 다 받아넘긴다.
+      return body && body.data ? body.data : body;
+    });
   }
 
   // AI 시장 브리핑은 별도 엔드포인트(Groq 호출이라 메인 온도 조회보다 느릴 수 있음) - 메인
