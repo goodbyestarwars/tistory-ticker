@@ -179,6 +179,21 @@
       + '<div class="ss-meta" id="ssMeta"></div>'
       // 어떤 값이 스캔 시점이고 어떤 값이 지금인지 한 줄로 밝힌다(patchLivePrices가 채운다).
       + '<div class="ss-price-basis-note" id="ssPriceBasis"></div>'
+      // 스캔 대비 갭 도구 - 실시간 값이 도착해야 의미가 생기므로 그때까지 숨겨둔다
+      // (patchLivePrices -> applyGapView가 켠다).
+      + '<div class="ss-gap-tools" id="ssGapTools" hidden>'
+      + '<label>스캔 대비 <select data-gap-filter>'
+      + '<option value="">전체</option>'
+      + '<option value="down">아직 안 오른 것(스캔가 이하)</option>'
+      + '<option value="lt3">+3% 미만</option>'
+      + '</select></label>'
+      + '<label>정렬 <select data-gap-sort>'
+      + '<option value="">스캔 순위</option>'
+      + '<option value="asc">스캔 대비 낮은 순</option>'
+      + '<option value="desc">스캔 대비 높은 순</option>'
+      + '</select></label>'
+      + '<span class="ss-gap-count" data-gap-count></span>'
+      + '</div>'
       + '</div>'
       + '<div class="ss-methodology" id="ssMethodology"></div>'
       + '<div id="ssCards"></div>';
@@ -356,6 +371,7 @@
   // 실시간 갱신을 빠뜨리지 않는다.
   function renderCards(container) {
     renderCardsInner(container);
+    wireGapTools(container);
     patchLivePrices(container);
   }
 
@@ -1034,11 +1050,20 @@
       + '</td>';
   }
 
+  // 스캔 시점 가격 대비 지금 몇 % 인지. 계산할 수 없으면 null.
+  // 2026-09-02: 이 값이 문구로만 쓰이고 있었는데 정렬·필터 기준으로도 쓰려고 분리했다
+  // ("조건은 만족했는데 아직 안 뛴 것"을 골라내는 게 스캐너의 실제 쓸모다).
+  function gapPercent(livePrice, scanPrice) {
+    if (scanPrice == null || livePrice == null) return null;
+    if (!isFinite(scanPrice) || !isFinite(livePrice) || !scanPrice) return null;
+    return (livePrice - scanPrice) / scanPrice * 100;
+  }
+
   // 실시간 값이 스캔 값과 다를 때만 "스캔 대비"를 덧붙인다. 같으면(장 마감 등) 군더더기다.
   function priceBasisText(livePrice, scanPrice) {
-    if (scanPrice == null || livePrice == null || !isFinite(scanPrice) || !isFinite(livePrice)) return '';
+    var gap = gapPercent(livePrice, scanPrice);
+    if (gap == null) return '';
     if (Math.round(livePrice) === Math.round(scanPrice)) return '';
-    var gap = (livePrice - scanPrice) / scanPrice * 100;
     return '스캔 ' + fmt(scanPrice) + ' · ' + (gap > 0 ? '+' : '') + gap.toFixed(1) + '%';
   }
 
@@ -1108,6 +1133,13 @@
       var live = byCode[row.getAttribute('data-code')];
       if (!live) return;   // 응답에 없는 종목은 '스캔 시점' 표시를 그대로 둔다
 
+      // 정렬·필터가 쓸 수 있게 행에 갭을 남긴다. 표 뷰든 카드 뷰든 한 곳에서만 기록한다.
+      var rowScan = Number((row.querySelector('[data-scan-price]') || {getAttribute: function () { return null; }})
+        .getAttribute('data-scan-price'));
+      var rowGap = (live.price != null && !isNaN(live.price)) ? gapPercent(Number(live.price), rowScan) : null;
+      if (rowGap == null) row.removeAttribute('data-gap-pct');
+      else row.setAttribute('data-gap-pct', rowGap.toFixed(2));
+
       var priceCell = row.querySelector('.ss-col-price');
       if (priceCell && live.price != null && !isNaN(live.price)) {
         var scanPrice = Number(priceCell.getAttribute('data-scan-price'));
@@ -1141,6 +1173,99 @@
         changeCell.textContent = fmtChange(live.changeRate);
         changeCell.className = 'ss-col-change ' + chgClass(live.changeRate);
       }
+    });
+    applyGapView(container);
+  }
+
+  // ---- 스캔 대비 갭 정렬·필터 ----
+  //
+  // 2026-09-02 사용자 지적: "다 오른 지표만 보고 매매할 수는 없잖아". 맞는 말이다.
+  // 조건 판정은 어제 종가 기준인데 진입은 오늘 아침이라, 목록 상단이 이미 뛴 종목으로
+  // 채워지기 쉽다. 갭 값은 이미 계산하고 있었으니(priceBasisText) 그걸 기준으로
+  // "아직 안 오른 것"을 골라볼 수 있게 한다.
+  //
+  // 순위 열은 그대로 스캔 순위다 - 정렬을 바꿔도 순위 숫자를 다시 매기지 않는다.
+  // 그 숫자는 "조건을 얼마나 잘 만족했는가"이지 화면 순서가 아니다.
+  var activeGapFilter = '';
+  var activeGapSort = '';
+
+  function rowGapValue(row) {
+    var raw = row.getAttribute('data-gap-pct');
+    if (raw == null || raw === '') return null;
+    var v = Number(raw);
+    return isFinite(v) ? v : null;
+  }
+
+  function gapFilterPass(gap) {
+    if (!activeGapFilter) return true;
+    if (gap == null) return false;              // 실시간 값이 없는 행은 판단 불가
+    if (activeGapFilter === 'down') return gap <= 0;
+    if (activeGapFilter === 'lt3') return gap < 3;
+    return true;
+  }
+
+  function applyGapView(container) {
+    var tools = container.querySelector('#ssGapTools');
+    var rows = container.querySelectorAll('.ss-row[data-code], .ss-table-row[data-code]');
+    if (!rows.length) { if (tools) tools.hidden = true; return; }
+
+    var withGap = 0;
+    Array.prototype.forEach.call(rows, function (row) { if (rowGapValue(row) != null) withGap += 1; });
+    // 실시간 값이 하나도 없으면 도구가 의미 없다 - 켜두면 빈 목록만 만든다.
+    if (tools) tools.hidden = withGap === 0;
+    if (!withGap) {
+      Array.prototype.forEach.call(rows, function (row) { row.hidden = false; });
+      return;
+    }
+
+    var shown = 0;
+    Array.prototype.forEach.call(rows, function (row) {
+      var pass = gapFilterPass(rowGapValue(row));
+      row.hidden = !pass;
+      if (pass) shown += 1;
+    });
+
+    if (activeGapSort) {
+      // 같은 부모 안에서만 재배치한다(표와 카드가 섞이지 않게).
+      var groups = [];
+      Array.prototype.forEach.call(rows, function (row) {
+        if (groups.indexOf(row.parentNode) === -1) groups.push(row.parentNode);
+      });
+      groups.forEach(function (parent) {
+        var kids = Array.prototype.filter.call(parent.children, function (el) {
+          return el.hasAttribute && el.hasAttribute('data-code');
+        });
+        kids.sort(function (a, b) {
+          var ga = rowGapValue(a), gb = rowGapValue(b);
+          // 갭을 모르는 행은 항상 뒤로 - 정렬 기준이 없는 걸 위로 올리면 오해를 준다.
+          if (ga == null && gb == null) return 0;
+          if (ga == null) return 1;
+          if (gb == null) return -1;
+          return activeGapSort === 'asc' ? ga - gb : gb - ga;
+        });
+        kids.forEach(function (el) { parent.appendChild(el); });
+      });
+    }
+
+    var count = container.querySelector('[data-gap-count]');
+    if (count) {
+      count.textContent = activeGapFilter
+        ? (shown + '개 표시 · 실시간 확인 ' + withGap + '개')
+        : ('실시간 확인 ' + withGap + '개');
+    }
+  }
+
+  function wireGapTools(container) {
+    var tools = container.querySelector('#ssGapTools');
+    if (!tools || tools.dataset.wired === '1') return;
+    tools.dataset.wired = '1';
+    tools.addEventListener('change', function (e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.hasAttribute('data-gap-filter')) activeGapFilter = t.value;
+      else if (t.hasAttribute('data-gap-sort')) activeGapSort = t.value;
+      else return;
+      applyGapView(container);
     });
   }
 

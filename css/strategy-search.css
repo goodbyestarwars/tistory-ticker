@@ -1167,9 +1167,20 @@ html.dark .ss-dividend-history li b { color: #F5EFE0; }
 #strategy-search .ss-price-basis-note.is-stale { color: #b45309; }
 #strategy-search .ss-price-basis-note:empty { display: none; }
 
+/* 스캔 대비 갭 도구(2026-09-02). 실시간 값이 있어야 켜지므로 기본은 hidden 속성으로
+   숨겨두고 JS가 연다 - CSS로만 숨기면 hidden 해제 시 display가 어긋난다. */
+#strategy-search .ss-gap-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; font-size: 12px; color: #5b646f; }
+#strategy-search .ss-gap-tools[hidden] { display: none; }
+#strategy-search .ss-gap-tools label { display: inline-flex; align-items: center; gap: 4px; }
+#strategy-search .ss-gap-tools select { font-size: 12px; padding: 2px 6px; border: 1px solid #d6dbe1; border-radius: 6px; background: #fff; color: #3d4652; }
+#strategy-search .ss-gap-count { color: #8b939d; }
+
 html.dark #strategy-search .ss-price-basis,
 html.dark #strategy-search .ss-row-basis-tag,
 html.dark #strategy-search .ss-price-basis-note { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #strategy-search .ss-col-price.is-scan .ss-price-basis,
 html.dark #strategy-search .ss-row-quote.is-scan .ss-row-basis-tag,
 html.dark #strategy-search .ss-price-basis-note.is-stale { color: #e0a458 !important; }
+html.dark #strategy-search .ss-gap-tools { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #strategy-search .ss-gap-tools select { background: #241f1c !important; border-color: rgba(245, 239, 224, 0.2) !important; color: #F5EFE0 !important; }
+html.dark #strategy-search .ss-gap-count { color: rgba(245, 239, 224, 0.42) !important; }
