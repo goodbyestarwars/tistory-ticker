@@ -837,15 +837,15 @@
   function buildBreadth(data) {
     var rr = (data.components || {}).riseRatio;
     if (!rr || typeof rr.total !== 'number' || rr.total === 0) return '';
-    var up = rr.up || 0;
-    var down = rr.down || 0;
-    var pct = Math.round((rr.ratio || 0) * 1000) / 10;
-    var scanned = typeof data.quoteCount === 'number' && data.quoteCount > 0 ? data.quoteCount : rr.total;
+    var mb = data.marketBreadth;
 
-    // 코스피/코스닥 분리(2026-09-02 요청). 서버가 byMarket을 안 주는 응답에서도(VM 배포
-    // 이전 버전) 화면이 깨지지 않게, 없으면 통합 한 줄만 그린다.
+    // 전종목(KIS 업종지수 제공)이 있으면 그걸 주 수치로 쓴다 - 사용자가 보고 싶은 건
+    // 시장 전체다. 없으면(키 미설정·조회 실패·구버전 응답) 섹터 풀 수치로 물러난다.
+    var head = mb && mb.total ? mb.total : { up: rr.up || 0, down: rr.down || 0 };
+    var byMarket = (mb && mb.byMarket) || rr.byMarket;
+    var wholeMarket = !!(mb && mb.total);
+
     var marketsHtml = '';
-    var byMarket = rr.byMarket;
     if (byMarket) {
       var chips = MARKET_LABELS.map(function (m) {
         var b = byMarket[m.key];
@@ -858,14 +858,25 @@
       if (chips) marketsHtml = '<div class="mt-hero-breadth-markets">' + chips + '</div>';
     }
 
+    var flatHtml = '';
+    if (wholeMarket && typeof head.flat === 'number' && head.flat > 0) {
+      flatHtml = '<span class="mt-breadth-flat">보합 ' + head.flat + '</span>';
+    }
+
+    // 온도 점수는 섹터 풀 기준이라 위 전종목 수치와 모집단이 다르다. 그 차이를 숨기지 않는다.
+    var scanned = typeof data.quoteCount === 'number' && data.quoteCount > 0 ? data.quoteCount : rr.total;
+    var note = wholeMarket
+      ? '전종목 기준(코스피+코스닥) · 온도 점수는 섹터 풀 ' + scanned + '종목 기준'
+      : '섹터 풀 ' + scanned + '종목 기준(전체 시장 아님)';
+
     return '<div class="mt-hero-breadth">'
-      + '<span class="mt-breadth-up">상승 <strong>' + up + '</strong></span>'
+      + '<span class="mt-breadth-up">상승 <strong>' + (head.up || 0) + '</strong></span>'
       + '<span class="mt-breadth-sep">·</span>'
-      + '<span class="mt-breadth-down">하락 <strong>' + down + '</strong></span>'
-      + '<span class="mt-breadth-ratio">상승비율 ' + pct.toFixed(1) + '%</span>'
+      + '<span class="mt-breadth-down">하락 <strong>' + (head.down || 0) + '</strong></span>'
+      + flatHtml
       + '</div>'
       + marketsHtml
-      + '<div class="mt-breadth-note">섹터 풀 ' + scanned + '종목 기준(전체 시장 아님)</div>';
+      + '<div class="mt-breadth-note">' + note + '</div>';
   }
 
   function buildHero(data) {

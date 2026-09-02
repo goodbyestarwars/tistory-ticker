@@ -204,6 +204,7 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
     # 테마별 자금 흐름은 위에서 이미 받아둔 시세·유니버스만 쓴다 - 외부 호출이 늘지 않는다.
     # '평소 대비 배수'는 daily_prices에서 종목별 20일 평균 거래대금을 읽어 붙인다(DB만 읽음).
     industry_flow = data.build_industry_flow(quotes, universe)
+    market_breadth = data.fetch_market_breadth()
     try:
         baselines = data.baseline_trade_amounts(conn, codes, today)
         data.attach_flow_multiple(industry_flow, baselines)
@@ -221,6 +222,10 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
         'updatedAt': now_kst.strftime('%Y-%m-%d %H:%M:%S'),
         'quoteCount': len(quotes),
         'industryFlow': industry_flow,
+        # 전종목(코스피+코스닥) 등락 종목 수. 위 컴포넌트들은 섹터 풀 237종목 기준이라
+        # 시장 전체 그림과 다르다 - 화면이 둘을 구분해 보여줄 수 있게 함께 싣는다.
+        # 조회 실패·키 미설정이면 None이고, 온도 계산에는 전혀 관여하지 않는다.
+        'marketBreadth': market_breadth,
     }
 
 

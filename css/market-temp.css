@@ -185,6 +185,7 @@
 #market-temp .mt-breadth-market .mt-breadth-up,
 #market-temp .mt-breadth-market .mt-breadth-down { font-weight: 700; }
 #market-temp .mt-breadth-slash { color: #c3cad3; }
+#market-temp .mt-breadth-flat { color: #7c8590; }
 
 #market-temp .mt-hero-deltas {
   display: flex;
