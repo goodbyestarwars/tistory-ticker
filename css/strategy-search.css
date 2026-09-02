@@ -1184,3 +1184,40 @@ html.dark #strategy-search .ss-price-basis-note.is-stale { color: #e0a458 !impor
 html.dark #strategy-search .ss-gap-tools { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #strategy-search .ss-gap-tools select { background: #241f1c !important; border-color: rgba(245, 239, 224, 0.2) !important; color: #F5EFE0 !important; }
 html.dark #strategy-search .ss-gap-count { color: rgba(245, 239, 224, 0.42) !important; }
+
+/* 조건 근접(감시 목록, 2026-09-02). 조건을 통과한 후보 그리드와 시각적으로 확실히
+   구분해야 한다 - 같은 카드처럼 보이면 통과한 것으로 읽힌다. 그래서 그리드 밖 접힌
+   블록에 두고, 배경 없이 점선 테두리 + 흐린 글자로 낮춘다. */
+#strategy-search .ss-nearmiss { margin-top: 18px; border: 1px dashed #d6dbe1; border-radius: 10px; padding: 10px 12px; }
+#strategy-search .ss-nearmiss > summary { cursor: pointer; font-size: 13px; color: #5b646f; list-style: none; }
+#strategy-search .ss-nearmiss > summary::-webkit-details-marker { display: none; }
+#strategy-search .ss-nearmiss > summary::before { content: '▸ '; color: #8b939d; }
+#strategy-search .ss-nearmiss[open] > summary::before { content: '▾ '; }
+#strategy-search .ss-nearmiss-note { margin: 8px 0 10px; font-size: 12px; line-height: 1.6; color: #8b939d; }
+#strategy-search .ss-nearmiss-rows { display: flex; flex-direction: column; gap: 2px; }
+#strategy-search .ss-nearmiss-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr) minmax(0, 0.7fr) minmax(0, 1.6fr); align-items: baseline; gap: 8px; padding: 6px 4px; font-size: 13px; border-radius: 6px; cursor: pointer; }
+#strategy-search .ss-nearmiss-row:hover,
+#strategy-search .ss-nearmiss-row:focus-visible { background: #f4f6f8; outline: none; }
+#strategy-search .ss-nearmiss-name { color: #3d4652; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#strategy-search .ss-nearmiss-code { margin-left: 4px; font-weight: 400; font-size: 11px; color: #8b939d; }
+#strategy-search .ss-nearmiss-sector,
+#strategy-search .ss-nearmiss-reason { color: #8b939d; font-size: 12px; }
+#strategy-search .ss-nearmiss-price { color: #3d4652; text-align: right; }
+
+/* 모바일에선 4열이 눌려 읽을 수 없다 - 이름/가격 한 줄, 섹터·사유 한 줄로 접는다. */
+@media (max-width: 560px) {
+  #strategy-search .ss-nearmiss-row { grid-template-columns: minmax(0, 1fr) auto; }
+  #strategy-search .ss-nearmiss-sector { grid-column: 1; }
+  #strategy-search .ss-nearmiss-reason { grid-column: 1 / -1; }
+}
+
+html.dark #strategy-search .ss-nearmiss { border-color: rgba(245, 239, 224, 0.18) !important; }
+html.dark #strategy-search .ss-nearmiss > summary { color: rgba(245, 239, 224, 0.62) !important; }
+html.dark #strategy-search .ss-nearmiss-note,
+html.dark #strategy-search .ss-nearmiss-sector,
+html.dark #strategy-search .ss-nearmiss-reason,
+html.dark #strategy-search .ss-nearmiss-code { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #strategy-search .ss-nearmiss-name,
+html.dark #strategy-search .ss-nearmiss-price { color: #F5EFE0 !important; }
+html.dark #strategy-search .ss-nearmiss-row:hover,
+html.dark #strategy-search .ss-nearmiss-row:focus-visible { background: rgba(245, 239, 224, 0.07) !important; }
