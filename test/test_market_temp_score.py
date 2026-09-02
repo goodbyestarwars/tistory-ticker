@@ -516,3 +516,63 @@ class FlowFromMarketTrendTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class BreadthByMarketTest(unittest.TestCase):
+    """시장별 상승·하락 종목 수(2026-09-02 요청). 네트워크를 타지 않는 순수 계산이라
+    시세 조회 없이 고정 입력으로 검증한다."""
+
+    @classmethod
+    def setUpClass(cls):
+        import market_temp_data
+        cls.mtd = market_temp_data
+
+    UNIVERSE = [
+        {'code': '005930', 'market': 'KOSPI'},
+        {'code': '000660', 'market': 'KOSPI'},
+        {'code': '035720', 'market': 'KOSPI'},
+        {'code': '247540', 'market': 'KOSDAQ'},
+        {'code': '086520', 'market': 'KOSDAQ'},
+        {'code': '999999', 'market': ''},        # 시장 구분 없음 - 어느 쪽에도 안 들어감
+    ]
+
+    def test_counts_split_by_market(self):
+        quotes = [
+            {'code': '005930', 'change': 100},
+            {'code': '000660', 'change': -200},
+            {'code': '035720', 'change': -50},
+            {'code': '247540', 'change': 300},
+            {'code': '086520', 'change': 400},
+            {'code': '999999', 'change': 500},
+        ]
+        got = self.mtd.breadth_by_market(quotes, self.UNIVERSE)
+        self.assertEqual(got['KOSPI'], {'up': 1, 'down': 2, 'total': 3})
+        self.assertEqual(got['KOSDAQ'], {'up': 2, 'down': 0, 'total': 2})
+
+    def test_flat_is_excluded_like_the_combined_count(self):
+        """보합은 통합 집계(score_rise_ratio)와 같게 total에서도 빠진다."""
+        quotes = [
+            {'code': '005930', 'change': 0},
+            {'code': '000660', 'change': None},
+            {'code': '247540', 'change': 10},
+        ]
+        got = self.mtd.breadth_by_market(quotes, self.UNIVERSE)
+        self.assertEqual(got['KOSPI'], {'up': 0, 'down': 0, 'total': 0})
+        self.assertEqual(got['KOSDAQ'], {'up': 1, 'down': 0, 'total': 1})
+
+    def test_empty_inputs_return_zeroed_markets(self):
+        got = self.mtd.breadth_by_market([], [])
+        self.assertEqual(sorted(got.keys()), ['KOSDAQ', 'KOSPI'])
+        self.assertTrue(all(v == {'up': 0, 'down': 0, 'total': 0} for v in got.values()))
+
+    def test_market_value_is_case_and_space_tolerant(self):
+        universe = [{'code': '005930', 'market': ' kospi '}]
+        got = self.mtd.breadth_by_market([{'code': '005930', 'change': 5}], universe)
+        self.assertEqual(got['KOSPI']['up'], 1)
+
+    def test_real_universe_covers_both_markets(self):
+        """실제 sectors-v3.js에 두 시장이 모두 들어 있어야 화면이 반쪽이 되지 않는다."""
+        uni = self.mtd.universe_with_sectors()
+        markets = {(u.get('market') or '').strip().upper() for u in uni}
+        self.assertIn('KOSPI', markets)
+        self.assertIn('KOSDAQ', markets)

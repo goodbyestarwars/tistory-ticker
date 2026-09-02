@@ -90,8 +90,12 @@
         tradingValue: { score: vol, relative: 1 + 0.12 * sign },
         avgChange: { score: avgChange, avgChangeRate: 1.2 * sign },
         riseRatio: total === 60
-          ? { score: rise, ratio: 0.5, up: 110, down: 110, total: 220 } // up===down -> 회색(0) 케이스
-          : { score: rise, ratio: 0.55 + 0.1 * sign, up: sign > 0 ? 150 : 60, down: sign > 0 ? 70 : 160, total: 220 },
+          ? { score: rise, ratio: 0.5, up: 110, down: 110, total: 220, // up===down -> 회색(0) 케이스
+              byMarket: { KOSPI: { up: 85, down: 85, total: 170 }, KOSDAQ: { up: 25, down: 25, total: 50 } } }
+          : { score: rise, ratio: 0.55 + 0.1 * sign, up: sign > 0 ? 150 : 60, down: sign > 0 ? 70 : 160, total: 220,
+              byMarket: sign > 0
+                ? { KOSPI: { up: 118, down: 52, total: 170 }, KOSDAQ: { up: 32, down: 18, total: 50 } }
+                : { KOSPI: { up: 45, down: 125, total: 170 }, KOSDAQ: { up: 15, down: 35, total: 50 } } },
         sectorStrength: { score: sectorStrength, sectorCount: 10, strongCount: sign > 0 ? 14 : 4 },
         week52: { score: week52, newHigh: sign > 0 ? 18 : 2, newLow: sign > 0 ? 2 : 25, scanned: 238 },
         exchange: { score: exchange, changeRate: -0.2 * sign },

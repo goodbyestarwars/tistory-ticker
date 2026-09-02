@@ -101,6 +101,37 @@ def fetch_quotes(codes):
 
 # ---- 컴포넌트 조립 ----
 
+MARKET_KEYS = ('KOSPI', 'KOSDAQ')
+
+
+def breadth_by_market(quotes, universe_with_sectors):
+    """시장별 상승·하락 종목 수. 통합 집계(score_rise_ratio)와 같은 규칙으로 센다 -
+    보합(change == 0)은 상승에도 하락에도 넣지 않고 total에서도 뺀다.
+
+    시장 구분이 KOSPI/KOSDAQ이 아니거나 비어 있는 종목은 어느 쪽에도 넣지 않는다
+    (합계가 통합 집계보다 작을 수 있다 - 화면에서 통합 수치를 함께 보여주는 이유).
+    """
+    market_by_code = {}
+    for u in universe_with_sectors or []:
+        code = u.get('code')
+        if code:
+            market_by_code[code] = (u.get('market') or '').strip().upper()
+
+    result = {key: {'up': 0, 'down': 0, 'total': 0} for key in MARKET_KEYS}
+    for q in quotes or []:
+        market = market_by_code.get(q.get('code'))
+        if market not in result:
+            continue
+        change = q.get('change') or 0
+        if change > 0:
+            result[market]['up'] += 1
+            result[market]['total'] += 1
+        elif change < 0:
+            result[market]['down'] += 1
+            result[market]['total'] += 1
+    return result
+
+
 def build_quote_components(quotes, universe_with_sectors, prior_trading_values):
     """시세 하나로 나오는 4개 컴포넌트(거래대금·평균등락·상승비율·섹터강세)를 만든다."""
     today_value = sum((q.get('price') or 0) * (q.get('volume') or 0) for q in quotes)
@@ -115,6 +146,10 @@ def build_quote_components(quotes, universe_with_sectors, prior_trading_values):
     up = sum(1 for q in quotes if (q.get('change') or 0) > 0)
     down = sum(1 for q in quotes if (q.get('change') or 0) < 0)
     rise_ratio = score.score_rise_ratio(up, down)
+    # 2026-09-02 사용자 요청("상승·하락 코스피/코스닥 따로") - 점수 계산은 통합 그대로
+    # 두고(밴드가 바뀌면 과거 온도와 비교가 깨진다) 표시용 내역만 덧붙인다. 시장 구분은
+    # sectors-v3.js가 종목마다 들고 있는 market 값을 그대로 쓴다.
+    rise_ratio['byMarket'] = breadth_by_market(quotes, universe_with_sectors)
 
     by_code = {q['code']: q for q in quotes if q.get('code')}
     by_sector = {}

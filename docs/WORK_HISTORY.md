@@ -1,5 +1,31 @@
 # 9Pay 주요 작업이력
 
+**2026-09-02 증시온도 상승·하락 종목 수 코스피/코스닥 분리**
+
+사용자 요청("상승·하락 코스피/코스닥 따로"). 같은 날 히어로로 끌어올린 통합 수치 아래에
+시장별 내역을 덧붙인다.
+
+주요 변경:
+- `scripts/cloud-vm/market_temp_data.py`: `breadth_by_market()` 추가, `riseRatio.byMarket`
+  으로 실어 보낸다. 시장 구분은 `sectors-v3.js`가 종목마다 들고 있는 `market` 값을 쓴다
+- **점수 계산은 건드리지 않았다.** `score_rise_ratio`의 통합 up/down 밴드를 그대로 두어야
+  과거 온도 이력과 비교가 깨지지 않는다 - 시장별 값은 표시 전용이다
+- 집계 규칙은 통합과 동일: 보합(change 0)은 상승·하락 어디에도 넣지 않고 total에서도 뺀다.
+  시장 구분이 KOSPI/KOSDAQ이 아닌 종목은 어느 쪽에도 안 들어가므로 시장별 합이 통합보다
+  작을 수 있다(통합 수치를 함께 보여주는 이유)
+- `js/market-temp.js`: `byMarket`이 있을 때만 시장별 줄을 그린다. 없으면 통합 한 줄만 -
+  VM 배포 이전 응답에서도 화면이 깨지지 않는다
+- `css/market-temp.css`: `.mt-hero-breadth-markets` 계열(라이트·다크)
+- `test/market-temp.html`: mock에 `byMarket` 추가
+
+검증: `node --check` 통과, `pytest -k "market_temp or ui_ia"` 211 passed/1 skipped
+(시장별 집계 신규 5건 - 분리 집계·보합 제외·빈 입력·대소문자/공백 허용·실제 유니버스에
+두 시장 존재), Chromium 실측 3종에서 byMarket 있는 경우와 없는 경우를 모두 확인.
+
+배포: `js/`·`css/`는 GitHub Pages 자동 배포로 즉시. **`scripts/cloud-vm/`는 VM 자동 배포가
+2026-09-02 05:14 UTC 이후 멈춰 있어 대기 상태다** - 배포 타이머가 복구되면 시장별 줄이
+자동으로 나타난다(그전까지는 통합 한 줄만 보인다).
+
 **2026-09-02 증시온도 히어로에 상승·하락 종목 수 노출 + 모집단 명시**
 
 사용자 요청("전종목 몇 개가 오르고 몇 개가 내리는지 보고싶어"). 확인해보니 값 자체는

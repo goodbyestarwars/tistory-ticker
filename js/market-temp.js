@@ -827,6 +827,9 @@
   // 2026-07-18(2차 개편): Hero와 게이지를 하나의 카드로 병합(사용자 요청 - "숫자를 본
   // 직후 바로 위치를 확인할 수 있도록"). buildHero/buildGauge는 이제 각자 outer
   // .mt-section 래퍼 없이 내부 콘텐츠만 반환하고, buildHeroCard가 하나의 카드로 합친다.
+  // 시장별 상승·하락 표시 순서(코스피 먼저). 서버 byMarket 키와 1:1로 맞춘다.
+  var MARKET_LABELS = [{ key: 'KOSPI', label: '코스피' }, { key: 'KOSDAQ', label: '코스닥' }];
+
   // 2026-09-02 사용자 요청("몇 개가 오르고 몇 개가 내리는지 보고싶어") - 상승·하락 종목
   // 수는 원래 아래 지표 상세의 "상승비율" 행에만 있어 눈에 잘 안 띄었다. 온도 바로 밑으로
   // 올린다. 모집단은 코스피+코스닥 전종목이 아니라 data/sectors-v3.js 섹터 풀이므로
@@ -838,13 +841,31 @@
     var down = rr.down || 0;
     var pct = Math.round((rr.ratio || 0) * 1000) / 10;
     var scanned = typeof data.quoteCount === 'number' && data.quoteCount > 0 ? data.quoteCount : rr.total;
+
+    // 코스피/코스닥 분리(2026-09-02 요청). 서버가 byMarket을 안 주는 응답에서도(VM 배포
+    // 이전 버전) 화면이 깨지지 않게, 없으면 통합 한 줄만 그린다.
+    var marketsHtml = '';
+    var byMarket = rr.byMarket;
+    if (byMarket) {
+      var chips = MARKET_LABELS.map(function (m) {
+        var b = byMarket[m.key];
+        if (!b || !b.total) return '';
+        return '<span class="mt-breadth-market"><em>' + m.label + '</em>'
+          + '<span class="mt-breadth-up">' + (b.up || 0) + '</span>'
+          + '<span class="mt-breadth-slash">/</span>'
+          + '<span class="mt-breadth-down">' + (b.down || 0) + '</span></span>';
+      }).join('');
+      if (chips) marketsHtml = '<div class="mt-hero-breadth-markets">' + chips + '</div>';
+    }
+
     return '<div class="mt-hero-breadth">'
       + '<span class="mt-breadth-up">상승 <strong>' + up + '</strong></span>'
       + '<span class="mt-breadth-sep">·</span>'
       + '<span class="mt-breadth-down">하락 <strong>' + down + '</strong></span>'
       + '<span class="mt-breadth-ratio">상승비율 ' + pct.toFixed(1) + '%</span>'
-      + '<span class="mt-breadth-note">섹터 풀 ' + scanned + '종목 기준(전체 시장 아님)</span>'
-      + '</div>';
+      + '</div>'
+      + marketsHtml
+      + '<div class="mt-breadth-note">섹터 풀 ' + scanned + '종목 기준(전체 시장 아님)</div>';
   }
 
   function buildHero(data) {

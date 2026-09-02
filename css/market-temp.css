@@ -177,7 +177,14 @@
 #market-temp .mt-breadth-down { color: #1261c4; }
 #market-temp .mt-breadth-sep { color: #c3cad3; }
 #market-temp .mt-breadth-ratio { color: #3d4652; font-weight: 600; }
-#market-temp .mt-breadth-note { color: #9aa3ad; }
+#market-temp .mt-breadth-note { color: #9aa3ad; font-size: 10px; margin-top: 2px; }
+/* 시장별 분리(2026-09-02). 코스피/코스닥 칩을 한 줄에 두고 모바일에서 줄바꿈시킨다. */
+#market-temp .mt-hero-breadth-markets { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 3px; font-size: 11px; }
+#market-temp .mt-breadth-market { display: inline-flex; align-items: baseline; gap: 4px; }
+#market-temp .mt-breadth-market em { font-style: normal; color: #7c8590; }
+#market-temp .mt-breadth-market .mt-breadth-up,
+#market-temp .mt-breadth-market .mt-breadth-down { font-weight: 700; }
+#market-temp .mt-breadth-slash { color: #c3cad3; }
 
 #market-temp .mt-hero-deltas {
   display: flex;
@@ -813,6 +820,8 @@ html.dark #market-temp .mt-breadth-down { color: #4d9fff !important; }
 html.dark #market-temp .mt-breadth-sep { color: rgba(245, 239, 224, 0.3) !important; }
 html.dark #market-temp .mt-breadth-ratio { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-breadth-note { color: rgba(245, 239, 224, 0.42) !important; }
+html.dark #market-temp .mt-breadth-market em { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #market-temp .mt-breadth-slash { color: rgba(245, 239, 224, 0.3) !important; }
 html.dark #market-temp .mt-val-zero { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #market-temp .mt-pill.mt-val-pos { background: #4a2620 !important; color: #ff8f80 !important; }
 html.dark #market-temp .mt-pill.mt-val-neg { background: #1c3050 !important; color: #7cb3ff !important; }
