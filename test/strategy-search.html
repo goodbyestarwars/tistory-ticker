@@ -137,6 +137,29 @@
         categories: mockCategories
       });
     }
+    // 2026-09-02: `?codes=`(실시간 시세)를 이전에는 빈 객체로 흘려보내 실시간 반영 경로가
+    // 한 번도 실행되지 않았다. 스캔 대비 갭 정렬·필터가 이 경로에 붙으므로 mock을 채운다.
+    // 스캔가 대비 -3%/0%/+2%/+7%를 순환시켜 필터·정렬을 눈으로 확인할 수 있게 한다.
+    if (url.indexOf('codes=') > -1) {
+      var scanByCode = {};
+      // 카테고리마다 matches가 바로 있기도 하고 sectors 아래 나뉘어 있기도 하다.
+      var collect = function (list) {
+        (list || []).forEach(function (it) { if (it && it.code) scanByCode[String(it.code)] = it; });
+      };
+      Object.keys(mockCategories).forEach(function (key) {
+        var cat = mockCategories[key] || {};
+        collect(cat.matches);
+        Object.keys(cat.sectors || {}).forEach(function (sec) { collect((cat.sectors[sec] || {}).matches); });
+      });
+      var factors = [0.97, 1.00, 1.02, 1.07];
+      var codes = (url.split('codes=')[1] || '').split(',').filter(Boolean);
+      return Promise.resolve(codes.map(function (code, i) {
+        var base = scanByCode[code];
+        if (!base || base.price == null) return { code: code };
+        var f = factors[i % factors.length];
+        return { code: code, price: Math.round(base.price * f), changeRate: (f - 1) * 100 };
+      }));
+    }
     return Promise.resolve({});
   };
   window.__strategySearchFetch = function (url) {
