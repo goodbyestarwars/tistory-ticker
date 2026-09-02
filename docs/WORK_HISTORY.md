@@ -1,5 +1,45 @@
 # 9Pay 주요 작업이력
 
+**2026-09-02 증시온도 프론트를 GAS에서 VM으로 전환 (백엔드 일원화 1단계 완료)**
+
+사용자 요청은 "전종목 상승/하락"이었는데, VM에 `marketBreadth`를 실었는데도 화면에 안
+나왔다. 원인은 **증시온도 화면이 VM을 안 보고 GAS `?marketTemp=1`을 부르고 있었던 것**.
+GAS는 VM을 중계하는 게 아니라 자체 계산한다. 그래서 `docs/BACKEND_CONSOLIDATION.md`
+1단계(프론트 전환)를 마무리했다.
+
+**종단 비교(2026-09-02 13:18~13:19 UTC 실측)** - GAS와 VM을 같은 시각에 받아 대조:
+
+| 컴포넌트 | GAS | VM | 판정 |
+|---|---|---|---|
+| flow | 13점 | 4점 | VM 채택 |
+| tradingValue | 7점 | 4점 | VM 채택 |
+| avgChange / riseRatio / sectorStrength | 0점 | 0점 | 동일 |
+
+갈린 두 항목 모두 GAS 쪽 결함이었다. flow는 GAS가 쓰던 KODEX200 대리지표가 과거 이력이
+없어(64일 중 63일 0) 비율이 ±1.0으로 포화된 것이고, tradingValue는 GAS의 5일 이력이
+`PropertiesService`에 "방문이 있는 날의 장중 스냅샷"으로만 쌓여 과소평가된 것이다
+(GAS avg5가 12% 낮은 게 방향·크기 모두 들어맞았다). 근거는 문서 7절 표에 남겼다.
+
+주요 변경:
+- `js/market-temp.js`: `fetchMarketTemp()`가 VM `/market-temp` 호출. envelope(`data`) 언랩은
+  이 화면의 다른 VM 호출부와 동일한 방식. **폴백을 두지 않는다** - VM 실패 시 GAS로 조용히
+  갈아타면 온도 기준이 말없이 바뀌어 더 나쁘다
+- `docs/BACKEND_CONSOLIDATION.md`: 5절 게이트를 "숫자가 같아야 한다" → **"설명되지 않는
+  차이가 없어야 한다"** 로 개정(GAS를 정답으로 전제하면 결함까지 이식하게 된다).
+  7절에 실측 비교표와 판정 근거 추가, 1단계 완료로 갱신
+
+**영향**: 화면 온도가 낮아진다(전환 직전 45.7점 → 30점대). 값이 바뀌는 게 아니라 그동안
+과대평가돼 있던 것이 교정되는 것이다. 홈 첫 화면에서 GAS 7.1초 홉이 사라진다.
+
+검증: `node --check` 통과, `pytest -k "market_temp or ui_ia"` 220 passed/1 skipped,
+Chromium 실측 - `?real=1`로 실제 호출 경로를 태우고 fetch만 VM 응답 모양으로 가로채
+호출 URL이 `goodbyestar.cloud/market-temp`인 것, envelope 언랩, 전종목 수치 렌더를 확인.
+
+배포: `js/`라 GitHub Pages 자동.
+
+**남은 것**: 한 사이클 운영 후 GAS `marketTemp` 액션 제거. 단 `?marketTempBriefing=1`이
+내부에서 `getMarketTemp()`를 다시 부르므로 그 의존을 먼저 끊어야 한다.
+
 **2026-09-02 증시온도에 전종목(코스피+코스닥) 등락 종목 수 표시**
 
 사용자 요청("전종목 몇 개가 오르고 몇 개가 내리는지"). 앞선 작업은 섹터 풀 237종목
