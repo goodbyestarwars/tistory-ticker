@@ -24,6 +24,7 @@ import invest_signal
 import kiwoom_client
 import kiwoom_market
 import public_data
+import scan_forward
 import pattern_detect as pd
 import swing_model
 
@@ -471,6 +472,25 @@ def main():
 
     now = datetime.now(timezone.utc).isoformat()
     pd.annotate_pattern_scan_details(pattern_results, now, pullback_matches)
+
+    # 차트검색 캐시도 매일 덮어써서 이력이 없다. 그날 잡힌 패턴 종목과 기준가(스캔 시점
+    # 종가)만 scan_hits에 남겨 사후 성과를 되짚을 수 있게 한다 - scan_forward.py 참고.
+    # 실패해도 스캔 캐시 갱신에는 영향이 없어야 하므로 예외를 삼킨다.
+    try:
+        hits_conn = db_schema.get_conn()
+        try:
+            groups = dict(pattern_results or {})
+            if pullback_matches:
+                groups['pullback'] = pullback_matches
+            recorded = scan_forward.record_grouped_hits(
+                hits_conn, scan_forward.today_kst(), 'pattern', groups)
+            if recorded:
+                log('포워드 추적 기록: %s' % ', '.join(
+                    '%s %d' % (k, v) for k, v in sorted(recorded.items())))
+        finally:
+            hits_conn.close()
+    except Exception as e:
+        log('포워드 추적 기록 실패(무시하고 계속): %s' % e)
 
     # 2026-08-21 코드 감사: 예전엔 파일 전체를 이 스크립트의 payload로 덮어써서,
     # angle_momentum_scan.py/gongpasan_scan.py가 patternScan.patterns 밑에 미리 써둔

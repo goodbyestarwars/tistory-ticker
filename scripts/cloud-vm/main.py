@@ -54,6 +54,7 @@ import option_flow
 import order_book
 import public_data
 import realtime_quotes
+import scan_forward
 import sector_cards
 import swing_model
 import us_analysis
@@ -1920,6 +1921,39 @@ def strategy_scan_batch(x_api_key: str = Header(default=None)):
     with open(STRATEGY_SCAN_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return envelope(cached)
+
+
+@app.get('/scan-performance')
+def scan_performance(scanner: str = '', since: str = '', horizons: str = '1,3,5',
+                     limit: int = 2000, x_api_key: str = Header(default=None)):
+    """스캔(전략검색/차트검색) 히트 종목의 사후 수익률.
+
+    scan_hits에 남은 그날의 히트와 기준가를 daily_prices와 대조해 D+거래일 수익률을
+    계산한다(scan_forward.py). 수익률은 저장하지 않고 매 조회마다 계산하므로 일봉이
+    정정되면 결과도 따라 정정된다.
+
+    기준가는 스캔 시점 종가라 실제 체결가가 아니다. 이 응답은 "조건의 사후 분포"이지
+    매매 성과가 아니며, 화면 문구에서 그 구분을 지우면 안 된다.
+
+    scanner: 'strategy:undervalued' / 'pattern:doubleBottom' 같은 단일 스캐너로 좁힌다.
+    since: 'YYYY-MM-DD' 이후 스캔분만.
+    horizons: 쉼표 구분 거래일 수(기본 1,3,5).
+    """
+    require_api_key(x_api_key)
+    try:
+        parsed = [int(h) for h in horizons.split(',') if h.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail='horizons는 쉼표로 구분한 정수여야 합니다.')
+    if not parsed:
+        raise HTTPException(status_code=400, detail='horizons가 비어 있습니다.')
+    conn = db_schema.get_conn()
+    try:
+        result = scan_forward.forward_returns(
+            conn, scanner=scanner or None, since=since or None,
+            horizons=parsed, limit=max(1, min(int(limit), 20000)))
+    finally:
+        conn.close()
+    return envelope(result)
 
 
 # 분봉을 "읽을 수 있는" 심볼 집합 - domestic_futures.MINUTE_SYMBOLS(주간선물만, 도메스틱

@@ -54,6 +54,7 @@ import invest_signal
 import kiwoom_client
 import pattern_detect
 import public_data
+import scan_forward
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 WICS_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js'
@@ -1400,6 +1401,24 @@ def main():
     with open(tmp_path, 'w', encoding='utf-8') as f:
         json.dump(output, f, ensure_ascii=False)
     os.replace(tmp_path, OUTPUT_FILE)  # 원자적 교체 - 쓰는 도중 /strategy-scan-batch가 읽어도 반쪽 파일을 못 봄
+
+    # 캐시는 매일 덮어써서 이력이 안 남는다. 조건이 실제로 쓸모 있었는지 나중에 되짚을 수
+    # 있게 그날의 히트 종목과 기준가만 scan_hits에 남긴다(수익률은 조회 때 daily_prices와
+    # 대조해 계산 - scan_forward.py). 실패해도 스캔 결과 서빙에는 영향이 없어야 하므로
+    # 예외를 삼킨다.
+    try:
+        hits_conn = db_schema.get_conn()
+        try:
+            recorded = scan_forward.record_grouped_hits(
+                hits_conn, scan_forward.today_kst(), 'strategy',
+                scan_forward.flatten_category_matches(output['categories']))
+            if recorded:
+                log('포워드 추적 기록: %s' % ', '.join(
+                    '%s %d' % (k, v) for k, v in sorted(recorded.items())))
+        finally:
+            hits_conn.close()
+    except Exception as e:
+        log('포워드 추적 기록 실패(무시하고 계속): %s' % e)
 
     total_matches = sum(len(s['matches']) for s in undervalued_category['sectors'].values())
     log('완료: 판정 %d / 유니버스 %d, 데이터부족 %d, 유동성부족 %d, 섹터미분류 %d, 펀더멘탈없음 %d'

@@ -259,6 +259,26 @@ CREATE INDEX IF NOT EXISTS idx_swing_snapshots_code_date
     ON swing_recommendation_snapshots(code, as_of_date);
 CREATE INDEX IF NOT EXISTS idx_swing_snapshots_regime
     ON swing_recommendation_snapshots(model_version, chart_regime, as_of_date);
+
+-- 2026-09-02: 스캔(전략검색/차트검색) 결과의 사후 성과 추적. 스캔 캐시 JSON은 매일
+-- 통째로 덮어써서 "어제 뽑힌 종목이 그 뒤 어떻게 됐는지"를 되짚을 근거가 없었다.
+-- 스캔이 돌 때 그날의 히트 종목과 기준가만 여기 남겨두고, 수익률은 조회 시점에
+-- daily_prices와 대조해 계산한다(중복 저장 안 함 - 일봉이 정정되면 결과도 따라 정정).
+-- scanner는 'strategy:<카테고리id>' / 'pattern:<패턴키>' 형태의 네임스페이스 문자열.
+-- 같은 날 재스캔(rescan_patterns.py)이 돌아도 그날 첫 기록의 기준가를 유지한다
+-- (INSERT OR IGNORE) - 장중 재스캔가로 덮으면 성과가 실제보다 좋게 보인다.
+CREATE TABLE IF NOT EXISTS scan_hits (
+    scan_date TEXT NOT NULL,
+    scanner TEXT NOT NULL,
+    code TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    base_price REAL,
+    score REAL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (scan_date, scanner, code)
+);
+CREATE INDEX IF NOT EXISTS idx_scan_hits_scanner_date ON scan_hits(scanner, scan_date);
+CREATE INDEX IF NOT EXISTS idx_scan_hits_code ON scan_hits(code, scan_date);
 '''
 
 
