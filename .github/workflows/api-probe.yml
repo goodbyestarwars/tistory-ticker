@@ -30,6 +30,10 @@ on:
           - 'https://goodbyestar.cloud'
           - 'https://ghlee.tistory.com'
           - 'https://goodbyestarwars.github.io'
+          # GAS 프록시. 증시온도를 VM으로 넘기기 전 GAS 응답과 대조하려고 넣었다
+          # (docs/BACKEND_CONSOLIDATION.md 5절 "종단 비교"). 스크립트 ID는 js/에 이미
+          # 공개돼 있는 값이라 새로 노출되는 정보가 없다.
+          - 'https://script.google.com'
       paths:
         description: '경로 목록(쉼표 또는 줄바꿈 구분). 예: /health, /quote?code=005930'
         type: string
