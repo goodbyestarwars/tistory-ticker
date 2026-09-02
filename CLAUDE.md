@@ -69,3 +69,9 @@
 - `scripts/cloud-vm/`: `master` 반영 후 VM 자동 배포
 - `gas/ticker-proxy.gs`: `master` 반영 후 GitHub Actions(clasp)가 자동 배포(2026-08-14부터). 저장소 Secrets(`CLASP_CREDENTIALS`/`CLASP_DEPLOYMENT_ID`) 없으면 예전처럼 GAS에서 수동 배포
 - `skin.html`: Tistory 관리자에서 수동 반영
+
+## 점검 도구
+
+- `.github/workflows/api-probe.yml`: 운영 API·라이브 사이트 응답을 GitHub Actions 러너에서
+  대신 호출해 확인한다. 아웃바운드가 막힌 작업 환경에서 API 필드·단위를 추정하지 않고
+  실측할 때 Actions 탭에서 수동 실행한다. 인증 엔드포인트는 대상이 아니다.

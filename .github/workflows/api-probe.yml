@@ -1,0 +1,120 @@
+name: API Probe
+
+# 운영 API·라이브 사이트의 응답을 GitHub Actions 러너에서 확인하는 점검용 워크플로다.
+#
+# 목적: 아웃바운드가 GitHub·패키지 저장소로 제한된 작업 환경(Claude Code on the web
+# 클라우드 컨테이너 등)에서는 goodbyestar.cloud·ghlee.tistory.com에 직접 붙을 수 없다.
+# 러너는 인터넷이 열려 있으므로 여기서 대신 호출하고, 그 실행 로그로 응답 본문·상태
+# 코드·소요 시간을 회수한다. PC 없이 모바일만으로 작업할 때 API 필드·단위를 추정하지
+# 않고 실측하기 위한 용도.
+#
+# 사용법: Actions 탭 → API Probe → Run workflow → base 선택 후 paths 입력.
+#   paths 예) /health
+#             /health, /quote?code=005930
+#             여러 줄로 나눠 적어도 된다.
+#
+# 주의:
+# - 수동 실행(workflow_dispatch) 전용이다. 자동 트리거를 붙이지 않는다.
+# - 인증이 필요한 엔드포인트는 대상이 아니다. Secrets·토큰을 쓰지 않는다.
+# - base는 아래 목록으로 고정한다. 임의 호스트를 넣을 수 없게 해 오용을 막는다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: '호출 대상'
+        type: choice
+        required: true
+        default: 'https://goodbyestar.cloud'
+        options:
+          - 'https://goodbyestar.cloud'
+          - 'https://ghlee.tistory.com'
+          - 'https://goodbyestarwars.github.io'
+      paths:
+        description: '경로 목록(쉼표 또는 줄바꿈 구분). 예: /health, /quote?code=005930'
+        type: string
+        required: true
+        default: '/health'
+      max_bytes:
+        description: '응답 본문 출력 상한(바이트)'
+        type: string
+        required: false
+        default: '4000'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe endpoints
+        env:
+          BASE: ${{ inputs.base }}
+          PATHS: ${{ inputs.paths }}
+          MAX_BYTES: ${{ inputs.max_bytes }}
+        run: |
+          set -uo pipefail
+
+          # 쉼표·줄바꿈 모두 구분자로 받아 공백을 정리한다.
+          mapfile -t TARGETS < <(printf '%s' "$PATHS" | tr ',' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$')
+
+          if [ "${#TARGETS[@]}" -eq 0 ]; then
+            echo "::error::paths가 비어 있다."
+            exit 1
+          fi
+
+          echo "base: $BASE"
+          echo "대상 ${#TARGETS[@]}건, 본문 상한 ${MAX_BYTES}바이트"
+
+          fail=0
+          for p in "${TARGETS[@]}"; do
+            case "$p" in
+              /*) url="${BASE}${p}" ;;
+              *)  url="${BASE}/${p}" ;;
+            esac
+
+            echo ""
+            echo "===================================================================="
+            echo "GET $url"
+            echo "===================================================================="
+
+            body="$(mktemp)"
+            # -sS: 진행률은 숨기고 오류는 보이게. 실패해도 본문·상태를 남기려고 --fail은 쓰지 않는다.
+            meta="$(curl -sS -m 30 -o "$body" \
+              -w 'http_code=%{http_code} time_total=%{time_total}s size=%{size_download}B content_type=%{content_type}' \
+              "$url" 2>&1)" || {
+                echo "요청 실패: $meta"
+                fail=1
+                rm -f "$body"
+                continue
+              }
+
+            echo "$meta"
+            echo "--------------------------------------------------------------------"
+
+            # JSON이면 보기 좋게 정렬해서 필드 구조를 그대로 읽을 수 있게 한다.
+            if head -c 1 "$body" | grep -q '[{[]' && python3 -m json.tool "$body" > /dev/null 2>&1; then
+              python3 -m json.tool "$body" | head -c "$MAX_BYTES"
+            else
+              head -c "$MAX_BYTES" "$body"
+            fi
+            echo ""
+
+            actual_size="$(wc -c < "$body")"
+            if [ "$actual_size" -gt "$MAX_BYTES" ]; then
+              echo "... (본문 ${actual_size}B 중 앞 ${MAX_BYTES}B만 출력)"
+            fi
+
+            code="${meta#*http_code=}"
+            code="${code%% *}"
+            case "$code" in
+              2*) : ;;
+              *) echo "::warning::$url → HTTP $code" ;;
+            esac
+
+            rm -f "$body"
+          done
+
+          exit "$fail"
