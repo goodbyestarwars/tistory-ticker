@@ -366,7 +366,7 @@ class ScanTests(unittest.TestCase):
         wics_map = {'000001': {'name': '데이터부족종목', 'sector': 'IT', 'industry': 'IT'}}
         fundamentals_cache = {'000001': {'annual': GOOD_ANNUAL}}
 
-        sectors, scanned, no_data, illiquid, no_sector, no_fund = strategy_scan.scan(
+        sectors, scanned, no_data, illiquid, no_sector, no_fund, _near = strategy_scan.scan(
             universe, wics_map, fundamentals_cache, self.conn)
 
         self.assertEqual(scanned, 0)
@@ -380,7 +380,7 @@ class ScanTests(unittest.TestCase):
         wics_map = {'000009': {'name': '품절주', 'sector': 'IT', 'industry': 'IT'}}
         fundamentals_cache = {'000009': {'annual': GOOD_ANNUAL}}
 
-        sectors, scanned, no_data, illiquid, no_sector, no_fund = strategy_scan.scan(
+        sectors, scanned, no_data, illiquid, no_sector, no_fund, _near = strategy_scan.scan(
             universe, wics_map, fundamentals_cache, self.conn)
 
         self.assertEqual(scanned, 0)
@@ -431,7 +431,7 @@ class ScanTests(unittest.TestCase):
         universe = [{'code': '000002', 'name': '미분류종목'}]
         fundamentals_cache = {'000002': {'annual': GOOD_ANNUAL}}
 
-        sectors, scanned, no_data, illiquid, no_sector, no_fund = strategy_scan.scan(
+        sectors, scanned, no_data, illiquid, no_sector, no_fund, _near = strategy_scan.scan(
             universe, {}, fundamentals_cache, self.conn)  # wics_map 비어있음
 
         self.assertEqual(no_sector, 1)
@@ -443,7 +443,7 @@ class ScanTests(unittest.TestCase):
         universe = [{'code': '000003', 'name': '재무없음'}]
         wics_map = {'000003': {'name': '재무없음', 'sector': 'IT', 'industry': 'IT'}}
 
-        sectors, scanned, no_data, illiquid, no_sector, no_fund = strategy_scan.scan(
+        sectors, scanned, no_data, illiquid, no_sector, no_fund, _near = strategy_scan.scan(
             universe, wics_map, {}, self.conn)  # fundamentals_cache 비어있음
 
         self.assertEqual(no_fund, 1)
@@ -887,3 +887,85 @@ class ApplyAnalystTargetPriceAnchorTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+# 2026-09-02 신설 - 조건 근접(감시 목록). 게이트 두 개 중 "하나만" 아깝게 빗나간 종목만
+# 모으고, 둘 다 못 넘긴 종목이나 허용폭을 벗어난 종목은 넣지 않는지 확인한다.
+NEAR_ANNUAL = {'latest_roe_pct': 4.0, 'latest_debt_ratio_pct': 60.0}   # fundamentalScore 56
+FAR_ANNUAL = {'latest_roe_pct': 3.0, 'latest_debt_ratio_pct': 130.0}   # fundamentalScore 48
+
+
+class NearMissTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
+        self.tmp.close()
+        self.conn = db_schema.get_conn(self.tmp.name)
+        db_schema.create_schema(self.conn)
+
+    def tearDown(self):
+        self.conn.close()
+        os.unlink(self.tmp.name)
+
+    def _scan(self, code, name, annual, last_price):
+        _insert_flat_then_drop(self.conn, code, last_price=last_price)
+        return strategy_scan.scan(
+            [{'code': code, 'name': name}],
+            {code: {'name': name, 'sector': 'IT', 'industry': 'IT'}},
+            {code: {'annual': annual}},
+            self.conn)
+
+    def test_score_just_below_gate_is_near_miss(self):
+        # 이격도는 통과(85%), 펀더멘탈만 56점으로 4점 부족.
+        sectors, _, _, _, _, _, near = self._scan('000101', '점수근접', NEAR_ANNUAL, 8500)
+        self.assertEqual(sectors, {})
+        self.assertEqual(len(near), 1)
+        self.assertEqual(near[0]['missField'], 'fundamentalScore')
+        self.assertEqual(near[0]['missGap'], 4)
+        self.assertEqual(near[0]['sector'], 'IT')
+        self.assertIn('4점 부족', near[0]['missReason'])
+
+    def test_disparity_just_above_gate_is_near_miss(self):
+        # 펀더멘탈은 통과(100점), 이격도만 93%로 3%p 초과.
+        sectors, _, _, _, _, _, near = self._scan('000102', '이격근접', GOOD_ANNUAL, 9300)
+        self.assertEqual(sectors, {})
+        self.assertEqual(len(near), 1)
+        self.assertEqual(near[0]['missField'], 'disparity')
+        # 마지막 하루가 SMA에 섞여 이격도가 목표치에서 소수점 수준으로 밀린다
+        # (_insert_flat_then_drop 주석 참고) - 허용폭 안에 든다는 것만 확인한다.
+        self.assertAlmostEqual(near[0]['missGap'], 3.0, places=0)
+
+    def test_disparity_beyond_slack_is_not_near_miss(self):
+        # 이격도 98% - 허용폭(90+5=95%)을 넘겼으니 근접이 아니다.
+        _, _, _, _, _, _, near = self._scan('000103', '이격초과', GOOD_ANNUAL, 9800)
+        self.assertEqual(near, [])
+
+    def test_score_beyond_slack_is_not_near_miss(self):
+        # 48점 - 허용폭(60-10=50점)을 밑돌아 근접이 아니다.
+        _, _, _, _, _, _, near = self._scan('000104', '점수미달', FAR_ANNUAL, 8500)
+        self.assertEqual(near, [])
+
+    def test_both_gates_missed_is_not_near_miss(self):
+        # 점수 56점(4점 부족) + 이격도 93%(3%p 초과) - 각각은 허용폭 안이지만 둘 다
+        # 못 넘겼으므로 "근접"이 아니라 그냥 미달이다.
+        _, _, _, _, _, _, near = self._scan('000105', '둘다미달', NEAR_ANNUAL, 9300)
+        self.assertEqual(near, [])
+
+    def test_passing_stock_is_not_listed_as_near_miss(self):
+        sectors, _, _, _, _, _, near = self._scan('000106', '통과종목', GOOD_ANNUAL, 8500)
+        self.assertEqual(list(sectors), ['IT'])
+        self.assertEqual(near, [])
+
+    def test_near_misses_sorted_by_normalized_gap(self):
+        # 점수 부족분과 이격도 초과분은 단위가 달라 각자의 허용폭으로 나눠 비교한다.
+        # 000107: 이격도 94.5% -> 4.5/5 = 0.9,  000108: 점수 56점 -> 4/10 = 0.4
+        _insert_flat_then_drop(self.conn, '000107', last_price=9450)
+        _insert_flat_then_drop(self.conn, '000108', last_price=8500)
+        universe = [{'code': '000107', 'name': '갭큼'}, {'code': '000108', 'name': '갭작음'}]
+        wics_map = {c: {'name': c, 'sector': 'IT', 'industry': 'IT'} for c in ('000107', '000108')}
+        fundamentals = {'000107': {'annual': GOOD_ANNUAL}, '000108': {'annual': NEAR_ANNUAL}}
+
+        near = strategy_scan.scan(universe, wics_map, fundamentals, self.conn)[6]
+
+        self.assertEqual([n['code'] for n in near], ['000108', '000107'])
+        self.assertAlmostEqual(near[0]['missGapRatio'], 0.4, places=2)
+        self.assertAlmostEqual(near[1]['missGapRatio'], 0.9, places=1)

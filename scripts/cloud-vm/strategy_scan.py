@@ -110,6 +110,16 @@ DISPARITY_MAX = 90
 # 찍는 것과 다를 바 없다"는 피드백을 그대로 반영해 결과가 20개를 넘을 때만
 # 우량성 점수와 이격도 조건을 단계적으로 강화한다.
 SECTOR_TOP_N = 5
+
+# 2026-09-02: "조건 근접" 후보. 저평가 게이트는 펀더멘탈 점수와 이격도 두 개뿐인데, 둘
+# 중 하나를 아슬아슬하게 못 넘긴 종목은 그대로 사라져 화면에 흔적이 없었다. 조건을 통과한
+# 뒤에야 보이는 종목만 보면 "이미 조건이 성립한 것"만 보게 된다(2026-09-02 사용자 지적).
+# 두 게이트 중 **정확히 하나만** 아래 허용폭 안에서 빗나간 종목을 따로 모아 감시 목록으로
+# 내보낸다. 두 개를 동시에 못 넘긴 종목은 근접이 아니라 그냥 미달이라 넣지 않는다.
+# 허용폭을 넓히면 목록이 후보보다 커져 의미가 없어지므로 좁게 잡았다.
+NEAR_MISS_SCORE_SLACK = 10   # 펀더멘탈 점수 50~59점(=60점 게이트 아래 10점 이내)
+NEAR_MISS_DISPARITY_SLACK = 5.0  # 이격도 90~95%(=90% 게이트 위 5%p 이내)
+NEAR_MISS_MAX = 30           # 화면·페이로드 보호용 상한
 STRATEGY_MAX_RESULTS = 20
 
 # 2026-08-22 신설, 2026-08-23 계산법 교체: "목표주가 괴리 저평가주" - 처음엔 "종목 자체
@@ -252,6 +262,19 @@ METHODOLOGY_NOTE = (
 METHODOLOGY_NOTE += (
     ' 또한 최근 20일 평균 거래대금 10억원 미만, 주가 1,000원 미만, '
     '서비스 테마 분류 종목은 후보에서 제외합니다.'
+)
+
+NEAR_MISS_NOTE = (
+    '두 조건(펀더멘탈 {min_score}점 이상, 이격도 {max_disp}% 이하) 중 하나만 '
+    '아깝게 못 넘긴 종목입니다. 펀더멘탈은 {score_lo}~{score_hi}점, 이격도는 '
+    '{max_disp}~{disp_hi}%까지만 모으며, 둘 다 못 넘긴 종목은 넣지 않습니다. '
+    '조건을 통과한 후보가 아니라 감시 목록입니다 - 남은 조건이 채워질지는 '
+    '알 수 없고, 영영 안 채워질 수도 있습니다.'
+).format(
+    min_score=FUNDAMENTAL_SCORE_MIN, max_disp=DISPARITY_MAX,
+    score_lo=FUNDAMENTAL_SCORE_MIN - NEAR_MISS_SCORE_SLACK,
+    score_hi=FUNDAMENTAL_SCORE_MIN - 1,
+    disp_hi=round(DISPARITY_MAX + NEAR_MISS_DISPARITY_SLACK, 1),
 )
 
 DIVIDEND_METHODOLOGY_NOTE = (
@@ -513,6 +536,41 @@ def build_match(stock, daily, disparity, fundamental_score, annual):
     }
 
 
+def build_near_miss(stock, daily, disparity, fundamental_score, annual, sector,
+                    score_ok, disparity_ok):
+    """두 게이트 중 하나만 허용폭 안에서 빗나간 종목이면 감시 목록 항목을, 아니면 None.
+
+    `missGapRatio`는 "남은 조건이 허용폭 대비 얼마나 남았는가"를 0~1로 정규화한 값이다
+    (0에 가까울수록 조건 성립 직전). 점수 부족분과 이격도 초과분은 단위가 달라 그대로
+    비교할 수 없어서 각자의 허용폭으로 나눈다.
+    """
+    if score_ok == disparity_ok:
+        return None  # 둘 다 통과(호출부에서 이미 처리) 또는 둘 다 미달 - 근접이 아니다
+
+    if disparity_ok:  # 이격도는 통과, 점수만 부족
+        gap = FUNDAMENTAL_SCORE_MIN - fundamental_score
+        if gap > NEAR_MISS_SCORE_SLACK:
+            return None
+        miss_field, miss_gap, slack = 'fundamentalScore', gap, NEAR_MISS_SCORE_SLACK
+        miss_text = '펀더멘탈 %d점 (기준 %d점, %d점 부족)' % (
+            fundamental_score, FUNDAMENTAL_SCORE_MIN, gap)
+    else:  # 점수는 통과, 이격도만 초과
+        gap = disparity - DISPARITY_MAX
+        if gap > NEAR_MISS_DISPARITY_SLACK:
+            return None
+        miss_field, miss_gap, slack = 'disparity', gap, NEAR_MISS_DISPARITY_SLACK
+        miss_text = '이격도 %.1f%% (기준 %d%% 이하, %.1f%%p 초과)' % (
+            disparity, DISPARITY_MAX, gap)
+
+    match = build_match(stock, daily, disparity, fundamental_score, annual)
+    match['sector'] = sector
+    match['missField'] = miss_field
+    match['missGap'] = round(miss_gap, 1)
+    match['missGapRatio'] = round(miss_gap / slack, 4) if slack else 0.0
+    match['missReason'] = miss_text
+    return match
+
+
 def apply_strategy_quality_gates(matches):
     """Tighten fundamental/price quality only when strategy results exceed 20."""
     matches = list(matches or [])
@@ -561,6 +619,7 @@ def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None, daily_c
     skipped_illiquid = 0
     skipped_no_sector = 0
     skipped_no_fundamentals = 0
+    near_misses = []  # 두 게이트 중 하나만 아깝게 못 넘긴 종목(감시 목록)
 
     for stock in universe:
         code = stock['code']
@@ -593,18 +652,26 @@ def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None, daily_c
             skipped_no_fundamentals += 1
             continue
         scanned += 1
-        if fundamental_score < FUNDAMENTAL_SCORE_MIN:
-            continue
 
         sma120 = sma_last(daily, 120)
         if not sma120:
             continue
         disparity = daily[-1]['close'] / sma120 * 100
-        if disparity > DISPARITY_MAX:
-            continue
 
         sector = wics['sector']
-        sectors.setdefault(sector, []).append(build_match(stock, daily, disparity, fundamental_score, annual))
+        score_ok = fundamental_score >= FUNDAMENTAL_SCORE_MIN
+        disparity_ok = disparity <= DISPARITY_MAX
+        if score_ok and disparity_ok:
+            sectors.setdefault(sector, []).append(
+                build_match(stock, daily, disparity, fundamental_score, annual))
+            continue
+
+        # 통과 못 한 종목 중 "하나만" 아깝게 빗나간 것을 감시 목록으로 남긴다. 둘 다
+        # 못 넘긴 종목은 근접이 아니라 그냥 미달이라 여기서 걸러진다.
+        near = build_near_miss(stock, daily, disparity, fundamental_score, annual, sector,
+                               score_ok, disparity_ok)
+        if near is not None:
+            near_misses.append(near)
 
     for sector in sectors:
         sectors[sector].sort(key=lambda m: m['disparity'])  # 가장 많이 눌린(이격도 낮은) 순
@@ -618,7 +685,13 @@ def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None, daily_c
         if not sectors[sector]:
             del sectors[sector]
 
-    return sectors, scanned, skipped_no_data, skipped_illiquid, skipped_no_sector, skipped_no_fundamentals
+    # 남은 조건이 가장 적게 모자란 순. 정렬 키가 두 종류(점수 부족분·이격도 초과분)라
+    # 각각을 허용폭으로 나눠 0~1로 정규화한 뒤 비교한다.
+    near_misses.sort(key=lambda m: (m['missGapRatio'], m['code']))
+    del near_misses[NEAR_MISS_MAX:]
+
+    return (sectors, scanned, skipped_no_data, skipped_illiquid, skipped_no_sector,
+            skipped_no_fundamentals, near_misses)
 
 
 def scan_bluechip(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
@@ -1288,7 +1361,7 @@ def main():
     daily_cache = preload_daily_prices(conn, universe)
 
     (sectors, scanned, skipped_no_data, skipped_illiquid,
-     skipped_no_sector, skipped_no_fundamentals) = scan(
+     skipped_no_sector, skipped_no_fundamentals, near_misses) = scan(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, daily_cache=daily_cache)
     dividend_sectors, dividend_scanned = scan_dividend(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,
@@ -1307,6 +1380,9 @@ def main():
             for sector, matches in sectors.items()
             if matches
         },
+        # 조건 통과 후보와 같은 목록에 섞지 않는다 - 통과한 것처럼 보이면 안 된다.
+        'nearMisses': near_misses,
+        'nearMissNote': NEAR_MISS_NOTE,
     }
 
     output = {

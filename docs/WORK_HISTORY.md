@@ -1,5 +1,40 @@
 # 9Pay 주요 작업이력
 
+**2026-09-02 전략검색 "조건 근접" 감시 목록 노출**
+
+배경: 조건을 통과한 종목만 화면에 남아서, 보이는 건 이미 조건이 성립한 것뿐이었다.
+저평가 게이트는 펀더멘탈 점수와 이격도 두 개뿐인데 둘 중 하나를 아슬아슬하게 못 넘긴
+종목은 흔적 없이 사라졌다.
+
+주요 변경(`scripts/cloud-vm/strategy_scan.py`):
+- `NEAR_MISS_SCORE_SLACK=10`(펀더멘탈 50~59점) / `NEAR_MISS_DISPARITY_SLACK=5.0`
+  (이격도 90~95%) / `NEAR_MISS_MAX=30`
+- `build_near_miss()` 신설 - **두 게이트 중 정확히 하나만** 허용폭 안에서 빗나간 종목만
+  담는다. 둘 다 못 넘긴 종목은 근접이 아니라 그냥 미달이라 제외한다
+- `missGapRatio`(부족분 ÷ 허용폭, 0~1)로 정렬 - 점수 부족분과 이격도 초과분은 단위가
+  달라 그대로 비교할 수 없다
+- `scan()`이 `near_misses`를 7번째 반환값으로 내보내고, 출력의
+  `categories.undervalued.nearMisses`/`nearMissNote`에 실린다(`sectors`와 분리 - 통과
+  후보 목록에 섞으면 통과한 것처럼 읽힌다)
+
+프론트(`js/strategy-search.js`, `css/strategy-search.css`):
+- `nearMissHtml()`/`appendNearMisses()` - 카테고리 렌더 분기(표/카드/ETF/배당)가 여러
+  갈래라 분기 안이 아니라 `renderCards()` 래퍼에서 한 번만 덧붙인다. 조건 통과 종목이
+  0건이어도 감시 목록은 보인다
+- `<details>` 접힌 블록 + 점선 테두리로 통과 후보 그리드와 시각적으로 분리, 제목에
+  "통과 아님 · 감시용" 명시
+- 클래스를 `ss-row`로 주지 **않는다** - `patchLivePrices()`가 `.ss-row[data-code]`를
+  모아 한 번에 60종목까지만 조회하는데, 감시 목록이 그 자리를 차지하면 정작 통과 후보의
+  실시간 가격이 밀려난다. 클릭·Enter 이동만 별도 핸들러로 붙였다
+- 모바일(≤560px)은 4열이 눌려 읽히지 않아 이름/가격 한 줄, 섹터·사유 한 줄로 접는다
+
+검증: `test/test_strategy_scan.py`에 근접 판정 7건 추가(점수 근접/이격도 근접/각 허용폭
+초과/둘 다 미달/통과 종목 미포함/정규화 정렬) - 전체 780건 중 실패 4건은 이 변경 이전과
+동일(외부 API 목·미설치 모듈). Chromium 실측으로 PC·모바일·다크 렌더와 클릭·Enter 이동
+확인, 통과 후보 그리드 안에 섞이지 않는 것도 확인.
+
+배포: `scripts/cloud-vm/`는 VM 자동, `js/`·`css/`는 GitHub Pages 자동.
+
 **2026-09-02 스캔 포워드 성과 추적(`scan_hits` + `/scan-performance`)**
 
 배경: 전략검색·차트검색은 매일 아침 후보를 뽑아 캐시 JSON을 통째로 덮어썼다. "어제 뽑힌

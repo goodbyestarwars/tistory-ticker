@@ -282,6 +282,16 @@
         toggleWatchlist(watchButton);
         return;
       }
+      // 조건 근접(감시 목록) 행은 카테고리와 무관하게 항상 종목분석으로만 보낸다 -
+      // ETF 구성종목·배당 모달은 조건을 통과한 후보에 붙는 기능이다.
+      var nearRow = event.target.closest ? event.target.closest('.ss-nearmiss-row') : null;
+      if (nearRow) {
+        var nearCode = nearRow.getAttribute('data-nearmiss-code');
+        if (!nearCode) return;
+        global.location.href = STOCK_DETAIL_PAGE + '?code=' + encodeURIComponent(nearCode)
+          + '&name=' + encodeURIComponent(nearRow.getAttribute('data-name') || nearCode);
+        return;
+      }
       var row = event.target.closest ? event.target.closest('.ss-row') : null;
       if (!row) return;
       var code = row.getAttribute('data-code');
@@ -301,7 +311,9 @@
       global.location.href = STOCK_DETAIL_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name);
     });
       container.addEventListener('keydown', function (event) {
-      var row = event.target.closest ? event.target.closest('.ss-row') : null;
+      var row = event.target.closest
+        ? (event.target.closest('.ss-row') || event.target.closest('.ss-nearmiss-row'))
+        : null;
       if (!row || (event.key !== 'Enter' && event.key !== ' ')) return;
       event.preventDefault();
       row.click();
@@ -371,8 +383,20 @@
   // 실시간 갱신을 빠뜨리지 않는다.
   function renderCards(container) {
     renderCardsInner(container);
+    appendNearMisses(container);
     wireGapTools(container);
     patchLivePrices(container);
+  }
+
+  // 조건 근접 블록은 분기 안이 아니라 여기서 한 번만 덧붙인다 - 카테고리마다 렌더
+  // 분기가 표/카드/ETF/배당으로 갈라져 있어 분기 안에 넣으면 빠뜨리기 쉽다
+  // (renderCards 주석과 같은 이유). 조건 통과 종목이 하나도 없어 안내문만 뜬
+  // 경우에도 감시 목록은 보여야 하므로 innerHTML을 덮지 않고 뒤에 붙인다.
+  function appendNearMisses(container) {
+    var wrap = container.querySelector('#ssCards');
+    if (!wrap) return;
+    var html = nearMissHtml(scanData.categories && scanData.categories[activeKey]);
+    if (html) wrap.insertAdjacentHTML('beforeend', html);
   }
 
   function renderCardsInner(container) {
@@ -412,6 +436,35 @@
         + '</div>';
     }).join('');
     wrap.innerHTML = '<div class="ss-cards-grid">' + html + '</div>';
+  }
+
+  // 2026-09-02 신설 - 조건을 통과한 종목만 보이면 "이미 성립한 것"만 보게 된다는
+  // 지적으로, 두 게이트 중 하나만 아깝게 못 넘긴 종목을 감시 목록으로 덧붙인다
+  // (strategy_scan.py build_near_miss). 통과 후보와 같은 그리드에 섞지 않고 접힌
+  // 별도 블록에 두며, 제목·문구에서 "후보가 아니다"를 지우지 않는다.
+  function nearMissHtml(cat) {
+    var items = (cat && cat.nearMisses) || [];
+    if (!items.length) return '';
+    var note = (cat && cat.nearMissNote) || '';
+    // 클래스를 `ss-row`로 주지 않는다 - patchLivePrices()가 `.ss-row[data-code]`를
+    // 모아 한 번에 60종목까지만 조회하는데, 감시 목록이 그 자리를 차지하면 정작 조건을
+    // 통과한 후보의 실시간 가격이 밀려난다. 대신 클릭 이동만 별도 핸들러로 붙인다.
+    var rows = items.map(function (item) {
+      return '<div class="ss-nearmiss-row" data-nearmiss-code="' + escapeAttr(item.code) + '"'
+        + ' data-name="' + escapeAttr(item.name || item.code) + '" tabindex="0" role="button"'
+        + ' title="눌러서 종목분석 보기">'
+        + '<span class="ss-nearmiss-name">' + escapeHtml(item.name || item.code)
+        + '<span class="ss-nearmiss-code">(' + escapeHtml(item.code) + ')</span></span>'
+        + '<span class="ss-nearmiss-sector">' + escapeHtml(item.sector || '') + '</span>'
+        + '<span class="ss-nearmiss-price">' + fmt(item.price) + '</span>'
+        + '<span class="ss-nearmiss-reason">' + escapeHtml(item.missReason || '') + '</span>'
+        + '</div>';
+    }).join('');
+    return '<details class="ss-nearmiss">'
+      + '<summary>조건 근접 ' + items.length + '종목 (통과 아님 · 감시용)</summary>'
+      + (note ? '<p class="ss-nearmiss-note">' + escapeHtml(note) + '</p>' : '')
+      + '<div class="ss-nearmiss-rows">' + rows + '</div>'
+      + '</details>';
   }
 
   function strategySignal(item) {

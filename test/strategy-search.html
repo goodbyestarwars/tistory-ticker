@@ -68,7 +68,19 @@
           ]
         },
         '산업재': { name: '산업재', matches: [] }
-      }
+      },
+      // 2026-09-02: 조건 근접(감시 목록) - 통과 후보 그리드 밖 접힌 블록에 나와야 한다.
+      nearMissNote: '두 조건(펀더멘탈 60점 이상, 이격도 90% 이하) 중 하나만 아깝게 못 넘긴 종목입니다. 조건을 통과한 후보가 아니라 감시 목록입니다.',
+      nearMisses: [
+        { code: '051910', name: 'LG화학', price: 412000, changeRate: -0.8, date: '2026-08-05',
+          disparity: 92.4, fundamentalScore: 76, roe: 9.1, debtRatio: 88.0, sector: '소재',
+          missField: 'disparity', missGap: 2.4, missGapRatio: 0.48,
+          missReason: '이격도 92.4% (기준 90% 이하, 2.4%p 초과)' },
+        { code: '009150', name: '삼성전기', price: 132500, changeRate: 1.1, date: '2026-08-05',
+          disparity: 87.2, fundamentalScore: 56, roe: 4.2, debtRatio: 61.0, sector: 'IT',
+          missField: 'fundamentalScore', missGap: 4, missGapRatio: 0.4,
+          missReason: '펀더멘탈 56점 (기준 60점, 4점 부족)' }
+      ]
     },
     dividend: {
       name: '배당주',
