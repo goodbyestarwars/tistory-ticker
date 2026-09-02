@@ -163,8 +163,11 @@ def fetch_market_breadth(kis_appkey=None, kis_appsecret=None, now=None):
         if _breadth_cache['value'] is not None and now - _breadth_cache['at'] < BREADTH_TTL_SEC:
             return _breadth_cache['value']
 
-    import kis_client
     try:
+        # import까지 try 안에 둔다 - 이게 밖에 있으면 import 실패가 build() 전체로 번져
+        # 증시온도 갱신이 통째로 죽고, 옛 캐시만 계속 나간다(표시용 부가 정보 하나 때문에
+        # 온도가 멈추면 안 된다).
+        import kis_client
         token = kis_client.get_token(kis_appkey, kis_appsecret)
         markets = {}
         for name, iscd in KIS_MARKET_INDEX_CODES:
