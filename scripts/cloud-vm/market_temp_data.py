@@ -29,6 +29,7 @@
 import json
 import logging
 import os
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -102,6 +103,97 @@ def fetch_quotes(codes):
 # ---- 컴포넌트 조립 ----
 
 MARKET_KEYS = ('KOSPI', 'KOSDAQ')
+
+# ---- 전종목(코스피+코스닥) 등락 종목 수 ----
+
+# KIS 국내업종 현재지수(FHPUP02100000)는 지수와 함께 그 시장 전체의 등락 종목 수를 준다.
+# 지금까지 지수·등락률·고저가만 쓰고 나머지를 버리고 있었다. 필드명은 2026-09-02 운영
+# 응답 실측으로 확정했다(임시 라우트 /_diag/index-raw로 확인 후 그 라우트는 제거).
+#   ascn_issu_cnt 상승 / down_issu_cnt 하락 / stnr_issu_cnt 보합
+#   uplm_issu_cnt 상한 / lslm_issu_cnt 하한
+# 상한·하한이 상승·하락에 이미 포함된 값인지는 확인되지 않아 합계에 넣지 않는다
+# (미검증 필드를 확정값처럼 쓰지 않는다 - CLAUDE.md).
+KIS_MARKET_INDEX_CODES = (('KOSPI', '0001'), ('KOSDAQ', '1001'))
+BREADTH_TTL_SEC = 60       # 증시온도 갱신 주기(180초)보다 짧게 둬 갱신마다 새 값을 받되,
+                           # 다른 호출자가 겹쳐 들어와도 같은 값을 나눠 쓴다.
+_breadth_lock = threading.Lock()
+_breadth_cache = {'at': 0.0, 'value': None}
+
+
+def _int_or_none(value):
+    try:
+        return int(str(value).replace(',', '').strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_index_breadth(raw):
+    """KIS 업종지수 원본 응답 하나에서 등락 종목 수를 뽑는다. 없으면 None."""
+    if not isinstance(raw, dict):
+        return None
+    up = _int_or_none(raw.get('ascn_issu_cnt'))
+    down = _int_or_none(raw.get('down_issu_cnt'))
+    flat = _int_or_none(raw.get('stnr_issu_cnt'))
+    if up is None or down is None:
+        return None
+    entry = {'up': up, 'down': down, 'flat': flat or 0}
+    entry['total'] = up + down + entry['flat']
+    upper = _int_or_none(raw.get('uplm_issu_cnt'))
+    lower = _int_or_none(raw.get('lslm_issu_cnt'))
+    if upper is not None:
+        entry['upperLimit'] = upper
+    if lower is not None:
+        entry['lowerLimit'] = lower
+    return entry
+
+
+def fetch_market_breadth(kis_appkey=None, kis_appsecret=None, now=None):
+    """코스피·코스닥 전종목 등락 종목 수. 키가 없거나 조회에 실패하면 None을 돌려준다
+    (증시온도 본체는 이 값 없이도 그대로 계산돼야 한다 - 표시용 부가 정보다).
+
+    같은 KIS 엔드포인트를 코스피/코스닥 2회 호출하므로 짧은 TTL 캐시를 둔다.
+    """
+    kis_appkey = kis_appkey or os.environ.get('KIS_APPKEY', '').strip()
+    kis_appsecret = kis_appsecret or os.environ.get('KIS_APPSECRET', '').strip()
+    if not kis_appkey or not kis_appsecret:
+        return None
+
+    now = now if now is not None else time.time()
+    with _breadth_lock:
+        if _breadth_cache['value'] is not None and now - _breadth_cache['at'] < BREADTH_TTL_SEC:
+            return _breadth_cache['value']
+
+    import kis_client
+    try:
+        token = kis_client.get_token(kis_appkey, kis_appsecret)
+        markets = {}
+        for name, iscd in KIS_MARKET_INDEX_CODES:
+            entry = parse_index_breadth(
+                kis_client.fetch_index_price(token, kis_appkey, kis_appsecret, iscd))
+            if entry:
+                markets[name] = entry
+    except Exception:
+        LOGGER.exception('전종목 등락 종목 수 조회 실패 - 증시온도는 그대로 낸다')
+        return None
+
+    if not markets:
+        return None
+
+    result = {
+        'byMarket': markets,
+        'total': {
+            'up': sum(m['up'] for m in markets.values()),
+            'down': sum(m['down'] for m in markets.values()),
+            'flat': sum(m['flat'] for m in markets.values()),
+            'total': sum(m['total'] for m in markets.values()),
+        },
+        'source': 'KIS 국내업종 현재지수',
+    }
+    with _breadth_lock:
+        _breadth_cache['at'] = now
+        _breadth_cache['value'] = result
+    return result
+
 
 
 def breadth_by_market(quotes, universe_with_sectors):

@@ -576,3 +576,62 @@ class BreadthByMarketTest(unittest.TestCase):
         markets = {(u.get('market') or '').strip().upper() for u in uni}
         self.assertIn('KOSPI', markets)
         self.assertIn('KOSDAQ', markets)
+
+
+class WholeMarketBreadthTest(unittest.TestCase):
+    """전종목 등락 종목 수(KIS 업종지수 FHPUP02100000). 필드명은 2026-09-02 운영 응답
+    실측으로 확정했고, 여기서는 그 응답 모양을 고정 입력으로 파싱만 검증한다."""
+
+    @classmethod
+    def setUpClass(cls):
+        import market_temp_data
+        cls.mtd = market_temp_data
+
+    # 2026-09-02 08:37 UTC 운영 응답에서 관련 필드만 발췌(코스피)
+    KOSPI_RAW = {
+        'bstp_nmix_prpr': '6600.12',
+        'ascn_issu_cnt': '139',
+        'uplm_issu_cnt': '1',
+        'stnr_issu_cnt': '37',
+        'down_issu_cnt': '735',
+        'lslm_issu_cnt': '0',
+    }
+
+    def test_parses_measured_response(self):
+        got = self.mtd.parse_index_breadth(self.KOSPI_RAW)
+        self.assertEqual(got['up'], 139)
+        self.assertEqual(got['down'], 735)
+        self.assertEqual(got['flat'], 37)
+        self.assertEqual(got['total'], 911, '합계는 상승+하락+보합이다')
+        self.assertEqual(got['upperLimit'], 1)
+        self.assertEqual(got['lowerLimit'], 0)
+
+    def test_upper_lower_limits_are_not_added_to_total(self):
+        """상한·하한이 상승·하락에 포함된 값인지 미검증이라 합계에 넣지 않는다."""
+        got = self.mtd.parse_index_breadth(self.KOSPI_RAW)
+        self.assertNotEqual(got['total'], 911 + 1 + 0)
+
+    def test_comma_separated_numbers(self):
+        got = self.mtd.parse_index_breadth(
+            {'ascn_issu_cnt': '1,298', 'down_issu_cnt': '359', 'stnr_issu_cnt': '76'})
+        self.assertEqual(got['up'], 1298)
+        self.assertEqual(got['total'], 1298 + 359 + 76)
+
+    def test_missing_or_bad_payload_returns_none(self):
+        self.assertIsNone(self.mtd.parse_index_breadth(None))
+        self.assertIsNone(self.mtd.parse_index_breadth({}))
+        self.assertIsNone(self.mtd.parse_index_breadth({'ascn_issu_cnt': '139'}))
+        self.assertIsNone(self.mtd.parse_index_breadth({'ascn_issu_cnt': '-', 'down_issu_cnt': '-'}))
+
+    def test_flat_defaults_to_zero_when_absent(self):
+        got = self.mtd.parse_index_breadth({'ascn_issu_cnt': '10', 'down_issu_cnt': '20'})
+        self.assertEqual(got['flat'], 0)
+        self.assertEqual(got['total'], 30)
+
+    def test_fetch_returns_none_without_keys(self):
+        """키가 없으면 조용히 None - 증시온도 본체가 이 값 때문에 죽으면 안 된다.
+        인자를 비워도 환경변수로 폴백하므로 환경변수까지 비운 상태로 확인한다."""
+        import os
+        from unittest import mock
+        with mock.patch.dict(os.environ, {'KIS_APPKEY': '', 'KIS_APPSECRET': ''}, clear=False):
+            self.assertIsNone(self.mtd.fetch_market_breadth('', ''))

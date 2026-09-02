@@ -78,6 +78,15 @@
     return {
       score: total,
       maxScore: MAX_POSSIBLE,
+      // 전종목 등락 종목 수(KIS 업종지수). 2026-09-02 운영 응답 실측값 모양 그대로.
+      marketBreadth: {
+        byMarket: {
+          KOSPI: { up: 139, down: 735, flat: 37, total: 911, upperLimit: 1, lowerLimit: 0 },
+          KOSDAQ: { up: 359, down: 1298, flat: 76, total: 1733, upperLimit: 7, lowerLimit: 4 }
+        },
+        total: { up: 498, down: 2033, flat: 113, total: 2644 },
+        source: 'KIS 국내업종 현재지수'
+      },
       temp: temp,
       grade: grade,
       components: {
