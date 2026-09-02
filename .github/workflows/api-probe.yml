@@ -44,6 +44,11 @@ on:
         type: string
         required: false
         default: '4000'
+      jq_filter:
+        description: "jq 식(선택). 넣으면 본문 앞부분 대신 이 식의 결과를 출력한다. 예: [.data[]|.market]|group_by(.)|map({m:.[0],n:length})"
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -58,6 +63,7 @@ jobs:
           BASE: ${{ inputs.base }}
           PATHS: ${{ inputs.paths }}
           MAX_BYTES: ${{ inputs.max_bytes }}
+          JQ_FILTER: ${{ inputs.jq_filter }}
         run: |
           set -uo pipefail
 
@@ -115,6 +121,29 @@ jobs:
                 fi
                 ;;
             esac
+
+            # jq 식이 있으면 앞부분 대신 집계 결과를 낸다. 큰 응답(월 단위 캘린더는
+            # 200KB가 넘는다)에서 "앞 N바이트"만으로는 특정 종류의 항목이 0건인지
+            # 뒤에 있는지 구분할 수 없어, 추정 대신 세어서 답하려고 넣었다.
+            # 실패해도 스텝을 죽이지 않고 앞부분 출력으로 되돌아간다.
+            if [ -n "$JQ_FILTER" ]; then
+              if jq -r "$JQ_FILTER" "$body" > "$pretty" 2>"$pretty.err"; then
+                echo "jq: $JQ_FILTER"
+                head -c "$MAX_BYTES" "$pretty"
+                echo ""
+                rm -f "$pretty" "$pretty.err"
+                code="${meta#*http_code=}"
+                code="${code%% *}"
+                case "$code" in
+                  2*) : ;;
+                  *) echo "::warning::$url → HTTP $code" ;;
+                esac
+                rm -f "$body"
+                continue
+              fi
+              echo "jq 식 실패 - 본문 앞부분으로 대체: $(head -c 300 "$pretty.err")"
+              rm -f "$pretty.err"
+            fi
 
             head -c "$MAX_BYTES" "$shown"
             echo ""
