@@ -278,6 +278,19 @@
         }
       });
     }
+    // 2026-09-02: `?codes=`(실시간 시세) mock. 이전에는 빈 객체로 흘려보내 실시간 반영
+    // 경로가 실행되지 않았다. 스캔가 대비 -3%/0%/+2%/+7%를 순환시켜 뱃지 문구를 확인한다.
+    if (url.indexOf('codes=') > -1) {
+      var factors = [0.97, 1.00, 1.02, 1.07];
+      var codes = (url.split('codes=')[1] || '').split(',').filter(Boolean);
+      return Promise.resolve(codes.map(function (code, i) {
+        var el = document.querySelector('.ps-item[data-code="' + code + '"] .ps-quote');
+        var scan = el ? Number(el.getAttribute('data-scan-price')) : NaN;
+        if (!isFinite(scan) || !scan) return { code: code };
+        var f = factors[i % factors.length];
+        return { code: code, price: Math.round(scan * f), changeRate: (f - 1) * 100 };
+      }));
+    }
     if (url.indexOf('patternChart=1') > -1) {
       var m = url.match(/pattern=([^&]+)/);
       var pattern = m ? decodeURIComponent(m[1]) : 'risingLows';
