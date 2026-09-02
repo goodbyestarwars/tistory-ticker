@@ -105,6 +105,8 @@
       + '<div class="ps-head">'
       + '<div class="ps-tabs">' + tabsHtml + '</div>'
       + '<div class="ps-meta" id="psMeta">불러오는 중...</div>'
+      // 목록 가격이 스캔 시점인지 지금인지 한 줄로 밝힌다(patchLivePrices가 채운다).
+      + '<div class="ps-price-basis-note" id="psPriceBasis"></div>'
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
       + '<div class="ps-backtest-box" id="psBacktestBox" hidden></div>'
@@ -441,8 +443,11 @@
         + '</div>'
         + '<div class="ps-mini-chart-wrap">' + miniChartHtml(it) + '</div>'
         + '<span class="ps-signal">' + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
-        + '<span class="ps-quote"><span class="ps-price">' + fmt(it.price) + '</span>'
-        + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span></span>'
+        + '<span class="ps-quote is-scan"'
+        + (it.price == null || isNaN(Number(it.price)) ? '' : ' data-scan-price="' + escapeHtml(String(Number(it.price))) + '"')
+        + '><span class="ps-price">' + fmt(it.price) + '</span>'
+        + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span>'
+        + '<span class="ps-price-basis">스캔 시점</span></span>'
         + '<span class="ps-observation">' + escapeHtml(scannerInterpretation(it, activeTab) + analystTargetPriceText(it)) + '</span>'
         + '</div>';
     }).join('');
@@ -458,6 +463,112 @@
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
       });
     });
+    patchLivePrices(container);
+  }
+
+  // ---- 가격 시점 구분: 스캔 시점 스냅샷 vs 지금 ----
+  //
+  // 2026-09-02: 전략검색은 2026-09-01에 같은 처리를 받았는데(js/strategy-search.js) 그때
+  // 커밋 제목이 "차트검색"이었을 뿐 이 파일은 손대지 않았다. 그래서 이 목록의
+  // `현재가·등락률`은 하루 1회 스캔 시점 값인데 라벨이 없었다 - 장중에는 종일 그 값에
+  // 고정되고 등락률도 어제 것이 남는다.
+  //
+  // 점수·순위·감지 신호는 스캔 시점이 맞는 값이라 그대로 두고 가격·등락률만 덮어쓴다.
+  // 실시간 값이 없으면 `스캔 시점`이라고 밝힌다 - 값을 못 갱신하는 것보다 어느 시점
+  // 값인지 모르는 게 더 나쁘다.
+  var LIVE_QUOTE_TTL_MS = 30000;
+  var LIVE_QUOTE_DEBOUNCE_MS = 250;
+  var LIVE_QUOTE_MAX_CODES = 60;
+  var liveQuoteCache = {};
+  var liveQuoteTimer = null;
+  var liveQuoteSeq = 0;
+
+  function cachedQuote(code) {
+    var hit = liveQuoteCache[code];
+    return (hit && Date.now() - hit.at < LIVE_QUOTE_TTL_MS) ? hit.data : null;
+  }
+
+  function gapPercent(livePrice, scanPrice) {
+    if (scanPrice == null || livePrice == null) return null;
+    if (!isFinite(scanPrice) || !isFinite(livePrice) || !scanPrice) return null;
+    return (livePrice - scanPrice) / scanPrice * 100;
+  }
+
+  function priceBasisText(livePrice, scanPrice) {
+    var gap = gapPercent(livePrice, scanPrice);
+    if (gap == null) return '';
+    if (Math.round(livePrice) === Math.round(scanPrice)) return '';
+    return '스캔 ' + fmt(scanPrice) + ' · ' + (gap > 0 ? '+' : '') + gap.toFixed(1) + '%';
+  }
+
+  function markPriceBasis(container, live) {
+    var meta = container.querySelector('#psPriceBasis');
+    if (!meta) return;
+    meta.textContent = live
+      ? '가격·등락률은 방금 조회한 실시간 값이고, 순위·감지 신호는 스캔 시점 기준입니다.'
+      : '실시간 시세를 불러오지 못해 가격·등락률도 스캔 시점 값을 그대로 보여줍니다.';
+    meta.className = 'ps-price-basis-note' + (live ? '' : ' is-stale');
+  }
+
+  function applyLiveQuotes(container, items, byCode) {
+    Array.prototype.forEach.call(items, function (row) {
+      var live = byCode[row.getAttribute('data-code')];
+      if (!live || live.price == null || isNaN(live.price)) return;
+      var quote = row.querySelector('.ps-quote');
+      if (!quote) return;
+      var scanPrice = Number(quote.getAttribute('data-scan-price'));
+      var priceEl = quote.querySelector('.ps-price');
+      var basisEl = quote.querySelector('.ps-price-basis');
+      if (priceEl) priceEl.textContent = fmt(live.price);
+      if (basisEl) basisEl.textContent = priceBasisText(Number(live.price), scanPrice);
+      quote.className = quote.className.replace('is-scan', 'is-live');
+      var rateEl = quote.querySelector('.ps-rate');
+      if (rateEl && live.changeRate != null && !isNaN(live.changeRate)) {
+        rateEl.textContent = chgSign(live.changeRate);
+        rateEl.className = 'ps-rate ' + chgClass(live.changeRate);
+      }
+    });
+  }
+
+  function patchLivePrices(container) {
+    var rows = container.querySelectorAll('.ps-item[data-code]');
+    if (!rows.length) return;
+    var fresh = {};
+    var missing = [];
+    Array.prototype.forEach.call(rows, function (row) {
+      var code = row.getAttribute('data-code');
+      if (!code || !/^\d{6}$/.test(code)) return;
+      var hit = cachedQuote(code);
+      if (hit) fresh[code] = hit;
+      else if (missing.indexOf(code) === -1) missing.push(code);
+    });
+
+    if (Object.keys(fresh).length) applyLiveQuotes(container, rows, fresh);
+    if (!missing.length) {
+      if (Object.keys(fresh).length) markPriceBasis(container, true);
+      return;
+    }
+
+    clearTimeout(liveQuoteTimer);
+    var seq = ++liveQuoteSeq;
+    liveQuoteTimer = setTimeout(function () {
+      PatternScan.fetchJson(GAS_TICKER_URL + '?codes=' + missing.slice(0, LIVE_QUOTE_MAX_CODES).join(','))
+        .then(function (list) {
+          var byCode = {};
+          (list || []).forEach(function (d) {
+            if (!d || d.code == null) return;
+            byCode[String(d.code)] = d;
+            liveQuoteCache[String(d.code)] = { data: d, at: Date.now() };
+          });
+          if (seq !== liveQuoteSeq) return;   // 그사이 탭이 바뀌었다 - 늦은 응답은 버린다
+          applyLiveQuotes(container, container.querySelectorAll('.ps-item[data-code]'), byCode);
+          markPriceBasis(container, true);
+        })
+        .catch(function () {
+          if (seq !== liveQuoteSeq) return;
+          markPriceBasis(container, false);
+        });
+    }, LIVE_QUOTE_DEBOUNCE_MS);
   }
 
   // ---- 상세(캔들차트 + 패턴선) ----

@@ -38,6 +38,15 @@
   color: #9ca3af;
 }
 
+/* 가격 시점 안내(2026-09-02). 전략검색의 .ss-price-basis-note와 같은 역할이다. */
+#pattern-scan .ps-price-basis-note { font-size: 11px; color: #7c8590; margin-top: 3px; }
+#pattern-scan .ps-price-basis-note.is-stale { color: #b45309; }
+#pattern-scan .ps-price-basis-note:empty { display: none; }
+/* 셀 안 뱃지 - 실시간으로 갱신되면 "스캔 12,300 · +1.4%"로 바뀌고, 갱신 전에는
+   "스캔 시점"이라고 밝힌다. 값이 같으면(장 마감 등) 비어서 자동으로 사라진다. */
+#pattern-scan .ps-price-basis { font-size: 10px; color: #9aa3ad; flex-basis: 100%; }
+#pattern-scan .ps-price-basis:empty { display: none; }
+
 #pattern-scan .ps-tab-desc {
   font-size: 12.5px;
   color: #6b7280;
@@ -578,6 +587,10 @@ html.dark #pattern-scan .ps-tab.active {
 html.dark #pattern-scan .ps-meta {
   color: rgba(245, 239, 224, 0.5) !important;
 }
+
+html.dark #pattern-scan .ps-price-basis-note { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #pattern-scan .ps-price-basis-note.is-stale { color: #e0a458 !important; }
+html.dark #pattern-scan .ps-price-basis { color: rgba(245, 239, 224, 0.42) !important; }
 
 html.dark #pattern-scan .ps-tab-desc {
   color: rgba(245, 239, 224, 0.6) !important;
