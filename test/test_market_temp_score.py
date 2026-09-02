@@ -635,3 +635,45 @@ class WholeMarketBreadthTest(unittest.TestCase):
         from unittest import mock
         with mock.patch.dict(os.environ, {'KIS_APPKEY': '', 'KIS_APPSECRET': ''}, clear=False):
             self.assertIsNone(self.mtd.fetch_market_breadth('', ''))
+
+
+class BreadthFailureIsolationTest(unittest.TestCase):
+    """전종목 등락 조회가 어떤 식으로 실패해도 증시온도 계산 자체는 죽지 않아야 한다.
+    2026-09-02: import가 try 밖에 있어 import 실패가 build()로 번질 수 있었다."""
+
+    @classmethod
+    def setUpClass(cls):
+        import market_temp_data
+        cls.mtd = market_temp_data
+
+    def setUp(self):
+        # TTL 캐시가 이전 테스트 값을 물고 있으면 실패 경로를 안 탄다
+        self.mtd._breadth_cache['value'] = None
+        self.mtd._breadth_cache['at'] = 0.0
+
+    def test_import_failure_is_swallowed(self):
+        import builtins
+        from unittest import mock
+        real_import = builtins.__import__
+
+        def boom(name, *args, **kwargs):
+            if name == 'kis_client':
+                raise ImportError('강제 실패')
+            return real_import(name, *args, **kwargs)
+
+        with mock.patch.object(builtins, '__import__', side_effect=boom):
+            self.assertIsNone(self.mtd.fetch_market_breadth('key', 'secret'))
+
+    def test_token_failure_is_swallowed(self):
+        from unittest import mock
+        import kis_client
+        with mock.patch.object(kis_client, 'get_token', side_effect=RuntimeError('네트워크')):
+            self.assertIsNone(self.mtd.fetch_market_breadth('key', 'secret'))
+
+    def test_empty_upstream_returns_none_not_partial(self):
+        """두 시장 모두 파싱에 실패하면 빈 dict 대신 None을 준다(프론트가 폴백하도록)."""
+        from unittest import mock
+        import kis_client
+        with mock.patch.object(kis_client, 'get_token', return_value='t'), \
+             mock.patch.object(kis_client, 'fetch_index_price', return_value={}):
+            self.assertIsNone(self.mtd.fetch_market_breadth('key', 'secret'))
