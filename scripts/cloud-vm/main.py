@@ -1852,6 +1852,33 @@ def stock_totqy_diag(request: Request, code: str = Path(..., min_length=6, max_l
     return envelope({'code': code, 'corp_code': corp_code, 'year': year, 'business_report': annual, 'half_report': half})
 
 
+@app.get('/_diag/index-raw/{iscd}')
+def index_raw_diag(request: Request, iscd: str = Path(..., min_length=4, max_length=4)):
+    """임시 진단용(2026-09) - KIS 국내업종 현재지수(FHPUP02100000) 원본 응답을 그대로
+    노출한다. 증시온도에 "전종목 상승/하락 종목 수"를 붙이려는데, 이 응답이 등락 종목
+    수를 함께 주는지와 그 실제 필드명을 확인해야 한다(공식 문서 사이트가 작업 환경에서
+    접속 차단돼 미검증 - kis_client.fetch_index_price 참고). 지금은 지수·등락률·고저가만
+    뽑아 쓰고 나머지 필드를 버리고 있다(domestic_market_indicators.fetch_cash_quote).
+
+    필드명이 확정되면 그 파싱을 붙이고 이 엔드포인트는 지운다 - /_diag/stock-totqy와
+    동일한 순서(docs/WORK_HISTORY.md 참고).
+    iscd는 KIS 업종코드: 코스피 0001, 코스닥 1001.
+    """
+    _check_rate_limit('index_raw_diag', request, max_per_window=10)
+    kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
+    kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+    if not kis_appkey or not kis_appsecret:
+        raise HTTPException(status_code=503, detail='KIS_APPKEY/KIS_APPSECRET 환경변수가 설정되지 않았습니다.')
+    try:
+        token = kis_client.get_token(kis_appkey, kis_appsecret)
+        raw = kis_client.fetch_index_price(token, kis_appkey, kis_appsecret, iscd)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise _upstream_http_exception('진단용 업종지수 데이터를 불러오지 못했습니다.', e) from e
+    return envelope({'iscd': iscd, 'raw': raw})
+
+
 def load_fundamentals_cache_cached():
     """fundamentals_cache.json을 mtime이 바뀔 때만 다시 파싱해 메모리에 보관한다.
     전 종목 캐시라 파일이 크고, 단건 조회마다 재파싱하면 응답이 느려진다."""
