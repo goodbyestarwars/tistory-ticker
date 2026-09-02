@@ -306,6 +306,23 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 
 구 레거시 별점·점수 컬럼은 회귀 비교용이며 새 판정의 단일 근거가 아니다. `daily_scan.py`가 판정 스냅샷을 저장하고 `monitor_swing_recommendations.py`가 T+5/T+10 결과를 후속 갱신한다. **2026-08-22**: 운영 기간을 4주(T+5/T+10/T+20)에서 2주(T+5/T+10)로 좁히면서 `t20_*` 컬럼은 하위호환을 위해 스키마에 남겨뒀지만 더 이상 채워지지 않는다(옛 4주 모델 시절 값만 남아있음). `mfe`/`mae`도 이제 T+10(10거래일) 기준으로 계산한다.
 
+### 2.16 `scan_hits` — 스캔 히트 종목(포워드 성과 추적용)
+
+복합 PK는 `(scan_date, scanner, code)`다. 전략검색·차트검색 캐시 JSON은 매일 통째로 덮어써서 이력이 남지 않으므로, 스캔이 돌 때 그날 잡힌 종목과 기준가만 여기에 남긴다.
+
+| 컬럼 | 설명 |
+|---|---|
+| `scan_date` | KST 기준 스캔일 `YYYY-MM-DD` |
+| `scanner` | `strategy:<카테고리id>` / `pattern:<패턴키>` 네임스페이스 문자열 |
+| `code`, `name` | 종목 |
+| `base_price` | 스캔 시점 종가. 실제 체결가가 아니다 |
+| `score` | 스캐너가 매긴 점수(없으면 NULL) |
+| `created_at` | 기록 시각(UTC ISO) |
+
+`strategy_scan.py`(캐시 교체 직후)와 `daily_scan.py`(패턴 스캔 직후)가 `scan_forward.record_grouped_hits()`로 INSERT하며, 두 훅 모두 예외를 삼켜 기록 실패가 스캔 서빙을 막지 않는다. **같은 날 재스캔이 돌아도 `INSERT OR IGNORE`라 첫 기록의 기준가를 유지한다** — 장중 재스캔가로 덮으면 성과가 실제보다 좋게 보인다.
+
+**수익률은 이 테이블에 저장하지 않는다.** `GET /scan-performance`가 조회 시점에 `daily_prices`와 대조해 D+N 거래일 수익률을 계산한다(`scan_forward.forward_returns()`). 일봉이 정정되면 성과도 따라 정정되고, 지평(D+1/D+3/D+5)을 바꿔도 재적재가 필요 없다. 지평만큼 거래일이 지나지 않은 히트는 집계에서 빠진다.
+
 ---
 
 ## 3. `news_momentum.db`
