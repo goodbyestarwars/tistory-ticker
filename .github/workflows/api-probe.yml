@@ -95,17 +95,28 @@ jobs:
             echo "--------------------------------------------------------------------"
 
             # JSON이면 보기 좋게 정렬해서 필드 구조를 그대로 읽을 수 있게 한다.
-            if head -c 1 "$body" | grep -q '[{[]' && python3 -m json.tool "$body" > /dev/null 2>&1; then
-              python3 -m json.tool "$body" | head -c "$MAX_BYTES"
-            else
-              head -c "$MAX_BYTES" "$body"
-            fi
+            # 정렬 결과는 파일로 받는다. `json.tool | head -c`로 파이프를 태우면 head가
+            # 상한에서 파이프를 닫아 python이 SIGPIPE로 죽고, pipefail+`bash -e` 때문에
+            # 본문을 다 받아놓고도 스텝이 실패한다(2026-09-02 run #2 exit 32).
+            shown="$body"
+            pretty="$(mktemp)"
+            first="$(head -c 1 "$body")"
+            case "$first" in
+              '{'|'[')
+                if python3 -m json.tool "$body" > "$pretty" 2>/dev/null; then
+                  shown="$pretty"
+                fi
+                ;;
+            esac
+
+            head -c "$MAX_BYTES" "$shown"
             echo ""
 
-            actual_size="$(wc -c < "$body")"
-            if [ "$actual_size" -gt "$MAX_BYTES" ]; then
-              echo "... (본문 ${actual_size}B 중 앞 ${MAX_BYTES}B만 출력)"
+            shown_size="$(wc -c < "$shown")"
+            if [ "$shown_size" -gt "$MAX_BYTES" ]; then
+              echo "... (본문 ${shown_size}B 중 앞 ${MAX_BYTES}B만 출력)"
             fi
+            rm -f "$pretty"
 
             code="${meta#*http_code=}"
             code="${code%% *}"
