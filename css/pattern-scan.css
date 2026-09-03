@@ -98,9 +98,15 @@
   transition: background .15s ease, box-shadow .15s ease;
 }
 
-#pattern-scan .ps-item:hover {
-  background: #f8fafc;
-  box-shadow: inset 3px 0 0 #1261c4;
+/* 2026-09-03 사용자 요청: 행 왼쪽의 파란 세로 바(inset box-shadow)를 없앤다. 클릭한 행만
+   다른 행과 달라 보였다. 게다가 터치 기기는 탭 뒤에도 :hover가 남아서, 상세를 닫아도 그
+   행만 계속 파랗게 강조된 채였다 - 그래서 마우스가 있는 환경(hover: hover)에서만 배경을
+   살짝 바꾸고, 터치에서는 아무 강조도 남기지 않는다. 키보드 포커스 표시는 아래
+   :focus-visible로 그대로 유지된다. */
+@media (hover: hover) {
+  #pattern-scan .ps-item:hover {
+    background: #f8fafc;
+  }
 }
 
 #pattern-scan .ps-item:focus-visible {
@@ -619,8 +625,10 @@ html.dark #pattern-scan .ps-list-head {
   border-color: rgba(245, 239, 224, 0.14);
 }
 
-html.dark #pattern-scan .ps-item:hover {
-  background: rgba(245, 239, 224, 0.06);
+@media (hover: hover) {
+  html.dark #pattern-scan .ps-item:hover {
+    background: rgba(245, 239, 224, 0.06);
+  }
 }
 
 html.dark #pattern-scan .ps-name {
