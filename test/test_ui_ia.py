@@ -1055,10 +1055,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
             ".page-wrap { padding-bottom:",
         ):
             self.assertIn(token, style)
-        self.assertIn(":root { --topbar-height: 40px; }", style)
-        self.assertIn(".sidebar-left { display: flex !important; }", style)
-        self.assertIn(".sidebar-left .nav-primary-item .nav-item-label { font-size: 12px; }", style)
+        # 2026-09-03: 모바일은 상단 메뉴 줄을 감추고 하단 탭바 하나로 모은다.
+        # 상단과 하단이 같은 목적지를 두 번 노출하던 것을 없앤 결과라, 여기서는
+        # "상단이 접혀 있고" + "상단에만 있던 목적지가 더보기 시트에 남아 있는지"를 본다.
+        self.assertIn(":root { --topbar-height: 0px; }", style)
+        self.assertIn(".sidebar-left { display: none !important; }", style)
         self.assertIn("body { word-break: keep-all; overflow-wrap: normal; }", style)
+        for token in ("/page/foreign-flow", "/page/pattern-scan", "/page/strategy-search"):
+            self.assertIn(token, menu)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")

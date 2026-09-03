@@ -68,6 +68,21 @@ def swing_flow_key(assessment):
     return None
 
 
+def _swing_signal_label(waves, small, event):
+    """Resolve the one signal label the exploration list prints.
+
+    Mirrors js/foreign-flow.js normalizeFlowRow: the 5-day short signal wins
+    unless it is 'none', otherwise the small-wave event (or the regime event).
+    """
+    short_signal = waves.get('shortSignal') or {}
+    if short_signal.get('key') and short_signal.get('key') != 'none':
+        label = short_signal.get('label')
+        if label:
+            return label
+    fallback = small.get('event') or event or {}
+    return fallback.get('label') or '이벤트 없음'
+
+
 def build_swing_flow_row(stock, daily, assessment):
     """Build only the existing chart/quote fields needed by the exploration UI."""
     if not daily:
@@ -76,7 +91,9 @@ def build_swing_flow_row(stock, daily, assessment):
     close = last.get('close')
     volume = last.get('volume')
     recent_volumes = [row.get('volume') for row in daily[-20:] if row.get('volume') is not None]
-    volume_avg20 = sum(recent_volumes) / len(recent_volumes) if recent_volumes else None
+    # 화면은 volume/volumeAvg20 비율을 소수 1자리로만 쓴다. 부동소수 꼬리를 그대로
+    # 직렬화하면 행마다 자릿수가 붙어 커지므로 주 단위로 반올림한다.
+    volume_avg20 = round(sum(recent_volumes) / len(recent_volumes)) if recent_volumes else None
     chart = assessment.get('chartRegime') or {}
     waves = assessment.get('waves') or {}
     small = waves.get('small') or {}
@@ -93,9 +110,15 @@ def build_swing_flow_row(stock, daily, assessment):
         'bigWave': (waves.get('big') or {}).get('label'),
         'midWave': (waves.get('mid') or {}).get('label'),
         'smallWave': small.get('label'),
-        'shortSignal': waves.get('shortSignal') or {'key': 'none', 'label': '이벤트 없음', 'stage': 'none'},
-        'transitions': waves.get('transitions') or {},
-        'signal': small.get('event') or event,
+        # 2026-09-03: 종목분석 첫 응답이 2.92MB였고 그중 93%가 이 flowGroups였다(행당 709B,
+        # 3,094종목). 프론트(js/foreign-flow.js normalizeFlowRow)가 실제로 읽는 값만 남긴다.
+        # - transitions(행당 272B, 최대 항목): 담기만 하고 렌더·정렬 어디서도 안 읽는다.
+        #   flowKeyFromRecord가 참조하지만 그건 scan.candidates 폴백 전용이고, GAS
+        #   getInvestSignalResult가 candidates를 전달하지 않아 그 경로는 항상 비어 있다.
+        # - shortSignal(61B) + signal(85B): 객체를 통째로 보내면서 쓰는 건 .label 하나뿐이라
+        #   프론트의 우선순위(shortSignal.key가 none이 아니면 그쪽)를 여기서 미리 적용해
+        #   {'label': ...} 한 겹만 남긴다. 키 이름을 그대로 둬서 프론트 수정이 필요 없다.
+        'signal': {'label': _swing_signal_label(waves, small, event)},
         'currentLocation': (chart.get('currentRegime') or {}).get('label'),
         'risk': {'state': risk.get('state'), 'flags': risk.get('flags') or []},
         'asOf': last.get('date'),
