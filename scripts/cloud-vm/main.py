@@ -8,6 +8,7 @@
 
 import asyncio
 import anyio.to_thread
+import gzip as gzip_lib
 import hmac
 import json
 import logging
@@ -24,7 +25,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Header, HTTPException, Path, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 
 import bond_yield
 import btc_futures
@@ -237,6 +238,7 @@ _foreign_flow_cache_mem = OrderedDict()
 # fundamentals_cache.json 파싱 결과(파일 mtime/크기가 바뀔 때만 재파싱) - /fundamentals/{code}용.
 _fundamentals_cache_mem = {}
 _daily_scan_cache_mem = {}
+_daily_scan_response_cache = {}
 
 # 사이드바 랭킹(거래대금/상한가/하한가). 2026-08-05부터 정상 상태에서는 market_rank.py의
 # 백그라운드 폴러(market_rank.get_cached())가 요청을 전부 처리하고, 이 캐시는 서버 기동
@@ -2015,16 +2017,58 @@ def load_daily_scan_cache_cached():
 # 응답 형태는 gas/ticker-proxy.gs의 getInvestSignalResult()/getPatternScanResult()와
 # 같아야 한다 - 프론트가 VM과 GAS 두 경로를 같은 렌더 함수로 그리고, VM이 막히면 GAS로
 # 폴백하기 때문이다. 아래 재포장은 그 두 함수를 그대로 옮긴 것이다.
+def _daily_scan_json_response(request, cache_key, build):
+    """일 1회만 바뀌는 응답을 미리 직렬화·압축해두고 그대로 돌려준다.
+
+    2026-09-03 실측: /invest-signal이 첫 호출 8.43초, 메모리 캐시가 채워진 두 번째
+    호출도 7.44초였다. 파일 파싱이 아니라 **요청마다** 2.4MB 구조를 인코딩하고 gzip으로
+    압축하는 비용이었다(같은 시각 20KB짜리 /pattern-scan은 1.55초 - 크기에 정비례).
+    원본은 하루 1회 배치가 갱신하므로 파일 mtime이 그대로면 만들어둔 바이트를 재사용한다.
+
+    Content-Encoding을 직접 달면 GZipMiddleware는 그 응답을 건드리지 않는다
+    (starlette GZipResponder가 기존 content-encoding을 보면 통과시킨다) - 이중 압축이
+    나지 않는다. gzip을 못 받는 클라이언트를 위해 원본 바이트도 함께 들고 있는다.
+
+    envelope()의 updatedAt은 호출 시각이라 응답마다 달라져 캐시가 무의미해진다.
+    여기서는 대신 캐시 파일의 mtime을 쓴다 - 데이터가 만들어진 시각이라 의미도 더 맞다.
+    """
+    if not os.path.exists(DAILY_SCAN_CACHE_FILE):
+        raise HTTPException(status_code=503, detail='일일 스캔 캐시가 아직 생성되지 않았습니다(daily_scan.py 첫 실행 대기 중).')
+    stat = os.stat(DAILY_SCAN_CACHE_FILE)
+    signature = (stat.st_mtime_ns, stat.st_size)
+    entry = _daily_scan_response_cache.get(cache_key)
+    if not entry or entry['signature'] != signature:
+        payload = {
+            'success': True,
+            'updatedAt': datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+            'data': build(),
+        }
+        raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+        entry = {'signature': signature, 'raw': raw, 'gzip': gzip_lib.compress(raw, 6)}
+        _daily_scan_response_cache[cache_key] = entry
+
+    accepts_gzip = 'gzip' in (request.headers.get('accept-encoding') or '').lower() if request else False
+    if accepts_gzip:
+        return Response(content=entry['gzip'], media_type='application/json',
+                        headers={'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding'})
+    return Response(content=entry['raw'], media_type='application/json',
+                    headers={'Vary': 'Accept-Encoding'})
+
+
 @app.get('/invest-signal')
 def invest_signal_result(request: Request):
     _check_rate_limit('invest_signal', request, max_per_window=30)
-    data = load_daily_scan_cache_cached()
-    if data is None:
-        raise HTTPException(status_code=503, detail='일일 스캔 캐시가 아직 생성되지 않았습니다(daily_scan.py 첫 실행 대기 중).')
+    return _daily_scan_json_response(request, 'invest_signal', _build_invest_signal)
+
+
+def _build_invest_signal():
+    # 파일 존재 확인은 _daily_scan_json_response가 이미 했다. 그 사이 파일이 사라지는
+    # 경우까지만 방어한다 - 그때는 빈 응답이 낫고, 다음 요청에서 503이 된다.
+    data = load_daily_scan_cache_cached() or {}
     signal = data.get('investSignal') or {}
     swing_scan = data.get('swingScan') or {}
     buckets = signal.get('buckets') or {}
-    return envelope({
+    return {
         'scannedAt': data.get('generatedAt'),
         'universe': data.get('universe') or 0,
         'scanned': signal.get('scanned') or 0,
@@ -2044,19 +2088,21 @@ def invest_signal_result(request: Request):
             'eventCounts': swing_scan.get('eventCounts') or {},
             'waveCoverage': swing_scan.get('waveCoverage') or {},
         },
-    })
+    }
 
 
 @app.get('/pattern-scan')
 def pattern_scan_result(request: Request):
     _check_rate_limit('pattern_scan', request, max_per_window=30)
-    data = load_daily_scan_cache_cached()
-    if data is None:
-        raise HTTPException(status_code=503, detail='일일 스캔 캐시가 아직 생성되지 않았습니다(daily_scan.py 첫 실행 대기 중).')
+    return _daily_scan_json_response(request, 'pattern_scan', _build_pattern_scan)
+
+
+def _build_pattern_scan():
+    data = load_daily_scan_cache_cached() or {}
     pattern_scan = data.get('patternScan') or {}
     pullback_scan = data.get('pullbackScan') or {}
     patterns = pattern_scan.get('patterns') or {}
-    return envelope({
+    return {
         'scannedAt': data.get('generatedAt'),
         'universe': data.get('universe') or 0,
         'scanned': pattern_scan.get('scanned') or 0,
@@ -2075,7 +2121,7 @@ def pattern_scan_result(request: Request):
         },
         'angleMomentumBacktest': data.get('angleMomentumBacktest'),
         'gongpasanBacktest': data.get('gongpasanBacktest'),
-    })
+    }
 
 
 @app.get('/strategy-scan-batch')

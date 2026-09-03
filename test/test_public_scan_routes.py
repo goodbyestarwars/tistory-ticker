@@ -9,6 +9,7 @@ VM은 하루 1회 배치가 만들어둔 캐시 파일을 그대로 서빙한다
 두 응답의 모양이 어긋나면 폴백이 조용히 깨진다. 여기서 gas/ticker-proxy.gs의
 getInvestSignalResult()/getPatternScanResult()와 같은 키를 내는지 고정한다.
 """
+import gzip
 import json
 import os
 import sys
@@ -20,6 +21,13 @@ if CLOUD_VM_DIR not in sys.path:
     sys.path.insert(0, CLOUD_VM_DIR)
 
 import main  # noqa: E402
+
+
+class FakeRequest(object):
+    """라우트가 쓰는 건 Accept-Encoding 헤더뿐이다(레이트리밋은 테스트에서 통과시킨다)."""
+
+    def __init__(self, accept_encoding='gzip, deflate'):
+        self.headers = {'accept-encoding': accept_encoding}
 
 
 CACHE = {
@@ -55,6 +63,8 @@ class PublicScanRouteTests(unittest.TestCase):
         self._path = path
         main.DAILY_SCAN_CACHE_FILE = path
         main._daily_scan_cache_mem = {}
+        self._orig_resp = main._daily_scan_response_cache
+        main._daily_scan_response_cache = {}
         # 레이트리밋은 Request가 필요해 여기서는 통과시킨다. 라우트에 걸려 있는지는
         # 아래 test_routes_are_rate_limited가 소스로 확인한다.
         main._check_rate_limit = lambda *args, **kwargs: None
@@ -62,12 +72,19 @@ class PublicScanRouteTests(unittest.TestCase):
     def tearDown(self):
         main.DAILY_SCAN_CACHE_FILE = self._orig_file
         main._daily_scan_cache_mem = self._orig_mem
+        main._daily_scan_response_cache = self._orig_resp
         main._check_rate_limit = self._orig_limit
         if os.path.exists(self._path):
             os.remove(self._path)
 
+    def route_data(self, route):
+        """라우트는 미리 직렬화해둔 바이트를 Response로 돌려주므로 본문을 풀어서 본다."""
+        response = route(FakeRequest())
+        self.assertEqual(response.headers['content-encoding'], 'gzip')
+        return json.loads(gzip.decompress(response.body).decode('utf-8'))['data']
+
     def test_invest_signal_matches_the_gas_shape(self):
-        data = main.invest_signal_result(None)['data']
+        data = self.route_data(main.invest_signal_result)
         self.assertEqual(sorted(data), ['buckets', 'counts', 'scanned', 'scannedAt', 'swingScan', 'universe'])
         # GAS는 한글 라벨 버킷을 영문 키로 바꿔서 넘긴다. 프론트가 그 키를 읽는다.
         self.assertEqual(sorted(data['buckets']), ['activeBuy', 'buy', 'hold', 'reduce', 'sell'])
@@ -82,7 +99,7 @@ class PublicScanRouteTests(unittest.TestCase):
         self.assertNotIn('candidates', data['swingScan'])
 
     def test_pattern_scan_matches_the_gas_shape(self):
-        data = main.pattern_scan_result(None)['data']
+        data = self.route_data(main.pattern_scan_result)
         self.assertEqual(sorted(data), ['angleMomentumBacktest', 'gongpasanBacktest', 'patterns',
                                         'pullbackScanned', 'pullbackScannedAt', 'scanned', 'scannedAt', 'universe'])
         self.assertEqual(sorted(data['patterns']),
@@ -95,12 +112,37 @@ class PublicScanRouteTests(unittest.TestCase):
         self.assertEqual(data['angleMomentumBacktest'], {'totalTrades': 10})
         self.assertIsNone(data['gongpasanBacktest'])
 
+    def test_uncompressed_client_gets_the_same_json(self):
+        response = main.invest_signal_result(FakeRequest(accept_encoding='identity'))
+        self.assertNotIn('content-encoding', response.headers)
+        self.assertEqual(json.loads(response.body.decode('utf-8'))['data']['scanned'], 2800)
+
+    def test_response_bytes_are_built_once_per_cache_file_version(self):
+        # 2026-09-03 실측: 요청마다 2.4MB를 인코딩·압축하느라 /invest-signal이 7.4초였다.
+        # 파일이 그대로면 같은 바이트 객체를 그대로 돌려줘야 한다.
+        first = main.invest_signal_result(FakeRequest()).body
+        second = main.invest_signal_result(FakeRequest()).body
+        self.assertIs(first, second)
+        # 파일이 바뀌면 다시 만든다.
+        with open(self._path, 'w', encoding='utf-8') as f:
+            json.dump(dict(CACHE, universe=2901), f)
+        main._daily_scan_cache_mem = {}
+        rebuilt = json.loads(gzip.decompress(main.invest_signal_result(FakeRequest()).body).decode('utf-8'))
+        self.assertEqual(rebuilt['data']['universe'], 2901)
+
+    def test_updated_at_comes_from_the_cache_file_not_the_request(self):
+        # 호출 시각을 쓰면 응답이 매번 달라져 미리 만들어둔 바이트를 못 쓴다.
+        body = json.loads(gzip.decompress(main.invest_signal_result(FakeRequest()).body).decode('utf-8'))
+        expected = main.datetime.fromtimestamp(os.stat(self._path).st_mtime, main.timezone.utc).isoformat()
+        self.assertEqual(body['updatedAt'], expected)
+
     def test_missing_cache_returns_503_not_an_empty_screen(self):
         os.remove(self._path)
         main._daily_scan_cache_mem = {}
+        main._daily_scan_response_cache = {}
         for route in (main.invest_signal_result, main.pattern_scan_result):
             with self.assertRaises(main.HTTPException) as ctx:
-                route(None)
+                route(FakeRequest())
             self.assertEqual(ctx.exception.status_code, 503)
 
     def test_cache_is_reparsed_only_when_the_file_changes(self):
