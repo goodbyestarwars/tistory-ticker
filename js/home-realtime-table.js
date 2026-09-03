@@ -88,7 +88,12 @@
     SKHY: 'SK하이닉스(ADR)', SPCX: '스페이스X', MRVL: '마벨 테크놀로지', RGTI: '리게티 컴퓨팅', RKLB: '로켓 랩',
     AVGO: '브로드컴', ORCL: '오라클', MU: '마이크론 테크놀로지', INTC: '인텔', CBRS: '세레브라스 시스템즈',
     PLTR: '팔란티어', SNDK: '샌디스크', DELL: '델 테크놀로지스', IONQ: '아이온큐', ASTS: 'AST 스페이스모바일',
-    MSTR: '스트래티지', CRWD: '크라우드스트라이크', STX: '씨게이트 테크놀로지', CRM: '세일스포스'
+    MSTR: '스트래티지', CRWD: '크라우드스트라이크', STX: '씨게이트 테크놀로지', CRM: '세일스포스',
+    // 2026-09-03: KIS 해외 거래대금 순위에는 ETF도 같이 올라온다. Finnhub profile2는 ETF
+    // 정보를 주지 않아 이름이 티커 그대로 내려오므로(예: KORU), 자주 올라오는 것만 한글명을
+    // 붙여 목록에서 정체를 알 수 있게 한다.
+    KORU: 'Direxion 한국 3배 ETF', SPY: 'SPDR S&P500 ETF', GLD: 'SPDR 금 ETF',
+    SOXL: 'Direxion 반도체 3배 ETF', SOXS: 'Direxion 반도체 -3배 ETF'
   };
   // 로컬 아이콘이 아직 없는 미국 종목은 Iconify의 공개 브랜드 아이콘을 먼저 시도한다.
   // 브랜드 아이콘이 없는 경우에도 회사 공식 도메인의 favicon을 한 번 더 시도해
@@ -303,6 +308,12 @@
     return /ETF|레버리지|인버스|KODEX|TIGER|ACE|SOL|RISE|KOSEF|HANARO|KBSTAR|ARIRANG|PLUS|TIMEFOLIO|FOCUS|1Q/i.test(String(name || ''));
   }
 
+  // 미국 ETF 판별용 티커 목록. KIS 해외 순위 응답에도, Finnhub profile2에도 "이게 ETF다"를
+  // 알려주는 필드가 없어서 목록으로 가려낸다 - 그래서 여기 없는 ETF는 개별 종목처럼 섞여
+  // 보인다(2026-09-03: KORU가 거래대금 8위로 올라왔는데 목록에 없어 걸러지지 않았다).
+  // 새로 눈에 띄는 ETF가 있으면 여기에 추가한다.
+  var US_ETF_TICKERS = /^(SPY|QQQ|IVV|VOO|VTI|IWM|DIA|XLK|XLF|TLT|GLD|SLV|ARKK|SOXL|SOXS|TQQQ|SQQQ|UPRO|TMF|KORU|YINN|LABU|TNA|TZA|FAS|SPXL|SPXS|NUGT|UVXY|VXX)$/i;
+
   function isEtf(item) {
     if (!item) return false;
     if (item.is_etf === true || item.isETF === true || item.asset_type === 'ETF'
@@ -314,7 +325,7 @@
       var text = String(value || '').trim();
       if (!text) return false;
       if (etfNames.indexOf(text) >= 0) return true;
-      return state.market !== 'us' ? isEtfName(text) : /^(SPY|QQQ|IVV|VOO|VTI|IWM|DIA|XLK|XLF|TLT|GLD|SLV|ARKK|SOXL|SOXS|TQQQ|SQQQ|UPRO|TMF)$/i.test(text.replace(/^US:/i, ''));
+      return state.market !== 'us' ? isEtfName(text) : US_ETF_TICKERS.test(text.replace(/^US:/i, ''));
     });
   }
 
