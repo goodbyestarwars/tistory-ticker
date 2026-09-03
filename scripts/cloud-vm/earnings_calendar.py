@@ -30,6 +30,20 @@ DART_LIST_MAX_PAGES = 10
 # 캘린더는 공시 원문 수치보다 날짜·공시명 표시가 우선이다. 월별 목록을 빠르게
 # 보여주기 위해 원문 결과 보강은 상위 12건까지만 수행한다(나머지도 공시명은 표시).
 DART_RESULT_LOOKUP_MAX = 12
+
+# 2026-09-02: "결산실적공시예고(안내공시)"처럼 앞으로 실적을 발표하겠다고 알리는
+# 공시는 보고서명에 '실적'이 들어 있어 목록 필터를 통과하지만, 아직 숫자가 없는
+# 예고문이라 조회해봐야 결과가 나올 수 없다. 그런데 이런 항목이 위 12건 예산을
+# 잡아먹어서 정작 숫자가 있는 잠정실적 공시가 조회되지 못했다(2026-08 실측: 국내
+# 228건 중 85건만 숫자가 붙었고, 상위 항목이 전부 안내공시였다).
+# 이벤트 목록에서 지우지는 않는다 - "곧 실적을 낸다"는 정보 자체는 유효하다.
+DART_ANNOUNCEMENT_ONLY_TOKENS = ('공시예고', '안내공시')
+
+
+def is_announcement_only(report_name):
+    """숫자가 아직 존재하지 않는 예고·안내성 공시인지."""
+    name = str(report_name or '')
+    return any(token in name for token in DART_ANNOUNCEMENT_ONLY_TOKENS)
 _cache = {}
 _financials_cache = {}
 _viewer_cache = {}
@@ -366,16 +380,25 @@ def _report_period(report_name, receipt_date):
     # "영업(잠정)실적" 공시는 보고서명이 아니라 접수월로 분기를 추정한다.
     # DART가 공식 재무제표를 아직 공개하지 않은 경우에는 결과를 붙이지 않고
     # 기존의 "실적공시 완료" 항목만 유지한다.
+    #
+    # 2026-09-02 교정: 경계가 3/5/8/11이라 9월 접수분을 3분기(11014)로 보냈다.
+    # 3분기는 9월 30일에야 끝나므로 9월에 접수된 잠정실적은 3분기일 수가 없고
+    # 사실상 2분기다. 존재하지도 않는 보고서를 조회하니 빈 결과가 돌아왔고,
+    # 실측에서 2026-09 국내 5건이 전부 결과 숫자 없이 나왔다.
+    #
+    # 잠정실적은 분기 종료 후 약 3개월 안에 공시되므로 분기 종료월 기준으로 끊는다.
+    #   1~3월  -> 전년 4분기(사업보고서)   4~6월   -> 1분기
+    #   7~9월  -> 2분기(반기)             10~12월 -> 3분기
+    # 12월도 3분기다. 당해 사업보고서는 이듬해 3월에나 나오므로 12월 접수분을
+    # 11011로 보내면 같은 종류의 빈 조회가 된다.
     receipt_month = int(str(receipt_date or '')[4:6] or 0)
     if receipt_month <= 3:
         return (year - 1, '11011')
-    if receipt_month <= 5:
+    if receipt_month <= 6:
         return (year, '11013')
-    if receipt_month <= 8:
+    if receipt_month <= 9:
         return (year, '11012')
-    if receipt_month <= 11:
-        return (year, '11014')
-    return (year, '11011')
+    return (year, '11014')
 
 
 def _number(value):
@@ -515,7 +538,10 @@ def fetch_month(year, month):
         if stock_code:
             event['symbol'] = stock_code
         events.append(event)
-    lookup_events = [event for event in events if event.get('corp_code')][:DART_RESULT_LOOKUP_MAX]
+    lookup_events = [
+        event for event in events
+        if event.get('corp_code') and not is_announcement_only(event.get('report_name'))
+    ][:DART_RESULT_LOOKUP_MAX]
     if lookup_events:
         with ThreadPoolExecutor(max_workers=6) as executor:
             enriched = list(executor.map(lambda item: _enrich_dart_event(api_key, item), lookup_events))
