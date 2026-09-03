@@ -286,6 +286,7 @@ dict 구성을 함께 대조한다.
 | GET | `/kofia-market` | 없음 | 신용·예탁금·반대매매 보조지표 |
 | GET | `/strategy-scan-batch` | API 키 | 전략검색 캐시 |
 | GET | `/scan-performance` | API 키 | 스캔 히트 종목의 D+N 사후 수익률 |
+| GET | `/flow-chart/{code}` | 없음 | 종목분석 가격차트(일봉+MA+지지/저항) |
 | GET | `/etf-components/{code}` | 없음 | ETF 구성종목 |
 | GET | `/us-search`, `/us-quote/{symbol}`, `/us-quotes?symbols=AAPL,MSFT`, `/us-orderbook/{symbol}` | 없음 | 미국 검색·단건/일괄 시세·호가 |
 | GET | `/us-chart/{symbol}`, `/us-news/{symbol}`, `/us-analysis/{symbol}` | 없음 | 미국 차트·뉴스·분석 |

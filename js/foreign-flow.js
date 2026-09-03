@@ -22,6 +22,13 @@
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var CONTAINER_SELECTOR = '#foreign-flow';
   var FETCH_TIMEOUT_MS = 20000; // 종목별 조회 기본 제한시간
+  // VM 가격차트는 정상일 때 1~2초다. 여기서 오래 끌면 GAS 폴백으로 넘어갈 기회조차
+  // 늦어지므로 기본 제한시간보다 짧게 끊는다.
+  var FLOW_CHART_VM_TIMEOUT_MS = 8000;
+  // 첫 화면에 없어도 되는 곁가지 데이터를 기다려주는 한도. 이 안에 안 오면 일단 없이
+  // 그리고, 늦게 도착한 값은 각자의 경로로 반영된다(시세는 startQuotePolling이 헤더를
+  // 갱신하고, 나머지는 캐시에 남아 탭을 열 때 쓰인다).
+  var SIDE_DATA_DEADLINE_MS = 2500;
   // 전종목 차트 흐름 집계는 GAS가 약 2.4MB 스냅샷을 반환하고 콜드 스타트가 겹치면
   // 기본 조회보다 오래 걸릴 수 있다. 짧은 제한시간 때문에 정상 응답도 오류 화면으로
   // 바뀌던 문제를 막기 위해 초기 집계 요청만 별도 여유를 둔다.
@@ -1218,7 +1225,19 @@
     var flowPromise = ForeignFlow.fetchFlow(resolved.code, resolved.name)
       .then(function (d) { if (d && (d.error || d.detail) && !flowErr_) flowErr_ = d.message || d.error || d.detail; return d; })
       .catch(function (err) { flowErr_ = err && err.message; return null; });
-    Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise, opinionPromise, etfInfoPromise])
+    // 2026-09-03: 예전에는 7개를 전부 기다렸다(Promise.all). 하나만 느려도 화면 전체가
+    // 대기해서, GAS 경유 호출이 20초 제한시간을 채우면 종목분석도 20초가 걸렸다.
+    // 시세/투자의견/ETF구성은 첫 화면에 없어도 renderResult가 정상 동작하는 값들이라
+    // 짧은 한도만 기다리고 넘어간다. 시세는 그동안 일봉 종가로 표시되다가
+    // startQuotePolling이 헤더를 실시간 값으로 갱신한다.
+    //
+    // 펀더멘탈은 여기 넣지 않는다 - computeFundamentalScore를 거쳐 화면의 "종합점수"에
+    // 들어가는 값이라, 없는 채로 그리면 점수가 나중 값과 달라진다. 반쪽 데이터로 계산한
+    // 점수를 보여주느니 기다리는 게 맞다.
+    var quoteRaced = withDeadline(quotePromise, SIDE_DATA_DEADLINE_MS, null);
+    var opinionRaced = withDeadline(opinionPromise, SIDE_DATA_DEADLINE_MS, null);
+    var etfInfoRaced = withDeadline(etfInfoPromise, SIDE_DATA_DEADLINE_MS, null);
+    Promise.all([flowPromise, chartPromise, investorFlowPromise, quoteRaced, fundamentalsPromise, opinionRaced, etfInfoRaced])
       .then(function (results) {
         if (requestId !== searchRequestSeq) return; // 이전 검색 응답은 무시(레이스 방지)
         var data = results[0];
@@ -1313,7 +1332,22 @@
     if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
     if (flowChartInflight[code]) return flowChartInflight[code];
 
-    var p = fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code))
+    // 2026-09-03: VM(/flow-chart)을 1차로 쓴다. 예전에는 GAS ?action=flowChart만 썼는데,
+    // GAS는 자체 데이터 없이 이 VM의 /ohlc를 부른 뒤 이평선·지지저항만 계산해 넘겨주는
+    // 중간 경유지였고 그 왕복이 운영 실측에서 28~30초씩 걸리다 타임아웃/404로 끝났다
+    // (2026-09-03 API Probe: 30.4s 타임아웃, 재측정 28.1s -> 404). Promise.all이 이걸
+    // 기다리느라 종목분석 전체가 20초(FETCH_TIMEOUT_MS)를 채우고 있었다.
+    // 응답 형태는 GAS와 동일해서({code, daily, ma, levels}) 렌더 경로는 그대로다.
+    // GAS는 VM이 죽었을 때만 쓰는 폴백으로 남긴다 - /foreign-flow가 네이버를 남겨둔 것과 같다.
+    var p = fetchJson(KIWOOM_VM_URL + '/flow-chart/' + encodeURIComponent(code), FLOW_CHART_VM_TIMEOUT_MS)
+      .then(function (envelope) {
+        var d = envelope && envelope.data ? envelope.data : envelope;
+        if (!d || d.error || !d.daily || !d.daily.length) throw new Error('VM 가격차트 없음');
+        return d;
+      })
+      .catch(function () {
+        return fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code));
+      })
       .then(function (data) {
         delete flowChartInflight[code];
         if (data && !data.error) flowChartCache[code] = { t: Date.now(), data: data };
@@ -1431,6 +1465,33 @@
       });
     quoteInflight[code] = p;
     return p;
+  }
+
+  // 2026-09-03: 첫 화면을 곁가지 데이터가 붙잡지 못하게 한다.
+  // 원래 요청은 취소하지 않고 그대로 살려둔다 - 늦게 와도 각자의 캐시에 채워져서
+  // (quoteCache/investOpinionCache 등) 탭을 열거나 폴링이 돌 때 그대로 쓰인다.
+  // "느린 걸 숨기는 것"이 아니라 "없어도 되는 걸 안 기다리는 것"이라, 여기 넣는 값은
+  // renderResult가 이미 null을 정상 입력으로 다루는 것만이어야 한다.
+  function withDeadline(promise, ms, fallbackValue) {
+    return new Promise(function (resolve) {
+      var settled = false;
+      var timer = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        resolve(fallbackValue);
+      }, ms);
+      promise.then(function (v) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(v);
+      }, function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(fallbackValue);
+      });
+    });
   }
 
   function fetchJson(url, timeoutMs) {

@@ -1,5 +1,53 @@
 # 9Pay 주요 작업이력
 
+**2026-09-03 종목분석 속도 개선 - 가격차트 VM 이관 + 곁가지 대기 제거**
+
+증상: "종목 → 종목분석이 너무 느려". 운영 실측(API Probe, 005930):
+
+| 호출 | 경유 | 1차 | 2차 |
+|---|---|---|---|
+| `?action=flowChart` | GAS | 30.4초 타임아웃 | 28.1초 → 404 |
+| `?action=fundamentals` | GAS | 30초 타임아웃 | 3.0초 |
+| `?codes=`(현재가) | GAS | 9.0초 | — |
+| `/foreign-flow/` 등 | VM | 1~2초 | — |
+
+원인: `search()`가 7개 호출을 `Promise.all`로 묶어 **전부 도착해야** 화면을 그렸다.
+하나만 느려도 전체가 대기하는데, GAS 가격차트가 매번 프론트 제한시간(20초)을 채우고
+실패했다. 게다가 GAS `getFlowChart`는 자체 데이터가 없이 **이 VM의 `/ohlc`를 부른 뒤**
+이평선·지지저항만 계산해 넘겨주는 중간 경유지였다.
+
+주요 변경:
+- `scripts/cloud-vm/main.py`: **`GET /flow-chart/{code}` 신설**. gas `getFlowChart`를
+  그대로 옮겨 응답 형태가 같다(`{code, daily, ma, levels}`). 이평선·지지저항은
+  `pattern_detect.moving_average`/`compute_support_resistance`를 그대로 쓴다 - gas의
+  `movingAverage_`/`computeSupportResistance_`와 같은 연산 순서를 이미 유지하는
+  구현이라 이관 전후 값이 달라지지 않는다.
+  `/investor-flow`·`/foreign-flow`와 같은 공개 모델(X-API-Key 없음 + CORS + 레이트리밋).
+  **키움 호출량은 늘지 않는다** - 지금도 GAS가 조회마다 이 VM의 `/ohlc`를 부르고 있고
+  `_ohlc_cache`(5분)를 그대로 공유하며 왕복만 한 단계 준다. 키움 실패 시
+  `daily_prices`(260봉)로 폴백해 짧은 차트라도 나오게 한다.
+- `js/foreign-flow.js`: 가격차트를 VM 직접 호출로 바꾸고 **GAS는 폴백으로만** 남겼다.
+  `withDeadline()`을 추가해 시세·투자의견·ETF구성은 2.5초만 기다리고 넘어간다.
+  원 요청은 취소하지 않아 늦게 와도 각자 캐시에 채워지고, 헤더 시세는 그동안 일봉
+  종가로 표시되다가 `startQuotePolling`이 실시간 값으로 갱신한다.
+- **펀더멘탈은 일부러 데드라인에서 뺐다** - `computeFundamentalScore`를 거쳐 화면의
+  "종합점수"에 들어가는 값이라, 없는 채로 그리면 점수가 나중 값과 달라진다. 반쪽
+  데이터로 계산한 점수를 보여주느니 기다리는 게 맞다.
+
+검증: Chromium에서 `window.fetch`를 스텁해 GAS 차트·시세·투자의견을 모두 무응답으로
+두고 실측 - **변경 전 25초 안에 렌더 안 됨(로딩 스피너 유지), 변경 후 약 3.0초**.
+VM `/flow-chart` 사용·GAS 폴백 미사용도 함께 확인했다. 시세 무응답일 때 헤더가 일봉
+종가로 정상 대체되는 것도 확인. `test/test_flow_chart_route.py` 4건 추가(이평선 null
+규약, 지지/저항 방향·개수, 표시 창과 이평선 길이 정합, 짧은 이력 폴백).
+전체 831건 중 실패 3건은 이 변경 이전과 동일.
+
+**남은 것**: 펀더멘탈(GAS, 3~30초)이 여전히 첫 화면을 막는다. VM `/fundamentals/{code}`가
+이미 있고 **캐시 파일을 읽을 뿐 외부 API를 호출하지 않아 쿼터 리스크가 없다** - 공개
+모델로 바꾸면 이 구간도 없앨 수 있다(별도 승인 필요). `/quote`는 KIS 실시간을 때리므로
+같이 묶어 판단하면 안 된다.
+
+배포: `scripts/cloud-vm/`는 VM 자동, `js/`는 GitHub Pages 자동.
+
 **2026-09-02 캘린더 국내 실적 "결과 숫자" 누락 수정**
 
 증상: 캘린더에 국내 실적이 안 나온다는 제보. 실측해보니 **이벤트 자체는 나오고
