@@ -30,6 +30,7 @@ import bond_yield
 import btc_futures
 import dart_client
 import db_schema
+import pattern_detect
 import domestic_futures
 import domestic_market_indicators
 import domestic_news
@@ -1479,6 +1480,85 @@ def ohlc(code: str = Path(..., min_length=6, max_length=6), x_api_key: str = Hea
         raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
     _live_cache_put(_ohlc_cache, code, daily)
     return envelope(daily)
+
+
+# 종목분석 가격차트가 화면에 그릴 최근 캔들 수. gas의 FLOW_CHART_DISPLAY_DAYS와 같은 값이라
+# 이관 전후로 차트 길이가 달라지지 않는다.
+FLOW_CHART_DISPLAY_DAYS = 500
+
+
+def _load_flow_chart_daily(code):
+    """가격차트용 일봉을 가져온다. 키움(ka10081, 약 600봉)이 1차이고, 실패하면
+    daily_prices(260봉)로 내려간다.
+
+    daily_prices는 daily_scan.py가 이미 적재해둔 값이라 외부 호출이 없지만 260봉뿐이라
+    MA224가 최근 36봉에서만 그려진다. 그래서 평소엔 키움을 쓰고, 키움이 죽었을 때
+    '차트가 아예 안 나오는 것'보다는 짧은 차트라도 나오게 하는 보조 경로로만 쓴다.
+    """
+    cached = _live_cache_get(_ohlc_cache, code)
+    if cached is not None:
+        return cached
+    try:
+        token = get_kiwoom_token()
+        daily = kiwoom_market.fetch_daily_ohlc(token, code, max_days=None)
+        if daily:
+            _live_cache_put(_ohlc_cache, code, daily)
+            return daily
+    except Exception as primary_error:
+        logging.getLogger('main').warning(
+            'flow-chart 키움 일봉 실패(%s): %s', code, type(primary_error).__name__,
+        )
+    conn = db_schema.get_conn()
+    try:
+        return db_schema.load_daily_prices(conn, code)
+    finally:
+        conn.close()
+
+
+@app.get('/flow-chart/{code}')
+def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=6)):
+    """종목분석 가격차트(일봉 + MA5/20/60/224 + 지지/저항).
+
+    2026-09-03: gas의 ?action=flowChart를 그대로 옮겨온 것이다. GAS판은 자체 데이터가
+    없이 이 VM의 /ohlc를 부른 뒤 이평선·지지저항만 계산해 넘겨주는 중간 경유지였는데,
+    운영 실측에서 그 왕복이 28~30초씩 걸리다 타임아웃/404로 끝났다(2026-09-03 API Probe:
+    30.4s 타임아웃, 재측정 28.1s → 404). 종목분석이 느린 가장 큰 원인이라 브라우저가
+    VM을 직접 보게 한다.
+
+    /investor-flow, /foreign-flow와 같은 공개 모델이다 - X-API-Key 없이 CORS로 블로그
+    도메인만 허용하고 레이트리밋을 건다. 키움 호출량은 늘지 않는다: 지금도 GAS가 종목분석
+    조회마다 이 VM의 /ohlc를 부르고 있고, 여기서는 그 왕복이 한 단계 줄어들 뿐이며
+    _ohlc_cache(5분)를 그대로 공유한다.
+
+    응답 형태는 gas getFlowChart와 동일하다({code, daily, ma, levels}) - 프론트
+    (js/foreign-flow.js)가 두 경로를 같은 렌더 함수로 그릴 수 있어야 하기 때문이다.
+    """
+    _check_rate_limit('flow_chart', request)
+    daily = _load_flow_chart_daily(code)
+    if not daily or len(daily) < 30:
+        raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
+
+    # 이평선·지지저항은 pattern_detect의 것을 그대로 쓴다 - gas의 movingAverage_/
+    # computeSupportResistance_와 같은 연산 순서를 이미 유지하고 있는 구현이라
+    # 이관 전후 값이 달라지지 않는다(pattern_detect.moving_average 독스트링 참고).
+    ma5 = pattern_detect.moving_average(daily, 'close', 5)
+    ma20 = pattern_detect.moving_average(daily, 'close', 20)
+    ma60 = pattern_detect.moving_average(daily, 'close', 60)
+    ma224 = pattern_detect.moving_average(daily, 'close', 224)
+    levels = pattern_detect.compute_support_resistance(daily)
+
+    start = max(0, len(daily) - FLOW_CHART_DISPLAY_DAYS)
+    return envelope({
+        'code': code.upper(),
+        'daily': daily[start:],
+        'ma': {
+            'ma5': ma5[start:],
+            'ma20': ma20[start:],
+            'ma60': ma60[start:],
+            'ma224': ma224[start:],
+        },
+        'levels': levels,
+    })
 
 
 @app.get('/ohlc-minute/{code}')
