@@ -37,6 +37,22 @@ function median(values) {
   return ok.length % 2 ? ok[mid] : Math.round((ok[mid - 1] + ok[mid]) / 2);
 }
 
+function kb(bytes) {
+  if (!bytes) return '0KB';
+  return (bytes / 1024).toFixed(0) + 'KB';
+}
+
+// 로그 한 줄에 들어가게 호스트 + 마지막 경로 조각만 남긴다.
+function shortUrl(url) {
+  try {
+    const u = new URL(url);
+    const tail = (u.pathname + u.search).slice(-58);
+    return u.host + (tail.length < (u.pathname + u.search).length ? '/...' : '') + tail;
+  } catch (e) {
+    return String(url).slice(0, 70);
+  }
+}
+
 function fmt(ms) {
   if (ms == null) return '   -  ';
   return (ms / 1000).toFixed(2) + 's';
@@ -75,6 +91,23 @@ async function measureOnce(browser, page) {
     });
     result.fcp = paints.fcp == null ? null : Math.round(paints.fcp);
     result.lcp = paints.lcp == null ? null : Math.round(paints.lcp);
+
+    // 시간만 재면 "왜 느린지"가 안 나온다. 화면이 채워질 때까지 실제로 받아온 것들을
+    // 전송 바이트(압축 후) 기준으로 함께 걷는다. transferSize가 0인 항목은 캐시
+    // 적중이거나 CORS로 타이밍이 가려진 교차 출처 응답이라 합계에서 빼고 따로 센다.
+    result.resources = await tab.evaluate(() => {
+      const entries = performance.getEntriesByType('resource');
+      let bytes = 0;
+      let opaque = 0;
+      const top = [];
+      for (const e of entries) {
+        const size = e.transferSize || 0;
+        if (size > 0) bytes += size; else opaque += 1;
+        top.push({ url: e.name, size: size, ms: Math.round(e.duration) });
+      }
+      top.sort((a, b) => (b.size - a.size) || (b.ms - a.ms));
+      return { count: entries.length, bytes: bytes, opaque: opaque, top: top.slice(0, 6) };
+    });
   } catch (e) {
     result.error = String(e && e.message || e).slice(0, 120);
   } finally {
@@ -101,6 +134,18 @@ async function measureOnce(browser, page) {
       + '   ' + fmt(median(runs.map((r) => r.ready)))
       + '            ' + (errors.length ? errors[0] + (errors.length > 1 ? ' (x' + errors.length + ')' : '') : '')
     );
+
+    // 마지막 회차의 자원 내역만 찍는다(회차마다 거의 같고, 전부 찍으면 로그가 길어진다).
+    const res = runs[runs.length - 1].resources;
+    if (res) {
+      console.log('    받아온 것: ' + res.count + '건 / ' + kb(res.bytes) + ' (전송 바이트'
+        + (res.opaque ? ', 크기 미보고 ' + res.opaque + '건' : '') + ')');
+      for (const item of res.top) {
+        if (!item.size && !item.ms) continue;
+        console.log('      ' + (kb(item.size) + '        ').slice(0, 10)
+          + (item.ms / 1000).toFixed(2) + 's  ' + shortUrl(item.url));
+      }
+    }
   }
 
   console.log('--------------------------------------------------------------------------------');
