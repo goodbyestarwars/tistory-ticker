@@ -1,0 +1,59 @@
+name: Page Speed
+
+# 라이브 페이지가 "사용자 눈에 언제 채워지는지"를 실제 브라우저로 잰다.
+#
+# 목적: API 응답시간(.github/workflows/api-probe.yml)만으로는 체감 속도를 알 수 없다.
+# 화면은 여러 호출을 기다렸다가 한 번에 그려지기도 하고(종목분석의 Promise.all),
+# 목록이 뜬 뒤에도 값이 나중에 채워지기도 한다. 그래서 헤드리스 크롬으로 실제
+# 페이지를 열고 (1) 브라우저가 보고하는 표준 지표와 (2) 페이지마다 "이게 보이면
+# 쓸 수 있다"고 볼 수 있는 요소가 나타난 시각을 함께 기록한다.
+#
+# 작업 환경(Claude Code on the web 컨테이너)은 ghlee.tistory.com에 아웃바운드가
+# 막혀 있어 브라우저 측정을 할 수 없다. 러너는 인터넷이 열려 있으므로 여기서 잰다.
+#
+# 사용법: Actions 탭 -> Page Speed -> Run workflow.
+# 주의:
+# - 수동 실행 전용. 자동 트리거를 붙이지 않는다.
+# - Secrets를 쓰지 않는다. 로그인 화면은 대상이 아니다.
+# - 러너 위치·네트워크는 실제 사용자(한국 모바일)와 다르다. 절대값보다 페이지 간
+#   비교와 변경 전후 비교에 쓴다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: '페이지당 반복 횟수(중앙값을 취한다)'
+        type: string
+        required: false
+        default: '3'
+      device:
+        description: '뷰포트'
+        type: choice
+        required: true
+        default: 'mobile'
+        options:
+          - 'mobile'
+          - 'desktop'
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm i -D playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          echo "playwright 준비 완료"
+
+      - name: Measure pages
+        env:
+          RUNS: ${{ inputs.runs }}
+          DEVICE: ${{ inputs.device }}
+        run: node .github/scripts/page-speed.js
