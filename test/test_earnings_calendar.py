@@ -234,3 +234,96 @@ class EarningsCalendarTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ReportPeriodTests(unittest.TestCase):
+    """접수월 -> (사업연도, 보고서코드) 추정.
+
+    잠정실적은 분기 종료 후 약 3개월 안에 공시된다. 2026-09-02 이전에는 경계가
+    3/5/8/11이라 9월 접수분을 3분기(11014)로 보냈는데, 3분기는 9월 30일에야
+    끝나므로 존재하지 않는 보고서를 조회하게 돼 결과 숫자가 안 붙었다.
+    """
+
+    def test_september_provisional_result_is_second_quarter(self):
+        # 회귀 케이스: 2026-09-01 접수 "영업(잠정)실적(공정공시)"은 2분기다.
+        self.assertEqual(
+            earnings_calendar._report_period('영업(잠정)실적(공정공시)', '20260901'),
+            (2026, '11012'))
+
+    def test_december_provisional_result_is_third_quarter(self):
+        # 당해 사업보고서는 이듬해 3월에나 나오므로 12월을 11011로 보내면 빈 조회가 된다.
+        self.assertEqual(
+            earnings_calendar._report_period('영업(잠정)실적', '20261210'),
+            (2026, '11014'))
+
+    def test_receipt_month_maps_to_quarter_end(self):
+        cases = {
+            '20260115': (2025, '11011'), '20260331': (2025, '11011'),
+            '20260401': (2026, '11013'), '20260630': (2026, '11013'),
+            '20260701': (2026, '11012'), '20260930': (2026, '11012'),
+            '20261001': (2026, '11014'), '20261231': (2026, '11014'),
+        }
+        for receipt_date, expected in cases.items():
+            with self.subTest(receipt_date=receipt_date):
+                self.assertEqual(
+                    earnings_calendar._report_period('영업(잠정)실적', receipt_date), expected)
+
+    def test_formal_report_name_still_wins_over_receipt_month(self):
+        # 보고서명에 분기가 적혀 있으면 접수월 추정보다 우선한다.
+        self.assertEqual(
+            earnings_calendar._report_period('반기보고서 (2026.06)', '20260901'),
+            (2026, '11012'))
+        self.assertEqual(
+            earnings_calendar._report_period('3분기보고서', '20261115'), (2026, '11014'))
+
+
+class AnnouncementOnlyTests(unittest.TestCase):
+    """예고·안내성 공시는 숫자 조회 예산(DART_RESULT_LOOKUP_MAX)을 쓰지 않는다."""
+
+    def test_detects_announcement_only_reports(self):
+        self.assertTrue(earnings_calendar.is_announcement_only('결산실적공시예고(안내공시)'))
+        self.assertTrue(earnings_calendar.is_announcement_only('실적공시예고'))
+
+    def test_actual_result_disclosures_are_not_announcement_only(self):
+        for name in ('영업(잠정)실적(공정공시)',
+                     '연결재무제표기준영업(잠정)실적(공정공시)',
+                     '반기보고서'):
+            with self.subTest(name=name):
+                self.assertFalse(earnings_calendar.is_announcement_only(name))
+
+    def test_announcements_do_not_consume_the_lookup_budget(self):
+        """예고 공시가 앞에 깔려 있어도 실제 실적 공시가 조회된다."""
+        rows = [{
+            'corp_name': '예고회사%d' % i,
+            'corp_code': 'C%05d' % i,
+            'stock_code': '00000%d' % i,
+            'report_nm': '결산실적공시예고(안내공시)',
+            'rcept_dt': '20260901',
+            'rcept_no': '2026090100000%d' % i,
+        } for i in range(earnings_calendar.DART_RESULT_LOOKUP_MAX)]
+        rows.append({
+            'corp_name': '실적회사',
+            'corp_code': 'C99999',
+            'stock_code': '000999',
+            'report_nm': '영업(잠정)실적(공정공시)',
+            'rcept_dt': '20260901',
+            'rcept_no': '20260901999999',
+        })
+
+        looked_up = []
+
+        def fake_enrich(api_key, event):
+            looked_up.append(event['corp_name'])
+            return event
+
+        earnings_calendar._cache.clear()
+        with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}), \
+             mock.patch.object(earnings_calendar, '_fetch', return_value=rows), \
+             mock.patch.object(earnings_calendar, '_enrich_dart_event', side_effect=fake_enrich):
+            events = earnings_calendar.fetch_month(2026, 9)
+
+        # 예고 13건이 앞에 있어도 실제 실적 공시가 조회 대상에 들어간다.
+        self.assertIn('실적회사', looked_up)
+        self.assertEqual(looked_up, ['실적회사'])
+        # 예고 공시는 목록에서 지우지 않는다 - "곧 실적을 낸다"는 정보는 유효하다.
+        self.assertEqual(len(events), earnings_calendar.DART_RESULT_LOOKUP_MAX + 1)
