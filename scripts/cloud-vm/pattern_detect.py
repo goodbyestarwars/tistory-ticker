@@ -645,7 +645,12 @@ def build_pattern_match(stock, daily, detail):
     prev = daily[-2] if len(daily) > 1 else None
     change_rate = ((last['close'] - prev['close']) / prev['close'] * 100) if (prev and prev['close']) else None
     pattern_detail = enrich_pattern_detail(detail, daily)
-    mini_chart = pattern_detail.get('closes_20d') or []
+    # 2026-09-03: 목록 응답 198KB 중 종목당 miniChart 738B가 patternDetail.closes_20d와
+    # 완전히 같은 배열이었다(여기서 그대로 대입하므로). 20일 종가는 miniChart 한 곳에만
+    # 싣는다 - angleMomentum/gongpasan 스캐너도 closes_20d 없이 miniChart만 넣고 있어
+    # 세 경로의 모양이 같아지고, 프론트는 이미 miniChart로 폴백한다
+    # (js/pattern-scan.js miniChartRows). patternDetail은 패턴 좌표만 남는다.
+    mini_chart = pattern_detail.pop('closes_20d', None) or []
     return {
         'code': stock['code'],
         'name': stock['name'],

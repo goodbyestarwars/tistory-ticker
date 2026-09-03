@@ -91,20 +91,31 @@ jobs:
             echo "===================================================================="
 
             body="$(mktemp)"
+            hdr="$(mktemp)"
             # -sS: 진행률은 숨기고 오류는 보이게. 실패해도 본문·상태를 남기려고 --fail은 쓰지 않는다.
             # -L: GAS 웹앱은 302로 googleusercontent.com에 본문을 넘긴다 - 따라가지 않으면
             # 본문이 0바이트로 온다. 인증정보를 안 싣는 GET이라 리다이렉트를 따라가도
             # 새어나갈 자격증명이 없다. 리다이렉트 폭주는 --max-redirs로 막는다.
-            meta="$(curl -sS -L --max-redirs 5 -m 30 -o "$body" \
-              -w 'http_code=%{http_code} time_total=%{time_total}s size=%{size_download}B content_type=%{content_type}' \
+            # --compressed: 브라우저는 항상 Accept-Encoding: gzip을 보내므로 이걸 빼고 재면
+            # 사용자가 실제로 받는 바이트가 아니라 비압축 크기를 보게 된다. 2026-09-03에
+            # 종목분석 응답을 3.06MB로 읽었던 게 그 경우였다. 아래에서 헤더의
+            # content-encoding/content-length(전송 바이트)와 size_download(디코딩 후 바이트)를
+            # 나란히 찍어 둘을 헷갈리지 않게 한다.
+            meta="$(curl -sS -L --compressed --max-redirs 5 -m 30 -o "$body" -D "$hdr" \
+              -w 'http_code=%{http_code} time_total=%{time_total}s decoded=%{size_download}B content_type=%{content_type}' \
               "$url" 2>&1)" || {
                 echo "요청 실패: $meta"
                 fail=1
-                rm -f "$body"
+                rm -f "$body" "$hdr"
                 continue
               }
 
             echo "$meta"
+            # 마지막 응답(리다이렉트 이후)의 값만 본다.
+            enc="$(grep -i '^content-encoding:' "$hdr" | tail -1 | tr -d '\r' || true)"
+            len="$(grep -i '^content-length:' "$hdr" | tail -1 | tr -d '\r' || true)"
+            echo "wire: ${enc:-content-encoding: (없음 - 비압축)} / ${len:-content-length: (없음 - chunked)}"
+            rm -f "$hdr"
             echo "--------------------------------------------------------------------"
 
             # JSON이면 보기 좋게 정렬해서 필드 구조를 그대로 읽을 수 있게 한다.

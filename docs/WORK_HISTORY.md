@@ -1,5 +1,94 @@
 # 9Pay 주요 작업이력
 
+**2026-09-03 종목분석·차트검색 목록을 GAS 경유에서 VM 직접 호출로 전환**
+
+앞선 페이로드 축소 작업 중, 응답 크기를 `--compressed` 없이 재고 있었다는 걸 발견해
+다시 측정했다. **판단이 뒤집혔다.**
+
+| 엔드포인트 | 비압축 | 전송(gzip) | 압축비 | 응답 시간 |
+|---|---|---|---|---|
+| GAS `?investSignal=1` | 2.92MB | **230,349B** | 12.8x | **8.59s** |
+| GAS `?patternScan=1` | 198KB | **22,773B** | 8.7x | **24.07s** |
+
+GAS는 이미 gzip을 걸고 있었다. 즉 **전송량은 병목이 아니다**(230KB). 병목은 GAS 구간
+자체이며, VM은 하루 1회 배치가 만들어둔 캐시 파일을 그대로 서빙한다. 종목 수를 줄이는
+방향(흐름별 분할·상위 N 페이징)은 전송량만 줄이므로 답이 아니라고 판단해 채택하지 않았다.
+
+주요 변경:
+- `scripts/cloud-vm/main.py`: 공개 라우트 `GET /invest-signal`, `GET /pattern-scan` 신설.
+  `/flow-chart/{code}`와 같은 모델(X-API-Key 없이 CORS로 블로그 도메인만 허용,
+  레이트리밋 분당 30회). 응답은 `gas/ticker-proxy.gs`의 `getInvestSignalResult()`/
+  `getPatternScanResult()`와 **동일한 재포장**이라 프론트 렌더 경로가 바뀌지 않는다.
+  담기는 값은 종목코드·종목명·가격·등락률·차트 국면 같은 공개 시장 데이터뿐이고,
+  외부 API 호출량도 늘지 않는다(같은 캐시 파일을 읽을 뿐).
+- `load_daily_scan_cache_cached()`: 수 MB 캐시를 mtime이 바뀔 때만 재파싱
+  (`load_fundamentals_cache_cached`와 같은 방식). 조회마다 재파싱하면 그 자체가 병목이다.
+- `js/foreign-flow.js`, `js/pattern-scan.js`: VM 먼저(8초 데드라인) → 실패 시 기존 GAS 경로로
+  폴백. **GAS 경로는 지우지 않았다** - VM이 죽으면 화면이 비면 안 된다.
+- `js/foreign-flow.js` 클라이언트 비용도 함께 줄였다. `flowCounts()`가 카드에 찍을 건수만
+  필요한데 6개 흐름 3,000종목대를 전부 정규화(종목마다 WICS_MAP 조회 + 18키 객체 생성)해
+  `length`만 읽고 있었다 → 원본 배열을 한 번만 훑는다. `flowRows()`도 렌더할 때마다
+  (흐름 클릭·정렬 변경·더 보기) 전량 재정규화하던 것을 흐름별 캐시로 바꾸고, 새 응답이
+  오면 비운다.
+- `.github/workflows/api-probe.yml`: `--compressed`로 요청하고 응답 헤더의
+  `content-encoding`/`content-length`를 함께 찍는다. 같은 착오를 반복하지 않기 위함.
+
+검증: `python3 -m pytest test -q` 848 passed. 신규 `test/test_public_scan_routes.py`가
+두 라우트의 응답 형태(GAS와 동일한 키·버킷 영문 매핑·눌림목 출처)와 공개+레이트리밋
+여부, 프론트의 VM 우선/GAS 폴백 배선, 흐름 캐시 무효화를 고정한다.
+`test/test_ui_ia.py`의 캐시버스터 단언은 목록이 2단계(VM→GAS)가 되며 형태가 바뀌어
+두 경로 모두 같은 스탬프를 다는지 확인하도록 갱신했다.
+
+배포: `scripts/cloud-vm/`·`js/` 모두 `master` 반영 후 자동 배포. **VM 배포가 프론트보다
+늦으면 `/invest-signal`이 404라 GAS로 폴백한다**(화면은 정상, 속도만 종전).
+
+**2026-09-03 종목분석·차트검색 응답 페이로드 축소(중복·미사용 필드 제거)**
+
+체감 속도 개선의 근본 원인을 찾으려고 응답 크기를 실측했다(GitHub Actions `api-probe`).
+
+종목분석 첫 진입(GAS `?investSignal=1`) **3,059,312B**:
+
+| 구간 | 바이트 | 비중 |
+|---|---|---|
+| `swingScan.flowGroups` | 2,194,387 | 93.1% |
+| `buckets`(5개, 3,153종목) | 162,493 | 6.9% |
+| 나머지 | 553 | 0.02% |
+
+flowGroups는 3,094종목 × 행당 709B. 행 내부는 `transitions` 272B, `signal` 85B,
+`shortSignal` 61B, `risk` 38B, 나머지 12개 필드 합 ~90B였다.
+
+차트검색(GAS `?patternScan=1`) **198KB**: 81종목 × 2,836B이고 그중
+`patternDetail` 1,835B + `miniChart` 738B = **90.7%**.
+
+주요 변경:
+- `scripts/cloud-vm/daily_scan.py` `build_swing_flow_row()`
+  - `transitions` 제거. `js/foreign-flow.js`의 `normalizeFlowRow`가 담기만 하고 렌더·정렬
+    어디서도 읽지 않는다. `flowKeyFromRecord`가 참조하지만 그건 `scan.candidates` 폴백
+    전용이고, GAS `getInvestSignalResult`가 `candidates`를 전달하지 않아 항상 빈 경로다.
+  - `shortSignal` + `signal` 객체 → `signal: {label}` 한 겹. 화면이 쓰는 건 라벨 하나뿐이라
+    프론트의 우선순위(shortSignal.key가 none이 아니면 그쪽)를 VM에서 미리 적용했다.
+    **키 이름을 유지해 프론트 수정이 필요 없다**(`signal.label`이 그대로 동작).
+  - `volumeAvg20` 반올림. 화면은 배수를 소수 1자리로만 쓰는데 부동소수 꼬리가 실려 있었다.
+- `scripts/cloud-vm/pattern_detect.py` `build_pattern_match()`: `patternDetail.closes_20d`를
+  `pop`. `miniChart`가 같은 배열을 그대로 받아가고 있어 20일 종가를 두 번 싣고 있었다
+  (`angle_momentum_scan.py`/`gongpasan_scan.py`는 원래 `miniChart`만 넣어 세 경로 모양이
+  같아졌다). 프론트는 이미 `miniChart`로 폴백한다.
+
+예상 절감(압축 전, 다음 배치 스캔 후 재실측 예정):
+- 종목분석 flowGroups 2.19MB → 약 0.89MB, 전체 **2.92MB → 약 1.6MB(-45%)**
+- 차트검색 198KB → 약 138KB(-30%)
+
+검증: `python3 -m pytest test -q` 834 passed. 신규 `test/test_swing_flow_row_payload.py`가
+행 계약(미사용 필드 부재 + 라벨 우선순위 + 렌더 필드 존재)을 고정한다.
+`test/test_pattern_detect.py`는 `closes_20d` 부재를 검증하도록 갱신.
+`test/test_ui_ia.py`는 2026-09-03 모바일 상단 메뉴 숨김 이후에도 예전 상태(`--topbar-height:
+40px`, `.sidebar-left { display: flex }`)를 단언하고 있어 새 계약으로 갱신했다.
+남은 실패 3건(`test_domestic_market_indicators`, `test_domestic_news`,
+`test_pullback_patterns`)은 이 작업 이전부터 있던 것으로 범위 밖이다.
+
+배포: `scripts/cloud-vm/` → `master` 반영 후 VM 자동 배포. **값은 일 1회 배치 스캔 결과라
+다음 스캔이 돌아야 축소된 응답이 나온다.**
+
 **2026-09-03 모바일 내비게이션 중복 제거(상단 메뉴 숨김) + 하단 탭바 버그 2건 수정**
 
 증상: 모바일에서 상단 메뉴와 하단 탭바가 같은 목적지를 두 번 보여준다는 지적.

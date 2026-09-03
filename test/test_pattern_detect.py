@@ -287,7 +287,10 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertEqual(len(results["risingLows"][0]["miniChart"]), min(20, len(daily)))
         self.assertEqual(results["risingLows"][0]["miniChart"][-1]["close"], daily[-1]["close"])
         detail_snapshot = results["risingLows"][0]["patternDetail"]
-        self.assertEqual(len(detail_snapshot["closes_20d"]), min(20, len(daily)))
+        # 20일 종가는 miniChart 한 곳에만 실린다(위에서 검증). 같은 배열을
+        # patternDetail.closes_20d로 한 번 더 보내지 않는다 - 목록 응답의 종목당
+        # 738바이트가 순수 중복이었다.
+        self.assertNotIn("closes_20d", detail_snapshot)
         self.assertEqual(detail_snapshot["previous_low"]["price"], detail_snapshot["pivot_lows"][-2]["price"])
         self.assertEqual(detail_snapshot["latest_low"]["price"], detail_snapshot["pivot_lows"][-1]["price"])
         self.assertIsNotNone(detail_snapshot["low_rise_pct"])
