@@ -1,5 +1,42 @@
 # 9Pay 주요 작업이력
 
+**2026-09-03 미국 종목판 티커 손상 수정 + ETF 분류 보강**
+
+사용자 스크린샷에서 거래대금 8위가 이름 없이 뜨고, 18위 델 테크놀로지스의 티커가
+`ELL`로 표시됐다. `/market-board?market=us`를 실측해 두 건을 규명했다.
+
+**① 티커 앞 글자가 잘림(`market_board._kis_us_row`)**
+
+```python
+symbol = str(_kis_value(row, 'symb', 'symbol', 'rsym', 'code') or '')...
+if symbol.startswith('D') and len(symbol) > 1 and symbol[1:].isalpha():
+    symbol = symbol[1:]
+```
+
+이 규칙은 `rsym`(`DNASAAPL` = D + 거래소코드 3자 + 티커)의 접두어를 떼려던 것인데,
+우선순위가 앞인 `symb`는 **이미 깨끗한 티커**라서 D로 시작하는 정상 티커가 첫 글자를
+잃었다 - `DELL`→`ELL`, `DIS`→`IS`, `DAL`→`AL`. 화면 티커가 틀리는 건 물론이고
+`code`도 `US:ELL`이 돼 종목 링크까지 깨졌다. 이제 접두어 제거는 **`rsym`에서 값을
+가져왔을 때만, 형식이 맞을 때만** 한다.
+
+**② ETF가 개별 종목처럼 섞임(`js/home-realtime-table.js`)**
+
+KIS 해외 순위 응답에도 Finnhub `profile2`에도 "이게 ETF다"를 알려주는 필드가 없어
+프론트가 티커 목록으로 가려내는데, 그 목록에 `KORU`(Direxion 한국 3배 ETF)가 없어
+SPY·GLD는 걸러지면서 KORU만 통과했다. 목록에 레버리지·국가 ETF를 보강하고,
+Finnhub가 ETF 이름을 안 줘서 티커로만 내려오던 것들(KORU·SPY·GLD·SOXL·SOXS)에
+한글명을 붙였다.
+
+검증: `test/test_market_board_us_symbol.py` 7건 신규(D로 시작하는 정상 티커 보존,
+rsym 접두어 제거, symb 우선, 미인식 rsym 원본 유지, 심볼 없는 행 제외).
+Chromium 실측 - ETF 제외 시 KORU·SPY 모두 걸러지고, 포함 시
+`Direxion 한국 3배 ETF / KORU`로 정상 표시. 전체 838건 중 실패 3건은 변경 전과 동일.
+
+**한계**: ETF 판별이 여전히 수동 목록이다. 상류가 ETF 플래그를 주지 않는 한 목록에
+없는 ETF는 계속 개별 종목처럼 보인다.
+
+배포: `scripts/cloud-vm/`는 VM 자동, `js/`는 GitHub Pages 자동.
+
 **2026-09-03 차트검색 상세 클릭 속도 개선(재판정 불필요 탭은 VM 직행)**
 
 증상: 차트검색에서 종목을 클릭하면 상세가 너무 느리게 뜬다.

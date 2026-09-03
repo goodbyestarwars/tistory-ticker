@@ -3,6 +3,7 @@
 
 import logging
 import json
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -772,9 +773,18 @@ def fetch_us(token, limit=20, finnhub_api_key=''):
 
 
 def _kis_us_row(row):
-    symbol = str(_kis_value(row, 'symb', 'symbol', 'rsym', 'code') or '').strip().upper()
-    if symbol.startswith('D') and len(symbol) > 1 and symbol[1:].isalpha():
-        symbol = symbol[1:]
+    # 2026-09-03: 예전에는 symb/symbol/rsym/code를 한 번에 읽고 "앞글자가 D면 뗀다"를
+    # 무조건 적용했다. 그 규칙은 rsym(예: DNASAAPL = D + 거래소코드 3자 + 티커)의 접두어를
+    # 떼려던 것인데, 우선순위가 앞인 symb는 이미 깨끗한 티커라서 D로 시작하는 정상 티커가
+    # 첫 글자를 잃었다 - DELL -> ELL, DIS -> IS, DAL -> AL. 화면에 잘못된 티커가 찍히는 건
+    # 물론이고 code도 'US:ELL'이 돼 종목 링크가 깨졌다(2026-09-03 사용자 스크린샷에서
+    # 델 테크놀로지스가 ELL로 표시됨).
+    # 이제 접두어 제거는 rsym에서 값을 가져왔을 때만, 그것도 형식이 맞을 때만 한다.
+    symbol = str(_kis_value(row, 'symb', 'symbol', 'code') or '').strip().upper()
+    if not symbol:
+        rsym = str(_kis_value(row, 'rsym') or '').strip().upper()
+        match = re.match(r'^D[A-Z]{3}([A-Z][A-Z.]{0,5})$', rsym)
+        symbol = match.group(1) if match else rsym
     if not symbol:
         return None
     price = abs(_number(_kis_value(row, 'last', 'cur_prc', 'price')) or 0)
