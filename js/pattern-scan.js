@@ -18,7 +18,20 @@
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#pattern-scan';
+  var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var FETCH_TIMEOUT_MS = 15000;
+
+  // GAS getPatternChart()가 상세 클릭 시 "재판정"까지 해주는 패턴들. 이 5개는 GAS가
+  // detectXxx_()를 다시 돌려 detail을 만들어주므로 GAS를 거쳐야 한다.
+  // 나머지 탭(각도기·공파산·단기이평 돌파형·장기이평 응축기·시초갭)은 getPatternChart의
+  // if 체인에 없어서 detail이 항상 null로 돌아오고, 프론트가 목록 스냅샷
+  // (item.patternDetail)으로 채워 쓴다 - 즉 GAS 왕복이 일봉만 받아오는 순수 오버헤드다.
+  // GAS는 운영 실측에서 28~30초씩 걸리므로(2026-09-03 API Probe) 그 탭들은 VM에서
+  // 캔들만 직접 받는다.
+  var GAS_REDETECTED_PATTERNS = {
+    risingLows: true, doubleBottom: true, invHeadShoulders: true,
+    boxRangeLow: true, pullback: true
+  };
   var FETCH_RETRY_COUNT = 2;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
 
@@ -584,9 +597,23 @@
 
     var chartUrl = GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code)
       + '&pattern=' + encodeURIComponent(activeTab) + '&scanDate=' + encodeURIComponent(item.date || '');
-    fetchWithRetry(chartUrl, function (data) {
-      return data && !data.error && Array.isArray(data.daily);
-    })
+    function loadFromGas() {
+      return fetchWithRetry(chartUrl, function (data) {
+        return data && !data.error && Array.isArray(data.daily);
+      });
+    }
+    // 재판정이 필요 없는 탭은 VM에서 캔들만 받아 곧바로 그린다. detail은 어차피 목록
+    // 스냅샷에서 오므로(아래 !data.detail 분기) 화면 내용은 GAS 경유와 같다.
+    var chartRequest = GAS_REDETECTED_PATTERNS[activeTab]
+      ? loadFromGas()
+      : PatternScan.fetchJson(KIWOOM_VM_URL + '/flow-chart/' + encodeURIComponent(item.code))
+          .then(function (envelope) {
+            var d = envelope && envelope.data ? envelope.data : envelope;
+            if (!d || d.error || !Array.isArray(d.daily) || !d.daily.length) throw new Error('VM 캔들 없음');
+            return { code: item.code, daily: d.daily, pattern: activeTab, detail: null };
+          })
+          .catch(loadFromGas);
+    chartRequest
       .then(function (data) {
         if (data.error || !data.daily || !data.daily.length) {
           detail.innerHTML = '<div class="ps-error">' + escapeHtml((data && data.message) || '차트를 불러오지 못했어요.') + '</div>';

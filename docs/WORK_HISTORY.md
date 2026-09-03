@@ -1,5 +1,29 @@
 # 9Pay 주요 작업이력
 
+**2026-09-03 차트검색 상세 클릭 속도 개선(재판정 불필요 탭은 VM 직행)**
+
+증상: 차트검색에서 종목을 클릭하면 상세가 너무 느리게 뜬다.
+
+원인: 클릭 시 GAS `?patternChart=1`을 부르는데, GAS는 운영 실측에서 28~30초씩 걸린다
+(2026-09-03 API Probe). 그런데 GAS `getPatternChart()`가 실제로 "재판정"을 해주는 패턴은
+`risingLows`/`doubleBottom`/`invHeadShoulders`/`boxRangeLow`/`pullback` 5개뿐이다.
+**각도기·공파산·단기이평 돌파형·장기이평 응축기·시초갭은 그 if 체인에 없어서 detail이
+항상 null로 돌아오고**, 프론트가 목록 스냅샷(`item.patternDetail`)으로 채워 쓴다 -
+즉 그 탭들의 GAS 왕복은 일봉만 받아오는 순수 오버헤드였다.
+
+주요 변경(`js/pattern-scan.js`):
+- `GAS_REDETECTED_PATTERNS` 추가 - GAS 재판정이 필요한 5개 패턴만 명시
+- 그 외 탭은 VM `/flow-chart/{code}`에서 캔들만 받아 바로 그린다. detail은 어차피
+  스냅샷에서 오므로 **화면 내용은 GAS 경유와 동일**하다
+- VM 실패 시 기존 GAS 경로로 폴백한다
+
+검증: Chromium에서 GAS 상세 응답을 12초 지연으로 모사해 실측 -
+**각도기 85ms(VM 사용, GAS 미호출) / 쌍바닥 12.4초(GAS 재판정 경로 그대로 유지)**.
+재판정이 필요한 탭이 실수로 VM으로 새지 않는 것까지 같이 확인했다.
+`test/pattern-scan.html`에 각도기 목록 목을 추가(그 분기를 눈으로 확인할 수 있게).
+
+배포: `js/`라 GitHub Pages 자동.
+
 **2026-09-03 종목분석 속도 개선 - 가격차트 VM 이관 + 곁가지 대기 제거**
 
 증상: "종목 → 종목분석이 너무 느려". 운영 실측(API Probe, 005930):
