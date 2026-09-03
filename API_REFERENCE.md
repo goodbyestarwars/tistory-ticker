@@ -287,6 +287,8 @@ dict 구성을 함께 대조한다.
 | GET | `/strategy-scan-batch` | API 키 | 전략검색 캐시 |
 | GET | `/scan-performance` | API 키 | 스캔 히트 종목의 D+N 사후 수익률 |
 | GET | `/flow-chart/{code}` | 없음 | 종목분석 가격차트(일봉+MA+지지/저항) |
+| GET | `/invest-signal` | 없음 | 종목분석 차트 흐름별 탐색(`/daily-scan-batch`를 GAS와 같은 형태로 재포장) |
+| GET | `/pattern-scan` | 없음 | 차트검색 패턴별 목록(`/daily-scan-batch`를 GAS와 같은 형태로 재포장) |
 | GET | `/etf-components/{code}` | 없음 | ETF 구성종목 |
 | GET | `/us-search`, `/us-quote/{symbol}`, `/us-quotes?symbols=AAPL,MSFT`, `/us-orderbook/{symbol}` | 없음 | 미국 검색·단건/일괄 시세·호가 |
 | GET | `/us-chart/{symbol}`, `/us-news/{symbol}`, `/us-analysis/{symbol}` | 없음 | 미국 차트·뉴스·분석 |
@@ -297,6 +299,13 @@ dict 구성을 함께 대조한다.
 | GET | `/auth/google/start`, `/auth/google/callback`, `/auth/google/me`, `/auth/google/logout` | OAuth | Google 로그인 흐름 |
 | WS | `/ws/quotes` | Origin 확인 | 국내·미국 실시간 종목판 |
 | WS | `/ws/economic-news` | Origin 확인 | 시장별 경제 종합뉴스 push |
+
+`/invest-signal`, `/pattern-scan`은 브라우저가 GAS를 거치지 않고 직접 부르는 공개 경로다
+(`/flow-chart/{code}`와 같은 모델 - X-API-Key 없이 CORS로 블로그 도메인만 허용하고
+레이트리밋 분당 30회). 응답은 `gas/ticker-proxy.gs`의 `getInvestSignalResult()`/
+`getPatternScanResult()`와 **같은 형태여야 한다** - 프론트가 두 경로를 같은 렌더 함수로
+그리고 VM이 막히면 GAS로 폴백하기 때문이다. 데이터는 `/daily-scan-batch`와 같은
+`daily_scan_cache.json`이고 mtime이 바뀔 때만 재파싱해 메모리에 둔다.
 
 `/ws/economic-news` 서버 캐시/브로드캐스트 주기는 각각 4분/5분이며, 화면 속보 한 건
 전환 5초는 프론트 동작이다. `/ws/quotes`는 동시 연결 상한 200을 적용한다. 자세한 운영

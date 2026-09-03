@@ -1,0 +1,157 @@
+# -*- coding: utf-8 -*-
+"""브라우저가 GAS를 거치지 않고 직접 보는 /invest-signal, /pattern-scan 계약.
+
+2026-09-03 API Probe 실측: GAS 경유가 ?investSignal=1 8.59초, ?patternScan=1 24.07초였다.
+같은 응답의 전송 바이트는 gzip 후 각각 230KB/22.8KB라 회선이 아니라 GAS 구간이 병목이고,
+VM은 하루 1회 배치가 만들어둔 캐시 파일을 그대로 서빙한다.
+
+프론트가 VM과 GAS 두 경로를 같은 렌더 함수로 그리고 VM이 막히면 GAS로 폴백하므로,
+두 응답의 모양이 어긋나면 폴백이 조용히 깨진다. 여기서 gas/ticker-proxy.gs의
+getInvestSignalResult()/getPatternScanResult()와 같은 키를 내는지 고정한다.
+"""
+import json
+import os
+import sys
+import tempfile
+import unittest
+
+CLOUD_VM_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts', 'cloud-vm'))
+if CLOUD_VM_DIR not in sys.path:
+    sys.path.insert(0, CLOUD_VM_DIR)
+
+import main  # noqa: E402
+
+
+CACHE = {
+    'generatedAt': '2026-09-03T09:00:00+09:00',
+    'universe': 2900,
+    'patternScan': {'scanned': 2800, 'patterns': {
+        'risingLows': [{'code': '000001'}],
+        'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [],
+        'boxRangeLow': [], 'openingGap': [], 'angleMomentum': [], 'gongpasan': [],
+    }},
+    'pullbackScan': {'scanned': 2700, 'matches': [{'code': '000002'}]},
+    'angleMomentumBacktest': {'totalTrades': 10},
+    'gongpasanBacktest': None,
+    'investSignal': {'scanned': 2800, 'counts': {'매수 우위': 1}, 'buckets': {
+        '적극 매수': [], '매수 우위': [['000001', '테스트', 100, 1.0, 5, 3]],
+        '보유': [], '비중축소': [], '매도': [],
+    }},
+    'swingScan': {'modelVersion': 'swing-4w-v5', 'scanned': 2800,
+                  'flowGroups': {'upturn': [{'code': '000001'}]},
+                  'regimeCounts': {}, 'eventCounts': {}, 'waveCoverage': {}},
+}
+
+
+class PublicScanRouteTests(unittest.TestCase):
+
+    def setUp(self):
+        self._orig_file = main.DAILY_SCAN_CACHE_FILE
+        self._orig_mem = main._daily_scan_cache_mem
+        self._orig_limit = main._check_rate_limit
+        fd, path = tempfile.mkstemp(suffix='.json')
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            json.dump(CACHE, f)
+        self._path = path
+        main.DAILY_SCAN_CACHE_FILE = path
+        main._daily_scan_cache_mem = {}
+        # 레이트리밋은 Request가 필요해 여기서는 통과시킨다. 라우트에 걸려 있는지는
+        # 아래 test_routes_are_rate_limited가 소스로 확인한다.
+        main._check_rate_limit = lambda *args, **kwargs: None
+
+    def tearDown(self):
+        main.DAILY_SCAN_CACHE_FILE = self._orig_file
+        main._daily_scan_cache_mem = self._orig_mem
+        main._check_rate_limit = self._orig_limit
+        if os.path.exists(self._path):
+            os.remove(self._path)
+
+    def test_invest_signal_matches_the_gas_shape(self):
+        data = main.invest_signal_result(None)['data']
+        self.assertEqual(sorted(data), ['buckets', 'counts', 'scanned', 'scannedAt', 'swingScan', 'universe'])
+        # GAS는 한글 라벨 버킷을 영문 키로 바꿔서 넘긴다. 프론트가 그 키를 읽는다.
+        self.assertEqual(sorted(data['buckets']), ['activeBuy', 'buy', 'hold', 'reduce', 'sell'])
+        self.assertEqual(data['buckets']['buy'], [['000001', '테스트', 100, 1.0, 5, 3]])
+        self.assertEqual(data['buckets']['activeBuy'], [])
+        self.assertEqual(data['scannedAt'], CACHE['generatedAt'])
+        self.assertEqual(data['scanned'], 2800)
+        self.assertEqual(data['universe'], 2900)
+        self.assertEqual(sorted(data['swingScan']),
+                         ['eventCounts', 'flowGroups', 'modelVersion', 'regimeCounts', 'scanned', 'waveCoverage'])
+        # candidates는 GAS도 넘기지 않는다 - 프론트의 폴백 경로가 그 부재를 전제로 한다.
+        self.assertNotIn('candidates', data['swingScan'])
+
+    def test_pattern_scan_matches_the_gas_shape(self):
+        data = main.pattern_scan_result(None)['data']
+        self.assertEqual(sorted(data), ['angleMomentumBacktest', 'gongpasanBacktest', 'patterns',
+                                        'pullbackScanned', 'pullbackScannedAt', 'scanned', 'scannedAt', 'universe'])
+        self.assertEqual(sorted(data['patterns']),
+                         ['angleMomentum', 'boxRangeLow', 'doubleBottom', 'gongpasan', 'invHeadShoulders',
+                          'maCloudBreakout', 'openingGap', 'pullback', 'risingLows'])
+        # 눌림목만 patternScan.patterns가 아니라 pullbackScan.matches에서 온다.
+        self.assertEqual(data['patterns']['pullback'], [{'code': '000002'}])
+        self.assertEqual(data['patterns']['risingLows'], [{'code': '000001'}])
+        self.assertEqual(data['pullbackScanned'], 2700)
+        self.assertEqual(data['angleMomentumBacktest'], {'totalTrades': 10})
+        self.assertIsNone(data['gongpasanBacktest'])
+
+    def test_missing_cache_returns_503_not_an_empty_screen(self):
+        os.remove(self._path)
+        main._daily_scan_cache_mem = {}
+        for route in (main.invest_signal_result, main.pattern_scan_result):
+            with self.assertRaises(main.HTTPException) as ctx:
+                route(None)
+            self.assertEqual(ctx.exception.status_code, 503)
+
+    def test_cache_is_reparsed_only_when_the_file_changes(self):
+        main.load_daily_scan_cache_cached()
+        signature = main._daily_scan_cache_mem['signature']
+        main.load_daily_scan_cache_cached()
+        self.assertEqual(main._daily_scan_cache_mem['signature'], signature)
+
+    def test_routes_are_public_but_rate_limited(self):
+        source = open(os.path.join(CLOUD_VM_DIR, 'main.py'), encoding='utf-8').read()
+        head = source.split("@app.get('/invest-signal')")[1].split("@app.get('/strategy-scan-batch')")[0]
+        # 공개 라우트다(/flow-chart, /investor-flow와 같은 모델) - 대신 레이트리밋은 필수다.
+        self.assertNotIn('require_api_key', head)
+        self.assertIn("_check_rate_limit('invest_signal', request", head)
+        self.assertIn("_check_rate_limit('pattern_scan', request", head)
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+
+class FrontendVmFirstWiringTests(unittest.TestCase):
+    """프론트가 VM을 먼저 보고 GAS로 폴백하는 배선을 고정한다.
+
+    소스 텍스트 검사인 이유는 test_ui_ia.py와 같다 - 이 저장소에는 JS 런타임 테스트
+    기반이 없다. 배선이 빠지면 화면은 멀쩡히 GAS 경로로 동작해서(단지 느릴 뿐)
+    회귀를 눈으로 못 잡는다.
+    """
+
+    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def read(self, rel):
+        return open(os.path.join(self.ROOT, rel), encoding='utf-8').read()
+
+    def test_foreign_flow_tries_the_vm_before_gas(self):
+        source = self.read('js/foreign-flow.js')
+        self.assertIn("KIWOOM_VM_URL + '/invest-signal'", source)
+        self.assertIn('return requestFromVm().catch(function () { return requestFromGas(attempt); });', source)
+        # GAS 경로는 폴백으로 남아 있어야 한다 - VM이 죽으면 화면이 비면 안 된다.
+        self.assertIn("var signalUrl = GAS_TICKER_URL + '?investSignal=1';", source)
+
+    def test_pattern_scan_tries_the_vm_before_gas(self):
+        source = self.read('js/pattern-scan.js')
+        self.assertIn("KIWOOM_VM_URL + '/pattern-scan?_=' + stamp", source)
+        self.assertIn('.catch(function () { return fetchWithRetry(scanUrl, hasPatterns); })', source)
+        self.assertIn("var scanUrl = GAS_TICKER_URL + '?patternScan=1&_=' + stamp;", source)
+
+    def test_flow_row_normalization_is_cached_per_flow(self):
+        # 3,000종목대를 렌더할 때마다 다시 정규화하던 것을 응답이 바뀔 때만 하도록 바꿨다.
+        source = self.read('js/foreign-flow.js')
+        self.assertIn('var flowRowCache = {};', source)
+        self.assertIn('if (flowRowCache[key]) return flowRowCache[key];', source)
+        # 새 응답이 오면 반드시 비워야 한다 - 안 비우면 어제 스캔이 계속 보인다.
+        self.assertIn('flowRowCache = {};', source.split('signalData = data;')[1][:200])

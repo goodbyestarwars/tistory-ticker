@@ -20,6 +20,8 @@
   var CONTAINER_SELECTOR = '#pattern-scan';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var FETCH_TIMEOUT_MS = 15000;
+  // 목록은 VM에서 캐시 파일 서빙이라 이 안에 안 들어오면 GAS 폴백이 낫다.
+  var PATTERN_SCAN_VM_TIMEOUT_MS = 8000;
 
   // GAS getPatternChart()가 상세 클릭 시 "재판정"까지 해주는 패턴들. 이 5개는 GAS가
   // detectXxx_()를 다시 돌려 detail을 만들어주므로 GAS를 거쳐야 한다.
@@ -207,10 +209,22 @@
   function loadScan(container) {
     // GAS/VM의 빈 응답이 브라우저·중간 캐시에 남으면, 다음 일일 스캔이 끝난 뒤에도
     // "스캔 결과 없음" 화면이 계속 보일 수 있다. 목록 요청은 매번 최신 스냅샷을 확인한다.
-    var scanUrl = GAS_TICKER_URL + '?patternScan=1&_=' + encodeURIComponent(Date.now());
-    fetchWithRetry(scanUrl, function (data) {
+    var stamp = encodeURIComponent(Date.now());
+    var scanUrl = GAS_TICKER_URL + '?patternScan=1&_=' + stamp;
+    function hasPatterns(data) {
       return data && !data.error && data.patterns && typeof data.patterns === 'object';
-    })
+    }
+    // 2026-09-03: 상세 클릭이 이미 쓰고 있는 VM 직접 호출을 목록에도 적용한다. API Probe
+    // 실측에서 GAS 경유 목록이 24.07초였는데, 같은 응답의 전송 바이트는 gzip 후 22.8KB라
+    // 회선이 아니라 GAS 구간이 병목이다(VM은 하루 1회 배치가 만든 캐시 파일을 그대로
+    // 서빙한다). 응답 형태가 같아서 렌더 경로는 그대로고, GAS는 폴백으로 남긴다.
+    fetchJson(KIWOOM_VM_URL + '/pattern-scan?_=' + stamp, PATTERN_SCAN_VM_TIMEOUT_MS)
+      .then(function (envelope) {
+        var d = envelope && envelope.data ? envelope.data : envelope;
+        if (!hasPatterns(d)) throw new Error('VM 스캔 결과 없음');
+        return d;
+      })
+      .catch(function () { return fetchWithRetry(scanUrl, hasPatterns); })
       .then(function (data) {
         scanData = data;
         var meta = container.querySelector('#psMeta');
@@ -1167,10 +1181,10 @@
 
   // ---- 유틸 ----
 
-  function fetchJson(url) {
+  function fetchJson(url, timeoutMs) {
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, timeoutMs || FETCH_TIMEOUT_MS) : null;
 
     return fetch(url, hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {

@@ -25,6 +25,8 @@
   // VM 가격차트는 정상일 때 1~2초다. 여기서 오래 끌면 GAS 폴백으로 넘어갈 기회조차
   // 늦어지므로 기본 제한시간보다 짧게 끊는다.
   var FLOW_CHART_VM_TIMEOUT_MS = 8000;
+  // 차트 흐름 집계도 VM에서는 캐시 파일 서빙이라 이 안에 안 들어오면 GAS 폴백이 낫다.
+  var SIGNAL_VM_TIMEOUT_MS = 8000;
   // 첫 화면에 없어도 되는 곁가지 데이터를 기다려주는 한도. 이 안에 안 오면 일단 없이
   // 그리고, 늦게 도착한 값은 각자의 경로로 반영된다(시세는 startQuotePolling이 헤더를
   // 갱신하고, 나머지는 캐시에 남아 탭을 열 때 쓰인다).
@@ -225,7 +227,22 @@
 
   function loadSignalData(container) {
     var signalUrl = GAS_TICKER_URL + '?investSignal=1';
-    function requestSignal(attempt) {
+
+    // 2026-09-03: /flow-chart와 같은 이유로 VM을 먼저 본다. API Probe 실측에서 GAS
+    // 경유가 8.59초였고(같은 응답의 전송 바이트는 gzip 후 230KB라 회선이 아니라 GAS
+    // 구간이 병목이다), VM은 하루 1회 배치가 만들어둔 캐시 파일을 그대로 서빙한다.
+    // 응답 형태가 같아서(getInvestSignalResult와 동일한 재포장) 렌더 경로는 그대로고,
+    // GAS는 VM이 죽었을 때만 쓰는 폴백으로 남긴다.
+    function requestFromVm() {
+      return ForeignFlow.fetchJson(KIWOOM_VM_URL + '/invest-signal', SIGNAL_VM_TIMEOUT_MS)
+        .then(function (envelope) {
+          var d = envelope && envelope.data ? envelope.data : envelope;
+          if (!d || d.error || !d.swingScan) throw new Error('VM 차트 흐름 없음');
+          return d;
+        });
+    }
+
+    function requestFromGas(attempt) {
       return ForeignFlow.fetchJson(signalUrl, SIGNAL_FETCH_TIMEOUT_MS).catch(function (err) {
         if (attempt > 0) throw err;
         return new Promise(function (resolve) {
@@ -236,9 +253,14 @@
       });
     }
 
+    function requestSignal(attempt) {
+      return requestFromVm().catch(function () { return requestFromGas(attempt); });
+    }
+
     requestSignal(0)
       .then(function (data) {
         signalData = data;
+        flowRowCache = {};
         renderExplore(container);
         syncSignalPanelHeight(container);
       })
@@ -306,11 +328,20 @@
     };
   }
 
+  // 2026-09-03: flowGroups는 3,000종목대다. normalizeFlowRow는 종목마다 WICS_MAP을 뒤져
+  // 18개 키짜리 객체를 새로 만드는데, 이걸 렌더할 때마다(흐름 클릭·정렬 변경·더 보기)
+  // 전량 다시 돌리고 있었다. 응답이 바뀔 때만 무효화하는 흐름별 캐시를 둔다.
+  var flowRowCache = {};
+
   function flowRows(key) {
+    if (flowRowCache[key]) return flowRowCache[key];
     var scan = swingScanData();
     var groups = scan.flowGroups || {};
     var raw = groups[key];
-    if (Array.isArray(raw)) return raw.map(function (row) { return normalizeFlowRow(row); }).filter(function (row) { return row.code; });
+    if (Array.isArray(raw)) {
+      flowRowCache[key] = raw.map(function (row) { return normalizeFlowRow(row); }).filter(function (row) { return row.code; });
+      return flowRowCache[key];
+    }
     // 이전 캐시를 읽는 동안에는 새 그룹이 없을 수 있다. 그때도 임의의 상태/건수를
     // 만들지 않고, 이미 저장된 swingCandidates만 해당 흐름에 한해 보여준다.
     return (scan.candidates || []).filter(function (row) { return flowKeyFromRecord(row) === key; })
@@ -324,8 +355,19 @@
   }
 
   function flowCounts() {
+    // 카드에 찍는 건 건수뿐이다. 원본 배열 길이로 충분한데 6개 흐름을 전부 정규화해
+    // 3,000종목대 객체를 만들고 length만 읽고 있었다. 원본이 없을 때(이전 캐시를 읽는
+    // 중)만 기존 candidates 폴백 경로를 타도록 flowRows로 넘긴다.
+    var groups = swingScanData().flowGroups || {};
     var counts = {};
-    FLOW_META.forEach(function (meta) { counts[meta.key] = flowRows(meta.key).length; });
+    FLOW_META.forEach(function (meta) {
+      var raw = groups[meta.key];
+      // 코드 없는 행은 목록에서도 빠지므로 건수도 같은 기준으로 센다. 객체를 만들지
+      // 않고 한 번만 훑는다.
+      counts[meta.key] = Array.isArray(raw)
+        ? raw.filter(function (row) { return row && row.code; }).length
+        : flowRows(meta.key).length;
+    });
     return counts;
   }
 

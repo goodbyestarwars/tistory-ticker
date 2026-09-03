@@ -236,6 +236,7 @@ _investor_flow_cache_mem = OrderedDict()
 _foreign_flow_cache_mem = OrderedDict()
 # fundamentals_cache.json 파싱 결과(파일 mtime/크기가 바뀔 때만 재파싱) - /fundamentals/{code}용.
 _fundamentals_cache_mem = {}
+_daily_scan_cache_mem = {}
 
 # 사이드바 랭킹(거래대금/상한가/하한가). 2026-08-05부터 정상 상태에서는 market_rank.py의
 # 백그라운드 폴러(market_rank.get_cached())가 요청을 전부 처리하고, 이 캐시는 서버 기동
@@ -1983,6 +1984,98 @@ def daily_scan_batch(x_api_key: str = Header(default=None)):
     with open(DAILY_SCAN_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return envelope(cached)
+
+
+def load_daily_scan_cache_cached():
+    """daily_scan_cache.json을 mtime이 바뀔 때만 다시 파싱해 메모리에 보관한다.
+    전 종목 스캔 결과라 파일이 수 MB여서, 조회마다 재파싱하면 그 자체가 병목이 된다.
+    load_fundamentals_cache_cached와 같은 방식이다."""
+    global _daily_scan_cache_mem
+    if not os.path.exists(DAILY_SCAN_CACHE_FILE):
+        return None
+    stat = os.stat(DAILY_SCAN_CACHE_FILE)
+    signature = (stat.st_mtime_ns, stat.st_size)
+    if _daily_scan_cache_mem.get('signature') != signature:
+        with open(DAILY_SCAN_CACHE_FILE, 'r', encoding='utf-8') as f:
+            cached = json.load(f)
+        _daily_scan_cache_mem = {'signature': signature, 'data': cached}
+    return _daily_scan_cache_mem['data']
+
+
+# 2026-09-03: /flow-chart와 같은 이유로 브라우저가 VM을 직접 보게 하는 두 번째 묶음이다.
+# API Probe 실측(GAS 경유): ?investSignal=1 8.59s, ?patternScan=1 24.07s. 같은 응답의
+# 전송 바이트는 gzip 후 각각 230KB/22.8KB라 회선이 아니라 GAS 구간이 병목이다
+# (VM은 이미 계산해둔 캐시 파일을 그대로 서빙한다).
+#
+# /investor-flow, /foreign-flow, /flow-chart와 같은 공개 모델이다 - X-API-Key 없이
+# CORS로 블로그 도메인만 허용하고 레이트리밋을 건다. 담기는 값은 종목코드·종목명·가격·
+# 등락률·차트 국면 같은 공개 시장 데이터뿐이고 계정정보나 키는 없다. 외부 API 호출량도
+# 늘지 않는다: 하루 1회 배치가 만든 같은 캐시 파일을 읽을 뿐이다.
+#
+# 응답 형태는 gas/ticker-proxy.gs의 getInvestSignalResult()/getPatternScanResult()와
+# 같아야 한다 - 프론트가 VM과 GAS 두 경로를 같은 렌더 함수로 그리고, VM이 막히면 GAS로
+# 폴백하기 때문이다. 아래 재포장은 그 두 함수를 그대로 옮긴 것이다.
+@app.get('/invest-signal')
+def invest_signal_result(request: Request):
+    _check_rate_limit('invest_signal', request, max_per_window=30)
+    data = load_daily_scan_cache_cached()
+    if data is None:
+        raise HTTPException(status_code=503, detail='일일 스캔 캐시가 아직 생성되지 않았습니다(daily_scan.py 첫 실행 대기 중).')
+    signal = data.get('investSignal') or {}
+    swing_scan = data.get('swingScan') or {}
+    buckets = signal.get('buckets') or {}
+    return envelope({
+        'scannedAt': data.get('generatedAt'),
+        'universe': data.get('universe') or 0,
+        'scanned': signal.get('scanned') or 0,
+        'counts': signal.get('counts') or {},
+        'buckets': {
+            'activeBuy': buckets.get('적극 매수') or [],
+            'buy': buckets.get('매수 우위') or [],
+            'hold': buckets.get('보유') or [],
+            'reduce': buckets.get('비중축소') or [],
+            'sell': buckets.get('매도') or [],
+        },
+        'swingScan': {
+            'modelVersion': swing_scan.get('modelVersion'),
+            'scanned': swing_scan.get('scanned') or 0,
+            'flowGroups': swing_scan.get('flowGroups') or {},
+            'regimeCounts': swing_scan.get('regimeCounts') or {},
+            'eventCounts': swing_scan.get('eventCounts') or {},
+            'waveCoverage': swing_scan.get('waveCoverage') or {},
+        },
+    })
+
+
+@app.get('/pattern-scan')
+def pattern_scan_result(request: Request):
+    _check_rate_limit('pattern_scan', request, max_per_window=30)
+    data = load_daily_scan_cache_cached()
+    if data is None:
+        raise HTTPException(status_code=503, detail='일일 스캔 캐시가 아직 생성되지 않았습니다(daily_scan.py 첫 실행 대기 중).')
+    pattern_scan = data.get('patternScan') or {}
+    pullback_scan = data.get('pullbackScan') or {}
+    patterns = pattern_scan.get('patterns') or {}
+    return envelope({
+        'scannedAt': data.get('generatedAt'),
+        'universe': data.get('universe') or 0,
+        'scanned': pattern_scan.get('scanned') or 0,
+        'pullbackScannedAt': data.get('generatedAt'),
+        'pullbackScanned': pullback_scan.get('scanned') or 0,
+        'patterns': {
+            'risingLows': patterns.get('risingLows') or [],
+            'maCloudBreakout': patterns.get('maCloudBreakout') or [],
+            'doubleBottom': patterns.get('doubleBottom') or [],
+            'invHeadShoulders': patterns.get('invHeadShoulders') or [],
+            'boxRangeLow': patterns.get('boxRangeLow') or [],
+            'openingGap': patterns.get('openingGap') or [],
+            'pullback': pullback_scan.get('matches') or [],
+            'angleMomentum': patterns.get('angleMomentum') or [],
+            'gongpasan': patterns.get('gongpasan') or [],
+        },
+        'angleMomentumBacktest': data.get('angleMomentumBacktest'),
+        'gongpasanBacktest': data.get('gongpasanBacktest'),
+    })
 
 
 @app.get('/strategy-scan-batch')

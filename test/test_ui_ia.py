@@ -1914,7 +1914,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_chart_search_scan_snapshot_bypasses_stale_empty_cache(self):
         source = self.read("js/pattern-scan.js")
-        self.assertIn("?patternScan=1&_=' + encodeURIComponent(Date.now())", source)
+        # 2026-09-03: 목록이 VM 직접 호출 → GAS 폴백 2단계가 되면서 캐시버스터를 변수로
+        # 뽑았다. 두 경로 다 같은 스탬프를 달아야 stale한 빈 응답을 피하는 원래 의도가 산다.
+        self.assertIn("var stamp = encodeURIComponent(Date.now());", source)
+        self.assertIn("'?patternScan=1&_=' + stamp", source)
+        self.assertIn("'/pattern-scan?_=' + stamp", source)
         self.assertIn("var FETCH_RETRY_COUNT = 2;", source)
         self.assertIn("function fetchWithRetry(url, isValid)", source)
         self.assertIn("_retry=' + encodeURIComponent(attempt)", source)
