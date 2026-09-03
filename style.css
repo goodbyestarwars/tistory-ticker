@@ -3790,9 +3790,16 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
 
 /* ============ 반응형 오버라이드 (모바일 우선) ============ */
 @media (max-width: 720px) {
-  :root { --topbar-height: 40px; } /* 상단 메뉴도 유지하되 앱형으로 얇게 줄인다. */
-  html.nav-secondary-open { --topbar-height: 76px; }
-  .sidebar-left { display: flex !important; }
+  /* 2026-09-03: 모바일에서 상단 메뉴 줄을 감춘다.
+     그전에는 상단(홈·시장·종목·종목검색·캘린더·커뮤니티·MY 가로 스크롤 38px)과
+     하단 탭바(홈·시장·종목·MY·더보기 65px)가 같은 목적지를 두 번 노출했고,
+     navbar 65px까지 더하면 168px - 679px 높이 화면의 24.7%가 내비게이션이었다.
+     모바일은 엄지가 닿는 하단 탭바 하나로 모으고, 탭바가 못 담는 목적지는
+     js/skin-menu.js의 더보기 시트에 전부 넣어 접근 경로를 잃지 않게 했다.
+     PC(721px 이상)는 하단 탭바가 없으므로 상단 메뉴를 그대로 쓴다. */
+  :root { --topbar-height: 0px; }
+  html.nav-secondary-open { --topbar-height: 0px; }
+  .sidebar-left { display: none !important; }
   /* 한글 단어가 글자 단위로 끊겨 보이지 않도록 한다. 긴 라벨은 각 화면에서 말줄임 처리한다. */
   body { word-break: keep-all; overflow-wrap: normal; }
   /* ── 내비게이션 바 ──
