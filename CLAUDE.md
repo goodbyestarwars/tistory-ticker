@@ -68,7 +68,13 @@
 - `js/`, `css/`, `data/`: `master` 반영 후 GitHub Pages 자동 배포
 - `scripts/cloud-vm/`: `master` 반영 후 VM 자동 배포
 - `gas/ticker-proxy.gs`: `master` 반영 후 GitHub Actions(clasp)가 자동 배포(2026-08-14부터). 저장소 Secrets(`CLASP_CREDENTIALS`/`CLASP_DEPLOYMENT_ID`) 없으면 예전처럼 GAS에서 수동 배포
-- `skin.html`: Tistory 관리자에서 수동 반영
+- `skin.html`: Tistory 관리자에서 수동 반영. 단 **마크업이 바뀐 경우만** 그렇다.
+  `?v=` 캐시 문자열만 올린 변경은 수동 반영 없이도 사용자에게 닿는다 - GitHub Pages는
+  `?v=` 값과 무관하게 같은 파일을 서빙하고 `cache-control: max-age=600`이라, 옛 `?v=`가
+  박힌 라이브 스킨도 10분 안에 새 `js/`·`css/` 내용을 받아간다(2026-09-04 실측:
+  옛 URL 응답이 새 파일과 바이트까지 일치). `?v=` 갱신은 즉시 반영을 강제하고 무엇이
+  올라가 있는지 기록하는 용도이지, 반영의 전제조건이 아니다. 작업 요약에 "수동 반영
+  없으면 반영 안 됨"이라고 쓰지 않는다.
 
 ## 점검 도구
 
