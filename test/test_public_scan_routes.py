@@ -151,6 +151,25 @@ class PublicScanRouteTests(unittest.TestCase):
         main.load_daily_scan_cache_cached()
         self.assertEqual(main._daily_scan_cache_mem['signature'], signature)
 
+    def test_warmer_builds_the_bytes_before_a_request_arrives(self):
+        # 2026-09-04 실측: 캐시 파일이 새로 쓰인 뒤 첫 /invest-signal만 18.5초였고
+        # 이어진 6회는 1.0~1.1초였다. 배치 스캔이 매일 파일을 새로 쓰므로, 워머가 없으면
+        # 매일 첫 사용자가 그 18.5초를 뒤집어쓴다.
+        main._daily_scan_response_cache = {}
+        main._warm_daily_scan_responses()
+        self.assertEqual(sorted(main._daily_scan_response_cache), ['invest_signal', 'pattern_scan'])
+        warmed = main._daily_scan_response_cache['invest_signal']['gzip']
+        # 예열해둔 바로 그 바이트가 응답으로 나가야 의미가 있다.
+        self.assertIs(main.invest_signal_result(FakeRequest()).body, warmed)
+
+    def test_warmer_survives_a_missing_cache_file(self):
+        # 배치 첫 실행 전에는 파일이 없다. 워머 스레드가 거기서 죽으면 이후 갱신을 놓친다.
+        os.remove(self._path)
+        main._daily_scan_cache_mem = {}
+        main._daily_scan_response_cache = {}
+        main._warm_daily_scan_responses()
+        self.assertEqual(main._daily_scan_response_cache, {})
+
     def test_routes_are_public_but_rate_limited(self):
         source = open(os.path.join(CLOUD_VM_DIR, 'main.py'), encoding='utf-8').read()
         head = source.split("@app.get('/invest-signal')")[1].split("@app.get('/strategy-scan-batch')")[0]
