@@ -461,3 +461,19 @@ html.dark #watchlist .wl-change { color: rgba(245, 239, 224, 0.55) !important; b
 html.dark #watchlist .wl-change.wl-up { color: #ff6b5b !important; background: #3a2323 !important; }
 html.dark #watchlist .wl-change.wl-down { color: #4d9fff !important; background: #1f2c3d !important; }
 html.dark #watchlist .wl-flow { color: rgba(245, 239, 224, 0.55) !important; }
+
+
+/* ============================================================
+   2026-09-04 모바일 터치 영역 정비
+   Chromium 360px 실측에서 이 화면의 조작부가 22~38px였다. Apple HIG 44pt /
+   Material 48dp 기준에 못 미쳐 손가락으로 정확히 누르기 어렵다("모바일 앱 수준으로"
+   요청의 실체). PC는 마우스라 그대로 두고 720px 이하에서만 키운다.
+   ============================================================ */
+@media (max-width: 720px) {
+  /* 실측: 그룹 메뉴 34x34, 입력·추가 37px, 로그인 38px. */
+  #watchlist .wl-group-add { width: 44px; height: 44px; }
+  #watchlist .wl-group-add::before { line-height: 44px; }
+  #watchlist .wl-input,
+  #watchlist .wl-add-btn,
+  #watchlist .wl-login-btn { min-height: 44px; }
+}

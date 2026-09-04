@@ -717,3 +717,15 @@ html.dark #pattern-scan .ps-footnote {
 html.dark #pattern-scan .ps-footnote b {
   color: rgba(245, 239, 224, 0.65) !important;
 }
+
+
+/* ============================================================
+   2026-09-04 모바일 터치 영역 정비
+   Chromium 360px 실측에서 이 화면의 조작부가 22~38px였다. Apple HIG 44pt /
+   Material 48dp 기준에 못 미쳐 손가락으로 정확히 누르기 어렵다("모바일 앱 수준으로"
+   요청의 실체). PC는 마우스라 그대로 두고 720px 이하에서만 키운다.
+   ============================================================ */
+@media (max-width: 720px) {
+  /* 실측 33px. 가로 스크롤 탭이라 높이만 키우면 레이아웃이 밀리지 않는다. */
+  #pattern-scan .ps-tab { min-height: 44px; }
+}

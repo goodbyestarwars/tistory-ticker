@@ -1,5 +1,62 @@
 # 9Pay 주요 작업이력
 
+**2026-09-04 모바일 내비게이션 원복(상단 메뉴) + 전 페이지 터치 영역 정비**
+
+사용자 판단: "모바일인데 메뉴가 사라졌네? 밑이 두는게 이상해. UI도 모바일은 아니고.
+모바일 앱수준으로 다시 해줄래?"
+
+**① 하단 탭바 제거, 상단 메뉴 복원**
+
+2026-09-03(#367)에 상단 38px + 하단 65px 중복을 줄이려고 상단을 감췄던 판단을 되돌렸다.
+이 사이트는 1차 7개·2차까지 12개 목적지라 5칸 탭바에 안 들어가고, 못 담은 항목이
+더보기 시트로 밀리면서 길찾기가 오히려 어려워졌다. 목적지가 많은 사이트에는 가로
+스크롤되는 상단 2단 메뉴가 5칸 탭바보다 잘 맞는다.
+
+- `style.css`(≤720px): `--topbar-height` 40px(2차 펼침 76px), `.sidebar-left` 복원.
+  하단 탭바·더보기 시트 CSS를 기본 규칙·다크모드·폰트 규칙까지 **전부** 제거했다.
+- `js/skin-menu.js`: `renderMobileBottomNav`/`mobileBottomIcon`/`mobileBottomActiveKey` 제거.
+- `css/stock-search-panel.css`, `css/watchlist.css`: 탭바 높이(78px/84px)만큼 띄우던
+  보정 제거. 안 빼면 아래가 휑하게 남는다.
+- "맨 위로" 버튼은 계속 숨긴다. 탭바와 함께 있던 "현재 탭 재탭 = 맨 위로"가 사라졌지만,
+  버튼을 되살리면 본문을 가리던 2026-08-31 문제가 그대로 돌아온다.
+
+**② 모바일 로고 잘림**
+
+Chromium 360px 실측에서 브랜드 표기 "ㄱㅖ조 ㅏ심폐소생술"이 "ㄱㅖ조 ㅏ심폐소…"로
+잘렸다. ≤430px 구간의 `.nav-logo` max-width가 34vw(=122px)인데 텍스트는 134px다.
+34vw는 로고와 검색창이 한 줄을 나눠 쓰던 시절 값인데, 2026-08-20에 navbar가 두 줄로
+갈라지며 로고가 검색창과 경쟁하지 않게 됐다 → `calc(100% - 44px)`.
+
+**③ 전 페이지 터치 영역 정비**
+
+Chromium 360px로 하네스 전수 실측: **가로 스크롤 0건, 글자 잘림 0건**(로고 제외).
+대신 조작부가 일관되게 22~38px여서 Apple HIG 44pt / Material 48dp에 미달했다 -
+이게 "앱 같지 않다"의 실체였다.
+
+| 대상 | 이전 | 이후(≤720px) |
+|---|---|---|
+| `#pattern-scan .ps-tab` | 33px | 44px |
+| `#foreign-flow .ff-explore-tab` | 38px | 44px |
+| `#foreign-flow .ff-input`/`.ff-search-btn` | 36px | 44px |
+| `#market-temp .mt-flow-period` | 72x22 | 70x40 |
+| `#order-book .ob-input` | 35px | 44px |
+| `#watchlist .wl-group-add` | 34x34 | 44x44 |
+| `#watchlist .wl-input`/`.wl-add-btn`/`.wl-login-btn` | 37~38px | 44px |
+| `.home-widget-drag`/`.home-widget-menu-button` | 25x25 | 40x40 |
+
+홈 위젯 손잡이·메뉴는 크기보다 큰 결함이 있었다 - `opacity:0`에 `:hover`로만 나타나
+**터치 기기에서는 아예 쓸 수 없었다**(위젯 순서 변경·메뉴 접근 불가). 모바일에서는
+항상 보이게 했다. PC는 마우스라 hover 노출을 그대로 둔다.
+
+검증: Chromium 실측 360/430/720/1440px. 모바일은 전부 40~44px, **PC 1440px는 전 항목
+종전 값 그대로**(`.ps-tab` 36px, `.mt-flow-period` 38x22, 위젯 버튼 25x25 `opacity:0`).
+`python3 -m pytest test -q` 861 passed. 신규 `test/test_mobile_touch_targets.py`가
+720px 구간 안의 규칙인지까지 확인해 PC 회귀도 막는다. `test/test_ui_ia.py`는 탭바
+흔적이 다시 생기면 실패하도록 뒤집고 로고 잘림 회귀 테스트를 추가했다.
+
+배포: `style.css`·`js/`·`css/` → `master` 반영 후 GitHub Pages 자동 배포.
+`skin.html`은 손대지 않아 티스토리 수동 반영 불필요.
+
 **2026-09-04 종목분석 첫 진입 18.5초의 원인은 콜드 미스 - 응답 예열로 해결**
 
 2026-09-03에 종목분석을 VM 직접 호출로 옮겼는데 빨라지지 않았다. 원인을 네 번 잘못 짚었고

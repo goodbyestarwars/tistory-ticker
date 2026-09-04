@@ -1096,3 +1096,20 @@ html.dark #market-temp .mt-sf-stock { border-top-color: rgba(245,239,224,.12) !i
 html.dark #market-temp .mt-sf-stock:hover { color: #80b8ff !important; }
 html.dark #market-temp .mt-sf-derived { border-top-color: rgba(245,239,224,.14) !important; }
 html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !important; background: rgba(245,239,224,.06) !important; color: rgba(245,239,224,.85) !important; }
+
+
+/* ============================================================
+   2026-09-04 모바일 터치 영역 정비
+   Chromium 360px 실측에서 이 화면의 조작부가 22~38px였다. Apple HIG 44pt /
+   Material 48dp 기준에 못 미쳐 손가락으로 정확히 누르기 어렵다("모바일 앱 수준으로"
+   요청의 실체). PC는 마우스라 그대로 두고 720px 이하에서만 키운다.
+   ============================================================ */
+@media (max-width: 720px) {
+  /* 실측 72x22 -> 높이가 22px였다. 알약 모양은 유지하고 세로만 손가락에 맞춘다. */
+  #market-temp .mt-flow-period {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  #market-temp .mt-flow-periods { gap: 6px; }
+}

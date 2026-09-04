@@ -3844,6 +3844,18 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
      이 규칙으로 데스크톱이 달라지는 것은 없다(라이브 1440px computed display: none 확인). */
   .scroll-top-btn { display: none !important; }
 
+  /* 2026-09-04: 홈 위젯의 순서 손잡이·메뉴 버튼은 opacity:0에 :hover로만 나타난다.
+     터치 기기에는 hover가 없어 폰에서는 아예 쓸 수 없었다(위젯 순서 변경·메뉴 접근 불가).
+     실측 25x25로 크기도 44px 기준에 한참 못 미친다. 모바일에서는 항상 보이게 하고
+     손가락 크기에 맞춘다. PC는 마우스라 기존 hover 노출을 그대로 둔다. */
+  .home-widget-drag,
+  .home-widget-menu-button {
+    width: 40px;
+    height: 40px;
+    opacity: 1;
+    font-size: 16px;
+  }
+
   /* ── 페이지 래퍼 ── */
   .main-layout { padding: 10px 10px; }
 
