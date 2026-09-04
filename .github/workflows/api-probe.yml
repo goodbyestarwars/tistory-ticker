@@ -119,6 +119,13 @@ jobs:
             enc="$(grep -i '^content-encoding:' "$hdr" | tail -1 | tr -d '\r' || true)"
             len="$(grep -i '^content-length:' "$hdr" | tail -1 | tr -d '\r' || true)"
             echo "wire: ${enc:-content-encoding: (없음 - 비압축)} / ${len:-content-length: (없음 - chunked)}"
+            # 2026-09-04 추가: 정적 자산이 언제 갱신돼 사용자에게 닿는지 재려면 캐시 헤더가
+            # 필요하다. skin.html의 ?v= 문자열은 캐시 키일 뿐이고 실제 내용은 이 max-age가
+            # 지나면 새로 받아간다 - "수동 반영 없이 며칠 걸리나"를 추측하지 않고 확인한다.
+            cc="$(grep -i '^cache-control:' "$hdr" | tail -1 | tr -d '\r' || true)"
+            age="$(grep -i '^age:' "$hdr" | tail -1 | tr -d '\r' || true)"
+            etag="$(grep -i '^etag:' "$hdr" | tail -1 | tr -d '\r' || true)"
+            echo "cache: ${cc:-cache-control: (없음)} / ${age:-age: (없음)} / ${etag:-etag: (없음)}"
             rm -f "$hdr"
             echo "--------------------------------------------------------------------"
 
