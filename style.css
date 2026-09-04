@@ -6716,13 +6716,26 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
 .home-realtime-board,
 body#tt-body-index .home-editorial-page .home-realtime-board,
 body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {
-  --hrt-board-bg: #0b0d10;
-  --hrt-flap-top: #1b1f26;        /* 접힘선 위 - 양각 */
-  --hrt-flap-bottom: #12151a;     /* 접힘선 아래 - 음각 */
-  --hrt-board-ink: #f7d774;
-  --hrt-board-ink-strong: #fff6df;
-  --hrt-board-ink-dim: rgba(247, 215, 116, .52);
-  --hrt-board-seam: rgba(247, 215, 116, .18);
+  /* ── 라이트 모드 팔레트 ──────────────────────────────────────────────
+     지면 기본이 밝은 편집 지면이라, 라이트에서는 판도 밝게 둔다. 유럽 역사의
+     솔라리 보드에도 아이보리 플랩에 먹색 글자인 것이 흔하다. 글자·의미색은
+     사이트 기존 토큰과 같은 값을 쓴다(--text-main #171717, --up #B42318,
+     --down #245B9E) - "라이트 모드는 기존 색과 동일하게"(2026-09-04 요청).
+     검은 판 + 앰버는 아래 html.dark 구간에서만 쓴다. */
+  --hrt-board-bg: #e9e2d2;
+  --hrt-flap-top: #fbf8f0;        /* 접힘선 위 - 양각 */
+  --hrt-flap-bottom: #ece5d5;     /* 접힘선 아래 - 음각 */
+  --hrt-board-ink: #2b2519;
+  --hrt-board-ink-strong: #171717;
+  --hrt-board-ink-dim: #6f7480;
+  --hrt-board-seam: #cec5b2;
+  --hrt-head-bg: #26364a;         /* 칸 머리 띠 - 기존 --accent-dark */
+  --hrt-head-ink: #fbf8f0;
+  --hrt-emboss: rgba(255, 255, 255, .95);   /* 윗변 하이라이트 */
+  --hrt-deboss: rgba(0, 0, 0, .14);         /* 아랫변 그림자 */
+  --hrt-fold: rgba(0, 0, 0, .17);           /* 가운데 접힘선 */
+  --hrt-rank-bg: rgba(0, 0, 0, .07);
+  --hrt-board-frame: rgba(0, 0, 0, .13);
 
   /* 지면 규칙이 참조하는 토큰을 판 안에서만 갈아끼운다. */
   --text-main: var(--hrt-board-ink-strong);
@@ -6730,8 +6743,8 @@ body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {
   --rule: var(--hrt-board-seam);
   --surface: var(--hrt-board-bg);
   --page-bg: var(--hrt-board-bg);
-  --up: #ff6a5a;
-  --down: #5ec8ff;
+  --up: #b42318;
+  --down: #245b9e;
   --neutral: var(--hrt-board-ink-dim);
   --font-data: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
@@ -6740,7 +6753,7 @@ body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {
   border-radius: 12px !important;
   /* 판을 벽에 건 것처럼 - 바깥 그림자 + 안쪽 테두리. */
   background: var(--hrt-board-bg) !important;
-  box-shadow: inset 0 0 0 1px rgba(247, 215, 116, .16), 0 14px 30px rgba(0, 0, 0, .22) !important;
+  box-shadow: inset 0 0 0 1px var(--hrt-board-frame), 0 14px 30px rgba(0, 0, 0, .12) !important;
   color: var(--hrt-board-ink);
 }
 
@@ -6799,16 +6812,16 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button.ac
 .home-realtime-board .hrt-etf-toggle:hover,
 .home-realtime-board .hrt-etf-toggle[aria-pressed="true"] {
   border-color: var(--hrt-board-ink);
-  background: rgba(247, 215, 116, .12);
+  background: var(--hrt-rank-bg);
   color: var(--hrt-board-ink);
 }
 
-/* ---- 칸 머리: 안내판 앰버 띠 ---- */
+/* ---- 칸 머리: 안내판 띠 ---- */
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th,
 .home-realtime-board .hrt-table-wrap th {
   border: 0;
-  background: var(--hrt-board-ink);
-  color: var(--hrt-board-bg);
+  background: var(--hrt-head-bg);
+  color: var(--hrt-head-ink);
   font-weight: 700;
   letter-spacing: .06em;
 }
@@ -6822,21 +6835,21 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td,
   background:
     linear-gradient(to bottom,
       var(--hrt-flap-top) 0%, var(--hrt-flap-top) calc(50% - 1px),
-      rgba(0, 0, 0, .6) calc(50% - 1px), rgba(0, 0, 0, .6) 50%,
+      var(--hrt-fold) calc(50% - 1px), var(--hrt-fold) 50%,
       var(--hrt-flap-bottom) 50%, var(--hrt-flap-bottom) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .07),      /* 윗변 하이라이트 - 양각 */
-    inset 0 -1px 0 rgba(0, 0, 0, .55);           /* 아랫변 그림자 - 음각 */
+    inset 0 1px 0 var(--hrt-emboss),             /* 윗변 하이라이트 - 양각 */
+    inset 0 -1px 0 var(--hrt-deboss);            /* 아랫변 그림자 - 음각 */
   color: var(--hrt-board-ink);
 }
 .home-realtime-board .hrt-table-wrap td:last-child { border-right: 0; }
-.home-realtime-board .hrt-table-wrap tbody tr:hover td { --hrt-flap-top: #232832; }
+.home-realtime-board .hrt-table-wrap tbody tr:hover td { --hrt-flap-top: var(--hrt-flap-hover, #fffdf7); }
 
 /* 순위는 승강장 번호패 */
 .home-realtime-board .hrt-rank {
   border-radius: 3px;
-  background: rgba(0, 0, 0, .45);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+  background: var(--hrt-rank-bg);
+  box-shadow: inset 0 1px 0 var(--hrt-emboss);
   color: var(--hrt-board-ink);
   font-weight: 700;
 }
@@ -6850,7 +6863,7 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock strong,
   text-transform: uppercase;
 }
 .home-realtime-board .hrt-stock-logo {
-  background: rgba(0, 0, 0, .4);
+  background: var(--hrt-rank-bg);
   color: var(--hrt-board-ink);
 }
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-price,
@@ -6892,10 +6905,36 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot,
   .home-realtime-board .hrt-price.hrt-flip { animation: none; }
 }
 
-/* 다크 모드에서도 같은 검은 판이다 - 위의 html.dark 규칙이 되돌리지 않게 맞춘다. */
-html.dark .home-realtime-board { background: var(--hrt-board-bg) !important; }
-html.dark .home-realtime-board .hrt-head strong,
-html.dark .home-realtime-board .hrt-stock a { color: var(--hrt-board-ink-strong); }
+/* ── 다크 모드: 진짜 전광판(검정 판 + 앰버) ─────────────────────────────
+   팔레트 토큰만 갈아끼우면 위의 구조 규칙이 그대로 따라온다. 위쪽의
+   `html.dark .home-realtime-board { background: #1a1a1a !important }`를 넘어야
+   해서 배경만 !important를 유지한다. */
+html.dark .home-realtime-board,
+html.dark body#tt-body-index .home-editorial-page .home-realtime-board,
+html.dark body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {
+  --hrt-board-bg: #0b0d10;
+  --hrt-flap-top: #1b1f26;
+  --hrt-flap-bottom: #12151a;
+  --hrt-flap-hover: #232832;
+  --hrt-board-ink: #f7d774;
+  --hrt-board-ink-strong: #fff6df;
+  --hrt-board-ink-dim: rgba(247, 215, 116, .52);
+  --hrt-board-seam: rgba(247, 215, 116, .18);
+  --hrt-head-bg: #f7d774;
+  --hrt-head-ink: #0b0d10;
+  --hrt-emboss: rgba(255, 255, 255, .07);
+  --hrt-deboss: rgba(0, 0, 0, .55);
+  --hrt-fold: rgba(0, 0, 0, .6);
+  --hrt-rank-bg: rgba(0, 0, 0, .45);
+  --hrt-board-frame: rgba(247, 215, 116, .16);
+  --up: #ff6a5a;
+  --down: #5ec8ff;
+  background: var(--hrt-board-bg) !important;
+  box-shadow: inset 0 0 0 1px var(--hrt-board-frame), 0 14px 30px rgba(0, 0, 0, .28) !important;
+}
+/* 위쪽 html.dark 규칙들이 색을 직접 잡는 자리만 토큰으로 되돌린다. */
+html.dark .home-realtime-board .hrt-head strong { color: var(--hrt-board-ink); }
+html.dark .home-realtime-board .hrt-stock a,
 html.dark .home-realtime-board .hrt-price { color: var(--hrt-board-ink-strong); }
 html.dark .home-realtime-board .hrt-industry,
 html.dark .home-realtime-board .hrt-head span,
@@ -6903,7 +6942,12 @@ html.dark .home-realtime-board .hrt-head small,
 html.dark .home-realtime-board .hrt-foot { color: var(--hrt-board-ink-dim); }
 html.dark .home-realtime-board .hrt-table-wrap th,
 html.dark .home-realtime-board .hrt-table-wrap td { border-color: var(--hrt-board-bg); }
-html.dark .home-realtime-board .hrt-stock-logo { background: rgba(0, 0, 0, .4); color: var(--hrt-board-ink); }
+html.dark .home-realtime-board .hrt-etf-toggle {
+  border-color: var(--hrt-board-seam);
+  background: transparent;
+  color: var(--hrt-board-ink-dim);
+}
+html.dark .home-realtime-board .hrt-stock-logo { background: var(--hrt-rank-bg); color: var(--hrt-board-ink); }
 
 /* 모바일: 지면 규칙이 판의 좌우 패딩을 0으로 만들어 글자가 화면 끝에 붙었다.
    판 자체는 화면 폭을 꽉 채우되(벽걸이 판) 안쪽 여백은 되살린다. */
