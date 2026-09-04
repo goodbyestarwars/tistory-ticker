@@ -6704,11 +6704,11 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
    ========================================================================== */
 .home-realtime-board .hrt-price.hrt-flip {
   transform-origin: 50% 0;
-  animation: hrtFlap .34s cubic-bezier(.2, .8, .3, 1);
+  animation: hrtFlap .18s cubic-bezier(.2, .9, .3, 1);
 }
 @keyframes hrtFlap {
   0% { transform: perspective(300px) rotateX(-84deg); }
-  55% { transform: perspective(300px) rotateX(10deg); }
+  62% { transform: perspective(300px) rotateX(8deg); }
   100% { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
