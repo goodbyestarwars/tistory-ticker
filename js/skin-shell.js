@@ -69,47 +69,54 @@
   });
 
   /*
-   * 로고 캐시 무효화 (2026-09-04).
+   * 브랜드 아이콘 강제 적용 (2026-09-04).
    *
    * 브랜드 아이콘은 2026-08-17에 9bolt 번개(img/icon-9bolt-transparent.svg)에서
-   * 심장박동기(img/heart-monitor.svg)로 바뀌었다. 파일을 덮어쓴 게 아니라 새 경로를
-   * 추가하고 참조를 옮긴 것이라 GitHub Pages는 처음부터 새 로고를 서빙하고 있다.
+   * 심장박동기(img/heart-monitor.svg)로 바뀌었다. skin.html의 마크업은 이미 새 로고를
+   * 가리키고 있는데도 탭 아이콘은 옛것이 계속 나왔다.
    *
-   * 그런데 skin.html의 두 로고 참조(파비콘 link, 네비바 img)에는 다른 자산과 달리
-   * ?v= 캐시 문자열이 없다. 파비콘은 브라우저가 응답의 max-age(600초)와 무관하게
-   * 아주 오래 붙잡는다 - 크롬은 별도 저장소에 두고 며칠씩 재검증하지 않는다.
-   * 그래서 개편 전에 방문했던 브라우저의 탭 아이콘이 옛 로고로 남아 있을 수 있다
-   * (사용자 리포트: "시간상 이전 게 빨리 나오는 경우가 존재해").
+   * 실측(2026-09-04, Actions 러너로 라이브 HTML 확인)한 원인: 티스토리가 <head>에
+   * **자기 파비콘 link를 스킨보다 먼저** 세 개 넣는다.
+   *   <link rel="icon" sizes="any" href=".../tistory_favicon_32x32.ico">
+   *   <link rel="icon" type="image/svg+xml" href=".../bi-tistory-favicon.svg">
+   *   <link rel="apple-touch-icon" href=".../tistory-apple-touch-favicon.png">
+   * 스킨의 heart-monitor link는 그 뒤에 온다. 브라우저는 여러 후보 중 하나를 고르는데
+   * 먼저 선언된 .ico(sizes="any")가 이기는 경우가 많고, 파비콘은 응답의 max-age(600초)와
+   * 무관하게 별도 저장소에 오래 붙잡혀 재검증도 잘 안 한다.
    *
-   * skin.html은 티스토리 관리자에서만 고칠 수 있으므로 여기서 런타임에 버전을 붙여
-   * 다시 쓴다. 값은 로고가 바뀐 날짜다 - 로고를 또 교체할 때만 올리면 된다.
-   * skin.html이 나중에 같은 ?v=로 갱신되면 이 코드는 자연히 no-op이 된다.
+   * 앞선 수정(2026-09-04 1차)은 여기서 무력화됐다. querySelector('link[rel="icon"]')가
+   * 문서 순서상 **티스토리의 .ico**를 집어오고, 그 href에는 heart-monitor.svg가 없으니
+   * 버전 함수가 null을 돌려주고 그대로 return - 파비콘을 건드리지도 못했다.
+   *
+   * 그래서 href를 고치는 대신 **경쟁하는 icon link를 전부 걷어내고 우리 것 하나만
+   * 마지막에 새로 넣는다.** URL도 DOM에 있던 값을 손보는 게 아니라 상수에서 만든다 -
+   * 라이브 skin.html의 link가 낡았거나 없어도 결과가 같아야 한다.
+   * skin.html은 티스토리 관리자에서만 고칠 수 있으므로 런타임에서 해결한다.
+   *
+   * apple-touch-icon(홈 화면 추가용)은 손대지 않는다. iOS는 SVG를 받지 않는데 정사각형
+   * PNG 로고 자산이 아직 없다 - 티스토리 기본값을 지우기만 하면 스크린샷으로 떨어져서
+   * 지금보다 나빠진다.
+   *
+   * LOGO_VERSION 값은 로고가 바뀐 날짜다. 로고를 또 교체할 때만 올린다.
    */
   var LOGO_VERSION = '20260817-heart-monitor';
-
-  function versionedLogoUrl(url) {
-    if (!url || url.indexOf('heart-monitor.svg') === -1) return null;
-    if (url.indexOf('v=' + LOGO_VERSION) !== -1) return null;  // 이미 최신
-    return url.split('?')[0] + '?v=' + LOGO_VERSION;
-  }
+  var LOGO_URL = 'https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=' + LOGO_VERSION;
 
   function refreshBrandIcon() {
     var image = document.querySelector('.nav-logo-image');
-    if (image) {
-      var next = versionedLogoUrl(image.getAttribute('src'));
-      if (next) image.setAttribute('src', next);
+    if (image && image.getAttribute('src') !== LOGO_URL) image.setAttribute('src', LOGO_URL);
+
+    // rel~="icon"은 rel="icon"과 rel="shortcut icon"을 잡고 apple-touch-icon은 건드리지
+    // 않는다(공백으로 나뉜 단어 단위 비교라 "apple-touch-icon"은 "icon"과 다른 단어다).
+    var links = document.querySelectorAll('link[rel~="icon"]');
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].parentNode) links[i].parentNode.removeChild(links[i]);
     }
-    // 파비콘은 href만 바꿔도 브라우저가 다시 읽지 않는 경우가 있어 link를 새로 만든다.
-    var icon = document.querySelector('link[rel="icon"]');
-    if (!icon) return;
-    var href = versionedLogoUrl(icon.getAttribute('href'));
-    if (!href) return;
-    var replacement = document.createElement('link');
-    replacement.setAttribute('rel', 'icon');
-    replacement.setAttribute('type', icon.getAttribute('type') || 'image/svg+xml');
-    replacement.setAttribute('href', href);
-    icon.parentNode.removeChild(icon);
-    document.head.appendChild(replacement);
+    var icon = document.createElement('link');
+    icon.setAttribute('rel', 'icon');
+    icon.setAttribute('type', 'image/svg+xml');
+    icon.setAttribute('href', LOGO_URL);
+    document.head.appendChild(icon);
   }
 
   refreshBrandIcon();

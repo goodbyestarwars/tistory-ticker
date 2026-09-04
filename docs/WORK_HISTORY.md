@@ -1,5 +1,43 @@
 # 9Pay 주요 작업이력
 
+**2026-09-04 브랜드 파비콘이 계속 옛 아이콘으로 나오던 문제 (1차 수정 무력화)**
+
+사용자 리포트: "배너 아이콘 아직이야. 아직도 구형 아이콘이 나와". 같은 날 1차로 넣은
+`refreshBrandIcon()` 캐시 무효화가 라이브에서 전혀 동작하지 않고 있었다.
+
+**실측했다**(Actions `api-probe.yml`로 `https://ghlee.tistory.com/` 원본 HTML 회수).
+라이브 마크업은 이미 정상이었다 - 파비콘 link도 네비 로고 img도 `heart-monitor.svg`를
+가리키고 `9bolt`는 페이지 어디에도 없다. 문제는 **티스토리가 `<head>`에 자기 파비콘
+link를 스킨보다 먼저 세 개 주입**한다는 것이었다.
+
+```
+<link rel="icon" sizes="any" href=".../tistory_favicon_32x32.ico">      ← 티스토리
+<link rel="icon" type="image/svg+xml" href=".../bi-tistory-favicon.svg"> ← 티스토리
+<link rel="apple-touch-icon" href=".../tistory-apple-touch-favicon.png"> ← 티스토리
+<link rel="icon" type="image/svg+xml" href=".../heart-monitor.svg">      ← 스킨(뒤)
+```
+
+1차 수정은 `querySelector('link[rel="icon"]')`로 **첫 번째** link를 집어왔는데 그게
+티스토리의 `.ico`였다. href에 `heart-monitor.svg`가 없으니 버전 함수가 null을 돌려주고
+그대로 `return` - 파비콘을 건드리지도 못했다. 헤드리스 크로미움에서 구버전 코드로
+재현 확인: 실행 후에도 icon link 3개가 그대로 남고 스킨 link에 `?v=`도 안 붙었다.
+브라우저는 먼저 선언된 `sizes="any"` .ico를 고른다. 파비콘은 응답 max-age(600초)와
+무관하게 별도 저장소에 오래 붙잡혀 재검증도 잘 안 하므로 한번 굳으면 계속 남는다.
+
+**수정**(`js/skin-shell.js`): href를 고치는 대신 `querySelectorAll('link[rel~="icon"]')`로
+경쟁하는 icon link를 **전부 걷어내고** 우리 것 하나만 `head` 끝에 새로 넣는다. URL은
+DOM 값을 손보지 않고 `LOGO_URL` 상수에서 만든다 - 라이브 `skin.html`의 link가 낡았거나
+없어도 결과가 같다. `rel~="icon"`은 단어 단위 비교라 `apple-touch-icon`은 건드리지
+않는다(iOS는 SVG를 안 받는데 정사각형 PNG 로고 자산이 없어, 티스토리 기본값을 지우기만
+하면 스크린샷으로 떨어져 지금보다 나빠진다 - 별도 과제로 남긴다).
+
+검증: 라이브와 같은 head 순서를 재현한 하니스에서 실행 후 icon link가
+`heart-monitor.svg?v=20260817-heart-monitor` **하나만** 남고 head 마지막 요소인 것을 확인.
+네비 로고 src에도 `?v=`가 붙는다. `pytest test` → 905 passed(기존 실패 3건 유지).
+회귀 테스트 `test_brand_favicon_wins_over_tistory_injected_icons` 추가.
+배포: `js/`는 GitHub Pages 자동 반영, `skin.html` 수정 없음.
+
+
 **2026-09-04 전략검색 조건 설명을 "라벨 + 한 줄" 구조로 재구성**
 
 사용자 지적: 목표주가 괴리 설명이 "너무 길지??". 실제로 714자 8문장짜리 한 덩어리
