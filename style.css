@@ -6692,29 +6692,39 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
 }
 
 /* ============================================================================
-   실시간 종목판 - 공항·기차역 출발안내 전광판(솔라리) 스타일
-   2026-09-04 요청: "표 스타일을 전광판? 기차역 플랫폼이나 공항에 있는 스타일로".
+   실시간 종목판 - 공항·기차역 출발안내 전광판(솔라리 split-flap)
+   2026-09-04 요청: "공항이나 시간표 움직이는 양각 음각".
 
-   구조·DOM·레이아웃은 건드리지 않는다. 위(4645~)의 기본 규칙과 모바일 3열 축약
-   규칙이 계속 폭·행수를 정하고, 여기서는 색·서체·질감만 덮어쓴다.
+   ── 특이도 주의 ──────────────────────────────────────────────────────────
+   홈 편집 지면 규칙이 이 판에 대해 `background: transparent !important`(위
+   .home-widget--full.home-realtime-board)를 걸고 있다. 첫 시도에서 이걸 놓쳐
+   판 배경이 안 칠해지고 앰버 글자만 크림색 지면에 남아 라이브에서 글씨가 거의
+   안 보였다(2026-09-04 사용자 스크린샷). 그래서 판에 관한 규칙은 전부
+   `body#tt-body-index .home-editorial-page ...` 접두어를 같이 달고, 상대가
+   `!important`를 쓴 자리에는 이쪽도 `!important`를 쓴다.
+   색 토큰(var(--text-main) 등)을 판 안에서 재정의하는 방식은 그대로 유지한다 -
+   지면 규칙이 그 토큰을 참조하므로 나머지는 저절로 따라온다.
 
-   특이도 메모: 홈(body#tt-body-index .home-editorial-page ...) 규칙들이 색을
-   `var(--text-main)`, `var(--up)`, `var(--down)`, `var(--text-sub)`, `var(--rule)`로
-   지정하고 있다. 그래서 그 토큰을 판 안에서만 다시 정의하면 id 특이도와 싸우지
-   않고도 판 전체가 전광판 색으로 따라온다. 하드코딩된 색만 아래에서 개별로 덮는다.
+   ── 양각·음각 ────────────────────────────────────────────────────────────
+   실제 솔라리 보드는 글자판 한 장이 가로로 반 접힌다. 그 형태를 칸마다
+   재현한다: 위 절반은 밝게(양각), 아래 절반은 어둡게(음각), 가운데 접힘선,
+   윗변에 하이라이트 1px, 아랫변에 그림자 1px.
 
-   의미색은 유지한다(CLAUDE.md): 상승 빨강, 하락 파랑. 검은 바탕에서 대비가
-   나오도록 명도만 올린 값을 쓴다.
+   의미색은 유지한다(CLAUDE.md): 상승 빨강, 하락 파랑. 검은 판에서 대비가
+   나오도록 명도만 올린다.
    ========================================================================== */
-.home-realtime-board {
-  --hrt-board-bg: #0c0e11;
-  --hrt-board-ink: #f7d774;        /* 전광판 앰버 - 종목명·라벨 */
-  --hrt-board-ink-strong: #fff6df; /* 숫자는 더 밝게 - 판독 우선 */
-  --hrt-board-ink-dim: rgba(247, 215, 116, .5);
-  --hrt-board-seam: rgba(247, 215, 116, .16);
-  --hrt-board-slot: rgba(255, 255, 255, .035);
+.home-realtime-board,
+body#tt-body-index .home-editorial-page .home-realtime-board,
+body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {
+  --hrt-board-bg: #0b0d10;
+  --hrt-flap-top: #1b1f26;        /* 접힘선 위 - 양각 */
+  --hrt-flap-bottom: #12151a;     /* 접힘선 아래 - 음각 */
+  --hrt-board-ink: #f7d774;
+  --hrt-board-ink-strong: #fff6df;
+  --hrt-board-ink-dim: rgba(247, 215, 116, .52);
+  --hrt-board-seam: rgba(247, 215, 116, .18);
 
-  /* 홈 편집 지면 규칙이 참조하는 토큰을 판 안에서만 갈아끼운다. */
+  /* 지면 규칙이 참조하는 토큰을 판 안에서만 갈아끼운다. */
   --text-main: var(--hrt-board-ink-strong);
   --text-sub: var(--hrt-board-ink-dim);
   --rule: var(--hrt-board-seam);
@@ -6726,78 +6736,65 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
   --font-data: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
 
-  border-radius: 10px;
-  background: var(--hrt-board-bg);
-  /* 판이 벽에 걸린 것처럼 보이게 하는 얇은 테두리와 안쪽 그림자. */
-  box-shadow: inset 0 0 0 1px rgba(247, 215, 116, .14), 0 10px 26px rgba(0, 0, 0, .18);
+  padding: 18px 16px 12px !important;
+  border-radius: 12px !important;
+  /* 판을 벽에 건 것처럼 - 바깥 그림자 + 안쪽 테두리. */
+  background: var(--hrt-board-bg) !important;
+  box-shadow: inset 0 0 0 1px rgba(247, 215, 116, .16), 0 14px 30px rgba(0, 0, 0, .22) !important;
   color: var(--hrt-board-ink);
 }
 
-/* 전광판 글자는 등폭이어야 자릿수가 흔들리지 않는다. 웹폰트를 새로 받지 않도록
-   시스템 모노 스택만 쓴다(티스토리·GitHub Pages 양쪽에서 추가 요청 없음). */
 .home-realtime-board .hrt-table-wrap,
 .home-realtime-board .hrt-tabs,
 .home-realtime-board .hrt-foot {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-    "Liberation Mono", "Nanum Gothic Coding", monospace;
+  font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- 머리말: 판 이름 + 운행중 램프 ---- */
+/* ---- 머리말 ---- */
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head,
+.home-realtime-board .hrt-head {
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--hrt-board-seam);
+}
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong,
 .home-realtime-board .hrt-head strong {
   color: var(--hrt-board-ink);
   letter-spacing: .04em;
 }
 .home-realtime-board .hrt-head span,
-.home-realtime-board .hrt-head small {
-  color: var(--hrt-board-ink-dim);
-  letter-spacing: .02em;
-}
-/* 실제 전광판의 점멸 램프. 움직임을 줄이도록 설정한 사용자에게는 켜두기만 한다. */
+.home-realtime-board .hrt-head small { color: var(--hrt-board-ink-dim); }
+/* 운행중 램프 */
 .home-realtime-board .hrt-head > div:first-child strong::after {
   content: "";
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 7px; height: 7px;
   margin-left: 9px;
   border-radius: 50%;
   background: #7bd88f;
-  box-shadow: 0 0 7px #7bd88f;
+  box-shadow: 0 0 8px #7bd88f;
   vertical-align: middle;
   animation: hrtBoardLamp 2.4s steps(1, end) infinite;
 }
-@keyframes hrtBoardLamp {
-  0%, 60% { opacity: 1; }
-  61%, 100% { opacity: .25; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .home-realtime-board .hrt-head > div:first-child strong::after { animation: none; }
-}
+@keyframes hrtBoardLamp { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .2; } }
 
-/* ---- 탭: 행선지 선택 버튼 ---- */
-.home-realtime-board .hrt-tabs {
-  gap: 6px;
-  border-bottom-color: var(--hrt-board-seam);
-}
+/* ---- 탭 ---- */
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs,
+.home-realtime-board .hrt-tabs { border-bottom: 1px solid var(--hrt-board-seam); }
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button,
 .home-realtime-board .hrt-tabs button {
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 4px 4px 0 0;
   color: var(--hrt-board-ink-dim);
   letter-spacing: .03em;
 }
-.home-realtime-board .hrt-tabs button:hover { color: var(--hrt-board-ink); }
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button.active,
 .home-realtime-board .hrt-tabs button.active {
-  border-color: var(--hrt-board-seam);
-  background: rgba(247, 215, 116, .1);
-  color: var(--hrt-board-ink);
-  font-weight: 700;
+  border-bottom-color: var(--hrt-board-ink) !important;
+  color: var(--hrt-board-ink) !important;
 }
 .home-realtime-board .hrt-etf-toggle {
   border-color: var(--hrt-board-seam);
   background: transparent;
   color: var(--hrt-board-ink-dim);
-  letter-spacing: .04em;
 }
 .home-realtime-board .hrt-etf-toggle:hover,
 .home-realtime-board .hrt-etf-toggle[aria-pressed="true"] {
@@ -6806,102 +6803,130 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
   color: var(--hrt-board-ink);
 }
 
-/* ---- 표: 칸 머리 띠 + 플랩 행 ---- */
-.home-realtime-board .hrt-table-wrap th,
-body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th {
-  border-bottom: 0;
+/* ---- 칸 머리: 안내판 앰버 띠 ---- */
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th,
+.home-realtime-board .hrt-table-wrap th {
+  border: 0;
   background: var(--hrt-board-ink);
   color: var(--hrt-board-bg);
   font-weight: 700;
   letter-spacing: .06em;
 }
-/* 행은 판에 끼운 플랩 한 장씩. 홀짝 줄무늬 대신 같은 바탕에 이음선만 둔다 -
-   실제 안내판이 그렇고, 줄무늬는 열 경계에서 단차처럼 보였다. */
+
+/* ---- 플랩 한 장: 위 양각 / 아래 음각 ---- */
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td,
 .home-realtime-board .hrt-table-wrap td {
-  border-bottom: 1px solid rgba(247, 215, 116, .1);
-  background: var(--hrt-board-slot);
+  border: 0;
+  border-bottom: 2px solid var(--hrt-board-bg);
+  border-right: 2px solid var(--hrt-board-bg);
+  background:
+    linear-gradient(to bottom,
+      var(--hrt-flap-top) 0%, var(--hrt-flap-top) calc(50% - 1px),
+      rgba(0, 0, 0, .6) calc(50% - 1px), rgba(0, 0, 0, .6) 50%,
+      var(--hrt-flap-bottom) 50%, var(--hrt-flap-bottom) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .07),      /* 윗변 하이라이트 - 양각 */
+    inset 0 -1px 0 rgba(0, 0, 0, .55);           /* 아랫변 그림자 - 음각 */
   color: var(--hrt-board-ink);
 }
-.home-realtime-board .hrt-table-wrap tbody tr:hover td { background: rgba(247, 215, 116, .07); }
+.home-realtime-board .hrt-table-wrap td:last-child { border-right: 0; }
+.home-realtime-board .hrt-table-wrap tbody tr:hover td { --hrt-flap-top: #232832; }
 
-/* 순위는 승강장 번호처럼 네모 칸에 넣는다. */
+/* 순위는 승강장 번호패 */
 .home-realtime-board .hrt-rank {
   border-radius: 3px;
-  background: rgba(247, 215, 116, .13);
+  background: rgba(0, 0, 0, .45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
   color: var(--hrt-board-ink);
   font-weight: 700;
 }
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock a,
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock strong,
 .home-realtime-board .hrt-stock a,
-.home-realtime-board .hrt-stock strong { color: var(--hrt-board-ink); }
-.home-realtime-board .hrt-stock strong { letter-spacing: .01em; }
-/* 티커는 편명처럼 대문자 등폭으로. */
+.home-realtime-board .hrt-stock strong { color: var(--hrt-board-ink-strong); }
 .home-realtime-board .hrt-stock small {
   color: var(--hrt-board-ink-dim);
   letter-spacing: .1em;
   text-transform: uppercase;
 }
 .home-realtime-board .hrt-stock-logo {
-  background: rgba(247, 215, 116, .12);
+  background: rgba(0, 0, 0, .4);
   color: var(--hrt-board-ink);
 }
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-price,
 .home-realtime-board .hrt-price { color: var(--hrt-board-ink-strong); }
-.home-realtime-board .hrt-industry { color: var(--hrt-board-ink-dim); }
+.home-realtime-board .hrt-industry,
 .home-realtime-board .hrt-flat,
 .home-realtime-board .hrt-muted { color: var(--hrt-board-ink-dim); }
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-up,
 .home-realtime-board .hrt-up { color: var(--up); }
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-down,
 .home-realtime-board .hrt-down { color: var(--down); }
-.home-realtime-board .hrt-state { color: var(--hrt-board-ink-dim) !important; letter-spacing: .04em; }
-.home-realtime-board .hrt-foot { color: var(--hrt-board-ink-dim); letter-spacing: .03em; }
+.home-realtime-board .hrt-state { color: var(--hrt-board-ink-dim) !important; }
+body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot,
+.home-realtime-board .hrt-foot { color: var(--hrt-board-ink-dim); }
 .home-realtime-board .hrt-more { color: var(--hrt-board-ink); }
 .home-realtime-board .hb-spinner { stroke: var(--hrt-board-ink-dim); }
 
-/* ---- 체결이 들어온 칸만 한 번 뒤집는다(솔라리 플랩) ----
-   js/home-realtime-table.js updateRow가 값이 실제로 바뀐 칸에만 .hrt-flip을 붙인다
-   (같은 값이 다시 들어오면 안 움직인다). 표 전체가 아니라 바뀐 칸만 뒤집혀서
-   어디가 갱신됐는지 눈으로 따라갈 수 있게 하는 게 목적이다. */
-.home-realtime-board .hrt-price.hrt-flip {
-  animation: hrtFlap .34s ease-out;
+/* ---- 움직임 1: 목록이 새로 그려질 때 위에서부터 차례로 넘어간다 ----
+   실제 안내판이 한 줄씩 촤르륵 넘어가는 그 동작이다. rowHtml이 각 행에
+   --hrt-i(행 번호)를 심어줘서 지연을 준다. */
+.home-realtime-board .hrt-table-wrap tbody tr {
   transform-origin: 50% 0;
+  animation: hrtFlap .3s cubic-bezier(.2, .8, .3, 1) both;
+  animation-delay: calc(var(--hrt-i, 0) * 18ms);
+}
+/* ---- 움직임 2: 체결로 값이 바뀐 칸만 다시 한 장 넘어간다 ---- */
+.home-realtime-board .hrt-price.hrt-flip {
+  transform-origin: 50% 0;
+  animation: hrtFlap .34s cubic-bezier(.2, .8, .3, 1);
 }
 @keyframes hrtFlap {
-  0% { transform: perspective(220px) rotateX(-78deg); filter: brightness(1.7); }
-  60% { transform: perspective(220px) rotateX(8deg); }
+  0% { transform: perspective(300px) rotateX(-84deg); filter: brightness(1.8); }
+  55% { transform: perspective(300px) rotateX(10deg); }
   100% { transform: none; filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .home-realtime-board .hrt-head > div:first-child strong::after,
+  .home-realtime-board .hrt-table-wrap tbody tr,
   .home-realtime-board .hrt-price.hrt-flip { animation: none; }
 }
 
-/* 다크 모드에서도 판은 같은 검은 판이다 - 위의 html.dark 규칙이 되돌리지 않게 맞춘다. */
+/* 다크 모드에서도 같은 검은 판이다 - 위의 html.dark 규칙이 되돌리지 않게 맞춘다. */
 html.dark .home-realtime-board { background: var(--hrt-board-bg) !important; }
 html.dark .home-realtime-board .hrt-head strong,
-html.dark .home-realtime-board .hrt-stock a { color: var(--hrt-board-ink); }
+html.dark .home-realtime-board .hrt-stock a { color: var(--hrt-board-ink-strong); }
 html.dark .home-realtime-board .hrt-price { color: var(--hrt-board-ink-strong); }
 html.dark .home-realtime-board .hrt-industry,
 html.dark .home-realtime-board .hrt-head span,
 html.dark .home-realtime-board .hrt-head small,
 html.dark .home-realtime-board .hrt-foot { color: var(--hrt-board-ink-dim); }
 html.dark .home-realtime-board .hrt-table-wrap th,
-html.dark .home-realtime-board .hrt-table-wrap td { border-color: rgba(247, 215, 116, .12); }
-html.dark .home-realtime-board .hrt-etf-toggle {
-  background: transparent;
-  border-color: var(--hrt-board-seam);
-  color: var(--hrt-board-ink-dim);
-}
-html.dark .home-realtime-board .hrt-stock-logo { background: rgba(247, 215, 116, .12); color: var(--hrt-board-ink); }
+html.dark .home-realtime-board .hrt-table-wrap td { border-color: var(--hrt-board-bg); }
+html.dark .home-realtime-board .hrt-stock-logo { background: rgba(0, 0, 0, .4); color: var(--hrt-board-ink); }
 
-/* 모바일은 판이 화면 폭을 꽉 채운다(위 규칙이 좌우 패딩을 0으로 둔다). 실제 역사의
-   벽걸이 판처럼 보이도록 모서리 라운드만 없애고 위아래 띠를 남긴다. */
+/* 모바일: 지면 규칙이 판의 좌우 패딩을 0으로 만들어 글자가 화면 끝에 붙었다.
+   판 자체는 화면 폭을 꽉 채우되(벽걸이 판) 안쪽 여백은 되살린다. */
 @media (max-width: 720px) {
-  .home-realtime-board {
-    border-radius: 0;
-    box-shadow: inset 0 1px 0 var(--hrt-board-seam), inset 0 -1px 0 var(--hrt-board-seam);
+  .home-realtime-board,
+  body#tt-body-index .home-editorial-page .home-realtime-board,
+  body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {
+    padding: 14px 0 10px !important;
+    border-radius: 0 !important;
+    box-shadow: inset 0 1px 0 var(--hrt-board-seam), inset 0 -1px 0 var(--hrt-board-seam) !important;
   }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot,
   .home-realtime-board .hrt-head,
   .home-realtime-board .hrt-tabs,
-  .home-realtime-board .hrt-foot { padding-left: 12px; padding-right: 12px; }
+  .home-realtime-board .hrt-foot { padding-left: 13px; padding-right: 13px; }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th:first-child,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td:first-child,
   .home-realtime-board .hrt-table-wrap th:first-child,
-  .home-realtime-board .hrt-table-wrap td:first-child { padding-left: 12px; }
+  .home-realtime-board .hrt-table-wrap td:first-child { padding-left: 13px !important; }
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th:last-child,
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td:last-child,
   .home-realtime-board .hrt-table-wrap th:last-child,
-  .home-realtime-board .hrt-table-wrap td:last-child { padding-right: 12px; }
+  .home-realtime-board .hrt-table-wrap td:last-child { padding-right: 13px !important; }
 }

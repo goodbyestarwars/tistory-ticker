@@ -399,7 +399,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260904-departure-board-v1", skin)
+        self.assertIn("style.css?v=20260904-solari-flap-v2", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -735,7 +735,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260904-departure-board-v1", main)
+        self.assertIn("home-realtime-table.js?v=20260904-solari-flap-v2", main)
         for token in (
             "function localizedUsName(item)",
             "item.display_name || item.name_en",
@@ -2770,16 +2770,23 @@ console.log(JSON.stringify(cases.map(function (iso) {
 
 
     def test_realtime_board_uses_departure_board_styling(self):
-        """2026-09-04 요청: 실시간 종목판을 공항·기차역 출발안내 전광판 스타일로.
+        """2026-09-04 요청: 실시간 종목판을 공항·기차역 출발안내 전광판(솔라리)으로.
 
-        구조·DOM·모바일 3열 축약은 그대로 두고 색·서체·질감만 덮는다. 홈 편집 지면
-        규칙들이 색을 디자인 토큰(var(--text-main) 등)으로 지정하고 있어, 판 안에서
-        그 토큰만 다시 정의하면 id 특이도와 싸우지 않고 전체가 따라온다.
+        첫 시도에서 판 배경이 라이브에서 안 칠해졌다. 홈 편집 지면이
+        `.home-widget--full.home-realtime-board`에 `background: transparent !important`를
+        걸고 있는데 판 규칙을 `.home-realtime-board`(클래스 하나)로만 써서 진 것이다.
+        앰버 글자만 크림색 지면에 남아 글씨가 거의 안 보였다. 그래서 판에 관한 규칙은
+        같은 id 접두어를 함께 달고, 상대가 !important를 쓴 자리에는 이쪽도 쓴다.
         """
         css = self.read("style.css")
         board = css[css.index("실시간 종목판 - 공항·기차역 출발안내 전광판"):]
+        # 지면의 transparent !important를 넘지 못하면 글자만 남고 판이 사라진다.
+        self.assertIn(
+            "body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {",
+            board)
+        self.assertIn("background: var(--hrt-board-bg) !important;", board)
         for token in (
-            "--hrt-board-bg: #0c0e11;",
+            "--hrt-board-bg: #0b0d10;",
             "--hrt-board-ink: #f7d774;",
             # 홈 규칙이 참조하는 토큰을 판 안에서 갈아끼우는 것이 이 스타일의 핵심이다.
             "--text-main: var(--hrt-board-ink-strong);",
@@ -2789,18 +2796,33 @@ console.log(JSON.stringify(cases.map(function (iso) {
             "font-variant-numeric: tabular-nums;",
         ):
             self.assertIn(token, board)
-        # 의미색은 유지한다(CLAUDE.md) - 검은 바탕에서 대비만 올린 빨강/파랑이어야 한다.
+        # 양각·음각: 칸마다 위 절반이 밝고 아래 절반이 어두우며 가운데 접힘선이 있다.
+        self.assertIn("--hrt-flap-top: #1b1f26;", board)
+        self.assertIn("--hrt-flap-bottom: #12151a;", board)
+        self.assertIn("inset 0 1px 0 rgba(255, 255, 255, .07)", board)
+        self.assertIn("inset 0 -1px 0 rgba(0, 0, 0, .55)", board)
+        # 색 정지 위치에 단위 없는 0을 쓰면 선언이 통째로 무효가 된다.
+        self.assertNotIn("var(--hrt-flap-top) 0,", board)
+        # 의미색은 유지한다(CLAUDE.md) - 검은 판에서 대비만 올린 빨강/파랑.
         self.assertIn("--up: #ff6a5a;", board)
         self.assertIn("--down: #5ec8ff;", board)
-        # 칸 머리 앰버 띠는 홈 규칙(th에 color/font-family 지정)을 넘어야 해서
-        # 같은 접두어에 판 클래스를 더한 선택자가 함께 있어야 한다.
+        # 칸 머리 앰버 띠도 홈 규칙(th에 color/font-family 지정)을 넘어야 한다.
         self.assertIn(
-            "body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th {",
+            "body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th,",
             board)
-        # 다크 모드에서도 같은 검은 판이어야 한다.
         self.assertIn("html.dark .home-realtime-board { background: var(--hrt-board-bg) !important; }", board)
-        # 움직임을 줄이도록 설정한 사용자에게는 램프·플랩을 멈춘다.
         self.assertIn("@media (prefers-reduced-motion: reduce)", board)
+
+    def test_realtime_board_rows_flip_in_like_a_departure_board(self):
+        """"움직이는" 판 - 목록이 새로 그려지면 위에서부터 한 줄씩 넘어간다.
+
+        rowHtml이 행마다 --hrt-i(순위)를 심고 CSS가 그것으로 지연을 준다.
+        """
+        css = self.read("style.css")
+        source = self.read("js/home-realtime-table.js")
+        self.assertIn("style=\"--hrt-i:' + rank + '\"", source)
+        self.assertIn("animation-delay: calc(var(--hrt-i, 0) * 18ms);", css)
+        self.assertIn("@keyframes hrtFlap", css)
 
     def test_realtime_board_flaps_only_cells_whose_value_changed(self):
         """솔라리 플랩은 값이 실제로 바뀐 칸에서만 돈다.
