@@ -40,7 +40,14 @@
 배수가 항상 1.0이 된다), 그리고 VM·GAS·프론트·타이머 배선을 고정한다.
 
 **배포 주의**: `scripts/cloud-vm/`는 `master` 반영 후 자동 배포되지만, **systemd 타이머는
-VM에서 한 번 수동 등록해야 한다**: `bash scripts/cloud-vm/setup_volumebreakout_timer.sh`.
+VM 안에서 한 번 수동 등록해야 한다**(Cloud Shell이 아니다 - 거기엔 리포 체크아웃도
+`~/kiwoom-api`도 없어 "No such file or directory"가 난다):
+
+```bash
+gcloud compute instances list            # VM 이름·존 확인
+gcloud compute ssh <VM이름> --zone=<존>
+cd ~/kiwoom-api && bash scripts/cloud-vm/setup_volumebreakout_timer.sh
+```
 등록 전까지는 탭이 보이되 항상 비어 있다.
 
 **2026-09-04 모바일 내비게이션 원복(상단 메뉴) + 전 페이지 터치 영역 정비**
