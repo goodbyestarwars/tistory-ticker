@@ -376,10 +376,10 @@ html.dark #watchlist.is-reordering .wl-group-empty {
 @media (max-width: 640px) {
   .global-watchlist-drawer { top: 0; bottom: 0; width: min(330px, calc(100vw - 28px)); }
   .global-watchlist-toggle { width: 42px; min-height: 68px; }
-  /* 2026-08-31: 하단 고정 네비게이션(.mobile-app-bottom-nav, 약 65px)이 드로어 위에
-     겹쳐 있어 마지막 그룹이 가려졌다 - 스크린샷에서 "미국" 그룹이 네비에 잘려 드롭할
-     자리가 안 보이던 원인 중 하나다. 네비 높이 + 여유만큼 아래 여백을 준다. */
-  .global-watchlist-panel { padding: 22px 16px calc(84px + env(safe-area-inset-bottom)); }
+  /* 2026-08-31: 하단 고정 네비게이션이 드로어 위에 겹쳐 마지막 그룹이 가려졌었다.
+     2026-09-04: 그 하단 탭바를 걷어냈으므로 탭바 높이만큼 주던 여백은 뺀다. 다만 마지막
+     카드가 화면 끝에 붙으면 드롭할 자리가 좁아지므로 안전영역 + 최소 여백은 남긴다. */
+  .global-watchlist-panel { padding: 22px 16px calc(24px + env(safe-area-inset-bottom)); }
   #watchlist .wl-add { order: 3; flex-basis: 100%; max-width: none; }
 
   /* 2026-08-31: 순서 변경·그룹 이동이 HTML5 드래그앤드롭으로만 돼 있어 터치 기기에서는

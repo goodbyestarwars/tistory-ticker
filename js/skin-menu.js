@@ -118,105 +118,13 @@
     syncSecondaryHeight(Boolean(secondary));
   }
 
-  function mobileBottomIcon(type) {
-    var paths = {
-      home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/>',
-      market: '<path d="M4 19V9"/><path d="M9 19V5"/><path d="M14 19v-8"/><path d="M19 19V3"/><path d="M3 21h18"/>',
-      stock: '<path d="M4 19V5h16v14z"/><path d="M8 9h8M8 13h5M8 17h3"/>',
-      search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 5 5"/><path d="M8.5 11h5M11 8.5v5"/>',
-      more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
-      // 2026-09-03: MY가 더보기와 같은 점 세 개 아이콘을 쓰고 있어 두 탭이 구분되지 않았다.
-      my: '<path d="M12 3.8l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 10l5.9-.9z"/>'
-    };
-    return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + paths[type] + '</svg>';
-  }
-
-  function mobileBottomActiveKey() {
-    var path = currentPath();
-    if (path === '/') return 'home';
-    if (path === '/page/watchlist') return 'my';
-    if (path === '/page/market-temp') return new URLSearchParams(location.search).get('view') === 'stocks' ? 'stock' : 'market';
-    if (['/pages/overnight-market', '/pages/kospi-futures', '/category/마켓 브리핑'].indexOf(path) !== -1) return 'market';
-    if (['/page/foreign-flow', '/page/stock-search'].indexOf(path) !== -1) return 'stock';
-    // 2026-09-03: 예전에는 'search'를 돌려줬는데 그 키를 가진 탭이 없어서, 차트검색·
-    // 전략검색 화면에서는 하단 탭이 전부 비활성으로 보였다. 두 화면 다 더보기 시트에
-    // 들어 있으므로 더보기를 활성으로 표시한다.
-    if (['/page/pattern-scan', '/page/strategy-search'].indexOf(path) !== -1) return 'more';
-    return 'more';
-  }
-
-  function renderMobileBottomNav() {
-    var nav = document.getElementById('mobileAppBottomNav');
-    if (!nav) {
-      document.body.insertAdjacentHTML('beforeend',
-        '<nav class="mobile-app-bottom-nav" id="mobileAppBottomNav" aria-label="모바일 주요 메뉴">'
-        + '<a class="mobile-app-bottom-item" data-bottom-key="home" href="/">' + mobileBottomIcon('home') + '<span>홈</span></a>'
-        + '<a class="mobile-app-bottom-item" data-bottom-key="market" href="/page/market-temp">' + mobileBottomIcon('market') + '<span>시장</span></a>'
-        + '<a class="mobile-app-bottom-item" data-bottom-key="stock" href="/page/stock-search">' + mobileBottomIcon('stock') + '<span>종목</span></a>'
-        + '<a class="mobile-app-bottom-item" data-bottom-key="my" href="/page/watchlist">' + mobileBottomIcon('my') + '<span>MY</span></a>'
-        + '<button type="button" class="mobile-app-bottom-item" data-bottom-key="more" data-bottom-action="more" aria-expanded="false">' + mobileBottomIcon('more') + '<span>더보기</span></button>'
-        + '</nav>'
-        + '<div class="mobile-app-sheet" id="mobileAppSheet" hidden>'
-        + '<div class="mobile-app-sheet-backdrop" data-bottom-action="close"></div>'
-        + '<section class="mobile-app-sheet-panel" role="dialog" aria-modal="true" aria-label="더보기 메뉴">'
-        + '<div class="mobile-app-sheet-head"><strong>더보기</strong><button type="button" data-bottom-action="close" aria-label="더보기 닫기">×</button></div>'
-        + '<div class="mobile-app-sheet-links">'
-        + '<a href="/page/foreign-flow">종목분석<span>수급·차트·펀더멘탈</span></a>'
-        + '<a href="/page/pattern-scan">차트검색<span>패턴별 종목 찾기</span></a>'
-        + '<a href="/page/strategy-search">전략검색<span>조건별 종목 찾기</span></a>'
-        + '<a href="/page/market-temp?view=stocks">국내 주요종목<span>시장별 종목판</span></a>'
-        + '<a href="/category/마켓 브리핑">마켓브리핑<span>오늘의 시장 글</span></a>'
-        + '<a href="/page/stock-calendar">캘린더<span>실적·경제 일정</span></a>'
-        + '<a href="/pages/overnight-market">글로벌 시장지표<span>미국·해외 시장</span></a>'
-        + '<a href="/pages/kospi-futures">국내시장지표<span>KOSPI·KOSDAQ·선물</span></a>'
-        + '<a href="/guestbook">커뮤니티<span>의견과 문의</span></a>'
-        + '</div></section></div>');
-      nav = document.getElementById('mobileAppBottomNav');
-    }
-
-    var activeKey = mobileBottomActiveKey();
-    nav.querySelectorAll('[data-bottom-key]').forEach(function (item) {
-      var active = item.getAttribute('data-bottom-key') === activeKey;
-      item.classList.toggle('active', active);
-      if (active) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
-    });
-    if (nav.getAttribute('data-bottom-wired') === '1') return;
-    nav.setAttribute('data-bottom-wired', '1');
-    var sheet = document.getElementById('mobileAppSheet');
-    var moreButton = nav.querySelector('[data-bottom-action="more"]');
-    function closeSheet() {
-      if (!sheet) return;
-      sheet.hidden = true;
-      moreButton.setAttribute('aria-expanded', 'false');
-      document.documentElement.classList.remove('mobile-app-sheet-open');
-    }
-    function openSheet() {
-      if (!sheet) return;
-      sheet.hidden = false;
-      moreButton.setAttribute('aria-expanded', 'true');
-      document.documentElement.classList.add('mobile-app-sheet-open');
-    }
-    moreButton.addEventListener('click', function () {
-      if (sheet.hidden) openSheet(); else closeSheet();
-    });
-    // 2026-08-31: 모바일에서 "맨 위로" 떠 있는 버튼(.scroll-top-btn)이 본문 글자를 덮어
-    // style.css의 max-width:720px 구간에서 숨겼다. 그 기능을 여기로 옮긴다 - 지금 보고
-    // 있는 탭을 다시 누르면 페이지 맨 위로 올라간다(흔한 모바일 앱 패턴). 다른 탭을
-    // 누르면 기존대로 그 페이지로 이동한다.
-    nav.addEventListener('click', function (event) {
-      var item = event.target.closest ? event.target.closest('[data-bottom-key]') : null;
-      if (!item || !item.classList.contains('active')) return;
-      event.preventDefault();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    sheet.addEventListener('click', function (event) {
-      var action = event.target.closest ? event.target.closest('[data-bottom-action]') : null;
-      if (action && action.getAttribute('data-bottom-action') === 'close') closeSheet();
-    });
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && !sheet.hidden) closeSheet();
-    });
-  }
+  /* 2026-09-04: 모바일 하단 탭바(홈·시장·종목·MY·더보기)를 걷어냈다.
+     2026-09-03에 상단 메뉴와 중복이라 상단을 감췄더니 "모바일인데 메뉴가 사라졌다"는
+     판단을 받았다. 이 사이트는 1차 7개·2차까지 12개 목적지라 5칸 탭바에 안 들어가고,
+     못 담은 항목이 더보기 시트로 밀려 오히려 길찾기가 어려워졌다. 가로 스크롤되는
+     상단 2단 메뉴 하나로 되돌린다(style.css의 720px 구간에서 상단을 다시 켠다).
+     탭바와 함께 있던 "현재 탭 다시 탭 = 맨 위로"도 사라졌다 - 되살리려면 본문을
+     가리지 않는 형태로 따로 설계한다(style.css .scroll-top-btn 주석 참고). */
 
   function wireNavigation(mount) {
     mount.addEventListener('click', function (event) {
@@ -278,7 +186,6 @@
       renderMenu(mount);
       wireNavigation(mount);
     }
-    renderMobileBottomNav();
     if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
   }
 

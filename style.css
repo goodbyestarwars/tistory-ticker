@@ -3530,14 +3530,6 @@ html.dark .copyright { color: rgba(245, 239, 224, 0.55); border-left-color: rgba
 html.dark .copyright:hover { color: #F5EFE0; }
 body.iframe-mode .site-footer { display: none !important; }
 
-/* Mobile app-style navigation is hidden on desktop and embedded chart frames. */
-.mobile-app-bottom-nav,
-.mobile-app-sheet { display: none; }
-body.iframe-mode .mobile-app-bottom-nav,
-body.iframe-mode .mobile-app-sheet { display: none !important; }
-
-html.dark .mobile-app-bottom-nav { background: rgba(26, 26, 26, .97); border-top-color: rgba(245, 239, 224, .14); }
-
 /* 2026-08-25 New newspaper type system.
    Font switching is removed from the header: body/UI/content use Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */
@@ -3573,14 +3565,6 @@ html body #stock-search .ss-news-group h4 {
 html body .site-footer-version,
 html body .site-footer-links,
 html body .copyright { font-family: var(--font-ui) !important; }
-html.dark .mobile-app-bottom-item { color: rgba(245, 239, 224, .55); }
-html.dark .mobile-app-bottom-item.active { color: #F5EFE0; }
-html.dark .mobile-app-bottom-item:active { background: rgba(245, 239, 224, .08); }
-html.dark .mobile-app-sheet-panel { background: #1A1A1A; color: #F5EFE0; }
-html.dark .mobile-app-sheet-head { color: #F5EFE0; }
-html.dark .mobile-app-sheet-head button { background: rgba(245, 239, 224, .1); color: #F5EFE0; }
-html.dark .mobile-app-sheet-links a { border-color: rgba(245, 239, 224, .14); color: #F5EFE0; }
-html.dark .mobile-app-sheet-links a span { color: rgba(245, 239, 224, .5); }
 
 /* ============ DISCLOSURE TICKER ============ */
 /* 2026-07-17(9차): 별도 고정 바였던 공시 티커를 관심지수 바(js/quick-indices.js)의
@@ -3790,16 +3774,16 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
 
 /* ============ 반응형 오버라이드 (모바일 우선) ============ */
 @media (max-width: 720px) {
-  /* 2026-09-03: 모바일에서 상단 메뉴 줄을 감춘다.
-     그전에는 상단(홈·시장·종목·종목검색·캘린더·커뮤니티·MY 가로 스크롤 38px)과
-     하단 탭바(홈·시장·종목·MY·더보기 65px)가 같은 목적지를 두 번 노출했고,
-     navbar 65px까지 더하면 168px - 679px 높이 화면의 24.7%가 내비게이션이었다.
-     모바일은 엄지가 닿는 하단 탭바 하나로 모으고, 탭바가 못 담는 목적지는
-     js/skin-menu.js의 더보기 시트에 전부 넣어 접근 경로를 잃지 않게 했다.
-     PC(721px 이상)는 하단 탭바가 없으므로 상단 메뉴를 그대로 쓴다. */
-  :root { --topbar-height: 0px; }
-  html.nav-secondary-open { --topbar-height: 0px; }
-  .sidebar-left { display: none !important; }
+  /* 2026-09-04: 상단 메뉴를 다시 켜고 하단 탭바를 걷어냈다.
+     2026-09-03에는 중복(상단 38px + 하단 65px)을 줄이려고 반대로 상단을 감췄는데,
+     사용자 판단은 "모바일인데 메뉴가 사라졌다"였다 - 하단 5칸 탭바가 이 사이트의
+     목적지 수(1차 7개, 2차까지 12개)를 담지 못해 더보기 시트로 밀린 항목이 많았고,
+     그래서 길찾기가 오히려 어려워졌다. 목적지가 많은 사이트에는 가로 스크롤되는
+     상단 2단 메뉴가 5칸 탭바보다 잘 맞는다.
+     상단 메뉴도 앱형으로 얇게 유지한다(1차 40px, 2차 펼침 시 76px). */
+  :root { --topbar-height: 40px; }
+  html.nav-secondary-open { --topbar-height: 76px; }
+  .sidebar-left { display: flex !important; }
   /* 한글 단어가 글자 단위로 끊겨 보이지 않도록 한다. 긴 라벨은 각 화면에서 말줄임 처리한다. */
   body { word-break: keep-all; overflow-wrap: normal; }
   /* ── 내비게이션 바 ──
@@ -3848,76 +3832,15 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
   .nav-icons { gap: 6px; }
   .scroll-top-btn { display: flex; bottom: 20px; right: 14px; width: 38px; height: 38px; }
 
-  /* App-style fixed bottom navigation. Keep content and the scroll-top button above it. */
-  .page-wrap { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
-  .mobile-app-bottom-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1200;
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    min-height: 64px;
-    padding: 7px 5px calc(7px + env(safe-area-inset-bottom));
-    border-top: 1px solid #e5e7eb;
-    background: rgba(255, 255, 255, .97);
-    box-shadow: 0 -5px 18px rgba(15, 23, 42, .08);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-  }
-  .mobile-app-bottom-item {
-    display: flex;
-    min-width: 0;
-    min-height: 50px;
-    padding: 4px 2px;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    border: 0;
-    border-radius: 12px;
-    background: transparent;
-    color: #8b9199;
-    font: inherit;
-    font-size: 11px;
-    line-height: 1.2;
-    text-decoration: none;
-    cursor: pointer;
-  }
-  /* 앱 하단 탭바(64px)에 가려지지 않도록 카운트다운 배지를 그 위로 띄운다. */
-  .home-switch-countdown { bottom: calc(78px + env(safe-area-inset-bottom)); left: 12px; }
-  .mobile-app-bottom-item svg { width: 22px; height: 22px; flex: 0 0 auto; }
-  .mobile-app-bottom-item.active { color: #111827; font-weight: 700; }
-  .mobile-app-bottom-item.active svg { stroke-width: 2.3; }
-  .mobile-app-bottom-item:active { background: #f1f5f9; }
-  .mobile-app-sheet[hidden] { display: none !important; }
-  .mobile-app-sheet { position: fixed; inset: 0; z-index: 1300; display: block; }
-  .mobile-app-sheet-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .38); }
-  .mobile-app-sheet-panel {
-    position: absolute;
-    right: 0;
-    bottom: calc(70px + env(safe-area-inset-bottom));
-    left: 0;
-    padding: 16px 14px 14px;
-    border-radius: 20px 20px 0 0;
-    background: rgb(255, 254, 252);
-    box-shadow: 0 -12px 36px rgba(15, 23, 42, .18);
-  }
-  .mobile-app-sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; color: #111827; font-size: 16px; }
-  .mobile-app-sheet-head button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: #f1f5f9; color: #64748b; font-size: 20px; line-height: 1; cursor: pointer; }
-  .mobile-app-sheet-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-  .mobile-app-sheet-links a { display: flex; min-height: 56px; padding: 11px 12px; flex-direction: column; justify-content: center; border: 1px solid #e5e7eb; border-radius: 12px; color: #111827; font-size: 13px; font-weight: 700; text-decoration: none; }
-  .mobile-app-sheet-links a span { margin-top: 3px; color: #9ca3af; font-size: 10px; font-weight: 400; }
-  html.mobile-app-sheet-open { overflow: hidden; }
   /* 2026-08-31 사용자 요구("단어 잘림 허용 안 되게"): 이 떠 있는 버튼이 본문 글자를
      덮고 있었다(실측: "009150 · 시가총액 상위 · 거래대금 상위" 30x10px,
      "거래대금 집중" 30x24px). 고정 버튼이 전체폭 본문 위에 있으면 스크롤 위치에 따라
-     항상 뭔가를 가리므로, 위치 조정으로는 해결되지 않는다. 이 구간에는 하단 네비게이션
-     바가 이미 있으므로 버튼은 숨기고 "현재 탭 다시 탭 = 맨 위로"(js/skin-menu.js)로
-     기능을 옮긴다. 흔한 모바일 앱 패턴이고 본문을 가리지 않는다.
-     참고: 이 버튼은 원래부터 모바일 전용이다 - 기본 규칙이 display:none이고 위 3842행
-     (같은 720px 블록)에서만 flex로 켰다. 721px 이상에서는 예전에도 안 보였으므로
+     항상 뭔가를 가리므로, 위치 조정으로는 해결되지 않는다. 그래서 숨겨 뒀다.
+     2026-09-04: 하단 탭바를 걷어내면서 "현재 탭 다시 탭 = 맨 위로"도 함께 사라졌지만,
+     이 버튼은 계속 숨긴 채로 둔다 - 되살리면 본문을 가리던 원래 문제가 그대로 돌아온다.
+     맨 위로 가는 수단이 필요하면 본문을 가리지 않는 형태로 따로 설계한다.
+     참고: 이 버튼은 원래부터 모바일 전용이다 - 기본 규칙이 display:none이고 위쪽
+     같은 720px 블록에서만 flex로 켰다. 721px 이상에서는 예전에도 안 보였으므로
      이 규칙으로 데스크톱이 달라지는 것은 없다(라이브 1440px computed display: none 확인). */
   .scroll-top-btn { display: none !important; }
 
@@ -4002,7 +3925,13 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
 
 @media (max-width: 430px) {
   .navbar { gap: 6px; padding: 0 8px; }
-  .navbar .nav-logo { max-width: 34vw; }
+  /* 2026-09-04: 34vw(360px 화면에서 122px)였는데 브랜드 표기 "ㄱㅖ조 ㅏ심폐소생술"이
+     15px에서 그보다 넓어 "ㄱㅖ조 ㅏ심폐소…"로 잘렸다(Chromium 360px 실측).
+     34vw는 로고와 검색창이 한 줄을 나눠 쓰던 시절의 값인데, 2026-08-20에 navbar가
+     1줄(로고+아이콘)/2줄(검색창 전체폭)로 갈라지면서 로고가 검색창과 경쟁하지 않게
+     됐다. 게다가 이 구간은 바로 아래에서 보조 아이콘도 감추므로 첫 줄은 사실상
+     로고 전용이다. 아이콘이 다시 보이더라도 겹치지 않게 여유만 남기고 넓힌다. */
+  .navbar .nav-logo { max-width: calc(100% - 44px); }
   .navbar .nav-search { min-width: 0; margin-left: 2px; }
   /* 작은 화면에서는 폰트·다크 토글과 1차 텍스트 메뉴를 우선한다. MY와 커뮤니티는
      1차 메뉴에서 직접 접근하므로 원형 보조 아이콘은 헤더 폭을 차지하지 않게 한다. */
@@ -5076,13 +5005,6 @@ html:not(.font-gothic) body .sidebar-left .nav-primary-item[aria-expanded="true"
   border-bottom-color: #111 !important;
   color: #111 !important;
 }
-html:not(.font-gothic) body .mobile-app-bottom-item:hover,
-html:not(.font-gothic) body .mobile-app-bottom-item:focus-visible,
-html:not(.font-gothic) body .mobile-app-bottom-item:active,
-html:not(.font-gothic) body .mobile-app-bottom-item.active {
-  color: #111 !important;
-}
-
 /* 마켓 브리핑 제목 목록은 항목마다 아래 구분선만 사용한다.
    공통 카드 테두리의 윗선까지 겹치면 포스트 사이가 이중선으로 보인다. */
 html:not(.font-gothic) body .feed-block-headline .post-card.feed-headline-item {
@@ -5233,9 +5155,7 @@ html:not(.font-gothic) body .home-widget--summary {
   box-shadow: none !important;
 }
 html:not(.font-gothic) body .discussion-native-guestbook,
-html:not(.font-gothic) body .account-login-dialog,
-html:not(.font-gothic) body .mobile-app-sheet,
-html:not(.font-gothic) body .mobile-app-sheet-body {
+html:not(.font-gothic) body .account-login-dialog {
   background-image: none !important;
 }
 
