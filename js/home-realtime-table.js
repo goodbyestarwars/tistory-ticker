@@ -470,10 +470,9 @@
       week52Low: '<td data-field="week52Low">' + fmtPrice(item.week52_low, item.currency) + '</td>',
       industry: '<td class="hrt-industry" title="' + escapeHtml(industry) + '">' + escapeHtml(industry || '-') + '</td>'
     };
-    return '<tr data-code="' + escapeHtml(code) + '" style="--hrt-i:' + rank + '">'
-      + columnsForMarket().map(function (column) {
-        return cells[column[0]];
-      }).join('') + '</tr>';
+    return '<tr data-code="' + escapeHtml(code) + '">' + columnsForMarket().map(function (column) {
+      return cells[column[0]];
+    }).join('') + '</tr>';
   }
 
   function industryRowHtml(item, rank) {
