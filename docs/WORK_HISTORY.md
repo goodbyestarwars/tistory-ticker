@@ -40,14 +40,11 @@
 배수가 항상 1.0이 된다), 그리고 VM·GAS·프론트·타이머 배선을 고정한다.
 
 **배포 주의**: `scripts/cloud-vm/`는 `master` 반영 후 자동 배포되지만, **systemd 타이머는
-VM 안에서 한 번 수동 등록해야 한다**(Cloud Shell이 아니다 - 거기엔 리포 체크아웃도
-`~/kiwoom-api`도 없어 "No such file or directory"가 난다):
-
-```bash
-gcloud compute instances list            # VM 이름·존 확인
-gcloud compute ssh <VM이름> --zone=<존>
-cd ~/kiwoom-api && bash scripts/cloud-vm/setup_volumebreakout_timer.sh
-```
+**수동 작업은 필요 없다.** 처음에는 VM에서 setup 스크립트를 한 번 직접 돌리게 했는데,
+그 단계가 실제로 걸림돌이 됐다 - Cloud Shell과 VM을 구분하지 못해 반복 실패했고, 등록
+전까지 차트검색 탭이 계속 비어 있었다. `deploy_check.sh`가 이미 5분마다 sudo 권한으로
+도므로 거기서 유닛 파일이 없을 때만 등록하도록 바꿨다(`ensure_volume_breakout_timer`).
+배포가 VM에 닿고 5분 안에 자동 등록된다.
 등록 전까지는 탭이 보이되 항상 비어 있다.
 
 **2026-09-04 모바일 내비게이션 원복(상단 메뉴) + 전 페이지 터치 영역 정비**

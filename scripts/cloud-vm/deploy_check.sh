@@ -102,6 +102,27 @@ run_news_momentum_if_due() {
 # 코드가 바뀌어도 news_topics에 이미 저장된 행은 자동으로 안 지워지므로(정리는 별도
 # 마이그레이션 몫), 마커 파일이 없을 때만 1회 실행하고 성공해야 마커를 남긴다. 실패하면
 # 마커를 안 남겨 다음 5분 회차가 재시도한다(모멘텀 배치와 동일한 재시도 패턴).
+# 2026-09-04: 장중 스캔 타이머(kiwoom-volumebreakout)는 원래 VM에서 setup 스크립트를
+# 한 번 직접 돌려야 했는데, 그 수동 단계가 실제로 걸림돌이 됐다 - Cloud Shell과 VM을
+# 구분하지 못해 반복 실패했고, 등록 전까지 차트검색 탭이 계속 비어 있었다.
+# 이 스크립트는 이미 5분마다 sudo 권한으로 도니까 여기서 유닛이 없을 때만 등록한다.
+# 유닛 파일 존재만 보므로 등록된 뒤에는 파일 확인 한 번으로 지나간다.
+ensure_volume_breakout_timer() {
+  if [ -f /etc/systemd/system/kiwoom-volumebreakout.timer ]; then
+    return 0
+  fi
+  setup_script="$APP_DIR/scripts/cloud-vm/setup_volumebreakout_timer.sh"
+  if [ ! -f "$setup_script" ]; then
+    return 0  # 아직 배포가 안 닿았으면 다음 회차에 다시 본다
+  fi
+  if bash "$setup_script"; then
+    echo "kiwoom-volumebreakout.timer 자동 등록 완료"
+  else
+    echo "kiwoom-volumebreakout.timer 자동 등록 실패: 5분 뒤 재시도" >&2
+  fi
+  return 0
+}
+
 run_price_recap_cleanup_once() {
   if [ -f "$PRICE_RECAP_CLEANUP_MARKER" ]; then
     return 0
@@ -194,6 +215,8 @@ fi
 # 실패해도 위 배포 결과와 FastAPI 재시작 성공을 되돌리거나 비정상 종료시키지 않는다.
 run_news_momentum_if_due "$DEPLOY_OCCURRED" || true
 run_price_recap_cleanup_once || true
+# 실패해도 배포 결과를 되돌리지 않는다 - 다음 5분 회차에서 다시 시도한다.
+ensure_volume_breakout_timer || true
 run_off_hours_maintenance_if_due || true
 
 # 2026-08-03: 주요 엔드포인트 로컬 응답시간을 5분마다 기록(GET /health/latency로 노출) -
