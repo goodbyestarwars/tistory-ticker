@@ -16,17 +16,23 @@
         { href: '/pages/kospi-futures', label: '국내시장지표' }
       ]
     },
+    // 2026-09-04: '종목검색'(차트검색·전략검색 2개)을 '종목'으로 합치고, 1차 메뉴를
+    // 7개에서 6개로 줄였다. 이름만으로 '종목'과 '종목검색'이 구분되지 않았고
+    // (차트검색이 왜 '종목'이 아닌지 설명하기 어렵다) 하위 2개짜리가 1차 한 칸을
+    // 쓰고 있었다. 1차 메뉴는 모바일에서 가로 스크롤이라 칸 수가 곧 사용성이다.
+    //
+    // '실시간 시세'(/page/stock-search)는 메뉴에서 뺐다. 상단 검색창이 이미 그
+    // 페이지로 보내고(js/stock-search-panel.js TARGET_PAGE), PC·모바일 둘 다 항상
+    // 떠 있어서 메뉴 항목이 하는 일이 겹쳤다. 주소는 그대로라 북마크·기존 링크는
+    // 살아 있고(LEGACY_PAGE_URLS), 홈 실시간 종목판의 각 행도 이 페이지로 간다.
+    //
+    // 앞 둘은 종목을 '보는' 화면, 뒤 둘은 조건으로 '거르는' 화면이다. 그 순서를
+    // 지켜야 4개가 한 줄에 있어도 안 헷갈린다.
     {
       label: '종목',
       children: [
-        { href: '/page/foreign-flow', label: '종목분석' },
         { href: '/page/market-temp?view=stocks', label: '국내 주요종목' },
-        { href: '/page/stock-search', label: '실시간 시세 (US. Include)' }
-      ]
-    },
-    {
-      label: '종목검색',
-      children: [
+        { href: '/page/foreign-flow', label: '종목분석' },
         { href: '/page/pattern-scan', label: '차트검색' },
         { href: '/page/strategy-search', label: '전략검색' }
       ]
@@ -44,7 +50,7 @@
     + '<div class="nav-search-wrap">'
     + '<div class="nav-search-input-wrap">'
     + '<span class="nav-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 5 5"></path></svg></span>'
-    + '<input type="text" id="navSearchInput" class="nav-search-input" placeholder="종목검색"'
+    + '<input type="text" id="navSearchInput" class="nav-search-input" placeholder="삼성전자 · NVDA 검색"'
     + ' aria-label="전체 종목 검색" autocomplete="off" />'
     + '</div><div id="navSearchSuggest" class="nav-search-suggest"></div></div>';
 

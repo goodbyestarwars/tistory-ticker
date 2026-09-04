@@ -26,12 +26,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("{ href: '/page/stock-search', label: '종목' }", source)
         self.assertEqual(source.count("      label: '종목',"), 1)
         self.assertIn("{ href: '/page/foreign-flow', label: '종목분석' }", source)
-        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세 (US. Include)' }", source)
-        self.assertEqual(source.count("      label: '종목검색',"), 1)
+        # 2026-09-04: '종목검색'을 '종목'으로 합쳐 1차 메뉴를 6개로 줄였다. '실시간 시세'는
+        # 상단 검색창이 같은 페이지로 보내므로 메뉴에서 뺐다(주소는 그대로 살아 있다).
+        self.assertNotIn("label: '종목검색',", source)
+        self.assertNotIn("label: '실시간 시세 (US. Include)'", source)
+        self.assertIn("LEGACY_PAGE_URLS = ['/page/foreign-flow', '/page/stock-search']", source)
         self.assertNotIn("label: '종목뉴스'", source)
         self.assertIn("{ href: '/page/watchlist', label: 'MY' }", source)
         self.assertNotIn("label: '미국주식'", source)
-        self.assertEqual(len(primary_labels), 7)
+        self.assertEqual(len(primary_labels), 6)
 
     def test_write_button_uses_top_level_tistory_auth_navigation(self):
         skin = self.read("skin.html")
@@ -81,18 +84,24 @@ class UiInformationArchitectureTest(unittest.TestCase):
         )
         self.assertIsNotNone(group)
         body = group.group("body")
-        self.assertIn("{ href: '/page/foreign-flow', label: '종목분석' }", body)
-        self.assertIn("{ href: '/page/market-temp?view=stocks', label: '국내 주요종목' }", body)
-        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세 (US. Include)' }", body)
-        search_group = re.search(
-            r"\{\n\s+label: '종목검색',\n\s+children: \[(?P<body>.*?)\n\s+\]\n\s+\},",
-            source,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(search_group)
-        search_body = search_group.group("body")
-        self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", search_body)
-        self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", search_body)
+        # 앞 둘은 종목을 '보는' 화면, 뒤 둘은 조건으로 '거르는' 화면이다. 4개가 한 줄에
+        # 있어도 안 헷갈리려면 이 순서가 유지돼야 한다(2026-09-04 요청 순서).
+        labels = re.findall(r"label: '([^']+)' \}", body)
+        self.assertEqual(labels, ['국내 주요종목', '종목분석', '차트검색', '전략검색'])
+        self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", body)
+        self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", body)
+
+    def test_nav_search_placeholder_shows_what_it_accepts(self):
+        """'종목검색'은 카테고리 이름이라 정보가 없고, 없앤 1차 메뉴 이름과도 겹쳤다.
+
+        예시를 넣으면 한글 종목명과 미국 티커가 둘 다 된다는 걸 한 줄로 알린다 -
+        옛 메뉴 라벨의 '(US. Include)'가 하려던 말이 여기로 옮겨온다.
+        """
+        source = self.read("js/skin-menu.js")
+        self.assertIn('placeholder="삼성전자 · NVDA 검색"', source)
+        self.assertNotIn('placeholder="종목검색"', source)
+        # 검색 결과가 실시간 시세 페이지로 가야 메뉴에서 뺀 자리를 대신할 수 있다.
+        self.assertIn("var TARGET_PAGE = '/page/stock-search';", self.read("js/stock-search-panel.js"))
 
     def test_domestic_market_indicators_is_separate_from_temperature_and_combined_with_futures(self):
         menu = self.read("js/skin-menu.js")
@@ -390,7 +399,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260904-us-name-cell-v1", skin)
+        self.assertIn("style.css?v=20260904-departure-board-v1", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -726,7 +735,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260904-us-name-cell-v1", main)
+        self.assertIn("home-realtime-table.js?v=20260904-departure-board-v1", main)
         for token in (
             "function localizedUsName(item)",
             "item.display_name || item.name_en",
@@ -2758,6 +2767,55 @@ console.log(JSON.stringify(cases.map(function (iso) {
         backend = self.read("scripts/cloud-vm/market_board.py")
         self.assertIn("def _normalize_us_names(", backend)
         self.assertIn("name_en, name_ko = _normalize_us_names(", backend)
+
+
+    def test_realtime_board_uses_departure_board_styling(self):
+        """2026-09-04 요청: 실시간 종목판을 공항·기차역 출발안내 전광판 스타일로.
+
+        구조·DOM·모바일 3열 축약은 그대로 두고 색·서체·질감만 덮는다. 홈 편집 지면
+        규칙들이 색을 디자인 토큰(var(--text-main) 등)으로 지정하고 있어, 판 안에서
+        그 토큰만 다시 정의하면 id 특이도와 싸우지 않고 전체가 따라온다.
+        """
+        css = self.read("style.css")
+        board = css[css.index("실시간 종목판 - 공항·기차역 출발안내 전광판"):]
+        for token in (
+            "--hrt-board-bg: #0c0e11;",
+            "--hrt-board-ink: #f7d774;",
+            # 홈 규칙이 참조하는 토큰을 판 안에서 갈아끼우는 것이 이 스타일의 핵심이다.
+            "--text-main: var(--hrt-board-ink-strong);",
+            "--rule: var(--hrt-board-seam);",
+            # th/td에 font-family !important가 걸려 있어 토큰으로 등폭을 넣는다.
+            "--font-data: ui-monospace",
+            "font-variant-numeric: tabular-nums;",
+        ):
+            self.assertIn(token, board)
+        # 의미색은 유지한다(CLAUDE.md) - 검은 바탕에서 대비만 올린 빨강/파랑이어야 한다.
+        self.assertIn("--up: #ff6a5a;", board)
+        self.assertIn("--down: #5ec8ff;", board)
+        # 칸 머리 앰버 띠는 홈 규칙(th에 color/font-family 지정)을 넘어야 해서
+        # 같은 접두어에 판 클래스를 더한 선택자가 함께 있어야 한다.
+        self.assertIn(
+            "body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th {",
+            board)
+        # 다크 모드에서도 같은 검은 판이어야 한다.
+        self.assertIn("html.dark .home-realtime-board { background: var(--hrt-board-bg) !important; }", board)
+        # 움직임을 줄이도록 설정한 사용자에게는 램프·플랩을 멈춘다.
+        self.assertIn("@media (prefers-reduced-motion: reduce)", board)
+
+    def test_realtime_board_flaps_only_cells_whose_value_changed(self):
+        """솔라리 플랩은 값이 실제로 바뀐 칸에서만 돈다.
+
+        같은 값이 다시 들어오는 체결에서도 뒤집히면 어디가 갱신됐는지 알 수 없다.
+        클래스를 떼고 바로 붙이면 브라우저가 같은 프레임으로 묶어 애니메이션이
+        재시작하지 않으므로 강제 리플로우로 한 번 끊는다.
+        """
+        source = self.read("js/home-realtime-table.js")
+        self.assertIn("function flapCell(cell)", source)
+        self.assertIn("cell.classList.remove('hrt-flip');", source)
+        self.assertIn("void cell.offsetWidth;", source)
+        self.assertIn("cell.classList.add('hrt-flip');", source)
+        self.assertIn("if (previous !== priceCell.textContent) flapCell(priceCell);", source)
+        self.assertIn(".home-realtime-board .hrt-price.hrt-flip {", self.read("style.css"))
 
 
 
