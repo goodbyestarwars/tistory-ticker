@@ -23,7 +23,9 @@
     판정에 쓰지 않는다(CLAUDE.md: 미검증 API 필드를 확정값처럼 쓰지 않는다).
 """
 import os
+import re
 import sys
+import urllib.request
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -42,6 +44,18 @@ CANDIDATE_SECTIONS = ('tradeVolume', 'tradeAmount', 'volumeGrowth')
 # 화면에 싣는 최대 종목 수. 배수가 높은 순으로 자른다.
 MAX_MATCHES = 40
 
+# 2026-09-04 실측(운영 /market-board)에서 드러난 문제를 거르는 하한이다. 거래증가율 순위
+# 상위가 전부 껍데기였다: 티와이홀딩스우 4,755주, "하나 인버스 2X 콩 선물 ETN(H)" 402주,
+# "KB 코스닥 150 TR ETN" 5,021주 - 전일 거래량이 거의 0이라 증가율이 상한값(9999.99)에
+# 박힌 종목들이다. 이런 건 "전일 거래량 돌파"를 항상 통과해서 목록을 덮어버린다.
+# 전일에 어느 정도 거래가 있었어야 "하루치를 10분 만에 넘었다"가 의미를 갖는다.
+# 두 값 모두 첫 실사 뒤 조정할 수 있는 출발점이다.
+MIN_PREV_VOLUME = 50000
+MIN_TODAY_VOLUME = 50000
+
+# 종목 목록 원본. daily_scan.load_full_universe와 같은 파일·같은 정규식을 쓴다.
+FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
+
 
 def log(msg):
     print('[volume_breakout_scan] ' + msg, flush=True)
@@ -49,6 +63,28 @@ def log(msg):
 
 def today_kst():
     return datetime.now(KST).strftime('%Y-%m-%d')
+
+
+def load_etf_codes():
+    """ETF·ETN 종목코드 집합. 실패하면 빈 집합(=제외 안 함)으로 넘어간다.
+
+    거래량 상위는 KODEX 인버스 같은 지수 ETF가 상시 차지한다. 차트검색은 종목을 찾는
+    화면이라 이들을 빼야 목록이 쓸모 있다. daily_scan.load_full_universe와 같은 파일·
+    정규식을 쓰지만, daily_scan을 import하면 스캔 모듈 전체가 딸려 와서 여기서는
+    필요한 부분만 읽는다.
+    """
+    try:
+        req = urllib.request.Request(FULL_UNIVERSE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=20) as res:
+            text = res.read().decode('utf-8')
+    except Exception as exc:
+        log('종목목록 조회 실패(%s) - ETF 제외 없이 진행' % type(exc).__name__)
+        return set()
+    if 'window.KRX_ETF_NAMES=' not in text:
+        return set()
+    etf_names = set(re.findall(r'"([^"]+)"', text.split('window.KRX_ETF_NAMES=', 1)[1]))
+    return {m.group(2) for m in re.finditer(r'"([^"]+)":"([0-9A-Za-z]{6})"', text)
+            if m.group(1) in etf_names}
 
 
 def collect_candidates(board):
@@ -110,17 +146,20 @@ def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at):
     }
 
 
-def scan(board, conn, scanned_at):
+def scan(board, conn, scanned_at, etf_codes=None):
     """후보 중 오늘 누적 거래량 >= 전일 거래량인 종목을 배수 내림차순으로 돌려준다."""
+    etf_codes = etf_codes or set()
     candidates = collect_candidates(board)
     today = today_kst()
     matches = []
     for code, row in candidates.items():
+        if code in etf_codes:
+            continue
         today_volume = row.get('trade_volume')
-        if not today_volume:
+        if not today_volume or float(today_volume) < MIN_TODAY_VOLUME:
             continue
         prev_volume, prev_date = previous_volume(conn, code, today)
-        if not prev_volume:
+        if not prev_volume or prev_volume < MIN_PREV_VOLUME:
             continue
         if float(today_volume) < prev_volume:
             continue
@@ -147,9 +186,10 @@ def load_board():
 def main():
     scanned_at = datetime.now(timezone.utc).isoformat()
     board = load_board()
+    etf_codes = load_etf_codes()
     conn = db_schema.get_conn()
     try:
-        matches, candidate_count = scan(board, conn, scanned_at)
+        matches, candidate_count = scan(board, conn, scanned_at, etf_codes)
     finally:
         conn.close()
 
@@ -160,8 +200,10 @@ def main():
         existing['volumeBreakoutScannedAt'] = scanned_at
 
     daily_scan_cache.update(_apply)
-    log('저장 완료: 후보 %d종목 중 %d종목 돌파 (다른 패턴 섹션은 기존 값 유지)'
-        % (candidate_count, len(matches)))
+    log('저장 완료: 후보 %d종목 중 %d종목 돌파 (ETF 제외 %d, 전일/당일 거래량 하한 %s/%s주, '
+        '다른 패턴 섹션은 기존 값 유지)'
+        % (candidate_count, len(matches), len(etf_codes),
+           format(MIN_PREV_VOLUME, ','), format(MIN_TODAY_VOLUME, ',')))
 
 
 if __name__ == '__main__':
