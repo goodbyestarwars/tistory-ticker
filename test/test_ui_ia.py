@@ -399,7 +399,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260904-solari-theme-v3", skin)
+        self.assertIn("style.css?v=20260904-board-site-palette-v4", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -2801,23 +2801,28 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 색 정지 위치에 단위 없는 0을 쓰면 선언이 통째로 무효가 된다.
         self.assertNotIn("var(--hrt-flap-top) 0,", board)
 
-        # 라이트 모드는 사이트 기존 색을 그대로 쓴다(2026-09-04 요청).
-        light = board[:board.index("── 다크 모드")]
-        self.assertIn("--hrt-board-ink-strong: #171717;", light)   # 기존 --text-main
-        self.assertIn("--hrt-board-ink-dim: #6f7480;", light)      # 기존 --text-sub
-        self.assertIn("--hrt-head-bg: #26364a;", light)            # 기존 --accent-dark
-        self.assertIn("--up: #b42318;", light)                     # 기존 --up
-        self.assertIn("--down: #245b9e;", light)                   # 기존 --down
-        # 다크 모드에서만 검은 판 + 앰버가 된다.
-        dark = board[board.index("── 다크 모드"):]
-        self.assertIn("--hrt-board-bg: #0b0d10;", dark)
-        self.assertIn("--hrt-board-ink: #f7d774;", dark)
-        self.assertIn("--up: #ff6a5a;", dark)
-        self.assertIn("--down: #5ec8ff;", dark)
-        # 칸 머리 앰버 띠도 홈 규칙(th에 color/font-family 지정)을 넘어야 한다.
-        self.assertIn(
-            "body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th,",
-            board)
+        # 2026-09-04 재요청("색이 왜이래? 기존 사이트 색상으로 해줘"): 앰버·아이보리를
+        # 버리고 :root / html.dark가 정의한 값을 그대로 쓴다. 전광판 성격은 색이 아니라
+        # 플랩 형태와 넘어가는 움직임으로 남긴다.
+        light = board[:board.index("html.dark .home-realtime-board,")]
+        for token, why in (
+            ("--hrt-board-bg: #FFFEFC;", "--surface"),
+            ("--hrt-board-ink: #171717;", "--text-main"),
+            ("--hrt-board-ink-dim: #6F7480;", "--text-sub"),
+            ("--hrt-board-seam: #D8D8D8;", "--rule"),
+            ("--up: #B42318;", "--up"),
+            ("--down: #245B9E;", "--down"),
+            ("--neutral: #777777;", "--neutral"),
+        ):
+            with self.subTest(token=token, site_token=why):
+                self.assertIn(token, light)
+        # 앰버는 어느 테마에도 남아 있으면 안 된다.
+        self.assertNotIn("#f7d774", board.lower())
+        # 다크는 사이트 다크 토큰(html.dark) 값을 쓴다.
+        dark = board[board.index("html.dark .home-realtime-board,"):]
+        self.assertIn("--hrt-board-bg: #1A1A1A;", dark)
+        self.assertIn("--hrt-board-ink: #F5EFE0;", dark)
+        self.assertIn("--hrt-board-seam: rgba(245, 239, 224, .16);", dark)
         self.assertIn("background: var(--hrt-board-bg) !important;", dark)
         self.assertIn("@media (prefers-reduced-motion: reduce)", board)
 
