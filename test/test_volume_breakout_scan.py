@@ -39,8 +39,8 @@ class VolumeBreakoutScanTests(unittest.TestCase):
         vbs.today_kst = self._orig_today
 
     def test_includes_when_today_volume_reaches_yesterday(self):
-        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 1000}]
-        board = board_with([{'code': '000001', 'name': '테스트', 'trade_volume': 1200,
+        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
+        board = board_with([{'code': '000001', 'name': '테스트', 'trade_volume': 120000,
                              'price': 5000, 'change_rate': 7.5}])
         matches, candidates = vbs.scan(board, FakeConn(), 'now')
         self.assertEqual(candidates, 1)
@@ -50,13 +50,13 @@ class VolumeBreakoutScanTests(unittest.TestCase):
 
     def test_equal_volume_counts_as_a_breakout(self):
         # "돌파"는 전일 하루치에 도달한 시점으로 본다. 같은 값을 빼면 딱 맞은 종목이 사라진다.
-        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 1000}]
-        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 1000}]), FakeConn(), 'now')
+        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
+        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 100000}]), FakeConn(), 'now')
         self.assertEqual(len(matches), 1)
 
     def test_excludes_when_today_volume_is_short(self):
-        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 1000}]
-        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 999}]), FakeConn(), 'now')
+        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
+        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 99999}]), FakeConn(), 'now')
         self.assertEqual(matches, [])
 
     def test_today_row_in_daily_prices_is_not_used_as_the_previous_day(self):
@@ -65,25 +65,25 @@ class VolumeBreakoutScanTests(unittest.TestCase):
         그러면 배수가 항상 1.0 근처가 되어 조건이 무의미해진다.
         """
         self.daily['000001'] = [
-            {'date': '2026-09-03', 'volume': 1000},
-            {'date': '2026-09-04', 'volume': 5000},
+            {'date': '2026-09-03', 'volume': 100000},
+            {'date': '2026-09-04', 'volume': 500000},
         ]
-        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 5000}]), FakeConn(), 'now')
+        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 500000}]), FakeConn(), 'now')
         self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0]['patternDetail']['prevDate'], '2026-09-03')
         self.assertAlmostEqual(matches[0]['patternDetail']['volumeRatio'], 5.0, places=4)
 
     def test_skips_codes_without_previous_volume(self):
         # 신규 상장 등 일봉이 없는 종목. 배수를 계산할 수 없으므로 넣지 않는다.
-        matches, _ = vbs.scan(board_with([{'code': '000002', 'trade_volume': 9999}]), FakeConn(), 'now')
+        matches, _ = vbs.scan(board_with([{'code': '000002', 'trade_volume': 999999}]), FakeConn(), 'now')
         self.assertEqual(matches, [])
 
     def test_sections_are_merged_without_duplicates(self):
-        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100}]
+        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
         board = {'sections': {
-            'tradeVolume': [{'code': '000001', 'trade_volume': 500}],
-            'tradeAmount': [{'code': '000001', 'trade_volume': 500}],
-            'volumeGrowth': [{'code': '000001', 'trade_volume': 500}],
+            'tradeVolume': [{'code': '000001', 'trade_volume': 500000}],
+            'tradeAmount': [{'code': '000001', 'trade_volume': 500000}],
+            'volumeGrowth': [{'code': '000001', 'trade_volume': 500000}],
         }}
         matches, candidates = vbs.scan(board, FakeConn(), 'now')
         self.assertEqual(candidates, 1)
@@ -92,18 +92,47 @@ class VolumeBreakoutScanTests(unittest.TestCase):
     def test_sorted_by_ratio_and_capped(self):
         for i in range(vbs.MAX_MATCHES + 5):
             code = '%06d' % i
-            self.daily[code] = [{'date': '2026-09-03', 'volume': 100}]
-        rows = [{'code': '%06d' % i, 'trade_volume': 100 + i} for i in range(vbs.MAX_MATCHES + 5)]
+            self.daily[code] = [{'date': '2026-09-03', 'volume': 100000}]
+        rows = [{'code': '%06d' % i, 'trade_volume': 100000 + i * 1000} for i in range(vbs.MAX_MATCHES + 5)]
         matches, _ = vbs.scan(board_with(rows), FakeConn(), 'now')
         self.assertEqual(len(matches), vbs.MAX_MATCHES)
         ratios = [m['patternDetail']['volumeRatio'] for m in matches]
         self.assertEqual(ratios, sorted(ratios, reverse=True))
 
+    def test_illiquid_shells_are_filtered_out(self):
+        """2026-09-04 운영 실측에서 드러난 문제.
+
+        거래증가율 순위 상위가 전부 껍데기였다 - 티와이홀딩스우 4,755주,
+        "하나 인버스 2X 콩 선물 ETN(H)" 402주처럼 전일 거래량이 거의 0이라 증가율이
+        상한값(9999.99)에 박힌 종목들이다. 이런 건 "전일 거래량 돌파"를 항상 통과해
+        목록을 덮어버린다.
+        """
+        # 전일 거래량이 하한 미만이면 배수가 아무리 커도 제외한다.
+        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 400}]
+        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 4755}]), FakeConn(), 'now')
+        self.assertEqual(matches, [])
+
+        # 오늘 거래량이 하한 미만이어도 제외한다(전일이 더 적었더라도).
+        self.daily['000002'] = [{'date': '2026-09-03', 'volume': vbs.MIN_PREV_VOLUME}]
+        matches, _ = vbs.scan(board_with([{'code': '000002', 'trade_volume': 402}]), FakeConn(), 'now')
+        self.assertEqual(matches, [])
+
+    def test_etfs_are_excluded(self):
+        # 거래량 상위는 KODEX 인버스 같은 지수 ETF가 상시 차지한다. 차트검색은 종목을
+        # 찾는 화면이라 이들이 들어가면 목록이 쓸모없어진다.
+        self.daily['069500'] = [{'date': '2026-09-03', 'volume': 1000000}]
+        rows = [{'code': '069500', 'name': 'KODEX 인버스', 'trade_volume': 5000000}]
+        matches, _ = vbs.scan(board_with(rows), FakeConn(), 'now', etf_codes={'069500'})
+        self.assertEqual(matches, [])
+        # ETF 목록을 못 받아왔을 때(빈 집합)는 제외하지 않고 그대로 진행한다.
+        matches, _ = vbs.scan(board_with(rows), FakeConn(), 'now', etf_codes=set())
+        self.assertEqual(len(matches), 1)
+
     def test_match_shape_matches_the_other_pattern_tabs(self):
         # js/pattern-scan.js가 모든 탭에 같은 렌더를 쓴다 - 키가 빠지면 그 탭만 깨진다.
-        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 1000}]
+        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
         matches, _ = vbs.scan(board_with([{'code': '000001', 'name': '테스트',
-                                           'trade_volume': 2000, 'price': 100}]), FakeConn(), 'now')
+                                           'trade_volume': 200000, 'price': 100}]), FakeConn(), 'now')
         item = matches[0]
         for key in ('code', 'name', 'price', 'changeRate', 'date', 'miniChart',
                     'score', 'reasons', 'interpretation', 'patternDetail'):
