@@ -2230,6 +2230,36 @@ def scan_performance(scanner: str = '', since: str = '', horizons: str = '1,3,5'
 _MINUTE_CHART_READ_SYMBOLS = domestic_futures.MINUTE_SYMBOLS | {'KOSPI200_NIGHT'}
 
 
+def _futures_entry(result):
+    """/futures 응답을 미리 직렬화·gzip해서 캐시에 함께 넣는다.
+
+    2026-09-04 실측(운영, GitHub 러너에서): `/futures?days=365`가 TTFB 2.56초,
+    `?interval=day&days=250`이 TTFB 3.71초였다. 비압축 본문이 1.36MB / 1.10MB다.
+    3초 간격으로 같은 URL을 두 번 불러도 두 번째가 빨라지지 않았다 - `_futures_cache`는
+    파이썬 리스트만 들고 있고 `envelope()` 직렬화는 매 요청 다시 했기 때문이다.
+
+    이게 화면에서 문제가 된 경로(2026-09-04 사용자 스크린샷): js/kospi-futures.js와
+    js/overnight-market.js가 이 큰 요청을 10초 abort로 건다. 러너에서 2.5~3.7초면
+    휴대폰 4G에서는 그 두 배가 쉽게 나오고, 한 번 삐끗하면 10초를 넘겨 차트가 통째로
+    비고 "시세를 불러오지 못했어요"가 뜬다.
+
+    /invest-signal에 쓴 것과 같은 방식이다: 만들어둔 바이트를 그대로 재사용하고,
+    Content-Encoding을 직접 달아 GZipMiddleware가 건드리지 않게 한다(이중 압축 방지).
+    gzip을 못 받는 클라이언트를 위해 원본 바이트도 함께 들고 있는다.
+    """
+    payload = json.dumps(envelope(result), ensure_ascii=False, default=str).encode('utf-8')
+    return {'raw': payload, 'gzip': gzip_lib.compress(payload, 6), 'data': result}
+
+
+def _futures_response(request, entry):
+    accepts_gzip = 'gzip' in (request.headers.get('accept-encoding') or '').lower() if request else False
+    if accepts_gzip:
+        return Response(content=entry['gzip'], media_type='application/json',
+                        headers={'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding'})
+    return Response(content=entry['raw'], media_type='application/json',
+                    headers={'Vary': 'Accept-Encoding'})
+
+
 @app.get('/futures')
 def futures(request: Request, interval: str = 'day', days: int = 90, symbols: str = ''):
     """보조지수/코스피 선물 페이지 전용 - 미국 현물지수 3종+선물 3종/SOX/VIX/WTI(네이버) +
@@ -2269,7 +2299,8 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
     cache_key = (interval, days, symbols)
     cached = _futures_cache.get(cache_key)
     if cached is not None and started - cached['t'] < _FUTURES_TTL:
-        return envelope(cached['data'])
+        _futures_cache.move_to_end(cache_key)
+        return _futures_response(request, cached)
     conn = db_schema.get_conn()
     try:
         prices = {p['symbol']: p for p in db_schema.load_all_future_prices(conn)}
@@ -2370,7 +2401,9 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
             })
     finally:
         conn.close()
-    _futures_cache[cache_key] = {'t': started, 'data': result}
+    entry = _futures_entry(result)
+    entry['t'] = started
+    _futures_cache[cache_key] = entry
     _futures_cache.move_to_end(cache_key)
     _evict_lru(_futures_cache, 50)  # 2026-08-03: 전량비움 대신 LRU 1건씩 제거
     # 첫 로딩이 느릴 때 원인을 로그로 좁히기 위한 측정 - 정상 구간(수백 ms)에서는 조용하다.
@@ -2379,7 +2412,7 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
         logging.getLogger('main').warning(
             '/futures 응답 %.1fs (interval=%s days=%d symbols=%s rows=%d)',
             elapsed, interval, days, symbols or '-', sum(len(r['chart']) for r in result))
-    return envelope(result)
+    return _futures_response(request, entry)
 
 
 # 월 단위 응답이 1,900건을 넘고(미국 Finnhub 예정 실적이 대부분) 아래 필드는
@@ -2484,9 +2517,13 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
 
     def safe_futures():
         try:
-            payload = futures(request, interval='day', days=365,
-                              symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC')
-            return payload.get('data') or []
+            # 라우트가 Response(직렬화된 바이트)를 돌려주므로 여기서는 캐시 항목의
+            # 파이썬 값을 그대로 꺼내 쓴다(바이트를 다시 파싱하지 않는다).
+            futures(request, interval='day', days=365,
+                    symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC')
+            entry = _futures_cache.get(
+                ('day', 365, 'KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC'))
+            return (entry or {}).get('data') or []
         except Exception as exc:
             logging.getLogger('main').warning('weekly report futures failed: %s', type(exc).__name__)
             return []
