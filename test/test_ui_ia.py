@@ -399,7 +399,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260904-solari-flap-v2", skin)
+        self.assertIn("style.css?v=20260904-solari-theme-v3", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -2786,8 +2786,6 @@ console.log(JSON.stringify(cases.map(function (iso) {
             board)
         self.assertIn("background: var(--hrt-board-bg) !important;", board)
         for token in (
-            "--hrt-board-bg: #0b0d10;",
-            "--hrt-board-ink: #f7d774;",
             # 홈 규칙이 참조하는 토큰을 판 안에서 갈아끼우는 것이 이 스타일의 핵심이다.
             "--text-main: var(--hrt-board-ink-strong);",
             "--rule: var(--hrt-board-seam);",
@@ -2796,21 +2794,31 @@ console.log(JSON.stringify(cases.map(function (iso) {
             "font-variant-numeric: tabular-nums;",
         ):
             self.assertIn(token, board)
-        # 양각·음각: 칸마다 위 절반이 밝고 아래 절반이 어두우며 가운데 접힘선이 있다.
-        self.assertIn("--hrt-flap-top: #1b1f26;", board)
-        self.assertIn("--hrt-flap-bottom: #12151a;", board)
-        self.assertIn("inset 0 1px 0 rgba(255, 255, 255, .07)", board)
-        self.assertIn("inset 0 -1px 0 rgba(0, 0, 0, .55)", board)
+        # 양각·음각은 값이 아니라 토큰으로 들어가야 테마별로 뒤집을 수 있다.
+        self.assertIn("inset 0 1px 0 var(--hrt-emboss)", board)
+        self.assertIn("inset 0 -1px 0 var(--hrt-deboss)", board)
+        self.assertIn("var(--hrt-fold) calc(50% - 1px)", board)
         # 색 정지 위치에 단위 없는 0을 쓰면 선언이 통째로 무효가 된다.
         self.assertNotIn("var(--hrt-flap-top) 0,", board)
-        # 의미색은 유지한다(CLAUDE.md) - 검은 판에서 대비만 올린 빨강/파랑.
-        self.assertIn("--up: #ff6a5a;", board)
-        self.assertIn("--down: #5ec8ff;", board)
+
+        # 라이트 모드는 사이트 기존 색을 그대로 쓴다(2026-09-04 요청).
+        light = board[:board.index("── 다크 모드")]
+        self.assertIn("--hrt-board-ink-strong: #171717;", light)   # 기존 --text-main
+        self.assertIn("--hrt-board-ink-dim: #6f7480;", light)      # 기존 --text-sub
+        self.assertIn("--hrt-head-bg: #26364a;", light)            # 기존 --accent-dark
+        self.assertIn("--up: #b42318;", light)                     # 기존 --up
+        self.assertIn("--down: #245b9e;", light)                   # 기존 --down
+        # 다크 모드에서만 검은 판 + 앰버가 된다.
+        dark = board[board.index("── 다크 모드"):]
+        self.assertIn("--hrt-board-bg: #0b0d10;", dark)
+        self.assertIn("--hrt-board-ink: #f7d774;", dark)
+        self.assertIn("--up: #ff6a5a;", dark)
+        self.assertIn("--down: #5ec8ff;", dark)
         # 칸 머리 앰버 띠도 홈 규칙(th에 color/font-family 지정)을 넘어야 한다.
         self.assertIn(
             "body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th,",
             board)
-        self.assertIn("html.dark .home-realtime-board { background: var(--hrt-board-bg) !important; }", board)
+        self.assertIn("background: var(--hrt-board-bg) !important;", dark)
         self.assertIn("@media (prefers-reduced-motion: reduce)", board)
 
     def test_realtime_board_rows_flip_in_like_a_departure_board(self):
@@ -2873,6 +2881,24 @@ console.log(JSON.stringify(cases.map(function (iso) {
             with self.subTest(path=path):
                 self.assertNotIn("icon-9bolt", self.read(path))
         self.assertNotIn("icon-9bolt", skin)
+
+
+    def test_stock_search_result_row_survives_long_stock_names(self):
+        """2026-09-04 사용자 스크린샷: "KODEX SK하이닉스단일종목레버리지"를 검색하면
+        모바일에서 현재가·등락률·거래량이 서로 겹쳐 보였다.
+
+        원인은 그리드 자식의 기본 min-width:auto(=min-content)다. fr 트랙만 쓰면
+        긴 이름이 자기 트랙보다 커지고, 뒤 칸들이 컨테이너 밖으로 밀려 겹친다.
+        minmax(0, …)로 0까지 줄어들 수 있게 하고 내용은 말줄임으로 처리한다.
+        """
+        css = self.read("css/stock-search.css")
+        self.assertIn("minmax(0, 2fr) minmax(0, 1fr) minmax(0, .8fr) minmax(0, 1fr)", css)
+        self.assertIn("#stock-search .ss-result-row > span { min-width: 0; }", css)
+        self.assertIn("#stock-search .ss-result-name > span {", css)
+        # 이름은 두 줄까지 - 한 줄로 자르면 "KODEX ..."만 남아 종목을 알 수 없다.
+        self.assertIn("-webkit-line-clamp: 2;", css)
+        # 아주 좁은 화면에서는 거래량을 빼서 이름 폭을 확보한다.
+        self.assertIn("@media (max-width: 430px)", css)
 
 
 
