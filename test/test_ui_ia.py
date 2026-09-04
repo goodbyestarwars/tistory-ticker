@@ -107,7 +107,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("{ href: '/page/market-temp?view=stocks', label: '국내 주요종목' }", menu)
         self.assertIn("query.get('view') === 'stocks'", menu)
         self.assertIn("if (!parts[1]) return query.get('view') !== 'stocks';", menu)
-        self.assertIn("path === '/page/market-temp'", menu)
         market_group = re.search(
             r"\{\n\s+label: '시장',\n\s+children: \[(?P<body>.*?)\n\s+\]\n\s+\},",
             menu,
@@ -585,16 +584,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_floating_scroll_top_button_does_not_cover_mobile_body_text(self):
         """2026-08-31: 떠 있는 "맨 위로" 버튼이 본문 글자를 덮고 있었다(실측 30x24px).
-        고정 버튼이 전체폭 본문 위에 있으면 스크롤 위치에 따라 항상 뭔가를 가리므로,
-        하단 네비가 있는 모바일에서는 버튼을 숨기고 "현재 탭 재탭 = 맨 위로"로 옮겼다."""
+        고정 버튼이 전체폭 본문 위에 있으면 스크롤 위치에 따라 항상 뭔가를 가리므로
+        모바일에서는 숨겼다.
+
+        2026-09-04: 당시 대체 수단이던 "현재 탭 재탭 = 맨 위로"는 하단 탭바를 걷어내며
+        함께 사라졌다. 그래도 버튼을 되살리지는 않는다 - 되살리면 본문을 가리던 원래
+        문제가 그대로 돌아온다. 맨 위로 가는 수단은 본문을 가리지 않는 형태로 따로
+        설계한다. 이 테스트가 지키는 것은 "버튼이 모바일 본문을 덮지 않는다" 하나다.
+        """
         style = self.read("style.css")
-        menu = self.read("js/skin-menu.js")
         self.assertIn('.scroll-top-btn { display: none !important; }', style)
         # 기본 규칙은 남겨둔다(이 버튼은 원래부터 모바일 전용 - 기본 display:none,
         # 720px 블록에서만 flex로 켰었다. 721px 이상은 예전에도 안 보였다).
         self.assertIn('.scroll-top-btn {\n  position: fixed;', style)
-        self.assertIn("item.classList.contains('active')", menu)
-        self.assertIn("window.scrollTo({ top: 0, behavior: 'smooth' })", menu)
 
     def test_interest_band_opacity_is_not_multiplied_by_a_presentation_attribute(self):
         """2026-08-30 FOUC 수정에서 넣은 fill-opacity가 CSS의 rgba 알파와 곱해져
@@ -1034,35 +1036,49 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("나눔고딕", license_page)
         self.assertNotIn("NanumGothic", license_page)
 
-    def test_mobile_app_bottom_navigation_is_available_without_skin_redeployment(self):
+    def test_mobile_navigation_is_the_top_menu_not_a_bottom_tab_bar(self):
+        """2026-09-04: 모바일 하단 탭바를 걷어내고 상단 2단 메뉴로 되돌렸다.
+
+        2026-09-03에는 중복(상단 38px + 하단 65px)을 줄이려고 상단을 감췄는데, 사용자
+        판단은 "모바일인데 메뉴가 사라졌다"였다. 이 사이트는 1차 7개·2차까지 12개
+        목적지라 5칸 탭바에 안 들어가고, 못 담은 항목이 더보기 시트로 밀려 길찾기가
+        오히려 어려워졌다. 탭바가 되살아나면 같은 문제가 재발하므로 여기서 막는다.
+        """
         menu = self.read("js/skin-menu.js")
         style = self.read("style.css")
-        for token in (
-            "mobileAppBottomNav",
-            "mobileAppSheet",
-            "mobileBottomActiveKey",
-            "data-bottom-action=\"more\"",
-            "/page/stock-calendar",
-            "/pages/overnight-market",
-            "/pages/kospi-futures",
-        ):
-            self.assertIn(token, menu)
-        for token in (
-            ".mobile-app-bottom-nav",
-            "grid-template-columns: repeat(5, minmax(0, 1fr));",
-            "safe-area-inset-bottom",
-            "body.iframe-mode .mobile-app-bottom-nav",
-            ".page-wrap { padding-bottom:",
-        ):
-            self.assertIn(token, style)
-        # 2026-09-03: 모바일은 상단 메뉴 줄을 감추고 하단 탭바 하나로 모은다.
-        # 상단과 하단이 같은 목적지를 두 번 노출하던 것을 없앤 결과라, 여기서는
-        # "상단이 접혀 있고" + "상단에만 있던 목적지가 더보기 시트에 남아 있는지"를 본다.
-        self.assertIn(":root { --topbar-height: 0px; }", style)
-        self.assertIn(".sidebar-left { display: none !important; }", style)
+
+        # 하단 탭바의 흔적이 남아 있으면 안 된다 - CSS만 지우고 DOM 주입이 남거나
+        # 그 반대면 빈 바가 뜨거나 죽은 규칙이 쌓인다.
+        for token in ("mobileAppBottomNav", "mobileAppSheet", "mobileBottomActiveKey",
+                      "mobileBottomIcon", "data-bottom-action"):
+            self.assertNotIn(token, menu)
+        for token in (".mobile-app-bottom-nav", ".mobile-app-bottom-item", ".mobile-app-sheet"):
+            self.assertNotIn(token, style)
+        # 탭바 높이만큼 띄워두던 보정도 함께 빠져야 한다(안 빼면 아래가 휑하게 남는다).
+        self.assertNotIn("calc(78px + env(safe-area-inset-bottom))", style)
+        self.assertNotIn("calc(78px + env(safe-area-inset-bottom) + 10px)",
+                         self.read("css/stock-search-panel.css"))
+
+        # 모바일에서 상단 메뉴가 다시 보여야 한다.
+        self.assertIn(":root { --topbar-height: 40px; }", style)
+        self.assertIn("html.nav-secondary-open { --topbar-height: 76px; }", style)
+        self.assertIn(".sidebar-left { display: flex !important; }", style)
         self.assertIn("body { word-break: keep-all; overflow-wrap: normal; }", style)
-        for token in ("/page/foreign-flow", "/page/pattern-scan", "/page/strategy-search"):
+
+        # 상단 메뉴가 모든 목적지를 담는지 - 탭바를 없앤 전제다.
+        for token in ("/page/foreign-flow", "/page/pattern-scan", "/page/strategy-search",
+                      "/page/stock-calendar", "/pages/overnight-market", "/pages/kospi-futures",
+                      "/page/market-temp", "/page/watchlist", "/guestbook"):
             self.assertIn(token, menu)
+
+    def test_mobile_logo_is_not_clipped_by_the_narrow_breakpoint(self):
+        # 2026-09-04 Chromium 360px 실측: .nav-logo max-width가 34vw(=122px)라
+        # 브랜드 표기 "ㄱㅖ조 ㅏ심폐소생술"이 "ㄱㅖ조 ㅏ심폐소…"로 잘렸다. 34vw는 로고와
+        # 검색창이 한 줄을 나눠 쓰던 시절 값인데, 2026-08-20에 navbar가 두 줄로 갈라지며
+        # 로고가 검색창과 경쟁하지 않게 됐다.
+        style = self.read("style.css")
+        self.assertNotIn(".navbar .nav-logo { max-width: 34vw; }", style)
+        self.assertIn(".navbar .nav-logo { max-width: calc(100% - 44px); }", style)
 
     def test_home_market_direction_uses_fast_temperature_breadth_strength(self):
         source = self.read("js/skin-main.js")
@@ -1202,7 +1218,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         bootstrap = self.read("js/stock-search-panel.js")
         my = self.read("js/my-dashboard.js")
         my_style = self.read("css/my-dashboard.css")
-        for token in ("/page/watchlist", "label: 'MY'", "data-bottom-key=\"my\""):
+        # 2026-09-04: 하단 탭바를 걷어내 MY 진입점은 상단 메뉴 하나로 모였다.
+        for token in ("/page/watchlist", "label: 'MY'"):
             self.assertIn(token, menu)
         for token in ("loadMyDashboard", "my-dashboard.js", "my-dashboard.css"):
             self.assertIn(token, main)

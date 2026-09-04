@@ -102,16 +102,6 @@
   .ssp-dropdown { width: min(300px, 85vw); }
 }
 
-/* 2026-08-20: style.css 앱형 하단 탭바(.mobile-app-bottom-nav, max-width:720px 구간에서만
-   노출, 높이 78px + safe-area, z-index 1200)가 이 위젯보다 늦게 그려지는 게 아니라 위에
-   있는데, 탭바 도입 당시 이 파일의 640px 미디어쿼리(위)가 bottom을 66px로만 낮춰서
-   탭바 상단과 겹치는 채로 남아 있었다(신고: 모바일에서 배너와 종목검색이 겹쳐 보임).
-   같은 문제를 먼저 겪은 style.css .home-switch-countdown과 동일하게 탭바 높이만큼
-   띄운다. 탭바는 720px 이하에서 노출되므로 이 규칙도 720px 이하로 맞춘다. */
-@media (max-width: 720px) {
-  .ssp-wrap { bottom: calc(78px + env(safe-area-inset-bottom) + 10px); }
-}
-
 /* ---- 다크모드 ---- */
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. */
