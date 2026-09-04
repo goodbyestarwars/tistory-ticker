@@ -649,7 +649,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
         self.assertIn("home-weekly-report.css?v=20260831-mobile-legibility-v1", script)
-        self.assertIn("home-weekly-report.js?v=20260831-mobile-legibility-v1", self.read("js/skin-main.js"))
+        self.assertIn("home-weekly-report.js?v=20260904-closed-order-v1", self.read("js/skin-main.js"))
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)
 
@@ -2883,6 +2883,25 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("document.head.appendChild(icon)", source)
         # apple-touch-icon은 건드리지 않는다(정사각형 PNG 자산이 없어 지우면 더 나빠진다).
         self.assertNotIn("apple-touch-icon\']", source)
+
+    def test_weekly_report_always_sits_after_the_dashboard(self):
+        """주간 리포트는 항상 대시보드 뒤에 둔다(2026-09-04 사용자 리포트).
+
+        주말 판정 창이 두 곳에서 달라서(리포트 토 07:00~, 휴장 시장 토 09:00~) 겹치지
+        않는 구간에 들어오면 리포트가 대시보드 **앞**에 붙었고, 그 뒤 휴장 탭을 누르면
+        휴장 안내가 긴 리포트 아래로 밀려 화면 맨 밑에 나왔다.
+        """
+        source = self.read("js/home-weekly-report.js")
+        # 붙이는 위치를 선택 시장으로 가르지 않는다 - 창이 또 어긋나도 순서가 흔들리지 않게.
+        self.assertNotIn("if (closedSelected && dashboard) dashboard.insertAdjacentElement", source)
+        self.assertIn("if (dashboard) dashboard.insertAdjacentElement('afterend', root);", source)
+        self.assertIn("else feed.insertBefore(root, feed.firstChild);", source)
+        # 이미 붙어 있으면 init()이 다시 불렸을 때 대시보드 뒤로 되돌린다.
+        self.assertIn("existing.previousElementSibling !== dashboard", source)
+        self.assertIn("dashboard.insertAdjacentElement('afterend', existing)", source)
+        # 위치 판정에 쓰이던 두 번째 closedSelected 재선언이 남아 있으면 안 된다.
+        self.assertEqual(source.count("var closedSelected ="), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
