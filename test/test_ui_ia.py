@@ -26,12 +26,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("{ href: '/page/stock-search', label: '종목' }", source)
         self.assertEqual(source.count("      label: '종목',"), 1)
         self.assertIn("{ href: '/page/foreign-flow', label: '종목분석' }", source)
-        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세 (US. Include)' }", source)
-        self.assertEqual(source.count("      label: '종목검색',"), 1)
+        # 2026-09-04: '종목검색'을 '종목'으로 합쳐 1차 메뉴를 6개로 줄였다. '실시간 시세'는
+        # 상단 검색창이 같은 페이지로 보내므로 메뉴에서 뺐다(주소는 그대로 살아 있다).
+        self.assertNotIn("label: '종목검색',", source)
+        self.assertNotIn("label: '실시간 시세 (US. Include)'", source)
+        self.assertIn("LEGACY_PAGE_URLS = ['/page/foreign-flow', '/page/stock-search']", source)
         self.assertNotIn("label: '종목뉴스'", source)
         self.assertIn("{ href: '/page/watchlist', label: 'MY' }", source)
         self.assertNotIn("label: '미국주식'", source)
-        self.assertEqual(len(primary_labels), 7)
+        self.assertEqual(len(primary_labels), 6)
 
     def test_write_button_uses_top_level_tistory_auth_navigation(self):
         skin = self.read("skin.html")
@@ -81,18 +84,24 @@ class UiInformationArchitectureTest(unittest.TestCase):
         )
         self.assertIsNotNone(group)
         body = group.group("body")
-        self.assertIn("{ href: '/page/foreign-flow', label: '종목분석' }", body)
-        self.assertIn("{ href: '/page/market-temp?view=stocks', label: '국내 주요종목' }", body)
-        self.assertIn("{ href: '/page/stock-search', label: '실시간 시세 (US. Include)' }", body)
-        search_group = re.search(
-            r"\{\n\s+label: '종목검색',\n\s+children: \[(?P<body>.*?)\n\s+\]\n\s+\},",
-            source,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(search_group)
-        search_body = search_group.group("body")
-        self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", search_body)
-        self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", search_body)
+        # 앞 둘은 종목을 '보는' 화면, 뒤 둘은 조건으로 '거르는' 화면이다. 4개가 한 줄에
+        # 있어도 안 헷갈리려면 이 순서가 유지돼야 한다(2026-09-04 요청 순서).
+        labels = re.findall(r"label: '([^']+)' \}", body)
+        self.assertEqual(labels, ['국내 주요종목', '종목분석', '차트검색', '전략검색'])
+        self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", body)
+        self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", body)
+
+    def test_nav_search_placeholder_shows_what_it_accepts(self):
+        """'종목검색'은 카테고리 이름이라 정보가 없고, 없앤 1차 메뉴 이름과도 겹쳤다.
+
+        예시를 넣으면 한글 종목명과 미국 티커가 둘 다 된다는 걸 한 줄로 알린다 -
+        옛 메뉴 라벨의 '(US. Include)'가 하려던 말이 여기로 옮겨온다.
+        """
+        source = self.read("js/skin-menu.js")
+        self.assertIn('placeholder="삼성전자 · NVDA 검색"', source)
+        self.assertNotIn('placeholder="종목검색"', source)
+        # 검색 결과가 실시간 시세 페이지로 가야 메뉴에서 뺀 자리를 대신할 수 있다.
+        self.assertIn("var TARGET_PAGE = '/page/stock-search';", self.read("js/stock-search-panel.js"))
 
     def test_domestic_market_indicators_is_separate_from_temperature_and_combined_with_futures(self):
         menu = self.read("js/skin-menu.js")
