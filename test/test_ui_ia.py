@@ -2812,6 +2812,27 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("@media (max-width: 430px)", css)
 
 
+    def test_overnight_market_websocket_does_not_blank_symbols_rest_has_not_delivered(self):
+        """2026-09-04 사용자 스크린샷(글로벌 시장지표): 다우존스 지수는 값이 있는데
+        나스닥100·S&P500·다우 "선물"만 "데이터 없음"이었다.
+
+        WebSocket 수신 처리가 REST 응답 도착 전에 SYMBOL_ORDER 전체를 그리면서, 그
+        패킷에 없는 심볼을 빈 값으로 덮어버린 것이 원인이다. REST 경로에는 이미
+        유예(_loading -> 15초 뒤 '데이터 없음')가 있었는데 WS 경로만 빠져 있었다.
+        /futures는 큰 요청이라(days=365, 비압축 1.36MB) WebSocket 첫 패킷보다 늦게
+        도착하는 게 정상이다.
+        """
+        source = self.read("js/overnight-market.js")
+        self.assertIn("function withLoadingPlaceholders(bySymbol)", source)
+        self.assertIn("function scheduleMissingDataDemotion(container)", source)
+        # 세 렌더 경로가 같은 헬퍼를 쓴다 - REST 초기, 캐시 뒤 신선 갱신, WebSocket 수신.
+        self.assertEqual(source.count("renderAll(container, withLoadingPlaceholders("), 2)
+        self.assertIn("renderAll(indicatorsContainer, withLoadingPlaceholders(bySymbol));", source)
+        self.assertIn("scheduleMissingDataDemotion(indicatorsContainer);", source)
+        # 옛 버그 형태 - WebSocket 수신이 유예 없이 SYMBOL_ORDER 전체를 덮던 코드.
+        self.assertNotIn("renderAll(indicatorsContainer, SYMBOL_ORDER.map(", source)
+
+
 
 if __name__ == "__main__":
     unittest.main()

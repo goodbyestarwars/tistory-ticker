@@ -1,5 +1,44 @@
 # 9Pay 주요 작업이력
 
+**2026-09-04 글로벌 시장지표 "데이터 없음" + 국내시장지표 로딩 실패**
+
+사용자 스크린샷 3장: 글로벌 시장지표에서 다우존스 지수는 값이 있는데 나스닥100·
+S&P500·다우 **선물**만 "데이터 없음", 국내시장지표는 차트 영역이 통째로 비고
+"국내시장지표 데이터를 불러오지 못했습니다"·"시세를 불러오지 못했어요".
+
+**먼저 실측했다.** 리포트 시점의 백엔드는 정상이었다 - `/health` ok, `/futures`가
+`NASDAQ100 29537 / SP500 7720 / DOW 53377`을 초 단위로 갱신 중,
+`/domestic-market-indicators` 200. 즉 데이터가 없어서 생긴 화면이 아니었다.
+
+원인 두 가지가 따로 있었다.
+
+**1. 프론트 - WebSocket 렌더가 REST 도착 전에 전체를 덮었다**(`js/overnight-market.js`).
+WS 수신 처리가 `SYMBOL_ORDER.map(bySymbol[s] || { symbol: s })`로 전체를 그렸다.
+`/futures`는 큰 요청이라(days=365, 비압축 1.36MB) WebSocket 첫 패킷보다 늦게 오는 게
+정상인데, 그 순간 WS 패킷에 없는 심볼이 전부 빈 값이 돼 "데이터 없음"으로 굳었다.
+REST 경로에는 이미 유예(`_loading` → 15초 뒤 강등)가 있었는데 **WS 경로만 빠져 있었다**.
+현물 지수는 WS가 실어주고 해외 선물은 안 실어줘서, 스크린샷처럼 선물만 비는 모양이
+나온다. `withLoadingPlaceholders()` / `scheduleMissingDataDemotion()`으로 공통화해
+세 렌더 경로(REST 초기, 캐시 뒤 신선 갱신, WS 수신)가 같은 규칙을 쓰게 했다.
+
+**2. 서버 - `/futures`가 큰 범위 요청에서 매번 다시 직렬화했다**(`scripts/cloud-vm/main.py`).
+실측(GitHub 러너): `?days=365` TTFB **2.56초**, `?interval=day&days=250` TTFB **3.71초**.
+비압축 1.36MB / 1.10MB. 3초 간격으로 같은 URL을 두 번 불러도 두 번째가 빨라지지
+않았다 - `_futures_cache`는 파이썬 리스트만 들고 있고 `envelope()` 직렬화는 매 요청
+다시 했기 때문이다. `js/kospi-futures.js`와 `js/overnight-market.js`는 이 요청을
+**10초 abort**로 거는데, 러너에서 2.5~3.7초면 휴대폰 4G에서는 두 배가 쉽게 나오고
+한 번 삐끗하면 10초를 넘긴다 → 차트가 통째로 비고 "시세를 불러오지 못했어요".
+
+`/invest-signal`에 쓴 것과 같은 방식으로 고쳤다(`_futures_entry` / `_futures_response`):
+응답을 미리 직렬화·gzip해 캐시에 함께 담고, 캐시 히트에서는 만들어둔 바이트를 그대로
+돌려준다. `Content-Encoding`을 직접 달아 GZipMiddleware가 건드리지 않게 한다(이중 압축
+방지). gzip을 못 받는 클라이언트를 위해 원본 바이트도 들고 있는다. 주간 리포트는
+라우트가 Response를 주게 되므로 캐시 항목의 파이썬 값을 직접 꺼내 쓰도록 바꿨다.
+
+검증: `pytest test` 897 passed(기존 실패 3건은 무관). 신규
+`test/test_futures_response_cache.py`가 raw/gzip 일치와 `Accept-Encoding` 분기를,
+`test_ui_ia.py`가 WS 경로의 옛 버그 형태 복귀를 막는다.
+
 **2026-09-04 전광판 색·질감 전면 원복 - 값이 바뀐 칸의 넘어가는 효과만 남김**
 
 사용자: "색은 완전 원복해줘. 난 숫자가 변할 때만 넘어가는 효과를 원한거야."

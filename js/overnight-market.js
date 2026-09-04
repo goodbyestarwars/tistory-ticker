@@ -701,6 +701,32 @@
     return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
   }
 
+  /* 아직 값이 안 온 심볼은 '데이터 없음'이 아니라 '확인 중...'으로 둔다.
+     유예시간이 지나도 안 오면 그때 '데이터 없음'으로 내린다.
+
+     2026-09-04 사용자 스크린샷(글로벌 시장지표): 다우존스 지수는 값이 있는데
+     나스닥100/S&P500/다우 선물만 "데이터 없음"이었다. 아래 WebSocket 수신 처리가
+     REST 응답이 도착하기 전에 SYMBOL_ORDER 전체를 그리면서, 그 패킷에 안 들어 있는
+     심볼을 전부 빈 값으로 덮어버린 것이다(REST 경로에는 이미 유예가 있었는데 WS
+     경로만 빠져 있었다). /futures는 큰 요청이라(days=365, 비압축 1.36MB) 응답이
+     WebSocket 첫 패킷보다 늦게 오는 게 정상이다. */
+  function withLoadingPlaceholders(bySymbol) {
+    return SYMBOL_ORDER.map(function (symbol) {
+      return bySymbol[symbol] || { symbol: symbol, _loading: true };
+    });
+  }
+
+  function scheduleMissingDataDemotion(container) {
+    var hasMissing = currentItems.some(function (item) { return item && item._loading; });
+    if (!hasMissing || missingDataTimer) return;
+    missingDataTimer = setTimeout(function () {
+      missingDataTimer = null;
+      renderAll(container, currentItems.map(function (item) {
+        return item && item._loading ? { symbol: item.symbol } : item;
+      }));
+    }, MISSING_DATA_GRACE_MS);
+  }
+
   function renderAll(container, items) {
     currentItems = items || [];
     var bySymbol = {};
@@ -726,28 +752,17 @@
       .then(function (futuresItems) {
         var bySymbol = {};
         futuresItems.forEach(function (it) { bySymbol[it.symbol] = it; });
-        var hasMissing = SYMBOL_ORDER.some(function (s) { return !bySymbol[s]; });
-        var items = SYMBOL_ORDER.map(function (s) { return bySymbol[s] || { symbol: s, _loading: true }; });
-        renderAll(container, items);
-
+        renderAll(container, withLoadingPlaceholders(bySymbol));
         // 일부 지표가 뒤늦게 도착하는 짧은 구간에는 '데이터 없음'으로 단정하지 않는다.
-        if (hasMissing && !missingDataTimer) {
-          missingDataTimer = setTimeout(function () {
-            missingDataTimer = null;
-            renderAll(container, currentItems.map(function (item) {
-              return item && item._loading ? { symbol: item.symbol } : item;
-            }));
-          }, MISSING_DATA_GRACE_MS);
-        }
+        scheduleMissingDataDemotion(container);
 
         // 캐시를 먼저 그린 경우에도 최신 REST 응답이 도착하면 즉시 화면을 갱신한다.
         if (lastFuturesUsedCache) {
           OvernightMarket.fetchFuturesFresh().then(function (freshItems) {
             var freshBySymbol = {};
             freshItems.forEach(function (it) { freshBySymbol[it.symbol] = it; });
-            renderAll(container, SYMBOL_ORDER.map(function (s) {
-              return freshBySymbol[s] || { symbol: s, _loading: true };
-            }));
+            renderAll(container, withLoadingPlaceholders(freshBySymbol));
+            scheduleMissingDataDemotion(container);
           }).catch(function () { /* 캐시 화면은 그대로 유지한다. */ });
         }
       })
@@ -822,7 +837,8 @@
         if (!quote || !quote.symbol) return;
         bySymbol[quote.symbol] = Object.assign({}, bySymbol[quote.symbol] || { symbol: quote.symbol }, quote);
       });
-      renderAll(indicatorsContainer, SYMBOL_ORDER.map(function (symbol) { return bySymbol[symbol] || { symbol: symbol }; }));
+      renderAll(indicatorsContainer, withLoadingPlaceholders(bySymbol));
+      scheduleMissingDataDemotion(indicatorsContainer);
       setIndicatorStatus('실시간');
       if (indicatorsStaleTimer) clearTimeout(indicatorsStaleTimer);
       indicatorsStaleTimer = setTimeout(function () { setIndicatorStatus('지연'); }, 20000);
