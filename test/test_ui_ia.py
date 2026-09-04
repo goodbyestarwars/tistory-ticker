@@ -1979,13 +1979,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/strategy-search.js")
         style = self.read("css/strategy-search.css")
         scan = self.read("scripts/cloud-vm/strategy_scan.py")
-        for token in ("6~12개월 참고 목표주가", "targetPriceCellHtml", "참고 목표주가", "70% 지점", "최대 30종목"):
+        for token in ("6~12개월 참고 목표주가", "targetPriceCellHtml", "참고 목표주가", "최대 30종목"):
             self.assertIn(token, source)
         self.assertIn("ss-target-price-note", style)
         self.assertIn("ss-target-price-table-wrap", style)
         self.assertIn("6~12개월 참고 목표주가", scan)
         self.assertIn("백테스트가 끝난 확정 예측값이 아니라", scan)
         self.assertIn("최대 {top_n}종목", scan)
+        # 2026-09-04: 애널리스트 목표가 보정 비율(70%)은 요약 줄에서 빼고 조건 설명의
+        # "보정" 줄이 값으로 들고 있다 - 요약과 본문이 같은 숫자를 두 번 말하지 않는다.
+        self.assertIn("{analyst_anchor:.0f}%만 반영해", scan)
+        self.assertIn("TARGET_PRICE_ANALYST_ANCHOR_FACTOR = 0.70", scan)
 
     def test_strategy_search_mobile_table_uses_compact_aligned_rows(self):
         style = self.read("css/strategy-search.css")
@@ -2831,6 +2835,34 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("scheduleMissingDataDemotion(indicatorsContainer);", source)
         # 옛 버그 형태 - WebSocket 수신이 유예 없이 SYMBOL_ORDER 전체를 덮던 코드.
         self.assertNotIn("renderAll(indicatorsContainer, SYMBOL_ORDER.map(", source)
+
+
+    def test_strategy_search_renders_methodology_as_labelled_rows(self):
+        """조건 설명을 한 문단 대신 "라벨 + 한 줄"로 그린다(2026-09-04 요청).
+
+        서버가 "라벨\t내용" 줄들로 보내고, 탭이 없는 줄은 라벨 없는 문단으로 그대로
+        그린다 - 옛 형식이나 GAS 캐시에 남은 응답도 깨지지 않는다.
+        """
+        source = self.read("js/strategy-search.js")
+        css = self.read("css/strategy-search.css")
+        self.assertIn("function methodologyRowsHtml(text)", source)
+        self.assertIn("var tab = line.indexOf('\\t');", source)
+        # 탭이 없으면 라벨 없는 한 줄로 폴백한다.
+        self.assertIn("if (tab === -1) return '<p class=\"ss-methodology-line\">'", source)
+        self.assertIn("methodologyRowsHtml(full)", source)
+        # 라벨 폭을 고정해야 여러 줄이 왼쪽에서 세로로 정렬된다.
+        self.assertIn("#strategy-search .ss-methodology-line {", css)
+        self.assertIn("grid-template-columns: 34px minmax(0, 1fr);", css)
+        self.assertIn("#strategy-search .ss-methodology-label {", css)
+        # 요약이 본문과 같은 숫자를 두 번 말하지 않는다.
+        summary = source[source.index("function methodologySummary(key)"):]
+        summary = summary[:summary.index("\n  }")]
+        # 주석은 왜 뺐는지를 설명하느라 숫자를 언급하므로 화면에 나가는 줄만 본다.
+        summary = "\n".join(
+            line for line in summary.splitlines() if not line.strip().startswith("//")
+        )
+        self.assertNotIn("35%", summary)
+        self.assertNotIn("30종목", summary)
 
 
 

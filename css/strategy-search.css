@@ -52,6 +52,23 @@
 /* 2026-08-22 요청: "조건 자세히" 접이식 토글 제거 - 항상 펼쳐서 보여준다(차트검색
    .ps-tab-desc와 동일 취지). */
 #strategy-search .ss-methodology-full { margin: 7px 0 0; border-top: 1px solid #e2e8f0; padding-top: 7px; }
+/* 2026-09-04: 한 문단짜리 조건 설명을 "라벨 + 한 줄"로 바꿨다(목표주가 괴리가 714자
+   8문장 한 덩어리였다). 라벨 폭을 고정해 여러 줄이 왼쪽에서 세로로 정렬되게 한다 -
+   눈이 걸릴 데가 생겨야 필요한 줄만 골라 읽을 수 있다. */
+#strategy-search .ss-methodology-line {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 0 8px;
+  margin: 0;
+}
+#strategy-search .ss-methodology-line + .ss-methodology-line { margin-top: 5px; }
+#strategy-search .ss-methodology-label {
+  color: #334155;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+/* 라벨이 없는 줄(옛 형식·폴백)은 두 칸을 다 쓴다. */
+#strategy-search .ss-methodology-line:not(:has(.ss-methodology-label)) { display: block; }
 
 /* ETF명·코드 검색은 통합 상품 toolbar 안에 배치한다. */
 #strategy-search .ss-etf-search-input {
@@ -260,6 +277,7 @@ html.dark #strategy-search .ss-methodology {
 }
 html.dark #strategy-search .ss-methodology-summary { color: rgba(245,239,224,.82) !important; }
 html.dark #strategy-search .ss-methodology-full { border-top-color: rgba(245,239,224,.14); }
+html.dark #strategy-search .ss-methodology-label { color: rgba(245,239,224,.82) !important; }
 html.dark #strategy-search .ss-etf-search-input {
   background: #1A1A1A;
   border-color: rgba(245, 239, 224, 0.2);

@@ -359,24 +359,39 @@
     if (key === 'undervalued') return '재무 조건을 통과한 종목 중 120일선 대비 가격이 눌린 종목을 섹터별로 표시합니다.';
     if (key === 'dividend') return '과거 현금배당 공시를 기준으로 배당수익률과 주당 현금배당금을 비교합니다.';
     if (key === 'etfReturn') return '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.';
-    // 2026-08-20: "연 1회 공시 스냅샷" 안내는 요약 줄에서 빼고 "조건 자세히"(전체
-    // methodology, NPS_METHODOLOGY_NOTE)에만 남겼다 - 거기 이미 같은 내용이 있다
-    // ("이 데이터는 매일 갱신되지 않고... 스냅샷입니다").
-    if (key === 'nationalPension') return '국민연금이 보유한 국내주식을 지분율 기준으로 골라 표시합니다. 화면에서 지분율 기준을 바꿀 수 있습니다.';
-    if (key === 'targetPriceGap') return '같은 업종의 PER·PBR 중앙값을 기준으로 현재가에서 35%만 부분수렴한 6~12개월 참고 목표주가입니다. 애널리스트 목표가보다 높아지면 70% 지점으로 낮추고, 괴리율 60% 초과 값은 제외합니다. 괴리율 높은 순 최대 30종목만 표시합니다.';
+    // 2026-08-20: "연 1회 공시 스냅샷" 안내는 요약 줄에서 빼고 아래 라벨 줄에만 남겼다.
+    if (key === 'nationalPension') return '국민연금이 보유한 국내주식을 지분율 기준으로 골라 표시합니다.';
+    // 2026-09-04: 요약은 "이 화면이 무엇인지" 한 문장까지만 한다. 35%·70%·60%·30종목을
+    // 요약과 본문이 둘 다 말하고 있어서 같은 숫자를 두 번 읽어야 했다 - 숫자는 아래
+    // 라벨 줄이 전부 들고 있으므로 여기서는 뺀다.
+    if (key === 'targetPriceGap') return '같은 업종의 PER·PBR 중앙값에 견줘 저평가된 종목의 6~12개월 참고 목표주가입니다.';
     return '전략 조건으로 후보군을 탐색하고, 세부 기준을 확인합니다.';
   }
 
   // 2026-08-22 요청: "조건 자세히" 접이식 토글 제거하고 차트검색(js/pattern-scan.js의
   // .ps-tab-desc)처럼 요약+전체 조건을 항상 펼쳐서 보여준다 - 조건을 숨기지 않는다는
   // 취지는 그대로, 클릭해서 펼치는 단계만 없앤 것.
+  /* 서버(scripts/cloud-vm/strategy_scan.py의 methodology())가 "라벨\t내용" 줄들로 보낸다.
+     탭은 산문에 절대 안 나오는 문자라 안전하게 쪼갤 수 있고, 탭이 없는 줄은 라벨 없는
+     문단으로 그대로 그린다 - 예전 형식(한 덩어리 문자열)이나 GAS 캐시에 남은 옛 응답도
+     깨지지 않는다. */
+  function methodologyRowsHtml(text) {
+    return String(text).split('\n').map(function (line) {
+      var tab = line.indexOf('\t');
+      if (tab === -1) return '<p class="ss-methodology-line">' + escapeHtml(line) + '</p>';
+      return '<p class="ss-methodology-line">'
+        + '<b class="ss-methodology-label">' + escapeHtml(line.slice(0, tab)) + '</b>'
+        + escapeHtml(line.slice(tab + 1)) + '</p>';
+    }).join('');
+  }
+
   function renderMethodology(container) {
     var box = container.querySelector('#ssMethodology');
     if (!box) return;
     var cat = scanData.categories[activeKey];
     var full = (cat && cat.methodology) || '상세 조건 정보가 없습니다.';
     box.innerHTML = '<p class="ss-methodology-summary">' + escapeHtml(methodologySummary(activeKey)) + '</p>'
-      + '<p class="ss-methodology-full">' + escapeHtml(full) + '</p>';
+      + '<div class="ss-methodology-full">' + methodologyRowsHtml(full) + '</div>';
   }
 
   // 분기가 여러 개라 각 분기 끝에서 부르지 않고 한 겹 감싼다 - 새 카테고리를 추가해도
