@@ -101,8 +101,12 @@ jobs:
             # 종목분석 응답을 3.06MB로 읽었던 게 그 경우였다. 아래에서 헤더의
             # content-encoding/content-length(전송 바이트)와 size_download(디코딩 후 바이트)를
             # 나란히 찍어 둘을 헷갈리지 않게 한다.
+            # ttfb(첫 바이트까지)와 speed(본문 전송 속도)를 함께 찍는 이유: 느릴 때
+            # 서버가 응답을 만드느라 느린 건지(ttfb가 큼) 본문이 느리게 흐르는 건지
+            # (ttfb는 짧고 speed가 낮음) 총시간만으로는 구분할 수 없다. 2026-09-03에
+            # /invest-signal이 6~15초인 원인을 CPU로 세 번 잘못 짚고 나서 넣었다.
             meta="$(curl -sS -L --compressed --max-redirs 5 -m 30 -o "$body" -D "$hdr" \
-              -w 'http_code=%{http_code} time_total=%{time_total}s decoded=%{size_download}B content_type=%{content_type}' \
+              -w 'http_code=%{http_code} time_total=%{time_total}s ttfb=%{time_starttransfer}s connect=%{time_connect}s speed=%{speed_download}B/s decoded=%{size_download}B content_type=%{content_type}' \
               "$url" 2>&1)" || {
                 echo "요청 실패: $meta"
                 fail=1
