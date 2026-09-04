@@ -390,7 +390,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260830-no-paint-guard-v1", skin)
+        self.assertIn("style.css?v=20260904-us-name-cell-v1", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -726,10 +726,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260830-idle-wics-v1", main)
+        self.assertIn("home-realtime-table.js?v=20260904-us-name-cell-v1", main)
         for token in (
             "function localizedUsName(item)",
-            "name_ko || item.display_name",
+            "item.display_name || item.name_en",
             "US_DISPLAY_NAMES",
             "state.pendingMarket = currentMarket()",
             "if (currentMarket() !== market) return;",
@@ -2724,6 +2724,40 @@ console.log(JSON.stringify(cases.map(function (iso) {
             ["futures", "선물 거래중"],
             ["spot", "본장 마감"],
         ])
+
+
+    def test_us_stock_name_cell_survives_long_names_on_mobile(self):
+        """2026-09-04 사용자 리포트: 미국 종목판 5·13·17·19행이 "순위 + 로고 + ..."만 남았다.
+
+        모바일에서 종목 셀은 table-cell이고 `<a>`는 inline-block이다. `<a>`의
+        max-width가 셀 폭 100%라 앞의 순위·로고(37px)만큼 셀 밖으로 나가는데,
+        inline-block은 쪼갤 수 없어서 셀의 text-overflow가 글자를 자르는 대신 박스
+        전체를 "..."로 바꾼다 - 이름과 티커가 같이 사라진다(헤드리스 크롬 재현).
+
+        순위 폭을 고정하고 `<a>`가 항상 셀 안에 들어오게 하면 잘림이 `<a>` 자신의
+        말줄임으로 처리된다("ISHARES SEMICOND...").
+        """
+        css = self.read("style.css")
+        mobile = css[css.index('@media (max-width: 720px)', css.index('.hrt-etf-toggle')):]
+        self.assertIn("max-width: calc(100% - 44px);", mobile)
+        rank_rule = mobile[mobile.index(".home-realtime-board .hrt-rank {"):]
+        self.assertIn("display: inline-block;", rank_rule[:200])
+        self.assertIn("width: 15px;", rank_rule[:200])
+
+    def test_us_display_name_ignores_english_text_in_the_korean_field(self):
+        """KIS 해외 순위는 ETF에서 한글명 칸에 영문 정식명을, 영문명 칸에 티커를 넣는다.
+
+        VM(scripts/cloud-vm/market_board.py)에서 정리하지만 GAS 폴백과 localStorage에
+        남은 이전 응답도 같은 모양이라 화면에서도 한 번 더 거른다.
+        """
+        source = self.read("js/home-realtime-table.js")
+        self.assertIn("var HANGUL_RE = /[가-힣]/;", source)
+        self.assertIn("if (korean && (state.market !== 'us' || HANGUL_RE.test(korean))) return korean;", source)
+        # 영문명 칸이 티커뿐이면 한글명 칸의 영문 정식명이 유일한 이름이다.
+        self.assertIn("english.toUpperCase() === symbol.toUpperCase()", source)
+        backend = self.read("scripts/cloud-vm/market_board.py")
+        self.assertIn("def _normalize_us_names(", backend)
+        self.assertIn("name_en, name_ko = _normalize_us_names(", backend)
 
 
 

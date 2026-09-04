@@ -620,6 +620,31 @@ def fetch_sidebar_rank_kis(appkey, appsecret, limit=5):
     }
 
 
+_HANGUL_RE = re.compile(r'[가-힣]')
+
+
+def _normalize_us_names(name_en, name_ko, symbol):
+    """미국 종목의 영문명/한글명 칸을 실제 내용에 맞게 정리한다.
+
+    2026-09-04 운영 실측: KIS 해외 순위 응답은 ETF에서 두 칸이 뒤집혀 온다.
+    한글명 칸에 영문 정식명이("SOXX" -> "ISHARES SEMICONDUCTOR",
+    "RDIV" -> "INVESCO S&P ULTRA DIVIDEND REVENUE"), 영문명 칸에는 티커만 들어온다.
+    프론트(js/home-realtime-table.js localizedUsName)는 한글명을 가장 먼저 고르므로
+    그대로 두면 종목판에 30자가 넘는 영문 대문자가 표시 이름으로 올라간다.
+
+    한글이 한 글자도 없는 값은 한글명으로 쓰지 않는다. 그때 영문명 칸이 티커뿐이면
+    (=정식명을 잃어버리는 경우) 그 값을 영문명으로 옮겨 이름 자체는 보존한다.
+    """
+    name_en = str(name_en or '').strip()
+    name_ko = str(name_ko or '').strip()
+    symbol = str(symbol or '').strip()
+    if name_ko and not _HANGUL_RE.search(name_ko):
+        if not name_en or name_en.upper() == symbol.upper():
+            name_en = name_ko
+        name_ko = ''
+    return name_en or symbol, name_ko
+
+
 def _us_row(symbol, finnhub_api_key):
     try:
         quote = us_stocks.quote(symbol)
@@ -712,8 +737,11 @@ def _us_rank_row(rank_row, finnhub_api_key):
     price = abs(_number(_first(rank_row, 'cur_prc', 'price')) or 0)
     volume = _number(_first(rank_row, 'acc_trde_qty', 'volume')) or 0
     trade_amount_thousand_usd = _number(_first(rank_row, 'trde_prica', 'trade_amount')) or 0
-    name_en = profile.get('name') or _first(rank_row, 'stk_enm', 'en_name', 'name') or symbol
-    name_ko = _first(rank_row, 'stk_nm', 'hts_kor_isnm', 'knam') or ''
+    name_en, name_ko = _normalize_us_names(
+        profile.get('name') or _first(rank_row, 'stk_enm', 'en_name', 'name') or symbol,
+        _first(rank_row, 'stk_nm', 'hts_kor_isnm', 'knam') or '',
+        symbol,
+    )
     return {
         'market': 'us',
         'code': 'US:' + symbol,
@@ -790,8 +818,11 @@ def _kis_us_row(row):
     price = abs(_number(_kis_value(row, 'last', 'cur_prc', 'price')) or 0)
     volume = _number(_kis_value(row, 'tvol', 'acml_vol', 'volume')) or 0
     amount = _number(_kis_value(row, 'tamt', 'trde_prica', 'trade_amount'))
-    name_en = _kis_value(row, 'en_name', 'enam', 'natn_name', 'eng_name', 'english_name') or symbol
-    name_ko = _kis_value(row, 'hts_kor_isnm', 'knam', 'name', 'korean_name') or ''
+    name_en, name_ko = _normalize_us_names(
+        _kis_value(row, 'en_name', 'enam', 'natn_name', 'eng_name', 'english_name') or symbol,
+        _kis_value(row, 'hts_kor_isnm', 'knam', 'name', 'korean_name') or '',
+        symbol,
+    )
     return {
         'market': 'us',
         'code': 'US:' + symbol,
