@@ -151,6 +151,20 @@ class VolumeBreakoutWiringTests(unittest.TestCase):
         # 이 탭은 일봉 재판정 대상이 아니다 - 상세는 스냅샷을 그대로 쓴다.
         self.assertNotIn('volumeBreakout: true', source)
 
+    def test_timer_registers_itself_without_a_manual_step(self):
+        """수동 등록을 전제로 두면 안 된다.
+
+        처음에는 VM에서 setup 스크립트를 한 번 직접 돌리게 했는데, Cloud Shell과 VM을
+        구분하지 못해 반복 실패했고 등록 전까지 탭이 계속 비어 있었다. deploy_check.sh가
+        이미 5분마다 sudo 권한으로 도므로 거기서 유닛이 없을 때만 등록한다.
+        """
+        deploy = self.read('scripts/cloud-vm/deploy_check.sh')
+        self.assertIn('ensure_volume_breakout_timer() {', deploy)
+        # 유닛 파일 존재만 보고 지나가야 매 회차 재등록을 하지 않는다.
+        self.assertIn('if [ -f /etc/systemd/system/kiwoom-volumebreakout.timer ]; then', deploy)
+        # 실패해도 배포를 되돌리면 안 된다.
+        self.assertIn('ensure_volume_breakout_timer || true', deploy)
+
     def test_timer_runs_on_weekday_mornings_only(self):
         setup = self.read('scripts/cloud-vm/setup_volumebreakout_timer.sh')
         # 09:10 KST = 00:10 UTC, 평일만.

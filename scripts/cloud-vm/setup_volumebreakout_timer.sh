@@ -9,13 +9,12 @@
 # 주말·공휴일에도 타이머는 뜨지만 순위 API가 당일 거래를 돌려주지 않아 후보가 비고,
 # 그 경우 빈 목록으로 저장된다(화면은 "조건에 맞는 종목이 없습니다"로 표시).
 #
-# 실행 위치: GCP VM 안이다(Cloud Shell이 아니다 - Cloud Shell에는 이 리포 체크아웃도
-# ~/kiwoom-api도 없어서 "No such file or directory"가 난다).
-#   gcloud compute instances list          # VM 이름·존 확인
-#   gcloud compute ssh <VM이름> --zone=<존>
-#   cd ~/kiwoom-api && bash scripts/cloud-vm/setup_volumebreakout_timer.sh
-# VM에서 한 번만 실행하면 된다. 파일이 없으면 자동 배포(5분 주기)를 기다리거나
-# cd ~/kiwoom-api && git pull origin master 로 먼저 받는다.
+# 2026-09-04: 이 스크립트를 사람이 직접 돌릴 필요는 없다. deploy_check.sh가 5분마다
+# 돌면서 /etc/systemd/system/kiwoom-volumebreakout.timer가 없으면 여기를 실행한다
+# (ensure_volume_breakout_timer). 배포가 VM에 닿고 5분 안에 자동 등록된다.
+#
+# 수동으로 돌려야 할 때는 GCP VM 안에서만 된다 - Cloud Shell에는 이 리포 체크아웃도
+# ~/kiwoom-api도 없어서 "No such file or directory"가 난다.
 set -e
 HOME_DIR="$HOME/kiwoom-api"
 
