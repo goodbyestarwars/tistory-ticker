@@ -530,16 +530,37 @@
       return null;
     }
     var feed = document.querySelector('.feed');
-    if (!feed || existing) return null;
+    if (!feed) return null;
+    var dashboard = feed.querySelector('.home-dashboard');
+
+    // 2026-09-04: 리포트는 **항상** 대시보드 바로 뒤에 둔다.
+    //
+    // 예전에는 붙이는 위치를 그때의 선택 시장(closedSelected)으로 갈랐는데, 주말 판정
+    // 창이 두 곳에서 서로 달라서 어긋났다.
+    //   - 이 파일 isWeekendWindow(): 토 07:00 ~ 월 06:00 → 리포트를 붙인다
+    //   - skin-main.js isClosedWindowKst(): 토 09:00 ~ 월 09:00 → 시장이 'closed'가 된다
+    // 겹치지 않는 토 07:00~09:00에 홈에 들어오면 리포트는 붙는데 시장은 아직 'us'라
+    // else 가지를 타 **대시보드 앞**에 들어갔다. 그 상태에서 사용자가 휴장 탭을 누르면
+    // 휴장 안내(WEEKEND MARKET NOTE)가 긴 주간 리포트 아래로 밀려 화면 맨 밑에 나왔다
+    // (사용자 리포트: "이게 맨 밑에 있어"). init()이 다시 불려도 existing이 있으면
+    // 그대로 return 해서 위치를 되돌릴 기회도 없었다.
+    //
+    // 리포트가 보이는 건 어차피 휴장일 때뿐이고(skin-main.js applyHomeMarketSession이
+    // isClosed로 hidden을 동기화한다), 휴장 지면의 머리글은 대시보드 안의 휴장 안내다.
+    // 그러니 리포트가 그 앞에 설 이유가 없다. 판정 창이 또 어긋나도 순서가 흔들리지
+    // 않도록 위치를 시장 선택과 분리한다.
+    if (existing) {
+      if (dashboard && existing.previousElementSibling !== dashboard) {
+        dashboard.insertAdjacentElement('afterend', existing);
+      }
+      return null;
+    }
     ensureStyle();
     var root = document.createElement('section');
     root.id = 'homeWeeklyReport'; root.className = 'home-weekly-report';
     root.innerHTML = '<div class="hwr-loading"><strong>주간 리포트를 준비하는 중입니다.</strong><span>지수·뉴스·일정을 묶고 있습니다.</span></div>';
-    var dashboard = feed.querySelector('.home-dashboard');
-    var closedSelected = window.HomeMarketSelection && typeof window.HomeMarketSelection.get === 'function'
-      && window.HomeMarketSelection.get() === 'closed';
-    if (closedSelected && dashboard) dashboard.insertAdjacentElement('afterend', root);
-    else feed.insertBefore(root, dashboard || feed.firstChild);
+    if (dashboard) dashboard.insertAdjacentElement('afterend', root);
+    else feed.insertBefore(root, feed.firstChild);
     var cached = readLocalReport();
     if (cached) {
       root.setAttribute('data-hwr-refreshing', 'true');
