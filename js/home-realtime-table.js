@@ -664,6 +664,17 @@
     connectRealtime(state.realtimeGeneration);
   }
 
+  /* 전광판 플랩: 값이 실제로 바뀐 칸만 한 번 뒤집는다(style.css의 .hrt-flip).
+     같은 값이 다시 들어오는 체결에서는 움직이지 않아야 어디가 갱신됐는지 눈으로
+     따라갈 수 있다. 애니메이션이 겹치지 않도록 붙이기 전에 한 번 뗀다. */
+  function flapCell(cell) {
+    cell.classList.remove('hrt-flip');
+    // 클래스를 떼자마자 다시 붙이면 브라우저가 같은 프레임으로 묶어 애니메이션이
+    // 재시작하지 않는다. 강제 리플로우로 한 번 끊어준다.
+    void cell.offsetWidth;
+    cell.classList.add('hrt-flip');
+  }
+
   function updateRow(code, quote) {
     var row = state.mount && state.mount.querySelector('tr[data-code="' + cssEscape(code) + '"]');
     if (!row) return;
@@ -682,8 +693,10 @@
     var priceCell = row.querySelector('[data-field="price"]');
     // textContent로 쓰면 안에 있는 등락률 줄이 첫 체결에 지워진다.
     if (priceCell && price != null) {
+      var previous = priceCell.textContent;
       priceCell.innerHTML = priceCellInner(price, item && item.currency,
         rate != null ? rate : (item && item.change_rate));
+      if (previous !== priceCell.textContent) flapCell(priceCell);
     }
     var rising = row.querySelector('[data-field="rising"]');
     var falling = row.querySelector('[data-field="falling"]');

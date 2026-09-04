@@ -390,7 +390,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260904-us-name-cell-v1", skin)
+        self.assertIn("style.css?v=20260904-departure-board-v1", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -726,7 +726,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260904-us-name-cell-v1", main)
+        self.assertIn("home-realtime-table.js?v=20260904-departure-board-v1", main)
         for token in (
             "function localizedUsName(item)",
             "item.display_name || item.name_en",
@@ -2758,6 +2758,55 @@ console.log(JSON.stringify(cases.map(function (iso) {
         backend = self.read("scripts/cloud-vm/market_board.py")
         self.assertIn("def _normalize_us_names(", backend)
         self.assertIn("name_en, name_ko = _normalize_us_names(", backend)
+
+
+    def test_realtime_board_uses_departure_board_styling(self):
+        """2026-09-04 요청: 실시간 종목판을 공항·기차역 출발안내 전광판 스타일로.
+
+        구조·DOM·모바일 3열 축약은 그대로 두고 색·서체·질감만 덮는다. 홈 편집 지면
+        규칙들이 색을 디자인 토큰(var(--text-main) 등)으로 지정하고 있어, 판 안에서
+        그 토큰만 다시 정의하면 id 특이도와 싸우지 않고 전체가 따라온다.
+        """
+        css = self.read("style.css")
+        board = css[css.index("실시간 종목판 - 공항·기차역 출발안내 전광판"):]
+        for token in (
+            "--hrt-board-bg: #0c0e11;",
+            "--hrt-board-ink: #f7d774;",
+            # 홈 규칙이 참조하는 토큰을 판 안에서 갈아끼우는 것이 이 스타일의 핵심이다.
+            "--text-main: var(--hrt-board-ink-strong);",
+            "--rule: var(--hrt-board-seam);",
+            # th/td에 font-family !important가 걸려 있어 토큰으로 등폭을 넣는다.
+            "--font-data: ui-monospace",
+            "font-variant-numeric: tabular-nums;",
+        ):
+            self.assertIn(token, board)
+        # 의미색은 유지한다(CLAUDE.md) - 검은 바탕에서 대비만 올린 빨강/파랑이어야 한다.
+        self.assertIn("--up: #ff6a5a;", board)
+        self.assertIn("--down: #5ec8ff;", board)
+        # 칸 머리 앰버 띠는 홈 규칙(th에 color/font-family 지정)을 넘어야 해서
+        # 같은 접두어에 판 클래스를 더한 선택자가 함께 있어야 한다.
+        self.assertIn(
+            "body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th {",
+            board)
+        # 다크 모드에서도 같은 검은 판이어야 한다.
+        self.assertIn("html.dark .home-realtime-board { background: var(--hrt-board-bg) !important; }", board)
+        # 움직임을 줄이도록 설정한 사용자에게는 램프·플랩을 멈춘다.
+        self.assertIn("@media (prefers-reduced-motion: reduce)", board)
+
+    def test_realtime_board_flaps_only_cells_whose_value_changed(self):
+        """솔라리 플랩은 값이 실제로 바뀐 칸에서만 돈다.
+
+        같은 값이 다시 들어오는 체결에서도 뒤집히면 어디가 갱신됐는지 알 수 없다.
+        클래스를 떼고 바로 붙이면 브라우저가 같은 프레임으로 묶어 애니메이션이
+        재시작하지 않으므로 강제 리플로우로 한 번 끊는다.
+        """
+        source = self.read("js/home-realtime-table.js")
+        self.assertIn("function flapCell(cell)", source)
+        self.assertIn("cell.classList.remove('hrt-flip');", source)
+        self.assertIn("void cell.offsetWidth;", source)
+        self.assertIn("cell.classList.add('hrt-flip');", source)
+        self.assertIn("if (previous !== priceCell.textContent) flapCell(priceCell);", source)
+        self.assertIn(".home-realtime-board .hrt-price.hrt-flip {", self.read("style.css"))
 
 
 
